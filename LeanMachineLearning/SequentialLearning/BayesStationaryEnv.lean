@@ -91,8 +91,8 @@ def gap (κ : Kernel (𝓔 × α) ℝ) (E : Ω → 𝓔) (A : ℕ → Ω → α)
 
 omit [MeasurableSpace Ω] in
 /-- The gap is non-negative if the means are bounded by `u : ℝ` (even if `α` is not `Finite`). -/
-lemma gap_nonneg_of_le [Nonempty α] {κ : Kernel (𝓔 × α) ℝ} {E : Ω → 𝓔} {A : ℕ → Ω → α} {n : ℕ}
-    {ω : Ω} {u : ℝ} (h : ∀ e a, (κ (e, a))[id] ≤ u) : 0 ≤ gap κ E A n ω := by
+lemma gap_nonneg_of_le {κ : Kernel (𝓔 × α) ℝ} {E : Ω → 𝓔} {A : ℕ → Ω → α} {n : ℕ} {ω : Ω} {u : ℝ}
+    (h : ∀ e a, (κ (e, a))[id] ≤ u) : 0 ≤ gap κ E A n ω := by
   simp_rw [gap, Bandits.gap, Kernel.sectR_apply]
   linarith [le_ciSup ⟨u, Set.forall_mem_range.2 fun a ↦ (h (E ω) a)⟩ (A n ω)]
 

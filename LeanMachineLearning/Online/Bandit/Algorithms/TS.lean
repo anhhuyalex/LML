@@ -34,8 +34,7 @@ instance {hK : 0 < K} {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (
   Kernel.IsMarkovKernel.map _ (by fun_prop)
 
 noncomputable
-def TS.initialPolicy (hK : 0 < K) (Q : Measure 𝓔) [IsProbabilityMeasure Q]
-    (κ : Kernel (𝓔 × Fin K) ℝ) [IsMarkovKernel κ] : Measure (Fin K) :=
+def TS.initialPolicy (hK : 0 < K) (Q : Measure 𝓔) (κ : Kernel (𝓔 × Fin K) ℝ) : Measure (Fin K) :=
   have : Nonempty (Fin K) := Fin.pos_iff_nonempty.mp hK
   Q.map (IsBayesAlgEnvSeq.bestAction κ id)
 

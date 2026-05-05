@@ -59,7 +59,7 @@ lemma withDensity_map_equiv
 
 /-- Mapping a `withDensity` through a `MeasurableEquiv` from the snd component. -/
 lemma map_swap_withDensity_fst
-    {μ : Measure (α × β)} [SFinite μ]
+    {μ : Measure (α × β)}
     {f : β → ℝ≥0∞} (hf : Measurable f) :
     (μ.withDensity (f ∘ Prod.snd)).map Prod.swap
       = (μ.map Prod.swap).withDensity (f ∘ Prod.fst) := by
