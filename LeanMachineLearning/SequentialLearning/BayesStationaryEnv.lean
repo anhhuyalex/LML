@@ -168,11 +168,11 @@ lemma hasLaw_action_zero [IsProbabilityMeasure P] (h : IsBayesAlgEnvSeq Q κ alg
 
 lemma hasCondDistrib_action' (h : IsBayesAlgEnvSeq Q κ alg E A R' P) (n : ℕ) :
     HasCondDistrib (A (n + 1)) (IsAlgEnvSeq.hist A R' n) (alg.policy n) P :=
-  (h.hasCondDistrib_action n).comp_left (by fun_prop)
+  (h.hasCondDistrib_action n).comp_right' (by fun_prop)
 
 lemma hasCondDistrib_reward' [IsFiniteKernel κ] (h : IsBayesAlgEnvSeq Q κ alg E A R' P) (n : ℕ) :
     HasCondDistrib (R' (n + 1)) (fun ω ↦ (E ω, A (n + 1) ω)) κ P :=
-  (h.hasCondDistrib_reward n).comp_left (by fun_prop)
+  (h.hasCondDistrib_reward n).comp_right' (by fun_prop)
 
 end Laws
 
@@ -280,7 +280,7 @@ lemma IsAlgEnvSeq.isBayesAlgEnvSeq
     have hc : HasCondDistrib (A (n + 1)) (IsAlgEnvSeq.hist A R' n)
         (((alg.policy n).comap Prod.snd (by fun_prop)).comap f (by fun_prop)) P :=
       h.hasCondDistrib_action n
-    exact hc.comp_left (f := f)
+    exact hc.comp_right' (f := f)
   hasCondDistrib_reward n := by
     let f : (Iic n → α × 𝓔 × R) × α → (Iic n → α × R) × 𝓔 × α :=
       fun p ↦ ((fun i ↦ ((p.1 i).1, (p.1 i).2.2)), (p.1 ⟨0, by simp⟩).2.1, p.2)
@@ -288,7 +288,7 @@ lemma IsAlgEnvSeq.isBayesAlgEnvSeq
         (fun ω ↦ (IsAlgEnvSeq.hist A R' n ω, A (n + 1) ω))
         ((Kernel.prodMkLeft ((Iic n) → α × R) κ).comap f (by fun_prop)) P := by
       simpa [bayesStationaryEnv, Kernel.snd_prod] using (h.hasCondDistrib_reward n).snd
-    exact hc.comp_left (by fun_prop)
+    exact hc.comp_right' (by fun_prop)
 
 end IsAlgEnvSeq
 
