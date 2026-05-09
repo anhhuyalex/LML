@@ -1,7 +1,6 @@
 set -x -e
 
 cd verso_blueprint
-set -x -e
 lake exe cache get
 lake build
 lake exe blueprint-gen --output _out/site
