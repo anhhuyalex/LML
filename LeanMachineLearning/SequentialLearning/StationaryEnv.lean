@@ -6,7 +6,7 @@ Authors: Rémy Degenne, Paulo Rauber
 module
 
 public import LeanMachineLearning.Probability.Kernel.Composition.MapComap
-public import LeanMachineLearning.SequentialLearning.IonescuTulceaSpace
+public import LeanMachineLearning.SequentialLearning.Algorithm
 
 /-!
 # Oblivious and stationary environments
@@ -229,38 +229,5 @@ lemma condIndepFun_reward_hist_action_action' [StandardBorelSpace Ω]
   IsObliviousEnv.condIndepFun_reward_hist_action_action' h n hn
 
 end IsAlgEnvSeq
-
-namespace IT
-
-local notation "𝔓" => trajMeasure alg (stationaryEnv ν)
-
-/-- The conditional distribution of the reward at time `n` given the action at time `n` is `ν`. -/
-lemma condDistrib_reward_stationaryEnv (n : ℕ) :
-    condDistrib (IT.reward n) (IT.action n) 𝔓 =ᵐ[(𝔓).map (IT.action n)] ν :=
-  IsAlgEnvSeq.condDistrib_reward_stationaryEnv
-    (IT.isAlgEnvSeq_trajMeasure alg (stationaryEnv ν)) n
-
-/-- The reward at time `n + 1` is conditionally independent of the history up to time `n`
-given the action at time `n + 1`. -/
-lemma condIndepFun_reward_hist_action (n : ℕ) :
-    IT.reward (n + 1) ⟂ᵢ[IT.action (n + 1), IT.measurable_action _ ; 𝔓] IT.hist n :=
-  IsAlgEnvSeq.condIndepFun_reward_hist_action
-    (IT.isAlgEnvSeq_trajMeasure alg (stationaryEnv ν)) n
-
-lemma condIndepFun_reward_hist_action_action
-    {alg : Algorithm α R} {ν : Kernel α R} [IsMarkovKernel ν] (n : ℕ) :
-    reward (n + 1) ⟂ᵢ[action (n + 1), measurable_action (n + 1); trajMeasure alg (stationaryEnv ν)]
-      (fun ω ↦ (hist n ω, action (n + 1) ω)) :=
-  IsAlgEnvSeq.condIndepFun_reward_hist_action_action
-    (IT.isAlgEnvSeq_trajMeasure alg (stationaryEnv ν)) n
-
-lemma condIndepFun_reward_hist_action_action'
-    {alg : Algorithm α R} {ν : Kernel α R} [IsMarkovKernel ν] (n : ℕ) (hn : n ≠ 0) :
-    reward n ⟂ᵢ[action n, measurable_action n; trajMeasure alg (stationaryEnv ν)]
-      (fun ω ↦ (hist (n - 1) ω, action n ω)) :=
-  IsAlgEnvSeq.condIndepFun_reward_hist_action_action'
-    (IT.isAlgEnvSeq_trajMeasure alg (stationaryEnv ν)) n hn
-
-end IT
 
 end Learning

@@ -6,7 +6,7 @@ Authors: Rémy Degenne
 module
 
 public import LeanMachineLearning.Probability.Kernel.Basic
-public import LeanMachineLearning.SequentialLearning.IonescuTulceaSpace
+public import LeanMachineLearning.SequentialLearning.Algorithm
 
 /-!
 # Deterministic algorithms and environments
@@ -307,32 +307,5 @@ lemma action_detAlgorithm_ae_eq
   (IsDeterministicAlg.action_ae_eq_of_IsAlgEnvSeqUntil h hn).trans (by simp)
 
 end IsAlgEnvSeqUntil
-
-namespace IT
-
-local notation "𝔓" => trajMeasure (detAlgorithm nextA h_next action0) env
-
-lemma HasLaw_action_zero_detAlgorithm : HasLaw (IT.action 0) (Measure.dirac action0) 𝔓 where
-  map_eq := (IT.hasLaw_action_zero _ _).map_eq
-
-lemma action_zero_detAlgorithm [MeasurableSingletonClass α] :
-    IT.action 0 =ᵐ[𝔓] fun _ ↦ action0 := by
-  have h_eq : ∀ᵐ x ∂((𝔓).map (IT.action 0)), x = action0 := by
-    rw [(IT.hasLaw_action_zero _ _).map_eq]
-    simp [detAlgorithm]
-  exact ae_of_ae_map (by fun_prop) h_eq
-
-lemma action_detAlgorithm_ae_eq [StandardBorelSpace α] [Nonempty α] [StandardBorelSpace R]
-    [Nonempty R] (n : ℕ) : IT.action (n + 1) =ᵐ[𝔓] fun h ↦ nextA n (IT.hist n h) :=
-  ae_eq_of_condDistrib_eq_deterministic (by fun_prop) (by fun_prop) (by fun_prop)
-    (IT.condDistrib_action (detAlgorithm nextA h_next action0) env n)
-
-lemma action_detAlgorithm_ae_all_eq
-    [StandardBorelSpace α] [Nonempty α] [StandardBorelSpace R] [Nonempty R] :
-    ∀ᵐ h ∂𝔓, IT.action 0 h = action0 ∧ ∀ n, IT.action (n + 1) h = nextA n (IT.hist n h) := by
-  rw [eventually_and, ae_all_iff]
-  exact ⟨action_zero_detAlgorithm, action_detAlgorithm_ae_eq⟩
-
-end IT
 
 end Learning
