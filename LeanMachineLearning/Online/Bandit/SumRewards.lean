@@ -424,7 +424,7 @@ lemma prob_sum_ge_sqrt_log {σ2 : ℝ≥0}
 open Real
 
 omit [DecidableEq 𝓐] [StandardBorelSpace 𝓐] [Nonempty 𝓐] in
-lemma todo {σ2 : ℝ≥0} {c : ℝ}
+lemma prob_avg_add_sqrt_log_le {σ2 : ℝ≥0} {c : ℝ}
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a)) (hσ2 : σ2 ≠ 0)
     (hc : 0 ≤ c) (a : 𝓐) (n k : ℕ) (hk : k ≠ 0) :
     streamMeasure ν {ω | (∑ m ∈ range k, ω m a) / k + √(2 * c * σ2 * log (n + 1) / k) ≤ (ν a)[id]} ≤
@@ -450,7 +450,7 @@ lemma todo {σ2 : ℝ≥0} {c : ℝ}
   _ ≤ 1 / (n + 1) ^ c := prob_sum_le_sqrt_log hν hσ2 hc a k hk
 
 omit [DecidableEq 𝓐] [StandardBorelSpace 𝓐] [Nonempty 𝓐] in
-lemma todo' {σ2 : ℝ≥0} {c : ℝ}
+lemma prob_avg_sub_sqrt_log_ge {σ2 : ℝ≥0} {c : ℝ}
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a)) (hσ2 : σ2 ≠ 0)
     (hc : 0 ≤ c) (a : 𝓐) (n k : ℕ) (hk : k ≠ 0) :
     streamMeasure ν

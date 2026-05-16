@@ -246,7 +246,7 @@ lemma prob_ucbIndex_le [Nonempty (Fin K)] {alg : Algorithm (Fin K) ℝ}
     grind
   _ ≤ ∑ k ∈ Icc 1 n, (1 : ℝ≥0∞) / (n + 1) ^ c := by
     gcongr with k hk
-    exact todo hν hσ2 hc a n k (by grind)
+    exact prob_avg_add_sqrt_log_le hν hσ2 hc a n k (by grind)
   _ ≤ (n + 1) * (1 : ℝ≥0∞) / (n + 1) ^ c := by
     simp only [one_div, sum_const, Nat.card_Icc, add_tsub_cancel_right, nsmul_eq_mul, mul_one]
     rw [div_eq_mul_inv ((n : ℝ≥0∞) + 1)]
@@ -289,7 +289,7 @@ lemma prob_ucbIndex_ge [Nonempty (Fin K)] {alg : Algorithm (Fin K) ℝ}
     grind
   _ ≤ ∑ k ∈ Icc 1 n, (1 : ℝ≥0∞) / (n + 1) ^ c := by
     gcongr with k hk
-    exact todo' hν hσ2 hc a n k (by grind)
+    exact prob_avg_sub_sqrt_log_ge hν hσ2 hc a n k (by grind)
   _ ≤ (n + 1) * (1 : ℝ≥0∞) / (n + 1) ^ c := by
     simp only [one_div, sum_const, Nat.card_Icc, add_tsub_cancel_right, nsmul_eq_mul, mul_one]
     rw [div_eq_mul_inv ((n : ℝ≥0∞) + 1)]

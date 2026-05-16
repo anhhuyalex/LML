@@ -171,7 +171,7 @@ lemma Measure.snd_prodAssoc_compProd_prodMkLeft {α β γ : Type*}
   · exact Kernel.measurable_kernel_prodMk_left hs
   · exact hs.preimage (by fun_prop)
 
-lemma Measure.todo {α β γ : Type*}
+lemma Measure.map_swap_comprod_eq_fst_compProd {α β γ : Type*}
     {mα : MeasurableSpace α} {mβ : MeasurableSpace β} {mγ : MeasurableSpace γ}
     {μ : Measure (α × β)} [SFinite μ] {κ : Kernel α γ} [IsSFiniteKernel κ] :
     (((((μ ⊗ₘ (κ.prodMkRight β))).map Prod.swap).map MeasurableEquiv.prodAssoc.symm).fst).map
@@ -255,8 +255,9 @@ lemma condIndepFun_of_exists_condDistrib_prod_ae_eq_prodMkRight
     rw [condDistrib_ae_eq_iff_measure_eq_compProd _ (by fun_prop)] at h ⊢
     have h_fst : μ.map Z = (μ.map (fun ω ↦ (Z ω, X ω))).fst := by
       rw [Measure.fst_map_prodMk hX]
-    rw [h_fst, ← Measure.todo, ← h, Measure.map_map (by fun_prop) (by fun_prop),
-      Measure.map_map (by fun_prop) (by fun_prop), Measure.fst,
+    rw [h_fst, ← Measure.map_swap_comprod_eq_fst_compProd, ← h,
+      Measure.map_map (by fun_prop) (by fun_prop), Measure.map_map (by fun_prop) (by fun_prop),
+      Measure.fst,
       Measure.map_map (by fun_prop) (by fun_prop), Measure.map_map (by fun_prop) (by fun_prop)]
     congr
   symm
