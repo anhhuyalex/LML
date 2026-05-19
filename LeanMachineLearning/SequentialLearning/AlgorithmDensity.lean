@@ -112,7 +112,7 @@ lemma hasLaw_hist_withDensity (h : IsAlgEnvSeq A R' alg env P) (h₀ : IsAlgEnvS
         h₀.hasLaw_step_zero.map_eq]
       rw [← Measure.withDensity_rnDeriv_eq _ _ hc.p0,
         Measure.compProd_withDensity_left (by fun_prop)]
-      exact map_withDensity_equiv (by fun_prop)
+      exact map_equiv_withDensity (by fun_prop)
     | succ n ih =>
       let ρ h' (ar : α × R) := Kernel.rnDeriv (alg.policy n) (alg₀.policy n) h' ar.1
       have hs : stepKernel alg env n = (stepKernel alg₀ env n).withDensity ρ := by
@@ -125,7 +125,7 @@ lemma hasLaw_hist_withDensity (h : IsAlgEnvSeq A R' alg env P) (h₀ : IsAlgEnvS
           Measure.compProd_congr (h.hasCondDistrib_step n).condDistrib_eq,
           Measure.compProd_congr (h₀.hasCondDistrib_step n).condDistrib_eq, ih, hs,
           Measure.compProd_withDensity_withDensity (by fun_prop) (by fun_prop)]
-      exact map_withDensity_equiv (by fun_prop)
+      exact map_equiv_withDensity (by fun_prop)
 
 end IsAlgEnvSeq
 

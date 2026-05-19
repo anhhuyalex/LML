@@ -22,26 +22,22 @@ namespace MeasureTheory
 lemma map_withDensity_comp {g : α → γ} {f : γ → ℝ≥0∞} (hg : Measurable g) (hf : Measurable f) :
     (μ.withDensity (f ∘ g)).map g = (μ.map g).withDensity f := by
   ext s hs
-  simp only [Measure.map_apply hg hs, withDensity_apply _ (hg hs), withDensity_apply _ hs,
-    setLIntegral_map hs hf hg, Function.comp]
+  rw [Measure.map_apply hg hs, withDensity_apply _ (hg hs), withDensity_apply _ hs,
+    setLIntegral_map hs hf hg]
+  rfl
 
-lemma map_withDensity_equiv {e : α ≃ᵐ β} {f : α → ℝ≥0∞} (hf : Measurable f) :
-    (μ.withDensity f).map e = (μ.map e).withDensity (f ∘ e.symm) :=
-  calc (μ.withDensity f).map e
-      = (μ.withDensity ((f ∘ e.symm) ∘ e)).map e := by
-        congr
-        funext x
-        simp
-    _ = (μ.map e).withDensity (f ∘ e.symm) :=
-        map_withDensity_comp e.measurable (hf.comp e.symm.measurable)
+lemma map_equiv_withDensity {e : α ≃ᵐ β} {f : α → ℝ≥0∞} (hf : Measurable f) :
+    (μ.withDensity f).map e = (μ.map e).withDensity (f ∘ e.symm) := by
+  rw [← map_withDensity_comp e.measurable (hf.comp e.symm.measurable)]
+  congr
+  ext a
+  simp
 
 lemma map_swap_withDensity_fst {μ : Measure (α × β)} {f : β → ℝ≥0∞} (hf : Measurable f) :
-    (μ.withDensity (f ∘ Prod.snd)).map Prod.swap = (μ.map Prod.swap).withDensity (f ∘ Prod.fst) :=
-  calc (μ.withDensity (f ∘ Prod.snd)).map Prod.swap
-  _ = (μ.withDensity ((f ∘ Prod.fst) ∘ Prod.swap)).map Prod.swap :=
-    rfl
-  _ = (μ.map Prod.swap).withDensity (f ∘ Prod.fst) :=
-    map_withDensity_comp measurable_swap (hf.comp measurable_fst)
+    (μ.withDensity (f ∘ Prod.snd)).map Prod.swap =
+      (μ.map Prod.swap).withDensity (f ∘ Prod.fst) := by
+  rw [← map_withDensity_comp measurable_swap (hf.comp measurable_fst)]
+  congr
 
 end MeasureTheory
 
