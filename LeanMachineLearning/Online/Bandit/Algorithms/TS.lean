@@ -25,6 +25,9 @@ section Algorithm
 variable {K : ℕ}
 variable {𝓔 : Type*} [MeasurableSpace 𝓔] [StandardBorelSpace 𝓔] [Nonempty 𝓔]
 
+/-- The Thompson sampling policy samples an action according to its probability of being optimal
+under the posterior over "environments" given the history so far.
+The posterior under a uniform algorithm is used to avoid a circular definition. -/
 noncomputable
 def TS.policy (hK : 0 < K) (Q : Measure 𝓔) [IsProbabilityMeasure Q] (κ : Kernel (𝓔 × Fin K) ℝ)
     [IsMarkovKernel κ] (n : ℕ) : Kernel (Iic n → (Fin K) × ℝ) (Fin K) :=
@@ -35,6 +38,8 @@ instance {hK : 0 < K} {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (
     [IsMarkovKernel κ] {n : ℕ} : IsMarkovKernel (TS.policy hK Q κ n) :=
   Kernel.IsMarkovKernel.map _ (by fun_prop)
 
+/-- The initial action is sampled according to its probability of being optimal under the prior over
+"environments". -/
 noncomputable
 def TS.initialPolicy (hK : 0 < K) (Q : Measure 𝓔) (κ : Kernel (𝓔 × Fin K) ℝ) : Measure (Fin K) :=
   have : Nonempty (Fin K) := Fin.pos_iff_nonempty.mp hK
@@ -44,6 +49,7 @@ instance {hK : 0 < K} {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (
     IsProbabilityMeasure (TS.initialPolicy hK Q κ) :=
   Measure.isProbabilityMeasure_map (by fun_prop)
 
+/-- The Thompson sampling algorithm. -/
 noncomputable
 def tsAlgorithm (hK : 0 < K) (Q : Measure 𝓔) [IsProbabilityMeasure Q] (κ : Kernel (𝓔 × Fin K) ℝ)
     [IsMarkovKernel κ] : Algorithm (Fin K) ℝ where
@@ -90,6 +96,7 @@ namespace ClippedUCB
 variable {K : ℕ} {l u σ2 δ : ℝ}
 variable {Ω : Type*} {A : ℕ → Ω → Fin K} {R' : ℕ → Ω → ℝ}
 
+/-- Clipped upper confidence bound used in the regret analysis of Thompson sampling. -/
 noncomputable
 def ucb (A : ℕ → Ω → Fin K) (R' : ℕ → Ω → ℝ) (l u σ2 δ : ℝ) (a : Fin K) (n : ℕ) (ω : Ω) : ℝ :=
   if pullCount A a n ω = 0 then u
@@ -133,6 +140,7 @@ lemma integrable_uncurry_ucb_comp [MeasurableSpace Ω] (hA : ∀ t, Measurable (
   unfold ucb
   grind
 
+/-- Clipped upper confidence bound (history-based version). -/
 noncomputable
 def ucb' (n : ℕ) (h : Iic n → Fin K × ℝ) (l u σ2 δ : ℝ) (a : Fin K) : ℝ :=
   if pullCount' n h a = 0 then u

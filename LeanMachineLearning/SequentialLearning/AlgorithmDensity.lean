@@ -21,6 +21,9 @@ variable {α R : Type*} [MeasurableSpace α] [MeasurableSpace R]
 
 namespace Algorithm
 
+/-- If the algorithm `alg` is absolutely continuous with respect to the algorithm `alg₀` and they
+are both interacting with the same environment, then the law of the history at time `n` under `alg`
+is the law of the history at time `n` under `alg₀` with density `alg.density alg₀ n`. -/
 noncomputable
 def density [MeasurableSpace.CountablyGenerated α] (alg alg₀ : Algorithm α R) :
     (n : ℕ) → (Iic n → α × R) → ℝ≥0∞
