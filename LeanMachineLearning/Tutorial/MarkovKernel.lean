@@ -53,5 +53,3 @@ example (κ : Kernel 𝓧 𝓨) [IsFiniteKernel κ] :
 example (κ : Kernel 𝓧 𝓨) [IsFiniteKernel κ] (x : 𝓧) :
     IsFiniteMeasure (κ x) := inferInstance
 -- ANCHOR_END: Markov
-
-lemma todo : 0 = 0 := rfl
