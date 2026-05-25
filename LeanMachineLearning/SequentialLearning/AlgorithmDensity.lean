@@ -1,0 +1,135 @@
+/-
+Copyright (c) 2026 Rémy Degenne. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Rémy Degenne, Paulo Rauber
+-/
+module
+
+public import LeanMachineLearning.Probability.Kernel.Composition.MeasureCompProd
+public import LeanMachineLearning.Probability.WithDensity
+public import LeanMachineLearning.SequentialLearning.Algorithm
+
+@[expose] public section
+
+open MeasureTheory ProbabilityTheory Finset
+
+open scoped ENNReal
+
+namespace Learning
+
+variable {α R : Type*} [MeasurableSpace α] [MeasurableSpace R]
+
+namespace Algorithm
+
+/-- If the algorithm `alg` is absolutely continuous with respect to the algorithm `alg₀` and they
+are both interacting with the same environment, then the law of the history at time `n` under `alg`
+is the law of the history at time `n` under `alg₀` with density `alg.density alg₀ n`. -/
+noncomputable
+def density [MeasurableSpace.CountablyGenerated α] (alg alg₀ : Algorithm α R) :
+    (n : ℕ) → (Iic n → α × R) → ℝ≥0∞
+  | 0, h => (alg.p0.rnDeriv alg₀.p0 (h ⟨0, by simp⟩).1)
+  | n + 1, h =>
+    let p := MeasurableEquiv.IicSuccProd (fun _ ↦ α × R) n h
+    alg.density alg₀ n p.1 * (alg.policy n).rnDeriv (alg₀.policy n) p.1 p.2.1
+
+@[fun_prop]
+lemma measurable_density [MeasurableSpace.CountablyGenerated α] (alg alg₀ : Algorithm α R) (n : ℕ) :
+    Measurable (alg.density alg₀ n) := by
+  induction n with
+  | zero =>
+    simp_rw [density]
+    fun_prop
+  | succ n ih =>
+    simp_rw [density]
+    fun_prop
+
+end Algorithm
+
+namespace IsAlgEnvSeq
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+variable [StandardBorelSpace α] [Nonempty α] [StandardBorelSpace R] [Nonempty R]
+variable {alg : Algorithm α R} {env : Environment α R}
+variable {A : ℕ → Ω → α} {R' : ℕ → Ω → R}
+variable {P : Measure Ω} [IsFiniteMeasure P]
+
+lemma hasLaw_hist_zero (h : IsAlgEnvSeq A R' alg env P) : HasLaw (hist A R' 0)
+    ((P.map (step A R' 0)).map (MeasurableEquiv.piUnique (fun _ : Iic 0 ↦ α × R)).symm) P where
+  aemeasurable := (measurable_hist h.measurable_action h.measurable_feedback 0).aemeasurable
+  map_eq := by
+    have he : (MeasurableEquiv.piUnique (fun _ : Iic 0 ↦ α × R)).symm ∘ step A R' 0 =
+        hist A R' 0 := by
+      funext _ ⟨0, _⟩
+      rfl
+    rw [← he]
+    have hA := h.measurable_action
+    have hR := h.measurable_feedback
+    exact (Measure.map_map (by fun_prop) (by fun_prop)).symm
+
+lemma hasLaw_hist_succ (h : IsAlgEnvSeq A R' alg env P) (n : ℕ) : HasLaw (hist A R' (n + 1))
+    ((P.map (hist A R' n) ⊗ₘ condDistrib (step A R' (n + 1)) (hist A R' n) P).map
+        (MeasurableEquiv.IicSuccProd (fun _ ↦ α × R) n).symm) P where
+  aemeasurable := (measurable_hist h.measurable_action h.measurable_feedback (n + 1)).aemeasurable
+  map_eq := by
+    have he : (MeasurableEquiv.IicSuccProd (fun _ ↦ α × R) n).symm ∘
+        (fun ω ↦ (hist A R' n ω, step A R' (n + 1) ω)) = hist A R' (n + 1) := by
+      funext ω
+      exact (MeasurableEquiv.IicSuccProd (fun _ ↦ α × R) n).symm_apply_apply (hist A R' (n + 1) ω)
+    have hA := h.measurable_action
+    have hR := h.measurable_feedback
+    rw [← he, ← Measure.map_map (by fun_prop) (by fun_prop)]
+    congr
+    exact (compProd_map_condDistrib (by fun_prop)).symm
+
+variable {Ω₀ : Type*} [MeasurableSpace Ω₀]
+variable {alg₀ : Algorithm α R}
+variable {A₀ : ℕ → Ω₀ → α} {R₀ : ℕ → Ω₀ → R}
+variable {P₀ : Measure Ω₀} [IsProbabilityMeasure P₀]
+
+lemma absolutelyContinuous_map_hist (h : IsAlgEnvSeq A R' alg env P)
+    (h₀ : IsAlgEnvSeq A₀ R₀ alg₀ env P₀) (hc : alg ≪ₐ alg₀) (n : ℕ) :
+    P.map (IsAlgEnvSeq.hist A R' n) ≪ P₀.map (IsAlgEnvSeq.hist A₀ R₀ n) := by
+  induction n with
+  | zero =>
+    rw [h.hasLaw_hist_zero.map_eq, h₀.hasLaw_hist_zero.map_eq]
+    apply Measure.AbsolutelyContinuous.map _ (by fun_prop)
+    rw [h.hasLaw_step_zero.map_eq, h₀.hasLaw_step_zero.map_eq]
+    exact Measure.AbsolutelyContinuous.compProd_left hc.p0 _
+  | succ n ih =>
+    rw [(h.hasLaw_hist_succ n).map_eq, (h₀.hasLaw_hist_succ n).map_eq]
+    apply Measure.AbsolutelyContinuous.map _ (by fun_prop)
+    rw [Measure.compProd_congr (h.hasCondDistrib_step n).condDistrib_eq,
+        Measure.compProd_congr (h₀.hasCondDistrib_step n).condDistrib_eq]
+    apply Measure.AbsolutelyContinuous.compProd ih
+    filter_upwards with h' using Measure.AbsolutelyContinuous.compProd_left_apply (hc.policy n h') _
+
+lemma hasLaw_hist_withDensity (h : IsAlgEnvSeq A R' alg env P) (h₀ : IsAlgEnvSeq A₀ R₀ alg₀ env P₀)
+   (hc : alg ≪ₐ alg₀) (n : ℕ) : HasLaw (IsAlgEnvSeq.hist A R' n)
+      ((P₀.map (IsAlgEnvSeq.hist A₀ R₀ n)).withDensity (alg.density alg₀ n)) P where
+  aemeasurable :=
+    (IsAlgEnvSeq.measurable_hist h.measurable_action h.measurable_feedback n).aemeasurable
+  map_eq := by
+    induction n with
+    | zero =>
+      rw [h.hasLaw_hist_zero.map_eq, h₀.hasLaw_hist_zero.map_eq, h.hasLaw_step_zero.map_eq,
+        h₀.hasLaw_step_zero.map_eq]
+      rw [← Measure.withDensity_rnDeriv_eq _ _ hc.p0,
+        Measure.compProd_withDensity_left (by fun_prop)]
+      exact map_equiv_withDensity (by fun_prop)
+    | succ n ih =>
+      let ρ h' (ar : α × R) := Kernel.rnDeriv (alg.policy n) (alg₀.policy n) h' ar.1
+      have hs : stepKernel alg env n = (stepKernel alg₀ env n).withDensity ρ := by
+        rw [stepKernel, ← Kernel.withDensity_rnDeriv_eq' (hc.policy n)]
+        exact Kernel.compProd_withDensity_left (Kernel.measurable_rnDeriv _ _)
+      have : IsMarkovKernel ((stepKernel alg₀ env n).withDensity ρ) := by
+        rw [← hs]
+        infer_instance
+      rw [(h.hasLaw_hist_succ n).map_eq, (h₀.hasLaw_hist_succ n).map_eq,
+          Measure.compProd_congr (h.hasCondDistrib_step n).condDistrib_eq,
+          Measure.compProd_congr (h₀.hasCondDistrib_step n).condDistrib_eq, ih, hs,
+          Measure.compProd_withDensity_withDensity (by fun_prop) (by fun_prop)]
+      exact map_equiv_withDensity (by fun_prop)
+
+end IsAlgEnvSeq
+
+end Learning

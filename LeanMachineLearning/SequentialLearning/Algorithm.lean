@@ -55,6 +55,22 @@ structure Algorithm (𝓐 𝓨 : Type*) [MeasurableSpace 𝓐] [MeasurableSpace 
 instance (alg : Algorithm 𝓐 𝓨) (n : ℕ) : IsMarkovKernel (alg.policy n) := alg.h_policy n
 instance (alg : Algorithm 𝓐 𝓨) : IsProbabilityMeasure alg.p0 := alg.hp0
 
+/-- For every time and history, the distribution over actions according to `alg` is absolutely
+continuous with respect to the distribution over actions according to `alg₀`. -/
+structure Algorithm.AbsolutelyContinuous (alg alg₀ : Algorithm 𝓐 𝓨) : Prop where
+  p0 : alg.p0 ≪ alg₀.p0
+  policy n h : alg.policy n h ≪ alg₀.policy n h
+
+@[inherit_doc Algorithm.AbsolutelyContinuous]
+scoped notation:50 alg " ≪ₐ " alg₀ => Algorithm.AbsolutelyContinuous alg alg₀
+
+/-- An algorithm with observations in `𝓧 × 𝓨` obtained from an algorithm with observations in `𝓨`
+by ignoring the `𝓧` component of each observation. -/
+def Algorithm.prod_left (𝓧 : Type*) [MeasurableSpace 𝓧] (alg : Algorithm 𝓐 𝓨) :
+    Algorithm 𝓐 (𝓧 × 𝓨) where
+  policy n := (alg.policy n).comap (fun h i ↦ ((h i).1, (h i).2.2)) (by fun_prop)
+  p0 := alg.p0
+
 /-- A stochastic environment. -/
 -- ANCHOR: Environment
 structure Environment (𝓐 𝓨 : Type*) [MeasurableSpace 𝓐] [MeasurableSpace 𝓨] where
