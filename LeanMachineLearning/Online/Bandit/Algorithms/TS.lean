@@ -9,7 +9,43 @@ public import LeanMachineLearning.Online.Bandit.SumRewards
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensityBayes
 public import LeanMachineLearning.SequentialLearning.Algorithms.Uniform
 
-/-! # The Thompson Sampling Algorithm -/
+/-!
+# Thompson Sampling
+
+This file defines the Thompson sampling algorithm. This algorithm samples an action according to its
+probability of being optimal under the posterior over environments given the history so far.
+
+We also provide a Bayesian regret upper bound (`integral_regret_le`) for this algorithm under the
+assumption (among others) that it has the correct prior over environments.
+
+The Bayesian regret upper bound relies on a clipped upper confidence bound whose definition
+and properties are also given in this file.
+
+## Main definitions
+
+* `tsAlgorithm hK Q κ`: a Thompson sampling algorithm with actions in `Fin K` given `hK : 0 < K`,
+  a prior distribution over "environments" `Q : Measure 𝓔`, and a Markov kernel
+  `κ : Kernel (𝓔 × Fin K) ℝ`. This kernel defines how an "environment" `e : 𝓔` gives rise to
+  an actual (stationary) environment `stationaryEnv (κ.sectR e) : Environment (Fin K) ℝ`.
+* `ucb A R l u σ2 δ a n` : clipped upper confidence bound used in the regret analysis of Thompson
+  sampling for a sequence of actions `A : ℕ → Ω → Fin K`, rewards `R : ℕ → Ω → ℝ`, reward lower
+  bound `l : ℝ`, reward upper bound `u : ℝ`, sub-Gaussian variance proxy `σ2 : ℝ`, confidence
+  parameter `δ : ℝ`, action `a : Fin K`, and time `n : ℕ`.
+* `ucb' n h l u σ2 δ a`: clipped upper confidence bound for action `a : Fin K` at time `n : ℕ` given
+  the history `h : Iic n → Fin K × ℝ` (rather than the entire sequences of actions and rewards).
+
+## Main results
+
+* `hasCondDistrib_action` : if Thompson sampling has the correct prior over environments, then
+  the conditional distribution of the next action given the history so far is equal to the
+  conditional distribution of the best action given the history so far.
+
+* `integral_regret_le`: if Thompson sampling has the correct prior over environments and every
+  "environment" has `K` actions, each of which has a corresponding reward between `l` and `u` that
+  is sub-Gaussian with variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at
+  time `n` is at most `(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n)`.
+
+-/
 
 @[expose] public section
 
