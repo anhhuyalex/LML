@@ -75,7 +75,8 @@ lemma prob_pullCount_mem_and_sumRewards_mem_le (a : 𝓐) (n : ℕ)
   classical
   rcases Set.eq_empty_or_nonempty B with h_empty | h_nonempty
   · simp [h_empty]
-  convert prob_pullCount_prod_sumRewards_mem_le a n (hs.prod hB) (ν := ν) (alg := alg) with _ _ k hk
+  convert prob_pullCount_prod_sumRewards_mem_le a n (hs.prod hB) (ν := ν) (alg := alg)
+    with _ _ _ k hk
   · ext n
     have : ∃ x, x ∈ B := h_nonempty
     simp [this]
@@ -274,7 +275,7 @@ lemma prob_pullCount_mem_and_sumRewards_mem_le [Countable 𝓐]
   classical
   rcases Set.eq_empty_or_nonempty B with h_empty | h_nonempty
   · simp [h_empty]
-  convert prob_pullCount_prod_sumRewards_mem_le h (hs.prod hB) (ν := ν) (alg := alg) with _ _ k hk
+  convert prob_pullCount_prod_sumRewards_mem_le h (hs.prod hB) (ν := ν) (alg := alg) with _ _ _ k hk
   · ext n
     have : ∃ x, x ∈ B := h_nonempty
     simp [this]

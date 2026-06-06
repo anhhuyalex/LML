@@ -513,7 +513,7 @@ lemma expectation_pullCount_le' [Nonempty (Fin K)]
     simp only [id_eq, Nat.cast_sum]
     rw [lintegral_add_left (by fun_prop), lintegral_add_left (by fun_prop)]
     simp only [lintegral_const, measure_univ, mul_one]
-    rw [lintegral_finset_sum _ (by fun_prop), lintegral_finset_sum _ (by fun_prop)]
+    rw [lintegral_finsetSum _ (by fun_prop), lintegral_finsetSum _ (by fun_prop)]
     gcongr with k hk k hk
     · rw [← lintegral_indicator_one]
       swap; · exact h_set_2 _

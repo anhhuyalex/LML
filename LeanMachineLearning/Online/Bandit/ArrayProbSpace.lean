@@ -628,7 +628,7 @@ lemma indepFun_fst_add_one_aux (ν : Kernel 𝓐 R) [IsMarkovKernel ν] (n : ℕ
     simp only [X, Y, Set.preimage_inter, Set.preimage_preimage]
     by_cases h : ω₁ (n + 1) ∈ s
     · simp [h]
-      grind
+      congr
     · simp [h]
   simp_rw [hY_fst, hX_fst, hXY]
   -- Factor the integral using independence
@@ -1191,8 +1191,8 @@ lemma hasCondDistrib_reward' (alg : Algorithm 𝓐 R) (ν : Kernel 𝓐 R) [IsMa
     let e : ((𝓐 × ℕ) × (Iic n → 𝓐 × R)) ≃ᵐ ((𝓐 × (Iic n → 𝓐 × R)) × ℕ) :=
     { toFun := fun x ↦ ((x.1.1, x.2), x.1.2)
       invFun := fun x ↦ ((x.1.1, x.2), x.1.2)
-      measurable_toFun := by fun_prop
-      measurable_invFun := by fun_prop }
+      measurable_toFun := by simp only [Equiv.coe_fn_mk]; fun_prop
+      measurable_invFun := by simp only [Equiv.symm_mk, Equiv.coe_fn_mk]; fun_prop }
     exact this.comp_right e
   suffices HasCondDistrib R' (fun ω ↦ (A ω, P ω)) (ν.prodMkRight _) (arrayMeasure ν) by
     have h_indep : H ⟂ᵢ[(fun ω ↦ (A ω, P ω)), (by fun_prop); arrayMeasure ν] R' :=

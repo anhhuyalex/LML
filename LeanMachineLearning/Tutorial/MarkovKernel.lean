@@ -8,6 +8,9 @@ module
 public import Mathlib.Probability.Kernel.Composition.Lemmas
 public import Mathlib.Tactic.Recall
 
+/-! # Tutorial source file for Markov kernels
+-/
+
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
