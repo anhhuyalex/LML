@@ -2,7 +2,7 @@ set -x -e
 
 # Build tutorial
 lake build
-lake exe manual --output LMLTutorial/_out/site
+lake exe tutorial --output LMLTutorial/_out/site
 mkdir -p LMLTutorial/_out/site/html-multi/static
 cp LMLTutorial/static_files/* LMLTutorial/_out/site/html-multi/static
 
