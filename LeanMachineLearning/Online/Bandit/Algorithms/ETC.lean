@@ -252,7 +252,7 @@ lemma expectation_pullCount_le [Nonempty (Fin K)]
   · exact (measurableSet_singleton _).preimage (by fun_prop)
 
 /-- Regret bound for the ETC algorithm. -/
-lemma regret_le [Nonempty (Fin K)]
+theorem regret_le [Nonempty (Fin K)]
     (h : IsAlgEnvSeq A R (etcAlgorithm hK m) (stationaryEnv ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a)) (hm : m ≠ 0)
     (n : ℕ) (hn : K * m ≤ n) :
