@@ -571,7 +571,7 @@ lemma expectation_pullCount_le [Nonempty (Fin K)]
   ring
 
 /-- Regret bound for the UCB algorithm. -/
-lemma regret_le [Nonempty (Fin K)]
+theorem regret_le [Nonempty (Fin K)]
     (h : IsAlgEnvSeq A R (ucbAlgorithm hK (c * σ2)) (stationaryEnv ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
     (hσ2 : σ2 ≠ 0) (hc : 0 < c) (n : ℕ) :
