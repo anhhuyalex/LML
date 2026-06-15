@@ -60,16 +60,19 @@ jobs:
           ./scripts/build_docs.sh
 
       - name: Clone lean-exposition
+        if: github.event_name == 'push'
         run: |
           git clone --depth 1 --branch "$LEAN_EXPOSITION_REF" \
             "https://github.com/$LEAN_EXPOSITION_REPO" /tmp/lean-exposition
 
       - name: Build exposition binary
+        if: github.event_name == 'push'
         run: |
           cd /tmp/lean-exposition && lake build exposition
           echo "EXPOSITION_BIN=/tmp/lean-exposition/.lake/build/bin/exposition" >> "$GITHUB_ENV"
 
       - name: Build exposition documentation
+        if: github.event_name == 'push'
         run: |
           lake env "$EXPOSITION_BIN" \
             --root LeanMachineLearning \
