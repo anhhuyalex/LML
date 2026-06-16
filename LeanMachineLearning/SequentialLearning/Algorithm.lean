@@ -27,10 +27,6 @@ an algorithm interacting with an environment.
 * `prod_left alg`: an `Algorithm 𝓐 (𝓧 × 𝓨)` obtained from an algorithm `alg : Algorithm 𝓐 𝓨` by
   ignoring the `𝓧` component of each observation.
 
-## Notes
-
-The `ANCHOR` comments are used to mark code that appears in the tutorials.
-
 -/
 
 @[expose] public section
@@ -44,36 +40,37 @@ namespace Learning
 variable {𝓐 𝓨 Ω : Type*} {m𝓐 : MeasurableSpace 𝓐} {m𝓨 : MeasurableSpace 𝓨} {mΩ : MeasurableSpace Ω}
 
 /-- A stochastic, sequential algorithm. -/
--- ANCHOR: Algorithm
 structure Algorithm (𝓐 𝓨 : Type*) [MeasurableSpace 𝓐] [MeasurableSpace 𝓨] where
   /-- Policy or sampling rule: distribution of the next action. -/
   policy : (n : ℕ) → Kernel (Iic n → 𝓐 × 𝓨) 𝓐
+  /-- The policy is a Markov kernel. -/
   [h_policy : ∀ n, IsMarkovKernel (policy n)]
   /-- Distribution of the first action. -/
   p0 : Measure 𝓐
+  /-- The first action distribution is a probability measure. -/
   [hp0 : IsProbabilityMeasure p0]
--- ANCHOR_END: Algorithm
 
 instance (alg : Algorithm 𝓐 𝓨) (n : ℕ) : IsMarkovKernel (alg.policy n) := alg.h_policy n
 instance (alg : Algorithm 𝓐 𝓨) : IsProbabilityMeasure alg.p0 := alg.hp0
 
 /-- An algorithm with observations in `𝓧 × 𝓨` obtained from an algorithm with observations in `𝓨`
 by ignoring the `𝓧` component of each observation. -/
-def Algorithm.prod_left (𝓧 : Type*) [MeasurableSpace 𝓧] (alg : Algorithm 𝓐 𝓨) :
+@[simps]
+def Algorithm.prodLeft (𝓧 : Type*) [MeasurableSpace 𝓧] (alg : Algorithm 𝓐 𝓨) :
     Algorithm 𝓐 (𝓧 × 𝓨) where
   policy n := (alg.policy n).comap (fun h i ↦ ((h i).1, (h i).2.2)) (by fun_prop)
   p0 := alg.p0
 
 /-- A stochastic environment. -/
--- ANCHOR: Environment
 structure Environment (𝓐 𝓨 : Type*) [MeasurableSpace 𝓐] [MeasurableSpace 𝓨] where
   /-- Distribution of the next observation as function of the past history. -/
   feedback : (n : ℕ) → Kernel ((Iic n → 𝓐 × 𝓨) × 𝓐) 𝓨
+  /-- The feedback kernels are Markov kernels. -/
   [h_feedback : ∀ n, IsMarkovKernel (feedback n)]
   /-- Distribution of the first observation given the first action. -/
   ν0 : Kernel 𝓐 𝓨
+  /-- The initial observation kernel is a Markov kernel. -/
   [hp0 : IsMarkovKernel ν0]
--- ANCHOR_END: Environment
 
 instance (env : Environment 𝓐 𝓨) (n : ℕ) : IsMarkovKernel (env.feedback n) := env.h_feedback n
 instance (env : Environment 𝓐 𝓨) : IsMarkovKernel env.ν0 := env.hp0
@@ -85,6 +82,9 @@ def stepKernel (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : �
     Kernel (Iic n → 𝓐 × 𝓨) (𝓐 × 𝓨) :=
   alg.policy n ⊗ₖ env.feedback n
 deriving IsMarkovKernel
+
+lemma stepKernel_def (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    stepKernel alg env n = alg.policy n ⊗ₖ env.feedback n := rfl
 
 @[simp]
 lemma fst_stepKernel (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
@@ -142,32 +142,44 @@ variable [StandardBorelSpace 𝓐] [Nonempty 𝓐] [StandardBorelSpace 𝓨] [No
 
 /-- An algorithm-environment sequence: a sequence of actions and feedbacks generated
 by an algorithm interacting with an environment. -/
--- ANCHOR: IsAlgEnvSeq
 structure IsAlgEnvSeq
     (A : ℕ → Ω → 𝓐) (Y : ℕ → Ω → 𝓨) (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨)
     (P : Measure Ω) [IsFiniteMeasure P] : Prop where
+  /-- The action sequence is measurable. -/
   measurable_action n : Measurable (A n) := by fun_prop
+  /-- The feedback sequence is measurable. -/
   measurable_feedback n : Measurable (Y n) := by fun_prop
+  /-- The first action has the correct law. -/
   hasLaw_action_zero : HasLaw (fun ω ↦ (A 0 ω)) alg.p0 P
+  /-- The first feedback has the correct conditional distribution. -/
   hasCondDistrib_feedback_zero : HasCondDistrib (Y 0) (A 0) env.ν0 P
+  /-- The next action has the correct conditional distribution given the history. -/
   hasCondDistrib_action n :
     HasCondDistrib (A (n + 1)) (IsAlgEnvSeq.hist A Y n) (alg.policy n) P
+  /-- The next feedback has the correct conditional distribution given the history and
+  next action. -/
   hasCondDistrib_feedback n :
     HasCondDistrib (Y (n + 1)) (fun ω ↦ (IsAlgEnvSeq.hist A Y n ω, A (n + 1) ω))
       (env.feedback n) P
--- ANCHOR_END: IsAlgEnvSeq
 
 /-- An algorithm-environment sequence: a sequence of actions and feedbacks generated
 by an algorithm interacting with an environment. -/
 structure IsAlgEnvSeqUntil
     (A : ℕ → Ω → 𝓐) (Y : ℕ → Ω → 𝓨) (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨)
     (P : Measure Ω) [IsFiniteMeasure P] (N : ℕ) : Prop where
+  /-- The action sequence is measurable. -/
   measurable_action n : Measurable (A n) := by fun_prop
+  /-- The feedback sequence is measurable. -/
   measurable_feedback n : Measurable (Y n) := by fun_prop
+  /-- The first action has the correct law. -/
   hasLaw_action_zero : HasLaw (fun ω ↦ (A 0 ω)) alg.p0 P
+  /-- The first feedback has the correct conditional distribution. -/
   hasCondDistrib_feedback_zero : HasCondDistrib (Y 0) (A 0) env.ν0 P
+  /-- The next action has the correct conditional distribution given the history. -/
   hasCondDistrib_action n (hn : n < N) :
     HasCondDistrib (A (n + 1)) (IsAlgEnvSeq.hist A Y n) (alg.policy n) P
+  /-- The next feedback has the correct conditional distribution given the history and
+  next action. -/
   hasCondDistrib_feedback n (hn : n < N) :
     HasCondDistrib (Y (n + 1)) (fun ω ↦ (IsAlgEnvSeq.hist A Y n ω, A (n + 1) ω))
       (env.feedback n) P
@@ -303,7 +315,7 @@ def IsAlgEnvSeq.filtrationAction
         refine le_sup_of_le_left ?_
         rw [← measurable_iff_comap_le]
         suffices Measurable[IsAlgEnvSeq.filtration hA hY 0] (A 0) from
-          this.mono ((IsAlgEnvSeq.filtration hA hY).mono zero_le') le_rfl
+          this.mono ((IsAlgEnvSeq.filtration hA hY).mono zero_le) le_rfl
         exact adapted_action hA hY 0
     have hm : m ≠ 0 := by grind
     simp only [hn, hm, ↓reduceIte]

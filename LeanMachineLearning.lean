@@ -1,4 +1,4 @@
-module  -- shake: keep-all
+module  -- shake: keep-all --deprecated_module: ignore
 
 public import LeanMachineLearning.MeasureTheory.Constructions.BorelSpace.MeasurableArgMax
 public import LeanMachineLearning.MeasureTheory.Constructions.Polish.StandardBorel
@@ -37,6 +37,3 @@ public import LeanMachineLearning.SequentialLearning.EvaluationEnv
 public import LeanMachineLearning.SequentialLearning.FiniteActions
 public import LeanMachineLearning.SequentialLearning.IonescuTulceaSpace
 public import LeanMachineLearning.SequentialLearning.StationaryEnv
-public import LeanMachineLearning.Tutorial.BasicProbability
-public import LeanMachineLearning.Tutorial.MarkovKernel
-public import LeanMachineLearning.Tutorial.Martingales

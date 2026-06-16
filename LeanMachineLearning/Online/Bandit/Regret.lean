@@ -35,9 +35,7 @@ variable {𝓐 Ω : Type*} [DecidableEq 𝓐] {m𝓐 : MeasurableSpace 𝓐} {m�
 
 /-- Gap of an action `a`: difference between the highest mean of the actions and the mean of `a`. -/
 noncomputable
--- ANCHOR: gap
 def gap (ν : Kernel 𝓐 ℝ) (a : 𝓐) : ℝ := (⨆ i, (ν i)[id]) - (ν a)[id]
--- ANCHOR_END: gap
 
 omit [DecidableEq 𝓐] in
 lemma gap_nonneg [Finite 𝓐] : 0 ≤ gap ν a := by
@@ -46,10 +44,8 @@ lemma gap_nonneg [Finite 𝓐] : 0 ≤ gap ν a := by
 
 /-- Regret of a sequence of pulls `k : ℕ → 𝓐` at time `t` for the reward kernel `ν ; Kernel 𝓐 ℝ`. -/
 noncomputable
--- ANCHOR: regret
 def regret (ν : Kernel 𝓐 ℝ) (A : ℕ → Ω → 𝓐) (t : ℕ) (ω : Ω) : ℝ :=
   t * (⨆ a, (ν a)[id]) - ∑ s ∈ range t, (ν (A s ω))[id]
--- ANCHOR_END: regret
 
 omit [DecidableEq 𝓐] in
 lemma regret_eq_sum_gap : regret ν A t ω = ∑ s ∈ range t, gap ν (A s ω) := by
@@ -75,7 +71,7 @@ lemma integral_regret_eq_sum_gap_mul_integral_pullCount
     (hA : ∀ n, Measurable (A n)) :
     P[regret ν A n] = ∑ a, gap ν a * P[fun ω ↦ (pullCount A a n ω : ℝ)] := by
   simp_rw [regret_eq_sum_pullCount_mul_gap]
-  rw [integral_finset_sum]
+  rw [integral_finsetSum]
   swap; · exact fun i _ ↦ (integrable_pullCount hA i n).mul_const _
   congr with a
   rw [integral_mul_const, mul_comm]

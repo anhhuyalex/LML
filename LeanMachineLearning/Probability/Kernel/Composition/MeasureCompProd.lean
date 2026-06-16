@@ -7,6 +7,9 @@ module
 
 public import Mathlib.Probability.Kernel.Composition.MeasureCompProd
 
+/-! # Lemmas about measure composition-product
+-/
+
 @[expose] public section
 
 open ProbabilityTheory

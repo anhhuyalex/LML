@@ -8,6 +8,9 @@ module
 public import Mathlib.Probability.Kernel.CompProdEqIff
 public import Mathlib.Probability.Kernel.Composition.MeasureComp
 
+/-! # Lemmas about kernels and measures with density
+-/
+
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory

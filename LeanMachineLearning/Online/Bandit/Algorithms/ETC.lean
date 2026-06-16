@@ -82,7 +82,7 @@ section AlgorithmBehavior
 lemma arm_zero [Nonempty (Fin K)]
     (h : IsAlgEnvSeq A R (etcAlgorithm hK m) (stationaryEnv ν) P) :
     A 0 =ᵐ[P] fun _ ↦ ⟨0, hK⟩ :=
-  RoundRobin.action_zero ((isAlgEnvSeqUntil_roundRobinAlgorithm h).mono zero_le')
+  RoundRobin.action_zero ((isAlgEnvSeqUntil_roundRobinAlgorithm h).mono zero_le)
 
 lemma arm_ae_eq_etcNextArm [Nonempty (Fin K)]
     (h : IsAlgEnvSeq A R (etcAlgorithm hK m) (stationaryEnv ν) P) (n : ℕ) :
@@ -252,7 +252,7 @@ lemma expectation_pullCount_le [Nonempty (Fin K)]
   · exact (measurableSet_singleton _).preimage (by fun_prop)
 
 /-- Regret bound for the ETC algorithm. -/
-lemma regret_le [Nonempty (Fin K)]
+theorem regret_le [Nonempty (Fin K)]
     (h : IsAlgEnvSeq A R (etcAlgorithm hK m) (stationaryEnv ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a)) (hm : m ≠ 0)
     (n : ℕ) (hn : K * m ≤ n) :
