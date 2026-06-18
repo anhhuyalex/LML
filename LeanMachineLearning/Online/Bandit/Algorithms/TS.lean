@@ -66,7 +66,13 @@ instance {hK : 0 < K} {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (
     IsProbabilityMeasure (TS.initialPolicy hK Q κ) :=
   Measure.isProbabilityMeasure_map (by fun_prop)
 
-/-- The Thompson sampling algorithm. -/
+/-- The Thompson sampling algorithm with actions in `Fin K`, where `Q : Measure 𝓔` is a prior
+  distribution over parameters, and `κ : Kernel (𝓔 × Fin K) ℝ` is a Markov kernel that defines the
+  stationary environment `stationaryEnv (κ.sectR e)` that corresponds to a parameter `e : 𝓔`.
+
+  At every time `n`, the Thompson sampling policy uses the posterior over the parameters given the
+  history up to time `n` to derive the probability of each action being optimal. The action for time
+  `n` is sampled according to these probabilities. -/
 noncomputable
 def tsAlgorithm (hK : 0 < K) (Q : Measure 𝓔) [IsProbabilityMeasure Q] (κ : Kernel (𝓔 × Fin K) ℝ)
     [IsMarkovKernel κ] : Algorithm (Fin K) ℝ where
@@ -82,6 +88,9 @@ variable {E : Ω → 𝓔} {A : ℕ → Ω → Fin K} {R : ℕ → Ω → ℝ}
 variable {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (𝓔 × Fin K) ℝ} [IsMarkovKernel κ]
 variable {P : Measure Ω} [IsProbabilityMeasure P]
 
+/-- If Thompson sampling has the correct prior over environments, then the conditional distribution
+of the next action given the history so far is equal to the conditional distribution of the best
+action given the history so far. -/
 lemma TS.hasCondDistrib_action (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm hK Q κ) E A R P)
     (n : ℕ) : HasCondDistrib (A (n + 1)) (history A R n)
       (condDistrib (bestAction κ E) (history A R n) P) P where

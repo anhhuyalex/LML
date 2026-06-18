@@ -378,7 +378,11 @@ lemma integral_regret_eq_add (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorith
     _ = _ := by
         rw [← integral_finsetSum _ (by fun_prop), ← integral_finsetSum _ (by fun_prop)]
 
-lemma integral_regret_le (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm hK Q κ) E A R P)
+/-- If Thompson sampling has the correct prior over environments and every environment has `K`
+actions, each of which has a corresponding reward between `l` and `u` that is sub-Gaussian with
+variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at time `n` is at most
+`(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n)`. -/
+theorem integral_regret_le (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm hK Q κ) E A R P)
     (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
     (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a))) (n : ℕ) :
     P[IsBayesAlgEnvSeq.regret κ E A n]
