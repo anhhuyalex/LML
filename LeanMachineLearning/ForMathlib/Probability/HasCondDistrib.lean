@@ -138,6 +138,15 @@ lemma HasCondDistrib.prod [IsFiniteMeasure μ] [IsFiniteKernel κ]
     AEMeasurable.map_map_of_aemeasurable (by fun_prop) (by fun_prop)]
   rfl
 
+lemma ae_eq_of_hasCondDistrib_deterministic [MeasurableEq Ω] [SFinite μ] {f : β → Ω}
+    (hf : Measurable f) (hX : AEMeasurable X μ)
+    (hY : AEMeasurable Y μ) (h : HasCondDistrib Y X (Kernel.deterministic f hf) μ) :
+    Y =ᵐ[μ] f ∘ X := by
+  refine ae_eq_of_map_prodMk_eq hf hX hY ?_
+  rw [h.map_eq, Measure.compProd_deterministic,
+    AEMeasurable.map_map_of_aemeasurable (by fun_prop) (by fun_prop)]
+  rfl
+
 variable [StandardBorelSpace Ω] [Nonempty Ω] [StandardBorelSpace Ω'] [Nonempty Ω']
 
 lemma HasCondDistrib.condDistrib_eq [IsFiniteMeasure μ] [IsFiniteKernel κ]
