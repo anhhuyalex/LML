@@ -296,47 +296,66 @@ lemma hasLaw_action_zero (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 �
     rw [← fst_comp_step, ← Measure.map_map (by fun_prop) (by fun_prop),
       (hasLaw_step_zero alg env).map_eq, ← Measure.fst, Measure.fst_compProd]
 
-variable [StandardBorelSpace 𝓨] [Nonempty 𝓨]
-
-lemma condDistrib_feedback_zero (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) :
-    condDistrib (feedback 0) (action 0) (trajMeasure alg env)
-      =ᵐ[(trajMeasure alg env).map (action 0)] env.ν0 := by
+lemma hasCondDistrib_feedback_zero (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) :
+    HasCondDistrib (feedback 0) (action 0) env.ν0 (trajMeasure alg env) := by
   have h_step := (hasLaw_step_zero alg env).map_eq
   have h_action := (hasLaw_action_zero alg env).map_eq
-  rwa [condDistrib_ae_eq_iff_measure_eq_compProd _ (by fun_prop), h_action]
+  exact ⟨by fun_prop, by rwa [h_action]⟩
 
-variable [StandardBorelSpace 𝓐] [Nonempty 𝓐]
+lemma _root_.ProbabilityTheory.Kernel.hasCondDistrib_trajMeasure
+    (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    HasCondDistrib (step (n + 1)) (hist n) (stepKernel alg env n) (trajMeasure alg env) :=
+  ⟨by fun_prop, Kernel.map_frestrictLe_trajMeasure_compProd_eq_map_trajMeasure.symm⟩
 
-lemma condDistrib_step (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
-    condDistrib (step (n + 1)) (hist n) (trajMeasure alg env)
-      =ᵐ[(trajMeasure alg env).map (hist n)] stepKernel alg env n :=
-  Kernel.condDistrib_trajMeasure
+lemma hasCondDistrib_step (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    HasCondDistrib (step (n + 1)) (hist n) (stepKernel alg env n) (trajMeasure alg env) :=
+  Kernel.hasCondDistrib_trajMeasure alg env n
 
-lemma condDistrib_action (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
-    condDistrib (action (n + 1)) (hist n) (trajMeasure alg env)
-      =ᵐ[(trajMeasure alg env).map (hist n)] alg.policy n := by
-  rw [← fst_comp_step]
-  refine (condDistrib_comp _ (by fun_prop) (by fun_prop)).trans ?_
-  filter_upwards [condDistrib_step alg env n] with h h_eq
-  rw [Kernel.map_apply _ (by fun_prop), h_eq, ← Kernel.map_apply _ (by fun_prop), ← Kernel.fst_eq,
-    fst_stepKernel]
+lemma hasCondDistrib_action (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    HasCondDistrib (action (n + 1)) (hist n) (alg.policy n) (trajMeasure alg env) := by
+  rw [← fst_comp_step, ← fst_stepKernel, Kernel.fst_eq]
+  exact HasCondDistrib.comp_left (hasCondDistrib_step alg env n) measurable_fst
 
-lemma condDistrib_feedback (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
-    condDistrib (feedback (n + 1)) (fun ω ↦ (hist n ω, action (n + 1) ω)) (trajMeasure alg env)
-      =ᵐ[(trajMeasure alg env).map (fun ω ↦ (hist n ω, action (n + 1) ω))] env.feedback n := by
-  have h_step := condDistrib_step alg env n
-  have h_action := condDistrib_action alg env n
-  rw [condDistrib_ae_eq_iff_measure_eq_compProd _ (by fun_prop)] at h_step h_action ⊢
-  rw [h_action, ← Measure.compProd_assoc, ← stepKernel, ← h_step,
+lemma hasCondDistrib_feedback (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    HasCondDistrib (feedback (n + 1)) (fun ω ↦ (hist n ω, action (n + 1) ω)) (env.feedback n)
+      (trajMeasure alg env) := by
+  have h_step := hasCondDistrib_step alg env n
+  have h_action := hasCondDistrib_action alg env n
+  refine ⟨by fun_prop, ?_⟩
+  rw [h_action.map_eq, ← Measure.compProd_assoc, ← stepKernel, ← h_step.map_eq,
     Measure.map_map (by fun_prop) (by fun_prop)]
   rfl
+
+lemma condDistrib_feedback_zero [StandardBorelSpace 𝓨] [Nonempty 𝓨]
+    (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) :
+    condDistrib (feedback 0) (action 0) (trajMeasure alg env)
+      =ᵐ[(trajMeasure alg env).map (action 0)] env.ν0 :=
+  (hasCondDistrib_feedback_zero alg env).condDistrib_eq
+
+lemma condDistrib_feedback [StandardBorelSpace 𝓨] [Nonempty 𝓨]
+    (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    condDistrib (feedback (n + 1)) (fun ω ↦ (hist n ω, action (n + 1) ω)) (trajMeasure alg env)
+      =ᵐ[(trajMeasure alg env).map (fun ω ↦ (hist n ω, action (n + 1) ω))] env.feedback n :=
+  (hasCondDistrib_feedback alg env n).condDistrib_eq
+
+lemma condDistrib_step [StandardBorelSpace 𝓐] [Nonempty 𝓐] [StandardBorelSpace 𝓨] [Nonempty 𝓨]
+    (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    condDistrib (step (n + 1)) (hist n) (trajMeasure alg env)
+      =ᵐ[(trajMeasure alg env).map (hist n)] stepKernel alg env n :=
+  (hasCondDistrib_step alg env n).condDistrib_eq
+
+lemma condDistrib_action [StandardBorelSpace 𝓐] [Nonempty 𝓐]
+    (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) (n : ℕ) :
+    condDistrib (action (n + 1)) (hist n) (trajMeasure alg env)
+      =ᵐ[(trajMeasure alg env).map (hist n)] alg.policy n :=
+  (hasCondDistrib_action alg env n).condDistrib_eq
 
 lemma isAlgEnvSeq_trajMeasure (alg : Algorithm 𝓐 𝓨) (env : Environment 𝓐 𝓨) :
     IsAlgEnvSeq action feedback alg env (trajMeasure alg env) where
   hasLaw_action_zero := hasLaw_action_zero alg env
-  hasCondDistrib_feedback_zero := ⟨by fun_prop, by fun_prop, condDistrib_feedback_zero alg env⟩
-  hasCondDistrib_action n := ⟨by fun_prop, by fun_prop, condDistrib_action alg env n⟩
-  hasCondDistrib_feedback n := ⟨by fun_prop, by fun_prop, condDistrib_feedback alg env n⟩
+  hasCondDistrib_feedback_zero := hasCondDistrib_feedback_zero alg env
+  hasCondDistrib_action n := hasCondDistrib_action alg env n
+  hasCondDistrib_feedback n := hasCondDistrib_feedback alg env n
 
 end Laws
 

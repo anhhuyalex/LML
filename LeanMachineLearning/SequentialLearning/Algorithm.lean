@@ -137,7 +137,6 @@ lemma snd_eval_comp_history (n : ℕ) :
 
 section IsAlgEnvSeq
 
-variable [StandardBorelSpace 𝓐] [Nonempty 𝓐] [StandardBorelSpace 𝓨] [Nonempty 𝓨]
 
 /-- An algorithm-environment sequence: a sequence of actions and feedbacks generated
 by an algorithm interacting with an environment. -/
@@ -245,6 +244,8 @@ lemma IsAlgEnvSeq.hasLaw_history_zero (h : IsAlgEnvSeq A Y alg env P) : HasLaw (
     have hA := h.measurable_action
     have hY := h.measurable_feedback
     exact (Measure.map_map (by fun_prop) (by fun_prop)).symm
+
+variable [StandardBorelSpace 𝓐] [Nonempty 𝓐] [StandardBorelSpace 𝓨] [Nonempty 𝓨]
 
 lemma IsAlgEnvSeq.hasLaw_history_succ (h : IsAlgEnvSeq A Y alg env P) (n : ℕ) :
   HasLaw (history A Y (n + 1))
