@@ -143,6 +143,7 @@ lemma hasLaw_history_withDensity (h : IsAlgEnvSeq A Y alg env P)
       rw [(h.hasCondDistrib_step n).map_eq, (h₀.hasCondDistrib_step n).map_eq, ih, hs,
         Measure.compProd_withDensity_withDensity (by fun_prop) (by fun_prop)]
       exact map_equiv_withDensity (by fun_prop)
+
 end IsAlgEnvSeq
 
 end Learning
