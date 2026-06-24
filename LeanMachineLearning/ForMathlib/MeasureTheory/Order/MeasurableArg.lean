@@ -31,7 +31,7 @@ end Function
 section Argmax
 
 lemma exists_argmax : ∃ i, f i = f.max := by
-  obtain ⟨i, _, hi⟩ := Finset.exists_mem_eq_sup' (by simp : Finset.univ.Nonempty) f
+  obtain ⟨i, -, hi⟩ := Finset.exists_mem_eq_sup' (by simp : Finset.univ.Nonempty) f
   exact ⟨i, hi.symm⟩
 
 /-- The index of the maximum value of a tuple. -/
@@ -48,7 +48,7 @@ end Argmax
 section Argmin
 
 lemma exists_argmin : ∃ i, f i = f.min := by
-  obtain ⟨i, _, hi⟩ := Finset.exists_mem_eq_inf' (by simp : Finset.univ.Nonempty) f
+  obtain ⟨i, -, hi⟩ := Finset.exists_mem_eq_inf' (by simp : Finset.univ.Nonempty) f
   exact ⟨i, hi.symm⟩
 
 /-- The index of the minimum value of a tuple. -/
