@@ -35,48 +35,24 @@ end Function
 
 section Argmax
 
+@[to_dual exists_argmin]
 lemma exists_argmax : ∃ i, f i = f.max := by
   obtain ⟨i, -, hi⟩ := Finset.exists_mem_eq_sup' (by simp : Finset.univ.Nonempty) f
   exact ⟨i, hi.symm⟩
 
 /-- The index of the maximum value of a tuple. -/
+@[to_dual argmin /-- The index of the minimum value of a tuple. -/]
 noncomputable def argmax := (exists_argmax f).choose
 
+@[to_dual argmin_spec]
 lemma argmax_spec : f (argmax f) = f.max := (exists_argmax f).choose_spec
 
+@[to_dual isMinOn_argmin]
 lemma isMaxOn_argmax (x : ι) : f x ≤ f (argmax f) := by
   rw [argmax_spec f]
   exact f.le_max x
 
-end Argmax
-
-section Argmin
-
-lemma exists_argmin : ∃ i, f i = f.min := by
-  obtain ⟨i, -, hi⟩ := Finset.exists_mem_eq_inf' (by simp : Finset.univ.Nonempty) f
-  exact ⟨i, hi.symm⟩
-
-/-- The index of the minimum value of a tuple. -/
-noncomputable def argmin := (exists_argmin f).choose
-
-lemma argmin_spec : f (argmin f) = f.min := (exists_argmin f).choose_spec
-
-lemma isMinOn_argmin (x : ι) : f (argmin f) ≤ f x := by
-  rw [argmin_spec f]
-  exact f.min_le x
-
-end Argmin
-
-lemma neg_max_eq_min_neg [AddGroup α] [AddLeftMono α] [AddRightMono α] : -f.max = (-f).min := by
-  refine le_antisymm ?_ ?_
-  · simp; grind
-  · simp only [inf'_le_iff, mem_univ, Pi.neg_apply, neg_le_neg_iff, sup'_le_iff, forall_const,
-      true_and]
-    exact ⟨argmax f, isMaxOn_argmax f⟩
-
 variable [MeasurableSpace α]
-
-section argmax
 
 @[fun_prop]
 lemma measurable_max [MeasurableSup₂ α] : Measurable (fun (t : ι → α) => t.max) := by
@@ -106,10 +82,6 @@ lemma measurable_argmax [MeasurableSpace ι] [MeasurableEq α] [MeasurableSup₂
   · intro h
     exact h f rfl
 
-end argmax
-
-section argmin
-
 @[fun_prop]
 lemma measurable_min [MeasurableInf₂ α] : Measurable (fun (f : ι → α) => f.min) := by
   suffices (fun f : ι → α ↦ f.min) = (univ.inf' univ_nonempty fun i f => f i) by
@@ -138,4 +110,11 @@ lemma measurable_argmin [MeasurableSpace ι] [MeasurableEq α] [MeasurableInf₂
   · intro h
     exact h f rfl
 
-end argmin
+end Argmax
+
+lemma neg_max_eq_min_neg [AddGroup α] [AddLeftMono α] [AddRightMono α] : -f.max = (-f).min := by
+  refine le_antisymm ?_ ?_
+  · simp; grind
+  · simp only [inf'_le_iff, mem_univ, Pi.neg_apply, neg_le_neg_iff, sup'_le_iff, forall_const,
+      true_and]
+    exact ⟨argmax f, isMaxOn_argmax f⟩
