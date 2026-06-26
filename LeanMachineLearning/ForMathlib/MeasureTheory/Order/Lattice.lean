@@ -17,6 +17,7 @@ open Finset
 
 variable {δ α : Type*} [MeasurableSpace δ] [SemilatticeInf α] [MeasurableSpace α] [MeasurableInf₂ α]
 
+/-- Dual version of `Finset.measurable_sup'`. -/
 @[fun_prop]
 theorem Finset.measurable_inf' {ι : Type*} {s : Finset ι} (hs : s.Nonempty) {f : ι → δ → α}
     (hf : ∀ n ∈ s, Measurable (f n)) : Measurable (s.inf' hs f) :=
