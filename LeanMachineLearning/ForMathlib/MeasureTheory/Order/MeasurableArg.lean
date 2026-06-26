@@ -118,7 +118,8 @@ lemma measurable_min [MeasurableInf₂ α] : Measurable (fun (f : ι → α) => 
   suffices (fun f : ι → α ↦ f.min) = (univ.inf' univ_nonempty fun i f => f i) by
     rw [this]
     exact measurable_inf' univ_nonempty (fun i _ => measurable_pi_apply i)
-  ext; simp [Function.min]
+  ext
+  simp [Function.min]
 
 @[fun_prop]
 lemma measurable_argmin [MeasurableSpace ι] [MeasurableEq α] [MeasurableInf₂ α] :
