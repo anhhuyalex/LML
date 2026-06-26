@@ -62,7 +62,7 @@ lemma measurable_max [MeasurableSup₂ α] : Measurable (fun (t : ι → α) => 
   ext
   simp [Function.max]
 
-@[to_dual (attr := fun_prop)]
+@[to_dual (attr := fun_prop) measurable_argmin]
 lemma measurable_argmax [MeasurableSpace ι] [MeasurableEq α] [MeasurableSup₂ α] :
     Measurable fun f : ι → α ↦ argmax f := by
   refine measurable_to_countable' fun i ↦ ?_
@@ -79,34 +79,6 @@ lemma measurable_argmax [MeasurableSpace ι] [MeasurableEq α] [MeasurableSup₂
   · intro hf x hx
     rw [← hf]
     exact Classical.choose.congr_simp hx (exists_argmax x)
-  · intro h
-    exact h f rfl
-
-@[fun_prop]
-lemma measurable_min [MeasurableInf₂ α] : Measurable (fun (f : ι → α) => f.min) := by
-  suffices (fun f : ι → α ↦ f.min) = (univ.inf' univ_nonempty fun i f => f i) by
-    rw [this]
-    exact measurable_inf' univ_nonempty (fun i _ => measurable_pi_apply i)
-  ext
-  simp [Function.min]
-
-@[fun_prop]
-lemma measurable_argmin [MeasurableSpace ι] [MeasurableEq α] [MeasurableInf₂ α] :
-    Measurable fun f : ι → α ↦ argmin f := by
-  refine measurable_to_countable' fun i ↦ ?_
-  simp only [Set.preimage, Set.mem_singleton_iff]
-  let Minimizers (f : ι → α) : Set ι := {i | f i = f.min}
-  suffices {f : ι → α | argmin f = i} = ⋃ (S)
-      (hS : ∀ x, Minimizers x = S → argmin x = i), {f | Minimizers f = S} by
-    rw [this]
-    refine MeasurableSet.iUnion fun S ↦ (.iUnion fun hS ↦ ?_)
-    exact measurableSet_eq_fun (by fun_prop) measurable_const
-  ext f
-  simp only [Set.mem_setOf_eq, Set.mem_iUnion, exists_prop, exists_eq_right']
-  constructor
-  · intro hf x hx
-    rw [← hf]
-    exact Classical.choose.congr_simp hx (exists_argmin x)
   · intro h
     exact h f rfl
 
