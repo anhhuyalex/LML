@@ -10,7 +10,9 @@ public import Mathlib.CategoryTheory.Countable
 public import Mathlib.MeasureTheory.Constructions.Polish.Basic
 public import Mathlib.Order.CompletePartialOrder
 
-/-! # Measurable argmax and argmin functions
+/-! # Argmax and argmin functions on finite sets
+
+We prove in particular that those functions are measurable.
 
 -/
 
