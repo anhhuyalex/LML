@@ -262,12 +262,12 @@ lemma action_zero_detAlgorithm [MeasurableEq 𝓐]
     A 0 =ᵐ[P] fun _ ↦ action0 :=
   (IsDeterministicAlg.action_zero_ae_eq h).trans (by simp)
 
-lemma action_detAlgorithm_ae_eq [MeasurableEq 𝓐] [Nonempty 𝓐]
+lemma action_detAlgorithm_ae_eq [MeasurableEq 𝓐]
     (h : IsAlgEnvSeq A Y (detAlgorithm nextA h_next action0) env P) (n : ℕ) :
     A (n + 1) =ᵐ[P] fun ω ↦ nextA n (history A Y n ω) :=
   (IsDeterministicAlg.action_ae_eq h n).trans (by simp)
 
-lemma action_detAlgorithm_ae_all_eq [MeasurableEq 𝓐] [Nonempty 𝓐]
+lemma action_detAlgorithm_ae_all_eq [MeasurableEq 𝓐]
     (h : IsAlgEnvSeq A Y (detAlgorithm nextA h_next action0) env P) :
     ∀ᵐ ω ∂P, A 0 ω = action0 ∧ ∀ n, A (n + 1) ω = nextA n (history A Y n ω) := by
   filter_upwards [IsDeterministicAlg.action_ae_all_eq h] with ω hω using by simp [hω]
@@ -290,7 +290,7 @@ lemma action_zero_detAlgorithm [MeasurableEq 𝓐]
     A 0 =ᵐ[P] fun _ ↦ action0 :=
   (IsDeterministicAlg.action_zero_of_IsAlgEnvSeqUntil h).trans (by simp)
 
-lemma action_detAlgorithm_ae_eq [MeasurableEq 𝓐] [Nonempty 𝓐]
+lemma action_detAlgorithm_ae_eq [MeasurableEq 𝓐]
     (h : IsAlgEnvSeqUntil A Y (detAlgorithm nextA h_next action0) env P N) (hn : n < N) :
     A (n + 1) =ᵐ[P] fun ω ↦ nextA n (history A Y n ω) :=
   (IsDeterministicAlg.action_ae_eq_of_IsAlgEnvSeqUntil h hn).trans (by simp)

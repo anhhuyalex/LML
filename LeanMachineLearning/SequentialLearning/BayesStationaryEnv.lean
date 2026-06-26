@@ -166,7 +166,6 @@ def bayesStationaryEnv (Q : Measure 𝓔) [IsProbabilityMeasure Q] (κ : Kernel 
     (Kernel.deterministic (Prod.fst ∘ g) (by fun_prop)) ×ₖ (κ.comap g (by fun_prop))
   ν0 := (Kernel.const _ Q) ⊗ₖ κ.swapLeft
 
-variable [Nonempty 𝓐] [StandardBorelSpace 𝓐]
 variable {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (𝓔 × 𝓐) 𝓨} [IsMarkovKernel κ]
 variable {alg : Algorithm 𝓐 𝓨} {A : ℕ → Ω → 𝓐} {Y : ℕ → Ω → 𝓔 × 𝓨}
 variable {P : Measure Ω} [IsProbabilityMeasure P]
@@ -216,9 +215,6 @@ def bayesTrajMeasure (Q : Measure 𝓔) [IsProbabilityMeasure Q] (κ : Kernel (�
 deriving IsProbabilityMeasure
 
 lemma isBayesAlgEnvSeq_bayesTrajMeasure
-    [StandardBorelSpace 𝓐] [Nonempty 𝓐]
-    [StandardBorelSpace 𝓔] [Nonempty 𝓔]
-    [StandardBorelSpace 𝓨] [Nonempty 𝓨]
     (Q : Measure 𝓔) [IsProbabilityMeasure Q] (κ : Kernel (𝓔 × 𝓐) 𝓨) [IsMarkovKernel κ]
     (alg : Algorithm 𝓐 𝓨) :
     IsBayesAlgEnvSeq Q κ alg (fun ω ↦ (ω 0).2.1) action (fun n ω ↦ (ω n).2.2)

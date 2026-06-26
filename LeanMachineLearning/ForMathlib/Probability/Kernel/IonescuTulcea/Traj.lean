@@ -16,7 +16,7 @@ public import Mathlib.Probability.Process.FiniteDimensionalLaws
 
 open Filter Finset Function MeasurableEquiv MeasurableSpace MeasureTheory Preorder ProbabilityTheory
 
-variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} [IsFiniteMeasure P]
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
   {X : ℕ → Type*} [∀ n, MeasurableSpace (X n)]
   {κ : (n : ℕ) → Kernel (Π i : Iic n, X i) (X (n + 1))} [∀ n, IsMarkovKernel (κ n)]
   {μ₀ : Measure (X 0)} [IsProbabilityMeasure μ₀]
@@ -142,7 +142,8 @@ lemma eq_trajMeasure_map_frestrictLe {Y : (n : ℕ) → Ω → X n} (h0 : HasLaw
     trajMeasure_map_frestrictLe]
 
 /-- Uniqueness of `trajMeasure`. -/
-lemma hasLaw_trajMeasure {Y : (n : ℕ) → Ω → X n} (hY_meas : ∀ n, Measurable (Y n))
+lemma hasLaw_trajMeasure [IsFiniteMeasure P]
+    {Y : (n : ℕ) → Ω → X n} (hY_meas : ∀ n, Measurable (Y n))
     (h0 : HasLaw (Y 0) μ₀ P)
     (h_condDistrib : ∀ n, HasCondDistrib (Y (n + 1)) (fun ω ↦ fun i : Iic n ↦ Y i ω) (κ n) P) :
     HasLaw (fun ω n ↦ Y n ω) (trajMeasure μ₀ κ) P where

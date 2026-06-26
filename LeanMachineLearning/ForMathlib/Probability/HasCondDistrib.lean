@@ -25,7 +25,7 @@ variable {α β γ Ω Ω' : Type*}
   {μ : Measure α} {X : α → β} {Y : α → Ω} {κ : Kernel β Ω}
 
 lemma hasCondDistrib_fst_prod {Y : α → Ω} {X : α → β} {κ : Kernel β Ω}
-    {μ : Measure α} [IsFiniteMeasure μ] {ν : Measure γ} [IsProbabilityMeasure ν]
+    {μ : Measure α} {ν : Measure γ} [IsProbabilityMeasure ν]
     (h : HasCondDistrib Y X κ μ) :
     HasCondDistrib (fun ω ↦ Y ω.1) (fun ω ↦ X ω.1) κ (μ.prod ν) where
   aemeasurable := by fun_prop
@@ -113,7 +113,7 @@ lemma HasCondDistrib.indepFun_of_const [IsProbabilityMeasure μ] {Q : Measure Ω
     h.hasLaw_of_const.map_eq, Measure.compProd_const]
 
 lemma HasCondDistrib.const_map_of_const [IsProbabilityMeasure μ] {Q : Measure Ω} [SFinite Q]
-    (h : HasCondDistrib Y X (Kernel.const β Q) μ) [StandardBorelSpace β] [Nonempty β] :
+    (h : HasCondDistrib Y X (Kernel.const β Q) μ) :
     HasCondDistrib X Y (Kernel.const Ω (μ.map X)) μ where
   aemeasurable := by fun_prop
   map_eq := by
@@ -124,13 +124,12 @@ lemma HasCondDistrib.const_map_of_const [IsProbabilityMeasure μ] {Q : Measure �
     _ = (μ.map X ⊗ₘ Kernel.const β Q).map Prod.swap := by rw [h.map_eq]
     _ = μ.map Y ⊗ₘ Kernel.const Ω (μ.map X) := by simp [h.hasLaw_of_const.map_eq, Measure.prod_swap]
 
-lemma HasLaw.prod_of_hasCondDistrib {P : Measure β} [IsFiniteMeasure μ] [IsSFiniteKernel κ]
+lemma HasLaw.prod_of_hasCondDistrib {P : Measure β}
     (h1 : HasLaw X P μ) (h2 : HasCondDistrib Y X κ μ) :
     HasLaw (fun ω ↦ (X ω, Y ω)) (P ⊗ₘ κ) μ :=
   ⟨by fun_prop, by rw [h2.map_eq, h1.map_eq]⟩
 
-lemma HasCondDistrib.prod [IsFiniteMeasure μ] [IsFiniteKernel κ]
-    {Z : α → Ω'} {η : Kernel (β × Ω) Ω'} [IsFiniteKernel η]
+lemma HasCondDistrib.prod {Z : α → Ω'} {η : Kernel (β × Ω) Ω'}
     (h1 : HasCondDistrib Y X κ μ) (h2 : HasCondDistrib Z (fun ω ↦ (X ω, Y ω)) η μ) :
     HasCondDistrib (fun ω ↦ (Y ω, Z ω)) X (κ ⊗ₖ η) μ := by
   refine ⟨by fun_prop, ?_⟩
