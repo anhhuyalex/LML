@@ -29,8 +29,11 @@ public import LeanMachineLearning.Online.Bandit.Regret
 public import LeanMachineLearning.Online.Bandit.RewardByCountMeasure
 public import LeanMachineLearning.Online.Bandit.SumRewards
 public import LeanMachineLearning.Optimization.Approximation
+public import LeanMachineLearning.Optimization.Approximation.BarronNorm
 public import LeanMachineLearning.Optimization.Approximation.Basic
+public import LeanMachineLearning.Optimization.Approximation.InfiniteWidth
 public import LeanMachineLearning.Optimization.Approximation.Multivariate
+public import LeanMachineLearning.Optimization.Approximation.Sampling
 public import LeanMachineLearning.Optimization.Approximation.Univariate
 public import LeanMachineLearning.Optimization.Approximation.Universal
 public import LeanMachineLearning.SequentialLearning.Algorithm
