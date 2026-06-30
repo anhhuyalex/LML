@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
-public import Mathlib.Probability.Variance
+public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Basic
 
