@@ -8,7 +8,8 @@ module
 public import LeanMachineLearning.Optimization.Approximation.InfiniteWidth
 public import Mathlib.Analysis.Fourier.FourierTransform
 public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
-public import Mathlib.MeasureTheory.Function.L1Space
+public import Mathlib.MeasureTheory.Function.LpSpace.Basic
+public import Mathlib.MeasureTheory.Function.L1Space.Integrable
 public import Mathlib.Analysis.InnerProductSpace.Basic
 
 /-!
@@ -69,7 +70,7 @@ noncomputable def fourierTransform (f : (Fin d → ℝ) → ℝ) (w : Fin d → 
 
 /-- The magnitude of the Fourier transform. -/
 noncomputable def fourierMagnitude (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ) : ℝ :=
-  Complex.abs (fourierTransform f w)
+  ‖fourierTransform f w‖
 
 /-- The phase angle θ(w) of f̂(w): the unique θ with f̂(w) = |f̂(w)| · exp(2πiθ). -/
 noncomputable def fourierPhase (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ) : ℝ :=
@@ -120,16 +121,14 @@ lemma barronCosineBump_bound (w : Fin d → ℝ) (θ : ℝ) (x : Fin d → ℝ) 
   split_ifs with hw
   · simp
   · rw [abs_div]
-    apply div_le_of_le_mul (by positivity)
+    rw [div_le_iff₀ (by positivity)]
     calc |Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)|
         ≤ |2 * π * innerProd w x + 2 * π * θ - 2 * π * θ| := by
           apply Real.cos_lipschitz.dist_le_mul
       _ = 2 * π * |innerProd w x| := by ring_nf; rw [abs_mul]; positivity
       _ ≤ 2 * π * (‖w‖ * ‖x‖) := by
           apply mul_le_mul_of_nonneg_left _ (by positivity)
-          calc |innerProd w x| ≤ ‖w‖ * ‖x‖ := by
-            apply abs_inner_le_norm  -- inner product bound (Cauchy-Schwarz in discrete setting)
-            sorry
+          calc |innerProd w x| ≤ ‖w‖ * ‖x‖ := sorry
 
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:
@@ -145,13 +144,13 @@ theorem barronTheorem
     {f : (Fin d → ℝ) → ℝ}
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (fourierTransform f) volume)
-    (hbarron : barronNorm f < ⊤.toReal) :
-    ∃ (net : InfiniteWidthNetwork.InfiniteWidthNetwork thresholdActivation (d + 1)),
-      InfiniteWidthNetwork.InfiniteWidthNetwork.mass thresholdActivation net ≤
+    (hbarron : Integrable (barronIntegrand f) volume) :
+    ∃ (net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1)),
+      Approximation.InfiniteWidth.InfiniteWidthNetwork.mass thresholdActivation net ≤
         2 * barronNorm f ∧
       ∀ x : Fin d → ℝ, ‖x‖ ≤ 1 →
         f x - f 0 =
-          InfiniteWidthNetwork.InfiniteWidthNetwork.eval thresholdActivation net
+          Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
             (fun wb => thresholdActivation
               (innerProd (fun j => wb j.castSucc) x - wb (Fin.last d))) := by
   sorry

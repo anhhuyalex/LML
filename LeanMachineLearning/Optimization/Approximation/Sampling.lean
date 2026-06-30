@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Approximation.BarronNorm
 public import Mathlib.Analysis.InnerProductSpace.Basic
-public import Mathlib.MeasureTheory.Decomposition.SignedHahn
+public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Hahn
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.MeasureTheory.Function.L2Space
 

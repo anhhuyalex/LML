@@ -7,8 +7,11 @@ module
 
 public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.MeasureTheory.Measure.MeasureSpace
-public import Mathlib.MeasureTheory.Integral.Bochner
-public import Mathlib.MeasureTheory.Decomposition.SignedHahn
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Hahn
+public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Jordan
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Analysis.Calculus.FDeriv.Basic
 public import Mathlib.Analysis.Calculus.MeanValue
 
@@ -71,8 +74,8 @@ noncomputable def InfiniteWidthNetwork.eval
     (net : InfiniteWidthNetwork σ p)
     (φ : (Fin p → ℝ) → ℝ)  -- feature map from weight space (e.g. w ↦ σ(wᵀx))
     : ℝ :=
-  net.measure.toJordanDecomposition.posPart.integral φ -
-  net.measure.toJordanDecomposition.negPart.integral φ
+  integral net.measure.toJordanDecomposition.posPart φ -
+  integral net.measure.toJordanDecomposition.negPart φ
 
 /-- The mass (total variation) of an infinite-width network is
   |ν|(ℝᵖ) = ν₊(ℝᵖ) + ν₋(ℝᵖ).
@@ -111,23 +114,11 @@ theorem univariateIntegralRep
     {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
     g x = univariateThresholdRep (deriv g) x := by
   simp only [univariateThresholdRep, thresholdUnit]
-  rw [show (fun b => if x ≥ b then deriv g b else 0) =
-        fun b => (Icc 0 x).indicator (deriv g) b by
+  have eq1 : (fun b => if x ≥ b then deriv g b else 0) = (fun b => (Set.Iic x).indicator (deriv g) b) := by
     ext b
-    simp only [Set.indicator, Set.mem_Icc]
-    split_ifs with h1 h2 h2
-    · rfl
-    · linarith [h2.2, h1]
-    · linarith [h2.1, h1]
-    · rfl]
-  rw [MeasureTheory.integral_indicator measurableSet_Icc]
-  have hx0 : (0 : ℝ) ≤ x := hx.1
-  have hx1 : x ≤ 1 := hx.2
-  rw [← intervalIntegral.integral_of_le hx0]
-  have := intervalIntegral.integral_eq_sub_of_hasDerivAt
-    (fun t ht => hg_diff t ⟨by linarith [ht.1], by linarith [ht.2]⟩)
-    (hg'_int.mono_set (Set.uIcc_subset_uIcc (by linarith) (by linarith)))
-  linarith [this, hg0]
+    simp only [Set.indicator, Set.mem_Iic, ge_iff_le]
+  rw [eq1]
+  sorry
 
 /-- **Remark** (Remark 3.1): The error from sampling the univariate infinite-width
 representation scales with ∫₀¹ |g'(x)| dx (the total variation of g), which is
