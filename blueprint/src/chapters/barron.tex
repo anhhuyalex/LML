@@ -1,0 +1,364 @@
+\chapter{Barron norm and infinite-width networks}
+\label{chap:barron}
+
+\section{Introduction}
+
+This chapter formalizes Chapter~3 of the deep learning theory notes (Telgarsky~2021),
+which develops two influential ideas.
+
+\begin{enumerate}
+  \item \textbf{Infinite-width networks.}  Instead of a finite parameter tuple, a shallow
+    network is described by a \emph{signed measure} $\nu$ over weight space.  The network
+    evaluates as $x \mapsto \int \sigma(w^\top x)\,d\nu(w)$, and its \emph{mass} is the
+    total variation $|\nu|(\mathbb{R}^p)$.  Infinite-width networks simplify analysis,
+    and certain important phenomena — such as staying near random initialization — are
+    better captured at this level of abstraction before sampling down to finite width.
+
+  \item \textbf{Barron norm and representation theorem.}  Barron~(1993) identified a class
+    of functions — those with a finite ``Barron norm'' defined via the Fourier gradient —
+    that can be represented \emph{exactly} as infinite-width threshold networks.  Combining
+    this with a sampling argument (Maurey's lemma; Pisier~1980) gives a quantitative bound
+    on how many nodes are needed to approximate such a function to within $\varepsilon$
+    in $L^2(P)$: roughly $C^2/\varepsilon^2$, where $C$ is the Barron norm.
+    Crucially, this complexity is dimension-free, circumventing the curse of dimension for
+    functions in the Barron class.
+\end{enumerate}
+
+\paragraph{Relation to the broader LML project.}
+The Lean formalizations developed in this chapter extend the
+\texttt{Approximation} module of \texttt{LeanMachineLearning.Optimization}.
+The four new files are:
+
+\begin{itemize}
+  \item \texttt{InfiniteWidth.lean} — Definition~\ref{def:infiniteWidthNetwork} and
+    Proposition~\ref{prop:univariateIntegralRep}.
+  \item \texttt{BarronNorm.lean} — Definition~\ref{def:barronNorm} and
+    Theorem~\ref{thm:barronRepresentation}.
+  \item \texttt{Sampling.lean} — Lemma~\ref{lem:maureySampling},
+    Lemma~\ref{lem:maureySignedMeasure}, and
+    Corollary~\ref{cor:barronSamplingBound}.
+\end{itemize}
+
+\paragraph{Notation.}
+Throughout this chapter, $d \in \mathbb{N}$ is the input dimension,
+$\sigma_\theta$ denotes the threshold activation $z \mapsto \mathbf{1}[z \ge 0]$,
+$\widehat{f}$ denotes the Fourier transform of $f$ with convention
+$\widehat{f}(w) = \int \exp(-2\pi i\, w^\top x)\, f(x)\, dx$,
+and $P$ denotes a probability measure on inputs $x \in \mathbb{R}^d$.
+We write $\|f\|_{L_2(P)}^2 = \int f(x)^2\, dP(x)$.
+
+% -------------------------------------------------------------------------
+\section{Infinite-width shallow networks}
+\label{sec:infinite-width}
+
+\subsection{The infinite-width model}
+
+\begin{definition}[Infinite-width shallow network]\label{def:infiniteWidthNetwork}
+  \lean{Approximation.InfiniteWidth.InfiniteWidthNetwork}
+  \uses{def:thresholdActivation, def:reluActivation}
+An \emph{infinite-width shallow network} with activation $\sigma$ and weight space
+$\mathbb{R}^p$ is a pair $(\sigma, \nu)$ where $\nu$ is a signed Borel measure on
+$\mathbb{R}^p$.
+The network evaluates as
+\[
+  x \;\mapsto\; \int_{\mathbb{R}^p} \sigma(w^\top x)\; d\nu(w).
+\]
+The \emph{mass} of the network is the total variation
+\[
+  |\nu|(\mathbb{R}^p) \;=\; \nu_+(\mathbb{R}^p) + \nu_-(\mathbb{R}^p),
+\]
+where $\nu = \nu_+ - \nu_-$ is the Jordan decomposition of $\nu$.
+\end{definition}
+
+\begin{remark}
+  A standard finite-width network $x \mapsto \sum_{j=1}^m a_j \sigma(w_j^\top x)$ is
+  recovered as a special case by taking $\nu = \sum_{j=1}^m a_j \delta_{w_j}$, with
+  mass $\sum_j |a_j|$.  The infinite-width model strictly generalizes this, allowing
+  continuous superpositions over weight space.
+\end{remark}
+
+\subsection{Univariate integral representation (Proposition 3.1)}
+
+The following proposition shows that any differentiable univariate function (shifted to
+vanish at 0) is \emph{exactly} an infinite-width threshold network, with the signed
+measure given by $d\nu = g'(b)\, db$.
+
+\begin{proposition}[Univariate integral representation]\label{prop:univariateIntegralRep}
+  \lean{Approximation.InfiniteWidth.univariateIntegralRep}
+  \uses{def:infiniteWidthNetwork, def:thresholdActivation}
+Let $g : \mathbb{R} \to \mathbb{R}$ be differentiable on $[0,1]$ with $g(0) = 0$ and
+$g' \in L^1([0,1])$.  Then for all $x \in [0,1]$,
+\[
+  g(x) \;=\; \int_0^1 \mathbf{1}[x \ge b]\, g'(b)\; db.
+\]
+\end{proposition}
+
+\begin{proof}
+  \uses{prop:univariateIntegralRep}
+By the fundamental theorem of calculus and $g(0) = 0$,
+\[
+  g(x) = g(0) + \int_0^x g'(b)\, db = \int_0^1 \mathbf{1}[x \ge b]\, g'(b)\, db. \qedhere
+\]
+\end{proof}
+
+\begin{remark}
+  The cost of approximating $g$ by sampling from this infinite-width representation
+  scales with $\int_0^1 |g'(b)|\, db$ (the total variation of $g$), which is
+  \emph{adaptive}: flat regions of $g$ contribute nothing.
+  This contrasts with the grid-based approximation of Proposition~2.1, which pays for
+  every grid cell regardless of local flatness.
+\end{remark}
+
+% -------------------------------------------------------------------------
+\section{Barron norm and Fourier representation}
+\label{sec:barron-norm}
+
+\subsection{The Barron norm}
+
+\begin{definition}[Barron norm]\label{def:barronNorm}
+  \lean{Approximation.BarronNorm.barronNorm}
+The \emph{Barron norm} of a function $f : \mathbb{R}^d \to \mathbb{R}$ is
+\[
+  \|f\|_{\mathrm{Barron}}
+  \;:=\; \int_{\mathbb{R}^d} \bigl\|\widehat{\nabla f}(w)\bigr\|\; dw
+  \;=\; 2\pi \int_{\mathbb{R}^d} \|w\| \cdot |\widehat{f}(w)|\; dw,
+\]
+where the identity follows from the Fourier derivative formula
+$\widehat{\nabla f}(w) = 2\pi i\, w\, \widehat{f}(w)$.
+\end{definition}
+
+\begin{definition}[Barron class]\label{def:barronClass}
+  \lean{Approximation.BarronNorm.BarronClass}
+  \uses{def:barronNorm}
+The \emph{Barron class with norm $C$} is
+\[
+  \mathcal{F}_C \;:=\; \bigl\{f : \mathbb{R}^d \to \mathbb{R}
+    \;\big|\; \widehat{f} \in L^1,\; \|f\|_{\mathrm{Barron}} \le C\bigr\}.
+\]
+\end{definition}
+
+\begin{remark}\label{rem:barronNormDimensionFree}
+  For functions in $\mathcal{F}_C$, Barron's theorem (below) shows that the number of
+  nodes required to achieve $L^2(P)$ approximation error $\varepsilon$ is $O(C^2/\varepsilon^2)$,
+  independent of the input dimension $d$.
+  This is in stark contrast to the folklore constructions of Chapter~2, which require
+  exponentially many nodes.
+\end{remark}
+
+\subsection{Examples of finite Barron norm}
+
+\begin{proposition}[Gaussian Barron norm]\label{prop:gaussianBarronNorm}
+  \lean{Approximation.BarronNorm.gaussian_barronNorm_bound}
+  \uses{def:barronNorm}
+Let $f(x) = (2\pi\sigma^2)^{d/2}\exp(-\|x\|^2/(2\sigma^2))$ be the unnormalized Gaussian
+with variance $\sigma^2$.  If $2\pi\sigma^2 \ge 1$, then
+\[
+  \|f\|_{\mathrm{Barron}}
+  \;\le\; \frac{\sqrt{d}}{\sqrt{2\pi}\,(2\pi\sigma^2)^{(d+1)/2}}.
+\]
+In particular, $\|f\|_{\mathrm{Barron}} = O(\sqrt{d})$ when $\sigma^2 = \Theta(1/(2\pi))$.
+\end{proposition}
+
+\begin{proof}
+  \uses{def:barronNorm, prop:gaussianBarronNorm}
+The Fourier transform of the Gaussian is
+$\widehat{f}(w) = \exp(-2\pi^2 \sigma^2 \|w\|^2)$,
+which is an unnormalized Gaussian with variance $(4\pi^2 \sigma^2)^{-1}$.
+Applying Hölder's inequality to $\int \|w\| |\widehat{f}(w)| dw$ against the normalizing
+constant of $\widehat{f}$ gives the stated bound; see Barron~(1993), Section~IX.9.
+\end{proof}
+
+\subsection{Barron's representation theorem}
+
+The main result of Barron~(1993) expresses any function with finite Barron norm as an
+exact infinite-width representation.
+
+\begin{theorem}[Barron representation]\label{thm:barronRepresentation}
+  \lean{Approximation.BarronNorm.barronTheorem}
+  \uses{def:barronNorm, def:infiniteWidthNetwork, def:thresholdActivation}
+Suppose $f : \mathbb{R}^d \to \mathbb{R}$ satisfies $f \in L^1$, $\widehat{f} \in L^1$,
+and $\|f\|_{\mathrm{Barron}} < \infty$.
+Write $\widehat{f}(w) = |\widehat{f}(w)| \exp(2\pi i\,\theta(w))$.
+Then for all $\|x\| \le 1$,
+\begin{align*}
+  f(x) - f(0)
+  &= \int_{\mathbb{R}^d}
+    \frac{\cos(2\pi w^\top x + 2\pi\theta(w)) - \cos(2\pi\theta(w))}{2\pi\|w\|}
+    \cdot \bigl\|\widehat{\nabla f}(w)\bigr\|\; dw \\
+  &= -2\pi\iint_0^{\|w\|}
+    \mathbf{1}[w^\top x - b \ge 0]
+    \bigl[\sin(2\pi b + 2\pi\theta(w)) |\widehat{f}(w)|\bigr]\; db\, dw \\
+  &\quad + 2\pi\iint_{-\|w\|}^0
+    \mathbf{1}[-w^\top x + b \ge 0]
+    \bigl[\sin(2\pi b + 2\pi\theta(w)) |\widehat{f}(w)|\bigr]\; db\, dw.
+\end{align*}
+The last two lines express $f(x) - f(0)$ as an infinite-width threshold network whose
+corresponding signed measure $\mu$ satisfies $|\mu|(\mathbb{R}^{d+1}) \le 2\|f\|_{\mathrm{Barron}}$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:barronRepresentation, def:barronNorm}
+The first equality follows from the Fourier inversion formula and the polar decomposition
+of $\widehat{f}$, using the identity
+\[
+  \cos(2\pi w^\top x + 2\pi\theta) - \cos(2\pi\theta)
+  = \int_0^{w^\top x} -2\pi \sin(2\pi b + 2\pi\theta)\, db.
+\]
+The threshold representation in the second and third lines converts the integral over $b$
+from $0$ to $w^\top x$ into indicator functions $\mathbf{1}[\cdot]$.
+The mass bound $\le 2\|f\|_{\mathrm{Barron}}$ follows by estimating
+$|\sin(\cdot)| \le 1$ and integrating over $b \in [-\|w\|, \|w\|]$.
+\end{proof}
+
+% -------------------------------------------------------------------------
+\section{Sampling from infinite-width networks}
+\label{sec:sampling}
+
+\subsection{Maurey's lemma in Hilbert spaces}
+
+The following lemma underpins all sampling-based approximation results in this chapter.
+
+\begin{lemma}[Maurey sampling; Pisier 1980]\label{lem:maureySampling}
+  \lean{Approximation.Sampling.maureySampling}
+Let $H$ be a Hilbert space and let $V$ be a random variable supported on $S \subseteq H$
+with $X = \mathbb{E}[V]$.  Let $V_1, \ldots, V_k$ be iid draws from the distribution of $V$.
+Then
+\[
+  \mathbb{E}\Bigl[\Bigl\|X - \tfrac{1}{k}\sum_{i=1}^k V_i\Bigr\|^2\Bigr]
+  \;\le\; \frac{\mathbb{E}[\|V\|^2]}{k}
+  \;\le\; \frac{\sup_{U \in S} \|U\|^2}{k}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:maureySampling}
+Write $\frac{1}{k}\sum_i V_i - X = \frac{1}{k}\sum_i (V_i - X)$.  Then:
+\begin{align*}
+  \mathbb{E}\Bigl[\Bigl\|\tfrac{1}{k}\sum_i (V_i - X)\Bigr\|^2\Bigr]
+  &= \frac{1}{k^2} \mathbb{E}\Bigl[\sum_i \|V_i - X\|^2
+    + \sum_{i \ne j} \langle V_i - X,\, V_j - X\rangle\Bigr] \\
+  &= \frac{1}{k} \mathbb{E}[\|V - X\|^2]
+  \;\le\; \frac{\mathbb{E}[\|V\|^2]}{k},
+\end{align*}
+where the cross terms vanish by independence and zero mean, and the last step uses
+$\mathbb{E}[\|V - X\|^2] \le \mathbb{E}[\|V\|^2]$.
+\end{proof}
+
+\begin{lemma}[Existence of deterministic sample]\label{lem:maureySamplingExistence}
+  \lean{Approximation.Sampling.maureySamplingExistence}
+  \uses{lem:maureySampling}
+Under the same hypotheses, there exist deterministic $u_1, \ldots, u_k \in S$ with
+\[
+  \Bigl\|X - \tfrac{1}{k}\sum_{i=1}^k u_i\Bigr\|^2
+  \;\le\; \frac{\sup_{U \in S} \|U\|^2}{k}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:maureySamplingExistence, lem:maureySampling}
+The probabilistic bound in Lemma~\ref{lem:maureySampling} guarantees that the expectation
+is at most the right-hand side; therefore at least one realization $(u_1, \ldots, u_k)$
+achieves the bound. (Probabilistic method.)
+\end{proof}
+
+\subsection{Maurey's lemma for signed measures}
+
+\begin{lemma}[Maurey for signed measures]\label{lem:maureySignedMeasure}
+  \lean{Approximation.Sampling.maureySamplingSignedMeasure}
+  \uses{lem:maureySampling, def:infiniteWidthNetwork}
+Let $\mu$ be a nonzero signed measure on $S \subseteq \mathbb{R}^p$ with Jordan
+decomposition $\mu = \mu_+ - \mu_-$ and total mass
+$\|\mu\|_1 = \mu_+(\mathbb{R}^p) + \mu_-(\mathbb{R}^p)$.
+Let $P$ be a probability measure on inputs $x$, and write
+\[
+  g(x) \;:=\; \int_{\mathbb{R}^p} g(x; w)\; d\mu(w).
+\]
+Define the normalized distribution $\widetilde{\mu}$ by sampling $s \in \{+1, -1\}$ with
+$\Pr[s = +1] = \|\mu_+\|_1 / \|\mu\|_1$, then $w \sim \mu_s / \|\mu_s\|_1$,
+and output $\widetilde{g}(\cdot; (w, s)) = s\,\|\mu\|_1\, g(\cdot; w)$.
+
+Then for iid draws $(\widetilde{w}_1, \ldots, \widetilde{w}_k) \sim \widetilde{\mu}$,
+\[
+  \mathbb{E}\Bigl[\Bigl\|g - \tfrac{1}{k}\sum_{i=1}^k \widetilde{g}(\cdot;\widetilde{w}_i)
+    \Bigr\|_{L_2(P)}^2\Bigr]
+  \;\le\; \frac{\|\mu\|_1^2 \sup_{w \in S} \|g(\cdot; w)\|_{L_2(P)}^2}{k},
+\]
+and there exist deterministic $(w_1, s_1), \ldots, (w_k, s_k)$ with $w_i \in S$,
+$s_i \in \{+1,-1\}$, achieving the same bound.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:maureySignedMeasure, lem:maureySampling}
+One verifies that $\mathbb{E}_{\widetilde{\mu}}[\widetilde{g}(\cdot;(w,s))] = g(\cdot)$
+by unfolding the definition of $\widetilde{\mu}$ and using $\mu = \mu_+ - \mu_-$.
+Then apply Lemma~\ref{lem:maureySampling} in the Hilbert space $L_2(P)$ to the random
+variable $V = \widetilde{g}(\cdot;\widetilde{w})$ with
+$\|V\|_{L_2(P)} \le \|\mu\|_1 \sup_w \|g(\cdot;w)\|_{L_2(P)}$.
+The existence of the deterministic sample follows by the probabilistic method
+(Lemma~\ref{lem:maureySamplingExistence}).
+\end{proof}
+
+\subsection{Barron's sampling bound}
+
+Combining the Barron representation (Theorem~\ref{thm:barronRepresentation}) with
+Maurey's lemma for signed measures (Lemma~\ref{lem:maureySignedMeasure}) yields the
+main quantitative approximation result.
+
+\begin{corollary}[Barron sampling bound]\label{cor:barronSamplingBound}
+  \lean{Approximation.Sampling.barronSamplingBound}
+  \uses{thm:barronRepresentation, lem:maureySignedMeasure, def:barronClass}
+Let $f \in \mathcal{F}_C$ and let $P$ be a probability measure supported on
+$\{x : \|x\| \le 1\}$.
+Then for any $k \ge 1$ there exist weights $w_1, \ldots, w_k \in \mathbb{R}^d$,
+biases $b_1, \ldots, b_k \in \mathbb{R}$, and signs $s_1, \ldots, s_k \in \{+1,-1\}$
+such that the $k$-node threshold network
+\[
+  \widehat{f}(x) \;:=\; f(0) + \frac{2C}{k} \sum_{i=1}^k s_i\, \mathbf{1}[w_i^\top x \ge b_i]
+\]
+satisfies
+\[
+  \|f - \widehat{f}\|_{L_2(P)}^2 \;\le\; \frac{4C^2}{k}.
+\]
+In particular, to achieve $L_2(P)$ error at most $\varepsilon$, it suffices to take
+$k \ge 4C^2/\varepsilon^2$ nodes.
+\end{corollary}
+
+\begin{proof}
+  \uses{cor:barronSamplingBound, thm:barronRepresentation, lem:maureySignedMeasure}
+By Theorem~\ref{thm:barronRepresentation}, $f(x) - f(0)$ equals an infinite-width
+threshold representation with signed measure $\mu$ satisfying $\|\mu\|_1 \le 2C$.
+Each threshold node $\mathbf{1}[w^\top x \ge b]$ satisfies
+$\|\mathbf{1}[w^\top \cdot \ge b]\|_{L_2(P)} \le 1$.
+Applying Lemma~\ref{lem:maureySignedMeasure} with these parameters gives the bound
+\[
+  \|f(\cdot) - f(0) - \tfrac{1}{k}\sum_i \widetilde{g}(\cdot; (w_i, s_i))\|_{L_2(P)}^2
+  \;\le\; \frac{(2C)^2 \cdot 1}{k} \;=\; \frac{4C^2}{k}. \qedhere
+\]
+\end{proof}
+
+\begin{remark}[Comparison with folklore constructions]
+  \uses{cor:barronSamplingBound}
+The folklore constructions of Chapter~2 require exponentially many nodes in the dimension
+$d$ to approximate arbitrary Lipschitz functions.
+In contrast, Corollary~\ref{cor:barronSamplingBound} achieves dimension-free approximation
+(the $4C^2/k$ bound does not depend on $d$) for the subclass $\mathcal{F}_C$.
+The price is that functions with exponentially growing Barron norm — such as general
+radial functions, or the worst-case lower bounds in Barron~(1993) — pay the same
+exponential cost implicitly through $C$.
+\end{remark}
+
+% -------------------------------------------------------------------------
+\section{Relationship to the NTK and initialization}
+\label{sec:barron-ntk}
+
+\begin{remark}[Barron norm and networks near initialization]\label{rem:barronNTK}
+As noted in Remark~3.3 of the lecture notes (and elaborated in Ji, Telgarsky, and Xian 2020),
+the Barron norm also controls the complexity of shallow networks in the \emph{Neural Tangent
+Kernel (NTK)} regime — that is, networks staying near their random initialization.
+This connection arises because threshold units are (informally) the derivatives of ReLU
+units, so the Barron representation with threshold nodes maps directly onto the linearized
+network $f_0$ that arises in the Taylor expansion near initialization.
+
+Formalizing this connection would require extending the NTK formalism to the LML library;
+we leave this as future work.
+\end{remark}
