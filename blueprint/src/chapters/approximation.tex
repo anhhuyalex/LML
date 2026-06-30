@@ -1,0 +1,350 @@
+\chapter{Neural network approximation theory}
+
+\section{Introduction}
+
+This chapter formalizes the classical approximation results for neural networks covered in Chapter~2 of the deep learning theory notes.
+The central question is: which functions can be well-approximated by neural networks, and at what cost in network size?
+
+We establish two families of results.
+The first (Section~\ref{sec:folklore}) gives constructive proofs of approximation in the ``classical'' regime, where the cost is measured in terms of the number of nodes and the ambient dimension enters exponentially (the \emph{curse of dimension}).
+The second (Section~\ref{sec:universal}) gives the celebrated universal approximation theorem: every continuous function on a compact set can be approximated to arbitrary accuracy by a single-hidden-layer network with a sigmoidal activation.
+
+All results are over $\mathbb{R}^d$ with the standard topology.
+Compact sets are taken to be closed bounded subsets of $\mathbb{R}^d$.
+We write $\|f\|_\infty = \sup_x |f(x)|$ for the sup-norm and $\|f\|_1 = \int |f(x)| \, dx$ for the $L^1$-norm.
+
+\section{Neural network function classes}
+
+\subsection{Single hidden layer networks}
+
+\begin{definition}[Single-hidden-layer network class]\label{def:oneHiddenLayerClass}
+  \lean{Approximation.OneHiddenLayer.FunctionClass}
+Let $\sigma : \mathbb{R} \to \mathbb{R}$ be an activation function, $d \in \mathbb{N}$ an input dimension, and $m \in \mathbb{N}$ a width.
+The \emph{single-hidden-layer network class} $\mathcal{F}_{\sigma,d,m}$ is the set of functions $f : \mathbb{R}^d \to \mathbb{R}$ of the form
+\[
+  f(x) = \sum_{i=1}^{m} a_i \, \sigma(w_i^\top x + b_i)
+  \: ,
+\]
+where $a \in \mathbb{R}^m$, $W \in \mathbb{R}^{m \times d}$ (with rows $w_i$), and $b \in \mathbb{R}^m$.
+
+The \emph{unbounded-width class} is $\mathcal{F}_{\sigma,d} := \bigcup_{m \ge 0} \mathcal{F}_{\sigma,d,m}$.
+\end{definition}
+
+\begin{remark}
+  $\mathcal{F}_{\sigma,d}$ is the linear span (in function space) of the single-node functions $x \mapsto \sigma(w^\top x + b)$.
+  It is a vector subspace of all functions $\mathbb{R}^d \to \mathbb{R}$.
+\end{remark}
+
+\begin{definition}[Threshold activation]\label{def:thresholdActivation}
+  \lean{Approximation.thresholdActivation}
+The \emph{threshold activation} (Heaviside step function) is $\sigma_\theta : \mathbb{R} \to \mathbb{R}$ defined by $\sigma_\theta(z) = \mathbf{1}[z \ge 0]$.
+\end{definition}
+
+\begin{definition}[ReLU activation]\label{def:reluActivation}
+  \lean{Approximation.reluActivation}
+The \emph{ReLU activation} is $\sigma_\mathrm{ReLU} : \mathbb{R} \to \mathbb{R}$ defined by $\sigma_\mathrm{ReLU}(z) = \max(z, 0)$.
+\end{definition}
+
+\begin{definition}[Cosine activation]\label{def:cosActivation}
+  \lean{Approximation.cosActivation}
+The \emph{cosine activation} is $\sigma_{\cos} : \mathbb{R} \to \mathbb{R}$ defined by $\sigma_{\cos}(z) = \cos(z)$.
+\end{definition}
+
+\begin{definition}[Sigmoidal activation]\label{def:sigmoidalActivation}
+  \lean{Approximation.Sigmoidal}
+A function $\sigma : \mathbb{R} \to \mathbb{R}$ is \emph{sigmoidal} if it is continuous and satisfies
+\[
+  \lim_{z \to -\infty} \sigma(z) = 0
+  \qquad \text{and} \qquad
+  \lim_{z \to +\infty} \sigma(z) = 1
+  \: .
+\]
+\end{definition}
+
+\subsection{Two-hidden-layer networks}
+
+\begin{definition}[Two-hidden-layer network class]\label{def:twoHiddenLayerClass}
+  \lean{Approximation.TwoHiddenLayer.FunctionClass}
+Let $\sigma : \mathbb{R} \to \mathbb{R}$, $d \in \mathbb{N}$, and let $m_1, m_2 \in \mathbb{N}$ be widths.
+The \emph{two-hidden-layer network class} $\mathcal{G}_{\sigma,d,m_1,m_2}$ is the set of functions $f : \mathbb{R}^d \to \mathbb{R}$ of the form
+\[
+  f(x) = \sum_{j=1}^{m_2} c_j \, \sigma\!\left(\sum_{i=1}^{m_1} v_{ji} \, \sigma(w_i^\top x + b_i) + \beta_j\right)
+  \: ,
+\]
+with parameters $c \in \mathbb{R}^{m_2}$, $V \in \mathbb{R}^{m_2 \times m_1}$, $\beta \in \mathbb{R}^{m_2}$, $W \in \mathbb{R}^{m_1 \times d}$, $b \in \mathbb{R}^{m_1}$.
+\end{definition}
+
+
+\section{Folklore constructions}\label{sec:folklore}
+
+\subsection{Univariate Lipschitz approximation}
+
+\begin{definition}[Lipschitz function]\label{def:lipschitz}
+  \lean{LipschitzWith}
+A function $g : \mathbb{R} \to \mathbb{R}$ is \emph{$\rho$-Lipschitz} (with constant $\rho \ge 0$) if for all $x, y \in \mathbb{R}$,
+\[
+  |g(x) - g(y)| \le \rho \, |x - y|
+  \: .
+\]
+\end{definition}
+
+\begin{remark}
+  The Lean name \texttt{LipschitzWith} is from Mathlib; we use it directly.
+\end{remark}
+
+\begin{definition}[Step-function approximant]\label{def:stepApprox}
+  \lean{Approximation.Univariate.stepApprox}
+Let $g : \mathbb{R} \to \mathbb{R}$ be $\rho$-Lipschitz and let $\epsilon > 0$.
+Set $m := \lceil \rho / \epsilon \rceil$, and for $i \in \{0, \ldots, m-1\}$ define breakpoints $b_i := i \epsilon / \rho$ and coefficients
+\[
+  a_0 = g(0), \qquad a_i = g(b_i) - g(b_{i-1}) \quad (i \ge 1).
+\]
+The \emph{step-function approximant} is
+\[
+  f_{\epsilon}(x) := \sum_{i=0}^{m-1} a_i \, \mathbf{1}[x \ge b_i]
+  \: .
+\]
+\end{definition}
+
+\begin{proposition}[Univariate folklore approximation]\label{prop:univariateFolklore}
+  \uses{def:lipschitz, def:stepApprox, def:thresholdActivation, def:oneHiddenLayerClass}
+  \lean{Approximation.Univariate.stepApprox_error}
+Suppose $g : \mathbb{R} \to \mathbb{R}$ is $\rho$-Lipschitz.
+For any $\epsilon > 0$, the step-function approximant $f_\epsilon$ belongs to $\mathcal{F}_{\sigma_\theta, 1, \lceil \rho/\epsilon \rceil}$ and satisfies
+\[
+  \sup_{x \in [0,1]} |f_\epsilon(x) - g(x)| \le \epsilon
+  \: .
+\]
+\end{proposition}
+
+\begin{proof}
+  \uses{def:lipschitz, def:stepApprox}
+  \lean{Approximation.Univariate.stepApprox_error}
+  Let $m = \lceil \rho / \epsilon \rceil$.
+  For any $x \in [0,1]$, let $k$ be the largest index with $b_k \le x$.
+  Then $f_\epsilon$ is constant on $[b_k, x]$, so
+  \begin{align*}
+    |g(x) - f_\epsilon(x)|
+    &\le |g(x) - g(b_k)| + |g(b_k) - f_\epsilon(b_k)| + |f_\epsilon(b_k) - f_\epsilon(x)| \\
+    &\le \rho \, |x - b_k| + \left|g(b_k) - \sum_{i=0}^k a_i\right| + 0 \\
+    &\le \rho \cdot (\epsilon / \rho) + 0 = \epsilon.
+  \end{align*}
+  The telescoping $\sum_{i=0}^k a_i = g(b_k)$ follows by definition of $a_i$.
+\end{proof}
+
+\subsection{Multivariate approximation}
+
+\begin{definition}[Uniform modulus of continuity]\label{def:modulusContinuity}
+  \lean{Approximation.Multivariate.uniformModulus}
+For a continuous function $g : \mathbb{R}^d \to \mathbb{R}$ and $\delta > 0$, the \emph{uniform modulus of continuity at scale $\delta$} is
+\[
+  \omega_g(\delta) := \sup \{ |g(x) - g(x')| : \|x - x'\|_\infty \le \delta \}
+  \: .
+\]
+We say $g$ has \emph{modulus $\epsilon$ at scale $\delta$} if $\omega_g(\delta) \le \epsilon$.
+\end{definition}
+
+\begin{definition}[Rectangle partition]\label{def:rectanglePartition}
+  \lean{Approximation.Multivariate.RectanglePartition}
+A \emph{$\delta$-fine rectangle partition} of a set $U \subseteq \mathbb{R}^d$ is a finite collection $\mathcal{P} = (R_1, \ldots, R_N)$ of half-open rectangles $R_i = \prod_{j=1}^d [a_{ij}, b_{ij})$ that partition $U$, with all side lengths $b_{ij} - a_{ij} \le \delta$.
+\end{definition}
+
+\begin{lemma}[Piecewise constant approximation]\label{lem:piecewiseConst}
+  \uses{def:modulusContinuity, def:rectanglePartition}
+  \lean{Approximation.Multivariate.piecewiseConstApprox}
+Let $g : \mathbb{R}^d \to \mathbb{R}$ be continuous with modulus $\epsilon$ at scale $\delta$, and let $\mathcal{P} = (R_1, \ldots, R_N)$ be a $\delta$-fine rectangle partition of a set $U$.
+Then there exist scalars $\alpha_1, \ldots, \alpha_N$ such that the piecewise constant function $h = \sum_{i=1}^N \alpha_i \mathbf{1}_{R_i}$ satisfies
+\[
+  \sup_{x \in U} |g(x) - h(x)| \le \epsilon
+  \: .
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{def:modulusContinuity, def:rectanglePartition}
+  For each $R_i$ pick a representative $x_i \in R_i$ and set $\alpha_i := g(x_i)$.
+  For any $x \in R_i$, $\|x - x_i\|_\infty \le \delta$, so $|g(x) - h(x)| = |g(x) - g(x_i)| \le \epsilon$.
+\end{proof}
+
+\begin{definition}[Rectangle indicator network]\label{def:rectIndicatorNet}
+  \lean{Approximation.Multivariate.rectIndicatorNet}
+  \uses{def:reluActivation, def:twoHiddenLayerClass}
+Let rectangle $R = \prod_{j=1}^d [a_j, b_j) \subseteq \mathbb{R}^d$ and $\gamma > 0$.
+For each coordinate $j$, define the ``soft step'' function
+\[
+  g_{\gamma,j}(z) := \sigma_\mathrm{ReLU}\!\left(\frac{z-(a_j-\gamma)}{\gamma}\right)
+    - \sigma_\mathrm{ReLU}\!\left(\frac{z-a_j}{\gamma}\right)
+    - \sigma_\mathrm{ReLU}\!\left(\frac{z-b_j}{\gamma}\right)
+    + \sigma_\mathrm{ReLU}\!\left(\frac{z-(b_j+\gamma)}{\gamma}\right)
+  \: ,
+\]
+and define the \emph{rectangle indicator network} as
+\[
+  g_\gamma(x) := \sigma_\mathrm{ReLU}\!\left(\sum_{j=1}^d g_{\gamma,j}(x_j) - (d-1)\right)
+  \: .
+\]
+\end{definition}
+
+\begin{lemma}[Rectangle indicator approximation]\label{lem:rectIndicator}
+  \uses{def:rectIndicatorNet, def:twoHiddenLayerClass}
+  \lean{Approximation.Multivariate.rectIndicatorNet_approx}
+For rectangle $R \subseteq \mathbb{R}^d$, the network $g_\gamma$ lies in $\mathcal{G}_{\sigma_\mathrm{ReLU},d,\mathcal{O}(d),1}$ (two hidden layers with $\mathcal{O}(d)$ nodes in the first layer) and satisfies:
+\begin{enumerate}
+  \item $g_\gamma(x) = 1$ for $x \in R$,
+  \item $g_\gamma(x) = 0$ for $x \notin \prod_j [a_j - \gamma, b_j + \gamma]$,
+  \item $g_\gamma(x) \in [0,1]$ otherwise.
+\end{enumerate}
+Moreover, $\|g_\gamma - \mathbf{1}_R\|_1 = \mathcal{O}(\gamma)$ as $\gamma \to 0$.
+\end{lemma}
+
+\begin{proof}
+  \uses{def:rectIndicatorNet}
+  The pointwise values follow directly from the definition: $g_{\gamma,j}(z) \in \{1\}$ when $z \in [a_j, b_j]$, $\in \{0\}$ when $z \notin [a_j - \gamma, b_j + \gamma]$, and $\in [0,1]$ otherwise.
+  Therefore $\sum_j g_{\gamma,j}(x_j) \ge d$ when $x \in R$, and $\le d-1$ when some coordinate is outside its padded interval.
+  The $L^1$-error bound follows by computing the volume of the $\gamma$-padded region minus $R$.
+\end{proof}
+
+\begin{theorem}[Multivariate folklore approximation]\label{thm:multivariateFolklore}
+  \uses{def:modulusContinuity, def:rectanglePartition, lem:piecewiseConst, lem:rectIndicator, def:twoHiddenLayerClass}
+  \lean{Approximation.Multivariate.folkloreBound}
+Let $g : \mathbb{R}^d \to \mathbb{R}$ be continuous with modulus $\epsilon$ at scale $\delta$.
+Then there exists a function $f \in \mathcal{G}_{\sigma_\mathrm{ReLU}, d, \mathcal{O}(d/\delta^d), 1}$ (two hidden layers, $\Omega(1/\delta^d)$ total nodes) such that
+\[
+  \int_{[0,1]^d} |f(x) - g(x)| \, dx \le 2\epsilon
+  \: .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:piecewiseConst, lem:rectIndicator}
+  Partition $[0,2)^d$ into a $\delta$-fine rectangle partition $\mathcal{P} = (R_1, \ldots, R_N)$ with $N \ge 1/\delta^d$.
+  By Lemma~\ref{lem:piecewiseConst}, obtain $\alpha_i$ with $h = \sum_i \alpha_i \mathbf{1}_{R_i}$ satisfying $\|g - h\|_1 \le \epsilon$.
+  Set $f(x) = \sum_i \alpha_i g_\gamma(x; R_i)$ using Lemma~\ref{lem:rectIndicator}.
+  By the triangle inequality and linearity,
+  \[
+    \|f - g\|_1 \le \|f - h\|_1 + \|h - g\|_1
+    \le \sum_i |\alpha_i| \cdot \|g_\gamma(\cdot; R_i) - \mathbf{1}_{R_i}\|_1 + \epsilon.
+  \]
+  Choose $\gamma$ small enough so that the first term is at most $\epsilon$.
+\end{proof}
+
+\begin{remark}[Curse of dimension]
+  The number of nodes in Theorem~\ref{thm:multivariateFolklore} grows as $\Omega(1/\delta^d)$.
+  For CIFAR images $d = 3072$, this is astronomically large.
+  This exponential dependence is inherent in worst-case approximation of arbitrary continuous functions (Luxburg and Bousquet 2004).
+  Section~\ref{sec:universal} bypasses the \emph{constructive} argument but does not beat the curse of dimension in general; the Barron norm approach (Chapter~3 of the notes) provides a more refined bound.
+\end{remark}
+
+
+\section{Universal approximation}\label{sec:universal}
+
+\subsection{The cosine function class is an algebra}
+
+\begin{lemma}[Cosine class closed under multiplication]\label{lem:cosClosedMult}
+  \uses{def:oneHiddenLayerClass, def:cosActivation}
+  \lean{Approximation.Universal.cos_mul_mem}
+$\mathcal{F}_{\cos,d}$ is closed under pointwise multiplication: if $f, g \in \mathcal{F}_{\cos,d}$, then $fg \in \mathcal{F}_{\cos,d}$.
+\end{lemma}
+
+\begin{proof}
+  By the product-to-sum identity $2\cos(y)\cos(z) = \cos(y+z) + \cos(y-z)$, for
+  $f = \sum_i a_i \cos(w_i^\top x + b_i)$ and $g = \sum_j c_j \cos(u_j^\top x + v_j)$,
+  \[
+    2 f(x) g(x) = \sum_{i,j} a_i c_j \bigl(\cos((w_i+u_j)^\top x + (b_i+v_j)) + \cos((w_i-u_j)^\top x + (b_i-v_j))\bigr)
+    \: ,
+  \]
+  which lies in $\mathcal{F}_{\cos,d}$.
+\end{proof}
+
+\begin{lemma}[Exponential class closed under multiplication]\label{lem:expClosedMult}
+  \uses{def:oneHiddenLayerClass}
+  \lean{Approximation.Universal.exp_mul_mem}
+$\mathcal{F}_{\exp,d}$ (the function class with activation $\sigma = \exp$) is closed under pointwise multiplication.
+\end{lemma}
+
+\begin{proof}
+  For $f = \sum_i r_i \exp(a_i^\top x)$ and $g = \sum_j s_j \exp(b_j^\top x)$,
+  \[
+    f(x)g(x) = \sum_{i,j} r_i s_j \exp((a_i + b_j)^\top x) \in \mathcal{F}_{\exp,d}.
+  \]
+\end{proof}
+
+\subsection{Stone-Weierstrass and universal approximation}
+
+\begin{theorem}[Stone-Weierstrass]\label{thm:stoneWeierstrass}
+  \lean{ContinuousMap.subalgebra_topologicalClosure}
+Let $S$ be a compact Hausdorff space and $\mathcal{F}$ a subalgebra of $C(S, \mathbb{R})$ that separates points and contains a non-vanishing function.
+Then $\mathcal{F}$ is dense in $C(S, \mathbb{R})$ in the sup-norm topology.
+\end{theorem}
+
+\begin{remark}
+  Theorem~\ref{thm:stoneWeierstrass} is available in Mathlib as \texttt{ContinuousMap.subalgebra\_topologicalClosure}.
+  Our task is to show that $\mathcal{F}_{\cos,d}$ (and then $\mathcal{F}_{\sigma,d}$) satisfies the hypotheses.
+\end{remark}
+
+\begin{definition}[Universal approximator]\label{def:universalApprox}
+  \lean{Approximation.IsUniversal}
+A function class $\mathcal{F}$ is a \emph{universal approximator over compact sets} if for every compact $S \subseteq \mathbb{R}^d$, every continuous $g : S \to \mathbb{R}$, and every $\epsilon > 0$, there exists $f \in \mathcal{F}$ with
+\[
+  \sup_{x \in S} |f(x) - g(x)| \le \epsilon
+  \: .
+\]
+\end{definition}
+
+\begin{lemma}[Cosine class is universal]\label{lem:cosUniversal}
+  \uses{def:oneHiddenLayerClass, def:cosActivation, def:universalApprox, lem:cosClosedMult, thm:stoneWeierstrass}
+  \lean{Approximation.Universal.cos_isUniversal}
+$\mathcal{F}_{\cos,d}$ is a universal approximator over compact sets.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:cosClosedMult, thm:stoneWeierstrass}
+  We verify the Stone-Weierstrass conditions for $\mathcal{F}_{\cos,d}$ restricted to any compact $S$:
+  \begin{enumerate}
+    \item Each $f \in \mathcal{F}_{\cos,d}$ is continuous (finite sum of continuous functions).
+    \item For each $x$, the constant function $\cos(0^\top x) = 1 \ne 0$ lies in $\mathcal{F}_{\cos,d}$.
+    \item For each $x \ne x'$, the function $f(z) = \cos((z - x')^\top(x - x') / \|x - x'\|^2)$ satisfies $f(x) = \cos(1) \ne \cos(0) = f(x')$.
+    \item $\mathcal{F}_{\cos,d}$ is a vector space and closed under products by Lemma~\ref{lem:cosClosedMult}.
+  \end{enumerate}
+\end{proof}
+
+\begin{lemma}[Exponential class is universal]\label{lem:expUniversal}
+  \uses{def:oneHiddenLayerClass, def:universalApprox, lem:expClosedMult, thm:stoneWeierstrass}
+  \lean{Approximation.Universal.exp_isUniversal}
+$\mathcal{F}_{\exp,d}$ is a universal approximator over compact sets.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:expClosedMult, thm:stoneWeierstrass}
+  Analogous: $\exp(0^\top x) = 1$, and for $x \ne x'$, $\exp((x-x')^\top(x-x')/\|x-x'\|^2)$ separates them.
+  Closure under products follows from Lemma~\ref{lem:expClosedMult}.
+\end{proof}
+
+\begin{theorem}[Universal approximation for sigmoidal activations]\label{thm:universalSigmoidal}
+  \uses{def:sigmoidalActivation, def:universalApprox, lem:cosUniversal}
+  \lean{Approximation.Universal.sigmoidal_isUniversal}
+Let $\sigma$ be a sigmoidal activation.
+Then $\mathcal{F}_{\sigma,d}$ is a universal approximator over compact sets.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:cosUniversal}
+  Let $\epsilon > 0$ and continuous $g : S \to \mathbb{R}$ be given on a compact $S$.
+  By Lemma~\ref{lem:cosUniversal}, find $h \in \mathcal{F}_{\cos,d}$ with $\|h - g\|_\infty \le \epsilon/2$.
+  It suffices to approximate each $\cos(w^\top x + b)$ to accuracy $\epsilon/(2m)$ using elements of $\mathcal{F}_{\sigma,1}$ composed with the linear map $x \mapsto w^\top x + b$.
+  Since $\sigma$ is sigmoidal, the difference $\sigma(cz) - \sigma(cz - c)$ converges uniformly on compact sets to $\mathbf{1}[z \ge 0]$ as $c \to \infty$, and one can uniformly approximate $\cos$ on any compact interval by a finite linear combination of such terms.
+  Combining gives $f \in \mathcal{F}_{\sigma,d}$ with $\|f - g\|_\infty \le \epsilon$.
+\end{proof}
+
+\begin{corollary}[ReLU universal approximation]\label{cor:reluUniversal}
+  \uses{def:reluActivation, def:universalApprox, thm:universalSigmoidal}
+  \lean{Approximation.Universal.relu_isUniversal}
+$\mathcal{F}_{\sigma_\mathrm{ReLU},d}$ is a universal approximator over compact sets.
+In particular, the function $z \mapsto \sigma_\mathrm{ReLU}(z) - \sigma_\mathrm{ReLU}(z-1)$ is sigmoidal-like after reparametrization.
+\end{corollary}
+
+\begin{proof}
+  \uses{thm:universalSigmoidal}
+  The function $\sigma(z) := \sigma_\mathrm{ReLU}(z) - \sigma_\mathrm{ReLU}(z-1)$ satisfies the sigmoidal limits after scaling: $\sigma_\mathrm{ReLU}(cz) - \sigma_\mathrm{ReLU}(cz - c)$ converges to $\mathbf{1}[z \ge 0]$.
+  Split each node and apply Theorem~\ref{thm:universalSigmoidal}.
+\end{proof}

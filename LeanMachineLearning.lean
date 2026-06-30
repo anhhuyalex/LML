@@ -19,11 +19,6 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.IonescuTulcea.Tr
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
-public import LeanMachineLearning.Optimization.Approximation
-public import LeanMachineLearning.Optimization.Approximation.Basic
-public import LeanMachineLearning.Optimization.Approximation.Multivariate
-public import LeanMachineLearning.Optimization.Approximation.Universal
-public import LeanMachineLearning.Optimization.Approximation.Univariate
 public import LeanMachineLearning.Online.Bandit.Algorithms.ETC
 public import LeanMachineLearning.Online.Bandit.Algorithms.Regret.BayesRegretTS
 public import LeanMachineLearning.Online.Bandit.Algorithms.TS
@@ -33,6 +28,11 @@ public import LeanMachineLearning.Online.Bandit.BayesRegret
 public import LeanMachineLearning.Online.Bandit.Regret
 public import LeanMachineLearning.Online.Bandit.RewardByCountMeasure
 public import LeanMachineLearning.Online.Bandit.SumRewards
+public import LeanMachineLearning.Optimization.Approximation
+public import LeanMachineLearning.Optimization.Approximation.Basic
+public import LeanMachineLearning.Optimization.Approximation.Multivariate
+public import LeanMachineLearning.Optimization.Approximation.Univariate
+public import LeanMachineLearning.Optimization.Approximation.Universal
 public import LeanMachineLearning.SequentialLearning.Algorithm
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensity
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensityBayes
