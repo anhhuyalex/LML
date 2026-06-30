@@ -64,7 +64,9 @@ lemma frobeniusNorm_nonneg (W : Fin m → Fin d → ℝ) : 0 ≤ frobeniusNorm W
 
 lemma frobeniusInner_self_eq_sq (W : Fin m → Fin d → ℝ) :
     frobeniusInner W W = frobeniusNorm W ^ 2 := by
-  simp only [frobeniusInner, frobeniusNorm, Real.sq_sqrt (by positivity)]
+  have h_nonneg : 0 ≤ ∑ i : Fin m, ∑ j : Fin d, W i j ^ 2 :=
+    Finset.sum_nonneg (fun i _ ↦ Finset.sum_nonneg (fun j _ ↦ sq_nonneg (W i j)))
+  simp only [frobeniusInner, frobeniusNorm, Real.sq_sqrt h_nonneg]
   congr 1; ext i; congr 1; ext j; ring
 
 /-! ### Scaled shallow network (Definition 4.1 / Section 4.1) -/
@@ -121,7 +123,7 @@ the rows `W₀ 0, …, W₀ (m-1) : Fin d → ℝ` are drawn i.i.d. from `𝒩(0
 In Lean we realize this as the product measure `⊗ⱼ 𝒩(0, Iᵈ)` over rows.
 Each row distribution is itself the product measure `⊗ₖ 𝒩(0, 1)` over coordinates. -/
 noncomputable def gaussianRowMeasure (d : ℕ) : Measure (Fin d → ℝ) :=
-  Measure.pi (fun _ : Fin d => MeasureTheory.Measure.gaussianReal 0 1)
+  Measure.pi (fun _ : Fin d => gaussianReal 0 1)
 
 /-- The standard Gaussian initialization measure on `Fin m → Fin d → ℝ`.
 This is the product over rows of the row-wise Gaussian measure. -/
@@ -168,11 +170,16 @@ lemma linearization_relu_eq
     ∑ j : Fin m, outerCoeffs j * σ' (∑ k : Fin d, W₀ j k * x k) *
       ∑ k : Fin d, W j k * x k := by
   simp only [linearization]
-  ring_nf
+  have h_inner_sum (j : Fin m) :
+      ∑ k : Fin d, (W j k - W₀ j k) * x k =
+        ∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k := by
+    simp_rw [sub_mul]
+    rw [Finset.sum_sub_distrib]
+  rw [← mul_add, ← Finset.sum_add_distrib]
   congr 1
-  ext j
-  ring_nf
-  congr 1
+  apply Finset.sum_congr rfl
+  intro j _
+  rw [h_inner_sum j]
   ring
 
 end NTK

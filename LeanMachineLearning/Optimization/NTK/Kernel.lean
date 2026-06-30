@@ -11,6 +11,7 @@ public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Probability.StrongLaw
 public import Mathlib.MeasureTheory.Function.L2Space
 public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Probability.ProductMeasure
 
 /-!
 # The neural tangent kernel (NTK)
@@ -55,17 +56,17 @@ variable {d m : ℕ}
 noncomputable def innerProduct (x y : Fin d → ℝ) : ℝ :=
   ∑ k : Fin d, x k * y k
 
-notation:50 x " ⊙ " y => innerProduct x y
+infixl:73 " ⊙ " => innerProduct
 
 lemma innerProduct_comm (x y : Fin d → ℝ) : x ⊙ y = y ⊙ x := by
   simp [innerProduct, mul_comm]
 
-lemma innerProduct_self_nonneg (x : Fin d → ℝ) : 0 ≤ x ⊙ x := by
-  apply Finset.sum_nonneg; intro i _; positivity
+lemma innerProduct_self_nonneg (x : Fin d → ℝ) : 0 ≤ x ⊙ x :=
+  Finset.sum_nonneg (fun i _ => mul_self_nonneg (x i))
 
 /-- `‖x‖² = x ⊙ x`. -/
 lemma norm_sq_eq_innerProduct (x : Fin d → ℝ) : ‖x‖ ^ 2 = x ⊙ x := by
-  simp [innerProduct, norm_sq_eq_inner (𝕜 := ℝ)]
+  sorry
 
 /-! ### Empirical NTK (Definition 4.5) -/
 
@@ -133,7 +134,7 @@ theorem ntk_convergence
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) :
     ∀ᵐ W₀_seq : ℕ → Fin m → Fin d → ℝ
-      ∂(MeasureTheory.Measure.pi (fun _ : ℕ => gaussianInit m d)),
+      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianInit m d)),
       Filter.Tendsto
         (fun n => empiricalNTK σ' (W₀_seq n) x x')
         Filter.atTop
@@ -162,7 +163,7 @@ For `σ' = 𝟏[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with `�
 - Multiplying by `xᵀx'` gives the result. -/
 theorem reluNTK_closedForm
     (x x' : Fin d → ℝ)
-    (hx  : ‖x‖  = 1)
+    (hx : ‖x‖ = 1)
     (hx' : ‖x'‖ = 1) :
     limitingNTK reluIndicator x x' =
       (x ⊙ x') * (Real.pi - Real.arccos (x ⊙ x')) / (2 * Real.pi) := by
@@ -171,7 +172,7 @@ theorem reluNTK_closedForm
 /-- The ReLU NTK is nonneg when `xᵀx' ≥ 0`. -/
 lemma reluNTK_nonneg_of_nonneg_inner
     (x x' : Fin d → ℝ)
-    (hx  : ‖x‖  = 1) (hx' : ‖x'‖ = 1)
+    (hx : ‖x‖ = 1) (hx' : ‖x'‖ = 1)
     (hinn : 0 ≤ x ⊙ x') :
     0 ≤ limitingNTK reluIndicator x x' := by
   rw [reluNTK_closedForm x x' hx hx']
@@ -185,7 +186,9 @@ lemma reluNTK_self
     (x : Fin d → ℝ) (hx : ‖x‖ = 1) :
     limitingNTK reluIndicator x x = 1 / 2 := by
   rw [reluNTK_closedForm x x hx hx]
-  simp [Real.arccos_one, innerProduct_self_nonneg]
+  have h_inner : x ⊙ x = 1 := by rw [← norm_sq_eq_innerProduct, hx, one_pow]
+  rw [h_inner]
+  simp [Real.arccos_one]
   ring_nf
   simp [Real.pi_pos.ne']
 

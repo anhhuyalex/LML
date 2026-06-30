@@ -97,7 +97,7 @@ theorem smoothLinearizationBound
 
 /-- The set of neuron indices whose inner product with `x` is small in absolute value.
   `signAmbiguous τ x W₀ = {j : |wⱼ₀ᵀx| ≤ τ‖x‖}`. -/
-def signAmbiguous (τ : ℝ) (x : Fin d → ℝ) (W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
+noncomputable def signAmbiguous (τ : ℝ) (x : Fin d → ℝ) (W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
   Finset.univ.filter (fun j =>
     |∑ k : Fin d, W₀ j k * x k| ≤ τ * ‖x‖)
 
@@ -121,12 +121,12 @@ theorem reluSignConcentration
 
 /-- Neurons with a large perturbation from initialization:
   `largePerturb B W W₀ = {j : ‖wⱼ − wⱼ₀‖ ≥ B}`. -/
-def largePerturb (B : ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
+noncomputable def largePerturb (B : ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
   Finset.univ.filter (fun j =>
     B ≤ ‖fun k => W j k - W₀ j k‖)
 
 /-- The union of the sign-ambiguous and large-perturbation index sets. -/
-def badSet (τ B : ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
+noncomputable def badSet (τ B : ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
   signAmbiguous τ x W₀ ∪ largePerturb B W W₀
 
 /-- For neurons outside `badSet`, the sign of `wⱼᵀx` agrees with `wⱼ₀ᵀx`.

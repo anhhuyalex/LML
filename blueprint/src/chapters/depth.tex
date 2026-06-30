@@ -1,0 +1,556 @@
+\chapter{Benefits of depth}
+
+\section{Introduction}
+
+This chapter formalizes Chapter~5 of the deep learning theory notes (Telgarsky 2021).
+The central question is: why does depth help neural networks, beyond what can be achieved
+by shallow (single-hidden-layer) networks?
+
+We give a constructive and quantitative answer.
+The key object is the \emph{tent function} $\Delta$, which can be composed with itself $L$ times
+to produce a function with $2^{L-1}$ equally-spaced oscillations using only $\mathcal{O}(L)$ nodes and layers.
+By contrast, any shallow network needs exponential width to approximate such a function.
+
+The chapter is organized as follows.
+\begin{enumerate}
+  \item Section~\ref{sec:delta} defines $\Delta$ and proves Proposition~5.1:
+    $\Delta^L(x) = \Delta(\langle 2^{L-1}x \rangle)$.
+  \item Section~\ref{sec:affine-pieces} introduces the \emph{number of affine pieces} $N_A(f)$
+    and proves the combination rules (Lemma~5.2) and the depth-width tradeoff (Lemma~5.1).
+  \item Section~\ref{sec:separation} proves the depth separation theorem (Theorem~5.1):
+    $\Delta^{L^2+2}$ cannot be approximated in $L_1$ by any subexponential-width shallow network.
+  \item Section~\ref{sec:square} shows that $x^2$ can be approximated by a deep ReLU network
+    with only $\mathcal{O}(\log(1/\epsilon))$ nodes (Theorem~5.2), and proves the matching lower bound.
+  \item Section~\ref{sec:products} uses squaring and polarization to approximate arbitrary products
+    (Lemma~5.3).
+  \item Section~\ref{sec:sobolev} builds monomials (Lemma~5.4), a partition of unity (Lemma~5.5),
+    and the Sobolev ball approximation theorem (Theorem~5.4).
+\end{enumerate}
+
+All networks use the ReLU activation $\sigma_r(z) = \max(z, 0)$.
+
+\section{The \texorpdfstring{$\Delta$}{Delta} tent function}\label{sec:delta}
+
+\begin{definition}[$\Delta$ tent function]\label{def:deltaTent}
+  \lean{Depth.deltaTent}
+Define $\Delta : \mathbb{R} \to \mathbb{R}$ by
+\[
+  \Delta(x) := 2\sigma_r(x) - 4\sigma_r(x - \tfrac{1}{2}) + 2\sigma_r(x - 1)
+  \: ,
+\]
+where $\sigma_r(z) = \max(z,0)$ is the ReLU activation.
+Equivalently,
+\[
+  \Delta(x) = \begin{cases}
+    2x & x \in [0, \tfrac{1}{2}), \\
+    2 - 2x & x \in [\tfrac{1}{2}, 1), \\
+    0 & \text{otherwise.}
+  \end{cases}
+\]
+\end{definition}
+
+\begin{remark}
+  $\Delta$ is supported on $[0,1]$, peaks at $\Delta(1/2) = 1$, and satisfies
+  the reflection symmetry $\Delta(z) = \Delta(1-z)$ for $z \in [0,1]$.
+  It can be implemented by a single hidden layer of 3 ReLU nodes (or 2, if we
+  restrict to $[0,1]$).
+\end{remark}
+
+\begin{definition}[Fractional part]\label{def:fractionalPart}
+  \lean{Depth.fractionalPart}
+For $x \in \mathbb{R}$, the \emph{fractional part} is $\langle x \rangle := x - \lfloor x \rfloor$.
+\end{definition}
+
+\begin{definition}[Iterated composition $\Delta^L$]\label{def:deltaTentIter}
+  \lean{Depth.deltaTentIter}
+Define the $L$-fold composition $\Delta^L : \mathbb{R} \to \mathbb{R}$ by $\Delta^0 := \mathrm{id}$
+and $\Delta^{L+1} := \Delta \circ \Delta^L$.
+\end{definition}
+
+\begin{proposition}[Proposition 5.1]\label{prop:deltaTentIter_eq}
+  \uses{def:deltaTent, def:deltaTentIter, def:fractionalPart}
+  \lean{Depth.deltaTentIter_eq}
+For all $L \geq 1$ and all $x \in \mathbb{R}$,
+\[
+  \Delta^L(x) = \Delta\!\left(\langle 2^{L-1} x \rangle\right).
+\]
+In particular, $\Delta^L$ has exactly $2^{L-1}$ uniformly spaced copies of $\Delta$ on $[0,1]$,
+and each copy has width $2^{-(L-1)}$.
+\end{proposition}
+
+\begin{proof}
+  \uses{def:deltaTent, def:fractionalPart}
+  By induction on $L$.
+
+  \textbf{Base case} ($L = 1$): $\Delta^1(x) = \Delta(x) = \Delta(\langle 2^0 x \rangle)$
+  since $\langle x \rangle = x$ for $x \in [0,1)$ and $\Delta$ is zero outside $[0,1]$.
+
+  \textbf{Inductive step}: Assume $\Delta^L(x) = \Delta(\langle 2^{L-1} x \rangle)$.
+  We split into two cases.
+  \begin{itemize}
+    \item If $x \in [0, 1/2]$: $\Delta^{L+1}(x) = \Delta^L(\Delta(x)) = \Delta^L(2x)
+      = \Delta(\langle 2^{L-1} \cdot 2x \rangle) = \Delta(\langle 2^L x \rangle)$.
+    \item If $x \in (1/2, 1]$: using the reflection $\Delta(z) = \Delta(1-z)$,
+      \begin{align*}
+        \Delta^{L+1}(x) &= \Delta^L(\Delta(x)) = \Delta^L(2 - 2x) \\
+        &= \Delta^{L-1}(\Delta(2-2x)) = \Delta^{L-1}(\Delta(1-(2-2x))) = \Delta^L(2x-1) \\
+        &= \Delta(\langle 2^{L-1}(2x-1) \rangle) = \Delta(\langle 2^L x - 2^{L-1} \rangle)
+        = \Delta(\langle 2^L x \rangle).
+      \end{align*}
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[Reflection symmetry]\label{lem:deltaTent_reflection}
+  \uses{def:deltaTent}
+  \lean{Depth.deltaTent_reflection}
+For all $z \in [0,1]$, $\Delta(z) = \Delta(1-z)$.
+\end{lemma}
+
+\section{Number of affine pieces}\label{sec:affine-pieces}
+
+\begin{definition}[Affine pieces]\label{def:numAffinePieces}
+  \lean{Depth.numAffinePieces}
+For a univariate function $f : \mathbb{R} \to \mathbb{R}$, let $N_A(f)$ denote the
+\emph{number of affine pieces}: the minimum cardinality of a partition of $\mathbb{R}$
+into intervals on each of which $f$ is affine (i.e., of the form $x \mapsto ax + b$).
+If no finite partition exists, set $N_A(f) = \infty$.
+\end{definition}
+
+\begin{remark}
+  $N_A(\sigma_r) = 2$ (the negative ray and the positive ray).
+  $N_A(\Delta) = 3$ (three affine pieces: $(-\infty,0)$, $[0,1/2)$, $[1/2,1)$ collapsed with $[1,\infty)$).
+  $N_A(\Delta^L) = 2^L$ by Proposition~\ref{prop:deltaTentIter_eq}.
+\end{remark}
+
+\begin{lemma}[Combination rules (Lemma 5.2)]\label{lem:combination_rules}
+  \uses{def:numAffinePieces}
+  \lean{Depth.numAffinePieces_add_le, Depth.numAffinePieces_linearComb_le,
+        Depth.numAffinePieces_comp_le, Depth.numAffinePieces_composed_linear_le}
+Let $f, g, g_1, \ldots, g_k : \mathbb{R} \to \mathbb{R}$ and scalars $a_1, \ldots, a_k, b \in \mathbb{R}$. Then:
+\begin{enumerate}
+  \item $N_A(f + g) \leq N_A(f) + N_A(g)$.
+  \item $N_A\!\left(\sum_i a_i g_i + b\right) \leq \sum_i N_A(g_i)$.
+  \item $N_A(f \circ g) \leq N_A(f) \cdot N_A(g)$.
+  \item $N_A\!\left(x \mapsto f\!\left(\sum_i a_i g_i(x) + b\right)\right) \leq N_A(f) \cdot \sum_i N_A(g_i)$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{def:numAffinePieces}
+  \begin{enumerate}
+    \item Place vertical bars at all right boundaries of affine pieces of $f$ and $g$.
+      The bars from $f$ and $g$ together give at most $N_A(f) + N_A(g) - 1$ distinct boundaries,
+      and $f+g$ is affine between each adjacent pair.
+    \item Since $N_A(a_i g_i) \leq N_A(g_i)$ (scaling preserves pieces), induction with (1) gives
+      $N_A(\sum_i a_i g_i) \leq \sum_i N_A(g_i)$; adding a constant $b$ does not change $N_A$.
+    \item Fix a piece $U \in P_A(g)$; $g$ is some fixed affine function on $U$.
+      So $g(U)$ is an interval, and the pieces of $f|_{g(U)}$ partition $g(U)$ into at most $N_A(f)$ intervals.
+      Pulling back, $f \circ g$ is affine on each $U \cap g|_U^{-1}(T)$, giving total count
+      $\sum_{U \in P_A(g)} N_A(f|_{g(U)}) \leq N_A(g) \cdot N_A(f)$.
+    \item Combine (2) and (3).
+  \end{enumerate}
+\end{proof}
+
+\begin{remark}[Power of composition]\label{rem:composition_power}
+  Part~(3) shows why composition is powerful: $N_A(f^L) \leq N_A(f)^L$, growing
+  \emph{exponentially} in depth while the network size grows only linearly.
+  The function $\Delta$ nearly saturates this bound at each composition step.
+\end{remark}
+
+\begin{lemma}[Affine piece bound for ReLU networks (Lemma 5.1)]\label{lem:numAffinePieces_network}
+  \uses{def:numAffinePieces, lem:combination_rules}
+  \lean{Depth.numAffinePieces_network_le}
+Let $f : \mathbb{R} \to \mathbb{R}$ be the output of a ReLU network with $L$ layers of widths
+$(m_1, \ldots, m_L)$ and $m = \sum_i m_i$ total nodes.
+\begin{enumerate}
+  \item The output $g$ of any single node in layer $i$ satisfies
+    $N_A(g) \leq 2^i \prod_{j < i} m_j$.
+  \item The network output satisfies $N_A(f) \leq \left(\frac{2m}{L}\right)^L$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:combination_rules}
+  For (2) from (1): by the AM-GM inequality,
+  $\prod_{j \leq L} m_j \leq \left(\frac{1}{L}\sum_{j \leq L} m_j\right)^L = \left(\frac{m}{L}\right)^L$.
+
+  For (1), proceed by induction on layers.
+  \emph{Base case} (input layer): $N_A = 1$ (identity, affine everywhere).
+  \emph{Inductive step}: a node in layer $i+1$ computes $\sigma_r(b + \sum_j a_j g_j)$
+  where $g_j$ are nodes in layer $i$. By Lemma~\ref{lem:combination_rules}(4),
+  $N_A(\sigma_r(b + \sum_j a_j g_j)) \leq N_A(\sigma_r) \cdot \sum_j N_A(g_j)
+  \leq 2 \sum_j 2^i \prod_{k<i} m_k = 2^{i+1} m_i \prod_{k<i} m_k$.
+\end{proof}
+
+\section{Depth separation theorem}\label{sec:separation}
+
+\begin{theorem}[Depth separation (Theorem 5.1, Telgarsky 2015, 2016)]\label{thm:depthSeparation}
+  \uses{def:deltaTentIter, def:numAffinePieces, lem:numAffinePieces_network, prop:deltaTentIter_eq}
+  \lean{Depth.depthSeparation}
+For any $L \geq 2$, let $f = \Delta^{L^2+2}$.
+Then $f$ is realized by a ReLU network with $3L^2+6$ nodes and $2L^2+4$ layers.
+Moreover, any ReLU network $g$ with at most $2^L$ nodes and at most $L$ layers satisfies
+\[
+  \int_{[0,1]} |f(x) - g(x)| \, dx \geq \frac{1}{32}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:numAffinePieces_network, prop:deltaTentIter_eq, lem:combination_rules}
+  The proof counts ``triangles'' formed by the line $y = 1/2$ intersecting $f = \Delta^{L^2+2}$.
+
+  \textbf{Step 1 (shallow networks have low complexity).}
+  By Lemma~\ref{lem:numAffinePieces_network}(2), any network $g$ with $\leq 2^L$ nodes and $\leq L$
+  layers has
+  \[
+    N_A(g) \leq \left(\frac{2 \cdot 2^L}{L}\right)^L \leq 2^{L^2}.
+  \]
+
+  \textbf{Step 2 (deep network has high regular complexity).}
+  By Proposition~\ref{prop:deltaTentIter_eq}, $\Delta^{L^2+2}$ has $2^{L^2+1}$ half-triangles on
+  $[0,1]$, each of width $2^{-(L^2+2)}$ and area $\frac{1}{4} \cdot 2^{-(L^2+2)} = 2^{-(L^2+4)}$.
+
+  \textbf{Step 3 (counting argument).}
+  Since $g$ has at most $2^{L^2}$ affine pieces, it crosses the midline $y = 1/2$ at most
+  $2 \cdot 2^{L^2}$ times, so it ``survives'' at least
+  $\frac{1}{2}[2^{L^2+2} - 1 - 2 \cdot 2^{L^2}] = \frac{1}{2}[2^{L^2+1} - 1]$ half-triangles.
+  Counting their area:
+  \[
+    \int_{[0,1]} |f - g| \geq \frac{1}{2}[2^{L^2+1}-1] \cdot 2^{-(L^2+4)}
+    \geq \frac{1}{32}.\qquad\qedhere
+  \]
+\end{proof}
+
+\begin{remark}[Why $L_1$ norm?]\label{rem:L1_norm}
+  We use the $L_1$ norm because we need $g$ to fail on a set of positive measure,
+  not just at a few points. If we replaced $\Delta$ with the similar function $4x(1-x)$,
+  the lower bound $1/32$ would degrade with $L$ because the triangles would not be
+  uniformly spaced.
+\end{remark}
+
+\begin{remark}[Other depth separations]\label{rem:other_separations}
+  Over $\mathbb{R}^d$, there exist ReLU networks with $\mathrm{poly}(d)$ nodes in 2 hidden layers
+  that cannot be approximated by any 1-hidden-layer network with fewer than $2^d$ nodes
+  (Eldan and Shamir 2015). A clean proof assuming subexponential weights is given by
+  Daniely (2017). Separating constant-depth networks seems hard and is connected to
+  circuit-complexity lower bounds (Vardi and Shamir 2020).
+\end{remark}
+
+\section{Approximating \texorpdfstring{$x^2$}{x²} by deep ReLU networks}\label{sec:square}
+
+\begin{definition}[Interpolation grid $S_i$]\label{def:squareInterpGrid}
+  \lean{Depth.squareInterpGrid}
+For $i \in \mathbb{N}$, let $S_i := \{0, 1/2^i, 2/2^i, \ldots, 1\}$ be the uniform grid
+of $2^i+1$ points in $[0,1]$.
+\end{definition}
+
+\begin{definition}[Piecewise-linear interpolation $h_i$]\label{def:squareInterp}
+  \uses{def:deltaTentIter, def:squareInterpGrid}
+  \lean{Depth.squareInterp}
+Let $h_i : \mathbb{R} \to \mathbb{R}$ be the piecewise-linear interpolation of $x^2$
+on the grid $S_i$, defined by the recursion
+\[
+  h_0(x) = x, \qquad h_{i+1}(x) = h_i(x) - \frac{\Delta^{i+1}(x)}{4^{i+1}}.
+\]
+Equivalently,
+\[
+  h_i(x) = x - \sum_{j=1}^{i} \frac{\Delta^j(x)}{4^j}.
+\]
+\end{definition}
+
+\begin{remark}
+  The ``key point'' in the construction is that the mid-point correction
+  $h_i(x) - h_{i+1}(x)$ equals the constant $1/4^{i+1}$ for all $x \in S_{i+1} \setminus S_i$,
+  independent of $x$.
+  This is because $h_i(x) - h_{i+1}(x) = \Delta^{i+1}(x)/4^{i+1}$, and
+  $\Delta^{i+1}(x) = 1$ at each new mid-point of $S_{i+1} \setminus S_i$.
+\end{remark}
+
+\begin{lemma}[Recursion and interpolation property]\label{lem:squareInterp_recursion}
+  \uses{def:squareInterp, def:deltaTentIter}
+  \lean{Depth.squareInterp_recursion, Depth.squareInterp_on_grid}
+\begin{enumerate}
+  \item $h_{i+1}(x) = h_i(x) - \Delta^{i+1}(x)/4^{i+1}$ for all $x$.
+  \item $h_i(k/2^i) = (k/2^i)^2$ for all $k \leq 2^i$ (interpolation on the grid).
+  \item $h_{i+1}$ agrees with $h_i$ on the coarser grid $S_i$.
+\end{enumerate}
+\end{lemma}
+
+\begin{theorem}[Approximation of $x^2$ (Theorem 5.2)]\label{thm:squareApprox}
+  \uses{def:squareInterp, lem:squareInterp_recursion, def:deltaTentIter, lem:numAffinePieces_network}
+  \lean{Depth.squareInterp_error, Depth.squareInterp_network_size, Depth.squareApprox_lower_bound}
+\begin{enumerate}
+  \item $h_i$ is the piecewise-linear interpolation of $x^2$ on $[0,1]$ with interpolation
+    points $S_i$.
+  \item $h_i$ can be realized as a pure ReLU network with $2i$ layers and $4i$ nodes.
+    (With skip connections, only $3i$ nodes are needed.)
+  \item $\sup_{x \in [0,1]} |h_i(x) - x^2| \leq 4^{-i-1}$.
+  \item Any ReLU network $f$ with $\leq L$ layers and $\leq N$ nodes satisfies
+    \[
+      \int_{[0,1]} (f(x) - x^2)^2 \, dx \geq \frac{1}{5760 (2N/L)^{4L}}.
+    \]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:squareInterp_recursion, lem:numAffinePieces_network}
+  \begin{enumerate}
+    \item Follows by construction.
+    \item Since each $\Delta^j$ requires 3 nodes and 2 layers and the outputs can be accumulated
+      with one extra node per layer, $h_i$ uses $2i$ layers and $4i$ nodes total.
+    \item Fix $i$ and set $\tau := 2^{-i}$ (spacing between interpolation points).
+      For $x \in [k\tau, (k+1)\tau]$, $h_i$ interpolates linearly between $(k\tau)^2$ and $((k+1)\tau)^2$.
+      The maximum interpolation error over the interval is bounded by
+      \[
+        \sup_{z \in [0,\tau]} \left|x^2 - \left(\frac{\tau-z}{\tau}x^2 + \frac{z}{\tau}(x+\tau)^2\right)\right|
+        = \sup_{z \in [0,\tau]} z(\tau - z) \leq \frac{\tau^2}{4} = 4^{-i-1}.
+      \]
+    \item By Lemma~\ref{lem:numAffinePieces_network}(2), $N_A(f) \leq (2N/L)^L$.
+      For any affine piece of $f$ of length $\ell \geq 1/(2N_A(f))$, the minimum $L_2$ error of
+      an affine function on that piece against $x^2$ is $\ell^5/180$.
+      Summing over the at least half of $[0,1]$ covered by such long pieces gives the bound.
+  \end{enumerate}
+\end{proof}
+
+\begin{corollary}[Logarithmic depth-width tradeoff]\label{cor:squareApprox_log}
+  \uses{thm:squareApprox}
+  \lean{Depth.squareInterp_approx}
+For any $\epsilon > 0$, $x^2$ can be approximated on $[0,1]$ to sup-norm error $\epsilon$
+by a ReLU network with $\mathcal{O}(\log(1/\epsilon))$ layers and $\mathcal{O}(\log(1/\epsilon))$ nodes.
+Part~(4) shows this depth-width is also \emph{necessary} (up to constants).
+\end{corollary}
+
+\section{Approximate multiplication}\label{sec:products}
+
+\begin{definition}[Approximate pairwise product]\label{def:approxProd2}
+  \uses{def:squareInterp}
+  \lean{Depth.approxProd2}
+For precision parameter $k \in \mathbb{N}$, define the \emph{approximate pairwise product}
+\[
+  \mathrm{prod}_{k,2}(a, b) := \frac{1}{2}\left(4 h_k\!\left(\frac{a+b}{2}\right) - h_k(a) - h_k(b)\right).
+\]
+This uses the polarization identity $ab = \frac{1}{2}((a+b)^2 - a^2 - b^2)$.
+\end{definition}
+
+\begin{definition}[Approximate $l$-way product]\label{def:approxProdL}
+  \uses{def:approxProd2}
+  \lean{Depth.approxProdL}
+Define $\mathrm{prod}_{k,1}(x_1) := x_1$ and for $l > 1$:
+\[
+  \mathrm{prod}_{k,l}(x_1, \ldots, x_l) :=
+    \mathrm{prod}_{k,2}\!\left(\mathrm{prod}_{k,l-1}(x_1, \ldots, x_{l-1}),\, x_l\right).
+\]
+\end{definition}
+
+\begin{lemma}[Approximate multiplication (Lemma 5.3)]\label{lem:approxProdL}
+  \uses{def:approxProdL, def:approxProd2, thm:squareApprox}
+  \lean{Depth.approxProdL_eval, Depth.approxProdL_zero_of_zero, Depth.approxProdL_range,
+        Depth.approxProdL_network_size}
+For any $k, l \in \mathbb{N}$, $\mathrm{prod}_{k,l}$ satisfies:
+\begin{enumerate}
+  \item $|\mathrm{prod}_{k,l}(x) - \prod_{j=1}^l x_j| \leq l \cdot 4^{-k}$ for all $x \in [0,1]^l$.
+  \item $\mathrm{prod}_{k,l}(x) \in [0,1]$ for all $x \in [0,1]^l$.
+  \item $\mathrm{prod}_{k,l}(x) = 0$ whenever some $x_j = 0$.
+  \item $\mathrm{prod}_{k,l}$ is realized by a ReLU network with $\mathcal{O}(kl)$ layers
+    and $\mathcal{O}(kl + l^2)$ nodes.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{def:approxProd2, thm:squareApprox}
+  \textbf{Base case} ($l = 2$): Using the polarization identity and the approximation $h_k \approx (\cdot)^2$,
+  \begin{align*}
+    2|\mathrm{prod}_{k,2}(a,b) - ab|
+    &= \left|4h_k\!\left(\frac{a+b}{2}\right) - h_k(a) - h_k(b) - 2ab\right| \\
+    &\leq 4\left|h_k\!\left(\frac{a+b}{2}\right) - \left(\frac{a+b}{2}\right)^2\right|
+      + |h_k(a) - a^2| + |h_k(b) - b^2| \\
+    &\leq 4 \cdot 4^{-k-1} + 4^{-k-1} + 4^{-k-1} = 2 \cdot 4^{-k}.
+  \end{align*}
+
+  \textbf{Inductive step} ($l > 2$): Let $p = \mathrm{prod}_{k,l-1}(x_1,\ldots,x_{l-1})$. Then
+  \begin{align*}
+    &|\mathrm{prod}_{k,l}(x) - \prod_{j=1}^l x_j| \\
+    &\leq |\mathrm{prod}_{k,2}(p, x_l) - p \cdot x_l|
+      + |x_l| \cdot |p - \prod_{j=1}^{l-1} x_j| \\
+    &\leq 4^{-k} + 1 \cdot (l-1) \cdot 4^{-k} = l \cdot 4^{-k}.
+  \end{align*}
+  Properties (2) and (3) follow from the corresponding properties of $\mathrm{prod}_{k,2}$ and induction.
+  For (4), each recursive call increases layers by $\mathcal{O}(k)$ and nodes by $\mathcal{O}(k + l)$,
+  giving $\mathcal{O}(kl)$ layers and $\mathcal{O}(kl + l^2)$ nodes total.
+\end{proof}
+
+\section{Sobolev ball approximation}\label{sec:sobolev}
+
+\begin{definition}[Multi-index]\label{def:multiIndex}
+  \lean{Depth.MultiIndex}
+A \emph{multi-index} of degree $\leq r$ in $d$ variables is a vector
+$\alpha \in \mathbb{N}^d$ with $|\alpha| := \sum_i \alpha_i \leq r$.
+The corresponding monomial is $x^\alpha := \prod_{i=1}^d x_i^{\alpha_i}$.
+\end{definition}
+
+\begin{definition}[Approximate monomials]\label{def:monoApprox}
+  \uses{def:multiIndex, def:approxProdL}
+  \lean{Depth.monoApprox}
+For $k, d, r \in \mathbb{N}$, let $N$ be the number of multi-indices of degree $\leq r$ in $d$ variables.
+The \emph{approximate monomial network} $\mathrm{mono}_{k,r} : \mathbb{R}^d \to \mathbb{R}^N$ is defined by:
+for multi-index $\alpha$ of degree $q = |\alpha|$, write $\alpha$ as a repetition vector $v \in \{1,\ldots,d\}^q$
+(where index $i$ appears $\alpha_i$ times), and set
+\[
+  \mathrm{mono}_{k,r}(x)_\alpha := \mathrm{prod}_{k,q}(x_{v_1}, \ldots, x_{v_q}).
+\]
+\end{definition}
+
+\begin{lemma}[Approximate monomials (Lemma 5.4)]\label{lem:monoApprox}
+  \uses{def:monoApprox, lem:approxProdL}
+  \lean{Depth.monoApprox_eval, Depth.monoApprox_network_size}
+For all $k, d, r$ and all $x \in [0,1]^d$:
+\begin{enumerate}
+  \item $|\mathrm{mono}_{k,r}(x)_\alpha - x^\alpha| \leq r \cdot 4^{-k}$ for every multi-index $\alpha$ of degree $\leq r$.
+  \item $\mathrm{mono}_{k,r}$ is realized by a ReLU network with $\mathcal{O}(kr)$ layers
+    and $\mathcal{O}(d^r(kr + r^2))$ nodes.
+\end{enumerate}
+\end{lemma}
+
+\begin{definition}[Univariate bump function]\label{def:univariateBump}
+  \lean{Depth.univariateBump}
+For $s \in \mathbb{N}$, define the \emph{univariate bump} $h_s : \mathbb{R} \to \mathbb{R}$ by
+\[
+  h_s(a) := \sigma_r(sa + 1) - 2\sigma_r(sa) + \sigma_r(sa - 1)
+  = \begin{cases}
+    1 + sa & a \in [-1/s, 0), \\
+    1 - sa & a \in [0, 1/s], \\
+    0      & \text{otherwise.}
+  \end{cases}
+\]
+\end{definition}
+
+\begin{lemma}[Partition identity]\label{lem:bump_partition}
+  \uses{def:univariateBump}
+  \lean{Depth.univariateBump_partition}
+For all $z \in [0, 1/s]$: $h_s(z) + h_s(z + 1/s) = 1$.
+\end{lemma}
+
+\begin{definition}[Multivariate bump and partition of unity]\label{def:partitionOfUnity}
+  \uses{def:univariateBump, def:approxProdL}
+  \lean{Depth.partitionOfUnity, Depth.multivariateBump}
+For the grid $S = \{0, 1/s, \ldots, 1\}^d$, define for each grid point $v \in S$:
+\[
+  f_v(x) := \mathrm{prod}_{k,d}(h_s(x_1 - v_1), \ldots, h_s(x_d - v_d)).
+\]
+The \emph{approximate partition of unity} is $\mathrm{part}_{k,s}(x)_v := f_v(x)$.
+\end{definition}
+
+\begin{lemma}[Partition of unity (Lemma 5.5)]\label{lem:partitionOfUnity}
+  \uses{def:partitionOfUnity, lem:approxProdL, lem:bump_partition}
+  \lean{Depth.partitionOfUnity_support, Depth.partitionOfUnity_approx,
+        Depth.partitionOfUnity_network_size}
+For any $k, d, s \in \mathbb{N}$ with $s \geq 1$:
+\begin{enumerate}
+  \item \emph{(Local support)} $\mathrm{part}_{k,s}(x)_v = 0$ for $x \notin \prod_j [v_j - 1/s, v_j + 1/s]$.
+  \item \emph{(Approximate partition)} For all $x \in [0,1]^d$:
+    $\left|\sum_{v \in S} \mathrm{part}_{k,s}(x)_v - 1\right| \leq d \cdot 2^d \cdot 4^{-k}$.
+  \item \emph{(Network size)} $\mathrm{part}_{k,s}$ is realized by a ReLU network with
+    $\mathcal{O}(kd)$ layers and $\mathcal{O}((kd + d^2) s^d)$ nodes.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:approxProdL, lem:bump_partition}
+  Property (1) follows since $h_s(x_j - v_j) = 0$ when $|x_j - v_j| > 1/s$,
+  and $\mathrm{prod}_{k,d}(y) = 0$ when any $y_j = 0$ (by Lemma~\ref{lem:approxProdL}(3)).
+
+  For (2), let $U \subseteq S$ be the at most $2^d$ active grid points (those with $\mathrm{part}_{k,s}(x)_v \neq 0$).
+  Then
+  \begin{align*}
+    &\left|\sum_{v \in S} \mathrm{part}_{k,s}(x)_v - 1\right|
+    \leq \sum_{v \in U} |\mathrm{part}_{k,s}(x)_v - \prod_j h_s(x_j - v_j)|
+      + \left|\sum_{v \in U} \prod_j h_s(x_j - v_j) - 1\right| \\
+    &\leq 2^d \cdot d \cdot 4^{-k} + 0,
+  \end{align*}
+  where the second term vanishes by the partition identity (Lemma~\ref{lem:bump_partition}):
+  letting $u$ be the ``bottom-left corner'' of $U$,
+  $\sum_{w \in \{0,1/s\}^d} \prod_j h_s(x_j - u_j + w_j) = \prod_j (h_s(x_j - u_j) + h_s(x_j - u_j + 1/s)) = 1$.
+
+  Property (3) follows from the size estimates of $\mathrm{prod}_{k,d}$ and the fact that
+  $|S| = (s+1)^d$ bump functions run in parallel.
+\end{proof}
+
+\begin{definition}[Sobolev ball]\label{def:sobolevBall}
+  \lean{Depth.SobolevBall}
+The \emph{Sobolev ball} $\mathcal{W}^r_\infty(M)$ is the class of functions $g : \mathbb{R}^d \to \mathbb{R}$
+with $g(x) \in [0,1]$ for all $x$, and all partial derivatives of all orders $\leq r$ bounded in
+sup-norm by $M > 0$.
+\end{definition}
+
+\begin{theorem}[Taylor approximation error]\label{thm:taylorError}
+  \uses{def:sobolevBall}
+  \lean{Depth.taylorExpansion_error}
+Let $g \in \mathcal{W}^r_\infty(M)$ and let $p_v$ denote the degree-$r$ Taylor expansion of $g$ at $v$.
+For $x \in [0,1]^d$ with $\|x - v\|_\infty \leq 1/s$,
+\[
+  |p_v(x) - g(x)| \leq \frac{M d^r}{r! \cdot s^r}.
+\]
+\end{theorem}
+
+\begin{theorem}[Sobolev ball approximation (Theorem 5.4)]\label{thm:sobolevBallApprox}
+  \uses{def:sobolevBall, def:monoApprox, def:partitionOfUnity, lem:monoApprox,
+        lem:partitionOfUnity, lem:approxProdL, thm:taylorError}
+  \lean{Depth.sobolevBallApprox}
+Let $g \in \mathcal{W}^r_\infty(M)$, $k, s \geq 1$.
+Then there exists a ReLU network $f$ with $\mathcal{O}(k(r+d))$ layers and
+$\mathcal{O}((kd + d^2 + r^2 d^r + krd^r) s^d)$ nodes such that
+\[
+  |f(x) - g(x)| \leq M r d^r \!\left(s^{-r} + 4d \cdot 2^d \cdot 4^{-k}\right) + 3d \cdot 2^d \cdot 4^{-k}
+  \qquad \forall x \in [0,1]^d.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:monoApprox, lem:partitionOfUnity, thm:taylorError, lem:approxProdL}
+  The network $f$ is constructed as
+  \[
+    f(x) := \sum_{v \in S} \mathrm{prod}_{k,2}(f_v(x),\, \mathrm{part}_{k,s}(x)_v),
+  \]
+  where $f_v(x) := w_v^\top \mathrm{mono}_{k,r}(x - v)$ approximates the Taylor expansion $p_v(x)$.
+
+  The error decomposes into four terms via the triangle inequality:
+  \begin{align*}
+    |f(x) - g(x)|
+    &\leq \underbrace{\left|\sum_v \mathrm{prod}_{k,2}(f_v(x), \mathrm{part}_{k,s}(x)_v)
+        - \sum_v f_v(x) \mathrm{part}_{k,s}(x)_v\right|}_{(I): \text{prod error}} \\
+    &+ \underbrace{\left|\sum_v f_v(x) \mathrm{part}_{k,s}(x)_v
+        - \sum_v p_v(x) \mathrm{part}_{k,s}(x)_v\right|}_{(II): \text{mono error}} \\
+    &+ \underbrace{\left|\sum_v p_v(x) \mathrm{part}_{k,s}(x)_v
+        - \sum_v g(x) \mathrm{part}_{k,s}(x)_v\right|}_{(III): \text{Taylor error}} \\
+    &+ \underbrace{\left|\sum_v g(x) \mathrm{part}_{k,s}(x)_v - g(x)\right|}_{(IV): \text{partition error}}.
+  \end{align*}
+  Using Lemmas~\ref{lem:approxProdL}, \ref{lem:monoApprox}, \ref{lem:partitionOfUnity}
+  and Theorem~\ref{thm:taylorError}:
+  \begin{align*}
+    (I) &\leq 2 \cdot 2^d \cdot 4^{-k}, \\
+    (II) &\leq Mrd^r \cdot 4^{-k} \cdot (1 + d \cdot 2^d \cdot 4^{-k}), \\
+    (III) &\leq \frac{Md^r}{s^r} \cdot (1 + d \cdot 2^d \cdot 4^{-k}), \\
+    (IV) &\leq |g(x)| \cdot d \cdot 2^d \cdot 4^{-k} \leq d \cdot 2^d \cdot 4^{-k}.
+  \end{align*}
+  Combining gives the claimed bound.
+\end{proof}
+
+\begin{corollary}[Optimal size for Sobolev approximation]\label{cor:sobolevOptimal}
+  \uses{thm:sobolevBallApprox}
+  \lean{Depth.sobolevBallApprox_optimalSize}
+For any $\epsilon > 0$, setting $s = \lceil \epsilon^{-1/r} \rceil$ and $k = \lceil \log_4(d \cdot 2^d / \epsilon) \rceil$,
+there exists a ReLU network $f$ approximating $g \in \mathcal{W}^r_\infty(M)$ to error $\epsilon$ with
+\[
+  \text{nodes} = \tilde{\mathcal{O}}\!\left(\epsilon^{-d/r} \cdot \log(1/\epsilon)\right),
+  \qquad
+  \text{layers} = \mathcal{O}(\log(1/\epsilon)).
+\]
+\end{corollary}
+
+\begin{remark}[Curse of dimension]\label{rem:curse_dimension}
+  The node count $\tilde{\mathcal{O}}(\epsilon^{-d/r})$ reflects the curse of dimension:
+  approximating smooth functions over $d$-dimensional domains requires exponentially many
+  nodes in the dimension. However, this is near-optimal for functions in Sobolev balls
+  (Yarotsky 2016; Schmidt-Hieber 2017). Approaches that reduce the dependence on $d$
+  require additional structural assumptions on $g$ (Montanelli, Yang, and Du 2020).
+\end{remark}

@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Kernel
+public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.Topology.Algebra.Module.UniformConvergence
 public import Mathlib.Topology.ContinuousMap.Algebra
@@ -98,7 +99,7 @@ noncomputable def reducedKernel (u u' : Fin d → ℝ) : ℝ :=
 /-- The reduced kernel is equal to the ReLU NTK on the NTK domain. -/
 lemma reducedKernel_eq_reluNTK
     (d : ℕ) (x x' : Fin (d + 1) → ℝ)
-    (hx  : x  ∈ ntkDomain (d + 1))
+    (hx : x ∈ ntkDomain (d + 1))
     (hx' : x' ∈ ntkDomain (d + 1)) :
     reducedKernel (fun k => x k.castSucc) (fun k => x' k.castSucc) =
     limitingNTK reluIndicator x x' := by
@@ -116,7 +117,7 @@ def RKHSClass (d : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
 
 /-- The zero function belongs to `ℋ` (via the empty sum). -/
 lemma zero_mem_RKHSClass (d : ℕ) : (fun _ => (0 : ℝ)) ∈ RKHSClass d := by
-  exact ⟨0, Fin.elim0, Fin.elim0, Fin.elim0, rfl⟩
+  exact ⟨0, Fin.elim0, Fin.elim0, fun j => j.elim0, rfl⟩
 
 /-- `ℋ` is closed under scalar multiplication. -/
 lemma RKHSClass_smul (d : ℕ) (c : ℝ) {h : (Fin d → ℝ) → ℝ} (hh : h ∈ RKHSClass d) :
@@ -132,7 +133,9 @@ lemma RKHSClass_add (d : ℕ) {h₁ h₂ : (Fin d → ℝ) → ℝ}
   obtain ⟨n₂, α₂, pts₂, hmem₂, rfl⟩ := hh₂
   refine ⟨n₁ + n₂, Fin.append α₁ α₂, Fin.append pts₁ pts₂, ?_, ?_⟩
   · intro j
-    rcases Fin.append_left_or_right j with ⟨i, rfl⟩ | ⟨i, rfl⟩ <;> simp [hmem₁, hmem₂]
+    induction j using Fin.addCases with
+    | left i => simp [hmem₁]
+    | right i => simp [hmem₂]
   · ext x
     simp [Fin.sum_univ_add, Fin.append]
 
@@ -188,7 +191,7 @@ theorem rkhs_approx_by_network
     (d : ℕ) (hd : 0 < d)
     (h : (Fin d → ℝ) → ℝ) (hh : h ∈ RKHSClass d)
     (ε : ℝ) (hε : 0 < ε) :
-    ∃ (m : ℕ) (net : ShallowNetwork reluLinearization.relu d m)
+    ∃ (m : ℕ) (net : ShallowNetwork relu d m)
       (W₀ W : Fin m → Fin d → ℝ),
       ∀ x ∈ ntkDomain d, |net.eval x W - h x| ≤ ε := by
   sorry
