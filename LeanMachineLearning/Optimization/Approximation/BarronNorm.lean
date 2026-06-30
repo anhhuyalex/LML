@@ -11,6 +11,7 @@ public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
 public import Mathlib.MeasureTheory.Function.LpSpace.Basic
 public import Mathlib.MeasureTheory.Function.L1Space.Integrable
 public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 
 /-!
 # Barron norm and the Fourier representation theorem
@@ -100,7 +101,7 @@ def BarronClass (C : ℝ) (d : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
 lemma barronNorm_nonneg (f : (Fin d → ℝ) → ℝ) : 0 ≤ barronNorm f := by
   apply MeasureTheory.integral_nonneg
   intro w
-  simp only [barronIntegrand]
+  simp only [barronIntegrand, fourierMagnitude]
   positivity
 
 /-! ### Barron representation (Theorem 3.1) -/
@@ -124,11 +125,24 @@ lemma barronCosineBump_bound (w : Fin d → ℝ) (θ : ℝ) (x : Fin d → ℝ) 
     rw [div_le_iff₀ (by positivity)]
     calc |Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)|
         ≤ |2 * π * innerProd w x + 2 * π * θ - 2 * π * θ| := by
-          apply Real.cos_lipschitz.dist_le_mul
-      _ = 2 * π * |innerProd w x| := by ring_nf; rw [abs_mul]; positivity
+          have h := LipschitzWith.dist_le_mul Real.lipschitzWith_cos (2 * π * innerProd w x + 2 * π * θ) (2 * π * θ)
+          rw [Real.dist_eq, Real.dist_eq] at h
+          simpa using h
+      _ = |2 * π * innerProd w x| := by
+          congr 1
+          ring
+      _ = 2 * π * |innerProd w x| := by
+          have : (2 : ℝ) * π * innerProd w x = (2 * π) * innerProd w x := by ring
+          rw [this, abs_mul, abs_of_pos Real.two_pi_pos]
       _ ≤ 2 * π * (‖w‖ * ‖x‖) := by
-          apply mul_le_mul_of_nonneg_left _ (by positivity)
-          calc |innerProd w x| ≤ ‖w‖ * ‖x‖ := sorry
+          apply mul_le_mul_of_nonneg_left _ (le_of_lt Real.two_pi_pos)
+          exact sorry
+      _ = ‖x‖ * (2 * π * ‖w‖) := by
+          ring
+      _ = ‖x‖ * |2 * π * ‖w‖| := by
+          have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw)
+          have h_pos : 0 < 2 * π * ‖w‖ := mul_pos Real.two_pi_pos hw_pos
+          rw [abs_of_pos h_pos]
 
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:

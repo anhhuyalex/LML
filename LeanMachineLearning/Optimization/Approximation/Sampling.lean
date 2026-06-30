@@ -62,7 +62,7 @@ iid draws from the same distribution, then
   cross terms vanish, diagonal gives 𝔼[‖V - X‖²]/k ≤ 𝔼[‖V‖²]/k. -/
 theorem maureySampling
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
-    {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+    {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [MeasurableSpace H]
     {μ_prob : Measure Ω} [IsProbabilityMeasure μ_prob]
     {V : Ω → H}
     (hV_int : Integrable V μ_prob)
@@ -70,7 +70,7 @@ theorem maureySampling
     {Vᵢ : Fin k → Ω → H}
     (hVi_iid : ∀ i, Integrable (Vᵢ i) μ_prob)
     (hVi_mean : ∀ i, ∫ ω, Vᵢ i ω ∂μ_prob = ∫ ω, V ω ∂μ_prob)
-    (hVi_indep : iIndepFun (fun _ => inferInstance) Vᵢ μ_prob)
+    (hVi_indep : iIndepFun (m := fun _ => inferInstance) Vᵢ μ_prob)
     (hVi_dist : ∀ i, ∀ s, μ_prob (Vᵢ i ⁻¹' s) = μ_prob (V ⁻¹' s)) :
     let X := ∫ ω, V ω ∂μ_prob
     ∫ ω, ‖X - (1 / k : ℝ) • ∑ i, Vᵢ i ω‖ ^ 2 ∂μ_prob ≤
@@ -98,6 +98,8 @@ decomposition. -/
 structure SignedSample (p : ℕ) where
   weight : Fin p → ℝ
   sign   : Bool  -- true = +1, false = -1
+
+variable {p : ℕ}
 
 /-- Reconstruct a signed real from a `SignedSample`. -/
 def SignedSample.toReal (s : SignedSample p) : ℝ := if s.sign then 1 else -1
@@ -142,8 +144,8 @@ theorem maureySamplingSignedMeasure
     (hgFun : ∀ x, gFun x = ∫ w : Fin p → ℝ, g w x ∂μ.toJordanDecomposition.posPart -
                              ∫ w : Fin p → ℝ, g w x ∂μ.toJordanDecomposition.negPart) :
     ∃ (ws : Fin k → SignedSample p),
-      (∀ i, ws i ∈ S ×ˢ Set.univ |>.image (fun w => ⟨w.1, true⟩) ∪
-                   S ×ˢ Set.univ |>.image (fun w => ⟨w.1, false⟩) → True) ∧
+      (∀ i, ws i ∈ (fun w => SignedSample.mk w true) '' S ∪
+                   (fun w => SignedSample.mk w false) '' S → True) ∧
       ∫ x, (gFun x - (1 / k : ℝ) * ∑ i, rescaledEval (g · x) mass (ws i) (ws i).weight) ^ 2 ∂P ≤
         mass ^ 2 * (⨆ w ∈ S, ∫ x, (g w x) ^ 2 ∂P) / k := by
   sorry

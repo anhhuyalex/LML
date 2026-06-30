@@ -70,7 +70,7 @@ structure InfiniteWidthNetwork (σ : ℝ → ℝ) (p : ℕ) where
 /-- Evaluate an infinite-width network at a point x ∈ ℝᵈ.
 Returns `∫ σ(∑ⱼ wⱼ xⱼ) dν(w)`. -/
 noncomputable def InfiniteWidthNetwork.eval
-    (σ : ℝ → ℝ) {p d : ℕ}
+    (σ : ℝ → ℝ) {p : ℕ}
     (net : InfiniteWidthNetwork σ p)
     (φ : (Fin p → ℝ) → ℝ)  -- feature map from weight space (e.g. w ↦ σ(wᵀx))
     : ℝ :=
