@@ -1,0 +1,349 @@
+\chapter{Neural tangent kernel and linearization near initialization}
+
+\section{Introduction}
+
+This chapter formalizes the theory of networks near their random initialization,
+corresponding to Chapter~4 of the deep learning theory notes (Telgarsky 2021).
+The central idea is to compare a neural network $f(x;W)$ to its
+\emph{first-order Taylor approximation} $f_0(x;W)$ at a random initialization $W_0$.
+The approximation $f_0$ is affine in $W$ while remaining nonlinear in $x$,
+which greatly eases analysis.
+
+\begin{enumerate}
+  \item Section~\ref{sec:ntk:setup} fixes the network architecture (a scaled shallow network)
+        and defines the Taylor linearization at initialization.
+  \item Section~\ref{sec:ntk:linearization} shows that $f - f_0$ shrinks to zero as the
+        width $m \to \infty$, for both smooth activations (via Taylor's theorem) and for the
+        ReLU (via a Gaussian concentration argument).
+  \item Section~\ref{sec:ntk:kernel} defines the \emph{neural tangent kernel} (NTK) as the
+        Gram matrix of the gradient features at initialization, derives its limit as
+        $m \to \infty$ by the strong law of large numbers, and gives a closed form for the ReLU.
+  \item Section~\ref{sec:ntk:universal} shows that the associated RKHS is a universal
+        approximator over a suitably chosen domain.
+\end{enumerate}
+
+Throughout, we write $\|\cdot\|_{\mathrm{F}}$ for the Frobenius norm of a matrix,
+$\langle A, B \rangle_{\mathrm{F}} = \mathrm{tr}(A^\top B)$ for the Frobenius inner product,
+and $\|x\|$ for the Euclidean norm of a vector.
+All probability statements are with respect to the standard Gaussian initialization
+(Definition~\ref{def:ntk:gaussianInit}).
+
+
+\section{Shallow network setup}\label{sec:ntk:setup}
+
+We study a one-hidden-layer (``shallow'') network with input dimension $d \in \mathbb{N}$,
+width $m \in \mathbb{N}$, fixed outer layer $a \in \mathbb{R}^m$, and variable inner weight
+matrix $W \in \mathbb{R}^{m \times d}$.
+
+\begin{definition}[Scaled shallow network]\label{def:ntk:shallowNetwork}
+  \lean{NTK.ShallowNetwork}
+Let $\sigma : \mathbb{R} \to \mathbb{R}$ be an activation function, $d, m \in \mathbb{N}$,
+and fix $a \in \mathbb{R}^m$ with $|a_j| \le 1$ for all $j \in [m]$.
+The \emph{scaled shallow network} is the function
+\[
+  f : \mathbb{R}^d \times \mathbb{R}^{m \times d} \to \mathbb{R}, \qquad
+  f(x; W) := \frac{1}{\sqrt{m}} \sum_{j=1}^{m} a_j \, \sigma(w_j^\top x),
+\]
+where $w_j \in \mathbb{R}^d$ denotes the $j$-th row of $W$.
+\end{definition}
+
+\begin{remark}
+The $1/\sqrt{m}$ normalization ensures that the empirical NTK defined in
+Section~\ref{sec:ntk:kernel} is an average over neurons and has a finite limit as $m \to \infty$.
+We hold $a$ fixed and only optimize $W$; this is the simplest setup that gives a
+non-convex but tractable training problem.
+\end{remark}
+
+\begin{definition}[Gaussian random initialization]\label{def:ntk:gaussianInit}
+  \lean{NTK.gaussianInit}
+The \emph{standard Gaussian initialization} is the product probability measure on
+$\mathbb{R}^{m \times d}$ under which the rows $w_1, \ldots, w_m \in \mathbb{R}^d$ are
+drawn i.i.d.\ from $\mathcal{N}(0, I_d)$.
+We write $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ for a draw from this initialization.
+\end{definition}
+
+\begin{definition}[First-order Taylor linearization]\label{def:ntk:linearization}
+  \uses{def:ntk:shallowNetwork}
+  \lean{NTK.linearization}
+Let $W_0 \in \mathbb{R}^{m \times d}$ be a fixed initialization.
+The \emph{first-order Taylor linearization} of $f(\cdot\,; \cdot)$ at $W_0$ is
+\[
+  f_0(x; W) :=
+    f(x; W_0) + \langle \nabla_W f(x; W_0),\, W - W_0 \rangle_{\mathrm{F}},
+\]
+where the gradient $\nabla_W f(x; W_0) \in \mathbb{R}^{m \times d}$ has rows
+$a_j \sigma'(w_{0,j}^\top x)\, x^\top / \sqrt{m}$.
+
+For an activation $\sigma$ that is differentiable almost everywhere (e.g.\ the ReLU),
+this expands to
+\[
+  f_0(x; W) = \frac{1}{\sqrt{m}} \sum_{j=1}^{m} a_j \Bigl[
+    \sigma(w_{0,j}^\top x) - \sigma'(w_{0,j}^\top x)\,w_{0,j}^\top x
+    + \sigma'(w_{0,j}^\top x)\,w_j^\top x\Bigr].
+\]
+\end{definition}
+
+\begin{remark}[ReLU simplification]\label{rmk:ntk:reluLinearization}
+  \uses{def:ntk:linearization}
+For the ReLU $\sigma_{\mathrm{ReLU}}(z) = \max\{0,z\}$, the identity
+$\sigma_{\mathrm{ReLU}}(z) = z\,\sigma_{\mathrm{ReLU}}'(z)$ (holding for a.e.\ $z$)
+eliminates the constant term, giving the cleaner form
+\[
+  f_0(x; W) = \frac{1}{\sqrt{m}} \sum_{j=1}^{m} a_j\, \sigma'(w_{0,j}^\top x)\, w_j^\top x
+  = \langle \nabla_W f(x; W_0),\, W \rangle_{\mathrm{F}}.
+\]
+\end{remark}
+
+
+\section{Networks near initialization are almost linear}\label{sec:ntk:linearization}
+
+\subsection{Smooth activations}
+
+For smooth activations, the linearization error follows immediately from Taylor's theorem
+and requires no probabilistic argument.
+
+\begin{definition}[$\beta$-smooth activation]\label{def:ntk:betaSmooth}
+  \lean{NTK.BetaSmooth}
+An activation $\sigma : \mathbb{R} \to \mathbb{R}$ is \emph{$\beta$-smooth} if $\sigma$ is
+twice differentiable everywhere and $|\sigma''(z)| \le \beta$ for all $z \in \mathbb{R}$.
+\end{definition}
+
+\begin{proposition}[Smooth linearization bound]\label{prop:ntk:smoothLinearization}
+  \uses{def:ntk:shallowNetwork, def:ntk:linearization, def:ntk:betaSmooth}
+  \lean{NTK.smoothLinearizationBound}
+Suppose $\sigma$ is $\beta$-smooth and $|a_j| \le 1$ for all $j \in [m]$.
+For any $x \in \mathbb{R}^d$ with $\|x\| \le 1$ and any $W, V \in \mathbb{R}^{m \times d}$,
+\[
+  |f(x; W) - f_0(x; V)| \le \frac{\beta}{2\sqrt{m}} \|W - V\|_{\mathrm{F}}^2.
+\]
+\end{proposition}
+
+\begin{proof}
+  \uses{def:ntk:betaSmooth, def:ntk:shallowNetwork, def:ntk:linearization}
+By Taylor's theorem applied to $\sigma$ with remainder,
+\[
+  |\sigma(r) - \sigma(s) - \sigma'(s)(r-s)| \le \frac{\beta(r-s)^2}{2}.
+\]
+Summing over neurons, using $|a_j| \le 1$ and $|\langle w_j - v_j, x\rangle| \le \|w_j - v_j\| \cdot \|x\| \le \|w_j - v_j\|$:
+\begin{align*}
+  |f(x;W) - f_0(x;V)|
+  &= \frac{1}{\sqrt{m}}\left|\sum_{j=1}^m a_j
+      \bigl[\sigma(w_j^\top x) - \sigma(v_j^\top x) - \sigma'(v_j^\top x)(w_j-v_j)^\top x\bigr]
+     \right| \\
+  &\le \frac{1}{\sqrt{m}} \sum_{j=1}^m \frac{\beta(w_j^\top x - v_j^\top x)^2}{2} \\
+  &\le \frac{\beta}{2\sqrt{m}} \sum_{j=1}^m \|w_j - v_j\|^2
+   = \frac{\beta}{2\sqrt{m}} \|W - V\|_{\mathrm{F}}^2. \qedhere
+\end{align*}
+\end{proof}
+
+\begin{remark}
+Proposition~\ref{prop:ntk:smoothLinearization} does not require Gaussian initialization:
+it holds for any $W, V$.
+The key consequence is that as $m \to \infty$, the linearization error $|f - f_0|$ decays
+as $\mathcal{O}(1/\sqrt{m})$ whenever $\|W - V\|_{\mathrm{F}} = \mathcal{O}(1)$.
+\end{remark}
+
+\subsection{ReLU linearization via Gaussian concentration}
+
+The ReLU is not smooth, so we instead exploit the Gaussian initialization $W_0$:
+with high probability, $|w_{0,j}^\top x|$ is large, so a perturbation of bounded
+Frobenius norm does not change the sign of $w_j^\top x$ for most $j$.
+
+\begin{lemma}[Sign concentration under Gaussian initialization]\label{lem:ntk:signConcentration}
+  \uses{def:ntk:gaussianInit}
+  \lean{NTK.reluSignConcentration}
+Let $x \in \mathbb{R}^d$ with $\|x\| > 0$ and let $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$.
+For any $\tau > 0$ and $\delta \in (0, 1)$, with probability at least $1 - \delta$ over $W_0$,
+\[
+  \#\!\bigl\{j \in [m] : |w_{0,j}^\top x| \le \tau\|x\|\bigr\}
+  \;\le\; m\tau + \sqrt{\tfrac{m}{2} \ln \tfrac{1}{\delta}}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{def:ntk:gaussianInit}
+For each $j \in [m]$, define the indicator $P_j := \mathbf{1}[|w_{0,j}^\top x| \le \tau\|x\|]$.
+By rotational invariance of $\mathcal{N}(0,I_d)$, we may assume $\|x\| = 1$ and
+$w_{0,j}^\top x \sim \mathcal{N}(0,1)$, so
+\[
+  \mathbb{E}[P_j] = \Pr[|Z| \le \tau] \le \frac{2\tau}{\sqrt{2\pi}} \le \tau, \quad Z \sim \mathcal{N}(0,1).
+\]
+The variables $(P_j)_{j=1}^m$ are i.i.d.\ Bernoulli, so Hoeffding's inequality gives
+\[
+  \Pr\!\left[\sum_j P_j > m\tau + \sqrt{\tfrac{m}{2}\ln\tfrac{1}{\delta}}\right] \le \delta. \qedhere
+\]
+\end{proof}
+
+\begin{lemma}[ReLU linearization bound]\label{lem:ntk:reluLinearization}
+  \uses{def:ntk:shallowNetwork, def:ntk:linearization, def:ntk:gaussianInit,
+        lem:ntk:signConcentration}
+  \lean{NTK.reluLinearizationBound}
+Let $\sigma = \sigma_{\mathrm{ReLU}}$, let $W_0 \sim \mathcal{N}(0,I_d)^{\otimes m}$,
+and fix $B \ge 0$ and $x \in \mathbb{R}^d$ with $\|x\| \le 1$.
+With probability at least $1 - \delta$ over $W_0$, uniformly over all
+$W \in \mathbb{R}^{m \times d}$ with $\|W - W_0\|_{\mathrm{F}} \le B$,
+\[
+  |f(x; W) - f_0(x; W)| \le \frac{2B^{4/3} + B\ln(1/\delta)^{1/4}}{m^{1/6}}.
+\]
+Moreover, for every $V \in \mathbb{R}^{m \times d}$ with $\|V - W_0\|_{\mathrm{F}} \le B$,
+\[
+  |f(x; V) - (f(x; W) + \langle \nabla_W f(x; W),\, V - W\rangle_{\mathrm{F}})| \le
+  \frac{6B^{4/3} + 2B\ln(1/\delta)^{1/4}}{m^{1/6}}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntk:signConcentration, def:ntk:gaussianInit, def:ntk:shallowNetwork}
+Set $r := B^{2/3}/m^{1/3}$ and define the ``bad'' index sets
+\begin{align*}
+  S_1 &:= \bigl\{j \in [m] : |w_{0,j}^\top x| \le r\|x\|\bigr\}, \\
+  S_2 &:= \bigl\{j \in [m] : \|w_j - w_{0,j}\| \ge r\bigr\}, \\
+  S   &:= S_1 \cup S_2.
+\end{align*}
+By Lemma~\ref{lem:ntk:signConcentration} with $\tau = r$,
+\[
+  |S_1| \le rm + \sqrt{\tfrac{m}{2}\ln\tfrac{1}{\delta}} \quad \text{w.p.\ } \ge 1 - \delta.
+\]
+By the Frobenius norm bound on $W - W_0$, $|S_2| \le B^2/r^2$.
+Choosing $r = B^{2/3}/m^{1/3}$ balances the two terms:
+\[
+  |S| \le m^{2/3}\!\left(2B^{2/3} + \sqrt{\ln(1/\delta)}\right).
+\]
+For $j \notin S$, both $|w_{0,j}^\top x| > r\|x\|$ and $\|w_j - w_{0,j}\| < r$, so
+$\operatorname{sgn}(w_j^\top x) = \operatorname{sgn}(w_{0,j}^\top x)$, i.e.,
+$\sigma'(w_j^\top x) = \sigma'(w_{0,j}^\top x)$ almost surely.
+Using the ReLU identity $f(x;W) - f_0(x;W) = \langle \nabla f(x;W) - \nabla f(x;W_0), W\rangle$
+and two applications of Cauchy-Schwarz:
+\[
+  |f(x;W) - f_0(x;W)|
+  \le \frac{1}{\sqrt{m}} \sum_{j \in S} \|w_j - w_{0,j}\|
+  \le B \sqrt{\frac{|S|}{m}}
+  \le \frac{2B^{4/3} + B\ln(1/\delta)^{1/4}}{m^{1/6}}.
+\]
+The second inequality is proved analogously by extending $S$ to include a third set
+$S_3 := \{j : \|v_j - w_{0,j}\| \ge r\}$ and $S_4 = S_1 \cup S_2 \cup S_3$.
+\end{proof}
+
+
+\section{The neural tangent kernel}\label{sec:ntk:kernel}
+
+\begin{definition}[Empirical NTK]\label{def:ntk:empiricalNTK}
+  \uses{def:ntk:shallowNetwork, def:ntk:gaussianInit}
+  \lean{NTK.empiricalNTK}
+Let $W_0 \in \mathbb{R}^{m \times d}$ and $a \in \{-1,+1\}^m$.
+The \emph{empirical neural tangent kernel} at initialization $W_0$ is
+\[
+  k_m(x, x') :=
+  \langle \nabla_W f(x; W_0),\, \nabla_W f(x'; W_0) \rangle_{\mathrm{F}}
+  = x^\top x' \cdot \frac{1}{m} \sum_{j=1}^{m}
+    \sigma'(w_{0,j}^\top x)\, \sigma'(w_{0,j}^\top x'),
+\]
+where we have used $a_j^2 = 1$ and $\|x\|, \|x'\| \le 1$.
+\end{definition}
+
+\begin{definition}[Limiting NTK]\label{def:ntk:limitingNTK}
+  \lean{NTK.limitingNTK}
+The \emph{limiting neural tangent kernel} for activation $\sigma$ is
+\[
+  k(x, x') :=
+  x^\top x' \cdot \mathbb{E}_{w \sim \mathcal{N}(0, I_d)}
+    \!\bigl[\sigma'(w^\top x)\, \sigma'(w^\top x')\bigr].
+\]
+\end{definition}
+
+\begin{lemma}[Almost sure convergence of the empirical NTK]\label{lem:ntk:ntkConverges}
+  \uses{def:ntk:empiricalNTK, def:ntk:limitingNTK, def:ntk:gaussianInit}
+  \lean{NTK.ntk_convergence}
+For fixed $x, x' \in \mathbb{R}^d$, almost surely over
+$W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ (in $m$),
+\[
+  k_m(x, x') \xrightarrow{m \to \infty} k(x, x').
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{def:ntk:gaussianInit, def:ntk:empiricalNTK, def:ntk:limitingNTK}
+The rows $(w_{0,j})_{j=1}^m$ are i.i.d.\ from $\mathcal{N}(0, I_d)$, so the summands
+$\sigma'(w_{0,j}^\top x)\,\sigma'(w_{0,j}^\top x')$ are i.i.d.\ and integrable
+(bounded for the ReLU).
+The strong law of large numbers gives the almost sure convergence of their empirical
+average to the expectation $\mathbb{E}[\sigma'(w^\top x)\sigma'(w^\top x')]$.
+\end{proof}
+
+\begin{proposition}[ReLU NTK closed form]\label{prop:ntk:reluNTK}
+  \uses{def:ntk:limitingNTK}
+  \lean{NTK.reluNTK_closedForm}
+For $\sigma = \sigma_{\mathrm{ReLU}}$ and $x, x' \in \mathbb{R}^d$ with $\|x\| = \|x'\| = 1$,
+\[
+  k(x, x') = x^\top x' \cdot \frac{\pi - \arccos(x^\top x')}{2\pi}.
+\]
+\end{proposition}
+
+\begin{proof}
+  \uses{def:ntk:limitingNTK}
+Since $\sigma_{\mathrm{ReLU}}'(z) = \mathbf{1}[z \ge 0]$ a.e., we must compute
+\[
+  \mathbb{E}_{w \sim \mathcal{N}(0,I_d)}\!
+    \bigl[\mathbf{1}[w^\top x \ge 0] \cdot \mathbf{1}[w^\top x' \ge 0]\bigr].
+\]
+By rotational invariance, $w^\top x$ and $w^\top x'$ depend only on the projection
+of $w$ onto $\operatorname{span}(x, x')$; reducing to $\mathbb{R}^2$, the angle between
+$x$ and $x'$ is $\theta := \arccos(x^\top x') \in [0,\pi]$.
+The event $\{w^\top x \ge 0\} \cap \{w^\top x' \ge 0\}$ is a sector of angle $\pi - \theta$
+(assuming $w$ uniform on the circle), so the probability is $(\pi - \theta)/(2\pi)$.
+Multiplying by $x^\top x'$ gives the result.
+\end{proof}
+
+
+\section{Universal approximation via the NTK RKHS}\label{sec:ntk:universal}
+
+\begin{definition}[NTK domain]\label{def:ntk:domain}
+  \lean{NTK.ntkDomain}
+The \emph{NTK domain} is the set
+\[
+  \mathcal{X} := \bigl\{x \in \mathbb{R}^d : \|x\| = 1,\; x_d = 1/\sqrt{2}\bigr\}.
+\]
+The last coordinate is fixed to $1/\sqrt{2}$ to serve as an implicit bias.
+\end{definition}
+
+\begin{definition}[NTK RKHS predictor class]\label{def:ntk:rkhs}
+  \uses{def:ntk:limitingNTK, def:ntk:domain}
+  \lean{NTK.RKHSClass}
+The \emph{NTK RKHS predictor class} (associated to the ReLU limiting NTK $k$) is the set
+\[
+  \mathcal{H} := \left\{
+    x \mapsto \sum_{j=1}^{n} \alpha_j\, k(x, x_j)
+    \;\Big|\;
+    n \ge 0,\; \alpha_j \in \mathbb{R},\; x_j \in \mathcal{X}
+  \right\}.
+\]
+\end{definition}
+
+\begin{theorem}[Universal approximation via the NTK RKHS]\label{thm:ntk:universal}
+  \uses{def:ntk:rkhs, def:ntk:domain, prop:ntk:reluNTK}
+  \lean{NTK.isUniversal}
+For $\sigma = \sigma_{\mathrm{ReLU}}$, the class $\mathcal{H}$ is a universal approximator
+over $\mathcal{X}$: for every continuous $g : \mathcal{X} \to \mathbb{R}$ and every
+$\epsilon > 0$, there exists $h \in \mathcal{H}$ such that
+\[
+  \sup_{x \in \mathcal{X}} |g(x) - h(x)| \le \epsilon.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{def:ntk:rkhs, def:ntk:limitingNTK, prop:ntk:reluNTK}
+Consider the bijection $\phi : \mathcal{X} \to U := \{u \in \mathbb{R}^{d-1} : \|u\|^2 \le 1/2\}$
+that drops the $d$-th coordinate (which equals $1/\sqrt{2}$ on $\mathcal{X}$).
+Under $\phi$, the kernel becomes $k(\phi^{-1}(u), \phi^{-1}(u')) = \tilde{k}(u, u')$, where
+\[
+  \tilde{k}(u, u') = \tilde{f}(u^\top u'), \qquad
+  \tilde{f}(z) := \frac{z + 1/2}{2} - \frac{(z+1/2)\,\arccos(z+1/2)}{2\pi}.
+\]
+The Maclaurin series of $\arccos$ shows that every coefficient of the power series of
+$\tilde{f}$ is strictly positive.
+By the kernel universality criterion \cite{steinwart2008support} (Corollary~4.57),
+a positive-definite kernel on a compact domain is universal if and only if its
+associated power series (in the dot-product case) has all-positive coefficients.
+Hence $\tilde{k}$ is a universal kernel over $U$, and $\mathcal{H}$ is a universal
+approximator over $\mathcal{X}$.
+\end{proof}
