@@ -76,8 +76,8 @@ jobs:
         run: |
           lake env "$EXPOSITION_BIN" \
             --root LeanMachineLearning \
-            --repo-url https://github.com/LeanMachineLearning/LML \
-            --site-url https://leanmachinelearning.org/LML/exposition \
+            --repo-url https://github.com/anhhuyalex/LML \
+            --site-url https://anhhuyalex.github.io/LML/exposition \
             --output ./exposition \
             --exclude-lib LMLTutorial
           mkdir -p home_page/exposition

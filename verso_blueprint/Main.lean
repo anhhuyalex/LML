@@ -13,8 +13,8 @@ def extraHead : Array Verso.Output.Html := #[
 
 def config : RenderConfig := {
   extraHead := extraHead,
-  sourceLink := some "https://github.com/LeanMachineLearning/LML",
-  issueLink := some "https://github.com/LeanMachineLearning/LML/issues",
+  sourceLink := some "https://github.com/anhhuyalex/LML",
+  issueLink := some "https://github.com/anhhuyalex/LML/issues",
 }
 
 def main (args : List String) : IO UInt32 :=
