@@ -60,8 +60,11 @@ namespace OneHiddenLayer
 /-- A single-hidden-layer network with activation σ, input dimension d, width m.
   f(x) = ∑ᵢ aᵢ · σ(wᵢᵀx + bᵢ), with a ∈ ℝ^m, W ∈ ℝ^(m×d), b ∈ ℝ^m. -/
 structure Network (σ : ℝ → ℝ) (d m : ℕ) where
+  /-- Weight matrix: `weights i j` is the weight from input `j` to neuron `i`. -/
   weights : Fin m → Fin d → ℝ
+  /-- Bias vector: `biases i` is the bias of neuron `i`. -/
   biases  : Fin m → ℝ
+  /-- Output coefficients: `coeffs i` is the coefficient of neuron `i`. -/
   coeffs  : Fin m → ℝ
 
 /-- Evaluate a single-hidden-layer network at a point. -/
@@ -84,10 +87,15 @@ namespace TwoHiddenLayer
 
 /-- A two-hidden-layer network with activation σ, input dimension d, widths m₁, m₂. -/
 structure Network (σ : ℝ → ℝ) (d m₁ m₂ : ℕ) where
+  /-- First-layer weight matrix. -/
   weights₁ : Fin m₁ → Fin d → ℝ
+  /-- First-layer bias vector. -/
   biases₁  : Fin m₁ → ℝ
+  /-- Second-layer weight matrix. -/
   weights₂ : Fin m₂ → Fin m₁ → ℝ
+  /-- Second-layer bias vector. -/
   biases₂  : Fin m₂ → ℝ
+  /-- Output coefficients. -/
   coeffs   : Fin m₂ → ℝ
 
 /-- Evaluate a two-hidden-layer network at a point. -/

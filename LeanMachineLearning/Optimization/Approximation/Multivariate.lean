@@ -46,7 +46,9 @@ noncomputable def uniformModulus {d : ℕ} (g : (Fin d → ℝ) → ℝ) (δ : �
 
 /-- A half-open rectangle in ℝᵈ, given by its left endpoints and widths. -/
 structure Rectangle (d : ℕ) where
+  /-- Left endpoints of the rectangle in each coordinate. -/
   left : Fin d → ℝ
+  /-- Side lengths of the rectangle in each coordinate. -/
   width : Fin d → ℝ
   width_pos : ∀ j, 0 < width j
 
@@ -61,6 +63,7 @@ def Rectangle.isFine {d : ℕ} (R : Rectangle d) (δ : ℝ) : Prop :=
 /-- A δ-fine rectangle partition of a set U: a finite collection of pairwise disjoint,
     δ-fine rectangles whose union is U. -/
 structure RectanglePartition (d : ℕ) (U : Set (Fin d → ℝ)) (δ : ℝ) where
+  /-- The finite collection of rectangles forming the partition. -/
   rectangles : Finset (Rectangle d)
   cover      : ∀ x ∈ U, ∃ R ∈ rectangles, x ∈ R.toSet
   disjoint   : ∀ R₁ ∈ rectangles, ∀ R₂ ∈ rectangles, R₁ ≠ R₂ →
