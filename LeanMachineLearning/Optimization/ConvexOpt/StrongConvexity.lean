@@ -143,7 +143,7 @@ theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hm
     rw [hwstar] at h
     -- gradient f wstar becomes 0
     have hzero_inner : inner ℝ (0 : E) (w' - wstar) = 0 := by simp
-    simp only [ge_iff_le] at h
+    simp [hzero_inner] at h
     -- h: f wstar + mu/2 * ‖w' - wstar‖² ≤ f w'
     have hsq_nonneg : 0 ≤ mu / 2 * ‖w' - wstar‖ ^ 2 := by
       have : 0 ≤ mu / 2 := div_nonneg hmu.le (by norm_num)
