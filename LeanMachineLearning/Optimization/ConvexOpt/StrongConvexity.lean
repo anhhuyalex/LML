@@ -46,12 +46,19 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteS
 This follows from the first-order strong convexity inequality applied symmetrically to `(w, v)` and `(v, w)`. -/
 lemma sc_gradient_inner {f : E → ℝ} {mu : ℝ}
     (hf : IsStronglyConvex f mu) (w v : E) :
-    Inner.inner (gradient f w - gradient f v) (w - v) ≥ mu * ‖w - v‖ ^ 2 := by
+    inner ℝ (gradient f w - gradient f v) (w - v) ≥ mu * ‖w - v‖ ^ 2 := by
+  rw [inner_sub_left]
   have h1 := hf w v
   have h2 := hf v w
-  rw [inner_sub_left]
-  simp only [inner_sub_right, real_inner_comm (gradient f v) (w - v)]
-  nlinarith [sq_nonneg ‖w - v‖]
+  have hsum := add_le_add h1 h2
+  have hnorm_sq_eq : ‖v - w‖ ^ 2 = ‖w - v‖ ^ 2 := by rw [norm_sub_rev]
+  rw [hnorm_sq_eq] at hsum
+  have hinner_swap : inner ℝ (gradient f w) (v - w) = - inner ℝ (gradient f w) (w - v) := by
+    calc
+      inner ℝ (gradient f w) (v - w) = inner ℝ (gradient f w) (-(w - v)) := by simp
+      _ = - inner ℝ (gradient f w) (w - v) := by simp
+  rw [hinner_swap] at hsum
+  linarith
 
 /-- A strongly convex function has at most one critical point. -/
 lemma sc_unique_critical_point {f : E → ℝ} {mu : ℝ} (hmu : 0 < mu)
@@ -60,9 +67,13 @@ lemma sc_unique_critical_point {f : E → ℝ} {mu : ℝ} (hmu : 0 < mu)
   have h := sc_gradient_inner hf w v
   rw [hw, hv] at h
   simp at h
-  have : ‖w - v‖ ^ 2 = 0 := by nlinarith
-  simp [sq_eq_zero_iff, norm_eq_zero] at this
-  linarith [this]
+  have h_nonneg : 0 ≤ mu * ‖w - v‖ ^ 2 := mul_nonneg hmu.le (sq_nonneg _)
+  have h_nonpos : mu * ‖w - v‖ ^ 2 ≤ 0 := by linarith
+  have hzero : mu * ‖w - v‖ ^ 2 = 0 := by linarith
+  have hnorm_sq_zero : ‖w - v‖ ^ 2 = 0 := by nlinarith
+  have hnorm_zero : ‖w - v‖ = 0 := by
+    nlinarith
+  exact sub_eq_zero.mp (norm_eq_zero.mp hnorm_zero)
 
 /-! ### GD strongly convex rate (Theorem 7.5) -/
 
@@ -82,30 +93,104 @@ theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hm
   intro w'
   -- Expand ‖w' - w*‖² = ‖(w - w*) - β⁻¹ ∇f(w)‖²
   have hexp : ‖w' - wstar‖ ^ 2 = ‖w - wstar‖ ^ 2
-      - 2 * β⁻¹ * inner (gradient f w) (w - wstar)
+      - 2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar)
       + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
-    simp only [w', sub_sub_sub_cancel_right]
-    rw [norm_sub_sq_real]
-    simp [inner_smul_left, mul_comm]; ring
+    dsimp [w']
+    calc
+      ‖(w - β⁻¹ • gradient f w) - wstar‖ ^ 2
+          = ‖(w - wstar) - (β⁻¹ • gradient f w)‖ ^ 2 := by abel_nf
+      _ = ‖w - wstar‖ ^ 2 - 2 * inner ℝ (w - wstar) (β⁻¹ • gradient f w) + ‖β⁻¹ • gradient f w‖ ^ 2 := by
+        rw [norm_sub_sq_real]
+      _ = ‖w - wstar‖ ^ 2 - 2 * inner ℝ (w - wstar) (β⁻¹ • gradient f w) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+        have hnorm : ‖β⁻¹ • gradient f w‖ ^ 2 = (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+          calc
+            ‖β⁻¹ • gradient f w‖ ^ 2 = (‖β⁻¹‖ * ‖gradient f w‖) ^ 2 := by rw [norm_smul]
+            _ = (|β⁻¹| * ‖gradient f w‖) ^ 2 := by rw [Real.norm_eq_abs]
+            _ = (β⁻¹ * ‖gradient f w‖) ^ 2 := by rw [abs_of_pos (inv_pos.mpr hβ)]
+            _ = (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by ring
+        rw [hnorm]
+      _ = ‖w - wstar‖ ^ 2 - 2 * (β⁻¹ * inner ℝ (w - wstar) (gradient f w)) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+        simp [inner_smul_right]
+      _ = ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+        rw [real_inner_comm (w - wstar) (gradient f w)]
+        ring
   rw [hexp]
   -- Strong convexity: ⟪∇f(w) - ∇f(w*), w - w*⟫ ≥ mu‖w - w*‖², and ∇f(w*) = 0
-  have hsc_ineq : inner (gradient f w) (w - wstar) ≥
+  have hsc_ineq : inner ℝ (gradient f w) (w - wstar) ≥
       f w - f wstar + mu / 2 * ‖w - wstar‖ ^ 2 := by
-    have := hsc w wstar
-    simp [hwstar] at this
+    have h := hsc w wstar
+    have hinner_swap' : inner ℝ (gradient f w) (wstar - w) = - inner ℝ (gradient f w) (w - wstar) := by
+      calc
+        inner ℝ (gradient f w) (wstar - w) = inner ℝ (gradient f w) (-(w - wstar)) := by simp
+        _ = - inner ℝ (gradient f w) (w - wstar) := by simp
+    have hnorm_sq_eq' : ‖wstar - w‖ ^ 2 = ‖w - wstar‖ ^ 2 := by rw [norm_sub_rev]
+    rw [hinner_swap', hnorm_sq_eq'] at h
     linarith
   -- Smoothness + descent: (β⁻¹)^2 ‖∇f(w)‖² ≤ 2β⁻¹(f(w) - f(w'))
   have hdescent : (β⁻¹)^2 * ‖gradient f w‖ ^ 2 ≤ 2 * β⁻¹ * (f w - f w') := by
-    have := gd_descent_step hβ hf w
-    simp only [w'] at this
-    nlinarith [mul_pos (inv_pos.mpr hβ) (inv_pos.mpr hβ)]
+    have hgstep := gd_descent_step hβ hf w
+    -- hgstep: f w' ≤ f w - (2*β)⁻¹ * ‖gradient f w‖²
+    have htemp : (2 * β)⁻¹ * ‖gradient f w‖ ^ 2 ≤ f w - f w' := by linarith
+    have hpos : 0 ≤ 2 * β⁻¹ := mul_nonneg (by norm_num) (inv_nonneg.mpr hβ.le)
+    have hcalc : (β⁻¹)^2 * ‖gradient f w‖ ^ 2 = 2 * β⁻¹ * ((2 * β)⁻¹ * ‖gradient f w‖ ^ 2) := by
+      field_simp [hβ.ne.symm]
+    rw [hcalc]
+    exact mul_le_mul_of_nonneg_left htemp hpos
   -- f(w') ≥ f(w*)
   have hfmin : f wstar ≤ f w' := by
-    have := hsc wstar w'
-    simp [hwstar] at this
-    linarith [sq_nonneg ‖w' - wstar‖]
+    have h := hsc wstar w'
+    -- h: f wstar + inner ℝ (gradient f wstar) (w' - wstar) + mu/2 * ‖w' - wstar‖² ≤ f w'
+    rw [hwstar] at h
+    -- gradient f wstar becomes 0
+    have hzero_inner : inner ℝ (0 : E) (w' - wstar) = 0 := by simp
+    simp only [ge_iff_le] at h
+    -- h: f wstar + mu/2 * ‖w' - wstar‖² ≤ f w'
+    have hsq_nonneg : 0 ≤ mu / 2 * ‖w' - wstar‖ ^ 2 := by
+      have : 0 ≤ mu / 2 := div_nonneg hmu.le (by norm_num)
+      have : 0 ≤ ‖w' - wstar‖ ^ 2 := sq_nonneg _
+      exact mul_nonneg ‹_› ‹_›
+    linarith
   have hβ_pos : (0 : ℝ) < β := hβ
-  nlinarith [mul_nonneg (div_nonneg hmu.le hβ.le) (sq_nonneg ‖w - wstar‖)]
+  have hc_nonpos : -2 * β⁻¹ ≤ 0 := by
+    have hpos' : 0 ≤ 2 * β⁻¹ := mul_nonneg (by norm_num) (inv_nonneg.mpr hβ.le)
+    linarith
+  have hneg_ineq : -2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) ≤
+      -2 * β⁻¹ * (f w - f wstar + mu / 2 * ‖w - wstar‖ ^ 2) :=
+    mul_le_mul_of_nonpos_left hsc_ineq hc_nonpos
+  have hneg : -2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) ≤
+      -2 * β⁻¹ * (f w - f wstar) - mu * β⁻¹ * ‖w - wstar‖ ^ 2 := by
+    linarith
+  have hsum : -2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 ≤
+      - mu * β⁻¹ * ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * (f w' - f wstar) := by
+    linarith
+  -- Now we need to show: S + (-2*β⁻¹*I + (β⁻¹)²*G) ≤ (1 - mu/β)*S
+  -- where S = ‖w - wstar‖², I = inner, G = ‖gradient f w‖²
+  -- From hsum: -2*β⁻¹*I + (β⁻¹)²*G ≤ -mu*β⁻¹*S - 2*β⁻¹*(f w' - f wstar)
+  -- So LHS ≤ S - mu*β⁻¹*S - 2*β⁻¹*(f w' - f wstar) = (1 - mu/β)*S - 2*β⁻¹*(f w' - f wstar)
+  -- Since hfmin: f wstar ≤ f w', we have f w' - f wstar ≥ 0, so -2*β⁻¹*(f w' - f wstar) ≤ 0
+  -- Hence LHS ≤ (1 - mu/β)*S
+  have hfinal : ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) +
+      (β⁻¹)^2 * ‖gradient f w‖ ^ 2 ≤ (1 - mu / β) * ‖w - wstar‖ ^ 2 := by
+    have htemp := add_le_add_right hsum (‖w - wstar‖ ^ 2)
+    -- htemp: S + (-2*β⁻¹*I + (β⁻¹)²*G) ≤ S + (-mu*β⁻¹*S - 2*β⁻¹*(f w' - f wstar))
+    -- = (1 - mu/β)*S - 2*β⁻¹*(f w' - f wstar)
+    have h_nonneg_diff : 0 ≤ f w' - f wstar := by linarith [hfmin]
+    have h_nonpos_last : -2 * β⁻¹ * (f w' - f wstar) ≤ 0 := by
+      have h_nonneg_c : 0 ≤ 2 * β⁻¹ := mul_nonneg (by norm_num) (inv_nonneg.mpr hβ.le)
+      nlinarith
+    have h_target : (1 - mu / β) * ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * (f w' - f wstar) ≤
+        (1 - mu / β) * ‖w - wstar‖ ^ 2 := by linarith
+    -- Show htemp gives the desired bound
+    calc
+      ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) +
+          (β⁻¹)^2 * ‖gradient f w‖ ^ 2
+          = ‖w - wstar‖ ^ 2 + (-2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) +
+              (β⁻¹)^2 * ‖gradient f w‖ ^ 2) := by ring
+      _ ≤ ‖w - wstar‖ ^ 2 + (- mu * β⁻¹ * ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * (f w' - f wstar)) := by
+        gcongr
+      _ = (1 - mu / β) * ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * (f w' - f wstar) := by ring
+      _ ≤ (1 - mu / β) * ‖w - wstar‖ ^ 2 := h_target
+  exact hfinal
 
 /-- Geometric rate for GD under strong convexity. -/
 theorem gd_strongly_convex_convergence {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hmu : 0 < mu)
