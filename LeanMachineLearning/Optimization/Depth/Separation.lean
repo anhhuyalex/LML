@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Approximation.Basic
+public import LeanMachineLearning.Optimization.Depth.Basic
 public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
@@ -38,26 +39,6 @@ open Real Int Finset MeasureTheory intervalIntegral Approximation
 
 namespace Depth
 
-/-! ### Basic building block: the Δ tent function -/
-
-/-- The tent function Δ, defined via ReLU:
-  Δ(x) = 2σ(x) − 4σ(x − 1/2) + 2σ(x − 1). -/
-noncomputable def deltaTent (x : ℝ) : ℝ :=
-  2 * reluActivation x - 4 * reluActivation (x - 1/2) + 2 * reluActivation (x - 1)
-
-/-- The fractional part of a real number: ⟨x⟩ = x − ⌊x⌋. -/
-noncomputable def fractionalPart (x : ℝ) : ℝ := x - ⌊x⌋
-
-/-- The L-fold composition of Δ with itself. -/
-noncomputable def deltaTentIter : ℕ → ℝ → ℝ
-  | 0     => id
-  | (L+1) => deltaTent ∘ deltaTentIter L
-
-lemma deltaTentIter_zero : deltaTentIter 0 = id := rfl
-
-lemma deltaTentIter_succ (L : ℕ) (x : ℝ) :
-    deltaTentIter (L + 1) x = deltaTent (deltaTentIter L x) := rfl
-
 /-! ### Triangle counting -/
 
 /-- A "triangle" of f = Δ^{L²+2} is a maximal affine piece where f increases from 0 to 1
@@ -77,29 +58,7 @@ lemma surviving_triangles_bound (L : ℕ) (_hL : 2 ≤ L) (pieceBound : ℕ)
   have : 2 * pieceBound ≤ 2 * 2^(L^2) := Nat.mul_le_mul_left 2 h
   simpa [pow_succ, mul_comm] using this
 
-/-! ### ReLU network model -/
 
-/-- A univariate ReLU network specified by layer widths (m₁, …, mL).
-  Each node in layer i computes σ(aᵀh + b) where h is the output of layer i-1. -/
-structure ReLUNetwork (L : ℕ) where
-  /-- The network has at least one layer (L ≥ 1). -/
-  hLpos : 0 < L
-  /-- Width of each layer. -/
-  widths : Fin L → ℕ
-  /-- Weight parameters: weights[i][j][k] is the weight from node k of layer i-1 to node j of layer i. -/
-  weights : ∀ (i : Fin L), Fin (widths i) → (Fin (if i.val = 0 then 1 else widths ⟨i.val - 1, by
-    have hi : i.val < L := i.2
-    exact Nat.lt_of_le_of_lt (Nat.sub_le i.val 1) hi
-    ⟩)) → ℝ
-  /-- Bias parameters. -/
-  biases : ∀ (i : Fin L), Fin (widths i) → ℝ
-  /-- Output layer: a linear combination of the last layer's outputs. -/
-  outWeights : Fin (widths ⟨L - 1, Nat.sub_lt hLpos (by decide)⟩) → ℝ
-  outBias : ℝ
-
-/-- Total number of nodes in a ReLU network. -/
-noncomputable def ReLUNetwork.totalNodes {L : ℕ} (net : ReLUNetwork L) : ℕ :=
-  ∑ i, net.widths i
 
 /-! ### Depth separation theorem -/
 

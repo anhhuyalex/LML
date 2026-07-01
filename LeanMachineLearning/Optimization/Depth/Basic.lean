@@ -319,6 +319,30 @@ lemma deltaTentIter_copies (L : ℕ) (hL : 1 ≤ L) :
       deltaTentIter L x = deltaTent (2^(L-1 : ℕ) * x - k) := by
   sorry
 
+/-! ### ReLU network model -/
+
+/-- A univariate ReLU network specified by layer widths (m₁, …, mL).
+  Each node in layer i computes σ(aᵀh + b) where h is the output of layer i-1. -/
+structure ReLUNetwork (L : ℕ) where
+  /-- The network has at least one layer (L ≥ 1). -/
+  hLpos : 0 < L
+  /-- Width of each layer. -/
+  widths : Fin L → ℕ
+  /-- Weight parameters: weights[i][j][k] is the weight from node k of layer i-1 to node j of layer i. -/
+  weights : ∀ (i : Fin L), Fin (widths i) → (Fin (if i.val = 0 then 1 else widths ⟨i.val - 1, by
+    have hi : i.val < L := i.2
+    exact Nat.lt_of_le_of_lt (Nat.sub_le i.val 1) hi
+    ⟩)) → ℝ
+  /-- Bias parameters. -/
+  biases : ∀ (i : Fin L), Fin (widths i) → ℝ
+  /-- Output layer: a linear combination of the last layer's outputs. -/
+  outWeights : Fin (widths ⟨L - 1, Nat.sub_lt hLpos (by decide)⟩) → ℝ
+  outBias : ℝ
+
+/-- Total number of nodes in a ReLU network. -/
+noncomputable def ReLUNetwork.totalNodes {L : ℕ} (net : ReLUNetwork L) : ℕ :=
+  ∑ i, net.widths i
+
 end Depth
 
 end
