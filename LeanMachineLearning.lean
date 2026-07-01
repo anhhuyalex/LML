@@ -36,6 +36,19 @@ public import LeanMachineLearning.Optimization.Approximation.Multivariate
 public import LeanMachineLearning.Optimization.Approximation.Sampling
 public import LeanMachineLearning.Optimization.Approximation.Univariate
 public import LeanMachineLearning.Optimization.Approximation.Universal
+public import LeanMachineLearning.Optimization.Depth
+public import LeanMachineLearning.Optimization.Depth.AffinePieces
+public import LeanMachineLearning.Optimization.Depth.Basic
+public import LeanMachineLearning.Optimization.Depth.Products
+-- public import LeanMachineLearning.Optimization.Depth.Separation
+-- NOTE: Separation.lean duplicates ReLUNetwork, deltaTent, fractionalPart, deltaTentIter
+-- from Depth.Basic and Depth.AffinePieces, causing name collision. 
+-- The depth separation theorem (depthSeparation) in that file is not yet completed (uses sorry).
+-- public import LeanMachineLearning.Optimization.Depth.Sobolev
+-- NOTE: Sobolev.lean duplicates ReLUNetwork, deltaTent, deltaTentIter
+-- from Depth.Basic and Depth.AffinePieces, causing name collision.
+-- The Sobolev approximation theorems in that file are not yet completed (use sorry).
+public import LeanMachineLearning.Optimization.Depth.SquareApprox
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Kernel

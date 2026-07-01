@@ -42,7 +42,7 @@ prod_{k,l}(x₁,…,xₗ) := prod_{k,2}(prod_{k,l-1}(x₁,…,xₗ₋₁), xₗ)
 
 @[expose] public section
 
-open Real Finset
+open Real Finset Approximation
 
 namespace Depth
 
@@ -52,7 +52,7 @@ namespace Depth
   prod_{k,2}(a, b) = ½(4·hₖ((a+b)/2) − hₖ(a) − hₖ(b)).
   This uses three copies of the squaring approximation hₖ. -/
 noncomputable def approxProd2 (k : ℕ) (a b : ℝ) : ℝ :=
-  (1/2) * (4 * squareInterp k ((a + b) / 2) - squareInterp k a - squareInterp k b)
+  (1/2) * (4 * squareInterp (k+1) ((a + b) / 2) - squareInterp k a - squareInterp k b)
 
 /-- prod_{k,2}(a, b) approximates a · b with error ≤ 4^{−k}. -/
 theorem approxProd2_eval (k : ℕ) (a b : ℝ) (ha : a ∈ Set.Icc (0 : ℝ) 1)
@@ -66,14 +66,76 @@ theorem approxProd2_range (k : ℕ) (a b : ℝ) (ha : a ∈ Set.Icc (0 : ℝ) 1)
     approxProd2 k a b ∈ Set.Icc (0 : ℝ) 1 := by
   sorry
 
-/-- prod_{k,2}(a, 0) = 0 and prod_{k,2}(0, b) = 0. -/
-theorem approxProd2_zero_right (k : ℕ) (a : ℝ) : approxProd2 k a 0 = 0 := by
-  simp [approxProd2, squareInterp_zero]
-  ring
+/-- For any k, hₖ(0) = 0 (the squaring interpolation is zero at zero). -/
+lemma squareInterp_at_zero (k : ℕ) : squareInterp k 0 = 0 := by
+  have h : ∀ n : ℕ, deltaTentIter n 0 = 0 := by
+    intro n
+    induction n with
+    | zero => simp [deltaTentIter]
+    | succ n ih => simp [deltaTentIter, ih, deltaTent, reluActivation]
+  simp [squareInterp, h]
 
-theorem approxProd2_zero_left (k : ℕ) (b : ℝ) : approxProd2 k 0 b = 0 := by
-  simp [approxProd2, squareInterp_zero]
-  ring
+/-- For x ∈ [0,1], we have Δ(x/2) = x.
+  This holds because x/2 ∈ [0, 1/2] where Δ(z) = 2z. -/
+lemma deltaTent_half_eq (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) : deltaTent (x / 2) = x := by
+  rcases Set.mem_Icc.mp hx with ⟨hx0, hx1⟩
+  by_cases hx_one : x = 1
+  · subst hx_one; simp [deltaTent, reluActivation]; norm_num
+  · have hx_lt_one : x < 1 := by
+      by_contra! H; exact hx_one (by linarith)
+    have hx2_mem : x / 2 ∈ Set.Ico (0 : ℝ) (1/2) := by
+      constructor <;> nlinarith
+    rw [deltaTent_of_Ico_left (x / 2) hx2_mem]
+    ring
+
+/-- For x ∈ [0,1], we have Δ^{j+1}(x/2) = Δ^j(x) for any j.
+  This is proven by induction on j. -/
+lemma deltaTentIter_shift (j : ℕ) (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deltaTentIter (j+1) (x / 2) = deltaTentIter j x := by
+  induction j with
+  | zero =>
+    simp [deltaTentIter, deltaTent_half_eq x hx]
+  | succ j ih =>
+    rw [deltaTentIter_succ (j+1) (x/2), deltaTentIter_succ j x]
+    simp [ih]
+
+/-- Key scaling property: 4·h_{i+1}(x/2) = h_i(x) for x ∈ [0,1].
+  This holds because Δ^j(x/2) = Δ^{j-1}(x) for x ∈ [0,1]. -/
+lemma squareInterp_scaling (i : ℕ) {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    4 * squareInterp (i + 1) (x / 2) = squareInterp i x := by
+  induction i generalizing x with
+  | zero =>
+    -- i=0: 4*s₁(x/2) = 4*(x/2 - Δ(x/2)/4) = 2x - Δ(x/2) = 2x - x = x = s₀(x)
+    simp [squareInterp, deltaTentIter, deltaTent_half_eq x hx]
+    ring
+  | succ i ih =>
+    -- s_{i+2}(x/2) = s_{i+1}(x/2) - Δ^{i+2}(x/2) / 4^{i+2}
+    rw [squareInterp_recursion (i+1) (x/2)]
+    rw [mul_sub]
+    rw [ih hx]
+    have h_shift : deltaTentIter (i+2) (x/2) = deltaTentIter (i+1) x :=
+      deltaTentIter_shift (i+1) x hx
+    rw [h_shift]
+    -- Target: s_i(x) - 4*(Δ^{i+1}(x)/4^{i+2}) = s_{i+1}(x)
+    -- Using recursion: s_{i+1}(x) = s_i(x) - Δ^{i+1}(x)/4^{i+1}
+    rw [squareInterp_recursion i x]
+    ring
+
+/-- prod_{k,2}(a, 0) = 0 for a ∈ [0,1].
+  This follows from the scaling property: 4·h_{k+1}(a/2) = h_k(a). -/
+theorem approxProd2_zero_right (k : ℕ) (a : ℝ) (ha : a ∈ Set.Icc (0 : ℝ) 1) :
+    approxProd2 k a 0 = 0 := by
+  rw [approxProd2, show (a + 0)/2 = a/2 by ring]
+  have h := squareInterp_scaling k ha
+  simp [squareInterp_at_zero k, h]
+
+/-- prod_{k,2}(0, b) = 0 for b ∈ [0,1].
+  Symmetric to the right-zero case. -/
+theorem approxProd2_zero_left (k : ℕ) (b : ℝ) (hb : b ∈ Set.Icc (0 : ℝ) 1) :
+    approxProd2 k 0 b = 0 := by
+  rw [approxProd2, show (0 + b)/2 = b/2 by ring]
+  have h := squareInterp_scaling k hb
+  simp [squareInterp_at_zero k, h]
 
 /-! ### Multi-argument approximate multiplication -/
 

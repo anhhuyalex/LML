@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Depth.Basic
-public import Mathlib.Data.Set.Finite
+public import Mathlib.Data.Set.Finite.Basic
 public import Mathlib.Topology.Order.Basic
 
 /-!
@@ -38,7 +38,7 @@ piecewise-affine function.
 
 @[expose] public section
 
-open Real Finset
+open Real Finset Approximation
 
 namespace Depth
 
@@ -60,7 +60,7 @@ structure AffinePiecePartition (f : ℝ → ℝ) where
   /-- The pieces cover ℝ. -/
   covers : ∀ x : ℝ, ∃ S ∈ pieces, x ∈ S
   /-- The pieces are pairwise disjoint. -/
-  pairwise_disjoint : ∀ S T ∈ pieces, S ≠ T → Disjoint S T
+  pairwise_disjoint : ∀ S ∈ pieces, ∀ T ∈ pieces, S ≠ T → Disjoint S T
   /-- f is affine on each piece. -/
   affine_on_each : ∀ S ∈ pieces, IsAffinePieceOn f S
 
@@ -107,19 +107,24 @@ lemma numAffinePieces_relu : N_A(reluActivation) = 2 := by
 /-- A univariate ReLU network specified by layer widths (m₁, …, mL).
   Each node in layer i computes σ(aᵀh + b) where h is the output of layer i-1. -/
 structure ReLUNetwork (L : ℕ) where
+  /-- The network has at least one layer (L ≥ 1). -/
+  hLpos : 0 < L
   /-- Width of each layer. -/
   widths : Fin L → ℕ
   /-- Weight parameters: weights[i][j][k] is the weight from node k of layer i-1 to node j of layer i. -/
-  weights : ∀ (i : Fin L), Fin (widths i) → Fin (if i.val = 0 then 1 else widths ⟨i.val - 1, by omega⟩) → ℝ
+  weights : ∀ (i : Fin L), Fin (widths i) → (Fin (if i.val = 0 then 1 else widths ⟨i.val - 1, by
+    have hi : i.val < L := i.2
+    exact Nat.lt_of_le_of_lt (Nat.sub_le i.val 1) hi
+    ⟩)) → ℝ
   /-- Bias parameters. -/
   biases : ∀ (i : Fin L), Fin (widths i) → ℝ
   /-- Output layer: a linear combination of the last layer's outputs. -/
-  outWeights : Fin (widths ⟨L - 1, by omega⟩) → ℝ
+  outWeights : Fin (widths ⟨L - 1, Nat.sub_lt hLpos (by decide)⟩) → ℝ
   outBias : ℝ
 
 /-- Total number of nodes in a ReLU network. -/
 noncomputable def ReLUNetwork.totalNodes {L : ℕ} (net : ReLUNetwork L) : ℕ :=
-  ∑ i, net.widths i
+  ∑ i : Fin L, net.widths i
 
 /-! ### Affine piece bounds for ReLU networks (Lemma 5.1) -/
 

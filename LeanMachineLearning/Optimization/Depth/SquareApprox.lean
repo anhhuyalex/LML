@@ -6,8 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Depth.Basic
+public import LeanMachineLearning.Optimization.Depth.AffinePieces
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
-public import Mathlib.MeasureTheory.Integral.IntervalIntegral
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Topology.Algebra.Polynomial
 
 /-!
@@ -53,7 +54,7 @@ This gives:
 
 @[expose] public section
 
-open Real Finset MeasureTheory intervalIntegral
+open Real Finset MeasureTheory intervalIntegral Approximation
 
 namespace Depth
 
@@ -61,7 +62,7 @@ namespace Depth
 
 /-- The grid Sᵢ = {k/2^i | k = 0, …, 2^i} of 2^i+1 equally spaced points in [0,1]. -/
 noncomputable def squareInterpGrid (i : ℕ) : Finset ℝ :=
-  (Finset.range (2^i + 1)).image (fun k => (k : ℝ) / 2^i)
+  Finset.image (fun (k : ℕ) => (k : ℝ) / (2^i : ℝ)) (Finset.range (2^i + 1))
 
 /-- The piecewise-linear interpolation of x² on Sᵢ.
   hᵢ(x) = x − ∑_{j=1}^{i} Δʲ(x)/4ʲ, with h₀(x) = x. -/
@@ -89,10 +90,21 @@ theorem squareInterp_on_grid (i k : ℕ) (hk : k ≤ 2^i) :
 /-- The refinement hᵢ₊₁ agrees with hᵢ on the coarser grid Sᵢ. -/
 theorem squareInterp_agrees_on_coarser (i k : ℕ) (hk : k ≤ 2^i) :
     squareInterp (i + 1) ((k : ℝ) / 2^i) = squareInterp i ((k : ℝ) / 2^i) := by
-  rw [squareInterp_on_grid (i + 1) (2 * k) (by linarith [Nat.pow_le_pow_right (by norm_num) (Nat.le_succ i)])]
-  rw [squareInterp_on_grid i k hk]
-  push_cast
-  ring
+  have hk' : 2 * k ≤ 2^(i+1) := by
+    calc
+      2 * k ≤ 2 * (2^i) := Nat.mul_le_mul_left 2 hk
+      _ = 2^(i+1) := by simp [pow_succ, mul_comm]
+  have h_arg_eq : ((k : ℝ) / 2^i) = (((2 * k : ℕ) : ℝ) / 2^(i+1)) := by
+    push_cast
+    ring
+  calc
+    squareInterp (i + 1) ((k : ℝ) / 2^i)
+        = squareInterp (i + 1) (((2 * k : ℕ) : ℝ) / 2^(i+1)) := by rw [h_arg_eq]
+    _ = (((2 * k : ℕ) : ℝ) / 2^(i+1))^2 := by rw [squareInterp_on_grid (i + 1) (2 * k) hk']
+    _ = ((k : ℝ) / 2^i)^2 := by
+      push_cast
+      ring
+    _ = squareInterp i ((k : ℝ) / 2^i) := by rw [squareInterp_on_grid i k hk]
 
 /-- The mid-point correction is constant: hᵢ((2k+1)/2^{i+1}) − hᵢ₊₁((2k+1)/2^{i+1}) = 1/4^{i+1}. -/
 theorem squareInterp_midpoint_diff (i k : ℕ) (hk : k < 2^i) :

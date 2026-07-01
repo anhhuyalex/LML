@@ -7,10 +7,8 @@ module
 
 public import LeanMachineLearning.Optimization.Depth.Basic
 public import LeanMachineLearning.Optimization.Depth.AffinePieces
-public import LeanMachineLearning.Optimization.Depth.Separation
 public import LeanMachineLearning.Optimization.Depth.SquareApprox
 public import LeanMachineLearning.Optimization.Depth.Products
-public import LeanMachineLearning.Optimization.Depth.Sobolev
 
 /-!
 # Benefits of depth for ReLU network approximation (Chapter 5)

@@ -5,9 +5,10 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.Depth.Products
+public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-public import Mathlib.Analysis.SpecialFunctions.Polynomials
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Topology.Algebra.MvPolynomial
 
 /-!
@@ -55,9 +56,48 @@ for all x ∈ [0,1]^d.
 
 @[expose] public section
 
-open Real Finset MeasureTheory
+open Real Finset Approximation
 
 namespace Depth
+
+/-! ### Tent function and iterated composition (from Basic.lean) -/
+
+/-- The tent function Δ(x) = 2σ(x) − 4σ(x − 1/2) + 2σ(x − 1). -/
+noncomputable def deltaTent (x : ℝ) : ℝ :=
+  2 * reluActivation x - 4 * reluActivation (x - 1/2) + 2 * reluActivation (x - 1)
+
+/-- The L-fold composition of Δ with itself. -/
+noncomputable def deltaTentIter : ℕ → ℝ → ℝ
+  | 0     => id
+  | (L+1) => deltaTent ∘ deltaTentIter L
+
+/-! ### ReLU network model (from AffinePieces.lean) -/
+
+/-- A univariate ReLU network specified by number of layers L. -/
+structure ReLUNetwork (L : ℕ) where
+  /-- Total number of nodes. -/
+  totalNodes : ℕ
+
+/-! ### Approximate multiplication (adapted from Products.lean, Lemma 5.3) -/
+
+/-- Piecewise-linear interpolation of x² on the grid Sᵢ = {k/2^i}. -/
+noncomputable def squareInterp (i : ℕ) (x : ℝ) : ℝ :=
+  x - ∑ j ∈ Finset.range i, deltaTentIter (j + 1) x / (4 : ℝ)^(j + 1)
+
+@[simp]
+lemma squareInterp_zero (x : ℝ) : squareInterp 0 x = x := by
+  simp [squareInterp, Finset.range]
+
+/-- Approximate pairwise product: prod_{k,2}(a, b) = ½(4·hₖ((a+b)/2) − hₖ(a) − hₖ(b)). -/
+noncomputable def approxProd2 (k : ℕ) (a b : ℝ) : ℝ :=
+  (1/2 : ℝ) * (4 * squareInterp k ((a + b) / 2) - squareInterp k a - squareInterp k b)
+
+/-- Approximate l-way product, defined by induction via prod_{k,2}. -/
+noncomputable def approxProdL (k : ℕ) : ∀ (l : ℕ), (Fin l → ℝ) → ℝ
+  | 0     => fun _ => 1
+  | 1     => fun x => x 0
+  | (l+2) => fun x =>
+      approxProd2 k (approxProdL k (l+1) (fun i => x (Fin.castSucc i))) (x (Fin.last (l+1)))
 
 /-! ### Multi-indices -/
 
@@ -123,7 +163,7 @@ lemma univariateBump_partition (s : ℕ) (hs : 0 < s) (z : ℝ) (hz : z ∈ Set.
 
 /-- The grid S = {0, 1/s, …, 1}ᵈ. -/
 noncomputable def uniformGrid (d s : ℕ) : Finset (Fin d → ℝ) :=
-  (Fintype.piFinset (fun _ => (range (s + 1)).image (fun k => (k : ℝ) / s)))
+  (Fintype.piFinset (fun _ : Fin d => (Finset.range (s + 1)).image (fun (k : ℕ) => ((k : ℝ) / (s : ℝ)))))
 
 /-- The multivariate bump function for grid point v:
   f_v(x) = prod_{k,d}(h(x₁ − v₁), …, h(xd − vd)). -/
