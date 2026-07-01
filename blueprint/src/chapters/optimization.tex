@@ -1,0 +1,447 @@
+\chapter{Semi-classical convex optimization}
+\label{chap:optimization}
+
+\section{Introduction}
+
+This chapter formalizes the semi-classical convex optimization results from Chapters~6--7 of the deep learning theory notes (Telgarsky 2021).
+The central question is: given a differentiable objective $\widehat{\mathcal{R}} : \mathbb{R}^d \to \mathbb{R}$, how quickly do first-order methods---gradient descent and gradient flow---find a point with small gradient norm or small function value?
+
+Our presentation follows the notes in one key respect: \emph{we avoid assuming the existence of a minimizer}.
+Instead of bounding $\widehat{\mathcal{R}}(w_t) - \widehat{\mathcal{R}}(\bar{w})$, we bound $\widehat{\mathcal{R}}(w_t) - \widehat{\mathcal{R}}(z)$ for an \emph{arbitrary reference point} $z \in \mathbb{R}^d$.
+This extra generality pays off in the margin-maximization analyses of later chapters, where no minimizer may exist.
+
+The chapter is organized as follows:
+\begin{enumerate}
+  \item Section~\ref{sec:gd-gf-def}: Definitions of gradient descent and gradient flow.
+  \item Section~\ref{sec:smoothness}: $\beta$-smoothness and its key inequality.
+  \item Section~\ref{sec:stationary}: Convergence to stationary points.
+  \item Section~\ref{sec:convexity}: Convexity and smooth+convex rates.
+  \item Section~\ref{sec:strong-convexity}: Strong convexity and exponential rates.
+  \item Section~\ref{sec:sgd}: Stochastic gradients and high-probability bounds.
+\end{enumerate}
+
+Throughout, we work in $\mathbb{R}^d$ with the standard Euclidean inner product $\langle \cdot, \cdot \rangle$ and norm $\|\cdot\|$.
+In the Lean formalization we abstract to an arbitrary inner product space $E$ over $\mathbb{R}$, so all results apply unchanged to finite-dimensional and infinite-dimensional Hilbert spaces.
+
+\begin{remark}[Lean remark: gradient]
+  For a differentiable function $f : E \to \mathbb{R}$ on a Hilbert space, the \emph{gradient} $\nabla f(w) \in E$ is the Riesz representative of the Fréchet derivative $\mathrm{D}f(w) : E \to \mathbb{R}$.
+  In Lean/Mathlib this is \texttt{gradient f w}, defined in \texttt{Mathlib.Analysis.Calculus.Gradient.Basic}, satisfying $\mathrm{D}f(w)(v) = \langle \nabla f(w), v \rangle$ for all $v \in E$.
+\end{remark}
+
+
+\section{Gradient descent and gradient flow}
+\label{sec:gd-gf-def}
+
+\begin{definition}[Gradient descent iterate]\label{def:gdIterate}
+  \lean{ConvexOpt.gdIterate}
+  \leanok
+Let $f : \mathbb{R}^d \to \mathbb{R}$ be differentiable, $w_0 \in \mathbb{R}^d$ an initial point, and $(\eta_i)_{i \ge 0}$ a sequence of step sizes.
+The \emph{gradient descent iterates} $(w_i)_{i \ge 0}$ are defined by
+\[
+  w_0 \in \mathbb{R}^d, \qquad w_{i+1} := w_i - \eta_i \, \nabla f(w_i).
+\]
+\end{definition}
+
+\begin{definition}[Gradient flow trajectory]\label{def:gfTrajectory}
+  \lean{ConvexOpt.GFTrajectory}
+Let $f : \mathbb{R}^d \to \mathbb{R}$ be continuously differentiable.
+A \emph{gradient flow trajectory} is a $C^1$ curve $w : [0, \infty) \to \mathbb{R}^d$ satisfying
+\[
+  \dot{w}(t) = -\nabla f(w(t)), \qquad w(0) = w_0.
+\]
+\end{definition}
+
+
+\section{Smooth objectives}
+\label{sec:smoothness}
+
+\begin{definition}[$\beta$-smooth function]\label{def:betaSmooth}
+  \lean{ConvexOpt.BetaSmooth}
+  \leanok
+A differentiable function $f : \mathbb{R}^d \to \mathbb{R}$ is \emph{$\beta$-smooth} (for $\beta \ge 0$) if its gradient is $\beta$-Lipschitz:
+\[
+  \|\nabla f(w) - \nabla f(v)\| \le \beta \|w - v\| \qquad \forall w, v \in \mathbb{R}^d.
+\]
+\end{definition}
+
+\begin{lemma}[Quadratic upper bound from smoothness]\label{lem:smoothUpperBound}
+  \uses{def:betaSmooth}
+  \lean{ConvexOpt.smooth_upper_bound}
+  \leanok
+If $f$ is $\beta$-smooth, then for all $w, v \in \mathbb{R}^d$,
+\[
+  f(v) \le f(w) + \langle \nabla f(w), v - w \rangle + \frac{\beta}{2} \|v - w\|^2.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{def:betaSmooth}
+  \leanok
+Along the segment $\gamma(t) = w + t(v - w)$, the fundamental theorem of calculus gives
+\[
+  f(v) - f(w) - \langle \nabla f(w), v - w \rangle
+  = \int_0^1 \langle \nabla f(\gamma(t)) - \nabla f(w), v - w \rangle \, \mathrm{d}t.
+\]
+By Cauchy--Schwarz and $\beta$-Lipschitz continuity of $\nabla f$:
+\[
+  \le \int_0^1 t \beta \|v - w\|^2 \, \mathrm{d}t = \frac{\beta}{2} \|v - w\|^2.
+\]
+\end{proof}
+
+\begin{lemma}[GD descent step]\label{lem:gdDescentStep}
+  \uses{def:betaSmooth, def:gdIterate}
+  \lean{ConvexOpt.gd_descent_step}
+  \leanok
+If $f$ is $\beta$-smooth and $\eta \in [0, 2/\beta]$, then a single gradient descent step $w' = w - \eta \nabla f(w)$ satisfies
+\[
+  f(w') \le f(w) - \eta \Bigl(1 - \frac{\beta \eta}{2}\Bigr) \|\nabla f(w)\|^2.
+\]
+In particular, with $\eta = 1/\beta$:
+\[
+  f(w') \le f(w) - \frac{1}{2\beta} \|\nabla f(w)\|^2.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:smoothUpperBound}
+  \leanok
+Apply Lemma~\ref{lem:smoothUpperBound} with $v = w' = w - \eta \nabla f(w)$:
+\[
+  f(w') \le f(w) + \langle \nabla f(w), -\eta \nabla f(w) \rangle + \frac{\beta}{2}\eta^2 \|\nabla f(w)\|^2
+         = f(w) - \eta\Bigl(1 - \frac{\beta\eta}{2}\Bigr)\|\nabla f(w)\|^2.
+\]
+\end{proof}
+
+
+\section{Convergence to stationary points}
+\label{sec:stationary}
+
+\begin{theorem}[GD convergence to stationary points]\label{thm:gdStationary}
+  \uses{def:betaSmooth, def:gdIterate, lem:gdDescentStep}
+  \lean{ConvexOpt.gd_stationary_convergence}
+Let $f$ be $\beta$-smooth, $(w_i)_{i \ge 0}$ the gradient descent iterates with constant step size $\eta = 1/\beta$.
+Then:
+\begin{enumerate}
+  \item (Monotone decrease) $f(w_{i+1}) \le f(w_i)$ for all $i \ge 0$.
+  \item (Stationary point rate) For any $t \ge 1$,
+    \[
+      \min_{i < t} \|\nabla f(w_i)\|^2
+      \le \frac{1}{t} \sum_{i < t} \|\nabla f(w_i)\|^2
+      \le \frac{2\beta}{t} \bigl(f(w_0) - \inf_w f(w)\bigr).
+    \]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:gdDescentStep}
+By Lemma~\ref{lem:gdDescentStep} with $\eta = 1/\beta$:
+\[
+  \frac{1}{2\beta}\|\nabla f(w_i)\|^2 \le f(w_i) - f(w_{i+1}).
+\]
+Summing over $i < t$ and telescoping:
+\[
+  \frac{1}{2\beta}\sum_{i<t}\|\nabla f(w_i)\|^2 \le f(w_0) - f(w_t) \le f(w_0) - \inf_w f(w).
+\]
+Dividing by $t$ and taking the minimum gives the bound.
+\end{proof}
+
+\begin{theorem}[GF convergence to stationary points]\label{thm:gfStationary}
+  \uses{def:gfTrajectory}
+  \lean{ConvexOpt.gf_stationary_convergence}
+Let $f$ be differentiable and $w : [0, \infty) \to \mathbb{R}^d$ a gradient flow trajectory.
+For any $t > 0$,
+\[
+  \inf_{s \in [0,t]} \|\nabla f(w(s))\|^2 \le \frac{1}{t}\bigl(f(w(0)) - f(w(t))\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{def:gfTrajectory}
+By the chain rule and the gradient flow ODE:
+\[
+  \frac{\mathrm{d}}{\mathrm{d}s} f(w(s)) = \langle \nabla f(w(s)), \dot{w}(s) \rangle = -\|\nabla f(w(s))\|^2 \le 0.
+\]
+Integrating over $[0,t]$:
+\[
+  f(w(0)) - f(w(t)) = \int_0^t \|\nabla f(w(s))\|^2 \, \mathrm{d}s \ge t \inf_{s \in [0,t]}\|\nabla f(w(s))\|^2.
+\]
+\end{proof}
+
+
+\section{Convex objectives}
+\label{sec:convexity}
+
+\begin{definition}[Convex function]\label{def:convex}
+  \lean{ConvexOpt.IsConvex}
+  \leanok
+A differentiable function $f : \mathbb{R}^d \to \mathbb{R}$ is \emph{convex} if for all $w, v \in \mathbb{R}^d$,
+\[
+  f(v) \ge f(w) + \langle \nabla f(w), v - w \rangle.
+\]
+\end{definition}
+
+\begin{remark}
+In Lean, this is an instance of \texttt{ConvexOn ℝ Set.univ f} from Mathlib together with differentiability; the first-order characterization above follows from \texttt{ConvexOn.inner\_smul\_le\_fDeriv} (or equivalent Mathlib lemmas on inner product spaces).
+\end{remark}
+
+\begin{theorem}[GD smooth+convex convergence with reference point]\label{thm:gdConvex}
+  \uses{def:betaSmooth, def:convex, def:gdIterate, lem:smoothUpperBound}
+  \lean{ConvexOpt.gd_convex_convergence}
+Suppose $f$ is $\beta$-smooth and convex, and $(w_i)_{i \ge 0}$ are the GD iterates with $\eta = 1/\beta$.
+For any reference point $z \in \mathbb{R}^d$ and any $t \ge 1$,
+\[
+  f(w_t) - f(z) \le \frac{\beta}{2t}\bigl(\|w_0 - z\|^2 - \|w_t - z\|^2\bigr)
+                  \le \frac{\beta}{2t}\|w_0 - z\|^2.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{def:betaSmooth, def:convex, lem:smoothUpperBound}
+Expand $\|w_{i+1} - z\|^2$ using $w_{i+1} = w_i - \frac{1}{\beta}\nabla f(w_i)$:
+\[
+  \|w_{i+1} - z\|^2 = \|w_i - z\|^2 - \frac{2}{\beta}\langle \nabla f(w_i), w_i - z\rangle + \frac{1}{\beta^2}\|\nabla f(w_i)\|^2.
+\]
+By convexity, $\langle \nabla f(w_i), w_i - z\rangle \ge f(w_i) - f(z)$.
+By Lemma~\ref{lem:gdDescentStep}, $\frac{1}{\beta^2}\|\nabla f(w_i)\|^2 \le \frac{2}{\beta}(f(w_i) - f(w_{i+1}))$.
+Combining:
+\[
+  \|w_{i+1} - z\|^2 \le \|w_i - z\|^2 + \frac{2}{\beta}(f(z) - f(w_{i+1})).
+\]
+Summing over $i < t$, using $f(w_i) \ge f(w_t)$ (monotone decrease), and telescoping on $\|w_i - z\|^2$:
+\[
+  \frac{2t}{\beta}(f(w_t) - f(z)) \le \|w_0 - z\|^2 - \|w_t - z\|^2.
+\]
+\end{proof}
+
+\begin{remark}[Reference-point generality]
+Theorem~\ref{thm:gdConvex} does not assume a minimizer $\bar{w}$ exists.
+Setting $z = \bar{w}$ (when it exists) recovers the classical $O(\beta \|w_0 - \bar{w}\|^2 / t)$ rate.
+For applications without a minimizer (e.g., margin maximization), one uses a carefully chosen $z$.
+\end{remark}
+
+\begin{theorem}[GF smooth+convex convergence with reference point]\label{thm:gfConvex}
+  \uses{def:gfTrajectory, def:convex}
+  \lean{ConvexOpt.gf_convex_convergence}
+Suppose $f$ is convex and $w : [0, \infty) \to \mathbb{R}^d$ is a gradient flow trajectory.
+For any reference point $z \in \mathbb{R}^d$ and any $t > 0$,
+\[
+  t\, f(w(t)) + \tfrac{1}{2}\|w(t) - z\|^2 \le t\, f(z) + \tfrac{1}{2}\|w(0) - z\|^2.
+\]
+In particular,
+\[
+  f(w(t)) - f(z) \le \frac{\|w(0) - z\|^2}{2t}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{def:gfTrajectory, def:convex}
+By the gradient flow ODE and convexity of $f$:
+\[
+  \frac{\mathrm{d}}{\mathrm{d}s}\frac{1}{2}\|w(s) - z\|^2
+    = \langle \dot{w}(s), w(s) - z \rangle
+    = -\langle \nabla f(w(s)), w(s) - z \rangle
+    \le f(z) - f(w(s)).
+\]
+Integrating over $[0, t]$ and using $f(w(s)) \ge f(w(t))$ (monotone decrease via Theorem~\ref{thm:gfStationary}):
+\[
+  \tfrac{1}{2}\|w(t) - z\|^2 - \tfrac{1}{2}\|w(0) - z\|^2 \le t\, f(z) - \int_0^t f(w(s))\, \mathrm{d}s
+    \le t\, f(z) - t\, f(w(t)).
+\]
+\end{proof}
+
+
+\section{Strongly convex objectives}
+\label{sec:strong-convexity}
+
+\begin{definition}[$\lambda$-strongly convex function]\label{def:stronglyConvex}
+  \lean{ConvexOpt.IsStronglyConvex}
+  \leanok
+A differentiable function $f : \mathbb{R}^d \to \mathbb{R}$ is \emph{$\lambda$-strongly convex} (for $\lambda > 0$) if for all $w, v \in \mathbb{R}^d$,
+\[
+  f(v) \ge f(w) + \langle \nabla f(w), v - w \rangle + \frac{\lambda}{2}\|v - w\|^2.
+\]
+Equivalently, $f - \frac{\lambda}{2}\|\cdot\|^2$ is convex.
+\end{definition}
+
+\begin{remark}
+A $\lambda$-strongly convex function has a unique minimizer $\bar{w}$, which is the unique critical point.
+The condition number of $f$ (when also $\beta$-smooth) is $\kappa := \beta/\lambda \ge 1$.
+\end{remark}
+
+\begin{theorem}[GD strongly convex+smooth: linear rate]\label{thm:gdStronglyConvex}
+  \uses{def:betaSmooth, def:stronglyConvex, def:gdIterate, lem:smoothUpperBound}
+  \lean{ConvexOpt.gd_strongly_convex_convergence}
+Suppose $f$ is $\beta$-smooth and $\lambda$-strongly convex with minimizer $\bar{w}$.
+The GD iterates with $\eta = 1/\beta$ satisfy, for all $i \ge 0$,
+\[
+  \|w_{i+1} - \bar{w}\|^2 \le \Bigl(1 - \frac{\lambda}{\beta}\Bigr) \|w_i - \bar{w}\|^2.
+\]
+Consequently,
+\[
+  \|w_t - \bar{w}\|^2 \le \Bigl(1 - \frac{\lambda}{\beta}\Bigr)^t \|w_0 - \bar{w}\|^2.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{def:betaSmooth, def:stronglyConvex, lem:smoothUpperBound}
+Since $\nabla f(\bar{w}) = 0$ (first-order optimality), expanding:
+\[
+  \|w' - \bar{w}\|^2
+    = \|w - \bar{w}\|^2 - \frac{2}{\beta}\langle \nabla f(w), w - \bar{w}\rangle + \frac{1}{\beta^2}\|\nabla f(w)\|^2.
+\]
+By $\lambda$-strong convexity (applied with $v = \bar{w}$):
+$\langle \nabla f(w), w - \bar{w}\rangle \ge f(w) - f(\bar{w}) + \frac{\lambda}{2}\|w - \bar{w}\|^2$.
+By Lemma~\ref{lem:gdDescentStep}:
+$\frac{1}{\beta^2}\|\nabla f(w)\|^2 \le \frac{2}{\beta}(f(w) - f(w'))$.
+Combining and using $f(w') \ge f(\bar{w})$:
+\[
+  \|w' - \bar{w}\|^2 \le \Bigl(1 - \frac{\lambda}{\beta}\Bigr)\|w - \bar{w}\|^2.
+\]
+\end{proof}
+
+\begin{theorem}[GF strongly convex: exponential rate]\label{thm:gfStronglyConvex}
+  \uses{def:gfTrajectory, def:stronglyConvex}
+  \lean{ConvexOpt.gf_strongly_convex_convergence}
+Suppose $f$ is $\lambda$-strongly convex with minimizer $\bar{w}$, and $w(t)$ is a gradient flow trajectory.
+Then:
+\[
+  \|w(t) - \bar{w}\|^2 \le \|w(0) - \bar{w}\|^2 \exp(-2\lambda t),
+\]
+\[
+  f(w(t)) - f(\bar{w}) \le (f(w(0)) - f(\bar{w})) \exp(-2\lambda t).
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{def:gfTrajectory, def:stronglyConvex}
+Since $\nabla f(\bar{w}) = 0$, differentiating $\frac{1}{2}\|w(t) - \bar{w}\|^2$:
+\[
+  \frac{\mathrm{d}}{\mathrm{d}t}\frac{1}{2}\|w(t) - \bar{w}\|^2
+    = \langle \dot{w}(t), w(t) - \bar{w}\rangle
+    = -\langle \nabla f(w(t)) - \nabla f(\bar{w}), w(t) - \bar{w}\rangle
+    \le -\lambda\|w(t) - \bar{w}\|^2.
+\]
+By Gronwall's inequality, $\|w(t) - \bar{w}\|^2 \le \|w(0) - \bar{w}\|^2 e^{-2\lambda t}$.
+The function-value bound follows similarly, since
+$\frac{\mathrm{d}}{\mathrm{d}t}(f(w(t)) - f(\bar{w})) = -\|\nabla f(w(t))\|^2 \le -2\lambda(f(w(t)) - f(\bar{w}))$.
+\end{proof}
+
+\begin{theorem}[GD strongly convex+smooth: combined bound with reference point]\label{thm:gdStronglyConvexRef}
+  \uses{def:betaSmooth, def:stronglyConvex, def:gdIterate}
+  \lean{ConvexOpt.gd_strongly_convex_ref}
+Suppose $f$ is $\beta$-smooth and $\lambda$-strongly convex.
+The GD iterates with step size $\eta = \frac{2}{\beta + \lambda}$ satisfy, for any $z \in \mathbb{R}^d$ and $t \ge 0$,
+\[
+  f(w_t) - f(z) + \frac{\lambda}{2}\|w_t - z\|^2
+  \le \left(\frac{\beta - \lambda}{\beta + \lambda}\right)^t
+    \left(f(w_0) - f(z) + \frac{\lambda}{2}\|w_0 - z\|^2\right).
+\]
+\end{theorem}
+
+\begin{proof}
+See Telgarsky (2021), Theorem 7.7.
+\end{proof}
+
+
+\section{Stochastic gradients}
+\label{sec:sgd}
+
+\begin{definition}[Approximate gradient iteration]\label{def:approxGDIterate}
+  \lean{ConvexOpt.approxGDIterate}
+  \leanok
+Let $f : \mathbb{R}^d \to \mathbb{R}$, $w_0 \in \mathbb{R}^d$, $\eta \ge 0$, and $(g_i)_{i \ge 0}$ a sequence of \emph{approximate gradient vectors} $g_i \in \mathbb{R}^d$.
+The \emph{approximate gradient iterate} sequence $(w_i)_{i \ge 0}$ is
+\[
+  w_{i+1} := w_i - \eta\, g_i.
+\]
+We define the \emph{noise term} $\epsilon_i := \langle g_i - \nabla f(w_i), z - w_i\rangle$
+for a fixed reference point $z$.
+\end{definition}
+
+\begin{lemma}[Approximate gradient convergence]\label{lem:approxGDConvergence}
+  \uses{def:convex, def:approxGDIterate}
+  \lean{ConvexOpt.approxGD_convergence}
+  \leanok
+Suppose $f$ is convex.
+Let $G := \max_i \|g_i\|$ and $\eta = c/\sqrt{t}$ for a constant $c > 0$.
+For any reference point $z$ and any $t \ge 1$,
+\[
+  \frac{1}{t}\sum_{i<t} f(w_i)
+  \le f(z) + \frac{\|w_0 - z\|^2}{2c\sqrt{t}} + \frac{cG^2}{2\sqrt{t}} + \frac{1}{t}\sum_{i<t}\epsilon_i.
+\]
+By Jensen's inequality, the same bound holds for $f\!\left(\frac{1}{t}\sum_{i<t} w_i\right)$.
+\end{lemma}
+
+\begin{proof}
+  \uses{def:convex, def:approxGDIterate}
+Expand $\|w_{i+1} - z\|^2$ and use convexity to bound $\langle \nabla f(w_i), w_i - z\rangle \ge f(w_i) - f(z)$:
+\[
+  2\eta(f(w_i) - f(z)) \le \|w_i - z\|^2 - \|w_{i+1} - z\|^2 + 2\eta\epsilon_i + \eta^2\|g_i\|^2.
+\]
+Sum over $i < t$, divide by $2\eta t$, and plug in $\eta = c/\sqrt{t}$.
+The Jensen bound follows since $f$ is convex.
+\end{proof}
+
+\begin{definition}[Stochastic gradient oracle]\label{def:sgdOracle}
+  \lean{ConvexOpt.IsStochasticGradient}
+  \leanok
+Let $(\Omega, \mathcal{F}, P)$ be a probability space.
+Random variables $w_i, g_i : \Omega \to \mathbb{R}^d$ form a \emph{stochastic gradient oracle} for $f$ if, for all $i \ge 0$,
+\[
+  \mathbb{E}[g_i \mid w_{\le i}] = \nabla f(w_i) \qquad P\text{-a.s.},
+\]
+where $w_{\le i}$ denotes the $\sigma$-algebra generated by $w_0, \ldots, w_i$.
+\end{definition}
+
+\begin{remark}[Martingale difference structure]
+The noise terms $\epsilon_i = \langle g_i - \nabla f(w_i), z - w_i\rangle$ form a martingale difference sequence: $\mathbb{E}[\epsilon_i \mid w_{\le i}] = 0$.
+Moreover, $|\epsilon_i| \le (\|g_i\| + \|\nabla f(w_i)\|)\|w_i - z\| \le 2GD$ where $G = \max_i \|g_i\|$ and $D = \max_i \|w_i - z\|$.
+\end{remark}
+
+\begin{theorem}[Azuma--Hoeffding inequality]\label{thm:azumaHoeffding}
+  \lean{ConvexOpt.azuma_hoeffding}
+  \mathlibok
+Let $(Z_i)_{i=1}^t$ be a martingale difference sequence with $|Z_i| \le R$ a.s.
+Then for any $\delta \in (0,1)$, with probability at least $1 - \delta$,
+\[
+  \sum_{i=1}^t Z_i \le R\sqrt{2t \ln(1/\delta)}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+This is a standard result; in Mathlib it follows from \texttt{MeasureTheory.MartingaleConvergence} and the Hoeffding lemma for bounded increments.
+See Telgarsky (2021), Theorem 7.8.
+\end{proof}
+
+\begin{lemma}[SGD high-probability convergence]\label{lem:sgdHighProb}
+  \uses{def:convex, def:approxGDIterate, def:sgdOracle, thm:azumaHoeffding, lem:approxGDConvergence}
+  \lean{ConvexOpt.sgd_high_prob_convergence}
+Suppose $f$ is convex.
+Let $(w_i, g_i)$ satisfy Definition~\ref{def:sgdOracle}.
+Set $G := \max_i \|g_i\|$, $D \ge \max_i \|w_i - z\|$, and $\eta = 1/\sqrt{t}$.
+Then with probability at least $1 - \delta$:
+\[
+  f\!\left(\tfrac{1}{t}\sum_{i<t} w_i\right) \le f(z)
+    + \frac{D^2}{2\sqrt{t}} + \frac{G^2}{2\sqrt{t}} + \frac{2DG\sqrt{2\ln(1/\delta)}}{\sqrt{t}}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:approxGDConvergence, thm:azumaHoeffding}
+By Lemma~\ref{lem:approxGDConvergence}, it remains to bound $\frac{1}{t}\sum_{i<t}\epsilon_i$.
+Since $(\epsilon_i)$ is a martingale difference sequence with $|\epsilon_i| \le 2GD$,
+Theorem~\ref{thm:azumaHoeffding} gives, with probability $\ge 1 - \delta$:
+\[
+  \sum_{i<t}\epsilon_i \le 2GD\sqrt{2t\ln(1/\delta)}.
+\]
+Dividing by $t$ and adding to the bound of Lemma~\ref{lem:approxGDConvergence} with $\eta = 1/\sqrt{t}$ yields the result.
+\end{proof}
+
+\begin{remark}[In expectation]
+Without Azuma--Hoeffding, a simpler bound follows by taking expectations: by the tower property $\mathbb{E}[\epsilon_i] = 0$, so
+\[
+  \mathbb{E}\!\left[\frac{1}{t}\sum_{i<t} f(w_i)\right]
+  \le f(z) + \frac{\|w_0 - z\|^2}{2\sqrt{t}} + \frac{G^2}{2\sqrt{t}}.
+\]
+\end{remark}

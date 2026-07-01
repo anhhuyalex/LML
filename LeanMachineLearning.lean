@@ -36,6 +36,12 @@ public import LeanMachineLearning.Optimization.Approximation.Multivariate
 public import LeanMachineLearning.Optimization.Approximation.Sampling
 public import LeanMachineLearning.Optimization.Approximation.Univariate
 public import LeanMachineLearning.Optimization.Approximation.Universal
+public import LeanMachineLearning.Optimization.ConvexOpt
+public import LeanMachineLearning.Optimization.ConvexOpt.Basic
+public import LeanMachineLearning.Optimization.ConvexOpt.ConvexConvergence
+public import LeanMachineLearning.Optimization.ConvexOpt.StationaryPoints
+public import LeanMachineLearning.Optimization.ConvexOpt.StochasticGradient
+public import LeanMachineLearning.Optimization.ConvexOpt.StrongConvexity
 public import LeanMachineLearning.Optimization.Depth
 public import LeanMachineLearning.Optimization.Depth.AffinePieces
 public import LeanMachineLearning.Optimization.Depth.Basic
