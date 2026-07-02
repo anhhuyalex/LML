@@ -68,6 +68,7 @@ structure AffinePiecePartition (f : ℝ → ℝ) where
 noncomputable def numAffinePieces (f : ℝ → ℝ) : ℕ :=
   sInf { n : ℕ | ∃ P : AffinePiecePartition f, P.pieces.card = n }
 
+/-- Notation `N_A(f)` for the number of affine pieces of `f`. -/
 notation "N_A(" f ")" => numAffinePieces f
 
 /-! ### Combination rules (Lemma 5.2) -/

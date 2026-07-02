@@ -46,6 +46,7 @@ namespace Depth
   each of measure 2^{−(L²+2)} and area 2^{−(L²+4)}. -/
 def triangleCount (L : ℕ) : ℕ := 2^(L^2 + 2) - 1
 
+/-- The area `2^{−(L²+4)}` of a single triangle of `f = Δ^{L²+2}`. -/
 noncomputable def triangleArea (L : ℕ) : ℝ := 2^(-(L^2 + 4 : ℤ) : ℤ)
 
 /-- The number of triangles "surviving" after subtracting piece-boundary effects:

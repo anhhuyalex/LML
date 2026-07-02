@@ -339,6 +339,7 @@ structure ReLUNetwork (L : ℕ) where
   biases : ∀ (i : Fin L), Fin (widths i) → ℝ
   /-- Output layer: a linear combination of the last layer's outputs. -/
   outWeights : Fin (widths ⟨L - 1, Nat.sub_lt hLpos (by decide)⟩) → ℝ
+  /-- Output layer bias. -/
   outBias : ℝ
 
 /-- Total number of nodes in a ReLU network. -/

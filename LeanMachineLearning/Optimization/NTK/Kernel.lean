@@ -56,6 +56,7 @@ variable {d m : ℕ}
 noncomputable def innerProduct (x y : Fin d → ℝ) : ℝ :=
   ∑ k : Fin d, x k * y k
 
+/-- Notation `x ⊙ y` for the standard inner product `innerProduct x y`. -/
 infixl:73 " ⊙ " => innerProduct
 
 lemma innerProduct_comm (x y : Fin d → ℝ) : x ⊙ y = y ⊙ x := by

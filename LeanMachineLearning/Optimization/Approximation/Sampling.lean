@@ -96,8 +96,10 @@ theorem maureySamplingExistence
 The sign s = +1 (resp. -1) indicates the positive (resp. negative) part of the Jordan
 decomposition. -/
 structure SignedSample (p : ℕ) where
+  /-- The sampled weight vector `w ∈ ℝᵖ`. -/
   weight : Fin p → ℝ
-  sign   : Bool  -- true = +1, false = -1
+  /-- The sign of the sample: `true` for `+1`, `false` for `-1`. -/
+  sign : Bool
 
 variable {p : ℕ}
 
