@@ -107,7 +107,7 @@ def SignedSample.toReal (s : SignedSample p) : ℝ := if s.sign then 1 else -1
 /-- The rescaled function evaluated at a signed sample:
   g̃(x; (w, s)) = s · ‖μ‖₁ · g(x; w). -/
 noncomputable def rescaledEval
-    (g : (Fin p → ℝ) → ℝ) (mass : ℝ) (s : SignedSample p) (x : Fin p → ℝ) : ℝ :=
+    (g : (Fin p → ℝ) → ℝ) (mass : ℝ) (s : SignedSample p) : ℝ :=
   s.toReal * mass * g s.weight
 
 /-- **Lemma 3.2** (Maurey for signed measures; Telgarsky 2021).
@@ -140,13 +140,13 @@ theorem maureySamplingSignedMeasure
         ∫ w : Fin p → ℝ, g w x ∂μ.toJordanDecomposition.posPart -
         ∫ w : Fin p → ℝ, g w x ∂μ.toJordanDecomposition.negPart = 0)
     {k : ℕ} (hk : 0 < k)
-    (gFun : Ω_x → ℝ)  -- g(x) = ∫ g(x;w) dμ(w)
+    (gFun : Ω_x → ℝ) -- g(x) = ∫ g(x;w) dμ(w)
     (hgFun : ∀ x, gFun x = ∫ w : Fin p → ℝ, g w x ∂μ.toJordanDecomposition.posPart -
                              ∫ w : Fin p → ℝ, g w x ∂μ.toJordanDecomposition.negPart) :
     ∃ (ws : Fin k → SignedSample p),
       (∀ i, ws i ∈ (fun w => SignedSample.mk w true) '' S ∪
                    (fun w => SignedSample.mk w false) '' S → True) ∧
-      ∫ x, (gFun x - (1 / k : ℝ) * ∑ i, rescaledEval (g · x) mass (ws i) (ws i).weight) ^ 2 ∂P ≤
+      ∫ x, (gFun x - (1 / k : ℝ) * ∑ i, rescaledEval (g · x) mass (ws i)) ^ 2 ∂P ≤
         mass ^ 2 * (⨆ w ∈ S, ∫ x, (g w x) ^ 2 ∂P) / k := by
   sorry
 

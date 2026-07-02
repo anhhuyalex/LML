@@ -72,7 +72,7 @@ Returns `∫ σ(∑ⱼ wⱼ xⱼ) dν(w)`. -/
 noncomputable def InfiniteWidthNetwork.eval
     (σ : ℝ → ℝ) {p : ℕ}
     (net : InfiniteWidthNetwork σ p)
-    (φ : (Fin p → ℝ) → ℝ)  -- feature map from weight space (e.g. w ↦ σ(wᵀx))
+    (φ : (Fin p → ℝ) → ℝ) -- feature map from weight space (e.g. w ↦ σ(wᵀx))
     : ℝ :=
   integral net.measure.toJordanDecomposition.posPart φ -
   integral net.measure.toJordanDecomposition.negPart φ
@@ -114,7 +114,8 @@ theorem univariateIntegralRep
     {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
     g x = univariateThresholdRep (deriv g) x := by
   simp only [univariateThresholdRep, thresholdUnit]
-  have eq1 : (fun b => if x ≥ b then deriv g b else 0) = (fun b => (Set.Iic x).indicator (deriv g) b) := by
+  have eq1 : (fun b => if x ≥ b then deriv g b else 0) =
+      (fun b => (Set.Iic x).indicator (deriv g) b) := by
     ext b
     simp only [Set.indicator, Set.mem_Iic, ge_iff_le]
   rw [eq1]

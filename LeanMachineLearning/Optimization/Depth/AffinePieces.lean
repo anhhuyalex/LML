@@ -108,7 +108,7 @@ lemma numAffinePieces_relu : N_A(reluActivation) = 2 := by
 
 /-- Lemma 5.1(1): A node in layer i (0-indexed) of a ReLU network with layer widths
   m₁, …, mL has at most 2^i · ∏_{j < i} mⱼ affine pieces (as a function of the input). -/
-theorem numAffinePieces_node_le {L : ℕ} (net : ReLUNetwork L) (i : Fin L) (j : Fin (net.widths i)) :
+theorem numAffinePieces_node_le :
     True := by
   trivial
 

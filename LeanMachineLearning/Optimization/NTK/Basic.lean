@@ -104,9 +104,8 @@ This is the matrix `∇_W f(x; W₀) ∈ ℝ^{m×d}` with entry `(j, k)` equal t
 
 For the ReLU, `σ'(z) = 𝟏[z ≥ 0]` (a.e.), so the gradient is sparse at signs. -/
 noncomputable def gradientMatrix
-    {σ' : ℝ → ℝ}  -- derivative of σ
+    {σ' : ℝ → ℝ} -- derivative of σ
     {d m : ℕ}
-    (net : ShallowNetwork (fun z => 0) d m)  -- reuse outer coefficients
     (outerCoeffs : Fin m → ℝ)
     (x : Fin d → ℝ)
     (W₀ : Fin m → Fin d → ℝ) :
@@ -141,7 +140,7 @@ of `f(x; ·)` at `W₀` is:
 
 This is affine in `W` and nonlinear in `x` (when `σ` is nonlinear). -/
 noncomputable def linearization
-    {σ σ' : ℝ → ℝ}   -- σ and its derivative
+    {σ σ' : ℝ → ℝ} -- σ and its derivative
     {d m : ℕ}
     (outerCoeffs : Fin m → ℝ)
     (x : Fin d → ℝ)

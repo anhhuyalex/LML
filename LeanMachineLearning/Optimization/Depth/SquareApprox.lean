@@ -33,7 +33,8 @@ hᵢ(x) = x − ∑_{j=1}^{i} Δʲ(x) / 4ʲ
 
 This gives:
 * **Upper bound:** sup_{x ∈ [0,1]} |hᵢ(x) − x²| ≤ 4^{−i−1}
-* **Network size:** hᵢ can be realized with 2i layers and 4i nodes (or 3i nodes with skip connections)
+* **Network size:** hᵢ can be realized with 2i layers and 4i nodes
+  (or 3i nodes with skip connections)
 * **Lower bound (part 4):** any L-layer, N-node network satisfies
   ∫_{[0,1]} (f(x) − x²)² dx ≥ 1 / (5760 · (2N/L)^{4L})
 
@@ -83,12 +84,12 @@ theorem squareInterp_recursion (i : ℕ) (x : ℝ) :
   ring
 
 /-- On grid points, hᵢ interpolates x²: hᵢ(k/2^i) = (k/2^i)². -/
-theorem squareInterp_on_grid (i k : ℕ) (hk : k ≤ 2^i) :
+theorem squareInterp_on_grid (i k : ℕ) (hk : k ≤ 2 ^ i) :
     squareInterp i ((k : ℝ) / 2^i) = ((k : ℝ) / 2^i)^2 := by
   sorry
 
 /-- The refinement hᵢ₊₁ agrees with hᵢ on the coarser grid Sᵢ. -/
-theorem squareInterp_agrees_on_coarser (i k : ℕ) (hk : k ≤ 2^i) :
+theorem squareInterp_agrees_on_coarser (i k : ℕ) (hk : k ≤ 2 ^ i) :
     squareInterp (i + 1) ((k : ℝ) / 2^i) = squareInterp i ((k : ℝ) / 2^i) := by
   have hk' : 2 * k ≤ 2^(i+1) := by
     calc
@@ -107,7 +108,7 @@ theorem squareInterp_agrees_on_coarser (i k : ℕ) (hk : k ≤ 2^i) :
     _ = squareInterp i ((k : ℝ) / 2^i) := by rw [squareInterp_on_grid i k hk]
 
 /-- The mid-point correction is constant: hᵢ((2k+1)/2^{i+1}) − hᵢ₊₁((2k+1)/2^{i+1}) = 1/4^{i+1}. -/
-theorem squareInterp_midpoint_diff (i k : ℕ) (hk : k < 2^i) :
+theorem squareInterp_midpoint_diff (i k : ℕ) (hk : k < 2 ^ i) :
     let x := ((2*k + 1 : ℕ) : ℝ) / 2^(i+1)
     squareInterp i x - squareInterp (i + 1) x = 1 / 4^(i + 1) := by
   sorry

@@ -51,7 +51,7 @@ for all x ∈ [0,1]^d.
 * `monoApprox k r d` : the approximate monomial network mono_{k,r}
 * `univariateBump s` : the piecewise-linear bump h(a) = (1+sa)₊ − 2(sa)₊ + (sa−1)₊
 * `partitionOfUnity k s d` : the approximate partition of unity part_{k,s}
-* `SobolevBall d r M` : the class of functions with all partial derivatives of order ≤ r
+* `SobolevBall d r` : the class of functions with all partial derivatives of order ≤ r
   bounded by M in sup-norm
 
 -/
@@ -125,13 +125,15 @@ lemma univariateBump_support (s : ℕ) (hs : 0 < s) (a : ℝ) (ha : |a| > 1 / s)
   sorry
 
 /-- The key partition identity: h(z) + h(z + 1/s) = 1 for z ∈ [0, 1/s]. -/
-lemma univariateBump_partition (s : ℕ) (hs : 0 < s) (z : ℝ) (hz : z ∈ Set.Icc (0 : ℝ) (1/s)) :
+lemma univariateBump_partition (s : ℕ) (hs : 0 < s) (z : ℝ)
+    (hz : z ∈ Set.Icc (0 : ℝ) (1 / s)) :
     univariateBump s z + univariateBump s (z + 1/s) = 1 := by
   sorry
 
 /-- The grid S = {0, 1/s, …, 1}ᵈ. -/
 noncomputable def uniformGrid (d s : ℕ) : Finset (Fin d → ℝ) :=
-  (Fintype.piFinset (fun _ : Fin d => (Finset.range (s + 1)).image (fun (k : ℕ) => ((k : ℝ) / (s : ℝ)))))
+  (Fintype.piFinset (fun _ : Fin d =>
+    (Finset.range (s + 1)).image (fun (k : ℕ) => ((k : ℝ) / (s : ℝ)))))
 
 /-- The multivariate bump function for grid point v:
   f_v(x) = prod_{k,d}(h(x₁ − v₁), …, h(xd − vd)). -/
@@ -144,7 +146,7 @@ noncomputable def partitionOfUnity (k d s : ℕ) (x : Fin d → ℝ) (v : Fin d 
 
 /-- Lemma 5.5(1): Local support — part_{k,s}(x)_v = 0 for x ∉ ∏ⱼ [vⱼ − 1/s, vⱼ + 1/s]. -/
 theorem partitionOfUnity_support (k d s : ℕ) (hs : 0 < s) (v x : Fin d → ℝ)
-    (hx : ∃ j, x j ∉ Set.Icc (v j - 1/s) (v j + 1/s)) :
+    (hx : ∃ j, x j ∉ Set.Icc (v j - 1 / s) (v j + 1 / s)) :
     partitionOfUnity k d s x v = 0 := by
   sorry
 
@@ -165,10 +167,10 @@ theorem partitionOfUnity_network_size (k d s : ℕ) (hk : 0 < k) (hd : 0 < d) (h
 
 /-- The Sobolev ball: functions g : ℝᵈ → ℝ with g(x) ∈ [0,1] and all partial derivatives
   of order ≤ r bounded by M. -/
-def SobolevBall (d r : ℕ) (M : ℝ) : Set ((Fin d → ℝ) → ℝ) :=
+def SobolevBall (d r : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
   { g | (∀ x, g x ∈ Set.Icc (0 : ℝ) 1) ∧
         ∀ (α : Fin d → ℕ), ∑ i, α i ≤ r →
-          ∀ x : Fin d → ℝ, True }  -- placeholder for iterated partial derivative bound
+          True } -- placeholder for iterated partial derivative bound
 
 /-- Taylor expansion of g at v of degree r. -/
 noncomputable def taylorExpansion (d r : ℕ) (g : (Fin d → ℝ) → ℝ) (v : Fin d → ℝ)
@@ -178,17 +180,17 @@ noncomputable def taylorExpansion (d r : ℕ) (g : (Fin d → ℝ) → ℝ) (v :
 /-- Taylor error bound: |Taylor_r(g, v)(x) − g(x)| ≤ M · d^r / (r! · s^r)
   for x in [v − 1/s, v + 1/s]^d. -/
 theorem taylorExpansion_error (d r : ℕ) (M : ℝ) (hM : 0 ≤ M) (g : (Fin d → ℝ) → ℝ)
-    (hg : g ∈ SobolevBall d r M) (s : ℕ) (hs : 0 < s) (v x : Fin d → ℝ)
+    (hg : g ∈ SobolevBall d r) (s : ℕ) (hs : 0 < s) (v x : Fin d → ℝ)
     (hx : ∀ j, |x j - v j| ≤ 1 / s) :
     |taylorExpansion d r g v x - g x| ≤ M * d^r / (Nat.factorial r * s^r) := by
   sorry
 
-/-- Theorem 5.4 (Yarotsky 2016): For g ∈ SobolevBall d r M, there exists a ReLU network f
+/-- Theorem 5.4 (Yarotsky 2016): For g ∈ SobolevBall d r, there exists a ReLU network f
   with O(k(r+d)) layers and O((kd + d² + r²d^r + krd^r) · s^d) nodes such that for all
   x ∈ [0,1]^d,
   |f(x) − g(x)| ≤ M · r · d^r · (s^{−r} + 4d · 2^d · 4^{−k}) + 3d · 2^d · 4^{−k}. -/
 theorem sobolevBallApprox (d r : ℕ) (M : ℝ) (hM : 0 ≤ M) (k s : ℕ)
-    (hk : 0 < k) (hs : 0 < s) (g : (Fin d → ℝ) → ℝ) (hg : g ∈ SobolevBall d r M) :
+    (hk : 0 < k) (hs : 0 < s) (g : (Fin d → ℝ) → ℝ) (hg : g ∈ SobolevBall d r) :
     ∃ (L : ℕ) (net : ReLUNetwork L) (f : (Fin d → ℝ) → ℝ),
       L ≤ 6 * k * (r + d) ∧
       net.totalNodes ≤ 2 * (k*d + d^2 + r^2 * d^r + k*r*d^r) * s^d ∧
@@ -200,7 +202,7 @@ theorem sobolevBallApprox (d r : ℕ) (M : ℝ) (hM : 0 ≤ M) (k s : ℕ)
 /-- Corollary: to achieve error ε, choose s = ⌈ε^{−1/r}⌉ and k = O(log(1/ε)).
   The network has O(ln(1/ε)) layers and O(ε^{−d/r} · ln(1/ε)) nodes. -/
 theorem sobolevBallApprox_optimalSize (d r : ℕ) (hd : 0 < d) (hr : 0 < r) (M ε : ℝ)
-    (hM : 0 ≤ M) (hε : 0 < ε) (g : (Fin d → ℝ) → ℝ) (hg : g ∈ SobolevBall d r M) :
+    (hM : 0 ≤ M) (hε : 0 < ε) (g : (Fin d → ℝ) → ℝ) (hg : g ∈ SobolevBall d r) :
     ∃ (L : ℕ) (net : ReLUNetwork L) (f : (Fin d → ℝ) → ℝ),
       (net.totalNodes : ℝ) ≤ (1/ε)^((d : ℝ)/r) * Real.log (1/ε) ∧
       ∀ x : Fin d → ℝ, x ∈ Set.pi Set.univ (fun _ => Set.Icc (0 : ℝ) 1) →

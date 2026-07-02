@@ -65,7 +65,7 @@ noncomputable def fractionalPart (x : ℝ) : ℝ := x - ⌊x⌋
 
 /-! ### Pointwise characterization of Δ -/
 
-lemma deltaTent_of_Ico_left (x : ℝ) (hx : x ∈ Set.Ico (0 : ℝ) (1/2)) :
+lemma deltaTent_of_Ico_left (x : ℝ) (hx : x ∈ Set.Ico (0 : ℝ) (1 / 2)) :
     deltaTent x = 2 * x := by
   simp only [deltaTent, reluActivation]
   rcases Set.mem_Ico.mp hx with ⟨hx0, hx1⟩
@@ -78,7 +78,7 @@ lemma deltaTent_of_Ico_left (x : ℝ) (hx : x ∈ Set.Ico (0 : ℝ) (1/2)) :
     linarith
   rw [h1, h2, h3]; ring
 
-lemma deltaTent_of_Ico_right (x : ℝ) (hx : x ∈ Set.Ico (1/2 : ℝ) 1) :
+lemma deltaTent_of_Ico_right (x : ℝ) (hx : x ∈ Set.Ico (1 / 2 : ℝ) 1) :
     deltaTent x = 2 - 2 * x := by
   simp only [deltaTent, reluActivation]
   rcases Set.mem_Ico.mp hx with ⟨hx1, hx2⟩
@@ -177,7 +177,8 @@ lemma deltaTentIter_succ (L : ℕ) (x : ℝ) :
     deltaTentIter (L + 1) x = deltaTent (deltaTentIter L x) := rfl
 
 /-- Helper lemma: compute deltaTent for any x ∈ [0,1] with a case split on x = 1. -/
-lemma deltaTent_of_Icc (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) : deltaTent x = if x < 1/2 then 2*x else 2 - 2*x := by
+lemma deltaTent_of_Icc (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deltaTent x = if x < 1/2 then 2*x else 2 - 2*x := by
   rcases Set.mem_Icc.mp hx with ⟨hx0, hx1⟩
   by_cases hx_lt_half : x < 1/2
   · rw [deltaTent_of_Ico_left x ⟨hx0, hx_lt_half⟩]
@@ -275,8 +276,9 @@ theorem deltaTentIter_eq (L : ℕ) (hL : 1 ≤ L) (x : ℝ) (hx : x ∈ Set.Icc 
       rw [hx']
       -- Need to show Δ(Δ(t)) = Δ(⟨2t⟩) where t = fractionalPart (2^m * x) ∈ [0,1)
       -- key identity: ⟨2*y⟩ = ⟨2*⟨y⟩⟩
-      have h_fp_mul_two (y : ℝ) : fractionalPart (2 * y) = fractionalPart (2 * fractionalPart y) := by
-        have h_fract_eq : ∀ (x : ℝ), fractionalPart x = Int.fract x := λ x => rfl
+      have h_fp_mul_two (y : ℝ) :
+          fractionalPart (2 * y) = fractionalPart (2 * fractionalPart y) := by
+        have h_fract_eq : ∀ (x : ℝ), fractionalPart x = Int.fract x := fun x => rfl
         calc
           fractionalPart (2 * y) = Int.fract (2 * y) := rfl
           _ = Int.fract (2 * (Int.fract y + (⌊y⌋ : ℝ))) := by
@@ -286,7 +288,6 @@ theorem deltaTentIter_eq (L : ℕ) (hL : 1 ≤ L) (x : ℝ) (hx : x ∈ Set.Icc 
           _ = Int.fract (2 * Int.fract y) := by
             rw [Int.fract_add_intCast (2 * Int.fract y) (2 * ⌊y⌋)]
           _ = fractionalPart (2 * fractionalPart y) := rfl
-
       have ht : fractionalPart (2^(m : ℕ) * x) ∈ Set.Ico (0 : ℝ) 1 := by
         have h_nonneg : 0 ≤ fractionalPart (2^(m : ℕ) * x) := sub_nonneg.mpr (Int.floor_le _)
         have h_lt_one : fractionalPart (2^(m : ℕ) * x) < 1 := by
@@ -328,7 +329,8 @@ structure ReLUNetwork (L : ℕ) where
   hLpos : 0 < L
   /-- Width of each layer. -/
   widths : Fin L → ℕ
-  /-- Weight parameters: weights[i][j][k] is the weight from node k of layer i-1 to node j of layer i. -/
+  /-- Weight parameters: weights[i][j][k] is the weight from node k of layer i-1
+  to node j of layer i. -/
   weights : ∀ (i : Fin L), Fin (widths i) → (Fin (if i.val = 0 then 1 else widths ⟨i.val - 1, by
     have hi : i.val < L := i.2
     exact Nat.lt_of_le_of_lt (Nat.sub_le i.val 1) hi

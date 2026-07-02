@@ -53,7 +53,7 @@ noncomputable def triangleArea (L : ℕ) : ℝ := 2^(-(L^2 + 4 : ℤ) : ℤ)
   crossing the midline or by its piece boundaries.
   This leaves ≥ 2^{L²+1} − 1 surviving triangles. -/
 lemma surviving_triangles_bound (L : ℕ) (_hL : 2 ≤ L) (pieceBound : ℕ)
-    (h : pieceBound ≤ 2^(L^2)) :
+    (h : pieceBound ≤ 2 ^ (L ^ 2)) :
     2 * pieceBound ≤ 2^(L^2 + 1) := by
   have : 2 * pieceBound ≤ 2 * 2^(L^2) := Nat.mul_le_mul_left 2 h
   simpa [pow_succ, mul_comm] using this
@@ -67,17 +67,20 @@ lemma surviving_triangles_bound (L : ℕ) (_hL : 2 ≤ L) (pieceBound : ℕ)
   Moreover, for any ReLU network g with ≤ 2^L nodes and ≤ L layers,
   ∫_{[0,1]} |f(x) − g(x)| dx ≥ 1/32. -/
 theorem depthSeparation (L : ℕ) (hL : 2 ≤ L) (g : ℝ → ℝ)
-    (hNet : ∃ net : ReLUNetwork L, net.totalNodes ≤ 2^L ∧
+    (hNet : ∃ net : ReLUNetwork L, net.totalNodes ≤ 2 ^ L ∧
         ∀ x, g x = (∑ j : Fin (net.widths ⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩),
           net.outWeights j *
-          reluActivation ((∑ k : Fin (if ((⟨L-1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val = 0) then 1 else
-            net.widths ⟨((⟨L-1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val) - 1, by
-              have hi : ((⟨L-1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val) < L :=
-                (⟨L-1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).2
+          reluActivation ((∑ k : Fin (if ((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ :
+              Fin L).val = 0) then 1 else
+            net.widths ⟨((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val) - 1, by
+              have hi : ((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val) < L :=
+                (⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).2
               exact Nat.lt_of_le_of_lt (Nat.sub_le _ 1) hi
             ⟩),
-            net.weights (⟨L-1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L) j k) *
-            reluActivation 0 + net.biases (⟨L-1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L) j) + net.outBias)) :
+            net.weights (⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L) j k) *
+            reluActivation 0 +
+              net.biases (⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L) j) +
+              net.outBias)) :
     (1 : ℝ)/32 ≤
       ∫ x in (0 : ℝ)..1, |deltaTentIter (L^2 + 2) x - g x| := by
   sorry

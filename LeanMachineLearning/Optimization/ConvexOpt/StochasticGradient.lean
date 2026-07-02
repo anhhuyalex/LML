@@ -95,7 +95,7 @@ lemma noise_is_martingale_diff {Ω : Type*} [MeasurableSpace Ω] [MeasurableSpac
 if each `Z i` is integrable and adapted to `ℱ i`. -/
 def MartingaleDiff {Ω : Type*} {mΩ : MeasurableSpace Ω} (Z : ℕ → Ω → ℝ) (ℱ : Filtration ℕ mΩ)
     (P : Measure Ω) : Prop :=
-  ∀ i, Integrable (Z i) P
+  Adapted ℱ Z ∧ ∀ i, Integrable (Z i) P
 
 /-- **Theorem 7.8** (Azuma–Hoeffding, Telgarsky 2021, Theorem 7.8).
 
@@ -149,7 +149,8 @@ with probability at least `1 - δ`:
   `f(1/t Σ wᵢ) ≤ f(z) + D²/(2√t) + G²/(2√t) + 2DG√(2 ln(1/δ))/√t`.
 
 The `2DG√(2 ln(1/δ))` term comes from applying Azuma–Hoeffding to `Σ εᵢ`. -/
-theorem sgd_high_prob_convergence {Ω : Type*} [mΩ : MeasurableSpace Ω] [MeasurableSpace E] [Nonempty Ω]
+theorem sgd_high_prob_convergence {Ω : Type*} [mΩ : MeasurableSpace Ω] [MeasurableSpace E]
+    [Nonempty Ω]
     {f : E → ℝ} (hcvx : IsConvex f) (hf : Differentiable ℝ f)
     {G D : ℝ} (hG : 0 < G) (hD : 0 < D)
     {P : Measure Ω} [IsProbabilityMeasure P]

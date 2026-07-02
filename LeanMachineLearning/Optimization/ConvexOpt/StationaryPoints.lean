@@ -53,11 +53,13 @@ theorem gd_stationary_sum {f : E → ℝ} {β : ℝ} (hβ : 0 < β)
   | zero => simp [gdIterate]
   | succ t ih =>
     have hstep : f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1)) ≤
-        f (gdIterate f (fun _ => β⁻¹) w₀ t) - (2 * β)⁻¹ * ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2 := by
+        f (gdIterate f (fun _ => β⁻¹) w₀ t) -
+          (2 * β)⁻¹ * ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2 := by
       simp only [gdIterate]
       exact gd_descent_step hβ hf _
     have hineq : ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2 ≤
-        2 * β * (f (gdIterate f (fun _ => β⁻¹) w₀ t) - f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) := by
+        2 * β * (f (gdIterate f (fun _ => β⁻¹) w₀ t) -
+          f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) := by
       have hsub : (2 * β)⁻¹ * ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2 ≤
           f (gdIterate f (fun _ => β⁻¹) w₀ t) - f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1)) := by
         linarith
@@ -66,7 +68,8 @@ theorem gd_stationary_sum {f : E → ℝ} {β : ℝ} (hβ : 0 < β)
         ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2
             = (2 * β) * ((2 * β)⁻¹ * ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2) := by
               field_simp [show 2 * β ≠ 0 from by linarith]
-        _ ≤ (2 * β) * (f (gdIterate f (fun _ => β⁻¹) w₀ t) - f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) :=
+        _ ≤ (2 * β) * (f (gdIterate f (fun _ => β⁻¹) w₀ t) -
+              f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) :=
               mul_le_mul_of_nonneg_left hsub hpos
     calc
       ∑ i ∈ Finset.range (t + 1), ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ i)‖ ^ 2
@@ -74,7 +77,8 @@ theorem gd_stationary_sum {f : E → ℝ} {β : ℝ} (hβ : 0 < β)
             ‖gradient f (gdIterate f (fun _ => β⁻¹) w₀ t)‖ ^ 2 := by
             rw [Finset.sum_range_succ]
       _ ≤ 2 * β * (f w₀ - f (gdIterate f (fun _ => β⁻¹) w₀ t)) +
-          2 * β * (f (gdIterate f (fun _ => β⁻¹) w₀ t) - f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) :=
+          2 * β * (f (gdIterate f (fun _ => β⁻¹) w₀ t) -
+            f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) :=
             add_le_add ih hineq
       _ = 2 * β * (f w₀ - f (gdIterate f (fun _ => β⁻¹) w₀ (t + 1))) := by ring
 

@@ -125,7 +125,8 @@ lemma barronCosineBump_bound (w : Fin d → ℝ) (θ : ℝ) (x : Fin d → ℝ) 
     rw [div_le_iff₀ (by positivity)]
     calc |Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)|
         ≤ |2 * π * innerProd w x + 2 * π * θ - 2 * π * θ| := by
-          have h := LipschitzWith.dist_le_mul Real.lipschitzWith_cos (2 * π * innerProd w x + 2 * π * θ) (2 * π * θ)
+          have h := LipschitzWith.dist_le_mul Real.lipschitzWith_cos
+            (2 * π * innerProd w x + 2 * π * θ) (2 * π * θ)
           rw [Real.dist_eq, Real.dist_eq] at h
           simpa using h
       _ = |2 * π * innerProd w x| := by

@@ -43,7 +43,8 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteS
 /-- Strong convexity implies a lower bound on gradient inner products ("co-coercivity" direction):
   `⟪∇f(w) - ∇f(v), w - v⟫ ≥ mu‖w - v‖²`.
 
-This follows from the first-order strong convexity inequality applied symmetrically to `(w, v)` and `(v, w)`. -/
+This follows from the first-order strong convexity inequality applied symmetrically to
+`(w, v)` and `(v, w)`. -/
 lemma sc_gradient_inner {f : E → ℝ} {mu : ℝ}
     (hf : IsStronglyConvex f mu) (w v : E) :
     inner ℝ (gradient f w - gradient f v) (w - v) ≥ mu * ‖w - v‖ ^ 2 := by
@@ -66,7 +67,7 @@ lemma sc_unique_critical_point {f : E → ℝ} {mu : ℝ} (hmu : 0 < mu)
     (hw : gradient f w = 0) (hv : gradient f v = 0) : w = v := by
   have h := sc_gradient_inner hf w v
   rw [hw, hv] at h
-  simp at h
+  simp only [sub_zero, inner_zero_left, ge_iff_le] at h
   have h_nonneg : 0 ≤ mu * ‖w - v‖ ^ 2 := mul_nonneg hmu.le (sq_nonneg _)
   have h_nonpos : mu * ‖w - v‖ ^ 2 ≤ 0 := by linarith
   have hzero : mu * ‖w - v‖ ^ 2 = 0 := by linarith
@@ -84,7 +85,6 @@ For `β`-smooth `mu`-strongly convex `f` with minimizer `w*`, GD with `η = 1/β
 
 This gives the geometric rate `‖wₜ - w*‖² ≤ (1 - mu/β)ᵗ · ‖w₀ - w*‖²`. -/
 theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hmu : 0 < mu)
-    (hβmu : mu ≤ β)
     (hf : BetaSmooth f β) (hsc : IsStronglyConvex f mu)
     {wstar : E} (hwstar : gradient f wstar = 0)
     (w : E) :
@@ -99,9 +99,11 @@ theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hm
     calc
       ‖(w - β⁻¹ • gradient f w) - wstar‖ ^ 2
           = ‖(w - wstar) - (β⁻¹ • gradient f w)‖ ^ 2 := by abel_nf
-      _ = ‖w - wstar‖ ^ 2 - 2 * inner ℝ (w - wstar) (β⁻¹ • gradient f w) + ‖β⁻¹ • gradient f w‖ ^ 2 := by
+      _ = ‖w - wstar‖ ^ 2 - 2 * inner ℝ (w - wstar) (β⁻¹ • gradient f w) +
+            ‖β⁻¹ • gradient f w‖ ^ 2 := by
         rw [norm_sub_sq_real]
-      _ = ‖w - wstar‖ ^ 2 - 2 * inner ℝ (w - wstar) (β⁻¹ • gradient f w) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+      _ = ‖w - wstar‖ ^ 2 - 2 * inner ℝ (w - wstar) (β⁻¹ • gradient f w) +
+            (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
         have hnorm : ‖β⁻¹ • gradient f w‖ ^ 2 = (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
           calc
             ‖β⁻¹ • gradient f w‖ ^ 2 = (‖β⁻¹‖ * ‖gradient f w‖) ^ 2 := by rw [norm_smul]
@@ -109,9 +111,11 @@ theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hm
             _ = (β⁻¹ * ‖gradient f w‖) ^ 2 := by rw [abs_of_pos (inv_pos.mpr hβ)]
             _ = (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by ring
         rw [hnorm]
-      _ = ‖w - wstar‖ ^ 2 - 2 * (β⁻¹ * inner ℝ (w - wstar) (gradient f w)) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+      _ = ‖w - wstar‖ ^ 2 - 2 * (β⁻¹ * inner ℝ (w - wstar) (gradient f w)) +
+            (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
         simp [inner_smul_right]
-      _ = ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) + (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
+      _ = ‖w - wstar‖ ^ 2 - 2 * β⁻¹ * inner ℝ (gradient f w) (w - wstar) +
+            (β⁻¹)^2 * ‖gradient f w‖ ^ 2 := by
         rw [real_inner_comm (w - wstar) (gradient f w)]
         ring
   rw [hexp]
@@ -119,7 +123,8 @@ theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hm
   have hsc_ineq : inner ℝ (gradient f w) (w - wstar) ≥
       f w - f wstar + mu / 2 * ‖w - wstar‖ ^ 2 := by
     have h := hsc w wstar
-    have hinner_swap' : inner ℝ (gradient f w) (wstar - w) = - inner ℝ (gradient f w) (w - wstar) := by
+    have hinner_swap' :
+        inner ℝ (gradient f w) (wstar - w) = - inner ℝ (gradient f w) (w - wstar) := by
       calc
         inner ℝ (gradient f w) (wstar - w) = inner ℝ (gradient f w) (-(w - wstar)) := by simp
         _ = - inner ℝ (gradient f w) (w - wstar) := by simp
@@ -143,7 +148,7 @@ theorem gd_strongly_convex_step {f : E → ℝ} {β mu : ℝ} (hβ : 0 < β) (hm
     rw [hwstar] at h
     -- gradient f wstar becomes 0
     have hzero_inner : inner ℝ (0 : E) (w' - wstar) = 0 := by simp
-    simp [hzero_inner] at h
+    rw [hzero_inner, add_zero] at h
     -- h: f wstar + mu/2 * ‖w' - wstar‖² ≤ f w'
     have hsq_nonneg : 0 ≤ mu / 2 * ‖w' - wstar‖ ^ 2 := by
       have : 0 ≤ mu / 2 := div_nonneg hmu.le (by norm_num)
@@ -205,7 +210,7 @@ theorem gd_strongly_convex_convergence {f : E → ℝ} {β mu : ℝ} (hβ : 0 < 
   | succ t ih =>
     calc ‖gdIterate f (fun _ => β⁻¹) w₀ (t + 1) - wstar‖ ^ 2
         ≤ (1 - mu / β) * ‖gdIterate f (fun _ => β⁻¹) w₀ t - wstar‖ ^ 2 :=
-          gd_strongly_convex_step hβ hmu hβmu hf hsc hwstar _
+          gd_strongly_convex_step hβ hmu hf hsc hwstar _
       _ ≤ (1 - mu / β) * ((1 - mu / β) ^ t * ‖w₀ - wstar‖ ^ 2) := by
           apply mul_le_mul_of_nonneg_left ih
           linarith [div_le_one_of_le₀ hβmu hβ.le]
@@ -265,7 +270,7 @@ lemma contraction_ratio_lt_one {β mu : ℝ} (hβ : 0 < β) (hmu : 0 < mu) :
   linarith
 
 /-- The condition number `κ = β/mu` satisfies `κ ≥ 1` when `β ≥ mu > 0`. -/
-lemma condition_number_ge_one {β mu : ℝ} (hβ : 0 < β) (hmu : 0 < mu) (hβmu : mu ≤ β) :
+lemma condition_number_ge_one {β mu : ℝ} (hmu : 0 < mu) (hβmu : mu ≤ β) :
     1 ≤ β / mu := by
   exact ((one_le_div hmu).mpr hβmu)
 
