@@ -186,6 +186,27 @@ theorem barronSamplingBound
         (f x - fhat) ^ 2 ≤ 4 * C ^ 2 / k := by
   sorry
 
+/-- **Univariate sampling bound** (Example 3.1.1).
+If g is differentiable on [0, 1] with g(0) = 0, then a threshold network
+with k nodes sampled from its integral representation achieves an L₂(P) error
+bounded by (1/k) * (∫₀¹ |g'(x)| dx)². -/
+theorem univariateSamplingBound
+    {g : ℝ → ℝ}
+    (hg_diff : ∀ x ∈ Icc (0 : ℝ) 1, HasDerivAt g (deriv g x) x)
+    (hg0 : g 0 = 0)
+    (hg'_int : IntervalIntegrable (deriv g) MeasureTheory.volume 0 1)
+    {Ω_x : Type*} {mΩ_x : MeasurableSpace Ω_x}
+    (P : Measure Ω_x) [IsProbabilityMeasure P]
+    (x_embed : Ω_x → ℝ) (hx_unit : ∀ ω, x_embed ω ∈ Icc (0 : ℝ) 1)
+    {k : ℕ} (hk : 0 < k) :
+    ∃ (biases : Fin k → ℝ)
+      (signs : Fin k → ℝ),
+      (∫ ω, (g (x_embed ω) -
+        (Approximation.InfiniteWidth.totalVariationCost (deriv g) / k) *
+          ∑ i, signs i * thresholdActivation (x_embed ω - biases i)) ^ 2 ∂P)
+        ≤ (Approximation.InfiniteWidth.totalVariationCost (deriv g)) ^ 2 / k := by
+  sorry
+
 end Approximation.Sampling
 
 end

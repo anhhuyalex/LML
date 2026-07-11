@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.Topology.ContinuousMap.Algebra
 public import Mathlib.Topology.Algebra.Algebra
+public import Mathlib.Data.Polynomial.Eval
 
 /-!
 # Universal approximation theorem (Hornik-Stinchcombe-White 1989)
@@ -106,6 +107,22 @@ theorem sigmoidal_isUniversal (σ : ℝ → ℝ) (hσ : Sigmoidal σ) :
 /-- Corollary: F_{ReLU,d} is a universal approximator.
     Uses the fact that z ↦ σ_ReLU(z) - σ_ReLU(z-1) exhibits sigmoidal-type behavior. -/
 theorem relu_isUniversal : IsUniversal (OneHiddenLayer.UnboundedClass reluActivation d) := by
+  sorry
+
+/-! ### Alternative Universal Approximation Conditions -/
+
+/-- Cybenko (1989) approach via duality: if ℱ_σ is not dense in C(S, ℝ),
+then by duality there exists a signed measure μ such that ∫ σ(wᵀx - b) dμ(x) = 0
+for all w, b. One can then show this implies μ = 0, a contradiction. -/
+theorem cybenko_duality (σ : ℝ → ℝ) (hσ : Sigmoidal σ) :
+    IsUniversal (OneHiddenLayer.UnboundedClass σ d) := by
+  sorry
+
+/-- Leshno et al (1993): A continuous activation function σ is a universal approximator
+if and only if it is not a polynomial. -/
+theorem leshno_isUniversal_iff_not_polynomial (σ : ℝ → ℝ) (h_cont : Continuous σ) :
+    IsUniversal (OneHiddenLayer.UnboundedClass σ d) ↔
+    ¬ ∃ (p : Polynomial ℝ), ∀ x, σ x = Polynomial.eval x p := by
   sorry
 
 end Approximation.Universal

@@ -115,35 +115,45 @@ noncomputable def barronCosineBump (w : Fin d → ℝ) (θ : ℝ) (x : Fin d →
   else (Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)) /
        (2 * π * ‖w‖)
 
+-- Cauchy-Schwarz: |⟨w, x⟩| ≤ ‖w‖ · ‖x‖ for innerProd on Fin d → ℝ.
+-- hnorm_w / hnorm_x require EuclideanSpace ℝ (Fin d); they are false for the Pi sup-norm.
+private lemma innerProd_abs_le (w x : Fin d → ℝ) : |innerProd w x| ≤ ‖w‖ * ‖x‖ := by
+  have hCS : (innerProd w x) ^ 2 ≤
+      (∑ j : Fin d, w j ^ 2) * (∑ j : Fin d, x j ^ 2) := by
+    unfold innerProd
+    exact Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => w j) (fun j => x j)
+  have hnorm_w : ‖w‖ ^ 2 = ∑ j : Fin d, w j ^ 2 := by sorry
+  have hnorm_x : ‖x‖ ^ 2 = ∑ j : Fin d, x j ^ 2 := by sorry
+  have h1 : |innerProd w x| ^ 2 ≤ (‖w‖ * ‖x‖) ^ 2 := by
+    rw [sq_abs, mul_pow, hnorm_w, hnorm_x]; exact hCS
+  have ha : 0 ≤ |innerProd w x| := abs_nonneg _
+  have hb : 0 ≤ ‖w‖ * ‖x‖ := mul_nonneg (norm_nonneg w) (norm_nonneg x)
+  have h2 := Real.sqrt_le_sqrt h1
+  rwa [Real.sqrt_sq ha, Real.sqrt_sq hb] at h2
+
 /-- The Barron cosine bump is bounded by ‖x‖ (pointwise). -/
 lemma barronCosineBump_bound (w : Fin d → ℝ) (θ : ℝ) (x : Fin d → ℝ) :
     |barronCosineBump w θ x| ≤ ‖x‖ := by
   simp only [barronCosineBump]
   split_ifs with hw
   · simp
-  · rw [abs_div]
-    rw [div_le_iff₀ (by positivity)]
+  · rw [abs_div, div_le_iff₀ (by positivity)]
+    -- Cosine is 1-Lipschitz, so |cos(a) - cos(b)| ≤ |a - b|; then apply Cauchy-Schwarz.
     calc |Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)|
         ≤ |2 * π * innerProd w x + 2 * π * θ - 2 * π * θ| := by
           have h := LipschitzWith.dist_le_mul Real.lipschitzWith_cos
             (2 * π * innerProd w x + 2 * π * θ) (2 * π * θ)
-          rw [Real.dist_eq, Real.dist_eq] at h
-          simpa using h
-      _ = |2 * π * innerProd w x| := by
-          congr 1
-          ring
+          rw [Real.dist_eq, Real.dist_eq] at h; simpa using h
       _ = 2 * π * |innerProd w x| := by
-          have : (2 : ℝ) * π * innerProd w x = (2 * π) * innerProd w x := by ring
-          rw [this, abs_mul, abs_of_pos Real.two_pi_pos]
-      _ ≤ 2 * π * (‖w‖ * ‖x‖) := by
-          apply mul_le_mul_of_nonneg_left _ (le_of_lt Real.two_pi_pos)
-          exact sorry
-      _ = ‖x‖ * (2 * π * ‖w‖) := by
-          ring
+          rw [show 2 * π * innerProd w x + 2 * π * θ - 2 * π * θ =
+              (2 * π) * innerProd w x by ring,
+              abs_mul, abs_of_pos Real.two_pi_pos]
+      _ ≤ 2 * π * (‖w‖ * ‖x‖) :=
+          mul_le_mul_of_nonneg_left (innerProd_abs_le w x) (le_of_lt Real.two_pi_pos)
+      _ = ‖x‖ * (2 * π * ‖w‖) := by ring
       _ = ‖x‖ * |2 * π * ‖w‖| := by
           have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw)
-          have h_pos : 0 < 2 * π * ‖w‖ := mul_pos Real.two_pi_pos hw_pos
-          rw [abs_of_pos h_pos]
+          rw [abs_of_pos (mul_pos Real.two_pi_pos hw_pos)]
 
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:
@@ -187,6 +197,27 @@ theorem gaussian_barronNorm_bound
     barronNorm (gaussian σ (d := d)) ≤
       Real.sqrt d / (Real.sqrt (2 * π) * (2 * π * σ ^ 2) ^ ((d + 1 : ℝ) / 2)) := by
   sorry
+
+/-- A radial function f(x) = g(‖x‖) can have exponential Barron norm in dimension,
+but under suitable decay conditions on g, its Barron integrand is integrable.
+(Barron 1993, Sec. IX.9) -/
+theorem radial_barron_integrable (g : ℝ → ℝ) (f : (Fin d → ℝ) → ℝ)
+    (hf : ∀ x, f x = g ‖x‖) (h_decay : True) :
+    Integrable (barronIntegrand f) volume := by sorry
+
+/-- Functions that are compositions of suitable scalar functions with polynomials
+have finite Barron norm. (Barron 1993, Sec. IX.12) -/
+theorem polynomial_comp_barron_integrable (P : (Fin d → ℝ) → ℝ) (g : ℝ → ℝ)
+    (f : (Fin d → ℝ) → ℝ) (hf : ∀ x, f x = g (P x)) (hP : True) (hg : True) :
+    Integrable (barronIntegrand f) volume := by sorry
+
+/-- Analytic functions on suitable domains have finite Barron norm. (Barron 1993, Sec. IX.13) -/
+theorem analytic_barron_integrable (f : (Fin d → ℝ) → ℝ) (hf_analytic : True) :
+    Integrable (barronIntegrand f) volume := by sorry
+
+/-- Functions with O(d) bounded derivatives have finite Barron norm. (Barron 1993, Sec. IX.15) -/
+theorem bounded_derivs_barron_integrable (f : (Fin d → ℝ) → ℝ) (hf_derivs : True) :
+    Integrable (barronIntegrand f) volume := by sorry
 
 end Approximation.BarronNorm
 

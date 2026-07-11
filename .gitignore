@@ -52,3 +52,6 @@ blueprint/src/web.pdf
 /verso_blueprint/.lake/
 /verso_blueprint/.build/
 /verso_blueprint/_out/
+
+## Agent
+agent/
