@@ -70,11 +70,13 @@ theorem stepApprox_mem_FunctionClass (_hρ : 0 < ρ) (_hε : 0 < ε) :
     apply Finset.sum_congr rfl
     intro i _
     simp only [net]
-    have eq_sum : (∑ j : Fin 1, (1 : ℝ) * x j) = x 0 := by
+    have eq_sum : (∑ j : Fin 1, ((EuclideanSpace.equiv (Fin 1) ℝ).symm (fun _ => 1) : Fin 1 → ℝ) j * (x : Fin 1 → ℝ) j) = (x : Fin 1 → ℝ) 0 := by
+      change (∑ j : Fin 1, (1 : ℝ) * (x : Fin 1 → ℝ) j) = (x : Fin 1 → ℝ) 0
       rw [Fin.sum_univ_one]
       ring
     rw [eq_sum]
-    congr 2
+    have H2 : (x : Fin 1 → ℝ) 0 - breakpoint ρ ε ↑i = (x : Fin 1 → ℝ) 0 + -breakpoint ρ ε ↑i := by ring
+    rw [H2]
   ⟩
 
 /-! ### Error bound -/
