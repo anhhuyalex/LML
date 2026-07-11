@@ -311,6 +311,274 @@ private lemma barronCosineBump_threshold_repr {d : ℕ} (w : EuclideanSpace ℝ 
     simp
   simp [h_vol]
 
+-- Reduces an integral against a threshold activation over [0, W] to an integral over [0, c]
+private lemma setIntegral_thresholdActivation_eq_Icc {c W : ℝ} (_hc_nonneg : 0 ≤ c) (hc_le : c ≤ W) (f : ℝ → ℝ) :
+    (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b) =
+    ∫ b in Set.Icc (0 : ℝ) c, f b := by
+  -- Helper: thresholdActivation(c - b) = (Set.Iic c).indicator 1 at b
+  have h_thresh_indicator (b : ℝ) :
+      thresholdActivation (c - b) = (Set.Iic c).indicator (fun _ => (1 : ℝ)) b := by
+    by_cases hb : b ≤ c
+    · have h_nonneg : c - b ≥ 0 := by linarith
+      simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_nonneg, hb]
+    · have h_neg : ¬(c - b ≥ 0) := by linarith
+      simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_neg, hb]
+  -- Intersection lemma: when 0 ≤ c ≤ W, Icc 0 W ∩ Iic c = Icc 0 c
+  have h_inter_pos :
+      Set.Icc (0 : ℝ) W ∩ Set.Iic c = Set.Icc (0 : ℝ) c := by
+    ext y; constructor
+    · rintro ⟨⟨hy0, hyw⟩, hyc⟩; exact ⟨hy0, hyc⟩
+    · rintro ⟨hy0, hyc⟩; exact ⟨⟨hy0, hyc.trans hc_le⟩, hyc⟩
+  -- Step 1: replace thresholdActivation with indicator
+  have h_step1 : (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b) =
+      (∫ b in Set.Icc (0 : ℝ) W, ((Set.Iic c).indicator (fun _ => (1 : ℝ)) b) * f b) := by
+    refine setIntegral_congr_fun measurableSet_Icc ?_
+    intro b _
+    simp [h_thresh_indicator b]
+  -- Step 2: move the constant 1 inside the indicator
+  have h_step2 : (∫ b in Set.Icc (0 : ℝ) W, ((Set.Iic c).indicator (fun _ => (1 : ℝ)) b) * f b) =
+      (∫ b in Set.Icc (0 : ℝ) W, (Set.Iic c).indicator (fun b' => f b') b) := by
+    refine setIntegral_congr_fun measurableSet_Icc ?_
+    intro b _
+    simp [Set.indicator, mul_comm]
+  -- Step 3: use setIntegral_indicator to convert to intersection integral
+  have h_step3 : (∫ b in Set.Icc (0 : ℝ) W, (Set.Iic c).indicator (fun b' => f b') b) =
+      ∫ b in Set.Icc (0 : ℝ) W ∩ Set.Iic c, f b := by
+    rw [MeasureTheory.setIntegral_indicator measurableSet_Iic]
+  -- Step 4: intersection equals Icc 0 c
+  rw [h_step1, h_step2, h_step3, h_inter_pos]
+
+-- An integral against a threshold activation is zero if the threshold is non-positive
+private lemma setIntegral_thresholdActivation_nonpos_eq_zero {c W : ℝ} (hc : c ≤ 0) (hW_nonneg : 0 ≤ W) (f : ℝ → ℝ) :
+    (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b) = 0 := by
+  by_cases hc0 : c = 0
+  · -- c = 0: thresholdActivation(-b) is 0 for b > 0, and {0} has measure zero
+    have h_thresh_indicator (b : ℝ) :
+        thresholdActivation (-b) = (Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b := by
+      by_cases hb : b ≤ 0
+      · have h_nonneg : -b ≥ 0 := by linarith
+        simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_nonneg, hb]
+      · have h_neg : ¬(-b ≥ 0) := by linarith
+        simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_neg, hb]
+    have h_eq1 : (fun b => thresholdActivation (-b) * f b)
+        = (fun b => ((Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b) * f b) := by
+      ext b
+      rw [← h_thresh_indicator b]
+    have h_eq2 : (fun b => ((Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b) * f b)
+        = (fun b => (Set.Iic (0 : ℝ)).indicator (fun b' => f b') b) := by
+      ext b; simp [Set.indicator, mul_comm]
+    have h_inter : Set.Icc (0 : ℝ) W ∩ Set.Iic (0 : ℝ) = {(0 : ℝ)} := by
+      ext x; constructor
+      · rintro ⟨⟨hx0, _hxw⟩, hx0'⟩
+        exact Set.mem_singleton_iff.mpr (le_antisymm hx0' hx0)
+      · rintro (rfl : x = 0)
+        have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) W := ⟨le_rfl, hW_nonneg⟩
+        have h0' : (0 : ℝ) ∈ Set.Iic (0 : ℝ) := show (0 : ℝ) ≤ (0 : ℝ) from le_rfl
+        exact ⟨h0, h0'⟩
+    calc
+      (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b)
+      _ = (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (0 - b) * f b) := by rw [hc0]
+      _ = (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (-b) * f b) := by simp
+      _ = (∫ b in Set.Icc (0 : ℝ) W, ((Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b) * f b) := by rw [h_eq1]
+      _ = (∫ b in Set.Icc (0 : ℝ) W, (Set.Iic (0 : ℝ)).indicator (fun b' => f b') b) := by rw [h_eq2]
+      _ = ∫ b in Set.Icc (0 : ℝ) W ∩ Set.Iic (0 : ℝ), f b := MeasureTheory.setIntegral_indicator measurableSet_Iic
+      _ = ∫ b in {(0 : ℝ)}, f b := by rw [h_inter]
+      _ = 0 := by simp
+  · -- c < 0: then thresholdActivation(c - b) = 0 for all b ≥ 0
+    have h_ae : (fun b => thresholdActivation (c - b) * f b)
+        =ᵐ[volume.restrict (Set.Icc (0 : ℝ) W)] fun _ => (0 : ℝ) := by
+      filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Icc] with b hb
+      rcases hb with ⟨hb0, _hbw⟩
+      have h_not_nonneg : ¬(c - b ≥ 0) := by
+        have : c < 0 := lt_of_le_of_ne hc hc0
+        linarith
+      simp [thresholdActivation, h_not_nonneg]
+    simp [integral_congr_ae h_ae]
+
+-- Evaluate the integral of the scaled sine wave over [0, c]
+private lemma integral_sin_bump_ftc (c φ W : ℝ) (hW : W ≠ 0) (hc : 0 ≤ c) :
+    ∫ b in Set.Icc (0 : ℝ) c, (-Real.sin (2 * π * b + φ) / W) =
+    (Real.cos (2 * π * c + φ) - Real.cos φ) / (2 * π * W) := by
+  have h_cont : Continuous (fun b : ℝ => -Real.sin (2 * π * b + φ) / W) := by
+    refine (((Real.continuous_sin.comp ?_).neg).div_const W)
+    exact (continuous_const.mul continuous_id).add continuous_const
+  have h_intble : IntervalIntegrable (fun b : ℝ => -Real.sin (2 * π * b + φ) / W) volume 0 c :=
+    h_cont.intervalIntegrable _ _
+  have h_deriv : ∀ b ∈ Set.uIcc (0 : ℝ) c,
+      HasDerivAt (fun t : ℝ => Real.cos (2 * π * t + φ) / (2 * π * W))
+        (-Real.sin (2 * π * b + φ) / W) b := by
+    intro b _
+    -- Derivative of the inner affine function t ↦ 2πt + φ
+    have h_inner_deriv : HasDerivAt (fun t : ℝ => 2 * π * t + φ) (2 * π) b := by
+      simpa using ((hasDerivAt_id b).const_mul (2 * π)).add_const φ
+    -- Chain rule: derivative of cos(2πt + φ)
+    have h_cos_deriv : HasDerivAt (fun t : ℝ => Real.cos (2 * π * t + φ))
+        ((-Real.sin (2 * π * b + φ)) * (2 * π)) b :=
+      h_inner_deriv.cos
+    -- Divide by constant (2πW)
+    have h_div : HasDerivAt (fun t : ℝ => Real.cos (2 * π * t + φ) / (2 * π * W))
+        (((-Real.sin (2 * π * b + φ)) * (2 * π)) / (2 * π * W)) b :=
+      h_cos_deriv.div_const (2 * π * W)
+    -- Simplify: ((-sin) * 2π) / (2πW) = -sin / W
+    have h_simp : (((-Real.sin (2 * π * b + φ)) * (2 * π)) / (2 * π * W)) =
+        (-Real.sin (2 * π * b + φ) / W) := by
+      field_simp [show (2 * π : ℝ) ≠ 0 from by positivity, hW]
+    exact h_div.congr_deriv h_simp
+  calc
+    ∫ b in Set.Icc (0 : ℝ) c, (-Real.sin (2 * π * b + φ) / W)
+        = ∫ b in Set.Ioc (0 : ℝ) c, (-Real.sin (2 * π * b + φ) / W) := by
+          rw [MeasureTheory.integral_Icc_eq_integral_Ioc' (volume_singleton (a := 0))]
+    _ = ∫ b in (0 : ℝ)..c, (-Real.sin (2 * π * b + φ) / W) := by
+          rw [← intervalIntegral.integral_of_le hc]
+    _ = (Real.cos (2 * π * c + φ) / (2 * π * W)) -
+        (Real.cos (2 * π * (0 : ℝ) + φ) / (2 * π * W)) := by
+          rw [intervalIntegral.integral_eq_sub_of_hasDerivAt h_deriv h_intble]
+    _ = (Real.cos (2 * π * c + φ) - Real.cos φ) / (2 * π * W) := by
+      simp; ring
+
+private lemma barronCosineBump_sin_repr_pos {d : ℕ} (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d))
+    (hx : ‖x‖ ≤ 1) (hw0 : ‖w‖ ≠ 0) (ha_nonneg : 0 ≤ inner ℝ w x) :
+    (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+    (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+    barronCosineBump w θ x := by
+  have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw0)
+  set a := inner ℝ w x with ha_def
+  -- Cauchy-Schwarz: |a| ≤ ‖w‖ · ‖x‖ ≤ ‖w‖
+  have ha_bound : |a| ≤ ‖w‖ := by
+    calc
+      |a| ≤ ‖w‖ * ‖x‖ := abs_real_inner_le_norm w x
+      _ ≤ ‖w‖ * 1 := mul_le_mul_of_nonneg_left hx (norm_nonneg _)
+      _ = ‖w‖ := mul_one _
+  have ha_abs_range : -‖w‖ ≤ a ∧ a ≤ ‖w‖ := abs_le.mp ha_bound
+  
+  have ha_le_norm : a ≤ ‖w‖ := ha_abs_range.2
+  have h_int1 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+      thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) =
+      ∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖) :=
+    setIntegral_thresholdActivation_eq_Icc ha_nonneg ha_le_norm _
+
+  have h_inner_neg : inner ℝ (-w) x = -a := by rw [inner_neg_left, ha_def]
+  have h_int2 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+      thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) = 0 := by
+    rw [h_inner_neg]
+    exact setIntegral_thresholdActivation_nonpos_eq_zero (by linarith) (norm_nonneg _) _
+
+  have h_ftc : ∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖) =
+      (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) :=
+    integral_sin_bump_ftc a (2 * π * θ) ‖w‖ hw0 ha_nonneg
+
+  have hgoal : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+      thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+      (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+        thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+      barronCosineBump w θ x := by
+    calc
+      (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖))
+      = (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
+        dsimp [a]
+      _ = (∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) + (0 : ℝ) := by
+        rw [h_int1, h_int2]
+      _ = ∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖) := by simp
+      _ = (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) := h_ftc
+      _ = barronCosineBump w θ x := by
+        rw [barronCosineBump, if_neg hw0, ha_def]
+  exact hgoal
+
+private lemma barronCosineBump_sin_repr_neg {d : ℕ} (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d))
+    (hx : ‖x‖ ≤ 1) (hw0 : ‖w‖ ≠ 0) (ha_neg : inner ℝ w x < 0) :
+    (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+    (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+    barronCosineBump w θ x := by
+  have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw0)
+  set a := inner ℝ w x with ha_def
+  -- Cauchy-Schwarz: |a| ≤ ‖w‖ · ‖x‖ ≤ ‖w‖
+  have ha_bound : |a| ≤ ‖w‖ := by
+    calc
+      |a| ≤ ‖w‖ * ‖x‖ := abs_real_inner_le_norm w x
+      _ ≤ ‖w‖ * 1 := mul_le_mul_of_nonneg_left hx (norm_nonneg _)
+      _ = ‖w‖ := mul_one _
+  have ha_abs_range : -‖w‖ ≤ a ∧ a ≤ ‖w‖ := abs_le.mp ha_bound
+
+  have h_neg_a_nonneg : 0 ≤ -a := by linarith
+  have h_neg_a_le_norm : -a ≤ ‖w‖ := by linarith
+  
+  have h_int1 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+      thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) = 0 :=
+    setIntegral_thresholdActivation_nonpos_eq_zero (by linarith) (norm_nonneg _) _
+  
+  have h_inner_neg : inner ℝ (-w) x = -a := by rw [inner_neg_left, ha_def]
+  have h_int2 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+      thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+      ∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖) := by
+    rw [h_inner_neg]
+    exact setIntegral_thresholdActivation_eq_Icc h_neg_a_nonneg h_neg_a_le_norm _
+  
+  have h_ftc : ∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖) =
+      (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) := by
+    have h_ftc_raw := integral_sin_bump_ftc (-a) (-(2 * π * θ)) ‖w‖ hw0 h_neg_a_nonneg
+    have h_eq_LHS : (fun b => -Real.sin (2 * π * b + -(2 * π * θ)) / ‖w‖) = 
+                    (fun b => -Real.sin (2 * π * b - 2 * π * θ) / ‖w‖) := by rfl
+    have h_eq_RHS : (Real.cos (2 * π * (-a) + -(2 * π * θ)) - Real.cos (-(2 * π * θ))) / (2 * π * ‖w‖) = 
+                    (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) := by
+      have h1 : 2 * π * (-a) + -(2 * π * θ) = -(2 * π * a + 2 * π * θ) := by ring
+      rw [h1, Real.cos_neg, Real.cos_neg]
+    rw [← h_eq_LHS, ← h_eq_RHS]
+    exact h_ftc_raw
+        
+  have hgoal : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+      thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+      (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+        thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+      barronCosineBump w θ x := by
+    calc
+      (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖))
+      = (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
+        dsimp [a]
+      _ = (0 : ℝ) + (∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
+        rw [h_int1, h_int2]
+      _ = ∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖) := by simp
+      _ = (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) := h_ftc
+      _ = barronCosineBump w θ x := by
+        rw [barronCosineBump, if_neg hw0, ha_def]
+  exact hgoal
+
+-- A cosine bump can also be represented as an integral against a threshold activation
+-- using the fundamental theorem of calculus. This representation is independent of x
+-- and is the basis for constructing the global signed measure.
+private lemma barronCosineBump_sin_repr {d : ℕ} (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) (hx : ‖x‖ ≤ 1) :
+    barronCosineBump w θ x =
+      (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+      (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
+  by_cases hw0 : ‖w‖ = 0
+  · -- Case ‖w‖ = 0: both sides are 0 (division by 0 yields 0, integrals over {0} are 0)
+    have hbar : barronCosineBump w θ x = 0 := by
+      unfold barronCosineBump
+      rw [if_pos hw0]
+    have hRHS : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+        thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) = 0 := by
+      rw [hw0]
+      simp
+    rw [hbar, hRHS]
+  · -- Case ‖w‖ ≠ 0
+    by_cases ha_nonneg : 0 ≤ inner ℝ w x
+    · exact (barronCosineBump_sin_repr_pos w θ x hx hw0 ha_nonneg).symm
+    · have ha_neg : inner ℝ w x < 0 := not_le.mp ha_nonneg
+      exact (barronCosineBump_sin_repr_neg w θ x hx hw0 ha_neg).symm
+
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:
 ```
@@ -343,19 +611,80 @@ theorem barronTheorem
   have h_real : ∀ x, f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w :=
     fun x => barron_real_part hfhat_L1 x (h_diff x)
 
-  -- Step 4: For each w, the cosine bump function can be represented as an integral over a threshold (step) function.
-  have h_threshold : ∀ w x, ‖x‖ ≤ 1 →
-      ∃ g : ℝ → ℝ, barronCosineBump w (fourierPhase f w) x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
-    intro w x _hx
-    -- Delegate to the generic representation lemma
-    exact barronCosineBump_threshold_repr w (fourierPhase f w) x
+  -- Step 4: Use the $x$-independent sine representation to construct the signed measure.
+  have h_sin_repr : ∀ w x, ‖x‖ ≤ 1 →
+      barronCosineBump w (fourierPhase f w) x =
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * fourierPhase f w) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * fourierPhase f w) / ‖w‖)) := by
+    intro w x hx
+    exact barronCosineBump_sin_repr w (fourierPhase f w) x hx
 
   -- Step 5: Construct the measure for the infinite-width network by combining the measure over `w` (from barronIntegrand)
   -- and the measure over `b` (from the threshold representation).
-  -- Swapping the integrals (via Fubini's theorem) yields the network evaluation form.
-  -- The bound on the total variation (mass) is exactly twice the integral of `barronIntegrand`,
-  -- which is 2 * `barronNorm f`.
-  sorry
+  let density : (Fin (d + 1) → ℝ) → ℝ := fun wb =>
+    let w : EuclideanSpace ℝ (Fin d) := (EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)
+    let b : ℝ := wb (Fin.last d)
+    if b ∈ Set.Icc (0 : ℝ) ‖w‖ then
+      -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f w) * fourierMagnitude f w
+    else 0
+
+  let pos_density := fun wb => ENNReal.ofReal (density wb)
+  let neg_density := fun wb => ENNReal.ofReal (-density wb)
+
+  let measure_pos : Measure (Fin (d + 1) → ℝ) := volume.withDensity pos_density
+  let measure_neg : Measure (Fin (d + 1) → ℝ) := volume.withDensity neg_density
+
+  have h_finite_pos : IsFiniteMeasure measure_pos := sorry
+  have h_finite_neg : IsFiniteMeasure measure_neg := sorry
+
+  let net_measure : SignedMeasure (Fin (d + 1) → ℝ) :=
+    (@Measure.toSignedMeasure (Fin (d + 1) → ℝ) _ measure_pos h_finite_pos) -
+    (@Measure.toSignedMeasure (Fin (d + 1) → ℝ) _ measure_neg h_finite_neg)
+
+  let net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1) :=
+    ⟨net_measure⟩
+
+  refine ⟨net, ?_, ?_⟩
+  · -- Prove the mass bound
+    change (net_measure.toJordanDecomposition.posPart Set.univ).toReal + (net_measure.toJordanDecomposition.negPart Set.univ).toReal ≤ 2 * barronNorm f
+    have h_tv : (net_measure.toJordanDecomposition.posPart Set.univ).toReal + (net_measure.toJordanDecomposition.negPart Set.univ).toReal ≤ ∫ wb, |density wb| := by
+      sorry
+    apply h_tv.trans
+    have h_split : ∫ wb, |density wb| = ∫ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)| := by
+      sorry
+    rw [h_split]
+    have h_inner : ∀ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)| ≤ 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+      intro w
+      let w' := (EuclideanSpace.equiv (Fin d) ℝ).symm w
+      have h_bound : ∀ b, |density (Fin.snoc w b)| ≤ (Set.Icc 0 ‖w'‖).indicator (fun _ => 4 * π * fourierMagnitude f w') b := by
+        intro b
+        dsimp [density]
+        simp only [Fin.snoc_castSucc, Fin.snoc_last]
+        unfold Set.indicator
+        split_ifs with hb
+        · -- Case b in Set.Icc
+          -- We have |-4 * π * sin(...) * mag| ≤ 4 * π * mag
+          -- We can't use `abs_mul` directly because of associativity. We just use positivity and inequalities.
+          -- For now, `sorry` to move on to integration part.
+          sorry
+        · -- Case b not in Set.Icc
+          rw [abs_zero]
+      have h_int_bound : (∫ b : ℝ, |density (Fin.snoc w b)|) ≤ ∫ b : ℝ, (Set.Icc (0 : ℝ) ‖w'‖).indicator (fun _ => 4 * π * fourierMagnitude f w') b := by
+        apply integral_mono
+        · sorry -- Integrability of LHS
+        · sorry -- Integrability of RHS
+        · exact h_bound
+      apply h_int_bound.trans
+      sorry
+    have h_mono : (∫ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)|) ≤ ∫ w : Fin d → ℝ, 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+      sorry
+    apply h_mono.trans
+    have h_const : (∫ w : Fin d → ℝ, 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) = 2 * barronNorm f := by
+      sorry
+    exact h_const.le
+  · -- Prove the evaluation equality
+    intro x hx
+    sorry
 
 /-! ### Barron norm examples -/
 

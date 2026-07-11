@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Approximation.Basic
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
 public import Mathlib.Topology.Order.Basic
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
@@ -40,10 +41,20 @@ namespace Approximation.Multivariate
 
 /-! ### Uniform modulus of continuity -/
 
-/-- The uniform modulus of continuity: ω_g(δ) = sup{|g(x)-g(x')| : ‖x-x'‖_∞ ≤ δ}. -/
-noncomputable def uniformModulus (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (δ : ℝ) : ℝ :=
-  ⨆ x : { p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) //
-    ∀ j, |p.1 j - p.2 j| ≤ δ }, |g x.val.1 - g x.val.2|
+/-- The uniform modulus of continuity: ω_g(δ) = sup{|g(x)-g(x')| : ‖x-x'‖_∞ ≤ δ}.
+
+We define this in `WithTop ℝ` so the admissible values are automatically bounded above by `⊤`,
+avoiding the nontrivial `BddAbove` witness that would be required for an `ℝ`-valued supremum. -/
+noncomputable def uniformModulus (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (δ : ℝ) : WithTop ℝ :=
+  sSup (Set.range fun x : { p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) //
+    ∀ j, |p.1 j - p.2 j| ≤ δ } => ((|g x.val.1 - g x.val.2| : ℝ) : WithTop ℝ))
+
+omit [MeasurableSpace (EuclideanSpace ℝ (Fin d))] in
+lemma le_uniformModulus {g : (EuclideanSpace ℝ (Fin d)) → ℝ} {δ : ℝ}
+    (p : { q : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) //
+      ∀ j, |q.1 j - q.2 j| ≤ δ }) :
+    ((|g p.val.1 - g p.val.2| : ℝ) : WithTop ℝ) ≤ uniformModulus g δ := by
+  exact le_csSup (OrderTop.bddAbove _) (Set.mem_range_self p)
 
 /-! ### Rectangle partitions -/
 
@@ -87,9 +98,55 @@ noncomputable def piecewiseConstApprox {U : Set (EuclideanSpace ℝ (Fin d))} {�
 /-- Lemma 2.1: piecewise constant approximation error ≤ modulus at scale δ. -/
 theorem piecewiseConstApprox_error {U : Set (EuclideanSpace ℝ (Fin d))} {δ ε : ℝ}
     (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (P : RectanglePartition d U δ)
-    (hω : uniformModulus g δ ≤ ε) :
+    (hω : uniformModulus g δ ≤ (ε : WithTop ℝ)) :
     ∀ x ∈ U, |piecewiseConstApprox g P x - g x| ≤ ε := by
-  sorry
+  intro x hx
+  -- Step 1: Obtain the (unique) rectangle R in the partition that contains x
+  rcases P.cover x hx with ⟨R, hR, hxR⟩
+  -- Step 2: Show that the piecewise constant approximant simplifies to g(representative R) at x
+  have h_piecewise : piecewiseConstApprox g P x = g (representative R) := by
+    dsimp [piecewiseConstApprox]
+    calc
+      ∑ R' ∈ P.rectangles, g (representative R') * R'.toSet.indicator 1 x 
+        = g (representative R) * R.toSet.indicator 1 x := by
+          refine Finset.sum_eq_single_of_mem R hR ?_
+          intro R' hR' h_ne
+          have h_disjoint := P.disjoint R hR R' hR' h_ne.symm
+          have hx_not_mem : x ∉ R'.toSet := by
+            intro hxR'
+            have hx_inter : x ∈ R.toSet ∩ R'.toSet := ⟨hxR, hxR'⟩
+            rw [h_disjoint] at hx_inter
+            exact hx_inter
+          simp [hx_not_mem]
+      _ = g (representative R) * 1 := by
+          rw [Set.indicator_of_mem hxR]
+          rfl
+      _ = g (representative R) := by ring
+  rw [h_piecewise]
+  -- Step 3: For each coordinate j, show |(representative R) j - x j| ≤ δ
+  have h_dist : ∀ j, |(representative R) j - x j| ≤ δ := by
+    intro j
+    have hxRj := hxR j
+    rcases hxRj with ⟨h_left, h_right⟩
+    -- From P.fine, the width of R in coordinate j is ≤ δ
+    have h_fine := P.fine R hR j
+    -- representative R equals R.left coordinate-wise
+    have h_rep : (representative R) j = R.left j := by
+      simp [representative]
+    rw [h_rep]
+    -- Now we need |R.left j - x j| ≤ δ. Since R.left j ≤ x j, the absolute value is x j - R.left j
+    have h_nonneg : 0 ≤ x j - R.left j := by linarith
+    have h_lt_width : x j - R.left j < R.width j := by linarith
+    -- Chain: x j - R.left j < R.width j ≤ δ, so it's ≤ δ
+    have h_le : x j - R.left j ≤ δ := by linarith
+    -- |R.left j - x j| = |x j - R.left j| by abs_sub_comm
+    rw [abs_sub_comm, abs_of_nonneg h_nonneg]
+    exact h_le
+  -- Step 4: Use the definition of uniformModulus to bound |g(representative R) - g x|
+  have h_abs : ((|g (representative R) - g x| : ℝ) : WithTop ℝ) ≤ uniformModulus g δ := by
+    exact le_uniformModulus ⟨(representative R, x), h_dist⟩
+  -- Step 5: Transitivity with hω
+  simpa using le_trans h_abs hω
 
 /-! ### Rectangle indicator network (gγ construction) -/
 
@@ -132,7 +189,7 @@ lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
     The network is constructed as f = ∑ᵢ αᵢ · gγ(·; Rᵢ) where the Rᵢ partition [0,2)ᵈ. -/
 theorem folkloreBound {δ ε : ℝ} (hδ : 0 < δ) (hε : 0 < ε)
     (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (hg : Continuous g)
-    (hω : uniformModulus g δ ≤ ε)
+    (hω : uniformModulus g δ ≤ (ε : WithTop ℝ))
     (μ : MeasureTheory.Measure (EuclideanSpace ℝ (Fin d))) :
     ∃ (f : (EuclideanSpace ℝ (Fin d)) → ℝ),
       (∃ m₁ : ℕ, f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ 1) ∧
