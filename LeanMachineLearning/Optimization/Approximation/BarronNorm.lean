@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Approximation.InfiniteWidth
 public import Mathlib.Analysis.Fourier.FourierTransform
+public import Mathlib.Analysis.Fourier.Inversion
 public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
 public import Mathlib.MeasureTheory.Function.LpSpace.Basic
 public import Mathlib.MeasureTheory.Function.L1Space.Integrable
@@ -150,6 +151,7 @@ This writes f as an exact infinite-width representation with measure mass bounde
 `2 · barronNorm f`. -/
 theorem barronTheorem
     {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
+    (hf_cont : Continuous f)
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (fourierTransform f) volume)
     (hbarron : Integrable (barronIntegrand f) volume) :
@@ -161,7 +163,56 @@ theorem barronTheorem
           Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
             (fun wb => thresholdActivation
               (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
-  sorry
+  -- Step 1: Fourier inversion theorem gives an exact representation of f since f and fhat are L1 and f is continuous.
+  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := by
+    intro x
+    have h_lift_cont : Continuous (fun x => (f x : ℂ)) := continuous_ofReal.comp hf_cont
+    have h_lift_L1 : Integrable (fun x => (f x : ℂ)) volume := Integrable.ofReal hf_L1
+    have hf_eq : fourierTransform f = FourierTransform.fourier (fun x => (f x : ℂ)) := by
+      -- Follows from definition of fourierTransform and FourierTransform.fourier.
+      sorry
+    have hfhat_L1' : Integrable (FourierTransform.fourier (fun x => (f x : ℂ))) volume := by
+      rw [← hf_eq]
+      exact hfhat_L1
+    have h_inv_thm := Continuous.fourierInv_fourier_eq h_lift_cont h_lift_L1 hfhat_L1'
+    have h_inv_eval : FourierTransformInv.fourierInv (FourierTransform.fourier (fun x => (f x : ℂ))) x = (fun x => (f x : ℂ)) x := by
+      rw [h_inv_thm]
+    rw [hf_eq]
+    exact h_inv_eval.symm
+
+  -- Step 2: The difference f(x) - f(0) can be expressed as an integral over the difference of exponentials.
+  have h_diff : ∀ x, f x - f 0 = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w := by
+    -- Subtract the integral representation at x and 0.
+    sorry
+
+  -- Step 3: By taking the real part, we can rewrite the complex exponential in terms of cosines and the phase.
+  have h_real : ∀ x, f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w := by
+    -- Use polar representation of `fourierTransform f w`.
+    -- The definition of `barronIntegrand` and `barronCosineBump` naturally emerges from the real part of the difference.
+    sorry
+
+  -- Step 4: For each w, the cosine bump function can be represented as an integral over a threshold (step) function.
+  have h_threshold : ∀ w x, ‖x‖ ≤ 1 →
+      ∃ g : ℝ → ℝ, barronCosineBump w (fourierPhase f w) x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
+    -- This relies on `univariateIntegralRep` (the fundamental theorem of calculus representation)
+    -- adapted to the domain of the projection `inner ℝ w x`.
+    sorry
+
+  -- Step 5: Construct the measure for the infinite-width network by combining the measure over `w` (from barronIntegrand)
+  -- and the measure over `b` (from the threshold representation).
+  have h_net : ∃ (net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1)),
+      Approximation.InfiniteWidth.InfiniteWidthNetwork.mass thresholdActivation net ≤ 2 * barronNorm f ∧
+      ∀ x : EuclideanSpace ℝ (Fin d), ‖x‖ ≤ 1 →
+        f x - f 0 = Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
+            (fun wb => thresholdActivation
+              (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
+    -- Define the network's signed measure via the product structure.
+    -- Swapping the integrals (via Fubini's theorem) yields the network evaluation form.
+    -- The bound on the total variation (mass) is exactly twice the integral of `barronIntegrand`,
+    -- which is 2 * `barronNorm f`.
+    sorry
+
+  exact h_net
 
 /-! ### Barron norm examples -/
 
