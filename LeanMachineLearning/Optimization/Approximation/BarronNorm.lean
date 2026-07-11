@@ -226,7 +226,9 @@ private lemma barron_diff_exp {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
   · apply integral_congr_ae
     filter_upwards [] with w
     ring_nf
-  · exact barron_diff_integrable hfhat_L1 x
+  · have h_bound : ∀ᵐ w ∂volume, ‖cexp (2 * ↑π * I * ↑(inner ℝ w x)) * fourierTransform f w‖ ≤ ‖fourierTransform f w‖ := by
+      filter_upwards [] with w; exact le_of_eq (by rw [norm_mul, show 2 * ↑π * I * ↑(inner ℝ w x) = ↑(2 * π * inner ℝ w x) * I by push_cast; ring, Complex.norm_exp_ofReal_mul_I, one_mul])
+    exact Integrable.mono hfhat_L1 ((Continuous.cexp <| continuous_const.mul (continuous_ofReal.comp (continuous_id.inner continuous_const))).aestronglyMeasurable.mul hfhat_L1.1) h_bound
   · exact hfhat_L1
 
 -- Takes the real part of the integral to rewrite the complex exponential in terms of cosines
@@ -311,7 +313,21 @@ theorem barronTheorem
     intro w x hx
     -- We can represent the cosine bump using an integral over the threshold activation.
     -- This uses the Fundamental Theorem of Calculus on the Lipschitz function cosine bump.
-    sorry
+    let θ := fourierPhase f w
+    let R := ‖w‖
+    by_cases hR : R = 0
+    · -- Trivial case: w = 0, so the bump is 0.
+      use (fun _ => 0)
+      -- Integral of 0 is 0, and barronCosineBump is 0 when ‖w‖ = 0
+      sorry
+    · -- Main case: w ≠ 0, construct the exact step representation.
+      -- Let h(z) = (cos(2πz + 2πθ) - cos(2πθ)) / (2πR)
+      -- g(b) = h(-R)/R for b ∈ [-2R, -R) and h'(b) for b ∈ [-R, R]
+      -- We can state the existence of g that satisfies the threshold activation integral for this non-trivial case.
+      -- This g function is analytically defined as h'(b) for b in [-R, R] and a constant block to match h(-R).
+      have h_witness : ∃ g : ℝ → ℝ, barronCosineBump w θ x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
+        sorry
+      exact h_witness
 
   -- Step 5: Construct the measure for the infinite-width network by combining the measure over `w` (from barronIntegrand)
   -- and the measure over `b` (from the threshold representation).
