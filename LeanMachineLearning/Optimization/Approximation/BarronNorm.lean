@@ -139,6 +139,35 @@ lemma barronCosineBump_bound (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : Eu
           have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw)
           rw [abs_of_pos (mul_pos Real.two_pi_pos hw_pos)]
 
+-- Helper for Fourier inversion
+private lemma barron_fourier_inv {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
+    (hf_cont : Continuous f)
+    (hf_L1 : Integrable f volume)
+    (hfhat_L1 : Integrable (fourierTransform f) volume) :
+    ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := by
+  intro x
+  have h_lift_cont : Continuous (fun x => (f x : ℂ)) := continuous_ofReal.comp hf_cont
+  have h_lift_L1 : Integrable (fun x => (f x : ℂ)) volume := Integrable.ofReal hf_L1
+  have hf_eq : fourierTransform f = FourierTransform.fourier (fun x => (f x : ℂ)) := by
+    ext w
+    rw [fourierTransform, fourier_eq']
+    apply congr_arg
+    ext x
+    simp only [smul_eq_mul]
+    rw [real_inner_comm]
+    -- Rearrange to match exponent
+    congr 1
+    push_cast
+    ring_nf
+  have hfhat_L1' : Integrable (FourierTransform.fourier (fun x => (f x : ℂ))) volume := by
+    rw [← hf_eq]
+    exact hfhat_L1
+  have h_inv_thm := Continuous.fourierInv_fourier_eq h_lift_cont h_lift_L1 hfhat_L1'
+  have h_inv_eval : FourierTransformInv.fourierInv (FourierTransform.fourier (fun x => (f x : ℂ))) x = (fun x => (f x : ℂ)) x := by
+    rw [h_inv_thm]
+  rw [hf_eq]
+  exact h_inv_eval.symm
+
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:
 ```
@@ -164,26 +193,32 @@ theorem barronTheorem
             (fun wb => thresholdActivation
               (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
   -- Step 1: Fourier inversion theorem gives an exact representation of f since f and fhat are L1 and f is continuous.
-  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := by
-    intro x
-    have h_lift_cont : Continuous (fun x => (f x : ℂ)) := continuous_ofReal.comp hf_cont
-    have h_lift_L1 : Integrable (fun x => (f x : ℂ)) volume := Integrable.ofReal hf_L1
-    have hf_eq : fourierTransform f = FourierTransform.fourier (fun x => (f x : ℂ)) := by
-      -- Follows from definition of fourierTransform and FourierTransform.fourier.
-      sorry
-    have hfhat_L1' : Integrable (FourierTransform.fourier (fun x => (f x : ℂ))) volume := by
-      rw [← hf_eq]
-      exact hfhat_L1
-    have h_inv_thm := Continuous.fourierInv_fourier_eq h_lift_cont h_lift_L1 hfhat_L1'
-    have h_inv_eval : FourierTransformInv.fourierInv (FourierTransform.fourier (fun x => (f x : ℂ))) x = (fun x => (f x : ℂ)) x := by
-      rw [h_inv_thm]
-    rw [hf_eq]
-    exact h_inv_eval.symm
+  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := 
+    barron_fourier_inv hf_cont hf_L1 hfhat_L1
 
   -- Step 2: The difference f(x) - f(0) can be expressed as an integral over the difference of exponentials.
-  have h_diff : ∀ x, f x - f 0 = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w := by
-    -- Subtract the integral representation at x and 0.
-    sorry
+  have h_diff : ∀ x, (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w := by
+    intro x
+    have hx := h_inv x
+    have h0 := h_inv 0
+    rw [hx, h0]
+    have h_int_x : FourierTransformInv.fourierInv (fourierTransform f) x = ∫ w : EuclideanSpace ℝ (Fin d), Complex.exp (2 * π * Complex.I * (inner ℝ w x : ℝ)) * fourierTransform f w := by
+      change VectorFourier.fourierIntegral _ _ _ _ _ = _
+      apply integral_congr_ae
+      filter_upwards [] with w
+      simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, mul_neg, neg_mul, Complex.ofReal_neg, Complex.ofReal_mul]
+      sorry
+    have h_int_0 : FourierTransformInv.fourierInv (fourierTransform f) 0 = ∫ w : EuclideanSpace ℝ (Fin d), fourierTransform f w := by
+      change VectorFourier.fourierIntegral _ _ _ _ _ = _
+      apply integral_congr_ae
+      filter_upwards [] with w
+      simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, inner_zero_right, mul_zero, zero_mul, Complex.exp_zero, one_mul, Complex.ofReal_zero, neg_zero]
+    rw [h_int_x, h_int_0, ← integral_sub]
+    · apply integral_congr_ae
+      filter_upwards [] with w
+      ring_nf
+    · sorry
+    · sorry
 
   -- Step 3: By taking the real part, we can rewrite the complex exponential in terms of cosines and the phase.
   have h_real : ∀ x, f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w := by
