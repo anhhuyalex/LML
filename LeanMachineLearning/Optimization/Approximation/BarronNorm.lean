@@ -168,6 +168,111 @@ private lemma barron_fourier_inv {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) →
   rw [hf_eq]
   exact h_inv_eval.symm
 
+-- Polar decomposition of the Fourier transform
+private lemma fourierTransform_polar {d : ℕ} (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) :
+    fourierTransform f w = (fourierMagnitude f w : ℂ) * cexp (2 * ↑π * I * ↑(fourierPhase f w)) := by
+  have h_arg : (2 * ↑π * I * ↑(fourierPhase f w)) = ↑(Complex.arg (fourierTransform f w)) * I := by
+    unfold fourierPhase
+    calc (2 * ↑π * I * ↑(Complex.arg (fourierTransform f w) / (2 * π)))
+      _ = (2 * ↑π * I * (↑(Complex.arg (fourierTransform f w)) / (2 * ↑π))) := by push_cast; rfl
+      _ = I * ↑(Complex.arg (fourierTransform f w)) * (2 * ↑π / (2 * ↑π)) := by ring
+      _ = I * ↑(Complex.arg (fourierTransform f w)) := by rw [div_self, mul_one]; exact mul_ne_zero two_ne_zero (by exact_mod_cast Real.pi_pos.ne.symm)
+      _ = ↑(Complex.arg (fourierTransform f w)) * I := mul_comm _ _
+  rw [h_arg]
+  unfold fourierMagnitude
+  exact (Complex.norm_mul_exp_arg_mul_I _).symm
+
+-- Integrability of the modulated Fourier transform difference
+private lemma barron_diff_integrable {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
+    (hfhat_L1 : Integrable (fourierTransform f) volume)
+    (x : EuclideanSpace ℝ (Fin d)) :
+    Integrable (fun w ↦ (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w) volume := by
+  have hnorm : ∀ w, ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤ 2 * ‖fourierTransform f w‖ := by
+    intro w
+    rw [norm_mul, show 2 * ↑π * I * ↑(inner ℝ w x) = ↑(2 * π * inner ℝ w x) * I by push_cast; ring]
+    exact mul_le_mul_of_nonneg_right (by
+      calc ‖cexp (↑(2 * π * inner ℝ w x) * I) - 1‖ ≤ ‖cexp (↑(2 * π * inner ℝ w x) * I)‖ + ‖(1 : ℂ)‖ := norm_sub_le _ _
+        _ = 1 + 1 := by rw [Complex.norm_exp_ofReal_mul_I, norm_one]
+        _ = 2 := by norm_num) (norm_nonneg _)
+  have h_bound : ∀ᵐ w ∂volume, ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤ ‖(2 : ℝ) • fourierTransform f w‖ := by
+    filter_upwards [] with w
+    calc ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤ 2 * ‖fourierTransform f w‖ := hnorm w
+      _ = ‖(2 : ℝ) • fourierTransform f w‖ := by rw [norm_smul, Real.norm_two]
+  exact Integrable.mono (hfhat_L1.smul (2 : ℝ)) (((Continuous.cexp (continuous_const.mul (continuous_ofReal.comp (continuous_id.inner continuous_const)))).sub continuous_const).aestronglyMeasurable.mul hfhat_L1.1) h_bound
+
+-- Expresses the difference f(x) - f(0) as an integral over complex exponentials
+private lemma barron_diff_exp {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
+    (hf_cont : Continuous f)
+    (hf_L1 : Integrable f volume)
+    (hfhat_L1 : Integrable (fourierTransform f) volume)
+    (x : EuclideanSpace ℝ (Fin d)) :
+    (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w := by
+  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x :=
+    barron_fourier_inv hf_cont hf_L1 hfhat_L1
+  rw [h_inv x, h_inv 0]
+  have h_int_x : FourierTransformInv.fourierInv (fourierTransform f) x = ∫ w : EuclideanSpace ℝ (Fin d), Complex.exp (2 * π * Complex.I * (inner ℝ w x : ℝ)) * fourierTransform f w := by
+    change VectorFourier.fourierIntegral _ _ _ _ _ = _
+    apply integral_congr_ae
+    filter_upwards [] with w
+    simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, Complex.ofReal_mul,
+      ofReal_ofNat, neg_neg, mul_eq_mul_right_iff]
+    ring_nf; simp
+  have h_int_0 : FourierTransformInv.fourierInv (fourierTransform f) 0 = ∫ w : EuclideanSpace ℝ (Fin d), fourierTransform f w := by
+    change VectorFourier.fourierIntegral _ _ _ _ _ = _
+    apply integral_congr_ae
+    filter_upwards [] with w
+    simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, inner_zero_right, mul_zero, zero_mul, Complex.exp_zero, one_mul, Complex.ofReal_zero, neg_zero]
+  rw [h_int_x, h_int_0, ← integral_sub]
+  · apply integral_congr_ae
+    filter_upwards [] with w
+    ring_nf
+  · exact barron_diff_integrable hfhat_L1 x
+  · exact hfhat_L1
+
+-- Takes the real part of the integral to rewrite the complex exponential in terms of cosines
+private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
+    (hfhat_L1 : Integrable (fourierTransform f) volume)
+    (x : EuclideanSpace ℝ (Fin d))
+    (h_diff_x : (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w) :
+    f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w := by
+  rw [show (f x - f 0 : ℝ) = (∫ (w : EuclideanSpace ℝ (Fin d)), (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re by rw [← h_diff_x]; rfl]
+  have h_integrable := barron_diff_integrable hfhat_L1 x
+  have h_int_re : (∫ (w : EuclideanSpace ℝ (Fin d)), (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re =
+      ∫ w, ((cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re := (integral_re h_integrable).symm
+  rw [h_int_re]
+  apply integral_congr_ae
+  filter_upwards [] with w
+  -- Prove pointwise equality between the real part of the integrand and the Barron representation
+  by_cases hw : ‖w‖ = 0
+  · rw [show cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1 = 0 by rw [show inner ℝ w x = (0 : ℝ) by rw [norm_eq_zero.mp hw, inner_zero_left], Complex.ofReal_zero, mul_zero, Complex.exp_zero, sub_self], zero_mul, Complex.zero_re]
+    simp [barronCosineBump, hw]
+  · -- Step 1: Prove polar decomposition of the Fourier transform
+    have h_polar := fourierTransform_polar f w
+
+    -- Step 2: Simplify the real part of the integrand in the Fourier inversion formula
+    have h_LHS : ((cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * ((fourierMagnitude f w : ℂ) * cexp (2 * ↑π * I * ↑(fourierPhase f w)))).re =
+      fourierMagnitude f w * (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) := by
+      simp only [mul_re, sub_re, exp_re, re_ofNat, ofReal_re, im_ofNat, ofReal_im, mul_zero,
+        sub_zero, I_re, mul_im, zero_mul, add_zero, I_im, mul_one, sub_self, Real.exp_zero,
+        zero_add, one_mul, one_re, exp_im, sub_im, one_im]
+      rw [Real.cos_add]
+      ring
+
+    -- Step 3: Simplify the product of the Barron cosine bump and the Barron integrand
+    have h_RHS : (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) / (2 * π * ‖w‖) * (2 * π * ‖w‖ * fourierMagnitude f w) =
+      fourierMagnitude f w * (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) := by
+      have h_nonzero : 2 * π * ‖w‖ ≠ 0 := by
+        refine mul_ne_zero (mul_ne_zero two_ne_zero Real.pi_ne_zero) hw
+      calc
+        _ = (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) / (2 * π * ‖w‖) * (2 * π * ‖w‖) * fourierMagnitude f w := by ring
+        _ = (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) * fourierMagnitude f w := by rw [div_mul_cancel₀ _ h_nonzero]
+        _ = _ := by ring
+
+    -- Conclude the main goal by substitution
+    rw [h_polar]
+    unfold barronCosineBump barronIntegrand
+    rw [if_neg hw, h_LHS, h_RHS]
+
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:
 ```
@@ -192,62 +297,28 @@ theorem barronTheorem
           Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
             (fun wb => thresholdActivation
               (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
-  -- Step 1: Fourier inversion theorem gives an exact representation of f since f and fhat are L1 and f is continuous.
-  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := 
-    barron_fourier_inv hf_cont hf_L1 hfhat_L1
+  -- Step 1: The difference f(x) - f(0) can be expressed as an integral over the difference of exponentials.
+  have h_diff : ∀ x, (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w :=
+    fun x => barron_diff_exp hf_cont hf_L1 hfhat_L1 x
 
-  -- Step 2: The difference f(x) - f(0) can be expressed as an integral over the difference of exponentials.
-  have h_diff : ∀ x, (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w := by
-    intro x
-    have hx := h_inv x
-    have h0 := h_inv 0
-    rw [hx, h0]
-    have h_int_x : FourierTransformInv.fourierInv (fourierTransform f) x = ∫ w : EuclideanSpace ℝ (Fin d), Complex.exp (2 * π * Complex.I * (inner ℝ w x : ℝ)) * fourierTransform f w := by
-      change VectorFourier.fourierIntegral _ _ _ _ _ = _
-      apply integral_congr_ae
-      filter_upwards [] with w
-      simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, mul_neg, neg_mul, Complex.ofReal_neg, Complex.ofReal_mul]
-      sorry
-    have h_int_0 : FourierTransformInv.fourierInv (fourierTransform f) 0 = ∫ w : EuclideanSpace ℝ (Fin d), fourierTransform f w := by
-      change VectorFourier.fourierIntegral _ _ _ _ _ = _
-      apply integral_congr_ae
-      filter_upwards [] with w
-      simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, inner_zero_right, mul_zero, zero_mul, Complex.exp_zero, one_mul, Complex.ofReal_zero, neg_zero]
-    rw [h_int_x, h_int_0, ← integral_sub]
-    · apply integral_congr_ae
-      filter_upwards [] with w
-      ring_nf
-    · sorry
-    · sorry
-
-  -- Step 3: By taking the real part, we can rewrite the complex exponential in terms of cosines and the phase.
-  have h_real : ∀ x, f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w := by
-    -- Use polar representation of `fourierTransform f w`.
-    -- The definition of `barronIntegrand` and `barronCosineBump` naturally emerges from the real part of the difference.
-    sorry
+  -- Step 2: By taking the real part, we can rewrite the complex exponential in terms of cosines and the phase.
+  have h_real : ∀ x, f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w :=
+    fun x => barron_real_part hfhat_L1 x (h_diff x)
 
   -- Step 4: For each w, the cosine bump function can be represented as an integral over a threshold (step) function.
   have h_threshold : ∀ w x, ‖x‖ ≤ 1 →
       ∃ g : ℝ → ℝ, barronCosineBump w (fourierPhase f w) x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
-    -- This relies on `univariateIntegralRep` (the fundamental theorem of calculus representation)
-    -- adapted to the domain of the projection `inner ℝ w x`.
+    intro w x hx
+    -- We can represent the cosine bump using an integral over the threshold activation.
+    -- This uses the Fundamental Theorem of Calculus on the Lipschitz function cosine bump.
     sorry
 
   -- Step 5: Construct the measure for the infinite-width network by combining the measure over `w` (from barronIntegrand)
   -- and the measure over `b` (from the threshold representation).
-  have h_net : ∃ (net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1)),
-      Approximation.InfiniteWidth.InfiniteWidthNetwork.mass thresholdActivation net ≤ 2 * barronNorm f ∧
-      ∀ x : EuclideanSpace ℝ (Fin d), ‖x‖ ≤ 1 →
-        f x - f 0 = Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
-            (fun wb => thresholdActivation
-              (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
-    -- Define the network's signed measure via the product structure.
-    -- Swapping the integrals (via Fubini's theorem) yields the network evaluation form.
-    -- The bound on the total variation (mass) is exactly twice the integral of `barronIntegrand`,
-    -- which is 2 * `barronNorm f`.
-    sorry
-
-  exact h_net
+  -- Swapping the integrals (via Fubini's theorem) yields the network evaluation form.
+  -- The bound on the total variation (mass) is exactly twice the integral of `barronIntegrand`,
+  -- which is 2 * `barronNorm f`.
+  sorry
 
 /-! ### Barron norm examples -/
 
