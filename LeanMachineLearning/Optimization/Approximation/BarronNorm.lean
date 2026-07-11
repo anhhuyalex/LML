@@ -275,6 +275,42 @@ private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
     unfold barronCosineBump barronIntegrand
     rw [if_neg hw, h_LHS, h_RHS]
 
+-- A cosine bump can be represented as an integral against a threshold activation:
+-- for any w, θ, x there exists g such that barronCosineBump w θ x = ∫ b, σ(⟨w,x⟩ - b) · g(b) db.
+-- The construction places a constant block of height B = barronCosineBump w θ x on [⟨w,x⟩-1, ⟨w,x⟩]
+-- and zero elsewhere; the threshold activation σ(z-b) = 1 exactly on that interval.
+private lemma barronCosineBump_threshold_repr {d : ℕ} (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) :
+    ∃ g : ℝ → ℝ, barronCosineBump w θ x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
+  set z := inner ℝ w x with hz
+  set B := barronCosineBump w θ x with hB
+  let g : ℝ → ℝ := fun b => if b ∈ Set.Icc (z - 1) z then B else 0
+  refine ⟨g, ?_⟩
+  -- Key observation: thresholdActivation(z - b) = 1 when b ≤ z (i.e., when g b ≠ 0)
+  have h_pointwise : ∀ b, thresholdActivation (z - b) * g b = g b := by
+    intro b
+    dsimp [g]
+    by_cases hb : b ∈ Set.Icc (z - 1) z
+    · -- b ∈ [z-1, z], so b ≤ z, hence z - b ≥ 0
+      have hz_ge_b : z - b ≥ 0 := by
+        rcases hb with ⟨hbl, hbr⟩
+        linarith
+      simp [thresholdActivation, hb, hz_ge_b]
+    · -- b ∉ [z-1, z], so g b = 0
+      simp [hb]
+  have h_int_eq : ∫ b : ℝ, thresholdActivation (z - b) * g b = ∫ b : ℝ, g b :=
+    integral_congr_ae (ae_of_all volume h_pointwise)
+  rw [h_int_eq]
+  -- g equals the indicator of Icc(z-1, z) scaled by B
+  have h_g_eq_indicator : g = Set.indicator (Set.Icc (z - 1) z) (fun _ => B) := by
+    ext b; simp [g, Set.indicator]
+  rw [h_g_eq_indicator]
+  rw [integral_indicator_const B measurableSet_Icc]
+  -- volume of [z-1, z] = 1
+  have h_vol : volume.real (Set.Icc (z - 1) z) = (1 : ℝ) := by
+    rw [measureReal_def, Real.volume_Icc]
+    simp
+  simp [h_vol]
+
 /-- **Theorem 3.1** (Based on Barron 1993; Telgarsky 2021).
 If `∫ ‖∇̂f(w)‖ dw < ∞`, `f ∈ L¹`, and `f̂ ∈ L¹`, then for ‖x‖ ≤ 1:
 ```
@@ -310,24 +346,9 @@ theorem barronTheorem
   -- Step 4: For each w, the cosine bump function can be represented as an integral over a threshold (step) function.
   have h_threshold : ∀ w x, ‖x‖ ≤ 1 →
       ∃ g : ℝ → ℝ, barronCosineBump w (fourierPhase f w) x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
-    intro w x hx
-    -- We can represent the cosine bump using an integral over the threshold activation.
-    -- This uses the Fundamental Theorem of Calculus on the Lipschitz function cosine bump.
-    let θ := fourierPhase f w
-    let R := ‖w‖
-    by_cases hR : R = 0
-    · -- Trivial case: w = 0, so the bump is 0.
-      use (fun _ => 0)
-      -- Integral of 0 is 0, and barronCosineBump is 0 when ‖w‖ = 0
-      sorry
-    · -- Main case: w ≠ 0, construct the exact step representation.
-      -- Let h(z) = (cos(2πz + 2πθ) - cos(2πθ)) / (2πR)
-      -- g(b) = h(-R)/R for b ∈ [-2R, -R) and h'(b) for b ∈ [-R, R]
-      -- We can state the existence of g that satisfies the threshold activation integral for this non-trivial case.
-      -- This g function is analytically defined as h'(b) for b in [-R, R] and a constant block to match h(-R).
-      have h_witness : ∃ g : ℝ → ℝ, barronCosineBump w θ x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
-        sorry
-      exact h_witness
+    intro w x _hx
+    -- Delegate to the generic representation lemma
+    exact barronCosineBump_threshold_repr w (fourierPhase f w) x
 
   -- Step 5: Construct the measure for the infinite-width network by combining the measure over `w` (from barronIntegrand)
   -- and the measure over `b` (from the threshold representation).

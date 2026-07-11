@@ -12,6 +12,8 @@ public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Hahn
 public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Jordan
 public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
 public import Mathlib.Analysis.Calculus.FDeriv.Basic
 public import Mathlib.Analysis.Calculus.MeanValue
 
@@ -106,6 +108,12 @@ If g : ℝ → ℝ is differentiable on [0, 1] with g(0) = 0, then for all x ∈
 This is an exact infinite-width threshold-network representation of g.
 **Proof:** Immediate from the fundamental theorem of calculus:
   g(x) = g(0) + ∫₀ˣ g'(b) db = ∫₀¹ 1[x ≥ b] g'(b) db. -/
+-- For x ∈ [0,1], the intersection of Icc 0 1 with Iic x equals Icc 0 x.
+-- This set equality bridges the threshold indicator domain with the FTC integration domain.
+private lemma Icc_inter_Iic_eq_Icc {x : ℝ} (hx1 : x ≤ 1) :
+    Set.Icc (0 : ℝ) 1 ∩ Set.Iic x = Set.Icc (0 : ℝ) x := by
+  ext y; simp; exact fun hyx hy0 => hyx.trans hx1
+
 theorem univariateIntegralRep
     {g : ℝ → ℝ}
     (hg_diff : ∀ x ∈ Icc (0 : ℝ) 1, HasDerivAt g (deriv g x) x)
@@ -116,10 +124,37 @@ theorem univariateIntegralRep
   simp only [univariateThresholdRep, thresholdUnit]
   have eq1 : (fun b => if x ≥ b then deriv g b else 0) =
       (fun b => (Set.Iic x).indicator (deriv g) b) := by
-    ext b
-    simp only [Set.indicator, Set.mem_Iic, ge_iff_le]
+    ext b; simp only [Set.indicator, Set.mem_Iic, ge_iff_le]
   rw [eq1]
-  sorry
+  -- Extract bounds from hx
+  have hx0 : (0 : ℝ) ≤ x := hx.1
+  have hx1 : x ≤ (1 : ℝ) := hx.2
+  -- Restrict differentiability hypothesis from [0,1] to [0,x]
+  have hderiv_sub : ∀ y ∈ Set.uIcc (0 : ℝ) x, HasDerivAt g (deriv g y) y := by
+    intro y hy
+    rw [Set.uIcc_of_le hx0] at hy
+    rcases hy with ⟨hy0, hyx⟩
+    exact hg_diff y ⟨hy0, hyx.trans hx1⟩
+  -- Restrict integrability hypothesis from [0,1] to [0,x]
+  have hint_sub : IntervalIntegrable (deriv g) MeasureTheory.volume (0 : ℝ) x := by
+    apply hg'_int.mono_set
+    rw [Set.uIcc_of_le hx0, Set.uIcc_of_le zero_le_one]
+    exact Set.Icc_subset_Icc le_rfl hx1
+  -- Apply the Fundamental Theorem of Calculus (FTC-2) for the Lebesgue integral
+  have hftc := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv_sub hint_sub
+  -- hftc : ∫ y in (0 : ℝ)..x, deriv g y = g x - g 0
+  rw [hg0, sub_zero] at hftc
+  -- hftc: ∫ y in (0 : ℝ)..x, deriv g y = g x
+  rw [intervalIntegral.integral_of_le hx0,
+    ← MeasureTheory.integral_Icc_eq_integral_Ioc' (volume_singleton (a := 0))] at hftc
+  -- Now hftc: ∫ y in Icc 0 x, deriv g y = g x
+  -- Relate Icc 0 x to the indicator integral over Icc 0 1 via Iic x
+  calc
+    g x = (∫ y in Set.Icc (0 : ℝ) x, deriv g y) := by rw [← hftc]
+    _ = (∫ y in Set.Icc (0 : ℝ) 1 ∩ Set.Iic x, deriv g y) := by
+      rw [Icc_inter_Iic_eq_Icc hx1]
+    _ = (∫ y in Set.Icc (0 : ℝ) 1, (Set.Iic x).indicator (deriv g) y) := by
+      rw [← MeasureTheory.setIntegral_indicator measurableSet_Iic]
 
 /-- **Remark** (Remark 3.1): The error from sampling the univariate infinite-width
 representation scales with ∫₀¹ |g'(x)| dx (the total variation of g), which is
