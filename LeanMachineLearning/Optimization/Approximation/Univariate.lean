@@ -55,12 +55,12 @@ noncomputable def stepApprox (g : ℝ → ℝ) (ρ ε : ℝ) (x : ℝ) : ℝ :=
 
 /-- The step-function approximant lies in the threshold network function class. -/
 theorem stepApprox_mem_FunctionClass (_hρ : 0 < ρ) (_hε : 0 < ε) :
-    (fun (x : Fin 1 → ℝ)
+    (fun (x : EuclideanSpace ℝ (Fin 1))
       => stepApprox g ρ ε (x 0)) ∈
         OneHiddenLayer.FunctionClass thresholdActivation 1 (numSteps ρ ε) := by
   simp only [OneHiddenLayer.FunctionClass, Set.mem_setOf_eq]
   let net : OneHiddenLayer.Network thresholdActivation 1 (numSteps ρ ε) :=
-    { weights := fun i _ => 1
+    { weights := fun i => (EuclideanSpace.equiv (Fin 1) ℝ).symm (fun _ => 1)
       biases  := fun i => -(breakpoint ρ ε i.val)
       coeffs  := fun i => coeff g ρ ε i.val }
   exact ⟨net, by

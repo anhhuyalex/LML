@@ -60,21 +60,19 @@ variable {d : ℕ}
 
 /-! ### Fourier transform setup -/
 
-/-- The standard inner product on ℝᵈ (via Fin d → ℝ). -/
-noncomputable def innerProd (w x : Fin d → ℝ) : ℝ :=
-  ∑ j, w j * x j
+
 
 /-- The Fourier transform of f : ℝᵈ → ℝ.
 `𝓕 f(w) = ∫ exp(-2πi ⟨w, x⟩) f(x) dx`. -/
-noncomputable def fourierTransform (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ) : ℂ :=
-  ∫ x : Fin d → ℝ, Complex.exp (-(2 * π * Complex.I * innerProd w x)) * f x
+noncomputable def fourierTransform (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℂ :=
+  ∫ x : EuclideanSpace ℝ (Fin d), Complex.exp (-(2 * π * Complex.I * ↑(inner ℝ w x))) * f x
 
 /-- The magnitude of the Fourier transform. -/
-noncomputable def fourierMagnitude (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ) : ℝ :=
+noncomputable def fourierMagnitude (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
   ‖fourierTransform f w‖
 
 /-- The phase angle θ(w) of f̂(w): the unique θ with f̂(w) = |f̂(w)| · exp(2πiθ). -/
-noncomputable def fourierPhase (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ) : ℝ :=
+noncomputable def fourierPhase (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
   Complex.arg (fourierTransform f w) / (2 * π)
 
 /-! ### Barron norm (Definition 3.1) -/
@@ -82,7 +80,7 @@ noncomputable def fourierPhase (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ)
 /-- The Barron norm integrand: ‖∇̂f(w)‖ = 2π·‖w‖·|f̂(w)|.
 This follows from the Fourier derivative identity ∇̂f(w) = 2πi·w·f̂(w),
 so ‖∇̂f(w)‖ = 2π·‖w‖·|f̂(w)|. -/
-noncomputable def barronIntegrand (f : (Fin d → ℝ) → ℝ) (w : Fin d → ℝ) : ℝ :=
+noncomputable def barronIntegrand (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
   2 * π * ‖w‖ * fourierMagnitude f w
 
 /-- **Definition 3.1** (Barron 1993; Telgarsky 2021).
@@ -90,15 +88,15 @@ The *Barron norm* of f : ℝᵈ → ℝ is
   `‖f‖_Barron := ∫ ‖∇̂f(w)‖ dw = 2π ∫ ‖w‖ · |f̂(w)| dw`.
 The corresponding *Barron class with norm C* is
   `ℱ_C := {f : ℝᵈ → ℝ | ‖f‖_Barron ≤ C}`. -/
-noncomputable def barronNorm (f : (Fin d → ℝ) → ℝ) : ℝ :=
-  ∫ w : Fin d → ℝ, barronIntegrand f w
+noncomputable def barronNorm (f : (EuclideanSpace ℝ (Fin d)) → ℝ) : ℝ :=
+  ∫ w : EuclideanSpace ℝ (Fin d), barronIntegrand f w
 
 /-- The Barron class: functions with Barron norm at most C. -/
-def BarronClass (C : ℝ) (d : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
+def BarronClass (C : ℝ) (d : ℕ) : Set ((EuclideanSpace ℝ (Fin d)) → ℝ) :=
   {f | ∃ _ : Integrable (barronIntegrand f) volume, barronNorm f ≤ C}
 
 /-- Barron norm is nonneg. -/
-lemma barronNorm_nonneg (f : (Fin d → ℝ) → ℝ) : 0 ≤ barronNorm f := by
+lemma barronNorm_nonneg (f : (EuclideanSpace ℝ (Fin d)) → ℝ) : 0 ≤ barronNorm f := by
   apply MeasureTheory.integral_nonneg
   intro w
   simp only [barronIntegrand, fourierMagnitude]
@@ -110,46 +108,31 @@ lemma barronNorm_nonneg (f : (Fin d → ℝ) → ℝ) : 0 ≤ barronNorm f := by
   `(cos(2π wᵀx + 2πθ) - cos(2πθ)) / (2π‖w‖)`.
 This is Lipschitz in x (bounded by ‖x‖) and is the building block of the
 infinite-width threshold representation. -/
-noncomputable def barronCosineBump (w : Fin d → ℝ) (θ : ℝ) (x : Fin d → ℝ) : ℝ :=
+noncomputable def barronCosineBump (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
   if ‖w‖ = 0 then 0
-  else (Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)) /
+  else (Real.cos (2 * π * inner ℝ w x + 2 * π * θ) - Real.cos (2 * π * θ)) /
        (2 * π * ‖w‖)
 
--- Cauchy-Schwarz: |⟨w, x⟩| ≤ ‖w‖ · ‖x‖ for innerProd on Fin d → ℝ.
--- hnorm_w / hnorm_x require EuclideanSpace ℝ (Fin d); they are false for the Pi sup-norm.
-private lemma innerProd_abs_le (w x : Fin d → ℝ) : |innerProd w x| ≤ ‖w‖ * ‖x‖ := by
-  have hCS : (innerProd w x) ^ 2 ≤
-      (∑ j : Fin d, w j ^ 2) * (∑ j : Fin d, x j ^ 2) := by
-    unfold innerProd
-    exact Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => w j) (fun j => x j)
-  have hnorm_w : ‖w‖ ^ 2 = ∑ j : Fin d, w j ^ 2 := by sorry
-  have hnorm_x : ‖x‖ ^ 2 = ∑ j : Fin d, x j ^ 2 := by sorry
-  have h1 : |innerProd w x| ^ 2 ≤ (‖w‖ * ‖x‖) ^ 2 := by
-    rw [sq_abs, mul_pow, hnorm_w, hnorm_x]; exact hCS
-  have ha : 0 ≤ |innerProd w x| := abs_nonneg _
-  have hb : 0 ≤ ‖w‖ * ‖x‖ := mul_nonneg (norm_nonneg w) (norm_nonneg x)
-  have h2 := Real.sqrt_le_sqrt h1
-  rwa [Real.sqrt_sq ha, Real.sqrt_sq hb] at h2
 
 /-- The Barron cosine bump is bounded by ‖x‖ (pointwise). -/
-lemma barronCosineBump_bound (w : Fin d → ℝ) (θ : ℝ) (x : Fin d → ℝ) :
+lemma barronCosineBump_bound (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) :
     |barronCosineBump w θ x| ≤ ‖x‖ := by
   simp only [barronCosineBump]
   split_ifs with hw
   · simp
   · rw [abs_div, div_le_iff₀ (by positivity)]
     -- Cosine is 1-Lipschitz, so |cos(a) - cos(b)| ≤ |a - b|; then apply Cauchy-Schwarz.
-    calc |Real.cos (2 * π * innerProd w x + 2 * π * θ) - Real.cos (2 * π * θ)|
-        ≤ |2 * π * innerProd w x + 2 * π * θ - 2 * π * θ| := by
+    calc |Real.cos (2 * π * inner ℝ w x + 2 * π * θ) - Real.cos (2 * π * θ)|
+        ≤ |2 * π * inner ℝ w x + 2 * π * θ - 2 * π * θ| := by
           have h := LipschitzWith.dist_le_mul Real.lipschitzWith_cos
-            (2 * π * innerProd w x + 2 * π * θ) (2 * π * θ)
+            (2 * π * inner ℝ w x + 2 * π * θ) (2 * π * θ)
           rw [Real.dist_eq, Real.dist_eq] at h; simpa using h
-      _ = 2 * π * |innerProd w x| := by
-          rw [show 2 * π * innerProd w x + 2 * π * θ - 2 * π * θ =
-              (2 * π) * innerProd w x by ring,
+      _ = 2 * π * |inner ℝ w x| := by
+          rw [show 2 * π * inner ℝ w x + 2 * π * θ - 2 * π * θ =
+              (2 * π) * inner ℝ w x by ring,
               abs_mul, abs_of_pos Real.two_pi_pos]
       _ ≤ 2 * π * (‖w‖ * ‖x‖) :=
-          mul_le_mul_of_nonneg_left (innerProd_abs_le w x) (le_of_lt Real.two_pi_pos)
+          mul_le_mul_of_nonneg_left (abs_real_inner_le_norm w x) (le_of_lt Real.two_pi_pos)
       _ = ‖x‖ * (2 * π * ‖w‖) := by ring
       _ = ‖x‖ * |2 * π * ‖w‖| := by
           have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw)
@@ -166,18 +149,18 @@ whose mass is at most `2 · ‖f‖_Barron`.
 This writes f as an exact infinite-width representation with measure mass bounded by
 `2 · barronNorm f`. -/
 theorem barronTheorem
-    {f : (Fin d → ℝ) → ℝ}
+    {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (fourierTransform f) volume)
     (hbarron : Integrable (barronIntegrand f) volume) :
     ∃ (net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1)),
       Approximation.InfiniteWidth.InfiniteWidthNetwork.mass thresholdActivation net ≤
         2 * barronNorm f ∧
-      ∀ x : Fin d → ℝ, ‖x‖ ≤ 1 →
+      ∀ x : EuclideanSpace ℝ (Fin d), ‖x‖ ≤ 1 →
         f x - f 0 =
           Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
             (fun wb => thresholdActivation
-              (innerProd (fun j => wb j.castSucc) x - wb (Fin.last d))) := by
+              (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
   sorry
 
 /-! ### Barron norm examples -/
@@ -189,7 +172,7 @@ For f(x) = (2πσ²)^{d/2} exp(-‖x‖²/(2σ²)), we have
 `‖f‖_Barron = 2π ∫ ‖w‖ |f̂(w)| dw ≤ C · √d`
 where C depends only on σ, and the Barron norm is polynomial (not exponential) in d
 when 2πσ² ≥ 1. -/
-noncomputable def gaussian (σ : ℝ) (x : Fin d → ℝ) : ℝ :=
+noncomputable def gaussian (σ : ℝ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
   (2 * π * σ ^ 2) ^ ((d : ℝ) / 2) * Real.exp (- ‖x‖ ^ 2 / (2 * σ ^ 2))
 
 theorem gaussian_barronNorm_bound
@@ -201,22 +184,22 @@ theorem gaussian_barronNorm_bound
 /-- A radial function f(x) = g(‖x‖) can have exponential Barron norm in dimension,
 but under suitable decay conditions on g, its Barron integrand is integrable.
 (Barron 1993, Sec. IX.9) -/
-theorem radial_barron_integrable (g : ℝ → ℝ) (f : (Fin d → ℝ) → ℝ)
+theorem radial_barron_integrable (g : ℝ → ℝ) (f : (EuclideanSpace ℝ (Fin d)) → ℝ)
     (hf : ∀ x, f x = g ‖x‖) (h_decay : True) :
     Integrable (barronIntegrand f) volume := by sorry
 
 /-- Functions that are compositions of suitable scalar functions with polynomials
 have finite Barron norm. (Barron 1993, Sec. IX.12) -/
-theorem polynomial_comp_barron_integrable (P : (Fin d → ℝ) → ℝ) (g : ℝ → ℝ)
-    (f : (Fin d → ℝ) → ℝ) (hf : ∀ x, f x = g (P x)) (hP : True) (hg : True) :
+theorem polynomial_comp_barron_integrable (P : (EuclideanSpace ℝ (Fin d)) → ℝ) (g : ℝ → ℝ)
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (hf : ∀ x, f x = g (P x)) (hP : True) (hg : True) :
     Integrable (barronIntegrand f) volume := by sorry
 
 /-- Analytic functions on suitable domains have finite Barron norm. (Barron 1993, Sec. IX.13) -/
-theorem analytic_barron_integrable (f : (Fin d → ℝ) → ℝ) (hf_analytic : True) :
+theorem analytic_barron_integrable (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (hf_analytic : True) :
     Integrable (barronIntegrand f) volume := by sorry
 
 /-- Functions with O(d) bounded derivatives have finite Barron norm. (Barron 1993, Sec. IX.15) -/
-theorem bounded_derivs_barron_integrable (f : (Fin d → ℝ) → ℝ) (hf_derivs : True) :
+theorem bounded_derivs_barron_integrable (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (hf_derivs : True) :
     Integrable (barronIntegrand f) volume := by sorry
 
 end Approximation.BarronNorm

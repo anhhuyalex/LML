@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.Topology.ContinuousMap.Algebra
 public import Mathlib.Topology.Algebra.Algebra
-public import Mathlib.Data.Polynomial.Eval
+public import Mathlib.Algebra.Polynomial.Basic
 
 /-!
 # Universal approximation theorem (Hornik-Stinchcombe-White 1989)
@@ -46,16 +46,16 @@ variable {d : ℕ}
 /-- A function class ℱ is a universal approximator over compact sets if for every
     compact S ⊆ ℝᵈ, every continuous g : S → ℝ, and every ε > 0, there is f ∈ ℱ
     with sup_{x ∈ S} |f(x) - g(x)| ≤ ε. -/
-def IsUniversal (ℱ : Set ((Fin d → ℝ) → ℝ)) : Prop :=
-  ∀ (S : Set (Fin d → ℝ)), IsCompact S →
-  ∀ (g : (Fin d → ℝ) → ℝ), ContinuousOn g S →
+def IsUniversal (ℱ : Set ((EuclideanSpace ℝ (Fin d)) → ℝ)) : Prop :=
+  ∀ (S : Set (EuclideanSpace ℝ (Fin d))), IsCompact S →
+  ∀ (g : (EuclideanSpace ℝ (Fin d)) → ℝ), ContinuousOn g S →
   ∀ ε > 0, ∃ f ∈ ℱ, ∀ x ∈ S, |f x - g x| ≤ ε
 
 /-! ### Closure under multiplication -/
 
 /-- F_{cos,d} is closed under pointwise multiplication.
     Proof uses 2cos(y)cos(z) = cos(y+z) + cos(y-z). -/
-theorem cos_mul_mem (f₁ f₂ : (Fin d → ℝ) → ℝ)
+theorem cos_mul_mem (f₁ f₂ : (EuclideanSpace ℝ (Fin d)) → ℝ)
     (hf₁ : f₁ ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d)
     (hf₂ : f₂ ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d) :
     (fun x => f₁ x * f₂ x) ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d := by
@@ -63,7 +63,7 @@ theorem cos_mul_mem (f₁ f₂ : (Fin d → ℝ) → ℝ)
 
 /-- F_{exp,d} is closed under pointwise multiplication.
     Proof uses exp(aᵀx) · exp(bᵀx) = exp((a+b)ᵀx). -/
-theorem exp_mul_mem (f₁ f₂ : (Fin d → ℝ) → ℝ)
+theorem exp_mul_mem (f₁ f₂ : (EuclideanSpace ℝ (Fin d)) → ℝ)
     (hf₁ : f₁ ∈ OneHiddenLayer.UnboundedClass Real.exp d)
     (hf₂ : f₂ ∈ OneHiddenLayer.UnboundedClass Real.exp d) :
     (fun x => f₁ x * f₂ x) ∈ OneHiddenLayer.UnboundedClass Real.exp d := by
@@ -73,21 +73,20 @@ theorem exp_mul_mem (f₁ f₂ : (Fin d → ℝ) → ℝ)
 
 /-- F_{cos,d} satisfies the Stone-Weierstrass separation condition:
     for x ≠ x', the function z ↦ cos((z-x')ᵀ(x-x')/‖x-x'‖²) separates them. -/
-lemma cos_separates_points (x x' : Fin d → ℝ) (h : x ≠ x') :
+lemma cos_separates_points (x x' : EuclideanSpace ℝ (Fin d)) (h : x ≠ x') :
     ∃ f ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d, f x ≠ f x' := by
   sorry
 
 /-- F_{cos,d} does not vanish: cos(0ᵀx) = 1 for all x. -/
-lemma cos_nonvanishing (x : Fin d → ℝ) :
+lemma cos_nonvanishing (x : EuclideanSpace ℝ (Fin d)) :
     ∃ f ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d, f x ≠ 0 := by
   refine ⟨fun _ => 1, ?_, one_ne_zero⟩
   simp only [OneHiddenLayer.UnboundedClass, OneHiddenLayer.FunctionClass,
     Set.mem_iUnion, Set.mem_setOf_eq]
   -- Use one neuron: weight 0, bias 0, coefficient 1 → eval = 1 * cos(0) = 1
-  exact ⟨1, { weights := fun _ _ => 0, biases := fun _ => 0, coeffs := fun _ => 1 }, by
+  exact ⟨1, { weights := fun _ => 0, biases := fun _ => 0, coeffs := fun _ => 1 }, by
     funext y
-    simp [OneHiddenLayer.Network.eval, zero_mul,
-          Finset.sum_const_zero, Real.cos_zero]⟩
+    simp [OneHiddenLayer.Network.eval]⟩
 
 /-! ### Main universality theorems -/
 

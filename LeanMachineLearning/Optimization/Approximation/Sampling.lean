@@ -10,6 +10,7 @@ public import Mathlib.Analysis.InnerProductSpace.Basic
 public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Hahn
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.MeasureTheory.Function.L2Space
+public import Mathlib.Order.Interval.Set.Basic
 
 /-!
 # Sampling from infinite-width networks: Maurey's lemma
@@ -167,22 +168,22 @@ satisfies the L₂(P) error bound
 In particular, to achieve error ε, it suffices to take k ≥ 4C²/ε². -/
 theorem barronSamplingBound
     {d : ℕ}
-    {f : (Fin d → ℝ) → ℝ}
+    {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
     {C : ℝ} (hC : 0 < C)
     (hf : f ∈ BarronNorm.BarronClass C d)
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (BarronNorm.fourierTransform f) volume)
     {Ω_x : Type*} {mΩ_x : MeasurableSpace Ω_x}
     (P : Measure Ω_x) [IsProbabilityMeasure P]
-    (x_embed : Ω_x → Fin d → ℝ) (hx_unit : ∀ ω, ‖x_embed ω‖ ≤ 1)
+    (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_unit : ∀ ω, ‖x_embed ω‖ ≤ 1)
     {k : ℕ} (hk : 0 < k) :
-    ∃ (weights : Fin k → Fin d → ℝ)
+    ∃ (weights : Fin k → EuclideanSpace ℝ (Fin d))
       (biases : Fin k → ℝ)
       (signs : Fin k → ℝ),
       ∀ ω : Ω_x,
         let x := x_embed ω
         let fhat := f 0 + (2 * C / k) * ∑ i, signs i *
-          thresholdActivation (BarronNorm.innerProd (weights i) x - biases i)
+          thresholdActivation (inner ℝ (weights i) x - biases i)
         (f x - fhat) ^ 2 ≤ 4 * C ^ 2 / k := by
   sorry
 
@@ -192,12 +193,12 @@ with k nodes sampled from its integral representation achieves an L₂(P) error
 bounded by (1/k) * (∫₀¹ |g'(x)| dx)². -/
 theorem univariateSamplingBound
     {g : ℝ → ℝ}
-    (hg_diff : ∀ x ∈ Icc (0 : ℝ) 1, HasDerivAt g (deriv g x) x)
+    (hg_diff : ∀ x ∈ Set.Icc (0 : ℝ) 1, HasDerivAt g (deriv g x) x)
     (hg0 : g 0 = 0)
     (hg'_int : IntervalIntegrable (deriv g) MeasureTheory.volume 0 1)
     {Ω_x : Type*} {mΩ_x : MeasurableSpace Ω_x}
     (P : Measure Ω_x) [IsProbabilityMeasure P]
-    (x_embed : Ω_x → ℝ) (hx_unit : ∀ ω, x_embed ω ∈ Icc (0 : ℝ) 1)
+    (x_embed : Ω_x → ℝ) (hx_unit : ∀ ω, x_embed ω ∈ Set.Icc (0 : ℝ) 1)
     {k : ℕ} (hk : 0 < k) :
     ∃ (biases : Fin k → ℝ)
       (signs : Fin k → ℝ),
