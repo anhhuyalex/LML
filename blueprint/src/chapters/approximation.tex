@@ -46,7 +46,7 @@ The \emph{ReLU activation} is $\sigma_\mathrm{ReLU} : \mathbb{R} \to \mathbb{R}$
 \end{definition}
 
 \begin{definition}[Cosine activation]\label{def:cosActivation}
-  \lean{Approximation.cosActivation}
+  \lean{Real.cos}
 The \emph{cosine activation} is $\sigma_{\cos} : \mathbb{R} \to \mathbb{R}$ defined by $\sigma_{\cos}(z) = \cos(z)$.
 \end{definition}
 
@@ -272,18 +272,18 @@ $\mathcal{F}_{\exp,d}$ (the function class with activation $\sigma = \exp$) is c
 \subsection{Stone-Weierstrass and universal approximation}
 
 \begin{theorem}[Stone-Weierstrass]\label{thm:stoneWeierstrass}
-  \lean{ContinuousMap.subalgebra_topologicalClosure}
+  \lean{ContinuousMap.subalgebra_topologicalClosure_eq_top_of_separatesPoints}
 Let $S$ be a compact Hausdorff space and $\mathcal{F}$ a subalgebra of $C(S, \mathbb{R})$ that separates points and contains a non-vanishing function.
 Then $\mathcal{F}$ is dense in $C(S, \mathbb{R})$ in the sup-norm topology.
 \end{theorem}
 
 \begin{remark}
-  Theorem~\ref{thm:stoneWeierstrass} is available in Mathlib as \texttt{ContinuousMap.subalgebra\_topologicalClosure}.
+  Theorem~\ref{thm:stoneWeierstrass} is available in Mathlib as \texttt{ContinuousMap.subalgebra\_topologicalClosure\_eq\_top\_of\_separatesPoints}.
   Our task is to show that $\mathcal{F}_{\cos,d}$ (and then $\mathcal{F}_{\sigma,d}$) satisfies the hypotheses.
 \end{remark}
 
 \begin{definition}[Universal approximator]\label{def:universalApprox}
-  \lean{Approximation.IsUniversal}
+  \lean{Approximation.Universal.IsUniversal}
 A function class $\mathcal{F}$ is a \emph{universal approximator over compact sets} if for every compact $S \subseteq \mathbb{R}^d$, every continuous $g : S \to \mathbb{R}$, and every $\epsilon > 0$, there exists $f \in \mathcal{F}$ with
 \[
   \sup_{x \in S} |f(x) - g(x)| \le \epsilon
