@@ -630,14 +630,126 @@ lemma volume_unitCube : volume.real (unitCube d) = 1 := by
   rw [h_eq] at key
   rw [key]; simp
 
+-- For w ≥ 0 and natural numbers a < b, we have (a+1)*w ≤ b*w.
+-- This is used to show adjacent grid intervals are disjoint.
+private lemma nat_succ_mul_le_of_lt {w : ℝ} (hw_nonneg : 0 ≤ w) {a b : ℕ} (h_lt : a < b) :
+    ((a : ℝ) + 1) * w ≤ (b : ℝ) * w := by
+  have h_succ_le : (a : ℕ) + 1 ≤ b := Nat.succ_le_of_lt h_lt
+  have h_cast : ((a : ℕ) + 1 : ℝ) ≤ (b : ℝ) := by exact_mod_cast h_succ_le
+  nlinarith
+
+-- For w > 0 and a ≠ b, the half-open intervals [a*w, (a+1)*w) and [b*w, (b+1)*w) are disjoint.
+-- This is the key geometric fact behind the grid rectangle disjointness.
+private lemma grid_interval_disjoint {w : ℝ} (hw_pos : 0 < w) (a b : ℕ) (h_ne : a ≠ b) (x : ℝ) :
+    ¬(((a : ℝ) * w ≤ x ∧ x < (a : ℝ) * w + w) ∧ ((b : ℝ) * w ≤ x ∧ x < (b : ℝ) * w + w)) := by
+  have h_order : a < b ∨ b < a := Nat.lt_or_gt_of_ne h_ne
+  rintro ⟨⟨hxl₁, hxr₁⟩, ⟨hxl₂, hxr₂⟩⟩
+  rcases h_order with (h_lt | h_lt)
+  · have h_ineq : (a : ℝ) * w + w ≤ (b : ℝ) * w := by
+      calc
+        (a : ℝ) * w + w = ((a : ℝ) + 1) * w := by ring
+        _ ≤ (b : ℝ) * w := nat_succ_mul_le_of_lt (le_of_lt hw_pos) h_lt
+    nlinarith
+  · have h_ineq : (b : ℝ) * w + w ≤ (a : ℝ) * w := by
+      calc
+        (b : ℝ) * w + w = ((b : ℝ) + 1) * w := by ring
+        _ ≤ (a : ℝ) * w := nat_succ_mul_le_of_lt (le_of_lt hw_pos) h_lt
+    nlinarith
+
 /-- There exists a δ-fine rectangle partition of the unit cube.
     This is the standard grid construction: subdivide each coordinate
     into intervals of length ≤ δ. -/
 lemma exists_unitCube_partition {δ : ℝ} (hδ : 0 < δ) :
     ∃ P : RectanglePartition d (unitCube d) δ, True := by
-  -- We need to construct a δ-fine partition of [0,1)ᵈ.
-  -- Standard approach: pick n with 1/n ≤ δ, then use n^d equal sub-rectangles.
-  sorry
+  rcases exists_nat_one_div_lt hδ with ⟨n, hn⟩
+  have h_denom_ne_zero : (n : ℝ) + 1 ≠ 0 := by nlinarith
+  set w := 1 / ((n : ℝ) + 1) with hw_def
+  have hw_pos' : 0 < w := by
+    rw [hw_def]; exact div_pos (by norm_num) (add_pos_of_nonneg_of_pos (Nat.cast_nonneg _) (by norm_num))
+  have hw_le_δ : w ≤ δ := le_of_lt hn
+  classical
+    let rect (k : Fin d → Fin (n+1)) : Rectangle d := {
+      left := (EuclideanSpace.equiv (Fin d) ℝ).symm (fun j => ((k j : ℕ) : ℝ) * w)
+      width := (EuclideanSpace.equiv (Fin d) ℝ).symm (fun _ => w)
+      width_pos := by
+        intro j; dsimp; exact hw_pos'
+    }
+    let idx : Finset (Fin d → Fin (n+1)) :=
+      Fintype.piFinset fun (_ : Fin d) => Finset.univ
+    let rects : Finset (Rectangle d) := idx.image rect
+    have h_cover : ∀ x ∈ unitCube d, ∃ R ∈ rects, x ∈ R.toSet := by
+      intro x hx
+      let k (j : Fin d) : Fin (n+1) :=
+        have h_mul_nonneg : 0 ≤ ((n : ℝ) + 1) * x j := by nlinarith [(hx j).1]
+        have h_mul_lt : ((n : ℝ) + 1) * x j < (n : ℝ) + 1 := by
+          nlinarith [(hx j).2]
+        have h_mul_lt' : ((n : ℝ) + 1) * x j < ((n + 1 : ℕ) : ℝ) := by
+          simpa [Nat.cast_add] using h_mul_lt
+        have h_floor_lt : ⌊((n : ℝ) + 1) * x j⌋₊ < n + 1 :=
+          ((Nat.floor_lt h_mul_nonneg).mpr h_mul_lt')
+        ⟨⌊((n : ℝ) + 1) * x j⌋₊, h_floor_lt⟩
+      have h_mem_toSet : x ∈ (rect k).toSet := by
+        dsimp [Rectangle.toSet, rect]
+        intro j
+        have h_floor_val_le : (⌊((n : ℝ) + 1) * x j⌋₊ : ℝ) ≤ ((n : ℝ) + 1) * x j :=
+          Nat.floor_le (by nlinarith [(hx j).1])
+        have h_lt_floor_add_one : ((n : ℝ) + 1) * x j < (⌊((n : ℝ) + 1) * x j⌋₊ : ℝ) + 1 :=
+          Nat.lt_floor_add_one _
+        have h_left : ((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) * w ≤ x j := by
+          calc
+            ((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) * w =
+                ((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) / ((n : ℝ) + 1) := by dsimp [w]; ring
+            _ ≤ (((n : ℝ) + 1) * x j) / ((n : ℝ) + 1) := by gcongr
+            _ = x j := by field_simp [h_denom_ne_zero]
+        have h_right : x j < (((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) + 1) * w := by
+          calc
+            x j = (((n : ℝ) + 1) * x j) / ((n : ℝ) + 1) := by field_simp [h_denom_ne_zero]
+            _ < ((⌊((n : ℝ) + 1) * x j⌋₊ : ℝ) + 1) / ((n : ℝ) + 1) := by gcongr
+            _ = (((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) + 1) * w := by dsimp [w]; ring
+        -- Goal is: ((k j : ℕ) : ℝ) * w ≤ x j ∧ x j < ((k j : ℕ) : ℝ) * w + w
+        -- We have h_left/h_right in terms of ⌊...⌋₊; unfold k to rewrite
+        constructor
+        · dsimp [k]; exact h_left
+        · dsimp [k]
+          calc
+            x j < (((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) + 1) * w := h_right
+            _ = ((⌊((n : ℝ) + 1) * x j⌋₊ : ℕ) : ℝ) * w + w := by ring
+      have h_rect_mem : rect k ∈ rects := by
+        dsimp [rects]; exact Finset.mem_image.mpr ⟨k, by simp [idx], rfl⟩
+      exact ⟨rect k, h_rect_mem, h_mem_toSet⟩
+    have h_disjoint : ∀ R₁ ∈ rects, ∀ R₂ ∈ rects, R₁ ≠ R₂ → R₁.toSet ∩ R₂.toSet = ∅ := by
+      intro R₁ hR₁ R₂ hR₂ h_ne
+      dsimp [rects] at hR₁ hR₂
+      rcases Finset.mem_image.mp hR₁ with ⟨k₁, hk₁, rfl⟩
+      rcases Finset.mem_image.mp hR₂ with ⟨k₂, hk₂, rfl⟩
+      have hk_ne : k₁ ≠ k₂ := by
+        intro h_eq; apply h_ne; rw [h_eq]
+      have h_exists_j : ∃ j, (k₁ j : ℕ) ≠ (k₂ j : ℕ) := by
+        by_contra! h_all_eq
+        apply hk_ne
+        funext j; exact Fin.ext (h_all_eq j)
+      rcases h_exists_j with ⟨j, hj⟩
+      ext x; constructor
+      · intro hx
+        rcases hx with ⟨hx₁, hx₂⟩
+        rcases hx₁ j with ⟨hxl₁, hxr₁⟩; rcases hx₂ j with ⟨hxl₂, hxr₂⟩
+        simp [rect] at hxl₁ hxr₁ hxl₂ hxr₂
+        exfalso
+        exact grid_interval_disjoint hw_pos' (k₁ j) (k₂ j) hj (x j) ⟨⟨hxl₁, hxr₁⟩, ⟨hxl₂, hxr₂⟩⟩
+      · simp
+    have h_fine : ∀ R ∈ rects, R.isFine δ := by
+      intro R hR
+      dsimp [rects] at hR
+      rcases Finset.mem_image.mp hR with ⟨k, hk, rfl⟩
+      dsimp [Rectangle.isFine]
+      intro j
+      simpa [rect] using hw_le_δ
+    refine ⟨{
+      rectangles := rects
+      cover := h_cover
+      disjoint := h_disjoint
+      fine := h_fine
+    }, trivial⟩
 
 /-! ### Representability of rectIndicatorNet as a two-hidden-layer network -/
 
