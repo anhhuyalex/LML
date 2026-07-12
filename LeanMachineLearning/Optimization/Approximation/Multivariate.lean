@@ -99,7 +99,7 @@ noncomputable def representative (R : Rectangle d) : EuclideanSpace ℝ (Fin d) 
 /-- Piecewise constant approximation h = ∑ᵢ g(xᵢ) · 1_{Rᵢ}. -/
 noncomputable def piecewiseConstApprox {U : Set (EuclideanSpace ℝ (Fin d))} {δ : ℝ}
     (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (P : RectanglePartition d U δ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
-  ∑ R ∈ P.rectangles, g (representative R) * R.toSet.indicator 1 x
+  ∑ R ∈ P.rectangles, g (representative R) * R.toSet.indicator (fun _ => (1 : ℝ)) x
 
 /-- Lemma 2.1: piecewise constant approximation error ≤ modulus at scale δ. -/
 theorem piecewiseConstApprox_error {U : Set (EuclideanSpace ℝ (Fin d))} {δ ε : ℝ}
@@ -113,8 +113,8 @@ theorem piecewiseConstApprox_error {U : Set (EuclideanSpace ℝ (Fin d))} {δ ε
   have h_piecewise : piecewiseConstApprox g P x = g (representative R) := by
     dsimp [piecewiseConstApprox]
     calc
-      ∑ R' ∈ P.rectangles, g (representative R') * R'.toSet.indicator 1 x 
-        = g (representative R) * R.toSet.indicator 1 x := by
+      ∑ R' ∈ P.rectangles, g (representative R') * R'.toSet.indicator (fun _ => (1 : ℝ)) x
+        = g (representative R) * R.toSet.indicator (fun _ => (1 : ℝ)) x := by
           refine Finset.sum_eq_single_of_mem R hR ?_
           intro R' hR' h_ne
           have h_disjoint := P.disjoint R hR R' hR' h_ne.symm
@@ -126,7 +126,6 @@ theorem piecewiseConstApprox_error {U : Set (EuclideanSpace ℝ (Fin d))} {δ ε
           simp [hx_not_mem]
       _ = g (representative R) * 1 := by
           rw [Set.indicator_of_mem hxR]
-          rfl
       _ = g (representative R) := by ring
   rw [h_piecewise]
   -- Step 3: For each coordinate j, show |(representative R) j - x j| ≤ δ
@@ -359,103 +358,386 @@ lemma rectIndicatorNet_le_one {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
   exact max_le h_arg zero_le_one
 
 /-- L¹ error between gγ and the indicator of R is O(γ). -/
+-- If s ⊆ t, then 1_s ≤ 1_t pointwise (as ℝ-valued indicators)
+private lemma indicator_mono {α : Type*} {s t : Set α} (h : s ⊆ t) (x : α) :
+    (s.indicator (fun _ => (1 : ℝ)) x : ℝ) ≤ (t.indicator (fun _ => (1 : ℝ)) x : ℝ) := by
+  by_cases hx : x ∈ s
+  · have hx_t : x ∈ t := h hx
+    simp [hx, hx_t]
+  · by_cases hx_t : x ∈ t
+    · simp [hx, hx_t]
+    · simp [hx, hx_t]
+
+-- A half-open rectangle in ℝᵈ is measurable (finite intersection of half-open intervals)
+private lemma measurableSet_half_open_rectangle (l w : Fin d → ℝ) :
+    MeasurableSet {x : EuclideanSpace ℝ (Fin d) | ∀ j, l j ≤ x j ∧ x j < l j + w j} := by
+  have h_proj_measurable (j : Fin d) : Measurable (fun x : EuclideanSpace ℝ (Fin d) => x j) := by
+    have : (fun x : EuclideanSpace ℝ (Fin d) => x j) =
+        (fun f : Fin d → ℝ => f j) ∘ (@WithLp.ofLp 2 (Fin d → ℝ)) := rfl
+    rw [this]
+    exact (measurable_pi_apply j).comp (WithLp.measurable_ofLp 2 _)
+  have : {x | ∀ j, l j ≤ x j ∧ x j < l j + w j} = ⋂ j : Fin d,
+      {x : EuclideanSpace ℝ (Fin d) | l j ≤ x j} ∩
+      {x : EuclideanSpace ℝ (Fin d) | x j < l j + w j} := by
+    ext x; simp
+  rw [this]
+  refine MeasurableSet.iInter fun j => ?_
+  refine (measurableSet_le (measurable_const) (h_proj_measurable j)).inter ?_
+  exact measurableSet_lt (h_proj_measurable j) measurable_const
+
+-- Volume of a half-open rectangle in ℝᵈ: {x | ∀ j, l j ≤ x j < l j + w j}
+private lemma volume_half_open_rectangle_eq_prod (l w : Fin d → ℝ) (hw_pos : ∀ j, 0 < w j) :
+    volume.real {x : EuclideanSpace ℝ (Fin d) | ∀ j, l j ≤ x j ∧ x j < l j + w j} = ∏ j, w j := by
+  have h_eq : {x | ∀ j, l j ≤ x j ∧ x j < l j + w j} =
+      (@WithLp.ofLp 2 (Fin d → ℝ)) ⁻¹' (Set.pi Set.univ (fun j => Set.Ico (l j) (l j + w j))) := by
+    ext x; simp
+  have h_meas : MeasurableSet (Set.pi Set.univ (fun j => Set.Ico (l j) (l j + w j))) :=
+    MeasurableSet.pi Set.countable_univ (fun i _ => measurableSet_Ico)
+  rw [h_eq]
+  show (volume ((@WithLp.ofLp 2 (Fin d → ℝ)) ⁻¹'
+      (Set.pi Set.univ (fun j => Set.Ico (l j) (l j + w j))))).toReal = ∏ j, w j
+  rw [(PiLp.volume_preserving_ofLp (ι := Fin d)).measure_preimage h_meas.nullMeasurableSet]
+  have h_le : ∀ j, l j ≤ l j + w j := by
+    intro j; linarith [hw_pos j]
+  rw [volume_pi_Ico_toReal h_le]
+  apply Finset.prod_congr rfl
+  intro j _
+  ring
+
+-- rectIndicatorNet is continuous (as a composition of ReLU with continuous affine maps)
+private lemma rectIndicatorNet_continuous {R : Rectangle d} {γ : ℝ} :
+    Continuous (rectIndicatorNet R γ) := by
+  have h_cont_relu : Continuous reluActivation := by
+    unfold reluActivation
+    exact continuous_id.max continuous_const
+  -- softStep a b γ is continuous as a function ℝ → ℝ
+  have h_cont_softStep_fn (a b : ℝ) : Continuous (fun (z : ℝ) => softStep a b γ z) := by
+    dsimp [softStep]
+    have h_term (c : ℝ) : Continuous (fun (z : ℝ) => reluActivation ((z - c) / γ)) :=
+      h_cont_relu.comp ((continuous_id.sub continuous_const).div_const γ)
+    -- softStep = term(a-γ) - term(a) - term(b) + term(b+γ)
+    exact Continuous.add
+      (Continuous.sub
+        (Continuous.sub (h_term (a - γ)) (h_term a))
+        (h_term b))
+      (h_term (b + γ))
+  -- For each coordinate j, x ↦ softStep(...)(x j) is continuous on EuclideanSpace
+  have h_cont_coord (j : Fin d) : Continuous (fun (x : EuclideanSpace ℝ (Fin d)) =>
+      softStep (R.left j) (R.left j + R.width j) γ (x j)) :=
+    (h_cont_softStep_fn (R.left j) (R.left j + R.width j)).comp
+      (PiLp.continuous_apply (p := 2) (β := fun _ : Fin d => ℝ) j)
+  -- The sum over all coordinates is continuous
+  have h_cont_sum : Continuous (fun (x : EuclideanSpace ℝ (Fin d)) =>
+      ∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j)) :=
+    continuous_finsetSum (Finset.univ : Finset (Fin d)) fun j _ => h_cont_coord j
+  -- rectIndicatorNet = reluActivation ∘ (sum - (d-1)), hence continuous
+  unfold rectIndicatorNet
+  refine h_cont_relu.comp ?_
+  exact h_cont_sum.sub continuous_const
+
+-- Pointwise bound: |gγ - 1_R| ≤ 1_S - 1_R when R ⊆ S and gγ = 0 outside S
+private lemma rectIndicatorNet_pointwise_bound {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
+    (S : Set (EuclideanSpace ℝ (Fin d))) (h_sub : R.toSet ⊆ S)
+    (h_zero_outside : ∀ x, x ∉ S → rectIndicatorNet R γ x = 0) (x : EuclideanSpace ℝ (Fin d)) :
+    |rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x| ≤
+    (S.indicator (fun _ => (1 : ℝ)) x : ℝ) - (R.toSet.indicator (fun _ => (1 : ℝ)) x : ℝ) := by
+  by_cases hxS : x ∈ S
+  · by_cases hxR : x ∈ R.toSet
+    · -- x ∈ R ⊆ S: both sides = 0
+      have h_rect_eq_one : rectIndicatorNet R γ x = 1 := rectIndicatorNet_one hγ hxR
+      have h_ind_R : R.toSet.indicator (fun _ => (1 : ℝ)) x = (1 : ℝ) := Set.indicator_of_mem hxR _
+      have h_ind_S : S.indicator (fun _ => (1 : ℝ)) x = (1 : ℝ) := Set.indicator_of_mem (h_sub hxR) _
+      rw [h_rect_eq_one, h_ind_R, h_ind_S]
+      simp
+    · -- x ∈ S \ R: 0 ≤ gγ ≤ 1, so |gγ| ≤ 1 = 1_S - 1_R
+      have h_ind_R : R.toSet.indicator (fun _ => (1 : ℝ)) x = (0 : ℝ) := Set.indicator_of_notMem hxR _
+      have h_ind_S : S.indicator (fun _ => (1 : ℝ)) x = (1 : ℝ) := Set.indicator_of_mem hxS _
+      have h_nonneg : 0 ≤ rectIndicatorNet R γ x := rectIndicatorNet_nonneg x
+      have h_le_one : rectIndicatorNet R γ x ≤ 1 := rectIndicatorNet_le_one hγ x
+      rw [h_ind_R, h_ind_S]
+      simp [sub_zero]
+      rw [abs_of_nonneg h_nonneg]
+      exact h_le_one
+  · -- x ∉ S: both sides = 0
+    have h_rect_eq_zero : rectIndicatorNet R γ x = 0 := h_zero_outside x hxS
+    have h_ind_R : R.toSet.indicator (fun _ => (1 : ℝ)) x = (0 : ℝ) :=
+      Set.indicator_of_notMem (fun hxR => hxS (h_sub hxR)) _
+    have h_ind_S : S.indicator (fun _ => (1 : ℝ)) x = (0 : ℝ) := Set.indicator_of_notMem hxS _
+    rw [h_rect_eq_zero, h_ind_R, h_ind_S]
+    simp
+
+-- Volume of a half-open rectangle in ℝᵈ is finite
+private lemma volume_half_open_rectangle_ne_top (l w : Fin d → ℝ) :
+    volume {x : EuclideanSpace ℝ (Fin d) | ∀ j, l j ≤ x j ∧ x j < l j + w j} ≠ ⊤ := by
+  have h_eq : {x | ∀ j, l j ≤ x j ∧ x j < l j + w j} =
+      (@WithLp.ofLp 2 (Fin d → ℝ)) ⁻¹' (Set.pi Set.univ (fun j => Set.Ico (l j) (l j + w j))) := by
+    ext x; simp
+  have h_meas : MeasurableSet (Set.pi Set.univ (fun j => Set.Ico (l j) (l j + w j))) :=
+    MeasurableSet.pi Set.countable_univ (fun i _ => measurableSet_Ico)
+  rw [h_eq, (PiLp.volume_preserving_ofLp (ι := Fin d)).measure_preimage h_meas.nullMeasurableSet]
+  have h_bdd : Bornology.IsBounded (Set.pi Set.univ (fun j => Set.Ico (l j) (l j + w j))) := by
+    rw [Bornology.isBounded_pi]
+    right; intro j; exact Metric.isBounded_Ico (l j) (l j + w j)
+  exact h_bdd.measure_lt_top.ne
+
 lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ) :
-    ∫ x, |rectIndicatorNet R γ x - R.toSet.indicator 1 x| ≤
+    ∫ x, |rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x| ≤
     (∏ j : Fin d, (R.width j + 2 * γ)) - ∏ j : Fin d, R.width j := by
   /- We bound the integrand pointwise by the indicator of the expanded rectangle
      minus the indicator of R, then use the volume formula for half-open rectangles. -/
   -- 1. Define the γ-expanded rectangle
   set S : Set (EuclideanSpace ℝ (Fin d)) :=
     {x | ∀ j : Fin d, R.left j - γ ≤ x j ∧ x j < R.left j + R.width j + γ}
-  
+
   -- 2. Basic inclusion: R ⊆ S
-  have h_sub : R.toSet ⊆ S := by
-    intro x hx
-    rintro j
-    rcases hx j with ⟨h_left, h_right⟩
-    refine ⟨by linarith, by linarith⟩
-  
+  have h_sub : R.toSet ⊆ S := fun x hx j => by
+    rcases hx j with ⟨h_left, h_right⟩; exact ⟨by linarith, by linarith⟩
+
   -- 3. rectIndicatorNet = 0 outside S
   have h_zero_outside (x : EuclideanSpace ℝ (Fin d)) (hx : x ∉ S) : rectIndicatorNet R γ x = 0 := by
     rw [Set.mem_setOf_eq] at hx
-    -- hx: ¬ (∀ j, R.left j - γ ≤ x j ∧ x j < R.left j + R.width j + γ)
-    -- Equivalent to: ∃ j, ¬ (R.left j - γ ≤ x j) ∨ ¬ (x j < R.left j + R.width j + γ)
-    -- i.e., ∃ j, x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ
     have h_exists : ∃ j : Fin d, x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ := by
-      by_contra! h  -- h: ∀ j, ¬ (x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ)
+      by_contra! h
       apply hx
       intro j
-      have h_not_or := h j  -- ¬ (x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ)
-      -- From ¬ (A ∨ B) we get ¬ A ∧ ¬ B
-      -- i.e., ¬ (x j < R.left j - γ) and ¬ (x j ≥ R.left j + R.width j + γ)
-      -- So R.left j - γ ≤ x j and x j < R.left j + R.width j + γ
+      have h_not_or := h j
       constructor
-      · -- R.left j - γ ≤ x j
-        linarith
-      · -- x j < R.left j + R.width j + γ
-        linarith
+      · linarith
+      · linarith
     rcases h_exists with ⟨j, hj_left | hj_right⟩
-    · -- x j < R.left j - γ
-      exact rectIndicatorNet_zero hγ ⟨j, Or.inl hj_left⟩
-    · -- x j ≥ R.left j + R.width j + γ
-      exact rectIndicatorNet_zero hγ ⟨j, Or.inr hj_right⟩
-  
+    · exact rectIndicatorNet_zero hγ ⟨j, Or.inl hj_left⟩
+    · exact rectIndicatorNet_zero hγ ⟨j, Or.inr hj_right⟩
+
   -- 4. Pointwise inequality
   have h_pointwise (x : EuclideanSpace ℝ (Fin d)) :
-      |rectIndicatorNet R γ x - R.toSet.indicator 1 x| ≤
-      (S.indicator 1 x : ℝ) - (R.toSet.indicator 1 x : ℝ) := by
-    by_cases hxS : x ∈ S
-    · by_cases hxR : x ∈ R.toSet
-      · -- x ∈ R ⊆ S
-        have h_rect_eq_one : rectIndicatorNet R γ x = 1 := rectIndicatorNet_one hγ hxR
-        have h_ind_R : R.toSet.indicator 1 x = (1 : ℝ) := Set.indicator_of_mem hxR _
-        have h_ind_S : S.indicator 1 x = (1 : ℝ) := Set.indicator_of_mem (h_sub hxR) _
-        rw [h_rect_eq_one, h_ind_R, h_ind_S]
-        simp
-      · -- x ∈ S \ R
-        have h_ind_R : R.toSet.indicator 1 x = (0 : ℝ) := Set.indicator_of_notMem hxR _
-        have h_ind_S : S.indicator 1 x = (1 : ℝ) := Set.indicator_of_mem hxS _
-        have h_nonneg : 0 ≤ rectIndicatorNet R γ x := rectIndicatorNet_nonneg x
-        have h_le_one : rectIndicatorNet R γ x ≤ 1 := rectIndicatorNet_le_one hγ x
-        rw [h_ind_R, h_ind_S]
-        -- Goal: |rectIndicatorNet R γ x - 0| ≤ (1 : ℝ) - 0
-        simp
-        -- Goal: |rectIndicatorNet R γ x| ≤ 1
-        rw [abs_of_nonneg h_nonneg]
-        exact h_le_one
-    · -- x ∉ S, so rectIndicatorNet = 0 and both indicators = 0
-      have h_rect_eq_zero : rectIndicatorNet R γ x = 0 := h_zero_outside x hxS
-      have h_ind_R : R.toSet.indicator 1 x = (0 : ℝ) :=
-        Set.indicator_of_notMem (fun hxR => hxS (h_sub hxR)) _
-      have h_ind_S : S.indicator 1 x = (0 : ℝ) := Set.indicator_of_notMem hxS _
-      rw [h_rect_eq_zero, h_ind_R, h_ind_S]
-      simp
+      |rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x| ≤
+      (S.indicator (fun _ => (1 : ℝ)) x : ℝ) - (R.toSet.indicator (fun _ => (1 : ℝ)) x : ℝ) :=
+    rectIndicatorNet_pointwise_bound hγ S h_sub h_zero_outside x
 
-  -- The remainder of the proof uses measure theory:
-  -- 5. Measurability of R.toSet and S (finite intersection of half-open intervals).
-  -- 6. Finiteness of volume(S) (bounded rectangle → finite Lebesgue measure).
-  -- 7. Integrability of the absolute difference and the indicator difference.
-  -- 8. Apply integral_mono to the pointwise inequality.
-  -- 9. Split integral of difference via integral_sub.
-  -- 10. Integral of indicator = volume.real via integral_indicator_one.
-  -- 11. Volume of half-open rectangle = product of side lengths:
-  --     use PiLp.volume_preserving_ofLp to transfer to (Fin d → ℝ),
-  --     then Real.volume_pi_Ico_toReal.
+  -- Represent R.toSet and S as half-open rectangles (used for measurability, volume)
+  have hR_eq : R.toSet = {x | ∀ j, R.left j ≤ x j ∧ x j < R.left j + R.width j} := by
+    ext x; simp [Rectangle.toSet]
+
+  have hS_eq : S = {x | ∀ j, (R.left j - γ) ≤ x j ∧ x j < (R.left j - γ) + (R.width j + 2 * γ)} := by
+    ext x; constructor
+    · intro h j; rcases h j with ⟨h1, h2⟩; exact ⟨h1, by linarith⟩
+    · intro h j; rcases h j with ⟨h1, h2⟩; exact ⟨h1, by linarith⟩
+
+  -- 5. Measurability: R.toSet and S are half-open rectangles, hence measurable
+  have hR_meas : MeasurableSet R.toSet := by
+    rw [hR_eq]
+    exact measurableSet_half_open_rectangle R.left R.width
+
+  have hS_meas : MeasurableSet S := by
+    rw [hS_eq]
+    exact measurableSet_half_open_rectangle (fun j => R.left j - γ) (fun j => R.width j + 2 * γ)
+
+  have h_vol_S_fin : volume S ≠ ⊤ := by
+    rw [hS_eq]
+    exact volume_half_open_rectangle_ne_top (fun j => R.left j - γ) (fun j => R.width j + 2 * γ)
+
+  have h_vol_R_fin : volume R.toSet ≠ ⊤ := by
+    rw [hR_eq]
+    exact volume_half_open_rectangle_ne_top R.left R.width
+
+  --    Indicator functions of sets with finite measure are integrable.
+  have h_int_S_ind : Integrable (S.indicator (fun _ => (1 : ℝ))) volume := by
+    rw [integrable_indicator_iff hS_meas]
+    exact integrableOn_const (C := (1 : ℝ)) (by simpa using h_vol_S_fin)
+
+  have h_int_R_ind : Integrable (R.toSet.indicator (fun _ => (1 : ℝ))) volume := by
+    rw [integrable_indicator_iff hR_meas]
+    exact integrableOn_const (C := (1 : ℝ)) (by simpa using h_vol_R_fin)
+
+  -- Difference of integrable indicators is integrable
+  have h_int_right : Integrable (fun x => (S.indicator (fun _ => (1 : ℝ)) x : ℝ) - (R.toSet.indicator (fun _ => (1 : ℝ)) x : ℝ)) volume :=
+    Integrable.sub h_int_S_ind h_int_R_ind
+
+  -- Indicator difference is nonnegative (since R ⊆ S)
+  have h_nonneg_diff (x : EuclideanSpace ℝ (Fin d)) : 0 ≤ (S.indicator (fun _ => (1 : ℝ)) x : ℝ) - (R.toSet.indicator (fun _ => (1 : ℝ)) x : ℝ) := by
+    have h := indicator_mono h_sub x
+    linarith
+
+  -- The absolute error function is integrable:
+  -- it is measurable, nonnegative, and bounded pointwise by the integrable function above.
+  have h_int_left : Integrable (fun x => |rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x|) volume := by
+    have h_meas : AEStronglyMeasurable (fun x => |rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x|) volume :=
+      continuous_abs.comp_aestronglyMeasurable
+        (AEStronglyMeasurable.sub
+          (rectIndicatorNet_continuous.aestronglyMeasurable)
+          ((aestronglyMeasurable_const (β := ℝ)).indicator hR_meas))
+    have h_bound_norm : ∀ᵐ x ∂volume,
+        ‖|rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x|‖ ≤
+        ‖(S.indicator (fun _ => (1 : ℝ)) x : ℝ) - (R.toSet.indicator (fun _ => (1 : ℝ)) x : ℝ)‖ := by
+      filter_upwards with x
+      have h_nonneg_d := h_nonneg_diff x
+      rw [Real.norm_of_nonneg (abs_nonneg _), Real.norm_of_nonneg h_nonneg_d]
+      exact h_pointwise x
+    exact ⟨h_meas, h_int_right.hasFiniteIntegral.mono h_bound_norm⟩
+
+  have h_vol_S : volume.real S = ∏ j, (R.width j + 2 * γ) := by
+    have hw_pos : ∀ j, 0 < R.width j + 2 * γ := by
+      intro j; have := R.width_pos j; linarith
+    rw [hS_eq]
+    apply volume_half_open_rectangle_eq_prod (fun j => R.left j - γ) (fun j => R.width j + 2 * γ) hw_pos
+
+  have h_vol_R : volume.real R.toSet = ∏ j, R.width j := by
+    rw [hR_eq]
+    apply volume_half_open_rectangle_eq_prod R.left R.width R.width_pos
+
+  calc
+    ∫ x, |rectIndicatorNet R γ x - R.toSet.indicator (fun _ => (1 : ℝ)) x| ≤
+        ∫ x, ((S.indicator (fun _ => (1 : ℝ)) x : ℝ) - (R.toSet.indicator (fun _ => (1 : ℝ)) x : ℝ)) :=
+        integral_mono h_int_left h_int_right h_pointwise
+    _ = (∫ x, S.indicator (fun _ => (1 : ℝ)) x) - (∫ x, R.toSet.indicator (fun _ => (1 : ℝ)) x) :=
+        integral_sub h_int_S_ind h_int_R_ind
+    _ = volume.real S - volume.real R.toSet := by
+        change (∫ x, S.indicator 1 x) - (∫ x, R.toSet.indicator 1 x) = _
+        rw [integral_indicator_one hS_meas, integral_indicator_one hR_meas]
+    _ = (∏ j : Fin d, (R.width j + 2 * γ)) - (∏ j : Fin d, R.width j) := by rw [h_vol_S, h_vol_R]
+
+/-! ### Unit cube and partition construction -/
+
+/-- The half-open unit cube [0,1)ᵈ in ℝᵈ. -/
+def unitCube (d : ℕ) : Set (EuclideanSpace ℝ (Fin d)) :=
+  {x | ∀ j, (0 : ℝ) ≤ x j ∧ x j < 1}
+
+/-- The unit cube is measurable. -/
+lemma measurableSet_unitCube : MeasurableSet (unitCube d) := by
+  dsimp [unitCube]
+  have h_proj (j : Fin d) : Measurable (fun x : EuclideanSpace ℝ (Fin d) => x j) := by
+    have : (fun x : EuclideanSpace ℝ (Fin d) => x j) =
+        (fun f : Fin d → ℝ => f j) ∘ (@WithLp.ofLp 2 (Fin d → ℝ)) := rfl
+    rw [this]
+    exact (measurable_pi_apply j).comp (WithLp.measurable_ofLp 2 _)
+  have : {x | ∀ j, (0 : ℝ) ≤ x j ∧ x j < 1} = ⋂ j : Fin d,
+      {x : EuclideanSpace ℝ (Fin d) | (0 : ℝ) ≤ x j} ∩
+      {x : EuclideanSpace ℝ (Fin d) | x j < 1} := by
+    ext x; simp
+  rw [this]
+  refine MeasurableSet.iInter fun j => ?_
+  refine (measurableSet_le measurable_const (h_proj j)).inter ?_
+  exact measurableSet_lt (h_proj j) measurable_const
+
+/-- Volume of the unit cube is 1: it is the half-open rectangle with left `0`, width `1`. -/
+lemma volume_unitCube : volume.real (unitCube d) = 1 := by
+  have key := volume_half_open_rectangle_eq_prod (d := d)
+    (fun _ => (0 : ℝ)) (fun _ => (1 : ℝ)) (fun _ => zero_lt_one)
+  have h_eq : {x : EuclideanSpace ℝ (Fin d) |
+      ∀ j, (fun _ => (0 : ℝ)) j ≤ x j ∧ x j < (fun _ => (0 : ℝ)) j + (fun _ => (1 : ℝ)) j}
+      = unitCube d := by
+    ext x; simp only [unitCube, Set.mem_setOf_eq, zero_add]
+  rw [h_eq] at key
+  rw [key]; simp
+
+/-- There exists a δ-fine rectangle partition of the unit cube.
+    This is the standard grid construction: subdivide each coordinate
+    into intervals of length ≤ δ. -/
+lemma exists_unitCube_partition {δ : ℝ} (hδ : 0 < δ) :
+    ∃ P : RectanglePartition d (unitCube d) δ, True := by
+  -- We need to construct a δ-fine partition of [0,1)ᵈ.
+  -- Standard approach: pick n with 1/n ≤ δ, then use n^d equal sub-rectangles.
+  sorry
+
+/-! ### Representability of rectIndicatorNet as a two-hidden-layer network -/
+
+/-- A single rectIndicatorNet is representable as a two-hidden-layer ReLU network
+    with hidden widths m₁ = 4*d (the inner softStep components) and m₂ = 1. -/
+lemma rectIndicatorNet_mem_FunctionClass {R : Rectangle d} {γ : ℝ} :
+    ∃ m₁ : ℕ, rectIndicatorNet R γ ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ 1 := by
+  -- Construct a TwoHiddenLayer.Network that computes rectIndicatorNet.
+  -- The first layer has 4*d neurons: for each coordinate j, four neurons
+  -- computing relu((x_j - c)/γ) for c = a-γ, a, b, b+γ.
+  -- The second layer has 1 neuron computing relu(sum - (d-1)).
+  sorry
+
+/-- A finite linear combination of rectIndicatorNet functions is representable
+    as a two-hidden-layer ReLU network. The hidden widths are m₁ = sum of individual
+    first-layer widths, m₂ = number of rectangles. -/
+lemma sum_rectIndicatorNet_mem_FunctionClass {ι : Type*} [Fintype ι]
+    (R : ι → Rectangle d) (γ : ℝ) (α : ι → ℝ) :
+    ∃ m₁ m₂ : ℕ, (fun x => ∑ i : ι, α i * rectIndicatorNet (R i) γ x) ∈
+      TwoHiddenLayer.FunctionClass reluActivation d m₁ m₂ := by
+  -- Concatenate the networks for each rectIndicatorNet.
+  -- First layer: take disjoint union of first layers (size = sum of individual m₁'s).
+  -- Second layer: one neuron per rectangle, each computing its own rectIndicatorNet.
+  -- Output coefficients: α i.
   sorry
 
 /-! ### Main theorem: multivariate folklore bound (Theorem 2.1) -/
-
 /-- Theorem 2.1: for continuous g with modulus ε at scale δ, there is a 3-layer ReLU network
     with Ω(1/δᵈ) nodes achieving L¹-error ≤ 2ε on [0,1]ᵈ.
 
-    The network is constructed as f = ∑ᵢ αᵢ · gγ(·; Rᵢ) where the Rᵢ partition [0,2)ᵈ. -/
+    The network is constructed as f = ∑ᵢ αᵢ · gγ(·; Rᵢ) where the Rᵢ partition [0,1)ᵈ. -/
 theorem folkloreBound {δ ε : ℝ} (hδ : 0 < δ) (hε : 0 < ε)
     (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (hg : Continuous g)
     (hω : uniformModulus g δ ≤ (ε : WithTop ℝ)) :
-    ∃ (f : (EuclideanSpace ℝ (Fin d)) → ℝ),
-      (∃ m₁ : ℕ, f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ 1) ∧
-      ∫ x : EuclideanSpace ℝ (Fin d), |f x - g x| ≤ 2 * ε := by
-  sorry
+    ∃ (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (m₁ m₂ : ℕ),
+      f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ m₂ ∧
+      ∫ x in unitCube d, |f x - g x| ≤ 2 * ε := by
+  -- Step 1: Obtain a δ-fine partition of the unit cube
+  rcases exists_unitCube_partition hδ with ⟨P, _⟩
+  -- Step 2: Let h be the piecewise constant approximation of g on this partition.
+  -- By piecewiseConstApprox_error, |h(x) - g(x)| ≤ ε pointwise on the unit cube.
+  set h := piecewiseConstApprox g P with hh_def
+  have h_error : ∀ x ∈ unitCube d, |h x - g x| ≤ ε :=
+    piecewiseConstApprox_error g P hω
+  -- Step 3: Choose γ > 0 small enough so that the total L¹ error from approximating
+  -- each rectangle indicator by its rectIndicatorNet is at most ε.
+  -- For each rectangle R, rectIndicatorNet_L1_error bounds the L¹ error by
+  -- (∏(w_j + 2γ)) - (∏ w_j). Since w_j ≤ δ, we can make this arbitrarily small.
+  -- Standard argument: take γ small enough; the polynomial ∏(w_j + 2γ) - ∏ w_j
+  -- has no constant term, so it → 0 as γ → 0.
+  have h_exists_γ : ∃ γ, 0 < γ ∧
+      (∑ R ∈ P.rectangles, |g (representative R)| *
+        ((∏ j : Fin d, (R.width j + 2 * γ)) - ∏ j : Fin d, R.width j)) ≤ ε := by
+    -- Because g is continuous on the compact closure of the unit cube, it attains a maximum M.
+    -- Let M := sup_{x ∈ unitCube d} |g(x)| (finite by compactness).
+    -- For each rectangle R, width_j ≤ δ, so (∏(w_j+2γ)) - (∏ w_j) ≤ C·γ for some C depending on δ, d.
+    -- Choose γ ≤ ε / (|P| · M · C).
+    sorry
+  rcases h_exists_γ with ⟨γ, hγ, hγ_sum⟩
+  -- Step 4: Define f as the linear combination of rectIndicatorNet functions.
+  -- f(x) = Σ_R g(representative R) · gγ_R(x)
+  set f := (fun x => ∑ R ∈ P.rectangles, g (representative R) * rectIndicatorNet R γ x) with hf_def
+  -- Step 5: Show f is in TwoHiddenLayer.FunctionClass
+  have h_f_mem : ∃ m₁ m₂ : ℕ, f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ m₂ := by
+    -- Use the lemma sum_rectIndicatorNet_mem_FunctionClass,
+    -- converting the Finset sum to a sum over a Fintype.
+    -- Let ι := P.rectangles (which is a Finset).
+    -- Use: ∑_{R ∈ s} φ(R) = ∑_{i : s} φ(i)
+    sorry
+  rcases h_f_mem with ⟨m₁, m₂, h_f_mem'⟩
+  -- Step 6: Bound the L¹ error ∫_{unitCube} |f - g| ≤ 2ε.
+  -- Triangle inequality: |f - g| ≤ |f - h| + |h - g|, then split the integral.
+  have h_integral : ∫ x in unitCube d, |f x - g x| ≤ 2 * ε := by
+    -- Pointwise triangle inequality through the intermediate piecewise-constant h.
+    have h_tri : ∀ x, |f x - g x| ≤ |f x - h x| + |h x - g x| := by
+      intro x
+      exact abs_sub_le (f x) (h x) (g x)
+    -- Integrability witnesses: on the finite-measure cube, each integrand is bounded/measurable.
+    -- (These use finiteness of `volume (unitCube d)`; they FAIL over all of ℝᵈ — see docs.)
+    have hInt_fg : IntegrableOn (fun x => |f x - g x|) (unitCube d) volume := by
+      sorry
+    have hInt_fh : IntegrableOn (fun x => |f x - h x|) (unitCube d) volume := by
+      sorry
+    have hInt_hg : IntegrableOn (fun x => |h x - g x|) (unitCube d) volume := by
+      sorry
+    calc
+      ∫ x in unitCube d, |f x - g x|
+          ≤ ∫ x in unitCube d, (|f x - h x| + |h x - g x|) :=
+            setIntegral_mono_on hInt_fg (hInt_fh.add hInt_hg) measurableSet_unitCube
+              (fun x _ => h_tri x)
+      _ = (∫ x in unitCube d, |f x - h x|) + (∫ x in unitCube d, |h x - g x|) :=
+            integral_add hInt_fh hInt_hg
+      _ ≤ ε + ε := by
+            apply add_le_add
+            · -- ∫ |f - h| ≤ ε : expand f - h = ∑_R α_R (gγ_R - 1_R), use rectIndicatorNet_L1_error + hγ_sum
+              sorry
+            · -- ∫ |h - g| ≤ ε : |h - g| ≤ ε on the cube (h_error) and volume (unitCube) = 1
+              sorry
+      _ = 2 * ε := by ring
+  exact ⟨f, m₁, m₂, h_f_mem', h_integral⟩
 
 end Approximation.Multivariate
 
