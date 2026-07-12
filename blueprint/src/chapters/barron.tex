@@ -94,7 +94,6 @@ $g' \in L^1([0,1])$.  Then for all $x \in [0,1]$,
 \end{proposition}
 
 \begin{proof}
-  \uses{prop:univariateIntegralRep}
 By the fundamental theorem of calculus and $g(0) = 0$,
 \[
   g(x) = g(0) + \int_0^x g'(b)\, db = \int_0^1 \mathbf{1}[x \ge b]\, g'(b)\, db. \qedhere
@@ -160,7 +159,7 @@ In particular, $\|f\|_{\mathrm{Barron}} = O(\sqrt{d})$ when $\sigma^2 = \Theta(1
 \end{proposition}
 
 \begin{proof}
-  \uses{def:barronNorm, prop:gaussianBarronNorm}
+  \uses{def:barronNorm}
 The Fourier transform of the Gaussian is
 $\widehat{f}(w) = \exp(-2\pi^2 \sigma^2 \|w\|^2)$,
 which is an unnormalized Gaussian with variance $(4\pi^2 \sigma^2)^{-1}$.
@@ -197,7 +196,7 @@ corresponding signed measure $\mu$ satisfies $|\mu|(\mathbb{R}^{d+1}) \le 2\|f\|
 \end{theorem}
 
 \begin{proof}
-  \uses{thm:barronRepresentation, def:barronNorm}
+  \uses{def:barronNorm}
 The first equality follows from the Fourier inversion formula and the polar decomposition
 of $\widehat{f}$, using the identity
 \[
@@ -231,7 +230,6 @@ Then
 \end{lemma}
 
 \begin{proof}
-  \uses{lem:maureySampling}
 Write $\frac{1}{k}\sum_i V_i - X = \frac{1}{k}\sum_i (V_i - X)$.  Then:
 \begin{align*}
   \mathbb{E}\Bigl[\Bigl\|\tfrac{1}{k}\sum_i (V_i - X)\Bigr\|^2\Bigr]
@@ -255,7 +253,7 @@ Under the same hypotheses, there exist deterministic $u_1, \ldots, u_k \in S$ wi
 \end{lemma}
 
 \begin{proof}
-  \uses{lem:maureySamplingExistence, lem:maureySampling}
+  \uses{lem:maureySampling}
 The probabilistic bound in Lemma~\ref{lem:maureySampling} guarantees that the expectation
 is at most the right-hand side; therefore at least one realization $(u_1, \ldots, u_k)$
 achieves the bound. (Probabilistic method.)
@@ -288,7 +286,7 @@ $s_i \in \{+1,-1\}$, achieving the same bound.
 \end{lemma}
 
 \begin{proof}
-  \uses{lem:maureySignedMeasure, lem:maureySampling}
+  \uses{lem:maureySampling}
 One verifies that $\mathbb{E}_{\widetilde{\mu}}[\widetilde{g}(\cdot;(w,s))] = g(\cdot)$
 by unfolding the definition of $\widetilde{\mu}$ and using $\mu = \mu_+ - \mu_-$.
 Then apply Lemma~\ref{lem:maureySampling} in the Hilbert space $L_2(P)$ to the random
@@ -324,7 +322,7 @@ $k \ge 4C^2/\varepsilon^2$ nodes.
 \end{corollary}
 
 \begin{proof}
-  \uses{cor:barronSamplingBound, thm:barronRepresentation, lem:maureySignedMeasure}
+  \uses{thm:barronRepresentation, lem:maureySignedMeasure}
 By Theorem~\ref{thm:barronRepresentation}, $f(x) - f(0)$ equals an infinite-width
 threshold representation with signed measure $\mu$ satisfying $\|\mu\|_1 \le 2C$.
 Each threshold node $\mathbf{1}[w^\top x \ge b]$ satisfies
