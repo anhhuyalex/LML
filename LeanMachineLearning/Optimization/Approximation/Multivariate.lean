@@ -362,6 +362,85 @@ lemma rectIndicatorNet_le_one {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
 lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ) :
     ∫ x, |rectIndicatorNet R γ x - R.toSet.indicator 1 x| ≤
     (∏ j : Fin d, (R.width j + 2 * γ)) - ∏ j : Fin d, R.width j := by
+  /- We bound the integrand pointwise by the indicator of the expanded rectangle
+     minus the indicator of R, then use the volume formula for half-open rectangles. -/
+  -- 1. Define the γ-expanded rectangle
+  set S : Set (EuclideanSpace ℝ (Fin d)) :=
+    {x | ∀ j : Fin d, R.left j - γ ≤ x j ∧ x j < R.left j + R.width j + γ}
+  
+  -- 2. Basic inclusion: R ⊆ S
+  have h_sub : R.toSet ⊆ S := by
+    intro x hx
+    rintro j
+    rcases hx j with ⟨h_left, h_right⟩
+    refine ⟨by linarith, by linarith⟩
+  
+  -- 3. rectIndicatorNet = 0 outside S
+  have h_zero_outside (x : EuclideanSpace ℝ (Fin d)) (hx : x ∉ S) : rectIndicatorNet R γ x = 0 := by
+    rw [Set.mem_setOf_eq] at hx
+    -- hx: ¬ (∀ j, R.left j - γ ≤ x j ∧ x j < R.left j + R.width j + γ)
+    -- Equivalent to: ∃ j, ¬ (R.left j - γ ≤ x j) ∨ ¬ (x j < R.left j + R.width j + γ)
+    -- i.e., ∃ j, x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ
+    have h_exists : ∃ j : Fin d, x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ := by
+      by_contra! h  -- h: ∀ j, ¬ (x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ)
+      apply hx
+      intro j
+      have h_not_or := h j  -- ¬ (x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ)
+      -- From ¬ (A ∨ B) we get ¬ A ∧ ¬ B
+      -- i.e., ¬ (x j < R.left j - γ) and ¬ (x j ≥ R.left j + R.width j + γ)
+      -- So R.left j - γ ≤ x j and x j < R.left j + R.width j + γ
+      constructor
+      · -- R.left j - γ ≤ x j
+        linarith
+      · -- x j < R.left j + R.width j + γ
+        linarith
+    rcases h_exists with ⟨j, hj_left | hj_right⟩
+    · -- x j < R.left j - γ
+      exact rectIndicatorNet_zero hγ ⟨j, Or.inl hj_left⟩
+    · -- x j ≥ R.left j + R.width j + γ
+      exact rectIndicatorNet_zero hγ ⟨j, Or.inr hj_right⟩
+  
+  -- 4. Pointwise inequality
+  have h_pointwise (x : EuclideanSpace ℝ (Fin d)) :
+      |rectIndicatorNet R γ x - R.toSet.indicator 1 x| ≤
+      (S.indicator 1 x : ℝ) - (R.toSet.indicator 1 x : ℝ) := by
+    by_cases hxS : x ∈ S
+    · by_cases hxR : x ∈ R.toSet
+      · -- x ∈ R ⊆ S
+        have h_rect_eq_one : rectIndicatorNet R γ x = 1 := rectIndicatorNet_one hγ hxR
+        have h_ind_R : R.toSet.indicator 1 x = (1 : ℝ) := Set.indicator_of_mem hxR _
+        have h_ind_S : S.indicator 1 x = (1 : ℝ) := Set.indicator_of_mem (h_sub hxR) _
+        rw [h_rect_eq_one, h_ind_R, h_ind_S]
+        simp
+      · -- x ∈ S \ R
+        have h_ind_R : R.toSet.indicator 1 x = (0 : ℝ) := Set.indicator_of_notMem hxR _
+        have h_ind_S : S.indicator 1 x = (1 : ℝ) := Set.indicator_of_mem hxS _
+        have h_nonneg : 0 ≤ rectIndicatorNet R γ x := rectIndicatorNet_nonneg x
+        have h_le_one : rectIndicatorNet R γ x ≤ 1 := rectIndicatorNet_le_one hγ x
+        rw [h_ind_R, h_ind_S]
+        -- Goal: |rectIndicatorNet R γ x - 0| ≤ (1 : ℝ) - 0
+        simp
+        -- Goal: |rectIndicatorNet R γ x| ≤ 1
+        rw [abs_of_nonneg h_nonneg]
+        exact h_le_one
+    · -- x ∉ S, so rectIndicatorNet = 0 and both indicators = 0
+      have h_rect_eq_zero : rectIndicatorNet R γ x = 0 := h_zero_outside x hxS
+      have h_ind_R : R.toSet.indicator 1 x = (0 : ℝ) :=
+        Set.indicator_of_notMem (fun hxR => hxS (h_sub hxR)) _
+      have h_ind_S : S.indicator 1 x = (0 : ℝ) := Set.indicator_of_notMem hxS _
+      rw [h_rect_eq_zero, h_ind_R, h_ind_S]
+      simp
+
+  -- The remainder of the proof uses measure theory:
+  -- 5. Measurability of R.toSet and S (finite intersection of half-open intervals).
+  -- 6. Finiteness of volume(S) (bounded rectangle → finite Lebesgue measure).
+  -- 7. Integrability of the absolute difference and the indicator difference.
+  -- 8. Apply integral_mono to the pointwise inequality.
+  -- 9. Split integral of difference via integral_sub.
+  -- 10. Integral of indicator = volume.real via integral_indicator_one.
+  -- 11. Volume of half-open rectangle = product of side lengths:
+  --     use PiLp.volume_preserving_ofLp to transfer to (Fin d → ℝ),
+  --     then Real.volume_pi_Ico_toReal.
   sorry
 
 /-! ### Main theorem: multivariate folklore bound (Theorem 2.1) -/
