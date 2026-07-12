@@ -19,6 +19,10 @@ name = "mathlib"
 scope = "leanprover-community"
 rev = "aaedc74a09fbe1da58b11cf4d27806a6fa1a86eb"
 
+[[require]]
+name = "checkdecls"
+git = "https://github.com/PatrickMassot/checkdecls.git"
+
 [[lean_lib]]
 name = "LeanMachineLearning"
 
