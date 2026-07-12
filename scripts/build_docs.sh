@@ -1,6 +1,10 @@
 set -x -e
 
-lake build
+# Build the main library and the tutorial library. The tutorial library must be
+# built here (rather than via `defaultTargets`, which would pull it into the lint
+# scope) so that its aggregator olean exists for `lake exe checkdecls`, which the
+# docgen-action runs later and which imports the root module of every lean_lib.
+lake build LeanMachineLearning LMLTutorial
 
 # Build tutorial
 lake exe tutorial --output LMLTutorial/_out/site
