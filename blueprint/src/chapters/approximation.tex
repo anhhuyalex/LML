@@ -187,7 +187,7 @@ and define the \emph{rectangle indicator network} as
 
 \begin{lemma}[Rectangle indicator approximation]\label{lem:rectIndicator}
   \uses{def:rectIndicatorNet, def:twoHiddenLayerClass}
-  \lean{Approximation.Multivariate.rectIndicatorNet_approx}
+  \lean{Approximation.Multivariate.rectIndicatorNet_one, Approximation.Multivariate.rectIndicatorNet_zero, Approximation.Multivariate.rectIndicatorNet_nonneg, Approximation.Multivariate.rectIndicatorNet_le_one, Approximation.Multivariate.rectIndicatorNet_L1_error}
 For rectangle $R \subseteq \mathbb{R}^d$, the network $g_\gamma$ lies in $\mathcal{G}_{\sigma_\mathrm{ReLU},d,\mathcal{O}(d),1}$ (two hidden layers with $\mathcal{O}(d)$ nodes in the first layer) and satisfies:
 \begin{enumerate}
   \item $g_\gamma(x) = 1$ for $x \in R$,
