@@ -41,7 +41,7 @@ variable {d : ℕ}
 
 open MeasureTheory MeasureTheory.Measure Real Finset
 
-noncomputable instance : MeasureSpace (EuclideanSpace ℝ (Fin d)) where
+noncomputable instance euclideanSpaceMeasureSpace : MeasureSpace (EuclideanSpace ℝ (Fin d)) where
   volume := volume
 
 namespace Approximation.Multivariate
