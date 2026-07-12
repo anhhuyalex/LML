@@ -10,6 +10,8 @@ public import Mathlib.Order.ConditionallyCompleteLattice.Basic
 public import Mathlib.Topology.Order.Basic
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
 
 /-!
 # Multivariate approximation (folklore construction, Theorem 2.1)
@@ -31,11 +33,16 @@ deep learning theory notes:
 
 -/
 
-variable {d : ℕ} [MeasurableSpace (EuclideanSpace ℝ (Fin d))]
+variable {d : ℕ}
+
+
 
 @[expose] public section
 
 open MeasureTheory MeasureTheory.Measure Real Finset
+
+noncomputable instance : MeasureSpace (EuclideanSpace ℝ (Fin d)) where
+  volume := volume
 
 namespace Approximation.Multivariate
 
@@ -49,7 +56,6 @@ noncomputable def uniformModulus (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (δ 
   sSup (Set.range fun x : { p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) //
     ∀ j, |p.1 j - p.2 j| ≤ δ } => ((|g x.val.1 - g x.val.2| : ℝ) : WithTop ℝ))
 
-omit [MeasurableSpace (EuclideanSpace ℝ (Fin d))] in
 lemma le_uniformModulus {g : (EuclideanSpace ℝ (Fin d)) → ℝ} {δ : ℝ}
     (p : { q : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) //
       ∀ j, |q.1 j - q.2 j| ≤ δ }) :
@@ -161,23 +167,200 @@ noncomputable def softStep (a b γ : ℝ) (z : ℝ) : ℝ :=
 noncomputable def rectIndicatorNet (R : Rectangle d) (γ : ℝ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
   reluActivation (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j) - (d - 1 : ℝ))
 
+/-- If γ > 0 and a ≤ z < b, then the soft step function equals 1. -/
+lemma softStep_eq_one {a b γ z : ℝ} (hγ : 0 < γ) (hz : a ≤ z ∧ z < b) : softStep a b γ z = 1 := by
+  rcases hz with ⟨hle, hlt⟩
+  dsimp [softStep, reluActivation]
+  -- The four ReLU terms: analyze sign of each argument
+  have hz_minus_a_nonneg : 0 ≤ z - a := by linarith
+  have hz_minus_b_neg : z - b < 0 := by linarith
+  have hz_minus_b_plus_γ_neg : z - (b + γ) < 0 := by linarith
+  -- Nonnegativity/negativity of the divided terms
+  have h_div1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
+  have h_div2 : 0 ≤ (z - a) / γ := div_nonneg hz_minus_a_nonneg hγ.le
+  have h_div3 : (z - b) / γ < 0 := div_neg_of_neg_of_pos hz_minus_b_neg hγ
+  have h_div4 : (z - (b + γ)) / γ < 0 := div_neg_of_neg_of_pos hz_minus_b_plus_γ_neg hγ
+  -- Replace each max(z,0) by either z (when nonneg) or 0 (when negative)
+  rw [max_eq_left h_div1, max_eq_left h_div2, max_eq_right h_div3.le, max_eq_right h_div4.le]
+  -- Now it's a rational expression: (z-(a-γ))/γ - (z-a)/γ = 1
+  field_simp [hγ.ne.symm]
+  ring
+
 /-- gγ = 1 inside R. -/
 lemma rectIndicatorNet_one {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
     {x : EuclideanSpace ℝ (Fin d)} (hx : x ∈ R.toSet) :
     rectIndicatorNet R γ x = 1 := by
-  sorry
+  -- hx gives: for all j, R.left j ≤ x j < R.left j + R.width j
+  dsimp [rectIndicatorNet]
+  have h_softstep : ∀ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j) = 1 := by
+    intro j
+    -- hx j : R.left j ≤ x j ∧ x j < R.left j + R.width j
+    exact softStep_eq_one hγ (hx j)
+  -- Sum of softStep over all coordinates equals d
+  have h_sum : (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j)) = (d : ℝ) := by
+    calc
+      (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j))
+          = (∑ j : Fin d, (1 : ℝ)) := by
+            refine Finset.sum_congr rfl fun j hj => ?_
+            rw [h_softstep j]
+      _ = (d : ℝ) := by simp
+  rw [h_sum]
+  -- Now: reluActivation ((d : ℝ) - (d - 1 : ℝ)) = 1
+  dsimp [reluActivation]
+  have h_sub : (d : ℝ) - (d - 1 : ℝ) = 1 := by
+    ring
+  rw [h_sub]
+  norm_num
+
+/-- If γ > 0, a ≤ b, and z is to the left of the γ-padded interval (z < a - γ)
+    or to the right (z ≥ b + γ), then the soft step function equals 0. -/
+lemma softStep_eq_zero {a b γ z : ℝ} (hγ : 0 < γ) (h_ab : a ≤ b) (hz : z < a - γ ∨ z ≥ b + γ) :
+    softStep a b γ z = 0 := by
+  rcases hz with (hz_lt | hz_ge)
+  · -- Case: z < a - γ  (all four ReLU arguments are negative → all max = 0)
+    dsimp [softStep, reluActivation]
+    have h_div1 : (z - (a - γ)) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
+    have h_div2 : (z - a) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
+    have h_div3 : (z - b) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
+    have h_div4 : (z - (b + γ)) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
+    rw [max_eq_right h_div1.le, max_eq_right h_div2.le, max_eq_right h_div3.le, max_eq_right h_div4.le]
+    norm_num
+  · -- Case: z ≥ b + γ  (all four ReLU arguments are nonnegative → all max = argument)
+    dsimp [softStep, reluActivation]
+    have h_div1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
+    have h_div2 : 0 ≤ (z - a) / γ := div_nonneg (by linarith) hγ.le
+    have h_div3 : 0 ≤ (z - b) / γ := div_nonneg (by linarith) hγ.le
+    have h_div4 : 0 ≤ (z - (b + γ)) / γ := div_nonneg (by linarith) hγ.le
+    rw [max_eq_left h_div1, max_eq_left h_div2, max_eq_left h_div3, max_eq_left h_div4]
+    field_simp [hγ.ne.symm]
+    ring_nf
+
+/-- If γ > 0 and a ≤ b, the soft step function is bounded above by 1 for all z. -/
+lemma softStep_le_one {a b γ z : ℝ} (hγ : 0 < γ) (h_ab : a ≤ b) : softStep a b γ z ≤ 1 := by
+  dsimp [softStep, reluActivation]
+  by_cases hz1 : z ≤ a - γ
+  · -- Region I: z ≤ a-γ  → all terms ≤ 0 → softStep = 0 ≤ 1
+    have h1 : (z - (a - γ)) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+    have h2 : (z - a) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+    have h3 : (z - b) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+    have h4 : (z - (b + γ)) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+    rw [max_eq_right h1, max_eq_right h2, max_eq_right h3, max_eq_right h4]
+    norm_num
+  · -- z > a-γ
+    by_cases hz2 : z ≤ a
+    · -- Region II: a-γ ≤ z ≤ a  → only first ReLU fires: softStep = (z-(a-γ))/γ ≤ 1
+      have h1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
+      have h2 : (z - a) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+      have h3 : (z - b) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+      have h4 : (z - (b + γ)) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+      rw [max_eq_left h1, max_eq_right h2, max_eq_right h3, max_eq_right h4]
+      field_simp [hγ.ne.symm]
+      linarith
+    · -- z > a
+      by_cases hz3 : z ≤ b
+      · -- Region III: a ≤ z ≤ b  → first two ReLUs fire: softStep = 1
+        have h1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
+        have h2 : 0 ≤ (z - a) / γ := div_nonneg (by linarith) hγ.le
+        have h3 : (z - b) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+        have h4 : (z - (b + γ)) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+        rw [max_eq_left h1, max_eq_left h2, max_eq_right h3, max_eq_right h4]
+        field_simp [hγ.ne.symm]
+        ring_nf
+        exact le_refl γ
+      · -- z > b
+        by_cases hz4 : z ≤ b + γ
+        · -- Region IV: b ≤ z ≤ b+γ  → first three ReLUs fire: softStep = 1 - (z-b)/γ ≤ 1
+          have h1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
+          have h2 : 0 ≤ (z - a) / γ := div_nonneg (by linarith) hγ.le
+          have h3 : 0 ≤ (z - b) / γ := div_nonneg (by linarith) hγ.le
+          have h4 : (z - (b + γ)) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
+          rw [max_eq_left h1, max_eq_left h2, max_eq_left h3, max_eq_right h4]
+          field_simp [hγ.ne.symm]
+          linarith
+        · -- Region V: z ≥ b+γ  → all four ReLUs fire: softStep = 0 ≤ 1
+          have h1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
+          have h2 : 0 ≤ (z - a) / γ := div_nonneg (by linarith) hγ.le
+          have h3 : 0 ≤ (z - b) / γ := div_nonneg (by linarith) hγ.le
+          have h4 : 0 ≤ (z - (b + γ)) / γ := div_nonneg (by linarith) hγ.le
+          rw [max_eq_left h1, max_eq_left h2, max_eq_left h3, max_eq_left h4]
+          field_simp [hγ.ne.symm]
+          ring_nf
+          exact hγ.le
 
 /-- gγ = 0 outside the γ-padded rectangle. -/
 lemma rectIndicatorNet_zero {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
     {x : EuclideanSpace ℝ (Fin d)}
     (hx : ∃ j, x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ) :
     rectIndicatorNet R γ x = 0 := by
-  sorry
+  rcases hx with ⟨j, hx_j⟩
+  dsimp [rectIndicatorNet]
+  -- For each coordinate k, the soft step is ≤ 1 (by softStep_le_one).
+  have h_softstep_le_one : ∀ k : Fin d,
+      softStep (R.left k) (R.left k + R.width k) γ (x k) ≤ 1 := by
+    intro k
+    have h_ab_k : R.left k ≤ R.left k + R.width k := by
+      have := R.width_pos k
+      linarith
+    exact softStep_le_one hγ h_ab_k (z := x k)
+  -- For the distinguished coordinate j, the soft step is exactly 0.
+  have h_ab_j : R.left j ≤ R.left j + R.width j := by
+    have := R.width_pos j
+    linarith
+  have h_softstep_zero : softStep (R.left j) (R.left j + R.width j) γ (x j) = 0 :=
+    softStep_eq_zero hγ h_ab_j hx_j
+  -- Split the sum into the term at j and the rest.
+  have h_sum_split : (∑ k : Fin d, softStep (R.left k) (R.left k + R.width k) γ (x k))
+      = softStep (R.left j) (R.left j + R.width j) γ (x j)
+        + (∑ k ∈ (Finset.univ.erase j),
+            softStep (R.left k) (R.left k + R.width k) γ (x k)) := by
+    simpa using (Finset.sum_erase_add (Finset.univ : Finset (Fin d))
+      (fun k => softStep (R.left k) (R.left k + R.width k) γ (x k)) (Finset.mem_univ j)).symm
+  -- The sum over all k is ≤ d-1 (since one term is 0 and all others ≤ 1).
+  have h_total_le : (∑ k : Fin d, softStep (R.left k) (R.left k + R.width k) γ (x k)) ≤ (d : ℝ) - 1 := by
+    rw [h_sum_split, h_softstep_zero, zero_add]
+    calc
+      (∑ k ∈ (Finset.univ.erase j),
+          softStep (R.left k) (R.left k + R.width k) γ (x k))
+          ≤ (∑ k ∈ (Finset.univ.erase j), (1 : ℝ)) :=
+        Finset.sum_le_sum fun k hk => h_softstep_le_one k
+      _ = (d : ℝ) - 1 := by
+        have h_erase := Finset.sum_erase_add (Finset.univ : Finset (Fin d)) (fun _ => (1 : ℝ))
+          (Finset.mem_univ j)
+        have h_total : (∑ k : Fin d, (1 : ℝ)) = (d : ℝ) := by simp
+        linarith
+  -- Therefore the argument to the outer ReLU is ≤ 0.
+  have h_arg_nonpos : (∑ k : Fin d, softStep (R.left k) (R.left k + R.width k) γ (x k))
+      - (d - 1 : ℝ) ≤ 0 := by
+    linarith
+  -- ReLU of a non-positive argument is 0.
+  dsimp [reluActivation]
+  exact max_eq_right h_arg_nonpos
+
+lemma rectIndicatorNet_nonneg {R : Rectangle d} {γ : ℝ} (x : EuclideanSpace ℝ (Fin d)) :
+    0 ≤ rectIndicatorNet R γ x := by
+  dsimp [rectIndicatorNet, reluActivation]
+  exact le_max_right _ _
+
+lemma rectIndicatorNet_le_one {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
+    (x : EuclideanSpace ℝ (Fin d)) :
+    rectIndicatorNet R γ x ≤ 1 := by
+  dsimp [rectIndicatorNet, reluActivation]
+  have h_sum : (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j)) ≤ (d : ℝ) := by
+    calc
+      (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j))
+          ≤ (∑ j : Fin d, (1 : ℝ)) := by
+            refine Finset.sum_le_sum fun j hj => ?_
+            have h_ab : R.left j ≤ R.left j + R.width j := by
+              have := R.width_pos j
+              linarith
+            exact softStep_le_one hγ h_ab
+      _ = (d : ℝ) := by simp
+  have h_arg : (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j)) - (d - 1 : ℝ) ≤ 1 := by linarith
+  exact max_le h_arg zero_le_one
 
 /-- L¹ error between gγ and the indicator of R is O(γ). -/
-lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
-    (μ : MeasureTheory.Measure (EuclideanSpace ℝ (Fin d))) :
-    ∫ x, |rectIndicatorNet R γ x - R.toSet.indicator 1 x| ∂μ ≤
+lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ) :
+    ∫ x, |rectIndicatorNet R γ x - R.toSet.indicator 1 x| ≤
     (∏ j : Fin d, (R.width j + 2 * γ)) - ∏ j : Fin d, R.width j := by
   sorry
 
@@ -189,11 +372,10 @@ lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
     The network is constructed as f = ∑ᵢ αᵢ · gγ(·; Rᵢ) where the Rᵢ partition [0,2)ᵈ. -/
 theorem folkloreBound {δ ε : ℝ} (hδ : 0 < δ) (hε : 0 < ε)
     (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (hg : Continuous g)
-    (hω : uniformModulus g δ ≤ (ε : WithTop ℝ))
-    (μ : MeasureTheory.Measure (EuclideanSpace ℝ (Fin d))) :
+    (hω : uniformModulus g δ ≤ (ε : WithTop ℝ)) :
     ∃ (f : (EuclideanSpace ℝ (Fin d)) → ℝ),
       (∃ m₁ : ℕ, f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ 1) ∧
-      ∫ x : EuclideanSpace ℝ (Fin d), |f x - g x| ∂μ ≤ 2 * ε := by
+      ∫ x : EuclideanSpace ℝ (Fin d), |f x - g x| ≤ 2 * ε := by
   sorry
 
 end Approximation.Multivariate
