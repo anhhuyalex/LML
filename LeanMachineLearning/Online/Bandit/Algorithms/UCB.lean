@@ -216,7 +216,7 @@ lemma prob_ucbIndex_le [Nonempty (Fin K)] {alg : Algorithm (Fin K) ℝ}
       1 / (n + 1) ^ (c - 1) := by
   let s : Set (ℕ × ℝ) := {(m, x) | 0 < m ∧ x / m + √(2 * (c * σ2) * log (↑n + 1) / m) ≤ (ν a)[id]}
   have hs : MeasurableSet s := by
-    simp only [Nat.cast_nonneg, sqrt_div', id_eq, measurableSet_setOf, s]
+    simp only [Nat.cast_nonneg, sqrt_div', id_eq, measurableSet_setOfPred, s]
     fun_prop
   classical
   calc P {h | 0 < pullCount A a n h ∧ empMean A R a n h + ucbWidth A (c * σ2) a n h ≤ (ν a)[id]}
@@ -259,7 +259,7 @@ lemma prob_ucbIndex_ge [Nonempty (Fin K)] {alg : Algorithm (Fin K) ℝ}
       (ν a)[id] ≤ empMean A R a n h - ucbWidth A (c * σ2) a n h} ≤ 1 / (n + 1) ^ (c - 1) := by
   let s : Set (ℕ × ℝ) := {(m, x) | 0 < m ∧ (ν a)[id] ≤ x / m - √(2 * (c * σ2) * log (↑n + 1) / m)}
   have hs : MeasurableSet s := by
-    simp only [Nat.cast_nonneg, sqrt_div', id_eq, measurableSet_setOf, s]
+    simp only [Nat.cast_nonneg, sqrt_div', id_eq, measurableSet_setOfPred, s]
     fun_prop
   classical
   calc P {h | 0 < pullCount A a n h ∧ (ν a)[id] ≤ empMean A R a n h - ucbWidth A (c * σ2) a n h}

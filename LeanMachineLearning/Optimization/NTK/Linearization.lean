@@ -371,7 +371,7 @@ theorem reluSignConcentration
     have h_empty : {W₀ : Fin 0 → Fin d → ℝ | ((0 : ℕ) : ℝ) * τ + Real.sqrt (((0 : ℕ) : ℝ) / 2 * Real.log (1 / δ)) < ↑(signAmbiguous τ x W₀).card} = ∅ := by
       ext W₀
       have h_card : (signAmbiguous τ x W₀).card = 0 := Finset.card_eq_zero.mpr (Finset.eq_empty_of_isEmpty _)
-      simp
+      simp [h_card]
     rw [h_empty, measureReal_empty]
     exact hδ.le
   have h_m_pos : 0 < (m : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hm)
@@ -498,7 +498,7 @@ theorem reluLinearizationBound
     sorry
   let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
   have hr : 0 < r := by sorry
-  have h_sign_conc := reluSignConcentration x hx_pos r hr δ hδ hδ1
+  have h_sign_conc := reluSignConcentration (m := m) x hx_pos r hr δ hδ hδ1
   -- The probability of the complement is ≥ 1 - δ
   apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
   · sorry
@@ -541,7 +541,7 @@ theorem reluLinearizationBound_secondOrder
     sorry
   let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
   have hr : 0 < r := by sorry
-  have h_sign_conc := reluSignConcentration x hx_pos r hr δ hδ hδ1
+  have h_sign_conc := reluSignConcentration (m := m) x hx_pos r hr δ hδ hδ1
   -- The probability of the complement is ≥ 1 - δ
   apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
   · sorry

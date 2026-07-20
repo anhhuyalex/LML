@@ -116,7 +116,7 @@ lemma prob_sumRewards_le_sumRewards_le [Fintype 𝓐] (a : 𝓐) (n m₁ m₂ : 
     rw [← Measure.snd_prod (μ := (Measure.infinitePi fun (_ : ℕ) ↦ (volume : Measure unitInterval)))
       (ν := streamMeasure ν), Measure.snd, Measure.map_apply (by fun_prop)]
     · rfl
-    simp only [measurableSet_setOf]
+    simp only [measurableSet_setOfPred]
     fun_prop
 
 lemma probReal_sumRewards_le_sumRewards_le [Fintype 𝓐] (a : 𝓐) (n m₁ m₂ : ℕ) :
@@ -348,7 +348,7 @@ lemma probReal_sumRewards_le_sumRewards_le [Fintype 𝓐] [MeasurableSingletonCl
   refine le_trans (le_of_eq ?_)
     (ArrayModel.probReal_sumRewards_le_sumRewards_le (alg := alg) a n m₁ m₂)
   let s := {p : ℕ × ℕ × ℝ × ℝ | p.1 = m₁ ∧ p.2.1 = m₂ ∧ p.2.2.1 ≤ p.2.2.2}
-  have hs : MeasurableSet s := by simp only [measurableSet_setOf, s]; fun_prop
+  have hs : MeasurableSet s := by simp only [measurableSet_setOfPred, s]; fun_prop
   change P.real ((fun ω ↦ (pullCount A (bestArm ν) n ω,
       pullCount A a n ω, sumRewards A R (bestArm ν) n ω, sumRewards A R a n ω)) ⁻¹' s) =
     (ArrayModel.arrayMeasure ν).real
@@ -514,7 +514,7 @@ lemma prob_sumRewards_sub_pullCount_mul_ge_le_of_Fintype [Fintype 𝓐] [Measura
     _ ≤ ∑ a, P {ω | ∃ t < n, pullCount A a t ω ≠ 0 ∧
                 √(2 * pullCount A a t ω * σ2 * Real.log (1 / δ)) ≤
                   sumRewards A R a t ω - pullCount A a t ω * (ν a)[id]} := by
-        rw [Set.setOf_exists]
+        rw [Set.ofPred_exists]
         exact measure_iUnion_fintype_le _ _
     _ ≤ ∑ a, ENNReal.ofReal ((n - 1) * δ) :=
         sum_le_sum fun a _ ↦ prob_sumRewards_sub_pullCount_mul_ge_le hσ2 (hν a) h hδ
