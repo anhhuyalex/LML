@@ -69,8 +69,37 @@ structure Network (σ : ℝ → ℝ) (d m : ℕ) where
   coeffs  : Fin m → ℝ
 
 /-- Evaluate a single-hidden-layer network at a point. -/
-noncomputable def Network.eval (σ : ℝ → ℝ) {d m : ℕ} (net : Network σ d m) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
-  ∑ i : Fin m, net.coeffs i * σ (∑ j : Fin d, net.weights i j * x j + net.biases i)
+noncomputable def affineMap {d : ℕ} (w : EuclideanSpace ℝ (Fin d)) (b : ℝ)
+    (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
+  inner ℝ w x + b
+
+lemma affineMap_add {d : ℕ} (w₁ w₂ : EuclideanSpace ℝ (Fin d)) (b₁ b₂ : ℝ)
+    (x : EuclideanSpace ℝ (Fin d)) :
+    affineMap (w₁ + w₂) (b₁ + b₂) x = affineMap w₁ b₁ x + affineMap w₂ b₂ x := by
+  simp [affineMap, inner_add_left, add_assoc, add_left_comm, add_comm]
+
+lemma affineMap_sub {d : ℕ} (w₁ w₂ : EuclideanSpace ℝ (Fin d)) (b₁ b₂ : ℝ)
+    (x : EuclideanSpace ℝ (Fin d)) :
+    affineMap (w₁ - w₂) (b₁ - b₂) x = affineMap w₁ b₁ x - affineMap w₂ b₂ x := by
+  simp [affineMap, inner_add_left, inner_neg_left, sub_eq_add_neg,
+    add_assoc, add_left_comm, add_comm]
+
+/-- Recenter an affine functional to the translated inner product `z ↦ c⟪z - v, u⟫`. -/
+lemma affineMap_smul_sub_inner {d : ℕ} (c : ℝ)
+    (u v z : EuclideanSpace ℝ (Fin d)) :
+    affineMap (c • u) (-c * inner ℝ v u) z = c * inner ℝ (z - v) u := by
+  calc
+    affineMap (c • u) (-c * inner ℝ v u) z
+        = c * inner ℝ u z - c * inner ℝ v u := by
+            simp [affineMap, real_inner_smul_left, sub_eq_add_neg]
+    _ = c * inner ℝ z u - c * inner ℝ v u := by rw [real_inner_comm u z]
+    _ = c * (inner ℝ z u - inner ℝ v u) := by ring
+    _ = c * inner ℝ (z - v) u := by rw [inner_sub_left]
+
+/-- Evaluate a single-hidden-layer network at a point. -/
+noncomputable def Network.eval (σ : ℝ → ℝ) {d m : ℕ} (net : Network σ d m)
+    (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
+  ∑ i : Fin m, net.coeffs i * σ (affineMap (net.weights i) (net.biases i) x)
 
 /-- The set of functions realized by single-hidden-layer networks of width m. -/
 def FunctionClass (σ : ℝ → ℝ) (d m : ℕ) : Set ((EuclideanSpace ℝ (Fin d)) → ℝ) :=
@@ -79,6 +108,16 @@ def FunctionClass (σ : ℝ → ℝ) (d m : ℕ) : Set ((EuclideanSpace ℝ (Fin
 /-- The unbounded-width class: union over all widths. -/
 def UnboundedClass (σ : ℝ → ℝ) (d : ℕ) : Set ((EuclideanSpace ℝ (Fin d)) → ℝ) :=
   ⋃ m : ℕ, FunctionClass σ d m
+
+lemma mem_FunctionClass_iff {σ : ℝ → ℝ} {d m : ℕ}
+    {f : (EuclideanSpace ℝ (Fin d)) → ℝ} :
+    f ∈ FunctionClass σ d m ↔ ∃ net : Network σ d m, f = net.eval σ :=
+  Iff.rfl
+
+lemma mem_UnboundedClass_iff {σ : ℝ → ℝ} {d : ℕ}
+    {f : (EuclideanSpace ℝ (Fin d)) → ℝ} :
+    f ∈ UnboundedClass σ d ↔ ∃ m : ℕ, ∃ net : Network σ d m, f = net.eval σ := by
+  simp [UnboundedClass, FunctionClass]
 
 end OneHiddenLayer
 
