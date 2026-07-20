@@ -68,7 +68,9 @@ jobs:
       - name: Build exposition binary
         if: github.event_name == 'push'
         run: |
-          cd /tmp/lean-exposition && lake build exposition
+          PROJECT_TOOLCHAIN="$(cat "$GITHUB_WORKSPACE/lean-toolchain")"
+          cd /tmp/lean-exposition
+          ELAN_TOOLCHAIN="$PROJECT_TOOLCHAIN" lake build exposition
           echo "EXPOSITION_BIN=/tmp/lean-exposition/.lake/build/bin/exposition" >> "$GITHUB_ENV"
 
       - name: Build exposition documentation

@@ -599,7 +599,6 @@ private lemma barronCosineBump_sin_repr_pos {d : ℕ}
       thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) =
       ∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖) :=
     setIntegral_thresholdActivation_eq_Icc ha_nonneg ha_le_norm _
-
   have h_inner_neg : inner ℝ (-w) x = -a := by rw [inner_neg_left, ha_def]
   have h_int2 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
       thresholdActivation (inner ℝ (-w) x - b) *
@@ -739,16 +738,21 @@ lemma barronTheorem_density_snoc_bound
     {d : ℕ} (f : EuclideanSpace ℝ (Fin d) → ℝ)
     (density : (Fin (d + 1) → ℝ) → ℝ)
     (h_density : density = fun wb =>
-      let w : EuclideanSpace ℝ (Fin d) := (EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)
+      let w : EuclideanSpace ℝ (Fin d) :=
+        (EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)
       let b : ℝ := wb (Fin.last d)
       if b ∈ Set.Icc (0 : ℝ) ‖w‖ then
         -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f w) * fourierMagnitude f w
       else 0)
     (w : (j : Fin d) → ℝ) :
-    (∫ b : ℝ, |density (Fin.snoc w b)|) ≤ 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
-  have h_dens : ∀ b : ℝ, density (Fin.snoc w b) = 
-      if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
+    (∫ b : ℝ, |density (Fin.snoc w b)|) ≤
+      2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+  let wE : EuclideanSpace ℝ (Fin d) := (EuclideanSpace.equiv (Fin d) ℝ).symm w
+  change (∫ b : ℝ, |density (Fin.snoc w b)|) ≤ 2 * barronIntegrand f wE
+  have h_dens : ∀ b : ℝ, density (Fin.snoc w b) =
+      if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f wE) *
+          fourierMagnitude f wE
       else 0 := by
     intro b
     rw [h_density]
@@ -758,21 +762,29 @@ lemma barronTheorem_density_snoc_bound
       simp
     have hb : (Fin.snoc (α := fun _ => ℝ) w b) (Fin.last d) = b := by simp
     simp_rw [hw, hb]
+    change (if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f wE) *
+          fourierMagnitude f wE
+      else 0) = _
+    rfl
   simp_rw [h_dens]
-  have h_abs : ∀ b : ℝ, |if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
-      else 0| = 
-      if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w))| * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
+  have h_abs : ∀ b : ℝ,
+      |if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+          -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f wE) *
+            fourierMagnitude f wE
+        else 0| =
+      if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f wE)| *
+          fourierMagnitude f wE
       else 0 := by
     intro b
     split_ifs with hb
     · rw [abs_mul, abs_mul]
-      have h_fmag : 0 ≤ fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+      have h_fmag : 0 ≤ fourierMagnitude f wE := by
         unfold fourierMagnitude
         exact norm_nonneg _
       rw [abs_of_nonneg h_fmag]
-      have h4 : |-4 * π| = 4 * π := by 
+      have h4 : |-4 * π| = 4 * π := by
         have h_neg : -4 * π = -(4 * π) := by ring
         rw [h_neg, abs_neg]
         have h_pos : (0 : ℝ) < 4 * π := by positivity
@@ -780,49 +792,66 @@ lemma barronTheorem_density_snoc_bound
       rw [h4]
     · exact abs_zero
   simp_rw [h_abs]
-  have h_bound : ∀ b : ℝ, (if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w))| * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
-      else 0) ≤ 
-      if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
+  have h_bound : ∀ b : ℝ,
+      (if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f wE)| *
+          fourierMagnitude f wE
+      else 0) ≤
+      if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        4 * π * fourierMagnitude f wE
       else 0 := by
     intro b
     split_ifs with hb
-    · have h_sin : |Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w))| ≤ 1 := Real.abs_sin_le_one _
-      have h1 : 4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w))| ≤ 4 * π * 1 := 
+    · have h_sin :
+          |Real.sin (2 * π * b + 2 * π * fourierPhase f wE)| ≤ 1 :=
+        Real.abs_sin_le_one _
+      have h1 :
+          4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f wE)| ≤
+            4 * π * 1 :=
         mul_le_mul_of_nonneg_left h_sin (mul_nonneg (by norm_num) Real.pi_pos.le)
-      have h_fmag : 0 ≤ fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+      have h_fmag : 0 ≤ fourierMagnitude f wE := by
         unfold fourierMagnitude
         exact norm_nonneg _
       have h2 := mul_le_mul_of_nonneg_right h1 h_fmag
       rw [mul_one] at h2
       exact h2
     · exact le_rfl
-  have h_int : ∫ b : ℝ, (if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
-      else 0) = 4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) * ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ := by
-    have h_ind : (fun (b : ℝ) => if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
-      else 0) = Set.indicator (Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖) (fun _ => 4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) := by
+  have h_int :
+      ∫ b : ℝ, (if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+          4 * π * fourierMagnitude f wE
+        else 0) =
+        4 * π * fourierMagnitude f wE * ‖wE‖ := by
+    have h_ind : (fun (b : ℝ) =>
+        if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+          4 * π * fourierMagnitude f wE
+        else 0) =
+        Set.indicator (Set.Icc (0 : ℝ) ‖wE‖)
+          (fun _ => 4 * π * fourierMagnitude f wE) := by
       ext b
       simp [Set.indicator]
     rw [h_ind, integral_indicator measurableSet_Icc, setIntegral_const]
-    have h_vol : volume.real (Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖) = ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ := by
-      change (volume (Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖)).toReal = _
+    have h_vol : volume.real (Set.Icc (0 : ℝ) ‖wE‖) = ‖wE‖ := by
+      change (volume (Set.Icc (0 : ℝ) ‖wE‖)).toReal = _
       rw [Real.volume_Icc]
-      have h_norm_pos : 0 ≤ ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ := norm_nonneg _
+      have h_norm_pos : 0 ≤ ‖wE‖ := norm_nonneg _
       rw [sub_zero]
       exact ENNReal.toReal_ofReal h_norm_pos
     rw [h_vol, smul_eq_mul, mul_comm]
-  have h_le : (∫ b : ℝ, if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w))| * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
-      else 0) ≤ 
-      ∫ b : ℝ, if b ∈ Set.Icc (0 : ℝ) ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ then
-        4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)
+  have h_le :
+      (∫ b : ℝ, if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f wE)| *
+          fourierMagnitude f wE
+      else 0) ≤
+      ∫ b : ℝ, if b ∈ Set.Icc (0 : ℝ) ‖wE‖ then
+        4 * π * fourierMagnitude f wE
       else 0 := by
     apply integral_mono
-    · have h_cont : Continuous (fun b : ℝ => 4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f ((EuclideanSpace.equiv (Fin d) ℝ).symm w))| * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) := by continuity
-      have h_int_on := Continuous.integrableOn_Icc (μ := volume) h_cont (a := 0) (b := ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖)
+    · have h_cont : Continuous (fun b : ℝ =>
+          4 * π * |Real.sin (2 * π * b + 2 * π * fourierPhase f wE)| *
+            fourierMagnitude f wE) := by
+        continuity
+      have h_int_on :=
+        Continuous.integrableOn_Icc (μ := volume) h_cont (a := 0) (b := ‖wE‖)
       have h_int := IntegrableOn.integrable_indicator h_int_on measurableSet_Icc
       apply Integrable.congr h_int
       apply Filter.Eventually.of_forall
@@ -832,8 +861,10 @@ lemma barronTheorem_density_snoc_bound
       split_ifs
       · rfl
       · rfl
-    · have h_cont : Continuous (fun _ : ℝ => 4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) := continuous_const
-      have h_int_on := Continuous.integrableOn_Icc (μ := volume) h_cont (a := 0) (b := ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖)
+    · have h_cont : Continuous (fun _ : ℝ => 4 * π * fourierMagnitude f wE) :=
+        continuous_const
+      have h_int_on :=
+        Continuous.integrableOn_Icc (μ := volume) h_cont (a := 0) (b := ‖wE‖)
       have h_int := IntegrableOn.integrable_indicator h_int_on measurableSet_Icc
       apply Integrable.congr h_int
       apply Filter.Eventually.of_forall
@@ -844,7 +875,8 @@ lemma barronTheorem_density_snoc_bound
       · rfl
       · rfl
     · exact h_bound
-  have h_barron : 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) = 4 * π * fourierMagnitude f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) * ‖(EuclideanSpace.equiv (Fin d) ℝ).symm w‖ := by
+  have h_barron :
+      2 * barronIntegrand f wE = 4 * π * fourierMagnitude f wE * ‖wE‖ := by
     unfold barronIntegrand
     ring
   linarith
@@ -872,27 +904,40 @@ theorem barronTheorem
         f x - f 0 =
           Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
             (fun wb => thresholdActivation
-              (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)) x - wb (Fin.last d))) := by
-  -- Step 1: The difference f(x) - f(0) can be expressed as an integral over the difference of exponentials.
-  have h_diff : ∀ x, (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w :=
+              (inner ℝ
+                ((EuclideanSpace.equiv (Fin d) ℝ).symm
+                  (fun (j : Fin d) => wb j.castSucc))
+                x - wb (Fin.last d))) := by
+  -- Step 1: express f(x) - f(0) as an integral over the difference of exponentials.
+  have h_diff : ∀ x,
+      (f x : ℂ) - (f 0 : ℂ) =
+        ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) *
+          fourierTransform f w :=
     fun x => barron_diff_exp hf_cont hf_L1 hfhat_L1 x
 
-  -- Step 2: By taking the real part, we can rewrite the complex exponential in terms of cosines and the phase.
-  have h_real : ∀ x, f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w :=
+  -- Step 2: take real parts to rewrite the exponential using cosines and the phase.
+  have h_real : ∀ x,
+      f x - f 0 =
+        ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w :=
     fun x => barron_real_part hfhat_L1 x (h_diff x)
 
   -- Step 4: Use the $x$-independent sine representation to construct the signed measure.
   have h_sin_repr : ∀ w x, ‖x‖ ≤ 1 →
       barronCosineBump w (fourierPhase f w) x =
-        (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * fourierPhase f w) / ‖w‖)) +
-        (∫ b in Set.Icc (0 : ℝ) ‖w‖, thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * fourierPhase f w) / ‖w‖)) := by
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ w x - b) *
+            (-Real.sin (2 * π * b + 2 * π * fourierPhase f w) / ‖w‖)) +
+        (∫ b in Set.Icc (0 : ℝ) ‖w‖,
+          thresholdActivation (inner ℝ (-w) x - b) *
+            (-Real.sin (2 * π * b - 2 * π * fourierPhase f w) / ‖w‖)) := by
     intro w x hx
     exact barronCosineBump_sin_repr w (fourierPhase f w) x hx
 
-  -- Step 5: Construct the measure for the infinite-width network by combining the measure over `w` (from barronIntegrand)
+  -- Step 5: Combine the measure over `w` from barronIntegrand
   -- and the measure over `b` (from the threshold representation).
   let density : (Fin (d + 1) → ℝ) → ℝ := fun wb =>
-    let w : EuclideanSpace ℝ (Fin d) := (EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)
+    let w : EuclideanSpace ℝ (Fin d) :=
+      (EuclideanSpace.equiv (Fin d) ℝ).symm (fun (j : Fin d) => wb j.castSucc)
     let b : ℝ := wb (Fin.last d)
     if b ∈ Set.Icc (0 : ℝ) ‖w‖ then
       -4 * π * Real.sin (2 * π * b + 2 * π * fourierPhase f w) * fourierMagnitude f w
@@ -916,23 +961,37 @@ theorem barronTheorem
 
   refine ⟨net, ?_, ?_⟩
   · -- Prove the mass bound
-    change (net_measure.toJordanDecomposition.posPart Set.univ).toReal + (net_measure.toJordanDecomposition.negPart Set.univ).toReal ≤ 2 * barronNorm f
-    have h_tv : (net_measure.toJordanDecomposition.posPart Set.univ).toReal + (net_measure.toJordanDecomposition.negPart Set.univ).toReal ≤ ∫ wb, |density wb| := by
+    change
+      (net_measure.toJordanDecomposition.posPart Set.univ).toReal +
+          (net_measure.toJordanDecomposition.negPart Set.univ).toReal ≤
+        2 * barronNorm f
+    have h_tv :
+        (net_measure.toJordanDecomposition.posPart Set.univ).toReal +
+            (net_measure.toJordanDecomposition.negPart Set.univ).toReal ≤
+          ∫ wb, |density wb| := by
       sorry
     apply h_tv.trans
     have h_split : ∫ wb, |density wb| = ∫ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)| := by
       -- Tonelli's theorem via measure-preserving equivalence
       sorry
     rw [h_split]
-    have h_inner : ∀ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)| ≤ 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+    have h_inner : ∀ w : Fin d → ℝ,
+        ∫ b : ℝ, |density (Fin.snoc w b)| ≤
+          2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
       intro w
       apply barronTheorem_density_snoc_bound f density _ w
       rfl
-    have h_mono : (∫ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)|) ≤ ∫ w : Fin d → ℝ, 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
+    have h_mono :
+        (∫ w : Fin d → ℝ, ∫ b : ℝ, |density (Fin.snoc w b)|) ≤
+          ∫ w : Fin d → ℝ,
+            2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w) := by
       -- Apply `integral_mono` with `h_inner`.
       sorry
     apply h_mono.trans
-    have h_const : (∫ w : Fin d → ℝ, 2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) = 2 * barronNorm f := by
+    have h_const :
+        (∫ w : Fin d → ℝ,
+          2 * barronIntegrand f ((EuclideanSpace.equiv (Fin d) ℝ).symm w)) =
+          2 * barronNorm f := by
       rw [integral_const_mul]
       -- Change of variables using MeasureTheory.integral_comp_equiv for `EuclideanSpace.equiv`
       sorry
