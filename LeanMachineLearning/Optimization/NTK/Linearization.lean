@@ -368,10 +368,16 @@ theorem reluSignConcentration
         (signAmbiguous τ x W₀).card} ≤ δ := by
   by_cases hm : m = 0
   · subst hm
-    have h_empty : {W₀ : Fin 0 → Fin d → ℝ | ((0 : ℕ) : ℝ) * τ + Real.sqrt (((0 : ℕ) : ℝ) / 2 * Real.log (1 / δ)) < ↑(signAmbiguous τ x W₀).card} = ∅ := by
+    have h_empty :
+        {W₀ : Fin 0 → Fin d → ℝ |
+          ((0 : ℕ) : ℝ) * τ + Real.sqrt (((0 : ℕ) : ℝ) / 2 * Real.log (1 / δ)) <
+            ↑(signAmbiguous τ x W₀).card} = ∅ := by
       ext W₀
-      have h_card : (signAmbiguous τ x W₀).card = 0 := Finset.card_eq_zero.mpr (Finset.eq_empty_of_isEmpty _)
-      simp [h_card]
+      have h_card : (signAmbiguous τ x W₀).card = 0 :=
+        Finset.card_eq_zero.mpr (Finset.eq_empty_of_isEmpty _)
+      simp only [Set.mem_ofPred_eq, Set.mem_empty_iff_false]
+      rw [h_card]
+      simp
     rw [h_empty, measureReal_empty]
     exact hδ.le
   have h_m_pos : 0 < (m : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hm)
@@ -384,9 +390,13 @@ theorem reluSignConcentration
     (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) h_t_nonneg
   have h_one_lt_div : 1 ≤ 1 / δ := (le_div_iff₀ hδ).mpr (by linarith)
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg h_one_lt_div
-  have h_sq : (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) ^ 2 = (m : ℝ) / 2 * Real.log (1 / δ) :=
+  have h_sq :
+      (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) ^ 2 =
+        (m : ℝ) / 2 * Real.log (1 / δ) :=
     Real.sq_sqrt (mul_nonneg (div_nonneg (Nat.cast_nonneg m) zero_le_two) h_log_pos)
-  have h_calc : -2 * (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) ^ 2 / (m : ℝ) = -Real.log (1 / δ) := by
+  have h_calc :
+      -2 * (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) ^ 2 / (m : ℝ) =
+        -Real.log (1 / δ) := by
     rw [h_sq]
     calc
       -2 * ((m : ℝ) / 2 * Real.log (1 / δ)) / (m : ℝ)
@@ -489,29 +499,6 @@ theorem reluLinearizationBound
            linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
-  by_cases hx_pos : 0 < x ⊙ x
-  swap
-  · -- x = 0 case
-    sorry
-  by_cases hm : m = 0
-  · -- m = 0 case
-    sorry
-  let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
-  have hr : 0 < r := by sorry
-  have h_sign_conc := reluSignConcentration (m := m) x hx_pos r hr δ hδ hδ1
-  -- The probability of the complement is ≥ 1 - δ
-  apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
-  · sorry
-  apply measureReal_mono
-  intro W₀ h_W₀ W h_W
-  let S1 := signAmbiguous r x W₀
-  let S2 := largePerturb r W W₀
-  let S := badSet r r x W W₀
-  have h_S1 : (S1.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) := h_W₀
-  have h_S2 : (S2.card : ℝ) ≤ (B / r) ^ 2 := card_largePerturb_bound W W₀ r B hr h_W
-  have h_S_card : (S.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) + (B / r) ^ 2 := by sorry
-  have h_diff_S : |net.eval x W - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W| ≤ B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by sorry
-  have h_alg := reluLinearization_algebraic_bound m B δ hB hδ hδ1
   sorry
 
 /-- **Corollary** (second part of Lemma 4.1): second-order Taylor error for ReLU.
@@ -532,31 +519,6 @@ theorem reluLinearizationBound_secondOrder
             net.eval x W)|
           ≤ (6 * B ^ (4 / 3 : ℝ) + 2 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
-  by_cases hx_pos : 0 < x ⊙ x
-  swap
-  · -- x = 0 case
-    sorry
-  by_cases hm : m = 0
-  · -- m = 0 case
-    sorry
-  let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
-  have hr : 0 < r := by sorry
-  have h_sign_conc := reluSignConcentration (m := m) x hx_pos r hr δ hδ hδ1
-  -- The probability of the complement is ≥ 1 - δ
-  apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
-  · sorry
-  apply measureReal_mono
-  intro W₀ h_W₀ W V h_W h_V
-  let S1 := signAmbiguous r x W₀
-  let S2 := largePerturb r W W₀
-  let S3 := largePerturb r V W₀
-  let S := S1 ∪ S2 ∪ S3
-  have h_S1 : (S1.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) := h_W₀
-  have h_S2 : (S2.card : ℝ) ≤ (B / r) ^ 2 := card_largePerturb_bound W W₀ r B hr h_W
-  have h_S3 : (S3.card : ℝ) ≤ (B / r) ^ 2 := card_largePerturb_bound V W₀ r B hr h_V
-  have h_S_card : (S.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) + 2 * (B / r) ^ 2 := by sorry
-  have h_diff_S : |net.eval x V - (net.eval x W + linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V - net.eval x W)| ≤ 3 * B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by sorry
-  -- Use h_diff_S and h_S_card to conclude the bound
   sorry
 
 end NTK
