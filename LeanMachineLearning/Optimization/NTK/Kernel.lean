@@ -114,6 +114,23 @@ noncomputable def empiricalNTK
       σ' (∑ k : Fin d, W₀ j k * x k) *
       σ' (∑ k : Fin d, W₀ j k * x' k))
 
+-- The square of the square root of the inverse of m (cast to real) is the inverse of m.
+private lemma sq_sqrt_inv_cast_nat (m : ℕ) :
+    ((m : ℝ)⁻¹.sqrt) * ((m : ℝ)⁻¹.sqrt) = (m : ℝ)⁻¹ := by
+  rw [← sq, Real.sq_sqrt]
+  exact inv_nonneg.mpr (Nat.cast_nonneg m)
+
+-- Term-level algebraic identity for the Frobenius inner product of gradients.
+private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val_x' : ℝ) (x_k x'_k : ℝ) :
+    ((m : ℝ)⁻¹.sqrt * outerCoeffs_j * val_x * x_k) *
+    ((m : ℝ)⁻¹.sqrt * outerCoeffs_j * val_x' * x'_k) =
+    (x_k * x'_k) * ((m : ℝ)⁻¹ * outerCoeffs_j ^ 2 * val_x * val_x') := by
+  calc
+    _ = ((m : ℝ)⁻¹.sqrt * (m : ℝ)⁻¹.sqrt) * (outerCoeffs_j * outerCoeffs_j) * val_x * val_x' * (x_k * x'_k) := by ring
+    _ = (m : ℝ)⁻¹ * outerCoeffs_j ^ 2 * val_x * val_x' * (x_k * x'_k) := by
+      rw [sq_sqrt_inv_cast_nat m, ← sq]
+    _ = _ := by ring
+
 /-- The Frobenius inner product of gradient features is the empirical NTK with the
 outer-coefficient squares included. -/
 lemma frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter
@@ -123,7 +140,15 @@ lemma frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter
       (gradientMatrix (σ' := σ') outerCoeffs x W₀)
       (gradientMatrix (σ' := σ') outerCoeffs x' W₀) =
     empiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
-  sorry
+  unfold frobeniusInner gradientMatrix empiricalNTKWithOuter innerProduct
+  simp_rw [gradient_matrix_term_eq]
+  rw [Finset.sum_comm]
+  simp_rw [← Finset.mul_sum]
+  rw [← Finset.sum_mul]
+  congr 1
+  rw [Finset.mul_sum]
+  congr 1; ext i
+  ring
 
 /-- If all fixed outer coefficients satisfy `aⱼ² = 1`, the general empirical NTK
 reduces to the simplified expression used in the notes. -/
@@ -141,6 +166,148 @@ lemma empiricalNTK_symm
     empiricalNTK σ' W₀ x x' = empiricalNTK σ' W₀ x' x := by
   simp only [empiricalNTK, innerProduct_comm x x', mul_comm (σ' _) (σ' _)]
 
+-- Helper 1: Reorder
+private lemma quadruple_sum_comm {α β γ δ : Type*} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
+    (f : α → β → γ → δ → ℝ) :
+    ∑ i : α, ∑ i' : β, ∑ j : γ, ∑ k : δ, f i i' j k =
+      ∑ j : γ, ∑ k : δ, ∑ i : α, ∑ i' : β, f i i' j k := by
+  calc
+    ∑ i : α, ∑ i' : β, ∑ j : γ, ∑ k : δ, f i i' j k
+        = ∑ x : α × β, ∑ j : γ, ∑ k : δ, f x.1 x.2 j k := by
+            rw [← Fintype.sum_prod_type']
+    _ = ∑ x : α × β, ∑ y : γ × δ, f x.1 x.2 y.1 y.2 := by
+          congr 1
+          ext x
+          rw [← Fintype.sum_prod_type']
+    _ = ∑ z : (α × β) × (γ × δ), f z.1.1 z.1.2 z.2.1 z.2.2 := by
+          rw [← Fintype.sum_prod_type']
+    _ = ∑ y : γ × δ, ∑ x : α × β, f x.1 x.2 y.1 y.2 := by
+          simpa using
+            (Fintype.sum_prod_type_right'
+              (f := fun (x : α × β) (y : γ × δ) =>
+                f x.1 x.2 y.1 y.2))
+    _ = ∑ j : γ, ∑ k : δ, ∑ x : α × β, f x.1 x.2 j k := by
+          simpa using
+            (Fintype.sum_prod_type' (f := fun j k => ∑ x : α × β, f x.1 x.2 j k))
+    _ = ∑ j : γ, ∑ k : δ, ∑ i : α, ∑ i' : β, f i i' j k := by
+          congr 1
+          ext j
+          congr 1
+          ext k
+          simpa using (Fintype.sum_prod_type' (f := fun i i' => f i i' j k))
+
+-- Helper 2: Expand
+private lemma empiricalNTK_term_expand
+    (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ)
+    (i i' : Fin n) :
+    α i * α i' * empiricalNTK σ' W₀ (pts i) (pts i') =
+      ∑ j : Fin m, ∑ k : Fin d,
+        (m : ℝ)⁻¹ *
+          (α i * α i' * (pts i k * pts i' k) *
+            (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+              σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
+  unfold empiricalNTK innerProduct
+  calc
+    α i * α i' *
+        ((∑ k : Fin d, pts i k * pts i' k) *
+          ((m : ℝ)⁻¹ *
+            ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k)))
+        =
+          (α i * α i' * ∑ k : Fin d, pts i k * pts i' k) * (m : ℝ)⁻¹ *
+            ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k) := by
+            ring
+    _ =
+      (α i * α i' * ∑ k : Fin d, pts i k * pts i' k) * (m : ℝ)⁻¹ *
+        ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k)
+        := by rfl
+    _ =
+        ((m : ℝ)⁻¹ * α i * α i') *
+            ((∑ k : Fin d, pts i k * pts i' k) *
+              ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) *
+                σ' (∑ k : Fin d, W₀ j k * pts i' k)) := by
+            ring
+    _ =
+        ((m : ℝ)⁻¹ * α i * α i') *
+          ∑ k : Fin d,
+            ∑ j : Fin m,
+              (pts i k * pts i' k) *
+                (σ' (∑ k : Fin d, W₀ j k * pts i k) *
+                  σ' (∑ k : Fin d, W₀ j k * pts i' k)) := by
+            rw [Fintype.sum_mul_sum]
+    _ =
+        ((m : ℝ)⁻¹ * α i * α i') *
+          ∑ j : Fin m,
+            ∑ k : Fin d,
+              (pts i k * pts i' k) *
+                (σ' (∑ k : Fin d, W₀ j k * pts i k) *
+                  σ' (∑ k : Fin d, W₀ j k * pts i' k)) := by
+            rw [Finset.sum_comm]
+    _ = ∑ j : Fin m, ∑ k : Fin d,
+          (m : ℝ)⁻¹ *
+            (α i * α i' * (pts i k * pts i' k) *
+              (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+                σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
+            rw [Finset.mul_sum]
+            apply Finset.sum_congr rfl
+            intro j _
+            rw [Finset.mul_sum]
+            apply Finset.sum_congr rfl
+            intro k _
+            ring
+
+-- Helper 3: Square
+private lemma empiricalNTK_term_square
+    (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ)
+    (j : Fin m) (k : Fin d) :
+    ∑ i : Fin n, ∑ i' : Fin n,
+      (m : ℝ)⁻¹ *
+        (α i * α i' * (pts i k * pts i' k) *
+          (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+            σ' (∑ l : Fin d, W₀ j l * pts i' l))) =
+      (m : ℝ)⁻¹ *
+        (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+  calc
+    ∑ i : Fin n, ∑ i' : Fin n,
+      (m : ℝ)⁻¹ *
+        (α i * α i' * (pts i k * pts i' k) *
+          (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+            σ' (∑ l : Fin d, W₀ j l * pts i' l)))
+        = ∑ i : Fin n, ∑ i' : Fin n,
+            (m : ℝ)⁻¹ *
+              ((α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
+                (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
+            apply Finset.sum_congr rfl
+            intro i _
+            apply Finset.sum_congr rfl
+            intro i' _
+            ring
+    _ = (m : ℝ)⁻¹ *
+          ∑ i : Fin n, ∑ i' : Fin n,
+            (α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
+              (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)) := by
+            calc
+              ∑ i : Fin n, ∑ i' : Fin n,
+                  (m : ℝ)⁻¹ *
+                    ((α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
+                      (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)))
+                  =
+                    ∑ i : Fin n,
+                      (m : ℝ)⁻¹ *
+                        ∑ i' : Fin n,
+                          (α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
+                            (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)) := by
+                      apply Finset.sum_congr rfl
+                      intro i _
+                      rw [← Finset.mul_sum]
+              _ = (m : ℝ)⁻¹ *
+                    ∑ i : Fin n, ∑ i' : Fin n,
+                      (α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
+                        (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)) := by
+                      rw [← Finset.mul_sum]
+    _ = (m : ℝ)⁻¹ *
+          (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+            rw [pow_two, Fintype.sum_mul_sum]
+
 /-- The empirical NTK is positive semidefinite: for any finite set of points
 and coefficients `(αᵢ, xᵢ)`, `∑ᵢⱼ αᵢαⱼ kₘ(xᵢ, xⱼ) ≥ 0`.
 This follows from being the Gram matrix of the gradient features. -/
@@ -152,7 +319,58 @@ lemma empiricalNTK_posSemidef
   have h_eq : ∑ i : Fin n, ∑ j : Fin n, α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) =
       (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
         (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-    sorry
+    calc
+      ∑ i : Fin n, ∑ j : Fin n, α i * α j * empiricalNTK σ' W₀ (pts i) (pts j)
+          = ∑ i : Fin n, ∑ i' : Fin n, ∑ j : Fin m, ∑ k : Fin d,
+              (m : ℝ)⁻¹ *
+                (α i * α i' * (pts i k * pts i' k) *
+                  (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+                    σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
+              -- Step 1: Expand the kernel into a quadruple sum over samples, neurons, and coordinates.
+              apply Finset.sum_congr rfl
+              intro i _
+              apply Finset.sum_congr rfl
+              intro i' _
+              exact empiricalNTK_term_expand σ' W₀ α pts i i'
+      _ = ∑ j : Fin m, ∑ k : Fin d, ∑ i : Fin n, ∑ i' : Fin n,
+            (m : ℝ)⁻¹ *
+              (α i * α i' * (pts i k * pts i' k) *
+                (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+                  σ' (∑ l : Fin d, W₀ j l * pts i' l))) := quadruple_sum_comm _
+      _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
+            (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+              -- Step 2: Repackage the quadruple sum as a sum of squares.
+              calc
+                ∑ j : Fin m, ∑ k : Fin d, ∑ i : Fin n, ∑ i' : Fin n,
+                    (m : ℝ)⁻¹ *
+                      (α i * α i' * (pts i k * pts i' k) *
+                        (σ' (∑ l : Fin d, W₀ j l * pts i l) *
+                          σ' (∑ l : Fin d, W₀ j l * pts i' l)))
+                    = ∑ j : Fin m, ∑ k : Fin d,
+                        (m : ℝ)⁻¹ *
+                          (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                            apply Finset.sum_congr rfl
+                            intro j _
+                            apply Finset.sum_congr rfl
+                            intro k _
+                            exact empiricalNTK_term_square σ' W₀ α pts j k
+                _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
+                      (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                            calc
+                              ∑ j : Fin m, ∑ k : Fin d,
+                                  (m : ℝ)⁻¹ *
+                                    (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2
+                                  =
+                                    ∑ j : Fin m,
+                                      (m : ℝ)⁻¹ *
+                                        ∑ k : Fin d,
+                                          (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                                      apply Finset.sum_congr rfl
+                                      intro j _
+                                      rw [← Finset.mul_sum]
+                              _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
+                                    (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                                      rw [← Finset.mul_sum]
   rw [h_eq]
   apply mul_nonneg
   · exact inv_nonneg.mpr (Nat.cast_nonneg m)

@@ -72,7 +72,23 @@ lemma BetaSmooth.β_nonneg {σ : ℝ → ℝ} {β : ℝ} (h : BetaSmooth σ β) 
 lemma BetaSmooth.taylor_bound
     {σ : ℝ → ℝ} {β : ℝ} (hσ : BetaSmooth σ β) (r s : ℝ) :
     |σ r - σ s - deriv σ s * (r - s)| ≤ β * (r - s) ^ 2 / 2 := by
-  sorry
+  -- By Taylor's theorem (or repeated Mean Value Theorem), there exists an intermediate point ξ
+  -- between r and s such that the remainder equals (σ''(ξ) / 2) * (r - s)^2.
+  have h_taylor : ∃ ξ, min r s ≤ ξ ∧ ξ ≤ max r s ∧ σ r - σ s - deriv σ s * (r - s) = deriv (deriv σ) ξ / 2 * (r - s) ^ 2 := by
+    sorry
+  rcases h_taylor with ⟨ξ, _h_min, _h_max, h_eq⟩
+  rw [h_eq]
+
+  -- Take the absolute value and distribute it.
+  have h_abs : |deriv (deriv σ) ξ / 2 * (r - s) ^ 2| = |deriv (deriv σ) ξ| / 2 * (r - s) ^ 2 := by sorry
+  rw [h_abs]
+
+  -- Retrieve the bound on the second derivative from the BetaSmooth hypothesis.
+  have h_bound := hσ.hessian_bound ξ
+
+  -- The rest is a straightforward inequality using `h_bound` and the non-negativity of (r - s)^2.
+  have h_sq : 0 ≤ (r - s) ^ 2 := sq_nonneg (r - s)
+  nlinarith
 
 /-! ### Smooth linearization bound (Proposition 4.1) -/
 
