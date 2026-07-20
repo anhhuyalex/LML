@@ -1668,7 +1668,8 @@ lemma thresholdActivation_meas : Measurable thresholdActivation := by
   · exact measurable_const
   · exact measurable_const
 
-lemma thresholdActivation_bound (x : ℝ) : 0 ≤ thresholdActivation x ∧ thresholdActivation x ≤ 1 := by
+lemma thresholdActivation_bound (x : ℝ) :
+    0 ≤ thresholdActivation x ∧ thresholdActivation x ≤ 1 := by
   unfold thresholdActivation
   split_ifs <;> norm_num
 
@@ -1680,70 +1681,110 @@ noncomputable def extractWeights {d : ℕ} (w : Fin (d + 1) → ℝ) : Euclidean
 noncomputable def extractBias {d : ℕ} (w : Fin (d + 1) → ℝ) : ℝ :=
   w (Fin.last d)
 
+private lemma continuous_extractWeights {d : ℕ} :
+    Continuous (fun wb : Fin (d + 1) → ℝ => extractWeights wb) := by
+  apply Continuous.comp (EuclideanSpace.equiv (Fin d) ℝ).symm.continuous
+  apply continuous_pi
+  intro j
+  exact continuous_apply _
+
+private lemma continuous_extractBias {d : ℕ} :
+    Continuous (fun wb : Fin (d + 1) → ℝ => extractBias wb) :=
+  continuous_apply _
+
 lemma barronSamplingBound_measurability
     {d : ℕ} {Ω_x : Type*} [MeasurableSpace Ω_x]
     (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_meas : Measurable x_embed) :
     Measurable (fun (p : (Fin (d + 1) → ℝ) × Ω_x) =>
-      thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ p.1 j.castSucc)) (x_embed p.2) - p.1 (Fin.last d))) := by
+      thresholdActivation (inner ℝ (extractWeights p.1) (x_embed p.2) - extractBias p.1)) := by
   apply thresholdActivation_meas.comp
-  have hc : Continuous (fun p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) => inner ℝ p.1 p.2) := continuous_inner
-  have hm_inner : Measurable (fun p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) => inner ℝ p.1 p.2) := hc.measurable
-  have h1 : Measurable (fun p : (Fin (d + 1) → ℝ) × Ω_x => ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ p.1 j.castSucc), x_embed p.2)) := by
+  have hc : Continuous
+      (fun p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) =>
+        inner ℝ p.1 p.2) :=
+    continuous_inner
+  have hm_inner : Measurable
+      (fun p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) =>
+        inner ℝ p.1 p.2) :=
+    hc.measurable
+  have h1 : Measurable
+      (fun p : (Fin (d + 1) → ℝ) × Ω_x => (extractWeights p.1, x_embed p.2)) := by
     apply Measurable.prod
-    · have h_lin : Continuous (fun wb : (Fin (d + 1) → ℝ) => (EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ wb j.castSucc)) := by
-        apply Continuous.comp (EuclideanSpace.equiv (Fin d) ℝ).symm.continuous
-        apply continuous_pi
-        intro j
-        exact continuous_apply _
-      exact (h_lin.measurable).comp measurable_fst
+    · exact continuous_extractWeights.measurable.comp measurable_fst
     · exact hx_meas.comp measurable_snd
-  have hm1 : Measurable (fun p : (Fin (d + 1) → ℝ) × Ω_x => inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ p.1 j.castSucc)) (x_embed p.2)) := hm_inner.comp h1
+  have hm1 : Measurable
+      (fun p : (Fin (d + 1) → ℝ) × Ω_x =>
+        inner ℝ (extractWeights p.1) (x_embed p.2)) :=
+    hm_inner.comp h1
   apply Measurable.sub
   · exact hm1
-  · exact (measurable_pi_apply _).comp measurable_fst
+  · exact continuous_extractBias.measurable.comp measurable_fst
 
 lemma barronSamplingBound_L2
     {d : ℕ} {Ω_x : Type*} [MeasurableSpace Ω_x]
     (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_meas : Measurable x_embed)
     (P : Measure Ω_x) [IsProbabilityMeasure P]
     (w : Fin (d + 1) → ℝ) :
-    MemLp (fun (x : Ω_x) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) 2 P := by
-  have h_meas_w : Measurable (fun (x : Ω_x) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
-    have h1 : Continuous (fun x : EuclideanSpace ℝ (Fin d) => inner ℝ (extractWeights w) x - extractBias w) := by
+    MemLp
+      (fun (x : Ω_x) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+      2 P := by
+  have h_meas_w : Measurable
+      (fun (x : Ω_x) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
+    have h1 : Continuous
+        (fun x : EuclideanSpace ℝ (Fin d) =>
+          inner ℝ (extractWeights w) x - extractBias w) := by
       exact (continuous_const.inner continuous_id).sub continuous_const
     exact (thresholdActivation_meas).comp (h1.measurable.comp hx_meas)
-  have h_ae : AEStronglyMeasurable (fun (x : Ω_x) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) P := h_meas_w.aestronglyMeasurable
-  have h_bound : ∀ᵐ (x : Ω_x) ∂P, ‖thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
+  have h_ae : AEStronglyMeasurable
+      (fun (x : Ω_x) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) P :=
+    h_meas_w.aestronglyMeasurable
+  have h_bound : ∀ᵐ (x : Ω_x) ∂P,
+      ‖thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
     filter_upwards [] with x
     have h_ta := thresholdActivation_bound (inner ℝ (extractWeights w) (x_embed x) - extractBias w)
     rw [Real.norm_eq_abs, abs_le]
     constructor <;> linarith
-  have h_fin : IsFiniteMeasure P := inferInstance
-  exact MemLp.of_bound (f := fun (x : Ω_x) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) (p := 2) (μ := P) (C := 1) h_ae h_bound
+  exact MemLp.of_bound
+    (f := fun (x : Ω_x) =>
+      thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+    (p := 2) (μ := P) (C := 1) h_ae h_bound
 
 lemma barronSamplingBound_integrability_pos
     {d : ℕ} {Ω_x : Type*}
     (x_embed : Ω_x → EuclideanSpace ℝ (Fin d))
     (x : Ω_x) (μ : Measure (Fin (d + 1) → ℝ)) [IsFiniteMeasure μ] :
-    Integrable (fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) μ := by
-  have h_meas_x : Measurable (fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
-    have h1 : Continuous (fun wb : (Fin (d + 1) → ℝ) => inner ℝ (extractWeights wb) (x_embed x) - extractBias wb) := by
-      have hcw : Continuous (fun wb : (Fin (d + 1) → ℝ) => extractWeights wb) := by
-        apply Continuous.comp (EuclideanSpace.equiv (Fin d) ℝ).symm.continuous
-        apply continuous_pi
-        intro j
-        exact continuous_apply _
-      have hcb : Continuous (fun wb : (Fin (d + 1) → ℝ) => extractBias wb) := continuous_apply _
-      exact (hcw.inner continuous_const).sub hcb
+    Integrable
+      (fun (w : Fin (d + 1) → ℝ) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+      μ := by
+  have h_meas_x : Measurable
+      (fun (w : Fin (d + 1) → ℝ) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
+    have h1 : Continuous
+        (fun wb : (Fin (d + 1) → ℝ) =>
+          inner ℝ (extractWeights wb) (x_embed x) - extractBias wb) := by
+      exact (continuous_extractWeights.inner continuous_const).sub continuous_extractBias
     exact thresholdActivation_meas.comp h1.measurable
-  have h_ae : AEStronglyMeasurable (fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) μ := h_meas_x.aestronglyMeasurable
-  have h_bound : ∀ᵐ (w : Fin (d + 1) → ℝ) ∂μ, ‖thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
+  have h_ae : AEStronglyMeasurable
+      (fun (w : Fin (d + 1) → ℝ) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) μ :=
+    h_meas_x.aestronglyMeasurable
+  have h_bound : ∀ᵐ (w : Fin (d + 1) → ℝ) ∂μ,
+      ‖thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
     filter_upwards [] with w
     have h_ta := thresholdActivation_bound (inner ℝ (extractWeights w) (x_embed x) - extractBias w)
     rw [Real.norm_eq_abs, abs_le]
     constructor <;> linarith
-  have h_mem : MemLp (fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) 1 μ :=
-    MemLp.of_bound (f := fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) (p := 1) (μ := μ) (C := 1) h_ae h_bound
+  have h_mem : MemLp
+      (fun (w : Fin (d + 1) → ℝ) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+      1 μ :=
+    MemLp.of_bound
+      (f := fun (w : Fin (d + 1) → ℝ) =>
+        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+      (p := 1) (μ := μ) (C := 1) h_ae h_bound
   exact h_mem.integrable le_rfl
 
 lemma barronSamplingBound_hB
@@ -1751,14 +1792,20 @@ lemma barronSamplingBound_hB
     (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_meas : Measurable x_embed)
     (P : Measure Ω_x) [IsProbabilityMeasure P]
     (w : Fin (d + 1) → ℝ) :
-    ∫ (x : Ω_x), (thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ w j.castSucc)) (x_embed x) - w (Fin.last d))) ^ 2 ∂P ≤ 1 := by
+    ∫ (x : Ω_x),
+        (thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) ^ 2 ∂P
+      ≤ 1 := by
   have h_L2 := barronSamplingBound_L2 x_embed hx_meas P w
-  have h_int_bound : ∫ (x : Ω_x), (thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ w j.castSucc)) (x_embed x) - w (Fin.last d))) ^ 2 ∂P ≤ ∫ (x : Ω_x), (1 : ℝ) ∂P := by
+  have h_int_bound :
+      ∫ (x : Ω_x),
+          (thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) ^ 2 ∂P
+        ≤ ∫ (x : Ω_x), (1 : ℝ) ∂P := by
     apply integral_mono
     · exact MemLp.integrable_sq h_L2
     · exact integrable_const 1
     · intro x
-      have h1 := thresholdActivation_bound (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ w j.castSucc)) (x_embed x) - w (Fin.last d))
+      have h1 :=
+        thresholdActivation_bound (inner ℝ (extractWeights w) (x_embed x) - extractBias w)
       nlinarith
   have h_int_1 : ∫ (x : Ω_x), (1 : ℝ) ∂P = 1 := by simp
   linarith
@@ -1784,7 +1831,8 @@ theorem barronSamplingBound
     (hfhat_L1 : Integrable (BarronNorm.fourierTransform f) volume)
     {Ω_x : Type*} {mΩ_x : MeasurableSpace Ω_x}
     (P : Measure Ω_x) [IsProbabilityMeasure P]
-    (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_meas : Measurable x_embed) (hx_unit : ∀ ω, ‖x_embed ω‖ ≤ 1)
+    (x_embed : Ω_x → EuclideanSpace ℝ (Fin d))
+    (hx_meas : Measurable x_embed) (hx_unit : ∀ ω, ‖x_embed ω‖ ≤ 1)
     {k : ℕ} (hk : 0 < k) :
     ∃ (weights : Fin k → EuclideanSpace ℝ (Fin d))
       (biases : Fin k → ℝ)
@@ -1802,7 +1850,13 @@ theorem barronSamplingBound
       intro ω
       have hx := hx_unit ω
       have heq := h_eval (x_embed ω) hx
-      have heval0 : InfiniteWidthNetwork.eval thresholdActivation net (fun (wb : Fin (d + 1) → ℝ) ↦ thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ wb j.castSucc)) (x_embed ω) - wb (Fin.last d))) = 0 := by
+      have heval0 : InfiniteWidthNetwork.eval thresholdActivation net
+          (fun (wb : Fin (d + 1) → ℝ) ↦
+            thresholdActivation
+              (inner ℝ
+                ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ wb j.castSucc))
+                (x_embed ω) - wb (Fin.last d))) =
+          0 := by
         dsimp [InfiniteWidthNetwork.eval, signedIntegral]
         rw [h_mu_zero, MeasureTheory.SignedMeasure.toJordanDecomposition_zero]
         simp
@@ -1816,46 +1870,71 @@ theorem barronSamplingBound
     rw [h_int_zero]
     positivity
   · let g : (Fin (d + 1) → ℝ) → Ω_x → ℝ := fun wb ω ↦
-      thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ wb j.castSucc)) (x_embed ω) - wb (Fin.last d))
-    have hg_meas : Measurable (Function.uncurry g) := barronSamplingBound_measurability x_embed hx_meas
+      thresholdActivation (inner ℝ (extractWeights wb) (x_embed ω) - extractBias wb)
+    have hg_meas : Measurable (Function.uncurry g) :=
+      barronSamplingBound_measurability x_embed hx_meas
     have hg_L2 : ∀ w, MemLp (g w) 2 P := barronSamplingBound_L2 x_embed hx_meas P
-    have hg_int_pos : ∀ x, Integrable (fun (w : Fin (d + 1) → ℝ) => g w x) net.measure.toJordanDecomposition.posPart := fun x =>
+    have hg_int_pos : ∀ x,
+        Integrable (fun (w : Fin (d + 1) → ℝ) => g w x)
+          net.measure.toJordanDecomposition.posPart := fun x =>
       barronSamplingBound_integrability_pos x_embed x _
-    have hg_int_neg : ∀ x, Integrable (fun (w : Fin (d + 1) → ℝ) => g w x) net.measure.toJordanDecomposition.negPart := fun x =>
+    have hg_int_neg : ∀ x,
+        Integrable (fun (w : Fin (d + 1) → ℝ) => g w x)
+          net.measure.toJordanDecomposition.negPart := fun x =>
       barronSamplingBound_integrability_pos x_embed x _
-    have hB : ∀ w ∈ (Set.univ : Set (Fin (d + 1) → ℝ)), ∫ (x : Ω_x), g w x ^ 2 ∂P ≤ 1 := fun (w : Fin (d + 1) → ℝ) _ => barronSamplingBound_hB x_embed hx_meas P w
-    have h_maurey := maureySamplingSignedMeasure P h_mu_ne_zero MeasurableSet.univ (by simp) g hg_meas hg_L2 hg_int_pos hg_int_neg hB hk
+    have hB : ∀ w ∈ (Set.univ : Set (Fin (d + 1) → ℝ)),
+        ∫ (x : Ω_x), g w x ^ 2 ∂P ≤ 1 := fun (w : Fin (d + 1) → ℝ) _ =>
+      barronSamplingBound_hB x_embed hx_meas P w
+    have h_maurey :=
+      maureySamplingSignedMeasure P h_mu_ne_zero MeasurableSet.univ (by simp)
+        g hg_meas hg_L2 hg_int_pos hg_int_neg hB hk
     rcases h_maurey with ⟨ws, hws_univ, hws_bound⟩
     let M := totalMass net.measure
-    let weights : Fin k → EuclideanSpace ℝ (Fin d) := fun i ↦ (EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ (ws i).1 j.castSucc)
-    let biases : Fin k → ℝ := fun i ↦ (ws i).1 (Fin.last d)
+    let weights : Fin k → EuclideanSpace ℝ (Fin d) := fun i ↦ extractWeights (ws i).1
+    let biases : Fin k → ℝ := fun i ↦ extractBias (ws i).1
     let signs : Fin k → ℝ := fun i ↦ signWeight (ws i).2 * M / (2 * C)
     use weights, biases, signs
-    have h_integrand_eq : ∀ ω, (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
-        thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) =
-        signedIntegral net.measure (fun w => g w ω) - (1 / k : ℝ) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i) := by
+    have h_integrand_eq : ∀ ω,
+        (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
+          thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) =
+        signedIntegral net.measure (fun w => g w ω) -
+          (1 / k : ℝ) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i) := by
       intro ω
       have heq := h_eval (x_embed ω) (hx_unit ω)
-      have h_eval_eq : signedIntegral net.measure (fun w => g w ω) = f (x_embed ω) - f 0 := by
+      have h_eval_eq :
+          signedIntegral net.measure (fun w => g w ω) = f (x_embed ω) - f 0 := by
+        dsimp [g, extractWeights, extractBias]
         exact heq.symm
       rw [h_eval_eq]
-      have h_sum_eq : (2 * C / (k : ℝ)) * ∑ i, signs i * thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i) =
-        (1 / (k : ℝ)) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i) := by
+      have h_sum_eq :
+          (2 * C / (k : ℝ)) * ∑ i,
+              signs i * thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i) =
+          (1 / (k : ℝ)) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i) := by
         rw [Finset.mul_sum, Finset.mul_sum]
         apply Finset.sum_congr rfl
         intro i _
         dsimp [rescaled, signs, g, weights, biases, M]
         have hC2 : 2 * C ≠ 0 := by linarith
-        have eq1 : (2 * C / ↑k) * (signWeight (ws i).2 * totalMass net.measure / (2 * C) *
-          thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm fun j => (ws i).1 (Fin.castSucc j)) (x_embed ω) - (ws i).1 (Fin.last d))) =
-          ((2 * C) * (2 * C)⁻¹) * ((signWeight (ws i).2 * totalMass net.measure) * thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm fun j => (ws i).1 (Fin.castSucc j)) (x_embed ω) - (ws i).1 (Fin.last d)) / ↑k) := by ring
+        have eq1 :
+            (2 * C / ↑k) *
+              (signWeight (ws i).2 * totalMass net.measure / (2 * C) *
+                thresholdActivation
+                  (inner ℝ (extractWeights (ws i).1) (x_embed ω) - extractBias (ws i).1)) =
+            ((2 * C) * (2 * C)⁻¹) *
+              ((signWeight (ws i).2 * totalMass net.measure) *
+                thresholdActivation
+                  (inner ℝ (extractWeights (ws i).1) (x_embed ω) -
+                    extractBias (ws i).1) /
+                ↑k) := by ring
         rw [eq1, mul_inv_cancel₀ hC2, one_mul]
         ring
       rw [h_sum_eq]
       linarith
-    have h_int_eq : (∫ ω, (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
-        thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) ^ 2 ∂P) =
-        ∫ ω, (signedIntegral net.measure (fun w => g w ω) - (1 / k : ℝ) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i)) ^ 2 ∂P := by
+    have h_int_eq :
+        (∫ ω, (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
+          thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) ^ 2 ∂P) =
+        ∫ ω, (signedIntegral net.measure (fun w => g w ω) -
+          (1 / k : ℝ) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i)) ^ 2 ∂P := by
       apply integral_congr_ae
       filter_upwards [] with ω
       rw [h_integrand_eq ω]
@@ -1863,7 +1942,9 @@ theorem barronSamplingBound
     have h_bound1 : M ^ 2 * 1 / k ≤ 4 * C ^ 2 / k := by
       have hm_eq : M = InfiniteWidthNetwork.mass thresholdActivation net := by
         dsimp [M, totalMass, InfiniteWidthNetwork.mass]
-        have h_tv : net.measure.totalVariation Set.univ = net.measure.toJordanDecomposition.posPart Set.univ + net.measure.toJordanDecomposition.negPart Set.univ := rfl
+        have h_tv : net.measure.totalVariation Set.univ =
+            net.measure.toJordanDecomposition.posPart Set.univ +
+              net.measure.toJordanDecomposition.negPart Set.univ := rfl
         rw [h_tv, ENNReal.toReal_add]
         · exact measure_ne_top net.measure.toJordanDecomposition.posPart Set.univ
         · exact measure_ne_top net.measure.toJordanDecomposition.negPart Set.univ
