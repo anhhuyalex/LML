@@ -515,7 +515,7 @@ lemma rectIndicatorNet_L1_error {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ) :
     rcases hx j with ⟨h_left, h_right⟩; exact ⟨by linarith, by linarith⟩
   -- 3. rectIndicatorNet = 0 outside S
   have h_zero_outside (x : EuclideanSpace ℝ (Fin d)) (hx : x ∉ S) : rectIndicatorNet R γ x = 0 := by
-    rw [Set.mem_setOf_eq] at hx
+    rw [Set.mem_ofPred_eq] at hx
     have h_exists : ∃ j : Fin d, x j < R.left j - γ ∨ x j ≥ R.left j + R.width j + γ := by
       by_contra! h
       apply hx
@@ -651,7 +651,7 @@ lemma volume_unitCube : volume.real (unitCube d) = 1 := by
   have h_eq : {x : EuclideanSpace ℝ (Fin d) |
       ∀ j, (fun _ => (0 : ℝ)) j ≤ x j ∧ x j < (fun _ => (0 : ℝ)) j + (fun _ => (1 : ℝ)) j}
       = unitCube d := by
-    ext x; simp only [unitCube, Set.mem_setOf_eq, zero_add]
+    ext x; simp only [unitCube, Set.mem_ofPred_eq, zero_add]
   rw [h_eq] at key
   rw [key]; simp
 

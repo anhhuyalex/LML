@@ -283,7 +283,7 @@ theorem deltaTentIter_eq (L : ℕ) (hL : 1 ≤ L) (x : ℝ) (hx : x ∈ Set.Icc 
           fractionalPart (2 * y) = Int.fract (2 * y) := rfl
           _ = Int.fract (2 * (Int.fract y + (⌊y⌋ : ℝ))) := by
             simp [Int.fract_add_floor]
-          _ = Int.fract (2 * Int.fract y + (2 * ⌊y⌋ : ℝ)) := by ring
+          _ = Int.fract (2 * Int.fract y + (2 * ⌊y⌋ : ℝ)) := by ring_nf
           _ = Int.fract (2 * Int.fract y + (2 * ⌊y⌋ : ℤ)) := by push_cast; rfl
           _ = Int.fract (2 * Int.fract y) := by
             rw [Int.fract_add_intCast (2 * Int.fract y) (2 * ⌊y⌋)]

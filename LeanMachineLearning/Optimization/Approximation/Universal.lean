@@ -71,7 +71,7 @@ theorem cos_mul_mem (f₁ f₂ : (EuclideanSpace ℝ (Fin d)) → ℝ)
     (hf₂ : f₂ ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d) :
     (fun x => f₁ x * f₂ x) ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d := by
   simp only [OneHiddenLayer.UnboundedClass, OneHiddenLayer.FunctionClass,
-    Set.mem_iUnion, Set.mem_setOf_eq] at hf₁ hf₂ ⊢
+    Set.mem_iUnion, Set.mem_ofPred_eq] at hf₁ hf₂ ⊢
   rcases hf₁ with ⟨m₁, net₁, rfl⟩
   rcases hf₂ with ⟨m₂, net₂, rfl⟩
   let α := (Fin m₁ × Fin m₂) × Fin 2
@@ -165,7 +165,7 @@ theorem exp_mul_mem (f₁ f₂ : (EuclideanSpace ℝ (Fin d)) → ℝ)
     (hf₂ : f₂ ∈ OneHiddenLayer.UnboundedClass Real.exp d) :
     (fun x => f₁ x * f₂ x) ∈ OneHiddenLayer.UnboundedClass Real.exp d := by
   simp only [OneHiddenLayer.UnboundedClass, OneHiddenLayer.FunctionClass,
-    Set.mem_iUnion, Set.mem_setOf_eq] at hf₁ hf₂ ⊢
+    Set.mem_iUnion, Set.mem_ofPred_eq] at hf₁ hf₂ ⊢
   rcases hf₁ with ⟨m₁, net₁, rfl⟩
   rcases hf₂ with ⟨m₂, net₂, rfl⟩
   let α := Fin m₁ × Fin m₂
@@ -235,7 +235,7 @@ lemma cos_separates_points (x x' : EuclideanSpace ℝ (Fin d)) (h : x ≠ x') :
     Real.cos (OneHiddenLayer.affineMap w b z)
   refine ⟨f, ?_, ?_⟩
   · simp only [OneHiddenLayer.UnboundedClass, OneHiddenLayer.FunctionClass,
-      Set.mem_iUnion, Set.mem_setOf_eq]
+      Set.mem_iUnion, Set.mem_ofPred_eq]
     refine ⟨1, { weights := fun _ => w, biases := fun _ => b, coeffs := fun _ => 1 }, ?_⟩
     ext z
     simp [f, OneHiddenLayer.Network.eval]
@@ -260,7 +260,7 @@ lemma cos_nonvanishing (x : EuclideanSpace ℝ (Fin d)) :
     ∃ f ∈ OneHiddenLayer.UnboundedClass (fun z => Real.cos z) d, f x ≠ 0 := by
   refine ⟨fun _ => 1, ?_, one_ne_zero⟩
   simp only [OneHiddenLayer.UnboundedClass, OneHiddenLayer.FunctionClass,
-    Set.mem_iUnion, Set.mem_setOf_eq]
+    Set.mem_iUnion, Set.mem_ofPred_eq]
   -- Use one neuron: weight 0, bias 0, coefficient 1 → eval = 1 * cos(0) = 1
   exact ⟨1, { weights := fun _ => 0, biases := fun _ => 0, coeffs := fun _ => 1 }, by
     funext y
@@ -291,7 +291,7 @@ def networkSubalgebra (σ : ℝ → ℝ)
   add_mem' := fun hf hg => OneHiddenLayer.UnboundedClass.add_mem hf hg
   mul_mem' := fun hf hg => hmul _ _ hf hg
   algebraMap_mem' := fun r => by
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     have hfun : ⇑(algebraMap ℝ C(EuclideanSpace ℝ (Fin d), ℝ) r) = fun _ => r := by
       funext x; simp [algebraMap_apply]
     rw [hfun]
@@ -371,7 +371,7 @@ lemma exp_separates_points (x x' : EuclideanSpace ℝ (Fin d)) (h : x ≠ x') :
     Real.exp (OneHiddenLayer.affineMap w b z)
   refine ⟨f, ?_, ?_⟩
   · simp only [OneHiddenLayer.UnboundedClass, OneHiddenLayer.FunctionClass,
-      Set.mem_iUnion, Set.mem_setOf_eq]
+      Set.mem_iUnion, Set.mem_ofPred_eq]
     refine ⟨1, { weights := fun _ => w, biases := fun _ => b, coeffs := fun _ => 1 }, ?_⟩
     ext z
     simp [f, OneHiddenLayer.Network.eval]

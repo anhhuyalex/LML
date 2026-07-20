@@ -437,6 +437,31 @@ noncomputable def reluDeriv : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 /-- Scaled shallow network with ReLU activation. -/
 abbrev ReLUNetwork (d m : ℕ) := ShallowNetwork relu d m
 
+lemma relu_error_eq_zero_outside_badSet
+    {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    (r τ : ℝ) (hτ : 0 < τ)
+    (j : Fin m) (hj : j ∉ badSet τ r x W W₀) :
+    net.outerCoeffs j * relu (∑ k, W j k * x k) -
+    net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * (∑ k, W j k * x k) = 0 := by
+  sorry
+
+lemma relu_linearization_error_le (a b : ℝ) :
+    |relu a - reluDeriv b * a| ≤ |a - b| := by
+  sorry
+
+lemma card_largePerturb_bound
+    {d m : ℕ} (W W₀ : Fin m → Fin d → ℝ) (r B : ℝ) (hr : 0 < r)
+    (h_frob : frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B) :
+    (largePerturb r W W₀).card ≤ (B / r) ^ 2 := by
+  sorry
+
+lemma reluLinearization_algebraic_bound
+    (m : ℕ) (B δ : ℝ) (hB : 0 ≤ B) (hδ : 0 < δ) (hδ1 : δ < 1) :
+    let r := B ^ (2/3 : ℝ) / (m : ℝ) ^ (1/3 : ℝ)
+    let S_bound := (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) + (B / r) ^ 2
+    B / Real.sqrt m * Real.sqrt S_bound ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) / (m : ℝ) ^ (1 / 6 : ℝ) := by
+  sorry
+
 /-- **Lemma 4.1** (Telgarsky 2021, main ReLU linearization bound).
 Let `net` be a ReLU network, `W₀ ~ 𝒩(0, Iᵈ)^{⊗m}`, `B ≥ 0`, and `‖x‖ ≤ 1`.
 With probability at least `1 − δ` over `W₀`, for every `W` with `‖W − W₀‖_F ≤ B`:
@@ -462,6 +487,29 @@ theorem reluLinearizationBound
            linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
+  by_cases hx_pos : 0 < x ⊙ x
+  swap
+  · -- x = 0 case
+    sorry
+  by_cases hm : m = 0
+  · -- m = 0 case
+    sorry
+  let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
+  have hr : 0 < r := by sorry
+  have h_sign_conc := reluSignConcentration x hx_pos r hr δ hδ hδ1
+  -- The probability of the complement is ≥ 1 - δ
+  apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
+  · sorry
+  apply measureReal_mono
+  intro W₀ h_W₀ W h_W
+  let S1 := signAmbiguous r x W₀
+  let S2 := largePerturb r W W₀
+  let S := badSet r r x W W₀
+  have h_S1 : (S1.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) := h_W₀
+  have h_S2 : (S2.card : ℝ) ≤ (B / r) ^ 2 := card_largePerturb_bound W W₀ r B hr h_W
+  have h_S_card : (S.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) + (B / r) ^ 2 := by sorry
+  have h_diff_S : |net.eval x W - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W| ≤ B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by sorry
+  have h_alg := reluLinearization_algebraic_bound m B δ hB hδ hδ1
   sorry
 
 /-- **Corollary** (second part of Lemma 4.1): second-order Taylor error for ReLU.
@@ -482,6 +530,31 @@ theorem reluLinearizationBound_secondOrder
             net.eval x W)|
           ≤ (6 * B ^ (4 / 3 : ℝ) + 2 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
+  by_cases hx_pos : 0 < x ⊙ x
+  swap
+  · -- x = 0 case
+    sorry
+  by_cases hm : m = 0
+  · -- m = 0 case
+    sorry
+  let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
+  have hr : 0 < r := by sorry
+  have h_sign_conc := reluSignConcentration x hx_pos r hr δ hδ hδ1
+  -- The probability of the complement is ≥ 1 - δ
+  apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
+  · sorry
+  apply measureReal_mono
+  intro W₀ h_W₀ W V h_W h_V
+  let S1 := signAmbiguous r x W₀
+  let S2 := largePerturb r W W₀
+  let S3 := largePerturb r V W₀
+  let S := S1 ∪ S2 ∪ S3
+  have h_S1 : (S1.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) := h_W₀
+  have h_S2 : (S2.card : ℝ) ≤ (B / r) ^ 2 := card_largePerturb_bound W W₀ r B hr h_W
+  have h_S3 : (S3.card : ℝ) ≤ (B / r) ^ 2 := card_largePerturb_bound V W₀ r B hr h_V
+  have h_S_card : (S.card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) + 2 * (B / r) ^ 2 := by sorry
+  have h_diff_S : |net.eval x V - (net.eval x W + linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V - net.eval x W)| ≤ 3 * B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by sorry
+  -- Use h_diff_S and h_S_card to conclude the bound
   sorry
 
 end NTK

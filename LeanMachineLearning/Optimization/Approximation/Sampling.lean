@@ -1313,7 +1313,7 @@ theorem exists_le_integral_sq_of_mean
   refine ⟨w, ?_, ?_⟩
   · intro i
     have : w ∉ N_bad := hw_bad
-    simp only [N_bad, Set.mem_setOf_eq, not_exists] at this
+    simp only [N_bad, Set.mem_ofPred_eq, not_exists] at this
     exact this i
   · have h_int_eq_toReal : ∫ ω : Fin k → Ω_w, ∫ x,
         (f x - (1 / k : ℝ) * ∑ i, F (ω i) x) ^ 2 ∂P ∂μ_prob =

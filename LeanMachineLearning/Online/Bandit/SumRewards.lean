@@ -50,7 +50,7 @@ lemma prob_pullCount_prod_sumRewards_mem_le (a : 𝓐) (n : ℕ)
   calc 𝔓 ((fun ω ↦ (pullCount A a n ω, ∑ i ∈ range (pullCount A a n ω), ω.2 i a)) ⁻¹' s)
   _ ≤ 𝔓 {ω | ∃ k ≤ n, (k, ∑ i ∈ range k, ω.2 i a) ∈ s} := by
     refine measure_mono fun ω hω ↦ ?_
-    simp only [Set.mem_setOf_eq] at hω ⊢
+    simp only [Set.mem_ofPred_eq] at hω ⊢
     exact ⟨pullCount A a n ω, pullCount_le _ _ _, hω⟩
   _ = 𝔓 (⋃ k ∈ (range (n + 1)).filter (· ∈ Prod.fst '' s),
       {ω | (k, ∑ i ∈ range k, ω.2 i a) ∈ s}) := by congr 1; ext; simp; grind
@@ -109,7 +109,7 @@ lemma prob_sumRewards_le_sumRewards_le [Fintype 𝓐] (a : 𝓐) (n m₁ m₂ : 
   _ ≤ 𝔓 ((fun ω ↦ (∑ i ∈ range m₁, ω.2 i (bestArm ν), ∑ i ∈ range m₂, ω.2 i a)) ⁻¹'
         {p | p.1 ≤ p.2}) := by
       refine measure_mono fun ω hω ↦ ?_
-      simp only [Set.preimage_setOf_eq, Set.mem_setOf_eq] at hω ⊢
+      simp only [Set.preimage_setOf_eq, Set.mem_ofPred_eq] at hω ⊢
       grind
   _ = streamMeasure ν
       {ω | ∑ i ∈ range m₁, ω i (bestArm ν) ≤ ∑ i ∈ range m₂, ω i a} := by
