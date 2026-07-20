@@ -121,12 +121,15 @@ private lemma sq_sqrt_inv_cast_nat (m : ℕ) :
   exact inv_nonneg.mpr (Nat.cast_nonneg m)
 
 -- Term-level algebraic identity for the Frobenius inner product of gradients.
-private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val_x' : ℝ) (x_k x'_k : ℝ) :
+private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val_x' : ℝ)
+    (x_k x'_k : ℝ) :
     ((m : ℝ)⁻¹.sqrt * outerCoeffs_j * val_x * x_k) *
     ((m : ℝ)⁻¹.sqrt * outerCoeffs_j * val_x' * x'_k) =
     (x_k * x'_k) * ((m : ℝ)⁻¹ * outerCoeffs_j ^ 2 * val_x * val_x') := by
   calc
-    _ = ((m : ℝ)⁻¹.sqrt * (m : ℝ)⁻¹.sqrt) * (outerCoeffs_j * outerCoeffs_j) * val_x * val_x' * (x_k * x'_k) := by ring
+    _ = ((m : ℝ)⁻¹.sqrt * (m : ℝ)⁻¹.sqrt) *
+          (outerCoeffs_j * outerCoeffs_j) * val_x * val_x' * (x_k * x'_k) := by
+      ring
     _ = (m : ℝ)⁻¹ * outerCoeffs_j ^ 2 * val_x * val_x' * (x_k * x'_k) := by
       rw [sq_sqrt_inv_cast_nat m, ← sq]
     _ = _ := by ring
@@ -214,7 +217,9 @@ private lemma empiricalNTK_term_expand
             ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k)))
         =
           (α i * α i' * ∑ k : Fin d, pts i k * pts i' k) * (m : ℝ)⁻¹ *
-            ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k) := by
+            ∑ j : Fin m,
+              σ' (∑ k : Fin d, W₀ j k * pts i k) *
+                σ' (∑ k : Fin d, W₀ j k * pts i' k) := by
             ring
     _ =
       (α i * α i' * ∑ k : Fin d, pts i k * pts i' k) * (m : ℝ)⁻¹ *
@@ -326,7 +331,7 @@ lemma empiricalNTK_posSemidef
                 (α i * α i' * (pts i k * pts i' k) *
                   (σ' (∑ l : Fin d, W₀ j l * pts i l) *
                     σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
-              -- Step 1: Expand the kernel into a quadruple sum over samples, neurons, and coordinates.
+              -- Step 1: Expand the kernel into a quadruple sum.
               apply Finset.sum_congr rfl
               intro i _
               apply Finset.sum_congr rfl
@@ -338,7 +343,8 @@ lemma empiricalNTK_posSemidef
                 (σ' (∑ l : Fin d, W₀ j l * pts i l) *
                   σ' (∑ l : Fin d, W₀ j l * pts i' l))) := quadruple_sum_comm _
       _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
-            (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+            (∑ i : Fin n,
+              α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
               -- Step 2: Repackage the quadruple sum as a sum of squares.
               calc
                 ∑ j : Fin m, ∑ k : Fin d, ∑ i : Fin n, ∑ i' : Fin n,
@@ -348,7 +354,8 @@ lemma empiricalNTK_posSemidef
                           σ' (∑ l : Fin d, W₀ j l * pts i' l)))
                     = ∑ j : Fin m, ∑ k : Fin d,
                         (m : ℝ)⁻¹ *
-                          (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                          (∑ i : Fin n,
+                            α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
                             apply Finset.sum_congr rfl
                             intro j _
                             apply Finset.sum_congr rfl
@@ -359,17 +366,23 @@ lemma empiricalNTK_posSemidef
                             calc
                               ∑ j : Fin m, ∑ k : Fin d,
                                   (m : ℝ)⁻¹ *
-                                    (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2
+                                    (∑ i : Fin n,
+                                      α i * pts i k *
+                                        σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2
                                   =
                                     ∑ j : Fin m,
                                       (m : ℝ)⁻¹ *
                                         ∑ k : Fin d,
-                                          (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                                          (∑ i : Fin n,
+                                            α i * pts i k *
+                                              σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
                                       apply Finset.sum_congr rfl
                                       intro j _
                                       rw [← Finset.mul_sum]
                               _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
-                                    (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+                                    (∑ i : Fin n,
+                                      α i * pts i k *
+                                        σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
                                       rw [← Finset.mul_sum]
   rw [h_eq]
   apply mul_nonneg

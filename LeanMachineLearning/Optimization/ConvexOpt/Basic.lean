@@ -79,21 +79,35 @@ This is the key inequality used throughout all subsequent convergence proofs. -/
 theorem smooth_upper_bound {f : E → ℝ} {β : ℝ} (hβ : 0 ≤ β)
     (hf : BetaSmooth f β) (w v : E) :
     f v ≤ f w + inner ℝ (gradient f w) (v - w) + β / 2 * ‖v - w‖ ^ 2 := by
-  let g : ℝ → ℝ := fun t => f (w + t • (v - w)) - t * inner ℝ (gradient f w) (v - w) - β / 2 * t ^ 2 * ‖v - w‖ ^ 2
+  let g : ℝ → ℝ := fun t =>
+    f (w + t • (v - w)) - t * inner ℝ (gradient f w) (v - w) -
+      β / 2 * t ^ 2 * ‖v - w‖ ^ 2
   have hg0 : g 0 = f w := by
     simp [g]
-  have hg1 : g 1 = f v - inner ℝ (gradient f w) (v - w) - β / 2 * ‖v - w‖ ^ 2 := by
+  have hg1 :
+      g 1 = f v - inner ℝ (gradient f w) (v - w) - β / 2 * ‖v - w‖ ^ 2 := by
     simp [g]
-  have hdg : ∀ x ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt g (inner ℝ (gradient f (w + x • (v - w)) - gradient f w) (v - w) - β * x * ‖v - w‖ ^ 2) x := by
+  have hdg : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt g
+        (inner ℝ (gradient f (w + x • (v - w)) - gradient f w) (v - w) -
+          β * x * ‖v - w‖ ^ 2) x := by
     intro x _
     sorry
-  have h_bound : ∀ x ∈ Set.Ioo (0 : ℝ) 1, inner ℝ (gradient f (w + x • (v - w)) - gradient f w) (v - w) - β * x * ‖v - w‖ ^ 2 ≤ 0 := by
+  have h_bound : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      inner ℝ (gradient f (w + x • (v - w)) - gradient f w) (v - w) -
+        β * x * ‖v - w‖ ^ 2 ≤ 0 := by
     intro x _
     sorry
   have h_cont : ContinuousOn g (Set.Icc (0 : ℝ) 1) := by
     sorry
-  have h_mean_value : ∃ c ∈ Set.Ioo (0 : ℝ) 1, inner ℝ (gradient f (w + c • (v - w)) - gradient f w) (v - w) - β * c * ‖v - w‖ ^ 2 = (g 1 - g 0) / (1 - 0) := by
-    apply exists_hasDerivAt_eq_slope g (fun x => inner ℝ (gradient f (w + x • (v - w)) - gradient f w) (v - w) - β * x * ‖v - w‖ ^ 2) (by norm_num) h_cont
+  have h_mean_value : ∃ c ∈ Set.Ioo (0 : ℝ) 1,
+      inner ℝ (gradient f (w + c • (v - w)) - gradient f w) (v - w) -
+        β * c * ‖v - w‖ ^ 2 = (g 1 - g 0) / (1 - 0) := by
+    apply exists_hasDerivAt_eq_slope g
+      (fun x =>
+        inner ℝ (gradient f (w + x • (v - w)) - gradient f w) (v - w) -
+          β * x * ‖v - w‖ ^ 2)
+      (by norm_num) h_cont
     exact hdg
   rcases h_mean_value with ⟨c, hc, hc_eq⟩
   have h_le := h_bound c hc

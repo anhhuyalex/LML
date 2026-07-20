@@ -74,13 +74,19 @@ lemma BetaSmooth.taylor_bound
     |σ r - σ s - deriv σ s * (r - s)| ≤ β * (r - s) ^ 2 / 2 := by
   -- By Taylor's theorem (or repeated Mean Value Theorem), there exists an intermediate point ξ
   -- between r and s such that the remainder equals (σ''(ξ) / 2) * (r - s)^2.
-  have h_taylor : ∃ ξ, min r s ≤ ξ ∧ ξ ≤ max r s ∧ σ r - σ s - deriv σ s * (r - s) = deriv (deriv σ) ξ / 2 * (r - s) ^ 2 := by
+  have h_taylor :
+      ∃ ξ, min r s ≤ ξ ∧ ξ ≤ max r s ∧
+        σ r - σ s - deriv σ s * (r - s) =
+          deriv (deriv σ) ξ / 2 * (r - s) ^ 2 := by
     sorry
   rcases h_taylor with ⟨ξ, _h_min, _h_max, h_eq⟩
   rw [h_eq]
 
   -- Take the absolute value and distribute it.
-  have h_abs : |deriv (deriv σ) ξ / 2 * (r - s) ^ 2| = |deriv (deriv σ) ξ| / 2 * (r - s) ^ 2 := by sorry
+  have h_abs :
+      |deriv (deriv σ) ξ / 2 * (r - s) ^ 2| =
+        |deriv (deriv σ) ξ| / 2 * (r - s) ^ 2 := by
+    sorry
   rw [h_abs]
 
   -- Retrieve the bound on the second derivative from the BetaSmooth hypothesis.

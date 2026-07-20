@@ -65,36 +65,48 @@ variable {d : ℕ}
 
 /-- The Fourier transform of f : ℝᵈ → ℝ.
 `𝓕 f(w) = ∫ exp(-2πi ⟨w, x⟩) f(x) dx`. -/
-noncomputable def fourierTransform (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℂ :=
+noncomputable def fourierTransform
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℂ :=
   ∫ x : EuclideanSpace ℝ (Fin d), Complex.exp (-(2 * π * Complex.I * ↑(inner ℝ w x))) * f x
 
 /-- The magnitude of the Fourier transform. -/
-noncomputable def fourierMagnitude (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
+noncomputable def fourierMagnitude
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
   ‖fourierTransform f w‖
 
 /-- The phase angle θ(w) of f̂(w): the unique θ with f̂(w) = |f̂(w)| · exp(2πiθ). -/
-noncomputable def fourierPhase (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
+noncomputable def fourierPhase
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
   Complex.arg (fourierTransform f w) / (2 * π)
 
-lemma fourierTransform_neg_eq_conj (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) :
+lemma fourierTransform_neg_eq_conj
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) :
     fourierTransform f (-w) = star (fourierTransform f w) := by
   simp_rw [fourierTransform]
-  have h_star : star (∫ (x : EuclideanSpace ℝ (Fin d)), cexp (-(2 * ↑π * I * ↑(inner ℝ w x))) * ↑(f x)) = 
-      (starRingEnd ℂ) (∫ (x : EuclideanSpace ℝ (Fin d)), cexp (-(2 * ↑π * I * ↑(inner ℝ w x))) * ↑(f x)) := rfl
+  have h_star :
+      star (∫ (x : EuclideanSpace ℝ (Fin d)),
+        cexp (-(2 * ↑π * I * ↑(inner ℝ w x))) * ↑(f x)) =
+        (starRingEnd ℂ) (∫ (x : EuclideanSpace ℝ (Fin d)),
+          cexp (-(2 * ↑π * I * ↑(inner ℝ w x))) * ↑(f x)) := rfl
   rw [h_star, ← integral_conj]
   congr 1
   ext x
-  have h1 : (starRingEnd ℂ) (cexp (-(2 * ↑π * I * ↑(inner ℝ w x))) * ↑(f x)) = 
-      (starRingEnd ℂ) (cexp (-(2 * ↑π * I * ↑(inner ℝ w x)))) * (starRingEnd ℂ) (f x : ℂ) := by
+  have h1 :
+      (starRingEnd ℂ) (cexp (-(2 * ↑π * I * ↑(inner ℝ w x))) * ↑(f x)) =
+        (starRingEnd ℂ) (cexp (-(2 * ↑π * I * ↑(inner ℝ w x)))) *
+          (starRingEnd ℂ) (f x : ℂ) := by
     exact map_mul (starRingEnd ℂ) _ _
   rw [h1]
-  have h2 : (starRingEnd ℂ) (cexp (-(2 * ↑π * I * ↑(inner ℝ w x)))) = cexp (2 * ↑π * I * ↑(inner ℝ w x)) := by
+  have h2 :
+      (starRingEnd ℂ) (cexp (-(2 * ↑π * I * ↑(inner ℝ w x)))) =
+        cexp (2 * ↑π * I * ↑(inner ℝ w x)) := by
     rw [← Complex.exp_conj]
     congr 1
     have h2a : (starRingEnd ℂ) (2 : ℂ) = 2 := by apply Complex.ext <;> simp
     have h2b : (starRingEnd ℂ) (↑π : ℂ) = ↑π := Complex.conj_ofReal π
     have h2c : (starRingEnd ℂ) I = -I := Complex.conj_I
-    have h2d : (starRingEnd ℂ) ↑(inner ℝ w x) = ↑(inner ℝ w x) := Complex.conj_ofReal (inner ℝ w x)
+    have h2d : (starRingEnd ℂ) ↑(inner ℝ w x) = ↑(inner ℝ w x) :=
+      Complex.conj_ofReal (inner ℝ w x)
     simp [map_neg, map_mul, h2a, h2b, h2c, h2d]
   have h3 : (starRingEnd ℂ) (f x : ℂ) = (f x : ℂ) := Complex.conj_ofReal (f x)
   rw [h2, h3]
@@ -120,7 +132,8 @@ lemma sin_add_arg_star (b : ℝ) (z : ℂ) :
 /-- The Barron norm integrand: ‖∇̂f(w)‖ = 2π·‖w‖·|f̂(w)|.
 This follows from the Fourier derivative identity ∇̂f(w) = 2πi·w·f̂(w),
 so ‖∇̂f(w)‖ = 2π·‖w‖·|f̂(w)|. -/
-noncomputable def barronIntegrand (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
+noncomputable def barronIntegrand
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) : ℝ :=
   2 * π * ‖w‖ * fourierMagnitude f w
 
 /-- **Definition 3.1** (Barron 1993; Telgarsky 2021).
@@ -148,7 +161,8 @@ lemma barronNorm_nonneg (f : (EuclideanSpace ℝ (Fin d)) → ℝ) : 0 ≤ barro
   `(cos(2π wᵀx + 2πθ) - cos(2πθ)) / (2π‖w‖)`.
 This is Lipschitz in x (bounded by ‖x‖) and is the building block of the
 infinite-width threshold representation. -/
-noncomputable def barronCosineBump (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
+noncomputable def barronCosineBump
+    (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
   if ‖w‖ = 0 then 0
   else (Real.cos (2 * π * inner ℝ w x + 2 * π * θ) - Real.cos (2 * π * θ)) /
        (2 * π * ‖w‖)
@@ -183,7 +197,8 @@ private lemma barron_fourier_inv {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) →
     (hf_cont : Continuous f)
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (fourierTransform f) volume) :
-    ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := by
+    ∀ (x : EuclideanSpace ℝ (Fin d)),
+      ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x := by
   intro x
   have h_lift_cont : Continuous (fun x => (f x : ℂ)) := continuous_ofReal.comp hf_cont
   have h_lift_L1 : Integrable (fun x => (f x : ℂ)) volume := Integrable.ofReal hf_L1
@@ -202,20 +217,28 @@ private lemma barron_fourier_inv {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) →
     rw [← hf_eq]
     exact hfhat_L1
   have h_inv_thm := Continuous.fourierInv_fourier_eq h_lift_cont h_lift_L1 hfhat_L1'
-  have h_inv_eval : FourierTransformInv.fourierInv (FourierTransform.fourier (fun x => (f x : ℂ))) x = (fun x => (f x : ℂ)) x := by
+  have h_inv_eval :
+      FourierTransformInv.fourierInv (FourierTransform.fourier (fun x => (f x : ℂ))) x =
+        (fun x => (f x : ℂ)) x := by
     rw [h_inv_thm]
   rw [hf_eq]
   exact h_inv_eval.symm
 
 -- Polar decomposition of the Fourier transform
-private lemma fourierTransform_polar {d : ℕ} (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) :
-    fourierTransform f w = (fourierMagnitude f w : ℂ) * cexp (2 * ↑π * I * ↑(fourierPhase f w)) := by
+private lemma fourierTransform_polar {d : ℕ}
+    (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (w : EuclideanSpace ℝ (Fin d)) :
+    fourierTransform f w =
+      (fourierMagnitude f w : ℂ) * cexp (2 * ↑π * I * ↑(fourierPhase f w)) := by
   have h_arg : (2 * ↑π * I * ↑(fourierPhase f w)) = ↑(Complex.arg (fourierTransform f w)) * I := by
     unfold fourierPhase
     calc (2 * ↑π * I * ↑(Complex.arg (fourierTransform f w) / (2 * π)))
-      _ = (2 * ↑π * I * (↑(Complex.arg (fourierTransform f w)) / (2 * ↑π))) := by push_cast; rfl
+      _ = (2 * ↑π * I * (↑(Complex.arg (fourierTransform f w)) / (2 * ↑π))) := by
+        push_cast
+        rfl
       _ = I * ↑(Complex.arg (fourierTransform f w)) * (2 * ↑π / (2 * ↑π)) := by ring
-      _ = I * ↑(Complex.arg (fourierTransform f w)) := by rw [div_self, mul_one]; exact mul_ne_zero two_ne_zero (by exact_mod_cast Real.pi_pos.ne.symm)
+      _ = I * ↑(Complex.arg (fourierTransform f w)) := by
+        rw [div_self, mul_one]
+        exact mul_ne_zero two_ne_zero (by exact_mod_cast Real.pi_pos.ne.symm)
       _ = ↑(Complex.arg (fourierTransform f w)) * I := mul_comm _ _
   rw [h_arg]
   unfold fourierMagnitude
@@ -225,19 +248,36 @@ private lemma fourierTransform_polar {d : ℕ} (f : (EuclideanSpace ℝ (Fin d))
 private lemma barron_diff_integrable {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
     (hfhat_L1 : Integrable (fourierTransform f) volume)
     (x : EuclideanSpace ℝ (Fin d)) :
-    Integrable (fun w ↦ (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w) volume := by
-  have hnorm : ∀ w, ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤ 2 * ‖fourierTransform f w‖ := by
+    Integrable
+      (fun w ↦ (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w)
+      volume := by
+  have hnorm : ∀ w,
+      ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤
+        2 * ‖fourierTransform f w‖ := by
     intro w
-    rw [norm_mul, show 2 * ↑π * I * ↑(inner ℝ w x) = ↑(2 * π * inner ℝ w x) * I by push_cast; ring]
+    rw [norm_mul, show
+      2 * ↑π * I * ↑(inner ℝ w x) = ↑(2 * π * inner ℝ w x) * I by
+        push_cast
+        ring]
     exact mul_le_mul_of_nonneg_right (by
-      calc ‖cexp (↑(2 * π * inner ℝ w x) * I) - 1‖ ≤ ‖cexp (↑(2 * π * inner ℝ w x) * I)‖ + ‖(1 : ℂ)‖ := norm_sub_le _ _
+      calc
+        ‖cexp (↑(2 * π * inner ℝ w x) * I) - 1‖ ≤
+            ‖cexp (↑(2 * π * inner ℝ w x) * I)‖ + ‖(1 : ℂ)‖ := norm_sub_le _ _
         _ = 1 + 1 := by rw [Complex.norm_exp_ofReal_mul_I, norm_one]
         _ = 2 := by norm_num) (norm_nonneg _)
-  have h_bound : ∀ᵐ w ∂volume, ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤ ‖(2 : ℝ) • fourierTransform f w‖ := by
+  have h_bound : ∀ᵐ w ∂volume,
+      ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤
+        ‖(2 : ℝ) • fourierTransform f w‖ := by
     filter_upwards [] with w
-    calc ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤ 2 * ‖fourierTransform f w‖ := hnorm w
+    calc
+      ‖(cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w‖ ≤
+          2 * ‖fourierTransform f w‖ := hnorm w
       _ = ‖(2 : ℝ) • fourierTransform f w‖ := by rw [norm_smul, Real.norm_two]
-  exact Integrable.mono (hfhat_L1.smul (2 : ℝ)) (((Continuous.cexp (continuous_const.mul (continuous_ofReal.comp (continuous_id.inner continuous_const)))).sub continuous_const).aestronglyMeasurable.mul hfhat_L1.1) h_bound
+  exact Integrable.mono (hfhat_L1.smul (2 : ℝ))
+    (((Continuous.cexp
+      (continuous_const.mul (continuous_ofReal.comp (continuous_id.inner continuous_const)))).sub
+        continuous_const).aestronglyMeasurable.mul hfhat_L1.1)
+    h_bound
 
 -- Expresses the difference f(x) - f(0) as an integral over complex exponentials
 private lemma barron_diff_exp {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
@@ -245,70 +285,117 @@ private lemma barron_diff_exp {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (fourierTransform f) volume)
     (x : EuclideanSpace ℝ (Fin d)) :
-    (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w := by
-  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)), ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x :=
+    (f x : ℂ) - (f 0 : ℂ) =
+      ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) *
+        fourierTransform f w := by
+  have h_inv : ∀ (x : EuclideanSpace ℝ (Fin d)),
+      ↑(f x) = FourierTransformInv.fourierInv (fourierTransform f) x :=
     barron_fourier_inv hf_cont hf_L1 hfhat_L1
   rw [h_inv x, h_inv 0]
-  have h_int_x : FourierTransformInv.fourierInv (fourierTransform f) x = ∫ w : EuclideanSpace ℝ (Fin d), Complex.exp (2 * π * Complex.I * (inner ℝ w x : ℝ)) * fourierTransform f w := by
+  have h_int_x :
+      FourierTransformInv.fourierInv (fourierTransform f) x =
+        ∫ w : EuclideanSpace ℝ (Fin d),
+          Complex.exp (2 * π * Complex.I * (inner ℝ w x : ℝ)) *
+            fourierTransform f w := by
     change VectorFourier.fourierIntegral _ _ _ _ _ = _
     apply integral_congr_ae
     filter_upwards [] with w
-    simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, Complex.ofReal_mul,
+    simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply,
+      innerₗ_apply_apply, Complex.ofReal_mul,
       ofReal_ofNat, neg_neg, mul_eq_mul_right_iff]
     ring_nf; simp
-  have h_int_0 : FourierTransformInv.fourierInv (fourierTransform f) 0 = ∫ w : EuclideanSpace ℝ (Fin d), fourierTransform f w := by
+  have h_int_0 :
+      FourierTransformInv.fourierInv (fourierTransform f) 0 =
+        ∫ w : EuclideanSpace ℝ (Fin d), fourierTransform f w := by
     change VectorFourier.fourierIntegral _ _ _ _ _ = _
     apply integral_congr_ae
     filter_upwards [] with w
-    simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply, innerₗ_apply_apply, inner_zero_right, mul_zero, zero_mul, Complex.exp_zero, one_mul, Complex.ofReal_zero, neg_zero]
+    simp only [Circle.smul_def, Real.fourierChar_apply, smul_eq_mul, LinearMap.neg_apply,
+      innerₗ_apply_apply, inner_zero_right, mul_zero, zero_mul, Complex.exp_zero, one_mul,
+      Complex.ofReal_zero, neg_zero]
   rw [h_int_x, h_int_0, ← integral_sub]
   · apply integral_congr_ae
     filter_upwards [] with w
     ring_nf
   · have h_bound : ∀ᵐ w ∂volume, ‖cexp (2 * ↑π * I * ↑(inner ℝ w x)) * fourierTransform f w‖ ≤ ‖fourierTransform f w‖ := by
-      filter_upwards [] with w; exact le_of_eq (by rw [norm_mul, show 2 * ↑π * I * ↑(inner ℝ w x) = ↑(2 * π * inner ℝ w x) * I by push_cast; ring, Complex.norm_exp_ofReal_mul_I, one_mul])
-    exact Integrable.mono hfhat_L1 ((Continuous.cexp <| continuous_const.mul (continuous_ofReal.comp (continuous_id.inner continuous_const))).aestronglyMeasurable.mul hfhat_L1.1) h_bound
+    filter_upwards [] with w
+    exact le_of_eq (by
+      rw [norm_mul, show
+        2 * ↑π * I * ↑(inner ℝ w x) = ↑(2 * π * inner ℝ w x) * I by
+          push_cast
+          ring, Complex.norm_exp_ofReal_mul_I, one_mul])
+    exact Integrable.mono hfhat_L1
+      ((Continuous.cexp <|
+        continuous_const.mul (continuous_ofReal.comp (continuous_id.inner continuous_const)))
+          .aestronglyMeasurable.mul hfhat_L1.1)
+      h_bound
   · exact hfhat_L1
 
 -- Takes the real part of the integral to rewrite the complex exponential in terms of cosines
 private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → ℝ}
     (hfhat_L1 : Integrable (fourierTransform f) volume)
     (x : EuclideanSpace ℝ (Fin d))
-    (h_diff_x : (f x : ℂ) - (f 0 : ℂ) = ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) * fourierTransform f w) :
+    (h_diff_x :
+      (f x : ℂ) - (f 0 : ℂ) =
+        ∫ w, (Complex.exp (2 * π * Complex.I * inner ℝ w x) - 1) *
+          fourierTransform f w) :
     f x - f 0 = ∫ w, barronCosineBump w (fourierPhase f w) x * barronIntegrand f w := by
-  rw [show (f x - f 0 : ℝ) = (∫ (w : EuclideanSpace ℝ (Fin d)), (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re by rw [← h_diff_x]; rfl]
+  rw [show (f x - f 0 : ℝ) =
+      (∫ (w : EuclideanSpace ℝ (Fin d)),
+        (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re by
+    rw [← h_diff_x]
+    rfl]
   have h_integrable := barron_diff_integrable hfhat_L1 x
-  have h_int_re : (∫ (w : EuclideanSpace ℝ (Fin d)), (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re =
-      ∫ w, ((cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re := (integral_re h_integrable).symm
+  have h_int_re :
+      (∫ (w : EuclideanSpace ℝ (Fin d)),
+        (cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * fourierTransform f w).re =
+          ∫ w, ((cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) *
+            fourierTransform f w).re := (integral_re h_integrable).symm
   rw [h_int_re]
   apply integral_congr_ae
   filter_upwards [] with w
   -- Prove pointwise equality between the real part of the integrand and the Barron representation
   by_cases hw : ‖w‖ = 0
-  · rw [show cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1 = 0 by rw [show inner ℝ w x = (0 : ℝ) by rw [norm_eq_zero.mp hw, inner_zero_left], Complex.ofReal_zero, mul_zero, Complex.exp_zero, sub_self], zero_mul, Complex.zero_re]
+  · rw [show cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1 = 0 by
+        rw [show inner ℝ w x = (0 : ℝ) by
+          rw [norm_eq_zero.mp hw, inner_zero_left],
+          Complex.ofReal_zero, mul_zero, Complex.exp_zero, sub_self],
+      zero_mul, Complex.zero_re]
     simp [barronCosineBump, hw]
   · -- Step 1: Prove polar decomposition of the Fourier transform
-    have h_polar := fourierTransform_polar f w
-
+	    have h_polar := fourierTransform_polar f w
     -- Step 2: Simplify the real part of the integrand in the Fourier inversion formula
-    have h_LHS : ((cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) * ((fourierMagnitude f w : ℂ) * cexp (2 * ↑π * I * ↑(fourierPhase f w)))).re =
-      fourierMagnitude f w * (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) := by
+    have h_LHS :
+        ((cexp (2 * ↑π * I * ↑(inner ℝ w x)) - 1) *
+          ((fourierMagnitude f w : ℂ) *
+            cexp (2 * ↑π * I * ↑(fourierPhase f w)))).re =
+          fourierMagnitude f w *
+            (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) -
+              Real.cos (2 * π * fourierPhase f w)) := by
       simp only [mul_re, sub_re, exp_re, re_ofNat, ofReal_re, im_ofNat, ofReal_im, mul_zero,
         sub_zero, I_re, mul_im, zero_mul, add_zero, I_im, mul_one, sub_self, Real.exp_zero,
         zero_add, one_mul, one_re, exp_im, sub_im, one_im]
       rw [Real.cos_add]
       ring
-
     -- Step 3: Simplify the product of the Barron cosine bump and the Barron integrand
-    have h_RHS : (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) / (2 * π * ‖w‖) * (2 * π * ‖w‖ * fourierMagnitude f w) =
-      fourierMagnitude f w * (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) := by
+    have h_RHS :
+        (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) -
+          Real.cos (2 * π * fourierPhase f w)) / (2 * π * ‖w‖) *
+          (2 * π * ‖w‖ * fourierMagnitude f w) =
+            fourierMagnitude f w *
+              (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) -
+                Real.cos (2 * π * fourierPhase f w)) := by
       have h_nonzero : 2 * π * ‖w‖ ≠ 0 := by
         refine mul_ne_zero (mul_ne_zero two_ne_zero Real.pi_ne_zero) hw
       calc
-        _ = (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) / (2 * π * ‖w‖) * (2 * π * ‖w‖) * fourierMagnitude f w := by ring
-        _ = (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) - Real.cos (2 * π * fourierPhase f w)) * fourierMagnitude f w := by rw [div_mul_cancel₀ _ h_nonzero]
+        _ = (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) -
+              Real.cos (2 * π * fourierPhase f w)) / (2 * π * ‖w‖) *
+              (2 * π * ‖w‖) * fourierMagnitude f w := by
+          ring
+        _ = (Real.cos (2 * π * inner ℝ w x + 2 * π * fourierPhase f w) -
+              Real.cos (2 * π * fourierPhase f w)) * fourierMagnitude f w := by
+          rw [div_mul_cancel₀ _ h_nonzero]
         _ = _ := by ring
-
     -- Conclude the main goal by substitution
     rw [h_polar]
     unfold barronCosineBump barronIntegrand
@@ -318,7 +405,8 @@ private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
 -- for any w, θ, x there exists g such that barronCosineBump w θ x = ∫ b, σ(⟨w,x⟩ - b) · g(b) db.
 -- The construction places a constant block of height B = barronCosineBump w θ x on [⟨w,x⟩-1, ⟨w,x⟩]
 -- and zero elsewhere; the threshold activation σ(z-b) = 1 exactly on that interval.
-private lemma barronCosineBump_threshold_repr {d : ℕ} (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) :
+private lemma barronCosineBump_threshold_repr {d : ℕ}
+    (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) :
     ∃ g : ℝ → ℝ, barronCosineBump w θ x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
   set z := inner ℝ w x with hz
   set B := barronCosineBump w θ x with hB

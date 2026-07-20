@@ -1082,7 +1082,7 @@ lemma L2_mean_of_L2 {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w] [MeasurableSpace 
     have h_lt : (∫⁻ x, ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν ∂P) < ⊤ := h_swap_le.trans_lt (by simp)
     exact h_lt
 
-lemma pointwise_maurey_bound {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w] [MeasurableSpace Ω_x]
+lemma pointwise_maurey_bound {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w]
     (ν : Measure Ω_w) [IsProbabilityMeasure ν] (F : Ω_w → Ω_x → ℝ) (f : Ω_x → ℝ)
     (x : Ω_x) (hx : MemLp (fun w => F w x) 2 ν)
     (hF_sec_meas : Measurable (fun w => F w x))
@@ -1672,9 +1672,11 @@ lemma thresholdActivation_bound (x : ℝ) : 0 ≤ thresholdActivation x ∧ thre
   unfold thresholdActivation
   split_ifs <;> norm_num
 
+/-- Extract the first `d` coordinates of an augmented weight-bias vector as a weight vector. -/
 noncomputable def extractWeights {d : ℕ} (w : Fin (d + 1) → ℝ) : EuclideanSpace ℝ (Fin d) :=
   (EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ w j.castSucc)
 
+/-- Extract the final coordinate of an augmented weight-bias vector as the bias term. -/
 noncomputable def extractBias {d : ℕ} (w : Fin (d + 1) → ℝ) : ℝ :=
   w (Fin.last d)
 
@@ -1720,8 +1722,8 @@ lemma barronSamplingBound_L2
   exact MemLp.of_bound (f := fun (x : Ω_x) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) (p := 2) (μ := P) (C := 1) h_ae h_bound
 
 lemma barronSamplingBound_integrability_pos
-    {d : ℕ} {Ω_x : Type*} [MeasurableSpace Ω_x]
-    (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_meas : Measurable x_embed)
+    {d : ℕ} {Ω_x : Type*}
+    (x_embed : Ω_x → EuclideanSpace ℝ (Fin d))
     (x : Ω_x) (μ : Measure (Fin (d + 1) → ℝ)) [IsFiniteMeasure μ] :
     Integrable (fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) μ := by
   have h_meas_x : Measurable (fun (w : Fin (d + 1) → ℝ) => thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
@@ -1817,8 +1819,10 @@ theorem barronSamplingBound
       thresholdActivation (inner ℝ ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ wb j.castSucc)) (x_embed ω) - wb (Fin.last d))
     have hg_meas : Measurable (Function.uncurry g) := barronSamplingBound_measurability x_embed hx_meas
     have hg_L2 : ∀ w, MemLp (g w) 2 P := barronSamplingBound_L2 x_embed hx_meas P
-    have hg_int_pos : ∀ x, Integrable (fun (w : Fin (d + 1) → ℝ) => g w x) net.measure.toJordanDecomposition.posPart := fun x => barronSamplingBound_integrability_pos x_embed hx_meas x _
-    have hg_int_neg : ∀ x, Integrable (fun (w : Fin (d + 1) → ℝ) => g w x) net.measure.toJordanDecomposition.negPart := fun x => barronSamplingBound_integrability_pos x_embed hx_meas x _
+    have hg_int_pos : ∀ x, Integrable (fun (w : Fin (d + 1) → ℝ) => g w x) net.measure.toJordanDecomposition.posPart := fun x =>
+      barronSamplingBound_integrability_pos x_embed x _
+    have hg_int_neg : ∀ x, Integrable (fun (w : Fin (d + 1) → ℝ) => g w x) net.measure.toJordanDecomposition.negPart := fun x =>
+      barronSamplingBound_integrability_pos x_embed x _
     have hB : ∀ w ∈ (Set.univ : Set (Fin (d + 1) → ℝ)), ∫ (x : Ω_x), g w x ^ 2 ∂P ≤ 1 := fun (w : Fin (d + 1) → ℝ) _ => barronSamplingBound_hB x_embed hx_meas P w
     have h_maurey := maureySamplingSignedMeasure P h_mu_ne_zero MeasurableSet.univ (by simp) g hg_meas hg_L2 hg_int_pos hg_int_neg hB hk
     rcases h_maurey with ⟨ws, hws_univ, hws_bound⟩

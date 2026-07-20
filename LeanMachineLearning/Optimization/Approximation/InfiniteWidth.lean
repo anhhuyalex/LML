@@ -112,7 +112,10 @@ This is an exact infinite-width threshold-network representation of g.
 -- This set equality bridges the threshold indicator domain with the FTC integration domain.
 private lemma Icc_inter_Iic_eq_Icc {x : ℝ} (hx1 : x ≤ 1) :
     Set.Icc (0 : ℝ) 1 ∩ Set.Iic x = Set.Icc (0 : ℝ) x := by
-  ext y; simp; exact fun hyx hy0 => hyx.trans hx1
+  ext y
+  simp only [Set.mem_inter_iff, Set.mem_Icc, Set.mem_Iic, and_congr_left_iff,
+    and_iff_left_iff_imp]
+  exact fun hyx hy0 => hyx.trans hx1
 
 theorem univariateIntegralRep
     {g : ℝ → ℝ}
