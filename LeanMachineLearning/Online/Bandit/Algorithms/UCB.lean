@@ -234,7 +234,7 @@ lemma prob_ucbIndex_le [Nonempty (Fin K)] {alg : Algorithm (Fin K) ℝ}
     refine Finset.sum_congr rfl fun k hk ↦ ?_
     congr with ω
     have hk : 0 < k := by grind
-    simp only [Nat.cast_nonneg, sqrt_div', id_eq, Set.preimage_setOf_eq, hk, true_and,
+    simp only [Nat.cast_nonneg, sqrt_div', id_eq, Set.preimage_ofPred_eq, hk, true_and,
       Set.mem_ofPred_eq, s]
     grind
   _ ≤ ∑ k ∈ Icc 1 n, (1 : ℝ≥0∞) / (n + 1) ^ c := by
@@ -277,7 +277,7 @@ lemma prob_ucbIndex_ge [Nonempty (Fin K)] {alg : Algorithm (Fin K) ℝ}
     refine Finset.sum_congr rfl fun k hk ↦ ?_
     congr with ω
     have hk : 0 < k := by grind
-    simp only [id_eq, Nat.cast_nonneg, sqrt_div', Set.preimage_setOf_eq, hk, true_and,
+    simp only [id_eq, Nat.cast_nonneg, sqrt_div', Set.preimage_ofPred_eq, hk, true_and,
       Set.mem_ofPred_eq, s]
     grind
   _ ≤ ∑ k ∈ Icc 1 n, (1 : ℝ≥0∞) / (n + 1) ^ c := by

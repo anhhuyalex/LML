@@ -459,7 +459,9 @@ lemma reluLinearization_algebraic_bound
     (m : ℕ) (B δ : ℝ) (hB : 0 ≤ B) (hδ : 0 < δ) (hδ1 : δ < 1) :
     let r := B ^ (2/3 : ℝ) / (m : ℝ) ^ (1/3 : ℝ)
     let S_bound := (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) + (B / r) ^ 2
-    B / Real.sqrt m * Real.sqrt S_bound ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) / (m : ℝ) ^ (1 / 6 : ℝ) := by
+    B / Real.sqrt m * Real.sqrt S_bound ≤
+      (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
+        (m : ℝ) ^ (1 / 6 : ℝ) := by
   sorry
 
 /-- **Lemma 4.1** (Telgarsky 2021, main ReLU linearization bound).

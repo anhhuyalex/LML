@@ -109,7 +109,7 @@ lemma prob_sumRewards_le_sumRewards_le [Fintype 𝓐] (a : 𝓐) (n m₁ m₂ : 
   _ ≤ 𝔓 ((fun ω ↦ (∑ i ∈ range m₁, ω.2 i (bestArm ν), ∑ i ∈ range m₂, ω.2 i a)) ⁻¹'
         {p | p.1 ≤ p.2}) := by
       refine measure_mono fun ω hω ↦ ?_
-      simp only [Set.preimage_setOf_eq, Set.mem_ofPred_eq] at hω ⊢
+      simp only [Set.preimage_ofPred_eq, Set.mem_ofPred_eq] at hω ⊢
       grind
   _ = streamMeasure ν
       {ω | ∑ i ∈ range m₁, ω i (bestArm ν) ≤ ∑ i ∈ range m₂, ω i a} := by

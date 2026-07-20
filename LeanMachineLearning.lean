@@ -53,6 +53,7 @@ public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Linearization
+public import LeanMachineLearning.Optimization.NTK.Scratch
 public import LeanMachineLearning.Optimization.NTK.Universal
 public import LeanMachineLearning.SequentialLearning.Algorithm
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensity
@@ -66,3 +67,4 @@ public import LeanMachineLearning.SequentialLearning.EvaluationEnv
 public import LeanMachineLearning.SequentialLearning.FiniteActions
 public import LeanMachineLearning.SequentialLearning.IonescuTulceaSpace
 public import LeanMachineLearning.SequentialLearning.StationaryEnv
+public import LeanMachineLearning.scratch_taylor

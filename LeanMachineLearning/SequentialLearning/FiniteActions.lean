@@ -318,7 +318,7 @@ lemma stepsUntil_eq_leastGE (a : 𝓐) (hm : m ≠ 0) :
   ext ω
   rw [stepsUntil_eq_dite]
   unfold leastGE hittingAfter
-  simp only [Nat.bot_eq_zero, zero_le, Set.mem_Ici, true_and, ENat.some_eq_coe]
+  simp only [Nat.bot_eq_zero, zero_le, Set.mem_Ici, true_and, ENat.some_eq_natCast]
   have h_iff : (∃ s, pullCount A a (s + 1) ω = m) ↔ (∃ s, m ≤ pullCount A a (s + 1) ω) := by
     refine ⟨fun ⟨s, hs⟩ ↦ ⟨s, hs.ge⟩, fun ⟨s, hs⟩ ↦ ?_⟩
     exact exists_pullCount_eq_of_le hs hm
@@ -386,7 +386,7 @@ lemma stepsUntil_eq_zero_iff :
 lemma action_stepsUntil (hm : m ≠ 0) (h_exists : ∃ s, pullCount A a (s + 1) ω = m) :
     A (stepsUntil A a m ω).toNat ω = a := by
   classical
-  simp only [stepsUntil_eq_dite, h_exists, ↓reduceDIte, ENat.toNat_coe]
+  simp only [stepsUntil_eq_dite, h_exists, ↓reduceDIte, ENat.toNat_natCast]
   have h_spec := Nat.find_spec h_exists
   have h_spec' n := Nat.find_min h_exists (m := n)
   by_cases h_zero : Nat.find h_exists = 0
@@ -418,7 +418,7 @@ lemma pullCount_stepsUntil_add_one (h_exists : ∃ s, pullCount A a (s + 1) ω =
   have h' := Nat.find_spec h_exists
   rw [h_eq]
   rw [ENat.toNat_add (by simp) (by simp)]
-  simp only [ENat.toNat_coe, ENat.toNat_one]
+  simp only [ENat.toNat_natCast, ENat.toNat_one]
   exact h'
 
 lemma pullCount_stepsUntil (hm : m ≠ 0) (h_exists : ∃ s, pullCount A a (s + 1) ω = m) :
@@ -439,7 +439,7 @@ lemma pullCount_lt_of_le_stepsUntil (a : 𝓐) {n m : ℕ} (ω : Ω)
   classical
   have h_eq := stepsUntil_eq_dite (A := A) a m ω
   simp only [h_exists, ↓reduceDIte] at h_eq
-  rw [← ENat.coe_toNat (stepsUntil_ne_top h_exists)] at hn
+  rw [← ENat.natCast_toNat (stepsUntil_ne_top h_exists)] at hn
   refine lt_of_le_of_ne ?_ ?_
   · calc pullCount A a (n + 1) ω
     _ ≤ pullCount A a (stepsUntil A a m ω + 1).toNat ω := by
@@ -450,7 +450,7 @@ lemma pullCount_lt_of_le_stepsUntil (a : 𝓐) {n m : ℕ} (ω : Ω)
     _ = m := pullCount_stepsUntil_add_one h_exists
   · refine Nat.find_min h_exists (m := n) ?_
     suffices n < (stepsUntil A a m ω).toNat by
-      rwa [h_eq, ENat.toNat_coe] at this
+      rwa [h_eq, ENat.toNat_natCast] at this
     exact mod_cast hn
 
 lemma pullCount_eq_of_stepsUntil_eq_coe {ω : Ω} (hm : m ≠ 0)
@@ -548,9 +548,11 @@ lemma measurable_stepsUntil [MeasurableSingletonClass 𝓐]
           ∃ s, pullCount A a (s + 1) k' = m} | pullCount A a (k + 1) (x : Ω) = m}
         = {x : Ω | pullCount A a (k + 1) x = m} := by
       ext x
-      simp only [Set.mem_ofPred_eq, Set.coe_setOf, Set.mem_image, Subtype.exists, exists_and_left,
-        exists_prop, exists_eq_right_right, and_iff_left_iff_imp]
-      exact fun h ↦ ⟨_, h⟩
+      constructor
+      · rintro ⟨y, hy, rfl⟩
+        exact hy
+      · intro hx
+        exact ⟨⟨x, ⟨k, hx⟩⟩, hx, rfl⟩
     refine (MeasurableEmbedding.subtype_coe h_meas_set).measurableSet_image.mp ?_
     rw [this]
     exact (measurableSet_singleton _).preimage (by fun_prop)
@@ -991,11 +993,11 @@ lemma _root_.MeasureTheory.StronglyMeasurable.div₀' {𝓐 β : Type*}
   refine ⟨fun n => hf.approx n / (hg.approx n).restrict {x | g x ≠ 0}, fun x => ?_⟩
   have : MeasurableSet {x | g x ≠ 0} := ((MeasurableSet.singleton 0).preimage hg.measurable).compl
   by_cases h : g x = 0
-  · simp_all only [ne_eq, SimpleFunc.coe_div, SimpleFunc.coe_restrict, Pi.div_apply, mem_setOf_eq,
+  · simp_all only [ne_eq, SimpleFunc.coe_div, SimpleFunc.coe_restrict, Pi.div_apply, mem_ofPred_eq,
       not_true_eq_false, not_false_eq_true, indicator_of_notMem, _root_.div_zero]
     exact tendsto_const_nhds
   · simp_all only [ne_eq, SimpleFunc.coe_div, SimpleFunc.coe_restrict,
-      Pi.div_apply, mem_setOf_eq, not_false_eq_true, indicator_of_mem]
+      Pi.div_apply, mem_ofPred_eq, not_false_eq_true, indicator_of_mem]
     exact (hf.tendsto_approx x).div (hg.tendsto_approx x) h
 
 end CopiedFromPR
