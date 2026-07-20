@@ -35,7 +35,8 @@ derived via a geometric argument on the sphere.
 
 ## Main definitions
 
-* `NTK.empiricalNTK` : the empirical NTK `kₘ(x, x')` at initialization `W₀`.
+* `NTK.empiricalNTKWithOuter` : the empirical NTK with arbitrary fixed outer coefficients.
+* `NTK.empiricalNTK` : the simplified empirical NTK when `aⱼ² = 1`.
 * `NTK.limitingNTK` : the limiting NTK `k(x, x')`.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
@@ -65,15 +66,41 @@ lemma innerProduct_comm (x y : Fin d → ℝ) : x ⊙ y = y ⊙ x := by
 lemma innerProduct_self_nonneg (x : Fin d → ℝ) : 0 ≤ x ⊙ x :=
   Finset.sum_nonneg (fun i _ => mul_self_nonneg (x i))
 
-/-- `‖x‖² = x ⊙ x`. -/
-lemma norm_sq_eq_innerProduct (x : Fin d → ℝ) : ‖x‖ ^ 2 = x ⊙ x := by
-  sorry
+/-- `x ⊙ x` is the sum of the coordinate squares. -/
+lemma innerProduct_self_eq_sum_sq (x : Fin d → ℝ) : x ⊙ x = ∑ k : Fin d, x k ^ 2 := by
+  simp [innerProduct, pow_two]
+
+/-- For the Euclidean `L²` norm on `EuclideanSpace ℝ (Fin d)`, `‖x‖² = x ⊙ x`.
+
+The default norm on `Fin d → ℝ` is the sup norm, so the analogous statement is false for the raw
+Pi type. -/
+lemma norm_sq_eq_innerProduct (x : EuclideanSpace ℝ (Fin d)) :
+    ‖x‖ ^ 2 = x.ofLp ⊙ x.ofLp := by
+  rw [EuclideanSpace.real_norm_sq_eq]
+  simpa using (innerProduct_self_eq_sum_sq x.ofLp).symm
 
 /-! ### Empirical NTK (Definition 4.5) -/
 
-/-- **Definition 4.5** (Empirical neural tangent kernel).
-Given initialization `W₀ : Fin m → Fin d → ℝ` and outer coefficients `a` with `aⱼ² = 1`,
-the empirical NTK is the kernel obtained as the Frobenius inner product of gradients:
+/-- The empirical NTK with arbitrary fixed outer coefficients:
+  `kₘ,a(x,x') = (xᵀx') · (1/m)∑ⱼ aⱼ² σ'(wⱼ₀ᵀx)σ'(wⱼ₀ᵀx')`.
+
+The lecture notes immediately simplify this expression using `aⱼ ∈ {±1}`. Keeping this
+general form around makes the connection to `gradientMatrix` explicit. -/
+noncomputable def empiricalNTKWithOuter
+    (σ' : ℝ → ℝ)
+    (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ)
+    (x x' : Fin d → ℝ) : ℝ :=
+  (x ⊙ x') *
+    ((m : ℝ)⁻¹ * ∑ j : Fin m,
+      outerCoeffs j ^ 2 *
+      σ' (∑ k : Fin d, W₀ j k * x k) *
+      σ' (∑ k : Fin d, W₀ j k * x' k))
+
+/-- **Definition 4.5** (Empirical neural tangent kernel, `aⱼ² = 1` case).
+Given initialization `W₀ : Fin m → Fin d → ℝ` and outer coefficients satisfying
+`aⱼ² = 1`, the empirical NTK is the kernel obtained as the Frobenius inner product
+of gradients:
   `kₘ(x, x') = ⟨∇_W f(x; W₀), ∇_W f(x'; W₀)⟩_F
               = (xᵀx') · (1/m) ∑ⱼ σ'(wⱼ₀ᵀx) σ'(wⱼ₀ᵀx')`.
 
@@ -86,6 +113,27 @@ noncomputable def empiricalNTK
     ((m : ℝ)⁻¹ * ∑ j : Fin m,
       σ' (∑ k : Fin d, W₀ j k * x k) *
       σ' (∑ k : Fin d, W₀ j k * x' k))
+
+/-- The Frobenius inner product of gradient features is the empirical NTK with the
+outer-coefficient squares included. -/
+lemma frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter
+    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
+    frobeniusInner
+      (gradientMatrix (σ' := σ') outerCoeffs x W₀)
+      (gradientMatrix (σ' := σ') outerCoeffs x' W₀) =
+    empiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
+  sorry
+
+/-- If all fixed outer coefficients satisfy `aⱼ² = 1`, the general empirical NTK
+reduces to the simplified expression used in the notes. -/
+lemma empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
+    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ)
+    (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
+    empiricalNTKWithOuter σ' outerCoeffs W₀ x x' =
+    empiricalNTK σ' W₀ x x' := by
+  simp [empiricalNTKWithOuter, empiricalNTK, houter]
 
 /-- The empirical NTK is symmetric: `kₘ(x, x') = kₘ(x', x)`. -/
 lemma empiricalNTK_symm
@@ -101,7 +149,18 @@ lemma empiricalNTK_posSemidef
     {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ) :
     0 ≤ ∑ i : Fin n, ∑ j : Fin n,
       α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) := by
-  sorry
+  have h_eq : ∑ i : Fin n, ∑ j : Fin n, α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) =
+      (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
+        (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
+    sorry
+  rw [h_eq]
+  apply mul_nonneg
+  · exact inv_nonneg.mpr (Nat.cast_nonneg m)
+  · apply Finset.sum_nonneg
+    intro j _
+    apply Finset.sum_nonneg
+    intro k _
+    exact sq_nonneg _
 
 /-! ### Limiting NTK (Definition 4.6) -/
 
@@ -124,8 +183,20 @@ lemma limitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
 
 /-! ### Almost sure convergence of the empirical NTK (Lemma 4.3) -/
 
+/-- The width-`m` empirical NTK built from the first `m` rows of an infinite iid
+initialization. This is the right object for the notes' `m → ∞` limit. -/
+noncomputable def empiricalNTKFromRows
+    (σ' : ℝ → ℝ)
+    (rows : ℕ → Fin d → ℝ)
+    (width : ℕ)
+    (x x' : Fin d → ℝ) : ℝ :=
+  (x ⊙ x') *
+    ((width : ℝ)⁻¹ * ∑ j : Fin width,
+      σ' (rows j.val ⊙ x) * σ' (rows j.val ⊙ x'))
+
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
-For fixed `x, x' ∈ ℝᵈ` and `W₀ ~ 𝒩(0,Iᵈ)^{⊗m}` (in `m`):
+For fixed `x, x' ∈ ℝᵈ` and an infinite sequence of iid rows
+`w₀, w₁, ... ~ 𝒩(0,Iᵈ)`:
   `kₘ(x, x') →_as k(x, x')  as  m → ∞`.
 
 **Proof:** The summands `σ'(wⱼ₀ᵀx)σ'(wⱼ₀ᵀx')` are i.i.d. with mean
@@ -134,10 +205,10 @@ theorem ntk_convergence
     (σ' : ℝ → ℝ)
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) :
-    ∀ᵐ W₀_seq : ℕ → Fin m → Fin d → ℝ
-      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianInit m d)),
+    ∀ᵐ rows : ℕ → Fin d → ℝ
+      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)),
       Filter.Tendsto
-        (fun n => empiricalNTK σ' (W₀_seq n) x x')
+        (fun width => empiricalNTKFromRows σ' rows width x x')
         Filter.atTop
         (nhds (limitingNTK σ' x x')) := by
   sorry
@@ -148,12 +219,13 @@ theorem ntk_convergence
 noncomputable def reluIndicator : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 
 /-- The angle between two unit vectors in ℝᵈ:
-  `angle x x' = arccos(xᵀx')` for `‖x‖ = ‖x'‖ = 1`. -/
+  `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/
 noncomputable def vectorAngle (x x' : Fin d → ℝ) : ℝ :=
   Real.arccos (x ⊙ x')
 
 /-- **Proposition 4.2** (ReLU NTK closed form, Telgarsky 2021).
-For `σ' = 𝟏[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with `‖x‖ = ‖x'‖ = 1`:
+For `σ' = 𝟏[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
+`x ⊙ x = x' ⊙ x' = 1`:
   `k(x, x') = (xᵀx') · (π − arccos(xᵀx')) / (2π)`.
 
 **Proof sketch:**
@@ -164,8 +236,8 @@ For `σ' = 𝟏[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with `�
 - Multiplying by `xᵀx'` gives the result. -/
 theorem reluNTK_closedForm
     (x x' : Fin d → ℝ)
-    (hx : ‖x‖ = 1)
-    (hx' : ‖x'‖ = 1) :
+    (hx : x ⊙ x = 1)
+    (hx' : x' ⊙ x' = 1) :
     limitingNTK reluIndicator x x' =
       (x ⊙ x') * (Real.pi - Real.arccos (x ⊙ x')) / (2 * Real.pi) := by
   sorry
@@ -173,7 +245,7 @@ theorem reluNTK_closedForm
 /-- The ReLU NTK is nonneg when `xᵀx' ≥ 0`. -/
 lemma reluNTK_nonneg_of_nonneg_inner
     (x x' : Fin d → ℝ)
-    (hx : ‖x‖ = 1) (hx' : ‖x'‖ = 1)
+    (hx : x ⊙ x = 1) (hx' : x' ⊙ x' = 1)
     (hinn : 0 ≤ x ⊙ x') :
     0 ≤ limitingNTK reluIndicator x x' := by
   rw [reluNTK_closedForm x x' hx hx']
@@ -182,13 +254,12 @@ lemma reluNTK_nonneg_of_nonneg_inner
     linarith [Real.arccos_le_pi (x ⊙ x'), Real.pi_pos]
   · linarith [Real.pi_pos]
 
-/-- The ReLU NTK at equal inputs: `k(x, x) = ‖x‖² / 2`. -/
+/-- The ReLU NTK at equal inputs normalized by the local inner product. -/
 lemma reluNTK_self
-    (x : Fin d → ℝ) (hx : ‖x‖ = 1) :
+    (x : Fin d → ℝ) (hx : x ⊙ x = 1) :
     limitingNTK reluIndicator x x = 1 / 2 := by
   rw [reluNTK_closedForm x x hx hx]
-  have h_inner : x ⊙ x = 1 := by rw [← norm_sq_eq_innerProduct, hx, one_pow]
-  rw [h_inner]
+  rw [hx]
   simp [Real.arccos_one]
   ring_nf
   simp [Real.pi_pos.ne']

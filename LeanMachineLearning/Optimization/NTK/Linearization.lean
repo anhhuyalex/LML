@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Basic
+public import LeanMachineLearning.Optimization.NTK.Kernel
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Probability.Independence.Basic
@@ -22,8 +22,9 @@ Two regimes are handled separately:
 
 1. **Smooth activations** (Proposition 4.1 / `smoothLinearizationBound`):
    If `σ` is `β`-smooth (i.e. `|σ''| ≤ β`), then
-   `|f(x; W) − f₀(x; V)| ≤ β/(2√m) · ‖W − V‖_F²`
-   for any `x` with `‖x‖ ≤ 1`.  This does not require any probabilistic argument.
+   `|f(x; W) − f₀,V(x; W)| ≤ β/(2√m) · ‖W − V‖_F²`
+   for any `x` with Euclidean norm at most `1`.  This does not require any
+   probabilistic argument.
 
 2. **ReLU activation** (Lemma 4.1 / `reluLinearizationBound`):
    Because the ReLU is not smooth, we instead exploit Gaussian initialization `W₀`.
@@ -77,8 +78,8 @@ lemma BetaSmooth.taylor_bound
 
 /-- **Proposition 4.1** (Telgarsky 2021).
 For a `β`-smooth activation `σ` and outer coefficients `|aⱼ| ≤ 1`,
-and for any `x` with `‖x‖ ≤ 1` and any weight matrices `W, V`:
-  `|f(x; W) − f₀(x; V)| ≤ β/(2√m) · ‖W − V‖_F²`.
+and for any `x` with Euclidean norm at most `1` and any weight matrices `W, V`:
+  `|f(x; W) − f₀,V(x; W)| ≤ β/(2√m) · ‖W − V‖_F²`.
 
 **Proof sketch:** Apply the Taylor bound to each neuron and sum using Cauchy-Schwarz.
 No probabilistic argument is needed; the bound holds for any `W, V ∈ ℝ^{m×d}`. -/
@@ -87,9 +88,9 @@ theorem smoothLinearizationBound
     (hσ : BetaSmooth σ β)
     (net : ShallowNetwork σ d m)
     (x : Fin d → ℝ)
-    (hx : ‖x‖ ≤ 1)
+    (hx : x ⊙ x ≤ 1)
     (W V : Fin m → Fin d → ℝ) :
-    |net.eval x W - linearization (σ := σ) (σ' := deriv σ) net.outerCoeffs x V V|
+    |net.eval x W - linearization (σ := σ) (σ' := deriv σ) net.outerCoeffs x V W|
     ≤ β / (2 * Real.sqrt m) * frobeniusNorm (fun i j => W i j - V i j) ^ 2 := by
   sorry
 
@@ -99,17 +100,17 @@ theorem smoothLinearizationBound
   `signAmbiguous τ x W₀ = {j : |wⱼ₀ᵀx| ≤ τ‖x‖}`. -/
 noncomputable def signAmbiguous (τ : ℝ) (x : Fin d → ℝ) (W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
   Finset.univ.filter (fun j =>
-    |∑ k : Fin d, W₀ j k * x k| ≤ τ * ‖x‖)
+    |∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⊙ x))
 
 /-- **Lemma 4.2** (Telgarsky 2021 / Hoeffding concentration).
 Let `x ∈ ℝᵈ` with `‖x‖ > 0` and let `W₀ ~ 𝒩(0, Iᵈ)^{⊗m}`.
 For any `τ > 0` and `δ ∈ (0,1)`, with probability at least `1 − δ` over `W₀`,
-  `|{j : |wⱼ₀ᵀx| ≤ τ‖x�|}| ≤ mτ + √(m/2 · ln(1/δ))`.
+  `|{j : |wⱼ₀ᵀx| ≤ τ‖x‖₂}| ≤ mτ + √(m/2 · ln(1/δ))`.
 
 **Proof:** Each indicator is Bernoulli with mean `≤ τ` (Gaussian density bound);
 apply Hoeffding's inequality to the i.i.d. sum. -/
 theorem reluSignConcentration
-    (x : Fin d → ℝ) (hx : 0 < ‖x‖)
+    (x : Fin d → ℝ) (hx : 0 < x ⊙ x)
     (τ : ℝ) (hτ : 0 < τ)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     ∀ᵐ W₀ ∂(gaussianInit m d),
@@ -119,25 +120,24 @@ theorem reluSignConcentration
 
 /-! ### Bad index sets for the ReLU proof -/
 
-/-- Neurons with a large perturbation from initialization:
-  `largePerturb B W W₀ = {j : ‖wⱼ − wⱼ₀‖ ≥ B}`. -/
-noncomputable def largePerturb (B : ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
+/-- Neurons whose row perturbation is at least the local cutoff `r`:
+  `largePerturb r W W₀ = {j : ‖wⱼ − wⱼ₀‖₂ ≥ r}`. -/
+noncomputable def largePerturb (r : ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
   Finset.univ.filter (fun j =>
-    B ≤ ‖fun k => W j k - W₀ j k‖)
+    r ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2))
 
 /-- The union of the sign-ambiguous and large-perturbation index sets. -/
-noncomputable def badSet (τ B : ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
-  signAmbiguous τ x W₀ ∪ largePerturb B W W₀
+noncomputable def badSet (τ r : ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
+  signAmbiguous τ x W₀ ∪ largePerturb r W W₀
 
 /-- For neurons outside `badSet`, the sign of `wⱼᵀx` agrees with `wⱼ₀ᵀx`.
 This is the key geometric observation: if `|wⱼ₀ᵀx| > τ‖x‖` and `‖wⱼ − wⱼ₀‖ < τ`,
 then the sign cannot have flipped. -/
 lemma sign_preserved_outside_badSet
-    (τ B : ℝ) (hτ : 0 < τ) (hB : 0 < B)
+    (τ : ℝ) (hτ : 0 < τ)
     (x : Fin d → ℝ)
     (W W₀ : Fin m → Fin d → ℝ)
-    (hW : frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B)
-    (j : Fin m) (hj : j ∉ badSet τ B x W W₀) :
+    (j : Fin m) (hj : j ∉ badSet τ τ x W W₀) :
     (0 ≤ ∑ k : Fin d, W j k * x k) ↔
     (0 ≤ ∑ k : Fin d, W₀ j k * x k) := by
   sorry
@@ -168,7 +168,7 @@ With probability at least `1 − δ` over `W₀`, for every `W` with `‖W − W
    Cauchy-Schwarz gives the stated bound. -/
 theorem reluLinearizationBound
     (net : ReLUNetwork d m)
-    (x : Fin d → ℝ) (hx : ‖x‖ ≤ 1)
+    (x : Fin d → ℝ) (hx : x ⊙ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     ∀ᵐ W₀ ∂(gaussianInit m d),
@@ -185,7 +185,7 @@ For any additional `V` with `‖V − W₀‖_F ≤ B`:
   `|f(x; V) − (f(x; W) + ⟨∇_W f(x; W), V − W⟩_F)| ≤ (6B^{4/3} + 2B·(ln(1/δ))^{1/4}) / m^{1/6}`. -/
 theorem reluLinearizationBound_secondOrder
     (net : ReLUNetwork d m)
-    (x : Fin d → ℝ) (hx : ‖x‖ ≤ 1)
+    (x : Fin d → ℝ) (hx : x ⊙ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     ∀ᵐ W₀ ∂(gaussianInit m d),

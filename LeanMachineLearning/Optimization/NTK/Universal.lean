@@ -38,7 +38,7 @@ The argument proceeds in three steps:
 
 ## Main definitions
 
-* `NTK.ntkDomain` : `𝒳 = {x ∈ ℝᵈ : ‖x‖ = 1, xᵈ₋₁ = 1/√2}`.
+* `NTK.ntkDomain` : `𝒳 = {x ∈ ℝᵈ : ‖x‖₂ = 1, xᵈ₋₁ = 1/√2}`.
 * `NTK.RKHSClass` : `ℋ` — the NTK RKHS predictor class.
 * `NTK.isUniversal` : Theorem 4.1 — `ℋ` is a universal approximator over `𝒳`.
 
@@ -63,19 +63,21 @@ variable {d : ℕ}
 /-- **Definition 4.7** (NTK domain).
 The *NTK domain* is the compact subset of the unit sphere in `ℝᵈ` obtained by
 fixing the last coordinate to `1/√2`:
-  `𝒳 = {x ∈ ℝᵈ : ‖x‖ = 1, xᵈ₋₁ = 1/√2}`.
+  `𝒳 = {x ∈ ℝᵈ : ‖x‖₂ = 1, xᵈ₋₁ = 1/√2}`.
 
 Fixing the last coordinate plays the role of an implicit bias: it ensures that
 the ReLU NTK `k(x,x') = (xᵀx')(π − arccos(xᵀx'))/(2π)` restricted to `𝒳`
 has all-positive Maclaurin coefficients, making it a universal kernel.
 
-For `d = 1` the domain is the single point `{(1/√2)}`. -/
+The Euclidean norm is encoded as `x ⊙ x = 1` rather than Lean's default norm on
+the raw function type `Fin d → ℝ`. -/
 def ntkDomain (d : ℕ) : Set (Fin d → ℝ) :=
-  {x | ‖x‖ = 1 ∧ (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}
+  {x | x ⊙ x = 1 ∧
+    (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}
 
-/-- The NTK domain is a subset of the unit sphere. -/
+/-- The NTK domain is a subset of the Euclidean unit sphere. -/
 lemma ntkDomain_subset_sphere (d : ℕ) :
-    ntkDomain d ⊆ {x : Fin d → ℝ | ‖x‖ = 1} :=
+    ntkDomain d ⊆ {x : Fin d → ℝ | x ⊙ x = 1} :=
   fun _ hx => hx.1
 
 /-- The NTK domain is compact (closed subset of the unit sphere in ℝᵈ). -/
@@ -87,7 +89,7 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
 /-- The reduced domain: `U = {u ∈ ℝᵈ⁻¹ : ‖u‖² ≤ 1/2}`.
   The NTK domain `𝒳 ⊆ ℝᵈ` is in bijection with `U` by dropping the last coordinate. -/
 def reducedDomain (d : ℕ) : Set (Fin d → ℝ) :=
-  {u | ‖u‖ ^ 2 ≤ 1 / 2}
+  {u | u ⊙ u ≤ 1 / 2}
 
 /-- The kernel on the reduced domain: `k̃(u, u') = f̃(u·u')` where
   `f̃(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)`.
@@ -181,19 +183,27 @@ theorem isUniversal (d : ℕ) (hd : 0 < d) :
 
 /-! ### Connection to overparameterized networks -/
 
-/-- The NTK RKHS predictor class can be approximated by finite-width networks.
-For any `h ∈ ℋ` and `ε > 0`, there exists a large-width scaled shallow ReLU network
-with weight matrix `W` close to initialization `W₀` such that `|f(x; W) − h(x)| ≤ ε`.
+/-- The NTK RKHS predictor class can be approximated by finite-width networks near
+random initialization.
+
+For any `h ∈ ℋ`, `ε > 0`, and failure probability `δ`, there exists a large-width
+scaled shallow ReLU network and a radius `B` such that, with high probability over
+Gaussian initialization `W₀`, some `W` within Frobenius distance `B` of `W₀`
+approximates `h` on the NTK domain.
 
 This combines `isUniversal` with `reluLinearizationBound`: taking `m` large enough
 ensures `f ≈ f₀ = ⟨∇f(·; W₀), W⟩ ≈ h`. -/
 theorem rkhs_approx_by_network
     (d : ℕ) (hd : 0 < d)
     (h : (Fin d → ℝ) → ℝ) (hh : h ∈ RKHSClass d)
-    (ε : ℝ) (hε : 0 < ε) :
+    (ε : ℝ) (hε : 0 < ε)
+    (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     ∃ (m : ℕ) (net : ShallowNetwork relu d m)
-      (W₀ W : Fin m → Fin d → ℝ),
-      ∀ x ∈ ntkDomain d, |net.eval x W - h x| ≤ ε := by
+      (B : ℝ), 0 ≤ B ∧
+      ∀ᵐ W₀ ∂(gaussianInit m d),
+        ∃ W : Fin m → Fin d → ℝ,
+          frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B ∧
+          ∀ x ∈ ntkDomain d, |net.eval x W - h x| ≤ ε := by
   sorry
 
 end NTK
