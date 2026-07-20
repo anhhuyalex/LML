@@ -14,11 +14,40 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      RELEASE_TAG_TOKEN: ${{ secrets.LEAN_RELEASE_TAG_TOKEN }}
     steps:
+    - name: Checkout project
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+
+    - name: Check for workflow changes
+      id: workflow-changes
+      run: |
+        before="${{ github.event.before }}"
+        after="${{ github.event.after }}"
+        if [ "$before" = "0000000000000000000000000000000000000000" ]; then
+          before="$(git rev-list --max-parents=0 "$after")"
+        fi
+
+        if git diff --name-only "$before" "$after" | grep -q '^\.github/workflows/'; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: lean-release-tag action
+      if: steps.workflow-changes.outputs.changed != 'true' || env.RELEASE_TAG_TOKEN != ''
       uses: leanprover-community/lean-release-tag@9ca7ed09e240259871327bfc3a3a8d8c4bcb41aa # 2025-05-22
       with:
         before: ${{ github.event.before }}
         after: ${{ github.event.after }}
         do-release: true
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ env.RELEASE_TAG_TOKEN != '' && env.RELEASE_TAG_TOKEN || secrets.GITHUB_TOKEN }}
+
+    - name: Skip release tag for workflow-only token
+      if: steps.workflow-changes.outputs.changed == 'true' && env.RELEASE_TAG_TOKEN == ''
+      run: |
+        echo "Skipping Lean release tag because this push changes workflow files."
+        echo "Set LEAN_RELEASE_TAG_TOKEN to a token with workflow scope to tag these commits automatically."
