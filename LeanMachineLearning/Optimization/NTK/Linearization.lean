@@ -349,34 +349,43 @@ noncomputable def dotMap {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →ₗ[
 noncomputable def dotCLM {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →L[ℝ] ℝ :=
   LinearMap.toContinuousLinearMap (dotMap x)
 
+/-- Informal proof: The measure `gaussianRowMeasure d` is the standard multivariate Gaussian
+distribution $\mathcal{N}(0, I_d)$. The map $w \mapsto w^\top x$ is a linear functional.
+By standard properties of multivariate Gaussians, the pushforward of a standard Gaussian
+under a linear map $w \mapsto w^\top x$ is a 1D Gaussian with mean 0 and variance $\|x\|^2$.
+(Source: Vershynin, R. "High-Dimensional Probability", Theorem 3.3.6). -/
+lemma map_gaussianRowMeasure_dot {d : ℕ} (x : Fin d → ℝ) :
+    Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d) =
+      gaussianReal 0 (Real.toNNReal (x ⊙ x)) := by sorry
+
+/-- Informal proof: The density of a 1D Gaussian $Z \sim \mathcal{N}(0, v)$ is
+$f(z) = \frac{1}{\sqrt{2\pi v}} e^{-z^2/(2v)}$.
+Since $e^{-z^2/(2v)} \le 1$ for all $z$, the probability of the interval $[-a, a]$ is bounded by:
+$$ P(|Z| \le a) = \int_{-a}^{a} f(z) dz \le \int_{-a}^{a} \frac{1}{\sqrt{2\pi v}} dz = \frac{2a}{\sqrt{2\pi v}} $$
+(Source: Rick Durrett, "Probability: Theory and Examples", Gaussian density bounds). -/
+lemma gaussianReal_Icc_bound (v : ℝ≥0) (hv : 0 < v) (a : ℝ) (ha : 0 ≤ a) :
+    (gaussianReal 0 v).real {z | |z| ≤ a} ≤ 2 * a / Real.sqrt (2 * Real.pi * v) := by sorry
+
 lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⊙ x) (τ : ℝ) (hτ : 0 < τ) :
     (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} ≤ τ := by
-  -- 1. The random variable z = ⟨w, x⟩ follows a 1D Gaussian distribution 𝒩(0, ‖x‖²)
-  have h_map : Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d) =
-      gaussianReal 0 (Real.toNNReal (x ⊙ x)) := by
-    sorry
-
-  -- 2. Rewrite the probability using the measure map to a 1D integral
+  have h_map := map_gaussianRowMeasure_dot x
   have h_prob_eq : (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} =
       (gaussianReal 0 (Real.toNNReal (x ⊙ x))).real {z | |z| ≤ τ * Real.sqrt (x ⊙ x)} := by
     sorry
-
-  -- 3. We can normalize the 1D Gaussian to a standard Gaussian 𝒩(0, 1) by dividing by ‖x‖
-  have h_standardize : (gaussianReal 0 (Real.toNNReal (x ⊙ x))).real
-      {z | |z| ≤ τ * Real.sqrt (x ⊙ x)} = (gaussianReal 0 1).real {z' | |z'| ≤ τ} := by
+  have h_bound := gaussianReal_Icc_bound (Real.toNNReal (x ⊙ x)) (Real.toNNReal_pos.mpr hx)
+    (τ * Real.sqrt (x ⊙ x)) (mul_nonneg hτ.le (Real.sqrt_nonneg _))
+  have h_simp : 2 * (τ * Real.sqrt (x ⊙ x)) / Real.sqrt (2 * Real.pi * Real.toNNReal (x ⊙ x)) = τ * Real.sqrt (2 / Real.pi) := by
     sorry
-
-  -- 4. Bound the standard normal probability: P(|Z| ≤ τ) ≤ τ * √(2/π)
-  have h_std_bound : (gaussianReal 0 1).real {z' | |z'| ≤ τ} ≤ τ * Real.sqrt (2 / Real.pi) := by
-    sorry
-
-  -- 5. Show that τ * √(2/π) ≤ τ for τ > 0
-  have h_final_bound : τ * Real.sqrt (2 / Real.pi) ≤ τ := by
-    sorry
-
-  -- 6. Combine all the inequalities to get the final result
-  rw [h_prob_eq, h_standardize]
-  exact h_std_bound.trans h_final_bound
+  have h_final : τ * Real.sqrt (2 / Real.pi) ≤ τ := by
+    have h_pi : 2 ≤ Real.pi := by sorry -- 2 < 3.14 < Real.pi
+    have h_frac : 2 / Real.pi ≤ 1 := (div_le_one Real.pi_pos).mpr h_pi
+    have h_sqrt : Real.sqrt (2 / Real.pi) ≤ Real.sqrt 1 := Real.sqrt_le_sqrt h_frac
+    rw [Real.sqrt_one] at h_sqrt
+    have h_mul := mul_le_mul_of_nonneg_left h_sqrt hτ.le
+    rw [mul_one] at h_mul
+    exact h_mul
+  rw [h_prob_eq]
+  exact h_bound.trans (le_of_eq h_simp) |> fun h => h.trans h_final
 
 lemma hoeffding_indicators_pi
     (m : ℕ) {Ω : Type} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
@@ -462,7 +471,12 @@ theorem reluSignConcentration
   by_cases hm : m = 0
   · subst hm
     have h_empty : {W₀ : Fin 0 → Fin d → ℝ | ((0 : ℕ) : ℝ) * τ +
-      Real.sqrt (((0 : ℕ) : ℝ) / 2 * Real.log (1 / δ)) < ↑(signAmbiguous τ x W₀).card} = ∅ := by sorry
+      Real.sqrt (((0 : ℕ) : ℝ) / 2 * Real.log (1 / δ)) < ↑(signAmbiguous τ x W₀).card} = ∅ := by
+      ext W₀
+      simp only [Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false, not_lt]
+      have h_card : (signAmbiguous τ x W₀).card = 0 := Finset.card_eq_zero.mpr (by simp [signAmbiguous])
+      rw [h_card, Nat.cast_zero]
+      norm_num
     rw [h_empty, measureReal_empty]
     exact hδ.le
   have h_m_pos : 0 < (m : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hm)
