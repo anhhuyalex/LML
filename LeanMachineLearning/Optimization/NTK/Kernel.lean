@@ -12,6 +12,7 @@ public import Mathlib.Probability.StrongLaw
 public import Mathlib.MeasureTheory.Function.L2Space
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Probability.ProductMeasure
+public import Mathlib.Probability.Independence.InfinitePi
 
 /-!
 # The neural tangent kernel (NTK)
@@ -38,6 +39,9 @@ derived via a geometric argument on the sphere.
 * `NTK.empiricalNTKWithOuter` : the empirical NTK with arbitrary fixed outer coefficients.
 * `NTK.empiricalNTK` : the simplified empirical NTK when `aⱼ² = 1`.
 * `NTK.limitingNTK` : the limiting NTK `k(x, x')`.
+* `NTK.ntkSummand` : the iid summand `σ'(wᵀx)σ'(wᵀx')` of the empirical average,
+  with measurability/boundedness/integrability API (`measurable_ntkSummand`,
+  `abs_ntkSummand_le`, `integrable_ntkSummand`).
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
 
@@ -412,6 +416,46 @@ lemma limitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
     limitingNTK σ' x x' = limitingNTK σ' x' x := by
   simp only [limitingNTK, innerProduct_comm x x', mul_comm (σ' _) (σ' _)]
 
+/-! ### Measurability and integrability of the NTK summand -/
+
+/-- The standard Gaussian row measure `𝒩(0, Iᵈ)` is a probability measure. -/
+instance : IsProbabilityMeasure (gaussianRowMeasure d) := by
+  unfold gaussianRowMeasure
+  infer_instance
+
+/-- The dot product `w ↦ wᵀx` with a fixed vector is measurable. -/
+lemma measurable_innerProduct_left (x : Fin d → ℝ) :
+    Measurable fun w : Fin d → ℝ => w ⊙ x :=
+  Finset.measurable_sum _ fun k _ => (measurable_pi_apply k).mul measurable_const
+
+/-- The iid summand appearing in the empirical NTK average:
+  `Y(w) = σ'(wᵀx) · σ'(wᵀx')`.
+The empirical NTK is `xᵀx'` times the empirical mean of `Y` over the rows, and the
+limiting NTK is `xᵀx'` times the expectation of `Y`. -/
+noncomputable def ntkSummand (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) (w : Fin d → ℝ) : ℝ :=
+  σ' (w ⊙ x) * σ' (w ⊙ x')
+
+/-- The NTK summand is measurable whenever `σ'` is. -/
+lemma measurable_ntkSummand {σ' : ℝ → ℝ} (hσ' : Measurable σ') (x x' : Fin d → ℝ) :
+    Measurable (ntkSummand σ' x x') :=
+  (hσ'.comp (measurable_innerProduct_left x)).mul (hσ'.comp (measurable_innerProduct_left x'))
+
+/-- If `σ'` is bounded by `C`, the NTK summand is bounded by `C²`. -/
+lemma abs_ntkSummand_le {σ' : ℝ → ℝ} {C : ℝ} (hC : ∀ z, |σ' z| ≤ C)
+    (x x' : Fin d → ℝ) (w : Fin d → ℝ) :
+    |ntkSummand σ' x x' w| ≤ C * C := by
+  have hC0 : 0 ≤ C := le_trans (abs_nonneg (σ' 0)) (hC 0)
+  rw [ntkSummand, abs_mul]
+  exact mul_le_mul (hC _) (hC _) (abs_nonneg _) hC0
+
+/-- A bounded measurable NTK summand is integrable against the Gaussian row measure. -/
+lemma integrable_ntkSummand {σ' : ℝ → ℝ} (hσ'm : Measurable σ') {C : ℝ}
+    (hC : ∀ z, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
+    Integrable (ntkSummand σ' x x') (gaussianRowMeasure d) :=
+  Integrable.of_bound (measurable_ntkSummand hσ'm x x').aestronglyMeasurable (C * C)
+    (Filter.Eventually.of_forall fun w => by
+      rw [Real.norm_eq_abs]; exact abs_ntkSummand_le hC x x' w)
+
 /-! ### Almost sure convergence of the empirical NTK (Lemma 4.3) -/
 
 /-- The width-`m` empirical NTK built from the first `m` rows of an infinite iid
@@ -426,14 +470,24 @@ noncomputable def empiricalNTKFromRows
       σ' (rows j.val ⊙ x) * σ' (rows j.val ⊙ x'))
 
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
-For fixed `x, x' ∈ ℝᵈ` and an infinite sequence of iid rows
-`w₀, w₁, ... ~ 𝒩(0,Iᵈ)`:
+For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid
+rows `w₀, w₁, ... ~ 𝒩(0,Iᵈ)`:
   `kₘ(x, x') →_as k(x, x')  as  m → ∞`.
 
-**Proof:** The summands `σ'(wⱼ₀ᵀx)σ'(wⱼ₀ᵀx')` are i.i.d. with mean
-`𝔼[σ'(wᵀx)σ'(wᵀx')]`; apply the strong law of large numbers. -/
+**Proof:** The summands `Yⱼ = σ'(wⱼ₀ᵀx)σ'(wⱼ₀ᵀx')` are measurable functions of the
+independent rows `wⱼ₀`, hence pairwise independent; they are identically distributed
+(each row has law `𝒩(0,Iᵈ)`) and integrable (bounded by `C²` on a probability space).
+The strong law of large numbers (Etemadi's version, `ProbabilityTheory.strong_law_ae`,
+which only needs pairwise independence) gives `(1/m)∑ⱼ Yⱼ →_as 𝔼[Y₀]`, and multiplying
+by the constant `xᵀx'` yields the claim, since
+`𝔼[Y₀] = 𝔼_{w ~ 𝒩(0,Iᵈ)}[σ'(wᵀx)σ'(wᵀx')]`.
+
+The measurability hypothesis `hσ'_meas` is implicit in the informal notes (their `σ'`
+is the ReLU derivative `𝟏[· ≥ 0]`, which is measurable: `measurable_reluIndicator`);
+it is needed for the integrability required by the strong law. -/
 theorem ntk_convergence
     (σ' : ℝ → ℝ)
+    (hσ'_meas : Measurable σ')
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
@@ -442,12 +496,85 @@ theorem ntk_convergence
         (fun width => empiricalNTKFromRows σ' rows width x x')
         Filter.atTop
         (nhds (limitingNTK σ' x x')) := by
-  sorry
+  obtain ⟨C, hC⟩ := hσ'_bounded
+  have hg_meas : Measurable (ntkSummand σ' x x') := measurable_ntkSummand hσ'_meas x x'
+  set μ := MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d) with hμ
+  -- Each row `rows i` has law `gaussianRowMeasure d` under the product measure.
+  have hmap_eval : ∀ i : ℕ, μ.map (fun rows => rows i) = gaussianRowMeasure d :=
+    fun i => Measure.infinitePi_map_eval _ i
+  -- The summands are measurable and bounded, hence integrable.
+  have hX_meas : ∀ j : ℕ,
+      Measurable (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows j)) :=
+    fun j => hg_meas.comp (measurable_pi_apply j)
+  have hint : Integrable (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows 0)) μ :=
+    Integrable.of_bound (hX_meas 0).aestronglyMeasurable (C * C)
+      (Filter.Eventually.of_forall fun rows => by
+        rw [Real.norm_eq_abs]; exact abs_ntkSummand_le hC x x' (rows 0))
+  -- The summands are pairwise independent, being functions of independent rows.
+  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·)
+      fun j rows => ntkSummand σ' x x' (rows j)) := by
+    have h := iIndepFun_infinitePi (P := fun _ : ℕ => gaussianRowMeasure d)
+      (X := fun _ : ℕ => ntkSummand σ' x x') (fun _ => hg_meas)
+    intro i j hij
+    exact h.indepFun hij
+  -- The summands are identically distributed, since the rows are.
+  have hident : ∀ i : ℕ,
+      IdentDistrib (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows i))
+        (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows 0)) μ μ := by
+    intro i
+    have hcoord : IdentDistrib (fun rows : ℕ → Fin d → ℝ => rows i)
+        (fun rows : ℕ → Fin d → ℝ => rows 0) μ μ := by
+      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable,
+        ?_⟩
+      rw [hmap_eval i, hmap_eval 0]
+    exact hcoord.comp hg_meas
+  -- Etemadi's strong law: the empirical means converge a.s. to the common mean.
+  have hslln : ∀ᵐ rows ∂μ, Filter.Tendsto
+      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, ntkSummand σ' x x' (rows i))
+      Filter.atTop (nhds (∫ rows, ntkSummand σ' x x' (rows 0) ∂μ)) :=
+    strong_law_ae _ hint hindep hident
+  -- The common mean is the expectation over a single Gaussian row.
+  have hexp : ∫ rows, ntkSummand σ' x x' (rows 0) ∂μ =
+      ∫ w, ntkSummand σ' x x' w ∂(gaussianRowMeasure d) := by
+    rw [← hmap_eval 0]
+    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
+      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
+  filter_upwards [hslln] with rows hrows
+  -- Repackage the `Finset.range` average as a `Fin width` average.
+  have hfin : Filter.Tendsto
+      (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, ntkSummand σ' x x' (rows j))
+      Filter.atTop (nhds (∫ w, ntkSummand σ' x x' w ∂(gaussianRowMeasure d))) := by
+    rw [← hexp]
+    have hcongr :
+        (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, ntkSummand σ' x x' (rows i))
+        = fun width : ℕ =>
+            (width : ℝ)⁻¹ * ∑ j : Fin width, ntkSummand σ' x x' (rows j) := by
+      ext n
+      rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => ntkSummand σ' x x' (rows i)) n]
+    rw [← hcongr]
+    exact hrows
+  -- Multiply by the constant `xᵀx'`: this is exactly `empiricalNTKFromRows → limitingNTK`.
+  exact hfin.const_mul (x ⊙ x')
 
 /-! ### ReLU NTK closed form (Proposition 4.2) -/
 
 /-- The ReLU derivative: `𝟏[z ≥ 0]` (a.e. equal to the actual derivative). -/
 noncomputable def reluIndicator : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
+
+/-- The ReLU derivative is measurable: it is the indicator of the closed
+measurable set `[0, ∞)`. Together with `abs_reluIndicator_le` this shows that
+`reluIndicator` satisfies the hypotheses of `ntk_convergence`. -/
+lemma measurable_reluIndicator : Measurable reluIndicator := by
+  have h : reluIndicator = Set.indicator (Set.Ici 0) fun _ => (1 : ℝ) := by
+    ext z
+    simp [reluIndicator, Set.indicator]
+  rw [h]
+  exact Measurable.indicator measurable_const measurableSet_Ici
+
+/-- The ReLU derivative is bounded by `1`. -/
+lemma abs_reluIndicator_le (z : ℝ) : |reluIndicator z| ≤ 1 := by
+  simp only [reluIndicator]
+  split_ifs <;> simp
 
 /-- The angle between two unit vectors in ℝᵈ:
   `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/
