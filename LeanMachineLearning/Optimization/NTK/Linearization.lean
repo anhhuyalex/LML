@@ -368,6 +368,7 @@ $$ P(|Z| \le a) = \int_{-a}^{a} f(z) dz \le \int_{-a}^{a} \frac{1}{\sqrt{2\pi v}
 lemma gaussianReal_Icc_bound (v : ℝ≥0) (hv : 0 < v) (a : ℝ) (ha : 0 ≤ a) :
     (gaussianReal 0 v).real {z | |z| ≤ a} ≤ 2 * a / Real.sqrt (2 * Real.pi * v) := by sorry
 
+
 lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⊙ x) (τ : ℝ) (hτ : 0 < τ) :
     (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} ≤ τ := by
   have h_map := map_gaussianRowMeasure_dot x
