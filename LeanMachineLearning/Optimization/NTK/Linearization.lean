@@ -341,11 +341,13 @@ noncomputable def signAmbiguous (τ : ℝ) (x : Fin d → ℝ) (W₀ : Fin m →
   Finset.univ.filter (fun j =>
     |∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⊙ x))
 
+/-- The linear map sending a row vector `w` to the dot product `∑ k, w k * x k`. -/
 noncomputable def dotMap {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →ₗ[ℝ] ℝ where
   toFun w := ∑ k, w k * x k
   map_add' w₁ w₂ := by simp [Finset.sum_add_distrib, add_mul]
   map_smul' c w := by simp [Finset.mul_sum, mul_assoc]
 
+/-- The continuous linear functional associated to `dotMap x`. -/
 noncomputable def dotCLM {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →L[ℝ] ℝ :=
   LinearMap.toContinuousLinearMap (dotMap x)
 
@@ -371,13 +373,44 @@ lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⊙ x)
   have h_map := map_gaussianRowMeasure_dot x
   have h_prob_eq : (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} =
       (gaussianReal 0 (Real.toNNReal (x ⊙ x))).real {z | |z| ≤ τ * Real.sqrt (x ⊙ x)} := by
-    sorry
+    have h_set : {z : ℝ | |z| ≤ τ * Real.sqrt (x ⊙ x)} = Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x)) := by ext z; simp [abs_le]
+    have h_meas : Measurable (fun w : Fin d → ℝ => ∑ k, w k * x k) := (dotCLM x).continuous.measurable
+    have h_preimage : {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} =
+      (fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))) := by ext w; simp [abs_le]
+    rw [h_preimage]
+    have h_map_apply : (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)) (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))) =
+      (gaussianRowMeasure d) ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x)))) :=
+        Measure.map_apply h_meas measurableSet_Icc
+    have h_real_eq : ((gaussianRowMeasure d).real ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))))) =
+      (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)).real (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))) := by
+      exact congr_arg ENNReal.toReal h_map_apply.symm
+    rw [h_real_eq, h_map, ← h_set]
   have h_bound := gaussianReal_Icc_bound (Real.toNNReal (x ⊙ x)) (Real.toNNReal_pos.mpr hx)
     (τ * Real.sqrt (x ⊙ x)) (mul_nonneg hτ.le (Real.sqrt_nonneg _))
   have h_simp : 2 * (τ * Real.sqrt (x ⊙ x)) / Real.sqrt (2 * Real.pi * Real.toNNReal (x ⊙ x)) = τ * Real.sqrt (2 / Real.pi) := by
-    sorry
+    have h_toNNReal : (Real.toNNReal (x ⊙ x) : ℝ) = x ⊙ x := Real.coe_toNNReal _ hx.le
+    rw [h_toNNReal]
+    have h_sqrt_mul : Real.sqrt (2 * Real.pi * (x ⊙ x)) = Real.sqrt (2 * Real.pi) * Real.sqrt (x ⊙ x) :=
+      Real.sqrt_mul (by positivity) (x ⊙ x)
+    rw [h_sqrt_mul]
+    have h1 : 2 * (τ * Real.sqrt (x ⊙ x)) / (Real.sqrt (2 * Real.pi) * Real.sqrt (x ⊙ x)) =
+              (τ * (2 / Real.sqrt (2 * Real.pi))) * (Real.sqrt (x ⊙ x) / Real.sqrt (x ⊙ x)) := by ring
+    rw [h1]
+    have h_sqrt_pos : 0 < Real.sqrt (x ⊙ x) := Real.sqrt_pos.mpr hx
+    rw [div_self h_sqrt_pos.ne', mul_one]
+    have h2 : 2 / Real.sqrt (2 * Real.pi) = Real.sqrt (2 / Real.pi) := by
+      have h_two : (2 : ℝ) = Real.sqrt 2 * Real.sqrt 2 := (Real.mul_self_sqrt (by positivity)).symm
+      nth_rw 1 [h_two]
+      rw [Real.sqrt_mul (by positivity) Real.pi]
+      have h_div : (Real.sqrt 2 * Real.sqrt 2) / (Real.sqrt 2 * Real.sqrt Real.pi) = Real.sqrt 2 / Real.sqrt Real.pi := by
+        rw [mul_div_mul_left]
+        have : (0:ℝ) < 2 := by norm_num
+        exact (Real.sqrt_pos.mpr this).ne'
+      rw [h_div]
+      exact (Real.sqrt_div (by positivity) Real.pi).symm
+    rw [h2]
   have h_final : τ * Real.sqrt (2 / Real.pi) ≤ τ := by
-    have h_pi : 2 ≤ Real.pi := by sorry -- 2 < 3.14 < Real.pi
+    have h_pi : (2 : ℝ) ≤ Real.pi := Real.two_le_pi
     have h_frac : 2 / Real.pi ≤ 1 := (div_le_one Real.pi_pos).mpr h_pi
     have h_sqrt : Real.sqrt (2 / Real.pi) ≤ Real.sqrt 1 := Real.sqrt_le_sqrt h_frac
     rw [Real.sqrt_one] at h_sqrt
