@@ -1,0 +1,71 @@
+\chapter{Diagonal Linear Networks and the Lasso Regularization Path}
+
+\section{Introduction}
+
+This chapter formalizes the connections between the training trajectory of diagonal linear networks (DLNs) and the lasso regularization path.
+The theoretical background relies on early stopping of gradient flows in neural networks to achieve a tradeoff between sparsity and data fitting.
+
+\section{The \texorpdfstring{$u \circ v$}{u o v} case}
+
+We start by defining the quadratic loss and the related lasso objective. 
+Let $M \in \mathbb{R}^{d \times d}$ be a positive semidefinite matrix, and let $r \in \mathbb{R}^d$.
+
+\begin{definition}[Quadratic Loss]\label{def:quadraticLoss}
+  \lean{Lasso.quadraticLoss}
+  The \emph{quadratic loss} function is defined as
+  \[
+    \ell(x) = \frac{1}{2} \langle x, M x \rangle - \langle r, x \rangle.
+  \]
+\end{definition}
+
+\begin{definition}[Lasso Objective]\label{def:lassoObjective}
+  \lean{Lasso.lassoObjective}
+  For a regularization parameter $\lambda \ge 0$ and an inverse implicit regularization parameter $\mu > 0$, the \emph{lasso objective} is defined as
+  \[
+    \operatorname{Lasso}(x, \mu) = \ell(x) + \left(\lambda + \frac{1}{\mu}\right) \|x\|_1.
+  \]
+\end{definition}
+
+\begin{definition}[DLN Objective]\label{def:dlnObjective}
+  \lean{Lasso.dlnObjective}
+  For weights $u, v \in \mathbb{R}^d$, the \emph{DLN objective} incorporates an explicit weight decay penalty parameterized by $\lambda \ge 0$:
+  \[
+    L(u, v) = \ell(u \circ v) + \frac{\lambda}{2} \left(\|u\|_2^2 + \|v\|_2^2\right).
+  \]
+\end{definition}
+
+\begin{definition}[DLN Gradient Flow]\label{def:dlnGradientFlow}
+  \lean{Lasso.dlnGradientFlow}
+  The gradient flow dynamics of the weights are given by the coupled system of ordinary differential equations
+  \[
+    \frac{\mathrm{d}u}{\mathrm{d}t} = - \nabla_u L(u, v), \qquad \frac{\mathrm{d}v}{\mathrm{d}t} = - \nabla_v L(u, v),
+  \]
+  with initializations $u(0) = \sqrt{\varepsilon}\beta$ and $v(0) = \sqrt{\varepsilon}\gamma$.
+\end{definition}
+
+\begin{definition}[Average Trajectory]\label{def:averageTrajectory}
+  \lean{Lasso.averageTrajectory}
+  Let $x^{\varepsilon}(t) = u(t) \circ v(t)$ be the effective linear parameter under the gradient flow. Its time average is
+  \[
+    \bar{x}^{\varepsilon}(t) = \frac{1}{t} \int_0^t x^{\varepsilon}(t') \, \mathrm{d}t'.
+  \]
+\end{definition}
+
+\begin{theorem}[Exact Connection to the Lasso]\label{thm:lassoConnectionMonotone}
+  \uses{def:lassoObjective, def:dlnGradientFlow, def:averageTrajectory}
+  \lean{Lasso.lasso_connection_monotone}
+  Assume that the mapping $\mu \mapsto \mu x(\mu)$ is monotonically non-decreasing coordinate-wise. Then for any $s > 0$, as $\varepsilon \to 0$ and tracking the rescaled time $t(s, \varepsilon) = \frac{s}{2} \log(1/\varepsilon)$,
+  \[
+    \lim_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) = \min_{x \in \mathbb{R}^d} \operatorname{Lasso}(x, s).
+  \]
+\end{theorem}
+
+\begin{theorem}[Approximate Connection to the Lasso]\label{thm:lassoConnectionApprox}
+  \uses{def:lassoObjective, def:dlnGradientFlow, def:averageTrajectory}
+  \lean{Lasso.lasso_connection_approx}
+  Without the monotonicity assumption, there exists a constant $C > 0$ such that for any $s > 0$,
+  \[
+    \limsup_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) \le \min_{x \in \mathbb{R}^d} \operatorname{Lasso}(x, s) + C \eta(\lambda, s, z^{\downarrow}(s)),
+  \]
+  where $z^{\downarrow}(s)$ measures the deviation from monotonicity of $z(\mu) = \mu x(\mu)$.
+\end{theorem}

@@ -167,6 +167,17 @@ structure GFTrajectory (f : E → ℝ) (w₀ : E) (w : ℝ → E) : Prop where
   /-- The gradient flow ODE holds pointwise. -/
   ode : ∀ t : ℝ, HasDerivAt w (-gradient f (w t)) t
 
+/-- A curve `w : ℝ → E` is a trajectory for a time-dependent vector field `v : ℝ → E → E` 
+starting at `w₀` if it satisfies the ODE `ẇ(t) = v t (w(t))` with initial condition `w(0) = w₀`. 
+We use this for coupled or non-autonomous gradient flows. -/
+structure VaryingGFTrajectory (v : ℝ → E → E) (w₀ : E) (w : ℝ → E) : Prop where
+  /-- The curve starts at `w₀`. -/
+  init : w 0 = w₀
+  /-- `w` is continuously differentiable. -/
+  cont_diff : ContDiff ℝ 1 w
+  /-- The generalized flow ODE holds pointwise. -/
+  ode : ∀ t : ℝ, HasDerivAt w (v t (w t)) t
+
 /-! ### Convexity (Definition 7.3) -/
 
 /-- **Definition 7.3** (First-order characterization of convexity, Telgarsky 2021, §7.2).
