@@ -3,15 +3,19 @@ Copyright (c) 2026 LML Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: LML Contributors
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Lp.PiLp
-import LeanMachineLearning.Optimization.ConvexOpt.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import LeanMachineLearning.Optimization.ConvexOpt.Basic
 
 /-!
 # Lasso and Diagonal Linear Network Objectives
 
 This file defines the base objectives for the lasso regularization path analysis.
 -/
+
+@[expose] public section
 
 namespace Lasso
 
@@ -152,3 +156,5 @@ noncomputable def augmentedVector (r : EuclideanSpace ℝ ι) :
   (WithLp.equiv 2 _).symm (Sum.elim r (-r))
 
 end Lasso
+
+end

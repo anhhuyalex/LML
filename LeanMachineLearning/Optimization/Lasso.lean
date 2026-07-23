@@ -3,9 +3,13 @@ Copyright (c) 2026 LML Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: LML Contributors
 -/
-import LeanMachineLearning.Optimization.Lasso.Basic
-import LeanMachineLearning.Optimization.Lasso.Dynamic
-import LeanMachineLearning.Optimization.Lasso.Theorems
+module
+
+public import LeanMachineLearning.Optimization.Lasso.Basic
+public import LeanMachineLearning.Optimization.Lasso.Dynamic
+public import LeanMachineLearning.Optimization.Lasso.LCP
+public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
+public import LeanMachineLearning.Optimization.Lasso.Theorems
 
 /-!
 # Diagonal Linear Networks and the Lasso Regularization Path

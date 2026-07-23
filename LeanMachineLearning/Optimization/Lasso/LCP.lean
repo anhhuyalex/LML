@@ -3,16 +3,20 @@ Copyright (c) 2026 LML Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: LML Contributors
 -/
-import LeanMachineLearning.Optimization.Lasso.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Real.Sqrt
+module
+
+public import LeanMachineLearning.Optimization.Lasso.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Real.Sqrt
 
 /-!
 # Linear Complementarity Problem (LCP) Formulations for Lasso
 
 This file formalizes the primal-dual LCP formulations of the Lasso regularization path.
 -/
+
+@[expose] public section
 
 namespace Lasso
 
@@ -228,3 +232,5 @@ theorem parametric_lcp_dual_regular
   sorry
 
 end Lasso
+
+end

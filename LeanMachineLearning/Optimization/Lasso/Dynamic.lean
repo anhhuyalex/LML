@@ -3,9 +3,11 @@ Copyright (c) 2026 LML Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: LML Contributors
 -/
-import LeanMachineLearning.Optimization.Lasso.Basic
-import Mathlib.Analysis.InnerProductSpace.ProdL2
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import LeanMachineLearning.Optimization.Lasso.Basic
+public import Mathlib.Analysis.InnerProductSpace.ProdL2
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
 /-!
 # DLN Gradient Flow Dynamics
@@ -13,6 +15,8 @@ import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 This file models the gradient flow dynamics of the diagonal linear network
 and defines the time-averaged trajectory.
 -/
+
+@[expose] public section
 
 namespace Lasso
 
@@ -199,3 +203,5 @@ lemma integratedTrajectoryRescaled_eq_smul_average
   sorry
 
 end Lasso
+
+end

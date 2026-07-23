@@ -3,14 +3,18 @@ Copyright (c) 2026 LML Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: LML Contributors
 -/
-import LeanMachineLearning.Optimization.Lasso.Dynamic
-import Mathlib.Analysis.Calculus.Deriv.Basic
+module
+
+public import LeanMachineLearning.Optimization.Lasso.Dynamic
+public import Mathlib.Analysis.Calculus.Deriv.Basic
 
 /-!
 # Mirror Flow Interpretation of Diagonal Linear Networks
 
 This file formalizes the mirror flow interpretation of the DLN dynamics.
 -/
+
+@[expose] public section
 
 namespace Lasso
 
@@ -206,3 +210,5 @@ theorem pos_trajectory_uniform_bound
   sorry
 
 end Lasso
+
+end

@@ -3,12 +3,14 @@ Copyright (c) 2026 LML Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: LML Contributors
 -/
-import LeanMachineLearning.Optimization.Lasso.Dynamic
-import LeanMachineLearning.Optimization.Lasso.LCP
-import LeanMachineLearning.Optimization.Lasso.MirrorFlow
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Data.Matrix.Block
+module
+
+public import LeanMachineLearning.Optimization.Lasso.Dynamic
+public import LeanMachineLearning.Optimization.Lasso.LCP
+public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
+public import Mathlib.Topology.MetricSpace.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Data.Matrix.Block
 
 /-!
 # Theorems on the Lasso Regularization Path
@@ -26,6 +28,8 @@ This topological order is intentional.  In particular, signed theorems appear
 after `lasso_objective_reduction` and `dln_dynamics_reduction`, because their
 informal proofs depend on those reductions.
 -/
+
+@[expose] public section
 
 namespace Lasso
 
@@ -531,3 +535,5 @@ theorem lasso_connection_monotone
   sorry
 
 end Lasso
+
+end
