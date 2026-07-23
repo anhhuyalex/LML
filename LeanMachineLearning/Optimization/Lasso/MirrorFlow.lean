@@ -7,6 +7,8 @@ module
 
 public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Mathlib.Analysis.Calculus.Deriv.Mul
 
 /-!
 # Mirror Flow Interpretation of Diagonal Linear Networks
@@ -29,6 +31,49 @@ noncomputable def positiveEffectiveVectorField
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι :=
   euclideanOf (fun i => -4 * x i * ((matVec M x) i - r i + lambda))
+
+/--
+The derivative of the coordinate square of a function `u`.
+
+Informal proof reference: `docs/Lasso.md`, Section 3, Eq. (3.3).
+Coordinatewise, this is just the chain/product rule:
+`d (u_i(t)^2) / dt = 2 * u_i(t) * u_i'(t)`.
+-/
+lemma hasDerivAt_coordinateSquare
+    (u : ℝ → EuclideanSpace ℝ ι) (t : ℝ) (u' : EuclideanSpace ℝ ι)
+    (hu : HasDerivAt u u' t) :
+    HasDerivAt (fun τ => coordinateSquare (u τ))
+      (euclideanOf (fun i => 2 * u t i * u' i)) t := by
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) := (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  have h1 : HasDerivAt (fun τ => e (u τ)) (e u') t := e.hasFDerivAt.comp_hasDerivAt t hu
+  dsimp [coordinateSquare, euclideanOf]
+  have hd_pi : HasDerivAt (fun τ => (fun i => u τ i * u τ i)) (fun i => 2 * u t i * u' i) t := by
+    apply hasDerivAt_pi.2
+    intro i
+    have hui : HasDerivAt (fun τ => e (u τ) i) (e u' i) t := hasDerivAt_pi.1 h1 i
+    exact HasDerivAt.mul hui hui |>.congr_deriv (by
+      dsimp [e, ContinuousLinearEquiv.coe_coe]
+      simp; ring_nf)
+  exact e.symm.hasFDerivAt.comp_hasDerivAt t hd_pi
+
+/--
+The gradient of the positive DLN objective function.
+
+Informal proof reference: `docs/Lasso.md`, Section 3, Eq. (3.3).
+The objective is $L(u) = \ell(u^2) + \lambda\|u\|^2$ where
+$\ell(x) = \frac{1}{2}\langle x, Mx \rangle - \langle r, x \rangle$.
+Taking the gradient with respect to $u$, we obtain
+$\frac{\partial L}{\partial u_i}
+  = 2 u_i \frac{\partial \ell}{\partial x_i} + 2 \lambda u_i
+  = 2 u_i ( (M x)_i - r_i + \lambda)$.
+-/
+lemma gradient_posDlnObjective
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (u : EuclideanSpace ℝ ι) :
+    gradient (fun u' => posDlnObjective M r lambda u') u =
+      euclideanOf
+        (fun i => 2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda)) := by
+  sorry
 
 /-- The mirror-flow ODE `d ∇h(x(t)) / dt = -∇ \widetilde L(x(t))`. -/
 def IsEntropyMirrorFlow
@@ -53,7 +98,15 @@ theorem pos_effective_parameter_hasDerivAt
     ∀ t : ℝ,
       HasDerivAt (fun τ => posEffectiveParameter u τ)
         (positiveEffectiveVectorField M r lambda (posEffectiveParameter u t)) t := by
-  sorry
+  intro t
+  have hu_ode := hu.ode t
+  dsimp [posDlnVectorField] at hu_ode
+  rw [gradient_posDlnObjective] at hu_ode
+  have hd := hasDerivAt_coordinateSquare u t _ hu_ode
+  exact hd.congr_deriv (by
+    ext i
+    dsimp [positiveEffectiveVectorField, posEffectiveParameter, coordinateSquare, euclideanOf]
+    ring)
 
 /--
 Section 4.2 from `docs/Lasso.md`: The Mirror Flow interpretation of the positive DLN dynamics.

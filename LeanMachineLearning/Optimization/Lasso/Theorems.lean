@@ -74,8 +74,8 @@ noncomputable def positiveZUpward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ 
     ℝ :=
   ∑ i, ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * x_lasso u' i) u)
 
-/-- Backwards-compatible alias for the positive-lasso deviation. -/
-noncomputable def z_downward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) : ℝ :=
+/-- Compatibility alias for the positive-lasso downward variation. -/
+noncomputable def zDownward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) : ℝ :=
   positiveZDownward x_lasso μ
 
 /-- The explicit vanishing term from Eq. (4.15). -/
