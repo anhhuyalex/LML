@@ -69,3 +69,53 @@ Let $M \in \mathbb{R}^{d \times d}$ be a positive semidefinite matrix, and let $
   \]
   where $z^{\downarrow}(s)$ measures the deviation from monotonicity of $z(\mu) = \mu x(\mu)$.
 \end{theorem}
+
+\section{The \texorpdfstring{$u \circ u$}{u o u} case (Positive Lasso)}
+
+We now outline the $u \circ u$ case, which is algebraically simpler and serves as the structural foundation for the $u \circ v$ proofs.
+
+\begin{definition}[Positive DLN Objective]\label{def:posDlnObjective}
+  \lean{Lasso.posDlnObjective}
+  For a weight vector $u \in \mathbb{R}^d$, the positive DLN objective is:
+  \[
+    L(u) = \ell(u \circ u) + \lambda \|u\|_2^2.
+  \]
+\end{definition}
+
+\begin{definition}[Positive DLN Gradient Flow]\label{def:posDlnGradientFlow}
+  \lean{Lasso.posDlnGradientFlow}
+  The gradient flow dynamics of the weight $u$ is given by
+  \[
+    \frac{\mathrm{d}u}{\mathrm{d}t} = - \nabla L(u),
+  \]
+  with initialization $u(0) = \sqrt{\varepsilon}\beta$.
+\end{definition}
+
+For this case, the rescaled time is defined as $s = \frac{4}{\log(1/\varepsilon)} t$.
+
+\begin{theorem}[Exact Connection to the Positive Lasso]\label{thm:posLassoConnectionMonotone}
+  \uses{def:lassoObjective, def:posDlnGradientFlow}
+  \lean{Lasso.pos_lasso_connection_monotone}
+  Assume that the mapping $\mu \mapsto \mu x(\mu)$ is monotonically non-decreasing. Then for all $s > 0$,
+  \[
+    \lim_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) = \min_{x \ge 0} \operatorname{Lasso}(x, s).
+  \]
+\end{theorem}
+
+\begin{theorem}[Approximate Connection to the Positive Lasso]\label{thm:posLassoConnectionApprox}
+  \uses{def:lassoObjective, def:posDlnGradientFlow}
+  \lean{Lasso.pos_lasso_connection_approx}
+  Without the monotonicity assumption, there exists a constant $C > 0$ such that for any $s > 0$,
+  \[
+    \limsup_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) \le \min_{x \ge 0} \operatorname{Lasso}(x, s) + C \eta(\lambda, s, z^{\downarrow}(s)).
+  \]
+\end{theorem}
+
+\subsection{Proof Strategy: Mirror Flow and LCPs}
+
+The proofs of these theorems rely on connecting the DLN dynamics to the positive lasso through two intermediate structures:
+\begin{enumerate}
+    \item \textbf{Mirror Flow:} The gradient flow can be interpreted as a mirror flow with an entropy potential function, naturally enforcing the positivity constraint.
+    \item \textbf{Linear Complementarity Problems (LCPs):} The positive lasso regularization path translates into a parametric LCP, bridging the gap between the primal-dual formulations.
+\end{enumerate}
+By establishing these connections, Theorem \ref{thm:lassoConnectionMonotone} and \ref{thm:lassoConnectionApprox} (the $u \circ v$ case) follow as corollaries via the structural reduction $p^{\text{pos}} = (u+v)/2$ and $p^{\text{neg}} = (u-v)/2$.

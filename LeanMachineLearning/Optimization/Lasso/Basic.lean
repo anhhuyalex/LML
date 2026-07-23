@@ -29,4 +29,8 @@ noncomputable def lassoObjective (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ 
 noncomputable def dlnObjective (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (u v : EuclideanSpace ℝ ι) : ℝ :=
   quadraticLoss M r ((WithLp.equiv 2 (ι → ℝ)).symm (fun i => u i * v i)) + (lambda / 2) * (‖u‖^2 + ‖v‖^2)
 
+/-- The positive DLN objective for the `u ∘ u` case with explicit weight decay `lambda`. -/
+noncomputable def posDlnObjective (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (u : EuclideanSpace ℝ ι) : ℝ :=
+  quadraticLoss M r ((WithLp.equiv 2 (ι → ℝ)).symm (fun i => u i * u i)) + lambda * ‖u‖^2
+
 end Lasso
