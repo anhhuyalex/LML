@@ -6,6 +6,7 @@ Authors: LML Contributors
 import LeanMachineLearning.Optimization.Lasso.Basic
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Real.Sqrt
 
 /-!
 # Linear Complementarity Problem (LCP) Formulations for Lasso
@@ -55,20 +56,32 @@ noncomputable def scaledDualPath (lambda : ℝ) (w : ℝ → EuclideanSpace ℝ 
   fun μ => (1 / (1 + μ * lambda)) • w μ
 
 /--
+The seminorm induced by an explicit matrix used as `M†`.
+
+This avoids hallucinating a Mathlib Moore-Penrose pseudoinverse API.  Once the
+project has a canonical pseudoinverse object for finite-dimensional matrices,
+the parameter `Mdagger` should be instantiated with that matrix.
+-/
+noncomputable def pseudoInverseSeminorm
+    (Mdagger : Matrix ι ι ℝ) (x : EuclideanSpace ℝ ι) : ℝ :=
+  Real.sqrt (max 0 (inner ℝ x (matVec Mdagger x)))
+
+/--
 Regularity package for the unique dual solution of the parametric LCP.
 This abstracts the three conclusions of Lemma 4.11: absolute continuity
 (represented here by local Lipschitz continuity), derivative in `Span M`, and a
-uniform derivative bound. The final project should refine the norm in
-`scaled_derivative_bound` to the `M†` seminorm used in `docs/Lasso.md`.
+uniform derivative bound in the `M†` seminorm used in `docs/Lasso.md`.
 -/
 structure ParametricLCPDualRegular
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (w : ℝ → EuclideanSpace ℝ ι) : Prop where
   locally_lipschitz : LocallyLipschitzOnCompacts w
   scaled_derivative_in_span :
     ∀ μ : ℝ, InMatrixSpan M (coordinateDeriv (scaledDualPath lambda w) μ)
   scaled_derivative_bound :
-    ∀ μ : ℝ, ‖coordinateDeriv (scaledDualPath lambda w) μ‖ ≤ ‖r‖
+    ∀ μ : ℝ,
+      pseudoInverseSeminorm Mdagger (coordinateDeriv (scaledDualPath lambda w) μ) ≤
+        pseudoInverseSeminorm Mdagger r
 
 /--
 The LCP with derivatives from the proof sketch in Section 4.1.  Here `z` is the
@@ -201,7 +214,7 @@ Cauchy--Schwarz gives a Lipschitz estimate, hence absolute continuity, and the
 derivative conclusions follow by differentiating the Lipschitz path.
 -/
 theorem parametric_lcp_dual_regular
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (z w : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda)
     (hsol : ∀ μ : ℝ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ))
@@ -211,7 +224,7 @@ theorem parametric_lcp_dual_regular
           isParametricLCP M r lambda μ z₁ w₁ →
           isParametricLCP M r lambda μ z₂ w₂ →
           w₁ = w₂) :
-    ParametricLCPDualRegular M r lambda w := by
+    ParametricLCPDualRegular M Mdagger r lambda w := by
   sorry
 
 end Lasso

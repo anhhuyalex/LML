@@ -3,7 +3,7 @@
 \section{Purpose and Scope}
 
 This chapter is the blueprint for formalizing the results of
-\texttt{docs/Lasso.md}, Chapters 1--4.
+\texttt{docs/Lasso.md}, Chapters 1--5.
 The mathematical goal is to connect early-stopped diagonal linear network
 gradient flow to the lasso regularization path.
 The library goal is to build reusable API for:
@@ -17,8 +17,46 @@ The library goal is to build reusable API for:
 \end{enumerate}
 
 The positive case $x = u \circ u$ is the core formalization target.
-The signed case $x = u \circ v$ should be obtained by the standard
-dimension-doubling reduction.
+The signed case $x = u \circ v$ must be obtained by the standard
+dimension-doubling reduction, and the Lean declarations must be ordered so that
+the signed theorems occur after the reduction lemmas they cite.
+
+\section{Audit and Formalization Discipline}
+
+\begin{remark}[Lessons learned applied to this chapter]
+The previous skeleton violated the project guidance in
+\texttt{docs/lessons\_learned.md} in two concrete ways.
+First, it violated the ``out-of-order declarations'' warning recorded in
+\texttt{docs/hallucinated\_mathlib.md}: the signed theorem comments cited
+\texttt{dln\_dynamics\_reduction} and
+\texttt{lasso\_objective\_reduction} before those declarations appeared in the
+file.  Lean allows a theorem closed by \texttt{sorry} to ignore such dependencies,
+but a real proof would fail top-down.
+Second, it violated ``Rule 1: Verify Before Implementation'' from
+\texttt{docs/lessons\_learned.md}: the LCP regularity package used an ordinary
+norm while the paper requires the $M^\dagger$ seminorm.  The revised API avoids
+inventing a Moore--Penrose pseudoinverse theorem from Mathlib; instead it
+introduces \texttt{Lasso.pseudoInverseSeminorm} with an explicit matrix argument
+for the future pseudoinverse.
+
+The corrected plan complies with \texttt{docs/lessons\_learned.md} as follows.
+Declarations are now topologically ordered by dependency, large proofs are split
+into named reusable lemmas rather than monolithic \texttt{calc} blocks, and any
+remaining \texttt{sorry} must cite its informal proof location in
+\texttt{docs/Lasso.md}.  The development also follows the LML README goal of
+building high-quality reusable machine-learning formalization infrastructure:
+the chapter exposes stable API for trajectories, LCPs, Bregman projections, and
+the signed-to-positive reduction rather than hiding those steps inside the main
+theorems.
+\end{remark}
+
+\begin{remark}[Current proof status]
+The Lasso files currently provide a dependency-ordered theorem skeleton with
+substantial reusable API.  Many proof-bearing declarations remain
+\texttt{sorry}; this is intentional only where the declaration cites the paper
+section and includes an informal proof summary.  A theorem should not be counted
+as fully formalized until its \texttt{sorry} is removed.
+\end{remark}
 
 \section{Basic Objects}
 
@@ -132,10 +170,26 @@ and the integrated trajectory is
   \lean{Lasso.rescaledTime, Lasso.timeFromRescaled,
     Lasso.posRescaledTime, Lasso.posTimeFromRescaled,
     Lasso.rescaledTime_timeFromRescaled,
-    Lasso.posRescaledTime_posTimeFromRescaled}
+    Lasso.posRescaledTime_posTimeFromRescaled,
+    Lasso.posTimeFromRescaled_eq_half_timeFromRescaled,
+    Lasso.posIntegratedTrajectoryRescaled,
+    Lasso.integratedTrajectoryRescaled,
+    Lasso.posIntegratedTrajectoryRescaled_eq_smul_average,
+    Lasso.integratedTrajectoryRescaled_eq_smul_average}
 The signed case uses $s = 2t/\log(1/\varepsilon)$, while the positive case uses
 $s = 4t/\log(1/\varepsilon)$.
 The API includes algebraic inverse lemmas for these rescalings.
+For Section~4.6, the integrated rescaled trajectory must include the Jacobian
+factor:
+\[
+  z^\varepsilon_{\mathrm{pos}}(s)
+  =
+  \frac{4}{\log(1/\varepsilon)}
+  \int_0^{(s/4)\log(1/\varepsilon)} x^\varepsilon(t)\,dt
+  =
+  s\,\bar x^\varepsilon(s).
+\]
+The signed version has the analogous factor $2/\log(1/\varepsilon)$.
 \end{definition}
 
 \begin{definition}[Initialization assumptions]\label{def:lassoInitializations}
@@ -211,19 +265,45 @@ projection of the initialization onto the affine fiber
 \[
   \{x\ge 0: Mx=Mx^\varepsilon(t)\}.
 \]
+The Lean statement includes both minimality and uniqueness of this projection,
+matching Lemma 4.4 of \texttt{docs/Lasso.md}.
+\end{lemma}
+
+\begin{lemma}[Uniform bound on the image under $M$]\label{lem:posMatVecBound}
+  \uses{lem:tiltedLossDecrease, def:lassoProblemData}
+  \lean{Lasso.pos_trajectory_matVec_uniform_bound}
+Assume $\lambda=0$ and coercivity is unavailable.
+There is a constant $C$ such that, for $0<\varepsilon\le 1$ and all $t$,
+\[
+  \|M x^\varepsilon(t)\|\le C.
+\]
+This is Lemma 4.3 of \texttt{docs/Lasso.md}.
+\end{lemma}
+
+\begin{lemma}[Bregman projection fiber norm bound]\label{lem:bregmanFiberBound}
+  \uses{lem:bregmanProjection, lem:nonnegativeSolutionBound}
+  \lean{Lasso.bregman_projection_fiber_norm_bound}
+For small enough $\varepsilon$, if $y=Mu$ for some $u\ge0$ and $x$ minimizes
+\[
+  D(z,\varepsilon\alpha^2)
+  \quad\text{subject to}\quad z\ge0,\; Mz=y,
+\]
+then
+\[
+  \|x\|\le C(1+\|y\|^2).
+\]
+This is Lemma 4.5 of \texttt{docs/Lasso.md}.
 \end{lemma}
 
 \begin{proposition}[Uniform trajectory bound]\label{prop:posTrajectoryBound}
-  \uses{lem:tiltedLossDecrease, lem:bregmanProjection}
+  \uses{lem:tiltedLossDecrease, lem:posMatVecBound, lem:bregmanProjection,
+    lem:bregmanFiberBound}
   \lean{Lasso.pos_trajectory_uniform_bound}
 There are $C>0$ and $\varepsilon_0>0$ such that for
 $0<\varepsilon\le \varepsilon_0$ and all $t$,
 \[
   \|x^\varepsilon(t)\|\le C.
 \]
-The proof decomposes into Lemmas 4.2--4.5 of \texttt{docs/Lasso.md}: energy
-decrease, a bound on $Mx^\varepsilon(t)$, Bregman projection, and a conic
-Caratheodory/Bregman comparison.
 \end{proposition}
 
 \section{Linear Complementarity Problems}
@@ -288,11 +368,16 @@ unique.
 \begin{definition}[Parametric dual regularity]\label{def:parametricDualRegular}
   \uses{def:lassoLCP}
   \lean{Lasso.coordinateDeriv, Lasso.LocallyLipschitzOnCompacts,
-    Lasso.scaledDualPath, Lasso.ParametricLCPDualRegular}
+    Lasso.scaledDualPath, Lasso.pseudoInverseSeminorm,
+    Lasso.ParametricLCPDualRegular}
 The regularity package records the conclusions of Lemma 4.11:
 local Lipschitz/absolute-continuity behavior of the dual path, the fact that the
 derivative of $w(\mu)/(1+\mu\lambda)$ lies in $\operatorname{Span}M$, and the
-corresponding derivative bound.
+corresponding derivative bound in the $M^\dagger$ seminorm.
+Because the current Lasso files do not yet expose a verified Moore--Penrose
+pseudoinverse construction, \texttt{pseudoInverseSeminorm} takes an explicit
+matrix parameter \texttt{Mdagger}; a later linear-algebra refactor should
+instantiate this parameter with the canonical pseudoinverse.
 \end{definition}
 
 \begin{lemma}[Parametric LCP dual regularity]\label{lem:parametricDualRegular}
@@ -300,6 +385,14 @@ corresponding derivative bound.
   \lean{Lasso.parametric_lcp_dual_regular}
 The unique dual solution of the parametric LCP satisfies the regularity package
 of Definition~\ref{def:parametricDualRegular}.
+Formally, the derivative estimate should read
+\[
+  \left\|
+    \frac{d}{d\mu}\left(\frac{w(\mu)}{1+\mu\lambda}\right)
+  \right\|_{M^\dagger}
+  \le
+  \|r\|_{M^\dagger}.
+\]
 \end{lemma}
 
 \begin{definition}[LCP with derivatives]\label{def:lcpWithDerivatives}
@@ -319,12 +412,25 @@ The derivative LCP is the integrated-mirror-flow analogue:
 \begin{definition}[Path quantities]\label{def:positivePathQuantities}
   \uses{def:lassoTrajectories, def:lassoLCP}
   \lean{Lasso.matrixSeminormSq, Lasso.pathDelta, Lasso.scaledPrimalPath,
-    Lasso.positiveZDownward, Lasso.suboptimalityGap}
+    Lasso.positiveZDownward, Lasso.positiveZUpward,
+    Lasso.deltaVanishingTerm, Lasso.deltaFullError,
+    Lasso.suboptimalityGap}
 Let $z(\mu)=\mu x(\mu)$ be a selected positive-lasso path.
 The downward-variation functional is
 \[
   z^\downarrow(s)
     = \sum_i\int_0^s (1+u)\left(\frac{d}{du}z_i(u)\right)_-\,du.
+\]
+The proof of Eq. (4.15) also uses the upward variation
+\[
+  z^\uparrow(s)
+    =
+    \sum_i\int_0^s
+      \left(\frac{d}{du}z_i(u)\right)_+\,du
+\]
+and the finite-\(\varepsilon\) error profile
+\[
+  \frac{s+z^\uparrow(s)}{\log(1/\varepsilon)}+z^\downarrow(s).
 \]
 The error profile is
 \[
@@ -335,10 +441,37 @@ The error profile is
 \]
 \end{definition}
 
-\begin{lemma}[Delta estimate]\label{lem:positiveDeltaEstimate}
-  \uses{prop:posTrajectoryBound, lem:parametricDualRegular,
+\begin{lemma}[Integrated mirror equation]\label{lem:positiveIntegratedMirrorEquation}
+  \uses{lem:posMirrorFlow, def:lassoRescaledTime}
+  \lean{Lasso.positive_integrated_mirror_equation}
+In rescaled time, the positive DLN mirror variable satisfies
+\[
+  w^\varepsilon(s)
+  =
+  w^\varepsilon(0)-sr+M z^\varepsilon(s)+s\lambda\mathbf{1}.
+\]
+This is Eq. (4.13) of \texttt{docs/Lasso.md}.
+\end{lemma}
+
+\begin{lemma}[Delta differential inequality]\label{lem:positiveDeltaDifferential}
+  \uses{lem:positiveIntegratedMirrorEquation, prop:posTrajectoryBound,
     def:positivePathQuantities}
-  \lean{Lasso.positive_path_delta_bound}
+  \lean{Lasso.positive_delta_differential_inequality}
+The derivative of
+\[
+  \Delta^\varepsilon(s)
+  =
+  \frac12\|z^\varepsilon(s)-z(s)\|_M^2
+\]
+is bounded by the complementarity defects and the upward/downward variation
+terms displayed in Eq. (4.14) of \texttt{docs/Lasso.md}.
+\end{lemma}
+
+\begin{lemma}[Delta estimate]\label{lem:positiveDeltaEstimate}
+  \uses{lem:positiveDeltaDifferential, lem:parametricDualRegular,
+    def:positivePathQuantities}
+  \lean{Lasso.positive_path_delta_bound_full,
+    Lasso.positive_path_delta_bound}
 The integrated DLN path and the parametric positive-lasso path satisfy the
 estimate corresponding to Eq. (4.15):
 \[
@@ -347,10 +480,29 @@ estimate corresponding to Eq. (4.15):
     \frac{s+z^\uparrow(s)}{\log(1/\varepsilon)}
       + z^\downarrow(s).
 \]
+The formalization keeps both the full finite-\(\varepsilon\) estimate and the
+coarser eventual estimate obtained after absorbing the vanishing term into an
+arbitrary \(\delta>0\).
+\end{lemma}
+
+\begin{lemma}[Energy differential inequality]\label{lem:positiveEnergyDifferential}
+  \uses{lem:positiveDeltaEstimate, lem:parametricDualRegular}
+  \lean{Lasso.positive_energy_differential_inequality}
+Let
+\[
+  E^\varepsilon(s)
+  =
+  \langle w(s),z^\varepsilon(s)-z(s)\rangle
+  +
+  \Delta^\varepsilon(s).
+\]
+The derivative of \(E^\varepsilon(s)/(1+s\lambda)\) is controlled by the
+\(M^\dagger\)-seminorm dual regularity and the same complementarity-defect
+terms used in the delta estimate.
 \end{lemma}
 
 \begin{lemma}[Energy estimate]\label{lem:positiveEnergyEstimate}
-  \uses{lem:positiveDeltaEstimate, def:positivePathQuantities}
+  \uses{lem:positiveEnergyDifferential, def:positivePathQuantities}
   \lean{Lasso.positive_path_energy_bound}
 The delta estimate implies the positive-lasso objective suboptimality bound.
 This is the quantitative core of Theorem~\ref{thm:posLassoConnectionApprox}.
@@ -410,20 +562,95 @@ $\iota\oplus\iota$ by
 \]
 \end{definition}
 
-\begin{proposition}[Objective reduction]\label{prop:lassoObjectiveReduction}
+\begin{definition}[Signed split API]\label{def:signedSplitAPI}
   \uses{def:augmentedSystem, def:lassoObjectives}
+  \lean{Lasso.coordinatePositivePart, Lasso.coordinateNegativePart,
+    Lasso.signedCanonicalSplit, Lasso.splitDifference,
+    Lasso.SplitComplementary}
+The formal signed-to-positive reduction uses the canonical split
+\[
+  x \mapsto (x_+,x_-)
+\]
+and the difference map
+\[
+  (y^{\mathrm{pos}},y^{\mathrm{neg}})
+  \mapsto y^{\mathrm{pos}}-y^{\mathrm{neg}}.
+\]
+The predicate \texttt{SplitComplementary} states coordinatewise
+\(y_i^{\mathrm{pos}}y_i^{\mathrm{neg}}=0\).
+\end{definition}
+
+\begin{proposition}[Objective reduction, inequality]\label{prop:lassoSplitObjectiveLe}
+  \uses{def:signedSplitAPI}
+  \lean{Lasso.lasso_split_objective_le}
+For every nonnegative split \(y=(y^{\mathrm{pos}},y^{\mathrm{neg}})\),
+\[
+  \operatorname{Lasso}(y^{\mathrm{pos}}-y^{\mathrm{neg}},\mu)
+  \le
+  \widetilde{\operatorname{Lasso}}(y,\mu).
+\]
+This is Lemma 5.1(1), inequality part.
+\end{proposition}
+
+\begin{proposition}[Objective reduction, equality criterion]\label{prop:lassoSplitObjectiveEq}
+  \uses{prop:lassoSplitObjectiveLe}
+  \lean{Lasso.lasso_split_objective_eq_iff_complementary}
+If the lasso penalty coefficient is positive, equality in
+Proposition~\ref{prop:lassoSplitObjectiveLe} holds if and only if the split is
+coordinatewise complementary.
+This is Lemma 5.1(1), equality part.
+\end{proposition}
+
+\begin{proposition}[Canonical objective equality]\label{prop:lassoObjectiveReduction}
+  \uses{def:signedSplitAPI}
   \lean{Lasso.lasso_objective_reduction}
-For each signed vector $x$, the decomposition $x=x_+-x_-$ embeds the signed
-lasso objective into the positive lasso objective for
-$(\widetilde M,\widetilde r)$.
+For each signed vector \(x\), the canonical split \(x=(x_+)-x_-\) is
+nonnegative and satisfies
+\[
+  \operatorname{Lasso}(x,\mu)
+  =
+  \widetilde{\operatorname{Lasso}}((x_+,x_-),\mu).
+\]
+\end{proposition}
+
+\begin{proposition}[Minimizer transfer]\label{prop:lassoMinimizerTransfer}
+  \uses{prop:lassoObjectiveReduction, prop:lassoSplitObjectiveLe}
+  \lean{Lasso.lasso_minimizer_to_augmented_positive_minimizer}
+If \(x\) minimizes the signed lasso problem, then \((x_+,x_-)\) minimizes the
+augmented positive-lasso problem.
+This is Lemma 5.1(2).
+\end{proposition}
+
+\begin{proposition}[Minimum value equality]\label{prop:lassoMinimumEquality}
+  \uses{prop:lassoMinimizerTransfer}
+  \lean{Lasso.lasso_min_eq_augmented_pos_lasso_min}
+The signed lasso minimum equals the augmented positive-lasso minimum:
+\[
+  \operatorname{Lasso}_*(\mu)
+  =
+  \widetilde{\operatorname{PosLasso}}_*(\mu).
+\]
+This is Lemma 5.1(3).
 \end{proposition}
 
 \begin{proposition}[Dynamics reduction]\label{prop:dlnDynamicsReduction}
   \uses{def:augmentedSystem, def:lassoGradientFlows}
-  \lean{Lasso.dln_dynamics_reduction}
+  \lean{Lasso.signedToPositiveInitialization,
+    Lasso.signedToPositiveWeights,
+    Lasso.signed_effective_eq_split_positive_effective,
+    Lasso.signed_average_eq_split_positive_average,
+    Lasso.dln_dynamics_reduction,
+    Lasso.signed_initialization_nondegenerate_iff}
 With $p^{\mathrm{pos}}=(u+v)/2$ and $p^{\mathrm{neg}}=(u-v)/2$, the signed
 $u\circ v$ dynamics reduce to positive $p\circ p$ dynamics on the augmented
 system.
+The formal API includes:
+\[
+  u\circ v=(p^{\mathrm{pos}})^2-(p^{\mathrm{neg}})^2,
+\]
+the corresponding averaged-trajectory identity, the exact time change
+\(\widetilde t=t/2\), and the equivalence between
+\(\beta_i\ne\gamma_i,\beta_i\ne-\gamma_i\) and nonzero augmented coordinates.
 \end{proposition}
 
 \begin{definition}[Signed downward variation]\label{def:signedZDownward}
@@ -464,17 +691,37 @@ The intended formalization order is:
 \begin{enumerate}
   \item Discharge the coordinate API and objective identities in
     Section~\ref{def:lassoObjectives}.
-  \item Prove the effective-parameter ODE and mirror-flow equation.
-  \item Prove energy monotonicity and the uniform trajectory bound.
+  \item Prove the effective-parameter ODE and mirror-flow equation using the
+    existing \texttt{ConvexOpt.VaryingGFTrajectory} infrastructure.
+  \item Prove energy monotonicity, Lemma~\ref{lem:posMatVecBound},
+    Lemma~\ref{lem:bregmanProjection}, Lemma~\ref{lem:bregmanFiberBound}, and
+    then Proposition~\ref{prop:posTrajectoryBound}.
   \item Formalize conic Caratheodory and the nonnegative solution norm bound.
-  \item Prove the positive-lasso KKT/LCP equivalence and dual uniqueness.
-  \item Prove parametric LCP regularity.
-  \item Prove the delta and energy estimates.
-  \item Deduce the positive exact/approximate theorems.
-  \item Formalize the signed-to-positive reductions and derive the signed
-    theorems.
+  \item Prove the positive-lasso KKT/LCP equivalence, existence, and dual
+    uniqueness.
+  \item Prove parametric LCP regularity with the explicit \(M^\dagger\)-seminorm
+    parameter.
+  \item Prove the Section~4.6 chain in order:
+    Lemma~\ref{lem:positiveIntegratedMirrorEquation},
+    Lemma~\ref{lem:positiveDeltaDifferential},
+    Lemma~\ref{lem:positiveDeltaEstimate},
+    Lemma~\ref{lem:positiveEnergyDifferential}, and
+    Lemma~\ref{lem:positiveEnergyEstimate}.
+  \item Deduce the positive approximate theorem first, then derive compact
+    regularity from monotonicity, then prove the positive monotone theorem.
+    The monotone theorem must not assume an extra regularity hypothesis.
+  \item Formalize the Section~5 objective reductions:
+    Proposition~\ref{prop:lassoSplitObjectiveLe},
+    Proposition~\ref{prop:lassoSplitObjectiveEq},
+    Proposition~\ref{prop:lassoObjectiveReduction},
+    Proposition~\ref{prop:lassoMinimizerTransfer}, and
+    Proposition~\ref{prop:lassoMinimumEquality}.
+  \item Formalize the dynamics reduction,
+    Proposition~\ref{prop:dlnDynamicsReduction}.
+  \item Derive the signed approximate and signed monotone theorems only after
+    the objective and dynamics reductions are available in the file.
 \end{enumerate}
 
-All theorem statements with remaining \texttt{sorry}s in the Lean files cite
-their informal proof location in \texttt{docs/Lasso.md}; those citations should
-be preserved until the corresponding proof is fully formalized.
+All theorem statements with remaining \texttt{sorry}s in the Lean files must
+cite their informal proof location in \texttt{docs/Lasso.md}; those citations
+should be preserved until the corresponding proof is fully formalized.

@@ -107,6 +107,25 @@ theorem tiltedLoss_antitone_along_pos_flow
   sorry
 
 /--
+Lemma 4.3 from `docs/Lasso.md`: in the non-coercive case, energy decrease still
+controls the image `M xᵋ(t)`.
+
+Informal proof reference: Section 4.3, Lemma 4.3.  Let `x_*` be the minimum-norm
+minimizer of `ell`.  Since `r ∈ Span M`, the quadratic loss is bounded below
+and `‖M x‖²` is controlled by `‖M^(1/2)(x-x_*)‖²`, hence by the tilted loss
+bound from Lemma 4.2.
+-/
+theorem pos_trajectory_matVec_uniform_bound
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (α : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r 0) (hα : NonzeroCoordinates α)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r 0 ε α (u ε)) :
+    ∃ C : ℝ, 0 < C ∧
+      ∀ ε : ℝ, 0 < ε → ε ≤ 1 → ∀ t : ℝ,
+        ‖matVec M (posEffectiveParameter (u ε) t)‖ ≤ C := by
+  sorry
+
+/--
 The Bregman divergence associated with the entropy mirror map is nonnegative.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.2 after Eq. (4.2).
@@ -132,9 +151,39 @@ theorem bregman_projection_characterization
     (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hu : posDlnGradientFlow M r lambda ε α u) (t : ℝ) :
     IsMinOn
-      (fun x => entropyBregman x (posEffectiveParameter u 0))
-      {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
-      (posEffectiveParameter u t) := by
+        (fun x => entropyBregman x (posEffectiveParameter u 0))
+        {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
+        (posEffectiveParameter u t) ∧
+      ∀ y : EuclideanSpace ℝ ι,
+        IsMinOn
+          (fun x => entropyBregman x (posEffectiveParameter u 0))
+          {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
+          y →
+        y = posEffectiveParameter u t := by
+  sorry
+
+/--
+Lemma 4.5 from `docs/Lasso.md`: Bregman projections on nonnegative affine
+fibers have a norm bound polynomial in the fiber value.
+
+Informal proof reference: Section 4.3, Lemma 4.5.  Compare the entropy
+Bregman objective at its minimizer with a minimum-norm feasible nonnegative
+solution supplied by Lemma 4.7.  The coordinate expression for the Bregman
+divergence is sandwiched between a linear lower bound and a quadratic upper
+bound in `‖x‖`, uniformly for small `ε`.
+-/
+theorem bregman_projection_fiber_norm_bound
+    (M : Matrix ι ι ℝ) (α : EuclideanSpace ℝ ι) (hα : NonzeroCoordinates α) :
+    ∃ C ε₀ : ℝ, 0 < C ∧ 0 < ε₀ ∧
+      ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ →
+        ∀ y : EuclideanSpace ℝ ι,
+          (∃ u : EuclideanSpace ℝ ι, Nonnegative u ∧ matVec M u = y) →
+          ∀ x : EuclideanSpace ℝ ι,
+            IsMinOn
+              (fun z => entropyBregman z (ε • coordinateSquare α))
+              {z | Nonnegative z ∧ matVec M z = y}
+              x →
+            ‖x‖ ≤ C * (1 + ‖y‖ ^ 2) := by
   sorry
 
 /--

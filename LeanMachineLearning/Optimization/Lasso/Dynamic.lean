@@ -18,6 +18,7 @@ namespace Lasso
 
 open ConvexOpt
 variable {ι : Type*} [Fintype ι]
+set_option linter.unusedFintypeInType false
 
 /-- The vector field for the gradient flow of `u` and `v`. 
 The state is `WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)`. -/
@@ -109,16 +110,28 @@ noncomputable def posRescaledMirrorVariable
   euclideanOf (fun i =>
     - Real.log (posEffectiveParameter u (posTimeFromRescaled ε s) i) / Real.log (1 / ε))
 
-/-- The positive integrated trajectory in rescaled time. -/
+/--
+The positive integrated trajectory in rescaled time.
+
+In the notation of `docs/Lasso.md`, this is
+`zᵋ(s) = ∫₀ˢ xᵋ(u) du`, where `u` is the rescaled time.  Since
+`t = (s / 4) * log (1 / ε)`, this equals
+`(4 / log (1 / ε)) • ∫₀ᵗ xᵋ(τ) dτ` in original time.
+-/
 noncomputable def posIntegratedTrajectoryRescaled
     (ε : ℝ) (u : ℝ → EuclideanSpace ℝ ι) (s : ℝ) : EuclideanSpace ℝ ι :=
-  posIntegratedTrajectory u (posTimeFromRescaled ε s)
+  (4 / Real.log (1 / ε)) • posIntegratedTrajectory u (posTimeFromRescaled ε s)
 
-/-- The `u ∘ v` integrated trajectory in rescaled time. -/
+/--
+The `u ∘ v` integrated trajectory in rescaled time.
+
+For the signed model, `t = (s / 2) * log (1 / ε)`, so rescaled integration
+introduces the factor `2 / log (1 / ε)`.
+-/
 noncomputable def integratedTrajectoryRescaled
     (ε : ℝ) (w : ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) (s : ℝ) :
     EuclideanSpace ℝ ι :=
-  integratedTrajectory w (timeFromRescaled ε s)
+  (2 / Real.log (1 / ε)) • integratedTrajectory w (timeFromRescaled ε s)
 
 /-- Small-initialization assumptions for the positive `u ∘ u` dynamics. -/
 structure PositiveInitialization (ε : ℝ) (α : EuclideanSpace ℝ ι) : Prop where
@@ -147,5 +160,42 @@ lemma posRescaledTime_posTimeFromRescaled (ε s : ℝ)
     posRescaledTime ε (posTimeFromRescaled ε s) = s := by
   dsimp [posRescaledTime, posTimeFromRescaled]
   field_simp [hlog]
+
+/--
+Original-time and positive rescaled-time stopping rules are compatible under the
+signed-to-positive reduction of Section 5.1.2: the positive stopping time is
+half of the signed stopping time.
+-/
+lemma posTimeFromRescaled_eq_half_timeFromRescaled (ε s : ℝ) :
+    posTimeFromRescaled ε s = (1 / 2 : ℝ) * timeFromRescaled ε s := by
+  dsimp [posTimeFromRescaled, timeFromRescaled]
+  ring
+
+/--
+The rescaled positive integrated trajectory is `s` times the original-time
+average at the matching positive stopping time.
+
+Informal proof reference: `docs/Lasso.md`, Section 4.6, where
+`zᵋ(s)=s \bar xᵋ(s)=∫₀ˢ xᵋ(u)du`.
+-/
+lemma posIntegratedTrajectoryRescaled_eq_smul_average
+    (ε s : ℝ) (hlog : Real.log (1 / ε) ≠ 0)
+    (u : ℝ → EuclideanSpace ℝ ι) :
+    posIntegratedTrajectoryRescaled ε u s =
+      s • posAverageTrajectory u (posTimeFromRescaled ε s) := by
+  sorry
+
+/--
+The rescaled signed integrated trajectory is `s` times the original-time average
+at the matching signed stopping time.
+
+Informal proof reference: `docs/Lasso.md`, Sections 2 and 5.2.
+-/
+lemma integratedTrajectoryRescaled_eq_smul_average
+    (ε s : ℝ) (hlog : Real.log (1 / ε) ≠ 0)
+    (w : ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) :
+    integratedTrajectoryRescaled ε w s =
+      s • averageTrajectory w (timeFromRescaled ε s) := by
+  sorry
 
 end Lasso
