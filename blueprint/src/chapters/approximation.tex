@@ -106,8 +106,18 @@ The \emph{step-function approximant} is
 \]
 \end{definition}
 
+\begin{lemma}[Step approximant constancy]\label{lem:stepApproxCollapse}
+  \lean{Approximation.Univariate.stepApprox_collapse}
+The step approximant $f_\epsilon(x)$ is constant on any interval $[b_k, x]$ containing no breakpoints in its interior.
+\end{lemma}
+
+\begin{lemma}[Local Lipschitz bounds]\label{lem:absGBreakpointSubLe}
+  \lean{Approximation.Univariate.abs_g_breakpoint_sub_le}
+For a $\rho$-Lipschitz function $g$, the difference $|g(x) - g(b_k)|$ is bounded by $\rho |x - b_k|$ across the interpolation intervals.
+\end{lemma}
+
 \begin{proposition}[Univariate folklore approximation]\label{prop:univariateFolklore}
-  \uses{def:lipschitz, def:stepApprox, def:thresholdActivation, def:oneHiddenLayerClass}
+  \uses{def:lipschitz, def:stepApprox, def:thresholdActivation, def:oneHiddenLayerClass, lem:stepApproxCollapse, lem:absGBreakpointSubLe}
   \lean{Approximation.Univariate.stepApprox_error}
 Suppose $g : \mathbb{R} \to \mathbb{R}$ is $\rho$-Lipschitz.
 For any $\epsilon > 0$, the step-function approximant $f_\epsilon$ belongs to $\mathcal{F}_{\sigma_\theta, 1, \lceil \rho/\epsilon \rceil}$ and satisfies
@@ -185,8 +195,13 @@ and define the \emph{rectangle indicator network} as
 \]
 \end{definition}
 
+\begin{lemma}[Soft step properties]\label{lem:softStepProps}
+  \lean{Approximation.Multivariate.softStep_eq_one, Approximation.Multivariate.softStep_eq_zero, Approximation.Multivariate.softStep_le_one}
+The soft step function $g_{\gamma,j}(z)$ acts as a relaxed indicator: it equals $1$ exactly on $[a_j, b_j]$, equals $0$ outside $[a_j - \gamma, b_j + \gamma]$, and is globally bounded between $0$ and $1$.
+\end{lemma}
+
 \begin{lemma}[Rectangle indicator approximation]\label{lem:rectIndicator}
-  \uses{def:rectIndicatorNet, def:twoHiddenLayerClass}
+  \uses{def:rectIndicatorNet, def:twoHiddenLayerClass, lem:softStepProps}
   \lean{Approximation.Multivariate.rectIndicatorNet_one, Approximation.Multivariate.rectIndicatorNet_zero, Approximation.Multivariate.rectIndicatorNet_nonneg, Approximation.Multivariate.rectIndicatorNet_le_one, Approximation.Multivariate.rectIndicatorNet_L1_error}
 For rectangle $R \subseteq \mathbb{R}^d$, the network $g_\gamma$ lies in $\mathcal{G}_{\sigma_\mathrm{ReLU},d,\mathcal{O}(d),1}$ (two hidden layers with $\mathcal{O}(d)$ nodes in the first layer) and satisfies:
 \begin{enumerate}
@@ -291,33 +306,41 @@ A function class $\mathcal{F}$ is a \emph{universal approximator over compact se
 \]
 \end{definition}
 
+\begin{lemma}[Cosine class separates points]\label{lem:cosSeparatesPoints}
+  \lean{Approximation.Universal.cos_separates_points, Approximation.Universal.cos_nonvanishing, Approximation.Universal.cos_one_mem}
+The cosine class $\mathcal{F}_{\cos,d}$ contains the constant $1$, is nowhere vanishing, and strongly separates points: for any $x \ne x'$, there exists $f \in \mathcal{F}_{\cos,d}$ such that $f(x) \ne f(x')$.
+\end{lemma}
+
 \begin{lemma}[Cosine class is universal]\label{lem:cosUniversal}
-  \uses{def:oneHiddenLayerClass, def:cosActivation, def:universalApprox, lem:cosClosedMult, thm:stoneWeierstrass}
+  \uses{def:oneHiddenLayerClass, def:cosActivation, def:universalApprox, lem:cosClosedMult, thm:stoneWeierstrass, lem:cosSeparatesPoints}
   \lean{Approximation.Universal.cos_isUniversal}
 $\mathcal{F}_{\cos,d}$ is a universal approximator over compact sets.
 \end{lemma}
 
 \begin{proof}
-  \uses{lem:cosClosedMult, thm:stoneWeierstrass}
+  \uses{lem:cosClosedMult, thm:stoneWeierstrass, lem:cosSeparatesPoints}
   We verify the Stone-Weierstrass conditions for $\mathcal{F}_{\cos,d}$ restricted to any compact $S$:
   \begin{enumerate}
     \item Each $f \in \mathcal{F}_{\cos,d}$ is continuous (finite sum of continuous functions).
-    \item For each $x$, the constant function $\cos(0^\top x) = 1 \ne 0$ lies in $\mathcal{F}_{\cos,d}$.
-    \item For each $x \ne x'$, the function $f(z) = \cos((z - x')^\top(x - x') / \|x - x'\|^2)$ satisfies $f(x) = \cos(1) \ne \cos(0) = f(x')$.
+    \item By Lemma~\ref{lem:cosSeparatesPoints}, the class separates points and contains the non-vanishing constant 1.
     \item $\mathcal{F}_{\cos,d}$ is a vector space and closed under products by Lemma~\ref{lem:cosClosedMult}.
   \end{enumerate}
 \end{proof}
 
+\begin{lemma}[Exponential class separates points]\label{lem:expSeparatesPoints}
+  \lean{Approximation.Universal.exp_separates_points, Approximation.Universal.exp_one_mem}
+Similarly, the exponential class $\mathcal{F}_{\exp,d}$ contains the constant $1$ and strongly separates points.
+\end{lemma}
+
 \begin{lemma}[Exponential class is universal]\label{lem:expUniversal}
-  \uses{def:oneHiddenLayerClass, def:universalApprox, lem:expClosedMult, thm:stoneWeierstrass}
+  \uses{def:oneHiddenLayerClass, def:universalApprox, lem:expClosedMult, thm:stoneWeierstrass, lem:expSeparatesPoints}
   \lean{Approximation.Universal.exp_isUniversal}
 $\mathcal{F}_{\exp,d}$ is a universal approximator over compact sets.
 \end{lemma}
 
 \begin{proof}
-  \uses{lem:expClosedMult, thm:stoneWeierstrass}
-  Analogous: $\exp(0^\top x) = 1$, and for $x \ne x'$, $\exp((x-x')^\top(x-x')/\|x-x'\|^2)$ separates them.
-  Closure under products follows from Lemma~\ref{lem:expClosedMult}.
+  \uses{lem:expClosedMult, thm:stoneWeierstrass, lem:expSeparatesPoints}
+  Analogous to the cosine case: closure under products follows from Lemma~\ref{lem:expClosedMult} and separation properties from Lemma~\ref{lem:expSeparatesPoints}.
 \end{proof}
 
 \begin{theorem}[Universal approximation for sigmoidal activations]\label{thm:universalSigmoidal}
@@ -348,3 +371,65 @@ In particular, the function $z \mapsto \sigma_\mathrm{ReLU}(z) - \sigma_\mathrm{
   The function $\sigma(z) := \sigma_\mathrm{ReLU}(z) - \sigma_\mathrm{ReLU}(z-1)$ satisfies the sigmoidal limits after scaling: $\sigma_\mathrm{ReLU}(cz) - \sigma_\mathrm{ReLU}(cz - c)$ converges to $\mathbf{1}[z \ge 0]$.
   Split each node and apply Theorem~\ref{thm:universalSigmoidal}.
 \end{proof}
+
+\begin{corollary}[Cybenko duality]\label{cor:cybenkoDuality}
+  \uses{def:sigmoidalActivation}
+  \lean{Approximation.Universal.cybenko_duality}
+A continuous activation function $\sigma$ is universal if and only if the only signed Radon measure $\mu$ satisfying $\int \sigma(w^\top x + b) d\mu(x) = 0$ for all $w,b$ is the zero measure.
+\end{corollary}
+
+\begin{corollary}[Leshno's theorem]\label{cor:leshnoUniversal}
+  \lean{Approximation.Universal.leshno_isUniversal_iff_not_polynomial}
+A continuous activation function $\sigma$ is universal if and only if $\sigma$ is not a polynomial.
+\end{corollary}
+
+\section{Integral representations (Infinite-width limits)}\label{sec:infiniteWidth}
+
+\begin{theorem}[Univariate integral representation]\label{thm:univariateIntegralRep}
+  \lean{Approximation.InfiniteWidth.univariateIntegralRep}
+Any sufficiently smooth univariate function can be represented as an infinite-width limit (an integral) over a continuum of neurons. Specifically, there exists a signed measure $\nu$ on the parameter space such that
+\[
+  f(x) = \int_{\Omega} a(w,b) \sigma(w^\top x + b) \, d\nu(w,b)
+  \: .
+\]
+\end{theorem}
+
+\section{Maurey sampling}\label{sec:maureySampling}
+
+Maurey's empirical method shows that elements of the convex hull of a symmetric set can be efficiently approximated by finite sums.
+
+\begin{lemma}[Barycenter properties]\label{lem:barycenterProps}
+  \lean{Approximation.Sampling.sum_weight_inner_barycenter_sub_eq_zero, Approximation.Sampling.sum_weight_norm_sub_barycenter_sq}
+For a convex combination $X = \sum \alpha_i z_i$, the expected error of a single random sample matches the variance, leading to the fundamental identity bounding the squared norm of the difference.
+\end{lemma}
+
+\begin{theorem}[Maurey sampling bounds]\label{thm:maureySampling}
+  \lean{Approximation.Sampling.maureySampling, Approximation.Sampling.maureySamplingExistence}
+If a function $f$ lies in the convex hull of a symmetric dictionary $\mathcal{D}$ bounded by $C$, then for any $m \ge 1$, there exists a sparse approximation $f_m = \frac{1}{m} \sum_{i=1}^m g_i$ with $g_i \in \mathcal{D}$ such that
+\[
+  \|f - f_m\|^2 \le \frac{C^2 - \|f\|^2}{m}
+  \: .
+\]
+\end{theorem}
+
+\section{Barron's approximation theorem}\label{sec:barron}
+
+\begin{definition}[Barron class]\label{def:barronClass}
+  \lean{Approximation.BarronNorm.BarronClass}
+A function $f : \mathbb{R}^d \to \mathbb{R}$ belongs to the Barron class with constant $C$ if its Fourier transform $\hat{f}$ satisfies
+\[
+  \int_{\mathbb{R}^d} \|w\| |\hat{f}(w)| \, dw \le C
+  \: .
+\]
+\end{definition}
+
+\begin{theorem}[Barron's theorem]\label{thm:barronTheorem}
+  \uses{def:barronClass, thm:maureySampling}
+  \lean{Approximation.BarronNorm.barronTheorem}
+Let $f$ be a function in the Barron class with constant $C$. For any $m \ge 1$ and any compact domain $U$ contained in the ball of radius $r$, there exists a single-hidden-layer network $f_m \in \mathcal{F}_{\sigma, d, m}$ such that
+\[
+  \int_U (f(x) - f_m(x))^2 \, dx \le \frac{(2rC)^2}{m}
+  \: .
+\]
+Importantly, this rate $\mathcal{O}(1/m)$ is independent of the dimension $d$, overcoming the curse of dimensionality present in Theorem~\ref{thm:multivariateFolklore}.
+\end{theorem}
