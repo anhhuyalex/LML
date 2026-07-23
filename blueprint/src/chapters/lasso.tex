@@ -1,121 +1,480 @@
 \chapter{Diagonal Linear Networks and the Lasso Regularization Path}
 
-\section{Introduction}
+\section{Purpose and Scope}
 
-This chapter formalizes the connections between the training trajectory of diagonal linear networks (DLNs) and the lasso regularization path.
-The theoretical background relies on early stopping of gradient flows in neural networks to achieve a tradeoff between sparsity and data fitting.
-
-\section{The \texorpdfstring{$u \circ v$}{u o v} case}
-
-We start by defining the quadratic loss and the related lasso objective. 
-Let $M \in \mathbb{R}^{d \times d}$ be a positive semidefinite matrix, and let $r \in \mathbb{R}^d$.
-
-\begin{definition}[Quadratic Loss]\label{def:quadraticLoss}
-  \lean{Lasso.quadraticLoss}
-  The \emph{quadratic loss} function is defined as
-  \[
-    \ell(x) = \frac{1}{2} \langle x, M x \rangle - \langle r, x \rangle.
-  \]
-\end{definition}
-
-\begin{definition}[Lasso Objective]\label{def:lassoObjective}
-  \lean{Lasso.lassoObjective}
-  For a regularization parameter $\lambda \ge 0$ and an inverse implicit regularization parameter $\mu > 0$, the \emph{lasso objective} is defined as
-  \[
-    \operatorname{Lasso}(x, \mu) = \ell(x) + \left(\lambda + \frac{1}{\mu}\right) \|x\|_1.
-  \]
-\end{definition}
-
-\begin{definition}[DLN Objective]\label{def:dlnObjective}
-  \lean{Lasso.dlnObjective}
-  For weights $u, v \in \mathbb{R}^d$, the \emph{DLN objective} incorporates an explicit weight decay penalty parameterized by $\lambda \ge 0$:
-  \[
-    L(u, v) = \ell(u \circ v) + \frac{\lambda}{2} \left(\|u\|_2^2 + \|v\|_2^2\right).
-  \]
-\end{definition}
-
-\begin{definition}[DLN Gradient Flow]\label{def:dlnGradientFlow}
-  \lean{Lasso.dlnGradientFlow}
-  The gradient flow dynamics of the weights are given by the coupled system of ordinary differential equations
-  \[
-    \frac{\mathrm{d}u}{\mathrm{d}t} = - \nabla_u L(u, v), \qquad \frac{\mathrm{d}v}{\mathrm{d}t} = - \nabla_v L(u, v),
-  \]
-  with initializations $u(0) = \sqrt{\varepsilon}\beta$ and $v(0) = \sqrt{\varepsilon}\gamma$.
-\end{definition}
-
-\begin{definition}[Average Trajectory]\label{def:averageTrajectory}
-  \lean{Lasso.averageTrajectory}
-  Let $x^{\varepsilon}(t) = u(t) \circ v(t)$ be the effective linear parameter under the gradient flow. Its time average is
-  \[
-    \bar{x}^{\varepsilon}(t) = \frac{1}{t} \int_0^t x^{\varepsilon}(t') \, \mathrm{d}t'.
-  \]
-\end{definition}
-
-\begin{theorem}[Exact Connection to the Lasso]\label{thm:lassoConnectionMonotone}
-  \uses{def:lassoObjective, def:dlnGradientFlow, def:averageTrajectory}
-  \lean{Lasso.lasso_connection_monotone}
-  Assume that the mapping $\mu \mapsto \mu x(\mu)$ is monotonically non-decreasing coordinate-wise. Then for any $s > 0$, as $\varepsilon \to 0$ and tracking the rescaled time $t(s, \varepsilon) = \frac{s}{2} \log(1/\varepsilon)$,
-  \[
-    \lim_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) = \min_{x \in \mathbb{R}^d} \operatorname{Lasso}(x, s).
-  \]
-\end{theorem}
-
-\begin{theorem}[Approximate Connection to the Lasso]\label{thm:lassoConnectionApprox}
-  \uses{def:lassoObjective, def:dlnGradientFlow, def:averageTrajectory}
-  \lean{Lasso.lasso_connection_approx}
-  Without the monotonicity assumption, there exists a constant $C > 0$ such that for any $s > 0$,
-  \[
-    \limsup_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) \le \min_{x \in \mathbb{R}^d} \operatorname{Lasso}(x, s) + C \eta(\lambda, s, z^{\downarrow}(s)),
-  \]
-  where $z^{\downarrow}(s)$ measures the deviation from monotonicity of $z(\mu) = \mu x(\mu)$.
-\end{theorem}
-
-\section{The \texorpdfstring{$u \circ u$}{u o u} case (Positive Lasso)}
-
-We now outline the $u \circ u$ case, which is algebraically simpler and serves as the structural foundation for the $u \circ v$ proofs.
-
-\begin{definition}[Positive DLN Objective]\label{def:posDlnObjective}
-  \lean{Lasso.posDlnObjective}
-  For a weight vector $u \in \mathbb{R}^d$, the positive DLN objective is:
-  \[
-    L(u) = \ell(u \circ u) + \lambda \|u\|_2^2.
-  \]
-\end{definition}
-
-\begin{definition}[Positive DLN Gradient Flow]\label{def:posDlnGradientFlow}
-  \lean{Lasso.posDlnGradientFlow}
-  The gradient flow dynamics of the weight $u$ is given by
-  \[
-    \frac{\mathrm{d}u}{\mathrm{d}t} = - \nabla L(u),
-  \]
-  with initialization $u(0) = \sqrt{\varepsilon}\beta$.
-\end{definition}
-
-For this case, the rescaled time is defined as $s = \frac{4}{\log(1/\varepsilon)} t$.
-
-\begin{theorem}[Exact Connection to the Positive Lasso]\label{thm:posLassoConnectionMonotone}
-  \uses{def:lassoObjective, def:posDlnGradientFlow}
-  \lean{Lasso.pos_lasso_connection_monotone}
-  Assume that the mapping $\mu \mapsto \mu x(\mu)$ is monotonically non-decreasing. Then for all $s > 0$,
-  \[
-    \lim_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) = \min_{x \ge 0} \operatorname{Lasso}(x, s).
-  \]
-\end{theorem}
-
-\begin{theorem}[Approximate Connection to the Positive Lasso]\label{thm:posLassoConnectionApprox}
-  \uses{def:lassoObjective, def:posDlnGradientFlow}
-  \lean{Lasso.pos_lasso_connection_approx}
-  Without the monotonicity assumption, there exists a constant $C > 0$ such that for any $s > 0$,
-  \[
-    \limsup_{\varepsilon \to 0} \operatorname{Lasso}(\bar{x}^{\varepsilon}(s), s) \le \min_{x \ge 0} \operatorname{Lasso}(x, s) + C \eta(\lambda, s, z^{\downarrow}(s)).
-  \]
-\end{theorem}
-
-\subsection{Proof Strategy: Mirror Flow and LCPs}
-
-The proofs of these theorems rely on connecting the DLN dynamics to the positive lasso through two intermediate structures:
+This chapter is the blueprint for formalizing the results of
+\texttt{docs/Lasso.md}, Chapters 1--4.
+The mathematical goal is to connect early-stopped diagonal linear network
+gradient flow to the lasso regularization path.
+The library goal is to build reusable API for:
 \begin{enumerate}
-    \item \textbf{Mirror Flow:} The gradient flow can be interpreted as a mirror flow with an entropy potential function, naturally enforcing the positivity constraint.
-    \item \textbf{Linear Complementarity Problems (LCPs):} The positive lasso regularization path translates into a parametric LCP, bridging the gap between the primal-dual formulations.
+  \item quadratic lasso objectives and standing problem assumptions,
+  \item diagonal linear network gradient-flow trajectories,
+  \item entropy mirror flow and Bregman projections,
+  \item positive-lasso linear complementarity problems,
+  \item parametric LCP regularity,
+  \item the exact and approximate lasso connection theorems.
 \end{enumerate}
-By establishing these connections, Theorem \ref{thm:lassoConnectionMonotone} and \ref{thm:lassoConnectionApprox} (the $u \circ v$ case) follow as corollaries via the structural reduction $p^{\text{pos}} = (u+v)/2$ and $p^{\text{neg}} = (u-v)/2$.
+
+The positive case $x = u \circ u$ is the core formalization target.
+The signed case $x = u \circ v$ should be obtained by the standard
+dimension-doubling reduction.
+
+\section{Basic Objects}
+
+\begin{definition}[Euclidean coordinate API]\label{def:lassoEuclideanAPI}
+  \lean{Lasso.euclideanOf, Lasso.ones, Lasso.Nonnegative, Lasso.Positive,
+    Lasso.NonzeroCoordinates, Lasso.hadamard, Lasso.coordinateSquare,
+    Lasso.matVec}
+The Lasso files use \texttt{EuclideanSpace} as the canonical finite-dimensional
+real Hilbert space.
+The helper \texttt{euclideanOf} casts coordinate functions into this model.
+The predicates \texttt{Nonnegative}, \texttt{Positive}, and
+\texttt{NonzeroCoordinates} state coordinatewise sign and nondegeneracy
+conditions.
+\end{definition}
+
+\begin{definition}[Standing problem assumptions]\label{def:lassoProblemData}
+  \lean{Lasso.IsPositiveSemidefinite, Lasso.InMatrixSpan, Lasso.ProblemData}
+Let $M \in \mathbb{R}^{d \times d}$, $r \in \mathbb{R}^d$, and
+$\lambda \in \mathbb{R}$.
+The bundled assumption \texttt{ProblemData M r lambda} means:
+\[
+  \langle x, Mx\rangle \ge 0 \quad \forall x,
+  \qquad
+  r \in \operatorname{Range}(M),
+  \qquad
+  \lambda \ge 0.
+\]
+This corresponds to the standing assumptions in Chapters 1--4.
+\end{definition}
+
+\begin{definition}[Quadratic and lasso objectives]\label{def:lassoObjectives}
+  \uses{def:lassoEuclideanAPI}
+  \lean{Lasso.quadraticLoss, Lasso.lassoObjective,
+    Lasso.positiveLassoObjective, Lasso.tiltedLoss}
+The quadratic loss is
+\[
+  \ell(x) = \frac12 \langle x, Mx\rangle - \langle r, x\rangle.
+\]
+The lasso objective at inverse regularization parameter $\mu$ is
+\[
+  \operatorname{Lasso}(x,\mu)
+    = \ell(x) + \left(\lambda + \frac1\mu\right)\|x\|_1.
+\]
+The positive lasso uses the same objective but restricts to $x \ge 0$.
+The tilted loss used in Chapter 4 is
+\[
+  \widetilde L(x)=\ell(x)+\lambda\langle\mathbf{1},x\rangle.
+\]
+\end{definition}
+
+\begin{definition}[DLN objectives]\label{def:lassoDLNObjectives}
+  \uses{def:lassoObjectives}
+  \lean{Lasso.dlnObjective, Lasso.posDlnObjective}
+For the signed diagonal linear network,
+\[
+  L(u,v)=\ell(u\circ v)+\frac{\lambda}{2}(\|u\|^2+\|v\|^2).
+\]
+For the positive/tied model,
+\[
+  L(u)=\ell(u\circ u)+\lambda\|u\|^2.
+\]
+\end{definition}
+
+\begin{definition}[Lasso minimizer predicates]\label{def:lassoMinimizers}
+  \uses{def:lassoObjectives}
+  \lean{Lasso.IsLassoMinimizer, Lasso.IsPositiveLassoMinimizer}
+The predicates \texttt{IsLassoMinimizer} and
+\texttt{IsPositiveLassoMinimizer} record selected minimizers of the signed and
+positive lasso objectives.
+\end{definition}
+
+\section{Gradient-Flow Dynamics}
+
+\begin{definition}[Gradient-flow vector fields]\label{def:lassoGradientFlows}
+  \uses{def:lassoDLNObjectives}
+  \lean{Lasso.dlnVectorField, Lasso.dlnGradientFlow,
+    Lasso.posDlnVectorField, Lasso.posDlnGradientFlow}
+The signed and positive DLN dynamics are expressed using the LML predicate
+\texttt{ConvexOpt.VaryingGFTrajectory}.
+The initialization scales are
+\[
+  u^\varepsilon(0)=\sqrt{\varepsilon}\beta,\quad
+  v^\varepsilon(0)=\sqrt{\varepsilon}\gamma
+\]
+in the signed case and
+\[
+  u^\varepsilon(0)=\sqrt{\varepsilon}\alpha
+\]
+in the positive case.
+\end{definition}
+
+\begin{definition}[Effective and averaged trajectories]\label{def:lassoTrajectories}
+  \uses{def:lassoGradientFlows}
+  \lean{Lasso.effectiveParameter, Lasso.averageTrajectory,
+    Lasso.integratedTrajectory, Lasso.posEffectiveParameter,
+    Lasso.posAverageTrajectory, Lasso.posIntegratedTrajectory}
+The effective parameter is $x(t)=u(t)\circ v(t)$ in the signed case and
+$x(t)=u(t)^2$ in the positive case.
+The averaged trajectory is
+\[
+  \bar x(t)=\frac1t\int_0^t x(\tau)\,d\tau,
+\]
+and the integrated trajectory is
+\[
+  z(t)=\int_0^t x(\tau)\,d\tau.
+\]
+\end{definition}
+
+\begin{definition}[Rescaled time]\label{def:lassoRescaledTime}
+  \uses{def:lassoTrajectories}
+  \lean{Lasso.rescaledTime, Lasso.timeFromRescaled,
+    Lasso.posRescaledTime, Lasso.posTimeFromRescaled,
+    Lasso.rescaledTime_timeFromRescaled,
+    Lasso.posRescaledTime_posTimeFromRescaled}
+The signed case uses $s = 2t/\log(1/\varepsilon)$, while the positive case uses
+$s = 4t/\log(1/\varepsilon)$.
+The API includes algebraic inverse lemmas for these rescalings.
+\end{definition}
+
+\begin{definition}[Initialization assumptions]\label{def:lassoInitializations}
+  \uses{def:lassoEuclideanAPI}
+  \lean{Lasso.PositiveInitialization, Lasso.SignedInitialization}
+The positive case assumes all coordinates of the initialization vector are
+nonzero.
+The signed case assumes $\beta_i \ne \gamma_i$ and $\beta_i \ne -\gamma_i$ for
+all coordinates.
+\end{definition}
+
+\section{Entropy Mirror Flow}
+
+\begin{definition}[Entropy and Bregman divergence]\label{def:lassoEntropy}
+  \uses{def:lassoEuclideanAPI}
+  \lean{Lasso.entropyMirror, Lasso.entropyBregman,
+    Lasso.entropyMirrorGradient}
+The entropy mirror map is
+\[
+  h(x)=\frac14\sum_i(x_i\log x_i-x_i),
+  \qquad
+  \nabla h(x)=\frac14\log x.
+\]
+Its Bregman divergence is
+\[
+  D(x,y)=\frac14\sum_i\left(x_i\log\frac{x_i}{y_i}-x_i+y_i\right).
+\]
+\end{definition}
+
+\begin{lemma}[Effective-parameter ODE]\label{lem:posEffectiveODE}
+  \uses{def:lassoGradientFlows, def:lassoTrajectories}
+  \lean{Lasso.positiveEffectiveVectorField,
+    Lasso.pos_effective_parameter_hasDerivAt}
+The positive effective parameter satisfies
+\[
+  \dot x = -4 x \circ \nabla \ell(x) - 4\lambda x.
+\]
+\end{lemma}
+
+\begin{lemma}[Mirror-flow equation]\label{lem:posMirrorFlow}
+  \uses{def:lassoEntropy, lem:posEffectiveODE}
+  \lean{Lasso.IsEntropyMirrorFlow, Lasso.dln_is_mirror_flow,
+    Lasso.pos_dln_is_entropy_mirror_flow}
+The positive DLN dynamics can be written as
+\[
+  \frac{d}{dt}\nabla h(x^\varepsilon(t))
+    = -\nabla \widetilde L(x^\varepsilon(t)).
+\]
+\end{lemma}
+
+\begin{lemma}[Tilted loss decreases]\label{lem:tiltedLossDecrease}
+  \uses{lem:posEffectiveODE, def:lassoObjectives}
+  \lean{Lasso.tiltedLoss_antitone_along_pos_flow}
+Along the positive DLN effective trajectory,
+\[
+  \frac{d}{dt}\widetilde L(x^\varepsilon(t))
+    = -4\sum_i x_i^\varepsilon(t)
+        (\partial_i\widetilde L(x^\varepsilon(t)))^2 \le 0.
+\]
+\end{lemma}
+
+\begin{lemma}[Bregman divergence is nonnegative]\label{lem:entropyBregmanNonneg}
+  \uses{def:lassoEntropy}
+  \lean{Lasso.entropyBregman_nonnegative}
+For positive coordinate vectors $x,y$, $D(x,y)\ge 0$.
+\end{lemma}
+
+\begin{lemma}[Bregman projection characterization]\label{lem:bregmanProjection}
+  \uses{lem:posMirrorFlow, def:lassoEntropy}
+  \lean{Lasso.bregman_projection_characterization}
+For each time $t$, the trajectory point $x^\varepsilon(t)$ is the Bregman
+projection of the initialization onto the affine fiber
+\[
+  \{x\ge 0: Mx=Mx^\varepsilon(t)\}.
+\]
+\end{lemma}
+
+\begin{proposition}[Uniform trajectory bound]\label{prop:posTrajectoryBound}
+  \uses{lem:tiltedLossDecrease, lem:bregmanProjection}
+  \lean{Lasso.pos_trajectory_uniform_bound}
+There are $C>0$ and $\varepsilon_0>0$ such that for
+$0<\varepsilon\le \varepsilon_0$ and all $t$,
+\[
+  \|x^\varepsilon(t)\|\le C.
+\]
+The proof decomposes into Lemmas 4.2--4.5 of \texttt{docs/Lasso.md}: energy
+decrease, a bound on $Mx^\varepsilon(t)$, Bregman projection, and a conic
+Caratheodory/Bregman comparison.
+\end{proposition}
+
+\section{Linear Complementarity Problems}
+
+\begin{definition}[LCP data]\label{def:lassoLCP}
+  \uses{def:lassoObjectives}
+  \lean{Lasso.lcpQ, Lasso.parametricLcpQ, Lasso.isLCP,
+    Lasso.isParametricLCP}
+The positive lasso KKT conditions are the LCP
+\[
+  v = -r+\left(\lambda+\frac1\mu\right)\mathbf{1}+Mx,
+  \qquad
+  v\ge 0,\quad x\ge 0,\quad \langle v,x\rangle=0.
+\]
+After scaling $w=\mu v$ and $z=\mu x$, the parametric LCP is
+\[
+  w = -\mu r+(1+\mu\lambda)\mathbf{1}+Mz,
+  \qquad
+  w\ge 0,\quad z\ge 0,\quad \langle w,z\rangle=0.
+\]
+\end{definition}
+
+\begin{proposition}[Positive lasso iff LCP]\label{prop:posLassoIffLCP}
+  \uses{def:lassoLCP, def:lassoMinimizers}
+  \lean{Lasso.pos_lasso_is_lcp}
+A vector $x$ minimizes the positive lasso objective if and only if there is a
+dual vector $v$ such that $(v,x)$ solves the positive-lasso LCP.
+\end{proposition}
+
+\begin{lemma}[Small-parameter LCP solution]\label{lem:parametricSmallMu}
+  \uses{def:lassoLCP}
+  \lean{Lasso.parametric_lcp_unique_small_mu}
+For sufficiently small $\mu\ge 0$, the unique parametric LCP solution is
+\[
+  z(\mu)=0,\qquad w(\mu)=(1+\mu\lambda)\mathbf{1}-\mu r.
+\]
+\end{lemma}
+
+\begin{theorem}[Conic Caratheodory]\label{thm:conicCaratheodory}
+  \lean{Lasso.InCone, Lasso.conic_caratheodory}
+If $y$ belongs to the cone generated by a finite family of vectors, then $y$
+belongs to the cone generated by a linearly independent subfamily of cardinality
+at most the ambient dimension.
+\end{theorem}
+
+\begin{lemma}[Nonnegative solution norm bound]\label{lem:nonnegativeSolutionBound}
+  \uses{thm:conicCaratheodory}
+  \lean{Lasso.nonnegative_solution_norm_bound}
+If $y$ is in the cone generated by a finite family, then there is a nonnegative
+coefficient vector representing $y$ whose norm is bounded by $C\|y\|$ for a
+constant depending only on the family.
+\end{lemma}
+
+\begin{proposition}[LCP existence and dual uniqueness]\label{prop:lcpExistsUniqueDual}
+  \uses{prop:posLassoIffLCP, def:lassoProblemData}
+  \lean{Lasso.lcp_exists_unique_dual}
+For positive-lasso problem data and $\mu>0$, the LCP has a solution.
+Moreover, although the primal minimizer need not be unique, the dual variable is
+unique.
+\end{proposition}
+
+\begin{definition}[Parametric dual regularity]\label{def:parametricDualRegular}
+  \uses{def:lassoLCP}
+  \lean{Lasso.coordinateDeriv, Lasso.LocallyLipschitzOnCompacts,
+    Lasso.scaledDualPath, Lasso.ParametricLCPDualRegular}
+The regularity package records the conclusions of Lemma 4.11:
+local Lipschitz/absolute-continuity behavior of the dual path, the fact that the
+derivative of $w(\mu)/(1+\mu\lambda)$ lies in $\operatorname{Span}M$, and the
+corresponding derivative bound.
+\end{definition}
+
+\begin{lemma}[Parametric LCP dual regularity]\label{lem:parametricDualRegular}
+  \uses{def:parametricDualRegular, prop:lcpExistsUniqueDual}
+  \lean{Lasso.parametric_lcp_dual_regular}
+The unique dual solution of the parametric LCP satisfies the regularity package
+of Definition~\ref{def:parametricDualRegular}.
+\end{lemma}
+
+\begin{definition}[LCP with derivatives]\label{def:lcpWithDerivatives}
+  \uses{def:lassoLCP}
+  \lean{Lasso.isLCPWithDerivatives}
+The derivative LCP is the integrated-mirror-flow analogue:
+\[
+  w(s)=-sr+(1+s\lambda)\mathbf{1}+Mz(s),
+  \qquad
+  w(s)\ge 0,\quad \dot z(s)\ge 0,\quad
+  \langle w(s),\dot z(s)\rangle=0.
+\]
+\end{definition}
+
+\section{The Positive-Lasso Connection}
+
+\begin{definition}[Path quantities]\label{def:positivePathQuantities}
+  \uses{def:lassoTrajectories, def:lassoLCP}
+  \lean{Lasso.matrixSeminormSq, Lasso.pathDelta, Lasso.scaledPrimalPath,
+    Lasso.positiveZDownward, Lasso.suboptimalityGap}
+Let $z(\mu)=\mu x(\mu)$ be a selected positive-lasso path.
+The downward-variation functional is
+\[
+  z^\downarrow(s)
+    = \sum_i\int_0^s (1+u)\left(\frac{d}{du}z_i(u)\right)_-\,du.
+\]
+The error profile is
+\[
+  \eta(\lambda,s,z^\downarrow)
+    = (1+\lambda s)
+      \left(\frac{\sqrt{z^\downarrow}}{s}
+        + \frac{z^\downarrow}{s^2}\right).
+\]
+\end{definition}
+
+\begin{lemma}[Delta estimate]\label{lem:positiveDeltaEstimate}
+  \uses{prop:posTrajectoryBound, lem:parametricDualRegular,
+    def:positivePathQuantities}
+  \lean{Lasso.positive_path_delta_bound}
+The integrated DLN path and the parametric positive-lasso path satisfy the
+estimate corresponding to Eq. (4.15):
+\[
+  \Delta^\varepsilon(s)
+    \lesssim
+    \frac{s+z^\uparrow(s)}{\log(1/\varepsilon)}
+      + z^\downarrow(s).
+\]
+\end{lemma}
+
+\begin{lemma}[Energy estimate]\label{lem:positiveEnergyEstimate}
+  \uses{lem:positiveDeltaEstimate, def:positivePathQuantities}
+  \lean{Lasso.positive_path_energy_bound}
+The delta estimate implies the positive-lasso objective suboptimality bound.
+This is the quantitative core of Theorem~\ref{thm:posLassoConnectionApprox}.
+\end{lemma}
+
+\begin{theorem}[Approximate positive-lasso connection]\label{thm:posLassoConnectionApprox}
+  \uses{lem:positiveEnergyEstimate}
+  \lean{Lasso.pos_lasso_connection_approx}
+For every $s>0$,
+\[
+  \limsup_{\varepsilon\to 0}
+  \operatorname{Lasso}(\bar x^\varepsilon(s),s)
+  \le
+  \operatorname{PosLasso}_*(s)
+  + C\,\eta(\lambda,s,z^\downarrow(s)).
+\]
+\end{theorem}
+
+\begin{lemma}[Monotone paths are regular]\label{lem:monotonePositivePathRegular}
+  \uses{lem:parametricDualRegular}
+  \lean{Lasso.monotone_positive_path_regular}
+Under the monotonicity assumption of Theorem 3.1, the scaled path
+$z(\mu)=\mu x(\mu)$ has the compact-interval regularity needed to apply the
+approximate theorem.
+\end{lemma}
+
+\begin{theorem}[Exact positive-lasso connection]\label{thm:posLassoConnectionMonotone}
+  \uses{thm:posLassoConnectionApprox, lem:monotonePositivePathRegular}
+  \lean{Lasso.pos_lasso_connection_monotone}
+If $\mu\mapsto \mu x(\mu)$ is coordinatewise nondecreasing on $\mu>0$, then
+for all $s>0$,
+\[
+  \operatorname{Lasso}(\bar x^\varepsilon(s),s)
+  \to
+  \operatorname{PosLasso}_*(s).
+\]
+\end{theorem}
+
+\section{The Signed Lasso Reduction}
+
+\begin{definition}[Augmented signed-to-positive system]\label{def:augmentedSystem}
+  \lean{Lasso.augmentedMatrix, Lasso.augmentedVector}
+The signed lasso is reduced to positive lasso on the doubled index type
+$\iota\oplus\iota$ by
+\[
+  \widetilde M =
+  \begin{pmatrix}
+    M & -M\\
+    -M & M
+  \end{pmatrix},
+  \qquad
+  \widetilde r =
+  \begin{pmatrix}
+    r\\
+    -r
+  \end{pmatrix}.
+\]
+\end{definition}
+
+\begin{proposition}[Objective reduction]\label{prop:lassoObjectiveReduction}
+  \uses{def:augmentedSystem, def:lassoObjectives}
+  \lean{Lasso.lasso_objective_reduction}
+For each signed vector $x$, the decomposition $x=x_+-x_-$ embeds the signed
+lasso objective into the positive lasso objective for
+$(\widetilde M,\widetilde r)$.
+\end{proposition}
+
+\begin{proposition}[Dynamics reduction]\label{prop:dlnDynamicsReduction}
+  \uses{def:augmentedSystem, def:lassoGradientFlows}
+  \lean{Lasso.dln_dynamics_reduction}
+With $p^{\mathrm{pos}}=(u+v)/2$ and $p^{\mathrm{neg}}=(u-v)/2$, the signed
+$u\circ v$ dynamics reduce to positive $p\circ p$ dynamics on the augmented
+system.
+\end{proposition}
+
+\begin{definition}[Signed downward variation]\label{def:signedZDownward}
+  \uses{def:positivePathQuantities}
+  \lean{Lasso.signedZDownward}
+For signed lasso, downward variation is computed separately on the positive and
+negative parts:
+\[
+  z^\downarrow(s)=
+  \sum_i\int_0^s(1+u)
+    \left[
+      \left(\frac{d}{du}(z_i(u)_+)\right)_-
+      +
+      \left(\frac{d}{du}(z_i(u)_-)\right)_-
+    \right]\,du.
+\]
+\end{definition}
+
+\begin{theorem}[Approximate signed-lasso connection]\label{thm:lassoConnectionApprox}
+  \uses{thm:posLassoConnectionApprox, prop:lassoObjectiveReduction,
+    prop:dlnDynamicsReduction, def:signedZDownward}
+  \lean{Lasso.lasso_connection_approx}
+The approximate signed-lasso connection follows by applying the positive
+theorem to the augmented system.
+\end{theorem}
+
+\begin{theorem}[Exact signed-lasso connection]\label{thm:lassoConnectionMonotone}
+  \uses{thm:posLassoConnectionMonotone, prop:lassoObjectiveReduction,
+    prop:dlnDynamicsReduction}
+  \lean{Lasso.lasso_connection_monotone}
+Under the signed monotonicity hypothesis, the averaged signed DLN trajectory
+achieves the lasso minimum in the infinitesimal-initialization limit.
+\end{theorem}
+
+\section{Proof-Development Order}
+
+The intended formalization order is:
+\begin{enumerate}
+  \item Discharge the coordinate API and objective identities in
+    Section~\ref{def:lassoObjectives}.
+  \item Prove the effective-parameter ODE and mirror-flow equation.
+  \item Prove energy monotonicity and the uniform trajectory bound.
+  \item Formalize conic Caratheodory and the nonnegative solution norm bound.
+  \item Prove the positive-lasso KKT/LCP equivalence and dual uniqueness.
+  \item Prove parametric LCP regularity.
+  \item Prove the delta and energy estimates.
+  \item Deduce the positive exact/approximate theorems.
+  \item Formalize the signed-to-positive reductions and derive the signed
+    theorems.
+\end{enumerate}
+
+All theorem statements with remaining \texttt{sorry}s in the Lean files cite
+their informal proof location in \texttt{docs/Lasso.md}; those citations should
+be preserved until the corresponding proof is fully formalized.
