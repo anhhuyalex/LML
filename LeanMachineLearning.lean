@@ -49,6 +49,12 @@ public import LeanMachineLearning.Optimization.Depth.Products
 public import LeanMachineLearning.Optimization.Depth.Separation
 public import LeanMachineLearning.Optimization.Depth.Sobolev
 public import LeanMachineLearning.Optimization.Depth.SquareApprox
+public import LeanMachineLearning.Optimization.Lasso
+public import LeanMachineLearning.Optimization.Lasso.Basic
+public import LeanMachineLearning.Optimization.Lasso.Dynamic
+public import LeanMachineLearning.Optimization.Lasso.LCP
+public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
+public import LeanMachineLearning.Optimization.Lasso.Theorems
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Kernel
