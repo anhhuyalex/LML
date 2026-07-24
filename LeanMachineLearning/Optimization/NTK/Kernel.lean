@@ -13,6 +13,12 @@ public import Mathlib.MeasureTheory.Function.L2Space
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Probability.ProductMeasure
 public import Mathlib.Probability.Independence.InfinitePi
+public import Mathlib.Probability.Distributions.Gaussian.Multivariate
+public import Mathlib.Probability.Distributions.Gaussian.Fernique
+public import Mathlib.Analysis.SpecialFunctions.PolarCoord
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Measure.Real
 
 /-!
 # The neural tangent kernel (NTK)
@@ -50,6 +56,7 @@ derived via a geometric argument on the sphere.
 @[expose] public section
 
 open Real MeasureTheory ProbabilityTheory Filter
+open scoped RealInnerProductSpace
 
 namespace NTK
 
@@ -576,10 +583,192 @@ lemma abs_reluIndicator_le (z : ℝ) : |reluIndicator z| ≤ 1 := by
   simp only [reluIndicator]
   split_ifs <;> simp
 
+/-! ### Auxiliary lemmas for the ReLU NTK closed form -/
+
+/-- The row inner product agrees with the Euclidean inner product of the `L²` lifts. -/
+lemma innerProduct_eq_inner_toLp (x y : Fin d → ℝ) :
+    x ⊙ y = ⟪WithLp.toLp 2 y, WithLp.toLp 2 x⟫ := by
+  rw [EuclideanSpace.inner_toLp_toLp]
+  simp [innerProduct, dotProduct]
+
+/-- Pushforward of `gaussianRowMeasure` by the linear functional `w ↦ wᵀx` is a 1D Gaussian
+with mean `0` and variance `xᵀx`. -/
+lemma map_gaussianRowMeasure_innerProduct (x : Fin d → ℝ) :
+    Measure.map (fun w => w ⊙ x) (gaussianRowMeasure d) =
+      gaussianReal 0 (Real.toNNReal (x ⊙ x)) := by
+  have h_eq : (fun w : Fin d → ℝ => w ⊙ x) =
+      (fun (v : EuclideanSpace ℝ (Fin d)) => innerSL ℝ (WithLp.toLp 2 x) v) ∘ (WithLp.toLp 2) := by
+    ext w
+    dsimp
+    rw [← innerProduct_eq_inner_toLp w x]
+  rw [h_eq, ← Measure.map_map]
+  · have h_toLp : Measure.map (WithLp.toLp 2) (gaussianRowMeasure d) =
+        stdGaussian (EuclideanSpace ℝ (Fin d)) := map_pi_eq_stdGaussian
+    rw [h_toLp]
+    have h_map := IsGaussian.map_eq_gaussianReal
+      (μ := stdGaussian (EuclideanSpace ℝ (Fin d))) (innerSL ℝ (WithLp.toLp 2 x))
+    rw [h_map]
+    have h_mean : ∫ (v : EuclideanSpace ℝ (Fin d)),
+        (innerSL ℝ (WithLp.toLp 2 x)) v ∂stdGaussian (EuclideanSpace ℝ (Fin d)) = 0 := by
+      rw [(innerSL ℝ (WithLp.toLp 2 x)).integral_comp_id_comm IsGaussian.integrable_id]
+      rw [integral_id_stdGaussian]
+      exact map_zero (innerSL ℝ (WithLp.toLp 2 x))
+    have h_var : Var[innerSL ℝ (WithLp.toLp 2 x); stdGaussian (EuclideanSpace ℝ (Fin d))] =
+        x ⊙ x := by
+      rw [variance_dual_stdGaussian]
+      rw [innerSL_apply_norm]
+      rw [norm_sq_eq_innerProduct (WithLp.toLp 2 x)]
+    rw [h_mean, h_var]
+  all_goals fun_prop
+
+/--
+Informal proof:
+The standard Gaussian measure on ℝ is absolutely continuous with respect to the Lebesgue measure (volume).
+Since the Lebesgue measure of any singleton set is 0, and the Gaussian measure is given by the integral of a density
+function with respect to the Lebesgue measure, the Gaussian measure of any singleton set is also 0.
+Specifically, `gaussianReal 0 1 {x} = ∫_ {x} p(x) dλ = 0`.
+See standard probability theory texts, e.g. Kallenberg, "Foundations of Modern Probability" (https://link.springer.com/book/10.1007/978-1-4757-4015-8).
+-/
+lemma gaussianReal_singleton_eq_zero (x : ℝ) : (gaussianReal 0 1).real {x} = 0 := by
+  sorry
+
+/-- The standard Gaussian gives mass `1/2` to `[0, ∞)`. -/
+lemma gaussianReal_Ici_one_half : (gaussianReal 0 1).real (Set.Ici 0) = 1 / 2 := by
+  have hneg : (gaussianReal 0 1).map (fun y => -y) = gaussianReal 0 1 := by
+    rw [gaussianReal_map_neg]
+    simp
+  have h_symm : (gaussianReal 0 1).real (Set.Ici 0) = (gaussianReal 0 1).real (Set.Iic 0) := by
+    have hpre : (fun y : ℝ => -y) ⁻¹' Set.Ici 0 = Set.Iic 0 := by ext y; simp
+    have h1 : ((gaussianReal 0 1).map (fun y => -y)).real (Set.Ici 0) =
+        (gaussianReal 0 1).real (Set.Iic 0) := by
+      rw [measureReal_def, Measure.map_apply (by fun_prop) measurableSet_Ici, hpre]
+      rfl
+    rw [hneg] at h1
+    exact h1
+  have h_add : (gaussianReal 0 1).real (Set.Ici 0) + (gaussianReal 0 1).real (Set.Iic 0) = 1 := by
+    have h := measureReal_union_add_inter (μ := gaussianReal 0 1) (s := Set.Ici 0) (t := Set.Iic 0) measurableSet_Iic (measure_ne_top _ _) (measure_ne_top _ _)
+    have h_union : (Set.Ici 0 : Set ℝ) ∪ Set.Iic 0 = Set.univ := by ext y; simp
+    have h_inter : (Set.Ici 0 : Set ℝ) ∩ Set.Iic 0 = {0} := by
+      ext y
+      have h_iff : 0 ≤ y ∧ y ≤ 0 ↔ y = 0 := by
+        constructor
+        · intro h_le; exact le_antisymm h_le.2 h_le.1
+        · intro h_eq; rw [h_eq]; exact ⟨le_refl 0, le_refl 0⟩
+      exact h_iff
+    have h_univ : (gaussianReal 0 1).real Set.univ = 1 := by simp [measureReal_def]
+    rw [h_union, h_inter, h_univ] at h
+    have h_zero : (gaussianReal 0 1).real {0} = 0 := gaussianReal_singleton_eq_zero 0
+    linarith
+  linarith [h_symm, h_add]
+
+/-- For unit vectors, inner product `1` forces equality. -/
+lemma innerProduct_eq_one_iff_eq (x x' : Fin d → ℝ) (hx : x ⊙ x = 1) (hx' : x' ⊙ x' = 1) :
+    x ⊙ x' = 1 ↔ x = x' := by
+  constructor
+  · intro h
+    funext i
+    have hsum_eq : (x - x') ⊙ (x - x') = (x ⊙ x) - 2 * (x ⊙ x') + (x' ⊙ x') := by
+      unfold innerProduct
+      simp only [Pi.sub_apply]
+      have step1 : (fun (i : Fin d) => (x i - x' i) * (x i - x' i)) =
+                   fun (i : Fin d) => x i * x i - 2 * (x i * x' i) + x' i * x' i := by
+        funext j; ring
+      rw [step1]
+      simp only [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
+    have hzero : (x - x') ⊙ (x - x') = 0 := by
+      calc (x - x') ⊙ (x - x') = (x ⊙ x) - 2 * (x ⊙ x') + (x' ⊙ x') := hsum_eq
+        _ = 1 - 2 * 1 + 1 := by rw [hx, hx', h]
+        _ = 0 := by ring
+    have h_i : (x i - x' i) ^ 2 = 0 := by
+      have hsum_sq : (x - x') ⊙ (x - x') = ∑ k : Fin d, (x k - x' k) ^ 2 := by
+        unfold innerProduct
+        simp only [Pi.sub_apply]
+        have : (fun (j : Fin d) => (x j - x' j) * (x j - x' j)) = fun j => (x j - x' j) ^ 2 := by
+          funext j; ring
+        rw [this]
+      rw [hsum_sq] at hzero
+      have := Finset.sum_eq_zero_iff_of_nonneg
+        (fun (k : Fin d) _ => sq_nonneg (x k - x' k)) |>.mp hzero i (Finset.mem_univ _)
+      exact this
+    have : x i - x' i = 0 := by simpa using h_i
+    linarith
+  · rintro rfl
+    exact hx
+
+/-- For unit vectors, inner product `-1` forces `x' = -x`. -/
+lemma innerProduct_eq_neg_one_iff_eq_neg (x x' : Fin d → ℝ)
+    (hx : x ⊙ x = 1) (hx' : x' ⊙ x' = 1) :
+    x ⊙ x' = -1 ↔ x' = -x := by
+  constructor
+  · intro h
+    funext i
+    have hsum_eq : (x + x') ⊙ (x + x') = (x ⊙ x) + 2 * (x ⊙ x') + (x' ⊙ x') := by
+      unfold innerProduct
+      simp only [Pi.add_apply]
+      have step1 : (fun (i : Fin d) => (x i + x' i) * (x i + x' i)) =
+                   fun (i : Fin d) => x i * x i + 2 * (x i * x' i) + x' i * x' i := by
+        funext j; ring
+      rw [step1]
+      simp only [Finset.sum_add_distrib, ← Finset.mul_sum]
+    have hzero : (x + x') ⊙ (x + x') = 0 := by
+      calc (x + x') ⊙ (x + x') = (x ⊙ x) + 2 * (x ⊙ x') + (x' ⊙ x') := hsum_eq
+        _ = 1 + 2 * (-1) + 1 := by rw [hx, hx', h]
+        _ = 0 := by ring
+    have h_i : (x i + x' i) ^ 2 = 0 := by
+      have hsum_sq : (x + x') ⊙ (x + x') = ∑ k : Fin d, (x k + x' k) ^ 2 := by
+        unfold innerProduct
+        simp only [Pi.add_apply]
+        have : (fun (j : Fin d) => (x j + x' j) * (x j + x' j)) = fun j => (x j + x' j) ^ 2 := by
+          funext j; ring
+        rw [this]
+      rw [hsum_sq] at hzero
+      have := Finset.sum_eq_zero_iff_of_nonneg
+        (fun (k : Fin d) _ => sq_nonneg (x k + x' k)) |>.mp hzero i (Finset.mem_univ _)
+      exact this
+    have : x i + x' i = 0 := by simpa using h_i
+    rw [Pi.neg_apply]
+    linarith
+  · intro h
+    unfold innerProduct
+    simp only [h, Pi.neg_apply, mul_neg, Finset.sum_neg_distrib]
+    have : ∑ i : Fin d, x i * x i = x ⊙ x := rfl
+    rw [this, hx]
+
 /-- The angle between two unit vectors in ℝᵈ:
   `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/
 noncomputable def vectorAngle (x x' : Fin d → ℝ) : ℝ :=
   Real.arccos (x ⊙ x')
+
+/--
+Informal proof:
+Let $x$ and $x'$ be unit vectors in $\mathbb{R}^d$.
+The integral $\int \mathbf{1}[w^\top x \ge 0] \mathbf{1}[w^\top x' \ge 0] d\mu(w)$
+where $\mu$ is the standard normal distribution
+is the probability that a standard normal vector $w$ has non-negative inner products
+with both $x$ and $x'$.
+Because the standard normal distribution is rotationally symmetric, we can project
+$w$ onto the 2D subspace spanned by $x$ and $x'$.
+The projection is a standard 2D normal vector.
+In 2D, the region $w^\top x \ge 0$ and $w^\top x' \ge 0$ is a sector.
+The angle between $x$ and $x'$ is $\theta = \arccos(x^\top x')$.
+The boundary of the region $w^\top x \ge 0$ is orthogonal to $x$.
+Thus, the angle of the sector where both are non-negative is $\pi - \theta$.
+Since the 2D standard normal distribution is rotationally symmetric, the probability
+of falling in this sector is the angle divided by $2\pi$,
+which is $(\pi - \theta) / (2\pi)$.
+See Section 4.3 (Proposition 4.2) of Telgarsky's Deep Learning Theory lecture notes
+(https://mjt.cs.illinois.edu/dlt/two.pdf) or Cho & Saul (2009)
+"Kernel Methods for Deep Learning"
+(https://papers.nips.cc/paper_files/paper/2009/file/5751ec3e9a4feab575962e78e006250d-Paper.pdf)
+for this standard geometric argument.
+-/
+lemma prob_halfspace_intersect
+    (x x' : Fin d → ℝ)
+    (hx : x ⊙ x = 1)
+    (hx' : x' ⊙ x' = 1) :
+    ∫ w : Fin d → ℝ, reluIndicator (w ⊙ x) * reluIndicator (w ⊙ x') ∂(gaussianRowMeasure d) =
+      (Real.pi - Real.arccos (x ⊙ x')) / (2 * Real.pi) := by
+  sorry
 
 /-- **Proposition 4.2** (ReLU NTK closed form, Telgarsky 2021).
 For `σ' = 𝟏[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
@@ -598,7 +787,9 @@ theorem reluNTK_closedForm
     (hx' : x' ⊙ x' = 1) :
     limitingNTK reluIndicator x x' =
       (x ⊙ x') * (Real.pi - Real.arccos (x ⊙ x')) / (2 * Real.pi) := by
-  sorry
+  unfold limitingNTK
+  rw [prob_halfspace_intersect x x' hx hx']
+  ring
 
 /-- The ReLU NTK is nonneg when `xᵀx' ≥ 0`. -/
 lemma reluNTK_nonneg_of_nonneg_inner
