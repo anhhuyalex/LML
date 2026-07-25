@@ -9,7 +9,10 @@ public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Prod
 public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Add
 public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.InformationTheory.KullbackLeibler.KLFun
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
 /-!
 # Mirror Flow Interpretation of Diagonal Linear Networks
@@ -826,16 +829,322 @@ theorem pos_trajectory_matVec_uniform_bound
       _ ≤ A + 2 + ‖r‖ := by linarith
 
 /--
+Coordinatewise identity connecting an `entropyBregman` term to the Kullback--Leibler
+generator `InformationTheory.klFun t = t * log t + 1 - t`: `a log(a/b) - a + b = b * klFun (a/b)`.
+
+This is the standard fact that the (unnormalized, univariate) relative entropy
+`a log(a/b) - a + b` is `b` times the KL generator evaluated at the ratio `a/b`; it lets us
+reuse Mathlib's `klFun_nonneg`/`klFun_eq_zero_iff` (built from `strictConvexOn_klFun`) instead of
+reproving Gibbs' inequality from scratch.
+-/
+private lemma entropyBregmanTerm_eq_mul_klFun {a b : ℝ} (hb : b ≠ 0) :
+    a * Real.log (a / b) - a + b = b * InformationTheory.klFun (a / b) := by
+  dsimp [InformationTheory.klFun]
+  field_simp
+  ring
+
+/-- Each coordinate of the entropy Bregman divergence is nonnegative once the base point `b`
+is positive; the numerator `a` need only be nonnegative (this is the boundary case `a = 0`,
+extended by continuity via `Real.log 0 = 0`, mentioned in `docs/Lasso.md` after Lemma 4.4). -/
+private lemma entropyBregmanTerm_nonneg {a b : ℝ} (ha : 0 ≤ a) (hb : 0 < b) :
+    0 ≤ a * Real.log (a / b) - a + b := by
+  rw [entropyBregmanTerm_eq_mul_klFun hb.ne']
+  exact mul_nonneg hb.le (InformationTheory.klFun_nonneg (div_nonneg ha hb.le))
+
+/-- The equality case of `entropyBregmanTerm_nonneg`: the term vanishes exactly at `a = b`. -/
+private lemma entropyBregmanTerm_eq_zero_iff {a b : ℝ} (ha : 0 ≤ a) (hb : 0 < b) :
+    a * Real.log (a / b) - a + b = 0 ↔ a = b := by
+  rw [entropyBregmanTerm_eq_mul_klFun hb.ne', mul_eq_zero, or_iff_right hb.ne',
+    InformationTheory.klFun_eq_zero_iff (div_nonneg ha hb.le)]
+  constructor
+  · intro h
+    field_simp at h
+    linarith
+  · intro h
+    rw [h]
+    exact div_self hb.ne'
+
+/--
+The entropy Bregman divergence is nonnegative as soon as the base point `y` is (coordinatewise)
+positive; the first argument `x` need only be nonnegative.
+
+This is the natural generality for `entropyBregman`: along the positive-DLN trajectory the
+reference point `y = x^ε(0)` is always positive, but points being compared against it (e.g.
+arbitrary feasible points of a Bregman projection) may have zero coordinates, handled via the
+`docs/Lasso.md` continuity convention `0 log 0 = 0`.
+-/
+lemma entropyBregman_nonneg_of_nonneg
+    (x y : EuclideanSpace ℝ ι) (hx : Nonnegative x) (hy : Positive y) :
+    0 ≤ entropyBregman x y := by
+  dsimp [entropyBregman]
+  apply mul_nonneg (by norm_num)
+  apply Finset.sum_nonneg
+  intro i _
+  exact entropyBregmanTerm_nonneg (hx i) (hy i)
+
+/--
 The Bregman divergence associated with the entropy mirror map is nonnegative.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.2 after Eq. (4.2).
 It follows from convexity of `h`; in coordinates this is the usual nonnegativity
-of relative entropy.
+of relative entropy. Concretely, coordinate `i` contributes
+`x_i log(x_i/y_i) - x_i + y_i = y_i * klFun(x_i/y_i) ≥ 0`, where `klFun t = t log t + 1 - t`
+is Mathlib's Kullback--Leibler generator, nonnegative on `[0,∞)` by strict convexity
+(`InformationTheory.klFun_nonneg`).
 -/
 theorem entropyBregman_nonnegative
     (x y : EuclideanSpace ℝ ι) (hx : Positive x) (hy : Positive y) :
-    0 ≤ entropyBregman x y := by
-  sorry
+    0 ≤ entropyBregman x y :=
+  entropyBregman_nonneg_of_nonneg x y (fun i => (hx i).le) hy
+
+/--
+The entropy Bregman divergence vanishes at `(x, y)` (with `x` nonnegative and `y` positive)
+exactly when `x = y`. This is the strict-convexity / uniqueness half of Gibbs' inequality,
+used to identify the unique minimizer of a Bregman projection.
+-/
+lemma entropyBregman_eq_zero_iff
+    (x y : EuclideanSpace ℝ ι) (hx : Nonnegative x) (hy : Positive y) :
+    entropyBregman x y = 0 ↔ x = y := by
+  constructor
+  · intro h
+    dsimp [entropyBregman] at h
+    have hsum : (∑ i, (x i * Real.log (x i / y i) - x i + y i)) = 0 := by linarith
+    have hterm : ∀ i ∈ Finset.univ, x i * Real.log (x i / y i) - x i + y i = 0 :=
+      (Finset.sum_eq_zero_iff_of_nonneg
+        (fun i _ => entropyBregmanTerm_nonneg (hx i) (hy i))).1 hsum
+    ext i
+    exact (entropyBregmanTerm_eq_zero_iff (hx i) (hy i)).1 (hterm i (Finset.mem_univ i))
+  · intro h
+    subst h
+    dsimp [entropyBregman]
+    have : ∀ i, x i * Real.log (x i / x i) - x i + x i = 0 := by
+      intro i
+      rcases (hx i).lt_or_eq with h0 | h0
+      · rw [div_self h0.ne']
+        simp
+      · simp [← h0]
+    simp only [this, Finset.sum_const_zero, mul_zero]
+
+/-- Coordinate projection out of `EuclideanSpace ℝ ι` is continuous. -/
+private lemma continuous_apply_euclidean (i : ι) :
+    Continuous (fun x : EuclideanSpace ℝ ι => x i) :=
+  (continuous_apply i).comp (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous
+
+/--
+The positive effective parameter trajectory is continuous in time.
+
+Reused from the derivative already computed in `pos_effective_parameter_hasDerivAt`: a
+`HasDerivAt` fact at every point of `ℝ` gives continuity for free via `HasDerivAt.continuousAt`.
+-/
+private lemma continuous_posEffectiveParameter
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (ε : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r 0 ε α u) (hM : M.IsSymm) :
+    Continuous (posEffectiveParameter u) :=
+  continuous_iff_continuousAt.mpr
+    (fun τ => (pos_effective_parameter_hasDerivAt M r 0 ε α u hu hM τ).continuousAt)
+
+/--
+Chain rule for `matVec M` along a curve, proved coordinatewise (the same
+`WithLp`-unfolding pattern as `hasDerivAt_coordinateSquare`).
+-/
+private lemma hasDerivAt_matVec_comp
+    (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ ι) (g' : EuclideanSpace ℝ ι) (t : ℝ)
+    (hg : HasDerivAt g g' t) :
+    HasDerivAt (fun τ => matVec M (g τ)) (matVec M g') t := by
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  have h1 : HasDerivAt (fun τ => e (g τ)) (e g') t := e.hasFDerivAt.comp_hasDerivAt t hg
+  dsimp [matVec, euclideanOf]
+  have hd_pi : HasDerivAt (fun τ => M.mulVec (e (g τ))) (M.mulVec (e g')) t := by
+    apply hasDerivAt_pi.2
+    intro i
+    dsimp [Matrix.mulVec, dotProduct]
+    have hterm : ∀ j, HasDerivAt (fun τ => M i j * e (g τ) j) (M i j * e g' j) t := fun j =>
+      (hasDerivAt_pi.1 h1 j).const_mul (M i j)
+    exact HasDerivAt.fun_sum (fun j _ => hterm j)
+  exact e.symm.hasFDerivAt.comp_hasDerivAt t hd_pi
+
+/--
+Fundamental theorem of calculus for the integrated positive-effective trajectory:
+`d/dt ∫₀ᵗ x(v) dv = x(t)`, taken coordinatewise via
+`intervalIntegral.integral_hasDerivAt_right`.
+-/
+private lemma hasDerivAt_posIntegratedTrajectory
+    (u : ℝ → EuclideanSpace ℝ ι) (hcont : Continuous (posEffectiveParameter u)) (t : ℝ) :
+    HasDerivAt (fun τ => posIntegratedTrajectory u τ) (posEffectiveParameter u t) t := by
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  dsimp [posIntegratedTrajectory, euclideanOf]
+  have h_pi : HasDerivAt (fun τ => (fun i => ∫ v in (0:ℝ)..τ, posEffectiveParameter u v i))
+      (fun i => posEffectiveParameter u t i) t := by
+    apply hasDerivAt_pi.2
+    intro i
+    have hcont_i : Continuous (fun v => posEffectiveParameter u v i) :=
+      (continuous_apply_euclidean i).comp hcont
+    exact intervalIntegral.integral_hasDerivAt_right
+      (hcont_i.intervalIntegrable 0 t)
+      (hcont_i.stronglyMeasurableAtFilter _ _)
+      hcont_i.continuousAt
+  exact e.symm.hasFDerivAt.comp_hasDerivAt t h_pi
+
+/--
+The key identity behind Lemma 4.4's optimality condition: the mirror-map gradient increment
+along the (λ = 0) positive-DLN trajectory is `t • r - M (integrated trajectory)`.
+
+Informal proof: let
+`F(τ) = ∇h(x(τ)) - τ • r + M z(τ)`, where `z(τ) = ∫₀^τ x(v) dv`.
+By the mirror-flow equation (`pos_dln_is_entropy_mirror_flow` at `λ = 0`),
+`d∇h(x(τ))/dτ = -∇ℓ(x(τ)) = r - M x(τ)`; by the Fundamental Theorem of Calculus,
+`dz(τ)/dτ = x(τ)`, so `d(M z(τ))/dτ = M x(τ)` by linearity of `M`. Hence `F'(τ) = 0`
+for every `τ`, so `F` is constant, i.e. `F(t) = F(0)`. Since `z(0) = 0`, this rearranges to
+`∇h(x(t)) - ∇h(x(0)) = t • r - M z(t)`.
+-/
+private lemma entropyMirrorGradient_sub_eq
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (ε : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r 0 ε α u)
+    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0)
+    (hM : M.IsSymm) (t : ℝ) :
+    entropyMirrorGradient (posEffectiveParameter u t) -
+        entropyMirrorGradient (posEffectiveParameter u 0) =
+      t • r - matVec M (posIntegratedTrajectory u t) := by
+  set F : ℝ → EuclideanSpace ℝ ι := fun τ =>
+    entropyMirrorGradient (posEffectiveParameter u τ) - τ • r +
+      matVec M (posIntegratedTrajectory u τ) with hF_def
+  have hcont : Continuous (posEffectiveParameter u) :=
+    continuous_posEffectiveParameter M r ε α u hu hM
+  have hderiv : ∀ τ : ℝ, HasDerivAt F 0 τ := by
+    intro τ
+    have h1 : HasDerivAt (fun τ => entropyMirrorGradient (posEffectiveParameter u τ))
+        (r - matVec M (posEffectiveParameter u τ)) τ := by
+      have hmf := pos_dln_is_entropy_mirror_flow M r 0 ε α u hu hu_pos hM τ
+      dsimp [IsEntropyMirrorFlow] at hmf
+      rw [gradient_tiltedLoss M r 0 hM (posEffectiveParameter u τ)] at hmf
+      convert hmf using 1
+      ext i
+      dsimp [matVec, euclideanOf]
+      ring
+    have h2 : HasDerivAt (fun τ : ℝ => τ • r) r τ := by
+      simpa using (hasDerivAt_id τ).smul_const r
+    have h3 : HasDerivAt (fun τ => matVec M (posIntegratedTrajectory u τ))
+        (matVec M (posEffectiveParameter u τ)) τ :=
+      hasDerivAt_matVec_comp M (posIntegratedTrajectory u) (posEffectiveParameter u τ) τ
+        (hasDerivAt_posIntegratedTrajectory u hcont τ)
+    have hsum := (h1.sub h2).add h3
+    have hval : (r - matVec M (posEffectiveParameter u τ)) - r +
+        matVec M (posEffectiveParameter u τ) = 0 := by abel
+    rw [hval] at hsum
+    exact hsum
+  have hconst : F t - F 0 = ∫ _τ in (0:ℝ)..t, (0 : EuclideanSpace ℝ ι) :=
+    (intervalIntegral.integral_eq_sub_of_hasDerivAt (fun x _ => hderiv x)
+      intervalIntegrable_const).symm
+  simp only [intervalIntegral.integral_zero, sub_eq_zero] at hconst
+  -- `hconst : F t = F 0`
+  have hz : posIntegratedTrajectory u 0 = 0 := by
+    ext i
+    simp [posIntegratedTrajectory, euclideanOf]
+  have hF0 : F 0 = entropyMirrorGradient (posEffectiveParameter u 0) := by
+    change entropyMirrorGradient (posEffectiveParameter u 0) - (0 : ℝ) • r +
+        matVec M (posIntegratedTrajectory u 0) = entropyMirrorGradient (posEffectiveParameter u 0)
+    rw [hz]
+    have hmz : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by
+      ext i
+      simp [matVec, euclideanOf]
+    simp [hmz]
+  have hFt : F t = entropyMirrorGradient (posEffectiveParameter u t) - t • r +
+      matVec M (posIntegratedTrajectory u t) := rfl
+  rw [hFt, hF0] at hconst
+  rw [← hconst]
+  abel
+
+/--
+The mirror-map gradient increment along a (λ = 0) positive-DLN trajectory lies in the
+column span of `M`. This is the first-order optimality condition of Lemma 4.4 of
+`docs/Lasso.md`.
+-/
+private lemma entropyMirrorGradient_sub_mem_span
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (ε : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r 0 ε α u)
+    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0)
+    (hM : M.IsSymm) (hr : InMatrixSpan M r) (t : ℝ) :
+    InMatrixSpan M
+      (entropyMirrorGradient (posEffectiveParameter u t) -
+        entropyMirrorGradient (posEffectiveParameter u 0)) := by
+  obtain ⟨y₀, hy₀⟩ := hr
+  refine ⟨t • y₀ - posIntegratedTrajectory u t, ?_⟩
+  rw [matVec_sub, matVec_smul_eq, hy₀]
+  rw [entropyMirrorGradient_sub_eq M r ε α u hu hu_pos hM t]
+
+/--
+Coordinatewise three-point identity for the (unnormalized) entropy Bregman term
+`a ↦ a log(a/b) - a + b`: this is the standard Bregman "law of cosines"
+`D(z,y) - D(x,y) - D(z,x) = ⟨∇h(x) - ∇h(y), z - x⟩`, written out coordinatewise with
+`∇h(a) = (1/4) log a` (the `1/4` is applied later, in `entropyBregman_three_point`).
+The `z = 0` case is handled separately since `Real.log (0/y)` does not literally split as
+`Real.log 0 - Real.log y` in Lean, but the `0 *` factor makes the term vanish regardless.
+-/
+private lemma bregmanThreePointTerm
+    {x y z : ℝ} (hx : 0 < x) (hy : 0 < y) (hz : 0 ≤ z) :
+    (z * Real.log (z / y) - z + y) - (x * Real.log (x / y) - x + y) -
+        (z * Real.log (z / x) - z + x) =
+      (Real.log x - Real.log y) * (z - x) := by
+  rcases hz.eq_or_lt with hz0 | hz0
+  · simp [← hz0, Real.log_div hx.ne' hy.ne']
+    ring
+  · rw [Real.log_div hz0.ne' hy.ne', Real.log_div hx.ne' hy.ne', Real.log_div hz0.ne' hx.ne']
+    ring
+
+omit [Fintype ι] in
+/-- The difference of two entropy-mirror gradients as a single `euclideanOf`. -/
+private lemma entropyMirrorGradient_sub_eq_euclideanOf (x y : EuclideanSpace ℝ ι) :
+    entropyMirrorGradient x - entropyMirrorGradient y =
+      euclideanOf (fun i => (1 / 4 : ℝ) * (Real.log (x i) - Real.log (y i))) := by
+  ext i
+  dsimp [entropyMirrorGradient, euclideanOf]
+  ring
+
+/-- Coordinate expansion of the inner product against a difference of mirror gradients. -/
+private lemma inner_entropyMirrorGradient_sub
+    (x y h : EuclideanSpace ℝ ι) :
+    inner ℝ (entropyMirrorGradient x - entropyMirrorGradient y) h =
+      ∑ i, (1 / 4 : ℝ) * (Real.log (x i) - Real.log (y i)) * h i := by
+  rw [entropyMirrorGradient_sub_eq_euclideanOf]
+  dsimp [euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp
+  ring
+
+/--
+The three-point (Bregman "law of cosines") identity for `entropyBregman`:
+`D(z,y) - D(x,y) - D(z,x) = ⟨∇h(x) - ∇h(y), z - x⟩`.
+
+Informal proof: expand both sides coordinatewise using `bregmanThreePointTerm` and
+`inner_entropyMirrorGradient_sub`. This is the standard three-point identity for Bregman
+divergences (see e.g. Bregman 1967 or Chen–Teboulle 1993, "Convergence Analysis of Proximal-Like
+Minimization Algorithms Using Bregman Functions"), specialized to the entropy mirror map.
+-/
+private lemma entropyBregman_three_point
+    (x y z : EuclideanSpace ℝ ι) (hx : Positive x) (hy : Positive y) (hz : Nonnegative z) :
+    entropyBregman z y - entropyBregman x y - entropyBregman z x =
+      inner ℝ (entropyMirrorGradient x - entropyMirrorGradient y) (z - x) := by
+  rw [inner_entropyMirrorGradient_sub]
+  dsimp [entropyBregman]
+  simp only [Finset.mul_sum]
+  rw [← Finset.sum_sub_distrib, ← Finset.sum_sub_distrib]
+  apply Finset.sum_congr rfl
+  intro i _
+  have h := bregmanThreePointTerm (hx i) (hy i) (hz i)
+  change (1 / 4 : ℝ) * (z i * Real.log (z i / y i) - z i + y i) -
+      (1 / 4 : ℝ) * (x i * Real.log (x i / y i) - x i + y i) -
+      (1 / 4 : ℝ) * (z i * Real.log (z i / x i) - z i + x i) =
+      (1 / 4 : ℝ) * (Real.log (x i) - Real.log (y i)) * (z - x) i
+  rw [show (z - x) i = z i - x i from rfl]
+  linear_combination (1 / 4 : ℝ) * h
 
 /--
 Lemma 4.4 from `docs/Lasso.md`: the positive-DLN trajectory is the Bregman
@@ -845,22 +1154,77 @@ Informal proof reference: Section 4.3, Lemma 4.4. The first-order optimality
 condition for the constrained Bregman projection is
 `∇h(x(t)) - ∇h(x(0)) ∈ Span M`; integrating the mirror-flow equation shows this
 condition for the DLN trajectory. Strict convexity gives uniqueness.
+
+Note on hypotheses: `docs/Lasso.md` proves this lemma only for `λ = 0` (see the discussion
+preceding Lemma 4.3 in Section 4.3, "We now assume that we are in this case"), so this
+theorem fixes `lambda = 0` via `ProblemData M r 0` rather than taking a free `lambda`
+(matching `pos_trajectory_matVec_uniform_bound`, the Lean statement of Lemma 4.3). The
+uniqueness clause also requires `y` to lie in the feasible set: `IsMinOn f s y` alone only
+says `f y ≤ f x` for `x ∈ s` and does not imply `y ∈ s` (e.g. `y = posEffectiveParameter u 0`
+trivially satisfies `IsMinOn` since `entropyBregman` is everywhere nonnegative and vanishes
+there), so without a membership hypothesis the uniqueness claim would be false.
 -/
 theorem bregman_projection_characterization
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (ε : ℝ)
     (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
-    (hu : posDlnGradientFlow M r lambda ε α u) (t : ℝ) :
+    (hdata : ProblemData M r 0)
+    (hu : posDlnGradientFlow M r 0 ε α u)
+    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0)
+    (t : ℝ) :
     IsMinOn
         (fun x => entropyBregman x (posEffectiveParameter u 0))
         {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
         (posEffectiveParameter u t) ∧
       ∀ y : EuclideanSpace ℝ ι,
+        Nonnegative y → matVec M y = matVec M (posEffectiveParameter u t) →
         IsMinOn
           (fun x => entropyBregman x (posEffectiveParameter u 0))
           {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
           y →
         y = posEffectiveParameter u t := by
-  sorry
+  have hM : M.IsSymm := hdata.psd.get_symm
+  have hx_nonneg : Nonnegative (posEffectiveParameter u t) := posEffectiveParameter_nonnegative u t
+  have hy0_nonneg : Nonnegative (posEffectiveParameter u 0) := posEffectiveParameter_nonnegative u 0
+  have hx_pos : Positive (posEffectiveParameter u t) :=
+    fun i => lt_of_le_of_ne (hx_nonneg i) (Ne.symm (hu_pos t i))
+  have hy0_pos : Positive (posEffectiveParameter u 0) :=
+    fun i => lt_of_le_of_ne (hy0_nonneg i) (Ne.symm (hu_pos 0 i))
+  obtain ⟨w, hw⟩ :=
+    entropyMirrorGradient_sub_mem_span M r ε α u hu hu_pos hM hdata.r_mem_span t
+  have hcross : ∀ z : EuclideanSpace ℝ ι, matVec M z = matVec M (posEffectiveParameter u t) →
+      inner ℝ (entropyMirrorGradient (posEffectiveParameter u t) -
+        entropyMirrorGradient (posEffectiveParameter u 0)) (z - posEffectiveParameter u t) = 0 := by
+    intro z hz
+    rw [← hw, ← inner_matVec_comm_of_isSymm M hM w (z - posEffectiveParameter u t), matVec_sub, hz,
+      sub_self]
+    exact inner_zero_right w
+  have hmin : ∀ z : EuclideanSpace ℝ ι, Nonnegative z →
+      matVec M z = matVec M (posEffectiveParameter u t) →
+      entropyBregman (posEffectiveParameter u t) (posEffectiveParameter u 0) ≤
+        entropyBregman z (posEffectiveParameter u 0) := by
+    intro z hz_nonneg hz_eq
+    have h3pt := entropyBregman_three_point (posEffectiveParameter u t) (posEffectiveParameter u 0)
+      z hx_pos hy0_pos hz_nonneg
+    rw [hcross z hz_eq] at h3pt
+    have hnn : 0 ≤ entropyBregman z (posEffectiveParameter u t) :=
+      entropyBregman_nonneg_of_nonneg z (posEffectiveParameter u t) hz_nonneg hx_pos
+    linarith [h3pt, hnn]
+  refine ⟨isMinOn_iff.mpr fun z hz => hmin z hz.1 hz.2, ?_⟩
+  intro y hy_nonneg hy_eq hy_min
+  rw [isMinOn_iff] at hy_min
+  have hxy : entropyBregman y (posEffectiveParameter u 0) ≤
+      entropyBregman (posEffectiveParameter u t) (posEffectiveParameter u 0) :=
+    hy_min (posEffectiveParameter u t) ⟨hx_nonneg, rfl⟩
+  have hyx : entropyBregman (posEffectiveParameter u t) (posEffectiveParameter u 0) ≤
+      entropyBregman y (posEffectiveParameter u 0) := hmin y hy_nonneg hy_eq
+  have heq : entropyBregman y (posEffectiveParameter u 0) =
+      entropyBregman (posEffectiveParameter u t) (posEffectiveParameter u 0) :=
+    le_antisymm hxy hyx
+  have h3pt := entropyBregman_three_point (posEffectiveParameter u t) (posEffectiveParameter u 0)
+    y hx_pos hy0_pos hy_nonneg
+  rw [hcross y hy_eq, heq] at h3pt
+  have hzero : entropyBregman y (posEffectiveParameter u t) = 0 := by linarith [h3pt]
+  exact (entropyBregman_eq_zero_iff y (posEffectiveParameter u t) hy_nonneg hx_pos).1 hzero
 
 /--
 Lemma 4.5 from `docs/Lasso.md`: Bregman projections on nonnegative affine
