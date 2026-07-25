@@ -740,13 +740,13 @@ lemma innerProduct_eq_neg_one_iff_eq_neg (x x' : Fin d → ℝ)
 open scoped RealInnerProductSpace
 
 /-- The row inner product `y.ofLp ⊙ x` agrees with the `EuclideanSpace` inner product
-`⟪y, toLp 2 x⟫` for `y` already in `EuclideanSpace` form. -/
+`⟪y, WithLp.toLp 2 x⟫` for `y` already in `EuclideanSpace` form. -/
 lemma ofLp_innerProduct_eq_inner (x : Fin d → ℝ) (y : EuclideanSpace ℝ (Fin d)) :
-    y.ofLp ⊙ x = ⟪y, toLp 2 x⟫ := by
-  rw [← WithLp.toLp_ofLp y]
-  rw [inner_toLp_toLp]
-  simp [innerProduct, dotProduct, Finset.sum_mul]
-  ring
+    y.ofLp ⊙ x = ⟪y, WithLp.toLp 2 x⟫ := by
+  rw [show y = WithLp.toLp 2 (y.ofLp) by rfl]
+  rw [EuclideanSpace.inner_toLp_toLp]
+  simp [innerProduct, dotProduct]
+  simp_rw [mul_comm]
 
 /-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
 lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
@@ -758,7 +758,7 @@ lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
         Measure.map ⇑(MeasurableEquiv.toLp 2 (Fin d → ℝ)) (Measure.pi fun x => gaussianReal 0 1)
       by rw [MeasurableEquiv.coe_toLp]]
   rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
-  simp [WithLp.ofLp_toLp]
+  simp [WithLp.ofLp_toLp, gaussianRowMeasure]
 
 /-- The angle between two unit vectors in ℝᵈ:
   `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/
