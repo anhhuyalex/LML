@@ -49,9 +49,7 @@ private lemma quadratic_form_increment
   rw [matVec_add]
   rw [inner_add_left, inner_add_right, inner_add_right]
   rw [inner_matVec_comm_of_isSymm M hM y a]
-  have h_cross' : inner ℝ a (matVec M y) = inner ℝ (matVec M y) a := by
-    simpa using (real_inner_comm (matVec M y) a)
-  rw [h_cross']
+  rw [real_inner_comm a (matVec M y)]
   ring
 
 -- Taylor expansion of the quadratic loss in the effective variable.
@@ -66,8 +64,7 @@ private lemma quadraticLoss_add_sub
     ring
   have h_first_order_collect :
       inner ℝ (matVec M y) a - inner ℝ r a =
-        inner ℝ (matVec M y - r) a := by
-    exact (inner_sub_left _ _ _).symm
+        inner ℝ (matVec M y - r) a := (inner_sub_left _ _ _).symm
   calc
     quadraticLoss M r (y + a) - quadraticLoss M r y
         = ((1 / 2 : ℝ) * inner ℝ (y + a) (matVec M (y + a)) -
@@ -217,11 +214,10 @@ private lemma inner_tilted_gradient
     apply Finset.sum_congr rfl
     intro i _
     simp
-    try ring
   rw [h2, h3, h4, ←Finset.sum_sub_distrib, ←Finset.sum_add_distrib]
-  try apply Finset.sum_congr rfl
-  try intro i _
-  try ring
+  apply Finset.sum_congr rfl
+  intro i _
+  ring
 
 set_option linter.unusedFintypeInType false
 /--
@@ -279,8 +275,8 @@ private lemma posDlnObjective_taylor_remainder
   have h_loss_expansion :
       quadraticLoss M r (y + a) - quadraticLoss M r y =
         inner ℝ (matVec M y - r) a +
-          (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
-    exact quadraticLoss_add_sub M r y a hM
+          (1 / 2 : ℝ) * inner ℝ a (matVec M a) :=
+    quadraticLoss_add_sub M r y a hM
 
   have h_a_decompose :
       a = (euclideanOf fun i ↦ 2 * u i * h i) + coordinateSquare h := by
@@ -383,30 +379,13 @@ $\frac{\partial L}{\partial u_i}
   = 2 u_i \frac{\partial \ell}{\partial x_i} + 2 \lambda u_i
   = 2 u_i ( (M x)_i - r_i + \lambda)$.
 -/
-lemma gradient_posDlnObjective
+lemma hasGradientAt_posDlnObjective
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
     (u : EuclideanSpace ℝ ι) :
-    gradient (fun u' => posDlnObjective M r lambda u') u =
-      euclideanOf
-        (fun i => 2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda)) := by
-  have h_expansion : ∀ x' : EuclideanSpace ℝ ι,
-      posDlnObjective M r lambda x' - posDlnObjective M r lambda u -
-        inner ℝ
-          (euclideanOf fun i ↦
-            2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda))
-          (x' - u) =
-      inner ℝ ((matVec M (coordinateSquare u)) - r) (coordinateSquare (x' - u)) +
-        lambda * ‖x' - u‖ ^ 2 +
-        (1 / 2 : ℝ) *
-          inner ℝ
-            (euclideanOf fun i ↦
-              2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i))
-            (matVec M
-              (euclideanOf fun i ↦
-                2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i))) := by
-    intro x'
-    exact posDlnObjective_taylor_remainder M r lambda hM u x'
-  -- The right-hand side of `h_expansion` is quadratic (or higher order) in
+    HasGradientAt (fun u' => posDlnObjective M r lambda u')
+      (euclideanOf
+        (fun i => 2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda))) u := by
+  -- The Taylor remainder is quadratic (or higher order) in
   -- `x' - u`, hence little-o of `x' - u` at `u`.
   have h_remainder_o :
       (fun x' : EuclideanSpace ℝ ι ↦
@@ -436,8 +415,18 @@ lemma gradient_posDlnObjective
     -- proved coordinatewise by unfolding `posDlnObjective`, `quadraticLoss`,
     -- `coordinateSquare`, `matVec`, and `euclideanOf`; the only non-ring step is
     -- using `hM : M.IsSymm` to combine the two cross-terms of the quadratic form.
-    exact h_remainder_o.congr_left (fun x' => (h_expansion x').symm)
-  exact h_grad.gradient
+    exact h_remainder_o.congr_left
+      (fun x' => (posDlnObjective_taylor_remainder M r lambda hM u x').symm)
+  exact h_grad
+
+/-- The gradient of the positive-DLN objective in weight coordinates. -/
+lemma gradient_posDlnObjective
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
+    (u : EuclideanSpace ℝ ι) :
+    gradient (fun u' => posDlnObjective M r lambda u') u =
+      euclideanOf
+        (fun i => 2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda)) :=
+  (hasGradientAt_posDlnObjective M r lambda hM u).gradient
 
 /-- The mirror-flow ODE `d ∇h(x(t)) / dt = -∇ \widetilde L(x(t))`. -/
 def IsEntropyMirrorFlow
@@ -466,8 +455,7 @@ theorem pos_effective_parameter_hasDerivAt
   have hu_ode := hu.ode t
   dsimp [posDlnVectorField] at hu_ode
   rw [gradient_posDlnObjective M r lambda hM] at hu_ode
-  have hd := hasDerivAt_coordinateSquare u t _ hu_ode
-  exact hd.congr_deriv (by
+  exact (hasDerivAt_coordinateSquare u t _ hu_ode).congr_deriv (by
     ext i
     dsimp [positiveEffectiveVectorField, posEffectiveParameter, coordinateSquare, euclideanOf]
     ring)
@@ -556,12 +544,8 @@ lemma isLittleO_inner_matVec
     intro j _
     exact Continuous.mul continuous_const ((continuous_apply j).comp (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous)
   have h_tendsto : Tendsto (fun h => ‖matVec M h‖) (nhds 0) (nhds 0) := by
-    have h1 : Tendsto (matVec M) (nhds 0) (nhds (matVec M 0)) := h_cont.tendsto 0
-    have h2 : matVec M 0 = 0 := by
-      ext i
-      simp [matVec, euclideanOf]
-    rw [h2] at h1
-    exact tendsto_norm_zero.comp h1
+    refine tendsto_norm_zero.comp ?_
+    simpa [matVec, euclideanOf] using h_cont.tendsto 0
   have h_eventually : ∀ᶠ h in nhds 0, ‖matVec M h‖ < c := by
     apply (tendsto_order.1 h_tendsto).2 c hc
   apply h_eventually.mono
@@ -571,11 +555,12 @@ lemma isLittleO_inner_matVec
     _ ≤ ‖h‖ * c := mul_le_mul_of_nonneg_left (le_of_lt hh) (norm_nonneg _)
     _ = c * ‖h‖ := mul_comm _ _
 
-lemma gradient_tiltedLoss
+/-- The tilted loss has gradient `M x - r + lambda * 𝟙` at every point. -/
+lemma hasGradientAt_tiltedLoss
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
     (x : EuclideanSpace ℝ ι) :
-    gradient (tiltedLoss M r lambda) x =
-      euclideanOf (fun i => (M.mulVec x) i - r i + lambda) := by
+    HasGradientAt (tiltedLoss M r lambda)
+      (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) x := by
   have h_grad : HasGradientAt (tiltedLoss M r lambda)
       (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) x := by
     rw [hasGradientAt_iff_isLittleO]
@@ -584,16 +569,15 @@ lemma gradient_tiltedLoss
         (1 / 2 : ℝ) * inner ℝ h (matVec M h) := by
       intro h
       dsimp [tiltedLoss, quadraticLoss]
-      have h_M_add : matVec M (x + h) = matVec M x + matVec M h := by
-        exact matVec_add M x h
+      have h_M_add : matVec M (x + h) = matVec M x + matVec M h := matVec_add M x h
       rw [h_M_add]
       have h_inner_M : inner ℝ (x + h) (matVec M x + matVec M h) =
           inner ℝ x (matVec M x) + inner ℝ x (matVec M h) + inner ℝ h (matVec M x) + inner ℝ h (matVec M h) := by
         rw [inner_add_left, inner_add_right, inner_add_right]
         ring
       rw [h_inner_M]
-      have h_cross : inner ℝ x (matVec M h) = inner ℝ (matVec M x) h := by
-        exact inner_matVec_comm_of_isSymm M hM x h
+      have h_cross : inner ℝ x (matVec M h) = inner ℝ (matVec M x) h :=
+        inner_matVec_comm_of_isSymm M hM x h
       have h_inner_r : inner ℝ r (x + h) = inner ℝ r x + inner ℝ r h := inner_add_right _ _ _
       rw [h_inner_r]
       have h_inner_ones : inner ℝ ones (x + h) = inner ℝ ones x + inner ℝ ones h := inner_add_right _ _ _
@@ -601,29 +585,102 @@ lemma gradient_tiltedLoss
       have h_symm : inner ℝ (matVec M x) h = inner ℝ h (matVec M x) := real_inner_comm _ _
       rw [h_cross, h_symm]
       have h_inner_grad : inner ℝ (euclideanOf fun i => (M.mulVec x) i - r i + lambda) h =
-          inner ℝ (matVec M x) h - inner ℝ r h + lambda * inner ℝ ones h := by
-        exact inner_tilted_gradient M r lambda x h
+          inner ℝ (matVec M x) h - inner ℝ r h + lambda * inner ℝ ones h :=
+        inner_tilted_gradient M r lambda x h
       rw [h_inner_grad, h_symm]
       ring
     have h_expansion_x' : ∀ x', tiltedLoss M r lambda x' - tiltedLoss M r lambda x -
       inner ℝ (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) (x' - x) =
         (1 / 2 : ℝ) * inner ℝ (x' - x) (matVec M (x' - x)) := by
       intro x'
-      have H := h_expansion (x' - x)
-      have h_eq : x + (x' - x) = x' := by abel
-      rw [h_eq] at H
-      exact H
+      simpa [show x + (x' - x) = x' by abel] using h_expansion (x' - x)
     have h_o1 := (isLittleO_inner_matVec M hM).const_mul_left (1 / 2 : ℝ)
     have h_tendsto : Filter.Tendsto (fun x' => x' - x) (nhds x) (nhds 0) := by
-      have : (fun x' => x' - x) = (fun x' => x' - x) := rfl
-      rw [this]
-      have h2 : Filter.Tendsto (fun x' => x' - x) (nhds x) (nhds (x - x)) := (continuous_id.sub continuous_const).tendsto x
-      have h3 : x - x = 0 := sub_self x
-      rw [h3] at h2
-      exact h2
+      have h2 : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x)
+          (nhds x) (nhds (x - x)) := (continuous_id.sub continuous_const).tendsto x
+      simpa using h2
     have h_o2 := h_o1.comp_tendsto h_tendsto
     exact Asymptotics.IsLittleO.congr_left h_o2 (fun x' => (h_expansion_x' x').symm)
-  exact h_grad.gradient
+  exact h_grad
+
+/-- The gradient of the tilted loss `quadraticLoss M r + lambda * inner ones`. -/
+lemma gradient_tiltedLoss
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
+    (x : EuclideanSpace ℝ ι) :
+    gradient (tiltedLoss M r lambda) x =
+      euclideanOf (fun i => (M.mulVec x) i - r i + lambda) :=
+  (hasGradientAt_tiltedLoss M r lambda hM x).gradient
+
+/-- The exact coordinatewise energy-dissipation identity for the positive effective field. -/
+lemma inner_tiltedGradient_positiveEffectiveVectorField
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x : EuclideanSpace ℝ ι) :
+    inner ℝ (euclideanOf fun i => (matVec M x) i - r i + lambda)
+        (positiveEffectiveVectorField M r lambda x) =
+      ∑ i, -4 * x i * ((matVec M x) i - r i + lambda) ^ 2 := by
+  dsimp [positiveEffectiveVectorField, euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp
+  ring
+
+/-- The positive effective field is a descent direction for the tilted loss at nonnegative `x`. -/
+lemma inner_tiltedGradient_positiveEffectiveVectorField_nonpos
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
+    inner ℝ (euclideanOf fun i => (matVec M x) i - r i + lambda)
+        (positiveEffectiveVectorField M r lambda x) ≤ 0 := by
+  rw [inner_tiltedGradient_positiveEffectiveVectorField]
+  apply Finset.sum_nonpos
+  intro i _
+  exact mul_nonpos_of_nonpos_of_nonneg
+    (mul_nonpos_of_nonpos_of_nonneg (by norm_num) (hx i)) (sq_nonneg _)
+
+omit [Fintype ι] in
+/-- The positive effective parameter `u(t)²` is coordinatewise nonnegative. -/
+lemma posEffectiveParameter_nonnegative
+    (u : ℝ → EuclideanSpace ℝ ι) (t : ℝ) :
+    Nonnegative (posEffectiveParameter u t) := by
+  intro i
+  dsimp [posEffectiveParameter, coordinateSquare, euclideanOf]
+  exact mul_self_nonneg (u t i)
+
+/-- Evaluating the tilted loss at `u²` gives the positive-DLN objective at `u`. -/
+lemma tiltedLoss_coordinateSquare_eq_posDlnObjective
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (u : EuclideanSpace ℝ ι) :
+    tiltedLoss M r lambda (coordinateSquare u) = posDlnObjective M r lambda u := by
+  dsimp [tiltedLoss, posDlnObjective]
+  congr 1
+  rw [← real_inner_self_eq_norm_sq]
+  dsimp [ones, coordinateSquare, euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct, EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct]
+  simp
+
+/-- The weight-space positive-DLN objective decreases along its gradient flow. -/
+lemma posDlnObjective_antitone_along_pos_flow
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r lambda ε α u) (hM : M.IsSymm) :
+    Antitone (fun t => posDlnObjective M r lambda (u t)) := by
+  have h_differentiable : Differentiable ℝ (posDlnObjective M r lambda) :=
+    fun x => (hasGradientAt_posDlnObjective M r lambda hM x).differentiableAt
+  have h_gradient_flow : ConvexOpt.GFTrajectory (posDlnObjective M r lambda)
+      (Real.sqrt ε • α) u :=
+    { init := hu.init
+      cont_diff := hu.cont_diff
+      ode := fun t => by
+        simpa only [posDlnVectorField] using hu.ode t }
+  apply antitone_of_hasDerivAt_nonpos
+    (f' := fun t => -‖gradient (posDlnObjective M r lambda) (u t)‖ ^ 2)
+  · intro t
+    convert ConvexOpt.gf_monotone_decrease h_differentiable h_gradient_flow t using 1
+    rfl
+  · intro t
+    exact neg_nonpos.mpr (sq_nonneg _)
 
 /--
 Mirror-flow formulation of the positive-DLN dynamics, packaged with the reusable
@@ -659,7 +716,9 @@ theorem tiltedLoss_antitone_along_pos_flow
     (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hu : posDlnGradientFlow M r lambda ε α u) (hM : M.IsSymm) :
     Antitone (fun t => tiltedLoss M r lambda (posEffectiveParameter u t)) := by
-  sorry
+  intro s t hst
+  simpa only [posEffectiveParameter, tiltedLoss_coordinateSquare_eq_posDlnObjective] using
+    posDlnObjective_antitone_along_pos_flow M r lambda ε α u hu hM hst
 
 /--
 Lemma 4.3 from `docs/Lasso.md`: in the non-coercive case, energy decrease still
