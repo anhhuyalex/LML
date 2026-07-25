@@ -19,6 +19,8 @@ This file defines the base objectives for the lasso regularization path analysis
 
 namespace Lasso
 
+open scoped Matrix
+
 variable {ι : Type*} [Fintype ι]
 
 /-- Cast a coordinate function into the Euclidean `L₂` model used throughout this folder. -/
@@ -143,7 +145,7 @@ def IsLassoMinimizer
 def IsPositiveLassoMinimizer
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
     (x : EuclideanSpace ℝ ι) : Prop :=
-  IsMinOn (positiveLassoObjective M r lambda μ) {x | Nonnegative x} x
+  Nonnegative x ∧ IsMinOn (positiveLassoObjective M r lambda μ) {x | Nonnegative x} x
 
 /-- The augmented block matrix for reducing the signed lasso to positive lasso. -/
 noncomputable def augmentedMatrix (M : Matrix ι ι ℝ) :
@@ -154,6 +156,51 @@ noncomputable def augmentedMatrix (M : Matrix ι ι ℝ) :
 noncomputable def augmentedVector (r : EuclideanSpace ℝ ι) :
     EuclideanSpace ℝ (ι ⊕ ι) :=
   (WithLp.equiv 2 _).symm (Sum.elim r (-r))
+
+/-- Matrix-vector multiplication is additive in the concrete Euclidean wrapper. -/
+lemma matVec_add
+    (M : Matrix ι ι ℝ) (x y : EuclideanSpace ℝ ι) :
+    matVec M (x + y) = matVec M x + matVec M y := by
+  ext i
+  simp [matVec, euclideanOf, Matrix.mulVec_add]
+
+/-- Matrix-vector multiplication is subtractive in the concrete Euclidean wrapper. -/
+lemma matVec_sub
+    (M : Matrix ι ι ℝ) (x y : EuclideanSpace ℝ ι) :
+    matVec M (x - y) = matVec M x - matVec M y := by
+  ext i
+  simp [matVec, euclideanOf, Matrix.mulVec_sub]
+
+/-- Symmetry of `M` transfers the matrix from the second inner-product argument to the first. -/
+lemma inner_matVec_comm_of_isSymm
+    (M : Matrix ι ι ℝ) (hM : M.IsSymm) (x y : EuclideanSpace ℝ ι) :
+    inner ℝ x (matVec M y) = inner ℝ (matVec M x) y := by
+  dsimp [matVec, euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct, EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp
+  rw [star_trivial, star_trivial]
+  have H0 : (M *ᵥ y.ofLp) ⬝ᵥ x.ofLp = x.ofLp ⬝ᵥ (M *ᵥ y.ofLp) := by
+    apply Finset.sum_congr rfl
+    intro i _
+    ring
+  rw [H0]
+  have H1 : x.ofLp ⬝ᵥ (M *ᵥ y.ofLp) = (x.ofLp ᵥ* M) ⬝ᵥ y.ofLp :=
+    Matrix.dotProduct_mulVec _ _ _
+  rw [H1]
+  have H2 : y.ofLp ⬝ᵥ (M *ᵥ x.ofLp) = (M *ᵥ x.ofLp) ⬝ᵥ y.ofLp := by
+    apply Finset.sum_congr rfl
+    intro i _
+    ring
+  rw [H2]
+  congr 1
+  ext i
+  dsimp [Matrix.vecMul, Matrix.mulVec]
+  apply Finset.sum_congr rfl
+  intro j _
+  change x.ofLp j * M j i = M i j * x.ofLp j
+  have hm : M j i = M i j := (hM.apply j i).symm
+  rw [hm]
+  ring
 
 end Lasso
 

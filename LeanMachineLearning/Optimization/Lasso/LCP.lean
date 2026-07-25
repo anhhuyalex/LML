@@ -102,6 +102,167 @@ def InCone {κ : Type*} [Fintype κ]
     (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) : Prop :=
   ∃ coeff : κ → ℝ, (∀ i, 0 ≤ coeff i) ∧ (∑ i, coeff i • a i) = y
 
+lemma norm_one_eq_inner_ones_of_nonnegative (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
+    ‖WithLp.toLp 1 (x.ofLp)‖ = inner ℝ ones x := by
+  have h1 : ‖WithLp.toLp 1 (x.ofLp)‖ = ∑ i, |x.ofLp i| := by
+    rw [PiLp.norm_eq_of_nat 1 (by norm_num)]
+    simp
+  have h2 : ∑ i, |x.ofLp i| = ∑ i, x.ofLp i := by
+    apply Finset.sum_congr rfl
+    intro i _
+    exact abs_of_nonneg (hx i)
+  have h3 : inner ℝ ones x = ∑ i, x.ofLp i := by
+    rw [PiLp.inner_apply]
+    simp [ones, euclideanOf]
+  rw [h1, h2, h3]
+
+omit [Fintype ι] in
+lemma lcpQ_eq (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) :
+    lcpQ r lambda μ = -r + (lambda + 1 / μ) • ones := by
+  ext i
+  simp [lcpQ, ones, euclideanOf]
+  ring
+
+lemma positiveLassoObjective_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
+    positiveLassoObjective M r lambda μ x =
+    (1 / 2 : ℝ) * inner ℝ x (matVec M x) + inner ℝ (lcpQ r lambda μ) x := by
+  dsimp [positiveLassoObjective, lassoObjective, quadraticLoss]
+  rw [norm_one_eq_inner_ones_of_nonnegative x hx]
+  rw [lcpQ_eq]
+  rw [inner_add_left, inner_neg_left, real_inner_smul_left]
+  ring
+
+lemma quadratic_expansion (M : Matrix ι ι ℝ) (q x y : EuclideanSpace ℝ ι)
+    (hM_symm : M.IsSymm) :
+    ((1 / 2 : ℝ) * inner ℝ y (matVec M y) + inner ℝ q y) -
+    ((1 / 2 : ℝ) * inner ℝ x (matVec M x) + inner ℝ q x) =
+    (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) +
+    inner ℝ (matVec M x + q) (y - x) := by
+  rw [matVec_sub]
+  rw [inner_sub_right, inner_sub_right, inner_add_left]
+  rw [inner_sub_left, inner_sub_left, inner_add_left]
+  rw [inner_matVec_comm_of_isSymm M hM_symm x y]
+  have h_cross' : inner ℝ (matVec M x) y = inner ℝ y (matVec M x) := by
+    exact real_inner_comm y (matVec M x)
+  have h_self : inner ℝ (matVec M x) x = inner ℝ x (matVec M x) := by
+    exact real_inner_comm x (matVec M x)
+  rw [h_cross', h_self]
+  ring
+
+lemma quad_min_implies_grad_nonneg
+    (C b : ℝ) (h : ∀ t : ℝ, 0 < t → t ≤ 1 → t * C + b ≥ 0) : b ≥ 0 := by
+  by_contra h_neg
+  push Not at h_neg
+  by_cases hC : C ≤ 0
+  · have h1 := h 1 (by norm_num) (by norm_num)
+    linarith
+  · push Not at hC
+    let t := min 1 (-b / (2 * C))
+    have ht1 : 0 < t := by
+      apply lt_min (by norm_num)
+      apply div_pos (neg_pos.mpr h_neg) (mul_pos (by norm_num) hC)
+    have ht2 : t ≤ 1 := min_le_left _ _
+    have h_eval := h t ht1 ht2
+    have ht_le : t ≤ -b / (2 * C) := min_le_right _ _
+    have h_eval2 : t * C + b ≤ (-b / (2 * C)) * C + b := by
+      have : t * C ≤ (-b / (2 * C)) * C := mul_le_mul_of_nonneg_right ht_le (le_of_lt hC)
+      linarith
+    have h_cancel : (-b / (2 * C)) * C + b = b / 2 := by
+      calc
+        (-b / (2 * C)) * C + b = (-b / 2) * (C / C) + b := by ring
+        _ = (-b / 2) * 1 + b := by rw [div_self (ne_of_gt hC)]
+        _ = b / 2 := by ring
+    linarith
+
+lemma quad_min_implies_grad_nonneg'
+    (C b : ℝ) (h : ∀ t : ℝ, 0 < t → t ≤ 1 → t^2 * C + t * b ≥ 0) : b ≥ 0 := by
+  have h' : ∀ t : ℝ, 0 < t → t ≤ 1 → t * C + b ≥ 0 := by
+    intro t ht1 ht2
+    have h_eval := h t ht1 ht2
+    have : t * (t * C + b) ≥ 0 := by
+      calc
+        t * (t * C + b) = t^2 * C + t * b := by ring
+        _ ≥ 0 := h_eval
+    exact nonneg_of_mul_nonneg_right this ht1
+  exact quad_min_implies_grad_nonneg C b h'
+
+lemma quad_min_implies_grad_nonpos'
+    (C b : ℝ) (h : ∀ t : ℝ, -1 ≤ t → t < 0 → t^2 * C + t * b ≥ 0) : b ≤ 0 := by
+  have h_nonneg : -b ≥ 0 := by
+    apply quad_min_implies_grad_nonneg' C (-b)
+    intro u hu1 hu2
+    have h_eval := h (-u) (by linarith) (by linarith)
+    have : (-u)^2 * C + (-u) * b = u^2 * C + u * (-b) := by ring
+    rw [←this]
+    exact h_eval
+  linarith
+
+lemma matVec_smul (M : Matrix ι ι ℝ) (c : ℝ) (x : EuclideanSpace ℝ ι) :
+    matVec M (c • x) = c • matVec M x := by
+  ext i
+  have : c • x = euclideanOf (c • x.ofLp) := rfl
+  rw [this]
+  dsimp [matVec, PiLp.smul_apply, euclideanOf, Equiv.symm_apply_apply]
+  change (M.mulVec (c • x.ofLp)) i = c * (M.mulVec x.ofLp) i
+  rw [Matrix.mulVec_smul]
+  rfl
+
+lemma inner_single [DecidableEq ι] (v : EuclideanSpace ℝ ι) (i : ι) :
+    inner ℝ v (euclideanOf (Pi.single i 1)) = v i := by
+  dsimp [PiLp.inner_apply, euclideanOf, Equiv.symm_apply_apply]
+  simp only [starRingEnd_apply, star_trivial]
+  have h_sum : ∑ j : ι, (Pi.single i 1 : ι → ℝ) j * v.ofLp j =
+      ∑ j : ι, if j = i then v.ofLp i else 0 := by
+    apply Finset.sum_congr rfl
+    intro j _
+    by_cases h : j = i
+    · subst h
+      rw [Pi.single_eq_same, if_pos rfl]
+      ring
+    · rw [Pi.single_eq_of_ne h, if_neg h]
+      ring
+  rw [h_sum]
+  simp
+
+lemma quadratic_expansion_eval (M : Matrix ι ι ℝ) (q x d : EuclideanSpace ℝ ι) (t : ℝ)
+    (hM_symm : M.IsSymm) :
+    ((1 / 2 : ℝ) * inner ℝ (x + t • d) (matVec M (x + t • d)) + inner ℝ q (x + t • d)) -
+    ((1 / 2 : ℝ) * inner ℝ x (matVec M x) + inner ℝ q x) =
+    t^2 * ((1 / 2 : ℝ) * inner ℝ d (matVec M d)) + t * inner ℝ (matVec M x + q) d := by
+  have := quadratic_expansion M q x (x + t • d) hM_symm
+  rw [this]
+  have h_sub : (x + t • d) - x = t • d := add_sub_cancel_left x (t • d)
+  rw [h_sub]
+  rw [matVec_smul]
+  rw [real_inner_smul_left, real_inner_smul_right, real_inner_smul_right]
+  ring
+
+omit [Fintype ι] in
+lemma nonnegative_add_t_single [DecidableEq ι] (x : EuclideanSpace ℝ ι) (hx : Nonnegative x)
+    (i : ι) (t : ℝ) (ht : 0 ≤ t) :
+    Nonnegative (x + t • euclideanOf (Pi.single i 1)) := by
+  intro j
+  dsimp [PiLp.add_apply, PiLp.smul_apply, euclideanOf, Equiv.symm_apply_apply]
+  by_cases h : j = i
+  · subst h
+    rw [Pi.single_eq_same]
+    have hj := hx j
+    linarith
+  · rw [Pi.single_eq_of_ne h]
+    have hj := hx j
+    linarith
+
+omit [Fintype ι] in
+lemma nonnegative_add_t_self (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) (t : ℝ) (ht : -1 ≤ t) :
+    Nonnegative (x + t • x) := by
+  intro j
+  dsimp [PiLp.add_apply, PiLp.smul_apply]
+  have : x.ofLp j + t * x.ofLp j = (1 + t) * x.ofLp j := by ring
+  rw [this]
+  apply mul_nonneg (by linarith) (hx j)
+
+
 /--
 Proposition 4.8 from `docs/Lasso.md`: the primal-dual formulation of the
 positive lasso is a linear complementarity problem.
@@ -118,10 +279,104 @@ This exactly matches the LCP formulation.
 -/
 lemma pos_lasso_is_lcp
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
-    (x : EuclideanSpace ℝ ι) :
+    (x : EuclideanSpace ℝ ι)
+    (hM_symm : M.IsSymm) (hM_psd : IsPositiveSemidefinite M) :
     IsPositiveLassoMinimizer M r lambda μ x ↔
     ∃ v : EuclideanSpace ℝ ι, isLCP M (lcpQ r lambda μ) x v := by
-  sorry
+  haveI := Classical.decEq ι
+  dsimp [IsPositiveLassoMinimizer, IsMinOn, isLCP]
+  let q := lcpQ r lambda μ
+  let f := positiveLassoObjective M r lambda μ
+  let L := fun y => (1 / 2 : ℝ) * inner ℝ y (matVec M y) + inner ℝ q y
+  have h_f_eq_L : ∀ y, Nonnegative y → f y = L y := by
+    intro y hy
+    exact positiveLassoObjective_eq M r lambda μ y hy
+  constructor
+  · intro ⟨hx_nonneg, h_min⟩
+    let v := matVec M x + q
+    use v
+    have h_v : v = matVec M x + q := rfl
+    have h_eval : ∀ y, Nonnegative y → L y - L x ≥ 0 := by
+      intro y hy
+      have : f x ≤ f y := h_min hy
+      rw [← h_f_eq_L x hx_nonneg, ← h_f_eq_L y hy]
+      linarith
+
+    have hv_nonneg : Nonnegative v := by
+      intro i
+      let d := euclideanOf (Pi.single i 1 : ι → ℝ)
+      have h_dir : ∀ t : ℝ, 0 < t → t ≤ 1 → t^2 * ((1 / 2 : ℝ) * inner ℝ d (matVec M d)) + t * v i ≥ 0 := by
+        intro t ht1 ht2
+        have hy_nonneg := nonnegative_add_t_single x hx_nonneg i t (le_of_lt ht1)
+        have h_Leval := h_eval (x + t • d) hy_nonneg
+        have h_exp := quadratic_expansion_eval M q x d t hM_symm
+        have h_inner_d : inner ℝ v d = v i := inner_single v i
+        dsimp [L] at h_Leval
+        have h_v_eq : matVec M x + q = v := h_v.symm
+        rw [h_v_eq] at h_exp
+        rw [h_inner_d] at h_exp
+        linarith
+      exact quad_min_implies_grad_nonneg' ((1 / 2 : ℝ) * inner ℝ d (matVec M d)) (v i) h_dir
+
+    have hvx_nonpos : inner ℝ v x ≤ 0 := by
+      have h_dir : ∀ t : ℝ, -1 ≤ t → t < 0 → t^2 * ((1 / 2 : ℝ) * inner ℝ x (matVec M x)) + t * inner ℝ v x ≥ 0 := by
+        intro t ht1 ht2
+        have hy_nonneg := nonnegative_add_t_self x hx_nonneg t ht1
+        have h_Leval := h_eval (x + t • x) hy_nonneg
+        have h_exp := quadratic_expansion_eval M q x x t hM_symm
+        dsimp [L] at h_Leval
+        have h_v_eq : matVec M x + q = v := h_v.symm
+        rw [h_v_eq] at h_exp
+        linarith
+      exact quad_min_implies_grad_nonpos' ((1 / 2 : ℝ) * inner ℝ x (matVec M x)) (inner ℝ v x) h_dir
+
+    have hvx_nonneg : inner ℝ v x ≥ 0 := by
+      have h_dir : ∀ t : ℝ, 0 < t → t ≤ 1 → t^2 * ((1 / 2 : ℝ) * inner ℝ x (matVec M x)) + t * inner ℝ v x ≥ 0 := by
+        intro t ht1 ht2
+        have hy_nonneg := nonnegative_add_t_self x hx_nonneg t (by linarith)
+        have h_Leval := h_eval (x + t • x) hy_nonneg
+        have h_exp := quadratic_expansion_eval M q x x t hM_symm
+        dsimp [L] at h_Leval
+        have h_v_eq : matVec M x + q = v := h_v.symm
+        rw [h_v_eq] at h_exp
+        linarith
+      exact quad_min_implies_grad_nonneg' ((1 / 2 : ℝ) * inner ℝ x (matVec M x)) (inner ℝ v x) h_dir
+
+    have hvx_zero : inner ℝ v x = 0 := by linarith
+    have hv_eq_lcp : v = lcpQ r lambda μ + matVec M x := by
+      rw [h_v]
+      exact add_comm (matVec M x) (lcpQ r lambda μ)
+    exact ⟨hv_eq_lcp, hv_nonneg, hx_nonneg, hvx_zero⟩
+  · intro ⟨v, hv_eq, hv_nonneg, hx_nonneg, hvx_zero⟩
+    refine ⟨hx_nonneg, ?_⟩
+    intro y hy
+    have h_f_y : f y = L y := positiveLassoObjective_eq M r lambda μ y hy
+    have h_f_x : f x = L x := positiveLassoObjective_eq M r lambda μ x hx_nonneg
+    change f x ≤ f y
+    rw [h_f_x, h_f_y]
+    have h_exp := quadratic_expansion M q x y hM_symm
+    have h_v_sub : inner ℝ v (y - x) ≥ 0 := by
+      have h_sub : inner ℝ v (y - x) = inner ℝ v y - inner ℝ v x := inner_sub_right v y x
+      have h_sum : inner ℝ v y = ∑ i : ι, v.ofLp i * y.ofLp i := by
+        rw [PiLp.inner_apply]
+        apply Finset.sum_congr rfl
+        intro i _
+        simp only [Real.inner_apply]
+      rw [h_sub, hvx_zero, sub_zero, h_sum]
+      apply Finset.sum_nonneg
+      intro i _
+      exact mul_nonneg (hv_nonneg i) (hy i)
+    have h_psd_eval : (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := by
+      have : inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := hM_psd (y - x)
+      linarith
+    have h_L_sub : L y - L x = (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) + inner ℝ v (y - x) := by
+      dsimp [L]
+      have : v = matVec M x + q := by
+        rw [hv_eq]
+        exact add_comm (lcpQ r lambda μ) (matVec M x)
+      rw [this]
+      exact h_exp
+    linarith
 
 /-- The parametric LCP (Eq 4.11 in docs/Lasso.md).
 Defined for `w(μ) = μ v(μ)` and `z(μ) = μ x(μ)`. -/
