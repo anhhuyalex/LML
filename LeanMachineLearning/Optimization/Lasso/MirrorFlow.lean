@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Lasso.Dynamic
+public import LeanMachineLearning.Optimization.Lasso.LCP
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Prod
 public import Mathlib.Analysis.Calculus.Deriv.Mul
@@ -1226,6 +1227,219 @@ theorem bregman_projection_characterization
   have hzero : entropyBregman y (posEffectiveParameter u t) = 0 := by linarith [h3pt]
   exact (entropyBregman_eq_zero_iff y (posEffectiveParameter u t) hy_nonneg hx_pos).1 hzero
 
+-- Splits `x * log(x/y)` even when `x = 0` (both sides vanish, matching the
+-- `0 log 0 = 0` convention from `docs/Lasso.md`).
+private lemma mul_log_div_eq (x y : ℝ) (hy : y ≠ 0) :
+    x * Real.log (x / y) = x * Real.log x - x * Real.log y := by
+  rcases eq_or_ne x 0 with hx0 | hx0
+  · simp [hx0]
+  · rw [Real.log_div hx0 hy]; ring
+
+-- Algebraic expansion of `4 * D(x', ε α²)` used to bound the Bregman
+-- projection in Lemma 4.5.  Writing `L = -log ε`, this is Eq. (4.8) from
+-- `docs/Lasso.md` before the coordinatewise bounds are applied.
+private lemma entropyBregman_scaled_four_eq
+    (α x' : EuclideanSpace ℝ ι) (hα : NonzeroCoordinates α) (ε : ℝ) (hε : 0 < ε) :
+    4 * entropyBregman x' (ε • coordinateSquare α) =
+      (∑ i, (x' i * Real.log (x' i) - x' i))
+        + (-Real.log ε) * (∑ i, x' i)
+        - (∑ i, x' i * Real.log (α i * α i))
+        + ε * (∑ i, α i * α i) := by
+  have hshape : entropyBregman x' (ε • coordinateSquare α) =
+      (1 / 4 : ℝ) * ∑ i, (x' i * Real.log (x' i / (ε * (α i * α i))) - x' i + ε * (α i * α i)) :=
+    rfl
+  rw [hshape]
+  have hpt : ∀ i,
+      x' i * Real.log (x' i / (ε * (α i * α i))) - x' i + ε * (α i * α i) =
+      (x' i * Real.log (x' i) - x' i) + (-Real.log ε) * x' i - x' i * Real.log (α i * α i) +
+        ε * (α i * α i) := by
+    intro i
+    have hy : ε * (α i * α i) ≠ 0 := mul_ne_zero hε.ne' (mul_ne_zero (hα i) (hα i))
+    rw [mul_log_div_eq (x' i) (ε * (α i * α i)) hy,
+      Real.log_mul hε.ne' (mul_ne_zero (hα i) (hα i))]
+    ring
+  rw [Finset.sum_congr rfl (fun i _ => hpt i)]
+  rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, Finset.sum_add_distrib]
+  simp only [← Finset.mul_sum]
+  ring
+
+-- `t - 1 ≤ t * log t` for `t ≥ 0`, reusing Mathlib's KL-generator nonnegativity
+-- (`InformationTheory.klFun t = t * log t + 1 - t ≥ 0`) rather than reproving
+-- the boundedness of `t ↦ t log t` from scratch.
+private lemma mul_log_sub_one_le (t : ℝ) (ht : 0 ≤ t) : t - 1 ≤ t * Real.log t := by
+  have h := InformationTheory.klFun_nonneg ht
+  dsimp [InformationTheory.klFun] at h
+  linarith
+
+-- `t * log t ≤ t ^ 2` for `t ≥ 0`, from the standard bound `log t ≤ t - 1`.
+private lemma mul_log_le_sq (t : ℝ) (ht : 0 ≤ t) : t * Real.log t ≤ t ^ 2 := by
+  rcases ht.eq_or_lt with h0 | h0
+  · simp [← h0]
+  · have hlog : Real.log t ≤ t - 1 := Real.log_le_sub_one_of_pos h0
+    nlinarith [h0.le]
+
+-- `‖x‖ ≤ ∑ᵢ xᵢ` for nonnegative `x`: the ℓ² norm is dominated by the ℓ¹ norm
+-- (= the sum, since `x ≥ 0`) coordinatewise.
+private lemma norm_le_sum_of_nonneg (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
+    ‖x‖ ≤ ∑ i, x i := by
+  have hsq : ‖x‖ ^ 2 ≤ (∑ i, x i) ^ 2 := by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    have hterm : ∀ i, x.ofLp i ^ 2 ≤ x.ofLp i * ∑ j, x j := by
+      intro i
+      have hle : x i ≤ ∑ j, x j := Finset.single_le_sum (fun j _ => hx j) (Finset.mem_univ i)
+      have hxi : (0 : ℝ) ≤ x.ofLp i := hx i
+      calc x.ofLp i ^ 2 = x.ofLp i * x.ofLp i := sq (x.ofLp i)
+        _ ≤ x.ofLp i * ∑ j, x j := mul_le_mul_of_nonneg_left hle hxi
+    calc ∑ i, x.ofLp i ^ 2 ≤ ∑ i, x.ofLp i * ∑ j, x j := Finset.sum_le_sum (fun i _ => hterm i)
+      _ = (∑ i, x.ofLp i) * (∑ j, x j) := by rw [← Finset.sum_mul]
+      _ = (∑ i, x i) ^ 2 := (sq _).symm
+  have hnn1 : 0 ≤ ‖x‖ := norm_nonneg x
+  have hnn2 : 0 ≤ ∑ i, x i := Finset.sum_nonneg (fun i _ => hx i)
+  have := Real.sqrt_le_sqrt hsq
+  rwa [Real.sqrt_sq hnn1, Real.sqrt_sq hnn2] at this
+
+private lemma sum_eq_inner_ones (x : EuclideanSpace ℝ ι) :
+    (∑ i, x i) = inner ℝ (ones : EuclideanSpace ℝ ι) x := by
+  dsimp [ones, euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp
+
+/-- The fixed "log-scale" vector `ℓᵢ = log(αᵢ²)` used to compare `D(·, εα²)` to `‖·‖`
+via Cauchy–Schwarz. -/
+private noncomputable def alphaLogSq (α : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι :=
+  euclideanOf (fun i => Real.log (α i * α i))
+
+private lemma inner_eq_sum_mul_alphaLogSq (α x' : EuclideanSpace ℝ ι) :
+    (∑ i, x' i * Real.log (α i * α i)) = inner ℝ x' (alphaLogSq α) := by
+  dsimp [alphaLogSq, euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp
+  ring
+
+/--
+Lower half of Eq. (4.8) from `docs/Lasso.md`, stated with `L = -log ε` in place
+of `log(1/ε)` and with the Euclidean norm `‖x'‖` in place of `‖x'‖₁` (valid
+since `‖x'‖ ≤ ‖x'‖₁ = ∑ x'ᵢ` for `x' ≥ 0`, `norm_le_sum_of_nonneg`).  Requires
+`log ε ≤ -1` (i.e. `ε ≤ 1/e`) so that the coefficient of `∑ x'ᵢ` is nonnegative.
+-/
+private lemma entropyBregman_scaled_lower_bound
+    (α x' : EuclideanSpace ℝ ι) (hα : NonzeroCoordinates α) (hx' : Nonnegative x')
+    (ε : ℝ) (hε0 : 0 < ε) (hε1 : Real.log ε ≤ -1) :
+    ((-Real.log ε - ‖alphaLogSq α‖) * ‖x'‖ - Fintype.card ι) ≤
+      4 * entropyBregman x' (ε • coordinateSquare α) := by
+  rw [entropyBregman_scaled_four_eq α x' hα ε hε0]
+  have h1 : (-(Fintype.card ι : ℝ)) ≤ ∑ i, (x' i * Real.log (x' i) - x' i) := by
+    have hb : ∀ i ∈ (Finset.univ : Finset ι), (-1 : ℝ) ≤ x' i * Real.log (x' i) - x' i :=
+      fun i _ => by linarith [mul_log_sub_one_le (x' i) (hx' i)]
+    calc (-(Fintype.card ι : ℝ)) = ∑ _i : ι, (-1 : ℝ) := by simp
+      _ ≤ ∑ i, (x' i * Real.log (x' i) - x' i) := Finset.sum_le_sum hb
+  have h2 : - ‖alphaLogSq α‖ * ‖x'‖ ≤ - (∑ i, x' i * Real.log (α i * α i)) := by
+    have hCS : ∑ i, x' i * Real.log (α i * α i) ≤ ‖x'‖ * ‖alphaLogSq α‖ := by
+      rw [inner_eq_sum_mul_alphaLogSq]; exact real_inner_le_norm x' (alphaLogSq α)
+    nlinarith [hCS]
+  have h3 : (-Real.log ε) * ‖x'‖ ≤ (-Real.log ε) * (∑ i, x' i) :=
+    mul_le_mul_of_nonneg_left (norm_le_sum_of_nonneg x' hx') (by linarith)
+  have hε2 : (0 : ℝ) ≤ ε * ∑ i, α i * α i :=
+    mul_nonneg hε0.le (Finset.sum_nonneg (fun i _ => mul_self_nonneg _))
+  linarith [h1, h2, h3, hε2]
+
+/--
+Upper half of Eq. (4.8) from `docs/Lasso.md`, in the same `L = -log ε` /
+Euclidean-norm normalization as `entropyBregman_scaled_lower_bound`.  Requires
+only `ε ≤ 1` (so `L ≥ 0`).
+-/
+private lemma entropyBregman_scaled_upper_bound
+    (α x' : EuclideanSpace ℝ ι) (hα : NonzeroCoordinates α) (hx' : Nonnegative x')
+    (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε ≤ 1) :
+    4 * entropyBregman x' (ε • coordinateSquare α) ≤
+      ‖x'‖ ^ 2 + (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖x'‖ +
+        ‖x'‖ * ‖alphaLogSq α‖ + ‖α‖ ^ 2 := by
+  rw [entropyBregman_scaled_four_eq α x' hα ε hε0]
+  have hlogε0 : Real.log ε ≤ 0 := (Real.log_nonpos_iff hε0.le).mpr hε1
+  have h1 : ∑ i, (x' i * Real.log (x' i) - x' i) ≤ ‖x'‖ ^ 2 := by
+    have hb : ∀ i ∈ (Finset.univ : Finset ι), x' i * Real.log (x' i) - x' i ≤ x' i ^ 2 := by
+      intro i _
+      have := mul_log_le_sq (x' i) (hx' i)
+      linarith [hx' i]
+    calc ∑ i, (x' i * Real.log (x' i) - x' i) ≤ ∑ i, x' i ^ 2 := Finset.sum_le_sum hb
+      _ = ‖x'‖ ^ 2 := (EuclideanSpace.real_norm_sq_eq x').symm
+  have h2 : (-Real.log ε) * (∑ i, x' i) ≤ (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖x'‖ := by
+    have hCS : (∑ i, x' i) ≤ ‖(ones : EuclideanSpace ℝ ι)‖ * ‖x'‖ := by
+      rw [sum_eq_inner_ones]; exact real_inner_le_norm ones x'
+    have := mul_le_mul_of_nonneg_left hCS (by linarith : (0 : ℝ) ≤ -Real.log ε)
+    linarith [this]
+  have h3 : - (∑ i, x' i * Real.log (α i * α i)) ≤ ‖x'‖ * ‖alphaLogSq α‖ := by
+    rw [inner_eq_sum_mul_alphaLogSq]
+    exact (neg_le_abs _).trans (abs_real_inner_le_norm x' (alphaLogSq α))
+  have h4 : ε * (∑ i, α i * α i) ≤ ‖α‖ ^ 2 := by
+    have hSnn : (0 : ℝ) ≤ ∑ i, α i * α i := Finset.sum_nonneg (fun i _ => mul_self_nonneg _)
+    have hSeq : (∑ i, α i * α i) = ‖α‖ ^ 2 := by
+      rw [EuclideanSpace.real_norm_sq_eq]
+      apply Finset.sum_congr rfl
+      intro i _
+      ring
+    nlinarith [hSeq, hSnn, hε1]
+  linarith [h1, h2, h3, h4]
+
+-- Evaluating a finite sum of `EuclideanSpace` vectors coordinatewise.
+private lemma sum_apply_euclidean (f : ι → EuclideanSpace ℝ ι) (j : ι) :
+    (∑ i, f i) j = ∑ i, (f i) j := by
+  simp
+
+/-- The `j`-th column of `M`, as a Euclidean vector. -/
+private noncomputable def matVecColumn (M : Matrix ι ι ℝ) (j : ι) : EuclideanSpace ℝ ι :=
+  euclideanOf (fun k => M k j)
+
+omit [Fintype ι] in
+private lemma matVecColumn_apply (M : Matrix ι ι ℝ) (j k : ι) :
+    matVecColumn M j k = M k j := rfl
+
+-- `matVec M` applied to a vector `u` agrees with the conic combination of the columns
+-- of `M` weighted by the coordinates of `u`; the bridge needed to view `InCone (columns
+-- of M) y` as `∃ u ≥ 0, matVec M u = y` for `Lemma 4.7` (`nonnegative_solution_norm_bound`).
+private lemma sum_smul_matVecColumn (M : Matrix ι ι ℝ) (u : EuclideanSpace ℝ ι) :
+    (∑ j, u j • matVecColumn M j) = matVec M u := by
+  ext k
+  rw [sum_apply_euclidean]
+  have hshape : (matVec M u) k = ∑ j, M k j * u j := rfl
+  rw [hshape]
+  have hpt : ∀ j, (u j • matVecColumn M j) k = M k j * u j := by
+    intro j
+    change u j * matVecColumn M j k = M k j * u j
+    rw [matVecColumn_apply]
+    ring
+  rw [Finset.sum_congr rfl (fun j _ => hpt j)]
+
+/--
+Lemma 4.7 from `docs/Lasso.md`, specialized to the columns of `M`: every
+nonnegative-feasible `y = M u` (`u ≥ 0`) has a nonnegative-feasible witness
+`β` whose norm is controlled by `‖y‖`, uniformly in `y`.
+
+This packages `nonnegative_solution_norm_bound` from `LeanMachineLearning.Optimization.Lasso.LCP`
+(the conic-Carathéodory-based proof of Lemma 4.7) against the column family
+`a j = matVecColumn M j`, using `sum_smul_matVecColumn` to identify conic
+combinations of columns with `matVec M`.
+-/
+private lemma feasible_norm_controlled_solution (M : Matrix ι ι ℝ) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ y : EuclideanSpace ℝ ι, (∃ u : EuclideanSpace ℝ ι, Nonnegative u ∧ matVec M u = y) →
+        ∃ β : EuclideanSpace ℝ ι, Nonnegative β ∧ matVec M β = y ∧ ‖β‖ ≤ C * ‖y‖ := by
+  set a : ι → EuclideanSpace ℝ ι := matVecColumn M with ha
+  obtain ⟨C, hC0, hCbound⟩ := nonnegative_solution_norm_bound a
+  refine ⟨C, hC0, ?_⟩
+  rintro y ⟨u, hu_nonneg, hu_eq⟩
+  have hy_cone : InCone a y := ⟨u, hu_nonneg, by rw [ha]; exact hu_eq ▸ sum_smul_matVecColumn M u⟩
+  obtain ⟨x, hx_nonneg, hx_sum, hx_norm⟩ := hCbound y hy_cone
+  refine ⟨euclideanOf x, fun i => hx_nonneg i, ?_, hx_norm⟩
+  rw [← hx_sum, ha, ← sum_smul_matVecColumn M (euclideanOf x)]
+  rfl
+
 /--
 Lemma 4.5 from `docs/Lasso.md`: Bregman projections on nonnegative affine
 fibers have a norm bound polynomial in the fiber value.
@@ -1235,6 +1449,14 @@ Bregman objective at its minimizer with a minimum-norm feasible nonnegative
 solution supplied by Lemma 4.7.  The coordinate expression for the Bregman
 divergence is sandwiched between a linear lower bound and a quadratic upper
 bound in `‖x‖`, uniformly for small `ε`.
+
+Note on hypotheses: as in `bregman_projection_characterization`, `IsMinOn f s x`
+alone does not imply `x ∈ s`, so the minimality hypothesis alone cannot pin down
+`Nonnegative x` (e.g. `x = ε • coordinateSquare α` trivially satisfies `IsMinOn`
+against any `s` on which `entropyBregman` is nonnegative, since it makes the
+divergence itself vanish). We therefore add `Nonnegative x` explicitly; at every
+call site (`pos_trajectory_uniform_bound` below) this holds automatically via
+`posEffectiveParameter_nonnegative`.
 -/
 theorem bregman_projection_fiber_norm_bound
     (M : Matrix ι ι ℝ) (α : EuclideanSpace ℝ ι) (hα : NonzeroCoordinates α) :
@@ -1242,13 +1464,96 @@ theorem bregman_projection_fiber_norm_bound
       ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ →
         ∀ y : EuclideanSpace ℝ ι,
           (∃ u : EuclideanSpace ℝ ι, Nonnegative u ∧ matVec M u = y) →
-          ∀ x : EuclideanSpace ℝ ι,
+          ∀ x : EuclideanSpace ℝ ι, Nonnegative x →
             IsMinOn
               (fun z => entropyBregman z (ε • coordinateSquare α))
               {z | Nonnegative z ∧ matVec M z = y}
               x →
             ‖x‖ ≤ C * (1 + ‖y‖ ^ 2) := by
-  sorry
+  obtain ⟨C₀, hC₀0, hC₀⟩ := feasible_norm_controlled_solution M
+  set ℓ := alphaLogSq α with hℓdef
+  set K : ℝ := ‖ℓ‖ + (‖ℓ‖ + 1) * ‖(ones : EuclideanSpace ℝ ι)‖ with hKdef
+  have hK0 : 0 ≤ K := by positivity
+  refine ⟨(Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1,
+    Real.exp (-(‖ℓ‖ + 1)), by positivity, Real.exp_pos _, ?_⟩
+  intro ε hε0 hεε₀ y ⟨u, hu_nonneg, hu_eq⟩ x hx_nonneg hx_min
+  obtain ⟨β, hβ_nonneg, hβ_eq, hβ_norm⟩ := hC₀ y ⟨u, hu_nonneg, hu_eq⟩
+  have hL_ge : (‖ℓ‖ + 1 : ℝ) ≤ -Real.log ε := by
+    have hlog_le : Real.log ε ≤ Real.log (Real.exp (-(‖ℓ‖ + 1))) :=
+      Real.log_le_log hε0 hεε₀
+    rwa [Real.log_exp, le_neg] at hlog_le
+  have hε1 : ε ≤ 1 := by
+    have hexp_le_one : Real.exp (-(‖ℓ‖ + 1)) ≤ 1 :=
+      Real.exp_le_one_iff.mpr (by linarith [norm_nonneg ℓ])
+    linarith [hεε₀, hexp_le_one]
+  have hlogε_le : Real.log ε ≤ -1 := by nlinarith [norm_nonneg ℓ, hL_ge]
+  have hx_beta : entropyBregman x (ε • coordinateSquare α) ≤
+      entropyBregman β (ε • coordinateSquare α) :=
+    hx_min ⟨hβ_nonneg, hβ_eq⟩
+  have hlow := entropyBregman_scaled_lower_bound α x hα hx_nonneg ε hε0 hlogε_le
+  have hup := entropyBregman_scaled_upper_bound α β hα hβ_nonneg ε hε0 hε1
+  have hcombine : (-Real.log ε - ‖ℓ‖) * ‖x‖ - (Fintype.card ι : ℝ) ≤
+      ‖β‖ ^ 2 + (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ * ‖ℓ‖ + ‖α‖ ^ 2 := by
+    linarith [hlow, hup, hx_beta]
+  have hLm1 : (0 : ℝ) ≤ -Real.log ε - ‖ℓ‖ - 1 := by linarith [hL_ge]
+  have hpos : (0 : ℝ) < -Real.log ε - ‖ℓ‖ := by linarith [hLm1]
+  have hstep : (-Real.log ε - ‖ℓ‖) * ‖x‖ ≤
+      (-Real.log ε - ‖ℓ‖) * ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + ‖β‖ ^ 2 + K * ‖β‖) := by
+    have hterm1 : (Fintype.card ι : ℝ) ≤
+        (-Real.log ε - ‖ℓ‖) * (Fintype.card ι : ℝ) :=
+      le_mul_of_one_le_left (Nat.cast_nonneg _) (by linarith [hLm1])
+    have hterm2 : ‖α‖ ^ 2 ≤ (-Real.log ε - ‖ℓ‖) * ‖α‖ ^ 2 :=
+      le_mul_of_one_le_left (sq_nonneg _) (by linarith [hLm1])
+    have hterm3 : ‖β‖ ^ 2 ≤ (-Real.log ε - ‖ℓ‖) * ‖β‖ ^ 2 :=
+      le_mul_of_one_le_left (sq_nonneg _) (by linarith [hLm1])
+    have hterm4 : ‖β‖ * ‖ℓ‖ + (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ ≤
+        (-Real.log ε - ‖ℓ‖) * (K * ‖β‖) := by
+      have hratio : -Real.log ε ≤ (‖ℓ‖ + 1) * (-Real.log ε - ‖ℓ‖) := by
+        nlinarith [hLm1, norm_nonneg ℓ]
+      have hones_nonneg : (0 : ℝ) ≤ ‖(ones : EuclideanSpace ℝ ι)‖ := norm_nonneg _
+      have hβ0 : (0 : ℝ) ≤ ‖β‖ := norm_nonneg _
+      nlinarith [mul_le_mul_of_nonneg_right hratio (mul_nonneg hones_nonneg hβ0),
+        mul_nonneg (norm_nonneg ℓ) hLm1, hβ0]
+    nlinarith [hterm1, hterm2, hterm3, hterm4]
+  have hxle : ‖x‖ ≤ (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + ‖β‖ ^ 2 + K * ‖β‖ :=
+    le_of_mul_le_mul_left (hstep.trans (by linarith [hcombine])) hpos
+  have hβsq : ‖β‖ ^ 2 ≤ C₀ ^ 2 * ‖y‖ ^ 2 := by
+    have hβ0 : (0 : ℝ) ≤ ‖β‖ := norm_nonneg β
+    have hCy0 : (0 : ℝ) ≤ C₀ * ‖y‖ := mul_nonneg hC₀0 (norm_nonneg y)
+    calc ‖β‖ ^ 2 ≤ (C₀ * ‖y‖) ^ 2 := by nlinarith [hβ_norm, hβ0, hCy0]
+      _ = C₀ ^ 2 * ‖y‖ ^ 2 := by ring
+  have hβK : K * ‖β‖ ≤ K * C₀ * ‖y‖ :=
+    mul_le_mul_of_nonneg_left hβ_norm hK0 |>.trans_eq (by ring)
+  have hamgm : ‖y‖ ≤ (1 + ‖y‖ ^ 2) / 2 := by nlinarith [sq_nonneg (‖y‖ - 1)]
+  have hKC₀y : K * C₀ * ‖y‖ ≤ K * C₀ * ((1 + ‖y‖ ^ 2) / 2) :=
+    mul_le_mul_of_nonneg_left hamgm (mul_nonneg hK0 hC₀0)
+  have hy20 : (0 : ℝ) ≤ ‖y‖ ^ 2 := sq_nonneg _
+  have hKC₀0 : (0 : ℝ) ≤ K * C₀ := mul_nonneg hK0 hC₀0
+  have hC₀sq0 : (0 : ℝ) ≤ C₀ ^ 2 := sq_nonneg C₀
+  have hcard0 : (0 : ℝ) ≤ (Fintype.card ι : ℝ) := Nat.cast_nonneg _
+  have hαsq0 : (0 : ℝ) ≤ ‖α‖ ^ 2 := sq_nonneg _
+  have hleft : (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ / 2 ≤
+      (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1 := by linarith
+  have hright : C₀ ^ 2 + K * C₀ / 2 ≤ (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1 := by
+    linarith
+  have hfinal :
+      ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ / 2) +
+          (C₀ ^ 2 + K * C₀ / 2) * ‖y‖ ^ 2 ≤
+        ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1) * (1 + ‖y‖ ^ 2) := by
+    have := add_le_add hleft (mul_le_mul_of_nonneg_right hright hy20)
+    calc
+      ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ / 2) + (C₀ ^ 2 + K * C₀ / 2) * ‖y‖ ^ 2 ≤
+          ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1) +
+            ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1) * ‖y‖ ^ 2 := this
+      _ = ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1) * (1 + ‖y‖ ^ 2) := by ring
+  calc ‖x‖ ≤ (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + ‖β‖ ^ 2 + K * ‖β‖ := hxle
+    _ ≤ (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + C₀ ^ 2 * ‖y‖ ^ 2 + K * C₀ * ‖y‖ := by
+        linarith [hβsq, hβK]
+    _ ≤ (Fintype.card ι : ℝ) + ‖α‖ ^ 2 + C₀ ^ 2 * ‖y‖ ^ 2 + K * C₀ * ((1 + ‖y‖ ^ 2) / 2) := by
+        linarith [hKC₀y]
+    _ = ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ / 2) + (C₀ ^ 2 + K * C₀ / 2) * ‖y‖ ^ 2 := by
+        ring
+    _ ≤ ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1) * (1 + ‖y‖ ^ 2) := hfinal
 
 /--
 Proposition 4.1 from `docs/Lasso.md`: the positive effective trajectories are
@@ -1263,11 +1568,113 @@ theorem pos_trajectory_uniform_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (α : EuclideanSpace ℝ ι) (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hα : NonzeroCoordinates α)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε)) :
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε))
+    (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0) :
     ∃ C ε₀ : ℝ, 0 < C ∧ 0 < ε₀ ∧
       ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ → ∀ t : ℝ,
         0 ≤ t → ‖posEffectiveParameter (u ε) t‖ ≤ C := by
-  sorry
+  rcases hdata.lambda_nonneg.eq_or_lt with hlam0 | hlampos
+  · -- `lambda = 0`: the hard case, combining Lemma 4.3 (`pos_trajectory_matVec_uniform_bound`),
+    -- Lemma 4.4 (`bregman_projection_characterization`) and Lemma 4.5
+    -- (`bregman_projection_fiber_norm_bound`) as in the proof of Prop. 4.1.
+    subst hlam0
+    obtain ⟨C₃, hC₃0, hC₃⟩ := pos_trajectory_matVec_uniform_bound M r α u hdata hα hu
+    obtain ⟨C₄, ε₀breg, hC₄0, hε₀breg0, hC₄⟩ := bregman_projection_fiber_norm_bound M α hα
+    refine ⟨C₄ * (1 + C₃ ^ 2), min ε₀breg 1, by positivity, lt_min hε₀breg0 one_pos, ?_⟩
+    intro ε hε0 hεε₀ t ht
+    have hε_breg : ε ≤ ε₀breg := hεε₀.trans (min_le_left _ _)
+    have hε1 : ε ≤ 1 := hεε₀.trans (min_le_right _ _)
+    have hchar := bregman_projection_characterization M r ε α (u ε) hdata (hu ε hε0)
+      (hu_pos ε hε0) t
+    have hzero_eq : posEffectiveParameter (u ε) 0 = ε • coordinateSquare α :=
+      posEffectiveParameter_zero_eq_smul_coordinateSquare M r 0 ε α (u ε) (hu ε hε0) hε0.le
+    rw [hzero_eq] at hchar
+    have hy_feas : ∃ w : EuclideanSpace ℝ ι, Nonnegative w ∧
+        matVec M w = matVec M (posEffectiveParameter (u ε) t) :=
+      ⟨posEffectiveParameter (u ε) t, posEffectiveParameter_nonnegative _ _, rfl⟩
+    have hbound := hC₄ ε hε0 hε_breg (matVec M (posEffectiveParameter (u ε) t)) hy_feas
+      (posEffectiveParameter (u ε) t) (posEffectiveParameter_nonnegative _ _) hchar.1
+    have hmatvec_bound := hC₃ ε hε0 hε1 t ht
+    calc ‖posEffectiveParameter (u ε) t‖ ≤
+        C₄ * (1 + ‖matVec M (posEffectiveParameter (u ε) t)‖ ^ 2) := hbound
+      _ ≤ C₄ * (1 + C₃ ^ 2) := by
+          have h1 : ‖matVec M (posEffectiveParameter (u ε) t)‖ ^ 2 ≤ C₃ ^ 2 :=
+            pow_le_pow_left₀ (norm_nonneg _) hmatvec_bound 2
+          nlinarith [hC₄0, h1]
+  · -- `lambda > 0`: the coercive case. Lemma 4.2 (`tiltedLoss_antitone_along_pos_flow`, valid
+    -- for general `lambda`) bounds `\widetilde L` along the trajectory; completing the square
+    -- (`quadraticLoss_complete_square`) bounds `ℓ` from below, so `lambda * ⟨1, x⟩` -- and
+    -- hence `‖x‖ ≤ ⟨1, x⟩` -- is controlled.
+    classical
+    obtain ⟨y, hy⟩ := hdata.r_mem_span
+    let a := coordinateSquare α
+    have ha_inner_nonneg : 0 ≤ inner ℝ (ones : EuclideanSpace ℝ ι) a := by
+      rw [← sum_eq_inner_ones]
+      exact Finset.sum_nonneg (fun i _ => mul_self_nonneg (α i))
+    let K := (1 / 2 : ℝ) * inner ℝ a (matVec M a) + |inner ℝ r a|
+    have hK0 : 0 ≤ K := add_nonneg (mul_nonneg (by norm_num) (hdata.psd.nonneg a)) (abs_nonneg _)
+    let K' := K + lambda * inner ℝ (ones : EuclideanSpace ℝ ι) a
+    have hK'0 : 0 ≤ K' := add_nonneg hK0 (mul_nonneg hlampos.le ha_inner_nonneg)
+    let K'' := K' + (1 / 2 : ℝ) * inner ℝ y (matVec M y)
+    have hK''0 : 0 ≤ K'' := add_nonneg hK'0 (mul_nonneg (by norm_num) (hdata.psd.nonneg y))
+    refine ⟨K'' / lambda + 1, 1, by linarith [div_nonneg hK''0 hlampos.le], one_pos, ?_⟩
+    intro ε hε0 hεε₀ t ht
+    have hflow := hu ε hε0
+    have hx0 : posEffectiveParameter (u ε) 0 = ε • a :=
+      posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε α (u ε) hflow hε0.le
+    have hmono := tiltedLoss_antitone_along_pos_flow M r lambda ε α (u ε) hflow
+      hdata.psd.get_symm ht
+    simp only [hx0] at hmono
+    have hquadinit : quadraticLoss M r (ε • a) ≤ K := by
+      rw [quadraticLoss_smul]
+      have haa : 0 ≤ inner ℝ a (matVec M a) := hdata.psd.nonneg a
+      have hε_sq : ε ^ 2 ≤ 1 := by nlinarith [hεε₀, hε0.le]
+      have hquad : (1 / 2 : ℝ) * ε ^ 2 * inner ℝ a (matVec M a) ≤
+          (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by nlinarith
+      have hlin₁ : ε * (-inner ℝ r a) ≤ ε * |inner ℝ r a| :=
+        mul_le_mul_of_nonneg_left (neg_le_abs _) hε0.le
+      have hlin₂ : ε * |inner ℝ r a| ≤ |inner ℝ r a| := by
+        simpa only [one_mul] using
+          mul_le_mul_of_nonneg_right hεε₀ (abs_nonneg (inner ℝ r a))
+      dsimp only [K]
+      nlinarith
+    have hones_smul : inner ℝ (ones : EuclideanSpace ℝ ι) (ε • a) =
+        ε * inner ℝ (ones : EuclideanSpace ℝ ι) a :=
+      real_inner_smul_right (ones : EuclideanSpace ℝ ι) a ε
+    have hlaminit : lambda * inner ℝ (ones : EuclideanSpace ℝ ι) (ε • a) ≤
+        lambda * inner ℝ (ones : EuclideanSpace ℝ ι) a := by
+      rw [hones_smul, ← mul_assoc]
+      exact mul_le_mul_of_nonneg_right (by nlinarith [hεε₀, hlampos.le]) ha_inner_nonneg
+    have hinit : tiltedLoss M r lambda (ε • a) ≤ K' := by
+      dsimp only [K', tiltedLoss]
+      linarith [hquadinit, hlaminit]
+    have hcs := quadraticLoss_complete_square M r (posEffectiveParameter (u ε) t) y
+      hdata.psd.get_symm hy
+    have hnn : 0 ≤ inner ℝ (posEffectiveParameter (u ε) t - y)
+        (matVec M (posEffectiveParameter (u ε) t - y)) := hdata.psd.nonneg _
+    have hqlb : -(1 / 2 : ℝ) * inner ℝ y (matVec M y) ≤
+        quadraticLoss M r (posEffectiveParameter (u ε) t) := by nlinarith [hcs, hnn]
+    have htilt_eq : tiltedLoss M r lambda (posEffectiveParameter (u ε) t) =
+        quadraticLoss M r (posEffectiveParameter (u ε) t) +
+          lambda * inner ℝ (ones : EuclideanSpace ℝ ι) (posEffectiveParameter (u ε) t) := rfl
+    have hlam_bound : lambda * inner ℝ (ones : EuclideanSpace ℝ ι)
+        (posEffectiveParameter (u ε) t) ≤ K'' := by
+      have := hmono.trans hinit
+      rw [htilt_eq] at this
+      dsimp only [K'']
+      linarith [this, hqlb]
+    have hones_bound : inner ℝ (ones : EuclideanSpace ℝ ι)
+        (posEffectiveParameter (u ε) t) ≤ K'' / lambda := by
+      rw [le_div_iff₀ hlampos]
+      nlinarith [hlam_bound]
+    have hx_nonneg : Nonnegative (posEffectiveParameter (u ε) t) :=
+      posEffectiveParameter_nonnegative (u ε) t
+    calc ‖posEffectiveParameter (u ε) t‖ ≤ ∑ i, posEffectiveParameter (u ε) t i :=
+        norm_le_sum_of_nonneg _ hx_nonneg
+      _ = inner ℝ (ones : EuclideanSpace ℝ ι) (posEffectiveParameter (u ε) t) :=
+        sum_eq_inner_ones _
+      _ ≤ K'' / lambda := hones_bound
+      _ ≤ K'' / lambda + 1 := by linarith
 
 end Lasso
 
