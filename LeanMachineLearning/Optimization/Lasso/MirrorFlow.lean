@@ -11,13 +11,13 @@ public import Mathlib.Analysis.Calculus.Deriv.Prod
 public import Mathlib.Analysis.Calculus.Deriv.Mul
 public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 
-open scoped Matrix
-
 /-!
 # Mirror Flow Interpretation of Diagonal Linear Networks
 
 This file formalizes the mirror flow interpretation of the DLN dynamics.
 -/
+
+open scoped Matrix
 
 @[expose] public section
 
@@ -268,26 +268,21 @@ private lemma posDlnObjective_taylor_remainder
   let y : EuclideanSpace ℝ ι := coordinateSquare u
   let a : EuclideanSpace ℝ ι :=
     euclideanOf fun i ↦ 2 * u i * h i + h i * h i
-
   have h_square_increment : coordinateSquare x' = y + a := by
     simpa [h, y, a] using coordinateSquare_eq_base_add_increment u x'
-
   have h_loss_expansion :
       quadraticLoss M r (y + a) - quadraticLoss M r y =
         inner ℝ (matVec M y - r) a +
           (1 / 2 : ℝ) * inner ℝ a (matVec M a) :=
     quadraticLoss_add_sub M r y a hM
-
   have h_a_decompose :
       a = (euclideanOf fun i ↦ 2 * u i * h i) + coordinateSquare h := by
     simpa [a] using square_increment_decompose u h
-
   have h_norm_expansion :
       lambda * ‖x'‖ ^ 2 - lambda * ‖u‖ ^ 2 -
           inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h =
         lambda * ‖h‖ ^ 2 := by
     simpa [h] using weight_decay_sub_increment lambda u x'
-
   have h_linear_split :
       inner ℝ
           (euclideanOf fun i ↦
@@ -295,7 +290,6 @@ private lemma posDlnObjective_taylor_remainder
         inner ℝ (matVec M y - r) (euclideanOf fun i ↦ 2 * u i * h i) +
           inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h := by
     simpa using inner_linear_split lambda u (matVec M y - r) h
-
   have h_combined :
       posDlnObjective M r lambda x' - posDlnObjective M r lambda u -
           inner ℝ
@@ -362,7 +356,6 @@ private lemma posDlnObjective_taylor_remainder
           lambda * ‖h‖ ^ 2 +
           (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
             ring
-
   simpa [h, y, a] using h_combined
 
 /--
@@ -371,7 +364,9 @@ The gradient of the positive DLN objective function.
 Informal proof reference: `docs/Lasso.md`, Section 3, Eq. (3.3).
 The objective is $L(u) = \ell(u^2) + \lambda\|u\|^2$ where
 $\ell(x) = \frac{1}{2}\langle x, Mx \rangle - \langle r, x \rangle$.
-Taking the differential, we have $d\ell(v) = \frac{1}{2}(\langle v, Mx \rangle + \langle x, Mv \rangle) - \langle r, v \rangle$.
+Taking the differential, we have
+$d\ell(v) = \frac{1}{2}(\langle v, Mx \rangle + \langle x, Mv \rangle)
+  - \langle r, v \rangle$.
 Since $M$ is assumed to be symmetric, $\langle x, Mv \rangle = \langle Mx, v \rangle$.
 Thus the gradient is $\nabla \ell(x) = Mx - r$.
 Applying the chain rule with respect to $u$, we obtain
@@ -520,12 +515,19 @@ lemma dln_is_mirror_flow
 The gradient of the tilted loss function.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.2.
-The objective function is $\widetilde{L}(x) = \frac{1}{2}\langle x, Mx \rangle - \langle r, x \rangle + \lambda \langle \mathbf{1}, x \rangle$.
+The objective function is
+$\widetilde{L}(x) = \frac{1}{2}\langle x, Mx \rangle - \langle r, x \rangle
+  + \lambda \langle \mathbf{1}, x \rangle$.
 Taking the differential in the direction $v$:
-1. For the quadratic term: $d(\frac{1}{2}\langle x, Mx \rangle)(v) = \frac{1}{2}(\langle v, Mx \rangle + \langle x, Mv \rangle)$.
+1. For the quadratic term:
+   $d(\frac{1}{2}\langle x, Mx \rangle)(v)
+     = \frac{1}{2}(\langle v, Mx \rangle + \langle x, Mv \rangle)$.
    Since $M$ is symmetric, this equals $\langle Mx, v \rangle$.
 2. For the linear term $-r$: $d(-\langle r, x \rangle)(v) = -\langle r, v \rangle$.
-3. For the linear term $\lambda \mathbf{1}$: $d(\lambda \langle \mathbf{1}, x \rangle)(v) = \lambda \langle \mathbf{1}, v \rangle = \langle \lambda \mathbf{1}, v \rangle$.
+3. For the linear term $\lambda \mathbf{1}$:
+   $d(\lambda \langle \mathbf{1}, x \rangle)(v)
+     = \lambda \langle \mathbf{1}, v \rangle
+     = \langle \lambda \mathbf{1}, v \rangle$.
 Thus, by the Riesz representation theorem, the gradient is $Mx - r + \lambda \mathbf{1}$.
 -/
 lemma isLittleO_inner_matVec
@@ -535,14 +537,18 @@ lemma isLittleO_inner_matVec
   intro c hc
   rw [Asymptotics.isBigOWith_iff]
   have h_cont : Continuous (matVec M) := by
-    have h_eq : matVec M = fun (x : EuclideanSpace ℝ ι) => ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv).symm (M.mulVec (x : ι → ℝ)) := rfl
+    have h_eq : matVec M = fun (x : EuclideanSpace ℝ ι) =>
+        ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv).symm
+          (M.mulVec (x : ι → ℝ)) := rfl
     rw [h_eq]
     apply Continuous.comp ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv).symm.continuous
     apply continuous_pi
     intro i
     apply continuous_finsetSum
     intro j _
-    exact Continuous.mul continuous_const ((continuous_apply j).comp (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous)
+    exact Continuous.mul continuous_const
+      ((continuous_apply j).comp
+        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous)
   have h_tendsto : Tendsto (fun h => ‖matVec M h‖) (nhds 0) (nhds 0) := by
     refine tendsto_norm_zero.comp ?_
     simpa [matVec, euclideanOf] using h_cont.tendsto 0
@@ -572,7 +578,8 @@ lemma hasGradientAt_tiltedLoss
       have h_M_add : matVec M (x + h) = matVec M x + matVec M h := matVec_add M x h
       rw [h_M_add]
       have h_inner_M : inner ℝ (x + h) (matVec M x + matVec M h) =
-          inner ℝ x (matVec M x) + inner ℝ x (matVec M h) + inner ℝ h (matVec M x) + inner ℝ h (matVec M h) := by
+          inner ℝ x (matVec M x) + inner ℝ x (matVec M h) +
+            inner ℝ h (matVec M x) + inner ℝ h (matVec M h) := by
         rw [inner_add_left, inner_add_right, inner_add_right]
         ring
       rw [h_inner_M]
@@ -580,7 +587,8 @@ lemma hasGradientAt_tiltedLoss
         inner_matVec_comm_of_isSymm M hM x h
       have h_inner_r : inner ℝ r (x + h) = inner ℝ r x + inner ℝ r h := inner_add_right _ _ _
       rw [h_inner_r]
-      have h_inner_ones : inner ℝ ones (x + h) = inner ℝ ones x + inner ℝ ones h := inner_add_right _ _ _
+      have h_inner_ones : inner ℝ ones (x + h) =
+          inner ℝ ones x + inner ℝ ones h := inner_add_right _ _ _
       rw [h_inner_ones]
       have h_symm : inner ℝ (matVec M x) h = inner ℝ h (matVec M x) := real_inner_comm _ _
       rw [h_cross, h_symm]
@@ -720,24 +728,102 @@ theorem tiltedLoss_antitone_along_pos_flow
   simpa only [posEffectiveParameter, tiltedLoss_coordinateSquare_eq_posDlnObjective] using
     posDlnObjective_antitone_along_pos_flow M r lambda ε α u hu hM hst
 
+/-- The effective parameter starts at `ε • α²` along a positive-DLN flow. -/
+lemma posEffectiveParameter_zero_eq_smul_coordinateSquare
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r lambda ε α u) (hε : 0 ≤ ε) :
+    posEffectiveParameter u 0 = ε • coordinateSquare α := by
+  dsimp [posEffectiveParameter]
+  rw [show u 0 = Real.sqrt ε • α from hu.init]
+  ext i
+  dsimp [coordinateSquare, euclideanOf]
+  calc
+    Real.sqrt ε * α i * (Real.sqrt ε * α i) =
+        (Real.sqrt ε * Real.sqrt ε) * (α i * α i) := by ring
+    _ = ε * (α i * α i) := by rw [Real.mul_self_sqrt hε]
+
 /--
 Lemma 4.3 from `docs/Lasso.md`: in the non-coercive case, energy decrease still
 controls the image `M xᵋ(t)`.
 
-Informal proof reference: Section 4.3, Lemma 4.3.  Let `x_*` be the minimum-norm
-minimizer of `ell`.  Since `r ∈ Span M`, the quadratic loss is bounded below
-and `‖M x‖²` is controlled by `‖M^(1/2)(x-x_*)‖²`, hence by the tilted loss
-bound from Lemma 4.2.
+Informal proof reference: Section 4.3, Lemma 4.3. Choose `y` with `M y = r`.
+Completing the square controls the quadratic form of `xᵋ(t) - y` by the
+initial energy. Semidefinite Cauchy--Schwarz, applied coordinatewise, then
+bounds `‖M (xᵋ(t) - y)‖²` by the trace of `M` times that quadratic form.
 -/
 theorem pos_trajectory_matVec_uniform_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (α : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r 0) (hα : NonzeroCoordinates α)
+    (hdata : ProblemData M r 0) (_hα : NonzeroCoordinates α)
     (hu : ∀ ε > 0, posDlnGradientFlow M r 0 ε α (u ε)) :
     ∃ C : ℝ, 0 < C ∧
       ∀ ε : ℝ, 0 < ε → ε ≤ 1 → ∀ t : ℝ,
-        ‖matVec M (posEffectiveParameter (u ε) t)‖ ≤ C := by
-  sorry
+        0 ≤ t → ‖matVec M (posEffectiveParameter (u ε) t)‖ ≤ C := by
+  classical
+  obtain ⟨y, hy⟩ := hdata.r_mem_span
+  let a := coordinateSquare α
+  let K := (1 / 2 : ℝ) * inner ℝ a (matVec M a) + |inner ℝ r a|
+  let Q := 2 * K + |inner ℝ y (matVec M y)|
+  let A := (∑ i, M i i) * Q
+  refine ⟨A + 2 + ‖r‖, ?_, ?_⟩
+  · have hK : 0 ≤ K := add_nonneg
+      (mul_nonneg (by norm_num) (hdata.psd.nonneg a)) (abs_nonneg _)
+    have hQ : 0 ≤ Q := add_nonneg (mul_nonneg (by norm_num) hK) (abs_nonneg _)
+    have hA : 0 ≤ A := mul_nonneg hdata.psd.trace_nonnegative hQ
+    positivity
+  · intro ε hε hε_one t ht
+    have hflow := hu ε hε
+    have hx0 : posEffectiveParameter (u ε) 0 = ε • a := by
+      simpa [a] using
+        posEffectiveParameter_zero_eq_smul_coordinateSquare M r 0 ε α (u ε) hflow hε.le
+    have henergy : quadraticLoss M r (posEffectiveParameter (u ε) t) ≤ K := by
+      have hmono :=
+        tiltedLoss_antitone_along_pos_flow M r 0 ε α (u ε) hflow hdata.psd.symm ht
+      have hinit : quadraticLoss M r (ε • a) ≤ K := by
+        rw [quadraticLoss_smul]
+        have haa : 0 ≤ inner ℝ a (matVec M a) := hdata.psd.nonneg a
+        have hε_sq : ε ^ 2 ≤ 1 := by nlinarith
+        have hquad :
+            (1 / 2 : ℝ) * ε ^ 2 * inner ℝ a (matVec M a) ≤
+              (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
+          nlinarith
+        have hlin₁ : ε * (-inner ℝ r a) ≤ ε * |inner ℝ r a| :=
+          mul_le_mul_of_nonneg_left (neg_le_abs _) hε.le
+        have hlin₂ : ε * |inner ℝ r a| ≤ |inner ℝ r a| := by
+          simpa only [one_mul] using
+            mul_le_mul_of_nonneg_right hε_one (abs_nonneg (inner ℝ r a))
+        dsimp [K]
+        nlinarith
+      have hmono_loss :
+          quadraticLoss M r (posEffectiveParameter (u ε) t) ≤
+            quadraticLoss M r (ε • a) := by
+        simpa [tiltedLoss, hx0] using hmono
+      exact hmono_loss.trans hinit
+    let x := posEffectiveParameter (u ε) t
+    let z := x - y
+    have hz_energy : inner ℝ z (matVec M z) ≤ Q := by
+      rw [quadraticLoss_complete_square M r x y hdata.psd.symm hy]
+      have hxy : quadraticLoss M r x ≤ K := henergy
+      dsimp [Q]
+      linarith [le_abs_self (inner ℝ y (matVec M y))]
+    have hK : 0 ≤ K := add_nonneg
+      (mul_nonneg (by norm_num) (hdata.psd.nonneg a)) (abs_nonneg _)
+    have hQ : 0 ≤ Q := add_nonneg (mul_nonneg (by norm_num) hK) (abs_nonneg _)
+    have htrace : 0 ≤ ∑ i, M i i := hdata.psd.trace_nonnegative
+    have hA : 0 ≤ A := mul_nonneg htrace hQ
+    have hz_sq : ‖matVec M z‖ ^ 2 ≤ A :=
+      (matVec_norm_sq_le_trace_mul M hdata.psd z).trans
+        (mul_le_mul_of_nonneg_left hz_energy htrace)
+    have hz_norm : ‖matVec M z‖ ≤ A + 1 := by
+      nlinarith [sq_nonneg (‖matVec M z‖ - (1 / 2 : ℝ))]
+    have hx_decomp : matVec M x = matVec M z + r := by
+      rw [show x = z + y by simp [z], matVec_add, hy]
+    calc
+      ‖matVec M (posEffectiveParameter (u ε) t)‖ = ‖matVec M z + r‖ := by
+        rw [show posEffectiveParameter (u ε) t = x from rfl, hx_decomp]
+      _ ≤ ‖matVec M z‖ + ‖r‖ := norm_add_le _ _
+      _ ≤ A + 2 + ‖r‖ := by linarith
 
 /--
 The Bregman divergence associated with the entropy mirror map is nonnegative.
@@ -816,7 +902,7 @@ theorem pos_trajectory_uniform_bound
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε)) :
     ∃ C ε₀ : ℝ, 0 < C ∧ 0 < ε₀ ∧
       ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ → ∀ t : ℝ,
-        ‖posEffectiveParameter (u ε) t‖ ≤ C := by
+        0 ≤ t → ‖posEffectiveParameter (u ε) t‖ ≤ C := by
   sorry
 
 end Lasso

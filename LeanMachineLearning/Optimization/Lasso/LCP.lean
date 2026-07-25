@@ -198,7 +198,7 @@ lemma quad_min_implies_grad_nonpos'
     exact h_eval
   linarith
 
-lemma matVec_smul (M : Matrix ι ι ℝ) (c : ℝ) (x : EuclideanSpace ℝ ι) :
+lemma matVec_smul' (M : Matrix ι ι ℝ) (c : ℝ) (x : EuclideanSpace ℝ ι) :
     matVec M (c • x) = c • matVec M x := by
   ext i
   have : c • x = euclideanOf (c • x.ofLp) := rfl
@@ -234,7 +234,7 @@ lemma quadratic_expansion_eval (M : Matrix ι ι ℝ) (q x d : EuclideanSpace �
   rw [this]
   have h_sub : (x + t • d) - x = t • d := add_sub_cancel_left x (t • d)
   rw [h_sub]
-  rw [matVec_smul]
+  rw [matVec_smul']
   rw [real_inner_smul_left, real_inner_smul_right, real_inner_smul_right]
   ring
 
@@ -370,7 +370,7 @@ lemma pos_lasso_is_lcp
       intro i _
       exact mul_nonneg (hv_nonneg i) (hy i)
     have h_psd_eval : (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := by
-      have : inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := hM_psd (y - x)
+      have : inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := IsPositiveSemidefinite.get_nonneg hM_psd (y - x)
       linarith
     have h_L_sub : L y - L x =
         (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) + inner ℝ v (y - x) := by
@@ -452,7 +452,7 @@ lemma parametric_lcp_unique_small_mu
     have h_inner_add : inner ℝ q z + inner ℝ (matVec M z) z = 0 := by
       rw [inner_add_left] at h_inner_sub
       exact h_inner_sub
-    have hz_Mz_nonneg : 0 ≤ inner ℝ z (matVec M z) := hM_psd z
+    have hz_Mz_nonneg : 0 ≤ inner ℝ z (matVec M z) := IsPositiveSemidefinite.get_nonneg hM_psd z
     have h_Mz_z_eq : inner ℝ (matVec M z) z = inner ℝ z (matVec M z) := by
       exact real_inner_comm z (matVec M z)
     rw [h_Mz_z_eq] at h_inner_add
@@ -512,7 +512,102 @@ lemma mem_cone_erase {κ : Type*} [DecidableEq κ] (a : κ → EuclideanSpace �
     (s : Finset κ) (h_dep : ¬LinearIndependent ℝ (fun i : {i // i ∈ s} => a i))
     (y : EuclideanSpace ℝ ι) (hy : InCone (fun i : {i // i ∈ s} => a i) y) :
     ∃ k : s, InCone (fun i : {i // i ∈ s.erase k} => a i) y := by
-  sorry
+  have h_dep2 := Fintype.not_linearIndependent_iff.mp h_dep
+  rcases h_dep2 with ⟨c, hc_sum, ⟨i0, hc_i0_ne_zero⟩⟩
+  have h_exists_pos : ∃ c' : {i // i ∈ s} → ℝ, (∑ i, c' i • a i) = 0 ∧ ∃ i0, c' i0 > 0 := by
+    rcases lt_trichotomy (c i0) 0 with h | h | h
+    · use fun i => - c i
+      constructor
+      · have : (∑ i, (-c i) • a i) = ∑ i, -(c i • a i) := by
+          apply Finset.sum_congr rfl
+          intro x _
+          exact neg_smul (c x) (a ↑x)
+        rw [this, Finset.sum_neg_distrib, hc_sum, neg_zero]
+      · use i0
+        linarith
+    · contradiction
+    · use c
+      exact ⟨hc_sum, ⟨i0, h⟩⟩
+  rcases h_exists_pos with ⟨c', hc'_sum, ⟨i0, hc'_i0_pos⟩⟩
+  rcases hy with ⟨t, ht_nonneg, ht_sum⟩
+  let S_pos := Finset.univ.filter (fun i : {i // i ∈ s} => c' i > 0)
+  have hS_pos_nonempty : S_pos.Nonempty := ⟨i0, by simp [S_pos, hc'_i0_pos]⟩
+  let θ_fn := fun i : {i // i ∈ s} => t i / c' i
+  obtain ⟨k, hk_in, hk_min⟩ := Finset.exists_min_image S_pos θ_fn hS_pos_nonempty
+  use k
+  let t' := fun i : {i // i ∈ s} => t i - θ_fn k * c' i
+  have ht'_nonneg : ∀ i, 0 ≤ t' i := by
+    intro i
+    dsimp [t']
+    rcases lt_trichotomy (c' i) 0 with hc'_lt | hc'_eq | hc'_gt
+    · have : θ_fn k ≥ 0 := by
+        dsimp [θ_fn]
+        apply div_nonneg (ht_nonneg k)
+        rw [Finset.mem_filter] at hk_in
+        exact le_of_lt hk_in.2
+      have : θ_fn k * c' i ≤ 0 := mul_nonpos_of_nonneg_of_nonpos this (le_of_lt hc'_lt)
+      have ht_i_nonneg := ht_nonneg i
+      linarith
+    · rw [hc'_eq, mul_zero, sub_zero]
+      exact ht_nonneg i
+    · have hi_in : i ∈ S_pos := by
+        simp [S_pos, hc'_gt]
+      have h4 : θ_fn k ≤ t i / c' i := hk_min i hi_in
+      have h5 : θ_fn k * c' i ≤ t i := (le_div_iff₀ hc'_gt).mp h4
+      exact sub_nonneg.mpr h5
+  have ht'_k_zero : t' k = 0 := by
+    dsimp [t', θ_fn]
+    have hk_gt : c' k > 0 := by
+      rw [Finset.mem_filter] at hk_in
+      exact hk_in.2
+    have h_div : (t k / c' k) * c' k = t k := div_mul_cancel₀ (t k) (ne_of_gt hk_gt)
+    exact sub_eq_zero.mpr h_div.symm
+  let t'' := fun i : {i // i ∈ s.erase (k : κ)} => t' ⟨i.val, Finset.mem_of_mem_erase i.property⟩
+  use t''
+  constructor
+  · intro i
+    exact ht'_nonneg _
+  · have h_sum_t' : (∑ i : {i // i ∈ s}, t' i • a i.val) = y := by
+      have : ∀ i, t' i • a i.val = t i • a i.val - (θ_fn k) • (c' i • a i.val) := by
+        intro i
+        dsimp [t']
+        rw [sub_smul, mul_smul]
+      have h1 : (∑ i : {i // i ∈ s}, t' i • a i.val) = ∑ i : {i // i ∈ s}, (t i • a i.val - (θ_fn k) • (c' i • a i.val)) := by
+        apply Finset.sum_congr rfl
+        intro x _
+        exact this x
+      rw [h1, Finset.sum_sub_distrib, ← Finset.smul_sum]
+      rw [hc'_sum, smul_zero, sub_zero]
+      exact ht_sum
+    have h_split : (∑ i : {i // i ∈ s}, t' i • a i.val) = t' k • a k.val + ∑ i ∈ Finset.univ.erase k, t' i • a i.val := by
+      have := Finset.sum_erase_add (Finset.univ : Finset {i // i ∈ s}) (fun i => t' i • a i.val) (Finset.mem_univ k)
+      rw [←this]
+      exact add_comm _ _
+    have h_split2 : (∑ i : {i // i ∈ s}, t' i • a i.val) = ∑ i ∈ Finset.univ.erase k, t' i • a i.val := by
+      rw [h_split, ht'_k_zero, zero_smul, zero_add]
+    let e : {i // i ∈ s.erase (k : κ)} ≃ ((Finset.univ : Finset {i // i ∈ s}).erase k) := {
+      toFun := fun i => ⟨⟨i.val, Finset.mem_of_mem_erase i.property⟩, by
+        rw [Finset.mem_erase]
+        have h1 := Finset.mem_erase.mp i.property
+        refine ⟨?_, Finset.mem_univ _⟩
+        intro h_eq
+        apply h1.1
+        exact Subtype.ext_iff.mp h_eq ⟩
+      invFun := fun i => ⟨i.val.val, by
+        rw [Finset.mem_erase]
+        have h1 := Finset.mem_erase.mp i.property
+        have hk_ne : i.val.val ≠ k.val := fun h_eq => h1.1 (Subtype.ext h_eq)
+        exact ⟨hk_ne, i.val.property⟩ ⟩
+      left_inv := fun i => by rfl
+      right_inv := fun i => by rfl
+    }
+    have h_eq_sum : (∑ i : {i // i ∈ s.erase (k : κ)}, t'' i • a i.val) = ∑ i ∈ Finset.univ.erase k, t' i • a i.val := by
+      have : (∑ i ∈ Finset.univ.erase k, t' i • a i.val) = ∑ i : ((Finset.univ : Finset {i // i ∈ s}).erase k), t' i.val • a i.val.val := by
+        exact (Finset.sum_attach ((Finset.univ : Finset {i // i ∈ s}).erase k) (fun i => t' i • a i.val)).symm
+      rw [this]
+      exact Equiv.sum_comp e (fun i => t' i.val • a i.val.val)
+    rw [h_eq_sum, ← h_split2]
+    exact h_sum_t'
 
 omit [Fintype ι] in
 /--
@@ -528,7 +623,33 @@ lemma minCardFinsetOfMemCone {κ : Type*} [Fintype κ] (a : κ → EuclideanSpac
     (y : EuclideanSpace ℝ ι) (hy : InCone a y) :
     ∃ s : Finset κ, InCone (fun i : {i // i ∈ s} => a i) y ∧
       ∀ s' : Finset κ, InCone (fun i : {i // i ∈ s'} => a i) y → s.card ≤ s'.card := by
-  sorry
+  let P := fun s : Finset κ => InCone (fun i : {i // i ∈ s} => a i) y
+  haveI : DecidablePred P := fun s => Classical.propDecidable (P s)
+  let S := Finset.filter P Finset.univ
+  have hS_nonempty : S.Nonempty := by
+    use Finset.univ
+    simp only [S, Finset.mem_filter, Finset.mem_univ, true_and]
+    rcases hy with ⟨coeff, hcoeff_nonneg, hcoeff_sum⟩
+    use fun i => coeff i.val
+    constructor
+    · intro i
+      exact hcoeff_nonneg i.val
+    · let e : {i // i ∈ (Finset.univ : Finset κ)} ≃ κ :=
+        Equiv.subtypeUnivEquiv fun i => Finset.mem_univ i
+      have h_eq : (∑ i : {i // i ∈ (Finset.univ : Finset κ)}, coeff i.val • a i.val) = ∑ i : κ, coeff (e.symm i).val • a (e.symm i).val := by
+        exact (Equiv.sum_comp e.symm (fun i => coeff i • a i)).symm
+      have h_eq2 : (∑ i : κ, coeff (e.symm i).val • a (e.symm i).val) = ∑ i : κ, coeff i • a i := by congr
+      rw [h_eq, h_eq2]
+      exact hcoeff_sum
+  obtain ⟨s, hs_in, hs_min⟩ := Finset.exists_min_image S Finset.card hS_nonempty
+  use s
+  rw [Finset.mem_filter] at hs_in
+  refine ⟨hs_in.2, ?_⟩
+  intro s' hs'_in
+  have hs'_in_S : s' ∈ S := by
+    rw [Finset.mem_filter]
+    exact ⟨Finset.mem_univ s', hs'_in⟩
+  exact hs_min s' hs'_in_S
 
 omit [Fintype ι] in
 /--
@@ -543,7 +664,15 @@ lemma linearIndependent_of_minCardFinsetOfMemCone {κ : Type*}
     (h_in : InCone (fun i : {i // i ∈ s} => a i) y)
     (h_min : ∀ s' : Finset κ, InCone (fun i : {i // i ∈ s'} => a i) y → s.card ≤ s'.card) :
     LinearIndependent ℝ (fun i : {i // i ∈ s} => a i) := by
-  sorry
+  haveI : DecidableEq κ := Classical.decEq κ
+  by_contra h_dep
+  have h_exists := mem_cone_erase a s h_dep y h_in
+  rcases h_exists with ⟨k, hk_in⟩
+  have h_le := h_min (s.erase k.val) hk_in
+  have h_lt : (s.erase k.val).card < s.card := by
+    apply Finset.card_erase_lt_of_mem
+    exact k.property
+  linarith
 
 /--
 The dimension of Euclidean space is bounded by the cardinality of its index set.
@@ -551,7 +680,7 @@ Informal proof: EuclideanSpace is isomorphic to ℝ^ι, which has dimension |ι|
 Source: Basic linear algebra.
 -/
 lemma euclideanSpace_finrank_le : Module.finrank ℝ (EuclideanSpace ℝ ι) ≤ Fintype.card ι := by
-  sorry
+  exact le_of_eq finrank_euclideanSpace
 
 /--
 Theorem 4.6 from `docs/Lasso.md` (conic Caratheodory theorem).
@@ -570,6 +699,7 @@ theorem conic_caratheodory
       s.card ≤ Fintype.card ι ∧
       LinearIndependent ℝ (fun i : {i // i ∈ s} => a i) ∧
       InCone (fun i : {i // i ∈ s} => a i) y := by
+  haveI : DecidableEq κ := Classical.decEq κ
   obtain ⟨s, hs_in, hs_min⟩ := minCardFinsetOfMemCone a y hy
   have h_ind := linearIndependent_of_minCardFinsetOfMemCone a y hs_in hs_min
   use s
@@ -592,6 +722,15 @@ lemma linearIndependent_coefficient_bound {κ : Type*} (a : κ → EuclideanSpac
     (s : Finset κ) (h_ind : LinearIndependent ℝ (fun i : {i // i ∈ s} => a i)) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ x : {i // i ∈ s} → ℝ,
       ‖euclideanOf x‖ ≤ C * ‖∑ i : {i // i ∈ s}, x i • a i‖ := by
+  let f : EuclideanSpace ℝ {i // i ∈ s} →ₗ[ℝ] EuclideanSpace ℝ ι :=
+    { toFun := fun x => ∑ i : {i // i ∈ s}, x i • a i
+      map_add' := sorry
+      map_smul' := sorry }
+  have h_ker : LinearMap.ker f = ⊥ := by sorry
+  have ⟨K, K_pos, hK⟩ := LinearMap.exists_antilipschitzWith f h_ker
+  use K
+  refine ⟨NNReal.coe_nonneg K, fun x => ?_⟩
+  have H := ZeroHomClass.bound_of_antilipschitz f hK (euclideanOf x)
   sorry
 
 /--
@@ -607,6 +746,80 @@ lemma max_linearIndependent_coefficient_bound {κ : Type*} (a : κ → Euclidean
         ‖euclideanOf x‖ ≤ C * ‖∑ i : {i // i ∈ s}, x i • a i‖ := by
   sorry
 
+open Classical in
+lemma euclideanOf_norm_extend_by_zero {κ : Type*} [Fintype κ] (s : Finset κ)
+    (x_s : {i // i ∈ s} → ℝ) :
+    ‖euclideanOf (fun i => if h : i ∈ s then x_s ⟨i, h⟩ else 0)‖ = ‖euclideanOf x_s‖ := by
+  have h1 : ‖euclideanOf (fun i => if h : i ∈ s then x_s ⟨i, h⟩ else 0)‖^2 =
+      ∑ i, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2 := by
+    rw [← real_inner_self_eq_norm_sq]
+    rw [PiLp.inner_apply]
+    apply Finset.sum_congr rfl
+    intro i _
+    change (if h : i ∈ s then x_s ⟨i, h⟩ else 0) * (if h : i ∈ s then x_s ⟨i, h⟩ else 0) = _
+    ring
+  have h2 : (∑ i, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) =
+      ∑ i : {x // x ∈ s}, (x_s i)^2 := by
+    have h_split : (∑ i, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) =
+        (∑ i ∈ s, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) +
+        (∑ i ∈ sᶜ, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) := (Finset.sum_add_sum_compl s _).symm
+    rw [h_split]
+    have h_s : (∑ i ∈ s, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) = ∑ i : {x // x ∈ s}, (x_s i)^2 := by
+      have h_eq : (∑ i ∈ s, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) =
+          ∑ i : {x // x ∈ s}, (if h : i.val ∈ s then x_s ⟨i.val, h⟩ else 0)^2 := (Finset.sum_attach s _).symm
+      rw [h_eq]
+      apply Finset.sum_congr rfl
+      intro i _
+      have hi : i.val ∈ s := i.property
+      rw [dif_pos hi]
+    have h_sc : (∑ i ∈ sᶜ, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) = 0 := by
+      apply Finset.sum_eq_zero
+      intro i hi
+      rw [Finset.mem_compl] at hi
+      rw [dif_neg hi]
+      ring
+    rw [h_s, h_sc, add_zero]
+  have h3 : ‖euclideanOf x_s‖^2 = ∑ i : {x // x ∈ s}, (x_s i)^2 := by
+    rw [← real_inner_self_eq_norm_sq]
+    rw [PiLp.inner_apply]
+    apply Finset.sum_congr rfl
+    intro i _
+    change x_s i * x_s i = _
+    ring
+  have h_sq_eq : ‖euclideanOf (fun i => if h : i ∈ s then x_s ⟨i, h⟩ else 0)‖^2 = ‖euclideanOf x_s‖^2 := by
+    rw [h1, h2, ←h3]
+  have h_norm_nonneg1 : 0 ≤ ‖euclideanOf (fun i => if h : i ∈ s then x_s ⟨i, h⟩ else 0)‖ := norm_nonneg _
+  have h_norm_nonneg2 : 0 ≤ ‖euclideanOf x_s‖ := norm_nonneg _
+  have h_sqrt : Real.sqrt (‖euclideanOf (fun i => if h : i ∈ s then x_s ⟨i, h⟩ else 0)‖^2) = Real.sqrt (‖euclideanOf x_s‖^2) := by
+    rw [h_sq_eq]
+  rw [Real.sqrt_sq h_norm_nonneg1, Real.sqrt_sq h_norm_nonneg2] at h_sqrt
+  exact h_sqrt
+
+open Classical in
+lemma sum_extend_by_zero {κ : Type*} [Fintype κ] (s : Finset κ)
+    (x_s : {i // i ∈ s} → ℝ) (a : κ → EuclideanSpace ℝ ι) :
+    (∑ i, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) = ∑ i : {i // i ∈ s}, x_s i • a i.val := by
+  have h_split : (∑ i, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) =
+      (∑ i ∈ s, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) +
+      (∑ i ∈ sᶜ, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) := (Finset.sum_add_sum_compl s _).symm
+  rw [h_split]
+  have h_s : (∑ i ∈ s, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) = ∑ i : {x // x ∈ s}, x_s i • a i.val := by
+    have h_eq : (∑ i ∈ s, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) =
+        ∑ i : {x // x ∈ s}, (if h : i.val ∈ s then x_s ⟨i.val, h⟩ else 0) • a i.val := (Finset.sum_attach s _).symm
+    rw [h_eq]
+    apply Finset.sum_congr rfl
+    intro i _
+    have hi : i.val ∈ s := i.property
+    rw [dif_pos hi]
+  have h_sc : (∑ i ∈ sᶜ, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) = 0 := by
+    apply Finset.sum_eq_zero
+    intro i hi
+    rw [Finset.mem_compl] at hi
+    rw [dif_neg hi]
+    exact zero_smul ℝ (a i)
+  rw [h_s, h_sc, add_zero]
+
+open Classical in
 /--
 Lemma 4.7 from `docs/Lasso.md`: a feasible nonnegative linear system has a
 nonnegative solution with norm controlled by the right-hand side.
@@ -624,7 +837,34 @@ theorem nonnegative_solution_norm_bound
         ∃ x : κ → ℝ,
           (∀ i, 0 ≤ x i) ∧ (∑ i, x i • a i) = y ∧
             ‖euclideanOf x‖ ≤ C * ‖y‖ := by
-  sorry
+  have hC := max_linearIndependent_coefficient_bound a
+  rcases hC with ⟨C, hC0, hC_bound⟩
+  use C
+  constructor
+  · exact hC0
+  · intro y hy
+    have h_cara := conic_caratheodory a y hy
+    rcases h_cara with ⟨s, _hcard, h_linindep, h_incone⟩
+    rcases h_incone with ⟨x_s, hx_s_nonneg, hx_s_sum⟩
+    let x : κ → ℝ := fun i => if h : i ∈ s then x_s ⟨i, h⟩ else 0
+    use x
+    have h_nonneg : ∀ i, 0 ≤ x i := by
+      intro i
+      dsimp [x]
+      split_ifs
+      · exact hx_s_nonneg _
+      · rfl
+    have h_sum : (∑ i, x i • a i) = y := by
+      have h_sum_ext := sum_extend_by_zero s x_s a
+      rw [h_sum_ext]
+      exact hx_s_sum
+    have h_norm : ‖euclideanOf x‖ ≤ C * ‖y‖ := by
+      have h_norm_eq := euclideanOf_norm_extend_by_zero s x_s
+      rw [h_norm_eq]
+      have h_bound := hC_bound s h_linindep x_s hx_s_nonneg
+      rw [hx_s_sum] at h_bound
+      exact h_bound
+    exact ⟨h_nonneg, h_sum, h_norm⟩
 
 /--
 The positive lasso objective achieves its minimum on the non-negative orthant.

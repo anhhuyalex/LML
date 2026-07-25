@@ -78,6 +78,8 @@ Let $M \in \mathbb{R}^{d \times d}$, $r \in \mathbb{R}^d$, and
 $\lambda \in \mathbb{R}$.
 The bundled assumption \texttt{ProblemData M r lambda} means:
 \[
+  M^\mathsf{T}=M,
+  \qquad
   \langle x, Mx\rangle \ge 0 \quad \forall x,
   \qquad
   r \in \operatorname{Range}(M),
@@ -273,7 +275,7 @@ matching Lemma 4.4 of \texttt{docs/Lasso.md}.
   \uses{lem:tiltedLossDecrease, def:lassoProblemData}
   \lean{Lasso.pos_trajectory_matVec_uniform_bound}
 Assume $\lambda=0$ and coercivity is unavailable.
-There is a constant $C$ such that, for $0<\varepsilon\le 1$ and all $t$,
+There is a constant $C$ such that, for $0<\varepsilon\le 1$ and all $t\ge0$,
 \[
   \|M x^\varepsilon(t)\|\le C.
 \]
@@ -300,7 +302,7 @@ This is Lemma 4.5 of \texttt{docs/Lasso.md}.
     lem:bregmanFiberBound}
   \lean{Lasso.pos_trajectory_uniform_bound}
 There are $C>0$ and $\varepsilon_0>0$ such that for
-$0<\varepsilon\le \varepsilon_0$ and all $t$,
+$0<\varepsilon\le \varepsilon_0$ and all $t\ge0$,
 \[
   \|x^\varepsilon(t)\|\le C.
 \]

@@ -630,7 +630,10 @@ Specifically, `gaussianReal 0 1 {x} = ∫_ {x} p(x) dλ = 0`.
 See standard probability theory texts, e.g. Kallenberg, "Foundations of Modern Probability" (https://link.springer.com/book/10.1007/978-1-4757-4015-8).
 -/
 lemma gaussianReal_singleton_eq_zero (x : ℝ) : (gaussianReal 0 1).real {x} = 0 := by
-  sorry
+  have h_ac : gaussianReal 0 1 ≪ volume := gaussianReal_absolutelyContinuous 0 (by norm_num)
+  have h_vol : volume {x} = 0 := by simp
+  have h : (gaussianReal 0 1) {x} = 0 := h_ac h_vol
+  simp [measureReal_def, h]
 
 /-- The standard Gaussian gives mass `1/2` to `[0, ∞)`. -/
 lemma gaussianReal_Ici_one_half : (gaussianReal 0 1).real (Set.Ici 0) = 1 / 2 := by
@@ -733,6 +736,29 @@ lemma innerProduct_eq_neg_one_iff_eq_neg (x x' : Fin d → ℝ)
     simp only [h, Pi.neg_apply, mul_neg, Finset.sum_neg_distrib]
     have : ∑ i : Fin d, x i * x i = x ⊙ x := rfl
     rw [this, hx]
+
+open scoped RealInnerProductSpace
+
+/-- The row inner product `y.ofLp ⊙ x` agrees with the `EuclideanSpace` inner product
+`⟪y, toLp 2 x⟫` for `y` already in `EuclideanSpace` form. -/
+lemma ofLp_innerProduct_eq_inner (x : Fin d → ℝ) (y : EuclideanSpace ℝ (Fin d)) :
+    y.ofLp ⊙ x = ⟪y, toLp 2 x⟫ := by
+  rw [← WithLp.toLp_ofLp y]
+  rw [inner_toLp_toLp]
+  simp [innerProduct, dotProduct, Finset.sum_mul]
+  ring
+
+/-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
+lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
+    {d : ℕ} (f : (Fin d → ℝ) → ℝ) :
+    ∫ w, f w ∂(gaussianRowMeasure d) =
+    ∫ y, f y.ofLp ∂(stdGaussian (EuclideanSpace ℝ (Fin d))) := by
+  rw [← map_pi_eq_stdGaussian (ι := Fin d)]
+  rw [show Measure.map (WithLp.toLp 2) (Measure.pi fun x => gaussianReal 0 1) =
+        Measure.map ⇑(MeasurableEquiv.toLp 2 (Fin d → ℝ)) (Measure.pi fun x => gaussianReal 0 1)
+      by rw [MeasurableEquiv.coe_toLp]]
+  rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
+  simp [WithLp.ofLp_toLp]
 
 /-- The angle between two unit vectors in ℝᵈ:
   `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/

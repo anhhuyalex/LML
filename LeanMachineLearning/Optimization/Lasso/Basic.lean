@@ -56,9 +56,26 @@ noncomputable def matVec (M : Matrix ι ι ℝ) (x : EuclideanSpace ℝ ι) :
     EuclideanSpace ℝ ι :=
   euclideanOf (M.mulVec x)
 
-/-- Positive semidefiniteness in the concrete Euclidean model used by the lasso files. -/
-def IsPositiveSemidefinite (M : Matrix ι ι ℝ) : Prop :=
-  ∀ x : EuclideanSpace ℝ ι, 0 ≤ inner ℝ x (matVec M x)
+/--
+Positive semidefiniteness in the concrete Euclidean model used by the lasso files.
+
+Symmetry is part of the definition: nonnegativity of `xᵀ M x` alone only
+constrains the symmetric part of an arbitrary real matrix.
+-/
+structure IsPositiveSemidefinite (M : Matrix ι ι ℝ) : Prop where
+  symm : M.IsSymm
+  nonneg : ∀ x : EuclideanSpace ℝ ι, 0 ≤ inner ℝ x (matVec M x)
+
+lemma IsPositiveSemidefinite.get_symm {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) : M.IsSymm := by
+  cases hM
+  rename_i symm _
+  exact symm
+
+lemma IsPositiveSemidefinite.get_nonneg {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) (x : EuclideanSpace ℝ ι) :
+    0 ≤ inner ℝ x (matVec M x) := by
+  cases hM
+  rename_i _ nonneg
+  exact nonneg x
 
 /--
 The condition `r ∈ Span M` from the paper, represented as membership in the range
@@ -70,7 +87,7 @@ def InMatrixSpan (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) : Prop :=
 /--
 The standing assumptions from Chapters 1--4 of `docs/Lasso.md`.
 Keeping this bundled makes later theorem statements harder to accidentally weaken:
-`M` is positive semidefinite, `r` lies in the span/range of `M`, and the explicit
+`M` is symmetric positive semidefinite, `r` lies in the span/range of `M`, and the explicit
 weight decay `lambda` is nonnegative.
 -/
 structure ProblemData (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) :
@@ -171,6 +188,13 @@ lemma matVec_sub
   ext i
   simp [matVec, euclideanOf, Matrix.mulVec_sub]
 
+/-- Matrix-vector multiplication commutes with scalar multiplication. -/
+lemma matVec_smul_eq
+    (M : Matrix ι ι ℝ) (c : ℝ) (x : EuclideanSpace ℝ ι) :
+    matVec M (c • x) = c • matVec M x := by
+  ext i
+  simp [matVec, euclideanOf, Matrix.mulVec_smul]
+
 /-- Symmetry of `M` transfers the matrix from the second inner-product argument to the first. -/
 lemma inner_matVec_comm_of_isSymm
     (M : Matrix ι ι ℝ) (hM : M.IsSymm) (x y : EuclideanSpace ℝ ι) :
@@ -201,6 +225,75 @@ lemma inner_matVec_comm_of_isSymm
   have hm : M j i = M i j := (hM.apply j i).symm
   rw [hm]
   ring
+
+/-- Completing the square in a quadratic loss when `M y = r`. -/
+lemma quadraticLoss_complete_square
+    (M : Matrix ι ι ℝ) (r x y : EuclideanSpace ℝ ι)
+    (hM : M.IsSymm) (hy : matVec M y = r) :
+    inner ℝ (x - y) (matVec M (x - y)) =
+      2 * quadraticLoss M r x + inner ℝ y (matVec M y) := by
+  have h_cross₁ : inner ℝ x (matVec M y) = inner ℝ r x := by
+    rw [hy, real_inner_comm]
+  have h_cross₂ : inner ℝ y (matVec M x) = inner ℝ r x := by
+    rw [inner_matVec_comm_of_isSymm M hM y x, hy]
+  rw [matVec_sub, inner_sub_left, inner_sub_right, inner_sub_right]
+  rw [h_cross₁, h_cross₂]
+  dsimp [quadraticLoss]
+  ring
+
+/-- The quadratic loss of a scalar multiple, in homogeneous coordinates. -/
+lemma quadraticLoss_smul
+    (M : Matrix ι ι ℝ) (r x : EuclideanSpace ℝ ι) (c : ℝ) :
+    quadraticLoss M r (c • x) =
+      (1 / 2 : ℝ) * c ^ 2 * inner ℝ x (matVec M x) - c * inner ℝ r x := by
+  rw [quadraticLoss, matVec_smul_eq, inner_smul_left, inner_smul_right,
+    inner_smul_right]
+  simp only [RCLike.conj_to_real]
+  ring
+
+/-- A positive semidefinite matrix has nonnegative trace. -/
+lemma IsPositiveSemidefinite.trace_nonnegative
+    {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) :
+    0 ≤ ∑ i, M i i := by
+  classical
+  apply Finset.sum_nonneg
+  intro i _
+  simpa [matVec, euclideanOf, EuclideanSpace.inner_eq_star_dotProduct] using
+    hM.nonneg (EuclideanSpace.single i 1)
+
+/--
+The squared norm of `M x` is controlled by the quadratic form of a positive
+semidefinite matrix.  The trace is a convenient finite-dimensional constant.
+-/
+lemma matVec_norm_sq_le_trace_mul
+    (M : Matrix ι ι ℝ) (hM : IsPositiveSemidefinite M)
+    (x : EuclideanSpace ℝ ι) :
+    ‖matVec M x‖ ^ 2 ≤ (∑ i, M i i) * inner ℝ x (matVec M x) := by
+  classical
+  let B : LinearMap.BilinForm ℝ (ι → ℝ) := Matrix.toLinearMap₂' ℝ M
+  have hB_nonneg : ∀ z, 0 ≤ B z z := by
+    intro z
+    simpa [B, Matrix.toLinearMap₂'_apply', matVec, euclideanOf,
+      EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using
+      hM.nonneg (euclideanOf z)
+  have hB_symm : LinearMap.IsSymm B := by
+    rw [LinearMap.isSymm_def]
+    intro v w
+    have h := inner_matVec_comm_of_isSymm M hM.symm (euclideanOf v) (euclideanOf w)
+    simpa [B, Matrix.toLinearMap₂'_apply', matVec, euclideanOf,
+      EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using h
+  rw [EuclideanSpace.real_norm_sq_eq]
+  calc
+    ∑ i, (matVec M x i) ^ 2
+        ≤ ∑ i, M i i * inner ℝ x (matVec M x) := by
+          apply Finset.sum_le_sum
+          intro i _
+          have hi := LinearMap.BilinForm.apply_sq_le_of_symm B hB_nonneg hB_symm
+            (Pi.single i 1) x
+          simpa [B, Matrix.toLinearMap₂'_apply', matVec, euclideanOf,
+            EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using hi
+    _ = (∑ i, M i i) * inner ℝ x (matVec M x) := by
+      rw [Finset.sum_mul]
 
 end Lasso
 
