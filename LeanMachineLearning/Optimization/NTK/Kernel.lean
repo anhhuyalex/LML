@@ -745,7 +745,7 @@ lemma ofLp_innerProduct_eq_inner (x : Fin d → ℝ) (y : EuclideanSpace ℝ (Fi
     y.ofLp ⊙ x = ⟪y, WithLp.toLp 2 x⟫ := by
   rw [show y = WithLp.toLp 2 (y.ofLp) by rfl]
   rw [EuclideanSpace.inner_toLp_toLp]
-  simp [innerProduct, dotProduct]
+  simp [innerProduct, dotProduct, star_trivial]
   simp_rw [mul_comm]
 
 /-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
@@ -759,6 +759,50 @@ lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
       by rw [MeasurableEquiv.coe_toLp]]
   rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
   simp [WithLp.ofLp_toLp, gaussianRowMeasure]
+
+/-- `reluIndicator (w ⊙ x)` is the indicator of the closed halfspace `{w | w ⊙ x ≥ 0}`. -/
+lemma reluIndicator_eq_indicator_Ici (x : Fin d → ℝ) :
+    (fun w => reluIndicator (w ⊙ x)) = Set.indicator {w | w ⊙ x ≥ 0} (fun _ => 1) := by
+  ext w
+  simp [reluIndicator, Set.indicator]
+
+/-- The product of two `reluIndicator`s is the indicator of the intersection of halfspaces. -/
+lemma integral_reluIndicator_mul_eq_measure (x x' : Fin d → ℝ) :
+    ∫ w, reluIndicator (w ⊙ x) * reluIndicator (w ⊙ x') ∂(gaussianRowMeasure d) =
+      (gaussianRowMeasure d).real ({w | w ⊙ x ≥ 0} ∩ {w | w ⊙ x' ≥ 0}) := by
+  have h_eq : (fun w => reluIndicator (w ⊙ x) * reluIndicator (w ⊙ x')) =
+      Set.indicator ({w | w ⊙ x ≥ 0} ∩ {w | w ⊙ x' ≥ 0}) (fun _ => 1) := by
+    ext w
+    simp [reluIndicator, Set.indicator]
+    split_ifs <;> tauto
+  have h_meas : MeasurableSet ({w | w ⊙ x ≥ 0} ∩ {w | w ⊙ x' ≥ 0}) := by
+    apply MeasurableSet.inter
+    · exact measurableSet_Ici.preimage (measurable_innerProduct_left x)
+    · exact measurableSet_Ici.preimage (measurable_innerProduct_left x')
+  rw [h_eq]
+  rw [integral_indicator h_meas]
+  simp [measureReal_def]
+
+/-- The joint law of the first two coordinate projections under a product probability measure
+is the product of the first two marginals. -/
+lemma map_pi_eval_two {d : ℕ} (hd : 2 ≤ d) {μ : Fin d → Measure ℝ}
+    [∀ i, IsProbabilityMeasure (μ i)] :
+    Measure.map (fun t : Fin d → ℝ => (t ⟨0, by linarith⟩, t ⟨1, by linarith⟩)) (Measure.pi μ) =
+      (μ ⟨0, by linarith⟩).prod (μ ⟨1, by linarith⟩) := by
+  have h_indep : iIndepFun (fun i (t : Fin d → ℝ) => t i) (Measure.pi μ) :=
+    iIndepFun_pi (fun _ => aemeasurable_id)
+  have h01 : (fun (t : Fin d → ℝ) => t ⟨0, by linarith⟩) ⟂ᵢ[Measure.pi μ]
+      (fun t => t ⟨1, by linarith⟩) := by
+    refine h_indep.indepFun ?_
+    intro h_eq
+    have h_val : (⟨0, by linarith⟩ : Fin d).val = (⟨1, by linarith⟩ : Fin d).val := by rw [h_eq]
+    simp at h_val
+    all_goals linarith
+  have h_map := IndepFun.map_prod_eq_prod_map_map
+    ((measurable_pi_apply (⟨0, by linarith⟩ : Fin d)).aemeasurable)
+    ((measurable_pi_apply (⟨1, by linarith⟩ : Fin d)).aemeasurable) h01
+  simp [Measure.pi_map_eval] at h_map ⊢
+  exact h_map
 
 /-- The angle between two unit vectors in ℝᵈ:
   `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/
