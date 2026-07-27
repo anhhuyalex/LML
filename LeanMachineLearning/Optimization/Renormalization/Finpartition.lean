@@ -98,6 +98,19 @@ def Pairing.blockProduct [CommMonoid R] {s : Finset α} (P : Pairing s)
 noncomputable def pairingSum [CommSemiring R] (f : Finset α → R) (s : Finset α) : R :=
   ∑ P : Pairing s, P.blockProduct f
 
+/-- Decompose the pairing sum by choosing the partner of a distinguished element.
+
+Informal proof: Every perfect matching of `s` pairs a distinguished element `a ∈ s` with a unique
+element `b ∈ s \ {a}`. Thus, the sum over all pairings of `s` equals the sum over all `b ∈ s \ {a}`
+of the block weight `f {a, b}` multiplied by the sum over all pairings of `s \ {a, b}`.
+This formalizes the recursive structure of perfect matchings. (Source: Perfect matching, Wikipedia, https://en.wikipedia.org/wiki/Perfect_matching) -/
+theorem pairingSum_erase {R : Type*} [CommSemiring R] (f : Finset α → R)
+    (s : Finset α) {a : α} (ha : a ∈ s) :
+    pairingSum f s =
+      ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) := by
+  sorry
+
+
 /-- Every pairing has half as many blocks as elements.
 
 Informal proof: sum the cardinalities of the blocks using `Finpartition.sum_card_parts` and replace
@@ -275,7 +288,7 @@ lemma mapEquivEquiv_parts_eq' [DecidableEq β] (e : α ≃ β) {s : Finset α}
     exact ⟨e.symm.finsetCongr B, ⟨B, h, rfl⟩, Equiv.apply_symm_apply e.finsetCongr B⟩
 
 omit [DecidableEq α] in
-lemma mapEquivEquiv_finset_eq [DecidableEq β] (e : α ≃ β) (s : Finset α) :
+lemma mapEquivEquiv_finset_eq (e : α ≃ β) (s : Finset α) :
     (s.map e.toEmbedding).map e.symm.toEmbedding = s := by
   rw [Finset.map_map]
   simp
@@ -351,29 +364,54 @@ theorem cumulantTransform_map [DecidableEq β] [CommRing R] (e : α ≃ β)
 /-- The block product of a bound partition factors over the outer partition.
 
 Informal proof: expand `Finpartition.bind_parts` as a disjoint bi-union and use
-`Finset.prod_biUnion`; disjointness is supplied by the outer partition. -/
+`Finset.prod_biUnion`; disjointness is supplied by the outer partition.
+(Source: Partition of a set, Wikipedia, https://en.wikipedia.org/wiki/Partition_of_a_set) -/
 theorem blockProduct_bind [CommMonoid R] {s : Finset α} (P : Finpartition s)
     (Q : ∀ B ∈ P.parts, Finpartition B) (f : Finset α → R) :
     (P.bind Q).blockProduct f = ∏ B : P.parts, (Q B.1 B.2).blockProduct f := by
-  sorry
+  simp_rw [blockProduct]
+  rw [bind_parts, Finset.prod_biUnion]
+  · apply Finset.prod_congr rfl
+    intro B hB
+    rfl
+  · intro B _ C _ hBC
+    dsimp [Function.onFun]
+    apply Finset.disjoint_left.mpr
+    intro X hXB hXC
+    have h1 : X ⊆ B.1 := (Q B.1 B.2).subset hXB
+    have h2 : X ⊆ C.1 := (Q C.1 C.2).subset hXC
+    have h3 : X ⊆ B.1 ∩ C.1 := Finset.subset_inter h1 h2
+    have hBC_ne : B.1 ≠ C.1 := Subtype.coe_ne_coe.mpr hBC
+    have h4 : Disjoint B.1 C.1 := P.disjoint B.2 C.2 hBC_ne
+    have h5 : B.1 ∩ C.1 = ∅ := Finset.disjoint_iff_inter_eq_empty.mp h4
+    rw [h5] at h3
+    have h6 : X = ∅ := Finset.subset_empty.mp h3
+    subst h6
+    have h7 : ∅ ∉ (Q B.1 B.2).parts := (Q B.1 B.2).bot_notMem
+    exact h7 hXB
 
 /-- Summing over refinements of every block factors as a product of partition transforms.
 
 Informal proof: apply `blockProduct_bind`, then distribute the finite product over the independent
-finite sums with `Fintype.prod_sum`. -/
+finite sums with `Fintype.prod_sum`.
+(Source: Partition of a set, Wikipedia, https://en.wikipedia.org/wiki/Partition_of_a_set) -/
 theorem partitionTransform_bind [CommSemiring R] {s : Finset α} (P : Finpartition s)
     (f : Finset α → R) :
     (∑ Q : ∀ B : P.parts, Finpartition B.1,
       (P.bind (fun B hB ↦ Q ⟨B, hB⟩)).blockProduct f) =
       ∏ B : P.parts, partitionTransform f B.1 := by
-  sorry
+  simp_rw [blockProduct_bind, partitionTransform]
+  exact Fintype.prod_sum (fun (B : P.parts) (q : Finpartition B.1) ↦ q.blockProduct f) |>.symm
 
 /-- The partition transform inverts the cumulant transform for functions normalized at the empty
 set.
 
 Informal proof: expand both transforms, regroup nested partitions by `Finpartition.bind`, and apply
-Möbius inversion on the partition lattice.  Rota's paper linked in the module docstring proves the
-general inversion theorem and the coefficient `(-1)^(k-1)(k-1)!`. -/
+Möbius inversion on the partition lattice. The Möbius function of the partition lattice on
+intervals of partitions is `(-1)^(k-1)(k-1)!`, which perfectly cancels the
+factorial terms in the definition of the cumulant transform.
+(Source: Theory of Möbius Functions, Rota (1964),
+https://link.springer.com/article/10.1007/BF01899123) -/
 theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
     (hf : f ∅ = 1) :
     partitionTransform (cumulantTransform f) = f := by
@@ -382,8 +420,10 @@ theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
 /-- The cumulant transform inverts the partition transform for functions vanishing at the empty
 set.
 
-Informal proof: this is the converse direction of the same Möbius inversion.  The special value of
-`cumulantTransform` at the empty set agrees with the hypothesis `f ∅ = 0`. -/
+Informal proof: this is the converse direction of the same Möbius inversion on the partition lattice.
+The special value of `cumulantTransform` at the empty set agrees with the hypothesis `f ∅ = 0`.
+(Source: Theory of Möbius Functions, Rota (1964),
+https://link.springer.com/article/10.1007/BF01899123) -/
 theorem cumulantTransform_partitionTransform [CommRing R] (f : Finset α → R)
     (hf : f ∅ = 0) :
     cumulantTransform (partitionTransform f) = f := by
