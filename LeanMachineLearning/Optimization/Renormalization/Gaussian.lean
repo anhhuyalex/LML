@@ -130,31 +130,26 @@ theorem iteratedDeriv_exp_quadratic_zero_odd (v : ℝ) (m : ℕ) :
   -- Let `f(t) = exp (v * t^2 / 2)` and `n = 2*m+1`.
   let f : ℝ → ℝ := fun t => Real.exp (v * t ^ 2 / 2)
   let n : ℕ := 2 * m + 1
-
   -- The function is even: composing it with negation does not change it.
   have heven : (fun x : ℝ => f (-x)) = f := by
     funext x
     simp [f]
-
   -- Mathlib's chain rule for iterated derivatives under `x ↦ -x` gives
   -- `D = (-1)^n D` at zero, after using evenness and `-0 = 0`.
   have hcomp := iteratedDeriv_comp_neg n f (0 : ℝ)
   have hD : iteratedDeriv n f 0 = (-1 : ℝ) ^ n * iteratedDeriv n f 0 := by
     simpa [heven] using hcomp
-
   -- Since `n = 2*m+1` is odd, `(-1)^n = -1`.
   have hpow : (-1 : ℝ) ^ n = -1 := by
     have hnodd : Odd n := by
       dsimp [n]
       exact odd_two_mul_add_one m
     simpa using (Odd.neg_one_pow (α := ℝ) hnodd)
-
   -- Therefore `D = -D`, hence `D = 0` over the reals.
   have hDneg : iteratedDeriv n f 0 = -iteratedDeriv n f 0 := by
     simpa [hpow] using hD
   have hzero : iteratedDeriv n f 0 = 0 := by
     linarith
-
   simpa [f, n] using hzero
 
 /-- The even derivatives of `exp(v t² / 2)` evaluated at zero give the expected coefficients.
@@ -575,18 +570,27 @@ theorem integral_mul_prod_centered_dual_eq_sum (μ : Measure E) [ProbabilityTheo
     have h_translated_gaussian :
         ProbabilityTheory.IsGaussian
           (Measure.map (fun y : ℝ ↦ y - c) (Measure.map (fun x ↦ H x) μ)) := by
-      -- Use the real Gaussian translation instance/lemma, such as the instance
-      -- behind maps by `fun y : ℝ ↦ y - c`, applied to `h_linear_gaussian`.
-      sorry
+      -- Install the already-proved Gaussianity of the intermediate real law as
+      -- a local instance.  Mathlib has an `IsGaussian` instance saying that the
+      -- pushforward of a Gaussian measure by `fun y ↦ y - c` is Gaussian.
+      haveI : ProbabilityTheory.IsGaussian (Measure.map (fun x ↦ H x) μ) :=
+        h_linear_gaussian
+      infer_instance
 
     -- Step 4.  Identify the affine map from `E` with the composition of first
     -- applying `H` and then translating by `-c`.
     have h_map_comp :
         Measure.map (fun x ↦ H x - c) μ =
           Measure.map (fun y : ℝ ↦ y - c) (Measure.map (fun x ↦ H x) μ) := by
-      -- Prove from `Measure.map_map`; measurability is by continuity of `H`
-      -- and continuity/measurability of `fun y : ℝ ↦ y - c`.
-      sorry
+      -- This is functoriality of pushforward measures.  The map `x ↦ H x`
+      -- is measurable because `H` is a continuous linear functional, and the
+      -- real translation `y ↦ y - c` is measurable because it is continuous.
+      have hf : Measurable (fun x : E ↦ H x) := H.continuous.measurable
+      have hg : Measurable (fun y : ℝ ↦ y - c) :=
+        (continuous_id.sub continuous_const).measurable
+      simpa [Function.comp_def] using
+        (Measure.map_map (μ := μ) (f := fun x : E ↦ H x) (g := fun y : ℝ ↦ y - c)
+          hg hf).symm
 
     rw [h_pointwise, h_map_comp]
     exact h_translated_gaussian
