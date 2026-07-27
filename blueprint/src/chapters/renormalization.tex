@@ -1,0 +1,833 @@
+\chapter{Renormalization pretraining: Gaussian laws, cumulants, and perturbations}
+\label{chap:renormalization}
+
+\section{Purpose and formalization boundary}
+
+This chapter is the implementation blueprint for Chapter~1 (``Pretraining'') of
+\texttt{docs/Renormalization.md}.  Its purpose is not to reproduce the chapter's
+coordinate calculations line by line.  It isolates the reusable mathematical API needed by
+later formalizations of wide neural networks:
+\begin{enumerate}
+  \item moments and joint correlators;
+  \item cumulants (connected correlators) and the moment--cumulant relation;
+  \item Gaussian measures and Wick's theorem;
+  \item normalized exponential deformations of a base probability measure; and
+  \item rigorous, one-sided perturbation formulae for quartic deformations.
+\end{enumerate}
+
+The implementation, including its initially generic supporting results, lives under
+\texttt{LeanMachineLearning/Optimization/Renormalization}.  Those supporting declarations should
+still be stated without optimization-specific assumptions and at a level suitable for eventual
+promotion to \texttt{LeanMachineLearning/ForMathlib} or upstreaming to Mathlib once their APIs and
+proofs stabilize.
+
+The main design rule is to use measures, random variables, and Bochner integrals already present
+in Mathlib.  In particular, we do \emph{not} define a parallel notion of Gaussian density,
+expectation, moment-generating function, cumulant-generating function, or normalized density.
+The verified existing interfaces are
+\begin{center}
+\begin{tabular}{ll}
+\texttt{ProbabilityTheory.moment} & scalar moments,\\
+\texttt{ProbabilityTheory.mgf}, \texttt{ProbabilityTheory.cgf} & generating functions,\\
+\texttt{ProbabilityTheory.iteratedDeriv\_mgf\_zero} & derivatives of the MGF are moments,\\
+\texttt{ProbabilityTheory.gaussianReal} & one-dimensional Gaussian laws,\\
+\texttt{ProbabilityTheory.stdGaussian} & standard finite-dimensional Gaussian laws,\\
+\texttt{ProbabilityTheory.multivariateGaussian} & Gaussian laws with mean and covariance,\\
+\texttt{ProbabilityTheory.IsGaussian} & coordinate-free Gaussianity,\\
+\texttt{Measure.tilted} & normalized exponential tilting,\\
+\texttt{Finpartition} & finite set partitions.
+\end{tabular}
+\end{center}
+These names and their import closure were checked against the pinned Mathlib revision.  Proposed
+LML declarations below are named explicitly, but their exact signatures must still be checked in
+a scratch file before implementation.
+
+\subsection{Corrections to the informal source}
+
+Several statements in the source chapter are useful intuition but are false without additional
+hypotheses.  The Lean library must record the missing hypotheses rather than formalize the prose
+literally.
+
+\begin{remark}[Moments do not always determine a law]
+Equality of every moment does not, for arbitrary probability measures, imply equality of the
+measures.  Moment-indeterminate distributions exist.  Any uniqueness theorem in this library must
+instead assume, for example, that the MGF is finite on a neighborhood of zero, or work with the
+characteristic function.  No downstream theorem in this chapter depends on the informal claim
+that moments always characterize a distribution.
+\end{remark}
+
+\begin{remark}[An action need not be normalizable]
+For a measurable action $S$, the expression $e^{-S}$ need not have finite, nonzero integral.
+Mathlib's \texttt{Measure.tilted} deliberately returns the zero measure when the exponential is not
+integrable.  Whenever a probability-measure instance is required, the implementation must supply
+the exact hypothesis
+\[
+  \operatorname{Integrable}_{\mu}(e^{-S}).
+\]
+In particular, an arbitrary quartic tensor need not define a probability law: the associated
+quartic form may be unbounded below.
+\end{remark}
+
+\begin{remark}[The perturbation is generally one-sided]
+If $V\geq 0$ is quartic and the base law is Gaussian, $e^{-\epsilon V}$ is integrable for
+$\epsilon\geq0$.  For every $\epsilon<0$, however, $e^{|\epsilon|V}$ will typically fail to be
+Gaussian-integrable.  Consequently the natural derivative at $\epsilon=0$ is a derivative within
+$[0,\infty)$, and all $O(\epsilon^2)$ statements use
+$\operatorname{nhdsWithin}(0,[0,\infty))$.  A two-sided derivative is stated only under a genuine
+local exponential-integrability assumption.
+\end{remark}
+
+\begin{remark}[Cumulant scaling alone is not distributional approximation]
+A statement that truncating an action ``approximates the distribution'' is meaningless until a
+topology or metric on measures, or a specified class of observables, is chosen.  The first library
+therefore proves asymptotic statements for explicit correlators.  Total variation, Wasserstein,
+or weak-convergence consequences are later milestones with their own hypotheses.
+\end{remark}
+
+\section{Proposed module structure}
+
+The dependency order should be:
+\begin{verbatim}
+Renormalization/Finpartition
+                  |
+                  v
+Renormalization/Basic ---> Renormalization/Cumulant
+         |                         |
+         v                         v
+Renormalization/Gaussian ------> Renormalization/Quartic
+         |                         ^
+         v                         |
+Renormalization/Perturbation ------+
+\end{verbatim}
+with an umbrella module
+\texttt{LeanMachineLearning/Optimization/Renormalization.lean}.  More precisely:
+\begin{description}
+  \item[\texttt{Renormalization/Finpartition.lean}]
+    partition products, pair partitions, and the partition-transform/M\"obius-inversion API;
+  \item[\texttt{Renormalization/Basic.lean}]
+    joint moments, block moments, centering, and parity;
+  \item[\texttt{Renormalization/Cumulant.lean}]
+    joint cumulants and their structural laws;
+  \item[\texttt{Renormalization/Gaussian.lean}]
+    scalar Gaussian moments and coordinate-free Wick formulae;
+  \item[\texttt{Renormalization/Perturbation.lean}]
+    exponential deformations and reusable first- and second-order estimates;
+  \item[\texttt{Renormalization/Quartic.lean}]
+    symmetric quartic couplings and the explicit contraction formulae from the source chapter.
+\end{description}
+
+The generic probability declarations may later move to
+\texttt{ForMathlib/Probability/Moments/Cumulant.lean} after their interfaces stabilize.  Starting
+with a small namespace-local implementation avoids prematurely committing LML to an upstream API.
+
+\section{Joint moments and parity}
+
+Fix a measurable space $(\Omega,\mathcal F)$, a measure $\mu$, a natural number $n$, and a family
+of real random variables $X_i:\Omega\to\mathbb R$ indexed by $i\in\operatorname{Fin}(n)$.
+
+\begin{definition}[Joint and block moment]
+\label{def:renorm:jointMoment}
+\lean{Renormalization.jointMoment, Renormalization.blockMoment}
+Define
+\[
+  m_\mu(X) := \int_\Omega \prod_{i:\operatorname{Fin}(n)} X_i(\omega)\,d\mu(\omega)
+\]
+and, for $B\subseteq\operatorname{Fin}(n)$ finite,
+\[
+  m_\mu(X;B) := \int_\Omega \prod_{i\in B}X_i(\omega)\,d\mu(\omega).
+\]
+Thus $m_\mu(X;\varnothing)=\mu(\Omega)$; it is $1$ when $\mu$ is a probability measure.
+\end{definition}
+
+The implementation should use \texttt{Finset.prod} directly.  It should not encode an
+$n$-point correlator as a function of a set of labels, since a set would lose repeated variables.
+The positions $\operatorname{Fin}(n)$ remain distinct even when two $X_i$ are definitionally equal.
+
+\begin{lemma}[Basic joint-moment API]
+\label{lem:renorm:jointMomentBasic}
+\uses{def:renorm:jointMoment}
+\lean{Renormalization.jointMoment_zero, Renormalization.jointMoment_one,
+Renormalization.jointMoment_perm, Renormalization.jointMoment_congr_ae}
+Joint moments satisfy the following reusable rules:
+\begin{enumerate}
+  \item the $0$-point moment is $1$ under a probability measure;
+  \item the $1$-point moment is the ordinary expectation;
+  \item reindexing by a permutation of $\operatorname{Fin}(n)$ does not change the moment; and
+  \item replacing each $X_i$ by an almost-everywhere equal variable does not change the moment.
+\end{enumerate}
+Every statement that splits an integral must carry the necessary integrability assumptions.
+\end{lemma}
+
+\begin{definition}[Parity invariance]
+\label{def:renorm:parity}
+\lean{MeasureTheory.Measure.IsNegInvariant}
+A measure on a measurable additive group is parity-invariant if it is invariant under $x\mapsto-x$.
+Use Mathlib's class \texttt{Measure.IsNegInvariant}; do not introduce an LML duplicate.
+An observable $F$ is odd if $F(-x)=-F(x)$ and even if $F(-x)=F(x)$.
+\end{definition}
+
+\begin{lemma}[Odd observables integrate to zero]
+\label{lem:renorm:oddIntegral}
+\uses{def:renorm:parity}
+\lean{Renormalization.integral_eq_zero_of_odd}
+Let $\mu$ be finite and parity-invariant, and let $F:E\to\mathbb R$ be integrable and odd.  Then
+\[
+  \int F\,d\mu=0.
+\]
+Consequently, the joint moment of an odd number of odd linear observables vanishes.
+\end{lemma}
+
+\begin{proof}
+Use \texttt{Measure.measurePreserving\_neg} to change variables $x\mapsto-x$.  The integral equals
+the integral of $F\circ(-\mathrm{id})=-F$, hence equals its own negative.  This proof should be a
+general measure-preserving lemma, not a coordinate integral over $\mathbb R^d$.
+\end{proof}
+
+\section{Finite partitions and connected correlators}
+
+\subsection{The generic partition transform}
+
+For a finite set $s$ and a commutative ring $R$, let $P$ range over
+\texttt{Finpartition s}.  Its nonempty blocks are stored in \texttt{P.parts}.
+
+\begin{definition}[Partition transform]
+\label{def:renorm:partitionTransform}
+\lean{Finpartition.partitionTransform}
+For $f:\operatorname{Finset}(\alpha)\to R$, define
+\[
+  \mathcal P(f)(s)
+  :=\sum_{P\in\Pi(s)}\prod_{B\in P}f(B),
+\]
+where $\Pi(s)$ is the finite set of partitions of $s$.
+\end{definition}
+
+\begin{definition}[Cumulant transform]
+\label{def:renorm:cumulantTransform}
+\lean{Finpartition.cumulantTransform}
+For nonempty $s$, define
+\[
+  \mathcal K(f)(s)
+  :=\sum_{P\in\Pi(s)}
+       (-1)^{|P|-1}(|P|-1)!\prod_{B\in P}f(B),
+\]
+and set $\mathcal K(f)(\varnothing)=0$.
+The factorial and sign are cast into $R$ explicitly.
+\end{definition}
+
+\begin{theorem}[Moment--cumulant M\"obius inversion]
+\label{thm:renorm:partitionInversion}
+\uses{def:renorm:partitionTransform, def:renorm:cumulantTransform}
+\lean{Finpartition.partitionTransform_cumulantTransform,
+Finpartition.cumulantTransform_partitionTransform}
+If $f(\varnothing)=1$, then for every finite $s$,
+\[
+  \mathcal P(\mathcal K(f))(s)=f(s).
+\]
+Conversely, if $k(\varnothing)=0$, then
+\[
+  \mathcal K(\mathcal P(k))(s)=k(s)
+\]
+for every nonempty $s$, with the conventional value $\mathcal P(k)(\varnothing)=1$.
+\end{theorem}
+
+\begin{proof}
+The conceptual proof is M\"obius inversion on the lattice of set partitions.  Mathlib already has
+\texttt{IncidenceAlgebra.moebius\_inversion\_bot}; what is missing is the specialization that the
+M\"obius coefficient from a partition $P$ to the indiscrete partition is
+$(-1)^{|P|-1}(|P|-1)!$.  Prove that specialization once, using induction by splitting or binding
+blocks, and keep all subsequent probability proofs independent of the combinatorial calculation.
+\end{proof}
+
+\begin{lemma}[Naturality and block factorization]
+\label{lem:renorm:partitionAPI}
+\uses{def:renorm:partitionTransform, def:renorm:cumulantTransform}
+\lean{Finpartition.partitionTransform_map, Finpartition.partitionTransform_bind,
+Finpartition.cumulantTransform_map}
+Both transforms commute with equivalences of finite index sets.  Partition products over
+\texttt{P.bind Q} factor into products over $P$ and over the refinements $Q(B)$.
+\end{lemma}
+
+These are the reusable combinatorial lemmas: proofs of fourth-, sixth-, and eighth-order identities
+must invoke them rather than enumerate dozens of terms manually.
+
+\subsection{Joint cumulants}
+
+\begin{definition}[Joint cumulant / connected correlator]
+\label{def:renorm:jointCumulant}
+\uses{def:renorm:jointMoment, def:renorm:cumulantTransform}
+\lean{Renormalization.jointCumulant}
+For a probability measure $\mu$, define
+\[
+  \kappa_\mu(X_1,\ldots,X_n)
+  :=\mathcal K\bigl(B\mapsto m_\mu(X;B)\bigr)(\operatorname{univ}).
+\]
+The zeroth cumulant is $0$.
+\end{definition}
+
+\begin{theorem}[Moment as a sum of connected pieces]
+\label{thm:renorm:momentCumulant}
+\uses{def:renorm:jointCumulant, thm:renorm:partitionInversion}
+\lean{Renormalization.jointMoment_eq_sum_partition_jointCumulant}
+For every $n$,
+\[
+ m_\mu(X)=\sum_{P\in\Pi(\operatorname{Fin}(n))}
+                 \prod_{B\in P}\kappa_\mu((X_i)_{i\in B}).
+\]
+The restriction to a block is performed through its subtype; no arbitrary ordering of a block is
+part of the public API.
+\end{theorem}
+
+\begin{lemma}[Low-order cumulants]
+\label{lem:renorm:lowCumulants}
+\uses{def:renorm:jointCumulant}
+\lean{Renormalization.jointCumulant_one, Renormalization.jointCumulant_two,
+Renormalization.jointCumulant_four_of_centered}
+Assuming the displayed products are integrable,
+\begin{align*}
+ \kappa_\mu(X)&=\mathbb E_\mu[X],\\
+ \kappa_\mu(X,Y)&=\mathbb E_\mu[XY]-\mathbb E_\mu[X]\mathbb E_\mu[Y]
+                  =\operatorname{Cov}_\mu(X,Y).
+\end{align*}
+If $X_1,\ldots,X_4$ are centered and all odd block moments vanish, then
+\begin{align*}
+ \kappa_\mu(X_1,X_2,X_3,X_4)
+ &=\mathbb E[X_1X_2X_3X_4]
+   -\mathbb E[X_1X_2]\mathbb E[X_3X_4]\\
+ &\quad-\mathbb E[X_1X_3]\mathbb E[X_2X_4]
+   -\mathbb E[X_1X_4]\mathbb E[X_2X_3].
+\end{align*}
+\end{lemma}
+
+\begin{lemma}[Symmetry, multilinearity, and independent splitting]
+\label{lem:renorm:cumulantStructural}
+\uses{def:renorm:jointCumulant, thm:renorm:momentCumulant}
+\lean{Renormalization.jointCumulant_perm, Renormalization.jointCumulant_add,
+Renormalization.jointCumulant_smul,
+Renormalization.jointCumulant_eq_zero_of_indepFun_split}
+Joint cumulants are invariant under permutations and are linear in each argument when all required
+products are integrable.  If the variables split into two nonempty independent subfamilies, their
+joint cumulant is zero.
+\end{lemma}
+
+\begin{proof}
+Symmetry and multilinearity follow from the finite partition formula and integral linearity.
+For the independence result, every mixed block moment factorizes across the two independent
+subfamilies.  Insert those factorizations into the M\"obius formula; the partition coefficients
+cancel.  The cancellation belongs in a combinatorial helper lemma so that the probability theorem
+only supplies the moment factorization.
+\end{proof}
+
+\begin{definition}[Scalar cumulant]
+\label{def:renorm:scalarCumulant}
+\lean{Renormalization.cumulant}
+For $X:\Omega\to\mathbb R$, define its $n$th scalar cumulant by
+\[
+  \operatorname{cumulant}_\mu(X,n)
+  :=\left.\frac{d^n}{dt^n}\operatorname{cgf}(X,\mu,t)\right|_{t=0}.
+\]
+This is a thin, discoverable wrapper around \texttt{ProbabilityTheory.cgf}; it is justified because
+Mathlib has no named scalar cumulant declaration.
+\end{definition}
+
+\begin{theorem}[Analytic and combinatorial cumulants agree]
+\label{thm:renorm:cumulant_eq_jointCumulant}
+\uses{def:renorm:jointCumulant, def:renorm:scalarCumulant}
+\lean{Renormalization.cumulant_eq_jointCumulant}
+If $0$ lies in the interior of \texttt{integrableExpSet X}~$\mu$, then
+\[
+  \operatorname{cumulant}_\mu(X,n)
+  =\kappa_\mu(\underbrace{X,\ldots,X}_{n\text{ copies}}).
+\]
+\end{theorem}
+
+\begin{proof}
+By \texttt{ProbabilityTheory.iteratedDeriv\_mgf\_zero}, the Taylor coefficients of the MGF are
+the moments.  Since the CGF is the logarithm of the MGF and the MGF equals $1$ at zero, the
+coefficient formula for the logarithm is precisely the set-partition M\"obius formula.  Separate
+the analytic coefficient lemma from the finite-partition identity.
+\end{proof}
+
+\section{Gaussian measures and Wick's theorem}
+
+The canonical formal object is a Gaussian \emph{measure}, not an unnormalized coordinate density.
+The determinant normalization calculation in the source is not required to construct
+\texttt{multivariateGaussian}, which is already a probability measure.  A density-level determinant
+formula may be added later, but no core theorem should depend on it.
+
+\begin{definition}[Pair partition]
+\label{def:renorm:pairing}
+\lean{Finpartition.Pairing}
+A pairing of a finite set $s$ is a partition $P$ of $s$ all of whose blocks have cardinality $2$.
+For $s=\operatorname{univ}:\operatorname{Finset}(\operatorname{Fin}(n))$, define the Wick sum of a
+symmetric covariance kernel $C$ by
+\[
+  \operatorname{Wick}_C(i_1,\ldots,i_n)
+  :=\sum_{P\text{ pairing}}\prod_{\{a,b\}\in P}C(i_a,i_b).
+\]
+Internally, the two elements of a block may be selected by \texttt{min'} and \texttt{max'}; prove
+once that the result is independent of orientation because $C$ is symmetric.
+\end{definition}
+
+\begin{lemma}[Pairing API]
+\label{lem:renorm:pairingAPI}
+\uses{def:renorm:pairing}
+\lean{Finpartition.Pairing.not_nonempty_of_odd,
+Finpartition.Pairing.card, Finpartition.Pairing.cons}
+There is no pairing of an odd-cardinality set.  A pairing of a set containing a distinguished
+element is obtained uniquely by choosing its partner and pairing the remaining set.  Consequently,
+Wick sums satisfy the recurrence
+\[
+  W_{n+2}(X_0,\ldots,X_{n+1})
+  =\sum_{j=1}^{n+1}C(X_0,X_j)
+     W_n(X_1,\ldots,\widehat{X_j},\ldots,X_{n+1}).
+\]
+\end{lemma}
+
+The recurrence is the preferred proof interface.  Cardinality formulae such as
+$(2m-1)!!=(2m)!/(2^m m!)$ are corollaries, not the representation used by Wick proofs.
+
+\begin{theorem}[Centered scalar Gaussian moments]
+\label{thm:renorm:scalarWick}
+\lean{Renormalization.moment_id_gaussianReal_zero_odd,
+Renormalization.moment_id_gaussianReal_zero_even}
+For $v\in\mathbb R_{\geq0}$ and $m\in\mathbb N$,
+\begin{align*}
+ \int x^{2m+1}\,d\mathcal N(0,v)(x)&=0,\\
+ \int x^{2m}\,d\mathcal N(0,v)(x)&=\frac{(2m)!}{2^m m!}v^m.
+\end{align*}
+\end{theorem}
+
+\begin{proof}
+Use \texttt{ProbabilityTheory.mgf\_fun\_id\_gaussianReal} and
+\texttt{ProbabilityTheory.iteratedDeriv\_mgf\_zero}.  Prove a small recurrence for the derivatives
+of $\exp(vt^2/2)$; do not differentiate under the Gaussian integral again.
+\end{proof}
+
+\begin{theorem}[Coordinate-free Wick theorem]
+\label{thm:renorm:wick}
+\uses{def:renorm:pairing, lem:renorm:pairingAPI}
+\lean{Renormalization.IsGaussian.integral_prod_centered_dual_eq_wick}
+Let $E$ be a finite-dimensional real Banach space with its Borel measurable space, let $\mu$ be a
+Gaussian measure on $E$, and let $L_i\in E^*$ for $i\in\operatorname{Fin}(n)$.  Put
+\[
+  \widetilde L_i(x)=L_i(x)-\int L_i\,d\mu,
+  \qquad C(i,j)=\operatorname{Cov}_\mu(L_i,L_j).
+\]
+Then
+\[
+  \int_E\prod_i\widetilde L_i(x)\,d\mu(x)
+  =\operatorname{Wick}_C(0,\ldots,n-1).
+\]
+In particular, the left side is zero for odd $n$.
+\end{theorem}
+
+\begin{proof}
+Every linear combination of the $L_i$ has a one-dimensional Gaussian pushforward by
+\texttt{ProbabilityTheory.IsGaussian.map\_eq\_gaussianReal}.  Apply the scalar Gaussian MGF formula
+to $\sum_i t_i\widetilde L_i$.  Equality of the resulting finite multivariate Taylor coefficients
+gives the recurrence in Lemma~\ref{lem:renorm:pairingAPI}; induction on $n$ proves the formula.
+All moment integrability requirements follow from \texttt{IsGaussian.memLp\_dual}, with explicit
+finite exponents.
+\end{proof}
+
+\begin{corollary}[Wick theorem for multivariate Gaussian coordinates]
+\label{cor:renorm:multivariateWick}
+\uses{thm:renorm:wick}
+\lean{Renormalization.integral_prod_multivariateGaussian_centered_eq_wick}
+Let $S$ be a positive-semidefinite matrix and
+$Z\sim\texttt{multivariateGaussian}\ m\ S$.  Then the centered coordinate correlator is
+\[
+  \mathbb E\!\left[\prod_{r=1}^n(Z_{i_r}-m_{i_r})\right]
+  =\sum_{P\text{ pairing}}\prod_{\{a,b\}\in P}S_{i_a i_b}.
+\]
+\end{corollary}
+
+\begin{proof}
+Specialize Theorem~\ref{thm:renorm:wick} to coordinate continuous linear maps and rewrite the
+covariances with \texttt{ProbabilityTheory.covariance\_eval\_multivariateGaussian}.
+\end{proof}
+
+\begin{corollary}[Gaussian higher cumulants vanish]
+\label{cor:renorm:gaussianCumulant}
+\uses{thm:renorm:momentCumulant, thm:renorm:wick, thm:renorm:cumulant_eq_jointCumulant}
+\lean{Renormalization.IsGaussian.jointCumulant_centered}
+For centered continuous linear observables of a Gaussian measure, the joint cumulant is their
+covariance when $n=2$ and is zero when $n\neq2$.  For noncentered observables, the first cumulant is
+the mean, the second is the covariance, and every cumulant of order greater than $2$ vanishes.
+\end{corollary}
+
+\section{Actions as exponential deformations}
+
+Let $\mu$ be a base probability measure.  Relative to $\mu$, an interaction potential
+$V:\Omega\to\mathbb R$ and coupling $\epsilon$ define the deformed law
+\[
+  \mu_{\epsilon,V}:=\mu.\texttt{tilted}(-\epsilon V).
+\]
+Taking $\mu$ Gaussian absorbs the entire quadratic action and its normalization into a canonical
+probability measure.  This is both shorter and more general than repeatedly integrating a density
+against Lebesgue measure.
+
+\begin{definition}[Exponential deformation and relative partition function]
+\label{def:renorm:deform}
+\lean{Renormalization.deform, Renormalization.partitionFunction}
+Define
+\begin{align*}
+ \operatorname{deform}(\mu,V,\epsilon)
+   &:=\mu.\texttt{tilted}(x\mapsto-\epsilon V(x)),\\
+ Z_{\mu,V}(\epsilon)&:=\int e^{-\epsilon V}\,d\mu.
+\end{align*}
+If $Z_{\mu,V}(\epsilon)$ is finite and nonzero, \texttt{deform} is a probability measure.
+\end{definition}
+
+\begin{lemma}[Exact normalized-expectation formula]
+\label{lem:renorm:deformIntegral}
+\uses{def:renorm:deform}
+\lean{Renormalization.integral_deform}
+For a Banach-valued observable $O$,
+\[
+ \int O\,d\mu_{\epsilon,V}
+ =\frac{\int e^{-\epsilon V}O\,d\mu}{Z_{\mu,V}(\epsilon)}.
+\]
+Scalar multiplication is used for vector-valued $O$.
+\end{lemma}
+
+\begin{proof}
+This is a wrapper around \texttt{MeasureTheory.integral\_tilted}.  The wrapper fixes signs and
+normalization once so later proofs do not repeatedly unfold \texttt{Measure.tilted} or
+\texttt{withDensity}.
+\end{proof}
+
+\begin{definition}[Observable--potential covariance]
+\label{def:renorm:covarianceWith}
+\lean{Renormalization.covarianceWith}
+For a Banach-valued $O$ and real $V$, define
+\[
+ \operatorname{Cov}_\mu(O,V)
+ :=\int V\,O\,d\mu-\left(\int V\,d\mu\right)\left(\int O\,d\mu\right),
+\]
+using scalar multiplication in the Banach space.  In the real-valued case this agrees with
+Mathlib's covariance after swapping arguments if necessary.
+\end{definition}
+
+\begin{theorem}[Linear response for a nonnegative potential]
+\label{thm:renorm:linearResponse}
+\uses{def:renorm:deform, def:renorm:covarianceWith, lem:renorm:deformIntegral}
+\lean{Renormalization.hasDerivWithinAt_integral_deform_zero}
+Assume $\mu$ is a probability measure, $V\geq0$ almost everywhere, and $V$, $O$, and $V\,O$ are
+integrable.  Then
+\[
+ \operatorname{HasDerivWithinAt}\left(
+   \epsilon\mapsto\int O\,d\mu_{\epsilon,V},
+   -\operatorname{Cov}_\mu(O,V),[0,\infty),0\right).
+\]
+\end{theorem}
+
+\begin{proof}
+Write the expectation as $N(\epsilon)/Z(\epsilon)$ by
+Lemma~\ref{lem:renorm:deformIntegral}.  For $\epsilon\geq0$ and $V\geq0$,
+$e^{-\epsilon V}\leq1$ and $V e^{-\epsilon V}\leq V$.  Dominated convergence gives
+\[
+ N'_+(0)=-\int VO\,d\mu,\qquad Z'_+(0)=-\int V\,d\mu.
+\]
+Since $Z(0)=1$, the quotient rule gives
+$N'_+(0)-N(0)Z'_+(0)=-\operatorname{Cov}_\mu(O,V)$.
+The Lean proof should package the two dominated-derivative statements as reusable private lemmas
+before invoking the quotient rule.
+\end{proof}
+
+\begin{theorem}[Quadratic remainder]
+\label{thm:renorm:quadraticResponse}
+\uses{thm:renorm:linearResponse}
+\lean{Renormalization.integral_deform_sub_linear_isBigO}
+Under the hypotheses of Theorem~\ref{thm:renorm:linearResponse}, and additionally assuming
+$V^2$ and $V^2O$ are integrable, the remainder satisfies
+\[
+ \left(\epsilon\mapsto
+   \int O\,d\mu_{\epsilon,V}-\int O\,d\mu
+   +\epsilon\operatorname{Cov}_\mu(O,V)\right)
+ =O_{\operatorname{nhdsWithin}(0,[0,\infty))}(\epsilon\mapsto\epsilon^2).
+\]
+\end{theorem}
+
+\begin{proof}
+For $x\geq0$, Taylor's theorem gives
+$|e^{-x}-1+x|\leq x^2/2$.  Apply this pointwise with $x=\epsilon V$, integrate the resulting bounds
+for $Z$ and $N$, and use continuity of $Z$ to bound $Z(\epsilon)^{-1}$ on a sufficiently small
+right-neighborhood of zero.  Keep the numerator expansion, denominator expansion, reciprocal
+bound, and final quotient estimate as four separate lemmas.
+\end{proof}
+
+\begin{remark}[Two-sided version]
+A second theorem may replace \texttt{HasDerivWithinAt} by \texttt{HasDerivAt} if there exists
+$\delta>0$ giving an integrable envelope for $e^{\delta|V|}$, $|O|e^{\delta|V|}$, and their first
+two $|V|$-weighted variants.  It must not be used for an unbounded nonnegative quartic potential,
+where that hypothesis generally fails.
+\end{remark}
+
+\section{Quartic Gaussian deformation}
+
+Let $\iota$ be finite, let $K$ be a positive-semidefinite covariance matrix, and let
+$\gamma_K=\texttt{multivariateGaussian}\ 0\ K$.  A quartic coupling is represented by a function
+$A:(\operatorname{Fin}(4)\to\iota)\to\mathbb R$ invariant under every permutation of
+$\operatorname{Fin}(4)$.  Define
+\[
+ V_A(z)=\frac1{4!}\sum_{a,b,c,d}A(a,b,c,d)z_az_bz_cz_d.
+\]
+Normalizability is obtained from the explicit hypothesis $V_A\geq0$; total symmetry alone is not
+enough.
+
+\begin{definition}[Symmetric quartic coupling]
+\label{def:renorm:quarticCoupling}
+\lean{Renormalization.QuarticCoupling, Renormalization.QuarticCoupling.potential}
+\texttt{QuarticCoupling}~$\iota$ contains the coefficient function and a proof of invariance under
+permutations.  Nonnegativity is a separate predicate on its potential, since useful contraction
+identities need symmetry but not positivity.
+\end{definition}
+
+\begin{lemma}[Quartic potential moments]
+\label{lem:renorm:quarticMoments}
+\uses{def:renorm:quarticCoupling, cor:renorm:multivariateWick}
+\lean{Renormalization.QuarticCoupling.integral_potential,
+Renormalization.QuarticCoupling.integral_coord_mul_potential,
+Renormalization.QuarticCoupling.integral_fourCoords_mul_potential}
+The Gaussian expectations of $V_A$, $z_i z_jV_A$, and
+$z_i z_j z_k z_lV_A$ reduce to Wick sums.  Total symmetry of $A$ combines terms in the same orbit;
+the orbit multiplicities are respectively $3$, $3+12$, and the corresponding eighth-moment
+classes.
+\end{lemma}
+
+This lemma must be proved from the pairing recurrence and finite-sum reindexing.  The proof should
+never contain a manually written list of $105$ eighth-order pairings.
+
+\begin{theorem}[Relative partition function to first order]
+\label{thm:renorm:quarticPartition}
+\uses{lem:renorm:quarticMoments, thm:renorm:quadraticResponse}
+\lean{Renormalization.QuarticCoupling.partitionFunction_isBigO}
+If $V_A\geq0$, then, as $\epsilon\to0^+$,
+\[
+ Z_{\gamma_K,V_A}(\epsilon)
+ =1-\frac{\epsilon}{8}\sum_{a,b,c,d}A(a,b,c,d)K_{ab}K_{cd}
+  +O(\epsilon^2).
+\]
+This is the \emph{relative} partition function.  The factor
+$\sqrt{\det(2\pi K)}$ from the source belongs only to an unnormalized Lebesgue-density
+presentation and cancels from every normalized expectation.
+\end{theorem}
+
+\begin{theorem}[Two-point linear response]
+\label{thm:renorm:quarticTwoPoint}
+\uses{lem:renorm:quarticMoments, thm:renorm:quadraticResponse}
+\lean{Renormalization.QuarticCoupling.twoPoint_isBigO}
+If $V_A\geq0$, then
+\[
+ \mathbb E_{\gamma_{K,\epsilon A}}[z_i z_j]
+ =K_{ij}-\frac{\epsilon}{2}
+   \sum_{a,b,c,d}A(a,b,c,d)K_{ia}K_{jb}K_{cd}+O(\epsilon^2),
+\]
+where the Big-O filter is the right-neighborhood of $0$.
+\end{theorem}
+
+\begin{theorem}[Connected four-point linear response]
+\label{thm:renorm:quarticFourPoint}
+\uses{lem:renorm:lowCumulants, lem:renorm:quarticMoments,
+thm:renorm:quarticTwoPoint, thm:renorm:quadraticResponse}
+\lean{Renormalization.QuarticCoupling.fourthCumulant_isBigO}
+If $V_A\geq0$, then
+\[
+ \kappa_{\gamma_{K,\epsilon A}}(z_i,z_j,z_k,z_l)
+ =-\epsilon\sum_{a,b,c,d}A(a,b,c,d)
+     K_{ia}K_{jb}K_{kc}K_{ld}+O(\epsilon^2)
+\]
+as $\epsilon\to0^+$.
+\end{theorem}
+
+\begin{proof}
+Apply Theorem~\ref{thm:renorm:quadraticResponse} first to the four-coordinate observable and then
+to each two-coordinate observable in the low-order cumulant formula.  Expand the relevant
+observable--potential covariances using Lemma~\ref{lem:renorm:quarticMoments}.  All disconnected
+pairings cancel by the general moment--cumulant identity, leaving precisely the pairings that join
+each external coordinate to one leg of the quartic coupling.  Symmetry of $A$ turns the $4!$
+equivalent terms into the displayed contraction and cancels the $1/4!$ in $V_A$.
+\end{proof}
+
+\section{Independence and hierarchical scaling}
+
+\begin{proposition}[Independent coordinates have no mixed connected correlator]
+\label{prop:renorm:independentCumulant}
+\uses{lem:renorm:cumulantStructural}
+\lean{Renormalization.jointCumulant_eq_zero_of_iIndepFun}
+For an independent family $(X_i)$, a joint cumulant involving variables from at least two
+independent nonempty groups is zero.  In particular, after an orthogonal diagonalization of a
+Gaussian covariance, mixed connected correlators vanish.
+\end{proposition}
+
+The first sentence is part of the core API and uses Mathlib's \texttt{iIndepFun}.  The second
+sentence should be a later corollary only if the required spectral and product-measure bridges are
+already available; it is not needed to prove Wick's theorem.
+
+\begin{definition}[Hierarchically nearly Gaussian family]
+\label{def:renorm:hierarchical}
+\lean{Renormalization.IsHierarchicallyNearlyGaussian}
+Let $\mu_\epsilon$ be a family of probability measures and $X_i$ fixed observables.  A precise
+version of the source's hierarchy is that for every $m\geq2$ and every index tuple $i$ of length
+$2m$,
+\[
+ \left(\epsilon\mapsto
+   \kappa_{\mu_\epsilon}(X_{i_1},\ldots,X_{i_{2m}})\right)
+ =O_{\operatorname{nhdsWithin}(0,[0,\infty))}
+   (\epsilon\mapsto\epsilon^{m-1}).
+\]
+The definition should accept an explicit set of admissible observables and an explicit filter.
+\end{definition}
+
+This definition records scaling; it does not by itself assert convergence of measures or validity
+of an action truncation.  Those conclusions require additional uniform moment bounds and a chosen
+notion of approximation.
+
+\section{Refactors and reuse in LML}
+
+\subsection{Gaussian helpers from NTK}
+
+\texttt{Optimization/NTK/Kernel.lean} currently contains general Gaussian helper lemmas inside the
+\texttt{NTK} namespace.  The following refactors should be made only after the new generic API is
+proved and its downstream users compile:
+\begin{enumerate}
+  \item Replace coordinate-product constructions by Mathlib's
+    \texttt{stdGaussian}, \texttt{multivariateGaussian}, and
+    \texttt{IsGaussian.map\_eq\_gaussianReal} whenever possible.
+  \item Generalize \texttt{NTK.gaussianReal\_singleton\_eq\_zero} from mean $0$, variance $1$ to
+    every nondegenerate \texttt{gaussianReal}, and move it to a
+    \texttt{ForMathlib/Probability/Distributions/Gaussian.lean} file if Mathlib still lacks it.
+  \item Keep the NTK-specific raw-row measure bridge local, but state new renormalization theorems
+    on \texttt{EuclideanSpace} and \texttt{StrongDual}.  This avoids creating more bespoke
+    \texttt{Finset.sum} inner products and the associated \texttt{WithLp} bridge lemmas.
+\end{enumerate}
+
+The existing \texttt{NTK.innerProduct} API should not be imported into the new library.  It uses
+the raw function type $\operatorname{Fin}(d)\to\mathbb R$, whose default norm is the supremum norm;
+Mathlib's Gaussian and covariance APIs naturally use \texttt{EuclideanSpace}.
+
+\subsection{Promotion criteria}
+
+A declaration belongs in \texttt{ForMathlib} only if it:
+\begin{enumerate}
+  \item has no neural-network or renormalization vocabulary in its statement;
+  \item is stated over the weakest practical algebraic or measure-theoretic assumptions;
+  \item has a docstring, namespace-consistent name, and no project-local notation in its signature;
+  \item is proved without \texttt{sorry}; and
+  \item passes the Mathlib linter configuration already enabled in \texttt{lakefile.toml}.
+\end{enumerate}
+
+\section{Implementation phases and acceptance criteria}
+
+\subsection*{Phase 0: API audit}
+Create a scratch file importing exactly the proposed target imports and batch-\texttt{\#check} every
+external declaration.  Record only verified names in module docstrings.  Acceptance criterion:
+the scratch file compiles and contains no guessed declaration.
+
+\paragraph{Status (2026-07-26).}
+Complete.  \texttt{RenormalizationAPIAudit.lean} imports the direct target modules and checks every
+external declaration currently named by this blueprint.  It compiles with
+\texttt{lake env lean RenormalizationAPIAudit.lean}.  The verified combinatorial names are recorded
+in the module docstring of \texttt{Optimization/Renormalization/Finpartition.lean}.
+
+\subsection*{Phase 1: finite-partition algebra}
+Implement pairings, partition products, the two transforms, and M\"obius inversion.  Prove
+permutation and bind lemmas.  Acceptance criterion: all combinatorial declarations compile without
+probability imports, and the transform is tested on sets of cardinality $0,1,2,4$.
+
+\paragraph{Status (2026-07-26).}
+The definition and theorem-statement skeleton is complete.  The module has no probability imports,
+and \texttt{RenormalizationFinpartitionTest.lean} verifies the Bell counts $1,1,2,15$ in
+cardinalities $0,1,2,4$.  Phase~1 is not yet proof-complete: the structural, pairing, bind, and
+M\"obius-inversion declarations are explicitly marked with \texttt{sorry}, each accompanied by an
+informal proof and source as required by the project policy.
+
+\subsection*{Phase 2: moments and cumulants}
+Implement Definitions~\ref{def:renorm:jointMoment} and \ref{def:renorm:jointCumulant}, low-order
+formulae, multilinearity, permutation invariance, independent splitting, and the CGF bridge.
+Acceptance criterion: the $1$st, $2$nd, and centered $4$th cumulant theorems have the exact formulas
+shown above and no hand-enumerated partition proof.
+
+\subsection*{Phase 3: Gaussian API}
+Prove scalar moments, the pairing recurrence, coordinate-free Wick, the multivariate-coordinate
+corollary, and vanishing higher cumulants.  Acceptance criterion: the sixth moment follows by one
+application of the general Wick theorem, not a fifteen-term proof.
+
+\subsection*{Phase 4: perturbation API}
+Implement the exact tilted-expectation wrapper, right derivative, and quadratic remainder.
+Acceptance criterion: every probability-measure use exposes an integrability proof, and every
+asymptotic statement displays its filter.
+
+\subsection*{Phase 5: quartic specialization}
+Implement symmetric couplings and prove the partition, two-point, and connected four-point
+formulae.  Acceptance criterion: coefficient multiplicities are derived by pairing orbits and
+finite-sum equivalences, and the final theorem states both nonnegativity/normalizability and
+second-moment hypotheses explicitly.
+
+\subsection*{Phase 6: refactor and integration}
+Add the umbrella import to \texttt{LeanMachineLearning.lean}; migrate only genuinely generic NTK
+helpers; run targeted builds, the full LML build, and the linters.  Acceptance criterion: no
+downstream theorem changes statement merely to accommodate the refactor.
+
+\section{Failure analysis and compliance with the project lessons}
+
+The central error to avoid is treating the informal density manipulations as if they were already
+well-typed theorems: inventing new Gaussian/MGF/tilting APIs, omitting normalizability, and writing a
+two-sided $O(\epsilon^2)$ expansion for a quartic tilt.  That approach violates the following
+specific lessons in \texttt{docs/lessons\_learned.md}:
+\begin{enumerate}
+  \item \textbf{Rule 1 (Verify Before Implementation)} and \textbf{Rule 3 (Pattern-Based Search):}
+    it misses the verified \texttt{mgf}, \texttt{cgf}, \texttt{multivariateGaussian},
+    \texttt{Measure.tilted}, and \texttt{Finpartition} APIs and invites hallucinated replacements.
+    In particular, \texttt{docs/hallucinated\_mathlib.md} records the nonexistent
+    \texttt{map\_gaussianRowMeasure\_dotProduct} helper and the missing blanket Gaussian instance
+    for a finite product measure; the verified replacement for the former is
+    \texttt{ProbabilityTheory.IsGaussian.map\_eq\_gaussianReal}, and the latter should usually be
+    avoided by using \texttt{stdGaussian} or \texttt{multivariateGaussian}.
+  \item \textbf{Section 1.4 (measure-theory typeclasses):} it silently treats an unnormalized or
+    zero measure as a probability measure and hides the required \texttt{Integrable} and
+    \texttt{IsProbabilityMeasure} evidence.
+  \item \textbf{Rule 9 (Skeleton-First) and Rule 12 (no monolithic calculations):} manually
+    expanding sixth and eighth Gaussian moments entangles combinatorics, integration, and algebra,
+    so one bad coefficient poisons an entire proof.
+  \item \textbf{Rule 7 (modularize tactic-heavy subgoals):} failing to isolate the partition
+    transform, pairing recurrence, dominated derivative, and quotient estimate causes duplicated,
+    brittle proofs.
+  \item \textbf{Rules 6 and 17 (exact proof terms and immediate isolation):} attempting long
+    rewrite chains through integrals, maps, and \texttt{WithLp} coercions is precisely the
+    syntactic-shape failure these rules warn against.
+  \item \textbf{Rule 8 (scratch verification), Rules 13--14 (ground-truth builds), and Rule 16
+    (detect loops):} accepting editor feedback or a broad parallel build without a targeted check
+    can conceal missing imports, stale oleans, or a nonterminating definitional-equality search.
+\end{enumerate}
+
+The new plan complies with those lessons by construction:
+\begin{enumerate}
+  \item every external declaration listed in the blueprint has been source-searched and checked in
+    the pinned import context; implementation begins with a fresh batch-\texttt{\#check} audit;
+  \item following \textbf{Rules 2 and 4}, declarations are added atomically and consolidated only
+    after their exact signatures typecheck; broad mechanical edits are reserved for a verified
+    downstream migration;
+  \item combinatorics, Gaussian probability, and perturbation analysis are separate modules with
+    small theorem boundaries;
+  \item probability and integrability hypotheses are visible in theorem statements, and quartic
+    asymptotics use the correct one-sided filter;
+  \item reusable lemmas replace term enumeration and monolithic \texttt{calc} blocks;
+  \item new proofs are developed in exact-signature scratch files, then checked with
+    \texttt{lake env lean} on the edited file and a targeted \texttt{lake build} on its module,
+    complying with \textbf{Rules 8, 11, 13, and 14};
+  \item coordinate proofs remain on \texttt{EuclideanSpace} and use
+    \texttt{PiLp.inner\_apply}/\texttt{Real.inner\_apply}, as required by the representation warning
+    in Section~13.9, rather than unfolding inner-product structures;
+  \item edits are made one module and one logical declaration at a time, with the full build only
+    after targeted builds pass; and
+  \item no \texttt{sorry} is accepted in a mergeable phase.  If exploratory work temporarily uses
+    one, its docstring must contain an informal proof and a precise source, and the phase cannot be
+    marked complete until the placeholder is removed.
+\end{enumerate}
+
+This workflow also follows LML's stated goals: it supplies high-quality reusable definitions,
+essential machine-learning theory, an extensible framework for later wide-network results,
+documentation aligned with code, and a trusted rather than merely plausible basis for research
+formalization.
