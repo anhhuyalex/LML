@@ -25,7 +25,7 @@ It has no probability or measure-theory imports.
 ## Verified external API
 
 The declarations used from the pinned Mathlib revision were checked in
-`RenormalizationAPIAudit.lean`: `Finpartition.map`, `Finpartition.bind`,
+`Renormalization/APIAudit.lean`: `Finpartition.map`, `Finpartition.bind`,
 `Finpartition.bind_parts`, `Finpartition.mem_bind`, `Finpartition.card_bind`,
 `Finpartition.sum_card_parts`, `Equiv.finsetCongr`, `Finset.prod_biUnion`,
 `Finset.prod_sum`, `Fintype.prod_sum`, and
@@ -105,14 +105,26 @@ each summand by two using `P.2`.  The source is the Mathlib finite-partition fil
 module docstring. -/
 theorem Pairing.two_mul_card_parts {s : Finset α} (P : Pairing s) :
     2 * P.1.parts.card = s.card := by
-  sorry
+  have h : ∑ B ∈ P.1.parts, B.card = s.card := P.1.sum_card_parts
+  have h' : ∑ B ∈ P.1.parts, B.card = ∑ B ∈ P.1.parts, 2 := by
+    apply Finset.sum_congr rfl
+    intro B hB
+    exact P.2 B hB
+  rw [h'] at h
+  rw [Finset.sum_const, Nat.nsmul_eq_mul] at h
+  rw [← h, mul_comm]
 
 /-- A finite set of odd cardinality has no pairing.
 
 Informal proof: a pairing would make its cardinality twice the number of blocks by
 `Pairing.two_mul_card_parts`, contradicting oddness. -/
 theorem Pairing.isEmpty_of_odd_card {s : Finset α} (hs : Odd s.card) : IsEmpty (Pairing s) := by
-  sorry
+  by_contra h
+  simp only [not_isEmpty_iff] at h
+  obtain ⟨P⟩ := h
+  have h_eq : s.card = 2 * P.1.parts.card := (P.two_mul_card_parts).symm
+  have h_even : Even s.card := ⟨P.1.parts.card, by rw [h_eq, two_mul]⟩
+  exact Nat.not_odd_iff_even.mpr h_even hs
 
 /-- In a pairing, an element has a unique distinct partner in its block.
 
@@ -121,7 +133,52 @@ exactly one other member.  Uniqueness follows because `Finpartition.part` is the
 containing `a`. -/
 theorem Pairing.existsUnique_partner {s : Finset α} (P : Pairing s) {a : α} (ha : a ∈ s) :
     ∃! b : α, b ∈ s ∧ b ≠ a ∧ P.1.part a = {a, b} := by
-  sorry
+  have h_mem : P.1.part a ∈ P.1.parts := P.1.part_mem.2 ha
+  have h_card : (P.1.part a).card = 2 := P.2 (P.1.part a) h_mem
+  have ha_in : a ∈ P.1.part a := P.1.mem_part ha
+  set t := P.1.part a \ {a} with ht
+  have ht_card : t.card = 1 := by
+    rw [ht]
+    rw [Finset.card_sdiff_of_subset (Finset.singleton_subset_iff.2 ha_in)]
+    simp [h_card]
+  obtain ⟨b, hb_eq⟩ := Finset.card_eq_one.1 ht_card
+  have hb_in : b ∈ P.1.part a := by
+    have hbt : b ∈ t := by rw [hb_eq]; simp
+    exact (Finset.mem_sdiff.1 hbt).1
+  have hb_ne : b ≠ a := by
+    have hbt : b ∈ t := by rw [hb_eq]; simp
+    intro h
+    have : b ∈ ({a} : Finset α) := by rw [h]; simp
+    exact (Finset.mem_sdiff.1 hbt).2 this
+  use b
+  have h_card_ab : ({a, b} : Finset α).card = 2 := by
+    rw [Finset.card_insert_of_notMem (by simpa using hb_ne.symm)]
+    simp
+  have h_eq_ab : P.1.part a = {a, b} := by
+    apply Finset.eq_of_subset_of_card_le
+    · intro x hx
+      by_cases h : x = a
+      · rw [h]
+        simp
+      · have hx_t : x ∈ t := by
+          rw [ht]
+          exact Finset.mem_sdiff.2 ⟨hx, by simpa using h⟩
+        rw [hb_eq] at hx_t
+        simp [hx_t]
+    · rw [h_card, h_card_ab]
+  constructor
+  · exact ⟨P.1.subset h_mem hb_in, hb_ne, h_eq_ab⟩
+  · intro c hc
+    rcases hc with ⟨hc_s, hc_ne, hc_eq⟩
+    have hc_in : c ∈ P.1.part a := by
+      rw [hc_eq]
+      simp
+    have : c ∈ t := by
+      rw [ht]
+      exact Finset.mem_sdiff.2 ⟨hc_in, by simpa using hc_ne⟩
+    rw [hb_eq] at this
+    rw [Finset.mem_singleton] at this
+    exact this
 
 /-- Add a fresh two-element block to a pairing.
 
@@ -129,7 +186,18 @@ Informal construction: extend the underlying finpartition by the disjoint block 
 blocks remain pairs, and the new block has cardinality two because `a ≠ b`. -/
 def Pairing.insertPair {s : Finset α} (P : Pairing s) {a b : α} (hab : a ≠ b)
     (ha : a ∉ s) (hb : b ∉ s) : Pairing (insert a (insert b s)) := by
-  sorry
+  have h_disj : Disjoint s {a, b} := by
+    simp [Finset.disjoint_iff_inter_eq_empty, ha, hb]
+  have h_sup : s ∪ {a, b} = insert a (insert b s) := by
+    ext x
+    simp
+  refine ⟨P.1.extend (show ({a, b} : Finset α) ≠ ∅ by simp) h_disj h_sup, ?_⟩
+  intro B hB
+  rw [Finpartition.extend_parts] at hB
+  simp only [Finset.mem_insert] at hB
+  rcases hB with (rfl | hB)
+  · rw [Finset.card_pair hab]
+  · exact P.2 B hB
 
 /-- The blocks of `insertPair` are the new pair together with the original blocks.
 
@@ -138,7 +206,7 @@ Informal proof: unfold the construction and use the `parts` theorem for
 theorem Pairing.insertPair_parts {s : Finset α} (P : Pairing s) {a b : α} (hab : a ≠ b)
     (ha : a ∉ s) (hb : b ∉ s) :
     (P.insertPair hab ha hb).1.parts = insert {a, b} P.1.parts := by
-  sorry
+  simp [insertPair, Finpartition.extend_parts]
 
 /-- The order isomorphism on finite sets induced by an equivalence of element types. -/
 def _root_.Equiv.finsetOrderIso (e : α ≃ β) : Finset α ≃o Finset β where
@@ -159,7 +227,75 @@ Informal proof: this is `Finpartition.parts_map` followed by
 theorem parts_mapEquiv [DecidableEq β] (e : α ≃ β) {s : Finset α}
     (P : Finpartition s) :
     (P.mapEquiv e).parts = P.parts.map e.finsetOrderIso.toEmbedding := by
-  sorry
+  simp [mapEquiv, Finpartition.parts_map]
+  rfl
+
+/-- `mapEquiv e` is an equivalence of finpartition types, with inverse `mapEquiv e.symm`. -/
+@[simp]
+lemma finsetOrderIso_symm_apply (e : α ≃ β) (B : Finset α) :
+    e.symm.finsetOrderIso (e.finsetOrderIso B) = B := by
+  let _ := ‹DecidableEq α›
+  change e.symm.finsetCongr (e.finsetCongr B) = B
+  simp [Equiv.finsetCongr_apply, Finset.map_map]
+
+@[simp]
+lemma finsetOrderIso_apply_symm (e : α ≃ β) (B : Finset β) :
+    e.finsetOrderIso (e.symm.finsetOrderIso B) = B := by
+  let _ := ‹DecidableEq α›
+  change e.finsetCongr (e.symm.finsetCongr B) = B
+  simp [Equiv.finsetCongr_apply, Finset.map_map]
+
+lemma mapEquivEquiv_parts_eq [DecidableEq β] (e : α ≃ β) {s : Finset α} (P : Finpartition s) :
+    (mapEquiv e.symm (mapEquiv e P)).parts = P.parts := by
+  ext B
+  simp only [parts_mapEquiv, Finset.mem_map, Equiv.finsetOrderIso]
+  constructor
+  · rintro ⟨B', ⟨B'', h1, h2⟩, h3⟩
+    subst h2 h3
+    have H : e.symm.finsetCongr.toEmbedding (e.finsetCongr.toEmbedding B'') = B'' := by
+      ext b
+      simp
+    rwa [H]
+  · intro h
+    exact ⟨e.finsetCongr B, ⟨B, h, rfl⟩, Equiv.symm_apply_apply e.finsetCongr B⟩
+
+lemma mapEquivEquiv_parts_eq' [DecidableEq β] (e : α ≃ β) {s : Finset α}
+    (Q : Finpartition (s.map e.toEmbedding)) :
+    (mapEquiv e (mapEquiv e.symm Q)).parts = Q.parts := by
+  ext B
+  simp only [parts_mapEquiv, Finset.mem_map, Equiv.finsetOrderIso]
+  constructor
+  · rintro ⟨B', ⟨B'', h1, h2⟩, h3⟩
+    subst h2 h3
+    have H : e.finsetCongr.toEmbedding (e.symm.finsetCongr.toEmbedding B'') = B'' := by
+      ext b
+      simp
+    rwa [H]
+  · intro h
+    exact ⟨e.symm.finsetCongr B, ⟨B, h, rfl⟩, Equiv.apply_symm_apply e.finsetCongr B⟩
+
+omit [DecidableEq α] in
+lemma mapEquivEquiv_finset_eq [DecidableEq β] (e : α ≃ β) (s : Finset α) :
+    (s.map e.toEmbedding).map e.symm.toEmbedding = s := by
+  rw [Finset.map_map]
+  simp
+
+@[simp]
+lemma parts_mapEquiv_copy [DecidableEq β] (e : α ≃ β) {s s' : Finset α} (P : Finpartition s) (h : s = s') :
+    (mapEquiv e (P.copy h)).parts = (mapEquiv e P).parts := by
+  subst h
+  rfl
+
+def mapEquivEquiv [DecidableEq β] (e : α ≃ β) (s : Finset α) :
+    Finpartition s ≃ Finpartition (s.map e.toEmbedding) where
+  toFun P := mapEquiv e P
+  invFun Q := (mapEquiv e.symm Q).copy (mapEquivEquiv_finset_eq e s)
+  left_inv P := by
+    ext B
+    simp only [Finpartition.copy_parts, mapEquivEquiv_parts_eq]
+  right_inv Q := by
+    ext B
+    simp only [mapEquivEquiv_parts_eq' e Q, parts_mapEquiv_copy]
 
 /-- Block products are natural under reindexing.
 
@@ -167,7 +303,11 @@ Informal proof: rewrite the parts with `parts_mapEquiv` and apply `Finset.prod_m
 theorem blockProduct_mapEquiv [DecidableEq β] [CommMonoid R] (e : α ≃ β)
     {s : Finset α} (P : Finpartition s) (f : Finset β → R) :
     (P.mapEquiv e).blockProduct f = P.blockProduct (fun B ↦ f (B.map e.toEmbedding)) := by
-  sorry
+  simp_rw [blockProduct, parts_mapEquiv]
+  rw [Finset.prod_map]
+  apply Finset.prod_congr rfl
+  intro B _
+  rfl
 
 /-- The partition transform commutes with reindexing by an equivalence.
 
@@ -177,7 +317,11 @@ theorem partitionTransform_map [DecidableEq β] [CommSemiring R] (e : α ≃ β)
     (f : Finset β → R) (s : Finset α) :
     partitionTransform f (s.map e.toEmbedding) =
       partitionTransform (fun B ↦ f (B.map e.toEmbedding)) s := by
-  sorry
+  simp_rw [partitionTransform]
+  exact (mapEquivEquiv e s).sum_comp (fun Q ↦ Q.blockProduct f) ▸ (by
+    apply Finset.sum_congr rfl
+    intro P _
+    exact blockProduct_mapEquiv e P f)
 
 /-- The cumulant transform commutes with reindexing by an equivalence.
 
@@ -187,7 +331,22 @@ theorem cumulantTransform_map [DecidableEq β] [CommRing R] (e : α ≃ β)
     (f : Finset β → R) (s : Finset α) :
     cumulantTransform f (s.map e.toEmbedding) =
       cumulantTransform (fun B ↦ f (B.map e.toEmbedding)) s := by
-  sorry
+  by_cases h : s = ∅
+  · simp [cumulantTransform, h]
+  · have h' : s.map e.toEmbedding ≠ ∅ := by simp [h]
+    simp only [cumulantTransform, h, h', ↓reduceIte]
+    exact (mapEquivEquiv e s).sum_comp (fun Q ↦ cumulantCoefficient Q * Q.blockProduct f) ▸ (by
+      apply Finset.sum_congr rfl
+      intro P _
+      have card_eq : ((mapEquivEquiv e s) P).parts.card = P.parts.card := by
+        change (mapEquiv e P).parts.card = P.parts.card
+        rw [parts_mapEquiv, Finset.card_map]
+      congr 1
+      · change (-1 : R) ^ (((mapEquivEquiv e s) P).parts.card - 1) *
+          (((mapEquivEquiv e s) P).parts.card - 1).factorial = _
+        rw [card_eq]
+        rfl
+      · exact blockProduct_mapEquiv e P f)
 
 /-- The block product of a bound partition factors over the outer partition.
 

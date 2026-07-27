@@ -726,9 +726,9 @@ external declaration.  Record only verified names in module docstrings.  Accepta
 the scratch file compiles and contains no guessed declaration.
 
 \paragraph{Status (2026-07-26).}
-Complete.  \texttt{RenormalizationAPIAudit.lean} imports the direct target modules and checks every
-external declaration currently named by this blueprint.  It compiles with
-\texttt{lake env lean RenormalizationAPIAudit.lean}.  The verified combinatorial names are recorded
+Complete.  \texttt{Optimization/Renormalization/APIAudit.lean} imports the direct target modules
+and checks every external declaration currently named by this blueprint.  It compiles with
+\texttt{lake env lean LeanMachineLearning/Optimization/Renormalization/APIAudit.lean}.  The verified combinatorial names are recorded
 in the module docstring of \texttt{Optimization/Renormalization/Finpartition.lean}.
 
 \subsection*{Phase 1: finite-partition algebra}
@@ -738,7 +738,8 @@ probability imports, and the transform is tested on sets of cardinality $0,1,2,4
 
 \paragraph{Status (2026-07-26).}
 The definition and theorem-statement skeleton is complete.  The module has no probability imports,
-and \texttt{RenormalizationFinpartitionTest.lean} verifies the Bell counts $1,1,2,15$ in
+and \texttt{Optimization/Renormalization/FinpartitionTest.lean} verifies the Bell counts
+$1,1,2,15$ in
 cardinalities $0,1,2,4$.  Phase~1 is not yet proof-complete: the structural, pairing, bind, and
 M\"obius-inversion declarations are explicitly marked with \texttt{sorry}, each accompanied by an
 informal proof and source as required by the project policy.
@@ -749,21 +750,56 @@ formulae, multilinearity, permutation invariance, independent splitting, and the
 Acceptance criterion: the $1$st, $2$nd, and centered $4$th cumulant theorems have the exact formulas
 shown above and no hand-enumerated partition proof.
 
+\paragraph{Status (2026-07-26).}
+The definition and theorem-statement skeleton is complete in \texttt{Basic.lean} and
+\texttt{Cumulant.lean}.  It includes block and joint moments, block and joint cumulants, the general
+moment--cumulant theorem, exact first, second, and centered fourth formulas, permutation symmetry,
+additivity, homogeneity, independent splitting, and the analytic CGF bridge.  All files elaborate;
+the deferred proofs are marked with documented \texttt{sorry}s, so Phase~2 is not proof-complete.
+
 \subsection*{Phase 3: Gaussian API}
 Prove scalar moments, the pairing recurrence, coordinate-free Wick, the multivariate-coordinate
 corollary, and vanishing higher cumulants.  Acceptance criterion: the sixth moment follows by one
 application of the general Wick theorem, not a fifteen-term proof.
+
+\paragraph{Status (2026-07-26).}
+The definition and theorem-statement skeleton is complete in \texttt{Gaussian.lean}.  It defines a
+canonical unordered pair weight and Wick sum and states the pairing recurrence, scalar moments,
+coordinate-free Wick theorem, multivariate-coordinate corollary, and Gaussian cumulant-vanishing
+theorems.  The sixth-moment theorem is already a one-line application of the general Wick theorem.
+The general proofs remain documented \texttt{sorry}s, so Phase~3 is not proof-complete.
 
 \subsection*{Phase 4: perturbation API}
 Implement the exact tilted-expectation wrapper, right derivative, and quadratic remainder.
 Acceptance criterion: every probability-measure use exposes an integrability proof, and every
 asymptotic statement displays its filter.
 
+\paragraph{Status (2026-07-26).}
+The definition and theorem-statement skeleton is complete in \texttt{Perturbation.lean}.  It
+defines exponential deformation, the relative partition function, an explicit
+\texttt{Normalizable} predicate, weighted integrals, and Banach-valued observable--potential
+covariance.  The exact tilted-integral wrapper is proved directly from Mathlib.  The right
+derivative and numerator, denominator, and normalized quadratic-remainder statements are present;
+each asymptotic conclusion displays \texttt{nhdsWithin 0 (Set.Ici 0)}, and probability promotion
+requires an explicit normalizability proof.  The analytic proofs remain documented
+\texttt{sorry}s, so Phase~4 is not proof-complete.
+
 \subsection*{Phase 5: quartic specialization}
 Implement symmetric couplings and prove the partition, two-point, and connected four-point
 formulae.  Acceptance criterion: coefficient multiplicities are derived by pairing orbits and
 finite-sum equivalences, and the final theorem states both nonnegativity/normalizability and
 second-moment hypotheses explicitly.
+
+\paragraph{Status (2026-07-26).}
+The definition and theorem-statement skeleton is complete in \texttt{Quartic.lean}.  Symmetric
+couplings, their potential, nonnegativity predicate, and vacuum, two-leg, and four-leg contractions
+are explicit.  The reusable moment interface reduces arbitrary coordinate products times the
+potential to Wick sums; the low-order statements record the $3$- and $12$-element pairing-orbit
+multiplicities without hand-enumerating pairings.  The partition, two-point, and connected
+four-point response theorems all display the right-neighborhood filter.  Their hypotheses expose
+normalizability and the precise second-moment integrability obligations, with the strongest final
+theorem also stating nonnegativity explicitly.  The orbit and analytic proofs remain documented
+\texttt{sorry}s, so Phase~5 is not proof-complete.
 
 \subsection*{Phase 6: refactor and integration}
 Add the umbrella import to \texttt{LeanMachineLearning.lean}; migrate only genuinely generic NTK

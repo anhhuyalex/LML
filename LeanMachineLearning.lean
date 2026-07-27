@@ -61,7 +61,12 @@ public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.NTK.Universal
 public import LeanMachineLearning.Optimization.Renormalization
+public import LeanMachineLearning.Optimization.Renormalization.Basic
+public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
+public import LeanMachineLearning.Optimization.Renormalization.Gaussian
+public import LeanMachineLearning.Optimization.Renormalization.Perturbation
+public import LeanMachineLearning.Optimization.Renormalization.Quartic
 public import LeanMachineLearning.SequentialLearning.Algorithm
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensity
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensityBayes

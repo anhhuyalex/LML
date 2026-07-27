@@ -5,7 +5,12 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.Optimization.Renormalization.Basic
+public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
+public import LeanMachineLearning.Optimization.Renormalization.Gaussian
+public import LeanMachineLearning.Optimization.Renormalization.Perturbation
+public import LeanMachineLearning.Optimization.Renormalization.Quartic
 
 /-!
 # Renormalization
@@ -13,7 +18,6 @@ public import LeanMachineLearning.Optimization.Renormalization.Finpartition
 Formal infrastructure for the renormalization and nearly-Gaussian expansions used in machine
 learning theory.
 
-The current first phase exports the probability-free algebra of finite partitions, pairings,
-partition transforms, and cumulant transforms.  Probability, Gaussian, and perturbation modules
-will be added in the dependency order specified by the renormalization blueprint.
+The current library exports finite-partition algebra, joint moments, cumulants, Gaussian Wick
+calculus, general exponential perturbations, and symmetric quartic Gaussian specializations.
 -/
