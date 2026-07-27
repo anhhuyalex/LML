@@ -61,6 +61,7 @@ public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.NTK.Universal
 public import LeanMachineLearning.Optimization.Renormalization
+public import LeanMachineLearning.Optimization.Renormalization.APIAudit
 public import LeanMachineLearning.Optimization.Renormalization.Basic
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
