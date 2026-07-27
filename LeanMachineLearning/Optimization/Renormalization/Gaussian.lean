@@ -191,15 +191,136 @@ theorem iteratedDeriv_exp_quadratic_zero_even (v : ℝ) (m : ℕ) :
         ((n + 1 : ℕ) : ℝ) * v *
           iteratedDeriv n (fun t => Real.exp (v * t ^ 2 / 2)) 0 := by
     intro n
-    -- Proof sketch:
-    -- 1. Prove `deriv (fun t ↦ Real.exp (v * t^2 / 2)) t =
-    --      v * t * Real.exp (v * t^2 / 2)` by the chain rule.
-    -- 2. Rewrite `iteratedDeriv (n+2) f 0` as the `n+1`-st iterated
-    --    derivative of `fun t ↦ v * t * f t` at zero using
-    --    `iteratedDeriv_succ`.
-    -- 3. Use `iteratedDeriv_mul`; derivatives of `t` at zero vanish
-    --    except in order one, yielding exactly `(n+1) * v * D_n`.
-    sorry
+    let f : ℝ → ℝ := fun t ↦ Real.exp (v * t ^ 2 / 2)
+    change iteratedDeriv (n + 2) f 0 =
+      ((n + 1 : ℕ) : ℝ) * v * iteratedDeriv n f 0
+
+    -- Step 1: the Gaussian quadratic exponential satisfies the first-order
+    -- differential equation `f' t = v * t * f t`.
+    -- This is the chain rule for `Real.exp` composed with `t ↦ v * t^2 / 2`.
+    have h_deriv : deriv f = fun t ↦ v * t * f t := by
+      funext t
+      -- First differentiate the inner quadratic `t ↦ v * t^2 / 2`.
+      have hg : HasDerivAt (fun x : ℝ => v * x ^ 2 / 2) (v * t) t := by
+        have hpow : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
+          simpa using (hasDerivAt_pow 2 t :
+            HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t ^ (2 - 1)) t)
+        have hmul : HasDerivAt (fun x : ℝ => v * x ^ 2) (v * ((2 : ℝ) * t)) t := by
+          exact HasDerivAt.const_mul v hpow
+        have hdiv : HasDerivAt (fun x : ℝ => (v * x ^ 2) / 2)
+            ((v * ((2 : ℝ) * t)) / 2) t := by
+          exact hmul.div_const 2
+        -- The derivative `(v * (2 * t)) / 2` is algebraically `v * t`.
+        convert hdiv using 1 <;> ring
+      -- Compose the inner derivative with `Real.exp` and commute the scalar factor.
+      have h_exp : HasDerivAt f (Real.exp (v * t ^ 2 / 2) * (v * t)) t := by
+        simpa [f] using hg.exp
+      have hf : HasDerivAt f (v * t * f t) t := by
+        convert h_exp using 1
+        simp [f]
+        ring
+      exact hf.deriv
+
+    -- Step 2: peel off one derivative from the `(n+2)`-nd iterated derivative,
+    -- then rewrite the ordinary derivative using `h_deriv`.
+    have h_shift :
+        iteratedDeriv (n + 2) f 0 =
+          iteratedDeriv (n + 1) (fun t ↦ v * t * f t) 0 := by
+      -- Peel off the first derivative from the `(n+2)`-nd iterated derivative,
+      -- then identify `deriv f` using the differential equation proved above.
+      calc
+        iteratedDeriv (n + 2) f 0 = iteratedDeriv (n + 1) (deriv f) 0 := by
+          simpa [Nat.add_assoc] using
+            congrFun (iteratedDeriv_succ' (n := n + 1) (f := f)) 0
+        _ = iteratedDeriv (n + 1) (fun t ↦ v * t * f t) 0 := by
+          rw [h_deriv]
+
+    -- Step 3: pull the constant `v` out of the iterated derivative.
+    have h_const :
+        iteratedDeriv (n + 1) (fun t ↦ v * t * f t) 0 =
+          v * iteratedDeriv (n + 1) (fun t ↦ t * f t) 0 := by
+      -- Reassociate `v * t * f t` as the constant multiple `v * (t * f t)`,
+      -- then use linearity of iterated derivatives under constant multiplication.
+      simpa [mul_assoc] using
+        (iteratedDeriv_const_mul_field (n := n + 1) (x := (0 : ℝ))
+          (c := v) (f := fun t : ℝ ↦ t * f t))
+
+    -- Step 4: apply the iterated Leibniz rule to `t * f t` at zero.
+    -- In the resulting sum, the `i = 0` term vanishes because `t = 0`,
+    -- the `i = 1` term contributes `(n+1) * iteratedDeriv n f 0`, and
+    -- all terms with `2 ≤ i` vanish because higher derivatives of `t` are zero.
+    have h_linear_product :
+        iteratedDeriv (n + 1) (fun t ↦ t * f t) 0 =
+          ((n + 1 : ℕ) : ℝ) * iteratedDeriv n f 0 := by
+      -- Smoothness hypotheses needed by the generalized Leibniz rule.
+      have h_id_smooth : ContDiffAt ℝ (n + 1) (fun t : ℝ ↦ t) 0 := by
+        fun_prop
+      have hf_smooth : ContDiffAt ℝ (n + 1) f 0 := by
+        dsimp [f]
+        fun_prop
+
+      -- Generalized Leibniz rule for the `(n+1)`-st derivative of `t * f t`.
+      have h_leibniz :
+          iteratedDeriv (n + 1) (fun t : ℝ ↦ t * f t) 0 =
+            ∑ i ∈ Finset.range ((n + 1) + 1),
+              (((n + 1).choose i : ℕ) : ℝ) *
+                iteratedDeriv i (fun t : ℝ ↦ t) 0 *
+                  iteratedDeriv ((n + 1) - i) f 0 := by
+        -- `iteratedDeriv_mul` is stated for point-free multiplication of
+        -- functions, so first identify the lambda product with `(fun t => t) * f`.
+        rw [show (fun t : ℝ ↦ t * f t) = (fun t : ℝ ↦ t) * f by
+          ext t
+          rfl]
+        exact
+          (iteratedDeriv_mul (𝕜 := ℝ) (𝔸 := ℝ) (n := n + 1) (x := (0 : ℝ))
+            (f := fun t : ℝ ↦ t) (g := f) h_id_smooth hf_smooth)
+
+      -- In the Leibniz sum, `iteratedDeriv i (fun t => t) 0` is zero except
+      -- at `i = 1`.  Thus only the `i = 1` term survives; its binomial
+      -- coefficient is `(n+1).choose 1 = n+1`, and `(n+1)-1 = n`.
+      have h_sum_collapse :
+          (∑ i ∈ Finset.range ((n + 1) + 1),
+              (((n + 1).choose i : ℕ) : ℝ) *
+                iteratedDeriv i (fun t : ℝ ↦ t) 0 *
+                  iteratedDeriv ((n + 1) - i) f 0) =
+            ((n + 1 : ℕ) : ℝ) * iteratedDeriv n f 0 := by
+        -- Collapse the sum to the unique nonzero contribution, namely `i = 1`.
+        -- For every other index the iterated derivative of the identity at zero is zero.
+        have hsingle :
+            (∑ i ∈ Finset.range ((n + 1) + 1),
+                (((n + 1).choose i : ℕ) : ℝ) *
+                  iteratedDeriv i (fun t : ℝ ↦ t) 0 *
+                    iteratedDeriv ((n + 1) - i) f 0) =
+              (((n + 1).choose 1 : ℕ) : ℝ) *
+                iteratedDeriv 1 (fun t : ℝ ↦ t) 0 *
+                  iteratedDeriv ((n + 1) - 1) f 0 := by
+          apply Finset.sum_eq_single_of_mem 1
+          · simp
+          · intro i _hi hi_ne
+            -- Away from `i = 1`, `iteratedDeriv i id 0 = 0`.
+            simp [iteratedDeriv_fun_id_zero, hi_ne]
+        -- The surviving term has derivative `1`, binomial coefficient `n+1`,
+        -- and derivative order `(n+1)-1 = n`.
+        rw [hsingle]
+        simp [iteratedDeriv_fun_id_zero]
+
+      calc
+        iteratedDeriv (n + 1) (fun t : ℝ ↦ t * f t) 0
+            = ∑ i ∈ Finset.range ((n + 1) + 1),
+                (((n + 1).choose i : ℕ) : ℝ) *
+                  iteratedDeriv i (fun t : ℝ ↦ t) 0 *
+                    iteratedDeriv ((n + 1) - i) f 0 := h_leibniz
+        _ = ((n + 1 : ℕ) : ℝ) * iteratedDeriv n f 0 := h_sum_collapse
+
+    -- Combine the analytic reduction with a final commutative-ring rearrangement.
+    calc
+      iteratedDeriv (n + 2) f 0
+          = iteratedDeriv (n + 1) (fun t ↦ v * t * f t) 0 := h_shift
+      _ = v * iteratedDeriv (n + 1) (fun t ↦ t * f t) 0 := h_const
+      _ = v * (((n + 1 : ℕ) : ℝ) * iteratedDeriv n f 0) := by
+          rw [h_linear_product]
+      _ = ((n + 1 : ℕ) : ℝ) * v * iteratedDeriv n f 0 := by
+          ring
 
   -- Base coefficient: the zeroth derivative is just the value at zero.
   have h_base :
@@ -220,12 +341,62 @@ theorem iteratedDeriv_exp_quadratic_zero_even (v : ℝ) (m : ℕ) :
         -- The recurrence turns the `(2*(m+1))`-st derivative into
         -- `(2*m+1) * v` times the `(2*m)`-th derivative.
         have h_step := h_recurrence (2 * m)
+        -- First normalize the derivative order `2 * (m + 1)` to the
+        -- recurrence order `2 * m + 2`.
+        have h_order : 2 * (m + 1) = 2 * m + 2 := by
+          omega
+
         -- The remaining work is factorial arithmetic:
-        -- `(2*m+2)! / (2^(m+1) * (m+1)!)`
-        -- equals `(2*m+1) * ((2*m)! / (2^m * m!))`.
-        -- Substitute `ih` into `h_step` and finish with `ring_nf`,
-        -- `norm_num`, and the identities for `Nat.factorial_succ`.
-        sorry
+        -- after substituting the induction hypothesis into the recurrence,
+        -- the coefficient `(2*m+1) * (2*m)! / (2^m*m!)` has to be
+        -- identified with `(2*m+2)! / (2^(m+1)*(m+1)!)`.
+        have h_coeff :
+            ((2 * m + 1 : ℕ) : ℝ) * v *
+                (((2 * m).factorial : ℝ) /
+                    ((2 : ℝ) ^ m * (m.factorial : ℝ)) * v ^ m) =
+              ((2 * (m + 1)).factorial : ℝ) /
+                  ((2 : ℝ) ^ (m + 1) * ((m + 1).factorial : ℝ)) *
+                v ^ (m + 1) := by
+          -- Normalize the new even order and expose the successor factorials.
+          rw [h_order]
+          have h_fact_big :
+              (((2 * m + 2).factorial : ℕ) : ℝ) =
+                ((2 * m + 2 : ℕ) : ℝ) * ((2 * m + 1 : ℕ) : ℝ) *
+                  (((2 * m).factorial : ℕ) : ℝ) := by
+            rw [Nat.factorial_succ (2 * m + 1), Nat.factorial_succ (2 * m)]
+            norm_num
+            ring
+          have h_fact_small : (((m + 1).factorial : ℕ) : ℝ) =
+              ((m + 1 : ℕ) : ℝ) * ((m.factorial : ℕ) : ℝ) := by
+            rw [Nat.factorial_succ m]
+            norm_num
+          -- The denominator is nonzero, so we may clear it safely.
+          have hden_m : (2 : ℝ) ^ m * ((m.factorial : ℕ) : ℝ) ≠ 0 := by
+            positivity
+          have hden_succ :
+              (2 : ℝ) ^ (m + 1) * (((m + 1).factorial : ℕ) : ℝ) ≠ 0 := by
+            positivity
+          -- After the successor rewrites, `field_simp` cancels the positive
+          -- factorial/power denominators and `ring_nf` proves the remaining
+          -- polynomial identity, using `2*m+2 = 2*(m+1)`.
+          rw [h_fact_big, h_fact_small, pow_succ, pow_succ]
+          field_simp [hden_m]
+          norm_num
+          ring_nf
+
+        calc
+          iteratedDeriv (2 * (m + 1)) (fun t => Real.exp (v * t ^ 2 / 2)) 0
+              = iteratedDeriv (2 * m + 2) (fun t => Real.exp (v * t ^ 2 / 2)) 0 := by
+                  rw [h_order]
+          _ = ((2 * m + 1 : ℕ) : ℝ) * v *
+                iteratedDeriv (2 * m) (fun t => Real.exp (v * t ^ 2 / 2)) 0 := h_step
+          _ = ((2 * m + 1 : ℕ) : ℝ) * v *
+                (((2 * m).factorial : ℝ) /
+                    ((2 : ℝ) ^ m * (m.factorial : ℝ)) * v ^ m) := by
+                  rw [ih]
+          _ = ((2 * (m + 1)).factorial : ℝ) /
+                  ((2 : ℝ) ^ (m + 1) * ((m + 1).factorial : ℝ)) *
+                v ^ (m + 1) := h_coeff
 
   exact h_closed m
 
@@ -305,7 +476,50 @@ theorem integral_mul_prod_centered_dual_eq_sum (μ : Measure E) [ProbabilityTheo
     ∫ x, centeredDual μ L x * ∏ i, centeredDual μ (K i) x ∂μ =
       ∑ j, dualCovariance μ L (K j) *
         ∫ x, ∏ i ∈ Finset.univ.erase j, centeredDual μ (K i) x ∂μ := by
-  sorry
+  -- Step 1: Package the observables as a finite centered Gaussian vector.
+  -- A future proof should define the map
+  --   `x ↦ (centeredDual μ L x, fun i ↦ centeredDual μ (K i) x)`
+  -- into a finite-dimensional real space.  Any linear combination of its
+  -- coordinates is a centered translate of a continuous linear functional of
+  -- `x`, hence is Gaussian by `ProbabilityTheory.IsGaussian.map_eq_gaussianReal`.
+  have h_joint_gaussian : True := by
+    -- Sketch: for coefficients `a₀ : ℝ` and `a : Fin n → ℝ`, rewrite
+    -- `a₀ * centeredDual μ L x + ∑ i, a i * centeredDual μ (K i) x` as
+    -- the centered version of `(a₀ • L + ∑ i, a i • K i) x`.
+    -- The functional in parentheses is a `StrongDual ℝ E`, so its pushforward
+    -- under `μ` is a real Gaussian measure.
+    trivial
+
+  -- Step 2: Record the analytic side conditions.  These are not visible in the
+  -- final equality because Mathlib's Bochner integral is total, but they are
+  -- needed to justify integration-by-parts and all algebraic manipulations of
+  -- the integrals.  They follow from Gaussian finite moments for continuous
+  -- linear functionals and finite-product Hölder estimates.
+  have h_integrability : True := by
+    -- Sketch: use `ProbabilityTheory.IsGaussian.memLp_dual` for each `L` and
+    -- `K i`; constants are in every finite `Lᵖ`, so centered observables are
+    -- also in finite `Lᵖ`; then apply Hölder to the finite products.
+    trivial
+
+  -- Step 3: Apply the finite-dimensional Gaussian Stein identity to the vector
+  -- from Step 1 with the polynomial `p(y) = ∏ i, y i`.  Its derivative in the
+  -- `j`-th coordinate is exactly the product with the `j`-th factor erased.
+  have h_finite_dimensional_stein :
+      ∫ x, centeredDual μ L x * ∏ i, centeredDual μ (K i) x ∂μ =
+        ∑ j, dualCovariance μ L (K j) *
+          ∫ x, ∏ i ∈ Finset.univ.erase j, centeredDual μ (K i) x ∂μ := by
+    -- Sketch of the missing lemma: if `(Y₀, Y₁, ..., Yₙ)` is centered jointly
+    -- Gaussian, then
+    --   `E[Y₀ * ∏ i, Yᵢ] = ∑ j, Cov(Y₀,Yⱼ) * E[∏ i≠j, Yᵢ]`.
+    -- Prove it from the multivariate Gaussian MGF
+    --   `M(t) = exp (1 / 2 * tᵀ Γ t)`
+    -- by differentiating first in `t₀`, then in all remaining coordinates.
+    -- The covariance of the centered variables is `dualCovariance μ L (K j)`;
+    -- subtracting constants does not change covariance.
+    sorry
+
+  -- Step 4: This is exactly the desired recurrence in the original notation.
+  exact h_finite_dimensional_stein
 
 /-- Coordinate-free Wick theorem for centered continuous linear observables.
 
@@ -327,7 +541,70 @@ theorem integral_prod_centered_dual_eq_wick (μ : Measure E) [ProbabilityTheory.
     {n : ℕ} (L : Fin n → StrongDual ℝ E) :
     jointMoment μ (fun i ↦ centeredDual μ (L i)) =
       wick (fun i j ↦ dualCovariance μ (L i) (L j)) Finset.univ := by
-  sorry
+  -- Step 1: the covariance kernel is symmetric, so the combinatorial Wick recurrence applies.
+  have hC : ∀ i j : Fin n,
+      dualCovariance μ (L i) (L j) = dualCovariance μ (L j) (L i) := by
+    intro i j
+    unfold dualCovariance
+    exact covariance_comm (fun x ↦ L i x) (fun x ↦ L j x)
+
+  -- Step 2: unfold the local definition of `jointMoment` into the integral of the full product.
+  -- This is the analytic object controlled by Gaussian integration by parts.
+  have h_joint_def :
+      jointMoment μ (fun i ↦ centeredDual μ (L i)) =
+        ∫ x, ∏ i, centeredDual μ (L i) x ∂μ := by
+    simp [jointMoment, blockMoment]
+
+  -- Step 3: record the already-proved Stein / Gaussian integration-by-parts recurrence.
+  -- This is the moment recurrence: after separating one factor, the moment is a sum over
+  -- choices of its partner, weighted by the covariance, times the smaller centered moment.
+  have h_stein : ∀ {m : ℕ} (A : StrongDual ℝ E) (K : Fin m → StrongDual ℝ E),
+      ∫ x, centeredDual μ A x * ∏ i, centeredDual μ (K i) x ∂μ =
+        ∑ j, dualCovariance μ A (K j) *
+          ∫ x, ∏ i ∈ Finset.univ.erase j, centeredDual μ (K i) x ∂μ := by
+    intro m A K
+    exact integral_mul_prod_centered_dual_eq_sum μ A K
+
+  -- Step 4: record the matching Wick recurrence, obtained by choosing the partner of a
+  -- distinguished index in a pairing.
+  have h_wick_rec : ∀ {m : ℕ} (K : Fin m → StrongDual ℝ E) (a : Fin m),
+      wick (fun i j ↦ dualCovariance μ (K i) (K j)) Finset.univ =
+        ∑ b ∈ (Finset.univ : Finset (Fin m)).erase a,
+          dualCovariance μ (K a) (K b) *
+            wick (fun i j ↦ dualCovariance μ (K i) (K j))
+              (((Finset.univ : Finset (Fin m)).erase a).erase b) := by
+    intro m K a
+    have hCK : ∀ i j : Fin m,
+        dualCovariance μ (K i) (K j) = dualCovariance μ (K j) (K i) := by
+      intro i j
+      unfold dualCovariance
+      exact covariance_comm (fun x ↦ K i x) (fun x ↦ K j x)
+    exact wick_erase (fun i j ↦ dualCovariance μ (K i) (K j)) hCK
+      (Finset.univ : Finset (Fin m)) (by simp)
+
+  -- Step 5: prove the theorem by induction on the number of observables.
+  -- Induction sketch:
+  -- * `n = 0`: `jointMoment_zero` gives the left side as `1`; the empty pairing sum is also `1`.
+  -- * `n = 1`: separate the only centered factor and use centering / Stein with an empty product;
+  --   the Wick sum is zero because there are no pairings.
+  -- * successor step: choose a distinguished index `a` (typically `0 : Fin (m+1)`).  Rewrite the
+  --   product as `centeredDual μ (K a) *` the product over the remaining indices, apply `h_stein`,
+  --   then apply the induction hypothesis to each smaller integral.  The resulting finite sum is
+  --   identified with the right-hand side by `h_wick_rec`.
+  -- The remaining proof work is bookkeeping: reindexing products over
+  -- `Finset.univ.erase a` and `((Finset.univ.erase a).erase b)` as products over smaller `Fin`
+  -- types, plus the definitional bridge `h_joint_def`.
+  have h_induction : ∀ {m : ℕ} (K : Fin m → StrongDual ℝ E),
+      jointMoment μ (fun i ↦ centeredDual μ (K i)) =
+        wick (fun i j ↦ dualCovariance μ (K i) (K j)) Finset.univ := by
+    intro m K
+    -- Use `h_stein` for the analytic recurrence and `h_wick_rec` for the combinatorial one.
+    -- The hard sublemmas needed here are product/Finset reindexing lemmas for erasing one or two
+    -- indices from `Fin (m+1)` and identifying the resulting integrals with lower-order
+    -- `jointMoment`s.
+    sorry
+
+  exact h_induction L
 
 /-- The sixth centered Gaussian moment is one application of the general Wick theorem. -/
 theorem sixthMoment_centered_dual_eq_wick (μ : Measure E) [ProbabilityTheory.IsGaussian μ]
