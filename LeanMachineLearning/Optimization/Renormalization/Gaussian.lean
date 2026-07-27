@@ -73,24 +73,14 @@ theorem pairWeight_pair (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i) {a
     ext x
     simp only [Finset.mem_erase, Finset.mem_insert, Finset.mem_singleton]
     constructor
-    · rintro ⟨hxa, hx⟩
-      cases hx with
-      | inl h => exact False.elim (hxa h)
-      | inr h => exact h
-    · rintro hxb
-      subst hxb
-      exact ⟨hab.symm, Or.inr rfl⟩
+    · rintro ⟨hxa, h | h⟩; exacts [False.elim (hxa h), h]
+    · rintro rfl; exact ⟨hab.symm, Or.inr rfl⟩
   have h2 : ({a, b} : Finset ι).erase b = {a} := by
     ext x
     simp only [Finset.mem_erase, Finset.mem_insert, Finset.mem_singleton]
     constructor
-    · rintro ⟨hxb, hx⟩
-      cases hx with
-      | inl h => exact h
-      | inr h => exact False.elim (hxb h)
-    · rintro hxa
-      subst hxa
-      exact ⟨hab, Or.inl rfl⟩
+    · rintro ⟨hxb, h | h⟩; exacts [h, False.elim (hxb h)]
+    · rintro rfl; exact ⟨hab, Or.inl rfl⟩
   rw [h1, h2]
   rw [Finset.sum_singleton, Finset.sum_singleton]
   rw [hC b a]
@@ -126,13 +116,8 @@ by `mgf_fun_id_gaussianReal`.
 theorem moment_eq_iteratedDeriv_mgf (v : ℝ≥0) (k : ℕ) :
     ∫ x, x ^ k ∂gaussianReal 0 v = iteratedDeriv k (fun t => Real.exp (v * t ^ 2 / 2)) 0 := by
   have h_mgf : mgf (fun x ↦ x) (gaussianReal 0 v) = fun t => Real.exp (v * t ^ 2 / 2) := by
-    ext t
-    rw [mgf_fun_id_gaussianReal]
-    simp
-  rw [← h_mgf]
-  rw [iteratedDeriv_mgf_zero]
-  · simp
-  · simp
+    ext t; simp [mgf_fun_id_gaussianReal]
+  rw [← h_mgf, iteratedDeriv_mgf_zero] <;> simp
 
 /-- The odd derivatives of `exp(v t² / 2)` evaluated at zero vanish.
 Informal proof:
@@ -203,15 +188,10 @@ theorem iteratedDeriv_exp_quadratic_zero_even (v : ℝ) (m : ℕ) :
       -- First differentiate the inner quadratic `t ↦ v * t^2 / 2`.
       have hg : HasDerivAt (fun x : ℝ => v * x ^ 2 / 2) (v * t) t := by
         have hpow : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
-          simpa using (hasDerivAt_pow 2 t :
-            HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t ^ (2 - 1)) t)
-        have hmul : HasDerivAt (fun x : ℝ => v * x ^ 2) (v * ((2 : ℝ) * t)) t := by
-          exact HasDerivAt.const_mul v hpow
-        have hdiv : HasDerivAt (fun x : ℝ => (v * x ^ 2) / 2)
-            ((v * ((2 : ℝ) * t)) / 2) t := by
-          exact hmul.div_const 2
-        -- The derivative `(v * (2 * t)) / 2` is algebraically `v * t`.
-        convert hdiv using 1 <;> ring
+          simpa using (hasDerivAt_pow 2 t : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t ^ (2 - 1)) t)
+        have hdiv : HasDerivAt (fun x : ℝ => (v * x ^ 2) / 2) ((v * ((2 : ℝ) * t)) / 2) t :=
+          (HasDerivAt.const_mul v hpow).div_const 2
+        convert hdiv using 1; ring
       -- Compose the inner derivative with `Real.exp` and commute the scalar factor.
       have h_exp : HasDerivAt f (Real.exp (v * t ^ 2 / 2) * (v * t)) t := by
         simpa [f] using hg.exp
@@ -444,7 +424,83 @@ This follows directly from `integral_pow_gaussianReal_even` and `integral_pow_ga
 (Source: Stein's lemma, Wikipedia, https://en.wikipedia.org/wiki/Stein%27s_lemma) -/
 theorem integral_mul_pow_gaussianReal (v : ℝ≥0) (n : ℕ) :
     ∫ x, x * x ^ n ∂gaussianReal 0 v = (v : ℝ) * (n : ℝ) * ∫ x, x ^ (n - 1) ∂gaussianReal 0 v := by
-  sorry
+  -- First reduce the left-hand side to the ordinary `(n+1)`-st moment.
+  have h_integrand :
+      ∫ x, x * x ^ n ∂gaussianReal 0 v = ∫ x, x ^ (n + 1) ∂gaussianReal 0 v := by
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards with x
+    rw [pow_succ']
+  -- Prove the moment recurrence by splitting on the parity of `n` and using the
+  -- two moment formulas proved just above.
+  have h_moment_rec :
+      ∫ x, x ^ (n + 1) ∂gaussianReal 0 v =
+        (v : ℝ) * (n : ℝ) * ∫ x, x ^ (n - 1) ∂gaussianReal 0 v := by
+    rcases Nat.even_or_odd' n with ⟨m, hnm | hnm⟩
+    · -- If `n = 2*m`, then the left side is an odd moment.  For `m = 0`
+      -- the right side is zero because of the factor `n`; for `m > 0`,
+      -- `n - 1 = 2*(m-1)+1`, so the right side also contains an odd moment.
+      subst n
+      by_cases hm : m = 0
+      · subst m
+        simp
+      · -- This is the parity case `m = k+1`; rewrite both sides with
+        -- `integral_pow_gaussianReal_odd` and simplify the remaining algebra.
+        have hmpos : 0 < m := Nat.pos_of_ne_zero hm
+        have hpred : 2 * m - 1 = 2 * (m - 1) + 1 := by omega
+        rw [integral_pow_gaussianReal_odd v m]
+        have h_rhs_odd :
+            ∫ x, x ^ (2 * m - 1) ∂gaussianReal 0 v = 0 := by
+          rw [hpred]
+          exact integral_pow_gaussianReal_odd v (m - 1)
+        rw [h_rhs_odd]
+        ring
+    · -- If `n = 2*m + 1`, then the identity relates two even moments:
+      -- `2*m+2` on the left and `2*m` on the right.  Rewrite both sides using
+      -- `integral_pow_gaussianReal_even`; the remaining statement is the
+      -- factorial identity
+      --   `(2m+2)!/(2^(m+1)(m+1)!) * v^(m+1)
+      --      = v*(2m+1)*(2m)!/(2^m m!) * v^m`,
+      -- proved by `Nat.factorial_succ`, `field_simp`, and `ring_nf`.
+      subst n
+      have hleft_exp : 2 * m + 1 + 1 = 2 * (m + 1) := by omega
+      have hright_exp : 2 * m + 1 - 1 = 2 * m := by omega
+      rw [hleft_exp, hright_exp]
+      rw [integral_pow_gaussianReal_even v (m + 1), integral_pow_gaussianReal_even v m]
+      -- After substituting the closed form for the two even moments, this is a
+      -- pure factorial identity together with `v^(m+1) = v * v^m`.
+      -- We first rewrite `2*(m+1)` as `2*m+2`, expose the successor
+      -- factorials, clear the nonzero factorial/power denominator, and finish
+      -- the polynomial identity by normalization.
+      have h_order : 2 * (m + 1) = 2 * m + 2 := by
+        omega
+      rw [h_order]
+      have h_fact_big :
+          (((2 * m + 2).factorial : ℕ) : ℝ) =
+            ((2 * m + 2 : ℕ) : ℝ) * ((2 * m + 1 : ℕ) : ℝ) *
+              (((2 * m).factorial : ℕ) : ℝ) := by
+        rw [Nat.factorial_succ (2 * m + 1), Nat.factorial_succ (2 * m)]
+        norm_num
+        ring
+      have h_fact_small : (((m + 1).factorial : ℕ) : ℝ) =
+          ((m + 1 : ℕ) : ℝ) * ((m.factorial : ℕ) : ℝ) := by
+        rw [Nat.factorial_succ m]
+        norm_num
+      have hden_m : (2 : ℝ) ^ m * ((m.factorial : ℕ) : ℝ) ≠ 0 := by
+        positivity
+      have hden_succ :
+          (2 : ℝ) ^ (m + 1) * (((m + 1).factorial : ℕ) : ℝ) ≠ 0 := by
+        positivity
+      rw [h_fact_big, h_fact_small, pow_succ, pow_succ]
+      field_simp [hden_m, hden_succ]
+      all_goals first
+        | exact Or.inl (Or.inl trivial)
+        | ring_nf
+          rw [show (2 + m * 2 : ℕ) = (1 + m) * 2 by omega]
+          norm_num
+          ring_nf
+  calc
+    ∫ x, x * x ^ n ∂gaussianReal 0 v = ∫ x, x ^ (n + 1) ∂gaussianReal 0 v := h_integrand
+    _ = (v : ℝ) * (n : ℝ) * ∫ x, x ^ (n - 1) ∂gaussianReal 0 v := h_moment_rec
 
 /-- Center a continuous linear functional under `μ`. -/
 def centeredDual {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]
@@ -482,24 +538,69 @@ theorem integral_mul_prod_centered_dual_eq_sum (μ : Measure E) [ProbabilityTheo
   -- into a finite-dimensional real space.  Any linear combination of its
   -- coordinates is a centered translate of a continuous linear functional of
   -- `x`, hence is Gaussian by `ProbabilityTheory.IsGaussian.map_eq_gaussianReal`.
-  have h_joint_gaussian : True := by
-    -- Sketch: for coefficients `a₀ : ℝ` and `a : Fin n → ℝ`, rewrite
-    -- `a₀ * centeredDual μ L x + ∑ i, a i * centeredDual μ (K i) x` as
-    -- the centered version of `(a₀ • L + ∑ i, a i • K i) x`.
-    -- The functional in parentheses is a `StrongDual ℝ E`, so its pushforward
-    -- under `μ` is a real Gaussian measure.
-    trivial
+  have h_joint_gaussian : ∀ (a₀ : ℝ) (a : Fin n → ℝ),
+      ProbabilityTheory.IsGaussian (Measure.map (fun x ↦ a₀ * centeredDual μ L x + ∑ i, a i * centeredDual μ (K i) x) μ) := by
+    intro a₀ a
+    -- Combine the finitely many continuous linear functionals into one
+    -- continuous linear functional.  Its centered pushforward is the displayed
+    -- scalar linear combination of centered observables.
+    let H : StrongDual ℝ E := a₀ • L + ∑ i, a i • K i
+    let c : ℝ := a₀ * (∫ y, L y ∂μ) + ∑ i, a i * (∫ y, K i y ∂μ)
+
+    -- Step 1.  Pointwise algebra: the requested linear combination is an
+    -- affine translate of the single continuous linear observable `H`.
+    have h_pointwise :
+        (fun x ↦ a₀ * centeredDual μ L x + ∑ i, a i * centeredDual μ (K i) x)
+          = (fun x ↦ H x - c) := by
+      -- This is only pointwise algebra: unfold the centering definition and
+      -- the local linear combination, then normalize the finite-sum identity.
+      funext x
+      simp [centeredDual, H, c]
+      ring_nf
+      rw [Finset.sum_sub_distrib]
+      ring
+
+    -- Step 2.  A Gaussian measure remains Gaussian after pushing forward by a
+    -- continuous linear functional.  Here the functional is `H`.
+    have h_linear_gaussian :
+        ProbabilityTheory.IsGaussian (Measure.map (fun x ↦ H x) μ) := by
+      -- This is supplied by Mathlib's Gaussian pushforward instance for maps
+      -- by continuous linear maps.  The displayed function is eta-equivalent
+      -- to the bundled functional `H : StrongDual ℝ E`.
+      change ProbabilityTheory.IsGaussian (Measure.map H μ)
+      infer_instance
+
+    -- Step 3.  Translating a real Gaussian random variable by the constant `c`
+    -- preserves Gaussianity.
+    have h_translated_gaussian :
+        ProbabilityTheory.IsGaussian
+          (Measure.map (fun y : ℝ ↦ y - c) (Measure.map (fun x ↦ H x) μ)) := by
+      -- Use the real Gaussian translation instance/lemma, such as the instance
+      -- behind maps by `fun y : ℝ ↦ y - c`, applied to `h_linear_gaussian`.
+      sorry
+
+    -- Step 4.  Identify the affine map from `E` with the composition of first
+    -- applying `H` and then translating by `-c`.
+    have h_map_comp :
+        Measure.map (fun x ↦ H x - c) μ =
+          Measure.map (fun y : ℝ ↦ y - c) (Measure.map (fun x ↦ H x) μ) := by
+      -- Prove from `Measure.map_map`; measurability is by continuity of `H`
+      -- and continuity/measurability of `fun y : ℝ ↦ y - c`.
+      sorry
+
+    rw [h_pointwise, h_map_comp]
+    exact h_translated_gaussian
 
   -- Step 2: Record the analytic side conditions.  These are not visible in the
   -- final equality because Mathlib's Bochner integral is total, but they are
   -- needed to justify integration-by-parts and all algebraic manipulations of
   -- the integrals.  They follow from Gaussian finite moments for continuous
   -- linear functionals and finite-product Hölder estimates.
-  have h_integrability : True := by
+  have h_integrability : Integrable (fun x ↦ centeredDual μ L x * ∏ i, centeredDual μ (K i) x) μ := by
     -- Sketch: use `ProbabilityTheory.IsGaussian.memLp_dual` for each `L` and
     -- `K i`; constants are in every finite `Lᵖ`, so centered observables are
     -- also in finite `Lᵖ`; then apply Hölder to the finite products.
-    trivial
+    sorry
 
   -- Step 3: Apply the finite-dimensional Gaussian Stein identity to the vector
   -- from Step 1 with the polynomial `p(y) = ∏ i, y i`.  Its derivative in the
