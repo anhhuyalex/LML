@@ -1530,7 +1530,10 @@ lemma derivative_properties_of_lipschitz
     (z w : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda)
     (hsol : ∀ μ : ℝ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ))
-    (hlip : LocallyLipschitzOnCompacts (scaledDualPath lambda w)) :
+    (hlip : LocallyLipschitzOnCompacts (scaledDualPath lambda w))
+    -- GAP: `Mdagger` must be a Moore-Penrose pseudoinverse of `M`.
+    -- We only need the first Penrose condition: M M† M = M.
+    (h_mp : ∀ v : EuclideanSpace ℝ ι, matVec M (matVec Mdagger (matVec M v)) = matVec M v) :
     (∀ μ, 0 ≤ μ → InMatrixSpan M (deriv (scaledDualPath lambda w) μ)) ∧
     (∀ μ, 0 ≤ μ → pseudoInverseSeminorm Mdagger (deriv (scaledDualPath lambda w) μ) ≤
         pseudoInverseSeminorm Mdagger r) := by
@@ -1575,7 +1578,8 @@ lemma derivative_properties_of_lipschitz
           _ = matVec M ((-(s ν)) • y) + matVec M (zt ν) := by
             rw [matVec_smul_eq M (-(s ν)) y]
           _ = matVec M ((-(s ν)) • y + zt ν) := by rw [matVec_add M]
-      have h_diff_quot_mem : ∀ t > 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
+      have h_diff_quot_mem :
+          ∀ t > 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
         intro t ht_pos
         have hμt_nonneg : 0 ≤ μ + t := by linarith
         have h1 := h_wt_sub_ones (μ + t) hμt_nonneg
@@ -1626,20 +1630,103 @@ lemma derivative_properties_of_lipschitz
     intro μ hμ_nonneg
     -- We split into cases: wt differentiable at μ vs not.
     by_cases h_diff : DifferentiableAt ℝ wt μ
-    · -- Informal proof:
-      -- The key inequality `scaled_dual_lcp_key_ineq` gives a quadratic bound on
-      -- difference quotients: <zt(μ+h) - zt(μ), M(zt(μ+h) - zt(μ))> <= |s(μ+h)-s(μ)| |<r, zt(μ+h)-zt(μ)>|
-      -- Since wt(μ+h) - wt(μ) = -(s(μ+h)-s(μ))r + M(zt(μ+h)-zt(μ)),
-      -- taking the M-seminorm of the difference quotient and applying Cauchy-Schwarz
-      -- shows that the difference quotient is bounded by the seminorm of r.
-      -- Taking limits as h -> 0 yields the bound on the derivative.
-      sorry
+    · -- wt is differentiable at μ.
+      -- Proof sketch (Lemma 4.11, Berthier 2025):
+      -- 1. For h>0, the difference quotient Δw_h = (wt(μ+h)-wt(μ))/h satisfies
+      --    Δw_h = M(-(Δs/h)·y + Δz/h) where r = M y.
+      -- 2. The LCP complementarity gives ⟨Δz/h, M(Δz/h)⟩ ≤ (Δs/h)·⟨y, M(Δz/h)⟩.
+      -- 3. Using the pseudoinverse property ‖M u‖²_{M†} = ⟨u, M u⟩, we get
+      --    ‖Δw_h‖²_{M†} = α²B + A - 2αC ≤ α²B ≤ B = ‖r‖²_{M†}, where α = Δs/h ≤ 1.
+      -- 4. Taking h → 0+ and using continuity of the seminorm gives the bound.
+      have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
+      -- Pseudoinverse property:
+      --   ⟨M v, M† (M v)⟩ = ⟨v, M v⟩
+      -- Proof: using M symmetric (from hM_psd) and the first Penrose condition M M† M = M.
+      have h_mp_prop : ∀ (v : EuclideanSpace ℝ ι),
+          inner ℝ (matVec M v) (matVec Mdagger (matVec M v)) = inner ℝ v (matVec M v) := by
+        intro v
+        calc
+          inner ℝ (matVec M v) (matVec Mdagger (matVec M v))
+              = inner ℝ v (matVec M (matVec Mdagger (matVec M v))) := by
+            rw [inner_matVec_comm_of_isSymm M hM_psd.symm v (matVec Mdagger (matVec M v))]
+          _ = inner ℝ v (matVec M v) := by rw [h_mp v]
+      -- For small h>0, the difference quotient is bounded by ‖r‖_{M†}
+      have h_bound_eventually : ∀ᶠ (h : ℝ) in nhdsWithin (0 : ℝ) (Set.Ioi 0),
+          pseudoInverseSeminorm Mdagger (h⁻¹ • (wt (μ + h) - wt μ)) ≤
+          pseudoInverseSeminorm Mdagger r := by
+        -- Get the full scaled LCP properties (equation, nonnegativity, complementarity)
+        have h_scaled_lcp (ν : ℝ) (hν : 0 ≤ ν) :
+            wt ν = -(s ν) • r + ones + matVec M (zt ν) ∧
+            Nonnegative (wt ν) ∧ Nonnegative (zt ν) ∧ inner ℝ (wt ν) (zt ν) = 0 :=
+          scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol ν hν
+        -- It suffices to prove the inequality for all h > 0
+        have h_mem : Set.Ioi (0 : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) := self_mem_nhdsWithin
+        refine Filter.eventually_of_mem h_mem ?_
+        intro h hpos
+        have hpos' : 0 < h := hpos
+        have hμh_nonneg : 0 ≤ μ + h := by linarith
+        -- Key: there exists ξ such that Δw_h = M ξ and ⟨ξ, M ξ⟩ ≤ ⟨y, M y⟩
+        -- This follows from the LCP key inequality (scaled_dual_lcp_key_ineq) which gives
+        -- ⟨Δz, M Δz⟩ ≤ Δs * ⟨r, Δz⟩, combined with the bound |Δs|/h ≤ 1
+        -- (scaled_dual_lcp_s_diff_bound). Setting ξ = -α y + u where
+        -- α = (s(μ+h)-s(μ))/h, u = (zt(μ+h)-zt(μ))/h, we expand
+        -- ⟨ξ, M ξ⟩ = α²⟨y,My⟩ + ⟨u,Mu⟩ - 2α⟨y,Mu⟩ ≤ ⟨y,My⟩ using A ≤ αC, C ≥ 0, 0 ≤ α ≤ 1.
+        have h_exists_xi : ∃ ξ : EuclideanSpace ℝ ι,
+            h⁻¹ • (wt (μ + h) - wt μ) = matVec M ξ ∧
+            inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y) := by
+          -- Set up notations: d = zt(μ+h)-zt(μ), ds = s(μ+h)-s(μ), α = ds/h, u = h⁻¹ • d
+          set d := zt (μ + h) - zt μ with hd_def
+          set ds := s (μ + h) - s μ with hds_def
+          set α := ds / h with hα_def
+          set u := h⁻¹ • d with hu_def
+          set ξ := (-α) • y + u with hξ_def
+          refine ⟨ξ, ?_, ?_⟩
+          · -- Show h⁻¹ • (wt (μ+h) - wt μ) = matVec M ξ
+            -- From h_scaled_eq: wt = -s•r + 1 + M(zt), and r = M y
+            -- Then wt(μ+h)-wt(μ) = -(ds)•r + M d, and the result follows by algebra
+            sorry
+          · -- Show inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y)
+            -- This expands to α²⟨y,My⟩ + ⟨u,Mu⟩ - 2α⟨y,Mu⟩ ≤ ⟨y,My⟩
+            -- Using the LCP key inequality: ⟨d, M d⟩ ≤ ds * ⟨r, d⟩ (unsigned)
+            -- and the bound |ds|/h ≤ 1, with ds ≥ 0, ⟨r,d⟩ ≥ 0
+            sorry
+        rcases h_exists_xi with ⟨ξ, hξ_eq, hξ_bound⟩
+        -- Using the pseudoinverse property h_mp_prop, convert to seminorm
+        have h_inner_bound : inner ℝ (h⁻¹ • (wt (μ + h) - wt μ))
+            (matVec Mdagger (h⁻¹ • (wt (μ + h) - wt μ))) ≤
+            inner ℝ r (matVec Mdagger r) := by
+          rw [hξ_eq, ← hy]
+          -- inner ℝ (matVec M ξ) (matVec Mdagger (matVec M ξ))
+          -- = inner ℝ ξ (matVec M ξ)    (by h_mp_prop)
+          -- ≤ inner ℝ y (matVec M y)     (by hξ_bound)
+          -- = inner ℝ (matVec M y) (matVec Mdagger (matVec M y))  (by h_mp_prop)
+          simpa [h_mp_prop ξ, h_mp_prop y] using hξ_bound
+        -- Convert inner product inequality to seminorm inequality
+        dsimp [pseudoInverseSeminorm]
+        refine Real.sqrt_le_sqrt ?_
+        exact max_le_max (le_refl 0) h_inner_bound
+      -- The pseudoInverseSeminorm is continuous (composition of continuous functions)
+      have h_cont : Continuous (pseudoInverseSeminorm Mdagger) := by
+        sorry
+      have h_tendsto_slope : Filter.Tendsto (fun h => h⁻¹ • (wt (μ + h) - wt μ))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (deriv wt μ)) := by
+        simpa using h_hasDeriv.tendsto_slope_zero_right
+      have h_tendsto_norm : Filter.Tendsto (fun h =>
+          pseudoInverseSeminorm Mdagger (h⁻¹ • (wt (μ + h) - wt μ)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (pseudoInverseSeminorm Mdagger (deriv wt μ))) :=
+        h_cont.continuousAt.tendsto.comp h_tendsto_slope
+      exact le_of_tendsto h_tendsto_norm h_bound_eventually
     · -- When not differentiable, the derivative is 0, and the bound holds trivially.
       have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
       rw [h_deriv_zero]
-      -- pseudoInverseSeminorm Mdagger 0 is 0, which is ≤ pseudoInverseSeminorm Mdagger r
-      -- (since seminorms are nonnegative).
-      sorry
+      have h_zero : pseudoInverseSeminorm Mdagger 0 = 0 := by
+        dsimp [pseudoInverseSeminorm]
+        simp
+      have h_nonneg : 0 ≤ pseudoInverseSeminorm Mdagger r := by
+        dsimp [pseudoInverseSeminorm]
+        apply Real.sqrt_nonneg
+      rw [h_zero]
+      exact h_nonneg
   exact ⟨h_span, h_bound⟩
 
 /--
@@ -1672,12 +1759,28 @@ theorem parametric_lcp_dual_regular
   -- 2. Unscaled w is also locally Lipschitz because w(μ) = (1 + μ λ) • wt(μ)
   --    and μ ↦ (1 + μ λ) is affine (hence Lipschitz on compacts).
   have h_lip_w : LocallyLipschitzOnCompacts w := by
-    -- TODO: prove that the product of an affine scalar function and a Lipschitz
-    -- vector function is Lipschitz on compacts.
-    sorry
+    constructor
+    intro a b ha hab
+    rcases h_scaled_lip.lipschitz_on_Icc a b ha hab with ⟨K, hK_nonneg, hK_lip⟩
+    -- Define bounds for the compact interval
+    let C1 := max |1 + a * lambda| |1 + b * lambda|
+    let C2 := ‖scaledDualPath lambda w a‖ + K * (b - a)
+    let K' := C1 * K + |lambda| * C2
+    refine ⟨K', ?_, ?_⟩
+    · -- Prove K' is non-negative
+      sorry
+    · -- Prove the Lipschitz bound
+      intro μ hμ ν hν
+      -- Use the algebraic identity and triangle inequality here
+      -- ‖w μ - w ν‖ ≤ (C1 * K + |lambda| * C2) * |μ - ν|
+      sorry
   -- 3. Derivative span and seminorm properties from the LCP structure
+  -- GAP: the pseudoinverse hypothesis is not yet available;
+  -- `Mdagger` must be a Moore-Penrose pseudoinverse of `M`.
+  have h_mp : ∀ v : EuclideanSpace ℝ ι, matVec M (matVec Mdagger (matVec M v)) = matVec M v := by
+    sorry
   have h_deriv := derivative_properties_of_lipschitz M Mdagger r lambda z w
-    ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩ hsol h_scaled_lip
+    ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩ hsol h_scaled_lip h_mp
   rcases h_deriv with ⟨h_span, h_bound⟩
   exact
     { locally_lipschitz := h_lip_w
