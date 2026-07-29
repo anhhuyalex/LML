@@ -623,11 +623,12 @@ lemma map_gaussianRowMeasure_innerProduct (x : Fin d → ℝ) :
 
 /--
 Informal proof:
-The standard Gaussian measure on ℝ is absolutely continuous with respect to the Lebesgue measure (volume).
-Since the Lebesgue measure of any singleton set is 0, and the Gaussian measure is given by the integral of a density
-function with respect to the Lebesgue measure, the Gaussian measure of any singleton set is also 0.
+The standard Gaussian measure on ℝ is absolutely continuous with respect to Lebesgue measure.
+Since the Lebesgue measure of any singleton is zero and the Gaussian measure is the integral of a
+density with respect to Lebesgue measure, the Gaussian measure of every singleton is also zero.
 Specifically, `gaussianReal 0 1 {x} = ∫_ {x} p(x) dλ = 0`.
-See standard probability theory texts, e.g. Kallenberg, "Foundations of Modern Probability" (https://link.springer.com/book/10.1007/978-1-4757-4015-8).
+See Kallenberg, *Foundations of Modern Probability*:
+<https://link.springer.com/book/10.1007/978-1-4757-4015-8>.
 -/
 lemma gaussianReal_singleton_eq_zero (x : ℝ) : (gaussianReal 0 1).real {x} = 0 := by
   have h_ac : gaussianReal 0 1 ≪ volume := gaussianReal_absolutelyContinuous 0 (by norm_num)
@@ -649,7 +650,8 @@ lemma gaussianReal_Ici_one_half : (gaussianReal 0 1).real (Set.Ici 0) = 1 / 2 :=
     rw [hneg] at h1
     exact h1
   have h_add : (gaussianReal 0 1).real (Set.Ici 0) + (gaussianReal 0 1).real (Set.Iic 0) = 1 := by
-    have h := measureReal_union_add_inter (μ := gaussianReal 0 1) (s := Set.Ici 0) (t := Set.Iic 0) measurableSet_Iic (measure_ne_top _ _) (measure_ne_top _ _)
+    have h := measureReal_union_add_inter (μ := gaussianReal 0 1) (s := Set.Ici 0)
+      (t := Set.Iic 0) measurableSet_Iic (measure_ne_top _ _) (measure_ne_top _ _)
     have h_union : (Set.Ici 0 : Set ℝ) ∪ Set.Iic 0 = Set.univ := by ext y; simp
     have h_inter : (Set.Ici 0 : Set ℝ) ∩ Set.Iic 0 = {0} := by
       ext y
@@ -745,7 +747,7 @@ lemma ofLp_innerProduct_eq_inner (x : Fin d → ℝ) (y : EuclideanSpace ℝ (Fi
     y.ofLp ⊙ x = ⟪y, WithLp.toLp 2 x⟫ := by
   rw [show y = WithLp.toLp 2 (y.ofLp) by rfl]
   rw [EuclideanSpace.inner_toLp_toLp]
-  simp [innerProduct, dotProduct, star_trivial]
+  simp only [innerProduct, dotProduct, star_trivial]
   simp_rw [mul_comm]
 
 /-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
@@ -797,12 +799,10 @@ lemma map_pi_eval_two {d : ℕ} (hd : 2 ≤ d) {μ : Fin d → Measure ℝ}
     intro h_eq
     have h_val : (⟨0, by linarith⟩ : Fin d).val = (⟨1, by linarith⟩ : Fin d).val := by rw [h_eq]
     simp at h_val
-    all_goals linarith
   have h_map := IndepFun.map_prod_eq_prod_map_map
     ((measurable_pi_apply (⟨0, by linarith⟩ : Fin d)).aemeasurable)
     ((measurable_pi_apply (⟨1, by linarith⟩ : Fin d)).aemeasurable) h01
-  simp [Measure.pi_map_eval] at h_map ⊢
-  exact h_map
+  simpa only [Measure.pi_map_eval, measure_univ, Finset.prod_const_one, one_smul] using h_map
 
 /-- The angle between two unit vectors in ℝᵈ:
   `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/

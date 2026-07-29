@@ -66,14 +66,19 @@ to subsets of `Finset.univ` in the subtype `B`. -/
 lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [CommRing R]
     (f : Finset ι → R) :
     Finpartition.cumulantTransform f B =
-      Finpartition.cumulantTransform (fun s : Finset B ↦ f (s.map (Function.Embedding.subtype _))) Finset.univ := by
+      Finpartition.cumulantTransform
+        (fun s : Finset B ↦ f (s.map (Function.Embedding.subtype _))) Finset.univ := by
   sorry
 
-/-- The block moment of a family `X` on a subset of `B` equals the block moment of the restricted family `X|_B`.
-Informal proof: The product of `X i` over a subset is the same whether indexed in `ι` or in the subtype `B`. -/
-lemma blockMoment_subtype [DecidableEq ι] [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) (B : Finset ι)
-    (s : Finset B) :
-    blockMoment μ X (s.map (Function.Embedding.subtype (· ∈ B))) = blockMoment μ (fun i : B ↦ X i.1) s := by
+/-- The block moment of a family `X` on a subset of `B` equals the block moment of the
+restricted family `X|_B`.
+
+Informal proof: The product of `X i` over a subset is the same whether indexed in `ι` or in the
+subtype `B`. -/
+lemma blockMoment_subtype [DecidableEq ι] [IsProbabilityMeasure μ]
+    (X : ι → Ω → ℝ) (B : Finset ι) (s : Finset B) :
+    blockMoment μ X (s.map (Function.Embedding.subtype (· ∈ B))) =
+      blockMoment μ (fun i : B ↦ X i.1) s := by
   sorry
 
 theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMeasure μ]
@@ -86,22 +91,32 @@ theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMe
   rw [blockMoment_subtype]
 
 /-- A joint moment is the block moment on the universal set.
-Informal proof: The joint moment is defined as the integral of the product of all `X i`, which matches `blockMoment` on `univ`. -/
-lemma jointMoment_eq_blockMoment_univ [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
+
+Informal proof: The joint moment is defined as the integral of the product of all `X i`, which
+matches `blockMoment` on `univ`. -/
+lemma jointMoment_eq_blockMoment_univ [Fintype ι] [DecidableEq ι]
+    [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
     jointMoment μ X = blockMoment μ X Finset.univ := by
   sorry
 
 /-- The block moment of an empty set is 1.
-Informal proof: The product over an empty set is 1, and the integral of 1 is 1 since `μ` is a probability measure. -/
+
+Informal proof: The product over an empty set is 1, and the integral of 1 is 1 since `μ` is a
+probability measure. -/
 lemma blockMoment_empty [DecidableEq ι] [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
     blockMoment μ X ∅ = 1 := by
   sorry
 
-/-- Applying the partition transform to the cumulant transform recovers the original block function at `univ`.
-Informal proof: By `Finpartition.partitionTransform_cumulantTransform`, Möbius inversion on the partition lattice is an involution. -/
-lemma partitionTransform_cumulantTransform_univ [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
+/-- Applying the partition transform to the cumulant transform recovers the original block
+function at `univ`.
+
+Informal proof: By `Finpartition.partitionTransform_cumulantTransform`, Möbius inversion on the
+partition lattice is an involution. -/
+lemma partitionTransform_cumulantTransform_univ [Fintype ι] [DecidableEq ι]
+    {R : Type*} [CommRing R]
     (f : Finset ι → R) (h_empty : f ∅ = 1) :
-    Finpartition.partitionTransform (Finpartition.cumulantTransform f) Finset.univ = f Finset.univ := by
+    Finpartition.partitionTransform (Finpartition.cumulantTransform f) Finset.univ =
+      f Finset.univ := by
   sorry
 
 /-- A joint moment is the sum over partitions of products of connected correlators.
@@ -129,20 +144,26 @@ theorem jointMoment_eq_sum_partition_jointCumulant [Fintype ι] [DecidableEq ι]
 
 /-- The sum over partitions of a singleton evaluates to the value at `⊤`.
 Informal proof: There is only one partition of a singleton, which is `⊤`. -/
-lemma sum_Finpartition_singleton {α : Type*} [DecidableEq α] (x : α) {R : Type*} [AddCommMonoid R]
+lemma sum_Finpartition_singleton {α : Type*} [DecidableEq α] (x : α)
+    {R : Type*} [AddCommMonoid R]
     (f : Finpartition ({x} : Finset α) → R) :
     ∑ P, f P = f ⊤ := by
   sorry
 
 /-- The cumulant coefficient of the top partition is 1.
+
 Informal proof: The top partition has 1 block, so the formula `(-1)^(1-1) * (1-1)!` gives 1. -/
 lemma cumulantCoefficient_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Nonempty) :
     (Finpartition.cumulantCoefficient (⊤ : Finpartition s) : ℝ) = 1 := by
   sorry
 
-/-- The block product of a function on the top partition is the function applied to the whole set.
-Informal proof: The top partition has exactly one block, which is `s`. The product over its parts is just `f s`. -/
-lemma blockProduct_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Nonempty) {R : Type*} [CommMonoid R]
+/-- The block product of a function on the top partition is the function applied to the whole
+set.
+
+Informal proof: The top partition has exactly one block, which is `s`. The product over its parts
+is just `f s`. -/
+lemma blockProduct_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Nonempty)
+    {R : Type*} [CommMonoid R]
     (f : Finset α → R) :
     (⊤ : Finpartition s).blockProduct f = f s := by
   sorry
@@ -161,22 +182,32 @@ theorem jointCumulant_one [IsProbabilityMeasure μ] (X : Fin 1 → Ω → ℝ) :
   dsimp [blockMoment]
   simp
 
-/-- The sum over partitions of a two-element set evaluates to the value at `⊤` plus the value at `⊥`.
-Informal proof: There are exactly two partitions of a two-element set: the discrete partition `⊥` and the indiscrete partition `⊤`. -/
-lemma sum_Finpartition_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x ≠ y) {R : Type*} [AddCommMonoid R]
+/-- The sum over partitions of a two-element set evaluates to the value at `⊤` plus the value at
+`⊥`.
+
+Informal proof: There are exactly two partitions of a two-element set: the discrete partition `⊥`
+and the indiscrete partition `⊤`. -/
+lemma sum_Finpartition_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x ≠ y)
+    {R : Type*} [AddCommMonoid R]
     (f : Finpartition ({x, y} : Finset α) → R) :
     ∑ P, f P = f ⊤ + f ⊥ := by
   sorry
 
 /-- The cumulant coefficient of the discrete partition of a two-element set is -1.
-Informal proof: The discrete partition has 2 blocks, so the formula `(-1)^(2-1) * (2-1)!` gives `-1`. -/
+
+Informal proof: The discrete partition has 2 blocks, so the formula `(-1)^(2-1) * (2-1)!` gives
+`-1`. -/
 lemma cumulantCoefficient_bot_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x ≠ y) :
     (Finpartition.cumulantCoefficient (⊥ : Finpartition ({x, y} : Finset α)) : ℝ) = -1 := by
   sorry
 
-/-- The block product of a function on the discrete partition of a two-element set is the product of the function on the singletons.
-Informal proof: The discrete partition has exactly two blocks, `{x}` and `{y}`. The product over its parts is `f {x} * f {y}`. -/
-lemma blockProduct_bot_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x ≠ y) {R : Type*} [CommMonoid R]
+/-- The block product of a function on the discrete partition of a two-element set is the product
+of the function on the singletons.
+
+Informal proof: The discrete partition has exactly two blocks, `{x}` and `{y}`. The product over
+its parts is `f {x} * f {y}`. -/
+lemma blockProduct_bot_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x ≠ y)
+    {R : Type*} [CommMonoid R]
     (f : Finset α → R) :
     (⊥ : Finpartition ({x, y} : Finset α)).blockProduct f = f {x} * f {y} := by
   sorry
@@ -210,9 +241,14 @@ theorem jointCumulant_two_eq_covariance [IsProbabilityMeasure μ] (X : Fin 2 →
   rw [jointCumulant_two, covariance_eq_sub h0 h1]
   rfl
 
-/-- A partition of a 4-element set without singletons must be either the indiscrete partition, or one of the 3 pairings.
-Informal proof: The sum over partitions can be split into partitions with a singleton and partitions without singletons. For a centered family, the block moment of a singleton is zero, so the product over blocks vanishes. Thus, only partitions without singletons remain, which are `⊤` (coefficient 1) and the 3 pairings (each coefficient -1). -/
-lemma jointCumulant_four_of_centered_combinatorics [IsProbabilityMeasure μ] (X : Fin 4 → Ω → ℝ)
+/-- A partition of a 4-element set without singletons must be either the indiscrete partition, or
+one of the 3 pairings.
+
+Informal proof: Split the sum into partitions with and without a singleton. For a centered family,
+a singleton block moment is zero, so its block product vanishes. Thus only `⊤` (coefficient one)
+and the three pairings (coefficient negative one) remain. -/
+lemma jointCumulant_four_of_centered_combinatorics [IsProbabilityMeasure μ]
+    (X : Fin 4 → Ω → ℝ)
     (hcenter : ∀ i, ∫ ω, X i ω ∂μ = 0) :
     Finpartition.cumulantTransform (blockMoment μ X) Finset.univ =
       blockMoment μ X {0, 1, 2, 3}
@@ -290,14 +326,15 @@ theorem jointCumulant_four_of_centered [IsProbabilityMeasure μ] (X : Fin 4 → 
   rw [blockMoment_pair_eq_02, blockMoment_pair_eq_13]
   rw [blockMoment_pair_eq_03, blockMoment_pair_eq_12]
 
-lemma cumulantTransform_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ] {R : Type*} [CommRing R]
+lemma cumulantTransform_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ]
+    {R : Type*} [CommRing R]
     (e : ι ≃ κ) (f : Finset ι → R) :
     Finpartition.cumulantTransform (fun s : Finset κ ↦ f (s.map e.symm.toEmbedding)) Finset.univ =
       Finpartition.cumulantTransform f Finset.univ := by
   sorry
 
-lemma blockMoment_map_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ]
-    [IsProbabilityMeasure μ] (e : ι ≃ κ) (X : ι → Ω → ℝ) (s : Finset κ) :
+lemma blockMoment_map_equiv [DecidableEq ι] [DecidableEq κ] [IsProbabilityMeasure μ]
+    (e : ι ≃ κ) (X : ι → Ω → ℝ) (s : Finset κ) :
     blockMoment μ (fun j ↦ X (e.symm j)) s = blockMoment μ X (s.map e.symm.toEmbedding) := by
   sorry
 
@@ -326,10 +363,11 @@ lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing 
     (h_add : ∀ s, f s = if i ∈ s then g s + h s else g s)
     (h_id : ∀ s, i ∉ s → h s = g s) :
     Finpartition.cumulantTransform f Finset.univ =
-      Finpartition.cumulantTransform g Finset.univ + Finpartition.cumulantTransform h Finset.univ := by
+      Finpartition.cumulantTransform g Finset.univ +
+        Finpartition.cumulantTransform h Finset.univ := by
   sorry
 
-lemma blockMoment_add_update [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_add_update [DecidableEq ι] [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
     (hX : HasFiniteJointMoments μ X)
     (hY : HasFiniteJointMoments μ (Function.update X i Y))
@@ -339,7 +377,7 @@ lemma blockMoment_add_update [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure
       else blockMoment μ X s := by
   sorry
 
-lemma blockMoment_update_not_mem [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_update_not_mem [DecidableEq ι] [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
     (s : Finset ι) (hi : i ∉ s) :
     blockMoment μ (Function.update X i Y) s = blockMoment μ X s := by
@@ -374,7 +412,7 @@ lemma cumulantTransform_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing
       c * Finpartition.cumulantTransform f Finset.univ := by
   sorry
 
-lemma blockMoment_smul_update [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_smul_update [DecidableEq ι] [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (i : ι) (c : ℝ)
     (s : Finset ι) :
     blockMoment μ (Function.update X i (c • X i)) s =
@@ -433,9 +471,13 @@ theorem jointCumulant_eq_zero_of_indepFun_split [Fintype ι] [DecidableEq ι]
 def cumulant (μ : Measure Ω) (X : Ω → ℝ) (n : ℕ) : ℝ :=
   iteratedDeriv n (cgf X μ) 0
 
-/-- The block moment of a constant variable function evaluates to the expected value of $X$ raised to the power of the block size.
-Informal proof: The product over $B$ of $X$ is $X^{|B|}$. So the block moment is exactly the expectation of $X^{|B|}$. -/
-lemma blockMoment_const_eq_integral_pow [IsProbabilityMeasure μ] (X : Ω → ℝ) (n : ℕ) (s : Finset (Fin n)) :
+/-- The block moment of a constant variable function evaluates to the expected value of $X$
+raised to the power of the block size.
+
+Informal proof: The product over $B$ of $X$ is $X^{|B|}$. So the block moment is exactly the
+expectation of $X^{|B|}$. -/
+lemma blockMoment_const_eq_integral_pow [IsProbabilityMeasure μ]
+    (X : Ω → ℝ) (n : ℕ) (s : Finset (Fin n)) :
     blockMoment μ (fun _ : Fin n ↦ X) s = ∫ ω, X ω ^ s.card ∂μ := by
   sorry
 
@@ -446,9 +488,14 @@ lemma iteratedDeriv_mgf_zero_eq_moment [IsProbabilityMeasure μ] (X : Ω → ℝ
     iteratedDeriv k (mgf X μ) 0 = ∫ ω, X ω ^ k ∂μ := by
   sorry
 
-/-- The $n$-th derivative of the CGF at zero expands to a sum over partition lattices of products of MGF derivatives.
-Informal proof: By Faà di Bruno's formula (or equivalently the relation between moments and cumulants), the derivatives of the logarithm of a power series can be expressed as a sum over set partitions, where the coefficient is the Möbius function of the partition lattice. -/
-lemma iteratedDeriv_cgf_zero_eq_sum_partitions [IsProbabilityMeasure μ] (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
+/-- The $n$-th derivative of the CGF at zero expands to a sum over partition lattices of products
+of MGF derivatives.
+
+Informal proof: By Faà di Bruno's formula (or the relation between moments and cumulants), the
+derivatives of the logarithm of a power series are a sum over set partitions, with coefficients
+given by the Möbius function of the partition lattice. -/
+lemma iteratedDeriv_cgf_zero_eq_sum_partitions [IsProbabilityMeasure μ]
+    (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
     (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
     iteratedDeriv n (cgf X μ) 0 =
       ∑ P : Finpartition (Finset.univ : Finset (Fin n)),

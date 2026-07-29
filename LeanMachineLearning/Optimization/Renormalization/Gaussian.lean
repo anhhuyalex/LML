@@ -947,7 +947,6 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
   have h_pair_decomp : ∃ i j : ι, i ≠ j ∧ B = ({i, j} : Finset ι) := by
     simpa using (Finset.card_eq_two.mp hBcard)
   rcases h_pair_decomp with ⟨i, j, hij, rfl⟩
-
   -- The explicit two-block cumulant is the second moment minus the product of
   -- first moments; covariance rewrites this probabilistic expression.
   have h_lhs_cov :
@@ -957,7 +956,6 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
       memLp_coordinate_of_jointGaussian ν Z h_joint
     have hiMem : MemLp (fun ω ↦ Z i ω) 2 ν := hMem i
     have hjMem : MemLp (fun ω ↦ Z j ω) 2 ν := hMem j
-
     have h_cumulant_expand :
         Finpartition.cumulantTransform (blockMoment ν Z) ({i, j} : Finset ι) =
           blockMoment ν Z ({i, j} : Finset ι)
@@ -971,7 +969,6 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
         rw [blockProduct_bot_pair i j hij]
         ring
       · simp
-
     have h_pair_moment :
         blockMoment ν Z ({i, j} : Finset ι) =
           ∫ ω, Z i ω * Z j ω ∂ν := by
@@ -987,7 +984,6 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
         blockMoment ν Z ({j} : Finset ι) = ∫ ω, Z j ω ∂ν := by
       dsimp [blockMoment]
       simp
-
     calc
       Finpartition.cumulantTransform (blockMoment ν Z) ({i, j} : Finset ι)
           = blockMoment ν Z ({i, j} : Finset ι)
@@ -998,13 +994,11 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
             rw [h_pair_moment, h_single_i, h_single_j]
       _ = covariance (Z i) (Z j) ν := by
             exact (covariance_eq_sub hiMem hjMem).symm
-
   -- The pairing weight averages the two orientations; symmetry identifies them.
   have h_rhs_cov :
       pairWeight (fun k l : ι ↦ covariance (Z k) (Z l) ν) ({i, j} : Finset ι) =
         covariance (Z i) (Z j) ν := by
     exact pairWeight_pair (fun k l : ι ↦ covariance (Z k) (Z l) ν) hsym hij
-
   exact h_lhs_cov.trans h_rhs_cov.symm
 
 -- Combine the two cardinality branches for a block-local formula.  This keeps

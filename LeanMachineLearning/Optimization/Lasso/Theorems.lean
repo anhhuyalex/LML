@@ -346,8 +346,9 @@ lemma signed_average_eq_split_positive_average
         (posAverageTrajectory
           (fun τ => signedToPositiveWeights (w (2 * τ))) ((1 / 2 : ℝ) * t)) := by
   -- Proof sketch (Section 5.2):
-  -- This follows from integrating the pointwise identity `signed_effective_eq_split_positive_effective`
-  -- over time. The time scaling factor of 2 accounts for the chain rule in the squared parameterization.
+  -- This follows by integrating the pointwise identity
+  -- `signed_effective_eq_split_positive_effective` over time. The time scaling factor of two
+  -- accounts for the chain rule in the squared parameterization.
   sorry
 
 /--

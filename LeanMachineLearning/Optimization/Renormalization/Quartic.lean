@@ -76,11 +76,11 @@ def fourPointContraction (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
     (index : Fin 4 → ι) : ℝ :=
   ∑ q : Fin 4 → ι, A.coeff q * ∏ r, K (index r) (q r)
 
+omit [DecidableEq ι] in
 /-- The quartic potential is continuous.
 
 Informal proof: coordinate evaluation is continuous on Euclidean space; finite products, scalar
 multiples, and finite sums of continuous real-valued functions remain continuous. -/
-omit [DecidableEq ι] in
 theorem continuous_potential (A : QuarticCoupling ι) : Continuous A.potential := by
   sorry
 
