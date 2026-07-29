@@ -24,8 +24,9 @@ permissions:
   actions: write          # Write access to GitHub Actions
 
 env:
-  LEAN_EXPOSITION_REPO: LeanMachineLearning/exposition
-  LEAN_EXPOSITION_REF: main
+  REFEREE_REPO: LeanMachineLearning/exposition
+  # Pin the revision whose executable target and CLI are used below.
+  REFEREE_REV: 6b1da0c44eaa30973eb5a8f3defb0181f774eb7a
 
 jobs:
   build_project:
@@ -59,24 +60,27 @@ jobs:
         run: |
           ./scripts/build_docs.sh
 
-      - name: Clone lean-exposition
+      - name: Clone Referee
         if: github.event_name == 'push'
         run: |
-          git clone --depth 1 --branch "$LEAN_EXPOSITION_REF" \
-            "https://github.com/$LEAN_EXPOSITION_REPO" /tmp/lean-exposition
+          git init /tmp/referee
+          git -C /tmp/referee remote add origin "https://github.com/$REFEREE_REPO"
+          git -C /tmp/referee fetch --depth 1 origin "$REFEREE_REV"
+          git -C /tmp/referee checkout --detach FETCH_HEAD
 
-      - name: Build exposition binary
+      - name: Build Referee binary
         if: github.event_name == 'push'
         run: |
           PROJECT_TOOLCHAIN="$(cat "$GITHUB_WORKSPACE/lean-toolchain")"
-          cd /tmp/lean-exposition
-          ELAN_TOOLCHAIN="$PROJECT_TOOLCHAIN" lake build exposition
-          echo "EXPOSITION_BIN=/tmp/lean-exposition/.lake/build/bin/exposition" >> "$GITHUB_ENV"
+          cd /tmp/referee
+          ELAN_TOOLCHAIN="$PROJECT_TOOLCHAIN" lake build referee
+          test -x .lake/build/bin/referee
+          echo "REFEREE_BIN=/tmp/referee/.lake/build/bin/referee" >> "$GITHUB_ENV"
 
       - name: Build exposition documentation
         if: github.event_name == 'push'
         run: |
-          lake env "$EXPOSITION_BIN" \
+          lake env "$REFEREE_BIN" all \
             --root LeanMachineLearning \
             --repo-url https://github.com/anhhuyalex/LML \
             --site-url https://anhhuyalex.github.io/LML/exposition \
