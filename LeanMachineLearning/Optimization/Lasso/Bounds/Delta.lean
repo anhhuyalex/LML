@@ -679,7 +679,8 @@ lemma pos_delta_bound_3
   rw [← h_downward_eq] at h_bound_neg
   -- Assemble the final inequality
   calc
-    -inner ℝ ż w = -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) := h_decomp
+    -inner ℝ ż w = -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) :=
+      inner_decomp_pos_neg ż w
     _ ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ) +
         C_w * (deriv (positiveZDownward x_lasso) τ) := by
       linarith [h_bound_pos, h_bound_neg]
