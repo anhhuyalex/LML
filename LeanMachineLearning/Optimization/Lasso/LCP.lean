@@ -1333,10 +1333,9 @@ lemma scaled_dual_lcp_eq
     let s := μ / (1 + μ * lambda)
     wt = -s • r + ones + matVec M zt ∧
     Nonnegative wt ∧ Nonnegative zt ∧ inner ℝ wt zt = 0 := by
-  have h_denom_pos : 0 < 1 + μ * lambda := by nlinarith
-  have h_denom_ne_zero : 1 + μ * lambda ≠ 0 := by linarith
-  have hsolμ := hsol μ hμ
-  rcases hsolμ with ⟨hw_eq, hw_nonneg, hz_nonneg, h_comp⟩
+  have h_denom_ne_zero : 1 + μ * lambda ≠ 0 := by nlinarith
+  have h_scale : 0 ≤ 1 / (1 + μ * lambda) := div_nonneg (by norm_num) (by nlinarith)
+  rcases hsol μ hμ with ⟨hw_eq, hw_nonneg, hz_nonneg, h_comp⟩
   have h_param_eq : parametricLcpQ r lambda μ = (-μ) • r + (1 + μ * lambda) • ones := by
     ext i
     simp [parametricLcpQ, ones, euclideanOf]
@@ -1351,11 +1350,9 @@ lemma scaled_dual_lcp_eq
   have h_wt_nonneg : Nonnegative (scaledDualPath lambda w μ) := by
     intro i
     dsimp [scaledDualPath]
-    have h_scale : 0 ≤ 1 / (1 + μ * lambda) := div_nonneg (by norm_num) (by linarith)
     exact mul_nonneg h_scale (hw_nonneg i)
   have h_zt_nonneg : Nonnegative ((1 / (1 + μ * lambda)) • z μ) := by
     intro i
-    have h_scale : 0 ≤ 1 / (1 + μ * lambda) := div_nonneg (by norm_num) (by linarith)
     exact mul_nonneg h_scale (hz_nonneg i)
   have h_comp_scaled : inner ℝ (scaledDualPath lambda w μ) ((1 / (1 + μ * lambda)) • z μ) = 0 := by
     dsimp [scaledDualPath]
@@ -1406,20 +1403,17 @@ lemma scaled_dual_lcp_s_diff_bound (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda
     {μ ν : ℝ} (hμ_nonneg : 0 ≤ μ) (hν_nonneg : 0 ≤ ν) :
     let s := fun μ => μ / (1 + μ * lambda)
     |s μ - s ν| ≤ |μ - ν| := by
-  have hd1 : 1 + μ * lambda ≠ 0 := by nlinarith
-  have hd2 : 1 + ν * lambda ≠ 0 := by nlinarith
-  have h_s_diff_eq :
-      μ / (1 + μ * lambda) - ν / (1 + ν * lambda) =
-      (μ - ν) / ((1 + μ * lambda) * (1 + ν * lambda)) := by
-    rw [div_sub_div _ _ hd1 hd2]
-    ring
-  change |μ / (1 + μ * lambda) - ν / (1 + ν * lambda)| ≤ |μ - ν|
-  rw [h_s_diff_eq]
+  intro s
+  dsimp [s]
   have h_denom_ge_one : 1 ≤ (1 + μ * lambda) * (1 + ν * lambda) := by
     have h1 : 1 ≤ 1 + μ * lambda := by nlinarith
     have h2 : 1 ≤ 1 + ν * lambda := by nlinarith
     nlinarith
   have h_denom_pos' : 0 < (1 + μ * lambda) * (1 + ν * lambda) := by nlinarith
+  rw [show μ / (1 + μ * lambda) - ν / (1 + ν * lambda) =
+      (μ - ν) / ((1 + μ * lambda) * (1 + ν * lambda)) by
+    rw [div_sub_div _ _ (by nlinarith) (by nlinarith)]
+    ring]
   rw [abs_div, abs_of_pos h_denom_pos']
   exact div_le_self (abs_nonneg _) h_denom_ge_one
 
@@ -1443,20 +1437,20 @@ lemma scaled_dual_lipschitz
   have hM_symm : M.IsSymm := hM_psd.symm
   have h_psd_bound := psd_matrix_norm_sq_bound M hM_psd
   rcases h_psd_bound with ⟨C, hC_pos, hC_bound⟩
-  set wt := scaledDualPath lambda w with hwt_def
-  set zt : ℝ → EuclideanSpace ℝ ι := fun μ => (1 / (1 + μ * lambda)) • z μ with hzt_def
-  set s : ℝ → ℝ := fun μ => μ / (1 + μ * lambda) with hs_def
+  set wt := scaledDualPath lambda w
+  set zt : ℝ → EuclideanSpace ℝ ι := fun μ => (1 / (1 + μ * lambda)) • z μ
+  set s : ℝ → ℝ := fun μ => μ / (1 + μ * lambda)
   have h_scaled_lcp (μ : ℝ) (hμ : 0 ≤ μ) :
       wt μ = -(s μ) • r + ones + matVec M (zt μ) ∧
-      Nonnegative (wt μ) ∧ Nonnegative (zt μ) ∧ inner ℝ (wt μ) (zt μ) = 0 := by
-    exact scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol μ hμ
+      Nonnegative (wt μ) ∧ Nonnegative (zt μ) ∧ inner ℝ (wt μ) (zt μ) = 0 :=
+    scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol μ hμ
   have h_key_ineq {μ₁ μ₂ : ℝ} (hμ₁ : 0 ≤ μ₁) (hμ₂ : 0 ≤ μ₂) :
       inner ℝ (zt μ₁ - zt μ₂) (matVec M (zt μ₁ - zt μ₂)) ≤
-      |s μ₁ - s μ₂| * |inner ℝ r (zt μ₁ - zt μ₂)| := by
-    exact scaled_dual_lcp_key_ineq M r hM_psd wt zt s h_scaled_lcp hμ₁ hμ₂
+      |s μ₁ - s μ₂| * |inner ℝ r (zt μ₁ - zt μ₂)| :=
+    scaled_dual_lcp_key_ineq M r hM_psd wt zt s h_scaled_lcp hμ₁ hμ₂
   refine ⟨?lipschitz_on_Icc⟩
   intro a b ha_nonneg ha_le_b
-  set K := ‖r‖ + C * ‖y‖ with hK_def
+  set K := ‖r‖ + C * ‖y‖
   have hK_nonneg : 0 ≤ K := by nlinarith [norm_nonneg r, norm_nonneg y, hC_pos]
   refine ⟨K, hK_nonneg, ?_⟩
   intro μ hμ_mem ν hν_mem
@@ -1464,8 +1458,8 @@ lemma scaled_dual_lipschitz
   rcases hν_mem with ⟨hν_low, hν_high⟩
   have hμ_nonneg : 0 ≤ μ := le_trans ha_nonneg hμ_low
   have hν_nonneg : 0 ≤ ν := le_trans ha_nonneg hν_low
-  set d := zt μ - zt ν with hd_def
-  set ds := s μ - s ν with hds_def
+  set d := zt μ - zt ν
+  set ds := s μ - s ν
   have h_diff_eq : wt μ - wt ν = -(ds) • r + matVec M d := by
     rcases h_scaled_lcp μ hμ_nonneg with ⟨hw_eq₁, _, _, _⟩
     rcases h_scaled_lcp ν hν_nonneg with ⟨hw_eq₂, _, _, _⟩
@@ -1474,13 +1468,9 @@ lemma scaled_dual_lipschitz
     abel_nf
   have h_quad_bound : inner ℝ d (matVec M d) ≤ |ds| * |inner ℝ r d| :=
     h_key_ineq hμ_nonneg hν_nonneg
-  have h_r_d_eq : inner ℝ r d = inner ℝ y (matVec M d) := by
-    rw [← hy, inner_matVec_comm_of_isSymm M hM_symm y d]
   have h_abs_r_d_le : |inner ℝ r d| ≤ ‖y‖ * ‖matVec M d‖ := by
-    rw [h_r_d_eq]
-    exact calc
-      |inner ℝ y (matVec M d)| ≤ ‖y‖ * ‖matVec M d‖ := abs_real_inner_le_norm _ _
-      _ = ‖y‖ * ‖matVec M d‖ := rfl
+    rw [← hy, ← inner_matVec_comm_of_isSymm M hM_symm y d]
+    exact abs_real_inner_le_norm _ _
   have h_norm_sq_bound : ‖matVec M d‖ * ‖matVec M d‖ ≤ C * inner ℝ d (matVec M d) := hC_bound d
   have h_Md_norm_le : ‖matVec M d‖ ≤ C * ‖y‖ * |ds| := by
     by_cases h_zero : ‖matVec M d‖ = 0
@@ -1509,8 +1499,9 @@ lemma scaled_dual_lipschitz
       rw [Real.norm_eq_abs]
     _ ≤ |ds| * ‖r‖ + C * ‖y‖ * |ds| := add_le_add (le_refl _) h_Md_norm_le
     _ = (‖r‖ + C * ‖y‖) * |ds| := by ring
-    _ = K * |ds| := rfl
-    _ ≤ K * |μ - ν| := mul_le_mul_of_nonneg_left h_s_diff_bound hK_nonneg
+    _ ≤ K * |μ - ν| := by
+      dsimp [K]
+      exact mul_le_mul_of_nonneg_left h_s_diff_bound hK_nonneg
 
 /--
 If a path `wt` satisfies `wt(μ) = -(s μ) • r + 1 + M (zt μ)` for all μ ≥ 0,
@@ -1535,14 +1526,12 @@ lemma deriv_in_matrix_span_of_scaled_eq
     -- Differentiating, the derivative must lie in the tangent space Im(M).
     -- Formal proof: difference quotients lie in Im(M); Im(M) is a finite-dimensional
     -- subspace, hence closed; the limit (the derivative) stays in Im(M).
-    have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
     -- Build the subspace S = Im(M) as a linear subspace
     let L : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
       { toFun := matVec M
         map_add' := matVec_add M
         map_smul' := matVec_smul_eq M }
     let S : Submodule ℝ (EuclideanSpace ℝ ι) := LinearMap.range L
-    have hS_closed : IsClosed (S : Set (EuclideanSpace ℝ ι)) := S.closed_of_finiteDimensional
     -- Show that for all t > 0, the difference quotient is in S
     -- Key: wt ν - ones = matVec M ((-(s ν)) • y + zt ν) for ν ≥ 0
     have h_wt_sub_ones (ν : ℝ) (hν : 0 ≤ ν) : wt ν - ones = matVec M ((-(s ν)) • y + zt ν) := by
@@ -1568,36 +1557,24 @@ lemma deriv_in_matrix_span_of_scaled_eq
           _ = matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
             rw [matVec_sub M]
       rw [h_diff_eq]
-      -- Goal: t⁻¹ • matVec M (stuff) ∈ S = range L where L = matVec M
-      -- Use: matVec M (t⁻¹ • stuff) = t⁻¹ • matVec M stuff (matVec_smul_eq)
       refine ⟨t⁻¹ • (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)), ?_⟩
       simp [L]
-    -- The derivative is the limit of the difference quotients (right side, t > 0).
-    have h_tendsto : Filter.Tendsto (fun t => t⁻¹ • (wt (μ + t) - wt μ))
-        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (deriv wt μ)) := by
-      open scoped Topology in
-      simpa using h_hasDeriv.tendsto_slope_zero_right
     -- Eventually, difference quotients are in S
     have h_eventually : ∀ᶠ t in nhdsWithin (0 : ℝ) (Set.Ioi 0),
         t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
-      -- self_mem_nhdsWithin gives Ioi 0 ∈ 𝓝[>] 0
-      have h_mem : Set.Ioi (0 : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
-        self_mem_nhdsWithin
-      filter_upwards [h_mem] with t ht
-      -- ht : t ∈ Set.Ioi 0, i.e., t > 0
+      filter_upwards [self_mem_nhdsWithin] with t ht
       exact h_diff_quot_mem t (Set.mem_Ioi.mp ht)
     -- Since S is closed and the limit of difference quotients is deriv wt μ,
     -- we have deriv wt μ ∈ S.
-    have h_mem_S : deriv wt μ ∈ (S : Set (EuclideanSpace ℝ ι)) :=
-      hS_closed.mem_of_tendsto h_tendsto h_eventually
-    -- Convert membership in S to InMatrixSpan
-    rcases h_mem_S with ⟨z, hz⟩
+    rcases (S.closed_of_finiteDimensional).mem_of_tendsto
+        (by
+          open scoped Topology in
+          simpa using h_diff.hasDerivAt.tendsto_slope_zero_right)
+        h_eventually with ⟨z, hz⟩
     refine ⟨z, ?_⟩
-    -- hz : L z = deriv wt μ, i.e., matVec M z = deriv wt μ
     simpa [L] using hz
   · -- When wt is not differentiable at μ, deriv wt μ is defined to be 0 in Lean.
-    have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
-    rw [h_deriv_zero]
+    rw [deriv_zero_of_not_differentiableAt h_diff]
     exact ⟨0, by simp [matVec, euclideanOf]⟩
 
 /--
@@ -1610,12 +1587,10 @@ lemma scaled_diff_quot_eq_matVec
     (wt zt : ℝ → EuclideanSpace ℝ ι) (s : ℝ → ℝ)
     (h_scaled_eq : ∀ ν, 0 ≤ ν → wt ν = -(s ν) • r + ones + matVec M (zt ν))
     (μ h : ℝ) (hμ_nonneg : 0 ≤ μ) (hpos : 0 < h) :
-    h⁻¹ • (wt (μ + h) - wt μ) = matVec M ((-((s (μ + h) - s μ) / h)) • y + h⁻¹ • (zt (μ + h) - zt μ)) := by
-  have hμh_nonneg : 0 ≤ μ + h := by linarith
+    h⁻¹ • (wt (μ + h) - wt μ) =
+      matVec M ((-((s (μ + h) - s μ) / h)) • y + h⁻¹ • (zt (μ + h) - zt μ)) := by
   set d := zt (μ + h) - zt μ with hd_def
   set ds := s (μ + h) - s μ with hds_def
-  have hwt_eq_μ := h_scaled_eq μ hμ_nonneg
-  have hwt_eq_μh := h_scaled_eq (μ + h) hμh_nonneg
   have h_sub :
       (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
       (-(s μ) • r + ones + matVec M (zt μ)) = -ds • r + matVec M d := by
@@ -1624,37 +1599,28 @@ lemma scaled_diff_quot_eq_matVec
           (-(s μ) • r + ones + matVec M (zt μ))
           = (-(s (μ + h)) • r - (-(s μ) • r)) + (ones - ones) + 
             (matVec M (zt (μ + h)) - matVec M (zt μ)) := by abel
-      _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 0 + 
-          (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
       _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 
           (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
       _ = ((-(s (μ + h))) - (-(s μ))) • r + matVec M (zt (μ + h) - zt μ) := by
         rw [← sub_smul, matVec_sub M]
       _ = (-(s (μ + h) - s μ)) • r + matVec M d := by
-        rw [hd_def]
-        have hscalar : (-(s (μ + h))) - (-(s μ)) = -(s (μ + h) - s μ) := by ring
-        rw [hscalar]
+        rw [hd_def]; ring_nf
       _ = -ds • r + matVec M d := by rw [hds_def]
   calc
     h⁻¹ • (wt (μ + h) - wt μ)
         = h⁻¹ • ((-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
             (-(s μ) • r + ones + matVec M (zt μ))) := by
-          rw [hwt_eq_μh, hwt_eq_μ]
+          rw [h_scaled_eq (μ + h) (by linarith), h_scaled_eq μ hμ_nonneg]
     _ = h⁻¹ • (-ds • r + matVec M d) := by rw [h_sub]
     _ = h⁻¹ • (-ds • r) + h⁻¹ • (matVec M d) := by rw [smul_add]
     _ = (h⁻¹ • (-ds • r)) + (matVec M (h⁻¹ • d)) := by rw [matVec_smul_eq M h⁻¹ d]
     _ = ((h⁻¹ * (-ds)) • r) + (matVec M (h⁻¹ • d)) := by rw [smul_smul]
-    _ = ((-(ds / h)) • r) + (matVec M (h⁻¹ • d)) := by
-      have htemp : h⁻¹ * (-ds) = -(ds / h) := by
-        calc
-          h⁻¹ * (-ds) = -(h⁻¹ * ds) := by ring
-          _ = -(ds * h⁻¹) := by rw [mul_comm]
-          _ = -(ds / h) := rfl
-      rw [htemp]
+    _ = ((-(ds / h)) • r) + (matVec M (h⁻¹ • d)) := by ring_nf
     _ = (-(ds / h)) • (matVec M y) + matVec M (h⁻¹ • d) := by rw [hy]
     _ = matVec M ((-(ds / h)) • y) + matVec M (h⁻¹ • d) := by rw [matVec_smul_eq M (-(ds / h)) y]
     _ = matVec M ((-(ds / h)) • y + h⁻¹ • d) := by rw [matVec_add M]
-    _ = matVec M ((-((s (μ + h) - s μ) / h)) • y + h⁻¹ • (zt (μ + h) - zt μ)) := by rw [hds_def, hd_def]
+    _ = matVec M ((-((s (μ + h) - s μ) / h)) • y +
+      h⁻¹ • (zt (μ + h) - zt μ)) := by rw [hds_def, hd_def]
 
 /--
 Pseudoinverse inner-product identity: `⟨M v, M† (M v)⟩ = ⟨v, M v⟩`.
@@ -1665,11 +1631,178 @@ lemma pseudoInverse_inner_prop
     (h_mp : ∀ v : EuclideanSpace ℝ ι, matVec M (matVec Mdagger (matVec M v)) = matVec M v)
     (v : EuclideanSpace ℝ ι) :
     inner ℝ (matVec M v) (matVec Mdagger (matVec M v)) = inner ℝ v (matVec M v) := by
-  calc
-    inner ℝ (matVec M v) (matVec Mdagger (matVec M v))
-        = inner ℝ v (matVec M (matVec Mdagger (matVec M v))) := by
-      rw [inner_matVec_comm_of_isSymm M hM_symm v (matVec Mdagger (matVec M v))]
-    _ = inner ℝ v (matVec M v) := by rw [h_mp v]
+  rw [← inner_matVec_comm_of_isSymm M hM_symm v (matVec Mdagger (matVec M v)), h_mp v]
+
+/-- Expansion of `⟨(-α)y + u, M((-α)y + u)⟩` for a symmetric matrix `M`.
+This identity is used in the proof of the seminorm bound for the derivative
+of the scaled dual path (Lemma 4.11). -/
+lemma inner_matVec_add_smul_sq_eq
+    (M : Matrix ι ι ℝ) (hM_symm : M.IsSymm) (y u : EuclideanSpace ℝ ι) (α : ℝ) :
+    inner ℝ ((-α) • y + u) (matVec M ((-α) • y + u)) =
+    α ^ 2 * inner ℝ y (matVec M y) + inner ℝ u (matVec M u) -
+    2 * α * inner ℝ y (matVec M u) := by
+  rw [matVec_add, matVec_smul_eq]
+  simp only [inner_add_left, inner_add_right, real_inner_smul_left,
+    real_inner_smul_right, inner_matVec_comm_of_isSymm M hM_symm u y]
+  have h_comm : inner ℝ (matVec M u) y = inner ℝ y (matVec M u) :=
+    real_inner_comm _ _
+  rw [h_comm]
+  ring
+
+/-- Quadratic inequality: `α²B + A - 2αC ≤ B` given `A ≤ αC`, `0 ≤ α ≤ 1`, `B, C ≥ 0`.
+This algebraic inequality is used in the core estimate of Lemma 4.11. -/
+lemma quad_ineq (α A B C : ℝ) (hA_le_αC : A ≤ α * C) (hα_nonneg : 0 ≤ α) (hα_le_one : α ≤ 1)
+    (hB_nonneg : 0 ≤ B) (hC_nonneg : 0 ≤ C) :
+    α ^ 2 * B + A - 2 * α * C ≤ B := by
+  by_cases h_cases : α * B - C ≤ 0
+  · -- then α²B + A - 2αC ≤ α²B + αC - 2αC = α(αB - C) ≤ 0 ≤ B
+    nlinarith
+  · -- then αB - C > 0, so α(αB - C) ≤ αB - C ≤ αB ≤ B
+    nlinarith
+
+/-- Continuity of `pseudoInverseSeminorm Mdagger` on a finite-dimensional `EuclideanSpace`.
+Follows from linearity of `matVec Mdagger` and continuity of inner product and `Real.sqrt`. -/
+lemma continuous_pseudoInverseSeminorm (Mdagger : Matrix ι ι ℝ) :
+    Continuous (pseudoInverseSeminorm Mdagger) := by
+  -- Step 1: matVec Mdagger is linear, hence continuous
+  -- on the finite-dimensional EuclideanSpace
+  have h_cont_matVec : Continuous (matVec Mdagger) := by
+    let Mdag_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
+      { toFun := matVec Mdagger
+        map_add' := matVec_add Mdagger
+        map_smul' := matVec_smul_eq Mdagger }
+    exact Mdag_lin.continuous_of_finiteDimensional
+  -- Step 2: x ↦ inner ℝ x (matVec Mdagger x) is continuous (inner product of id and matVec)
+  have h_cont_quad : Continuous (fun x => inner ℝ x (matVec Mdagger x)) :=
+    Continuous.inner continuous_id h_cont_matVec
+  -- Step 3: x ↦ max 0 (inner ℝ x (matVec Mdagger x)) is continuous (max with constant 0)
+  have h_cont_max : Continuous (fun x => max 0 (inner ℝ x (matVec Mdagger x))) :=
+    Continuous.max continuous_const h_cont_quad
+  -- Step 4: compose with Real.sqrt (continuous on ℝ) to get the seminorm
+  exact h_cont_max.sqrt
+
+/-- Core estimate for Lemma 4.11: for the scaled dual path, given `h > 0` and the
+LCP solution `(z, w)`, there exists `ξ` such that the difference quotient
+of `scaledDualPath lambda w` equals `M ξ` and `⟨ξ, M ξ⟩ ≤ ⟨y, M y⟩` (where `r = M y`).
+
+The proof uses the LCP complementarity to get `⟨Δz, M Δz⟩ ≤ Δs · ⟨r, Δz⟩`,
+the bound `|Δs|/h ≤ 1`, and an algebraic inequality for PSD matrices. -/
+lemma exists_xi_diff_quot_bound
+    (M : Matrix ι ι ℝ) (hM_psd : IsPositiveSemidefinite M)
+    (r y : EuclideanSpace ℝ ι) (hy : matVec M y = r)
+    (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda)
+    (z w : ℝ → EuclideanSpace ℝ ι)
+    (hsol : ∀ μ : ℝ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ))
+    (μ h : ℝ) (hμ_nonneg : 0 ≤ μ) (hpos : 0 < h) :
+    ∃ ξ : EuclideanSpace ℝ ι,
+      h⁻¹ • ((scaledDualPath lambda w) (μ + h) - (scaledDualPath lambda w) μ) = matVec M ξ ∧
+      inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y) := by
+  -- Define the scaled paths internally to avoid let-binding issues
+  set wt := scaledDualPath lambda w
+  set zt : ℝ → EuclideanSpace ℝ ι := fun μ => (1 / (1 + μ * lambda)) • z μ
+  set s : ℝ → ℝ := fun μ => μ / (1 + μ * lambda)
+  -- Get the full scaled LCP conditions
+  have h_scaled_full (ν : ℝ) (hν : 0 ≤ ν) :
+      wt ν = -(s ν) • r + ones + matVec M (zt ν) ∧
+      Nonnegative (wt ν) ∧ Nonnegative (zt ν) ∧ inner ℝ (wt ν) (zt ν) = 0 :=
+    scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol ν hν
+  have h_scaled_eq (ν : ℝ) (hν : 0 ≤ ν) : wt ν = -(s ν) • r + ones + matVec M (zt ν) :=
+    (h_scaled_full ν hν).1
+  set α := (s (μ + h) - s μ) / h with hα_def
+  set u := h⁻¹ • (zt (μ + h) - zt μ) with hu_def
+  set ξ := (-α) • y + u with hξ_def
+  have h_eq : h⁻¹ • (wt (μ + h) - wt μ) = matVec M ξ := by
+    rw [hξ_def]
+    simpa [hα_def, hu_def] using
+      scaled_diff_quot_eq_matVec M r y hy wt zt s h_scaled_eq μ h hμ_nonneg hpos
+  refine ⟨ξ, h_eq, ?_⟩
+  · -- Show inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y)
+    set d := zt (μ + h) - zt μ with hd_def
+    set ds := s (μ + h) - s μ with hds_def
+    have hpos' : 0 < h := hpos
+    have hne_zero : h ≠ 0 := by linarith
+    -- ds > 0 (s is strictly increasing when λ ≥ 0, h > 0)
+    have hds_pos : 0 < ds := by
+      have h_denom1 : 1 + (μ + h) * lambda ≠ 0 := by nlinarith
+      have h_denom2 : 1 + μ * lambda ≠ 0 := by nlinarith
+      dsimp [s, ds]
+      field_simp [h_denom1, h_denom2]
+      nlinarith
+    -- Key inequality from LCP complementarity: ⟨d, M d⟩ ≤ ds * ⟨r, d⟩
+    have h_quad_le : inner ℝ d (matVec M d) ≤ ds * inner ℝ r d := by
+      rcases h_scaled_full (μ + h) (by linarith) with
+        ⟨hw_eq₁, hw_nonneg₁, hz_nonneg₁, h_comp₁⟩
+      rcases h_scaled_full μ hμ_nonneg with
+        ⟨hw_eq₂, hw_nonneg₂, hz_nonneg₂, h_comp₂⟩
+      have h_diff_eq : wt (μ + h) - wt μ = -(ds) • r + matVec M d := by
+        rw [hw_eq₁, hw_eq₂]
+        simp [d, ds, matVec_sub, sub_smul]
+        abel_nf
+      have h_inner_nonpos : inner ℝ (wt (μ + h) - wt μ) d ≤ 0 := by
+        have h := lcp_inner_diff_nonpos (wt μ) (wt (μ + h)) (zt μ) (zt (μ + h))
+          hw_nonneg₂ hw_nonneg₁ hz_nonneg₂ hz_nonneg₁ h_comp₂ h_comp₁
+        simpa [d] using h
+      rw [h_diff_eq] at h_inner_nonpos
+      rw [inner_add_left, real_inner_smul_left] at h_inner_nonpos
+      -- -(ds) * inner ℝ r d + inner ℝ (matVec M d) d ≤ 0
+      rw [real_inner_comm d (matVec M d)] at h_inner_nonpos
+      linarith
+    -- PSD gives ⟨d, M d⟩ ≥ 0, hence ds * ⟨r, d⟩ ≥ 0, and with ds > 0: ⟨r, d⟩ ≥ 0
+    have h_quad_nonneg : 0 ≤ inner ℝ d (matVec M d) := hM_psd.nonneg d
+    have h_prod_nonneg : 0 ≤ ds * inner ℝ r d := by linarith
+    have h_r_d_nonneg : 0 ≤ inner ℝ r d :=
+      nonneg_of_mul_nonneg_right h_prod_nonneg hds_pos
+    -- Convert to u, α: ⟨u, M u⟩ ≤ α * ⟨y, M u⟩
+    have h_u_bound : inner ℝ u (matVec M u) ≤ α * inner ℝ y (matVec M u) := by
+      calc
+        inner ℝ u (matVec M u) = inner ℝ (h⁻¹ • d) (matVec M (h⁻¹ • d)) := by
+          rw [hu_def, hd_def]
+        _ = inner ℝ (h⁻¹ • d) (h⁻¹ • matVec M d) := by rw [matVec_smul_eq]
+        _ = (h⁻¹) ^ 2 * inner ℝ d (matVec M d) := by
+          simp [real_inner_smul_left, real_inner_smul_right]; ring
+        _ ≤ (h⁻¹) ^ 2 * (ds * inner ℝ r d) := by nlinarith
+        _ = α * inner ℝ r u := by
+          rw [hu_def, hα_def, hds_def, inner_smul_right]
+          field_simp [hne_zero]
+        _ = α * inner ℝ (matVec M y) u := by rw [hy]
+        _ = α * inner ℝ y (matVec M u) := by
+          rw [inner_matVec_comm_of_isSymm M hM_psd.symm y u]
+    -- C := ⟨y, M u⟩ ≥ 0
+    have h_C_nonneg : 0 ≤ inner ℝ y (matVec M u) := by
+      rw [hu_def, hd_def, matVec_smul_eq, inner_smul_right]
+      rw [inner_matVec_comm_of_isSymm M hM_psd.symm y d, hy]
+      exact mul_nonneg (by positivity) h_r_d_nonneg
+    -- Bounds on α: 0 ≤ α ≤ 1
+    have h_alpha_nonneg : 0 ≤ α := by
+      rw [hα_def]
+      exact div_nonneg hds_pos.le hpos'.le
+    have h_alpha_le_one : α ≤ 1 := by
+      have h_bound := scaled_dual_lcp_s_diff_bound lambda hlambda_nonneg
+        hμ_nonneg (by linarith : 0 ≤ μ + h)
+      -- h_bound: let s := ... in |s μ - s (μ+h)| ≤ |μ - (μ+h)|
+      have h_temp : |s μ - s (μ + h)| ≤ h := by
+        simpa [s, abs_of_pos hpos'] using h_bound
+      have h_abs_bound : |ds| ≤ h := by
+        have h_eq_abs : |s μ - s (μ + h)| = |ds| := by
+          rw [show s μ - s (μ + h) = -(s (μ + h) - s μ) by ring, abs_neg]
+        rwa [h_eq_abs] at h_temp
+      rw [abs_of_pos hds_pos] at h_abs_bound
+      rw [hα_def]
+      exact (div_le_one hpos').mpr h_abs_bound
+    -- Algebraic core: expand ⟨ξ, M ξ⟩ = α²B + A - 2αC and prove ≤ B
+    set B := inner ℝ y (matVec M y)
+    set A := inner ℝ u (matVec M u)
+    set C := inner ℝ y (matVec M u)
+    have hB_nonneg : 0 ≤ B := hM_psd.nonneg y
+    have hA_le_alphaC : A ≤ α * C := h_u_bound
+    have h_expand : inner ℝ ((-α) • y + u) (matVec M ((-α) • y + u)) =
+        α ^ 2 * B + A - 2 * α * C := by
+      simpa [B, A, C] using
+        inner_matVec_add_smul_sq_eq M hM_psd.symm y u α
+    rw [hξ_def, h_expand]
+    -- Prove α²B + A - 2αC ≤ B using the algebraic inequality lemma
+    exact quad_ineq α A B C hA_le_alphaC h_alpha_nonneg h_alpha_le_one
+      hB_nonneg h_C_nonneg
 
 /--
 Derivative properties of the scaled dual path derived from the LCP structure.
@@ -1689,7 +1822,7 @@ lemma derivative_properties_of_lipschitz
     (z w : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda)
     (hsol : ∀ μ : ℝ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ))
-    (hlip : LocallyLipschitzOnCompacts (scaledDualPath lambda w))
+    (_hlip : LocallyLipschitzOnCompacts (scaledDualPath lambda w))
     -- GAP: `Mdagger` must be a Moore-Penrose pseudoinverse of `M`.
     -- We only need the first Penrose condition: M M† M = M.
     (h_mp : ∀ v : EuclideanSpace ℝ ι, matVec M (matVec Mdagger (matVec M v)) = matVec M v) :
@@ -1698,9 +1831,9 @@ lemma derivative_properties_of_lipschitz
         pseudoInverseSeminorm Mdagger r) := by
   rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
   rcases hr_mem_span with ⟨y, hy⟩
-  set wt := scaledDualPath lambda w with hwt_def
-  set zt : ℝ → EuclideanSpace ℝ ι := fun μ => (1 / (1 + μ * lambda)) • z μ with hzt_def
-  set s : ℝ → ℝ := fun μ => μ / (1 + μ * lambda) with hs_def
+  set wt := scaledDualPath lambda w
+  set zt : ℝ → EuclideanSpace ℝ ι := fun μ => (1 / (1 + μ * lambda)) • z μ
+  set s : ℝ → ℝ := fun μ => μ / (1 + μ * lambda)
   -- The scaled LCP equation for nonnegative parameters
   have h_scaled_eq (μ : ℝ) (hμ : 0 ≤ μ) : wt μ = -(s μ) • r + ones + matVec M (zt μ) :=
     (scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol μ hμ).1
@@ -1721,7 +1854,6 @@ lemma derivative_properties_of_lipschitz
       -- 3. Using the pseudoinverse property ‖M u‖²_{M†} = ⟨u, M u⟩, we get
       --    ‖Δw_h‖²_{M†} = α²B + A - 2αC ≤ α²B ≤ B = ‖r‖²_{M†}, where α = Δs/h ≤ 1.
       -- 4. Taking h → 0+ and using continuity of the seminorm gives the bound.
-      have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
       -- Pseudoinverse property (extracted as lemma below)
       have h_mp_prop : ∀ (v : EuclideanSpace ℝ ι),
           inner ℝ (matVec M v) (matVec Mdagger (matVec M v)) = inner ℝ v (matVec M v) :=
@@ -1730,39 +1862,17 @@ lemma derivative_properties_of_lipschitz
       have h_bound_eventually : ∀ᶠ (h : ℝ) in nhdsWithin (0 : ℝ) (Set.Ioi 0),
           pseudoInverseSeminorm Mdagger (h⁻¹ • (wt (μ + h) - wt μ)) ≤
           pseudoInverseSeminorm Mdagger r := by
-        -- Get the full scaled LCP properties (equation, nonnegativity, complementarity)
-        have h_scaled_lcp (ν : ℝ) (hν : 0 ≤ ν) :
-            wt ν = -(s ν) • r + ones + matVec M (zt ν) ∧
-            Nonnegative (wt ν) ∧ Nonnegative (zt ν) ∧ inner ℝ (wt ν) (zt ν) = 0 :=
-          scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol ν hν
         -- It suffices to prove the inequality for all h > 0
-        have h_mem : Set.Ioi (0 : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) := self_mem_nhdsWithin
-        refine Filter.eventually_of_mem h_mem ?_
+        refine Filter.eventually_of_mem self_mem_nhdsWithin ?_
         intro h hpos
-        have hpos' : 0 < h := hpos
-        have hμh_nonneg : 0 ≤ μ + h := by linarith
         -- Key: there exists ξ such that Δw_h = M ξ and ⟨ξ, M ξ⟩ ≤ ⟨y, M y⟩
-        -- This follows from the LCP key inequality (scaled_dual_lcp_key_ineq) which gives
-        -- ⟨Δz, M Δz⟩ ≤ Δs * ⟨r, Δz⟩, combined with the bound |Δs|/h ≤ 1
-        -- (scaled_dual_lcp_s_diff_bound). Setting ξ = -α y + u where
-        -- α = (s(μ+h)-s(μ))/h, u = (zt(μ+h)-zt(μ))/h, we expand
-        -- ⟨ξ, M ξ⟩ = α²⟨y,My⟩ + ⟨u,Mu⟩ - 2α⟨y,Mu⟩ ≤ ⟨y,My⟩ using A ≤ αC, C ≥ 0, 0 ≤ α ≤ 1.
+        -- (extracted as lemma exists_xi_diff_quot_bound)
         have h_exists_xi : ∃ ξ : EuclideanSpace ℝ ι,
             h⁻¹ • (wt (μ + h) - wt μ) = matVec M ξ ∧
             inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y) := by
-          set α := (s (μ + h) - s μ) / h with hα_def
-          set u := h⁻¹ • (zt (μ + h) - zt μ) with hu_def
-          set ξ := (-α) • y + u with hξ_def
-          have h_eq : h⁻¹ • (wt (μ + h) - wt μ) = matVec M ξ := by
-            rw [hξ_def]
-            simpa [hα_def, hu_def] using
-              scaled_diff_quot_eq_matVec M r y hy wt zt s h_scaled_eq μ h hμ_nonneg hpos'
-          refine ⟨ξ, h_eq, ?_⟩
-          · -- Show inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y)
-            -- This expands to α²⟨y,My⟩ + ⟨u,Mu⟩ - 2α⟨y,Mu⟩ ≤ ⟨y,My⟩
-            -- Using the LCP key inequality: ⟨d, M d⟩ ≤ ds * ⟨r, d⟩ (unsigned)
-            -- and the bound |ds|/h ≤ 1, with ds ≥ 0, ⟨r,d⟩ ≥ 0
-            sorry
+          simpa [wt] using
+            exists_xi_diff_quot_bound M hM_psd r y hy lambda hlambda_nonneg z w hsol
+              μ h hμ_nonneg (Set.mem_Ioi.mp hpos)
         rcases h_exists_xi with ⟨ξ, hξ_eq, hξ_bound⟩
         -- Using the pseudoinverse property h_mp_prop, convert to seminorm
         have h_inner_bound : inner ℝ (h⁻¹ • (wt (μ + h) - wt μ))
@@ -1778,28 +1888,16 @@ lemma derivative_properties_of_lipschitz
         dsimp [pseudoInverseSeminorm]
         refine Real.sqrt_le_sqrt ?_
         exact max_le_max (le_refl 0) h_inner_bound
-      -- The pseudoInverseSeminorm is continuous (composition of continuous functions)
-      have h_cont : Continuous (pseudoInverseSeminorm Mdagger) := by
-        sorry
+      -- The pseudoInverseSeminorm is continuous (extracted as lemma)
+      have h_cont : Continuous (pseudoInverseSeminorm Mdagger) :=
+        continuous_pseudoInverseSeminorm Mdagger
       have h_tendsto_slope : Filter.Tendsto (fun h => h⁻¹ • (wt (μ + h) - wt μ))
           (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (deriv wt μ)) := by
-        simpa using h_hasDeriv.tendsto_slope_zero_right
-      have h_tendsto_norm : Filter.Tendsto (fun h =>
-          pseudoInverseSeminorm Mdagger (h⁻¹ • (wt (μ + h) - wt μ)))
-          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (pseudoInverseSeminorm Mdagger (deriv wt μ))) :=
-        h_cont.continuousAt.tendsto.comp h_tendsto_slope
-      exact le_of_tendsto h_tendsto_norm h_bound_eventually
+        simpa using h_diff.hasDerivAt.tendsto_slope_zero_right
+      exact le_of_tendsto (h_cont.continuousAt.tendsto.comp h_tendsto_slope) h_bound_eventually
     · -- When not differentiable, the derivative is 0, and the bound holds trivially.
-      have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
-      rw [h_deriv_zero]
-      have h_zero : pseudoInverseSeminorm Mdagger 0 = 0 := by
-        dsimp [pseudoInverseSeminorm]
-        simp
-      have h_nonneg : 0 ≤ pseudoInverseSeminorm Mdagger r := by
-        dsimp [pseudoInverseSeminorm]
-        apply Real.sqrt_nonneg
-      rw [h_zero]
-      exact h_nonneg
+      rw [deriv_zero_of_not_differentiableAt h_diff]
+      simp [pseudoInverseSeminorm, Real.sqrt_nonneg]
   exact ⟨h_span, h_bound⟩
 
 /--
