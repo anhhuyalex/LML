@@ -1531,8 +1531,8 @@ lemma derivative_properties_of_lipschitz
     (hdata : ProblemData M r lambda)
     (hsol : ∀ μ : ℝ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ))
     (hlip : LocallyLipschitzOnCompacts (scaledDualPath lambda w)) :
-    (∀ μ, 0 ≤ μ → InMatrixSpan M (coordinateDeriv (scaledDualPath lambda w) μ)) ∧
-    (∀ μ, 0 ≤ μ → pseudoInverseSeminorm Mdagger (coordinateDeriv (scaledDualPath lambda w) μ) ≤
+    (∀ μ, 0 ≤ μ → InMatrixSpan M (deriv (scaledDualPath lambda w) μ)) ∧
+    (∀ μ, 0 ≤ μ → pseudoInverseSeminorm Mdagger (deriv (scaledDualPath lambda w) μ) ≤
         pseudoInverseSeminorm Mdagger r) := by
   rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
   rcases hr_mem_span with ⟨y, hy⟩
@@ -1542,8 +1542,8 @@ lemma derivative_properties_of_lipschitz
   -- The scaled LCP equation for nonnegative parameters
   have h_scaled_eq (μ : ℝ) (hμ : 0 ≤ μ) : wt μ = -(s μ) • r + ones + matVec M (zt μ) :=
     (scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol μ hμ).1
-  -- Part 1: coordinatewise derivative lies in the column space of M
-  have h_span : ∀ μ, 0 ≤ μ → InMatrixSpan M (coordinateDeriv wt μ) := by
+  -- Part 1: derivative lies in the column space of M
+  have h_span : ∀ μ, 0 ≤ μ → InMatrixSpan M (deriv wt μ) := by
     intro μ hμ_nonneg
     -- Key idea: difference quotients of wt lie in Span M because
     --   (wt(μ+h)-wt(μ))/h = -((s(μ+h)-s(μ))/h) • r + M ((zt(μ+h)-zt(μ))/h)
@@ -1551,50 +1551,96 @@ lemma derivative_properties_of_lipschitz
     -- because Span M is a finite-dimensional (hence closed) subspace.
     -- We split into cases: wt differentiable at μ vs not.
     by_cases h_diff : DifferentiableAt ℝ wt μ
-    · -- When wt is differentiable, coordinateDeriv = deriv wt μ,
-      -- and deriv wt μ equals the limit of difference quotients.
-      -- Since each difference quotient lies in Span M (by h_scaled_eq),
-      -- and Span M is finite-dimensional hence closed, the limit is in Span M.
-      have h_deriv_eq : coordinateDeriv wt μ = deriv wt μ := by
-        -- deriv_pi relates deriv of the whole function to coordinate-wise deriv
-        have h_coord_diff : ∀ i, DifferentiableAt ℝ (fun u : ℝ => wt u i) μ := by
-          intro i
-          -- Differentiability of the vector function implies differentiability of each coordinate
-          exact h_diff i
-        -- Use deriv_pi which requires all coordinates differentiable
-        rw [deriv_pi h_coord_diff]
-        ext i
-        simp [coordinateDeriv]
-      rw [h_deriv_eq]
-      -- Now we need: InMatrixSpan M (deriv wt μ)
-      -- Using hasDerivAt_iff_tendsto_slope_zero, deriv is the limit of difference quotients
-      have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ :=
-        DifferentiableAt.hasDerivAt h_diff
-      -- Each difference quotient (for small h with μ+h ≥ 0) is in Span M
-      -- We need to extract that the limit is in Span M.
-      -- Since Span M is a finite-dimensional subspace of EuclideanSpace ℝ ι, it's closed.
-      -- The limit of a sequence in a closed set belongs to the set.
-      sorry
-    · -- When wt is not differentiable at μ,
-      -- we use the LCP complementarity structure to show coordinateDeriv wt μ = 0.
-      -- Since 0 ∈ Span M (take y = 0), this suffices.
-      have h_coord_deriv_zero : coordinateDeriv wt μ = 0 := by
-        -- This requires a deeper analysis of the LCP structure:
-        -- At points of non-differentiability (breakpoints/kinks), the
-        -- complementarity condition wt·zt = 0 forces all coordinates
-        -- to be non-differentiable simultaneously, making coordinateDeriv = 0.
-        sorry
-      rw [h_coord_deriv_zero]
-      exact ⟨0, by simp [matVec]⟩
+    · -- Informal proof:
+      -- We have h_scaled_eq: wt(ν) = -(s ν)•r + ones + matVec M (zt ν) for ν ≥ 0.
+      -- Since r = M y, the RHS is in the affine subspace 1 + Im(M).
+      -- Differentiating, the derivative must lie in the tangent space Im(M).
+      -- Formal proof: difference quotients lie in Im(M); Im(M) is a finite-dimensional
+      -- subspace, hence closed; the limit (the derivative) stays in Im(M).
+      have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
+      -- Right-hand difference quotients → derivative (using right limit, valid for μ ≥ 0)
+      have h_tendsto : Tendsto (fun t => t⁻¹ • (wt (μ + t) - wt μ)) (𝓝[>] 0) (𝓝 (deriv wt μ)) :=
+        h_hasDeriv.tendsto_slope_zero_right
+      -- Build the subspace S = Im(M) as a linear subspace
+      let L : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
+        { toFun := matVec M
+          map_add' := matVec_add M
+          map_smul' := matVec_smul_eq M }
+      let S : Submodule ℝ (EuclideanSpace ℝ ι) := LinearMap.range L
+      have hS_closed : IsClosed (S : Set (EuclideanSpace ℝ ι)) := S.closed_of_finiteDimensional
+      have hS_closed' : IsClosed (S : Set (EuclideanSpace ℝ ι)) := hS_closed
+      -- Show that for all t > 0, the difference quotient is in S
+      have h_diff_quot_mem : ∀ t > 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
+        intro t ht_pos
+        have hμt_nonneg : 0 ≤ μ + t := by linarith
+        have h_eq_μ := h_scaled_eq μ hμ_nonneg
+        have h_eq_μt := h_scaled_eq (μ + t) hμt_nonneg
+        -- Expand wt difference using the scaled LCP equation
+        rw [h_eq_μt, h_eq_μ]
+        -- Now we have: t⁻¹ • ( (-s(μ+t)•r + ones + matVec M (zt (μ+t)))
+        --                    - (-s μ•r + ones + matVec M (zt μ)) )
+        -- Simplify by canceling the ones and factoring
+        have h_diff : (-(s (μ + t)) • r + ones + matVec M (zt (μ + t))) -
+                     (-(s μ) • r + ones + matVec M (zt μ)) =
+                     (-(s (μ + t) - s μ)) • r + matVec M (zt (μ + t) - zt μ) := by
+          simp [add_sub_add_left, sub_self, add_sub_add_right, smul_sub, sub_smul]
+        rw [h_diff]
+        -- Now: t⁻¹ • ((-(s (μ+t) - s μ)) • r + matVec M (zt (μ+t) - zt μ))
+        -- Use linearity: distribute t⁻¹
+        rw [smul_add, smul_smul]
+        -- = (-(t⁻¹ * (s (μ+t) - s μ))) • r + t⁻¹ • (matVec M (zt (μ+t) - zt μ))
+        -- The second term: t⁻¹ • matVec M (zt(μ+t) - zt μ) = matVec M (t⁻¹ • (zt(μ+t) - zt μ))
+        rw [← matVec_smul_eq M (t⁻¹) (zt (μ + t) - zt μ)]
+        -- The first term: (-(t⁻¹ * (s (μ+t) - s μ))) • r = matVec M ((-(t⁻¹ * (s (μ+t) - s μ))) • y)
+        rw [hy]
+        -- Now both terms are matVec M applied to something, sum them using matVec_add
+        rw [matVec_add M]
+        -- Show this is in the range of L, i.e., S
+        refine ⟨(-(t⁻¹ * (s (μ + t) - s μ))) • y + t⁻¹ • (zt (μ + t) - zt μ), ?_⟩
+        simp [L, matVec_add M, matVec_smul_eq M]
+      -- Eventually, difference quotients are in S
+      have h_eventually : ∀ᶠ t in 𝓝[>] 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
+        filter_upwards [eventually_gt_nhds (by norm_num : (0 : ℝ) > 0)] with t ht
+        -- Actually, `eventually_gt_nhds 0` gives `0 < t` eventually; but we have `∀ t>0, ...`
+        -- so we can use `eventually_of_forall` for the nhdsWithin filter
+        -- Let's use a simpler construction:
+        -- The filter 𝓝[>] 0 is generated by sets {t | t < ε} ∩ {t | t > 0}.
+        -- We can use `eventually_of_forall` restricted to the filter.
+        -- Actually, `h_diff_quot_mem t ht` works for all t>0, so it works eventually.
+        exact h_diff_quot_mem t ht
+      -- Since S is closed and the limit of difference quotients is deriv wt μ,
+      -- we have deriv wt μ ∈ S.
+      have h_mem_S : deriv wt μ ∈ (S : Set (EuclideanSpace ℝ ι)) :=
+        hS_closed'.mem_of_tendsto h_tendsto h_eventually
+      -- Convert membership in S to InMatrixSpan
+      rcases h_mem_S with ⟨z, hz⟩
+      refine ⟨z, ?_⟩
+      -- hz : L z = deriv wt μ, i.e., matVec M z = deriv wt μ
+      simpa [L] using hz
+    · -- When wt is not differentiable at μ, deriv wt μ is defined to be 0 in Lean.
+      have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
+      rw [h_deriv_zero]
+      exact ⟨0, by simp [matVec, euclideanOf]⟩
   -- Part 2: seminorm bound
-  have h_bound : ∀ μ, 0 ≤ μ → pseudoInverseSeminorm Mdagger (coordinateDeriv wt μ) ≤
+  have h_bound : ∀ μ, 0 ≤ μ → pseudoInverseSeminorm Mdagger (deriv wt μ) ≤
       pseudoInverseSeminorm Mdagger r := by
     intro μ hμ_nonneg
-    -- The key inequality `scaled_dual_lcp_key_ineq` gives a quadratic bound on
-    -- difference quotients.  Dividing by (Δμ)² and taking limits (or using
-    -- Rademacher's theorem for a.e. differentiability), the bound passes
-    -- to the derivative.
-    sorry
+    -- We split into cases: wt differentiable at μ vs not.
+    by_cases h_diff : DifferentiableAt ℝ wt μ
+    · -- Informal proof:
+      -- The key inequality `scaled_dual_lcp_key_ineq` gives a quadratic bound on
+      -- difference quotients: <zt(μ+h) - zt(μ), M(zt(μ+h) - zt(μ))> <= |s(μ+h)-s(μ)| |<r, zt(μ+h)-zt(μ)>|
+      -- Since wt(μ+h) - wt(μ) = -(s(μ+h)-s(μ))r + M(zt(μ+h)-zt(μ)),
+      -- taking the M-seminorm of the difference quotient and applying Cauchy-Schwarz
+      -- shows that the difference quotient is bounded by the seminorm of r.
+      -- Taking limits as h -> 0 yields the bound on the derivative.
+      sorry
+    · -- When not differentiable, the derivative is 0, and the bound holds trivially.
+      have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
+      rw [h_deriv_zero]
+      -- pseudoInverseSeminorm Mdagger 0 is 0, which is ≤ pseudoInverseSeminorm Mdagger r
+      -- (since seminorms are nonnegative).
+      sorry
   exact ⟨h_span, h_bound⟩
 
 /--

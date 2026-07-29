@@ -123,6 +123,11 @@ theorem pos_lasso_connection_approx
         (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
       ≤ posLassoMin M r lambda s +
         C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
+  -- Proof sketch (Section 4.6 from `docs/Lasso.md`):
+  -- By the energy inequality `positiveLassoObjective_eq_energy`, the objective
+  -- is bounded by the energy functional. The energy decreases along the gradient
+  -- flow trajectory and its limit is bounded by `posLassoMin + C * suboptimalityGap`.
+  -- Finally, applying the delta bound `h_delta_bound` gives the desired uniform approximation.
   sorry
 
 /--
@@ -142,6 +147,12 @@ theorem monotone_positive_path_regular
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
     LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso) := by
+  -- Proof sketch (Section 4.7, Lemma 4.12):
+  -- By Lemma 4.11 (`parametric_lcp_dual_regular`), the dual path is locally Lipschitz.
+  -- Complementarity conditions then constrain the projection of z(μ) onto the kernel of M.
+  -- Finally, the assumption that μ ↦ μ * x(μ) is monotone implies that its variation
+  -- on any compact interval is simply its total change, providing an L¹ bound.
+  -- This controls the path variation and establishes absolute continuity (Lipschitz on compacts).
   sorry
 
 /--
@@ -167,6 +178,11 @@ theorem pos_lasso_connection_monotone
         positiveLassoObjective M r lambda s
           (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)))
       (𝓝[>] 0) (𝓝 (posLassoMin M r lambda s)) := by
+  -- Proof sketch (Section 4.7 from `docs/Lasso.md`):
+  -- From `monotone_positive_path_regular`, the path is locally Lipschitz.
+  -- Under monotonicity, the downward variation `positiveZDownward` is exactly zero.
+  -- Substituting this into `pos_lasso_connection_approx` shows the approximation error
+  -- bound reduces to just δ. As ε → 0 and δ → 0, the trajectory converges to the minimum.
   sorry
 
 /-! ## Section 5: signed-to-positive reductions -/
@@ -207,6 +223,11 @@ lemma lasso_split_objective_le
     (y : EuclideanSpace ℝ (ι ⊕ ι)) (hy : Nonnegative y) :
     lassoObjective M r lambda μ (splitDifference y) ≤
       positiveLassoObjective (augmentedMatrix M) (augmentedVector r) lambda μ y := by
+  -- Proof sketch (Section 5.1.1, Lemma 5.1(1)):
+  -- The signed lasso objective evaluates the L1 norm |x|. The augmented positive objective
+  -- evaluates the sum of the positive and negative components (y_pos + y_neg).
+  -- By the triangle inequality, |y_pos - y_neg| <= y_pos + y_neg for any nonnegative components.
+  -- This makes the signed objective always less than or equal to the augmented positive objective.
   sorry
 
 /--
@@ -222,6 +243,10 @@ lemma lasso_split_objective_eq_iff_complementary
     lassoObjective M r lambda μ (splitDifference y) =
         positiveLassoObjective (augmentedMatrix M) (augmentedVector r) lambda μ y ↔
       SplitComplementary y := by
+  -- Proof sketch (Section 5.1.1, Lemma 5.1(1)):
+  -- Equality in the triangle inequality |y_pos - y_neg| <= y_pos + y_neg holds if and only if
+  -- y_pos and y_neg have disjoint support. Since they are nonnegative, this is equivalent
+  -- to the complementarity condition y_pos * y_neg = 0 for all coordinates.
   sorry
 
 /--
@@ -236,6 +261,10 @@ lemma lasso_objective_reduction
       lassoObjective M r lambda μ x =
         positiveLassoObjective (augmentedMatrix M) (augmentedVector r) lambda μ
           (signedCanonicalSplit x) := by
+  -- Proof sketch (Section 5.1.1):
+  -- The canonical split decomposes x into x_+ and x_-, which are nonnegative by definition.
+  -- Since they are defined via max(x, 0) and max(-x, 0), they are complementary (x_+ * x_- = 0).
+  -- By `lasso_split_objective_eq_iff_complementary`, the objectives are therefore equal.
   sorry
 
 /--
@@ -250,6 +279,11 @@ lemma lasso_minimizer_to_augmented_positive_minimizer
     (hx : IsLassoMinimizer M r lambda μ x) :
     IsPositiveLassoMinimizer (augmentedMatrix M) (augmentedVector r) lambda μ
       (signedCanonicalSplit x) := by
+  -- Proof sketch (Section 5.1.1, Lemma 5.1(2)):
+  -- If x minimizes the signed lasso objective, its canonical split minimizes the augmented
+  -- positive objective. Any other positive split y can be mapped to a signed vector y_pos - y_neg,
+  -- whose signed objective is ≤ the positive objective of y. Since x is the global minimum,
+  -- the canonical split of x must achieve the absolute minimum of the augmented problem.
   sorry
 
 /--
@@ -262,6 +296,9 @@ lemma lasso_min_eq_augmented_pos_lasso_min
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) :
     lassoMin M r lambda μ =
       posLassoMin (augmentedMatrix M) (augmentedVector r) lambda μ := by
+  -- Proof sketch (Section 5.1.1, Lemma 5.1(3)):
+  -- Follows directly from `lasso_minimizer_to_augmented_positive_minimizer` and
+  -- `lasso_objective_reduction`. The minimum values of both problems coincide.
   sorry
 
 /-- Initial positive weights associated to signed initialization vectors. -/
@@ -291,6 +328,10 @@ lemma signed_effective_eq_split_positive_effective
     (state : WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) :
     effectiveParameter (fun _ => state) 0 =
       splitDifference (coordinateSquare (signedToPositiveWeights state)) := by
+  -- Proof sketch (Section 5.1.2):
+  -- Algebraic identity: p_pos = (u+v)/2 and p_neg = (u-v)/2.
+  -- Therefore, p_pos^2 - p_neg^2 = ((u+v)^2 - (u-v)^2) / 4 = 4uv / 4 = uv.
+  -- This exactly matches the effective parameter `u ∘ v`.
   sorry
 
 /--
@@ -304,6 +345,9 @@ lemma signed_average_eq_split_positive_average
       splitDifference
         (posAverageTrajectory
           (fun τ => signedToPositiveWeights (w (2 * τ))) ((1 / 2 : ℝ) * t)) := by
+  -- Proof sketch (Section 5.2):
+  -- This follows from integrating the pointwise identity `signed_effective_eq_split_positive_effective`
+  -- over time. The time scaling factor of 2 accounts for the chain rule in the squared parameterization.
   sorry
 
 /--
@@ -320,6 +364,10 @@ lemma dln_dynamics_reduction
       posDlnGradientFlow (augmentedMatrix M) (augmentedVector r) lambda ε
         (signedToPositiveInitialization β γ)
         (fun τ => signedToPositiveWeights ((w ε) (2 * τ))) := by
+  -- Proof sketch (Section 5.1.2):
+  -- By differentiating the positive and negative parts of the canonical split, the dynamics
+  -- of u and v completely decouple into the standard u ∘ u positive dynamics on the
+  -- augmented (doubled) dimension system.
   sorry
 
 /--
@@ -332,6 +380,10 @@ lemma signed_initialization_nondegenerate_iff
     (β γ : EuclideanSpace ℝ ι) :
     NonzeroCoordinates (signedToPositiveInitialization β γ) ↔
       ∀ i, β i ≠ γ i ∧ β i ≠ -γ i := by
+  -- Proof sketch (Section 5.2):
+  -- The augmented initialization is (u+v)/2 and (u-v)/2.
+  -- These components are non-zero if and only if (u+v) ≠ 0 and (u-v) ≠ 0.
+  -- This is equivalent to u ≠ -v and u ≠ v.
   sorry
 
 /--
