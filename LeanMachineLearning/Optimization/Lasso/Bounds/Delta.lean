@@ -272,8 +272,6 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
       ext x i; simp [coordinateSquare, euclideanOf, e]
     rw [h_eq]
     exact e.continuous.comp h_sq
-  have h_cont_x : Continuous (posEffectiveParameter u_eps) :=
-    h_cont_coordSquare.comp h_cont_u
   -- FTC: derivative of `posIntegratedTrajectory` is `posEffectiveParameter`
   have h_z_deriv : HasDerivAt (posIntegratedTrajectory u_eps)
       (posEffectiveParameter u_eps t_ετ) t_ετ := by
@@ -287,7 +285,7 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
       apply hasDerivAt_pi.mpr
       intro i
       have hcont_i : Continuous (fun v : ℝ => posEffectiveParameter u_eps v i) :=
-        (h_proj_cont i).comp h_cont_x
+        (h_proj_cont i).comp (h_cont_coordSquare.comp h_cont_u)
       exact intervalIntegral.integral_hasDerivAt_right
         (hcont_i.intervalIntegrable 0 t_ετ)
         (hcont_i.stronglyMeasurableAtFilter _ _)
@@ -304,11 +302,6 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
       ((posIntegratedTrajectory u_eps) ∘ (fun ρ => posTimeFromRescaled ε ρ))
       ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) τ :=
     h_z_deriv.scomp τ h_time_deriv
-  -- posIntegratedTrajectoryRescaled = c • (posIntegratedTrajectory ∘ posTimeFromRescaled)
-  have h_rescaled_eq : (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) =
-      fun ρ => c • ((posIntegratedTrajectory u_eps) (posTimeFromRescaled ε ρ)) := by
-    ext ρ; dsimp [posIntegratedTrajectoryRescaled, c]
-  rw [h_rescaled_eq]
   have h_smul : HasDerivAt
       (fun ρ => c • ((posIntegratedTrajectory u_eps) (posTimeFromRescaled ε ρ)))
       (c • ((Real.log (1 / ε) / 4) •
@@ -322,7 +315,7 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
       posEffectiveParameter u_eps t_ετ := by
     rw [smul_smul, h_factor, one_smul]
   rw [h_target] at h_smul
-  simpa [ht_ετ_def] using h_smul
+  simpa [posIntegratedTrajectoryRescaled, c, ht_ετ_def] using h_smul
 
 lemma pos_delta_bound_1
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -466,25 +459,16 @@ lemma pos_delta_bound_2
         - inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
           (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones)
         ≤ 0 := by
-  -- For sufficiently small ε, log(1/ε) > 0, so the derivative is well-behaved
-  have h_mem : Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) := by
+  filter_upwards [by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1/2, by norm_num, fun x hx => hx⟩
-  filter_upwards [h_mem] with ε hε
-  rcases hε with ⟨hε_pos, hε_lt_half⟩
-  have hε_lt_one : ε < 1 := by linarith
-  have h_log_pos : 0 < Real.log (1 / ε) :=
-    Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
-  have h_log_ne_zero : Real.log (1 / ε) ≠ 0 := ne_of_gt h_log_pos
-  have hu_eps : posDlnGradientFlow M r lambda ε β (u ε) := hu ε hε_pos
+    exact ⟨1/2, by norm_num, fun x hx => hx⟩] with ε hε
+  rcases hε with ⟨hε_pos, _⟩
+  have h_log_ne_zero : Real.log (1 / ε) ≠ 0 :=
+    ne_of_gt (Real.log_pos (one_lt_one_div hε_pos (by linarith)))
   intro τ hτ
-  rcases hτ with ⟨hτ0, hτs⟩
-  -- The derivative of the integrated trajectory equals the effective parameter
-  have h_hasDeriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
-      (posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)) τ :=
-    posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
-      hu_eps.cont_diff.continuous h_log_ne_zero
-  rw [h_hasDeriv.deriv]
+  rcases hτ with ⟨hτ0, _⟩
+  rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
+    (hu ε hε_pos).cont_diff.continuous h_log_ne_zero).deriv]
   set x := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)
   have hx_nonneg : Nonnegative x :=
     posEffectiveParameter_nonnegative (u ε) (posTimeFromRescaled ε τ)
@@ -494,44 +478,22 @@ lemma pos_delta_bound_2
   by_cases hτ_zero : τ = 0
   · -- Case τ = 0: the vector simplifies to ones
     subst τ
-    have h_vec_eq : matVec M (scaledPrimalPath x_lasso 0) - (0 : ℝ) • r +
-        (1 + (0 : ℝ) * lambda) • ones = ones := by
-      simp [scaledPrimalPath, ones, matVec, euclideanOf]
-    rw [h_vec_eq]
-    have h_ones_nonneg : Nonnegative (ones (ι := ι)) := by
-      intro i; simp [ones, euclideanOf]
-    have h_inner_nonneg : 0 ≤ inner ℝ x ones :=
-      inner_nonneg_of_nonneg x ones hx_nonneg h_ones_nonneg
-    linarith
+    rw [show matVec M (scaledPrimalPath x_lasso 0) - (0 : ℝ) • r +
+        (1 + (0 : ℝ) * lambda) • ones = ones by
+      simp [scaledPrimalPath, ones, matVec, euclideanOf]]
+    linarith [inner_nonneg_of_nonneg x ones hx_nonneg
+      (by intro i; simp [ones, euclideanOf])]
   · -- Case τ > 0: use LCP conditions to get nonnegativity of the dual variable
     have hτ_pos : 0 < τ := by
       by_contra! h
       exact hτ_zero (le_antisymm h hτ0)
-    -- From the positive lasso minimizer, get the LCP dual variable v
-    have h_min := hx_lasso τ hτ_pos
-    have hM_symm : M.IsSymm := hdata.psd.symm
-    have hM_psd : IsPositiveSemidefinite M := hdata.psd
-    rcases (pos_lasso_is_lcp M r lambda τ (x_lasso τ) hM_symm hM_psd).mp h_min with
+    rcases (pos_lasso_is_lcp M r lambda τ (x_lasso τ) hdata.psd.symm hdata.psd).mp
+      (hx_lasso τ hτ_pos) with
       ⟨v, hv_eq, hv_nonneg, hx_lasso_nonneg, hvx_zero⟩
-    -- Scale to obtain the parametric LCP dual variable w = τ v
-    set w := τ • v with hw_def
-    have hw_nonneg : Nonnegative w := by
-      intro i
-      have h_smul_i : (τ • v) i = τ * (v i) := by simp
-      rw [h_smul_i]
-      exact mul_nonneg (by linarith) (hv_nonneg i)
-    -- Show that w equals the vector we need
-    have hw_eq_target : w = matVec M (scaledPrimalPath x_lasso τ) - τ • r +
-        (1 + τ * lambda) • ones := by
-      rw [hw_def]
-      exact lcp_dual_scale_eq_target M r lambda τ hτ_pos.ne.symm x_lasso v hv_eq
-    -- Now -⟨x, w⟩ ≤ 0 follows from x ≥ 0 and w ≥ 0
-    have h_inner_w_nonneg : 0 ≤ inner ℝ x w :=
-      inner_nonneg_of_nonneg x w hx_nonneg hw_nonneg
-    have h_inner_target_nonneg : 0 ≤ inner ℝ x
-        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) := by
-      rw [← hw_eq_target]
-      exact h_inner_w_nonneg
+    have h_nonneg : 0 ≤ inner ℝ x (τ • v) :=
+      inner_nonneg_of_nonneg x (τ • v) hx_nonneg
+        (by intro i; simp; exact mul_nonneg (by linarith) (hv_nonneg i))
+    rw [lcp_dual_scale_eq_target M r lambda τ hτ_pos.ne.symm x_lasso v hv_eq] at h_nonneg
     linarith
 
 /--
