@@ -303,13 +303,9 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
         posEffectiveParameter u_eps t_ετ)) τ :=
     (h_z_deriv.scomp τ h_time_deriv).const_smul c
   -- The scaling factors cancel: c * (log(1/ε)/4) = 1
-  have h_factor : c * (Real.log (1 / ε) / 4) = 1 := by
-    dsimp [c]
-    field_simp [h_log_ne_zero]
-  have h_target : c • ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) =
-      posEffectiveParameter u_eps t_ετ := by
-    rw [smul_smul, h_factor, one_smul]
-  rw [h_target] at h_smul
+  rw [show c • ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) =
+      posEffectiveParameter u_eps t_ετ by
+    rw [smul_smul]; dsimp [c]; field_simp [h_log_ne_zero]; simp] at h_smul
   simpa [posIntegratedTrajectoryRescaled, c, ht_ετ_def] using h_smul
 
 lemma pos_delta_bound_1
@@ -323,45 +319,28 @@ lemma pos_delta_bound_1
         inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
           (posRescaledMirrorVariable ε (u ε) τ)
         ≤ C / Real.log (1 / ε) := by
-  set d := Fintype.card ι
-  set C := max 1 (d : ℝ)
+  set C := max 1 (Fintype.card ι : ℝ)
   refine ⟨C, lt_max_of_lt_left (by norm_num), ?_⟩
   -- Restrict to ε ∈ (0, 1/2), where log(1/ε) > 0
-  have h_mem : Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) := by
+  filter_upwards [by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1/2, by norm_num, fun x hx => hx⟩
-  filter_upwards [h_mem] with ε hε
+    exact ⟨1/2, by norm_num, fun x hx => hx⟩] with ε hε
   rcases hε with ⟨hε_pos, hε_lt_half⟩
-  have hε_lt_one : ε < 1 := by linarith
   have h_log_pos : 0 < Real.log (1 / ε) :=
-    Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
-  have h_log_ne_zero : Real.log (1 / ε) ≠ 0 := ne_of_gt h_log_pos
-  have hu_eps : posDlnGradientFlow M r lambda ε β (u ε) := hu ε hε_pos
+    Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
   intro τ hτ
-  -- Key: prove `HasDerivAt` for the rescaled integrated trajectory.
-  -- The derivative equals `posEffectiveParameter` because the rescaling factors cancel.
-  have h_hasDeriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
-      (posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)) τ :=
-    posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
-      hu_eps.cont_diff.continuous h_log_ne_zero
-  -- Now rewrite `deriv` using the hasDeriv lemma
-  rw [h_hasDeriv.deriv]
+  rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
+    (hu ε hε_pos).cont_diff.continuous (ne_of_gt h_log_pos)).deriv]
   set x := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)
   have hx_nonneg : ∀ i, 0 ≤ x i :=
     posEffectiveParameter_nonnegative (u ε) (posTimeFromRescaled ε τ)
   -- Expand the inner product: ⟨x, w⟩ where w_i = -log(x_i)/log(1/ε)
   have h_inner_eq : inner ℝ x (posRescaledMirrorVariable ε (u ε) τ) =
       (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by
-    -- Use `PiLp.inner_apply` to expand the inner product into a sum
     rw [PiLp.inner_apply]
     simp_rw [Real.inner_apply]
-    -- Now goal: ∑ i, x i * (posRescaledMirrorVariable ε (u ε) τ) i =
-    --   (1 / log(1/ε)) * ∑ i, -(x i) * log (x i)
-    have h_w (i : ι) : (posRescaledMirrorVariable ε (u ε) τ) i =
-        -Real.log (x i) / Real.log (1 / ε) := rfl
-    simp_rw [h_w]
-    -- Now: ∑ i, x i * (-Real.log (x i) / Real.log (1 / ε)) =
-    --   (1/log(1/ε)) * ∑ i, -(x i) * Real.log (x i)
+    simp_rw [show ∀ i, (posRescaledMirrorVariable ε (u ε) τ) i =
+      -Real.log (x i) / Real.log (1 / ε) from fun _ => rfl]
     calc
       ∑ i : ι, x i * (-Real.log (x i) / Real.log (1 / ε)) =
           ∑ i : ι, (-(x i) * Real.log (x i)) / Real.log (1 / ε) := by
@@ -370,17 +349,11 @@ lemma pos_delta_bound_1
       _ = (∑ i : ι, (-(x i) * Real.log (x i))) / Real.log (1 / ε) := by rw [Finset.sum_div]
       _ = (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by ring
   rw [h_inner_eq]
-  -- Bound each term: -x_i * log(x_i) ≤ 1 for x_i ≥ 0
-  -- Proof: f(t) = -t log t has maximum 1/e at t = 1/e, and 1/e ≤ 1.
-  -- We use: for t > 0, log(1/t) ≤ 1/t - 1  →  -log t ≤ 1/t - 1  →  -t log t ≤ 1 - t ≤ 1.
-  have h_each (i : ι) : -(x i) * Real.log (x i) ≤ 1 :=
-    neg_mul_log_le_one (x i) (hx_nonneg i)
-  -- Sum the per-coordinate bounds
   have h_sum_bound : (∑ i : ι, (-(x i) * Real.log (x i))) ≤ C := by
     calc
       (∑ i : ι, (-(x i) * Real.log (x i))) ≤ (∑ i : ι, (1 : ℝ)) :=
-        Finset.sum_le_sum (fun i _ => h_each i)
-      _ = (d : ℝ) := by simp [d]
+        Finset.sum_le_sum (fun i _ => neg_mul_log_le_one (x i) (hx_nonneg i))
+      _ = (Fintype.card ι : ℝ) := by simp
       _ ≤ C := by simp [C]
   -- Final: divide by log(1/ε) > 0
   rw [div_eq_mul_inv, div_eq_mul_inv]
@@ -394,9 +367,8 @@ lemma pos_delta_bound_1
 -- Inner product of two nonnegative vectors is nonnegative.
 private lemma inner_nonneg_of_nonneg (x w : EuclideanSpace ℝ ι)
     (hx : Nonnegative x) (hw : Nonnegative w) : 0 ≤ inner ℝ x w := by
-  rw [PiLp.inner_apply]
-  simp_rw [Real.inner_apply]
-  refine Finset.sum_nonneg (fun i _ => mul_nonneg (hx i) (hw i))
+  rw [PiLp.inner_apply]; simp_rw [Real.inner_apply]
+  exact Finset.sum_nonneg (fun i _ => mul_nonneg (hx i) (hw i))
 
 -- Given the LCP dual variable v, scaling by τ gives the target expression.
 -- Uses the relation parametricLcpQ r lambda τ = (-τ) • r + (1 + τ * lambda) • ones.
@@ -412,18 +384,9 @@ private lemma lcp_dual_scale_eq_target
     _ = τ • lcpQ r lambda τ + τ • matVec M (x_lasso τ) := by rw [smul_add]
     _ = τ • lcpQ r lambda τ + matVec M (τ • (x_lasso τ)) := by rw [matVec_smul_eq]
     _ = parametricLcpQ r lambda τ + matVec M (scaledPrimalPath x_lasso τ) := by
-      have h_lcpQ_smul : τ • lcpQ r lambda τ = parametricLcpQ r lambda τ := by
-        ext i
-        simp [lcpQ, parametricLcpQ, euclideanOf]
-        field_simp [hτ_ne]
-        ring
-      rw [h_lcpQ_smul, scaledPrimalPath]
+      ext i; simp [lcpQ, parametricLcpQ, scaledPrimalPath, euclideanOf]; field_simp [hτ_ne]; ring
     _ = ((-τ) • r + (1 + τ * lambda) • ones) + matVec M (scaledPrimalPath x_lasso τ) := by
-      have h_para_expand : parametricLcpQ r lambda τ = (-τ) • r + (1 + τ * lambda) • ones := by
-        ext i
-        simp [parametricLcpQ, ones, euclideanOf]
-        ring
-      rw [h_para_expand]
+      ext i; simp [parametricLcpQ, ones, euclideanOf]; ring
     _ = matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones := by
       simp [add_comm, add_left_comm, sub_eq_add_neg]
 
@@ -458,12 +421,11 @@ lemma pos_delta_bound_2
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1/2, by norm_num, fun x hx => hx⟩] with ε hε
   rcases hε with ⟨hε_pos, _⟩
-  have h_log_ne_zero : Real.log (1 / ε) ≠ 0 :=
-    ne_of_gt (Real.log_pos (one_lt_one_div hε_pos (by linarith)))
   intro τ hτ
   rcases hτ with ⟨hτ0, _⟩
   rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
-    (hu ε hε_pos).cont_diff.continuous h_log_ne_zero).deriv]
+    (hu ε hε_pos).cont_diff.continuous
+    (ne_of_gt (Real.log_pos (one_lt_one_div hε_pos (by linarith))))).deriv]
   set x := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)
   have hx_nonneg : Nonnegative x :=
     posEffectiveParameter_nonnegative (u ε) (posTimeFromRescaled ε τ)
@@ -479,18 +441,13 @@ lemma pos_delta_bound_2
     linarith [inner_nonneg_of_nonneg x ones hx_nonneg
       (by intro i; simp [ones, euclideanOf])]
   · -- Case τ > 0: use LCP conditions to get nonnegativity of the dual variable
-    have hτ_pos : 0 < τ := by
-      by_contra! h
-      exact hτ_zero (le_antisymm h hτ0)
+    have hτ_pos : 0 < τ := lt_of_le_of_ne hτ0 (Ne.symm hτ_zero)
     rcases (pos_lasso_is_lcp M r lambda τ (x_lasso τ) hdata.psd.symm hdata.psd).mp
       (hx_lasso τ hτ_pos) with
       ⟨v, hv_eq, hv_nonneg, hx_lasso_nonneg, hvx_zero⟩
     have h_nonneg : 0 ≤ inner ℝ x (τ • v) :=
       inner_nonneg_of_nonneg x (τ • v) hx_nonneg
-        (by
-          intro i
-          simp only [PiLp.smul_apply, smul_eq_mul]
-          exact mul_nonneg (by linarith) (hv_nonneg i))
+        (fun i => by simpa [PiLp.smul_apply] using mul_nonneg (by linarith) (hv_nonneg i))
     rw [lcp_dual_scale_eq_target M r lambda τ hτ_pos.ne.symm x_lasso v hv_eq] at h_nonneg
     linarith
 
@@ -519,10 +476,8 @@ Bounds the cross term $-<\dot{z}, w^\varepsilon>$ using trajectory variations.
 -- This uses the identity a = max(0,a) - max(0,-a) for each coordinate.
 private lemma inner_decomp_pos_neg {ι : Type*} [Fintype ι] (x y : EuclideanSpace ℝ ι) :
     -inner ℝ x y = -(∑ i, max 0 (x i) * y i) + (∑ i, max 0 (-(x i)) * y i) := by
-  have h_inner_eq : inner ℝ x y = ∑ i : ι, x i * y i := by
-    rw [PiLp.inner_apply]
-    simp_rw [Real.inner_apply]
-  rw [h_inner_eq]
+  rw [PiLp.inner_apply]
+  simp_rw [Real.inner_apply]
   have h_sum_eq : (∑ i : ι, x i * y i) =
       (∑ i : ι, max 0 (x i) * y i) - (∑ i : ι, max 0 (-(x i)) * y i) := by
     calc
@@ -530,18 +485,11 @@ private lemma inner_decomp_pos_neg {ι : Type*} [Fintype ι] (x y : EuclideanSpa
         refine Finset.sum_congr rfl (fun i _ => ?_)
         by_cases hpos : 0 ≤ x i
         · have hmax1 : max 0 (x i) = x i := max_eq_right hpos
-          have hmax2 : max 0 (-(x i)) = 0 :=
-            max_eq_left (by linarith : -(x i) ≤ 0)
-          calc
-            x i * y i = (x i - 0) * y i := by ring
-            _ = (max 0 (x i) - max 0 (-(x i))) * y i := by rw [hmax1, hmax2]
-        · have hneg' : x i ≤ 0 := by linarith
-          have hmax1 : max 0 (x i) = 0 := max_eq_left hneg'
-          have hmax2 : max 0 (-(x i)) = -(x i) :=
-            max_eq_right (by linarith : 0 ≤ -(x i))
-          calc
-            x i * y i = (0 - (-(x i))) * y i := by ring
-            _ = (max 0 (x i) - max 0 (-(x i))) * y i := by rw [hmax1, hmax2]
+          have hmax2 : max 0 (-(x i)) = 0 := max_eq_left (by linarith)
+          simp [hmax1, hmax2]
+        · have hmax1 : max 0 (x i) = 0 := max_eq_left (by linarith)
+          have hmax2 : max 0 (-(x i)) = -(x i) := max_eq_right (by linarith)
+          simp [hmax1, hmax2]
       _ = (∑ i : ι, (max 0 (x i) * y i - max 0 (-(x i)) * y i)) := by
         refine Finset.sum_congr rfl (fun i _ => ?_)
         ring
@@ -689,7 +637,6 @@ lemma pos_delta_bound_3
   --   max(0, -ż_i) * w_i ≤ max(0, -ż_i) * C_w * (1+τ)
   have h_bound_pos : -(∑ i, max 0 (ż i) * w i) ≤
       (C_low / Real.log (1 / ε)) * (∑ i, max 0 (ż i)) := by
-    have h_nonneg_log : 0 ≤ Real.log (1 / ε) := le_of_lt h_log_pos
     calc
       -(∑ i, max 0 (ż i) * w i) = ∑ i, (-(max 0 (ż i)) * w i) := by
         simp [Finset.sum_neg_distrib]
@@ -698,14 +645,10 @@ lemma pos_delta_bound_3
         by_cases hż : 0 ≤ ż i
         · have hmax : max 0 (ż i) = ż i := max_eq_right hż
           rw [hmax]
-          -- Use the .ofLp form from hW_low_ε, relate to w i via dsimp
-          have hw_bound := hW_low_ε τ ⟨hτ0, hτs⟩ i
-          have hw_bound' : -C_low / Real.log (1 / ε) ≤ w i := by
-            simpa [w] using hw_bound
-          -- hw_bound': -C_low / L ≤ w i
-          -- Apply neg_le_neg: -(w i) ≤ -(-C_low / L) = C_low / L
+          have hw_low : -C_low / Real.log (1 / ε) ≤ w i := by
+            simpa [w] using hW_low_ε τ ⟨hτ0, hτs⟩ i
           have hneg_w : -w i ≤ C_low / Real.log (1 / ε) := by
-            simpa [neg_div] using neg_le_neg hw_bound'
+            simpa [neg_div] using neg_le_neg hw_low
           calc
             -(ż i) * w i = ż i * (-w i) := by ring
             _ ≤ ż i * (C_low / Real.log (1 / ε)) :=
@@ -722,12 +665,8 @@ lemma pos_delta_bound_3
       (∑ i, max 0 (-ż i) * w i) ≤ (∑ i, max 0 (-ż i) * (C_w * (1 + τ))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         have hw_bound := hW_ε τ ⟨hτ0, hτs⟩ i
-        -- hw_bound: |(posRescaledMirrorVariable ...).ofLp i| ≤ C_w * (1 + τ)
-        -- Relate to w i
-        have hw_bound' : |w i| ≤ C_w * (1 + τ) := by
-          simpa [w] using hw_bound
-        -- abs_le.mp gives: -C_w*(1+τ) ≤ w i ∧ w i ≤ C_w*(1+τ)
-        have hw_le : w i ≤ C_w * (1 + τ) := (abs_le.mp hw_bound').2
+        have hw_le : w i ≤ C_w * (1 + τ) :=
+          (abs_le.mp (by simpa [w] using hw_bound)).2
         have h_nonneg : 0 ≤ max 0 (-ż i) := le_max_left _ _
         exact mul_le_mul_of_nonneg_left hw_le h_nonneg
       _ = C_w * (∑ i, (1 + τ) * max 0 (-ż i)) := by
@@ -908,19 +847,10 @@ lemma pathDelta_zero (M : Matrix ι ι ℝ) (ε : ℝ) (u : ℝ → EuclideanSpa
       (scaledPrimalPath x_lasso) 0 = 0 := by
   have ht0 : posTimeFromRescaled ε 0 = 0 := by
     dsimp [posTimeFromRescaled]; ring
-  have hz_integral : posIntegratedTrajectory u 0 = 0 := by
-    ext i
-    dsimp [posIntegratedTrajectory, euclideanOf]
-    simp
-  have hzε : posIntegratedTrajectoryRescaled ε u 0 = 0 := by
-    dsimp [posIntegratedTrajectoryRescaled]
-    rw [ht0, hz_integral, smul_zero]
-  have hz : scaledPrimalPath x_lasso 0 = 0 := by
-    dsimp [scaledPrimalPath]
-    simp
-  dsimp [pathDelta, matrixSeminormSq]
-  rw [hzε, hz, sub_self]
-  simp [matVec, euclideanOf]
+  have hz_int : posIntegratedTrajectory u 0 = 0 := by
+    ext i; simp [posIntegratedTrajectory, euclideanOf]
+  simp [pathDelta, matrixSeminormSq, posIntegratedTrajectoryRescaled, scaledPrimalPath,
+    ht0, hz_int, matVec, euclideanOf]
 
 /--
 The bounding function quantities at `τ = 0` are `0`.
@@ -929,11 +859,7 @@ starting from `0`, so they evaluate to `0` at `τ = 0`.
 -/
 lemma z_upward_downward_zero (x_lasso : ℝ → EuclideanSpace ℝ ι) :
     positiveZUpward x_lasso 0 = 0 ∧ positiveZDownward x_lasso 0 = 0 := by
-  constructor
-  · dsimp [positiveZUpward]
-    simp
-  · dsimp [positiveZDownward]
-    simp
+  simp [positiveZUpward, positiveZDownward]
 
 /--
 An integration step using the Mean Value Theorem.
@@ -948,34 +874,21 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
     (hG_diff : DifferentiableOn ℝ G (Set.Ioo 0 s)) :
     F s ≤ G s := by
   set H := G - F
-  have hH_cont : ContinuousOn H (Set.Icc (0 : ℝ) s) :=
-    hG_cont.sub hF_cont
-  have hH_diff_ioo : DifferentiableOn ℝ H (Set.Ioo (0 : ℝ) s) :=
-    hG_diff.sub hF_diff
-  have h_conv : Convex ℝ (Set.Icc (0 : ℝ) s) := convex_Icc _ _
-  have ho : IsOpen (Set.Ioo (0 : ℝ) s) := isOpen_Ioo
   have hH_deriv_nonneg_ioo : ∀ x ∈ Set.Ioo (0 : ℝ) s, 0 ≤ deriv H x := by
     intro x hx
-    have hx' : x ∈ Set.Icc (0 : ℝ) s := Set.Ioo_subset_Icc_self hx
-    have h_ineq := h_deriv x hx'
-    have hF_at : DifferentiableAt ℝ F x := hF_diff.differentiableAt (ho.mem_nhds hx)
-    have hG_at : DifferentiableAt ℝ G x := hG_diff.differentiableAt (ho.mem_nhds hx)
-    have h_deriv_sub : deriv H x = deriv G x - deriv F x :=
-      deriv_sub hG_at hF_at
-    rw [h_deriv_sub]
-    linarith
+    have hF_at : DifferentiableAt ℝ F x := hF_diff.differentiableAt (isOpen_Ioo.mem_nhds hx)
+    have hG_at : DifferentiableAt ℝ G x := hG_diff.differentiableAt (isOpen_Ioo.mem_nhds hx)
+    rw [deriv_sub hG_at hF_at]
+    linarith [h_deriv x (Set.Ioo_subset_Icc_self hx)]
   have hH_mono : MonotoneOn H (Set.Icc (0 : ℝ) s) :=
-    monotoneOn_of_deriv_nonneg h_conv hH_cont
-      (by simpa [interior_Icc] using hH_diff_ioo)
+    monotoneOn_of_deriv_nonneg (convex_Icc _ _) (hG_cont.sub hF_cont)
+      (by simpa [interior_Icc] using hG_diff.sub hF_diff)
       (by simpa [interior_Icc] using hH_deriv_nonneg_ioo)
-  have h0_mem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) s := ⟨le_refl 0, hs⟩
-  have hs_mem : s ∈ Set.Icc (0 : ℝ) s := ⟨hs, le_refl s⟩
   have hH0 : H 0 = 0 := by
-    dsimp [H]
-    rw [hF0, hG0, sub_self]
-  have h_ineq_final : H 0 ≤ H s := hH_mono h0_mem hs_mem hs
-  rw [hH0] at h_ineq_final
-  dsimp [H] at h_ineq_final
+    dsimp [H]; rw [hF0, hG0, sub_self]
+  have h_ineq : H 0 ≤ H s := hH_mono ⟨le_refl 0, hs⟩ ⟨hs, le_refl s⟩ hs
+  rw [hH0] at h_ineq
+  dsimp [H] at h_ineq
   linarith
 
 /--

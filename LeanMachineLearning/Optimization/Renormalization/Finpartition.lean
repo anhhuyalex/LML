@@ -302,6 +302,7 @@ lemma parts_mapEquiv_copy [DecidableEq β] (e : α ≃ β) {s s' : Finset α}
   subst h
   rfl
 
+/-- Reindexing a finite partition along `e` as an equivalence of partition types. -/
 def mapEquivEquiv [DecidableEq β] (e : α ≃ β) (s : Finset α) :
     Finpartition s ≃ Finpartition (s.map e.toEmbedding) where
   toFun P := mapEquiv e P

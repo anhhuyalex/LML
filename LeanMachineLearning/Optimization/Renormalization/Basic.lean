@@ -34,7 +34,7 @@ namespace Renormalization
 variable {Ω ι κ : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-- The moment of the observables indexed by a finite block `B`. -/
-def blockMoment [DecidableEq ι] (μ : Measure Ω) (X : ι → Ω → ℝ) (B : Finset ι) : ℝ :=
+def blockMoment (μ : Measure Ω) (X : ι → Ω → ℝ) (B : Finset ι) : ℝ :=
   ∫ ω, ∏ i ∈ B, X i ω ∂μ
 
 /-- The joint moment of a family indexed by a finite type. -/
@@ -43,7 +43,7 @@ def jointMoment [Fintype ι] [DecidableEq ι] (μ : Measure Ω) (X : ι → Ω �
 
 /-- All finite products drawn from `X` are integrable.  This is the reusable hypothesis for
 multilinearity and independence arguments. -/
-def HasFiniteJointMoments [DecidableEq ι] (μ : Measure Ω) (X : ι → Ω → ℝ) : Prop :=
+def HasFiniteJointMoments (μ : Measure Ω) (X : ι → Ω → ℝ) : Prop :=
   ∀ B : Finset ι, Integrable (fun ω ↦ ∏ i ∈ B, X i ω) μ
 
 /-- The centered version of a real-valued observable. -/

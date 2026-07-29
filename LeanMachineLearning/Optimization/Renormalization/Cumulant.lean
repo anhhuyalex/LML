@@ -52,7 +52,7 @@ def jointCumulant [Fintype ι] [DecidableEq ι] (μ : Measure Ω) (X : ι → Ω
 Informal proof: `jointCumulant` evaluates `cumulantTransform` on the empty set, where its defining
 convention is zero. -/
 @[simp]
-theorem jointCumulant_zero [IsProbabilityMeasure μ] (X : Fin 0 → Ω → ℝ) :
+theorem jointCumulant_zero (X : Fin 0 → Ω → ℝ) :
     jointCumulant μ X = 0 := by
   simp [jointCumulant, blockCumulant, Finpartition.cumulantTransform]
 
@@ -171,7 +171,7 @@ lemma blockProduct_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Non
 /-- The first cumulant is the expectation.
 
 Informal proof: the only partition of a singleton has one block, whose Möbius coefficient is one. -/
-theorem jointCumulant_one [IsProbabilityMeasure μ] (X : Fin 1 → Ω → ℝ) :
+theorem jointCumulant_one (X : Fin 1 → Ω → ℝ) :
     jointCumulant μ X = ∫ ω, X 0 ω ∂μ := by
   dsimp [jointCumulant, blockCumulant, Finpartition.cumulantTransform]
   have h_univ : (Finset.univ : Finset (Fin 1)) = {0} := rfl
@@ -217,7 +217,7 @@ lemma blockProduct_bot_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x �
 Informal proof: the two partitions of two positions are the indiscrete partition and the partition
 into singletons.  Their Möbius coefficients are `1` and `-1`; this can be obtained by specializing
 the generic partition transform rather than expanding later probability proofs. -/
-theorem jointCumulant_two [IsProbabilityMeasure μ] (X : Fin 2 → Ω → ℝ) :
+theorem jointCumulant_two (X : Fin 2 → Ω → ℝ) :
     jointCumulant μ X =
       (∫ ω, X 0 ω * X 1 ω ∂μ) - (∫ ω, X 0 ω ∂μ) * ∫ ω, X 1 ω ∂μ := by
   dsimp [jointCumulant, blockCumulant, Finpartition.cumulantTransform]
@@ -435,7 +435,7 @@ theorem jointCumulant_smul [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure �
   exact blockMoment_smul_update X i c s
 
 /-- Independence of the observables indexed by `A` from those indexed by its complement. -/
-def IndepAcross [Fintype ι] [DecidableEq ι] (μ : Measure Ω) (X : ι → Ω → ℝ)
+def IndepAcross (μ : Measure Ω) (X : ι → Ω → ℝ)
     (A : Finset ι) : Prop :=
   IndepFun (fun ω (i : A) ↦ X i.1 ω) (fun ω (i : {i : ι // i ∉ A}) ↦ X i.1 ω) μ
 

@@ -31,7 +31,9 @@ universe u v
 
 /-- Parameters of an affine map from coordinates `ι` to coordinates `κ`. -/
 structure DenseLayer (ι κ : Type*) where
+  /-- Matrix of affine weights, indexed by output and then input coordinates. -/
   weight : Matrix κ ι ℝ
+  /-- Additive bias at each output coordinate. -/
   bias : κ → ℝ
 
 /-- The raw product representation is useful for product measures and joint regularity statements.

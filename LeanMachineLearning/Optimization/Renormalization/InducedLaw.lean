@@ -38,7 +38,9 @@ variable {A : Type uA} {E S : Type uB} {ι : Type uX} {κ : Type uY}
 input. -/
 structure ParamModel (Θ : Type uΘ) (X : Type uX) (Y : Type uY)
     [MeasurableSpace Θ] [MeasurableSpace X] [MeasurableSpace Y] where
+  /-- Evaluate parameters `θ : Θ` at an input `x : X`. -/
   eval : Θ → X → Y
+  /-- Joint measurability of evaluation in the parameter and input variables. -/
   measurable_eval : Measurable fun p : Θ × X => eval p.1 p.2
 
 namespace ParamModel
@@ -77,7 +79,7 @@ instance instIsProbabilityMeasureOutputLaw (F : ParamModel Θ X Y) (D : A → X)
 Informal proof: unfold `outputLaw` and apply `MeasureTheory.integral_map` using
 `measurable_evalBatch`; the strong-measurability hypothesis is exactly the remaining premise.
 See <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html>. -/
-theorem integral_outputLaw [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+theorem integral_outputLaw [NormedAddCommGroup E] [NormedSpace ℝ E]
     (F : ParamModel Θ X Y) (D : A → X) (μ : Measure Θ) (G : (A → Y) → E)
     (hG : AEStronglyMeasurable G (F.outputLaw D μ)) :
     ∫ y, G y ∂F.outputLaw D μ = ∫ θ, G (F.evalBatch D θ) ∂μ := by
@@ -130,7 +132,7 @@ theorem charFun_dirac (s t : ℝ) :
 used throughout one evaluation. -/
 def randomMapKernel {Θ : Type uΘ} {X : Type uX} {Y : Type uY}
     [MeasurableSpace Θ] [MeasurableSpace X] [MeasurableSpace Y]
-    (ν : Measure Θ) [IsProbabilityMeasure ν] (F : Θ → X → Y)
+    (ν : Measure Θ) (F : Θ → X → Y)
     (_hF : Measurable fun p : Θ × X => F p.1 p.2) : Kernel X Y :=
   (Kernel.id ×ₖ Kernel.const X ν).map fun p : X × Θ => F p.2 p.1
 

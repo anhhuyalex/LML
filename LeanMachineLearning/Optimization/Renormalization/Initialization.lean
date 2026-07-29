@@ -30,7 +30,9 @@ universe u v
 
 /-- Bias and unscaled weight variances.  Nonnegativity is represented in the type. -/
 structure InitHyperparams where
+  /-- Variance shared by the independent bias coordinates. -/
   biasVariance : ℝ≥0
+  /-- Weight variance before division by the layer's fan-in. -/
   weightVariance : ℝ≥0
 
 /-- Fan-in-scaled variance of one weight coordinate. -/
