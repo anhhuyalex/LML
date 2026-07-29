@@ -1558,9 +1558,6 @@ lemma derivative_properties_of_lipschitz
       -- Formal proof: difference quotients lie in Im(M); Im(M) is a finite-dimensional
       -- subspace, hence closed; the limit (the derivative) stays in Im(M).
       have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
-      -- Right-hand difference quotients → derivative (using right limit, valid for μ ≥ 0)
-      have h_tendsto : Tendsto (fun t => t⁻¹ • (wt (μ + t) - wt μ)) (𝓝[>] 0) (𝓝 (deriv wt μ)) :=
-        h_hasDeriv.tendsto_slope_zero_right
       -- Build the subspace S = Im(M) as a linear subspace
       let L : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
         { toFun := matVec M
@@ -1568,50 +1565,52 @@ lemma derivative_properties_of_lipschitz
           map_smul' := matVec_smul_eq M }
       let S : Submodule ℝ (EuclideanSpace ℝ ι) := LinearMap.range L
       have hS_closed : IsClosed (S : Set (EuclideanSpace ℝ ι)) := S.closed_of_finiteDimensional
-      have hS_closed' : IsClosed (S : Set (EuclideanSpace ℝ ι)) := hS_closed
       -- Show that for all t > 0, the difference quotient is in S
+      -- Key: wt ν - ones = matVec M ((-(s ν)) • y + zt ν) for ν ≥ 0
+      have h_wt_sub_ones (ν : ℝ) (hν : 0 ≤ ν) : wt ν - ones = matVec M ((-(s ν)) • y + zt ν) := by
+        rw [h_scaled_eq ν hν, ← hy]
+        calc
+          -(s ν) • matVec M y + ones + matVec M (zt ν) - ones
+              = (-(s ν)) • matVec M y + matVec M (zt ν) := by abel
+          _ = matVec M ((-(s ν)) • y) + matVec M (zt ν) := by
+            rw [matVec_smul_eq M (-(s ν)) y]
+          _ = matVec M ((-(s ν)) • y + zt ν) := by rw [matVec_add M]
       have h_diff_quot_mem : ∀ t > 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
         intro t ht_pos
         have hμt_nonneg : 0 ≤ μ + t := by linarith
-        have h_eq_μ := h_scaled_eq μ hμ_nonneg
-        have h_eq_μt := h_scaled_eq (μ + t) hμt_nonneg
-        -- Expand wt difference using the scaled LCP equation
-        rw [h_eq_μt, h_eq_μ]
-        -- Now we have: t⁻¹ • ( (-s(μ+t)•r + ones + matVec M (zt (μ+t)))
-        --                    - (-s μ•r + ones + matVec M (zt μ)) )
-        -- Simplify by canceling the ones and factoring
-        have h_diff : (-(s (μ + t)) • r + ones + matVec M (zt (μ + t))) -
-                     (-(s μ) • r + ones + matVec M (zt μ)) =
-                     (-(s (μ + t) - s μ)) • r + matVec M (zt (μ + t) - zt μ) := by
-          simp [add_sub_add_left, sub_self, add_sub_add_right, smul_sub, sub_smul]
-        rw [h_diff]
-        -- Now: t⁻¹ • ((-(s (μ+t) - s μ)) • r + matVec M (zt (μ+t) - zt μ))
-        -- Use linearity: distribute t⁻¹
-        rw [smul_add, smul_smul]
-        -- = (-(t⁻¹ * (s (μ+t) - s μ))) • r + t⁻¹ • (matVec M (zt (μ+t) - zt μ))
-        -- The second term: t⁻¹ • matVec M (zt(μ+t) - zt μ) = matVec M (t⁻¹ • (zt(μ+t) - zt μ))
-        rw [← matVec_smul_eq M (t⁻¹) (zt (μ + t) - zt μ)]
-        -- The first term: (-(t⁻¹ * (s (μ+t) - s μ))) • r = matVec M ((-(t⁻¹ * (s (μ+t) - s μ))) • y)
-        rw [hy]
-        -- Now both terms are matVec M applied to something, sum them using matVec_add
-        rw [matVec_add M]
-        -- Show this is in the range of L, i.e., S
-        refine ⟨(-(t⁻¹ * (s (μ + t) - s μ))) • y + t⁻¹ • (zt (μ + t) - zt μ), ?_⟩
-        simp [L, matVec_add M, matVec_smul_eq M]
+        have h1 := h_wt_sub_ones (μ + t) hμt_nonneg
+        have h2 := h_wt_sub_ones μ hμ_nonneg
+        have h_diff_eq : wt (μ + t) - wt μ =
+            matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
+          calc
+            wt (μ + t) - wt μ = (wt (μ + t) - ones) - (wt μ - ones) := by abel
+            _ = matVec M ((-(s (μ + t))) • y + zt (μ + t)) -
+                matVec M ((-(s μ)) • y + zt μ) := by rw [h1, h2]
+            _ = matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
+              rw [matVec_sub M]
+        rw [h_diff_eq]
+        -- Goal: t⁻¹ • matVec M (stuff) ∈ S = range L where L = matVec M
+        -- Use: matVec M (t⁻¹ • stuff) = t⁻¹ • matVec M stuff (matVec_smul_eq)
+        refine ⟨t⁻¹ • (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)), ?_⟩
+        simp [L]
+      -- The derivative is the limit of the difference quotients (right side, t > 0).
+      have h_tendsto : Filter.Tendsto (fun t => t⁻¹ • (wt (μ + t) - wt μ))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (deriv wt μ)) := by
+        open scoped Topology in
+        simpa using h_hasDeriv.tendsto_slope_zero_right
       -- Eventually, difference quotients are in S
-      have h_eventually : ∀ᶠ t in 𝓝[>] 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
-        filter_upwards [eventually_gt_nhds (by norm_num : (0 : ℝ) > 0)] with t ht
-        -- Actually, `eventually_gt_nhds 0` gives `0 < t` eventually; but we have `∀ t>0, ...`
-        -- so we can use `eventually_of_forall` for the nhdsWithin filter
-        -- Let's use a simpler construction:
-        -- The filter 𝓝[>] 0 is generated by sets {t | t < ε} ∩ {t | t > 0}.
-        -- We can use `eventually_of_forall` restricted to the filter.
-        -- Actually, `h_diff_quot_mem t ht` works for all t>0, so it works eventually.
-        exact h_diff_quot_mem t ht
+      have h_eventually : ∀ᶠ t in nhdsWithin (0 : ℝ) (Set.Ioi 0),
+          t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
+        -- self_mem_nhdsWithin gives Ioi 0 ∈ 𝓝[>] 0
+        have h_mem : Set.Ioi (0 : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
+          self_mem_nhdsWithin
+        filter_upwards [h_mem] with t ht
+        -- ht : t ∈ Set.Ioi 0, i.e., t > 0
+        exact h_diff_quot_mem t (Set.mem_Ioi.mp ht)
       -- Since S is closed and the limit of difference quotients is deriv wt μ,
       -- we have deriv wt μ ∈ S.
       have h_mem_S : deriv wt μ ∈ (S : Set (EuclideanSpace ℝ ι)) :=
-        hS_closed'.mem_of_tendsto h_tendsto h_eventually
+        hS_closed.mem_of_tendsto h_tendsto h_eventually
       -- Convert membership in S to InMatrixSpan
       rcases h_mem_S with ⟨z, hz⟩
       refine ⟨z, ?_⟩
