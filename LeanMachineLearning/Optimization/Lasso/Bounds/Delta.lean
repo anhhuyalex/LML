@@ -248,7 +248,7 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
     HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ)
       (posEffectiveParameter u_eps (posTimeFromRescaled ε τ)) τ := by
   set c := (4 : ℝ) / Real.log (1 / ε)
-  set t_ετ := posTimeFromRescaled ε τ with ht_ετ_def
+  set t_ετ := posTimeFromRescaled ε τ
   -- Projection `x ↦ x i` is continuous on `EuclideanSpace`
   have h_proj_cont (i : ι) : Continuous (fun (x : EuclideanSpace ℝ ι) => x i) :=
     (continuous_apply i).comp
@@ -298,7 +298,7 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
   rw [show c • ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) =
       posEffectiveParameter u_eps t_ετ by
     rw [smul_smul]; dsimp [c]; field_simp [h_log_ne_zero]; simp] at h_smul
-  simpa [posIntegratedTrajectoryRescaled, c, ht_ετ_def] using h_smul
+  simpa [posIntegratedTrajectoryRescaled, c, t_ετ] using h_smul
 
 lemma pos_delta_bound_1
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -528,7 +528,7 @@ lemma pos_delta_bound_3
     obtain ⟨C, ε₀, hCpos, hε₀pos, hbound⟩ :=
       pos_trajectory_uniform_bound M r lambda β u hdata hβ hu hu_pos
     -- Shrink ε₀ to also be ≤ 1, so that log(1/ε) ≥ 0 for the rescaled time.
-    set ε₁ := min ε₀ 1 with hε₁_def
+    set ε₁ := min ε₀ 1
     have hε₁pos : 0 < ε₁ := lt_min hε₀pos one_pos
     -- The interval (0, ε₁) is in the right-neighborhood filter 𝓝[>] 0.
     have h_mem : Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) := by
@@ -602,7 +602,7 @@ lemma pos_delta_bound_3
     sorry
   rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
   -- Combine the constants
-  set C := max C_low C_w with hC_def
+  set C := max C_low C_w
   refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
   -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
   filter_upwards [hX_ev, hW_low_ev, hW_ev, by
@@ -611,53 +611,53 @@ lemma pos_delta_bound_3
   intro τ hτ
   rcases hτ with ⟨hτ0, hτs⟩
   -- Notation for the derivative and the dual variable
-  set ż := deriv (scaledPrimalPath x_lasso) τ with hż_def
-  set w := posRescaledMirrorVariable ε (u ε) τ with hw_def
+  set zDot := deriv (scaledPrimalPath x_lasso) τ
+  set w := posRescaledMirrorVariable ε (u ε) τ
   -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
   have h_log_pos : 0 < Real.log (1 / ε) := by
     rcases hε_one with ⟨hε_pos, hε_lt_one⟩
     have h_one_div_gt_one : 1 < 1 / ε := one_lt_one_div hε_pos hε_lt_one
     exact Real.log_pos h_one_div_gt_one
   -- Now bound each part using the bounds on w.
-  -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, ż_i) ≥ 0,
-  --   -(max(0, ż_i)) * w_i ≤ max(0, ż_i) * C_low / log(1/ε)
-  -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -ż_i) ≥ 0,
-  --   max(0, -ż_i) * w_i ≤ max(0, -ż_i) * C_w * (1+τ)
-  have h_bound_pos : -(∑ i, max 0 (ż i) * w i) ≤
-      (C_low / Real.log (1 / ε)) * (∑ i, max 0 (ż i)) := by
+  -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, zDot_i) ≥ 0,
+  --   -(max(0, zDot_i)) * w_i ≤ max(0, zDot_i) * C_low / log(1/ε)
+  -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
+  --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
+  have h_bound_pos : -(∑ i, max 0 (zDot i) * w i) ≤
+      (C_low / Real.log (1 / ε)) * (∑ i, max 0 (zDot i)) := by
     calc
-      -(∑ i, max 0 (ż i) * w i) = ∑ i, (-(max 0 (ż i)) * w i) := by
+      -(∑ i, max 0 (zDot i) * w i) = ∑ i, (-(max 0 (zDot i)) * w i) := by
         simp [Finset.sum_neg_distrib]
-      _ ≤ ∑ i, (max 0 (ż i) * (C_low / Real.log (1 / ε))) := by
+      _ ≤ ∑ i, (max 0 (zDot i) * (C_low / Real.log (1 / ε))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
-        by_cases hż : 0 ≤ ż i
-        · have hmax : max 0 (ż i) = ż i := max_eq_right hż
+        by_cases hzDot : 0 ≤ zDot i
+        · have hmax : max 0 (zDot i) = zDot i := max_eq_right hzDot
           rw [hmax]
           have hw_low : -C_low / Real.log (1 / ε) ≤ w i := by
             simpa [w] using hW_low_ε τ ⟨hτ0, hτs⟩ i
           have hneg_w : -w i ≤ C_low / Real.log (1 / ε) := by
             simpa [neg_div] using neg_le_neg hw_low
           calc
-            -(ż i) * w i = ż i * (-w i) := by ring
-            _ ≤ ż i * (C_low / Real.log (1 / ε)) :=
-              mul_le_mul_of_nonneg_left hneg_w hż
-        · have hmax : max 0 (ż i) = 0 := max_eq_left (by linarith)
+            -(zDot i) * w i = zDot i * (-w i) := by ring
+            _ ≤ zDot i * (C_low / Real.log (1 / ε)) :=
+              mul_le_mul_of_nonneg_left hneg_w hzDot
+        · have hmax : max 0 (zDot i) = 0 := max_eq_left (by linarith)
           simp [hmax]
-      _ = (C_low / Real.log (1 / ε)) * (∑ i, max 0 (ż i)) := by
+      _ = (C_low / Real.log (1 / ε)) * (∑ i, max 0 (zDot i)) := by
         rw [Finset.mul_sum]
         refine Finset.sum_congr rfl (fun i _ => ?_)
         ring
-  have h_bound_neg : (∑ i, max 0 (-ż i) * w i) ≤
-      C_w * (∑ i, (1 + τ) * max 0 (-ż i)) := by
+  have h_bound_neg : (∑ i, max 0 (-zDot i) * w i) ≤
+      C_w * (∑ i, (1 + τ) * max 0 (-zDot i)) := by
     calc
-      (∑ i, max 0 (-ż i) * w i) ≤ (∑ i, max 0 (-ż i) * (C_w * (1 + τ))) := by
+      (∑ i, max 0 (-zDot i) * w i) ≤ (∑ i, max 0 (-zDot i) * (C_w * (1 + τ))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         have hw_bound := hW_ε τ ⟨hτ0, hτs⟩ i
         have hw_le : w i ≤ C_w * (1 + τ) :=
           (abs_le.mp (by simpa [w] using hw_bound)).2
-        have h_nonneg : 0 ≤ max 0 (-ż i) := le_max_left _ _
+        have h_nonneg : 0 ≤ max 0 (-zDot i) := le_max_left _ _
         exact mul_le_mul_of_nonneg_left hw_le h_nonneg
-      _ = C_w * (∑ i, (1 + τ) * max 0 (-ż i)) := by
+      _ = C_w * (∑ i, (1 + τ) * max 0 (-zDot i)) := by
         rw [Finset.mul_sum]
         refine Finset.sum_congr rfl (fun i _ => ?_)
         ring
@@ -666,12 +666,12 @@ lemma pos_delta_bound_3
   --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
   --   deriv (positiveZDownward x_lasso) τ
   --     = ∑_i (1+τ) * max 0 (-deriv (scaledPrimalPath x_lasso) τ i)
-  have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (ż i) := by
+  have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     -- This follows from the definition of positiveZUpward and the FTC.
     -- At points where the derivative does not exist, both sides are 0 (deriv returns 0,
-    -- and ż = 0, so max 0 (ż i) = 0).
+    -- and zDot = 0, so max 0 (zDot i) = 0).
     sorry
-  have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-ż i) := by
+  have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
     -- Similarly for positiveZDownward.
     sorry
   -- Rewrite the sums in the bounds to use the derivative expressions
@@ -679,8 +679,8 @@ lemma pos_delta_bound_3
   rw [← h_downward_eq] at h_bound_neg
   -- Assemble the final inequality
   calc
-    -inner ℝ ż w = -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) :=
-      inner_decomp_pos_neg ż w
+    -inner ℝ zDot w = -(∑ i, max 0 (zDot i) * w i) + (∑ i, max 0 (-zDot i) * w i) :=
+      inner_decomp_pos_neg zDot w
     _ ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ) +
         C_w * (deriv (positiveZDownward x_lasso) τ) := by
       linarith [h_bound_pos, h_bound_neg]

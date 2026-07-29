@@ -91,8 +91,8 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
 def reducedDomain (d : ℕ) : Set (Fin d → ℝ) :=
   {u | u ⊙ u ≤ 1 / 2}
 
-/-- The kernel on the reduced domain: `k̃(u, u') = f̃(u·u')` where
-  `f̃(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)`.
+/-- The kernel on the reduced domain: `k_tilde(u, u') = f_tilde(u·u')` where
+  `f_tilde(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)`.
   This is the ReLU NTK in coordinates on `U`. -/
 noncomputable def reducedKernel (u u' : Fin d → ℝ) : ℝ :=
   let z := innerProduct u u'
@@ -143,19 +143,19 @@ lemma RKHSClass_add (d : ℕ) {h₁ h₂ : (Fin d → ℝ) → ℝ}
 
 /-! ### Universality criterion for dot-product kernels -/
 
-/-- The power series coefficients of `f̃(z) = (z+1/2)/2 − (z+1/2)arccos(z+1/2)/(2π)`.
-These determine whether the reduced kernel `k̃(u,u') = f̃(u·u')` is universal.
+/-- The power series coefficients of `f_tilde(z) = (z+1/2)/2 − (z+1/2)arccos(z+1/2)/(2π)`.
+These determine whether the reduced kernel `k_tilde(u,u') = f_tilde(u·u')` is universal.
 By the criterion of Steinwart-Christmann 2008 (Corollary 4.57), a dot-product kernel
 is universal on a bounded domain iff all its series coefficients are strictly positive. -/
 noncomputable def reducedKernelCoeff (n : ℕ) : ℝ :=
-  -- The coefficient of zⁿ in the Maclaurin series of f̃.
+  -- The coefficient of zⁿ in the Maclaurin series of f_tilde.
   -- For n = 0: (1/2)/2 − (1/2)·(π/2)/(2π) = 1/4 − 1/8 = 1/8
   -- For n ≥ 1: comes from the Maclaurin series of arccos shifted by 1/2.
   if n = 0 then 1 / 8
   else 1 / (2 * Real.pi) *
     ((2 * n).choose n : ℝ) / (4 ^ n * (2 * n + 1) * n.factorial ^ 2)
 
-/-- All Maclaurin coefficients of `f̃` are strictly positive. -/
+/-- All Maclaurin coefficients of `f_tilde` are strictly positive. -/
 lemma reducedKernelCoeff_pos (n : ℕ) : 0 < reducedKernelCoeff n := by
   sorry
 
@@ -168,9 +168,9 @@ for every continuous `g : 𝒳 → ℝ` and `ε > 0`, there exists `h ∈ ℋ` w
 
 **Proof sketch:**
 - Identify `𝒳` with the ball `U = {u ∈ ℝᵈ⁻¹ : ‖u‖² ≤ 1/2}` via dropping the bias coord.
-- The ReLU NTK on `𝒳` becomes the dot-product kernel `k̃(u,u') = f̃(u·u')` on `U`.
-- By `reducedKernelCoeff_pos`, all Maclaurin coefficients of `f̃` are positive.
-- By Steinwart-Christmann 2008, Corollary 4.57, `k̃` is a universal kernel on the
+- The ReLU NTK on `𝒳` becomes the dot-product kernel `k_tilde(u,u') = f_tilde(u·u')` on `U`.
+- By `reducedKernelCoeff_pos`, all Maclaurin coefficients of `f_tilde` are positive.
+- By Steinwart-Christmann 2008, Corollary 4.57, `k_tilde` is a universal kernel on the
   compact set `U`, meaning kernel evaluations are dense in `C(U, ℝ)`.
 - Transfer back to `𝒳` via the bijection. -/
 theorem isUniversal (d : ℕ) (hd : 0 < d) :

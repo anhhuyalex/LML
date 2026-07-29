@@ -102,7 +102,7 @@ noncomputable def ShallowNetwork.eval
 This is the matrix `∇_W f(x; W₀) ∈ ℝ^{m×d}` with entry `(j, k)` equal to
   `aⱼ · σ'(wⱼ₀ᵀx) · xₖ / √m`.
 
-For the ReLU, `σ'(z) = 𝟏[z ≥ 0]` (a.e.), so the gradient is sparse at signs. -/
+For the ReLU, `σ'(z) = 1[z ≥ 0]` (a.e.), so the gradient is sparse at signs. -/
 noncomputable def gradientMatrix
     {σ' : ℝ → ℝ} -- derivative of σ
     {d m : ℕ}

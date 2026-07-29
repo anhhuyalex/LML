@@ -490,7 +490,7 @@ by the constant `xᵀx'` yields the claim, since
 `𝔼[Y₀] = 𝔼_{w ~ 𝒩(0,Iᵈ)}[σ'(wᵀx)σ'(wᵀx')]`.
 
 The measurability hypothesis `hσ'_meas` is implicit in the informal notes (their `σ'`
-is the ReLU derivative `𝟏[· ≥ 0]`, which is measurable: `measurable_reluIndicator`);
+is the ReLU derivative `1[· ≥ 0]`, which is measurable: `measurable_reluIndicator`);
 it is needed for the integrability required by the strong law. -/
 theorem ntk_convergence
     (σ' : ℝ → ℝ)
@@ -565,7 +565,7 @@ theorem ntk_convergence
 
 /-! ### ReLU NTK closed form (Proposition 4.2) -/
 
-/-- The ReLU derivative: `𝟏[z ≥ 0]` (a.e. equal to the actual derivative). -/
+/-- The ReLU derivative: `1[z ≥ 0]` (a.e. equal to the actual derivative). -/
 noncomputable def reluIndicator : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 
 /-- The ReLU derivative is measurable: it is the indicator of the closed
@@ -841,7 +841,7 @@ lemma prob_halfspace_intersect
   sorry
 
 /-- **Proposition 4.2** (ReLU NTK closed form, Telgarsky 2021).
-For `σ' = 𝟏[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
+For `σ' = 1[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
 `x ⊙ x = x' ⊙ x' = 1`:
   `k(x, x') = (xᵀx') · (π − arccos(xᵀx')) / (2π)`.
 

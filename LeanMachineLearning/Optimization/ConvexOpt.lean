@@ -71,7 +71,7 @@ is essential for later chapters on margin maximization.
 
 3. **Gradient flow ODE interface**:
    `ConvexOpt.GFTrajectory` uses `HasDerivAt`.  In the NTK optimization proof
-   (Theorem 8.1), the gradient flow `ẇ(t) = -α Jₜᵀ ∇R(αf(w(t)))` is a
+   (Theorem 8.1), the gradient flow `w_prime(t) = -α Jₜᵀ ∇R(αf(w(t)))` is a
    time-varying ODE.  This could be abstracted as a `VaryingGFTrajectory` predicate
    that takes the vector field as a parameter, making the NTK analysis a special case.
 

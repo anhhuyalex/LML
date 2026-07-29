@@ -37,7 +37,7 @@ For signed measures this is extended via Jordan decomposition: given
 one normalizes μ into a probability by folding in the mass and a sign, samples k iid
 weight vectors, and obtains:
 
-  ‖g - (1/k) ∑ᵢ g̃(·; wᵢ, sᵢ)‖²_{L₂(P)} ≤ (‖μ‖₁² · sup_w ‖g(·;w)‖²_{L₂(P)}) / k.
+  ‖g - (1/k) ∑ᵢ g_tilde(·; wᵢ, sᵢ)‖²_{L₂(P)} ≤ (‖μ‖₁² · sup_w ‖g(·;w)‖²_{L₂(P)}) / k.
 
 ## Main results
 
@@ -1353,16 +1353,16 @@ end L2Maurey
 /-! ### Maurey for signed measures (Lemma 3.2)
 
 Following the notes, a *signed sample* is a pair `(w, s)` consisting of a parameter `w` and a
-sign `s ∈ {±1}`, drawn from the normalized measure `μ̃` built out of the Jordan decomposition
+sign `s ∈ {±1}`, drawn from the normalized measure `μ_tilde` built out of the Jordan decomposition
 `μ = μ₊ - μ₋`:
 
-  `Pr[s = +1] = ‖μ₊‖₁ / ‖μ‖₁`,  then  `w ∼ μ_s / ‖μ_s‖₁`,  output  `g̃(·; w, s) = s ‖μ‖₁ g(·; w)`.
+  `Pr[s = +1] = ‖μ₊‖₁ / ‖μ‖₁`,  then  `w ∼ μ_s / ‖μ_s‖₁`,  output  `g_tilde(·; w, s) = s ‖μ‖₁ g(·; w)`.
 
 **Refactor note.**  The signed sample used to be a bespoke `structure SignedSample (p : ℕ)` with
 `weight : Fin p → ℝ`.  It is replaced here by the plain product `W × Bool` over an *abstract*
 measurable parameter space `W`, for three reasons.
 * A bespoke structure carries no `MeasurableSpace` instance, so it cannot be the codomain of a
-  `Measure.map` — and the whole construction of `μ̃` is a pushforward.  (This is also the trap
+  `Measure.map` — and the whole construction of `μ_tilde` is a pushforward.  (This is also the trap
   recorded in `docs/lessons_learned.md` §12, "Set Mapping with Custom Structures".)
 * `W × Bool` gets `MeasurableSpace`, `BorelSpace`, … for free by instance inference.
 * Abstracting `Fin p → ℝ` to `W` costs nothing and matches the notes, which remark that the
@@ -1423,7 +1423,7 @@ lemma totalMass_pos {μ : SignedMeasure W} (hμ : μ ≠ 0) : 0 < totalMass μ :
   have hzero : μ.totalVariation i = 0 := le_antisymm (h ▸ hle) zero_le
   simpa using SignedMeasure.null_of_totalVariation_zero μ hzero
 
-/-- The normalized sampling distribution `μ̃` on signed samples `W × Bool`, obtained by pushing
+/-- The normalized sampling distribution `μ_tilde` on signed samples `W × Bool`, obtained by pushing
 `μ₊` forward along `w ↦ (w, true)`, `μ₋` forward along `w ↦ (w, false)`, and normalizing by the
 total mass.
 
@@ -1434,7 +1434,7 @@ noncomputable def jordanSample (μ : SignedMeasure W) : Measure (W × Bool) :=
     (μ.toJordanDecomposition.posPart.map (fun w => (w, true))
       + μ.toJordanDecomposition.negPart.map (fun w => (w, false)))
 
-/-- `μ̃` is a probability measure (for `μ ≠ 0`).
+/-- `μ_tilde` is a probability measure (for `μ ≠ 0`).
 
 Informal proof: the two pushforwards have total masses `‖μ₊‖₁` and `‖μ₋‖₁` (pushforward along a
 measurable map preserves the mass of the whole space), so the unnormalized measure has mass
@@ -1469,9 +1469,9 @@ instance isProbabilityMeasure_jordanSample {μ : SignedMeasure W} [NeZero μ] :
     have h2 := measure_ne_top μ.toJordanDecomposition.negPart Set.univ
     exact ENNReal.add_ne_top.mpr ⟨h1, h2⟩
 
-/-- The `μ̃`-integral splits over the two parts of the Jordan decomposition:
+/-- The `μ_tilde`-integral splits over the two parts of the Jordan decomposition:
 
-  `∫ f dμ̃ = ‖μ‖₁⁻¹ ( ∫ f(w, +1) dμ₊(w) + ∫ f(w, -1) dμ₋(w) )`.
+  `∫ f dμ_tilde = ‖μ‖₁⁻¹ ( ∫ f(w, +1) dμ₊(w) + ∫ f(w, -1) dμ₋(w) )`.
 
 Informal proof: `MeasureTheory.integral_smul_measure` peels off the scalar,
 `MeasureTheory.integral_add_measure` splits the sum, and `MeasureTheory.integral_map` (with the
@@ -1502,23 +1502,23 @@ so we introduce it here.  Everything downstream is stated in terms of this. -/
 noncomputable def signedIntegral (μ : SignedMeasure W) (g : W → ℝ) : ℝ :=
   (∫ w, g w ∂μ.toJordanDecomposition.posPart) - ∫ w, g w ∂μ.toJordanDecomposition.negPart
 
-/-- The rescaled atom `g̃(·; w, s) = s · ‖μ‖₁ · g(w)` attached to a signed sample `z = (w, s)`.
+/-- The rescaled atom `g_tilde(·; w, s) = s · ‖μ‖₁ · g(w)` attached to a signed sample `z = (w, s)`.
 This is the random element of `L₂(P)` that Maurey's lemma is applied to. -/
 noncomputable def rescaled (μ : SignedMeasure W) (g : W → ℝ) (z : W × Bool) : ℝ :=
   signWeight z.2 * totalMass μ * g z.1
 
 /-- **"This sampling procedure has the correct mean"** (the display just before Lemma 3.2).
 
-  `𝔼_{(w,s) ∼ μ̃} [ s ‖μ‖₁ g(w) ] = ∫ g dμ₊ - ∫ g dμ₋ = ∫ g dμ`.
+  `𝔼_{(w,s) ∼ μ_tilde} [ s ‖μ‖₁ g(w) ] = ∫ g dμ₊ - ∫ g dμ₋ = ∫ g dμ`.
 
 Informal proof.  By `integral_jordanSample` applied to `f = rescaled μ g`,
 
-  `𝔼 g̃ = ‖μ‖₁⁻¹ ( ∫ (+1)·‖μ‖₁·g dμ₊ + ∫ (-1)·‖μ‖₁·g dμ₋ )`
+  `𝔼 g_tilde = ‖μ‖₁⁻¹ ( ∫ (+1)·‖μ‖₁·g dμ₊ + ∫ (-1)·‖μ‖₁·g dμ₋ )`
        `= ‖μ‖₁⁻¹ · ‖μ‖₁ · ( ∫ g dμ₊ - ∫ g dμ₋ )`
        `= signedIntegral μ g`,
 
 using `integral_const_mul` on each piece and `‖μ‖₁ ≠ 0` (`totalMass_pos`) to cancel.
-This is the *only* place the specific normalization of `μ̃` is used. -/
+This is the *only* place the specific normalization of `μ_tilde` is used. -/
 lemma integral_rescaled {μ : SignedMeasure W} (hμ : μ ≠ 0) (g : W → ℝ)
     (hg_pos : Integrable g μ.toJordanDecomposition.posPart)
     (hg_neg : Integrable g μ.toJordanDecomposition.negPart) :
@@ -1541,7 +1541,7 @@ lemma integral_rescaled {μ : SignedMeasure W} (hμ : μ ≠ 0) (g : W → ℝ)
   rfl
 
 /-- The second moment of an atom is `‖μ‖₁²` times that of `g(w)`:
-`(g̃(x; w, s))² = ‖μ‖₁² · g(w)(x)²`, since `s² = 1`. -/
+`(g_tilde(x; w, s))² = ‖μ‖₁² · g(w)(x)²`, since `s² = 1`. -/
 lemma rescaled_sq (μ : SignedMeasure W) (g : W → ℝ) (z : W × Bool) :
     rescaled μ g z ^ 2 = totalMass μ ^ 2 * g z.1 ^ 2 := by
   simp only [rescaled, mul_pow, signWeight_sq]
@@ -1550,16 +1550,16 @@ lemma rescaled_sq (μ : SignedMeasure W) (g : W → ℝ) (z : W × Bool) :
 /-- **Lemma 3.2** (Maurey for signed measures; Telgarsky 2021).
 Let μ be a nonzero signed measure on S ⊆ ℝᵖ and write
   g(x) := ∫ g(x;w) dμ(w).
-Let P be a probability measure on x and (w̃₁, …, w̃ₖ) be iid draws from the
+Let P be a probability measure on x and (w_tilde₁, …, w_tildeₖ) be iid draws from the
 normalized distribution derived from the Jordan decomposition of μ. Then
 
-  𝔼[‖g - (1/k) ∑ᵢ g̃(·; w̃ᵢ)‖²_{L₂(P)}] ≤ ‖μ‖₁² · sup_{w ∈ S} ‖g(·;w)‖²_{L₂(P)} / k.
+  𝔼[‖g - (1/k) ∑ᵢ g_tilde(·; w_tildeᵢ)‖²_{L₂(P)}] ≤ ‖μ‖₁² · sup_{w ∈ S} ‖g(·;w)‖²_{L₂(P)} / k.
 
 **Proof sketch.** The Jordan decomposition gives μ = μ₊ - μ₋. We define a probability
 distribution on pairs (s, w) with s ∈ {±1} by:
   P[s = +1] = ‖μ₊‖₁ / ‖μ‖₁, then sample w ~ μ_s/‖μ_s‖₁.
-Then g̃(x;(s,w)) = s‖μ‖₁g(x;w) has the correct mean 𝔼[g̃(x;(s,w))] = g(x),
-and ‖g̃‖²_{L₂(P)} ≤ ‖μ‖₁² sup_w ‖g(·;w)‖²_{L₂(P)}.
+Then g_tilde(x;(s,w)) = s‖μ‖₁g(x;w) has the correct mean 𝔼[g_tilde(x;(s,w))] = g(x),
+and ‖g_tilde‖²_{L₂(P)} ≤ ‖μ‖₁² sup_w ‖g(·;w)‖²_{L₂(P)}.
 Apply the standard Maurey lemma to the Hilbert space L₂(P). -/
 theorem maureySamplingSignedMeasure
     {Ω_x : Type*} {mΩ_x : MeasurableSpace Ω_x}

@@ -606,7 +606,7 @@ the effective linear parameter `x = u ∘ u` evolves as
 `dx/dt = -4 x ∘ ∇ell(x) - 4 lambda x`.
 Using the entropy mirror map `h(x) = (1/4) * Σᵢ (xᵢ log xᵢ - xᵢ)`, we have
 `∇h(x) = (1/4) log x`. Thus
-`d ∇h(x) / dt = -∇ell(x) - lambda * 𝟙 = -∇L̃(x)`.
+`d ∇h(x) / dt = -∇ell(x) - lambda * 𝟙 = -∇L_tilde(x)`.
 Thus the DLN dynamics can be written as a mirror flow in the dual space.
 -/
 lemma dln_is_mirror_flow

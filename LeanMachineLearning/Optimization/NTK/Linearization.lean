@@ -695,7 +695,7 @@ lemma sign_preserved_outside_badSet
 /-- The ReLU activation. Bundled here for convenience. -/
 noncomputable def relu : ℝ → ℝ := fun z => max z 0
 
-/-- The subgradient / derivative of ReLU (a.e. equal to the indicator): `σ'(z) = 𝟏[z ≥ 0]`. -/
+/-- The subgradient / derivative of ReLU (a.e. equal to the indicator): `σ'(z) = 1[z ≥ 0]`. -/
 noncomputable def reluDeriv : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 
 /-- Scaled shallow network with ReLU activation. -/
