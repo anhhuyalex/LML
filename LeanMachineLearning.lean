@@ -51,6 +51,9 @@ public import LeanMachineLearning.Optimization.Depth.Sobolev
 public import LeanMachineLearning.Optimization.Depth.SquareApprox
 public import LeanMachineLearning.Optimization.Lasso
 public import LeanMachineLearning.Optimization.Lasso.Basic
+public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
+public import LeanMachineLearning.Optimization.Lasso.Bounds.Energy
+public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import LeanMachineLearning.Optimization.Lasso.LCP
 public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
