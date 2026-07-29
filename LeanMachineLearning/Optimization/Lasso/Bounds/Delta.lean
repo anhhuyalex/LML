@@ -21,20 +21,19 @@ set_option linter.unusedFintypeInType false
 Chain rule for `matVec M` along a curve: if `g` has derivative `g'` at `τ`,
 then `matVec M ∘ g` has derivative `matVec M g'` at `τ`.
 -/
-lemma matVec_hasDerivAt (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ ι) (g' : EuclideanSpace ℝ ι) (τ : ℝ)
-    (hg : HasDerivAt g g' τ) : HasDerivAt (fun τ => matVec M (g τ)) (matVec M g') τ := by
+lemma matVec_hasDerivAt (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ ι)
+    (g' : EuclideanSpace ℝ ι) (τ : ℝ)
+    (hg : HasDerivAt g g' τ) :
+    HasDerivAt (fun τ => matVec M (g τ)) (matVec M g') τ := by
   let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
     (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
   have h1 : HasDerivAt (fun τ => e (g τ)) (e g') τ := e.hasFDerivAt.comp_hasDerivAt τ hg
   dsimp [matVec, euclideanOf]
-  have hd_pi : HasDerivAt (fun τ => M.mulVec (e (g τ))) (M.mulVec (e g')) τ := by
-    apply hasDerivAt_pi.2
-    intro i
-    dsimp [Matrix.mulVec, dotProduct]
-    have hterm : ∀ j, HasDerivAt (fun τ => M i j * e (g τ) j) (M i j * e g' j) τ := fun j =>
-      (hasDerivAt_pi.1 h1 j).const_mul (M i j)
-    exact HasDerivAt.fun_sum (fun j _ => hterm j)
-  exact e.symm.hasFDerivAt.comp_hasDerivAt τ hd_pi
+  apply e.symm.hasFDerivAt.comp_hasDerivAt τ
+  apply hasDerivAt_pi.2
+  intro i
+  dsimp [Matrix.mulVec, dotProduct]
+  exact HasDerivAt.fun_sum (fun j _ => (hasDerivAt_pi.1 h1 j).const_mul (M i j))
 
 /--
 Generalized FTC identity for the entropy mirror gradient along the positive DLN flow.
@@ -47,7 +46,8 @@ lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace �
     (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hu : posDlnGradientFlow M r lambda ε β u)
     (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0) (hM : M.IsSymm) (t : ℝ) :
-    entropyMirrorGradient (posEffectiveParameter u t) - entropyMirrorGradient (posEffectiveParameter u 0) =
+    entropyMirrorGradient (posEffectiveParameter u t) -
+      entropyMirrorGradient (posEffectiveParameter u 0) =
       t • r - (t * lambda) • ones - matVec M (posIntegratedTrajectory u t) := by
   set x := posEffectiveParameter u
   set z := posIntegratedTrajectory u
@@ -76,7 +76,7 @@ lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace �
     exact e.symm.hasFDerivAt.comp_hasDerivAt τ h_pi
   -- Define the "constant" function F
   set F : ℝ → EuclideanSpace ℝ ι := fun τ =>
-    entropyMirrorGradient (x τ) - τ • r + (τ * lambda) • ones + matVec M (z τ) with hF_def
+    entropyMirrorGradient (x τ) - τ • r + (τ * lambda) • ones + matVec M (z τ)
   -- Show F'(τ) = 0 everywhere
   have hderiv : ∀ τ : ℝ, HasDerivAt F 0 τ := by
     intro τ
@@ -103,7 +103,9 @@ lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace �
       matVec_hasDerivAt M z (x τ) τ (hz_deriv τ)
     -- Combine: F' = h1 - h2 + h2b + h3 = 0
     have hsum := ((h1.sub h2).add h2b).add h3
-    rw [show (r - matVec M (x τ) - lambda • ones) - r + lambda • ones + matVec M (x τ) = 0 by abel] at hsum
+    have hzero : (r - matVec M (x τ) - lambda • ones) - r +
+      lambda • ones + matVec M (x τ) = 0 := by abel
+    rw [hzero] at hsum
     exact hsum
   -- Apply FTC: F(t) - F(0) = ∫₀ᵗ 0 = 0, so F(t) = F(0)
   have hconst : F t - F 0 = ∫ _τ in (0:ℝ)..t, (0 : EuclideanSpace ℝ ι) :=
@@ -155,7 +157,8 @@ lemma posRescaledMirrorVariable_sub_eq_integral
   have ht0 : posTimeFromRescaled ε 0 = 0 := by
     dsimp [posTimeFromRescaled]; ring
   -- Relate posIntegratedTrajectoryRescaled to the unscaled integrated trajectory
-  have h_z_rescaled : posIntegratedTrajectoryRescaled ε u s = c • (posIntegratedTrajectory u) t_s := by
+  have h_z_rescaled :
+      posIntegratedTrajectoryRescaled ε u s = c • (posIntegratedTrajectory u) t_s := by
     dsimp [posIntegratedTrajectoryRescaled, c, t_s]
   -- Now compute the main equality
   calc
@@ -168,14 +171,20 @@ lemma posRescaledMirrorVariable_sub_eq_integral
       rw [← smul_sub]
     _ = -c • (t_s • r - (t_s * lambda) • ones - matVec M ((posIntegratedTrajectory u) t_s)) := by
       rw [entropyMirrorGradient_sub_eq M r lambda ε β u hu hu_pos hM t_s]
-    _ = (-c • (t_s • r)) + (-c • (-((t_s * lambda) • ones))) + (-c • (-matVec M ((posIntegratedTrajectory u) t_s))) := by
+    _ = (-c • (t_s • r)) + (-c • (-((t_s * lambda) • ones))) +
+        (-c • (-matVec M ((posIntegratedTrajectory u) t_s))) := by
       simp [smul_sub, add_assoc]
-    _ = (-(c * t_s)) • r + (c * (t_s * lambda)) • ones + c • matVec M ((posIntegratedTrajectory u) t_s) := by
+    _ = (-(c * t_s)) • r + (c * (t_s * lambda)) • ones +
+        c • matVec M ((posIntegratedTrajectory u) t_s) := by
       simp [smul_smul, neg_smul]
-    _ = -(c * t_s) • r + (c * t_s * lambda) • ones + c • matVec M ((posIntegratedTrajectory u) t_s) := by ring_nf
+    _ = -(c * t_s) • r + (c * t_s * lambda) • ones +
+        c • matVec M ((posIntegratedTrajectory u) t_s) := by ring_nf
     _ = -s • r + (s * lambda) • ones + c • matVec M ((posIntegratedTrajectory u) t_s) := by
-      rw [show c * t_s = s by dsimp [c, t_s, posTimeFromRescaled]; field_simp [hlog]]
-    _ = -s • r + (s * lambda) • ones + matVec M (c • (posIntegratedTrajectory u) t_s) := by rw [matVec_smul_eq]
+      have hct : c * t_s = s := by
+        dsimp [c, t_s, posTimeFromRescaled]; field_simp [hlog]
+      rw [hct]
+    _ = -s • r + (s * lambda) • ones +
+        matVec M (c • (posIntegratedTrajectory u) t_s) := by rw [matVec_smul_eq]
     _ = matVec M (posIntegratedTrajectoryRescaled ε u s) - s • r + (s * lambda) • ones := by
       rw [h_z_rescaled]
       simp [sub_eq_add_neg]; abel
@@ -219,18 +228,180 @@ Bounds the inner product of `x^\varepsilon` and `w^\varepsilon`.
    uniform constant $C > 0$.
 6. Thus the term is $\leq C / \log(1/\varepsilon)$.
 -/
+-- Bounds the function f(t) = -t * log(t) for t ≥ 0.
+-- For t = 0, f(0) = 0 ≤ 1. For t > 0, use log(1/t) ≤ 1/t - 1 to get -t log t ≤ 1 - t ≤ 1.
+private lemma neg_mul_log_le_one (t : ℝ) (ht : 0 ≤ t) : -t * Real.log t ≤ 1 := by
+  by_cases ht0 : t = 0
+  · rw [ht0]; simp
+  · have ht_pos : 0 < t := lt_of_le_of_ne ht (Ne.symm ht0)
+    have hlog := Real.log_le_sub_one_of_pos (one_div_pos.mpr ht_pos)
+    rw [one_div, Real.log_inv] at hlog
+    -- hlog : -Real.log t ≤ t⁻¹ - 1
+    have h_mul : -t * Real.log t ≤ 1 - t := by
+      calc
+        -t * Real.log t = t * (-Real.log t) := by ring
+        _ ≤ t * (t⁻¹ - 1) := mul_le_mul_of_nonneg_left hlog (by linarith)
+        _ = t * t⁻¹ - t := by ring
+        _ = 1 - t := by field_simp [ht0]
+    nlinarith
+
+-- Helper: derivative of `posIntegratedTrajectoryRescaled` cancels the scaling factors,
+-- yielding `posEffectiveParameter` as the derivative.
+-- Uses the chain rule: derivative of `posIntegratedTrajectory` is `posEffectiveParameter`,
+-- and `posTimeFromRescaled` scales time by `log(1/ε)/4` which cancels the outer factor `c`.
+private lemma posIntegratedTrajectoryRescaled_hasDerivAt
+    (ε : ℝ) (u_eps : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
+    (h_cont_u : Continuous u_eps)
+    (h_log_ne_zero : Real.log (1 / ε) ≠ 0) :
+    HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ)
+      (posEffectiveParameter u_eps (posTimeFromRescaled ε τ)) τ := by
+  set c := (4 : ℝ) / Real.log (1 / ε)
+  set t_ετ := posTimeFromRescaled ε τ with ht_ετ_def
+  -- Projection `x ↦ x i` is continuous on `EuclideanSpace`
+  have h_proj_cont (i : ι) : Continuous (fun (x : EuclideanSpace ℝ ι) => x i) :=
+    (continuous_apply i).comp
+      ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous)
+  -- `coordinateSquare` is continuous
+  have h_cont_coordSquare :
+      Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
+    let e : (ι → ℝ) ≃L[ℝ] EuclideanSpace ℝ ι :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).symm.toContinuousLinearEquiv
+    have h_sq : Continuous (fun (x : EuclideanSpace ℝ ι) (i : ι) => x i * x i) :=
+      continuous_pi (fun i => Continuous.mul (h_proj_cont i) (h_proj_cont i))
+    have h_eq : coordinateSquare = e ∘ (fun (x : EuclideanSpace ℝ ι) => fun i => x i * x i) := by
+      ext x i; simp [coordinateSquare, euclideanOf, e]
+    rw [h_eq]
+    exact e.continuous.comp h_sq
+  have h_cont_x : Continuous (posEffectiveParameter u_eps) :=
+    h_cont_coordSquare.comp h_cont_u
+  -- FTC: derivative of `posIntegratedTrajectory` is `posEffectiveParameter`
+  have h_z_deriv : HasDerivAt (posIntegratedTrajectory u_eps)
+      (posEffectiveParameter u_eps t_ετ) t_ετ := by
+    -- Work on `ι → ℝ` first using `hasDerivAt_pi`, then lift back to `EuclideanSpace`
+    let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+    have h_pi : HasDerivAt
+        (fun σ : ℝ => (fun i : ι =>
+          ∫ v in (0:ℝ)..σ, posEffectiveParameter u_eps v i))
+        (fun i : ι => posEffectiveParameter u_eps t_ετ i) t_ετ := by
+      apply hasDerivAt_pi.mpr
+      intro i
+      have hcont_i : Continuous (fun v : ℝ => posEffectiveParameter u_eps v i) :=
+        (h_proj_cont i).comp h_cont_x
+      exact intervalIntegral.integral_hasDerivAt_right
+        (hcont_i.intervalIntegrable 0 t_ετ)
+        (hcont_i.stronglyMeasurableAtFilter _ _)
+        hcont_i.continuousAt
+    exact e.symm.hasFDerivAt.comp_hasDerivAt t_ετ h_pi
+  -- Derivative of `posTimeFromRescaled ε ρ = (ρ/4) * log(1/ε)`
+  have h_time_deriv : HasDerivAt (fun ρ => posTimeFromRescaled ε ρ)
+      (Real.log (1 / ε) / 4) τ := by
+    dsimp [posTimeFromRescaled]
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using
+      ((hasDerivAt_id τ).div_const 4).mul_const (Real.log (1 / ε))
+  -- Chain rule: (posIntegratedTrajectory) ∘ (posTimeFromRescaled)
+  have h_chain : HasDerivAt
+      ((posIntegratedTrajectory u_eps) ∘ (fun ρ => posTimeFromRescaled ε ρ))
+      ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) τ :=
+    h_z_deriv.scomp τ h_time_deriv
+  -- posIntegratedTrajectoryRescaled = c • (posIntegratedTrajectory ∘ posTimeFromRescaled)
+  have h_rescaled_eq : (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) =
+      fun ρ => c • ((posIntegratedTrajectory u_eps) (posTimeFromRescaled ε ρ)) := by
+    ext ρ; dsimp [posIntegratedTrajectoryRescaled, c]
+  rw [h_rescaled_eq]
+  have h_smul : HasDerivAt
+      (fun ρ => c • ((posIntegratedTrajectory u_eps) (posTimeFromRescaled ε ρ)))
+      (c • ((Real.log (1 / ε) / 4) •
+        posEffectiveParameter u_eps t_ετ)) τ :=
+    h_chain.const_smul c
+  -- The scaling factors cancel: c * (log(1/ε)/4) = 1
+  have h_factor : c * (Real.log (1 / ε) / 4) = 1 := by
+    dsimp [c]
+    field_simp [h_log_ne_zero]
+  have h_target : c • ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) =
+      posEffectiveParameter u_eps t_ετ := by
+    rw [smul_smul, h_factor, one_smul]
+  rw [h_target] at h_smul
+  simpa [ht_ετ_def] using h_smul
+
 lemma pos_delta_bound_1
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (β : EuclideanSpace ℝ ι) (s : ℝ) (_hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (_hdata : ProblemData M r lambda) (_hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε)) :
     ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
           (posRescaledMirrorVariable ε (u ε) τ)
         ≤ C / Real.log (1 / ε) := by
-  sorry
+  set d := Fintype.card ι
+  set C := max 1 (d : ℝ)
+  refine ⟨C, lt_max_of_lt_left (by norm_num), ?_⟩
+  -- Restrict to ε ∈ (0, 1/2), where log(1/ε) > 0
+  have h_mem : Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) := by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1/2, by norm_num, fun x hx => hx⟩
+  filter_upwards [h_mem] with ε hε
+  rcases hε with ⟨hε_pos, hε_lt_half⟩
+  have hε_lt_one : ε < 1 := by linarith
+  have h_log_pos : 0 < Real.log (1 / ε) :=
+    Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  have h_log_ne_zero : Real.log (1 / ε) ≠ 0 := ne_of_gt h_log_pos
+  have hu_eps : posDlnGradientFlow M r lambda ε β (u ε) := hu ε hε_pos
+  intro τ hτ
+  -- Key: prove `HasDerivAt` for the rescaled integrated trajectory.
+  -- The derivative equals `posEffectiveParameter` because the rescaling factors cancel.
+  have h_hasDeriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+      (posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)) τ :=
+    posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
+      hu_eps.cont_diff.continuous h_log_ne_zero
+  -- Now rewrite `deriv` using the hasDeriv lemma
+  rw [h_hasDeriv.deriv]
+  set x := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ)
+  have hx_nonneg : ∀ i, 0 ≤ x i :=
+    posEffectiveParameter_nonnegative (u ε) (posTimeFromRescaled ε τ)
+  -- Expand the inner product: ⟨x, w⟩ where w_i = -log(x_i)/log(1/ε)
+  have h_inner_eq : inner ℝ x (posRescaledMirrorVariable ε (u ε) τ) =
+      (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by
+    -- Use `PiLp.inner_apply` to expand the inner product into a sum
+    rw [PiLp.inner_apply]
+    simp_rw [Real.inner_apply]
+    -- Now goal: ∑ i, x i * (posRescaledMirrorVariable ε (u ε) τ) i =
+    --   (1 / log(1/ε)) * ∑ i, -(x i) * log (x i)
+    have h_w (i : ι) : (posRescaledMirrorVariable ε (u ε) τ) i =
+        -Real.log (x i) / Real.log (1 / ε) := rfl
+    simp_rw [h_w]
+    -- Now: ∑ i, x i * (-Real.log (x i) / Real.log (1 / ε)) =
+    --   (1/log(1/ε)) * ∑ i, -(x i) * Real.log (x i)
+    calc
+      ∑ i : ι, x i * (-Real.log (x i) / Real.log (1 / ε)) =
+          ∑ i : ι, (-(x i) * Real.log (x i)) / Real.log (1 / ε) := by
+        refine Finset.sum_congr rfl (fun i _ => ?_)
+        ring
+      _ = (∑ i : ι, (-(x i) * Real.log (x i))) / Real.log (1 / ε) := by rw [Finset.sum_div]
+      _ = (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by ring
+  rw [h_inner_eq]
+  -- Bound each term: -x_i * log(x_i) ≤ 1 for x_i ≥ 0
+  -- Proof: f(t) = -t log t has maximum 1/e at t = 1/e, and 1/e ≤ 1.
+  -- We use: for t > 0, log(1/t) ≤ 1/t - 1  →  -log t ≤ 1/t - 1  →  -t log t ≤ 1 - t ≤ 1.
+  have h_each (i : ι) : -(x i) * Real.log (x i) ≤ 1 :=
+    neg_mul_log_le_one (x i) (hx_nonneg i)
+  -- Sum the per-coordinate bounds
+  have h_sum_bound : (∑ i : ι, (-(x i) * Real.log (x i))) ≤ C := by
+    calc
+      (∑ i : ι, (-(x i) * Real.log (x i))) ≤ (∑ i : ι, (1 : ℝ)) :=
+        Finset.sum_le_sum (fun i _ => h_each i)
+      _ = (d : ℝ) := by simp [d]
+      _ ≤ C := by simp [C, le_max_right (1 : ℝ) (d : ℝ)]
+  -- Final: divide by log(1/ε) > 0
+  rw [div_eq_mul_inv, div_eq_mul_inv]
+  calc
+    (1 * (Real.log (1 / ε))⁻¹) * (∑ i : ι, (-(x i) * Real.log (x i))) =
+        (Real.log (1 / ε))⁻¹ * (∑ i : ι, (-(x i) * Real.log (x i))) := by ring
+    _ ≤ (Real.log (1 / ε))⁻¹ * C :=
+      mul_le_mul_of_nonneg_left h_sum_bound (inv_nonneg.mpr (by linarith))
+    _ = C * (Real.log (1 / ε))⁻¹ := mul_comm _ _
 
 /--
 Section 4.6, Eq. (4.14), Term 2.
