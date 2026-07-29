@@ -1513,6 +1513,165 @@ lemma scaled_dual_lipschitz
     _ ≤ K * |μ - ν| := mul_le_mul_of_nonneg_left h_s_diff_bound hK_nonneg
 
 /--
+If a path `wt` satisfies `wt(μ) = -(s μ) • r + 1 + M (zt μ)` for all μ ≥ 0,
+and `r = M y` for some `y`, then the derivative of `wt` at any μ ≥ 0 lies in
+the column space of `M`.
+-/
+lemma deriv_in_matrix_span_of_scaled_eq
+    (M : Matrix ι ι ℝ) (r y : EuclideanSpace ℝ ι) (hy : matVec M y = r)
+    (wt zt : ℝ → EuclideanSpace ℝ ι) (s : ℝ → ℝ)
+    (h_scaled_eq : ∀ μ, 0 ≤ μ → wt μ = -(s μ) • r + ones + matVec M (zt μ)) :
+    ∀ μ, 0 ≤ μ → InMatrixSpan M (deriv wt μ) := by
+  intro μ hμ_nonneg
+  -- Key idea: difference quotients of wt lie in Span M because
+  --   (wt(μ+h)-wt(μ))/h = -((s(μ+h)-s(μ))/h) • r + M ((zt(μ+h)-zt(μ))/h)
+  -- and r = M y.  Taking h → 0, the limit (the derivative) stays in Span M
+  -- because Span M is a finite-dimensional (hence closed) subspace.
+  -- We split into cases: wt differentiable at μ vs not.
+  by_cases h_diff : DifferentiableAt ℝ wt μ
+  · -- Informal proof:
+    -- We have h_scaled_eq: wt(ν) = -(s ν)•r + ones + matVec M (zt ν) for ν ≥ 0.
+    -- Since r = M y, the RHS is in the affine subspace 1 + Im(M).
+    -- Differentiating, the derivative must lie in the tangent space Im(M).
+    -- Formal proof: difference quotients lie in Im(M); Im(M) is a finite-dimensional
+    -- subspace, hence closed; the limit (the derivative) stays in Im(M).
+    have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
+    -- Build the subspace S = Im(M) as a linear subspace
+    let L : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
+      { toFun := matVec M
+        map_add' := matVec_add M
+        map_smul' := matVec_smul_eq M }
+    let S : Submodule ℝ (EuclideanSpace ℝ ι) := LinearMap.range L
+    have hS_closed : IsClosed (S : Set (EuclideanSpace ℝ ι)) := S.closed_of_finiteDimensional
+    -- Show that for all t > 0, the difference quotient is in S
+    -- Key: wt ν - ones = matVec M ((-(s ν)) • y + zt ν) for ν ≥ 0
+    have h_wt_sub_ones (ν : ℝ) (hν : 0 ≤ ν) : wt ν - ones = matVec M ((-(s ν)) • y + zt ν) := by
+      rw [h_scaled_eq ν hν, ← hy]
+      calc
+        -(s ν) • matVec M y + ones + matVec M (zt ν) - ones
+            = (-(s ν)) • matVec M y + matVec M (zt ν) := by abel
+        _ = matVec M ((-(s ν)) • y) + matVec M (zt ν) := by
+          rw [matVec_smul_eq M (-(s ν)) y]
+        _ = matVec M ((-(s ν)) • y + zt ν) := by rw [matVec_add M]
+    have h_diff_quot_mem :
+        ∀ t > 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
+      intro t ht_pos
+      have hμt_nonneg : 0 ≤ μ + t := by linarith
+      have h1 := h_wt_sub_ones (μ + t) hμt_nonneg
+      have h2 := h_wt_sub_ones μ hμ_nonneg
+      have h_diff_eq : wt (μ + t) - wt μ =
+          matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
+        calc
+          wt (μ + t) - wt μ = (wt (μ + t) - ones) - (wt μ - ones) := by abel
+          _ = matVec M ((-(s (μ + t))) • y + zt (μ + t)) -
+              matVec M ((-(s μ)) • y + zt μ) := by rw [h1, h2]
+          _ = matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
+            rw [matVec_sub M]
+      rw [h_diff_eq]
+      -- Goal: t⁻¹ • matVec M (stuff) ∈ S = range L where L = matVec M
+      -- Use: matVec M (t⁻¹ • stuff) = t⁻¹ • matVec M stuff (matVec_smul_eq)
+      refine ⟨t⁻¹ • (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)), ?_⟩
+      simp [L]
+    -- The derivative is the limit of the difference quotients (right side, t > 0).
+    have h_tendsto : Filter.Tendsto (fun t => t⁻¹ • (wt (μ + t) - wt μ))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (deriv wt μ)) := by
+      open scoped Topology in
+      simpa using h_hasDeriv.tendsto_slope_zero_right
+    -- Eventually, difference quotients are in S
+    have h_eventually : ∀ᶠ t in nhdsWithin (0 : ℝ) (Set.Ioi 0),
+        t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
+      -- self_mem_nhdsWithin gives Ioi 0 ∈ 𝓝[>] 0
+      have h_mem : Set.Ioi (0 : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
+        self_mem_nhdsWithin
+      filter_upwards [h_mem] with t ht
+      -- ht : t ∈ Set.Ioi 0, i.e., t > 0
+      exact h_diff_quot_mem t (Set.mem_Ioi.mp ht)
+    -- Since S is closed and the limit of difference quotients is deriv wt μ,
+    -- we have deriv wt μ ∈ S.
+    have h_mem_S : deriv wt μ ∈ (S : Set (EuclideanSpace ℝ ι)) :=
+      hS_closed.mem_of_tendsto h_tendsto h_eventually
+    -- Convert membership in S to InMatrixSpan
+    rcases h_mem_S with ⟨z, hz⟩
+    refine ⟨z, ?_⟩
+    -- hz : L z = deriv wt μ, i.e., matVec M z = deriv wt μ
+    simpa [L] using hz
+  · -- When wt is not differentiable at μ, deriv wt μ is defined to be 0 in Lean.
+    have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
+    rw [h_deriv_zero]
+    exact ⟨0, by simp [matVec, euclideanOf]⟩
+
+/--
+Algebraic identity for the scaled difference quotient:
+`h⁻¹ • (wt(μ+h) - wt(μ)) = M ((-Δs/h) • y + h⁻¹ • Δzt)`
+where `wt(ν) = -(s ν) • r + 1 + M (zt ν)` and `r = M y`.
+-/
+lemma scaled_diff_quot_eq_matVec
+    (M : Matrix ι ι ℝ) (r y : EuclideanSpace ℝ ι) (hy : matVec M y = r)
+    (wt zt : ℝ → EuclideanSpace ℝ ι) (s : ℝ → ℝ)
+    (h_scaled_eq : ∀ ν, 0 ≤ ν → wt ν = -(s ν) • r + ones + matVec M (zt ν))
+    (μ h : ℝ) (hμ_nonneg : 0 ≤ μ) (hpos : 0 < h) :
+    h⁻¹ • (wt (μ + h) - wt μ) = matVec M ((-((s (μ + h) - s μ) / h)) • y + h⁻¹ • (zt (μ + h) - zt μ)) := by
+  have hμh_nonneg : 0 ≤ μ + h := by linarith
+  set d := zt (μ + h) - zt μ with hd_def
+  set ds := s (μ + h) - s μ with hds_def
+  have hwt_eq_μ := h_scaled_eq μ hμ_nonneg
+  have hwt_eq_μh := h_scaled_eq (μ + h) hμh_nonneg
+  have h_sub :
+      (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+      (-(s μ) • r + ones + matVec M (zt μ)) = -ds • r + matVec M d := by
+    calc
+      (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+          (-(s μ) • r + ones + matVec M (zt μ))
+          = (-(s (μ + h)) • r - (-(s μ) • r)) + (ones - ones) + 
+            (matVec M (zt (μ + h)) - matVec M (zt μ)) := by abel
+      _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 0 + 
+          (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
+      _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 
+          (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
+      _ = ((-(s (μ + h))) - (-(s μ))) • r + matVec M (zt (μ + h) - zt μ) := by
+        rw [← sub_smul, matVec_sub M]
+      _ = (-(s (μ + h) - s μ)) • r + matVec M d := by
+        rw [hd_def]
+        have hscalar : (-(s (μ + h))) - (-(s μ)) = -(s (μ + h) - s μ) := by ring
+        rw [hscalar]
+      _ = -ds • r + matVec M d := by rw [hds_def]
+  calc
+    h⁻¹ • (wt (μ + h) - wt μ)
+        = h⁻¹ • ((-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+            (-(s μ) • r + ones + matVec M (zt μ))) := by
+          rw [hwt_eq_μh, hwt_eq_μ]
+    _ = h⁻¹ • (-ds • r + matVec M d) := by rw [h_sub]
+    _ = h⁻¹ • (-ds • r) + h⁻¹ • (matVec M d) := by rw [smul_add]
+    _ = (h⁻¹ • (-ds • r)) + (matVec M (h⁻¹ • d)) := by rw [matVec_smul_eq M h⁻¹ d]
+    _ = ((h⁻¹ * (-ds)) • r) + (matVec M (h⁻¹ • d)) := by rw [smul_smul]
+    _ = ((-(ds / h)) • r) + (matVec M (h⁻¹ • d)) := by
+      have htemp : h⁻¹ * (-ds) = -(ds / h) := by
+        calc
+          h⁻¹ * (-ds) = -(h⁻¹ * ds) := by ring
+          _ = -(ds * h⁻¹) := by rw [mul_comm]
+          _ = -(ds / h) := rfl
+      rw [htemp]
+    _ = (-(ds / h)) • (matVec M y) + matVec M (h⁻¹ • d) := by rw [hy]
+    _ = matVec M ((-(ds / h)) • y) + matVec M (h⁻¹ • d) := by rw [matVec_smul_eq M (-(ds / h)) y]
+    _ = matVec M ((-(ds / h)) • y + h⁻¹ • d) := by rw [matVec_add M]
+    _ = matVec M ((-((s (μ + h) - s μ) / h)) • y + h⁻¹ • (zt (μ + h) - zt μ)) := by rw [hds_def, hd_def]
+
+/--
+Pseudoinverse inner-product identity: `⟨M v, M† (M v)⟩ = ⟨v, M v⟩`.
+Follows from symmetry of `M` and the first Penrose condition `M M† M = M`.
+-/
+lemma pseudoInverse_inner_prop
+    (M Mdagger : Matrix ι ι ℝ) (hM_symm : M.IsSymm)
+    (h_mp : ∀ v : EuclideanSpace ℝ ι, matVec M (matVec Mdagger (matVec M v)) = matVec M v)
+    (v : EuclideanSpace ℝ ι) :
+    inner ℝ (matVec M v) (matVec Mdagger (matVec M v)) = inner ℝ v (matVec M v) := by
+  calc
+    inner ℝ (matVec M v) (matVec Mdagger (matVec M v))
+        = inner ℝ v (matVec M (matVec Mdagger (matVec M v))) := by
+      rw [inner_matVec_comm_of_isSymm M hM_symm v (matVec Mdagger (matVec M v))]
+    _ = inner ℝ v (matVec M v) := by rw [h_mp v]
+
+/--
 Derivative properties of the scaled dual path derived from the LCP structure.
 
 The scaled dual path `wt(μ) := w(μ)/(1 + μ λ)` satisfies the equation
@@ -1545,85 +1704,9 @@ lemma derivative_properties_of_lipschitz
   -- The scaled LCP equation for nonnegative parameters
   have h_scaled_eq (μ : ℝ) (hμ : 0 ≤ μ) : wt μ = -(s μ) • r + ones + matVec M (zt μ) :=
     (scaled_dual_lcp_eq M r lambda z w hlambda_nonneg hsol μ hμ).1
-  -- Part 1: derivative lies in the column space of M
-  have h_span : ∀ μ, 0 ≤ μ → InMatrixSpan M (deriv wt μ) := by
-    intro μ hμ_nonneg
-    -- Key idea: difference quotients of wt lie in Span M because
-    --   (wt(μ+h)-wt(μ))/h = -((s(μ+h)-s(μ))/h) • r + M ((zt(μ+h)-zt(μ))/h)
-    -- and r = M y.  Taking h → 0, the limit (the derivative) stays in Span M
-    -- because Span M is a finite-dimensional (hence closed) subspace.
-    -- We split into cases: wt differentiable at μ vs not.
-    by_cases h_diff : DifferentiableAt ℝ wt μ
-    · -- Informal proof:
-      -- We have h_scaled_eq: wt(ν) = -(s ν)•r + ones + matVec M (zt ν) for ν ≥ 0.
-      -- Since r = M y, the RHS is in the affine subspace 1 + Im(M).
-      -- Differentiating, the derivative must lie in the tangent space Im(M).
-      -- Formal proof: difference quotients lie in Im(M); Im(M) is a finite-dimensional
-      -- subspace, hence closed; the limit (the derivative) stays in Im(M).
-      have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
-      -- Build the subspace S = Im(M) as a linear subspace
-      let L : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
-        { toFun := matVec M
-          map_add' := matVec_add M
-          map_smul' := matVec_smul_eq M }
-      let S : Submodule ℝ (EuclideanSpace ℝ ι) := LinearMap.range L
-      have hS_closed : IsClosed (S : Set (EuclideanSpace ℝ ι)) := S.closed_of_finiteDimensional
-      -- Show that for all t > 0, the difference quotient is in S
-      -- Key: wt ν - ones = matVec M ((-(s ν)) • y + zt ν) for ν ≥ 0
-      have h_wt_sub_ones (ν : ℝ) (hν : 0 ≤ ν) : wt ν - ones = matVec M ((-(s ν)) • y + zt ν) := by
-        rw [h_scaled_eq ν hν, ← hy]
-        calc
-          -(s ν) • matVec M y + ones + matVec M (zt ν) - ones
-              = (-(s ν)) • matVec M y + matVec M (zt ν) := by abel
-          _ = matVec M ((-(s ν)) • y) + matVec M (zt ν) := by
-            rw [matVec_smul_eq M (-(s ν)) y]
-          _ = matVec M ((-(s ν)) • y + zt ν) := by rw [matVec_add M]
-      have h_diff_quot_mem :
-          ∀ t > 0, t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
-        intro t ht_pos
-        have hμt_nonneg : 0 ≤ μ + t := by linarith
-        have h1 := h_wt_sub_ones (μ + t) hμt_nonneg
-        have h2 := h_wt_sub_ones μ hμ_nonneg
-        have h_diff_eq : wt (μ + t) - wt μ =
-            matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
-          calc
-            wt (μ + t) - wt μ = (wt (μ + t) - ones) - (wt μ - ones) := by abel
-            _ = matVec M ((-(s (μ + t))) • y + zt (μ + t)) -
-                matVec M ((-(s μ)) • y + zt μ) := by rw [h1, h2]
-            _ = matVec M (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)) := by
-              rw [matVec_sub M]
-        rw [h_diff_eq]
-        -- Goal: t⁻¹ • matVec M (stuff) ∈ S = range L where L = matVec M
-        -- Use: matVec M (t⁻¹ • stuff) = t⁻¹ • matVec M stuff (matVec_smul_eq)
-        refine ⟨t⁻¹ • (((-(s (μ + t))) • y + zt (μ + t)) - ((-(s μ)) • y + zt μ)), ?_⟩
-        simp [L]
-      -- The derivative is the limit of the difference quotients (right side, t > 0).
-      have h_tendsto : Filter.Tendsto (fun t => t⁻¹ • (wt (μ + t) - wt μ))
-          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds (deriv wt μ)) := by
-        open scoped Topology in
-        simpa using h_hasDeriv.tendsto_slope_zero_right
-      -- Eventually, difference quotients are in S
-      have h_eventually : ∀ᶠ t in nhdsWithin (0 : ℝ) (Set.Ioi 0),
-          t⁻¹ • (wt (μ + t) - wt μ) ∈ (S : Set (EuclideanSpace ℝ ι)) := by
-        -- self_mem_nhdsWithin gives Ioi 0 ∈ 𝓝[>] 0
-        have h_mem : Set.Ioi (0 : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
-          self_mem_nhdsWithin
-        filter_upwards [h_mem] with t ht
-        -- ht : t ∈ Set.Ioi 0, i.e., t > 0
-        exact h_diff_quot_mem t (Set.mem_Ioi.mp ht)
-      -- Since S is closed and the limit of difference quotients is deriv wt μ,
-      -- we have deriv wt μ ∈ S.
-      have h_mem_S : deriv wt μ ∈ (S : Set (EuclideanSpace ℝ ι)) :=
-        hS_closed.mem_of_tendsto h_tendsto h_eventually
-      -- Convert membership in S to InMatrixSpan
-      rcases h_mem_S with ⟨z, hz⟩
-      refine ⟨z, ?_⟩
-      -- hz : L z = deriv wt μ, i.e., matVec M z = deriv wt μ
-      simpa [L] using hz
-    · -- When wt is not differentiable at μ, deriv wt μ is defined to be 0 in Lean.
-      have h_deriv_zero : deriv wt μ = 0 := deriv_zero_of_not_differentiableAt h_diff
-      rw [h_deriv_zero]
-      exact ⟨0, by simp [matVec, euclideanOf]⟩
+  -- Part 1: derivative lies in the column space of M (extracted as lemma)
+  have h_span : ∀ μ, 0 ≤ μ → InMatrixSpan M (deriv wt μ) :=
+    deriv_in_matrix_span_of_scaled_eq M r y hy wt zt s h_scaled_eq
   -- Part 2: seminorm bound
   have h_bound : ∀ μ, 0 ≤ μ → pseudoInverseSeminorm Mdagger (deriv wt μ) ≤
       pseudoInverseSeminorm Mdagger r := by
@@ -1639,17 +1722,10 @@ lemma derivative_properties_of_lipschitz
       --    ‖Δw_h‖²_{M†} = α²B + A - 2αC ≤ α²B ≤ B = ‖r‖²_{M†}, where α = Δs/h ≤ 1.
       -- 4. Taking h → 0+ and using continuity of the seminorm gives the bound.
       have h_hasDeriv : HasDerivAt wt (deriv wt μ) μ := h_diff.hasDerivAt
-      -- Pseudoinverse property:
-      --   ⟨M v, M† (M v)⟩ = ⟨v, M v⟩
-      -- Proof: using M symmetric (from hM_psd) and the first Penrose condition M M† M = M.
+      -- Pseudoinverse property (extracted as lemma below)
       have h_mp_prop : ∀ (v : EuclideanSpace ℝ ι),
-          inner ℝ (matVec M v) (matVec Mdagger (matVec M v)) = inner ℝ v (matVec M v) := by
-        intro v
-        calc
-          inner ℝ (matVec M v) (matVec Mdagger (matVec M v))
-              = inner ℝ v (matVec M (matVec Mdagger (matVec M v))) := by
-            rw [inner_matVec_comm_of_isSymm M hM_psd.symm v (matVec Mdagger (matVec M v))]
-          _ = inner ℝ v (matVec M v) := by rw [h_mp v]
+          inner ℝ (matVec M v) (matVec Mdagger (matVec M v)) = inner ℝ v (matVec M v) :=
+        pseudoInverse_inner_prop M Mdagger hM_psd.symm h_mp
       -- For small h>0, the difference quotient is bounded by ‖r‖_{M†}
       have h_bound_eventually : ∀ᶠ (h : ℝ) in nhdsWithin (0 : ℝ) (Set.Ioi 0),
           pseudoInverseSeminorm Mdagger (h⁻¹ • (wt (μ + h) - wt μ)) ≤
@@ -1674,58 +1750,14 @@ lemma derivative_properties_of_lipschitz
         have h_exists_xi : ∃ ξ : EuclideanSpace ℝ ι,
             h⁻¹ • (wt (μ + h) - wt μ) = matVec M ξ ∧
             inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y) := by
-          -- Set up notations: d = zt(μ+h)-zt(μ), ds = s(μ+h)-s(μ), α = ds/h, u = h⁻¹ • d
-          set d := zt (μ + h) - zt μ with hd_def
-          set ds := s (μ + h) - s μ with hds_def
-          set α := ds / h with hα_def
-          set u := h⁻¹ • d with hu_def
+          set α := (s (μ + h) - s μ) / h with hα_def
+          set u := h⁻¹ • (zt (μ + h) - zt μ) with hu_def
           set ξ := (-α) • y + u with hξ_def
-          refine ⟨ξ, ?_, ?_⟩
-          · -- Show h⁻¹ • (wt (μ+h) - wt μ) = matVec M ξ
-            -- From h_scaled_lcp: wt = -s•r + ones + M(zt), and r = M y
-            -- Then wt(μ+h)-wt(μ) = -(ds)•r + M d, and the result follows by algebra
-            have hwt_eq_μ := (h_scaled_lcp μ hμ_nonneg).1
-            have hwt_eq_μh := (h_scaled_lcp (μ + h) hμh_nonneg).1
-            have h_sub :
-                (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
-                (-(s μ) • r + ones + matVec M (zt μ)) = -ds • r + matVec M d := by
-              calc
-                (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
-                    (-(s μ) • r + ones + matVec M (zt μ))
-                    = (-(s (μ + h)) • r - (-(s μ) • r)) + (ones - ones) + 
-                      (matVec M (zt (μ + h)) - matVec M (zt μ)) := by abel
-                _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 0 + 
-                    (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
-                _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 
-                    (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
-                _ = ((-(s (μ + h))) - (-(s μ))) • r + matVec M (zt (μ + h) - zt μ) := by
-                  rw [← sub_smul, matVec_sub M]
-                _ = (-(s (μ + h) - s μ)) • r + matVec M d := by
-                  rw [hd_def]
-                  have hscalar : (-(s (μ + h))) - (-(s μ)) = -(s (μ + h) - s μ) := by ring
-                  rw [hscalar]
-                _ = -ds • r + matVec M d := by rw [hds_def]
-            calc
-              h⁻¹ • (wt (μ + h) - wt μ)
-                  = h⁻¹ • ((-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
-                      (-(s μ) • r + ones + matVec M (zt μ))) := by
-                    rw [hwt_eq_μh, hwt_eq_μ]
-              _ = h⁻¹ • (-ds • r + matVec M d) := by rw [h_sub]
-              _ = h⁻¹ • (-ds • r) + h⁻¹ • (matVec M d) := by rw [smul_add]
-              _ = (h⁻¹ • (-ds • r)) + (matVec M (h⁻¹ • d)) := by rw [matVec_smul_eq M h⁻¹ d]
-              _ = ((h⁻¹ * (-ds)) • r) + (matVec M u) := by rw [smul_smul, hu_def]
-              _ = ((-(ds / h)) • r) + (matVec M u) := by
-                have htemp : h⁻¹ * (-ds) = -(ds / h) := by
-                  calc
-                    h⁻¹ * (-ds) = -(h⁻¹ * ds) := by ring
-                    _ = -(ds * h⁻¹) := by rw [mul_comm]
-                    _ = -(ds / h) := rfl
-                rw [htemp]
-              _ = (-α) • r + matVec M u := by rw [hα_def]
-              _ = (-α) • (matVec M y) + matVec M u := by rw [hy]
-              _ = matVec M ((-α) • y) + matVec M u := by rw [matVec_smul_eq M (-α) y]
-              _ = matVec M ((-α) • y + u) := by rw [matVec_add M]
-              _ = matVec M ξ := by rw [hξ_def]
+          have h_eq : h⁻¹ • (wt (μ + h) - wt μ) = matVec M ξ := by
+            rw [hξ_def]
+            simpa [hα_def, hu_def] using
+              scaled_diff_quot_eq_matVec M r y hy wt zt s h_scaled_eq μ h hμ_nonneg hpos'
+          refine ⟨ξ, h_eq, ?_⟩
           · -- Show inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y)
             -- This expands to α²⟨y,My⟩ + ⟨u,Mu⟩ - 2α⟨y,Mu⟩ ≤ ⟨y,My⟩
             -- Using the LCP key inequality: ⟨d, M d⟩ ≤ ds * ⟨r, d⟩ (unsigned)
