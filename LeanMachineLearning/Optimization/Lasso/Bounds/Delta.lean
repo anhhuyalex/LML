@@ -103,9 +103,8 @@ lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace �
       matVec_hasDerivAt M z (x τ) τ (hz_deriv τ)
     -- Combine: F' = h1 - h2 + h2b + h3 = 0
     have hsum := ((h1.sub h2).add h2b).add h3
-    have hzero : (r - matVec M (x τ) - lambda • ones) - r +
-      lambda • ones + matVec M (x τ) = 0 := by abel
-    rw [hzero] at hsum
+    rw [show (r - matVec M (x τ) - lambda • ones) - r +
+      lambda • ones + matVec M (x τ) = 0 by abel] at hsum
     exact hsum
   -- Apply FTC: F(t) - F(0) = ∫₀ᵗ 0 = 0, so F(t) = F(0)
   have hconst : F t - F 0 = ∫ _τ in (0:ℝ)..t, (0 : EuclideanSpace ℝ ι) :=
@@ -115,9 +114,9 @@ lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace �
   -- Compute F(0) and F(t)
   have hF0 : F 0 = entropyMirrorGradient (x 0) := by
     dsimp [F]
-    have hz0 : z 0 = 0 := by ext i; simp [z, posIntegratedTrajectory, euclideanOf]
-    have hmz0 : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by ext i; simp [matVec, euclideanOf]
-    rw [hz0, hmz0]; simp
+    rw [show z 0 = 0 by ext i; simp [z, posIntegratedTrajectory, euclideanOf],
+      show matVec M (0 : EuclideanSpace ℝ ι) = 0 by ext i; simp [matVec, euclideanOf]]
+    simp
   rw [hF0] at hconst
   dsimp [F] at hconst
   -- hconst: ∇h(x t) - t•r + (t*λ)•ones + M z t = ∇h(x 0)
@@ -153,20 +152,14 @@ lemma posRescaledMirrorVariable_sub_eq_integral
     ext i
     simp [posRescaledMirrorVariable, entropyMirrorGradient, c, x, euclideanOf]
     ring
-  -- posTimeFromRescaled ε 0 = 0
-  have ht0 : posTimeFromRescaled ε 0 = 0 := by
-    dsimp [posTimeFromRescaled]; ring
-  -- Relate posIntegratedTrajectoryRescaled to the unscaled integrated trajectory
-  have h_z_rescaled :
-      posIntegratedTrajectoryRescaled ε u s = c • (posIntegratedTrajectory u) t_s := by
-    dsimp [posIntegratedTrajectoryRescaled, c, t_s]
   -- Now compute the main equality
   calc
     posRescaledMirrorVariable ε u s - posRescaledMirrorVariable ε u 0
         = (-c • entropyMirrorGradient (x t_s)) -
           (-c • entropyMirrorGradient (x (posTimeFromRescaled ε 0))) := by
       rw [h_mirror s, h_mirror 0]
-    _ = (-c • entropyMirrorGradient (x t_s)) - (-c • entropyMirrorGradient (x 0)) := by rw [ht0]
+    _ = (-c • entropyMirrorGradient (x t_s)) - (-c • entropyMirrorGradient (x 0)) := by
+      rw [show posTimeFromRescaled ε 0 = 0 by dsimp [posTimeFromRescaled]; ring]
     _ = -c • (entropyMirrorGradient (x t_s) - entropyMirrorGradient (x 0)) := by
       rw [← smul_sub]
     _ = -c • (t_s • r - (t_s * lambda) • ones - matVec M ((posIntegratedTrajectory u) t_s)) := by

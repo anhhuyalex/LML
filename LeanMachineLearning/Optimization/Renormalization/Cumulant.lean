@@ -75,7 +75,7 @@ restricted family `X|_B`.
 
 Informal proof: The product of `X i` over a subset is the same whether indexed in `ι` or in the
 subtype `B`. -/
-lemma blockMoment_subtype [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_subtype [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (B : Finset ι) (s : Finset B) :
     blockMoment μ X (s.map (Function.Embedding.subtype (· ∈ B))) =
       blockMoment μ (fun i : B ↦ X i.1) s := by
@@ -103,7 +103,7 @@ lemma jointMoment_eq_blockMoment_univ [Fintype ι] [DecidableEq ι]
 
 Informal proof: The product over an empty set is 1, and the integral of 1 is 1 since `μ` is a
 probability measure. -/
-lemma blockMoment_empty [DecidableEq ι] [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
+lemma blockMoment_empty [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
     blockMoment μ X ∅ = 1 := by
   sorry
 
@@ -333,7 +333,7 @@ lemma cumulantTransform_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [Decida
       Finpartition.cumulantTransform f Finset.univ := by
   sorry
 
-lemma blockMoment_map_equiv [DecidableEq ι] [DecidableEq κ] [IsProbabilityMeasure μ]
+lemma blockMoment_map_equiv [IsProbabilityMeasure μ]
     (e : ι ≃ κ) (X : ι → Ω → ℝ) (s : Finset κ) :
     blockMoment μ (fun j ↦ X (e.symm j)) s = blockMoment μ X (s.map e.symm.toEmbedding) := by
   sorry
@@ -439,7 +439,7 @@ def IndepAcross (μ : Measure Ω) (X : ι → Ω → ℝ)
     (A : Finset ι) : Prop :=
   IndepFun (fun ω (i : A) ↦ X i.1 ω) (fun ω (i : {i : ι // i ∉ A}) ↦ X i.1 ω) μ
 
-lemma blockMoment_indepFun_split [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_indepFun_split [DecidableEq ι] [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (A : Finset ι) (hX : HasFiniteJointMoments μ X)
     (hmeas : ∀ i, Measurable (X i)) (hindep : IndepAcross μ X A) (s : Finset ι) :
     blockMoment μ X s = blockMoment μ X (s ∩ A) * blockMoment μ X (s \ A) := by
