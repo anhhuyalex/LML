@@ -38,7 +38,7 @@ def blockMoment (μ : Measure Ω) (X : ι → Ω → ℝ) (B : Finset ι) : ℝ 
   ∫ ω, ∏ i ∈ B, X i ω ∂μ
 
 /-- The joint moment of a family indexed by a finite type. -/
-def jointMoment [Fintype ι] [DecidableEq ι] (μ : Measure Ω) (X : ι → Ω → ℝ) : ℝ :=
+def jointMoment [Fintype ι] (μ : Measure Ω) (X : ι → Ω → ℝ) : ℝ :=
   blockMoment μ X Finset.univ
 
 /-- All finite products drawn from `X` are integrable.  This is the reusable hypothesis for
@@ -73,7 +73,7 @@ theorem jointMoment_one (X : Fin 1 → Ω → ℝ) :
 
 Informal proof: map `Finset.univ` along `e`, use `Finset.prod_equiv`, and observe that the two
 integrands agree pointwise. -/
-theorem jointMoment_perm [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ]
+theorem jointMoment_perm [Fintype ι] [Fintype κ]
     (e : ι ≃ κ) (X : ι → Ω → ℝ) :
     jointMoment μ (fun j ↦ X (e.symm j)) = jointMoment μ X := by
   dsimp [jointMoment, blockMoment]
@@ -85,7 +85,7 @@ theorem jointMoment_perm [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq
 
 Informal proof: intersect the finitely many full-measure sets on which `X i = Y i`; on that
 intersection the finite products, hence their integrals, agree. -/
-theorem jointMoment_congr_ae [Fintype ι] [DecidableEq ι] {X Y : ι → Ω → ℝ}
+theorem jointMoment_congr_ae [Fintype ι] {X Y : ι → Ω → ℝ}
     (hXY : ∀ i, X i =ᵐ[μ] Y i) :
     jointMoment μ X = jointMoment μ Y := by
   dsimp [jointMoment, blockMoment]

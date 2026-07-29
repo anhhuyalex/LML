@@ -94,7 +94,7 @@ theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMe
 
 Informal proof: The joint moment is defined as the integral of the product of all `X i`, which
 matches `blockMoment` on `univ`. -/
-lemma jointMoment_eq_blockMoment_univ [Fintype ι] [DecidableEq ι]
+lemma jointMoment_eq_blockMoment_univ [Fintype ι]
     [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
     jointMoment μ X = blockMoment μ X Finset.univ := by
   sorry

@@ -198,10 +198,9 @@ theorem positive_integrated_mirror_equation
     posRescaledMirrorVariable ε u s =
       posRescaledMirrorVariable ε u 0 - s • r +
         matVec M (posIntegratedTrajectoryRescaled ε u s) + (s * lambda) • ones := by
-  have hsub := posRescaledMirrorVariable_sub_eq_integral M r lambda ε β u hu hu_pos hM s hlog
-  have h1 : posRescaledMirrorVariable ε u s = posRescaledMirrorVariable ε u 0 +
-    (posRescaledMirrorVariable ε u s - posRescaledMirrorVariable ε u 0) := by abel
-  rw [h1, hsub]
+  rw [show posRescaledMirrorVariable ε u s = posRescaledMirrorVariable ε u 0 +
+    (posRescaledMirrorVariable ε u s - posRescaledMirrorVariable ε u 0) by abel,
+    posRescaledMirrorVariable_sub_eq_integral M r lambda ε β u hu hu_pos hM s hlog]
   abel
 
 /--
@@ -604,20 +603,16 @@ lemma pos_delta_bound_3
   rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
   -- Combine the constants
   set C := max C_low C_w with hC_def
-  have hC_pos : 0 < C := lt_max_of_lt_left hC_low_pos
-  refine ⟨C, hC_pos, ?_⟩
+  refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
   -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
-  have h_mem_one : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) := by
+  filter_upwards [hX_ev, hW_low_ev, hW_ev, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun x hx => hx⟩
-  filter_upwards [hX_ev, hW_low_ev, hW_ev, h_mem_one] with ε hXε hW_low_ε hW_ε hε_one
+    exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_one
   intro τ hτ
   rcases hτ with ⟨hτ0, hτs⟩
   -- Notation for the derivative and the dual variable
   set ż := deriv (scaledPrimalPath x_lasso) τ with hż_def
   set w := posRescaledMirrorVariable ε (u ε) τ with hw_def
-  -- Algebraic decomposition of -⟨ż, w⟩ into positive/negative parts of ż
-  have h_decomp := inner_decomp_pos_neg ż w
   -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
   have h_log_pos : 0 < Real.log (1 / ε) := by
     rcases hε_one with ⟨hε_pos, hε_lt_one⟩
