@@ -7,6 +7,8 @@ module
 
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 
+/-! ## Section 4.6: positive-path estimate chain -/
+
 @[expose] public section
 
 namespace Lasso
@@ -14,8 +16,6 @@ namespace Lasso
 open Filter Topology
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
-
-/-! ## Section 4.6: positive-path estimate chain -/
 
 /--
 By the Fundamental Theorem of Calculus (FTC), the entropy mirror map's gradient
@@ -30,10 +30,154 @@ lemma posRescaledMirrorVariable_sub_eq_integral
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
     (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hu : posDlnGradientFlow M r lambda ε β u)
-    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0) (hM : M.IsSymm) (s : ℝ) :
+    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0) (hM : M.IsSymm) (s : ℝ)
+    (hlog : Real.log (1 / ε) ≠ 0) :
     posRescaledMirrorVariable ε u s - posRescaledMirrorVariable ε u 0 =
       matVec M (posIntegratedTrajectoryRescaled ε u s) - s • r + (s * lambda) • ones := by
-  sorry
+  -- Abbreviations for readability
+  set t_s := posTimeFromRescaled ε s with ht_s_def
+  set x := posEffectiveParameter u with hx_def
+  set z := posIntegratedTrajectory u with hz_def
+  set c := (4 : ℝ) / Real.log (1 / ε) with hc_def
+  have hc_ne_zero : c ≠ 0 := div_ne_zero (by norm_num) hlog
+  have h_cts : c * t_s = s := by
+    dsimp [c, t_s, posTimeFromRescaled]
+    field_simp [hlog]
+  -- Continuity of the effective parameter (from its differentiability)
+  have hcont : Continuous x :=
+    continuous_iff_continuousAt.mpr
+      (fun τ => (pos_effective_parameter_hasDerivAt M r lambda ε β u hu hM τ).continuousAt)
+  -- Coordinate projection is continuous
+  have h_cont_apply (i : ι) : Continuous (fun x : EuclideanSpace ℝ ι => x i) :=
+    (continuous_apply i).comp (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous
+  -- Helper: derivative of the integrated trajectory z(τ) = ∫₀ᵗ x(v) dv is x(τ)
+  have hz_deriv (τ : ℝ) : HasDerivAt z (x τ) τ := by
+    let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+    dsimp [z, posIntegratedTrajectory, euclideanOf]
+    have h_pi : HasDerivAt (fun τ => (fun i => ∫ v in (0:ℝ)..τ, x v i))
+        (fun i => x τ i) τ := by
+      apply hasDerivAt_pi.2
+      intro i
+      have hcont_i : Continuous (fun v => x v i) :=
+        (h_cont_apply i).comp hcont
+      exact intervalIntegral.integral_hasDerivAt_right
+        (hcont_i.intervalIntegrable 0 τ)
+        (hcont_i.stronglyMeasurableAtFilter _ _)
+        hcont_i.continuousAt
+    exact e.symm.hasFDerivAt.comp_hasDerivAt τ h_pi
+  -- Helper: chain rule for matVec M along a curve
+  have h_matVec_deriv (g : ℝ → EuclideanSpace ℝ ι) (g' : EuclideanSpace ℝ ι) (τ : ℝ)
+      (hg : HasDerivAt g g' τ) : HasDerivAt (fun τ => matVec M (g τ)) (matVec M g') τ := by
+    let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+    have h1 : HasDerivAt (fun τ => e (g τ)) (e g') τ := e.hasFDerivAt.comp_hasDerivAt τ hg
+    dsimp [matVec, euclideanOf]
+    have hd_pi : HasDerivAt (fun τ => M.mulVec (e (g τ))) (M.mulVec (e g')) τ := by
+      apply hasDerivAt_pi.2
+      intro i
+      dsimp [Matrix.mulVec, dotProduct]
+      have hterm : ∀ j, HasDerivAt (fun τ => M i j * e (g τ) j) (M i j * e g' j) τ := fun j =>
+        (hasDerivAt_pi.1 h1 j).const_mul (M i j)
+      exact HasDerivAt.fun_sum (fun j _ => hterm j)
+    exact e.symm.hasFDerivAt.comp_hasDerivAt τ hd_pi
+  -- Generalized FTC identity: ∇h(x(t)) - ∇h(x(0)) = t•r - (t*λ)•ones - M z(t)
+  have h_egrad_sub (t : ℝ) : entropyMirrorGradient (x t) - entropyMirrorGradient (x 0) =
+      t • r - (t * lambda) • ones - matVec M (z t) := by
+    -- Define the "constant" function F
+    set F : ℝ → EuclideanSpace ℝ ι := fun τ =>
+      entropyMirrorGradient (x τ) - τ • r + (τ * lambda) • ones + matVec M (z τ) with hF_def
+    -- Show F'(τ) = 0 everywhere
+    have hderiv : ∀ τ : ℝ, HasDerivAt F 0 τ := by
+      intro τ
+      -- Derivative of the first term: ∇h(x(τ))
+      have h1 : HasDerivAt (fun τ => entropyMirrorGradient (x τ))
+          (r - matVec M (x τ) - lambda • ones) τ := by
+        have hmf_raw := pos_dln_is_entropy_mirror_flow M r lambda ε β u hu hu_pos hM τ
+        dsimp [IsEntropyMirrorFlow] at hmf_raw
+        rw [gradient_tiltedLoss M r lambda hM (x τ)] at hmf_raw
+        -- hmf_raw: HasDerivAt ... (-euclideanOf (fun i => (M.mulVec (x τ)) i - r i + lambda)) τ
+        have h_deriv_eq : (-euclideanOf (fun i => (M.mulVec (x τ)) i - r i + lambda)) =
+            r - matVec M (x τ) - lambda • ones := by
+          ext i
+          simp [matVec, euclideanOf, ones]
+          ring
+        rw [h_deriv_eq] at hmf_raw
+        exact hmf_raw
+      -- Derivative of τ • r
+      have h2 : HasDerivAt (fun τ : ℝ => τ • r) r τ := by
+        simpa using (hasDerivAt_id τ).smul_const r
+      -- Derivative of (τ*λ) • ones, using smul_const directly
+      have h2b : HasDerivAt (fun τ : ℝ => (τ * lambda) • (ones : EuclideanSpace ℝ ι))
+          (lambda • (ones : EuclideanSpace ℝ ι)) τ := by
+        simpa [smul_smul, mul_comm] using
+          (hasDerivAt_id τ).smul_const (lambda • (ones : EuclideanSpace ℝ ι))
+      -- Derivative of matVec M (z τ)
+      have h3 : HasDerivAt (fun τ => matVec M (z τ)) (matVec M (x τ)) τ :=
+        h_matVec_deriv z (x τ) τ (hz_deriv τ)
+      -- Combine: F' = h1 - h2 + h2b + h3 = 0
+      have hsum := ((h1.sub h2).add h2b).add h3
+      have hval : (r - matVec M (x τ) - lambda • ones) - r + lambda • ones +
+          matVec M (x τ) = 0 := by
+        abel
+      rw [hval] at hsum
+      exact hsum
+    -- Apply FTC: F(t) - F(0) = ∫₀ᵗ 0 = 0, so F(t) = F(0)
+    have hconst : F t - F 0 = ∫ _τ in (0:ℝ)..t, (0 : EuclideanSpace ℝ ι) :=
+      (intervalIntegral.integral_eq_sub_of_hasDerivAt (fun τ _ => hderiv τ)
+        intervalIntegrable_const).symm
+    simp only [intervalIntegral.integral_zero, sub_eq_zero] at hconst
+    -- Compute F(0) and F(t)
+    have hz0 : z 0 = 0 := by
+      ext i; simp [z, posIntegratedTrajectory, euclideanOf]
+    have hmz0 : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by
+      ext i; simp [matVec, euclideanOf]
+    have hF0 : F 0 = entropyMirrorGradient (x 0) := by
+      dsimp [F]; rw [hz0, hmz0]; simp
+    have hFt : F t = entropyMirrorGradient (x t) - t • r + (t * lambda) • ones +
+        matVec M (z t) := rfl
+    rw [hFt, hF0] at hconst
+    -- hconst: ∇h(x t) - t•r + (t*λ)•ones + M z t = ∇h(x 0)
+    -- Rearrange to get desired form
+    have h_result : entropyMirrorGradient (x t) - entropyMirrorGradient (x 0) =
+        t • r - (t * lambda) • ones - matVec M (z t) := by
+      rw [← hconst]
+      abel
+    exact h_result
+  -- Relationship between posRescaledMirrorVariable and entropyMirrorGradient
+  have h_mirror (τ : ℝ) : posRescaledMirrorVariable ε u τ =
+      -c • entropyMirrorGradient (x (posTimeFromRescaled ε τ)) := by
+    ext i
+    simp [posRescaledMirrorVariable, entropyMirrorGradient, c, x, euclideanOf]
+    ring
+  -- posTimeFromRescaled ε 0 = 0
+  have ht0 : posTimeFromRescaled ε 0 = 0 := by
+    dsimp [posTimeFromRescaled]; ring
+  -- Relate posIntegratedTrajectoryRescaled to z
+  have h_z_rescaled : posIntegratedTrajectoryRescaled ε u s = c • z t_s := by
+    dsimp [posIntegratedTrajectoryRescaled, c, z, t_s]
+  -- Now compute the main equality
+  calc
+    posRescaledMirrorVariable ε u s - posRescaledMirrorVariable ε u 0
+        = (-c • entropyMirrorGradient (x t_s)) -
+          (-c • entropyMirrorGradient (x (posTimeFromRescaled ε 0))) := by
+      rw [h_mirror s, h_mirror 0]
+    _ = (-c • entropyMirrorGradient (x t_s)) - (-c • entropyMirrorGradient (x 0)) := by rw [ht0]
+    _ = -c • (entropyMirrorGradient (x t_s) - entropyMirrorGradient (x 0)) := by
+      rw [← smul_sub]
+    _ = -c • (t_s • r - (t_s * lambda) • ones - matVec M (z t_s)) := by rw [h_egrad_sub t_s]
+    _ = (-c • (t_s • r)) + (-c • (-((t_s * lambda) • ones))) + (-c • (-matVec M (z t_s))) := by
+      simp [smul_sub, add_assoc]
+    _ = (-(c * t_s)) • r + (c * (t_s * lambda)) • ones + c • matVec M (z t_s) := by
+      simp [smul_smul, neg_smul]
+    _ = -(c * t_s) • r + (c * t_s * lambda) • ones + c • matVec M (z t_s) := by ring_nf
+    _ = -s • r + (s * lambda) • ones + c • matVec M (z t_s) := by rw [h_cts]
+    _ = -s • r + (s * lambda) • ones + matVec M (c • z t_s) := by rw [matVec_smul_eq]
+    _ = matVec M (posIntegratedTrajectoryRescaled ε u s) - s • r + (s * lambda) • ones := by
+      rw [h_z_rescaled]
+      have h_neg : -s • r = -(s • r) := by simp
+      rw [h_neg]
+      abel
 
 /--
 Section 4.6, integrated mirror-flow identity in rescaled time.
@@ -46,11 +190,12 @@ theorem positive_integrated_mirror_equation
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
     (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hu : posDlnGradientFlow M r lambda ε β u)
-    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0) (hM : M.IsSymm) (s : ℝ) :
+    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0) (hM : M.IsSymm) (s : ℝ)
+    (hlog : Real.log (1 / ε) ≠ 0) :
     posRescaledMirrorVariable ε u s =
       posRescaledMirrorVariable ε u 0 - s • r +
         matVec M (posIntegratedTrajectoryRescaled ε u s) + (s * lambda) • ones := by
-  have hsub := posRescaledMirrorVariable_sub_eq_integral M r lambda ε β u hu hu_pos hM s
+  have hsub := posRescaledMirrorVariable_sub_eq_integral M r lambda ε β u hu hu_pos hM s hlog
   have h1 : posRescaledMirrorVariable ε u s = posRescaledMirrorVariable ε u 0 +
     (posRescaledMirrorVariable ε u s - posRescaledMirrorVariable ε u 0) := by abel
   rw [h1, hsub]
