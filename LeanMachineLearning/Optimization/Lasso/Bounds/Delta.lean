@@ -514,6 +514,42 @@ Bounds the cross term $-<\dot{z}, w^\varepsilon>$ using trajectory variations.
 5. Combining these bounds yields a uniform bound weighted by the absolute variations
    $\dot{z}^\uparrow$ and $\dot{z}^\downarrow$.
 -/
+-- Decompose -⟨x, y⟩ into positive and negative parts of x:
+--   -⟨x, y⟩ = -(Σ_i max(0, x_i)·y_i) + (Σ_i max(0, -x_i)·y_i)
+-- This uses the identity a = max(0,a) - max(0,-a) for each coordinate.
+private lemma inner_decomp_pos_neg {ι : Type*} [Fintype ι] (x y : EuclideanSpace ℝ ι) :
+    -inner ℝ x y = -(∑ i, max 0 (x i) * y i) + (∑ i, max 0 (-(x i)) * y i) := by
+  have h_inner_eq : inner ℝ x y = ∑ i : ι, x i * y i := by
+    rw [PiLp.inner_apply]
+    simp_rw [Real.inner_apply]
+  rw [h_inner_eq]
+  have h_sum_eq : (∑ i : ι, x i * y i) =
+      (∑ i : ι, max 0 (x i) * y i) - (∑ i : ι, max 0 (-(x i)) * y i) := by
+    calc
+      (∑ i : ι, x i * y i) = (∑ i : ι, (max 0 (x i) - max 0 (-(x i))) * y i) := by
+        refine Finset.sum_congr rfl (fun i _ => ?_)
+        by_cases hpos : 0 ≤ x i
+        · have hmax1 : max 0 (x i) = x i := max_eq_right hpos
+          have hmax2 : max 0 (-(x i)) = 0 :=
+            max_eq_left (by linarith : -(x i) ≤ 0)
+          calc
+            x i * y i = (x i - 0) * y i := by ring
+            _ = (max 0 (x i) - max 0 (-(x i))) * y i := by rw [hmax1, hmax2]
+        · have hneg' : x i ≤ 0 := by linarith
+          have hmax1 : max 0 (x i) = 0 := max_eq_left hneg'
+          have hmax2 : max 0 (-(x i)) = -(x i) :=
+            max_eq_right (by linarith : 0 ≤ -(x i))
+          calc
+            x i * y i = (0 - (-(x i))) * y i := by ring
+            _ = (max 0 (x i) - max 0 (-(x i))) * y i := by rw [hmax1, hmax2]
+      _ = (∑ i : ι, (max 0 (x i) * y i - max 0 (-(x i)) * y i)) := by
+        refine Finset.sum_congr rfl (fun i _ => ?_)
+        ring
+      _ = (∑ i : ι, max 0 (x i) * y i) - (∑ i : ι, max 0 (-(x i)) * y i) := by
+        rw [Finset.sum_sub_distrib]
+  rw [h_sum_eq]
+  ring
+
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
@@ -639,44 +675,8 @@ lemma pos_delta_bound_3
   -- Notation for the derivative and the dual variable
   set ż := deriv (scaledPrimalPath x_lasso) τ with hż_def
   set w := posRescaledMirrorVariable ε (u ε) τ with hw_def
-  -- Expand the inner product on EuclideanSpace into a coordinate sum
-  have h_inner_eq : inner ℝ ż w = ∑ i : ι, ż i * w i := by
-    rw [PiLp.inner_apply]
-    simp_rw [Real.inner_apply]
-  -- The key algebraic decomposition:
-  --   -⟨ż, w⟩ = -∑_i max(0, ż_i)·w_i + ∑_i max(0, -ż_i)·w_i
-  -- This uses the identity a = max(0,a) - max(0,-a) for any real a.
-  have h_decomp : -inner ℝ ż w =
-      -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) := by
-    rw [h_inner_eq]
-    have h_sum_eq : (∑ i : ι, ż i * w i) =
-        (∑ i : ι, max 0 (ż i) * w i) - (∑ i : ι, max 0 (-ż i) * w i) := by
-      calc
-        (∑ i : ι, ż i * w i) = (∑ i : ι, (max 0 (ż i) - max 0 (-ż i)) * w i) := by
-          refine Finset.sum_congr rfl (fun i _ => ?_)
-          by_cases hpos : 0 ≤ ż i
-          · -- Case ż i ≥ 0: max 0 (ż i) = ż i, max 0 (-ż i) = 0
-            have hmax1 : max 0 (ż i) = ż i := max_eq_right hpos
-            have hmax2 : max 0 (-ż i) = 0 :=
-              max_eq_left (by linarith : -ż i ≤ 0)
-            calc
-              ż i * w i = (ż i - 0) * w i := by ring
-              _ = (max 0 (ż i) - max 0 (-ż i)) * w i := by rw [hmax1, hmax2]
-          · -- Case ż i < 0: max 0 (ż i) = 0, max 0 (-ż i) = -ż i
-            have hneg' : ż i ≤ 0 := by linarith
-            have hmax1 : max 0 (ż i) = 0 := max_eq_left hneg'
-            have hmax2 : max 0 (-ż i) = -ż i :=
-              max_eq_right (by linarith : 0 ≤ -ż i)
-            calc
-              ż i * w i = (0 - (-ż i)) * w i := by ring
-              _ = (max 0 (ż i) - max 0 (-ż i)) * w i := by rw [hmax1, hmax2]
-        _ = (∑ i : ι, (max 0 (ż i) * w i - max 0 (-ż i) * w i)) := by
-          refine Finset.sum_congr rfl (fun i _ => ?_)
-          ring
-        _ = (∑ i : ι, max 0 (ż i) * w i) - (∑ i : ι, max 0 (-ż i) * w i) := by
-          rw [Finset.sum_sub_distrib]
-    rw [h_sum_eq]
-    ring
+  -- Algebraic decomposition of -⟨ż, w⟩ into positive/negative parts of ż
+  have h_decomp := inner_decomp_pos_neg ż w
   -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
   have h_log_pos : 0 < Real.log (1 / ε) := by
     rcases hε_one with ⟨hε_pos, hε_lt_one⟩
