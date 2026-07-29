@@ -629,8 +629,11 @@ lemma pos_delta_bound_3
   set C := max C_low C_w with hC_def
   have hC_pos : 0 < C := lt_max_of_lt_left hC_low_pos
   refine ⟨C, hC_pos, ?_⟩
-  -- Intersect the three "eventually" filters
-  filter_upwards [hX_ev, hW_low_ev, hW_ev] with ε hXε hW_low_ε hW_ε
+  -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
+  have h_mem_one : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) := by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun x hx => hx⟩
+  filter_upwards [hX_ev, hW_low_ev, hW_ev, h_mem_one] with ε hXε hW_low_ε hW_ε hε_one
   intro τ hτ
   rcases hτ with ⟨hτ0, hτs⟩
   -- Notation for the derivative and the dual variable
@@ -674,6 +677,11 @@ lemma pos_delta_bound_3
           rw [Finset.sum_sub_distrib]
     rw [h_sum_eq]
     ring
+  -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
+  have h_log_pos : 0 < Real.log (1 / ε) := by
+    rcases hε_one with ⟨hε_pos, hε_lt_one⟩
+    have h_one_div_gt_one : 1 < 1 / ε := one_lt_one_div hε_pos hε_lt_one
+    exact Real.log_pos h_one_div_gt_one
   -- Now bound each part using the bounds on w.
   -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, ż_i) ≥ 0,
   --   -(max(0, ż_i)) * w_i ≤ max(0, ż_i) * C_low / log(1/ε)
@@ -681,14 +689,51 @@ lemma pos_delta_bound_3
   --   max(0, -ż_i) * w_i ≤ max(0, -ż_i) * C_w * (1+τ)
   have h_bound_pos : -(∑ i, max 0 (ż i) * w i) ≤
       (C_low / Real.log (1 / ε)) * (∑ i, max 0 (ż i)) := by
-    -- For each i: -(max(0, ż_i)) * w_i ≤ max(0, ż_i) * C_low / log(1/ε)
-    -- This uses hW_low_ε which gives -C_low / log(1/ε) ≤ w_i
-    sorry
+    have h_nonneg_log : 0 ≤ Real.log (1 / ε) := le_of_lt h_log_pos
+    calc
+      -(∑ i, max 0 (ż i) * w i) = ∑ i, (-(max 0 (ż i)) * w i) := by
+        simp [Finset.sum_neg_distrib]
+      _ ≤ ∑ i, (max 0 (ż i) * (C_low / Real.log (1 / ε))) := by
+        refine Finset.sum_le_sum (fun i _ => ?_)
+        by_cases hż : 0 ≤ ż i
+        · have hmax : max 0 (ż i) = ż i := max_eq_right hż
+          rw [hmax]
+          -- Use the .ofLp form from hW_low_ε, relate to w i via dsimp
+          have hw_bound := hW_low_ε τ ⟨hτ0, hτs⟩ i
+          have hw_bound' : -C_low / Real.log (1 / ε) ≤ w i := by
+            simpa [w] using hw_bound
+          -- hw_bound': -C_low / L ≤ w i
+          -- Apply neg_le_neg: -(w i) ≤ -(-C_low / L) = C_low / L
+          have hneg_w : -w i ≤ C_low / Real.log (1 / ε) := by
+            simpa [neg_div] using neg_le_neg hw_bound'
+          calc
+            -(ż i) * w i = ż i * (-w i) := by ring
+            _ ≤ ż i * (C_low / Real.log (1 / ε)) :=
+              mul_le_mul_of_nonneg_left hneg_w hż
+        · have hmax : max 0 (ż i) = 0 := max_eq_left (by linarith)
+          simp [hmax]
+      _ = (C_low / Real.log (1 / ε)) * (∑ i, max 0 (ż i)) := by
+        rw [Finset.mul_sum]
+        refine Finset.sum_congr rfl (fun i _ => ?_)
+        ring
   have h_bound_neg : (∑ i, max 0 (-ż i) * w i) ≤
       C_w * (∑ i, (1 + τ) * max 0 (-ż i)) := by
-    -- For each i: max(0, -ż_i) * w_i ≤ max(0, -ż_i) * C_w * (1+τ)
-    -- This uses hW_ε which gives |w_i| ≤ C_w * (1+τ), so w_i ≤ C_w * (1+τ)
-    sorry
+    calc
+      (∑ i, max 0 (-ż i) * w i) ≤ (∑ i, max 0 (-ż i) * (C_w * (1 + τ))) := by
+        refine Finset.sum_le_sum (fun i _ => ?_)
+        have hw_bound := hW_ε τ ⟨hτ0, hτs⟩ i
+        -- hw_bound: |(posRescaledMirrorVariable ...).ofLp i| ≤ C_w * (1 + τ)
+        -- Relate to w i
+        have hw_bound' : |w i| ≤ C_w * (1 + τ) := by
+          simpa [w] using hw_bound
+        -- abs_le.mp gives: -C_w*(1+τ) ≤ w i ∧ w i ≤ C_w*(1+τ)
+        have hw_le : w i ≤ C_w * (1 + τ) := (abs_le.mp hw_bound').2
+        have h_nonneg : 0 ≤ max 0 (-ż i) := le_max_left _ _
+        exact mul_le_mul_of_nonneg_left hw_le h_nonneg
+      _ = C_w * (∑ i, (1 + τ) * max 0 (-ż i)) := by
+        rw [Finset.mul_sum]
+        refine Finset.sum_congr rfl (fun i _ => ?_)
+        ring
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward.
   -- By the Fundamental Theorem of Calculus:
   --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
@@ -705,13 +750,6 @@ lemma pos_delta_bound_3
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
-  -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
-  -- Since we are in 𝓝[>] 0, we can intersect with (0,1).
-  have h_log_pos : 0 < Real.log (1 / ε) := by
-    -- This requires ε > 0 and ε < 1. We already know ε > 0 from the filter 𝓝[>] 0.
-    -- We can add an additional filter condition or use a lemma.
-    -- For the sketch, we leave this as sorry.
-    sorry
   -- Assemble the final inequality
   calc
     -inner ℝ ż w = -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) := h_decomp
