@@ -1356,7 +1356,8 @@ Following the notes, a *signed sample* is a pair `(w, s)` consisting of a parame
 sign `s ∈ {±1}`, drawn from the normalized measure `μ_tilde` built out of the Jordan decomposition
 `μ = μ₊ - μ₋`:
 
-  `Pr[s = +1] = ‖μ₊‖₁ / ‖μ‖₁`,  then  `w ∼ μ_s / ‖μ_s‖₁`,  output  `g_tilde(·; w, s) = s ‖μ‖₁ g(·; w)`.
+  `Pr[s = +1] = ‖μ₊‖₁ / ‖μ‖₁`, then `w ∼ μ_s / ‖μ_s‖₁`, and output
+  `g_tilde(·; w, s) = s ‖μ‖₁ g(·; w)`.
 
 **Refactor note.**  The signed sample used to be a bespoke `structure SignedSample (p : ℕ)` with
 `weight : Fin p → ℝ`.  It is replaced here by the plain product `W × Bool` over an *abstract*
