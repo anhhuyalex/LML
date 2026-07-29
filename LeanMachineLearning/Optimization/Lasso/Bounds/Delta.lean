@@ -173,13 +173,13 @@ lemma posRescaledMirrorVariable_sub_eq_integral
     _ = -(c * t_s) • r + (c * t_s * lambda) • ones +
         c • matVec M ((posIntegratedTrajectory u) t_s) := by ring_nf
     _ = -s • r + (s * lambda) • ones + c • matVec M ((posIntegratedTrajectory u) t_s) := by
-      have hct : c * t_s = s := by
-        dsimp [c, t_s, posTimeFromRescaled]; field_simp [hlog]
-      rw [hct]
+      rw [show c * t_s = s by
+        dsimp [c, t_s, posTimeFromRescaled]; field_simp [hlog]]
     _ = -s • r + (s * lambda) • ones +
         matVec M (c • (posIntegratedTrajectory u) t_s) := by rw [matVec_smul_eq]
     _ = matVec M (posIntegratedTrajectoryRescaled ε u s) - s • r + (s * lambda) • ones := by
-      rw [h_z_rescaled]
+      rw [show posIntegratedTrajectoryRescaled ε u s = c • (posIntegratedTrajectory u) t_s from by
+        dsimp [posIntegratedTrajectoryRescaled, c, t_s]]
       simp [sub_eq_add_neg]; abel
 
 /--
