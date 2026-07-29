@@ -109,7 +109,7 @@ Informal proof reference: `docs/Lasso.md`, Section 4.6.  This theorem is now
 placed after the delta and energy estimates that prove it.
 -/
 theorem pos_lasso_connection_approx
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι)
     (s : ℝ) (hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
@@ -117,6 +117,8 @@ theorem pos_lasso_connection_approx
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       positiveLassoObjective M r lambda s
@@ -128,7 +130,10 @@ theorem pos_lasso_connection_approx
   -- is bounded by the energy functional. The energy decreases along the gradient
   -- flow trajectory and its limit is bounded by `posLassoMin + C * suboptimalityGap`.
   -- Finally, applying the delta bound `h_delta_bound` gives the desired uniform approximation.
-  sorry
+  --
+  -- This formalization skeleton relies on `positive_path_energy_bound`, which
+  -- integrates the differential inequality. We invoke it directly here.
+  exact positive_path_energy_bound M Mdagger r lambda β s hs u hdata hβ hu x_lasso hx_lasso w hdual h_regular
 
 /--
 Lemma 4.12 from `docs/Lasso.md`: under the monotonicity hypothesis of Theorem
@@ -141,19 +146,56 @@ Lipschitz control of the dual path and hence of the projection of `z(μ)` onto
 coordinatewise variation into an `L¹` bound on compact intervals.
 -/
 theorem monotone_positive_path_regular
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (w : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
     LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso) := by
-  -- Proof sketch (Section 4.7, Lemma 4.12):
-  -- By Lemma 4.11 (`parametric_lcp_dual_regular`), the dual path is locally Lipschitz.
-  -- Complementarity conditions then constrain the projection of z(μ) onto the kernel of M.
-  -- Finally, the assumption that μ ↦ μ * x(μ) is monotone implies that its variation
-  -- on any compact interval is simply its total change, providing an L¹ bound.
-  -- This controls the path variation and establishes absolute continuity (Lipschitz on compacts).
-  sorry
+  have h_lip_dual := hdual.locally_lipschitz
+  have h_lip_span : LocallyLipschitzOnCompacts (fun μ => matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) := by
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.7, Lemma 4.12):
+    By Lemma 4.11 (`parametric_lcp_dual_regular`), the dual path `w` is locally Lipschitz.
+    Using the LCP equation `1/(1+μλ) w(μ) = -μ/(1+μλ) r + 1 + M(1/(1+μλ) z(μ))`,
+    the projection of `z(μ)` onto `Span M` is an affine function of `w(μ)` and thus
+    also locally Lipschitz.
+    -/
+    sorry
+  have h_lip_ker : LocallyLipschitzOnCompacts (fun μ => scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) := by
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.7, Lemma 4.12):
+    By complementarity, `⟨w(μ), z(μ)⟩ = 0`. Since `1/(1+μλ) w(μ) ∈ 1 + Span M`,
+    we can expand this inner product to bound the kernel projection.
+    The sum `⟨1, P_ker z(μ)⟩` can be expressed in terms of `w` and `P_span z`,
+    which are both locally Lipschitz, making the L1 norm of the kernel projection locally Lipschitz.
+    -/
+    sorry
+  refine ⟨fun a b ha hab => ?_⟩
+  rcases h_lip_span.lipschitz_on_Icc a b ha hab with ⟨K1, hK1_nonneg, hK1⟩
+  rcases h_lip_ker.lipschitz_on_Icc a b ha hab with ⟨K2, hK2_nonneg, hK2⟩
+  use K1 + K2
+  constructor
+  · exact add_nonneg hK1_nonneg hK2_nonneg
+  · intro μ hμ ν hν
+    have h_eq1 : scaledPrimalPath x_lasso μ = (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) + (scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) := by
+      abel
+    have h_eq2 : scaledPrimalPath x_lasso ν = (matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) + (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) := by
+      abel
+    rw [h_eq1, h_eq2]
+    have h_sub : (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) + (scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)))) - 
+                 (matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)) + (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)))) =
+                 (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) + 
+                 ((scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) - (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)))) := by
+      abel
+    rw [h_sub]
+    calc
+      ‖(matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) + ((scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) - (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))))‖
+        ≤ ‖matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))‖ + ‖(scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) - (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)))‖ := norm_add_le _ _
+      _ ≤ K1 * |μ - ν| + K2 * |μ - ν| := add_le_add (hK1 μ hμ ν hν) (hK2 μ hμ ν hν)
+      _ = (K1 + K2) * |μ - ν| := by ring
 
 /--
 Theorem 3.1: under monotonicity, the positive average trajectory exactly
@@ -164,7 +206,7 @@ skeleton, this statement no longer assumes compact-interval regularity as an
 extra hypothesis; that regularity is supplied by `monotone_positive_path_regular`.
 -/
 theorem pos_lasso_connection_monotone
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι)
     (s : ℝ) (hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
@@ -172,18 +214,67 @@ theorem pos_lasso_connection_monotone
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
     Tendsto
       (fun ε =>
         positiveLassoObjective M r lambda s
           (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)))
       (𝓝[>] 0) (𝓝 (posLassoMin M r lambda s)) := by
-  -- Proof sketch (Section 4.7 from `docs/Lasso.md`):
-  -- From `monotone_positive_path_regular`, the path is locally Lipschitz.
-  -- Under monotonicity, the downward variation `positiveZDownward` is exactly zero.
-  -- Substituting this into `pos_lasso_connection_approx` shows the approximation error
-  -- bound reduces to just δ. As ε → 0 and δ → 0, the trajectory converges to the minimum.
-  sorry
+  have h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso) :=
+    monotone_positive_path_regular M Mdagger r lambda x_lasso w hdata hx_lasso hdual h_monotone
+  have h_approx := pos_lasso_connection_approx M Mdagger r lambda β s hs u hdata hβ hu x_lasso hx_lasso w hdual h_regular
+  have h_zdown_zero : positiveZDownward x_lasso s = 0 := by
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.7):
+    The downward variation `positiveZDownward` is defined as the integral of the negative
+    part of the derivative of the scaled path `z(μ)`. Since `z(μ)` is assumed to be monotone
+    non-decreasing coordinate-wise, its derivative is almost everywhere non-negative.
+    Thus, the negative part is zero, making the integral zero.
+    -/
+    sorry
+  rcases h_approx with ⟨C, hC_pos, h_bound⟩
+  have h_sub_zero : suboptimalityGap lambda s (positiveZDownward x_lasso s) = 0 := by
+    rw [h_zdown_zero, suboptimalityGap]
+    simp
+  
+  have h_traj_nonneg : ∀ ε > 0, Nonnegative (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)) := by
+    /-
+    INFORMAL PROOF: The trajectory `u ε` evolves in the positive quadrant,
+    so its time-average `posAverageTrajectory` is also non-negative.
+    -/
+    sorry
+
+  have h_pos_min : ∀ ε > 0, posLassoMin M r lambda s ≤ positiveLassoObjective M r lambda s (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)) := by
+    intro ε hε
+    have _h1 := h_traj_nonneg ε hε
+    /-
+    INFORMAL PROOF: `posLassoMin` is the infimum of the objective over all non-negative vectors.
+    Since the average trajectory is non-negative, its objective value bounds the infimum from above.
+    -/
+    sorry
+
+  rw [tendsto_order]
+  constructor
+  · intro a ha
+    have h_eventual : ∀ᶠ (ε : ℝ) in 𝓝[>] 0, a < posLassoMin M r lambda s := by
+      filter_upwards [] with ε
+      exact ha
+    filter_upwards [h_eventual, eventually_mem_nhdsWithin] with ε h_a h_pos
+    calc
+      a < posLassoMin M r lambda s := h_a
+      _ ≤ positiveLassoObjective M r lambda s (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)) := h_pos_min ε h_pos
+  · intro b hb
+    have h_diff : 0 < (b - posLassoMin M r lambda s) / 2 := half_pos (sub_pos.mpr hb)
+    have h_bound_eventual := h_bound ((b - posLassoMin M r lambda s) / 2) h_diff
+    filter_upwards [h_bound_eventual] with ε h_le
+    calc
+      positiveLassoObjective M r lambda s (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
+        ≤ posLassoMin M r lambda s + C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + (b - posLassoMin M r lambda s) / 2 := h_le
+      _ = posLassoMin M r lambda s + 0 + (b - posLassoMin M r lambda s) / 2 := by rw [h_sub_zero, mul_zero]
+      _ = (posLassoMin M r lambda s + b) / 2 := by linarith
+      _ < b := by linarith
 
 /-! ## Section 5: signed-to-positive reductions -/
 

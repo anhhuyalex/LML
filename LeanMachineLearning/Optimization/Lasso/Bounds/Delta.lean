@@ -518,12 +518,127 @@ lemma pos_delta_bound_3
     -- whose solution u_i(t) = u_i(0) exp(∫₀ᵗ A_i) never crosses zero when
     -- u_i(0) = √ε β_i ≠ 0.  The formal lemma is not yet proved.
     have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
-      -- Proof sketch: The gradient flow ODE gives u_i' = -2 u_i * ((M x)_i - r_i + lambda).
-      -- Since u_i(0) = √ε β_i ≠ 0 (by hβ and ε > 0), and the ODE is linear in u_i,
-      -- u_i(t) = u_i(0) * exp(∫₀ᵗ -2((M x(s))_i - r_i + lambda) ds) never vanishes.
-      -- Hence x_i(t) = u_i(t)² ≠ 0 for all t.
-      -- Formalization requires ODE uniqueness; left as future work.
-      sorry
+      intro ε hε t i
+      have hM_symm : M.IsSymm := hdata.psd.symm
+      have hflow := hu ε hε
+      set x := fun τ => posEffectiveParameter (u ε) τ with hx_def
+      -- Initial value x(0) = ε • β², so x_i(0) = ε * β_i² ≠ 0
+      have hx0 : x 0 = ε • coordinateSquare β := by
+        change posEffectiveParameter (u ε) 0 = _
+        rw [posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε)
+          hflow (by linarith)]
+      have hx0_i : (x 0) i = ε * (β i * β i) := by
+        rw [hx0]; simp [coordinateSquare, euclideanOf]
+      have hx0_ne_zero : (x 0) i ≠ 0 := by
+        rw [hx0_i]
+        have hβ_sq_ne_zero : β i * β i ≠ 0 := mul_ne_zero (hβ i) (hβ i)
+        exact mul_ne_zero (by linarith) hβ_sq_ne_zero
+      -- ODE for x(t) from the gradient flow
+      have hx_ode_all := pos_effective_parameter_hasDerivAt M r lambda ε β (u ε) hflow hM_symm
+      have hx_ode_t := hx_ode_all t
+      -- Linear isomorphism to pull back componentwise derivatives
+      let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+      have h_pi : HasDerivAt (fun τ => e (x τ))
+          (e (positiveEffectiveVectorField M r lambda (x t))) t :=
+        e.hasFDerivAt.comp_hasDerivAt t hx_ode_t
+      have hxi_deriv : HasDerivAt (fun τ => (x τ) i)
+          (-4 * (x t) i * ((matVec M (x t)) i - r i + lambda)) t := by
+        have h := hasDerivAt_pi.1 h_pi i
+        simpa [e, positiveEffectiveVectorField, euclideanOf] using h
+      -- Define a_i(τ) = -4 * ((M x(τ))_i - r_i + λ), so that x_i'(τ) = a_i(τ) * x_i(τ)
+      set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lambda) with ha_def
+      have hxi_deriv' : HasDerivAt (fun τ => (x τ) i) (a_i t * (x t) i) t := by
+        have h_eq : -4 * (x t) i * ((matVec M (x t)) i - r i + lambda) = a_i t * (x t) i := by
+          dsimp [a_i]
+          let x_i : ℝ := (x t) i
+          let M_i : ℝ := (matVec M (x t)) i
+          let r_i : ℝ := r i
+          let lam : ℝ := lambda
+          change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
+          ring
+        exact h_eq ▸ hxi_deriv
+      -- Componentwise ODE at any time τ
+      have hxi_deriv_at (τ : ℝ) : HasDerivAt (fun τ => (x τ) i) (a_i τ * (x τ) i) τ := by
+        have hx_ode := hx_ode_all τ
+        have h_pi' : HasDerivAt (fun τ => e (x τ))
+            (e (positiveEffectiveVectorField M r lambda (x τ))) τ :=
+          e.hasFDerivAt.comp_hasDerivAt τ hx_ode
+        have h := hasDerivAt_pi.1 h_pi' i
+        have h_eq : (e (positiveEffectiveVectorField M r lambda (x τ))) i = a_i τ * (x τ) i := by
+          dsimp [e, positiveEffectiveVectorField, euclideanOf, a_i]
+          let x_i : ℝ := (x τ) i
+          let M_i : ℝ := (matVec M (x τ)) i
+          let r_i : ℝ := r i
+          let lam : ℝ := lambda
+          change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
+          ring
+        exact h_eq ▸ h
+      -- a_i is continuous (x is C^1, matVec is linear)
+      have ha_cont : Continuous a_i := by
+        dsimp [a_i]
+        have hx_cont (j : ι) : Continuous (fun τ => (x τ) j) := by
+          change Continuous (fun τ => e (u ε τ) j * e (u ε τ) j)
+          have h1 : Continuous (fun τ => e (u ε τ)) := e.continuous.comp hflow.cont_diff.continuous
+          have huj : Continuous (fun τ => e (u ε τ) j) := (continuous_apply j).comp h1
+          exact huj.mul huj
+        have h_matVec : Continuous (fun τ => (matVec M (x τ)) i) := by
+          dsimp [matVec, euclideanOf]
+          apply continuous_finsetSum
+          intro j _
+          exact continuous_const.mul (hx_cont j)
+        exact h_matVec.sub continuous_const |>.add continuous_const |>.const_mul (-4)
+      -- Integrating factor: I(τ) = ∫₀^τ a_i(s) ds, E(τ) = exp(-I(τ))
+      have h_int_deriv (τ : ℝ) : HasDerivAt (fun τ => ∫ s in (0:ℝ)..τ, a_i s) (a_i τ) τ := by
+        apply intervalIntegral.integral_hasDerivAt_right
+          (ha_cont.intervalIntegrable _ _) (ha_cont.stronglyMeasurableAtFilter _ _)
+          ha_cont.continuousAt
+      set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s with hI_def
+      have hI_deriv (τ : ℝ) : HasDerivAt I (a_i τ) τ := h_int_deriv τ
+      have hE_deriv (τ : ℝ) : HasDerivAt (fun τ => Real.exp (-I τ))
+          (-a_i τ * Real.exp (-I τ)) τ := by
+        have h_neg_I : HasDerivAt (-I) (-a_i τ) τ := (hI_deriv τ).neg
+        have h_exp : HasDerivAt (fun x => Real.exp ((-I) x)) (Real.exp ((-I) τ) * -a_i τ) τ := h_neg_I.exp
+        have h_eq2 : Real.exp ((-I) τ) * -a_i τ = -a_i τ * Real.exp (-I τ) := mul_comm _ _
+        exact h_eq2 ▸ h_exp
+      set E := fun (τ : ℝ) => Real.exp (-I τ) with hE_def
+      have hE_pos : ∀ τ, 0 < E τ := by
+        intro τ; dsimp [E]; exact Real.exp_pos _
+      -- Product rule: (x_i * E)' = x_i' * E + x_i * E' = (a_i * x_i) * E + x_i * (-a_i * E) = 0
+      have h_prod_deriv (τ : ℝ) : HasDerivAt (fun τ => (x τ) i * E τ) 0 τ := by
+        have hxi := hxi_deriv_at τ
+        have hE := hE_deriv τ
+        have h_mul := HasDerivAt.mul hxi hE
+        have h_eq : a_i τ * (x τ) i * E τ + (x τ) i * (-a_i τ * Real.exp (-I τ)) = 0 := by
+          dsimp [E]
+          let a : ℝ := a_i τ
+          let x_i : ℝ := (x τ) i
+          let E_t : ℝ := Real.exp (-I τ)
+          change a * x_i * E_t + x_i * (-a * E_t) = 0
+          ring
+        exact h_eq ▸ h_mul
+      -- Zero derivative everywhere implies constant
+      have h_prod_const : ∀ τ, (x τ) i * E τ = (x 0) i * E 0 := by
+        set f := fun (τ : ℝ) => (x τ) i * E τ with hf_def
+        have h_diff : Differentiable ℝ f := fun τ => (h_prod_deriv τ).differentiableAt
+        have h_deriv_eq_zero : ∀ τ, deriv f τ = 0 := fun τ => (h_prod_deriv τ).deriv
+        have h_const := is_const_of_deriv_eq_zero h_diff h_deriv_eq_zero
+        intro τ
+        exact h_const τ 0
+      have hE0 : E 0 = 1 := by
+        dsimp [E, I]; simp
+      -- Conclusion: (x t) i * E t = (x 0) i ≠ 0, and E t > 0, so (x t) i ≠ 0
+      have hx_t_ne_zero : (x t) i ≠ 0 := by
+        have h_eq := h_prod_const t
+        rw [hE0] at h_eq
+        intro hzero
+        have h_symm : (x 0) i = 0 := by
+          calc (x 0) i = (x 0) i * 1 := by ring
+          _ = (x t) i * E t := h_eq.symm
+          _ = 0 * E t := by rw [hzero]
+          _ = 0 := by ring
+        exact hx0_ne_zero h_symm
+      simpa [hx_def] using hx_t_ne_zero
     -- Apply the uniform trajectory bound (Proposition 4.1 from the paper).
     obtain ⟨C, ε₀, hCpos, hε₀pos, hbound⟩ :=
       pos_trajectory_uniform_bound M r lambda β u hdata hβ hu hu_pos
@@ -583,8 +698,14 @@ lemma pos_delta_bound_3
   -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
   have h_w_lower : ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
-    -- Let C_low := max(0, log X) if X ≥ 1, or 1 if X < 1 (to keep positivity).
-    -- For each i: wᵋ_i = -log(xᵋ_i)/log(1/ε) ≥ -max(0, log X)/log(1/ε) ≥ -C_low/log(1/ε)
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.3):
+    By the uniform trajectory bound, all coordinates of the effective parameter xᵋ_i
+    are bounded above by some uniform constant X > 0.
+    Since wᵋ_i = -log(xᵋ_i) / log(1/ε), the upper bound xᵋ_i ≤ X implies
+    a lower bound on -log(xᵋ_i) ≥ -max(0, log X).
+    Dividing by log(1/ε) > 0 gives wᵋ_i ≥ -C_low / log(1/ε) where C_low = max(0, log X).
+    -/
     sorry
   rcases h_w_lower with ⟨C_low, hC_low_pos, hW_low_ev⟩
   -- From the integrated mirror equation (positive_integrated_mirror_equation)
@@ -595,10 +716,16 @@ lemma pos_delta_bound_3
   -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
   have h_w_upper : ∃ C_w > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, |posRescaledMirrorVariable ε (u ε) τ i| ≤ C_w * (1 + τ) := by
-    -- This follows from positive_integrated_mirror_equation plus the trajectory bound.
-    -- The proof requires M.IsSymm (from hdata.psd.symm) and the positivity condition
-    -- hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0 (which follows from hβ and
-    -- the gradient flow preserving positivity — also not yet formalized).
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.3):
+    The integrated mirror equation expresses wᵋ(τ) as:
+      wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
+    Since xᵋ(τ) is bounded uniformly by X on [0, s], its integral zᵋ(τ) = ∫₀^τ xᵋ(t) dt
+    is bounded in norm by τ * X.
+    Since wᵋ(0) converges to 𝟙, it is also bounded.
+    Thus, by the triangle inequality, the norm of wᵋ(τ) is bounded by C_w * (1 + τ)
+    for some constant C_w combining the bounds of the individual terms.
+    -/
     sorry
   rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
   -- Combine the constants
@@ -667,12 +794,21 @@ lemma pos_delta_bound_3
   --   deriv (positiveZDownward x_lasso) τ
   --     = ∑_i (1+τ) * max 0 (-deriv (scaledPrimalPath x_lasso) τ i)
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
-    -- This follows from the definition of positiveZUpward and the FTC.
-    -- At points where the derivative does not exist, both sides are 0 (deriv returns 0,
-    -- and zDot = 0, so max 0 (zDot i) = 0).
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.6):
+    The positiveZUpward and positiveZDownward functions are defined as the integrals
+    of the positive and negative variations of the scaled primal path, respectively.
+    By the Fundamental Theorem of Calculus (specifically, Lebesgue differentiation theorem
+    for Lipschitz paths), the derivative of the integral recovers the integrand almost everywhere.
+    Thus, differentiating positiveZUpward with respect to τ gives ∑_i max(0, zDot_i).
+    -/
     sorry
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
-    -- Similarly for positiveZDownward.
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.6):
+    Similarly, differentiating positiveZDownward with respect to τ yields
+    ∑_i (1 + τ) * max(0, -zDot_i), since it is the integral of (1+τ) * (x_lasso' ₋).
+    -/
     sorry
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
@@ -784,6 +920,15 @@ lemma positive_delta_complementarity_bound
      inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
        deriv (scaledPrimalPath x_lasso) τ)
        (ones - posRescaledMirrorVariable ε (u ε) 0)) := by
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.6, Eq 4.14):
+    This algebraic identity differentiates the seminorm pathDelta Δᵋ(τ) = 1/2 ‖zᵋ(τ) - z(τ)‖_M^2.
+    Using the chain rule, the derivative is inner(zᵋ' - z', M(zᵋ - z)).
+    We substitute M zᵋ = wᵋ - wᵋ(0) + τ·r - τ·λ·𝟙 from the integrated mirror flow equation,
+    and M z = -z(0) + τ·r - τ·λ·𝟙 + w(τ) from the exact Lasso path LCP.
+    Expanding the inner product and collecting terms grouping the primal path derivatives
+    and LCP complementarity errors gives exactly the four terms on the RHS.
+    -/
     sorry
   rw [h_deriv_eq]
   have h_alg : C1 / Real.log (1 / ε) + 0 +
@@ -791,6 +936,13 @@ lemma positive_delta_complementarity_bound
         deriv (positiveZDownward x_lasso) τ) + δ
     ≤ max C1 C3 * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
       deriv (positiveZDownward x_lasso) τ) + δ := by
+    /-
+    INFORMAL PROOF (docs/Lasso.md, Section 4.6):
+    This is a purely algebraic inequality combining the bounds from the four complementarity terms.
+    Since C1 and C3 are positive, C1 / log(1/ε) ≤ max(C1, C3) / log(1/ε).
+    Similarly, C3 * (1/log(1/ε) * z_up' + z_down') ≤ max(C1, C3) * (1/log(1/ε) * z_up' + z_down').
+    Factoring out max(C1, C3) and adding the delta term matches the target bound.
+    -/
     sorry
   linarith [h1ε τ hτ, h2ε τ hτ, h3ε τ hτ, h4ε τ hτ, h_alg]
 
@@ -931,7 +1083,13 @@ theorem positive_path_delta_bound_full
     have hG_deriv : deriv G τ = C * (1 / Real.log (1 / ε) *
       (1 + deriv (positiveZUpward x_lasso) τ) +
       deriv (positiveZDownward x_lasso) τ) + C * δ / s := by
-      sorry -- Follows from linearity of `deriv`
+      /-
+      INFORMAL PROOF:
+      This follows from the linearity of the derivative operator `deriv`.
+      Since G(τ) = C * (1 / log(1/ε) * (τ + z_up(τ)) + z_down(τ)) + (C * δ / s) * τ,
+      we have G'(τ) = C * (1 / log(1/ε) * (1 + z_up'(τ)) + z_down'(τ)) + C * δ / s.
+      -/
+      sorry
     rw [hG_deriv]
     exact h_deriv τ hτ
   have hF0 : F 0 = 0 := pathDelta_zero M ε (u ε) x_lasso
@@ -940,7 +1098,19 @@ theorem positive_path_delta_bound_full
     have ⟨hz_up, hz_down⟩ := z_upward_downward_zero x_lasso
     rw [hz_up, hz_down]
     ring
-  have h_bound_s := bound_of_deriv_bound (le_of_lt hs) h_deriv_bound hF0 hG0 sorry sorry sorry sorry
+  have hF_cont : ContinuousOn F (Set.Icc 0 s) := sorry
+  have hG_cont : ContinuousOn G (Set.Icc 0 s) := sorry
+  have hF_diff : DifferentiableOn ℝ F (Set.Ioo 0 s) := sorry
+  have hG_diff : DifferentiableOn ℝ G (Set.Ioo 0 s) := sorry
+  /-
+  INFORMAL PROOF (docs/Lasso.md, Section 4.6):
+  We apply the integration lemma bound_of_deriv_bound (Mean Value Theorem).
+  The functions F (the path delta) and G (the algebraic upper bound) are 
+  differentiable almost everywhere because they are composed of locally Lipschitz 
+  integrated trajectories. They are continuous everywhere.
+  Applying the integration lemma yields F(s) ≤ G(s).
+  -/
+  have h_bound_s := bound_of_deriv_bound (le_of_lt hs) h_deriv_bound hF0 hG0 hF_cont hG_cont hF_diff hG_diff
   have hG_eval : G s = C * (deltaFullError ε s (positiveZUpward x_lasso s)
       (positiveZDownward x_lasso s) + δ) := by
     dsimp [G, deltaFullError, deltaVanishingTerm]
