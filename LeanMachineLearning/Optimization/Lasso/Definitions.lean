@@ -12,6 +12,13 @@ public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Data.Matrix.Block
 
+/-!
+# Auxiliary definitions for Lasso convergence bounds
+
+This file defines minimum values, path energies, and rescaled trajectories used in the quantitative
+analysis of Lasso gradient flows.
+-/
+
 @[expose] public section
 
 namespace Lasso

@@ -243,18 +243,20 @@ theorem parts_mapEquiv [DecidableEq β] (e : α ≃ β) {s : Finset α}
   simp [mapEquiv, Finpartition.parts_map]
   rfl
 
+omit [DecidableEq α] in
 /-- `mapEquiv e` is an equivalence of finpartition types, with inverse `mapEquiv e.symm`. -/
 @[simp]
 lemma finsetOrderIso_symm_apply (e : α ≃ β) (B : Finset α) :
     e.symm.finsetOrderIso (e.finsetOrderIso B) = B := by
-  let _ := ‹DecidableEq α›
+  classical
   change e.symm.finsetCongr (e.finsetCongr B) = B
   simp [Equiv.finsetCongr_apply, Finset.map_map]
 
+omit [DecidableEq α] in
 @[simp]
 lemma finsetOrderIso_apply_symm (e : α ≃ β) (B : Finset β) :
     e.finsetOrderIso (e.symm.finsetOrderIso B) = B := by
-  let _ := ‹DecidableEq α›
+  classical
   change e.finsetCongr (e.symm.finsetCongr B) = B
   simp [Equiv.finsetCongr_apply, Finset.map_map]
 
@@ -294,7 +296,8 @@ lemma mapEquivEquiv_finset_eq (e : α ≃ β) (s : Finset α) :
   simp
 
 @[simp]
-lemma parts_mapEquiv_copy [DecidableEq β] (e : α ≃ β) {s s' : Finset α} (P : Finpartition s) (h : s = s') :
+lemma parts_mapEquiv_copy [DecidableEq β] (e : α ≃ β) {s s' : Finset α}
+    (P : Finpartition s) (h : s = s') :
     (mapEquiv e (P.copy h)).parts = (mapEquiv e P).parts := by
   subst h
   rfl
@@ -420,7 +423,8 @@ theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
 /-- The cumulant transform inverts the partition transform for functions vanishing at the empty
 set.
 
-Informal proof: this is the converse direction of the same Möbius inversion on the partition lattice.
+Informal proof: this is the converse direction of the same Möbius inversion on the partition
+lattice.
 The special value of `cumulantTransform` at the empty set agrees with the hypothesis `f ∅ = 0`.
 (Source: Theory of Möbius Functions, Rota (1964),
 https://link.springer.com/article/10.1007/BF01899123) -/

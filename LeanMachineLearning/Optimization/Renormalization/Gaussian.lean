@@ -1010,7 +1010,7 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
 -- Combine the two cardinality branches for a block-local formula.  This keeps
 -- analytic proofs focused on the pair and non-pair cases, leaving the `if`
 -- bookkeeping to a reusable finite-set helper.
-private lemma eq_if_card_two_of_eq_of_ne {ι : Type*} [DecidableEq ι]
+private lemma eq_if_card_two_of_eq_of_ne {ι : Type*}
     (F K : Finset ι → ℝ)
     (h_pair : ∀ {B : Finset ι}, B.card = 2 → F B = K B)
     (h_not_pair : ∀ {B : Finset ι}, B.card ≠ 2 → F B = 0)

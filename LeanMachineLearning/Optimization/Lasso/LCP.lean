@@ -61,6 +61,7 @@ noncomputable def scaledDualPath (lambda : ℝ) (w : ℝ → EuclideanSpace ℝ 
     ℝ → EuclideanSpace ℝ ι :=
   fun μ => (1 / (1 + μ * lambda)) • w μ
 
+omit [Fintype ι] in
 /--
 Algebraic identity relating `w` and its scaled dual path:
 `w(t) = (1 + t * lambda) • scaledDualPath lambda w t` when the denominator is nonzero.

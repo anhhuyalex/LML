@@ -80,6 +80,7 @@ def fourPointContraction (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
 
 Informal proof: coordinate evaluation is continuous on Euclidean space; finite products, scalar
 multiples, and finite sums of continuous real-valued functions remain continuous. -/
+omit [DecidableEq ι] in
 theorem continuous_potential (A : QuarticCoupling ι) : Continuous A.potential := by
   sorry
 

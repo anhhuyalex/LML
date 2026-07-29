@@ -8,6 +8,13 @@ module
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
 
+/-!
+# Energy bounds for positive Lasso dynamics
+
+This file develops the differential and integral energy estimates used to control the positive
+Lasso trajectory.
+-/
+
 @[expose] public section
 
 namespace Lasso
