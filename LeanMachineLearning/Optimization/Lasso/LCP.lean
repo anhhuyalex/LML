@@ -1682,9 +1682,50 @@ lemma derivative_properties_of_lipschitz
           set ξ := (-α) • y + u with hξ_def
           refine ⟨ξ, ?_, ?_⟩
           · -- Show h⁻¹ • (wt (μ+h) - wt μ) = matVec M ξ
-            -- From h_scaled_eq: wt = -s•r + 1 + M(zt), and r = M y
+            -- From h_scaled_lcp: wt = -s•r + ones + M(zt), and r = M y
             -- Then wt(μ+h)-wt(μ) = -(ds)•r + M d, and the result follows by algebra
-            sorry
+            have hwt_eq_μ := (h_scaled_lcp μ hμ_nonneg).1
+            have hwt_eq_μh := (h_scaled_lcp (μ + h) hμh_nonneg).1
+            have h_sub :
+                (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+                (-(s μ) • r + ones + matVec M (zt μ)) = -ds • r + matVec M d := by
+              calc
+                (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+                    (-(s μ) • r + ones + matVec M (zt μ))
+                    = (-(s (μ + h)) • r - (-(s μ) • r)) + (ones - ones) + 
+                      (matVec M (zt (μ + h)) - matVec M (zt μ)) := by abel
+                _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 0 + 
+                    (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
+                _ = (-(s (μ + h)) • r - (-(s μ) • r)) + 
+                    (matVec M (zt (μ + h)) - matVec M (zt μ)) := by simp
+                _ = ((-(s (μ + h))) - (-(s μ))) • r + matVec M (zt (μ + h) - zt μ) := by
+                  rw [← sub_smul, matVec_sub M]
+                _ = (-(s (μ + h) - s μ)) • r + matVec M d := by
+                  rw [hd_def]
+                  have hscalar : (-(s (μ + h))) - (-(s μ)) = -(s (μ + h) - s μ) := by ring
+                  rw [hscalar]
+                _ = -ds • r + matVec M d := by rw [hds_def]
+            calc
+              h⁻¹ • (wt (μ + h) - wt μ)
+                  = h⁻¹ • ((-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+                      (-(s μ) • r + ones + matVec M (zt μ))) := by
+                    rw [hwt_eq_μh, hwt_eq_μ]
+              _ = h⁻¹ • (-ds • r + matVec M d) := by rw [h_sub]
+              _ = h⁻¹ • (-ds • r) + h⁻¹ • (matVec M d) := by rw [smul_add]
+              _ = (h⁻¹ • (-ds • r)) + (matVec M (h⁻¹ • d)) := by rw [matVec_smul_eq M h⁻¹ d]
+              _ = ((h⁻¹ * (-ds)) • r) + (matVec M u) := by rw [smul_smul, hu_def]
+              _ = ((-(ds / h)) • r) + (matVec M u) := by
+                have htemp : h⁻¹ * (-ds) = -(ds / h) := by
+                  calc
+                    h⁻¹ * (-ds) = -(h⁻¹ * ds) := by ring
+                    _ = -(ds * h⁻¹) := by rw [mul_comm]
+                    _ = -(ds / h) := rfl
+                rw [htemp]
+              _ = (-α) • r + matVec M u := by rw [hα_def]
+              _ = (-α) • (matVec M y) + matVec M u := by rw [hy]
+              _ = matVec M ((-α) • y) + matVec M u := by rw [matVec_smul_eq M (-α) y]
+              _ = matVec M ((-α) • y + u) := by rw [matVec_add M]
+              _ = matVec M ξ := by rw [hξ_def]
           · -- Show inner ℝ ξ (matVec M ξ) ≤ inner ℝ y (matVec M y)
             -- This expands to α²⟨y,My⟩ + ⟨u,Mu⟩ - 2α⟨y,Mu⟩ ≤ ⟨y,My⟩
             -- Using the LCP key inequality: ⟨d, M d⟩ ≤ ds * ⟨r, d⟩ (unsigned)
