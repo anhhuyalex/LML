@@ -297,16 +297,11 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
     dsimp [posTimeFromRescaled]
     simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using
       ((hasDerivAt_id τ).div_const 4).mul_const (Real.log (1 / ε))
-  -- Chain rule: (posIntegratedTrajectory) ∘ (posTimeFromRescaled)
-  have h_chain : HasDerivAt
-      ((posIntegratedTrajectory u_eps) ∘ (fun ρ => posTimeFromRescaled ε ρ))
-      ((Real.log (1 / ε) / 4) • posEffectiveParameter u_eps t_ετ) τ :=
-    h_z_deriv.scomp τ h_time_deriv
   have h_smul : HasDerivAt
       (fun ρ => c • ((posIntegratedTrajectory u_eps) (posTimeFromRescaled ε ρ)))
       (c • ((Real.log (1 / ε) / 4) •
         posEffectiveParameter u_eps t_ετ)) τ :=
-    h_chain.const_smul c
+    (h_z_deriv.scomp τ h_time_deriv).const_smul c
   -- The scaling factors cancel: c * (log(1/ε)/4) = 1
   have h_factor : c * (Real.log (1 / ε) / 4) = 1 := by
     dsimp [c]
@@ -492,7 +487,10 @@ lemma pos_delta_bound_2
       ⟨v, hv_eq, hv_nonneg, hx_lasso_nonneg, hvx_zero⟩
     have h_nonneg : 0 ≤ inner ℝ x (τ • v) :=
       inner_nonneg_of_nonneg x (τ • v) hx_nonneg
-        (by intro i; simp; exact mul_nonneg (by linarith) (hv_nonneg i))
+        (by
+          intro i
+          simp only [PiLp.smul_apply, smul_eq_mul]
+          exact mul_nonneg (by linarith) (hv_nonneg i))
     rw [lcp_dual_scale_eq_target M r lambda τ hτ_pos.ne.symm x_lasso v hv_eq] at h_nonneg
     linarith
 
@@ -531,7 +529,145 @@ lemma pos_delta_bound_3
             (posRescaledMirrorVariable ε (u ε) τ)
         ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
           deriv (positiveZDownward x_lasso) τ) := by
-  sorry
+  -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
+  -- This gives a constant X > 0 such that for all sufficiently small ε and all
+  -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
+  have h_uniform_bound : ∃ X > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+      ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X := by
+    -- This requires Proposition 4.1 from the paper (Section 4.3).
+    -- Proof sketch: use energy monotonicity (Lemma 4.2), Bregman divergence
+    -- characterization (Lemma 4.3), bounds on dual iterates (Lemmas 4.4-4.5),
+    -- and Carathéodory's cone theorem (Lemmas 4.6-4.7).
+    sorry
+  rcases h_uniform_bound with ⟨X, hX_pos, hX_ev⟩
+  -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
+  -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
+  -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
+  -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
+  have h_w_lower : ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+      ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
+    -- Let C_low := max(0, log X) if X ≥ 1, or 1 if X < 1 (to keep positivity).
+    -- For each i: wᵋ_i = -log(xᵋ_i)/log(1/ε) ≥ -max(0, log X)/log(1/ε) ≥ -C_low/log(1/ε)
+    sorry
+  rcases h_w_lower with ⟨C_low, hC_low_pos, hW_low_ev⟩
+  -- From the integrated mirror equation (positive_integrated_mirror_equation)
+  -- together with the trajectory bound, we obtain an upper bound:
+  -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
+  -- The integrated mirror equation gives:
+  --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
+  -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
+  have h_w_upper : ∃ C_w > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+      ∀ i, |posRescaledMirrorVariable ε (u ε) τ i| ≤ C_w * (1 + τ) := by
+    -- This follows from positive_integrated_mirror_equation plus the trajectory bound.
+    -- The proof requires M.IsSymm (from hdata.psd.symm) and the positivity condition
+    -- hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0 (which follows from hβ and
+    -- the gradient flow preserving positivity — also not yet formalized).
+    sorry
+  rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
+  -- Combine the constants
+  set C := max C_low C_w with hC_def
+  have hC_pos : 0 < C := lt_max_of_lt_left hC_low_pos
+  refine ⟨C, hC_pos, ?_⟩
+  -- Intersect the three "eventually" filters
+  filter_upwards [hX_ev, hW_low_ev, hW_ev] with ε hXε hW_low_ε hW_ε
+  intro τ hτ
+  rcases hτ with ⟨hτ0, hτs⟩
+  -- Notation for the derivative and the dual variable
+  set ż := deriv (scaledPrimalPath x_lasso) τ with hż_def
+  set w := posRescaledMirrorVariable ε (u ε) τ with hw_def
+  -- Expand the inner product on EuclideanSpace into a coordinate sum
+  have h_inner_eq : inner ℝ ż w = ∑ i : ι, ż i * w i := by
+    rw [PiLp.inner_apply]
+    simp_rw [Real.inner_apply]
+  -- The key algebraic decomposition:
+  --   -⟨ż, w⟩ = -∑_i max(0, ż_i)·w_i + ∑_i max(0, -ż_i)·w_i
+  -- This uses the identity a = max(0,a) - max(0,-a) for any real a.
+  have h_decomp : -inner ℝ ż w =
+      -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) := by
+    rw [h_inner_eq]
+    have h_sum_eq : (∑ i : ι, ż i * w i) =
+        (∑ i : ι, max 0 (ż i) * w i) - (∑ i : ι, max 0 (-ż i) * w i) := by
+      calc
+        (∑ i : ι, ż i * w i) = (∑ i : ι, (max 0 (ż i) - max 0 (-ż i)) * w i) := by
+          refine Finset.sum_congr rfl (fun i _ => ?_)
+          by_cases hpos : 0 ≤ ż i
+          · -- Case ż i ≥ 0: max 0 (ż i) = ż i, max 0 (-ż i) = 0
+            have hmax1 : max 0 (ż i) = ż i := max_eq_right hpos
+            have hmax2 : max 0 (-ż i) = 0 :=
+              max_eq_left (by linarith : -ż i ≤ 0)
+            calc
+              ż i * w i = (ż i - 0) * w i := by ring
+              _ = (max 0 (ż i) - max 0 (-ż i)) * w i := by rw [hmax1, hmax2]
+          · -- Case ż i < 0: max 0 (ż i) = 0, max 0 (-ż i) = -ż i
+            have hneg' : ż i ≤ 0 := by linarith
+            have hmax1 : max 0 (ż i) = 0 := max_eq_left hneg'
+            have hmax2 : max 0 (-ż i) = -ż i :=
+              max_eq_right (by linarith : 0 ≤ -ż i)
+            calc
+              ż i * w i = (0 - (-ż i)) * w i := by ring
+              _ = (max 0 (ż i) - max 0 (-ż i)) * w i := by rw [hmax1, hmax2]
+        _ = (∑ i : ι, (max 0 (ż i) * w i - max 0 (-ż i) * w i)) := by
+          refine Finset.sum_congr rfl (fun i _ => ?_)
+          ring
+        _ = (∑ i : ι, max 0 (ż i) * w i) - (∑ i : ι, max 0 (-ż i) * w i) := by
+          rw [Finset.sum_sub_distrib]
+    rw [h_sum_eq]
+    ring
+  -- Now bound each part using the bounds on w.
+  -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, ż_i) ≥ 0,
+  --   -(max(0, ż_i)) * w_i ≤ max(0, ż_i) * C_low / log(1/ε)
+  -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -ż_i) ≥ 0,
+  --   max(0, -ż_i) * w_i ≤ max(0, -ż_i) * C_w * (1+τ)
+  have h_bound_pos : -(∑ i, max 0 (ż i) * w i) ≤
+      (C_low / Real.log (1 / ε)) * (∑ i, max 0 (ż i)) := by
+    -- For each i: -(max(0, ż_i)) * w_i ≤ max(0, ż_i) * C_low / log(1/ε)
+    -- This uses hW_low_ε which gives -C_low / log(1/ε) ≤ w_i
+    sorry
+  have h_bound_neg : (∑ i, max 0 (-ż i) * w i) ≤
+      C_w * (∑ i, (1 + τ) * max 0 (-ż i)) := by
+    -- For each i: max(0, -ż_i) * w_i ≤ max(0, -ż_i) * C_w * (1+τ)
+    -- This uses hW_ε which gives |w_i| ≤ C_w * (1+τ), so w_i ≤ C_w * (1+τ)
+    sorry
+  -- Relate the sums to derivatives of positiveZUpward and positiveZDownward.
+  -- By the Fundamental Theorem of Calculus:
+  --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
+  --   deriv (positiveZDownward x_lasso) τ
+  --     = ∑_i (1+τ) * max 0 (-deriv (scaledPrimalPath x_lasso) τ i)
+  have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (ż i) := by
+    -- This follows from the definition of positiveZUpward and the FTC.
+    -- At points where the derivative does not exist, both sides are 0 (deriv returns 0,
+    -- and ż = 0, so max 0 (ż i) = 0).
+    sorry
+  have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-ż i) := by
+    -- Similarly for positiveZDownward.
+    sorry
+  -- Rewrite the sums in the bounds to use the derivative expressions
+  rw [← h_upward_eq] at h_bound_pos
+  rw [← h_downward_eq] at h_bound_neg
+  -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
+  -- Since we are in 𝓝[>] 0, we can intersect with (0,1).
+  have h_log_pos : 0 < Real.log (1 / ε) := by
+    -- This requires ε > 0 and ε < 1. We already know ε > 0 from the filter 𝓝[>] 0.
+    -- We can add an additional filter condition or use a lemma.
+    -- For the sketch, we leave this as sorry.
+    sorry
+  -- Assemble the final inequality
+  calc
+    -inner ℝ ż w = -(∑ i, max 0 (ż i) * w i) + (∑ i, max 0 (-ż i) * w i) := h_decomp
+    _ ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ) +
+        C_w * (deriv (positiveZDownward x_lasso) τ) := by
+      linarith [h_bound_pos, h_bound_neg]
+    _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+        deriv (positiveZDownward x_lasso) τ) := by
+      -- We need: C_low / log ≤ C / log and C_w ≤ C.
+      -- Since C = max C_low C_w ≥ C_low and C ≥ C_w.
+      have hC_low : C_low ≤ C := le_max_left _ _
+      have hC_w : C_w ≤ C := le_max_right _ _
+      -- Also need deriv (positiveZUpward x_lasso) τ ≥ 0 and deriv (positiveZDownward x_lasso) τ ≥ 0
+      -- (they are derivatives of monotone nondecreasing functions).
+      -- These follow from the definitions as integrals of nonnegative integrands.
+      -- For the sketch we leave these as sorry.
+      sorry
 
 /--
 Section 4.6, Eq. (4.14), Term 4.

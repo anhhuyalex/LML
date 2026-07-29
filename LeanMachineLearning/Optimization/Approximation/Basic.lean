@@ -13,6 +13,7 @@ public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Analysis.InnerProductSpace.Continuous
 public import Mathlib.Algebra.BigOperators.Fin
 public import Mathlib.Data.Fin.Tuple.Basic
+public import LeanMachineLearning.Optimization.Renormalization.Activation
 
 /-!
 # Neural network function classes and activations
@@ -44,11 +45,11 @@ namespace Approximation
 
 /-! ### Activation functions -/
 
-/-- The threshold (Heaviside) activation: σ(z) = 1 if z ≥ 0, else 0. -/
-noncomputable def thresholdActivation : ℝ → ℝ := fun z => if z ≥ 0 then 1 else 0
+/-- Compatibility alias for the shared threshold activation. -/
+noncomputable abbrev thresholdActivation : ℝ → ℝ := NeuralNetwork.threshold
 
-/-- The ReLU activation: σ(z) = max(z, 0). -/
-noncomputable def reluActivation : ℝ → ℝ := fun z => max z 0
+/-- Compatibility alias for the shared ReLU activation. -/
+noncomputable abbrev reluActivation : ℝ → ℝ := NeuralNetwork.relu
 
 /-- A sigmoidal activation is continuous with limits 0 at -∞ and 1 at +∞. -/
 structure Sigmoidal (σ : ℝ → ℝ) : Prop where
@@ -56,11 +57,10 @@ structure Sigmoidal (σ : ℝ → ℝ) : Prop where
   tendsto_atBot : Filter.Tendsto σ Filter.atBot (nhds 0)
   tendsto_atTop : Filter.Tendsto σ Filter.atTop (nhds 1)
 
-lemma thresholdActivation_sigmoidal : Sigmoidal thresholdActivation := by
-  refine ⟨?_, ?_, ?_⟩
-  · sorry
-  · sorry
-  · sorry
+/-- The threshold activation is not `Sigmoidal`: that predicate requires continuity. -/
+lemma thresholdActivation_not_sigmoidal : ¬ Sigmoidal thresholdActivation := by
+  intro h
+  exact NeuralNetwork.not_continuousAt_threshold_zero h.continuous.continuousAt
 
 /-! ### Single-hidden-layer networks -/
 

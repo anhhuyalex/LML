@@ -6,9 +6,13 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Basic
+public import LeanMachineLearning.Optimization.Renormalization.Activation
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
+public import LeanMachineLearning.Optimization.Renormalization.InducedLaw
+public import LeanMachineLearning.Optimization.Renormalization.Initialization
+public import LeanMachineLearning.Optimization.Renormalization.Network
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
 
@@ -18,6 +22,7 @@ public import LeanMachineLearning.Optimization.Renormalization.Quartic
 Formal infrastructure for the renormalization and nearly-Gaussian expansions used in machine
 learning theory.
 
-The current library exports finite-partition algebra, joint moments, cumulants, Gaussian Wick
-calculus, general exponential perturbations, and symmetric quartic Gaussian specializations.
+The library exports finite-partition algebra, joint moments, cumulants, Gaussian Wick calculus,
+general exponential perturbations, symmetric quartic Gaussian specializations, and the Chapter 2
+neural-network architecture, initialization, and induced-law APIs.
 -/

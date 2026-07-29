@@ -821,7 +821,8 @@ definition of GELU.
 \uses{def:renorm:activations}
 \lean{NeuralNetwork.measurable_threshold, NeuralNetwork.continuous_logistic,
 NeuralNetwork.continuous_relu, NeuralNetwork.continuous_leakyRelu,
-NeuralNetwork.continuous_softplus, NeuralNetwork.continuous_swish}
+NeuralNetwork.continuous_softplus, NeuralNetwork.continuous_swish,
+NeuralNetwork.not_continuousAt_threshold_zero}
 Threshold is Borel measurable and discontinuous at zero.  Logistic, ReLU, leaky ReLU, softplus,
 and swish are continuous; the smooth activations carry derivative lemmas only after their exact
 Mathlib calculus signatures have been audited.  Every activation used to form an induced law must
@@ -847,7 +848,8 @@ An activation is positively one-homogeneous when
 \begin{theorem}[Classification of scalar positively homogeneous activations]
 \label{thm:renorm:posHomogeneousClassification}
 \uses{def:renorm:posHomogeneous, def:renorm:activations}
-\lean{NeuralNetwork.posHomogeneous_iff_eq_leakyRelu}
+\lean{NeuralNetwork.posHomogeneous_iff_eq_piecewiseLinear,
+NeuralNetwork.posHomogeneous_and_apply_one_iff_eq_leakyRelu}
 For $\sigma:\mathbb R\to\mathbb R$, positive one-homogeneity is equivalent to the existence of
 $a_+,a_-\in\mathbb R$ such that
 \[
@@ -923,9 +925,10 @@ the two constructors have the mathematical behavior
  \operatorname{eval}(\operatorname{hidden}(L,N),x)
    &=\operatorname{eval}(N,L.\operatorname{activate}_\sigma(x)).
 \end{align*}
-The hidden index type is existentially stored by the constructor, so ill-shaped layer composition
-is unrepresentable.  The first implementation should use arbitrary finite index types rather than
-hard-coding \texttt{Fin n}; a \texttt{Fin}-width constructor supplies the familiar presentation.
+Ill-shaped layer composition is unrepresentable.  \texttt{DenseLayer} supports arbitrary finite
+index types, while the first stable \texttt{MLP} implementation is indexed by numerical widths and
+uses \texttt{Fin n}.  This is the verified width-indexed fallback anticipated in Phase~N2: it avoids
+ambiguous stored \texttt{Fintype} dictionaries in GADT recursion without weakening shape safety.
 \end{definition}
 
 \begin{lemma}[Evaluation recursion and composition]
@@ -1015,13 +1018,17 @@ If $\mu$ is a probability measure, so is the output law.
 \begin{definition}[Deterministic conditional output]
 \label{def:renorm:detOutputKernel}
 \uses{def:renorm:paramModel}
-\lean{NeuralNetwork.ParamModel.deterministicOutputKernel}
+\lean{NeuralNetwork.ParamModel.deterministicOutputKernel,
+NeuralNetwork.ParamModel.parameterOutputKernel,
+NeuralNetwork.ParamModel.parameterOutputKernel_comp_eq_outputLaw}
 For fixed parameters $\theta$, the conditional output kernel is
 \[
   \texttt{Kernel.deterministic}\bigl(D\mapsto F(\theta,D)\bigr).
 \]
-At a fixed dataset this evaluates to the Dirac measure at the computed output.  Integrating this
-kernel against the parameter law recovers Definition~\ref{def:renorm:outputLaw} through
+At a fixed dataset this evaluates to the Dirac measure at the computed output.  There are two
+useful orientations: \texttt{deterministicOutputKernel} fixes parameters and varies datasets,
+whereas \texttt{parameterOutputKernel} fixes a dataset and varies parameters.  Integrating the
+latter against the parameter law recovers Definition~\ref{def:renorm:outputLaw} through
 \texttt{Measure.deterministic\_comp\_eq\_map}.
 \end{definition}
 
@@ -1052,8 +1059,10 @@ in the initial library for the source's formal Fourier integral representation o
 \label{def:renorm:initHyperparams}
 \lean{NeuralNetwork.InitHyperparams}
 For a layer with input index type $I$, store nonnegative real variances
-$C_b,C_W\in\mathbb R_{\ge0}$ and require $I$ to be nonempty.  The variance of every weight is
-$C_W/|I|$ and the variance of every bias is $C_b$.
+$C_b,C_W\in\mathbb R_{\ge0}$.  The variance of every weight is $C_W/|I|$ and the variance of every
+bias is $C_b$.  The implementation leaves NNReal division total at $|I|=0$ (where it returns zero),
+so the measure exists for empty shapes; any theorem interpreting this as fan-in normalization may
+add \texttt{Nonempty I}.
 \end{definition}
 
 \begin{definition}[Gaussian layer-parameter law]
@@ -1068,9 +1077,10 @@ and the weight law by
 \[
   \bigotimes_{j:J}\bigotimes_{i:I}\mathcal N(0,C_W/|I|).
 \]
-Take their product and map the resulting pair to \texttt{DenseLayer}.  The construction uses
-finite \texttt{Measure.pi}; no \texttt{Fintype} instance is requested for an infinite index type,
-and no blanket \texttt{IsGaussian (Measure.pi ...)} instance is assumed.
+Take their product as \texttt{LayerParams}, the canonical raw measurable parameter representation;
+\texttt{DenseLayer.ofParams} is the deterministic conversion used by evaluation.  The construction
+uses finite \texttt{Measure.pi}; no \texttt{Fintype} instance is requested for an infinite index
+type, and no blanket \texttt{IsGaussian (Measure.pi ...)} instance is assumed.
 \end{definition}
 
 \begin{lemma}[Coordinate laws and independence]
@@ -1238,6 +1248,29 @@ dense-layer API without changing their public mathematical statements.  Add the 
 renormalization umbrella only after targeted checks pass, then run the full LML build and linters.
 No phase is complete while a theorem in that phase contains \texttt{sorry}.
 
+\subsubsection*{Chapter~2 implementation status (2026-07-29)}
+The statement-level library is now present in four modules:
+\begin{enumerate}
+  \item \texttt{Activation.lean} contains all named activations, their regularity interface, and the
+    corrected two-slope homogeneity classification, with no deferred proofs.
+  \item \texttt{Network.lean} contains arbitrary finite-index dense layers, joint and fixed
+    regularity lemmas, width-indexed compositional MLPs, batched evaluation, the general parameter
+    count recursion, and the checked value $91$.  This module has no deferred proofs.
+  \item \texttt{Initialization.lean} constructs the nested finite Gaussian product law and states
+    coordinate laws, within-family and cross-family independence, centering, and both covariance
+    formulas.  Five independence/covariance proofs remain deferred with explicit sources and informal
+    proofs.
+  \item \texttt{InducedLaw.lean} contains architecture-independent pushforwards, both orientations
+    of deterministic conditional kernels, Dirac wrappers, randomized-map kernels, layer covariance
+    and PSD, the exact one-layer Gaussian measure equality, and deep ensemble kernel semantics.
+    Three analytic or kernel proofs remain deferred with explicit sources and informal proofs.
+\end{enumerate}
+The four modules are exported by both the renormalization umbrella and the root LML umbrella.
+The false \texttt{Approximation.thresholdActivation\_sigmoidal} declaration has been removed;
+\texttt{Approximation} now uses compatibility aliases to the shared activations and exports the
+true negated statement.  Thus ``statement-level complete'' does not mean proof-complete: Phases
+N4 and N5 remain open precisely at the documented \texttt{sorry} sites.
+
 \section{Refactors and reuse in LML}
 
 \subsection{Shared neural-network core}
@@ -1391,7 +1424,7 @@ downstream theorem changes statement merely to accommodate the refactor.
 
 \section{Failure analysis and compliance with the project lessons}
 
-There are two concrete errors in the state from which this plan starts.
+There are three concrete errors exposed by the source and implementation audit.
 
 First, the pre-existing blueprint said that it covered only Chapter~1 even though the requested
 source boundary was Chapter~2 beginning at line 958.  The existing cumulant and perturbation work
@@ -1413,6 +1446,17 @@ at zero immediately refutes it.  It also illustrates the warning in Section~14.1
 content of a named predicate instead of trusting the English connotation of its name.  The repair is
 to prove threshold measurable and discontinuous, and to reserve \texttt{Sigmoidal} for continuous
 activations.
+
+Third, the first implementation attempt strengthened the correct two-slope classification to
+``every positively homogeneous scalar function is a leaky ReLU.''  That is false because this
+project's \texttt{leakyRelu a} fixes the positive-side slope to one: the homogeneous function
+$z\mapsto2z$ is an immediate counterexample.  The error again violated \textbf{Rule 1} and
+\textbf{Rule 18}, and specifically Section~14.11's instruction to unfold the exact local
+definition rather than reason from a familiar name.  It also violated \textbf{Rule 9}: the
+classification statement had not been stabilized with a counterexample test before dependent
+lemmas were written.  The repaired primary theorem uses
+\texttt{piecewiseLinear (σ 1) (-σ (-1))}; leaky ReLU is obtained only together with the necessary
+normalization $\sigma(1)=1$.
 
 A further class of errors to avoid is treating the informal density manipulations as if they were
 already well-typed theorems: inventing Gaussian/MGF/tilting APIs, omitting normalizability, treating
@@ -1451,9 +1495,9 @@ an approach violates the following specific lessons in \texttt{docs/lessons\_lea
 The new plan fully complies with those lessons at the level of workflow and theorem design:
 \begin{enumerate}
   \item every external declaration used by the existing Chapter~1 implementation has been checked
-    in its pinned import context; every new Chapter~2 candidate has been source-searched, and
-    implementation begins with a fresh exact-import batch-\texttt{\#check} audit before any of
-    those candidates is used in code;
+    in its pinned import context; each Chapter~2 declaration actually used was source-searched in
+    the pinned Mathlib tree and then checked by a targeted module build before dependent code was
+    added;
   \item following \textbf{Rules 2 and 4}, declarations are added atomically and consolidated only
     after their exact signatures typecheck; broad mechanical edits are reserved for a verified
     downstream migration;
@@ -1466,9 +1510,10 @@ The new plan fully complies with those lessons at the level of workflow and theo
     translated either to \texttt{Measure.map}, \texttt{Measure.dirac}, or a kernel equality with the
     required measurability and independence hypotheses visible;
   \item false or underspecified source claims are corrected before proof work: threshold is not
-    called continuous, zero-variance Gaussians are measures rather than densities, the Fourier
-    delta display is not asserted as a Lebesgue integral, and the CLT claim is deferred until a
-    metric and quantitative assumptions are chosen;
+    called continuous, positive homogeneity is classified by two independent slopes, zero-variance
+    Gaussians are measures rather than densities, the Fourier delta display is not asserted as a
+    Lebesgue integral, and the CLT claim is deferred until a metric and quantitative assumptions
+    are chosen;
   \item new proofs are developed in exact-signature scratch files, then checked with
     \texttt{lake env lean} on the edited file and a targeted \texttt{lake build} on its module,
     complying with \textbf{Rules 8, 11, 13, and 14};
@@ -1484,11 +1529,11 @@ The new plan fully complies with those lessons at the level of workflow and theo
 \end{enumerate}
 
 Compliance is checked, not merely asserted: every phase has a local mathematical acceptance
-criterion, an exact-import \texttt{lake env lean} check, and a final full build.  If the proposed
-typed MLP representation produces the dependent-type or definitional-equality problems warned
-about in Sections~13.1 and~14.17, Phase~N2 explicitly stops and substitutes a scratch-verified
-encoding before downstream code is written.  Thus the plan does not use ``elegance'' as a reason
-to ignore elaboration evidence.
+criterion, an exact-import \texttt{lake env lean} check, and a final full build.  The first
+arbitrary-index GADT did produce ambiguous stored-\texttt{Fintype} recursion, so Phase~N2 followed
+its documented stop condition and substituted the now-verified numerical-width encoding before
+downstream code was written.  Thus the implementation does not use ``elegance'' as a reason to
+ignore elaboration evidence.
 
 This workflow also follows LML's stated goals: it supplies high-quality reusable definitions,
 essential machine-learning theory, an extensible framework for later wide-network results,
