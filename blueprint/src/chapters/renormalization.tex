@@ -1,18 +1,20 @@
-\chapter{Renormalization pretraining: Gaussian laws, cumulants, and perturbations}
+\chapter{Renormalization foundations and neural-network ensembles}
 \label{chap:renormalization}
 
 \section{Purpose and formalization boundary}
 
-This chapter is the implementation blueprint for Chapter~1 (``Pretraining'') of
-\texttt{docs/Renormalization.md}.  Its purpose is not to reproduce the chapter's
-coordinate calculations line by line.  It isolates the reusable mathematical API needed by
-later formalizations of wide neural networks:
+This chapter is the implementation blueprint for Chapters~1 (``Pretraining'') and~2
+(``Neural Networks'') of \texttt{docs/Renormalization.md}.  Its purpose is not to reproduce the
+source's coordinate calculations or informal density notation line by line.  It isolates the
+reusable mathematical API needed by later formalizations of wide neural networks:
 \begin{enumerate}
   \item moments and joint correlators;
   \item cumulants (connected correlators) and the moment--cumulant relation;
   \item Gaussian measures and Wick's theorem;
-  \item normalized exponential deformations of a base probability measure; and
-  \item rigorous, one-sided perturbation formulae for quartic deformations.
+  \item normalized exponential deformations of a base probability measure;
+  \item rigorous, one-sided perturbation formulae for quartic deformations;
+  \item typed affine layers, compositional multilayer perceptrons, and activation functions; and
+  \item Gaussian initialization and the induced laws of activities on a finite dataset.
 \end{enumerate}
 
 The implementation, including its initially generic supporting results, lives under
@@ -113,8 +115,39 @@ with an umbrella module
   \item[\texttt{Renormalization/Perturbation.lean}]
     exponential deformations and reusable first- and second-order estimates;
   \item[\texttt{Renormalization/Quartic.lean}]
-    symmetric quartic couplings and the explicit contraction formulae from the source chapter.
+    symmetric quartic couplings and the explicit contraction formulae from the source chapter;
+  \item[\texttt{Renormalization/Activation.lean}]
+    activation definitions, measurability and continuity, and positive-homogeneity laws;
+  \item[\texttt{Renormalization/Network.lean}]
+    affine layers, compositional MLP evaluation, batched evaluation, and parameter counts;
+  \item[\texttt{Renormalization/Initialization.lean}]
+    product Gaussian measures for layer parameters and their coordinate laws;
+  \item[\texttt{Renormalization/InducedLaw.lean}]
+    parameter pushforwards, deterministic and randomized layer kernels, and Gaussian layer laws.
 \end{description}
+
+The Chapter~2 modules have the additional dependency chain
+\begin{verbatim}
+Optimization/NeuralNetwork/Basic
+             |                 |
+             v                 v
+ Approximation/Basic   Renormalization/Activation
+                               |
+                               v
+                    Renormalization/Network
+                               |
+                               v
+                 Renormalization/Initialization
+                               |
+                               v
+                   Renormalization/InducedLaw
+                               |
+                               v
+            Renormalization/Gaussian, Cumulant
+\end{verbatim}
+Phase~N1 creates the neutral module by extracting the existing activation declarations and adding
+the dense-layer core.  Both approximation and renormalization then import it.  Renormalization must
+not become the owner of definitions used by unrelated approximation and NTK developments.
 
 The generic probability declarations may later move to
 \texttt{ForMathlib/Probability/Moments/Cumulant.lean} after their interfaces stabilize.  Starting
@@ -684,7 +717,557 @@ This definition records scaling; it does not by itself assert convergence of mea
 of an action truncation.  Those conclusions require additional uniform moment bounds and a chosen
 notion of approximation.
 
+\section{Neural networks and induced laws}
+\label{sec:renorm:neuralNetworks}
+
+This section is the formalization plan for Chapter~2, beginning at line 958 of the source.  The
+mathematical core is the MLP recursion, not the historical discussion or claims about which
+architectures and activations work best in practice.  The formal library should cover dense affine
+layers, activation functions, independent Gaussian initialization, and the law induced on a finite
+batch of activities.  Convolution, attention, training dynamics, and quantitative central-limit
+claims are explicitly later projects.
+
+\subsection{Corrections and precise scope for Chapter~2}
+
+The informal chapter changes freely between functions, densities, random variables, and laws.  The
+following distinctions are mandatory in Lean.
+
+\begin{remark}[An induced law need not have a density]
+For a measurable parameterized model $F:\Theta\times X\to Y$, a parameter law $\mu$ and a fixed
+dataset $D:A\to X$, the output law always has the measure-theoretic definition
+\[
+  \mu\mathbin{.\mathrm{map}}\bigl(\theta\mapsto(a\mapsto F(\theta,D(a)))\bigr),
+\]
+provided the displayed map is measurable.  It may be singular and need not admit a function
+$p(z\mid D)$ with respect to Lebesgue measure.  All core statements therefore use
+\texttt{Measure.map}; density theorems are optional consequences with explicit absolute-continuity
+hypotheses.
+\end{remark}
+
+\begin{remark}[The Dirac delta is a measure]
+The deterministic law at $s$ is \texttt{Measure.dirac s}.  Its defining integration rule is
+Mathlib's \texttt{MeasureTheory.integral\_dirac} (or the measurable variant
+\texttt{integral\_dirac'}), and a deterministic conditional law is
+\texttt{Kernel.deterministic}.  No function named ``delta'' and no product of generalized
+functions should be introduced.
+
+The Fourier display
+\[
+  \delta(z-s)=\frac1{2\pi}\int_{\mathbb R}e^{i\lambda(z-s)}\,d\lambda
+\]
+is not an equality of ordinary Lebesgue-integrable functions: the integrand has norm one.  Its
+rigorous content belongs to distribution theory or Fourier inversion against a test function.
+Until that theory is in scope, the library proves only the characteristic-function identity for a
+Dirac measure.
+\end{remark}
+
+\begin{remark}[Zero variance and Gaussian densities]
+The source's displayed Gaussian densities divide by the variance.  They are valid only for
+strictly positive variances.  Mathlib's measure \texttt{gaussianReal m 0} is nevertheless valid and
+equals \texttt{Measure.dirac m} by \texttt{ProbabilityTheory.gaussianReal\_zero\_var}.  Initialization
+is therefore defined as a measure for nonnegative variance hyperparameters; a density corollary
+requires nonzero variance.
+\end{remark}
+
+\begin{remark}[Independence across layers is a hypothesis]
+Composing the conditional laws of successive random layers gives the law of a deep network only
+when fresh layer parameters are independent of the preceding activity.  The kernel construction
+below builds this independence into the generative model.  It must not be inferred merely from
+the fact that every marginal parameter is Gaussian.
+\end{remark}
+
+\begin{remark}[Claims deliberately not formalized here]
+The claim that non-Gaussian initialization differs from Gaussian initialization only by
+$1/\text{width}$ needs a metric, moment assumptions, and a quantitative central-limit theorem.  The
+claim that zero initialization remains permutation-symmetric during training additionally needs an
+equivariant optimizer and loss.  This chapter proves the algebraic symmetry of an initialized
+layer, but neither stronger claim is part of the initial API.
+\end{remark}
+
+\subsection{Activation API}
+
+The existing \texttt{Approximation.Basic} file already defines
+\texttt{Approximation.thresholdActivation}, \texttt{Approximation.reluActivation}, and
+\texttt{Approximation.Sigmoidal}.  Those definitions should be extracted to the neutral activation
+module described above, preserving compatibility aliases during migration.  In particular, there
+must be only one ReLU definition in LML.
+
+\begin{definition}[Standard activations]
+\label{def:renorm:activations}
+\lean{NeuralNetwork.threshold, NeuralNetwork.logistic, NeuralNetwork.relu,
+NeuralNetwork.linear, NeuralNetwork.leakyRelu, NeuralNetwork.softplus,
+NeuralNetwork.swish, NeuralNetwork.gelu}
+Define
+\begin{align*}
+ \operatorname{threshold}(z)&=\mathbf 1_{[0,\infty)}(z),&
+ \operatorname{logistic}(z)&=(1+e^{-z})^{-1},\\
+ \operatorname{relu}(z)&=\max(z,0),&
+ \operatorname{linear}_a(z)&=az,\\
+ \operatorname{leakyRelu}_a(z)&=\begin{cases}z&0\le z,\\az&z<0,\end{cases}\\
+ \operatorname{softplus}(z)&=\log(1+e^z),&
+ \operatorname{swish}(z)&=z\operatorname{logistic}(z),\\
+ \operatorname{gelu}(z)&=z\,\Phi(z),
+\end{align*}
+where $\Phi=\texttt{ProbabilityTheory.cdf (gaussianReal 0 1)}$ is the standard normal CDF.
+The hyperbolic-tangent and sinusoidal activations are Mathlib's \texttt{Real.tanh} and
+\texttt{Real.sin}; LML should not wrap them merely to change their names.
+Mathlib at the pinned revision has no \texttt{Real.erf}; defining GELU through the CDF avoids
+inventing that declaration.  An eventual error-function identity is a separate theorem, not the
+definition of GELU.
+\end{definition}
+
+\begin{lemma}[Measurability and continuity of activations]
+\label{lem:renorm:activationRegularity}
+\uses{def:renorm:activations}
+\lean{NeuralNetwork.measurable_threshold, NeuralNetwork.continuous_logistic,
+NeuralNetwork.continuous_relu, NeuralNetwork.continuous_leakyRelu,
+NeuralNetwork.continuous_softplus, NeuralNetwork.continuous_swish}
+Threshold is Borel measurable and discontinuous at zero.  Logistic, ReLU, leaky ReLU, softplus,
+and swish are continuous; the smooth activations carry derivative lemmas only after their exact
+Mathlib calculus signatures have been audited.  Every activation used to form an induced law must
+at minimum have a named measurability theorem.
+\end{lemma}
+
+\begin{proof}
+Threshold measurability follows from measurability of $[0,\infty)$.  Its left limit at zero is zero
+but its value at zero is one, proving discontinuity.  The remaining claims follow from the standard
+closure rules for continuous functions, with the positive denominator of logistic discharged
+explicitly.
+\end{proof}
+
+\begin{definition}[Positive one-homogeneity]
+\label{def:renorm:posHomogeneous}
+\lean{NeuralNetwork.PosHomogeneous}
+An activation is positively one-homogeneous when
+\[
+  \forall \lambda>0,\ \forall z,\qquad \sigma(\lambda z)=\lambda\sigma(z).
+\]
+\end{definition}
+
+\begin{theorem}[Classification of scalar positively homogeneous activations]
+\label{thm:renorm:posHomogeneousClassification}
+\uses{def:renorm:posHomogeneous, def:renorm:activations}
+\lean{NeuralNetwork.posHomogeneous_iff_eq_leakyRelu}
+For $\sigma:\mathbb R\to\mathbb R$, positive one-homogeneity is equivalent to the existence of
+$a_+,a_-\in\mathbb R$ such that
+\[
+  \sigma(z)=\begin{cases}a_+z&0\le z,\\a_-z&z<0.\end{cases}
+\]
+One may take $a_+=\sigma(1)$ and $a_-=-\sigma(-1)$.  No continuity or differentiability hypothesis
+is necessary.
+\end{theorem}
+
+\begin{proof}
+Positive homogeneity at $z=0$ and $\lambda=2$ gives $\sigma(0)=2\sigma(0)$, hence
+$\sigma(0)=0$.  If $z>0$, apply homogeneity to $z\cdot1$; if $z<0$, write
+$z=(-z)(-1)$ with $-z>0$.  The converse is a two-case calculation.  This algebraic proof repairs
+the source footnote's unnecessary differentiation argument, which silently assumes regularity not
+present in the statement.
+\end{proof}
+
+\subsection{Affine layers and compositional MLPs}
+
+The source's general discussion of function approximation is already represented by
+\texttt{Optimization/Approximation}, including shallow-network function classes and approximation
+theorems.  This chapter should add the compositional architecture and ensemble semantics, then
+prove bridges to those function classes instead of defining another notion of approximation.
+
+The algebraic layer API should use raw finite functions and \texttt{Matrix.mulVec} consistently.
+Topology-dependent theorems may cross to \texttt{EuclideanSpace} through one named equivalence, but
+must not alternate between the two representations inside a proof.
+
+\begin{definition}[Dense affine layer]
+\label{def:renorm:denseLayer}
+\lean{NeuralNetwork.DenseLayer, NeuralNetwork.DenseLayer.preactivation,
+NeuralNetwork.DenseLayer.activate}
+For finite input and output index types $I$ and $J$, a dense layer has
+\[
+  W:J\to I\to\mathbb R,\qquad b:J\to\mathbb R.
+\]
+For $x:I\to\mathbb R$, define
+\[
+  \operatorname{preactivation}_{W,b}(x)_j
+    =b_j+\sum_{i:I}W_{ji}x_i,
+  \qquad
+  \operatorname{activate}_{\sigma,W,b}(x)_j
+    =\sigma(\operatorname{preactivation}_{W,b}(x)_j).
+\]
+The implementation is a thin wrapper around \texttt{Matrix.mulVec}; its coordinate simp lemma is
+part of the public API.
+\end{definition}
+
+\begin{lemma}[Dense-layer regularity]
+\label{lem:renorm:denseLayerRegularity}
+\uses{def:renorm:denseLayer}
+\lean{NeuralNetwork.DenseLayer.measurable_preactivation,
+NeuralNetwork.DenseLayer.measurable_activate,
+NeuralNetwork.DenseLayer.continuous_preactivation,
+NeuralNetwork.DenseLayer.continuous_activate}
+Preactivation is jointly continuous, hence jointly measurable, in parameters and input.  Activation
+is jointly measurable when $\sigma$ is measurable and jointly continuous when $\sigma$ is
+continuous.
+\end{lemma}
+
+These joint statements are more reusable than a theorem with fixed weights: they directly justify
+both parameter pushforwards and randomized layer kernels.
+
+\begin{definition}[Typed multilayer perceptron]
+\label{def:renorm:mlp}
+\uses{def:renorm:denseLayer}
+\lean{NeuralNetwork.MLP, NeuralNetwork.MLP.eval}
+An MLP is a typed, nonempty composition of dense layers.  The final layer returns its
+\emph{preactivation}; every earlier layer applies $\sigma$ before passing its result onward.  Thus
+the two constructors have the mathematical behavior
+\begin{align*}
+ \operatorname{eval}(\operatorname{output}(L),x)&=L.\operatorname{preactivation}(x),\\
+ \operatorname{eval}(\operatorname{hidden}(L,N),x)
+   &=\operatorname{eval}(N,L.\operatorname{activate}_\sigma(x)).
+\end{align*}
+The hidden index type is existentially stored by the constructor, so ill-shaped layer composition
+is unrepresentable.  The first implementation should use arbitrary finite index types rather than
+hard-coding \texttt{Fin n}; a \texttt{Fin}-width constructor supplies the familiar presentation.
+\end{definition}
+
+\begin{lemma}[Evaluation recursion and composition]
+\label{lem:renorm:mlpEval}
+\uses{def:renorm:mlp, lem:renorm:denseLayerRegularity}
+\lean{NeuralNetwork.MLP.eval_output, NeuralNetwork.MLP.eval_hidden,
+NeuralNetwork.MLP.measurable_eval, NeuralNetwork.MLP.continuous_eval}
+The two recursion equations above are simp lemmas.  If $\sigma$ is measurable (respectively
+continuous), evaluation by a fixed MLP is measurable (respectively continuous).
+\end{lemma}
+
+\begin{definition}[Parameter count]
+\label{def:renorm:paramCount}
+\uses{def:renorm:mlp}
+\lean{NeuralNetwork.DenseLayer.paramCount, NeuralNetwork.MLP.paramCount}
+Set
+\[
+  \operatorname{paramCount}(L)=|J|+|J||I|
+\]
+for a layer $I\to J$, and sum this quantity through an MLP.  For widths
+$n_0,\ldots,n_L$, prove
+\[
+  \operatorname{paramCount}=\sum_{\ell=1}^{L}(n_\ell+n_\ell n_{\ell-1}).
+\]
+The source's example with widths $(4,5,5,5,1)$ is a compile-time test whose result is $91$.
+\end{definition}
+
+\begin{definition}[Evaluation on a finite dataset]
+\label{def:renorm:evalBatch}
+\uses{def:renorm:mlp}
+\lean{NeuralNetwork.MLP.evalBatch}
+For a finite sample type $A$ and data $D:A\to(I\to\mathbb R)$, define
+\[
+  \operatorname{evalBatch}(N,D)(a)=\operatorname{eval}(N,D(a)).
+\]
+Keep sample indices and neural indices in separate arguments.  This makes the intended output type
+$A\to(J\to\mathbb R)$ explicit and prevents accidental transposition of the two indices.
+\end{definition}
+
+\begin{lemma}[Identical neurons and zero initialization]
+\label{lem:renorm:identicalNeurons}
+\uses{def:renorm:denseLayer}
+\lean{NeuralNetwork.DenseLayer.preactivation_eq_of_row_eq}
+If two output neurons have equal weight rows and equal biases, their preactivations agree on every
+input.  In particular, all output coordinates of a zero-initialized layer agree.  This is the exact
+algebraic content of the source's symmetry observation; persistence under training is not claimed.
+\end{lemma}
+
+\subsection{Parameterized models, Dirac laws, and pushforwards}
+
+\begin{definition}[Measurable parameterized model]
+\label{def:renorm:paramModel}
+\lean{NeuralNetwork.ParamModel}
+A parameterized model from $X$ to $Y$ with parameter space $\Theta$ consists of
+$F:\Theta\to X\to Y$ together with measurability of
+$(\theta,x)\mapsto F(\theta,x)$.  The structure is deliberately architecture-agnostic: dense
+layers, MLPs with a fixed shape, convolutional networks, and other future models can all instantiate
+it.
+\end{definition}
+
+\begin{definition}[Induced output law]
+\label{def:renorm:outputLaw}
+\uses{def:renorm:paramModel}
+\lean{NeuralNetwork.ParamModel.evalBatch, NeuralNetwork.ParamModel.outputLaw}
+For finite $A$, dataset $D:A\to X$, and parameter measure $\mu$, define
+\[
+  \operatorname{outputLaw}(F,D,\mu)
+  :=\mu.\operatorname{map}\bigl(\theta\mapsto(a\mapsto F(\theta,D(a)))\bigr).
+\]
+The batched evaluator has a named measurability theorem, so \texttt{Measure.map} never falls back to
+zero because of an unproved measurability obligation.
+\end{definition}
+
+\begin{lemma}[Observable formula for an induced law]
+\label{lem:renorm:integralOutputLaw}
+\uses{def:renorm:outputLaw}
+\lean{NeuralNetwork.ParamModel.integral_outputLaw}
+For a Banach-valued observable $G$ satisfying the usual strong-measurability and integrability
+hypotheses,
+\[
+ \int G(y)\,d\operatorname{outputLaw}(F,D,\mu)(y)
+ =\int G\bigl(a\mapsto F(\theta,D(a))\bigr)\,d\mu(\theta).
+\]
+If $\mu$ is a probability measure, so is the output law.
+\end{lemma}
+
+\begin{definition}[Deterministic conditional output]
+\label{def:renorm:detOutputKernel}
+\uses{def:renorm:paramModel}
+\lean{NeuralNetwork.ParamModel.deterministicOutputKernel}
+For fixed parameters $\theta$, the conditional output kernel is
+\[
+  \texttt{Kernel.deterministic}\bigl(D\mapsto F(\theta,D)\bigr).
+\]
+At a fixed dataset this evaluates to the Dirac measure at the computed output.  Integrating this
+kernel against the parameter law recovers Definition~\ref{def:renorm:outputLaw} through
+\texttt{Measure.deterministic\_comp\_eq\_map}.
+\end{definition}
+
+\begin{lemma}[Dirac expectation and variance]
+\label{lem:renorm:diracMoments}
+\lean{NeuralNetwork.integral_dirac_apply, NeuralNetwork.variance_id_dirac}
+For every $s\in\mathbb R$,
+\[
+  \int f\,d\delta_s=f(s),\qquad
+  \mathbb E_{\delta_s}[\operatorname{id}]=s,\qquad
+  \operatorname{Var}_{\delta_s}(\operatorname{id})=0,
+\]
+under exactly the measurability assumptions required by Mathlib's Dirac integral theorem.
+These are small discoverability wrappers; the proof must reuse \texttt{integral\_dirac} rather than
+rebuild Dirac integration.
+\end{lemma}
+
+\begin{lemma}[Characteristic function of a deterministic law]
+\label{lem:renorm:charFunDirac}
+\lean{NeuralNetwork.charFun_dirac}
+The characteristic function of $\delta_s$ is $t\mapsto e^{its}$.  This is the rigorous replacement
+in the initial library for the source's formal Fourier integral representation of $\delta$.
+\end{lemma}
+
+\subsection{Independent Gaussian initialization}
+
+\begin{definition}[Layer initialization hyperparameters]
+\label{def:renorm:initHyperparams}
+\lean{NeuralNetwork.InitHyperparams}
+For a layer with input index type $I$, store nonnegative real variances
+$C_b,C_W\in\mathbb R_{\ge0}$ and require $I$ to be nonempty.  The variance of every weight is
+$C_W/|I|$ and the variance of every bias is $C_b$.
+\end{definition}
+
+\begin{definition}[Gaussian layer-parameter law]
+\label{def:renorm:layerGaussianInit}
+\uses{def:renorm:denseLayer, def:renorm:initHyperparams}
+\lean{NeuralNetwork.layerGaussianInit}
+For finite $I,J$, define the bias law by
+\[
+  \bigotimes_{j:J}\mathcal N(0,C_b)
+\]
+and the weight law by
+\[
+  \bigotimes_{j:J}\bigotimes_{i:I}\mathcal N(0,C_W/|I|).
+\]
+Take their product and map the resulting pair to \texttt{DenseLayer}.  The construction uses
+finite \texttt{Measure.pi}; no \texttt{Fintype} instance is requested for an infinite index type,
+and no blanket \texttt{IsGaussian (Measure.pi ...)} instance is assumed.
+\end{definition}
+
+\begin{lemma}[Coordinate laws and independence]
+\label{lem:renorm:initCoordinates}
+\uses{def:renorm:layerGaussianInit}
+\lean{NeuralNetwork.map_bias_layerGaussianInit,
+NeuralNetwork.map_weight_layerGaussianInit,
+NeuralNetwork.iIndepFun_bias_layerGaussianInit,
+NeuralNetwork.iIndepFun_weight_layerGaussianInit}
+Every bias coordinate has law $\mathcal N(0,C_b)$, every weight coordinate has law
+$\mathcal N(0,C_W/|I|)$, all coordinates within each family are independent, and the bias and weight
+families are independent.  Consequently their means, variances, and off-diagonal covariances are
+exactly the Kronecker-delta formulas in the source.
+\end{lemma}
+
+\begin{proof}
+Use the verified \texttt{Measure.pi\_map\_eval} and
+\texttt{ProbabilityTheory.iIndepFun\_pi} APIs, followed by
+\texttt{integral\_id\_gaussianReal} and \texttt{variance\_id\_gaussianReal}.  Prove the generic
+coordinate lemma once; do not repeat product-measure calculations for weights, biases, and layers.
+\end{proof}
+
+\begin{lemma}[Initialization is a probability law]
+\label{lem:renorm:initProbability}
+\uses{def:renorm:layerGaussianInit}
+\lean{NeuralNetwork.isProbabilityMeasure_layerGaussianInit}
+The Gaussian layer initialization is a probability measure, including when either variance is
+zero.  A separate density theorem may assume $C_b>0$ and $C_W>0$.
+\end{lemma}
+
+\subsection{Gaussian laws of layer preactivations}
+
+Let $A$ be a finite sample type and let $s:A\to(I\to\mathbb R)$ be a fixed batch of input signals.
+Define the covariance matrix
+\begin{equation}
+  K_s(a,a')=C_b+\frac{C_W}{|I|}\sum_{i:I}s(a)_i s(a')_i.
+  \label{eq:renorm:layerCovariance}
+\end{equation}
+
+\begin{definition}[Layer covariance]
+\label{def:renorm:layerCovariance}
+\lean{NeuralNetwork.layerCovariance}
+Equation~\eqref{eq:renorm:layerCovariance} defines a matrix on the sample index type.  For a deeper
+layer, replace $s(a)_i$ by $\sigma(z_i(a))$; the same definition is reused.
+\end{definition}
+
+\begin{lemma}[Layer covariance is positive semidefinite]
+\label{lem:renorm:layerCovariancePSD}
+\uses{def:renorm:layerCovariance}
+\lean{NeuralNetwork.layerCovariance_posSemidef}
+For nonnegative $C_b,C_W$, $K_s$ is symmetric and positive semidefinite.
+\end{lemma}
+
+\begin{proof}
+For $v:A\to\mathbb R$, expand the quadratic form as
+\[
+ C_b\left(\sum_a v_a\right)^2
+ +\frac{C_W}{|I|}\sum_{i:I}\left(\sum_a v_as(a)_i\right)^2\ge0.
+\]
+Package this finite-sum identity as a separate lemma before invoking the matrix PSD constructor.
+This keeps \texttt{ring} on exposed scalar sums and avoids mixing raw functions with
+\texttt{EuclideanSpace} wrappers.
+\end{proof}
+
+\begin{theorem}[Law of a Gaussian-initialized dense layer]
+\label{thm:renorm:gaussianLayerLaw}
+\uses{def:renorm:layerGaussianInit, def:renorm:layerCovariance,
+lem:renorm:layerCovariancePSD, lem:renorm:initCoordinates}
+\lean{NeuralNetwork.map_evalBatch_layerGaussianInit}
+Push forward the Gaussian layer-parameter law through batched preactivation on $s$.  After the
+single named equivalence from raw batches to
+$J\to\texttt{EuclideanSpace }\mathbb R\ A$, the result is
+\[
+  \bigotimes_{j:J}\operatorname{multivariateGaussian}(0,K_s).
+\]
+In particular, different output neurons are independent and identically distributed, while the
+sample coordinates for one neuron have covariance $K_s$.
+\end{theorem}
+
+\begin{proof}
+For each fixed output neuron, preactivation is a continuous linear image of its independent
+Gaussian bias and weight row, hence is Gaussian.  Compute its mean and covariance from
+Lemma~\ref{lem:renorm:initCoordinates}; identify its law using Gaussian extensionality.  Independence
+of different neurons follows because their parameter rows are independent.  Finally apply
+\texttt{iIndepFun.map\_fun\_eq\_pi\_map}.  This route avoids the nonexistent
+\texttt{map\_gaussianRowMeasure\_dotProduct} helper recorded in
+\texttt{docs/hallucinated\_mathlib.md}.
+\end{proof}
+
+\begin{definition}[Randomized layer kernel]
+\label{def:renorm:randomLayerKernel}
+\uses{def:renorm:layerGaussianInit, def:renorm:denseLayer}
+\lean{NeuralNetwork.randomLayerKernel}
+Given a parameter measure $\nu$ and a jointly measurable layer evaluator $F$, define the kernel
+\[
+  x\longmapsto \nu.\operatorname{map}(\theta\mapsto F(\theta,x)).
+\]
+Construct it from \texttt{Kernel.id}, \texttt{Kernel.const}, kernel products, and
+\texttt{Kernel.map}, rather than hand-proving measurability of $x\mapsto\nu(F_x^{-1}(B))$.
+\end{definition}
+
+\begin{theorem}[Deep ensemble law by kernel composition]
+\label{thm:renorm:deepKernelLaw}
+\uses{def:renorm:randomLayerKernel, thm:renorm:gaussianLayerLaw}
+\lean{NeuralNetwork.MLPEnsemble.outputKernel}
+For independently initialized layers, the conditional law of the next preactivation given the
+current activity is \texttt{randomLayerKernel}.  Composing these kernels, with pointwise activation
+between consecutive affine layers, gives the induced law of the final MLP output.  At one layer the
+construction reduces to Definition~\ref{def:renorm:outputLaw}; at a deeper layer its conditional
+covariance is Equation~\eqref{eq:renorm:layerCovariance} with $s=\sigma\circ z$.
+\end{theorem}
+
+The kernel theorem is the formal replacement for the products of Dirac deltas in the source's
+equations for first and deeper layers.  It also creates the exact interface needed by the later
+wide-network and renormalization arguments: Chapter~1's moment, cumulant, and Gaussian APIs can be
+applied directly to each layer law.
+
+\subsection{Chapter~2 implementation phases and acceptance criteria}
+
+\subsubsection*{Phase N0: scope and API audit}
+Create a direct-import scratch file that checks
+\texttt{Measure.pi\_map\_eval}, \texttt{iIndepFun\_pi},
+\texttt{iIndepFun.map\_fun\_eq\_pi\_map}, \texttt{Kernel.deterministic},
+\texttt{Measure.deterministic\_comp\_eq\_map}, \texttt{ProbabilityTheory.cdf},
+\texttt{gaussianReal\_zero\_var}, and the multivariate-Gaussian mean and covariance API.  Search the
+pinned source for every name before it enters implementation.  Acceptance criterion: the audit
+file compiles under the exact proposed imports and contains no guessed declaration.
+
+\subsubsection*{Phase N1: activations and the dense-layer core}
+Extract the shared activation definitions, remove the false threshold/sigmoidal theorem discussed
+below, and implement Definitions~\ref{def:renorm:activations}--\ref{def:renorm:denseLayer} with the
+small regularity API.  Acceptance criterion: every activation has a correct measurability theorem,
+continuity is not claimed for threshold, and the homogeneity classification proof uses only its
+stated hypotheses.
+
+\subsubsection*{Phase N2: typed MLPs and batches}
+Implement Definitions~\ref{def:renorm:mlp}, \ref{def:renorm:paramCount}, and
+\ref{def:renorm:evalBatch}.  Test the GADT-style composition signature in isolation before adding
+downstream theorems; if stored typeclass arguments trigger a definitional-equality loop, keep
+\texttt{DenseLayer} as the stable API and replace the GADT with a verified width-vector encoding.
+Acceptance criterion: ill-shaped composition is unrepresentable, the recursion simp lemmas are
+stable, and the $(4,5,5,5,1)$ parameter-count example evaluates to $91$.
+
+\subsubsection*{Phase N3: generic induced laws}
+Implement the parameterized-model, output-law, Dirac, and deterministic-kernel API.  Acceptance
+criterion: the pushforward and observable theorems are architecture-independent, every
+\texttt{Measure.map} has an explicit measurability proof, and no theorem assumes the output law has
+a density.
+
+\subsubsection*{Phase N4: Gaussian initialization}
+Implement the finite product measures and prove their coordinate, independence, mean, variance,
+and probability-measure lemmas.  Acceptance criterion: zero variance reduces to Dirac without a
+special-case density, and proofs use generic product-coordinate lemmas rather than one proof per
+kind of parameter.
+
+\subsubsection*{Phase N5: layer and deep-network laws}
+Prove positive semidefiniteness of $K_s$, the one-layer Gaussian law, the randomized-layer kernel,
+and the deep composition theorem.  Acceptance criterion: the covariance formula has distinct
+sample and neural indices, independence of layer parameters is visible, and the one-layer theorem
+is stated as an equality of measures.
+
+\subsubsection*{Phase N6: refactor and integration}
+Bridge \texttt{Approximation.OneHiddenLayer.Network} and \texttt{NTK.ShallowNetwork} to the shared
+dense-layer API without changing their public mathematical statements.  Add the new modules to the
+renormalization umbrella only after targeted checks pass, then run the full LML build and linters.
+No phase is complete while a theorem in that phase contains \texttt{sorry}.
+
 \section{Refactors and reuse in LML}
+
+\subsection{Shared neural-network core}
+
+Three existing developments encode overlapping special cases:
+\texttt{Approximation.OneHiddenLayer.Network} stores a hidden affine layer and scalar output
+coefficients, \texttt{Approximation.TwoHiddenLayer.Network} repeats that representation for two
+hidden layers, and \texttt{NTK.ShallowNetwork} stores a scaled, bias-free shallow network with
+fixed outer coefficients.  The Chapter~2 API should not add a fourth unrelated encoding.
+
+The migration order is:
+\begin{enumerate}
+  \item prove the neutral \texttt{DenseLayer} and compositional evaluation API;
+  \item give exact evaluation-preserving conversions from both approximation structures to the
+    shared representation;
+  \item restate new results on the shared representation while retaining compatibility wrappers
+    for existing public names; and
+  \item migrate \texttt{NTK.gaussianRowMeasure} and \texttt{NTK.gaussianInit} only after the shared
+    product-Gaussian coordinate lemmas prove the same laws used by all NTK downstream files.
+\end{enumerate}
+This order keeps the refactor observational: downstream evaluation functions and theorem
+statements do not change merely to accommodate storage choices.
+
+The existing declaration
+\texttt{Approximation.thresholdActivation\_sigmoidal} cannot be migrated: it is mathematically
+false because \texttt{Approximation.Sigmoidal} includes continuity, whereas the threshold
+activation jumps at zero.  Replace it with the measurable/discontinuous facts in
+Lemma~\ref{lem:renorm:activationRegularity}.  Any theorem that needs only limits at infinity should
+use a weaker predicate with exactly those two hypotheses; a universal-approximation theorem that
+needs continuity must not accept threshold through that weaker interface.
 
 \subsection{Gaussian helpers from NTK}
 
@@ -808,10 +1391,33 @@ downstream theorem changes statement merely to accommodate the refactor.
 
 \section{Failure analysis and compliance with the project lessons}
 
-The central error to avoid is treating the informal density manipulations as if they were already
-well-typed theorems: inventing new Gaussian/MGF/tilting APIs, omitting normalizability, and writing a
-two-sided $O(\epsilon^2)$ expansion for a quartic tilt.  That approach violates the following
-specific lessons in \texttt{docs/lessons\_learned.md}:
+There are two concrete errors in the state from which this plan starts.
+
+First, the pre-existing blueprint said that it covered only Chapter~1 even though the requested
+source boundary was Chapter~2 beginning at line 958.  The existing cumulant and perturbation work
+is useful, but it is not a substitute for formalizing the MLP recursion, activations, initialization,
+and induced output law.  Failing to check the source boundary before designing the library violated
+\textbf{Rule 1 (Verify Before Implementation)}.  Treating a plausible-looking, compiling blueprint
+as evidence that the requested chapter had been covered also violated \textbf{Rule 8 (scratch and
+ground-truth verification)} and \textbf{Rules 13--14 (do not trust stale or truncated feedback)}:
+the ground truth is the actual source at and after line 958 and the actual blueprint contents, not
+the filename or an earlier partial read.
+
+Second, \texttt{Approximation/Basic.lean} states
+\texttt{thresholdActivation\_sigmoidal}, but \texttt{Sigmoidal} contains a continuity field and the
+threshold function is discontinuous at zero.  Its proof is currently hidden by \texttt{sorry}.
+This is not tactic friction; the proposition is false.  It violates \textbf{Rule 18 (Never
+Hallucinate Mathematical Bounds / No Goal Forcing)}, because a placeholder is being used to force
+an unprovable goal, and \textbf{Rule 1}, because unfolding the two definitions or testing continuity
+at zero immediately refutes it.  It also illustrates the warning in Section~14.11: read the exact
+content of a named predicate instead of trusting the English connotation of its name.  The repair is
+to prove threshold measurable and discontinuous, and to reserve \texttt{Sigmoidal} for continuous
+activations.
+
+A further class of errors to avoid is treating the informal density manipulations as if they were
+already well-typed theorems: inventing Gaussian/MGF/tilting APIs, omitting normalizability, treating
+Dirac delta as a function, or writing a two-sided $O(\epsilon^2)$ expansion for a quartic tilt.  Such
+an approach violates the following specific lessons in \texttt{docs/lessons\_learned.md}:
 \begin{enumerate}
   \item \textbf{Rule 1 (Verify Before Implementation)} and \textbf{Rule 3 (Pattern-Based Search):}
     it misses the verified \texttt{mgf}, \texttt{cgf}, \texttt{multivariateGaussian},
@@ -830,6 +1436,10 @@ specific lessons in \texttt{docs/lessons\_learned.md}:
   \item \textbf{Rule 7 (modularize tactic-heavy subgoals):} failing to isolate the partition
     transform, pairing recurrence, dominated derivative, and quotient estimate causes duplicated,
     brittle proofs.
+  \item \textbf{Section 14.17 (raw functions versus \texttt{EuclideanSpace}):} alternating between
+    \texttt{Matrix.mulVec} on $I\to\mathbb R$ and the \texttt{WithLp}-wrapped Euclidean type inside
+    one proof creates avoidable coercion and instance failures.  The new layer API stays on raw
+    finite functions and crosses the boundary once through a named equivalence for Gaussian laws.
   \item \textbf{Rules 6 and 17 (exact proof terms and immediate isolation):} attempting long
     rewrite chains through integrals, maps, and \texttt{WithLp} coercions is precisely the
     syntactic-shape failure these rules warn against.
@@ -838,10 +1448,12 @@ specific lessons in \texttt{docs/lessons\_learned.md}:
     can conceal missing imports, stale oleans, or a nonterminating definitional-equality search.
 \end{enumerate}
 
-The new plan complies with those lessons by construction:
+The new plan fully complies with those lessons at the level of workflow and theorem design:
 \begin{enumerate}
-  \item every external declaration listed in the blueprint has been source-searched and checked in
-    the pinned import context; implementation begins with a fresh batch-\texttt{\#check} audit;
+  \item every external declaration used by the existing Chapter~1 implementation has been checked
+    in its pinned import context; every new Chapter~2 candidate has been source-searched, and
+    implementation begins with a fresh exact-import batch-\texttt{\#check} audit before any of
+    those candidates is used in code;
   \item following \textbf{Rules 2 and 4}, declarations are added atomically and consolidated only
     after their exact signatures typecheck; broad mechanical edits are reserved for a verified
     downstream migration;
@@ -850,18 +1462,33 @@ The new plan complies with those lessons by construction:
   \item probability and integrability hypotheses are visible in theorem statements, and quartic
     asymptotics use the correct one-sided filter;
   \item reusable lemmas replace term enumeration and monolithic \texttt{calc} blocks;
+  \item Chapter~2 has its own explicit source-to-module map, and each informal density equation is
+    translated either to \texttt{Measure.map}, \texttt{Measure.dirac}, or a kernel equality with the
+    required measurability and independence hypotheses visible;
+  \item false or underspecified source claims are corrected before proof work: threshold is not
+    called continuous, zero-variance Gaussians are measures rather than densities, the Fourier
+    delta display is not asserted as a Lebesgue integral, and the CLT claim is deferred until a
+    metric and quantitative assumptions are chosen;
   \item new proofs are developed in exact-signature scratch files, then checked with
     \texttt{lake env lean} on the edited file and a targeted \texttt{lake build} on its module,
     complying with \textbf{Rules 8, 11, 13, and 14};
-  \item coordinate proofs remain on \texttt{EuclideanSpace} and use
-    \texttt{PiLp.inner\_apply}/\texttt{Real.inner\_apply}, as required by the representation warning
-    in Section~13.9, rather than unfolding inner-product structures;
+  \item Gaussian analytic proofs remain on \texttt{EuclideanSpace} and use
+    \texttt{PiLp.inner\_apply}/\texttt{Real.inner\_apply}, while dense-layer algebra remains on raw
+    finite functions and \texttt{Matrix.mulVec}; a named equivalence is the only boundary crossing,
+    complying with Sections~13.9 and~14.17;
   \item edits are made one module and one logical declaration at a time, with the full build only
     after targeted builds pass; and
   \item no \texttt{sorry} is accepted in a mergeable phase.  If exploratory work temporarily uses
     one, its docstring must contain an informal proof and a precise source, and the phase cannot be
     marked complete until the placeholder is removed.
 \end{enumerate}
+
+Compliance is checked, not merely asserted: every phase has a local mathematical acceptance
+criterion, an exact-import \texttt{lake env lean} check, and a final full build.  If the proposed
+typed MLP representation produces the dependent-type or definitional-equality problems warned
+about in Sections~13.1 and~14.17, Phase~N2 explicitly stops and substitutes a scratch-verified
+encoding before downstream code is written.  Thus the plan does not use ``elegance'' as a reason
+to ignore elaboration evidence.
 
 This workflow also follows LML's stated goals: it supplies high-quality reusable definitions,
 essential machine-learning theory, an extensible framework for later wide-network results,
