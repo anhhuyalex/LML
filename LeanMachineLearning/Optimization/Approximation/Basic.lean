@@ -45,11 +45,16 @@ namespace Approximation
 
 /-! ### Activation functions -/
 
-/-- Compatibility alias for the shared threshold activation. -/
-noncomputable abbrev thresholdActivation : ℝ → ℝ := NeuralNetwork.threshold
+/-- Compatibility wrapper for the shared threshold activation. -/
+noncomputable def thresholdActivation : ℝ → ℝ := fun z => if z ≥ 0 then 1 else 0
 
-/-- Compatibility alias for the shared ReLU activation. -/
-noncomputable abbrev reluActivation : ℝ → ℝ := NeuralNetwork.relu
+/-- Compatibility wrapper for the shared ReLU activation. -/
+noncomputable def reluActivation : ℝ → ℝ := fun z => max z 0
+
+theorem thresholdActivation_eq_threshold :
+    thresholdActivation = NeuralNetwork.threshold := rfl
+
+theorem reluActivation_eq_relu : reluActivation = NeuralNetwork.relu := rfl
 
 /-- A sigmoidal activation is continuous with limits 0 at -∞ and 1 at +∞. -/
 structure Sigmoidal (σ : ℝ → ℝ) : Prop where

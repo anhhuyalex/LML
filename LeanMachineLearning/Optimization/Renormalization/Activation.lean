@@ -30,13 +30,13 @@ open MeasureTheory ProbabilityTheory Real
 namespace NeuralNetwork
 
 /-- The threshold (Heaviside) activation, with value one at the origin. -/
-def threshold (x : ℝ) : ℝ := if 0 ≤ x then 1 else 0
+noncomputable abbrev threshold (x : ℝ) : ℝ := if 0 ≤ x then 1 else 0
 
 /-- The logistic activation `x ↦ 1 / (1 + exp (-x))`. -/
 def logistic (x : ℝ) : ℝ := (1 + Real.exp (-x))⁻¹
 
 /-- The rectified linear unit. -/
-def relu (x : ℝ) : ℝ := max x 0
+noncomputable abbrev relu (x : ℝ) : ℝ := max x 0
 
 /-- A scalar linear activation with slope `a`. -/
 def linear (a x : ℝ) : ℝ := a * x

@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2026 LML Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: LML Contributors
+-/
 module
 
 public import Mathlib.Combinatorics.Enumerative.IncidenceAlgebra
@@ -7,6 +12,8 @@ public import Mathlib.Order.Partition.Finpartition
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Independence.Basic
+public import Mathlib.Probability.Kernel.Composition.MapComap
+public import Mathlib.Probability.Kernel.Composition.Prod
 public import Mathlib.Probability.Moments.Covariance
 public import Mathlib.Probability.Moments.MGFAnalytic
 public import Mathlib.Probability.Moments.Tilted
@@ -101,3 +108,28 @@ only `#check` and `#synth` commands.
   (ProbabilityTheory.multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) 0)
 #synth ProbabilityTheory.IsGaussian
   (ProbabilityTheory.multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) 0)
+
+/-! ## Chapter 2: products, induced laws, and kernels -/
+
+#check MeasureTheory.Measure.pi
+#check MeasureTheory.Measure.pi_map_eval
+#check ProbabilityTheory.iIndepFun_pi
+#check ProbabilityTheory.iIndepFun.map_fun_eq_pi_map
+#check MeasureTheory.Measure.map_fst_prod
+#check MeasureTheory.Measure.map_snd_prod
+#check MeasureTheory.Measure.isProbabilityMeasure_map
+#check MeasureTheory.integral_map
+#check MeasureTheory.integral_dirac
+#check ProbabilityTheory.variance_dirac
+#check MeasureTheory.charFun_dirac
+#check ProbabilityTheory.Kernel.deterministic
+#check ProbabilityTheory.Kernel.deterministic_apply
+#check ProbabilityTheory.Kernel.const
+#check ProbabilityTheory.Kernel.id
+#check ProbabilityTheory.Kernel.map
+#check ProbabilityTheory.Kernel.map_apply
+#check ProbabilityTheory.Kernel.prod_apply
+#check MeasureTheory.Measure.deterministic_comp_eq_map
+#check ProbabilityTheory.gaussianReal_zero_var
+#check ProbabilityTheory.integral_id_gaussianReal
+#check ProbabilityTheory.variance_id_gaussianReal
