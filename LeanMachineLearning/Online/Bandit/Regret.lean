@@ -53,7 +53,7 @@ lemma gap_le_of_mem_Icc [Nonempty 𝓐] {l u : ℝ} (h : ∀ a, (ν a)[id] ∈ S
     gap ν a ≤ u - l := by
   grind [gap, ciSup_le (fun i ↦ (h i).2)]
 
-/-- Regret of a sequence of pulls `k : ℕ → 𝓐` at time `t` for the reward kernel `ν ; Kernel 𝓐 ℝ`. -/
+/-- Regret of a sequence of pulls `k : ℕ → 𝓐` at time `t` for the reward kernel `ν; Kernel 𝓐 ℝ`. -/
 noncomputable
 def regret (ν : Kernel 𝓐 ℝ) (A : ℕ → Ω → 𝓐) (t : ℕ) (ω : Ω) : ℝ :=
   t * (⨆ a, (ν a)[id]) - ∑ s ∈ range t, (ν (A s ω))[id]

@@ -24,7 +24,7 @@ open ConvexOpt
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
-/-- The vector field for the gradient flow of `u` and `v`. 
+/-- The vector field for the gradient flow of `u` and `v`.
 The state is `WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)`. -/
 noncomputable def dlnVectorField
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (_t : ℝ)

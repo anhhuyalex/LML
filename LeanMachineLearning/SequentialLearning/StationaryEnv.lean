@@ -100,7 +100,7 @@ variable [StandardBorelSpace 𝓐] [Nonempty 𝓐] [StandardBorelSpace 𝓨] [No
 given the action at time `n + 1`. -/
 lemma condIndepFun_feedback_history_action [StandardBorelSpace Ω]
         [IsObliviousEnv env] (h : IsAlgEnvSeq A Y alg env P) (n : ℕ) :
-    Y (n + 1) ⟂ᵢ[A (n + 1), h.measurable_action _ ; P] history A Y n := by
+    Y (n + 1) ⟂ᵢ[A (n + 1), h.measurable_action _; P] history A Y n := by
   have hA := h.measurable_action
   have hY := h.measurable_feedback
   refine condIndepFun_of_exists_condDistrib_prod_ae_eq_prodMkLeft
@@ -208,7 +208,7 @@ given the action at time `n + 1`. -/
 lemma condIndepFun_feedback_history_action [StandardBorelSpace Ω]
     [StandardBorelSpace 𝓐] [Nonempty 𝓐] [StandardBorelSpace 𝓨] [Nonempty 𝓨]
     (h : IsAlgEnvSeq A Y alg (stationaryEnv ν) P) (n : ℕ) :
-    Y (n + 1) ⟂ᵢ[A (n + 1), h.measurable_action _ ; P] history A Y n :=
+    Y (n + 1) ⟂ᵢ[A (n + 1), h.measurable_action _; P] history A Y n :=
   IsObliviousEnv.condIndepFun_feedback_history_action h n
 
 lemma condIndepFun_feedback_history_action_action [StandardBorelSpace Ω]

@@ -14,6 +14,6 @@ public import LeanMachineLearning.Optimization.Lasso.Theorems
 /-!
 # Diagonal Linear Networks and the Lasso Regularization Path
 
-This module formalizes the exact and approximate connections between the 
+This module formalizes the exact and approximate connections between the
 training trajectories of diagonal linear networks and the lasso regularization path.
 -/

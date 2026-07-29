@@ -1577,8 +1577,8 @@ lemma scaled_dual_lcp_s_diff_bound (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda
 /--
 The difference of scaled dual variables is bounded by the parameter difference.
 Informal proof: Using the LCP equations for scaled variables at $\mu_1, \mu_2$, the difference
-$	ilde{w}_1 - 	ilde{w}_2$ is in the span of $M$ plus a term proportional to $r (\mu_1 - \mu_2)$.
-By taking the inner product with $	ilde{z}_1 - 	ilde{z}_2$ and using complementarity slackness,
+$  ilde{w}_1 -   ilde{w}_2$ is in the span of $M$ plus a term proportional to $r (\mu_1 - \mu_2)$.
+By taking the inner product with $  ilde{z}_1 -   ilde{z}_2$ and using complementarity slackness,
 the cross terms are non-positive. Applying Cauchy-Schwarz with the PSD matrix $M$ yields a bound
 proportional to $|\mu_1 - \mu_2|$.
 Source: docs/Lasso.md Section 4.5, Lemma 4.11.
@@ -1740,7 +1740,7 @@ lemma scaled_diff_quot_eq_matVec
   set d := zt (μ + h) - zt μ with hd_def
   set ds := s (μ + h) - s μ with hds_def
   have h_sub :
-      (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) - 
+      (-(s (μ + h)) • r + ones + matVec M (zt (μ + h))) -
       (-(s μ) • r + ones + matVec M (zt μ)) = -ds • r + matVec M d := by
     simp [d, ds, matVec_sub, sub_smul]
     abel_nf

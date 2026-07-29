@@ -534,11 +534,72 @@ lemma pos_delta_bound_3
   -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
   have h_uniform_bound : ∃ X > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X := by
-    -- This requires Proposition 4.1 from the paper (Section 4.3).
-    -- Proof sketch: use energy monotonicity (Lemma 4.2), Bregman divergence
-    -- characterization (Lemma 4.3), bounds on dual iterates (Lemmas 4.4-4.5),
-    -- and Carathéodory's cone theorem (Lemmas 4.6-4.7).
-    sorry
+    -- The existing theorem `pos_trajectory_uniform_bound` in MirrorFlow.lean
+    -- (Proposition 4.1) gives a uniform norm bound ‖xᵋ(t)‖ ≤ C under the
+    -- additional hypothesis `hu_pos` that the effective parameter never vanishes.
+    -- This positivity follows from hβ (NonzeroCoordinates β) and the gradient
+    -- flow ODE: u_i'(t) = -2 u_i(t) * ((M x(t))_i - r_i + λ), a linear ODE
+    -- whose solution u_i(t) = u_i(0) exp(∫₀ᵗ A_i) never crosses zero when
+    -- u_i(0) = √ε β_i ≠ 0.  The formal lemma is not yet proved.
+    have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
+      -- Proof sketch: The gradient flow ODE gives u_i' = -2 u_i * ((M x)_i - r_i + lambda).
+      -- Since u_i(0) = √ε β_i ≠ 0 (by hβ and ε > 0), and the ODE is linear in u_i,
+      -- u_i(t) = u_i(0) * exp(∫₀ᵗ -2((M x(s))_i - r_i + lambda) ds) never vanishes.
+      -- Hence x_i(t) = u_i(t)² ≠ 0 for all t.
+      -- Formalization requires ODE uniqueness; left as future work.
+      sorry
+    -- Apply the uniform trajectory bound (Proposition 4.1 from the paper).
+    obtain ⟨C, ε₀, hCpos, hε₀pos, hbound⟩ :=
+      pos_trajectory_uniform_bound M r lambda β u hdata hβ hu hu_pos
+    -- Shrink ε₀ to also be ≤ 1, so that log(1/ε) ≥ 0 for the rescaled time.
+    set ε₁ := min ε₀ 1 with hε₁_def
+    have hε₁pos : 0 < ε₁ := lt_min hε₀pos one_pos
+    -- The interval (0, ε₁) is in the right-neighborhood filter 𝓝[>] 0.
+    have h_mem : Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) := by
+      rw [mem_nhdsGT_iff_exists_Ioo_subset]
+      exact ⟨ε₁, hε₁pos, fun x hx => hx⟩
+    refine ⟨C, hCpos, ?_⟩
+    filter_upwards [h_mem] with ε hε
+    have hε_pos : 0 < ε := hε.1
+    have hε_lt₁ : ε < ε₁ := hε.2
+    have hε_le₀ : ε ≤ ε₀ := by
+      have hε₁_le₀ : ε₁ ≤ ε₀ := min_le_left _ _
+      linarith
+    have hε_le_one : ε ≤ 1 := by
+      have hε₁_le_one : ε₁ ≤ 1 := min_le_right _ _
+      linarith
+    intro τ hτ
+    rcases hτ with ⟨hτ0, hτs⟩
+    intro i
+    -- The rescaled time t := (τ/4)·log(1/ε) is nonnegative.
+    set t := posTimeFromRescaled ε τ with ht_def
+    have ht_nonneg : 0 ≤ t := by
+      rw [ht_def, posTimeFromRescaled]
+      have h_one_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_le_one
+      have h_log_nonneg : 0 ≤ Real.log (1 / ε) := Real.log_nonneg h_one_div
+      have h_tau_div : 0 ≤ τ / 4 := div_nonneg hτ0 (by norm_num)
+      exact mul_nonneg h_tau_div h_log_nonneg
+    -- The uniform norm bound from Proposition 4.1.
+    have h_norm_bound : ‖posEffectiveParameter (u ε) t‖ ≤ C :=
+      hbound ε hε_pos hε_le₀ t ht_nonneg
+    -- Each coordinate is nonnegative (it's a square).
+    have hx_nonneg : 0 ≤ posEffectiveParameter (u ε) t i :=
+      posEffectiveParameter_nonnegative (u ε) t i
+    -- Bound the coordinate by the norm: ‖x_i‖ ≤ ‖x‖ ≤ C.
+    have h_coord_norm : ‖posEffectiveParameter (u ε) t i‖ ≤ C := by
+      calc
+        ‖posEffectiveParameter (u ε) t i‖ ≤ ‖posEffectiveParameter (u ε) t‖ :=
+          PiLp.norm_apply_le (posEffectiveParameter (u ε) t) i
+        _ ≤ C := h_norm_bound
+    -- For a nonnegative real, the norm equals the value itself.
+    have h_coord : posEffectiveParameter (u ε) t i ≤ C := by
+      have h_norm_eq_abs : ‖posEffectiveParameter (u ε) t i‖ =
+          |posEffectiveParameter (u ε) t i| := by rw [Real.norm_eq_abs]
+      have h_abs_eq_val : |posEffectiveParameter (u ε) t i| =
+          posEffectiveParameter (u ε) t i := abs_of_nonneg hx_nonneg
+      rw [h_norm_eq_abs, h_abs_eq_val] at h_coord_norm
+      exact h_coord_norm
+    simpa [ht_def]
   rcases h_uniform_bound with ⟨X, hX_pos, hX_ev⟩
   -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
   -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
