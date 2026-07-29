@@ -8,6 +8,9 @@ module
 public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import LeanMachineLearning.Optimization.Lasso.LCP
 public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
+public import LeanMachineLearning.Optimization.Lasso.Definitions
+public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
+public import LeanMachineLearning.Optimization.Lasso.Bounds.Energy
 public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Data.Matrix.Block
@@ -37,191 +40,64 @@ open Filter Topology
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
-/-! ## Minimum values and path quantities -/
 
-/-- The minimum value of the lasso objective for a given `μ`. -/
-noncomputable def lassoMin (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι)
-    (lambda μ : ℝ) : ℝ :=
-  ⨅ x, lassoObjective M r lambda μ x
 
-/-- The minimum value of the positive lasso objective for a given `μ`. -/
-noncomputable def posLassoMin (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι)
-    (lambda μ : ℝ) : ℝ :=
-  ⨅ (x : EuclideanSpace ℝ ι) (_hx : Nonnegative x), positiveLassoObjective M r lambda μ x
 
-/-- The seminorm squared induced by `M`, written as `<x, Mx>`. -/
-noncomputable def matrixSeminormSq (M : Matrix ι ι ℝ)
-    (x : EuclideanSpace ℝ ι) : ℝ :=
-  inner ℝ x (matVec M x)
-
-/-- The `Δε(s)` quantity from Section 4.6. -/
-noncomputable def pathDelta
-    (M : Matrix ι ι ℝ) (zε z : ℝ → EuclideanSpace ℝ ι) (s : ℝ) : ℝ :=
-  (1 / 2 : ℝ) * matrixSeminormSq M (zε s - z s)
-
-/-- Positive-lasso path scaling `z(μ) = μ x(μ)`. -/
-noncomputable def scaledPrimalPath (x : ℝ → EuclideanSpace ℝ ι) :
-    ℝ → EuclideanSpace ℝ ι :=
-  fun μ => μ • x μ
-
-/-- The deviation from monotonicity used in the positive-lasso Theorem 3.2. -/
-noncomputable def positiveZDownward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) :
-    ℝ :=
-  ∑ i, ∫ u in (0 : ℝ)..μ, (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)
-
-/-- The upward variation auxiliary quantity used in Eq. (4.15). -/
-noncomputable def positiveZUpward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) :
-    ℝ :=
-  ∑ i, ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * x_lasso u' i) u)
-
-/-- Compatibility alias for the positive-lasso downward variation. -/
-noncomputable def zDownward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) : ℝ :=
-  positiveZDownward x_lasso μ
-
-/-- The explicit vanishing term from Eq. (4.15). -/
-noncomputable def deltaVanishingTerm (ε s z_up : ℝ) : ℝ :=
-  (s + z_up) / Real.log (1 / ε)
-
-/-- The full Eq. (4.15) error profile before taking `ε → 0`. -/
-noncomputable def deltaFullError (ε s z_up z_down : ℝ) : ℝ :=
-  deltaVanishingTerm ε s z_up + z_down
-
-/-- The bound on the final suboptimality gap, Eq. (2.4). -/
-noncomputable def suboptimalityGap (lambda s z_down : ℝ) : ℝ :=
-  (1 + lambda * s) * (Real.sqrt z_down / s + z_down / s ^ 2)
-
-/-! ## Section 4.6: positive-path estimate chain -/
-
-/--
-Section 4.6, integrated mirror-flow identity in rescaled time.
-
-Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.13).  Integrate
-`d wᵋ / ds = M xᵋ - r + λ 𝟙` from `0` to `s`, using the corrected rescaled
-integrated trajectory API.
--/
-theorem positive_integrated_mirror_equation
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
-    (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
-    (hu : posDlnGradientFlow M r lambda ε β u) (s : ℝ) :
-    posRescaledMirrorVariable ε u s =
-      posRescaledMirrorVariable ε u 0 - s • r +
-        matVec M (posIntegratedTrajectoryRescaled ε u s) + (s * lambda) • ones := by
-  sorry
-
-/--
-Section 4.6, differential inequality behind Eq. (4.15).
-
-Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.14).  Differentiate
-`Δᵋ`, substitute the parametric LCP equation and the integrated mirror equation,
-then bound the complementarity-defect terms using the uniform trajectory bound.
--/
-theorem positive_delta_differential_inequality
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
-    ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
-      ∀ τ ∈ Set.Icc (0 : ℝ) s,
-        deriv
-          (fun σ =>
-            pathDelta M
-              (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
-              (scaledPrimalPath x_lasso) σ) τ
-        ≤ C *
-          (1 / Real.log (1 / ε) *
-              (1 + deriv (positiveZUpward x_lasso) τ) +
-            deriv (positiveZDownward x_lasso) τ) + δ := by
-  sorry
-
-/--
-Section 4.6, Eq. (4.15), with the full finite-`ε` dependence.
-
-Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.15).
--/
-theorem positive_path_delta_bound_full
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
-    ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
-      pathDelta M
-        (fun τ => posIntegratedTrajectoryRescaled ε (u ε) τ)
-        (scaledPrimalPath x_lasso) s
-      ≤ C *
-          (deltaFullError ε s
-            (positiveZUpward x_lasso s) (positiveZDownward x_lasso s) + δ) := by
-  sorry
-
-/--
-Coarser version of Eq. (4.15) after absorbing the vanishing finite-`ε` term into
-an arbitrary eventual `δ`.
-
-Informal proof reference: `docs/Lasso.md`, Section 4.6.
--/
-theorem positive_path_delta_bound
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
-    ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
-      pathDelta M
-        (fun τ => posIntegratedTrajectoryRescaled ε (u ε) τ)
-        (scaledPrimalPath x_lasso) s
-      ≤ C * (positiveZDownward x_lasso s + δ) := by
-  sorry
-
-/--
-Section 4.6 energy differential inequality for
-`Eᵋ(s)=<w(s),zᵋ(s)-z(s)>+Δᵋ(s)`.
-
-Informal proof reference: `docs/Lasso.md`, Section 4.6, after Eq. (4.15).
-The derivative of the scaled dual path is controlled by Lemma 4.11.
--/
-theorem positive_energy_differential_inequality
-    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (w z zε : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w) :
-    ∀ s : ℝ,
-      deriv
-        (fun τ =>
-          (1 / (1 + τ * lambda)) *
-            (inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ)) s
-      ≤ pseudoInverseSeminorm Mdagger r * Real.sqrt (2 * pathDelta M zε z s) := by
-  sorry
 
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso
 objective suboptimality bound of Theorem 3.2.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6.
+
+Informal Proof Outline:
+1. Use `positiveLassoObjective_eq_energy` to rewrite the objective gap
+   `Lasso(xε) - Lasso(x)` as `1/s^2 * E^\varepsilon(s)`.
+2. Apply `positive_energy_differential_inequality` to bound the derivative of `E^\varepsilon(\tau)`.
+3. Integrate this bound from `τ = 0` to `τ = s`.
+4. Use `initial_positive_energy_zero` to show that the integral evaluates
+   exactly to `E^\varepsilon(s)`.
+5. Substitute the integrated `Δ^\varepsilon(τ)` bound from `positive_path_delta_bound`.
+6. Conclude the limit bound for `E^\varepsilon(s) / s^2`, which matches
+   `suboptimalityGap` as `ε → 0`.
 -/
 theorem positive_path_energy_bound
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       positiveLassoObjective M r lambda s
         (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
       ≤ posLassoMin M r lambda s +
         C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
-  sorry
+  -- Obtain the differential inequality bound `C_diff`
+  obtain ⟨C_diff, hC_diff_pos, h_diff_bound⟩ := positive_energy_differential_inequality
+    M Mdagger r lambda β s hs u hdata hβ hu x_lasso hx_lasso w hdual h_regular
+  -- Obtain the delta bound `C_delta`
+  obtain ⟨C_delta, hC_delta_pos, h_delta_bound⟩ := positive_path_delta_bound
+    M r lambda β s hs u hdata hβ hu x_lasso hx_lasso h_regular
+  -- Let C be a combination of C_diff, C_delta, and geometric factors
+  let C := C_diff * Real.sqrt (2 * C_delta) + C_diff
+  use C
+  constructor
+  · -- sorry: Need to prove C > 0
+    sorry
+  · intro δ hδ
+    -- sorry: Filter over ε > 0 for both bounds
+    -- sorry: Integrate `h_diff_bound` from 0 to s using `bound_of_deriv_bound`
+    -- sorry: Use `initial_positive_energy_zero` to remove `E^\varepsilon(0)`
+    -- sorry: Substitute `h_delta_bound` into the integrated inequality
+    -- sorry: Use `positiveLassoObjective_eq_energy` to connect the energy
+    -- `E^\varepsilon(s)` to the objective
+    -- sorry: Simplify to match `C * suboptimalityGap + δ`
+    sorry
 
 /-! ## Positive-lasso main theorems -/
 

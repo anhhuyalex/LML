@@ -50,10 +50,8 @@ private lemma quadratic_form_increment
         (1 / 2 : ℝ) * inner ℝ y (matVec M y) =
       inner ℝ (matVec M y) a +
         (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
-  rw [matVec_add]
-  rw [inner_add_left, inner_add_right, inner_add_right]
-  rw [inner_matVec_comm_of_isSymm M hM y a]
-  rw [real_inner_comm a (matVec M y)]
+  rw [matVec_add, inner_add_left, inner_add_right, inner_add_right,
+    inner_matVec_comm_of_isSymm M hM y a, real_inner_comm a (matVec M y)]
   ring
 
 -- Taylor expansion of the quadratic loss in the effective variable.
@@ -62,13 +60,6 @@ private lemma quadraticLoss_add_sub
     quadraticLoss M r (y + a) - quadraticLoss M r y =
       inner ℝ (matVec M y - r) a +
         (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
-  have h_linear_increment :
-      - inner ℝ r (y + a) + inner ℝ r y = - inner ℝ r a := by
-    rw [inner_add_right]
-    ring
-  have h_first_order_collect :
-      inner ℝ (matVec M y) a - inner ℝ r a =
-        inner ℝ (matVec M y - r) a := (inner_sub_left _ _ _).symm
   calc
     quadraticLoss M r (y + a) - quadraticLoss M r y
         = ((1 / 2 : ℝ) * inner ℝ (y + a) (matVec M (y + a)) -
@@ -82,10 +73,11 @@ private lemma quadraticLoss_add_sub
     _ = (inner ℝ (matVec M y) a +
               (1 / 2 : ℝ) * inner ℝ a (matVec M a)) +
             (- inner ℝ r a) := by
-          rw [quadratic_form_increment M hM y a, h_linear_increment]
+          rw [quadratic_form_increment M hM y a, show - inner ℝ r (y + a) + inner ℝ r y =
+            - inner ℝ r a by rw [inner_add_right]; ring]
     _ = inner ℝ (matVec M y - r) a +
             (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
-          rw [← h_first_order_collect]
+          rw [← (inner_sub_left _ _ _).symm]
           ring
 
 -- Coordinatewise square expansion around `u`, written without local `let`
@@ -116,11 +108,10 @@ private lemma weight_decay_increment
     lambda * ‖u + h‖ ^ 2 - lambda * ‖u‖ ^ 2 -
         inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h =
       lambda * ‖h‖ ^ 2 := by
-  rw [norm_add_sq_real]
-  have H : (euclideanOf fun i ↦ 2 * lambda * (u : ι → ℝ) i) = (2 * lambda) • u := by
-    ext i
-    dsimp [euclideanOf]
-  rw [H, inner_smul_left, starRingEnd_apply, star_trivial]
+  rw [norm_add_sq_real,
+    show (euclideanOf fun i ↦ 2 * lambda * (u : ι → ℝ) i) = (2 * lambda) • u by
+      ext i; dsimp [euclideanOf],
+    inner_smul_left, starRingEnd_apply, star_trivial]
   ring
 
 -- The same weight-decay expansion, stated at an arbitrary endpoint `x'`.
@@ -129,10 +120,9 @@ private lemma weight_decay_sub_increment
     lambda * ‖x'‖ ^ 2 - lambda * ‖u‖ ^ 2 -
         inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) (x' - u) =
       lambda * ‖x' - u‖ ^ 2 := by
-  have hx' : x' = u + (x' - u) := by abel
-  rw [hx']
-  have hdisp : u + (x' - u) - u = x' - u := by abel
-  simpa [hdisp] using weight_decay_increment lambda u (x' - u)
+  rw [show x' = u + (x' - u) by abel]
+  simpa [show u + (x' - u) - u = x' - u by abel] using
+    weight_decay_increment lambda u (x' - u)
 
 -- Split the displayed linear term into the loss-linear and weight-decay-linear
 -- contributions.
@@ -210,13 +200,8 @@ private lemma inner_tilted_gradient
   have h4 : lambda * inner ℝ ones h = ∑ i, lambda * h i := by
     rw [EuclideanSpace.inner_eq_star_dotProduct]
     dsimp [ones, euclideanOf, dotProduct]
-    have h_lambda : (∑ i, lambda * (1 * h i)) = ∑ i, lambda * h i := by
-      apply Finset.sum_congr rfl
-      intro i _
-      ring
-    rw [←h_lambda, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro i _
+    rw [← show (∑ i, lambda * (1 * h i)) = ∑ i, lambda * h i by
+      refine Finset.sum_congr rfl (fun i _ => ?_); ring, Finset.mul_sum]
     simp
   rw [h2, h3, h4, ←Finset.sum_sub_distrib, ←Finset.sum_add_distrib]
   apply Finset.sum_congr rfl
@@ -238,12 +223,12 @@ lemma hasDerivAt_coordinateSquare
       (euclideanOf (fun i => 2 * u t i * u' i)) t := by
   let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
     (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
-  have h1 : HasDerivAt (fun τ => e (u τ)) (e u') t := e.hasFDerivAt.comp_hasDerivAt t hu
   dsimp [coordinateSquare, euclideanOf]
   have hd_pi : HasDerivAt (fun τ => (fun i => u τ i * u τ i)) (fun i => 2 * u t i * u' i) t := by
     apply hasDerivAt_pi.2
     intro i
-    have hui : HasDerivAt (fun τ => e (u τ) i) (e u' i) t := hasDerivAt_pi.1 h1 i
+    have hui : HasDerivAt (fun τ => e (u τ) i) (e u' i) t :=
+      hasDerivAt_pi.1 (e.hasFDerivAt.comp_hasDerivAt t hu) i
     exact HasDerivAt.mul hui hui |>.congr_deriv (by
       dsimp [e, ContinuousLinearEquiv.coe_coe]
       simp; ring_nf)
@@ -302,11 +287,6 @@ private lemma posDlnObjective_taylor_remainder
         inner ℝ (matVec M y - r) (coordinateSquare h) +
           lambda * ‖h‖ ^ 2 +
           (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
-    have h_norm_collect :
-        lambda * ‖x'‖ ^ 2 - lambda * ‖u‖ ^ 2 =
-          lambda * ‖h‖ ^ 2 +
-            inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h := by
-      linarith [h_norm_expansion]
     calc
       posDlnObjective M r lambda x' - posDlnObjective M r lambda u -
           inner ℝ
@@ -354,7 +334,10 @@ private lemma posDlnObjective_taylor_remainder
             inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h) -
           (inner ℝ (matVec M y - r) (euclideanOf fun i ↦ 2 * u i * h i) +
             inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h) := by
-            rw [h_norm_collect, h_linear_split]
+            rw [show lambda * ‖x'‖ ^ 2 - lambda * ‖u‖ ^ 2 =
+              lambda * ‖h‖ ^ 2 +
+                inner ℝ (euclideanOf fun i ↦ 2 * lambda * u i) h from by
+              linarith [h_norm_expansion], h_linear_split]
       _ =
         inner ℝ (matVec M y - r) (coordinateSquare h) +
           lambda * ‖h‖ ^ 2 +
@@ -378,6 +361,114 @@ $\frac{\partial L}{\partial u_i}
   = 2 u_i \frac{\partial \ell}{\partial x_i} + 2 \lambda u_i
   = 2 u_i ( (M x)_i - r_i + \lambda)$.
 -/
+-- For any vector `h`, the coordinatewise square `coordinateSquare h` satisfies
+-- `‖coordinateSquare h‖ ≤ ‖h‖ ^ 2`.  This bounds the ℓ²-norm of the
+-- coordinatewise square by the squared norm of the original vector.
+private lemma norm_coordinateSquare_le_norm_sq (h : EuclideanSpace ℝ ι) :
+    ‖coordinateSquare h‖ ≤ ‖h‖ ^ 2 := by
+  -- For each coordinate i, (h i)^2 ≤ ‖h‖^2 because the latter is a sum
+  -- of nonnegative squares containing (h i)^2 as a term.
+  have h_sq_le_norm_sq (i : ι) : (h i)^2 ≤ ‖h‖^2 := by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    exact Finset.single_le_sum (fun j _ => sq_nonneg (h j)) (Finset.mem_univ i)
+  -- Compute ‖coordinateSquare h‖^2 = ∑ (h i)^4
+  have h_norm_cs_sq_eq : ‖coordinateSquare h‖^2 = ∑ i : ι, ((h i)^2)^2 := by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    refine Finset.sum_congr rfl (fun i _ => ?_)
+    simp [coordinateSquare, euclideanOf, sq]
+  -- Bound the sum of fourth powers by (‖h‖^2)^2
+  have h_sum_ineq : (∑ i : ι, ((h i)^2)^2) ≤ (‖h‖^2)^2 := by
+    calc
+      (∑ i : ι, ((h i)^2)^2) = ∑ i : ι, ((h i)^2 * (h i)^2) := by
+        simp [sq]
+      _ ≤ ∑ i : ι, ((h i)^2 * (‖h‖^2)) :=
+        Finset.sum_le_sum (fun i _ =>
+          mul_le_mul_of_nonneg_left (h_sq_le_norm_sq i) (sq_nonneg (h i)))
+      _ = (∑ i : ι, (h i)^2) * (‖h‖^2) := by simp [Finset.sum_mul]
+      _ = (‖h‖^2) * (‖h‖^2) := by rw [EuclideanSpace.real_norm_sq_eq]
+      _ = (‖h‖^2)^2 := by ring
+  have h_sq_ineq : ‖coordinateSquare h‖^2 ≤ (‖h‖^2)^2 := by
+    calc
+      ‖coordinateSquare h‖^2 = ∑ i : ι, ((h i)^2)^2 := h_norm_cs_sq_eq
+      _ ≤ (‖h‖^2)^2 := h_sum_ineq
+  have h_nonneg_cs : 0 ≤ ‖coordinateSquare h‖ := norm_nonneg _
+  have h_nonneg_norm_sq : 0 ≤ ‖h‖^2 := pow_two_nonneg _
+  nlinarith
+
+-- The translation `x' ↦ x' - u` tends to `0` as `x' → u`.
+private lemma tendsto_sub_self (u : EuclideanSpace ℝ ι) :
+    Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - u) (nhds u) (nhds 0) := by
+  have h2 : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - u)
+      (nhds u) (nhds (u - u)) :=
+    (continuous_id.sub continuous_const).tendsto u
+  simpa using h2
+
+-- For any fixed vector `a`, the inner product `⟨a, coordinateSquare h⟩` is
+-- `O(‖h‖^2)` near zero, by Cauchy-Schwarz and `‖coordinateSquare h‖ ≤ ‖h‖^2`.
+private lemma inner_coordinateSquare_isBigO_norm_sq (a : EuclideanSpace ℝ ι) :
+    (fun h : EuclideanSpace ℝ ι => inner ℝ a (coordinateSquare h)) =O[nhds 0] fun h => ‖h‖ ^ 2 := by
+  have h_bound : ∀ h : EuclideanSpace ℝ ι,
+      ‖inner ℝ a (coordinateSquare h)‖ ≤ ‖a‖ * (‖h‖ ^ 2) := by
+    intro h
+    calc
+      ‖inner ℝ a (coordinateSquare h)‖ = |inner ℝ a (coordinateSquare h)| := by
+        rw [Real.norm_eq_abs]
+      _ ≤ ‖a‖ * ‖coordinateSquare h‖ := abs_real_inner_le_norm _ _
+      _ ≤ ‖a‖ * (‖h‖ ^ 2) := by
+        nlinarith [norm_coordinateSquare_le_norm_sq h, norm_nonneg a]
+  have h_eventually : ∀ᶠ (h : EuclideanSpace ℝ ι) in 𝓝 0,
+      ‖inner ℝ a (coordinateSquare h)‖ ≤ ‖a‖ * ‖(fun h' => ‖h'‖ ^ 2) h‖ := by
+    refine Eventually.of_forall fun h => ?_
+    simpa using h_bound h
+  exact IsBigO.of_bound ‖a‖ h_eventually
+
+-- Helper: `‖h‖^2 = o(h)` near zero in a normed space.
+private lemma norm_sq_isLittleO_id_at_zero :
+    (fun h : EuclideanSpace ℝ ι => ‖h‖ ^ 2) =o[nhds 0] fun h => h :=
+  Asymptotics.isLittleO_norm_pow_id (by norm_num : 1 < 2)
+
+-- `coordinateSquare h` is `O(‖h‖^2)` near zero, using `‖coordinateSquare h‖ ≤ ‖h‖^2`.
+private lemma coordinateSquare_isBigO_norm_sq_at_zero :
+    (fun h : EuclideanSpace ℝ ι => coordinateSquare h) =O[nhds 0] fun h => ‖h‖ ^ 2 := by
+  have h_eventually : ∀ᶠ h in (nhds 0 : Filter (EuclideanSpace ℝ ι)),
+      ‖coordinateSquare h‖ ≤ 1 * ‖(fun h' => ‖h'‖^2) h‖ := by
+    refine Eventually.of_forall (fun h => ?_)
+    simpa [Real.norm_of_nonneg (pow_two_nonneg ‖h‖), one_mul] using
+      norm_coordinateSquare_le_norm_sq h
+  exact IsBigO.of_bound 1 h_eventually
+
+-- `coordinateSquare h = o(h)` near zero, combining the above with `‖h‖^2 = o(h)`.
+private lemma coordinateSquare_isLittleO_id_at_zero :
+    (fun h : EuclideanSpace ℝ ι => coordinateSquare h) =o[nhds 0] id :=
+  coordinateSquare_isBigO_norm_sq_at_zero.trans_isLittleO norm_sq_isLittleO_id_at_zero
+
+-- If `a = O(g)` near `u` and `g → 0` at `u`, then `⟨a, M·a⟩ = o(g)`.
+-- This uses that `matVec M` is continuous linear and the inner product is
+-- bounded bilinear, so `⟨a, M·a⟩ = O(‖g‖^2) = o(g)`.
+private lemma inner_matVec_isLittleO_of_isBigO_tendsto
+    (M : Matrix ι ι ℝ) (a g : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) (u : EuclideanSpace ℝ ι)
+    (ha_O : a =O[nhds u] g) (hg_tendsto : Filter.Tendsto g (nhds u) (nhds 0)) :
+    (fun x' => inner ℝ (a x') (matVec M (a x'))) =o[nhds u] g := by
+  let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
+    { toFun := matVec M
+      map_add' := matVec_add M
+      map_smul' := matVec_smul_eq M
+    }
+  have hMa_O_g : (fun x' => matVec M (a x')) =O[nhds u] g :=
+    (M_lin.toContinuousLinearMap.isBigO_comp a (nhds u)).trans ha_O
+  -- Product of norms is O(‖g‖^2)
+  have h_norm_prod : (fun x' => ‖a x'‖ * ‖matVec M (a x')‖) =O[nhds u]
+      fun x' => ‖g x'‖ * ‖g x'‖ :=
+    (ha_O.norm_norm).mul (hMa_O_g.norm_norm)
+  -- Inner product is O(‖a‖ * ‖matVec M (a)‖) by bounded-bilinearity of inner, then o(g)
+  have h_inner_O : (fun x' => inner ℝ (a x') (matVec M (a x'))) =O[nhds u]
+      fun x' => ‖g x'‖ * ‖g x'‖ :=
+    (isBoundedBilinearMap_inner.isBigO_comp
+      (g := a) (h := fun x' => matVec M (a x')) (l := nhds u)).trans h_norm_prod
+  have h_norm_sq_o_at_zero : (fun h : EuclideanSpace ℝ ι => ‖h‖ * ‖h‖) =o[nhds 0] fun h => h := by
+    simpa [sq] using norm_sq_isLittleO_id_at_zero (ι := ι)
+  exact h_inner_O.trans_isLittleO (h_norm_sq_o_at_zero.comp_tendsto hg_tendsto)
+
 lemma hasGradientAt_posDlnObjective
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
     (u : EuclideanSpace ℝ ι) :
@@ -398,25 +489,73 @@ lemma hasGradientAt_posDlnObjective
                 (euclideanOf fun i ↦
                   2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i))))
         =o[nhds u] fun x' : EuclideanSpace ℝ ι ↦ x' - u := by
-    -- Sketch: prove each summand separately.
-    -- * `coordinateSquare (x' - u)` is `O(‖x' - u‖^2)`, so its inner product
-    --   with the fixed vector `matVec M (coordinateSquare u) - r` is little-o
-    --   of `x' - u`.
-    -- * `lambda * ‖x' - u‖^2` is little-o by the standard quadratic estimate.
-    -- * the final quadratic-form term is `O(‖2*u*(x'-u)+(x'-u)^2‖^2)`, and the
-    --   vector inside is `O(‖x' - u‖)`, hence the term is again little-o.
-    sorry
-  have h_grad : HasGradientAt (fun u' => posDlnObjective M r lambda u')
-      (euclideanOf (fun i => 2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda))) u := by
-    rw [hasGradientAt_iff_isLittleO]
-    -- Write `h = x' - u`.  The next identity is the Taylor expansion of the
-    -- polynomial objective after the claimed linear part is subtracted.  It is
-    -- proved coordinatewise by unfolding `posDlnObjective`, `quadraticLoss`,
-    -- `coordinateSquare`, `matVec`, and `euclideanOf`; the only non-ring step is
-    -- using `hM : M.IsSymm` to combine the two cross-terms of the quadratic form.
-    exact h_remainder_o.congr_left
-      (fun x' => (posDlnObjective_taylor_remainder M r lambda hM u x').symm)
-  exact h_grad
+    -- We split the displayed remainder into its three genuinely quadratic
+    -- pieces and combine the little-o estimates additively.
+    have h_loss_quad :
+        (fun x' : EuclideanSpace ℝ ι ↦
+          inner ℝ ((matVec M (coordinateSquare u)) - r) (coordinateSquare (x' - u)))
+          =o[nhds u] fun x' : EuclideanSpace ℝ ι ↦ x' - u :=
+      ((inner_coordinateSquare_isBigO_norm_sq ((matVec M (coordinateSquare u)) - r)).trans_isLittleO
+        (norm_sq_isLittleO_id_at_zero (ι := ι))).comp_tendsto (tendsto_sub_self u)
+    have h_weight_decay_quad :
+        (fun x' : EuclideanSpace ℝ ι ↦ lambda * ‖x' - u‖ ^ 2)
+          =o[nhds u] fun x' : EuclideanSpace ℝ ι ↦ x' - u :=
+      ((norm_sq_isLittleO_id_at_zero (ι := ι)).const_mul_left lambda).comp_tendsto
+        (tendsto_sub_self u)
+    have h_increment_linear_or_higher :
+        (fun x' : EuclideanSpace ℝ ι ↦
+          euclideanOf fun i ↦
+            2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i))
+          =O[nhds u] fun x' : EuclideanSpace ℝ ι ↦ x' - u := by
+      -- The first summand is a fixed diagonal linear map applied to `x' - u`,
+      -- hence `O(x' - u)`.  The second summand is coordinatewise quadratic,
+      -- hence even `o(x' - u)` and therefore `O(x' - u)`.
+      -- Construct the diagonal linear map h ↦ euclideanOf (fun i ↦ 2 * u i * h i)
+      let L_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
+        { toFun := fun h => euclideanOf (fun i => 2 * u i * h i)
+          map_add' := by
+            intro h₁ h₂
+            ext i
+            simp [euclideanOf]
+            ring
+          map_smul' := by
+            intro c h
+            ext i
+            simp [euclideanOf, smul_eq_mul]
+            ring
+        }
+      -- Assemble: the original function equals linear part + quadratic part pointwise
+      apply (IsBigO.add (L_lin.toContinuousLinearMap.isBigO_sub (nhds u) u)
+        (((coordinateSquare_isLittleO_id_at_zero (ι := ι)).isBigO).comp_tendsto
+          (tendsto_sub_self u))).congr_left
+      intro x'
+      ext i
+      dsimp [L_lin]
+      simp [coordinateSquare, euclideanOf]
+    have h_quadratic_form_quad :
+        (fun x' : EuclideanSpace ℝ ι ↦
+          (1 / 2 : ℝ) *
+            inner ℝ
+              (euclideanOf fun i ↦
+                2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i))
+              (matVec M
+                (euclideanOf fun i ↦
+                  2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i))))
+          =o[nhds u] fun x' : EuclideanSpace ℝ ι ↦ x' - u := by
+      -- Let `a(x') = 2*u*(x'-u) + (x'-u)^2` and `g(x') = x'-u`.
+      -- Since `a = O(g)` and `g → 0`, the core lemma gives `⟨a, M·a⟩ = o(g)`.
+      -- The prefactor `1/2` is harmless.
+      let a : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι := fun x' =>
+        euclideanOf fun i ↦ 2 * u i * ((x' - u) i) + ((x' - u) i) * ((x' - u) i)
+      let g : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι := fun x' => x' - u
+      have h_inner_o := inner_matVec_isLittleO_of_isBigO_tendsto M a g u
+        h_increment_linear_or_higher
+        (by simpa [g] using tendsto_sub_self u)
+      simpa [a, g] using h_inner_o.const_mul_left (1/2 : ℝ)
+    exact (h_loss_quad.add h_weight_decay_quad).add h_quadratic_form_quad
+  rw [hasGradientAt_iff_isLittleO]
+  exact h_remainder_o.congr_left
+    (fun x' => (posDlnObjective_taylor_remainder M r lambda hM u x').symm)
 
 /-- The gradient of the positive-DLN objective in weight coordinates. -/
 lemma gradient_posDlnObjective
@@ -571,49 +710,46 @@ lemma hasGradientAt_tiltedLoss
     (x : EuclideanSpace ℝ ι) :
     HasGradientAt (tiltedLoss M r lambda)
       (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) x := by
-  have h_grad : HasGradientAt (tiltedLoss M r lambda)
-      (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) x := by
-    rw [hasGradientAt_iff_isLittleO]
-    have h_expansion : ∀ h, tiltedLoss M r lambda (x + h) - tiltedLoss M r lambda x -
-      inner ℝ (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) h =
-        (1 / 2 : ℝ) * inner ℝ h (matVec M h) := by
-      intro h
-      dsimp [tiltedLoss, quadraticLoss]
-      have h_M_add : matVec M (x + h) = matVec M x + matVec M h := matVec_add M x h
-      rw [h_M_add]
-      have h_inner_M : inner ℝ (x + h) (matVec M x + matVec M h) =
-          inner ℝ x (matVec M x) + inner ℝ x (matVec M h) +
-            inner ℝ h (matVec M x) + inner ℝ h (matVec M h) := by
-        rw [inner_add_left, inner_add_right, inner_add_right]
-        ring
-      rw [h_inner_M]
-      have h_cross : inner ℝ x (matVec M h) = inner ℝ (matVec M x) h :=
-        inner_matVec_comm_of_isSymm M hM x h
-      have h_inner_r : inner ℝ r (x + h) = inner ℝ r x + inner ℝ r h := inner_add_right _ _ _
-      rw [h_inner_r]
-      have h_inner_ones : inner ℝ ones (x + h) =
-          inner ℝ ones x + inner ℝ ones h := inner_add_right _ _ _
-      rw [h_inner_ones]
-      have h_symm : inner ℝ (matVec M x) h = inner ℝ h (matVec M x) := real_inner_comm _ _
-      rw [h_cross, h_symm]
-      have h_inner_grad : inner ℝ (euclideanOf fun i => (M.mulVec x) i - r i + lambda) h =
-          inner ℝ (matVec M x) h - inner ℝ r h + lambda * inner ℝ ones h :=
-        inner_tilted_gradient M r lambda x h
-      rw [h_inner_grad, h_symm]
+  rw [hasGradientAt_iff_isLittleO]
+  have h_expansion : ∀ h, tiltedLoss M r lambda (x + h) - tiltedLoss M r lambda x -
+    inner ℝ (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) h =
+      (1 / 2 : ℝ) * inner ℝ h (matVec M h) := by
+    intro h
+    dsimp [tiltedLoss, quadraticLoss]
+    have h_M_add : matVec M (x + h) = matVec M x + matVec M h := matVec_add M x h
+    rw [h_M_add]
+    have h_inner_M : inner ℝ (x + h) (matVec M x + matVec M h) =
+        inner ℝ x (matVec M x) + inner ℝ x (matVec M h) +
+          inner ℝ h (matVec M x) + inner ℝ h (matVec M h) := by
+      rw [inner_add_left, inner_add_right, inner_add_right]
       ring
-    have h_expansion_x' : ∀ x', tiltedLoss M r lambda x' - tiltedLoss M r lambda x -
-      inner ℝ (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) (x' - x) =
-        (1 / 2 : ℝ) * inner ℝ (x' - x) (matVec M (x' - x)) := by
-      intro x'
-      simpa [show x + (x' - x) = x' by abel] using h_expansion (x' - x)
-    have h_o1 := (isLittleO_inner_matVec M hM).const_mul_left (1 / 2 : ℝ)
-    have h_tendsto : Filter.Tendsto (fun x' => x' - x) (nhds x) (nhds 0) := by
-      have h2 : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x)
-          (nhds x) (nhds (x - x)) := (continuous_id.sub continuous_const).tendsto x
-      simpa using h2
-    have h_o2 := h_o1.comp_tendsto h_tendsto
-    exact Asymptotics.IsLittleO.congr_left h_o2 (fun x' => (h_expansion_x' x').symm)
-  exact h_grad
+    rw [h_inner_M]
+    have h_cross : inner ℝ x (matVec M h) = inner ℝ (matVec M x) h :=
+      inner_matVec_comm_of_isSymm M hM x h
+    have h_inner_r : inner ℝ r (x + h) = inner ℝ r x + inner ℝ r h := inner_add_right _ _ _
+    rw [h_inner_r]
+    have h_inner_ones : inner ℝ ones (x + h) =
+        inner ℝ ones x + inner ℝ ones h := inner_add_right _ _ _
+    rw [h_inner_ones]
+    have h_symm : inner ℝ (matVec M x) h = inner ℝ h (matVec M x) := real_inner_comm _ _
+    rw [h_cross, h_symm]
+    have h_inner_grad : inner ℝ (euclideanOf fun i => (M.mulVec x) i - r i + lambda) h =
+        inner ℝ (matVec M x) h - inner ℝ r h + lambda * inner ℝ ones h :=
+      inner_tilted_gradient M r lambda x h
+    rw [h_inner_grad, h_symm]
+    ring
+  have h_tendsto : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x) (nhds x) (nhds 0) := by
+    have h2 : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x)
+        (nhds x) (nhds (x - x)) := (continuous_id.sub continuous_const).tendsto x
+    simpa using h2
+  have h_expansion_x' : ∀ x', tiltedLoss M r lambda x' - tiltedLoss M r lambda x -
+    inner ℝ (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) (x' - x) =
+      (1 / 2 : ℝ) * inner ℝ (x' - x) (matVec M (x' - x)) := by
+    intro x'
+    simpa [show x + (x' - x) = x' by abel] using h_expansion (x' - x)
+  exact Asymptotics.IsLittleO.congr_left
+    (((isLittleO_inner_matVec M hM).const_mul_left (1 / 2 : ℝ)).comp_tendsto h_tendsto)
+    (fun x' => (h_expansion_x' x').symm)
 
 /-- The gradient of the tilted loss `quadraticLoss M r + lambda * inner ones`. -/
 lemma gradient_tiltedLoss

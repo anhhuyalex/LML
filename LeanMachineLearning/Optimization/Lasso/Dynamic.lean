@@ -175,6 +175,8 @@ lemma posTimeFromRescaled_eq_half_timeFromRescaled (ε s : ℝ) :
   dsimp [posTimeFromRescaled, timeFromRescaled]
   ring
 
+omit [Fintype ι]
+
 /--
 The rescaled positive integrated trajectory is `s` times the original-time
 average at the matching positive stopping time.
@@ -183,11 +185,17 @@ Informal proof reference: `docs/Lasso.md`, Section 4.6, where
 `zᵋ(s)=s \bar xᵋ(s)=∫₀ˢ xᵋ(u)du`.
 -/
 lemma posIntegratedTrajectoryRescaled_eq_smul_average
-    (ε s : ℝ) (hlog : Real.log (1 / ε) ≠ 0)
+    (ε s : ℝ) (_hlog : Real.log (1 / ε) ≠ 0)
     (u : ℝ → EuclideanSpace ℝ ι) :
     posIntegratedTrajectoryRescaled ε u s =
       s • posAverageTrajectory u (posTimeFromRescaled ε s) := by
-  sorry
+  dsimp [posIntegratedTrajectoryRescaled, posAverageTrajectory,
+    posIntegratedTrajectory, posTimeFromRescaled, euclideanOf]
+  ext i
+  simp only [PiLp.smul_apply, smul_eq_mul]
+  rcases eq_or_ne s 0 with rfl | hs
+  · simp
+  · field_simp [_hlog, hs]
 
 /--
 The rescaled signed integrated trajectory is `s` times the original-time average
@@ -196,11 +204,17 @@ at the matching signed stopping time.
 Informal proof reference: `docs/Lasso.md`, Sections 2 and 5.2.
 -/
 lemma integratedTrajectoryRescaled_eq_smul_average
-    (ε s : ℝ) (hlog : Real.log (1 / ε) ≠ 0)
+    (ε s : ℝ) (_hlog : Real.log (1 / ε) ≠ 0)
     (w : ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) :
     integratedTrajectoryRescaled ε w s =
       s • averageTrajectory w (timeFromRescaled ε s) := by
-  sorry
+  dsimp [integratedTrajectoryRescaled, averageTrajectory,
+    integratedTrajectory, timeFromRescaled, euclideanOf]
+  ext i
+  simp only [PiLp.smul_apply, smul_eq_mul]
+  rcases eq_or_ne s 0 with rfl | hs
+  · simp
+  · field_simp [_hlog, hs]
 
 end Lasso
 

@@ -66,12 +66,14 @@ structure IsPositiveSemidefinite (M : Matrix ι ι ℝ) : Prop where
   symm : M.IsSymm
   nonneg : ∀ x : EuclideanSpace ℝ ι, 0 ≤ inner ℝ x (matVec M x)
 
-lemma IsPositiveSemidefinite.get_symm {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) : M.IsSymm := by
+lemma IsPositiveSemidefinite.get_symm
+    {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) : M.IsSymm := by
   cases hM
   rename_i symm _
   exact symm
 
-lemma IsPositiveSemidefinite.get_nonneg {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) (x : EuclideanSpace ℝ ι) :
+lemma IsPositiveSemidefinite.get_nonneg
+    {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) (x : EuclideanSpace ℝ ι) :
     0 ≤ inner ℝ x (matVec M x) := by
   cases hM
   rename_i _ nonneg
