@@ -309,7 +309,6 @@ eigenvalues are non-negative. Also, $M M^\dagger M = Q \Lambda \Lambda^\dagger \
 which equals $Q \Lambda Q^T = M$, so for any $v$, $M M^\dagger M v = M v$.
 This satisfies `IsPSDRangeInverse`.
 -/
-
 -- For a symmetric matrix A with eigenbasis b and eigenvalue function f
 -- (A(b i) = f i • b i), the coordinate representation of matVec A v is f i * (repr v i).
 private lemma repr_matVec_eq_mul_repr {ι : Type*} [Fintype ι]
@@ -2053,6 +2052,7 @@ theorem parametric_lcp_unique_small_mu
   use (0, q)
   constructor
   · -- Existence: (0, q) satisfies the parametric LCP
+    dsimp
     rw [h_iff 0 q]
     exact ⟨rfl, rfl⟩
   · -- Uniqueness: any solution must be (0, q)
