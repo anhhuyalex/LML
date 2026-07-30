@@ -1127,6 +1127,49 @@ private lemma max_zero_deriv_intervalIntegrable
   rw [h_eq]
   exact h_temp
 
+private lemma max_zero_neg_deriv_intervalIntegrable
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (i : ι) (τ : ℝ) (hτ : 0 ≤ τ)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    IntervalIntegrable (fun u => max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+      volume 0 τ := by
+  set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+  have h_ac_vec : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 τ :=
+    h_regular.absolutelyContinuousOn_Icc 0 τ (le_refl 0) hτ
+  have h_ac_fi : AbsolutelyContinuousOnInterval f_i 0 τ := by
+    rw [absolutelyContinuousOnInterval_iff] at h_ac_vec ⊢
+    intro ε hε
+    obtain ⟨δ, hδ, hδ'⟩ := h_ac_vec ε hε
+    refine ⟨δ, hδ, ?_⟩
+    intro E hE hlen
+    apply lt_of_le_of_lt ?_ (hδ' E hE hlen)
+    refine Finset.sum_le_sum (fun j hj => ?_)
+    dsimp [f_i]
+    set a := (scaledPrimalPath x_lasso) (E.2 j).1
+    set b := (scaledPrimalPath x_lasso) (E.2 j).2
+    have h_sq : ((a - b) i)^2 ≤ ‖a - b‖^2 := by
+      rw [show ((a - b) i)^2 = ‖(a - b) i‖ ^ 2 by simp, EuclideanSpace.norm_sq_eq]
+      have hpos : ∀ k ∈ (Finset.univ : Finset ι), 0 ≤ ‖(a - b) k‖ ^ 2 :=
+        fun k _ => by positivity
+      exact Finset.single_le_sum hpos (Finset.mem_univ i)
+    calc
+      |a.ofLp i - b.ofLp i| = |(a - b) i| := by simp
+      _ = Real.sqrt (((a - b) i)^2) := by rw [Real.sqrt_sq_eq_abs]
+      _ ≤ Real.sqrt (‖a - b‖^2) := Real.sqrt_le_sqrt h_sq
+      _ = ‖a - b‖ := Real.sqrt_sq (norm_nonneg _)
+      _ = dist a b := by rw [dist_eq_norm]
+  have h_int_deriv : IntervalIntegrable (deriv f_i) volume 0 τ :=
+    h_ac_fi.intervalIntegrable_deriv
+  have h_eq : (fun u => max 0 (-deriv f_i u)) =
+      fun u => (|deriv f_i u| - deriv f_i u) / 2 := by
+    funext u
+    rcases le_total 0 (deriv f_i u) with hu | hu
+    · rw [abs_of_nonneg hu, max_eq_left (neg_nonpos.mpr hu)]
+      ring
+    · rw [abs_of_nonpos hu, max_eq_right (neg_nonneg.mpr hu)]
+      ring
+  rw [h_eq]
+  exact (h_int_deriv.abs.sub h_int_deriv).div_const 2
+
 -- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
 -- to sums over coordinate derivatives, and establishes monotonicity of both functions.
 -- Uses piecewise linearity of the Lasso path (Efron et al. 2004) and the Fundamental Theorem
@@ -1141,7 +1184,8 @@ private lemma deriv_pos_z_identities
         DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
         ∃ ε > 0, ∀ t, |t - τ'| < ε →
           deriv (fun u' => u' * (x_lasso u').ofLp i') t =
-          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
+          deriv (fun u' => u' * (x_lasso u').ofLp i') τ')
+    (h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ) :
     deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
     deriv (positiveZDownward x_lasso) τ =
       ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
@@ -1241,9 +1285,9 @@ private lemma deriv_pos_z_identities
         have h_isolated_breakpoints : ∀ τ', ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
             ∃ δ > 0, ∀ t, |t - τ'| < δ → t ≠ τ' →
               DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
-          -- This follows from the piecewise-linear structure of the Lasso path
-          -- (Efron, Hastie, Johnstone & Tibshirani 2004, "Least Angle Regression").
-          sorry
+          -- This branch is unreachable: h_path_diff gives differentiability at τ,
+          -- contradicting h_diff (from the by_cases). We derive ex falso quodlibet.
+          exact absurd h_path_diff h_diff
 
         -- Helper: on an open interval where deriv f_i is pointwise locally constant
         -- (via h_piecewise_deriv), it is globally constant (connectedness argument).
@@ -1382,11 +1426,36 @@ private lemma deriv_pos_z_identities
       (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ =
       (1 + τ) * max 0 (-deriv (fun u' => u' * x_lasso u' i) τ) := by
     intro i
-    -- Same argument as h_ftc_up but with the (1+u) factor.
-    -- For piecewise linear f_i, u ↦ (1+u)·max(0, -deriv f_i(u)) is continuous at
-    -- non-breakpoints (product of continuous functions) and has a jump at breakpoints
-    -- where deriv f_i τ = 0, making the value zero on both sides.
-    sorry
+    set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+    set g_i := fun (u : ℝ) => (1 + u) * max 0 (-deriv f_i u)
+    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    let c := max 0 (-deriv f_i τ)
+    have h_g_eq : ∀ t, |t - τ| < ε → g_i t = (1 + t) * c := by
+      intro t ht
+      dsimp [g_i, c]
+      rw [h_const t ht]
+    have h_event : g_i =ᶠ[𝓝 τ] (fun t => (1 + t) * c) := by
+      filter_upwards [Metric.ball_mem_nhds τ hε_pos] with t ht
+      exact h_g_eq t (Metric.mem_ball.mp ht)
+    have h_cont : ContinuousAt g_i τ :=
+      (continuousAt_congr h_event).mpr (by fun_prop)
+    have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+      refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+      have h_comp : AEStronglyMeasurable (fun t : ℝ => (1 + t) * c)
+          (volume.restrict (Metric.ball τ ε)) :=
+        (by fun_prop : Continuous (fun t : ℝ => (1 + t) * c)).aestronglyMeasurable
+      have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun t => (1 + t) * c) :=
+        fun t ht => h_g_eq t (Metric.mem_ball.mp ht)
+      exact h_comp.congr
+        (h_eq_on.aeEq_restrict Metric.isOpen_ball.measurableSet).symm
+    have h_int_neg : IntervalIntegrable (fun u => max 0 (-deriv f_i u)) volume 0 τ := by
+      dsimp [f_i]
+      exact max_zero_neg_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+    have h_int : IntervalIntegrable g_i volume 0 τ := by
+      dsimp [g_i]
+      exact h_int_neg.continuousOn_mul (by fun_prop)
+    simpa [g_i, c] using
+      (intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont).deriv
   -- Step 4 (distribute deriv over finite sum):
   --   deriv (∑_i F_i) τ = ∑_i deriv F_i τ
   -- Standard lemma `deriv_sum` requires differentiability of each F_i.
@@ -1399,14 +1468,66 @@ private lemma deriv_pos_z_identities
       ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
       ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
         max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := by
-    -- TODO: prove this from deriv_sum at differentiable points and the zero convention
-    -- at non-differentiable points, using piecewise linearity.
-    sorry
+    apply deriv_fun_sum
+    intro i _
+    set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+    set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
+    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
+      intro t ht
+      dsimp [g_i]
+      rw [h_const t ht]
+    have h_cont : ContinuousAt g_i τ := by
+      have h_event : ∀ᶠ t in 𝓝 τ, g_i t = g_i τ := by
+        rw [Metric.eventually_nhds_iff_ball]
+        exact ⟨ε, hε_pos, fun t ht => h_g_const t (Metric.mem_ball.mp ht)⟩
+      have h_eventEq : g_i =ᶠ[𝓝 τ] (fun _ => g_i τ) := h_event
+      exact h_eventEq.continuousAt
+    have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+      refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+      have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun _ => g_i τ) := fun t ht =>
+        h_g_const t (Metric.mem_ball.mp ht)
+      exact (aestronglyMeasurable_const (b := g_i τ)).congr
+        (h_eq_on.aeEq_restrict Metric.isOpen_ball.measurableSet).symm
+    have h_int : IntervalIntegrable g_i volume 0 τ := by
+      dsimp [g_i, f_i]
+      exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+    exact (intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont).differentiableAt
   have h_deriv_sum_down : deriv (fun (μ : ℝ) => ∑ i : ι,
       ∫ u in (0 : ℝ)..μ, (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ =
       ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
         (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
-    sorry
+    apply deriv_fun_sum
+    intro i _
+    set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+    set g_i := fun (u : ℝ) => (1 + u) * max 0 (-deriv f_i u)
+    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    let c := max 0 (-deriv f_i τ)
+    have h_g_eq : ∀ t, |t - τ| < ε → g_i t = (1 + t) * c := by
+      intro t ht
+      dsimp [g_i, c]
+      rw [h_const t ht]
+    have h_event : g_i =ᶠ[𝓝 τ] (fun t => (1 + t) * c) := by
+      filter_upwards [Metric.ball_mem_nhds τ hε_pos] with t ht
+      exact h_g_eq t (Metric.mem_ball.mp ht)
+    have h_cont : ContinuousAt g_i τ :=
+      (continuousAt_congr h_event).mpr (by fun_prop)
+    have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+      refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+      have h_comp : AEStronglyMeasurable (fun t : ℝ => (1 + t) * c)
+          (volume.restrict (Metric.ball τ ε)) :=
+        (by fun_prop : Continuous (fun t : ℝ => (1 + t) * c)).aestronglyMeasurable
+      have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun t => (1 + t) * c) :=
+        fun t ht => h_g_eq t (Metric.mem_ball.mp ht)
+      exact h_comp.congr
+        (h_eq_on.aeEq_restrict Metric.isOpen_ball.measurableSet).symm
+    have h_int_neg : IntervalIntegrable (fun u => max 0 (-deriv f_i u)) volume 0 τ := by
+      dsimp [f_i]
+      exact max_zero_neg_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+    have h_int : IntervalIntegrable g_i volume 0 τ := by
+      dsimp [g_i]
+      exact h_int_neg.continuousOn_mul (by fun_prop)
+    exact (intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont).differentiableAt
   -- Assemble the derivative identities
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ =
       ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
@@ -1434,23 +1555,59 @@ manifestly nonnegative.
 -/
 lemma positiveZ_deriv_nonneg
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
-    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
-        DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
-        ∃ ε > 0, ∀ t, |t - τ'| < ε →
-          deriv (fun u' => u' * (x_lasso u').ofLp i') t =
-          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     0 ≤ deriv (positiveZUpward x_lasso) τ ∧ 0 ≤ deriv (positiveZDownward x_lasso) τ := by
-  rcases deriv_pos_z_identities x_lasso τ hτ h_regular
-    h_breakpoint_comp_deriv_zero h_piecewise_deriv with
-    ⟨h_upward_eq, h_downward_eq⟩
-  refine ⟨?_, ?_⟩
-  · rw [h_upward_eq]
-    exact Finset.sum_nonneg (fun i _ => le_max_left _ _)
-  · rw [h_downward_eq]
-    exact Finset.sum_nonneg (fun i _ => mul_nonneg (by linarith) (le_max_left _ _))
+  have h_up_mono : MonotoneOn (positiveZUpward x_lasso) (Set.Ici 0) := by
+    intro a ha b hb hab
+    unfold positiveZUpward
+    apply Finset.sum_le_sum
+    intro i _
+    let g := fun u : ℝ => max 0 (deriv (fun u' => u' * x_lasso u' i) u)
+    have h0a : IntervalIntegrable g volume 0 a :=
+      max_zero_deriv_intervalIntegrable x_lasso i a ha h_regular
+    have h0b : IntervalIntegrable g volume 0 b :=
+      max_zero_deriv_intervalIntegrable x_lasso i b hb h_regular
+    have hab_int : IntervalIntegrable g volume a b := h0b.mono_set (by
+      rw [Set.uIcc_of_le hab, Set.uIcc_of_le hb]
+      exact Set.Icc_subset_Icc ha le_rfl)
+    have hadd := intervalIntegral.integral_add_adjacent_intervals h0a hab_int
+    have hnonneg : 0 ≤ ∫ u in a..b, g u :=
+      intervalIntegral.integral_nonneg_of_forall hab (fun u => le_max_left _ _)
+    linarith
+  have h_down_mono : MonotoneOn (positiveZDownward x_lasso) (Set.Ici 0) := by
+    intro a ha b hb hab
+    unfold positiveZDownward
+    apply Finset.sum_le_sum
+    intro i _
+    let g := fun u : ℝ => (1 + u) *
+      max 0 (-deriv (fun u' => u' * x_lasso u' i) u)
+    have h0a_neg := max_zero_neg_deriv_intervalIntegrable x_lasso i a ha h_regular
+    have h0b_neg := max_zero_neg_deriv_intervalIntegrable x_lasso i b hb h_regular
+    have h0a : IntervalIntegrable g volume 0 a := by
+      dsimp [g]
+      exact h0a_neg.continuousOn_mul (by fun_prop)
+    have h0b : IntervalIntegrable g volume 0 b := by
+      dsimp [g]
+      exact h0b_neg.continuousOn_mul (by fun_prop)
+    have hab_int : IntervalIntegrable g volume a b := h0b.mono_set (by
+      rw [Set.uIcc_of_le hab, Set.uIcc_of_le hb]
+      exact Set.Icc_subset_Icc ha le_rfl)
+    have hadd := intervalIntegral.integral_add_adjacent_intervals h0a hab_int
+    have hnonneg : 0 ≤ ∫ u in a..b, g u := by
+      apply intervalIntegral.integral_nonneg hab
+      intro u hu
+      have ha' : 0 ≤ a := ha
+      exact mul_nonneg (by linarith [ha', hu.1]) (le_max_left _ _)
+    linarith
+  constructor
+  · by_cases hd : DifferentiableAt ℝ (positiveZUpward x_lasso) τ
+    · have h := h_up_mono.derivWithin_nonneg (x := τ)
+      rwa [hd.derivWithin (uniqueDiffOn_Ici 0 τ hτ)] at h
+    · simp [deriv_zero_of_not_differentiableAt hd]
+  · by_cases hd : DifferentiableAt ℝ (positiveZDownward x_lasso) τ
+    · have h := h_down_mono.derivWithin_nonneg (x := τ)
+      rwa [hd.derivWithin (uniqueDiffOn_Ici 0 τ hτ)] at h
+    · simp [deriv_zero_of_not_differentiableAt hd]
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -1501,6 +1658,17 @@ lemma pos_delta_bound_3
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
   intro τ hτ
+  by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
+  swap
+  · have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
+    rw [deriv_zero_of_not_differentiableAt h_path_diff, inner_zero_left, neg_zero]
+    apply mul_nonneg
+    · exact (lt_max_of_lt_left hC_low_pos).le
+    · apply add_nonneg
+      · exact mul_nonneg
+          (div_nonneg zero_le_one (Real.log_pos
+            (one_lt_one_div hε_mem.1 hε_mem.2)).le) h_nonneg.1
+      · exact h_nonneg.2
   -- Notation for the derivative and the dual variable
   set zDot := deriv (scaledPrimalPath x_lasso) τ
   set w := posRescaledMirrorVariable ε (u ε) τ
@@ -1515,7 +1683,7 @@ lemma pos_delta_bound_3
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
   have h_derivs := deriv_pos_z_identities x_lasso τ hτ.left h_regular
-    h_breakpoint_comp_deriv_zero h_piecewise_deriv
+    h_breakpoint_comp_deriv_zero h_piecewise_deriv h_path_diff
   rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw⟩
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     simpa [zDot] using h_upward_eq_raw
@@ -1809,7 +1977,6 @@ lemma positive_delta_complementarity_bound
     Real.log_pos (one_lt_one_div hε_range.1 hε_range.2)
   have hL_nonneg : 0 ≤ 1 / Real.log (1 / ε) := div_nonneg (by norm_num) h_log_pos.le
   have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
-    h_breakpoint_zero h_piecewise_deriv
   have hA_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := h_nonneg.1
   have hB_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := h_nonneg.2
   have h_alg : C1 / Real.log (1 / ε) + 0 +

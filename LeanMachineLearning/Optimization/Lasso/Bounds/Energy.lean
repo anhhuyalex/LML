@@ -328,8 +328,7 @@ lemma energy_complementarity_bound
     nlinarith [hdata.lambda_nonneg, hτ.1]
   -- Nonnegativity of the `z↑`/`z↓` derivatives, needed to fold `T1`/`T3` into a
   -- single constant `C`.
-  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular h_breakpoint_zero
-    h_piecewise_deriv
+  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular
   -- Bound `T1`, `T3`, `T4b`.
   have hT1_bound : T1 ≤ C1 / Real.log (1 / ε) := h1ε τ hτ
   have hT3_bound : T3 ≤ C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
