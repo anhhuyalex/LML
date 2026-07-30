@@ -1039,8 +1039,8 @@ private lemma assemble_pos_delta_bound_3
     (h_bound_pos : -(∑ i, max 0 (zDot i) * w i) ≤
       (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ))
     (h_bound_neg : (∑ i, max 0 (-zDot i) * w i) ≤ C_w * (deriv (positiveZDownward x_lasso) τ))
-    (h_up_mono : Monotone (positiveZUpward x_lasso))
-    (h_down_mono : Monotone (positiveZDownward x_lasso))
+    (h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ)
+    (h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ)
     (hε_pos : 0 < ε) (hε_lt_one : ε < 1) :
     -inner ℝ zDot w ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
       deriv (positiveZDownward x_lasso) τ) := by
@@ -1053,8 +1053,8 @@ private lemma assemble_pos_delta_bound_3
     _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
         deriv (positiveZDownward x_lasso) τ) :=
       max_bound_algebra hC_low hC_w
-        (h_up_mono.deriv_nonneg (x := τ))
-        (h_down_mono.deriv_nonneg (x := τ))
+        h_up_nonneg
+        h_down_nonneg
         (Real.log_pos (one_lt_one_div hε_pos hε_lt_one))
 
 -- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
@@ -1069,8 +1069,7 @@ private lemma deriv_pos_z_identities
     deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
     deriv (positiveZDownward x_lasso) τ =
       ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) ∧
-    Monotone (positiveZUpward x_lasso) ∧
-    Monotone (positiveZDownward x_lasso) := by
+    Monotone (positiveZUpward x_lasso) := by
   -- Step 1 (componentwise identification):
   --   (deriv (scaledPrimalPath x_lasso) τ) i = deriv (fun u' => u' * x_lasso u' i) τ
   have h_component : ∀ i, (deriv (scaledPrimalPath x_lasso) τ) i =
@@ -1255,62 +1254,12 @@ private lemma deriv_pos_z_identities
       refine intervalIntegral.integral_nonneg_of_forall h (fun u => ?_)
       exact le_max_left _ _
     linarith
-  have h_down_mono : Monotone (positiveZDownward x_lasso) := by
-    intro a b h
-    unfold positiveZDownward
-    have h_diff_nonneg : 0 ≤ (∑ i : ι, ∫ u in (0 : ℝ)..b,
-        (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) -
-        (∑ i : ι, ∫ u in (0 : ℝ)..a,
-        (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) := by
-      -- Same structure as h_up_mono: difference = ∑_i ∫_a^b h_i(u) du
-      -- where h_i(u) = (1+u) * max(0, -deriv f_i(u)).
-      -- For u ≥ -1, h_i(u) ≥ 0 and the same proof works.
-      -- For u < -1, the sign of (1+u) is negative, and monotonicity may fail.
-      -- In the intended application (a,b ≥ 0), we have u ≥ 0, so (1+u) ≥ 1 > 0.
-      -- We provide the proof assuming u ≥ -1; the general case requires
-      -- additional hypotheses on the behavior of x_lasso for negative arguments.
-      have h_diff_eq : (∑ i : ι, ∫ u in (0 : ℝ)..b,
-          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) -
-          (∑ i : ι, ∫ u in (0 : ℝ)..a,
-          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) =
-          ∑ i : ι, ∫ u in a..b,
-          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u) := by
-        calc
-          _ = ∑ i : ι, ((∫ u in (0 : ℝ)..b,
-              (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) -
-              (∫ u in (0 : ℝ)..a,
-              (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u))) := by
-            simp [Finset.sum_sub_distrib]
-          _ = ∑ i : ι, ∫ u in a..b,
-              (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u) := by
-            refine Finset.sum_congr rfl (fun i _ => ?_)
-            have h0a : IntervalIntegrable (fun u =>
-                (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 a :=
-              h_int_any_down i 0 a
-            have hab : IntervalIntegrable (fun u =>
-                (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b :=
-              h_int_any_down i a b
-            have h_add := intervalIntegral.integral_add_adjacent_intervals h0a hab
-            linarith
-      rw [h_diff_eq]
-      refine Finset.sum_nonneg (fun i _ => ?_)
-      -- The integrand is (1+u) * max(0, -deriv f_i(u)).
-      -- For the intended application (a,b ≥ 0), we have u ≥ 0, so (1+u) ≥ 1 > 0
-      -- and max(0, -deriv ...) ≥ 0, hence the integrand is ≥ 0.
-      -- For general u, we assume u ≥ -1 (which holds for all u ≥ 0, the domain of interest).
-      -- The full Monotone claim on ℝ may require additional hypotheses.
-      refine intervalIntegral.integral_nonneg_of_forall h (fun u => ?_)
-      have h_nonneg_max : 0 ≤ max 0 (-deriv (fun u' => u' * x_lasso u' i) u) := le_max_left _ _
-      -- NOTE: we need 0 ≤ 1+u. This holds when u ≥ -1, which is true for u ≥ 0.
-      -- In the Lasso context, x_lasso is only meaningfully defined for μ > 0,
-      -- so the integral paths of interest have nonnegative bounds.
-      -- For a fully general proof on ℝ, we would need additional hypotheses.
-      have h_nonneg_factor : 0 ≤ 1 + u := by
-        -- Since u is in [a,b] and we need this only for the intended domain a,b ≥ 0.
-        -- For a general proof, we leave this as sorry.
-        sorry
-      nlinarith
-    linarith
+  -- NOTE: Monotone (positiveZDownward x_lasso) on all ℝ is NOT provable from the given
+  -- hypotheses, because the integrand (1+u)·max(0, -deriv f_i(u)) changes sign at u = -1.
+  -- Monotonicity holds only on [0, ∞) (or [-1, ∞)), which is sufficient for the intended
+  -- application where τ ∈ [0, s].  Instead of claiming full Monotone on ℝ, the downstream
+  -- code derives 0 ≤ deriv (positiveZDownward x_lasso) τ for τ ≥ 0 directly from the
+  -- derivative identity h_downward_eq and τ ≥ 0 (since (1+τ) ≥ 1 and max(0, ...) ≥ 0).
   -- Assemble the derivative identities
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ =
       ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
@@ -1322,7 +1271,7 @@ private lemma deriv_pos_z_identities
     unfold positiveZDownward
     rw [h_deriv_sum_down]
     simp_rw [h_ftc_down, h_component]
-  exact ⟨h_upward_eq, h_downward_eq, h_up_mono, h_down_mono⟩
+  exact ⟨h_upward_eq, h_downward_eq, h_up_mono⟩
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
