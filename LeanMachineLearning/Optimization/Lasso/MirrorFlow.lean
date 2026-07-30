@@ -221,8 +221,7 @@ lemma hasDerivAt_coordinateSquare
     (hu : HasDerivAt u u' t) :
     HasDerivAt (fun τ => coordinateSquare (u τ))
       (euclideanOf (fun i => 2 * u t i * u' i)) t := by
-  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) := euclideanToPiEquiv
   dsimp [coordinateSquare, euclideanOf]
   have hd_pi : HasDerivAt (fun τ => (fun i => u τ i * u τ i)) (fun i => 2 * u t i * u' i) t := by
     apply hasDerivAt_pi.2
@@ -624,8 +623,7 @@ lemma dln_is_mirror_flow
           (fun i => -((M.mulVec (posEffectiveParameter u t)) i - r i + lambda))) t := by
   intro t
   have hd := pos_effective_parameter_hasDerivAt M r lambda ε β u hu hM t
-  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) := euclideanToPiEquiv
   have hd_e : HasDerivAt (fun τ => e (posEffectiveParameter u τ))
       (e (positiveEffectiveVectorField M r lambda (posEffectiveParameter u t))) t :=
     e.hasFDerivAt.comp_hasDerivAt t hd
@@ -642,7 +640,7 @@ lemma dln_is_mirror_flow
     have hcomp := HasDerivAt.comp t hlog hd_i
     have hmul := HasDerivAt.const_mul (1 / 4 : ℝ) hcomp
     exact hmul.congr_deriv (by
-      dsimp [positiveEffectiveVectorField, euclideanOf, matVec, e,
+      dsimp [positiveEffectiveVectorField, euclideanOf, matVec, e, euclideanToPiEquiv,
         ContinuousLinearEquiv.coe_coe, Equiv.toFun_as_coe,
         LinearEquiv.coe_coe, WithLp.linearEquiv, WithLp.equiv, WithLp.toLp]
       change (1 / 4 : ℝ) * ((posEffectiveParameter u t i)⁻¹ *
@@ -681,17 +679,15 @@ lemma isLittleO_inner_matVec
   rw [Asymptotics.isBigOWith_iff]
   have h_cont : Continuous (matVec M) := by
     have h_eq : matVec M = fun (x : EuclideanSpace ℝ ι) =>
-        ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv).symm
-          (M.mulVec (x : ι → ℝ)) := rfl
+        euclideanToPiEquiv.symm (M.mulVec (x : ι → ℝ)) := rfl
     rw [h_eq]
-    apply Continuous.comp ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv).symm.continuous
+    apply Continuous.comp euclideanToPiEquiv.symm.continuous
     apply continuous_pi
     intro i
     apply continuous_finsetSum
     intro j _
     exact Continuous.mul continuous_const
-      ((continuous_apply j).comp
-        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous)
+      ((continuous_apply j).comp euclideanToPiEquiv.continuous)
   have h_tendsto : Tendsto (fun h => ‖matVec M h‖) (nhds 0) (nhds 0) := by
     refine tendsto_norm_zero.comp ?_
     simpa [matVec, euclideanOf] using h_cont.tendsto 0
@@ -738,10 +734,8 @@ lemma hasGradientAt_tiltedLoss
       inner_tilted_gradient M r lambda x h
     rw [h_inner_grad, h_symm]
     ring
-  have h_tendsto : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x) (nhds x) (nhds 0) := by
-    have h2 : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x)
-        (nhds x) (nhds (x - x)) := (continuous_id.sub continuous_const).tendsto x
-    simpa using h2
+  have h_tendsto : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - x) (nhds x) (nhds 0) :=
+    tendsto_sub_self x
   have h_expansion_x' : ∀ x', tiltedLoss M r lambda x' - tiltedLoss M r lambda x -
     inner ℝ (euclideanOf (fun i => (M.mulVec x) i - r i + lambda)) (x' - x) =
       (1 / 2 : ℝ) * inner ℝ (x' - x) (matVec M (x' - x)) := by
@@ -773,18 +767,6 @@ lemma inner_tiltedGradient_positiveEffectiveVectorField
   intro i _
   simp
   ring
-
-/-- The positive effective field is a descent direction for the tilted loss at nonnegative `x`. -/
-lemma inner_tiltedGradient_positiveEffectiveVectorField_nonpos
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
-    inner ℝ (euclideanOf fun i => (matVec M x) i - r i + lambda)
-        (positiveEffectiveVectorField M r lambda x) ≤ 0 := by
-  rw [inner_tiltedGradient_positiveEffectiveVectorField]
-  apply Finset.sum_nonpos
-  intro i _
-  exact mul_nonpos_of_nonpos_of_nonneg
-    (mul_nonpos_of_nonpos_of_nonneg (by norm_num) (hx i)) (sq_nonneg _)
 
 omit [Fintype ι] in
 /-- The positive effective parameter `u(t)²` is coordinatewise nonnegative. -/
@@ -868,89 +850,6 @@ theorem tiltedLoss_antitone_along_pos_flow
   simpa only [posEffectiveParameter, tiltedLoss_coordinateSquare_eq_posDlnObjective] using
     posDlnObjective_antitone_along_pos_flow M r lambda ε α u hu hM hst
 
-/-- The uniform upper-bound consequence in the second sentence of Lemma 4.2.
-
-By antitonicity, the value at time `t ≥ 0` is bounded by its value at zero.
-The initial effective parameter is `ε • α²`; for `0 < ε ≤ 1` these points lie
-in the compact line segment `{κ • α² | κ ∈ [0,1]}`, so continuity of the
-quadratic tilted loss gives one positive upper bound.  This is exactly the
-argument in Lemma 4.2 of <https://arxiv.org/abs/2509.18766>, and the compact
-maximum step is the finite-dimensional extreme-value theorem as presented in
-Boyd--Vandenberghe, *Convex Optimization*, Section 1.4
-<https://web.stanford.edu/~boyd/cvxbook/>.
--/
-theorem tiltedLoss_uniform_upper_bound
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (α : EuclideanSpace ℝ ι) (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hM : M.IsSymm)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε)) :
-    ∃ C > 0, ∀ ε : ℝ, 0 < ε → ε ≤ 1 → ∀ t : ℝ, 0 ≤ t →
-      tiltedLoss M r lambda (posEffectiveParameter (u ε) t) ≤ C := by
-  -- The effective parameter at initialization: α² (coordinatewise square)
-  set αsq := coordinateSquare α with hαsq
-  -- The tilted loss along the initial ray ε ↦ ε·α², as a function of ε
-  set f : ℝ → ℝ := fun ε => tiltedLoss M r lambda (ε • αsq) with hf
-  -- Step 1: f is a quadratic polynomial in ε, hence continuous
-  have h_f_explicit (ε : ℝ) : f ε = ((1/2 : ℝ) * inner ℝ αsq (matVec M αsq)) * ε ^ 2
-      + (lambda * inner ℝ ones αsq - inner ℝ r αsq) * ε := by
-    dsimp [f, tiltedLoss]
-    rw [quadraticLoss_smul, inner_smul_right]
-    ring
-  have h_cont_f : Continuous f := by
-    have h_explicit : f = fun ε => ((1/2 : ℝ) * inner ℝ αsq (matVec M αsq)) * ε ^ 2
-        + (lambda * inner ℝ ones αsq - inner ℝ r αsq) * ε := by
-      ext ε; exact h_f_explicit ε
-    rw [h_explicit]
-    continuity
-  have h_cont_f_on : ContinuousOn f (Set.Icc (0 : ℝ) 1) :=
-    h_cont_f.continuousOn
-  -- Step 2: [0,1] is compact and nonempty
-  have h_compact : IsCompact (Set.Icc (0 : ℝ) 1) := isCompact_Icc
-  have h_nonempty : (Set.Icc (0 : ℝ) 1).Nonempty := by
-    refine ⟨0, ?_⟩
-    constructor <;> norm_num
-  -- Step 3: Extreme Value Theorem — f attains a maximum on the compact set [0,1]
-  obtain ⟨ε₀, hε₀_mem, h_max⟩ := h_compact.exists_isMaxOn h_nonempty h_cont_f_on
-  -- h_max : IsMaxOn f (Set.Icc 0 1) ε₀, i.e. ∀ ε ∈ Icc 0 1, f ε ≤ f ε₀
-  -- Step 4: Choose C = max(1, f ε₀) > 0
-  set C := max 1 (f ε₀) with hC
-  have hC_pos : 0 < C := by
-    rw [hC]
-    exact lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
-  refine ⟨C, hC_pos, ?_⟩
-  intro ε hε_pos hε_le_one t ht_nonneg
-  -- Step 5: By antitonicity, the value at time t is ≤ the value at time 0
-  have h_antitone : Antitone (fun t => tiltedLoss M r lambda (posEffectiveParameter (u ε) t)) :=
-    tiltedLoss_antitone_along_pos_flow M r lambda ε α (u ε) (hu ε hε_pos) hM
-  have h_bound : tiltedLoss M r lambda (posEffectiveParameter (u ε) t) ≤
-      tiltedLoss M r lambda (posEffectiveParameter (u ε) 0) :=
-    h_antitone ht_nonneg
-  -- Step 6: The initial effective parameter is ε • α²
-  have h_init : posEffectiveParameter (u ε) 0 = ε • αsq := by
-    dsimp [posEffectiveParameter, αsq, coordinateSquare]
-    rw [show (u ε) 0 = Real.sqrt ε • α from (hu ε hε_pos).init]
-    ext i
-    dsimp [euclideanOf]
-    calc
-      Real.sqrt ε * α i * (Real.sqrt ε * α i) =
-          (Real.sqrt ε * Real.sqrt ε) * (α i * α i) := by ring
-      _ = ε * (α i * α i) := by rw [Real.mul_self_sqrt (by linarith : 0 ≤ ε)]
-  rw [h_init] at h_bound
-  -- h_bound: tiltedLoss … ≤ tiltedLoss M r lambda (ε • αsq) = f ε
-  have h_f_ε : tiltedLoss M r lambda (ε • αsq) = f ε := by
-    dsimp [f]
-  rw [h_f_ε] at h_bound
-  -- Step 7: ε ∈ (0,1] implies ε ∈ Icc 0 1, so f ε ≤ f ε₀ by IsMaxOn
-  have hε_mem_Icc : ε ∈ Set.Icc (0 : ℝ) 1 := by
-    constructor <;> linarith
-  have h_fε_le_fε₀ : f ε ≤ f ε₀ := h_max hε_mem_Icc
-  -- Step 8: f ε₀ ≤ C by definition of C
-  have h_fε₀_le_C : f ε₀ ≤ C := by
-    rw [hC]
-    exact le_max_right _ _
-  -- Chain: tiltedLoss … ≤ f ε ≤ f ε₀ ≤ C
-  linarith
-
 /-- The effective parameter starts at `ε • α²` along a positive-DLN flow. -/
 lemma posEffectiveParameter_zero_eq_smul_coordinateSquare
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
@@ -991,8 +890,7 @@ theorem posEffectiveParameter_ne_zero
     have hsqrt_pos : Real.sqrt ε > 0 := Real.sqrt_pos.mpr hε
     simp [hsqrt_pos.ne', hα i, smul_eq_mul]
   -- Linear equivalence between EuclideanSpace and bare functions
-  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) := euclideanToPiEquiv
   intro t i
   -- Define the coefficient a_i : ℝ → ℝ
   let a : ℝ → ℝ := fun τ => -2 * ((matVec M (coordinateSquare (u τ))) i - r i + lambda)
@@ -1007,7 +905,7 @@ theorem posEffectiveParameter_ne_zero
           Continuous.mul (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
             (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
       have h_euclideanOf_cont : Continuous (euclideanOf : (ι → ℝ) → EuclideanSpace ℝ ι) :=
-        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).symm.continuous_of_finiteDimensional
+        euclideanToPiEquiv.symm.continuous_of_finiteDimensional
       exact h_euclideanOf_cont.comp h_sq
     have h_matVec_cont : Continuous (matVec M) := by
       let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
@@ -1035,7 +933,8 @@ theorem posEffectiveParameter_ne_zero
           ((matVec M (coordinateSquare (u τ))) i - r i + lambda)))) τ :=
       e.hasFDerivAt.comp_hasDerivAt τ h_ode
     have h_pi := (hasDerivAt_pi.1 h_ode') i
-    simpa [a, e, WithLp.linearEquiv, euclideanOf, mul_comm, mul_left_comm, mul_assoc] using h_pi
+    simpa [a, e, euclideanToPiEquiv, WithLp.linearEquiv, euclideanOf, mul_comm, mul_left_comm,
+      mul_assoc] using h_pi
   -- Integrating factor: B(τ) = ∫_0^τ a(s) ds
   let B : ℝ → ℝ := fun τ => ∫ s in (0 : ℝ)..τ, a s
   have hB_deriv : ∀ (τ : ℝ), HasDerivAt B (a τ) τ := by
@@ -1110,6 +1009,27 @@ theorem posEffectiveParameter_ne_zero
   dsimp [posEffectiveParameter, coordinateSquare, euclideanOf]
   exact mul_ne_zero hu_t_ne_zero hu_t_ne_zero
 
+-- Bounds the quadratic loss at the initial-energy scale `ε • a`, for `0 < ε ≤ 1`.
+-- Shared by `pos_trajectory_matVec_uniform_bound` and `pos_trajectory_uniform_bound`,
+-- both of which need this bound for the same `K := (1/2)⟨a, Ma⟩ + |⟨r, a⟩|`.
+private lemma quadraticLoss_smul_le_energy_bound
+    (M : Matrix ι ι ℝ) (r a : EuclideanSpace ℝ ι) (hM_psd : IsPositiveSemidefinite M)
+    {ε : ℝ} (hε : 0 < ε) (hε_one : ε ≤ 1) :
+    quadraticLoss M r (ε • a) ≤ (1 / 2 : ℝ) * inner ℝ a (matVec M a) + |inner ℝ r a| := by
+  rw [quadraticLoss_smul]
+  have haa : 0 ≤ inner ℝ a (matVec M a) := hM_psd.nonneg a
+  have hε_sq : ε ^ 2 ≤ 1 := by nlinarith
+  have hquad :
+      (1 / 2 : ℝ) * ε ^ 2 * inner ℝ a (matVec M a) ≤
+        (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
+    nlinarith
+  have hlin₁ : ε * (-inner ℝ r a) ≤ ε * |inner ℝ r a| :=
+    mul_le_mul_of_nonneg_left (neg_le_abs _) hε.le
+  have hlin₂ : ε * |inner ℝ r a| ≤ |inner ℝ r a| := by
+    simpa only [one_mul] using
+      mul_le_mul_of_nonneg_right hε_one (abs_nonneg (inner ℝ r a))
+  nlinarith
+
 /--
 Lemma 4.3 from `docs/Lasso.md`: in the non-coercive case, energy decrease still
 controls the image `M xᵋ(t)`.
@@ -1147,21 +1067,8 @@ theorem pos_trajectory_matVec_uniform_bound
     have henergy : quadraticLoss M r (posEffectiveParameter (u ε) t) ≤ K := by
       have hmono :=
         tiltedLoss_antitone_along_pos_flow M r 0 ε α (u ε) hflow hdata.psd.symm ht
-      have hinit : quadraticLoss M r (ε • a) ≤ K := by
-        rw [quadraticLoss_smul]
-        have haa : 0 ≤ inner ℝ a (matVec M a) := hdata.psd.nonneg a
-        have hε_sq : ε ^ 2 ≤ 1 := by nlinarith
-        have hquad :
-            (1 / 2 : ℝ) * ε ^ 2 * inner ℝ a (matVec M a) ≤
-              (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by
-          nlinarith
-        have hlin₁ : ε * (-inner ℝ r a) ≤ ε * |inner ℝ r a| :=
-          mul_le_mul_of_nonneg_left (neg_le_abs _) hε.le
-        have hlin₂ : ε * |inner ℝ r a| ≤ |inner ℝ r a| := by
-          simpa only [one_mul] using
-            mul_le_mul_of_nonneg_right hε_one (abs_nonneg (inner ℝ r a))
-        dsimp [K]
-        nlinarith
+      have hinit : quadraticLoss M r (ε • a) ≤ K :=
+        quadraticLoss_smul_le_energy_bound M r a hdata.psd hε hε_one
       have hmono_loss :
           quadraticLoss M r (posEffectiveParameter (u ε) t) ≤
             quadraticLoss M r (ε • a) := by
@@ -1289,11 +1196,6 @@ lemma entropyBregman_eq_zero_iff
       · simp [← h0]
     simp only [this, Finset.sum_const_zero, mul_zero]
 
-/-- Coordinate projection out of `EuclideanSpace ℝ ι` is continuous. -/
-private lemma continuous_apply_euclidean (i : ι) :
-    Continuous (fun x : EuclideanSpace ℝ ι => x i) :=
-  (continuous_apply i).comp (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous
-
 /--
 The positive effective parameter trajectory is continuous in time.
 
@@ -1316,8 +1218,7 @@ private lemma hasDerivAt_matVec_comp
     (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ ι) (g' : EuclideanSpace ℝ ι) (t : ℝ)
     (hg : HasDerivAt g g' t) :
     HasDerivAt (fun τ => matVec M (g τ)) (matVec M g') t := by
-  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) := euclideanToPiEquiv
   have h1 : HasDerivAt (fun τ => e (g τ)) (e g') t := e.hasFDerivAt.comp_hasDerivAt t hg
   dsimp [matVec, euclideanOf]
   have hd_pi : HasDerivAt (fun τ => M.mulVec (e (g τ))) (M.mulVec (e g')) t := by
@@ -1337,15 +1238,14 @@ Fundamental theorem of calculus for the integrated positive-effective trajectory
 private lemma hasDerivAt_posIntegratedTrajectory
     (u : ℝ → EuclideanSpace ℝ ι) (hcont : Continuous (posEffectiveParameter u)) (t : ℝ) :
     HasDerivAt (fun τ => posIntegratedTrajectory u τ) (posEffectiveParameter u t) t := by
-  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) := euclideanToPiEquiv
   dsimp [posIntegratedTrajectory, euclideanOf]
   have h_pi : HasDerivAt (fun τ => (fun i => ∫ v in (0:ℝ)..τ, posEffectiveParameter u v i))
       (fun i => posEffectiveParameter u t i) t := by
     apply hasDerivAt_pi.2
     intro i
     have hcont_i : Continuous (fun v => posEffectiveParameter u v i) :=
-      (continuous_apply_euclidean i).comp hcont
+      (continuous_euclidean_apply i).comp hcont
     exact intervalIntegral.integral_hasDerivAt_right
       (hcont_i.intervalIntegrable 0 t)
       (hcont_i.stronglyMeasurableAtFilter _ _)
@@ -2016,19 +1916,8 @@ theorem pos_trajectory_uniform_bound
     have hmono := tiltedLoss_antitone_along_pos_flow M r lambda ε α (u ε) hflow
       hdata.psd.get_symm ht
     simp only [hx0] at hmono
-    have hquadinit : quadraticLoss M r (ε • a) ≤ K := by
-      rw [quadraticLoss_smul]
-      have haa : 0 ≤ inner ℝ a (matVec M a) := hdata.psd.nonneg a
-      have hε_sq : ε ^ 2 ≤ 1 := by nlinarith [hεε₀, hε0.le]
-      have hquad : (1 / 2 : ℝ) * ε ^ 2 * inner ℝ a (matVec M a) ≤
-          (1 / 2 : ℝ) * inner ℝ a (matVec M a) := by nlinarith
-      have hlin₁ : ε * (-inner ℝ r a) ≤ ε * |inner ℝ r a| :=
-        mul_le_mul_of_nonneg_left (neg_le_abs _) hε0.le
-      have hlin₂ : ε * |inner ℝ r a| ≤ |inner ℝ r a| := by
-        simpa only [one_mul] using
-          mul_le_mul_of_nonneg_right hεε₀ (abs_nonneg (inner ℝ r a))
-      dsimp only [K]
-      nlinarith
+    have hquadinit : quadraticLoss M r (ε • a) ≤ K :=
+      quadraticLoss_smul_le_energy_bound M r a hdata.psd hε0 hεε₀
     have hones_smul : inner ℝ (ones : EuclideanSpace ℝ ι) (ε • a) =
         ε * inner ℝ (ones : EuclideanSpace ℝ ι) a :=
       real_inner_smul_right (ones : EuclideanSpace ℝ ι) a ε

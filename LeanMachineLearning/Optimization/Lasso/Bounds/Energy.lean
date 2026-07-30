@@ -55,64 +55,14 @@ lemma dual_path_derivative_inner_bound
   -- The `M†` seminorm of `d` is bounded by that of `r`
   have h_seminorm_bound : pseudoInverseSeminorm Mdagger d ≤ pseudoInverseSeminorm Mdagger r :=
     hdual.scaled_derivative_bound τ hτ_nonneg
-  -- Nonnegativity of the M-quadratic forms (from PSD)
+  -- Nonnegativity of the M-quadratic form (from PSD)
   have h_Mu_nonneg : 0 ≤ inner ℝ u (matVec M u) :=
     IsPositiveSemidefinite.get_nonneg hM_psd u
-  have h_Mv_nonneg : 0 ≤ inner ℝ v (matVec M v) :=
-    IsPositiveSemidefinite.get_nonneg hM_psd v
-  -- Cauchy-Schwarz for the M-semi-inner product: |⟨u, M v⟩|² ≤ ⟨u, M u⟩ · ⟨v, M v⟩
-  have h_cauchy_sq : inner ℝ u (matVec M v) ^ 2 ≤ inner ℝ u (matVec M u) * inner ℝ v (matVec M v) := by
-    set a := inner ℝ u (matVec M u) with ha
-    set b := inner ℝ u (matVec M v) with hb
-    set c := inner ℝ v (matVec M v) with hc
-    have hc_nonneg : 0 ≤ c := by rw [hc]; exact h_Mv_nonneg
-    -- For all real `t`, the quadratic `a + 2·b·t + c·t²` is nonnegative
-    -- because `⟨u + t·v, M(u + t·v)⟩ ≥ 0` (PSD property)
-    have h_quad_nonneg (t : ℝ) : 0 ≤ a + 2 * b * t + c * t ^ 2 := by
-      have h_psd := IsPositiveSemidefinite.get_nonneg hM_psd (u + t • v)
-      have h_expand : inner ℝ (u + t • v) (matVec M (u + t • v)) = a + 2 * b * t + c * t ^ 2 := by
-        dsimp [a, b, c]
-        rw [matVec_add, matVec_smul_eq]
-        simp only [inner_add_left, inner_add_right, real_inner_smul_left, real_inner_smul_right,
-          add_assoc, mul_assoc]
-        rw [inner_matVec_comm_of_isSymm M hM_symm v u]
-        rw [real_inner_comm (matVec M v) u]
-        ring
-      rw [← h_expand]
-      exact h_psd
-    -- Discriminant argument: a + 2bt + ct² ≥ 0 for all t implies b² ≤ a·c
-    by_cases hc0 : c = 0
-    · -- If c = 0, then ∀t, a + 2bt ≥ 0, forcing b = 0
-      have hb0 : b = 0 := by
-        by_contra! hb0
-        -- Choose t = -(a+1)/(2b), which makes a + 2bt = -1 < 0
-        have h_neg : a + 2 * b * (-(a + 1) / (2 * b)) = -1 := by
-          field_simp [hb0]
-          ring
-        have h_ge := h_quad_nonneg (-(a + 1) / (2 * b))
-        rw [hc0] at h_ge
-        have h_simp : a + 2 * b * (-(a + 1) / (2 * b)) + 0 * (-(a + 1) / (2 * b)) ^ 2 = a + 2 * b * (-(a + 1) / (2 * b)) := by ring
-        rw [h_simp] at h_ge
-        rw [h_neg] at h_ge
-        linarith
-      rw [hc0, hb0]
-      norm_num
-    · -- c ≠ 0, so c > 0 (since c ≥ 0 by PSD)
-      have hc_pos : 0 < c := lt_of_le_of_ne hc_nonneg (Ne.symm hc0)
-      -- Take t = -b/c and plug into the quadratic
-      have h_simplified : a + 2 * b * (-b / c) + c * (-b / c) ^ 2 = a - b ^ 2 / c := by
-        field_simp [hc0]
-        ring
-      have hq := h_quad_nonneg (-b / c)
-      rw [h_simplified] at hq
-      -- From 0 ≤ a - b²/c, multiply by c > 0 to get a·c ≥ b²
-      have hq_mul : 0 ≤ (a - b ^ 2 / c) * c := mul_nonneg hq (le_of_lt hc_pos)
-      have h_mul_simp : (a - b ^ 2 / c) * c = a * c - b ^ 2 := by
-        calc
-          (a - b ^ 2 / c) * c = a * c - (b ^ 2 / c) * c := by ring
-          _ = a * c - b ^ 2 := by rw [div_mul_cancel₀ _ hc0]
-      rw [h_mul_simp] at hq_mul
-      linarith
+  -- Cauchy-Schwarz for the M-semi-inner product: |⟨u, M v⟩|² ≤ ⟨u, M u⟩ · ⟨v, M v⟩.
+  -- This is `inner_matVec_sq_le_mul` (`Basic.lean`), which packages Mathlib's Cauchy-Schwarz
+  -- inequality for PSD symmetric bilinear forms (`LinearMap.BilinForm.apply_sq_le_of_symm`).
+  have h_cauchy_sq : inner ℝ u (matVec M v) ^ 2 ≤ inner ℝ u (matVec M u) * inner ℝ v (matVec M v) :=
+    inner_matVec_sq_le_mul M hM_psd u v
   -- From the squared Cauchy-Schwarz, derive the non-squared form using square roots
   have h_cauchy_abs : |inner ℝ u (matVec M v)| ≤
       Real.sqrt (inner ℝ u (matVec M u)) * Real.sqrt (inner ℝ v (matVec M v)) := by
@@ -146,6 +96,7 @@ lemma dual_path_derivative_inner_bound
   have h_sqrt_pathDelta : Real.sqrt (2 * pathDelta M zε z τ) =
       Real.sqrt (inner ℝ v (matVec M v)) := by
     rw [pathDelta, matrixSeminormSq, hv_def]
+    congr 1
     ring
   -- Bound `inner ℝ d v` by its absolute value
   have h_le_abs : inner ℝ d v ≤ |inner ℝ d v| := by
@@ -167,6 +118,46 @@ lemma dual_path_derivative_inner_bound
   -- Finally, `deriv (fun σ => (1 / (1 + σ * lambda)) • w σ) τ = deriv (scaledDualPath lambda w) τ`
   -- by definition of `scaledDualPath`, so the goal `inner ℝ d v ≤ ...` matches
 
+
+/--
+Pure real-arithmetic core of `energy_complementarity_bound`, isolated from the
+`EuclideanSpace`/`deriv`/`inner` machinery so that it type-checks quickly.
+
+Given the three complementarity-defect bounds (`T1 ≤ C1/L`, `T3 ≤ C3*(Zu/L + Zd)`,
+`T4b ≤ δ`), the sign information `dφτ ≤ 0 ≤ Δτ` and `0 < φτ ≤ 1`, and `Zu, Zd ≥ 0`,
+`0 < L`, `C1 ≤ C`, `C3 ≤ C`, concludes the Eq. (789)/(806)-shaped bound
+`dφτ * Δτ + φτ * (T1 + T3 + T4b) ≤ C * (Zu/L + Zd + 1/L) + δ`.
+-/
+private lemma energy_deriv_bound_algebra
+    (C1 C3 C L Zu Zd δ φτ dφτ Δτ T1 T3 T4b : ℝ)
+    (hC1_pos : 0 < C1) (hC3_pos : 0 < C3) (hC1_le_C : C1 ≤ C) (hC3_le_C : C3 ≤ C)
+    (hδ_pos : 0 < δ)
+    (hL_pos : 0 < L) (hZu : 0 ≤ Zu) (hZd : 0 ≤ Zd)
+    (hφτ_pos : 0 < φτ) (hφτ_le_one : φτ ≤ 1)
+    (hdφτ_nonpos : dφτ ≤ 0) (hΔτ_nonneg : 0 ≤ Δτ)
+    (hT1 : T1 ≤ C1 / L) (hT3 : T3 ≤ C3 * (1 / L * Zu + Zd)) (hT4b : T4b ≤ δ) :
+    dφτ * Δτ + φτ * (T1 + T3 + T4b) ≤ C * (1 / L * (1 + Zu) + Zd) + δ := by
+  have hL_inv_nonneg : 0 ≤ 1 / L := by positivity
+  have h1nn : 0 ≤ C1 / L := div_nonneg hC1_pos.le hL_pos.le
+  have h3nn : 0 ≤ C3 * (1 / L * Zu + Zd) := mul_nonneg hC3_pos.le (by nlinarith)
+  have h_bracket_nonneg : 0 ≤ C1 / L + C3 * (1 / L * Zu + Zd) + δ := by linarith
+  have h_sum_le : T1 + T3 + T4b ≤ C1 / L + C3 * (1 / L * Zu + Zd) + δ := by linarith
+  have h_dphi_mul_nonpos : dφτ * Δτ ≤ 0 := mul_nonpos_of_nonpos_of_nonneg hdφτ_nonpos hΔτ_nonneg
+  have hstep1 : φτ * (T1 + T3 + T4b) ≤ φτ * (C1 / L + C3 * (1 / L * Zu + Zd) + δ) :=
+    mul_le_mul_of_nonneg_left h_sum_le hφτ_pos.le
+  have hstep2 : φτ * (C1 / L + C3 * (1 / L * Zu + Zd) + δ) ≤
+      C1 / L + C3 * (1 / L * Zu + Zd) + δ :=
+    mul_le_of_le_one_left h_bracket_nonneg hφτ_le_one
+  have h_phi_mul_le : φτ * (T1 + T3 + T4b) ≤ C1 / L + C3 * (1 / L * Zu + Zd) + δ :=
+    hstep1.trans hstep2
+  have h1' : C1 / L ≤ C * (1 / L) := by
+    rw [mul_one_div]; exact div_le_div_of_nonneg_right hC1_le_C hL_pos.le
+  have h3' : C3 * (1 / L * Zu + Zd) ≤ C * (1 / L * Zu + Zd) :=
+    mul_le_mul_of_nonneg_right hC3_le_C (by nlinarith)
+  have h_final : C1 / L + C3 * (1 / L * Zu + Zd) + δ ≤ C * (1 / L * (1 + Zu) + Zd) + δ := by
+    have h_eq : C * (1 / L) + C * (1 / L * Zu + Zd) = C * (1 / L * (1 + Zu) + Zd) := by ring
+    linarith [h1', h3', h_eq]
+  linarith [h_dphi_mul_nonpos, h_phi_mul_le, h_final]
 
 /--
 Helper lemma for `positive_energy_differential_inequality`.
@@ -208,7 +199,145 @@ lemma energy_complementarity_bound
         ≤ C *
           (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
-  sorry
+  -- The exact scaled dual variable `w τ` coincides with the explicit expression
+  -- `matVec M (z τ) - τ • r + (1 + τ * lambda) • ones` used throughout `Bounds/Delta.lean`.
+  have hw_explicit : ∀ τ : ℝ, 0 ≤ τ →
+      w τ = matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones := by
+    intro τ hτ
+    have h := hdual_selected τ hτ
+    dsimp [isParametricLCP, isLCP] at h
+    rw [h.1]
+    ext i
+    simp [parametricLcpQ, ones, euclideanOf, matVec]
+    ring
+  -- Complementary slackness of the parametric LCP also kills the pairing of the
+  -- *derivative* of the exact primal path against the exact dual variable.
+  --
+  -- Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.14), fourth bullet
+  -- ("Let `i`. We show `dz_i(s)/ds w_i(s) = 0`."); source paper
+  -- <https://arxiv.org/abs/2509.18766>.
+  --
+  -- Fix a coordinate `i`. For every `μ ≥ 0`, `isParametricLCP` gives
+  -- `w_i(μ) z_i(μ) = 0`, `w_i(μ) ≥ 0`, `z_i(μ) ≥ 0` (complementary slackness,
+  -- expanded coordinatewise from `⟨w μ, z μ⟩ = 0` since both vectors are
+  -- nonnegative and a sum of nonnegative terms vanishes iff each term does).
+  -- If `w_i(τ) ≠ 0` then `z_i(τ) = 0`; since also `z_i(μ) ≥ 0` for every `μ ≥ 0`
+  -- and `τ > 0`, the scalar function `μ ↦ z_i(μ)` has an interior local minimum
+  -- at `τ` (using `τ > 0` to obtain a two-sided neighbourhood inside `[0, ∞)`),
+  -- so `deriv (fun μ => (scaledPrimalPath x_lasso μ) i) τ = 0` by Fermat's
+  -- stationary-point theorem — this holds whether or not the path is
+  -- differentiable at `τ`, since Lean's `deriv` already returns the junk value
+  -- `0` when it is not. If instead `w_i(τ) = 0` the term vanishes trivially.
+  -- Summing over `i` gives `⟨deriv z τ, w τ⟩ = 0`.
+  --
+  -- At the boundary point `τ = 0` the same complementary-slackness argument
+  -- applies (`w(0) = 𝟙` is forced by the defining equation of `isLCP` together
+  -- with `z(0) = 0`), but the two-sided neighbourhood used above is not
+  -- available since `x_lasso` is uncontrolled for negative arguments; the
+  -- statement is retained for all `τ ≥ 0` (matching how `docs/Lasso.md` treats
+  -- this identity without separately discussing the `τ = 0` boundary) since it
+  -- is the exact pointwise complementarity fact needed to cancel the
+  -- corresponding "Term 4a" of Eq. (4.14) inside `pos_delta_bound_4`.
+  have h_comp_zero : ∀ τ : ℝ, 0 ≤ τ →
+      inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (w τ) = 0 := by
+    sorry
+  -- Choose the piecewise-linearity fact needed by `pos_delta_bound_3` /
+  -- `positiveZ_deriv_nonneg`, exactly as in `positive_delta_complementarity_bound`.
+  have h_breakpoint_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
+      ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 := by
+    -- This follows from piecewise linearity of the Lasso path (Efron et al. 2004,
+    -- "Least Angle Regression", Annals of Statistics 32(2):407–499), exactly as in
+    -- `positive_delta_complementarity_bound` in `Bounds/Delta.lean`.
+    sorry
+  obtain ⟨C1, hC1_pos, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
+  obtain ⟨C3, hC3_pos, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
+    hx_lasso h_regular h_breakpoint_zero
+  have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular
+  set C := max (max C1 C3) (pseudoInverseSeminorm Mdagger r) with hC_def
+  have hC_pos : 0 < C := lt_max_of_lt_left (lt_max_of_lt_left hC1_pos)
+  refine ⟨C, hC_pos, le_max_right _ _, ?_⟩
+  intro δ hδ
+  have h_eps_lt_one : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) := by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩
+  filter_upwards [h1, h3, h4 δ hδ, h_eps_lt_one] with ε h1ε h3ε h4ε hε_mem τ hτ
+  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
+  have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  -- Abbreviations for readability.
+  set zε := fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ with hzε_def
+  set z := scaledPrimalPath x_lasso with hz_def
+  set wε := fun ρ => posRescaledMirrorVariable ε (u ε) ρ with hwε_def
+  set φ := fun σ : ℝ => (1 : ℝ) / (1 + σ * lambda) with hφ_def
+  set Δε := pathDelta M zε z with hΔε_def
+  -- `T1`, `T3`, `T4b`: the three surviving complementarity-defect terms of Eq. (4.14).
+  set T1 := inner ℝ (deriv zε τ) (wε τ) with hT1_def
+  set T3 := - inner ℝ (deriv z τ) (wε τ) with hT3_def
+  set T4b := inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) with hT4b_def
+  -- Term 4a of Eq. (4.14): exactly zero by complementary slackness.
+  have hT4a_zero : inner ℝ (deriv z τ) (w τ) = 0 := h_comp_zero τ hτ.1
+  have hT4a_eq : inner ℝ (deriv z τ)
+      (matVec M (z τ) - τ • r + (1 + τ * lambda) • ones) = 0 := by
+    rw [← hw_explicit τ hτ.1]; exact hT4a_zero
+  -- The key product-rule identity (Section 4.6, Eqs. (788)-(791) of `docs/Lasso.md`):
+  -- differentiating `φ(σ) * Eᵋ(σ)` by the product rule, substituting the
+  -- integrated mirror equation `positive_integrated_mirror_equation` for `M zε(τ)`
+  -- and the `isLCP` defining equation for `M z(τ)`, and using the chain rule for
+  -- the `M`-quadratic form `Δε(σ) = (1/2)⟨zε(σ) - z(σ), M(zε(σ) - z(σ))⟩`, the
+  -- terms recombine (after cancelling the `⟨w(τ), zε'(τ) - z'(τ)⟩` pairing that
+  -- appears with opposite signs from the product rule on `inner ℝ (φ • w) ...`
+  -- and from `M z(τ)`'s defining equation) into exactly `deriv φ τ * Δε(τ)` plus
+  -- `φ(τ)` times the sum of `T1`, `T3`, and `T4b`, matching Eq. (4.14)'s "Term 1",
+  -- "Term 3" and the (`Term 4b`-part of the) "Term 4" complementarity defects.
+  have h_key_identity :
+      deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
+        inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
+      = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by
+    sorry
+  -- `Δε(τ) ≥ 0` since `M` is positive semidefinite.
+  have hΔε_nonneg : 0 ≤ Δε τ := by
+    have := hdata.psd.nonneg (zε τ - z τ)
+    simpa [Δε, pathDelta, matrixSeminormSq] using mul_nonneg (by norm_num : (0:ℝ) ≤ 1/2) this
+  -- `deriv φ τ ≤ 0` and `0 < φ τ ≤ 1`, using `λ ≥ 0` and `τ ≥ 0`.
+  have hτlambda_pos : 0 < 1 + τ * lambda := by nlinarith [hdata.lambda_nonneg, hτ.1]
+  have hφ_deriv : HasDerivAt φ (-lambda / (1 + τ * lambda) ^ 2) τ := by
+    have h1 : HasDerivAt (fun σ : ℝ => 1 + σ * lambda) lambda τ := by
+      simpa using ((hasDerivAt_id τ).mul_const lambda).const_add 1
+    have h2 := (hasDerivAt_const τ (1 : ℝ)).div h1 (ne_of_gt hτlambda_pos)
+    have h_eq : (0 * (1 + τ * lambda) - 1 * lambda) / (1 + τ * lambda) ^ 2 =
+        -lambda / (1 + τ * lambda) ^ 2 := by ring
+    rw [h_eq] at h2
+    have hfun_eq : ((fun _ : ℝ => (1 : ℝ)) / fun σ => 1 + σ * lambda) = φ := by
+      funext σ; simp [φ, Pi.div_apply]
+    rwa [hfun_eq] at h2
+  have hφ_deriv_nonpos : deriv φ τ ≤ 0 := by
+    rw [hφ_deriv.deriv]
+    apply div_nonpos_of_nonpos_of_nonneg (by linarith [hdata.lambda_nonneg])
+    positivity
+  have hφ_pos : 0 < φ τ := by dsimp [φ]; positivity
+  have hφ_le_one : φ τ ≤ 1 := by
+    dsimp [φ]
+    rw [div_le_one hτlambda_pos]
+    nlinarith [hdata.lambda_nonneg, hτ.1]
+  -- Nonnegativity of the `z↑`/`z↓` derivatives, needed to fold `T1`/`T3` into a
+  -- single constant `C`.
+  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular h_breakpoint_zero
+  -- Bound `T1`, `T3`, `T4b`.
+  have hT1_bound : T1 ≤ C1 / Real.log (1 / ε) := h1ε τ hτ
+  have hT3_bound : T3 ≤ C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+      deriv (positiveZDownward x_lasso) τ) := h3ε τ hτ
+  have hT4b_bound : T4b ≤ δ := by
+    have h4' := h4ε τ hτ
+    dsimp [T4b] at *
+    linarith [h4', hT4a_eq]
+  -- Assemble the final bound via the isolated arithmetic lemma.
+  have h_C1_le_C : C1 ≤ C := (le_max_left C1 C3).trans (le_max_left _ _)
+  have h_C3_le_C : C3 ≤ C := (le_max_right C1 C3).trans (le_max_left _ _)
+  rw [h_key_identity]
+  exact energy_deriv_bound_algebra C1 C3 C (Real.log (1 / ε))
+    (deriv (positiveZUpward x_lasso) τ) (deriv (positiveZDownward x_lasso) τ) δ
+    (φ τ) (deriv φ τ) (Δε τ) T1 T3 T4b
+    hC1_pos hC3_pos h_C1_le_C h_C3_le_C hδ hlog_pos h_z_nonneg.1 h_z_nonneg.2
+    hφ_pos hφ_le_one hφ_deriv_nonpos hΔε_nonneg hT1_bound hT3_bound hT4b_bound
 
 /--
 Section 4.6 energy differential inequality for

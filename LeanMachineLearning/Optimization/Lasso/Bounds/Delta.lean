@@ -1192,6 +1192,32 @@ private lemma deriv_pos_z_identities
     simp_rw [h_ftc_down, h_component]
   exact ⟨h_upward_eq, h_downward_eq⟩
 
+/--
+Nonnegativity of the derivatives of `positiveZUpward` and `positiveZDownward`.
+Exposed publicly (unlike `deriv_pos_z_identities`) so that clients bounding a
+weighted combination `C1 / log(1/ε) + C3 * (1 / log(1/ε) * z_up' + z_down')` by a
+single constant `max C1 C3` can discharge the nonnegativity side conditions of
+`max_bound_algebra`-style arguments outside `Delta.lean` (e.g. in `Energy.lean`,
+Section 4.6, Eq. (789)/(806)).
+
+Informal proof: `deriv_pos_z_identities` identifies both derivatives with finite
+sums of `max 0 (·)` terms (times the nonnegative factor `1 + τ`, using `hτ`), each
+manifestly nonnegative.
+-/
+lemma positiveZ_deriv_nonneg
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
+    0 ≤ deriv (positiveZUpward x_lasso) τ ∧ 0 ≤ deriv (positiveZDownward x_lasso) τ := by
+  rcases deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero with
+    ⟨h_upward_eq, h_downward_eq⟩
+  refine ⟨?_, ?_⟩
+  · rw [h_upward_eq]
+    exact Finset.sum_nonneg (fun i _ => le_max_left _ _)
+  · rw [h_downward_eq]
+    exact Finset.sum_nonneg (fun i _ => mul_nonneg (by linarith) (le_max_left _ _))
+
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (_hs : 0 < s)

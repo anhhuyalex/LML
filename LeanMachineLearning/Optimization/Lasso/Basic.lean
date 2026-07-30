@@ -27,6 +27,20 @@ variable {ι : Type*} [Fintype ι]
 noncomputable def euclideanOf (x : ι → ℝ) : EuclideanSpace ℝ ι :=
   (WithLp.equiv 2 (ι → ℝ)).symm x
 
+/--
+The canonical continuous linear equivalence between the concrete `EuclideanSpace ℝ ι` model
+used throughout this folder and the underlying function space `ι → ℝ`. Exposed once here so
+that this construction (and `continuous_euclidean_apply` below) don't need to be rebuilt at
+each call site that needs, e.g., continuity of a map built from coordinate projections.
+-/
+noncomputable def euclideanToPiEquiv : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+  (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+
+/-- Coordinate projection `x ↦ x i` is continuous on `EuclideanSpace ℝ ι`. -/
+lemma continuous_euclidean_apply (i : ι) :
+    Continuous (fun x : EuclideanSpace ℝ ι => x i) :=
+  (continuous_apply i).comp euclideanToPiEquiv.continuous
+
 /-- The all-ones vector. This is the vector denoted `𝟙` in `docs/Lasso.md`. -/
 noncomputable def ones : EuclideanSpace ℝ ι :=
   euclideanOf (fun _ => 1)
@@ -353,6 +367,32 @@ lemma matVec_norm_sq_le_trace_mul
             EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using hi
     _ = (∑ i, M i i) * inner ℝ x (matVec M x) := by
       rw [Finset.sum_mul]
+
+/--
+Cauchy-Schwarz inequality for the seminorm induced by a positive semidefinite matrix `M`:
+`⟨x, My⟩² ≤ ⟨x, Mx⟩ * ⟨y, My⟩`. Same `B := Matrix.toLinearMap₂' ℝ M` construction as
+`matVec_norm_sq_le_trace_mul` above, applied directly at `(x, y)` instead of at a coordinate
+basis vector.
+-/
+lemma inner_matVec_sq_le_mul
+    (M : Matrix ι ι ℝ) (hM : IsPositiveSemidefinite M) (x y : EuclideanSpace ℝ ι) :
+    inner ℝ x (matVec M y) ^ 2 ≤ inner ℝ x (matVec M x) * inner ℝ y (matVec M y) := by
+  classical
+  let B : LinearMap.BilinForm ℝ (ι → ℝ) := Matrix.toLinearMap₂' ℝ M
+  have hB_nonneg : ∀ z, 0 ≤ B z z := by
+    intro z
+    simpa [B, Matrix.toLinearMap₂'_apply', matVec, euclideanOf,
+      EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using
+      hM.nonneg (euclideanOf z)
+  have hB_symm : LinearMap.IsSymm B := by
+    rw [LinearMap.isSymm_def]
+    intro v w
+    have h := inner_matVec_comm_of_isSymm M hM.symm (euclideanOf v) (euclideanOf w)
+    simpa [B, Matrix.toLinearMap₂'_apply', matVec, euclideanOf,
+      EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using h
+  have hcs := LinearMap.BilinForm.apply_sq_le_of_symm B hB_nonneg hB_symm x.ofLp y.ofLp
+  simpa [B, Matrix.toLinearMap₂'_apply', matVec, euclideanOf,
+    EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using hcs
 
 end Lasso
 

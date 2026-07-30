@@ -11,6 +11,8 @@ public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Slope
 public import Mathlib.Analysis.Real.Sqrt
 public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Convex.StrictConvexSpace
+public import Mathlib.Analysis.InnerProductSpace.Convex
 public import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
 /-!
 # Linear Complementarity Problem (LCP) Formulations for Lasso
@@ -559,16 +561,6 @@ lemma quad_min_implies_grad_nonpos'
     exact h_eval
   linarith
 
-lemma matVec_smul' (M : Matrix ι ι ℝ) (c : ℝ) (x : EuclideanSpace ℝ ι) :
-    matVec M (c • x) = c • matVec M x := by
-  ext i
-  have : c • x = euclideanOf (c • x.ofLp) := rfl
-  rw [this]
-  dsimp [matVec, PiLp.smul_apply, euclideanOf, Equiv.symm_apply_apply]
-  change (M.mulVec (c • x.ofLp)) i = c * (M.mulVec x.ofLp) i
-  rw [Matrix.mulVec_smul]
-  rfl
-
 lemma inner_single [DecidableEq ι] (v : EuclideanSpace ℝ ι) (i : ι) :
     inner ℝ v (euclideanOf (Pi.single i 1)) = v i := by
   dsimp [PiLp.inner_apply, euclideanOf, Equiv.symm_apply_apply]
@@ -595,7 +587,7 @@ lemma quadratic_expansion_eval (M : Matrix ι ι ℝ) (q x d : EuclideanSpace �
   rw [this]
   have h_sub : (x + t • d) - x = t • d := add_sub_cancel_left x (t • d)
   rw [h_sub]
-  rw [matVec_smul']
+  rw [matVec_smul_eq]
   rw [real_inner_smul_left, real_inner_smul_right, real_inner_smul_right]
   ring
 
@@ -800,39 +792,27 @@ private lemma eq_zero_of_inner_eq_zero_of_pos_mul_nonneg {ι : Type*} [Fintype �
   · linarith [hq_pos i, h_q_zero]
   · simpa using h_zi_zero
 
-lemma parametric_lcp_unique_of_mul_supNorm_lt_one
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
-    (hM_psd : IsPositiveSemidefinite M)
-    (hμ : 0 ≤ μ)
-    (hμ_small : μ * ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ < 1) :
-    ∃! p : EuclideanSpace ℝ ι × EuclideanSpace ℝ ι,
-      isParametricLCP M r lambda μ p.1 p.2 := by
-  let q := parametricLcpQ r lambda μ
-  have hq_pos : ∀ i, 0 < q i := parametricLcpQ_pos r lambda μ hμ hμ_small
-  use (0, q)
-  constructor
-  · dsimp [isParametricLCP, isLCP]
-    refine ⟨?_, ?_, ?_, ?_⟩
-    · ext i; simp [matVec, euclideanOf, q]
-    · exact fun i => (hq_pos i).le
-    · exact fun _ => le_refl 0
-    · simp [inner_zero_right]
-  · rintro ⟨z, w⟩ h_lcp
-    dsimp [isParametricLCP, isLCP] at h_lcp
-    rcases h_lcp with ⟨h_w, h_w_pos, h_z_pos, h_ortho⟩
-    have h_inner_add : inner ℝ q z + inner ℝ (matVec M z) z = 0 := by
-      simpa [inner_add_left, h_w] using h_ortho
-    rw [real_inner_comm z (matVec M z)] at h_inner_add
-    have h_qz_nonpos : inner ℝ q z ≤ 0 := by
-      linarith [h_inner_add, hM_psd.nonneg z]
-    have h_qz_nonneg : 0 ≤ inner ℝ q z :=
-      inner_nonneg_of_pos_mul_nonneg q z hq_pos h_z_pos
-    have h_qz_zero : inner ℝ q z = 0 := le_antisymm h_qz_nonpos h_qz_nonneg
-    have h_z_zero : z = 0 :=
-      eq_zero_of_inner_eq_zero_of_pos_mul_nonneg q z hq_pos h_z_pos h_qz_zero
-    have h_w_eq_q : w = q := by
-      simpa [h_z_zero, matVec, euclideanOf] using h_w
-    rw [h_z_zero, h_w_eq_q]
+-- A pointwise-positive affine term trivially solves its own LCP at the zero primal point.
+-- Shared by the backward directions of `parametric_lcp_eq_iff_of_small_mu` and
+-- `lcp_eq_iff_of_small_mu` below, both of which specialize this to their own `q`.
+private lemma isLCP_zero_of_forall_pos (M : Matrix ι ι ℝ) (q : EuclideanSpace ℝ ι)
+    (hq_pos : ∀ i, 0 < q i) : isLCP M q 0 q := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · ext i; simp [matVec, euclideanOf]
+  · exact fun i => (hq_pos i).le
+  · exact fun _ => le_refl 0
+  · simp [inner_zero_right]
+
+-- `μ < 1 / max N 1` implies `μ * N < 1`, for `N ≥ 0`. Shared by the two "small `μ`"
+-- Lemma-4.10 theorems below, which each derive it from the same `max N 1` hypothesis.
+private lemma mul_lt_one_of_lt_one_div_max {μ N : ℝ} (hμ : 0 ≤ μ) (_hN : 0 ≤ N)
+    (hμ_small : μ < 1 / max N 1) : μ * N < 1 := by
+  by_cases hNle : N ≤ 1
+  · rw [max_eq_right hNle] at hμ_small
+    have hμN_le_μ : μ * N ≤ μ := (mul_le_mul_of_nonneg_left hNle hμ).trans_eq (by ring)
+    linarith
+  · rw [max_eq_left (by linarith : 1 ≤ N)] at hμ_small
+    exact (lt_div_iff₀ (by linarith : 0 < N)).mp hμ_small
 
 omit [Fintype ι] in
 /--
@@ -1273,22 +1253,14 @@ conic Carathéodory argument in Bertsekas' MIT convex-analysis slides
 -/
 -- If two vectors in an inner product space have equal norm and are distinct,
 -- then their midpoint has strictly smaller norm (strict convexity of the norm).
+-- This is exactly Mathlib's `norm_midpoint_lt_iff`, available on any real inner product
+-- space via the `InnerProductSpace.toUniformConvexSpace`/`UniformConvexSpace.toStrictConvexSpace`
+-- instance chain (`Mathlib/Analysis/InnerProductSpace/Convex.lean`,
+-- `Mathlib/Analysis/Convex/Uniform.lean`).
 private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V]
     [InnerProductSpace ℝ V] {u v : V}
-    (h_norm_eq : ‖u‖ = ‖v‖) (h_ne : u ≠ v) : ‖(1/2 : ℝ) • (u + v)‖ < ‖u‖ := by
-  have h_sub_pos : 0 < ‖u - v‖ := norm_pos_iff.mpr (sub_ne_zero.mpr h_ne)
-  have h_sub_sq_pos : 0 < ‖u - v‖ ^ 2 := pow_pos h_sub_pos 2
-  rw [norm_sub_sq_real, h_norm_eq] at h_sub_sq_pos
-  have h_sum_sq_lt : ‖u + v‖ ^ 2 < (2 * ‖u‖) ^ 2 := by
-    rw [norm_add_sq_real, h_norm_eq]
-    nlinarith
-  have h_sum_lt : ‖u + v‖ < 2 * ‖u‖ :=
-    (sq_lt_sq₀ (norm_nonneg _) (by positivity)).mp h_sum_sq_lt
-  calc
-    ‖(1/2 : ℝ) • (u + v)‖ = (1/2 : ℝ) * ‖u + v‖ := by
-      rw [norm_smul, Real.norm_of_nonneg (by norm_num : 0 ≤ (1/2 : ℝ))]
-    _ < (1/2 : ℝ) * (2 * ‖u‖) := mul_lt_mul_of_pos_left h_sum_lt (by norm_num)
-    _ = ‖u‖ := by ring
+    (h_norm_eq : ‖u‖ = ‖v‖) (h_ne : u ≠ v) : ‖(1/2 : ℝ) • (u + v)‖ < ‖u‖ :=
+  (norm_midpoint_lt_iff h_norm_eq).mpr h_ne
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is closed.
 omit [Fintype ι] in
@@ -1709,133 +1681,23 @@ theorem lcp_exists_unique_dual
   exact psd_lcp_unique_dual M hdata.psd (lcpQ r lambda μ)
 
 
--- When ι is nonempty, use the spectral theorem: let C = max eigenvalue of M.
--- Since λ_i² ≤ C·λ_i for each eigenvalue, summing over the eigenbasis gives
--- ‖Mv‖² ≤ C·⟨v, Mv⟩. If all eigenvalues are zero, any C > 0 (e.g. 1) works.
-private lemma psd_matrix_norm_sq_bound_nonempty {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ)
-    (hM_psd : IsPositiveSemidefinite M) (h_ne : ¬ IsEmpty ι) :
-    ∃ C : ℝ, 0 < C ∧ ∀ (v : EuclideanSpace ℝ ι),
-      ‖matVec M v‖ * ‖matVec M v‖ ≤ C * inner ℝ v (matVec M v) := by
-  classical
-  have h_nonempty : Finset.Nonempty (Finset.univ : Finset ι) := by
-    obtain ⟨i₀⟩ := not_isEmpty_iff.mp h_ne
-    exact ⟨i₀, Finset.mem_univ i₀⟩
-  -- Step 1: `M.IsSymm` implies `M.IsHermitian` over ℝ (which has TrivialStar)
-  have hM_herm : M.IsHermitian := by
-    simpa using hM_psd.symm
-  -- Step 2: eigenbasis and eigenvalues from the spectral theorem for Hermitian matrices
-  let b := hM_herm.eigenvectorBasis
-  let ev := hM_herm.eigenvalues
-  -- Step 3: eigenvector equation for matVec
-  have h_eigenvec (i : ι) : matVec M (b i) = (ev i) • (b i) := by
-    have h := hM_herm.mulVec_eigenvectorBasis i
-    dsimp [matVec, euclideanOf, b, ev]
-    simpa using congrArg (WithLp.equiv 2 (ι → ℝ)).symm h
-  -- Step 4: eigenvalues are nonnegative (since M is PSD)
-  have h_nonneg_ev (i : ι) : 0 ≤ ev i := by
-    have hpos := hM_psd.nonneg (b i)
-    rw [h_eigenvec i] at hpos
-    have h_inner_self : inner ℝ (b i) (b i) = 1 := b.inner_eq_one i
-    simpa [h_inner_self, real_inner_smul_right] using hpos
-  -- Step 5: repr of matVec under the eigenbasis relates to repr of v
-  have h_repr_matVec (v : EuclideanSpace ℝ ι) (i : ι) :
-      b.repr (matVec M v) i = (ev i) * b.repr v i := by
-    calc
-      b.repr (matVec M v) i = inner ℝ (b i) (matVec M v) := by rw [b.repr_apply_apply]
-      _ = inner ℝ (matVec M (b i)) v := by
-        rw [inner_matVec_comm_of_isSymm M hM_psd.symm (b i) v]
-      _ = inner ℝ ((ev i) • (b i)) v := by rw [h_eigenvec i]
-      _ = (ev i) * inner ℝ (b i) v := by rw [real_inner_smul_left]
-      _ = (ev i) * b.repr v i := by rw [b.repr_apply_apply]
-  -- Step 6: expand inner product ⟨v, Mv⟩ in the eigenbasis
-  have h_inner_expand (v : EuclideanSpace ℝ ι) :
-      inner ℝ v (matVec M v) = ∑ i : ι, (ev i) * (b.repr v i) ^ 2 := by
-    calc
-      inner ℝ v (matVec M v) = ∑ i : ι, inner ℝ (b i) v * inner ℝ (b i) (matVec M v) := by
-        rw [← OrthonormalBasis.sum_inner_mul_inner b v (matVec M v)]
-        simp [real_inner_comm]
-      _ = ∑ i : ι, (b.repr v i) * (b.repr (matVec M v) i) := by
-        simp_rw [b.repr_apply_apply]
-      _ = ∑ i : ι, (b.repr v i) * ((ev i) * b.repr v i) := by
-        simp_rw [h_repr_matVec v]
-      _ = ∑ i : ι, (ev i) * (b.repr v i) ^ 2 := by
-        refine Finset.sum_congr rfl (fun i _ => ?_); ring
-  -- Step 7: expand ‖Mv‖² in the eigenbasis
-  have h_norm_sq_expand (v : EuclideanSpace ℝ ι) :
-      ‖matVec M v‖ * ‖matVec M v‖ = ∑ i : ι, ((ev i)^2) * (b.repr v i) ^ 2 := by
-    rw [show ‖matVec M v‖ * ‖matVec M v‖ = ‖matVec M v‖ ^ 2 by ring,
-      ← real_inner_self_eq_norm_sq]
-    calc
-      inner ℝ (matVec M v) (matVec M v) =
-          ∑ i : ι, inner ℝ (b i) (matVec M v) * inner ℝ (b i) (matVec M v) := by
-        rw [← OrthonormalBasis.sum_inner_mul_inner b (matVec M v) (matVec M v)]
-        simp [real_inner_comm]
-      _ = ∑ i : ι, (b.repr (matVec M v) i) * (b.repr (matVec M v) i) := by
-        simp_rw [b.repr_apply_apply]
-      _ = ∑ i : ι, ((ev i) * b.repr v i) * ((ev i) * b.repr v i) := by
-        simp_rw [h_repr_matVec v]
-      _ = ∑ i : ι, ((ev i)^2) * (b.repr v i) ^ 2 := by
-        refine Finset.sum_congr rfl (fun i _ => ?_); ring
-  -- Step 8: Let C be the maximum eigenvalue
-  let C := Finset.sup' Finset.univ h_nonempty ev
-  have hC_max (i : ι) : ev i ≤ C := by
-    rw [Finset.le_sup'_iff]
-    exact ⟨i, Finset.mem_univ i, le_rfl⟩
-  have hC_nonneg : 0 ≤ C := by
-    obtain ⟨i, hi⟩ := h_nonempty
-    have hi_nonneg := h_nonneg_ev i
-    have hi_le_C := hC_max i
-    linarith
-  -- Step 9: the key inequality λ_i² ≤ C·λ_i
-  have h_key (i : ι) : (ev i)^2 ≤ C * (ev i) := by
-    have hi_nonneg := h_nonneg_ev i
-    have hi_le_C := hC_max i
-    nlinarith
-  -- Step 10: assemble the bound
-  by_cases hC_zero : C = 0
-  · -- all eigenvalues are zero, so both sums vanish
-    have h_ev_zero (i : ι) : ev i = 0 := by
-      have hi_nonneg := h_nonneg_ev i
-      have hi_le_C := hC_max i
-      linarith
-    refine ⟨1, by norm_num, ?_⟩
-    intro v
-    rw [h_norm_sq_expand v, h_inner_expand v]
-    simp [h_ev_zero]
-  · -- C > 0
-    have hC_pos : 0 < C := lt_of_le_of_ne hC_nonneg (Ne.symm hC_zero)
-    refine ⟨C, hC_pos, ?_⟩
-    intro v
-    rw [h_norm_sq_expand v, h_inner_expand v]
-    calc
-      ∑ i : ι, ((ev i)^2) * (b.repr v i) ^ 2
-          ≤ ∑ i : ι, (C * (ev i)) * (b.repr v i) ^ 2 := by
-        refine Finset.sum_le_sum (fun i _ => ?_)
-        nlinarith [h_key i, pow_two_nonneg (b.repr v i)]
-      _ = C * (∑ i : ι, (ev i) * (b.repr v i) ^ 2) := by
-        simp [Finset.mul_sum, mul_assoc]
-
 /-- Helper lemma: PSD matrix norm squared is bounded by its quadratic form.
 
-Proof: By the spectral theorem for real symmetric matrices, `M` has an orthonormal basis
-of eigenvectors `b i` with eigenvalues `λ i ≥ 0`. Writing `v = ∑ c_i · b i`, we have:
-`⟨v, M v⟩ = ∑ λ_i c_i²` and `‖M v‖² = ∑ λ_i² c_i²`.
-Let `C = max_i λ_i` (or `C = 1` if all `λ_i = 0`). Since `λ_i² ≤ C·λ_i` for each `i`,
-summing gives `‖M v‖² ≤ C·⟨v, M v⟩`.
+This is a direct corollary of `matVec_norm_sq_le_trace_mul` (`Basic.lean`), which already
+gives `‖M v‖² ≤ (∑ i, M i i) * ⟨v, M v⟩` via Mathlib's Cauchy-Schwarz inequality for PSD
+bilinear forms (`LinearMap.BilinForm.apply_sq_le_of_symm`). We only need to bump the
+constant to `(∑ i, M i i) + 1` to get strict positivity, using that `⟨v, M v⟩ ≥ 0`.
 -/
 lemma psd_matrix_norm_sq_bound {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ)
     (hM_psd : IsPositiveSemidefinite M) :
     ∃ C : ℝ, 0 < C ∧ ∀ (v : EuclideanSpace ℝ ι),
       ‖matVec M v‖ * ‖matVec M v‖ ≤ C * inner ℝ v (matVec M v) := by
-  classical
-  -- Handle the empty ι case: if there are no indices, the space is trivial
-  by_cases h_empty : IsEmpty ι
-  · -- In a trivial vector space, v = 0, both sides are 0, any C > 0 works
-    refine ⟨1, by norm_num, fun v => ?_⟩
-    rw [Subsingleton.elim v 0]
-    simp [matVec, euclideanOf, norm_zero]
-  · -- ι is nonempty: delegate to the spectral-theorem helper
-    exact psd_matrix_norm_sq_bound_nonempty M hM_psd h_empty
+  refine ⟨(∑ i, M i i) + 1, by linarith [hM_psd.trace_nonnegative], fun v => ?_⟩
+  calc
+    ‖matVec M v‖ * ‖matVec M v‖ = ‖matVec M v‖ ^ 2 := by ring
+    _ ≤ (∑ i, M i i) * inner ℝ v (matVec M v) := matVec_norm_sq_le_trace_mul M hM_psd v
+    _ ≤ ((∑ i, M i i) + 1) * inner ℝ v (matVec M v) :=
+      mul_le_mul_of_nonneg_right (by linarith) (hM_psd.nonneg v)
 
 /-- Helper lemma: Scaled dual path satisfies a parametric LCP. -/
 lemma scaled_dual_lcp_eq
@@ -1929,14 +1791,7 @@ theorem parametric_lcp_eq_iff_of_small_mu
         z = 0 ∧ w = parametricLcpQ r lambda μ := by
   -- Introduce notation N for the ℓ∞ norm of r - λ·𝟙, and derive μ·N < 1 from hμ_small
   set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖
-  have hμN_lt_one : μ * N < 1 := by
-    by_cases hNle : N ≤ 1
-    · rw [max_eq_right hNle] at hμ_small
-      have hμN_le_μ : μ * N ≤ μ :=
-        (mul_le_mul_of_nonneg_left hNle hμ).trans_eq (by ring)
-      linarith
-    · rw [max_eq_left (by linarith : 1 ≤ N)] at hμ_small
-      exact (lt_div_iff₀ (by linarith : 0 < N)).mp hμ_small
+  have hμN_lt_one : μ * N < 1 := mul_lt_one_of_lt_one_div_max hμ (norm_nonneg _) hμ_small
   let q := parametricLcpQ r lambda μ
   have hq_pos : ∀ i, 0 < q i := parametricLcpQ_pos r lambda μ hμ hμN_lt_one
   intro z w
@@ -1963,12 +1818,7 @@ theorem parametric_lcp_eq_iff_of_small_mu
   · -- Backward direction: (z=0, w=q) is a solution
     intro ⟨hz, hw⟩
     subst hz; subst hw
-    dsimp [isParametricLCP, isLCP]
-    refine ⟨?_, ?_, ?_, ?_⟩
-    · ext i; simp [matVec, euclideanOf]
-    · exact fun i => (hq_pos i).le
-    · exact fun _ => le_refl 0
-    · simp [inner_zero_right]
+    exact isLCP_zero_of_forall_pos M q hq_pos
 
 /-- Existential-uniqueness packaging of the faithful Lemma 4.10 threshold.
 
@@ -1989,13 +1839,6 @@ theorem parametric_lcp_unique_small_mu
   rintro ⟨z, w⟩ h
   have h' := (h_iff z w).mp h
   exact Prod.ext h'.1 h'.2
-
--- Linearity of matVec under scalar multiplication
-private lemma matVec_smul (M : Matrix ι ι ℝ) (c : ℝ) (x : EuclideanSpace ℝ ι) :
-    c • matVec M x = matVec M (c • x) := by
-  ext i
-  dsimp [matVec, euclideanOf]
-  simp [Matrix.mulVec, smul_eq_mul]
 
 -- Scaling identity: μ • lcpQ = parametricLcpQ (componentwise algebra in ℝ)
 private lemma lcpQ_smul_eq_parametricLcpQ
@@ -2020,7 +1863,7 @@ private lemma isLCP_smul_isParametricLCP
       μ • v = μ • (lcpQ r lambda μ + matVec M x) := by rw [h_v]
       _ = μ • lcpQ r lambda μ + μ • matVec M x := by simp [smul_add]
       _ = parametricLcpQ r lambda μ + matVec M (μ • x) := by
-        rw [lcpQ_smul_eq_parametricLcpQ r lambda μ hμ_ne, matVec_smul M μ x]
+        rw [lcpQ_smul_eq_parametricLcpQ r lambda μ hμ_ne, ← matVec_smul_eq M μ x]
   · -- Nonnegative (μ • v)
     intro i; simpa using mul_nonneg hμ_nonneg (h_v_nonneg i)
   · -- Nonnegative (μ • x)
@@ -2060,14 +1903,8 @@ theorem lcp_eq_iff_of_small_mu
   set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖
   have hμ_nonneg : 0 ≤ μ := hμ.le
   -- derive μ·N < 1 from hμ_small (same proof as parametric version)
-  have hμN_lt_one : μ * N < 1 := by
-    by_cases hNle : N ≤ 1
-    · rw [max_eq_right hNle] at hμ_small
-      have hμN_le_μ : μ * N ≤ μ :=
-        (mul_le_mul_of_nonneg_left hNle hμ_nonneg).trans_eq (by ring)
-      linarith
-    · rw [max_eq_left (by linarith : 1 ≤ N)] at hμ_small
-      exact (lt_div_iff₀ (by linarith : 0 < N)).mp hμ_small
+  have hμN_lt_one : μ * N < 1 :=
+    mul_lt_one_of_lt_one_div_max hμ_nonneg (norm_nonneg _) hμ_small
   -- the parametric version, already proven
   have h_parametric := parametric_lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ_nonneg hμ_small
   intro x v
@@ -2088,12 +1925,8 @@ theorem lcp_eq_iff_of_small_mu
   · -- Backward direction: (x = 0, v = lcpQ) ⇒ LCP solution
     intro ⟨hx_zero, hv_eq_q⟩
     subst hx_zero; subst hv_eq_q
-    dsimp [isLCP]
-    refine ⟨?_, ?_, ?_, ?_⟩
-    · ext i; simp [matVec, euclideanOf]
-    · exact fun i => (lcpQ_pos r lambda μ hμ.ne.symm hμ_nonneg hμN_lt_one i).le
-    · exact fun _ => le_refl 0
-    · simp [inner_zero_right]
+    exact isLCP_zero_of_forall_pos M (lcpQ r lambda μ)
+      (fun i => lcpQ_pos r lambda μ hμ.ne.symm hμ_nonneg hμN_lt_one i)
 
 /-- Helper lemma: Bound for |s(μ) - s(ν)| -/
 lemma scaled_dual_lcp_s_diff_bound (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda)
