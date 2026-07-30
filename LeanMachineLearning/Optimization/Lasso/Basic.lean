@@ -79,20 +79,24 @@ noncomputable def hadamard (x y : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι
 noncomputable def coordinateSquare (x : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι :=
   euclideanOf (fun i => x i * x i)
 
+omit [Fintype ι] in
 /-- `hadamard` is commutative. -/
 lemma hadamard_comm (x y : EuclideanSpace ℝ ι) : hadamard x y = hadamard y x := by
   ext i; simp [hadamard, euclideanOf]; ring
 
+omit [Fintype ι] in
 /-- `hadamard` is additive in its first argument. -/
 lemma hadamard_add_left (x y v : EuclideanSpace ℝ ι) :
     hadamard (x + y) v = hadamard x v + hadamard y v := by
   ext i; simp [hadamard, euclideanOf]; ring
 
+omit [Fintype ι] in
 /-- `hadamard` is subtractive in its first argument. -/
 lemma hadamard_sub_left (x y v : EuclideanSpace ℝ ι) :
     hadamard (x - y) v = hadamard x v - hadamard y v := by
   ext i; simp [hadamard, euclideanOf]; ring
 
+omit [Fintype ι] in
 /-- `hadamard` commutes with scalar multiplication in its first argument. -/
 lemma hadamard_smul_left (c : ℝ) (x v : EuclideanSpace ℝ ι) :
     hadamard (c • x) v = c • hadamard x v := by
@@ -275,6 +279,47 @@ lemma inner_augmentedVector_sumElim
     intro i _
     ring
   rw [h_neg, sub_eq_add_neg]
+
+omit [Fintype ι] in
+/-- The augmented block matrix is symmetric whenever the base matrix is. -/
+lemma augmentedMatrix_isSymm (M : Matrix ι ι ℝ) (hM : M.IsSymm) :
+    (augmentedMatrix M).IsSymm := by
+  unfold Matrix.IsSymm augmentedMatrix
+  rw [Matrix.fromBlocks_transpose, hM]
+  congr 1
+  · ext i j; simp [hM.apply i j]
+  · ext i j; simp [hM.apply i j]
+
+omit [Fintype ι] in
+/-- Coordinatewise components of the augmented vector. -/
+lemma augmentedVector_apply_inl (r : EuclideanSpace ℝ ι) (i : ι) :
+    augmentedVector r (Sum.inl i) = r i := by
+  simp [augmentedVector]
+
+omit [Fintype ι] in
+lemma augmentedVector_apply_inr (r : EuclideanSpace ℝ ι) (i : ι) :
+    augmentedVector r (Sum.inr i) = -r i := by
+  simp [augmentedVector]
+
+omit [Fintype ι] in
+/-- `coordinateSquare` distributes over a `Sum.elim` split. -/
+lemma coordinateSquare_sumElim (a b : EuclideanSpace ℝ ι) :
+    coordinateSquare (euclideanOf (Sum.elim a b)) =
+      euclideanOf (Sum.elim (coordinateSquare a) (coordinateSquare b)) := by
+  ext j
+  cases j with
+  | inl i => simp [coordinateSquare, euclideanOf]
+  | inr i => simp [coordinateSquare, euclideanOf]
+
+omit [Fintype ι] in
+/-- The algebraic identity behind Section 5.1.2 of `docs/Lasso.md`:
+`p_pos = (u+v)/2`, `p_neg = (u-v)/2` satisfy `p_pos^2 - p_neg^2 = u ∘ v`. -/
+lemma coordinateSquare_half_add_sub_eq_hadamard (u v : EuclideanSpace ℝ ι) :
+    coordinateSquare ((1/2 : ℝ) • (u + v)) - coordinateSquare ((1/2 : ℝ) • (u - v)) =
+      hadamard u v := by
+  ext i
+  simp [coordinateSquare, euclideanOf, hadamard, smul_eq_mul]
+  ring
 
 /-- Inner product splits over Sum.elim. -/
 lemma inner_sumElim (a b c d : EuclideanSpace ℝ ι) :
