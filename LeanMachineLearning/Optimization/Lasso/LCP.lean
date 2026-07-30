@@ -319,11 +319,11 @@ private lemma repr_matVec_eq_mul_repr {ι : Type*} [Fintype ι]
     (v : EuclideanSpace ℝ ι) (i : ι) :
     b.repr (matVec A v) i = (f i) * b.repr v i := by
   calc
-    b.repr (matVec A v) i = inner ℝ (b i) (matVec A v) := b.repr_apply_apply
-    _ = inner ℝ (matVec A (b i)) v := by
-      rw [inner_matVec_comm_of_isSymm A h_symm (b i) v]
+    b.repr (matVec A v) i = inner ℝ (b i) (matVec A v) := by rw [b.repr_apply_apply]
+    _ = inner ℝ (matVec A (b i)) v :=
+      inner_matVec_comm_of_isSymm A h_symm (b i) v
     _ = inner ℝ ((f i) • (b i)) v := by rw [h_eigenvec i]
-    _ = (f i) * inner ℝ (b i) v := by rw [real_inner_smul_left]
+    _ = (f i) * inner ℝ (b i) v := real_inner_smul_left _ _ _
     _ = (f i) * b.repr v i := by rw [b.repr_apply_apply]
 
 lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
@@ -361,8 +361,10 @@ lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
   have h_symm_Mdagger : Mdagger.IsSymm := by
     have hD_herm : Ddagger.IsHermitian := by
       simp [Ddagger, Matrix.IsSymm, Matrix.diagonal_transpose]
-    simpa [Mdagger, Matrix.IsSymm] using
-      Matrix.isHermitian_mul_mul_conjTranspose (U : Matrix ι ι ℝ) hD_herm
+    have h_herm_Mdagger : Mdagger.IsHermitian := by
+      dsimp [Mdagger]
+      exact Matrix.isHermitian_mul_mul_conjTranspose (U : Matrix ι ι ℝ) hD_herm
+    simpa [Matrix.IsSymm] using h_herm_Mdagger
   -- Eigenvector equation for M†
   have h_eigenvec_Mdagger (i : ι) : matVec Mdagger (b i) = (recipZero (ev i)) • (b i) := by
     have h_mulVec : Mdagger *ᵥ (b i : ι → ℝ) = (recipZero (ev i)) • (b i : ι → ℝ) := by
@@ -373,9 +375,8 @@ lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
         _ = (U : Matrix ι ι ℝ) *ᵥ (Ddagger *ᵥ (Pi.single i 1)) := by
           rw [h_herm.star_eigenvectorUnitary_mulVec i]
         _ = (U : Matrix ι ι ℝ) *ᵥ Pi.single i (recipZero (ev i)) := by
-          simp [Ddagger, Matrix.diagonal_mulVec_single, Function.comp_apply]
+          simp [Ddagger, Function.comp_apply]
         _ = (recipZero (ev i)) • ((U : Matrix ι ι ℝ) *ᵥ Pi.single i 1) := by
-          -- Pi.single i a = a • Pi.single i 1, then mulVec (a • v) = a • mulVec v
           simp
         _ = (recipZero (ev i)) • (b i : ι → ℝ) := by
           rw [h_herm.eigenvectorUnitary_mulVec i]
@@ -389,7 +390,7 @@ lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
       b.repr (matVec Mdagger v) i = (recipZero (ev i)) * b.repr v i :=
     repr_matVec_eq_mul_repr b Mdagger h_symm_Mdagger (recipZero ∘ ev) h_eigenvec_Mdagger v i
   -- Step 4: Assemble the result
-  refine ⟨Mdagger, ?_⟩
+  use Mdagger
   constructor
   · -- Field psd: IsPositiveSemidefinite Mdagger
     constructor
@@ -413,8 +414,7 @@ lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
             refine Finset.sum_congr rfl (fun i _ => ?_); ring
       rw [h_inner_expand]
       refine Finset.sum_nonneg (fun i _ => ?_)
-      have h_sq_nonneg : 0 ≤ (b.repr x i) ^ 2 := pow_two_nonneg _
-      nlinarith [h_recip_nonneg (ev i) (h_ev_nonneg i), h_sq_nonneg]
+      nlinarith [h_recip_nonneg (ev i) (h_ev_nonneg i), pow_two_nonneg (b.repr x i)]
   · -- Field range_inverse: ∀ v, matVec M (matVec Mdagger (matVec M v)) = matVec M v
     intro v
     -- Use eigenbasis: both sides have the same repr in basis b
@@ -2047,7 +2047,19 @@ theorem parametric_lcp_unique_small_mu
       μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1) :
     ∃! p : EuclideanSpace ℝ ι × EuclideanSpace ℝ ι,
       isParametricLCP M r lambda μ p.1 p.2 := by
-  sorry
+  let q := parametricLcpQ r lambda μ
+  have h_iff := parametric_lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ hμ_small
+  -- h_iff : ∀ z w, isParametricLCP M r lambda μ z w ↔ (z = 0 ∧ w = q)
+  use (0, q)
+  constructor
+  · -- Existence: (0, q) satisfies the parametric LCP
+    rw [h_iff 0 q]
+    exact ⟨rfl, rfl⟩
+  · -- Uniqueness: any solution must be (0, q)
+    rintro ⟨z, w⟩ h
+    rw [h_iff z w] at h
+    rcases h with ⟨hz, hw⟩
+    subst hz; subst hw; rfl
 
 /-- The unscaled positive-Lasso LCP conclusion in the second sentence of
 Lemma 4.10.

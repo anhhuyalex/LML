@@ -395,16 +395,10 @@ theorem pos_lasso_connection_approx
         (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
       ≤ posLassoMin M r lambda s +
         C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
-  /-
-  INFORMAL PROOF. KKT/LCP duality constructs the auxiliary dual solution from
-  the selected minimizer path, so it is not a user-supplied unrelated path.
-  Multiplication by `μ` transfers local absolute continuity of `x` to `z` away
-  from zero; Lemma 4.10 makes `z=0` near zero. Apply
-  `positive_path_energy_bound`. See Sections 4.4--4.6 of
-  <https://arxiv.org/abs/2509.18766> and the convex KKT framework in
-  Boyd--Vandenberghe <https://web.stanford.edu/~boyd/cvxbook/>.
-  -/
-  sorry
+  obtain ⟨Mdagger, w, hdual, hdual_selected⟩ := exists_dual_certificate_for_positive_path M r lambda x_lasso hdata hx_lasso
+  have h_reg_nonneg : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) :=
+    scaledPrimalPath_regular_of_path_regular M r lambda x_lasso hdata hx_lasso h_regular
+  exact positive_path_energy_bound M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_reg_nonneg
 
 /--
 Lemma 4.12 from `docs/Lasso.md`: under the monotonicity hypothesis of Theorem
