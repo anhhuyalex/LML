@@ -1166,27 +1166,18 @@ conic Carathéodory argument in Bertsekas' MIT convex-analysis slides
 -- then their midpoint has strictly smaller norm (strict convexity of the norm).
 private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V] {u v : V}
     (h_norm_eq : ‖u‖ = ‖v‖) (h_ne : u ≠ v) : ‖(1/2 : ℝ) • (u + v)‖ < ‖u‖ := by
-  have h_sub_pos : 0 < ‖u - v‖ := by
-    rw [norm_pos_iff]
-    intro h_eq
-    apply h_ne
-    exact sub_eq_zero.mp h_eq
+  have h_sub_pos : 0 < ‖u - v‖ := norm_pos_iff.mpr (sub_ne_zero.mpr h_ne)
   have h_sub_sq_pos : 0 < ‖u - v‖ ^ 2 := pow_pos h_sub_pos 2
   rw [norm_sub_sq_real, h_norm_eq] at h_sub_sq_pos
-  -- h_sub_sq_pos : 0 < 2*‖u‖^2 - 2*inner ℝ u v, so inner ℝ u v < ‖u‖^2
   have h_sum_sq_lt : ‖u + v‖ ^ 2 < (2 * ‖u‖) ^ 2 := by
     rw [norm_add_sq_real, h_norm_eq]
     nlinarith
-  have h_nonneg_sum : 0 ≤ ‖u + v‖ := norm_nonneg _
-  have h_nonneg_two_u : 0 ≤ 2 * ‖u‖ := by positivity
   have h_sum_lt : ‖u + v‖ < 2 * ‖u‖ :=
-    (sq_lt_sq₀ h_nonneg_sum h_nonneg_two_u).mp h_sum_sq_lt
+    (sq_lt_sq₀ (norm_nonneg _) (by positivity)).mp h_sum_sq_lt
   calc
     ‖(1/2 : ℝ) • (u + v)‖ = (1/2 : ℝ) * ‖u + v‖ := by
       rw [norm_smul, Real.norm_of_nonneg (by norm_num : 0 ≤ (1/2 : ℝ))]
-    _ < (1/2 : ℝ) * (2 * ‖u‖) := by
-      apply mul_lt_mul_of_pos_left h_sum_lt
-      norm_num
+    _ < (1/2 : ℝ) * (2 * ‖u‖) := mul_lt_mul_of_pos_left h_sum_lt (by norm_num)
     _ = ‖u‖ := by ring
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is closed.
@@ -1194,16 +1185,11 @@ private lemma feasible_set_closed {κ : Type*} [Fintype κ]
     (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
     IsClosed {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
   have h_closed_nonneg : IsClosed {z : κ → ℝ | ∀ i, 0 ≤ z i} := by
-    have : {z : κ → ℝ | ∀ i, 0 ≤ z i} = ⋂ i, {z | 0 ≤ z i} := by
-      ext z; simp
-    rw [this]
-    refine isClosed_iInter fun i => ?_
-    exact isClosed_Ici.preimage (continuous_apply i)
-  have h_closed_sum : IsClosed {z : κ → ℝ | (∑ i, z i • a i) = y} := by
-    have h_cont : Continuous (fun (z : κ → ℝ) => ∑ i, z i • a i) := by
-      refine continuous_finsetSum Finset.univ fun i _ => ?_
-      exact (continuous_apply i).smul continuous_const
-    exact (isClosed_singleton).preimage h_cont
+    rw [Set.ofPred_forall]
+    exact isClosed_iInter fun i => isClosed_Ici.preimage (continuous_apply i)
+  have h_closed_sum : IsClosed {z : κ → ℝ | (∑ i, z i • a i) = y} :=
+    (isClosed_singleton).preimage
+      (continuous_finsetSum Finset.univ fun i _ => (continuous_apply i).smul continuous_const)
   exact IsClosed.inter h_closed_nonneg h_closed_sum
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is convex.
@@ -1214,33 +1200,17 @@ private lemma feasible_set_convex {κ : Type*} [Fintype κ]
   rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
   rcases hz₂ with ⟨hz₂_nonneg, hz₂_sum⟩
   constructor
-  · -- Nonnegativity condition
-    intro i
-    have : (s • z₁ + t • z₂) i = s * z₁ i + t * z₂ i := by
-      simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
-    rw [this]
+  · intro i
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
     nlinarith [hs, ht, hz₁_nonneg i, hz₂_nonneg i]
-  · -- Sum condition: (∑ i, (s•z₁ + t•z₂) i • a i) = y
-    have hsum : (∑ i : κ, (s • z₁ + t • z₂) i • a i) = y := by
+  · have hsum : (∑ i : κ, (s • z₁ + t • z₂) i • a i) = y := by
       simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
       calc
         (∑ i, (s * z₁ i + t * z₂ i) • a i) = (∑ i, ((s * z₁ i) • a i + (t * z₂ i) • a i)) := by
-          simp_rw [add_smul]
+          simp [add_smul]
         _ = (∑ i, (s * z₁ i) • a i) + (∑ i, (t * z₂ i) • a i) := Finset.sum_add_distrib
         _ = s • (∑ i, z₁ i • a i) + t • (∑ i, z₂ i • a i) := by
-          have h1 : (∑ i : κ, (s * z₁ i) • a i) = s • (∑ i : κ, z₁ i • a i) := by
-            calc
-              (∑ i : κ, (s * z₁ i) • a i) = (∑ i : κ, s • (z₁ i • a i)) := by
-                refine Finset.sum_congr rfl (fun i _ => ?_)
-                rw [← smul_smul]
-              _ = s • (∑ i : κ, z₁ i • a i) := by rw [Finset.smul_sum]
-          have h2 : (∑ i : κ, (t * z₂ i) • a i) = t • (∑ i : κ, z₂ i • a i) := by
-            calc
-              (∑ i : κ, (t * z₂ i) • a i) = (∑ i : κ, t • (z₂ i • a i)) := by
-                refine Finset.sum_congr rfl (fun i _ => ?_)
-                rw [← smul_smul]
-              _ = t • (∑ i : κ, z₂ i • a i) := by rw [Finset.smul_sum]
-          rw [h1, h2]
+          simp [Finset.smul_sum, smul_smul]
         _ = s • y + t • y := by rw [hz₁_sum, hz₂_sum]
         _ = (s + t) • y := by rw [add_smul]
         _ = y := by rw [hst, one_smul]
@@ -1254,182 +1224,90 @@ theorem nonnegative_minNorm_solution_norm_bound
           IsNonnegativeMinNormSolution a y x ∧
           (∀ x', IsNonnegativeMinNormSolution a y x' → x' = x) ∧
           ‖euclideanOf x‖ ≤ C * ‖y‖ := by
-  -- Obtain the constant from the already-proved nonnegative solution norm bound
-  rcases nonnegative_solution_norm_bound a with ⟨C₀, hC₀_nonneg, hC₀⟩
-  -- Ensure the constant is strictly positive
+  rcases nonnegative_solution_norm_bound a with ⟨C₀, _, hC₀⟩
   set C := max C₀ 1 with hC_def
-  have hC_pos : 0 < C := by
-    refine lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) ?_
-    exact le_max_right _ _
+  have hC_pos : 0 < C := lt_of_lt_of_le (by norm_num) (le_max_right _ _)
   refine ⟨C, hC_pos, ?_⟩
   intro y hy
-  -- The feasible set: nonnegative solutions to ∑ x_i a_i = y
   set S : Set (κ → ℝ) := {z | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} with hS_def
   have hS_nonempty : S.Nonempty := by
     rcases hy with ⟨coeff, hcoeff_nonneg, hcoeff_sum⟩
-    refine ⟨coeff, ?_⟩
-    rw [hS_def, Set.mem_ofPred_eq]
-    exact ⟨hcoeff_nonneg, hcoeff_sum⟩
-  have hS_closed : IsClosed S := by
-    rw [hS_def]
-    exact feasible_set_closed a y
-  have hS_convex : Convex ℝ S := by
-    rw [hS_def]
-    exact feasible_set_convex a y
-  -- The objective function f(z) = ‖euclideanOf z‖
+    exact ⟨coeff, by rw [hS_def]; exact ⟨hcoeff_nonneg, hcoeff_sum⟩⟩
+  have hS_closed : IsClosed S := hS_def ▸ feasible_set_closed a y
+  have hS_convex : Convex ℝ S := hS_def ▸ feasible_set_convex a y
   set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖ with hf_def
   have hf_cont : Continuous f := by
-    -- euclideanOf is continuous, norm is continuous
-    have h_cont_euclideanOf : Continuous (euclideanOf : (κ → ℝ) → EuclideanSpace ℝ κ) := by
-      -- euclideanOf = WithLp.toLp 2, which is continuous
-      have h := PiLp.continuous_toLp (p := 2) (β := fun _ : κ => ℝ)
-      -- h : Continuous (WithLp.toLp 2 : (κ → ℝ) → WithLp 2 (κ → ℝ))
-      -- euclideanOf is exactly WithLp.toLp 2 (just with different type synonyms)
-      -- We need to unfold the type synonyms
-      unfold euclideanOf EuclideanSpace PiLp
-      exact h
     dsimp [f]
-    -- f = norm ∘ euclideanOf
-    exact (Continuous.norm h_cont_euclideanOf)
+    exact Continuous.norm (by
+      unfold euclideanOf EuclideanSpace PiLp
+      exact PiLp.continuous_toLp (p := 2) (β := fun _ : κ => ℝ))
   -- Existence of a minimizer: use compactness of the sublevel set
   have h_exists : ∃ x ∈ S, IsMinOn f S x := by
-    -- Pick any feasible point x₀ (exists because S is nonempty)
     obtain ⟨x₀, hx₀S⟩ := hS_nonempty
-    set M : ℝ := f x₀ with hM_def
-    -- The sublevel set {z ∈ S | f z ≤ M} is compact (closed subset of compact closed ball)
+    set M : ℝ := f x₀
     let K : Set (κ → ℝ) := {z | z ∈ S ∧ f z ≤ M}
-    have hK_closed : IsClosed K := by
-      -- K = S ∩ {z | f z ≤ M}, intersection of two closed sets
-      have h_closed_sublevel : IsClosed {z | f z ≤ M} :=
-        (isClosed_Iic (a := M)).preimage hf_cont
-      exact IsClosed.inter hS_closed h_closed_sublevel
+    have hK_closed : IsClosed K :=
+      IsClosed.inter hS_closed ((isClosed_Iic (a := M)).preimage hf_cont)
     have hK_compact : IsCompact K := by
-      -- K is closed (hK_closed) and bounded (since f z ≤ M, which means ‖euclideanOf z‖ ≤ M).
-      -- In finite dimensions (κ → ℝ is finite-dim since Fintype κ), closed+bounded ⇒ compact.
-      -- The set {z | ‖euclideanOf z‖ ≤ M} is compact because euclideanOf is a homeomorphism
-      -- and the closed ball in EuclideanSpace ℝ κ is compact (proper space).
-      -- K is a closed subset of this compact set, hence compact.
-      -- Step 1: EuclideanSpace ℝ κ is finite-dimensional (via linear equivalence with κ → ℝ),
-      -- hence proper, so closed balls are compact.
       haveI : FiniteDimensional ℝ (EuclideanSpace ℝ κ) :=
         ((EuclideanSpace.equiv κ ℝ).symm.toLinearEquiv).finiteDimensional
-      have h_ball_compact : IsCompact (Metric.closedBall (0 : EuclideanSpace ℝ κ) M) :=
-        isCompact_closedBall (0 : EuclideanSpace ℝ κ) M
-      -- Step 2: The continuous image of this compact ball under EuclideanSpace.equiv is compact.
       let φ := EuclideanSpace.equiv κ ℝ
-      have hφ_cont : Continuous φ := φ.continuous
       have h_image_compact : IsCompact (φ '' Metric.closedBall (0 : EuclideanSpace ℝ κ) M) :=
-        h_ball_compact.image hφ_cont
-      -- Step 3: The image equals {z | ‖euclideanOf z‖ ≤ M} because euclideanOf = φ.symm.
+        (isCompact_closedBall (0 : EuclideanSpace ℝ κ) M).image φ.continuous
       have h_image_eq : φ '' Metric.closedBall (0 : EuclideanSpace ℝ κ) M =
           {z : κ → ℝ | ‖euclideanOf z‖ ≤ M} := by
         ext z
         constructor
         · rintro ⟨w, hw, rfl⟩
-          rw [Metric.mem_closedBall] at hw
-          -- euclideanOf (φ w) = w by definition of φ and euclideanOf
-          have h_eq : euclideanOf (φ w) = w := by
-            dsimp [euclideanOf, φ, EuclideanSpace, PiLp]
-            rfl
-          simpa [h_eq] using hw
+          rw [Metric.mem_closedBall, dist_eq_norm, sub_zero] at hw
+          simpa [euclideanOf, φ, EuclideanSpace, PiLp] using hw
         · intro hz
-          rw [Set.mem_ofPred_eq] at hz
-          -- hz: ‖euclideanOf z‖ ≤ M
-          -- need: ∃ w ∈ closedBall 0 M with φ w = z; take w = euclideanOf z
-          refine ⟨euclideanOf z, ?_, ?_⟩
-          · rw [Metric.mem_closedBall]
-            simpa [sub_zero] using hz
-          · -- φ (euclideanOf z) = z by definition
-            dsimp [euclideanOf, φ, EuclideanSpace, PiLp]
-            rfl
+          refine ⟨euclideanOf z, ?_, rfl⟩
+          rw [Metric.mem_closedBall, dist_eq_norm, sub_zero]
+          exact hz
       rw [h_image_eq] at h_image_compact
-      -- Step 4: K ⊆ {z | ‖euclideanOf z‖ ≤ M} by definition (since f z = ‖euclideanOf z‖ ≤ M)
       have hK_sub : K ⊆ {z : κ → ℝ | ‖euclideanOf z‖ ≤ M} := by
-        intro z hz
-        rcases hz with ⟨hzS, hzf⟩
-        rw [Set.mem_ofPred_eq]
+        rintro z ⟨_, hzf⟩
         rw [hf_def] at hzf
         exact hzf
-      -- Step 5: Closed subset of compact is compact
       exact h_image_compact.of_isClosed_subset hK_closed hK_sub
-    have hK_nonempty : K.Nonempty := by
-      refine ⟨x₀, hx₀S, ?_⟩
-      dsimp [f, M]
-      exact le_refl _
+    have hK_nonempty : K.Nonempty := ⟨x₀, hx₀S, le_refl _⟩
     obtain ⟨x, hxK, hx_min⟩ := hK_compact.exists_isMinOn hK_nonempty hf_cont.continuousOn
     refine ⟨x, hxK.1, ?_⟩
-    -- Extend IsMinOn from K to S: for z ∈ S \ K, f z > f x₀ ≥ f x
     intro z hzS
     by_cases hzM : f z ≤ f x₀
     · apply hx_min ⟨hzS, hzM⟩
-    · have hxM : f x ≤ f x₀ := hxK.2
-      have hz_gt : f x₀ < f z := not_le.mp hzM
-      exact le_trans hxM (le_of_lt hz_gt)
+    · exact le_trans hxK.2 (le_of_lt (not_le.mp hzM))
   rcases h_exists with ⟨x, hxS, hx_min⟩
   -- Uniqueness of the minimizer
   have h_unique : ∀ x', IsNonnegativeMinNormSolution a y x' → x' = x := by
     intro x' hx'_sol
     rcases hx'_sol with ⟨hx'_nonneg, hx'_sum, hx'_min⟩
-    -- Both x and x' are in S and are minimizers of f on S
-    -- By strict convexity of the Euclidean norm, the minimizer is unique
     by_contra h_ne
-    have hxS_set : x ∈ S := hxS
     have hx'S_set : x' ∈ S := by
-      rw [hS_def, Set.mem_ofPred_eq]
+      rw [hS_def]
       exact ⟨hx'_nonneg, hx'_sum⟩
-    -- The midpoint (1/2)•x + (1/2)•x' is in S by convexity
-    set mid := (1/2 : ℝ) • x + (1/2 : ℝ) • x' with hmid_def
+    set mid := (1/2 : ℝ) • x + (1/2 : ℝ) • x'
     have h_mid_mem : mid ∈ S :=
-      hS_convex hxS_set hx'S_set (by norm_num) (by norm_num) (by norm_num)
-    -- By strict convexity of Euclidean norm, ‖mid‖ < ‖x‖ if x ≠ x' and both are minimizers
+      hS_convex hxS hx'S_set (by norm_num) (by norm_num) (by norm_num)
     have h_norm_mid : f mid < f x := by
       dsimp [f, mid]
-      -- Both x and x' are minimizers, so they have the same norm
-      have h_norm_eq : ‖euclideanOf x‖ = ‖euclideanOf x'‖ := by
-        apply le_antisymm
-        · have hfx_le_fx' : f x ≤ f x' := hx_min hx'S_set
-          simpa [f] using hfx_le_fx'
-        · have hfx'_le_fx : f x' ≤ f x := hx'_min hxS_set
-          simpa [f] using hfx'_le_fx
-      -- euclideanOf is injective, so x ≠ x' implies euclideanOf x ≠ euclideanOf x'
-      have h_uv_ne : euclideanOf x ≠ euclideanOf x' := by
-        intro h_eq
-        apply Ne.symm h_ne
-        exact (WithLp.equiv 2 (κ → ℝ)).symm.injective h_eq
-      -- Linearity of euclideanOf, then apply strict convexity of the Euclidean norm
-      have h_linear : euclideanOf ((1/2 : ℝ) • x + (1/2 : ℝ) • x') =
-          (1/2 : ℝ) • (euclideanOf x + euclideanOf x') := by
-        simp [euclideanOf]
-      rw [h_linear]
+      have h_norm_eq : ‖euclideanOf x‖ = ‖euclideanOf x'‖ :=
+        le_antisymm (by simpa [f] using hx_min hx'S_set) (by simpa [f] using hx'_min hxS)
+      have h_uv_ne : euclideanOf x ≠ euclideanOf x' :=
+        fun h => h_ne (((WithLp.equiv 2 (κ → ℝ)).symm.injective h).symm)
+      rw [show euclideanOf ((1/2 : ℝ) • x + (1/2 : ℝ) • x') =
+          (1/2 : ℝ) • (euclideanOf x + euclideanOf x') by simp [euclideanOf]]
       exact strict_convex_norm_midpoint_lt h_norm_eq h_uv_ne
     have h_min_mid : f x ≤ f mid := hx_min h_mid_mem
     linarith
-  -- Norm bound: the minimizer has norm ≤ the norm of any feasible solution
   have h_norm_bound : ‖euclideanOf x‖ ≤ C * ‖y‖ := by
-    -- From hC₀, there exists some feasible x₀ with ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖
     rcases hC₀ y hy with ⟨x₀, hx₀_nonneg, hx₀_sum, hx₀_norm⟩
-    -- x₀ ∈ S (by definition of S)
-    have hx₀S : x₀ ∈ S := by
-      rw [hS_def, Set.mem_ofPred_eq]
-      exact ⟨hx₀_nonneg, hx₀_sum⟩
-    -- Since x minimizes f on S, we have f x ≤ f x₀
-    have hfx_le : f x ≤ f x₀ := hx_min hx₀S
-    -- Unfold f
-    dsimp [f] at hfx_le
-    -- Now hfx_le : ‖euclideanOf x‖ ≤ ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖
-    -- Since C = max C₀ 1, we have C₀ ≤ C
-    have hC₀_le_C : C₀ ≤ C := by
-      rw [hC_def]
-      exact le_max_left _ _
-    -- So C₀ * ‖y‖ ≤ C * ‖y‖ (since ‖y‖ ≥ 0)
-    have h_mul : C₀ * ‖y‖ ≤ C * ‖y‖ :=
-      mul_le_mul_of_nonneg_right hC₀_le_C (norm_nonneg _)
-    linarith
-  -- Assemble the result
-  have hx_sol : IsNonnegativeMinNormSolution a y x := by
-    rcases hxS with ⟨hx_nonneg, hx_sum⟩
-    refine ⟨hx_nonneg, hx_sum, hx_min⟩
-  exact ⟨x, hx_sol, h_unique, h_norm_bound⟩
+    have hfx_le : ‖euclideanOf x‖ ≤ ‖euclideanOf x₀‖ :=
+      by simpa [f] using hx_min (by rw [hS_def]; exact ⟨hx₀_nonneg, hx₀_sum⟩)
+    nlinarith [hfx_le, hx₀_norm, mul_le_mul_of_nonneg_right (hC_def ▸ le_max_left _ _) (norm_nonneg y)]
+  rcases hxS with ⟨hx_nonneg, hx_sum⟩
+  exact ⟨x, ⟨hx_nonneg, hx_sum, hx_min⟩, h_unique, h_norm_bound⟩
 
 /--
 The positive lasso objective achieves its minimum on the non-negative orthant.
