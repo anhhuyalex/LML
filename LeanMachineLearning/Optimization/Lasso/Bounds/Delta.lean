@@ -1060,12 +1060,18 @@ private lemma assemble_pos_delta_bound_3
 -- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
 -- to sums over coordinate derivatives, and establishes monotonicity of both functions.
 -- Uses piecewise linearity of the Lasso path (Efron et al. 2004) and the Fundamental Theorem
--- of Calculus.  Several sub-proofs are marked `sorry` pending formalization of piecewise linearity.
+-- of Calculus. Several sub-proofs are marked `sorries` pending
+-- formalization of piecewise linearity.
 private lemma deriv_pos_z_identities
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
+    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+        DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+        ∃ ε > 0, ∀ t, |t - τ'| < ε →
+          deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
     deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
     deriv (positiveZDownward x_lasso) τ =
       ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
@@ -1076,18 +1082,10 @@ private lemma deriv_pos_z_identities
     intro i
     simpa using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
   -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
-  -- implies that at any point where the scaled primal path is differentiable,
-  -- each coordinate derivative is locally constant. We postulate this property
-  -- as a hypothesis; its proof requires formalizing the piecewise-linear structure
-  -- of the Lasso regularization path.
-  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
-      DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
-      ∃ ε > 0, ∀ t, |t - τ'| < ε →
-        deriv (fun u' => u' * (x_lasso u').ofLp i') t =
-        deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
-    -- TODO: formalize piecewise linearity of the Lasso path.
-    -- Efron, Hastie, Johnstone & Tibshirani (2004), Annals of Statistics 32(2):407–499.
-    sorry
+  -- is supplied as the hypothesis `h_piecewise_deriv`: at any point where the scaled
+  -- primal path is differentiable, each coordinate derivative is locally constant.
+  -- Its proof requires formalizing the piecewise-linear structure of the Lasso
+  -- regularization path (Efron, Hastie, Johnstone & Tibshirani 2004).
   -- Step 2 (FTC for each coordinate, using piecewise linearity):
   --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
@@ -1208,9 +1206,15 @@ lemma positiveZ_deriv_nonneg
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
+    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+        DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+        ∃ ε > 0, ∀ t, |t - τ'| < ε →
+          deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
     0 ≤ deriv (positiveZUpward x_lasso) τ ∧ 0 ≤ deriv (positiveZDownward x_lasso) τ := by
-  rcases deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero with
+  rcases deriv_pos_z_identities x_lasso τ h_regular
+    h_breakpoint_comp_deriv_zero h_piecewise_deriv with
     ⟨h_upward_eq, h_downward_eq⟩
   refine ⟨?_, ?_⟩
   · rw [h_upward_eq]
@@ -1228,7 +1232,12 @@ lemma pos_delta_bound_3
     (_hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
+    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+        DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+        ∃ ε > 0, ∀ t, |t - τ'| < ε →
+          deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
     ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -1275,7 +1284,8 @@ lemma pos_delta_bound_3
     (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
-  have h_derivs := deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero
+  have h_derivs := deriv_pos_z_identities x_lasso τ h_regular
+    h_breakpoint_comp_deriv_zero h_piecewise_deriv
   rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw⟩
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     simpa [zDot] using h_upward_eq_raw
@@ -1382,8 +1392,21 @@ lemma positive_delta_complementarity_bound
     --   (a) changes slope (active variable → not differentiable → deriv = 0), or
     --   (b) is locally zero near τ (inactive variable → deriv = 0).
     sorry
+  -- Piecewise linearity of the Lasso path also implies that at any point where
+  -- the scaled primal path is differentiable, each coordinate derivative is
+  -- locally constant.  This is used by `deriv_pos_z_identities` via the FTC.
+  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+      DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+      ∃ ε > 0, ∀ t, |t - τ'| < ε →
+        deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+        deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
+    -- Derive from piecewise linearity of the Lasso path (Efron et al. 2004).
+    -- If z_i(μ) = μ·x_lasso(μ)_i is piecewise linear, then z_i' is piecewise
+    -- constant.  At a point τ' where z is differentiable, z_i' is locally
+    -- constant, i.e., deriv (fun u' => u' * x_lasso(u')_i) is locally constant.
+    sorry
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
-    hx_lasso h_regular h_breakpoint_zero
+    hx_lasso h_regular h_breakpoint_zero h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1
   intro δ hδ
   have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular δ hδ
