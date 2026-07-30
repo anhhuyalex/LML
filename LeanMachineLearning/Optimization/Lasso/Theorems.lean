@@ -50,6 +50,23 @@ pieces glue on every `[0,b]`. This is the endpoint argument in Sections
 4.5--4.6 of <https://arxiv.org/abs/2509.18766>. Mathlib's supported operations
 on absolutely continuous functions are documented at
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/AbsolutelyContinuous.html>.
+
+Informal Proof Outline:
+1. Let `z(μ) = μ x(μ)`. We must show `z` is locally absolutely continuous on `[0, ∞)`.
+2. For `μ > 0`, `x(μ)` is locally absolutely continuous (by hypothesis), and `μ ↦ μ`
+   is Lipschitz. Thus their product `z(μ)` is locally absolutely continuous on `(0, ∞)`.
+3. By Lemma 4.10 (`parametric_lcp_unique_small_mu`), there exists a threshold
+   `μ_0 > 0` such that for `0 ≤ μ < μ_0`, the unique solution to the parametric
+   LCP is `(0, q(μ))`.
+4. For `μ > 0`, since `x(μ)` minimizes the positive lasso, it corresponds to a
+   solution of the LCP (by `pos_lasso_is_lcp`). Thus `z(μ) = μ x(μ)` solves
+   the parametric LCP.
+5. By uniqueness, `z(μ) = 0` for `0 < μ < μ_0`. At `μ = 0`, `z(0) = 0 * x(0) = 0`.
+6. Therefore, `z` is identically zero on `[0, μ_0/2]`, making it absolutely
+   continuous on that interval.
+7. For any compact interval `[a, b] ⊂ [0, ∞)`, we can split it at `μ_0/2`. `z` is
+   absolutely continuous on `[a, μ_0/2]` and on `[μ_0/2, b]`, so it is absolutely
+   continuous on `[a, b]`.
 -/
 theorem scaledPrimalPath_regular_of_path_regular
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -70,6 +87,18 @@ positive eigenvalues; Lemma 4.11 then supplies the regularity package. See
 Sections 4.4--4.5 of <https://arxiv.org/abs/2509.18766>, the KKT development in
 Boyd--Vandenberghe <https://web.stanford.edu/~boyd/cvxbook/>, and the spectral
 construction of the pseudoinverse in <https://arxiv.org/abs/1110.6882>.
+
+Informal Proof Outline:
+1. By `exists_psd_range_inverse`, let `Mdagger` be a matrix satisfying
+   `IsPSDRangeInverse M Mdagger`.
+2. For each `μ > 0`, `lcp_exists_unique_dual` gives a unique dual slack `v(μ)`
+   such that `isLCP M (lcpQ r lambda μ) (x(μ)) (v(μ))` holds. Let `w(μ) = μ v(μ)`.
+3. For `μ = 0`, set `w(0) = parametricLcpQ r lambda 0 = 1`.
+4. Then for all `μ ≥ 0`, `(z(μ), w(μ))` solves the parametric LCP.
+5. Because `w(μ)` is the unique dual solution of the parametric LCP, Lemma 4.11
+   (`parametric_lcp_dual_regular`) applies and provides the full regularity
+   package `ParametricLCPDualRegular M Mdagger r lambda w`.
+6. Thus `Mdagger` and `w` witness the existential quantifiers.
 -/
 theorem exists_dual_certificate_for_positive_path
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)

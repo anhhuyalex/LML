@@ -1088,7 +1088,8 @@ lemma pos_delta_bound_3
   -- For each coordinate i, let f_i(t) := (scaledPrimalPath x_lasso t) i.
   -- Since the coordinate projection is 1-Lipschitz, each f_i is AC on [0,s].
   -- Let g_i(t) := max(0, deriv f_i t) be the positive part of the derivative.
-  -- Then g_i is interval-integrable on 0..s (since deriv f_i is, and max(0,·) preserves integrability).
+  -- Then g_i is interval-integrable on 0..s
+  -- (since deriv f_i is, and max(0,·) preserves integrability).
   -- Moreover, positiveZUpward x_lasso μ = ∑_i ∫_0^μ g_i(u) du.
   -- By the Lebesgue Differentiation Theorem (IntervalIntegrable.ae_hasDerivAt_integral),
   -- for almost every τ ∈ [0,s], HasDerivAt (∫_0^· g_i) (g_i τ) τ, hence

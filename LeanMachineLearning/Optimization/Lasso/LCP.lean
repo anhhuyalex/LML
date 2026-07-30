@@ -297,6 +297,23 @@ structure IsPSDRangeInverse (M Mdagger : Matrix ι ι ℝ) : Prop where
     ∀ v : EuclideanSpace ℝ ι,
       matVec M (matVec Mdagger (matVec M v)) = matVec M v
 
+/-- A symmetric positive-semidefinite matrix has a pseudoinverse that is also positive-semidefinite
+and acts as a generalized inverse on its range. This is constructed via the spectral theorem.
+See https://arxiv.org/abs/1110.6882 for the spectral construction.
+
+Informal proof: By the spectral theorem for real symmetric matrices, $M = Q \Lambda Q^T$ where
+$Q$ is orthogonal and $\Lambda$ is a diagonal matrix of eigenvalues $\lambda_i \ge 0$. We define
+$M^\dagger = Q \Lambda^\dagger Q^T$ where $\Lambda^\dagger$ has diagonal entries $1/\lambda_i$ if
+$\lambda_i > 0$ and $0$ otherwise. Then $M^\dagger$ is clearly symmetric and PSD since its
+eigenvalues are non-negative. Also, $M M^\dagger M = Q \Lambda \Lambda^\dagger \Lambda Q^T$
+which equals $Q \Lambda Q^T = M$, so for any $v$, $M M^\dagger M v = M v$.
+This satisfies `IsPSDRangeInverse`.
+-/
+lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
+    (h_symm : M.IsSymm) (h_psd : IsPositiveSemidefinite M) :
+    ∃ Mdagger : Matrix ι ι ℝ, IsPSDRangeInverse M Mdagger := by
+  sorry
+
 /--
 Regularity package for the unique dual solution of the parametric LCP.
 This abstracts the three conclusions of Lemma 4.11: absolute continuity
@@ -1181,9 +1198,9 @@ private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V]
     _ = ‖u‖ := by ring
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is closed.
-private lemma feasible_set_closed {κ : Type*} [Fintype κ]
-    {V : Type*} [AddCommGroup V] [TopologicalSpace V] [ContinuousAdd V] [ContinuousSMul ℝ V]
-    (a : κ → V) (y : V) :
+omit [Fintype ι] in
+private lemma feasible_set_closed {κ : Type*} [Fintype κ] (_hι : Fintype ι)
+    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
     IsClosed {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
   have h_closed_nonneg : IsClosed {z : κ → ℝ | ∀ i, 0 ≤ z i} := by
     rw [Set.ofPred_forall]
@@ -1194,9 +1211,9 @@ private lemma feasible_set_closed {κ : Type*} [Fintype κ]
   exact IsClosed.inter h_closed_nonneg h_closed_sum
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is convex.
-private lemma feasible_set_convex {κ : Type*} [Fintype κ]
-    {V : Type*} [AddCommGroup V] [Module ℝ V]
-    (a : κ → V) (y : V) :
+omit [Fintype ι] in
+private lemma feasible_set_convex {κ : Type*} [Fintype κ] (_hι : Fintype ι)
+    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
     Convex ℝ {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
   intro z₁ hz₁ z₂ hz₂ s t hs ht hst
   rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
@@ -1235,8 +1252,8 @@ theorem nonnegative_minNorm_solution_norm_bound
   have hS_nonempty : S.Nonempty := by
     rcases hy with ⟨coeff, hcoeff_nonneg, hcoeff_sum⟩
     exact ⟨coeff, by rw [hS_def]; exact ⟨hcoeff_nonneg, hcoeff_sum⟩⟩
-  have hS_closed : IsClosed S := hS_def ▸ feasible_set_closed a y
-  have hS_convex : Convex ℝ S := hS_def ▸ feasible_set_convex a y
+  have hS_closed : IsClosed S := hS_def ▸ feasible_set_closed (by infer_instance) a y
+  have hS_convex : Convex ℝ S := hS_def ▸ feasible_set_convex (by infer_instance) a y
   set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖
   have hf_cont : Continuous f := by
     dsimp [f]
