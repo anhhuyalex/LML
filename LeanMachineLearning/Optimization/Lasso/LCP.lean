@@ -778,6 +778,41 @@ lemma parametricLcpQ_pos
   rw [h_q_eq]
   linarith
 
+-- If q has all positive entries and z has all nonnegative entries,
+-- then the inner product is nonnegative.
+private lemma inner_nonneg_of_pos_mul_nonneg {ι : Type*} [Fintype ι]
+    (q z : EuclideanSpace ℝ ι)
+    (hq_pos : ∀ i, 0 < q i) (hz_nonneg : ∀ i, 0 ≤ z i) :
+    0 ≤ inner ℝ q z := by
+  have h_sum : inner ℝ q z = ∑ i : ι, q.ofLp i * z.ofLp i := by
+    rw [PiLp.inner_apply]
+    simp only [Real.inner_apply]
+  rw [h_sum]
+  refine Finset.sum_nonneg (fun i _ => ?_)
+  exact mul_nonneg (le_of_lt (hq_pos i)) (hz_nonneg i)
+
+-- If additionally the inner product is zero, then z must be zero.
+private lemma eq_zero_of_inner_eq_zero_of_pos_mul_nonneg {ι : Type*} [Fintype ι]
+    (q z : EuclideanSpace ℝ ι)
+    (hq_pos : ∀ i, 0 < q i) (hz_nonneg : ∀ i, 0 ≤ z i)
+    (h_inner_zero : inner ℝ q z = 0) : z = 0 := by
+  ext i
+  have h_sum_zero : ∑ j : ι, q.ofLp j * z.ofLp j = 0 := by
+    have h_sum : inner ℝ q z = ∑ j : ι, q.ofLp j * z.ofLp j := by
+      rw [PiLp.inner_apply]
+      simp only [Real.inner_apply]
+    rw [← h_sum, h_inner_zero]
+  have h_term_zero : q.ofLp i * z.ofLp i = 0 := by
+    have h_nonneg : ∀ j ∈ (Finset.univ : Finset ι), 0 ≤ q.ofLp j * z.ofLp j :=
+      fun j _ => mul_nonneg (le_of_lt (hq_pos j)) (hz_nonneg j)
+    exact (Finset.sum_eq_zero_iff_of_nonneg h_nonneg).mp h_sum_zero i (Finset.mem_univ i)
+  cases mul_eq_zero.mp h_term_zero with
+  | inl h_q_zero =>
+    have h_qi_pos : 0 < q.ofLp i := hq_pos i
+    linarith
+  | inr h_zi_zero =>
+    simpa using h_zi_zero
+
 lemma parametric_lcp_unique_of_mul_supNorm_lt_one
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
     (hM_psd : IsPositiveSemidefinite M)
@@ -815,37 +850,11 @@ lemma parametric_lcp_unique_of_mul_supNorm_lt_one
       exact real_inner_comm z (matVec M z)
     rw [h_Mz_z_eq] at h_inner_add
     have h_qz_nonpos : inner ℝ q z ≤ 0 := by linarith
-    have h_qz_nonneg : 0 ≤ inner ℝ q z := by
-      have h_sum : inner ℝ q z = ∑ i : ι, q.ofLp i * z.ofLp i := by
-        rw [PiLp.inner_apply]
-        simp only [Real.inner_apply]
-      rw [h_sum]
-      apply Finset.sum_nonneg
-      intro i _
-      have h1 : 0 ≤ q.ofLp i := le_of_lt (hq_pos i)
-      have h2 : 0 ≤ z.ofLp i := h_z_pos i
-      exact mul_nonneg (a := q.ofLp i) (b := z.ofLp i) h1 h2
+    have h_qz_nonneg : 0 ≤ inner ℝ q z :=
+      inner_nonneg_of_pos_mul_nonneg q z hq_pos h_z_pos
     have h_qz_zero : inner ℝ q z = 0 := le_antisymm h_qz_nonpos h_qz_nonneg
-    have h_z_zero : z = 0 := by
-      ext i
-      have h_sum_zero : ∑ j, q.ofLp j * z.ofLp j = 0 := by
-        have h_sum : inner ℝ q z = ∑ j : ι, q.ofLp j * z.ofLp j := by
-          rw [PiLp.inner_apply]
-          simp only [Real.inner_apply]
-        rw [←h_sum]
-        exact h_qz_zero
-      have h_term_zero : q.ofLp i * z.ofLp i = 0 := by
-        have h_nonneg : ∀ j ∈ Finset.univ, 0 ≤ q.ofLp j * z.ofLp j := fun j _ =>
-          mul_nonneg (a := q.ofLp j) (b := z.ofLp j) (le_of_lt (hq_pos j)) (h_z_pos j)
-        exact Finset.sum_eq_zero_iff_of_nonneg h_nonneg |>.mp h_sum_zero i (Finset.mem_univ i)
-      cases mul_eq_zero.mp h_term_zero with
-      | inl h_q_zero =>
-        have h_qi_pos : 0 < q.ofLp i := hq_pos i
-        linarith
-      | inr h_zi_zero =>
-        have h_z_eq : z i = z.ofLp i := rfl
-        rw [h_z_eq]
-        exact h_zi_zero
+    have h_z_zero : z = 0 :=
+      eq_zero_of_inner_eq_zero_of_pos_mul_nonneg q z hq_pos h_z_pos h_qz_zero
     have h_w_eq_q : w = q := by
       rw [h_z_zero] at h_w_eq
       have h_zero : matVec M 0 = 0 := by
@@ -1988,32 +1997,11 @@ theorem parametric_lcp_eq_iff_of_small_mu
       real_inner_comm z (matVec M z)
     rw [h_Mz_z_eq] at h_inner_add
     have h_qz_nonpos : inner ℝ q z ≤ 0 := by linarith
-    have h_qz_nonneg : 0 ≤ inner ℝ q z := by
-      -- Expand inner product to sum of coordinate products, all nonnegative
-      have h_sum : inner ℝ q z = ∑ i : ι, q.ofLp i * z.ofLp i := by
-        rw [PiLp.inner_apply]
-        simp only [Real.inner_apply]
-      rw [h_sum]
-      refine Finset.sum_nonneg (fun i _ => ?_)
-      exact mul_nonneg (le_of_lt (hq_pos i)) (h_z_pos i)
+    have h_qz_nonneg : 0 ≤ inner ℝ q z :=
+      inner_nonneg_of_pos_mul_nonneg q z hq_pos h_z_pos
     have h_qz_zero : inner ℝ q z = 0 := le_antisymm h_qz_nonpos h_qz_nonneg
-    have h_z_zero : z = 0 := by
-      ext i
-      have h_sum_zero : ∑ j : ι, q.ofLp j * z.ofLp j = 0 := by
-        have h_sum : inner ℝ q z = ∑ j : ι, q.ofLp j * z.ofLp j := by
-          rw [PiLp.inner_apply]
-          simp only [Real.inner_apply]
-        rw [← h_sum, h_qz_zero]
-      have h_term_zero : q.ofLp i * z.ofLp i = 0 := by
-        have h_nonneg : ∀ j ∈ (Finset.univ : Finset ι), 0 ≤ q.ofLp j * z.ofLp j :=
-          fun j _ => mul_nonneg (le_of_lt (hq_pos j)) (h_z_pos j)
-        exact (Finset.sum_eq_zero_iff_of_nonneg h_nonneg).mp h_sum_zero i (Finset.mem_univ i)
-      cases mul_eq_zero.mp h_term_zero with
-      | inl h_q_zero =>
-        have h_qi_pos : 0 < q.ofLp i := hq_pos i
-        linarith
-      | inr h_zi_zero =>
-        simpa using h_zi_zero
+    have h_z_zero : z = 0 :=
+      eq_zero_of_inner_eq_zero_of_pos_mul_nonneg q z hq_pos h_z_pos h_qz_zero
     have h_w_eq_q : w = q := by
       rw [h_z_zero] at h_w
       have h_zero : matVec M 0 = 0 := by

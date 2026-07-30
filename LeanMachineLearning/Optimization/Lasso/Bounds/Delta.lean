@@ -1019,6 +1019,41 @@ private lemma max_bound_algebra {a b c x y d : ℝ} (ha : a ≤ c) (hb : b ≤ c
     (a / d) * x + b * y ≤ (c / d) * x + c * y := add_le_add h1 h2
     _ = c * ((1 / d) * x + y) := by ring
 
+-- For each coordinate i, the i-th component of the derivative of the scaled primal path
+-- equals the derivative of the scalar component function u' ↦ u' * (x_lasso u').ofLp i.
+-- This uses the canonical equivalence between EuclideanSpace ℝ ι and bare Pi type ι → ℝ,
+-- and distinguishes between differentiable and breakpoint cases.
+private lemma scaled_primal_deriv_component (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (i : ι)
+    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
+    (deriv (scaledPrimalPath x_lasso) τ).ofLp i = deriv (fun u' => u' * (x_lasso u').ofLp i) τ := by
+  unfold scaledPrimalPath
+  -- Use the canonical equivalence between EuclideanSpace ℝ ι and bare Pi type ι → ℝ
+  set e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  set F := fun (μ : ℝ) => μ • x_lasso μ
+  by_cases h_diff : DifferentiableAt ℝ F τ
+  · -- Case 1: F is differentiable at τ, use chain rule with e
+    have h_hasDeriv_F : HasDerivAt F (deriv F τ) τ := h_diff.hasDerivAt
+    have h_hasDeriv_eF : HasDerivAt (e ∘ F) (e (deriv F τ)) τ :=
+      e.hasFDerivAt.comp_hasDerivAt τ h_hasDeriv_F
+    -- e ∘ F : ℝ → (ι → ℝ) is a bare Pi type, so hasDerivAt_pi applies
+    have h_pi := (hasDerivAt_pi.1 h_hasDeriv_eF) i
+    -- Simplify: (e (F μ)) i = μ * (x_lasso μ).ofLp i
+    --          e (deriv F τ) i = (deriv F τ).ofLp i
+    have h_hasDeriv_comp : HasDerivAt (fun μ => μ * (x_lasso μ).ofLp i)
+        ((deriv F τ).ofLp i) τ := by
+      simpa [e, F, PiLp.smul_apply, smul_eq_mul] using h_pi
+    -- Uniqueness of derivative gives the equality of the derivative values
+    simpa [F] using h_hasDeriv_comp.deriv.symm
+  · -- Case 2: F is not differentiable at τ (breakpoint). Both sides are zero.
+    have h_deriv_zero : deriv (fun μ => μ • x_lasso μ) τ = 0 :=
+      deriv_zero_of_not_differentiableAt h_diff
+    have h_component_zero : deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 :=
+      h_breakpoint_comp_deriv_zero τ h_diff i
+    dsimp [F]
+    simp [h_deriv_zero, h_component_zero]
+
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
@@ -1027,7 +1062,9 @@ lemma pos_delta_bound_3
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
     ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -1125,63 +1162,8 @@ lemma pos_delta_bound_3
   --          = deriv (fun u' => u' * x_lasso u' i) τ
   have h_component : ∀ i, zDot i = deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
-    dsimp [zDot]
-    unfold scaledPrimalPath
-    -- Goal: (deriv (fun μ => μ • x_lasso μ) τ).ofLp i
-    --       = deriv (fun u' => u' * (x_lasso u').ofLp i) τ
-    -- Use the canonical equivalence between EuclideanSpace ℝ ι and bare Pi type ι → ℝ.
-    set e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
-    set F := fun (μ : ℝ) => μ • x_lasso μ
-    by_cases h_diff : DifferentiableAt ℝ F τ
-    · -- Case 1: F is differentiable at τ.
-      -- Chain rule: e ∘ F has derivative e (deriv F τ) at τ.
-      have h_hasDeriv_F : HasDerivAt F (deriv F τ) τ := h_diff.hasDerivAt
-      have h_hasDeriv_eF : HasDerivAt (e ∘ F) (e (deriv F τ)) τ :=
-        e.hasFDerivAt.comp_hasDerivAt τ h_hasDeriv_F
-      -- Now e ∘ F : ℝ → (ι → ℝ) is a bare Pi type, so `hasDerivAt_pi` applies.
-      have h_pi := (hasDerivAt_pi.1 h_hasDeriv_eF) i
-      -- h_pi : HasDerivAt (fun μ => (e (F μ)) i) (e (deriv F τ) i) τ
-      -- Simplify: (e (F μ)) i = μ * (x_lasso μ).ofLp i
-      --          e (deriv F τ) i = (deriv F τ).ofLp i
-      have h_hasDeriv_comp : HasDerivAt (fun μ => μ * (x_lasso μ).ofLp i)
-          ((deriv F τ).ofLp i) τ := by
-        simpa [e, F, PiLp.smul_apply, smul_eq_mul] using h_pi
-      -- Uniqueness of derivative gives the equality of the derivative values
-      simpa [F] using h_hasDeriv_comp.deriv.symm
-    · -- Case 2: F is not differentiable at τ.
-      -- For the Lasso scaled path, this happens at breakpoints. At a breakpoint,
-      -- the equiangular direction changes, so all active coordinates change slope
-      -- (hence deriv F_i τ = 0) and inactive coordinates are identically zero
-      -- (hence deriv F_i τ = 0 trivially). Thus both sides equal 0.
-      -- We encapsulate this in a helper lemma (not yet formalized — requires
-      -- piecewise linearity of the Lasso path, Efron et al. 2004).
-      have h_deriv_zero : deriv (fun μ => μ • x_lasso μ) τ = 0 :=
-        deriv_zero_of_not_differentiableAt h_diff
-      have h_component_zero : deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 := by
-        -- The Lasso scaled path z(μ) = μ·x_lasso(μ) is piecewise linear in μ
-        -- (Efron et al. 2004, "Least Angle Regression").  At a breakpoint τ where
-        -- z is not differentiable, each coordinate z_i either:
-        --   (a) changes slope (the equiangular direction changes for all active
-        --       variables), hence not differentiable at τ → deriv = 0, or
-        --   (b) is identically zero near τ (inactive variable) → deriv = 0.
-        -- In both cases deriv z_i τ = 0.  We capture this as a case split.
-        have h_cases :
-          (¬ DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) τ) ∨
-          ((fun u' => u' * (x_lasso u').ofLp i) =ᶠ[𝓝 τ] (fun _ => (0 : ℝ))) := by
-          -- Proof requires the piecewise linear structure of the Lasso regularization
-          -- path (Efron et al. 2004, Annals of Statistics 32(2):407–499).
-          -- Key fact: at a breakpoint, the equiangular direction changes, so all
-          -- active coordinates change slope (hence not differentiable), while
-          -- inactive coordinates stay zero on a neighborhood.
-          sorry
-        rcases h_cases with (h_not_diff | h_eventually_zero)
-        · exact deriv_zero_of_not_differentiableAt h_not_diff
-        · -- If z_i is eventually equal to 0 near τ, their derivatives at τ coincide
-          -- and deriv of the constant-zero function is 0.
-          simpa [deriv_const τ (0 : ℝ)] using h_eventually_zero.deriv_eq
-      dsimp [F]
-      simp [h_deriv_zero, h_component_zero]
+    have h := scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
+    simpa [zDot] using h
   -- Step 2 (FTC for each coordinate, using piecewise linearity):
   --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
@@ -1360,8 +1342,17 @@ lemma positive_delta_complementarity_bound
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
+  have h_breakpoint_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
+      ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 := by
+    -- This follows from piecewise linearity of the Lasso path (Efron et al. 2004,
+    -- "Least Angle Regression", Annals of Statistics 32(2):407–499).
+    -- The scaled primal path z(μ) = μ·x_lasso(μ) is piecewise linear in μ.
+    -- At a breakpoint τ where z is not differentiable, each coordinate z_i either:
+    --   (a) changes slope (active variable → not differentiable → deriv = 0), or
+    --   (b) is locally zero near τ (inactive variable → deriv = 0).
+    sorry
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
-    hx_lasso h_regular
+    hx_lasso h_regular h_breakpoint_zero
   use max C1 C3, lt_max_of_lt_left hC1
   intro δ hδ
   have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular δ hδ
