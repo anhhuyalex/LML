@@ -1000,8 +1000,28 @@ theorem posEffectiveParameter_ne_zero
   have ha_cont : Continuous a := by
     dsimp [a]
     have hu_cont : Continuous u := hu.cont_diff.continuous
-    -- TODO: fill this continuity proof
-    sorry
+    have h_coordSquare_cont :
+        Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
+      have h_sq : Continuous (fun (x : EuclideanSpace ℝ ι) (i : ι) => x i * x i) :=
+        continuous_pi fun i =>
+          Continuous.mul (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
+            (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
+      have h_euclideanOf_cont : Continuous (euclideanOf : (ι → ℝ) → EuclideanSpace ℝ ι) :=
+        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).symm.continuous_of_finiteDimensional
+      exact h_euclideanOf_cont.comp h_sq
+    have h_matVec_cont : Continuous (matVec M) := by
+      let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
+        { toFun := matVec M
+          map_add' := matVec_add M
+          map_smul' := matVec_smul_eq M }
+      exact M_lin.continuous_of_finiteDimensional
+    have h_apply_i : Continuous (fun (x : EuclideanSpace ℝ ι) => x i) :=
+      PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i
+    have h_inner : Continuous (fun τ : ℝ =>
+        ((matVec M (coordinateSquare (u τ))) i - r i + lambda)) := by
+      refine Continuous.add (Continuous.sub ?_ continuous_const) continuous_const
+      exact h_apply_i.comp (h_matVec_cont.comp (h_coordSquare_cont.comp hu_cont))
+    exact Continuous.mul continuous_const h_inner
   -- For each τ, the scalar ODE holds: u_i'(τ) = a(τ) * u_i(τ)
   have h_ode_scalar : ∀ (τ : ℝ), HasDerivAt (fun (s : ℝ) => u s i) (a τ * u τ i) τ := by
     intro τ
@@ -1010,7 +1030,9 @@ theorem posEffectiveParameter_ne_zero
     rw [gradient_posDlnObjective M r lambda hM (u τ)] at h_ode
     -- h_ode : HasDerivAt u (-euclideanOf (fun i => 2 * u τ i * ...)) τ
     -- Convert to component form via e
-    have h_ode' : HasDerivAt (fun s => e (u s)) (e (-euclideanOf (fun i => 2 * u τ i * ((matVec M (coordinateSquare (u τ))) i - r i + lambda)))) τ :=
+    have h_ode' : HasDerivAt (fun s => e (u s))
+        (e (-euclideanOf (fun i => 2 * u τ i *
+          ((matVec M (coordinateSquare (u τ))) i - r i + lambda)))) τ :=
       e.hasFDerivAt.comp_hasDerivAt τ h_ode
     have h_pi := (hasDerivAt_pi.1 h_ode') i
     simpa [a, e, WithLp.linearEquiv, euclideanOf, mul_comm, mul_left_comm, mul_assoc] using h_pi
@@ -1040,7 +1062,8 @@ theorem posEffectiveParameter_ne_zero
     -- HasDerivAt.mul gives (exp * u) with derivative (exp'*u + exp*u')
     have h_mul := HasDerivAt.mul h_exp h1
     -- Simplify the derivative: exp'*u + exp*u' = exp*(-a)*u + exp*(a*u) = 0
-    have h_deriv_simp : (Real.exp (-B τ) * (-a τ)) * (u τ).ofLp i + Real.exp (-B τ) * (a τ * (u τ).ofLp i) = 0 := by
+    have h_deriv_simp : (Real.exp (-B τ) * (-a τ)) * (u τ).ofLp i +
+        Real.exp (-B τ) * (a τ * (u τ).ofLp i) = 0 := by
       ring
     have h_mul_simp := h_mul.congr_deriv h_deriv_simp
     -- h_mul_simp: HasDerivAt (fun s => exp(-B s) * (u s).ofLp i) 0 τ
@@ -1057,9 +1080,14 @@ theorem posEffectiveParameter_ne_zero
   -- Since φ' = 0 everywhere, φ is constant (mean value theorem)
   have hφ_const : ∀ (τ : ℝ), φ τ = φ 0 := by
     have hφ_diff : Differentiable ℝ φ := by
-      -- φ is C¹ (product of C¹ functions), hence differentiable.
-      -- We'll fill in later.
-      sorry
+      have hu_i_diff : Differentiable ℝ (fun τ => u τ i) :=
+        fun τ => (h_ode_scalar τ).differentiableAt
+      have hB_diff : Differentiable ℝ B :=
+        fun τ => (hB_deriv τ).differentiableAt
+      have h_exp_negB_diff : Differentiable ℝ (fun τ => Real.exp (-B τ)) :=
+        Real.differentiable_exp.comp hB_diff.neg
+      dsimp [φ]
+      exact Differentiable.mul hu_i_diff h_exp_negB_diff
     have hφ_deriv_eq_zero : ∀ τ, deriv φ τ = 0 := by
       intro τ
       exact (hφ_deriv τ).deriv

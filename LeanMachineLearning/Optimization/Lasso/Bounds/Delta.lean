@@ -1067,7 +1067,8 @@ private lemma deriv_pos_z_identities
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
         ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
     deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
-    deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) ∧
+    deriv (positiveZDownward x_lasso) τ =
+      ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) ∧
     Monotone (positiveZUpward x_lasso) ∧
     Monotone (positiveZDownward x_lasso) := by
   -- Step 1 (componentwise identification):
@@ -1083,7 +1084,8 @@ private lemma deriv_pos_z_identities
   -- (AbsolutelyContinuousOnInterval.intervalIntegrable_deriv).
   -- Then max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2 is also integrable.
   have h_int_any : ∀ (i : ι) (a b : ℝ),
-      IntervalIntegrable (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
+      IntervalIntegrable
+        (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
     intro i a b
     -- TODO: From h_regular, derive absolute continuity of each coordinate f_i on [a,b].
     -- Then use AbsolutelyContinuousOnInterval.intervalIntegrable_deriv to get
@@ -1093,7 +1095,8 @@ private lemma deriv_pos_z_identities
   -- Since (1+u) is continuous and max(0, -deriv f_i) inherits integrability from
   -- max(0, deriv f_i) (by symmetry), their product is interval-integrable.
   have h_int_any_down : ∀ (i : ι) (a b : ℝ),
-      IntervalIntegrable (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
+      IntervalIntegrable
+        (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
     intro i a b
     -- TODO: use h_int_any (for max(0, -deriv f_i) via max(0, deriv (-f_i))),
     -- and the fact that (1+u) is continuous, hence locally bounded and measurable.
