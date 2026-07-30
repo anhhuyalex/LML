@@ -1331,17 +1331,30 @@ lemma pos_delta_bound_3
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
   have h_derivs := deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero
-  rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw, h_up_mono, h_down_mono⟩
+  rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw, h_up_mono⟩
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     simpa [zDot] using h_upward_eq_raw
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
     simpa [zDot] using h_downward_eq_raw
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
+  -- Nonnegativity of deriv (positiveZUpward x_lasso) τ: from monotonicity on ℝ
+  have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
+    h_up_mono.deriv_nonneg (x := τ)
+  -- Nonnegativity of deriv (positiveZDownward x_lasso) τ: from the derivative identity
+  -- and τ ≥ 0 (since τ ∈ [0, s]).  For τ ≥ 0 we have (1+τ) ≥ 1 > 0 and
+  -- max(0, -zDot i) ≥ 0, so the RHS sum is nonnegative, hence LHS ≥ 0.
+  have hτ_nonneg : 0 ≤ τ := hτ.left
+  have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := by
+    rw [h_downward_eq]
+    refine Finset.sum_nonneg (fun i _ => ?_)
+    have h_nonneg_max : 0 ≤ max 0 (-zDot i) := le_max_left _ _
+    have h_nonneg_factor : 0 ≤ 1 + τ := by linarith
+    nlinarith
   -- Assemble the final inequality from the pos/neg bounds
   exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
     (le_max_left _ _) (le_max_right _ _)
-    h_bound_pos h_bound_neg h_up_mono h_down_mono hε_mem.1 hε_mem.2
+    h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
 
 /--
 Section 4.6, Eq. (4.14), Term 4.
