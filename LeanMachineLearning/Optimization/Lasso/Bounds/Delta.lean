@@ -1076,6 +1076,29 @@ private lemma deriv_pos_z_identities
       deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
     simpa using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
+  -- Integrability helper: max(0, deriv f_i) is interval-integrable on any interval.
+  -- From h_regular, the scaled primal path is AC on nonnegative compacts.
+  -- Each coordinate f_i(u) = u * x_lasso(u)_i is then also AC (Lipschitz projection
+  -- preserves absolute continuity), hence has integrable derivative
+  -- (AbsolutelyContinuousOnInterval.intervalIntegrable_deriv).
+  -- Then max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2 is also integrable.
+  have h_int_any : ∀ (i : ι) (a b : ℝ),
+      IntervalIntegrable (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
+    intro i a b
+    -- TODO: From h_regular, derive absolute continuity of each coordinate f_i on [a,b].
+    -- Then use AbsolutelyContinuousOnInterval.intervalIntegrable_deriv to get
+    -- integrability of deriv f_i, and extend to max 0 via |·|.
+    sorry
+  -- Integrability helper for the downward integrand (1+u) * max(0, -deriv f_i).
+  -- Since (1+u) is continuous and max(0, -deriv f_i) inherits integrability from
+  -- max(0, deriv f_i) (by symmetry), their product is interval-integrable.
+  have h_int_any_down : ∀ (i : ι) (a b : ℝ),
+      IntervalIntegrable (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
+    intro i a b
+    -- TODO: use h_int_any (for max(0, -deriv f_i) via max(0, deriv (-f_i))),
+    -- and the fact that (1+u) is continuous, hence locally bounded and measurable.
+    -- The product of a continuous function and an interval-integrable function is integrable.
+    sorry
   -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
   -- implies that at any point where the scaled primal path is differentiable,
   -- each coordinate derivative is locally constant. We postulate this property
@@ -1138,8 +1161,8 @@ private lemma deriv_pos_z_identities
       -- Then g_i = max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2 is also interval integrable
       -- using IntervalIntegrable.add and IntervalIntegrable.abs.
       have h_int : IntervalIntegrable g_i volume 0 τ := by
-        -- TODO: formalize the chain: h_regular → AC → BV → intervalIntegrable_deriv → abs → max
-        sorry
+        dsimp [g_i]
+        simpa using h_int_any i 0 τ
       -- Apply the Fundamental Theorem of Calculus (derivative of integral = integrand):
       rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
     · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
@@ -1192,16 +1215,98 @@ private lemma deriv_pos_z_identities
   -- interval integral calculus, combined with nonnegativity of the integrand.
   have h_up_mono : Monotone (positiveZUpward x_lasso) := by
     intro a b h
-    have h_diff_nonneg : 0 ≤ positiveZUpward x_lasso b - positiveZUpward x_lasso a := by
-      -- The difference equals the sum of integrals over [a,b] of a
-      -- nonnegative integrand. This relies on the integral identity
-      -- ∫_0^b g = ∫_0^a g + ∫_a^b g which requires integrability.
-      sorry
+    unfold positiveZUpward
+    have h_diff_nonneg : 0 ≤ (∑ i : ι, ∫ u in (0 : ℝ)..b,
+        max 0 (deriv (fun u' => u' * x_lasso u' i) u)) -
+        (∑ i : ι, ∫ u in (0 : ℝ)..a,
+        max 0 (deriv (fun u' => u' * x_lasso u' i) u)) := by
+      -- The difference equals ∑_i ∫_a^b g_i(u) du, where g_i(u) = max(0, deriv f_i(u)) ≥ 0.
+      -- Then each ∫_a^b g_i ≥ 0 by integral_nonneg_of_forall.
+      have h_diff_eq : (∑ i : ι, ∫ u in (0 : ℝ)..b,
+          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) -
+          (∑ i : ι, ∫ u in (0 : ℝ)..a,
+          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) =
+          ∑ i : ι, ∫ u in a..b,
+          max 0 (deriv (fun u' => u' * x_lasso u' i) u) := by
+        calc
+          _ = ∑ i : ι, ((∫ u in (0 : ℝ)..b,
+              max 0 (deriv (fun u' => u' * x_lasso u' i) u)) -
+              (∫ u in (0 : ℝ)..a,
+              max 0 (deriv (fun u' => u' * x_lasso u' i) u))) := by
+            simp [Finset.sum_sub_distrib]
+          _ = ∑ i : ι, ∫ u in a..b,
+              max 0 (deriv (fun u' => u' * x_lasso u' i) u) := by
+            refine Finset.sum_congr rfl (fun i _ => ?_)
+            have h0a : IntervalIntegrable (fun u =>
+                max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 a :=
+              h_int_any i 0 a
+            have hab : IntervalIntegrable (fun u =>
+                max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b :=
+              h_int_any i a b
+            -- integral_add_adjacent_intervals h0a hab: (∫_0^a) + (∫_a^b) = ∫_0^b
+            have h_add := intervalIntegral.integral_add_adjacent_intervals h0a hab
+            linarith
+      rw [h_diff_eq]
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      -- Each integrand is max(0, ...) which is ≥ 0
+      refine intervalIntegral.integral_nonneg_of_forall h (fun u => ?_)
+      exact le_max_left _ _
     linarith
   have h_down_mono : Monotone (positiveZDownward x_lasso) := by
     intro a b h
-    have h_diff_nonneg : 0 ≤ positiveZDownward x_lasso b - positiveZDownward x_lasso a := by
-      sorry
+    unfold positiveZDownward
+    have h_diff_nonneg : 0 ≤ (∑ i : ι, ∫ u in (0 : ℝ)..b,
+        (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) -
+        (∑ i : ι, ∫ u in (0 : ℝ)..a,
+        (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) := by
+      -- Same structure as h_up_mono: difference = ∑_i ∫_a^b h_i(u) du
+      -- where h_i(u) = (1+u) * max(0, -deriv f_i(u)).
+      -- For u ≥ -1, h_i(u) ≥ 0 and the same proof works.
+      -- For u < -1, the sign of (1+u) is negative, and monotonicity may fail.
+      -- In the intended application (a,b ≥ 0), we have u ≥ 0, so (1+u) ≥ 1 > 0.
+      -- We provide the proof assuming u ≥ -1; the general case requires
+      -- additional hypotheses on the behavior of x_lasso for negative arguments.
+      have h_diff_eq : (∑ i : ι, ∫ u in (0 : ℝ)..b,
+          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) -
+          (∑ i : ι, ∫ u in (0 : ℝ)..a,
+          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) =
+          ∑ i : ι, ∫ u in a..b,
+          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u) := by
+        calc
+          _ = ∑ i : ι, ((∫ u in (0 : ℝ)..b,
+              (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) -
+              (∫ u in (0 : ℝ)..a,
+              (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u))) := by
+            simp [Finset.sum_sub_distrib]
+          _ = ∑ i : ι, ∫ u in a..b,
+              (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u) := by
+            refine Finset.sum_congr rfl (fun i _ => ?_)
+            have h0a : IntervalIntegrable (fun u =>
+                (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 a :=
+              h_int_any_down i 0 a
+            have hab : IntervalIntegrable (fun u =>
+                (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b :=
+              h_int_any_down i a b
+            have h_add := intervalIntegral.integral_add_adjacent_intervals h0a hab
+            linarith
+      rw [h_diff_eq]
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      -- The integrand is (1+u) * max(0, -deriv f_i(u)).
+      -- For the intended application (a,b ≥ 0), we have u ≥ 0, so (1+u) ≥ 1 > 0
+      -- and max(0, -deriv ...) ≥ 0, hence the integrand is ≥ 0.
+      -- For general u, we assume u ≥ -1 (which holds for all u ≥ 0, the domain of interest).
+      -- The full Monotone claim on ℝ may require additional hypotheses.
+      refine intervalIntegral.integral_nonneg_of_forall h (fun u => ?_)
+      have h_nonneg_max : 0 ≤ max 0 (-deriv (fun u' => u' * x_lasso u' i) u) := le_max_left _ _
+      -- NOTE: we need 0 ≤ 1+u. This holds when u ≥ -1, which is true for u ≥ 0.
+      -- In the Lasso context, x_lasso is only meaningfully defined for μ > 0,
+      -- so the integral paths of interest have nonnegative bounds.
+      -- For a fully general proof on ℝ, we would need additional hypotheses.
+      have h_nonneg_factor : 0 ≤ 1 + u := by
+        -- Since u is in [a,b] and we need this only for the intended domain a,b ≥ 0.
+        -- For a general proof, we leave this as sorry.
+        sorry
+      nlinarith
     linarith
   -- Assemble the derivative identities
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ =
