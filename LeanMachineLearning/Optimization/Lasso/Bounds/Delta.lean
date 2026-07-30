@@ -1234,20 +1234,95 @@ private lemma deriv_pos_z_identities
         -- contradicting h_breakpoint_comp_deriv_zero (which gives deriv f_i τ = 0).
         --
         -- We formalize the one-sided limit property with:
+        -- The Lasso path is piecewise linear (Efron et al. 2004), hence
+        -- nondifferentiability points ("breakpoints") are isolated:
+        -- each breakpoint has a punctured neighborhood where the path is differentiable.
+        have h_isolated_breakpoints : ∀ τ', ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+            ∃ δ > 0, ∀ t, |t - τ'| < δ → t ≠ τ' → DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
+          -- This follows from the piecewise-linear structure of the Lasso path
+          -- (Efron, Hastie, Johnstone & Tibshirani 2004, "Least Angle Regression").
+          sorry
+
+        -- Helper: on an open interval where deriv f_i is pointwise locally constant
+        -- (via h_piecewise_deriv), it is globally constant (connectedness argument).
+        have h_deriv_const_on_Ioo {a b : ℝ} (hab : a < b)
+            (h_diff_on : ∀ t ∈ Set.Ioo a b, DifferentiableAt ℝ (scaledPrimalPath x_lasso) t) :
+            ∃ c : ℝ, ∀ t ∈ Set.Ioo a b, deriv f_i t = c := by
+          -- For each t ∈ (a,b), h_piecewise_deriv gives ε_t > 0 such that
+          -- deriv f_i is constant on (t-ε_t, t+ε_t).  Since (a,b) is connected,
+          -- a standard LUB argument shows deriv f_i is constant on the whole interval.
+          -- Formal proof requires topological connectedness or a real LUB argument.
+          sorry
+
         have h_right_limit : (∃ δ > 0,
             g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
             (∃ (δ : ℝ) (hδ : δ > 0) (c : ℝ) (hc : c > 0),
               g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => c)) := by
-          -- TODO: prove using h_piecewise_deriv and h_breakpoint_comp_deriv_zero,
-          -- exploiting that deriv f_i is locally constant at differentiability points
-          -- and zero at non-differentiability points, and that non-differentiability
-          -- points are isolated (piecewise-linear path).
-          sorry
+          rcases h_isolated_breakpoints τ h_diff with ⟨η, hη_pos, hη_diff⟩
+          have h_diff_on : ∀ t ∈ Set.Ioo τ (τ + η), DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
+            intro t ht
+            rcases ht with ⟨ht_left, ht_right⟩
+            have h_ne : t ≠ τ := by linarith
+            have h_dist : |t - τ| < η := by
+              rw [abs_lt]
+              constructor <;> linarith
+            exact hη_diff t h_dist h_ne
+          have h_lt : τ < τ + η := by linarith
+          rcases h_deriv_const_on_Ioo h_lt h_diff_on with ⟨c, hc⟩
+          by_cases hc_nonpos : c ≤ 0
+          · -- deriv f_i = c ≤ 0, so g_i = max(0, c) = 0 everywhere on (τ, τ+η)
+            left
+            refine ⟨η, hη_pos, ?_⟩
+            have hg_zero : ∀ t ∈ Set.Ioo τ (τ + η), g_i t = 0 := by
+              intro t ht
+              dsimp [g_i]
+              rw [hc t ht, max_eq_left hc_nonpos]
+            have h_eqOn : (Set.Ioo τ (τ + η)).EqOn g_i (fun _ => (0 : ℝ)) := hg_zero
+            exact h_eqOn.aeEq_restrict measurableSet_Ioo
+          · -- c > 0, so g_i = max(0, c) = c > 0 everywhere on (τ, τ+η)
+            right
+            have hc_pos : 0 < c := by linarith
+            refine ⟨η, hη_pos, c, hc_pos, ?_⟩
+            have hg_const : ∀ t ∈ Set.Ioo τ (τ + η), g_i t = c := by
+              intro t ht
+              dsimp [g_i]
+              rw [hc t ht, max_eq_right (by linarith)]
+            have h_eqOn : (Set.Ioo τ (τ + η)).EqOn g_i (fun _ => c) := hg_const
+            exact h_eqOn.aeEq_restrict measurableSet_Ioo
+
         have h_left_limit : (∃ δ > 0,
             g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => (0 : ℝ))) ∨
             (∃ (δ : ℝ) (hδ : δ > 0) (d : ℝ) (hd : d > 0),
               g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => d)) := by
-          sorry
+          rcases h_isolated_breakpoints τ h_diff with ⟨η, hη_pos, hη_diff⟩
+          have h_diff_on : ∀ t ∈ Set.Ioo (τ - η) τ, DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
+            intro t ht
+            rcases ht with ⟨ht_left, ht_right⟩
+            have h_ne : t ≠ τ := by linarith
+            have h_dist : |t - τ| < η := by
+              rw [abs_lt]
+              constructor <;> linarith
+            exact hη_diff t h_dist h_ne
+          have h_lt : τ - η < τ := by linarith
+          rcases h_deriv_const_on_Ioo h_lt h_diff_on with ⟨c, hc⟩
+          by_cases hc_nonpos : c ≤ 0
+          · left
+            refine ⟨η, hη_pos, ?_⟩
+            have hg_zero : ∀ t ∈ Set.Ioo (τ - η) τ, g_i t = 0 := by
+              intro t ht
+              dsimp [g_i]
+              rw [hc t ht, max_eq_left hc_nonpos]
+            have h_eqOn : (Set.Ioo (τ - η) τ).EqOn g_i (fun _ => (0 : ℝ)) := hg_zero
+            exact h_eqOn.aeEq_restrict measurableSet_Ioo
+          · right
+            have hc_pos : 0 < c := by linarith
+            refine ⟨η, hη_pos, c, hc_pos, ?_⟩
+            have hg_const : ∀ t ∈ Set.Ioo (τ - η) τ, g_i t = c := by
+              intro t ht
+              dsimp [g_i]
+              rw [hc t ht, max_eq_right (by linarith)]
+            have h_eqOn : (Set.Ioo (τ - η) τ).EqOn g_i (fun _ => c) := hg_const
+            exact h_eqOn.aeEq_restrict measurableSet_Ioo
         -- Case analysis on the left/right limits.
         rcases h_right_limit with (⟨δr, hδr_pos, hgr⟩ | ⟨δr, hδr_pos, cr, hcr_pos, hgr⟩)
         · -- Right limit = 0
