@@ -7,6 +7,7 @@ blueprint/src/web.pdf
 .lake/*
 .cache/*
 ## Blueprint
+/blueprint/lean_decls
 /blueprint/print/print.log
 /blueprint/web/
 /blueprint/src/web.paux
