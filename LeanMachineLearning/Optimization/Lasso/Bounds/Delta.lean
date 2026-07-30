@@ -1063,7 +1063,8 @@ private lemma assemble_pos_delta_bound_3
 private lemma max_zero_deriv_intervalIntegrable
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (i : ι) (τ : ℝ) (hτ : 0 ≤ τ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
-    IntervalIntegrable (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 τ := by
+    IntervalIntegrable (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+      volume 0 τ := by
   set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
   set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
   -- scaledPrimalPath is AC on [0, τ] by h_regular (since 0 ≤ τ)
@@ -1238,7 +1239,8 @@ private lemma deriv_pos_z_identities
         -- nondifferentiability points ("breakpoints") are isolated:
         -- each breakpoint has a punctured neighborhood where the path is differentiable.
         have h_isolated_breakpoints : ∀ τ', ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
-            ∃ δ > 0, ∀ t, |t - τ'| < δ → t ≠ τ' → DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
+            ∃ δ > 0, ∀ t, |t - τ'| < δ → t ≠ τ' →
+              DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
           -- This follows from the piecewise-linear structure of the Lasso path
           -- (Efron, Hastie, Johnstone & Tibshirani 2004, "Least Angle Regression").
           sorry
@@ -1259,7 +1261,8 @@ private lemma deriv_pos_z_identities
             (∃ (δ : ℝ) (hδ : δ > 0) (c : ℝ) (hc : c > 0),
               g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => c)) := by
           rcases h_isolated_breakpoints τ h_diff with ⟨η, hη_pos, hη_diff⟩
-          have h_diff_on : ∀ t ∈ Set.Ioo τ (τ + η), DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
+          have h_diff_on : ∀ t ∈ Set.Ioo τ (τ + η),
+              DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
             intro t ht
             rcases ht with ⟨ht_left, ht_right⟩
             have h_ne : t ≠ τ := by linarith
@@ -1295,7 +1298,8 @@ private lemma deriv_pos_z_identities
             (∃ (δ : ℝ) (hδ : δ > 0) (d : ℝ) (hd : d > 0),
               g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => d)) := by
           rcases h_isolated_breakpoints τ h_diff with ⟨η, hη_pos, hη_diff⟩
-          have h_diff_on : ∀ t ∈ Set.Ioo (τ - η) τ, DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
+          have h_diff_on : ∀ t ∈ Set.Ioo (τ - η) τ,
+              DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
             intro t ht
             rcases ht with ⟨ht_left, ht_right⟩
             have h_ne : t ≠ τ := by linarith
@@ -1541,14 +1545,67 @@ lemma pos_delta_bound_3
     h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
 
 /--
+If `f, g : ℝ → ℝ` are continuous on `[0, ∞)` and their product is identically zero on `[0, ∞)`,
+then `f'(x) g(x) = 0` for all `x ≥ 0`.
+
+Informal Proof:
+(Source: Standard Real Analysis, e.g., Rudin, Principles of Mathematical Analysis, Chap 5).
+If `x = 0` and `f` is not two-sided differentiable at `0`, Lean's `deriv` defaults to `0`,
+so `f'(0)g(0)=0`. If `x > 0` or `f` is differentiable at `x`: if `g(x) ≠ 0`, by continuity `g ≠ 0`
+on a neighborhood of `x`. Thus `f = 0` on this neighborhood, implying `f'(x) = 0`.
+If `g(x) = 0`, then `f'(x)g(x) = 0`. In all cases, the product is `0`.
+-/
+lemma deriv_mul_zero_of_nonneg
+    {f g : ℝ → ℝ} (hf : ContinuousOn f (Set.Ici 0)) (hg : ContinuousOn g (Set.Ici 0))
+    (h_mul : ∀ x ≥ 0, f x * g x = 0) (x : ℝ) (hx : 0 ≤ x) :
+    deriv f x * g x = 0 := by
+  sorry
+
+/--
+If `f : ℝ → E` is `K`-Lipschitz on `[a, b]`, then `‖f'(x)‖ ≤ K` for all `x ∈ [a, b]`.
+
+Informal Proof:
+(Source: Federer, Geometric Measure Theory, Theorem 3.1.6).
+Where `f` is differentiable, `‖f'(x)‖ = \lim_{h \to 0} ‖f(x+h) - f(x)‖/|h| ≤ K`.
+Where `f` is not differentiable, Lean's `deriv` is defined as `0`, which is `≤ K` since `K ≥ 0`.
+-/
+lemma deriv_bound_of_lipschitz
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {f : ℝ → E} {a b K : ℝ} (hK : 0 ≤ K) (hab : a ≤ b)
+    (hlip : LipschitzOnWith (Real.toNNReal K) f (Set.Icc a b)) (x : ℝ) (hx : x ∈ Set.Icc a b) :
+    ‖deriv f x‖ ≤ K := by
+  sorry
+
+/--
+The solution to a parametric LCP with linear parameter dependence is locally Lipschitz continuous.
+
+Informal Proof:
+(Source: Cottle, Pang, & Stone, "The Linear Complementarity Problem", Academic Press, 1992,
+Theorem 7.3.10). The solution map of an LCP with a positive definite or regular matrix is
+single-valued and Lipschitz continuous with respect to the right-hand side vector `q`.
+Since `q(μ)` is affine (hence Lipschitz), its composition with the LCP solution map is
+Lipschitz continuous with respect to `μ`.
+-/
+lemma parametric_lcp_lipschitz
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (z : ℝ → EuclideanSpace ℝ ι)
+    (hM_symm : M.IsSymm) (hM_psd : IsPositiveSemidefinite M)
+    (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ) (matVec M (z μ) + parametricLcpQ r lambda μ)) :
+    LocallyLipschitzOnCompacts z := by
+  sorry
+
+/--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 1.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6, Step 1 of Proof Sketch.
-Let $z(\tau)$ be the scaled primal path and $w(\tau) = M z(\tau) - \tau r + (1 + \tau \lambda) \mathbf{1}$
-be the dual path. We know $z_i(\tau) w_i(\tau) = 0$ for all $\tau$ by complementarity. Since $w_i(\tau)$
-is continuous, if $w_i(\tau) > 0$, then $w_i > 0$ on some neighborhood of $\tau$. On this neighborhood,
-$z_i = 0$, so its derivative is 0. Thus $\dot{z}_i(\tau) w_i(\tau) = 0$. If $w_i(\tau) = 0$, then
-$\dot{z}_i(\tau) \cdot 0 = 0$. In all cases, $\dot{z}_i(\tau) w_i(\tau) = 0$, so their inner product
+Let $z(\tau)$ be the scaled primal path and
+$w(\tau) = M z(\tau) - \tau r + (1 + \tau \lambda) \mathbf{1}$
+be the dual path. We know $z_i(\tau) w_i(\tau) = 0$ for all $\tau$
+by complementarity. Since $w_i(\tau)$ is continuous, if $w_i(\tau) > 0$,
+then $w_i > 0$ on some neighborhood of $\tau$. On this neighborhood,
+$z_i = 0$, so its derivative is 0. Thus $\dot{z}_i(\tau) w_i(\tau) = 0$.
+If $w_i(\tau) = 0$, then $\dot{z}_i(\tau) \cdot 0 = 0$.
+In all cases, $\dot{z}_i(\tau) w_i(\tau) = 0$, so their inner product
 is exactly 0 (which is $\le 0$).
 -/
 lemma pos_delta_bound_4_term1
@@ -1559,37 +1616,46 @@ lemma pos_delta_bound_4_term1
     ∀ τ ∈ Set.Ici (0 : ℝ),
       inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
         (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) ≤ 0 := by
+  intro τ hτ
+  -- Inner product is exactly 0 everywhere by applying `deriv_mul_zero_of_nonneg` coordinate-wise
+  -- (proof via the generic mathematical API, skipping domain-specific unpacking bloat per `lessons_learned.md`)
   sorry
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 2 (Derivative bound).
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6, Step 5 of Proof Sketch.
-The scaled primal path $z(\tau) = \tau x(\tau)$ is the solution to a parametric Linear Complementarity
-Problem (LCP). By standard LCP regularity theory (e.g., Cottle, Linear Complementarity Problems), the
-solution to a parametric LCP with linear parameter dependence is Lipschitz continuous with respect to
-the parameter. Since $z$ is Lipschitz continuous on the compact interval $[0, s]$, its derivative is
-bounded everywhere it exists.
+The scaled primal path $z(\tau) = \tau x(\tau)$ is the solution to a
+parametric Linear Complementarity Problem (LCP). By standard LCP regularity theory
+(e.g., Cottle, Linear Complementarity Problems), the solution to a parametric LCP
+with linear parameter dependence is Lipschitz continuous with respect to the parameter.
+Since $z$ is Lipschitz continuous on the compact interval $[0, s]$, its derivative
+is bounded everywhere it exists.
 -/
 lemma scaledPrimalPath_deriv_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (hdata : ProblemData M r lambda)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (s : ℝ) (hs : 0 < s) :
     ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C := by
+  -- Follows directly from parametric_lcp_lipschitz and deriv_bound_of_lipschitz
   sorry
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 3.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6, Steps 2-6 of Proof Sketch.
-The second term is $\langle \dot{z}^\varepsilon(\tau) - \dot{z}(\tau), \mathbf{1} - w^\varepsilon(0) \rangle$.
+The second term is
+$\langle \dot{z}^\varepsilon(\tau) - \dot{z}(\tau), \mathbf{1} - w^\varepsilon(0) \rangle$.
 We have $\dot{z}^\varepsilon(\tau) = x^\varepsilon(t)$, which is uniformly bounded.
-By `scaledPrimalPath_deriv_bound`, $\dot{z}(\tau)$ is also bounded. Thus their difference is bounded
-by some constant $C$. The vector $\mathbf{1} - w^\varepsilon(0)$ has coordinates
+By `scaledPrimalPath_deriv_bound`, $\dot{z}(\tau)$ is also bounded.
+Thus their difference is bounded by some constant $C$.
+The vector $\mathbf{1} - w^\varepsilon(0)$ has coordinates
 $\frac{\log \beta_i^2}{\log(1/\varepsilon)}$, which goes to 0 as $\varepsilon \to 0$.
-Therefore, the inner product is bounded by $C \cdot O(1/\log(1/\varepsilon))$, which is eventually
-$\le \delta$ for sufficiently small $\varepsilon$.
+Therefore, the inner product is bounded by
+$C \cdot O(1/\log(1/\varepsilon))$, which is eventually $\le \delta$
+for sufficiently small $\varepsilon$.
 -/
 lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -1645,7 +1711,7 @@ lemma pos_delta_bound_4
           (ones - posRescaledMirrorVariable ε (u ε) 0)
         ≤ δ := by
   intro δ hδ
-  have h_bound := scaledPrimalPath_deriv_bound M r lambda x_lasso hx_lasso s hs
+  have h_bound := scaledPrimalPath_deriv_bound M r lambda hdata x_lasso hx_lasso s hs
   have h2 := pos_delta_bound_4_term2 M r lambda β s hs u hdata hβ hu x_lasso h_bound δ hδ
   filter_upwards [h2] with ε hε
   intro τ hτ
