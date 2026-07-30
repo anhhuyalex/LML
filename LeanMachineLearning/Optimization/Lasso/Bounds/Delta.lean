@@ -1159,12 +1159,30 @@ lemma pos_delta_bound_3
       max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
       max 0 (deriv (fun u' => u' * x_lasso u' i) τ) := by
     intro i
-    -- This holds because of piecewise linearity of the Lasso path.
-    -- At continuity points of g_i^+ := max(0, deriv f_i), use `deriv_integral_right`
-    -- (requires IntervalIntegrable, StronglyMeasurableAtFilter, ContinuousAt).
-    -- At breakpoints, deriv f_i τ = 0 ⇒ g_i^+(τ) = 0, and the integral has a corner
-    -- so its deriv also returns 0.
-    sorry
+    set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+    set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
+    by_cases h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
+    · -- Case 1: scaledPrimalPath is differentiable at τ.
+      -- For the piecewise-linear Lasso path, this implies g_i is
+      -- continuous at τ, interval-integrable on [0,τ], and strongly
+      -- measurable. Then `intervalIntegral.deriv_integral_right` gives
+      -- the equality. All three sub-goals depend on piecewise linearity
+      -- (not yet formalized), so we `sorry` the entire case for now.
+      sorry
+    · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
+      -- By h_breakpoint_comp_deriv_zero, the RHS is zero.
+      have h_rhs_zero : max 0 (deriv f_i τ) = 0 := by
+        have h_deriv_zero : deriv f_i τ = 0 :=
+          h_breakpoint_comp_deriv_zero τ h_diff i
+        simp [f_i, h_deriv_zero]
+      -- LHS is also 0: for the piecewise linear Lasso path, g_i is
+      -- piecewise constant. At a breakpoint, g_i has a jump, so ∫ g_i
+      -- has a corner (left and right derivatives differ), hence is not
+      -- differentiable. Mathlib's `deriv` returns 0 in this case.
+      have h_lhs_zero : deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u) τ = 0 := by
+        -- TODO: formalize this using piecewise linearity
+        sorry
+      rw [h_lhs_zero, h_rhs_zero]
   -- Step 3 (FTC for the downward variation):
   have h_ftc_down : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
       (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ =

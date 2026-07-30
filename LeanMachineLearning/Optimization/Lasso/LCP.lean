@@ -2023,7 +2023,99 @@ theorem lcp_eq_iff_of_small_mu
       μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1) :
     ∀ x v : EuclideanSpace ℝ ι,
       isLCP M (lcpQ r lambda μ) x v ↔ x = 0 ∧ v = lcpQ r lambda μ := by
-  sorry
+  set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖
+  have hμ_nonneg : 0 ≤ μ := le_of_lt hμ
+  -- derive μ·N < 1 from hμ_small (same proof as parametric version)
+  have hμN_lt_one : μ * N < 1 := by
+    by_cases hNle : N ≤ 1
+    · rw [max_eq_right hNle] at hμ_small
+      have hμN_le_μ : μ * N ≤ μ :=
+        (mul_le_mul_of_nonneg_left hNle hμ_nonneg).trans_eq (by ring)
+      linarith
+    · rw [max_eq_left (by linarith : 1 ≤ N)] at hμ_small
+      exact (lt_div_iff₀ (by linarith : 0 < N)).mp hμ_small
+  -- the parametric version, already proven
+  have h_parametric := parametric_lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ_nonneg hμ_small
+  -- key identity: μ • lcpQ = parametricLcpQ (componentwise algebra)
+  have h_smul_q : μ • lcpQ r lambda μ = parametricLcpQ r lambda μ := by
+    ext i
+    dsimp [lcpQ, parametricLcpQ, euclideanOf]
+    field_simp [hμ.ne.symm]
+    ring
+  -- linearity of matVec: μ • matVec M x = matVec M (μ • x)
+  have h_matVec_smul (x : EuclideanSpace ℝ ι) : μ • matVec M x = matVec M (μ • x) := by
+    ext i
+    dsimp [matVec, euclideanOf]
+    simp [Matrix.mulVec, smul_eq_mul]
+  -- positivity of lcpQ, derived from parametricLcpQ_pos and scaling via h_smul_q
+  have hq_pos : ∀ i, 0 < lcpQ r lambda μ i := by
+    have h_par_pos : ∀ i, 0 < parametricLcpQ r lambda μ i :=
+      parametricLcpQ_pos r lambda μ hμ_nonneg hμN_lt_one
+    intro i
+    have hpos_par := h_par_pos i
+    -- h_smul_q : μ • lcpQ = parametricLcpQ
+    -- So (μ • lcpQ) i = parametricLcpQ i > 0
+    have hpos_smul : 0 < (μ • lcpQ r lambda μ) i := by rwa [h_smul_q]
+    -- (μ • v) i = μ * v i, so we have 0 < μ * lcpQ_i
+    -- Since μ > 0, we deduce lcpQ_i > 0
+    have hpos_mul : 0 < μ * lcpQ r lambda μ i := by simpa using hpos_smul
+    exact pos_of_mul_pos_right hpos_mul hμ_nonneg
+  intro x v
+  constructor
+  · -- Forward direction: LCP solution ⇒ (x = 0, v = lcpQ)
+    intro h
+    rcases h with ⟨h_v, h_v_nonneg, h_x_nonneg, h_ortho⟩
+    -- scale by μ: z = μ·x, w = μ·v
+    set z := μ • x
+    set w := μ • v
+    -- the scaled pair solves the parametric LCP
+    have hz_w : isParametricLCP M r lambda μ z w := by
+      dsimp [isParametricLCP, isLCP, z, w]
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · -- w = parametricLcpQ + matVec M z
+        calc
+          μ • v = μ • (lcpQ r lambda μ + matVec M x) := by rw [h_v]
+          _ = μ • lcpQ r lambda μ + μ • matVec M x := by simp [smul_add]
+          _ = parametricLcpQ r lambda μ + matVec M (μ • x) := by rw [h_smul_q, h_matVec_smul]
+      · -- Nonnegative w
+        intro i
+        simpa using mul_nonneg hμ_nonneg (h_v_nonneg i)
+      · -- Nonnegative z
+        intro i
+        simpa using mul_nonneg hμ_nonneg (h_x_nonneg i)
+      · -- inner ℝ w z = 0
+        simp [inner_smul_left, inner_smul_right, h_ortho]
+    -- apply parametric theorem
+    have h_param_result := (h_parametric z w).mp hz_w
+    rcases h_param_result with ⟨hz_zero, hw_eq_q⟩
+    -- from z = μ·x = 0 and μ > 0, deduce x = 0
+    have hx_zero : x = 0 := by
+      have : μ • x = 0 := hz_zero
+      rcases smul_eq_zero.mp this with (hμzero | hxzero)
+      · exact (hμ.ne.symm hμzero).elim
+      · exact hxzero
+    -- from w = μ·v = parametricLcpQ = μ·lcpQ, deduce v = lcpQ
+    have hv_eq_q : v = lcpQ r lambda μ := by
+      dsimp [w] at hw_eq_q
+      -- now hw_eq_q : μ • v = parametricLcpQ r lambda μ
+      have h_eq : μ • v = μ • lcpQ r lambda μ := by
+        rw [hw_eq_q, h_smul_q]
+      -- μ • (v - lcpQ) = 0, and since μ ≠ 0 in a vector space over ℝ, v - lcpQ = 0
+      have h_sub : μ • (v - lcpQ r lambda μ) = 0 := by
+        rw [smul_sub, h_eq, sub_self]
+      rcases smul_eq_zero.mp h_sub with (hμzero | hsub)
+      · exact (hμ.ne.symm hμzero).elim
+      · exact sub_eq_zero.mp hsub
+    exact ⟨hx_zero, hv_eq_q⟩
+  · -- Backward direction: (x = 0, v = lcpQ) ⇒ LCP solution
+    intro ⟨hx_zero, hv_eq_q⟩
+    subst hx_zero; subst hv_eq_q
+    dsimp [isLCP]
+    refine ⟨?_, ?_, ?_, ?_⟩
+    · ext i; simp [matVec, euclideanOf]
+    · exact fun i => (hq_pos i).le
+    · exact fun _ => le_refl 0
+    · simp [inner_zero_right]
 
 /-- Helper lemma: Bound for |s(μ) - s(ν)| -/
 lemma scaled_dual_lcp_s_diff_bound (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda)
