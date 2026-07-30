@@ -241,14 +241,7 @@ lemma energy_complementarity_bound
   have h_comp_zero : ∀ τ : ℝ, 0 ≤ τ →
       inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (w τ) = 0 := by
     sorry
-  -- Choose the piecewise-linearity fact needed by `pos_delta_bound_3` /
-  -- `positiveZ_deriv_nonneg`, exactly as in `positive_delta_complementarity_bound`.
-  have h_breakpoint_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-      ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 := by
-    -- This follows from piecewise linearity of the Lasso path (Efron et al. 2004,
-    -- "Least Angle Regression", Annals of Statistics 32(2):407–499), exactly as in
-    -- `positive_delta_complementarity_bound` in `Bounds/Delta.lean`.
-    sorry
+  -- Choose the piecewise-linearity fact needed by `pos_delta_bound_3`.
   have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
       DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
       ∃ ε > 0, ∀ t, |t - τ'| < ε →
@@ -259,7 +252,7 @@ lemma energy_complementarity_bound
     sorry
   obtain ⟨C1, hC1_pos, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   obtain ⟨C3, hC3_pos, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
-    hx_lasso h_regular h_breakpoint_zero h_piecewise_deriv
+    hx_lasso h_regular h_piecewise_deriv
   have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular
   set C := max (max C1 C3) (pseudoInverseSeminorm Mdagger r) with hC_def
   have hC_pos : 0 < C := lt_max_of_lt_left (lt_max_of_lt_left hC1_pos)

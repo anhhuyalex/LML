@@ -1173,13 +1173,10 @@ private lemma max_zero_neg_deriv_intervalIntegrable
 -- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
 -- to sums over coordinate derivatives, and establishes monotonicity of both functions.
 -- Uses piecewise linearity of the Lasso path (Efron et al. 2004) and the Fundamental Theorem
--- of Calculus. Several sub-proofs are marked `sorries` pending
--- formalization of piecewise linearity.
+-- of Calculus.
 private lemma deriv_pos_z_identities
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
     (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
         DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
         ∃ ε > 0, ∀ t, |t - τ'| < ε →
@@ -1194,7 +1191,10 @@ private lemma deriv_pos_z_identities
   have h_component : ∀ i, (deriv (scaledPrimalPath x_lasso) τ) i =
       deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
-    simpa using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
+    let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+    simpa [scaledPrimalPath, e, PiLp.smul_apply, smul_eq_mul] using
+      ((hasDerivAt_pi.1 (e.hasFDerivAt.comp_hasDerivAt τ h_path_diff.hasDerivAt)) i).deriv.symm
 
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
       max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
@@ -1202,225 +1202,27 @@ private lemma deriv_pos_z_identities
     intro i
     set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
     set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
-    by_cases h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
-    · -- Case 1: scaledPrimalPath is differentiable at τ.
-      -- By piecewise linearity, deriv f_i is locally constant near τ,
-      -- hence g_i = max(0, deriv f_i) is locally constant, hence continuous at τ.
-      rcases h_piecewise_deriv τ i h_diff with ⟨ε, hε_pos, h_const⟩
-      -- g_i is constant on (τ-ε, τ+ε):
-      have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
-        intro t ht
-        dsimp [g_i]
-        rw [h_const t ht]
-      -- Therefore g_i is continuous at τ (it equals a constant near τ):
-      have h_cont : ContinuousAt g_i τ := by
-        have h_event : ∀ᶠ t in 𝓝 τ, g_i t = g_i τ := by
-          rw [Metric.eventually_nhds_iff_ball]
-          exact ⟨ε, hε_pos, fun t ht => h_g_const t (Metric.mem_ball.mp ht)⟩
-        have h_eventEq : g_i =ᶠ[𝓝 τ] (fun _ => g_i τ) := h_event
-        exact h_eventEq.continuousAt
-      -- Strong measurability at 𝓝 τ: g_i = constant near τ, so it's AEStronglyMeasurable.
-      have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
-        refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
-        have h_ae : AEStronglyMeasurable g_i (volume.restrict (Metric.ball τ ε)) := by
-          have h_const' : AEStronglyMeasurable (fun _ => g_i τ)
-            (volume.restrict (Metric.ball τ ε)) :=
-            aestronglyMeasurable_const (b := g_i τ)
-          have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun _ => g_i τ) := fun t ht =>
-            h_g_const t (Metric.mem_ball.mp ht)
-          have h_eq : g_i =ᵐ[volume.restrict (Metric.ball τ ε)] (fun _ => g_i τ) :=
-            h_eq_on.aeEq_restrict (Metric.isOpen_ball.measurableSet)
-          exact h_const'.congr h_eq.symm
-        exact h_ae
-      -- Integrability of g_i on [0, τ]: uses absolute continuity of the scaled primal
-      -- path and the fact that coordinate projections are 1-Lipschitz.
-      have h_int : IntervalIntegrable g_i volume 0 τ := by
-        dsimp [g_i, f_i]
-        exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
-      -- Apply the Fundamental Theorem of Calculus (derivative of integral = integrand):
-      rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
-    · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
-      -- By h_breakpoint_comp_deriv_zero, the RHS is zero.
-      -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
-      -- is supplied as the hypothesis `h_piecewise_deriv`: at any point where the scaled
-      -- primal path is differentiable, each coordinate derivative is locally constant.
-      -- Its proof requires formalizing the piecewise-linear structure of the Lasso
-      -- regularization path (Efron, Hastie, Johnstone & Tibshirani 2004).
-      -- Step 2 (FTC for each coordinate, using piecewise linearity):
-      --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
-      have h_rhs_zero : max 0 (deriv f_i τ) = 0 := by
-        have h_deriv_zero : deriv f_i τ = 0 :=
-          h_breakpoint_comp_deriv_zero τ h_diff i
-        simp [f_i, h_deriv_zero]
-      -- LHS is also 0: for the piecewise linear Lasso path, g_i is
-      -- piecewise constant. At a breakpoint, g_i has a jump, so ∫ g_i
-      -- has a corner (left and right derivatives differ), hence is not
-      -- differentiable. Mathlib's `deriv` returns 0 in this case.
-      have h_lhs_zero : deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u) τ = 0 := by
-        set F := fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u
-        -- The proof relies on the piecewise-linear structure of the Lasso path:
-        -- at a breakpoint τ, each coordinate derivative deriv f_i is locally constant
-        -- on one-sided neighbourhoods, taking either 0 or some positive constant.
-        -- Hence g_i = max(0, deriv f_i) is piecewise constant near τ.
-        --
-        -- Key sub-lemma: g_i has one-sided limits at τ (coming from the piecewise-
-        -- constant values). The right limit is either 0 or some c > 0; the left limit
-        -- is either 0 or some d > 0.
-        --
-        -- If both limits are 0, then g_i is continuous at τ with value 0, and FTC
-        -- gives deriv F τ = 0.
-        --
-        -- If the right limit is c > 0 and the left limit is d ≥ 0 with c ≠ d,
-        -- then the one-sided derivatives of F differ, so F is not differentiable
-        -- at τ, and Mathlib's `deriv` returns 0 by deriv_zero_of_not_differentiableAt.
-        --
-        -- The only remaining case is c = d > 0. But then f_i has the same derivative
-        -- c on both sides, making f_i differentiable at τ with derivative c ≠ 0,
-        -- contradicting h_breakpoint_comp_deriv_zero (which gives deriv f_i τ = 0).
-        --
-        -- We formalize the one-sided limit property with:
-        -- The Lasso path is piecewise linear (Efron et al. 2004), hence
-        -- nondifferentiability points ("breakpoints") are isolated:
-        -- each breakpoint has a punctured neighborhood where the path is differentiable.
-        have h_isolated_breakpoints : ∀ τ', ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
-            ∃ δ > 0, ∀ t, |t - τ'| < δ → t ≠ τ' →
-              DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
-          -- This branch is unreachable: h_path_diff gives differentiability at τ,
-          -- contradicting h_diff (from the by_cases). We derive ex falso quodlibet.
-          exact absurd h_path_diff h_diff
-
-        -- Helper: on an open interval where deriv f_i is pointwise locally constant
-        -- (via h_piecewise_deriv), it is globally constant (connectedness argument).
-        have h_deriv_const_on_Ioo {a b : ℝ} (hab : a < b)
-            (h_diff_on : ∀ t ∈ Set.Ioo a b, DifferentiableAt ℝ (scaledPrimalPath x_lasso) t) :
-            ∃ c : ℝ, ∀ t ∈ Set.Ioo a b, deriv f_i t = c := by
-          -- For each t ∈ (a,b), h_piecewise_deriv gives ε_t > 0 such that
-          -- deriv f_i is constant on (t-ε_t, t+ε_t).  Since (a,b) is connected,
-          -- a standard LUB argument shows deriv f_i is constant on the whole interval.
-          -- Formal proof requires topological connectedness or a real LUB argument.
-          exact absurd h_path_diff h_diff
-
-        have h_right_limit : (∃ δ > 0,
-            g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
-            (∃ (δ : ℝ) (hδ : δ > 0) (c : ℝ) (hc : c > 0),
-              g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => c)) := by
-          rcases h_isolated_breakpoints τ h_diff with ⟨η, hη_pos, hη_diff⟩
-          have h_diff_on : ∀ t ∈ Set.Ioo τ (τ + η),
-              DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
-            intro t ht
-            rcases ht with ⟨ht_left, ht_right⟩
-            have h_ne : t ≠ τ := by linarith
-            have h_dist : |t - τ| < η := by
-              rw [abs_lt]
-              constructor <;> linarith
-            exact hη_diff t h_dist h_ne
-          have h_lt : τ < τ + η := by linarith
-          rcases h_deriv_const_on_Ioo h_lt h_diff_on with ⟨c, hc⟩
-          by_cases hc_nonpos : c ≤ 0
-          · -- deriv f_i = c ≤ 0, so g_i = max(0, c) = 0 everywhere on (τ, τ+η)
-            left
-            refine ⟨η, hη_pos, ?_⟩
-            have hg_zero : ∀ t ∈ Set.Ioo τ (τ + η), g_i t = 0 := by
-              intro t ht
-              dsimp [g_i]
-              rw [hc t ht, max_eq_left hc_nonpos]
-            have h_eqOn : (Set.Ioo τ (τ + η)).EqOn g_i (fun _ => (0 : ℝ)) := hg_zero
-            exact h_eqOn.aeEq_restrict measurableSet_Ioo
-          · -- c > 0, so g_i = max(0, c) = c > 0 everywhere on (τ, τ+η)
-            right
-            have hc_pos : 0 < c := by linarith
-            refine ⟨η, hη_pos, c, hc_pos, ?_⟩
-            have hg_const : ∀ t ∈ Set.Ioo τ (τ + η), g_i t = c := by
-              intro t ht
-              dsimp [g_i]
-              rw [hc t ht, max_eq_right (by linarith)]
-            have h_eqOn : (Set.Ioo τ (τ + η)).EqOn g_i (fun _ => c) := hg_const
-            exact h_eqOn.aeEq_restrict measurableSet_Ioo
-
-        have h_left_limit : (∃ δ > 0,
-            g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => (0 : ℝ))) ∨
-            (∃ (δ : ℝ) (hδ : δ > 0) (d : ℝ) (hd : d > 0),
-              g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => d)) := by
-          rcases h_isolated_breakpoints τ h_diff with ⟨η, hη_pos, hη_diff⟩
-          have h_diff_on : ∀ t ∈ Set.Ioo (τ - η) τ,
-              DifferentiableAt ℝ (scaledPrimalPath x_lasso) t := by
-            intro t ht
-            rcases ht with ⟨ht_left, ht_right⟩
-            have h_ne : t ≠ τ := by linarith
-            have h_dist : |t - τ| < η := by
-              rw [abs_lt]
-              constructor <;> linarith
-            exact hη_diff t h_dist h_ne
-          have h_lt : τ - η < τ := by linarith
-          rcases h_deriv_const_on_Ioo h_lt h_diff_on with ⟨c, hc⟩
-          by_cases hc_nonpos : c ≤ 0
-          · left
-            refine ⟨η, hη_pos, ?_⟩
-            have hg_zero : ∀ t ∈ Set.Ioo (τ - η) τ, g_i t = 0 := by
-              intro t ht
-              dsimp [g_i]
-              rw [hc t ht, max_eq_left hc_nonpos]
-            have h_eqOn : (Set.Ioo (τ - η) τ).EqOn g_i (fun _ => (0 : ℝ)) := hg_zero
-            exact h_eqOn.aeEq_restrict measurableSet_Ioo
-          · right
-            have hc_pos : 0 < c := by linarith
-            refine ⟨η, hη_pos, c, hc_pos, ?_⟩
-            have hg_const : ∀ t ∈ Set.Ioo (τ - η) τ, g_i t = c := by
-              intro t ht
-              dsimp [g_i]
-              rw [hc t ht, max_eq_right (by linarith)]
-            have h_eqOn : (Set.Ioo (τ - η) τ).EqOn g_i (fun _ => c) := hg_const
-            exact h_eqOn.aeEq_restrict measurableSet_Ioo
-        -- Case analysis on the left/right limits.
-        rcases h_right_limit with (⟨δr, hδr_pos, hgr⟩ | ⟨δr, hδr_pos, cr, hcr_pos, hgr⟩)
-        · -- Right limit = 0
-          rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
-          · -- Both limits = 0. Then g_i is continuous at τ with value 0.
-            -- FTC gives deriv F τ = g_i(τ) = 0.
-            have h_int : IntervalIntegrable g_i volume 0 τ := by
-              dsimp [g_i, f_i]
-              exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
-            have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
-              -- g_i equals 0 near τ on both sides, hence strongly measurable.
-              exact absurd h_path_diff h_diff
-            have h_cont : ContinuousAt g_i τ := by
-              -- g_i is 0 on both one-sided neighbourhoods and g_i(τ) = 0.
-              -- This can be derived from hgr, hgl, h_rhs_zero.
-              exact absurd h_path_diff h_diff
-            rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
-            exact h_rhs_zero
-          · -- Left limit = dl > 0, right limit = 0.
-            -- One-sided derivatives differ: right = 0, left = dl > 0.
-            -- Hence F is not differentiable at τ.
-            have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
-              -- TODO: prove using the local constancy of g_i on one-sided intervals.
-              exact absurd h_path_diff h_diff
-            exact deriv_zero_of_not_differentiableAt h_not_diff
-        · -- Right limit = cr > 0
-          rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
-          · -- Right limit = cr > 0, left limit = 0.
-            -- One-sided derivatives differ. F not differentiable.
-            have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
-              -- TODO: prove using the local constancy of g_i on one-sided intervals.
-              exact absurd h_path_diff h_diff
-            exact deriv_zero_of_not_differentiableAt h_not_diff
-          · -- Both limits positive: right = cr > 0, left = dl > 0.
-            by_cases h_eq : cr = dl
-            · -- cr = dl > 0. Then f_i' = cr on both sides, so f_i is differentiable
-              -- at τ with derivative cr > 0, contradicting h_breakpoint_comp_deriv_zero.
-              have h_deriv_fi_pos : deriv f_i τ = cr := by
-                -- Using absolute continuity of f_i and the fact that f_i' = cr
-                -- on (τ-δl, τ) and (τ, τ+δr), we get f_i differentiable at τ with
-                -- derivative cr. Formal proof requires interval integral FTC.
-                exact absurd h_path_diff h_diff
-              rw [h_breakpoint_comp_deriv_zero τ h_diff i] at h_deriv_fi_pos
-              linarith
-            · -- cr ≠ dl, both > 0. One-sided derivatives differ.
-              have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
-                -- TODO: prove using the local constancy of g_i on one-sided intervals.
-                exact absurd h_path_diff h_diff
-              exact deriv_zero_of_not_differentiableAt h_not_diff
-      rw [h_lhs_zero, h_rhs_zero]
+    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
+      intro t ht
+      dsimp [g_i]
+      rw [h_const t ht]
+    have h_cont : ContinuousAt g_i τ := by
+      have h_event : ∀ᶠ t in 𝓝 τ, g_i t = g_i τ := by
+        rw [Metric.eventually_nhds_iff_ball]
+        exact ⟨ε, hε_pos, fun t ht => h_g_const t (Metric.mem_ball.mp ht)⟩
+      have h_eventEq : g_i =ᶠ[𝓝 τ] (fun _ => g_i τ) := h_event
+      exact h_eventEq.continuousAt
+    have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+      refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+      have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun _ => g_i τ) := fun t ht =>
+        h_g_const t (Metric.mem_ball.mp ht)
+      exact (aestronglyMeasurable_const (b := g_i τ)).congr
+        (h_eq_on.aeEq_restrict Metric.isOpen_ball.measurableSet).symm
+    have h_int : IntervalIntegrable g_i volume 0 τ := by
+      dsimp [g_i, f_i]
+      exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+    rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
   -- Step 3 (FTC for the downward variation):
   have h_ftc_down : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
       (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ =
@@ -1458,12 +1260,8 @@ private lemma deriv_pos_z_identities
       (intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont).deriv
   -- Step 4 (distribute deriv over finite sum):
   --   deriv (∑_i F_i) τ = ∑_i deriv F_i τ
-  -- Standard lemma `deriv_sum` requires differentiability of each F_i.
-  -- For piecewise linear f_i, at non-breakpoints all F_i are differentiable and
-  -- deriv_sum applies. At breakpoints, deriv f_i τ = 0 for all i where the
-  -- derivative changes, and the remaining terms (with zero derivative) contribute
-  -- nothing; `deriv` of the sum is also zero. We postulate a lemma that handles
-  -- both cases uniformly.
+  -- At the regular point τ, local constancy of each coordinate derivative and the
+  -- FTC make every F_i differentiable, so `deriv_fun_sum` applies.
   have h_deriv_sum : deriv (fun (μ : ℝ) => ∑ i : ι,
       ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
       ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
@@ -1549,9 +1347,10 @@ single constant `max C1 C3` can discharge the nonnegativity side conditions of
 `max_bound_algebra`-style arguments outside `Delta.lean` (e.g. in `Energy.lean`,
 Section 4.6, Eq. (789)/(806)).
 
-Informal proof: `deriv_pos_z_identities` identifies both derivatives with finite
-sums of `max 0 (·)` terms (times the nonnegative factor `1 + τ`, using `hτ`), each
-manifestly nonnegative.
+The proof does not distribute `deriv` over a sum at breakpoints. Instead it shows
+that both integral functions are monotone on nonnegative time, then uses
+`MonotoneOn.derivWithin_nonneg` at differentiability points and Mathlib's zero
+convention at nondifferentiability points.
 -/
 lemma positiveZ_deriv_nonneg
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
@@ -1618,8 +1417,6 @@ lemma pos_delta_bound_3
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (_hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
     (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
         DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
         ∃ ε > 0, ∀ t, |t - τ'| < ε →
@@ -1683,7 +1480,7 @@ lemma pos_delta_bound_3
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
   have h_derivs := deriv_pos_z_identities x_lasso τ hτ.left h_regular
-    h_breakpoint_comp_deriv_zero h_piecewise_deriv h_path_diff
+    h_piecewise_deriv h_path_diff
   rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw⟩
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     simpa [zDot] using h_upward_eq_raw
@@ -1919,15 +1716,6 @@ lemma positive_delta_complementarity_bound
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
-  have h_breakpoint_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
-      ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 := by
-    -- This follows from piecewise linearity of the Lasso path (Efron et al. 2004,
-    -- "Least Angle Regression", Annals of Statistics 32(2):407–499).
-    -- The scaled primal path z(μ) = μ·x_lasso(μ) is piecewise linear in μ.
-    -- At a breakpoint τ where z is not differentiable, each coordinate z_i either:
-    --   (a) changes slope (active variable → not differentiable → deriv = 0), or
-    --   (b) is locally zero near τ (inactive variable → deriv = 0).
-    sorry
   -- Piecewise linearity of the Lasso path also implies that at any point where
   -- the scaled primal path is differentiable, each coordinate derivative is
   -- locally constant.  This is used by `deriv_pos_z_identities` via the FTC.
@@ -1942,7 +1730,7 @@ lemma positive_delta_complementarity_bound
     -- constant, i.e., deriv (fun u' => u' * x_lasso(u')_i) is locally constant.
     sorry
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
-    hx_lasso h_regular h_breakpoint_zero h_piecewise_deriv
+    hx_lasso h_regular h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1
   intro δ hδ
   have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso h_regular δ hδ
