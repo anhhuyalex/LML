@@ -886,7 +886,70 @@ theorem tiltedLoss_uniform_upper_bound
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε)) :
     ∃ C > 0, ∀ ε : ℝ, 0 < ε → ε ≤ 1 → ∀ t : ℝ, 0 ≤ t →
       tiltedLoss M r lambda (posEffectiveParameter (u ε) t) ≤ C := by
-  sorry
+  -- The effective parameter at initialization: α² (coordinatewise square)
+  set αsq := coordinateSquare α with hαsq
+  -- The tilted loss along the initial ray ε ↦ ε·α², as a function of ε
+  set f : ℝ → ℝ := fun ε => tiltedLoss M r lambda (ε • αsq) with hf
+  -- Step 1: f is a quadratic polynomial in ε, hence continuous
+  have h_f_explicit (ε : ℝ) : f ε = ((1/2 : ℝ) * inner ℝ αsq (matVec M αsq)) * ε ^ 2
+      + (lambda * inner ℝ ones αsq - inner ℝ r αsq) * ε := by
+    dsimp [f, tiltedLoss]
+    rw [quadraticLoss_smul, inner_smul_right]
+    ring
+  have h_cont_f : Continuous f := by
+    have h_explicit : f = fun ε => ((1/2 : ℝ) * inner ℝ αsq (matVec M αsq)) * ε ^ 2
+        + (lambda * inner ℝ ones αsq - inner ℝ r αsq) * ε := by
+      ext ε; exact h_f_explicit ε
+    rw [h_explicit]
+    continuity
+  have h_cont_f_on : ContinuousOn f (Set.Icc (0 : ℝ) 1) :=
+    h_cont_f.continuousOn
+  -- Step 2: [0,1] is compact and nonempty
+  have h_compact : IsCompact (Set.Icc (0 : ℝ) 1) := isCompact_Icc
+  have h_nonempty : (Set.Icc (0 : ℝ) 1).Nonempty := by
+    refine ⟨0, ?_⟩
+    constructor <;> norm_num
+  -- Step 3: Extreme Value Theorem — f attains a maximum on the compact set [0,1]
+  obtain ⟨ε₀, hε₀_mem, h_max⟩ := h_compact.exists_isMaxOn h_nonempty h_cont_f_on
+  -- h_max : IsMaxOn f (Set.Icc 0 1) ε₀, i.e. ∀ ε ∈ Icc 0 1, f ε ≤ f ε₀
+  -- Step 4: Choose C = max(1, f ε₀) > 0
+  set C := max 1 (f ε₀) with hC
+  have hC_pos : 0 < C := by
+    rw [hC]
+    exact lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
+  refine ⟨C, hC_pos, ?_⟩
+  intro ε hε_pos hε_le_one t ht_nonneg
+  -- Step 5: By antitonicity, the value at time t is ≤ the value at time 0
+  have h_antitone : Antitone (fun t => tiltedLoss M r lambda (posEffectiveParameter (u ε) t)) :=
+    tiltedLoss_antitone_along_pos_flow M r lambda ε α (u ε) (hu ε hε_pos) hM
+  have h_bound : tiltedLoss M r lambda (posEffectiveParameter (u ε) t) ≤
+      tiltedLoss M r lambda (posEffectiveParameter (u ε) 0) :=
+    h_antitone ht_nonneg
+  -- Step 6: The initial effective parameter is ε • α²
+  have h_init : posEffectiveParameter (u ε) 0 = ε • αsq := by
+    dsimp [posEffectiveParameter, αsq, coordinateSquare]
+    rw [show (u ε) 0 = Real.sqrt ε • α from (hu ε hε_pos).init]
+    ext i
+    dsimp [euclideanOf]
+    calc
+      Real.sqrt ε * α i * (Real.sqrt ε * α i) =
+          (Real.sqrt ε * Real.sqrt ε) * (α i * α i) := by ring
+      _ = ε * (α i * α i) := by rw [Real.mul_self_sqrt (by linarith : 0 ≤ ε)]
+  rw [h_init] at h_bound
+  -- h_bound: tiltedLoss … ≤ tiltedLoss M r lambda (ε • αsq) = f ε
+  have h_f_ε : tiltedLoss M r lambda (ε • αsq) = f ε := by
+    dsimp [f]
+  rw [h_f_ε] at h_bound
+  -- Step 7: ε ∈ (0,1] implies ε ∈ Icc 0 1, so f ε ≤ f ε₀ by IsMaxOn
+  have hε_mem_Icc : ε ∈ Set.Icc (0 : ℝ) 1 := by
+    constructor <;> linarith
+  have h_fε_le_fε₀ : f ε ≤ f ε₀ := h_max hε_mem_Icc
+  -- Step 8: f ε₀ ≤ C by definition of C
+  have h_fε₀_le_C : f ε₀ ≤ C := by
+    rw [hC]
+    exact le_max_right _ _
+  -- Chain: tiltedLoss … ≤ f ε ≤ f ε₀ ≤ C
+  linarith
 
 /-- The effective parameter starts at `ε • α²` along a positive-DLN flow. -/
 lemma posEffectiveParameter_zero_eq_smul_coordinateSquare
