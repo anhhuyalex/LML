@@ -615,8 +615,8 @@ private lemma uniform_trajectory_coordinate_bound
     exact ⟨ε₁, hε₁pos, fun x hx => hx⟩] with ε hε
   have hε_pos : 0 < ε := hε.1
   have hε_lt₁ : ε < ε₁ := hε.2
-  have hε_le₀ : ε ≤ ε₀ := (hε_lt₁.trans_le (min_le_left _ _)).le
-  have hε_le_one : ε ≤ 1 := (hε_lt₁.trans_le (min_le_right _ _)).le
+  have hε_le₀ : ε ≤ ε₀ := hε_lt₁.le.trans (min_le_left _ _)
+  have hε_le_one : ε ≤ 1 := hε_lt₁.le.trans (min_le_right _ _)
   intro τ hτ
   rcases hτ with ⟨hτ0, hτs⟩
   intro i
@@ -631,8 +631,7 @@ private lemma uniform_trajectory_coordinate_bound
     posEffectiveParameter_nonnegative (u ε) t i
   have h_coord : posEffectiveParameter (u ε) t i ≤ C := by
     have h := (PiLp.norm_apply_le (posEffectiveParameter (u ε) t) i).trans h_norm_bound
-    rw [Real.norm_eq_abs, abs_of_nonneg hx_nonneg] at h
-    exact h
+    simpa [Real.norm_eq_abs, abs_of_nonneg hx_nonneg] using h
   simpa [ht_def]
 
 omit [Fintype ι] in
@@ -647,9 +646,8 @@ private lemma rescaled_mirror_lower_bound
     ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
   set C_low := max 1 (Real.log X) with hC_low_def
-  have hC_low_pos : C_low > 0 := by
-    rw [hC_low_def]
-    exact lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
+  have hC_low_pos : C_low > 0 :=
+    lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
   refine ⟨C_low, hC_low_pos, ?_⟩
   -- Intersect the uniform upper bound with ε ∈ (0,1) so that log(1/ε) > 0
   filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
@@ -665,9 +663,7 @@ private lemma rescaled_mirror_lower_bound
   have hx_le_X : x_i ≤ X := hX τ hτ i
   have h_neg_log : -C_low ≤ -Real.log x_i := by
     have h_log_x_le_C_low : Real.log x_i ≤ C_low :=
-      (Real.log_le_log hx_pos hx_le_X).trans (by
-        rw [hC_low_def]
-        exact le_max_right _ _)
+      (Real.log_le_log hx_pos hx_le_X).trans (le_max_right _ _)
     linarith
   dsimp [posRescaledMirrorVariable, euclideanOf, x_i]
   exact div_le_div_of_nonneg_right h_neg_log
@@ -717,9 +713,8 @@ private lemma pos_effective_param_ne_zero
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε)) :
     ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
   intro ε hε t i
-  have hM_symm : M.IsSymm := hdata.psd.symm
-  have hflow := hu ε hε
-  exact pos_param_ne_zero_of_gradient_flow M r lambda β ε hε (u ε) hflow hM_symm t i (hβ i)
+  exact pos_param_ne_zero_of_gradient_flow
+    M r lambda β ε hε (u ε) (hu ε hε) (hdata.psd.symm) t i (hβ i)
 
 -- Generic triangle inequality for four terms: |a - b + c + d| ≤ |a| + |b| + |c| + |d|
 private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |b| + |c| + |d| := by
@@ -756,8 +751,6 @@ private lemma abs_one_sub_log_div_log_bound
     |1 - Real.log ((β i)^2) / Real.log (1 / ε)| ≤ 1 + |Real.log ((β i)^2)| / Real.log 2 := by
   have h_log_denom_pos : 0 < Real.log (1 / ε) :=
     Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
-  have h_log_two_pos : 0 < Real.log (2 : ℝ) :=
-    Real.log_pos (by norm_num : 1 < (2 : ℝ))
   have h_log_denom_ge_log2 : Real.log 2 ≤ Real.log (1 / ε) := by
     refine Real.log_le_log (by norm_num : 0 < (2 : ℝ)) ?_
     have h := (one_div_lt_one_div (by norm_num : 0 < (1/2 : ℝ)) hε_pos).mpr hε_lt_half
@@ -775,7 +768,8 @@ private lemma abs_one_sub_log_div_log_bound
         rw [abs_of_pos h_log_denom_pos]
   have h_div_bound : |Real.log ((β i)^2)| / Real.log (1 / ε) ≤
       |Real.log ((β i)^2)| / Real.log 2 :=
-    div_le_div_of_nonneg_left (abs_nonneg _) h_log_two_pos h_log_denom_ge_log2
+    div_le_div_of_nonneg_left (abs_nonneg _)
+      (Real.log_pos (by norm_num : 1 < (2 : ℝ))) h_log_denom_ge_log2
   calc
     |1 - Real.log ((β i)^2) / Real.log (1 / ε)|
         ≤ 1 + |Real.log ((β i)^2)| / Real.log (1 / ε) := h_abs_bound
@@ -813,12 +807,10 @@ private lemma rescaled_mirror_upper_bound
       set r_max := ⨆ i, |r i| with hr_max_def
       set M_row_max := ⨆ i, ∑ j, |M i j| with hM_row_max_def
       set beta_log_max := ⨆ i, |Real.log (β i ^ 2)| with hbeta_log_max_def
-      have hbeta_log_max_nonneg : 0 ≤ beta_log_max := by
-        rw [hbeta_log_max_def]
-        exact le_ciSup_of_le (Finite.bddAbove_range _) (Classical.arbitrary ι) (abs_nonneg _)
       set C_init := 1 + beta_log_max / Real.log 2 with hC_init_def
       have hC_init_pos : C_init > 0 := by
-        rw [hC_init_def]
+        have h_nonneg : 0 ≤ beta_log_max :=
+          le_ciSup_of_le (Finite.bddAbove_range _) (Classical.arbitrary ι) (abs_nonneg _)
         positivity
       set C_w := max C_init (r_max + M_row_max * X + |lambda|) with hC_w_def
       have hC_w_pos : C_w > 0 := lt_max_of_lt_left hC_init_pos
@@ -864,7 +856,6 @@ private lemma rescaled_mirror_upper_bound
         have h_core := abs_one_sub_log_div_log_bound β ε hε_pos hε_lt_half i
         -- Sup bound: |log(β_i²)| ≤ beta_log_max = sup_j |log(β_j²)|
         have h_sup_bound : |Real.log ((β i)^2)| / Real.log 2 ≤ beta_log_max / Real.log 2 := by
-          rw [hbeta_log_max_def]
           refine div_le_div_of_nonneg_right ?_ (by positivity : 0 ≤ Real.log (2 : ℝ))
           exact le_ciSup (Finite.bddAbove_range (fun (k : ι) => |Real.log (β k ^ 2)|)) i
         -- Combine the bounds
@@ -872,7 +863,7 @@ private lemma rescaled_mirror_upper_bound
           |1 - Real.log ((β i)^2) / Real.log (1 / ε)|
               ≤ 1 + |Real.log ((β i)^2)| / Real.log 2 := h_core
           _ ≤ 1 + beta_log_max / Real.log 2 := by nlinarith
-          _ = C_init := by rw [hC_init_def]
+          _ = C_init := rfl
       -- Bound z_i(τ) = (posIntegratedTrajectoryRescaled ε (u ε) τ) i ∈ [0, X·τ]
       -- The integrated trajectory is coordinatewise nonnegative (integrand is a square ≥ 0)
       have hz_nonneg : ∀ i, 0 ≤ (posIntegratedTrajectoryRescaled ε (u ε) τ) i :=
@@ -994,7 +985,6 @@ private lemma rescaled_mirror_upper_bound
           _ = (∑ j, |M i j|) * (X * τ) := by rw [Finset.sum_mul]
           _ ≤ M_row_max * (X * τ) := by
             refine mul_le_mul_of_nonneg_right ?_ (by nlinarith [hX_pos])
-            rw [hM_row_max_def]
             exact le_ciSup (Finite.bddAbove_range (fun (k : ι) => ∑ j, |M k j|)) i
           _ = M_row_max * X * τ := by ring
       -- Triangle inequality to bound |w_i(τ)|
@@ -1003,12 +993,10 @@ private lemma rescaled_mirror_upper_bound
           |(matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i| + |τ * lambda| ≤
           C_w * (1 + τ) := by
         rw [abs_mul, abs_of_nonneg hτ0, abs_mul, abs_of_nonneg hτ0]
-        have h_ri_bound : |r i| ≤ r_max := by
-          rw [hr_max_def]
-          exact le_ciSup (Finite.bddAbove_range (fun (k : ι) => |r k|)) i
-        have hC_w_ge_init : C_init ≤ C_w := by rw [hC_w_def]; exact le_max_left _ _
-        have hC_w_ge_rest : r_max + M_row_max * X + |lambda| ≤ C_w := by
-          rw [hC_w_def]; exact le_max_right _ _
+        have h_ri_bound : |r i| ≤ r_max :=
+          le_ciSup (Finite.bddAbove_range (fun (k : ι) => |r k|)) i
+        have hC_w_ge_init : C_init ≤ C_w := le_max_left _ _
+        have hC_w_ge_rest : r_max + M_row_max * X + |lambda| ≤ C_w := le_max_right _ _
         nlinarith [hw0_bound, hMz_bound, h_ri_bound]
       -- Combine
       exact (abs_sub_add_add_four _ _ _ _).trans h_final
@@ -1024,14 +1012,12 @@ private lemma rescaled_mirror_upper_bound
 private lemma max_bound_algebra {a b c x y d : ℝ} (ha : a ≤ c) (hb : b ≤ c)
     (hx : 0 ≤ x) (hy : 0 ≤ y) (hd_pos : 0 < d) :
     (a / d) * x + b * y ≤ c * ((1 / d) * x + y) := by
-  have hd_nonneg : 0 ≤ d := hd_pos.le
-  have h_div : a / d ≤ c / d := div_le_div_of_nonneg_right ha hd_nonneg
-  have h1 : (a / d) * x ≤ (c / d) * x := mul_le_mul_of_nonneg_right h_div hx
+  have h1 : (a / d) * x ≤ (c / d) * x :=
+    mul_le_mul_of_nonneg_right (div_le_div_of_nonneg_right ha hd_pos.le) hx
   have h2 : b * y ≤ c * y := mul_le_mul_of_nonneg_right hb hy
-  have h_sum : (a / d) * x + b * y ≤ (c / d) * x + c * y := add_le_add h1 h2
-  have h_rhs : (c / d) * x + c * y = c * ((1 / d) * x + y) := by ring
-  rw [h_rhs] at h_sum
-  exact h_sum
+  calc
+    (a / d) * x + b * y ≤ (c / d) * x + c * y := add_le_add h1 h2
+    _ = c * ((1 / d) * x + y) := by ring
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -1053,29 +1039,28 @@ lemma pos_delta_bound_3
   -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
   have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
     pos_effective_param_ne_zero M r lambda β u hdata hβ hu
-  have h_uniform_bound := uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu
-  rcases h_uniform_bound with ⟨X, hX_pos, hX_ev⟩
+  rcases uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
   -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
   -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
   -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
   -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
-  have h_w_lower := rescaled_mirror_lower_bound X u s hX_ev hu_pos
-  rcases h_w_lower with ⟨C_low, hC_low_pos, hW_low_ev⟩
+  rcases rescaled_mirror_lower_bound X u s hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
   -- From the integrated mirror equation (positive_integrated_mirror_equation)
   -- together with the trajectory bound, we obtain an upper bound:
   -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
   -- The integrated mirror equation gives:
   --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
   -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
-  have h_w_upper := rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev
-  rcases h_w_upper with ⟨C_w, _, hW_ev⟩
+  rcases rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev with
+    ⟨C_w, _, hW_ev⟩
   -- Combine the constants
   set C := max C_low C_w
   refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
   -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
   filter_upwards [hX_ev, hW_low_ev, hW_ev, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_one
+    exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
+  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
   intro τ hτ
   rcases hτ with ⟨hτ0, hτs⟩
   -- Notation for the derivative and the dual variable
@@ -1086,19 +1071,15 @@ lemma pos_delta_bound_3
   --   -(max(0, zDot_i)) * w_i ≤ max(0, zDot_i) * C_low / log(1/ε)
   -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
   --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
-  have h_bounds := mirror_pos_neg_bounds zDot w C_low C_w τ ε
+  rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
     (fun i => hW_low_ε τ ⟨hτ0, hτs⟩ i)
-    (fun i => hW_ε τ ⟨hτ0, hτs⟩ i)
-  rcases h_bounds with ⟨h_bound_pos, h_bound_neg⟩
+    (fun i => hW_ε τ ⟨hτ0, hτs⟩ i) with ⟨h_bound_pos, h_bound_neg⟩
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward.
   -- By the Fundamental Theorem of Calculus:
   --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
   --   deriv (positiveZDownward x_lasso) τ
   --     = ∑_i (1+τ) * max 0 (-deriv (scaledPrimalPath x_lasso) τ i)
   -- The scaled primal path is locally absolutely continuous on nonnegative compacts.
-  -- From h_regular we obtain absolute continuity on [0,s].
-  have h_ac : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 s :=
-    h_regular.absolutelyContinuousOn_Icc 0 s (by linarith) (by linarith)
   -- For each coordinate i, let f_i(t) := (scaledPrimalPath x_lasso t) i.
   -- Since the coordinate projection is 1-Lipschitz, each f_i is AC on [0,s].
   -- Let g_i(t) := max(0, deriv f_i t) be the positive part of the derivative.
@@ -1144,12 +1125,63 @@ lemma pos_delta_bound_3
   --          = deriv (fun u' => u' * x_lasso u' i) τ
   have h_component : ∀ i, zDot i = deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
-    dsimp [zDot, scaledPrimalPath]
-    -- Need: (deriv f τ) i = deriv (fun x => (f x) i) τ  for f : ℝ → EuclideanSpace ℝ ι.
-    -- For differentiable points this is `deriv_pi`; at non-differentiable points both
-    -- sides are zero by Mathlib's convention.  A general lemma `deriv_apply` or
-    -- `deriv_pi_of_differentiable_or_zero` is needed.
-    sorry
+    dsimp [zDot]
+    unfold scaledPrimalPath
+    -- Goal: (deriv (fun μ => μ • x_lasso μ) τ).ofLp i
+    --       = deriv (fun u' => u' * (x_lasso u').ofLp i) τ
+    -- Use the canonical equivalence between EuclideanSpace ℝ ι and bare Pi type ι → ℝ.
+    set e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+    set F := fun (μ : ℝ) => μ • x_lasso μ
+    by_cases h_diff : DifferentiableAt ℝ F τ
+    · -- Case 1: F is differentiable at τ.
+      -- Chain rule: e ∘ F has derivative e (deriv F τ) at τ.
+      have h_hasDeriv_F : HasDerivAt F (deriv F τ) τ := h_diff.hasDerivAt
+      have h_hasDeriv_eF : HasDerivAt (e ∘ F) (e (deriv F τ)) τ :=
+        e.hasFDerivAt.comp_hasDerivAt τ h_hasDeriv_F
+      -- Now e ∘ F : ℝ → (ι → ℝ) is a bare Pi type, so `hasDerivAt_pi` applies.
+      have h_pi := (hasDerivAt_pi.1 h_hasDeriv_eF) i
+      -- h_pi : HasDerivAt (fun μ => (e (F μ)) i) (e (deriv F τ) i) τ
+      -- Simplify: (e (F μ)) i = μ * (x_lasso μ).ofLp i
+      --          e (deriv F τ) i = (deriv F τ).ofLp i
+      have h_hasDeriv_comp : HasDerivAt (fun μ => μ * (x_lasso μ).ofLp i)
+          ((deriv F τ).ofLp i) τ := by
+        simpa [e, F, PiLp.smul_apply, smul_eq_mul] using h_pi
+      -- Uniqueness of derivative gives the equality of the derivative values
+      simpa [F] using h_hasDeriv_comp.deriv.symm
+    · -- Case 2: F is not differentiable at τ.
+      -- For the Lasso scaled path, this happens at breakpoints. At a breakpoint,
+      -- the equiangular direction changes, so all active coordinates change slope
+      -- (hence deriv F_i τ = 0) and inactive coordinates are identically zero
+      -- (hence deriv F_i τ = 0 trivially). Thus both sides equal 0.
+      -- We encapsulate this in a helper lemma (not yet formalized — requires
+      -- piecewise linearity of the Lasso path, Efron et al. 2004).
+      have h_deriv_zero : deriv (fun μ => μ • x_lasso μ) τ = 0 :=
+        deriv_zero_of_not_differentiableAt h_diff
+      have h_component_zero : deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 := by
+        -- The Lasso scaled path z(μ) = μ·x_lasso(μ) is piecewise linear in μ
+        -- (Efron et al. 2004, "Least Angle Regression").  At a breakpoint τ where
+        -- z is not differentiable, each coordinate z_i either:
+        --   (a) changes slope (the equiangular direction changes for all active
+        --       variables), hence not differentiable at τ → deriv = 0, or
+        --   (b) is identically zero near τ (inactive variable) → deriv = 0.
+        -- In both cases deriv z_i τ = 0.  We capture this as a case split.
+        have h_cases :
+          (¬ DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) τ) ∨
+          ((fun u' => u' * (x_lasso u').ofLp i) =ᶠ[𝓝 τ] (fun _ => (0 : ℝ))) := by
+          -- Proof requires the piecewise linear structure of the Lasso regularization
+          -- path (Efron et al. 2004, Annals of Statistics 32(2):407–499).
+          -- Key fact: at a breakpoint, the equiangular direction changes, so all
+          -- active coordinates change slope (hence not differentiable), while
+          -- inactive coordinates stay zero on a neighborhood.
+          sorry
+        rcases h_cases with (h_not_diff | h_eventually_zero)
+        · exact deriv_zero_of_not_differentiableAt h_not_diff
+        · -- If z_i is eventually equal to 0 near τ, their derivatives at τ coincide
+          -- and deriv of the constant-zero function is 0.
+          simpa [deriv_const τ (0 : ℝ)] using h_eventually_zero.deriv_eq
+      dsimp [F]
+      simp [h_deriv_zero, h_component_zero]
   -- Step 2 (FTC for each coordinate, using piecewise linearity):
   --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
@@ -1195,7 +1227,6 @@ lemma pos_delta_bound_3
   -- Now assemble h_upward_eq and h_downward_eq using the calc syntax to avoid
   -- syntactic issues with definitional unfolding of `positiveZUpward`/`positiveZDownward`.
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
-    -- Unfold positiveZUpward definition (definitional equality)
     have h_unfold : deriv (positiveZUpward x_lasso) τ =
         deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
           max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := by
@@ -1255,18 +1286,10 @@ lemma pos_delta_bound_3
       -- C_low ≤ C, C_w ≤ C, and the derivatives are nonnegative.
       -- Also log(1/ε) > 0 since ε ∈ (0,1).
       -- Therefore the sum is bounded by C*(...) using the algebraic helper.
-      have h_log_pos : 0 < Real.log (1 / ε) := by
-        have h_one_lt : 1 < 1 / ε := by
-          have hε_pos : 0 < ε := (Set.mem_Ioo.mp hε_one).1
-          have hε_lt_one : ε < 1 := (Set.mem_Ioo.mp hε_one).2
-          exact one_lt_one_div hε_pos hε_lt_one
-        exact Real.log_pos h_one_lt
-      have h_goal : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
-          C_w * deriv (positiveZDownward x_lasso) τ ≤
-          C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-            deriv (positiveZDownward x_lasso) τ) :=
-        max_bound_algebra (le_max_left _ _) (le_max_right _ _) h_up_nonneg h_down_nonneg h_log_pos
-      exact h_goal
+      have h_log_pos : 0 < Real.log (1 / ε) :=
+        Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+      exact max_bound_algebra (le_max_left _ _) (le_max_right _ _)
+        h_up_nonneg h_down_nonneg h_log_pos
 
 /--
 Section 4.6, Eq. (4.14), Term 4.

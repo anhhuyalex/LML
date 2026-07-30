@@ -64,7 +64,7 @@ By Lemma 4.10 (`parametric_lcp_unique_small_mu`), there exists a threshold
 LCP is `(0, q(μ))`.
 For `μ > 0`, since `x(μ)` minimizes the positive lasso, it corresponds to a
 solution of the LCP (by `pos_lasso_is_lcp`). Thus `z(μ) = μ x(μ)` solves
-the parametric LCP. By uniqueness, `z(μ) = 0` for `0 < μ < μ_0`. 
+the parametric LCP. By uniqueness, `z(μ) = 0` for `0 < μ < μ_0`.
 At `μ = 0`, `z(0) = 0 * x(0) = 0`.
 -/
 lemma scaled_path_zero_near_zero
@@ -81,8 +81,8 @@ then it is locally absolutely continuous on nonnegative compacts.
 
 Informal Proof Outline:
 Let the function be zero on `[0, μ_0]`. Being constant, it is absolutely continuous on `[0, μ_0/2]`.
-For any compact interval `[a, b] ⊂ [0, ∞)`, we can split it at `μ_0/2`. The function is absolutely 
-continuous on `[a, μ_0/2]` and on `[μ_0/2, b]` (since the latter is a positive compact). 
+For any compact interval `[a, b] ⊂ [0, ∞)`, we can split it at `μ_0/2`. The function is absolutely
+continuous on `[a, μ_0/2]` and on `[μ_0/2, b]` (since the latter is a positive compact).
 Gluing them together gives absolute continuity on `[a, b]`.
 -/
 lemma locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
@@ -240,6 +240,37 @@ theorem exists_dual_certificate_for_positive_path
   constructor
   · exact dual_certificate_regularity M Mdagger r lambda x_lasso w hdata hinverse hsol
   · exact hsol
+
+/--
+Helper lemma: integration of `positive_energy_differential_inequality`.
+This uses the FTC and the boundary condition `initial_positive_energy_zero` to conclude
+an upper bound on the energy $E^\varepsilon(s)$.
+
+Informal proof: Integrate `positive_energy_differential_inequality` from 0 to $s$.
+By FTC and `initial_positive_energy_zero`, the integral evaluates exactly to the energy
+at time $s$ scaled by $1 / (1 + s \lambda)$. The right-hand side is bounded by substituting
+the uniform bound on $\Delta^\varepsilon(\tau)$ from `positive_path_delta_bound`.
+-/
+lemma positive_energy_integrated_bound
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      inner ℝ (w s) (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s) +
+        pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+          (scaledPrimalPath x_lasso) s
+      ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
+  sorry
+
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso
 objective suboptimality bound of Theorem 3.2.
@@ -285,7 +316,61 @@ theorem positive_path_energy_bound
   the absolute-continuity/FTC step is supported by Mathlib's interval-integral
   API <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/IntervalIntegral/AbsolutelyContinuousFun.html>.
   -/
-  sorry
+  obtain ⟨C, hC_pos, h_energy_bound⟩ := positive_energy_integrated_bound M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular
+  use C, hC_pos
+  intro s hs δ hδ
+  have hs_inv_pos : 0 < s⁻¹ := inv_pos.mpr hs
+  have hs2_pos : 0 < s^2 := pow_pos hs 2
+  have hs_inv2_pos : 0 < s⁻¹ ^ 2 := pow_pos hs_inv_pos 2
+  filter_upwards [h_energy_bound s hs δ hδ] with ε hε
+  have hw_eq : matVec M (s⁻¹ • scaledPrimalPath x_lasso s) + lcpQ r lambda s = s⁻¹ • w s := by
+    -- From hdual_selected s hs, we have isParametricLCP.
+    -- The first condition is exactly what we need, after identifying w(s) with the slack.
+    sorry
+  have hx_nonneg : Nonnegative (s⁻¹ • scaledPrimalPath x_lasso s) := by
+    sorry
+  have hxE_nonneg : Nonnegative (s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s) := by
+    sorry
+  have h_obj_gap := positiveLassoObjective_eq_energy M r lambda s hs
+    (scaledPrimalPath x_lasso s) (posIntegratedTrajectoryRescaled ε (u ε) s) (w s)
+    hx_nonneg hxE_nonneg hw_eq hdata.psd.symm
+  -- The definition of pathDelta is exactly the quadratic term with M
+  have h_delta_eq : (1 / 2 : ℝ) * inner ℝ (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s)
+      (matVec M (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s)) =
+      pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) s := by
+    rfl
+  rw [h_delta_eq] at h_obj_gap
+  have h_average_eq : posAverageTrajectory (u ε) (posTimeFromRescaled ε s) =
+      s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s := by
+    sorry
+  rw [h_average_eq]
+  have h_lasso_min_eq : posLassoMin M r lambda s = positiveLassoObjective M r lambda s (s⁻¹ • scaledPrimalPath x_lasso s) := by
+    sorry
+  rw [h_lasso_min_eq]
+  -- We now have positiveLassoObjective (...) - positiveLassoObjective (...) in h_obj_gap.
+  -- Rearranging the inequality:
+  -- A - B = s⁻¹ ^ 2 * E
+  -- E ≤ s^2 * (C * gap + δ)
+  -- So A - B ≤ s⁻¹ ^ 2 * s^2 * (C * gap + δ) = C * gap + δ
+  -- So A ≤ B + C * gap + δ
+  have h_gap_bound : positiveLassoObjective M r lambda s (s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s) -
+      positiveLassoObjective M r lambda s (s⁻¹ • scaledPrimalPath x_lasso s)
+      ≤ C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
+    rw [h_obj_gap]
+    calc
+      s⁻¹ ^ 2 * (inner ℝ (w s) (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s) +
+          pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) s)
+        ≤ s⁻¹ ^ 2 * (s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ)) := by
+        exact mul_le_mul_of_nonneg_left hε hs_inv2_pos.le
+      _ = (s⁻¹ ^ 2 * s^2) * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
+        rw [mul_assoc]
+      _ = C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
+        have h_inv : s⁻¹ ^ 2 * s ^ 2 = 1 := by
+          rw [← mul_pow]
+          rw [inv_mul_cancel₀ hs.ne']
+          exact one_pow 2
+        rw [h_inv, one_mul]
+  linarith [h_gap_bound]
 
 /-! ## Positive-lasso main theorems -/
 
