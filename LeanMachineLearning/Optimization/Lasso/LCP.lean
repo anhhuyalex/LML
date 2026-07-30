@@ -1284,7 +1284,49 @@ theorem nonnegative_minNorm_solution_norm_bound
       -- The set {z | ‖euclideanOf z‖ ≤ M} is compact because euclideanOf is a homeomorphism
       -- and the closed ball in EuclideanSpace ℝ κ is compact (proper space).
       -- K is a closed subset of this compact set, hence compact.
-      sorry
+      -- Step 1: EuclideanSpace ℝ κ is finite-dimensional (via linear equivalence with κ → ℝ),
+      -- hence proper, so closed balls are compact.
+      haveI : FiniteDimensional ℝ (EuclideanSpace ℝ κ) :=
+        ((EuclideanSpace.equiv κ ℝ).symm.toLinearEquiv).finiteDimensional
+      have h_ball_compact : IsCompact (Metric.closedBall (0 : EuclideanSpace ℝ κ) M) :=
+        isCompact_closedBall (0 : EuclideanSpace ℝ κ) M
+      -- Step 2: The continuous image of this compact ball under EuclideanSpace.equiv is compact.
+      let φ := EuclideanSpace.equiv κ ℝ
+      have hφ_cont : Continuous φ := φ.continuous
+      have h_image_compact : IsCompact (φ '' Metric.closedBall (0 : EuclideanSpace ℝ κ) M) :=
+        h_ball_compact.image hφ_cont
+      -- Step 3: The image equals {z | ‖euclideanOf z‖ ≤ M} because euclideanOf = φ.symm.
+      have h_image_eq : φ '' Metric.closedBall (0 : EuclideanSpace ℝ κ) M =
+          {z : κ → ℝ | ‖euclideanOf z‖ ≤ M} := by
+        ext z
+        constructor
+        · rintro ⟨w, hw, rfl⟩
+          rw [Metric.mem_closedBall] at hw
+          -- euclideanOf (φ w) = w by definition of φ and euclideanOf
+          have h_eq : euclideanOf (φ w) = w := by
+            dsimp [euclideanOf, φ, EuclideanSpace, PiLp]
+            rfl
+          simpa [h_eq] using hw
+        · intro hz
+          rw [Set.mem_ofPred_eq] at hz
+          -- hz: ‖euclideanOf z‖ ≤ M
+          -- need: ∃ w ∈ closedBall 0 M with φ w = z; take w = euclideanOf z
+          refine ⟨euclideanOf z, ?_, ?_⟩
+          · rw [Metric.mem_closedBall]
+            simpa [sub_zero] using hz
+          · -- φ (euclideanOf z) = z by definition
+            dsimp [euclideanOf, φ, EuclideanSpace, PiLp]
+            rfl
+      rw [h_image_eq] at h_image_compact
+      -- Step 4: K ⊆ {z | ‖euclideanOf z‖ ≤ M} by definition (since f z = ‖euclideanOf z‖ ≤ M)
+      have hK_sub : K ⊆ {z : κ → ℝ | ‖euclideanOf z‖ ≤ M} := by
+        intro z hz
+        rcases hz with ⟨hzS, hzf⟩
+        rw [Set.mem_ofPred_eq]
+        rw [hf_def] at hzf
+        exact hzf
+      -- Step 5: Closed subset of compact is compact
+      exact h_image_compact.of_isClosed_subset hK_closed hK_sub
     have hK_nonempty : K.Nonempty := by
       refine ⟨x₀, hx₀S, ?_⟩
       dsimp [f, M]
