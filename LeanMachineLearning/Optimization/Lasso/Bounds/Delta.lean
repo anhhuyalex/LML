@@ -1466,6 +1466,73 @@ lemma pos_delta_bound_3
     h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
 
 /--
+Helper for Section 4.6, Eq. (4.14), Term 4, Part 1.
+
+Informal proof reference: `docs/Lasso.md`, Section 4.6, Step 1 of Proof Sketch.
+Let $z(\tau)$ be the scaled primal path and $w(\tau) = M z(\tau) - \tau r + (1 + \tau \lambda) \mathbf{1}$
+be the dual path. We know $z_i(\tau) w_i(\tau) = 0$ for all $\tau$ by complementarity. Since $w_i(\tau)$
+is continuous, if $w_i(\tau) > 0$, then $w_i > 0$ on some neighborhood of $\tau$. On this neighborhood,
+$z_i = 0$, so its derivative is 0. Thus $\dot{z}_i(\tau) w_i(\tau) = 0$. If $w_i(\tau) = 0$, then
+$\dot{z}_i(\tau) \cdot 0 = 0$. In all cases, $\dot{z}_i(\tau) w_i(\tau) = 0$, so their inner product
+is exactly 0 (which is $\le 0$).
+-/
+lemma pos_delta_bound_4_term1
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    ∀ τ ∈ Set.Ici (0 : ℝ),
+      inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) ≤ 0 := by
+  sorry
+
+/--
+Helper for Section 4.6, Eq. (4.14), Term 4, Part 2 (Derivative bound).
+
+Informal proof reference: `docs/Lasso.md`, Section 4.6, Step 5 of Proof Sketch.
+The scaled primal path $z(\tau) = \tau x(\tau)$ is the solution to a parametric Linear Complementarity
+Problem (LCP). By standard LCP regularity theory (e.g., Cottle, Linear Complementarity Problems), the
+solution to a parametric LCP with linear parameter dependence is Lipschitz continuous with respect to
+the parameter. Since $z$ is Lipschitz continuous on the compact interval $[0, s]$, its derivative is
+bounded everywhere it exists.
+-/
+lemma scaledPrimalPath_deriv_bound
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (s : ℝ) (hs : 0 < s) :
+    ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C := by
+  sorry
+
+/--
+Helper for Section 4.6, Eq. (4.14), Term 4, Part 3.
+
+Informal proof reference: `docs/Lasso.md`, Section 4.6, Steps 2-6 of Proof Sketch.
+The second term is $\langle \dot{z}^\varepsilon(\tau) - \dot{z}(\tau), \mathbf{1} - w^\varepsilon(0) \rangle$.
+We have $\dot{z}^\varepsilon(\tau) = x^\varepsilon(t)$, which is uniformly bounded.
+By `scaledPrimalPath_deriv_bound`, $\dot{z}(\tau)$ is also bounded. Thus their difference is bounded
+by some constant $C$. The vector $\mathbf{1} - w^\varepsilon(0)$ has coordinates
+$\frac{\log \beta_i^2}{\log(1/\varepsilon)}$, which goes to 0 as $\varepsilon \to 0$.
+Therefore, the inner product is bounded by $C \cdot O(1/\log(1/\varepsilon))$, which is eventually
+$\le \delta$ for sufficiently small $\varepsilon$.
+-/
+lemma pos_delta_bound_4_term2
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_bounded : ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C) :
+    ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+        inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+          deriv (scaledPrimalPath x_lasso) τ)
+          (ones - posRescaledMirrorVariable ε (u ε) 0)
+        ≤ δ := by
+  sorry
+
+/--
 Section 4.6, Eq. (4.14), Term 4.
 Informal proof reference: `docs/Lasso.md`, Section 4.6.
 Bounds the remaining terms involving `w` and `1 - w^\varepsilon(0)`.
@@ -1489,6 +1556,8 @@ lemma pos_delta_bound_4
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
@@ -1500,7 +1569,14 @@ lemma pos_delta_bound_4
           deriv (scaledPrimalPath x_lasso) τ)
           (ones - posRescaledMirrorVariable ε (u ε) 0)
         ≤ δ := by
-  sorry
+  intro δ hδ
+  have h_bound := scaledPrimalPath_deriv_bound M r lambda x_lasso hx_lasso s hs
+  have h2 := pos_delta_bound_4_term2 M r lambda β s hs u hdata hβ hu x_lasso h_bound δ hδ
+  filter_upwards [h2] with ε hε
+  intro τ hτ
+  have h1 := pos_delta_bound_4_term1 M r lambda x_lasso hx_lasso h_regular τ hτ.1
+  have h2_eval := hε τ hτ
+  linarith
 
 /--
 Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
@@ -1560,7 +1636,7 @@ lemma positive_delta_complementarity_bound
     hx_lasso h_regular h_breakpoint_zero h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1
   intro δ hδ
-  have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular δ hδ
+  have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso h_regular δ hδ
   filter_upwards [h1, h2, h3, h4, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
