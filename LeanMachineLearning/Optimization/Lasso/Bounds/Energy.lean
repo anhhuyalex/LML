@@ -240,7 +240,128 @@ lemma energy_complementarity_bound
   -- corresponding "Term 4a" of Eq. (4.14) inside `pos_delta_bound_4`.
   have h_comp_zero : ∀ τ : ℝ, 0 ≤ τ →
       inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (w τ) = 0 := by
-    sorry
+    intro τ hτ
+    set z := scaledPrimalPath x_lasso with hz_def
+    have hLCP := hdual_selected τ hτ
+    dsimp [isParametricLCP, isLCP] at hLCP
+    rcases hLCP with ⟨hw_eq, hw_nonneg, hz_nonneg, h_inner_zero⟩
+    -- Coordinatewise complementarity for all μ ≥ 0:
+    -- (w μ) i * (z μ) i = 0 for every i.
+    have h_coord_zero_at : ∀ μ, 0 ≤ μ → ∀ i, (w μ) i * (z μ) i = 0 := by
+      intro μ hμ i
+      have hLCPμ := hdual_selected μ hμ
+      dsimp [isParametricLCP, isLCP] at hLCPμ
+      rcases hLCPμ with ⟨_, hw_nonneg_μ, hz_nonneg_μ, h_inner_zero_μ⟩
+      have h_sum : (∑ j : ι, (w μ) j * (z μ) j) = 0 := by
+        have h_inner_sum : inner ℝ (w μ) (z μ) = (∑ j : ι, (w μ) j * (z μ) j) := by
+          rw [PiLp.inner_apply]
+          simp [Real.inner_apply]
+        rw [← h_inner_sum, h_inner_zero_μ]
+      have h_nonneg : ∀ j, 0 ≤ (w μ) j * (z μ) j := fun j =>
+        mul_nonneg (hw_nonneg_μ j) (hz_nonneg_μ j)
+      have h_all_zero := (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => h_nonneg j)).mp h_sum
+      exact h_all_zero i (Finset.mem_univ i)
+    by_cases h_diff : DifferentiableAt ℝ z τ
+    · -- z is differentiable at τ: work coordinatewise
+      have hz_coord_diff : ∀ i, DifferentiableAt ℝ (fun μ => z μ i) τ :=
+        ((differentiableAt_pi (𝕜 := ℝ)).mp h_diff)
+      rw [deriv_pi hz_coord_diff, PiLp.inner_apply]
+      simp only [Real.inner_apply]
+      apply Finset.sum_eq_zero
+      intro i hi
+      by_cases hwi_zero : (w τ) i = 0
+      · simp [hwi_zero]
+      · have hwi_pos : 0 < (w τ) i :=
+          lt_of_le_of_ne (hw_nonneg i) (Ne.symm hwi_zero)
+        have hzi_zero : (z τ) i = 0 := by
+          have hprod := h_coord_zero_at τ hτ i
+          nlinarith
+        by_cases hτ_pos : τ > 0
+        · -- τ > 0: use Fermat (IsLocalMin) since z_i ≥ 0 everywhere and z_i(τ)=0
+          have h_isMin : IsLocalMin (fun μ => z μ i) τ := by
+            have hδ : 0 < τ / 2 := by linarith
+            apply Filter.mem_of_superset (Metric.ball τ (τ / 2))
+              (Metric.ball_mem_nhds τ hδ)
+            intro μ hμ
+            rw [Metric.mem_ball, dist_eq_norm, Real.dist_eq] at hμ
+            have hμ_nonneg : 0 ≤ μ := by linarith
+            have hμ_lcp := hdual_selected μ hμ_nonneg
+            dsimp [isParametricLCP, isLCP] at hμ_lcp
+            rcases hμ_lcp with ⟨_, _, hz_nonneg_μ, _⟩
+            rw [hzi_zero]
+            exact hz_nonneg_μ i
+          have h_deriv_zero : deriv (fun μ => z μ i) τ = 0 :=
+            IsLocalMin.deriv_eq_zero h_isMin
+          simp [h_deriv_zero]
+        · -- τ = 0
+          have hτ_zero : τ = 0 := by linarith
+          subst hτ_zero
+          -- z is differentiable at 0, hence continuous at 0.
+          have hz_cont_at_0 : ContinuousAt z 0 := h_diff.continuousAt
+          -- Define f(μ) = matVec M(z(μ)) - μ•r + (1+μ•λ)•ones; f is continuous at 0.
+          set f := fun (μ : ℝ) => matVec M (z μ) - μ • r + (1 + μ * lambda) • ones
+            with hf_def
+          have hf_cont_at_0 : ContinuousAt f 0 := by
+            dsimp [f]
+            have h_matVec_cont : Continuous (matVecLM M) :=
+              (matVecLM M).continuous_of_finiteDimensional
+            refine ContinuousAt.sub (ContinuousAt.sub ?_ ?_) ?_
+            · exact (h_matVec_cont.continuousAt.comp hz_cont_at_0)
+            · exact continuousAt_id.smul_const r
+            · refine ContinuousAt.neg ?_
+              exact ((continuousAt_const.add (continuousAt_id.mul continuousAt_const)).smul_const ones)
+          -- f is continuous at 0, so (f μ) i → (f 0) i = 1 as μ → 0 (two-sided).
+          have hf0_i_one : (f 0) i = 1 := by
+            dsimp [f]
+            have hz0 : z 0 = 0 := by dsimp [z, scaledPrimalPath]; simp
+            rw [hz0]; simp [ones, euclideanOf, matVec]
+          have h_fi_cont : ContinuousAt (fun μ => (f μ) i) 0 :=
+            (continuous_euclidean_apply i).continuousAt.comp hf_cont_at_0
+          -- w agrees with f for μ ≥ 0.  For μ > 0, (w μ) i = (f μ) i.
+          -- Hence (w μ) i → 1 as μ → 0+.
+          have h_wi_tendsto : Tendsto (fun μ => (w μ) i) (𝓝[>] 0) (𝓝 1) := by
+            apply Filter.Tendsto.congr
+            · -- on 𝓝[>] 0, w i equals f i
+              filter_upwards [self_mem_nhdsWithin] with μ hμ
+              have hμ_nonneg : 0 ≤ μ := le_of_lt hμ
+              rw [hw_explicit μ hμ_nonneg, hf_def]
+            · -- f i → 1 as μ → 0+
+              rw [hf0_i_one]
+              exact h_fi_cont.tendsto.mono_left nhdsWithin_le_nhds
+          -- Since (w μ) i → 1 > 0, eventually (w μ) i > 0 for μ > 0 small enough.
+          have h_wi_pos : ∀ᶠ μ in 𝓝[>] 0, 0 < (w μ) i :=
+            h_wi_tendsto.eventually (eventually_gt_nhds (by norm_num : (0 : ℝ) < 1))
+          -- Using the self-membership of Set.Ioi 0 in 𝓝[>] 0,
+          -- we also know μ > 0 for the eventually statement.
+          have h_zi_zero : ∀ᶠ μ in 𝓝[>] 0, (z μ) i = 0 := by
+            filter_upwards [h_wi_pos, self_mem_nhdsWithin] with μ hμ_pos hμ_Ioi
+            have hprod := h_coord_zero_at μ (le_of_lt hμ_Ioi) i
+            nlinarith
+          -- Also (z 0) i = 0.
+          have hz0_i : (z 0) i = 0 := by
+            have hz0 : z 0 = 0 := by dsimp [z, scaledPrimalPath]; simp
+            simp [hz0]
+          -- On 𝓝[>] 0, the slope of (z i) at 0 is identically 0.
+          have h_slope_eq_zero : (slope (fun μ => z μ i) 0) =ᶠ[𝓝[>] 0] (fun _ => (0 : ℝ)) := by
+            filter_upwards [h_zi_zero] with μ hμ
+            simp [slope, hμ, hz0_i]
+          have h_tendsto_slope_zero : Tendsto (slope (fun μ => z μ i) 0) (𝓝[>] 0) (𝓝 (0 : ℝ)) :=
+            (h_slope_eq_zero.tendsto (𝓝 (0 : ℝ))).mpr tendsto_const_nhds
+          -- The derivative of (z i) at 0 is also the limit of the slope.
+          have h_hasDeriv : HasDerivAt (fun μ => z μ i) (deriv (fun μ => z μ i) 0) 0 :=
+            (hz_coord_diff i).hasDerivAt
+          have h_nhdsWithin_ne : 𝓝[>] (0 : ℝ) ≤ 𝓝[≠] (0 : ℝ) :=
+            nhdsWithin_mono 0 (fun x hx => Set.mem_compl_singleton_iff.mpr (ne_of_gt hx))
+          have h_tendsto_slope_deriv : Tendsto (slope (fun μ => z μ i) 0) (𝓝[>] 0)
+              (𝓝 (deriv (fun μ => z μ i) 0)) :=
+            h_hasDeriv.tendsto_slope.mono_left h_nhdsWithin_ne
+          -- By uniqueness of limits, deriv = 0.
+          have h_deriv_zi_zero : deriv (fun μ => z μ i) 0 = 0 :=
+            tendsto_nhds_unique h_tendsto_slope_deriv h_tendsto_slope_zero
+          simp [h_deriv_zi_zero]
+    · -- z is not differentiable at τ: deriv yields 0
+      rw [deriv_zero_of_not_differentiableAt h_diff]
+      simp [inner_zero_left]
   -- Choose the piecewise-linearity fact needed by `pos_delta_bound_3`.
   have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
       DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →

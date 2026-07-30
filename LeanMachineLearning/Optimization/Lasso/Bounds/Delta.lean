@@ -1195,7 +1195,6 @@ private lemma deriv_pos_z_identities
       (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
     simpa [scaledPrimalPath, e, PiLp.smul_apply, smul_eq_mul] using
       ((hasDerivAt_pi.1 (e.hasFDerivAt.comp_hasDerivAt τ h_path_diff.hasDerivAt)) i).deriv.symm
-
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
       max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
       max 0 (deriv (fun u' => u' * x_lasso u' i) τ) := by
@@ -1520,63 +1519,45 @@ so `f'(0)g(0)=0`. If `x > 0` or `f` is differentiable at `x`: if `g(x) ≠ 0`, b
 on a neighborhood of `x`. Thus `f = 0` on this neighborhood, implying `f'(x) = 0`.
 If `g(x) = 0`, then `f'(x)g(x) = 0`. In all cases, the product is `0`.
 -/
+-- If f·g = 0 on [0,∞) with g continuous and g(x) ≠ 0, and f is differentiable at x,
+-- then deriv f x = 0. The key idea: continuity of g forces g ≠ 0 near x, so f = 0 near x,
+-- and unique differentiability on [0,∞) forces deriv f x = 0.
+private lemma deriv_eq_zero_of_mul_eq_zero_at_nonzero
+    {f g : ℝ → ℝ} (hg : ContinuousOn g (Set.Ici 0))
+    (h_mul : ∀ x ≥ 0, f x * g x = 0) {x : ℝ} (hx : 0 ≤ x)
+    (h_diff : DifferentiableAt ℝ f x) (h_gx : g x ≠ 0) :
+    deriv f x = 0 := by
+  -- f x = 0 because f·g = 0 and g x ≠ 0
+  have h_fx : f x = 0 :=
+    (eq_zero_or_eq_zero_of_mul_eq_zero (h_mul x hx)).resolve_right h_gx
+  -- g is continuous on [0,∞) at x, so within [0,∞), g stays away from 0 near x
+  -- Combine: near x within [0,∞), g ≠ 0, so f = 0 (from h_mul)
+  have h_eventually_f : ∀ᶠ y in 𝓝[Set.Ici 0] x, f y = 0 := by
+    filter_upwards
+      [(hg.continuousWithinAt hx).preimage_mem_nhdsWithin
+        (isOpen_compl_singleton.mem_nhds h_gx),
+      self_mem_nhdsWithin] with y hy hmem
+    exact (eq_zero_or_eq_zero_of_mul_eq_zero (h_mul y hmem)).resolve_right hy
+  -- Transfer to f: constant zero function has derivative 0, f equals it near x
+  have h_f_deriv_zero : HasDerivWithinAt f 0 (Set.Ici 0) x :=
+    (hasDerivWithinAt_const (c := (0 : ℝ)) (s := Set.Ici 0) (x := x)).congr_of_eventuallyEq
+      h_eventually_f h_fx
+  -- Unique differentiability within [0,∞) at x forces the two to agree
+  have h_unique_diff : UniqueDiffWithinAt ℝ (Set.Ici 0) x := by
+    rcases hx.eq_or_lt with rfl | hx_pos
+    · exact uniqueDiffWithinAt_Ici 0
+    · exact uniqueDiffWithinAt_of_mem_nhds (Ici_mem_nhds hx_pos)
+  exact h_unique_diff.eq_deriv (Set.Ici 0) (h_diff.hasDerivAt.hasDerivWithinAt) h_f_deriv_zero
+
 lemma deriv_mul_zero_of_nonneg
     {f g : ℝ → ℝ} (hg : ContinuousOn g (Set.Ici 0))
     (h_mul : ∀ x ≥ 0, f x * g x = 0) (x : ℝ) (hx : 0 ≤ x) :
     deriv f x * g x = 0 := by
   by_cases h_diff : DifferentiableAt ℝ f x
-  · -- f is differentiable at x; we'll show `deriv f x = 0` or `g x = 0`
-    have h_deriv_at : HasDerivAt f (deriv f x) x := h_diff.hasDerivAt
-    by_cases h_gx : g x = 0
-    · -- g x = 0, trivial
-      simp [h_gx]
-    · -- g x ≠ 0, we need to show deriv f x = 0
-      have h_fx : f x = 0 := by
-        have hprod := h_mul x hx
-        rcases eq_zero_or_eq_zero_of_mul_eq_zero hprod with h | h
-        · exact h
-        · exfalso; exact h_gx h
-      -- g is continuous on [0,∞) at x, so within [0,∞), g stays away from 0 near x
-      have hg_cont : ContinuousWithinAt g (Set.Ici 0) x :=
-        hg.continuousWithinAt (Set.mem_Ici.mpr hx)
-      have h_mem_nhds : {z : ℝ | z ≠ 0} ∈ 𝓝 (g x) := by
-        have h_open : IsOpen {z : ℝ | z ≠ 0} := isOpen_compl_singleton
-        exact h_open.mem_nhds h_gx
-      have h_preimage : g ⁻¹' {z : ℝ | z ≠ 0} ∈ 𝓝[Set.Ici 0] x :=
-        hg_cont.preimage_mem_nhdsWithin h_mem_nhds
-      have h_eventually_g : ∀ᶠ y in 𝓝[Set.Ici 0] x, g y ≠ 0 := h_preimage
-      have h_mem_set : Set.Ici 0 ∈ 𝓝[Set.Ici 0] x := self_mem_nhdsWithin
-      -- Combine: near x within [0,∞), g ≠ 0, so f = 0 (from h_mul)
-      have h_eventually_f : ∀ᶠ y in 𝓝[Set.Ici 0] x, f y = 0 := by
-        filter_upwards [h_eventually_g, h_mem_set] with y hy hmem
-        have hy_nonneg : 0 ≤ y := hmem
-        have h_mul_y := h_mul y hy_nonneg
-        rcases eq_zero_or_eq_zero_of_mul_eq_zero h_mul_y with hf' | hg'
-        · exact hf'
-        · exfalso; exact hy hg'
-      have h_eventually_eq : f =ᶠ[𝓝[Set.Ici 0] x] (fun _ => (0 : ℝ)) := h_eventually_f
-      -- The constant zero function has derivative 0 (within any set)
-      have h_zero_deriv : HasDerivWithinAt (fun _ => (0 : ℝ)) 0 (Set.Ici 0) x :=
-        hasDerivWithinAt_const (c := (0 : ℝ)) (s := Set.Ici 0) (x := x)
-      -- Transfer to f via the eventual equality
-      have h_f_deriv_zero : HasDerivWithinAt f 0 (Set.Ici 0) x :=
-        h_zero_deriv.congr_of_eventuallyEq h_eventually_eq h_fx
-      -- f also has derivative `deriv f x` (from differentiability)
-      have h_f_deriv_at : HasDerivWithinAt f (deriv f x) (Set.Ici 0) x :=
-        h_deriv_at.hasDerivWithinAt
-      -- Unique differentiability within [0,∞) at x forces the two to agree
-      have h_unique_diff : UniqueDiffWithinAt ℝ (Set.Ici 0) x := by
-        by_cases hx0 : x = 0
-        · subst hx0; exact uniqueDiffWithinAt_Ici 0
-        · have hx_pos : (0 : ℝ) < x := lt_of_le_of_ne hx (Ne.symm hx0)
-          apply uniqueDiffWithinAt_of_mem_nhds
-          exact Ici_mem_nhds hx_pos
-      have h_eq : deriv f x = 0 :=
-        h_unique_diff.eq_deriv (Set.Ici 0) h_f_deriv_at h_f_deriv_zero
-      simp [h_eq]
-  · -- f is not differentiable at x, so deriv f x = 0 by definition
-    have h_deriv_zero : deriv f x = 0 := deriv_zero_of_not_differentiableAt h_diff
-    simp [h_deriv_zero]
+  · by_cases h_gx : g x = 0
+    · simp [h_gx]
+    · simp [deriv_eq_zero_of_mul_eq_zero_at_nonzero hg h_mul hx h_diff h_gx]
+  · simp [deriv_zero_of_not_differentiableAt h_diff]
 
 /--
 If `f : ℝ → E` is `K`-Lipschitz on `[a, b]`, then `‖f'(x)‖ ≤ K` for all `x ∈ [a, b]`.
@@ -1607,7 +1588,8 @@ lemma parametric_lcp_lipschitz
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (z : ℝ → EuclideanSpace ℝ ι)
     (hM_symm : M.IsSymm) (hM_psd : IsPositiveSemidefinite M)
-    (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ) (matVec M (z μ) + parametricLcpQ r lambda μ)) :
+    (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ)
+      (matVec M (z μ) + parametricLcpQ r lambda μ)) :
     LocallyLipschitzOnCompacts z := by
   sorry
 
@@ -1635,7 +1617,8 @@ lemma pos_delta_bound_4_term1
         (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) ≤ 0 := by
   intro τ hτ
   -- Inner product is exactly 0 everywhere by applying `deriv_mul_zero_of_nonneg` coordinate-wise
-  -- (proof via the generic mathematical API, skipping domain-specific unpacking bloat per `lessons_learned.md`)
+  -- (proof via the generic mathematical API,
+  --  skipping domain-specific unpacking bloat per `lessons_learned.md`)
   sorry
 
 /--
