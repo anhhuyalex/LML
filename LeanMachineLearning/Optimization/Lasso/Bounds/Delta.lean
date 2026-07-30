@@ -1044,6 +1044,36 @@ private lemma scaled_primal_deriv_component (x_lasso : ℝ → EuclideanSpace �
       h_breakpoint_comp_deriv_zero τ h_diff i
     simp [F, h_deriv_zero, h_component_zero]
 
+-- Assemble the final inequality from the pos/neg bounds, monotonicity, and log positivity.
+-- This is the purely algebraic final step of pos_delta_bound_3.
+private lemma assemble_pos_delta_bound_3
+    (zDot w : EuclideanSpace ℝ ι) (C_low C_w C τ ε : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hC_low : C_low ≤ C) (hC_w : C_w ≤ C)
+    (h_bound_pos : -(∑ i, max 0 (zDot i) * w i) ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ))
+    (h_bound_neg : (∑ i, max 0 (-zDot i) * w i) ≤ C_w * (deriv (positiveZDownward x_lasso) τ))
+    (h_up_mono : Monotone (positiveZUpward x_lasso))
+    (h_down_mono : Monotone (positiveZDownward x_lasso))
+    (hε_pos : 0 < ε) (hε_lt_one : ε < 1) :
+    -inner ℝ zDot w ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+      deriv (positiveZDownward x_lasso) τ) := by
+  calc
+    -inner ℝ zDot w = -(∑ i, max 0 (zDot i) * w i) + (∑ i, max 0 (-zDot i) * w i) :=
+      inner_decomp_pos_neg zDot w
+    _ ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ) +
+        C_w * (deriv (positiveZDownward x_lasso) τ) := by
+      linarith [h_bound_pos, h_bound_neg]
+    _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+        deriv (positiveZDownward x_lasso) τ) := by
+      have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
+        h_up_mono.deriv_nonneg (x := τ)
+      have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ :=
+        h_down_mono.deriv_nonneg (x := τ)
+      have h_log_pos : 0 < Real.log (1 / ε) :=
+        Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+      exact max_bound_algebra hC_low hC_w
+        h_up_nonneg h_down_nonneg h_log_pos
+
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
@@ -1254,26 +1284,10 @@ lemma pos_delta_bound_3
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
-  -- Assemble the final inequality
-  calc
-    -inner ℝ zDot w = -(∑ i, max 0 (zDot i) * w i) + (∑ i, max 0 (-zDot i) * w i) :=
-      inner_decomp_pos_neg zDot w
-    _ ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ) +
-        C_w * (deriv (positiveZDownward x_lasso) τ) := by
-      linarith [h_bound_pos, h_bound_neg]
-    _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-        deriv (positiveZDownward x_lasso) τ) := by
-      have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
-        h_up_mono.deriv_nonneg (x := τ)
-      have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ :=
-        h_down_mono.deriv_nonneg (x := τ)
-      -- C_low ≤ C, C_w ≤ C, and the derivatives are nonnegative.
-      -- Also log(1/ε) > 0 since ε ∈ (0,1).
-      -- Therefore the sum is bounded by C*(...) using the algebraic helper.
-      have h_log_pos : 0 < Real.log (1 / ε) :=
-        Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
-      exact max_bound_algebra (le_max_left _ _) (le_max_right _ _)
-        h_up_nonneg h_down_nonneg h_log_pos
+  -- Assemble the final inequality from the pos/neg bounds
+  exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
+    (le_max_left _ _) (le_max_right _ _)
+    h_bound_pos h_bound_neg h_up_mono h_down_mono hε_pos hε_lt_one
 
 /--
 Section 4.6, Eq. (4.14), Term 4.
