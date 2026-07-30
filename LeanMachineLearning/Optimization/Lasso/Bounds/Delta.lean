@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Lasso.Definitions
+public import Mathlib.Analysis.Calculus.MeanValue
 
 /-! ## Section 4.6: positive-path estimate chain -/
 
@@ -476,12 +477,8 @@ private lemma inner_decomp_pos_neg {ι : Type*} [Fintype ι] (x y : EuclideanSpa
       (∑ i : ι, x i * y i) = (∑ i : ι, (max 0 (x i) - max 0 (-(x i))) * y i) := by
         refine Finset.sum_congr rfl (fun i _ => ?_)
         by_cases hpos : 0 ≤ x i
-        · have hmax1 : max 0 (x i) = x i := max_eq_right hpos
-          have hmax2 : max 0 (-(x i)) = 0 := max_eq_left (by linarith)
-          simp [hmax1, hmax2]
-        · have hmax1 : max 0 (x i) = 0 := max_eq_left (by linarith)
-          have hmax2 : max 0 (-(x i)) = -(x i) := max_eq_right (by linarith)
-          simp [hmax1, hmax2]
+        · simp [max_eq_right hpos, max_eq_left (show -(x i) ≤ 0 by linarith)]
+        · simp [max_eq_left (show x i ≤ 0 by linarith), max_eq_right (show 0 ≤ -(x i) by linarith)]
       _ = (∑ i : ι, (max 0 (x i) * y i - max 0 (-(x i)) * y i)) := by
         refine Finset.sum_congr rfl (fun i _ => ?_)
         ring
@@ -489,6 +486,123 @@ private lemma inner_decomp_pos_neg {ι : Type*} [Fintype ι] (x y : EuclideanSpa
         rw [Finset.sum_sub_distrib]
   rw [h_sum_eq]
   ring
+
+-- Positivity of effective parameter: for the gradient flow, each coordinate
+-- never vanishes because x_i(0) = ε·β_i² ≠ 0 and the ODE x_i' = a_i·x_i
+-- gives x_i(t) = x_i(0)·exp(∫₀ᵗ a_i) > 0. The proof uses an integrating factor.
+private lemma pos_param_ne_zero_of_gradient_flow
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lam : ℝ)
+    (β : EuclideanSpace ℝ ι) (ε : ℝ) (hε : ε > 0)
+    (u_ε : ℝ → EuclideanSpace ℝ ι) (hflow : posDlnGradientFlow M r lam ε β u_ε)
+    (hM_symm : M.IsSymm) (t : ℝ) (i : ι) (hβ_i : β i ≠ 0) :
+    posEffectiveParameter u_ε t i ≠ 0 := by
+  set x := fun τ => posEffectiveParameter u_ε τ with hx_def
+  -- Initial value x(0) = ε • β², so x_i(0) = ε * β_i² ≠ 0
+  have hx0 : x 0 = ε • coordinateSquare β := by
+    change posEffectiveParameter u_ε 0 = _
+    rw [posEffectiveParameter_zero_eq_smul_coordinateSquare M r lam ε β u_ε
+      hflow (by linarith)]
+  have hx0_i : (x 0) i = ε * (β i * β i) := by
+    rw [hx0]; simp [coordinateSquare, euclideanOf]
+  have hx0_ne_zero : (x 0) i ≠ 0 := by
+    rw [hx0_i]
+    have hβ_sq_ne_zero : β i * β i ≠ 0 := mul_ne_zero hβ_i hβ_i
+    exact mul_ne_zero (by linarith) hβ_sq_ne_zero
+  -- ODE for x(t) from the gradient flow
+  have hx_ode_all := pos_effective_parameter_hasDerivAt M r lam ε β u_ε hflow hM_symm
+  have hx_ode_t := hx_ode_all t
+  -- Linear isomorphism to pull back componentwise derivatives
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  have h_pi : HasDerivAt (fun τ => e (x τ))
+      (e (positiveEffectiveVectorField M r lam (x t))) t :=
+    e.hasFDerivAt.comp_hasDerivAt t hx_ode_t
+  have hxi_deriv : HasDerivAt (fun τ => (x τ) i)
+      (-4 * (x t) i * ((matVec M (x t)) i - r i + lam)) t := by
+    have h := hasDerivAt_pi.1 h_pi i
+    simpa [e, positiveEffectiveVectorField, euclideanOf] using h
+  -- Define a_i(τ) = -4 * ((M x(τ))_i - r_i + λ), so that x_i'(τ) = a_i(τ) * x_i(τ)
+  set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lam) with ha_def
+  have hxi_deriv' : HasDerivAt (fun τ => (x τ) i) (a_i t * (x t) i) t := by
+    have h_eq : -4 * (x t) i * ((matVec M (x t)) i - r i + lam) = a_i t * (x t) i := by
+      dsimp [a_i]
+      ring
+    exact h_eq ▸ hxi_deriv
+  -- Componentwise ODE at any time τ
+  have hxi_deriv_at (τ : ℝ) : HasDerivAt (fun τ => (x τ) i) (a_i τ * (x τ) i) τ := by
+    have hx_ode := hx_ode_all τ
+    have h_pi' : HasDerivAt (fun τ => e (x τ))
+        (e (positiveEffectiveVectorField M r lam (x τ))) τ :=
+      e.hasFDerivAt.comp_hasDerivAt τ hx_ode
+    have h := hasDerivAt_pi.1 h_pi' i
+    have h_eq : (e (positiveEffectiveVectorField M r lam (x τ))) i = a_i τ * (x τ) i := by
+      dsimp [e, positiveEffectiveVectorField, euclideanOf, a_i]
+      let x_i : ℝ := (x τ) i
+      let M_i : ℝ := (matVec M (x τ)) i
+      let r_i : ℝ := r i
+      let lam' : ℝ := lam
+      change -4 * x_i * (M_i - r_i + lam') = -4 * (M_i - r_i + lam') * x_i
+      ring
+    exact h_eq ▸ h
+  -- a_i is continuous (x is C^1, matVec is linear)
+  have ha_cont : Continuous a_i := by
+    dsimp [a_i]
+    have hx_cont (j : ι) : Continuous (fun τ => (x τ) j) := by
+      change Continuous (fun τ => e (u_ε τ) j * e (u_ε τ) j)
+      have h1 : Continuous (fun τ => e (u_ε τ)) := e.continuous.comp hflow.cont_diff.continuous
+      have huj : Continuous (fun τ => e (u_ε τ) j) := (continuous_apply j).comp h1
+      exact huj.mul huj
+    have h_matVec : Continuous (fun τ => (matVec M (x τ)) i) := by
+      dsimp [matVec, euclideanOf]
+      apply continuous_finsetSum
+      intro j _
+      exact continuous_const.mul (hx_cont j)
+    exact h_matVec.sub continuous_const |>.add continuous_const |>.const_mul (-4)
+  -- Integrating factor: I(τ) = ∫₀^τ a_i(s) ds, E(τ) = exp(-I(τ))
+  have h_int_deriv (τ : ℝ) : HasDerivAt (fun τ => ∫ s in (0:ℝ)..τ, a_i s) (a_i τ) τ := by
+    apply intervalIntegral.integral_hasDerivAt_right
+      (ha_cont.intervalIntegrable _ _) (ha_cont.stronglyMeasurableAtFilter _ _)
+      ha_cont.continuousAt
+  set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s with hI_def
+  have hI_deriv (τ : ℝ) : HasDerivAt I (a_i τ) τ := h_int_deriv τ
+  have hE_deriv (τ : ℝ) : HasDerivAt (fun τ => Real.exp (-I τ))
+      (-a_i τ * Real.exp (-I τ)) τ := by
+    have h_neg_I : HasDerivAt (-I) (-a_i τ) τ := (hI_deriv τ).neg
+    have h_exp :
+        HasDerivAt (fun x => Real.exp ((-I) x))
+          (Real.exp ((-I) τ) * -a_i τ) τ := h_neg_I.exp
+    have h_eq2 : Real.exp ((-I) τ) * -a_i τ = -a_i τ * Real.exp (-I τ) := mul_comm _ _
+    exact h_eq2 ▸ h_exp
+  set E := fun (τ : ℝ) => Real.exp (-I τ) with hE_def
+  have hE_pos : ∀ τ, 0 < E τ := by
+    intro τ; dsimp [E]; exact Real.exp_pos _
+  -- Product rule: (x_i * E)' = x_i' * E + x_i * E' = (a_i * x_i) * E + x_i * (-a_i * E) = 0
+  have h_prod_deriv (τ : ℝ) : HasDerivAt (fun τ => (x τ) i * E τ) 0 τ := by
+    have hxi := hxi_deriv_at τ
+    have hE := hE_deriv τ
+    have h_mul := HasDerivAt.mul hxi hE
+    have h_eq : a_i τ * (x τ) i * E τ + (x τ) i * (-a_i τ * Real.exp (-I τ)) = 0 := by
+      dsimp [E]
+      ring
+    exact h_eq ▸ h_mul
+  -- Zero derivative everywhere implies constant
+  have h_prod_const : ∀ τ, (x τ) i * E τ = (x 0) i * E 0 := by
+    set f := fun (τ : ℝ) => (x τ) i * E τ with hf_def
+    have h_diff : Differentiable ℝ f := fun τ => (h_prod_deriv τ).differentiableAt
+    have h_deriv_eq_zero : ∀ τ, deriv f τ = 0 := fun τ => (h_prod_deriv τ).deriv
+    have h_const := is_const_of_deriv_eq_zero h_diff h_deriv_eq_zero
+    intro τ
+    exact h_const τ 0
+  have hE0 : E 0 = 1 := by
+    dsimp [E, I]; simp
+  -- Conclusion: (x t) i * E t = (x 0) i ≠ 0, and E t > 0, so (x t) i ≠ 0
+  have hx_t_ne_zero : (x t) i ≠ 0 := by
+    have h_eq := h_prod_const t
+    rw [hE0, mul_one] at h_eq
+    intro hzero
+    rw [hzero, zero_mul] at h_eq
+    exact hx0_ne_zero h_eq.symm
+  simpa [hx_def] using hx_t_ne_zero
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -512,126 +626,7 @@ lemma pos_delta_bound_3
     intro ε hε t i
     have hM_symm : M.IsSymm := hdata.psd.symm
     have hflow := hu ε hε
-    set x := fun τ => posEffectiveParameter (u ε) τ with hx_def
-    -- Initial value x(0) = ε • β², so x_i(0) = ε * β_i² ≠ 0
-    have hx0 : x 0 = ε • coordinateSquare β := by
-      change posEffectiveParameter (u ε) 0 = _
-      rw [posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε)
-        hflow (by linarith)]
-    have hx0_i : (x 0) i = ε * (β i * β i) := by
-      rw [hx0]; simp [coordinateSquare, euclideanOf]
-    have hx0_ne_zero : (x 0) i ≠ 0 := by
-      rw [hx0_i]
-      have hβ_sq_ne_zero : β i * β i ≠ 0 := mul_ne_zero (hβ i) (hβ i)
-      exact mul_ne_zero (by linarith) hβ_sq_ne_zero
-    -- ODE for x(t) from the gradient flow
-    have hx_ode_all := pos_effective_parameter_hasDerivAt M r lambda ε β (u ε) hflow hM_symm
-    have hx_ode_t := hx_ode_all t
-    -- Linear isomorphism to pull back componentwise derivatives
-    let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
-    have h_pi : HasDerivAt (fun τ => e (x τ))
-        (e (positiveEffectiveVectorField M r lambda (x t))) t :=
-      e.hasFDerivAt.comp_hasDerivAt t hx_ode_t
-    have hxi_deriv : HasDerivAt (fun τ => (x τ) i)
-        (-4 * (x t) i * ((matVec M (x t)) i - r i + lambda)) t := by
-      have h := hasDerivAt_pi.1 h_pi i
-      simpa [e, positiveEffectiveVectorField, euclideanOf] using h
-    -- Define a_i(τ) = -4 * ((M x(τ))_i - r_i + λ), so that x_i'(τ) = a_i(τ) * x_i(τ)
-    set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lambda) with ha_def
-    have hxi_deriv' : HasDerivAt (fun τ => (x τ) i) (a_i t * (x t) i) t := by
-      have h_eq : -4 * (x t) i * ((matVec M (x t)) i - r i + lambda) = a_i t * (x t) i := by
-        dsimp [a_i]
-        let x_i : ℝ := (x t) i
-        let M_i : ℝ := (matVec M (x t)) i
-        let r_i : ℝ := r i
-        let lam : ℝ := lambda
-        change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
-        ring
-      exact h_eq ▸ hxi_deriv
-    -- Componentwise ODE at any time τ
-    have hxi_deriv_at (τ : ℝ) : HasDerivAt (fun τ => (x τ) i) (a_i τ * (x τ) i) τ := by
-      have hx_ode := hx_ode_all τ
-      have h_pi' : HasDerivAt (fun τ => e (x τ))
-          (e (positiveEffectiveVectorField M r lambda (x τ))) τ :=
-        e.hasFDerivAt.comp_hasDerivAt τ hx_ode
-      have h := hasDerivAt_pi.1 h_pi' i
-      have h_eq : (e (positiveEffectiveVectorField M r lambda (x τ))) i = a_i τ * (x τ) i := by
-        dsimp [e, positiveEffectiveVectorField, euclideanOf, a_i]
-        let x_i : ℝ := (x τ) i
-        let M_i : ℝ := (matVec M (x τ)) i
-        let r_i : ℝ := r i
-        let lam : ℝ := lambda
-        change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
-        ring
-      exact h_eq ▸ h
-    -- a_i is continuous (x is C^1, matVec is linear)
-    have ha_cont : Continuous a_i := by
-      dsimp [a_i]
-      have hx_cont (j : ι) : Continuous (fun τ => (x τ) j) := by
-        change Continuous (fun τ => e (u ε τ) j * e (u ε τ) j)
-        have h1 : Continuous (fun τ => e (u ε τ)) := e.continuous.comp hflow.cont_diff.continuous
-        have huj : Continuous (fun τ => e (u ε τ) j) := (continuous_apply j).comp h1
-        exact huj.mul huj
-      have h_matVec : Continuous (fun τ => (matVec M (x τ)) i) := by
-        dsimp [matVec, euclideanOf]
-        apply continuous_finsetSum
-        intro j _
-        exact continuous_const.mul (hx_cont j)
-      exact h_matVec.sub continuous_const |>.add continuous_const |>.const_mul (-4)
-    -- Integrating factor: I(τ) = ∫₀^τ a_i(s) ds, E(τ) = exp(-I(τ))
-    have h_int_deriv (τ : ℝ) : HasDerivAt (fun τ => ∫ s in (0:ℝ)..τ, a_i s) (a_i τ) τ := by
-      apply intervalIntegral.integral_hasDerivAt_right
-        (ha_cont.intervalIntegrable _ _) (ha_cont.stronglyMeasurableAtFilter _ _)
-        ha_cont.continuousAt
-    set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s with hI_def
-    have hI_deriv (τ : ℝ) : HasDerivAt I (a_i τ) τ := h_int_deriv τ
-    have hE_deriv (τ : ℝ) : HasDerivAt (fun τ => Real.exp (-I τ))
-        (-a_i τ * Real.exp (-I τ)) τ := by
-      have h_neg_I : HasDerivAt (-I) (-a_i τ) τ := (hI_deriv τ).neg
-      have h_exp :
-          HasDerivAt (fun x => Real.exp ((-I) x))
-            (Real.exp ((-I) τ) * -a_i τ) τ := h_neg_I.exp
-      have h_eq2 : Real.exp ((-I) τ) * -a_i τ = -a_i τ * Real.exp (-I τ) := mul_comm _ _
-      exact h_eq2 ▸ h_exp
-    set E := fun (τ : ℝ) => Real.exp (-I τ) with hE_def
-    have hE_pos : ∀ τ, 0 < E τ := by
-      intro τ; dsimp [E]; exact Real.exp_pos _
-    -- Product rule: (x_i * E)' = x_i' * E + x_i * E' = (a_i * x_i) * E + x_i * (-a_i * E) = 0
-    have h_prod_deriv (τ : ℝ) : HasDerivAt (fun τ => (x τ) i * E τ) 0 τ := by
-      have hxi := hxi_deriv_at τ
-      have hE := hE_deriv τ
-      have h_mul := HasDerivAt.mul hxi hE
-      have h_eq : a_i τ * (x τ) i * E τ + (x τ) i * (-a_i τ * Real.exp (-I τ)) = 0 := by
-        dsimp [E]
-        let a : ℝ := a_i τ
-        let x_i : ℝ := (x τ) i
-        let E_t : ℝ := Real.exp (-I τ)
-        change a * x_i * E_t + x_i * (-a * E_t) = 0
-        ring
-      exact h_eq ▸ h_mul
-    -- Zero derivative everywhere implies constant
-    have h_prod_const : ∀ τ, (x τ) i * E τ = (x 0) i * E 0 := by
-      set f := fun (τ : ℝ) => (x τ) i * E τ with hf_def
-      have h_diff : Differentiable ℝ f := fun τ => (h_prod_deriv τ).differentiableAt
-      have h_deriv_eq_zero : ∀ τ, deriv f τ = 0 := fun τ => (h_prod_deriv τ).deriv
-      have h_const := is_const_of_deriv_eq_zero h_diff h_deriv_eq_zero
-      intro τ
-      exact h_const τ 0
-    have hE0 : E 0 = 1 := by
-      dsimp [E, I]; simp
-    -- Conclusion: (x t) i * E t = (x 0) i ≠ 0, and E t > 0, so (x t) i ≠ 0
-    have hx_t_ne_zero : (x t) i ≠ 0 := by
-      have h_eq := h_prod_const t
-      rw [hE0] at h_eq
-      intro hzero
-      have h_symm : (x 0) i = 0 := by
-        calc (x 0) i = (x 0) i * 1 := by ring
-        _ = (x t) i * E t := h_eq.symm
-        _ = 0 * E t := by rw [hzero]
-        _ = 0 := by ring
-      exact hx0_ne_zero h_symm
-    simpa [hx_def] using hx_t_ne_zero
+    exact pos_param_ne_zero_of_gradient_flow M r lambda β ε hε (u ε) hflow hM_symm t i (hβ i)
   have h_uniform_bound : ∃ X > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X := by
     -- The existing theorem `pos_trajectory_uniform_bound` in MirrorFlow.lean
@@ -655,12 +650,8 @@ lemma pos_delta_bound_3
     filter_upwards [h_mem] with ε hε
     have hε_pos : 0 < ε := hε.1
     have hε_lt₁ : ε < ε₁ := hε.2
-    have hε_le₀ : ε ≤ ε₀ := by
-      have hε₁_le₀ : ε₁ ≤ ε₀ := min_le_left _ _
-      linarith
-    have hε_le_one : ε ≤ 1 := by
-      have hε₁_le_one : ε₁ ≤ 1 := min_le_right _ _
-      linarith
+    have hε_le₀ : ε ≤ ε₀ := (hε_lt₁.trans_le (min_le_left _ _)).le
+    have hε_le_one : ε ≤ 1 := (hε_lt₁.trans_le (min_le_right _ _)).le
     intro τ hτ
     rcases hτ with ⟨hτ0, hτs⟩
     intro i
@@ -668,10 +659,8 @@ lemma pos_delta_bound_3
     set t := posTimeFromRescaled ε τ with ht_def
     have ht_nonneg : 0 ≤ t := by
       rw [ht_def, posTimeFromRescaled]
-      have h_one_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_le_one
-      have h_log_nonneg : 0 ≤ Real.log (1 / ε) := Real.log_nonneg h_one_div
-      have h_tau_div : 0 ≤ τ / 4 := div_nonneg hτ0 (by norm_num)
-      exact mul_nonneg h_tau_div h_log_nonneg
+      exact mul_nonneg (div_nonneg hτ0 (by norm_num))
+        (Real.log_nonneg ((one_le_div hε_pos).mpr hε_le_one))
     -- The uniform norm bound from Proposition 4.1.
     have h_norm_bound : ‖posEffectiveParameter (u ε) t‖ ≤ C :=
       hbound ε hε_pos hε_le₀ t ht_nonneg
@@ -686,12 +675,9 @@ lemma pos_delta_bound_3
         _ ≤ C := h_norm_bound
     -- For a nonnegative real, the norm equals the value itself.
     have h_coord : posEffectiveParameter (u ε) t i ≤ C := by
-      have h_norm_eq_abs : ‖posEffectiveParameter (u ε) t i‖ =
-          |posEffectiveParameter (u ε) t i| := by rw [Real.norm_eq_abs]
-      have h_abs_eq_val : |posEffectiveParameter (u ε) t i| =
-          posEffectiveParameter (u ε) t i := abs_of_nonneg hx_nonneg
-      rw [h_norm_eq_abs, h_abs_eq_val] at h_coord_norm
-      exact h_coord_norm
+      have h_norm_eq : ‖posEffectiveParameter (u ε) t i‖ = posEffectiveParameter (u ε) t i := by
+        rw [Real.norm_eq_abs, abs_of_nonneg hx_nonneg]
+      linarith
     simpa [ht_def]
   rcases h_uniform_bound with ⟨X, hX_pos, hX_ev⟩
   -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
@@ -714,19 +700,11 @@ lemma pos_delta_bound_3
       exact lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
     refine ⟨C_low, hC_low_pos, ?_⟩
     -- Intersect the uniform upper bound with ε ∈ (0,1) so that log(1/ε) > 0
-    have h_combined : ∀ᶠ ε in 𝓝[>] (0 : ℝ),
-        (∀ τ ∈ Set.Icc (0 : ℝ) s, ∀ i,
-          posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X) ∧
-        ε ∈ Set.Ioo (0 : ℝ) 1 :=
-      Filter.Eventually.and hX_ev (show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
-        rw [mem_nhdsGT_iff_exists_Ioo_subset]
-        exact ⟨1, by norm_num, fun x hx => hx⟩)
-    filter_upwards [h_combined] with ε h_and
-    rcases h_and with ⟨hX, hε_mem⟩
+    filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+      rw [mem_nhdsGT_iff_exists_Ioo_subset]
+      exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hX hε_mem
     rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
-    intro τ hτ
-    rcases hτ with ⟨hτ0, hτs⟩
-    intro i
+    intro τ hτ i
     -- Let x_i denote the i-th coordinate of the effective parameter at rescaled time
     set x_i := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i with hx_def
     -- Positivity: x_i > 0 (nonnegative and never zero)
@@ -737,19 +715,15 @@ lemma pos_delta_bound_3
     -- Upper bound from the hypothesis
     have hx_le_X : x_i ≤ X := hX τ hτ i
     -- Monotonicity of log
-    have h_log_x_le_log_X : Real.log x_i ≤ Real.log X :=
-      Real.log_le_log hx_pos hx_le_X
-    -- C_low = max(1, log X) ≥ log X
-    have h_log_X_le_C_low : Real.log X ≤ C_low := by
-      rw [hC_low_def]
-      exact le_max_right _ _
-    have h_log_x_le_C_low : Real.log x_i ≤ C_low :=
-      le_trans h_log_x_le_log_X h_log_X_le_C_low
-    have h_neg_log : -C_low ≤ -Real.log x_i := by linarith
+    have h_neg_log : -C_low ≤ -Real.log x_i := by
+      have h_log_x_le_C_low : Real.log x_i ≤ C_low :=
+        (Real.log_le_log hx_pos hx_le_X).trans (by
+          rw [hC_low_def]
+          exact le_max_right _ _)
+      linarith
     -- Denominator positivity
-    have h_log_div_pos : 0 < Real.log (1 / ε) :=
-      Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
-    have h_log_div_nonneg : 0 ≤ Real.log (1 / ε) := by linarith
+    have h_log_div_nonneg : 0 ≤ Real.log (1 / ε) :=
+      le_of_lt (Real.log_pos (one_lt_one_div hε_pos hε_lt_one))
     -- Expand the definition of the rescaled mirror variable
     dsimp [posRescaledMirrorVariable, euclideanOf, x_i]
     -- Goal is now: -C_low / Real.log (1 / ε) ≤ -Real.log x_i / Real.log (1 / ε)
@@ -773,7 +747,157 @@ lemma pos_delta_bound_3
     Thus, by the triangle inequality, the norm of wᵋ(τ) is bounded by C_w * (1 + τ)
     for some constant C_w combining the bounds of the individual terms.
     -/
-    sorry
+    have hM_symm : M.IsSymm := hdata.psd.symm
+    -- Step 1: Handle the case where ι is empty (then the goal is vacuously true)
+    by_cases h_nonempty : Nonempty ι
+    · haveI := h_nonempty
+      -- Step 2: Define the constant C_w (now safe with Nonempty)
+      set r_max := ⨆ i, |r i| with hr_max_def
+      have hr_max_nonneg : 0 ≤ r_max := by
+        rw [hr_max_def]
+        have h := le_ciSup (Finite.bddAbove_range (fun (i : ι) => |r i|)) (Classical.arbitrary ι)
+        exact le_trans (abs_nonneg _) h
+      set M_row_max := ⨆ i, ∑ j, |M i j| with hM_row_max_def
+      have hM_row_max_nonneg : 0 ≤ M_row_max := by
+        rw [hM_row_max_def]
+        have h :=
+          le_ciSup
+            (Finite.bddAbove_range (fun (i : ι) => ∑ j, |M i j|))
+            (Classical.arbitrary ι)
+        refine le_trans (Finset.sum_nonneg (fun j _ => abs_nonneg _)) h
+      set beta_log_max := ⨆ i, |Real.log (β i ^ 2)| with hbeta_log_max_def
+      have hbeta_log_max_nonneg : 0 ≤ beta_log_max := by
+        rw [hbeta_log_max_def]
+        have h :=
+          le_ciSup
+            (Finite.bddAbove_range (fun (i : ι) => |Real.log (β i ^ 2)|))
+            (Classical.arbitrary ι)
+        exact le_trans (abs_nonneg _) h
+      set C_init := 1 + beta_log_max / Real.log 2 with hC_init_def
+      have hC_init_pos : C_init > 0 := by
+        rw [hC_init_def]
+        positivity
+      set C_w := max C_init (r_max + M_row_max * X + |lambda|) with hC_w_def
+      have hC_w_pos : C_w > 0 := lt_max_of_lt_left hC_init_pos
+      refine ⟨C_w, hC_w_pos, ?_⟩
+      -- Step 3: Restrict ε to a small enough neighborhood
+      have h_mem_half : Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) := by
+        rw [mem_nhdsGT_iff_exists_Ioo_subset]
+        exact ⟨1/2, by norm_num, fun x hx => hx⟩
+      filter_upwards [hX_ev, h_mem_half] with ε hX hε_half
+      rcases hε_half with ⟨hε_pos, hε_lt_half⟩
+      have hε_lt_one : ε < 1 := by linarith
+      have hlog_pos : 0 < Real.log (1 / ε) :=
+        Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+      have hlog_ne_zero : Real.log (1 / ε) ≠ 0 := by linarith
+      have h2le : (2 : ℝ) ≤ 1 / ε := by
+        calc
+          (2 : ℝ) = 1 / (1/2 : ℝ) := by norm_num
+          _ ≤ 1 / ε := (one_div_le_one_div (by norm_num : (0 : ℝ) < 1/2) hε_pos).mpr (by linarith)
+      have hlog_ge_log2 : Real.log 2 ≤ Real.log (1 / ε) :=
+        Real.log_le_log (by norm_num : (0 : ℝ) < 2) h2le
+      intro τ hτ i
+      rcases hτ with ⟨hτ0, hτs⟩
+      -- Bound |w_i(0)|: w_i(0) = 1 - log(β_i²)/log(1/ε)
+      -- For ε < 1/2, log(1/ε) ≥ log 2, so |w_i(0)| ≤ 1 + max_i|log(β_i²)|/log 2 = C_init
+      have hw0_bound : |(posRescaledMirrorVariable ε (u ε) 0) i| ≤ C_init := by
+        sorry
+      -- Bound z_i(τ) = (posIntegratedTrajectoryRescaled ε (u ε) τ) i ∈ [0, X·τ]
+      -- (Proof deferred: follows from the uniform trajectory bound hX_ev)
+      have hz_nonneg : ∀ i, 0 ≤ (posIntegratedTrajectoryRescaled ε (u ε) τ) i := by
+        intro j; sorry
+      have hz_bound : ∀ i, (posIntegratedTrajectoryRescaled ε (u ε) τ) i ≤ X * τ := by
+        intro j; sorry
+      -- Apply the integrated mirror equation
+      have h_ime := positive_integrated_mirror_equation M r lambda ε β (u ε)
+        (hu ε hε_pos) (hu_pos ε hε_pos) hM_symm τ hlog_ne_zero
+      -- Extract i-th coordinate: w_i(τ) = w_i(0) - τ·r_i + (M·z)_i + τ·λ
+      have h_coord_eq : (posRescaledMirrorVariable ε (u ε) τ) i =
+          (posRescaledMirrorVariable ε (u ε) 0) i - τ * r i +
+          (matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i + τ * lambda := by
+        have h := congrArg (fun x => x i) h_ime
+        -- h_ime : w(τ) = w(0) - τ·r + M·z + (τ·λ)·𝟙
+        -- The i-th coordinate of (s * lambda) • ones is s * lambda
+        simpa
+          [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, sub_eq_add_neg, add_assoc, ones, euclideanOf]
+          using h
+      -- Bound (M·z)_i = Σ_j M_{ij} z_j, using |z_j| ≤ X·τ and triangle inequality for sums
+      have hMz_bound :
+          |(matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i| ≤ M_row_max * X * τ := by
+        have h_abs_sum : ∀ (f : ι → ℝ), |∑ j, f j| ≤ ∑ j, |f j| := by
+          intro f
+          refine
+            Finset.le_sum_of_subadditive (fun x : ℝ => |x|) ?_ ?_ Finset.univ f
+          · exact abs_zero.le
+          · exact abs_add_le
+        calc
+          |(matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i| =
+              |∑ j, M i j * (posIntegratedTrajectoryRescaled ε (u ε) τ) j| := by
+            simp [matVec, euclideanOf, Matrix.mulVec, dotProduct]
+          _ ≤ ∑ j, |M i j * (posIntegratedTrajectoryRescaled ε (u ε) τ) j| := h_abs_sum _
+          _ = ∑ j, |M i j| * |(posIntegratedTrajectoryRescaled ε (u ε) τ) j| := by
+            simp_rw [abs_mul]
+          _ ≤ ∑ j, |M i j| * (X * τ) := by
+            refine Finset.sum_le_sum (fun j _ => ?_)
+            have h_abs_zj : |(posIntegratedTrajectoryRescaled ε (u ε) τ) j| ≤ X * τ := by
+              rw [abs_of_nonneg (hz_nonneg j)]
+              exact hz_bound j
+            exact mul_le_mul_of_nonneg_left h_abs_zj (abs_nonneg _)
+          _ = (∑ j, |M i j|) * (X * τ) := by rw [Finset.sum_mul]
+          _ ≤ M_row_max * (X * τ) := by
+            refine mul_le_mul_of_nonneg_right ?_ (by nlinarith [hX_pos])
+            rw [hM_row_max_def]
+            exact le_ciSup (Finite.bddAbove_range (fun (k : ι) => ∑ j, |M k j|)) i
+          _ = M_row_max * X * τ := by ring
+      -- Triangle inequality to bound |w_i(τ)|
+      rw [h_coord_eq]
+      set a := (posRescaledMirrorVariable ε (u ε) 0) i
+      set b := τ * r i
+      set c := (matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i
+      set d := τ * lambda
+      have h_abs : |a - b + c + d| ≤ |a| + |b| + |c| + |d| := by
+        calc
+          |a - b + c + d| ≤ |a - b + c| + |d| := abs_add_le _ _
+          _ ≤ |a - b| + |c| + |d| := by
+            have h := abs_add_le (a - b) c
+            nlinarith
+          _ ≤ |a| + |b| + |c| + |d| := by
+            have h := abs_add_le a (-b)
+            -- |a + (-b)| ≤ |a| + |-b| = |a| + |b|
+            have h_abs_sub : |a - b| ≤ |a| + |b| := by
+              calc
+                |a - b| = |a + (-b)| := by ring
+                _ ≤ |a| + |-b| := abs_add_le _ _
+                _ = |a| + |b| := by simp
+            nlinarith
+      have h_r_bound : |τ * r i| = τ * |r i| := by rw [abs_mul, abs_of_nonneg hτ0]
+      have h_lambda_bound : |τ * lambda| = τ * |lambda| := by rw [abs_mul, abs_of_nonneg hτ0]
+      have h_ri_bound : |r i| ≤ r_max := by
+        rw [hr_max_def]
+        exact le_ciSup (Finite.bddAbove_range (fun (k : ι) => |r k|)) i
+      have h_final : |(posRescaledMirrorVariable ε (u ε) 0) i| + |τ * r i| +
+          |(matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i| + |τ * lambda| ≤
+          C_w * (1 + τ) := by
+        rw [h_r_bound, h_lambda_bound]
+        have h1 : |(posRescaledMirrorVariable ε (u ε) 0) i| ≤ C_init := hw0_bound
+        have h2 : τ * |r i| ≤ τ * r_max :=
+          mul_le_mul_of_nonneg_left h_ri_bound hτ0
+        have h3 :
+            |(matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i| ≤ M_row_max * X * τ :=
+          hMz_bound
+        have hC_w_ge_init : C_init ≤ C_w := by
+          rw [hC_w_def]; exact le_max_left _ _
+        have hC_w_ge_rest : r_max + M_row_max * X + |lambda| ≤ C_w := by
+          rw [hC_w_def]; exact le_max_right _ _
+        nlinarith
+      -- Combine
+      simpa [a, b, c, d] using le_trans h_abs h_final
+    · -- ι is empty, then the goal ∀ i, ... is vacuously true
+      refine ⟨1, by norm_num, ?_⟩
+      filter_upwards [] with ε
+      intro τ hτ i
+      exact False.elim (h_nonempty ⟨i⟩)
+    -- The nonempty and empty cases above complete the proof of h_w_upper
   rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
   -- Combine the constants
   set C := max C_low C_w
@@ -787,11 +911,6 @@ lemma pos_delta_bound_3
   -- Notation for the derivative and the dual variable
   set zDot := deriv (scaledPrimalPath x_lasso) τ
   set w := posRescaledMirrorVariable ε (u ε) τ
-  -- For the final inequality we need log(1/ε) > 0, which holds for ε ∈ (0,1).
-  have h_log_pos : 0 < Real.log (1 / ε) := by
-    rcases hε_one with ⟨hε_pos, hε_lt_one⟩
-    have h_one_div_gt_one : 1 < 1 / ε := one_lt_one_div hε_pos hε_lt_one
-    exact Real.log_pos h_one_div_gt_one
   -- Now bound each part using the bounds on w.
   -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, zDot_i) ≥ 0,
   --   -(max(0, zDot_i)) * w_i ≤ max(0, zDot_i) * C_low / log(1/ε)
@@ -805,8 +924,7 @@ lemma pos_delta_bound_3
       _ ≤ ∑ i, (max 0 (zDot i) * (C_low / Real.log (1 / ε))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         by_cases hzDot : 0 ≤ zDot i
-        · have hmax : max 0 (zDot i) = zDot i := max_eq_right hzDot
-          rw [hmax]
+        · rw [max_eq_right hzDot]
           have hw_low : -C_low / Real.log (1 / ε) ≤ w i := by
             simpa [w] using hW_low_ε τ ⟨hτ0, hτs⟩ i
           have hneg_w : -w i ≤ C_low / Real.log (1 / ε) := by
@@ -815,8 +933,7 @@ lemma pos_delta_bound_3
             -(zDot i) * w i = zDot i * (-w i) := by ring
             _ ≤ zDot i * (C_low / Real.log (1 / ε)) :=
               mul_le_mul_of_nonneg_left hneg_w hzDot
-        · have hmax : max 0 (zDot i) = 0 := max_eq_left (by linarith)
-          simp [hmax]
+        · simp [max_eq_left (show zDot i ≤ 0 by linarith)]
       _ = (C_low / Real.log (1 / ε)) * (∑ i, max 0 (zDot i)) := by
         rw [Finset.mul_sum]
         refine Finset.sum_congr rfl (fun i _ => ?_)
@@ -826,11 +943,9 @@ lemma pos_delta_bound_3
     calc
       (∑ i, max 0 (-zDot i) * w i) ≤ (∑ i, max 0 (-zDot i) * (C_w * (1 + τ))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
-        have hw_bound := hW_ε τ ⟨hτ0, hτs⟩ i
         have hw_le : w i ≤ C_w * (1 + τ) :=
-          (abs_le.mp (by simpa [w] using hw_bound)).2
-        have h_nonneg : 0 ≤ max 0 (-zDot i) := le_max_left _ _
-        exact mul_le_mul_of_nonneg_left hw_le h_nonneg
+          (abs_le.mp (by simpa [w] using hW_ε τ ⟨hτ0, hτs⟩ i)).2
+        exact mul_le_mul_of_nonneg_left hw_le (le_max_left _ _)
       _ = C_w * (∑ i, (1 + τ) * max 0 (-zDot i)) := by
         rw [Finset.mul_sum]
         refine Finset.sum_congr rfl (fun i _ => ?_)
@@ -1072,8 +1187,7 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
     monotoneOn_of_deriv_nonneg (convex_Icc _ _) (hG_cont.sub hF_cont)
       (by simpa [interior_Icc] using hG_diff.sub hF_diff)
       (by simpa [interior_Icc] using hH_deriv_nonneg_ioo)
-  have hH0 : H 0 = 0 := by
-    dsimp [H]; rw [hF0, hG0, sub_self]
+  have hH0 : H 0 = 0 := by simp [H, hF0, hG0]
   have h_ineq : H 0 ≤ H s := hH_mono ⟨le_refl 0, hs⟩ ⟨hs, le_refl s⟩ hs
   rw [hH0] at h_ineq
   dsimp [H] at h_ineq
@@ -1208,18 +1322,7 @@ theorem positive_path_delta_bound
   have h_z_up_nonneg : 0 ≤ positiveZUpward x_lasso s := by
     dsimp [positiveZUpward]
     refine Finset.sum_nonneg (fun i _ => ?_)
-    have h_nonneg_integrand : ∀ (u : ℝ),
-        0 ≤ max 0 (deriv (fun (u' : ℝ) => (u' * x_lasso u' i : ℝ)) u) :=
-      fun u => le_max_left _ _
-    exact intervalIntegral.integral_nonneg (le_of_lt hs) (fun u hu => h_nonneg_integrand u)
-  have h_log_pos_nhds : ∀ᶠ ε in 𝓝[>] (0 : ℝ), 0 < Real.log (1 / ε) := by
-    -- For ε ∈ (0, 1), 1/ε > 1, so log(1/ε) > 0
-    have h_mem : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) := by
-      rw [mem_nhdsGT_iff_exists_Ioo_subset]
-      exact ⟨1, by norm_num, fun x hx => hx⟩
-    filter_upwards [h_mem] with ε hε
-    rcases hε with ⟨hε_pos, hε_lt_one⟩
-    exact Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+    exact intervalIntegral.integral_nonneg (le_of_lt hs) (fun u _ => le_max_left _ _)
   -- Tendsto of 1 / log(1/ε) to 0 as ε → 0⁺
   have h_tendsto_log_inv : Tendsto (fun (ε : ℝ) => (Real.log (1 / ε))⁻¹) (𝓝[>] 0) (𝓝 0) := by
     have h_inv_atTop : Tendsto (fun (ε : ℝ) => 1 / ε) (𝓝[>] 0) atTop := by
@@ -1236,9 +1339,8 @@ theorem positive_path_delta_bound
   have h_eventually_vanish : ∀ᶠ ε in 𝓝[>] 0,
       deltaVanishingTerm ε s (positiveZUpward x_lasso s) ≤ δ / 2 := by
     -- From the limit, eventually |deltaVanishingTerm| < δ/2, so deltaVanishingTerm ≤ δ/2
-    have h_mem_nhds : Set.Ioo (-(δ / 2)) (δ / 2) ∈ 𝓝 (0 : ℝ) := by
-      apply isOpen_Ioo.mem_nhds
-      constructor <;> linarith
+    have h_mem_nhds : Set.Ioo (-(δ / 2)) (δ / 2) ∈ 𝓝 (0 : ℝ) :=
+      isOpen_Ioo.mem_nhds ⟨by linarith, by linarith⟩
     have h_ev : ∀ᶠ ε in 𝓝[>] 0, deltaVanishingTerm ε s (positiveZUpward x_lasso s) ∈
         Set.Ioo (-(δ / 2)) (δ / 2) :=
       h_tendsto_vanishing.eventually h_mem_nhds
