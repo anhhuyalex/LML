@@ -982,9 +982,97 @@ theorem posEffectiveParameter_ne_zero
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
     (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hu : posDlnGradientFlow M r lambda ε α u) (hε : 0 < ε)
-    (hα : NonzeroCoordinates α) :
+    (hα : NonzeroCoordinates α) (hM : M.IsSymm) :
     ∀ t i, posEffectiveParameter u t i ≠ 0 := by
-  sorry
+  -- Initial values are nonzero: u(0) = √ε • α, ε > 0, α_i ≠ 0 ⇒ u_i(0) ≠ 0
+  have hu0_ne_zero : ∀ i, u 0 i ≠ 0 := by
+    intro i
+    rw [hu.init]
+    have hsqrt_pos : Real.sqrt ε > 0 := Real.sqrt_pos.mpr hε
+    simp [hsqrt_pos.ne', hα i, smul_eq_mul]
+  -- Linear equivalence between EuclideanSpace and bare functions
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  intro t i
+  -- Define the coefficient a_i : ℝ → ℝ
+  let a : ℝ → ℝ := fun τ => -2 * ((matVec M (coordinateSquare (u τ))) i - r i + lambda)
+  -- a is continuous because u is C¹ and matVec, coordinateSquare, etc. are continuous.
+  have ha_cont : Continuous a := by
+    dsimp [a]
+    have hu_cont : Continuous u := hu.cont_diff.continuous
+    -- TODO: fill this continuity proof
+    sorry
+  -- For each τ, the scalar ODE holds: u_i'(τ) = a(τ) * u_i(τ)
+  have h_ode_scalar : ∀ (τ : ℝ), HasDerivAt (fun (s : ℝ) => u s i) (a τ * u τ i) τ := by
+    intro τ
+    have h_ode := hu.ode τ
+    dsimp [posDlnVectorField] at h_ode
+    rw [gradient_posDlnObjective M r lambda hM (u τ)] at h_ode
+    -- h_ode : HasDerivAt u (-euclideanOf (fun i => 2 * u τ i * ...)) τ
+    -- Convert to component form via e
+    have h_ode' : HasDerivAt (fun s => e (u s)) (e (-euclideanOf (fun i => 2 * u τ i * ((matVec M (coordinateSquare (u τ))) i - r i + lambda)))) τ :=
+      e.hasFDerivAt.comp_hasDerivAt τ h_ode
+    have h_pi := (hasDerivAt_pi.1 h_ode') i
+    simpa [a, e, WithLp.linearEquiv, euclideanOf, mul_comm, mul_left_comm, mul_assoc] using h_pi
+  -- Integrating factor: B(τ) = ∫_0^τ a(s) ds
+  let B : ℝ → ℝ := fun τ => ∫ s in (0 : ℝ)..τ, a s
+  have hB_deriv : ∀ (τ : ℝ), HasDerivAt B (a τ) τ := by
+    intro τ
+    have h_int : IntervalIntegrable a MeasureTheory.volume 0 τ :=
+      ha_cont.intervalIntegrable _ _
+    have h_meas : StronglyMeasurableAtFilter a (𝓝 τ) :=
+      ha_cont.stronglyMeasurableAtFilter _ _
+    have h_cont_at : ContinuousAt a τ := ha_cont.continuousAt
+    exact intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont_at
+  have hB_zero : B 0 = 0 := by simp [B]
+  -- Define φ(τ) = u_i(τ) * exp(-B(τ))
+  let φ : ℝ → ℝ := fun τ => u τ i * Real.exp (-B τ)
+  -- φ'(τ) = 0 for all τ
+  have hφ_deriv : ∀ (τ : ℝ), HasDerivAt φ 0 τ := by
+    intro τ
+    -- φ' = u_i' * exp(-B) + u_i * exp(-B) * (-B')
+    --    = (a * u_i) * exp(-B) + u_i * exp(-B) * (-a) = 0
+    have h1 : HasDerivAt (fun s => u s i) (a τ * u τ i) τ := h_ode_scalar τ
+    have h_negB : HasDerivAt (-B) (-a τ) τ := by
+      simpa using (hB_deriv τ).neg
+    have h_exp : HasDerivAt (fun s => Real.exp (-B s)) (Real.exp (-B τ) * (-a τ)) τ :=
+      h_negB.exp
+    -- HasDerivAt.mul gives exp * u; derivative simplifies to 0, reorder to u * exp = φ
+    have h_mul := HasDerivAt.mul h_exp h1
+    -- The function in h_mul is (fun s => exp(-B s) * (u s).ofLp i); we need (u s).ofLp i * exp(-B s)
+    have h_mul' : HasDerivAt (fun s => (u s).ofLp i * Real.exp (-B s)) 0 τ := by
+      -- These two functions are equal pointwise by mul_comm
+      convert h_mul using 1
+      ext s
+      apply mul_comm
+    simpa [φ] using h_mul'
+  -- Since φ' = 0 everywhere, φ is constant (mean value theorem)
+  have hφ_const : ∀ (τ : ℝ), φ τ = φ 0 := by
+    have hφ_diff : Differentiable ℝ φ := by
+      -- φ is C¹ (product of C¹ functions), hence differentiable.
+      -- We'll fill in later.
+      sorry
+    have hφ_deriv_eq_zero : ∀ τ, deriv φ τ = 0 := by
+      intro τ
+      exact (hφ_deriv τ).deriv
+    exact fun τ => is_const_of_deriv_eq_zero hφ_diff hφ_deriv_eq_zero τ 0
+  have hφ0_ne_zero : φ 0 ≠ 0 := by
+    dsimp [φ, B]
+    simp [Real.exp_zero, hu0_ne_zero i]
+  -- Therefore u t i ≠ 0
+  have hu_t_ne_zero : u t i ≠ 0 := by
+    intro hzero
+    apply hφ0_ne_zero
+    have := hφ_const t
+    dsimp [φ] at this
+    rw [hzero] at this
+    simp at this
+    -- this: (u 0).ofLp i = 0  (after simplification of exp(-B 0) = 1)
+    -- Goal: φ 0 = 0, i.e., (u 0).ofLp i * Real.exp (-B 0) = 0
+    simpa [φ, B] using this
+  -- Finally, posEffectiveParameter u t i = (u t i)^2 ≠ 0
+  dsimp [posEffectiveParameter, coordinateSquare, euclideanOf]
+  exact mul_ne_zero hu_t_ne_zero hu_t_ne_zero
 
 /--
 Lemma 4.3 from `docs/Lasso.md`: in the non-coercive case, energy decrease still
@@ -1422,9 +1510,9 @@ theorem bregman_projection_characterization
           {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
           y →
         y = posEffectiveParameter u t := by
-  have hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0 :=
-    posEffectiveParameter_ne_zero M r 0 ε α u hu hε hα
   have hM : M.IsSymm := hdata.psd.get_symm
+  have hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0 :=
+    posEffectiveParameter_ne_zero M r 0 ε α u hu hε hα hM
   have hx_nonneg : Nonnegative (posEffectiveParameter u t) := posEffectiveParameter_nonnegative u t
   have hy0_nonneg : Nonnegative (posEffectiveParameter u 0) := posEffectiveParameter_nonnegative u 0
   have hx_pos : Positive (posEffectiveParameter u t) :=

@@ -617,13 +617,11 @@ private lemma uniform_trajectory_coordinate_bound
   have hε_lt₁ : ε < ε₁ := hε.2
   have hε_le₀ : ε ≤ ε₀ := hε_lt₁.le.trans (min_le_left _ _)
   have hε_le_one : ε ≤ 1 := hε_lt₁.le.trans (min_le_right _ _)
-  intro τ hτ
-  rcases hτ with ⟨hτ0, hτs⟩
-  intro i
+  intro τ hτ i
   set t := posTimeFromRescaled ε τ with ht_def
   have ht_nonneg : 0 ≤ t := by
     rw [ht_def, posTimeFromRescaled]
-    exact mul_nonneg (div_nonneg hτ0 (by norm_num))
+    exact mul_nonneg (div_nonneg hτ.1 (by norm_num))
       (Real.log_nonneg ((one_le_div hε_pos).mpr hε_le_one))
   have h_norm_bound : ‖posEffectiveParameter (u ε) t‖ ≤ C :=
     hbound ε hε_pos hε_le₀ t ht_nonneg
@@ -646,9 +644,7 @@ private lemma rescaled_mirror_lower_bound
     ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
   set C_low := max 1 (Real.log X)
-  have hC_low_pos : C_low > 0 :=
-    lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
-  refine ⟨C_low, hC_low_pos, ?_⟩
+  refine ⟨C_low, lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1), ?_⟩
   -- Intersect the uniform upper bound with ε ∈ (0,1) so that log(1/ε) > 0
   filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
@@ -679,7 +675,7 @@ private lemma mirror_pos_neg_bounds
   constructor
   · calc
       -(∑ i, max 0 (zDot i) * w i) = ∑ i, (-(max 0 (zDot i)) * w i) := by
-        simp [Finset.sum_neg_distrib]
+        simp
       _ ≤ ∑ i, (max 0 (zDot i) * (C_low / Real.log (1 / ε))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         by_cases hzDot : 0 ≤ zDot i
@@ -689,17 +685,15 @@ private lemma mirror_pos_neg_bounds
             _ ≤ zDot i * (C_low / Real.log (1 / ε)) :=
               mul_le_mul_of_nonneg_left
                 (by simpa [neg_div] using neg_le_neg (hw_low i)) hzDot
-        · simp [max_eq_left (show zDot i ≤ 0 by linarith)]
+        · simp [show zDot i ≤ 0 from by linarith]
       _ = (C_low / Real.log (1 / ε)) * (∑ i, max 0 (zDot i)) := by
-        rw [Finset.mul_sum]
-        simp [mul_comm]
+        simp [Finset.mul_sum, mul_comm]
   · calc
       (∑ i, max 0 (-zDot i) * w i) ≤ (∑ i, max 0 (-zDot i) * (C_w * (1 + τ))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         exact mul_le_mul_of_nonneg_left ((abs_le.mp (hw_abs i)).2) (le_max_left _ _)
       _ = C_w * (∑ i, (1 + τ) * max 0 (-zDot i)) := by
-        rw [Finset.mul_sum]
-        simp [mul_comm, mul_assoc]
+        simp [Finset.mul_sum, mul_comm, mul_assoc]
 
 -- The effective parameter never vanishes for a positive DLN gradient flow.
 private lemma pos_effective_param_ne_zero
@@ -810,8 +804,7 @@ private lemma rescaled_mirror_upper_bound
           le_ciSup_of_le (Finite.bddAbove_range _) (Classical.arbitrary ι) (abs_nonneg _)
         positivity
       set C_w := max C_init (r_max + M_row_max * X + |lambda|)
-      have hC_w_pos : C_w > 0 := lt_max_of_lt_left hC_init_pos
-      refine ⟨C_w, hC_w_pos, ?_⟩
+      refine ⟨C_w, lt_max_of_lt_left hC_init_pos, ?_⟩
       -- Step 3: Restrict ε to a small enough neighborhood
       filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) from by
         rw [mem_nhdsGT_iff_exists_Ioo_subset]
@@ -1225,12 +1218,12 @@ private lemma deriv_pos_z_identities
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (β : EuclideanSpace ℝ ι) (s : ℝ) (_hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (_hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
         ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
@@ -1266,9 +1259,7 @@ lemma pos_delta_bound_3
   filter_upwards [hX_ev, hW_low_ev, hW_ev, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
-  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
   intro τ hτ
-  rcases hτ with ⟨hτ0, hτs⟩
   -- Notation for the derivative and the dual variable
   set zDot := deriv (scaledPrimalPath x_lasso) τ
   set w := posRescaledMirrorVariable ε (u ε) τ
@@ -1278,8 +1269,8 @@ lemma pos_delta_bound_3
   -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
   --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
   rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
-    (hW_low_ε τ ⟨hτ0, hτs⟩)
-    (hW_ε τ ⟨hτ0, hτs⟩) with ⟨h_bound_pos, h_bound_neg⟩
+    (hW_low_ε τ hτ)
+    (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
   have h_derivs := deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero
@@ -1288,14 +1279,12 @@ lemma pos_delta_bound_3
     simpa [zDot] using h_upward_eq_raw
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
     simpa [zDot] using h_downward_eq_raw
-  -- (FTC/monotonicity results provided by deriv_pos_z_identities above)
-  -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
   -- Assemble the final inequality from the pos/neg bounds
   exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
     (le_max_left _ _) (le_max_right _ _)
-    h_bound_pos h_bound_neg h_up_mono h_down_mono hε_pos hε_lt_one
+    h_bound_pos h_bound_neg h_up_mono h_down_mono hε_mem.1 hε_mem.2
 
 /--
 Section 4.6, Eq. (4.14), Term 4.
