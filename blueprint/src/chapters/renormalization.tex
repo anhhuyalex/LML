@@ -404,8 +404,7 @@ once that the result is independent of orientation because $C$ is symmetric.
 \begin{lemma}[Pairing API]
 \label{lem:renorm:pairingAPI}
 \uses{def:renorm:pairing}
-\lean{Finpartition.Pairing.not_nonempty_of_odd,
-Finpartition.Pairing.card, Finpartition.Pairing.cons}
+\lean{Finpartition.Pairing.isEmpty_of_odd_card}
 There is no pairing of an odd-cardinality set.  A pairing of a set containing a distinguished
 element is obtained uniquely by choosing its partner and pairing the remaining set.  Consequently,
 Wick sums satisfy the recurrence
@@ -421,8 +420,8 @@ $(2m-1)!!=(2m)!/(2^m m!)$ are corollaries, not the representation used by Wick p
 
 \begin{theorem}[Centered scalar Gaussian moments]
 \label{thm:renorm:scalarWick}
-\lean{Renormalization.moment_id_gaussianReal_zero_odd,
-Renormalization.moment_id_gaussianReal_zero_even}
+\lean{integral_pow_gaussianReal_odd,
+integral_pow_gaussianReal_even}
 For $v\in\mathbb R_{\geq0}$ and $m\in\mathbb N$,
 \begin{align*}
  \int x^{2m+1}\,d\mathcal N(0,v)(x)&=0,\\
@@ -483,7 +482,6 @@ covariances with \texttt{ProbabilityTheory.covariance\_eval\_multivariateGaussia
 \begin{corollary}[Gaussian higher cumulants vanish]
 \label{cor:renorm:gaussianCumulant}
 \uses{thm:renorm:momentCumulant, thm:renorm:wick, thm:renorm:cumulant_eq_jointCumulant}
-\lean{Renormalization.IsGaussian.jointCumulant_centered}
 For centered continuous linear observables of a Gaussian measure, the joint cumulant is their
 covariance when $n=2$ and is zero when $n\neq2$.  For noncentered observables, the first cumulant is
 the mean, the second is the covariance, and every cumulant of order greater than $2$ vanishes.
@@ -688,7 +686,6 @@ equivalent terms into the displayed contraction and cancels the $1/4!$ in $V_A$.
 \begin{proposition}[Independent coordinates have no mixed connected correlator]
 \label{prop:renorm:independentCumulant}
 \uses{lem:renorm:cumulantStructural}
-\lean{Renormalization.jointCumulant_eq_zero_of_iIndepFun}
 For an independent family $(X_i)$, a joint cumulant involving variables from at least two
 independent nonempty groups is zero.  In particular, after an orthogonal diagonalization of a
 Gaussian covariance, mixed connected correlators vanish.
@@ -700,7 +697,6 @@ already available; it is not needed to prove Wick's theorem.
 
 \begin{definition}[Hierarchically nearly Gaussian family]
 \label{def:renorm:hierarchical}
-\lean{Renormalization.IsHierarchicallyNearlyGaussian}
 Let $\mu_\epsilon$ be a family of probability measures and $X_i$ fixed observables.  A precise
 version of the source's hierarchy is that for every $m\geq2$ and every index tuple $i$ of length
 $2m$,

@@ -79,6 +79,35 @@ noncomputable def hadamard (x y : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι
 noncomputable def coordinateSquare (x : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι :=
   euclideanOf (fun i => x i * x i)
 
+/-- `hadamard` is commutative. -/
+lemma hadamard_comm (x y : EuclideanSpace ℝ ι) : hadamard x y = hadamard y x := by
+  ext i; simp [hadamard, euclideanOf]; ring
+
+/-- `hadamard` is additive in its first argument. -/
+lemma hadamard_add_left (x y v : EuclideanSpace ℝ ι) :
+    hadamard (x + y) v = hadamard x v + hadamard y v := by
+  ext i; simp [hadamard, euclideanOf]; ring
+
+/-- `hadamard` is subtractive in its first argument. -/
+lemma hadamard_sub_left (x y v : EuclideanSpace ℝ ι) :
+    hadamard (x - y) v = hadamard x v - hadamard y v := by
+  ext i; simp [hadamard, euclideanOf]; ring
+
+/-- `hadamard` commutes with scalar multiplication in its first argument. -/
+lemma hadamard_smul_left (c : ℝ) (x v : EuclideanSpace ℝ ι) :
+    hadamard (c • x) v = c • hadamard x v := by
+  ext i; simp [hadamard, euclideanOf, smul_eq_mul]; ring
+
+/-- `hadamard · v` bundled as a linear map, for composing with derivative/continuity lemmas
+that expect a `LinearMap` (mirrors `matVecLM` below). -/
+noncomputable def hadamardLM (v : EuclideanSpace ℝ ι) :
+    EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι where
+  toFun := fun h => hadamard h v
+  map_add' := fun x y => hadamard_add_left x y v
+  map_smul' := fun c x => by
+    simp only [RingHom.id_apply]
+    exact hadamard_smul_left c x v
+
 /-- The vector `M x`, cast back into `EuclideanSpace`. -/
 noncomputable def matVec (M : Matrix ι ι ℝ) (x : EuclideanSpace ℝ ι) :
     EuclideanSpace ℝ ι :=
