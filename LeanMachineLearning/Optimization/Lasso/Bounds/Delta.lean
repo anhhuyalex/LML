@@ -1058,6 +1058,74 @@ private lemma assemble_pos_delta_bound_3
         h_down_nonneg
         (Real.log_pos (one_lt_one_div hε_pos hε_lt_one))
 
+-- Helper: integrability of max(0, deriv f_i) on [0,τ] follows from absolute continuity
+-- of the scaled primal path. Uses that coordinate projections are 1-Lipschitz.
+private lemma max_zero_deriv_intervalIntegrable
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (i : ι) (τ : ℝ) (hτ : 0 ≤ τ)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    IntervalIntegrable (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 τ := by
+  set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+  set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
+  -- scaledPrimalPath is AC on [0, τ] by h_regular (since 0 ≤ τ)
+  have h_ac_vec : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 τ :=
+    h_regular.absolutelyContinuousOn_Icc 0 τ (le_refl 0) hτ
+  -- The coordinate projection is 1-Lipschitz, so f_i is also AC on [0, τ]
+  have h_ac_fi : AbsolutelyContinuousOnInterval f_i 0 τ := by
+    rw [absolutelyContinuousOnInterval_iff] at h_ac_vec ⊢
+    intro ε hε
+    obtain ⟨δ, hδ, hδ'⟩ := h_ac_vec ε hε
+    refine ⟨δ, hδ, ?_⟩
+    intro E hE hlen
+    apply lt_of_le_of_lt ?_ (hδ' E hE hlen)
+    refine Finset.sum_le_sum (fun j hj => ?_)
+    -- For each interval, coordinate difference is bounded by the Euclidean distance
+    dsimp [f_i]
+    have h_coord : |((scaledPrimalPath x_lasso) (E.2 j).1).ofLp i -
+                   ((scaledPrimalPath x_lasso) (E.2 j).2).ofLp i| ≤
+                   dist ((scaledPrimalPath x_lasso) (E.2 j).1)
+                        ((scaledPrimalPath x_lasso) (E.2 j).2) := by
+      set a := (scaledPrimalPath x_lasso) (E.2 j).1
+      set b := (scaledPrimalPath x_lasso) (E.2 j).2
+      have h_sq : ((a - b) i)^2 ≤ ‖a - b‖^2 := by
+        have h_eq_sq : ((a - b) i)^2 = ‖(a - b) i‖ ^ 2 := by simp
+        rw [h_eq_sq, EuclideanSpace.norm_sq_eq]
+        have hpos : ∀ k ∈ (Finset.univ : Finset ι), 0 ≤ ‖(a - b) k‖ ^ 2 :=
+          fun k _ => by positivity
+        exact Finset.single_le_sum hpos (Finset.mem_univ i)
+      have h_nonneg_norm : 0 ≤ ‖a - b‖ := norm_nonneg _
+      calc
+        |a.ofLp i - b.ofLp i| = |(a - b).ofLp i| := by simp
+        _ = |(a - b) i| := rfl
+        _ = Real.sqrt (((a - b) i)^2) := by rw [Real.sqrt_sq_eq_abs]
+        _ ≤ Real.sqrt (‖a - b‖^2) := Real.sqrt_le_sqrt h_sq
+        _ = ‖a - b‖ := Real.sqrt_sq h_nonneg_norm
+        _ = dist a b := by rw [dist_eq_norm]
+    exact h_coord
+  -- Since f_i is AC, its derivative is interval integrable on [0, τ]
+  have h_int_deriv : IntervalIntegrable (deriv f_i) volume 0 τ :=
+    AbsolutelyContinuousOnInterval.intervalIntegrable_deriv h_ac_fi
+  -- g_i = max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2
+  have h_g_eq : g_i = fun u => ((deriv f_i u) + |deriv f_i u|) / 2 := by
+    ext u
+    dsimp [g_i]
+    by_cases hpos : 0 ≤ deriv f_i u
+    · rw [max_eq_right hpos, abs_of_nonneg hpos]
+      ring
+    · have hneg : deriv f_i u ≤ 0 := le_of_lt (lt_of_not_ge hpos)
+      rw [max_eq_left hneg, abs_of_neg (lt_of_not_ge hpos)]
+      ring
+  rw [h_g_eq]
+  -- IntervalIntegrable is closed under addition, absolute value, and scalar multiplication
+  have h_temp : IntervalIntegrable
+    (fun u => ((deriv f_i u) + |deriv f_i u|) * (1/2 : ℝ)) volume 0 τ :=
+    ((h_int_deriv.add h_int_deriv.abs).mul_const (1/2 : ℝ))
+  -- Convert * (1/2) to / 2
+  have h_eq : (fun u => ((deriv f_i u) + |deriv f_i u|) / 2) =
+             (fun u => ((deriv f_i u) + |deriv f_i u|) * (1/2 : ℝ)) := by
+    ext u; rw [div_eq_mul_one_div]
+  rw [h_eq]
+  exact h_temp
+
 -- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
 -- to sums over coordinate derivatives, and establishes monotonicity of both functions.
 -- Uses piecewise linearity of the Lasso path (Efron et al. 2004) and the Fundamental Theorem
@@ -1125,69 +1193,11 @@ private lemma deriv_pos_z_identities
             h_eq_on.aeEq_restrict (Metric.isOpen_ball.measurableSet)
           exact h_const'.congr h_eq.symm
         exact h_ae
-      -- Integrability of g_i on [0, τ]:
-      -- From h_regular and hτ, scaledPrimalPath is AC on [0, τ], so each
-      -- coordinate f_i has an integrable derivative. Then g_i = (f_i' + |f_i'|)/2 is integrable.
+      -- Integrability of g_i on [0, τ]: uses absolute continuity of the scaled primal
+      -- path and the fact that coordinate projections are 1-Lipschitz.
       have h_int : IntervalIntegrable g_i volume 0 τ := by
-        -- scaledPrimalPath is AC on [0, τ] by h_regular (since 0 ≤ τ)
-        have h_ac_vec : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 τ :=
-          h_regular.absolutelyContinuousOn_Icc 0 τ (le_refl 0) hτ
-        -- The coordinate projection is 1-Lipschitz, so f_i is also AC on [0, τ]
-        have h_ac_fi : AbsolutelyContinuousOnInterval f_i 0 τ := by
-          rw [absolutelyContinuousOnInterval_iff] at h_ac_vec ⊢
-          intro ε hε
-          obtain ⟨δ, hδ, hδ'⟩ := h_ac_vec ε hε
-          refine ⟨δ, hδ, ?_⟩
-          intro E hE hlen
-          apply lt_of_le_of_lt ?_ (hδ' E hE hlen)
-          refine Finset.sum_le_sum (fun j hj => ?_)
-          -- For each interval, coordinate difference is bounded by the Euclidean distance
-          dsimp [f_i]
-          have h_coord : |((scaledPrimalPath x_lasso) (E.2 j).1).ofLp i -
-                         ((scaledPrimalPath x_lasso) (E.2 j).2).ofLp i| ≤
-                         dist ((scaledPrimalPath x_lasso) (E.2 j).1)
-                              ((scaledPrimalPath x_lasso) (E.2 j).2) := by
-            set a := (scaledPrimalPath x_lasso) (E.2 j).1
-            set b := (scaledPrimalPath x_lasso) (E.2 j).2
-            have h_sq : ((a - b) i)^2 ≤ ‖a - b‖^2 := by
-              have h_eq_sq : ((a - b) i)^2 = ‖(a - b) i‖ ^ 2 := by simp
-              rw [h_eq_sq, EuclideanSpace.norm_sq_eq]
-              have hpos : ∀ k ∈ (Finset.univ : Finset ι), 0 ≤ ‖(a - b) k‖ ^ 2 :=
-                fun k _ => by positivity
-              exact Finset.single_le_sum hpos (Finset.mem_univ i)
-            have h_nonneg_norm : 0 ≤ ‖a - b‖ := norm_nonneg _
-            calc
-              |a.ofLp i - b.ofLp i| = |(a - b).ofLp i| := by simp
-              _ = |(a - b) i| := rfl
-              _ = Real.sqrt (((a - b) i)^2) := by rw [Real.sqrt_sq_eq_abs]
-              _ ≤ Real.sqrt (‖a - b‖^2) := Real.sqrt_le_sqrt h_sq
-              _ = ‖a - b‖ := Real.sqrt_sq h_nonneg_norm
-              _ = dist a b := by rw [dist_eq_norm]
-          exact h_coord
-        -- Since f_i is AC, its derivative is interval integrable on [0, τ]
-        have h_int_deriv : IntervalIntegrable (deriv f_i) volume 0 τ :=
-          AbsolutelyContinuousOnInterval.intervalIntegrable_deriv h_ac_fi
-        -- g_i = max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2
-        have h_g_eq : g_i = fun u => ((deriv f_i u) + |deriv f_i u|) / 2 := by
-          ext u
-          dsimp [g_i]
-          by_cases hpos : 0 ≤ deriv f_i u
-          · rw [max_eq_right hpos, abs_of_nonneg hpos]
-            ring
-          · have hneg : deriv f_i u ≤ 0 := le_of_lt (lt_of_not_ge hpos)
-            rw [max_eq_left hneg, abs_of_neg (lt_of_not_ge hpos)]
-            ring
-        rw [h_g_eq]
-        -- IntervalIntegrable is closed under addition, absolute value, and scalar multiplication
-        have h_temp : IntervalIntegrable
-          (fun u => ((deriv f_i u) + |deriv f_i u|) * (1/2 : ℝ)) volume 0 τ :=
-          ((h_int_deriv.add h_int_deriv.abs).mul_const (1/2 : ℝ))
-        -- Convert * (1/2) to / 2
-        have h_eq : (fun u => ((deriv f_i u) + |deriv f_i u|) / 2) =
-                   (fun u => ((deriv f_i u) + |deriv f_i u|) * (1/2 : ℝ)) := by
-          ext u; rw [div_eq_mul_one_div]
-        rw [h_eq]
-        exact h_temp
+        dsimp [g_i, f_i]
+        exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
       -- Apply the Fundamental Theorem of Calculus (derivative of integral = integrand):
       rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
     · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
@@ -1223,7 +1233,8 @@ private lemma deriv_pos_z_identities
         -- contradicting h_breakpoint_comp_deriv_zero (which gives deriv f_i τ = 0).
         --
         -- We formalize the one-sided limit property with:
-        have h_right_limit : (∃ δ > 0, g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
+        have h_right_limit : (∃ δ > 0,
+            g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
             (∃ (δ : ℝ) (hδ : δ > 0) (c : ℝ) (hc : c > 0),
               g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => c)) := by
           -- TODO: prove using h_piecewise_deriv and h_breakpoint_comp_deriv_zero,
@@ -1231,7 +1242,8 @@ private lemma deriv_pos_z_identities
           -- and zero at non-differentiability points, and that non-differentiability
           -- points are isolated (piecewise-linear path).
           sorry
-        have h_left_limit : (∃ δ > 0, g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => (0 : ℝ))) ∨
+        have h_left_limit : (∃ δ > 0,
+            g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => (0 : ℝ))) ∨
             (∃ (δ : ℝ) (hδ : δ > 0) (d : ℝ) (hd : d > 0),
               g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => d)) := by
           sorry
@@ -1242,9 +1254,8 @@ private lemma deriv_pos_z_identities
           · -- Both limits = 0. Then g_i is continuous at τ with value 0.
             -- FTC gives deriv F τ = g_i(τ) = 0.
             have h_int : IntervalIntegrable g_i volume 0 τ := by
-              -- Same proof as in the differentiable case (h_ftc_up, case 1)
-              -- using absolute continuity of f_i from h_regular.
-              sorry
+              dsimp [g_i, f_i]
+              exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
             have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
               -- g_i equals 0 near τ on both sides, hence strongly measurable.
               sorry
