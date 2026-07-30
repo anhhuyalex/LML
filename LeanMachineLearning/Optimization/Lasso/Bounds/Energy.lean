@@ -63,7 +63,9 @@ lemma energy_complementarity_bound
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (w : ℝ → EuclideanSpace ℝ ι)
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, pseudoInverseSeminorm Mdagger r ≤ C ∧ ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         deriv
@@ -102,7 +104,9 @@ theorem positive_energy_differential_inequality
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (w : ℝ → EuclideanSpace ℝ ι)
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         deriv
@@ -118,7 +122,7 @@ theorem positive_energy_differential_inequality
             1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C, hC_pos, hC_ge, h_bound⟩ := energy_complementarity_bound M Mdagger r lambda β s hs u
-    hdata hβ hu x_lasso hx_lasso w hdual h_regular
+    hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular
   use C, hC_pos
   intro δ hδ
   filter_upwards [h_bound δ hδ] with ε hε τ hτ

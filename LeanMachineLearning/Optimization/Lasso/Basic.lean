@@ -198,13 +198,18 @@ lemma inner_augmentedVector_sumElim
   change (∑ j, (Sum.elim r (-r)) j * (Sum.elim a b) j) = _
   have h_sum := Fintype.sum_sum_type (fun j => (Sum.elim r (-r)) j * (Sum.elim a b) j)
   rw [h_sum]
-  have hs : (∑ i : ι, (Sum.elim r (-r)) (Sum.inl i) * (Sum.elim a b) (Sum.inl i) + ∑ i : ι, (Sum.elim r (-r)) (Sum.inr i) * (Sum.elim a b) (Sum.inr i)) = ∑ i : ι, (r i * a i + -r i * b i) := by
+  have hs :
+      (∑ i : ι, (Sum.elim r (-r)) (Sum.inl i) * (Sum.elim a b) (Sum.inl i)) +
+          ∑ i : ι, (Sum.elim r (-r)) (Sum.inr i) * (Sum.elim a b) (Sum.inr i) =
+        ∑ i : ι, (r i * a i + -r i * b i) := by
     rw [← Finset.sum_add_distrib]
     apply Finset.sum_congr rfl
     intro i _
     rfl
   rw [hs]
-  have h_split : (∑ i : ι, (r i * a i + -r i * b i)) = (∑ i : ι, r i * a i) + (∑ i : ι, -r i * b i) := by
+  have h_split :
+      (∑ i : ι, (r i * a i + -r i * b i)) =
+        (∑ i : ι, r i * a i) + ∑ i : ι, -r i * b i := by
     rw [Finset.sum_add_distrib]
   rw [h_split]
   have h_neg : (∑ i : ι, -r i * b i) = -(∑ i : ι, r i * b i) := by

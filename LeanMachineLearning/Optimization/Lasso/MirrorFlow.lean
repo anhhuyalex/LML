@@ -868,6 +868,26 @@ theorem tiltedLoss_antitone_along_pos_flow
   simpa only [posEffectiveParameter, tiltedLoss_coordinateSquare_eq_posDlnObjective] using
     posDlnObjective_antitone_along_pos_flow M r lambda ε α u hu hM hst
 
+/-- The uniform upper-bound consequence in the second sentence of Lemma 4.2.
+
+By antitonicity, the value at time `t ≥ 0` is bounded by its value at zero.
+The initial effective parameter is `ε • α²`; for `0 < ε ≤ 1` these points lie
+in the compact line segment `{κ • α² | κ ∈ [0,1]}`, so continuity of the
+quadratic tilted loss gives one positive upper bound.  This is exactly the
+argument in Lemma 4.2 of <https://arxiv.org/abs/2509.18766>, and the compact
+maximum step is the finite-dimensional extreme-value theorem as presented in
+Boyd--Vandenberghe, *Convex Optimization*, Section 1.4
+<https://web.stanford.edu/~boyd/cvxbook/>.
+-/
+theorem tiltedLoss_uniform_upper_bound
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hM : M.IsSymm)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε)) :
+    ∃ C > 0, ∀ ε : ℝ, 0 < ε → ε ≤ 1 → ∀ t : ℝ, 0 ≤ t →
+      tiltedLoss M r lambda (posEffectiveParameter (u ε) t) ≤ C := by
+  sorry
+
 /-- The effective parameter starts at `ε • α²` along a positive-DLN flow. -/
 lemma posEffectiveParameter_zero_eq_smul_coordinateSquare
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
@@ -882,6 +902,26 @@ lemma posEffectiveParameter_zero_eq_smul_coordinateSquare
     Real.sqrt ε * α i * (Real.sqrt ε * α i) =
         (Real.sqrt ε * Real.sqrt ε) * (α i * α i) := by ring
     _ = ε * (α i * α i) := by rw [Real.mul_self_sqrt hε]
+
+/-- Nonzero initialization coordinates never reach zero along a positive-DLN
+gradient flow.
+
+Coordinate `uᵢ` solves the scalar linear ODE
+`uᵢ' = aᵢ(t) uᵢ`.  Hence `uᵢ(t)=uᵢ(0) exp(∫ aᵢ)`, so a nonzero initial value
+cannot vanish; squaring gives the result for `posEffectiveParameter`.  This is
+the invariant used implicitly in Lemma 4.4 of
+<https://arxiv.org/abs/2509.18766>.  The exponential solution/uniqueness
+principle is standard; compare Teschl, *Ordinary Differential Equations and
+Dynamical Systems*, Section 2.1
+<https://www.mat.univie.ac.at/~gerald/ftp/book-ode/ode.pdf>.
+-/
+theorem posEffectiveParameter_ne_zero
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
+    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r lambda ε α u) (hε : 0 < ε)
+    (hα : NonzeroCoordinates α) :
+    ∀ t i, posEffectiveParameter u t i ≠ 0 := by
+  sorry
 
 /--
 Lemma 4.3 from `docs/Lasso.md`: in the non-coercive case, energy decrease still
@@ -1306,7 +1346,7 @@ theorem bregman_projection_characterization
     (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r 0)
     (hu : posDlnGradientFlow M r 0 ε α u)
-    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0)
+    (hε : 0 < ε) (hα : NonzeroCoordinates α)
     (t : ℝ) :
     IsMinOn
         (fun x => entropyBregman x (posEffectiveParameter u 0))
@@ -1319,6 +1359,8 @@ theorem bregman_projection_characterization
           {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
           y →
         y = posEffectiveParameter u t := by
+  have hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0 :=
+    posEffectiveParameter_ne_zero M r 0 ε α u hu hε hα
   have hM : M.IsSymm := hdata.psd.get_symm
   have hx_nonneg : Nonnegative (posEffectiveParameter u t) := posEffectiveParameter_nonnegative u t
   have hy0_nonneg : Nonnegative (posEffectiveParameter u 0) := posEffectiveParameter_nonnegative u 0
@@ -1594,7 +1636,7 @@ divergence itself vanish). We therefore add `Nonnegative x` explicitly; at every
 call site (`pos_trajectory_uniform_bound` below) this holds automatically via
 `posEffectiveParameter_nonnegative`.
 -/
-theorem bregman_projection_fiber_norm_bound
+theorem bregman_projection_fiber_norm_bound_fixed_initialization
     (M : Matrix ι ι ℝ) (α : EuclideanSpace ℝ ι) (hα : NonzeroCoordinates α) :
     ∃ C ε₀ : ℝ, 0 < C ∧ 0 < ε₀ ∧
       ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ →
@@ -1691,6 +1733,32 @@ theorem bregman_projection_fiber_norm_bound
         ring
     _ ≤ ((Fintype.card ι : ℝ) + ‖α‖ ^ 2 + K * C₀ + C₀ ^ 2 + 1) * (1 + ‖y‖ ^ 2) := hfinal
 
+/-- Faithful quantifier order for Lemma 4.5: `C` depends only on the matrix
+(and the ambient finite dimension), while the smallness threshold may depend
+on the initialization `α`.
+
+The proof compares the Bregman minimizer with the nonnegative minimum-norm
+solution from Lemma 4.7. Uniform entropy estimates absorb the fixed
+`log(αᵢ²)` terms by choosing `ε₀(α)` sufficiently small; the remaining
+polynomial coefficient depends only on `M` and the dimension. This is the
+argument around Eq. (4.8) in <https://arxiv.org/abs/2509.18766>, cross-checked
+with the standard convex minimizer framework in Boyd--Vandenberghe
+<https://web.stanford.edu/~boyd/cvxbook/>.
+-/
+theorem bregman_projection_fiber_norm_bound (M : Matrix ι ι ℝ) :
+    ∃ C : ℝ, 0 < C ∧
+      ∀ α : EuclideanSpace ℝ ι, NonzeroCoordinates α →
+        ∃ ε₀ : ℝ, 0 < ε₀ ∧
+          ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ →
+            ∀ y : EuclideanSpace ℝ ι,
+              (∃ u : EuclideanSpace ℝ ι, Nonnegative u ∧ matVec M u = y) →
+              ∀ x : EuclideanSpace ℝ ι, Nonnegative x →
+                IsMinOn
+                    (fun z => entropyBregman z (ε • coordinateSquare α))
+                    {z | Nonnegative z ∧ matVec M z = y} x →
+                  ‖x‖ ≤ C * (1 + ‖y‖ ^ 2) := by
+  sorry
+
 /--
 Proposition 4.1 from `docs/Lasso.md`: the positive effective trajectories are
 uniformly bounded in time for all sufficiently small initializations.
@@ -1704,8 +1772,7 @@ theorem pos_trajectory_uniform_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (α : EuclideanSpace ℝ ι) (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hα : NonzeroCoordinates α)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε))
-    (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0) :
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε α (u ε)) :
     ∃ C ε₀ : ℝ, 0 < C ∧ 0 < ε₀ ∧
       ∀ ε : ℝ, 0 < ε → ε ≤ ε₀ → ∀ t : ℝ,
         0 ≤ t → ‖posEffectiveParameter (u ε) t‖ ≤ C := by
@@ -1715,13 +1782,14 @@ theorem pos_trajectory_uniform_bound
     -- (`bregman_projection_fiber_norm_bound`) as in the proof of Prop. 4.1.
     subst hlam0
     obtain ⟨C₃, hC₃0, hC₃⟩ := pos_trajectory_matVec_uniform_bound M r α u hdata hα hu
-    obtain ⟨C₄, ε₀breg, hC₄0, hε₀breg0, hC₄⟩ := bregman_projection_fiber_norm_bound M α hα
+    obtain ⟨C₄, hC₄0, hC₄all⟩ := bregman_projection_fiber_norm_bound M
+    obtain ⟨ε₀breg, hε₀breg0, hC₄⟩ := hC₄all α hα
     refine ⟨C₄ * (1 + C₃ ^ 2), min ε₀breg 1, by positivity, lt_min hε₀breg0 one_pos, ?_⟩
     intro ε hε0 hεε₀ t ht
     have hε_breg : ε ≤ ε₀breg := hεε₀.trans (min_le_left _ _)
     have hε1 : ε ≤ 1 := hεε₀.trans (min_le_right _ _)
     have hchar := bregman_projection_characterization M r ε α (u ε) hdata (hu ε hε0)
-      (hu_pos ε hε0) t
+      hε0 hα t
     have hzero_eq : posEffectiveParameter (u ε) 0 = ε • coordinateSquare α :=
       posEffectiveParameter_zero_eq_smul_coordinateSquare M r 0 ε α (u ε) (hu ε hε0) hε0.le
     rw [hzero_eq] at hchar

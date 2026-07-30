@@ -498,7 +498,7 @@ lemma pos_delta_bound_3
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -508,6 +508,130 @@ lemma pos_delta_bound_3
   -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
   -- This gives a constant X > 0 such that for all sufficiently small ε and all
   -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
+  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
+    intro ε hε t i
+    have hM_symm : M.IsSymm := hdata.psd.symm
+    have hflow := hu ε hε
+    set x := fun τ => posEffectiveParameter (u ε) τ with hx_def
+    -- Initial value x(0) = ε • β², so x_i(0) = ε * β_i² ≠ 0
+    have hx0 : x 0 = ε • coordinateSquare β := by
+      change posEffectiveParameter (u ε) 0 = _
+      rw [posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε)
+        hflow (by linarith)]
+    have hx0_i : (x 0) i = ε * (β i * β i) := by
+      rw [hx0]; simp [coordinateSquare, euclideanOf]
+    have hx0_ne_zero : (x 0) i ≠ 0 := by
+      rw [hx0_i]
+      have hβ_sq_ne_zero : β i * β i ≠ 0 := mul_ne_zero (hβ i) (hβ i)
+      exact mul_ne_zero (by linarith) hβ_sq_ne_zero
+    -- ODE for x(t) from the gradient flow
+    have hx_ode_all := pos_effective_parameter_hasDerivAt M r lambda ε β (u ε) hflow hM_symm
+    have hx_ode_t := hx_ode_all t
+    -- Linear isomorphism to pull back componentwise derivatives
+    let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+    have h_pi : HasDerivAt (fun τ => e (x τ))
+        (e (positiveEffectiveVectorField M r lambda (x t))) t :=
+      e.hasFDerivAt.comp_hasDerivAt t hx_ode_t
+    have hxi_deriv : HasDerivAt (fun τ => (x τ) i)
+        (-4 * (x t) i * ((matVec M (x t)) i - r i + lambda)) t := by
+      have h := hasDerivAt_pi.1 h_pi i
+      simpa [e, positiveEffectiveVectorField, euclideanOf] using h
+    -- Define a_i(τ) = -4 * ((M x(τ))_i - r_i + λ), so that x_i'(τ) = a_i(τ) * x_i(τ)
+    set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lambda) with ha_def
+    have hxi_deriv' : HasDerivAt (fun τ => (x τ) i) (a_i t * (x t) i) t := by
+      have h_eq : -4 * (x t) i * ((matVec M (x t)) i - r i + lambda) = a_i t * (x t) i := by
+        dsimp [a_i]
+        let x_i : ℝ := (x t) i
+        let M_i : ℝ := (matVec M (x t)) i
+        let r_i : ℝ := r i
+        let lam : ℝ := lambda
+        change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
+        ring
+      exact h_eq ▸ hxi_deriv
+    -- Componentwise ODE at any time τ
+    have hxi_deriv_at (τ : ℝ) : HasDerivAt (fun τ => (x τ) i) (a_i τ * (x τ) i) τ := by
+      have hx_ode := hx_ode_all τ
+      have h_pi' : HasDerivAt (fun τ => e (x τ))
+          (e (positiveEffectiveVectorField M r lambda (x τ))) τ :=
+        e.hasFDerivAt.comp_hasDerivAt τ hx_ode
+      have h := hasDerivAt_pi.1 h_pi' i
+      have h_eq : (e (positiveEffectiveVectorField M r lambda (x τ))) i = a_i τ * (x τ) i := by
+        dsimp [e, positiveEffectiveVectorField, euclideanOf, a_i]
+        let x_i : ℝ := (x τ) i
+        let M_i : ℝ := (matVec M (x τ)) i
+        let r_i : ℝ := r i
+        let lam : ℝ := lambda
+        change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
+        ring
+      exact h_eq ▸ h
+    -- a_i is continuous (x is C^1, matVec is linear)
+    have ha_cont : Continuous a_i := by
+      dsimp [a_i]
+      have hx_cont (j : ι) : Continuous (fun τ => (x τ) j) := by
+        change Continuous (fun τ => e (u ε τ) j * e (u ε τ) j)
+        have h1 : Continuous (fun τ => e (u ε τ)) := e.continuous.comp hflow.cont_diff.continuous
+        have huj : Continuous (fun τ => e (u ε τ) j) := (continuous_apply j).comp h1
+        exact huj.mul huj
+      have h_matVec : Continuous (fun τ => (matVec M (x τ)) i) := by
+        dsimp [matVec, euclideanOf]
+        apply continuous_finsetSum
+        intro j _
+        exact continuous_const.mul (hx_cont j)
+      exact h_matVec.sub continuous_const |>.add continuous_const |>.const_mul (-4)
+    -- Integrating factor: I(τ) = ∫₀^τ a_i(s) ds, E(τ) = exp(-I(τ))
+    have h_int_deriv (τ : ℝ) : HasDerivAt (fun τ => ∫ s in (0:ℝ)..τ, a_i s) (a_i τ) τ := by
+      apply intervalIntegral.integral_hasDerivAt_right
+        (ha_cont.intervalIntegrable _ _) (ha_cont.stronglyMeasurableAtFilter _ _)
+        ha_cont.continuousAt
+    set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s with hI_def
+    have hI_deriv (τ : ℝ) : HasDerivAt I (a_i τ) τ := h_int_deriv τ
+    have hE_deriv (τ : ℝ) : HasDerivAt (fun τ => Real.exp (-I τ))
+        (-a_i τ * Real.exp (-I τ)) τ := by
+      have h_neg_I : HasDerivAt (-I) (-a_i τ) τ := (hI_deriv τ).neg
+      have h_exp :
+          HasDerivAt (fun x => Real.exp ((-I) x))
+            (Real.exp ((-I) τ) * -a_i τ) τ := h_neg_I.exp
+      have h_eq2 : Real.exp ((-I) τ) * -a_i τ = -a_i τ * Real.exp (-I τ) := mul_comm _ _
+      exact h_eq2 ▸ h_exp
+    set E := fun (τ : ℝ) => Real.exp (-I τ) with hE_def
+    have hE_pos : ∀ τ, 0 < E τ := by
+      intro τ; dsimp [E]; exact Real.exp_pos _
+    -- Product rule: (x_i * E)' = x_i' * E + x_i * E' = (a_i * x_i) * E + x_i * (-a_i * E) = 0
+    have h_prod_deriv (τ : ℝ) : HasDerivAt (fun τ => (x τ) i * E τ) 0 τ := by
+      have hxi := hxi_deriv_at τ
+      have hE := hE_deriv τ
+      have h_mul := HasDerivAt.mul hxi hE
+      have h_eq : a_i τ * (x τ) i * E τ + (x τ) i * (-a_i τ * Real.exp (-I τ)) = 0 := by
+        dsimp [E]
+        let a : ℝ := a_i τ
+        let x_i : ℝ := (x τ) i
+        let E_t : ℝ := Real.exp (-I τ)
+        change a * x_i * E_t + x_i * (-a * E_t) = 0
+        ring
+      exact h_eq ▸ h_mul
+    -- Zero derivative everywhere implies constant
+    have h_prod_const : ∀ τ, (x τ) i * E τ = (x 0) i * E 0 := by
+      set f := fun (τ : ℝ) => (x τ) i * E τ with hf_def
+      have h_diff : Differentiable ℝ f := fun τ => (h_prod_deriv τ).differentiableAt
+      have h_deriv_eq_zero : ∀ τ, deriv f τ = 0 := fun τ => (h_prod_deriv τ).deriv
+      have h_const := is_const_of_deriv_eq_zero h_diff h_deriv_eq_zero
+      intro τ
+      exact h_const τ 0
+    have hE0 : E 0 = 1 := by
+      dsimp [E, I]; simp
+    -- Conclusion: (x t) i * E t = (x 0) i ≠ 0, and E t > 0, so (x t) i ≠ 0
+    have hx_t_ne_zero : (x t) i ≠ 0 := by
+      have h_eq := h_prod_const t
+      rw [hE0] at h_eq
+      intro hzero
+      have h_symm : (x 0) i = 0 := by
+        calc (x 0) i = (x 0) i * 1 := by ring
+        _ = (x t) i * E t := h_eq.symm
+        _ = 0 * E t := by rw [hzero]
+        _ = 0 := by ring
+      exact hx0_ne_zero h_symm
+    simpa [hx_def] using hx_t_ne_zero
   have h_uniform_bound : ∃ X > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X := by
     -- The existing theorem `pos_trajectory_uniform_bound` in MirrorFlow.lean
@@ -517,131 +641,9 @@ lemma pos_delta_bound_3
     -- flow ODE: u_i'(t) = -2 u_i(t) * ((M x(t))_i - r_i + λ), a linear ODE
     -- whose solution u_i(t) = u_i(0) exp(∫₀ᵗ A_i) never crosses zero when
     -- u_i(0) = √ε β_i ≠ 0.  The formal lemma is not yet proved.
-    have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
-      intro ε hε t i
-      have hM_symm : M.IsSymm := hdata.psd.symm
-      have hflow := hu ε hε
-      set x := fun τ => posEffectiveParameter (u ε) τ with hx_def
-      -- Initial value x(0) = ε • β², so x_i(0) = ε * β_i² ≠ 0
-      have hx0 : x 0 = ε • coordinateSquare β := by
-        change posEffectiveParameter (u ε) 0 = _
-        rw [posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε)
-          hflow (by linarith)]
-      have hx0_i : (x 0) i = ε * (β i * β i) := by
-        rw [hx0]; simp [coordinateSquare, euclideanOf]
-      have hx0_ne_zero : (x 0) i ≠ 0 := by
-        rw [hx0_i]
-        have hβ_sq_ne_zero : β i * β i ≠ 0 := mul_ne_zero (hβ i) (hβ i)
-        exact mul_ne_zero (by linarith) hβ_sq_ne_zero
-      -- ODE for x(t) from the gradient flow
-      have hx_ode_all := pos_effective_parameter_hasDerivAt M r lambda ε β (u ε) hflow hM_symm
-      have hx_ode_t := hx_ode_all t
-      -- Linear isomorphism to pull back componentwise derivatives
-      let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
-      have h_pi : HasDerivAt (fun τ => e (x τ))
-          (e (positiveEffectiveVectorField M r lambda (x t))) t :=
-        e.hasFDerivAt.comp_hasDerivAt t hx_ode_t
-      have hxi_deriv : HasDerivAt (fun τ => (x τ) i)
-          (-4 * (x t) i * ((matVec M (x t)) i - r i + lambda)) t := by
-        have h := hasDerivAt_pi.1 h_pi i
-        simpa [e, positiveEffectiveVectorField, euclideanOf] using h
-      -- Define a_i(τ) = -4 * ((M x(τ))_i - r_i + λ), so that x_i'(τ) = a_i(τ) * x_i(τ)
-      set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lambda) with ha_def
-      have hxi_deriv' : HasDerivAt (fun τ => (x τ) i) (a_i t * (x t) i) t := by
-        have h_eq : -4 * (x t) i * ((matVec M (x t)) i - r i + lambda) = a_i t * (x t) i := by
-          dsimp [a_i]
-          let x_i : ℝ := (x t) i
-          let M_i : ℝ := (matVec M (x t)) i
-          let r_i : ℝ := r i
-          let lam : ℝ := lambda
-          change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
-          ring
-        exact h_eq ▸ hxi_deriv
-      -- Componentwise ODE at any time τ
-      have hxi_deriv_at (τ : ℝ) : HasDerivAt (fun τ => (x τ) i) (a_i τ * (x τ) i) τ := by
-        have hx_ode := hx_ode_all τ
-        have h_pi' : HasDerivAt (fun τ => e (x τ))
-            (e (positiveEffectiveVectorField M r lambda (x τ))) τ :=
-          e.hasFDerivAt.comp_hasDerivAt τ hx_ode
-        have h := hasDerivAt_pi.1 h_pi' i
-        have h_eq : (e (positiveEffectiveVectorField M r lambda (x τ))) i = a_i τ * (x τ) i := by
-          dsimp [e, positiveEffectiveVectorField, euclideanOf, a_i]
-          let x_i : ℝ := (x τ) i
-          let M_i : ℝ := (matVec M (x τ)) i
-          let r_i : ℝ := r i
-          let lam : ℝ := lambda
-          change -4 * x_i * (M_i - r_i + lam) = -4 * (M_i - r_i + lam) * x_i
-          ring
-        exact h_eq ▸ h
-      -- a_i is continuous (x is C^1, matVec is linear)
-      have ha_cont : Continuous a_i := by
-        dsimp [a_i]
-        have hx_cont (j : ι) : Continuous (fun τ => (x τ) j) := by
-          change Continuous (fun τ => e (u ε τ) j * e (u ε τ) j)
-          have h1 : Continuous (fun τ => e (u ε τ)) := e.continuous.comp hflow.cont_diff.continuous
-          have huj : Continuous (fun τ => e (u ε τ) j) := (continuous_apply j).comp h1
-          exact huj.mul huj
-        have h_matVec : Continuous (fun τ => (matVec M (x τ)) i) := by
-          dsimp [matVec, euclideanOf]
-          apply continuous_finsetSum
-          intro j _
-          exact continuous_const.mul (hx_cont j)
-        exact h_matVec.sub continuous_const |>.add continuous_const |>.const_mul (-4)
-      -- Integrating factor: I(τ) = ∫₀^τ a_i(s) ds, E(τ) = exp(-I(τ))
-      have h_int_deriv (τ : ℝ) : HasDerivAt (fun τ => ∫ s in (0:ℝ)..τ, a_i s) (a_i τ) τ := by
-        apply intervalIntegral.integral_hasDerivAt_right
-          (ha_cont.intervalIntegrable _ _) (ha_cont.stronglyMeasurableAtFilter _ _)
-          ha_cont.continuousAt
-      set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s with hI_def
-      have hI_deriv (τ : ℝ) : HasDerivAt I (a_i τ) τ := h_int_deriv τ
-      have hE_deriv (τ : ℝ) : HasDerivAt (fun τ => Real.exp (-I τ))
-          (-a_i τ * Real.exp (-I τ)) τ := by
-        have h_neg_I : HasDerivAt (-I) (-a_i τ) τ := (hI_deriv τ).neg
-        have h_exp : HasDerivAt (fun x => Real.exp ((-I) x)) (Real.exp ((-I) τ) * -a_i τ) τ := h_neg_I.exp
-        have h_eq2 : Real.exp ((-I) τ) * -a_i τ = -a_i τ * Real.exp (-I τ) := mul_comm _ _
-        exact h_eq2 ▸ h_exp
-      set E := fun (τ : ℝ) => Real.exp (-I τ) with hE_def
-      have hE_pos : ∀ τ, 0 < E τ := by
-        intro τ; dsimp [E]; exact Real.exp_pos _
-      -- Product rule: (x_i * E)' = x_i' * E + x_i * E' = (a_i * x_i) * E + x_i * (-a_i * E) = 0
-      have h_prod_deriv (τ : ℝ) : HasDerivAt (fun τ => (x τ) i * E τ) 0 τ := by
-        have hxi := hxi_deriv_at τ
-        have hE := hE_deriv τ
-        have h_mul := HasDerivAt.mul hxi hE
-        have h_eq : a_i τ * (x τ) i * E τ + (x τ) i * (-a_i τ * Real.exp (-I τ)) = 0 := by
-          dsimp [E]
-          let a : ℝ := a_i τ
-          let x_i : ℝ := (x τ) i
-          let E_t : ℝ := Real.exp (-I τ)
-          change a * x_i * E_t + x_i * (-a * E_t) = 0
-          ring
-        exact h_eq ▸ h_mul
-      -- Zero derivative everywhere implies constant
-      have h_prod_const : ∀ τ, (x τ) i * E τ = (x 0) i * E 0 := by
-        set f := fun (τ : ℝ) => (x τ) i * E τ with hf_def
-        have h_diff : Differentiable ℝ f := fun τ => (h_prod_deriv τ).differentiableAt
-        have h_deriv_eq_zero : ∀ τ, deriv f τ = 0 := fun τ => (h_prod_deriv τ).deriv
-        have h_const := is_const_of_deriv_eq_zero h_diff h_deriv_eq_zero
-        intro τ
-        exact h_const τ 0
-      have hE0 : E 0 = 1 := by
-        dsimp [E, I]; simp
-      -- Conclusion: (x t) i * E t = (x 0) i ≠ 0, and E t > 0, so (x t) i ≠ 0
-      have hx_t_ne_zero : (x t) i ≠ 0 := by
-        have h_eq := h_prod_const t
-        rw [hE0] at h_eq
-        intro hzero
-        have h_symm : (x 0) i = 0 := by
-          calc (x 0) i = (x 0) i * 1 := by ring
-          _ = (x t) i * E t := h_eq.symm
-          _ = 0 * E t := by rw [hzero]
-          _ = 0 := by ring
-        exact hx0_ne_zero h_symm
-      simpa [hx_def] using hx_t_ne_zero
     -- Apply the uniform trajectory bound (Proposition 4.1 from the paper).
     obtain ⟨C, ε₀, hCpos, hε₀pos, hbound⟩ :=
-      pos_trajectory_uniform_bound M r lambda β u hdata hβ hu hu_pos
+      pos_trajectory_uniform_bound M r lambda β u hdata hβ hu
     -- Shrink ε₀ to also be ≤ 1, so that log(1/ε) ≥ 0 for the rescaled time.
     set ε₁ := min ε₀ 1
     have hε₁pos : 0 < ε₁ := lt_min hε₀pos one_pos
@@ -858,7 +860,7 @@ lemma pos_delta_bound_4
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -887,7 +889,7 @@ lemma positive_delta_complementarity_bound
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         deriv
@@ -961,7 +963,7 @@ theorem positive_delta_differential_inequality
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         deriv
@@ -1060,7 +1062,7 @@ theorem positive_path_delta_bound_full
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       pathDelta M
         (fun τ => posIntegratedTrajectoryRescaled ε (u ε) τ)
@@ -1110,7 +1112,9 @@ theorem positive_path_delta_bound_full
   integrated trajectories. They are continuous everywhere.
   Applying the integration lemma yields F(s) ≤ G(s).
   -/
-  have h_bound_s := bound_of_deriv_bound (le_of_lt hs) h_deriv_bound hF0 hG0 hF_cont hG_cont hF_diff hG_diff
+  have h_bound_s :=
+    bound_of_deriv_bound (le_of_lt hs) h_deriv_bound hF0 hG0 hF_cont hG_cont
+      hF_diff hG_diff
   have hG_eval : G s = C * (deltaFullError ε s (positiveZUpward x_lasso s)
       (positiveZDownward x_lasso s) + δ) := by
     dsimp [G, deltaFullError, deltaVanishingTerm]
@@ -1145,7 +1149,7 @@ theorem positive_path_delta_bound
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       pathDelta M
         (fun τ => posIntegratedTrajectoryRescaled ε (u ε) τ)

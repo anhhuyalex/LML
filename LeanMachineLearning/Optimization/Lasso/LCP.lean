@@ -11,6 +11,7 @@ public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Slope
 public import Mathlib.Analysis.Real.Sqrt
 public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
 
 /-!
 # Linear Complementarity Problem (LCP) Formulations for Lasso
@@ -23,6 +24,8 @@ This file formalizes the primal-dual LCP formulations of the Lasso regularizatio
 namespace Lasso
 
 variable {ι : Type*} [Fintype ι]
+
+open scoped ENNReal
 
 /-- The affine term `q = -r + (lambda + 1 / μ) * 1` in the positive-lasso LCP. -/
 noncomputable def lcpQ (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) :
@@ -55,6 +58,48 @@ structure LocallyLipschitzOnCompacts (f : ℝ → EuclideanSpace ℝ ι) : Prop 
       ∃ K : ℝ, 0 ≤ K ∧
         ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b,
           ‖f μ - f ν‖ ≤ K * |μ - ν|
+
+/-- Absolute continuity on every compact subinterval of `(0, ∞)`.
+
+This is the regularity hypothesis used for the selected Lasso path in
+Theorems 2.2 and 3.2.  It deliberately says `0 < a`: the source theorem only
+assumes regularity locally away from the singular endpoint `μ = 0`.
+-/
+structure LocallyAbsolutelyContinuousOnPositiveCompacts
+    (f : ℝ → EuclideanSpace ℝ ι) : Prop where
+  absolutelyContinuousOn_Icc :
+    ∀ a b : ℝ, 0 < a → a ≤ b → AbsolutelyContinuousOnInterval f a b
+
+/-- Absolute continuity on every compact subinterval of `[0, ∞)`.
+
+Lemma 4.12 supplies this stronger endpoint-inclusive property for the scaled
+path `z(μ) = μ x(μ)` under coordinatewise monotonicity.
+-/
+structure LocallyAbsolutelyContinuousOnNonnegativeCompacts
+    (f : ℝ → EuclideanSpace ℝ ι) : Prop where
+  absolutelyContinuousOn_Icc :
+    ∀ a b : ℝ, 0 ≤ a → a ≤ b → AbsolutelyContinuousOnInterval f a b
+
+/-- A local Lipschitz estimate on `[0, ∞)` implies local absolute continuity.
+
+Mathlib reference:
+`LipschitzOnWith.absolutelyContinuousOnInterval` in
+`Mathlib/MeasureTheory/Function/AbsolutelyContinuous.lean`.
+-/
+lemma LocallyLipschitzOnCompacts.absolutelyContinuous
+    {f : ℝ → EuclideanSpace ℝ ι} (hf : LocallyLipschitzOnCompacts f) :
+    LocallyAbsolutelyContinuousOnNonnegativeCompacts f := by
+  constructor
+  intro a b ha hab
+  obtain ⟨K, hK, hKbound⟩ := hf.lipschitz_on_Icc a b ha hab
+  have hlip : LipschitzOnWith K.toNNReal f (Set.Icc a b) := by
+    apply LipschitzOnWith.of_dist_le_mul (K := K.toNNReal)
+    intro μ hμ ν hν
+    simpa [dist_eq_norm, Real.dist_eq, Real.toNNReal_of_nonneg hK] using
+      hKbound μ hμ ν hν
+  have hlip' : LipschitzOnWith K.toNNReal f (Set.uIcc a b) := by
+    simpa [Set.uIcc_of_le hab] using hlip
+  exact hlip'.absolutelyContinuousOnInterval
 
 /-- The scaled dual path `w(μ) / (1 + μ lambda)` from Lemma 4.11. -/
 noncomputable def scaledDualPath (lambda : ℝ) (w : ℝ → EuclideanSpace ℝ ι) :
@@ -236,6 +281,23 @@ noncomputable def pseudoInverseSeminorm
     (Mdagger : Matrix ι ι ℝ) (x : EuclideanSpace ℝ ι) : ℝ :=
   Real.sqrt (max 0 (inner ℝ x (matVec Mdagger x)))
 
+/-- The properties of `M†` actually used by the Lasso proof.
+
+Mathlib currently has no canonical Moore--Penrose inverse for these real
+matrices. Rather than accepting an unconstrained matrix called `Mdagger`, this
+predicate records positivity and the generalized-inverse identity on
+`range(M)`. The Moore--Penrose inverse of a symmetric PSD matrix satisfies both
+properties (via its spectral decomposition); see Barata--Hussein,
+*The Moore--Penrose Pseudoinverse: A Tutorial Review of the Theory*
+<https://arxiv.org/abs/1110.6882> and the four Penrose equations summarized at
+<https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse>.
+-/
+structure IsPSDRangeInverse (M Mdagger : Matrix ι ι ℝ) : Prop where
+  psd : IsPositiveSemidefinite Mdagger
+  range_inverse :
+    ∀ v : EuclideanSpace ℝ ι,
+      matVec M (matVec Mdagger (matVec M v)) = matVec M v
+
 /--
 Regularity package for the unique dual solution of the parametric LCP.
 This abstracts the three conclusions of Lemma 4.11: absolute continuity
@@ -245,7 +307,12 @@ uniform derivative bound in the `M†` seminorm used in `docs/Lasso.md`.
 structure ParametricLCPDualRegular
     (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (w : ℝ → EuclideanSpace ℝ ι) : Prop where
+  inverse_spec : IsPSDRangeInverse M Mdagger
+  is_dual_solution :
+    ∃ z : ℝ → EuclideanSpace ℝ ι,
+      ∀ μ, 0 ≤ μ → isLCP M (parametricLcpQ r lambda μ) (z μ) (w μ)
   locally_lipschitz : LocallyLipschitzOnCompacts w
+  absolutely_continuous : LocallyAbsolutelyContinuousOnNonnegativeCompacts w
   scaled_derivative_in_span :
     ∀ μ, 0 ≤ μ → InMatrixSpan M (deriv (scaledDualPath lambda w) μ)
   scaled_derivative_bound :
@@ -561,14 +628,14 @@ Since `q > 0` and `M` is PSD, this is the unique solution: any nonzero
 lemma parametricLcpQ_pos
     (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
     (hμ : 0 ≤ μ)
-    (hμ_small : μ * ‖(WithLp.equiv 2 _).symm (fun i => r i - lambda)‖ < 1) (i : ι) :
+    (hμ_small : μ * ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ < 1) (i : ι) :
     0 < parametricLcpQ r lambda μ i := by
-  have h_bound : |r i - lambda| ≤ ‖(WithLp.equiv 2 _).symm (fun i => r i - lambda)‖ := by
-    have h := PiLp.norm_apply_le ((WithLp.equiv 2 _).symm (fun j => r j - lambda)) i
+  have h_bound : |r i - lambda| ≤ ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ := by
+    have h := PiLp.norm_apply_le ((WithLp.equiv ∞ _).symm (fun j => r j - lambda)) i
     have h_abs : ‖r i - lambda‖ = |r i - lambda| := Real.norm_eq_abs _
     rw [← h_abs]
     exact h
-  have h_bound2 : μ * |r i - lambda| ≤ μ * ‖(WithLp.equiv 2 _).symm (fun i => r i - lambda)‖ := by
+  have h_bound2 : μ * |r i - lambda| ≤ μ * ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ := by
     exact mul_le_mul_of_nonneg_left h_bound hμ
   have h_bound3 : μ * |r i - lambda| < 1 := by
     linarith [h_bound2, hμ_small]
@@ -580,11 +647,11 @@ lemma parametricLcpQ_pos
   rw [h_q_eq]
   linarith
 
-lemma parametric_lcp_unique_small_mu
+lemma parametric_lcp_unique_of_mul_supNorm_lt_one
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
     (hM_psd : IsPositiveSemidefinite M)
     (hμ : 0 ≤ μ)
-    (hμ_small : μ * ‖(WithLp.equiv 2 _).symm (fun i => r i - lambda)‖ < 1) :
+    (hμ_small : μ * ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ < 1) :
     ∃! p : EuclideanSpace ℝ ι × EuclideanSpace ℝ ι,
       isParametricLCP M r lambda μ p.1 p.2 := by
   let q := parametricLcpQ r lambda μ
@@ -1073,6 +1140,38 @@ theorem nonnegative_solution_norm_bound
       exact h_bound
     exact ⟨h_nonneg, h_sum, h_norm⟩
 
+/-- A minimum-Euclidean-norm solution of the nonnegative linear fiber.
+
+The membership conjunct is part of the predicate: `IsMinOn` by itself does not
+assert that its proposed minimizer belongs to the set.
+-/
+def IsNonnegativeMinNormSolution {κ : Type*} [Fintype κ]
+    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) (x : κ → ℝ) : Prop :=
+  (∀ i, 0 ≤ x i) ∧ (∑ i, x i • a i) = y ∧
+    IsMinOn (fun z : κ → ℝ => ‖euclideanOf z‖)
+      {z | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} x
+
+/-- Faithful argmin form of Lemma 4.7.
+
+For each feasible `y`, the closed convex nonnegative fiber has a unique
+minimum-norm point.  Conic Carathéodory gives a linearly independent active
+subfamily and therefore one feasible point bounded by `C ‖y‖`; minimality
+transfers this bound to the argmin.  Uniqueness follows by minimizing the
+strictly convex squared Euclidean norm on a convex set.  This is the proof in
+Lemma 4.7 of <https://arxiv.org/abs/2509.18766>, cross-checked against the
+conic Carathéodory argument in Bertsekas' MIT convex-analysis slides
+<https://web.mit.edu/dimitrib/OldFiles/www/Convex_Slides.pdf>.
+-/
+theorem nonnegative_minNorm_solution_norm_bound
+    {κ : Type*} [Fintype κ] (a : κ → EuclideanSpace ℝ ι) :
+    ∃ C : ℝ, 0 < C ∧
+      ∀ y : EuclideanSpace ℝ ι, InCone a y →
+        ∃ x : κ → ℝ,
+          IsNonnegativeMinNormSolution a y x ∧
+          (∀ x', IsNonnegativeMinNormSolution a y x' → x' = x) ∧
+          ‖euclideanOf x‖ ≤ C * ‖y‖ := by
+  sorry
+
 /--
 The positive lasso objective achieves its minimum on the non-negative orthant.
 Informal proof: The positive lasso objective is a convex quadratic function. Since the problem data
@@ -1556,6 +1655,61 @@ lemma scaled_dual_lcp_key_ineq
     rw [h_quad_zero]
     nlinarith [abs_nonneg (ds), abs_nonneg (inner ℝ r d)]
 
+/-- Faithful exact-solution form of Lemma 4.10 for the parametric LCP.
+
+The threshold is stated with the finite-dimensional `ℓ∞` norm, exactly as in
+`docs/Lasso.md`.  The Lean argument is the paper argument: the threshold makes
+every coordinate of `q(μ)` strictly positive; `(z,w)=(0,q(μ))` is feasible;
+and PSD plus complementarity forces `z=0`, after which the affine equation
+forces `w=q(μ)`.  See Lemma 4.10 of the source paper
+<https://arxiv.org/abs/2509.18766> and the standard LCP definition in Cottle,
+Pang, and Stone, *The Linear Complementarity Problem*, Chapter 1
+<https://epubs.siam.org/doi/book/10.1137/1.9780898719000>.
+-/
+theorem parametric_lcp_eq_iff_of_small_mu
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (hM_psd : IsPositiveSemidefinite M) (hμ : 0 ≤ μ)
+    (hμ_small :
+      μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1) :
+    ∀ z w : EuclideanSpace ℝ ι,
+      isParametricLCP M r lambda μ z w ↔
+        z = 0 ∧ w = parametricLcpQ r lambda μ := by
+  sorry
+
+/-- Existential-uniqueness packaging of the faithful Lemma 4.10 threshold.
+
+The more informative theorem `parametric_lcp_eq_iff_of_small_mu` identifies
+the solution explicitly; this declaration is retained for clients that only
+need `∃!`.
+-/
+theorem parametric_lcp_unique_small_mu
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (hM_psd : IsPositiveSemidefinite M) (hμ : 0 ≤ μ)
+    (hμ_small :
+      μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1) :
+    ∃! p : EuclideanSpace ℝ ι × EuclideanSpace ℝ ι,
+      isParametricLCP M r lambda μ p.1 p.2 := by
+  sorry
+
+/-- The unscaled positive-Lasso LCP conclusion in the second sentence of
+Lemma 4.10.
+
+For `μ > 0`, divide the parametric variables and equations by `μ`.  The exact
+parametric solution above becomes `x=0` and
+`v=-r+(λ+1/μ)𝟙`.  This is the same scaling calculation as in Lemma 4.10 of
+<https://arxiv.org/abs/2509.18766>; the LCP conventions are cross-checked
+against Cottle--Pang--Stone
+<https://epubs.siam.org/doi/book/10.1137/1.9780898719000>.
+-/
+theorem lcp_eq_iff_of_small_mu
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (hM_psd : IsPositiveSemidefinite M) (hμ : 0 < μ)
+    (hμ_small :
+      μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1) :
+    ∀ x v : EuclideanSpace ℝ ι,
+      isLCP M (lcpQ r lambda μ) x v ↔ x = 0 ∧ v = lcpQ r lambda μ := by
+  sorry
+
 /-- Helper lemma: Bound for |s(μ) - s(ν)| -/
 lemma scaled_dual_lcp_s_diff_bound (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda)
     {μ ν : ℝ} (hμ_nonneg : 0 ≤ μ) (hν_nonneg : 0 ≤ ν) :
@@ -2003,15 +2157,20 @@ theorem parametric_lcp_dual_regular
           isParametricLCP M r lambda μ z₁ w₁ →
           isParametricLCP M r lambda μ z₂ w₂ →
           w₁ = w₂)
-    (h_mp : ∀ v : EuclideanSpace ℝ ι, matVec M (matVec Mdagger (matVec M v)) = matVec M v) :
+    (hinverse : IsPSDRangeInverse M Mdagger) :
     ParametricLCPDualRegular M Mdagger r lambda w := by
   rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
   rcases derivative_properties_of_lipschitz M Mdagger r lambda z w
-    ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩ hsol h_mp with ⟨h_span, h_bound⟩
+    ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩ hsol hinverse.range_inverse with
+      ⟨h_span, h_bound⟩
+  have hw_lipschitz : LocallyLipschitzOnCompacts w :=
+    locallyLipschitzOnCompacts_of_scaledDual_lipschitz lambda hlambda_nonneg w
+      (scaled_dual_lipschitz M r lambda z w ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩ hsol)
   exact
-    { locally_lipschitz :=
-        locallyLipschitzOnCompacts_of_scaledDual_lipschitz lambda hlambda_nonneg w
-          (scaled_dual_lipschitz M r lambda z w ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩ hsol)
+    { inverse_spec := hinverse
+      is_dual_solution := ⟨z, hsol⟩
+      locally_lipschitz := hw_lipschitz
+      absolutely_continuous := hw_lipschitz.absolutelyContinuous
       scaled_derivative_in_span := h_span
       scaled_derivative_bound := h_bound }
 
