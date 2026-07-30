@@ -511,7 +511,7 @@ private lemma pos_param_ne_zero_of_gradient_flow
     have h := hasDerivAt_pi.1 h_pi i
     simpa [e, positiveEffectiveVectorField, euclideanOf] using h
   -- Define a_i(τ) = -4 * ((M x(τ))_i - r_i + λ), so that x_i'(τ) = a_i(τ) * x_i(τ)
-  set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lam) with ha_def
+  set a_i := fun (τ : ℝ) => -4 * ((matVec M (x τ)) i - r i + lam)
   have hxi_deriv' : HasDerivAt (fun τ => (x τ) i) (a_i t * (x t) i) t := by
     have h_eq : -4 * (x t) i * ((matVec M (x t)) i - r i + lam) = a_i t * (x t) i := by
       dsimp [a_i]
@@ -552,7 +552,7 @@ private lemma pos_param_ne_zero_of_gradient_flow
     apply intervalIntegral.integral_hasDerivAt_right
       (ha_cont.intervalIntegrable _ _) (ha_cont.stronglyMeasurableAtFilter _ _)
       ha_cont.continuousAt
-  set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s with hI_def
+  set I := fun (τ : ℝ) => ∫ s in (0:ℝ)..τ, a_i s
   have hI_deriv (τ : ℝ) : HasDerivAt I (a_i τ) τ := h_int_deriv τ
   have hE_deriv (τ : ℝ) : HasDerivAt (fun τ => Real.exp (-I τ))
       (-a_i τ * Real.exp (-I τ)) τ := by
@@ -562,7 +562,7 @@ private lemma pos_param_ne_zero_of_gradient_flow
           (Real.exp ((-I) τ) * -a_i τ) τ := h_neg_I.exp
     have h_eq2 : Real.exp ((-I) τ) * -a_i τ = -a_i τ * Real.exp (-I τ) := mul_comm _ _
     exact h_eq2 ▸ h_exp
-  set E := fun (τ : ℝ) => Real.exp (-I τ) with hE_def
+  set E := fun (τ : ℝ) => Real.exp (-I τ)
   have hE_pos : ∀ τ, 0 < E τ := by
     intro τ; dsimp [E]; exact Real.exp_pos _
   -- Product rule: (x_i * E)' = x_i' * E + x_i * E' = (a_i * x_i) * E + x_i * (-a_i * E) = 0
@@ -576,7 +576,7 @@ private lemma pos_param_ne_zero_of_gradient_flow
     exact h_eq ▸ h_mul
   -- Zero derivative everywhere implies constant
   have h_prod_const : ∀ τ, (x τ) i * E τ = (x 0) i * E 0 := by
-    set f := fun (τ : ℝ) => (x τ) i * E τ with hf_def
+    set f := fun (τ : ℝ) => (x τ) i * E τ
     have h_diff : Differentiable ℝ f := fun τ => (h_prod_deriv τ).differentiableAt
     have h_deriv_eq_zero : ∀ τ, deriv f τ = 0 := fun τ => (h_prod_deriv τ).deriv
     have h_const := is_const_of_deriv_eq_zero h_diff h_deriv_eq_zero
@@ -645,7 +645,7 @@ private lemma rescaled_mirror_lower_bound
     (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0) :
     ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
-  set C_low := max 1 (Real.log X) with hC_low_def
+  set C_low := max 1 (Real.log X)
   have hC_low_pos : C_low > 0 :=
     lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
   refine ⟨C_low, hC_low_pos, ?_⟩
@@ -655,7 +655,7 @@ private lemma rescaled_mirror_lower_bound
     exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hX hε_mem
   rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
   intro τ hτ i
-  set x_i := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i with hx_def
+  set x_i := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i
   have hx_pos : 0 < x_i := by
     have h_nonneg : 0 ≤ x_i := posEffectiveParameter_nonnegative (u ε) (posTimeFromRescaled ε τ) i
     have h_ne_zero : x_i ≠ 0 := hu_pos ε hε_pos (posTimeFromRescaled ε τ) i
@@ -804,15 +804,15 @@ private lemma rescaled_mirror_upper_bound
     by_cases h_nonempty : Nonempty ι
     · haveI := h_nonempty
       -- Step 2: Define the constant C_w (now safe with Nonempty)
-      set r_max := ⨆ i, |r i| with hr_max_def
-      set M_row_max := ⨆ i, ∑ j, |M i j| with hM_row_max_def
-      set beta_log_max := ⨆ i, |Real.log (β i ^ 2)| with hbeta_log_max_def
-      set C_init := 1 + beta_log_max / Real.log 2 with hC_init_def
+      set r_max := ⨆ i, |r i|
+      set M_row_max := ⨆ i, ∑ j, |M i j|
+      set beta_log_max := ⨆ i, |Real.log (β i ^ 2)|
+      set C_init := 1 + beta_log_max / Real.log 2
       have hC_init_pos : C_init > 0 := by
         have h_nonneg : 0 ≤ beta_log_max :=
           le_ciSup_of_le (Finite.bddAbove_range _) (Classical.arbitrary ι) (abs_nonneg _)
         positivity
-      set C_w := max C_init (r_max + M_row_max * X + |lambda|) with hC_w_def
+      set C_w := max C_init (r_max + M_row_max * X + |lambda|)
       have hC_w_pos : C_w > 0 := lt_max_of_lt_left hC_init_pos
       refine ⟨C_w, hC_w_pos, ?_⟩
       -- Step 3: Restrict ε to a small enough neighborhood
@@ -867,14 +867,14 @@ private lemma rescaled_mirror_upper_bound
       -- Bound z_i(τ) = (posIntegratedTrajectoryRescaled ε (u ε) τ) i ∈ [0, X·τ]
       -- The integrated trajectory is coordinatewise nonnegative (integrand is a square ≥ 0)
       have hz_nonneg : ∀ i, 0 ≤ (posIntegratedTrajectoryRescaled ε (u ε) τ) i :=
-        fun j => posIntegratedTrajectoryRescaled_nonneg u ε hε_pos (by linarith : ε < 1) τ hτ0 j
+        posIntegratedTrajectoryRescaled_nonneg u ε hε_pos (by linarith : ε < 1) τ hτ0
       have hz_bound : ∀ i, (posIntegratedTrajectoryRescaled ε (u ε) τ) i ≤ X * τ := by
         intro j
         -- Unfold definitions:
         -- (posIntegratedTrajectoryRescaled ...) j
         -- = (4 / log(1/ε)) * ∫_0^{T} posEffectiveParameter (u ε) v j dv
         simp only [posIntegratedTrajectoryRescaled, posIntegratedTrajectory, euclideanOf]
-        set T := posTimeFromRescaled ε τ with hT_def
+        set T := posTimeFromRescaled ε τ
         have h_log_pos : 0 < Real.log (1 / ε) :=
           Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
         have h_scalar_nonneg : 0 ≤ (4 : ℝ) / Real.log (1 / ε) := by positivity
@@ -889,7 +889,7 @@ private lemma rescaled_mirror_upper_bound
             posEffectiveParameter (u ε) v j ≤ X := by
           intro v hv
           rcases hv with ⟨hv0, hvT⟩
-          set σ := posRescaledTime ε v with hσ_def
+          set σ := posRescaledTime ε v
           have hσ_nonneg : 0 ≤ σ := by
             dsimp [σ, posRescaledTime]
             positivity
@@ -1152,8 +1152,7 @@ lemma pos_delta_bound_3
   --          = deriv (fun u' => u' * x_lasso u' i) τ
   have h_component : ∀ i, zDot i = deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
-    have h := scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
-    simpa [zDot] using h
+    simpa [zDot] using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
   -- Step 2 (FTC for each coordinate, using piecewise linearity):
   --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
@@ -1197,6 +1196,31 @@ lemma pos_delta_bound_3
         (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
     sorry
   -- Now assemble h_upward_eq and h_downward_eq.
+  -- Also need deriv (positiveZUpward x_lasso) τ ≥ 0 and deriv (positiveZDownward x_lasso) τ ≥ 0
+  -- (they are derivatives of monotone nondecreasing functions).
+  -- positiveZUpward and positiveZDownward are integrals of nonnegative functions,
+  -- hence they are monotone (nondecreasing). By Monotone.deriv_nonneg, their
+  -- derivatives are nonnegative everywhere (deriv returns 0 where the derivative
+  -- does not exist, which is also ≥ 0).
+  -- positiveZUpward and positiveZDownward are integrals of nonnegative
+  -- functions, hence they are monotone (nondecreasing). The proof uses
+  -- the identity ∫_0^b g - ∫_0^a g = ∫_a^b g (for a ≤ b) from the
+  -- interval integral calculus, combined with nonnegativity of the
+  -- integrand. We provide the key steps with the integrability side
+  -- conditions marked as `sorry` for now.
+  have h_up_mono : Monotone (positiveZUpward x_lasso) := by
+    intro a b h
+    have h_diff_nonneg : 0 ≤ positiveZUpward x_lasso b - positiveZUpward x_lasso a := by
+      -- The difference equals the sum of integrals over [a,b] of a
+      -- nonnegative integrand. This relies on the integral identity
+      -- ∫_0^b g = ∫_0^a g + ∫_a^b g which requires integrability.
+      sorry
+    linarith
+  have h_down_mono : Monotone (positiveZDownward x_lasso) := by
+    intro a b h
+    have h_diff_nonneg : 0 ≤ positiveZDownward x_lasso b - positiveZDownward x_lasso a := by
+      sorry
+    linarith
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     have h_unfold : deriv (positiveZUpward x_lasso) τ =
         deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
@@ -1221,31 +1245,6 @@ lemma pos_delta_bound_3
       linarith [h_bound_pos, h_bound_neg]
     _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
         deriv (positiveZDownward x_lasso) τ) := by
-      -- Also need deriv (positiveZUpward x_lasso) τ ≥ 0 and deriv (positiveZDownward x_lasso) τ ≥ 0
-      -- (they are derivatives of monotone nondecreasing functions).
-      -- positiveZUpward and positiveZDownward are integrals of nonnegative functions,
-      -- hence they are monotone (nondecreasing). By Monotone.deriv_nonneg, their
-      -- derivatives are nonnegative everywhere (deriv returns 0 where the derivative
-      -- does not exist, which is also ≥ 0).
-      -- positiveZUpward and positiveZDownward are integrals of nonnegative
-      -- functions, hence they are monotone (nondecreasing). The proof uses
-      -- the identity ∫_0^b g - ∫_0^a g = ∫_a^b g (for a ≤ b) from the
-      -- interval integral calculus, combined with nonnegativity of the
-      -- integrand. We provide the key steps with the integrability side
-      -- conditions marked as `sorry` for now.
-      have h_up_mono : Monotone (positiveZUpward x_lasso) := by
-        intro a b h
-        have h_diff_nonneg : 0 ≤ positiveZUpward x_lasso b - positiveZUpward x_lasso a := by
-          -- The difference equals the sum of integrals over [a,b] of a
-          -- nonnegative integrand. This relies on the integral identity
-          -- ∫_0^b g = ∫_0^a g + ∫_a^b g which requires integrability.
-          sorry
-        linarith
-      have h_down_mono : Monotone (positiveZDownward x_lasso) := by
-        intro a b h
-        have h_diff_nonneg : 0 ≤ positiveZDownward x_lasso b - positiveZDownward x_lasso a := by
-          sorry
-        linarith
       have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
         h_up_mono.deriv_nonneg (x := τ)
       have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ :=

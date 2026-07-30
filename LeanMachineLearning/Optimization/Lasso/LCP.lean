@@ -727,8 +727,7 @@ lemma pos_lasso_is_lcp
       intro i _
       exact mul_nonneg (hv_nonneg i) (hy i)
     have h_psd_eval : (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := by
-      have : inner ℝ (y - x) (matVec M (y - x)) ≥ 0 :=
-        IsPositiveSemidefinite.get_nonneg hM_psd (y - x)
+      have : inner ℝ (y - x) (matVec M (y - x)) ≥ 0 := hM_psd.nonneg (y - x)
       linarith
     have h_L_sub : L y - L x =
         (1 / 2 : ℝ) * inner ℝ (y - x) (matVec M (y - x)) + inner ℝ v (y - x) := by
@@ -838,11 +837,9 @@ lemma parametric_lcp_unique_of_mul_supNorm_lt_one
     have h_inner_add : inner ℝ q z + inner ℝ (matVec M z) z = 0 := by
       rw [inner_add_left] at h_inner_sub
       exact h_inner_sub
-    have hz_Mz_nonneg : 0 ≤ inner ℝ z (matVec M z) := IsPositiveSemidefinite.get_nonneg hM_psd z
-    have h_Mz_z_eq : inner ℝ (matVec M z) z = inner ℝ z (matVec M z) := by
-      exact real_inner_comm z (matVec M z)
-    rw [h_Mz_z_eq] at h_inner_add
-    have h_qz_nonpos : inner ℝ q z ≤ 0 := by linarith
+    rw [real_inner_comm z (matVec M z)] at h_inner_add
+    have h_qz_nonpos : inner ℝ q z ≤ 0 := by
+      linarith [h_inner_add, hM_psd.nonneg z]
     have h_qz_nonneg : 0 ≤ inner ℝ q z :=
       inner_nonneg_of_pos_mul_nonneg q z hq_pos h_z_pos
     have h_qz_zero : inner ℝ q z = 0 := le_antisymm h_qz_nonpos h_qz_nonneg
@@ -850,12 +847,7 @@ lemma parametric_lcp_unique_of_mul_supNorm_lt_one
       eq_zero_of_inner_eq_zero_of_pos_mul_nonneg q z hq_pos h_z_pos h_qz_zero
     have h_w_eq_q : w = q := by
       rw [h_z_zero] at h_w_eq
-      have h_zero : matVec M 0 = 0 := by
-        ext j
-        simp [matVec, euclideanOf]
-      rw [h_zero] at h_w_eq
-      simp only [add_zero] at h_w_eq
-      exact h_w_eq
+      simpa [matVec, euclideanOf] using h_w_eq
     rw [h_z_zero, h_w_eq_q]
 
 omit [Fintype ι] in
@@ -1969,16 +1961,12 @@ theorem parametric_lcp_eq_iff_of_small_mu
     intro h
     dsimp [isParametricLCP, isLCP] at h
     rcases h with ⟨h_w, h_w_pos, h_z_pos, h_ortho⟩
-    -- h_w : w = q + matVec M z, h_ortho : inner ℝ w z = 0
     have h_inner_add : inner ℝ q z + inner ℝ (matVec M z) z = 0 := by
       dsimp [q]
       rw [← inner_add_left, ← h_w, h_ortho]
-    have hz_Mz_nonneg : 0 ≤ inner ℝ z (matVec M z) :=
-      IsPositiveSemidefinite.get_nonneg hM_psd z
-    have h_Mz_z_eq : inner ℝ (matVec M z) z = inner ℝ z (matVec M z) :=
-      real_inner_comm z (matVec M z)
-    rw [h_Mz_z_eq] at h_inner_add
-    have h_qz_nonpos : inner ℝ q z ≤ 0 := by linarith
+    rw [real_inner_comm z (matVec M z)] at h_inner_add
+    have h_qz_nonpos : inner ℝ q z ≤ 0 := by
+      linarith [h_inner_add, hM_psd.nonneg z]
     have h_qz_nonneg : 0 ≤ inner ℝ q z :=
       inner_nonneg_of_pos_mul_nonneg q z hq_pos h_z_pos
     have h_qz_zero : inner ℝ q z = 0 := le_antisymm h_qz_nonpos h_qz_nonneg
@@ -1994,8 +1982,8 @@ theorem parametric_lcp_eq_iff_of_small_mu
     dsimp [isParametricLCP, isLCP]
     refine ⟨?_, ?_, ?_, ?_⟩
     · ext i; simp [matVec, euclideanOf]
-    · intro i; exact le_of_lt (hq_pos i)
-    · intro i; exact le_refl 0
+    · exact fun i => (hq_pos i).le
+    · exact fun _ => le_refl 0
     · simp [inner_zero_right]
 
 /-- Existential-uniqueness packaging of the faithful Lemma 4.10 threshold.
