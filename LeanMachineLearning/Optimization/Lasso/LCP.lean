@@ -1235,7 +1235,7 @@ theorem nonnegative_minNorm_solution_norm_bound
     exact ⟨coeff, by rw [hS_def]; exact ⟨hcoeff_nonneg, hcoeff_sum⟩⟩
   have hS_closed : IsClosed S := hS_def ▸ feasible_set_closed a y
   have hS_convex : Convex ℝ S := hS_def ▸ feasible_set_convex a y
-  set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖ with hf_def
+  set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖
   have hf_cont : Continuous f := by
     dsimp [f]
     exact Continuous.norm (by
@@ -1259,8 +1259,10 @@ theorem nonnegative_minNorm_solution_norm_bound
         ext z
         constructor
         · rintro ⟨w, hw, rfl⟩
-          rw [Metric.mem_closedBall, dist_eq_norm, sub_zero] at hw
-          simpa [euclideanOf, φ, EuclideanSpace, PiLp] using hw
+          rw [Metric.mem_closedBall] at hw
+          have h_eq : euclideanOf (φ w) = w := by
+            dsimp [euclideanOf, φ, EuclideanSpace, PiLp]; rfl
+          simpa [h_eq] using hw
         · intro hz
           refine ⟨euclideanOf z, ?_, rfl⟩
           rw [Metric.mem_closedBall, dist_eq_norm, sub_zero]
@@ -1268,7 +1270,7 @@ theorem nonnegative_minNorm_solution_norm_bound
       rw [h_image_eq] at h_image_compact
       have hK_sub : K ⊆ {z : κ → ℝ | ‖euclideanOf z‖ ≤ M} := by
         rintro z ⟨_, hzf⟩
-        rw [hf_def] at hzf
+        dsimp [f] at hzf
         exact hzf
       exact h_image_compact.of_isClosed_subset hK_closed hK_sub
     have hK_nonempty : K.Nonempty := ⟨x₀, hx₀S, le_refl _⟩
