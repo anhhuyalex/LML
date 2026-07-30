@@ -781,8 +781,7 @@ private lemma inner_nonneg_of_pos_mul_nonneg {ι : Type*} [Fintype ι]
     rw [PiLp.inner_apply]
     simp only [Real.inner_apply]
   rw [h_sum]
-  refine Finset.sum_nonneg (fun i _ => ?_)
-  exact mul_nonneg (le_of_lt (hq_pos i)) (hz_nonneg i)
+  exact Finset.sum_nonneg (fun i _ => mul_nonneg (hq_pos i).le (hz_nonneg i))
 
 -- If additionally the inner product is zero, then z must be zero.
 private lemma eq_zero_of_inner_eq_zero_of_pos_mul_nonneg {ι : Type*} [Fintype ι]
@@ -795,16 +794,11 @@ private lemma eq_zero_of_inner_eq_zero_of_pos_mul_nonneg {ι : Type*} [Fintype �
       rw [PiLp.inner_apply]
       simp only [Real.inner_apply]
     rw [← h_sum, h_inner_zero]
-  have h_term_zero : q.ofLp i * z.ofLp i = 0 := by
-    have h_nonneg : ∀ j ∈ (Finset.univ : Finset ι), 0 ≤ q.ofLp j * z.ofLp j :=
-      fun j _ => mul_nonneg (le_of_lt (hq_pos j)) (hz_nonneg j)
-    exact (Finset.sum_eq_zero_iff_of_nonneg h_nonneg).mp h_sum_zero i (Finset.mem_univ i)
-  cases mul_eq_zero.mp h_term_zero with
-  | inl h_q_zero =>
-    have h_qi_pos : 0 < q.ofLp i := hq_pos i
-    linarith
-  | inr h_zi_zero =>
-    simpa using h_zi_zero
+  rcases mul_eq_zero.mp ((Finset.sum_eq_zero_iff_of_nonneg
+    (fun j _ => mul_nonneg (hq_pos j).le (hz_nonneg j))).mp h_sum_zero i (Finset.mem_univ i)) with
+    (h_q_zero | h_zi_zero)
+  · linarith [hq_pos i, h_q_zero]
+  · simpa using h_zi_zero
 
 lemma parametric_lcp_unique_of_mul_supNorm_lt_one
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
@@ -818,26 +812,16 @@ lemma parametric_lcp_unique_of_mul_supNorm_lt_one
   use (0, q)
   constructor
   · dsimp [isParametricLCP, isLCP]
-    constructor
-    · ext i
-      simp [matVec, euclideanOf, q]
-    · constructor
-      · intro i
-        exact le_of_lt (hq_pos i)
-      · constructor
-        · intro i
-          exact le_refl 0
-        · simp [inner_zero_right]
+    refine ⟨?_, ?_, ?_, ?_⟩
+    · ext i; simp [matVec, euclideanOf, q]
+    · exact fun i => (hq_pos i).le
+    · exact fun _ => le_refl 0
+    · simp [inner_zero_right]
   · rintro ⟨z, w⟩ h_lcp
     dsimp [isParametricLCP, isLCP] at h_lcp
     rcases h_lcp with ⟨h_w, h_w_pos, h_z_pos, h_ortho⟩
-    have h_inner_w_z : inner ℝ w z = 0 := h_ortho
-    have h_w_eq : w = q + matVec M z := h_w
-    have h_inner_sub : inner ℝ (q + matVec M z) z = 0 := by
-      rw [←h_w_eq, h_inner_w_z]
     have h_inner_add : inner ℝ q z + inner ℝ (matVec M z) z = 0 := by
-      rw [inner_add_left] at h_inner_sub
-      exact h_inner_sub
+      simpa [inner_add_left, h_w] using h_ortho
     rw [real_inner_comm z (matVec M z)] at h_inner_add
     have h_qz_nonpos : inner ℝ q z ≤ 0 := by
       linarith [h_inner_add, hM_psd.nonneg z]
@@ -847,8 +831,7 @@ lemma parametric_lcp_unique_of_mul_supNorm_lt_one
     have h_z_zero : z = 0 :=
       eq_zero_of_inner_eq_zero_of_pos_mul_nonneg q z hq_pos h_z_pos h_qz_zero
     have h_w_eq_q : w = q := by
-      rw [h_z_zero] at h_w_eq
-      simpa [matVec, euclideanOf] using h_w_eq
+      simpa [h_z_zero, matVec, euclideanOf] using h_w
     rw [h_z_zero, h_w_eq_q]
 
 omit [Fintype ι] in
@@ -2030,7 +2013,6 @@ private lemma isLCP_smul_isParametricLCP
     (x v : EuclideanSpace ℝ ι) (h_lcp : isLCP M (lcpQ r lambda μ) x v) :
     isParametricLCP M r lambda μ (μ • x) (μ • v) := by
   rcases h_lcp with ⟨h_v, h_v_nonneg, h_x_nonneg, h_ortho⟩
-  have h_smul_q := lcpQ_smul_eq_parametricLcpQ r lambda μ hμ_ne
   dsimp [isParametricLCP, isLCP]
   refine ⟨?_, ?_, ?_, ?_⟩
   · -- (μ • v) = parametricLcpQ + matVec M (μ • x)
@@ -2038,7 +2020,7 @@ private lemma isLCP_smul_isParametricLCP
       μ • v = μ • (lcpQ r lambda μ + matVec M x) := by rw [h_v]
       _ = μ • lcpQ r lambda μ + μ • matVec M x := by simp [smul_add]
       _ = parametricLcpQ r lambda μ + matVec M (μ • x) := by
-        rw [h_smul_q, matVec_smul M μ x]
+        rw [lcpQ_smul_eq_parametricLcpQ r lambda μ hμ_ne, matVec_smul M μ x]
   · -- Nonnegative (μ • v)
     intro i; simpa using mul_nonneg hμ_nonneg (h_v_nonneg i)
   · -- Nonnegative (μ • x)
@@ -2076,7 +2058,7 @@ theorem lcp_eq_iff_of_small_mu
     ∀ x v : EuclideanSpace ℝ ι,
       isLCP M (lcpQ r lambda μ) x v ↔ x = 0 ∧ v = lcpQ r lambda μ := by
   set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖
-  have hμ_nonneg : 0 ≤ μ := le_of_lt hμ
+  have hμ_nonneg : 0 ≤ μ := hμ.le
   -- derive μ·N < 1 from hμ_small (same proof as parametric version)
   have hμN_lt_one : μ * N < 1 := by
     by_cases hNle : N ≤ 1
@@ -2088,33 +2070,20 @@ theorem lcp_eq_iff_of_small_mu
       exact (lt_div_iff₀ (by linarith : 0 < N)).mp hμ_small
   -- the parametric version, already proven
   have h_parametric := parametric_lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ_nonneg hμ_small
-  -- key identity: μ • lcpQ = parametricLcpQ (componentwise algebra)
-  have h_smul_q := lcpQ_smul_eq_parametricLcpQ r lambda μ hμ.ne.symm
-  -- positivity of lcpQ, derived from parametricLcpQ_pos and scaling via h_smul_q
-  have hq_pos : ∀ i, 0 < lcpQ r lambda μ i :=
-    lcpQ_pos r lambda μ hμ.ne.symm hμ_nonneg hμN_lt_one
   intro x v
   constructor
   · -- Forward direction: LCP solution ⇒ (x = 0, v = lcpQ)
     intro h
     -- Scale by μ and use the parametric theorem
-    have hz_w := isLCP_smul_isParametricLCP M r lambda μ hμ.ne.symm hμ_nonneg x v h
-    have h_param_result := (h_parametric (μ • x) (μ • v)).mp hz_w
-    rcases h_param_result with ⟨hz_zero, hw_eq_q⟩
+    rcases (h_parametric (μ • x) (μ • v)).mp
+      (isLCP_smul_isParametricLCP M r lambda μ hμ.ne.symm hμ_nonneg x v h) with ⟨hz_zero, hw_eq_q⟩
     -- From μ·x = 0 and μ > 0, deduce x = 0
-    have hx_zero : x = 0 := by
-      rcases smul_eq_zero.mp hz_zero with (hμzero | hxzero)
-      · exact (hμ.ne.symm hμzero).elim
-      · exact hxzero
+    have hx_zero : x = 0 := (smul_eq_zero.mp hz_zero).resolve_left hμ.ne.symm
     -- From μ·v = parametricLcpQ = μ·lcpQ, deduce v = lcpQ
-    have hv_eq_q : v = lcpQ r lambda μ := by
-      have h_eq : μ • v = μ • lcpQ r lambda μ := by
-        rw [hw_eq_q, h_smul_q]
-      have h_sub : μ • (v - lcpQ r lambda μ) = 0 := by
-        rw [smul_sub, h_eq, sub_self]
-      rcases smul_eq_zero.mp h_sub with (hμzero | hsub)
-      · exact (hμ.ne.symm hμzero).elim
-      · exact sub_eq_zero.mp hsub
+    have hv_eq_q : v = lcpQ r lambda μ :=
+      sub_eq_zero.mp ((smul_eq_zero.mp (by
+        rw [smul_sub, hw_eq_q, lcpQ_smul_eq_parametricLcpQ r lambda μ hμ.ne.symm, sub_self]
+      )).resolve_left hμ.ne.symm)
     exact ⟨hx_zero, hv_eq_q⟩
   · -- Backward direction: (x = 0, v = lcpQ) ⇒ LCP solution
     intro ⟨hx_zero, hv_eq_q⟩
@@ -2122,7 +2091,7 @@ theorem lcp_eq_iff_of_small_mu
     dsimp [isLCP]
     refine ⟨?_, ?_, ?_, ?_⟩
     · ext i; simp [matVec, euclideanOf]
-    · exact fun i => (hq_pos i).le
+    · exact fun i => (lcpQ_pos r lambda μ hμ.ne.symm hμ_nonneg hμN_lt_one i).le
     · exact fun _ => le_refl 0
     · simp [inner_zero_right]
 

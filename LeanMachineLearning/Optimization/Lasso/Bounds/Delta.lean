@@ -313,7 +313,7 @@ lemma pos_delta_bound_1
   -- Restrict to ε ∈ (0, 1/2), where log(1/ε) > 0
   filter_upwards [by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1/2, by norm_num, fun x hx => hx⟩] with ε hε
+    exact ⟨1/2, by norm_num, fun _ hx => hx⟩] with ε hε
   rcases hε with ⟨hε_pos, hε_lt_half⟩
   have h_log_pos : 0 < Real.log (1 / ε) :=
     Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
@@ -341,7 +341,7 @@ lemma pos_delta_bound_1
       (∑ i : ι, (-(x i) * Real.log (x i))) ≤ (∑ i : ι, (1 : ℝ)) :=
         Finset.sum_le_sum (fun i _ => neg_mul_log_le_one (x i) (hx_nonneg i))
       _ = (Fintype.card ι : ℝ) := by simp
-      _ ≤ C := by simp [C]
+      _ ≤ C := le_max_right _ _
   -- Final: divide by log(1/ε) > 0
   field_simp [h_log_pos.ne.symm]
   simpa [neg_mul] using h_sum_bound
@@ -401,7 +401,7 @@ lemma pos_delta_bound_2
         ≤ 0 := by
   filter_upwards [by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1/2, by norm_num, fun x hx => hx⟩] with ε hε
+    exact ⟨1/2, by norm_num, fun _ hx => hx⟩] with ε hε
   rcases hε with ⟨hε_pos, _⟩
   intro τ hτ
   rcases hτ with ⟨hτ0, _⟩
@@ -612,7 +612,7 @@ private lemma uniform_trajectory_coordinate_bound
   refine ⟨C, hCpos, ?_⟩
   filter_upwards [show Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) from by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨ε₁, hε₁pos, fun x hx => hx⟩] with ε hε
+    exact ⟨ε₁, hε₁pos, fun _ hx => hx⟩] with ε hε
   have hε_pos : 0 < ε := hε.1
   have hε_lt₁ : ε < ε₁ := hε.2
   have hε_le₀ : ε ≤ ε₀ := hε_lt₁.le.trans (min_le_left _ _)
@@ -652,7 +652,7 @@ private lemma rescaled_mirror_lower_bound
   -- Intersect the uniform upper bound with ε ∈ (0,1) so that log(1/ε) > 0
   filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hX hε_mem
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hX hε_mem
   rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
   intro τ hτ i
   set x_i := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i
@@ -661,10 +661,8 @@ private lemma rescaled_mirror_lower_bound
     have h_ne_zero : x_i ≠ 0 := hu_pos ε hε_pos (posTimeFromRescaled ε τ) i
     exact lt_of_le_of_ne h_nonneg h_ne_zero.symm
   have hx_le_X : x_i ≤ X := hX τ hτ i
-  have h_neg_log : -C_low ≤ -Real.log x_i := by
-    have h_log_x_le_C_low : Real.log x_i ≤ C_low :=
-      (Real.log_le_log hx_pos hx_le_X).trans (le_max_right _ _)
-    linarith
+  have h_neg_log : -C_low ≤ -Real.log x_i :=
+    neg_le_neg ((Real.log_le_log hx_pos hx_le_X).trans (le_max_right _ _))
   dsimp [posRescaledMirrorVariable, euclideanOf, x_i]
   exact div_le_div_of_nonneg_right h_neg_log
     (le_of_lt (Real.log_pos (one_lt_one_div hε_pos hε_lt_one)))
@@ -694,16 +692,14 @@ private lemma mirror_pos_neg_bounds
         · simp [max_eq_left (show zDot i ≤ 0 by linarith)]
       _ = (C_low / Real.log (1 / ε)) * (∑ i, max 0 (zDot i)) := by
         rw [Finset.mul_sum]
-        refine Finset.sum_congr rfl (fun i _ => ?_)
-        ring
+        simp [mul_comm]
   · calc
       (∑ i, max 0 (-zDot i) * w i) ≤ (∑ i, max 0 (-zDot i) * (C_w * (1 + τ))) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         exact mul_le_mul_of_nonneg_left ((abs_le.mp (hw_abs i)).2) (le_max_left _ _)
       _ = C_w * (∑ i, (1 + τ) * max 0 (-zDot i)) := by
         rw [Finset.mul_sum]
-        refine Finset.sum_congr rfl (fun i _ => ?_)
-        ring
+        simp [mul_comm, mul_assoc]
 
 -- The effective parameter never vanishes for a positive DLN gradient flow.
 private lemma pos_effective_param_ne_zero
@@ -720,8 +716,9 @@ private lemma pos_effective_param_ne_zero
 private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |b| + |c| + |d| := by
   calc
     |a - b + c + d| ≤ |a - b + c| + |d| := abs_add_le _ _
-    _ ≤ |a - b| + |c| + |d| := by nlinarith [abs_add_le (a - b) c]
-    _ ≤ |a| + |b| + |c| + |d| := by nlinarith [abs_sub a b]
+    _ ≤ (|a - b| + |c|) + |d| := by gcongr; exact abs_add_le _ _
+    _ ≤ (|a| + |b| + |c|) + |d| := by gcongr; exact abs_sub _ _
+    _ = |a| + |b| + |c| + |d| := by ring
 
 -- The integrated rescaled trajectory is coordinatewise nonnegative.
 -- This follows because the integrand posEffectiveParameter is a square ≥ 0.
@@ -818,7 +815,7 @@ private lemma rescaled_mirror_upper_bound
       -- Step 3: Restrict ε to a small enough neighborhood
       filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) from by
         rw [mem_nhdsGT_iff_exists_Ioo_subset]
-        exact ⟨1/2, by norm_num, fun x hx => hx⟩] with ε hX hε_half
+        exact ⟨1/2, by norm_num, fun _ hx => hx⟩] with ε hX hε_half
       rcases hε_half with ⟨hε_pos, hε_lt_half⟩
       have hlog_ne_zero : Real.log (1 / ε) ≠ 0 :=
         ne_of_gt (Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1)))
@@ -1012,11 +1009,11 @@ private lemma rescaled_mirror_upper_bound
 private lemma max_bound_algebra {a b c x y d : ℝ} (ha : a ≤ c) (hb : b ≤ c)
     (hx : 0 ≤ x) (hy : 0 ≤ y) (hd_pos : 0 < d) :
     (a / d) * x + b * y ≤ c * ((1 / d) * x + y) := by
-  have h1 : (a / d) * x ≤ (c / d) * x :=
-    mul_le_mul_of_nonneg_right (div_le_div_of_nonneg_right ha hd_pos.le) hx
-  have h2 : b * y ≤ c * y := mul_le_mul_of_nonneg_right hb hy
   calc
-    (a / d) * x + b * y ≤ (c / d) * x + c * y := add_le_add h1 h2
+    (a / d) * x + b * y ≤ (c / d) * x + c * y :=
+      add_le_add
+        (mul_le_mul_of_nonneg_right (div_le_div_of_nonneg_right ha hd_pos.le) hx)
+        (mul_le_mul_of_nonneg_right hb hy)
     _ = c * ((1 / d) * x + y) := by ring
 
 -- For each coordinate i, the i-th component of the derivative of the scaled primal path
@@ -1038,11 +1035,7 @@ private lemma scaled_primal_deriv_component (x_lasso : ℝ → EuclideanSpace �
     simpa [e, F, PiLp.smul_apply, smul_eq_mul] using
       ((hasDerivAt_pi.1 (e.hasFDerivAt.comp_hasDerivAt τ h_diff.hasDerivAt)) i).deriv.symm
   · -- Case 2: F is not differentiable at τ (breakpoint). Both sides are zero.
-    have h_deriv_zero : deriv (fun μ => μ • x_lasso μ) τ = 0 :=
-      deriv_zero_of_not_differentiableAt h_diff
-    have h_component_zero : deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 :=
-      h_breakpoint_comp_deriv_zero τ h_diff i
-    simp [F, h_deriv_zero, h_component_zero]
+    simp [F, deriv_zero_of_not_differentiableAt h_diff, h_breakpoint_comp_deriv_zero τ h_diff i]
 
 -- Assemble the final inequality from the pos/neg bounds, monotonicity, and log positivity.
 -- This is the purely algebraic final step of pos_delta_bound_3.
@@ -1064,15 +1057,11 @@ private lemma assemble_pos_delta_bound_3
         C_w * (deriv (positiveZDownward x_lasso) τ) := by
       linarith [h_bound_pos, h_bound_neg]
     _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-        deriv (positiveZDownward x_lasso) τ) := by
-      have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
-        h_up_mono.deriv_nonneg (x := τ)
-      have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ :=
-        h_down_mono.deriv_nonneg (x := τ)
-      have h_log_pos : 0 < Real.log (1 / ε) :=
-        Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
-      exact max_bound_algebra hC_low hC_w
-        h_up_nonneg h_down_nonneg h_log_pos
+        deriv (positiveZDownward x_lasso) τ) :=
+      max_bound_algebra hC_low hC_w
+        (h_up_mono.deriv_nonneg (x := τ))
+        (h_down_mono.deriv_nonneg (x := τ))
+        (Real.log_pos (one_lt_one_div hε_pos hε_lt_one))
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -1116,7 +1105,7 @@ lemma pos_delta_bound_3
   -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
   filter_upwards [hX_ev, hW_low_ev, hW_ev, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun x hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
   rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
   intro τ hτ
   rcases hτ with ⟨hτ0, hτs⟩
@@ -1129,8 +1118,8 @@ lemma pos_delta_bound_3
   -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
   --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
   rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
-    (fun i => hW_low_ε τ ⟨hτ0, hτs⟩ i)
-    (fun i => hW_ε τ ⟨hτ0, hτs⟩ i) with ⟨h_bound_pos, h_bound_neg⟩
+    (hW_low_ε τ ⟨hτ0, hτs⟩)
+    (hW_ε τ ⟨hτ0, hτs⟩) with ⟨h_bound_pos, h_bound_neg⟩
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward.
   -- By the Fundamental Theorem of Calculus:
   --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
@@ -1270,16 +1259,12 @@ lemma pos_delta_bound_3
       sorry
     linarith
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
-    have h_unfold : deriv (positiveZUpward x_lasso) τ =
-        deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
-          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := rfl
-    rw [h_unfold, h_deriv_sum]
+    unfold positiveZUpward
+    rw [h_deriv_sum]
     simp_rw [h_ftc_up, h_component]
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
-    have h_unfold : deriv (positiveZDownward x_lasso) τ =
-        deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
-          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := rfl
-    rw [h_unfold, h_deriv_sum_down]
+    unfold positiveZDownward
+    rw [h_deriv_sum_down]
     simp_rw [h_ftc_down, h_component]
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
