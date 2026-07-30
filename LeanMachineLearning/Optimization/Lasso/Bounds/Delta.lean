@@ -14,7 +14,7 @@ public import Mathlib.Analysis.Calculus.MeanValue
 
 namespace Lasso
 
-open Filter Topology
+open Filter Topology MeasureTheory
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
@@ -1043,7 +1043,8 @@ private lemma assemble_pos_delta_bound_3
     (zDot w : EuclideanSpace ℝ ι) (C_low C_w C τ ε : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hC_low : C_low ≤ C) (hC_w : C_w ≤ C)
-    (h_bound_pos : -(∑ i, max 0 (zDot i) * w i) ≤ (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ))
+    (h_bound_pos : -(∑ i, max 0 (zDot i) * w i) ≤
+      (C_low / Real.log (1 / ε)) * (deriv (positiveZUpward x_lasso) τ))
     (h_bound_neg : (∑ i, max 0 (-zDot i) * w i) ≤ C_w * (deriv (positiveZDownward x_lasso) τ))
     (h_up_mono : Monotone (positiveZUpward x_lasso))
     (h_down_mono : Monotone (positiveZDownward x_lasso))
@@ -1172,6 +1173,19 @@ lemma pos_delta_bound_3
   have h_component : ∀ i, zDot i = deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
     simpa [zDot] using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
+  -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
+  -- implies that at any point where the scaled primal path is differentiable,
+  -- each coordinate derivative is locally constant. We postulate this property
+  -- as a hypothesis; its proof requires formalizing the piecewise-linear structure
+  -- of the Lasso regularization path.
+  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+      DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+      ∃ ε > 0, ∀ t, |t - τ'| < ε →
+        deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+        deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
+    -- TODO: formalize piecewise linearity of the Lasso path.
+    -- Efron, Hastie, Johnstone & Tibshirani (2004), Annals of Statistics 32(2):407–499.
+    sorry
   -- Step 2 (FTC for each coordinate, using piecewise linearity):
   --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
@@ -1182,12 +1196,51 @@ lemma pos_delta_bound_3
     set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
     by_cases h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
     · -- Case 1: scaledPrimalPath is differentiable at τ.
-      -- For the piecewise-linear Lasso path, this implies g_i is
-      -- continuous at τ, interval-integrable on [0,τ], and strongly
-      -- measurable. Then `intervalIntegral.deriv_integral_right` gives
-      -- the equality. All three sub-goals depend on piecewise linearity
-      -- (not yet formalized), so we `sorry` the entire case for now.
-      sorry
+      -- By piecewise linearity, deriv f_i is locally constant near τ,
+      -- hence g_i = max(0, deriv f_i) is locally constant, hence continuous at τ.
+      rcases h_piecewise_deriv τ i h_diff with ⟨ε, hε_pos, h_const⟩
+      -- g_i is constant on (τ-ε, τ+ε):
+      have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
+        intro t ht
+        dsimp [g_i]
+        rw [h_const t ht]
+      -- Therefore g_i is continuous at τ (it equals a constant near τ):
+      have h_cont : ContinuousAt g_i τ := by
+        have h_event : ∀ᶠ t in 𝓝 τ, g_i t = g_i τ := by
+          rw [Metric.eventually_nhds_iff_ball]
+          exact ⟨ε, hε_pos, fun t ht => h_g_const t (Metric.mem_ball.mp ht)⟩
+        have h_eventEq : g_i =ᶠ[𝓝 τ] fun _ => g_i τ := h_event
+        exact h_eventEq.continuousAt
+      -- Strong measurability at 𝓝 τ (g_i equals a constant near τ):
+      have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+        -- Use the definition: ∃ s ∈ 𝓝 τ, AEStronglyMeasurable g_i (volume.restrict s)
+        refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+        -- On the ball, g_i equals g_i τ, so it is AEStronglyMeasurable
+        have h_ae : AEStronglyMeasurable g_i (volume.restrict (Metric.ball τ ε)) := by
+          have h_const : AEStronglyMeasurable (fun _ => g_i τ)
+            (volume.restrict (Metric.ball τ ε)) :=
+            aestronglyMeasurable_const (b := g_i τ)
+          have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun _ => g_i τ) := fun t ht =>
+            h_g_const t (Metric.mem_ball.mp ht)
+          have h_eq : g_i =ᵐ[volume.restrict (Metric.ball τ ε)] (fun _ => g_i τ) :=
+            h_eq_on.aeEq_restrict (Metric.isOpen_ball.measurableSet)
+          exact h_const.congr h_eq.symm
+        exact h_ae
+      -- Integrability of g_i on [0, τ]: from h_regular, f_i is locally AC, so
+      -- deriv f_i is locally integrable, and max(0, ·) preserves integrability.
+      -- Integrability of g_i on [0, τ]: from h_regular, scaledPrimalPath is AC on [0,τ],
+      -- so it has bounded variation (AbsolutelyContinuousOnInterval.boundedVariationOn).
+      -- The coordinate projection proj_i : EuclideanSpace ℝ ι → ℝ is 1-Lipschitz, hence
+      -- f_i = proj_i ∘ scaledPrimalPath also has bounded variation
+      -- (LipschitzWith.comp_boundedVariationOn).
+      -- BoundedVariationOn.intervalIntegrable_deriv gives IntervalIntegrable (deriv f_i).
+      -- Then g_i = max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2 is also interval integrable
+      -- using IntervalIntegrable.add and IntervalIntegrable.abs.
+      have h_int : IntervalIntegrable g_i volume 0 τ := by
+        -- TODO: formalize the chain: h_regular → AC → BV → intervalIntegrable_deriv → abs → max
+        sorry
+      -- Apply the Fundamental Theorem of Calculus (derivative of integral = integrand):
+      rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
     · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
       -- By h_breakpoint_comp_deriv_zero, the RHS is zero.
       have h_rhs_zero : max 0 (deriv f_i τ) = 0 := by
