@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
 
 /-! ## Section 4.6: positive-path estimate chain -/
 
@@ -1063,7 +1064,7 @@ private lemma assemble_pos_delta_bound_3
 -- of Calculus. Several sub-proofs are marked `sorries` pending
 -- formalization of piecewise linearity.
 private lemma deriv_pos_z_identities
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
         ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0)
@@ -1125,12 +1126,68 @@ private lemma deriv_pos_z_identities
           exact h_const'.congr h_eq.symm
         exact h_ae
       -- Integrability of g_i on [0, τ]:
-      -- From h_regular, scaledPrimalPath is AC on [0, max(0,τ)], so each
+      -- From h_regular and hτ, scaledPrimalPath is AC on [0, τ], so each
       -- coordinate f_i has an integrable derivative. Then g_i = (f_i' + |f_i'|)/2 is integrable.
       have h_int : IntervalIntegrable g_i volume 0 τ := by
-        -- TODO: fill this using AbsolutelyContinuousOnInterval.intervalIntegrable_deriv
-        -- and the fact that max(0, x) = (x + |x|)/2 preserves integrability.
-        sorry
+        -- scaledPrimalPath is AC on [0, τ] by h_regular (since 0 ≤ τ)
+        have h_ac_vec : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 τ :=
+          h_regular.absolutelyContinuousOn_Icc 0 τ (le_refl 0) hτ
+        -- The coordinate projection is 1-Lipschitz, so f_i is also AC on [0, τ]
+        have h_ac_fi : AbsolutelyContinuousOnInterval f_i 0 τ := by
+          rw [absolutelyContinuousOnInterval_iff] at h_ac_vec ⊢
+          intro ε hε
+          obtain ⟨δ, hδ, hδ'⟩ := h_ac_vec ε hε
+          refine ⟨δ, hδ, ?_⟩
+          intro E hE hlen
+          apply lt_of_le_of_lt ?_ (hδ' E hE hlen)
+          refine Finset.sum_le_sum (fun j hj => ?_)
+          -- For each interval, coordinate difference is bounded by the Euclidean distance
+          dsimp [f_i]
+          have h_coord : |((scaledPrimalPath x_lasso) (E.2 j).1).ofLp i -
+                         ((scaledPrimalPath x_lasso) (E.2 j).2).ofLp i| ≤
+                         dist ((scaledPrimalPath x_lasso) (E.2 j).1)
+                              ((scaledPrimalPath x_lasso) (E.2 j).2) := by
+            set a := (scaledPrimalPath x_lasso) (E.2 j).1
+            set b := (scaledPrimalPath x_lasso) (E.2 j).2
+            have h_sq : ((a - b) i)^2 ≤ ‖a - b‖^2 := by
+              have h_eq_sq : ((a - b) i)^2 = ‖(a - b) i‖ ^ 2 := by simp
+              rw [h_eq_sq, EuclideanSpace.norm_sq_eq]
+              have hpos : ∀ k ∈ (Finset.univ : Finset ι), 0 ≤ ‖(a - b) k‖ ^ 2 :=
+                fun k _ => by positivity
+              exact Finset.single_le_sum hpos (Finset.mem_univ i)
+            have h_nonneg_norm : 0 ≤ ‖a - b‖ := norm_nonneg _
+            calc
+              |a.ofLp i - b.ofLp i| = |(a - b).ofLp i| := by simp
+              _ = |(a - b) i| := rfl
+              _ = Real.sqrt (((a - b) i)^2) := by rw [Real.sqrt_sq_eq_abs]
+              _ ≤ Real.sqrt (‖a - b‖^2) := Real.sqrt_le_sqrt h_sq
+              _ = ‖a - b‖ := Real.sqrt_sq h_nonneg_norm
+              _ = dist a b := by rw [dist_eq_norm]
+          exact h_coord
+        -- Since f_i is AC, its derivative is interval integrable on [0, τ]
+        have h_int_deriv : IntervalIntegrable (deriv f_i) volume 0 τ :=
+          AbsolutelyContinuousOnInterval.intervalIntegrable_deriv h_ac_fi
+        -- g_i = max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2
+        have h_g_eq : g_i = fun u => ((deriv f_i u) + |deriv f_i u|) / 2 := by
+          ext u
+          dsimp [g_i]
+          by_cases hpos : 0 ≤ deriv f_i u
+          · rw [max_eq_right hpos, abs_of_nonneg hpos]
+            ring
+          · have hneg : deriv f_i u ≤ 0 := le_of_lt (lt_of_not_ge hpos)
+            rw [max_eq_left hneg, abs_of_neg (lt_of_not_ge hpos)]
+            ring
+        rw [h_g_eq]
+        -- IntervalIntegrable is closed under addition, absolute value, and scalar multiplication
+        have h_temp : IntervalIntegrable
+          (fun u => ((deriv f_i u) + |deriv f_i u|) * (1/2 : ℝ)) volume 0 τ :=
+          ((h_int_deriv.add h_int_deriv.abs).mul_const (1/2 : ℝ))
+        -- Convert * (1/2) to / 2
+        have h_eq : (fun u => ((deriv f_i u) + |deriv f_i u|) / 2) =
+                   (fun u => ((deriv f_i u) + |deriv f_i u|) * (1/2 : ℝ)) := by
+          ext u; rw [div_eq_mul_one_div]
+        rw [h_eq]
+        exact h_temp
       -- Apply the Fundamental Theorem of Calculus (derivative of integral = integrand):
       rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
     · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
@@ -1213,7 +1270,7 @@ lemma positiveZ_deriv_nonneg
           deriv (fun u' => u' * (x_lasso u').ofLp i') t =
           deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
     0 ≤ deriv (positiveZUpward x_lasso) τ ∧ 0 ≤ deriv (positiveZDownward x_lasso) τ := by
-  rcases deriv_pos_z_identities x_lasso τ h_regular
+  rcases deriv_pos_z_identities x_lasso τ hτ h_regular
     h_breakpoint_comp_deriv_zero h_piecewise_deriv with
     ⟨h_upward_eq, h_downward_eq⟩
   refine ⟨?_, ?_⟩
@@ -1284,7 +1341,7 @@ lemma pos_delta_bound_3
     (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
-  have h_derivs := deriv_pos_z_identities x_lasso τ h_regular
+  have h_derivs := deriv_pos_z_identities x_lasso τ hτ.left h_regular
     h_breakpoint_comp_deriv_zero h_piecewise_deriv
   rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw⟩
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
@@ -1410,7 +1467,9 @@ lemma positive_delta_complementarity_bound
   use max C1 C3, lt_max_of_lt_left hC1
   intro δ hδ
   have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular δ hδ
-  filter_upwards [h1, h2, h3, h4] with ε h1ε h2ε h3ε h4ε
+  filter_upwards [h1, h2, h3, h4, by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
   intro τ hτ
   have h_deriv_eq : deriv (fun σ => pathDelta M (fun ρ =>
       posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) σ) τ =
@@ -1435,19 +1494,38 @@ lemma positive_delta_complementarity_bound
     -/
     sorry
   rw [h_deriv_eq]
+  have h_log_pos : 0 < Real.log (1 / ε) :=
+    Real.log_pos (one_lt_one_div hε_range.1 hε_range.2)
+  have hL_nonneg : 0 ≤ 1 / Real.log (1 / ε) := div_nonneg (by norm_num) h_log_pos.le
+  have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
+    h_breakpoint_zero h_piecewise_deriv
+  have hA_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := h_nonneg.1
+  have hB_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := h_nonneg.2
   have h_alg : C1 / Real.log (1 / ε) + 0 +
       C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
         deriv (positiveZDownward x_lasso) τ) + δ
     ≤ max C1 C3 * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
       deriv (positiveZDownward x_lasso) τ) + δ := by
-    /-
-    INFORMAL PROOF (docs/Lasso.md, Section 4.6):
-    This is a purely algebraic inequality combining the bounds from the four complementarity terms.
-    Since C1 and C3 are positive, C1 / log(1/ε) ≤ max(C1, C3) / log(1/ε).
-    Similarly, C3 * (1/log(1/ε) * z_up' + z_down') ≤ max(C1, C3) * (1/log(1/ε) * z_up' + z_down').
-    Factoring out max(C1, C3) and adding the delta term matches the target bound.
-    -/
-    sorry
+    have h_body : C1 / Real.log (1 / ε) + C3 * (1 / Real.log (1 / ε) *
+        deriv (positiveZUpward x_lasso) τ + deriv (positiveZDownward x_lasso) τ) ≤
+        max C1 C3 * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+        deriv (positiveZDownward x_lasso) τ) := by
+      set L := 1 / Real.log (1 / ε)
+      set A := deriv (positiveZUpward x_lasso) τ
+      set B := deriv (positiveZDownward x_lasso) τ
+      set M := max C1 C3
+      have hC1M : C1 ≤ M := le_max_left _ _
+      have hC3M : C3 ≤ M := le_max_right _ _
+      have hLA_nonneg : 0 ≤ L * A := mul_nonneg hL_nonneg hA_nonneg
+      have h_sum : C1 * L + C3 * (L * A + B) ≤ M * (L * (1 + A) + B) := by
+        have h1 : C1 * L ≤ M * L := mul_le_mul_of_nonneg_right hC1M hL_nonneg
+        have h2 : C3 * (L * A) ≤ M * (L * A) := mul_le_mul_of_nonneg_right hC3M hLA_nonneg
+        have h3 : C3 * B ≤ M * B := mul_le_mul_of_nonneg_right hC3M hB_nonneg
+        nlinarith
+      dsimp [L, A, B, M] at h_sum
+      rw [div_eq_mul_one_div C1]
+      exact h_sum
+    nlinarith
   linarith [h1ε τ hτ, h2ε τ hτ, h3ε τ hτ, h4ε τ hτ, h_alg]
 
 /--

@@ -249,9 +249,17 @@ lemma energy_complementarity_bound
     -- "Least Angle Regression", Annals of Statistics 32(2):407–499), exactly as in
     -- `positive_delta_complementarity_bound` in `Bounds/Delta.lean`.
     sorry
+  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+      DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+      ∃ ε > 0, ∀ t, |t - τ'| < ε →
+        deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+        deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
+    -- Derive from piecewise linearity of the Lasso path (Efron et al. 2004),
+    -- exactly as in `positive_delta_complementarity_bound` in `Bounds/Delta.lean`.
+    sorry
   obtain ⟨C1, hC1_pos, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   obtain ⟨C3, hC3_pos, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
-    hx_lasso h_regular h_breakpoint_zero
+    hx_lasso h_regular h_breakpoint_zero h_piecewise_deriv
   have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular
   set C := max (max C1 C3) (pseudoInverseSeminorm Mdagger r) with hC_def
   have hC_pos : 0 < C := lt_max_of_lt_left (lt_max_of_lt_left hC1_pos)
@@ -320,7 +328,7 @@ lemma energy_complementarity_bound
     nlinarith [hdata.lambda_nonneg, hτ.1]
   -- Nonnegativity of the `z↑`/`z↓` derivatives, needed to fold `T1`/`T3` into a
   -- single constant `C`.
-  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular h_breakpoint_zero
+  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular h_breakpoint_zero h_piecewise_deriv
   -- Bound `T1`, `T3`, `T4b`.
   have hT1_bound : T1 ≤ C1 / Real.log (1 / ε) := h1ε τ hτ
   have hT3_bound : T3 ≤ C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
