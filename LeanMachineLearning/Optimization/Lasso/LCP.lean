@@ -312,7 +312,132 @@ This satisfies `IsPSDRangeInverse`.
 lemma exists_psd_range_inverse (M : Matrix ι ι ℝ)
     (h_symm : M.IsSymm) (h_psd : IsPositiveSemidefinite M) :
     ∃ Mdagger : Matrix ι ι ℝ, IsPSDRangeInverse M Mdagger := by
-  sorry
+  classical
+  -- Step 1: Convert to Hermitian and extract spectral data
+  have h_herm : M.IsHermitian := by simpa using h_symm
+  let ev := h_herm.eigenvalues
+  let U := h_herm.eigenvectorUnitary
+  -- Spectral theorem gives: M = U * diag(ev) * Uᴴ
+  have h_spec : M = (U : Matrix ι ι ℝ) * diagonal (ev : ι → ℝ) * (star (U : Matrix ι ι ℝ)) := by
+    simpa [conjStarAlgAut_apply, Function.comp] using h_herm.spectral_theorem
+  -- Step 2: Define the reciprocal-zero function on eigenvalues
+  let recipZero (λ : ℝ) : ℝ := if λ = 0 then 0 else λ⁻¹
+  -- Key property: λ * recipZero λ * λ = λ, and recipZero λ ≥ 0 when λ ≥ 0
+  have h_recip_mul (λ : ℝ) : λ * recipZero λ * λ = λ := by
+    dsimp [recipZero]
+    split_ifs with h
+    · simp [h]
+    · field_simp [h]
+  have h_ev_nonneg (i : ι) : 0 ≤ ev i := by
+    -- Mirror the proof from line ~1646
+    let b := h_herm.eigenvectorBasis
+    have h_eigenvec_i : matVec M (b i) = (ev i) • (b i) := by
+      have h := h_herm.mulVec_eigenvectorBasis i
+      dsimp [matVec, euclideanOf, b, ev]
+      simpa using congrArg (WithLp.equiv 2 (ι → ℝ)).symm h
+    have hpos := h_psd.nonneg (b i)
+    rw [h_eigenvec_i] at hpos
+    have h_inner_self : inner ℝ (b i) (b i) = 1 := b.inner_eq_one i
+    simpa [h_inner_self, real_inner_smul_right] using hpos
+  have h_recip_nonneg (λ : ℝ) (hλ : 0 ≤ λ) : 0 ≤ recipZero λ := by
+    dsimp [recipZero]
+    split_ifs with h
+    · exact le_refl 0
+    · exact inv_nonneg.mpr hλ
+  -- Step 3: Build M† = U * diag(recipZero ∘ ev) * Uᴴ
+  let Ddagger : Matrix ι ι ℝ := diagonal (recipZero ∘ ev)
+  let Mdagger : Matrix ι ι ℝ := (U : Matrix ι ι ℝ) * Ddagger * (star (U : Matrix ι ι ℝ))
+  refine ⟨Mdagger, ?_⟩
+  -- Step 4: Prove IsPSDRangeInverse (two fields)
+  constructor
+  · -- Field psd: IsPositiveSemidefinite Mdagger
+    constructor
+    · -- Subfield symm: Mdagger.IsSymm
+      dsimp [Mdagger, Ddagger]
+      simp [Matrix.IsSymm, Matrix.transpose_mul, Matrix.transpose_diagonal]
+    · -- Subfield nonneg: ∀ x, 0 ≤ inner ℝ x (matVec Mdagger x)
+      intro x
+      have h_inner_eq : inner ℝ x (matVec Mdagger x) =
+          star ((ofLp x : ι → ℝ)) ⬝ᵥ (Mdagger *ᵥ (ofLp x : ι → ℝ)) := by
+        simp [EuclideanSpace.inner_eq_star_dotProduct, matVec, euclideanOf]
+      rw [h_inner_eq]
+      -- Over ℝ, star is identity; ofLp just coerces EuclideanSpace to ι → ℝ
+      -- Show that the dot product is nonnegative using the spectral decomposition
+      let x' := (ofLp x : ι → ℝ)
+      have h_star : star x' = x' := by simp
+      rw [h_star]
+      -- Goal: 0 ≤ x' ⬝ᵥ (Mdagger *ᵥ x')
+      -- Use Mdagger = U * Ddagger * Uᴴ to rewrite
+      have h_mulVec : Mdagger *ᵥ x' = (U : Matrix ι ι ℝ) *ᵥ (Ddagger *ᵥ ((star (U : Matrix ι ι ℝ)) *ᵥ x')) := by
+        simp [Mdagger, Ddagger, Matrix.mulVec_mulVec]
+      rw [h_mulVec]
+      -- Let y := Uᴴ *ᵥ x'
+      let y := (star (U : Matrix ι ι ℝ)) *ᵥ x'
+      -- Then we need: 0 ≤ x' ⬝ᵥ (U *ᵥ (Ddagger *ᵥ y))
+      -- Use the identity: x' ⬝ᵥ (U *ᵥ z) = (Uᴴ *ᵥ x') ⬝ᵥ z = y ⬝ᵥ z
+      have h_shift : x' ⬝ᵥ ((U : Matrix ι ι ℝ) *ᵥ (Ddagger *ᵥ y)) = y ⬝ᵥ (Ddagger *ᵥ y) := by
+        calc
+          x' ⬝ᵥ ((U : Matrix ι ι ℝ) *ᵥ (Ddagger *ᵥ y)) =
+              ((star (U : Matrix ι ι ℝ)) *ᵥ x') ⬝ᵥ (Ddagger *ᵥ y) := by
+            -- Use dotProduct_comm and dotProduct_transpose_mulVec
+            rw [dotProduct_comm, Matrix.dotProduct_transpose_mulVec]
+            simp
+          _ = y ⬝ᵥ (Ddagger *ᵥ y) := rfl
+      rw [h_shift]
+      -- Now Ddagger = diagonal(recipZero ∘ ev)
+      dsimp [Ddagger]
+      -- y ⬝ᵥ (diagonal (recipZero ∘ ev) *ᵥ y) = ∑ i, recipZero(ev i) * (y i)^2
+      have h_sum : y ⬝ᵥ (diagonal (recipZero ∘ ev) *ᵥ y) =
+          ∑ i : ι, (recipZero (ev i)) * (y i * y i) := by
+        simp [Matrix.mulVec_diagonal, Matrix.dotProduct, Finset.mul_sum, Finset.sum_mul, mul_assoc]
+      rw [h_sum]
+      -- Each term is nonnegative because recipZero(ev i) ≥ 0 and (y i)^2 ≥ 0
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      have h_sq_nonneg : 0 ≤ y i * y i := by
+        nlinarith [sq_nonneg (y i)]
+      nlinarith [h_recip_nonneg (ev i) (h_ev_nonneg i), h_sq_nonneg]
+  · -- Field range_inverse: ∀ v, matVec M (matVec Mdagger (matVec M v)) = matVec M v
+    intro v
+    -- Using h_spec and definition of Mdagger:
+    -- matVec is essentially M.mulVec wrapped with euclideanOf
+    -- The key matrix identity: M * Mdagger * M = M
+    have h_mat_eq : M * Mdagger * M = M := by
+      calc
+        M * Mdagger * M =
+            ((U : Matrix ι ι ℝ) * diagonal (ev : ι → ℝ) * (star (U : Matrix ι ι ℝ))) *
+            ((U : Matrix ι ι ℝ) * Ddagger * (star (U : Matrix ι ι ℝ))) *
+            ((U : Matrix ι ι ℝ) * diagonal (ev : ι → ℝ) * (star (U : Matrix ι ι ℝ))) := by
+          rw [h_spec]
+        _ = (U : Matrix ι ι ℝ) * diagonal (ev : ι → ℝ) *
+            ((star (U : Matrix ι ι ℝ)) * (U : Matrix ι ι ℝ)) * Ddagger *
+            ((star (U : Matrix ι ι ℝ)) * (U : Matrix ι ι ℝ)) *
+            diagonal (ev : ι → ℝ) * (star (U : Matrix ι ι ℝ)) := by
+          simp [Matrix.mul_assoc]
+        _ = (U : Matrix ι ι ℝ) * diagonal (ev : ι → ℝ) * 1 * Ddagger * 1 *
+            diagonal (ev : ι → ℝ) * (star (U : Matrix ι ι ℝ)) := by
+          simp [U.property]
+        _ = (U : Matrix ι ι ℝ) * (diagonal (ev : ι → ℝ) * Ddagger * diagonal (ev : ι → ℝ)) *
+            (star (U : Matrix ι ι ℝ)) := by
+          simp
+        _ = (U : Matrix ι ι ℝ) * diagonal (ev : ι → ℝ) * (star (U : Matrix ι ι ℝ)) := by
+          -- Core: diagonal(ev) * Ddagger * diagonal(ev) = diagonal(ev) using h_recip_mul
+          have h_diag : diagonal (ev : ι → ℝ) * Ddagger * diagonal (ev : ι → ℝ) =
+              diagonal (ev : ι → ℝ) := by
+            dsimp [Ddagger]
+            calc
+              diagonal (ev : ι → ℝ) * diagonal (recipZero ∘ ev) * diagonal (ev : ι → ℝ) =
+                  diagonal ((ev : ι → ℝ) * (recipZero ∘ ev) * (ev : ι → ℝ)) := by
+                simp [Matrix.diagonal_mul_diagonal]
+              _ = diagonal (ev : ι → ℝ) := by
+                ext i; simp [h_recip_mul (ev i)]
+          rw [h_diag]
+        _ = M := by rw [h_spec]
+    -- From the matrix equality, deduce the action on vectors
+    have h_mulVec_eq : (M * Mdagger * M) *ᵥ (ofLp v : ι → ℝ) = M *ᵥ (ofLp v : ι → ℝ) := by
+      rw [h_mat_eq]
+    -- Unfold the left side: (M * Mdagger * M).mulVec = M.mulVec (Mdagger.mulVec (M.mulVec v))
+    -- Then wrap both sides with euclideanOf to get matVec
+    simpa [matVec, euclideanOf, Matrix.mulVec_mulVec] using h_mulVec_eq
 
 /--
 Regularity package for the unique dual solution of the parametric LCP.

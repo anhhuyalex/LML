@@ -40,6 +40,58 @@ open Filter Topology
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
+/--
+The product `μ ↦ μ x(μ)` is locally absolutely continuous on positive compacts because
+both `x` and `μ ↦ μ` are.
+
+Informal Proof Outline:
+For `μ > 0`, `x(μ)` is locally absolutely continuous (by hypothesis), and the identity
+function `μ ↦ μ` is Lipschitz, hence locally absolutely continuous. The product of two locally
+absolutely continuous functions is locally absolutely continuous.
+-/
+lemma scaled_path_ac_on_positive
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
+    LocallyAbsolutelyContinuousOnPositiveCompacts (scaledPrimalPath x_lasso) := by
+  sorry
+
+/--
+The scaled primal path is identically zero for all sufficiently small `μ ≥ 0`.
+
+Informal Proof Outline:
+By Lemma 4.10 (`parametric_lcp_unique_small_mu`), there exists a threshold
+`μ_0 > 0` such that for `0 ≤ μ < μ_0`, the unique solution to the parametric
+LCP is `(0, q(μ))`.
+For `μ > 0`, since `x(μ)` minimizes the positive lasso, it corresponds to a
+solution of the LCP (by `pos_lasso_is_lcp`). Thus `z(μ) = μ x(μ)` solves
+the parametric LCP. By uniqueness, `z(μ) = 0` for `0 < μ < μ_0`. 
+At `μ = 0`, `z(0) = 0 * x(0) = 0`.
+-/
+lemma scaled_path_zero_near_zero
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
+    ∃ μ_0 > 0, ∀ μ ∈ Set.Icc 0 μ_0, scaledPrimalPath x_lasso μ = 0 := by
+  sorry
+
+/--
+If a function is identically zero near zero and locally absolutely continuous on positive compacts,
+then it is locally absolutely continuous on nonnegative compacts.
+
+Informal Proof Outline:
+Let the function be zero on `[0, μ_0]`. Being constant, it is absolutely continuous on `[0, μ_0/2]`.
+For any compact interval `[a, b] ⊂ [0, ∞)`, we can split it at `μ_0/2`. The function is absolutely 
+continuous on `[a, μ_0/2]` and on `[μ_0/2, b]` (since the latter is a positive compact). 
+Gluing them together gives absolute continuity on `[a, b]`.
+-/
+lemma locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
+    (f : ℝ → EuclideanSpace ℝ ι)
+    (hf_pos : LocallyAbsolutelyContinuousOnPositiveCompacts f)
+    (hf_zero : ∃ μ_0 > 0, ∀ μ ∈ Set.Icc 0 μ_0, f μ = 0) :
+    LocallyAbsolutelyContinuousOnNonnegativeCompacts f := by
+  sorry
+
 /-- Regularity bridge used between the public statement of Theorem 3.2 and its
 scaled-path energy proof.
 
@@ -75,8 +127,62 @@ theorem scaledPrimalPath_regular_of_path_regular
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
     LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) := by
+  apply locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
+  · exact scaled_path_ac_on_positive x_lasso h_regular
+  · exact scaled_path_zero_near_zero M r lambda x_lasso hdata hx_lasso
+
+
+/--
+For `μ > 0`, if `x` minimizes the positive lasso, there exists a dual solution `w` such that
+the scaled primal and dual vectors solve the parametric LCP.
+
+Informal Proof Outline:
+For `μ > 0`, `x(μ)` satisfies the KKT conditions for the positive lasso, meaning it solves the
+standard LCP (`pos_lasso_is_lcp`). By scaling the standard LCP by `μ`, we obtain a solution
+to the `parametricLcpQ` LCP. This corresponds to setting `w = μ v` where `v` is the standard dual.
+(Source: docs/Lasso.md Section 4.5).
+-/
+lemma exists_parametric_lcp_solution_for_positive_lasso
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hμ : 0 < μ)
+    (hx_lasso : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
+    ∃ w : EuclideanSpace ℝ ι, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) w := by
   sorry
 
+/--
+At `μ = 0`, the origin and the all-ones vector solve the parametric LCP.
+
+Informal Proof Outline:
+At `μ = 0`, `z = 0`. The parametric LCP data is `q(0) = 1 > 0`.
+Setting `w = 1` satisfies the LCP since `w ≥ 0`, `z ≥ 0`, and `z^T w = 0`.
+(Source: docs/Lasso.md Section 4.5).
+-/
+lemma exists_parametric_lcp_solution_at_zero
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) :
+    ∃ w : EuclideanSpace ℝ ι, isParametricLCP M r lambda 0 (scaledPrimalPath x_lasso 0) w := by
+  sorry
+
+/--
+Given that `w(μ)` can be constructed piecewise to solve the parametric LCP,
+and because the dual solution of an LCP with PSD matrix is unique (`psd_lcp_unique_dual`),
+the dual trajectory satisfies the regularity package `ParametricLCPDualRegular`.
+
+(We use `Classical.choose` on the existence lemmas to build `w`).
+-/
+lemma dual_certificate_regularity
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hinverse : IsPSDRangeInverse M Mdagger)
+    (hsol : ∀ μ ≥ 0, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ)) :
+    ParametricLCPDualRegular M Mdagger r lambda w := by
+  apply parametric_lcp_dual_regular M Mdagger r lambda _ _ hdata hsol _ hinverse
+  intros μ _ z1 z2 w1 w2 h1 h2
+  exact psd_lcp_unique_dual M hdata.psd (parametricLcpQ r lambda μ) z1 z2 w1 w2 h1 h2
 /-- Construct the auxiliary Moore--Penrose/LCP data from the selected positive
 Lasso minimizer path.
 
@@ -109,8 +215,31 @@ theorem exists_dual_certificate_for_positive_path
       ParametricLCPDualRegular M Mdagger r lambda w ∧
         ∀ μ, 0 ≤ μ →
           isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ) := by
-  sorry
-
+  rcases exists_psd_range_inverse M hdata.psd.symm hdata.psd with ⟨Mdagger, hinverse⟩
+  use Mdagger
+  -- Construct w piecewise using Classical.choose
+  have hw_pos : ∀ μ > 0, ∃ w, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) w :=
+    fun μ hμ => exists_parametric_lcp_solution_for_positive_lasso M r lambda μ x_lasso hdata hμ (hx_lasso μ hμ)
+  have hw_zero : ∃ w, isParametricLCP M r lambda 0 (scaledPrimalPath x_lasso 0) w :=
+    exists_parametric_lcp_solution_at_zero M r lambda x_lasso
+  let w : ℝ → EuclideanSpace ℝ ι := fun μ =>
+    if hμ : μ > 0 then Classical.choose (hw_pos μ hμ)
+    else if μ = 0 then Classical.choose hw_zero
+    else 0 -- arbitrary for negative μ
+  use w
+  have hsol : ∀ μ ≥ 0, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ) := by
+    intro μ hμ
+    dsimp [w]
+    split_ifs with h_pos h_zero
+    · exact Classical.choose_spec (hw_pos μ h_pos)
+    · have h_eq : μ = 0 := le_antisymm (not_lt.1 h_pos) hμ
+      subst h_eq
+      exact Classical.choose_spec hw_zero
+    · exfalso
+      exact h_zero (le_antisymm (not_lt.1 h_pos) hμ)
+  constructor
+  · exact dual_certificate_regularity M Mdagger r lambda x_lasso w hdata hinverse hsol
+  · exact hsol
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso
 objective suboptimality bound of Theorem 3.2.

@@ -76,8 +76,9 @@ lemma dual_path_derivative_inner_bound
         simp only [inner_add_left, inner_add_right, real_inner_smul_left, real_inner_smul_right,
           add_assoc, mul_assoc]
         rw [inner_matVec_comm_of_isSymm M hM_symm v u]
+        rw [real_inner_comm (matVec M v) u]
         ring
-      rw [h_expand]
+      rw [← h_expand]
       exact h_psd
     -- Discriminant argument: a + 2bt + ct² ≥ 0 for all t implies b² ≤ a·c
     by_cases hc0 : c = 0
@@ -90,15 +91,14 @@ lemma dual_path_derivative_inner_bound
           ring
         have h_ge := h_quad_nonneg (-(a + 1) / (2 * b))
         rw [hc0] at h_ge
-        -- h_ge : 0 ≤ a + 2*b*(-(a+1)/(2*b)) + 0*(-(a+1)/(2*b))^2
-        -- simplify the zero term
-        simp at h_ge
+        have h_simp : a + 2 * b * (-(a + 1) / (2 * b)) + 0 * (-(a + 1) / (2 * b)) ^ 2 = a + 2 * b * (-(a + 1) / (2 * b)) := by ring
+        rw [h_simp] at h_ge
         rw [h_neg] at h_ge
         linarith
       rw [hc0, hb0]
       norm_num
     · -- c ≠ 0, so c > 0 (since c ≥ 0 by PSD)
-      have hc_pos : 0 < c := lt_of_le_of_ne hc_nonneg hc0
+      have hc_pos : 0 < c := lt_of_le_of_ne hc_nonneg (Ne.symm hc0)
       -- Take t = -b/c and plug into the quadratic
       have h_simplified : a + 2 * b * (-b / c) + c * (-b / c) ^ 2 = a - b ^ 2 / c := by
         field_simp [hc0]
@@ -106,7 +106,13 @@ lemma dual_path_derivative_inner_bound
       have hq := h_quad_nonneg (-b / c)
       rw [h_simplified] at hq
       -- From 0 ≤ a - b²/c, multiply by c > 0 to get a·c ≥ b²
-      nlinarith
+      have hq_mul : 0 ≤ (a - b ^ 2 / c) * c := mul_nonneg hq (le_of_lt hc_pos)
+      have h_mul_simp : (a - b ^ 2 / c) * c = a * c - b ^ 2 := by
+        calc
+          (a - b ^ 2 / c) * c = a * c - (b ^ 2 / c) * c := by ring
+          _ = a * c - b ^ 2 := by rw [div_mul_cancel₀ _ hc0]
+      rw [h_mul_simp] at hq_mul
+      linarith
   -- From the squared Cauchy-Schwarz, derive the non-squared form using square roots
   have h_cauchy_abs : |inner ℝ u (matVec M v)| ≤
       Real.sqrt (inner ℝ u (matVec M u)) * Real.sqrt (inner ℝ v (matVec M v)) := by
@@ -134,7 +140,7 @@ lemma dual_path_derivative_inner_bound
     rw [h_inner_eq_sq]
     -- `max 0 (inner ℝ u (matVec M u)) = inner ℝ u (matVec M u)` since it's nonnegative
     have h_max : max 0 (inner ℝ u (matVec M u)) = inner ℝ u (matVec M u) :=
-      max_eq_left h_Mu_nonneg
+      max_eq_right h_Mu_nonneg
     rw [h_max]
   -- Relate `Real.sqrt (2 * pathDelta M zε z τ)` to `sqrt(⟨v, M v⟩)`
   have h_sqrt_pathDelta : Real.sqrt (2 * pathDelta M zε z τ) =

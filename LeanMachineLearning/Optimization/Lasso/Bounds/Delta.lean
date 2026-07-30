@@ -1019,6 +1019,20 @@ private lemma rescaled_mirror_upper_bound
       exact False.elim (h_nonempty ⟨i⟩)
     -- The nonempty and empty cases above complete the proof
 
+-- For a ≤ c, b ≤ c, nonnegative x,y, and positive d:
+-- (a/d)*x + b*y ≤ c * ((1/d)*x + y)
+private lemma max_bound_algebra {a b c x y d : ℝ} (ha : a ≤ c) (hb : b ≤ c)
+    (hx : 0 ≤ x) (hy : 0 ≤ y) (hd_pos : 0 < d) :
+    (a / d) * x + b * y ≤ c * ((1 / d) * x + y) := by
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have h_div : a / d ≤ c / d := div_le_div_of_nonneg_right ha hd_nonneg
+  have h1 : (a / d) * x ≤ (c / d) * x := mul_le_mul_of_nonneg_right h_div hx
+  have h2 : b * y ≤ c * y := mul_le_mul_of_nonneg_right hb hy
+  have h_sum : (a / d) * x + b * y ≤ (c / d) * x + c * y := add_le_add h1 h2
+  have h_rhs : (c / d) * x + c * y = c * ((1 / d) * x + y) := by ring
+  rw [h_rhs] at h_sum
+  exact h_sum
+
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
@@ -1102,11 +1116,101 @@ lemma pos_delta_bound_3
   -- derivative is constant, so the integrand is continuous, and FTC applies directly.
   -- At breakpoints, the function is not differentiable, so deriv returns 0 on both sides.
   -- TODO: formalize piecewise linearity of the Lasso path and complete this proof.
+  --
+  -- Proof sketch for h_upward_eq and h_downward_eq:
+  --
+  -- The scaled primal path z(μ) = μ·x_lasso(μ) is piecewise linear in μ
+  -- (Efron et al. 2004, "Least Angle Regression").  This implies that for each
+  -- coordinate i, the scalar function f_i(μ) := μ·x_lasso(μ)_i is piecewise linear.
+  -- Hence its derivative (where it exists) is piecewise constant, and the function
+  --   g_i^+(μ) := max(0, deriv f_i(μ))
+  -- is piecewise constant as well.
+  --
+  -- On each open interval between breakpoints, g_i^+ is constant, hence continuous;
+  -- the Fundamental Theorem of Calculus (deriv_integral_right) then gives
+  --   deriv (∫_0^· g_i^+) τ = g_i^+(τ).
+  -- At a breakpoint τ, the two-sided derivative of f_i does not exist, so
+  -- Mathlib's `deriv` returns 0, making g_i^+(τ) = 0.  Moreover, the integral
+  -- function ∫_0^· g_i^+ has a corner at τ (the left and right derivatives differ),
+  -- so its `deriv` also returns 0.  Thus equality holds at all τ ∈ [0,s].
+  --
+  -- Summing over i and using linearity of `deriv` over finite sums yields the result.
+  --
+  -- The same reasoning applies to the downward variation, with integrand
+  -- g_i^-(μ) := (1+μ)·max(0, -deriv f_i(μ)).
+  --
+  -- Step 1 (componentwise identification):
+  --   zDot i = deriv (fun u' => (scaledPrimalPath x_lasso u') i) τ
+  --          = deriv (fun u' => u' * x_lasso u' i) τ
+  have h_component : ∀ i, zDot i = deriv (fun u' => u' * x_lasso u' i) τ := by
+    intro i
+    dsimp [zDot, scaledPrimalPath]
+    -- Need: (deriv f τ) i = deriv (fun x => (f x) i) τ  for f : ℝ → EuclideanSpace ℝ ι.
+    -- For differentiable points this is `deriv_pi`; at non-differentiable points both
+    -- sides are zero by Mathlib's convention.  A general lemma `deriv_apply` or
+    -- `deriv_pi_of_differentiable_or_zero` is needed.
+    sorry
+  -- Step 2 (FTC for each coordinate, using piecewise linearity):
+  --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
+  have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+      max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
+      max 0 (deriv (fun u' => u' * x_lasso u' i) τ) := by
+    intro i
+    -- This holds because of piecewise linearity of the Lasso path.
+    -- At continuity points of g_i^+ := max(0, deriv f_i), use `deriv_integral_right`
+    -- (requires IntervalIntegrable, StronglyMeasurableAtFilter, ContinuousAt).
+    -- At breakpoints, deriv f_i τ = 0 ⇒ g_i^+(τ) = 0, and the integral has a corner
+    -- so its deriv also returns 0.
+    sorry
+  -- Step 3 (FTC for the downward variation):
+  have h_ftc_down : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+      (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ =
+      (1 + τ) * max 0 (-deriv (fun u' => u' * x_lasso u' i) τ) := by
+    intro i
+    -- Same argument as h_ftc_up but with the (1+u) factor.
+    -- For piecewise linear f_i, u ↦ (1+u)·max(0, -deriv f_i(u)) is continuous at
+    -- non-breakpoints (product of continuous functions) and has a jump at breakpoints
+    -- where deriv f_i τ = 0, making the value zero on both sides.
+    sorry
+  -- Step 4 (distribute deriv over finite sum):
+  --   deriv (∑_i F_i) τ = ∑_i deriv F_i τ
+  -- Standard lemma `deriv_sum` requires differentiability of each F_i.
+  -- For piecewise linear f_i, at non-breakpoints all F_i are differentiable and
+  -- deriv_sum applies.  At breakpoints, deriv f_i τ = 0 for all i where the
+  -- derivative changes, and the remaining terms (with zero derivative) contribute
+  -- nothing; `deriv` of the sum is also zero.  We postulate a lemma that handles
+  -- both cases uniformly.
+  have h_deriv_sum : deriv (fun (μ : ℝ) => ∑ i : ι,
+      ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
+      ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+        max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := by
+    -- TODO: prove this from deriv_sum at differentiable points and the zero convention
+    -- at non-differentiable points, using piecewise linearity.
+    sorry
+  have h_deriv_sum_down : deriv (fun (μ : ℝ) => ∑ i : ι,
+      ∫ u in (0 : ℝ)..μ, (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ =
+      ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+        (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
+    sorry
+  -- Now assemble h_upward_eq and h_downward_eq using the calc syntax to avoid
+  -- syntactic issues with definitional unfolding of `positiveZUpward`/`positiveZDownward`.
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
-    sorry
-  -- The same reasoning applies to positiveZDownward, with integrand (1+u) * max(0, -deriv f_i u).
+    -- Unfold positiveZUpward definition (definitional equality)
+    have h_unfold : deriv (positiveZUpward x_lasso) τ =
+        deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
+          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := by
+      rfl
+    rw [h_unfold]
+    rw [h_deriv_sum]
+    simp_rw [h_ftc_up, h_component]
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
-    sorry
+    have h_unfold : deriv (positiveZDownward x_lasso) τ =
+        deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
+          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
+      rfl
+    rw [h_unfold]
+    rw [h_deriv_sum_down]
+    simp_rw [h_ftc_down, h_component]
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
@@ -1119,10 +1223,6 @@ lemma pos_delta_bound_3
       linarith [h_bound_pos, h_bound_neg]
     _ ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
         deriv (positiveZDownward x_lasso) τ) := by
-      -- We need: C_low / log ≤ C / log and C_w ≤ C.
-      -- Since C = max C_low C_w ≥ C_low and C ≥ C_w.
-      have hC_low : C_low ≤ C := le_max_left _ _
-      have hC_w : C_w ≤ C := le_max_right _ _
       -- Also need deriv (positiveZUpward x_lasso) τ ≥ 0 and deriv (positiveZDownward x_lasso) τ ≥ 0
       -- (they are derivatives of monotone nondecreasing functions).
       -- positiveZUpward and positiveZDownward are integrals of nonnegative functions,
@@ -1152,48 +1252,20 @@ lemma pos_delta_bound_3
         h_up_mono.deriv_nonneg (x := τ)
       have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ :=
         h_down_mono.deriv_nonneg (x := τ)
-      -- Now we have all the pieces:
-      -- h_bound_pos: -(∑ max(0,zDot_i)*w_i) ≤ (C_low/log)*deriv(positiveZUpward)
-      -- h_bound_neg: (∑ max(0,-zDot_i)*w_i) ≤ C_w*deriv(positiveZDownward)
       -- C_low ≤ C, C_w ≤ C, and the derivatives are nonnegative.
       -- Also log(1/ε) > 0 since ε ∈ (0,1).
-      -- Therefore the sum is bounded by C*(...).
+      -- Therefore the sum is bounded by C*(...) using the algebraic helper.
       have h_log_pos : 0 < Real.log (1 / ε) := by
         have h_one_lt : 1 < 1 / ε := by
           have hε_pos : 0 < ε := (Set.mem_Ioo.mp hε_one).1
           have hε_lt_one : ε < 1 := (Set.mem_Ioo.mp hε_one).2
           exact one_lt_one_div hε_pos hε_lt_one
         exact Real.log_pos h_one_lt
-      have h_div_pos : 0 < 1 / Real.log (1 / ε) := by
-        positivity
-      have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) := h_div_pos.le
       have h_goal : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
           C_w * deriv (positiveZDownward x_lasso) τ ≤
           C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-            deriv (positiveZDownward x_lasso) τ) := by
-        -- Use C_low ≤ C and C_w ≤ C, together with nonnegativity of the
-        -- derivatives and positivity of log(1/ε).
-        have hL_nonneg : 0 ≤ Real.log (1 / ε) := h_log_pos.le
-        have h_div : C_low / Real.log (1 / ε) ≤ C / Real.log (1 / ε) :=
-          div_le_div_of_nonneg_right (le_max_left _ _) hL_nonneg
-        have h1 : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ ≤
-            (C / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ :=
-          mul_le_mul_of_nonneg_right h_div h_up_nonneg
-        have h2 : C_w * deriv (positiveZDownward x_lasso) τ ≤
-            C * deriv (positiveZDownward x_lasso) τ :=
-          mul_le_mul_of_nonneg_right (le_max_right _ _) h_down_nonneg
-        have h_sum : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
-            C_w * deriv (positiveZDownward x_lasso) τ ≤
-            (C / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
-            C * deriv (positiveZDownward x_lasso) τ :=
-          add_le_add h1 h2
-        -- The RHS simplifies to the target expression.
-        have h_rhs : (C / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
-            C * deriv (positiveZDownward x_lasso) τ =
-            C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-              deriv (positiveZDownward x_lasso) τ) := by ring
-        rw [h_rhs] at h_sum
-        exact h_sum
+            deriv (positiveZDownward x_lasso) τ) :=
+        max_bound_algebra (le_max_left _ _) (le_max_right _ _) h_up_nonneg h_down_nonneg h_log_pos
       exact h_goal
 
 /--
