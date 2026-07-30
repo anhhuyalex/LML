@@ -1150,107 +1150,7 @@ private lemma deriv_pos_z_identities
       deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
     simpa using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
-  -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
-  -- is supplied as the hypothesis `h_piecewise_deriv`: at any point where the scaled
-  -- primal path is differentiable, each coordinate derivative is locally constant.
-  -- Its proof requires formalizing the piecewise-linear structure of the Lasso
-  -- regularization path (Efron, Hastie, Johnstone & Tibshirani 2004).
-  -- Step 2 (FTC for each coordinate, using piecewise linearity):
-  --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
-  have h_rhs_zero : max 0 (deriv f_i τ) = 0 := by
-    have h_deriv_zero : deriv f_i τ = 0 :=
-      h_breakpoint_comp_deriv_zero τ h_diff i
-    simp [f_i, h_deriv_zero]
-  -- LHS is also 0: for the piecewise linear Lasso path, g_i is
-  -- piecewise constant. At a breakpoint, g_i has a jump, so ∫ g_i
-  -- has a corner (left and right derivatives differ), hence is not
-  -- differentiable. Mathlib's `deriv` returns 0 in this case.
-  have h_lhs_zero : deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u) τ = 0 := by
-    set F := fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u
-    -- The proof relies on the piecewise-linear structure of the Lasso path:
-    -- at a breakpoint τ, each coordinate derivative deriv f_i is locally constant
-    -- on one-sided neighbourhoods, taking either 0 or some positive constant.
-    -- Hence g_i = max(0, deriv f_i) is piecewise constant near τ.
-    --
-    -- Key sub-lemma: g_i has one-sided limits at τ (coming from the piecewise-
-    -- constant values). The right limit is either 0 or some c > 0; the left limit
-    -- is either 0 or some d > 0.
-    --
-    -- If both limits are 0, then g_i is continuous at τ with value 0, and FTC
-    -- gives deriv F τ = 0.
-    --
-    -- If the right limit is c > 0 and the left limit is d ≥ 0 with c ≠ d,
-    -- then the one-sided derivatives of F differ, so F is not differentiable
-    -- at τ, and Mathlib's `deriv` returns 0 by deriv_zero_of_not_differentiableAt.
-    --
-    -- The only remaining case is c = d > 0. But then f_i has the same derivative
-    -- c on both sides, making f_i differentiable at τ with derivative c ≠ 0,
-    -- contradicting h_breakpoint_comp_deriv_zero (which gives deriv f_i τ = 0).
-    --
-    -- We formalize the one-sided limit property with:
-    have h_right_limit : (∃ δ > 0,
-        g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
-        (∃ (δ : ℝ) (hδ : δ > 0) (c : ℝ) (hc : c > 0),
-          g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => c)) := by
-      -- TODO: prove using h_piecewise_deriv and h_breakpoint_comp_deriv_zero,
-      -- exploiting that deriv f_i is locally constant at differentiability points
-      -- and zero at non-differentiability points, and that non-differentiability
-      -- points are isolated (piecewise-linear path).
-      sorry
-    have h_left_limit : (∃ δ > 0,
-        g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => (0 : ℝ))) ∨
-        (∃ (δ : ℝ) (hδ : δ > 0) (d : ℝ) (hd : d > 0),
-          g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => d)) := by
-      sorry
-    -- Case analysis on the left/right limits.
-    rcases h_right_limit with (⟨δr, hδr_pos, hgr⟩ | ⟨δr, hδr_pos, cr, hcr_pos, hgr⟩)
-    · -- Right limit = 0
-      rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
-      · -- Both limits = 0. Then g_i is continuous at τ with value 0.
-        -- FTC gives deriv F τ = g_i(τ) = 0.
-        have h_int : IntervalIntegrable g_i volume 0 τ := by
-          dsimp [g_i, f_i]
-          exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
-        have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
-          -- g_i equals 0 near τ on both sides, hence strongly measurable.
-          sorry
-        have h_cont : ContinuousAt g_i τ := by
-          -- g_i is 0 on both one-sided neighbourhoods and g_i(τ) = 0.
-          -- This can be derived from hgr, hgl, h_rhs_zero.
-          sorry
-        rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
-        exact h_rhs_zero
-      · -- Left limit = dl > 0, right limit = 0.
-        -- One-sided derivatives differ: right = 0, left = dl > 0.
-        -- Hence F is not differentiable at τ.
-        have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
-          -- TODO: prove using the local constancy of g_i on one-sided intervals.
-          sorry
-        exact deriv_zero_of_not_differentiableAt h_not_diff
-    · -- Right limit = cr > 0
-      rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
-      · -- Right limit = cr > 0, left limit = 0.
-        -- One-sided derivatives differ. F not differentiable.
-        have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
-          -- TODO: prove using the local constancy of g_i on one-sided intervals.
-          sorry
-        exact deriv_zero_of_not_differentiableAt h_not_diff
-      · -- Both limits positive: right = cr > 0, left = dl > 0.
-        by_cases h_eq : cr = dl
-        · -- cr = dl > 0. Then f_i' = cr on both sides, so f_i is differentiable
-          -- at τ with derivative cr > 0, contradicting h_breakpoint_comp_deriv_zero.
-          have h_deriv_fi_pos : deriv f_i τ = cr := by
-            -- Using absolute continuity of f_i and the fact that f_i' = cr
-            -- on (τ-δl, τ) and (τ, τ+δr), we get f_i differentiable at τ with
-            -- derivative cr. Formal proof requires interval integral FTC.
-            sorry
-          rw [h_breakpoint_comp_deriv_zero τ h_diff i] at h_deriv_fi_pos
-          linarith
-        · -- cr ≠ dl, both > 0. One-sided derivatives differ.
-          have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
-            -- TODO: prove using the local constancy of g_i on one-sided intervals.
-            sorry
-          exact deriv_zero_of_not_differentiableAt h_not_diff
+
   have h_ftc_up : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
       max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
       max 0 (deriv (fun u' => u' * x_lasso u' i) τ) := by
@@ -1296,7 +1196,107 @@ private lemma deriv_pos_z_identities
       rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
     · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
       -- By h_breakpoint_comp_deriv_zero, the RHS is zero.
-
+      -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
+      -- is supplied as the hypothesis `h_piecewise_deriv`: at any point where the scaled
+      -- primal path is differentiable, each coordinate derivative is locally constant.
+      -- Its proof requires formalizing the piecewise-linear structure of the Lasso
+      -- regularization path (Efron, Hastie, Johnstone & Tibshirani 2004).
+      -- Step 2 (FTC for each coordinate, using piecewise linearity):
+      --   deriv (∫_0^· max(0, deriv f_i)) τ = max(0, deriv f_i τ)
+      have h_rhs_zero : max 0 (deriv f_i τ) = 0 := by
+        have h_deriv_zero : deriv f_i τ = 0 :=
+          h_breakpoint_comp_deriv_zero τ h_diff i
+        simp [f_i, h_deriv_zero]
+      -- LHS is also 0: for the piecewise linear Lasso path, g_i is
+      -- piecewise constant. At a breakpoint, g_i has a jump, so ∫ g_i
+      -- has a corner (left and right derivatives differ), hence is not
+      -- differentiable. Mathlib's `deriv` returns 0 in this case.
+      have h_lhs_zero : deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u) τ = 0 := by
+        set F := fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ, g_i u
+        -- The proof relies on the piecewise-linear structure of the Lasso path:
+        -- at a breakpoint τ, each coordinate derivative deriv f_i is locally constant
+        -- on one-sided neighbourhoods, taking either 0 or some positive constant.
+        -- Hence g_i = max(0, deriv f_i) is piecewise constant near τ.
+        --
+        -- Key sub-lemma: g_i has one-sided limits at τ (coming from the piecewise-
+        -- constant values). The right limit is either 0 or some c > 0; the left limit
+        -- is either 0 or some d > 0.
+        --
+        -- If both limits are 0, then g_i is continuous at τ with value 0, and FTC
+        -- gives deriv F τ = 0.
+        --
+        -- If the right limit is c > 0 and the left limit is d ≥ 0 with c ≠ d,
+        -- then the one-sided derivatives of F differ, so F is not differentiable
+        -- at τ, and Mathlib's `deriv` returns 0 by deriv_zero_of_not_differentiableAt.
+        --
+        -- The only remaining case is c = d > 0. But then f_i has the same derivative
+        -- c on both sides, making f_i differentiable at τ with derivative c ≠ 0,
+        -- contradicting h_breakpoint_comp_deriv_zero (which gives deriv f_i τ = 0).
+        --
+        -- We formalize the one-sided limit property with:
+        have h_right_limit : (∃ δ > 0,
+            g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
+            (∃ (δ : ℝ) (hδ : δ > 0) (c : ℝ) (hc : c > 0),
+              g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => c)) := by
+          -- TODO: prove using h_piecewise_deriv and h_breakpoint_comp_deriv_zero,
+          -- exploiting that deriv f_i is locally constant at differentiability points
+          -- and zero at non-differentiability points, and that non-differentiability
+          -- points are isolated (piecewise-linear path).
+          sorry
+        have h_left_limit : (∃ δ > 0,
+            g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => (0 : ℝ))) ∨
+            (∃ (δ : ℝ) (hδ : δ > 0) (d : ℝ) (hd : d > 0),
+              g_i =ᵐ[volume.restrict (Set.Ioo (τ - δ) τ)] (fun _ => d)) := by
+          sorry
+        -- Case analysis on the left/right limits.
+        rcases h_right_limit with (⟨δr, hδr_pos, hgr⟩ | ⟨δr, hδr_pos, cr, hcr_pos, hgr⟩)
+        · -- Right limit = 0
+          rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
+          · -- Both limits = 0. Then g_i is continuous at τ with value 0.
+            -- FTC gives deriv F τ = g_i(τ) = 0.
+            have h_int : IntervalIntegrable g_i volume 0 τ := by
+              dsimp [g_i, f_i]
+              exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+            have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+              -- g_i equals 0 near τ on both sides, hence strongly measurable.
+              sorry
+            have h_cont : ContinuousAt g_i τ := by
+              -- g_i is 0 on both one-sided neighbourhoods and g_i(τ) = 0.
+              -- This can be derived from hgr, hgl, h_rhs_zero.
+              sorry
+            rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
+            exact h_rhs_zero
+          · -- Left limit = dl > 0, right limit = 0.
+            -- One-sided derivatives differ: right = 0, left = dl > 0.
+            -- Hence F is not differentiable at τ.
+            have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
+              -- TODO: prove using the local constancy of g_i on one-sided intervals.
+              sorry
+            exact deriv_zero_of_not_differentiableAt h_not_diff
+        · -- Right limit = cr > 0
+          rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
+          · -- Right limit = cr > 0, left limit = 0.
+            -- One-sided derivatives differ. F not differentiable.
+            have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
+              -- TODO: prove using the local constancy of g_i on one-sided intervals.
+              sorry
+            exact deriv_zero_of_not_differentiableAt h_not_diff
+          · -- Both limits positive: right = cr > 0, left = dl > 0.
+            by_cases h_eq : cr = dl
+            · -- cr = dl > 0. Then f_i' = cr on both sides, so f_i is differentiable
+              -- at τ with derivative cr > 0, contradicting h_breakpoint_comp_deriv_zero.
+              have h_deriv_fi_pos : deriv f_i τ = cr := by
+                -- Using absolute continuity of f_i and the fact that f_i' = cr
+                -- on (τ-δl, τ) and (τ, τ+δr), we get f_i differentiable at τ with
+                -- derivative cr. Formal proof requires interval integral FTC.
+                sorry
+              rw [h_breakpoint_comp_deriv_zero τ h_diff i] at h_deriv_fi_pos
+              linarith
+            · -- cr ≠ dl, both > 0. One-sided derivatives differ.
+              have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
+                -- TODO: prove using the local constancy of g_i on one-sided intervals.
+                sorry
+              exact deriv_zero_of_not_differentiableAt h_not_diff
       rw [h_lhs_zero, h_rhs_zero]
   -- Step 3 (FTC for the downward variation):
   have h_ftc_down : ∀ i, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
