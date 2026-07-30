@@ -1161,6 +1161,91 @@ Lemma 4.7 of <https://arxiv.org/abs/2509.18766>, cross-checked against the
 conic Carathéodory argument in Bertsekas' MIT convex-analysis slides
 <https://web.mit.edu/dimitrib/OldFiles/www/Convex_Slides.pdf>.
 -/
+
+-- If two vectors in an inner product space have equal norm and are distinct,
+-- then their midpoint has strictly smaller norm (strict convexity of the norm).
+private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V] {u v : V}
+    (h_norm_eq : ‖u‖ = ‖v‖) (h_ne : u ≠ v) : ‖(1/2 : ℝ) • (u + v)‖ < ‖u‖ := by
+  have h_sub_pos : 0 < ‖u - v‖ := by
+    rw [norm_pos_iff]
+    intro h_eq
+    apply h_ne
+    exact sub_eq_zero.mp h_eq
+  have h_sub_sq_pos : 0 < ‖u - v‖ ^ 2 := pow_pos h_sub_pos 2
+  rw [norm_sub_sq_real, h_norm_eq] at h_sub_sq_pos
+  -- h_sub_sq_pos : 0 < 2*‖u‖^2 - 2*inner ℝ u v, so inner ℝ u v < ‖u‖^2
+  have h_sum_sq_lt : ‖u + v‖ ^ 2 < (2 * ‖u‖) ^ 2 := by
+    rw [norm_add_sq_real, h_norm_eq]
+    nlinarith
+  have h_nonneg_sum : 0 ≤ ‖u + v‖ := norm_nonneg _
+  have h_nonneg_two_u : 0 ≤ 2 * ‖u‖ := by positivity
+  have h_sum_lt : ‖u + v‖ < 2 * ‖u‖ :=
+    (sq_lt_sq₀ h_nonneg_sum h_nonneg_two_u).mp h_sum_sq_lt
+  calc
+    ‖(1/2 : ℝ) • (u + v)‖ = (1/2 : ℝ) * ‖u + v‖ := by
+      rw [norm_smul, Real.norm_of_nonneg (by norm_num : 0 ≤ (1/2 : ℝ))]
+    _ < (1/2 : ℝ) * (2 * ‖u‖) := by
+      apply mul_lt_mul_of_pos_left h_sum_lt
+      norm_num
+    _ = ‖u‖ := by ring
+
+-- The feasible set of nonnegative solutions to ∑ z_i a_i = y is closed.
+private lemma feasible_set_closed {κ : Type*} [Fintype κ]
+    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
+    IsClosed {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
+  have h_closed_nonneg : IsClosed {z : κ → ℝ | ∀ i, 0 ≤ z i} := by
+    have : {z : κ → ℝ | ∀ i, 0 ≤ z i} = ⋂ i, {z | 0 ≤ z i} := by
+      ext z; simp
+    rw [this]
+    refine isClosed_iInter fun i => ?_
+    exact isClosed_Ici.preimage (continuous_apply i)
+  have h_closed_sum : IsClosed {z : κ → ℝ | (∑ i, z i • a i) = y} := by
+    have h_cont : Continuous (fun (z : κ → ℝ) => ∑ i, z i • a i) := by
+      refine continuous_finsetSum Finset.univ fun i _ => ?_
+      exact (continuous_apply i).smul continuous_const
+    exact (isClosed_singleton).preimage h_cont
+  exact IsClosed.inter h_closed_nonneg h_closed_sum
+
+-- The feasible set of nonnegative solutions to ∑ z_i a_i = y is convex.
+private lemma feasible_set_convex {κ : Type*} [Fintype κ]
+    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
+    Convex ℝ {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
+  intro z₁ hz₁ z₂ hz₂ s t hs ht hst
+  rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
+  rcases hz₂ with ⟨hz₂_nonneg, hz₂_sum⟩
+  constructor
+  · -- Nonnegativity condition
+    intro i
+    have : (s • z₁ + t • z₂) i = s * z₁ i + t * z₂ i := by
+      simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [this]
+    nlinarith [hs, ht, hz₁_nonneg i, hz₂_nonneg i]
+  · -- Sum condition: (∑ i, (s•z₁ + t•z₂) i • a i) = y
+    have hsum : (∑ i : κ, (s • z₁ + t • z₂) i • a i) = y := by
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      calc
+        (∑ i, (s * z₁ i + t * z₂ i) • a i) = (∑ i, ((s * z₁ i) • a i + (t * z₂ i) • a i)) := by
+          simp_rw [add_smul]
+        _ = (∑ i, (s * z₁ i) • a i) + (∑ i, (t * z₂ i) • a i) := Finset.sum_add_distrib
+        _ = s • (∑ i, z₁ i • a i) + t • (∑ i, z₂ i • a i) := by
+          have h1 : (∑ i : κ, (s * z₁ i) • a i) = s • (∑ i : κ, z₁ i • a i) := by
+            calc
+              (∑ i : κ, (s * z₁ i) • a i) = (∑ i : κ, s • (z₁ i • a i)) := by
+                refine Finset.sum_congr rfl (fun i _ => ?_)
+                rw [← smul_smul]
+              _ = s • (∑ i : κ, z₁ i • a i) := by rw [Finset.smul_sum]
+          have h2 : (∑ i : κ, (t * z₂ i) • a i) = t • (∑ i : κ, z₂ i • a i) := by
+            calc
+              (∑ i : κ, (t * z₂ i) • a i) = (∑ i : κ, t • (z₂ i • a i)) := by
+                refine Finset.sum_congr rfl (fun i _ => ?_)
+                rw [← smul_smul]
+              _ = t • (∑ i : κ, z₂ i • a i) := by rw [Finset.smul_sum]
+          rw [h1, h2]
+        _ = s • y + t • y := by rw [hz₁_sum, hz₂_sum]
+        _ = (s + t) • y := by rw [add_smul]
+        _ = y := by rw [hst, one_smul]
+    exact hsum
+
 theorem nonnegative_minNorm_solution_norm_bound
     {κ : Type*} [Fintype κ] (a : κ → EuclideanSpace ℝ ι) :
     ∃ C : ℝ, 0 < C ∧
@@ -1186,70 +1271,11 @@ theorem nonnegative_minNorm_solution_norm_bound
     rw [hS_def, Set.mem_ofPred_eq]
     exact ⟨hcoeff_nonneg, hcoeff_sum⟩
   have hS_closed : IsClosed S := by
-    -- The set is the intersection of the nonnegative orthant (closed) and
-    -- the affine subspace {z | ∑ z_i a_i = y} (also closed)
-    have h_closed_nonneg : IsClosed {z : κ → ℝ | ∀ i, 0 ≤ z i} := by
-      -- The nonnegative orthant is a product of closed half-lines [0, ∞)
-      have : {z : κ → ℝ | ∀ i, 0 ≤ z i} = ⋂ i, {z | 0 ≤ z i} := by
-        ext z; simp
-      rw [this]
-      refine isClosed_iInter fun i => ?_
-      -- {z | 0 ≤ z i} is the preimage of [0, ∞) under the evaluation map z ↦ z i
-      -- which is closed because evaluation is continuous and [0, ∞) is closed in ℝ
-      exact isClosed_Ici.preimage (continuous_apply i)
-    have h_closed_sum : IsClosed {z : κ → ℝ | (∑ i, z i • a i) = y} := by
-      -- The map z ↦ ∑ i, z i • a i is continuous and linear
-      -- The preimage of the closed set {y} is closed
-      have h_cont : Continuous (fun (z : κ → ℝ) => ∑ i, z i • a i) := by
-        -- This is a finite sum of continuous functions
-        refine continuous_finsetSum Finset.univ fun i _ => ?_
-        -- z ↦ z i • a i is continuous (scalar multiplication with a fixed vector)
-        exact (continuous_apply i).smul continuous_const
-      exact (isClosed_singleton).preimage h_cont
-    -- Intersection of two closed sets is closed
     rw [hS_def]
-    exact IsClosed.inter h_closed_nonneg h_closed_sum
+    exact feasible_set_closed a y
   have hS_convex : Convex ℝ S := by
-    -- Direct proof: take two points in S, show the convex combination is in S
-    intro z₁ hz₁ z₂ hz₂ s t hs ht hst
-    rw [hS_def, Set.mem_ofPred_eq] at hz₁ hz₂
-    rw [hS_def, Set.mem_ofPred_eq]
-    rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
-    rcases hz₂ with ⟨hz₂_nonneg, hz₂_sum⟩
-    constructor
-    · -- Nonnegativity condition
-      intro i
-      have : (s • z₁ + t • z₂) i = s * z₁ i + t * z₂ i := by
-        simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
-      rw [this]
-      -- s * z₁ i + t * z₂ i ≥ 0 because all factors are ≥ 0
-      nlinarith [hs, ht, hz₁_nonneg i, hz₂_nonneg i]
-    · -- Sum condition: (∑ i, (s•z₁ + t•z₂) i • a i) = y
-      have hsum : (∑ i : κ, (s • z₁ + t • z₂) i • a i) = y := by
-        simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
-        -- Now goal: ∑ i, (s * z₁ i + t * z₂ i) • a i = y
-        calc
-          (∑ i, (s * z₁ i + t * z₂ i) • a i) = (∑ i, ((s * z₁ i) • a i + (t * z₂ i) • a i)) := by
-            simp_rw [add_smul]
-          _ = (∑ i, (s * z₁ i) • a i) + (∑ i, (t * z₂ i) • a i) := Finset.sum_add_distrib
-          _ = s • (∑ i, z₁ i • a i) + t • (∑ i, z₂ i • a i) := by
-            have h1 : (∑ i : κ, (s * z₁ i) • a i) = s • (∑ i : κ, z₁ i • a i) := by
-              calc
-                (∑ i : κ, (s * z₁ i) • a i) = (∑ i : κ, s • (z₁ i • a i)) := by
-                  refine Finset.sum_congr rfl (fun i _ => ?_)
-                  rw [← smul_smul]
-                _ = s • (∑ i : κ, z₁ i • a i) := by rw [Finset.smul_sum]
-            have h2 : (∑ i : κ, (t * z₂ i) • a i) = t • (∑ i : κ, z₂ i • a i) := by
-              calc
-                (∑ i : κ, (t * z₂ i) • a i) = (∑ i : κ, t • (z₂ i • a i)) := by
-                  refine Finset.sum_congr rfl (fun i _ => ?_)
-                  rw [← smul_smul]
-                _ = t • (∑ i : κ, z₂ i • a i) := by rw [Finset.smul_sum]
-            rw [h1, h2]
-          _ = s • y + t • y := by rw [hz₁_sum, hz₂_sum]
-          _ = (s + t) • y := by rw [add_smul]
-          _ = y := by rw [hst, one_smul]
-      exact hsum
+    rw [hS_def]
+    exact feasible_set_convex a y
   -- The objective function f(z) = ‖euclideanOf z‖
   set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖ with hf_def
   have hf_cont : Continuous f := by
@@ -1370,35 +1396,12 @@ theorem nonnegative_minNorm_solution_norm_bound
         intro h_eq
         apply Ne.symm h_ne
         exact (WithLp.equiv 2 (κ → ℝ)).symm.injective h_eq
-      set u := euclideanOf x with hu_def
-      set v := euclideanOf x' with hv_def
-      have hu_eq_v : ‖u‖ = ‖v‖ := h_norm_eq
-      -- Linearity: euclideanOf ((1/2)•x + (1/2)•x') = (1/2)•(u + v)
-      have h_linear : euclideanOf ((1/2 : ℝ) • x + (1/2 : ℝ) • x') = (1/2 : ℝ) • (u + v) := by
-        simp [euclideanOf, u, v]
+      -- Linearity of euclideanOf, then apply strict convexity of the Euclidean norm
+      have h_linear : euclideanOf ((1/2 : ℝ) • x + (1/2 : ℝ) • x') =
+          (1/2 : ℝ) • (euclideanOf x + euclideanOf x') := by
+        simp [euclideanOf]
       rw [h_linear]
-      -- Goal: ‖(1/2)•(u+v)‖ < ‖u‖
-      rw [norm_smul, Real.norm_of_nonneg (show 0 ≤ (1/2 : ℝ) from by norm_num)]
-      -- Goal: (1/2) * ‖u+v‖ < ‖u‖, i.e. ‖u+v‖ < 2*‖u‖
-      -- Using parallelogram / inner product: ‖u+v‖² + ‖u-v‖² = 4‖u‖² (since ‖u‖=‖v‖)
-      -- Since u ≠ v, ‖u-v‖ > 0, so ‖u+v‖² < 4‖u‖², hence ‖u+v‖ < 2‖u‖
-      have h_sub_pos : 0 < ‖u - v‖ := by
-        rw [norm_pos_iff]
-        intro h_eq
-        apply h_uv_ne
-        exact sub_eq_zero.mp h_eq
-      have h_sub_sq_pos : 0 < ‖u - v‖ ^ 2 := pow_pos h_sub_pos 2
-      rw [norm_sub_sq_real, hu_eq_v] at h_sub_sq_pos
-      -- h_sub_sq_pos : 0 < ‖u‖ ^ 2 - 2 * inner ℝ u v + ‖u‖ ^ 2
-      have h_sum_sq_lt : ‖u + v‖ ^ 2 < (2 * ‖u‖) ^ 2 := by
-        rw [norm_add_sq_real, hu_eq_v]
-        -- Goal: ‖u‖^2 + 2*inner ℝ u v + ‖u‖^2 < (2*‖u‖)^2 = 4*‖u‖^2
-        nlinarith
-      have h_nonneg_sum : 0 ≤ ‖u + v‖ := norm_nonneg _
-      have h_nonneg_two_u : 0 ≤ 2 * ‖u‖ := by positivity
-      have h_sum_lt : ‖u + v‖ < 2 * ‖u‖ :=
-        (sq_lt_sq₀ h_nonneg_sum h_nonneg_two_u).mp h_sum_sq_lt
-      nlinarith
+      exact strict_convex_norm_midpoint_lt h_norm_eq h_uv_ne
     have h_min_mid : f x ≤ f mid := hx_min h_mid_mem
     linarith
   -- Norm bound: the minimizer has norm ≤ the norm of any feasible solution

@@ -730,6 +730,7 @@ private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |
 
 -- The integrated rescaled trajectory is coordinatewise nonnegative.
 -- This follows because the integrand posEffectiveParameter is a square ≥ 0.
+omit [Fintype ι] in
 private lemma posIntegratedTrajectoryRescaled_nonneg
     (u : ℝ → ℝ → EuclideanSpace ℝ ι) (ε : ℝ) (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
     (τ : ℝ) (hτ0 : 0 ≤ τ) (i : ι) :
@@ -751,7 +752,7 @@ private lemma posIntegratedTrajectoryRescaled_nonneg
 -- |1 - log(β_i²)/log(1/ε)| ≤ 1 + |log(β_i²)|/log 2
 -- This uses log(1/ε) ≥ log 2 (since ε < 1/2) and the triangle inequality.
 private lemma abs_one_sub_log_div_log_bound
-    {ι : Type*} (β : EuclideanSpace ℝ ι) (ε : ℝ) (hε_pos : 0 < ε) (hε_lt_half : ε < 1/2) (i : ι) :
+    {ι : Type*} (β : EuclideanSpace ℝ ι) (ε : ℝ) (hε_pos : 0 < ε) (hε_lt_half : ε < 1 / 2) (i : ι) :
     |1 - Real.log ((β i)^2) / Real.log (1 / ε)| ≤ 1 + |Real.log ((β i)^2)| / Real.log 2 := by
   have h_log_denom_pos : 0 < Real.log (1 / ε) :=
     Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
