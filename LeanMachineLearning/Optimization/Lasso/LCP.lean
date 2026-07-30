@@ -1161,10 +1161,10 @@ Lemma 4.7 of <https://arxiv.org/abs/2509.18766>, cross-checked against the
 conic Carathéodory argument in Bertsekas' MIT convex-analysis slides
 <https://web.mit.edu/dimitrib/OldFiles/www/Convex_Slides.pdf>.
 -/
-
 -- If two vectors in an inner product space have equal norm and are distinct,
 -- then their midpoint has strictly smaller norm (strict convexity of the norm).
-private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V] {u v : V}
+private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V]
+    [InnerProductSpace ℝ V] {u v : V}
     (h_norm_eq : ‖u‖ = ‖v‖) (h_ne : u ≠ v) : ‖(1/2 : ℝ) • (u + v)‖ < ‖u‖ := by
   have h_sub_pos : 0 < ‖u - v‖ := norm_pos_iff.mpr (sub_ne_zero.mpr h_ne)
   have h_sub_sq_pos : 0 < ‖u - v‖ ^ 2 := pow_pos h_sub_pos 2
@@ -1182,7 +1182,8 @@ private lemma strict_convex_norm_midpoint_lt {V : Type*} [NormedAddCommGroup V] 
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is closed.
 private lemma feasible_set_closed {κ : Type*} [Fintype κ]
-    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
+    {V : Type*} [AddCommGroup V] [TopologicalSpace V] [ContinuousAdd V] [ContinuousSMul ℝ V]
+    (a : κ → V) (y : V) :
     IsClosed {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
   have h_closed_nonneg : IsClosed {z : κ → ℝ | ∀ i, 0 ≤ z i} := by
     rw [Set.ofPred_forall]
@@ -1194,7 +1195,8 @@ private lemma feasible_set_closed {κ : Type*} [Fintype κ]
 
 -- The feasible set of nonnegative solutions to ∑ z_i a_i = y is convex.
 private lemma feasible_set_convex {κ : Type*} [Fintype κ]
-    (a : κ → EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ ι) :
+    {V : Type*} [AddCommGroup V] [Module ℝ V]
+    (a : κ → V) (y : V) :
     Convex ℝ {z : κ → ℝ | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} := by
   intro z₁ hz₁ z₂ hz₂ s t hs ht hst
   rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
@@ -1307,7 +1309,9 @@ theorem nonnegative_minNorm_solution_norm_bound
     rcases hC₀ y hy with ⟨x₀, hx₀_nonneg, hx₀_sum, hx₀_norm⟩
     have hfx_le : ‖euclideanOf x‖ ≤ ‖euclideanOf x₀‖ :=
       by simpa [f] using hx_min (by rw [hS_def]; exact ⟨hx₀_nonneg, hx₀_sum⟩)
-    nlinarith [hfx_le, hx₀_norm, mul_le_mul_of_nonneg_right (hC_def ▸ le_max_left _ _) (norm_nonneg y)]
+    have hC_le : C₀ ≤ C := hC_def ▸ le_max_left _ _
+    have hy_nonneg : 0 ≤ ‖y‖ := norm_nonneg y
+    nlinarith [hfx_le, hx₀_norm, mul_le_mul_of_nonneg_right hC_le hy_nonneg]
   rcases hxS with ⟨hx_nonneg, hx_sum⟩
   exact ⟨x, ⟨hx_nonneg, hx_sum, hx_min⟩, h_unique, h_norm_bound⟩
 

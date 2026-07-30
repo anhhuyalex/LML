@@ -1081,22 +1081,30 @@ lemma pos_delta_bound_3
   --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
   --   deriv (positiveZDownward x_lasso) τ
   --     = ∑_i (1+τ) * max 0 (-deriv (scaledPrimalPath x_lasso) τ i)
+  -- The scaled primal path is locally absolutely continuous on nonnegative compacts.
+  -- From h_regular we obtain absolute continuity on [0,s].
+  have h_ac : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 s :=
+    h_regular.absolutelyContinuousOn_Icc 0 s (by linarith) (by linarith)
+  -- For each coordinate i, let f_i(t) := (scaledPrimalPath x_lasso t) i.
+  -- Since the coordinate projection is 1-Lipschitz, each f_i is AC on [0,s].
+  -- Let g_i(t) := max(0, deriv f_i t) be the positive part of the derivative.
+  -- Then g_i is interval-integrable on 0..s (since deriv f_i is, and max(0,·) preserves integrability).
+  -- Moreover, positiveZUpward x_lasso μ = ∑_i ∫_0^μ g_i(u) du.
+  -- By the Lebesgue Differentiation Theorem (IntervalIntegrable.ae_hasDerivAt_integral),
+  -- for almost every τ ∈ [0,s], HasDerivAt (∫_0^· g_i) (g_i τ) τ, hence
+  --   deriv (∫_0^· g_i) τ = max(0, deriv f_i τ) = max(0, zDot i).
+  -- Summing over i gives the result for almost every τ.
+  --
+  -- For the Lasso regularization path, scaledPrimalPath is piecewise linear
+  -- (Efron et al. 2004, "Least Angle Regression"). For piecewise linear functions,
+  -- the equality holds for ALL τ: on each open interval between breakpoints the
+  -- derivative is constant, so the integrand is continuous, and FTC applies directly.
+  -- At breakpoints, the function is not differentiable, so deriv returns 0 on both sides.
+  -- TODO: formalize piecewise linearity of the Lasso path and complete this proof.
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
-    /-
-    INFORMAL PROOF (docs/Lasso.md, Section 4.6):
-    The positiveZUpward and positiveZDownward functions are defined as the integrals
-    of the positive and negative variations of the scaled primal path, respectively.
-    By the Fundamental Theorem of Calculus (specifically, Lebesgue differentiation theorem
-    for Lipschitz paths), the derivative of the integral recovers the integrand almost everywhere.
-    Thus, differentiating positiveZUpward with respect to τ gives ∑_i max(0, zDot_i).
-    -/
     sorry
+  -- The same reasoning applies to positiveZDownward, with integrand (1+u) * max(0, -deriv f_i u).
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
-    /-
-    INFORMAL PROOF (docs/Lasso.md, Section 4.6):
-    Similarly, differentiating positiveZDownward with respect to τ yields
-    ∑_i (1 + τ) * max(0, -zDot_i), since it is the integral of (1+τ) * (x_lasso' ₋).
-    -/
     sorry
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
@@ -1116,9 +1124,76 @@ lemma pos_delta_bound_3
       have hC_w : C_w ≤ C := le_max_right _ _
       -- Also need deriv (positiveZUpward x_lasso) τ ≥ 0 and deriv (positiveZDownward x_lasso) τ ≥ 0
       -- (they are derivatives of monotone nondecreasing functions).
-      -- These follow from the definitions as integrals of nonnegative integrands.
-      -- For the sketch we leave these as sorry.
-      sorry
+      -- positiveZUpward and positiveZDownward are integrals of nonnegative functions,
+      -- hence they are monotone (nondecreasing). By Monotone.deriv_nonneg, their
+      -- derivatives are nonnegative everywhere (deriv returns 0 where the derivative
+      -- does not exist, which is also ≥ 0).
+      -- positiveZUpward and positiveZDownward are integrals of nonnegative
+      -- functions, hence they are monotone (nondecreasing). The proof uses
+      -- the identity ∫_0^b g - ∫_0^a g = ∫_a^b g (for a ≤ b) from the
+      -- interval integral calculus, combined with nonnegativity of the
+      -- integrand. We provide the key steps with the integrability side
+      -- conditions marked as `sorry` for now.
+      have h_up_mono : Monotone (positiveZUpward x_lasso) := by
+        intro a b h
+        have h_diff_nonneg : 0 ≤ positiveZUpward x_lasso b - positiveZUpward x_lasso a := by
+          -- The difference equals the sum of integrals over [a,b] of a
+          -- nonnegative integrand. This relies on the integral identity
+          -- ∫_0^b g = ∫_0^a g + ∫_a^b g which requires integrability.
+          sorry
+        linarith
+      have h_down_mono : Monotone (positiveZDownward x_lasso) := by
+        intro a b h
+        have h_diff_nonneg : 0 ≤ positiveZDownward x_lasso b - positiveZDownward x_lasso a := by
+          sorry
+        linarith
+      have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
+        h_up_mono.deriv_nonneg (x := τ)
+      have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ :=
+        h_down_mono.deriv_nonneg (x := τ)
+      -- Now we have all the pieces:
+      -- h_bound_pos: -(∑ max(0,zDot_i)*w_i) ≤ (C_low/log)*deriv(positiveZUpward)
+      -- h_bound_neg: (∑ max(0,-zDot_i)*w_i) ≤ C_w*deriv(positiveZDownward)
+      -- C_low ≤ C, C_w ≤ C, and the derivatives are nonnegative.
+      -- Also log(1/ε) > 0 since ε ∈ (0,1).
+      -- Therefore the sum is bounded by C*(...).
+      have h_log_pos : 0 < Real.log (1 / ε) := by
+        have h_one_lt : 1 < 1 / ε := by
+          have hε_pos : 0 < ε := (Set.mem_Ioo.mp hε_one).1
+          have hε_lt_one : ε < 1 := (Set.mem_Ioo.mp hε_one).2
+          exact one_lt_one_div hε_pos hε_lt_one
+        exact Real.log_pos h_one_lt
+      have h_div_pos : 0 < 1 / Real.log (1 / ε) := by
+        positivity
+      have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) := h_div_pos.le
+      have h_goal : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
+          C_w * deriv (positiveZDownward x_lasso) τ ≤
+          C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+            deriv (positiveZDownward x_lasso) τ) := by
+        -- Use C_low ≤ C and C_w ≤ C, together with nonnegativity of the
+        -- derivatives and positivity of log(1/ε).
+        have hL_nonneg : 0 ≤ Real.log (1 / ε) := h_log_pos.le
+        have h_div : C_low / Real.log (1 / ε) ≤ C / Real.log (1 / ε) :=
+          div_le_div_of_nonneg_right (le_max_left _ _) hL_nonneg
+        have h1 : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ ≤
+            (C / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ :=
+          mul_le_mul_of_nonneg_right h_div h_up_nonneg
+        have h2 : C_w * deriv (positiveZDownward x_lasso) τ ≤
+            C * deriv (positiveZDownward x_lasso) τ :=
+          mul_le_mul_of_nonneg_right (le_max_right _ _) h_down_nonneg
+        have h_sum : (C_low / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
+            C_w * deriv (positiveZDownward x_lasso) τ ≤
+            (C / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
+            C * deriv (positiveZDownward x_lasso) τ :=
+          add_le_add h1 h2
+        -- The RHS simplifies to the target expression.
+        have h_rhs : (C / Real.log (1 / ε)) * deriv (positiveZUpward x_lasso) τ +
+            C * deriv (positiveZDownward x_lasso) τ =
+            C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+              deriv (positiveZDownward x_lasso) τ) := by ring
+        rw [h_rhs] at h_sum
+        exact h_sum
+      exact h_goal
 
 /--
 Section 4.6, Eq. (4.14), Term 4.
