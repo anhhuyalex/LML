@@ -699,6 +699,106 @@ noncomputable def signedToPositiveWeights
   (WithLp.equiv 2 _).symm
     (Sum.elim ((1 / 2 : ℝ) • (uv.1 + uv.2)) ((1 / 2 : ℝ) • (uv.1 - uv.2)))
 
+/-- `signedToPositiveWeights` bundled as a linear map, so that its derivative along a curve
+follows from the chain rule for continuous linear maps
+(`ContinuousLinearMap.hasFDerivAt.comp_hasDerivAt`), reused in `dln_dynamics_reduction`. -/
+noncomputable def signedToPositiveWeightsLM :
+    WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι) →ₗ[ℝ] EuclideanSpace ℝ (ι ⊕ ι) where
+  toFun := signedToPositiveWeights
+  map_add' := by
+    intro s1 s2
+    dsimp [signedToPositiveWeights]
+    ext j
+    cases j with
+    | inl i => simp; ring
+    | inr i => simp; ring
+  map_smul' := by
+    intro c s
+    dsimp [signedToPositiveWeights]
+    ext j
+    cases j with
+    | inl i => simp [smul_eq_mul]; ring
+    | inr i => simp [smul_eq_mul]; ring
+
+/--
+Section 5.1.2 of `docs/Lasso.md`: the `u ∘ v` DLN vector field maps, under
+`signedToPositiveWeights` and the time-doubling `t ↦ 2t` from the chain rule, to the positive
+`u ∘ u` DLN vector field for the augmented system `(augmentedMatrix M, augmentedVector r)`.
+
+Informal proof: write `p_pos = (u+v)/2`, `p_neg = (u-v)/2` for the two `signedToPositiveWeights`
+components. By `gradient_posDlnObjective`, `augmentedMatrix_matVec`,
+`coordinateSquare_half_add_sub_eq_hadamard`, and the block-vector components
+`augmentedVector_apply_inl/inr`, the positive vector field at `signedToPositiveWeights state`
+evaluates, coordinatewise in `j = inl i` and `j = inr i`, to
+`-(u_i+v_i)(D_i+lambda)` and `(u_i-v_i)(D_i-lambda)` respectively, where
+`D = matVec M (hadamard u v) - r`. Comparing with `dlnVectorField_eq`'s explicit formula for
+`-(∇_u, ∇_v) dlnObjective` shows these are exactly `2 p_pos`/`2 p_neg` applied to that same pair,
+i.e. the two sides agree after scaling by 2 (the chain-rule factor from `t ↦ 2t`).
+-/
+lemma posDlnVectorField_signedToPositiveWeights_eq
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
+    (t t' : ℝ) (state : WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) :
+    (2 : ℝ) • signedToPositiveWeights (dlnVectorField M r lambda t state) =
+      posDlnVectorField (augmentedMatrix M) (augmentedVector r) lambda t'
+        (signedToPositiveWeights state) := by
+  set u := (WithLp.equiv 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι) state).1
+  set v := (WithLp.equiv 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι) state).2
+  set ppos := (1 / 2 : ℝ) • (u + v) with hppos
+  set pneg := (1 / 2 : ℝ) • (u - v) with hpneg
+  have hstw : signedToPositiveWeights state = euclideanOf (Sum.elim ppos pneg) := rfl
+  rw [hstw]
+  dsimp only [posDlnVectorField]
+  rw [(hasGradientAt_posDlnObjective (augmentedMatrix M) (augmentedVector r) lambda
+    (augmentedMatrix_isSymm M hM) (euclideanOf (Sum.elim ppos pneg))).gradient]
+  rw [coordinateSquare_sumElim, augmentedMatrix_matVec]
+  have hdiff : matVec M (coordinateSquare ppos) - matVec M (coordinateSquare pneg) =
+      matVec M (hadamard u v) := by
+    rw [← matVec_sub, coordinateSquare_half_add_sub_eq_hadamard]
+  dsimp only [dlnVectorField]
+  rw [(hasGradientAt_dlnObjective_left M r lambda hM u v).gradient,
+      (hasGradientAt_dlnObjective_right M r lambda hM u v).gradient]
+  ext j
+  cases j with
+  | inl i =>
+    simp [signedToPositiveWeights, euclideanOf, hadamard, augmentedVector_apply_inl]
+    have hbridge : (WithLp.toLp 2 fun i : ι => u.ofLp i * v.ofLp i) = hadamard u v := rfl
+    rw [hbridge]
+    have hd :
+        (matVec M (coordinateSquare ppos)).ofLp i - (matVec M (coordinateSquare pneg)).ofLp i =
+          (matVec M (hadamard u v)).ofLp i := by
+      have h := hdiff
+      apply_fun (fun x => x.ofLp i) at h
+      simpa using h
+    have hppos_val : ppos.ofLp i = 2⁻¹ * u.ofLp i + 2⁻¹ * v.ofLp i := by
+      simp [hppos, smul_eq_mul]
+    rw [hppos_val]
+    linear_combination (u.ofLp i + v.ofLp i) * hd
+  | inr i =>
+    simp [signedToPositiveWeights, euclideanOf, hadamard, augmentedVector_apply_inr]
+    have hbridge : (WithLp.toLp 2 fun i : ι => u.ofLp i * v.ofLp i) = hadamard u v := rfl
+    rw [hbridge]
+    have hd :
+        (matVec M (coordinateSquare ppos)).ofLp i - (matVec M (coordinateSquare pneg)).ofLp i =
+          (matVec M (hadamard u v)).ofLp i := by
+      have h := hdiff
+      apply_fun (fun x => x.ofLp i) at h
+      simpa using h
+    have hpneg_val : pneg.ofLp i = 2⁻¹ * u.ofLp i - 2⁻¹ * v.ofLp i := by
+      simp [hpneg, smul_eq_mul]; ring
+    rw [hpneg_val]
+    linear_combination (v.ofLp i - u.ofLp i) * hd
+
+omit [Fintype ι] in
+/-- Coordinatewise components of the signed-to-positive initialization. -/
+lemma signedToPositiveInitialization_apply_inl (β γ : EuclideanSpace ℝ ι) (i : ι) :
+    signedToPositiveInitialization β γ (Sum.inl i) = (1 / 2 : ℝ) * (β i + γ i) := by
+  simp [signedToPositiveInitialization]; ring
+
+omit [Fintype ι] in
+lemma signedToPositiveInitialization_apply_inr (β γ : EuclideanSpace ℝ ι) (i : ι) :
+    signedToPositiveInitialization β γ (Sum.inr i) = (1 / 2 : ℝ) * (β i - γ i) := by
+  simp [signedToPositiveInitialization]
+
 /--
 Algebraic identity behind Section 5.1.2:
 `u ∘ v = p_pos^2 - p_neg^2`.
@@ -737,21 +837,63 @@ Section 5.1.2: reduction of dynamics in the `u ∘ v` case to the `u ∘ u` case
 
 Informal proof reference: `docs/Lasso.md`, Section 5.1.2.  The positive
 trajectory is explicitly `τ ↦ signedToPositiveWeights (wᵋ(2τ))`.
+
+Informal proof: `dlnGradientFlow` gives `HasDerivAt (w ε) (dlnVectorField M r lambda t ((w ε) t)) t`
+for every `t`. Composing `t ↦ 2τ` (chain rule, `HasDerivAt.scomp`) with the linear map
+`signedToPositiveWeightsLM` (`ContinuousLinearMap.hasFDerivAt.comp_hasDerivAt`) shows
+`τ ↦ signedToPositiveWeights ((w ε)(2τ))` has derivative
+`signedToPositiveWeights (2 • dlnVectorField M r lambda (2τ) ((w ε)(2τ)))` at `τ`, and this
+equals `posDlnVectorField (augmentedMatrix M) (augmentedVector r) lambda τ
+(signedToPositiveWeights ((w ε)(2τ)))` by `posDlnVectorField_signedToPositiveWeights_eq`. The
+initial condition and `C¹` regularity transfer along the same chain-rule composition; the
+initialization identity is the pointwise algebraic computation `signedToPositiveWeights
+((WithLp.equiv 2 _).symm (√ε•β, √ε•γ)) = √ε • signedToPositiveInitialization β γ`.
 -/
 lemma dln_dynamics_reduction
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (hdata : ProblemData M r lambda)
     (β γ : EuclideanSpace ℝ ι)
     (w : ℝ → ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) :
     ∀ ε > 0, dlnGradientFlow M r lambda ε β γ (w ε) →
       posDlnGradientFlow (augmentedMatrix M) (augmentedVector r) lambda ε
         (signedToPositiveInitialization β γ)
         (fun τ => signedToPositiveWeights ((w ε) (2 * τ))) := by
-  -- Proof sketch (Section 5.1.2):
-  -- By differentiating the positive and negative parts of the canonical split, the dynamics
-  -- of u and v completely decouple into the standard u ∘ u positive dynamics on the
-  -- augmented (doubled) dimension system.
-  sorry
+  have hM : M.IsSymm := hdata.psd.get_symm
+  intro ε _hε hw
+  refine ⟨?_, ?_, ?_⟩
+  · -- init
+    have h0 := hw.init
+    simp only [mul_zero]
+    rw [h0]
+    dsimp [signedToPositiveWeights, signedToPositiveInitialization]
+    ext j
+    cases j with
+    | inl i => simp [smul_eq_mul]; ring
+    | inr i => simp [smul_eq_mul]; ring
+  · -- cont_diff
+    have h1 : ContDiff ℝ 1 (fun τ : ℝ => (w ε) (2 * τ)) :=
+      hw.cont_diff.comp (contDiff_const.mul contDiff_id)
+    exact signedToPositiveWeightsLM.toContinuousLinearMap.contDiff.comp h1
+  · -- ode
+    intro τ
+    have hg : HasDerivAt (fun τ' : ℝ => 2 * τ') 2 τ := by
+      simpa using (hasDerivAt_id τ).const_mul (2 : ℝ)
+    have hscaled := (hw.ode (2 * τ)).scomp τ hg
+    have hderiv :=
+      signedToPositiveWeightsLM.toContinuousLinearMap.hasFDerivAt.comp_hasDerivAt τ hscaled
+    have hderiv' : HasDerivAt (fun τ' => signedToPositiveWeights ((w ε) (2 * τ')))
+        (signedToPositiveWeights ((2 : ℝ) • dlnVectorField M r lambda (2 * τ) ((w ε) (2 * τ))))
+        τ :=
+      hderiv
+    have heq := posDlnVectorField_signedToPositiveWeights_eq M r lambda hM (2 * τ) τ ((w ε) (2 * τ))
+    have hsmul : signedToPositiveWeights
+        ((2 : ℝ) • dlnVectorField M r lambda (2 * τ) ((w ε) (2 * τ))) =
+        (2 : ℝ) • signedToPositiveWeights (dlnVectorField M r lambda (2 * τ) ((w ε) (2 * τ))) :=
+      signedToPositiveWeightsLM.map_smul (2 : ℝ) _
+    rw [hsmul, heq] at hderiv'
+    exact hderiv'
 
+omit [Fintype ι] in
 /--
 The nondegeneracy condition on signed initialization is exactly nonzero
 coordinates for the augmented positive initialization.
@@ -766,7 +908,25 @@ lemma signed_initialization_nondegenerate_iff
   -- The augmented initialization is (u+v)/2 and (u-v)/2.
   -- These components are non-zero if and only if (u+v) ≠ 0 and (u-v) ≠ 0.
   -- This is equivalent to u ≠ -v and u ≠ v.
-  sorry
+  constructor
+  · intro h i
+    have h1 := h (Sum.inl i)
+    have h2 := h (Sum.inr i)
+    rw [signedToPositiveInitialization_apply_inl] at h1
+    rw [signedToPositiveInitialization_apply_inr] at h2
+    constructor
+    · intro heq; exact h2 (by rw [heq]; ring)
+    · intro heq; exact h1 (by rw [heq]; ring)
+  · intro h j
+    cases j with
+    | inl i =>
+      rw [signedToPositiveInitialization_apply_inl]
+      intro heq
+      exact (h i).2 (by linarith)
+    | inr i =>
+      rw [signedToPositiveInitialization_apply_inr]
+      intro heq
+      exact (h i).1 (by linarith)
 
 /--
 The signed-lasso deviation from monotonicity used in Theorem 2.2.

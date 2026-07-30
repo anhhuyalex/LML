@@ -561,6 +561,159 @@ lemma gradient_posDlnObjective
         (fun i => 2 * u i * ((matVec M (coordinateSquare u)) i - r i + lambda)) :=
   (hasGradientAt_posDlnObjective M r lambda hM u).gradient
 
+/-!
+### The `u ∘ v` DLN objective's gradient (Section 5.1.2 of `docs/Lasso.md`)
+
+`dlnObjective M r lambda u v = quadraticLoss M r (hadamard u v) + (lambda/2)(‖u‖²+‖v‖²)` is,
+for fixed `v`, an *exactly* quadratic function of `u` (since `hadamard · v` is linear), so its
+Taylor remainder is genuinely quadratic rather than merely asymptotically so, as in
+`hasGradientAt_posDlnObjective` above (where `coordinateSquare` makes the objective quartic).
+-/
+
+/-- Bridge lemma used to move `hadamard` across an inner product, dual to
+`inner_matVec_comm_of_isSymm`. -/
+private lemma inner_hadamard_comm (a v h : EuclideanSpace ℝ ι) :
+    inner ℝ (hadamard h v) a = inner ℝ h (hadamard v a) := by
+  rw [EuclideanSpace.inner_eq_star_dotProduct, EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct, hadamard, euclideanOf]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp
+  ring
+
+/--
+Section 5.1.2 of `docs/Lasso.md`: the partial gradient of the `u ∘ v` DLN objective in `u`
+(with `v` fixed) is `v ∘ (M(u∘v) - r) + lambda • u`.
+
+Informal proof: expand `dlnObjective M r lambda (u+h) v - dlnObjective M r lambda u v` exactly
+(no `o(h)` terms are dropped, since the objective is quadratic in `u`), using
+`hadamard (u+h) v = hadamard u v + hadamard h v` and symmetry of `M`. The remainder
+`(1/2)⟨hadamard h v, M (hadamard h v)⟩ + (lambda/2)‖h‖²` is `o(h)` because `hadamard · v` is a
+bounded linear map of `h`, reusing `inner_matVec_isLittleO_of_isBigO_tendsto`.
+-/
+lemma hasGradientAt_dlnObjective_left
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
+    (u v : EuclideanSpace ℝ ι) :
+    HasGradientAt (fun u' => dlnObjective M r lambda u' v)
+      (hadamard v (matVec M (hadamard u v) - r) + lambda • u) u := by
+  rw [hasGradientAt_iff_isLittleO]
+  have h_expansion : ∀ h : EuclideanSpace ℝ ι,
+      dlnObjective M r lambda (u + h) v - dlnObjective M r lambda u v -
+          inner ℝ (hadamard v (matVec M (hadamard u v) - r) + lambda • u) h =
+        (1 / 2 : ℝ) * inner ℝ (hadamard h v) (matVec M (hadamard h v)) +
+          (lambda / 2 : ℝ) * ‖h‖ ^ 2 := by
+    intro h
+    dsimp only [dlnObjective]
+    rw [hadamard_add_left u h v]
+    set x := hadamard u v
+    set y := hadamard h v
+    dsimp only [quadraticLoss]
+    rw [matVec_add M x y]
+    have h_inner_expand : inner ℝ (x + y) (matVec M x + matVec M y) =
+        inner ℝ x (matVec M x) + inner ℝ x (matVec M y) +
+          inner ℝ y (matVec M x) + inner ℝ y (matVec M y) := by
+      rw [inner_add_left, inner_add_right, inner_add_right]; ring
+    rw [h_inner_expand]
+    have h_cross : inner ℝ x (matVec M y) = inner ℝ y (matVec M x) := by
+      rw [inner_matVec_comm_of_isSymm M hM x y, real_inner_comm]
+    rw [h_cross]
+    have h_r_add : inner ℝ r (x + y) = inner ℝ r x + inner ℝ r y := inner_add_right _ _ _
+    rw [h_r_add]
+    have h_norm_add : ‖u + h‖ ^ 2 = ‖u‖ ^ 2 + 2 * inner ℝ u h + ‖h‖ ^ 2 := by
+      rw [← real_inner_self_eq_norm_sq, ← real_inner_self_eq_norm_sq, ← real_inner_self_eq_norm_sq]
+      rw [inner_add_left, inner_add_right, inner_add_right, real_inner_comm u h]
+      ring
+    rw [h_norm_add]
+    have hsub : hadamard v (matVec M x - r) = hadamard v (matVec M x) - hadamard v r := by
+      rw [hadamard_comm v (matVec M x - r), hadamard_sub_left, hadamard_comm (matVec M x) v,
+        hadamard_comm r v]
+    have h_y_r :
+        inner ℝ y (matVec M x) - inner ℝ r y = inner ℝ h (hadamard v (matVec M x - r)) := by
+      have e1 : inner ℝ y (matVec M x) = inner ℝ h (hadamard v (matVec M x)) := by
+        change inner ℝ (hadamard h v) (matVec M x) = _
+        exact inner_hadamard_comm (matVec M x) v h
+      have e2 : inner ℝ r y = inner ℝ h (hadamard v r) := by
+        rw [show inner ℝ r y = inner ℝ y r from (real_inner_comm r y).symm]
+        change inner ℝ (hadamard h v) r = _
+        exact inner_hadamard_comm r v h
+      rw [hsub, inner_sub_right, e1, e2]
+    have h_G : inner ℝ (hadamard v (matVec M x - r) + lambda • u) h =
+        inner ℝ h (hadamard v (matVec M x - r)) + lambda * inner ℝ u h := by
+      rw [inner_add_left]
+      congr 1
+      · exact real_inner_comm h (hadamard v (matVec M x - r))
+      · rw [real_inner_smul_left]
+    rw [h_G]
+    have h_uh : inner ℝ u h = inner ℝ h u := real_inner_comm h u
+    rw [h_uh] at *
+    nlinarith [h_y_r]
+  have h_remainder_o :
+      (fun x' : EuclideanSpace ℝ ι =>
+        (1 / 2 : ℝ) * inner ℝ (hadamard (x' - u) v) (matVec M (hadamard (x' - u) v)) +
+          (lambda / 2 : ℝ) * ‖x' - u‖ ^ 2) =o[nhds u] fun x' => x' - u := by
+    have h1 : (fun h : EuclideanSpace ℝ ι => inner ℝ (hadamard h v) (matVec M (hadamard h v)))
+        =o[nhds 0] fun h => h :=
+      inner_matVec_isLittleO_of_isBigO_tendsto M (fun h => hadamard h v) (fun h => h) 0
+        (by
+          have := (hadamardLM v).toContinuousLinearMap.isBigO_comp
+            (fun h : EuclideanSpace ℝ ι => h) (nhds (0 : EuclideanSpace ℝ ι))
+          simpa [hadamardLM] using this)
+        tendsto_id
+    have h2 : (fun h : EuclideanSpace ℝ ι => ‖h‖ ^ 2) =o[nhds 0] fun h => h :=
+      isLittleO_norm_pow_id (by norm_num : 1 < 2)
+    have hcomb := (h1.const_mul_left (1 / 2 : ℝ)).add (h2.const_mul_left (lambda / 2 : ℝ))
+    have htendsto : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - u) (nhds u) (nhds 0) := by
+      have h2' : Filter.Tendsto (fun x' : EuclideanSpace ℝ ι => x' - u)
+          (nhds u) (nhds (u - u)) := (continuous_id.sub continuous_const).tendsto u
+      simpa using h2'
+    exact hcomb.comp_tendsto htendsto
+  exact (h_remainder_o.congr_left (fun x' => by
+    have := h_expansion (x' - u)
+    simp only [add_sub_cancel] at this
+    linarith [this]))
+
+/-- `dlnObjective` is symmetric in `u` and `v` (both `hadamard` and `‖u‖²+‖v‖²` are). -/
+lemma dlnObjective_comm (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (u v : EuclideanSpace ℝ ι) :
+    dlnObjective M r lambda u v = dlnObjective M r lambda v u := by
+  dsimp [dlnObjective]
+  rw [hadamard_comm u v]
+  ring
+
+/-- Section 5.1.2 of `docs/Lasso.md`: the partial gradient in `v` (with `u` fixed), obtained
+from `hasGradientAt_dlnObjective_left` by the `u ↔ v` symmetry `dlnObjective_comm`. -/
+lemma hasGradientAt_dlnObjective_right
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
+    (u v : EuclideanSpace ℝ ι) :
+    HasGradientAt (fun v' => dlnObjective M r lambda u v')
+      (hadamard u (matVec M (hadamard u v) - r) + lambda • v) v := by
+  have h := hasGradientAt_dlnObjective_left M r lambda hM v u
+  rw [hadamard_comm v u] at h
+  have hfun :
+      (fun v' => dlnObjective M r lambda v' u) = (fun v' => dlnObjective M r lambda u v') := by
+    funext v'; exact dlnObjective_comm M r lambda v' u
+  rwa [hfun] at h
+
+/-- Explicit formula for the `u ∘ v` DLN vector field, obtained from
+`hasGradientAt_dlnObjective_left`/`_right`. This is the Lean counterpart of the
+right-hand sides of `du/dt = -∇_u L(u,v)`, `dv/dt = -∇_v L(u,v)` in Section 5.1.2 of
+`docs/Lasso.md`. -/
+lemma dlnVectorField_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (hM : M.IsSymm)
+    (t : ℝ) (state : WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) :
+    dlnVectorField M r lambda t state =
+      (WithLp.equiv 2 _).symm
+        (-(hadamard (WithLp.equiv 2 _ state).2
+              (matVec M (hadamard (WithLp.equiv 2 _ state).1 (WithLp.equiv 2 _ state).2) - r)
+            + lambda • (WithLp.equiv 2 _ state).1),
+         -(hadamard (WithLp.equiv 2 _ state).1
+              (matVec M (hadamard (WithLp.equiv 2 _ state).1 (WithLp.equiv 2 _ state).2) - r)
+            + lambda • (WithLp.equiv 2 _ state).2)) := by
+  dsimp only [dlnVectorField]
+  rw [(hasGradientAt_dlnObjective_left M r lambda hM
+        (WithLp.equiv 2 _ state).1 (WithLp.equiv 2 _ state).2).gradient,
+      (hasGradientAt_dlnObjective_right M r lambda hM
+        (WithLp.equiv 2 _ state).1 (WithLp.equiv 2 _ state).2).gradient]
+
 /-- The mirror-flow ODE `d ∇h(x(t)) / dt = -∇ \widetilde L(x(t))`. -/
 def IsEntropyMirrorFlow
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
