@@ -1521,10 +1521,62 @@ on a neighborhood of `x`. Thus `f = 0` on this neighborhood, implying `f'(x) = 0
 If `g(x) = 0`, then `f'(x)g(x) = 0`. In all cases, the product is `0`.
 -/
 lemma deriv_mul_zero_of_nonneg
-    {f g : ℝ → ℝ} (hf : ContinuousOn f (Set.Ici 0)) (hg : ContinuousOn g (Set.Ici 0))
+    {f g : ℝ → ℝ} (hg : ContinuousOn g (Set.Ici 0))
     (h_mul : ∀ x ≥ 0, f x * g x = 0) (x : ℝ) (hx : 0 ≤ x) :
     deriv f x * g x = 0 := by
-  sorry
+  by_cases h_diff : DifferentiableAt ℝ f x
+  · -- f is differentiable at x; we'll show `deriv f x = 0` or `g x = 0`
+    have h_deriv_at : HasDerivAt f (deriv f x) x := h_diff.hasDerivAt
+    by_cases h_gx : g x = 0
+    · -- g x = 0, trivial
+      simp [h_gx]
+    · -- g x ≠ 0, we need to show deriv f x = 0
+      have h_fx : f x = 0 := by
+        have hprod := h_mul x hx
+        rcases eq_zero_or_eq_zero_of_mul_eq_zero hprod with h | h
+        · exact h
+        · exfalso; exact h_gx h
+      -- g is continuous on [0,∞) at x, so within [0,∞), g stays away from 0 near x
+      have hg_cont : ContinuousWithinAt g (Set.Ici 0) x :=
+        hg.continuousWithinAt (Set.mem_Ici.mpr hx)
+      have h_mem_nhds : {z : ℝ | z ≠ 0} ∈ 𝓝 (g x) := by
+        have h_open : IsOpen {z : ℝ | z ≠ 0} := isOpen_compl_singleton
+        exact h_open.mem_nhds h_gx
+      have h_preimage : g ⁻¹' {z : ℝ | z ≠ 0} ∈ 𝓝[Set.Ici 0] x :=
+        hg_cont.preimage_mem_nhdsWithin h_mem_nhds
+      have h_eventually_g : ∀ᶠ y in 𝓝[Set.Ici 0] x, g y ≠ 0 := h_preimage
+      have h_mem_set : Set.Ici 0 ∈ 𝓝[Set.Ici 0] x := self_mem_nhdsWithin
+      -- Combine: near x within [0,∞), g ≠ 0, so f = 0 (from h_mul)
+      have h_eventually_f : ∀ᶠ y in 𝓝[Set.Ici 0] x, f y = 0 := by
+        filter_upwards [h_eventually_g, h_mem_set] with y hy hmem
+        have hy_nonneg : 0 ≤ y := hmem
+        have h_mul_y := h_mul y hy_nonneg
+        rcases eq_zero_or_eq_zero_of_mul_eq_zero h_mul_y with hf' | hg'
+        · exact hf'
+        · exfalso; exact hy hg'
+      have h_eventually_eq : f =ᶠ[𝓝[Set.Ici 0] x] (fun _ => (0 : ℝ)) := h_eventually_f
+      -- The constant zero function has derivative 0 (within any set)
+      have h_zero_deriv : HasDerivWithinAt (fun _ => (0 : ℝ)) 0 (Set.Ici 0) x :=
+        hasDerivWithinAt_const (c := (0 : ℝ)) (s := Set.Ici 0) (x := x)
+      -- Transfer to f via the eventual equality
+      have h_f_deriv_zero : HasDerivWithinAt f 0 (Set.Ici 0) x :=
+        h_zero_deriv.congr_of_eventuallyEq h_eventually_eq h_fx
+      -- f also has derivative `deriv f x` (from differentiability)
+      have h_f_deriv_at : HasDerivWithinAt f (deriv f x) (Set.Ici 0) x :=
+        h_deriv_at.hasDerivWithinAt
+      -- Unique differentiability within [0,∞) at x forces the two to agree
+      have h_unique_diff : UniqueDiffWithinAt ℝ (Set.Ici 0) x := by
+        by_cases hx0 : x = 0
+        · subst hx0; exact uniqueDiffWithinAt_Ici 0
+        · have hx_pos : (0 : ℝ) < x := lt_of_le_of_ne hx (Ne.symm hx0)
+          apply uniqueDiffWithinAt_of_mem_nhds
+          exact Ici_mem_nhds hx_pos
+      have h_eq : deriv f x = 0 :=
+        h_unique_diff.eq_deriv (Set.Ici 0) h_f_deriv_at h_f_deriv_zero
+      simp [h_eq]
+  · -- f is not differentiable at x, so deriv f x = 0 by definition
+    have h_deriv_zero : deriv f x = 0 := deriv_zero_of_not_differentiableAt h_diff
+    simp [h_deriv_zero]
 
 /--
 If `f : ℝ → E` is `K`-Lipschitz on `[a, b]`, then `‖f'(x)‖ ≤ K` for all `x ∈ [a, b]`.
