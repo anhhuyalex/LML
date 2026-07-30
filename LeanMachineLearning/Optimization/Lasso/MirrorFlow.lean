@@ -1037,15 +1037,23 @@ theorem posEffectiveParameter_ne_zero
       simpa using (hB_deriv τ).neg
     have h_exp : HasDerivAt (fun s => Real.exp (-B s)) (Real.exp (-B τ) * (-a τ)) τ :=
       h_negB.exp
-    -- HasDerivAt.mul gives exp * u; derivative simplifies to 0, reorder to u * exp = φ
+    -- HasDerivAt.mul gives (exp * u) with derivative (exp'*u + exp*u')
     have h_mul := HasDerivAt.mul h_exp h1
-    -- The function in h_mul is (fun s => exp(-B s) * (u s).ofLp i); we need (u s).ofLp i * exp(-B s)
-    have h_mul' : HasDerivAt (fun s => (u s).ofLp i * Real.exp (-B s)) 0 τ := by
-      -- These two functions are equal pointwise by mul_comm
-      convert h_mul using 1
-      ext s
-      apply mul_comm
-    simpa [φ] using h_mul'
+    -- Simplify the derivative: exp'*u + exp*u' = exp*(-a)*u + exp*(a*u) = 0
+    have h_deriv_simp : (Real.exp (-B τ) * (-a τ)) * (u τ).ofLp i + Real.exp (-B τ) * (a τ * (u τ).ofLp i) = 0 := by
+      ring
+    have h_mul_simp := h_mul.congr_deriv h_deriv_simp
+    -- h_mul_simp: HasDerivAt (fun s => exp(-B s) * (u s).ofLp i) 0 τ
+    -- Reorder multiplication to match φ
+    -- h_mul_simp: HasDerivAt ((fun s => exp(-B s)) * (fun s => u s i)) 0 τ
+    -- We want: HasDerivAt (fun s => (u s).ofLp i * exp(-B s)) 0 τ = HasDerivAt φ 0 τ
+    have h_mul_reorder : HasDerivAt (fun s => (u s).ofLp i * Real.exp (-B s)) 0 τ := by
+      -- The two functions are equal pointwise by mul_comm
+      have h_eq : ((fun s => Real.exp (-B s)) * fun s => (u s).ofLp i) =
+                 (fun s => (u s).ofLp i * Real.exp (-B s)) := by
+        ext s; apply mul_comm
+      exact h_eq ▸ h_mul_simp
+    simpa [φ] using h_mul_reorder
   -- Since φ' = 0 everywhere, φ is constant (mean value theorem)
   have hφ_const : ∀ (τ : ℝ), φ τ = φ 0 := by
     have hφ_diff : Differentiable ℝ φ := by
