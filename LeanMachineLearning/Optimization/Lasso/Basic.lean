@@ -41,6 +41,20 @@ lemma continuous_euclidean_apply (i : ι) :
     Continuous (fun x : EuclideanSpace ℝ ι => x i) :=
   (continuous_apply i).comp euclideanToPiEquiv.continuous
 
+/--
+Unfold an inner product against an `euclideanOf`-built vector into a coordinate sum. This is
+the recurring first step ("unfold `euclideanOf`, rewrite via
+`EuclideanSpace.inner_eq_star_dotProduct`, unfold `dotProduct`") in many coordinatewise
+identities throughout this folder; stated once here so those proofs can `rw` this instead of
+repeating the three-step unfold.
+-/
+lemma inner_euclideanOf_eq_sum (f : ι → ℝ) (h : EuclideanSpace ℝ ι) :
+    inner ℝ (euclideanOf f) h = ∑ i, f i * h i := by
+  dsimp [euclideanOf]
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  dsimp [dotProduct]
+  simp [mul_comm]
+
 /-- The all-ones vector. This is the vector denoted `𝟙` in `docs/Lasso.md`. -/
 noncomputable def ones : EuclideanSpace ℝ ι :=
   euclideanOf (fun _ => 1)
@@ -267,6 +281,15 @@ lemma matVec_smul_eq
     matVec M (c • x) = c • matVec M x := by
   ext i
   simp [matVec, euclideanOf, Matrix.mulVec_smul]
+
+/-- `matVec M` bundled as a linear map, for composing with continuity/derivative lemmas that
+expect a `LinearMap` (e.g. `LinearMap.continuous_of_finiteDimensional`,
+`LinearMap.isBigO_comp`) instead of the raw function together with `matVec_add`/`matVec_smul_eq`
+separately. -/
+noncomputable def matVecLM (M : Matrix ι ι ℝ) : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι where
+  toFun := matVec M
+  map_add' := matVec_add M
+  map_smul' := matVec_smul_eq M
 
 /-- Symmetry of `M` transfers the matrix from the second inner-product argument to the first. -/
 lemma inner_matVec_comm_of_isSymm

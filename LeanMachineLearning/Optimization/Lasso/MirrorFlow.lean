@@ -229,7 +229,7 @@ lemma hasDerivAt_coordinateSquare
     have hui : HasDerivAt (fun τ => e (u τ) i) (e u' i) t :=
       hasDerivAt_pi.1 (e.hasFDerivAt.comp_hasDerivAt t hu) i
     exact HasDerivAt.mul hui hui |>.congr_deriv (by
-      dsimp [e, ContinuousLinearEquiv.coe_coe]
+      dsimp [e, euclideanToPiEquiv, ContinuousLinearEquiv.coe_coe]
       simp; ring_nf)
   exact e.symm.hasFDerivAt.comp_hasDerivAt t hd_pi
 
@@ -448,11 +448,7 @@ private lemma inner_matVec_isLittleO_of_isBigO_tendsto
     (M : Matrix ι ι ℝ) (a g : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) (u : EuclideanSpace ℝ ι)
     (ha_O : a =O[nhds u] g) (hg_tendsto : Filter.Tendsto g (nhds u) (nhds 0)) :
     (fun x' => inner ℝ (a x') (matVec M (a x'))) =o[nhds u] g := by
-  let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
-    { toFun := matVec M
-      map_add' := matVec_add M
-      map_smul' := matVec_smul_eq M
-    }
+  let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι := matVecLM M
   have hMa_O_g : (fun x' => matVec M (a x')) =O[nhds u] g :=
     (M_lin.toContinuousLinearMap.isBigO_comp a (nhds u)).trans ha_O
   -- Product of norms is O(‖g‖^2)
@@ -908,11 +904,7 @@ theorem posEffectiveParameter_ne_zero
         euclideanToPiEquiv.symm.continuous_of_finiteDimensional
       exact h_euclideanOf_cont.comp h_sq
     have h_matVec_cont : Continuous (matVec M) := by
-      let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
-        { toFun := matVec M
-          map_add' := matVec_add M
-          map_smul' := matVec_smul_eq M }
-      exact M_lin.continuous_of_finiteDimensional
+      exact (matVecLM M).continuous_of_finiteDimensional
     have h_apply_i : Continuous (fun (x : EuclideanSpace ℝ ι) => x i) :=
       PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i
     have h_inner : Continuous (fun τ : ℝ =>
