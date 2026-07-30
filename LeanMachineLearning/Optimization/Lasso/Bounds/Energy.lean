@@ -35,10 +35,132 @@ product with `zε τ - z τ` is bounded by `‖r‖_M† * sqrt(2 * Δᵋ(τ))`.
 lemma dual_path_derivative_inner_bound
     (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (w z zε : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w) (τ : ℝ) :
+    (hM_psd : IsPositiveSemidefinite M)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w) (τ : ℝ)
+    (hτ_nonneg : 0 ≤ τ) :
     inner ℝ (deriv (fun σ => (1 / (1 + σ * lambda)) • w σ) τ) (zε τ - z τ)
     ≤ pseudoInverseSeminorm Mdagger r * Real.sqrt (2 * pathDelta M zε z τ) := by
-  sorry
+  -- Let `d` be the derivative of the scaled dual path at time `τ`
+  set d := deriv (scaledDualPath lambda w) τ with hd_def
+  -- Let `v` be the difference of the approximate and exact trajectories at time `τ`
+  set v := zε τ - z τ with hv_def
+  -- Symmetry of M follows from PSD
+  have hM_symm : M.IsSymm := IsPositiveSemidefinite.get_symm hM_psd
+  -- `d` is in the range of `M` (from the dual regularity hypothesis)
+  have hd_in_span : InMatrixSpan M d :=
+    hdual.scaled_derivative_in_span τ hτ_nonneg
+  rcases hd_in_span with ⟨u, hu_eq⟩
+  -- `d = M u`
+  have hd_eq_Mu : d = matVec M u := hu_eq.symm
+  -- The `M†` seminorm of `d` is bounded by that of `r`
+  have h_seminorm_bound : pseudoInverseSeminorm Mdagger d ≤ pseudoInverseSeminorm Mdagger r :=
+    hdual.scaled_derivative_bound τ hτ_nonneg
+  -- Nonnegativity of the M-quadratic forms (from PSD)
+  have h_Mu_nonneg : 0 ≤ inner ℝ u (matVec M u) :=
+    IsPositiveSemidefinite.get_nonneg hM_psd u
+  have h_Mv_nonneg : 0 ≤ inner ℝ v (matVec M v) :=
+    IsPositiveSemidefinite.get_nonneg hM_psd v
+  -- Cauchy-Schwarz for the M-semi-inner product: |⟨u, M v⟩|² ≤ ⟨u, M u⟩ · ⟨v, M v⟩
+  have h_cauchy_sq : inner ℝ u (matVec M v) ^ 2 ≤ inner ℝ u (matVec M u) * inner ℝ v (matVec M v) := by
+    set a := inner ℝ u (matVec M u) with ha
+    set b := inner ℝ u (matVec M v) with hb
+    set c := inner ℝ v (matVec M v) with hc
+    have hc_nonneg : 0 ≤ c := by rw [hc]; exact h_Mv_nonneg
+    -- For all real `t`, the quadratic `a + 2·b·t + c·t²` is nonnegative
+    -- because `⟨u + t·v, M(u + t·v)⟩ ≥ 0` (PSD property)
+    have h_quad_nonneg (t : ℝ) : 0 ≤ a + 2 * b * t + c * t ^ 2 := by
+      have h_psd := IsPositiveSemidefinite.get_nonneg hM_psd (u + t • v)
+      have h_expand : inner ℝ (u + t • v) (matVec M (u + t • v)) = a + 2 * b * t + c * t ^ 2 := by
+        dsimp [a, b, c]
+        rw [matVec_add, matVec_smul_eq]
+        simp only [inner_add_left, inner_add_right, real_inner_smul_left, real_inner_smul_right,
+          add_assoc, mul_assoc]
+        rw [inner_matVec_comm_of_isSymm M hM_symm v u]
+        ring
+      rw [h_expand]
+      exact h_psd
+    -- Discriminant argument: a + 2bt + ct² ≥ 0 for all t implies b² ≤ a·c
+    by_cases hc0 : c = 0
+    · -- If c = 0, then ∀t, a + 2bt ≥ 0, forcing b = 0
+      have hb0 : b = 0 := by
+        by_contra! hb0
+        -- Choose t = -(a+1)/(2b), which makes a + 2bt = -1 < 0
+        have h_neg : a + 2 * b * (-(a + 1) / (2 * b)) = -1 := by
+          field_simp [hb0]
+          ring
+        have h_ge := h_quad_nonneg (-(a + 1) / (2 * b))
+        rw [hc0] at h_ge
+        -- h_ge : 0 ≤ a + 2*b*(-(a+1)/(2*b)) + 0*(-(a+1)/(2*b))^2
+        -- simplify the zero term
+        simp at h_ge
+        rw [h_neg] at h_ge
+        linarith
+      rw [hc0, hb0]
+      norm_num
+    · -- c ≠ 0, so c > 0 (since c ≥ 0 by PSD)
+      have hc_pos : 0 < c := lt_of_le_of_ne hc_nonneg hc0
+      -- Take t = -b/c and plug into the quadratic
+      have h_simplified : a + 2 * b * (-b / c) + c * (-b / c) ^ 2 = a - b ^ 2 / c := by
+        field_simp [hc0]
+        ring
+      have hq := h_quad_nonneg (-b / c)
+      rw [h_simplified] at hq
+      -- From 0 ≤ a - b²/c, multiply by c > 0 to get a·c ≥ b²
+      nlinarith
+  -- From the squared Cauchy-Schwarz, derive the non-squared form using square roots
+  have h_cauchy_abs : |inner ℝ u (matVec M v)| ≤
+      Real.sqrt (inner ℝ u (matVec M u)) * Real.sqrt (inner ℝ v (matVec M v)) := by
+    calc
+      |inner ℝ u (matVec M v)| = Real.sqrt ((inner ℝ u (matVec M v)) ^ 2) := by
+        rw [Real.sqrt_sq_eq_abs]
+      _ ≤ Real.sqrt (inner ℝ u (matVec M u) * inner ℝ v (matVec M v)) :=
+        Real.sqrt_le_sqrt h_cauchy_sq
+      _ = Real.sqrt (inner ℝ u (matVec M u)) * Real.sqrt (inner ℝ v (matVec M v)) := by
+        rw [Real.sqrt_mul h_Mu_nonneg]
+  -- Relate `inner ℝ d v` to `inner ℝ u (matVec M v)` using `d = M u` and symmetry
+  have h_inner_eq : inner ℝ d v = inner ℝ u (matVec M v) := by
+    rw [hd_eq_Mu]
+    -- inner_matVec_comm_of_isSymm gives inner ℝ u (matVec M v) = inner ℝ (matVec M u) v
+    -- we need inner ℝ (matVec M u) v = inner ℝ u (matVec M v), so use the symmetric version
+    rw [← inner_matVec_comm_of_isSymm M hM_symm u v]
+  -- Relate `pseudoInverseSeminorm Mdagger d` to `sqrt(⟨u, M u⟩)` via the pseudoinverse identity
+  have h_seminorm_d_eq : pseudoInverseSeminorm Mdagger d =
+      Real.sqrt (inner ℝ u (matVec M u)) := by
+    rw [pseudoInverseSeminorm, hd_eq_Mu]
+    have h_inner_eq_sq : inner ℝ (matVec M u) (matVec Mdagger (matVec M u)) =
+        inner ℝ u (matVec M u) :=
+      pseudoInverse_inner_prop M Mdagger hM_symm
+        (hdual.inverse_spec.range_inverse) u
+    rw [h_inner_eq_sq]
+    -- `max 0 (inner ℝ u (matVec M u)) = inner ℝ u (matVec M u)` since it's nonnegative
+    have h_max : max 0 (inner ℝ u (matVec M u)) = inner ℝ u (matVec M u) :=
+      max_eq_left h_Mu_nonneg
+    rw [h_max]
+  -- Relate `Real.sqrt (2 * pathDelta M zε z τ)` to `sqrt(⟨v, M v⟩)`
+  have h_sqrt_pathDelta : Real.sqrt (2 * pathDelta M zε z τ) =
+      Real.sqrt (inner ℝ v (matVec M v)) := by
+    rw [pathDelta, matrixSeminormSq, hv_def]
+    ring
+  -- Bound `inner ℝ d v` by its absolute value
+  have h_le_abs : inner ℝ d v ≤ |inner ℝ d v| := by
+    by_cases h_nonneg : 0 ≤ inner ℝ d v
+    · rw [abs_of_nonneg h_nonneg]
+    · rw [abs_of_nonpos (by linarith)]
+      linarith
+  -- Assemble the main inequality chain
+  calc
+    inner ℝ d v ≤ |inner ℝ d v| := h_le_abs
+    _ = |inner ℝ u (matVec M v)| := by rw [h_inner_eq]
+    _ ≤ Real.sqrt (inner ℝ u (matVec M u)) * Real.sqrt (inner ℝ v (matVec M v)) := h_cauchy_abs
+    _ = pseudoInverseSeminorm Mdagger d * Real.sqrt (inner ℝ v (matVec M v)) := by
+      rw [h_seminorm_d_eq]
+    _ = pseudoInverseSeminorm Mdagger d * Real.sqrt (2 * pathDelta M zε z τ) := by
+      rw [h_sqrt_pathDelta]
+    _ ≤ pseudoInverseSeminorm Mdagger r * Real.sqrt (2 * pathDelta M zε z τ) :=
+      mul_le_mul_of_nonneg_right h_seminorm_bound (Real.sqrt_nonneg _)
+  -- Finally, `deriv (fun σ => (1 / (1 + σ * lambda)) • w σ) τ = deriv (scaledDualPath lambda w) τ`
+  -- by definition of `scaledDualPath`, so the goal `inner ℝ d v ≤ ...` matches
+
 
 /--
 Helper lemma for `positive_energy_differential_inequality`.
@@ -128,7 +250,8 @@ theorem positive_energy_differential_inequality
   filter_upwards [h_bound δ hδ] with ε hε τ hτ
   have h_comp := hε τ hτ
   have h_dual := dual_path_derivative_inner_bound M Mdagger r lambda w
-    (scaledPrimalPath x_lasso) (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) hdual τ
+    (scaledPrimalPath x_lasso) (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+    hdata.psd hdual τ hτ.1
   let Δ := pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
     (scaledPrimalPath x_lasso) τ
   have h_sqrt_nonneg := Real.sqrt_nonneg (2 * Δ)

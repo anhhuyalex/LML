@@ -1170,7 +1170,123 @@ theorem nonnegative_minNorm_solution_norm_bound
           IsNonnegativeMinNormSolution a y x ∧
           (∀ x', IsNonnegativeMinNormSolution a y x' → x' = x) ∧
           ‖euclideanOf x‖ ≤ C * ‖y‖ := by
-  sorry
+  -- Obtain the constant from the already-proved nonnegative solution norm bound
+  rcases nonnegative_solution_norm_bound a with ⟨C₀, hC₀_nonneg, hC₀⟩
+  -- Ensure the constant is strictly positive
+  set C := max C₀ 1 with hC_def
+  have hC_pos : 0 < C := by
+    refine lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) ?_
+    exact le_max_right _ _
+  refine ⟨C, hC_pos, ?_⟩
+  intro y hy
+  -- The feasible set: nonnegative solutions to ∑ x_i a_i = y
+  set S : Set (κ → ℝ) := {z | (∀ i, 0 ≤ z i) ∧ (∑ i, z i • a i) = y} with hS_def
+  have hS_nonempty : S.Nonempty := by
+    rcases hy with ⟨coeff, hcoeff_nonneg, hcoeff_sum⟩
+    refine ⟨coeff, ?_⟩
+    rw [hS_def, Set.mem_ofPred_eq]
+    exact ⟨hcoeff_nonneg, hcoeff_sum⟩
+  have hS_closed : IsClosed S := by
+    -- The set is the intersection of the nonnegative orthant (closed) and
+    -- the affine subspace {z | ∑ z_i a_i = y} (also closed)
+    have h_closed_nonneg : IsClosed {z : κ → ℝ | ∀ i, 0 ≤ z i} := by
+      -- The nonnegative orthant is a product of closed half-lines [0, ∞)
+      have : {z : κ → ℝ | ∀ i, 0 ≤ z i} = ⋂ i, {z | 0 ≤ z i} := by
+        ext z; simp
+      rw [this]
+      refine isClosed_iInter fun i => ?_
+      -- {z | 0 ≤ z i} is the preimage of [0, ∞) under the evaluation map z ↦ z i
+      -- which is closed because evaluation is continuous and [0, ∞) is closed in ℝ
+      exact isClosed_Ici.preimage (continuous_apply i)
+    have h_closed_sum : IsClosed {z : κ → ℝ | (∑ i, z i • a i) = y} := by
+      -- The map z ↦ ∑ i, z i • a i is continuous and linear
+      -- The preimage of the closed set {y} is closed
+      have h_cont : Continuous (fun (z : κ → ℝ) => ∑ i, z i • a i) := by
+        -- This is a finite sum of continuous functions
+        refine continuous_finsetSum Finset.univ fun i _ => ?_
+        -- z ↦ z i • a i is continuous (scalar multiplication with a fixed vector)
+        exact (continuous_apply i).smul continuous_const
+      exact (isClosed_singleton).preimage h_cont
+    -- Intersection of two closed sets is closed
+    rw [hS_def]
+    exact IsClosed.inter h_closed_nonneg h_closed_sum
+  have hS_convex : Convex ℝ S := by
+    -- Direct proof: take two points in S, show the convex combination is in S
+    intro z₁ hz₁ z₂ hz₂ s t hs ht hst
+    rw [hS_def, Set.mem_setOf_eq] at hz₁ hz₂
+    rw [hS_def, Set.mem_setOf_eq]
+    rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
+    rcases hz₂ with ⟨hz₂_nonneg, hz₂_sum⟩
+    constructor
+    · -- Nonnegativity condition
+      intro i
+      have : (s • z₁ + t • z₂) i = s * z₁ i + t * z₂ i := by
+        simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rw [this]
+      -- s * z₁ i + t * z₂ i ≥ 0 because all factors are ≥ 0
+      nlinarith [hs, ht, hz₁_nonneg i, hz₂_nonneg i]
+    · -- Sum condition: (∑ i, (s•z₁ + t•z₂) i • a i) = y
+      have hsum : (∑ i : κ, (s • z₁ + t • z₂) i • a i) = y := by
+        simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+        -- Now goal: ∑ i, (s * z₁ i + t * z₂ i) • a i = y
+        calc
+          (∑ i, (s * z₁ i + t * z₂ i) • a i) = (∑ i, ((s * z₁ i) • a i + (t * z₂ i) • a i)) := by
+            simp_rw [add_smul]
+          _ = (∑ i, (s * z₁ i) • a i) + (∑ i, (t * z₂ i) • a i) := Finset.sum_add_distrib
+          _ = s • (∑ i, z₁ i • a i) + t • (∑ i, z₂ i • a i) := by
+            have h1 : (∑ i : κ, (s * z₁ i) • a i) = s • (∑ i : κ, z₁ i • a i) := by
+              calc
+                (∑ i : κ, (s * z₁ i) • a i) = (∑ i : κ, s • (z₁ i • a i)) := by
+                  refine Finset.sum_congr rfl (fun i _ => ?_)
+                  rw [← smul_smul]
+                _ = s • (∑ i : κ, z₁ i • a i) := by rw [Finset.smul_sum]
+            have h2 : (∑ i : κ, (t * z₂ i) • a i) = t • (∑ i : κ, z₂ i • a i) := by
+              calc
+                (∑ i : κ, (t * z₂ i) • a i) = (∑ i : κ, t • (z₂ i • a i)) := by
+                  refine Finset.sum_congr rfl (fun i _ => ?_)
+                  rw [← smul_smul]
+                _ = t • (∑ i : κ, z₂ i • a i) := by rw [Finset.smul_sum]
+            rw [h1, h2]
+          _ = s • y + t • y := by rw [hz₁_sum, hz₂_sum]
+          _ = (s + t) • y := by rw [add_smul]
+          _ = y := by rw [hst, one_smul]
+      exact hsum
+  -- The objective function f(z) = ‖euclideanOf z‖
+  set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖ with hf_def
+  have hf_cont : Continuous f := by
+    -- euclideanOf is continuous (linear map between finite-dimensional spaces), norm is continuous
+    dsimp [f]
+    -- euclideanOf is a linear map, hence continuous in finite dimensions
+    have h_cont_euclideanOf : Continuous (euclideanOf : (κ → ℝ) → EuclideanSpace ℝ κ) := by
+      -- euclideanOf = (WithLp.linearEquiv 2 ℝ (κ → ℝ)).symm, a LinearEquiv, hence continuous
+      have : (euclideanOf : (κ → ℝ) → EuclideanSpace ℝ κ) =
+          (WithLp.linearEquiv 2 ℝ (κ → ℝ)).symm := rfl
+      rw [this]
+      -- the inverse of a continuous linear equivalence is continuous
+      exact (WithLp.linearEquiv 2 ℝ (κ → ℝ)).symm.continuous
+    -- Composition with norm is continuous
+    exact (Continuous.norm h_cont_euclideanOf)
+  -- Existence of a minimizer: use the extreme value theorem
+  have h_exists : ∃ x ∈ S, IsMinOn f S x := by
+    -- Using ContinuousOn.exists_isMinOn' with the coercive property of the norm
+    sorry
+  rcases h_exists with ⟨x, hxS, hx_min⟩
+  -- Uniqueness of the minimizer
+  have h_unique : ∀ x', IsNonnegativeMinNormSolution a y x' → x' = x := by
+    intro x' hx'_sol
+    -- hx'_sol gives: x' ∈ S and IsMinOn f S x'
+    -- By strict convexity of the Euclidean norm, the minimizer is unique
+    sorry
+  -- Norm bound: the minimizer has norm ≤ the norm of any feasible solution
+  have h_norm_bound : ‖euclideanOf x‖ ≤ C * ‖y‖ := by
+    -- From hC₀, there exists some feasible x₀ with ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖
+    -- Since x is the minimum-norm solution, ‖euclideanOf x‖ ≤ ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖ ≤ C * ‖y‖
+    sorry
+  -- Assemble the result
+  have hx_sol : IsNonnegativeMinNormSolution a y x := by
+    rcases hxS with ⟨hx_nonneg, hx_sum⟩
+    refine ⟨hx_nonneg, hx_sum, hx_min⟩
+  exact ⟨x, hx_sol, h_unique, h_norm_bound⟩
 
 /--
 The positive lasso objective achieves its minimum on the non-negative orthant.

@@ -332,8 +332,7 @@ lemma pos_delta_bound_1
       (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by
     rw [PiLp.inner_apply]
     simp_rw [Real.inner_apply]
-    simp_rw [show ∀ i, (posRescaledMirrorVariable ε (u ε) τ) i =
-      -Real.log (x i) / Real.log (1 / ε) from fun _ => rfl]
+    dsimp [x, posRescaledMirrorVariable, euclideanOf]
     calc
       ∑ i : ι, x i * (-Real.log (x i) / Real.log (1 / ε)) =
           ∑ i : ι, (-(x i) * Real.log (x i)) / Real.log (1 / ε) := by
@@ -641,6 +640,7 @@ private lemma uniform_trajectory_coordinate_bound
     exact h
   simpa [ht_def]
 
+omit [Fintype ι] in
 -- Lower bound for the rescaled mirror variable wᵋ_i(τ) ≥ -C_low / log(1/ε).
 -- Uses the uniform upper bound X on the effective parameter xᵋ_i ≤ X,
 -- from which log(xᵋ_i) ≤ max(1, log X), so -log(xᵋ_i) ≥ -C_low.
@@ -651,7 +651,6 @@ private lemma rescaled_mirror_lower_bound
     (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0) :
     ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
-  let _ := ‹Fintype ι›
   set C_low := max 1 (Real.log X) with hC_low_def
   have hC_low_pos : C_low > 0 := by
     rw [hC_low_def]
@@ -723,9 +722,7 @@ private lemma pos_effective_param_ne_zero
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε)) :
     ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
   intro ε hε t i
-  have hM_symm : M.IsSymm := hdata.psd.symm
-  have hflow := hu ε hε
-  exact pos_param_ne_zero_of_gradient_flow M r lambda β ε hε (u ε) hflow hM_symm t i (hβ i)
+  exact pos_param_ne_zero_of_gradient_flow M r lambda β ε hε (u ε) (hu ε hε) (hdata.psd.symm) t i (hβ i)
 
 -- Generic triangle inequality for four terms: |a - b + c + d| ≤ |a| + |b| + |c| + |d|
 private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |b| + |c| + |d| := by
@@ -733,47 +730,21 @@ private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |
     |a - b + c + d| ≤ |a - b + c| + |d| := abs_add_le _ _
     _ ≤ |a - b| + |c| + |d| := by nlinarith [abs_add_le (a - b) c]
     _ ≤ |a| + |b| + |c| + |d| := by
-      nlinarith [show |a - b| ≤ |a| + |b| from by
-        calc
-          |a - b| = |a + (-b)| := by ring_nf
-          _ ≤ |a| + |-b| := abs_add_le _ _
-          _ = |a| + |b| := by simp]
+      nlinarith [abs_sub a b]
 
-lemma pos_delta_bound_3
+-- Upper bound for the rescaled mirror variable: |wᵋ_i(τ)| ≤ C_w * (1 + τ).
+-- Uses the integrated mirror equation, the uniform trajectory bound, and bounds on r, M, β.
+private lemma rescaled_mirror_upper_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (β : EuclideanSpace ℝ ι) (s : ℝ)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
-    ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
-      ∀ τ ∈ Set.Icc (0 : ℝ) s,
-        - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
-            (posRescaledMirrorVariable ε (u ε) τ)
-        ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-          deriv (positiveZDownward x_lasso) τ) := by
-  -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
-  -- This gives a constant X > 0 such that for all sufficiently small ε and all
-  -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
-  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
-    pos_effective_param_ne_zero M r lambda β u hdata hβ hu
-  have h_uniform_bound := uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu
-  rcases h_uniform_bound with ⟨X, hX_pos, hX_ev⟩
-  -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
-  -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
-  -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
-  -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
-  have h_w_lower := rescaled_mirror_lower_bound X u s hX_ev hu_pos
-  rcases h_w_lower with ⟨C_low, hC_low_pos, hW_low_ev⟩
-  -- From the integrated mirror equation (positive_integrated_mirror_equation)
-  -- together with the trajectory bound, we obtain an upper bound:
-  -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
-  -- The integrated mirror equation gives:
-  --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
-  -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
-  have h_w_upper : ∃ C_w > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+    (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0)
+    (X : ℝ) (hX_pos : 0 < X)
+    (hX_ev : ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+      ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X) :
+    ∃ C_w > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, |posRescaledMirrorVariable ε (u ε) τ i| ≤ C_w * (1 + τ) := by
     /-
     INFORMAL PROOF (docs/Lasso.md, Section 4.3):
@@ -937,7 +908,43 @@ lemma pos_delta_bound_3
       filter_upwards [] with ε
       intro τ hτ i
       exact False.elim (h_nonempty ⟨i⟩)
-    -- The nonempty and empty cases above complete the proof of h_w_upper
+    -- The nonempty and empty cases above complete the proof
+
+lemma pos_delta_bound_3
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+        - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+            (posRescaledMirrorVariable ε (u ε) τ)
+        ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+          deriv (positiveZDownward x_lasso) τ) := by
+  -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
+  -- This gives a constant X > 0 such that for all sufficiently small ε and all
+  -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
+  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
+    pos_effective_param_ne_zero M r lambda β u hdata hβ hu
+  have h_uniform_bound := uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu
+  rcases h_uniform_bound with ⟨X, hX_pos, hX_ev⟩
+  -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
+  -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
+  -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
+  -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
+  have h_w_lower := rescaled_mirror_lower_bound X u s hX_ev hu_pos
+  rcases h_w_lower with ⟨C_low, hC_low_pos, hW_low_ev⟩
+  -- From the integrated mirror equation (positive_integrated_mirror_equation)
+  -- together with the trajectory bound, we obtain an upper bound:
+  -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
+  -- The integrated mirror equation gives:
+  --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
+  -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
+  have h_w_upper := rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev
   rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
   -- Combine the constants
   set C := max C_low C_w
