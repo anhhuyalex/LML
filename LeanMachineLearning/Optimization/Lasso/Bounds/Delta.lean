@@ -1064,115 +1064,25 @@ private lemma assemble_pos_delta_bound_3
         (h_down_mono.deriv_nonneg (x := τ))
         (Real.log_pos (one_lt_one_div hε_pos hε_lt_one))
 
-lemma pos_delta_bound_3
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+-- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
+-- to sums over coordinate derivatives, and establishes monotonicity of both functions.
+-- Uses piecewise linearity of the Lasso path (Efron et al. 2004) and the Fundamental Theorem
+-- of Calculus.  Several sub-proofs are marked `sorry` pending formalization of piecewise linearity.
+private lemma deriv_pos_z_identities
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
         ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
-    ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
-      ∀ τ ∈ Set.Icc (0 : ℝ) s,
-        - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
-            (posRescaledMirrorVariable ε (u ε) τ)
-        ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-          deriv (positiveZDownward x_lasso) τ) := by
-  -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
-  -- This gives a constant X > 0 such that for all sufficiently small ε and all
-  -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
-  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
-    pos_effective_param_ne_zero M r lambda β u hdata hβ hu
-  rcases uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
-  -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
-  -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
-  -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
-  -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
-  rcases rescaled_mirror_lower_bound X u s hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
-  -- From the integrated mirror equation (positive_integrated_mirror_equation)
-  -- together with the trajectory bound, we obtain an upper bound:
-  -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
-  -- The integrated mirror equation gives:
-  --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
-  -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
-  rcases rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev with
-    ⟨C_w, _, hW_ev⟩
-  -- Combine the constants
-  set C := max C_low C_w
-  refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
-  -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
-  filter_upwards [hX_ev, hW_low_ev, hW_ev, by
-    rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
-  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
-  intro τ hτ
-  rcases hτ with ⟨hτ0, hτs⟩
-  -- Notation for the derivative and the dual variable
-  set zDot := deriv (scaledPrimalPath x_lasso) τ
-  set w := posRescaledMirrorVariable ε (u ε) τ
-  -- Now bound each part using the bounds on w.
-  -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, zDot_i) ≥ 0,
-  --   -(max(0, zDot_i)) * w_i ≤ max(0, zDot_i) * C_low / log(1/ε)
-  -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
-  --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
-  rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
-    (hW_low_ε τ ⟨hτ0, hτs⟩)
-    (hW_ε τ ⟨hτ0, hτs⟩) with ⟨h_bound_pos, h_bound_neg⟩
-  -- Relate the sums to derivatives of positiveZUpward and positiveZDownward.
-  -- By the Fundamental Theorem of Calculus:
-  --   deriv (positiveZUpward x_lasso) τ = ∑_i max 0 (deriv (scaledPrimalPath x_lasso) τ i)
-  --   deriv (positiveZDownward x_lasso) τ
-  --     = ∑_i (1+τ) * max 0 (-deriv (scaledPrimalPath x_lasso) τ i)
-  -- The scaled primal path is locally absolutely continuous on nonnegative compacts.
-  -- For each coordinate i, let f_i(t) := (scaledPrimalPath x_lasso t) i.
-  -- Since the coordinate projection is 1-Lipschitz, each f_i is AC on [0,s].
-  -- Let g_i(t) := max(0, deriv f_i t) be the positive part of the derivative.
-  -- Then g_i is interval-integrable on 0..s
-  -- (since deriv f_i is, and max(0,·) preserves integrability).
-  -- Moreover, positiveZUpward x_lasso μ = ∑_i ∫_0^μ g_i(u) du.
-  -- By the Lebesgue Differentiation Theorem (IntervalIntegrable.ae_hasDerivAt_integral),
-  -- for almost every τ ∈ [0,s], HasDerivAt (∫_0^· g_i) (g_i τ) τ, hence
-  --   deriv (∫_0^· g_i) τ = max(0, deriv f_i τ) = max(0, zDot i).
-  -- Summing over i gives the result for almost every τ.
-  --
-  -- For the Lasso regularization path, scaledPrimalPath is piecewise linear
-  -- (Efron et al. 2004, "Least Angle Regression"). For piecewise linear functions,
-  -- the equality holds for ALL τ: on each open interval between breakpoints the
-  -- derivative is constant, so the integrand is continuous, and FTC applies directly.
-  -- At breakpoints, the function is not differentiable, so deriv returns 0 on both sides.
-  -- TODO: formalize piecewise linearity of the Lasso path and complete this proof.
-  --
-  -- Proof sketch for h_upward_eq and h_downward_eq:
-  --
-  -- The scaled primal path z(μ) = μ·x_lasso(μ) is piecewise linear in μ
-  -- (Efron et al. 2004, "Least Angle Regression").  This implies that for each
-  -- coordinate i, the scalar function f_i(μ) := μ·x_lasso(μ)_i is piecewise linear.
-  -- Hence its derivative (where it exists) is piecewise constant, and the function
-  --   g_i^+(μ) := max(0, deriv f_i(μ))
-  -- is piecewise constant as well.
-  --
-  -- On each open interval between breakpoints, g_i^+ is constant, hence continuous;
-  -- the Fundamental Theorem of Calculus (deriv_integral_right) then gives
-  --   deriv (∫_0^· g_i^+) τ = g_i^+(τ).
-  -- At a breakpoint τ, the two-sided derivative of f_i does not exist, so
-  -- Mathlib's `deriv` returns 0, making g_i^+(τ) = 0.  Moreover, the integral
-  -- function ∫_0^· g_i^+ has a corner at τ (the left and right derivatives differ),
-  -- so its `deriv` also returns 0.  Thus equality holds at all τ ∈ [0,s].
-  --
-  -- Summing over i and using linearity of `deriv` over finite sums yields the result.
-  --
-  -- The same reasoning applies to the downward variation, with integrand
-  -- g_i^-(μ) := (1+μ)·max(0, -deriv f_i(μ)).
-  --
+    deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
+    deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) ∧
+    Monotone (positiveZUpward x_lasso) ∧
+    Monotone (positiveZDownward x_lasso) := by
   -- Step 1 (componentwise identification):
-  --   zDot i = deriv (fun u' => (scaledPrimalPath x_lasso u') i) τ
-  --          = deriv (fun u' => u' * x_lasso u' i) τ
-  have h_component : ∀ i, zDot i = deriv (fun u' => u' * x_lasso u' i) τ := by
+  --   (deriv (scaledPrimalPath x_lasso) τ) i = deriv (fun u' => u' * x_lasso u' i) τ
+  have h_component : ∀ i, (deriv (scaledPrimalPath x_lasso) τ) i =
+      deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
-    simpa [zDot] using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
+    simpa using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
   -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
   -- implies that at any point where the scaled primal path is differentiable,
   -- each coordinate derivative is locally constant. We postulate this property
@@ -1226,8 +1136,6 @@ lemma pos_delta_bound_3
             h_eq_on.aeEq_restrict (Metric.isOpen_ball.measurableSet)
           exact h_const.congr h_eq.symm
         exact h_ae
-      -- Integrability of g_i on [0, τ]: from h_regular, f_i is locally AC, so
-      -- deriv f_i is locally integrable, and max(0, ·) preserves integrability.
       -- Integrability of g_i on [0, τ]: from h_regular, scaledPrimalPath is AC on [0,τ],
       -- so it has bounded variation (AbsolutelyContinuousOnInterval.boundedVariationOn).
       -- The coordinate projection proj_i : EuclideanSpace ℝ ι → ℝ is 1-Lipschitz, hence
@@ -1285,19 +1193,10 @@ lemma pos_delta_bound_3
       ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
         (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
     sorry
-  -- Now assemble h_upward_eq and h_downward_eq.
-  -- Also need deriv (positiveZUpward x_lasso) τ ≥ 0 and deriv (positiveZDownward x_lasso) τ ≥ 0
-  -- (they are derivatives of monotone nondecreasing functions).
-  -- positiveZUpward and positiveZDownward are integrals of nonnegative functions,
-  -- hence they are monotone (nondecreasing). By Monotone.deriv_nonneg, their
-  -- derivatives are nonnegative everywhere (deriv returns 0 where the derivative
-  -- does not exist, which is also ≥ 0).
-  -- positiveZUpward and positiveZDownward are integrals of nonnegative
+  -- Monotonicity: positiveZUpward and positiveZDownward are integrals of nonnegative
   -- functions, hence they are monotone (nondecreasing). The proof uses
   -- the identity ∫_0^b g - ∫_0^a g = ∫_a^b g (for a ≤ b) from the
-  -- interval integral calculus, combined with nonnegativity of the
-  -- integrand. We provide the key steps with the integrability side
-  -- conditions marked as `sorry` for now.
+  -- interval integral calculus, combined with nonnegativity of the integrand.
   have h_up_mono : Monotone (positiveZUpward x_lasso) := by
     intro a b h
     have h_diff_nonneg : 0 ≤ positiveZUpward x_lasso b - positiveZUpward x_lasso a := by
@@ -1311,14 +1210,85 @@ lemma pos_delta_bound_3
     have h_diff_nonneg : 0 ≤ positiveZDownward x_lasso b - positiveZDownward x_lasso a := by
       sorry
     linarith
-  have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
+  -- Assemble the derivative identities
+  have h_upward_eq : deriv (positiveZUpward x_lasso) τ =
+      ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
     unfold positiveZUpward
     rw [h_deriv_sum]
     simp_rw [h_ftc_up, h_component]
-  have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
+  have h_downward_eq : deriv (positiveZDownward x_lasso) τ =
+      ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
     unfold positiveZDownward
     rw [h_deriv_sum_down]
     simp_rw [h_ftc_down, h_component]
+  exact ⟨h_upward_eq, h_downward_eq, h_up_mono, h_down_mono⟩
+
+lemma pos_delta_bound_3
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_breakpoint_comp_deriv_zero : ∀ τ, ¬ DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ →
+        ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
+    ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+        - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+            (posRescaledMirrorVariable ε (u ε) τ)
+        ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+          deriv (positiveZDownward x_lasso) τ) := by
+  -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
+  -- This gives a constant X > 0 such that for all sufficiently small ε and all
+  -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
+  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
+    pos_effective_param_ne_zero M r lambda β u hdata hβ hu
+  rcases uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
+  -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
+  -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
+  -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
+  -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
+  rcases rescaled_mirror_lower_bound X u s hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
+  -- From the integrated mirror equation (positive_integrated_mirror_equation)
+  -- together with the trajectory bound, we obtain an upper bound:
+  -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
+  -- The integrated mirror equation gives:
+  --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
+  -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
+  rcases rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev with
+    ⟨C_w, _, hW_ev⟩
+  -- Combine the constants
+  set C := max C_low C_w
+  refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
+  -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
+  filter_upwards [hX_ev, hW_low_ev, hW_ev, by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
+  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
+  intro τ hτ
+  rcases hτ with ⟨hτ0, hτs⟩
+  -- Notation for the derivative and the dual variable
+  set zDot := deriv (scaledPrimalPath x_lasso) τ
+  set w := posRescaledMirrorVariable ε (u ε) τ
+  -- Now bound each part using the bounds on w.
+  -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, zDot_i) ≥ 0,
+  --   -(max(0, zDot_i)) * w_i ≤ max(0, zDot_i) * C_low / log(1/ε)
+  -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
+  --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
+  rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
+    (hW_low_ε τ ⟨hτ0, hτs⟩)
+    (hW_ε τ ⟨hτ0, hτs⟩) with ⟨h_bound_pos, h_bound_neg⟩
+  -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
+  -- using the FTC and piecewise linearity of the Lasso path.
+  have h_derivs := deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero
+  rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw, h_up_mono, h_down_mono⟩
+  have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
+    simpa [zDot] using h_upward_eq_raw
+  have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
+    simpa [zDot] using h_downward_eq_raw
+  -- (FTC/monotonicity results provided by deriv_pos_z_identities above)
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
