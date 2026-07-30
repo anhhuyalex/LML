@@ -253,7 +253,7 @@ lemma energy_complementarity_bound
   obtain ⟨C1, hC1_pos, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   obtain ⟨C3, hC3_pos, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
     hx_lasso h_regular h_piecewise_deriv
-  have h4 := pos_delta_bound_4 M r lambda β s hs u x_lasso hx_lasso h_regular
+  have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso h_regular
   set C := max (max C1 C3) (pseudoInverseSeminorm Mdagger r) with hC_def
   have hC_pos : 0 < C := lt_max_of_lt_left (lt_max_of_lt_left hC1_pos)
   refine ⟨C, hC_pos, le_max_right _ _, ?_⟩
