@@ -708,7 +708,52 @@ lemma pos_delta_bound_3
     a lower bound on -log(xᵋ_i) ≥ -max(0, log X).
     Dividing by log(1/ε) > 0 gives wᵋ_i ≥ -C_low / log(1/ε) where C_low = max(0, log X).
     -/
-    sorry
+    set C_low := max 1 (Real.log X) with hC_low_def
+    have hC_low_pos : C_low > 0 := by
+      rw [hC_low_def]
+      exact lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1)
+    refine ⟨C_low, hC_low_pos, ?_⟩
+    -- Intersect the uniform upper bound with ε ∈ (0,1) so that log(1/ε) > 0
+    have h_combined : ∀ᶠ ε in 𝓝[>] (0 : ℝ),
+        (∀ τ ∈ Set.Icc (0 : ℝ) s, ∀ i,
+          posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X) ∧
+        ε ∈ Set.Ioo (0 : ℝ) 1 :=
+      Filter.Eventually.and hX_ev (show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+        rw [mem_nhdsGT_iff_exists_Ioo_subset]
+        exact ⟨1, by norm_num, fun x hx => hx⟩)
+    filter_upwards [h_combined] with ε h_and
+    rcases h_and with ⟨hX, hε_mem⟩
+    rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
+    intro τ hτ
+    rcases hτ with ⟨hτ0, hτs⟩
+    intro i
+    -- Let x_i denote the i-th coordinate of the effective parameter at rescaled time
+    set x_i := posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i with hx_def
+    -- Positivity: x_i > 0 (nonnegative and never zero)
+    have hx_pos : 0 < x_i := by
+      have h_nonneg : 0 ≤ x_i := posEffectiveParameter_nonnegative (u ε) (posTimeFromRescaled ε τ) i
+      have h_ne_zero : x_i ≠ 0 := hu_pos ε hε_pos (posTimeFromRescaled ε τ) i
+      exact lt_of_le_of_ne h_nonneg h_ne_zero.symm
+    -- Upper bound from the hypothesis
+    have hx_le_X : x_i ≤ X := hX τ hτ i
+    -- Monotonicity of log
+    have h_log_x_le_log_X : Real.log x_i ≤ Real.log X :=
+      Real.log_le_log hx_pos hx_le_X
+    -- C_low = max(1, log X) ≥ log X
+    have h_log_X_le_C_low : Real.log X ≤ C_low := by
+      rw [hC_low_def]
+      exact le_max_right _ _
+    have h_log_x_le_C_low : Real.log x_i ≤ C_low :=
+      le_trans h_log_x_le_log_X h_log_X_le_C_low
+    have h_neg_log : -C_low ≤ -Real.log x_i := by linarith
+    -- Denominator positivity
+    have h_log_div_pos : 0 < Real.log (1 / ε) :=
+      Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+    have h_log_div_nonneg : 0 ≤ Real.log (1 / ε) := by linarith
+    -- Expand the definition of the rescaled mirror variable
+    dsimp [posRescaledMirrorVariable, euclideanOf, x_i]
+    -- Goal is now: -C_low / Real.log (1 / ε) ≤ -Real.log x_i / Real.log (1 / ε)
+    exact div_le_div_of_nonneg_right h_neg_log h_log_div_nonneg
   rcases h_w_lower with ⟨C_low, hC_low_pos, hW_low_ev⟩
   -- From the integrated mirror equation (positive_integrated_mirror_equation)
   -- together with the trajectory bound, we obtain an upper bound:

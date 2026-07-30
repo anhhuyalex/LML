@@ -266,12 +266,12 @@ theorem signedCanonicalSplit_path_regular
 /-- A signed coordinate that is monotone in either direction becomes two
 nondecreasing coordinates after the positive/negative split.
 
-If `zᵢ` is nondecreasing then `(zᵢ)₊` is nondecreasing and `(zᵢ)₋` is zero or
-nonincreasing in the sign convention represented by the split; if `zᵢ` is
-nonincreasing the roles reverse. Applied to `z(μ)=μx(μ)`, both coordinates of
-the canonical nonnegative representation have no downward variation in the
-appropriate signed-path formula. This is exactly the reduction in Section
-5.2.1 of <https://arxiv.org/abs/2509.18766>.
+Lemma 4.10 makes `z(μ)=μx(μ)` zero near the origin. Thus a nondecreasing
+coordinate stays nonnegative, so `zᵢ⁺=zᵢ` and `zᵢ⁻=0`; a nonincreasing
+coordinate stays nonpositive, so `zᵢ⁺=0` and `zᵢ⁻=-zᵢ`. In either case both
+coordinates of the canonical nonnegative representation are nondecreasing.
+This is exactly the reduction in Section 5.2.1 of
+<https://arxiv.org/abs/2509.18766>.
 -/
 theorem signedCanonicalSplit_scaled_monotonicity
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -375,10 +375,15 @@ lemma lasso_objective_reduction
       · rw [max_eq_right hneg, max_eq_left (by linarith)]
         linarith
 
-    have h_norm : ‖(WithLp.equiv 1 (ι → ℝ)).symm x‖ = ‖(WithLp.equiv 1 (ι ⊕ ι → ℝ)).symm (signedCanonicalSplit x)‖ := by
+    have h_norm :
+        ‖(WithLp.equiv 1 (ι → ℝ)).symm x‖ =
+          ‖(WithLp.equiv 1 (ι ⊕ ι → ℝ)).symm (signedCanonicalSplit x)‖ := by
       rw [PiLp.norm_eq_of_L1, PiLp.norm_eq_of_L1]
       change (∑ i, ‖x i‖) = ∑ j, ‖signedCanonicalSplit x j‖
-      have h_sum_rhs : (∑ j : ι ⊕ ι, ‖signedCanonicalSplit x j‖) = (∑ i : ι, ‖signedCanonicalSplit x (Sum.inl i)‖) + (∑ i : ι, ‖signedCanonicalSplit x (Sum.inr i)‖) := by
+      have h_sum_rhs :
+          (∑ j : ι ⊕ ι, ‖signedCanonicalSplit x j‖) =
+            (∑ i : ι, ‖signedCanonicalSplit x (Sum.inl i)‖) +
+              ∑ i : ι, ‖signedCanonicalSplit x (Sum.inr i)‖ := by
         exact Fintype.sum_sum_type _
       rw [h_sum_rhs, ← Finset.sum_add_distrib]
       apply Finset.sum_congr rfl
