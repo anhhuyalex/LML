@@ -735,6 +735,40 @@ private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |
           _ ≤ |a| + |-b| := abs_add_le _ _
           _ = |a| + |b| := by simp]
 
+-- For 0 < ε < 1/2, we have the bound:
+-- |1 - log(β_i²)/log(1/ε)| ≤ 1 + |log(β_i²)|/log 2
+-- This uses log(1/ε) ≥ log 2 (since ε < 1/2) and the triangle inequality.
+private lemma abs_one_sub_log_div_log_bound
+    {ι : Type*} (β : EuclideanSpace ℝ ι) (ε : ℝ) (hε_pos : 0 < ε) (hε_lt_half : ε < 1/2) (i : ι) :
+    |1 - Real.log ((β i)^2) / Real.log (1 / ε)| ≤ 1 + |Real.log ((β i)^2)| / Real.log 2 := by
+  have h_log_denom_pos : 0 < Real.log (1 / ε) :=
+    Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
+  have h_log_two_pos : 0 < Real.log (2 : ℝ) :=
+    Real.log_pos (by norm_num : 1 < (2 : ℝ))
+  have h_log_denom_ge_log2 : Real.log 2 ≤ Real.log (1 / ε) := by
+    refine Real.log_le_log (by norm_num : 0 < (2 : ℝ)) ?_
+    have h := (one_div_lt_one_div (by norm_num : 0 < (1/2 : ℝ)) hε_pos).mpr hε_lt_half
+    simpa [one_div] using h.le
+  -- Triangle inequality: |1 - a/L| ≤ 1 + |a|/L
+  have h_abs_bound : |1 - Real.log ((β i)^2) / Real.log (1 / ε)| ≤
+      1 + |Real.log ((β i)^2)| / Real.log (1 / ε) := by
+    calc
+      |1 - Real.log ((β i)^2) / Real.log (1 / ε)|
+          = |1 + (-(Real.log ((β i)^2) / Real.log (1 / ε)))| := by ring_nf
+      _ ≤ |1| + |-(Real.log ((β i)^2) / Real.log (1 / ε))| := abs_add_le _ _
+      _ = 1 + |Real.log ((β i)^2) / Real.log (1 / ε)| := by simp
+      _ = 1 + |Real.log ((β i)^2)| / |Real.log (1 / ε)| := by rw [abs_div]
+      _ = 1 + |Real.log ((β i)^2)| / Real.log (1 / ε) := by
+        rw [abs_of_pos h_log_denom_pos]
+  -- Denominator bound: |a| / log(1/ε) ≤ |a| / log 2  (since log(1/ε) ≥ log 2 > 0)
+  have h_div_bound : |Real.log ((β i)^2)| / Real.log (1 / ε) ≤
+      |Real.log ((β i)^2)| / Real.log 2 :=
+    div_le_div_of_nonneg_left (abs_nonneg _) h_log_two_pos h_log_denom_ge_log2
+  calc
+    |1 - Real.log ((β i)^2) / Real.log (1 / ε)|
+        ≤ 1 + |Real.log ((β i)^2)| / Real.log (1 / ε) := h_abs_bound
+    _ ≤ 1 + |Real.log ((β i)^2)| / Real.log 2 := by nlinarith
+
 -- Upper bound for the rescaled mirror variable: |wᵋ_i(τ)| ≤ C_w * (1 + τ).
 -- Uses the integrated mirror equation, the uniform trajectory bound, and bounds on r, M, β.
 private lemma rescaled_mirror_upper_bound
@@ -855,9 +889,99 @@ private lemma rescaled_mirror_upper_bound
       -- Bound z_i(τ) = (posIntegratedTrajectoryRescaled ε (u ε) τ) i ∈ [0, X·τ]
       -- (Proof deferred: follows from the uniform trajectory bound hX_ev)
       have hz_nonneg : ∀ i, 0 ≤ (posIntegratedTrajectoryRescaled ε (u ε) τ) i := by
-        intro j; sorry
+        intro j
+        -- Unfold definitions to reduce to a product of two nonnegative factors:
+        --   (4 / log(1/ε)) * (∫_0^{t(τ)} (u ε v j)^2 dv)
+        simp only [posIntegratedTrajectoryRescaled, posIntegratedTrajectory, euclideanOf]
+        -- Goal: 0 ≤ (4 / Real.log (1 / ε)) * (∫ v in (0:ℝ)..(posTimeFromRescaled ε τ),
+        --   posEffectiveParameter (u ε) v j)
+        -- Step 1: The scalar factor is nonnegative because log(1/ε) > 0 (since 0 < ε < 1)
+        have h_log_pos : 0 < Real.log (1 / ε) :=
+          Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
+        have h_scalar_nonneg : 0 ≤ (4 : ℝ) / Real.log (1 / ε) := by positivity
+        -- Step 2: The integral is nonnegative because the integrand is a square ⟹ ≥ 0
+        -- and the integration interval is nonnegatively oriented (0 ≤ posTimeFromRescaled ε τ)
+        have h_t_nonneg : (0 : ℝ) ≤ posTimeFromRescaled ε τ := by
+          dsimp [posTimeFromRescaled]
+          have h_log_nonneg : 0 ≤ Real.log (1 / ε) := le_of_lt h_log_pos
+          nlinarith [hτ0]
+        have h_int_nonneg : 0 ≤ ∫ v in (0:ℝ)..(posTimeFromRescaled ε τ),
+            posEffectiveParameter (u ε) v j := by
+          refine intervalIntegral.integral_nonneg_of_forall h_t_nonneg (fun v => ?_)
+          -- posEffectiveParameter is coordinatewise nonnegative (it's a square)
+          exact posEffectiveParameter_nonnegative (u ε) v j
+        -- Step 3: Product of nonnegative reals is nonnegative
+        exact mul_nonneg h_scalar_nonneg h_int_nonneg
       have hz_bound : ∀ i, (posIntegratedTrajectoryRescaled ε (u ε) τ) i ≤ X * τ := by
-        intro j; sorry
+        intro j
+        -- Unfold definitions:
+        -- (posIntegratedTrajectoryRescaled ...) j
+        -- = (4 / log(1/ε)) * ∫_0^{T} posEffectiveParameter (u ε) v j dv
+        simp only [posIntegratedTrajectoryRescaled, posIntegratedTrajectory, euclideanOf]
+        set T := posTimeFromRescaled ε τ with hT_def
+        have h_log_pos : 0 < Real.log (1 / ε) :=
+          Real.log_pos (one_lt_one_div hε_pos (by linarith : ε < 1))
+        have h_scalar_nonneg : 0 ≤ (4 : ℝ) / Real.log (1 / ε) := by positivity
+        have h_t_nonneg : (0 : ℝ) ≤ T := by
+          dsimp [T, posTimeFromRescaled]
+          nlinarith
+        -- Step 1: pointwise bound on the integrand for v ∈ [0, T]
+        -- For v in the interval, write v = posTimeFromRescaled ε σ with
+        -- σ = posRescaledTime ε v = (4/log(1/ε))*v.  Then σ ∈ [0, τ] ⊆ [0, s],
+        -- so hX σ hσ_mem j gives the bound.
+        have h_integrand_bound : ∀ v ∈ Set.Icc (0 : ℝ) T,
+            posEffectiveParameter (u ε) v j ≤ X := by
+          intro v hv
+          rcases hv with ⟨hv0, hvT⟩
+          set σ := posRescaledTime ε v with hσ_def
+          have hσ_nonneg : 0 ≤ σ := by
+            dsimp [σ, posRescaledTime]
+            positivity
+          have hσ_le_τ : σ ≤ τ := by
+            have h_mono : posRescaledTime ε v ≤ posRescaledTime ε T := by
+              dsimp [posRescaledTime]
+              exact mul_le_mul_of_nonneg_left hvT (by positivity)
+            have h_inv_T : posRescaledTime ε T = τ :=
+              posRescaledTime_posTimeFromRescaled ε τ hlog_ne_zero
+            calc
+              posRescaledTime ε v ≤ posRescaledTime ε T := h_mono
+              _ = τ := h_inv_T
+          have hσ_le_s : σ ≤ s := le_trans hσ_le_τ hτs
+          have hσ_mem : σ ∈ Set.Icc (0 : ℝ) s := ⟨hσ_nonneg, hσ_le_s⟩
+          have hX_bound := hX σ hσ_mem j
+          -- hX_bound: (posEffectiveParameter (u ε) (posTimeFromRescaled ε σ)).ofLp j ≤ X
+          -- posTimeFromRescaled ε σ = posTimeFromRescaled ε (posRescaledTime ε v) = v
+          have h_inv : posTimeFromRescaled ε σ = v := by
+            dsimp [σ, posTimeFromRescaled, posRescaledTime]
+            field_simp [hlog_ne_zero]
+          simpa [h_inv] using hX_bound
+        -- Step 2: integral monotonicity on [0, T]
+        -- Since param(v,j) ≤ X for v ∈ [0,T] (Step 1), we need
+        -- ∫_0^T param(v,j) dv ≤ ∫_0^T X dv.
+        -- This follows from intervalIntegral.integral_mono_on once we have
+        -- IntervalIntegrable for both sides.  The integrand is continuous
+        -- because u ε is C^1 (VaryingGFTrajectory) and evaluation at j is
+        -- continuous via (WithLp.equiv 2 _).continuous ∘ continuous_apply j.
+        have h_int_le : (∫ v in (0:ℝ)..T, posEffectiveParameter (u ε) v j) ≤
+            (∫ _ in (0:ℝ)..T, X) := by
+          sorry
+        -- Step 3: ∫_0^T X = T * X
+        have h_int_const : (∫ _ in (0:ℝ)..T, X) = T * X := by
+          rw [intervalIntegral.integral_const, smul_eq_mul]
+          ring
+        -- Step 4: algebraic simplification: (4/log(1/ε)) * T = τ
+        have h_factor : ((4 : ℝ) / Real.log (1 / ε)) * T = τ := by
+          dsimp [T, posTimeFromRescaled]
+          field_simp [hlog_ne_zero]
+        -- Combine steps 1-4
+        calc
+          ((4 : ℝ) / Real.log (1 / ε)) * (∫ v in (0:ℝ)..T, posEffectiveParameter (u ε) v j)
+              ≤ ((4 : ℝ) / Real.log (1 / ε)) * (∫ _ in (0:ℝ)..T, X) :=
+            mul_le_mul_of_nonneg_left h_int_le h_scalar_nonneg
+          _ = ((4 : ℝ) / Real.log (1 / ε)) * (T * X) := by rw [h_int_const]
+          _ = (((4 : ℝ) / Real.log (1 / ε)) * T) * X := by ring
+          _ = τ * X := by rw [h_factor]
+          _ = X * τ := mul_comm _ _
       -- Apply the integrated mirror equation
       have h_ime := positive_integrated_mirror_equation M r lambda ε β (u ε)
         (hu ε hε_pos) (hu_pos ε hε_pos) hM_symm τ hlog_ne_zero
