@@ -762,18 +762,11 @@ lemma parametricLcpQ_pos
     (hμ_small : μ * ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ < 1) (i : ι) :
     0 < parametricLcpQ r lambda μ i := by
   have h_bound : |r i - lambda| ≤ ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ := by
-    have h := PiLp.norm_apply_le ((WithLp.equiv ∞ _).symm (fun j => r j - lambda)) i
-    have h_abs : ‖r i - lambda‖ = |r i - lambda| := Real.norm_eq_abs _
-    rw [← h_abs]
-    exact h
-  have h_bound2 : μ * |r i - lambda| ≤ μ * ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ := by
-    exact mul_le_mul_of_nonneg_left h_bound hμ
+    simpa [Real.norm_eq_abs] using PiLp.norm_apply_le ((WithLp.equiv ∞ _).symm (fun j => r j - lambda)) i
   have h_bound3 : μ * |r i - lambda| < 1 := by
-    linarith [h_bound2, hμ_small]
-  have h_le_abs : μ * (r i - lambda) ≤ μ * |r i - lambda| := by
-    exact mul_le_mul_of_nonneg_left (le_abs_self _) hμ
+    linarith [mul_le_mul_of_nonneg_left h_bound hμ, hμ_small]
   have h_strict : μ * (r i - lambda) < 1 := by
-    linarith [h_le_abs, h_bound3]
+    linarith [mul_le_mul_of_nonneg_left (le_abs_self (r i - lambda)) hμ, h_bound3]
   have h_q_eq : parametricLcpQ r lambda μ i = -μ * r i + 1 + μ * lambda := rfl
   rw [h_q_eq]
   linarith
@@ -1959,26 +1952,15 @@ theorem parametric_lcp_eq_iff_of_small_mu
       isParametricLCP M r lambda μ z w ↔
         z = 0 ∧ w = parametricLcpQ r lambda μ := by
   -- Introduce notation N for the ℓ∞ norm of r - λ·𝟙, and derive μ·N < 1 from hμ_small
-  set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ with hN
-  have hN_nonneg : 0 ≤ N := by rw [hN]; exact norm_nonneg _
+  set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖
   have hμN_lt_one : μ * N < 1 := by
     by_cases hNle : N ≤ 1
-    · -- Case N ≤ 1: max N 1 = 1, so μ < 1/1 = 1, and μ·N ≤ μ·1 < 1
-      have hmax_one : max N 1 = 1 := max_eq_right hNle
-      rw [hmax_one] at hμ_small
-      have hμ_lt_one : μ < 1 := by
-        simpa [div_one] using hμ_small
-      have hμN_le_μ : μ * N ≤ μ := by
-        calc
-          μ * N ≤ μ * 1 := mul_le_mul_of_nonneg_left hNle hμ
-          _ = μ := by ring
+    · rw [max_eq_right hNle] at hμ_small
+      have hμN_le_μ : μ * N ≤ μ :=
+        (mul_le_mul_of_nonneg_left hNle hμ).trans_eq (by ring)
       linarith
-    · -- Case N > 1: max N 1 = N, so μ < 1/N, and clearing the denominator gives μ·N < 1
-      have h_one_le_N : 1 ≤ N := by linarith
-      have hmax_N : max N 1 = N := max_eq_left h_one_le_N
-      rw [hmax_N] at hμ_small
-      have hpos : 0 < N := by linarith
-      exact (lt_div_iff₀ hpos).mp hμ_small
+    · rw [max_eq_left (by linarith : 1 ≤ N)] at hμ_small
+      exact (lt_div_iff₀ (by linarith : 0 < N)).mp hμ_small
   let q := parametricLcpQ r lambda μ
   have hq_pos : ∀ i, 0 < q i := parametricLcpQ_pos r lambda μ hμ hμN_lt_one
   intro z w
@@ -2004,22 +1986,17 @@ theorem parametric_lcp_eq_iff_of_small_mu
       eq_zero_of_inner_eq_zero_of_pos_mul_nonneg q z hq_pos h_z_pos h_qz_zero
     have h_w_eq_q : w = q := by
       rw [h_z_zero] at h_w
-      have h_zero : matVec M 0 = 0 := by
-        ext j; simp [matVec, euclideanOf]
-      rw [h_zero, add_zero] at h_w
-      exact h_w
+      simpa [matVec, euclideanOf] using h_w
     exact ⟨h_z_zero, h_w_eq_q⟩
   · -- Backward direction: (z=0, w=q) is a solution
     intro ⟨hz, hw⟩
     subst hz; subst hw
     dsimp [isParametricLCP, isLCP]
-    constructor
-    · ext i; dsimp [q]; simp [matVec, euclideanOf]
-    · constructor
-      · intro i; exact le_of_lt (hq_pos i)
-      · constructor
-        · intro i; exact le_refl 0
-        · simp [inner_zero_right]
+    refine ⟨?_, ?_, ?_, ?_⟩
+    · ext i; simp [matVec, euclideanOf]
+    · intro i; exact le_of_lt (hq_pos i)
+    · intro i; exact le_refl 0
+    · simp [inner_zero_right]
 
 /-- Existential-uniqueness packaging of the faithful Lemma 4.10 threshold.
 
@@ -2034,20 +2011,12 @@ theorem parametric_lcp_unique_small_mu
       μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1) :
     ∃! p : EuclideanSpace ℝ ι × EuclideanSpace ℝ ι,
       isParametricLCP M r lambda μ p.1 p.2 := by
-  let q := parametricLcpQ r lambda μ
+  set q := parametricLcpQ r lambda μ
   have h_iff := parametric_lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ hμ_small
-  -- h_iff : ∀ z w, isParametricLCP M r lambda μ z w ↔ (z = 0 ∧ w = q)
-  use (0, q)
-  constructor
-  · -- Existence: (0, q) satisfies the parametric LCP
-    dsimp
-    rw [h_iff 0 q]
-    exact ⟨rfl, rfl⟩
-  · -- Uniqueness: any solution must be (0, q)
-    rintro ⟨z, w⟩ h
-    rw [h_iff z w] at h
-    rcases h with ⟨hz, hw⟩
-    subst hz; subst hw; rfl
+  refine ⟨(0, q), (h_iff 0 q).mpr ⟨rfl, rfl⟩, ?_⟩
+  rintro ⟨z, w⟩ h
+  have h' := (h_iff z w).mp h
+  exact Prod.ext h'.1 h'.2
 
 /-- The unscaled positive-Lasso LCP conclusion in the second sentence of
 Lemma 4.10.

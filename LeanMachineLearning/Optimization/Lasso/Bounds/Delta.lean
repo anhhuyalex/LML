@@ -429,7 +429,7 @@ lemma pos_delta_bound_2
       ⟨v, hv_eq, hv_nonneg, hx_lasso_nonneg, hvx_zero⟩
     have h_nonneg : 0 ≤ inner ℝ x (τ • v) :=
       inner_nonneg_of_nonneg x (τ • v) hx_nonneg
-        (fun i => by simpa [PiLp.smul_apply] using mul_nonneg (by linarith) (hv_nonneg i))
+        (fun i => mul_nonneg (by linarith) (hv_nonneg i))
     rw [lcp_dual_scale_eq_target M r lambda τ hτ_zero x_lasso v hv_eq] at h_nonneg
     linarith
 
@@ -1034,25 +1034,15 @@ private lemma scaled_primal_deriv_component (x_lasso : ℝ → EuclideanSpace �
   set F := fun (μ : ℝ) => μ • x_lasso μ
   by_cases h_diff : DifferentiableAt ℝ F τ
   · -- Case 1: F is differentiable at τ, use chain rule with e
-    have h_hasDeriv_F : HasDerivAt F (deriv F τ) τ := h_diff.hasDerivAt
-    have h_hasDeriv_eF : HasDerivAt (e ∘ F) (e (deriv F τ)) τ :=
-      e.hasFDerivAt.comp_hasDerivAt τ h_hasDeriv_F
     -- e ∘ F : ℝ → (ι → ℝ) is a bare Pi type, so hasDerivAt_pi applies
-    have h_pi := (hasDerivAt_pi.1 h_hasDeriv_eF) i
-    -- Simplify: (e (F μ)) i = μ * (x_lasso μ).ofLp i
-    --          e (deriv F τ) i = (deriv F τ).ofLp i
-    have h_hasDeriv_comp : HasDerivAt (fun μ => μ * (x_lasso μ).ofLp i)
-        ((deriv F τ).ofLp i) τ := by
-      simpa [e, F, PiLp.smul_apply, smul_eq_mul] using h_pi
-    -- Uniqueness of derivative gives the equality of the derivative values
-    simpa [F] using h_hasDeriv_comp.deriv.symm
+    simpa [e, F, PiLp.smul_apply, smul_eq_mul] using
+      ((hasDerivAt_pi.1 (e.hasFDerivAt.comp_hasDerivAt τ h_diff.hasDerivAt)) i).deriv.symm
   · -- Case 2: F is not differentiable at τ (breakpoint). Both sides are zero.
     have h_deriv_zero : deriv (fun μ => μ • x_lasso μ) τ = 0 :=
       deriv_zero_of_not_differentiableAt h_diff
     have h_component_zero : deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0 :=
       h_breakpoint_comp_deriv_zero τ h_diff i
-    dsimp [F]
-    simp [h_deriv_zero, h_component_zero]
+    simp [F, h_deriv_zero, h_component_zero]
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -1206,23 +1196,18 @@ lemma pos_delta_bound_3
       ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
         (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
     sorry
-  -- Now assemble h_upward_eq and h_downward_eq using the calc syntax to avoid
-  -- syntactic issues with definitional unfolding of `positiveZUpward`/`positiveZDownward`.
+  -- Now assemble h_upward_eq and h_downward_eq.
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     have h_unfold : deriv (positiveZUpward x_lasso) τ =
         deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
-          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := by
-      rfl
-    rw [h_unfold]
-    rw [h_deriv_sum]
+          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ := rfl
+    rw [h_unfold, h_deriv_sum]
     simp_rw [h_ftc_up, h_component]
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
     have h_unfold : deriv (positiveZDownward x_lasso) τ =
         deriv (fun (μ : ℝ) => ∑ i : ι, ∫ u in (0 : ℝ)..μ,
-          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
-      rfl
-    rw [h_unfold]
-    rw [h_deriv_sum_down]
+          (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := rfl
+    rw [h_unfold, h_deriv_sum_down]
     simp_rw [h_ftc_down, h_component]
   -- Rewrite the sums in the bounds to use the derivative expressions
   rw [← h_upward_eq] at h_bound_pos
