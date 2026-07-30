@@ -12,7 +12,6 @@ public import Mathlib.Analysis.Calculus.Deriv.Slope
 public import Mathlib.Analysis.Real.Sqrt
 public import Mathlib.Analysis.Matrix.Spectrum
 public import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
-
 /-!
 # Linear Complementarity Problem (LCP) Formulations for Lasso
 
@@ -1359,11 +1358,47 @@ theorem nonnegative_minNorm_solution_norm_bound
     -- By strict convexity of Euclidean norm, ‖mid‖ < ‖x‖ if x ≠ x' and both are minimizers
     have h_norm_mid : f mid < f x := by
       dsimp [f, mid]
-      -- Let u = euclideanOf x, v = euclideanOf x'
-      -- euclideanOf is linear, so euclideanOf (a•x + b•x') = a•euclideanOf x + b•euclideanOf x'
-      -- Both u and v have the same norm (minimum value), and u ≠ v
-      -- Use strict convexity: norm_combo_lt_of_ne
-      sorry
+      -- Both x and x' are minimizers, so they have the same norm
+      have h_norm_eq : ‖euclideanOf x‖ = ‖euclideanOf x'‖ := by
+        apply le_antisymm
+        · have hfx_le_fx' : f x ≤ f x' := hx_min hx'S_set
+          simpa [f] using hfx_le_fx'
+        · have hfx'_le_fx : f x' ≤ f x := hx'_min hxS_set
+          simpa [f] using hfx'_le_fx
+      -- euclideanOf is injective, so x ≠ x' implies euclideanOf x ≠ euclideanOf x'
+      have h_uv_ne : euclideanOf x ≠ euclideanOf x' := by
+        intro h_eq
+        apply Ne.symm h_ne
+        exact (WithLp.equiv 2 (κ → ℝ)).symm.injective h_eq
+      set u := euclideanOf x with hu_def
+      set v := euclideanOf x' with hv_def
+      have hu_eq_v : ‖u‖ = ‖v‖ := h_norm_eq
+      -- Linearity: euclideanOf ((1/2)•x + (1/2)•x') = (1/2)•(u + v)
+      have h_linear : euclideanOf ((1/2 : ℝ) • x + (1/2 : ℝ) • x') = (1/2 : ℝ) • (u + v) := by
+        simp [euclideanOf, u, v]
+      rw [h_linear]
+      -- Goal: ‖(1/2)•(u+v)‖ < ‖u‖
+      rw [norm_smul, Real.norm_of_nonneg (show 0 ≤ (1/2 : ℝ) from by norm_num)]
+      -- Goal: (1/2) * ‖u+v‖ < ‖u‖, i.e. ‖u+v‖ < 2*‖u‖
+      -- Using parallelogram / inner product: ‖u+v‖² + ‖u-v‖² = 4‖u‖² (since ‖u‖=‖v‖)
+      -- Since u ≠ v, ‖u-v‖ > 0, so ‖u+v‖² < 4‖u‖², hence ‖u+v‖ < 2‖u‖
+      have h_sub_pos : 0 < ‖u - v‖ := by
+        rw [norm_pos_iff]
+        intro h_eq
+        apply h_uv_ne
+        exact sub_eq_zero.mp h_eq
+      have h_sub_sq_pos : 0 < ‖u - v‖ ^ 2 := pow_pos h_sub_pos 2
+      rw [norm_sub_sq_real, hu_eq_v] at h_sub_sq_pos
+      -- h_sub_sq_pos : 0 < ‖u‖ ^ 2 - 2 * inner ℝ u v + ‖u‖ ^ 2
+      have h_sum_sq_lt : ‖u + v‖ ^ 2 < (2 * ‖u‖) ^ 2 := by
+        rw [norm_add_sq_real, hu_eq_v]
+        -- Goal: ‖u‖^2 + 2*inner ℝ u v + ‖u‖^2 < (2*‖u‖)^2 = 4*‖u‖^2
+        nlinarith
+      have h_nonneg_sum : 0 ≤ ‖u + v‖ := norm_nonneg _
+      have h_nonneg_two_u : 0 ≤ 2 * ‖u‖ := by positivity
+      have h_sum_lt : ‖u + v‖ < 2 * ‖u‖ :=
+        (sq_lt_sq₀ h_nonneg_sum h_nonneg_two_u).mp h_sum_sq_lt
+      nlinarith
     have h_min_mid : f x ≤ f mid := hx_min h_mid_mem
     linarith
   -- Norm bound: the minimizer has norm ≤ the norm of any feasible solution

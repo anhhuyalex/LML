@@ -328,8 +328,6 @@ lemma pos_delta_bound_1
       (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by
     rw [PiLp.inner_apply]
     simp_rw [Real.inner_apply]
-    simp_rw [show ∀ i, (posRescaledMirrorVariable ε (u ε) τ) i =
-      -Real.log (x i) / Real.log (1 / ε) from fun _ => rfl]
     calc
       ∑ i : ι, x i * (-Real.log (x i) / Real.log (1 / ε)) =
           ∑ i : ι, (-(x i) * Real.log (x i)) / Real.log (1 / ε) := by
@@ -930,7 +928,27 @@ private lemma rescaled_mirror_upper_bound
         -- continuous via (WithLp.equiv 2 _).continuous ∘ continuous_apply j.
         have h_int_le : (∫ v in (0:ℝ)..T, posEffectiveParameter (u ε) v j) ≤
             (∫ _ in (0:ℝ)..T, X) := by
-          sorry
+          -- Continuity of the effective parameter (from its differentiability via the flow)
+          have h_cont_pe : Continuous (posEffectiveParameter (u ε)) :=
+            continuous_iff_continuousAt.mpr
+              (fun τ => (pos_effective_parameter_hasDerivAt M r lambda ε β (u ε)
+                (hu ε hε_pos) hM_symm τ).continuousAt)
+          -- Coordinate projection is continuous (via the WithLp equivalence)
+          have h_cont_coord : Continuous (fun (x : EuclideanSpace ℝ ι) => x j) :=
+            (continuous_apply j).comp
+              (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous
+          -- Hence the integrand v ↦ posEffectiveParameter (u ε) v j is continuous
+          have h_cont_f : Continuous (fun v => posEffectiveParameter (u ε) v j) :=
+            h_cont_coord.comp h_cont_pe
+          -- Interval integrability for both sides (use `MeasureTheory.volume`)
+          have hf_int : IntervalIntegrable (fun v => posEffectiveParameter (u ε) v j)
+              MeasureTheory.volume (0 : ℝ) T :=
+            h_cont_f.intervalIntegrable (0 : ℝ) T
+          have hg_int : IntervalIntegrable (fun _ => X) MeasureTheory.volume (0 : ℝ) T :=
+            (continuous_const).intervalIntegrable (0 : ℝ) T
+          -- Apply integral monotonicity
+          exact intervalIntegral.integral_mono_on h_t_nonneg hf_int hg_int
+            h_integrand_bound
         -- Step 3: ∫_0^T X = T * X
         have h_int_const : (∫ _ in (0:ℝ)..T, X) = T * X := by
           rw [intervalIntegral.integral_const, smul_eq_mul]
