@@ -185,9 +185,9 @@ theorem monotone_positive_path_regular
     have h_eq2 : scaledPrimalPath x_lasso ν = (matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) + (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) := by
       abel
     rw [h_eq1, h_eq2]
-    have h_sub : (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) + (scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)))) - 
+    have h_sub : (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) + (scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)))) -
                  (matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)) + (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)))) =
-                 (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) + 
+                 (matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ)) - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν))) +
                  ((scaledPrimalPath x_lasso μ - matVec M (matVec Mdagger (scaledPrimalPath x_lasso μ))) - (scaledPrimalPath x_lasso ν - matVec M (matVec Mdagger (scaledPrimalPath x_lasso ν)))) := by
       abel
     rw [h_sub]
@@ -238,7 +238,7 @@ theorem pos_lasso_connection_monotone
   have h_sub_zero : suboptimalityGap lambda s (positiveZDownward x_lasso s) = 0 := by
     rw [h_zdown_zero, suboptimalityGap]
     simp
-  
+
   have h_traj_nonneg : ∀ ε > 0, Nonnegative (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)) := by
     /-
     INFORMAL PROOF: The trajectory `u ε` evolves in the positive quadrant,
@@ -352,11 +352,76 @@ lemma lasso_objective_reduction
       lassoObjective M r lambda μ x =
         positiveLassoObjective (augmentedMatrix M) (augmentedVector r) lambda μ
           (signedCanonicalSplit x) := by
-  -- Proof sketch (Section 5.1.1):
-  -- The canonical split decomposes x into x_+ and x_-, which are nonnegative by definition.
-  -- Since they are defined via max(x, 0) and max(-x, 0), they are complementary (x_+ * x_- = 0).
-  -- By `lasso_split_objective_eq_iff_complementary`, the objectives are therefore equal.
-  sorry
+  constructor
+  · -- Nonnegative (signedCanonicalSplit x)
+    intro j
+    simp [signedCanonicalSplit, coordinatePositivePart, coordinateNegativePart, euclideanOf]
+    cases j <;> simp
+  · -- lassoObjective equality
+    have h_split : splitDifference (signedCanonicalSplit x) = x := by
+      ext i
+      change max (x i) 0 - max (-x i) 0 = x i
+      rcases le_total 0 (x i) with hpos | hneg
+      · rw [max_eq_left hpos, max_eq_right (by linarith)]
+        linarith
+      · rw [max_eq_right hneg, max_eq_left (by linarith)]
+        linarith
+
+    have h_norm : ‖(WithLp.equiv 1 (ι → ℝ)).symm x‖ = ‖(WithLp.equiv 1 (ι ⊕ ι → ℝ)).symm (signedCanonicalSplit x)‖ := by
+      rw [PiLp.norm_eq_of_L1, PiLp.norm_eq_of_L1]
+      change (∑ i, ‖x i‖) = ∑ j, ‖signedCanonicalSplit x j‖
+      have h_sum_rhs : (∑ j : ι ⊕ ι, ‖signedCanonicalSplit x j‖) = (∑ i : ι, ‖signedCanonicalSplit x (Sum.inl i)‖) + (∑ i : ι, ‖signedCanonicalSplit x (Sum.inr i)‖) := by
+        exact Fintype.sum_sum_type _
+      rw [h_sum_rhs, ← Finset.sum_add_distrib]
+      apply Finset.sum_congr rfl
+      intro i _
+      change ‖x i‖ = ‖max (x i) 0‖ + ‖max (-x i) 0‖
+      simp only [Real.norm_eq_abs]
+      rcases le_total 0 (x i) with hpos | hneg
+      · have hm1 : max (x i) 0 = x i := max_eq_left hpos
+        have hm2 : max (-x i) 0 = 0 := max_eq_right (by linarith)
+        rw [hm1, hm2, abs_zero, add_zero]
+      · have hm1 : max (x i) 0 = 0 := max_eq_right hneg
+        have hm2 : max (-x i) 0 = -x i := max_eq_left (by linarith)
+        rw [hm1, hm2, abs_zero, zero_add, abs_neg]
+
+    have h_quad : quadraticLoss M r x = quadraticLoss (augmentedMatrix M) (augmentedVector r) (signedCanonicalSplit x) := by
+      dsimp [quadraticLoss]
+      have h_lin : inner ℝ r x = inner ℝ (augmentedVector r) (signedCanonicalSplit x) := by
+        change inner ℝ r x = inner ℝ (augmentedVector r) (euclideanOf (Sum.elim (coordinatePositivePart x) (coordinateNegativePart x)))
+        rw [inner_augmentedVector_sumElim]
+        rw [PiLp.inner_apply, PiLp.inner_apply, PiLp.inner_apply]
+        simp_rw [Real.inner_apply]
+        rw [← Finset.sum_sub_distrib]
+        apply Finset.sum_congr rfl
+        intro i _
+        dsimp [coordinatePositivePart, coordinateNegativePart, euclideanOf]
+        rcases le_total 0 (x i) with hpos | hneg
+        · rw [max_eq_left hpos, max_eq_right (by linarith)]
+          ring
+        · rw [max_eq_right hneg, max_eq_left (by linarith)]
+          ring
+      have h_M : inner ℝ x (matVec M x) = inner ℝ (signedCanonicalSplit x) (matVec (augmentedMatrix M) (signedCanonicalSplit x)) := by
+        change inner ℝ x (matVec M x) = inner ℝ (euclideanOf (Sum.elim (coordinatePositivePart x) (coordinateNegativePart x))) (matVec (augmentedMatrix M) (euclideanOf (Sum.elim (coordinatePositivePart x) (coordinateNegativePart x))))
+        rw [augmentedMatrix_matVec]
+        rw [inner_sumElim]
+        have h_diff : coordinatePositivePart x - coordinateNegativePart x = x := by
+          ext j
+          dsimp [coordinatePositivePart, coordinateNegativePart, euclideanOf]
+          rcases le_total 0 (x j) with hpos | hneg
+          · rw [max_eq_left hpos, max_eq_right (by linarith)]; ring
+          · rw [max_eq_right hneg, max_eq_left (by linarith)]; ring
+        have hd1 : matVec M (coordinatePositivePart x) - matVec M (coordinateNegativePart x) = matVec M x := by
+          rw [← matVec_sub, h_diff]
+        have hd2 : -matVec M (coordinatePositivePart x) + matVec M (coordinateNegativePart x) = -matVec M x := by
+          rw [← neg_sub, ← matVec_sub, h_diff]
+        rw [hd1, hd2]
+        have hd3 : inner ℝ (coordinateNegativePart x) (-matVec M x) = -inner ℝ (coordinateNegativePart x) (matVec M x) := by
+          rw [inner_neg_right]
+        rw [hd3, ← sub_eq_add_neg, ← inner_sub_left, h_diff]
+      rw [h_lin, h_M]
+
+    rw [positiveLassoObjective, lassoObjective, lassoObjective, h_norm, h_quad]
 
 /--
 Lemma 5.1(2): a signed lasso minimizer gives an augmented positive-lasso

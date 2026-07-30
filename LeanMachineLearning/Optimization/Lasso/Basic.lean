@@ -176,6 +176,58 @@ noncomputable def augmentedVector (r : EuclideanSpace ℝ ι) :
     EuclideanSpace ℝ (ι ⊕ ι) :=
   (WithLp.equiv 2 _).symm (Sum.elim r (-r))
 
+/-- Matrix-vector multiplication for augmented matrix. -/
+lemma augmentedMatrix_matVec
+    (M : Matrix ι ι ℝ) (a b : EuclideanSpace ℝ ι) :
+    matVec (augmentedMatrix M) (euclideanOf (Sum.elim a b)) =
+      euclideanOf (Sum.elim (matVec M a - matVec M b) (-matVec M a + matVec M b)) := by
+  ext j
+  dsimp [augmentedMatrix, matVec, euclideanOf]
+  cases j with
+  | inl i => simp [Matrix.mulVec, dotProduct]; try ring
+  | inr i => simp [Matrix.mulVec, dotProduct]; try ring
+
+/-- Inner product with augmented vector. -/
+lemma inner_augmentedVector_sumElim
+    (r a b : EuclideanSpace ℝ ι) :
+    inner ℝ (augmentedVector r) (euclideanOf (Sum.elim a b)) =
+      inner ℝ r a - inner ℝ r b := by
+  dsimp [augmentedVector, euclideanOf]
+  rw [PiLp.inner_apply, PiLp.inner_apply, PiLp.inner_apply]
+  simp_rw [Real.inner_apply]
+  change (∑ j, (Sum.elim r (-r)) j * (Sum.elim a b) j) = _
+  have h_sum := Fintype.sum_sum_type (fun j => (Sum.elim r (-r)) j * (Sum.elim a b) j)
+  rw [h_sum]
+  have hs : (∑ i : ι, (Sum.elim r (-r)) (Sum.inl i) * (Sum.elim a b) (Sum.inl i) + ∑ i : ι, (Sum.elim r (-r)) (Sum.inr i) * (Sum.elim a b) (Sum.inr i)) = ∑ i : ι, (r i * a i + -r i * b i) := by
+    rw [← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro i _
+    rfl
+  rw [hs]
+  have h_split : (∑ i : ι, (r i * a i + -r i * b i)) = (∑ i : ι, r i * a i) + (∑ i : ι, -r i * b i) := by
+    rw [Finset.sum_add_distrib]
+  rw [h_split]
+  have h_neg : (∑ i : ι, -r i * b i) = -(∑ i : ι, r i * b i) := by
+    rw [← Finset.sum_neg_distrib]
+    apply Finset.sum_congr rfl
+    intro i _
+    ring
+  rw [h_neg, sub_eq_add_neg]
+
+/-- Inner product splits over Sum.elim. -/
+lemma inner_sumElim (a b c d : EuclideanSpace ℝ ι) :
+    inner ℝ (euclideanOf (Sum.elim a b)) (euclideanOf (Sum.elim c d)) =
+      inner ℝ a c + inner ℝ b d := by
+  dsimp [euclideanOf]
+  rw [PiLp.inner_apply, PiLp.inner_apply, PiLp.inner_apply]
+  simp_rw [Real.inner_apply]
+  change (∑ j, (Sum.elim a b) j * (Sum.elim c d) j) = _
+  have h_sum := Fintype.sum_sum_type (fun j => (Sum.elim a b) j * (Sum.elim c d) j)
+  rw [h_sum]
+  apply congr_arg₂
+  · apply Finset.sum_congr rfl; intro i _; rfl
+  · apply Finset.sum_congr rfl; intro i _; rfl
+
 /-- Matrix-vector multiplication is additive in the concrete Euclidean wrapper. -/
 lemma matVec_add
     (M : Matrix ι ι ℝ) (x y : EuclideanSpace ℝ ι) :
