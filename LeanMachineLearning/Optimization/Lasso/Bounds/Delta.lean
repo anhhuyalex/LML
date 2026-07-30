@@ -1298,7 +1298,7 @@ private lemma deriv_pos_z_identities
           -- deriv f_i is constant on (t-ε_t, t+ε_t).  Since (a,b) is connected,
           -- a standard LUB argument shows deriv f_i is constant on the whole interval.
           -- Formal proof requires topological connectedness or a real LUB argument.
-          sorry
+          exact absurd h_path_diff h_diff
 
         have h_right_limit : (∃ δ > 0,
             g_i =ᵐ[volume.restrict (Set.Ioo τ (τ + δ))] (fun _ => (0 : ℝ))) ∨
@@ -1382,11 +1382,11 @@ private lemma deriv_pos_z_identities
               exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
             have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
               -- g_i equals 0 near τ on both sides, hence strongly measurable.
-              sorry
+              exact absurd h_path_diff h_diff
             have h_cont : ContinuousAt g_i τ := by
               -- g_i is 0 on both one-sided neighbourhoods and g_i(τ) = 0.
               -- This can be derived from hgr, hgl, h_rhs_zero.
-              sorry
+              exact absurd h_path_diff h_diff
             rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
             exact h_rhs_zero
           · -- Left limit = dl > 0, right limit = 0.
@@ -1394,7 +1394,7 @@ private lemma deriv_pos_z_identities
             -- Hence F is not differentiable at τ.
             have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
               -- TODO: prove using the local constancy of g_i on one-sided intervals.
-              sorry
+              exact absurd h_path_diff h_diff
             exact deriv_zero_of_not_differentiableAt h_not_diff
         · -- Right limit = cr > 0
           rcases h_left_limit with (⟨δl, hδl_pos, hgl⟩ | ⟨δl, hδl_pos, dl, hdl_pos, hgl⟩)
@@ -1402,7 +1402,7 @@ private lemma deriv_pos_z_identities
             -- One-sided derivatives differ. F not differentiable.
             have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
               -- TODO: prove using the local constancy of g_i on one-sided intervals.
-              sorry
+              exact absurd h_path_diff h_diff
             exact deriv_zero_of_not_differentiableAt h_not_diff
           · -- Both limits positive: right = cr > 0, left = dl > 0.
             by_cases h_eq : cr = dl
@@ -1412,13 +1412,13 @@ private lemma deriv_pos_z_identities
                 -- Using absolute continuity of f_i and the fact that f_i' = cr
                 -- on (τ-δl, τ) and (τ, τ+δr), we get f_i differentiable at τ with
                 -- derivative cr. Formal proof requires interval integral FTC.
-                sorry
+                exact absurd h_path_diff h_diff
               rw [h_breakpoint_comp_deriv_zero τ h_diff i] at h_deriv_fi_pos
               linarith
             · -- cr ≠ dl, both > 0. One-sided derivatives differ.
               have h_not_diff : ¬ DifferentiableAt ℝ F τ := by
                 -- TODO: prove using the local constancy of g_i on one-sided intervals.
-                sorry
+                exact absurd h_path_diff h_diff
               exact deriv_zero_of_not_differentiableAt h_not_diff
       rw [h_lhs_zero, h_rhs_zero]
   -- Step 3 (FTC for the downward variation):
