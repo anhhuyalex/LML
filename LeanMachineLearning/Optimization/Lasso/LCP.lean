@@ -1213,8 +1213,8 @@ theorem nonnegative_minNorm_solution_norm_bound
   have hS_convex : Convex ℝ S := by
     -- Direct proof: take two points in S, show the convex combination is in S
     intro z₁ hz₁ z₂ hz₂ s t hs ht hst
-    rw [hS_def, Set.mem_setOf_eq] at hz₁ hz₂
-    rw [hS_def, Set.mem_setOf_eq]
+    rw [hS_def, Set.mem_ofPred_eq] at hz₁ hz₂
+    rw [hS_def, Set.mem_ofPred_eq]
     rcases hz₁ with ⟨hz₁_nonneg, hz₁_sum⟩
     rcases hz₂ with ⟨hz₂_nonneg, hz₂_sum⟩
     constructor
@@ -1227,7 +1227,7 @@ theorem nonnegative_minNorm_solution_norm_bound
       nlinarith [hs, ht, hz₁_nonneg i, hz₂_nonneg i]
     · -- Sum condition: (∑ i, (s•z₁ + t•z₂) i • a i) = y
       have hsum : (∑ i : κ, (s • z₁ + t • z₂) i • a i) = y := by
-        simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+        simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
         -- Now goal: ∑ i, (s * z₁ i + t * z₂ i) • a i = y
         calc
           (∑ i, (s * z₁ i + t * z₂ i) • a i) = (∑ i, ((s * z₁ i) • a i + (t * z₂ i) • a i)) := by
@@ -1254,34 +1254,97 @@ theorem nonnegative_minNorm_solution_norm_bound
   -- The objective function f(z) = ‖euclideanOf z‖
   set f : (κ → ℝ) → ℝ := fun z => ‖euclideanOf z‖ with hf_def
   have hf_cont : Continuous f := by
-    -- euclideanOf is continuous (linear map between finite-dimensional spaces), norm is continuous
-    dsimp [f]
-    -- euclideanOf is a linear map, hence continuous in finite dimensions
+    -- euclideanOf is continuous, norm is continuous
     have h_cont_euclideanOf : Continuous (euclideanOf : (κ → ℝ) → EuclideanSpace ℝ κ) := by
-      -- euclideanOf = (WithLp.linearEquiv 2 ℝ (κ → ℝ)).symm, a LinearEquiv, hence continuous
-      have : (euclideanOf : (κ → ℝ) → EuclideanSpace ℝ κ) =
-          (WithLp.linearEquiv 2 ℝ (κ → ℝ)).symm := rfl
-      rw [this]
-      -- the inverse of a continuous linear equivalence is continuous
-      exact (WithLp.linearEquiv 2 ℝ (κ → ℝ)).symm.continuous
-    -- Composition with norm is continuous
+      -- euclideanOf = WithLp.toLp 2, which is continuous
+      have h := PiLp.continuous_toLp (p := 2) (β := fun _ : κ => ℝ)
+      -- h : Continuous (WithLp.toLp 2 : (κ → ℝ) → WithLp 2 (κ → ℝ))
+      -- euclideanOf is exactly WithLp.toLp 2 (just with different type synonyms)
+      -- We need to unfold the type synonyms
+      unfold euclideanOf EuclideanSpace PiLp
+      exact h
+    dsimp [f]
+    -- f = norm ∘ euclideanOf
     exact (Continuous.norm h_cont_euclideanOf)
-  -- Existence of a minimizer: use the extreme value theorem
+  -- Existence of a minimizer: use compactness of the sublevel set
   have h_exists : ∃ x ∈ S, IsMinOn f S x := by
-    -- Using ContinuousOn.exists_isMinOn' with the coercive property of the norm
-    sorry
+    -- Pick any feasible point x₀ (exists because S is nonempty)
+    obtain ⟨x₀, hx₀S⟩ := hS_nonempty
+    set M : ℝ := f x₀ with hM_def
+    -- The sublevel set {z ∈ S | f z ≤ M} is compact (closed subset of compact closed ball)
+    let K : Set (κ → ℝ) := {z | z ∈ S ∧ f z ≤ M}
+    have hK_closed : IsClosed K := by
+      -- K = S ∩ {z | f z ≤ M}, intersection of two closed sets
+      have h_closed_sublevel : IsClosed {z | f z ≤ M} :=
+        (isClosed_Iic (a := M)).preimage hf_cont
+      exact IsClosed.inter hS_closed h_closed_sublevel
+    have hK_compact : IsCompact K := by
+      -- K is closed (hK_closed) and bounded (since f z ≤ M, which means ‖euclideanOf z‖ ≤ M).
+      -- In finite dimensions (κ → ℝ is finite-dim since Fintype κ), closed+bounded ⇒ compact.
+      -- The set {z | ‖euclideanOf z‖ ≤ M} is compact because euclideanOf is a homeomorphism
+      -- and the closed ball in EuclideanSpace ℝ κ is compact (proper space).
+      -- K is a closed subset of this compact set, hence compact.
+      sorry
+    have hK_nonempty : K.Nonempty := by
+      refine ⟨x₀, hx₀S, ?_⟩
+      dsimp [f, M]
+      exact le_refl _
+    obtain ⟨x, hxK, hx_min⟩ := hK_compact.exists_isMinOn hK_nonempty hf_cont.continuousOn
+    refine ⟨x, hxK.1, ?_⟩
+    -- Extend IsMinOn from K to S: for z ∈ S \ K, f z > f x₀ ≥ f x
+    intro z hzS
+    by_cases hzM : f z ≤ f x₀
+    · apply hx_min ⟨hzS, hzM⟩
+    · have hxM : f x ≤ f x₀ := hxK.2
+      have hz_gt : f x₀ < f z := not_le.mp hzM
+      exact le_trans hxM (le_of_lt hz_gt)
   rcases h_exists with ⟨x, hxS, hx_min⟩
   -- Uniqueness of the minimizer
   have h_unique : ∀ x', IsNonnegativeMinNormSolution a y x' → x' = x := by
     intro x' hx'_sol
-    -- hx'_sol gives: x' ∈ S and IsMinOn f S x'
+    rcases hx'_sol with ⟨hx'_nonneg, hx'_sum, hx'_min⟩
+    -- Both x and x' are in S and are minimizers of f on S
     -- By strict convexity of the Euclidean norm, the minimizer is unique
-    sorry
+    by_contra h_ne
+    have hxS_set : x ∈ S := hxS
+    have hx'S_set : x' ∈ S := by
+      rw [hS_def, Set.mem_ofPred_eq]
+      exact ⟨hx'_nonneg, hx'_sum⟩
+    -- The midpoint (1/2)•x + (1/2)•x' is in S by convexity
+    set mid := (1/2 : ℝ) • x + (1/2 : ℝ) • x' with hmid_def
+    have h_mid_mem : mid ∈ S :=
+      hS_convex hxS_set hx'S_set (by norm_num) (by norm_num) (by norm_num)
+    -- By strict convexity of Euclidean norm, ‖mid‖ < ‖x‖ if x ≠ x' and both are minimizers
+    have h_norm_mid : f mid < f x := by
+      dsimp [f, mid]
+      -- Let u = euclideanOf x, v = euclideanOf x'
+      -- euclideanOf is linear, so euclideanOf (a•x + b•x') = a•euclideanOf x + b•euclideanOf x'
+      -- Both u and v have the same norm (minimum value), and u ≠ v
+      -- Use strict convexity: norm_combo_lt_of_ne
+      sorry
+    have h_min_mid : f x ≤ f mid := hx_min h_mid_mem
+    linarith
   -- Norm bound: the minimizer has norm ≤ the norm of any feasible solution
   have h_norm_bound : ‖euclideanOf x‖ ≤ C * ‖y‖ := by
     -- From hC₀, there exists some feasible x₀ with ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖
-    -- Since x is the minimum-norm solution, ‖euclideanOf x‖ ≤ ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖ ≤ C * ‖y‖
-    sorry
+    rcases hC₀ y hy with ⟨x₀, hx₀_nonneg, hx₀_sum, hx₀_norm⟩
+    -- x₀ ∈ S (by definition of S)
+    have hx₀S : x₀ ∈ S := by
+      rw [hS_def, Set.mem_ofPred_eq]
+      exact ⟨hx₀_nonneg, hx₀_sum⟩
+    -- Since x minimizes f on S, we have f x ≤ f x₀
+    have hfx_le : f x ≤ f x₀ := hx_min hx₀S
+    -- Unfold f
+    dsimp [f] at hfx_le
+    -- Now hfx_le : ‖euclideanOf x‖ ≤ ‖euclideanOf x₀‖ ≤ C₀ * ‖y‖
+    -- Since C = max C₀ 1, we have C₀ ≤ C
+    have hC₀_le_C : C₀ ≤ C := by
+      rw [hC_def]
+      exact le_max_left _ _
+    -- So C₀ * ‖y‖ ≤ C * ‖y‖ (since ‖y‖ ≥ 0)
+    have h_mul : C₀ * ‖y‖ ≤ C * ‖y‖ :=
+      mul_le_mul_of_nonneg_right hC₀_le_C (norm_nonneg _)
+    linarith
   -- Assemble the result
   have hx_sol : IsNonnegativeMinNormSolution a y x := by
     rcases hxS with ⟨hx_nonneg, hx_sum⟩

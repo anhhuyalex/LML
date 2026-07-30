@@ -30,9 +30,8 @@ lemma matVec_hasDerivAt (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ �
     (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
   have h1 : HasDerivAt (fun τ => e (g τ)) (e g') τ := e.hasFDerivAt.comp_hasDerivAt τ hg
   dsimp [matVec, euclideanOf]
-  apply e.symm.hasFDerivAt.comp_hasDerivAt τ
-  apply hasDerivAt_pi.2
-  intro i
+  refine e.symm.hasFDerivAt.comp_hasDerivAt τ ?_
+  refine hasDerivAt_pi.2 fun i => ?_
   dsimp [Matrix.mulVec, dotProduct]
   exact HasDerivAt.fun_sum (fun j _ => (hasDerivAt_pi.1 h1 j).const_mul (M i j))
 
@@ -66,8 +65,7 @@ lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace �
     dsimp [z, posIntegratedTrajectory, euclideanOf]
     have h_pi : HasDerivAt (fun τ => (fun i => ∫ v in (0:ℝ)..τ, x v i))
         (fun i => x τ i) τ := by
-      apply hasDerivAt_pi.2
-      intro i
+      refine hasDerivAt_pi.2 fun i => ?_
       have hcont_i : Continuous (fun v => x v i) :=
         (h_cont_apply i).comp hcont
       exact intervalIntegral.integral_hasDerivAt_right
@@ -259,12 +257,11 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
       Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
     let e : (ι → ℝ) ≃L[ℝ] EuclideanSpace ℝ ι :=
       (WithLp.linearEquiv 2 ℝ (ι → ℝ)).symm.toContinuousLinearEquiv
-    have h_sq : Continuous (fun (x : EuclideanSpace ℝ ι) (i : ι) => x i * x i) :=
-      continuous_pi (fun i => Continuous.mul (h_proj_cont i) (h_proj_cont i))
     have h_eq : coordinateSquare = e ∘ (fun (x : EuclideanSpace ℝ ι) => fun i => x i * x i) := by
       ext x i; simp [coordinateSquare, euclideanOf, e]
     rw [h_eq]
-    exact e.continuous.comp h_sq
+    exact e.continuous.comp
+      (continuous_pi (fun i => Continuous.mul (h_proj_cont i) (h_proj_cont i)))
   -- FTC: derivative of `posIntegratedTrajectory` is `posEffectiveParameter`
   have h_z_deriv : HasDerivAt (posIntegratedTrajectory u_eps)
       (posEffectiveParameter u_eps t_ετ) t_ετ := by
@@ -275,8 +272,7 @@ private lemma posIntegratedTrajectoryRescaled_hasDerivAt
         (fun σ : ℝ => (fun i : ι =>
           ∫ v in (0:ℝ)..σ, posEffectiveParameter u_eps v i))
         (fun i : ι => posEffectiveParameter u_eps t_ετ i) t_ετ := by
-      apply hasDerivAt_pi.mpr
-      intro i
+      refine hasDerivAt_pi.mpr fun i => ?_
       have hcont_i : Continuous (fun v : ℝ => posEffectiveParameter u_eps v i) :=
         (h_proj_cont i).comp (h_cont_coordSquare.comp h_cont_u)
       exact intervalIntegral.integral_hasDerivAt_right
@@ -332,7 +328,8 @@ lemma pos_delta_bound_1
       (1 / Real.log (1 / ε)) * (∑ i : ι, (-(x i) * Real.log (x i))) := by
     rw [PiLp.inner_apply]
     simp_rw [Real.inner_apply]
-    dsimp [x, posRescaledMirrorVariable, euclideanOf]
+    simp_rw [show ∀ i, (posRescaledMirrorVariable ε (u ε) τ) i =
+      -Real.log (x i) / Real.log (1 / ε) from fun _ => rfl]
     calc
       ∑ i : ι, x i * (-Real.log (x i) / Real.log (1 / ε)) =
           ∑ i : ι, (-(x i) * Real.log (x i)) / Real.log (1 / ε) := by
@@ -722,7 +719,9 @@ private lemma pos_effective_param_ne_zero
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε)) :
     ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 := by
   intro ε hε t i
-  exact pos_param_ne_zero_of_gradient_flow M r lambda β ε hε (u ε) (hu ε hε) (hdata.psd.symm) t i (hβ i)
+  have hM_symm : M.IsSymm := hdata.psd.symm
+  have hflow := hu ε hε
+  exact pos_param_ne_zero_of_gradient_flow M r lambda β ε hε (u ε) hflow hM_symm t i (hβ i)
 
 -- Generic triangle inequality for four terms: |a - b + c + d| ≤ |a| + |b| + |c| + |d|
 private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |b| + |c| + |d| := by
@@ -730,7 +729,11 @@ private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |
     |a - b + c + d| ≤ |a - b + c| + |d| := abs_add_le _ _
     _ ≤ |a - b| + |c| + |d| := by nlinarith [abs_add_le (a - b) c]
     _ ≤ |a| + |b| + |c| + |d| := by
-      nlinarith [abs_sub a b]
+      nlinarith [show |a - b| ≤ |a| + |b| from by
+        calc
+          |a - b| = |a + (-b)| := by ring_nf
+          _ ≤ |a| + |-b| := abs_add_le _ _
+          _ = |a| + |b| := by simp]
 
 -- Upper bound for the rescaled mirror variable: |wᵋ_i(τ)| ≤ C_w * (1 + τ).
 -- Uses the integrated mirror equation, the uniform trajectory bound, and bounds on r, M, β.
@@ -766,9 +769,7 @@ private lemma rescaled_mirror_upper_bound
       set beta_log_max := ⨆ i, |Real.log (β i ^ 2)| with hbeta_log_max_def
       have hbeta_log_max_nonneg : 0 ≤ beta_log_max := by
         rw [hbeta_log_max_def]
-        have h := le_ciSup (Finite.bddAbove_range (fun (i : ι) => |Real.log (β i ^ 2)|))
-          (Classical.arbitrary ι)
-        exact le_trans (abs_nonneg _) h
+        exact le_ciSup_of_le (Finite.bddAbove_range _) (Classical.arbitrary ι) (abs_nonneg _)
       set C_init := 1 + beta_log_max / Real.log 2 with hC_init_def
       have hC_init_pos : C_init > 0 := by
         rw [hC_init_def]
@@ -803,8 +804,8 @@ private lemma rescaled_mirror_upper_bound
           -- i.e., (log ε + 2·log β_i) / log ε = 1 + 2·log β_i / log ε
           have h_log_eps_ne_zero : Real.log ε ≠ 0 := by
             intro hzero
-            have : Real.log (1 / ε) = 0 := by rw [one_div, Real.log_inv, hzero, neg_zero]
-            exact hlog_ne_zero this
+            apply hlog_ne_zero
+            rw [one_div, Real.log_inv, hzero, neg_zero]
           field_simp [h_log_eps_ne_zero]
           -- Goal: Real.log (ε * β i ^ 2) = Real.log ε + 2 * Real.log (β i)
           have hε_ne_zero : ε ≠ 0 := by linarith
@@ -819,10 +820,9 @@ private lemma rescaled_mirror_upper_bound
         have h_log_two_pos : 0 < Real.log (2 : ℝ) :=
           Real.log_pos (by norm_num : 1 < (2 : ℝ))
         have h_log_denom_ge_log2 : Real.log 2 ≤ Real.log (1 / ε) := by
-          have h_two_lt : (2 : ℝ) < 1 / ε := by
-            have h := (one_div_lt_one_div (by norm_num : 0 < (1/2 : ℝ)) hε_pos).mpr hε_lt_half
-            simpa [one_div] using h
-          exact Real.log_le_log (by norm_num : 0 < (2 : ℝ)) h_two_lt.le
+          refine Real.log_le_log (by norm_num : 0 < (2 : ℝ)) ?_
+          have h := (one_div_lt_one_div (by norm_num : 0 < (1/2 : ℝ)) hε_pos).mpr hε_lt_half
+          simpa [one_div] using h.le
         -- Triangle inequality: |1 - a/L| ≤ 1 + |a|/L
         have h_abs_bound : |1 - Real.log ((β i)^2) / Real.log (1 / ε)| ≤
             1 + |Real.log ((β i)^2)| / Real.log (1 / ε) := by
@@ -945,7 +945,7 @@ lemma pos_delta_bound_3
   --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
   -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
   have h_w_upper := rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev
-  rcases h_w_upper with ⟨C_w, hC_w_pos, hW_ev⟩
+  rcases h_w_upper with ⟨C_w, _, hW_ev⟩
   -- Combine the constants
   set C := max C_low C_w
   refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
@@ -1336,18 +1336,11 @@ theorem positive_path_delta_bound
   use C, hC_pos
   intro δ hδ
   have h_half_δ : 0 < δ / 2 := half_pos hδ
-  have h_z_up_nonneg : 0 ≤ positiveZUpward x_lasso s := by
-    dsimp [positiveZUpward]
-    refine Finset.sum_nonneg (fun i _ => ?_)
-    exact intervalIntegral.integral_nonneg (le_of_lt hs) (fun u _ => le_max_left _ _)
   -- Tendsto of 1 / log(1/ε) to 0 as ε → 0⁺
   have h_tendsto_log_inv : Tendsto (fun (ε : ℝ) => (Real.log (1 / ε))⁻¹) (𝓝[>] 0) (𝓝 0) := by
     have h_inv_atTop : Tendsto (fun (ε : ℝ) => 1 / ε) (𝓝[>] 0) atTop := by
       simpa [one_div] using tendsto_inv_nhdsGT_zero (𝕜 := ℝ)
-    have h_log_atTop : Tendsto Real.log atTop atTop := Real.tendsto_log_atTop
-    have h_log_inv_atTop : Tendsto (fun (ε : ℝ) => Real.log (1 / ε)) (𝓝[>] 0) atTop :=
-      h_log_atTop.comp h_inv_atTop
-    exact h_log_inv_atTop.inv_tendsto_atTop
+    exact (Real.tendsto_log_atTop.comp h_inv_atTop).inv_tendsto_atTop
   have h_tendsto_vanishing : Tendsto (fun ε => deltaVanishingTerm ε s (positiveZUpward x_lasso s))
       (𝓝[>] 0) (𝓝 0) := by
     dsimp [deltaVanishingTerm]
@@ -1356,13 +1349,9 @@ theorem positive_path_delta_bound
   have h_eventually_vanish : ∀ᶠ ε in 𝓝[>] 0,
       deltaVanishingTerm ε s (positiveZUpward x_lasso s) ≤ δ / 2 := by
     -- From the limit, eventually |deltaVanishingTerm| < δ/2, so deltaVanishingTerm ≤ δ/2
-    have h_mem_nhds : Set.Ioo (-(δ / 2)) (δ / 2) ∈ 𝓝 (0 : ℝ) :=
-      isOpen_Ioo.mem_nhds ⟨by linarith, by linarith⟩
-    have h_ev : ∀ᶠ ε in 𝓝[>] 0, deltaVanishingTerm ε s (positiveZUpward x_lasso s) ∈
-        Set.Ioo (-(δ / 2)) (δ / 2) :=
-      h_tendsto_vanishing.eventually h_mem_nhds
-    refine h_ev.mono fun ε hε => ?_
-    rcases hε with ⟨hε_low, hε_high⟩
+    refine ((h_tendsto_vanishing.eventually
+      (isOpen_Ioo.mem_nhds ⟨neg_lt_zero.mpr h_half_δ, h_half_δ⟩)).mono fun ε hε => ?_)
+    rcases hε with ⟨_, hε_high⟩
     exact le_of_lt hε_high
   filter_upwards [h_full (δ / 2) h_half_δ, h_eventually_vanish] with ε h_full_ε h_vanish_ε
   have h_delta_full : deltaFullError ε s (positiveZUpward x_lasso s)
