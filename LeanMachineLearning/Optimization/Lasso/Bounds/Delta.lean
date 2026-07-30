@@ -651,6 +651,7 @@ private lemma rescaled_mirror_lower_bound
     (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0) :
     ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
+  let _ := ‹Fintype ι›
   set C_low := max 1 (Real.log X) with hC_low_def
   have hC_low_pos : C_low > 0 := by
     rw [hC_low_def]
@@ -734,7 +735,7 @@ private lemma abs_sub_add_add_four (a b c d : ℝ) : |a - b + c + d| ≤ |a| + |
     _ ≤ |a| + |b| + |c| + |d| := by
       nlinarith [show |a - b| ≤ |a| + |b| from by
         calc
-          |a - b| = |a + (-b)| := by ring
+          |a - b| = |a + (-b)| := by ring_nf
           _ ≤ |a| + |-b| := abs_add_le _ _
           _ = |a| + |b| := by simp]
 
@@ -794,7 +795,8 @@ lemma pos_delta_bound_3
       set beta_log_max := ⨆ i, |Real.log (β i ^ 2)| with hbeta_log_max_def
       have hbeta_log_max_nonneg : 0 ≤ beta_log_max := by
         rw [hbeta_log_max_def]
-        have h := le_ciSup (Finite.bddAbove_range (fun (i : ι) => |Real.log (β i ^ 2)|)) (Classical.arbitrary ι)
+        have h := le_ciSup (Finite.bddAbove_range (fun (i : ι) => |Real.log (β i ^ 2)|))
+          (Classical.arbitrary ι)
         exact le_trans (abs_nonneg _) h
       set C_init := 1 + beta_log_max / Real.log 2 with hC_init_def
       have hC_init_pos : C_init > 0 := by
@@ -825,7 +827,8 @@ lemma pos_delta_bound_3
           -- Unfold definitions (simp handles euclideanOf, posTimeFromRescaled at 0, etc.)
           simp [posRescaledMirrorVariable, posTimeFromRescaled, euclideanOf, h_init,
             coordinateSquare]
-          -- Goal after simp: Real.log (ε * β i ^ 2) / Real.log ε = 1 - -(2 * Real.log (β i) / Real.log ε)
+          -- Goal after simp:
+          -- Real.log (ε * β i ^ 2) / Real.log ε = 1 - -(2 * Real.log (β i) / Real.log ε)
           -- i.e., (log ε + 2·log β_i) / log ε = 1 + 2·log β_i / log ε
           have h_log_eps_ne_zero : Real.log ε ≠ 0 := by
             intro hzero
@@ -854,7 +857,7 @@ lemma pos_delta_bound_3
             1 + |Real.log ((β i)^2)| / Real.log (1 / ε) := by
           calc
             |1 - Real.log ((β i)^2) / Real.log (1 / ε)|
-                = |1 + (-(Real.log ((β i)^2) / Real.log (1 / ε)))| := by ring
+                = |1 + (-(Real.log ((β i)^2) / Real.log (1 / ε)))| := by ring_nf
             _ ≤ |1| + |-(Real.log ((β i)^2) / Real.log (1 / ε))| := abs_add_le _ _
             _ = 1 + |Real.log ((β i)^2) / Real.log (1 / ε)| := by simp
             _ = 1 + |Real.log ((β i)^2)| / |Real.log (1 / ε)| := by rw [abs_div]
@@ -891,8 +894,8 @@ lemma pos_delta_bound_3
       have h_coord_eq : (posRescaledMirrorVariable ε (u ε) τ) i =
           (posRescaledMirrorVariable ε (u ε) 0) i - τ * r i +
           (matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i + τ * lambda := by
-        simpa [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, sub_eq_add_neg, add_assoc, ones, euclideanOf]
-          using congrArg (fun x => x i) h_ime
+        simpa [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, sub_eq_add_neg,
+          add_assoc, ones, euclideanOf] using congrArg (fun x => x i) h_ime
       -- Bound (M·z)_i = Σ_j M_{ij} z_j, using |z_j| ≤ X·τ and triangle inequality for sums
       have hMz_bound :
           |(matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ)) i| ≤ M_row_max * X * τ := by
