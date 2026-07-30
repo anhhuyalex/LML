@@ -1813,7 +1813,89 @@ theorem parametric_lcp_eq_iff_of_small_mu
     ∀ z w : EuclideanSpace ℝ ι,
       isParametricLCP M r lambda μ z w ↔
         z = 0 ∧ w = parametricLcpQ r lambda μ := by
-  sorry
+  -- Introduce notation N for the ℓ∞ norm of r - λ·𝟙, and derive μ·N < 1 from hμ_small
+  set N := ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ with hN
+  have hN_nonneg : 0 ≤ N := by rw [hN]; exact norm_nonneg _
+  have hμN_lt_one : μ * N < 1 := by
+    by_cases hNle : N ≤ 1
+    · -- Case N ≤ 1: max N 1 = 1, so μ < 1/1 = 1, and μ·N ≤ μ·1 < 1
+      have hmax_one : max N 1 = 1 := max_eq_right hNle
+      rw [hmax_one] at hμ_small
+      have hμ_lt_one : μ < 1 := by
+        simpa [div_one] using hμ_small
+      have hμN_le_μ : μ * N ≤ μ := by
+        calc
+          μ * N ≤ μ * 1 := mul_le_mul_of_nonneg_left hNle hμ
+          _ = μ := by ring
+      linarith
+    · -- Case N > 1: max N 1 = N, so μ < 1/N, and clearing the denominator gives μ·N < 1
+      have h_one_le_N : 1 ≤ N := by linarith
+      have hmax_N : max N 1 = N := max_eq_left h_one_le_N
+      rw [hmax_N] at hμ_small
+      have hpos : 0 < N := by linarith
+      exact (lt_div_iff₀ hpos).mp hμ_small
+  let q := parametricLcpQ r lambda μ
+  have hq_pos : ∀ i, 0 < q i := parametricLcpQ_pos r lambda μ hμ hμN_lt_one
+  intro z w
+  constructor
+  · -- Forward direction: any LCP solution must be (z=0, w=q)
+    intro h
+    dsimp [isParametricLCP, isLCP] at h
+    rcases h with ⟨h_w, h_w_pos, h_z_pos, h_ortho⟩
+    -- h_w : w = q + matVec M z, h_ortho : inner ℝ w z = 0
+    have h_inner_add : inner ℝ q z + inner ℝ (matVec M z) z = 0 := by
+      dsimp [q]
+      rw [← inner_add_left, ← h_w, h_ortho]
+    have hz_Mz_nonneg : 0 ≤ inner ℝ z (matVec M z) :=
+      IsPositiveSemidefinite.get_nonneg hM_psd z
+    have h_Mz_z_eq : inner ℝ (matVec M z) z = inner ℝ z (matVec M z) :=
+      real_inner_comm z (matVec M z)
+    rw [h_Mz_z_eq] at h_inner_add
+    have h_qz_nonpos : inner ℝ q z ≤ 0 := by linarith
+    have h_qz_nonneg : 0 ≤ inner ℝ q z := by
+      -- Expand inner product to sum of coordinate products, all nonnegative
+      have h_sum : inner ℝ q z = ∑ i : ι, q.ofLp i * z.ofLp i := by
+        rw [PiLp.inner_apply]
+        simp only [Real.inner_apply]
+      rw [h_sum]
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      exact mul_nonneg (le_of_lt (hq_pos i)) (h_z_pos i)
+    have h_qz_zero : inner ℝ q z = 0 := le_antisymm h_qz_nonpos h_qz_nonneg
+    have h_z_zero : z = 0 := by
+      ext i
+      have h_sum_zero : ∑ j : ι, q.ofLp j * z.ofLp j = 0 := by
+        have h_sum : inner ℝ q z = ∑ j : ι, q.ofLp j * z.ofLp j := by
+          rw [PiLp.inner_apply]
+          simp only [Real.inner_apply]
+        rw [← h_sum, h_qz_zero]
+      have h_term_zero : q.ofLp i * z.ofLp i = 0 := by
+        have h_nonneg : ∀ j ∈ (Finset.univ : Finset ι), 0 ≤ q.ofLp j * z.ofLp j :=
+          fun j _ => mul_nonneg (le_of_lt (hq_pos j)) (h_z_pos j)
+        exact (Finset.sum_eq_zero_iff_of_nonneg h_nonneg).mp h_sum_zero i (Finset.mem_univ i)
+      cases mul_eq_zero.mp h_term_zero with
+      | inl h_q_zero =>
+        have h_qi_pos : 0 < q.ofLp i := hq_pos i
+        linarith
+      | inr h_zi_zero =>
+        simpa using h_zi_zero
+    have h_w_eq_q : w = q := by
+      rw [h_z_zero] at h_w
+      have h_zero : matVec M 0 = 0 := by
+        ext j; simp [matVec, euclideanOf]
+      rw [h_zero, add_zero] at h_w
+      exact h_w
+    exact ⟨h_z_zero, h_w_eq_q⟩
+  · -- Backward direction: (z=0, w=q) is a solution
+    intro ⟨hz, hw⟩
+    subst hz; subst hw
+    dsimp [isParametricLCP, isLCP]
+    constructor
+    · ext i; dsimp [q]; simp [matVec, euclideanOf]
+    · constructor
+      · intro i; exact le_of_lt (hq_pos i)
+      · constructor
+        · intro i; exact le_refl 0
+        · simp [inner_zero_right]
 
 /-- Existential-uniqueness packaging of the faithful Lemma 4.10 threshold.
 
