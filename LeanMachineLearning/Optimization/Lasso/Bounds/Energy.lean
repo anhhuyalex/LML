@@ -317,7 +317,13 @@ lemma initial_positive_energy_zero
     inner ℝ (w 0) (posIntegratedTrajectoryRescaled ε u 0 - scaledPrimalPath x_lasso 0) +
       pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε u ρ)
         (scaledPrimalPath x_lasso) 0 = 0 := by
-  sorry
+  have ht0 : posTimeFromRescaled ε 0 = 0 := by dsimp [posTimeFromRescaled]; ring
+  have hz_int : posIntegratedTrajectory u 0 = 0 := by
+    ext i; simp [posIntegratedTrajectory, euclideanOf]
+  have h_diff_zero : posIntegratedTrajectoryRescaled ε u 0 - scaledPrimalPath x_lasso 0 = 0 := by
+    simp [posIntegratedTrajectoryRescaled, scaledPrimalPath, ht0, hz_int]
+  rw [h_diff_zero, inner_zero_right, zero_add]
+  exact pathDelta_zero M ε u x_lasso
 
 /--
 Helper lemma: The positive lasso objective gap is exactly $1/s^2$ times
@@ -336,13 +342,19 @@ To formally prove this in Lean, apply `positiveLassoObjective_eq` to both $x$ an
 subtract them, and use `quadratic_expansion` from `LCP.lean` to group the quadratic forms.
 -/
 lemma positiveLassoObjective_eq_energy
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (s : ℝ) (hs : 0 < s)
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (s : ℝ) (_hs : 0 < s)
     (z zε : EuclideanSpace ℝ ι) (w : EuclideanSpace ℝ ι)
     (hx_nonneg : Nonnegative (s⁻¹ • z)) (hxE_nonneg : Nonnegative (s⁻¹ • zε))
     (hw_eq : matVec M (s⁻¹ • z) + lcpQ r lambda s = s⁻¹ • w)
     (hM_symm : M.IsSymm) :
     positiveLassoObjective M r lambda s (s⁻¹ • zε) - positiveLassoObjective M r lambda s (s⁻¹ • z) =
       s⁻¹ ^ 2 * (inner ℝ w (zε - z) + (1 / 2 : ℝ) * inner ℝ (zε - z) (matVec M (zε - z))) := by
-  sorry
+  rw [positiveLassoObjective_eq M r lambda s (s⁻¹ • zε) hxE_nonneg,
+    positiveLassoObjective_eq M r lambda s (s⁻¹ • z) hx_nonneg,
+    quadratic_expansion M (lcpQ r lambda s) (s⁻¹ • z) (s⁻¹ • zε) hM_symm, hw_eq]
+  have h_sub : s⁻¹ • zε - s⁻¹ • z = s⁻¹ • (zε - z) := (smul_sub s⁻¹ zε z).symm
+  rw [h_sub, matVec_smul_eq, real_inner_smul_left, real_inner_smul_left, real_inner_smul_right,
+    real_inner_smul_right]
+  ring
 
 end Lasso
