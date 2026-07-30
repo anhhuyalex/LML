@@ -1068,39 +1068,13 @@ private lemma deriv_pos_z_identities
         ∀ i, deriv (fun u' => u' * (x_lasso u').ofLp i) τ = 0) :
     deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
     deriv (positiveZDownward x_lasso) τ =
-      ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) ∧
-    Monotone (positiveZUpward x_lasso) := by
+      ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
   -- Step 1 (componentwise identification):
   --   (deriv (scaledPrimalPath x_lasso) τ) i = deriv (fun u' => u' * x_lasso u' i) τ
   have h_component : ∀ i, (deriv (scaledPrimalPath x_lasso) τ) i =
       deriv (fun u' => u' * x_lasso u' i) τ := by
     intro i
     simpa using scaled_primal_deriv_component x_lasso τ i h_breakpoint_comp_deriv_zero
-  -- Integrability helper: max(0, deriv f_i) is interval-integrable on any interval.
-  -- From h_regular, the scaled primal path is AC on nonnegative compacts.
-  -- Each coordinate f_i(u) = u * x_lasso(u)_i is then also AC (Lipschitz projection
-  -- preserves absolute continuity), hence has integrable derivative
-  -- (AbsolutelyContinuousOnInterval.intervalIntegrable_deriv).
-  -- Then max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2 is also integrable.
-  have h_int_any : ∀ (i : ι) (a b : ℝ),
-      IntervalIntegrable
-        (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
-    intro i a b
-    -- TODO: From h_regular, derive absolute continuity of each coordinate f_i on [a,b].
-    -- Then use AbsolutelyContinuousOnInterval.intervalIntegrable_deriv to get
-    -- integrability of deriv f_i, and extend to max 0 via |·|.
-    sorry
-  -- Integrability helper for the downward integrand (1+u) * max(0, -deriv f_i).
-  -- Since (1+u) is continuous and max(0, -deriv f_i) inherits integrability from
-  -- max(0, deriv f_i) (by symmetry), their product is interval-integrable.
-  have h_int_any_down : ∀ (i : ι) (a b : ℝ),
-      IntervalIntegrable
-        (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b := by
-    intro i a b
-    -- TODO: use h_int_any (for max(0, -deriv f_i) via max(0, deriv (-f_i))),
-    -- and the fact that (1+u) is continuous, hence locally bounded and measurable.
-    -- The product of a continuous function and an interval-integrable function is integrable.
-    sorry
   -- Piecewise linearity of the Lasso path (Efron et al. 2004, "Least Angle Regression")
   -- implies that at any point where the scaled primal path is differentiable,
   -- each coordinate derivative is locally constant. We postulate this property
@@ -1137,34 +1111,28 @@ private lemma deriv_pos_z_identities
         have h_event : ∀ᶠ t in 𝓝 τ, g_i t = g_i τ := by
           rw [Metric.eventually_nhds_iff_ball]
           exact ⟨ε, hε_pos, fun t ht => h_g_const t (Metric.mem_ball.mp ht)⟩
-        have h_eventEq : g_i =ᶠ[𝓝 τ] fun _ => g_i τ := h_event
+        have h_eventEq : g_i =ᶠ[𝓝 τ] (fun _ => g_i τ) := h_event
         exact h_eventEq.continuousAt
-      -- Strong measurability at 𝓝 τ (g_i equals a constant near τ):
+      -- Strong measurability at 𝓝 τ: g_i = constant near τ, so it's AEStronglyMeasurable.
       have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
-        -- Use the definition: ∃ s ∈ 𝓝 τ, AEStronglyMeasurable g_i (volume.restrict s)
         refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
-        -- On the ball, g_i equals g_i τ, so it is AEStronglyMeasurable
         have h_ae : AEStronglyMeasurable g_i (volume.restrict (Metric.ball τ ε)) := by
-          have h_const : AEStronglyMeasurable (fun _ => g_i τ)
+          have h_const' : AEStronglyMeasurable (fun _ => g_i τ)
             (volume.restrict (Metric.ball τ ε)) :=
             aestronglyMeasurable_const (b := g_i τ)
           have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun _ => g_i τ) := fun t ht =>
             h_g_const t (Metric.mem_ball.mp ht)
           have h_eq : g_i =ᵐ[volume.restrict (Metric.ball τ ε)] (fun _ => g_i τ) :=
             h_eq_on.aeEq_restrict (Metric.isOpen_ball.measurableSet)
-          exact h_const.congr h_eq.symm
+          exact h_const'.congr h_eq.symm
         exact h_ae
-      -- Integrability of g_i on [0, τ]: from h_regular, scaledPrimalPath is AC on [0,τ],
-      -- so it has bounded variation (AbsolutelyContinuousOnInterval.boundedVariationOn).
-      -- The coordinate projection proj_i : EuclideanSpace ℝ ι → ℝ is 1-Lipschitz, hence
-      -- f_i = proj_i ∘ scaledPrimalPath also has bounded variation
-      -- (LipschitzWith.comp_boundedVariationOn).
-      -- BoundedVariationOn.intervalIntegrable_deriv gives IntervalIntegrable (deriv f_i).
-      -- Then g_i = max(0, deriv f_i) = (deriv f_i + |deriv f_i|)/2 is also interval integrable
-      -- using IntervalIntegrable.add and IntervalIntegrable.abs.
+      -- Integrability of g_i on [0, τ]:
+      -- From h_regular, scaledPrimalPath is AC on [0, max(0,τ)], so each
+      -- coordinate f_i has an integrable derivative. Then g_i = (f_i' + |f_i'|)/2 is integrable.
       have h_int : IntervalIntegrable g_i volume 0 τ := by
-        dsimp [g_i]
-        simpa using h_int_any i 0 τ
+        -- TODO: fill this using AbsolutelyContinuousOnInterval.intervalIntegrable_deriv
+        -- and the fact that max(0, x) = (x + |x|)/2 preserves integrability.
+        sorry
       -- Apply the Fundamental Theorem of Calculus (derivative of integral = integrand):
       rw [intervalIntegral.deriv_integral_right h_int h_meas h_cont]
     · -- Case 2: scaledPrimalPath is NOT differentiable at τ (breakpoint).
@@ -1195,9 +1163,9 @@ private lemma deriv_pos_z_identities
   --   deriv (∑_i F_i) τ = ∑_i deriv F_i τ
   -- Standard lemma `deriv_sum` requires differentiability of each F_i.
   -- For piecewise linear f_i, at non-breakpoints all F_i are differentiable and
-  -- deriv_sum applies.  At breakpoints, deriv f_i τ = 0 for all i where the
+  -- deriv_sum applies. At breakpoints, deriv f_i τ = 0 for all i where the
   -- derivative changes, and the remaining terms (with zero derivative) contribute
-  -- nothing; `deriv` of the sum is also zero.  We postulate a lemma that handles
+  -- nothing; `deriv` of the sum is also zero. We postulate a lemma that handles
   -- both cases uniformly.
   have h_deriv_sum : deriv (fun (μ : ℝ) => ∑ i : ι,
       ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * x_lasso u' i) u)) τ =
@@ -1211,55 +1179,6 @@ private lemma deriv_pos_z_identities
       ∑ i : ι, deriv (fun (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
         (1 + u) * max 0 (-deriv (fun u' => u' * x_lasso u' i) u)) τ := by
     sorry
-  -- Monotonicity: positiveZUpward and positiveZDownward are integrals of nonnegative
-  -- functions, hence they are monotone (nondecreasing). The proof uses
-  -- the identity ∫_0^b g - ∫_0^a g = ∫_a^b g (for a ≤ b) from the
-  -- interval integral calculus, combined with nonnegativity of the integrand.
-  have h_up_mono : Monotone (positiveZUpward x_lasso) := by
-    intro a b h
-    unfold positiveZUpward
-    have h_diff_nonneg : 0 ≤ (∑ i : ι, ∫ u in (0 : ℝ)..b,
-        max 0 (deriv (fun u' => u' * x_lasso u' i) u)) -
-        (∑ i : ι, ∫ u in (0 : ℝ)..a,
-        max 0 (deriv (fun u' => u' * x_lasso u' i) u)) := by
-      -- The difference equals ∑_i ∫_a^b g_i(u) du, where g_i(u) = max(0, deriv f_i(u)) ≥ 0.
-      -- Then each ∫_a^b g_i ≥ 0 by integral_nonneg_of_forall.
-      have h_diff_eq : (∑ i : ι, ∫ u in (0 : ℝ)..b,
-          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) -
-          (∑ i : ι, ∫ u in (0 : ℝ)..a,
-          max 0 (deriv (fun u' => u' * x_lasso u' i) u)) =
-          ∑ i : ι, ∫ u in a..b,
-          max 0 (deriv (fun u' => u' * x_lasso u' i) u) := by
-        calc
-          _ = ∑ i : ι, ((∫ u in (0 : ℝ)..b,
-              max 0 (deriv (fun u' => u' * x_lasso u' i) u)) -
-              (∫ u in (0 : ℝ)..a,
-              max 0 (deriv (fun u' => u' * x_lasso u' i) u))) := by
-            simp [Finset.sum_sub_distrib]
-          _ = ∑ i : ι, ∫ u in a..b,
-              max 0 (deriv (fun u' => u' * x_lasso u' i) u) := by
-            refine Finset.sum_congr rfl (fun i _ => ?_)
-            have h0a : IntervalIntegrable (fun u =>
-                max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 a :=
-              h_int_any i 0 a
-            have hab : IntervalIntegrable (fun u =>
-                max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume a b :=
-              h_int_any i a b
-            -- integral_add_adjacent_intervals h0a hab: (∫_0^a) + (∫_a^b) = ∫_0^b
-            have h_add := intervalIntegral.integral_add_adjacent_intervals h0a hab
-            linarith
-      rw [h_diff_eq]
-      refine Finset.sum_nonneg (fun i _ => ?_)
-      -- Each integrand is max(0, ...) which is ≥ 0
-      refine intervalIntegral.integral_nonneg_of_forall h (fun u => ?_)
-      exact le_max_left _ _
-    linarith
-  -- NOTE: Monotone (positiveZDownward x_lasso) on all ℝ is NOT provable from the given
-  -- hypotheses, because the integrand (1+u)·max(0, -deriv f_i(u)) changes sign at u = -1.
-  -- Monotonicity holds only on [0, ∞) (or [-1, ∞)), which is sufficient for the intended
-  -- application where τ ∈ [0, s].  Instead of claiming full Monotone on ℝ, the downstream
-  -- code derives 0 ≤ deriv (positiveZDownward x_lasso) τ for τ ≥ 0 directly from the
-  -- derivative identity h_downward_eq and τ ≥ 0 (since (1+τ) ≥ 1 and max(0, ...) ≥ 0).
   -- Assemble the derivative identities
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ =
       ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
@@ -1271,7 +1190,7 @@ private lemma deriv_pos_z_identities
     unfold positiveZDownward
     rw [h_deriv_sum_down]
     simp_rw [h_ftc_down, h_component]
-  exact ⟨h_upward_eq, h_downward_eq, h_up_mono⟩
+  exact ⟨h_upward_eq, h_downward_eq⟩
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -1331,16 +1250,19 @@ lemma pos_delta_bound_3
   -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
   -- using the FTC and piecewise linearity of the Lasso path.
   have h_derivs := deriv_pos_z_identities x_lasso τ h_regular h_breakpoint_comp_deriv_zero
-  rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw, h_up_mono⟩
+  rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw⟩
   have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
     simpa [zDot] using h_upward_eq_raw
   have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
     simpa [zDot] using h_downward_eq_raw
   rw [← h_upward_eq] at h_bound_pos
   rw [← h_downward_eq] at h_bound_neg
-  -- Nonnegativity of deriv (positiveZUpward x_lasso) τ: from monotonicity on ℝ
-  have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ :=
-    h_up_mono.deriv_nonneg (x := τ)
+  -- Nonnegativity of deriv (positiveZUpward x_lasso) τ: from the derivative identity
+  -- (it equals a sum of max(0, ...) terms, each ≥ 0)
+  have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := by
+    rw [h_upward_eq]
+    refine Finset.sum_nonneg (fun i _ => ?_)
+    exact le_max_left _ _
   -- Nonnegativity of deriv (positiveZDownward x_lasso) τ: from the derivative identity
   -- and τ ≥ 0 (since τ ∈ [0, s]).  For τ ≥ 0 we have (1+τ) ≥ 1 > 0 and
   -- max(0, -zDot i) ≥ 0, so the RHS sum is nonnegative, hence LHS ≥ 0.
