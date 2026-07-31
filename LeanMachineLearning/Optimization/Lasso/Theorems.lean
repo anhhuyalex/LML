@@ -53,7 +53,25 @@ lemma scaled_path_ac_on_positive
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
     LocallyAbsolutelyContinuousOnPositiveCompacts (scaledPrimalPath x_lasso) := by
-  sorry
+  -- Goal: ∀ a b, 0 < a → a ≤ b → AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) a b
+  refine ⟨λ a b ha hle => ?_⟩
+  -- Extract AC of x_lasso on [a,b] from the hypothesis
+  have hx_ac : AbsolutelyContinuousOnInterval x_lasso a b :=
+    h_regular.absolutelyContinuousOn_Icc a b ha hle
+  -- The identity function μ ↦ μ is 1-Lipschitz on any compact interval, hence AC
+  -- (pattern from Bounds/Delta.lean:3487; Mathlib: LipschitzOnWith.absolutelyContinuousOnInterval)
+  have hid_lip : LipschitzOnWith 1 (fun μ : ℝ => μ) (Set.uIcc a b) :=
+    fun x _ y _ => by simp
+  have hid_ac : AbsolutelyContinuousOnInterval (fun μ : ℝ => μ) a b :=
+    hid_lip.absolutelyContinuousOnInterval
+  -- Product (smul) of two AC functions is AC (Mathlib: AbsolutelyContinuousOnInterval.smul)
+  -- Need to bridge: scaledPrimalPath x_lasso = (fun μ => μ) • x_lasso
+  have h_prod_ac : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) a b := by
+    have h_eq : scaledPrimalPath x_lasso = (fun μ : ℝ => μ) • x_lasso := by
+      ext μ; simp [scaledPrimalPath]
+    rw [h_eq]
+    exact AbsolutelyContinuousOnInterval.smul hid_ac hx_ac
+  exact h_prod_ac
 
 /--
 The scaled primal path is identically zero for all sufficiently small `μ ≥ 0`.
@@ -972,6 +990,22 @@ theorem lasso_connection_approx
   -- Thus, applying `pos_lasso_connection_approx` to `u_pos` yields the result.
   sorry
 
+omit [Fintype ι] in
+/--
+Coordinatewise nonnegativity of the positive-flow time average, for nonnegative
+times.  Since `posEffectiveParameter u v` is nonnegative for every `v`
+(`posEffectiveParameter_nonnegative`), its average over `[0, t]` is nonnegative
+for `t ≥ 0`, by `intervalIntegral.integral_nonneg`.
+-/
+private lemma posAverageTrajectory_nonneg
+    (u : ℝ → EuclideanSpace ℝ ι) (t : ℝ) (ht : 0 ≤ t) :
+    Nonnegative (posAverageTrajectory u t) := by
+  intro j
+  dsimp [posAverageTrajectory, euclideanOf]
+  refine mul_nonneg (div_nonneg zero_le_one ht) ?_
+  exact intervalIntegral.integral_nonneg ht
+    (fun v _ => posEffectiveParameter_nonnegative u v j)
+
 /--
 Theorem 2.1: under monotonicity, the signed average trajectory exactly connects
 to the lasso minimum.
@@ -979,6 +1013,27 @@ to the lasso minimum.
 Informal proof reference: `docs/Lasso.md`, Section 5.2.1.  The earlier skeleton
 required an extra `h_regular`; this version follows the paper-level theorem
 statement and leaves regularity to the positive monotone theorem plus reductions.
+
+Informal proof (Section 5.2.1): write `x = x_lasso`, `y(μ) = signedCanonicalSplit (x μ)
+= (x(μ)₊, x(μ)₋)`.  By Lemma 5.1(2) (`lasso_minimizer_to_augmented_positive_minimizer`),
+`y(μ)` minimizes the augmented positive lasso; by the vanishing-near-zero argument for
+`z(μ) = μ x(μ)` (`signedCanonicalSplit_scaled_monotonicity`), `μ ↦ μ y(μ)` is
+coordinatewise nondecreasing on `(0,∞)`.  The signed-to-positive dynamics reduction
+(`dln_dynamics_reduction`) shows `u_pos ε τ = signedToPositiveWeights (w ε (2τ))` is a
+positive DLN flow for the augmented data from the augmented initialization
+(`signedToPositiveInitialization β γ`, nondegenerate by
+`signed_initialization_nondegenerate_iff` since `hβγ` holds).  Applying
+`pos_lasso_connection_monotone` to this augmented system gives
+`positiveLassoObjective_aug(posAverageTrajectory u_pos ...) → posLassoMin_aug`, and
+`posLassoMin_aug = lassoMin` by Lemma 5.1(3) (`lasso_min_eq_augmented_pos_lasso_min`).
+Since `averageTrajectory (w ε) = splitDifference (posAverageTrajectory u_pos ...)`
+(`signed_average_eq_split_positive_average`, matching the time scalings via
+`posTimeFromRescaled_eq_half_timeFromRescaled`), Lemma 5.1(1)
+(`lasso_split_objective_le`) bounds the signed objective above by the augmented
+positive objective, while `lassoMin ≤` any signed objective value trivially (it is an
+infimum).  The signed objective is thus squeezed between the constant `lassoMin` and a
+sequence converging to `lassoMin`, giving the result. See Sec. 5.2.1 of
+<https://arxiv.org/abs/2509.18766>.
 -/
 theorem lasso_connection_monotone
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -997,13 +1052,68 @@ theorem lasso_connection_monotone
       (fun ε =>
         lassoObjective M r lambda s (averageTrajectory (w ε) (timeFromRescaled ε s)))
       (𝓝[>] 0) (𝓝 (lassoMin M r lambda s)) := by
-  -- Proof sketch (Section 5.2.1 from `docs/Lasso.md`):
-  -- By `dln_dynamics_reduction`, the signed dynamics map to positive dynamics
-  -- on the augmented system.
-  -- By `lasso_objective_reduction`, the lasso objective exactly equals the
-  -- positive lasso objective on `augmentedMatrix`.
-  -- Thus, applying `pos_lasso_connection_monotone` to `u_pos` yields the result.
-  sorry
+  set y : ℝ → EuclideanSpace ℝ (ι ⊕ ι) := fun μ => signedCanonicalSplit (x_lasso μ) with hy_def
+  set u_pos : ℝ → ℝ → EuclideanSpace ℝ (ι ⊕ ι) :=
+    fun ε τ => signedToPositiveWeights ((w ε) (2 * τ)) with hu_pos_def
+  have hpenalty : ∀ μ : ℝ, 0 < μ → 0 ≤ lambda + 1 / μ := by
+    intro μ hμ
+    have h1 := hdata.lambda_nonneg
+    have h2 : (0 : ℝ) < 1 / μ := by positivity
+    linarith
+  have hdata_aug : ProblemData (augmentedMatrix M) (augmentedVector r) lambda :=
+    augmented_problem_data M r lambda hdata
+  have hβ_aug : NonzeroCoordinates (signedToPositiveInitialization β γ) :=
+    (signed_initialization_nondegenerate_iff β γ).mpr hβγ
+  have hu_aug : ∀ ε > 0, posDlnGradientFlow (augmentedMatrix M) (augmentedVector r) lambda ε
+      (signedToPositiveInitialization β γ) (u_pos ε) :=
+    fun ε hε => dln_dynamics_reduction M r lambda hdata β γ w ε hε (hw ε hε)
+  have hy_pos : ∀ μ > 0,
+      IsPositiveLassoMinimizer (augmentedMatrix M) (augmentedVector r) lambda μ (y μ) :=
+    fun μ hμ => lasso_minimizer_to_augmented_positive_minimizer M r lambda μ (x_lasso μ)
+      (hpenalty μ hμ) (hx_lasso μ hμ)
+  have h_monotone_aug : ∀ j : ι ⊕ ι, MonotoneOn (fun μ => μ * y μ j) (Set.Ioi 0) :=
+    signedCanonicalSplit_scaled_monotonicity M r lambda x_lasso hdata hx_lasso h_monotone
+  have h_pos_tendsto :=
+    pos_lasso_connection_monotone (augmentedMatrix M) (augmentedVector r) lambda
+      (signedToPositiveInitialization β γ) s hs u_pos hdata_aug hβ_aug hu_aug y hy_pos
+      h_monotone_aug
+  have h_min_eq :
+      posLassoMin (augmentedMatrix M) (augmentedVector r) lambda s = lassoMin M r lambda s :=
+    (lasso_min_eq_augmented_pos_lasso_min M r lambda s (hpenalty s hs)).symm
+  rw [h_min_eq] at h_pos_tendsto
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h_pos_tendsto ?_ ?_
+  · -- `lassoMin M r lambda s` lower-bounds every value of the signed objective, since
+    -- `lassoMin` is the infimum of `lassoObjective` and `x_lasso s` witnesses the
+    -- boundedness needed to apply `ciInf_le`.
+    refine Filter.Eventually.of_forall (fun ε => ?_)
+    have hbdd : BddBelow (Set.range (lassoObjective M r lambda s)) :=
+      ⟨lassoObjective M r lambda s (x_lasso s), by
+        rintro _ ⟨z, rfl⟩
+        exact isMinOn_iff.mp (hx_lasso s hs) z (Set.mem_univ z)⟩
+    exact ciInf_le hbdd _
+  · -- For `ε` small enough that `log(1/ε) > 0`, the signed average trajectory equals the
+    -- difference of the augmented positive trajectory's two halves
+    -- (`signed_average_eq_split_positive_average`), and Lemma 5.1(1)
+    -- (`lasso_split_objective_le`) bounds its signed objective by the augmented positive
+    -- objective.
+    filter_upwards [show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+      rw [mem_nhdsGT_iff_exists_Ioo_subset]
+      exact ⟨1, Set.mem_Ioi.mpr one_pos, fun _ hx => hx⟩] with ε hε
+    obtain ⟨hε_pos, hε_lt_one⟩ := hε
+    have hlog_pos : 0 < Real.log (1 / ε) :=
+      Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+    have ht_pos : 0 < posTimeFromRescaled ε s := by
+      dsimp [posTimeFromRescaled]
+      exact mul_pos (div_pos hs (by norm_num)) hlog_pos
+    have hy_nonneg : Nonnegative (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) :=
+      posAverageTrajectory_nonneg (u_pos ε) (posTimeFromRescaled ε s) ht_pos.le
+    have heq : averageTrajectory (w ε) (timeFromRescaled ε s) =
+        splitDifference (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) := by
+      rw [signed_average_eq_split_positive_average (w ε) (timeFromRescaled ε s),
+        ← posTimeFromRescaled_eq_half_timeFromRescaled]
+    rw [heq]
+    exact lasso_split_objective_le M r lambda s
+      (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) hy_nonneg (hpenalty s hs)
 
 end Lasso
 
