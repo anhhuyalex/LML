@@ -54,7 +54,7 @@ lemma scaled_path_ac_on_positive
     (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
     LocallyAbsolutelyContinuousOnPositiveCompacts (scaledPrimalPath x_lasso) := by
   -- Goal: ∀ a b, 0 < a → a ≤ b → AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) a b
-  refine ⟨λ a b ha hle => ?_⟩
+  refine ⟨fun a b ha hle => ?_⟩
   -- Extract AC of x_lasso on [a,b] from the hypothesis
   have hx_ac : AbsolutelyContinuousOnInterval x_lasso a b :=
     h_regular.absolutelyContinuousOn_Icc a b ha hle
@@ -237,7 +237,9 @@ theorem exists_dual_certificate_for_positive_path
   use Mdagger
   -- Construct w piecewise using Classical.choose
   have hw_pos : ∀ μ > 0, ∃ w, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) w :=
-    fun μ hμ => exists_parametric_lcp_solution_for_positive_lasso M r lambda μ x_lasso hdata hμ (hx_lasso μ hμ)
+    fun μ hμ =>
+      exists_parametric_lcp_solution_for_positive_lasso
+        M r lambda μ x_lasso hdata hμ (hx_lasso μ hμ)
   have hw_zero : ∃ w, isParametricLCP M r lambda 0 (scaledPrimalPath x_lasso 0) w :=
     exists_parametric_lcp_solution_at_zero M r lambda x_lasso
   let w : ℝ → EuclideanSpace ℝ ι := fun μ =>
@@ -334,7 +336,9 @@ theorem positive_path_energy_bound
   the absolute-continuity/FTC step is supported by Mathlib's interval-integral
   API <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/IntervalIntegral/AbsolutelyContinuousFun.html>.
   -/
-  obtain ⟨C, hC_pos, h_energy_bound⟩ := positive_energy_integrated_bound M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular
+  obtain ⟨C, hC_pos, h_energy_bound⟩ :=
+    positive_energy_integrated_bound M Mdagger r lambda β u hdata hβ hu
+      x_lasso hx_lasso w hdual hdual_selected h_regular
   use C, hC_pos
   intro s hs δ hδ
   have hs_inv_pos : 0 < s⁻¹ := inv_pos.mpr hs
@@ -353,16 +357,19 @@ theorem positive_path_energy_bound
     (scaledPrimalPath x_lasso s) (posIntegratedTrajectoryRescaled ε (u ε) s) (w s)
     hx_nonneg hxE_nonneg hw_eq hdata.psd.symm
   -- The definition of pathDelta is exactly the quadratic term with M
-  have h_delta_eq : (1 / 2 : ℝ) * inner ℝ (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s)
+  have h_delta_eq : (1 / 2 : ℝ) *
+      inner ℝ (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s)
       (matVec M (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s)) =
-      pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) s := by
+      pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+        (scaledPrimalPath x_lasso) s := by
     rfl
   rw [h_delta_eq] at h_obj_gap
   have h_average_eq : posAverageTrajectory (u ε) (posTimeFromRescaled ε s) =
       s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s := by
     sorry
   rw [h_average_eq]
-  have h_lasso_min_eq : posLassoMin M r lambda s = positiveLassoObjective M r lambda s (s⁻¹ • scaledPrimalPath x_lasso s) := by
+  have h_lasso_min_eq : posLassoMin M r lambda s =
+      positiveLassoObjective M r lambda s (s⁻¹ • scaledPrimalPath x_lasso s) := by
     sorry
   rw [h_lasso_min_eq]
   -- We now have positiveLassoObjective (...) - positiveLassoObjective (...) in h_obj_gap.
@@ -371,16 +378,25 @@ theorem positive_path_energy_bound
   -- E ≤ s^2 * (C * gap + δ)
   -- So A - B ≤ s⁻¹ ^ 2 * s^2 * (C * gap + δ) = C * gap + δ
   -- So A ≤ B + C * gap + δ
-  have h_gap_bound : positiveLassoObjective M r lambda s (s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s) -
-      positiveLassoObjective M r lambda s (s⁻¹ • scaledPrimalPath x_lasso s)
+  have h_gap_bound :
+      positiveLassoObjective M r lambda s
+        (s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s) -
+      positiveLassoObjective M r lambda s
+        (s⁻¹ • scaledPrimalPath x_lasso s)
       ≤ C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
     rw [h_obj_gap]
     calc
-      s⁻¹ ^ 2 * (inner ℝ (w s) (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s) +
-          pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) s)
-        ≤ s⁻¹ ^ 2 * (s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ)) := by
+      s⁻¹ ^ 2 *
+          (inner ℝ (w s)
+            (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s) +
+          pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+            (scaledPrimalPath x_lasso) s)
+        ≤ s⁻¹ ^ 2 *
+          (s^2 * (C * suboptimalityGap lambda s
+            (positiveZDownward x_lasso s) + δ)) := by
         exact mul_le_mul_of_nonneg_left hε hs_inv2_pos.le
-      _ = (s⁻¹ ^ 2 * s^2) * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
+      _ = (s⁻¹ ^ 2 * s^2) *
+          (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
         rw [mul_assoc]
       _ = C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
         have h_inv : s⁻¹ ^ 2 * s ^ 2 = 1 := by
@@ -413,10 +429,14 @@ theorem pos_lasso_connection_approx
         (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
       ≤ posLassoMin M r lambda s +
         C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
-  obtain ⟨Mdagger, w, hdual, hdual_selected⟩ := exists_dual_certificate_for_positive_path M r lambda x_lasso hdata hx_lasso
-  have h_reg_nonneg : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) :=
-    scaledPrimalPath_regular_of_path_regular M r lambda x_lasso hdata hx_lasso h_regular
-  exact positive_path_energy_bound M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_reg_nonneg
+  obtain ⟨Mdagger, w, hdual, hdual_selected⟩ :=
+    exists_dual_certificate_for_positive_path M r lambda x_lasso hdata hx_lasso
+  have h_reg_nonneg :
+      LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) :=
+    scaledPrimalPath_regular_of_path_regular
+      M r lambda x_lasso hdata hx_lasso h_regular
+  exact positive_path_energy_bound
+    M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_reg_nonneg
 
 /--
 Lemma 4.12 from `docs/Lasso.md`: under the monotonicity hypothesis of Theorem
@@ -959,36 +979,39 @@ noncomputable def signedZDownward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ 
         (max 0 (-deriv (fun u' => max (u' * x_lasso u' i) 0) u) +
           max 0 (-deriv (fun u' => max (-(u' * x_lasso u' i)) 0) u))
 
-/-! ## Signed-lasso main theorems -/
-
 /--
-Theorem 2.2: an approximate connection to the lasso minimum in the general case.
+The Eq. (2.3) deviation from monotonicity of the signed path equals the Eq. (3.6)
+deviation from monotonicity of its canonical positive/negative split, matching the
+identification of `z↓(μ)` used in Section 5.2.2's proof of Theorem 2.2.
 
-Informal proof reference: `docs/Lasso.md`, Section 5.2.2.  This declaration now
-appears after both `dln_dynamics_reduction` and `lasso_objective_reduction`,
-matching the proof sketch.
+Informal proof: write `f(u') = u' x_lasso(u')ᵢ`. For `j = inl i`,
+`signedCanonicalSplit (x_lasso u') (inl i) = max(x_lasso(u')ᵢ, 0)`, so
+`u' ↦ u' * (signedCanonicalSplit (x_lasso u')) (inl i) = u' ↦ u' * max(x_lasso(u')ᵢ, 0)`.
+For `u' ≥ 0`, scalar multiplication by `u'` distributes over `max(·,0)`, so this function
+equals `u' ↦ max(u' x_lasso(u')ᵢ, 0) = u' ↦ max(f(u'), 0)` on all of `[0,∞)`; in particular
+the two functions agree on the open neighbourhood `(0,∞)` of every `u ∈ (0,μ)`, so they
+have the same derivative there (`Filter.EventuallyEq.deriv_eq`). The symmetric computation
+for `j = inr i` matches `u' ↦ u' * max(-x_lasso(u')ᵢ,0)` with `u' ↦ max(-f(u'),0)` on
+`(0,μ)`. Since a single point (`{0}`) is Lebesgue-null, `∫₀^μ` is insensitive to the
+integrand's value there (`intervalIntegral.integral_congr_uIoo`), so each of the two
+`inl`/`inr` integrals appearing in `positiveZDownward` (after splitting the `ι ⊕ ι` sum via
+`Fintype.sum_sum_type`) equals the matching term of the `signedZDownward` sum: combining the
+two integrals for fixed `i` into the single integral of their sum uses the integrability of
+the `max 0 (-deriv ⋯)` summands, obtained from `h_regular` exactly as in the "`positive-path
+regularity`" argument used for `positiveZDownward_summand_differentiableAt` in
+`Bounds/Delta.lean` (Lemma 4.9), adapted to the `max`-composed signed summand shape.
+See Sec. 5.2.2 ("Note that the quantity `z↓(μ)` ... corresponds to ...") of
+<https://arxiv.org/abs/2509.18766>.
 -/
-theorem lasso_connection_approx
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β γ : EuclideanSpace ℝ ι)
-    (w : ℝ → ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι))
-    (hdata : ProblemData M r lambda)
-    (hβγ : ∀ i, β i ≠ γ i ∧ β i ≠ -γ i)
-    (hw : ∀ ε > 0, dlnGradientFlow M r lambda ε β γ (w ε))
+lemma positiveZDownward_signedCanonicalSplit_eq
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
-    ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
-      lassoObjective M r lambda s (averageTrajectory (w ε) (timeFromRescaled ε s))
-      ≤ lassoMin M r lambda s +
-        C * suboptimalityGap lambda s (signedZDownward x_lasso s) + δ := by
-  -- Proof sketch (Section 5.2.2 from `docs/Lasso.md`):
-  -- By `dln_dynamics_reduction`, the signed dynamics map to positive dynamics
-  -- on the augmented system.
-  -- By `lasso_objective_reduction`, the lasso objective exactly equals the
-  -- positive lasso objective on `augmentedMatrix`.
-  -- Thus, applying `pos_lasso_connection_approx` to `u_pos` yields the result.
+    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso)
+    (μ : ℝ) (hμ : 0 ≤ μ) :
+    positiveZDownward (fun ν => signedCanonicalSplit (x_lasso ν)) μ =
+      signedZDownward x_lasso μ := by
   sorry
+
+/-! ## Signed-lasso main theorems -/
 
 omit [Fintype ι] in
 /--
@@ -1005,6 +1028,98 @@ private lemma posAverageTrajectory_nonneg
   refine mul_nonneg (div_nonneg zero_le_one ht) ?_
   exact intervalIntegral.integral_nonneg ht
     (fun v _ => posEffectiveParameter_nonnegative u v j)
+
+/--
+Theorem 2.2: an approximate connection to the lasso minimum in the general case.
+
+Informal proof reference: `docs/Lasso.md`, Section 5.2.2.  This declaration now
+appears after both `dln_dynamics_reduction` and `lasso_objective_reduction`,
+matching the proof sketch.
+
+Informal proof (Section 5.2.2): let `y(μ) = signedCanonicalSplit (x_lasso μ)`. By Lemma
+5.1(2) (`lasso_minimizer_to_augmented_positive_minimizer`), `y` minimizes the augmented
+positive lasso; by `signedCanonicalSplit_path_regular`, `y` inherits local absolute
+continuity from `x_lasso`. The signed-to-positive dynamics reduction
+(`dln_dynamics_reduction`) exhibits `u_pos ε τ = signedToPositiveWeights (w ε (2τ))` as a
+positive DLN flow for the augmented data from `signedToPositiveInitialization β γ`
+(nondegenerate via `signed_initialization_nondegenerate_iff` since `hβγ` holds). Applying
+Theorem 3.2 (`pos_lasso_connection_approx`) to this augmented system bounds
+`positiveLassoObjective_aug(posAverageTrajectory u_pos ...)` above by
+`posLassoMin_aug + C·suboptimalityGap(positiveZDownward y s) + δ`, eventually as `ε → 0`.
+`posLassoMin_aug = lassoMin` (Lemma 5.1(3), `lasso_min_eq_augmented_pos_lasso_min`) and
+`positiveZDownward y s = signedZDownward x_lasso s`
+(`positiveZDownward_signedCanonicalSplit_eq`). Finally,
+`averageTrajectory (w ε) = splitDifference (posAverageTrajectory u_pos ...)`
+(`signed_average_eq_split_positive_average`, with time scalings matched via
+`posTimeFromRescaled_eq_half_timeFromRescaled`), and Lemma 5.1(1)
+(`lasso_split_objective_le`) bounds the signed objective above by the augmented positive
+objective, giving the chain of inequalities in Sec. 5.2.2 of
+<https://arxiv.org/abs/2509.18766>.
+-/
+theorem lasso_connection_approx
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β γ : EuclideanSpace ℝ ι)
+    (w : ℝ → ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι))
+    (hdata : ProblemData M r lambda)
+    (hβγ : ∀ i, β i ≠ γ i ∧ β i ≠ -γ i)
+    (hw : ∀ ε > 0, dlnGradientFlow M r lambda ε β γ (w ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
+    ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      lassoObjective M r lambda s (averageTrajectory (w ε) (timeFromRescaled ε s))
+      ≤ lassoMin M r lambda s +
+        C * suboptimalityGap lambda s (signedZDownward x_lasso s) + δ := by
+  set y : ℝ → EuclideanSpace ℝ (ι ⊕ ι) := fun μ => signedCanonicalSplit (x_lasso μ) with hy_def
+  set u_pos : ℝ → ℝ → EuclideanSpace ℝ (ι ⊕ ι) :=
+    fun ε τ => signedToPositiveWeights ((w ε) (2 * τ)) with hu_pos_def
+  have hpenalty : ∀ μ : ℝ, 0 < μ → 0 ≤ lambda + 1 / μ := by
+    intro μ hμ
+    have h1 := hdata.lambda_nonneg
+    have h2 : (0 : ℝ) < 1 / μ := by positivity
+    linarith
+  have hdata_aug : ProblemData (augmentedMatrix M) (augmentedVector r) lambda :=
+    augmented_problem_data M r lambda hdata
+  have hβ_aug : NonzeroCoordinates (signedToPositiveInitialization β γ) :=
+    (signed_initialization_nondegenerate_iff β γ).mpr hβγ
+  have hu_aug : ∀ ε > 0, posDlnGradientFlow (augmentedMatrix M) (augmentedVector r) lambda ε
+      (signedToPositiveInitialization β γ) (u_pos ε) :=
+    fun ε hε => dln_dynamics_reduction M r lambda hdata β γ w ε hε (hw ε hε)
+  have hy_pos : ∀ μ > 0,
+      IsPositiveLassoMinimizer (augmentedMatrix M) (augmentedVector r) lambda μ (y μ) :=
+    fun μ hμ => lasso_minimizer_to_augmented_positive_minimizer M r lambda μ (x_lasso μ)
+      (hpenalty μ hμ) (hx_lasso μ hμ)
+  have h_regular_aug : LocallyAbsolutelyContinuousOnPositiveCompacts y :=
+    signedCanonicalSplit_path_regular x_lasso h_regular
+  obtain ⟨C, hC_pos, h_pos_bound⟩ :=
+    pos_lasso_connection_approx (augmentedMatrix M) (augmentedVector r) lambda
+      (signedToPositiveInitialization β γ) u_pos hdata_aug hβ_aug hu_aug y hy_pos h_regular_aug
+  refine ⟨C, hC_pos, fun s hs δ hδ => ?_⟩
+  have hZeq : positiveZDownward y s = signedZDownward x_lasso s :=
+    positiveZDownward_signedCanonicalSplit_eq x_lasso h_regular s hs.le
+  have h_min_eq :
+      posLassoMin (augmentedMatrix M) (augmentedVector r) lambda s = lassoMin M r lambda s :=
+    (lasso_min_eq_augmented_pos_lasso_min M r lambda s (hpenalty s hs)).symm
+  have h_bound := h_pos_bound s hs δ hδ
+  rw [hZeq, h_min_eq] at h_bound
+  filter_upwards [h_bound, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, Set.mem_Ioi.mpr one_pos, fun _ hx => hx⟩] with ε hεb hε
+  obtain ⟨hε_pos, hε_lt_one⟩ := hε
+  have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  have ht_pos : 0 < posTimeFromRescaled ε s := by
+    dsimp [posTimeFromRescaled]
+    exact mul_pos (div_pos hs (by norm_num)) hlog_pos
+  have hy_nonneg : Nonnegative (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) :=
+    posAverageTrajectory_nonneg (u_pos ε) (posTimeFromRescaled ε s) ht_pos.le
+  have heq : averageTrajectory (w ε) (timeFromRescaled ε s) =
+      splitDifference (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) := by
+    rw [signed_average_eq_split_positive_average (w ε) (timeFromRescaled ε s),
+      ← posTimeFromRescaled_eq_half_timeFromRescaled]
+  rw [heq]
+  refine le_trans ?_ hεb
+  exact lasso_split_objective_le M r lambda s
+    (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) hy_nonneg (hpenalty s hs)
 
 /--
 Theorem 2.1: under monotonicity, the signed average trajectory exactly connects
