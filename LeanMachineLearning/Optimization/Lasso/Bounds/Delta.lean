@@ -1657,7 +1657,7 @@ lemma deriv_bound_of_lipschitz
         -- Apply Lipschitz condition (both points b+t and b are in Icc a b)
         have hlip_bound := hlip.dist_le_mul (b + t) hb_t_mem b ⟨hax_b, hxb_b⟩
         rw [Real.dist_eq, dist_eq_norm] at hlip_bound
-        have h_abs : |(b + t) - b| = |t| := by ring
+        have h_abs : |(b + t) - b| = |t| := by ring_nf
         rw [h_abs] at hlip_bound
         -- For t < 0, |t| = -t
         rw [abs_of_neg ht_neg] at hlip_bound
@@ -2107,6 +2107,21 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
   linarith
 
 /--
+Helper lemma: The path delta composition is absolutely continuous.
+-/
+lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ) (u_ε : ℝ → EuclideanSpace ℝ ι)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) :
+    AbsolutelyContinuousOnInterval (fun τ ↦ pathDelta M (fun ρ ↦ posIntegratedTrajectoryRescaled ε u_ε ρ) (scaledPrimalPath x_lasso) τ) 0 s := by
+  sorry
+
+/--
+Helper lemma: The G bound is absolutely continuous.
+-/
+lemma G_ac {ι : Type*} [Fintype ι] (C ε s δ : ℝ) (x_lasso : ℝ → EuclideanSpace ℝ ι) :
+    AbsolutelyContinuousOnInterval (fun τ ↦ C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) + positiveZDownward x_lasso τ) + C * δ / s * τ) 0 s := by
+  sorry
+
+/--
 Section 4.6, Eq. (4.15), with the full finite-`ε` dependence.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.15).
@@ -2172,27 +2187,10 @@ theorem positive_path_delta_bound_full
     have ⟨hz_up, hz_down⟩ := z_upward_downward_zero x_lasso
     rw [hz_up, hz_down]
     ring
-  have hF_ac : AbsolutelyContinuousOnInterval F 0 s := by
-    /-
-    INFORMAL PROOF:
-    F is the composition of `pathDelta` with `posIntegratedTrajectoryRescaled`
-    and `scaledPrimalPath`.
-    The trajectory and path are `LocallyAbsolutelyContinuousOnNonnegativeCompacts` (which we proved
-    in the file LCP.lean). `pathDelta` is a smooth quadratic form (hence locally Lipschitz).
-    The composition of a locally Lipschitz function with an absolutely continuous function
-    is absolutely continuous on the interval [0, s].
-    -/
-    sorry
-  have hG_ac : AbsolutelyContinuousOnInterval G 0 s := by
-    /-
-    INFORMAL PROOF:
-    G is defined as `C * (1 / log(1/ε) * (τ + z_up(τ)) + z_down(τ)) + (C * δ / s) * τ`.
-    This is an affine combination of `τ`, `positiveZUpward`, and `positiveZDownward`.
-    Since `positiveZUpward` and `positiveZDownward` are integrals of locally bounded
-    functions, they are absolutely continuous. The sum and scalar multiplication of
-    absolutely continuous functions are absolutely continuous.
-    -/
-    sorry
+  have hF_ac : AbsolutelyContinuousOnInterval F 0 s :=
+    pathDelta_ac M ε (u ε) x_lasso s
+  have hG_ac : AbsolutelyContinuousOnInterval G 0 s :=
+    G_ac C ε s δ x_lasso
   /-
   INFORMAL PROOF (docs/Lasso.md, Section 4.6):
   We apply the integration lemma `bound_of_deriv_bound` for Lebesgue integration.
