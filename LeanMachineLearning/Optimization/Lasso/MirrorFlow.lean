@@ -1745,14 +1745,13 @@ private lemma entropyBregman_scaled_lower_bound
       4 * entropyBregman x' (ε • coordinateSquare α) := by
   rw [entropyBregman_scaled_four_eq α x' hα ε hε0]
   have h1 : (-(Fintype.card ι : ℝ)) ≤ ∑ i, (x' i * Real.log (x' i) - x' i) := by
-    have hb : ∀ i ∈ (Finset.univ : Finset ι), (-1 : ℝ) ≤ x' i * Real.log (x' i) - x' i :=
-      fun i _ => by linarith [mul_log_sub_one_le (x' i) (hx' i)]
     calc (-(Fintype.card ι : ℝ)) = ∑ _i : ι, (-1 : ℝ) := by simp
-      _ ≤ ∑ i, (x' i * Real.log (x' i) - x' i) := Finset.sum_le_sum hb
+      _ ≤ ∑ i, (x' i * Real.log (x' i) - x' i) :=
+        Finset.sum_le_sum (fun i _ => by linarith [mul_log_sub_one_le (x' i) (hx' i)])
   have h2 : - ‖alphaLogSq α‖ * ‖x'‖ ≤ - (∑ i, x' i * Real.log (α i * α i)) := by
-    have hCS : ∑ i, x' i * Real.log (α i * α i) ≤ ‖x'‖ * ‖alphaLogSq α‖ := by
-      rw [inner_eq_sum_mul_alphaLogSq]; exact real_inner_le_norm x' (alphaLogSq α)
-    nlinarith [hCS]
+    have hCS : (∑ i, x' i * Real.log (α i * α i)) ≤ ‖x'‖ * ‖alphaLogSq α‖ := by
+      simpa [inner_eq_sum_mul_alphaLogSq] using real_inner_le_norm x' (alphaLogSq α)
+    nlinarith
   have h3 : (-Real.log ε) * ‖x'‖ ≤ (-Real.log ε) * (∑ i, x' i) :=
     mul_le_mul_of_nonneg_left (norm_le_sum_of_nonneg x' hx') (by linarith)
   have hε2 : (0 : ℝ) ≤ ε * ∑ i, α i * α i :=
@@ -1773,17 +1772,16 @@ private lemma entropyBregman_scaled_upper_bound
   rw [entropyBregman_scaled_four_eq α x' hα ε hε0]
   have hlogε0 : Real.log ε ≤ 0 := (Real.log_nonpos_iff hε0.le).mpr hε1
   have h1 : ∑ i, (x' i * Real.log (x' i) - x' i) ≤ ‖x'‖ ^ 2 := by
-    have hb : ∀ i ∈ (Finset.univ : Finset ι), x' i * Real.log (x' i) - x' i ≤ x' i ^ 2 := by
-      intro i _
-      have := mul_log_le_sq (x' i) (hx' i)
-      linarith [hx' i]
-    calc ∑ i, (x' i * Real.log (x' i) - x' i) ≤ ∑ i, x' i ^ 2 := Finset.sum_le_sum hb
+    calc ∑ i, (x' i * Real.log (x' i) - x' i) ≤ ∑ i, x' i ^ 2 :=
+        Finset.sum_le_sum (fun i _ => by
+          have := mul_log_le_sq (x' i) (hx' i)
+          linarith [hx' i])
       _ = ‖x'‖ ^ 2 := (EuclideanSpace.real_norm_sq_eq x').symm
   have h2 : (-Real.log ε) * (∑ i, x' i) ≤ (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖x'‖ := by
     have hCS : (∑ i, x' i) ≤ ‖(ones : EuclideanSpace ℝ ι)‖ * ‖x'‖ := by
       rw [sum_eq_inner_ones]; exact real_inner_le_norm ones x'
-    have := mul_le_mul_of_nonneg_left hCS (by linarith : (0 : ℝ) ≤ -Real.log ε)
-    linarith [this]
+    have hLnonneg : (0 : ℝ) ≤ -Real.log ε := by linarith
+    nlinarith
   have h3 : - (∑ i, x' i * Real.log (α i * α i)) ≤ ‖x'‖ * ‖alphaLogSq α‖ := by
     rw [inner_eq_sum_mul_alphaLogSq]
     exact (neg_le_abs _).trans (abs_real_inner_le_norm x' (alphaLogSq α))
@@ -1791,8 +1789,7 @@ private lemma entropyBregman_scaled_upper_bound
     have hSnn : (0 : ℝ) ≤ ∑ i, α i * α i := Finset.sum_nonneg (fun i _ => mul_self_nonneg _)
     have hSeq : (∑ i, α i * α i) = ‖α‖ ^ 2 := by
       rw [EuclideanSpace.real_norm_sq_eq]
-      apply Finset.sum_congr rfl
-      intro i _
+      refine Finset.sum_congr rfl (fun i _ => ?_)
       ring
     nlinarith [hSeq, hSnn, hε1]
   linarith [h1, h2, h3, h4]
@@ -1977,6 +1974,44 @@ argument around Eq. (4.8) in <https://arxiv.org/abs/2509.18766>, cross-checked
 with the standard convex minimizer framework in Boyd--Vandenberghe
 <https://web.stanford.edu/~boyd/cvxbook/>.
 -/
+-- For any y in a seminormed group, ‖y‖ ≤ (1 + ‖y‖²) / 2.
+-- This follows from (‖y‖ - 1)² ≥ 0 expanded.
+lemma norm_le_half_add_half_norm_sq {α : Type*} [SeminormedAddCommGroup α] (y : α) :
+    ‖y‖ ≤ (1 + ‖y‖ ^ 2) / 2 := by
+  have h := sq_nonneg (‖y‖ - 1)
+  nlinarith
+
+-- Bounds for β (the nonnegative minimum-norm solution) in terms of y.
+-- Uses ‖β‖ ≤ C₀ * ‖y‖ from Lemma 4.7.
+private lemma beta_norm_sq_and_linear_bound {ι : Type*} [Fintype ι]
+    (β y : EuclideanSpace ℝ ι) (C₀ : ℝ) (_hC₀0 : 0 ≤ C₀)
+    (_hones_nonneg : 0 ≤ ‖(ones : EuclideanSpace ℝ ι)‖) (hβ_norm : ‖β‖ ≤ C₀ * ‖y‖) :
+    ‖β‖ ^ 2 ≤ C₀ ^ 2 * ‖y‖ ^ 2 ∧
+    (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ ≤ (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖) := by
+  have hβsq : ‖β‖ ^ 2 ≤ C₀ ^ 2 * ‖y‖ ^ 2 := by
+    nlinarith [norm_nonneg β, norm_nonneg y, hβ_norm]
+  have hβ_linear : 2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ ≤
+      (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖ := by
+    have h_nonneg : 0 ≤ 2 * ‖(ones : EuclideanSpace ℝ ι)‖ := by positivity
+    nlinarith
+  exact And.intro hβsq hβ_linear
+
+-- The universal constant C (defined in the main theorem) is positive.
+private lemma universal_constant_pos {ι : Type*} [Fintype ι]
+    (C₀ : ℝ) (_hC₀0 : 0 ≤ C₀)
+    (_hones_nonneg : 0 ≤ ‖(ones : EuclideanSpace ℝ ι)‖)
+    (_hcard_nonneg : 0 ≤ (Fintype.card ι : ℝ)) :
+    0 < max ((Fintype.card ι : ℝ) + 1/2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2))
+      (C₀ ^ 2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) + 1 := by
+  have h_numer_nonneg : 0 ≤ 2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀ := by positivity
+  have hsum_nonneg : 0 ≤ (Fintype.card ι : ℝ) + 1/2 +
+      ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2) := by positivity
+  have hmax_nonneg : 0 ≤ max ((Fintype.card ι : ℝ) + 1/2 +
+      ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2))
+      (C₀ ^ 2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) :=
+    hsum_nonneg.trans (le_max_left _ _)
+  linarith
+
 theorem bregman_projection_fiber_norm_bound (M : Matrix ι ι ℝ) :
     ∃ C : ℝ, 0 < C ∧
       ∀ α : EuclideanSpace ℝ ι, NonzeroCoordinates α →
@@ -1989,7 +2024,131 @@ theorem bregman_projection_fiber_norm_bound (M : Matrix ι ι ℝ) :
                     (fun z => entropyBregman z (ε • coordinateSquare α))
                     {z | Nonnegative z ∧ matVec M z = y} x →
                   ‖x‖ ≤ C * (1 + ‖y‖ ^ 2) := by
-  sorry
+  obtain ⟨C₀, hC₀0, hC₀⟩ := feasible_norm_controlled_solution M
+  have hones_nonneg : 0 ≤ ‖(ones : EuclideanSpace ℝ ι)‖ := norm_nonneg _
+  have hcard_nonneg : 0 ≤ (Fintype.card ι : ℝ) := Nat.cast_nonneg _
+  -- define the universal constant C (depends only on M and the dimension)
+  set C : ℝ := max ((Fintype.card ι : ℝ) + 1/2 +
+      ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2))
+      (C₀ ^ 2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) + 1
+    with hC_def
+  have hCpos : 0 < C := by
+    rw [hC_def]
+    exact universal_constant_pos C₀ hC₀0 hones_nonneg hcard_nonneg
+  refine ⟨C, hCpos, ?_⟩
+  intro α hα
+  set ℓ := alphaLogSq α with hℓ_def
+  have hℓ_nonneg : 0 ≤ ‖ℓ‖ := norm_nonneg _
+  have hαsq_nonneg : 0 ≤ ‖α‖ ^ 2 := sq_nonneg _
+  -- pick ε₀ small enough to absorb all α-dependence
+  set M : ℝ := ‖ℓ‖ + 1 + 2 * ‖ℓ‖ + (‖ℓ‖ + 2 * ‖α‖ ^ 2) + 1 with hM_def
+  set ε₀ := Real.exp (-M) with hε₀_def
+  refine ⟨ε₀, Real.exp_pos _, ?_⟩
+  intro ε hε0 hεε₀ y ⟨u, hu_nonneg, hu_eq⟩ x hx_nonneg hx_min
+  obtain ⟨β, hβ_nonneg, hβ_eq, hβ_norm⟩ := hC₀ y ⟨u, hu_nonneg, hu_eq⟩
+  -- from ε ≤ exp(-M) we get -log ε ≥ M
+  have hL_ge_M : M ≤ -Real.log ε := by
+    have hlog_le : Real.log ε ≤ Real.log (Real.exp (-M)) := Real.log_le_log hε0 hεε₀
+    rwa [Real.log_exp, le_neg] at hlog_le
+  -- derive the three key lower bounds on -log ε using M's definition
+  have hL_sub_ℓ_ge_one : 1 ≤ -Real.log ε - ‖ℓ‖ := by
+    rw [hM_def] at hL_ge_M; linarith
+  have hL_ge_two_ℓ : 2 * ‖ℓ‖ ≤ -Real.log ε := by
+    rw [hM_def] at hL_ge_M; linarith
+  have hL_sub_ℓ_ge_two_αsq : 2 * ‖α‖ ^ 2 ≤ -Real.log ε - ‖ℓ‖ := by
+    rw [hM_def] at hL_ge_M; linarith
+  -- the remaining setup exactly matches the fixed-initialization proof
+  have hε1 : ε ≤ 1 := by
+    have hexp_le_one : Real.exp (-M) ≤ 1 :=
+      Real.exp_le_one_iff.mpr (by rw [hM_def]; linarith)
+    linarith
+  have hlogε_le : Real.log ε ≤ -1 := by linarith
+  have hx_beta : entropyBregman x (ε • coordinateSquare α) ≤
+      entropyBregman β (ε • coordinateSquare α) :=
+    hx_min ⟨hβ_nonneg, hβ_eq⟩
+  have hlow := entropyBregman_scaled_lower_bound α x hα hx_nonneg ε hε0 hlogε_le
+  have hup := entropyBregman_scaled_upper_bound α β hα hβ_nonneg ε hε0 hε1
+  have hcombine : (-Real.log ε - ‖ℓ‖) * ‖x‖ - (Fintype.card ι : ℝ) ≤
+      ‖β‖ ^ 2 + (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ * ‖ℓ‖ + ‖α‖ ^ 2 := by
+    linarith [hlow, hup, hx_beta]
+  set A := -Real.log ε - ‖ℓ‖ with hA_def
+  have hpos : (0 : ℝ) < A := by rw [hA_def]; linarith
+  have hA_ge_one : 1 ≤ A := by rw [hA_def]; linarith
+  -- bound each RHS term + card by A times a constant independent of α
+  have hcard_bound : (Fintype.card ι : ℝ) ≤ A * (Fintype.card ι : ℝ) :=
+    le_mul_of_one_le_left hcard_nonneg hA_ge_one
+  have hβsq_bound : ‖β‖ ^ 2 ≤ A * (‖β‖ ^ 2) :=
+    le_mul_of_one_le_left (sq_nonneg _) hA_ge_one
+  have hcross_bound : (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ ≤
+      A * (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖) := by
+    rw [hA_def]
+    have h_nonneg : 0 ≤ ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ :=
+      mul_nonneg hones_nonneg (norm_nonneg _)
+    have h_coeff : -Real.log ε ≤ 2 * (-Real.log ε - ‖ℓ‖) := by linarith
+    simpa [mul_assoc, mul_comm, mul_left_comm] using
+      mul_le_mul_of_nonneg_right h_coeff h_nonneg
+  have hℓβ_bound : ‖β‖ * ‖ℓ‖ ≤ A * ‖β‖ := by
+    rw [hA_def, mul_comm]
+    exact mul_le_mul_of_nonneg_right (by linarith) (norm_nonneg _)
+  have hαsq_bound : ‖α‖ ^ 2 ≤ A * (1/2) := by
+    rw [hA_def]
+    -- goal: ‖α‖ ^ 2 ≤ (-Real.log ε - ‖ℓ‖) * (1/2)
+    -- equivalent to 2*‖α‖² ≤ -Real.log ε - ‖ℓ‖
+    linarith
+  -- combine: A·‖x‖ ≤ (RHS terms) + card ≤ A·(sum of bounds)
+  have hxle_mul : A * ‖x‖ ≤ A * ((Fintype.card ι : ℝ) + ‖β‖ ^ 2 +
+      2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ + 1/2) := by
+    rw [hA_def] at hcombine
+    have htemp : A * ‖x‖ ≤ ‖β‖ ^ 2 + (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ +
+        ‖β‖ * ‖ℓ‖ + ‖α‖ ^ 2 + (Fintype.card ι : ℝ) := by linarith
+    have hbody : ‖β‖ ^ 2 + (-Real.log ε) * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ * ‖ℓ‖ +
+        ‖α‖ ^ 2 + (Fintype.card ι : ℝ) ≤ A * ((Fintype.card ι : ℝ) + ‖β‖ ^ 2 +
+        2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ + 1/2) := by
+      linarith [hcard_bound, hβsq_bound, hcross_bound, hℓβ_bound, hαsq_bound]
+    linarith
+  have hxle : ‖x‖ ≤ (Fintype.card ι : ℝ) + ‖β‖ ^ 2 +
+      2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ + 1/2 :=
+    le_of_mul_le_mul_left hxle_mul hpos
+  -- now substitute the β bounds from Lemma 4.7
+  obtain ⟨hβsq, hβ_linear⟩ :=
+    beta_norm_sq_and_linear_bound β y C₀ hC₀0 hones_nonneg hβ_norm
+  have hy_sq_bound : ‖y‖ ≤ (1 + ‖y‖ ^ 2) / 2 := norm_le_half_add_half_norm_sq y
+  have h_intermediate : (Fintype.card ι : ℝ) + ‖β‖ ^ 2 +
+      2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ + 1/2 ≤
+      (Fintype.card ι : ℝ) + C₀ ^ 2 * ‖y‖ ^ 2 +
+      (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖ + 1/2 := by
+    linarith [hβsq, hβ_linear]
+  have h_using_y_bound : (Fintype.card ι : ℝ) + C₀ ^ 2 * ‖y‖ ^ 2 +
+      (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖ + 1/2 ≤
+      (Fintype.card ι : ℝ) + C₀ ^ 2 * ‖y‖ ^ 2 +
+      (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ((1 + ‖y‖ ^ 2) / 2) + 1/2 := by
+    have h_mul : (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖ ≤
+        (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ((1 + ‖y‖ ^ 2) / 2) :=
+      mul_le_mul_of_nonneg_left hy_sq_bound (by positivity)
+    linarith
+  -- final comparison with the universal C
+  have h_left_bound : (Fintype.card ι : ℝ) + 1/2 +
+      ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2) ≤ C := by
+    rw [hC_def]
+    exact (le_max_left _ _).trans (le_add_of_nonneg_right (by norm_num : (0 : ℝ) ≤ 1))
+  have h_right_bound : C₀ ^ 2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2) ≤ C := by
+    rw [hC_def]
+    exact (le_max_right _ _).trans (le_add_of_nonneg_right (by norm_num : (0 : ℝ) ≤ 1))
+  have h_final_bound : ((Fintype.card ι : ℝ) + 1/2 +
+      ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) +
+      (C₀ ^ 2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) * ‖y‖ ^ 2 ≤
+      C * (1 + ‖y‖ ^ 2) := by
+    linarith [h_left_bound, mul_le_mul_of_nonneg_right h_right_bound (sq_nonneg ‖y‖)]
+  calc
+    ‖x‖ ≤ (Fintype.card ι : ℝ) + ‖β‖ ^ 2 +
+        2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ + 1/2 := hxle
+    _ ≤ (Fintype.card ι : ℝ) + C₀ ^ 2 * ‖y‖ ^ 2 +
+        (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖ + 1/2 := h_intermediate
+    _ ≤ (Fintype.card ι : ℝ) + C₀ ^ 2 * ‖y‖ ^ 2 +
+        (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ((1 + ‖y‖ ^ 2) / 2) + 1/2 := h_using_y_bound
+    _ = ((Fintype.card ι : ℝ) + 1/2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) +
+        (C₀ ^ 2 + ((2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) / 2)) * ‖y‖ ^ 2 := by ring
+    _ ≤ C * (1 + ‖y‖ ^ 2) := h_final_bound
 
 /--
 Proposition 4.1 from `docs/Lasso.md`: the positive effective trajectories are
