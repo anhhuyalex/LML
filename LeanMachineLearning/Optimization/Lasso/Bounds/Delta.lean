@@ -2478,6 +2478,7 @@ lemma scaledPrimalPath_deriv_bound
     (hdata : ProblemData M r lambda)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (s : ℝ) (hs : 0 < s) :
     ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C := by
   rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
@@ -2486,25 +2487,32 @@ lemma scaledPrimalPath_deriv_bound
   -- For each τ, define the dual variable w(τ) = M z(τ) - τ·r + (1+τλ)·1
   set w : ℝ → EuclideanSpace ℝ ι := fun τ =>
     matVec M (z τ) - τ • r + (1 + τ * lambda) • ones with hw_def
-  -- Key structural lemma: at points where z is differentiable,
-  -- the derivative ż(τ) satisfies a linear system determined by the active set.
-  -- Specifically, let A(τ) = {i | w_i(τ) = 0}. Then:
-  --   ż_i(τ) = 0                    for i ∉ A(τ)  (since z_i stays at minimum 0)
-  --   (M ż(τ))_i = r_i - lambda      for i ∈ A(τ)  (by differentiating (Mz)_i - τ r_i + 1 + τλ = 0)
+  -- First: `z` is absolutely continuous on `[0, s]` because `h_regular` gives
+  -- absolute continuity on every compact subinterval of `[0, ∞)`.
+  have h_ac : AbsolutelyContinuousOnInterval z 0 s := by
+    have h0 : (0 : ℝ) ≤ 0 := le_refl _
+    have h0s : (0 : ℝ) ≤ s := hs.le
+    exact h_regular.absolutelyContinuousOn_Icc 0 s h0 h0s
+  -- Second: a bound on `‖deriv z τ‖` for all `τ ∈ ℝ` where `z` is differentiable.
+  -- The idea (following the finite-active-set argument from Lemma 4.11/4.12):
+  --   1. Use `scaled_dual_lipschitz` to get that the scaled dual path is locally
+  --      Lipschitz on compacts, hence `M ∘ z` is locally Lipschitz.
+  --   2. On the compact interval `[0, s]`, `M ∘ z` has Lipschitz constant `K`, so
+  --      `‖M (deriv z τ)‖ ≤ K` at all differentiable points.
+  --   3. At a differentiable point `τ`, the active set `A(τ) = {i | w_i(τ) = 0}`
+  --      determines a linear system: `ż_i = 0` for `i ∉ A`, `(M ż)_i = r_i - λ`
+  --      for `i ∈ A`.  Combined with the bound on `M ż`, this constrains `ż`.
+  --   4. A rigorous bound on `‖ż(τ)‖` requires either uniqueness of the LCP
+  --      solution (so `ż` is unique and bounded) or the monotonicity hypothesis
+  --      from Theorem 3.1 (which makes `z` coordinatewise nondecreasing).
+  --   Without these, the lemma is **false** in general (see the counterexample
+  --   in the planning notes: a PSD matrix with a kernel admits non-unique LCP
+  --   solutions, allowing an oscillatory path with unbounded derivative).
+  --
+  --   TODO: add the missing hypotheses (uniqueness + monotonicity, or directly
+  --   a Lipschitz condition on `z`) and use `deriv_bound_of_lipschitz`.
   have h_deriv_bound : ∃ C > 0, ∀ (τ : ℝ), DifferentiableAt ℝ z τ →
       ‖deriv z τ‖ ≤ C := by
-    -- For each subset A ⊆ ι, consider the linear system:
-    --   v_i = 0 for i ∉ A,  (Mv)_i = r_i - lambda for i ∈ A
-    -- Let S_A be the set of solutions v.  Since there are finitely many A,
-    -- max_{A : S_A ≠ ∅} sup_{v ∈ S_A} ‖v‖ is finite.
-    -- Then at any point τ of differentiability, deriv z τ ∈ S_{A(τ)}.
-    sorry
-  -- Now use the absolute continuity of z to get the bound everywhere (not just at
-  -- points of differentiability).  Since z is absolutely continuous on [0,s],
-  -- the derivative exists a.e. and the bound at differentiable points extends.
-  have h_ac : AbsolutelyContinuousOnInterval z 0 s := by
-    -- This follows from `scaledPrimalPath_regular_of_path_regular`
-    -- which gives local absolute continuity on nonnegative compacts.
     sorry
   rcases h_deriv_bound with ⟨C, hC_pos, hC_bound⟩
   refine ⟨C, hC_pos, fun τ hτ => ?_⟩
@@ -2577,7 +2585,8 @@ lemma pos_delta_bound_4
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -2587,7 +2596,7 @@ lemma pos_delta_bound_4
           (ones - posRescaledMirrorVariable ε (u ε) 0)
         ≤ δ := by
   intro δ hδ
-  have h_bound := scaledPrimalPath_deriv_bound M r lambda hdata x_lasso hx_lasso s hs
+  have h_bound := scaledPrimalPath_deriv_bound M r lambda hdata x_lasso hx_lasso h_regular s hs
   have h2 := pos_delta_bound_4_term2 M r lambda β s hs u hdata hβ hu x_lasso h_bound δ hδ
   filter_upwards [h2] with ε hε
   intro τ hτ
