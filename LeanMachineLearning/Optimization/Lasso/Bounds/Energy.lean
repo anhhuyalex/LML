@@ -420,83 +420,107 @@ lemma energy_complementarity_bound
   -- and from `M z(τ)`'s defining equation) into exactly `deriv φ τ * Δε(τ)` plus
   -- `φ(τ)` times the sum of `T1`, `T3`, and `T4b`, matching Eq. (4.14)'s "Term 1",
   -- "Term 3" and the (`Term 4b`-part of the) "Term 4" complementarity defects.
-  have h_key_identity :
-      deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
-        inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
-      = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by
-    -- The identity follows from the product rule and the mirror/LCP equations.
-    -- We break it into several steps.
-    --
-    -- Step 0: basic hypotheses we will need.
-    have hM_symm : M.IsSymm := IsPositiveSemidefinite.get_symm hdata.psd
-    have hτ_nonneg : 0 ≤ τ := hτ.1
-    -- φ(σ) = 1/(1+σλ) is differentiable for τ ≥ 0 (since denominator > 0)
-    have hτlambda_pos : 0 < 1 + τ * lambda := by
-      nlinarith [hdata.lambda_nonneg, hτ.1]
-    have h_diff_φ : DifferentiableAt ℝ φ τ := by
-      -- φ is a quotient of differentiable functions with nonzero denominator
-      have h_denom_ne_zero : (fun (σ : ℝ) => 1 + σ * lambda) τ ≠ 0 := by
-        dsimp; linarith
-      refine ((hasDerivAt_const τ (1 : ℝ)).div
-        (((hasDerivAt_id τ).mul_const lambda).const_add 1) h_denom_ne_zero).differentiableAt
-    -- Step 1: Product rule for φ * E where E σ = inner ℝ (w σ) (zε σ - z σ) + Δε σ.
-    -- We need differentiability of E at τ, which follows from differentiability
-    -- of w, zε, z at τ (using hdual.absolutely_continuous for w when τ > 0,
-    -- and similarly for zε, z from their gradient-flow / AC definitions).
-    have h_diff_w : DifferentiableAt ℝ w τ := by
-      -- For τ > 0, this follows from hdual.absolutely_continuous.
-      -- For τ = 0, a separate argument using the explicit formula hw_explicit gives
-      -- differentiability.
-      sorry
+  -- Common hypotheses needed throughout.
+  have hM_symm : M.IsSymm := IsPositiveSemidefinite.get_symm hdata.psd
+  have hτ_nonneg : 0 ≤ τ := hτ.1
+  have hτlambda_pos : 0 < 1 + τ * lambda := by
+    nlinarith [hdata.lambda_nonneg, hτ.1]
+  have h_diff_φ : DifferentiableAt ℝ φ τ := by
+    have h_denom_ne_zero : (fun (σ : ℝ) => 1 + σ * lambda) τ ≠ 0 := by
+      dsimp; linarith
+    refine ((hasDerivAt_const τ (1 : ℝ)).div
+      (((hasDerivAt_id τ).mul_const lambda).const_add 1) h_denom_ne_zero).differentiableAt
+  -- The key identity Eq. (4.14) holds pointwise wherever the scaled primal path z
+  -- is differentiable.  At points where z is not differentiable (kinks of the
+  -- piecewise-linear Lasso path), deriv z τ = 0 and a simpler direct bound works.
+  --
+  -- First, establish all bounds that hold regardless of differentiability.
+  -- `Δε(τ) ≥ 0` since `M` is positive semidefinite.
+  have hΔε_nonneg : 0 ≤ Δε τ := by
+    have h := hdata.psd.nonneg (zε τ - z τ)
+    dsimp [Δε, pathDelta, matrixSeminormSq]
+    nlinarith
+  -- `deriv φ τ ≤ 0` and `0 < φ τ ≤ 1`, using `λ ≥ 0` and `τ ≥ 0`.
+  have hφ_deriv : HasDerivAt φ (-lambda / (1 + τ * lambda) ^ 2) τ := by
+    have h1 : HasDerivAt (fun σ : ℝ => 1 + σ * lambda) lambda τ := by
+      simpa using ((hasDerivAt_id τ).mul_const lambda).const_add 1
+    have h2 := (hasDerivAt_const τ (1 : ℝ)).div h1 (ne_of_gt hτlambda_pos)
+    have h_eq : (0 * (1 + τ * lambda) - 1 * lambda) / (1 + τ * lambda) ^ 2 =
+        -lambda / (1 + τ * lambda) ^ 2 := by ring
+    rwa [h_eq] at h2
+  have hφ_deriv_nonpos : deriv φ τ ≤ 0 := by
+    rw [hφ_deriv.deriv]
+    apply div_nonpos_of_nonpos_of_nonneg (by linarith [hdata.lambda_nonneg])
+    positivity
+  have hφ_pos : 0 < φ τ := by dsimp [φ]; positivity
+  have hφ_le_one : φ τ ≤ 1 := by
+    dsimp [φ]
+    rw [div_le_one hτlambda_pos]
+    nlinarith [hdata.lambda_nonneg, hτ.1]
+  -- Nonnegativity of the `z↑`/`z↓` derivatives.
+  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular
+  -- Bounds on the three complementarity-defect terms T1, T3, T4b.
+  have hT1_bound : T1 ≤ C1 / Real.log (1 / ε) := h1ε τ hτ
+  have hT3_bound : T3 ≤ C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+      deriv (positiveZDownward x_lasso) τ) := h3ε τ hτ
+  have hT4b_bound : T4b ≤ δ := by
+    have h4' := h4ε τ hτ
+    dsimp [T4b] at *
+    linarith [h4', hT4a_eq]
+  have h_C1_le_C : C1 ≤ C := (le_max_left C1 C3).trans (le_max_left _ _)
+  have h_C3_le_C : C3 ≤ C := (le_max_right C1 C3).trans (le_max_left _ _)
+  -- Now case-split on differentiability of the scaled primal path z at τ.
+  by_cases h_diff_z : DifferentiableAt ℝ z τ
+  · -- Case 1: z is differentiable at τ.  The full product-rule expansion is valid.
     have h_diff_zε : DifferentiableAt ℝ zε τ := by
-      -- zε comes from a gradient flow, hence differentiable.
+      -- zε = (4 / log(1/ε)) • ∫₀^{t(s)} posEffectiveParameter (u ε)
+      -- posEffectiveParameter is everywhere differentiable
+      -- (pos_effective_parameter_hasDerivAt), so its integral is differentiable
+      -- by the Fundamental Theorem of Calculus, and zε is a composition of
+      -- differentiable functions (chain rule + const_smul).
       sorry
-    have h_diff_z : DifferentiableAt ℝ z τ := by
-      -- z = scaledPrimalPath x_lasso, AC on positive compacts (h_regular).
-      -- For τ > 0, this gives differentiability. For τ = 0, need a boundary argument.
+    have h_diff_w : DifferentiableAt ℝ w τ := by
+      -- w = matVec M ∘ z + (affine part).  Since z is differentiable (h_diff_z)
+      -- and matVec M is linear (hence C^∞), w is differentiable by the chain
+      -- rule and sum rule applied to the explicit formula hw_explicit.
+      -- The affine part σ ↦ -σ • r + (1 + σ * lambda) • ones is a polynomial in σ,
+      -- hence everywhere differentiable.
+      -- Because τ ≥ 0, hw_explicit gives the identity in a neighborhood of τ
+      -- (for σ ≥ 0), and differentiability is a local property.
       sorry
-    -- Define E in point-free form to work smoothly with `deriv_mul` and `deriv_add`.
+    have h_diff_inner : DifferentiableAt ℝ (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ :=
+      (h_diff_w.inner ℝ (h_diff_zε.sub h_diff_z))
+    have h_diff_Δε : DifferentiableAt ℝ Δε τ := by
+      have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
+        rw [hasDerivAt_deriv_iff]; exact h_diff_zε
+      have hz_deriv : HasDerivAt z (deriv z τ) τ := by
+        rw [hasDerivAt_deriv_iff]; exact h_diff_z
+      exact (pathDelta_hasDerivAt M hM_symm zε z (deriv zε τ) (deriv z τ) τ
+        hzε_deriv hz_deriv).differentiableAt
     set E := (fun σ => inner ℝ (w σ) (zε σ - z σ)) + Δε with hE_def
-    have h_diff_E : DifferentiableAt ℝ E τ := by
-      -- Δε is differentiable where zε, z are (by pathDelta_hasDerivAt).
-      -- Inner product of differentiable functions is differentiable.
-      sorry
-    -- Product rule: deriv (φ * E) = deriv φ * E + φ * deriv E
-    -- `deriv_mul` gives the identity for point-free `φ * E`; we `dsimp` the
-    -- `set` definitions so that the goal becomes definitionally equal.
+    have h_diff_E : DifferentiableAt ℝ E τ := h_diff_inner.add h_diff_Δε
+    -- Product rule for φ * E
     have h_deriv_prod : deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ =
         deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
         φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ := by
       have h := deriv_mul h_diff_φ h_diff_E
       dsimp [E, Δε] at h ⊢
       exact h
-    -- Product rule for scalar-vector: deriv (φ • w) = deriv φ • w + φ • deriv w
-    -- `deriv_smul` gives `φ τ • deriv w τ + deriv φ τ • w τ`; `add_comm` reorders.
+    -- Product rule for φ • w
     have h_deriv_vec : deriv (fun σ => φ σ • w σ) τ = deriv φ τ • w τ + φ τ • deriv w τ := by
       have h := deriv_smul h_diff_φ h_diff_w
-      -- h : deriv (φ • w) τ = φ τ • deriv w τ + deriv φ τ • w τ
-      -- `φ • w` is definitionally `fun σ => φ σ • w σ`, but `simpa` may not see it.
-      -- We use `convert` to handle the definitional equality and `add_comm` for the RHS.
       convert h using 1
       · rfl
       · rw [add_comm]
-    -- Step 2: Expand deriv of E = inner + Δε.
-    have h_diff_inner : DifferentiableAt ℝ (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ := by
-      -- Inner product of differentiable functions is differentiable (use HasDerivAt.inner)
-      sorry
-    have h_diff_Δε : DifferentiableAt ℝ Δε τ := by
-      -- Δε is differentiable where zε, z are (by pathDelta_hasDerivAt)
-      sorry
+    -- Derivative of E = inner + Δε
     have h_deriv_E_sum : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ =
         deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ := by
       have h := deriv_add h_diff_inner h_diff_Δε
       dsimp [E, Δε] at h ⊢
       exact h
-    -- Step 3: Derivative of inner product.
-    -- d/dσ ⟨w(σ), zε(σ) - z(σ)⟩ = ⟨w'(σ), zε(σ) - z(σ)⟩ + ⟨w(σ), zε'(σ) - z'(σ)⟩
+    -- Derivative of inner product ⟨w, zε - z⟩
     have h_deriv_inner : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ =
         inner ℝ (deriv w τ) (zε τ - z τ) + inner ℝ (w τ) (deriv zε τ - deriv z τ) := by
-      -- Obtain HasDerivAt from DifferentiableAt using `hasDerivAt_deriv_iff`
       have hw : HasDerivAt w (deriv w τ) τ := by
         rw [hasDerivAt_deriv_iff]; exact h_diff_w
       have hzε : HasDerivAt zε (deriv zε τ) τ := by
@@ -504,11 +528,8 @@ lemma energy_complementarity_bound
       have hz : HasDerivAt z (deriv z τ) τ := by
         rw [hasDerivAt_deriv_iff]; exact h_diff_z
       have h_inner := (hw.inner ℝ (hzε.sub hz))
-      -- h_inner : HasDerivAt (fun t => inner ℝ (w t) ((zε - z) t))
-      --   (inner ℝ (w τ) (deriv zε τ - deriv z τ) + inner ℝ (deriv w τ) ((zε - z) τ)) τ
-      -- Note: (zε - z) τ = zε τ - z τ definitionally, so we can `simpa [add_comm]`
       simpa [add_comm] using h_inner.deriv
-    -- Step 4: Derivative of Δε using pathDelta_hasDerivAt.
+    -- Derivative of Δε
     have h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) := by
       have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
         rw [hasDerivAt_deriv_iff]; exact h_diff_zε
@@ -518,30 +539,30 @@ lemma energy_complementarity_bound
         hzε_deriv hz_deriv
       dsimp [Δε] at *
       rw [h_chain.deriv]
-    -- Step 5: The two governing equations for M zε and M z.
-    -- From the integrated mirror equation:
-    --   M zε(τ) = wε(τ) - wε(0) + τ r - (τ λ) ones
-    have hM_zε : matVec M (zε τ) =
-        wε τ - wε 0 + τ • r - (τ * lambda) • ones := by
-      -- We need the hypotheses for positive_integrated_mirror_equation:
-      --   hu ε hε_pos, pos_effective_param_ne_zero, hM_symm, hlog_ne_zero
-      -- These may not all be available here; they can be derived from the
-      -- filter context (ε is eventually small and positive).
-      sorry
-    -- From the isParametricLCP (via hw_explicit):
-    --   w(τ) = M z(τ) - τ r + (1 + τ λ) ones
-    -- So  M z(τ) = w(τ) + τ r - (1 + τ λ) ones
-    -- Use `abel` for vector algebra (linarith does not work on EuclideanSpace).
+    -- The integrated mirror equation: M zε = wε - wε 0 + τ r - (τ λ) ones
+    have hM_zε : matVec M (zε τ) = wε τ - wε 0 + τ • r - (τ * lambda) • ones := by
+      have hu_flow := hu ε hε_pos
+      have hu_pos : ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
+        posEffectiveParameter_ne_zero M r lambda ε β (u ε) hu_flow hε_pos hβ hM_symm
+      have hmirror := positive_integrated_mirror_equation M r lambda ε β (u ε)
+        hu_flow hu_pos hM_symm τ hlog_pos.ne'
+      -- hmirror: wε τ = wε 0 - τ • r + matVec M (zε τ) + (τ * lambda) • ones
+      dsimp [wε, zε] at hmirror ⊢
+      -- Use `abel` to rearrange the vector equation.
+      apply eq_of_sub_eq_zero
+      calc
+        matVec M (zε τ) - (wε τ - wε 0 + τ • r - (τ * lambda) • ones)
+            = -(wε τ - (wε 0 - τ • r + matVec M (zε τ) + (τ * lambda) • ones)) := by abel
+        _ = -(0 : EuclideanSpace ℝ ι) := by rw [← hmirror]
+        _ = 0 := by simp
+    -- The LCP equation: M z = w + τ r - (1 + τ λ) ones
     have hM_z : matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones := by
       have hw_eq := hw_explicit τ hτ_nonneg
-      -- hw_eq: w τ = matVec M (z τ) - τ • r + (1 + τ * lambda) • ones
       calc
         matVec M (z τ) = (matVec M (z τ) - τ • r + (1 + τ * lambda) • ones) +
             τ • r - (1 + τ * lambda) • ones := by abel
         _ = w τ + τ • r - (1 + τ * lambda) • ones := by rw [← hw_eq]
-    -- Step 6: The core cancellation identity.
-    -- ⟨w, zε' - z'⟩ + ⟨zε' - z', M(zε - z)⟩ = ⟨zε', wε⟩ - ⟨z', wε⟩ + ⟨zε' - z', ones - wε 0⟩
-    -- i.e. = T1 + T3 + T4b
+    -- Core cancellation: ⟨w, zε' - z'⟩ + ⟨zε' - z', M(zε - z)⟩ = T1 + T3 + T4b
     have h_core : inner ℝ (w τ) (deriv zε τ - deriv z τ) +
         inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) = T1 + T3 + T4b := by
       have hM_diff : matVec M (zε τ - z τ) = wε τ - w τ + (ones - wε 0) := by
@@ -570,73 +591,53 @@ lemma energy_complementarity_bound
           rw [hD_def, inner_sub_left, zero_add]
         _ = T1 + T3 + T4b := by
           dsimp [T1, T3, T4b, D]; ring
-    -- Step 7: Assemble everything.
-    calc
-      deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
-        inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
-      = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
-          φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ) -
-        inner ℝ (deriv φ τ • w τ + φ τ • deriv w τ) (zε τ - z τ) := by
-        rw [h_deriv_prod, h_deriv_vec]
-      _ = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
-          φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ)) -
-        (deriv φ τ * inner ℝ (w τ) (zε τ - z τ) + φ τ * inner ℝ (deriv w τ) (zε τ - z τ)) := by
-        rw [h_deriv_E_sum]
-        simp [inner_add_left, inner_smul_left]
-      _ = deriv φ τ * Δε τ +
-          φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ -
-            inner ℝ (deriv w τ) (zε τ - z τ) + deriv Δε τ) := by ring
-      _ = deriv φ τ * Δε τ +
-          φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) + deriv Δε τ) := by
-        rw [h_deriv_inner]; ring
-      _ = deriv φ τ * Δε τ +
-          φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) +
-            inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ))) := by
-        rw [h_deriv_Δε]
-      _ = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by rw [h_core]
-  -- `Δε(τ) ≥ 0` since `M` is positive semidefinite.
-  have hΔε_nonneg : 0 ≤ Δε τ := by
-    have h := hdata.psd.nonneg (zε τ - z τ)
-    dsimp [Δε, pathDelta, matrixSeminormSq]
-    nlinarith
-  -- `deriv φ τ ≤ 0` and `0 < φ τ ≤ 1`, using `λ ≥ 0` and `τ ≥ 0`.
-  have hτlambda_pos : 0 < 1 + τ * lambda := by nlinarith [hdata.lambda_nonneg, hτ.1]
-  have hφ_deriv : HasDerivAt φ (-lambda / (1 + τ * lambda) ^ 2) τ := by
-    have h1 : HasDerivAt (fun σ : ℝ => 1 + σ * lambda) lambda τ := by
-      simpa using ((hasDerivAt_id τ).mul_const lambda).const_add 1
-    have h2 := (hasDerivAt_const τ (1 : ℝ)).div h1 (ne_of_gt hτlambda_pos)
-    have h_eq : (0 * (1 + τ * lambda) - 1 * lambda) / (1 + τ * lambda) ^ 2 =
-        -lambda / (1 + τ * lambda) ^ 2 := by ring
-    rwa [h_eq] at h2
-  have hφ_deriv_nonpos : deriv φ τ ≤ 0 := by
-    rw [hφ_deriv.deriv]
-    apply div_nonpos_of_nonpos_of_nonneg (by linarith [hdata.lambda_nonneg])
-    positivity
-  have hφ_pos : 0 < φ τ := by dsimp [φ]; positivity
-  have hφ_le_one : φ τ ≤ 1 := by
-    dsimp [φ]
-    rw [div_le_one hτlambda_pos]
-    nlinarith [hdata.lambda_nonneg, hτ.1]
-  -- Nonnegativity of the `z↑`/`z↓` derivatives, needed to fold `T1`/`T3` into a
-  -- single constant `C`.
-  have h_z_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.1 h_regular
-  -- Bound `T1`, `T3`, `T4b`.
-  have hT1_bound : T1 ≤ C1 / Real.log (1 / ε) := h1ε τ hτ
-  have hT3_bound : T3 ≤ C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-      deriv (positiveZDownward x_lasso) τ) := h3ε τ hτ
-  have hT4b_bound : T4b ≤ δ := by
-    have h4' := h4ε τ hτ
-    dsimp [T4b] at *
-    linarith [h4', hT4a_eq]
-  -- Assemble the final bound via the isolated arithmetic lemma.
-  have h_C1_le_C : C1 ≤ C := (le_max_left C1 C3).trans (le_max_left _ _)
-  have h_C3_le_C : C3 ≤ C := (le_max_right C1 C3).trans (le_max_left _ _)
-  rw [h_key_identity]
-  exact energy_deriv_bound_algebra C1 C3 C (Real.log (1 / ε))
-    (deriv (positiveZUpward x_lasso) τ) (deriv (positiveZDownward x_lasso) τ) δ
-    (φ τ) (deriv φ τ) (Δε τ) T1 T3 T4b
-    hC1_pos hC3_pos h_C1_le_C h_C3_le_C hδ hlog_pos h_z_nonneg.1 h_z_nonneg.2
-    hφ_pos hφ_le_one hφ_deriv_nonpos hΔε_nonneg hT1_bound hT3_bound hT4b_bound
+    -- Assemble the key identity
+    have h_key_identity :
+        deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
+          inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
+        = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by
+      calc
+        deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
+          inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
+        = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
+            φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ) -
+          inner ℝ (deriv φ τ • w τ + φ τ • deriv w τ) (zε τ - z τ) := by
+          rw [h_deriv_prod, h_deriv_vec]
+        _ = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
+            φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ)) -
+          (deriv φ τ * inner ℝ (w τ) (zε τ - z τ) + φ τ * inner ℝ (deriv w τ) (zε τ - z τ)) := by
+          rw [h_deriv_E_sum]
+          simp [inner_add_left, inner_smul_left]
+        _ = deriv φ τ * Δε τ +
+            φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ -
+              inner ℝ (deriv w τ) (zε τ - z τ) + deriv Δε τ) := by ring
+        _ = deriv φ τ * Δε τ +
+            φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) + deriv Δε τ) := by
+          rw [h_deriv_inner]; ring
+        _ = deriv φ τ * Δε τ +
+            φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) +
+              inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ))) := by
+          rw [h_deriv_Δε]
+        _ = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by rw [h_core]
+    rw [h_key_identity]
+    exact energy_deriv_bound_algebra C1 C3 C (Real.log (1 / ε))
+      (deriv (positiveZUpward x_lasso) τ) (deriv (positiveZDownward x_lasso) τ) δ
+      (φ τ) (deriv φ τ) (Δε τ) T1 T3 T4b
+      hC1_pos hC3_pos h_C1_le_C h_C3_le_C hδ hlog_pos h_z_nonneg.1 h_z_nonneg.2
+      hφ_pos hφ_le_one hφ_deriv_nonpos hΔε_nonneg hT1_bound hT3_bound hT4b_bound
+  · -- Case 2: z is not differentiable at τ (e.g. at a kink of the Lasso path).
+    -- Then deriv z τ = 0.  We also have deriv w τ = 0 (since w is an affine
+    -- function of z via hw_explicit, and matVec M is linear).
+    -- The product-rule identity does not hold as an equality in this case,
+    -- but the final inequality still holds: the LHS simplifies to something
+    -- that can be bounded by the RHS, which is manifestly ≥ 0.
+    --
+    -- Key observation: deriv z τ = 0 ⇒ T3 = 0, and the other terms remain
+    -- bounded by the same h1ε, h3ε, h4ε (which use integral methods valid
+    -- everywhere, not just at differentiability points).
+    -- We defer the full algebraic verification to a future refinement;
+    -- for now this branch is marked as an open subgoal.
+    sorry
 
 /--
 Section 4.6 energy differential inequality for
