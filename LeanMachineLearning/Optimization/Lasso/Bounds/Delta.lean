@@ -1738,8 +1738,18 @@ lemma parametric_lcp_lipschitz
   -- Now w(μ) = M(z(μ)) + q(μ), and q(μ) = -μ r + (1+μλ)1 is affine, hence Lipschitz.
   -- Therefore M(z(μ)) = w(μ) - q(μ) is also Lipschitz.
   have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
-    -- parametricLcpQ r lambda μ = -μ·r + (1+μλ)·1, an affine function
-    sorry
+    -- parametricLcpQ r lambda μ = -μ·r + (1+μλ)·1, an affine function.
+    -- Write q(μ) = 1 + μ·v where v = λ·1 - r, so q(μ)-q(ν) = (μ-ν)·v.
+    set v : EuclideanSpace ℝ ι := lambda • euclideanOf (fun _ => 1) - r with hv_def
+    have h_diff (μ ν : ℝ) : parametricLcpQ r lambda μ - parametricLcpQ r lambda ν = (μ - ν) • v := by
+      dsimp [parametricLcpQ, v, euclideanOf]
+      ext i
+      simp
+      ring
+    refine ⟨fun a b ha hle => ?_⟩
+    refine ⟨‖v‖, norm_nonneg _, fun μ hμ ν hν => ?_⟩
+    rw [h_diff μ ν, norm_smul, Real.norm_eq_abs]
+    exact (mul_comm _ _).le
   have hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)) := by
     -- matVec M (z μ) = w μ - parametricLcpQ r lambda μ, difference of Lipschitz functions
     sorry
