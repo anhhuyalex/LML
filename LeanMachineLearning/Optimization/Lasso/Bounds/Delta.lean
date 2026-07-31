@@ -2278,7 +2278,8 @@ lemma deriv_piLp_apply {ι : Type*} [Fintype ι] {z : ℝ → EuclideanSpace ℝ
     (deriv z τ).ofLp i = deriv (fun x => (z x).ofLp i) τ := by
   have h1 : HasDerivAt z (deriv z τ) τ := h_diff.hasDerivAt
   let h_proj : EuclideanSpace ℝ ι →L[ℝ] ℝ := EuclideanSpace.proj i
-  have h2 : HasDerivAt (h_proj ∘ z) (h_proj (deriv z τ)) τ := h_proj.hasFDerivAt.comp_hasDerivAt τ h1
+  have h2 : HasDerivAt (h_proj ∘ z) (h_proj (deriv z τ)) τ :=
+    h_proj.hasFDerivAt.comp_hasDerivAt τ h1
   change (deriv z τ).ofLp i = deriv (fun x => (z x).ofLp i) τ
   exact h2.deriv.symm
 
@@ -2423,7 +2424,8 @@ lemma pos_delta_bound_4_term1
             · exact continuousAt_id.smul_const r
             · have h1 : ContinuousAt (fun (μ : ℝ) => 1 + μ * lambda) 0 :=
                 continuousAt_const.add (continuousAt_id.mul continuousAt_const)
-              have h2 : ContinuousAt (fun (_ : ℝ) => (ones : EuclideanSpace ℝ ι)) 0 := continuousAt_const
+              have h2 : ContinuousAt (fun (_ : ℝ) => (ones : EuclideanSpace ℝ ι)) 0 :=
+                continuousAt_const
               exact h1.smul h2
           have hf0_i_one : (f 0) i = 1 := by
             dsimp [f]; rw [hz0]; simp [ones, euclideanOf, matVec]
@@ -2435,7 +2437,8 @@ lemma pos_delta_bound_4_term1
             · filter_upwards [self_mem_nhdsWithin] with μ hμ
               have hμ_nonneg' : 0 ≤ μ := le_of_lt hμ
               dsimp [w, f]
-            · have h_limit := h_fi_cont.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Ioi (0 : ℝ)))
+            · have h_limit := h_fi_cont.tendsto.mono_left
+                (nhdsWithin_le_nhds (s := Set.Ioi (0 : ℝ)))
               rwa [hf0_i_one] at h_limit
           -- Since (w μ) i → 1 > 0, eventually (w μ) i > 0 for μ > 0 small enough
           have h_wi_pos : ∀ᶠ μ in 𝓝[>] 0, 0 < (w μ) i :=
@@ -2625,141 +2628,57 @@ lemma deriv_locally_constant_of_eventually_affine {f : ℝ → ℝ} {x : ℝ}
     simp [deriv_const_mul_id]
   rw [h_affine_deriv ht', h_affine_deriv (Metric.mem_ball_self hε_pos)]
 
-/--
-Local continuity from local Lipschitz-on-compacts regularity: a function that is
-Lipschitz on every compact subinterval of `[0, ∞)` is continuous at every point of
-`(0, ∞)`.  Used to get continuity of the parametric-LCP dual path `w` at a single
-differentiability point from the Lemma 4.11 regularity package
-(`ParametricLCPDualRegular`), without redoing the global Lipschitz bookkeeping at
-the call site.
+/-- Explicit regularity of a selected positive-Lasso path: each coordinate of
+the scaled path is locally affine at every positive parameter where that
+coordinate is differentiable.
+
+This property holds for a particular piecewise-affine path produced by an
+active-set/LARS selection. It does not follow merely from pointwise optimality
+when the primal minimizer is nonunique: an arbitrary selection may move
+nonlinearly inside the kernel of the positive-semidefinite matrix while keeping
+the same dual certificate.
 -/
-private lemma continuousAt_of_locallyLipschitzOnCompacts
-    {f : ℝ → EuclideanSpace ℝ ι} (hf : LocallyLipschitzOnCompacts f)
-    {μ : ℝ} (hμ : 0 < μ) : ContinuousAt f μ := by
-  obtain ⟨K, hK, hKbound⟩ := hf.lipschitz_on_Icc (μ / 2) (μ + 1) (by linarith) (by linarith)
-  have hlip : LipschitzOnWith K.toNNReal f (Set.Icc (μ / 2) (μ + 1)) := by
-    apply LipschitzOnWith.of_dist_le_mul (K := K.toNNReal)
-    intro a ha b hb
-    simpa [dist_eq_norm, Real.dist_eq, Real.toNNReal_of_nonneg hK] using hKbound a ha b hb
-  exact hlip.continuousOn.continuousAt (Icc_mem_nhds (by linarith) (by linarith))
+structure ScaledPrimalPathLocallyAffineAtDifferentiable
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) : Prop where
+  eventually_affine :
+    ∀ i μ, 0 < μ →
+      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) μ →
+      ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b
 
 /--
-Pointwise form of LCP complementary slackness at a single coordinate: if `q` is
-coordinatewise nonnegative and strictly positive at index `i`, `z` is coordinatewise
-nonnegative, and `⟨q, z⟩ = 0`, then `z i = 0`.
-
-(Contrast with `eq_zero_of_inner_eq_zero_of_pos_mul_nonneg` in `LCP.lean`, which needs
-`q` positive at *every* coordinate to conclude `z = 0` globally; here we only get the
-single coordinate where `q` is known to be positive.)
--/
-private lemma eq_zero_at_index_of_inner_eq_zero_of_nonneg
-    {ι : Type*} [Fintype ι] (q z : EuclideanSpace ℝ ι) (i : ι)
-    (hq_nonneg : Nonnegative q) (hz_nonneg : Nonnegative z)
-    (hqi_pos : 0 < q i) (h_inner_zero : inner ℝ q z = 0) : z i = 0 := by
-  have h_sum : inner ℝ q z = ∑ j : ι, q j * z j := by
-    rw [PiLp.inner_apply]; simp only [Real.inner_apply]
-  have h_sum_zero : ∑ j : ι, q j * z j = 0 := by rw [← h_sum, h_inner_zero]
-  have h_term := (Finset.sum_eq_zero_iff_of_nonneg
-    (fun j _ => mul_nonneg (hq_nonneg j) (hz_nonneg j))).mp h_sum_zero i (Finset.mem_univ i)
-  rcases mul_eq_zero.mp h_term with h | h
-  · exact absurd h hqi_pos.ne'
-  · exact h
-
-/--
-Deep structural fact about the positive-Lasso regularization path.
+Local-affinity projection for a selected positive-Lasso regularization path.
 
 INFORMAL PROOF:
-A positive-lasso minimizer satisfies the KKT conditions, which are equivalent
-(M is symmetric PSD) to the linear complementarity problem
-  v = -r + (λ + 1/μ)·1 + Mx,   v ≥ 0, x ≥ 0, ⟨v,x⟩ = 0.
-Multiplying by μ and setting w = μv, z = μx gives the parametric LCP
-  w = (1 + μλ)·1 - μr + Mz,   w ≥ 0, z ≥ 0, ⟨w,z⟩ = 0.      (4.11)
-The right-hand side is affine in μ.  For parametric LCPs with PSD matrix and
-affine parameter dependence, classical homotopy/LCP theory says that the primal
-solution path z(μ) is piecewise linear in μ.  Hence every coordinate z_i is
-piecewise linear, and at any point where z_i is differentiable it coincides with
-a single affine function on a neighborhood.
+The hypothesis `h_local_affine` says exactly that every differentiable coordinate
+of the selected scaled path agrees with an affine function on a neighborhood of
+each positive parameter. Applying its `eventually_affine` field proves the
+conclusion directly.
+
+This hypothesis is essential. For a singular PSD matrix, the primal solution of
+the parametric LCP can be nonunique even though its dual solution is unique. For
+example, with the two-by-two all-ones matrix, `r = (2,2)`, and `λ = 0`, every
+nonnegative split of total mass `2μ - 1` solves the scaled LCP when `μ > 1/2`.
+Choosing that split by a smooth non-affine weight gives a differentiable minimizer
+selection which is not locally affine, while the dual path is identically zero.
 
 References:
-• Cottle, Pang & Stone, *The Linear Complementarity Problem*, Sec. 4.5
-  (parametric LCPs and piecewise-linear paths).
 • Efron, Hastie, Johnstone & Tibshirani, "Least Angle Regression",
   Ann. Statist. 32 (2004), Thm. 1, https://doi.org/10.1214/009053604000000067
-  (piecewise linearity of the Lasso regularization path under the LARS
-  assumptions; the LARS proof is the model for the positive-lasso case).
-• Rosset & Zhu, "Piecewise Linear Regularized Solution Paths",
-  Ann. Statist. 35 (2007), https://doi.org/10.1214/009053607000000370
-  (general sufficient conditions for piecewise-linear regularized solution
-  paths).
-
-Caveat 1, `0 < μ` is genuinely required, not just convenient: `scaledPrimalPath
-x_lasso t = t • x_lasso t`, and `x_lasso` is *completely unconstrained* by
-`hx_lasso` for `t ≤ 0`.  So at `μ = 0` the claim is false for the required
-two-sided `𝓝 μ`: take `x_lasso t = 0` for `t ≥ 0` and `x_lasso t = t` for `t < 0`
-(both consistent with the hypotheses, since `hx_lasso` says nothing about `t ≤ 0`).
-Then `t ↦ t * (x_lasso t) i` is `0` for `t ≥ 0` and `t ^ 2` for `t < 0`: this is
-`DifferentiableAt ℝ _ 0` (both sides have slope `0`) but is not affine on *any*
-neighborhood of `0`. Requiring `μ > 0` rules this out: a small enough ball around
-`μ` then stays inside `(0, ∞)`, where `hx_lasso` and the supplied LCP data
-(`hdual`, `hdual_selected`) actually constrain `x_lasso`.
-
-Caveat 2, the residual gap for degenerate coordinates: fix `μ > 0`, let
-`z = scaledPrimalPath x_lasso` and let `w` be the dual path, related to `z` by the
-parametric LCP `w(t) = M z(t) - t r + (1 + tλ) 1`, `w ≥ 0`, `z ≥ 0`, `⟨w, z⟩ = 0`
-(this is exactly (4.11); `hdual_selected` packages this, and `hdual` packages
-Lemma 4.11's regularity of `w`, i.e. `ParametricLCPDualRegular`). Complementary
-slackness gives `w(μ)_i * z(μ)_i = 0`. Two cases:
-* `w(μ)_i > 0`: since `w` is continuous at `μ` (from `hdual`), `w(t)_i > 0` on a
-  whole neighborhood of `μ`, so complementary slackness forces `z(t)_i = 0`
-  identically there. This is the branch proved below (affine with `a = b = 0`).
-* `w(μ)_i = 0`: coordinate `i` is (possibly degenerately) *active*.
-  INFORMAL PROOF: At a point $\mu$ where $w_i(\mu) = 0$, the constraint $i$ is active.
-  Standard parametric LCP theory asserts that the solution path of the positive lasso
-  is piecewise affine. Therefore, there always exists a right neighborhood of $\mu$
-  where the active set remains constant and the path is affine, providing the local
-  affine representation needed to deduce a constant local derivative.
-  CITATION:
-  - Efron, Hastie, Johnstone, Tibshirani (2004), "Least Angle Regression", Theorem 1.
-  - `docs/Lasso.md`, Section 4.5.
+  (constructs a particular piecewise-linear LARS solution path).
+• Tibshirani, "The Lasso Problem and Uniqueness" (2013),
+  https://arxiv.org/abs/1206.0313 (distinguishes nonunique lasso minimizers from
+  the particular continuous piecewise-linear path selected by the extended LARS
+  algorithm).
+• `docs/Lasso.md`, Sections 4.5--4.6, assumes an absolutely continuous selected
+  primal path and proves piecewise regularity only for the unique dual path.
 -/
 lemma scaledPrimalPath_coord_affine_at_differentiable
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
-    (hdual_selected : ∀ μ, 0 ≤ μ →
-      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (i : ι) (μ : ℝ) (hμ : 0 < μ)
-    (_h_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) μ) :
+    (h_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) μ) :
     ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b := by
-  have hLCP_μ := hdual_selected μ hμ.le
-  dsimp [isParametricLCP, isLCP] at hLCP_μ
-  obtain ⟨-, hw_nonneg, -, -⟩ := hLCP_μ
-  by_cases hwi : w μ i = 0
-  · -- Degenerate/active branch: see Caveat 2 above.
-    sorry
-  · have hwi_pos : 0 < w μ i := lt_of_le_of_ne (hw_nonneg i) (Ne.symm hwi)
-    have hcont : ContinuousAt w μ :=
-      continuousAt_of_locallyLipschitzOnCompacts hdual.locally_lipschitz hμ
-    have hcont_i : ContinuousAt (fun t => w t i) μ :=
-      (continuous_euclidean_apply i).continuousAt.comp hcont
-    refine ⟨0, 0, ?_⟩
-    filter_upwards [hcont_i.eventually (isOpen_Ioi.mem_nhds hwi_pos), Ioi_mem_nhds hμ]
-      with t ht_wi_pos ht_pos
-    have ht_pos' : (0 : ℝ) < t := ht_pos
-    have ht_wi_pos' : 0 < w t i := ht_wi_pos
-    have hLCP_t := hdual_selected t ht_pos'.le
-    dsimp [isParametricLCP, isLCP] at hLCP_t
-    obtain ⟨-, hwt_nonneg, hzt_nonneg, hcompt⟩ := hLCP_t
-    have hzi_zero : (scaledPrimalPath x_lasso t) i = 0 :=
-      eq_zero_at_index_of_inner_eq_zero_of_nonneg (w t) (scaledPrimalPath x_lasso t) i
-        hwt_nonneg hzt_nonneg ht_wi_pos' hcompt
-    have hz_eq : (scaledPrimalPath x_lasso t) i = t * (x_lasso t).ofLp i := by
-      simp [scaledPrimalPath, PiLp.smul_apply, smul_eq_mul]
-    rw [hz_eq] at hzi_zero
-    simpa using hzi_zero
+  exact h_local_affine.eventually_affine i μ hμ h_diff
 
 /--
 INFORMAL PROOF:
@@ -2769,21 +2688,14 @@ differentiability of each coordinate `z_i`.  By
 affine at that point, and `deriv_locally_constant_of_eventually_affine` turns
 local affinity into local constancy of the derivative.
 
-The `0 < τ'` hypothesis (absent from earlier drafts of this lemma) is required
-by `scaledPrimalPath_coord_affine_at_differentiable`; see Caveat 1 in that
-lemma's docstring for why the boundary point `τ' = 0` genuinely has to be
-excluded, not just for convenience.
+The `0 < τ'` hypothesis is required because
+`ScaledPrimalPathLocallyAffineAtDifferentiable` records regularity only on the
+positive parameter domain used by the Lasso path.
 -/
 lemma scaledPrimalPath_deriv_locally_constant
     {ι : Type*} [Fintype ι]
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
-    (hdual_selected : ∀ μ, 0 ≤ μ →
-      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (τ' : ℝ) (i' : ι) (hτ' : 0 < τ')
     (h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ') :
     ∃ ε > 0, ∀ t, |t - τ'| < ε →
@@ -2802,7 +2714,7 @@ lemma scaledPrimalPath_deriv_locally_constant
     rw [h_eq]
     exact ((hasDerivAt_pi.1 h_hasDeriv) i').differentiableAt
   have h_aff := scaledPrimalPath_coord_affine_at_differentiable
-    M r lambda x_lasso hdata hx_lasso Mdagger w hdual hdual_selected i' τ' hτ' h_coord_diff
+    x_lasso h_local_affine i' τ' hτ' h_coord_diff
   exact deriv_locally_constant_of_eventually_affine h_coord_diff h_aff
 
 lemma pos_delta_alg_ineq {C1 C3 δ : ℝ} {ε : ℝ} (hε_pos : 0 < ε) (hε_lt : ε < 1)
@@ -2919,6 +2831,7 @@ lemma positive_delta_complementarity_bound
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
@@ -2941,12 +2854,11 @@ lemma positive_delta_complementarity_bound
         deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
     intro τ' i' h_diff
     by_cases hτ' : 0 < τ'
-    · exact scaledPrimalPath_deriv_locally_constant M r lambda x_lasso hdata hx_lasso
-        Mdagger w hdual hdual_selected τ' i' hτ' h_diff
-    · -- `τ' ≤ 0`: the boundary/negative-parameter case of
-      -- `scaledPrimalPath_coord_affine_at_differentiable`'s Caveat 1 (`x_lasso` is
-      -- unconstrained there), excluded from the a.e. framework below since `{τ' ≤ 0}`
-      -- meets `Set.Icc 0 s` in the single measure-zero point `τ' = 0`.
+    · exact scaledPrimalPath_deriv_locally_constant
+        x_lasso h_local_affine τ' i' hτ' h_diff
+    · -- The local-affinity package is only stated for positive parameters. In
+      -- the a.e. framework below, the nonpositive part of `[0, s]` is the
+      -- measure-zero singleton `{0}`.
       sorry
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
     hx_lasso h_regular h_piecewise_deriv
@@ -3037,6 +2949,7 @@ theorem positive_delta_differential_inequality
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
@@ -3051,7 +2964,7 @@ theorem positive_delta_differential_inequality
               (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
   exact positive_delta_complementarity_bound M r lambda β s hs u hdata hβ hu x_lasso hx_lasso
-    Mdagger w hdual hdual_selected h_regular h_lipschitz
+    Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
 
 /--
 The path delta at `τ = 0` is `0`.
@@ -3179,6 +3092,7 @@ theorem positive_path_delta_bound_full
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
@@ -3189,7 +3103,8 @@ theorem positive_path_delta_bound_full
           (deltaFullError ε s
             (positiveZUpward x_lasso s) (positiveZDownward x_lasso s) + δ) := by
   obtain ⟨C, hC_pos, h_bound⟩ := positive_delta_differential_inequality M r lambda β s hs
-    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_regular h_lipschitz
+    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular
+      h_lipschitz
   use C, hC_pos
   intro δ hδ
   have h_delta_pos : 0 < C * δ / s := div_pos (mul_pos hC_pos hδ) hs
@@ -3269,6 +3184,7 @@ theorem positive_path_delta_bound
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
@@ -3277,7 +3193,8 @@ theorem positive_path_delta_bound
         (scaledPrimalPath x_lasso) s
       ≤ C * (positiveZDownward x_lasso s + δ) := by
   obtain ⟨C, hC_pos, h_full⟩ := positive_path_delta_bound_full M r lambda β s hs
-    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_regular h_lipschitz
+    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular
+      h_lipschitz
   use C, hC_pos
   intro δ hδ
   have h_half_δ : 0 < δ / 2 := half_pos hδ
