@@ -546,8 +546,7 @@ lemma energy_complementarity_bound
       have hM_diff : matVec M (zε τ - z τ) = wε τ - w τ + (ones - wε 0) := by
         rw [matVec_sub, hM_zε, hM_z]
         ext i
-        simp [euclideanOf, ones, matVec, dotProduct, Pi.add_apply, Pi.sub_apply,
-          Pi.smul_apply, Pi.neg_apply]
+        simp [euclideanOf, ones]
         ring
       set D := deriv zε τ - deriv z τ with hD_def
       calc
@@ -582,7 +581,7 @@ lemma energy_complementarity_bound
           φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ)) -
         (deriv φ τ * inner ℝ (w τ) (zε τ - z τ) + φ τ * inner ℝ (deriv w τ) (zε τ - z τ)) := by
         rw [h_deriv_E_sum]
-        simp [inner_add_left, inner_smul_left, starRingEnd_apply]
+        simp [inner_add_left, inner_smul_left]
       _ = deriv φ τ * Δε τ +
           φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ -
             inner ℝ (deriv w τ) (zε τ - z τ) + deriv Δε τ) := by ring

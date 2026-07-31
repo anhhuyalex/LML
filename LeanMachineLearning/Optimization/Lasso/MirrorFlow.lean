@@ -1987,7 +1987,8 @@ private lemma beta_norm_sq_and_linear_bound {ι : Type*} [Fintype ι]
     (β y : EuclideanSpace ℝ ι) (C₀ : ℝ) (_hC₀0 : 0 ≤ C₀)
     (_hones_nonneg : 0 ≤ ‖(ones : EuclideanSpace ℝ ι)‖) (hβ_norm : ‖β‖ ≤ C₀ * ‖y‖) :
     ‖β‖ ^ 2 ≤ C₀ ^ 2 * ‖y‖ ^ 2 ∧
-    (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ ≤ (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖) := by
+    (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ ≤
+      (2 * ‖(ones : EuclideanSpace ℝ ι)‖ * C₀ + C₀) * ‖y‖) := by
   have hβsq : ‖β‖ ^ 2 ≤ C₀ ^ 2 * ‖y‖ ^ 2 := by
     nlinarith [norm_nonneg β, norm_nonneg y, hβ_norm]
   have hβ_linear : 2 * ‖(ones : EuclideanSpace ℝ ι)‖ * ‖β‖ + ‖β‖ ≤
