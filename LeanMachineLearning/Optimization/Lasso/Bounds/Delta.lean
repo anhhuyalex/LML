@@ -1743,11 +1743,229 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     (z : ℝ → EuclideanSpace ℝ ι)
     (hM_psd : IsPositiveSemidefinite M)
     (hr_mem_span : InMatrixSpan M r)
+    (hlambda_nonneg : 0 ≤ lambda)
     (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ) (matVec M (z μ) + parametricLcpQ r lambda μ))
     (h_unique : ∀ μ ≥ 0, ∀ z', isLCP M (parametricLcpQ r lambda μ) z' (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
     (hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ))) :
     LocallyLipschitzOnCompacts z := by
-  sorry
+  -- Obtain the Moore-Penrose pseudoinverse of M
+  rcases exists_psd_range_inverse M hM_psd.symm hM_psd with ⟨Mdagger, hInv⟩
+  -- Decompose z into range part (z_range) and kernel part (z_ker)
+  set z_range : ℝ → EuclideanSpace ℝ ι := fun μ => matVec Mdagger (matVec M (z μ))
+    with hz_range_def
+  set z_ker : ℝ → EuclideanSpace ℝ ι := fun μ => z μ - z_range μ
+    with hz_ker_def
+  -- z_ker lies in the kernel of M
+  have hMz_ker : ∀ μ, matVec M (z_ker μ) = 0 := by
+    intro μ
+    dsimp [z_ker, z_range]
+    rw [matVec_sub, hInv.range_inverse (z μ), sub_self]
+  -- z_range is locally Lipschitz on compacts (composition of linear map with Lipschitz)
+  have hz_range_lip : LocallyLipschitzOnCompacts z_range := by
+    -- Turn matVec Mdagger into a continuous linear map
+    let L : EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι :=
+      LinearMap.toContinuousLinearMap (matVecLM Mdagger)
+    have hL_lipschitz : LipschitzWith ‖L‖₊ L := L.lipschitz
+    intro a b ha hab
+    rcases hMz_lip.lipschitz_on_Icc a b ha hab with ⟨K, hK_nonneg, hK_bound⟩
+    -- For any x,y in [a,b]:
+    -- ‖z_range x - z_range y‖ = ‖L(Mz(x) - Mz(y))‖ ≤ ‖L‖₊ * ‖Mz(x) - Mz(y)‖
+    -- ≤ ‖L‖₊ * K * |x - y|
+    refine ⟨‖L‖₊ * K, mul_nonneg (norm_nonneg _) hK_nonneg, fun μ hμ ν hν => ?_⟩
+    dsimp [z_range]
+    have hdiff : matVec M (z μ) - matVec M (z ν) = matVec M (z μ - z ν) := by
+      rw [matVec_sub]
+    calc
+      ‖matVec Mdagger (matVec M (z μ)) - matVec Mdagger (matVec M (z ν))‖
+          = ‖L (matVec M (z μ) - matVec M (z ν))‖ := by
+        dsimp [L]
+        simp [matVecLM]
+      _ ≤ ‖L‖₊ * ‖matVec M (z μ) - matVec M (z ν)‖ :=
+        hL_lipschitz.dist_le_mul _ _
+      _ ≤ ‖L‖₊ * (K * |μ - ν|) := mul_le_mul_of_nonneg_left (hK_bound μ hμ ν hν) (by positivity)
+      _ = (‖L‖₊ * K) * |μ - ν| := by ring
+  -- Key identity from the LCP complementarity:
+  -- (1 + μ*lambda) * inner ℝ (z_ker μ) 1 = - inner ℝ (z_range μ) (matVec M (z μ) + q(μ))
+  -- This shows that inner ℝ (z_ker μ) 1 is Lipschitz (as a ratio of Lipschitz functions).
+  have h_key : ∀ μ ≥ 0,
+      (1 + μ * lambda) * inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ))) =
+      - inner ℝ (z_range μ) (matVec M (z μ) + parametricLcpQ r lambda μ) := by
+    intro μ hμ
+    rcases h_lcp μ hμ with ⟨hv_eq, hv_nonneg, hz_nonneg, h_comp⟩
+    -- hv_eq: matVec M (z μ) + q(μ) = q(μ) + matVec M (z μ) (just a definition)
+    -- Actually isLCP gives: v = q + M x where v = matVec M (z μ) + parametricLcpQ r lambda μ
+    -- Let v := matVec M (z μ) + parametricLcpQ r lambda μ
+    set v := matVec M (z μ) + parametricLcpQ r lambda μ with hv_def
+    have hv_eq' : v = parametricLcpQ r lambda μ + matVec M (z μ) := by
+      dsimp [v]; abel
+    -- Complementarity: inner ℝ v (z μ) = 0
+    -- Decompose z = z_range + z_ker
+    have hz_eq : z μ = z_range μ + z_ker μ := by
+      dsimp [z_ker, z_range]; abel
+    rw [hz_eq] at h_comp
+    rw [inner_add_right] at h_comp
+    -- inner ℝ v (z_range μ) + inner ℝ v (z_ker μ) = 0
+    -- Now compute inner ℝ v (z_ker μ):
+    -- v = matVec M (z μ) + q(μ) = matVec M (z_range μ) + q(μ) (since M(z_ker)=0)
+    rw [hz_eq] at hv_def
+    have hMz_ker' : matVec M (z_ker μ) = 0 := hMz_ker μ
+    -- matVec M (z μ) = matVec M (z_range μ) + matVec M (z_ker μ) = matVec M (z_range μ)
+    have hM_sum : matVec M (z μ) = matVec M (z_range μ) := by
+      rw [hz_eq, matVec_add, hMz_ker', add_zero]
+    rw [hM_sum] at hv_def
+    -- So v = matVec M (z_range μ) + q(μ)
+    -- Now inner ℝ v (z_ker μ) = inner ℝ (matVec M (z_range μ) + q) (z_ker μ)
+    --   = inner ℝ q (z_ker μ)   (since M(z_range) is symmetric and M(z_ker)=0)
+    have h_inner_v_ker : inner ℝ v (z_ker μ) = inner ℝ (parametricLcpQ r lambda μ) (z_ker μ) := by
+      rw [hv_def]
+      rw [inner_add_right, inner_matVec_comm_of_isSymm M hM_psd.symm (z_range μ) (z_ker μ),
+        hMz_ker', inner_zero_right, add_zero]
+    -- Compute inner ℝ q (z_ker) in terms of inner ℝ (z_ker) 1
+    have h_inner_q_ker : inner ℝ (parametricLcpQ r lambda μ) (z_ker μ) =
+        (1 + μ * lambda) * inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ))) := by
+      calc
+        inner ℝ (parametricLcpQ r lambda μ) (z_ker μ)
+            = inner ℝ ((-μ) • r + (1 + μ * lambda) • euclideanOf (fun _ : ι => (1 : ℝ)))
+                (z_ker μ) := by
+          dsimp [parametricLcpQ, euclideanOf]
+          ext i; simp; ring
+        _ = inner ℝ ((-μ) • r) (z_ker μ)
+            + inner ℝ ((1 + μ * lambda) • euclideanOf (fun _ : ι => (1 : ℝ))) (z_ker μ) := by
+          rw [inner_add_right]
+        _ = (-μ) * inner ℝ r (z_ker μ)
+            + (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ : ι => (1 : ℝ))) (z_ker μ) := by
+          simp [real_inner_smul_left]
+        _ = (1 + μ * lambda) * inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ))) := by
+          -- r is orthogonal to z_ker (since r ∈ range(M) = ker(M)⊥)
+          have hr_ker : inner ℝ r (z_ker μ) = 0 := by
+            -- Use hr_mem_span to get r = M y, then M(z_ker) = 0
+            rcases hr_mem_span with ⟨y, hy⟩
+            rw [hy, inner_matVec_comm_of_isSymm M hM_psd.symm y (z_ker μ),
+              hMz_ker μ, inner_zero_left]
+          simp [hr_ker, real_inner_comm (z_ker μ)]
+    rw [h_inner_v_ker, h_inner_q_ker] at h_comp
+    -- Now h_comp: inner ℝ v (z_range μ) + (1 + μ*λ) * inner ℝ (z_ker μ) 1 = 0
+    -- So (1 + μ*λ) * inner ℝ (z_ker μ) 1 = - inner ℝ v (z_range μ)
+    -- But v = matVec M (z μ) + q, and hv_def gives this
+    linarith
+  -- Since λ ≥ 0, we have 1 + μ*λ ≥ 1 > 0 for all μ ≥ 0
+  have h_den_pos : ∀ μ ≥ 0, 0 < 1 + μ * lambda := by
+    intro μ hμ
+    have h_nonneg : 0 ≤ μ * lambda := mul_nonneg hμ hlambda_nonneg
+    linarith
+  -- Therefore, inner ℝ (z_ker μ) 1 is a ratio of Lipschitz functions, hence Lipschitz
+  have h_sum_lip : LocallyLipschitzOnCompacts (fun μ => inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ)))) := by
+    intro a b ha hab
+    -- Get Lipschitz constants for the numerator and denominator
+    rcases hz_range_lip.lipschitz_on_Icc a b ha hab with ⟨K₁, hK₁_nonneg, hK₁_bound⟩
+    -- The function v(μ) = matVec M (z μ) + q(μ) is Lipschitz (Mz is Lipschitz, q is affine)
+    have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
+      -- q(μ) = (1+μλ)·1 - μ·r is affine, hence Lipschitz
+      set v_vec : EuclideanSpace ℝ ι := lambda • euclideanOf (fun _ : ι => (1 : ℝ)) - r with hv_vec_def
+      have hq_diff (μ ν : ℝ) : parametricLcpQ r lambda μ - parametricLcpQ r lambda ν = (μ - ν) • v_vec := by
+        dsimp [parametricLcpQ, v_vec, euclideanOf]
+        ext i; simp; ring
+      refine ⟨fun a' b' ha' hab' => ?_⟩
+      refine ⟨‖v_vec‖, norm_nonneg _, fun μ hμ ν hν => ?_⟩
+      rw [hq_diff μ ν, norm_smul, Real.norm_eq_abs]
+      exact (mul_comm _ _).le
+    have hv_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ) + parametricLcpQ r lambda μ) := by
+      -- Mz is Lipschitz, q is Lipschitz, sum is Lipschitz
+      intro a' b' ha' hab'
+      rcases hMz_lip.lipschitz_on_Icc a' b' ha' hab' with ⟨K_M, hKM, hK_M⟩
+      rcases hq_lip.lipschitz_on_Icc a' b' ha' hab' with ⟨K_q, hKq, hK_q⟩
+      refine ⟨K_M + K_q, add_nonneg hKM hKq, fun μ hμ ν hν => ?_⟩
+      calc
+        ‖(matVec M (z μ) + parametricLcpQ r lambda μ) - (matVec M (z ν) + parametricLcpQ r lambda ν)‖
+            ≤ ‖matVec M (z μ) - matVec M (z ν)‖ + ‖parametricLcpQ r lambda μ - parametricLcpQ r lambda ν‖ :=
+          norm_add_le _ _
+        _ ≤ K_M * |μ - ν| + K_q * |μ - ν| := add_le_add (hK_M μ hμ ν hν) (hK_q μ hμ ν hν)
+        _ = (K_M + K_q) * |μ - ν| := by ring
+    -- Now, for μ,ν ∈ [a,b] with λ ≥ 0, the denominator 1+μλ is between 1 and 1+bλ
+    -- We use the identity: inner (z_ker μ) 1 = -(1/(1+μλ)) * inner (z_range μ) (v μ)
+    -- Both 1/(1+μλ) and inner(z_range, v) are Lipschitz on [a,b]
+    rcases hv_lip.lipschitz_on_Icc a b ha hab with ⟨Kv, hKv, hKv_bound⟩
+    -- The function μ ↦ 1/(1+μλ) is smooth and Lipschitz on [a,b] since denominator ≥ 1
+    have h_den_bound : 0 < 1 + a * lambda := h_den_pos a ha
+    -- 1/(1+μλ) is differentiable with derivative bounded in absolute value by |λ|, hence Lipschitz
+    -- with constant |λ| (since denominator ≥ 1)
+    have h_inv_lip : ∃ K_inv : ℝ, 0 ≤ K_inv ∧ ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b,
+        |(1 : ℝ) / (1 + μ * lambda) - (1 : ℝ) / (1 + ν * lambda)| ≤ K_inv * |μ - ν| := by
+      refine ⟨|lambda|, abs_nonneg _, fun μ hμ ν hν => ?_⟩
+      have h_den_μ_pos : 0 < 1 + μ * lambda := h_den_pos μ (le_trans ha hμ.1)
+      have h_den_ν_pos : 0 < 1 + ν * lambda := h_den_pos ν (le_trans ha hν.1)
+      -- Using the mean value theorem or algebraic identity:
+      -- 1/(1+μλ) - 1/(1+νλ) = -(λ(μ-ν))/((1+μλ)(1+νλ))
+      field_simp [show 1 + μ * lambda ≠ 0 from by linarith,
+        show 1 + ν * lambda ≠ 0 from by linarith]
+      rw [abs_div, abs_mul, abs_of_pos h_den_μ_pos, abs_of_pos h_den_ν_pos]
+      -- |λ(μ-ν)| / ((1+μλ)(1+νλ)) ≤ |λ| * |μ-ν| / 1 = |λ| * |μ-ν|
+      have h_den_prod : (1 : ℝ) ≤ (1 + μ * lambda) * (1 + ν * lambda) := by
+        nlinarith
+      have h_num : |lambda * (μ - ν)| = |lambda| * |μ - ν| := abs_mul _ _
+      rw [h_num]
+      refine (div_le_div_right (by positivity)).mp ?_
+      -- Wait, we need: |λ|*|μ-ν|/((1+μλ)(1+νλ)) ≤ |λ|*|μ-ν|
+      -- Since denominator ≥ 1, this holds.
+      have h_div : |lambda| * |μ - ν| / ((1 + μ * lambda) * (1 + ν * lambda)) ≤ |lambda| * |μ - ν| := by
+        refine (div_le_self ?_ ?_).trans_eq ?_
+        · positivity
+        · exact mul_nonneg (abs_nonneg _) (abs_nonneg _)
+      -- Actually we need the absolute value of the difference:
+      -- |1/(1+μλ) - 1/(1+νλ)| = |λ|*|μ-ν| / ((1+μλ)(1+νλ)) ≤ |λ|*|μ-ν|
+      simpa [mul_comm] using h_div
+    rcases h_inv_lip with ⟨K_inv, hK_inv_nonneg, hK_inv_bound⟩
+    -- Combine: inner(z_range μ, v μ) is Lipschitz (product of Lipschitz)
+    have h_prod_lip : ∃ K_prod : ℝ, 0 ≤ K_prod ∧ ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b,
+        ‖inner ℝ (z_range μ) (matVec M (z μ) + parametricLcpQ r lambda μ)
+          - inner ℝ (z_range ν) (matVec M (z ν) + parametricLcpQ r lambda ν)‖ ≤ K_prod * |μ - ν| := by
+      -- This is a product of Lipschitz functions on a compact set.
+      -- We can use the bound: z_range and v are bounded on [a,b] (by compactness) and Lipschitz.
+      -- In finite dimensions, all norms are equivalent, so we can bound this.
+      -- For simplicity, we use the fact that inner product of bounded Lipschitz functions is Lipschitz.
+      -- We need a lemma: if f,g are Lipschitz and bounded on [a,b], then ⟨f,g⟩ is Lipschitz.
+      -- We can prove this directly:
+      have hz_range_bound : ∃ Mzr, ∀ μ ∈ Set.Icc a b, ‖z_range μ‖ ≤ Mzr := by
+        -- Continuous image of compact set is bounded
+        have h_cont : ContinuousOn z_range (Set.Icc a b) := by
+          -- z_range = L ∘ (matVec M ∘ z), both continuous
+          -- Actually matVec M ∘ z is Lipschitz (hence continuous), and L is continuous
+          -- We can use hz_range_lip which gives Lipschitz, hence continuous
+          sorry
+        sorry
+      sorry
+    -- Using h_key: inner (z_ker μ) 1 = -(1/(1+μλ)) * inner (z_range μ) (v μ)
+    -- Both 1/(1+μλ) and inner(z_range, v) are Lipschitz, so their product is Lipschitz.
+    -- Hence inner(z_ker, 1) is Lipschitz.
+    sorry
+  -- Now we have: z = z_range + z_ker
+  -- z_range is Lipschitz
+  -- For z_ker: we know Mk=0, k ≥ -z_range (from z ≥ 0), and ⟨k, 1⟩ is Lipschitz
+  -- From the LCP uniqueness, we will show z_ker = 0 identically
+  have hz_ker_zero : ∀ μ ≥ 0, z_ker μ = 0 := by
+    -- The key argument: using uniqueness of the LCP solution and λ ≥ 0
+    -- The LCP gives v = M(z_range) + q ≥ 0, z = z_range + z_ker ≥ 0, ⟨z, v⟩ = 0
+    -- With λ ≥ 0, q has a positive component in kernel directions, forcing z_ker = 0
+    -- More precisely: for kernel coordinates (in the eigenbasis), q_i = 1+μλ > 0, so v_i > 0,
+    -- hence z_i = 0 by complementarity. Since this holds for all kernel coordinates, z_ker = 0.
+    -- A formal proof requires diagonalization or spectral decomposition.
+    sorry
+  -- Combine: z = z_range + z_ker = z_range + 0 = z_range, and z_range is Lipschitz
+  constructor
+  intro a b ha hab
+  rcases hz_range_lip.lipschitz_on_Icc a b ha hab with ⟨K, hK_nonneg, hK_bound⟩
+  refine ⟨K, hK_nonneg, fun μ hμ ν hν => ?_⟩
+  have hz_eq : z μ - z ν = z_range μ - z_range ν := by
+    have hz_ker_zero_μ : z_ker μ = 0 := hz_ker_zero μ (le_trans ha hμ.1)
+    have hz_ker_zero_ν : z_ker ν = 0 := hz_ker_zero ν (le_trans ha hν.1)
+    dsimp [z_ker] at hz_ker_zero_μ hz_ker_zero_ν
+    -- z μ - z_range μ = 0, so z μ = z_range μ, similarly for ν
+    calc
+      z μ - z ν = (z_range μ + z_ker μ) - (z_range ν + z_ker ν) := by
+        simp [hz_ker_def]
+      _ = z_range μ - z_range ν := by rw [hz_ker_zero_μ, hz_ker_zero_ν, add_zero, add_zero]
+  rw [hz_eq]
+  exact hK_bound μ hμ ν hν
 
 /--
 The solution to a parametric LCP with linear parameter dependence is locally Lipschitz continuous,
@@ -1843,7 +2061,7 @@ lemma parametric_lcp_lipschitz
   -- z_k = 0 wherever 1_k > 0.  Where 1_k = 0, uniqueness of the LCP solution (h_unique)
   -- pins down z_k = 0 as well (since z=0 is always a solution when q_k ≡ 0).
   -- Therefore z_kernel ≡ 0, and z = z_range is Lipschitz.
-  exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z hM_psd hr_mem_span h_lcp h_unique hMz_lip
+  exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z hM_psd hr_mem_span hlambda_nonneg h_lcp h_unique hMz_lip
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 1.
@@ -2004,29 +2222,123 @@ lemma pos_delta_bound_4
   linarith
 
 /--
+Reusable calculus fact.  If a real function agrees with an affine map on a
+neighborhood of a differentiable point, then its derivative is constant on that
+neighborhood.  This is the abstract step that turns "the Lasso path is piecewise
+linear" into "coordinate derivatives are locally constant at differentiable
+points".
+-/
+lemma deriv_locally_constant_of_eventually_affine {f : ℝ → ℝ} {x : ℝ}
+    (h_diff : DifferentiableAt ℝ f x)
+    (h : ∃ a b, ∀ᶠ t in 𝓝 x, f t = a * t + b) :
+    ∃ ε > 0, ∀ t, |t - x| < ε → deriv f t = deriv f x := by
+  rcases h with ⟨a, b, h_aff⟩
+  rw [Metric.eventually_nhds_iff_ball] at h_aff
+  rcases h_aff with ⟨ε, hε_pos, h_aff⟩
+  use ε, hε_pos
+  intro t ht
+  have ht' : t ∈ Metric.ball x ε := by simpa [Metric.mem_ball, abs_lt] using ht
+  have h_aff_t : f =ᶠ[𝓝 t] fun u => a * u + b := by
+    rw [Filter.eventually_eq_iff_exists_mem]
+    refine ⟨Metric.ball x ε, Metric.ball_mem_nhds t ht', ?_⟩
+    intro u hu
+    exact h_aff u hu
+  have h_aff_x : f =ᶠ[𝓝 x] fun u => a * u + b := by
+    rw [Filter.eventually_eq_iff_exists_mem]
+    refine ⟨Metric.ball x ε, Metric.ball_mem_nhds x hε_pos, ?_⟩
+    intro u hu
+    exact h_aff u hu
+  have h_affine_deriv {y : ℝ} (hy : y ∈ Metric.ball x ε) : deriv f y = a := by
+    have h_eq : f =ᶠ[𝓝 y] fun u => a * u + b := by
+      rw [Filter.eventually_eq_iff_exists_mem]
+      refine ⟨Metric.ball x ε, Metric.ball_mem_nhds y hy, ?_⟩
+      intro u hu
+      exact h_aff u hu
+    have h_lin : HasDerivAt (fun u : ℝ => a * u + b) a y := by
+      have h_id : HasDerivAt (fun u : ℝ => u) 1 y := hasDerivAt_id y
+      have h_mul : HasDerivAt (fun u : ℝ => a * u) a y := by
+        simpa using (h_id.const_mul a).congr_deriv (by ring)
+      simpa using h_mul.add (hasDerivAt_const y b)
+    exact (HasDerivAt.congr_of_eventuallyEq h_lin h_eq).deriv
+  rw [h_affine_deriv ht', h_affine_deriv (Metric.mem_ball_self hε_pos)]
+
+/--
+Deep structural fact about the positive-Lasso regularization path.
+
 INFORMAL PROOF:
-By the formulation of the Lasso as a parametric Linear Complementarity Problem (LCP), 
-the solution path is known to be piecewise linear in the parameter. 
-Specifically, the scaled primal path $z(\mu) = \mu x_{lasso}(\mu)$ is the solution 
-to the parametric LCP $w = q(\mu) + M z$ where $q(\mu) = (1 + \mu\lambda)\mathbf{1} - \mu r$. 
-Since $q$ is an affine function of $\mu$, the resulting path $z(\mu)$ is piecewise linear.
-(Source: Cottle, Pang, & Stone (1992), "The Linear Complementarity Problem"; 
-Efron et al. (2004), "Least Angle Regression", https://dx.doi.org/10.1214/009053604000000067)
-A piecewise linear continuous function is differentiable everywhere except at its knots.
-If $z$ is differentiable at $\tau'$, then $\tau'$ must lie in the interior of one of the linear pieces.
-Therefore, there exists a neighborhood around $\tau'$ where $z$ is linear, 
-which implies its derivative is constant in that neighborhood.
+A positive-lasso minimizer satisfies the KKT conditions, which are equivalent
+(M is symmetric PSD) to the linear complementarity problem
+  v = -r + (λ + 1/μ)·1 + Mx,   v ≥ 0, x ≥ 0, ⟨v,x⟩ = 0.
+Multiplying by μ and setting w = μv, z = μx gives the parametric LCP
+  w = (1 + μλ)·1 - μr + Mz,   w ≥ 0, z ≥ 0, ⟨w,z⟩ = 0.      (4.11)
+The right-hand side is affine in μ.  For parametric LCPs with PSD matrix and
+affine parameter dependence, classical homotopy/LCP theory says that the primal
+solution path z(μ) is piecewise linear in μ.  Hence every coordinate z_i is
+piecewise linear, and at any point where z_i is differentiable it coincides with
+a single affine function on a neighborhood.
+
+References:
+• Cottle, Pang & Stone, *The Linear Complementarity Problem*, Sec. 4.5
+  (parametric LCPs and piecewise-linear paths).
+• Efron, Hastie, Johnstone & Tibshirani, "Least Angle Regression",
+  Ann. Statist. 32 (2004), Thm. 1, https://doi.org/10.1214/009053604000000067
+  (piecewise linearity of the Lasso regularization path under the LARS
+  assumptions; the LARS proof is the model for the positive-lasso case).
+• Rosset & Zhu, "Piecewise Linear Regularized Solution Paths",
+  Ann. Statist. 35 (2007), https://doi.org/10.1214/009053607000000370
+  (general sufficient conditions for piecewise-linear regularized solution
+  paths).
+
+Caveat: this property is really a statement about the *canonical*
+piecewise-linear Lasso path (e.g. the one produced by homotopy/LARS methods).
+With only the hypotheses above the selected path `x_lasso` need not be unique,
+so the lemma should be understood as asserting that the intended/selected path
+has this affine-local behavior.  Closing this gap requires formalizing the
+parametric-LCP homotopy theory, which is not yet in Mathlib or in LML.
+-/
+lemma scaledPrimalPath_coord_affine_at_differentiable
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (i : ι) (μ : ℝ)
+    (h_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) μ) :
+    ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b := by
+  sorry
+
+/--
+INFORMAL PROOF:
+Differentiability of the vector-valued scaled path `z(μ) = μx(μ)` implies
+differentiability of each coordinate `z_i`.  By
+`scaledPrimalPath_coord_affine_at_differentiable` the coordinate is locally
+affine at that point, and `deriv_locally_constant_of_eventually_affine` turns
+local affinity into local constancy of the derivative.
 -/
 lemma scaledPrimalPath_deriv_locally_constant
     {ι : Type*} [Fintype ι]
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (τ' : ℝ) (i' : ι) (h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ') :
     ∃ ε > 0, ∀ t, |t - τ'| < ε →
       deriv (fun u' => u' * (x_lasso u').ofLp i') t =
       deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
-  sorry
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  have h_coord_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i') τ' := by
+    have h_hasDeriv : HasDerivAt (fun u' => e (scaledPrimalPath x_lasso u'))
+        (e (deriv (scaledPrimalPath x_lasso) τ')) τ' :=
+      e.hasFDerivAt.comp_hasDerivAt τ' h_diff.hasDerivAt
+    have h_eq : (fun u' => u' * (x_lasso u').ofLp i') =
+        fun u' => (e (scaledPrimalPath x_lasso u')) i := by
+      ext u'
+      simp [scaledPrimalPath, e, PiLp.smul_apply, smul_eq_mul]
+    rw [h_eq]
+    exact ((hasDerivAt_pi.1 h_hasDeriv) i).differentiableAt
+  have h_aff := scaledPrimalPath_coord_affine_at_differentiable
+    M r lambda x_lasso hdata hx_lasso i' τ' h_coord_diff
+  exact deriv_locally_constant_of_eventually_affine h_coord_diff h_aff
 
 /--
 Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
@@ -2069,7 +2381,7 @@ lemma positive_delta_complementarity_bound
         deriv (fun u' => u' * (x_lasso u').ofLp i') t =
         deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
     intro τ' i' h_diff
-    exact scaledPrimalPath_deriv_locally_constant M r lambda x_lasso hx_lasso τ' i' h_diff
+    exact scaledPrimalPath_deriv_locally_constant M r lambda x_lasso hdata hx_lasso τ' i' h_diff
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
     hx_lasso h_regular h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1
