@@ -1915,6 +1915,31 @@ lemma pos_delta_bound_4
   linarith
 
 /--
+INFORMAL PROOF:
+By the formulation of the Lasso as a parametric Linear Complementarity Problem (LCP), 
+the solution path is known to be piecewise linear in the parameter. 
+Specifically, the scaled primal path $z(\mu) = \mu x_{lasso}(\mu)$ is the solution 
+to the parametric LCP $w = q(\mu) + M z$ where $q(\mu) = (1 + \mu\lambda)\mathbf{1} - \mu r$. 
+Since $q$ is an affine function of $\mu$, the resulting path $z(\mu)$ is piecewise linear.
+(Source: Cottle, Pang, & Stone (1992), "The Linear Complementarity Problem"; 
+Efron et al. (2004), "Least Angle Regression", https://dx.doi.org/10.1214/009053604000000067)
+A piecewise linear continuous function is differentiable everywhere except at its knots.
+If $z$ is differentiable at $\tau'$, then $\tau'$ must lie in the interior of one of the linear pieces.
+Therefore, there exists a neighborhood around $\tau'$ where $z$ is linear, 
+which implies its derivative is constant in that neighborhood.
+-/
+lemma scaledPrimalPath_deriv_locally_constant
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (τ' : ℝ) (i' : ι) (h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ') :
+    ∃ ε > 0, ∀ t, |t - τ'| < ε →
+      deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+      deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
+  sorry
+
+/--
 Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.14).
@@ -1954,11 +1979,8 @@ lemma positive_delta_complementarity_bound
       ∃ ε > 0, ∀ t, |t - τ'| < ε →
         deriv (fun u' => u' * (x_lasso u').ofLp i') t =
         deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
-    -- Derive from piecewise linearity of the Lasso path (Efron et al. 2004).
-    -- If z_i(μ) = μ·x_lasso(μ)_i is piecewise linear, then z_i' is piecewise
-    -- constant.  At a point τ' where z is differentiable, z_i' is locally
-    -- constant, i.e., deriv (fun u' => u' * x_lasso(u')_i) is locally constant.
-    sorry
+    intro τ' i' h_diff
+    exact scaledPrimalPath_deriv_locally_constant M r lambda x_lasso hx_lasso τ' i' h_diff
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
     hx_lasso h_regular h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1
