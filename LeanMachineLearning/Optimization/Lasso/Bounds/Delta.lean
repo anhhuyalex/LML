@@ -2187,19 +2187,81 @@ lemma pos_delta_alg_ineq {C1 C3 δ : ℝ} {ε : ℝ} (hε_pos : 0 < ε) (hε_lt 
     have h2 : C3 * (L * A) ≤ M * (L * A) := mul_le_mul_of_nonneg_right hC3M hLA_nonneg
     have h3 : C3 * B ≤ M * B := mul_le_mul_of_nonneg_right hC3M hB_nonneg
     nlinarith
-  dsimp [L, M] at h_sum
+  -- `h_sum` above is stated in the `set`-folded `L`/`M` notation.  `linarith` needs its atoms
+  -- to match the goal syntactically: the goal's `C1 / Real.log (1/ε)` was never folded into
+  -- `L` (it isn't syntactically `1 / Real.log (1/ε)`, so `set` could not rewrite it), so we
+  -- unfold `L`/`M` in `h_sum` and separately turn the goal's division into `C1 * (1/Real.log
+  -- (1/ε))` via `div_eq_mul_one_div` to line the two representations up before `linarith`.
+  dsimp only [L, M] at h_sum ⊢
+  rw [div_eq_mul_one_div C1]
   linarith
 
+/--
+Composing an absolutely continuous curve with a Lipschitz map preserves absolute continuity.
+
+We need this because Mathlib's `AbsolutelyContinuousOnInterval.ae_differentiableAt` is stated
+only for `ℝ`-valued curves (`MeasureTheory.Function.AbsolutelyContinuous`), while the Lasso
+path lives in the vector space `EuclideanSpace ℝ ι`. Directly feeding a vector-valued
+`AbsolutelyContinuousOnInterval` hypothesis into that scalar-only lemma is a type mismatch;
+attempting it forces Lean into an expensive, ultimately failing unification search (this is
+what caused the `whnf` timeout here previously — the fix is this coordinate-wise reduction,
+not a larger heartbeat budget). Projecting onto a single coordinate is `1`-Lipschitz, so
+composing with it turns the vector-valued absolute continuity of `f` into scalar-valued
+absolute continuity of `g ∘ f`, to which `ae_differentiableAt` applies.
+
+Informal proof: absolute continuity is characterized by `∑ dist (f aᵢ) (f bᵢ) → 0` as the total
+length `∑ dist aᵢ bᵢ → 0`. Since `g` is `K`-Lipschitz,
+`∑ dist (g (f aᵢ)) (g (f bᵢ)) ≤ K * ∑ dist (f aᵢ) (f bᵢ) → 0`.
+(Source: Lipschitz images of absolutely continuous functions are absolutely continuous; this is
+the direct analogue of the standard fact that Lipschitz images of bounded-variation functions
+have bounded variation, e.g. Royden & Fitzpatrick, *Real Analysis*, 4th ed., Ch. 5.)
+-/
+theorem _root_.LipschitzWith.comp_absolutelyContinuousOnInterval
+    {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y]
+    {f : ℝ → X} {g : X → Y} {K : NNReal} {a b : ℝ}
+    (hg : LipschitzWith K g) (hf : AbsolutelyContinuousOnInterval f a b) :
+    AbsolutelyContinuousOnInterval (g ∘ f) a b := by
+  have hf' : Tendsto
+      (fun E : ℕ × (ℕ → ℝ × ℝ) ↦ ∑ i ∈ Finset.range E.1, dist (f (E.2 i).1) (f (E.2 i).2))
+      (AbsolutelyContinuousOnInterval.totalLengthFilter ⊓
+        𝓟 (AbsolutelyContinuousOnInterval.disjWithin a b)) (𝓝 0) := hf
+  apply squeeze_zero (fun _ ↦ Finset.sum_nonneg (fun _ _ ↦ dist_nonneg))
+    (fun _ ↦ ?_) (by simpa using hf'.const_mul (K : ℝ))
+  simp only [Function.comp_apply]
+  rw [Finset.mul_sum]
+  exact Finset.sum_le_sum (fun i _ ↦ hg.dist_le_mul _ _)
+
+/--
+Almost every point of `[0, s]` is a differentiability point of the scaled primal path,
+obtained coordinate-by-coordinate from the scalar Mathlib fact
+`AbsolutelyContinuousOnInterval.ae_differentiableAt` (which does not generalize to
+vector-valued curves) via `LipschitzWith.comp_absolutelyContinuousOnInterval` and the
+finite-coordinate characterization `differentiableAt_piLp` of differentiability on
+`EuclideanSpace ℝ ι = PiLp 2 (fun _ => ℝ)`.
+-/
 lemma scaledPrimalPath_ae_differentiable
     {x_lasso : ℝ → EuclideanSpace ℝ ι} {s : ℝ} (hs : 0 < s)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∀ᵐ τ ∂volume, τ ∈ Set.Icc 0 s → DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ := by
   have hs_nonneg : 0 ≤ s := le_of_lt hs
-  have h0_le_s : 0 ≤ s := hs_nonneg
-  have h := AbsolutelyContinuousOnInterval.ae_differentiableAt
-    (h_regular.absolutelyContinuousOn_Icc 0 s (le_refl (0 : ℝ)) h0_le_s)
-  rw [Set.uIcc_of_le h0_le_s] at h
-  exact (ae_restrict_iff' measurableSet_Icc).1 h
+  have h_ac : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 s :=
+    h_regular.absolutelyContinuousOn_Icc 0 s le_rfl hs_nonneg
+  have h_coord : ∀ i : ι, ∀ᵐ τ ∂volume, τ ∈ Set.Icc 0 s →
+      DifferentiableAt ℝ (fun t => (scaledPrimalPath x_lasso t) i) τ := by
+    intro i
+    have h_lip : LipschitzWith 1 (fun x : EuclideanSpace ℝ ι => x i) :=
+      LipschitzWith.of_dist_le_mul (fun x y => by
+        simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)
+    have h_ac_i : AbsolutelyContinuousOnInterval
+        ((fun x : EuclideanSpace ℝ ι => x i) ∘ scaledPrimalPath x_lasso) 0 s :=
+      h_lip.comp_absolutelyContinuousOnInterval h_ac
+    have h := h_ac_i.ae_differentiableAt
+    rwa [Set.uIcc_of_le hs_nonneg] at h
+  have h_all : ∀ᵐ τ ∂volume, ∀ i : ι, τ ∈ Set.Icc 0 s →
+      DifferentiableAt ℝ (fun t => (scaledPrimalPath x_lasso t) i) τ :=
+    ae_all_iff.2 h_coord
+  filter_upwards [h_all] with τ hτ hτ_mem
+  exact (differentiableAt_piLp 2).2 (fun i => hτ i hτ_mem)
 
 /--
 Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
