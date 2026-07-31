@@ -1723,6 +1723,29 @@ lemma deriv_bound_of_lipschitz
     rw [norm_zero]
     exact hK
 
+/-- A path that is locally Lipschitz on nonnegative compact intervals has a
+strictly positive uniform bound on the norm of its `deriv` on each nondegenerate
+such interval.
+
+The extra `+ 1` in the witness makes the constant strictly positive even when
+the path is constant. At differentiability points the bound is the usual bound
+of the derivative by the Lipschitz constant; at all other points Mathlib's
+`deriv` is zero.
+-/
+lemma LocallyLipschitzOnCompacts.exists_deriv_bound_on_Icc
+    {f : ℝ → EuclideanSpace ℝ ι} (hf : LocallyLipschitzOnCompacts f)
+    (a b : ℝ) (ha : 0 ≤ a) (hab : a < b) :
+    ∃ C > 0, ∀ x ∈ Set.Icc a b, ‖deriv f x‖ ≤ C := by
+  obtain ⟨K, hK_nonneg, hK_bound⟩ := hf.lipschitz_on_Icc a b ha hab.le
+  have hlip : LipschitzOnWith K.toNNReal f (Set.Icc a b) := by
+    apply LipschitzOnWith.of_dist_le_mul (K := K.toNNReal)
+    intro x hx y hy
+    simpa [dist_eq_norm, Real.dist_eq, Real.toNNReal_of_nonneg hK_nonneg] using
+      hK_bound x hx y hy
+  refine ⟨K + 1, by linarith, fun x hx ↦ ?_⟩
+  have hderiv := deriv_bound_of_lipschitz hK_nonneg hab hlip x hx
+  linarith
+
 /--
 Real-valued analogue of `LocallyLipschitzOnCompacts`, for scalarizations
 (e.g. inner products against a fixed vector) of `EuclideanSpace`-valued Lipschitz
@@ -2153,8 +2176,8 @@ of the LCP for all `μ ≥ 0`).
 
 Note: Without the uniqueness hypothesis this lemma is **false** in general (a PSD but not
 PD matrix can admit non‑unique LCP solutions, and a discontinuous selection is possible).
-The call site `scaledPrimalPath_deriv_bound` therefore uses a direct finite-active-set
-argument instead of this lemma.
+Consequently, `scaledPrimalPath_deriv_bound` takes local Lipschitz regularity explicitly;
+it must not be inferred from absolute continuity or non-unique LCP feasibility alone.
 -/
 lemma parametric_lcp_lipschitz
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2462,66 +2485,37 @@ lemma pos_delta_bound_4_term1
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 2 (Derivative bound).
 
 INFORMAL PROOF:
-The scaled primal path $z(\tau) = \tau x(\tau)$ is the solution to a parametric
-Linear Complementarity Problem (LCP) with linear parameter dependence. By standard
-LCP regularity theory, such a solution path is locally Lipschitz continuous.
-Because $z(\tau)$ is Lipschitz continuous on the compact interval $[0, s]$, it is
-absolutely continuous, and its derivative is bounded almost everywhere it exists
-by the Lipschitz constant.
+By `h_lipschitz`, the scaled primal path $z(\tau)=\tau x(\tau)$ has some
+Lipschitz constant $K\geq 0$ on the compact interval $[0,s]$. At every point
+where $z$ is differentiable, the norm of its derivative is at most $K$, by
+passing the Lipschitz bound on difference quotients to the limit. At every
+other point Mathlib defines `deriv z` to be zero. Thus $C=K+1$ is a strictly
+positive bound at every point of $[0,s]$.
+
+The local-Lipschitz hypothesis is essential: absolute continuity alone gives
+an integrable derivative almost everywhere, but does not give a uniform bound
+(for example, `t ↦ t^(3/4)` on `[0, 1]` is absolutely continuous and has an
+unbounded derivative near zero).
+
+This is the stronger regularity route needed by the current pointwise API for
+Term 4, Part 2.  In the general absolutely-continuous setting of Theorem 3.2,
+the source instead retains the positive/negative variation densities and only
+integrates them in Eq. (4.15); that route does not require this lemma.
 
 CITATION:
-- `docs/Lasso.md`, Section 4.5 (Lemma 4.11) and Section 4.7.
-- Cottle, Pang, Stone, "The Linear Complementarity Problem" (1992).
+- `docs/Lasso.md`, Section 4.7, Lemma 4.12 (the monotone case supplies local
+  Lipschitz regularity of the scaled primal path).
+- `Mathlib/MeasureTheory/Function/AbsolutelyContinuous.lean` (Lipschitz implies
+  absolute continuity, but not conversely).
+- Federer, *Geometric Measure Theory*, Theorem 3.1.6 (derivatives of Lipschitz
+  maps are bounded by the Lipschitz constant wherever they exist).
 -/
 lemma scaledPrimalPath_deriv_bound
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (hdata : ProblemData M r lambda)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
     (s : ℝ) (hs : 0 < s) :
     ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C := by
-  rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
-  rcases hr_mem_span with ⟨y, hy⟩
-  set z := scaledPrimalPath x_lasso with hz_def
-  -- For each τ, define the dual variable w(τ) = M z(τ) - τ·r + (1+τλ)·1
-  set w : ℝ → EuclideanSpace ℝ ι := fun τ =>
-    matVec M (z τ) - τ • r + (1 + τ * lambda) • ones with hw_def
-  -- First: `z` is absolutely continuous on `[0, s]` because `h_regular` gives
-  -- absolute continuity on every compact subinterval of `[0, ∞)`.
-  have h_ac : AbsolutelyContinuousOnInterval z 0 s := by
-    have h0 : (0 : ℝ) ≤ 0 := le_refl _
-    have h0s : (0 : ℝ) ≤ s := hs.le
-    exact h_regular.absolutelyContinuousOn_Icc 0 s h0 h0s
-  -- Second: a bound on `‖deriv z τ‖` for all `τ ∈ ℝ` where `z` is differentiable.
-  -- The idea (following the finite-active-set argument from Lemma 4.11/4.12):
-  --   1. Use `scaled_dual_lipschitz` to get that the scaled dual path is locally
-  --      Lipschitz on compacts, hence `M ∘ z` is locally Lipschitz.
-  --   2. On the compact interval `[0, s]`, `M ∘ z` has Lipschitz constant `K`, so
-  --      `‖M (deriv z τ)‖ ≤ K` at all differentiable points.
-  --   3. At a differentiable point `τ`, the active set `A(τ) = {i | w_i(τ) = 0}`
-  --      determines a linear system: `ż_i = 0` for `i ∉ A`, `(M ż)_i = r_i - λ`
-  --      for `i ∈ A`.  Combined with the bound on `M ż`, this constrains `ż`.
-  --   4. A rigorous bound on `‖ż(τ)‖` requires either uniqueness of the LCP
-  --      solution (so `ż` is unique and bounded) or the monotonicity hypothesis
-  --      from Theorem 3.1 (which makes `z` coordinatewise nondecreasing).
-  --   Without these, the lemma is **false** in general (see the counterexample
-  --   in the planning notes: a PSD matrix with a kernel admits non-unique LCP
-  --   solutions, allowing an oscillatory path with unbounded derivative).
-  --
-  --   TODO: add the missing hypotheses (uniqueness + monotonicity, or directly
-  --   a Lipschitz condition on `z`) and use `deriv_bound_of_lipschitz`.
-  have h_deriv_bound : ∃ C > 0, ∀ (τ : ℝ), DifferentiableAt ℝ z τ →
-      ‖deriv z τ‖ ≤ C := by
-    sorry
-  rcases h_deriv_bound with ⟨C, hC_pos, hC_bound⟩
-  refine ⟨C, hC_pos, fun τ hτ => ?_⟩
-  rcases hτ with ⟨hτ_low, hτ_high⟩
-  by_cases h_diff : DifferentiableAt ℝ z τ
-  · exact hC_bound τ h_diff
-  · -- If z is not differentiable at τ, deriv z τ = 0 by convention, and ‖0‖ = 0 ≤ C
-    rw [deriv_zero_of_not_differentiableAt h_diff, norm_zero]
-    exact hC_pos.le
+  exact h_lipschitz.exists_deriv_bound_on_Icc 0 s (le_refl _) hs
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 3.
@@ -2586,7 +2580,7 @@ lemma pos_delta_bound_4
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -2596,7 +2590,7 @@ lemma pos_delta_bound_4
           (ones - posRescaledMirrorVariable ε (u ε) 0)
         ≤ δ := by
   intro δ hδ
-  have h_bound := scaledPrimalPath_deriv_bound M r lambda hdata x_lasso hx_lasso h_regular s hs
+  have h_bound := scaledPrimalPath_deriv_bound x_lasso h_lipschitz s hs
   have h2 := pos_delta_bound_4_term2 M r lambda β s hs u hdata hβ hu x_lasso h_bound δ hδ
   filter_upwards [h2] with ε hε
   intro τ hτ
@@ -2925,7 +2919,8 @@ lemma positive_delta_complementarity_bound
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
         deriv
@@ -2957,7 +2952,8 @@ lemma positive_delta_complementarity_bound
     hx_lasso h_regular h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1
   intro δ hδ
-  have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso h_regular δ hδ
+  have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso
+    h_lipschitz δ hδ
   filter_upwards [h1, h2, h3, h4, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
@@ -3041,7 +3037,8 @@ theorem positive_delta_differential_inequality
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
         deriv
@@ -3054,7 +3051,7 @@ theorem positive_delta_differential_inequality
               (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
   exact positive_delta_complementarity_bound M r lambda β s hs u hdata hβ hu x_lasso hx_lasso
-    Mdagger w hdual hdual_selected h_regular
+    Mdagger w hdual hdual_selected h_regular h_lipschitz
 
 /--
 The path delta at `τ = 0` is `0`.
@@ -3182,7 +3179,8 @@ theorem positive_path_delta_bound_full
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       pathDelta M
         (fun τ => posIntegratedTrajectoryRescaled ε (u ε) τ)
@@ -3191,7 +3189,7 @@ theorem positive_path_delta_bound_full
           (deltaFullError ε s
             (positiveZUpward x_lasso s) (positiveZDownward x_lasso s) + δ) := by
   obtain ⟨C, hC_pos, h_bound⟩ := positive_delta_differential_inequality M r lambda β s hs
-    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_regular
+    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_regular h_lipschitz
   use C, hC_pos
   intro δ hδ
   have h_delta_pos : 0 < C * δ / s := div_pos (mul_pos hC_pos hδ) hs
@@ -3271,14 +3269,15 @@ theorem positive_path_delta_bound
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       pathDelta M
         (fun τ => posIntegratedTrajectoryRescaled ε (u ε) τ)
         (scaledPrimalPath x_lasso) s
       ≤ C * (positiveZDownward x_lasso s + δ) := by
   obtain ⟨C, hC_pos, h_full⟩ := positive_path_delta_bound_full M r lambda β s hs
-    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_regular
+    u hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_regular h_lipschitz
   use C, hC_pos
   intro δ hδ
   have h_half_δ : 0 < δ / 2 := half_pos hδ
