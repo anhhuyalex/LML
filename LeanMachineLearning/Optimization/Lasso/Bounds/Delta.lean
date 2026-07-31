@@ -3060,6 +3060,51 @@ lemma scaledPrimalPath_ae_differentiable
   exact (differentiableAt_piLp 2).2 (fun i => hτ i hτ_mem)
 
 /--
+Almost every point of `[0, s]` is a differentiability point of both
+`positiveZUpward` and `positiveZDownward`.
+
+Informal proof: combine a.e. differentiability of the scaled primal path
+(`scaledPrimalPath_ae_differentiable`) with local affinity of its coordinates
+(`scaledPrimalPath_deriv_locally_constant`) to get, for a.e. `τ`, that every
+coordinate derivative of `x_lasso` is locally constant near `τ`; this makes each
+summand of `positiveZUpward`/`positiveZDownward` an integral of a function that is
+continuous (indeed locally constant) at `τ`, hence differentiable there by the
+Fundamental Theorem of Calculus (`intervalIntegral.integral_hasDerivAt_right`,
+via `positiveZUpward_summand_differentiableAt` / `positiveZDownward_summand_differentiableAt`),
+and a finite sum of differentiable functions is differentiable
+(`DifferentiableAt.fun_sum`). The single exceptional point `τ = 0`, where local
+affinity is not assumed, is discarded for free since `{0}` is Lebesgue-null.
+-/
+lemma positiveZ_ae_differentiable
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
+      DifferentiableAt ℝ (positiveZUpward x_lasso) τ ∧
+      DifferentiableAt ℝ (positiveZDownward x_lasso) τ := by
+  have h_path_diff_ae := scaledPrimalPath_ae_differentiable hs h_regular
+  have h_ne_zero : ∀ᵐ τ ∂volume, τ ≠ (0 : ℝ) := by
+    rw [ae_iff]
+    have heq : {a : ℝ | ¬ a ≠ 0} = {0} := by ext a; simp
+    rw [heq]
+    exact Real.volume_singleton
+  filter_upwards [h_path_diff_ae, h_ne_zero] with τ h_path_diff hτ_ne
+  intro hτ_mem
+  have hτ_pos : 0 < τ := lt_of_le_of_ne hτ_mem.left (Ne.symm hτ_ne)
+  have h_path_diff_at : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ := h_path_diff hτ_mem
+  have h_const : ∀ i, ∃ ε > 0, ∀ t, |t - τ| < ε →
+      deriv (fun u' => u' * (x_lasso u').ofLp i) t =
+      deriv (fun u' => u' * (x_lasso u').ofLp i) τ := fun i =>
+    scaledPrimalPath_deriv_locally_constant x_lasso h_local_affine τ i hτ_pos h_path_diff_at
+  refine ⟨?_, ?_⟩
+  · unfold positiveZUpward
+    exact DifferentiableAt.fun_sum (fun i _ =>
+      positiveZUpward_summand_differentiableAt x_lasso τ hτ_mem.left i h_regular (h_const i))
+  · unfold positiveZDownward
+    exact DifferentiableAt.fun_sum (fun i _ =>
+      positiveZDownward_summand_differentiableAt x_lasso τ hτ_mem.left i h_regular (h_const i))
+
+/--
 Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.14).
