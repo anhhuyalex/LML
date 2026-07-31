@@ -1733,12 +1733,8 @@ lemma parametric_lcp_lipschitz
   -- Since scaledDualPath lambda w = μ ↦ (1/(1+μλ))·w(μ) and 1/(1+μλ) is smooth,
   -- w itself is locally Lipschitz on compacts away from μ = -1/λ (which is negative).
   -- On [0, ∞) the factor is bounded between 1/(1+bλ) and 1.
-  have hw_lip : LocallyLipschitzOnCompacts w := by
-    -- w(μ) = (1+μλ) · scaledDualPath lambda w μ
-    -- Both factors are Lipschitz on compacts, so their product is.
-    -- We leave this as a sorry for now; the key idea is that the product of
-    -- two locally Lipschitz functions is locally Lipschitz.
-    sorry
+  have hw_lip : LocallyLipschitzOnCompacts w :=
+    locallyLipschitzOnCompacts_of_scaledDual_lipschitz lambda hlambda_nonneg w h_scaled_dual_lip
   -- Now w(μ) = M(z(μ)) + q(μ), and q(μ) = -μ r + (1+μλ)1 is affine, hence Lipschitz.
   -- Therefore M(z(μ)) = w(μ) - q(μ) is also Lipschitz.
   have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
@@ -2109,16 +2105,21 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
 /--
 Helper lemma: The path delta composition is absolutely continuous.
 -/
-lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ) (u_ε : ℝ → EuclideanSpace ℝ ι)
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) :
-    AbsolutelyContinuousOnInterval (fun τ ↦ pathDelta M (fun ρ ↦ posIntegratedTrajectoryRescaled ε u_ε ρ) (scaledPrimalPath x_lasso) τ) 0 s := by
+lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ)
+    (u_ε : ℝ → EuclideanSpace ℝ ι) (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) :
+    AbsolutelyContinuousOnInterval
+      (fun τ ↦ pathDelta M (fun ρ ↦ posIntegratedTrajectoryRescaled ε u_ε ρ)
+        (scaledPrimalPath x_lasso) τ) 0 s := by
   sorry
 
 /--
 Helper lemma: The G bound is absolutely continuous.
 -/
 lemma G_ac {ι : Type*} [Fintype ι] (C ε s δ : ℝ) (x_lasso : ℝ → EuclideanSpace ℝ ι) :
-    AbsolutelyContinuousOnInterval (fun τ ↦ C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) + positiveZDownward x_lasso τ) + C * δ / s * τ) 0 s := by
+    AbsolutelyContinuousOnInterval
+      (fun τ ↦
+        C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
+          positiveZDownward x_lasso τ) + C * δ / s * τ) 0 s := by
   sorry
 
 /--
@@ -2177,8 +2178,37 @@ theorem positive_path_delta_bound_full
       This follows from the linearity of the derivative operator `deriv`.
       Since G(τ) = C * (1 / log(1/ε) * (τ + z_up(τ)) + z_down(τ)) + (C * δ / s) * τ,
       we have G'(τ) = C * (1 / log(1/ε) * (1 + z_up'(τ)) + z_down'(τ)) + C * δ / s.
+      We assume `positiveZUpward` and `positiveZDownward` are differentiable at `τ`. 
+      They are absolutely continuous (integrals of locally integrable functions) and thus 
+      differentiable almost everywhere. The linearity of differentiation gives the result.
+      (Source: standard calculus rules for linear combinations of derivatives, 
+      e.g., https://en.wikipedia.org/wiki/Linearity_of_differentiation)
       -/
-      sorry
+      have h_up_diff : DifferentiableAt ℝ (positiveZUpward x_lasso) τ := sorry
+      have h_down_diff : DifferentiableAt ℝ (positiveZDownward x_lasso) τ := sorry
+      have h1 : DifferentiableAt ℝ (fun x => x + positiveZUpward x_lasso x) τ :=
+        differentiableAt_id.add h_up_diff
+      have h2 : DifferentiableAt ℝ (fun x => 1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x)) τ :=
+        h1.const_mul _
+      have h3 : DifferentiableAt ℝ (fun x => 1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x) + positiveZDownward x_lasso x) τ :=
+        h2.add h_down_diff
+      have h4 : DifferentiableAt ℝ (fun x => C * (1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x) + positiveZDownward x_lasso x)) τ :=
+        h3.const_mul _
+      have h5 : DifferentiableAt ℝ (fun x => (C * δ / s) * x) τ :=
+        differentiableAt_id.const_mul _
+      dsimp [G]
+      change deriv ((fun x => C * (1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x) + positiveZDownward x_lasso x)) + (fun x => (C * δ / s) * x)) τ = _
+      rw [deriv_add h4 h5]
+      rw [deriv_const_mul _ h3]
+      change C * deriv ((fun x => 1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x)) + (fun x => positiveZDownward x_lasso x)) τ + _ = _
+      rw [deriv_add h2 h_down_diff]
+      rw [deriv_const_mul _ h1]
+      change C * (1 / Real.log (1 / ε) * deriv (id + positiveZUpward x_lasso) τ + _) + _ = _
+      rw [deriv_add differentiableAt_id h_up_diff]
+      change C * (1 / Real.log (1 / ε) * (deriv (fun x => x) τ + _) + _) + _ = _
+      rw [deriv_id'']
+      rw [deriv_const_mul _ differentiableAt_id, deriv_id'']
+      ring
     rw [hG_deriv]
     exact h_deriv τ hτ
   have hF0 : F 0 = 0 := pathDelta_zero M ε (u ε) x_lasso
