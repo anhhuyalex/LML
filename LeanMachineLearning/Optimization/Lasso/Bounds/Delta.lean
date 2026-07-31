@@ -1682,6 +1682,33 @@ lemma deriv_bound_of_lipschitz
     simp [hK]
 
 /--
+INFORMAL PROOF:
+By orthogonal decomposition, any vector $z$ can be uniquely written as $z = z_{range} + z_{ker}$ 
+where $z_{range} \in \operatorname{Range}(M)$ and $z_{ker} \in \operatorname{Ker}(M)$.
+Since $M$ is symmetric positive semidefinite, it is positive definite on its range, 
+so its restriction to $\operatorname{Range}(M)$ has a bounded inverse (the Moore-Penrose pseudoinverse $M^\dagger$).
+Thus, $z_{range} = M^\dagger(M z)$. Because linear maps are Lipschitz and the composition of Lipschitz 
+functions is Lipschitz, if $M z$ is Lipschitz, then $z_{range}$ is Lipschitz.
+For $z_{ker}$, since $M z_{ker} = 0$, the LCP conditions in the kernel directions reduce to 
+analyzing the affine term $q(\mu)$. As detailed in Lemma 4.12 of the Lasso blueprint, 
+the complementarity conditions and uniqueness assumption force $z_{ker}(\mu) = 0$ for all $\mu$.
+Therefore, $z(\mu) = z_{range}(\mu)$, which is locally Lipschitz on compacts.
+(Source: standard results on Moore-Penrose inverses and symmetric matrices, e.g., 
+Meyer, "Matrix Analysis and Applied Linear Algebra" (2000), https://doi.org/10.1137/1.9780898717331)
+-/
+lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (z : ℝ → EuclideanSpace ℝ ι)
+    (hM_psd : IsPositiveSemidefinite M)
+    (hr_mem_span : InMatrixSpan M r)
+    (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ) (matVec M (z μ) + parametricLcpQ r lambda μ))
+    (h_unique : ∀ μ ≥ 0, ∀ z', isLCP M (parametricLcpQ r lambda μ) z' (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
+    (hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ))) :
+    LocallyLipschitzOnCompacts z := by
+  sorry
+
+/--
 The solution to a parametric LCP with linear parameter dependence is locally Lipschitz continuous,
 under the standing assumptions `ProblemData` (PSD, `r` in the column span of `M`, `λ ≥ 0`)
 and the additional hypothesis that the LCP solution is unique for each `μ`.
@@ -1752,7 +1779,18 @@ lemma parametric_lcp_lipschitz
     exact (mul_comm _ _).le
   have hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)) := by
     -- matVec M (z μ) = w μ - parametricLcpQ r lambda μ, difference of Lipschitz functions
-    sorry
+    refine ⟨fun a b ha hab => ?_⟩
+    rcases hw_lip.lipschitz_on_Icc a b ha hab with ⟨Kw, hKw, hw⟩
+    rcases hq_lip.lipschitz_on_Icc a b ha hab with ⟨Kq, hKq, hq⟩
+    refine ⟨Kw + Kq, add_nonneg hKw hKq, fun μ hμ ν hν => ?_⟩
+    have h_diff : matVec M (z μ) - matVec M (z ν) = (w μ - w ν) - (parametricLcpQ r lambda μ - parametricLcpQ r lambda ν) := by
+      dsimp [w]
+      abel
+    rw [h_diff]
+    calc ‖(w μ - w ν) - (parametricLcpQ r lambda μ - parametricLcpQ r lambda ν)‖
+      _ ≤ ‖w μ - w ν‖ + ‖parametricLcpQ r lambda μ - parametricLcpQ r lambda ν‖ := norm_sub_le _ _
+      _ ≤ Kw * |μ - ν| + Kq * |μ - ν| := add_le_add (hw μ hμ ν hν) (hq μ hμ ν hν)
+      _ = (Kw + Kq) * |μ - ν| := (add_mul _ _ _).symm
   -- Now we need to recover Lipschitz continuity of z from that of Mz.
   -- Decompose z = z_range + z_kernel where z_range ∈ range(M) and z_kernel ∈ ker(M).
   -- Since M is PSD, range(M) = ker(M)⊥ and M is positive definite on range(M).
@@ -1764,7 +1802,7 @@ lemma parametric_lcp_lipschitz
   -- z_k = 0 wherever 1_k > 0.  Where 1_k = 0, uniqueness of the LCP solution (h_unique)
   -- pins down z_k = 0 as well (since z=0 is always a solution when q_k ≡ 0).
   -- Therefore z_kernel ≡ 0, and z = z_range is Lipschitz.
-  sorry
+  exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z hM_psd hr_mem_span h_lcp h_unique hMz_lip
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 1.
