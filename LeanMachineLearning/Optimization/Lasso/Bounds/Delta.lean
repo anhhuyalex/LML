@@ -1724,6 +1724,157 @@ lemma deriv_bound_of_lipschitz
     exact hK
 
 /--
+Real-valued analogue of `LocallyLipschitzOnCompacts`, for scalarizations
+(e.g. inner products against a fixed vector) of `EuclideanSpace`-valued Lipschitz
+paths. Kept as a separate structure rather than genericizing `LocallyLipschitzOnCompacts`
+itself, since the latter's companion `LocallyAbsolutelyContinuousOnNonnegativeCompacts`
+API is only ever used at the `EuclideanSpace ℝ ι` type in this file.
+-/
+private structure LocallyLipschitzOnCompactsReal (f : ℝ → ℝ) : Prop where
+  lipschitz_on_Icc :
+    ∀ a b : ℝ, 0 ≤ a → a ≤ b →
+      ∃ K : ℝ, 0 ≤ K ∧
+        ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b, |f μ - f ν| ≤ K * |μ - ν|
+
+/--
+A locally-Lipschitz-on-compacts function is bounded on every compact subinterval of
+`[0, ∞)`, via the standard "endpoint value plus Lipschitz slack" estimate
+`‖f μ‖ ≤ ‖f a‖ + K * (b - a)`.
+-/
+private lemma LocallyLipschitzOnCompacts.bounded_on_Icc
+    {ι : Type*} [Fintype ι] {f : ℝ → EuclideanSpace ℝ ι} (hf : LocallyLipschitzOnCompacts f)
+    (a b : ℝ) (ha : 0 ≤ a) (hab : a ≤ b) :
+    ∃ Mb : ℝ, 0 ≤ Mb ∧ ∀ μ ∈ Set.Icc a b, ‖f μ‖ ≤ Mb := by
+  obtain ⟨K, hK, hKbound⟩ := hf.lipschitz_on_Icc a b ha hab
+  refine ⟨‖f a‖ + K * (b - a), by positivity, fun μ hμ => ?_⟩
+  have h1 : ‖f μ‖ ≤ ‖f a‖ + ‖f μ - f a‖ := by
+    calc ‖f μ‖ = ‖(f μ - f a) + f a‖ := by simp
+    _ ≤ ‖f μ - f a‖ + ‖f a‖ := norm_add_le _ _
+    _ = ‖f a‖ + ‖f μ - f a‖ := add_comm _ _
+  have h2 : ‖f μ - f a‖ ≤ K * (b - a) := by
+    have hb := hKbound μ hμ a ⟨le_refl a, hab⟩
+    have habs : |μ - a| ≤ b - a := by
+      rw [abs_of_nonneg (sub_nonneg.mpr hμ.1)]; linarith [hμ.2]
+    calc ‖f μ - f a‖ ≤ K * |μ - a| := hb
+    _ ≤ K * (b - a) := mul_le_mul_of_nonneg_left habs hK
+  linarith
+
+/-- Real-valued analogue of `.bounded_on_Icc`, for `LocallyLipschitzOnCompactsReal`. -/
+private lemma LocallyLipschitzOnCompactsReal.bounded_on_Icc
+    {f : ℝ → ℝ} (hf : LocallyLipschitzOnCompactsReal f)
+    (a b : ℝ) (ha : 0 ≤ a) (hab : a ≤ b) :
+    ∃ Mb : ℝ, 0 ≤ Mb ∧ ∀ μ ∈ Set.Icc a b, |f μ| ≤ Mb := by
+  obtain ⟨K, hK, hKbound⟩ := hf.lipschitz_on_Icc a b ha hab
+  refine ⟨|f a| + K * (b - a), by positivity, fun μ hμ => ?_⟩
+  have h1 : |f μ| ≤ |f a| + |f μ - f a| := by
+    calc |f μ| = |(f μ - f a) + f a| := by ring_nf
+    _ ≤ |f μ - f a| + |f a| := abs_add_le _ _
+    _ = |f a| + |f μ - f a| := by ring
+  have h2 : |f μ - f a| ≤ K * (b - a) := by
+    have hb := hKbound μ hμ a ⟨le_refl a, hab⟩
+    have habs : |μ - a| ≤ b - a := by
+      rw [abs_of_nonneg (sub_nonneg.mpr hμ.1)]; linarith [hμ.2]
+    calc |f μ - f a| ≤ K * |μ - a| := hb
+    _ ≤ K * (b - a) := mul_le_mul_of_nonneg_left habs hK
+  linarith
+
+/--
+The (real-valued) inner product `μ ↦ ⟨f μ, g μ⟩` of two locally-Lipschitz-on-compacts
+`EuclideanSpace`-valued paths is itself locally Lipschitz on compacts.
+
+Informal proof: `⟨f μ, g μ⟩ - ⟨f ν, g ν⟩ = ⟨f μ - f ν, g μ⟩ + ⟨f ν, g μ - g ν⟩`, and
+Cauchy-Schwarz bounds each term by `‖f μ - f ν‖ * ‖g μ‖` and `‖f ν‖ * ‖g μ - g ν‖`
+respectively; both `f`, `g` are bounded on the compact interval (`.bounded_on_Icc`), so
+these combine into a single Lipschitz estimate.
+-/
+private lemma inner_locallyLipschitzOnCompactsReal
+    {ι : Type*} [Fintype ι] {f g : ℝ → EuclideanSpace ℝ ι}
+    (hf : LocallyLipschitzOnCompacts f) (hg : LocallyLipschitzOnCompacts g) :
+    LocallyLipschitzOnCompactsReal (fun μ => inner ℝ (f μ) (g μ)) := by
+  constructor
+  intro a b ha hab
+  obtain ⟨Kf, hKf, hKf_bound⟩ := hf.lipschitz_on_Icc a b ha hab
+  obtain ⟨Kg, hKg, hKg_bound⟩ := hg.lipschitz_on_Icc a b ha hab
+  obtain ⟨Mf, _, hMf_bound⟩ := hf.bounded_on_Icc a b ha hab
+  obtain ⟨Mg, hMg, hMg_bound⟩ := hg.bounded_on_Icc a b ha hab
+  refine ⟨Kf * Mg + Mf * Kg, by positivity, fun μ hμ ν hν => ?_⟩
+  have h_split : inner ℝ (f μ) (g μ) - inner ℝ (f ν) (g ν) =
+      inner ℝ (f μ - f ν) (g μ) + inner ℝ (f ν) (g μ - g ν) := by
+    rw [inner_sub_left, inner_sub_right]; ring
+  rw [h_split]
+  have h1 : ‖f μ - f ν‖ * ‖g μ‖ ≤ (Kf * |μ - ν|) * Mg :=
+    mul_le_mul (hKf_bound μ hμ ν hν) (hMg_bound μ hμ) (norm_nonneg _)
+      (mul_nonneg hKf (abs_nonneg _))
+  have h2 : ‖f ν‖ * ‖g μ - g ν‖ ≤ Mf * (Kg * |μ - ν|) :=
+    mul_le_mul (hMf_bound ν hν) (hKg_bound μ hμ ν hν) (norm_nonneg _) (by positivity)
+  calc |inner ℝ (f μ - f ν) (g μ) + inner ℝ (f ν) (g μ - g ν)|
+      ≤ |inner ℝ (f μ - f ν) (g μ)| + |inner ℝ (f ν) (g μ - g ν)| := abs_add_le _ _
+    _ ≤ ‖f μ - f ν‖ * ‖g μ‖ + ‖f ν‖ * ‖g μ - g ν‖ :=
+        add_le_add (abs_real_inner_le_norm _ _) (abs_real_inner_le_norm _ _)
+    _ ≤ (Kf * |μ - ν|) * Mg + Mf * (Kg * |μ - ν|) := add_le_add h1 h2
+    _ = (Kf * Mg + Mf * Kg) * |μ - ν| := by ring
+
+/--
+Dividing a locally-Lipschitz-on-compacts real function by the affine, `≥ 1`-valued
+denominator `1 + μ * lambda` (with `lambda ≥ 0`) preserves local Lipschitz-on-compacts
+regularity.
+
+Informal proof: write `Bμ = 1 + μλ`. For `μ, ν ∈ [a,b] ⊆ [0,∞)`, `Bμ, Bν ≥ 1`, so
+`f μ / Bμ - f ν / Bν = (f μ · Bν - Bμ · f ν) / (Bμ Bν)` has numerator
+`(f μ - f ν) Bν + f ν (Bν - Bμ)`, bounded by `Kf |μ-ν| Bν + Mf λ |μ-ν|` (`Kf` the
+Lipschitz constant of `f`, `Mf` a bound on `|f|`, using `|Bν - Bμ| = λ|μ-ν|`). Dividing
+by `Bμ Bν ≥ 1` and using `Bν ≤ Bμ Bν` gives the estimate `(Kf + Mf λ) |μ - ν|`.
+-/
+private lemma LocallyLipschitzOnCompactsReal.div_affine_denom
+    {f : ℝ → ℝ} (hf : LocallyLipschitzOnCompactsReal f)
+    (lambda : ℝ) (hlambda_nonneg : 0 ≤ lambda) :
+    LocallyLipschitzOnCompactsReal (fun μ => f μ / (1 + μ * lambda)) := by
+  constructor
+  intro a b ha hab
+  obtain ⟨Kf, hKf, hKf_bound⟩ := hf.lipschitz_on_Icc a b ha hab
+  obtain ⟨Mf, hMf, hMf_bound⟩ := hf.bounded_on_Icc a b ha hab
+  refine ⟨Kf + Mf * lambda, by positivity, fun μ hμ ν hν => ?_⟩
+  have hBμ_ge : (1 : ℝ) ≤ 1 + μ * lambda := by nlinarith [hμ.1]
+  have hBν_ge : (1 : ℝ) ≤ 1 + ν * lambda := by nlinarith [hν.1]
+  have hBμ_pos : (0 : ℝ) < 1 + μ * lambda := by linarith
+  have hBν_pos : (0 : ℝ) < 1 + ν * lambda := by linarith
+  have hnum : f μ * (1 + ν * lambda) - (1 + μ * lambda) * f ν =
+      (f μ - f ν) * (1 + ν * lambda) + f ν * ((1 + ν * lambda) - (1 + μ * lambda)) := by ring
+  have hdiv_eq : f μ / (1 + μ * lambda) - f ν / (1 + ν * lambda) =
+      (f μ * (1 + ν * lambda) - (1 + μ * lambda) * f ν) / ((1 + μ * lambda) * (1 + ν * lambda)) :=
+    div_sub_div (f μ) (f ν) hBμ_pos.ne' hBν_pos.ne'
+  have hnum_bound : |f μ * (1 + ν * lambda) - (1 + μ * lambda) * f ν| ≤
+      Kf * |μ - ν| * (1 + ν * lambda) + Mf * (lambda * |μ - ν|) := by
+    rw [hnum]
+    calc |(f μ - f ν) * (1 + ν * lambda) + f ν * ((1 + ν * lambda) - (1 + μ * lambda))|
+        ≤ |(f μ - f ν) * (1 + ν * lambda)| + |f ν * ((1 + ν * lambda) - (1 + μ * lambda))| :=
+          abs_add_le _ _
+      _ = |f μ - f ν| * (1 + ν * lambda) + |f ν| * |(1 + ν * lambda) - (1 + μ * lambda)| := by
+          rw [abs_mul, abs_mul, abs_of_pos hBν_pos]
+      _ ≤ (Kf * |μ - ν|) * (1 + ν * lambda) + Mf * (lambda * |μ - ν|) := by
+          have h1 : |f μ - f ν| * (1 + ν * lambda) ≤ (Kf * |μ - ν|) * (1 + ν * lambda) :=
+            mul_le_mul_of_nonneg_right (hKf_bound μ hμ ν hν) hBν_pos.le
+          have h2 : |f ν| * |(1 + ν * lambda) - (1 + μ * lambda)| ≤ Mf * (lambda * |μ - ν|) := by
+            have heq : |(1 + ν * lambda) - (1 + μ * lambda)| = lambda * |μ - ν| := by
+              rw [show (1 + ν * lambda) - (1 + μ * lambda) = lambda * (ν - μ) by ring, abs_mul,
+                abs_of_nonneg hlambda_nonneg, abs_sub_comm]
+            rw [heq]
+            exact mul_le_mul_of_nonneg_right (hMf_bound ν hν)
+              (mul_nonneg hlambda_nonneg (abs_nonneg _))
+          linarith
+  rw [hdiv_eq, abs_div, abs_of_pos (mul_pos hBμ_pos hBν_pos), div_le_iff₀ (mul_pos hBμ_pos hBν_pos)]
+  have hle1 : Kf * |μ - ν| * (1 + ν * lambda) ≤
+      Kf * |μ - ν| * ((1 + μ * lambda) * (1 + ν * lambda)) := by
+    have : (1 + ν * lambda) * 1 ≤ (1 + ν * lambda) * (1 + μ * lambda) :=
+      mul_le_mul_of_nonneg_left hBμ_ge (by linarith)
+    nlinarith [mul_nonneg hKf (abs_nonneg (μ - ν))]
+  have hle2 : Mf * (lambda * |μ - ν|) ≤
+      (Mf * lambda) * |μ - ν| * ((1 + μ * lambda) * (1 + ν * lambda)) := by
+    have hprod_ge : (1 : ℝ) ≤ (1 + μ * lambda) * (1 + ν * lambda) := by nlinarith
+    nlinarith [mul_nonneg (mul_nonneg hMf hlambda_nonneg) (abs_nonneg (μ - ν))]
+  nlinarith [hnum_bound, hle1, hle2]
+
+/--
 INFORMAL PROOF:
 By orthogonal decomposition, any vector $z$ can be uniquely written as $z = z_{range} + z_{ker}$
 where $z_{range} \in \operatorname{Range}(M)$ and $z_{ker} \in \operatorname{Ker}(M)$.
@@ -1819,16 +1970,21 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
         rw [hMz_ker μ]
       _ = inner ℝ (parametricLcpQ r lambda μ) (z μ - z_range μ) := by simp
       _ = inner ℝ (-μ • r + (1 + μ * lambda) • euclideanOf (fun _ => 1)) (z μ - z_range μ) := by
-        -- Expand the definition of parametricLcpQ
-        dsimp [parametricLcpQ, euclideanOf]
-        -- This is an equality of Euclidean vectors; use ext and simp
-        ext i; simp; ring
+        -- Expand the definition of parametricLcpQ (an equality of Euclidean vectors,
+        -- proved separately and then substituted, since `inner _ x = inner _ x` is a
+        -- scalar equation and has no `ext` theorem of its own).
+        have hq_eq : parametricLcpQ r lambda μ =
+            -μ • r + (1 + μ * lambda) • euclideanOf (fun _ => (1 : ℝ)) := by
+          ext i
+          simp [parametricLcpQ, euclideanOf, smul_eq_mul]
+          ring
+        rw [hq_eq]
       _ = (-μ) * inner ℝ r (z μ - z_range μ) + (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - z_range μ) := by
-        rw [inner_add_right, inner_smul_right, inner_smul_right]
-        simp
+        rw [inner_add_left, real_inner_smul_left, real_inner_smul_left]
       _ = (-μ) * 0 + (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - z_range μ) := by
         -- ⟨r, z_ker⟩ = 0 because r = M y and M z_ker = 0
-        rw [hy, inner_matVec_comm_of_isSymm M hM_psd.symm y (z μ - z_range μ), hMz_ker μ, inner_zero]
+        rw [← hy, ← inner_matVec_comm_of_isSymm M hM_psd.symm y (z μ - z_range μ), hMz_ker μ,
+          inner_zero_right]
       _ = (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - z_range μ) := by ring
   -- From LCP complementarity: ⟨w, z⟩ = 0
   have h_complementarity (μ : ℝ) (hμ : 0 ≤ μ) : inner ℝ (w μ) (z μ) = 0 := by
@@ -1842,24 +1998,46 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
       (1 + μ * lambda) * inner ℝ (euclideanOf fun _ => 1) (z_ker μ) = - inner ℝ (w μ) (z_range μ) := by
     have h_comp := h_complementarity μ hμ
     have h_sum : inner ℝ (w μ) (z μ) = inner ℝ (w μ) (z_range μ) + inner ℝ (w μ) (z_ker μ) := by
-      rw [hz_ker_def]; exact inner_add_right _ _ _
+      have hz_eq : z μ = z_range μ + z_ker μ := by dsimp only [z_ker]; abel
+      rw [hz_eq]
+      exact inner_add_right _ _ _
     rw [h_sum] at h_comp
     have h_ker := h_inner_w_ker μ hμ
     rw [h_ker] at h_comp
     linarith
   -- Since 1+μλ ≥ 1 > 0 on [0,∞), we can divide to express ⟨𝟙, z_ker⟩ in terms of Lipschitz quantities.
   -- Therefore ⟨𝟙, z_ker⟩ is locally Lipschitz on compacts.
-  have h_inner_ones_ker_lip : LocallyLipschitzOnCompacts (fun μ => inner ℝ (euclideanOf fun _ => 1) (z_ker μ)) := by
-    -- From h_inner_ones_ker_eq: ⟨𝟙, z_ker μ⟩ = -⟨w μ, z_range μ⟩ / (1+μ*lambda)
-    -- The RHS is Lipschitz on compacts because:
-    --   - w is Lipschitz (hw_lip)
-    --   - z_range is Lipschitz (hz_range_lip)
-    --   - The inner product of two Lipschitz functions is Lipschitz on compacts.
-    --   - 1/(1+μλ) is C∞ and bounded on [0,∞), and division by a positive Lipschitz function preserves Lipschitz.
-    -- Full formalization: use the equality to transfer the Lipschitz constant.
-    sorry
+  have h_inner_ones_ker_lip :
+      LocallyLipschitzOnCompactsReal (fun μ => inner ℝ (euclideanOf fun _ => 1) (z_ker μ)) := by
+    -- From h_inner_ones_ker_eq: ⟨𝟙, z_ker μ⟩ = -⟨w μ, z_range μ⟩ / (1+μ*lambda). The numerator
+    -- `-⟨w, z_range⟩` is `LocallyLipschitzOnCompactsReal` by `inner_locallyLipschitzOnCompactsReal`
+    -- (w and z_range are both `LocallyLipschitzOnCompacts`), and dividing by the affine
+    -- denominator `1 + μλ ≥ 1` preserves that via `.div_affine_denom`.
+    have hA_lip : LocallyLipschitzOnCompactsReal (fun μ => - inner ℝ (w μ) (z_range μ)) := by
+      have h := inner_locallyLipschitzOnCompactsReal hw_lip hz_range_lip
+      constructor
+      intro a b ha hab
+      obtain ⟨K, hK, hKbound⟩ := h.lipschitz_on_Icc a b ha hab
+      refine ⟨K, hK, fun μ hμ ν hν => ?_⟩
+      rw [show -inner ℝ (w μ) (z_range μ) - -inner ℝ (w ν) (z_range ν) =
+        -(inner ℝ (w μ) (z_range μ) - inner ℝ (w ν) (z_range ν)) by ring, abs_neg]
+      exact hKbound μ hμ ν hν
+    have hquot_lip := hA_lip.div_affine_denom lambda hlambda_nonneg
+    constructor
+    intro a b ha hab
+    obtain ⟨K, hK, hKbound⟩ := hquot_lip.lipschitz_on_Icc a b ha hab
+    refine ⟨K, hK, fun μ hμ ν hν => ?_⟩
+    have heq : ∀ t : ℝ, 0 ≤ t → inner ℝ (euclideanOf fun _ => 1) (z_ker t) =
+        (- inner ℝ (w t) (z_range t)) / (1 + t * lambda) := by
+      intro t ht
+      have hpos : (0 : ℝ) < 1 + t * lambda := by nlinarith
+      rw [eq_div_iff hpos.ne', mul_comm]
+      exact h_inner_ones_ker_eq t ht
+    rw [heq μ (le_trans ha hμ.1), heq ν (le_trans ha hν.1)]
+    exact hKbound μ hμ ν hν
   -- ⟨𝟙, z_range⟩ is Lipschitz because z_range is Lipschitz and inner product with a fixed vector is Lipschitz.
-  have h_inner_ones_range_lip : LocallyLipschitzOnCompacts (fun μ => inner ℝ (euclideanOf fun _ => 1) (z_range μ)) := by
+  have h_inner_ones_range_lip :
+      LocallyLipschitzOnCompactsReal (fun μ => inner ℝ (euclideanOf fun _ => 1) (z_range μ)) := by
     -- By Cauchy-Schwarz: |⟨𝟙, z_range μ - z_range ν⟩| ≤ ‖𝟙‖ * ‖z_range μ - z_range ν‖
     -- Since z_range is Lipschitz, this gives Lipschitz for the inner product.
     refine ⟨fun a b ha hab => ?_⟩
@@ -1873,7 +2051,8 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
       _ ≤ ‖ones‖ * (K * |μ - ν|) := mul_le_mul_of_nonneg_left (hK_bound μ hμ ν hν) (norm_nonneg _)
       _ = (‖ones‖ * K) * |μ - ν| := by ring
   -- Sum of two Lipschitz functions is Lipschitz
-  have h_inner_ones_lip : LocallyLipschitzOnCompacts (fun μ => inner ℝ (euclideanOf fun _ => 1) (z μ)) := by
+  have h_inner_ones_lip :
+      LocallyLipschitzOnCompactsReal (fun μ => inner ℝ (euclideanOf fun _ => 1) (z μ)) := by
     -- ⟨𝟙, z⟩ = ⟨𝟙, z_range⟩ + ⟨𝟙, z_ker⟩
     -- Use that the sum of Lipschitz functions is Lipschitz.
     refine ⟨fun a b ha hab => ?_⟩
@@ -1902,7 +2081,19 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     -- Using Finset.sum_sq_le_sq_sum_of_nonneg: ∑ x_i² ≤ (∑ x_i)².
     -- Then ‖x‖ = sqrt(∑ x_i²) ≤ sqrt((∑ x_i)²) = ∑ x_i = ⟨𝟙, x⟩.
     -- The last equality uses that ∑ x_i ≥ 0 (since each x_i ≥ 0).
-    sorry
+    have hx' : ∀ i, 0 ≤ x i := hx
+    have h_inner_eq : inner ℝ (euclideanOf fun _ => (1 : ℝ)) x = ∑ i, x i := by
+      simp [PiLp.inner_apply, euclideanOf]
+    rw [h_inner_eq]
+    have h_sum_nonneg : 0 ≤ ∑ i, x i := Finset.sum_nonneg (fun i _ => hx' i)
+    rw [EuclideanSpace.norm_eq,
+      show (∑ i, x i) = |∑ i, x i| from (abs_of_nonneg h_sum_nonneg).symm,
+      ← Real.sqrt_sq_eq_abs]
+    refine Real.sqrt_le_sqrt ?_
+    calc ∑ i, ‖x i‖ ^ 2 = ∑ i, (x i) ^ 2 := by
+          refine Finset.sum_congr rfl (fun i _ => ?_)
+          rw [Real.norm_eq_abs, sq_abs]
+      _ ≤ (∑ i, x i) ^ 2 := Finset.sum_sq_le_sq_sum_of_nonneg (fun i _ => hx' i)
   -- Now assemble: use monotonicity and the Lipschitz property of ⟨𝟙, z⟩.
   constructor
   intro a b ha hab
