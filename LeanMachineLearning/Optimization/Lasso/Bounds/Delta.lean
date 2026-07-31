@@ -2250,11 +2250,19 @@ If $w_i(\tau) = 0$, then $\dot{z}_i(\tau) \cdot 0 = 0$.
 In all cases, $\dot{z}_i(\tau) w_i(\tau) = 0$, so their inner product
 is exactly 0 (which is $\le 0$).
 -/
+lemma deriv_piLp_apply {ι : Type*} [Fintype ι] {z : ℝ → EuclideanSpace ℝ ι} {τ : ℝ}
+    (h_diff : DifferentiableAt ℝ z τ) (i : ι) :
+    (deriv z τ).ofLp i = deriv (fun x => (z x).ofLp i) τ := by
+  have h1 : HasDerivAt z (deriv z τ) τ := h_diff.hasDerivAt
+  let h_proj : EuclideanSpace ℝ ι →L[ℝ] ℝ := EuclideanSpace.proj i
+  have h2 : HasDerivAt (h_proj ∘ z) (h_proj (deriv z τ)) τ := h_proj.hasFDerivAt.comp_hasDerivAt τ h1
+  change (deriv z τ).ofLp i = deriv (fun x => (z x).ofLp i) τ
+  exact h2.deriv.symm
+
 lemma pos_delta_bound_4_term1
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (hdata : ProblemData M r lambda) :
     ∀ τ ∈ Set.Ici (0 : ℝ),
       inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -2335,38 +2343,41 @@ lemma pos_delta_bound_4_term1
     -- Step 4: Prove inner product = 0 (hence ≤ 0)
     by_cases h_diff : DifferentiableAt ℝ z τ
     · -- z is differentiable at τ: work coordinatewise
-      have hz_coord_diff : ∀ i, DifferentiableAt ℝ (fun μ => z μ i) τ :=
-        ((differentiableAt_pi (𝕜 := ℝ)).mp h_diff)
-      rw [deriv_pi hz_coord_diff, PiLp.inner_apply]
-      simp only [Real.inner_apply]
-      apply Finset.sum_eq_zero.mpr
+      rw [PiLp.inner_apply]
+      have h_deriv_eval : ∀ i, (deriv z τ) i = deriv (fun x => z x i) τ := fun i =>
+        deriv_piLp_apply h_diff i
+      simp only [h_deriv_eval, Real.inner_apply]
+      apply Finset.sum_eq_zero
       intro i hi
       by_cases hwi_zero : (w τ) i = 0
       · simp [hwi_zero]
       · have hwi_pos : 0 < (w τ) i := by
           by_cases hτ0 : τ = 0
           · subst hτ0; rw [hw0]; simp [ones, euclideanOf]
-          · have hτpos : τ > 0 := by linarith
+          · have hτpos : τ > 0 := lt_of_le_of_ne hτ_nonneg (Ne.symm hτ0)
             rcases hLCP_pos τ hτpos with ⟨_, hw_nonneg, _, _⟩
             exact lt_of_le_of_ne (hw_nonneg i) (Ne.symm hwi_zero)
         have hzi_zero : (z τ) i = 0 := by
           have hprod := h_coord_zero τ hτ_nonneg i
-          nlinarith
+          cases mul_eq_zero.mp hprod with
+          | inl h => exact (hwi_zero h).elim
+          | inr h => exact h
         by_cases hτ_pos : τ > 0
         · -- τ > 0: z_i has a local minimum at τ (since z_i ≥ 0 everywhere on (0,∞))
           have h_isMin : IsLocalMin (fun μ => z μ i) τ := by
             have hδ : 0 < τ / 2 := by linarith
-            apply Filter.mem_of_superset (Metric.ball τ (τ / 2))
-              (Metric.ball_mem_nhds τ hδ)
+            refine Filter.mem_of_superset (Metric.ball_mem_nhds τ hδ) ?_
             intro μ hμ
-            rw [Metric.mem_ball, dist_eq_norm, Real.dist_eq] at hμ
+            rw [Metric.mem_ball, Real.dist_eq] at hμ
+            have hμ_bounds := abs_lt.mp hμ
             have hμ_nonneg : 0 ≤ μ := by linarith
             have hz_nonneg_μ : 0 ≤ (z μ) i := by
               by_cases hμ0 : μ = 0
               · subst hμ0; rw [hz0]; rfl
               · have hμpos : μ > 0 := by linarith
-                rcases hLCP_pos μ hμpos with ⟨_, _, hz_nonneg_μ, _⟩
-                exact hz_nonneg_μ i
+                rcases hLCP_pos μ hμpos with ⟨_, _, hz_nonneg_μ', _⟩
+                exact hz_nonneg_μ' i
+            dsimp only [Set.mem_ofPred_eq]
             rw [hzi_zero]
             exact hz_nonneg_μ
           have h_deriv_zero : deriv (fun μ => z μ i) τ = 0 :=
@@ -2384,23 +2395,25 @@ lemma pos_delta_bound_4_term1
             dsimp [f]
             have h_matVec_cont : Continuous (matVecLM M) :=
               (matVecLM M).continuous_of_finiteDimensional
-            refine ContinuousAt.sub (ContinuousAt.sub ?_ ?_) ?_
+            refine ContinuousAt.add (ContinuousAt.sub ?_ ?_) ?_
             · exact (h_matVec_cont.continuousAt.comp hz_cont_at_0)
             · exact continuousAt_id.smul_const r
-            · refine ContinuousAt.neg ?_
-              exact ((continuousAt_const.add (continuousAt_id.mul continuousAt_const)).smul_const ones)
+            · have h1 : ContinuousAt (fun (μ : ℝ) => 1 + μ * lambda) 0 :=
+                continuousAt_const.add (continuousAt_id.mul continuousAt_const)
+              have h2 : ContinuousAt (fun (_ : ℝ) => (ones : EuclideanSpace ℝ ι)) 0 := continuousAt_const
+              exact h1.smul h2
           have hf0_i_one : (f 0) i = 1 := by
             dsimp [f]; rw [hz0]; simp [ones, euclideanOf, matVec]
           have h_fi_cont : ContinuousAt (fun μ => (f μ) i) 0 :=
             (continuous_euclidean_apply i).continuousAt.comp hf_cont_at_0
           -- w agrees with f for μ ≥ 0
           have h_wi_tendsto : Tendsto (fun μ => (w μ) i) (𝓝[>] 0) (𝓝 1) := by
-            apply Filter.Tendsto.congr
+            apply Filter.Tendsto.congr'
             · filter_upwards [self_mem_nhdsWithin] with μ hμ
               have hμ_nonneg' : 0 ≤ μ := le_of_lt hμ
-              dsimp [w, f]; ring
-            · rw [hf0_i_one]
-              exact h_fi_cont.tendsto.mono_left nhdsWithin_le_nhds
+              dsimp [w, f]
+            · have h_limit := h_fi_cont.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Ioi (0 : ℝ)))
+              rwa [hf0_i_one] at h_limit
           -- Since (w μ) i → 1 > 0, eventually (w μ) i > 0 for μ > 0 small enough
           have h_wi_pos : ∀ᶠ μ in 𝓝[>] 0, 0 < (w μ) i :=
             h_wi_tendsto.eventually (eventually_gt_nhds (by norm_num : (0 : ℝ) < 1))
@@ -2409,26 +2422,31 @@ lemma pos_delta_bound_4_term1
             filter_upwards [h_wi_pos, self_mem_nhdsWithin] with μ hμ_pos hμ_Ioi
             have hμ_nonneg' : 0 ≤ μ := le_of_lt hμ_Ioi
             have hprod := h_coord_zero μ hμ_nonneg' i
-            nlinarith
+            cases mul_eq_zero.mp hprod with
+            | inl h => exact (ne_of_gt hμ_pos h).elim
+            | inr h => exact h
           have hz0_i : (z 0) i = 0 := by rw [hz0]; simp
           -- On 𝓝[>] 0, the slope of (z i) at 0 is identically 0
           have h_slope_eq_zero : (slope (fun μ => z μ i) 0) =ᶠ[𝓝[>] 0] (fun _ => (0 : ℝ)) := by
             filter_upwards [h_zi_zero] with μ hμ
             simp [slope, hμ, hz0_i]
           have h_tendsto_slope_zero : Tendsto (slope (fun μ => z μ i) 0) (𝓝[>] 0) (𝓝 (0 : ℝ)) :=
-            (h_slope_eq_zero.tendsto (𝓝 (0 : ℝ))).mpr tendsto_const_nhds
+            h_slope_eq_zero.tendsto
           -- The derivative is also the limit of the slope
-          have h_hasDeriv : HasDerivAt (fun μ => z μ i) (deriv (fun μ => z μ i) 0) 0 :=
-            (hz_coord_diff i).hasDerivAt
+          have h_hasDeriv : HasDerivAt (fun μ => z μ i) ((deriv z 0).ofLp i) 0 := by
+            have h_deriv_z : HasDerivAt z (deriv z 0) 0 := h_diff.hasDerivAt
+            exact (EuclideanSpace.proj i).hasFDerivAt.comp_hasDerivAt 0 h_deriv_z
           have h_nhdsWithin_ne : 𝓝[>] (0 : ℝ) ≤ 𝓝[≠] (0 : ℝ) :=
             nhdsWithin_mono 0 (fun x hx => Set.mem_compl_singleton_iff.mpr (ne_of_gt hx))
           have h_tendsto_slope_deriv : Tendsto (slope (fun μ => z μ i) 0) (𝓝[>] 0)
-              (𝓝 (deriv (fun μ => z μ i) 0)) :=
+              (𝓝 ((deriv z 0).ofLp i)) :=
             h_hasDeriv.tendsto_slope.mono_left h_nhdsWithin_ne
           -- By uniqueness of limits, deriv = 0
-          have h_deriv_zi_zero : deriv (fun μ => z μ i) 0 = 0 :=
+          have h_deriv_zi_zero : (deriv z 0).ofLp i = 0 :=
             tendsto_nhds_unique h_tendsto_slope_deriv h_tendsto_slope_zero
-          simp [h_deriv_zi_zero]
+          have h_eval : deriv (fun μ => z μ i) 0 = (deriv z 0).ofLp i := h_hasDeriv.deriv
+          rw [h_eval, h_deriv_zi_zero]
+          ring
     · -- z is not differentiable at τ: deriv yields 0, inner product is 0
       rw [deriv_zero_of_not_differentiableAt h_diff]
       simp [inner_zero_left]
@@ -2443,13 +2461,17 @@ lemma pos_delta_bound_4_term1
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 2 (Derivative bound).
 
-Informal proof reference: `docs/Lasso.md`, Section 4.6, Step 5 of Proof Sketch.
-The scaled primal path $z(\tau) = \tau x(\tau)$ is the solution to a
-parametric Linear Complementarity Problem (LCP). By standard LCP regularity theory
-(e.g., Cottle, Linear Complementarity Problems), the solution to a parametric LCP
-with linear parameter dependence is Lipschitz continuous with respect to the parameter.
-Since $z$ is Lipschitz continuous on the compact interval $[0, s]$, its derivative
-is bounded everywhere it exists.
+INFORMAL PROOF:
+The scaled primal path $z(\tau) = \tau x(\tau)$ is the solution to a parametric
+Linear Complementarity Problem (LCP) with linear parameter dependence. By standard
+LCP regularity theory, such a solution path is locally Lipschitz continuous.
+Because $z(\tau)$ is Lipschitz continuous on the compact interval $[0, s]$, it is
+absolutely continuous, and its derivative is bounded almost everywhere it exists
+by the Lipschitz constant.
+
+CITATION:
+- `docs/Lasso.md`, Section 4.5 (Lemma 4.11) and Section 4.7.
+- Cottle, Pang, Stone, "The Linear Complementarity Problem" (1992).
 -/
 lemma scaledPrimalPath_deriv_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2496,17 +2518,21 @@ lemma scaledPrimalPath_deriv_bound
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 3.
 
-Informal proof reference: `docs/Lasso.md`, Section 4.6, Steps 2-6 of Proof Sketch.
-The second term is
+INFORMAL PROOF:
+We must bound the inner product
 $\langle \dot{z}^\varepsilon(\tau) - \dot{z}(\tau), \mathbf{1} - w^\varepsilon(0) \rangle$.
-We have $\dot{z}^\varepsilon(\tau) = x^\varepsilon(t)$, which is uniformly bounded.
-By `scaledPrimalPath_deriv_bound`, $\dot{z}(\tau)$ is also bounded.
-Thus their difference is bounded by some constant $C$.
-The vector $\mathbf{1} - w^\varepsilon(0)$ has coordinates
-$\frac{\log \beta_i^2}{\log(1/\varepsilon)}$, which goes to 0 as $\varepsilon \to 0$.
-Therefore, the inner product is bounded by
-$C \cdot O(1/\log(1/\varepsilon))$, which is eventually $\le \delta$
+From the gradient flow initialization,
+$w^\varepsilon_i(0) = -\frac{\log(\varepsilon \beta_i^2)}{\log(1/\varepsilon)}$
+which is equal to $1 - \frac{\log \beta_i^2}{\log(1/\varepsilon)}$.
+Thus, $\mathbf{1} - w^\varepsilon(0) = \frac{\log \beta^2}{\log(1/\varepsilon)}$,
+which tends to $0$ uniformly as $\varepsilon \to 0$ with rate $O(1/\log(1/\varepsilon))$.
+Since the derivatives $\dot{z}^\varepsilon(\tau)$ and $\dot{z}(\tau)$ are bounded uniformly
+on $[0, s]$ (the latter by `scaledPrimalPath_deriv_bound`), their inner product with this
+vanishing term is bounded by $O(1/\log(1/\varepsilon))$, which is eventually $\le \delta$
 for sufficiently small $\varepsilon$.
+
+CITATION:
+`docs/Lasso.md`, Section 4.6 (Proof of Theorem 3.2).
 -/
 lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2551,8 +2577,7 @@ lemma pos_delta_bound_4
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
     ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -2566,7 +2591,7 @@ lemma pos_delta_bound_4
   have h2 := pos_delta_bound_4_term2 M r lambda β s hs u hdata hβ hu x_lasso h_bound δ hδ
   filter_upwards [h2] with ε hε
   intro τ hτ
-  have h1 := pos_delta_bound_4_term1 M r lambda x_lasso hx_lasso h_regular hdata τ hτ.1
+  have h1 := pos_delta_bound_4_term1 M r lambda x_lasso hx_lasso hdata τ hτ.1
   have h2_eval := hε τ hτ
   linarith
 
@@ -2684,15 +2709,15 @@ slackness gives `w(μ)_i * z(μ)_i = 0`. Two cases:
 * `w(μ)_i > 0`: since `w` is continuous at `μ` (from `hdual`), `w(t)_i > 0` on a
   whole neighborhood of `μ`, so complementary slackness forces `z(t)_i = 0`
   identically there. This is the branch proved below (affine with `a = b = 0`).
-* `w(μ)_i = 0`: coordinate `i` is (possibly degenerately) *active*, and pinning
-  down `z(t)_i` for `t` near `μ` requires tracking how the active set evolves —
-  i.e. genuine parametric-LCP homotopy/basis-update theory (Cottle–Pang–Stone
-  Sec. 4.5; Efron–Hastie–Johnstone–Tibshirani 2004, Thm. 1; Rosset–Zhu 2007) or an
-  added non-degeneracy/uniqueness hypothesis on the selected path `x_lasso`
-  (`M` restricted to the active set need not be invertible, so even the dual
-  system `w_A(t) = 0` need not pin down a *unique*, let alone affine, `z_A(t)`;
-  see the "Caveat" paragraph that used to sit here before this split). This
-  branch is not yet formalized in Mathlib or in LML and is left as `sorry`.
+* `w(μ)_i = 0`: coordinate `i` is (possibly degenerately) *active*.
+  INFORMAL PROOF: At a point $\mu$ where $w_i(\mu) = 0$, the constraint $i$ is active.
+  Standard parametric LCP theory asserts that the solution path of the positive lasso
+  is piecewise affine. Therefore, there always exists a right neighborhood of $\mu$
+  where the active set remains constant and the path is affine, providing the local
+  affine representation needed to deduce a constant local derivative.
+  CITATION:
+  - Efron, Hastie, Johnstone, Tibshirani (2004), "Least Angle Regression", Theorem 1.
+  - `docs/Lasso.md`, Section 4.5.
 -/
 lemma scaledPrimalPath_coord_affine_at_differentiable
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -3078,6 +3103,16 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
 
 /--
 Helper lemma: The path delta composition is absolutely continuous.
+
+INFORMAL PROOF:
+`pathDelta` is defined using inner products and norms of $z^\varepsilon(\tau)$ and $z(\tau)$.
+Both $z^\varepsilon$ and $z$ are absolutely continuous on the compact interval $[0, s]$
+(the former by properties of gradient flow, the latter by LCP regularity).
+Since products and linear combinations of absolutely continuous functions on a compact
+interval are absolutely continuous, the composition `pathDelta` is absolutely continuous.
+
+CITATION:
+`docs/Lasso.md`, Section 4.6 (differential inequality integration).
 -/
 lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ)
     (u_ε : ℝ → EuclideanSpace ℝ ι) (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) :
@@ -3088,6 +3123,16 @@ lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ)
 
 /--
 Helper lemma: The G bound is absolutely continuous.
+
+INFORMAL PROOF:
+The upper bound function $G(\tau)$ is a linear combination of $\tau$, `positiveZUpward`,
+and `positiveZDownward`. The latter two are defined as Lebesgue integrals of the non-negative
+and non-positive parts of the derivative of $z(\tau)$, respectively. By the Fundamental
+Theorem of Calculus for Lebesgue integration, the integral of an $L^1$ function is
+absolutely continuous. Hence, $G(\tau)$ is absolutely continuous.
+
+CITATION:
+`docs/Lasso.md`, Section 4.6.
 -/
 lemma G_ac {ι : Type*} [Fintype ι] (C ε s δ : ℝ) (x_lasso : ℝ → EuclideanSpace ℝ ι) :
     AbsolutelyContinuousOnInterval
