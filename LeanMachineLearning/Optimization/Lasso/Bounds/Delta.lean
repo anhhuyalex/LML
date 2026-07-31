@@ -3310,6 +3310,29 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
   linarith
 
 /--
+Constant functions are absolutely continuous (Lipschitz with constant `0`).
+-/
+private lemma absolutelyContinuousOnInterval_const (c a b : ℝ) :
+    AbsolutelyContinuousOnInterval (fun _ : ℝ => c) a b := by
+  have hK : LipschitzOnWith 0 (fun _ : ℝ => c) (Set.uIcc a b) := fun x _ y _ => by simp
+  exact hK.absolutelyContinuousOnInterval
+
+/--
+A finite sum of absolutely continuous functions is absolutely continuous.
+Not provided by `Mathlib.MeasureTheory.Function.AbsolutelyContinuous`, which only closes
+`AbsolutelyContinuousOnInterval` under binary `add`/`sub`/`neg`/`smul`/`mul`; this extends
+that closure to `Finset.sum` via `Finset.sum_induction`, reusing the `add` case and the
+zero case (`absolutelyContinuousOnInterval_const`).
+-/
+private lemma absolutelyContinuousOnInterval_sum {κ : Type*} (t : Finset κ)
+    (f : κ → ℝ → ℝ) (a b : ℝ)
+    (h : ∀ i ∈ t, AbsolutelyContinuousOnInterval (f i) a b) :
+    AbsolutelyContinuousOnInterval (fun x => ∑ i ∈ t, f i x) a b := by
+  rw [show (fun x => ∑ i ∈ t, f i x) = ∑ i ∈ t, f i from (Finset.sum_fn t f).symm]
+  exact Finset.sum_induction f (fun g => AbsolutelyContinuousOnInterval g a b)
+    (fun _ _ h1 h2 => h1.add h2) (absolutelyContinuousOnInterval_const 0 a b) h
+
+/--
 Helper lemma: The path delta composition is absolutely continuous.
 
 INFORMAL PROOF:
@@ -3319,15 +3342,122 @@ Both $z^\varepsilon$ and $z$ are absolutely continuous on the compact interval $
 Since products and linear combinations of absolutely continuous functions on a compact
 interval are absolutely continuous, the composition `pathDelta` is absolutely continuous.
 
+More precisely: `zε = posIntegratedTrajectoryRescaled ε u_ε` is in fact `C¹` everywhere —
+its derivative exists at every real `τ` (`posIntegratedTrajectoryRescaled_hasDerivAt`) and is
+continuous in `τ` (a composition of the continuous `u_ε`, the continuous affine
+reparametrization `posTimeFromRescaled ε`, and the continuous `coordinateSquare`) — so it is
+absolutely continuous on `[0, s]` by `ContDiffOn.absolutelyContinuousOnInterval`. `z =
+scaledPrimalPath x_lasso` is absolutely continuous on `[0, s]` by `h_regular`. Each coordinate
+`(matVec M v) i = ∑ j, M i j * v j` is a fixed linear combination of the (1-Lipschitz,
+hence absolutely continuous) coordinate projections of `v = zε - z`, so it is absolutely
+continuous by `absolutelyContinuousOnInterval_sum` and `.const_mul` — this avoids routing
+through the operator norm of `matVec M` as a bundled `ContinuousLinearMap`, which forces an
+expensive `EuclideanSpace` defeq unification that times out at `whnf`. Finally the quadratic
+form `⟨zε - z, M(zε - z)⟩` is a finite sum of products of coordinate projections of these two
+absolutely continuous vector paths, so it is absolutely continuous by
+`AbsolutelyContinuousOnInterval.mul` and `absolutelyContinuousOnInterval_sum`.
+
 CITATION:
 `docs/Lasso.md`, Section 4.6 (differential inequality integration).
 -/
 lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ)
-    (u_ε : ℝ → EuclideanSpace ℝ ι) (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) :
+    (u_ε : ℝ → EuclideanSpace ℝ ι) (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 ≤ s)
+    (h_cont_u : Continuous u_ε) (h_log_ne : Real.log (1 / ε) ≠ 0)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     AbsolutelyContinuousOnInterval
       (fun τ ↦ pathDelta M (fun ρ ↦ posIntegratedTrajectoryRescaled ε u_ε ρ)
         (scaledPrimalPath x_lasso) τ) 0 s := by
-  sorry
+  -- `zε` is globally `C¹`, hence absolutely continuous on `[0, s]`.
+  have h_zε_deriv : ∀ τ, HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε u_ε ρ)
+      (posEffectiveParameter u_ε (posTimeFromRescaled ε τ)) τ :=
+    fun τ => posIntegratedTrajectoryRescaled_hasDerivAt ε u_ε τ h_cont_u h_log_ne
+  have h_deriv_eq : deriv (fun ρ => posIntegratedTrajectoryRescaled ε u_ε ρ) =
+      fun τ => posEffectiveParameter u_ε (posTimeFromRescaled ε τ) :=
+    funext (fun τ => (h_zε_deriv τ).deriv)
+  have h_cont_time : Continuous (posTimeFromRescaled ε) := by
+    unfold posTimeFromRescaled; fun_prop
+  have h_cont_coordSquare :
+      Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
+    let e : (ι → ℝ) ≃L[ℝ] EuclideanSpace ℝ ι :=
+      (WithLp.linearEquiv 2 ℝ (ι → ℝ)).symm.toContinuousLinearEquiv
+    have h_proj_cont (i : ι) : Continuous (fun (x : EuclideanSpace ℝ ι) => x i) :=
+      (continuous_apply i).comp
+        ((WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous)
+    have h_eq : coordinateSquare = e ∘ (fun (x : EuclideanSpace ℝ ι) => fun i => x i * x i) := by
+      ext x i; simp [coordinateSquare, euclideanOf, e]
+    rw [h_eq]
+    exact e.continuous.comp
+      (continuous_pi (fun i => Continuous.mul (h_proj_cont i) (h_proj_cont i)))
+  have h_cont_deriv : Continuous
+      (fun τ => posEffectiveParameter u_ε (posTimeFromRescaled ε τ)) := by
+    dsimp [posEffectiveParameter]
+    exact h_cont_coordSquare.comp (h_cont_u.comp h_cont_time)
+  have h_contDiff_zε : ContDiff ℝ 1 (fun ρ => posIntegratedTrajectoryRescaled ε u_ε ρ) :=
+    contDiff_one_iff_deriv.mpr ⟨fun τ => (h_zε_deriv τ).differentiableAt,
+      h_deriv_eq ▸ h_cont_deriv⟩
+  have hzε_ac : AbsolutelyContinuousOnInterval
+      (fun ρ => posIntegratedTrajectoryRescaled ε u_ε ρ) 0 s :=
+    h_contDiff_zε.contDiffOn.absolutelyContinuousOnInterval
+  -- `z` is absolutely continuous on `[0, s]` by `h_regular`.
+  have hz_ac : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) 0 s :=
+    h_regular.absolutelyContinuousOn_Icc 0 s le_rfl hs
+  have hdiff_ac : AbsolutelyContinuousOnInterval
+      (fun τ => posIntegratedTrajectoryRescaled ε u_ε τ - scaledPrimalPath x_lasso τ) 0 s :=
+    hzε_ac.sub hz_ac
+  -- `(matVec M v) i` is the fixed linear combination `∑ j, M i j * v j` of the coordinates
+  -- of `v`, so it is absolutely continuous coordinatewise without going through the operator
+  -- norm of `matVec M` as a bundled `ContinuousLinearMap` (that route forces an expensive
+  -- `EuclideanSpace`/`LinearMap.toContinuousLinearMap` defeq unification that times out at
+  -- `whnf`; see the `deterministic timeout at whnf` entry of `docs/lessons_learned.md`).
+  have hM_coord_ac : ∀ i : ι, AbsolutelyContinuousOnInterval
+      (fun τ => (matVec M (posIntegratedTrajectoryRescaled ε u_ε τ -
+        scaledPrimalPath x_lasso τ)) i) 0 s := by
+    intro i
+    have h_coord_eq : ∀ τ, (matVec M (posIntegratedTrajectoryRescaled ε u_ε τ -
+        scaledPrimalPath x_lasso τ)) i =
+        ∑ j, M i j * (posIntegratedTrajectoryRescaled ε u_ε τ - scaledPrimalPath x_lasso τ) j := by
+      intro τ
+      simp [matVec, euclideanOf, Matrix.mulVec, dotProduct]
+    have h_sum_ac : AbsolutelyContinuousOnInterval
+        (fun τ => ∑ j, M i j *
+          (posIntegratedTrajectoryRescaled ε u_ε τ - scaledPrimalPath x_lasso τ) j) 0 s := by
+      apply absolutelyContinuousOnInterval_sum Finset.univ
+        (fun j τ => M i j * (posIntegratedTrajectoryRescaled ε u_ε τ -
+          scaledPrimalPath x_lasso τ) j)
+      intro j _
+      have h_lip : LipschitzWith 1 (fun x : EuclideanSpace ℝ ι => x j) :=
+        LipschitzWith.of_dist_le_mul (fun x y => by
+          simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) j)
+      exact (LipschitzWith.comp_absolutelyContinuousOnInterval h_lip hdiff_ac).const_mul (M i j)
+    simpa [h_coord_eq] using h_sum_ac
+  -- Assemble via the `EuclideanSpace` inner-product formula and coordinatewise products.
+  have h_term_ac : ∀ i : ι, AbsolutelyContinuousOnInterval
+      (fun τ => (posIntegratedTrajectoryRescaled ε u_ε τ - scaledPrimalPath x_lasso τ) i *
+        (matVec M (posIntegratedTrajectoryRescaled ε u_ε τ -
+          scaledPrimalPath x_lasso τ)) i) 0 s := by
+    intro i
+    have h_lip : LipschitzWith 1 (fun x : EuclideanSpace ℝ ι => x i) :=
+      LipschitzWith.of_dist_le_mul (fun x y => by
+        simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)
+    exact (LipschitzWith.comp_absolutelyContinuousOnInterval h_lip hdiff_ac).mul
+      (hM_coord_ac i)
+  have h_inner_ac : AbsolutelyContinuousOnInterval
+      (fun τ => ∑ i, (posIntegratedTrajectoryRescaled ε u_ε τ - scaledPrimalPath x_lasso τ) i *
+        (matVec M (posIntegratedTrajectoryRescaled ε u_ε τ -
+          scaledPrimalPath x_lasso τ)) i) 0 s :=
+    absolutelyContinuousOnInterval_sum Finset.univ _ 0 s (fun i _ => h_term_ac i)
+  have h_eq_final : (fun τ ↦ pathDelta M (fun ρ ↦ posIntegratedTrajectoryRescaled ε u_ε ρ)
+      (scaledPrimalPath x_lasso) τ) =
+      fun τ => (1 / 2 : ℝ) * ∑ i, (posIntegratedTrajectoryRescaled ε u_ε τ -
+        scaledPrimalPath x_lasso τ) i *
+        (matVec M (posIntegratedTrajectoryRescaled ε u_ε τ - scaledPrimalPath x_lasso τ)) i := by
+    funext τ
+    simp only [pathDelta, matrixSeminormSq, PiLp.inner_apply, RCLike.inner_apply,
+      conj_trivial]
+    congr 1
+    exact Finset.sum_congr rfl (fun i _ => mul_comm _ _)
+  rw [h_eq_final]
+  exact h_inner_ac.const_mul (1 / 2 : ℝ)
 
 /--
 Helper lemma: The G bound is absolutely continuous.
@@ -3337,17 +3467,63 @@ The upper bound function $G(\tau)$ is a linear combination of $\tau$, `positiveZ
 and `positiveZDownward`. The latter two are defined as Lebesgue integrals of the non-negative
 and non-positive parts of the derivative of $z(\tau)$, respectively. By the Fundamental
 Theorem of Calculus for Lebesgue integration, the integral of an $L^1$ function is
-absolutely continuous. Hence, $G(\tau)$ is absolutely continuous.
+absolutely continuous (`IntervalIntegrable.absolutelyContinuousOnInterval_intervalIntegral`).
+Summing these coordinatewise AC facts (`absolutelyContinuousOnInterval_sum`) gives AC of
+`positiveZUpward`/`positiveZDownward` on `[0, s]`; `G` is then a fixed affine combination of
+these two AC functions and the (Lipschitz, hence AC) identity `τ`, so it is AC by the
+algebra-closure lemmas `.add`/`.const_mul`.
 
 CITATION:
 `docs/Lasso.md`, Section 4.6.
 -/
-lemma G_ac {ι : Type*} [Fintype ι] (C ε s δ : ℝ) (x_lasso : ℝ → EuclideanSpace ℝ ι) :
+lemma G_ac {ι : Type*} [Fintype ι] (C ε s δ : ℝ) (hs : 0 < s)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     AbsolutelyContinuousOnInterval
       (fun τ ↦
         C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
           positiveZDownward x_lasso τ) + C * δ / s * τ) 0 s := by
-  sorry
+  have h_id_ac : AbsolutelyContinuousOnInterval (fun τ : ℝ => τ) 0 s := by
+    have hK : LipschitzOnWith 1 (fun τ : ℝ => τ) (Set.uIcc 0 s) := fun x _ y _ => by simp
+    exact hK.absolutelyContinuousOnInterval
+  have hc_mem : (0 : ℝ) ∈ Set.uIcc (0 : ℝ) s := Set.left_mem_uIcc
+  have h_up_ac : AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
+    unfold positiveZUpward
+    apply absolutelyContinuousOnInterval_sum Finset.univ
+      (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+    intro i _
+    have h_int : IntervalIntegrable
+        (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 s :=
+      max_zero_deriv_intervalIntegrable x_lasso i s hs.le h_regular
+    exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
+  have h_down_ac : AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
+    unfold positiveZDownward
+    apply absolutelyContinuousOnInterval_sum Finset.univ
+      (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+        (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+    intro i _
+    have h_int : IntervalIntegrable
+        (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+        volume 0 s :=
+      (max_zero_neg_deriv_intervalIntegrable x_lasso i s hs.le h_regular).continuousOn_mul
+        (by fun_prop)
+    exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
+  have h1 : AbsolutelyContinuousOnInterval (fun τ : ℝ => τ + positiveZUpward x_lasso τ) 0 s :=
+    h_id_ac.add h_up_ac
+  have h2 : AbsolutelyContinuousOnInterval
+      (fun τ : ℝ => 1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ)) 0 s :=
+    h1.const_mul _
+  have h3 : AbsolutelyContinuousOnInterval
+      (fun τ : ℝ => 1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
+        positiveZDownward x_lasso τ) 0 s :=
+    h2.add h_down_ac
+  have h4 : AbsolutelyContinuousOnInterval
+      (fun τ : ℝ => C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
+        positiveZDownward x_lasso τ)) 0 s :=
+    h3.const_mul C
+  have h5 : AbsolutelyContinuousOnInterval (fun τ : ℝ => (C * δ / s) * τ) 0 s :=
+    h_id_ac.const_mul _
+  exact h4.add h5
 
 /--
 Section 4.6, Eq. (4.15), with the full finite-`ε` dependence.
@@ -3397,7 +3573,9 @@ theorem positive_path_delta_bound_full
   use C, hC_pos
   intro δ hδ
   have h_delta_pos : 0 < C * δ / s := div_pos (mul_pos hC_pos hδ) hs
-  filter_upwards [h_bound (C * δ / s) h_delta_pos] with ε h_deriv
+  filter_upwards [h_bound (C * δ / s) h_delta_pos, by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h_deriv hε_range
   let F := fun τ => pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
     (scaledPrimalPath x_lasso) τ
   let G := fun τ => C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
@@ -3447,9 +3625,10 @@ theorem positive_path_delta_bound_full
     rw [hz_up, hz_down]
     ring
   have hF_ac : AbsolutelyContinuousOnInterval F 0 s :=
-    pathDelta_ac M ε (u ε) x_lasso s
+    pathDelta_ac M ε (u ε) x_lasso s hs.le (hu ε hε_range.1).cont_diff.continuous
+      (Real.log_pos (one_lt_one_div hε_range.1 hε_range.2)).ne' h_regular
   have hG_ac : AbsolutelyContinuousOnInterval G 0 s :=
-    G_ac C ε s δ x_lasso
+    G_ac C ε s δ hs x_lasso h_regular
   /-
   INFORMAL PROOF (docs/Lasso.md, Section 4.6):
   We apply the integration lemma `bound_of_deriv_bound` for Lebesgue integration.
