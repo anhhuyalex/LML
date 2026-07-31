@@ -3095,7 +3095,7 @@ lemma positiveZ_ae_differentiable
   have h_const : ∀ i, ∃ ε > 0, ∀ t, |t - τ| < ε →
       deriv (fun u' => u' * (x_lasso u').ofLp i) t =
       deriv (fun u' => u' * (x_lasso u').ofLp i) τ := fun i =>
-    scaledPrimalPath_deriv_locally_constant x_lasso h_local_affine τ i hτ_pos h_path_diff_at
+    scaledPrimalPath_deriv_locally_constant x_lasso h_local_affine τ i hτ_pos.le h_path_diff_at
   refine ⟨?_, ?_⟩
   · unfold positiveZUpward
     exact DifferentiableAt.fun_sum (fun i _ =>
@@ -3403,17 +3403,41 @@ theorem positive_path_delta_bound_full
   let G := fun τ => C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
     positiveZDownward x_lasso τ) + (C * δ / s) * τ
   have h_deriv_bound : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
-    have h_G_diff : ∀ᵐ x ∂volume, x ∈ Set.Icc 0 s → DifferentiableAt ℝ G x := by
-      have h := AbsolutelyContinuousOnInterval.ae_differentiableAt (G_ac C ε s δ x_lasso)
-      rw [Set.uIcc_of_le (le_of_lt hs)] at h
-      exact h
-    filter_upwards [h_deriv, h_G_diff] with τ hτ hG_diff
+    have h_pos_z_diff := positiveZ_ae_differentiable x_lasso s hs h_local_affine h_regular
+    filter_upwards [h_deriv, h_pos_z_diff] with τ hτ hτ_pos_z
     intro hτ_mem
+    obtain ⟨hτ_up_diff, hτ_down_diff⟩ := hτ_pos_z hτ_mem
     have hG_deriv : deriv G τ = C * (1 / Real.log (1 / ε) *
       (1 + deriv (positiveZUpward x_lasso) τ) +
       deriv (positiveZDownward x_lasso) τ) + C * δ / s := by
-      -- Follows from linearity of `deriv` assuming G is differentiable.
-      sorry
+      -- `G` is a linear combination of `τ`, `positiveZUpward x_lasso`, and
+      -- `positiveZDownward x_lasso`, each of which is differentiable at `τ`
+      -- (`hτ_up_diff`, `hτ_down_diff`); assemble the derivative via `HasDerivAt`
+      -- combinators and identify `deriv G τ` with it.
+      have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso)
+          (deriv (positiveZUpward x_lasso) τ) τ := hτ_up_diff.hasDerivAt
+      have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso)
+          (deriv (positiveZDownward x_lasso) τ) τ := hτ_down_diff.hasDerivAt
+      have h1 : HasDerivAt (fun t : ℝ => t + positiveZUpward x_lasso t)
+          (1 + deriv (positiveZUpward x_lasso) τ) τ :=
+        (hasDerivAt_id' τ).add h_up_hasDeriv
+      have h2 : HasDerivAt
+          (fun t : ℝ => 1 / Real.log (1 / ε) * (t + positiveZUpward x_lasso t) +
+            positiveZDownward x_lasso t)
+          (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+            deriv (positiveZDownward x_lasso) τ) τ :=
+        (h1.const_mul (1 / Real.log (1 / ε))).add h_down_hasDeriv
+      have h3 : HasDerivAt
+          (fun t : ℝ => C * (1 / Real.log (1 / ε) * (t + positiveZUpward x_lasso t) +
+            positiveZDownward x_lasso t) + (C * δ / s) * t)
+          (C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+            deriv (positiveZDownward x_lasso) τ) + (C * δ / s) * 1) τ :=
+        (h2.const_mul C).add ((hasDerivAt_id' τ).const_mul (C * δ / s))
+      have hG_eq : G = fun t : ℝ => C * (1 / Real.log (1 / ε) *
+          (t + positiveZUpward x_lasso t) + positiveZDownward x_lasso t) +
+          (C * δ / s) * t := rfl
+      rw [hG_eq, h3.deriv]
+      ring
     rw [hG_deriv]
     exact hτ hτ_mem
   have hF0 : F 0 = 0 := pathDelta_zero M ε (u ε) x_lasso
