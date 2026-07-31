@@ -2553,7 +2553,161 @@ lemma pos_delta_bound_4_term2
           deriv (scaledPrimalPath x_lasso) τ)
           (ones - posRescaledMirrorVariable ε (u ε) 0)
         ≤ δ := by
-  sorry
+  intro δ hδ
+  rcases h_bounded with ⟨C₂, hC₂pos, hC₂⟩
+  obtain ⟨C₁, ε₀, hC₁pos, hε₀pos, hbound⟩ :=
+    pos_trajectory_uniform_bound M r lambda β u hdata hβ hu
+  -- The vector v with entries log(β_i²); its norm is a constant depending only on β
+  set v : EuclideanSpace ℝ ι := euclideanOf (fun i => Real.log ((β i)^2)) with hv_def
+  -- Set M = (C₁+C₂)*‖v‖/δ; when ‖v‖=0 this is 0 and the argument still works
+  set M : ℝ := (C₁ + C₂) * ‖v‖ / δ with hM_def
+  -- Choose ε₁ small enough so that log(1/ε₁) ≥ M
+  set ε₁ : ℝ := min (min ε₀ (1/2 : ℝ)) (Real.exp (-M)) with hε₁_def
+  have hε₁pos : 0 < ε₁ := by
+    refine lt_min (lt_min hε₀pos (by norm_num)) (Real.exp_pos _)
+  have hε₁_le_ε₀ : ε₁ ≤ ε₀ := le_trans (min_le_left _ _) (min_le_left _ _)
+  have hε₁_lt_one : ε₁ < 1 := by
+    have h : min ε₀ (1/2 : ℝ) ≤ 1/2 := min_le_right _ _
+    have h' : min (min ε₀ (1/2 : ℝ)) (Real.exp (-M)) ≤ min ε₀ (1/2 : ℝ) := min_le_left _ _
+    linarith
+  -- For ε ∈ (0, ε₁], we have log(1/ε) ≥ M
+  have h_log_bound (ε : ℝ) (hε_pos : 0 < ε) (hε_le : ε ≤ ε₁) : M ≤ Real.log (1 / ε) := by
+    -- Since ε ≤ ε₁ ≤ exp(-M), we show exp(M) ≤ 1/ε, then take log
+    have h_exp_bound : Real.exp M ≤ 1 / ε := by
+      have h_mul : ε * Real.exp M ≤ 1 := by
+        calc
+          ε * Real.exp M ≤ ε₁ * Real.exp M :=
+            mul_le_mul_of_nonneg_right hε_le (Real.exp_pos _).le
+          _ ≤ Real.exp (-M) * Real.exp M :=
+            mul_le_mul_of_nonneg_right (min_le_right _ _) (Real.exp_pos _).le
+          _ = Real.exp ((-M) + M) := by rw [Real.exp_add]
+          _ = Real.exp 0 := by ring
+          _ = 1 := Real.exp_zero
+      calc
+        Real.exp M = (ε * Real.exp M) / ε := by field_simp [hε_pos.ne.symm]
+        _ ≤ 1 / ε := div_le_div_of_nonneg_right hε_pos.le h_mul
+    have hpos_exp : 0 < Real.exp M := Real.exp_pos M
+    have hpos_div : 0 < 1 / ε := div_pos (by norm_num) hε_pos
+    have h_log_ineq : Real.log (Real.exp M) ≤ Real.log (1 / ε) :=
+      (Real.log_le_log hpos_exp hpos_div).mpr h_exp_bound
+    simpa [Real.log_exp M] using h_log_ineq
+  -- Filter: ε ∈ (0, ε₁)
+  have h_eventually : Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) := by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨ε₁, hε₁pos, fun _ hx => hx⟩
+  filter_upwards [h_eventually] with ε hε
+  rcases hε with ⟨hε_pos, hε_lt_ε₁⟩
+  have hε_le_ε₁ : ε ≤ ε₁ := hε_lt_ε₁.le
+  have hε_lt_one : ε < 1 := by linarith
+  have h_log_pos : 0 < Real.log (1 / ε) :=
+    Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  intro τ hτ
+  rcases hτ with ⟨hτ_low, hτ_high⟩
+  -- Step 1: bound ‖deriv(z^ε)(τ)‖ ≤ C₁
+  have h_deriv_zε_norm : ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ‖ ≤ C₁ := by
+    have h_cont_u : Continuous (u ε) := (hu ε hε_pos).cont_diff.continuous
+    rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ h_cont_u
+      (ne_of_gt h_log_pos)).deriv]
+    set t := posTimeFromRescaled ε τ with ht_def
+    have ht_nonneg : 0 ≤ t := by
+      rw [ht_def, posTimeFromRescaled]
+      refine mul_nonneg (div_nonneg hτ_low (by norm_num))
+        (Real.log_nonneg (one_le_div ?_ ?_))
+      · exact hε_pos
+      · linarith
+    exact hbound ε hε_pos (hε_le_ε₁.trans hε₁_le_ε₀) t ht_nonneg
+  -- Step 2: bound ‖deriv(z)(τ)‖ ≤ C₂
+  have h_deriv_z_norm : ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C₂ :=
+    hC₂ τ ⟨hτ_low, hτ_high⟩
+  -- Step 3: triangle inequality for the derivative difference
+  have h_diff_norm : ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+    deriv (scaledPrimalPath x_lasso) τ‖ ≤ C₁ + C₂ := by
+    calc
+      ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+        deriv (scaledPrimalPath x_lasso) τ‖
+          ≤ ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ‖
+            + ‖deriv (scaledPrimalPath x_lasso) τ‖ := norm_sub_le _ _
+      _ ≤ C₁ + C₂ := add_le_add h_deriv_zε_norm h_deriv_z_norm
+  -- Step 4: bound ‖ones - w^ε(0)‖ = ‖v‖ / log(1/ε)
+  have h_target_norm : ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ = ‖v‖ / Real.log (1 / ε) := by
+    -- Key identity: ones - w^ε(0) = (1/log(1/ε)) • v
+    have h_eq_vec : ones - posRescaledMirrorVariable ε (u ε) 0 =
+        ((Real.log (1 / ε))⁻¹ : ℝ) • v := by
+      ext i
+      dsimp [ones, posRescaledMirrorVariable, v, hv_def, euclideanOf]
+      rw [posTimeFromRescaled, zero_div, mul_zero]
+      have h_init : posEffectiveParameter (u ε) 0 = ε • coordinateSquare β :=
+        posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε) (hu ε hε_pos)
+          hε_pos.le
+      rw [h_init]
+      simp [coordinateSquare, euclideanOf]
+      -- Goal: 1 - (-Real.log (ε * ((β i)^2)) / Real.log (1 / ε))
+      --     = (Real.log (1 / ε))⁻¹ * Real.log ((β i)^2)
+      field_simp [h_log_pos.ne.symm]
+      -- Goal: Real.log (1 / ε) + Real.log (ε * ((β i)^2)) = Real.log ((β i)^2)
+      have h1 : (1 / ε) ≠ 0 := by positivity
+      have h2 : ε * ((β i)^2) ≠ 0 := by
+        -- Since ε > 0 and (β i)^2 > 0 (as β i ≠ 0)
+        positivity
+      calc
+        Real.log (1 / ε) + Real.log (ε * ((β i)^2)) =
+            Real.log ((1 / ε) * (ε * ((β i)^2))) := by
+          rw [← Real.log_mul h1 h2]
+        _ = Real.log ((β i)^2) := by
+          field_simp [hε_pos.ne.symm]
+    rw [h_eq_vec, norm_smul]
+    have h_nonneg_inv : 0 ≤ (Real.log (1 / ε))⁻¹ := inv_nonneg.mpr (le_of_lt h_log_pos)
+    rw [abs_of_nonneg h_nonneg_inv]
+    field_simp [h_log_pos.ne.symm]
+  -- Step 5: Cauchy-Schwarz
+  have h_inner_bound : inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+      deriv (scaledPrimalPath x_lasso) τ)
+      (ones - posRescaledMirrorVariable ε (u ε) 0) ≤
+      (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) := by
+    have h_abs := abs_real_inner_le_norm
+      (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+        deriv (scaledPrimalPath x_lasso) τ)
+      (ones - posRescaledMirrorVariable ε (u ε) 0)
+    -- h_abs : |inner ...| ≤ ‖...‖ * ‖...‖
+    -- From abs_le.mp, we get inner ≤ ‖...‖ * ‖...‖
+    have h_inner_le_norm_mul : inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+        deriv (scaledPrimalPath x_lasso) τ)
+        (ones - posRescaledMirrorVariable ε (u ε) 0) ≤
+        ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+          deriv (scaledPrimalPath x_lasso) τ‖
+        * ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ :=
+      (abs_le.mp h_abs).right
+    calc
+      inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+          deriv (scaledPrimalPath x_lasso) τ)
+          (ones - posRescaledMirrorVariable ε (u ε) 0)
+          ≤ ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+            deriv (scaledPrimalPath x_lasso) τ‖
+            * ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ := h_inner_le_norm_mul
+      _ ≤ (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) := by
+        rw [h_target_norm]
+        exact mul_le_mul h_diff_norm (le_refl _) (norm_nonneg _) (by
+          have h_sum_nonneg : 0 ≤ C₁ + C₂ := le_of_lt (add_pos hC₁pos hC₂pos)
+          exact h_sum_nonneg)
+  -- Step 6: combine with log bound to get ≤ δ
+  -- We have M = (C₁+C₂)*‖v‖/δ ≤ log(1/ε)
+  -- So (C₁+C₂)*‖v‖/log(1/ε) ≤ δ
+  have h_final : (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) ≤ δ := by
+    have h_log_bound' := h_log_bound ε hε_pos hε_le_ε₁
+    -- h_log_bound' : M ≤ Real.log (1/ε), i.e., (C₁+C₂)*‖v‖/δ ≤ log(1/ε)
+    rw [hM_def] at h_log_bound'
+    -- h_log_bound' : (C₁ + C₂) * ‖v‖ / δ ≤ Real.log (1 / ε)
+    -- Need: (C₁+C₂)*‖v‖/log(1/ε) ≤ δ
+    -- Rearranging: (C₁+C₂)*‖v‖ ≤ δ * log(1/ε)
+    field_simp [h_log_pos.ne.symm]
+    nlinarith
+  -- Combine
+  calc
+    inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+      deriv (scaledPrimalPath x_lasso) τ)
+      (ones - posRescaledMirrorVariable ε (u ε) 0)
+        ≤ (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) := h_inner_bound
+    _ ≤ δ := h_final
 
 /--
 Section 4.6, Eq. (4.14), Term 4.
