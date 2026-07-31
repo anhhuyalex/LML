@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
 
 /-! ## Section 4.6: positive-path estimate chain -/
 
@@ -1681,22 +1682,82 @@ lemma deriv_bound_of_lipschitz
     simp [hK]
 
 /--
-The solution to a parametric LCP with linear parameter dependence is locally Lipschitz continuous.
+The solution to a parametric LCP with linear parameter dependence is locally Lipschitz continuous,
+under the standing assumptions `ProblemData` (PSD, `r` in the column span of `M`, `λ ≥ 0`)
+and the additional hypothesis that the LCP solution is unique for each `μ`.
 
 Informal Proof:
 (Source: Cottle, Pang, & Stone, "The Linear Complementarity Problem", Academic Press, 1992,
-Theorem 7.3.10). The solution map of an LCP with a positive definite or regular matrix is
+Theorem 7.3.10). The solution map of an LCP with a P-matrix (positive definite) is
 single-valued and Lipschitz continuous with respect to the right-hand side vector `q`.
-Since `q(μ)` is affine (hence Lipschitz), its composition with the LCP solution map is
-Lipschitz continuous with respect to `μ`.
+For PSD matrices, uniqueness must be assumed separately; then the solution map
+restricted to `range(M)` is Lipschitz via the scaled-dual argument of
+`scaled_dual_lipschitz`, while the kernel component is forced to zero by the
+strict positivity of `q` on `ker(M)` (which follows from `λ ≥ 0` and the feasibility
+of the LCP for all `μ ≥ 0`).
+
+Note: Without the uniqueness hypothesis this lemma is **false** in general (a PSD but not
+PD matrix can admit non‑unique LCP solutions, and a discontinuous selection is possible).
+The call site `scaledPrimalPath_deriv_bound` therefore uses a direct finite-active-set
+argument instead of this lemma.
 -/
 lemma parametric_lcp_lipschitz
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (z : ℝ → EuclideanSpace ℝ ι)
-    (hM_symm : M.IsSymm) (hM_psd : IsPositiveSemidefinite M)
+    (hdata : ProblemData M r lambda)
     (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ)
-      (matVec M (z μ) + parametricLcpQ r lambda μ)) :
+      (matVec M (z μ) + parametricLcpQ r lambda μ))
+    (h_unique : ∀ μ ≥ 0, ∀ z',
+      isLCP M (parametricLcpQ r lambda μ) z'
+        (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ) :
     LocallyLipschitzOnCompacts z := by
+  -- Keep a copy of hdata before destructuring, for use in scaled_dual_lipschitz
+  have hdata' := hdata
+  rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
+  have hM_symm : M.IsSymm := hM_psd.symm
+  -- Let w(μ) = M z(μ) + q(μ) be the dual path
+  set w : ℝ → EuclideanSpace ℝ ι := fun μ => matVec M (z μ) + parametricLcpQ r lambda μ
+    with hw_def
+  have hsol : ∀ μ : ℝ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ) := by
+    intro μ hμ
+    rcases h_lcp μ hμ with ⟨hw_eq, hw_nonneg, hz_nonneg, h_comp⟩
+    dsimp [isParametricLCP, isLCP, w]
+    -- isLCP expects v = q + matVec M x, but we have matVec M x + q; use add_comm
+    have hw_eq' : w μ = parametricLcpQ r lambda μ + matVec M (z μ) := by
+      dsimp [w]; abel
+    exact ⟨hw_eq', hw_nonneg, hz_nonneg, h_comp⟩
+  -- `scaled_dual_lipschitz` gives that the scaled dual is Lipschitz.
+  -- From this we deduce that M(z(μ)) is Lipschitz on compacts.
+  have h_scaled_dual_lip : LocallyLipschitzOnCompacts (scaledDualPath lambda w) :=
+    scaled_dual_lipschitz M r lambda z w hdata' hsol
+  -- Since scaledDualPath lambda w = μ ↦ (1/(1+μλ))·w(μ) and 1/(1+μλ) is smooth,
+  -- w itself is locally Lipschitz on compacts away from μ = -1/λ (which is negative).
+  -- On [0, ∞) the factor is bounded between 1/(1+bλ) and 1.
+  have hw_lip : LocallyLipschitzOnCompacts w := by
+    -- w(μ) = (1+μλ) · scaledDualPath lambda w μ
+    -- Both factors are Lipschitz on compacts, so their product is.
+    -- We leave this as a sorry for now; the key idea is that the product of
+    -- two locally Lipschitz functions is locally Lipschitz.
+    sorry
+  -- Now w(μ) = M(z(μ)) + q(μ), and q(μ) = -μ r + (1+μλ)1 is affine, hence Lipschitz.
+  -- Therefore M(z(μ)) = w(μ) - q(μ) is also Lipschitz.
+  have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
+    -- parametricLcpQ r lambda μ = -μ·r + (1+μλ)·1, an affine function
+    sorry
+  have hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)) := by
+    -- matVec M (z μ) = w μ - parametricLcpQ r lambda μ, difference of Lipschitz functions
+    sorry
+  -- Now we need to recover Lipschitz continuity of z from that of Mz.
+  -- Decompose z = z_range + z_kernel where z_range ∈ range(M) and z_kernel ∈ ker(M).
+  -- Since M is PSD, range(M) = ker(M)⊥ and M is positive definite on range(M).
+  -- Hence on range(M), M has a bounded inverse (via the pseudoinverse), so
+  -- z_range = M†(Mz) is Lipschitz.
+  -- On ker(M), the LCP gives q_k(μ) = (1+μλ)·1_k (since r ∈ range(M) ⇒ r_k = 0).
+  -- Because λ ≥ 0 and μ ≥ 0, we have 1+μλ ≥ 1 > 0.  Feasibility of the LCP for all μ
+  -- forces 1_k ≥ 0 (otherwise w_k would become negative).  Complementarity then forces
+  -- z_k = 0 wherever 1_k > 0.  Where 1_k = 0, uniqueness of the LCP solution (h_unique)
+  -- pins down z_k = 0 as well (since z=0 is always a solution when q_k ≡ 0).
+  -- Therefore z_kernel ≡ 0, and z = z_range is Lipschitz.
   sorry
 
 /--
@@ -1745,8 +1806,40 @@ lemma scaledPrimalPath_deriv_bound
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (s : ℝ) (hs : 0 < s) :
     ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C := by
-  -- Follows directly from parametric_lcp_lipschitz and deriv_bound_of_lipschitz
-  sorry
+  rcases hdata with ⟨hM_psd, hr_mem_span, hlambda_nonneg⟩
+  rcases hr_mem_span with ⟨y, hy⟩
+  set z := scaledPrimalPath x_lasso with hz_def
+  -- For each τ, define the dual variable w(τ) = M z(τ) - τ·r + (1+τλ)·1
+  set w : ℝ → EuclideanSpace ℝ ι := fun τ =>
+    matVec M (z τ) - τ • r + (1 + τ * lambda) • ones with hw_def
+  -- Key structural lemma: at points where z is differentiable,
+  -- the derivative ż(τ) satisfies a linear system determined by the active set.
+  -- Specifically, let A(τ) = {i | w_i(τ) = 0}. Then:
+  --   ż_i(τ) = 0                    for i ∉ A(τ)  (since z_i stays at minimum 0)
+  --   (M ż(τ))_i = r_i - lambda      for i ∈ A(τ)  (by differentiating (Mz)_i - τ r_i + 1 + τλ = 0)
+  have h_deriv_bound : ∃ C > 0, ∀ (τ : ℝ), DifferentiableAt ℝ z τ →
+      ‖deriv z τ‖ ≤ C := by
+    -- For each subset A ⊆ ι, consider the linear system:
+    --   v_i = 0 for i ∉ A,  (Mv)_i = r_i - lambda for i ∈ A
+    -- Let S_A be the set of solutions v.  Since there are finitely many A,
+    -- max_{A : S_A ≠ ∅} sup_{v ∈ S_A} ‖v‖ is finite.
+    -- Then at any point τ of differentiability, deriv z τ ∈ S_{A(τ)}.
+    sorry
+  -- Now use the absolute continuity of z to get the bound everywhere (not just at
+  -- points of differentiability).  Since z is absolutely continuous on [0,s],
+  -- the derivative exists a.e. and the bound at differentiable points extends.
+  have h_ac : AbsolutelyContinuousOnInterval z 0 s := by
+    -- This follows from `scaledPrimalPath_regular_of_path_regular`
+    -- which gives local absolute continuity on nonnegative compacts.
+    sorry
+  rcases h_deriv_bound with ⟨C, hC_pos, hC_bound⟩
+  refine ⟨C, hC_pos, fun τ hτ => ?_⟩
+  rcases hτ with ⟨hτ_low, hτ_high⟩
+  by_cases h_diff : DifferentiableAt ℝ z τ
+  · exact hC_bound τ h_diff
+  · -- If z is not differentiable at τ, deriv z τ = 0 by convention, and ‖0‖ = 0 ≤ C
+    rw [deriv_zero_of_not_differentiableAt h_diff, norm_zero]
+    exact hC_pos.le
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 3.
@@ -1998,26 +2091,19 @@ If `F` and `G` have `F' ≤ G'` and `F(0) = G(0) = 0`, then `F(s) ≤ G(s)`.
 lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
     (h_deriv : ∀ τ ∈ Set.Icc 0 s, deriv F τ ≤ deriv G τ)
     (hF0 : F 0 = 0) (hG0 : G 0 = 0)
-    (hF_cont : ContinuousOn F (Set.Icc 0 s))
-    (hG_cont : ContinuousOn G (Set.Icc 0 s))
-    (hF_diff : DifferentiableOn ℝ F (Set.Ioo 0 s))
-    (hG_diff : DifferentiableOn ℝ G (Set.Ioo 0 s)) :
+    (hF_ac : AbsolutelyContinuousOnInterval F 0 s)
+    (hG_ac : AbsolutelyContinuousOnInterval G 0 s) :
     F s ≤ G s := by
-  set H := G - F
-  have hH_deriv_nonneg_ioo : ∀ x ∈ Set.Ioo (0 : ℝ) s, 0 ≤ deriv H x := by
-    intro x hx
-    have hF_at : DifferentiableAt ℝ F x := hF_diff.differentiableAt (isOpen_Ioo.mem_nhds hx)
-    have hG_at : DifferentiableAt ℝ G x := hG_diff.differentiableAt (isOpen_Ioo.mem_nhds hx)
-    rw [deriv_sub hG_at hF_at]
-    linarith [h_deriv x (Set.Ioo_subset_Icc_self hx)]
-  have hH_mono : MonotoneOn H (Set.Icc (0 : ℝ) s) :=
-    monotoneOn_of_deriv_nonneg (convex_Icc _ _) (hG_cont.sub hF_cont)
-      (by simpa [interior_Icc] using hG_diff.sub hF_diff)
-      (by simpa [interior_Icc] using hH_deriv_nonneg_ioo)
-  have hH0 : H 0 = 0 := by simp [H, hF0, hG0]
-  have h_ineq : H 0 ≤ H s := hH_mono ⟨le_refl 0, hs⟩ ⟨hs, le_refl s⟩ hs
-  rw [hH0] at h_ineq
-  dsimp [H] at h_ineq
+  have hF_int : ∫ τ in 0..s, deriv F τ = F s - F 0 :=
+    AbsolutelyContinuousOnInterval.integral_deriv_eq_sub hF_ac
+  have hG_int : ∫ τ in 0..s, deriv G τ = G s - G 0 :=
+    AbsolutelyContinuousOnInterval.integral_deriv_eq_sub hG_ac
+  have h_mono : ∫ τ in 0..s, deriv F τ ≤ ∫ τ in 0..s, deriv G τ := by
+    apply intervalIntegral.integral_mono_on hs
+    · exact AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hF_ac
+    · exact AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hG_ac
+    · exact h_deriv
+  rw [hF_int, hG_int, hF0, hG0] at h_mono
   linarith
 
 /--
@@ -2086,21 +2172,36 @@ theorem positive_path_delta_bound_full
     have ⟨hz_up, hz_down⟩ := z_upward_downward_zero x_lasso
     rw [hz_up, hz_down]
     ring
-  have hF_cont : ContinuousOn F (Set.Icc 0 s) := sorry
-  have hG_cont : ContinuousOn G (Set.Icc 0 s) := sorry
-  have hF_diff : DifferentiableOn ℝ F (Set.Ioo 0 s) := sorry
-  have hG_diff : DifferentiableOn ℝ G (Set.Ioo 0 s) := sorry
+  have hF_ac : AbsolutelyContinuousOnInterval F 0 s := by
+    /-
+    INFORMAL PROOF:
+    F is the composition of `pathDelta` with `posIntegratedTrajectoryRescaled`
+    and `scaledPrimalPath`.
+    The trajectory and path are `LocallyAbsolutelyContinuousOnNonnegativeCompacts` (which we proved
+    in the file LCP.lean). `pathDelta` is a smooth quadratic form (hence locally Lipschitz).
+    The composition of a locally Lipschitz function with an absolutely continuous function
+    is absolutely continuous on the interval [0, s].
+    -/
+    sorry
+  have hG_ac : AbsolutelyContinuousOnInterval G 0 s := by
+    /-
+    INFORMAL PROOF:
+    G is defined as `C * (1 / log(1/ε) * (τ + z_up(τ)) + z_down(τ)) + (C * δ / s) * τ`.
+    This is an affine combination of `τ`, `positiveZUpward`, and `positiveZDownward`.
+    Since `positiveZUpward` and `positiveZDownward` are integrals of locally bounded
+    functions, they are absolutely continuous. The sum and scalar multiplication of
+    absolutely continuous functions are absolutely continuous.
+    -/
+    sorry
   /-
   INFORMAL PROOF (docs/Lasso.md, Section 4.6):
-  We apply the integration lemma bound_of_deriv_bound (Mean Value Theorem).
+  We apply the integration lemma `bound_of_deriv_bound` for Lebesgue integration.
   The functions F (the path delta) and G (the algebraic upper bound) are
-  differentiable almost everywhere because they are composed of locally Lipschitz
-  integrated trajectories. They are continuous everywhere.
-  Applying the integration lemma yields F(s) ≤ G(s).
+  absolutely continuous (but not differentiable everywhere due to kinks).
+  Applying the Lebesgue integration lemma on the differential inequality yields F(s) ≤ G(s).
   -/
   have h_bound_s :=
-    bound_of_deriv_bound (le_of_lt hs) h_deriv_bound hF0 hG0 hF_cont hG_cont
-      hF_diff hG_diff
+    bound_of_deriv_bound (le_of_lt hs) h_deriv_bound hF0 hG0 hF_ac hG_ac
   have hG_eval : G s = C * (deltaFullError ε s (positiveZUpward x_lasso s)
       (positiveZDownward x_lasso s) + δ) := by
     dsimp [G, deltaFullError, deltaVanishingTerm]
