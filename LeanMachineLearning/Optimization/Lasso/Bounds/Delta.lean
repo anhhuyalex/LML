@@ -2603,7 +2603,7 @@ private lemma pos_delta_bound_4_term2_algebraic_bound
   rw [hM_def] at h_log_bound'
   have h_mul : (C₁ + C₂) * v_norm ≤ δ * Real.log (1 / ε) := by
     have := (div_le_iff₀ hδ).mp h_log_bound'
-    rwa [mul_comm] at this
+    linarith
   calc
     (C₁ + C₂) * (v_norm / Real.log (1 / ε)) = ((C₁ + C₂) * v_norm) / Real.log (1 / ε) := by ring
     _ ≤ (δ * Real.log (1 / ε)) / Real.log (1 / ε) :=
@@ -2639,6 +2639,24 @@ private lemma target_norm_helper {ι : Type*} [Fintype ι] [Nonempty ι]
   have h_nonneg_inv : 0 ≤ (Real.log (1 / ε))⁻¹ := inv_nonneg.mpr (le_of_lt h_log_pos)
   rw [Real.norm_of_nonneg h_nonneg_inv]
   field_simp [h_log_pos.ne.symm]
+
+private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype ι] [Nonempty ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (ε : ℝ)
+    (β : EuclideanSpace ℝ ι) (u_eps : ℝ → EuclideanSpace ℝ ι)
+    (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
+    (h_log_pos : 0 < Real.log (1 / ε))
+    (hu : posDlnGradientFlow M r lambda ε β u_eps)
+    (C₁ : ℝ)
+    (hbound : ∀ t, 0 ≤ t → ‖posEffectiveParameter u_eps t‖ ≤ C₁)
+    (τ : ℝ) (hτ_low : 0 ≤ τ) :
+    ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) τ‖ ≤ C₁ := by
+  have h_cont_u : Continuous u_eps := hu.cont_diff.continuous
+  rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε u_eps τ h_cont_u (ne_of_gt h_log_pos)).deriv]
+  have ht_nonneg : 0 ≤ posTimeFromRescaled ε τ := by
+    rw [posTimeFromRescaled]
+    have h_one_le_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_lt_one.le
+    exact mul_nonneg (div_nonneg hτ_low (by norm_num)) (Real.log_nonneg h_one_le_div)
+  exact hbound (posTimeFromRescaled ε τ) ht_nonneg
 
 lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2688,17 +2706,9 @@ lemma pos_delta_bound_4_term2
   intro τ hτ
   rcases hτ with ⟨hτ_low, hτ_high⟩
   -- Step 1: bound ‖deriv(z^ε)(τ)‖ ≤ C₁
-  have h_deriv_zε_norm : ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ‖ ≤ C₁ := by
-    have h_cont_u : Continuous (u ε) := (hu ε hε_pos).cont_diff.continuous
-    rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ h_cont_u
-      (ne_of_gt h_log_pos)).deriv]
-    set t := posTimeFromRescaled ε τ with ht_def
-    have ht_nonneg : 0 ≤ t := by
-      rw [ht_def, posTimeFromRescaled]
-      have h_one_le_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_lt_one.le
-      refine mul_nonneg (div_nonneg hτ_low (by norm_num))
-        (Real.log_nonneg h_one_le_div)
-    exact hbound ε hε_pos (hε_le_ε₁.trans hε₁_le_ε₀) t ht_nonneg
+  have h_deriv_zε_norm : ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ‖ ≤ C₁ :=
+    posIntegratedTrajectoryRescaled_deriv_bound M r lambda ε β (u ε) hε_pos hε_lt_one h_log_pos
+      (hu ε hε_pos) C₁ (hbound ε hε_pos (hε_le_ε₁.trans hε₁_le_ε₀)) τ hτ_low
   -- Step 2: bound ‖deriv(z)(τ)‖ ≤ C₂
   have h_deriv_z_norm : ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C₂ :=
     hC₂ τ ⟨hτ_low, hτ_high⟩
