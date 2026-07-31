@@ -1213,6 +1213,82 @@ private lemma max_zero_neg_deriv_intervalIntegrable
   rw [h_eq]
   exact (h_int_deriv.abs.sub h_int_deriv).div_const 2
 
+/--
+Differentiability of a single `positiveZUpward` summand at a point where the
+underlying coordinate derivative is locally constant near `τ`.  Factored out of
+the FTC step of `deriv_pos_z_identities` so that it can also be used to prove
+plain a.e. differentiability of `positiveZUpward` (`positiveZ_ae_differentiable`)
+without recomputing the actual derivative value.
+-/
+private lemma positiveZUpward_summand_differentiableAt
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ) (i : ι)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_const : ∃ ε > 0, ∀ t, |t - τ| < ε →
+        deriv (fun u' => u' * (x_lasso u').ofLp i) t =
+        deriv (fun u' => u' * (x_lasso u').ofLp i) τ) :
+    DifferentiableAt ℝ (fun μ => ∫ u in (0 : ℝ)..μ,
+      max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) τ := by
+  set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+  set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
+  obtain ⟨ε, hε_pos, h_const⟩ := h_const
+  have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
+    intro t ht; dsimp [g_i]; rw [h_const t ht]
+  have h_cont : ContinuousAt g_i τ := by
+    have h_event : ∀ᶠ t in 𝓝 τ, g_i t = g_i τ := by
+      rw [Metric.eventually_nhds_iff_ball]
+      exact ⟨ε, hε_pos, fun t ht => h_g_const t (Metric.mem_ball.mp ht)⟩
+    have h_eventEq : g_i =ᶠ[𝓝 τ] (fun _ => g_i τ) := h_event
+    exact h_eventEq.continuousAt
+  have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+    refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+    have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun _ => g_i τ) := fun t ht =>
+      h_g_const t (Metric.mem_ball.mp ht)
+    exact (aestronglyMeasurable_const (b := g_i τ)).congr
+      (h_eq_on.aeEq_restrict Metric.isOpen_ball.measurableSet).symm
+  have h_int : IntervalIntegrable g_i volume 0 τ := by
+    dsimp [g_i, f_i]
+    exact max_zero_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+  exact (intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont).differentiableAt
+
+/-- Downward counterpart of `positiveZUpward_summand_differentiableAt`. -/
+private lemma positiveZDownward_summand_differentiableAt
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ) (i : ι)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_const : ∃ ε > 0, ∀ t, |t - τ| < ε →
+        deriv (fun u' => u' * (x_lasso u').ofLp i) t =
+        deriv (fun u' => u' * (x_lasso u').ofLp i) τ) :
+    DifferentiableAt ℝ (fun μ => ∫ u in (0 : ℝ)..μ,
+      (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u)) τ := by
+  set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
+  set g_i := fun (u : ℝ) => (1 + u) * max 0 (-deriv f_i u)
+  obtain ⟨ε, hε_pos, h_const⟩ := h_const
+  let c := max 0 (-deriv f_i τ)
+  have h_g_eq : ∀ t, |t - τ| < ε → g_i t = (1 + t) * c := by
+    intro t ht
+    dsimp [g_i, c]
+    rw [h_const t ht]
+  have h_event : g_i =ᶠ[𝓝 τ] (fun t => (1 + t) * c) := by
+    filter_upwards [Metric.ball_mem_nhds τ hε_pos] with t ht
+    exact h_g_eq t (Metric.mem_ball.mp ht)
+  have h_cont : ContinuousAt g_i τ :=
+    (continuousAt_congr h_event).mpr (by fun_prop)
+  have h_meas : StronglyMeasurableAtFilter g_i (𝓝 τ) := by
+    refine ⟨Metric.ball τ ε, Metric.ball_mem_nhds τ hε_pos, ?_⟩
+    have h_comp : AEStronglyMeasurable (fun t : ℝ => (1 + t) * c)
+        (volume.restrict (Metric.ball τ ε)) :=
+      (by fun_prop : Continuous (fun t : ℝ => (1 + t) * c)).aestronglyMeasurable
+    have h_eq_on : (Metric.ball τ ε).EqOn g_i (fun t => (1 + t) * c) :=
+      fun t ht => h_g_eq t (Metric.mem_ball.mp ht)
+    exact h_comp.congr
+      (h_eq_on.aeEq_restrict Metric.isOpen_ball.measurableSet).symm
+  have h_int_neg : IntervalIntegrable (fun u => max 0 (-deriv f_i u)) volume 0 τ := by
+    dsimp [f_i]
+    exact max_zero_neg_deriv_intervalIntegrable x_lasso i τ hτ h_regular
+  have h_int : IntervalIntegrable g_i volume 0 τ := by
+    dsimp [g_i]
+    exact h_int_neg.continuousOn_mul (by fun_prop)
+  exact (intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont).differentiableAt
+
 -- Extract the FTC/monotonicity block: relates derivatives of positiveZUpward/positiveZDownward
 -- to sums over coordinate derivatives, and establishes monotonicity of both functions.
 -- Uses piecewise linearity of the Lasso path (Efron et al. 2004) and the Fundamental Theorem
@@ -1220,7 +1296,7 @@ private lemma max_zero_neg_deriv_intervalIntegrable
 private lemma deriv_pos_z_identities
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
         DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
         ∃ ε > 0, ∀ t, |t - τ'| < ε →
           deriv (fun u' => u' * (x_lasso u').ofLp i') t =
@@ -1244,7 +1320,7 @@ private lemma deriv_pos_z_identities
     intro i
     set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
     set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
-    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    rcases h_piecewise_deriv τ i hτ h_path_diff with ⟨ε, hε_pos, h_const⟩
     have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
       intro t ht
       dsimp [g_i]
@@ -1272,7 +1348,7 @@ private lemma deriv_pos_z_identities
     intro i
     set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
     set g_i := fun (u : ℝ) => (1 + u) * max 0 (-deriv f_i u)
-    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    rcases h_piecewise_deriv τ i hτ h_path_diff with ⟨ε, hε_pos, h_const⟩
     let c := max 0 (-deriv f_i τ)
     have h_g_eq : ∀ t, |t - τ| < ε → g_i t = (1 + t) * c := by
       intro t ht
@@ -1312,7 +1388,7 @@ private lemma deriv_pos_z_identities
     intro i _
     set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
     set g_i := fun (u : ℝ) => max 0 (deriv f_i u)
-    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    rcases h_piecewise_deriv τ i hτ h_path_diff with ⟨ε, hε_pos, h_const⟩
     have h_g_const : ∀ t, |t - τ| < ε → g_i t = g_i τ := by
       intro t ht
       dsimp [g_i]
@@ -1341,7 +1417,7 @@ private lemma deriv_pos_z_identities
     intro i _
     set f_i := fun (u' : ℝ) => u' * (x_lasso u').ofLp i
     set g_i := fun (u : ℝ) => (1 + u) * max 0 (-deriv f_i u)
-    rcases h_piecewise_deriv τ i h_path_diff with ⟨ε, hε_pos, h_const⟩
+    rcases h_piecewise_deriv τ i hτ h_path_diff with ⟨ε, hε_pos, h_const⟩
     let c := max 0 (-deriv f_i τ)
     have h_g_eq : ∀ t, |t - τ| < ε → g_i t = (1 + t) * c := by
       intro t ht
@@ -1459,7 +1535,7 @@ lemma pos_delta_bound_3
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (_hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
         DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
         ∃ ε > 0, ∀ t, |t - τ'| < ε →
           deriv (fun u' => u' * (x_lasso u').ofLp i') t =
@@ -2541,7 +2617,7 @@ CITATION:
 `docs/Lasso.md`, Section 4.6 (Proof of Theorem 3.2).
 -/
 -- Helper for pos_delta_bound_4_term2
-private lemma posRescaledMirrorVariable_zero_eq {ι : Type*} [Fintype ι] [Nonempty ι]
+private lemma posRescaledMirrorVariable_zero_eq {ι : Type*} [Fintype ι]
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (ε : ℝ)
     (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
@@ -2610,7 +2686,7 @@ private lemma pos_delta_bound_4_term2_algebraic_bound
       div_le_div_of_nonneg_right h_mul h_log_pos.le
     _ = δ := by field_simp [h_log_pos.ne.symm]
 
-private lemma inner_bound_helper {ι : Type*} [Fintype ι] [Nonempty ι]
+private lemma inner_bound_helper {ι : Type*} [Fintype ι]
     {a b : EuclideanSpace ℝ ι} {norm_b C : ℝ}
     (h_norm_a : ‖a‖ ≤ C) (h_norm_b : ‖b‖ = norm_b) (h_C_nonneg : 0 ≤ C) (h_norm_b_nonneg : 0 ≤ norm_b) :
     inner ℝ a b ≤ C * norm_b := by
@@ -2622,7 +2698,7 @@ private lemma inner_bound_helper {ι : Type*} [Fintype ι] [Nonempty ι]
       rw [h_norm_b]
       exact mul_le_mul h_norm_a (le_refl _) h_norm_b_nonneg h_C_nonneg
 
-private lemma target_norm_helper {ι : Type*} [Fintype ι] [Nonempty ι]
+private lemma target_norm_helper {ι : Type*} [Fintype ι]
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (ε : ℝ)
     (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
     (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
@@ -2640,7 +2716,7 @@ private lemma target_norm_helper {ι : Type*} [Fintype ι] [Nonempty ι]
   rw [Real.norm_of_nonneg h_nonneg_inv]
   field_simp [h_log_pos.ne.symm]
 
-private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype ι] [Nonempty ι]
+private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype ι]
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (ε : ℝ)
     (β : EuclideanSpace ℝ ι) (u_eps : ℝ → EuclideanSpace ℝ ι)
     (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
@@ -2657,9 +2733,10 @@ private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype 
     have h_one_le_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_lt_one.le
     exact mul_nonneg (div_nonneg hτ_low (by norm_num)) (Real.log_nonneg h_one_le_div)
   exact hbound (posTimeFromRescaled ε τ) ht_nonneg
-lemma pos_delta_bound_4_term2 [Nonempty ι]
+
+lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (β : EuclideanSpace ℝ ι) (s : ℝ)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
@@ -2760,7 +2837,7 @@ lemma pos_delta_bound_4
         ≤ δ := by
   intro δ hδ
   have h_bound := scaledPrimalPath_deriv_bound x_lasso h_lipschitz s hs
-  have h2 := pos_delta_bound_4_term2 M r lambda β s hs u hdata hβ hu x_lasso h_bound δ hδ
+  have h2 := pos_delta_bound_4_term2 M r lambda β s u hdata hβ hu x_lasso h_bound δ hδ
   filter_upwards [h2] with ε hε
   intro τ hτ
   have h1 := pos_delta_bound_4_term1 M r lambda x_lasso hx_lasso hdata τ hτ.1
@@ -2795,7 +2872,7 @@ lemma deriv_locally_constant_of_eventually_affine {f : ℝ → ℝ} {x : ℝ}
   rw [h_affine_deriv ht', h_affine_deriv (Metric.mem_ball_self hε_pos)]
 
 /-- Explicit regularity of a selected positive-Lasso path: each coordinate of
-the scaled path is locally affine at every positive parameter where that
+the scaled path is locally affine at every nonnegative parameter where that
 coordinate is differentiable.
 
 This property holds for a particular piecewise-affine path produced by an
@@ -2803,11 +2880,16 @@ active-set/LARS selection. It does not follow merely from pointwise optimality
 when the primal minimizer is nonunique: an arbitrary selection may move
 nonlinearly inside the kernel of the positive-semidefinite matrix while keeping
 the same dual certificate.
+
+The domain includes `μ = 0`: by Lemma 4.10 of `docs/Lasso.md` (Sec. 4.5), the
+parametric LCP solution is the trivial one, `z(μ) = 0`, for all `μ` in some
+interval `[0, μ₀)`, so the scaled path is (constantly, hence affinely) regular
+all the way down to the boundary parameter `0`, not just on the open ray.
 -/
 structure ScaledPrimalPathLocallyAffineAtDifferentiable
     (x_lasso : ℝ → EuclideanSpace ℝ ι) : Prop where
   eventually_affine :
-    ∀ i μ, 0 < μ →
+    ∀ i μ, 0 ≤ μ →
       DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) μ →
       ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b
 
@@ -2842,7 +2924,7 @@ References:
 lemma scaledPrimalPath_coord_affine_at_differentiable
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
-    (i : ι) (μ : ℝ) (hμ : 0 < μ)
+    (i : ι) (μ : ℝ) (hμ : 0 ≤ μ)
     (h_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) μ) :
     ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b := by
   exact h_local_affine.eventually_affine i μ hμ h_diff
@@ -2855,15 +2937,16 @@ differentiability of each coordinate `z_i`.  By
 affine at that point, and `deriv_locally_constant_of_eventually_affine` turns
 local affinity into local constancy of the derivative.
 
-The `0 < τ'` hypothesis is required because
-`ScaledPrimalPathLocallyAffineAtDifferentiable` records regularity only on the
-positive parameter domain used by the Lasso path.
+The `0 ≤ τ'` hypothesis matches the domain on which
+`ScaledPrimalPathLocallyAffineAtDifferentiable` records regularity: the
+nonnegative parameter domain used by the Lasso path (see the structure's
+docstring for why `μ = 0` is included).
 -/
 lemma scaledPrimalPath_deriv_locally_constant
     {ι : Type*} [Fintype ι]
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
-    (τ' : ℝ) (i' : ι) (hτ' : 0 < τ')
+    (τ' : ℝ) (i' : ι) (hτ' : 0 ≤ τ')
     (h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ') :
     ∃ ε > 0, ∀ t, |t - τ'| < ε →
       deriv (fun u' => u' * (x_lasso u').ofLp i') t =
@@ -3014,19 +3097,13 @@ lemma positive_delta_complementarity_bound
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
-  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
       DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
       ∃ ε > 0, ∀ t, |t - τ'| < ε →
         deriv (fun u' => u' * (x_lasso u').ofLp i') t =
-        deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
-    intro τ' i' h_diff
-    by_cases hτ' : 0 < τ'
-    · exact scaledPrimalPath_deriv_locally_constant
-        x_lasso h_local_affine τ' i' hτ' h_diff
-    · -- The local-affinity package is only stated for positive parameters. In
-      -- the a.e. framework below, the nonpositive part of `[0, s]` is the
-      -- measure-zero singleton `{0}`.
-      sorry
+        deriv (fun u' => u' * (x_lasso u').ofLp i') τ' :=
+    fun τ' i' hτ' h_diff =>
+      scaledPrimalPath_deriv_locally_constant x_lasso h_local_affine τ' i' hτ' h_diff
   obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
     hx_lasso h_regular h_piecewise_deriv
   use max C1 C3, lt_max_of_lt_left hC1

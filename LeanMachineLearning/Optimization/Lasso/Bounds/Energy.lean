@@ -363,7 +363,7 @@ lemma energy_complementarity_bound
       rw [deriv_zero_of_not_differentiableAt h_diff]
       simp [inner_zero_left]
   -- Choose the piecewise-linearity fact needed by `pos_delta_bound_3`.
-  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
+  have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
       DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
       ∃ ε > 0, ∀ t, |t - τ'| < ε →
         deriv (fun u' => u' * (x_lasso u').ofLp i') t =
