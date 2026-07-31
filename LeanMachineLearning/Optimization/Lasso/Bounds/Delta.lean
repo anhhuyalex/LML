@@ -38,6 +38,47 @@ lemma matVec_hasDerivAt (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ �
   exact HasDerivAt.fun_sum (fun j _ => (hasDerivAt_pi.1 h1 j).const_mul (M i j))
 
 /--
+Chain rule for `pathDelta`: differentiating the `M`-seminorm quadratic form
+`Δ(σ) = (1/2) ‖zε(σ) - z(σ)‖_M^2` gives `⟨zε'(τ) - z'(τ), M(zε(τ) - z(τ))⟩`, using that
+`M` is symmetric so the two cross terms of the product rule combine into a factor of `2`.
+
+Informal proof: write `Δ = (1/2) * Q ∘ v` where `v = zε - z` and `Q(x) = ⟨x, Mx⟩`. The
+product rule for the (bilinear) inner product gives
+`(Q ∘ v)'(τ) = ⟨v(τ), M v'(τ)⟩ + ⟨v'(τ), M v(τ)⟩`. Since `M` is symmetric,
+`⟨v(τ), M v'(τ)⟩ = ⟨M v(τ), v'(τ)⟩ = ⟨v'(τ), M v(τ)⟩` (using `inner_matVec_comm_of_isSymm`
+and symmetry of the real inner product), so `(Q ∘ v)'(τ) = 2 ⟨v'(τ), M v(τ)⟩` and
+`Δ'(τ) = ⟨v'(τ), M v(τ)⟩ = ⟨zε'(τ) - z'(τ), M(zε(τ) - z(τ))⟩`.
+(Source: standard product rule for the symmetric bilinear form associated to a quadratic
+form, e.g. https://en.wikipedia.org/wiki/Quadratic_form#Associated_symmetric_bilinear_form)
+-/
+lemma pathDelta_hasDerivAt
+    (M : Matrix ι ι ℝ) (hM : M.IsSymm) (zε z : ℝ → EuclideanSpace ℝ ι)
+    (Dε Dz : EuclideanSpace ℝ ι) (τ : ℝ)
+    (hzε : HasDerivAt zε Dε τ) (hz : HasDerivAt z Dz τ) :
+    HasDerivAt (fun σ => pathDelta M zε z σ)
+      (inner ℝ (Dε - Dz) (matVec M (zε τ - z τ))) τ := by
+  have hv : HasDerivAt (fun σ => zε σ - z σ) (Dε - Dz) τ := hzε.sub hz
+  have hMv : HasDerivAt (fun σ => matVec M (zε σ - z σ)) (matVec M (Dε - Dz)) τ :=
+    matVec_hasDerivAt M (fun σ => zε σ - z σ) (Dε - Dz) τ hv
+  have h_symm : inner ℝ (zε τ - z τ) (matVec M (Dε - Dz)) =
+      inner ℝ (Dε - Dz) (matVec M (zε τ - z τ)) := by
+    rw [inner_matVec_comm_of_isSymm M hM (zε τ - z τ) (Dε - Dz), real_inner_comm]
+  have hQ : HasDerivAt (fun σ => inner ℝ (zε σ - z σ) (matVec M (zε σ - z σ)))
+      (2 * inner ℝ (Dε - Dz) (matVec M (zε τ - z τ))) τ := by
+    have h := hv.inner ℝ hMv
+    rw [h_symm] at h
+    rwa [show (2 : ℝ) * inner ℝ (Dε - Dz) (matVec M (zε τ - z τ)) =
+        inner ℝ (Dε - Dz) (matVec M (zε τ - z τ)) +
+          inner ℝ (Dε - Dz) (matVec M (zε τ - z τ)) from by ring]
+  have h_eq : (fun σ => pathDelta M zε z σ) =
+      fun σ => (1 / 2 : ℝ) * inner ℝ (zε σ - z σ) (matVec M (zε σ - z σ)) := by
+    funext σ; rfl
+  rw [h_eq]
+  have h_final := hQ.const_mul (1 / 2 : ℝ)
+  rwa [show (1 / 2 : ℝ) * (2 * inner ℝ (Dε - Dz) (matVec M (zε τ - z τ))) =
+      inner ℝ (Dε - Dz) (matVec M (zε τ - z τ)) by ring] at h_final
+
+/--
 Generalized FTC identity for the entropy mirror gradient along the positive DLN flow.
 
 Proof. Define `F(τ) = ∇h(x(τ)) - τ•r + (τ*λ)•ones + M z(τ)`. Show `F'(τ) = 0`
@@ -2038,29 +2079,6 @@ lemma positive_delta_complementarity_bound
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
   intro τ hτ
-  have h_deriv_eq : deriv (fun σ => pathDelta M (fun ρ =>
-      posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) σ) τ =
-    inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
-      (posRescaledMirrorVariable ε (u ε) τ) +
-    - inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
-      (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
-    - inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (posRescaledMirrorVariable ε (u ε) τ) +
-    (inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
-      (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
-     inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
-       deriv (scaledPrimalPath x_lasso) τ)
-       (ones - posRescaledMirrorVariable ε (u ε) 0)) := by
-    /-
-    INFORMAL PROOF (docs/Lasso.md, Section 4.6, Eq 4.14):
-    This algebraic identity differentiates the seminorm pathDelta Δᵋ(τ) = 1/2 ‖zᵋ(τ) - z(τ)‖_M^2.
-    Using the chain rule, the derivative is inner(zᵋ' - z', M(zᵋ - z)).
-    We substitute M zᵋ = wᵋ - wᵋ(0) + τ·r - τ·λ·𝟙 from the integrated mirror flow equation,
-    and M z = -z(0) + τ·r - τ·λ·𝟙 + w(τ) from the exact Lasso path LCP.
-    Expanding the inner product and collecting terms grouping the primal path derivatives
-    and LCP complementarity errors gives exactly the four terms on the RHS.
-    -/
-    sorry
-  rw [h_deriv_eq]
   have h_log_pos : 0 < Real.log (1 / ε) :=
     Real.log_pos (one_lt_one_div hε_range.1 hε_range.2)
   have hL_nonneg : 0 ≤ 1 / Real.log (1 / ε) := div_nonneg (by norm_num) h_log_pos.le
@@ -2092,7 +2110,85 @@ lemma positive_delta_complementarity_bound
       rw [div_eq_mul_one_div C1]
       exact h_sum
     nlinarith
-  linarith [h1ε τ hτ, h2ε τ hτ, h3ε τ hτ, h4ε τ hτ, h_alg]
+  by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
+  · -- `z := scaledPrimalPath x_lasso` is differentiable at `τ`: apply the chain rule for
+    -- `pathDelta` (`pathDelta_hasDerivAt`) and substitute the integrated mirror-flow
+    -- identity (`positive_integrated_mirror_equation`) for `M zᵋ(τ)` together with the
+    -- (definitional) parametric-LCP identity for `M z(τ)`.
+    have hM : M.IsSymm := hdata.psd.symm
+    have hlog_ne : Real.log (1 / ε) ≠ 0 := h_log_pos.ne'
+    have hzε_deriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+        (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ) τ := by
+      have h0 := posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
+        (hu ε hε_range.1).cont_diff.continuous hlog_ne
+      rwa [h0.deriv]
+    have hz_deriv : HasDerivAt (scaledPrimalPath x_lasso)
+        (deriv (scaledPrimalPath x_lasso) τ) τ := h_path_diff.hasDerivAt
+    have h_chain := pathDelta_hasDerivAt M hM
+      (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso)
+      (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+      (deriv (scaledPrimalPath x_lasso) τ) τ hzε_deriv hz_deriv
+    -- Integrated mirror-flow identity: `M zᵋ(τ) = wᵋ(τ) - wᵋ(0) + τ r - τ λ 𝟙`.
+    have hM_zε : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ) =
+        posRescaledMirrorVariable ε (u ε) τ - posRescaledMirrorVariable ε (u ε) 0 +
+          τ • r - (τ * lambda) • ones := by
+      have h := positive_integrated_mirror_equation M r lambda ε β (u ε) (hu ε hε_range.1)
+        (pos_effective_param_ne_zero M r lambda β u hdata hβ hu ε hε_range.1) hM τ hlog_ne
+      rw [h]; abel
+    -- Combine with the (definitional) exact-path identity
+    -- `M z(τ) = (matVec M z(τ) - τ r + (1 + τ λ) 𝟙) + τ r - (1 + τ λ) 𝟙`
+    -- to get `M(zᵋ(τ) - z(τ)) = wᵋ(τ) - Y(τ) + (𝟙 - wᵋ(0))`, where `Y(τ)` is the
+    -- exact-path dual slack appearing in the goal.
+    have hM_diff : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ -
+        scaledPrimalPath x_lasso τ) =
+        (posRescaledMirrorVariable ε (u ε) τ -
+          (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones)) +
+        (ones - posRescaledMirrorVariable ε (u ε) 0) := by
+      rw [matVec_sub, hM_zε, add_smul, one_smul]
+      abel
+    have h_deriv_eq : deriv (fun σ => pathDelta M (fun ρ =>
+        posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) σ) τ =
+      inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+        (posRescaledMirrorVariable ε (u ε) τ) +
+      - inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
+      - inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (posRescaledMirrorVariable ε (u ε) τ) +
+      (inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
+       inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+         deriv (scaledPrimalPath x_lasso) τ)
+         (ones - posRescaledMirrorVariable ε (u ε) 0)) := by
+      rw [h_chain.deriv, hM_diff, inner_add_right, inner_sub_right,
+        inner_sub_left, inner_sub_left]
+      ring
+    rw [h_deriv_eq]
+    linarith [h1ε τ hτ, h2ε τ hτ, h3ε τ hτ, h4ε τ hτ, h_alg]
+  · /-
+    `z := scaledPrimalPath x_lasso` is a kink point of the (piecewise-linear) parametric
+    LCP path here (see `scaledPrimalPath_deriv_locally_constant`), so Lean's `deriv`
+    convention gives `deriv z τ = 0`.  This branch is a genuine, currently-open gap:
+    `pathDelta`'s derivative is that of the quadratic form `Q(v) = ⟨v, Mv⟩` applied to
+    `v = zᵋ - z`, and at a kink of `v` its *one-sided* derivatives are
+    `⟨M v(τ), zᵋ'(τ) - d±⟩`, where `d±` are the one-sided derivatives of `z`.  These
+    coincide (so that `pathDelta` is itself differentiable at `τ`, possibly with a
+    nonzero value not captured by `deriv z τ = 0`) exactly when `M v(τ)` is orthogonal to
+    the kink direction `d+ - d-`; nothing in the hypotheses on hand excludes this (e.g. it
+    happens whenever the transitioning coordinate's row/column of `M` vanishes).  Closing
+    this branch needs a genuine non-degeneracy / active-set argument for the parametric
+    LCP path (companion to the open gaps in `scaledPrimalPath_deriv_locally_constant` and
+    `scaledPrimalPath_deriv_bound` above), which is not yet formalized.
+
+    The informal proof (`docs/Lasso.md`, Sec. 4.6) elides this subtlety because it only
+    ever uses `z`'s *almost-everywhere* derivative when integrating the differential
+    inequality via Eq. (4.15); a fully rigorous statement of this lemma should hold
+    "for a.e. `τ`" and be integrated via the FTC for absolutely continuous functions,
+    rather than via a pointwise bound on all of `[0, s]`.
+    (Source: standard treatment of a.e. differentiability of Lipschitz/AC curves,
+    e.g. Federer, *Geometric Measure Theory*, Thm. 3.1.6, and the one-sided chain rule
+    for `C¹` maps composed with curves having one-sided derivatives, e.g.
+    https://en.wikipedia.org/wiki/Semi-differentiability.)
+    -/
+    sorry
 
 /--
 Section 4.6, differential inequality behind Eq. (4.15).
