@@ -2551,15 +2551,13 @@ private lemma posRescaledMirrorVariable_zero_eq {ι : Type*} [Fintype ι] [Nonem
   have h_log_pos : 0 < Real.log (1 / ε) :=
     Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
   ext i
-  change 1 - posRescaledMirrorVariable ε u 0 i = (Real.log (1 / ε))⁻¹ * Real.log ((β i)^2)
   have h_init : posEffectiveParameter u 0 = ε • coordinateSquare β :=
     posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β u hu hε_pos.le
-  have h_w0 : posRescaledMirrorVariable ε u 0 i = Real.log (posEffectiveParameter u 0 i) / Real.log ε := by
-    rfl
-  rw [h_w0, h_init]
+  dsimp [ones, posRescaledMirrorVariable, euclideanOf]
+  simp only [posTimeFromRescaled, zero_mul, zero_div, PiLp.sub_apply, Pi.one_apply]
+  rw [h_init]
   simp only [coordinateSquare, euclideanOf, WithLp.equiv_symm_apply, PiLp.smul_apply, smul_eq_mul]
   have h_log_ne : Real.log (1 / ε) ≠ 0 := h_log_pos.ne.symm
-  -- Re-arrange to avoid field_simp messing with log
   have h1 : (1 / ε) ≠ 0 := by positivity
   have h2 : ε * ((β.ofLp i)^2) ≠ 0 := by
     have : β.ofLp i ≠ 0 := hβ i
@@ -2567,10 +2565,6 @@ private lemma posRescaledMirrorVariable_zero_eq {ι : Type*} [Fintype ι] [Nonem
   have h_log_inv : Real.log ε = - Real.log (1 / ε) := by
     rw [← Real.log_inv, inv_div, inv_one, mul_one]
   rw [h_log_inv]
-  -- Now we need to prove 1 - log(ε * β_i^2) / (-log(1/ε)) = log(β_i^2) / log(1/ε)
-  -- which is 1 + log(ε * β_i^2) / log(1/ε) = log(β_i^2) / log(1/ε)
-  -- which is log(1/ε) + log(ε * β_i^2) = log(β_i^2)
-  -- This is true since log(1/ε) + log(ε * β_i^2) = log(1/ε * ε * β_i^2) = log(β_i^2).
   calc
     1 - Real.log (ε * β.ofLp i ^ 2) / -Real.log (1 / ε)
       = 1 + Real.log (ε * β.ofLp i ^ 2) / Real.log (1 / ε) := by ring
@@ -2601,6 +2595,50 @@ private lemma le_log_one_div_of_le_exp_neg {ε M : ℝ} (hε_pos : 0 < ε) (hε_
   have h_log_ineq : Real.log (Real.exp M) ≤ Real.log (1 / ε) :=
     Real.log_le_log hpos_exp h_exp_bound
   simpa [Real.log_exp M] using h_log_ineq
+
+private lemma pos_delta_bound_4_term2_algebraic_bound
+    {C₁ C₂ v_norm δ ε M : ℝ} (hδ : 0 < δ) (h_log_pos : 0 < Real.log (1 / ε))
+    (hM_def : M = (C₁ + C₂) * v_norm / δ) (h_log_bound' : M ≤ Real.log (1 / ε)) :
+    (C₁ + C₂) * (v_norm / Real.log (1 / ε)) ≤ δ := by
+  rw [hM_def] at h_log_bound'
+  have h_mul : (C₁ + C₂) * v_norm ≤ δ * Real.log (1 / ε) := by
+    have := (div_le_iff₀ hδ).mp h_log_bound'
+    rwa [mul_comm] at this
+  calc
+    (C₁ + C₂) * (v_norm / Real.log (1 / ε)) = ((C₁ + C₂) * v_norm) / Real.log (1 / ε) := by ring
+    _ ≤ (δ * Real.log (1 / ε)) / Real.log (1 / ε) :=
+      div_le_div_of_nonneg_right h_mul h_log_pos.le
+    _ = δ := by field_simp [h_log_pos.ne.symm]
+
+private lemma inner_bound_helper {ι : Type*} [Fintype ι] [Nonempty ι]
+    {a b : EuclideanSpace ℝ ι} {norm_a norm_b C : ℝ}
+    (h_norm_a : ‖a‖ ≤ C) (h_norm_b : ‖b‖ = norm_b) (h_C_nonneg : 0 ≤ C) (h_norm_b_nonneg : 0 ≤ norm_b) :
+    inner ℝ a b ≤ C * norm_b := by
+  have h_abs := abs_real_inner_le_norm a b
+  have h_inner_le_norm_mul : inner ℝ a b ≤ ‖a‖ * ‖b‖ := (abs_le.mp h_abs).right
+  calc
+    inner ℝ a b ≤ ‖a‖ * ‖b‖ := h_inner_le_norm_mul
+    _ ≤ C * norm_b := by
+      rw [h_norm_b]
+      exact mul_le_mul h_norm_a (le_refl _) h_norm_b_nonneg h_C_nonneg
+
+private lemma target_norm_helper {ι : Type*} [Fintype ι] [Nonempty ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (ε : ℝ)
+    (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
+    (hβ : NonzeroCoordinates β)
+    (hu : posDlnGradientFlow M r lambda ε β u) (v : EuclideanSpace ℝ ι)
+    (hv_def : v = euclideanOf (fun i => Real.log ((β i)^2)))
+    (h_log_pos : 0 < Real.log (1 / ε)) :
+    ‖ones - posRescaledMirrorVariable ε u 0‖ = ‖v‖ / Real.log (1 / ε) := by
+  have h_eq_vec : ones - posRescaledMirrorVariable ε u 0 =
+      ((Real.log (1 / ε))⁻¹ : ℝ) • v := by
+    rw [hv_def]
+    exact posRescaledMirrorVariable_zero_eq M r lambda ε β u hε_pos hε_lt_one hβ hu
+  rw [h_eq_vec, norm_smul]
+  have h_nonneg_inv : 0 ≤ (Real.log (1 / ε))⁻¹ := inv_nonneg.mpr (le_of_lt h_log_pos)
+  rw [Real.norm_of_nonneg h_nonneg_inv]
+  field_simp [h_log_pos.ne.symm]
 
 lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2674,16 +2712,8 @@ lemma pos_delta_bound_4_term2
             + ‖deriv (scaledPrimalPath x_lasso) τ‖ := norm_sub_le _ _
       _ ≤ C₁ + C₂ := add_le_add h_deriv_zε_norm h_deriv_z_norm
   -- Step 4: bound ‖ones - w^ε(0)‖ = ‖v‖ / log(1/ε)
-  have h_target_norm : ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ = ‖v‖ / Real.log (1 / ε) := by
-    -- Key identity: ones - w^ε(0) = (1/log(1/ε)) • v
-    have h_eq_vec : ones - posRescaledMirrorVariable ε (u ε) 0 =
-        ((Real.log (1 / ε))⁻¹ : ℝ) • v := by
-      rw [hv_def]
-      exact posRescaledMirrorVariable_zero_eq M r lambda ε β (u ε) hε_pos hε_lt_one hβ (hu ε hε_pos)
-    rw [h_eq_vec, norm_smul]
-    have h_nonneg_inv : 0 ≤ (Real.log (1 / ε))⁻¹ := inv_nonneg.mpr (le_of_lt h_log_pos)
-    rw [Real.norm_of_nonneg h_nonneg_inv]
-    field_simp [h_log_pos.ne.symm]
+  have h_target_norm : ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ = ‖v‖ / Real.log (1 / ε) :=
+    target_norm_helper M r lambda ε β (u ε) hε_pos hε_lt_one hβ (hu ε hε_pos) v hv_def h_log_pos
   -- Step 5: Cauchy-Schwarz
   have h_inner_bound : inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
       deriv (scaledPrimalPath x_lasso) τ)
