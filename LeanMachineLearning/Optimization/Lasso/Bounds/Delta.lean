@@ -2610,7 +2610,7 @@ private lemma pos_delta_bound_4_term2_algebraic_bound
     _ = δ := by field_simp [h_log_pos.ne.symm]
 
 private lemma inner_bound_helper {ι : Type*} [Fintype ι] [Nonempty ι]
-    {a b : EuclideanSpace ℝ ι} {norm_a norm_b C : ℝ}
+    {a b : EuclideanSpace ℝ ι} {norm_b C : ℝ}
     (h_norm_a : ‖a‖ ≤ C) (h_norm_b : ‖b‖ = norm_b) (h_C_nonneg : 0 ≤ C) (h_norm_b_nonneg : 0 ≤ norm_b) :
     inner ℝ a b ≤ C * norm_b := by
   have h_abs := abs_real_inner_le_norm a b
