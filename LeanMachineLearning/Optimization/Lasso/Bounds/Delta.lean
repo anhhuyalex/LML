@@ -2585,11 +2585,10 @@ lemma pos_delta_bound_4_term2
           _ = 1 := Real.exp_zero
       calc
         Real.exp M = (ε * Real.exp M) / ε := by field_simp [hε_pos.ne.symm]
-        _ ≤ 1 / ε := div_le_div_of_nonneg_right hε_pos.le h_mul
+        _ ≤ 1 / ε := div_le_div_of_nonneg_right h_mul hε_pos.le
     have hpos_exp : 0 < Real.exp M := Real.exp_pos M
-    have hpos_div : 0 < 1 / ε := div_pos (by norm_num) hε_pos
     have h_log_ineq : Real.log (Real.exp M) ≤ Real.log (1 / ε) :=
-      (Real.log_le_log hpos_exp hpos_div).mpr h_exp_bound
+      Real.log_le_log hpos_exp h_exp_bound
     simpa [Real.log_exp M] using h_log_ineq
   -- Filter: ε ∈ (0, ε₁)
   have h_eventually : Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) := by
@@ -2611,10 +2610,9 @@ lemma pos_delta_bound_4_term2
     set t := posTimeFromRescaled ε τ with ht_def
     have ht_nonneg : 0 ≤ t := by
       rw [ht_def, posTimeFromRescaled]
+      have h_one_le_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_lt_one.le
       refine mul_nonneg (div_nonneg hτ_low (by norm_num))
-        (Real.log_nonneg (one_le_div ?_ ?_))
-      · exact hε_pos
-      · linarith
+        (Real.log_nonneg h_one_le_div)
     exact hbound ε hε_pos (hε_le_ε₁.trans hε₁_le_ε₀) t ht_nonneg
   -- Step 2: bound ‖deriv(z)(τ)‖ ≤ C₂
   have h_deriv_z_norm : ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C₂ :=
@@ -2635,7 +2633,7 @@ lemma pos_delta_bound_4_term2
         ((Real.log (1 / ε))⁻¹ : ℝ) • v := by
       ext i
       dsimp [ones, posRescaledMirrorVariable, v, hv_def, euclideanOf]
-      rw [posTimeFromRescaled, zero_div, mul_zero]
+      simp [posTimeFromRescaled]
       have h_init : posEffectiveParameter (u ε) 0 = ε • coordinateSquare β :=
         posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε) (hu ε hε_pos)
           hε_pos.le
@@ -2657,7 +2655,7 @@ lemma pos_delta_bound_4_term2
           field_simp [hε_pos.ne.symm]
     rw [h_eq_vec, norm_smul]
     have h_nonneg_inv : 0 ≤ (Real.log (1 / ε))⁻¹ := inv_nonneg.mpr (le_of_lt h_log_pos)
-    rw [abs_of_nonneg h_nonneg_inv]
+    rw [Real.norm_of_nonneg h_nonneg_inv]
     field_simp [h_log_pos.ne.symm]
   -- Step 5: Cauchy-Schwarz
   have h_inner_bound : inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
@@ -2686,21 +2684,22 @@ lemma pos_delta_bound_4_term2
             * ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ := h_inner_le_norm_mul
       _ ≤ (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) := by
         rw [h_target_norm]
-        exact mul_le_mul h_diff_norm (le_refl _) (norm_nonneg _) (by
-          have h_sum_nonneg : 0 ≤ C₁ + C₂ := le_of_lt (add_pos hC₁pos hC₂pos)
-          exact h_sum_nonneg)
+        refine mul_le_mul h_diff_norm (le_refl _) (div_nonneg (norm_nonneg _) h_log_pos.le) ?_
+        positivity
   -- Step 6: combine with log bound to get ≤ δ
   -- We have M = (C₁+C₂)*‖v‖/δ ≤ log(1/ε)
   -- So (C₁+C₂)*‖v‖/log(1/ε) ≤ δ
   have h_final : (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) ≤ δ := by
     have h_log_bound' := h_log_bound ε hε_pos hε_le_ε₁
-    -- h_log_bound' : M ≤ Real.log (1/ε), i.e., (C₁+C₂)*‖v‖/δ ≤ log(1/ε)
     rw [hM_def] at h_log_bound'
     -- h_log_bound' : (C₁ + C₂) * ‖v‖ / δ ≤ Real.log (1 / ε)
-    -- Need: (C₁+C₂)*‖v‖/log(1/ε) ≤ δ
-    -- Rearranging: (C₁+C₂)*‖v‖ ≤ δ * log(1/ε)
-    field_simp [h_log_pos.ne.symm]
-    nlinarith
+    have h_mul : (C₁ + C₂) * ‖v‖ ≤ δ * Real.log (1 / ε) :=
+      (div_le_iff₀ hδ).mp h_log_bound'
+    calc
+      (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) = ((C₁ + C₂) * ‖v‖) / Real.log (1 / ε) := by ring
+      _ ≤ (δ * Real.log (1 / ε)) / Real.log (1 / ε) :=
+        div_le_div_of_nonneg_right h_mul h_log_pos.le
+      _ = δ := by field_simp [h_log_pos.ne.symm]
   -- Combine
   calc
     inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
