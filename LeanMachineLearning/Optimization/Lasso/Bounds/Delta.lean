@@ -2648,7 +2648,7 @@ private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype 
     (C₁ : ℝ)
     (hbound : ∀ t, 0 ≤ t → ‖posEffectiveParameter u_eps t‖ ≤ C₁)
     (τ : ℝ) (hτ_low : 0 ≤ τ) :
-    ‖deriv (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) τ‖ ≤ C₁ := by
+    ‖deriv ((fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε u_eps ρ) τ : EuclideanSpace ℝ ι)‖ ≤ C₁ := by
   have h_cont_u : Continuous u_eps := hu.cont_diff.continuous
   rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε u_eps τ h_cont_u (ne_of_gt h_log_pos)).deriv]
   have ht_nonneg : 0 ≤ posTimeFromRescaled ε τ := by
@@ -2656,7 +2656,6 @@ private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype 
     have h_one_le_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_lt_one.le
     exact mul_nonneg (div_nonneg hτ_low (by norm_num)) (Real.log_nonneg h_one_le_div)
   exact hbound (posTimeFromRescaled ε τ) ht_nonneg
-
 
 lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2713,33 +2712,15 @@ lemma pos_delta_bound_4_term2
   have h_deriv_z_norm : ‖(deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι)‖ ≤ C₂ :=
     hC₂ τ ⟨hτ_low, hτ_high⟩
   -- Step 3: triangle inequality for the derivative difference
-  have h_diff_norm : ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι) -
-    (deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι)‖ ≤ C₁ + C₂ := by
-    calc
-      ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι) -
-        (deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι)‖
-          ≤ ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι)‖
-            + ‖(deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι)‖ := norm_sub_le _ _
-      _ ≤ C₁ + C₂ := add_le_add h_deriv_zε_norm h_deriv_z_norm
+  have h_diff_norm := le_trans (norm_sub_le _ _) (add_le_add h_deriv_zε_norm h_deriv_z_norm)
   -- Step 4: bound ‖ones - w^ε(0)‖ = ‖v‖ / log(1/ε)
-  have h_target_norm : ‖ones - posRescaledMirrorVariable ε (u ε) 0‖ = ‖v‖ / Real.log (1 / ε) :=
+  have h_target_norm : ‖(ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0‖ = ‖v‖ / Real.log (1 / ε) :=
     target_norm_helper M r lambda ε β (u ε) hε_pos hε_lt_one hβ (hu ε hε_pos) v hv_def h_log_pos
-  -- Step 5: Cauchy-Schwarz
-  have h_inner_bound : inner ℝ ((deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι) -
-      (deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι))
-      ((ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0) ≤
-      (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) :=
-    inner_bound_helper h_diff_norm h_target_norm (add_nonneg hC₁pos.le hC₂pos.le) (div_nonneg (norm_nonneg _) h_log_pos.le)
-  -- Step 6: combine with log bound to get ≤ δ
+  -- Step 5 & 6: Cauchy-Schwarz and combine with log bound
+  have h_inner_bound := inner_bound_helper h_diff_norm h_target_norm (add_nonneg hC₁pos.le hC₂pos.le) (div_nonneg (norm_nonneg _) h_log_pos.le)
   have h_final : (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) ≤ δ :=
     pos_delta_bound_4_term2_algebraic_bound hδ h_log_pos hM_def (h_log_bound ε hε_pos hε_le_ε₁)
-  -- Combine
-  calc
-    inner ℝ ((deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι) -
-      (deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι))
-      ((ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0)
-        ≤ (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) := h_inner_bound
-    _ ≤ δ := h_final
+  exact le_trans h_inner_bound h_final
 
 /--
 Section 4.6, Eq. (4.14), Term 4.
