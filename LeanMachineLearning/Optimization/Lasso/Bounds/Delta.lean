@@ -2539,6 +2539,55 @@ for sufficiently small $\varepsilon$.
 CITATION:
 `docs/Lasso.md`, Section 4.6 (Proof of Theorem 3.2).
 -/
+-- Helper for pos_delta_bound_4_term2
+private lemma posRescaledMirrorVariable_zero_eq
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (ε : ℝ)
+    (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
+    (hβ : NonzeroCoordinates β)
+    (hu : posDlnGradientFlow M r lambda ε β u) :
+    ones - posRescaledMirrorVariable ε u 0 =
+      ((Real.log (1 / ε))⁻¹ : ℝ) • euclideanOf (fun i => Real.log ((β i)^2)) := by
+  have h_log_pos : 0 < Real.log (1 / ε) :=
+    Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  ext i
+  dsimp [ones, posRescaledMirrorVariable, euclideanOf]
+  simp [posTimeFromRescaled]
+  have h_init : posEffectiveParameter u 0 = ε • coordinateSquare β :=
+    posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β u hu hε_pos.le
+  rw [h_init]
+  simp [coordinateSquare, euclideanOf]
+  field_simp [h_log_pos.ne.symm]
+  have h1 : (1 / ε) ≠ 0 := by positivity
+  have h2 : ε * ((β i)^2) ≠ 0 := by
+    have : β i ≠ 0 := hβ i
+    positivity
+  calc
+    Real.log (1 / ε) + Real.log (ε * ((β i)^2)) =
+        Real.log ((1 / ε) * (ε * ((β i)^2))) := by
+      rw [← Real.log_mul h1 h2]
+    _ = Real.log ((β i)^2) := by
+      field_simp [hε_pos.ne.symm]
+
+-- Helper for pos_delta_bound_4_term2
+private lemma le_log_one_div_of_le_exp_neg {ε M : ℝ} (hε_pos : 0 < ε) (hε_le : ε ≤ Real.exp (-M)) :
+    M ≤ Real.log (1 / ε) := by
+  have h_exp_bound : Real.exp M ≤ 1 / ε := by
+    have h_mul : ε * Real.exp M ≤ 1 := by
+      calc
+        ε * Real.exp M ≤ Real.exp (-M) * Real.exp M :=
+          mul_le_mul_of_nonneg_right hε_le (Real.exp_pos _).le
+        _ = Real.exp ((-M) + M) := by rw [Real.exp_add]
+        _ = Real.exp 0 := by ring
+        _ = 1 := Real.exp_zero
+    calc
+      Real.exp M = (ε * Real.exp M) / ε := by field_simp [hε_pos.ne.symm]
+      _ ≤ 1 / ε := div_le_div_of_nonneg_right h_mul hε_pos.le
+  have hpos_exp : 0 < Real.exp M := Real.exp_pos M
+  have h_log_ineq : Real.log (Real.exp M) ≤ Real.log (1 / ε) :=
+    Real.log_le_log hpos_exp h_exp_bound
+  simpa [Real.log_exp M] using h_log_ineq
+
 lemma pos_delta_bound_4_term2
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
@@ -2572,24 +2621,8 @@ lemma pos_delta_bound_4_term2
     linarith
   -- For ε ∈ (0, ε₁], we have log(1/ε) ≥ M
   have h_log_bound (ε : ℝ) (hε_pos : 0 < ε) (hε_le : ε ≤ ε₁) : M ≤ Real.log (1 / ε) := by
-    -- Since ε ≤ ε₁ ≤ exp(-M), we show exp(M) ≤ 1/ε, then take log
-    have h_exp_bound : Real.exp M ≤ 1 / ε := by
-      have h_mul : ε * Real.exp M ≤ 1 := by
-        calc
-          ε * Real.exp M ≤ ε₁ * Real.exp M :=
-            mul_le_mul_of_nonneg_right hε_le (Real.exp_pos _).le
-          _ ≤ Real.exp (-M) * Real.exp M :=
-            mul_le_mul_of_nonneg_right (min_le_right _ _) (Real.exp_pos _).le
-          _ = Real.exp ((-M) + M) := by rw [Real.exp_add]
-          _ = Real.exp 0 := by ring
-          _ = 1 := Real.exp_zero
-      calc
-        Real.exp M = (ε * Real.exp M) / ε := by field_simp [hε_pos.ne.symm]
-        _ ≤ 1 / ε := div_le_div_of_nonneg_right h_mul hε_pos.le
-    have hpos_exp : 0 < Real.exp M := Real.exp_pos M
-    have h_log_ineq : Real.log (Real.exp M) ≤ Real.log (1 / ε) :=
-      Real.log_le_log hpos_exp h_exp_bound
-    simpa [Real.log_exp M] using h_log_ineq
+    have h_exp_le : ε ≤ Real.exp (-M) := le_trans hε_le (min_le_right _ _)
+    exact le_log_one_div_of_le_exp_neg hε_pos h_exp_le
   -- Filter: ε ∈ (0, ε₁)
   have h_eventually : Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) := by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
@@ -2631,28 +2664,8 @@ lemma pos_delta_bound_4_term2
     -- Key identity: ones - w^ε(0) = (1/log(1/ε)) • v
     have h_eq_vec : ones - posRescaledMirrorVariable ε (u ε) 0 =
         ((Real.log (1 / ε))⁻¹ : ℝ) • v := by
-      ext i
-      dsimp [ones, posRescaledMirrorVariable, v, hv_def, euclideanOf]
-      simp [posTimeFromRescaled]
-      have h_init : posEffectiveParameter (u ε) 0 = ε • coordinateSquare β :=
-        posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε β (u ε) (hu ε hε_pos)
-          hε_pos.le
-      rw [h_init]
-      simp [coordinateSquare, euclideanOf]
-      -- Goal: 1 - (-Real.log (ε * ((β i)^2)) / Real.log (1 / ε))
-      --     = (Real.log (1 / ε))⁻¹ * Real.log ((β i)^2)
-      field_simp [h_log_pos.ne.symm]
-      -- Goal: Real.log (1 / ε) + Real.log (ε * ((β i)^2)) = Real.log ((β i)^2)
-      have h1 : (1 / ε) ≠ 0 := by positivity
-      have h2 : ε * ((β i)^2) ≠ 0 := by
-        -- Since ε > 0 and (β i)^2 > 0 (as β i ≠ 0)
-        positivity
-      calc
-        Real.log (1 / ε) + Real.log (ε * ((β i)^2)) =
-            Real.log ((1 / ε) * (ε * ((β i)^2))) := by
-          rw [← Real.log_mul h1 h2]
-        _ = Real.log ((β i)^2) := by
-          field_simp [hε_pos.ne.symm]
+      rw [hv_def]
+      exact posRescaledMirrorVariable_zero_eq M r lambda ε β (u ε) hε_pos hε_lt_one hβ (hu ε hε_pos)
     rw [h_eq_vec, norm_smul]
     have h_nonneg_inv : 0 ≤ (Real.log (1 / ε))⁻¹ := inv_nonneg.mpr (le_of_lt h_log_pos)
     rw [Real.norm_of_nonneg h_nonneg_inv]
