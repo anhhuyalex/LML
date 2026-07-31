@@ -17,6 +17,7 @@ import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
 namespace Lasso
 
 open Filter Topology MeasureTheory
+open scoped InnerProductSpace
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
@@ -2648,7 +2649,7 @@ private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype 
     (C₁ : ℝ)
     (hbound : ∀ t, 0 ≤ t → ‖posEffectiveParameter u_eps t‖ ≤ C₁)
     (τ : ℝ) (hτ_low : 0 ≤ τ) :
-    ‖deriv ((fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε u_eps ρ) τ : EuclideanSpace ℝ ι)‖ ≤ C₁ := by
+    ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε u_eps ρ) τ : EuclideanSpace ℝ ι)‖ ≤ C₁ := by
   have h_cont_u : Continuous u_eps := hu.cont_diff.continuous
   rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε u_eps τ h_cont_u (ne_of_gt h_log_pos)).deriv]
   have ht_nonneg : 0 ≤ posTimeFromRescaled ε τ := by
@@ -2656,8 +2657,7 @@ private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype 
     have h_one_le_div : 1 ≤ 1 / ε := (one_le_div hε_pos).mpr hε_lt_one.le
     exact mul_nonneg (div_nonneg hτ_low (by norm_num)) (Real.log_nonneg h_one_le_div)
   exact hbound (posTimeFromRescaled ε τ) ht_nonneg
-
-lemma pos_delta_bound_4_term2
+lemma pos_delta_bound_4_term2 [Nonempty ι]
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
@@ -2667,9 +2667,9 @@ lemma pos_delta_bound_4_term2
     (h_bounded : ∃ C > 0, ∀ τ ∈ Set.Icc (0 : ℝ) s, ‖deriv (scaledPrimalPath x_lasso) τ‖ ≤ C) :
     ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
-        inner ℝ ((deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι) -
-          (deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι))
-          ((ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0)
+        ⟪(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι) -
+          (deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι),
+          ((ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0)⟫_ℝ
         ≤ δ := by
   intro δ hδ
   rcases h_bounded with ⟨C₂, hC₂pos, hC₂⟩
@@ -2677,20 +2677,20 @@ lemma pos_delta_bound_4_term2
     pos_trajectory_uniform_bound M r lambda β u hdata hβ hu
   -- The vector v with entries log(β_i²); its norm is a constant depending only on β
   set v : EuclideanSpace ℝ ι := euclideanOf (fun i => Real.log ((β i)^2)) with hv_def
-  -- Set M = (C₁+C₂)*‖v‖/δ; when ‖v‖=0 this is 0 and the argument still works
-  set M : ℝ := (C₁ + C₂) * ‖v‖ / δ with hM_def
-  -- Choose ε₁ small enough so that log(1/ε₁) ≥ M
-  set ε₁ : ℝ := min (min ε₀ (1/2 : ℝ)) (Real.exp (-M)) with hε₁_def
+  -- Set M_bound = (C₁+C₂)*‖v‖/δ; when ‖v‖=0 this is 0 and the argument still works
+  set M_bound : ℝ := (C₁ + C₂) * ‖v‖ / δ with hM_bound_def
+  -- Choose ε₁ small enough so that log(1/ε₁) ≥ M_bound
+  set ε₁ : ℝ := min (min ε₀ (1/2 : ℝ)) (Real.exp (-M_bound)) with hε₁_def
   have hε₁pos : 0 < ε₁ := by
     refine lt_min (lt_min hε₀pos (by norm_num)) (Real.exp_pos _)
   have hε₁_le_ε₀ : ε₁ ≤ ε₀ := le_trans (min_le_left _ _) (min_le_left _ _)
   have hε₁_lt_one : ε₁ < 1 := by
     have h : min ε₀ (1/2 : ℝ) ≤ 1/2 := min_le_right _ _
-    have h' : min (min ε₀ (1/2 : ℝ)) (Real.exp (-M)) ≤ min ε₀ (1/2 : ℝ) := min_le_left _ _
+    have h' : min (min ε₀ (1/2 : ℝ)) (Real.exp (-M_bound)) ≤ min ε₀ (1/2 : ℝ) := min_le_left _ _
     linarith
-  -- For ε ∈ (0, ε₁], we have log(1/ε) ≥ M
-  have h_log_bound (ε : ℝ) (hε_pos : 0 < ε) (hε_le : ε ≤ ε₁) : M ≤ Real.log (1 / ε) := by
-    have h_exp_le : ε ≤ Real.exp (-M) := le_trans hε_le (min_le_right _ _)
+  -- For ε ∈ (0, ε₁], we have log(1/ε) ≥ M_bound
+  have h_log_bound (ε : ℝ) (hε_pos : 0 < ε) (hε_le : ε ≤ ε₁) : M_bound ≤ Real.log (1 / ε) := by
+    have h_exp_le : ε ≤ Real.exp (-M_bound) := le_trans hε_le (min_le_right _ _)
     exact le_log_one_div_of_le_exp_neg hε_pos h_exp_le
   -- Filter: ε ∈ (0, ε₁)
   have h_eventually : Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) := by
@@ -2705,12 +2705,11 @@ lemma pos_delta_bound_4_term2
   intro τ hτ
   rcases hτ with ⟨hτ_low, hτ_high⟩
   -- Step 1: bound ‖deriv(z^ε)(τ)‖ ≤ C₁
-  have h_deriv_zε_norm : ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ : EuclideanSpace ℝ ι)‖ ≤ C₁ :=
+  have h_deriv_zε_norm :=
     posIntegratedTrajectoryRescaled_deriv_bound M r lambda ε β (u ε) hε_pos hε_lt_one h_log_pos
       (hu ε hε_pos) C₁ (hbound ε hε_pos (hε_le_ε₁.trans hε₁_le_ε₀)) τ hτ_low
   -- Step 2: bound ‖deriv(z)(τ)‖ ≤ C₂
-  have h_deriv_z_norm : ‖(deriv (scaledPrimalPath x_lasso) τ : EuclideanSpace ℝ ι)‖ ≤ C₂ :=
-    hC₂ τ ⟨hτ_low, hτ_high⟩
+  have h_deriv_z_norm := hC₂ τ ⟨hτ_low, hτ_high⟩
   -- Step 3: triangle inequality for the derivative difference
   have h_diff_norm := le_trans (norm_sub_le _ _) (add_le_add h_deriv_zε_norm h_deriv_z_norm)
   -- Step 4: bound ‖ones - w^ε(0)‖ = ‖v‖ / log(1/ε)
@@ -2719,7 +2718,7 @@ lemma pos_delta_bound_4_term2
   -- Step 5 & 6: Cauchy-Schwarz and combine with log bound
   have h_inner_bound := inner_bound_helper h_diff_norm h_target_norm (add_nonneg hC₁pos.le hC₂pos.le) (div_nonneg (norm_nonneg _) h_log_pos.le)
   have h_final : (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) ≤ δ :=
-    pos_delta_bound_4_term2_algebraic_bound hδ h_log_pos hM_def (h_log_bound ε hε_pos hε_le_ε₁)
+    pos_delta_bound_4_term2_algebraic_bound hδ h_log_pos hM_bound_def (h_log_bound ε hε_pos hε_le_ε₁)
   exact le_trans h_inner_bound h_final
 
 /--
