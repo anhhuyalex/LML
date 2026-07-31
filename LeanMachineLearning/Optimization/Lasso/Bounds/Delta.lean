@@ -1749,7 +1749,7 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     (h_unique : ∀ μ ≥ 0, ∀ z', isLCP M (parametricLcpQ r lambda μ) z' (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
     (hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)))
     (hw_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ) + parametricLcpQ r lambda μ))
-    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → z μ ≤ z ν) :
+    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
     LocallyLipschitzOnCompacts z := by
   -- Obtain the Moore-Penrose pseudoinverse of M
   rcases exists_psd_range_inverse M hM_psd.symm hM_psd with ⟨Mdagger, hInv⟩
@@ -1803,29 +1803,33 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
   -- and q = -μ r + (1+μλ)𝟙 with ⟨r, z_ker⟩ = 0 (since r ∈ range(M) ⊥ ker(M)).
   have h_inner_w_ker (μ : ℝ) (hμ : 0 ≤ μ) : inner ℝ (w μ) (z_ker μ) = (1 + μ * lambda) * inner ℝ (euclideanOf fun _ => 1) (z_ker μ) := by
     rcases hr_mem_span with ⟨y, hy⟩
-    dsimp [w, z_ker, z_range]
-    -- Expand using bilinearity and M(z_ker) = 0
+    dsimp [w, z_ker]
+    -- Key: ⟨M z + q, z - z_range⟩ = ⟨z, M(z - z_range)⟩ + ⟨q, z - z_range⟩
+    -- Since M(z - z_range) = M z_ker = 0 (by hMz_ker), the first term vanishes.
     calc
-      inner ℝ (matVec M (z μ) + parametricLcpQ r lambda μ) (z μ - matVec Mdagger (matVec M (z μ)))
-          = inner ℝ (matVec M (z μ)) (z μ - matVec Mdagger (matVec M (z μ)))
-            + inner ℝ (parametricLcpQ r lambda μ) (z μ - matVec Mdagger (matVec M (z μ))) := by
+      inner ℝ (matVec M (z μ) + parametricLcpQ r lambda μ) (z μ - z_range μ)
+          = inner ℝ (matVec M (z μ)) (z μ - z_range μ)
+            + inner ℝ (parametricLcpQ r lambda μ) (z μ - z_range μ) := by
         rw [inner_add_left]
-      _ = inner ℝ (z μ) (matVec M (z μ - matVec Mdagger (matVec M (z μ))))
-            + inner ℝ (parametricLcpQ r lambda μ) (z μ - matVec Mdagger (matVec M (z μ))) := by
+      _ = inner ℝ (z μ) (matVec M (z μ - z_range μ))
+            + inner ℝ (parametricLcpQ r lambda μ) (z μ - z_range μ) := by
         rw [inner_matVec_comm_of_isSymm M hM_psd.symm]
       _ = inner ℝ (z μ) 0
-            + inner ℝ (parametricLcpQ r lambda μ) (z μ - matVec Mdagger (matVec M (z μ))) := by
-        rw [matVec_sub, hInv.range_inverse (z μ), sub_self, matVec_zero]
-      _ = inner ℝ (parametricLcpQ r lambda μ) (z μ - matVec Mdagger (matVec M (z μ))) := by simp
-      _ = inner ℝ (-μ • r + (1 + μ * lambda) • euclideanOf (fun _ => 1)) (z μ - matVec Mdagger (matVec M (z μ))) := by
-        -- parametricLcpQ r lambda μ = -μ·r + (1+μλ)·𝟙
-        dsimp [parametricLcpQ]
-        -- Expand the Euclidean vector expression
-        sorry
-      _ = (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - matVec Mdagger (matVec M (z μ))) := by
-        -- ⟨-μ r + (1+μλ)𝟙, z_ker⟩ = -μ⟨r, z_ker⟩ + (1+μλ)⟨𝟙, z_ker⟩ = (1+μλ)⟨𝟙, z_ker⟩
-        -- since ⟨r, z_ker⟩ = 0 (because r = M y and M z_ker = 0)
-        sorry
+            + inner ℝ (parametricLcpQ r lambda μ) (z μ - z_range μ) := by
+        rw [hMz_ker μ]
+      _ = inner ℝ (parametricLcpQ r lambda μ) (z μ - z_range μ) := by simp
+      _ = inner ℝ (-μ • r + (1 + μ * lambda) • euclideanOf (fun _ => 1)) (z μ - z_range μ) := by
+        -- Expand the definition of parametricLcpQ
+        dsimp [parametricLcpQ, euclideanOf]
+        -- This is an equality of Euclidean vectors; use ext and simp
+        ext i; simp; ring
+      _ = (-μ) * inner ℝ r (z μ - z_range μ) + (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - z_range μ) := by
+        rw [inner_add_right, inner_smul_right, inner_smul_right]
+        simp
+      _ = (-μ) * 0 + (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - z_range μ) := by
+        -- ⟨r, z_ker⟩ = 0 because r = M y and M z_ker = 0
+        rw [hy, inner_matVec_comm_of_isSymm M hM_psd.symm y (z μ - z_range μ), hMz_ker μ, inner_zero]
+      _ = (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ => 1)) (z μ - z_range μ) := by ring
   -- From LCP complementarity: ⟨w, z⟩ = 0
   have h_complementarity (μ : ℝ) (hμ : 0 ≤ μ) : inner ℝ (w μ) (z μ) = 0 := by
     rcases h_lcp μ hμ with ⟨_, _, _, h_comp⟩
@@ -1839,8 +1843,6 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     have h_comp := h_complementarity μ hμ
     have h_sum : inner ℝ (w μ) (z μ) = inner ℝ (w μ) (z_range μ) + inner ℝ (w μ) (z_ker μ) := by
       rw [hz_ker_def]; exact inner_add_right _ _ _
-    rw [h_sum, h_comp, add_eq_zero_iff_eq_neg.mp ?_] at h_comp
-    -- Actually compute directly:
     rw [h_sum] at h_comp
     have h_ker := h_inner_w_ker μ hμ
     rw [h_ker] at h_comp
@@ -1863,9 +1865,6 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     refine ⟨fun a b ha hab => ?_⟩
     rcases hz_range_lip.lipschitz_on_Icc a b ha hab with ⟨K, hK_nonneg, hK_bound⟩
     let ones : EuclideanSpace ℝ ι := euclideanOf fun _ => 1
-    have h_ones_norm : ‖ones‖ = √(Fintype.card ι) := by
-      -- norm of all-ones vector is sqrt of dimension
-      sorry
     refine ⟨‖ones‖ * K, mul_nonneg (norm_nonneg _) hK_nonneg, fun μ hμ ν hν => ?_⟩
     calc
       |inner ℝ ones (z_range μ) - inner ℝ ones (z_range ν)|
@@ -1959,7 +1958,7 @@ lemma parametric_lcp_lipschitz
     (h_unique : ∀ μ ≥ 0, ∀ z',
       isLCP M (parametricLcpQ r lambda μ) z'
         (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
-    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → z μ ≤ z ν) :
+    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
     LocallyLipschitzOnCompacts z := by
   -- Keep a copy of hdata before destructuring, for use in scaled_dual_lipschitz
   have hdata' := hdata
