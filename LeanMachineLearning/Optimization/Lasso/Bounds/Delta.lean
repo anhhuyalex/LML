@@ -1897,7 +1897,11 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     (hr_mem_span : InMatrixSpan M r)
     (hlambda_nonneg : 0 ≤ lambda)
     (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ) (matVec M (z μ) + parametricLcpQ r lambda μ))
-    (h_unique : ∀ μ ≥ 0, ∀ z', isLCP M (parametricLcpQ r lambda μ) z' (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
+    -- Unlike the classical uniqueness-based argument (Cottle-Pang-Stone), this proof pins
+    -- down `z` via monotonicity (`h_mono`) and complementary slackness instead, so
+    -- `h_unique` is not needed here; kept for signature parity with `parametric_lcp_lipschitz`.
+    (_h_unique : ∀ μ ≥ 0, ∀ z',
+      isLCP M (parametricLcpQ r lambda μ) z' (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
     (hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)))
     (hw_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ) + parametricLcpQ r lambda μ))
     (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
@@ -2062,13 +2066,13 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     have h_eq : inner ℝ (euclideanOf fun _ => 1) (z μ) - inner ℝ (euclideanOf fun _ => 1) (z ν) =
         (inner ℝ (euclideanOf fun _ => 1) (z_range μ) - inner ℝ (euclideanOf fun _ => 1) (z_range ν)) +
         (inner ℝ (euclideanOf fun _ => 1) (z_ker μ) - inner ℝ (euclideanOf fun _ => 1) (z_ker ν)) := by
-      rw [hz_ker_def]
-      simp [inner_sub_right, add_sub_add_comm]
+      simp only [hz_ker_def, inner_sub_right]
+      ring
     have h_abs : |inner ℝ (euclideanOf fun _ => 1) (z μ) - inner ℝ (euclideanOf fun _ => 1) (z ν)| ≤
         |inner ℝ (euclideanOf fun _ => 1) (z_range μ) - inner ℝ (euclideanOf fun _ => 1) (z_range ν)| +
         |inner ℝ (euclideanOf fun _ => 1) (z_ker μ) - inner ℝ (euclideanOf fun _ => 1) (z_ker ν)| := by
       rw [h_eq]
-      exact abs_add_le _ _ _
+      exact abs_add_le _ _
     calc
       |inner ℝ (euclideanOf fun _ => 1) (z μ) - inner ℝ (euclideanOf fun _ => 1) (z ν)|
           ≤ |inner ℝ (euclideanOf fun _ => 1) (z_range μ) - inner ℝ (euclideanOf fun _ => 1) (z_range ν)|
@@ -2077,7 +2081,8 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
       _ = (K₁ + K₂) * |μ - ν| := by ring
   -- Key inequality: for nonnegative vectors x ≥ 0, we have ‖x‖₂ ≤ ⟨𝟙, x⟩ = ∑ x_i.
   -- This follows from ∑ x_i² ≤ (∑ x_i)² (Finset.sum_sq_le_sq_sum_of_nonneg) and monotonicity of sqrt.
-  have h_norm_le_inner (x : EuclideanSpace ℝ ι) (hx : 0 ≤ x) : ‖x‖ ≤ inner ℝ (euclideanOf fun _ => 1) x := by
+  have h_norm_le_inner (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
+      ‖x‖ ≤ inner ℝ (euclideanOf fun _ => 1) x := by
     -- Using Finset.sum_sq_le_sq_sum_of_nonneg: ∑ x_i² ≤ (∑ x_i)².
     -- Then ‖x‖ = sqrt(∑ x_i²) ≤ sqrt((∑ x_i)²) = ∑ x_i = ⟨𝟙, x⟩.
     -- The last equality uses that ∑ x_i ≥ 0 (since each x_i ≥ 0).
@@ -2100,20 +2105,26 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
   rcases h_inner_ones_lip.lipschitz_on_Icc a b ha hab with ⟨K, hK_nonneg, hK_bound⟩
   refine ⟨K, hK_nonneg, fun μ hμ ν hν => ?_⟩
   by_cases hμν : μ ≤ ν
-  · -- Case μ ≤ ν: z μ ≤ z ν by monotonicity, so z ν - z μ ≥ 0
-    have hz_mono : z μ ≤ z ν := h_mono μ ν (le_trans ha hμ.1) hμν
-    have hz_diff_nonneg : 0 ≤ z ν - z μ := by rw [sub_nonneg]; exact hz_mono
+  · -- Case μ ≤ ν: z μ ≤ z ν coordinatewise by monotonicity, so z ν - z μ ≥ 0 coordinatewise
+    have hz_mono : ∀ i, z μ i ≤ z ν i := h_mono μ ν (le_trans ha hμ.1) hμν
+    have hz_diff_nonneg : Nonnegative (z ν - z μ) := fun i => by
+      have h := hz_mono i
+      simp only [PiLp.sub_apply]
+      linarith
     calc
       ‖z μ - z ν‖ = ‖z ν - z μ‖ := by rw [norm_sub_rev]
       _ ≤ inner ℝ (euclideanOf fun _ => 1) (z ν - z μ) := h_norm_le_inner (z ν - z μ) hz_diff_nonneg
       _ = inner ℝ (euclideanOf fun _ => 1) (z ν) - inner ℝ (euclideanOf fun _ => 1) (z μ) := by rw [inner_sub_right]
       _ ≤ |inner ℝ (euclideanOf fun _ => 1) (z ν) - inner ℝ (euclideanOf fun _ => 1) (z μ)| := le_abs_self _
-      _ ≤ K * |ν - μ| := hK_bound μ hμ ν hν
+      _ ≤ K * |ν - μ| := hK_bound ν hν μ hμ
       _ = K * |μ - ν| := by rw [abs_sub_comm]
   · -- Case ν < μ: symmetric
     have hνμ : ν ≤ μ := by linarith
-    have hz_mono : z ν ≤ z μ := h_mono ν μ (le_trans ha hν.1) hνμ
-    have hz_diff_nonneg : 0 ≤ z μ - z ν := by rw [sub_nonneg]; exact hz_mono
+    have hz_mono : ∀ i, z ν i ≤ z μ i := h_mono ν μ (le_trans ha hν.1) hνμ
+    have hz_diff_nonneg : Nonnegative (z μ - z ν) := fun i => by
+      have h := hz_mono i
+      simp only [PiLp.sub_apply]
+      linarith
     calc
       ‖z μ - z ν‖ ≤ inner ℝ (euclideanOf fun _ => 1) (z μ - z ν) := h_norm_le_inner (z μ - z ν) hz_diff_nonneg
       _ = inner ℝ (euclideanOf fun _ => 1) (z μ) - inner ℝ (euclideanOf fun _ => 1) (z ν) := by rw [inner_sub_right]
@@ -2196,7 +2207,8 @@ lemma parametric_lcp_lipschitz
     rcases hw_lip.lipschitz_on_Icc a b ha hab with ⟨Kw, hKw, hw⟩
     rcases hq_lip.lipschitz_on_Icc a b ha hab with ⟨Kq, hKq, hq⟩
     refine ⟨Kw + Kq, add_nonneg hKw hKq, fun μ hμ ν hν => ?_⟩
-    have h_diff : matVec M (z μ) - matVec M (z ν) = (w μ - w ν) - (parametricLcpQ r lambda μ - parametricLcpQ r lambda ν) := by
+    have h_diff : matVec M (z μ) - matVec M (z ν) =
+        (w μ - w ν) - (parametricLcpQ r lambda μ - parametricLcpQ r lambda ν) := by
       dsimp [w]
       abel
     rw [h_diff]
@@ -2215,7 +2227,8 @@ lemma parametric_lcp_lipschitz
   -- z_k = 0 wherever 1_k > 0.  Where 1_k = 0, uniqueness of the LCP solution (h_unique)
   -- pins down z_k = 0 as well (since z=0 is always a solution when q_k ≡ 0).
   -- Therefore z_kernel ≡ 0, and z = z_range is Lipschitz.
-  exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z hM_psd hr_mem_span hlambda_nonneg h_lcp h_unique hMz_lip hw_lip h_mono
+  exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z hM_psd hr_mem_span
+    hlambda_nonneg h_lcp h_unique hMz_lip hw_lip h_mono
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 1.
