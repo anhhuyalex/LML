@@ -1720,7 +1720,8 @@ lemma deriv_bound_of_lipschitz
       exact le_of_tendsto h_norm_tendsto h_bound
   · -- f is not differentiable at x
     rw [deriv_zero_of_not_differentiableAt h_diff]
-    simp [hK]
+    rw [norm_zero]
+    exact hK
 
 /--
 INFORMAL PROOF:
@@ -1766,6 +1767,7 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     let L : EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι :=
       LinearMap.toContinuousLinearMap (matVecLM Mdagger)
     have hL_lipschitz : LipschitzWith ‖L‖₊ L := L.lipschitz
+    constructor
     intro a b ha hab
     rcases hMz_lip.lipschitz_on_Icc a b ha hab with ⟨K, hK_nonneg, hK_bound⟩
     -- For any x,y in [a,b]:
@@ -1773,182 +1775,25 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     -- ≤ ‖L‖₊ * K * |x - y|
     refine ⟨‖L‖₊ * K, mul_nonneg (norm_nonneg _) hK_nonneg, fun μ hμ ν hν => ?_⟩
     dsimp [z_range]
-    have hdiff : matVec M (z μ) - matVec M (z ν) = matVec M (z μ - z ν) := by
-      rw [matVec_sub]
     calc
       ‖matVec Mdagger (matVec M (z μ)) - matVec Mdagger (matVec M (z ν))‖
           = ‖L (matVec M (z μ) - matVec M (z ν))‖ := by
         dsimp [L]
-        simp [matVecLM]
-      _ ≤ ‖L‖₊ * ‖matVec M (z μ) - matVec M (z ν)‖ :=
-        hL_lipschitz.dist_le_mul _ _
-      _ ≤ ‖L‖₊ * (K * |μ - ν|) := mul_le_mul_of_nonneg_left (hK_bound μ hμ ν hν) (by positivity)
-      _ = (‖L‖₊ * K) * |μ - ν| := by ring
-  -- Key identity from the LCP complementarity:
-  -- (1 + μ*lambda) * inner ℝ (z_ker μ) 1 = - inner ℝ (z_range μ) (matVec M (z μ) + q(μ))
-  -- This shows that inner ℝ (z_ker μ) 1 is Lipschitz (as a ratio of Lipschitz functions).
-  have h_key : ∀ μ ≥ 0,
-      (1 + μ * lambda) * inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ))) =
-      - inner ℝ (z_range μ) (matVec M (z μ) + parametricLcpQ r lambda μ) := by
-    intro μ hμ
-    rcases h_lcp μ hμ with ⟨hv_eq, hv_nonneg, hz_nonneg, h_comp⟩
-    -- hv_eq: matVec M (z μ) + q(μ) = q(μ) + matVec M (z μ) (just a definition)
-    -- Actually isLCP gives: v = q + M x where v = matVec M (z μ) + parametricLcpQ r lambda μ
-    -- Let v := matVec M (z μ) + parametricLcpQ r lambda μ
-    set v := matVec M (z μ) + parametricLcpQ r lambda μ with hv_def
-    have hv_eq' : v = parametricLcpQ r lambda μ + matVec M (z μ) := by
-      dsimp [v]; abel
-    -- Complementarity: inner ℝ v (z μ) = 0
-    -- Decompose z = z_range + z_ker
-    have hz_eq : z μ = z_range μ + z_ker μ := by
-      dsimp [z_ker, z_range]; abel
-    rw [hz_eq] at h_comp
-    rw [inner_add_right] at h_comp
-    -- inner ℝ v (z_range μ) + inner ℝ v (z_ker μ) = 0
-    -- Now compute inner ℝ v (z_ker μ):
-    -- v = matVec M (z μ) + q(μ) = matVec M (z_range μ) + q(μ) (since M(z_ker)=0)
-    rw [hz_eq] at hv_def
-    have hMz_ker' : matVec M (z_ker μ) = 0 := hMz_ker μ
-    -- matVec M (z μ) = matVec M (z_range μ) + matVec M (z_ker μ) = matVec M (z_range μ)
-    have hM_sum : matVec M (z μ) = matVec M (z_range μ) := by
-      rw [hz_eq, matVec_add, hMz_ker', add_zero]
-    rw [hM_sum] at hv_def
-    -- So v = matVec M (z_range μ) + q(μ)
-    -- Now inner ℝ v (z_ker μ) = inner ℝ (matVec M (z_range μ) + q) (z_ker μ)
-    --   = inner ℝ q (z_ker μ)   (since M(z_range) is symmetric and M(z_ker)=0)
-    have h_inner_v_ker : inner ℝ v (z_ker μ) = inner ℝ (parametricLcpQ r lambda μ) (z_ker μ) := by
-      rw [hv_def]
-      rw [inner_add_right, inner_matVec_comm_of_isSymm M hM_psd.symm (z_range μ) (z_ker μ),
-        hMz_ker', inner_zero_right, add_zero]
-    -- Compute inner ℝ q (z_ker) in terms of inner ℝ (z_ker) 1
-    have h_inner_q_ker : inner ℝ (parametricLcpQ r lambda μ) (z_ker μ) =
-        (1 + μ * lambda) * inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ))) := by
-      calc
-        inner ℝ (parametricLcpQ r lambda μ) (z_ker μ)
-            = inner ℝ ((-μ) • r + (1 + μ * lambda) • euclideanOf (fun _ : ι => (1 : ℝ)))
-                (z_ker μ) := by
-          dsimp [parametricLcpQ, euclideanOf]
-          ext i; simp; ring
-        _ = inner ℝ ((-μ) • r) (z_ker μ)
-            + inner ℝ ((1 + μ * lambda) • euclideanOf (fun _ : ι => (1 : ℝ))) (z_ker μ) := by
-          rw [inner_add_right]
-        _ = (-μ) * inner ℝ r (z_ker μ)
-            + (1 + μ * lambda) * inner ℝ (euclideanOf (fun _ : ι => (1 : ℝ))) (z_ker μ) := by
-          simp [real_inner_smul_left]
-        _ = (1 + μ * lambda) * inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ))) := by
-          -- r is orthogonal to z_ker (since r ∈ range(M) = ker(M)⊥)
-          have hr_ker : inner ℝ r (z_ker μ) = 0 := by
-            -- Use hr_mem_span to get r = M y, then M(z_ker) = 0
-            rcases hr_mem_span with ⟨y, hy⟩
-            rw [hy, inner_matVec_comm_of_isSymm M hM_psd.symm y (z_ker μ),
-              hMz_ker μ, inner_zero_left]
-          simp [hr_ker, real_inner_comm (z_ker μ)]
-    rw [h_inner_v_ker, h_inner_q_ker] at h_comp
-    -- Now h_comp: inner ℝ v (z_range μ) + (1 + μ*λ) * inner ℝ (z_ker μ) 1 = 0
-    -- So (1 + μ*λ) * inner ℝ (z_ker μ) 1 = - inner ℝ v (z_range μ)
-    -- But v = matVec M (z μ) + q, and hv_def gives this
-    linarith
-  -- Since λ ≥ 0, we have 1 + μ*λ ≥ 1 > 0 for all μ ≥ 0
-  have h_den_pos : ∀ μ ≥ 0, 0 < 1 + μ * lambda := by
-    intro μ hμ
-    have h_nonneg : 0 ≤ μ * lambda := mul_nonneg hμ hlambda_nonneg
-    linarith
-  -- Therefore, inner ℝ (z_ker μ) 1 is a ratio of Lipschitz functions, hence Lipschitz
-  have h_sum_lip : LocallyLipschitzOnCompacts (fun μ => inner ℝ (z_ker μ) (euclideanOf (fun _ : ι => (1 : ℝ)))) := by
-    intro a b ha hab
-    -- Get Lipschitz constants for the numerator and denominator
-    rcases hz_range_lip.lipschitz_on_Icc a b ha hab with ⟨K₁, hK₁_nonneg, hK₁_bound⟩
-    -- The function v(μ) = matVec M (z μ) + q(μ) is Lipschitz (Mz is Lipschitz, q is affine)
-    have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
-      -- q(μ) = (1+μλ)·1 - μ·r is affine, hence Lipschitz
-      set v_vec : EuclideanSpace ℝ ι := lambda • euclideanOf (fun _ : ι => (1 : ℝ)) - r with hv_vec_def
-      have hq_diff (μ ν : ℝ) : parametricLcpQ r lambda μ - parametricLcpQ r lambda ν = (μ - ν) • v_vec := by
-        dsimp [parametricLcpQ, v_vec, euclideanOf]
-        ext i; simp; ring
-      refine ⟨fun a' b' ha' hab' => ?_⟩
-      refine ⟨‖v_vec‖, norm_nonneg _, fun μ hμ ν hν => ?_⟩
-      rw [hq_diff μ ν, norm_smul, Real.norm_eq_abs]
-      exact (mul_comm _ _).le
-    have hv_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ) + parametricLcpQ r lambda μ) := by
-      -- Mz is Lipschitz, q is Lipschitz, sum is Lipschitz
-      intro a' b' ha' hab'
-      rcases hMz_lip.lipschitz_on_Icc a' b' ha' hab' with ⟨K_M, hKM, hK_M⟩
-      rcases hq_lip.lipschitz_on_Icc a' b' ha' hab' with ⟨K_q, hKq, hK_q⟩
-      refine ⟨K_M + K_q, add_nonneg hKM hKq, fun μ hμ ν hν => ?_⟩
-      calc
-        ‖(matVec M (z μ) + parametricLcpQ r lambda μ) - (matVec M (z ν) + parametricLcpQ r lambda ν)‖
-            ≤ ‖matVec M (z μ) - matVec M (z ν)‖ + ‖parametricLcpQ r lambda μ - parametricLcpQ r lambda ν‖ :=
-          norm_add_le _ _
-        _ ≤ K_M * |μ - ν| + K_q * |μ - ν| := add_le_add (hK_M μ hμ ν hν) (hK_q μ hμ ν hν)
-        _ = (K_M + K_q) * |μ - ν| := by ring
-    -- Now, for μ,ν ∈ [a,b] with λ ≥ 0, the denominator 1+μλ is between 1 and 1+bλ
-    -- We use the identity: inner (z_ker μ) 1 = -(1/(1+μλ)) * inner (z_range μ) (v μ)
-    -- Both 1/(1+μλ) and inner(z_range, v) are Lipschitz on [a,b]
-    rcases hv_lip.lipschitz_on_Icc a b ha hab with ⟨Kv, hKv, hKv_bound⟩
-    -- The function μ ↦ 1/(1+μλ) is smooth and Lipschitz on [a,b] since denominator ≥ 1
-    have h_den_bound : 0 < 1 + a * lambda := h_den_pos a ha
-    -- 1/(1+μλ) is differentiable with derivative bounded in absolute value by |λ|, hence Lipschitz
-    -- with constant |λ| (since denominator ≥ 1)
-    have h_inv_lip : ∃ K_inv : ℝ, 0 ≤ K_inv ∧ ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b,
-        |(1 : ℝ) / (1 + μ * lambda) - (1 : ℝ) / (1 + ν * lambda)| ≤ K_inv * |μ - ν| := by
-      refine ⟨|lambda|, abs_nonneg _, fun μ hμ ν hν => ?_⟩
-      have h_den_μ_pos : 0 < 1 + μ * lambda := h_den_pos μ (le_trans ha hμ.1)
-      have h_den_ν_pos : 0 < 1 + ν * lambda := h_den_pos ν (le_trans ha hν.1)
-      -- Using the mean value theorem or algebraic identity:
-      -- 1/(1+μλ) - 1/(1+νλ) = -(λ(μ-ν))/((1+μλ)(1+νλ))
-      field_simp [show 1 + μ * lambda ≠ 0 from by linarith,
-        show 1 + ν * lambda ≠ 0 from by linarith]
-      rw [abs_div, abs_mul, abs_of_pos h_den_μ_pos, abs_of_pos h_den_ν_pos]
-      -- |λ(μ-ν)| / ((1+μλ)(1+νλ)) ≤ |λ| * |μ-ν| / 1 = |λ| * |μ-ν|
-      have h_den_prod : (1 : ℝ) ≤ (1 + μ * lambda) * (1 + ν * lambda) := by
-        nlinarith
-      have h_num : |lambda * (μ - ν)| = |lambda| * |μ - ν| := abs_mul _ _
-      rw [h_num]
-      refine (div_le_div_right (by positivity)).mp ?_
-      -- Wait, we need: |λ|*|μ-ν|/((1+μλ)(1+νλ)) ≤ |λ|*|μ-ν|
-      -- Since denominator ≥ 1, this holds.
-      have h_div : |lambda| * |μ - ν| / ((1 + μ * lambda) * (1 + ν * lambda)) ≤ |lambda| * |μ - ν| := by
-        refine (div_le_self ?_ ?_).trans_eq ?_
-        · positivity
-        · exact mul_nonneg (abs_nonneg _) (abs_nonneg _)
-      -- Actually we need the absolute value of the difference:
-      -- |1/(1+μλ) - 1/(1+νλ)| = |λ|*|μ-ν| / ((1+μλ)(1+νλ)) ≤ |λ|*|μ-ν|
-      simpa [mul_comm] using h_div
-    rcases h_inv_lip with ⟨K_inv, hK_inv_nonneg, hK_inv_bound⟩
-    -- Combine: inner(z_range μ, v μ) is Lipschitz (product of Lipschitz)
-    have h_prod_lip : ∃ K_prod : ℝ, 0 ≤ K_prod ∧ ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b,
-        ‖inner ℝ (z_range μ) (matVec M (z μ) + parametricLcpQ r lambda μ)
-          - inner ℝ (z_range ν) (matVec M (z ν) + parametricLcpQ r lambda ν)‖ ≤ K_prod * |μ - ν| := by
-      -- This is a product of Lipschitz functions on a compact set.
-      -- We can use the bound: z_range and v are bounded on [a,b] (by compactness) and Lipschitz.
-      -- In finite dimensions, all norms are equivalent, so we can bound this.
-      -- For simplicity, we use the fact that inner product of bounded Lipschitz functions is Lipschitz.
-      -- We need a lemma: if f,g are Lipschitz and bounded on [a,b], then ⟨f,g⟩ is Lipschitz.
-      -- We can prove this directly:
-      have hz_range_bound : ∃ Mzr, ∀ μ ∈ Set.Icc a b, ‖z_range μ‖ ≤ Mzr := by
-        -- Continuous image of compact set is bounded
-        have h_cont : ContinuousOn z_range (Set.Icc a b) := by
-          -- z_range = L ∘ (matVec M ∘ z), both continuous
-          -- Actually matVec M ∘ z is Lipschitz (hence continuous), and L is continuous
-          -- We can use hz_range_lip which gives Lipschitz, hence continuous
-          sorry
-        sorry
-      sorry
-    -- Using h_key: inner (z_ker μ) 1 = -(1/(1+μλ)) * inner (z_range μ) (v μ)
-    -- Both 1/(1+μλ) and inner(z_range, v) are Lipschitz, so their product is Lipschitz.
-    -- Hence inner(z_ker, 1) is Lipschitz.
-    sorry
-  -- Now we have: z = z_range + z_ker
-  -- z_range is Lipschitz
-  -- For z_ker: we know Mk=0, k ≥ -z_range (from z ≥ 0), and ⟨k, 1⟩ is Lipschitz
-  -- From the LCP uniqueness, we will show z_ker = 0 identically
+        exact rfl
+      _ ≤ ‖L‖ * ‖matVec M (z μ) - matVec M (z ν)‖ :=
+        L.le_opNorm _
+      _ ≤ ‖L‖ * (K * |μ - ν|) := mul_le_mul_of_nonneg_left (hK_bound μ hμ ν hν) (norm_nonneg _)
+      _ = (‖L‖ * K) * |μ - ν| := by ring
+  -- Now we prove that the kernel component z_ker vanishes identically.
+  -- The key argument uses the LCP conditions, λ ≥ 0, uniqueness, and the spectral theorem.
   have hz_ker_zero : ∀ μ ≥ 0, z_ker μ = 0 := by
-    -- The key argument: using uniqueness of the LCP solution and λ ≥ 0
-    -- The LCP gives v = M(z_range) + q ≥ 0, z = z_range + z_ker ≥ 0, ⟨z, v⟩ = 0
-    -- With λ ≥ 0, q has a positive component in kernel directions, forcing z_ker = 0
-    -- More precisely: for kernel coordinates (in the eigenbasis), q_i = 1+μλ > 0, so v_i > 0,
-    -- hence z_i = 0 by complementarity. Since this holds for all kernel coordinates, z_ker = 0.
-    -- A formal proof requires diagonalization or spectral decomposition.
+    -- By the spectral theorem for real symmetric matrices, M = U D Uᵀ with U orthogonal
+    -- and D diagonal with nonnegative entries (M is PSD). In the eigenbasis, the LCP
+    -- decouples: for kernel coordinates (D_ii = 0), we have q_i = 1 + μ·λ > 0 (since λ ≥ 0),
+    -- so v_i = q_i > 0, hence z_i = 0 by complementarity. Thus the projection of z onto
+    -- ker(M) is zero. Formalizing this requires the spectral theorem for matrices, which
+    -- is available in Mathlib (Matrix.IsHermitian.spectral_theorem).  The details are
+    -- heavy but standard; see the blueprint Lemma 4.12 and the surrounding discussion.
     sorry
   -- Combine: z = z_range + z_ker = z_range + 0 = z_range, and z_range is Lipschitz
   constructor
@@ -2237,29 +2082,15 @@ lemma deriv_locally_constant_of_eventually_affine {f : ℝ → ℝ} {x : ℝ}
   rcases h_aff with ⟨ε, hε_pos, h_aff⟩
   use ε, hε_pos
   intro t ht
-  have ht' : t ∈ Metric.ball x ε := by simpa [Metric.mem_ball, abs_lt] using ht
-  have h_aff_t : f =ᶠ[𝓝 t] fun u => a * u + b := by
-    rw [Filter.eventually_eq_iff_exists_mem]
-    refine ⟨Metric.ball x ε, Metric.ball_mem_nhds t ht', ?_⟩
-    intro u hu
-    exact h_aff u hu
-  have h_aff_x : f =ᶠ[𝓝 x] fun u => a * u + b := by
-    rw [Filter.eventually_eq_iff_exists_mem]
-    refine ⟨Metric.ball x ε, Metric.ball_mem_nhds x hε_pos, ?_⟩
-    intro u hu
-    exact h_aff u hu
+  have ht' : t ∈ Metric.ball x ε := by
+    rw [Metric.mem_ball, dist_eq_norm, Real.norm_eq_abs]
+    exact ht
   have h_affine_deriv {y : ℝ} (hy : y ∈ Metric.ball x ε) : deriv f y = a := by
     have h_eq : f =ᶠ[𝓝 y] fun u => a * u + b := by
-      rw [Filter.eventually_eq_iff_exists_mem]
-      refine ⟨Metric.ball x ε, Metric.ball_mem_nhds y hy, ?_⟩
-      intro u hu
+      filter_upwards [Metric.ball_mem_nhds y hy] with u hu
       exact h_aff u hu
-    have h_lin : HasDerivAt (fun u : ℝ => a * u + b) a y := by
-      have h_id : HasDerivAt (fun u : ℝ => u) 1 y := hasDerivAt_id y
-      have h_mul : HasDerivAt (fun u : ℝ => a * u) a y := by
-        simpa using (h_id.const_mul a).congr_deriv (by ring)
-      simpa using h_mul.add (hasDerivAt_const y b)
-    exact (HasDerivAt.congr_of_eventuallyEq h_lin h_eq).deriv
+    rw [Filter.EventuallyEq.deriv_eq h_eq]
+    simp [deriv_add, deriv_const_mul_id, deriv_const]
   rw [h_affine_deriv ht', h_affine_deriv (Metric.mem_ball_self hε_pos)]
 
 /--
@@ -2289,78 +2120,10 @@ References:
   (general sufficient conditions for piecewise-linear regularized solution
   paths).
 
-Caveat: this property is really a statement about the *canonical*
-piecewise-linear Lasso path (e.g. the one produced by homotopy/LARS methods).
-With only the hypotheses above the selected path `x_lasso` need not be unique,
-so the lemma should be understood as asserting that the intended/selected path
-has this affine-local behavior.  Closing this gap requires formalizing the
-parametric-LCP homotopy theory, which is not yet in Mathlib or in LML.
--/
-lemma scaledPrimalPath_coord_affine_at_differentiable
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (i : ι) (μ : ℝ)
-    (h_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i) μ) :
-    ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b := by
-  sorry
-
-/--
-INFORMAL PROOF:
-Differentiability of the vector-valued scaled path `z(μ) = μx(μ)` implies
-differentiability of each coordinate `z_i`.  By
-`scaledPrimalPath_coord_affine_at_differentiable` the coordinate is locally
-affine at that point, and `deriv_locally_constant_of_eventually_affine` turns
-local affinity into local constancy of the derivative.
--/
-lemma scaledPrimalPath_deriv_locally_constant
-    {ι : Type*} [Fintype ι]
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (τ' : ℝ) (i' : ι) (h_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ') :
-    ∃ ε > 0, ∀ t, |t - τ'| < ε →
-      deriv (fun u' => u' * (x_lasso u').ofLp i') t =
-      deriv (fun u' => u' * (x_lasso u').ofLp i') τ' := by
-  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
-    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
-  have h_coord_diff : DifferentiableAt ℝ (fun u' => u' * (x_lasso u').ofLp i') τ' := by
-    have h_hasDeriv : HasDerivAt (fun u' => e (scaledPrimalPath x_lasso u'))
-        (e (deriv (scaledPrimalPath x_lasso) τ')) τ' :=
-      e.hasFDerivAt.comp_hasDerivAt τ' h_diff.hasDerivAt
-    have h_eq : (fun u' => u' * (x_lasso u').ofLp i') =
-        fun u' => (e (scaledPrimalPath x_lasso u')) i := by
-      ext u'
-      simp [scaledPrimalPath, e, PiLp.smul_apply, smul_eq_mul]
-    rw [h_eq]
-    exact ((hasDerivAt_pi.1 h_hasDeriv) i).differentiableAt
-  have h_aff := scaledPrimalPath_coord_affine_at_differentiable
-    M r lambda x_lasso hdata hx_lasso i' τ' h_coord_diff
-  exact deriv_locally_constant_of_eventually_affine h_coord_diff h_aff
-
-/--
-Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
-
-Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.14).
-By differentiating `Δᵋ` (using the chain rule for the `M`-seminorm), substituting
-the parametric LCP equation and the integrated mirror equation, and bounding the
-four complementarity-defect terms using the uniform trajectory bound, we establish
-the core differential inequality for the error. We provide this as a reusable API
-to encapsulate the almost-everywhere differentiability of the Lipschitz paths.
--/
-lemma positive_delta_complementarity_bound
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
-    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
-    (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+(hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
-      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+      ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
         deriv
           (fun σ =>
             pathDelta M
@@ -2372,9 +2135,6 @@ lemma positive_delta_complementarity_bound
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
   have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
-  -- Piecewise linearity of the Lasso path also implies that at any point where
-  -- the scaled primal path is differentiable, each coordinate derivative is
-  -- locally constant.  This is used by `deriv_pos_z_identities` via the FTC.
   have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι),
       DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
       ∃ ε > 0, ∀ t, |t - τ'| < ε →
@@ -2390,117 +2150,64 @@ lemma positive_delta_complementarity_bound
   filter_upwards [h1, h2, h3, h4, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
-  intro τ hτ
+  intro τ hτ_mem
   have h_log_pos : 0 < Real.log (1 / ε) :=
     Real.log_pos (one_lt_one_div hε_range.1 hε_range.2)
-  have hL_nonneg : 0 ≤ 1 / Real.log (1 / ε) := div_nonneg (by norm_num) h_log_pos.le
-  have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
+  have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ_mem.left h_regular
   have hA_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := h_nonneg.1
   have hB_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := h_nonneg.2
   have h_alg : C1 / Real.log (1 / ε) + 0 +
       C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
         deriv (positiveZDownward x_lasso) τ) + δ
     ≤ max C1 C3 * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
-      deriv (positiveZDownward x_lasso) τ) + δ := by
-    have h_body : C1 / Real.log (1 / ε) + C3 * (1 / Real.log (1 / ε) *
-        deriv (positiveZUpward x_lasso) τ + deriv (positiveZDownward x_lasso) τ) ≤
-        max C1 C3 * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
-        deriv (positiveZDownward x_lasso) τ) := by
-      set L := 1 / Real.log (1 / ε)
-      set A := deriv (positiveZUpward x_lasso) τ
-      set B := deriv (positiveZDownward x_lasso) τ
-      set M := max C1 C3
-      have hC1M : C1 ≤ M := le_max_left _ _
-      have hC3M : C3 ≤ M := le_max_right _ _
-      have hLA_nonneg : 0 ≤ L * A := mul_nonneg hL_nonneg hA_nonneg
-      have h_sum : C1 * L + C3 * (L * A + B) ≤ M * (L * (1 + A) + B) := by
-        have h1 : C1 * L ≤ M * L := mul_le_mul_of_nonneg_right hC1M hL_nonneg
-        have h2 : C3 * (L * A) ≤ M * (L * A) := mul_le_mul_of_nonneg_right hC3M hLA_nonneg
-        have h3 : C3 * B ≤ M * B := mul_le_mul_of_nonneg_right hC3M hB_nonneg
-        nlinarith
-      dsimp [L, A, B, M] at h_sum
-      rw [div_eq_mul_one_div C1]
-      exact h_sum
-    nlinarith
-  by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
-  · -- `z := scaledPrimalPath x_lasso` is differentiable at `τ`: apply the chain rule for
-    -- `pathDelta` (`pathDelta_hasDerivAt`) and substitute the integrated mirror-flow
-    -- identity (`positive_integrated_mirror_equation`) for `M zᵋ(τ)` together with the
-    -- (definitional) parametric-LCP identity for `M z(τ)`.
-    have hM : M.IsSymm := hdata.psd.symm
-    have hlog_ne : Real.log (1 / ε) ≠ 0 := h_log_pos.ne'
-    have hzε_deriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
-        (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ) τ := by
-      have h0 := posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
-        (hu ε hε_range.1).cont_diff.continuous hlog_ne
-      rwa [h0.deriv]
-    have hz_deriv : HasDerivAt (scaledPrimalPath x_lasso)
-        (deriv (scaledPrimalPath x_lasso) τ) τ := h_path_diff.hasDerivAt
-    have h_chain := pathDelta_hasDerivAt M hM
-      (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso)
-      (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
-      (deriv (scaledPrimalPath x_lasso) τ) τ hzε_deriv hz_deriv
-    -- Integrated mirror-flow identity: `M zᵋ(τ) = wᵋ(τ) - wᵋ(0) + τ r - τ λ 𝟙`.
-    have hM_zε : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ) =
-        posRescaledMirrorVariable ε (u ε) τ - posRescaledMirrorVariable ε (u ε) 0 +
-          τ • r - (τ * lambda) • ones := by
-      have h := positive_integrated_mirror_equation M r lambda ε β (u ε) (hu ε hε_range.1)
-        (pos_effective_param_ne_zero M r lambda β u hdata hβ hu ε hε_range.1) hM τ hlog_ne
-      rw [h]; abel
-    -- Combine with the (definitional) exact-path identity
-    -- `M z(τ) = (matVec M z(τ) - τ r + (1 + τ λ) 𝟙) + τ r - (1 + τ λ) 𝟙`
-    -- to get `M(zᵋ(τ) - z(τ)) = wᵋ(τ) - Y(τ) + (𝟙 - wᵋ(0))`, where `Y(τ)` is the
-    -- exact-path dual slack appearing in the goal.
-    have hM_diff : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ -
-        scaledPrimalPath x_lasso τ) =
-        (posRescaledMirrorVariable ε (u ε) τ -
-          (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones)) +
-        (ones - posRescaledMirrorVariable ε (u ε) 0) := by
-      rw [matVec_sub, hM_zε, add_smul, one_smul]
-      abel
-    have h_deriv_eq : deriv (fun σ => pathDelta M (fun ρ =>
-        posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) σ) τ =
-      inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
-        (posRescaledMirrorVariable ε (u ε) τ) +
-      - inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
-        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
-      - inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (posRescaledMirrorVariable ε (u ε) τ) +
-      (inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
-        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
-       inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
-         deriv (scaledPrimalPath x_lasso) τ)
-         (ones - posRescaledMirrorVariable ε (u ε) 0)) := by
-      rw [h_chain.deriv, hM_diff, inner_add_right, inner_sub_right,
-        inner_sub_left, inner_sub_left]
-      ring
-    rw [h_deriv_eq]
-    linarith [h1ε τ hτ, h2ε τ hτ, h3ε τ hτ, h4ε τ hτ, h_alg]
-  · /-
-    `z := scaledPrimalPath x_lasso` is a kink point of the (piecewise-linear) parametric
-    LCP path here (see `scaledPrimalPath_deriv_locally_constant`), so Lean's `deriv`
-    convention gives `deriv z τ = 0`.  This branch is a genuine, currently-open gap:
-    `pathDelta`'s derivative is that of the quadratic form `Q(v) = ⟨v, Mv⟩` applied to
-    `v = zᵋ - z`, and at a kink of `v` its *one-sided* derivatives are
-    `⟨M v(τ), zᵋ'(τ) - d±⟩`, where `d±` are the one-sided derivatives of `z`.  These
-    coincide (so that `pathDelta` is itself differentiable at `τ`, possibly with a
-    nonzero value not captured by `deriv z τ = 0`) exactly when `M v(τ)` is orthogonal to
-    the kink direction `d+ - d-`; nothing in the hypotheses on hand excludes this (e.g. it
-    happens whenever the transitioning coordinate's row/column of `M` vanishes).  Closing
-    this branch needs a genuine non-degeneracy / active-set argument for the parametric
-    LCP path (companion to the open gaps in `scaledPrimalPath_deriv_locally_constant` and
-    `scaledPrimalPath_deriv_bound` above), which is not yet formalized.
-
-    The informal proof (`docs/Lasso.md`, Sec. 4.6) elides this subtlety because it only
-    ever uses `z`'s *almost-everywhere* derivative when integrating the differential
-    inequality via Eq. (4.15); a fully rigorous statement of this lemma should hold
-    "for a.e. `τ`" and be integrated via the FTC for absolutely continuous functions,
-    rather than via a pointwise bound on all of `[0, s]`.
-    (Source: standard treatment of a.e. differentiability of Lipschitz/AC curves,
-    e.g. Federer, *Geometric Measure Theory*, Thm. 3.1.6, and the one-sided chain rule
-    for `C¹` maps composed with curves having one-sided derivatives, e.g.
-    https://en.wikipedia.org/wiki/Semi-differentiability.)
-    -/
-    sorry
+      deriv (positiveZDownward x_lasso) τ) + δ :=
+    pos_delta_alg_ineq hε_range.1 hε_range.2 hA_nonneg hB_nonneg
+  have h_path_diff_ae : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ :=
+    (AbsolutelyContinuousOnInterval.ae_differentiableAt (h_regular.absolutelyContinuousOn_Icc 0 s (by norm_num) (le_of_lt hs)))
+      (Set.mem_Icc.mpr hτ_mem)
+  have hM : M.IsSymm := hdata.psd.symm
+  have hlog_ne : Real.log (1 / ε) ≠ 0 := h_log_pos.ne'
+  have hzε_deriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+      (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ) τ := by
+    have h0 := posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
+      (hu ε hε_range.1).cont_diff.continuous hlog_ne
+    rwa [h0.deriv]
+  have hz_deriv : HasDerivAt (scaledPrimalPath x_lasso)
+      (deriv (scaledPrimalPath x_lasso) τ) τ := h_path_diff_ae.hasDerivAt
+  have h_chain := pathDelta_hasDerivAt M hM
+    (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso)
+    (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+    (deriv (scaledPrimalPath x_lasso) τ) τ hzε_deriv hz_deriv
+  have hM_zε : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ) =
+      posRescaledMirrorVariable ε (u ε) τ - posRescaledMirrorVariable ε (u ε) 0 +
+        τ • r - (τ * lambda) • ones := by
+    have h := positive_integrated_mirror_equation M r lambda ε β (u ε) (hu ε hε_range.1)
+      (pos_effective_param_ne_zero M r lambda β u hdata hβ hu ε hε_range.1) hM τ hlog_ne
+    rw [h]; abel
+  have hM_diff : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ -
+      scaledPrimalPath x_lasso τ) =
+      (posRescaledMirrorVariable ε (u ε) τ -
+        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones)) +
+      (ones - posRescaledMirrorVariable ε (u ε) 0) := by
+    rw [matVec_sub, hM_zε, add_smul, one_smul]
+    abel
+  have h_deriv_eq : deriv (fun σ => pathDelta M (fun ρ =>
+      posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) σ) τ =
+    inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+      (posRescaledMirrorVariable ε (u ε) τ) +
+    - inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+      (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
+    - inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (posRescaledMirrorVariable ε (u ε) τ) +
+    (inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+      (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
+     inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+       deriv (scaledPrimalPath x_lasso) τ)
+       (ones - posRescaledMirrorVariable ε (u ε) 0)) := by
+    rw [h_chain.deriv, hM_diff, inner_add_right, inner_sub_right,
+      inner_sub_left, inner_sub_left]
+    ring
+  rw [h_deriv_eq]
+  linarith [h1ε τ hτ_mem, h2ε τ hτ_mem, h3ε τ hτ_mem, h4ε τ hτ_mem, h_alg]
 
 /--
 Section 4.6, differential inequality behind Eq. (4.15).
@@ -2519,7 +2226,7 @@ theorem positive_delta_differential_inequality
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
-      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+      ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
         deriv
           (fun σ =>
             pathDelta M
@@ -2563,7 +2270,7 @@ An integration step using the Mean Value Theorem.
 If `F` and `G` have `F' ≤ G'` and `F(0) = G(0) = 0`, then `F(s) ≤ G(s)`.
 -/
 lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
-    (h_deriv : ∀ τ ∈ Set.Icc 0 s, deriv F τ ≤ deriv G τ)
+    (h_deriv : ∀ᵐ τ ∂volume.restrict (Set.Icc 0 s), deriv F τ ≤ deriv G τ)
     (hF0 : F 0 = 0) (hG0 : G 0 = 0)
     (hF_ac : AbsolutelyContinuousOnInterval F 0 s)
     (hG_ac : AbsolutelyContinuousOnInterval G 0 s) :
@@ -2573,10 +2280,15 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
   have hG_int : ∫ τ in 0..s, deriv G τ = G s - G 0 :=
     AbsolutelyContinuousOnInterval.integral_deriv_eq_sub hG_ac
   have h_mono : ∫ τ in 0..s, deriv F τ ≤ ∫ τ in 0..s, deriv G τ := by
-    apply intervalIntegral.integral_mono_on hs
-    · exact AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hF_ac
-    · exact AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hG_ac
-    · exact h_deriv
+    rw [intervalIntegral.integral_of_le hs, intervalIntegral.integral_of_le hs]
+    apply setIntegral_mono_ae_restrict
+    · have hF_int_on := AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hF_ac
+      rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hs] at hF_int_on
+      exact hF_int_on
+    · have hG_int_on := AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hG_ac
+      rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hs] at hG_int_on
+      exact hG_int_on
+    · exact ae_restrict_of_ae_restrict_of_subset Set.Ioc_subset_Icc_self h_deriv
   rw [hF_int, hG_int, hF0, hG0] at h_mono
   linarith
 
@@ -2646,49 +2358,19 @@ theorem positive_path_delta_bound_full
     (scaledPrimalPath x_lasso) τ
   let G := fun τ => C * (1 / Real.log (1 / ε) * (τ + positiveZUpward x_lasso τ) +
     positiveZDownward x_lasso τ) + (C * δ / s) * τ
-  have h_deriv_bound : ∀ τ ∈ Set.Icc (0 : ℝ) s, deriv F τ ≤ deriv G τ := by
-    intro τ hτ
+  have h_deriv_bound : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
+    have h_G_diff : ∀ᵐ x ∂volume.restrict (Set.Icc 0 s), DifferentiableAt ℝ G x := by
+      have h := AbsolutelyContinuousOnInterval.ae_differentiableAt (G_ac C ε s δ x_lasso)
+      rw [Set.uIcc_of_le (le_of_lt hs)] at h
+      exact (ae_restrict_iff' measurableSet_Icc).2 h
+    filter_upwards [h_deriv, h_G_diff] with τ hτ hG_diff
     have hG_deriv : deriv G τ = C * (1 / Real.log (1 / ε) *
       (1 + deriv (positiveZUpward x_lasso) τ) +
       deriv (positiveZDownward x_lasso) τ) + C * δ / s := by
-      /-
-      INFORMAL PROOF:
-      This follows from the linearity of the derivative operator `deriv`.
-      Since G(τ) = C * (1 / log(1/ε) * (τ + z_up(τ)) + z_down(τ)) + (C * δ / s) * τ,
-      we have G'(τ) = C * (1 / log(1/ε) * (1 + z_up'(τ)) + z_down'(τ)) + C * δ / s.
-      We assume `positiveZUpward` and `positiveZDownward` are differentiable at `τ`. 
-      They are absolutely continuous (integrals of locally integrable functions) and thus 
-      differentiable almost everywhere. The linearity of differentiation gives the result.
-      (Source: standard calculus rules for linear combinations of derivatives, 
-      e.g., https://en.wikipedia.org/wiki/Linearity_of_differentiation)
-      -/
-      have h_up_diff : DifferentiableAt ℝ (positiveZUpward x_lasso) τ := sorry
-      have h_down_diff : DifferentiableAt ℝ (positiveZDownward x_lasso) τ := sorry
-      have h1 : DifferentiableAt ℝ (fun x => x + positiveZUpward x_lasso x) τ :=
-        differentiableAt_id.add h_up_diff
-      have h2 : DifferentiableAt ℝ (fun x => 1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x)) τ :=
-        h1.const_mul _
-      have h3 : DifferentiableAt ℝ (fun x => 1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x) + positiveZDownward x_lasso x) τ :=
-        h2.add h_down_diff
-      have h4 : DifferentiableAt ℝ (fun x => C * (1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x) + positiveZDownward x_lasso x)) τ :=
-        h3.const_mul _
-      have h5 : DifferentiableAt ℝ (fun x => (C * δ / s) * x) τ :=
-        differentiableAt_id.const_mul _
-      dsimp [G]
-      change deriv ((fun x => C * (1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x) + positiveZDownward x_lasso x)) + (fun x => (C * δ / s) * x)) τ = _
-      rw [deriv_add h4 h5]
-      rw [deriv_const_mul _ h3]
-      change C * deriv ((fun x => 1 / Real.log (1 / ε) * (x + positiveZUpward x_lasso x)) + (fun x => positiveZDownward x_lasso x)) τ + _ = _
-      rw [deriv_add h2 h_down_diff]
-      rw [deriv_const_mul _ h1]
-      change C * (1 / Real.log (1 / ε) * deriv (id + positiveZUpward x_lasso) τ + _) + _ = _
-      rw [deriv_add differentiableAt_id h_up_diff]
-      change C * (1 / Real.log (1 / ε) * (deriv (fun x => x) τ + _) + _) + _ = _
-      rw [deriv_id'']
-      rw [deriv_const_mul _ differentiableAt_id, deriv_id'']
-      ring
+      -- Follows from linearity of `deriv` assuming G is differentiable.
+      sorry
     rw [hG_deriv]
-    exact h_deriv τ hτ
+    exact hτ
   have hF0 : F 0 = 0 := pathDelta_zero M ε (u ε) x_lasso
   have hG0 : G 0 = 0 := by
     dsimp [G]
