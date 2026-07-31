@@ -2645,6 +2645,7 @@ structure ScaledPrimalPathLocallyAffineAtDifferentiable
       DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) μ →
       ∃ a b, ∀ᶠ t in 𝓝 μ, t * (x_lasso t).ofLp i = a * t + b
 
+omit [Fintype ι] in
 /--
 Local-affinity projection for a selected positive-Lasso regularization path.
 
