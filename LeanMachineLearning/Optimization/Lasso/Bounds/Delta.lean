@@ -2585,7 +2585,7 @@ private lemma le_log_one_div_of_le_exp_neg {ε M : ℝ} (hε_pos : 0 < ε) (hε_
         ε * Real.exp M ≤ Real.exp (-M) * Real.exp M :=
           mul_le_mul_of_nonneg_right hε_le (Real.exp_pos _).le
         _ = Real.exp ((-M) + M) := by rw [Real.exp_add]
-        _ = Real.exp 0 := by ring
+        _ = Real.exp 0 := by ring_nf
         _ = 1 := Real.exp_zero
     calc
       Real.exp M = (ε * Real.exp M) / ε := by field_simp [hε_pos.ne.symm]
