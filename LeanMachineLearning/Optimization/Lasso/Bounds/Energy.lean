@@ -389,10 +389,43 @@ private lemma parametricLCP_primal_difference
   simp [euclideanOf, ones]
   ring
 
+private lemma energy_RHS_nonneg
+    (C : ℝ) (hC_pos : 0 < C) (ε δ : ℝ) (hlog_pos : 0 < Real.log (1 / ε)) (hδ : 0 < δ)
+    (Zu_deriv Zd_deriv : ℝ)
+    (h_zu_nonneg : 0 ≤ Zu_deriv) (h_zd_nonneg : 0 ≤ Zd_deriv) :
+    0 ≤ C * (1 / Real.log (1 / ε) * (1 + Zu_deriv) + Zd_deriv) + δ := by
+  have hC_nonneg : 0 ≤ C := hC_pos.le
+  have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) := div_nonneg (by norm_num) hlog_pos.le
+  have h_inner_nonneg : 0 ≤ 1 / Real.log (1 / ε) * (1 + Zu_deriv) + Zd_deriv := by nlinarith
+  have hδ_nonneg : 0 ≤ δ := hδ.le
+  nlinarith
+
+private lemma energy_T1_T3_bound
+    (C1 C3 C ε : ℝ) (_hC_pos : 0 < C) (hlog_pos : 0 < Real.log (1 / ε))
+    (h_C1_le_C : C1 ≤ C) (h_C3_le_C : C3 ≤ C)
+    (Zu_deriv Zd_deriv : ℝ)
+    (h_zu_nonneg : 0 ≤ Zu_deriv) (h_zd_nonneg : 0 ≤ Zd_deriv)
+    (T1 T3 : ℝ)
+    (h_T1 : T1 ≤ C1 / Real.log (1 / ε))
+    (h_T3 : T3 ≤ C3 * (1 / Real.log (1 / ε) * Zu_deriv + Zd_deriv)) :
+    T1 + T3 ≤ C * (1 / Real.log (1 / ε) * (1 + Zu_deriv) + Zd_deriv) := by
+  have hLpos : 0 < Real.log (1 / ε) := hlog_pos
+  have hT3_le_C : T3 ≤ C * (1 / Real.log (1 / ε) * Zu_deriv + Zd_deriv) := by
+    apply le_trans h_T3
+    have h_nonneg_inner : 0 ≤ 1 / Real.log (1 / ε) * Zu_deriv + Zd_deriv := by positivity
+    nlinarith
+  have hT1_le_C_div_L : T1 ≤ C / Real.log (1 / ε) := by
+    apply le_trans h_T1
+    have hL_nonneg : 0 ≤ Real.log (1 / ε) := hlog_pos.le
+    exact (div_le_div_of_nonneg_right h_C1_le_C hL_nonneg)
+  have h_sum_eq : C / Real.log (1 / ε) + C * (1 / Real.log (1 / ε) * Zu_deriv + Zd_deriv) =
+      C * (1 / Real.log (1 / ε) * (1 + Zu_deriv) + Zd_deriv) := by ring
+  linarith
+
 private lemma energy_deriv_bound_kink_case
     {ι : Type*} [Fintype ι]
     (C : ℝ) (hC_pos : 0 < C) (ε τ δ lambda : ℝ)
-    (hlog_pos : 0 < Real.log (1 / ε))
+    (hlog_pos : 0 < Real.log (1 / ε)) (hδ : 0 < δ)
     (w z zε : ℝ → EuclideanSpace ℝ ι)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (Δε : ℝ → ℝ)
@@ -421,17 +454,22 @@ private lemma energy_deriv_bound_kink_case
     rw [h_deriv_φw_zero, inner_zero_left]
   rw [h_deriv_F_zero, h_second_zero, sub_zero]
   have h_RHS_nonneg : 0 ≤ C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
-      deriv (positiveZDownward x_lasso) τ) + δ := by
-    have hC_nonneg : 0 ≤ C := by linarith [hC_pos]
-    have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) :=
-      div_nonneg (by norm_num) hlog_pos.le
-    have h_zu_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := h_z_nonneg.1
-    have h_zd_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := h_z_nonneg.2
-    have h_inner_nonneg : 0 ≤ 1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
-        deriv (positiveZDownward x_lasso) τ := by
-      nlinarith
-    nlinarith
+      deriv (positiveZDownward x_lasso) τ) + δ :=
+    energy_RHS_nonneg C hC_pos ε δ hlog_pos hδ
+      (deriv (positiveZUpward x_lasso) τ) (deriv (positiveZDownward x_lasso) τ)
+      h_z_nonneg.1 h_z_nonneg.2
   exact h_RHS_nonneg
+
+private lemma posIntegratedTrajectoryRescaled_zero {ι : Type*} [Fintype ι] (ε : ℝ) (u : ℝ → EuclideanSpace ℝ ι) :
+    posIntegratedTrajectoryRescaled ε u 0 = 0 := by
+  have hz_int : posIntegratedTrajectory u 0 = 0 := by
+    ext i; simp [posIntegratedTrajectory, euclideanOf]
+  have ht0 : posTimeFromRescaled ε 0 = 0 := by dsimp [posTimeFromRescaled]; ring
+  simp [posIntegratedTrajectoryRescaled, ht0, hz_int]
+
+private lemma scaledPrimalPath_zero {ι : Type*} [Fintype ι] (x : ℝ → EuclideanSpace ℝ ι) :
+    scaledPrimalPath x 0 = 0 := by
+  dsimp [scaledPrimalPath]; simp
 
 private lemma energy_deriv_bound_zero_case
     {ι : Type*} [Fintype ι]
@@ -440,6 +478,7 @@ private lemma energy_deriv_bound_zero_case
     (w z zε wε : ℝ → EuclideanSpace ℝ ι)
     (φ Δε : ℝ → ℝ) (T1 T3 : ℝ)
     (hs : 0 < s) (hC_pos : 0 < C) (hlog_pos : 0 < Real.log (1 / ε))
+    (hδ : 0 < δ)
     (h_C1_le_C : C1 ≤ C) (h_C3_le_C : C3 ≤ C)
     (h_z_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) 0 ∧ 0 ≤ deriv (positiveZDownward x_lasso) 0)
     (hz_eq : z = scaledPrimalPath x_lasso)
@@ -459,12 +498,10 @@ private lemma energy_deriv_bound_zero_case
         deriv (positiveZDownward x_lasso) 0) + δ := by
   have h_zε_zero : zε 0 = 0 := by
     rw [hzε_eq]
-    have hz_int : posIntegratedTrajectory u_eps 0 = 0 := by
-      ext i; simp [posIntegratedTrajectory, euclideanOf]
-    have ht0 : posTimeFromRescaled ε 0 = 0 := by dsimp [posTimeFromRescaled]; ring
-    simp [posIntegratedTrajectoryRescaled, ht0, hz_int]
+    exact posIntegratedTrajectoryRescaled_zero ε u_eps
   have h_z_zero : z 0 = 0 := by
-    rw [hz_eq]; dsimp [scaledPrimalPath]; simp
+    rw [hz_eq]
+    exact scaledPrimalPath_zero x_lasso
   have h_diff_zero : zε 0 - z 0 = 0 := by rw [h_zε_zero, h_z_zero, sub_self]
   have h_second_zero : inner ℝ (deriv (fun σ => φ σ • w σ) 0) (zε 0 - z 0) = 0 := by
     rw [h_diff_zero, inner_zero_right]
@@ -505,31 +542,10 @@ private lemma energy_deriv_bound_zero_case
     have h_sum_le : T1 + T3 ≤
         C * (1 / Real.log (1 / ε) *
           (1 + deriv (positiveZUpward x_lasso) 0) +
-        deriv (positiveZDownward x_lasso) 0) := by
-      have hzu : 0 ≤ deriv (positiveZUpward x_lasso) 0 := h_z_nonneg.1
-      have hzd : 0 ≤ deriv (positiveZDownward x_lasso) 0 := h_z_nonneg.2
-      have hLpos : 0 < Real.log (1 / ε) := hlog_pos
-      have h_nonneg : 0 ≤ 1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) 0 +
-          deriv (positiveZDownward x_lasso) 0 := by positivity
-      have hT3_le_C : T3 ≤ C * (1 / Real.log (1 / ε) *
-            deriv (positiveZUpward x_lasso) 0 +
-          deriv (positiveZDownward x_lasso) 0) := by
-        apply le_trans h_T3_at0
-        have h_nonneg_inner : 0 ≤ 1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) 0 +
-            deriv (positiveZDownward x_lasso) 0 := by positivity
-        nlinarith
-      have hT1_le_C_div_L : T1 ≤ C / Real.log (1 / ε) := by
-        apply le_trans h_T1_at0
-        have hL_nonneg : 0 ≤ Real.log (1 / ε) := by linarith
-        exact (div_le_div_of_nonneg_right h_C1_le_C hL_nonneg)
-      have h_sum_eq : C / Real.log (1 / ε) +
-          C * (1 / Real.log (1 / ε) *
-            deriv (positiveZUpward x_lasso) 0 +
-          deriv (positiveZDownward x_lasso) 0) =
-        C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) 0) +
-          deriv (positiveZDownward x_lasso) 0) := by
-        ring
-      linarith
+        deriv (positiveZDownward x_lasso) 0) :=
+      energy_T1_T3_bound C1 C3 C ε hC_pos hlog_pos h_C1_le_C h_C3_le_C
+        (deriv (positiveZUpward x_lasso) 0) (deriv (positiveZDownward x_lasso) 0)
+        h_z_nonneg.1 h_z_nonneg.2 T1 T3 h_T1_at0 h_T3_at0
     linarith
   · have h_deriv_F0_zero : deriv
         (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) 0 = 0 :=
@@ -537,16 +553,10 @@ private lemma energy_deriv_bound_zero_case
     rw [h_deriv_F0_zero]
     have h_RHS_nonneg : 0 ≤ C * (1 / Real.log (1 / ε) *
           (1 + deriv (positiveZUpward x_lasso) 0) +
-        deriv (positiveZDownward x_lasso) 0) + δ := by
-      have hC_nonneg : 0 ≤ C := by linarith [hC_pos]
-      have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) :=
-        div_nonneg (by norm_num) hlog_pos.le
-      have h_zu_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) 0 := h_z_nonneg.1
-      have h_zd_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) 0 := h_z_nonneg.2
-      have h_inner_nonneg : 0 ≤ 1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) 0) +
-          deriv (positiveZDownward x_lasso) 0 := by
-        nlinarith
-      nlinarith
+        deriv (positiveZDownward x_lasso) 0) + δ :=
+      energy_RHS_nonneg C hC_pos ε δ hlog_pos hδ
+        (deriv (positiveZUpward x_lasso) 0) (deriv (positiveZDownward x_lasso) 0)
+        h_z_nonneg.1 h_z_nonneg.2
     exact h_RHS_nonneg
 
 private lemma energy_core_cancellation
@@ -850,14 +860,14 @@ lemma energy_complementarity_bound
     -- complementarity-defect bounds h1ε, h3ε, h4ε at τ = 0.
     by_cases hτ_pos : 0 < τ
     · -- τ > 0, so by h_diff_z_cond, z is not differentiable at τ.
-      exact energy_deriv_bound_kink_case C hC_pos ε τ δ lambda hlog_pos w z zε x_lasso Δε φ
+      exact energy_deriv_bound_kink_case C hC_pos ε τ δ lambda hlog_pos hδ w z zε x_lasso Δε φ
         hτ_pos h_diff_z_cond h_z_nonneg
     · -- τ = 0 (since τ ≥ 0 and ¬ (0 < τ))
       have hτ_zero : τ = 0 := by linarith
       subst hτ_zero
       have h0_in_Icc : (0 : ℝ) ∈ Set.Icc 0 s := ⟨by norm_num, by linarith [hs]⟩
       exact energy_deriv_bound_zero_case M r lambda C1 C3 C ε s δ (u ε) x_lasso w z zε wε φ Δε T1 T3
-        hs hC_pos hlog_pos h_C1_le_C h_C3_le_C h_z_nonneg rfl rfl rfl hw_explicit rfl rfl
+        hs hC_pos hlog_pos hδ h_C1_le_C h_C3_le_C h_z_nonneg rfl rfl rfl hw_explicit rfl rfl
         (h1ε 0 h0_in_Icc) (h3ε 0 h0_in_Icc) (h4ε 0 h0_in_Icc) rfl rfl
 
 /--

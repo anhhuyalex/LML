@@ -41,6 +41,85 @@ open scoped ENNReal
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
+/-- The value of `positiveLassoObjective` at the origin is `0`: the quadratic loss vanishes
+(since both `⟨0, M0⟩` and `⟨r,0⟩` are `0`) and so does the `L¹` penalty. Used to bound the
+"junk" branch of `posLassoMin`'s nested infimum by a genuine feasible point. -/
+lemma positiveLassoObjective_zero (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) :
+    positiveLassoObjective M r lambda μ 0 = 0 := by
+  dsimp [positiveLassoObjective, lassoObjective, quadraticLoss]
+  simp
+
+omit [Fintype ι] in
+/-- The origin is coordinatewise nonnegative. -/
+lemma Nonnegative_zero : Nonnegative (0 : EuclideanSpace ℝ ι) := by
+  intro i; simp
+
+/--
+`lassoMin` is attained at any selected minimizer, i.e. equals the value of the objective there.
+This is the standard "an attained infimum equals the minimizer's value" fact
+(`ciInf_le`/`le_ciInf`), specialized to `lassoObjective`; reusable for both the signed and
+(via `posLassoMin_eq_of_isPositiveLassoMinimizer` below) the positive lasso.
+-/
+lemma lassoMin_eq_of_isLassoMinimizer
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (x : EuclideanSpace ℝ ι) (hx : IsLassoMinimizer M r lambda μ x) :
+    lassoMin M r lambda μ = lassoObjective M r lambda μ x := by
+  have hbdd : BddBelow (Set.range (lassoObjective M r lambda μ)) :=
+    ⟨lassoObjective M r lambda μ x, by
+      rintro _ ⟨z, rfl⟩; exact isMinOn_iff.mp hx z (Set.mem_univ z)⟩
+  exact le_antisymm (ciInf_le hbdd x) (le_ciInf (fun y => isMinOn_iff.mp hx y (Set.mem_univ y)))
+
+/--
+`posLassoMin` is attained at any selected positive minimizer, i.e. equals the value of the
+objective there.
+
+Informal proof: `posLassoMin M r lambda μ` unfolds to `⨅ y, g y` where `g y = ⨅ (_h :
+Nonnegative y), positiveLassoObjective M r lambda μ y`. For nonnegative `y`, `g y` collapses to
+`positiveLassoObjective M r lambda μ y` (the index type `Nonnegative y` is a true proposition,
+hence a one-point type, so the inner infimum is constant, `ciInf_const`); for non-nonnegative
+`y`, the index type is empty, so `g y` is the junk value `Real.iInf_of_isEmpty _ = 0`. The
+selected minimizer `y0` is itself a lower bound for `g` on *every* `y`: on nonnegative `y` this
+is minimality (`hy0min`), and on non-nonnegative `y` it follows because `positiveLassoObjective
+M r lambda μ y0 ≤ positiveLassoObjective M r lambda μ 0 = 0` (`0` is itself a nonnegative
+competitor, so `hy0min` applies to it, and the objective vanishes there by
+`positiveLassoObjective_zero`). Hence `y0` minimizes `g` over `Set.univ`, and the
+`ciInf_le`/`le_ciInf` argument of `lassoMin_eq_of_isLassoMinimizer` applies to `g`.
+-/
+lemma posLassoMin_eq_of_isPositiveLassoMinimizer
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (y0 : EuclideanSpace ℝ ι) (hmin : IsPositiveLassoMinimizer M r lambda μ y0) :
+    posLassoMin M r lambda μ = positiveLassoObjective M r lambda μ y0 := by
+  obtain ⟨hy0nn, hy0min⟩ := hmin
+  set g : EuclideanSpace ℝ ι → ℝ :=
+    fun y => ⨅ (_h : Nonnegative y), positiveLassoObjective M r lambda μ y with hg
+  have hg_eq_of_nonneg : ∀ y, Nonnegative y → g y = positiveLassoObjective M r lambda μ y := by
+    intro y hy
+    rw [hg]
+    haveI : Nonempty (Nonnegative y) := ⟨hy⟩
+    exact ciInf_const
+  have hg_eq_of_not_nonneg : ∀ y, ¬ Nonnegative y → g y = 0 := by
+    intro y hy
+    rw [hg]
+    haveI : IsEmpty (Nonnegative y) := ⟨hy⟩
+    exact Real.iInf_of_isEmpty _
+  have hg_y0 : g y0 = positiveLassoObjective M r lambda μ y0 := hg_eq_of_nonneg y0 hy0nn
+  have hy0_le_zero : positiveLassoObjective M r lambda μ y0 ≤ 0 := by
+    have h0 := isMinOn_iff.mp hy0min 0 Nonnegative_zero
+    rwa [positiveLassoObjective_zero] at h0
+  have hmin_g : IsMinOn g Set.univ y0 := by
+    rw [isMinOn_iff]
+    intro y _
+    by_cases hy : Nonnegative y
+    · rw [hg_y0, hg_eq_of_nonneg y hy]
+      exact isMinOn_iff.mp hy0min y hy
+    · rw [hg_y0, hg_eq_of_not_nonneg y hy]
+      exact hy0_le_zero
+  have hbdd : BddBelow (Set.range g) :=
+    ⟨g y0, by rintro _ ⟨z, rfl⟩; exact isMinOn_iff.mp hmin_g z (Set.mem_univ z)⟩
+  have hgmin : (⨅ y, g y) = g y0 :=
+    le_antisymm (ciInf_le hbdd y0) (le_ciInf (fun y => isMinOn_iff.mp hmin_g y (Set.mem_univ y)))
+  rw [show posLassoMin M r lambda μ = ⨅ y, g y from rfl, hgmin, hg_y0]
+
 /--
 The product `μ ↦ μ x(μ)` is locally absolutely continuous on positive compacts because
 both `x` and `μ ↦ μ` are.
@@ -602,11 +681,56 @@ theorem positive_path_energy_bound
   have hw_eq : matVec M (s⁻¹ • scaledPrimalPath x_lasso s) + lcpQ r lambda s = s⁻¹ • w s := by
     -- From hdual_selected s hs, we have isParametricLCP.
     -- The first condition is exactly what we need, after identifying w(s) with the slack.
-    sorry
+    have hlcp := hdual_selected s hs.le
+    obtain ⟨hw_eq0, -, -, -⟩ := hlcp
+    have hscale : parametricLcpQ r lambda s = s • lcpQ r lambda s := by
+      ext i
+      dsimp [lcpQ, parametricLcpQ, euclideanOf]
+      field_simp
+      ring
+    rw [hscale] at hw_eq0
+    have hgoal :
+        s⁻¹ • w s = s⁻¹ • (s • lcpQ r lambda s + matVec M (scaledPrimalPath x_lasso s)) := by
+      rw [hw_eq0]
+    rw [hgoal, smul_add, smul_smul, inv_mul_cancel₀ hs.ne', one_smul, ← matVec_smul_eq]
+    abel
   have hx_nonneg : Nonnegative (s⁻¹ • scaledPrimalPath x_lasso s) := by
-    sorry
+    obtain ⟨-, -, hz_nonneg, -⟩ := hdual_selected s hs.le
+    intro i
+    simp only [PiLp.smul_apply, smul_eq_mul]
+    exact mul_nonneg (inv_pos.mpr hs).le (hz_nonneg i)
   have hxE_nonneg : Nonnegative (s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s) := by
-    sorry
+    -- `t ↦ t⁻¹ • posIntegratedTrajectory u t` is nonnegative for *every* real `t`, not just
+    -- `t ≥ 0`: for `t < 0`, `∫₀ᵗ (nonneg) = -∫ₜ⁰ (nonneg) ≤ 0` cancels the sign of `t⁻¹ < 0`.
+    have hgen : ∀ t : ℝ, Nonnegative (t⁻¹ • posIntegratedTrajectory (u ε) t) := by
+      intro t
+      rcases lt_trichotomy t 0 with ht | ht | ht
+      · intro i
+        simp only [PiLp.smul_apply, smul_eq_mul]
+        have hti : (posIntegratedTrajectory (u ε) t) i ≤ 0 := by
+          dsimp [posIntegratedTrajectory, euclideanOf]
+          rw [intervalIntegral.integral_symm t 0, neg_nonpos]
+          exact intervalIntegral.integral_nonneg ht.le
+            (fun v _ => posEffectiveParameter_nonnegative (u ε) v i)
+        nlinarith [inv_nonpos.mpr ht.le]
+      · subst ht; intro i; simp
+      · intro i
+        simp only [PiLp.smul_apply, smul_eq_mul]
+        have hti : 0 ≤ (posIntegratedTrajectory (u ε) t) i := by
+          dsimp [posIntegratedTrajectory, euclideanOf]
+          exact intervalIntegral.integral_nonneg ht.le
+            (fun v _ => posEffectiveParameter_nonnegative (u ε) v i)
+        exact mul_nonneg (inv_nonneg.mpr ht.le) hti
+    have heq : s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s =
+        (posTimeFromRescaled ε s)⁻¹ • posIntegratedTrajectory (u ε) (posTimeFromRescaled ε s) := by
+      dsimp [posIntegratedTrajectoryRescaled]
+      rw [smul_smul]
+      congr 1
+      rcases eq_or_ne (Real.log (1 / ε)) 0 with hL | hL
+      · dsimp [posTimeFromRescaled]; rw [hL]; simp
+      · dsimp [posTimeFromRescaled]; field_simp
+    rw [heq]
+    exact hgen _
   have h_obj_gap := positiveLassoObjective_eq_energy M r lambda s hs
     (scaledPrimalPath x_lasso s) (posIntegratedTrajectoryRescaled ε (u ε) s) (w s)
     hx_nonneg hxE_nonneg hw_eq hdata.psd.symm
@@ -620,11 +744,26 @@ theorem positive_path_energy_bound
   rw [h_delta_eq] at h_obj_gap
   have h_average_eq : posAverageTrajectory (u ε) (posTimeFromRescaled ε s) =
       s⁻¹ • posIntegratedTrajectoryRescaled ε (u ε) s := by
-    sorry
+    have h1 : posAverageTrajectory (u ε) (posTimeFromRescaled ε s) =
+        (posTimeFromRescaled ε s)⁻¹ • posIntegratedTrajectory (u ε) (posTimeFromRescaled ε s) := by
+      ext i
+      dsimp [posAverageTrajectory, posIntegratedTrajectory, euclideanOf]
+      rw [one_div]
+    rw [h1]
+    dsimp [posIntegratedTrajectoryRescaled]
+    rw [smul_smul]
+    congr 1
+    rcases eq_or_ne (Real.log (1 / ε)) 0 with hL | hL
+    · dsimp [posTimeFromRescaled]; rw [hL]; simp
+    · dsimp [posTimeFromRescaled]; field_simp
   rw [h_average_eq]
   have h_lasso_min_eq : posLassoMin M r lambda s =
       positiveLassoObjective M r lambda s (s⁻¹ • scaledPrimalPath x_lasso s) := by
-    sorry
+    have heq : s⁻¹ • scaledPrimalPath x_lasso s = x_lasso s := by
+      dsimp [scaledPrimalPath]
+      rw [smul_smul, inv_mul_cancel₀ hs.ne', one_smul]
+    rw [heq]
+    exact posLassoMin_eq_of_isPositiveLassoMinimizer M r lambda s (x_lasso s) (hx_lasso s hs)
   rw [h_lasso_min_eq]
   -- We now have positiveLassoObjective (...) - positiveLassoObjective (...) in h_obj_gap.
   -- Rearranging the inequality:
@@ -1217,85 +1356,6 @@ theorem signedCanonicalSplit_scaled_monotonicity
     · rw [max_eq_right (by linarith [hg_ge_zero i hg a ha] : -(a * x a i) ≤ 0),
         max_eq_right (by linarith [hg_ge_zero i hg b hb] : -(b * x b i) ≤ 0)]
     · exact max_le_max (neg_le_neg (hg ha hb hab)) le_rfl
-
-/-- The value of `positiveLassoObjective` at the origin is `0`: the quadratic loss vanishes
-(since both `⟨0, M0⟩` and `⟨r,0⟩` are `0`) and so does the `L¹` penalty. Used to bound the
-"junk" branch of `posLassoMin`'s nested infimum by a genuine feasible point. -/
-lemma positiveLassoObjective_zero (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) :
-    positiveLassoObjective M r lambda μ 0 = 0 := by
-  dsimp [positiveLassoObjective, lassoObjective, quadraticLoss]
-  simp
-
-omit [Fintype ι] in
-/-- The origin is coordinatewise nonnegative. -/
-lemma Nonnegative_zero : Nonnegative (0 : EuclideanSpace ℝ ι) := by
-  intro i; simp
-
-/--
-`lassoMin` is attained at any selected minimizer, i.e. equals the value of the objective there.
-This is the standard "an attained infimum equals the minimizer's value" fact
-(`ciInf_le`/`le_ciInf`), specialized to `lassoObjective`; reusable for both the signed and
-(via `posLassoMin_eq_of_isPositiveLassoMinimizer` below) the positive lasso.
--/
-lemma lassoMin_eq_of_isLassoMinimizer
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
-    (x : EuclideanSpace ℝ ι) (hx : IsLassoMinimizer M r lambda μ x) :
-    lassoMin M r lambda μ = lassoObjective M r lambda μ x := by
-  have hbdd : BddBelow (Set.range (lassoObjective M r lambda μ)) :=
-    ⟨lassoObjective M r lambda μ x, by
-      rintro _ ⟨z, rfl⟩; exact isMinOn_iff.mp hx z (Set.mem_univ z)⟩
-  exact le_antisymm (ciInf_le hbdd x) (le_ciInf (fun y => isMinOn_iff.mp hx y (Set.mem_univ y)))
-
-/--
-`posLassoMin` is attained at any selected positive minimizer, i.e. equals the value of the
-objective there.
-
-Informal proof: `posLassoMin M r lambda μ` unfolds to `⨅ y, g y` where `g y = ⨅ (_h :
-Nonnegative y), positiveLassoObjective M r lambda μ y`. For nonnegative `y`, `g y` collapses to
-`positiveLassoObjective M r lambda μ y` (the index type `Nonnegative y` is a true proposition,
-hence a one-point type, so the inner infimum is constant, `ciInf_const`); for non-nonnegative
-`y`, the index type is empty, so `g y` is the junk value `Real.iInf_of_isEmpty _ = 0`. The
-selected minimizer `y0` is itself a lower bound for `g` on *every* `y`: on nonnegative `y` this
-is minimality (`hy0min`), and on non-nonnegative `y` it follows because `positiveLassoObjective
-M r lambda μ y0 ≤ positiveLassoObjective M r lambda μ 0 = 0` (`0` is itself a nonnegative
-competitor, so `hy0min` applies to it, and the objective vanishes there by
-`positiveLassoObjective_zero`). Hence `y0` minimizes `g` over `Set.univ`, and the
-`ciInf_le`/`le_ciInf` argument of `lassoMin_eq_of_isLassoMinimizer` applies to `g`.
--/
-lemma posLassoMin_eq_of_isPositiveLassoMinimizer
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
-    (y0 : EuclideanSpace ℝ ι) (hmin : IsPositiveLassoMinimizer M r lambda μ y0) :
-    posLassoMin M r lambda μ = positiveLassoObjective M r lambda μ y0 := by
-  obtain ⟨hy0nn, hy0min⟩ := hmin
-  set g : EuclideanSpace ℝ ι → ℝ :=
-    fun y => ⨅ (_h : Nonnegative y), positiveLassoObjective M r lambda μ y with hg
-  have hg_eq_of_nonneg : ∀ y, Nonnegative y → g y = positiveLassoObjective M r lambda μ y := by
-    intro y hy
-    rw [hg]
-    haveI : Nonempty (Nonnegative y) := ⟨hy⟩
-    exact ciInf_const
-  have hg_eq_of_not_nonneg : ∀ y, ¬ Nonnegative y → g y = 0 := by
-    intro y hy
-    rw [hg]
-    haveI : IsEmpty (Nonnegative y) := ⟨hy⟩
-    exact Real.iInf_of_isEmpty _
-  have hg_y0 : g y0 = positiveLassoObjective M r lambda μ y0 := hg_eq_of_nonneg y0 hy0nn
-  have hy0_le_zero : positiveLassoObjective M r lambda μ y0 ≤ 0 := by
-    have h0 := isMinOn_iff.mp hy0min 0 Nonnegative_zero
-    rwa [positiveLassoObjective_zero] at h0
-  have hmin_g : IsMinOn g Set.univ y0 := by
-    rw [isMinOn_iff]
-    intro y _
-    by_cases hy : Nonnegative y
-    · rw [hg_y0, hg_eq_of_nonneg y hy]
-      exact isMinOn_iff.mp hy0min y hy
-    · rw [hg_y0, hg_eq_of_not_nonneg y hy]
-      exact hy0_le_zero
-  have hbdd : BddBelow (Set.range g) :=
-    ⟨g y0, by rintro _ ⟨z, rfl⟩; exact isMinOn_iff.mp hmin_g z (Set.mem_univ z)⟩
-  have hgmin : (⨅ y, g y) = g y0 :=
-    le_antisymm (ciInf_le hbdd y0) (le_ciInf (fun y => isMinOn_iff.mp hmin_g y (Set.mem_univ y)))
-  rw [show posLassoMin M r lambda μ = ⨅ y, g y from rfl, hgmin, hg_y0]
 
 /--
 Lemma 5.1(3): equality of the signed lasso minimum and the augmented positive
