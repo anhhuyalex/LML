@@ -1503,7 +1503,40 @@ private lemma positive_energy_G_bound
       Real.sqrt (positiveZDownward x_lasso s) +
       (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
       s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s)) := by
-    sorry
+    set z := positiveZDownward x_lasso s
+    -- z ≥ 0 because the integrand (1+u)·max(0,…) is nonnegative on [0,s]
+    have hz_nonneg : 0 ≤ z := by
+      unfold positiveZDownward
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
+      have hu_nonneg : 0 ≤ u := hu.1
+      exact mul_nonneg (by nlinarith) (le_max_left 0 _)
+    have h_sqrt_z_nonneg : 0 ≤ Real.sqrt z := Real.sqrt_nonneg _
+    have hs_nonneg : 0 ≤ s := le_of_lt hs
+    have h_factor_nonneg : 0 ≤ 1 + s * lambda := by nlinarith
+    -- core inequality without the (1+sλ) factor:
+    -- C_E·(s·√(2C_D)·√z + z) ≤ C·(s·√z + z)
+    -- which follows from C_E·√(2C_D) ≤ C (hC1) and C_E ≤ C (hC2)
+    have h_core : C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z) ≤
+        C * (s * Real.sqrt z + z) := by
+      have h_termA : C_E * s * Real.sqrt (2 * C_D) * Real.sqrt z ≤ C * s * Real.sqrt z := by
+        have h := mul_le_mul_of_nonneg_right hC1 (mul_nonneg hs_nonneg h_sqrt_z_nonneg)
+        calc
+          C_E * s * Real.sqrt (2 * C_D) * Real.sqrt z
+          = (C_E * Real.sqrt (2 * C_D)) * (s * Real.sqrt z) := by ring
+          _ ≤ C * (s * Real.sqrt z) := h
+          _ = C * s * Real.sqrt z := by ring
+      have h_termB : C_E * z ≤ C * z := mul_le_mul_of_nonneg_right hC2 hz_nonneg
+      nlinarith
+    calc
+      (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
+        (1 + s * lambda) * C_E * z
+      = (1 + s * lambda) * C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z) := by ring
+      _ ≤ (1 + s * lambda) * C * (s * Real.sqrt z + z) :=
+        mul_le_mul_of_nonneg_left h_core h_factor_nonneg
+      _ = s^2 * (C * suboptimalityGap lambda s z) := by
+        dsimp [suboptimalityGap]
+        ring
   have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
     sorry
   have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by

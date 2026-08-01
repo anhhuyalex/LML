@@ -1533,9 +1533,7 @@ private lemma deriv_scaledPrimalPath_coord_nonneg_of_monotone
   have heq : g_ext =ᶠ[𝓝 τ] g := by
     filter_upwards [eventually_gt_nhds hτ] with t ht
     simp only [hg_ext_def, if_pos ht.le]
-  have hg_deriv : HasDerivAt g (deriv g τ) τ := h_diff.hasDerivAt
-  have hderiv : HasDerivAt g_ext (deriv g τ) τ := hg_deriv.congr_of_eventuallyEq heq
-  exact hderiv.nonneg_of_monotone hg_ext_mono
+  exact ((h_diff.hasDerivAt).congr_of_eventuallyEq heq).nonneg_of_monotone hg_ext_mono
 
 /-- `positiveZDownward` vanishes identically on `[0, ∞)` when `z = scaledPrimalPath x_lasso`
 is coordinatewise monotone nondecreasing there: the integrand `(1+u)·max 0 (-z_i'(u))`
@@ -1550,19 +1548,16 @@ lemma positiveZDownward_eq_zero_of_monotone
   unfold positiveZDownward
   refine Finset.sum_eq_zero (fun i _ => ?_)
   have h_ac : AbsolutelyContinuousOnInterval (fun t => t * (x_lasso t).ofLp i) 0 μ := by
-    have heq : (fun t : ℝ => t * (x_lasso t).ofLp i) =
-        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso := by
-      funext t; simp [scaledPrimalPath, smul_eq_mul]
-    rw [heq]
+    rw [show (fun t : ℝ => t * (x_lasso t).ofLp i) =
+        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso from by
+      funext t; simp [scaledPrimalPath, smul_eq_mul]]
     exact (LipschitzWith.of_dist_le_mul (K := 1) (fun x y => by
       simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)).comp_absolutelyContinuousOnInterval
       (h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ_pos.le)
-  have h_diff_ae : ∀ᵐ u ∂volume, u ∈ Set.uIcc (0 : ℝ) μ →
-      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) u := h_ac.ae_differentiableAt
   have h_ae_zero : ∀ᵐ u ∂volume, u ∈ Set.uIoc (0 : ℝ) μ →
       (1 + u) * max 0 (-deriv (fun t => t * (x_lasso t).ofLp i) u) = (0 : ℝ) := by
     rw [Set.uIoc_of_le hμ_pos.le]
-    filter_upwards [h_diff_ae] with u hdiff hu_mem
+    filter_upwards [h_ac.ae_differentiableAt] with u hdiff hu_mem
     rw [Set.uIcc_of_le hμ_pos.le] at hdiff
     have hu_deriv : 0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) u :=
       deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i u hu_mem.1
@@ -1584,20 +1579,17 @@ lemma positiveZUpward_eq_sum_of_monotone
   unfold positiveZUpward
   refine Finset.sum_congr rfl (fun i _ => ?_)
   have h_ac : AbsolutelyContinuousOnInterval (fun t => t * (x_lasso t).ofLp i) 0 μ := by
-    have heq : (fun t : ℝ => t * (x_lasso t).ofLp i) =
-        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso := by
-      funext t; simp [scaledPrimalPath, smul_eq_mul]
-    rw [heq]
+    rw [show (fun t : ℝ => t * (x_lasso t).ofLp i) =
+        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso from by
+      funext t; simp [scaledPrimalPath, smul_eq_mul]]
     exact (LipschitzWith.of_dist_le_mul (K := 1) (fun x y => by
       simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)).comp_absolutelyContinuousOnInterval
       (h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ_pos.le)
-  have h_diff_ae : ∀ᵐ u ∂volume, u ∈ Set.uIcc (0 : ℝ) μ →
-      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) u := h_ac.ae_differentiableAt
   have h_eq_ae : ∀ᵐ u ∂volume, u ∈ Set.uIoc (0 : ℝ) μ →
       max 0 (deriv (fun t => t * (x_lasso t).ofLp i) u) =
         deriv (fun t => t * (x_lasso t).ofLp i) u := by
     rw [Set.uIoc_of_le hμ_pos.le]
-    filter_upwards [h_diff_ae] with u hdiff hu_mem
+    filter_upwards [h_ac.ae_differentiableAt] with u hdiff hu_mem
     rw [Set.uIcc_of_le hμ_pos.le] at hdiff
     have hu_deriv : 0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) u :=
       deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i u hu_mem.1
@@ -1656,10 +1648,10 @@ private lemma deriv_pos_z_identities_of_monotone
   -- Uses `deriv_scaledPrimalPath_coord_nonneg_of_monotone` and rewrites the result
   -- from `deriv (fun t => t * (x_lasso t).ofLp i) τ` to `(deriv (scaledPrimalPath x_lasso) τ) i`.
   have h_nonneg (i : ι) : 0 ≤ (deriv (scaledPrimalPath x_lasso) τ) i := by
-    have h_nonneg_g := deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i τ hτ
-      (fun a b ha hab => h_mono a b ha hab i)
-      (by rw [h_fn_eq i]; exact (h_coord_hasDerivAt i).differentiableAt)
-    simpa [h_fn_eq i, h_deriv_coord_eq i] using h_nonneg_g
+    simpa [h_fn_eq i, h_deriv_coord_eq i] using
+      deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i τ hτ
+        (fun a b ha hab => h_mono a b ha hab i)
+        (by rw [h_fn_eq i]; exact (h_coord_hasDerivAt i).differentiableAt)
   -- Closed forms on a neighborhood of τ (using that τ > 0, so (0,∞) is an open nhd of τ)
   -- These follow from `positiveZDownward_eq_zero_of_monotone` and
   -- `positiveZUpward_eq_sum_of_monotone` which are defined above.
@@ -1670,28 +1662,21 @@ private lemma deriv_pos_z_identities_of_monotone
       fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i := by
     filter_upwards [isOpen_Ioi.mem_nhds hτ] with μ hμ
     exact positiveZUpward_eq_sum_of_monotone x_lasso μ hμ.le h_regular h_mono
-  -- Derivative of the upward closed form using `deriv_sum`
-  have h_deriv_sum : deriv (fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i) τ =
-      ∑ i, (deriv (scaledPrimalPath x_lasso) τ) i := by
-    simpa [Finset.sum_fn, h_deriv_coord_eq] using
-      deriv_sum (fun i _ => (h_coord_hasDerivAt i).differentiableAt)
   -- Combine with nonnegativity to match the max expressions in the goal
-  have h_max_up (i : ι) : max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) =
-      (deriv (scaledPrimalPath x_lasso) τ) i :=
-    max_eq_right (h_nonneg i)
-  have h_max_down (i : ι) : max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) = (0 : ℝ) :=
-    max_eq_left (neg_nonpos.mpr (h_nonneg i))
   have h_up_final : deriv (positiveZUpward x_lasso) τ =
       ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
     calc
       deriv (positiveZUpward x_lasso) τ = deriv (fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i) τ :=
         h_up_closed_on_nhds.deriv_eq
-      _ = ∑ i, (deriv (scaledPrimalPath x_lasso) τ) i := h_deriv_sum
-      _ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) :=
-        Finset.sum_congr rfl (fun i _ => by rw [h_max_up i])
+      _ = ∑ i, (deriv (scaledPrimalPath x_lasso) τ) i := by
+        simpa [Finset.sum_fn, h_deriv_coord_eq] using
+          deriv_sum (fun i _ => (h_coord_hasDerivAt i).differentiableAt)
+      _ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
+        simp [max_eq_right (h_nonneg _)]
   have h_down_final : deriv (positiveZDownward x_lasso) τ =
       ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
-    simpa [h_max_down, deriv_const] using h_down_closed_on_nhds.deriv_eq
+    simpa [max_eq_left (neg_nonpos.mpr (h_nonneg _)), deriv_const] using
+      h_down_closed_on_nhds.deriv_eq
   exact ⟨h_up_final, h_down_final⟩
 
 /--
