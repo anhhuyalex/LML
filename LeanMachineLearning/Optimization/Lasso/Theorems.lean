@@ -1506,6 +1506,7 @@ private lemma positive_energy_G_bound
     set z := positiveZDownward x_lasso s
     -- z ≥ 0 because the integrand (1+u)·max(0,…) is nonnegative on [0,s]
     have hz_nonneg : 0 ≤ z := by
+      dsimp [z]
       unfold positiveZDownward
       refine Finset.sum_nonneg (fun i _ => ?_)
       refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
@@ -1528,15 +1529,21 @@ private lemma positive_energy_G_bound
           _ = C * s * Real.sqrt z := by ring
       have h_termB : C_E * z ≤ C * z := mul_le_mul_of_nonneg_right hC2 hz_nonneg
       nlinarith
-    calc
-      (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
-        (1 + s * lambda) * C_E * z
-      = (1 + s * lambda) * C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z) := by ring
-      _ ≤ (1 + s * lambda) * C * (s * Real.sqrt z + z) :=
-        mul_le_mul_of_nonneg_left h_core h_factor_nonneg
-      _ = s^2 * (C * suboptimalityGap lambda s z) := by
-        dsimp [suboptimalityGap]
-        ring
+    -- rewrite both sides to factor (1+sλ), apply h_core, then rewrite RHS
+    have h_lhs_eq : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
+        (1 + s * lambda) * C_E * z =
+        (1 + s * lambda) * (C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z)) := by ring
+    have h_rhs_eq : s^2 * (C * suboptimalityGap lambda s z) =
+        (1 + s * lambda) * (C * (s * Real.sqrt z + z)) := by
+      dsimp [suboptimalityGap]
+      calc
+        s^2 * (C * ((1 + lambda * s) * (Real.sqrt z / s + z / s ^ 2)))
+            = C * (1 + lambda * s) * (s^2 * (Real.sqrt z / s + z / s ^ 2)) := by ring
+        _ = C * (1 + lambda * s) * (s * Real.sqrt z + z) := by
+          field_simp [hs.ne.symm]
+        _ = (1 + s * lambda) * (C * (s * Real.sqrt z + z)) := by ring
+    rw [h_lhs_eq, h_rhs_eq]
+    exact mul_le_mul_of_nonneg_left h_core h_factor_nonneg
   have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
     sorry
   have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
