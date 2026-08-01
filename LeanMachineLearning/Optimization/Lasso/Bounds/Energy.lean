@@ -288,6 +288,120 @@ private lemma complementary_slackness_derivative
     rw [deriv_zero_of_not_differentiableAt h_diff]
     simp [inner_zero_left]
 
+private lemma posIntegratedTrajectoryRescaled_differentiableAt
+    {ι : Type*} [Fintype ι]
+    (ε : ℝ) (u_eps : ℝ → EuclideanSpace ℝ ι)
+    (hu_cont : Continuous u_eps)
+    (τ : ℝ) (hlog_pos_ne : Real.log (1 / ε) ≠ 0) :
+    DifferentiableAt ℝ (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) τ :=
+  (posIntegratedTrajectoryRescaled_hasDerivAt ε u_eps τ hu_cont hlog_pos_ne).differentiableAt
+
+private lemma parametricLCP_dual_differentiableAt
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (z : ℝ → EuclideanSpace ℝ ι) (w : ℝ → EuclideanSpace ℝ ι)
+    (τ : ℝ) (hτ_pos : 0 < τ)
+    (hw_explicit : ∀ σ : ℝ, 0 ≤ σ → w σ = matVec M (z σ) - σ • r + (1 + σ * lambda) • ones)
+    (h_diff_z : DifferentiableAt ℝ z τ) :
+    DifferentiableAt ℝ w τ := by
+  have h_eq : w =ᶠ[𝓝 τ] fun σ => matVec M (z σ) - σ • r + (1 + σ * lambda) • ones := by
+    filter_upwards [Ioi_mem_nhds hτ_pos] with σ hσ
+    exact hw_explicit σ (le_of_lt hσ)
+  refine DifferentiableAt.congr_of_eventuallyEq ?_ h_eq
+  have h_matVec : DifferentiableAt ℝ (fun σ => matVec M (z σ)) τ :=
+    (LinearMap.toContinuousLinearMap (matVecLM M)).differentiableAt.comp τ h_diff_z
+  have h_r : DifferentiableAt ℝ (fun σ => σ • r) τ :=
+    DifferentiableAt.smul_const differentiableAt_id r
+  have h_lambda : DifferentiableAt ℝ (fun σ => (1 + σ * lambda) • (ones : EuclideanSpace ℝ ι)) τ := by
+    apply DifferentiableAt.smul_const
+    apply DifferentiableAt.add
+    · exact differentiableAt_const 1
+    · exact DifferentiableAt.mul_const differentiableAt_id lambda
+  exact (h_matVec.sub h_r).add h_lambda
+
+private lemma energy_core_cancellation
+    {ι : Type*} [Fintype ι]
+    (w wε_τ wε_0 dzε dz ones M_diff : EuclideanSpace ℝ ι)
+    (hM_diff : M_diff = wε_τ - w + (ones - wε_0)) :
+    inner ℝ w (dzε - dz) + inner ℝ (dzε - dz) M_diff =
+      inner ℝ dzε wε_τ - inner ℝ dz wε_τ + inner ℝ (dzε - dz) (ones - wε_0) := by
+  set D := dzε - dz
+  calc
+    inner ℝ w D + inner ℝ D M_diff
+    = inner ℝ w D + inner ℝ D (wε_τ - w + (ones - wε_0)) := by rw [hM_diff]
+    _ = inner ℝ w D + (inner ℝ D (wε_τ - w) + inner ℝ D (ones - wε_0)) := by
+      rw [inner_add_right]
+    _ = inner ℝ w D + ((inner ℝ D wε_τ - inner ℝ D w) + inner ℝ D (ones - wε_0)) := by
+      simp [inner_sub_right]
+    _ = (inner ℝ w D - inner ℝ D w) + inner ℝ D wε_τ + inner ℝ D (ones - wε_0) := by ring
+    _ = 0 + inner ℝ D wε_τ + inner ℝ D (ones - wε_0) := by
+      rw [real_inner_comm w D]
+      ring
+    _ = (inner ℝ dzε wε_τ - inner ℝ dz wε_τ) + inner ℝ D (ones - wε_0) := by
+      dsimp [D]
+      rw [inner_sub_left, zero_add]
+
+private lemma energy_product_rule_identity
+    {ι : Type*} [Fintype ι]
+    (φ : ℝ → ℝ) (w zε z : ℝ → EuclideanSpace ℝ ι) (Δε : ℝ → ℝ) (τ : ℝ)
+    (T1_plus_T3_plus_T4b : ℝ) (M_diff : EuclideanSpace ℝ ι)
+    (h_diff_φ : DifferentiableAt ℝ φ τ)
+    (h_diff_w : DifferentiableAt ℝ w τ)
+    (h_diff_zε : DifferentiableAt ℝ zε τ)
+    (h_diff_z : DifferentiableAt ℝ z τ)
+    (h_diff_Δε : DifferentiableAt ℝ Δε τ)
+    (h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) M_diff)
+    (h_core : inner ℝ (w τ) (deriv zε τ - deriv z τ) + inner ℝ (deriv zε τ - deriv z τ) M_diff = T1_plus_T3_plus_T4b) :
+    deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
+      inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
+    = deriv φ τ * Δε τ + φ τ * T1_plus_T3_plus_T4b := by
+  have h_diff_inner : DifferentiableAt ℝ (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ :=
+    h_diff_w.inner ℝ (h_diff_zε.sub h_diff_z)
+  have h_diff_E : DifferentiableAt ℝ (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ :=
+    h_diff_inner.add h_diff_Δε
+  have h_deriv_prod : deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ =
+      deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
+      φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ := by
+    exact deriv_mul h_diff_φ h_diff_E
+  have h_deriv_vec : deriv (fun σ => φ σ • w σ) τ = deriv φ τ • w τ + φ τ • deriv w τ := by
+    have h := deriv_smul h_diff_φ h_diff_w
+    convert h using 1
+    · rfl
+    · rw [add_comm]
+  have h_deriv_E_sum : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ =
+      deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ := by
+    exact deriv_add h_diff_inner h_diff_Δε
+  have h_deriv_inner : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ =
+      inner ℝ (deriv w τ) (zε τ - z τ) + inner ℝ (w τ) (deriv zε τ - deriv z τ) := by
+    have hw : HasDerivAt w (deriv w τ) τ := by rw [hasDerivAt_deriv_iff]; exact h_diff_w
+    have hzε : HasDerivAt zε (deriv zε τ) τ := by rw [hasDerivAt_deriv_iff]; exact h_diff_zε
+    have hz : HasDerivAt z (deriv z τ) τ := by rw [hasDerivAt_deriv_iff]; exact h_diff_z
+    have h_inner := hw.inner ℝ (hzε.sub hz)
+    simpa [add_comm] using h_inner.deriv
+  calc
+    deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
+      inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
+    = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
+        φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ) -
+      inner ℝ (deriv φ τ • w τ + φ τ • deriv w τ) (zε τ - z τ) := by
+      rw [h_deriv_prod, h_deriv_vec]
+    _ = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
+        φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ)) -
+      (deriv φ τ * inner ℝ (w τ) (zε τ - z τ) + φ τ * inner ℝ (deriv w τ) (zε τ - z τ)) := by
+      rw [h_deriv_E_sum]
+      simp [inner_add_left, inner_smul_left]
+    _ = deriv φ τ * Δε τ +
+        φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ -
+          inner ℝ (deriv w τ) (zε τ - z τ) + deriv Δε τ) := by ring
+    _ = deriv φ τ * Δε τ +
+        φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) + deriv Δε τ) := by
+      rw [h_deriv_inner]; ring
+    _ = deriv φ τ * Δε τ +
+        φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) +
+          inner ℝ (deriv zε τ - deriv z τ) M_diff) := by
+      rw [h_deriv_Δε]
+    _ = deriv φ τ * Δε τ + φ τ * T1_plus_T3_plus_T4b := by rw [h_core]
+
 /--
 Helper lemma for `positive_energy_differential_inequality`.
 Shows that the algebraic sum of the remaining product rule terms is exactly bounded by
@@ -473,27 +587,10 @@ lemma energy_complementarity_bound
   by_cases h_diff_z_cond : DifferentiableAt ℝ z τ ∧ 0 < τ
   · rcases h_diff_z_cond with ⟨h_diff_z, hτ_pos⟩
     -- Case 1: z is differentiable at τ and τ > 0. The full product-rule expansion is valid.
-    have h_diff_zε : DifferentiableAt ℝ zε τ := by
-      have hu_flow := hu ε hε_pos
-      have hu_cont : Continuous (u ε) := hu_flow.cont_diff.continuous
-      exact (posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ hu_cont hlog_pos.ne').differentiableAt
-    have h_diff_w : DifferentiableAt ℝ w τ := by
-      have h_eq : w =ᶠ[𝓝 τ] fun σ => matVec M (scaledPrimalPath x_lasso σ) - σ • r + (1 + σ * lambda) • ones := by
-        filter_upwards [Ioi_mem_nhds hτ_pos] with σ hσ
-        exact hw_explicit σ (le_of_lt hσ)
-      refine DifferentiableAt.congr_of_eventuallyEq ?_ h_eq
-      have h_matVec : DifferentiableAt ℝ (fun σ => matVec M (scaledPrimalPath x_lasso σ)) τ :=
-        (LinearMap.toContinuousLinearMap (matVecLM M)).differentiableAt.comp τ h_diff_z
-      have h_r : DifferentiableAt ℝ (fun σ => σ • r) τ :=
-        DifferentiableAt.smul_const differentiableAt_id r
-      have h_lambda : DifferentiableAt ℝ (fun σ => (1 + σ * lambda) • (ones : EuclideanSpace ℝ ι)) τ := by
-        apply DifferentiableAt.smul_const
-        apply DifferentiableAt.add
-        · exact differentiableAt_const 1
-        · exact DifferentiableAt.mul_const differentiableAt_id lambda
-      exact (h_matVec.sub h_r).add h_lambda
-    have h_diff_inner : DifferentiableAt ℝ (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ :=
-      (h_diff_w.inner ℝ (h_diff_zε.sub h_diff_z))
+    have h_diff_zε : DifferentiableAt ℝ zε τ :=
+      posIntegratedTrajectoryRescaled_differentiableAt ε (u ε) (hu ε hε_pos).cont_diff.continuous τ hlog_pos.ne'
+    have h_diff_w : DifferentiableAt ℝ w τ :=
+      parametricLCP_dual_differentiableAt M r lambda (scaledPrimalPath x_lasso) w τ hτ_pos hw_explicit h_diff_z
     have h_diff_Δε : DifferentiableAt ℝ Δε τ := by
       have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
         rw [hasDerivAt_deriv_iff]; exact h_diff_zε
@@ -501,38 +598,6 @@ lemma energy_complementarity_bound
         rw [hasDerivAt_deriv_iff]; exact h_diff_z
       exact (pathDelta_hasDerivAt M hM_symm zε z (deriv zε τ) (deriv z τ) τ
         hzε_deriv hz_deriv).differentiableAt
-    set E := (fun σ => inner ℝ (w σ) (zε σ - z σ)) + Δε with hE_def
-    have h_diff_E : DifferentiableAt ℝ E τ := h_diff_inner.add h_diff_Δε
-    -- Product rule for φ * E
-    have h_deriv_prod : deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ =
-        deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
-        φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ := by
-      have h := deriv_mul h_diff_φ h_diff_E
-      dsimp [E, Δε] at h ⊢
-      exact h
-    -- Product rule for φ • w
-    have h_deriv_vec : deriv (fun σ => φ σ • w σ) τ = deriv φ τ • w τ + φ τ • deriv w τ := by
-      have h := deriv_smul h_diff_φ h_diff_w
-      convert h using 1
-      · rfl
-      · rw [add_comm]
-    -- Derivative of E = inner + Δε
-    have h_deriv_E_sum : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ =
-        deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ := by
-      have h := deriv_add h_diff_inner h_diff_Δε
-      dsimp [E, Δε] at h ⊢
-      exact h
-    -- Derivative of inner product ⟨w, zε - z⟩
-    have h_deriv_inner : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ =
-        inner ℝ (deriv w τ) (zε τ - z τ) + inner ℝ (w τ) (deriv zε τ - deriv z τ) := by
-      have hw : HasDerivAt w (deriv w τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_w
-      have hzε : HasDerivAt zε (deriv zε τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_zε
-      have hz : HasDerivAt z (deriv z τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_z
-      have h_inner := (hw.inner ℝ (hzε.sub hz))
-      simpa [add_comm] using h_inner.deriv
     -- Derivative of Δε
     have h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) := by
       have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
@@ -574,55 +639,19 @@ lemma energy_complementarity_bound
         ext i
         simp [euclideanOf, ones]
         ring
-      set D := deriv zε τ - deriv z τ with hD_def
+      have h := energy_core_cancellation (w τ) (wε τ) (wε 0) (deriv zε τ) (deriv z τ) ones (matVec M (zε τ - z τ)) hM_diff
+      dsimp [T1, T3, T4b]
       calc
-        inner ℝ (w τ) D + inner ℝ D (matVec M (zε τ - z τ))
-        = inner ℝ (w τ) D + inner ℝ D (wε τ - w τ + (ones - wε 0)) := by rw [hM_diff]
-        _ = inner ℝ (w τ) D +
-            (inner ℝ D (wε τ - w τ) + inner ℝ D (ones - wε 0)) := by
-          rw [inner_add_right]
-        _ = inner ℝ (w τ) D +
-            ((inner ℝ D (wε τ) - inner ℝ D (w τ)) + inner ℝ D (ones - wε 0)) := by
-          dsimp [D]
-          simp [inner_sub_right]
-        _ = (inner ℝ (w τ) D - inner ℝ D (w τ)) +
-            inner ℝ D (wε τ) + inner ℝ D (ones - wε 0) := by ring
-        _ = 0 + inner ℝ D (wε τ) + inner ℝ D (ones - wε 0) := by
-          rw [real_inner_comm (w τ) D]
-          ring
-        _ = (inner ℝ (deriv zε τ) (wε τ) - inner ℝ (deriv z τ) (wε τ)) +
-            inner ℝ D (ones - wε 0) := by
-          rw [hD_def, inner_sub_left, zero_add]
-        _ = T1 + T3 + T4b := by
-          dsimp [T1, T3, T4b, D]; ring
+        inner ℝ (w τ) (deriv zε τ - deriv z τ) + inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ))
+        = inner ℝ (deriv zε τ) (wε τ) - inner ℝ (deriv z τ) (wε τ) + inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) := h
+        _ = inner ℝ (deriv zε τ) (wε τ) + -inner ℝ (deriv z τ) (wε τ) + inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) := by ring
     -- Assemble the key identity
     have h_key_identity :
         deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
           inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
-        = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by
-      calc
-        deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
-          inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
-        = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
-            φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ) -
-          inner ℝ (deriv φ τ • w τ + φ τ • deriv w τ) (zε τ - z τ) := by
-          rw [h_deriv_prod, h_deriv_vec]
-        _ = (deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
-            φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ)) -
-          (deriv φ τ * inner ℝ (w τ) (zε τ - z τ) + φ τ * inner ℝ (deriv w τ) (zε τ - z τ)) := by
-          rw [h_deriv_E_sum]
-          simp [inner_add_left, inner_smul_left]
-        _ = deriv φ τ * Δε τ +
-            φ τ * (deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ -
-              inner ℝ (deriv w τ) (zε τ - z τ) + deriv Δε τ) := by ring
-        _ = deriv φ τ * Δε τ +
-            φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) + deriv Δε τ) := by
-          rw [h_deriv_inner]; ring
-        _ = deriv φ τ * Δε τ +
-            φ τ * (inner ℝ (w τ) (deriv zε τ - deriv z τ) +
-              inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ))) := by
-          rw [h_deriv_Δε]
-        _ = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) := by rw [h_core]
+        = deriv φ τ * Δε τ + φ τ * (T1 + T3 + T4b) :=
+      energy_product_rule_identity φ w zε z Δε τ (T1 + T3 + T4b) (matVec M (zε τ - z τ))
+        h_diff_φ h_diff_w h_diff_zε h_diff_z h_diff_Δε h_deriv_Δε h_core
     rw [h_key_identity]
     exact energy_deriv_bound_algebra C1 C3 C (Real.log (1 / ε))
       (deriv (positiveZUpward x_lasso) τ) (deriv (positiveZDownward x_lasso) τ) δ
