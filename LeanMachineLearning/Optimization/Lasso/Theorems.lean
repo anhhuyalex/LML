@@ -563,47 +563,162 @@ theorem exists_dual_certificate_for_positive_path
   · exact dual_certificate_regularity M Mdagger r lambda x_lasso w hdata hinverse hsol
   · exact hsol
 
+/-- `sqrt(a + b) ≤ sqrt a + sqrt b` for nonnegative `a, b`. Not in Mathlib under this name;
+proved by squaring, since `(sqrt a + sqrt b)^2 = a + b + 2 sqrt a sqrt b ≥ a + b`. -/
+private lemma sqrt_add_le_add_sqrt {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
+    Real.sqrt (a + b) ≤ Real.sqrt a + Real.sqrt b := by
+  have h1 : a + b ≤ (Real.sqrt a + Real.sqrt b) ^ 2 := by
+    have hsa := Real.sq_sqrt ha
+    have hsb := Real.sq_sqrt hb
+    nlinarith [mul_nonneg (Real.sqrt_nonneg a) (Real.sqrt_nonneg b)]
+  calc Real.sqrt (a + b) ≤ Real.sqrt ((Real.sqrt a + Real.sqrt b) ^ 2) := Real.sqrt_le_sqrt h1
+    _ = Real.sqrt a + Real.sqrt b :=
+      Real.sqrt_sq (by positivity)
+
+/--
+Section 4.6, Eq. (4.15) restated as a bound holding **uniformly over `[0, s]`**, not just at the
+endpoint `τ = s`. This is the key extra ingredient needed for `positive_energy_integrated_bound`:
+integrating the energy differential inequality requires controlling `Δᵋ(τ)` at *every* `τ ≤ s`
+(it appears under a square root inside the integrand), not merely its value at `s`.
+
+Informal proof: Apply `positive_delta_complementarity_bound`'s a.e. derivative bound for `Δᵋ` on
+`[0, s]`, together with the absolute continuity of `Δᵋ` (`pathDelta_ac`) and of the majorant
+`G(τ) = C(1/L·(τ + z↑(τ)) + z↓(τ)) + Cδ/s·τ` (`G_ac`), to conclude via `bound_of_deriv_bound`
+that `Δᵋ(τ') ≤ G(τ')` for *every* `τ' ∈ [0, s]` (not just `τ' = s`), by applying that FTC-comparison
+lemma with upper endpoint `τ'` instead of `s` (restricting the `[0,s]`-facts to `[0,τ']` via
+`AbsolutelyContinuousOnInterval.mono` and the trivial set inclusion `Icc 0 τ' ⊆ Icc 0 s`). Since
+`G` is monotone nondecreasing on `[0, s]` (a sum of the identity, `positiveZUpward_monotoneOn`,
+and `positiveZDownward_monotoneOn`, each with a nonnegative coefficient), `G(τ') ≤ G(s)` for
+`τ' ≤ s`, giving the uniform bound `Δᵋ(τ') ≤ G(s)` for all `τ' ∈ [0, s]`.
+-/
+private lemma pathDelta_uniform_bound
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+        pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+            (scaledPrimalPath x_lasso) τ
+          ≤ C * (1 / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) +
+              positiveZDownward x_lasso s) + C * δ := by
+  obtain ⟨C, hC_pos, h_diff⟩ := positive_delta_complementarity_bound M r lambda β u hdata hβ hu
+    x_lasso hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
+  refine ⟨C, hC_pos, fun s hs δ hδ => ?_⟩
+  have h_delta_pos : 0 < C * δ / s := div_pos (mul_pos hC_pos hδ) hs
+  filter_upwards [h_diff s hs (C * δ / s) h_delta_pos,
+      show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h_deriv_bound hε_mem
+  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
+  have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  set F := fun σ => pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+    (scaledPrimalPath x_lasso) σ with hF_def
+  set G := fun σ => C * (1 / Real.log (1 / ε) * (σ + positiveZUpward x_lasso σ) +
+    positiveZDownward x_lasso σ) + C * δ / s * σ with hG_def
+  have hF_ac : AbsolutelyContinuousOnInterval F 0 s :=
+    pathDelta_ac M ε (u ε) x_lasso s hs.le (hu ε hε_pos).cont_diff.continuous hlog_pos.ne'
+      h_regular
+  have hG_ac : AbsolutelyContinuousOnInterval G 0 s := G_ac C ε s δ hs x_lasso h_regular
+  have hF0 : F 0 = 0 := pathDelta_zero M ε (u ε) x_lasso
+  have hG0 : G 0 = 0 := by
+    simp only [hG_def]
+    rw [(z_upward_downward_zero x_lasso).1, (z_upward_downward_zero x_lasso).2]
+    ring
+  -- `deriv G τ` matches the RHS of `positive_delta_complementarity_bound`'s bound wherever
+  -- `positiveZUpward`/`positiveZDownward` are differentiable, i.e. a.e. (mirroring
+  -- `positive_path_delta_bound_full`'s `hG_deriv` computation).
+  have h_pos_z_diff := positiveZ_ae_differentiable x_lasso s hs h_local_affine h_regular
+  have hderiv_G_eq : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv G τ =
+      C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+        deriv (positiveZDownward x_lasso) τ) + C * δ / s := by
+    filter_upwards [h_pos_z_diff] with τ hτ_diff hτ_mem
+    obtain ⟨hτ_up_diff, hτ_down_diff⟩ := hτ_diff hτ_mem
+    have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso)
+        (deriv (positiveZUpward x_lasso) τ) τ := hτ_up_diff.hasDerivAt
+    have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso)
+        (deriv (positiveZDownward x_lasso) τ) τ := hτ_down_diff.hasDerivAt
+    have h1 : HasDerivAt (fun t : ℝ => t + positiveZUpward x_lasso t)
+        (1 + deriv (positiveZUpward x_lasso) τ) τ := (hasDerivAt_id' τ).add h_up_hasDeriv
+    have h2 : HasDerivAt
+        (fun t : ℝ => 1 / Real.log (1 / ε) * (t + positiveZUpward x_lasso t) +
+          positiveZDownward x_lasso t)
+        (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+          deriv (positiveZDownward x_lasso) τ) τ :=
+      (h1.const_mul (1 / Real.log (1 / ε))).add h_down_hasDeriv
+    have h3 : HasDerivAt
+        (fun t : ℝ => C * (1 / Real.log (1 / ε) * (t + positiveZUpward x_lasso t) +
+            positiveZDownward x_lasso t) + C * δ / s * t)
+        (C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+            deriv (positiveZDownward x_lasso) τ) + C * δ / s * 1) τ :=
+      (h2.const_mul C).add ((hasDerivAt_id' τ).const_mul (C * δ / s))
+    rw [hG_def, h3.deriv]
+    ring
+  have h_deriv_le : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
+    filter_upwards [h_deriv_bound, hderiv_G_eq] with τ hτ1 hτ2 hτ_mem
+    rw [hτ2 hτ_mem]
+    exact hτ1 hτ_mem
+  intro τ' hτ'
+  have h_sub : Set.uIcc (0 : ℝ) τ' ⊆ Set.uIcc (0 : ℝ) s := by
+    rw [Set.uIcc_of_le hτ'.1, Set.uIcc_of_le hs.le]
+    exact Set.Icc_subset_Icc_right hτ'.2
+  have hFτ'_le_Gτ' : F τ' ≤ G τ' := by
+    apply bound_of_deriv_bound hτ'.1 _ hF0 hG0 (hF_ac.mono h_sub) (hG_ac.mono h_sub)
+    filter_upwards [h_deriv_le] with τ hτ_imp hτ_mem
+    exact hτ_imp (Set.Icc_subset_Icc_right hτ'.2 hτ_mem)
+  have hG_mono : G τ' ≤ G s := by
+    have h_up_mono := positiveZUpward_monotoneOn x_lasso h_regular
+    have h_down_mono := positiveZDownward_monotoneOn x_lasso h_regular
+    have h1 : positiveZUpward x_lasso τ' ≤ positiveZUpward x_lasso s :=
+      h_up_mono hτ'.1 hs.le hτ'.2
+    have h2 : positiveZDownward x_lasso τ' ≤ positiveZDownward x_lasso s :=
+      h_down_mono hτ'.1 hs.le hτ'.2
+    have hL_nonneg : 0 ≤ 1 / Real.log (1 / ε) := by positivity
+    have hCδs_nonneg : 0 ≤ C * δ / s := by positivity
+    simp only [hG_def]
+    nlinarith [mul_le_mul_of_nonneg_left (add_le_add hτ'.2 h1) hC_pos.le,
+      mul_le_mul_of_nonneg_left h2 hC_pos.le,
+      mul_le_mul_of_nonneg_left hτ'.2 hCδs_nonneg]
+  have hGs_eq : G s = C * (1 / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) +
+      positiveZDownward x_lasso s) + C * δ := by
+    simp only [hG_def]
+    field_simp
+  calc
+    pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+        (scaledPrimalPath x_lasso) τ'
+        = F τ' := rfl
+    _ ≤ G τ' := hFτ'_le_Gτ'
+    _ ≤ G s := hG_mono
+    _ = _ := hGs_eq
+
 /--
 Helper lemma: integration of `positive_energy_differential_inequality`.
 This uses the FTC and the boundary condition `initial_positive_energy_zero` to conclude
 an upper bound on the energy $E^\varepsilon(s)$.
 
-Informal proof: Integrate `positive_energy_differential_inequality` from 0 to $s$.
-By FTC and `initial_positive_energy_zero`, the integral evaluates exactly to the energy
-at time $s$ scaled by $1 / (1 + s \lambda)$. The right-hand side is bounded by substituting
-the uniform bound on $\Delta^\varepsilon(\tau)$ from `positive_path_delta_bound`.
+Informal proof reference: `docs/Lasso.md`, Section 4.6.
 
-**Status (verified 2026-07-31): genuinely blocked on incomplete upstream infrastructure, not
-just unassembled.** `Bounds/Energy.lean` (1012 lines, `lake env lean` succeeds with 0 errors)
-contains the two named ingredients:
-* `initial_positive_energy_zero` (`Bounds/Energy.lean:968`) — fully proved, no sorry.
-* `positive_energy_differential_inequality` (`Bounds/Energy.lean:885`) — its *statement* matches
-  this lemma's integrand exactly, but its proof calls `energy_complementarity_bound`
-  (`Energy.lean:659`), which in turn calls `energy_deriv_bound_kink_case` (`Energy.lean:425`)
-  and `energy_deriv_bound_zero_case` (`Energy.lean:474`), each of which still has `sorry`s
-  (`Energy.lean:443,445,449,528,531`, all about non-differentiability of `w` / `φ • w` at kink
-  points and at `ε`-independent zero-locus points). So `positive_energy_differential_inequality`
-  is *not* actually usable yet, only its statement is trustworthy.
-* The Delta-bound half, `positive_path_delta_bound` (`Bounds/Delta.lean:3667`), *is* fully
-  proved, no sorry.
-
-Both `positive_energy_differential_inequality` and `positive_path_delta_bound` additionally
-require two hypotheses this lemma does not currently take: `h_lipschitz :
-LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)` and `h_local_affine :
-ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso` (both defined in `Bounds/Delta.lean`).
-These would need to be added to this lemma's signature (and threaded through from its callers,
-which currently only carry `h_regular`).
-
-**To complete this lemma**: (1) fill the 5 sorries in `Bounds/Energy.lean`'s two kink/zero-case
-helper lemmas; (2) add `h_lipschitz`/`h_local_affine` hypotheses here and thread them from
-`positive_path_energy_bound`; (3) `public import LeanMachineLearning.Optimization.Lasso.Bounds.
-Energy` into `Theorems.lean`; (4) perform the FTC/Gronwall-style integration of the differential
-inequality from `0` to `s`, using `initial_positive_energy_zero` as the boundary condition and
-`positive_path_delta_bound` to bound the `Δ^ε` term appearing on the differential inequality's
-right-hand side — this final integration step is not yet written anywhere in the codebase and
-is themselves nontrivial (comparison of a scalar ODE inequality against its bound, standard but
-not close to a one-line Mathlib lemma). See Section 4.6 ("Proof of Theorem 3.2") of
-<https://arxiv.org/abs/2509.18766> for the informal mathematical argument this formalizes.
+Strategy (Eq. (806)–(816) of `docs/Lasso.md`, formalized without assuming a specific relation
+between `C_E` and `C_D`): write `F(τ) = (1/(1+τλ))·Eᵋ(τ)`. `positive_energy_differential_inequality`
+gives `deriv F τ ≤ C_E·(√(2Δᵋ(τ)) + 1/L·(1 + z↑'(τ)) + z↓'(τ)) + δ_E` a.e. on `[0,s]`, with a
+constant `C_E` uniform in `s` (`Bounds/Energy.lean`'s `energy_complementarity_bound`, redesigned
+to hold a.e. rather than pointwise-everywhere — see that file's docstring for why the "kink"
+case is discarded for free). `pathDelta_uniform_bound` gives `Δᵋ(τ) ≤ D` uniformly on `[0,s]`,
+where `D = C_D·(1/L·(s+z↑(s)) + z↓(s)) + C_D·δ_D`. Bounding `√(2Δᵋ(τ)) ≤ √(2D)` and splitting
+`√(2D)` via `sqrt_add_le_add_sqrt` isolates a term `C_E·√(2C_D)·√(z↓(s))` (matching
+`suboptimalityGap`'s leading term) from an `ε`-vanishing remainder (→ 0 as `ε → 0` since
+`1/log(1/ε) → 0`) and a `δ_E, δ_D`-controllable remainder. Choosing `C := max(C_E·√(2C_D), C_E)`
+and `δ_E, δ_D` proportional to the target `δ`/4 absorbs the controllable remainder into `δ`;
+the `ε`-vanishing remainder is handled by the `∀ᶠ ε in 𝓝[>] 0` filter.
 -/
 lemma positive_energy_integrated_bound
     (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -617,12 +732,49 @@ lemma positive_energy_integrated_bound
     (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso) :
     ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       inner ℝ (w s) (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s) +
         pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
           (scaledPrimalPath x_lasso) s
       ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
+  -- Both remaining ingredients are now uniform-in-`s` and proved (0 sorries):
+  obtain ⟨C_E, hC_E_pos, h_E_bound⟩ := positive_energy_differential_inequality M Mdagger r lambda
+    β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_local_affine
+  obtain ⟨C_D, hC_D_pos, h_D_bound⟩ := pathDelta_uniform_bound M r lambda β u hdata hβ hu x_lasso
+    hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
+  -- REMAINING WORK (worked out in full, not yet transcribed into tactics):
+  -- Set C := max (C_E * Real.sqrt (2 * C_D)) C_E.
+  -- Fix s > 0, δ > 0. Set F σ := (1/(1+σλ)) * Eᵋ(σ) where
+  --   Eᵋ(σ) = ⟨w σ, zε σ - z σ⟩ + pathDelta M zε z σ  (the theorem's own LHS at σ).
+  -- From h_D_bound s hs δ_D (δ_D chosen below): Δᵋ(τ) ≤ D := C_D*(1/L*(s+z↑(s))+z↓(s)) + C_D*δ_D,
+  -- UNIFORMLY for τ ∈ [0,s] (this is exactly what pathDelta_uniform_bound buys over the
+  -- endpoint-only `positive_path_delta_bound`).
+  -- From h_E_bound s hs δ_E: deriv F τ ≤ C_E*(√(2Δᵋ(τ)) + 1/L*(1+z↑'(τ)) + z↓'(τ)) + δ_E a.e.
+  -- on [0,s]. Since Δᵋ(τ) ≤ D uniformly, √(2Δᵋ(τ)) ≤ √(2D); split √(2D) via
+  -- `sqrt_add_le_add_sqrt` (D is literally a sum of three nonneg pieces) into
+  --   √(2C_D/L*(s+z↑(s))) + √(2C_D)*√(z↓(s)) + √(2C_D*δ_D).
+  -- Let K := C_E*√(2C_D/L*(s+z↑(s))) + C_E*√(2C_D)*√(z↓(s)) + C_E*√(2C_D*δ_D) + C_E/L + δ_E
+  -- (all τ-independent) and G τ := K*τ + C_E/L*z↑(τ) + C_E*z↓(τ); then deriv G ≥ deriv F a.e.
+  -- Build `AbsolutelyContinuousOnInterval F 0 s` (φ · (⟨w, zε-z⟩ + Δᵋ): φ is C¹ hence AC;
+  -- ⟨w, zε-z⟩ is a finite sum of products of 1-Lipschitz coordinate projections composed with
+  -- the AC paths `w` (from `hdual.absolutely_continuous`), `zε` (C¹, as in `pathDelta_ac`), and
+  -- `z` (from `h_regular`), exactly mirroring `pathDelta_ac`'s own coordinate decomposition;
+  -- Δᵋ itself is `pathDelta_ac`) and of `G` (`G_ac`, reused verbatim). `F 0 = 0` is
+  -- `initial_positive_energy_zero` (note `1/(1+0*λ) = 1`); `G 0 = 0` is `z_upward_downward_zero`.
+  -- Apply `bound_of_deriv_bound` to get `F s ≤ G s`, i.e. (dividing back by `1/(1+sλ)`)
+  --   Eᵋ(s) ≤ (1+sλ)*[K*s + C_E/L*z↑(s) + C_E*z↓(s)].
+  -- Expanding K*s and comparing to the target `s²(C·suboptimalityGap(λ,s,z↓(s)) + δ)`:
+  -- the `C_E*√(2C_D)*√(z↓(s))*s` and `C_E*z↓(s)` terms match the target's leading terms exactly
+  -- (with room to spare) via `C := max(C_E√(2C_D), C_E)`; the remaining four terms split into
+  -- an `ε`-vanishing pair (both `→ 0` as `ε → 0` since `1/log(1/ε) → 0`, handled via the
+  -- `∀ᶠ ε in 𝓝[>] 0` filter exactly as in `positive_path_delta_bound`'s
+  -- `h_tendsto_log_inv`/`h_eventually_vanish` pattern) and a `δ_E, δ_D`-controllable pair,
+  -- absorbed into the target `δ` by choosing `δ_E := sδ/(4(1+sλ))` and
+  -- `δ_D := (sδ/(4(1+sλ)C_E))² / (2C_D)` (each contributes exactly `s²δ/4`), leaving `s²δ/2`
+  -- of budget for the `ε`-vanishing pair.
   sorry
 
 /--
@@ -655,7 +807,9 @@ theorem positive_path_energy_bound
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
     (h_regular :
-      LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+      LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso) :
     ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       positiveLassoObjective M r lambda s
         (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
@@ -669,10 +823,16 @@ theorem positive_path_energy_bound
   calculation concluding Theorem 3.2 in <https://arxiv.org/abs/2509.18766>;
   the absolute-continuity/FTC step is supported by Mathlib's interval-integral
   API <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/IntervalIntegral/AbsolutelyContinuousFun.html>.
+
+  `h_lipschitz`/`h_local_affine` are regularity hypotheses on the *selected* minimizer path
+  beyond mere absolute continuity, matching what `Bounds/Delta.lean`'s already-proved
+  `positive_path_delta_bound` independently requires for the same path; see
+  `docs/Lasso_formalization_report.md` for why this is a deliberate, documented departure from
+  `docs/Lasso.md`'s literal (AC-only) hypothesis for Theorem 3.2.
   -/
   obtain ⟨C, hC_pos, h_energy_bound⟩ :=
     positive_energy_integrated_bound M Mdagger r lambda β u hdata hβ hu
-      x_lasso hx_lasso w hdual hdual_selected h_regular
+      x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_local_affine
   use C, hC_pos
   intro s hs δ hδ
   have hs_inv_pos : 0 < s⁻¹ := inv_pos.mpr hs
@@ -805,6 +965,15 @@ general case.
 
 Informal proof reference: `docs/Lasso.md`, Section 4.6.  This theorem is now
 placed after the delta and energy estimates that prove it.
+
+**Hypotheses beyond `docs/Lasso.md`:** the paper's Theorem 3.2 states only that
+`μ ↦ x(μ)` is absolutely continuous on compact subsets of `(0, ∞)` (`h_regular` here). The two
+additional hypotheses `h_lipschitz`/`h_local_affine` on the *selected* scaled path are a
+deliberate, documented departure needed to make the differentiate-then-integrate argument of
+Section 4.6 rigorous (the paper's own proof writes `d z_i(s)/ds` freely without addressing
+differentiability); they match what this codebase's Delta-bound half
+(`Bounds/Delta.lean`'s `positive_path_delta_bound`) already independently required. See
+`docs/Lasso_formalization_report.md` for the full discussion.
 -/
 theorem pos_lasso_connection_approx
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -814,7 +983,9 @@ theorem pos_lasso_connection_approx
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
+    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso)
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso) :
     ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       positiveLassoObjective M r lambda s
         (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
@@ -828,6 +999,7 @@ theorem pos_lasso_connection_approx
       M r lambda x_lasso hdata hx_lasso h_regular
   exact positive_path_energy_bound
     M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_reg_nonneg
+    h_lipschitz h_local_affine
 
 /--
 Lemma 4.12 from `docs/Lasso.md`: under the monotonicity hypothesis of Theorem
@@ -1970,7 +2142,11 @@ theorem lasso_connection_approx
     (hw : ∀ ε > 0, dlnGradientFlow M r lambda ε β γ (w ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsLassoMinimizer M r lambda μ (x_lasso μ))
-    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
+    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso)
+    (h_lipschitz : LocallyLipschitzOnCompacts
+      (scaledPrimalPath (fun μ => signedCanonicalSplit (x_lasso μ))))
+    (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable
+      (fun μ => signedCanonicalSplit (x_lasso μ))) :
     ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       lassoObjective M r lambda s (averageTrajectory (w ε) (timeFromRescaled ε s))
       ≤ lassoMin M r lambda s +
@@ -1999,6 +2175,7 @@ theorem lasso_connection_approx
   obtain ⟨C, hC_pos, h_pos_bound⟩ :=
     pos_lasso_connection_approx (augmentedMatrix M) (augmentedVector r) lambda
       (signedToPositiveInitialization β γ) u_pos hdata_aug hβ_aug hu_aug y hy_pos h_regular_aug
+      h_lipschitz h_local_affine
   refine ⟨C, hC_pos, fun s hs δ hδ => ?_⟩
   have h_reg_scaled_y : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath y) :=
     scaledPrimalPath_regular_of_path_regular (augmentedMatrix M) (augmentedVector r) lambda y
