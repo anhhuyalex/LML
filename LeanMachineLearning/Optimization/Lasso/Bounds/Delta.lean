@@ -1487,7 +1487,117 @@ private lemma deriv_pos_z_identities_of_monotone
     deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
     deriv (positiveZDownward x_lasso) τ =
       ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
-  sorry
+  have hτ_nonneg : 0 ≤ τ := le_of_lt hτ
+  -- Chain rule: derivative of each coordinate of the scaled primal path.
+  -- Use the continuous linear equivalence `e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ)`
+  -- (which strips the `PiLp` wrapper) and `hasDerivAt_pi` to extract coordinates.
+  let e : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
+    (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
+  have h_coord_hasDerivAt (i : ι) : HasDerivAt (fun t => (scaledPrimalPath x_lasso t) i)
+      ((deriv (scaledPrimalPath x_lasso) τ) i) τ := by
+    have h_hasDeriv : HasDerivAt (fun u' => e (scaledPrimalPath x_lasso u'))
+        (e (deriv (scaledPrimalPath x_lasso) τ)) τ :=
+      e.hasFDerivAt.comp_hasDerivAt τ h_path_diff.hasDerivAt
+    have h_pi := (hasDerivAt_pi.1 h_hasDeriv) i
+    simpa [e] using h_pi
+  have h_deriv_coord_eq (i : ι) : deriv (fun t => (scaledPrimalPath x_lasso t) i) τ =
+      (deriv (scaledPrimalPath x_lasso) τ) i :=
+    (h_coord_hasDerivAt i).deriv
+  -- Relate the coordinate function `t * (x_lasso t).ofLp i` to `scaledPrimalPath t` at i
+  have h_fn_eq (i : ι) : (fun t => t * (x_lasso t).ofLp i) =
+      (fun t => (scaledPrimalPath x_lasso t) i) := by
+    ext t; simp [scaledPrimalPath, smul_eq_mul]
+  -- Nonnegativity of coordinate derivatives from coordinatewise monotonicity
+  -- (Inlined from `deriv_scaledPrimalPath_coord_nonneg_of_monotone` which is defined later.)
+  have h_nonneg (i : ι) : 0 ≤ (deriv (scaledPrimalPath x_lasso) τ) i := by
+    have h_diff : DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) τ := by
+      rw [h_fn_eq i]
+      exact (h_coord_hasDerivAt i).differentiableAt
+    set g : ℝ → ℝ := fun t => t * (x_lasso t).ofLp i with hg_def
+    set g_ext : ℝ → ℝ := fun t => if 0 ≤ t then g t else g 0 with hg_ext_def
+    have h_mono_i : ∀ μ ν, 0 ≤ μ → μ ≤ ν → (μ * (x_lasso μ).ofLp i) ≤ (ν * (x_lasso ν).ofLp i) :=
+      fun a b ha hab => h_mono a b ha hab i
+    have hg_ext_mono : Monotone g_ext := by
+      intro a b hab
+      by_cases ha : 0 ≤ a
+      · have hb : 0 ≤ b := ha.trans hab
+        simp only [hg_ext_def, if_pos ha, if_pos hb]
+        exact h_mono_i a b ha hab
+      · by_cases hb : 0 ≤ b
+        · simp only [hg_ext_def, if_neg ha, if_pos hb]
+          exact h_mono_i 0 b le_rfl hb
+        · simp only [hg_ext_def, if_neg ha, if_neg hb]
+          exact le_refl _
+    have heq : g_ext =ᶠ[𝓝 τ] g := by
+      filter_upwards [eventually_gt_nhds hτ] with t ht
+      simp only [hg_ext_def, if_pos ht.le]
+    have hg_deriv : HasDerivAt g (deriv g τ) τ := h_diff.hasDerivAt
+    have hderiv : HasDerivAt g_ext (deriv g τ) τ := hg_deriv.congr_of_eventuallyEq heq
+    have h_nonneg_g : 0 ≤ deriv g τ := hderiv.nonneg_of_monotone hg_ext_mono
+    -- Rewrite `deriv g τ` to `(deriv (scaledPrimalPath x_lasso) τ) i`
+    -- `g` is defined as `fun t => t * (x_lasso t).ofLp i`, so unfold it for rewriting
+    unfold g at h_nonneg_g
+    rw [h_fn_eq i] at h_nonneg_g
+    rw [h_deriv_coord_eq i] at h_nonneg_g
+    exact h_nonneg_g
+  -- Closed forms on a neighborhood of τ (using that τ > 0, so (0,∞) is an open nhd of τ)
+  -- These follow from `positiveZDownward_eq_zero_of_monotone` and
+  -- `positiveZUpward_eq_sum_of_monotone` which are defined later in the file;
+  -- we state the needed facts as `have` with `sorry` for the sketch.
+  have h_open_nhds : Set.Ioi (0 : ℝ) ∈ 𝓝 τ := isOpen_Ioi.mem_nhds hτ
+  have h_down_closed_on_nhds : positiveZDownward x_lasso =ᶠ[𝓝 τ] fun _ => (0 : ℝ) := by
+    filter_upwards [h_open_nhds] with μ hμ
+    have hμ_nonneg : 0 ≤ μ := Set.mem_Ioi.mp hμ |>.le
+    -- `positiveZDownward_eq_zero_of_monotone` gives this for all μ ≥ 0
+    sorry
+  have h_up_closed_on_nhds : positiveZUpward x_lasso =ᶠ[𝓝 τ]
+      fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i := by
+    filter_upwards [h_open_nhds] with μ hμ
+    have hμ_nonneg : 0 ≤ μ := Set.mem_Ioi.mp hμ |>.le
+    -- `positiveZUpward_eq_sum_of_monotone` gives this for all μ ≥ 0
+    sorry
+  -- Differentiate the closed forms
+  have h_deriv_down : deriv (positiveZDownward x_lasso) τ = 0 := by
+    calc
+      deriv (positiveZDownward x_lasso) τ = deriv (fun _ => (0 : ℝ)) τ :=
+        h_down_closed_on_nhds.deriv_eq
+      _ = 0 := deriv_const τ (0 : ℝ)
+  -- Derivative of the upward closed form using `deriv_sum`
+  have h_deriv_sum : deriv (fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i) τ =
+      ∑ i, (deriv (scaledPrimalPath x_lasso) τ) i := by
+    have h_diff_sum : ∀ i ∈ (Finset.univ : Finset ι),
+        DifferentiableAt ℝ (fun μ => (scaledPrimalPath x_lasso μ) i) τ := by
+      intro i hi
+      exact (h_coord_hasDerivAt i).differentiableAt
+    -- deriv_sum : deriv (∑ i ∈ u, A i) x = ∑ i ∈ u, deriv (A i) x
+    -- where A i are functions.  Finset.sum_fn relates sum-of-functions to lambda form.
+    simpa [Finset.sum_fn, h_deriv_coord_eq] using deriv_sum h_diff_sum
+  have h_deriv_up : deriv (positiveZUpward x_lasso) τ =
+      ∑ i, deriv (fun μ => (scaledPrimalPath x_lasso μ) i) τ := by
+    calc
+      deriv (positiveZUpward x_lasso) τ =
+          deriv (fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i) τ :=
+        h_up_closed_on_nhds.deriv_eq
+      _ = ∑ i, (deriv (scaledPrimalPath x_lasso) τ) i := h_deriv_sum
+      _ = ∑ i, deriv (fun μ => (scaledPrimalPath x_lasso μ) i) τ := by
+        refine Finset.sum_congr rfl (fun i hi => ?_)
+        rw [h_deriv_coord_eq i]
+  -- Combine with nonnegativity to match the max expressions in the goal
+  have h_max_up (i : ι) : max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) =
+      (deriv (scaledPrimalPath x_lasso) τ) i :=
+    max_eq_right (h_nonneg i)
+  have h_max_down (i : ι) : max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) = (0 : ℝ) :=
+    max_eq_left (neg_nonpos.mpr (h_nonneg i))
+  have h_up_final : deriv (positiveZUpward x_lasso) τ =
+      ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) := by
+    rw [h_deriv_up]
+    refine Finset.sum_congr rfl (fun i hi => ?_)
+    rw [h_deriv_coord_eq i, h_max_up i]
+  have h_down_final : deriv (positiveZDownward x_lasso) τ =
+      ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)) := by
+    rw [h_deriv_down]
+    simp [h_max_down]
+  exact And.intro h_up_final h_down_final
 
 /--
 Nonnegativity of the derivatives of `positiveZUpward` and `positiveZDownward`.

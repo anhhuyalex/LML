@@ -647,7 +647,8 @@ private lemma inner_diff_absolutelyContinuous
       (fun (τ : ℝ) => inner ℝ (w τ) (posIntegratedTrajectoryRescaled ε u τ - z τ)) 0 s := by
   have hdiff_ac : AbsolutelyContinuousOnInterval
       (fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε u τ - z τ) 0 s :=
-    ((posIntegratedTrajectoryRescaled_contDiff_one ε u h_cont_u h_log_ne).contDiffOn.absolutelyContinuousOnInterval).sub
+    ((posIntegratedTrajectoryRescaled_contDiff_one ε u h_cont_u
+      h_log_ne).contDiffOn.absolutelyContinuousOnInterval).sub
       (hz_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)
   have h_coord_ac : ∀ (i : ι), AbsolutelyContinuousOnInterval
       (fun (τ : ℝ) => (w τ : EuclideanSpace ℝ ι) i *
@@ -655,7 +656,8 @@ private lemma inner_diff_absolutelyContinuous
     intro i
     have h_lip : LipschitzWith 1 (fun (x : EuclideanSpace ℝ ι) => (x i : ℝ)) :=
       coordinateProjection_lipschitzWith i
-    exact (h_lip.comp_absolutelyContinuousOnInterval (hw_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)).mul
+    exact (h_lip.comp_absolutelyContinuousOnInterval
+      (hw_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)).mul
       (h_lip.comp_absolutelyContinuousOnInterval hdiff_ac)
   convert absolutelyContinuousOnInterval_sum Finset.univ _ 0 s (fun i _ => h_coord_ac i) with τ
   simp [PiLp.inner_apply, PiLp.sub_apply, RCLike.inner_apply, mul_comm]
@@ -821,7 +823,8 @@ private lemma pathDelta_uniform_bound_of_monotone
 
 -- The function τ ↦ 1/(1+τ*λ) is absolutely continuous on [0,s] when λ ≥ 0, s ≥ 0.
 -- This uses Lipschitz continuity: denominator ≥ 1 implies the function is λ-Lipschitz.
-private lemma one_div_one_plus_tau_mul_lambda_ac (lambda s : ℝ) (hlambda_nonneg : 0 ≤ lambda) (hs_nonneg : 0 ≤ s) :
+private lemma one_div_one_plus_tau_mul_lambda_ac (lambda s : ℝ)
+    (hlambda_nonneg : 0 ≤ lambda) (hs_nonneg : 0 ≤ s) :
     AbsolutelyContinuousOnInterval (fun (τ : ℝ) => 1 / (1 + τ * lambda)) 0 s := by
   set lam_nn : NNReal := ⟨lambda, hlambda_nonneg⟩ with h_lam_nn_def
   have h_lip :
@@ -930,10 +933,10 @@ private lemma positive_energy_deriv_bound_algebraic
     (hL_pos : 0 < L)
     (hC_E_pos : 0 < C_E)
     (hC_D_nonneg : 0 ≤ C_D)
-    (hz_up'_nn : 0 ≤ z_up')
-    (hz_down'_nn : 0 ≤ z_down')
-    (hz_up_s_nn : 0 ≤ z_up_s)
-    (hz_down_s_nn : 0 ≤ z_down_s)
+    (_hz_up'_nn : 0 ≤ z_up')
+    (_hz_down'_nn : 0 ≤ z_down')
+    (_hz_up_s_nn : 0 ≤ z_up_s)
+    (_hz_down_s_nn : 0 ≤ z_down_s)
     (hK_bound : C_E * Real.sqrt (2 * C_D / L * (s + z_up_s)) +
       C_E * Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
       C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E ≤ K)
@@ -942,8 +945,10 @@ private lemma positive_energy_deriv_bound_algebraic
       K + (C_E / L) * z_up' + C_E * z_down' := by
   -- After expanding both sides, the terms (C_E/L)*z_up' + C_E*z_down' cancel,
   -- reducing the goal to: C_E * √(2·pathDelta) + C_E/L + δ_E ≤ K.
-  -- From `hK_bound` we have K ≥ C_E * (√(2·C_D/L·(s+z_up_s)) + √(2·C_D)·√(z_down_s) + √(2·C_D·δ_D)) + C_E/L + δ_E.
-  -- So it suffices to prove: √(2·pathDelta) ≤ √(2·C_D/L·(s+z_up_s)) + √(2·C_D)·√(z_down_s) + √(2·C_D·δ_D).
+  -- From `hK_bound` we have K ≥ C_E * (√(2·C_D/L·(s+z_up_s)) + √(2·C_D)·√(z_down_s)
+  --   + √(2·C_D·δ_D)) + C_E/L + δ_E.
+  -- So it suffices to prove: √(2·pathDelta) ≤ √(2·C_D/L·(s+z_up_s))
+  --   + √(2·C_D)·√(z_down_s) + √(2·C_D·δ_D).
   have h_key : Real.sqrt (2 * pathDelta) ≤
       Real.sqrt (2 * C_D / L * (s + z_up_s)) +
       Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
@@ -966,7 +971,8 @@ private lemma positive_energy_deriv_bound_algebraic
       have h_nonneg_lhs : 0 ≤ Real.sqrt (A + B + C) := Real.sqrt_nonneg _
       have h_nonneg_rhs : 0 ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C := by positivity
       -- Square both sides: a ≤ b (for a,b ≥ 0) is equivalent to a² ≤ b²
-      have h_sq_le : (Real.sqrt (A + B + C)) ^ 2 ≤ (Real.sqrt A + Real.sqrt B + Real.sqrt C) ^ 2 := by
+      have h_sq_le : (Real.sqrt (A + B + C)) ^ 2 ≤
+          (Real.sqrt A + Real.sqrt B + Real.sqrt C) ^ 2 := by
         -- Key identity: (√x)² = max 0 x for all real x
         have h_sq_sqrt_eq_max (x : ℝ) : (Real.sqrt x) ^ 2 = max 0 x := by
           by_cases hx : 0 ≤ x
@@ -1116,7 +1122,7 @@ private lemma positive_energy_deriv_bound
   set E' := deriv E τ
   set z_up' := deriv (positiveZUpward x_lasso) τ
   set z_down' := deriv (positiveZDownward x_lasso) τ
-  
+
   -- 1. φ is differentiable at τ
   have h_denom_pos : 0 < 1 + τ * lambda := by nlinarith
   have h_denom_ne_zero : 1 + τ * lambda ≠ 0 := by nlinarith
@@ -1130,21 +1136,23 @@ private lemma positive_energy_deriv_bound
       have h_add : HasDerivAt (fun τ' : ℝ => 1 + τ' * lambda) (0 + 1 * lambda) τ :=
         (hasDerivAt_const τ (1 : ℝ)).add (h_id.mul_const lambda)
       simpa [add_zero] using h_add
-    have h_inv : HasDerivAt (fun τ' => (1 + τ' * lambda)⁻¹) (-lambda / ((1 + τ * lambda) ^ 2)) τ := by
+    have h_inv : HasDerivAt (fun τ' => (1 + τ' * lambda)⁻¹)
+        (-lambda / ((1 + τ * lambda) ^ 2)) τ := by
       exact h_denom_hasDeriv.inv h_denom_ne_zero
     change HasDerivAt (fun τ' => 1 / (1 + τ' * lambda)) (-lambda / ((1 + τ * lambda) ^ 2)) τ
     simpa [one_div] using h_inv
   have hφ'_formula : deriv φ τ = -lambda / ((1 + τ * lambda) ^ 2) := hφ_hasDeriv.deriv
-  
+
   -- 2. product rule: deriv F = φ'·E + φ·E'
   have h_deriv_F : deriv F τ = deriv φ τ * E τ + φ τ * E' := by
     change deriv (fun τ => φ τ * E τ) τ = deriv φ τ * E τ + φ τ * E'
     exact deriv_mul hφ_diff (hE_diff hτ_mem)
-  
+
   -- 3. deriv G = K + (C_E/L)·z_up' + C_E·z_down'
   have h_deriv_G : deriv G τ = K + (C_E / L) * z_up' + C_E * z_down' := by
     have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso) z_up' τ := hτ_up_diff.hasDerivAt
-    have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso) z_down' τ := hτ_down_diff.hasDerivAt
+    have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso) z_down' τ :=
+      hτ_down_diff.hasDerivAt
     have hG_hasDeriv : HasDerivAt G (K + (C_E / L) * z_up' + C_E * z_down') τ := by
       have h1 : HasDerivAt (fun t => K * t) K τ := by
         simpa using (hasDerivAt_id τ).const_mul K
@@ -1155,7 +1163,7 @@ private lemma positive_energy_deriv_bound
       exact (h1.add h2).add h3
     exact hG_hasDeriv.deriv
   rw [h_deriv_F, h_deriv_G]
-  
+
   -- 4. nonnegativity and upper bounds
   have hφ'_nonpos : deriv φ τ ≤ 0 := by
     rw [hφ'_formula]
@@ -1163,10 +1171,10 @@ private lemma positive_energy_deriv_bound
     exact div_nonpos_of_nonpos_of_nonneg h_num_nonpos (by positivity)
   have hφ_nonneg : 0 ≤ φ τ := div_nonneg (by norm_num) (by nlinarith)
   have hφ_le_one : φ τ ≤ 1 := (div_le_one (by nlinarith)).mpr (by nlinarith)
-  
+
   have h_term1 : deriv φ τ * E τ ≤ 0 :=
     mul_nonpos_of_nonpos_of_nonneg hφ'_nonpos (hE_nonneg τ ⟨hτ0, hτs⟩)
-  
+
   have h_z_up_s_nn : 0 ≤ positiveZUpward x_lasso s := by
     unfold positiveZUpward
     refine Finset.sum_nonneg (fun i _ => ?_)
@@ -1178,12 +1186,12 @@ private lemma positive_energy_deriv_bound
     refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
     have hu_nonneg : 0 ≤ u := hu.1
     exact mul_nonneg (by nlinarith) (le_max_left 0 _)
-  
+
   have h_alg := positive_energy_deriv_bound_algebraic s C_E C_D L K δ_E δ_D
     z_up' z_down' (pathDelta M zε z τ) (positiveZUpward x_lasso s) (positiveZDownward x_lasso s)
     hL_pos hC_E_pos hC_D_nonneg (h_z_up_nn hτ_mem) (h_z_down_nn hτ_mem)
     h_z_up_s_nn h_z_down_s_nn hK_bound (h_D τ hτ_mem)
-    
+
   have hφE'_bound : φ τ * E' ≤ C_E * (Real.sqrt (2 * pathDelta M zε z τ) +
       1 / L * (1 + z_up') + z_down') + δ_E := by
     have hE_bound_τ := hE_bound hτ_mem
@@ -1732,8 +1740,9 @@ theorem monotone_positive_path_regular
     (hdata : ProblemData M r lambda)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
-    LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) :=
-  (monotone_positive_path_lipschitz M r lambda x_lasso hdata hx_lasso h_monotone).absolutelyContinuous
+    LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) := by
+  have h_lip := monotone_positive_path_lipschitz M r lambda x_lasso hdata hx_lasso h_monotone
+  exact h_lip.absolutelyContinuous
 
 /--
 Theorem 3.1: under monotonicity, the positive average trajectory exactly
