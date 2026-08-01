@@ -3127,7 +3127,7 @@ private lemma deriv_scaledPrimalPath_coord_nonneg_of_monotone
 /-- `positiveZDownward` vanishes identically on `[0, ∞)` when `z = scaledPrimalPath x_lasso`
 is coordinatewise monotone nondecreasing there: the integrand `(1+u)·max 0 (-z_i'(u))`
 vanishes a.e., since Lebesgue's monotone differentiation theorem gives `z_i' ≥ 0` a.e. -/
-private lemma positiveZDownward_eq_zero_of_monotone
+lemma positiveZDownward_eq_zero_of_monotone
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) (hμ : 0 ≤ μ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
@@ -3161,7 +3161,7 @@ private lemma positiveZDownward_eq_zero_of_monotone
 coordinatewise monotone nondecreasing there: the integrand `max 0 (z_i'(u))` equals `z_i'(u)`
 a.e. (Lebesgue's monotone differentiation theorem), and FTC for the locally Lipschitz (hence
 absolutely continuous) `z_i` gives `∫₀^μ z_i' = z_i(μ) - z_i(0) = z_i(μ)`. -/
-private lemma positiveZUpward_eq_sum_of_monotone
+lemma positiveZUpward_eq_sum_of_monotone
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) (hμ : 0 ≤ μ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :

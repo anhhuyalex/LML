@@ -940,7 +940,86 @@ private lemma positive_energy_deriv_bound_algebraic
     (h_D_tau : pathDelta ≤ C_D * (1 / L * (s + z_up_s) + z_down_s) + C_D * δ_D) :
     C_E * (Real.sqrt (2 * pathDelta) + 1 / L * (1 + z_up') + z_down') + δ_E ≤
       K + (C_E / L) * z_up' + C_E * z_down' := by
-  sorry
+  -- After expanding both sides, the terms (C_E/L)*z_up' + C_E*z_down' cancel,
+  -- reducing the goal to: C_E * √(2·pathDelta) + C_E/L + δ_E ≤ K.
+  -- From `hK_bound` we have K ≥ C_E * (√(2·C_D/L·(s+z_up_s)) + √(2·C_D)·√(z_down_s) + √(2·C_D·δ_D)) + C_E/L + δ_E.
+  -- So it suffices to prove: √(2·pathDelta) ≤ √(2·C_D/L·(s+z_up_s)) + √(2·C_D)·√(z_down_s) + √(2·C_D·δ_D).
+  have h_key : Real.sqrt (2 * pathDelta) ≤
+      Real.sqrt (2 * C_D / L * (s + z_up_s)) +
+      Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
+      Real.sqrt (2 * C_D * δ_D) := by
+    -- From h_D_tau, multiply by 2 and apply sqrt monotonicity
+    have h_mul : 2 * pathDelta ≤ 2 * C_D * (1 / L * (s + z_up_s) + z_down_s) + 2 * C_D * δ_D := by
+      nlinarith
+    have h_rhs_simp : 2 * C_D * (1 / L * (s + z_up_s) + z_down_s) + 2 * C_D * δ_D =
+        2 * C_D / L * (s + z_up_s) + 2 * C_D * z_down_s + 2 * C_D * δ_D := by
+      ring
+    rw [h_rhs_simp] at h_mul
+    have h_sqrt_mul : Real.sqrt (2 * pathDelta) ≤
+        Real.sqrt (2 * C_D / L * (s + z_up_s) + 2 * C_D * z_down_s + 2 * C_D * δ_D) :=
+      Real.sqrt_le_sqrt h_mul
+    -- Now we need the inequality √(A+B+C) ≤ √A + √B + √C
+    set A := 2 * C_D / L * (s + z_up_s) with hA
+    set B := 2 * C_D * z_down_s with hB
+    set C := 2 * C_D * δ_D with hC
+    have h_sqrt_add : Real.sqrt (A + B + C) ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C := by
+      have h_nonneg_lhs : 0 ≤ Real.sqrt (A + B + C) := Real.sqrt_nonneg _
+      have h_nonneg_rhs : 0 ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C := by positivity
+      -- Square both sides: a ≤ b (for a,b ≥ 0) is equivalent to a² ≤ b²
+      have h_sq_le : (Real.sqrt (A + B + C)) ^ 2 ≤ (Real.sqrt A + Real.sqrt B + Real.sqrt C) ^ 2 := by
+        -- Key identity: (√x)² = max 0 x for all real x
+        have h_sq_sqrt_eq_max (x : ℝ) : (Real.sqrt x) ^ 2 = max 0 x := by
+          by_cases hx : 0 ≤ x
+          · rw [Real.sq_sqrt hx, max_eq_right hx]
+          · rw [max_eq_left (by linarith)]
+            have hsqrt0 : Real.sqrt x = 0 := Real.sqrt_eq_zero_of_nonpos (by linarith)
+            simp [hsqrt0]
+        -- Expand (√A + √B + √C)²
+        have h_expand : (Real.sqrt A + Real.sqrt B + Real.sqrt C) ^ 2 =
+            (Real.sqrt A) ^ 2 + (Real.sqrt B) ^ 2 + (Real.sqrt C) ^ 2 +
+            2 * Real.sqrt A * Real.sqrt B + 2 * Real.sqrt A * Real.sqrt C +
+            2 * Real.sqrt B * Real.sqrt C := by
+          ring
+        rw [h_expand, h_sq_sqrt_eq_max (A + B + C), h_sq_sqrt_eq_max A,
+          h_sq_sqrt_eq_max B, h_sq_sqrt_eq_max C]
+        -- Goal: max 0 (A+B+C) ≤ max 0 A + max 0 B + max 0 C + (nonnegative cross terms)
+        have h_max : max 0 (A + B + C) ≤ max 0 A + max 0 B + max 0 C := by
+          by_cases hsum : 0 ≤ A + B + C
+          · rw [max_eq_right hsum]
+            have hA' : A ≤ max 0 A := by
+              by_cases hApos : 0 ≤ A
+              · rw [max_eq_right hApos]
+              · rw [max_eq_left (by linarith)]; linarith
+            have hB' : B ≤ max 0 B := by
+              by_cases hBpos : 0 ≤ B
+              · rw [max_eq_right hBpos]
+              · rw [max_eq_left (by linarith)]; linarith
+            have hC' : C ≤ max 0 C := by
+              by_cases hCpos : 0 ≤ C
+              · rw [max_eq_right hCpos]
+              · rw [max_eq_left (by linarith)]; linarith
+            linarith
+          · rw [max_eq_left (by linarith)]
+            have h_nonneg_max : 0 ≤ max 0 A + max 0 B + max 0 C := by positivity
+            exact h_nonneg_max
+        have h_cross_nonneg : 0 ≤ 2 * Real.sqrt A * Real.sqrt B +
+            2 * Real.sqrt A * Real.sqrt C + 2 * Real.sqrt B * Real.sqrt C := by
+          positivity
+        nlinarith
+      -- From a² ≤ b² and a,b ≥ 0, deduce a ≤ b
+      exact (sq_le_sq₀ h_nonneg_lhs h_nonneg_rhs).mp h_sq_le
+    -- Rewrite √B as √(2·C_D)·√(z_down_s) using √(ab) = √a·√b (since 2·C_D ≥ 0)
+    have h_sqrt_B : Real.sqrt B = Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) := by
+      rw [hB]
+      have h_nonneg_2CD : 0 ≤ 2 * C_D := by nlinarith
+      rw [Real.sqrt_mul h_nonneg_2CD (z_down_s)]
+    rw [h_sqrt_B] at h_sqrt_add
+    -- Now combine: √(2·pathDelta) ≤ √(A+B+C) ≤ √A + √(2·C_D)·√(z_down_s) + √C
+    exact le_trans h_sqrt_mul h_sqrt_add
+  -- Use h_key and hK_bound to close the goal
+  have h_main : C_E * Real.sqrt (2 * pathDelta) + C_E / L + δ_E ≤ K := by
+    linarith
+  nlinarith
 
 /--
 Helper lemma: bound on the derivative of F(τ) by G(τ).
@@ -1694,7 +1773,54 @@ theorem pos_lasso_connection_monotone
   specialized to `positiveZDownward x_lasso s = 0` — which, unlike the general case, is not an
   extra fact to prove: it is *exactly* `positiveZDownward_eq_zero_of_monotone`, already proved.
   -/
-  sorry
+  have h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i,
+      (scaledPrimalPath x_lasso ν) i ≤ (scaledPrimalPath x_lasso ν') i :=
+    scaledPrimalPath_mono_of_monotoneOn M r lambda x_lasso hx_lasso h_monotone
+  have h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso) :=
+    monotone_positive_path_lipschitz M r lambda x_lasso hdata hx_lasso h_monotone
+  have h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) :=
+    h_lipschitz.absolutelyContinuous
+  obtain ⟨Mdagger, w, hdual, hdual_selected⟩ :=
+    exists_dual_certificate_for_positive_path M r lambda x_lasso hdata hx_lasso
+  obtain ⟨C, hC_pos, h_bound⟩ :=
+    positive_path_energy_bound_of_monotone M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso
+      w hdual hdual_selected h_regular h_lipschitz h_mono
+  -- Under monotonicity, `positiveZDownward` vanishes identically, so the error term in
+  -- `positive_path_energy_bound_of_monotone`'s bound is exactly `δ` (no extra `C * gap` slack).
+  have hzdown0 : positiveZDownward x_lasso s = 0 :=
+    positiveZDownward_eq_zero_of_monotone x_lasso s hs.le h_regular h_mono
+  have hgap0 : suboptimalityGap lambda s (positiveZDownward x_lasso s) = 0 := by
+    rw [hzdown0]; simp [suboptimalityGap]
+  have h_min_eq : posLassoMin M r lambda s = positiveLassoObjective M r lambda s (x_lasso s) :=
+    posLassoMin_eq_of_isPositiveLassoMinimizer M r lambda s (x_lasso s) (hx_lasso s hs)
+  rw [Metric.tendsto_nhds]
+  intro ε' hε'
+  have hδ : 0 < ε' / 2 := by linarith
+  filter_upwards [h_bound s hs (ε' / 2) hδ,
+      show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+        rw [mem_nhdsGT_iff_exists_Ioo_subset]
+        exact ⟨1, Set.mem_Ioi.mpr one_pos, fun _ hx => hx⟩] with ε hub hε_mem
+  obtain ⟨hε_pos, hε_lt_one⟩ := hε_mem
+  rw [hgap0, mul_zero, add_zero] at hub
+  -- Lower bound: `posAverageTrajectory (u ε) (posTimeFromRescaled ε s)` is feasible
+  -- (coordinatewise nonnegative), so `x_lasso s`'s minimality gives `posLassoMin ≤` its objective.
+  have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  have ht_pos : 0 < posTimeFromRescaled ε s := by
+    dsimp [posTimeFromRescaled]
+    exact mul_pos (div_pos hs (by norm_num)) hlog_pos
+  have hy_nonneg : Nonnegative (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)) := by
+    intro j
+    dsimp [posAverageTrajectory, euclideanOf]
+    refine mul_nonneg (div_nonneg zero_le_one ht_pos.le) ?_
+    exact intervalIntegral.integral_nonneg ht_pos.le
+      (fun v _ => posEffectiveParameter_nonnegative (u ε) v j)
+  have hlb : posLassoMin M r lambda s ≤
+      positiveLassoObjective M r lambda s
+        (posAverageTrajectory (u ε) (posTimeFromRescaled ε s)) := by
+    rw [h_min_eq]
+    exact isMinOn_iff.mp (hx_lasso s hs).2 _ hy_nonneg
+  rw [Real.dist_eq, abs_of_nonneg (by linarith [hlb])]
+  linarith [hub]
 
 /-! ## Section 5: signed-to-positive reductions -/
 
