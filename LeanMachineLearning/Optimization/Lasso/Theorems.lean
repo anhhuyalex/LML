@@ -801,7 +801,7 @@ Informal proof: Derived from the inner product differential continuity and path 
 private lemma positive_energy_F_ac
     {ι : Type*} [Fintype ι] {M : Matrix ι ι ℝ} {r : EuclideanSpace ℝ ι} {lambda : ℝ}
     {s ε : ℝ} (u_eps : ℝ → EuclideanSpace ℝ ι) (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (w : ℝ → EuclideanSpace ℝ ι) (hdata : ProblemData M r lambda) (hε_pos : 0 < ε) (hs : 0 < s)
+    (w : ℝ → EuclideanSpace ℝ ι) (hdata : ProblemData M r lambda) (_hε_pos : 0 < ε) (hs : 0 < s)
     (hlog_ne : Real.log (1 / ε) ≠ 0)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (hdual_ac : LocallyAbsolutelyContinuousOnNonnegativeCompacts w)
@@ -811,7 +811,68 @@ private lemma positive_energy_F_ac
         (inner ℝ (w τ) (posIntegratedTrajectoryRescaled ε u_eps τ - scaledPrimalPath x_lasso τ) +
         pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) (scaledPrimalPath x_lasso) τ))
       0 s := by
-  sorry
+  have hlambda_nonneg : 0 ≤ lambda := hdata.lambda_nonneg
+  have hs_nonneg : 0 ≤ s := le_of_lt hs
+  have h_cont_u : Continuous u_eps := hu_cont_diff.continuous
+  -- The inner product term ⟨w(τ), zε(τ) - z(τ)⟩ is absolutely continuous on [0,s]
+  have h_inner_ac : AbsolutelyContinuousOnInterval
+      (fun (τ : ℝ) => inner ℝ (w τ) (posIntegratedTrajectoryRescaled ε u_eps τ - scaledPrimalPath x_lasso τ))
+      0 s :=
+    inner_diff_absolutelyContinuous ε u_eps (scaledPrimalPath x_lasso) w s hs_nonneg
+      h_cont_u hlog_ne h_regular hdual_ac
+  -- The path-delta term Δε(τ) = ½‖zε(τ) - z(τ)‖_M² is absolutely continuous on [0,s]
+  have h_delta_ac : AbsolutelyContinuousOnInterval
+      (fun τ => pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) (scaledPrimalPath x_lasso) τ)
+      0 s :=
+    pathDelta_ac M ε u_eps x_lasso s hs_nonneg h_cont_u hlog_ne h_regular
+  -- Sum of the two AC functions is AC
+  have h_sum_ac : AbsolutelyContinuousOnInterval
+      (fun (τ : ℝ) => inner ℝ (w τ) (posIntegratedTrajectoryRescaled ε u_eps τ - scaledPrimalPath x_lasso τ) +
+        pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ) (scaledPrimalPath x_lasso) τ)
+      0 s :=
+    h_inner_ac.add h_delta_ac
+  -- The factor 1/(1+τλ) is Lipschitz on [0,s] (since λ≥0 ensures denominator ≥1>0),
+  -- hence absolutely continuous.
+  have h_factor_ac : AbsolutelyContinuousOnInterval (fun (τ : ℝ) => 1 / (1 + τ * lambda)) 0 s := by
+    set lam_nn : NNReal := ⟨lambda, hlambda_nonneg⟩ with h_lam_nn_def
+    have h_lip : LipschitzOnWith lam_nn (fun (τ : ℝ) => 1 / (1 + τ * lambda)) (Set.uIcc (0 : ℝ) s) := by
+      refine LipschitzOnWith.of_dist_le_mul (fun τ₁ hτ₁ τ₂ hτ₂ => ?_)
+      have hτ₁_nonneg : 0 ≤ τ₁ := by
+        rcases Set.mem_uIcc.1 hτ₁ with (⟨h, _⟩ | ⟨h₁, h₂⟩)
+        · exact h
+        · nlinarith
+      have hτ₂_nonneg : 0 ≤ τ₂ := by
+        rcases Set.mem_uIcc.1 hτ₂ with (⟨h, _⟩ | ⟨h₁, h₂⟩)
+        · exact h
+        · nlinarith
+      have h_denom1_ne : 1 + τ₁ * lambda ≠ 0 := by nlinarith
+      have h_denom2_ne : 1 + τ₂ * lambda ≠ 0 := by nlinarith
+      have h_denom_nonneg : 0 ≤ (1 + τ₁ * lambda) * (1 + τ₂ * lambda) :=
+        mul_nonneg (by nlinarith) (by nlinarith)
+      have h_denom_ge_one : 1 ≤ (1 + τ₁ * lambda) * (1 + τ₂ * lambda) := by
+        have h1 : 1 ≤ 1 + τ₁ * lambda := by nlinarith
+        have h2 : 1 ≤ 1 + τ₂ * lambda := by nlinarith
+        nlinarith
+      have h_num_nonneg : 0 ≤ lambda * |τ₁ - τ₂| :=
+        mul_nonneg hlambda_nonneg (abs_nonneg _)
+      -- Rewrite the LHS difference as a single fraction
+      have h_left : 1 / (1 + τ₁ * lambda) - 1 / (1 + τ₂ * lambda) =
+          (lambda * (τ₂ - τ₁)) / ((1 + τ₁ * lambda) * (1 + τ₂ * lambda)) := by
+        field_simp [h_denom1_ne, h_denom2_ne]
+        ring
+      -- Using |a·b| = |a|·|b|, |λ|=λ, |τ₂-τ₁|=|τ₁-τ₂|, and |D| = D ≥ 0.
+      -- Then a/D ≤ a when D ≥ 1 (div_le_self).
+      rw [Real.dist_eq, Real.dist_eq, h_left]
+      have h_goal : |lambda * (τ₂ - τ₁) / ((1 + τ₁ * lambda) * (1 + τ₂ * lambda))| ≤
+          lambda * |τ₁ - τ₂| := by
+        rw [abs_div, abs_of_nonneg h_denom_nonneg, abs_mul,
+          abs_of_nonneg hlambda_nonneg, ← abs_neg, neg_sub]
+        exact div_le_self h_num_nonneg h_denom_ge_one
+      have h_lam_eq : (lam_nn : ℝ) = lambda := rfl
+      simpa [h_lam_eq] using h_goal
+    exact h_lip.absolutelyContinuousOnInterval
+  -- Product of two ℝ→ℝ AC functions is AC
+  exact h_factor_ac.mul h_sum_ac
 
 private lemma positiveZUpward_ac {ι : Type*} [Fintype ι]
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
