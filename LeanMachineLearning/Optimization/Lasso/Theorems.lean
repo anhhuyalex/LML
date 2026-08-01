@@ -911,6 +911,7 @@ private lemma positive_energy_deriv_bound
     (h_z_up_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZUpward x_lasso) t)
     (h_z_down_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZDownward x_lasso) t)
     (hδ_E_nonneg : 0 ≤ δ_E)
+    (hδ_D_nonneg : 0 ≤ δ_D)
     (hE_diff_ae : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
       DifferentiableAt ℝ (fun τ => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ) t)
     (h_E : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
@@ -1053,28 +1054,69 @@ private lemma positive_energy_deriv_bound
     have h_sqrt_le : Real.sqrt (2 * pathDelta M zε z τ) ≤ Real.sqrt (2 * D) :=
       Real.sqrt_le_sqrt (by nlinarith)
     exact mul_le_mul_of_nonneg_left h_sqrt_le hC_E_pos.le
+  -- prove nonnegativity of the variation functions at s (integrals of nonnegative integrands)
+  have h_z_up_s_nonneg : 0 ≤ positiveZUpward x_lasso s := by
+    unfold positiveZUpward
+    refine Finset.sum_nonneg (fun i _ => ?_)
+    refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
+    exact le_max_right _ _
+  have h_z_down_s_nonneg : 0 ≤ positiveZDownward x_lasso s := by
+    unfold positiveZDownward
+    refine Finset.sum_nonneg (fun i _ => ?_)
+    refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
+    have hu_nonneg : 0 ≤ u := hu.1
+    exact mul_nonneg (by nlinarith) (le_max_right _ _)
+  -- split √(2D) using √(a+b+c) ≤ √a + √b + √c
   have h_D_split : Real.sqrt (2 * D) ≤
       Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
       Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
       Real.sqrt (2 * C_D * δ_D) := by
-    -- Write 2*D = A + B + C with A,B,C ≥ 0, then apply sqrt_add_le twice
-    -- A = 2*C_D/L*(s+z↑(s)), B = 2*C_D*z↓(s), C = 2*C_D*δ_D
-    have h_nonneg_A : 0 ≤ 2 * C_D / L * (s + positiveZUpward x_lasso s) := by
-      have : 0 ≤ s + positiveZUpward x_lasso s := by
-        nlinarith [hs.le]
-        -- need: 0 ≤ positiveZUpward x_lasso s; we prove this inline
-        sorry
+    -- Write 2*D = A + B + C with A,B,C ≥ 0
+    set A := 2 * C_D / L * (s + positiveZUpward x_lasso s)
+    set B := 2 * C_D * positiveZDownward x_lasso s
+    set C := 2 * C_D * δ_D
+    have h2D : 2 * D = A + B + C := by
+      dsimp [D, A, B, C]
+      ring
+    rw [h2D]
+    have hA : 0 ≤ A := by
+      have : 0 ≤ s + positiveZUpward x_lasso s := by nlinarith
       positivity
-    sorry
+    have hB : 0 ≤ B := by positivity
+    have hC : 0 ≤ C := by positivity
+    -- √(A+B+C) ≤ √(A+B) + √C  (first application)
+    have h_first := h_sqrt_add_le (A + B) C (add_nonneg hA hB) hC
+    -- √(A+B) ≤ √A + √B  (second application)
+    have h_second := h_sqrt_add_le A B hA hB
+    -- Combine: √(A+B+C) ≤ √(A+B) + √C ≤ √A + √B + √C
+    have h_combined : Real.sqrt (A + B + C) ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C := by
+      linarith [h_first, h_second]
+    -- Now rewrite √B = √(2*C_D) * √(z↓(s))
+    have h_sqrt_B : Real.sqrt B = Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) := by
+      dsimp [B]
+      rw [Real.sqrt_mul hC_D_nonneg]
+    rw [h_sqrt_B] at h_combined
+    -- Rewrite A back
+    dsimp [A] at h_combined
+    exact h_combined
+  -- chain: C_E·√(2Δ) + C_E/L + δ_E ≤ K
   have h_key : C_E * Real.sqrt (2 * pathDelta M zε z τ) + C_E / L + δ_E ≤ K := by
-    have h_nonneg_sqrt : 0 ≤ Real.sqrt (2 * pathDelta M zε z τ) := Real.sqrt_nonneg _
-    have h_temp := add_le_add_right (add_le_add h_sqrt_delta_bound (by rfl : C_E / L ≤ C_E / L)) δ_E
-    -- Not quite; we need to use h_D_split and hK_bound
-    sorry
+    have h1 : C_E * Real.sqrt (2 * pathDelta M zε z τ) ≤ C_E * Real.sqrt (2 * D) :=
+      h_sqrt_delta_bound
+    have h2 : C_E * Real.sqrt (2 * D) + C_E / L + δ_E ≤
+        C_E * (Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+          Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+          Real.sqrt (2 * C_D * δ_D)) + C_E / L + δ_E := by
+      have h_mul := mul_le_mul_of_nonneg_left h_D_split hC_E_pos.le
+      linarith
+    have h3 : C_E * (Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+        Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+        Real.sqrt (2 * C_D * δ_D)) + C_E / L + δ_E ≤ K := hK_bound
+    linarith
   -- 4i. combine: φ'·E + φ·E' ≤ 0 + (C_E·√(2Δ) + C_E/L + C_E/L·z_up' + C_E·z_down' + δ_E)
   --     ≤ K + C_E/L·z_up' + C_E·z_down'
   have h_total : deriv φ τ * E τ + φ τ * E' ≤ K + (C_E / L) * z_up' + C_E * z_down' := by
-    nlinarith
+    linarith [h_term1, hφE'_bound, h_key]
   exact h_total
 
 /--
