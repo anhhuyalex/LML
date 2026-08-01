@@ -319,6 +319,69 @@ private lemma parametricLCP_dual_differentiableAt
     · exact DifferentiableAt.mul_const differentiableAt_id lambda
   exact (h_matVec.sub h_r).add h_lambda
 
+private lemma pathDelta_differentiableAt_and_deriv
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (hM_symm : M.IsSymm)
+    (zε z : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
+    (h_diff_zε : DifferentiableAt ℝ zε τ)
+    (h_diff_z : DifferentiableAt ℝ z τ) :
+    DifferentiableAt ℝ (pathDelta M zε z) τ ∧
+    deriv (pathDelta M zε z) τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) := by
+  have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
+    rw [hasDerivAt_deriv_iff]; exact h_diff_zε
+  have hz_deriv : HasDerivAt z (deriv z τ) τ := by
+    rw [hasDerivAt_deriv_iff]; exact h_diff_z
+  have h_chain := pathDelta_hasDerivAt M hM_symm zε z (deriv zε τ) (deriv z τ) τ hzε_deriv hz_deriv
+  exact ⟨h_chain.differentiableAt, h_chain.deriv⟩
+
+private lemma posIntegratedTrajectoryRescaled_mirror_equation
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι) (ε : ℝ) (hε_pos : 0 < ε)
+    (u_eps : ℝ → EuclideanSpace ℝ ι)
+    (hu_flow : posDlnGradientFlow M r lambda ε β u_eps)
+    (hM_symm : M.IsSymm) (hβ : NonzeroCoordinates β)
+    (τ : ℝ) (hlog_pos_ne : Real.log (1 / ε) ≠ 0) :
+    matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) =
+      posRescaledMirrorVariable ε u_eps τ - posRescaledMirrorVariable ε u_eps 0 +
+      τ • r - (τ * lambda) • ones := by
+  have hu_pos : ∀ t i, posEffectiveParameter u_eps t i ≠ 0 :=
+    posEffectiveParameter_ne_zero M r lambda ε β u_eps hu_flow hε_pos hβ hM_symm
+  have hmirror := positive_integrated_mirror_equation M r lambda ε β u_eps
+    hu_flow hu_pos hM_symm τ hlog_pos_ne
+  apply eq_of_sub_eq_zero
+  calc
+    matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) - (posRescaledMirrorVariable ε u_eps τ - posRescaledMirrorVariable ε u_eps 0 + τ • r - (τ * lambda) • ones)
+        = -(posRescaledMirrorVariable ε u_eps τ - (posRescaledMirrorVariable ε u_eps 0 - τ • r + matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) + (τ * lambda) • ones)) := by abel
+    _ = -(0 : EuclideanSpace ℝ ι) := by rw [← hmirror, sub_self]
+    _ = 0 := by simp
+
+private lemma parametricLCP_primal_equation
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (z : ℝ → EuclideanSpace ℝ ι) (w : ℝ → EuclideanSpace ℝ ι)
+    (τ : ℝ) (hτ_nonneg : 0 ≤ τ)
+    (hw_explicit : ∀ σ : ℝ, 0 ≤ σ → w σ = matVec M (z σ) - σ • r + (1 + σ * lambda) • ones) :
+    matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones := by
+  have hw_eq := hw_explicit τ hτ_nonneg
+  calc
+    matVec M (z τ) = (matVec M (z τ) - τ • r + (1 + τ * lambda) • ones) +
+        τ • r - (1 + τ * lambda) • ones := by abel
+    _ = w τ + τ • r - (1 + τ * lambda) • ones := by rw [← hw_eq]
+
+private lemma parametricLCP_primal_difference
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (zε z : ℝ → EuclideanSpace ℝ ι) (wε w : ℝ → EuclideanSpace ℝ ι)
+    (τ : ℝ)
+    (hM_zε : matVec M (zε τ) = wε τ - wε 0 + τ • r - (τ * lambda) • ones)
+    (hM_z : matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones) :
+    matVec M (zε τ - z τ) = wε τ - w τ + (ones - wε 0) := by
+  rw [matVec_sub, hM_zε, hM_z]
+  ext i
+  simp [euclideanOf, ones]
+  ring
+
 private lemma energy_core_cancellation
     {ι : Type*} [Fintype ι]
     (w wε_τ wε_0 dzε dz ones M_diff : EuclideanSpace ℝ ι)
@@ -591,54 +654,17 @@ lemma energy_complementarity_bound
       posIntegratedTrajectoryRescaled_differentiableAt ε (u ε) (hu ε hε_pos).cont_diff.continuous τ hlog_pos.ne'
     have h_diff_w : DifferentiableAt ℝ w τ :=
       parametricLCP_dual_differentiableAt M r lambda (scaledPrimalPath x_lasso) w τ hτ_pos hw_explicit h_diff_z
-    have h_diff_Δε : DifferentiableAt ℝ Δε τ := by
-      have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_zε
-      have hz_deriv : HasDerivAt z (deriv z τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_z
-      exact (pathDelta_hasDerivAt M hM_symm zε z (deriv zε τ) (deriv z τ) τ
-        hzε_deriv hz_deriv).differentiableAt
-    -- Derivative of Δε
-    have h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) := by
-      have hzε_deriv : HasDerivAt zε (deriv zε τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_zε
-      have hz_deriv : HasDerivAt z (deriv z τ) τ := by
-        rw [hasDerivAt_deriv_iff]; exact h_diff_z
-      have h_chain := pathDelta_hasDerivAt M hM_symm zε z (deriv zε τ) (deriv z τ) τ
-        hzε_deriv hz_deriv
-      dsimp [Δε] at *
-      rw [h_chain.deriv]
-    -- The integrated mirror equation: M zε = wε - wε 0 + τ r - (τ λ) ones
-    have hM_zε : matVec M (zε τ) = wε τ - wε 0 + τ • r - (τ * lambda) • ones := by
-      have hu_flow := hu ε hε_pos
-      have hu_pos : ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
-        posEffectiveParameter_ne_zero M r lambda ε β (u ε) hu_flow hε_pos hβ hM_symm
-      have hmirror := positive_integrated_mirror_equation M r lambda ε β (u ε)
-        hu_flow hu_pos hM_symm τ hlog_pos.ne'
-      -- hmirror: wε τ = wε 0 - τ • r + matVec M (zε τ) + (τ * lambda) • ones
-      dsimp [wε, zε] at hmirror ⊢
-      -- Use `abel` to rearrange the vector equation.
-      apply eq_of_sub_eq_zero
-      calc
-        matVec M (zε τ) - (wε τ - wε 0 + τ • r - (τ * lambda) • ones)
-            = -(wε τ - (wε 0 - τ • r + matVec M (zε τ) + (τ * lambda) • ones)) := by abel
-        _ = -(0 : EuclideanSpace ℝ ι) := by rw [← hmirror, sub_self]
-        _ = 0 := by simp
-    -- The LCP equation: M z = w + τ r - (1 + τ λ) ones
-    have hM_z : matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones := by
-      have hw_eq := hw_explicit τ hτ_nonneg
-      calc
-        matVec M (z τ) = (matVec M (z τ) - τ • r + (1 + τ * lambda) • ones) +
-            τ • r - (1 + τ * lambda) • ones := by abel
-        _ = w τ + τ • r - (1 + τ * lambda) • ones := by rw [← hw_eq]
-    -- Core cancellation: ⟨w, zε' - z'⟩ + ⟨zε' - z', M(zε - z)⟩ = T1 + T3 + T4b
+    have h_diff_Δε_deriv : DifferentiableAt ℝ Δε τ ∧ deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) :=
+      pathDelta_differentiableAt_and_deriv M hM_symm zε z τ h_diff_zε h_diff_z
+    have h_diff_Δε : DifferentiableAt ℝ Δε τ := h_diff_Δε_deriv.1
+    have h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) := h_diff_Δε_deriv.2
+    have hM_zε : matVec M (zε τ) = wε τ - wε 0 + τ • r - (τ * lambda) • ones :=
+      posIntegratedTrajectoryRescaled_mirror_equation M r lambda β ε hε_pos (u ε) (hu ε hε_pos) hM_symm hβ τ hlog_pos.ne'
+    have hM_z : matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones :=
+      parametricLCP_primal_equation M r lambda (scaledPrimalPath x_lasso) w τ hτ_nonneg hw_explicit
+    have hM_diff := parametricLCP_primal_difference M r lambda zε z wε w τ hM_zε hM_z
     have h_core : inner ℝ (w τ) (deriv zε τ - deriv z τ) +
         inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) = T1 + T3 + T4b := by
-      have hM_diff : matVec M (zε τ - z τ) = wε τ - w τ + (ones - wε 0) := by
-        rw [matVec_sub, hM_zε, hM_z]
-        ext i
-        simp [euclideanOf, ones]
-        ring
       have h := energy_core_cancellation (w τ) (wε τ) (wε 0) (deriv zε τ) (deriv z τ) ones (matVec M (zε τ - z τ)) hM_diff
       dsimp [T1, T3, T4b]
       calc

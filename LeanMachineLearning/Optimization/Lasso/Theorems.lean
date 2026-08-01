@@ -85,15 +85,25 @@ solution of the LCP (by `pos_lasso_is_lcp`). Thus `z(μ) = μ x(μ)` solves
 the parametric LCP. By uniqueness, `z(μ) = 0` for `0 < μ < μ_0`.
 At `μ = 0`, `z(0) = 0 * x(0) = 0`.
 -/
+-- For small μ > 0, any positive lasso minimizer must be zero.
+-- This is a consequence of Lemma 4.10: LCP uniqueness forces the solution to (0, lcpQ)
+-- when μ is below the threshold 1 / max(‖r-λ·1‖_∞, 1).
+private lemma positive_lasso_minimizer_eq_zero_of_small_mu
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (x : EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hμ_pos : 0 < μ)
+    (hμ_small : μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1)
+    (hx_min : IsPositiveLassoMinimizer M r lambda μ x) : x = 0 := by
+  rcases (pos_lasso_is_lcp M r lambda μ x (hdata.psd.get_symm) hdata.psd).mp hx_min with ⟨v, hv⟩
+  exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd hμ_pos hμ_small x v).mp hv).1
+
 lemma scaled_path_zero_near_zero
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
     ∃ μ_0 > 0, ∀ μ ∈ Set.Icc 0 μ_0, scaledPrimalPath x_lasso μ = 0 := by
-  -- Extract symmetry and PSD from ProblemData
-  have hM_symm : M.IsSymm := hdata.psd.get_symm
-  have hM_psd : IsPositiveSemidefinite M := hdata.psd
   -- The denominator in Lemma 4.10 threshold is positive
   set denom := max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1 with hdenom
   have h_denom_pos : 0 < denom := by
@@ -108,20 +118,12 @@ lemma scaled_path_zero_near_zero
     by_cases hμ_zero : μ = 0
     · subst hμ_zero; simp [scaledPrimalPath]
     · have hμ_pos : 0 < μ := lt_of_le_of_ne hμ_low (Ne.symm hμ_zero)
-      -- x_lasso(μ) minimizes the positive lasso
       have hx_min : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ) := hx_lasso μ hμ_pos
-      -- Convert to standard LCP solution via KKT conditions (pos_lasso_is_lcp)
-      have h_lcp_iff := pos_lasso_is_lcp M r lambda μ (x_lasso μ) hM_symm hM_psd
-      rcases h_lcp_iff.mp hx_min with ⟨v, hv⟩
-      -- hv : isLCP M (lcpQ r lambda μ) (x_lasso μ) v
-      -- Since μ ≤ μ_0 = (1/max(...))/2 < 1/max(...), we have μ < 1/max(...)
+      -- Since μ ≤ μ_0 = (1/denom)/2 < 1/denom, we are in the small-μ regime
       have hμ_small : μ < 1 / denom := by
-        apply lt_of_le_of_lt hμ_high
-        have hpos : 0 < 1 / denom := div_pos (by norm_num) h_denom_pos
-        linarith
-      -- Lemma 4.10: for small μ > 0, the unique LCP solution is x = 0, v = lcpQ
-      have h_lcp_small := lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ_pos hμ_small
-      rcases (h_lcp_small (x_lasso μ) v).mp hv with ⟨hx_zero, _hv_eq⟩
+        linarith [div_pos (by norm_num) h_denom_pos]
+      have hx_zero := positive_lasso_minimizer_eq_zero_of_small_mu
+        M r lambda μ (x_lasso μ) hdata hμ_pos hμ_small hx_min
       -- Therefore scaledPrimalPath x_lasso μ = μ • x_lasso(μ) = μ • 0 = 0
       dsimp [scaledPrimalPath]
       rw [hx_zero, smul_zero]
