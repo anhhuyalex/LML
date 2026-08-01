@@ -651,28 +651,26 @@ private lemma inner_diff_absolutelyContinuous
       (fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε u τ - z τ) 0 s :=
     hzε_ac.sub hz_ac_local
   have h_coord_ac : ∀ (i : ι), AbsolutelyContinuousOnInterval
-      (fun (τ : ℝ) => (w τ : EuclideanSpace ℝ ι) i *
-        (posIntegratedTrajectoryRescaled ε u τ - z τ : EuclideanSpace ℝ ι) i) 0 s := by
+      (fun (τ : ℝ) => (w τ : EuclideanSpace ℝ ι) i * (posIntegratedTrajectoryRescaled ε u τ - z τ) i) 0 s := by
     intro i
     let proj := fun (x : EuclideanSpace ℝ ι) => (x i : ℝ)
     have h_lip : LipschitzWith 1 proj := coordinateProjection_lipschitzWith i
     have hw_ac_i : AbsolutelyContinuousOnInterval (fun (τ : ℝ) => (w τ : EuclideanSpace ℝ ι) i) 0 s :=
-      LipschitzWith.comp_absolutelyContinuousOnInterval (g := proj) (f := w) h_lip
-        (hw_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)
+      @LipschitzWith.comp_absolutelyContinuousOnInterval ℝ (EuclideanSpace ℝ ι) _ _ _
+        w proj h_lip (hw_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)
     have hdiff_ac_i : AbsolutelyContinuousOnInterval
         (fun (τ : ℝ) => (posIntegratedTrajectoryRescaled ε u τ - z τ : EuclideanSpace ℝ ι) i) 0 s :=
-      LipschitzWith.comp_absolutelyContinuousOnInterval (g := proj)
-        (f := fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε u τ - z τ) h_lip hdiff_ac
+      @LipschitzWith.comp_absolutelyContinuousOnInterval ℝ (EuclideanSpace ℝ ι) _ _ _
+        (fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε u τ - z τ) proj h_lip hdiff_ac
     exact hw_ac_i.mul hdiff_ac_i
   have h_sum_ac : AbsolutelyContinuousOnInterval
       (fun (τ : ℝ) => ∑ (i : ι), (w τ : EuclideanSpace ℝ ι) i *
         (posIntegratedTrajectoryRescaled ε u τ - z τ : EuclideanSpace ℝ ι) i) 0 s :=
     absolutelyContinuousOnInterval_sum Finset.univ _ 0 s (fun i _ => h_coord_ac i)
   convert h_sum_ac with τ
-  · simp [PiLp.inner_apply, RCLike.inner_apply, conj_trivial]
-    congr 1
-    funext i
-    ring
+  simp [PiLp.inner_apply, RCLike.inner_apply, conj_trivial]
+  congr 1
+  exact Finset.sum_congr rfl (fun i _ => by ring)
 
 /--
 Section 4.6, Eq. (4.15) restated as a bound holding **uniformly over `[0, s]`**, not just at the
@@ -844,277 +842,312 @@ lemma positive_energy_integrated_bound
     β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_local_affine
   obtain ⟨C_D, hC_D_pos, h_D_bound⟩ := pathDelta_uniform_bound M r lambda β u hdata hβ hu x_lasso
     hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
+  -- REMAINING WORK (worked out in full, not yet transcribed into tactics):
+  -- Set C := max (C_E * Real.sqrt (2 * C_D)) C_E.
+  -- Fix s > 0, δ > 0. Set F σ := (1/(1+σλ)) * Eᵋ(σ) where
+  --   Eᵋ(σ) = ⟨w σ, zε σ - z σ⟩ + pathDelta M zε z σ  (the theorem's own LHS at σ).
+  -- From h_D_bound s hs δ_D (δ_D chosen below): Δᵋ(τ) ≤ D := C_D*(1/L*(s+z↑(s))+z↓(s)) + C_D*δ_D,
+  -- UNIFORMLY for τ ∈ [0,s] (this is exactly what pathDelta_uniform_bound buys over the
+  -- endpoint-only `positive_path_delta_bound`).
+  -- From h_E_bound s hs δ_E: deriv F τ ≤ C_E*(√(2Δᵋ(τ)) + 1/L*(1+z↑'(τ)) + z↓'(τ)) + δ_E a.e.
+  -- on [0,s]. Since Δᵋ(τ) ≤ D uniformly, √(2Δᵋ(τ)) ≤ √(2D); split √(2D) via
+  -- `sqrt_add_le_add_sqrt` (D is literally a sum of three nonneg pieces) into
+  --   √(2C_D/L*(s+z↑(s))) + √(2C_D)*√(z↓(s)) + √(2C_D*δ_D).
+  -- Let K := C_E*√(2C_D/L*(s+z↑(s))) + C_E*√(2C_D)*√(z↓(s)) + C_E*√(2C_D*δ_D) + C_E/L + δ_E
+  -- (all τ-independent) and G τ := K*τ + C_E/L*z↑(τ) + C_E*z↓(τ); then deriv G ≥ deriv F a.e.
+  -- Build `AbsolutelyContinuousOnInterval F 0 s` (φ · (⟨w, zε-z⟩ + Δᵋ): φ is C¹ hence AC;
+  -- ⟨w, zε-z⟩ is a finite sum of products of 1-Lipschitz coordinate projections composed with
+  -- the AC paths `w` (from `hdual.absolutely_continuous`), `zε` (C¹, as in `pathDelta_ac`), and
+  -- `z` (from `h_regular`), exactly mirroring `pathDelta_ac`'s own coordinate decomposition;
+  -- Δᵋ itself is `pathDelta_ac`) and of `G` (`G_ac`, reused verbatim). `F 0 = 0` is
+  -- `initial_positive_energy_zero` (note `1/(1+0*λ) = 1`); `G 0 = 0` is `z_upward_downward_zero`.
+  -- Apply `bound_of_deriv_bound` to get `F s ≤ G s`, i.e. (dividing back by `1/(1+sλ)`)
+  --   Eᵋ(s) ≤ (1+sλ)*[K*s + C_E/L*z↑(s) + C_E*z↓(s)].
+  -- Expanding K*s and comparing to the target `s²(C·suboptimalityGap(λ,s,z↓(s)) + δ)`:
+  -- the `C_E*√(2C_D)*√(z↓(s))*s` and `C_E*z↓(s)` terms match the target's leading terms exactly
+  -- (with room to spare) via `C := max(C_E√(2C_D), C_E)`; the remaining four terms split into
+  -- an `ε`-vanishing pair (both `→ 0` as `ε → 0` since `1/log(1/ε) → 0`, handled via the
+  -- `∀ᶠ ε in 𝓝[>] 0` filter exactly as in `positive_path_delta_bound`'s
+  -- `h_tendsto_log_inv`/`h_eventually_vanish` pattern) and a `δ_E, δ_D`-controllable pair,
+  -- absorbed into the target `δ` by choosing `δ_E := sδ/(4(1+sλ))` and
+  -- `δ_D := (sδ/(4(1+sλ)C_E))² / (2C_D)` (each contributes exactly `s²δ/4`), leaving `s²δ/2`
+  -- of budget for the `ε`-vanishing pair.
+  obtain ⟨C_E, hC_E_pos, h_E_bound⟩ := positive_energy_differential_inequality M Mdagger r lambda
+    β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_local_affine
+  obtain ⟨C_D, hC_D_pos, h_D_bound⟩ := pathDelta_uniform_bound M r lambda β u hdata hβ hu x_lasso
+    hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
   use max (C_E * Real.sqrt (2 * C_D)) C_E
   constructor
   · positivity
-  intro s hs δ hδ
-case hδ =>
-  set δ_E := s * δ / (4 * (1 + s * lambda)) with hδ_E
-  set δ_D := (s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D) with hδ_D
-  have hδ_E_pos : 0 < δ_E := by positivity
-  have hδ_D_pos : 0 < δ_D := by positivity
-  have h_nhds_Ioo : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) := by
-    rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun _ hx => hx⟩
-  filter_upwards [h_E_bound s hs δ_E hδ_E_pos, h_D_bound s hs δ_D hδ_D_pos, h_nhds_Ioo]
-    with ε h_E h_D hε_range
-  rcases hε_range with ⟨hε_pos, hε_lt_one⟩
-  have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
-  have hlog_ne : Real.log (1 / ε) ≠ 0 := hlog_pos.ne'
-  set L := Real.log (1 / ε)
-  set zε := fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) τ
-  set z := scaledPrimalPath x_lasso
-  set E := fun (τ : ℝ) => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ
-  set φ := fun (τ : ℝ) => 1 / (1 + τ * lambda)
-  set F := fun (τ : ℝ) => φ τ * E τ
-  set D := C_D * (1 / L * (s + positiveZUpward x_lasso s) + positiveZDownward x_lasso s) + C_D * δ_D
-  set K := C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-           C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-           C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E
-  set G := fun (τ : ℝ) => K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
-  have hF0 : F 0 = 0 := by
-    simp [F, φ]
-    exact initial_positive_energy_zero M ε (u ε) x_lasso w
-  have hG0 : G 0 = 0 := by
-    simp [G]
-    have ⟨hz_up, hz_down⟩ := z_upward_downward_zero x_lasso
-    simp [hz_up, hz_down]
-  have hF_ac : AbsolutelyContinuousOnInterval F 0 s := by
-    have h_phi_ac : AbsolutelyContinuousOnInterval φ 0 s := by
-      have h_phi_lip : LipschitzOnWith (⟨lambda, hdata.lambda_nonneg⟩ : NNReal) φ (Set.uIcc 0 s) := by
-        intro x hx y hy
-        simp only [φ, dist_eq_norm, norm_eq_abs]
-        have hx_nonneg : 0 ≤ x := by
-          have : x ∈ Set.Icc (0 : ℝ) s := by rwa [Set.uIcc_of_le hs.le] at hx
-          exact this.1
-        have hy_nonneg : 0 ≤ y := by
-          have : y ∈ Set.Icc (0 : ℝ) s := by rwa [Set.uIcc_of_le hs.le] at hy
-          exact this.1
-        have h1 : 0 < 1 + x * lambda := by nlinarith
-        have h2 : 0 < 1 + y * lambda := by nlinarith
-        have h3 : abs (1 / (1 + x * lambda) - 1 / (1 + y * lambda)) =
-            lambda * abs (x - y) / ((1 + x * lambda) * (1 + y * lambda)) := by
-          rw [← abs_of_nonneg (show 0 ≤ lambda by exact hdata.lambda_nonneg)]
-          have h4 : (1 / (1 + x * lambda) - 1 / (1 + y * lambda)) =
-              lambda * (y - x) / ((1 + x * lambda) * (1 + y * lambda)) := by field_simp; ring
-          rw [h4]
-          have h5 : abs (lambda * (y - x) / ((1 + x * lambda) * (1 + y * lambda))) =
-              abs lambda * abs (y - x) / abs ((1 + x * lambda) * (1 + y * lambda)) := by
-            simp [abs_div, abs_mul]
-          rw [h5]
-          have h6 : abs (y - x) = abs (x - y) := by rw [show y - x = -(x - y) by ring]; simp
-          rw [h6]
-          have h7 : abs ((1 + x * lambda) * (1 + y * lambda)) =
-              (1 + x * lambda) * (1 + y * lambda) := abs_of_nonneg (by positivity)
-          rw [h7]
-          ring
-        rw [h3]
-        have h8 : lambda * abs (x - y) / ((1 + x * lambda) * (1 + y * lambda)) ≤
-            lambda * abs (x - y) := by
-          have h9 : (1 + x * lambda) * (1 + y * lambda) ≥ 1 := by nlinarith
-          have h10 : 0 ≤ lambda * abs (x - y) := by positivity
-          apply (div_le_iff₀ (by positivity)).mpr
-          nlinarith
-        exact h8
-      exact h_phi_lip.absolutelyContinuousOnInterval
-    have h_E_ac : AbsolutelyContinuousOnInterval E 0 s := by
-      have h_inner_ac := inner_diff_absolutelyContinuous ε (u ε) z w s hs.le
-        (hu ε hε_pos).cont_diff.continuous hlog_ne h_regular hdual.absolutely_continuous
-      have h_delta_ac := pathDelta_ac M ε (u ε) x_lasso s hs.le
-        (hu ε hε_pos).cont_diff.continuous hlog_ne h_regular
-      exact h_inner_ac.add h_delta_ac
-    exact h_phi_ac.mul h_E_ac
-  have hG_ac : AbsolutelyContinuousOnInterval G 0 s := by
-    have h_id_ac : AbsolutelyContinuousOnInterval (fun (τ : ℝ) => τ) 0 s := by
-      have hK : LipschitzOnWith 1 (fun (τ : ℝ) => τ) (Set.uIcc 0 s) := fun x _ y _ => by simp
-      exact hK.absolutelyContinuousOnInterval
-    have hc_mem : (0 : ℝ) ∈ Set.uIcc (0 : ℝ) s := Set.left_mem_uIcc
-    have h_up_ac : AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
-      unfold positiveZUpward
-      apply absolutelyContinuousOnInterval_sum Finset.univ
-        (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u))
-      intro i _
-      have h_int : IntervalIntegrable
-          (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 s :=
-        max_zero_deriv_intervalIntegrable x_lasso i s hs.le h_regular
-      exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
-    have h_down_ac : AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
-      unfold positiveZDownward
-      apply absolutelyContinuousOnInterval_sum Finset.univ
-        (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
-          (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
-      intro i _
-      have h_int : IntervalIntegrable
-          (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
-          volume 0 s :=
-        (max_zero_neg_deriv_intervalIntegrable x_lasso i s hs.le h_regular).continuousOn_mul
-          (by fun_prop)
-      exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
-    have h1 : AbsolutelyContinuousOnInterval (fun (τ : ℝ) => K * τ) 0 s := h_id_ac.const_mul K
-    have h2 : AbsolutelyContinuousOnInterval
-        (fun (τ : ℝ) => C_E / L * positiveZUpward x_lasso τ) 0 s :=
-      h_up_ac.const_mul (C_E / L)
-    have h3 : AbsolutelyContinuousOnInterval
-        (fun (τ : ℝ) => C_E * positiveZDownward x_lasso τ) 0 s :=
-      h_down_ac.const_mul C_E
-    exact h1.add (h2.add h3)
-  have h_deriv_le : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
-    have h_pos_z_diff := positiveZ_ae_differentiable x_lasso s hs h_local_affine h_regular
-    filter_upwards [h_E, h_pos_z_diff] with τ h_Eτ hτ_diff hτ_mem
-    have hΔ_le_D : pathDelta M zε z τ ≤ D := h_D τ ⟨hτ_mem.1, hτ_mem.2⟩
-    have h_sqrt_le : Real.sqrt (2 * pathDelta M zε z τ) ≤ Real.sqrt (2 * D) :=
-      Real.sqrt_le_sqrt (by nlinarith [pathDelta_nonneg M zε z τ])
-    have h_sqrt_D_le : Real.sqrt (2 * D) ≤
-        Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-        Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-        Real.sqrt (2 * C_D * δ_D) := by
-      have hD_eq : 2 * D = 2 * C_D / L * (s + positiveZUpward x_lasso s) +
-          2 * C_D * positiveZDownward x_lasso s + 2 * C_D * δ_D := by
-        dsimp [D]
-        ring_nf
-      rw [hD_eq]
-      have h1 : Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s) +
-          2 * C_D * positiveZDownward x_lasso s + 2 * C_D * δ_D) ≤
-          Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s) +
-            2 * C_D * positiveZDownward x_lasso s) + Real.sqrt (2 * C_D * δ_D) := by
-        apply sqrt_add_le_add_sqrt
-        all_goals positivity
-      have h2 : Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s) +
-          2 * C_D * positiveZDownward x_lasso s) ≤
+    intro s hs δ hδ
+    case hδ =>
+    set δ_E := s * δ / (4 * (1 + s * lambda)) with hδ_E
+    set δ_D := (s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D) with hδ_D
+    have hδ_E_pos : 0 < δ_E := by positivity
+    have hδ_D_pos : 0 < δ_D := by positivity
+    have h_nhds_Ioo : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) := by
+      rw [mem_nhdsGT_iff_exists_Ioo_subset]
+      exact ⟨1, by norm_num, fun _ hx => hx⟩
+    filter_upwards [h_E_bound s hs δ_E hδ_E_pos, h_D_bound s hs δ_D hδ_D_pos, h_nhds_Ioo]
+      with ε h_E h_D hε_range
+    rcases hε_range with ⟨hε_pos, hε_lt_one⟩
+    have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+    have hlog_ne : Real.log (1 / ε) ≠ 0 := hlog_pos.ne'
+    set L := Real.log (1 / ε)
+    set zε := fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε (u ε) τ
+    set z := scaledPrimalPath x_lasso
+    set E := fun (τ : ℝ) => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ
+    set φ := fun (τ : ℝ) => 1 / (1 + τ * lambda)
+    set F := fun (τ : ℝ) => φ τ * E τ
+    set D := C_D * (1 / L * (s + positiveZUpward x_lasso s) + positiveZDownward x_lasso s) + C_D * δ_D
+    set K := C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+            C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+            C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E
+    set G := fun (τ : ℝ) => K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
+    have hF0 : F 0 = 0 := by
+      simp [F, φ]
+      exact initial_positive_energy_zero M ε (u ε) x_lasso w
+    have hG0 : G 0 = 0 := by
+      simp [G]
+      have ⟨hz_up, hz_down⟩ := z_upward_downward_zero x_lasso
+      simp [hz_up, hz_down]
+    have hF_ac : AbsolutelyContinuousOnInterval F 0 s := by
+      have h_phi_ac : AbsolutelyContinuousOnInterval φ 0 s := by
+        have h_phi_lip : LipschitzOnWith (⟨lambda, hdata.lambda_nonneg⟩ : NNReal) φ (Set.uIcc 0 s) := by
+          intro x hx y hy
+          simp only [φ, dist_eq_norm, norm_eq_abs]
+          have hx_nonneg : 0 ≤ x := by
+            have : x ∈ Set.Icc (0 : ℝ) s := by rwa [Set.uIcc_of_le hs.le] at hx
+            exact this.1
+          have hy_nonneg : 0 ≤ y := by
+            have : y ∈ Set.Icc (0 : ℝ) s := by rwa [Set.uIcc_of_le hs.le] at hy
+            exact this.1
+          have h1 : 0 < 1 + x * lambda := by nlinarith
+          have h2 : 0 < 1 + y * lambda := by nlinarith
+          have h3 : abs (1 / (1 + x * lambda) - 1 / (1 + y * lambda)) =
+              lambda * abs (x - y) / ((1 + x * lambda) * (1 + y * lambda)) := by
+            rw [← abs_of_nonneg (show 0 ≤ lambda by exact hdata.lambda_nonneg)]
+            have h4 : (1 / (1 + x * lambda) - 1 / (1 + y * lambda)) =
+                lambda * (y - x) / ((1 + x * lambda) * (1 + y * lambda)) := by field_simp; ring
+            rw [h4]
+            have h5 : abs (lambda * (y - x) / ((1 + x * lambda) * (1 + y * lambda))) =
+                abs lambda * abs (y - x) / abs ((1 + x * lambda) * (1 + y * lambda)) := by
+              simp [abs_div, abs_mul]
+            rw [h5]
+            have h6 : abs (y - x) = abs (x - y) := by rw [show y - x = -(x - y) by ring]; simp
+            rw [h6]
+            have h7 : abs ((1 + x * lambda) * (1 + y * lambda)) =
+                (1 + x * lambda) * (1 + y * lambda) := abs_of_nonneg (by positivity)
+            rw [h7]
+            ring
+          rw [h3]
+          have h8 : lambda * abs (x - y) / ((1 + x * lambda) * (1 + y * lambda)) ≤
+              lambda * abs (x - y) := by
+            have h9 : (1 + x * lambda) * (1 + y * lambda) ≥ 1 := by nlinarith
+            have h10 : 0 ≤ lambda * abs (x - y) := by positivity
+            apply (div_le_iff₀ (by positivity)).mpr
+            nlinarith
+          exact h8
+        exact h_phi_lip.absolutelyContinuousOnInterval
+      have h_E_ac : AbsolutelyContinuousOnInterval E 0 s := by
+        have h_inner_ac := inner_diff_absolutelyContinuous ε (u ε) z w s hs.le
+          (hu ε hε_pos).cont_diff.continuous hlog_ne h_regular hdual.absolutely_continuous
+        have h_delta_ac := pathDelta_ac M ε (u ε) x_lasso s hs.le
+          (hu ε hε_pos).cont_diff.continuous hlog_ne h_regular
+        exact h_inner_ac.add h_delta_ac
+      exact h_phi_ac.mul h_E_ac
+    have hG_ac : AbsolutelyContinuousOnInterval G 0 s := by
+      have h_id_ac : AbsolutelyContinuousOnInterval (fun (τ : ℝ) => τ) 0 s := by
+        have hK : LipschitzOnWith 1 (fun (τ : ℝ) => τ) (Set.uIcc 0 s) := fun x _ y _ => by simp
+        exact hK.absolutelyContinuousOnInterval
+      have hc_mem : (0 : ℝ) ∈ Set.uIcc (0 : ℝ) s := Set.left_mem_uIcc
+      have h_up_ac : AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
+        unfold positiveZUpward
+        apply absolutelyContinuousOnInterval_sum Finset.univ
+          (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+        intro i _
+        have h_int : IntervalIntegrable
+            (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 s :=
+          max_zero_deriv_intervalIntegrable x_lasso i s hs.le h_regular
+        exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
+      have h_down_ac : AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
+        unfold positiveZDownward
+        apply absolutelyContinuousOnInterval_sum Finset.univ
+          (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+            (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+        intro i _
+        have h_int : IntervalIntegrable
+            (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+            volume 0 s :=
+          (max_zero_neg_deriv_intervalIntegrable x_lasso i s hs.le h_regular).continuousOn_mul
+            (by fun_prop)
+        exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
+      have h1 : AbsolutelyContinuousOnInterval (fun (τ : ℝ) => K * τ) 0 s := h_id_ac.const_mul K
+      have h2 : AbsolutelyContinuousOnInterval
+          (fun (τ : ℝ) => C_E / L * positiveZUpward x_lasso τ) 0 s :=
+        h_up_ac.const_mul (C_E / L)
+      have h3 : AbsolutelyContinuousOnInterval
+          (fun (τ : ℝ) => C_E * positiveZDownward x_lasso τ) 0 s :=
+        h_down_ac.const_mul C_E
+      exact h1.add (h2.add h3)
+    have h_deriv_le : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
+      have h_pos_z_diff := positiveZ_ae_differentiable x_lasso s hs h_local_affine h_regular
+      filter_upwards [h_E, h_pos_z_diff] with τ h_Eτ hτ_diff hτ_mem
+      have hΔ_le_D : pathDelta M zε z τ ≤ D := h_D τ ⟨hτ_mem.1, hτ_mem.2⟩
+      have h_sqrt_le : Real.sqrt (2 * pathDelta M zε z τ) ≤ Real.sqrt (2 * D) :=
+        Real.sqrt_le_sqrt (by nlinarith [pathDelta_nonneg M zε z τ])
+      have h_sqrt_D_le : Real.sqrt (2 * D) ≤
           Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-            Real.sqrt (2 * C_D * positiveZDownward x_lasso s) := by
-        apply sqrt_add_le_add_sqrt
-        all_goals positivity
-      have h3 : Real.sqrt (2 * C_D * positiveZDownward x_lasso s) =
-          Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) := by
-        rw [← Real.sqrt_mul (by positivity)]
-        ring_nf
-      linarith [h1, h2, h3]
-    obtain ⟨hτ_up_diff, hτ_down_diff⟩ := hτ_diff hτ_mem
-    have hG_deriv : deriv G τ = K + C_E / L * deriv (positiveZUpward x_lasso) τ +
-        C_E * deriv (positiveZDownward x_lasso) τ := by
-      have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso)
-          (deriv (positiveZUpward x_lasso) τ) τ := hτ_up_diff.hasDerivAt
-      have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso)
-          (deriv (positiveZDownward x_lasso) τ) τ := hτ_down_diff.hasDerivAt
-      have h1 : HasDerivAt (fun (t : ℝ) => K * t) K τ :=
-        (hasDerivAt_id' τ).const_mul K
-      have h2 : HasDerivAt (fun (t : ℝ) => C_E / L * positiveZUpward x_lasso t)
-          (C_E / L * deriv (positiveZUpward x_lasso) τ) τ :=
-        h_up_hasDeriv.const_mul (C_E / L)
-      have h3 : HasDerivAt (fun (t : ℝ) => C_E * positiveZDownward x_lasso t)
-          (C_E * deriv (positiveZDownward x_lasso) τ) τ :=
-        h_down_hasDeriv.const_mul C_E
-      have h4 : HasDerivAt G (K + C_E / L * deriv (positiveZUpward x_lasso) τ +
-          C_E * deriv (positiveZDownward x_lasso) τ) τ :=
-        h1.add (h2.add h3)
-      exact h4.deriv
-    rw [hG_deriv]
-    have h_E_bound' := h_Eτ hτ_mem
-    have h_key : C_E * Real.sqrt (2 * pathDelta M zε z τ) + C_E / L * (1 + deriv (positiveZUpward x_lasso) τ) +
-        C_E * deriv (positiveZDownward x_lasso) τ + δ_E ≤ K + C_E / L * deriv (positiveZUpward x_lasso) τ +
-        C_E * deriv (positiveZDownward x_lasso) τ := by
-      have h1 : C_E * Real.sqrt (2 * pathDelta M zε z τ) ≤
-          C_E * (Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-            Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-            Real.sqrt (2 * C_D * δ_D)) := by
-        apply mul_le_mul_of_nonneg_left
-        · linarith [h_sqrt_le, h_sqrt_D_le]
-        · exact le_of_lt hC_E_pos
-      linarith [h1]
-    linarith [h_E_bound', h_key]
-  have hF_le_G : F s ≤ G s :=
-    bound_of_deriv_bound (le_of_lt hs) h_deriv_le hF0 hG0 hF_ac hG_ac
-  have hE_bound : E s ≤ (1 + s * lambda) * G s := by
-    have h_phi_inv : 1 / φ s = 1 + s * lambda := by
-      simp [φ]
-      field_simp
-    have h_E_eq : E s = (1 / φ s) * F s := by
-      simp [F]
-      field_simp [φ]
-    rw [h_E_eq, h_phi_inv]
-  have h_main : (1 + s * lambda) * G s ≤ s^2 * (max (C_E * Real.sqrt (2 * C_D)) C_E *
-      suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
-    set C := max (C_E * Real.sqrt (2 * C_D)) C_E
-    have hC1 : C_E * Real.sqrt (2 * C_D) ≤ C := le_max_left _ _
-    have hC2 : C_E ≤ C := le_max_right _ _
-    have hR := show ∀ᶠ (ε : ℝ) in 𝓝[>] 0,
-        (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / Real.log (1 / ε) *
-          (s + positiveZUpward x_lasso s)) + (1 + s * lambda) * s * C_E / Real.log (1 / ε) +
-        (1 + s * lambda) * C_E / Real.log (1 / ε) * positiveZUpward x_lasso s ≤ s^2 * δ / 2 by
-      have h_tendsto_log_inv : Tendsto (fun (ε : ℝ) => (Real.log (1 / ε))⁻¹) (𝓝[>] 0) (𝓝 0) := by
-        have h_inv_atTop : Tendsto (fun (ε : ℝ) => 1 / ε) (𝓝[>] 0) atTop := by
-          simpa [one_div] using tendsto_inv_nhdsGT_zero (𝕜 := ℝ)
-        exact (Real.tendsto_log_atTop.comp h_inv_atTop).inv_tendsto_atTop
-      have h_tendsto_sqrt_log_inv : Tendsto (fun (ε : ℝ) => Real.sqrt ((Real.log (1 / ε))⁻¹))
-          (𝓝[>] 0) (𝓝 0) := by
-        have h_cont_sqrt : ContinuousAt Real.sqrt 0 := Real.continuous_sqrt.continuousAt
-        exact h_cont_sqrt.tendsto.comp h_tendsto_log_inv
-      have h_tendsto_R : Tendsto (fun (ε : ℝ) =>
+          Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+          Real.sqrt (2 * C_D * δ_D) := by
+        have hD_eq : 2 * D = 2 * C_D / L * (s + positiveZUpward x_lasso s) +
+            2 * C_D * positiveZDownward x_lasso s + 2 * C_D * δ_D := by
+          dsimp [D]
+          ring_nf
+        rw [hD_eq]
+        have h1 : Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s) +
+            2 * C_D * positiveZDownward x_lasso s + 2 * C_D * δ_D) ≤
+            Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s) +
+              2 * C_D * positiveZDownward x_lasso s) + Real.sqrt (2 * C_D * δ_D) := by
+          apply sqrt_add_le_add_sqrt
+          all_goals positivity
+        have h2 : Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s) +
+            2 * C_D * positiveZDownward x_lasso s) ≤
+            Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+              Real.sqrt (2 * C_D * positiveZDownward x_lasso s) := by
+          apply sqrt_add_le_add_sqrt
+          all_goals positivity
+        have h3 : Real.sqrt (2 * C_D * positiveZDownward x_lasso s) =
+            Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) := by
+          rw [← Real.sqrt_mul (by positivity)]
+          ring_nf
+        linarith [h1, h2, h3]
+      obtain ⟨hτ_up_diff, hτ_down_diff⟩ := hτ_diff hτ_mem
+      have hG_deriv : deriv G τ = K + C_E / L * deriv (positiveZUpward x_lasso) τ +
+          C_E * deriv (positiveZDownward x_lasso) τ := by
+        have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso)
+            (deriv (positiveZUpward x_lasso) τ) τ := hτ_up_diff.hasDerivAt
+        have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso)
+            (deriv (positiveZDownward x_lasso) τ) τ := hτ_down_diff.hasDerivAt
+        have h1 : HasDerivAt (fun (t : ℝ) => K * t) K τ :=
+          (hasDerivAt_id' τ).const_mul K
+        have h2 : HasDerivAt (fun (t : ℝ) => C_E / L * positiveZUpward x_lasso t)
+            (C_E / L * deriv (positiveZUpward x_lasso) τ) τ :=
+          h_up_hasDeriv.const_mul (C_E / L)
+        have h3 : HasDerivAt (fun (t : ℝ) => C_E * positiveZDownward x_lasso t)
+            (C_E * deriv (positiveZDownward x_lasso) τ) τ :=
+          h_down_hasDeriv.const_mul C_E
+        have h4 : HasDerivAt G (K + C_E / L * deriv (positiveZUpward x_lasso) τ +
+            C_E * deriv (positiveZDownward x_lasso) τ) τ :=
+          h1.add (h2.add h3)
+        exact h4.deriv
+      rw [hG_deriv]
+      have h_E_bound' := h_Eτ hτ_mem
+      have h_key : C_E * Real.sqrt (2 * pathDelta M zε z τ) + C_E / L * (1 + deriv (positiveZUpward x_lasso) τ) +
+          C_E * deriv (positiveZDownward x_lasso) τ + δ_E ≤ K + C_E / L * deriv (positiveZUpward x_lasso) τ +
+          C_E * deriv (positiveZDownward x_lasso) τ := by
+        have h1 : C_E * Real.sqrt (2 * pathDelta M zε z τ) ≤
+            C_E * (Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+              Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+              Real.sqrt (2 * C_D * δ_D)) := by
+          apply mul_le_mul_of_nonneg_left
+          · linarith [h_sqrt_le, h_sqrt_D_le]
+          · exact le_of_lt hC_E_pos
+        linarith [h1]
+      linarith [h_E_bound', h_key]
+    have hF_le_G : F s ≤ G s :=
+      bound_of_deriv_bound (le_of_lt hs) h_deriv_le hF0 hG0 hF_ac hG_ac
+    have hE_bound : E s ≤ (1 + s * lambda) * G s := by
+      have h_phi_inv : 1 / φ s = 1 + s * lambda := by
+        simp [φ]
+        field_simp
+      have h_E_eq : E s = (1 / φ s) * F s := by
+        simp [F]
+        field_simp [φ]
+      rw [h_E_eq, h_phi_inv]
+    have h_main : (1 + s * lambda) * G s ≤ s^2 * (max (C_E * Real.sqrt (2 * C_D)) C_E *
+        suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
+      set C := max (C_E * Real.sqrt (2 * C_D)) C_E
+      have hC1 : C_E * Real.sqrt (2 * C_D) ≤ C := le_max_left _ _
+      have hC2 : C_E ≤ C := le_max_right _ _
+      have hR := show ∀ᶠ (ε : ℝ) in 𝓝[>] 0,
           (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / Real.log (1 / ε) *
             (s + positiveZUpward x_lasso s)) + (1 + s * lambda) * s * C_E / Real.log (1 / ε) +
-          (1 + s * lambda) * C_E / Real.log (1 / ε) * positiveZUpward x_lasso s)
-          (𝓝[>] 0) (𝓝 0) := by
-        have h1 : (fun (ε : ℝ) => Real.sqrt (2 * C_D / Real.log (1 / ε) *
-            (s + positiveZUpward x_lasso s))) =
-            fun (ε : ℝ) => Real.sqrt (2 * C_D * (s + positiveZUpward x_lasso s)) *
-              Real.sqrt ((Real.log (1 / ε))⁻¹) := by
-          funext ε
-          rw [show 2 * C_D / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) =
-              2 * C_D * (s + positiveZUpward x_lasso s) * (Real.log (1 / ε))⁻¹ by ring]
-          rw [Real.sqrt_mul (by positivity)]
-        rw [h1]
-        simpa using h_tendsto_sqrt_log_inv.const_mul _ |>.add
-          (h_tendsto_log_inv.const_mul _).add (h_tendsto_log_inv.const_mul _)
-      exact h_tendsto_R.eventually_le (by positivity)
-    filter_upwards [hR] with ε hR
-    have h_expand : (1 + s * lambda) * G s =
-        (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-        (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-        (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) +
-        (1 + s * lambda) * s * C_E / L +
-        (1 + s * lambda) * s * δ_E +
-        (1 + s * lambda) * C_E / L * positiveZUpward x_lasso s +
-        (1 + s * lambda) * C_E * positiveZDownward x_lasso s := by
-      simp [G, L]
-      ring
-    rw [h_expand]
-    have h_leading : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) *
-        Real.sqrt (positiveZDownward x_lasso s) +
-        (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
-        s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s)) := by
-      simp [suboptimalityGap]
-      have h1 : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) *
-          Real.sqrt (positiveZDownward x_lasso s) ≤
-          (1 + s * lambda) * s * C * Real.sqrt (positiveZDownward x_lasso s) := by
-        apply mul_le_mul_of_nonneg_right
-        · apply mul_le_mul_of_nonneg_right
-          · exact hC1
+          (1 + s * lambda) * C_E / Real.log (1 / ε) * positiveZUpward x_lasso s ≤ s^2 * δ / 2 by
+        have h_tendsto_log_inv : Tendsto (fun (ε : ℝ) => (Real.log (1 / ε))⁻¹) (𝓝[>] 0) (𝓝 0) := by
+          have h_inv_atTop : Tendsto (fun (ε : ℝ) => 1 / ε) (𝓝[>] 0) atTop := by
+            simpa [one_div] using tendsto_inv_nhdsGT_zero (𝕜 := ℝ)
+          exact (Real.tendsto_log_atTop.comp h_inv_atTop).inv_tendsto_atTop
+        have h_tendsto_sqrt_log_inv : Tendsto (fun (ε : ℝ) => Real.sqrt ((Real.log (1 / ε))⁻¹))
+            (𝓝[>] 0) (𝓝 0) := by
+          have h_cont_sqrt : ContinuousAt Real.sqrt 0 := Real.continuous_sqrt.continuousAt
+          exact h_cont_sqrt.tendsto.comp h_tendsto_log_inv
+        have h_tendsto_R : Tendsto (fun (ε : ℝ) =>
+            (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / Real.log (1 / ε) *
+              (s + positiveZUpward x_lasso s)) + (1 + s * lambda) * s * C_E / Real.log (1 / ε) +
+            (1 + s * lambda) * C_E / Real.log (1 / ε) * positiveZUpward x_lasso s)
+            (𝓝[>] 0) (𝓝 0) := by
+          have h1 : (fun (ε : ℝ) => Real.sqrt (2 * C_D / Real.log (1 / ε) *
+              (s + positiveZUpward x_lasso s))) =
+              fun (ε : ℝ) => Real.sqrt (2 * C_D * (s + positiveZUpward x_lasso s)) *
+                Real.sqrt ((Real.log (1 / ε))⁻¹) := by
+            funext ε
+            rw [show 2 * C_D / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) =
+                2 * C_D * (s + positiveZUpward x_lasso s) * (Real.log (1 / ε))⁻¹ by ring]
+            rw [Real.sqrt_mul (by positivity)]
+          rw [h1]
+          simpa using h_tendsto_sqrt_log_inv.const_mul _ |>.add
+            (h_tendsto_log_inv.const_mul _).add (h_tendsto_log_inv.const_mul _)
+        exact h_tendsto_R.eventually_le (by positivity)
+      filter_upwards [hR] with ε hR
+      have h_expand : (1 + s * lambda) * G s =
+          (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+          (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+          (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) +
+          (1 + s * lambda) * s * C_E / L +
+          (1 + s * lambda) * s * δ_E +
+          (1 + s * lambda) * C_E / L * positiveZUpward x_lasso s +
+          (1 + s * lambda) * C_E * positiveZDownward x_lasso s := by
+        simp [G, L]
+        ring
+      rw [h_expand]
+      have h_leading : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) *
+          Real.sqrt (positiveZDownward x_lasso s) +
+          (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
+          s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s)) := by
+        simp [suboptimalityGap]
+        have h1 : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) *
+            Real.sqrt (positiveZDownward x_lasso s) ≤
+            (1 + s * lambda) * s * C * Real.sqrt (positiveZDownward x_lasso s) := by
+          apply mul_le_mul_of_nonneg_right
+          · apply mul_le_mul_of_nonneg_right
+            · exact hC1
+            · positivity
           · positivity
-        · positivity
-      have h2 : (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
-          (1 + s * lambda) * C * positiveZDownward x_lasso s := by
-        apply mul_le_mul_of_nonneg_left
-        · exact hC2
-        · positivity
-      linarith [h1, h2]
-    have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
-      rw [hδ_D]
-      have h_sq : Real.sqrt (2 * C_D * ((s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D))) =
-          s * δ / (4 * (1 + s * lambda) * C_E) := by
-        have h_pos : 0 < s * δ / (4 * (1 + s * lambda) * C_E) := by positivity
-        rw [show 2 * C_D * ((s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D)) =
-            (s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 by field_simp; ring]
-        exact Real.sqrt_sq h_pos.le
-      rw [h_sq]
-      field_simp
-      ring_nf
-    have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
-      rw [hδ_E]
-      field_simp
-      ring_nf
-    nlinarith [h_leading, h_delta_D, h_delta_E, hR]
-  linarith [hE_bound, h_main]
+        have h2 : (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
+            (1 + s * lambda) * C * positiveZDownward x_lasso s := by
+          apply mul_le_mul_of_nonneg_left
+          · exact hC2
+          · positivity
+        linarith [h1, h2]
+      have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
+        rw [hδ_D]
+        have h_sq : Real.sqrt (2 * C_D * ((s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D))) =
+            s * δ / (4 * (1 + s * lambda) * C_E) := by
+          have h_pos : 0 < s * δ / (4 * (1 + s * lambda) * C_E) := by positivity
+          rw [show 2 * C_D * ((s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D)) =
+              (s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 by field_simp; ring]
+          exact Real.sqrt_sq h_pos.le
+        rw [h_sq]
+        field_simp
+        ring_nf
+      have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
+        rw [hδ_E]
+        field_simp
+        ring_nf
+      nlinarith [h_leading, h_delta_D, h_delta_E, hR]
+    linarith [hE_bound, h_main]
+
 
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso
