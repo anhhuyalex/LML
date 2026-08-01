@@ -1017,9 +1017,43 @@ private lemma positive_energy_deriv_bound_algebraic
     -- Now combine: √(2·pathDelta) ≤ √(A+B+C) ≤ √A + √(2·C_D)·√(z_down_s) + √C
     exact le_trans h_sqrt_mul h_sqrt_add
   -- Use h_key and hK_bound to close the goal
+  have h_mul : C_E * Real.sqrt (2 * pathDelta) ≤
+      C_E * Real.sqrt (2 * C_D / L * (s + z_up_s)) +
+      C_E * Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
+      C_E * Real.sqrt (2 * C_D * δ_D) := by
+    -- Multiply h_key by C_E > 0
+    have h := mul_le_mul_of_nonneg_left h_key hC_E_pos.le
+    -- h: C_E * √(2·pathDelta) ≤ C_E * (√(A) + √(2·C_D)·√(B) + √(C))
+    -- Distribute C_E over the sum on the RHS
+    have h_distrib : C_E * (Real.sqrt (2 * C_D / L * (s + z_up_s)) +
+        Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
+        Real.sqrt (2 * C_D * δ_D)) =
+        C_E * Real.sqrt (2 * C_D / L * (s + z_up_s)) +
+        C_E * (Real.sqrt (2 * C_D) * Real.sqrt (z_down_s)) +
+        C_E * Real.sqrt (2 * C_D * δ_D) := by ring
+    rw [h_distrib] at h
+    -- Re-associate the middle term to match hK_bound
+    simpa [mul_assoc] using h
   have h_main : C_E * Real.sqrt (2 * pathDelta) + C_E / L + δ_E ≤ K := by
+    -- Add C_E/L + δ_E to both sides of h_mul, then chain with hK_bound
+    have h_sum : C_E * Real.sqrt (2 * pathDelta) + C_E / L + δ_E ≤
+        (C_E * Real.sqrt (2 * C_D / L * (s + z_up_s)) +
+         C_E * Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
+         C_E * Real.sqrt (2 * C_D * δ_D)) + C_E / L + δ_E := by
+      linarith
     linarith
-  nlinarith
+  -- Reduce the original goal (which involves z_up', z_down') to h_main
+  -- by canceling the common (C_E/L)*z_up' + C_E*z_down' terms
+  have h_diff_eq : (C_E * (Real.sqrt (2 * pathDelta) + 1 / L * (1 + z_up') + z_down') + δ_E) -
+      (K + (C_E / L) * z_up' + C_E * z_down') =
+      (C_E * Real.sqrt (2 * pathDelta) + C_E / L + δ_E) - K := by
+    field_simp [hL_pos.ne']
+    ring
+  have h_nonpos : C_E * (Real.sqrt (2 * pathDelta) + 1 / L * (1 + z_up') + z_down') + δ_E -
+      (K + (C_E / L) * z_up' + C_E * z_down') ≤ 0 := by
+    rw [h_diff_eq]
+    linarith
+  linarith
 
 /--
 Helper lemma: bound on the derivative of F(τ) by G(τ).
