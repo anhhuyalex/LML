@@ -13,6 +13,7 @@ public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
 public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Data.Matrix.Block
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
 
 /-!
 # Theorems on the Lasso Regularization Path
@@ -35,7 +36,7 @@ informal proofs depend on those reductions.
 
 namespace Lasso
 
-open Filter Topology
+open Filter Topology MeasureTheory
 open scoped ENNReal
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
@@ -64,14 +65,8 @@ lemma scaled_path_ac_on_positive
     fun x _ y _ => by simp
   have hid_ac : AbsolutelyContinuousOnInterval (fun μ : ℝ => μ) a b :=
     hid_lip.absolutelyContinuousOnInterval
-  -- Product (smul) of two AC functions is AC (Mathlib: AbsolutelyContinuousOnInterval.smul)
-  -- Need to bridge: scaledPrimalPath x_lasso = (fun μ => μ) • x_lasso
-  have h_prod_ac : AbsolutelyContinuousOnInterval (scaledPrimalPath x_lasso) a b := by
-    have h_eq : scaledPrimalPath x_lasso = (fun μ : ℝ => μ) • x_lasso := by
-      ext μ; simp [scaledPrimalPath]
-    rw [h_eq]
-    exact AbsolutelyContinuousOnInterval.smul hid_ac hx_ac
-  exact h_prod_ac
+  rw [show scaledPrimalPath x_lasso = (fun μ : ℝ => μ) • x_lasso by ext μ; simp [scaledPrimalPath]]
+  exact AbsolutelyContinuousOnInterval.smul hid_ac hx_ac
 
 /--
 The scaled primal path is identically zero for all sufficiently small `μ ≥ 0`.
@@ -95,7 +90,7 @@ private lemma positive_lasso_minimizer_eq_zero_of_small_mu
     (hμ_pos : 0 < μ)
     (hμ_small : μ < 1 / max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1)
     (hx_min : IsPositiveLassoMinimizer M r lambda μ x) : x = 0 := by
-  rcases (pos_lasso_is_lcp M r lambda μ x (hdata.psd.get_symm) hdata.psd).mp hx_min with ⟨v, hv⟩
+  rcases (pos_lasso_is_lcp M r lambda μ x hdata.psd.symm hdata.psd).mp hx_min with ⟨v, hv⟩
   exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd hμ_pos hμ_small x v).mp hv).1
 
 lemma scaled_path_zero_near_zero
@@ -119,9 +114,8 @@ lemma scaled_path_zero_near_zero
     · subst hμ_zero; simp [scaledPrimalPath]
     · have hμ_pos : 0 < μ := lt_of_le_of_ne hμ_low (Ne.symm hμ_zero)
       have hx_min : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ) := hx_lasso μ hμ_pos
-      -- Since μ ≤ μ_0 = (1/denom)/2 < 1/denom, we are in the small-μ regime
-      have hμ_small : μ < 1 / denom := by
-        linarith [div_pos (by norm_num) h_denom_pos]
+      have hpos : 0 < 1 / denom := div_pos (by norm_num) h_denom_pos
+      have hμ_small : μ < 1 / denom := by linarith
       have hx_zero := positive_lasso_minimizer_eq_zero_of_small_mu
         M r lambda μ (x_lasso μ) hdata hμ_pos hμ_small hx_min
       -- Therefore scaledPrimalPath x_lasso μ = μ • x_lasso(μ) = μ • 0 = 0
@@ -138,12 +132,175 @@ For any compact interval `[a, b] ⊂ [0, ∞)`, we can split it at `μ_0/2`. The
 continuous on `[a, μ_0/2]` and on `[μ_0/2, b]` (since the latter is a positive compact).
 Gluing them together gives absolute continuity on `[a, b]`.
 -/
+-- For an interval collection whose total length is < δ ≤ c (where c = μ₀/2),
+-- each interval either has both endpoints ≤ μ₀ or both endpoints ≥ c.
+-- This is because an interval straddling the gap (one < c, other > μ₀) would have
+-- length > μ₀ - c = c ≥ δ, contradicting the sum bound.
+private lemma interval_case_of_sum_lt (I : ℕ → ℝ × ℝ) (n : ℕ) (μ₀ c δ : ℝ)
+    (hc_def : c = μ₀ / 2) (hμ₀_pos : 0 < μ₀) (hδ_le_c : δ ≤ c)
+    (h_bound : ∀ i ∈ Finset.range n, 0 ≤ (I i).1 ∧ 0 ≤ (I i).2)
+    (h_sum_lt : (∑ i ∈ Finset.range n, dist (I i).1 (I i).2) < δ)
+    (i : ℕ) (hi : i < n) : ((I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀) ∨ (c ≤ (I i).1 ∧ c ≤ (I i).2) := by
+  have hi_range : i ∈ Finset.range n := Finset.mem_range.mpr hi
+  rcases h_bound i hi_range with ⟨hx0, hy0⟩
+  have h_nonneg : ∀ j ∈ Finset.range n, 0 ≤ dist ((I j).1) ((I j).2) :=
+    fun j _ => dist_nonneg
+  by_cases hx_le_μ₀ : (I i).1 ≤ μ₀
+  · by_cases hy_le_μ₀ : (I i).2 ≤ μ₀
+    · left; exact ⟨hx_le_μ₀, hy_le_μ₀⟩
+    · right
+      have hy_gt_μ₀ : μ₀ < (I i).2 := by linarith
+      have hx_ge_c : c ≤ (I i).1 := by
+        by_contra! hx_lt_c
+        have hdist_gt_c : dist ((I i).1) ((I i).2) > c := by
+          rw [Real.dist_eq, abs_sub_comm]
+          have hpos : 0 < (I i).2 - (I i).1 := by linarith
+          rw [abs_of_pos hpos]
+          linarith
+        linarith [Finset.single_le_sum h_nonneg hi_range, h_sum_lt, hdist_gt_c, hδ_le_c]
+      have hy_ge_c : c ≤ (I i).2 := by linarith
+      exact ⟨hx_ge_c, hy_ge_c⟩
+  · have hx_gt_μ₀ : μ₀ < (I i).1 := by linarith
+    by_cases hy_le_μ₀ : (I i).2 ≤ μ₀
+    · right
+      have hy_ge_c : c ≤ (I i).2 := by
+        by_contra! hy_lt_c
+        have hdist_gt_c : dist ((I i).1) ((I i).2) > c := by
+          rw [Real.dist_eq]
+          have hpos : 0 < (I i).1 - (I i).2 := by linarith
+          rw [abs_of_pos hpos]
+          linarith
+        linarith [Finset.single_le_sum h_nonneg hi_range, h_sum_lt, hdist_gt_c, hδ_le_c]
+      have hx_ge_c : c ≤ (I i).1 := by linarith
+      exact ⟨hx_ge_c, hy_ge_c⟩
+    · right
+      have hx_ge_c : c ≤ (I i).1 := by linarith
+      have hy_ge_c : c ≤ (I i).2 := by linarith
+      exact ⟨hx_ge_c, hy_ge_c⟩
+
 lemma locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
     (f : ℝ → EuclideanSpace ℝ ι)
     (hf_pos : LocallyAbsolutelyContinuousOnPositiveCompacts f)
     (hf_zero : ∃ μ_0 > 0, ∀ μ ∈ Set.Icc 0 μ_0, f μ = 0) :
     LocallyAbsolutelyContinuousOnNonnegativeCompacts f := by
-  sorry
+  rcases hf_zero with ⟨μ₀, hμ₀_pos, hf_zero_on⟩
+  set c := μ₀ / 2 with hc_def
+  have hc_pos : 0 < c := by linarith
+  have hc_mem : c ∈ Set.Icc (0 : ℝ) μ₀ := ⟨by linarith, by linarith⟩
+  have hfc_zero : f c = 0 := hf_zero_on c hc_mem
+  open Set in
+  constructor
+  intro a b ha_nonneg hab
+  rcases eq_or_lt_of_le ha_nonneg with (rfl | ha_pos)
+  · -- a = 0
+    by_cases hb_le : b ≤ μ₀
+    · -- b ≤ μ₀, so f = 0 on [0,b]; constant zero is Lipschitz, hence AC
+      have hzero : ∀ x ∈ Set.uIcc (0 : ℝ) b, f x = 0 := by
+        intro x hx
+        rcases Set.mem_uIcc.1 hx with (⟨hx0, hxb⟩ | ⟨hbx, hx0⟩)
+        · exact hf_zero_on x ⟨hx0, hxb.trans hb_le⟩
+        · -- x ≤ 0 and b ≤ x, so x = 0 = b
+          have hx_eq_0 : x = 0 := by linarith
+          subst hx_eq_0
+          exact hf_zero_on 0 ⟨le_refl 0, hμ₀_pos.le⟩
+      have hlip : LipschitzOnWith (0 : NNReal) f (Set.uIcc (0 : ℝ) b) := by
+        intro x hx y hy
+        simp [hzero x hx, hzero y hy]
+      exact hlip.absolutelyContinuousOnInterval
+    · -- b > μ₀: use ε-δ with a clever split at c = μ₀/2
+      have h_ac_cb : AbsolutelyContinuousOnInterval f c b :=
+        hf_pos.absolutelyContinuousOn_Icc c b hc_pos (by linarith)
+      rw [absolutelyContinuousOnInterval_iff] at h_ac_cb ⊢
+      intro ε hε
+      rcases h_ac_cb ε hε with ⟨δ₁, hδ₁_pos, hδ₁_prop⟩
+      set δ := min δ₁ c with hδ_def
+      have hδ_pos : 0 < δ := lt_min hδ₁_pos hc_pos
+      have hδ_le_c : δ ≤ c := min_le_right _ _
+      refine ⟨δ, hδ_pos, ?_⟩
+      intro E hE h_sum_len
+      rcases hE with ⟨hE_mem, hE_disj⟩
+      let n := E.1
+      let I := E.2
+      -- For each interval, convert membership from uIcc 0 b to concrete bounds
+      have hE_mem_Icc : ∀ i ∈ Finset.range n,
+          0 ≤ (I i).1 ∧ (I i).1 ≤ b ∧ 0 ≤ (I i).2 ∧ (I i).2 ≤ b := by
+        intro i hi
+        rcases hE_mem i hi with ⟨hx_mem, hy_mem⟩
+        have hx := (Set.mem_Icc.1 (by
+          rw [← Set.uIcc_of_le (by linarith : (0 : ℝ) ≤ b)]; exact hx_mem))
+        have hy := (Set.mem_Icc.1 (by
+          rw [← Set.uIcc_of_le (by linarith : (0 : ℝ) ≤ b)]; exact hy_mem))
+        exact ⟨hx.1, hx.2, hy.1, hy.2⟩
+      -- Key geometric fact: for each interval, either both endpoints ≤ μ₀, or both ≥ c
+      have h_bound : ∀ i ∈ Finset.range n, 0 ≤ (I i).1 ∧ 0 ≤ (I i).2 := by
+        intro i hi
+        rcases hE_mem_Icc i hi with ⟨hx0, _, hy0, _⟩
+        exact ⟨hx0, hy0⟩
+      have h_key : ∀ i, i < n → ((I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀) ∨ (c ≤ (I i).1 ∧ c ≤ (I i).2) :=
+        fun i hi => interval_case_of_sum_lt I n μ₀ c δ hc_def hμ₀_pos hδ_le_c h_bound h_sum_len i hi
+      -- Define modified I' that replaces "low" intervals with (c, c)
+      let I' : ℕ → ℝ × ℝ := fun i =>
+        if (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀ then (c, c) else I i
+      -- I' intervals are subsets of I intervals (in the uIoc sense)
+      have h_subset : ∀ i, uIoc (I' i).1 (I' i).2 ⊆ uIoc (I i).1 (I i).2 := by
+        intro i
+        dsimp [I']
+        by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
+        · rw [if_pos hi_low]; simp
+        · rw [if_neg hi_low]
+      -- Hence (n, I') ∈ disjWithin c b
+      have hI'_mem : (n, I') ∈ AbsolutelyContinuousOnInterval.disjWithin c b := by
+        rw [AbsolutelyContinuousOnInterval.disjWithin]
+        refine ⟨?_, ?_⟩
+        · intro i hi
+          dsimp [I']
+          by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
+          · rw [if_pos hi_low]
+            exact ⟨Set.left_mem_uIcc, Set.left_mem_uIcc⟩
+          · rw [if_neg hi_low]
+            rcases h_key i (Finset.mem_range.1 hi) with (⟨hx_le, hy_le⟩ | ⟨hx_ge, hy_ge⟩)
+            · exfalso; exact hi_low ⟨hx_le, hy_le⟩
+            · rcases hE_mem_Icc i hi with ⟨hx0, hxb, hy0, hyb⟩
+              have hx_mem' : (I i).1 ∈ Set.uIcc c b := by
+                rw [Set.uIcc_of_le (by linarith : c ≤ b)]
+                exact ⟨hx_ge, hxb⟩
+              have hy_mem' : (I i).2 ∈ Set.uIcc c b := by
+                rw [Set.uIcc_of_le (by linarith : c ≤ b)]
+                exact ⟨hy_ge, hyb⟩
+              exact ⟨hx_mem', hy_mem'⟩
+        · intro i hi j hj hij
+          exact (hE_disj hi hj hij).mono (h_subset i) (h_subset j)
+      -- Total length of I' ≤ total length of I
+      have h_len_I'_le : (∑ i ∈ Finset.range n, dist (I' i).1 (I' i).2) ≤
+          (∑ i ∈ Finset.range n, dist (I i).1 (I i).2) := by
+        refine Finset.sum_le_sum (fun i hi => ?_)
+        dsimp [I']
+        by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
+        · rw [if_pos hi_low]
+          simp [dist_nonneg]
+        · rw [if_neg hi_low]
+      -- Total variation of I' = total variation of I (low intervals contribute 0 on both sides)
+      have h_var_eq : (∑ i ∈ Finset.range n, dist (f (I' i).1) (f (I' i).2)) =
+          (∑ i ∈ Finset.range n, dist (f (I i).1) (f (I i).2)) := by
+        refine Finset.sum_congr rfl (fun i hi => ?_)
+        dsimp [I']
+        by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
+        · rw [if_pos hi_low]
+          rcases hi_low with ⟨hx_le, hy_le⟩
+          rcases hE_mem_Icc i hi with ⟨hx0, hxb, hy0, hyb⟩
+          have hfx : f (I i).1 = 0 := hf_zero_on (I i).1 ⟨hx0, hx_le⟩
+          have hfy : f (I i).2 = 0 := hf_zero_on (I i).2 ⟨hy0, hy_le⟩
+          simp [hfc_zero, hfx, hfy]
+        · rw [if_neg hi_low]
+      -- Now apply the ε-δ property for AC on [c, b]
+      -- Unfold the let definitions n = E.1, I = E.2 for rewriting
+      dsimp [n, I] at h_len_I'_le h_var_eq hI'_mem
+      have hδ_le_δ₁ : δ ≤ δ₁ := min_le_left _ _
+      have h_len_I'_lt_δ₁ : (∑ i ∈ Finset.range E.1, dist (I' i).1 (I' i).2) < δ₁ := by
+        linarith
+      simpa [h_var_eq] using hδ₁_prop (E.1, I') hI'_mem h_len_I'_lt_δ₁
+  · -- a > 0: directly from hf_pos
+    exact hf_pos.absolutelyContinuousOn_Icc a b ha_pos hab
 
 /-- Regularity bridge used between the public statement of Theorem 3.2 and its
 scaled-path energy proof.
@@ -180,9 +337,10 @@ theorem scaledPrimalPath_regular_of_path_regular
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso) :
     LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) := by
-  apply locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
-  · exact scaled_path_ac_on_positive x_lasso h_regular
-  · exact scaled_path_zero_near_zero M r lambda x_lasso hdata hx_lasso
+  exact locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
+    (scaledPrimalPath x_lasso)
+    (scaled_path_ac_on_positive x_lasso h_regular)
+    (scaled_path_zero_near_zero M r lambda x_lasso hdata hx_lasso)
 
 
 /--
@@ -202,7 +360,38 @@ lemma exists_parametric_lcp_solution_for_positive_lasso
     (hμ : 0 < μ)
     (hx_lasso : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
     ∃ w : EuclideanSpace ℝ ι, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) w := by
-  sorry
+  -- Extract symmetry and PSD from the bundled ProblemData hypothesis
+  have hM_symm : M.IsSymm := hdata.psd.get_symm
+  have hM_psd : IsPositiveSemidefinite M := hdata.psd
+  -- Step 1: pos_lasso_is_lcp turns the positive Lasso minimizer into a standard LCP solution
+  rcases ((pos_lasso_is_lcp M r lambda μ (x_lasso μ) hM_symm hM_psd).mp hx_lasso) with
+    ⟨v, hv_eq, hv_nonneg, hx_nonneg, hvx_zero⟩
+  -- Step 2: scale the dual variable by μ to obtain the parametric LCP witness
+  use μ • v
+  -- Step 3: unfold the goal and verify the four LCP conditions
+  dsimp [isParametricLCP, isLCP, scaledPrimalPath]
+  -- Key algebraic identity: μ • lcpQ = parametricLcpQ (requires μ ≠ 0)
+  have h_scale_q : μ • lcpQ r lambda μ = parametricLcpQ r lambda μ := by
+    ext i
+    dsimp [lcpQ, parametricLcpQ, euclideanOf]
+    field_simp [hμ.ne.symm]
+    ring
+  have h_mu_nonneg : 0 ≤ μ := hμ.le
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · -- Condition 1: stationarity (μ·v = parametricLcpQ + M(μ·x))
+    calc
+      μ • v = μ • (lcpQ r lambda μ + matVec M (x_lasso μ)) := by rw [hv_eq]
+      _ = μ • lcpQ r lambda μ + μ • matVec M (x_lasso μ) := by rw [smul_add]
+      _ = parametricLcpQ r lambda μ + matVec M (μ • x_lasso μ) := by
+        rw [h_scale_q, matVec_smul_eq]
+  · -- Condition 2: dual feasibility (μ·v ≥ 0)
+    intro i
+    exact mul_nonneg h_mu_nonneg (hv_nonneg i)
+  · -- Condition 3: primal feasibility (μ·x ≥ 0)
+    intro i
+    exact mul_nonneg h_mu_nonneg (hx_nonneg i)
+  · -- Condition 4: complementarity ⟨μ·v, μ·x⟩ = 0
+    simp [inner_smul_right, inner_smul_left, hvx_zero]
 
 /--
 At `μ = 0`, the origin and the all-ones vector solve the parametric LCP.
@@ -216,7 +405,16 @@ lemma exists_parametric_lcp_solution_at_zero
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι) :
     ∃ w : EuclideanSpace ℝ ι, isParametricLCP M r lambda 0 (scaledPrimalPath x_lasso 0) w := by
-  sorry
+  use parametricLcpQ r lambda 0
+  have hz0 : scaledPrimalPath x_lasso 0 = 0 := by ext i; simp [scaledPrimalPath]
+  have hq0 : parametricLcpQ r lambda 0 = ones := by ext i; simp [parametricLcpQ, ones, euclideanOf]
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · rw [hz0]
+    have hMz : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by ext i; simp [matVec, euclideanOf]
+    rw [hMz, add_zero]
+  · rw [hq0]; intro i; simp [ones, euclideanOf]
+  · rw [hz0]; intro i; simp
+  · rw [hz0]; simp
 
 /--
 Given that `w(μ)` can be constructed piecewise to solve the parametric LCP,
@@ -233,9 +431,10 @@ lemma dual_certificate_regularity
     (hinverse : IsPSDRangeInverse M Mdagger)
     (hsol : ∀ μ ≥ 0, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ)) :
     ParametricLCPDualRegular M Mdagger r lambda w := by
-  apply parametric_lcp_dual_regular M Mdagger r lambda _ _ hdata hsol _ hinverse
-  intros μ _ z1 z2 w1 w2 h1 h2
-  exact psd_lcp_unique_dual M hdata.psd (parametricLcpQ r lambda μ) z1 z2 w1 w2 h1 h2
+  exact parametric_lcp_dual_regular M Mdagger r lambda _ _ hdata hsol
+    (fun μ _ z1 z2 w1 w2 h1 h2 =>
+      psd_lcp_unique_dual M hdata.psd (parametricLcpQ r lambda μ) z1 z2 w1 w2 h1 h2)
+    hinverse
 /-- Construct the auxiliary Moore--Penrose/LCP data from the selected positive
 Lasso minimizer path.
 
@@ -576,6 +775,57 @@ noncomputable def signedCanonicalSplit (x : EuclideanSpace ℝ ι) :
   (WithLp.equiv 2 _).symm
     (Sum.elim (coordinatePositivePart x) (coordinateNegativePart x))
 
+/-- `signedCanonicalSplit` is `2`-Lipschitz (a coarse constant; `√2` is tight): each of the
+two block coordinates is `1`-Lipschitz in the ambient coordinate (`abs_max_sub_max_le_abs`), so
+`dist (signedCanonicalSplit x) (signedCanonicalSplit y) ^ 2 ≤ 2 * dist x y ^ 2 ≤ (2 * dist x y)^2`
+by `EuclideanSpace.dist_sq_eq` on both sides. -/
+lemma lipschitzWith_signedCanonicalSplit :
+    LipschitzWith 2 (signedCanonicalSplit : EuclideanSpace ℝ ι → EuclideanSpace ℝ (ι ⊕ ι)) := by
+  apply LipschitzWith.of_dist_le_mul
+  intro x y
+  have hsq : dist (signedCanonicalSplit x) (signedCanonicalSplit y) ^ 2 ≤
+      ((2 : NNReal) * dist x y) ^ 2 := by
+    rw [EuclideanSpace.dist_sq_eq]
+    have hsplit : (∑ j : ι ⊕ ι, dist (signedCanonicalSplit x j) (signedCanonicalSplit y j) ^ 2) =
+        (∑ i : ι, dist (signedCanonicalSplit x (Sum.inl i))
+          (signedCanonicalSplit y (Sum.inl i)) ^ 2) +
+          ∑ i : ι, dist (signedCanonicalSplit x (Sum.inr i))
+            (signedCanonicalSplit y (Sum.inr i)) ^ 2 :=
+      Fintype.sum_sum_type _
+    rw [hsplit]
+    have hterm_inl : ∀ i : ι,
+        dist (signedCanonicalSplit x (Sum.inl i)) (signedCanonicalSplit y (Sum.inl i)) ^ 2 ≤
+          dist (x i) (y i) ^ 2 := by
+      intro i
+      change dist (max (x i) 0) (max (y i) 0) ^ 2 ≤ dist (x i) (y i) ^ 2
+      simp only [Real.dist_eq]
+      exact pow_le_pow_left₀ (abs_nonneg _) (abs_max_sub_max_le_abs (x i) (y i) 0) 2
+    have hterm_inr : ∀ i : ι,
+        dist (signedCanonicalSplit x (Sum.inr i)) (signedCanonicalSplit y (Sum.inr i)) ^ 2 ≤
+          dist (x i) (y i) ^ 2 := by
+      intro i
+      change dist (max (-(x i)) 0) (max (-(y i)) 0) ^ 2 ≤ dist (x i) (y i) ^ 2
+      simp only [Real.dist_eq]
+      have h := abs_max_sub_max_le_abs (-(x i)) (-(y i)) 0
+      rw [neg_sub_neg, abs_sub_comm (y i) (x i)] at h
+      exact pow_le_pow_left₀ (abs_nonneg _) h 2
+    have hdxy : (∑ i : ι, dist (x i) (y i) ^ 2) = dist x y ^ 2 :=
+      (EuclideanSpace.dist_sq_eq x y).symm
+    have hstep :
+        (∑ i : ι, dist (signedCanonicalSplit x (Sum.inl i))
+            (signedCanonicalSplit y (Sum.inl i)) ^ 2) +
+          ∑ i : ι, dist (signedCanonicalSplit x (Sum.inr i))
+            (signedCanonicalSplit y (Sum.inr i)) ^ 2
+        ≤ (∑ i : ι, dist (x i) (y i) ^ 2) + ∑ i : ι, dist (x i) (y i) ^ 2 :=
+      add_le_add (Finset.sum_le_sum fun i _ => hterm_inl i)
+        (Finset.sum_le_sum fun i _ => hterm_inr i)
+    rw [hdxy] at hstep
+    have hK : ((2 : NNReal) * dist x y : ℝ) ^ 2 = 4 * dist x y ^ 2 := by push_cast; ring
+    rw [hK]
+    nlinarith [sq_nonneg (dist x y)]
+  have h2 : (0 : ℝ) ≤ (2 : NNReal) * dist x y := by positivity
+  nlinarith [dist_nonneg (x := signedCanonicalSplit x) (y := signedCanonicalSplit y), hsq, h2]
+
 /-- Local absolute continuity is preserved by the canonical positive/negative
 split used in Section 5.
 
@@ -591,29 +841,12 @@ theorem signedCanonicalSplit_path_regular
     (hx : LocallyAbsolutelyContinuousOnPositiveCompacts x) :
     LocallyAbsolutelyContinuousOnPositiveCompacts
       (fun μ => signedCanonicalSplit (x μ)) := by
-  sorry
-
-/-- A signed coordinate that is monotone in either direction becomes two
-nondecreasing coordinates after the positive/negative split.
-
-Lemma 4.10 makes `z(μ)=μx(μ)` zero near the origin. Thus a nondecreasing
-coordinate stays nonnegative, so `zᵢ⁺=zᵢ` and `zᵢ⁻=0`; a nonincreasing
-coordinate stays nonpositive, so `zᵢ⁺=0` and `zᵢ⁻=-zᵢ`. In either case both
-coordinates of the canonical nonnegative representation are nondecreasing.
-This is exactly the reduction in Section 5.2.1 of
-<https://arxiv.org/abs/2509.18766>.
--/
-theorem signedCanonicalSplit_scaled_monotonicity
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (x : ℝ → EuclideanSpace ℝ ι)
-    (hdata : ProblemData M r lambda)
-    (hmin : ∀ μ > 0, IsLassoMinimizer M r lambda μ (x μ))
-    (hx : ∀ i,
-      MonotoneOn (fun μ => μ * x μ i) (Set.Ioi 0) ∨
-        AntitoneOn (fun μ => μ * x μ i) (Set.Ioi 0)) :
-    ∀ j : ι ⊕ ι,
-      MonotoneOn (fun μ => μ * signedCanonicalSplit (x μ) j) (Set.Ioi 0) := by
-  sorry
+  refine ⟨fun a b ha hab => ?_⟩
+  -- Note: applying this via dot notation (`lipschitzWith_signedCanonicalSplit.comp_...`)
+  -- causes a `whnf` timeout during unification; explicit named arguments avoid it.
+  exact LipschitzWith.comp_absolutelyContinuousOnInterval
+    (f := x) (g := signedCanonicalSplit) lipschitzWith_signedCanonicalSplit
+    (hx.absolutelyContinuousOn_Icc a b ha hab)
 
 /-- Difference map `(y_pos, y_neg) ↦ y_pos - y_neg`. -/
 noncomputable def splitDifference (y : EuclideanSpace ℝ (ι ⊕ ι)) :
@@ -623,6 +856,35 @@ noncomputable def splitDifference (y : EuclideanSpace ℝ (ι ⊕ ι)) :
 /-- Coordinatewise complementarity of an arbitrary signed split. -/
 def SplitComplementary (y : EuclideanSpace ℝ (ι ⊕ ι)) : Prop :=
   ∀ i : ι, y (Sum.inl i) * y (Sum.inr i) = 0
+
+/--
+The quadratic part of the objective is invariant under the signed/augmented-positive
+reduction, for *any* split `y = (y_pos, y_neg)` (not just a complementary one): expanding the
+block matrix `[M,-M;-M,M]` and vector `[r;-r]` against `y = (a,b)` and `splitDifference y = a-b`
+reduces both sides to the same bilinear expression by `augmentedMatrix_matVec`,
+`inner_sumElim`, `inner_augmentedVector_sumElim`. This is the general form of the computation
+in Lemma 5.1 of <https://arxiv.org/abs/2509.18766>; `lasso_objective_reduction`'s `h_quad` is
+the special case `y = signedCanonicalSplit x`.
+-/
+lemma quadraticLoss_splitDifference_eq
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (y : EuclideanSpace ℝ (ι ⊕ ι)) :
+    quadraticLoss M r (splitDifference y) =
+      quadraticLoss (augmentedMatrix M) (augmentedVector r) y := by
+  set a : EuclideanSpace ℝ ι := euclideanOf (fun i => y (Sum.inl i)) with ha
+  set b : EuclideanSpace ℝ ι := euclideanOf (fun i => y (Sum.inr i)) with hb
+  have hy_eq : y = euclideanOf (Sum.elim a b) := by
+    ext j
+    cases j with
+    | inl i => simp [euclideanOf, ha]
+    | inr i => simp [euclideanOf, hb]
+  have hsplit_eq : splitDifference y = a - b := by
+    ext i
+    change y (Sum.inl i) - y (Sum.inr i) = _
+    simp [euclideanOf, ha, hb]
+  rw [hsplit_eq, hy_eq, quadraticLoss, quadraticLoss, augmentedMatrix_matVec, inner_sumElim,
+    inner_augmentedVector_sumElim, matVec_sub, inner_sub_left, inner_sub_right, inner_sub_right,
+    inner_sub_right, inner_add_right, inner_neg_right]
+  ring
 
 /-- The signed-to-positive augmentation preserves the standing problem-data
 assumptions.
@@ -638,7 +900,39 @@ theorem augmented_problem_data
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (hdata : ProblemData M r lambda) :
     ProblemData (augmentedMatrix M) (augmentedVector r) lambda := by
-  sorry
+  have hM_symm : M.IsSymm := hdata.psd.symm
+  refine ⟨⟨augmentedMatrix_isSymm M hM_symm, fun y => ?_⟩, ?_, hdata.lambda_nonneg⟩
+  · -- PSD: specializing `quadraticLoss_splitDifference_eq` at `r = 0` isolates the
+    -- quadratic-form identity `⟨y, M̃y⟩ = ⟨splitDifference y, M (splitDifference y)⟩`.
+    have hquad : inner ℝ y (matVec (augmentedMatrix M) y) =
+        inner ℝ (splitDifference y) (matVec M (splitDifference y)) := by
+      have h := quadraticLoss_splitDifference_eq M (0 : EuclideanSpace ℝ ι) y
+      have haug0 : augmentedVector (0 : EuclideanSpace ℝ ι) = 0 := by
+        ext j
+        cases j with
+        | inl i => simp [augmentedVector]
+        | inr i => simp [augmentedVector]
+      rw [quadraticLoss, quadraticLoss, haug0, inner_zero_left, inner_zero_left, sub_zero,
+        sub_zero] at h
+      linarith [h]
+    rw [hquad]
+    exact hdata.psd.get_nonneg (splitDifference y)
+  · -- `r = Mq` lifts to `augmentedVector r = augmentedMatrix M · (q, 0)`.
+    obtain ⟨q, hq⟩ := hdata.r_mem_span
+    refine ⟨euclideanOf (Sum.elim q 0), ?_⟩
+    rw [augmentedMatrix_matVec]
+    have h0 : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by ext i; simp [matVec, euclideanOf]
+    simp only [show (WithLp.toLp 2 (0 : ι → ℝ) : EuclideanSpace ℝ ι) = 0 from rfl, h0, sub_zero,
+      add_zero, hq]
+    rfl
+
+/-- Coordinatewise bound behind Lemma 5.1(1): for a nonnegative pair `(y_pos, y_neg)`,
+`|y_pos - y_neg| ≤ y_pos + y_neg`, with equality iff one of the two vanishes. Extracted since
+both `lasso_split_objective_le` and `lasso_split_objective_eq_iff_complementary` need it. -/
+lemma abs_sub_le_add_of_nonneg {p q : ℝ} (hp : 0 ≤ p) (hq : 0 ≤ q) :
+    |p - q| ≤ p + q :=
+  calc |p - q| ≤ |p| + |q| := abs_sub _ _
+    _ = p + q := by rw [abs_of_nonneg hp, abs_of_nonneg hq]
 
 /--
 Lemma 5.1(1), inequality part: any nonnegative split gives an augmented positive
@@ -657,7 +951,20 @@ lemma lasso_split_objective_le
   -- evaluates the sum of the positive and negative components (y_pos + y_neg).
   -- By the triangle inequality, |y_pos - y_neg| <= y_pos + y_neg for any nonnegative components.
   -- This makes the signed objective always less than or equal to the augmented positive objective.
-  sorry
+  dsimp only [positiveLassoObjective]
+  rw [lassoObjective, lassoObjective, quadraticLoss_splitDifference_eq]
+  gcongr
+  rw [PiLp.norm_eq_of_L1, PiLp.norm_eq_of_L1]
+  change (∑ i, ‖(splitDifference y) i‖) ≤ ∑ j, ‖y j‖
+  have h_sum_rhs :
+      (∑ j : ι ⊕ ι, ‖y j‖) = (∑ i : ι, ‖y (Sum.inl i)‖) + ∑ i : ι, ‖y (Sum.inr i)‖ :=
+    Fintype.sum_sum_type _
+  rw [h_sum_rhs, ← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun i _ => ?_
+  change |y (Sum.inl i) - y (Sum.inr i)| ≤ ‖y (Sum.inl i)‖ + ‖y (Sum.inr i)‖
+  simp only [Real.norm_eq_abs]
+  rw [abs_of_nonneg (hy (Sum.inl i)), abs_of_nonneg (hy (Sum.inr i))]
+  exact abs_sub_le_add_of_nonneg (hy (Sum.inl i)) (hy (Sum.inr i))
 
 /--
 Lemma 5.1(1), equality criterion: equality holds exactly for complementary
@@ -676,7 +983,42 @@ lemma lasso_split_objective_eq_iff_complementary
   -- Equality in the triangle inequality |y_pos - y_neg| <= y_pos + y_neg holds if and only if
   -- y_pos and y_neg have disjoint support. Since they are nonnegative, this is equivalent
   -- to the complementarity condition y_pos * y_neg = 0 for all coordinates.
-  sorry
+  dsimp only [positiveLassoObjective]
+  rw [lassoObjective, lassoObjective, quadraticLoss_splitDifference_eq,
+    add_right_inj, mul_right_inj' (ne_of_gt hpenalty)]
+  rw [PiLp.norm_eq_of_L1, PiLp.norm_eq_of_L1]
+  change (∑ i, ‖(splitDifference y) i‖) = (∑ j, ‖y j‖) ↔ _
+  have h_sum_rhs :
+      (∑ j : ι ⊕ ι, ‖y j‖) = (∑ i : ι, ‖y (Sum.inl i)‖) + ∑ i : ι, ‖y (Sum.inr i)‖ :=
+    Fintype.sum_sum_type _
+  rw [h_sum_rhs, ← Finset.sum_add_distrib]
+  have hterm_le : ∀ i ∈ (Finset.univ : Finset ι),
+      ‖(splitDifference y) i‖ ≤ ‖y (Sum.inl i)‖ + ‖y (Sum.inr i)‖ := by
+    intro i _
+    change |y (Sum.inl i) - y (Sum.inr i)| ≤ ‖y (Sum.inl i)‖ + ‖y (Sum.inr i)‖
+    simp only [Real.norm_eq_abs]
+    rw [abs_of_nonneg (hy (Sum.inl i)), abs_of_nonneg (hy (Sum.inr i))]
+    exact abs_sub_le_add_of_nonneg (hy (Sum.inl i)) (hy (Sum.inr i))
+  rw [Finset.sum_eq_sum_iff_of_le hterm_le]
+  constructor
+  · intro h i
+    have hi := h i (Finset.mem_univ i)
+    change |y (Sum.inl i) - y (Sum.inr i)| = ‖y (Sum.inl i)‖ + ‖y (Sum.inr i)‖ at hi
+    have hai : 0 ≤ y (Sum.inl i) := hy (Sum.inl i)
+    have hbi : 0 ≤ y (Sum.inr i) := hy (Sum.inr i)
+    simp only [Real.norm_eq_abs, abs_of_nonneg hai, abs_of_nonneg hbi] at hi
+    rcases abs_cases (y (Sum.inl i) - y (Sum.inr i)) with ⟨heq, _⟩ | ⟨heq, _⟩
+    · rw [heq] at hi; nlinarith
+    · rw [heq] at hi; nlinarith
+  · intro hcomp i _
+    have hcompi := hcomp i
+    change |y (Sum.inl i) - y (Sum.inr i)| = ‖y (Sum.inl i)‖ + ‖y (Sum.inr i)‖
+    have hai : 0 ≤ y (Sum.inl i) := hy (Sum.inl i)
+    have hbi : 0 ≤ y (Sum.inr i) := hy (Sum.inr i)
+    simp only [Real.norm_eq_abs, abs_of_nonneg hai, abs_of_nonneg hbi]
+    rcases mul_eq_zero.mp hcompi with h0 | h0
+    · rw [h0, abs_of_nonpos (by linarith)]; ring
+    · rw [h0, abs_of_nonneg (by linarith)]; ring
 
 /--
 Canonical objective equality for the split `x = x_+ - x_-`.
@@ -704,7 +1046,6 @@ lemma lasso_objective_reduction
         linarith
       · rw [max_eq_right hneg, max_eq_left (by linarith)]
         linarith
-
     have h_norm :
         ‖(WithLp.equiv 1 (ι → ℝ)).symm x‖ =
           ‖(WithLp.equiv 1 (ι ⊕ ι → ℝ)).symm (signedCanonicalSplit x)‖ := by
@@ -727,7 +1068,6 @@ lemma lasso_objective_reduction
       · have hm1 : max (x i) 0 = 0 := max_eq_right hneg
         have hm2 : max (-x i) 0 = -x i := max_eq_left (by linarith)
         rw [hm1, hm2, abs_zero, zero_add, abs_neg]
-
     have h_quad : quadraticLoss M r x =
         quadraticLoss (augmentedMatrix M) (augmentedVector r) (signedCanonicalSplit x) := by
       /-
@@ -735,8 +1075,8 @@ lemma lasso_objective_reduction
       Both expressions reduce to the quadratic loss at `x₊-x₋=x`.
       This is Lemma 5.1 of <https://arxiv.org/abs/2509.18766>.
       -/
-      sorry
-
+      have h := quadraticLoss_splitDifference_eq M r (signedCanonicalSplit x)
+      rwa [h_split] at h
     rw [positiveLassoObjective, lassoObjective, lassoObjective, h_norm, h_quad]
 
 /--
@@ -757,23 +1097,233 @@ lemma lasso_minimizer_to_augmented_positive_minimizer
   -- positive objective. Any other positive split y can be mapped to a signed vector y_pos - y_neg,
   -- whose signed objective is ≤ the positive objective of y. Since x is the global minimum,
   -- the canonical split of x must achieve the absolute minimum of the augmented problem.
-  sorry
+  obtain ⟨hnonneg, hobj_eq⟩ := lasso_objective_reduction M r lambda μ x
+  refine ⟨hnonneg, isMinOn_iff.mpr (fun y hy => ?_)⟩
+  rw [← hobj_eq]
+  calc lassoObjective M r lambda μ x
+      ≤ lassoObjective M r lambda μ (splitDifference y) :=
+        isMinOn_iff.mp hx (splitDifference y) (Set.mem_univ _)
+    _ ≤ positiveLassoObjective (augmentedMatrix M) (augmentedVector r) lambda μ y :=
+        lasso_split_objective_le M r lambda μ y hy hpenalty
+
+/-- A signed coordinate that is monotone in either direction becomes two
+nondecreasing coordinates after the positive/negative split.
+
+Lemma 4.10 makes `z(μ)=μx(μ)` zero near the origin. Thus a nondecreasing
+coordinate stays nonnegative, so `zᵢ⁺=zᵢ` and `zᵢ⁻=0`; a nonincreasing
+coordinate stays nonpositive, so `zᵢ⁺=0` and `zᵢ⁻=-zᵢ`. In either case both
+coordinates of the canonical nonnegative representation are nondecreasing.
+This is exactly the reduction in Section 5.2.1 of
+<https://arxiv.org/abs/2509.18766>.
+-/
+theorem signedCanonicalSplit_scaled_monotonicity
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hmin : ∀ μ > 0, IsLassoMinimizer M r lambda μ (x μ))
+    (hx : ∀ i,
+      MonotoneOn (fun μ => μ * x μ i) (Set.Ioi 0) ∨
+        AntitoneOn (fun μ => μ * x μ i) (Set.Ioi 0)) :
+    ∀ j : ι ⊕ ι,
+      MonotoneOn (fun μ => μ * signedCanonicalSplit (x μ) j) (Set.Ioi 0) := by
+  have hpenalty : ∀ μ : ℝ, 0 < μ → 0 ≤ lambda + 1 / μ := by
+    intro μ hμ
+    have h1 := hdata.lambda_nonneg
+    have h2 : (0 : ℝ) < 1 / μ := by positivity
+    linarith
+  have hdata_aug := augmented_problem_data M r lambda hdata
+  have hy_pos : ∀ μ > 0,
+      IsPositiveLassoMinimizer (augmentedMatrix M) (augmentedVector r) lambda μ
+        (signedCanonicalSplit (x μ)) :=
+    fun μ hμ => lasso_minimizer_to_augmented_positive_minimizer M r lambda μ (x μ)
+      (hpenalty μ hμ) (hmin μ hμ)
+  -- Lemma 4.10 for the augmented positive system: `z(μ) = μ • signedCanonicalSplit(x μ)`
+  -- vanishes for small `μ`, hence (since `μ ≠ 0` there) `signedCanonicalSplit (x μ) = 0`,
+  -- hence `x μ = 0` itself (both `max(x μ i, 0)` and `max(-(x μ i), 0)` vanish).
+  obtain ⟨μ0, hμ0pos, hzero⟩ :=
+    scaled_path_zero_near_zero (augmentedMatrix M) (augmentedVector r) lambda
+      (fun μ => signedCanonicalSplit (x μ)) hdata_aug hy_pos
+  have hxzero : ∀ μ, 0 < μ → μ ≤ μ0 → x μ = 0 := by
+    intro μ hμpos hμle
+    have hz := hzero μ ⟨hμpos.le, hμle⟩
+    dsimp only [scaledPrimalPath] at hz
+    have hsplit0 : signedCanonicalSplit (x μ) = 0 := by
+      rcases smul_eq_zero.mp hz with h | h
+      · exact absurd h hμpos.ne'
+      · exact h
+    ext i
+    have hinl : signedCanonicalSplit (x μ) (Sum.inl i) =
+        (0 : EuclideanSpace ℝ (ι ⊕ ι)) (Sum.inl i) := by rw [hsplit0]
+    have hinr : signedCanonicalSplit (x μ) (Sum.inr i) =
+        (0 : EuclideanSpace ℝ (ι ⊕ ι)) (Sum.inr i) := by rw [hsplit0]
+    change max (x μ i) 0 = 0 at hinl
+    change max (-(x μ i)) 0 = 0 at hinr
+    change x μ i = 0
+    have h1 : x μ i ≤ 0 := by
+      have := le_max_left (x μ i) 0; rw [hinl] at this; linarith
+    have h2 : 0 ≤ x μ i := by
+      have := le_max_left (-x μ i) 0; rw [hinr] at this; linarith
+    linarith
+  -- An antitone `μ * x μ i` that vanishes on `(0, μ0]` stays `≤ 0` everywhere on `(0,∞)`;
+  -- symmetrically a monotone one stays `≥ 0`.
+  have hg_le_zero : ∀ i, AntitoneOn (fun μ => μ * x μ i) (Set.Ioi 0) →
+      ∀ μ ∈ Set.Ioi (0 : ℝ), μ * x μ i ≤ 0 := by
+    intro i hanti μ hμ
+    rcases le_total μ μ0 with hle | hge
+    · rw [hxzero μ hμ hle]; simp
+    · have hμ0mem : μ0 ∈ Set.Ioi (0 : ℝ) := hμ0pos
+      have hle' := hanti hμ0mem hμ hge
+      dsimp only at hle'
+      rw [hxzero μ0 hμ0pos le_rfl] at hle'
+      simpa using hle'
+  have hg_ge_zero : ∀ i, MonotoneOn (fun μ => μ * x μ i) (Set.Ioi 0) →
+      ∀ μ ∈ Set.Ioi (0 : ℝ), 0 ≤ μ * x μ i := by
+    intro i hmono μ hμ
+    rcases le_total μ μ0 with hle | hge
+    · rw [hxzero μ hμ hle]; simp
+    · have hμ0mem : μ0 ∈ Set.Ioi (0 : ℝ) := hμ0pos
+      have hle' := hmono hμ0mem hμ hge
+      dsimp only at hle'
+      rw [hxzero μ0 hμ0pos le_rfl] at hle'
+      simpa using hle'
+  intro j
+  cases j with
+  | inl i =>
+    -- `μ • signedCanonicalSplit(xμ)(inl i) = max(μ x μ i, 0)` on `(0,∞)`: directly monotone
+    -- when `μ x μ i` is monotone, and constant `0` (hence monotone) when it is antitone.
+    intro a ha b hb hab
+    dsimp only
+    have hcast : ∀ μ ∈ Set.Ioi (0 : ℝ),
+        μ * signedCanonicalSplit (x μ) (Sum.inl i) = max (μ * x μ i) 0 := by
+      intro μ hμ
+      change μ * max (x μ i) 0 = max (μ * x μ i) 0
+      rw [mul_max_of_nonneg _ _ hμ.le, mul_zero]
+    rw [hcast a ha, hcast b hb]
+    rcases hx i with hg | hg
+    · exact max_le_max (hg ha hb hab) le_rfl
+    · rw [max_eq_right (hg_le_zero i hg a ha), max_eq_right (hg_le_zero i hg b hb)]
+  | inr i =>
+    -- Symmetric, with `max(-(μ x μ i), 0)`: monotone when `μ x μ i` is antitone, constant
+    -- `0` when it is monotone.
+    intro a ha b hb hab
+    dsimp only
+    have hcast : ∀ μ ∈ Set.Ioi (0 : ℝ),
+        μ * signedCanonicalSplit (x μ) (Sum.inr i) = max (-(μ * x μ i)) 0 := by
+      intro μ hμ
+      change μ * max (-(x μ i)) 0 = max (-(μ * x μ i)) 0
+      rw [mul_max_of_nonneg _ _ hμ.le, mul_neg, mul_zero]
+    rw [hcast a ha, hcast b hb]
+    rcases hx i with hg | hg
+    · rw [max_eq_right (by linarith [hg_ge_zero i hg a ha] : -(a * x a i) ≤ 0),
+        max_eq_right (by linarith [hg_ge_zero i hg b hb] : -(b * x b i) ≤ 0)]
+    · exact max_le_max (neg_le_neg (hg ha hb hab)) le_rfl
+
+/-- The value of `positiveLassoObjective` at the origin is `0`: the quadratic loss vanishes
+(since both `⟨0, M0⟩` and `⟨r,0⟩` are `0`) and so does the `L¹` penalty. Used to bound the
+"junk" branch of `posLassoMin`'s nested infimum by a genuine feasible point. -/
+lemma positiveLassoObjective_zero (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) :
+    positiveLassoObjective M r lambda μ 0 = 0 := by
+  dsimp [positiveLassoObjective, lassoObjective, quadraticLoss]
+  simp
+
+omit [Fintype ι] in
+/-- The origin is coordinatewise nonnegative. -/
+lemma Nonnegative_zero : Nonnegative (0 : EuclideanSpace ℝ ι) := by
+  intro i; simp
+
+/--
+`lassoMin` is attained at any selected minimizer, i.e. equals the value of the objective there.
+This is the standard "an attained infimum equals the minimizer's value" fact
+(`ciInf_le`/`le_ciInf`), specialized to `lassoObjective`; reusable for both the signed and
+(via `posLassoMin_eq_of_isPositiveLassoMinimizer` below) the positive lasso.
+-/
+lemma lassoMin_eq_of_isLassoMinimizer
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (x : EuclideanSpace ℝ ι) (hx : IsLassoMinimizer M r lambda μ x) :
+    lassoMin M r lambda μ = lassoObjective M r lambda μ x := by
+  have hbdd : BddBelow (Set.range (lassoObjective M r lambda μ)) :=
+    ⟨lassoObjective M r lambda μ x, by
+      rintro _ ⟨z, rfl⟩; exact isMinOn_iff.mp hx z (Set.mem_univ z)⟩
+  exact le_antisymm (ciInf_le hbdd x) (le_ciInf (fun y => isMinOn_iff.mp hx y (Set.mem_univ y)))
+
+/--
+`posLassoMin` is attained at any selected positive minimizer, i.e. equals the value of the
+objective there.
+
+Informal proof: `posLassoMin M r lambda μ` unfolds to `⨅ y, g y` where `g y = ⨅ (_h :
+Nonnegative y), positiveLassoObjective M r lambda μ y`. For nonnegative `y`, `g y` collapses to
+`positiveLassoObjective M r lambda μ y` (the index type `Nonnegative y` is a true proposition,
+hence a one-point type, so the inner infimum is constant, `ciInf_const`); for non-nonnegative
+`y`, the index type is empty, so `g y` is the junk value `Real.iInf_of_isEmpty _ = 0`. The
+selected minimizer `y0` is itself a lower bound for `g` on *every* `y`: on nonnegative `y` this
+is minimality (`hy0min`), and on non-nonnegative `y` it follows because `positiveLassoObjective
+M r lambda μ y0 ≤ positiveLassoObjective M r lambda μ 0 = 0` (`0` is itself a nonnegative
+competitor, so `hy0min` applies to it, and the objective vanishes there by
+`positiveLassoObjective_zero`). Hence `y0` minimizes `g` over `Set.univ`, and the
+`ciInf_le`/`le_ciInf` argument of `lassoMin_eq_of_isLassoMinimizer` applies to `g`.
+-/
+lemma posLassoMin_eq_of_isPositiveLassoMinimizer
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
+    (y0 : EuclideanSpace ℝ ι) (hmin : IsPositiveLassoMinimizer M r lambda μ y0) :
+    posLassoMin M r lambda μ = positiveLassoObjective M r lambda μ y0 := by
+  obtain ⟨hy0nn, hy0min⟩ := hmin
+  set g : EuclideanSpace ℝ ι → ℝ :=
+    fun y => ⨅ (_h : Nonnegative y), positiveLassoObjective M r lambda μ y with hg
+  have hg_eq_of_nonneg : ∀ y, Nonnegative y → g y = positiveLassoObjective M r lambda μ y := by
+    intro y hy
+    rw [hg]
+    haveI : Nonempty (Nonnegative y) := ⟨hy⟩
+    exact ciInf_const
+  have hg_eq_of_not_nonneg : ∀ y, ¬ Nonnegative y → g y = 0 := by
+    intro y hy
+    rw [hg]
+    haveI : IsEmpty (Nonnegative y) := ⟨hy⟩
+    exact Real.iInf_of_isEmpty _
+  have hg_y0 : g y0 = positiveLassoObjective M r lambda μ y0 := hg_eq_of_nonneg y0 hy0nn
+  have hy0_le_zero : positiveLassoObjective M r lambda μ y0 ≤ 0 := by
+    have h0 := isMinOn_iff.mp hy0min 0 Nonnegative_zero
+    rwa [positiveLassoObjective_zero] at h0
+  have hmin_g : IsMinOn g Set.univ y0 := by
+    rw [isMinOn_iff]
+    intro y _
+    by_cases hy : Nonnegative y
+    · rw [hg_y0, hg_eq_of_nonneg y hy]
+      exact isMinOn_iff.mp hy0min y hy
+    · rw [hg_y0, hg_eq_of_not_nonneg y hy]
+      exact hy0_le_zero
+  have hbdd : BddBelow (Set.range g) :=
+    ⟨g y0, by rintro _ ⟨z, rfl⟩; exact isMinOn_iff.mp hmin_g z (Set.mem_univ z)⟩
+  have hgmin : (⨅ y, g y) = g y0 :=
+    le_antisymm (ciInf_le hbdd y0) (le_ciInf (fun y => isMinOn_iff.mp hmin_g y (Set.mem_univ y)))
+  rw [show posLassoMin M r lambda μ = ⨅ y, g y from rfl, hgmin, hg_y0]
 
 /--
 Lemma 5.1(3): equality of the signed lasso minimum and the augmented positive
 lasso minimum.
 
 Informal proof reference: `docs/Lasso.md`, Section 5.1.1, Lemma 5.1(3).
+
+Informal proof: given a selected minimizer `x` of the signed lasso at `μ`,
+`lassoMin = lassoObjective x` (`lassoMin_eq_of_isLassoMinimizer`). By Lemma 5.1(2)
+(`lasso_minimizer_to_augmented_positive_minimizer`), `signedCanonicalSplit x` minimizes the
+augmented positive lasso, so `posLassoMin_aug = positiveLassoObjective_aug (signedCanonicalSplit
+x)` (`posLassoMin_eq_of_isPositiveLassoMinimizer`), which equals `lassoObjective x` by Lemma
+5.1's objective identity (`lasso_objective_reduction`).
 -/
 lemma lasso_min_eq_augmented_pos_lasso_min
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda μ : ℝ)
-    (hpenalty : 0 ≤ lambda + 1 / μ) :
+    (hpenalty : 0 ≤ lambda + 1 / μ)
+    (x : EuclideanSpace ℝ ι) (hx : IsLassoMinimizer M r lambda μ x) :
     lassoMin M r lambda μ =
       posLassoMin (augmentedMatrix M) (augmentedVector r) lambda μ := by
   -- Proof sketch (Section 5.1.1, Lemma 5.1(3)):
   -- Follows directly from `lasso_minimizer_to_augmented_positive_minimizer` and
   -- `lasso_objective_reduction`. The minimum values of both problems coincide.
-  sorry
+  rw [lassoMin_eq_of_isLassoMinimizer M r lambda μ x hx]
+  have hy := lasso_minimizer_to_augmented_positive_minimizer M r lambda μ x hpenalty hx
+  rw [posLassoMin_eq_of_isPositiveLassoMinimizer (augmentedMatrix M) (augmentedVector r) lambda μ
+      (signedCanonicalSplit x) hy]
+  exact (lasso_objective_reduction M r lambda μ x).2
 
 /-- Initial positive weights associated to signed initialization vectors. -/
 noncomputable def signedToPositiveInitialization
@@ -892,6 +1442,7 @@ lemma signedToPositiveInitialization_apply_inr (β γ : EuclideanSpace ℝ ι) (
     signedToPositiveInitialization β γ (Sum.inr i) = (1 / 2 : ℝ) * (β i - γ i) := by
   simp [signedToPositiveInitialization]
 
+omit [Fintype ι] in
 /--
 Algebraic identity behind Section 5.1.2:
 `u ∘ v = p_pos^2 - p_neg^2`.
@@ -906,24 +1457,109 @@ lemma signed_effective_eq_split_positive_effective
   -- Algebraic identity: p_pos = (u+v)/2 and p_neg = (u-v)/2.
   -- Therefore, p_pos^2 - p_neg^2 = ((u+v)^2 - (u-v)^2) / 4 = 4uv / 4 = uv.
   -- This exactly matches the effective parameter `u ∘ v`.
-  sorry
+  set uv := WithLp.equiv 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι) state with huv
+  have hstw : signedToPositiveWeights state =
+      euclideanOf (Sum.elim ((1 / 2 : ℝ) • (uv.1 + uv.2)) ((1 / 2 : ℝ) • (uv.1 - uv.2))) := rfl
+  rw [hstw, coordinateSquare_sumElim]
+  have heff : effectiveParameter (fun _ => state) 0 = hadamard uv.1 uv.2 := rfl
+  rw [heff]
+  dsimp [hadamard, splitDifference, euclideanOf]
+  ext i
+  simp [coordinateSquare, euclideanOf, smul_eq_mul]
+  ring
+
+/--
+`coordinateSquare` is continuous. Reusable version of the pattern proved inline (three times)
+in `MirrorFlow.lean` and `Bounds/Delta.lean`.
+-/
+lemma continuous_coordinateSquare :
+    Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
+  have h_sq : Continuous (fun (x : EuclideanSpace ℝ ι) (i : ι) => x i * x i) :=
+    continuous_pi fun i =>
+      Continuous.mul (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
+        (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
+  have h_euclideanOf_cont : Continuous (euclideanOf : (ι → ℝ) → EuclideanSpace ℝ ι) :=
+    euclideanToPiEquiv.symm.continuous_of_finiteDimensional
+  exact h_euclideanOf_cont.comp h_sq
+
+/-- `signedToPositiveWeights` is continuous, being (the coercion of) the bundled linear map
+`signedToPositiveWeightsLM`. -/
+lemma continuous_signedToPositiveWeights :
+    Continuous (signedToPositiveWeights :
+      WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι) → EuclideanSpace ℝ (ι ⊕ ι)) :=
+  signedToPositiveWeightsLM.toContinuousLinearMap.continuous
 
 /--
 Time-averaged version of the signed-to-positive effective-parameter identity.
 
 Informal proof reference: `docs/Lasso.md`, Section 5.2.
+
+Informal proof: pointwise (Section 5.1.2's identity, `signed_effective_eq_split_positive_effective`,
+applied at each time `u`) `effectiveParameter w u = A(u) - B(u)` where `A(u) = coordinateSquare
+(signedToPositiveWeights (w u)) (inl i)` and `B(u)` is its `inr` counterpart. Since `w` is
+continuous (`hw_cont`), so are `A` and `B`, hence both are interval integrable on `[0,t]` and
+`∫₀ᵗ (A - B) = ∫₀ᵗ A - ∫₀ᵗ B` (`intervalIntegral.integral_sub`). The substitution `u = 2v`
+(`intervalIntegral.smul_integral_comp_mul_left`) turns `∫₀ᵗ A` into `2 * ∫₀^{t/2} A(2·)`, and
+likewise for `B`; matching this against the definition of `posAverageTrajectory` at `t/2` (whose
+two `inl`/`inr` coordinates are literally `(1/(t/2)) * ∫₀^{t/2} A(2·)` and the `B` analogue)
+gives the claimed identity after the algebraic simplification `1/(t/2) = 2/t`.
 -/
 lemma signed_average_eq_split_positive_average
-    (w : ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) (t : ℝ) :
+    (w : ℝ → WithLp 2 (EuclideanSpace ℝ ι × EuclideanSpace ℝ ι)) (t : ℝ)
+    (hw_cont : Continuous w) :
     averageTrajectory w t =
       splitDifference
         (posAverageTrajectory
           (fun τ => signedToPositiveWeights (w (2 * τ))) ((1 / 2 : ℝ) * t)) := by
-  -- Proof sketch (Section 5.2):
-  -- This follows by integrating the pointwise identity
-  -- `signed_effective_eq_split_positive_effective` over time. The time scaling factor of two
-  -- accounts for the chain rule in the squared parameterization.
-  sorry
+  ext i
+  set A' : ℝ → ℝ := fun u => coordinateSquare (signedToPositiveWeights (w u)) (Sum.inl i)
+    with hA'
+  set B' : ℝ → ℝ := fun u => coordinateSquare (signedToPositiveWeights (w u)) (Sum.inr i)
+    with hB'
+  have hA'_cont : Continuous A' :=
+    (continuous_euclidean_apply (Sum.inl i)).comp
+      (continuous_coordinateSquare.comp (continuous_signedToPositiveWeights.comp hw_cont))
+  have hB'_cont : Continuous B' :=
+    (continuous_euclidean_apply (Sum.inr i)).comp
+      (continuous_coordinateSquare.comp (continuous_signedToPositiveWeights.comp hw_cont))
+  have hpt : ∀ u, effectiveParameter w u i = A' u - B' u := by
+    intro u
+    have h := signed_effective_eq_split_positive_effective (w u)
+    have heff : effectiveParameter (fun _ => w u) 0 = effectiveParameter w u := rfl
+    rw [heff] at h
+    rw [h]; rfl
+  have hLHS : averageTrajectory w t i = (1 / t) * ∫ u in (0 : ℝ)..t, (A' u - B' u) := by
+    dsimp [averageTrajectory, euclideanOf]
+    congr 1
+    exact intervalIntegral.integral_congr (fun u _ => hpt u)
+  have hint : (∫ u in (0 : ℝ)..t, (A' u - B' u)) =
+      (∫ u in (0 : ℝ)..t, A' u) - ∫ u in (0 : ℝ)..t, B' u :=
+    intervalIntegral.integral_sub (hA'_cont.intervalIntegrable 0 t)
+      (hB'_cont.intervalIntegrable 0 t)
+  have hchgA : (∫ u in (0 : ℝ)..t, A' u) = 2 * ∫ v in (0 : ℝ)..((1 / 2 : ℝ) * t), A' (2 * v) := by
+    have h2 := intervalIntegral.smul_integral_comp_mul_left (a := (0 : ℝ)) (b := (1 / 2 : ℝ) * t)
+      A' 2
+    simp only [smul_eq_mul, mul_zero] at h2
+    rw [show (2 : ℝ) * ((1 / 2 : ℝ) * t) = t by ring] at h2
+    linarith [h2]
+  have hchgB : (∫ u in (0 : ℝ)..t, B' u) = 2 * ∫ v in (0 : ℝ)..((1 / 2 : ℝ) * t), B' (2 * v) := by
+    have h2 := intervalIntegral.smul_integral_comp_mul_left (a := (0 : ℝ)) (b := (1 / 2 : ℝ) * t)
+      B' 2
+    simp only [smul_eq_mul, mul_zero] at h2
+    rw [show (2 : ℝ) * ((1 / 2 : ℝ) * t) = t by ring] at h2
+    linarith [h2]
+  have hRHS : splitDifference
+      (posAverageTrajectory (fun τ => signedToPositiveWeights (w (2 * τ))) ((1 / 2 : ℝ) * t)) i =
+      (1 / ((1 / 2 : ℝ) * t)) * (∫ v in (0 : ℝ)..((1 / 2 : ℝ) * t), A' (2 * v)) -
+        (1 / ((1 / 2 : ℝ) * t)) * ∫ v in (0 : ℝ)..((1 / 2 : ℝ) * t), B' (2 * v) := by
+    dsimp [splitDifference, euclideanOf, posAverageTrajectory, posEffectiveParameter]
+  rw [hLHS, hint, hchgA, hchgB, hRHS]
+  have ht2 : (1 : ℝ) / ((1 / 2 : ℝ) * t) = 2 / t := by
+    rcases eq_or_ne t 0 with ht0 | ht0
+    · simp [ht0]
+    · field_simp
+  rw [ht2]
+  ring
 
 /--
 Section 5.1.2: reduction of dynamics in the `u ∘ v` case to the `u ∘ u` case.
@@ -951,7 +1587,7 @@ lemma dln_dynamics_reduction
       posDlnGradientFlow (augmentedMatrix M) (augmentedVector r) lambda ε
         (signedToPositiveInitialization β γ)
         (fun τ => signedToPositiveWeights ((w ε) (2 * τ))) := by
-  have hM : M.IsSymm := hdata.psd.get_symm
+  have hM : M.IsSymm := hdata.psd.symm
   intro ε _hε hw
   refine ⟨?_, ?_, ?_⟩
   · -- init
@@ -1035,6 +1671,41 @@ noncomputable def signedZDownward (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ 
           max 0 (-deriv (fun u' => max (-(u' * x_lasso u' i)) 0) u))
 
 /--
+If `f : ℝ → ℝ` is absolutely continuous on `[a,b]`, then `max 0 (-deriv f)` is interval
+integrable on `[a,b]`. General scalar-valued reusable version of the algebraic identity
+`max 0 (-x) = (|x| - x)/2` combined with `AbsolutelyContinuousOnInterval.intervalIntegrable_deriv`;
+deduplicates the argument used privately (and only for `x ↦ u' * x_lasso u' i`) in
+`Bounds/Delta.lean`'s `max_zero_neg_deriv_intervalIntegrable`.
+-/
+lemma intervalIntegrable_max_zero_neg_deriv_of_ac
+    {f : ℝ → ℝ} {a b : ℝ} (hf : AbsolutelyContinuousOnInterval f a b) :
+    IntervalIntegrable (fun u => max 0 (-deriv f u)) volume a b := by
+  have h_int_deriv : IntervalIntegrable (deriv f) volume a b :=
+    AbsolutelyContinuousOnInterval.intervalIntegrable_deriv hf
+  have h_eq : (fun u => max 0 (-deriv f u)) = fun u => (|deriv f u| - deriv f u) / 2 := by
+    funext u
+    rcases le_total 0 (deriv f u) with hu | hu
+    · rw [abs_of_nonneg hu, max_eq_left (neg_nonpos.mpr hu)]; ring
+    · rw [abs_of_nonpos hu, max_eq_right (neg_nonneg.mpr hu)]; ring
+  rw [h_eq]
+  exact (h_int_deriv.abs.sub h_int_deriv).div_const 2
+
+/--
+A coordinate projection of an absolutely continuous `EuclideanSpace`-valued curve is
+absolutely continuous, since coordinate projection is `1`-Lipschitz. Reusable version of the
+coordinate-projection step used (inline, once per coordinate) throughout `Bounds/Delta.lean`,
+via the public composition lemma `LipschitzWith.comp_absolutelyContinuousOnInterval`.
+-/
+lemma absolutelyContinuousOnInterval_apply
+    {n : Type*} [Fintype n] {F : ℝ → EuclideanSpace ℝ n} {a b : ℝ}
+    (hF : AbsolutelyContinuousOnInterval F a b) (j : n) :
+    AbsolutelyContinuousOnInterval (fun u => F u j) a b := by
+  have h_lip : LipschitzWith 1 (fun x : EuclideanSpace ℝ n => x j) :=
+    LipschitzWith.of_dist_le_mul (fun x y => by
+      simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) j)
+  exact h_lip.comp_absolutelyContinuousOnInterval hF
+
+/--
 The Eq. (2.3) deviation from monotonicity of the signed path equals the Eq. (3.6)
 deviation from monotonicity of its canonical positive/negative split, matching the
 identification of `z↓(μ)` used in Section 5.2.2's proof of Theorem 2.2.
@@ -1042,29 +1713,103 @@ identification of `z↓(μ)` used in Section 5.2.2's proof of Theorem 2.2.
 Informal proof: write `f(u') = u' x_lasso(u')ᵢ`. For `j = inl i`,
 `signedCanonicalSplit (x_lasso u') (inl i) = max(x_lasso(u')ᵢ, 0)`, so
 `u' ↦ u' * (signedCanonicalSplit (x_lasso u')) (inl i) = u' ↦ u' * max(x_lasso(u')ᵢ, 0)`.
-For `u' ≥ 0`, scalar multiplication by `u'` distributes over `max(·,0)`, so this function
-equals `u' ↦ max(u' x_lasso(u')ᵢ, 0) = u' ↦ max(f(u'), 0)` on all of `[0,∞)`; in particular
-the two functions agree on the open neighbourhood `(0,∞)` of every `u ∈ (0,μ)`, so they
-have the same derivative there (`Filter.EventuallyEq.deriv_eq`). The symmetric computation
-for `j = inr i` matches `u' ↦ u' * max(-x_lasso(u')ᵢ,0)` with `u' ↦ max(-f(u'),0)` on
-`(0,μ)`. Since a single point (`{0}`) is Lebesgue-null, `∫₀^μ` is insensitive to the
-integrand's value there (`intervalIntegral.integral_congr_uIoo`), so each of the two
-`inl`/`inr` integrals appearing in `positiveZDownward` (after splitting the `ι ⊕ ι` sum via
-`Fintype.sum_sum_type`) equals the matching term of the `signedZDownward` sum: combining the
-two integrals for fixed `i` into the single integral of their sum uses the integrability of
-the `max 0 (-deriv ⋯)` summands, obtained from `h_regular` exactly as in the "`positive-path
-regularity`" argument used for `positiveZDownward_summand_differentiableAt` in
-`Bounds/Delta.lean` (Lemma 4.9), adapted to the `max`-composed signed summand shape.
+For `u' ≥ 0`, scalar multiplication by `u'` distributes over `max(·,0)` (`mul_max_of_nonneg`),
+so this function equals `u' ↦ max(u' x_lasso(u')ᵢ, 0) = u' ↦ max(f(u'), 0)` on all of
+`[0,∞)`; in particular the two functions agree on the open neighbourhood `(0,∞)` of every
+`u ∈ (0,μ)`, so they have the same derivative there (`Filter.EventuallyEq.deriv_eq`). The
+symmetric computation for `j = inr i` matches `u' ↦ u' * max(-x_lasso(u')ᵢ,0)` with
+`u' ↦ max(-f(u'),0)` on `(0,μ)`. Since the two integrands agree pointwise on the open interval
+`(0,μ)`, `intervalIntegral.integral_congr_Ioo_of_le` identifies the two `inl`/`inr` integrals
+appearing in `positiveZDownward` (after splitting the `ι ⊕ ι` sum via `Fintype.sum_sum_type`)
+with the matching `u' ↦ u' * max(±f(u'),0)`-integrals; combining those two integrals for fixed
+`i` into the single integral of their sum (matching `signedZDownward`'s shape) uses
+`intervalIntegral.integral_add`, which needs interval-integrability of each summand. That
+integrability is obtained exactly as in the "positive-path regularity" argument used for
+`positiveZDownward_summand_differentiableAt` in `Bounds/Delta.lean` (Lemma 4.9): `h_regular`
+gives absolute continuity of the *scaled* split path `scaledPrimalPath (signedCanonicalSplit ∘
+x_lasso)` on `[0,μ]` (not just of `x_lasso` on positive compacts — the scaling by `u'` is what
+controls behaviour down to `u'=0`, matching how the un-split `positiveZDownward` bounds are
+proved from `LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)`
+rather than from regularity of `x_lasso` itself); projecting onto coordinates `inl i`/`inr i`
+(`absolutelyContinuousOnInterval_apply`) and applying
+`intervalIntegrable_max_zero_neg_deriv_of_ac` gives the needed
+integrability of `u ↦ max 0 (-deriv (fun u' => u' * max(±x_lasso u' i, 0)) u)`.
 See Sec. 5.2.2 ("Note that the quantity `z↓(μ)` ... corresponds to ...") of
 <https://arxiv.org/abs/2509.18766>.
 -/
 lemma positiveZDownward_signedCanonicalSplit_eq
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (h_regular : LocallyAbsolutelyContinuousOnPositiveCompacts x_lasso)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts
+      (scaledPrimalPath (fun ν => signedCanonicalSplit (x_lasso ν))))
     (μ : ℝ) (hμ : 0 ≤ μ) :
     positiveZDownward (fun ν => signedCanonicalSplit (x_lasso ν)) μ =
       signedZDownward x_lasso μ := by
-  sorry
+  set y : ℝ → EuclideanSpace ℝ (ι ⊕ ι) := fun ν => signedCanonicalSplit (x_lasso ν) with hy_def
+  have hac_y : AbsolutelyContinuousOnInterval (scaledPrimalPath y) 0 μ :=
+    h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ
+  unfold positiveZDownward
+  rw [Fintype.sum_sum_type]
+  unfold signedZDownward
+  rw [← Finset.sum_add_distrib]
+  apply Finset.sum_congr rfl
+  intro i _
+  have hy_inl :
+      (fun u' => u' * (y u').ofLp (Sum.inl i)) = fun u' => u' * max (x_lasso u' i) 0 := by
+    funext u'; simp [y, signedCanonicalSplit, coordinatePositivePart, euclideanOf]
+  have hy_inr :
+      (fun u' => u' * (y u').ofLp (Sum.inr i)) = fun u' => u' * max (-(x_lasso u' i)) 0 := by
+    funext u'; simp [y, signedCanonicalSplit, coordinateNegativePart, euclideanOf]
+  rw [hy_inl, hy_inr]
+  have hac_inl : AbsolutelyContinuousOnInterval (fun u => u * max (x_lasso u i) 0) 0 μ := by
+    have h := absolutelyContinuousOnInterval_apply hac_y (Sum.inl i)
+    have heq : (fun u => (scaledPrimalPath y u) (Sum.inl i)) =
+        fun u => u * max (x_lasso u i) 0 := by
+      funext u
+      simp [scaledPrimalPath, y, signedCanonicalSplit, coordinatePositivePart, euclideanOf,
+        smul_eq_mul]
+    rwa [heq] at h
+  have hac_inr : AbsolutelyContinuousOnInterval (fun u => u * max (-(x_lasso u i)) 0) 0 μ := by
+    have h := absolutelyContinuousOnInterval_apply hac_y (Sum.inr i)
+    have heq : (fun u => (scaledPrimalPath y u) (Sum.inr i)) =
+        fun u => u * max (-(x_lasso u i)) 0 := by
+      funext u
+      simp [scaledPrimalPath, y, signedCanonicalSplit, coordinateNegativePart, euclideanOf,
+        smul_eq_mul]
+    rwa [heq] at h
+  have hint_inl : IntervalIntegrable
+      (fun u => max 0 (-deriv (fun u' => u' * max (x_lasso u' i) 0) u)) volume 0 μ :=
+    intervalIntegrable_max_zero_neg_deriv_of_ac hac_inl
+  have hint_inr : IntervalIntegrable
+      (fun u => max 0 (-deriv (fun u' => u' * max (-(x_lasso u' i)) 0) u)) volume 0 μ :=
+    intervalIntegrable_max_zero_neg_deriv_of_ac hac_inr
+  have hint_inl' : IntervalIntegrable
+      (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * max (x_lasso u' i) 0) u)) volume 0 μ := by
+    have h2 := hint_inl.continuousOn_mul
+      (show ContinuousOn (fun u : ℝ => (1 : ℝ) + u) (Set.uIcc 0 μ) by fun_prop)
+    simpa [mul_comm] using h2
+  have hint_inr' : IntervalIntegrable
+      (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * max (-(x_lasso u' i)) 0) u))
+      volume 0 μ := by
+    have h2 := hint_inr.continuousOn_mul
+      (show ContinuousOn (fun u : ℝ => (1 : ℝ) + u) (Set.uIcc 0 μ) by fun_prop)
+    simpa [mul_comm] using h2
+  rw [← intervalIntegral.integral_add hint_inl' hint_inr']
+  apply intervalIntegral.integral_congr_Ioo_of_le hμ
+  intro u hu
+  dsimp only
+  have hu0 : 0 < u := hu.1
+  have hderiv_inl : deriv (fun u' => u' * max (x_lasso u' i) 0) u =
+      deriv (fun u' => max (u' * x_lasso u' i) 0) u := by
+    apply Filter.EventuallyEq.deriv_eq
+    filter_upwards [Ioi_mem_nhds hu0] with t ht
+    rw [mul_max_of_nonneg _ _ (Set.mem_Ioi.mp ht).le, mul_zero]
+  have hderiv_inr : deriv (fun u' => u' * max (-(x_lasso u' i)) 0) u =
+      deriv (fun u' => max (-(u' * x_lasso u' i)) 0) u := by
+    apply Filter.EventuallyEq.deriv_eq
+    filter_upwards [Ioi_mem_nhds hu0] with t ht
+    rw [mul_max_of_nonneg _ _ (Set.mem_Ioi.mp ht).le, mul_neg, mul_zero]
+  rw [hderiv_inl, hderiv_inr]
+  ring
 
 /-! ## Signed-lasso main theorems -/
 
@@ -1150,11 +1895,15 @@ theorem lasso_connection_approx
     pos_lasso_connection_approx (augmentedMatrix M) (augmentedVector r) lambda
       (signedToPositiveInitialization β γ) u_pos hdata_aug hβ_aug hu_aug y hy_pos h_regular_aug
   refine ⟨C, hC_pos, fun s hs δ hδ => ?_⟩
+  have h_reg_scaled_y : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath y) :=
+    scaledPrimalPath_regular_of_path_regular (augmentedMatrix M) (augmentedVector r) lambda y
+      hdata_aug hy_pos h_regular_aug
   have hZeq : positiveZDownward y s = signedZDownward x_lasso s :=
-    positiveZDownward_signedCanonicalSplit_eq x_lasso h_regular s hs.le
+    positiveZDownward_signedCanonicalSplit_eq x_lasso h_reg_scaled_y s hs.le
   have h_min_eq :
       posLassoMin (augmentedMatrix M) (augmentedVector r) lambda s = lassoMin M r lambda s :=
-    (lasso_min_eq_augmented_pos_lasso_min M r lambda s (hpenalty s hs)).symm
+    (lasso_min_eq_augmented_pos_lasso_min M r lambda s (hpenalty s hs) (x_lasso s)
+      (hx_lasso s hs)).symm
   have h_bound := h_pos_bound s hs δ hδ
   rw [hZeq, h_min_eq] at h_bound
   filter_upwards [h_bound, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
@@ -1169,7 +1918,8 @@ theorem lasso_connection_approx
     posAverageTrajectory_nonneg (u_pos ε) (posTimeFromRescaled ε s) ht_pos.le
   have heq : averageTrajectory (w ε) (timeFromRescaled ε s) =
       splitDifference (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) := by
-    rw [signed_average_eq_split_positive_average (w ε) (timeFromRescaled ε s),
+    rw [signed_average_eq_split_positive_average (w ε) (timeFromRescaled ε s)
+        (hw ε hε_pos).cont_diff.continuous,
       ← posTimeFromRescaled_eq_half_timeFromRescaled]
   rw [heq]
   refine le_trans ?_ hεb
@@ -1249,7 +1999,8 @@ theorem lasso_connection_monotone
       h_monotone_aug
   have h_min_eq :
       posLassoMin (augmentedMatrix M) (augmentedVector r) lambda s = lassoMin M r lambda s :=
-    (lasso_min_eq_augmented_pos_lasso_min M r lambda s (hpenalty s hs)).symm
+    (lasso_min_eq_augmented_pos_lasso_min M r lambda s (hpenalty s hs) (x_lasso s)
+      (hx_lasso s hs)).symm
   rw [h_min_eq] at h_pos_tendsto
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h_pos_tendsto ?_ ?_
   · -- `lassoMin M r lambda s` lower-bounds every value of the signed objective, since
@@ -1279,7 +2030,8 @@ theorem lasso_connection_monotone
       posAverageTrajectory_nonneg (u_pos ε) (posTimeFromRescaled ε s) ht_pos.le
     have heq : averageTrajectory (w ε) (timeFromRescaled ε s) =
         splitDifference (posAverageTrajectory (u_pos ε) (posTimeFromRescaled ε s)) := by
-      rw [signed_average_eq_split_positive_average (w ε) (timeFromRescaled ε s),
+      rw [signed_average_eq_split_positive_average (w ε) (timeFromRescaled ε s)
+          (hw ε hε_pos).cont_diff.continuous,
         ← posTimeFromRescaled_eq_half_timeFromRescaled]
     rw [heq]
     exact lasso_split_objective_le M r lambda s

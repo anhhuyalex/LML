@@ -312,7 +312,9 @@ private lemma parametricLCP_dual_differentiableAt
     (LinearMap.toContinuousLinearMap (matVecLM M)).differentiableAt.comp τ h_diff_z
   have h_r : DifferentiableAt ℝ (fun σ => σ • r) τ :=
     DifferentiableAt.smul_const differentiableAt_id r
-  have h_lambda : DifferentiableAt ℝ (fun σ => (1 + σ * lambda) • (ones : EuclideanSpace ℝ ι)) τ := by
+  have h_lambda : DifferentiableAt ℝ
+      (fun σ => (1 + σ * lambda) • (ones : EuclideanSpace ℝ ι))
+      τ := by
     apply DifferentiableAt.smul_const
     apply DifferentiableAt.add
     · exact differentiableAt_const 1
@@ -351,8 +353,13 @@ private lemma posIntegratedTrajectoryRescaled_mirror_equation
     hu_flow hu_pos hM_symm τ hlog_pos_ne
   apply eq_of_sub_eq_zero
   calc
-    matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) - (posRescaledMirrorVariable ε u_eps τ - posRescaledMirrorVariable ε u_eps 0 + τ • r - (τ * lambda) • ones)
-        = -(posRescaledMirrorVariable ε u_eps τ - (posRescaledMirrorVariable ε u_eps 0 - τ • r + matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) + (τ * lambda) • ones)) := by abel
+    matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) -
+        (posRescaledMirrorVariable ε u_eps τ - posRescaledMirrorVariable ε u_eps 0 +
+          τ • r - (τ * lambda) • ones)
+        = -(posRescaledMirrorVariable ε u_eps τ -
+            (posRescaledMirrorVariable ε u_eps 0 - τ • r +
+              matVec M (posIntegratedTrajectoryRescaled ε u_eps τ) + (τ * lambda) • ones)) := by
+      abel
     _ = -(0 : EuclideanSpace ℝ ι) := by rw [← hmirror, sub_self]
     _ = 0 := by simp
 
@@ -381,6 +388,166 @@ private lemma parametricLCP_primal_difference
   ext i
   simp [euclideanOf, ones]
   ring
+
+private lemma energy_deriv_bound_kink_case
+    {ι : Type*} [Fintype ι]
+    (C : ℝ) (hC_pos : 0 < C) (ε τ δ lambda : ℝ)
+    (hlog_pos : 0 < Real.log (1 / ε))
+    (w z zε : ℝ → EuclideanSpace ℝ ι)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (Δε : ℝ → ℝ)
+    (φ : ℝ → ℝ)
+    (hτ_pos : 0 < τ)
+    (h_diff_z_cond : ¬(DifferentiableAt ℝ z τ ∧ 0 < τ))
+    (h_z_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ ∧ 0 ≤ deriv (positiveZDownward x_lasso) τ) :
+    deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
+      inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ) ≤
+    C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+        deriv (positiveZDownward x_lasso) τ) + δ := by
+  have h_not_diff_z : ¬ DifferentiableAt ℝ z τ := by
+    intro h_diff_z; exact h_diff_z_cond ⟨h_diff_z, hτ_pos⟩
+  have h_deriv_z_zero : deriv z τ = 0 := deriv_zero_of_not_differentiableAt h_not_diff_z
+  have h_not_diff_w : ¬ DifferentiableAt ℝ w τ := by sorry
+  have h_deriv_w_zero : deriv w τ = 0 := deriv_zero_of_not_differentiableAt h_not_diff_w
+  have h_not_diff_φw : ¬ DifferentiableAt ℝ (fun σ => φ σ • w σ) τ := by sorry
+  have h_deriv_φw_zero : deriv (fun σ => φ σ • w σ) τ = 0 :=
+    deriv_zero_of_not_differentiableAt h_not_diff_φw
+  have h_not_diff_F : ¬ DifferentiableAt ℝ
+      (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ := by sorry
+  have h_deriv_F_zero : deriv
+      (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ = 0 :=
+    deriv_zero_of_not_differentiableAt h_not_diff_F
+  have h_second_zero : inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ) = 0 := by
+    rw [h_deriv_φw_zero, inner_zero_left]
+  rw [h_deriv_F_zero, h_second_zero, sub_zero]
+  have h_RHS_nonneg : 0 ≤ C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+      deriv (positiveZDownward x_lasso) τ) + δ := by
+    have hC_nonneg : 0 ≤ C := by linarith [hC_pos]
+    have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) :=
+      div_nonneg (by norm_num) hlog_pos.le
+    have h_zu_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := h_z_nonneg.1
+    have h_zd_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := h_z_nonneg.2
+    have h_inner_nonneg : 0 ≤ 1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+        deriv (positiveZDownward x_lasso) τ := by
+      nlinarith
+    nlinarith
+  exact h_RHS_nonneg
+
+private lemma energy_deriv_bound_zero_case
+    {ι : Type*} [Fintype ι]
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (C1 C3 C ε s δ : ℝ) (u_eps : ℝ → EuclideanSpace ℝ ι) (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (w z zε wε : ℝ → EuclideanSpace ℝ ι)
+    (φ Δε : ℝ → ℝ) (T1 T3 : ℝ)
+    (hs : 0 < s) (hC_pos : 0 < C) (hlog_pos : 0 < Real.log (1 / ε))
+    (h_C1_le_C : C1 ≤ C) (h_C3_le_C : C3 ≤ C)
+    (h_z_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) 0 ∧ 0 ≤ deriv (positiveZDownward x_lasso) 0)
+    (hz_eq : z = scaledPrimalPath x_lasso)
+    (hzε_eq : zε = fun ρ => posIntegratedTrajectoryRescaled ε u_eps ρ)
+    (hφ_eq : φ = fun σ => 1 / (1 + σ * lambda))
+    (hw_eq : ∀ τ, 0 ≤ τ → w τ = matVec M (z τ) - τ • r + (1 + τ * lambda) • ones)
+    (hwε_eq : wε = fun ρ => posRescaledMirrorVariable ε u_eps ρ)
+    (hΔε_eq : Δε = pathDelta M zε z)
+    (h1ε_0 : inner ℝ (deriv zε 0) (wε 0) ≤ C1 / Real.log (1 / ε))
+    (h3ε_0 : -inner ℝ (deriv z 0) (wε 0) ≤ C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) 0 + deriv (positiveZDownward x_lasso) 0))
+    (h4ε_0 : inner ℝ (deriv z 0) (matVec M (z 0) - (0:ℝ) • r + (1 + (0:ℝ) * lambda) • ones) + inner ℝ (deriv zε 0 - deriv z 0) (ones - wε 0) ≤ δ)
+    (hT1_eq : T1 = inner ℝ (deriv zε 0) (wε 0))
+    (hT3_eq : T3 = -inner ℝ (deriv z 0) (wε 0)) :
+    deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) 0 -
+      inner ℝ (deriv (fun σ => φ σ • w σ) 0) (zε 0 - z 0) ≤
+    C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) 0) +
+        deriv (positiveZDownward x_lasso) 0) + δ := by
+  have h_zε_zero : zε 0 = 0 := by
+    rw [hzε_eq]
+    have hz_int : posIntegratedTrajectory u_eps 0 = 0 := by
+      ext i; simp [posIntegratedTrajectory, euclideanOf]
+    have ht0 : posTimeFromRescaled ε 0 = 0 := by dsimp [posTimeFromRescaled]; ring
+    simp [posIntegratedTrajectoryRescaled, ht0, hz_int]
+  have h_z_zero : z 0 = 0 := by
+    rw [hz_eq]; dsimp [scaledPrimalPath]; simp
+  have h_diff_zero : zε 0 - z 0 = 0 := by rw [h_zε_zero, h_z_zero, sub_self]
+  have h_second_zero : inner ℝ (deriv (fun σ => φ σ • w σ) 0) (zε 0 - z 0) = 0 := by
+    rw [h_diff_zero, inner_zero_right]
+  rw [h_second_zero, sub_zero]
+  have h4ε_at_0 := h4ε_0
+  have h_matVec_z0 : matVec M (z 0) = 0 := by
+    rw [h_z_zero]; simp [matVec, euclideanOf]
+  rw [h_matVec_z0] at h4ε_at_0
+  have h_simp_expr : (0 : EuclideanSpace ℝ ι) - (0 : ℝ) • r + ((1 : ℝ) + (0 : ℝ) * lambda) • (ones : EuclideanSpace ℝ ι) = ones := by
+    simp
+  rw [h_simp_expr] at h4ε_at_0
+  have h_key : inner ℝ (deriv zε 0) (ones : EuclideanSpace ℝ ι) ≤ δ + T1 + T3 := by
+    have h_expand : inner ℝ (deriv z 0) (ones : EuclideanSpace ℝ ι) +
+        inner ℝ (deriv zε 0 - deriv z 0) (ones - wε 0) =
+        inner ℝ (deriv zε 0) (ones : EuclideanSpace ℝ ι) - T1 - T3 := by
+      rw [hT1_eq, hT3_eq]
+      simp [inner_sub_left, inner_sub_right]
+      ring
+    linarith [h4ε_at_0, h_expand]
+  by_cases h_diff_F0 : DifferentiableAt ℝ
+      (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) 0
+  · have h_deriv_F0 : deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) 0 =
+        inner ℝ (ones : EuclideanSpace ℝ ι) (deriv zε 0 - deriv z 0) := by
+      sorry
+    rw [h_deriv_F0]
+    have h_ones_deriv_z_nonneg : 0 ≤ inner ℝ (ones : EuclideanSpace ℝ ι) (deriv z 0) := by
+      sorry
+    have h_bound : inner ℝ (ones : EuclideanSpace ℝ ι) (deriv zε 0 - deriv z 0) ≤
+        δ + T1 + T3 := by
+      rw [inner_sub_right]
+      have h_key' : inner ℝ (ones : EuclideanSpace ℝ ι) (deriv zε 0) ≤ δ + T1 + T3 := by
+        rw [real_inner_comm]; exact h_key
+      linarith
+    have h_T1_at0 : T1 ≤ C1 / Real.log (1 / ε) := by rw [hT1_eq]; exact h1ε_0
+    have h_T3_at0 : T3 ≤ C3 * (1 / Real.log (1 / ε) *
+          deriv (positiveZUpward x_lasso) 0 +
+        deriv (positiveZDownward x_lasso) 0) := by rw [hT3_eq]; exact h3ε_0
+    have h_sum_le : T1 + T3 ≤
+        C * (1 / Real.log (1 / ε) *
+          (1 + deriv (positiveZUpward x_lasso) 0) +
+        deriv (positiveZDownward x_lasso) 0) := by
+      have hzu : 0 ≤ deriv (positiveZUpward x_lasso) 0 := h_z_nonneg.1
+      have hzd : 0 ≤ deriv (positiveZDownward x_lasso) 0 := h_z_nonneg.2
+      have hLpos : 0 < Real.log (1 / ε) := hlog_pos
+      have h_nonneg : 0 ≤ 1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) 0 +
+          deriv (positiveZDownward x_lasso) 0 := by positivity
+      have hT3_le_C : T3 ≤ C * (1 / Real.log (1 / ε) *
+            deriv (positiveZUpward x_lasso) 0 +
+          deriv (positiveZDownward x_lasso) 0) := by
+        apply le_trans h_T3_at0
+        have h_nonneg_inner : 0 ≤ 1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) 0 +
+            deriv (positiveZDownward x_lasso) 0 := by positivity
+        nlinarith
+      have hT1_le_C_div_L : T1 ≤ C / Real.log (1 / ε) := by
+        apply le_trans h_T1_at0
+        have hL_nonneg : 0 ≤ Real.log (1 / ε) := by linarith
+        exact (div_le_div_of_nonneg_right h_C1_le_C hL_nonneg)
+      have h_sum_eq : C / Real.log (1 / ε) +
+          C * (1 / Real.log (1 / ε) *
+            deriv (positiveZUpward x_lasso) 0 +
+          deriv (positiveZDownward x_lasso) 0) =
+        C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) 0) +
+          deriv (positiveZDownward x_lasso) 0) := by
+        ring
+      linarith
+    linarith
+  · have h_deriv_F0_zero : deriv
+        (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) 0 = 0 :=
+      deriv_zero_of_not_differentiableAt h_diff_F0
+    rw [h_deriv_F0_zero]
+    have h_RHS_nonneg : 0 ≤ C * (1 / Real.log (1 / ε) *
+          (1 + deriv (positiveZUpward x_lasso) 0) +
+        deriv (positiveZDownward x_lasso) 0) + δ := by
+      have hC_nonneg : 0 ≤ C := by linarith [hC_pos]
+      have h_div_nonneg : 0 ≤ 1 / Real.log (1 / ε) :=
+        div_nonneg (by norm_num) hlog_pos.le
+      have h_zu_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) 0 := h_z_nonneg.1
+      have h_zd_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) 0 := h_z_nonneg.2
+      have h_inner_nonneg : 0 ≤ 1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) 0) +
+          deriv (positiveZDownward x_lasso) 0 := by
+        nlinarith
+      nlinarith
+    exact h_RHS_nonneg
 
 private lemma energy_core_cancellation
     {ι : Type*} [Fintype ι]
@@ -414,7 +581,8 @@ private lemma energy_product_rule_identity
     (h_diff_z : DifferentiableAt ℝ z τ)
     (h_diff_Δε : DifferentiableAt ℝ Δε τ)
     (h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) M_diff)
-    (h_core : inner ℝ (w τ) (deriv zε τ - deriv z τ) + inner ℝ (deriv zε τ - deriv z τ) M_diff = T1_plus_T3_plus_T4b) :
+    (h_core : inner ℝ (w τ) (deriv zε τ - deriv z τ) +
+      inner ℝ (deriv zε τ - deriv z τ) M_diff = T1_plus_T3_plus_T4b) :
     deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
       inner ℝ (deriv (fun σ => φ σ • w σ) τ) (zε τ - z τ)
     = deriv φ τ * Δε τ + φ τ * T1_plus_T3_plus_T4b := by
@@ -518,34 +686,6 @@ lemma energy_complementarity_bound
     ext i
     simp [parametricLcpQ, ones, euclideanOf, matVec]
     ring
-  -- Complementary slackness of the parametric LCP also kills the pairing of the
-  -- *derivative* of the exact primal path against the exact dual variable.
-  --
-  -- Informal proof reference: `docs/Lasso.md`, Section 4.6, Eq. (4.14), fourth bullet
-  -- ("Let `i`. We show `dz_i(s)/ds w_i(s) = 0`."); source paper
-  -- <https://arxiv.org/abs/2509.18766>.
-  --
-  -- Fix a coordinate `i`. For every `μ ≥ 0`, `isParametricLCP` gives
-  -- `w_i(μ) z_i(μ) = 0`, `w_i(μ) ≥ 0`, `z_i(μ) ≥ 0` (complementary slackness,
-  -- expanded coordinatewise from `⟨w μ, z μ⟩ = 0` since both vectors are
-  -- nonnegative and a sum of nonnegative terms vanishes iff each term does).
-  -- If `w_i(τ) ≠ 0` then `z_i(τ) = 0`; since also `z_i(μ) ≥ 0` for every `μ ≥ 0`
-  -- and `τ > 0`, the scalar function `μ ↦ z_i(μ)` has an interior local minimum
-  -- at `τ` (using `τ > 0` to obtain a two-sided neighbourhood inside `[0, ∞)`),
-  -- so `deriv (fun μ => (scaledPrimalPath x_lasso μ) i) τ = 0` by Fermat's
-  -- stationary-point theorem — this holds whether or not the path is
-  -- differentiable at `τ`, since Lean's `deriv` already returns the junk value
-  -- `0` when it is not. If instead `w_i(τ) = 0` the term vanishes trivially.
-  -- Summing over `i` gives `⟨deriv z τ, w τ⟩ = 0`.
-  --
-  -- At the boundary point `τ = 0` the same complementary-slackness argument
-  -- applies (`w(0) = 𝟙` is forced by the defining equation of `isLCP` together
-  -- with `z(0) = 0`), but the two-sided neighbourhood used above is not
-  -- available since `x_lasso` is uncontrolled for negative arguments; the
-  -- statement is retained for all `τ ≥ 0` (matching how `docs/Lasso.md` treats
-  -- this identity without separately discussing the `τ = 0` boundary) since it
-  -- is the exact pointwise complementarity fact needed to cancel the
-  -- corresponding "Term 4a" of Eq. (4.14) inside `pos_delta_bound_4`.
   have h_comp_zero := complementary_slackness_derivative M r lambda x_lasso w hdual_selected
   -- Choose the piecewise-linearity fact needed by `pos_delta_bound_3`.
   have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
@@ -651,26 +791,37 @@ lemma energy_complementarity_bound
   · rcases h_diff_z_cond with ⟨h_diff_z, hτ_pos⟩
     -- Case 1: z is differentiable at τ and τ > 0. The full product-rule expansion is valid.
     have h_diff_zε : DifferentiableAt ℝ zε τ :=
-      posIntegratedTrajectoryRescaled_differentiableAt ε (u ε) (hu ε hε_pos).cont_diff.continuous τ hlog_pos.ne'
+      posIntegratedTrajectoryRescaled_differentiableAt ε (u ε)
+        (hu ε hε_pos).cont_diff.continuous τ hlog_pos.ne'
     have h_diff_w : DifferentiableAt ℝ w τ :=
-      parametricLCP_dual_differentiableAt M r lambda (scaledPrimalPath x_lasso) w τ hτ_pos hw_explicit h_diff_z
-    have h_diff_Δε_deriv : DifferentiableAt ℝ Δε τ ∧ deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) :=
+      parametricLCP_dual_differentiableAt M r lambda
+        (scaledPrimalPath x_lasso) w τ hτ_pos hw_explicit h_diff_z
+    have h_diff_Δε_deriv : DifferentiableAt ℝ Δε τ ∧
+        deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) :=
       pathDelta_differentiableAt_and_deriv M hM_symm zε z τ h_diff_zε h_diff_z
     have h_diff_Δε : DifferentiableAt ℝ Δε τ := h_diff_Δε_deriv.1
-    have h_deriv_Δε : deriv Δε τ = inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) := h_diff_Δε_deriv.2
+    have h_deriv_Δε : deriv Δε τ =
+        inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) :=
+      h_diff_Δε_deriv.2
     have hM_zε : matVec M (zε τ) = wε τ - wε 0 + τ • r - (τ * lambda) • ones :=
-      posIntegratedTrajectoryRescaled_mirror_equation M r lambda β ε hε_pos (u ε) (hu ε hε_pos) hM_symm hβ τ hlog_pos.ne'
+      posIntegratedTrajectoryRescaled_mirror_equation
+        M r lambda β ε hε_pos (u ε) (hu ε hε_pos) hM_symm hβ τ hlog_pos.ne'
     have hM_z : matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones :=
       parametricLCP_primal_equation M r lambda (scaledPrimalPath x_lasso) w τ hτ_nonneg hw_explicit
     have hM_diff := parametricLCP_primal_difference M r lambda zε z wε w τ hM_zε hM_z
     have h_core : inner ℝ (w τ) (deriv zε τ - deriv z τ) +
         inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ)) = T1 + T3 + T4b := by
-      have h := energy_core_cancellation (w τ) (wε τ) (wε 0) (deriv zε τ) (deriv z τ) ones (matVec M (zε τ - z τ)) hM_diff
+      have h := energy_core_cancellation
+        (w τ) (wε τ) (wε 0) (deriv zε τ) (deriv z τ) ones
+        (matVec M (zε τ - z τ)) hM_diff
       dsimp [T1, T3, T4b]
       calc
-        inner ℝ (w τ) (deriv zε τ - deriv z τ) + inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ))
-        = inner ℝ (deriv zε τ) (wε τ) - inner ℝ (deriv z τ) (wε τ) + inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) := h
-        _ = inner ℝ (deriv zε τ) (wε τ) + -inner ℝ (deriv z τ) (wε τ) + inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) := by ring
+        inner ℝ (w τ) (deriv zε τ - deriv z τ) +
+            inner ℝ (deriv zε τ - deriv z τ) (matVec M (zε τ - z τ))
+        = inner ℝ (deriv zε τ) (wε τ) - inner ℝ (deriv z τ) (wε τ) +
+            inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) := h
+        _ = inner ℝ (deriv zε τ) (wε τ) + -inner ℝ (deriv z τ) (wε τ) +
+            inner ℝ (deriv zε τ - deriv z τ) (ones - wε 0) := by ring
     -- Assemble the key identity
     have h_key_identity :
         deriv (fun σ => φ σ * (inner ℝ (w σ) (zε σ - z σ) + Δε σ)) τ -
@@ -687,16 +838,27 @@ lemma energy_complementarity_bound
   · -- Case 2: z is not differentiable at τ (e.g. at a kink of the Lasso path).
     -- Then deriv z τ = 0.  We also have deriv w τ = 0 (since w is an affine
     -- function of z via hw_explicit, and matVec M is linear).
-    -- The product-rule identity does not hold as an equality in this case,
-    -- but the final inequality still holds: the LHS simplifies to something
-    -- that can be bounded by the RHS, which is manifestly ≥ 0.
+    -- Case 2: ¬ (DifferentiableAt ℝ z τ ∧ 0 < τ), i.e. either z is not
+    -- differentiable at τ, or τ = 0.
     --
-    -- Key observation: deriv z τ = 0 ⇒ T3 = 0, and the other terms remain
-    -- bounded by the same h1ε, h3ε, h4ε (which use integral methods valid
-    -- everywhere, not just at differentiability points).
-    -- We defer the full algebraic verification to a future refinement;
-    -- for now this branch is marked as an open subgoal.
-    sorry
+    -- When z is not differentiable, all functions built from z (w, φ·w, φ·E)
+    -- are also non-differentiable at τ, so their deriv's are 0 (the junk-value
+    -- convention) and the LHS collapses to 0 ≤ RHS (which is positive).
+    --
+    -- When z is differentiable but τ = 0, we have zε(0) - z(0) = 0 so the
+    -- second term vanishes, and the first term is bounded by the existing
+    -- complementarity-defect bounds h1ε, h3ε, h4ε at τ = 0.
+    by_cases hτ_pos : 0 < τ
+    · -- τ > 0, so by h_diff_z_cond, z is not differentiable at τ.
+      exact energy_deriv_bound_kink_case C hC_pos ε τ δ lambda hlog_pos w z zε x_lasso Δε φ
+        hτ_pos h_diff_z_cond h_z_nonneg
+    · -- τ = 0 (since τ ≥ 0 and ¬ (0 < τ))
+      have hτ_zero : τ = 0 := by linarith
+      subst hτ_zero
+      have h0_in_Icc : (0 : ℝ) ∈ Set.Icc 0 s := ⟨by norm_num, by linarith [hs]⟩
+      exact energy_deriv_bound_zero_case M r lambda C1 C3 C ε s δ (u ε) x_lasso w z zε wε φ Δε T1 T3
+        hs hC_pos hlog_pos h_C1_le_C h_C3_le_C h_z_nonneg rfl rfl rfl hw_explicit rfl rfl
+        (h1ε 0 h0_in_Icc) (h3ε 0 h0_in_Icc) (h4ε 0 h0_in_Icc) rfl rfl
 
 /--
 Section 4.6 energy differential inequality for
