@@ -1525,66 +1525,44 @@ theorem pos_lasso_connection_approx
     M Mdagger r lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_reg_nonneg
     h_lipschitz h_local_affine
 
-/--
-Lemma 4.12 from `docs/Lasso.md`: under the monotonicity hypothesis of Theorem
-3.1, the scaled positive-lasso path has enough compact-interval regularity to
-apply Theorem 3.2.
+/-- Extends coordinatewise monotonicity of `μ ↦ μ x(μ)` from `(0,∞)` (as given by the
+Theorem 3.1/3.2 hypothesis) to all of `[0,∞)`, using that the scaled path vanishes and is
+coordinatewise nonnegative at `μ = 0`. Reused by both `monotone_positive_path_lipschitz` and
+`pos_lasso_connection_monotone`. -/
+private lemma scaledPrimalPath_mono_of_monotoneOn
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
+    ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i,
+      (scaledPrimalPath x_lasso μ) i ≤ (scaledPrimalPath x_lasso ν) i := by
+  have hx_nonneg : ∀ μ > 0, ∀ i, 0 ≤ x_lasso μ i := fun μ hμ i => (hx_lasso μ hμ).1 i
+  have hz_coord : ∀ μ i, (scaledPrimalPath x_lasso μ) i = μ * x_lasso μ i := by
+    intro μ i; simp [scaledPrimalPath, smul_eq_mul]
+  have hz_nonneg : ∀ ν, 0 ≤ ν → ∀ i, 0 ≤ (scaledPrimalPath x_lasso ν) i := by
+    intro ν hν i
+    rcases eq_or_lt_of_le hν with rfl | hν_pos
+    · simp [hz_coord]
+    · rw [hz_coord]; exact mul_nonneg hν_pos.le (hx_nonneg ν hν_pos i)
+  intro μ ν hμ hμν i
+  rcases eq_or_lt_of_le hμ with rfl | hμ_pos
+  · rw [hz_coord]; simpa using hz_nonneg ν hμν i
+  · rw [hz_coord, hz_coord]
+    exact h_monotone i (Set.mem_Ioi.mpr hμ_pos)
+      (Set.mem_Ioi.mpr (lt_of_lt_of_le hμ_pos hμν)) hμν
 
-Informal proof reference: Section 4.7, Lemma 4.12. Lemma 4.11 gives local
-Lipschitz control of the dual path and hence of the projection of `z(μ)` onto
-`Span M`. Complementarity controls the kernel component; monotonicity converts
-coordinatewise variation into an `L¹` bound on compact intervals.
-
-**Status (verified 2026-07-31): the generic Lipschitz⟹AC machinery exists and matches, but
-one genuinely new hypothesis (LCP-solution uniqueness) is needed and not yet available.**
-`Bounds/Delta.lean` already contains a general lemma exactly shaped for this:
-
-```
-lemma parametric_lcp_lipschitz
-    (M) (r) (lambda) (z : ℝ → EuclideanSpace ℝ ι) (hdata)
-    (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ)
-      (matVec M (z μ) + parametricLcpQ r lambda μ))
-    (h_unique : ∀ μ ≥ 0, ∀ z', isLCP M (parametricLcpQ r lambda μ) z'
-      (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
-    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
-    LocallyLipschitzOnCompacts z
-```
-(`Bounds/Delta.lean:2259`), and `LocallyLipschitzOnCompacts.absolutelyContinuous`
-(`LCP.lean:90`) turns its conclusion directly into this lemma's goal (applied to `z :=
-scaledPrimalPath x_lasso`).
-
-What is missing to invoke it:
-* `h_lcp` and the `isLCP`-vs-`isParametricLCP` argument-order match: this is exactly the
-  content of `exists_parametric_lcp_solution_for_positive_lasso` (this file, already proved)
-  plus `exists_parametric_lcp_solution_at_zero` (already proved), bridged through
-  `pos_lasso_is_lcp` (`LCP.lean:633`), giving existence of *a* dual `v(μ)` with `w(μ) =
-  matVec M (z μ) + parametricLcpQ r lambda μ` for each `μ ≥ 0`.
-* `h_mono` follows directly from `h_monotone` together with `scaledPrimalPath x_lasso μ i = μ *
-  x_lasso μ i` — routine.
-* `h_unique`, the genuinely missing piece: `parametric_lcp_lipschitz` needs the *selected*
-  `z μ = scaledPrimalPath x_lasso μ` to be the **unique** solution of the LCP at every `μ`, not
-  merely *a* solution. This is not automatic for a merely-PSD (not positive-definite) `M`: the
-  LCP solution set can have multiple primal points differing along `ker M` in general (e.g.
-  `M = 0, q = 0` admits every nonnegative `z`). `parametric_lcp_lipschitz`'s own proof sketch
-  (comments at `Delta.lean:2323-2334`) explains why uniqueness *does* hold for this specific
-  family: the kernel component of `q(μ) = (1 + μλ) • 1` is strictly positive for `λ, μ ≥ 0`,
-  which (via complementarity) forces the kernel component of any solution to vanish. Formalizing
-  this — i.e. proving `h_unique` as a standalone fact about `IsPositiveLassoMinimizer`-selected
-  paths — is not yet done anywhere in the codebase and is a nontrivial piece of linear algebra
-  (needs `IsPSDRangeInverse`/pseudoinverse machinery already present for the *dual* uniqueness
-  argument `psd_lcp_unique_dual` at `LCP.lean:1634`, adapted to primal uniqueness).
-
-See Lemma 4.12 of <https://arxiv.org/abs/2509.18766> and Mathlib's implication
-Lipschitz `⇒` absolutely continuous
-<https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/AbsolutelyContinuous.html>.
--/
-theorem monotone_positive_path_regular
+/-- Lemma 4.12, strong form: under the monotonicity hypothesis of Theorem 3.1, the scaled
+positive-Lasso path `z(μ) = μ x(μ)` is locally *Lipschitz* on `[0,∞)` — not merely absolutely
+continuous. `monotone_positive_path_regular` below is the AC corollary; the stronger Lipschitz
+fact is exposed separately because `pos_lasso_connection_monotone` needs it directly to invoke
+`positive_path_energy_bound_of_monotone`. -/
+theorem monotone_positive_path_lipschitz
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
-    LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) := by
+    LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso) := by
   set z := scaledPrimalPath x_lasso with hz_def
   -- Lemma 4.11's dual certificate for the scaled path (already proved, this file).
   obtain ⟨Mdagger, w, hdual, hdual_selected⟩ :=
@@ -1597,24 +1575,9 @@ theorem monotone_positive_path_regular
     obtain ⟨hweq, hwnn, hznn, hcomp⟩ := hdual_selected μ hμ
     have hv_eq : matVec M (z μ) + parametricLcpQ r lambda μ = w μ := by rw [hweq]; abel
     exact ⟨by abel, hv_eq ▸ hwnn, hznn, hv_eq ▸ hcomp⟩
-  -- Coordinatewise nonnegativity of the selected minimizer.
-  have hx_nonneg : ∀ μ > 0, ∀ i, 0 ≤ x_lasso μ i := fun μ hμ i => (hx_lasso μ hμ).1 i
-  have hz_coord : ∀ μ i, z μ i = μ * x_lasso μ i := by
-    intro μ i; simp [hz_def, scaledPrimalPath, smul_eq_mul]
-  -- `z` is coordinatewise nonnegative on `[0, ∞)`.
-  have hz_nonneg : ∀ ν, 0 ≤ ν → ∀ i, 0 ≤ z ν i := by
-    intro ν hν i
-    rcases eq_or_lt_of_le hν with rfl | hν_pos
-    · simp [hz_coord]
-    · rw [hz_coord]; exact mul_nonneg hν_pos.le (hx_nonneg ν hν_pos i)
   -- Monotonicity of `z`, extended from `(0,∞)` to `[0,∞)` via `z 0 = 0 ≤ z ν`.
-  have h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i := by
-    intro μ ν hμ hμν i
-    rcases eq_or_lt_of_le hμ with rfl | hμ_pos
-    · rw [hz_coord]; simpa using hz_nonneg ν hμν i
-    · rw [hz_coord, hz_coord]
-      exact h_monotone i (Set.mem_Ioi.mpr hμ_pos)
-        (Set.mem_Ioi.mpr (lt_of_lt_of_le hμ_pos hμν)) hμν
+  have h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i :=
+    scaledPrimalPath_mono_of_monotoneOn M r lambda x_lasso hx_lasso h_monotone
   -- `matVec M z` and `matVec M z + q` are both locally Lipschitz on `[0, ∞)`, since they agree
   -- there with the (Lipschitz, by Lemma 4.11) dual path `w` up to the (affine, hence Lipschitz)
   -- term `parametricLcpQ r lambda`.
@@ -1647,8 +1610,17 @@ theorem monotone_positive_path_regular
     exact hKbound μ hμ ν hν
   -- Lemma 4.12: complementarity + monotonicity pin down `z` as locally Lipschitz, no LCP
   -- solution-uniqueness needed (see `locallyLipschitzOnCompacts_of_matVec_lipschitz`).
-  exact (locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z
-    hdata.psd hdata.r_mem_span hdata.lambda_nonneg h_lcp hMz_lip hw_lip h_mono).absolutelyContinuous
+  exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z
+    hdata.psd hdata.r_mem_span hdata.lambda_nonneg h_lcp hMz_lip hw_lip h_mono
+
+theorem monotone_positive_path_regular
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
+    LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) :=
+  (monotone_positive_path_lipschitz M r lambda x_lasso hdata hx_lasso h_monotone).absolutelyContinuous
 
 /--
 Theorem 3.1: under monotonicity, the positive average trajectory exactly
