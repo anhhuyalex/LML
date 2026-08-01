@@ -1466,6 +1466,82 @@ Helper lemma: algebraic bound on the integrated energy function G(s).
 Informal proof: Expands (1+sλ)G(s) and uses asymptotic bounds.
 (Source: docs/Lasso.md, Section 4.6)
 -/
+-- Core inequality for the leading term in positive_energy_G_bound.
+-- For z ≥ 0, C_E > 0, C_D > 0, λ ≥ 0, s > 0:
+-- (1+sλ)·C_E·(s·√(2C_D)·√z + z) ≤ s²·C·suboptimalityGap(λ,s,z)
+-- where C = max(C_E·√(2C_D), C_E).
+private lemma leading_term_bound
+    (s lambda C_E C_D z : ℝ)
+    (hs : 0 < s) (h_lambda_nonneg : 0 ≤ lambda)
+    (hC_E_pos : 0 < C_E) (hC_D_pos : 0 < C_D)
+    (hz_nonneg : 0 ≤ z) :
+    (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
+    (1 + s * lambda) * C_E * z ≤
+    s^2 * (max (C_E * Real.sqrt (2 * C_D)) C_E * suboptimalityGap lambda s z) := by
+  set C := max (C_E * Real.sqrt (2 * C_D)) C_E
+  have hC1 : C_E * Real.sqrt (2 * C_D) ≤ C := le_max_left _ _
+  have hC2 : C_E ≤ C := le_max_right _ _
+  have h_sqrt_z_nonneg : 0 ≤ Real.sqrt z := Real.sqrt_nonneg _
+  have hs_nonneg : 0 ≤ s := le_of_lt hs
+  have h_factor_nonneg : 0 ≤ 1 + s * lambda := by nlinarith
+  -- core inequality without the (1+sλ) factor:
+  -- C_E·(s·√(2C_D)·√z + z) ≤ C·(s·√z + z)
+  -- which follows from C_E·√(2C_D) ≤ C (hC1) and C_E ≤ C (hC2)
+  have h_core : C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z) ≤
+      C * (s * Real.sqrt z + z) := by
+    have h_termA : C_E * s * Real.sqrt (2 * C_D) * Real.sqrt z ≤ C * s * Real.sqrt z := by
+      have h := mul_le_mul_of_nonneg_right hC1 (mul_nonneg hs_nonneg h_sqrt_z_nonneg)
+      calc
+        C_E * s * Real.sqrt (2 * C_D) * Real.sqrt z
+        = (C_E * Real.sqrt (2 * C_D)) * (s * Real.sqrt z) := by ring
+        _ ≤ C * (s * Real.sqrt z) := h
+        _ = C * s * Real.sqrt z := by ring
+    have h_termB : C_E * z ≤ C * z := mul_le_mul_of_nonneg_right hC2 hz_nonneg
+    nlinarith
+  -- rewrite both sides to factor (1+sλ), apply h_core, then rewrite RHS
+  have h_lhs_eq : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
+      (1 + s * lambda) * C_E * z =
+      (1 + s * lambda) * (C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z)) := by ring
+  have h_rhs_eq : s^2 * (C * suboptimalityGap lambda s z) =
+      (1 + s * lambda) * (C * (s * Real.sqrt z + z)) := by
+    dsimp [suboptimalityGap]
+    calc
+      s^2 * (C * ((1 + lambda * s) * (Real.sqrt z / s + z / s ^ 2)))
+          = C * (1 + lambda * s) * (s^2 * (Real.sqrt z / s + z / s ^ 2)) := by ring
+      _ = C * (1 + lambda * s) * (s * Real.sqrt z + z) := by
+        field_simp [hs.ne.symm]
+      _ = (1 + s * lambda) * (C * (s * Real.sqrt z + z)) := by ring
+  rw [h_lhs_eq, h_rhs_eq]
+  exact mul_le_mul_of_nonneg_left h_core h_factor_nonneg
+
+-- Bounds the δ_D term using the formula for δ_D.
+-- The key is that 2*C_D*δ_D is a perfect square, so √(2*C_D*δ_D) simplifies
+-- and the remaining expression is an exact equality with s^2*δ/4.
+private lemma delta_D_bound
+    (s lambda C_E C_D δ δ_D : ℝ)
+    (hs : 0 < s) (h_lambda_nonneg : 0 ≤ lambda)
+    (hC_E_pos : 0 < C_E) (hC_D_pos : 0 < C_D)
+    (hδ_nonneg : 0 ≤ δ)
+    (hδ_D : δ_D = (s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D)) :
+    (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
+  -- From hδ_D, compute 2*C_D*δ_D as a perfect square
+  have h_radicand_sq : 2 * C_D * δ_D = ((s * δ) / (4 * (1 + s * lambda) * C_E)) ^ 2 := by
+    rw [hδ_D]
+    have h_2CD_ne_zero : 2 * C_D ≠ 0 := by nlinarith
+    field_simp [h_2CD_ne_zero]
+  rw [h_radicand_sq]
+  -- Now we have Real.sqrt (A^2) where A = (s*δ)/(4*(1+s*λ)*C_E) ≥ 0
+  have hA_nonneg : 0 ≤ (s * δ) / (4 * (1 + s * lambda) * C_E) := by
+    positivity
+  rw [Real.sqrt_sq hA_nonneg]
+  -- Goal: (1+s*λ)*s*C_E * (s*δ/(4*(1+s*λ)*C_E)) ≤ s^2*δ/4
+  -- This is an equality, so we prove equality and note it implies ≤
+  have h_denom1_ne_zero : 1 + s * lambda ≠ 0 := by nlinarith
+  have h_eq : (1 + s * lambda) * s * C_E * ((s * δ) / (4 * (1 + s * lambda) * C_E)) =
+      s^2 * δ / 4 := by
+    field_simp [h_denom1_ne_zero, hC_E_pos.ne.symm]
+  rw [h_eq]
+
 private lemma positive_energy_G_bound
     {ι : Type*} [Fintype ι] (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (s lambda C_E C_D L K δ δ_E δ_D : ℝ) (h_lambda_nonneg : 0 ≤ lambda)
@@ -1482,9 +1558,6 @@ private lemma positive_energy_G_bound
       K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
     (1 + s * lambda) * G s ≤ s ^ 2 * (max (C_E * Real.sqrt (2 * C_D)) C_E *
         suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
-  set C := max (C_E * Real.sqrt (2 * C_D)) C_E
-  have hC1 : C_E * Real.sqrt (2 * C_D) ≤ C := le_max_left _ _
-  have hC2 : C_E ≤ C := le_max_right _ _
   change (1 + s * lambda) *
       (K * s + C_E / L * positiveZUpward x_lasso s + C_E * positiveZDownward x_lasso s) ≤ _
   have h_expand : (1 + s * lambda) *
@@ -1499,68 +1572,17 @@ private lemma positive_energy_G_bound
     rw [hK]
     ring
   rw [h_expand]
-  have h_leading : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) *
-      Real.sqrt (positiveZDownward x_lasso s) +
-      (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
-      s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s)) := by
-    set z := positiveZDownward x_lasso s
-    -- z ≥ 0 because the integrand (1+u)·max(0,…) is nonnegative on [0,s]
-    have hz_nonneg : 0 ≤ z := by
-      dsimp [z]
-      unfold positiveZDownward
-      refine Finset.sum_nonneg (fun i _ => ?_)
-      refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
-      have hu_nonneg : 0 ≤ u := hu.1
-      exact mul_nonneg (by nlinarith) (le_max_left 0 _)
-    have h_sqrt_z_nonneg : 0 ≤ Real.sqrt z := Real.sqrt_nonneg _
-    have hs_nonneg : 0 ≤ s := le_of_lt hs
-    have h_factor_nonneg : 0 ≤ 1 + s * lambda := by nlinarith
-    -- core inequality without the (1+sλ) factor:
-    -- C_E·(s·√(2C_D)·√z + z) ≤ C·(s·√z + z)
-    -- which follows from C_E·√(2C_D) ≤ C (hC1) and C_E ≤ C (hC2)
-    have h_core : C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z) ≤
-        C * (s * Real.sqrt z + z) := by
-      have h_termA : C_E * s * Real.sqrt (2 * C_D) * Real.sqrt z ≤ C * s * Real.sqrt z := by
-        have h := mul_le_mul_of_nonneg_right hC1 (mul_nonneg hs_nonneg h_sqrt_z_nonneg)
-        calc
-          C_E * s * Real.sqrt (2 * C_D) * Real.sqrt z
-          = (C_E * Real.sqrt (2 * C_D)) * (s * Real.sqrt z) := by ring
-          _ ≤ C * (s * Real.sqrt z) := h
-          _ = C * s * Real.sqrt z := by ring
-      have h_termB : C_E * z ≤ C * z := mul_le_mul_of_nonneg_right hC2 hz_nonneg
-      nlinarith
-    -- rewrite both sides to factor (1+sλ), apply h_core, then rewrite RHS
-    have h_lhs_eq : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
-        (1 + s * lambda) * C_E * z =
-        (1 + s * lambda) * (C_E * (s * Real.sqrt (2 * C_D) * Real.sqrt z + z)) := by ring
-    have h_rhs_eq : s^2 * (C * suboptimalityGap lambda s z) =
-        (1 + s * lambda) * (C * (s * Real.sqrt z + z)) := by
-      dsimp [suboptimalityGap]
-      calc
-        s^2 * (C * ((1 + lambda * s) * (Real.sqrt z / s + z / s ^ 2)))
-            = C * (1 + lambda * s) * (s^2 * (Real.sqrt z / s + z / s ^ 2)) := by ring
-        _ = C * (1 + lambda * s) * (s * Real.sqrt z + z) := by
-          field_simp [hs.ne.symm]
-        _ = (1 + s * lambda) * (C * (s * Real.sqrt z + z)) := by ring
-    rw [h_lhs_eq, h_rhs_eq]
-    exact mul_le_mul_of_nonneg_left h_core h_factor_nonneg
-  have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
-    -- From hδ_D, compute 2*C_D*δ_D as a perfect square
-    have h_radicand_sq : 2 * C_D * δ_D = ((s * δ) / (4 * (1 + s * lambda) * C_E)) ^ 2 := by
-      rw [hδ_D]
-      have h_2CD_ne_zero : 2 * C_D ≠ 0 := by nlinarith
-      field_simp [h_2CD_ne_zero]
-    rw [h_radicand_sq]
-    -- Now we have Real.sqrt (A^2) where A = (s*δ)/(4*(1+s*λ)*C_E) ≥ 0
-    have hA_nonneg : 0 ≤ (s * δ) / (4 * (1 + s * lambda) * C_E) := by
-      positivity
-    rw [Real.sqrt_sq hA_nonneg]
-    -- Goal: (1+s*λ)*s*C_E * (s*δ/(4*(1+s*λ)*C_E)) ≤ s^2*δ/4
-    -- This is an equality, so we prove equality and note it implies ≤
-    have h_denom1_ne_zero : 1 + s * lambda ≠ 0 := by nlinarith
-    have h_eq : (1 + s * lambda) * s * C_E * ((s * δ) / (4 * (1 + s * lambda) * C_E)) = s^2 * δ / 4 := by
-      field_simp [h_denom1_ne_zero, hC_E_pos.ne.symm]
-    rw [h_eq]
+  -- z ≥ 0 because the integrand (1+u)·max(0,…) is nonnegative on [0,s]
+  have hz_nonneg : 0 ≤ positiveZDownward x_lasso s := by
+    unfold positiveZDownward
+    refine Finset.sum_nonneg (fun i _ => ?_)
+    refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
+    have hu_nonneg : 0 ≤ u := hu.1
+    exact mul_nonneg (by nlinarith) (le_max_left 0 _)
+  have h_leading := leading_term_bound s lambda C_E C_D (positiveZDownward x_lasso s)
+    hs h_lambda_nonneg hC_E_pos hC_D_pos hz_nonneg
+  have h_delta_D := delta_D_bound s lambda C_E C_D δ δ_D
+    hs h_lambda_nonneg hC_E_pos hC_D_pos hδ_nonneg hδ_D
   have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
     rw [hδ_E]
     -- Goal: (1+s*λ)*s * (s*δ/(4*(1+s*λ))) ≤ s^2*δ/4

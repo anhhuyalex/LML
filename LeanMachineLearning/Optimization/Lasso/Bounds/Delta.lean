@@ -1919,7 +1919,8 @@ lemma pos_delta_bound_3_of_monotone
     have h_denom_pos : 0 < denom := by
       dsimp [denom, N]
       exact lt_max_of_lt_right (by norm_num : (0 : ℝ) < 1)
-    have h_path_zero_near_zero : ∃ μ₀ > 0, ∀ μ ∈ Set.Icc (0 : ℝ) μ₀, scaledPrimalPath x_lasso μ = 0 := by
+    have h_path_zero_near_zero : ∃ μ₀ > 0,
+        ∀ μ ∈ Set.Icc (0 : ℝ) μ₀, scaledPrimalPath x_lasso μ = 0 := by
       refine ⟨(1 / denom) / 2, half_pos (div_pos (by norm_num) h_denom_pos), ?_⟩
       intro μ hμ
       rcases hμ with ⟨hμ_low, hμ_high⟩
@@ -1932,7 +1933,8 @@ lemma pos_delta_bound_3_of_monotone
         have hx_zero : x_lasso μ = 0 := by
           rcases (pos_lasso_is_lcp M r lambda μ (x_lasso μ) hdata.psd.symm hdata.psd).mp hx_min with
             ⟨v, hv⟩
-          exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd hμ_pos hμ_small (x_lasso μ) v).mp hv).1
+          exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd
+            hμ_pos hμ_small (x_lasso μ) v).mp hv).1
         dsimp [scaledPrimalPath]
         rw [hx_zero, smul_zero]
     rcases h_path_zero_near_zero with ⟨μ₀, hμ₀_pos, h_zero⟩
@@ -1944,16 +1946,16 @@ lemma pos_delta_bound_3_of_monotone
           exact h_zero t ⟨ht.1.le, ht.2.le⟩
         have h_f0 : scaledPrimalPath x_lasso 0 = 0 := by
           simpa using h_zero 0 ⟨le_refl 0, hμ₀_pos.le⟩
-        have h_slope_zero : ∀ᶠ t in 𝓝[>] 0,
-            t⁻¹ • (scaledPrimalPath x_lasso (0 + t) - scaledPrimalPath x_lasso 0) =
-            (0 : EuclideanSpace ℝ ι) := by
+        have h_slope_eq : (fun _ => (0 : EuclideanSpace ℝ ι)) =ᶠ[𝓝[>] 0]
+            (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) -
+              scaledPrimalPath x_lasso 0)) := by
           filter_upwards [h_zero_right] with t ht
           simp [ht, h_f0]
         have h_tendsto_zero : Tendsto
             (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) - scaledPrimalPath x_lasso 0))
             (𝓝[>] 0) (𝓝 (0 : EuclideanSpace ℝ ι)) :=
-          Filter.Tendsto.congr' h_slope_zero
-            (tendsto_const_nhds (a := (0 : EuclideanSpace ℝ ι)))
+          Filter.Tendsto.congr' h_slope_eq
+            (tendsto_const_nhds (x := (0 : EuclideanSpace ℝ ι)))
         have h_tendsto_deriv := hd.hasDerivAt.tendsto_slope_zero_right
         exact tendsto_nhds_unique h_tendsto_deriv h_tendsto_zero
       · exact deriv_zero_of_not_differentiableAt hd
@@ -1986,7 +1988,8 @@ lemma pos_delta_bound_3_of_monotone
       (hW_low_ε τ hτ)
       (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
     -- Use monotone derivative identities instead of `deriv_pos_z_identities`
-    have h_derivs := deriv_pos_z_identities_of_monotone x_lasso τ hτ_pos h_regular h_mono h_path_diff
+    have h_derivs := deriv_pos_z_identities_of_monotone
+      x_lasso τ hτ_pos h_regular h_mono h_path_diff
     rcases h_derivs with ⟨h_upward_eq, h_downward_eq⟩
     rw [← h_upward_eq] at h_bound_pos
     rw [← h_downward_eq] at h_bound_neg
@@ -3457,7 +3460,36 @@ lemma positiveZ_ae_differentiable_of_monotone
     ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
       DifferentiableAt ℝ (positiveZUpward x_lasso) τ ∧
       DifferentiableAt ℝ (positiveZDownward x_lasso) τ := by
-  sorry
+  have h_path_diff_ae := scaledPrimalPath_ae_differentiable hs h_regular
+  have h_ne_zero : ∀ᵐ τ ∂volume, τ ≠ (0 : ℝ) := by
+    rw [ae_iff]
+    have heq : {a : ℝ | ¬ a ≠ 0} = {0} := by ext a; simp
+    rw [heq]
+    exact Real.volume_singleton
+  filter_upwards [h_path_diff_ae, h_ne_zero] with τ h_path_diff hτ_ne
+  intro hτ_mem
+  have hτ_pos : 0 < τ := lt_of_le_of_ne hτ_mem.left (Ne.symm hτ_ne)
+  have h_path_diff_at : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ := h_path_diff hτ_mem
+  have h_pos_mem : Set.Ioi (0 : ℝ) ∈ 𝓝 τ :=
+    isOpen_Ioi.mem_nhds (Set.mem_Ioi.mpr hτ_pos)
+  have h_down_eq : positiveZDownward x_lasso =ᶠ[𝓝 τ] fun _ => (0 : ℝ) := by
+    filter_upwards [h_pos_mem] with μ hμ
+    exact positiveZDownward_eq_zero_of_monotone x_lasso μ hμ.le h_regular h_mono
+  have h_up_eq : positiveZUpward x_lasso =ᶠ[𝓝 τ]
+      fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i := by
+    filter_upwards [h_pos_mem] with μ hμ
+    exact positiveZUpward_eq_sum_of_monotone x_lasso μ hμ.le h_regular h_mono
+  have h_down_diff : DifferentiableAt ℝ (positiveZDownward x_lasso) τ :=
+    (differentiableAt_const (0 : ℝ)).congr_of_eventuallyEq h_down_eq
+  have h_coord_diff (i : ι) : DifferentiableAt ℝ
+      (fun μ => (scaledPrimalPath x_lasso μ) i) τ :=
+    (differentiableAt_piLp 2).1 h_path_diff_at i
+  have h_sum_diff : DifferentiableAt ℝ
+      (fun μ => ∑ i ∈ Finset.univ, (scaledPrimalPath x_lasso μ) i) τ :=
+    DifferentiableAt.fun_sum (fun i hi => h_coord_diff i)
+  have h_up_diff : DifferentiableAt ℝ (positiveZUpward x_lasso) τ :=
+    h_sum_diff.congr_of_eventuallyEq h_up_eq
+  exact ⟨h_up_diff, h_down_diff⟩
 
 /--
 Section 4.6, Eq. (4.14): Bounding the derivative of `Δᵋ(s)`.
