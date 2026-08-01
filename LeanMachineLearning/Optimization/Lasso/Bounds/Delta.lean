@@ -3627,9 +3627,6 @@ lemma positive_delta_complementarity_bound_of_monotone
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
-    (hdual_selected : ∀ μ, 0 ≤ μ →
-      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
     (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
@@ -3644,7 +3641,76 @@ lemma positive_delta_complementarity_bound_of_monotone
           (1 / Real.log (1 / ε) *
               (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
-  sorry
+  obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β u hdata hβ hu
+  obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3_of_monotone M r lambda β u hdata hβ hu
+    x_lasso hx_lasso h_regular h_mono
+  refine ⟨max C1 C3, lt_max_of_lt_left hC1, fun s hs δ hδ => ?_⟩
+  have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
+  have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso
+    h_lipschitz δ hδ
+  filter_upwards [h1 s hs, h2, h3 s hs, h4, by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
+  have h_path_diff_ae : ∀ᵐ τ ∂volume, τ ∈ Set.Icc 0 s →
+      DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ :=
+    scaledPrimalPath_ae_differentiable hs h_regular
+  filter_upwards [h_path_diff_ae] with τ h_path_diff
+  intro hτ_mem
+  have h_log_pos : 0 < Real.log (1 / ε) :=
+    Real.log_pos (one_lt_one_div hε_range.1 hε_range.2)
+  have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ_mem.left h_regular
+  have hA_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := h_nonneg.1
+  have hB_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := h_nonneg.2
+  have h_alg : C1 / Real.log (1 / ε) + 0 +
+      C3 * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+        deriv (positiveZDownward x_lasso) τ) + δ
+    ≤ max C1 C3 * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+      deriv (positiveZDownward x_lasso) τ) + δ :=
+    pos_delta_alg_ineq hε_range.1 hε_range.2 hA_nonneg hB_nonneg
+  have h_path_diff_at : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ := h_path_diff hτ_mem
+  have hM : M.IsSymm := hdata.psd.symm
+  have hlog_ne : Real.log (1 / ε) ≠ 0 := h_log_pos.ne'
+  have hzε_deriv : HasDerivAt (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+      (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ) τ := by
+    have h0 := posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ
+      (hu ε hε_range.1).cont_diff.continuous hlog_ne
+    rwa [h0.deriv]
+  have hz_deriv : HasDerivAt (scaledPrimalPath x_lasso)
+      (deriv (scaledPrimalPath x_lasso) τ) τ := h_path_diff_at.hasDerivAt
+  have h_chain := pathDelta_hasDerivAt M hM
+    (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso)
+    (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+    (deriv (scaledPrimalPath x_lasso) τ) τ hzε_deriv hz_deriv
+  have hM_zε : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ) =
+      posRescaledMirrorVariable ε (u ε) τ - posRescaledMirrorVariable ε (u ε) 0 +
+        τ • r - (τ * lambda) • ones := by
+    have h := positive_integrated_mirror_equation M r lambda ε β (u ε) (hu ε hε_range.1)
+      (pos_effective_param_ne_zero M r lambda β u hdata hβ hu ε hε_range.1) hM τ hlog_ne
+    rw [h]; abel
+  have hM_diff : matVec M (posIntegratedTrajectoryRescaled ε (u ε) τ -
+      scaledPrimalPath x_lasso τ) =
+      (posRescaledMirrorVariable ε (u ε) τ -
+        (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones)) +
+      (ones - posRescaledMirrorVariable ε (u ε) 0) := by
+    rw [matVec_sub, hM_zε, add_smul, one_smul]
+    abel
+  have h_deriv_eq : deriv (fun σ => pathDelta M (fun ρ =>
+      posIntegratedTrajectoryRescaled ε (u ε) ρ) (scaledPrimalPath x_lasso) σ) τ =
+    inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+      (posRescaledMirrorVariable ε (u ε) τ) +
+    - inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
+      (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
+    - inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (posRescaledMirrorVariable ε (u ε) τ) +
+    (inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+      (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) +
+     inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ -
+       deriv (scaledPrimalPath x_lasso) τ)
+       (ones - posRescaledMirrorVariable ε (u ε) 0)) := by
+    rw [h_chain.deriv, hM_diff, inner_add_right, inner_sub_right,
+      inner_sub_left, inner_sub_left]
+    ring_nf
+  rw [h_deriv_eq]
+  linarith [h1ε τ hτ_mem, h2ε τ hτ_mem, h3ε τ hτ_mem, h4ε τ hτ_mem, h_alg]
 
 /--
 Section 4.6, differential inequality behind Eq. (4.15).

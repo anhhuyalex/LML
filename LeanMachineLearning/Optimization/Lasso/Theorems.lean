@@ -1473,7 +1473,6 @@ Informal proof: Expands (1+sλ)G(s) and uses asymptotic bounds.
 private lemma leading_term_bound
     (s lambda C_E C_D z : ℝ)
     (hs : 0 < s) (h_lambda_nonneg : 0 ≤ lambda)
-    (hC_E_pos : 0 < C_E) (hC_D_pos : 0 < C_D)
     (hz_nonneg : 0 ≤ z) :
     (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt z +
     (1 + s * lambda) * C_E * z ≤
@@ -1580,7 +1579,7 @@ private lemma positive_energy_G_bound
     have hu_nonneg : 0 ≤ u := hu.1
     exact mul_nonneg (by nlinarith) (le_max_left 0 _)
   have h_leading := leading_term_bound s lambda C_E C_D (positiveZDownward x_lasso s)
-    hs h_lambda_nonneg hC_E_pos hC_D_pos hz_nonneg
+    hs h_lambda_nonneg hz_nonneg
   have h_delta_D := delta_D_bound s lambda C_E C_D δ δ_D
     hs h_lambda_nonneg hC_E_pos hC_D_pos hδ_nonneg hδ_D
   have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
