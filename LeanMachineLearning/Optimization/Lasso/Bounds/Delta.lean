@@ -2435,8 +2435,8 @@ scaled-dual argument of `scaled_dual_lipschitz`, and the `𝟙`-inner-product of
 component is controlled algebraically by the LCP-orthogonality identity (`inner_dual_kernel_eq`)
 together with complementarity, without ever needing a second solution `z'` to coincide with `z`.
 Monotonicity then converts the resulting Lipschitz bound on `⟨𝟙, z⟩` into one on `z` itself
-(`locallyLipschitz_of_inner_ones_lipschitz_and_mono`). See `locallyLipschitzOnCompacts_of_matVec_lipschitz`
-for the full argument.
+(`locallyLipschitz_of_inner_ones_lipschitz_and_mono`).
+See `locallyLipschitzOnCompacts_of_matVec_lipschitz` for the full argument.
 -/
 lemma parametric_lcp_lipschitz
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2855,7 +2855,8 @@ private lemma pos_delta_bound_4_term2_algebraic_bound
 
 private lemma inner_bound_helper {ι : Type*} [Fintype ι]
     {a b : EuclideanSpace ℝ ι} {norm_b C : ℝ}
-    (h_norm_a : ‖a‖ ≤ C) (h_norm_b : ‖b‖ = norm_b) (h_C_nonneg : 0 ≤ C) (h_norm_b_nonneg : 0 ≤ norm_b) :
+    (h_norm_a : ‖a‖ ≤ C) (h_norm_b : ‖b‖ = norm_b)
+    (h_C_nonneg : 0 ≤ C) (h_norm_b_nonneg : 0 ≤ norm_b) :
     inner ℝ a b ≤ C * norm_b := by
   have h_abs := abs_real_inner_le_norm a b
   have h_inner_le_norm_mul : inner ℝ a b ≤ ‖a‖ * ‖b‖ := (abs_le.mp h_abs).right
@@ -2871,7 +2872,7 @@ private lemma target_norm_helper {ι : Type*} [Fintype ι]
     (hε_pos : 0 < ε) (hε_lt_one : ε < 1)
     (hβ : NonzeroCoordinates β)
     (hu : posDlnGradientFlow M r lambda ε β u) (v : EuclideanSpace ℝ ι)
-    (hv_def : v = euclideanOf (fun i => Real.log ((β i)^2)))
+    (hv_def : v = euclideanOf (fun i => Real.log ((β i) ^ 2)))
     (h_log_pos : 0 < Real.log (1 / ε)) :
     ‖ones - posRescaledMirrorVariable ε u 0‖ = ‖v‖ / Real.log (1 / ε) := by
   have h_eq_vec : ones - posRescaledMirrorVariable ε u 0 =
@@ -2892,7 +2893,8 @@ private lemma posIntegratedTrajectoryRescaled_deriv_bound {ι : Type*} [Fintype 
     (C₁ : ℝ)
     (hbound : ∀ t, 0 ≤ t → ‖posEffectiveParameter u_eps t‖ ≤ C₁)
     (τ : ℝ) (hτ_low : 0 ≤ τ) :
-    ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε u_eps ρ) τ : EuclideanSpace ℝ ι)‖ ≤ C₁ := by
+    ‖(deriv (fun (ρ : ℝ) => posIntegratedTrajectoryRescaled ε u_eps ρ) τ :
+      EuclideanSpace ℝ ι)‖ ≤ C₁ := by
   have h_cont_u : Continuous u_eps := hu.cont_diff.continuous
   rw [(posIntegratedTrajectoryRescaled_hasDerivAt ε u_eps τ h_cont_u (ne_of_gt h_log_pos)).deriv]
   have ht_nonneg : 0 ≤ posTimeFromRescaled ε τ := by
@@ -2957,12 +2959,17 @@ lemma pos_delta_bound_4_term2
   -- Step 3: triangle inequality for the derivative difference
   have h_diff_norm := le_trans (norm_sub_le _ _) (add_le_add h_deriv_zε_norm h_deriv_z_norm)
   -- Step 4: bound ‖ones - w^ε(0)‖ = ‖v‖ / log(1/ε)
-  have h_target_norm : ‖(ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0‖ = ‖v‖ / Real.log (1 / ε) :=
-    target_norm_helper M r lambda ε β (u ε) hε_pos hε_lt_one hβ (hu ε hε_pos) v hv_def h_log_pos
+  have h_target_norm :
+      ‖(ones : EuclideanSpace ℝ ι) - posRescaledMirrorVariable ε (u ε) 0‖
+        = ‖v‖ / Real.log (1 / ε) :=
+    target_norm_helper M r lambda ε β (u ε) hε_pos hε_lt_one hβ (hu ε hε_pos) v hv_def
+      h_log_pos
   -- Step 5 & 6: Cauchy-Schwarz and combine with log bound
-  have h_inner_bound := inner_bound_helper h_diff_norm h_target_norm (add_nonneg hC₁pos.le hC₂pos.le) (div_nonneg (norm_nonneg _) h_log_pos.le)
+  have h_inner_bound := inner_bound_helper h_diff_norm h_target_norm
+    (add_nonneg hC₁pos.le hC₂pos.le) (div_nonneg (norm_nonneg _) h_log_pos.le)
   have h_final : (C₁ + C₂) * (‖v‖ / Real.log (1 / ε)) ≤ δ :=
-    pos_delta_bound_4_term2_algebraic_bound hδ h_log_pos hM_bound_def (h_log_bound ε hε_pos hε_le_ε₁)
+    pos_delta_bound_4_term2_algebraic_bound hδ h_log_pos hM_bound_def
+      (h_log_bound ε hε_pos hε_le_ε₁)
   exact le_trans h_inner_bound h_final
 
 /--
@@ -3426,8 +3433,8 @@ lemma positive_delta_complementarity_bound
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
-    (hdual_selected : ∀ μ, 0 ≤ μ →
+    (_hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (_hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
     (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))

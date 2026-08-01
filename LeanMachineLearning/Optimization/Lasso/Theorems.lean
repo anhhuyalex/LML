@@ -819,7 +819,98 @@ private lemma pathDelta_uniform_bound_of_monotone
             (scaledPrimalPath x_lasso) τ
           ≤ C * (1 / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) +
               positiveZDownward x_lasso s) + C * δ := by
-  sorry
+  -- Identical to `pathDelta_uniform_bound`'s proof: obtain the a.e. derivative bound
+  -- from `positive_delta_complementarity_bound_of_monotone`, then use the FTC-comparison
+  -- argument via `bound_of_deriv_bound` and monotonicity of the majorant `G`.
+  obtain ⟨C, hC_pos, h_diff⟩ := positive_delta_complementarity_bound_of_monotone M r lambda β u
+    hdata hβ hu x_lasso hx_lasso Mdagger w hdual hdual_selected h_mono h_regular h_lipschitz
+  refine ⟨C, hC_pos, fun s hs δ hδ => ?_⟩
+  have h_delta_pos : 0 < C * δ / s := div_pos (mul_pos hC_pos hδ) hs
+  filter_upwards [h_diff s hs (C * δ / s) h_delta_pos,
+      show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h_deriv_bound hε_mem
+  rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
+  have hlog_pos : 0 < Real.log (1 / ε) := Real.log_pos (one_lt_one_div hε_pos hε_lt_one)
+  set F := fun σ => pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+    (scaledPrimalPath x_lasso) σ with hF_def
+  set G := fun σ => C * (1 / Real.log (1 / ε) * (σ + positiveZUpward x_lasso σ) +
+    positiveZDownward x_lasso σ) + C * δ / s * σ with hG_def
+  have hF_ac : AbsolutelyContinuousOnInterval F 0 s :=
+    pathDelta_ac M ε (u ε) x_lasso s hs.le (hu ε hε_pos).cont_diff.continuous hlog_pos.ne'
+      h_regular
+  have hG_ac : AbsolutelyContinuousOnInterval G 0 s := G_ac C ε s δ hs x_lasso h_regular
+  have hF0 : F 0 = 0 := pathDelta_zero M ε (u ε) x_lasso
+  have hG0 : G 0 = 0 := by
+    simp only [hG_def]
+    rw [(z_upward_downward_zero x_lasso).1, (z_upward_downward_zero x_lasso).2]
+    ring
+  -- `deriv G τ` matches the RHS of `positive_delta_complementarity_bound_of_monotone`'s bound
+  -- wherever `positiveZUpward`/`positiveZDownward` are differentiable, i.e. a.e.
+  -- Use the monotone version `positiveZ_ae_differentiable_of_monotone` instead of
+  -- `positiveZ_ae_differentiable`.
+  have h_pos_z_diff := positiveZ_ae_differentiable_of_monotone x_lasso s hs h_mono h_regular
+  have hderiv_G_eq : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv G τ =
+      C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+        deriv (positiveZDownward x_lasso) τ) + C * δ / s := by
+    filter_upwards [h_pos_z_diff] with τ hτ_diff hτ_mem
+    obtain ⟨hτ_up_diff, hτ_down_diff⟩ := hτ_diff hτ_mem
+    have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso)
+        (deriv (positiveZUpward x_lasso) τ) τ := hτ_up_diff.hasDerivAt
+    have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso)
+        (deriv (positiveZDownward x_lasso) τ) τ := hτ_down_diff.hasDerivAt
+    have h1 : HasDerivAt (fun t : ℝ => t + positiveZUpward x_lasso t)
+        (1 + deriv (positiveZUpward x_lasso) τ) τ := (hasDerivAt_id' τ).add h_up_hasDeriv
+    have h2 : HasDerivAt
+        (fun t : ℝ => 1 / Real.log (1 / ε) * (t + positiveZUpward x_lasso t) +
+          positiveZDownward x_lasso t)
+        (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+          deriv (positiveZDownward x_lasso) τ) τ :=
+      (h1.const_mul (1 / Real.log (1 / ε))).add h_down_hasDeriv
+    have h3 : HasDerivAt
+        (fun t : ℝ => C * (1 / Real.log (1 / ε) * (t + positiveZUpward x_lasso t) +
+            positiveZDownward x_lasso t) + C * δ / s * t)
+        (C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+            deriv (positiveZDownward x_lasso) τ) + C * δ / s * 1) τ :=
+      (h2.const_mul C).add ((hasDerivAt_id' τ).const_mul (C * δ / s))
+    rw [hG_def, h3.deriv]
+    ring
+  have h_deriv_le : ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
+    filter_upwards [h_deriv_bound, hderiv_G_eq] with τ hτ1 hτ2 hτ_mem
+    rw [hτ2 hτ_mem]
+    exact hτ1 hτ_mem
+  intro τ' hτ'
+  have h_sub : Set.uIcc (0 : ℝ) τ' ⊆ Set.uIcc (0 : ℝ) s := by
+    rw [Set.uIcc_of_le hτ'.1, Set.uIcc_of_le hs.le]
+    exact Set.Icc_subset_Icc_right hτ'.2
+  have hFτ'_le_Gτ' : F τ' ≤ G τ' := by
+    apply bound_of_deriv_bound hτ'.1 _ hF0 hG0 (hF_ac.mono h_sub) (hG_ac.mono h_sub)
+    filter_upwards [h_deriv_le] with τ hτ_imp hτ_mem
+    exact hτ_imp (Set.Icc_subset_Icc_right hτ'.2 hτ_mem)
+  have hG_mono : G τ' ≤ G s := by
+    have h_up_mono := positiveZUpward_monotoneOn x_lasso h_regular
+    have h_down_mono := positiveZDownward_monotoneOn x_lasso h_regular
+    have h1 : positiveZUpward x_lasso τ' ≤ positiveZUpward x_lasso s :=
+      h_up_mono hτ'.1 hs.le hτ'.2
+    have h2 : positiveZDownward x_lasso τ' ≤ positiveZDownward x_lasso s :=
+      h_down_mono hτ'.1 hs.le hτ'.2
+    have hL_nonneg : 0 ≤ 1 / Real.log (1 / ε) := by positivity
+    have hCδs_nonneg : 0 ≤ C * δ / s := by positivity
+    simp only [hG_def]
+    nlinarith [mul_le_mul_of_nonneg_left (add_le_add hτ'.2 h1) hC_pos.le,
+      mul_le_mul_of_nonneg_left h2 hC_pos.le,
+      mul_le_mul_of_nonneg_left hτ'.2 hCδs_nonneg]
+  have hGs_eq : G s = C * (1 / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) +
+      positiveZDownward x_lasso s) + C * δ := by
+    simp only [hG_def]
+    field_simp
+  calc
+    pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+        (scaledPrimalPath x_lasso) τ'
+        = F τ' := rfl
+    _ ≤ G τ' := hFτ'_le_Gτ'
+    _ ≤ G s := hG_mono
+    _ = _ := hGs_eq
 
 -- The function τ ↦ 1/(1+τ*λ) is absolutely continuous on [0,s] when λ ≥ 0, s ≥ 0.
 -- This uses Lipschitz continuity: denominator ≥ 1 implies the function is λ-Lipschitz.
