@@ -1458,6 +1458,155 @@ private lemma deriv_pos_z_identities
   exact ⟨h_upward_eq, h_downward_eq⟩
 
 /--
+Composing an absolutely continuous curve with a Lipschitz map preserves absolute continuity.
+
+We need this because Mathlib's `AbsolutelyContinuousOnInterval.ae_differentiableAt` is stated
+only for `ℝ`-valued curves (`MeasureTheory.Function.AbsolutelyContinuous`), while the Lasso
+path lives in the vector space `EuclideanSpace ℝ ι`. Directly feeding a vector-valued
+`AbsolutelyContinuousOnInterval` hypothesis into that scalar-only lemma is a type mismatch;
+attempting it forces Lean into an expensive, ultimately failing unification search (this is
+what caused the `whnf` timeout here previously — the fix is this coordinate-wise reduction,
+not a larger heartbeat budget). Projecting onto a single coordinate is `1`-Lipschitz, so
+composing with it turns the vector-valued absolute continuity of `f` into scalar-valued
+absolute continuity of `g ∘ f`, to which `ae_differentiableAt` applies.
+
+Informal proof: absolute continuity is characterized by `∑ dist (f aᵢ) (f bᵢ) → 0` as the total
+length `∑ dist aᵢ bᵢ → 0`. Since `g` is `K`-Lipschitz,
+`∑ dist (g (f aᵢ)) (g (f bᵢ)) ≤ K * ∑ dist (f aᵢ) (f bᵢ) → 0`.
+(Source: Lipschitz images of absolutely continuous functions are absolutely continuous; this is
+the direct analogue of the standard fact that Lipschitz images of bounded-variation functions
+have bounded variation, e.g. Royden & Fitzpatrick, *Real Analysis*, 4th ed., Ch. 5.)
+-/
+theorem _root_.LipschitzWith.comp_absolutelyContinuousOnInterval
+    {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y]
+    {f : ℝ → X} {g : X → Y} {K : NNReal} {a b : ℝ}
+    (hg : LipschitzWith K g) (hf : AbsolutelyContinuousOnInterval f a b) :
+    AbsolutelyContinuousOnInterval (g ∘ f) a b := by
+  have hf' : Tendsto
+      (fun E : ℕ × (ℕ → ℝ × ℝ) ↦ ∑ i ∈ Finset.range E.1, dist (f (E.2 i).1) (f (E.2 i).2))
+      (AbsolutelyContinuousOnInterval.totalLengthFilter ⊓
+        𝓟 (AbsolutelyContinuousOnInterval.disjWithin a b)) (𝓝 0) := hf
+  apply squeeze_zero (fun _ ↦ Finset.sum_nonneg (fun _ _ ↦ dist_nonneg))
+    (fun _ ↦ ?_) (by simpa using hf'.const_mul (K : ℝ))
+  simp only [Function.comp_apply]
+  rw [Finset.mul_sum]
+  exact Finset.sum_le_sum (fun i _ ↦ hg.dist_le_mul _ _)
+
+/-! ### Monotone-case closed forms for `positiveZUpward`/`positiveZDownward`
+
+Under the monotonicity hypothesis of Theorem 3.1 (`docs/Lasso.md`, Sec. 3.1), the scaled path
+`z(μ) = μ x(μ)` is coordinatewise nondecreasing on `[0,∞)`. Combined with `z` being locally
+Lipschitz (Lemma 4.12, `locallyLipschitzOnCompacts_of_matVec_lipschitz`), Lebesgue's monotone
+differentiation theorem gives `deriv z_i ≥ 0` a.e., from which `positiveZDownward` vanishes
+identically and `positiveZUpward` equals `⟨𝟙, z⟩` exactly. These closed forms give
+a.e.-differentiability of `positiveZUpward`/`positiveZDownward` (and the derivative identities
+`deriv_pos_z_identities` provides in general) *without* the
+`ScaledPrimalPathLocallyAffineAtDifferentiable` structural hypothesis, which `docs/Lasso.md`'s
+Theorem 3.1 never assumes (its only extra hypothesis over Theorem 3.2 is monotonicity). -/
+
+omit [Fintype ι] in
+/-- If a coordinate of the scaled primal path is monotone nondecreasing on `[0,∞)` and
+differentiable at `τ > 0`, its derivative there is nonnegative.
+
+Informal proof: extend the coordinate to a function on all of `ℝ` that is monotone globally
+(constant below `0`); it agrees with the original on the neighborhood `(0,∞)` of `τ`, so the
+derivative is unchanged, and `HasDerivAt.nonneg_of_monotone` applies. -/
+private lemma deriv_scaledPrimalPath_coord_nonneg_of_monotone
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (i : ι) (τ : ℝ) (hτ : 0 < τ)
+    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν →
+      (μ * (x_lasso μ).ofLp i) ≤ (ν * (x_lasso ν).ofLp i))
+    (h_diff : DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) τ) :
+    0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) τ := by
+  set g : ℝ → ℝ := fun t => t * (x_lasso t).ofLp i with hg_def
+  set g_ext : ℝ → ℝ := fun t => if 0 ≤ t then g t else g 0 with hg_ext_def
+  have hg_ext_mono : Monotone g_ext := by
+    intro a b hab
+    by_cases ha : 0 ≤ a
+    · have hb : 0 ≤ b := ha.trans hab
+      simp only [hg_ext_def, if_pos ha, if_pos hb]
+      exact h_mono a b ha hab
+    · by_cases hb : 0 ≤ b
+      · simp only [hg_ext_def, if_neg ha, if_pos hb]
+        exact h_mono 0 b le_rfl hb
+      · simp only [hg_ext_def, if_neg ha, if_neg hb]
+        exact le_refl _
+  have heq : g_ext =ᶠ[𝓝 τ] g := by
+    filter_upwards [eventually_gt_nhds hτ] with t ht
+    simp only [hg_ext_def, if_pos ht.le]
+  have hg_deriv : HasDerivAt g (deriv g τ) τ := h_diff.hasDerivAt
+  have hderiv : HasDerivAt g_ext (deriv g τ) τ := hg_deriv.congr_of_eventuallyEq heq
+  exact hderiv.nonneg_of_monotone hg_ext_mono
+
+/-- `positiveZDownward` vanishes identically on `[0, ∞)` when `z = scaledPrimalPath x_lasso`
+is coordinatewise monotone nondecreasing there: the integrand `(1+u)·max 0 (-z_i'(u))`
+vanishes a.e., since Lebesgue's monotone differentiation theorem gives `z_i' ≥ 0` a.e. -/
+lemma positiveZDownward_eq_zero_of_monotone
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) (hμ : 0 ≤ μ)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
+    positiveZDownward x_lasso μ = 0 := by
+  rcases eq_or_lt_of_le hμ with rfl | hμ_pos
+  · simp [positiveZDownward]
+  unfold positiveZDownward
+  refine Finset.sum_eq_zero (fun i _ => ?_)
+  have h_ac : AbsolutelyContinuousOnInterval (fun t => t * (x_lasso t).ofLp i) 0 μ := by
+    have heq : (fun t : ℝ => t * (x_lasso t).ofLp i) =
+        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso := by
+      funext t; simp [scaledPrimalPath, smul_eq_mul]
+    rw [heq]
+    exact (LipschitzWith.of_dist_le_mul (K := 1) (fun x y => by
+      simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)).comp_absolutelyContinuousOnInterval
+      (h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ_pos.le)
+  have h_diff_ae : ∀ᵐ u ∂volume, u ∈ Set.uIcc (0 : ℝ) μ →
+      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) u := h_ac.ae_differentiableAt
+  have h_ae_zero : ∀ᵐ u ∂volume, u ∈ Set.uIoc (0 : ℝ) μ →
+      (1 + u) * max 0 (-deriv (fun t => t * (x_lasso t).ofLp i) u) = (0 : ℝ) := by
+    rw [Set.uIoc_of_le hμ_pos.le]
+    filter_upwards [h_diff_ae] with u hdiff hu_mem
+    rw [Set.uIcc_of_le hμ_pos.le] at hdiff
+    have hu_deriv : 0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) u :=
+      deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i u hu_mem.1
+        (fun a b ha hab => h_mono a b ha hab i) (hdiff ⟨hu_mem.1.le, hu_mem.2⟩)
+    simp [max_eq_left (neg_nonpos.mpr hu_deriv)]
+  rw [intervalIntegral.integral_congr_ae h_ae_zero, intervalIntegral.integral_zero]
+
+/-- `positiveZUpward` equals `⟨𝟙, z⟩` on `[0, ∞)` when `z = scaledPrimalPath x_lasso` is
+coordinatewise monotone nondecreasing there: the integrand `max 0 (z_i'(u))` equals `z_i'(u)`
+a.e. (Lebesgue's monotone differentiation theorem), and FTC for the locally Lipschitz (hence
+absolutely continuous) `z_i` gives `∫₀^μ z_i' = z_i(μ) - z_i(0) = z_i(μ)`. -/
+lemma positiveZUpward_eq_sum_of_monotone
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) (hμ : 0 ≤ μ)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
+    positiveZUpward x_lasso μ = ∑ i, (scaledPrimalPath x_lasso μ) i := by
+  rcases eq_or_lt_of_le hμ with rfl | hμ_pos
+  · simp [positiveZUpward, scaledPrimalPath]
+  unfold positiveZUpward
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  have h_ac : AbsolutelyContinuousOnInterval (fun t => t * (x_lasso t).ofLp i) 0 μ := by
+    have heq : (fun t : ℝ => t * (x_lasso t).ofLp i) =
+        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso := by
+      funext t; simp [scaledPrimalPath, smul_eq_mul]
+    rw [heq]
+    exact (LipschitzWith.of_dist_le_mul (K := 1) (fun x y => by
+      simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)).comp_absolutelyContinuousOnInterval
+      (h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ_pos.le)
+  have h_diff_ae : ∀ᵐ u ∂volume, u ∈ Set.uIcc (0 : ℝ) μ →
+      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) u := h_ac.ae_differentiableAt
+  have h_eq_ae : ∀ᵐ u ∂volume, u ∈ Set.uIoc (0 : ℝ) μ →
+      max 0 (deriv (fun t => t * (x_lasso t).ofLp i) u) =
+        deriv (fun t => t * (x_lasso t).ofLp i) u := by
+    rw [Set.uIoc_of_le hμ_pos.le]
+    filter_upwards [h_diff_ae] with u hdiff hu_mem
+    rw [Set.uIcc_of_le hμ_pos.le] at hdiff
+    have hu_deriv : 0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) u :=
+      deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i u hu_mem.1
+        (fun a b ha hab => h_mono a b ha hab i) (hdiff ⟨hu_mem.1.le, hu_mem.2⟩)
+    exact max_eq_right hu_deriv
+  rw [intervalIntegral.integral_congr_ae h_eq_ae, h_ac.integral_deriv_eq_sub]
+  simp [scaledPrimalPath, smul_eq_mul]
+
+/--
 Monotone-case analogue of `deriv_pos_z_identities`: the same derivative identities for
 `positiveZUpward`/`positiveZDownward`, but derived from coordinatewise monotonicity of
 `z = scaledPrimalPath x_lasso` on `[0,∞)` instead of the structural
@@ -1508,7 +1657,8 @@ private lemma deriv_pos_z_identities_of_monotone
       (fun t => (scaledPrimalPath x_lasso t) i) := by
     ext t; simp [scaledPrimalPath, smul_eq_mul]
   -- Nonnegativity of coordinate derivatives from coordinatewise monotonicity
-  -- (Inlined from `deriv_scaledPrimalPath_coord_nonneg_of_monotone` which is defined later.)
+  -- (This is an inlined version of
+  --  `deriv_scaledPrimalPath_coord_nonneg_of_monotone`, defined above.)
   have h_nonneg (i : ι) : 0 ≤ (deriv (scaledPrimalPath x_lasso) τ) i := by
     have h_diff : DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) τ := by
       rw [h_fn_eq i]
@@ -1542,20 +1692,17 @@ private lemma deriv_pos_z_identities_of_monotone
     exact h_nonneg_g
   -- Closed forms on a neighborhood of τ (using that τ > 0, so (0,∞) is an open nhd of τ)
   -- These follow from `positiveZDownward_eq_zero_of_monotone` and
-  -- `positiveZUpward_eq_sum_of_monotone` which are defined later in the file;
-  -- we state the needed facts as `have` with `sorry` for the sketch.
+  -- `positiveZUpward_eq_sum_of_monotone` which are defined above.
   have h_open_nhds : Set.Ioi (0 : ℝ) ∈ 𝓝 τ := isOpen_Ioi.mem_nhds hτ
   have h_down_closed_on_nhds : positiveZDownward x_lasso =ᶠ[𝓝 τ] fun _ => (0 : ℝ) := by
     filter_upwards [h_open_nhds] with μ hμ
     have hμ_nonneg : 0 ≤ μ := Set.mem_Ioi.mp hμ |>.le
-    -- `positiveZDownward_eq_zero_of_monotone` gives this for all μ ≥ 0
-    sorry
+    exact positiveZDownward_eq_zero_of_monotone x_lasso μ hμ_nonneg h_regular h_mono
   have h_up_closed_on_nhds : positiveZUpward x_lasso =ᶠ[𝓝 τ]
       fun μ => ∑ i, (scaledPrimalPath x_lasso μ) i := by
     filter_upwards [h_open_nhds] with μ hμ
     have hμ_nonneg : 0 ≤ μ := Set.mem_Ioi.mp hμ |>.le
-    -- `positiveZUpward_eq_sum_of_monotone` gives this for all μ ≥ 0
-    sorry
+    exact positiveZUpward_eq_sum_of_monotone x_lasso μ hμ_nonneg h_regular h_mono
   -- Differentiate the closed forms
   have h_deriv_down : deriv (positiveZDownward x_lasso) τ = 0 := by
     calc
@@ -3160,155 +3307,6 @@ lemma pos_delta_alg_ineq {C1 C3 δ : ℝ} {ε : ℝ} (hε_pos : 0 < ε) (hε_lt 
   dsimp only [L, M] at h_sum ⊢
   rw [div_eq_mul_one_div C1]
   linarith
-
-/--
-Composing an absolutely continuous curve with a Lipschitz map preserves absolute continuity.
-
-We need this because Mathlib's `AbsolutelyContinuousOnInterval.ae_differentiableAt` is stated
-only for `ℝ`-valued curves (`MeasureTheory.Function.AbsolutelyContinuous`), while the Lasso
-path lives in the vector space `EuclideanSpace ℝ ι`. Directly feeding a vector-valued
-`AbsolutelyContinuousOnInterval` hypothesis into that scalar-only lemma is a type mismatch;
-attempting it forces Lean into an expensive, ultimately failing unification search (this is
-what caused the `whnf` timeout here previously — the fix is this coordinate-wise reduction,
-not a larger heartbeat budget). Projecting onto a single coordinate is `1`-Lipschitz, so
-composing with it turns the vector-valued absolute continuity of `f` into scalar-valued
-absolute continuity of `g ∘ f`, to which `ae_differentiableAt` applies.
-
-Informal proof: absolute continuity is characterized by `∑ dist (f aᵢ) (f bᵢ) → 0` as the total
-length `∑ dist aᵢ bᵢ → 0`. Since `g` is `K`-Lipschitz,
-`∑ dist (g (f aᵢ)) (g (f bᵢ)) ≤ K * ∑ dist (f aᵢ) (f bᵢ) → 0`.
-(Source: Lipschitz images of absolutely continuous functions are absolutely continuous; this is
-the direct analogue of the standard fact that Lipschitz images of bounded-variation functions
-have bounded variation, e.g. Royden & Fitzpatrick, *Real Analysis*, 4th ed., Ch. 5.)
--/
-theorem _root_.LipschitzWith.comp_absolutelyContinuousOnInterval
-    {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y]
-    {f : ℝ → X} {g : X → Y} {K : NNReal} {a b : ℝ}
-    (hg : LipschitzWith K g) (hf : AbsolutelyContinuousOnInterval f a b) :
-    AbsolutelyContinuousOnInterval (g ∘ f) a b := by
-  have hf' : Tendsto
-      (fun E : ℕ × (ℕ → ℝ × ℝ) ↦ ∑ i ∈ Finset.range E.1, dist (f (E.2 i).1) (f (E.2 i).2))
-      (AbsolutelyContinuousOnInterval.totalLengthFilter ⊓
-        𝓟 (AbsolutelyContinuousOnInterval.disjWithin a b)) (𝓝 0) := hf
-  apply squeeze_zero (fun _ ↦ Finset.sum_nonneg (fun _ _ ↦ dist_nonneg))
-    (fun _ ↦ ?_) (by simpa using hf'.const_mul (K : ℝ))
-  simp only [Function.comp_apply]
-  rw [Finset.mul_sum]
-  exact Finset.sum_le_sum (fun i _ ↦ hg.dist_le_mul _ _)
-
-/-! ### Monotone-case closed forms for `positiveZUpward`/`positiveZDownward`
-
-Under the monotonicity hypothesis of Theorem 3.1 (`docs/Lasso.md`, Sec. 3.1), the scaled path
-`z(μ) = μ x(μ)` is coordinatewise nondecreasing on `[0,∞)`. Combined with `z` being locally
-Lipschitz (Lemma 4.12, `locallyLipschitzOnCompacts_of_matVec_lipschitz`), Lebesgue's monotone
-differentiation theorem gives `deriv z_i ≥ 0` a.e., from which `positiveZDownward` vanishes
-identically and `positiveZUpward` equals `⟨𝟙, z⟩` exactly. These closed forms give
-a.e.-differentiability of `positiveZUpward`/`positiveZDownward` (and the derivative identities
-`deriv_pos_z_identities` provides in general) *without* the
-`ScaledPrimalPathLocallyAffineAtDifferentiable` structural hypothesis, which `docs/Lasso.md`'s
-Theorem 3.1 never assumes (its only extra hypothesis over Theorem 3.2 is monotonicity). -/
-
-omit [Fintype ι] in
-/-- If a coordinate of the scaled primal path is monotone nondecreasing on `[0,∞)` and
-differentiable at `τ > 0`, its derivative there is nonnegative.
-
-Informal proof: extend the coordinate to a function on all of `ℝ` that is monotone globally
-(constant below `0`); it agrees with the original on the neighborhood `(0,∞)` of `τ`, so the
-derivative is unchanged, and `HasDerivAt.nonneg_of_monotone` applies. -/
-private lemma deriv_scaledPrimalPath_coord_nonneg_of_monotone
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (i : ι) (τ : ℝ) (hτ : 0 < τ)
-    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν →
-      (μ * (x_lasso μ).ofLp i) ≤ (ν * (x_lasso ν).ofLp i))
-    (h_diff : DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) τ) :
-    0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) τ := by
-  set g : ℝ → ℝ := fun t => t * (x_lasso t).ofLp i with hg_def
-  set g_ext : ℝ → ℝ := fun t => if 0 ≤ t then g t else g 0 with hg_ext_def
-  have hg_ext_mono : Monotone g_ext := by
-    intro a b hab
-    by_cases ha : 0 ≤ a
-    · have hb : 0 ≤ b := ha.trans hab
-      simp only [hg_ext_def, if_pos ha, if_pos hb]
-      exact h_mono a b ha hab
-    · by_cases hb : 0 ≤ b
-      · simp only [hg_ext_def, if_neg ha, if_pos hb]
-        exact h_mono 0 b le_rfl hb
-      · simp only [hg_ext_def, if_neg ha, if_neg hb]
-        exact le_refl _
-  have heq : g_ext =ᶠ[𝓝 τ] g := by
-    filter_upwards [eventually_gt_nhds hτ] with t ht
-    simp only [hg_ext_def, if_pos ht.le]
-  have hg_deriv : HasDerivAt g (deriv g τ) τ := h_diff.hasDerivAt
-  have hderiv : HasDerivAt g_ext (deriv g τ) τ := hg_deriv.congr_of_eventuallyEq heq
-  exact hderiv.nonneg_of_monotone hg_ext_mono
-
-/-- `positiveZDownward` vanishes identically on `[0, ∞)` when `z = scaledPrimalPath x_lasso`
-is coordinatewise monotone nondecreasing there: the integrand `(1+u)·max 0 (-z_i'(u))`
-vanishes a.e., since Lebesgue's monotone differentiation theorem gives `z_i' ≥ 0` a.e. -/
-lemma positiveZDownward_eq_zero_of_monotone
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) (hμ : 0 ≤ μ)
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
-    positiveZDownward x_lasso μ = 0 := by
-  rcases eq_or_lt_of_le hμ with rfl | hμ_pos
-  · simp [positiveZDownward]
-  unfold positiveZDownward
-  refine Finset.sum_eq_zero (fun i _ => ?_)
-  have h_ac : AbsolutelyContinuousOnInterval (fun t => t * (x_lasso t).ofLp i) 0 μ := by
-    have heq : (fun t : ℝ => t * (x_lasso t).ofLp i) =
-        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso := by
-      funext t; simp [scaledPrimalPath, smul_eq_mul]
-    rw [heq]
-    exact (LipschitzWith.of_dist_le_mul (K := 1) (fun x y => by
-      simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)).comp_absolutelyContinuousOnInterval
-      (h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ_pos.le)
-  have h_diff_ae : ∀ᵐ u ∂volume, u ∈ Set.uIcc (0 : ℝ) μ →
-      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) u := h_ac.ae_differentiableAt
-  have h_ae_zero : ∀ᵐ u ∂volume, u ∈ Set.uIoc (0 : ℝ) μ →
-      (1 + u) * max 0 (-deriv (fun t => t * (x_lasso t).ofLp i) u) = (0 : ℝ) := by
-    rw [Set.uIoc_of_le hμ_pos.le]
-    filter_upwards [h_diff_ae] with u hdiff hu_mem
-    rw [Set.uIcc_of_le hμ_pos.le] at hdiff
-    have hu_deriv : 0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) u :=
-      deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i u hu_mem.1
-        (fun a b ha hab => h_mono a b ha hab i) (hdiff ⟨hu_mem.1.le, hu_mem.2⟩)
-    simp [max_eq_left (neg_nonpos.mpr hu_deriv)]
-  rw [intervalIntegral.integral_congr_ae h_ae_zero, intervalIntegral.integral_zero]
-
-/-- `positiveZUpward` equals `⟨𝟙, z⟩` on `[0, ∞)` when `z = scaledPrimalPath x_lasso` is
-coordinatewise monotone nondecreasing there: the integrand `max 0 (z_i'(u))` equals `z_i'(u)`
-a.e. (Lebesgue's monotone differentiation theorem), and FTC for the locally Lipschitz (hence
-absolutely continuous) `z_i` gives `∫₀^μ z_i' = z_i(μ) - z_i(0) = z_i(μ)`. -/
-lemma positiveZUpward_eq_sum_of_monotone
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (μ : ℝ) (hμ : 0 ≤ μ)
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
-    positiveZUpward x_lasso μ = ∑ i, (scaledPrimalPath x_lasso μ) i := by
-  rcases eq_or_lt_of_le hμ with rfl | hμ_pos
-  · simp [positiveZUpward, scaledPrimalPath]
-  unfold positiveZUpward
-  refine Finset.sum_congr rfl (fun i _ => ?_)
-  have h_ac : AbsolutelyContinuousOnInterval (fun t => t * (x_lasso t).ofLp i) 0 μ := by
-    have heq : (fun t : ℝ => t * (x_lasso t).ofLp i) =
-        (fun x : EuclideanSpace ℝ ι => x.ofLp i) ∘ scaledPrimalPath x_lasso := by
-      funext t; simp [scaledPrimalPath, smul_eq_mul]
-    rw [heq]
-    exact (LipschitzWith.of_dist_le_mul (K := 1) (fun x y => by
-      simpa [dist_eq_norm] using PiLp.norm_apply_le (x - y) i)).comp_absolutelyContinuousOnInterval
-      (h_regular.absolutelyContinuousOn_Icc 0 μ le_rfl hμ_pos.le)
-  have h_diff_ae : ∀ᵐ u ∂volume, u ∈ Set.uIcc (0 : ℝ) μ →
-      DifferentiableAt ℝ (fun t => t * (x_lasso t).ofLp i) u := h_ac.ae_differentiableAt
-  have h_eq_ae : ∀ᵐ u ∂volume, u ∈ Set.uIoc (0 : ℝ) μ →
-      max 0 (deriv (fun t => t * (x_lasso t).ofLp i) u) =
-        deriv (fun t => t * (x_lasso t).ofLp i) u := by
-    rw [Set.uIoc_of_le hμ_pos.le]
-    filter_upwards [h_diff_ae] with u hdiff hu_mem
-    rw [Set.uIcc_of_le hμ_pos.le] at hdiff
-    have hu_deriv : 0 ≤ deriv (fun t => t * (x_lasso t).ofLp i) u :=
-      deriv_scaledPrimalPath_coord_nonneg_of_monotone x_lasso i u hu_mem.1
-        (fun a b ha hab => h_mono a b ha hab i) (hdiff ⟨hu_mem.1.le, hu_mem.2⟩)
-    exact max_eq_right hu_deriv
-  rw [intervalIntegral.integral_congr_ae h_eq_ae, h_ac.integral_deriv_eq_sub]
-  simp [scaledPrimalPath, smul_eq_mul]
 
 /--
 Almost every point of `[0, s]` is a differentiability point of the scaled primal path,

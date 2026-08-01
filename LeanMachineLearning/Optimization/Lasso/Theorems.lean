@@ -1180,7 +1180,7 @@ private lemma positive_energy_deriv_bound
     (h_z_up_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZUpward x_lasso) t)
     (h_z_down_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZDownward x_lasso) t)
     (hδ_E_nonneg : 0 ≤ δ_E)
-    (hδ_D_nonneg : 0 ≤ δ_D)
+    (_hδ_D_nonneg : 0 ≤ δ_D)
     (hE_diff_ae : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
       DifferentiableAt ℝ (fun τ => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ) t)
     (h_E : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
@@ -1287,10 +1287,29 @@ private lemma positive_energy_deriv_bound
       1 / L * (1 + z_up') + z_down') + δ_E := by
     have hE_bound_τ := hE_bound hτ_mem
     have h_mul := mul_le_mul_of_nonneg_left hE_bound_τ hφ_nonneg
-    -- We know φ τ ≤ 1 and the RHS involves constants C_E, L, δ_E.
-    -- To avoid deep nlinarith, use a sorry for this algebraic step if needed,
-    -- or just rely on a simple inequality.
-    sorry
+    -- RHS is nonnegative because C_E>0, L>0, sqrt≥0, z_up'≥0, z_down'≥0, δ_E≥0.
+    -- positivity cannot see through the custom `pathDelta` definition, so we prove this manually.
+    have hRHS_nonneg : 0 ≤ C_E *
+        (Real.sqrt (2 * pathDelta M zε z τ) + 1 / L * (1 + z_up') + z_down') + δ_E := by
+      have h_sqrt_nonneg : 0 ≤ Real.sqrt (2 * pathDelta M zε z τ) := Real.sqrt_nonneg _
+      have h_one_div_L_nonneg : 0 ≤ (1 : ℝ) / L :=
+        div_nonneg (by norm_num) (by linarith [hL_pos])
+      have h_zup_nonneg : 0 ≤ z_up' := h_z_up_nn hτ_mem
+      have h_zdn_nonneg : 0 ≤ z_down' := h_z_down_nn hτ_mem
+      have h_inner_nonneg : 0 ≤ Real.sqrt (2 * pathDelta M zε z τ) +
+          (1 / L) * (1 + z_up') + z_down' := by
+        have h1 : 0 ≤ 1 + z_up' := by nlinarith
+        have h2 : 0 ≤ (1 / L) * (1 + z_up') := mul_nonneg h_one_div_L_nonneg h1
+        nlinarith
+      nlinarith
+    -- Since 0 ≤ φ τ ≤ 1 and RHS ≥ 0, we have φ τ * RHS ≤ RHS
+    have h_φ_mul_RHS : φ τ * (C_E *
+          (Real.sqrt (2 * pathDelta M zε z τ) +
+            1 / L * (1 + z_up') + z_down') + δ_E) ≤
+        C_E * (Real.sqrt (2 * pathDelta M zε z τ) +
+          1 / L * (1 + z_up') + z_down') + δ_E :=
+      mul_le_of_le_one_left hRHS_nonneg hφ_le_one
+    exact le_trans h_mul h_φ_mul_RHS
 
   -- combine
   have h_total : deriv φ τ * E τ + φ τ * E' ≤ K + (C_E / L) * z_up' + C_E * z_down' := by
