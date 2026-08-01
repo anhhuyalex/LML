@@ -3322,7 +3322,7 @@ lemma bound_of_deriv_bound {F G : ℝ → ℝ} {s : ℝ} (hs : 0 ≤ s)
 /--
 Constant functions are absolutely continuous (Lipschitz with constant `0`).
 -/
-private lemma absolutelyContinuousOnInterval_const (c a b : ℝ) :
+lemma absolutelyContinuousOnInterval_const (c a b : ℝ) :
     AbsolutelyContinuousOnInterval (fun _ : ℝ => c) a b := by
   have hK : LipschitzOnWith 0 (fun _ : ℝ => c) (Set.uIcc a b) := fun x _ y _ => by simp
   exact hK.absolutelyContinuousOnInterval
@@ -3334,7 +3334,7 @@ Not provided by `Mathlib.MeasureTheory.Function.AbsolutelyContinuous`, which onl
 that closure to `Finset.sum` via `Finset.sum_induction`, reusing the `add` case and the
 zero case (`absolutelyContinuousOnInterval_const`).
 -/
-private lemma absolutelyContinuousOnInterval_sum {κ : Type*} (t : Finset κ)
+lemma absolutelyContinuousOnInterval_sum {κ : Type*} (t : Finset κ)
     (f : κ → ℝ → ℝ) (a b : ℝ)
     (h : ∀ i ∈ t, AbsolutelyContinuousOnInterval (f i) a b) :
     AbsolutelyContinuousOnInterval (fun x => ∑ i ∈ t, f i x) a b := by
