@@ -284,7 +284,7 @@ private lemma neg_mul_log_le_one (t : ℝ) (ht : 0 ≤ t) : -t * Real.log t ≤ 
 -- yielding `posEffectiveParameter` as the derivative.
 -- Uses the chain rule: derivative of `posIntegratedTrajectory` is `posEffectiveParameter`,
 -- and `posTimeFromRescaled` scales time by `log(1/ε)/4` which cancels the outer factor `c`.
-private lemma posIntegratedTrajectoryRescaled_hasDerivAt
+lemma posIntegratedTrajectoryRescaled_hasDerivAt
     (ε : ℝ) (u_eps : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
     (h_cont_u : Continuous u_eps)
     (h_log_ne_zero : Real.log (1 / ε) ≠ 0) :

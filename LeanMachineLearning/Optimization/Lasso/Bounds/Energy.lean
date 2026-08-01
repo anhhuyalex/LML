@@ -470,24 +470,28 @@ lemma energy_complementarity_bound
   have h_C1_le_C : C1 ≤ C := (le_max_left C1 C3).trans (le_max_left _ _)
   have h_C3_le_C : C3 ≤ C := (le_max_right C1 C3).trans (le_max_left _ _)
   -- Now case-split on differentiability of the scaled primal path z at τ.
-  by_cases h_diff_z : DifferentiableAt ℝ z τ
-  · -- Case 1: z is differentiable at τ.  The full product-rule expansion is valid.
+  by_cases h_diff_z_cond : DifferentiableAt ℝ z τ ∧ 0 < τ
+  · rcases h_diff_z_cond with ⟨h_diff_z, hτ_pos⟩
+    -- Case 1: z is differentiable at τ and τ > 0. The full product-rule expansion is valid.
     have h_diff_zε : DifferentiableAt ℝ zε τ := by
-      -- zε = (4 / log(1/ε)) • ∫₀^{t(s)} posEffectiveParameter (u ε)
-      -- posEffectiveParameter is everywhere differentiable
-      -- (pos_effective_parameter_hasDerivAt), so its integral is differentiable
-      -- by the Fundamental Theorem of Calculus, and zε is a composition of
-      -- differentiable functions (chain rule + const_smul).
-      sorry
+      have hu_flow := hu ε hε_pos
+      have hu_cont : Continuous (u ε) := hu_flow.cont_diff.continuous
+      exact (posIntegratedTrajectoryRescaled_hasDerivAt ε (u ε) τ hu_cont hlog_pos.ne').differentiableAt
     have h_diff_w : DifferentiableAt ℝ w τ := by
-      -- w = matVec M ∘ z + (affine part).  Since z is differentiable (h_diff_z)
-      -- and matVec M is linear (hence C^∞), w is differentiable by the chain
-      -- rule and sum rule applied to the explicit formula hw_explicit.
-      -- The affine part σ ↦ -σ • r + (1 + σ * lambda) • ones is a polynomial in σ,
-      -- hence everywhere differentiable.
-      -- Because τ ≥ 0, hw_explicit gives the identity in a neighborhood of τ
-      -- (for σ ≥ 0), and differentiability is a local property.
-      sorry
+      have h_eq : w =ᶠ[𝓝 τ] fun σ => matVec M (scaledPrimalPath x_lasso σ) - σ • r + (1 + σ * lambda) • ones := by
+        filter_upwards [Ioi_mem_nhds hτ_pos] with σ hσ
+        exact hw_explicit σ (le_of_lt hσ)
+      refine DifferentiableAt.congr_of_eventuallyEq ?_ h_eq
+      have h_matVec : DifferentiableAt ℝ (fun σ => matVec M (scaledPrimalPath x_lasso σ)) τ :=
+        (LinearMap.toContinuousLinearMap (matVecLM M)).differentiableAt.comp τ h_diff_z
+      have h_r : DifferentiableAt ℝ (fun σ => σ • r) τ :=
+        DifferentiableAt.smul_const differentiableAt_id r
+      have h_lambda : DifferentiableAt ℝ (fun σ => (1 + σ * lambda) • (ones : EuclideanSpace ℝ ι)) τ := by
+        apply DifferentiableAt.smul_const
+        apply DifferentiableAt.add
+        · exact differentiableAt_const 1
+        · exact DifferentiableAt.mul_const differentiableAt_id lambda
+      exact (h_matVec.sub h_r).add h_lambda
     have h_diff_inner : DifferentiableAt ℝ (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ :=
       (h_diff_w.inner ℝ (h_diff_zε.sub h_diff_z))
     have h_diff_Δε : DifferentiableAt ℝ Δε τ := by
@@ -553,7 +557,7 @@ lemma energy_complementarity_bound
       calc
         matVec M (zε τ) - (wε τ - wε 0 + τ • r - (τ * lambda) • ones)
             = -(wε τ - (wε 0 - τ • r + matVec M (zε τ) + (τ * lambda) • ones)) := by abel
-        _ = -(0 : EuclideanSpace ℝ ι) := by rw [← hmirror]
+        _ = -(0 : EuclideanSpace ℝ ι) := by rw [← hmirror, sub_self]
         _ = 0 := by simp
     -- The LCP equation: M z = w + τ r - (1 + τ λ) ones
     have hM_z : matVec M (z τ) = w τ + τ • r - (1 + τ * lambda) • ones := by

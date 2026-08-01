@@ -10,7 +10,6 @@ public import LeanMachineLearning.Optimization.Lasso.LCP
 public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
-public import LeanMachineLearning.Optimization.Lasso.Bounds.Energy
 public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Data.Matrix.Block
@@ -37,6 +36,7 @@ informal proofs depend on those reductions.
 namespace Lasso
 
 open Filter Topology
+open scoped ENNReal
 variable {ι : Type*} [Fintype ι]
 set_option linter.unusedFintypeInType false
 
@@ -91,7 +91,40 @@ lemma scaled_path_zero_near_zero
     (hdata : ProblemData M r lambda)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
     ∃ μ_0 > 0, ∀ μ ∈ Set.Icc 0 μ_0, scaledPrimalPath x_lasso μ = 0 := by
-  sorry
+  -- Extract symmetry and PSD from ProblemData
+  have hM_symm : M.IsSymm := hdata.psd.get_symm
+  have hM_psd : IsPositiveSemidefinite M := hdata.psd
+  -- The denominator in Lemma 4.10 threshold is positive
+  set denom := max ‖(WithLp.equiv ∞ _).symm (fun i => r i - lambda)‖ 1 with hdenom
+  have h_denom_pos : 0 < denom := by
+    rw [hdenom]
+    exact lt_max_of_lt_right (by norm_num : (0 : ℝ) < 1)
+  -- Half of the threshold: pick μ_0 = (1 / denom) / 2 so that μ < 1/max(...) for all μ ∈ [0, μ_0]
+  refine ⟨(1 / denom) / 2, ?_, ?_⟩
+  · -- μ_0 > 0 because denominator > 0
+    refine half_pos (div_pos (by norm_num) h_denom_pos)
+  · intro μ hμ
+    rcases hμ with ⟨hμ_low, hμ_high⟩
+    by_cases hμ_zero : μ = 0
+    · subst hμ_zero; simp [scaledPrimalPath]
+    · have hμ_pos : 0 < μ := lt_of_le_of_ne hμ_low (Ne.symm hμ_zero)
+      -- x_lasso(μ) minimizes the positive lasso
+      have hx_min : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ) := hx_lasso μ hμ_pos
+      -- Convert to standard LCP solution via KKT conditions (pos_lasso_is_lcp)
+      have h_lcp_iff := pos_lasso_is_lcp M r lambda μ (x_lasso μ) hM_symm hM_psd
+      rcases h_lcp_iff.mp hx_min with ⟨v, hv⟩
+      -- hv : isLCP M (lcpQ r lambda μ) (x_lasso μ) v
+      -- Since μ ≤ μ_0 = (1/max(...))/2 < 1/max(...), we have μ < 1/max(...)
+      have hμ_small : μ < 1 / denom := by
+        apply lt_of_le_of_lt hμ_high
+        have hpos : 0 < 1 / denom := div_pos (by norm_num) h_denom_pos
+        linarith
+      -- Lemma 4.10: for small μ > 0, the unique LCP solution is x = 0, v = lcpQ
+      have h_lcp_small := lcp_eq_iff_of_small_mu M r lambda μ hM_psd hμ_pos hμ_small
+      rcases (h_lcp_small (x_lasso μ) v).mp hv with ⟨hx_zero, _hv_eq⟩
+      -- Therefore scaledPrimalPath x_lasso μ = μ • x_lasso(μ) = μ • 0 = 0
+      dsimp [scaledPrimalPath]
+      rw [hx_zero, smul_zero]
 
 /--
 If a function is identically zero near zero and locally absolutely continuous on positive compacts,
@@ -290,6 +323,26 @@ lemma positive_energy_integrated_bound
           (scaledPrimalPath x_lasso) s
       ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
   sorry
+
+/--
+Algebraic identity rewriting the difference of positive lasso objectives as
+an energy inner product.  Extracted from `Bounds/Energy.lean` so that this
+file does not depend on that module's currently broken proofs.
+-/
+lemma positiveLassoObjective_eq_energy
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (s : ℝ) (_hs : 0 < s)
+    (z zε : EuclideanSpace ℝ ι) (w : EuclideanSpace ℝ ι)
+    (hx_nonneg : Nonnegative (s⁻¹ • z)) (hxE_nonneg : Nonnegative (s⁻¹ • zε))
+    (hw_eq : matVec M (s⁻¹ • z) + lcpQ r lambda s = s⁻¹ • w)
+    (hM_symm : M.IsSymm) :
+    positiveLassoObjective M r lambda s (s⁻¹ • zε) - positiveLassoObjective M r lambda s (s⁻¹ • z) =
+      s⁻¹ ^ 2 * (inner ℝ w (zε - z) + (1 / 2 : ℝ) * inner ℝ (zε - z) (matVec M (zε - z))) := by
+  rw [positiveLassoObjective_eq M r lambda s (s⁻¹ • zε) hxE_nonneg,
+    positiveLassoObjective_eq M r lambda s (s⁻¹ • z) hx_nonneg,
+    quadratic_expansion M (lcpQ r lambda s) (s⁻¹ • z) (s⁻¹ • zε) hM_symm, hw_eq]
+  rw [(smul_sub s⁻¹ zε z).symm, matVec_smul_eq, real_inner_smul_left, real_inner_smul_left,
+    real_inner_smul_right, real_inner_smul_right]
+  ring
 
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso
