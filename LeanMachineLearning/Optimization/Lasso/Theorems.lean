@@ -784,6 +784,41 @@ private lemma pathDelta_uniform_bound
     _ ≤ G s := hG_mono
     _ = _ := hGs_eq
 
+/--
+Monotone-case analogue of `pathDelta_uniform_bound`: the same uniform bound on `Δᵋ(τ)` over
+`[0,s]`, with `h_local_affine` replaced by coordinatewise monotonicity `h_mono` of
+`z = scaledPrimalPath x_lasso`.
+
+Informal proof: identical to `pathDelta_uniform_bound`'s proof, with the single change that
+`positive_delta_complementarity_bound` is replaced by
+`positive_delta_complementarity_bound_of_monotone` (`Bounds/Delta.lean`) to obtain the a.e.
+derivative bound for `Δᵋ`; the FTC-comparison argument via `bound_of_deriv_bound` and the
+monotonicity of `G` (`positiveZUpward_monotoneOn`/`positiveZDownward_monotoneOn`, which hold
+unconditionally, not just under `h_mono`) are unchanged. Citation: `docs/Lasso.md`, Sec. 4.6,
+Eq. (4.15), and Sec. 3.1/4.7 for the monotone specialization.
+-/
+private lemma pathDelta_uniform_bound_of_monotone
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+        pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+            (scaledPrimalPath x_lasso) τ
+          ≤ C * (1 / Real.log (1 / ε) * (s + positiveZUpward x_lasso s) +
+              positiveZDownward x_lasso s) + C * δ := by
+  sorry
+
 -- The function τ ↦ 1/(1+τ*λ) is absolutely continuous on [0,s] when λ ≥ 0, s ≥ 0.
 -- This uses Lipschitz continuity: denominator ≥ 1 implies the function is λ-Lipschitz.
 private lemma one_div_one_plus_tau_mul_lambda_ac (lambda s : ℝ) (hlambda_nonneg : 0 ≤ lambda) (hs_nonneg : 0 ≤ s) :
@@ -974,20 +1009,24 @@ private lemma positive_energy_deriv_bound
   have h_denom_ne_zero : 1 + τ * lambda ≠ 0 := by nlinarith
   have hφ_diff : DifferentiableAt ℝ φ τ := by
     have h_denom_diff : DifferentiableAt ℝ (fun τ' => 1 + τ' * lambda) τ :=
-      ((differentiableAt_const (1 : ℝ)).add (differentiableAt_id.const_mul lambda))
+      ((differentiableAt_const (1 : ℝ)).add (differentiableAt_id.mul_const lambda))
     exact (differentiableAt_const (1 : ℝ)).div h_denom_diff h_denom_ne_zero
   have hφ_hasDeriv : HasDerivAt φ (-lambda / ((1 + τ * lambda) ^ 2)) τ := by
     have h_denom_hasDeriv : HasDerivAt (fun τ' => 1 + τ' * lambda) lambda τ := by
       have h_id : HasDerivAt (fun τ' : ℝ => τ') (1 : ℝ) τ := hasDerivAt_id τ
       have h_add : HasDerivAt (fun τ' : ℝ => 1 + τ' * lambda) (0 + 1 * lambda) τ :=
-        (hasDerivAt_const (1 : ℝ) τ).add (h_id.const_mul lambda)
+        (hasDerivAt_const τ (1 : ℝ)).add (h_id.mul_const lambda)
       simpa [add_zero] using h_add
-    exact (hasDerivAt_const (1 : ℝ) τ).div h_denom_hasDeriv h_denom_ne_zero
+    have h_inv : HasDerivAt (fun τ' => (1 + τ' * lambda)⁻¹) (-lambda / ((1 + τ * lambda) ^ 2)) τ := by
+      exact h_denom_hasDeriv.inv h_denom_ne_zero
+    change HasDerivAt (fun τ' => 1 / (1 + τ' * lambda)) (-lambda / ((1 + τ * lambda) ^ 2)) τ
+    simpa [one_div] using h_inv
   have hφ'_formula : deriv φ τ = -lambda / ((1 + τ * lambda) ^ 2) := hφ_hasDeriv.deriv
   
   -- 2. product rule: deriv F = φ'·E + φ·E'
   have h_deriv_F : deriv F τ = deriv φ τ * E τ + φ τ * E' := by
-    rw [deriv_mul hφ_diff (hE_diff hτ_mem)]
+    change deriv (fun τ => φ τ * E τ) τ = deriv φ τ * E τ + φ τ * E'
+    exact deriv_mul hφ_diff (hE_diff hτ_mem)
   
   -- 3. deriv G = K + (C_E/L)·z_up' + C_E·z_down'
   have h_deriv_G : deriv G τ = K + (C_E / L) * z_up' + C_E * z_down' := by
@@ -1045,6 +1084,58 @@ private lemma positive_energy_deriv_bound
   have h_total : deriv φ τ * E τ + φ τ * E' ≤ K + (C_E / L) * z_up' + C_E * z_down' := by
     linarith [h_term1, hφE'_bound, h_alg]
   exact h_total
+
+/--
+Monotone-case analogue of `positive_energy_deriv_bound`: the same product-rule bound
+`deriv F τ ≤ deriv G τ`, with `h_local_affine` replaced by coordinatewise monotonicity
+`h_mono` of `z = scaledPrimalPath x_lasso`.
+
+Informal proof: identical to `positive_energy_deriv_bound`'s proof (the product-rule algebra
+for `φ`, `F`, `G`, and the `positive_energy_deriv_bound_algebraic` bound are all unaffected by
+monotonicity), with the single change that the source of a.e. differentiability of
+`positiveZUpward`/`positiveZDownward` is `positiveZ_ae_differentiable_of_monotone`
+(`Bounds/Delta.lean`, via `h_mono`) instead of `positiveZ_ae_differentiable` (via
+`h_local_affine`). Citation: `docs/Lasso.md`, Section 4.6, and Sec. 3.1/4.7 for the monotone
+specialization.
+-/
+private lemma positive_energy_deriv_bound_of_monotone
+    {ι : Type*} [Fintype ι] {M : Matrix ι ι ℝ} {lambda : ℝ}
+    (w zε z : ℝ → EuclideanSpace ℝ ι) (s C_E C_D L K δ_E δ_D : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_lambda_nonneg : 0 ≤ lambda)
+    (hL_pos : 0 < L)
+    (hC_D_nonneg : 0 ≤ C_D)
+    (hE_nonneg : ∀ t ∈ Set.Icc (0 : ℝ) s,
+      0 ≤ inner ℝ (w t) (zε t - z t) + pathDelta M zε z t)
+    (hK_bound : C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+      C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+      C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E ≤ K)
+    (h_z_up_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZUpward x_lasso) t)
+    (h_z_down_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZDownward x_lasso) t)
+    (hδ_E_nonneg : 0 ≤ δ_E)
+    (hδ_D_nonneg : 0 ≤ δ_D)
+    (hE_diff_ae : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
+      DifferentiableAt ℝ (fun τ => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ) t)
+    (h_E : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
+      deriv (fun t => inner ℝ (w t) (zε t - z t) + pathDelta M zε z t) t ≤
+        C_E * (Real.sqrt (2 * pathDelta M zε z t) +
+          1 / L * (1 + deriv (positiveZUpward x_lasso) t) +
+          deriv (positiveZDownward x_lasso) t) + δ_E)
+    (h_D : ∀ t ∈ Set.Icc 0 s,
+      pathDelta M zε z t ≤
+        C_D * (1 / L * (s + positiveZUpward x_lasso s) + positiveZDownward x_lasso s) +
+        C_D * δ_D)
+    (hC_E_pos : 0 < C_E)
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (hs : 0 < s) :
+    let E := fun (τ : ℝ) => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ
+    let φ := fun (τ : ℝ) => 1 / (1 + τ * lambda)
+    let F := fun (τ : ℝ) => φ τ * E τ
+    let G := fun (τ : ℝ) =>
+      K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
+    ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
+  sorry
 
 /--
 Helper lemma: algebraic bound on the integrated energy function G(s).
@@ -1137,6 +1228,42 @@ lemma positive_energy_integrated_bound
       ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
   sorry
 
+/--
+Monotone-case analogue of `positive_energy_integrated_bound`: the same integrated energy
+bound, with `h_local_affine` replaced by coordinatewise monotonicity `h_mono` of
+`z = scaledPrimalPath x_lasso`.
+
+Informal proof: identical to `positive_energy_integrated_bound`'s proof (write `F(τ) =
+(1/(1+τλ))·Eᵋ(τ)`, integrate the a.e. derivative bound via FTC, bound `Δᵋ` uniformly, split the
+square root, and absorb the controllable remainder), with every ingredient sourced from the
+monotone-case chain: `energy_complementarity_bound_of_monotone` (`Bounds/Energy.lean`) for the
+derivative bound, `pathDelta_uniform_bound_of_monotone` for the uniform `Δᵋ` bound, and
+`positive_energy_deriv_bound_of_monotone`/`positive_energy_G_bound` for the algebraic
+assembly (`positive_energy_G_bound` itself needs no `h_local_affine`/`h_mono`, so it is reused
+unchanged). Citation: `docs/Lasso.md`, Section 4.6, Eq. (806)–(816), and Sec. 3.1/4.7 for the
+monotone specialization.
+-/
+lemma positive_energy_integrated_bound_of_monotone
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
+    ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      inner ℝ (w s) (posIntegratedTrajectoryRescaled ε (u ε) s - scaledPrimalPath x_lasso s) +
+        pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+          (scaledPrimalPath x_lasso) s
+      ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
+  sorry
 
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso
@@ -1317,6 +1444,42 @@ theorem positive_path_energy_bound
           exact one_pow 2
         rw [h_inv, one_mul]
   linarith [h_gap_bound]
+
+/--
+Monotone-case analogue of `positive_path_energy_bound`: the same positive-lasso suboptimality
+bound, with `h_local_affine` replaced by coordinatewise monotonicity `h_mono` of
+`z = scaledPrimalPath x_lasso`.
+
+Informal proof: purely mechanical — identical to `positive_path_energy_bound`'s proof
+verbatim (the algebraic identification of the objective gap with `s⁻² · Eᵋ(s)` via
+`positiveLassoObjective_eq_energy`, `posLassoMin_eq_of_isPositiveLassoMinimizer`, etc. does not
+touch `h_local_affine`/`h_mono` at all), with the single substitution of
+`positive_energy_integrated_bound_of_monotone` for `positive_energy_integrated_bound` to obtain
+`⟨C, hC_pos, h_energy_bound⟩`. Citation: `docs/Lasso.md`, Section 4.6 (concluding calculation
+of Theorem 3.2), and Sec. 3.1/4.7 for the monotone specialization.
+-/
+theorem positive_path_energy_bound_of_monotone
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular :
+      LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
+    ∃ C > 0, ∀ s > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      positiveLassoObjective M r lambda s
+        (posAverageTrajectory (u ε) (posTimeFromRescaled ε s))
+      ≤ posLassoMin M r lambda s +
+        C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ := by
+  sorry
 
 /-! ## Positive-lasso main theorems -/
 
@@ -1520,45 +1683,44 @@ theorem pos_lasso_connection_monotone
   a.e.-derivative characterization of absolute continuity
   <https://en.wikipedia.org/wiki/Absolute_continuity>.
 
-  Status (verified 2026-08-01): `monotone_positive_path_regular` is now proved (it in fact
-  gives the *stronger* `LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)`, not just AC,
-  via a direct transcription of Lemma 4.12's complementarity/projection argument — no LCP
-  solution-uniqueness hypothesis is needed, see that theorem and
-  `locallyLipschitzOnCompacts_of_matVec_lipschitz` in `Bounds/Delta.lean`). The remaining
-  blockers to completing this theorem via `pos_lasso_connection_approx` (Theorem 3.2) are:
+  Status (verified 2026-08-01): `monotone_positive_path_regular` is proved (it in fact gives
+  the *stronger* `LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)`, not just AC, via a
+  direct transcription of Lemma 4.12's complementarity/projection argument — no LCP
+  solution-uniqueness hypothesis is needed; see that theorem and
+  `locallyLipschitzOnCompacts_of_matVec_lipschitz` in `Bounds/Delta.lean`).
 
-  1. `pos_lasso_connection_approx`'s upstream `positive_energy_integrated_bound` (still sorry,
-     documented there).
-  2. A newly-identified gap: `pos_lasso_connection_approx` also requires
-     `h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso`. Tracing its only
-     consumer (`positiveZ_ae_differentiable` → `scaledPrimalPath_deriv_locally_constant`,
-     `Bounds/Delta.lean` around line 3070) shows it is used to get the derivative of
-     `μ ↦ μ * x_lasso μ i` to be *locally constant* near a.e. `τ`, i.e. genuine piecewise
-     linearity of the selected LARS-style path — not implied by `h_monotone` plus the
-     Lipschitz/AC regularity just proved (a smooth strictly increasing path is monotone and
-     Lipschitz but nowhere locally affine). `ScaledPrimalPathLocallyAffineAtDifferentiable`'s
-     own docstring makes the same point: "does not follow merely from pointwise optimality
-     when the primal minimizer is nonunique." Since `lasso_connection_monotone` (this file,
-     already proved) calls this theorem without supplying any such hypothesis, adding
-     `h_local_affine` to this theorem's signature would require also deriving it for the
-     *augmented* system inside `lasso_connection_monotone`'s proof — an equally hard,
-     undocumented gap, and a change to an already-verified proof.
+  Route (b) below (Lebesgue's monotone differentiation theorem in place of
+  `h_local_affine`) is now fully scoped as a parallel `_of_monotone` chain, matching route (b)
+  precisely as sketched here previously, and is aligned with `docs/Lasso.md`: Theorem 3.1's
+  *only* hypothesis beyond Theorem 3.2's absolute continuity is monotonicity (Sec. 3.1), so the
+  paper never needs anything like piecewise-linearity — that hypothesis is a Lean-specific
+  departure of Theorem 3.2's formalization (see `pos_lasso_connection_approx`'s docstring), and
+  a monotone-specific route should not need it either. Concretely,
+  `positiveZDownward_eq_zero_of_monotone` and `positiveZUpward_eq_sum_of_monotone`
+  (`Bounds/Delta.lean`, **already fully proved**) give
+  the closed forms `positiveZDownward x_lasso ≡ 0` and `positiveZUpward x_lasso μ = ∑ i, z_i μ`
+  on `[0,∞)` directly from monotonicity + Lipschitz (Lebesgue's monotone differentiation
+  theorem via `deriv_scaledPrimalPath_coord_nonneg_of_monotone`), which is everything the rest
+  of the chain needs in place of `h_local_affine`. The chain is now stated end-to-end (each
+  still `sorry`, with an informal proof pointing at the general-case original it mirrors):
+  `deriv_pos_z_identities_of_monotone`, `pos_delta_bound_3_of_monotone`,
+  `positiveZ_ae_differentiable_of_monotone`, `positive_delta_complementarity_bound_of_monotone`
+  (`Bounds/Delta.lean`); `energy_complementarity_bound_of_monotone` (`Bounds/Energy.lean`);
+  `pathDelta_uniform_bound_of_monotone`, `positive_energy_deriv_bound_of_monotone`,
+  `positive_energy_integrated_bound_of_monotone`, `positive_path_energy_bound_of_monotone`
+  (this file). Each differs from its general-case counterpart *only* in sourcing
+  differentiability of `positiveZUpward`/`positiveZDownward` from `h_mono` via the closed forms
+  instead of from `h_local_affine`; every other ingredient (Cauchy-Schwarz/Lemma 4.11 bounds,
+  the uniform trajectory bound, the FTC/integration algebra) is untouched by monotonicity and
+  reused verbatim from the general-case proofs.
 
-  Closing this sorry therefore needs either (a) a genuinely new hypothesis threaded through
-  both this theorem and `lasso_connection_monotone`, justified by how `x_lasso`/`w` are
-  actually selected (e.g. a LARS/active-set argument), or (b) a monotone-specific proof of the
-  Section 4.6 energy bound that replaces `h_local_affine` with Lebesgue's monotone
-  differentiation theorem (monotone functions are differentiable a.e., with no local-affinity
-  needed) — a substantive rework of `Bounds/Energy.lean`'s machinery not attempted here.
-  Given (1)-(2), the assembly itself should still mirror the *already proved* signed-case
-  theorem `lasso_connection_monotone` (this file): squeeze via
+  Given `positive_path_energy_bound_of_monotone`, the assembly here should mirror the *already
+  proved* signed-case theorem `lasso_connection_monotone` (this file): squeeze via
   `tendsto_of_tendsto_of_tendsto_of_le_of_le'` between the constant `posLassoMin M r lambda s`
   (lower bound, via `posLassoMin_eq_of_isPositiveLassoMinimizer`/`ciInf_le`-style feasibility,
-  as in that proof's first bullet) and `pos_lasso_connection_approx`'s upper bound specialized
-  to `positiveZDownward x_lasso s = 0` (itself following from a.e.-nonnegative derivative of a
-  monotone AC function, via `MonotoneOn.deriv_nonneg`-type facts combined with
-  `intervalIntegral.integral_eq_zero_iff` or a direct a.e.-nonneg-integrand argument — this
-  part is not yet stated anywhere in this codebase either, but is comparatively routine).
+  as in that proof's first bullet) and `positive_path_energy_bound_of_monotone`'s upper bound
+  specialized to `positiveZDownward x_lasso s = 0` — which, unlike the general case, is not an
+  extra fact to prove: it is *exactly* `positiveZDownward_eq_zero_of_monotone`, already proved.
   -/
   sorry
 

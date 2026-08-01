@@ -687,6 +687,49 @@ lemma energy_complementarity_bound
     hφ_pos hφ_le_one hφ_deriv_nonpos hΔε_nonneg hT1_bound hT3_bound hT4b_bound
 
 /--
+Monotone-case analogue of `energy_complementarity_bound`: the same a.e. bound on the energy
+derivative, with `h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso`
+replaced by coordinatewise monotonicity `h_mono` of `z = scaledPrimalPath x_lasso`.
+
+Informal proof: identical to `energy_complementarity_bound`'s proof, except the internal
+construction of `h_piecewise_deriv` from `h_local_affine` (via
+`scaledPrimalPath_deriv_locally_constant`) and the subsequent call to `pos_delta_bound_3` are
+replaced by a direct call to `pos_delta_bound_3_of_monotone` with `h_mono`. Citation:
+`docs/Lasso.md`, Sec. 4.6, Eq. (4.14) and Eq. (789), and Sec. 3.1/4.7 for the monotone
+specialization.
+-/
+lemma energy_complementarity_bound_of_monotone
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
+    ∃ C > 0, pseudoInverseSeminorm Mdagger r ≤ C ∧ ∀ s : ℝ, 0 < s → ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
+        deriv
+          (fun σ =>
+            (1 / (1 + σ * lambda)) *
+              (inner ℝ (w σ)
+                  (posIntegratedTrajectoryRescaled ε (u ε) σ - scaledPrimalPath x_lasso σ) +
+                pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+                  (scaledPrimalPath x_lasso) σ)) τ -
+        inner ℝ (deriv (fun σ => (1 / (1 + σ * lambda)) • w σ) τ)
+          (posIntegratedTrajectoryRescaled ε (u ε) τ - scaledPrimalPath x_lasso τ)
+        ≤ C *
+          (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+            deriv (positiveZDownward x_lasso) τ) + δ := by
+  sorry
+
+/--
 Section 4.6 energy differential inequality for
 `Eᵋ(s)=<w(s),zᵋ(s)-z(s)>+Δᵋ(s)`.
 
@@ -729,6 +772,82 @@ theorem positive_energy_differential_inequality
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C, hC_pos, hC_ge, h_bound⟩ := energy_complementarity_bound M Mdagger r lambda β u
     hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_local_affine
+  use C, hC_pos
+  intro s hs δ hδ
+  filter_upwards [h_bound s hs δ hδ] with ε hε
+  filter_upwards [hε] with τ hτε
+  intro hτ
+  let Δ := pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+    (scaledPrimalPath x_lasso) τ
+  have h_dual := dual_path_derivative_inner_bound M Mdagger r lambda w
+    (scaledPrimalPath x_lasso) (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+    hdata.psd hdual τ hτ.1
+  have h_sum := add_le_add
+    (h_dual.trans (mul_le_mul_of_nonneg_right hC_ge (Real.sqrt_nonneg _)))
+    (hτε hτ)
+  calc
+    deriv
+      (fun σ =>
+        (1 / (1 + σ * lambda)) *
+          (inner ℝ (w σ)
+              (posIntegratedTrajectoryRescaled ε (u ε) σ - scaledPrimalPath x_lasso σ) +
+            pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+              (scaledPrimalPath x_lasso) σ)) τ
+    = inner ℝ (deriv (fun σ => (1 / (1 + σ * lambda)) • w σ) τ)
+        (posIntegratedTrajectoryRescaled ε (u ε) τ - scaledPrimalPath x_lasso τ) +
+      (deriv
+        (fun σ =>
+          (1 / (1 + σ * lambda)) *
+            (inner ℝ (w σ)
+                (posIntegratedTrajectoryRescaled ε (u ε) σ - scaledPrimalPath x_lasso σ) +
+              pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+                (scaledPrimalPath x_lasso) σ)) τ -
+        inner ℝ (deriv (fun σ => (1 / (1 + σ * lambda)) • w σ) τ)
+          (posIntegratedTrajectoryRescaled ε (u ε) τ - scaledPrimalPath x_lasso τ)) := by ring
+    _ ≤ C * Real.sqrt (2 * Δ) +
+        (C * (1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+          deriv (positiveZDownward x_lasso) τ) + δ) := h_sum
+    _ = C * (Real.sqrt (2 * Δ) +
+          1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+          deriv (positiveZDownward x_lasso) τ) + δ := by ring
+
+/-- Monotone-case analogue of `positive_energy_differential_inequality`: identical statement
+and proof, with `energy_complementarity_bound` replaced by
+`energy_complementarity_bound_of_monotone` (the only ingredient sensitive to
+`h_local_affine`/`h_mono`; `dual_path_derivative_inner_bound`'s Cauchy-Schwarz step is
+unaffected by monotonicity). Citation: `docs/Lasso.md`, Sec. 4.6, Eq. (806)/(789), and
+Sec. 3.1/4.7 for the monotone specialization. -/
+theorem positive_energy_differential_inequality_of_monotone
+    (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso))
+    (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i) :
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+      ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
+        deriv
+          (fun σ =>
+            (1 / (1 + σ * lambda)) *
+              (inner ℝ (w σ)
+                  (posIntegratedTrajectoryRescaled ε (u ε) σ - scaledPrimalPath x_lasso σ) +
+                pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+                  (scaledPrimalPath x_lasso) σ)) τ
+        ≤ C *
+          (Real.sqrt (2 * pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+              (scaledPrimalPath x_lasso) τ) +
+            1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
+            deriv (positiveZDownward x_lasso) τ) + δ := by
+  obtain ⟨C, hC_pos, hC_ge, h_bound⟩ := energy_complementarity_bound_of_monotone M Mdagger r
+    lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_mono
   use C, hC_pos
   intro s hs δ hδ
   filter_upwards [h_bound s hs δ hδ] with ε hε
