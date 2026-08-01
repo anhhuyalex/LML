@@ -2193,10 +2193,9 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
     (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ)
       (matVec M (z μ) + parametricLcpQ r lambda μ))
     -- Unlike the classical uniqueness-based argument (Cottle-Pang-Stone), this proof pins
-    -- down `z` via monotonicity (`h_mono`) and complementary slackness instead, so
-    -- `h_unique` is not needed here; kept for signature parity with `parametric_lcp_lipschitz`.
-    (_h_unique : ∀ μ ≥ 0, ∀ z',
-      isLCP M (parametricLcpQ r lambda μ) z' (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
+    -- down `z` via monotonicity (`h_mono`) and complementary slackness instead: no LCP
+    -- solution-uniqueness hypothesis is needed at all (contrast `parametric_lcp_lipschitz`,
+    -- which takes one but only to satisfy the shape of the classical theorem it documents).
     (hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)))
     (hw_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ) + parametricLcpQ r lambda μ))
     (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
@@ -2248,23 +2247,21 @@ lemma locallyLipschitzOnCompacts_of_matVec_lipschitz
 
 /--
 The solution to a parametric LCP with linear parameter dependence is locally Lipschitz continuous,
-under the standing assumptions `ProblemData` (PSD, `r` in the column span of `M`, `λ ≥ 0`)
-and the additional hypothesis that the LCP solution is unique for each `μ`.
+under the standing assumptions `ProblemData` (PSD, `r` in the column span of `M`, `λ ≥ 0`) and
+coordinatewise monotonicity of the selected solution path.
 
 Informal Proof:
-(Source: Cottle, Pang, & Stone, "The Linear Complementarity Problem", Academic Press, 1992,
-Theorem 7.3.10). The solution map of an LCP with a P-matrix (positive definite) is
-single-valued and Lipschitz continuous with respect to the right-hand side vector `q`.
-For PSD matrices, uniqueness must be assumed separately; then the solution map
-restricted to `range(M)` is Lipschitz via the scaled-dual argument of
-`scaled_dual_lipschitz`, while the kernel component is forced to zero by the
-strict positivity of `q` on `ker(M)` (which follows from `λ ≥ 0` and the feasibility
-of the LCP for all `μ ≥ 0`).
-
-Note: Without the uniqueness hypothesis this lemma is **false** in general (a PSD but not
-PD matrix can admit non‑unique LCP solutions, and a discontinuous selection is possible).
-Consequently, `scaledPrimalPath_deriv_bound` takes local Lipschitz regularity explicitly;
-it must not be inferred from absolute continuity or non-unique LCP feasibility alone.
+The solution map of an LCP with a P-matrix (positive definite) is single-valued and Lipschitz
+continuous with respect to the right-hand side vector `q` (Cottle, Pang, & Stone, "The Linear
+Complementarity Problem", Academic Press, 1992, Theorem 7.3.10), but `M` here is only PSD, so
+that classical uniqueness-based route does not apply directly. Instead this proof pins down `z`
+via monotonicity and complementary slackness: the range component `M†(Mz)` is Lipschitz via the
+scaled-dual argument of `scaled_dual_lipschitz`, and the `𝟙`-inner-product of the kernel
+component is controlled algebraically by the LCP-orthogonality identity (`inner_dual_kernel_eq`)
+together with complementarity, without ever needing a second solution `z'` to coincide with `z`.
+Monotonicity then converts the resulting Lipschitz bound on `⟨𝟙, z⟩` into one on `z` itself
+(`locallyLipschitz_of_inner_ones_lipschitz_and_mono`). See `locallyLipschitzOnCompacts_of_matVec_lipschitz`
+for the full argument.
 -/
 lemma parametric_lcp_lipschitz
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -2272,9 +2269,6 @@ lemma parametric_lcp_lipschitz
     (hdata : ProblemData M r lambda)
     (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ)
       (matVec M (z μ) + parametricLcpQ r lambda μ))
-    (h_unique : ∀ μ ≥ 0, ∀ z',
-      isLCP M (parametricLcpQ r lambda μ) z'
-        (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
     (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
     LocallyLipschitzOnCompacts z := by
   -- Keep a copy of hdata before destructuring, for use in scaled_dual_lipschitz
@@ -2303,20 +2297,8 @@ lemma parametric_lcp_lipschitz
     locallyLipschitzOnCompacts_of_scaledDual_lipschitz lambda hlambda_nonneg w h_scaled_dual_lip
   -- Now w(μ) = M(z(μ)) + q(μ), and q(μ) = -μ r + (1+μλ)1 is affine, hence Lipschitz.
   -- Therefore M(z(μ)) = w(μ) - q(μ) is also Lipschitz.
-  have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
-    -- parametricLcpQ r lambda μ = -μ·r + (1+μλ)·1, an affine function.
-    -- Write q(μ) = 1 + μ·v where v = λ·1 - r, so q(μ)-q(ν) = (μ-ν)·v.
-    set v : EuclideanSpace ℝ ι := lambda • euclideanOf (fun _ => 1) - r with hv_def
-    have h_diff (μ ν : ℝ) :
-        parametricLcpQ r lambda μ - parametricLcpQ r lambda ν = (μ - ν) • v := by
-      dsimp [parametricLcpQ, v, euclideanOf]
-      ext i
-      simp
-      ring
-    refine ⟨fun a b ha hle => ?_⟩
-    refine ⟨‖v‖, norm_nonneg _, fun μ hμ ν hν => ?_⟩
-    rw [h_diff μ ν, norm_smul, Real.norm_eq_abs]
-    exact (mul_comm _ _).le
+  have hq_lip : LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) :=
+    parametricLcpQ_locallyLipschitzOnCompacts r lambda
   have hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)) := by
     -- matVec M (z μ) = w μ - parametricLcpQ r lambda μ, difference of Lipschitz functions
     refine ⟨fun a b ha hab => ?_⟩
@@ -2344,7 +2326,7 @@ lemma parametric_lcp_lipschitz
   -- pins down z_k = 0 as well (since z=0 is always a solution when q_k ≡ 0).
   -- Therefore z_kernel ≡ 0, and z = z_range is Lipschitz.
   exact locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z hM_psd hr_mem_span
-    hlambda_nonneg h_lcp h_unique hMz_lip hw_lip h_mono
+    hlambda_nonneg h_lcp hMz_lip hw_lip h_mono
 
 /--
 Helper for Section 4.6, Eq. (4.14), Term 4, Part 1.

@@ -60,6 +60,21 @@ structure LocallyLipschitzOnCompacts (f : ℝ → EuclideanSpace ℝ ι) : Prop 
         ∀ μ ∈ Set.Icc a b, ∀ ν ∈ Set.Icc a b,
           ‖f μ - f ν‖ ≤ K * |μ - ν|
 
+/-- `parametricLcpQ r lambda` is affine in `μ` (`q(μ) = 𝟙 + μ • (λ𝟙 - r)`), hence Lipschitz
+on every compact interval, with the (global) Lipschitz constant `‖λ𝟙 - r‖`. -/
+lemma parametricLcpQ_locallyLipschitzOnCompacts (r : EuclideanSpace ℝ ι) (lambda : ℝ) :
+    LocallyLipschitzOnCompacts (fun μ => parametricLcpQ r lambda μ) := by
+  set v : EuclideanSpace ℝ ι := lambda • euclideanOf (fun _ => 1) - r with hv_def
+  have h_diff (μ ν : ℝ) :
+      parametricLcpQ r lambda μ - parametricLcpQ r lambda ν = (μ - ν) • v := by
+    dsimp [parametricLcpQ, v, euclideanOf]
+    ext i
+    simp
+    ring
+  refine ⟨fun a b _ _ => ⟨‖v‖, norm_nonneg _, fun μ _ ν _ => ?_⟩⟩
+  rw [h_diff μ ν, norm_smul, Real.norm_eq_abs]
+  exact (mul_comm _ _).le
+
 /-- Absolute continuity on every compact subinterval of `(0, ∞)`.
 
 This is the regularity hypothesis used for the selected Lasso path in

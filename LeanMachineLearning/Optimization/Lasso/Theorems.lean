@@ -885,13 +885,33 @@ private lemma positive_energy_G_ac
 
 /--
 Helper lemma: bound on the derivative of F(τ) by G(τ).
-Informal proof: F'(τ) ≤ C_E * (√(2Δ) + 1/L*(1+z↑') + z↓') + δ_E.
+
+We assume additional nonnegativity hypotheses (λ ≥ 0, E ≥ 0, C_D ≥ 0, L > 0,
+z↑' ≥ 0, z↓' ≥ 0) and a lower bound on K that together make the product-rule
+estimate go through.  These are available in the calling context
+(`positive_energy_integrated_bound`), which has `hdata : ProblemData M r lambda`
+(so `lambda_nonneg`, `psd`) and defines `K` via `positive_energy_G_bound`.
+
+Informal proof: F'(τ) = φ'(τ)E(τ) + φ(τ)E'(τ) ≤ 0 + φ(τ)·[C_E·(√(2Δ) + …) + δ_E]
+≤ C_E·√(2Δ) + C_E/L + C_E/L·z↑' + C_E·z↓' + δ_E ≤ K + C_E/L·z↑' + C_E·z↓' = G'(τ).
 (Source: docs/Lasso.md, Section 4.6)
 -/
 private lemma positive_energy_deriv_bound
     {ι : Type*} [Fintype ι] {M : Matrix ι ι ℝ} {lambda : ℝ}
     (w zε z : ℝ → EuclideanSpace ℝ ι) (s C_E C_D L K δ_E δ_D : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_lambda_nonneg : 0 ≤ lambda)
+    (hL_pos : 0 < L)
+    (hC_D_nonneg : 0 ≤ C_D)
+    (hE_nonneg : ∀ t ∈ Set.Icc (0 : ℝ) s,
+      0 ≤ inner ℝ (w t) (zε t - z t) + pathDelta M zε z t)
+    (hK_bound : C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+      C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+      C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E ≤ K)
+    (h_z_up_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZUpward x_lasso) t)
+    (h_z_down_nonneg : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → 0 ≤ deriv (positiveZDownward x_lasso) t)
+    (hE_diff_ae : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
+      DifferentiableAt ℝ (fun τ => inner ℝ (w τ) (zε τ - z τ) + pathDelta M zε z τ) t)
     (h_E : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s →
       deriv (fun t => inner ℝ (w t) (zε t - z t) + pathDelta M zε z t) t ≤
         C_E * (Real.sqrt (2 * pathDelta M zε z t) +
@@ -911,7 +931,101 @@ private lemma positive_energy_deriv_bound
     let G := fun (τ : ℝ) =>
       K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
     ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
-  sorry
+  intro E φ F G
+  -- get a.e. differentiability of the z-variation functions
+  have h_pos_z_diff := positiveZ_ae_differentiable x_lasso s hs h_local_affine h_regular
+  -- gather all a.e. properties on a full-measure set
+  filter_upwards [h_E, hE_diff_ae, h_pos_z_diff, h_z_up_nonneg, h_z_down_nonneg] with
+    τ hE_bound hE_diff h_pos_z h_z_up_nn h_z_down_nn hτ_mem
+  rcases hτ_mem with ⟨hτ0, hτs⟩
+  have hτ_nonneg : 0 ≤ τ := hτ0
+  obtain ⟨hτ_up_diff, hτ_down_diff⟩ := h_pos_z hτ_mem
+  -- denote the relevant derivatives
+  set E' := deriv E τ
+  set z↑' := deriv (positiveZUpward x_lasso) τ
+  set z↓' := deriv (positiveZDownward x_lasso) τ
+  -- 1. φ is differentiable at τ (denominator ≥ 1 > 0 because λ ≥ 0, τ ≥ 0)
+  have h_denom_pos : 0 < 1 + τ * lambda := by nlinarith
+  have h_denom_ne_zero : 1 + τ * lambda ≠ 0 := by nlinarith
+  have hφ_diff : DifferentiableAt ℝ φ τ := by
+    have h_denom_diff : DifferentiableAt ℝ (fun τ' => 1 + τ' * lambda) τ :=
+      ((differentiableAt_const 1).add ((differentiableAt_id τ).const_mul lambda))
+    exact (differentiableAt_const (1 : ℝ)).div h_denom_diff h_denom_ne_zero
+  -- formula for φ'(τ)
+  have hφ_hasDeriv : HasDerivAt φ (-lambda / ((1 + τ * lambda)^2)) τ := by
+    have h_denom_hasDeriv : HasDerivAt (fun τ' => 1 + τ' * lambda) lambda τ := by
+      have h_id : HasDerivAt (fun τ' : ℝ => τ') 1 τ := hasDerivAt_id τ
+      have h_add : HasDerivAt (fun τ' : ℝ => 1 + τ' * lambda) (0 + 1 * lambda) τ :=
+        (hasDerivAt_const 1 τ).add (h_id.const_mul lambda)
+      simpa [add_zero] using h_add
+    exact (hasDerivAt_const 1 τ).div h_denom_hasDeriv h_denom_ne_zero
+  have hφ'_formula : deriv φ τ = -lambda / ((1 + τ * lambda)^2) := hφ_hasDeriv.deriv
+  -- 2. product rule: deriv F τ = φ'(τ)·E(τ) + φ(τ)·E'(τ)
+  have h_deriv_F : deriv F τ = deriv φ τ * E τ + φ τ * E' := by
+    rw [deriv_mul hφ_diff hE_diff]
+  -- 3. deriv G τ = K + (C_E/L)·z↑' + C_E·z↓'
+  have h_deriv_G : deriv G τ = K + (C_E / L) * z↑' + C_E * z↓' := by
+    have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso) z↑' τ := hτ_up_diff.hasDerivAt
+    have h_down_hasDeriv : HasDerivAt (positiveZDownward x_lasso) z↓' τ := hτ_down_diff.hasDerivAt
+    have hG_hasDeriv : HasDerivAt G (K + (C_E / L) * z↑' + C_E * z↓') τ := by
+      have h1 : HasDerivAt (fun t => K * t) K τ := by
+        simpa using (hasDerivAt_id τ).const_mul K
+      have h2 : HasDerivAt (fun t => (C_E / L) * positiveZUpward x_lasso t)
+          ((C_E / L) * z↑') τ := h_up_hasDeriv.const_mul (C_E / L)
+      have h3 : HasDerivAt (fun t => C_E * positiveZDownward x_lasso t)
+          (C_E * z↓') τ := h_down_hasDeriv.const_mul C_E
+      exact (h1.add h2).add h3
+    exact hG_hasDeriv.deriv
+  rw [h_deriv_F, h_deriv_G]
+  -- 4. algebraic estimates
+  -- 4a. φ'(τ) ≤ 0  (because λ ≥ 0, denominator > 0)
+  have hφ'_nonpos : deriv φ τ ≤ 0 := by
+    rw [hφ'_formula]
+    have h_num_nonpos : -lambda ≤ 0 := by nlinarith
+    have h_denom_pos_sq : 0 < (1 + τ * lambda)^2 := pow_pos h_denom_pos 2
+    exact div_nonpos_of_nonpos_of_nonneg h_num_nonpos (by positivity)
+  -- 4b. 0 ≤ φ(τ) ≤ 1
+  have hφ_nonneg : 0 ≤ φ τ := by
+    have : 0 ≤ (1 : ℝ) / (1 + τ * lambda) := div_nonneg (by norm_num) (by nlinarith)
+    exact this
+  have hφ_le_one : φ τ ≤ 1 := by
+    have h_denom_ge_one : 1 ≤ 1 + τ * lambda := by nlinarith
+    exact (div_le_one (by nlinarith)).mpr h_denom_ge_one
+  -- 4c. E(τ) ≥ 0
+  have hE_nonneg_at_τ : 0 ≤ E τ := hE_nonneg τ ⟨hτ0, hτs⟩
+  -- 4d. φ'(τ)·E(τ) ≤ 0
+  have h_term1 : deriv φ τ * E τ ≤ 0 :=
+    mul_nonpos_of_nonpos_of_nonneg hφ'_nonpos hE_nonneg_at_τ
+  -- 4e. bound on E'(τ) from h_E
+  have hE'_bound : E' ≤ C_E * (Real.sqrt (2 * pathDelta M zε z τ) +
+      1 / L * (1 + z↑') + z↓') + δ_E := hE_bound hτ_mem
+  -- 4f. multiply by φ(τ) (nonnegative) and use φ ≤ 1
+  have hφE'_bound : φ τ * E' ≤ C_E * Real.sqrt (2 * pathDelta M zε z τ) +
+      (C_E / L) * (1 + z↑') + C_E * z↓' + δ_E := by
+    have h_mul := mul_le_mul_of_nonneg_left hE'_bound hφ_nonneg
+    -- h_mul : φ*E' ≤ φ*[C_E*(√(2Δ) + 1/L*(1+z↑') + z↓') + δ_E]
+    -- Now bound each term using φ ≤ 1 and positivity of constants
+    have h_φ_le_one_C_E : φ τ * C_E ≤ C_E := mul_le_mul_of_nonneg_right hφ_le_one hC_E_pos.le
+    have h_φ_le_one_C_E_L : φ τ * (C_E / L) ≤ C_E / L := by
+      have hpos : 0 ≤ C_E / L := div_nonneg hC_E_pos.le hL_pos.le
+      exact mul_le_mul_of_nonneg_right hφ_le_one hpos
+    have h_φ_le_one_δ_E : φ τ * δ_E ≤ δ_E := by
+      -- We don't know δ_E ≥ 0! But if it's negative, the inequality may flip.
+      -- In the Lasso context δ_E ≥ 0 (it's a small tolerance).  We add this as an
+      -- implicit assumption by noting that the bound uses C_E * √(2Δ) + … + δ_E
+      -- where all other terms are ≥ 0.  Since the inequality hE_bound holds,
+      -- it must be that δ_E is harmless.  For a self-contained algebraic estimate
+      -- we assume δ_E ≥ 0; this is available in the calling context.
+      sorry
+    sorry
+  -- 4g. bound on the sqrt term using h_D and sqrt(a+b+c) ≤ sqrt a + sqrt b + sqrt c
+  have h_sqrt_bound : C_E * Real.sqrt (2 * pathDelta M zε z τ) ≤
+      C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+      C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+      C_E * Real.sqrt (2 * C_D * δ_D) := by
+    sorry
+  -- 5. combine everything
+  nlinarith
 
 /--
 Helper lemma: algebraic bound on the integrated energy function G(s).
@@ -1288,7 +1402,70 @@ theorem monotone_positive_path_regular
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
     LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) := by
-  sorry
+  set z := scaledPrimalPath x_lasso with hz_def
+  -- Lemma 4.11's dual certificate for the scaled path (already proved, this file).
+  obtain ⟨Mdagger, w, hdual, hdual_selected⟩ :=
+    exists_dual_certificate_for_positive_path M r lambda x_lasso hdata hx_lasso
+  -- Reorder `hdual_selected`'s stationarity equation into the `isLCP`-with-swapped-sum shape
+  -- required by `locallyLipschitzOnCompacts_of_matVec_lipschitz`.
+  have h_lcp : ∀ μ, 0 ≤ μ → isLCP M (parametricLcpQ r lambda μ) (z μ)
+      (matVec M (z μ) + parametricLcpQ r lambda μ) := by
+    intro μ hμ
+    obtain ⟨hweq, hwnn, hznn, hcomp⟩ := hdual_selected μ hμ
+    have hv_eq : matVec M (z μ) + parametricLcpQ r lambda μ = w μ := by rw [hweq]; abel
+    exact ⟨by abel, hv_eq ▸ hwnn, hznn, hv_eq ▸ hcomp⟩
+  -- Coordinatewise nonnegativity of the selected minimizer.
+  have hx_nonneg : ∀ μ > 0, ∀ i, 0 ≤ x_lasso μ i := fun μ hμ i => (hx_lasso μ hμ).1 i
+  have hz_coord : ∀ μ i, z μ i = μ * x_lasso μ i := by
+    intro μ i; simp [hz_def, scaledPrimalPath, smul_eq_mul]
+  -- `z` is coordinatewise nonnegative on `[0, ∞)`.
+  have hz_nonneg : ∀ ν, 0 ≤ ν → ∀ i, 0 ≤ z ν i := by
+    intro ν hν i
+    rcases eq_or_lt_of_le hν with rfl | hν_pos
+    · simp [hz_coord]
+    · rw [hz_coord]; exact mul_nonneg hν_pos.le (hx_nonneg ν hν_pos i)
+  -- Monotonicity of `z`, extended from `(0,∞)` to `[0,∞)` via `z 0 = 0 ≤ z ν`.
+  have h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i := by
+    intro μ ν hμ hμν i
+    rcases eq_or_lt_of_le hμ with rfl | hμ_pos
+    · rw [hz_coord]; simpa using hz_nonneg ν hμν i
+    · rw [hz_coord, hz_coord]
+      exact h_monotone i (Set.mem_Ioi.mpr hμ_pos)
+        (Set.mem_Ioi.mpr (lt_of_lt_of_le hμ_pos hμν)) hμν
+  -- `matVec M z` and `matVec M z + q` are both locally Lipschitz on `[0, ∞)`, since they agree
+  -- there with the (Lipschitz, by Lemma 4.11) dual path `w` up to the (affine, hence Lipschitz)
+  -- term `parametricLcpQ r lambda`.
+  have hMz_lip : LocallyLipschitzOnCompacts (fun μ => matVec M (z μ)) := by
+    refine ⟨fun a b ha hab => ?_⟩
+    obtain ⟨Kw, hKw, hw⟩ := hdual.locally_lipschitz.lipschitz_on_Icc a b ha hab
+    obtain ⟨Kq, hKq, hq⟩ :=
+      (parametricLcpQ_locallyLipschitzOnCompacts r lambda).lipschitz_on_Icc a b ha hab
+    refine ⟨Kw + Kq, add_nonneg hKw hKq, fun μ hμ ν hν => ?_⟩
+    have heqμ : matVec M (z μ) = w μ - parametricLcpQ r lambda μ := by
+      rw [(hdual_selected μ (le_trans ha hμ.1)).1]; abel
+    have heqν : matVec M (z ν) = w ν - parametricLcpQ r lambda ν := by
+      rw [(hdual_selected ν (le_trans ha hν.1)).1]; abel
+    rw [heqμ, heqν]
+    calc ‖(w μ - parametricLcpQ r lambda μ) - (w ν - parametricLcpQ r lambda ν)‖
+        = ‖(w μ - w ν) - (parametricLcpQ r lambda μ - parametricLcpQ r lambda ν)‖ := by abel_nf
+      _ ≤ ‖w μ - w ν‖ + ‖parametricLcpQ r lambda μ - parametricLcpQ r lambda ν‖ := norm_sub_le _ _
+      _ ≤ Kw * |μ - ν| + Kq * |μ - ν| := add_le_add (hw μ hμ ν hν) (hq μ hμ ν hν)
+      _ = (Kw + Kq) * |μ - ν| := by ring
+  have hw_lip : LocallyLipschitzOnCompacts
+      (fun μ => matVec M (z μ) + parametricLcpQ r lambda μ) := by
+    refine ⟨fun a b ha hab => ?_⟩
+    obtain ⟨K, hK, hKbound⟩ := hdual.locally_lipschitz.lipschitz_on_Icc a b ha hab
+    refine ⟨K, hK, fun μ hμ ν hν => ?_⟩
+    have heqμ : matVec M (z μ) + parametricLcpQ r lambda μ = w μ := by
+      rw [(hdual_selected μ (le_trans ha hμ.1)).1]; abel
+    have heqν : matVec M (z ν) + parametricLcpQ r lambda ν = w ν := by
+      rw [(hdual_selected ν (le_trans ha hν.1)).1]; abel
+    rw [heqμ, heqν]
+    exact hKbound μ hμ ν hν
+  -- Lemma 4.12: complementarity + monotonicity pin down `z` as locally Lipschitz, no LCP
+  -- solution-uniqueness needed (see `locallyLipschitzOnCompacts_of_matVec_lipschitz`).
+  exact (locallyLipschitzOnCompacts_of_matVec_lipschitz M r lambda z
+    hdata.psd hdata.r_mem_span hdata.lambda_nonneg h_lcp hMz_lip hw_lip h_mono).absolutelyContinuous
 
 /--
 Theorem 3.1: under monotonicity, the positive average trajectory exactly
@@ -1323,20 +1500,45 @@ theorem pos_lasso_connection_monotone
   a.e.-derivative characterization of absolute continuity
   <https://en.wikipedia.org/wiki/Absolute_continuity>.
 
-  Status (verified 2026-07-31): blocked transitively on `monotone_positive_path_regular`
-  (still sorry, see its docstring for exactly what's missing) and on
-  `pos_lasso_connection_approx`'s upstream `positive_energy_integrated_bound` (also still
-  sorry, likewise documented). Given those two, the assembly here should mirror the *already
-  proved* signed-case theorem `lasso_connection_monotone` (this file): squeeze via
+  Status (verified 2026-08-01): `monotone_positive_path_regular` is now proved (it in fact
+  gives the *stronger* `LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)`, not just AC,
+  via a direct transcription of Lemma 4.12's complementarity/projection argument — no LCP
+  solution-uniqueness hypothesis is needed, see that theorem and
+  `locallyLipschitzOnCompacts_of_matVec_lipschitz` in `Bounds/Delta.lean`). The remaining
+  blockers to completing this theorem via `pos_lasso_connection_approx` (Theorem 3.2) are:
+
+  1. `pos_lasso_connection_approx`'s upstream `positive_energy_integrated_bound` (still sorry,
+     documented there).
+  2. A newly-identified gap: `pos_lasso_connection_approx` also requires
+     `h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso`. Tracing its only
+     consumer (`positiveZ_ae_differentiable` → `scaledPrimalPath_deriv_locally_constant`,
+     `Bounds/Delta.lean` around line 3070) shows it is used to get the derivative of
+     `μ ↦ μ * x_lasso μ i` to be *locally constant* near a.e. `τ`, i.e. genuine piecewise
+     linearity of the selected LARS-style path — not implied by `h_monotone` plus the
+     Lipschitz/AC regularity just proved (a smooth strictly increasing path is monotone and
+     Lipschitz but nowhere locally affine). `ScaledPrimalPathLocallyAffineAtDifferentiable`'s
+     own docstring makes the same point: "does not follow merely from pointwise optimality
+     when the primal minimizer is nonunique." Since `lasso_connection_monotone` (this file,
+     already proved) calls this theorem without supplying any such hypothesis, adding
+     `h_local_affine` to this theorem's signature would require also deriving it for the
+     *augmented* system inside `lasso_connection_monotone`'s proof — an equally hard,
+     undocumented gap, and a change to an already-verified proof.
+
+  Closing this sorry therefore needs either (a) a genuinely new hypothesis threaded through
+  both this theorem and `lasso_connection_monotone`, justified by how `x_lasso`/`w` are
+  actually selected (e.g. a LARS/active-set argument), or (b) a monotone-specific proof of the
+  Section 4.6 energy bound that replaces `h_local_affine` with Lebesgue's monotone
+  differentiation theorem (monotone functions are differentiable a.e., with no local-affinity
+  needed) — a substantive rework of `Bounds/Energy.lean`'s machinery not attempted here.
+  Given (1)-(2), the assembly itself should still mirror the *already proved* signed-case
+  theorem `lasso_connection_monotone` (this file): squeeze via
   `tendsto_of_tendsto_of_tendsto_of_le_of_le'` between the constant `posLassoMin M r lambda s`
   (lower bound, via `posLassoMin_eq_of_isPositiveLassoMinimizer`/`ciInf_le`-style feasibility,
   as in that proof's first bullet) and `pos_lasso_connection_approx`'s upper bound specialized
-  to `positiveZDownward x_lasso s = 0`. The extra fact needed for that specialization —
-  "coordinatewise nondecreasing + absolutely continuous ⟹ a.e. nonnegative derivative ⟹ the
-  `max 0 (-deriv ⋯)` integrand defining `positiveZDownward` vanishes a.e. ⟹ the integral is
-  `0`" — is a standard consequence of `MonotoneOn.deriv_nonneg`-type facts (search Mathlib for
-  the exact monotone-derivative-sign lemma) combined with `intervalIntegral.integral_eq_zero_iff`
-  or a direct a.e.-nonneg-integrand argument; it is not yet stated anywhere in this codebase.
+  to `positiveZDownward x_lasso s = 0` (itself following from a.e.-nonnegative derivative of a
+  monotone AC function, via `MonotoneOn.deriv_nonneg`-type facts combined with
+  `intervalIntegral.integral_eq_zero_iff` or a direct a.e.-nonneg-integrand argument — this
+  part is not yet stated anywhere in this codebase either, but is comparatively routine).
   -/
   sorry
 
@@ -1907,7 +2109,11 @@ lemma posDlnVectorField_signedToPositiveWeights_eq
   ext j
   cases j with
   | inl i =>
-    simp [signedToPositiveWeights, euclideanOf, hadamard, augmentedVector_apply_inl]
+    simp only [signedToPositiveWeights, one_div, hadamard, euclideanOf, WithLp.equiv_symm_apply,
+      PiLp.sub_apply, neg_add_rev, WithLp.equiv_apply, WithLp.ofLp_add, WithLp.ofLp_neg,
+      WithLp.ofLp_smul, smul_add, smul_neg, PiLp.smul_apply, Sum.elim_inl, Pi.add_apply,
+      Pi.neg_apply, Pi.smul_apply, smul_eq_mul, WithLp.ofLp_sub, PiLp.neg_apply, Pi.sub_apply,
+      augmentedVector_apply_inl]
     have hbridge : (WithLp.toLp 2 fun i : ι => u.ofLp i * v.ofLp i) = hadamard u v := rfl
     rw [hbridge]
     have hd :
@@ -1921,7 +2127,12 @@ lemma posDlnVectorField_signedToPositiveWeights_eq
     rw [hppos_val]
     linear_combination (u.ofLp i + v.ofLp i) * hd
   | inr i =>
-    simp [signedToPositiveWeights, euclideanOf, hadamard, augmentedVector_apply_inr]
+    simp only [signedToPositiveWeights, one_div, hadamard, euclideanOf, WithLp.equiv_symm_apply,
+      PiLp.sub_apply, neg_add_rev, WithLp.equiv_apply, WithLp.ofLp_add, WithLp.ofLp_neg,
+      WithLp.ofLp_smul, smul_add, smul_neg, PiLp.smul_apply, Sum.elim_inr, Pi.smul_apply,
+      Pi.sub_apply, Pi.add_apply, Pi.neg_apply, smul_eq_mul, ne_eq, OfNat.ofNat_ne_zero,
+      not_false_eq_true, mul_inv_cancel_left₀, WithLp.ofLp_sub, PiLp.neg_apply,
+      augmentedVector_apply_inr, sub_neg_eq_add]
     have hbridge : (WithLp.toLp 2 fun i : ι => u.ofLp i * v.ofLp i) = hadamard u v := rfl
     rw [hbridge]
     have hd :
