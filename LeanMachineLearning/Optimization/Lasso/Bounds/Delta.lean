@@ -1890,7 +1890,121 @@ lemma pos_delta_bound_3_of_monotone
             (posRescaledMirrorVariable ε (u ε) τ)
         ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
           deriv (positiveZDownward x_lasso) τ) := by
-  sorry
+  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
+    pos_effective_param_ne_zero M r lambda β u hdata hβ hu
+  rcases uniform_trajectory_coordinate_bound M r lambda β u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
+  rcases rescaled_mirror_lower_bound X u hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
+  rcases rescaled_mirror_upper_bound M r lambda β u hdata hβ hu hu_pos X hX_pos hX_ev with
+    ⟨C_w, _, hW_ev⟩
+  set C := max C_low C_w
+  refine ⟨C, lt_max_of_lt_left hC_low_pos, fun s _hs => ?_⟩
+  filter_upwards [hX_ev s _hs, hW_low_ev s _hs, hW_ev s _hs, by
+    rw [mem_nhdsGT_iff_exists_Ioo_subset]
+    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
+  intro τ hτ
+  -- Split on whether τ = 0 (requires special handling because monotone derivative
+  -- identities need τ > 0), or τ > 0 (the main case).
+  by_cases hτ_zero : τ = 0
+  · -- τ = 0 case: the scaled primal path vanishes on a right neighborhood of 0
+    -- (property of the Lasso path, proved here via `lcp_eq_iff_of_small_mu` from LCP.lean
+    -- to avoid a circular import with Theorems.lean).  Thus the derivative at 0 is 0,
+    -- giving LHS = 0 ≤ RHS (nonnegative from `positiveZ_deriv_nonneg`).
+    subst hτ_zero
+    have h_nonneg := positiveZ_deriv_nonneg x_lasso 0 (le_refl 0) h_regular
+    -- First, prove scaledPrimalPath x_lasso μ = 0 for all sufficiently small μ ≥ 0
+    -- (this is the content of `scaled_path_zero_near_zero` in Theorems.lean, reproved here
+    -- using `lcp_eq_iff_of_small_mu` which is available via LCP.lean).
+    let N : ℝ := ⨆ i, |r i - lambda|
+    let denom : ℝ := max N (1 : ℝ)
+    have h_denom_pos : 0 < denom := by
+      dsimp [denom, N]
+      exact lt_max_of_lt_right (by norm_num : (0 : ℝ) < 1)
+    have h_path_zero_near_zero : ∃ μ₀ > 0, ∀ μ ∈ Set.Icc (0 : ℝ) μ₀, scaledPrimalPath x_lasso μ = 0 := by
+      refine ⟨(1 / denom) / 2, half_pos (div_pos (by norm_num) h_denom_pos), ?_⟩
+      intro μ hμ
+      rcases hμ with ⟨hμ_low, hμ_high⟩
+      by_cases hμ_zero : μ = 0
+      · subst hμ_zero; simp [scaledPrimalPath]
+      · have hμ_pos : 0 < μ := lt_of_le_of_ne hμ_low (Ne.symm hμ_zero)
+        have hx_min : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ) := _hx_lasso μ hμ_pos
+        have hpos : 0 < 1 / denom := div_pos (by norm_num) h_denom_pos
+        have hμ_small : μ < 1 / denom := by linarith
+        have hx_zero : x_lasso μ = 0 := by
+          rcases (pos_lasso_is_lcp M r lambda μ (x_lasso μ) hdata.psd.symm hdata.psd).mp hx_min with
+            ⟨v, hv⟩
+          exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd hμ_pos hμ_small (x_lasso μ) v).mp hv).1
+        dsimp [scaledPrimalPath]
+        rw [hx_zero, smul_zero]
+    rcases h_path_zero_near_zero with ⟨μ₀, hμ₀_pos, h_zero⟩
+    -- Now prove deriv = 0 at 0
+    have h_deriv_zero : deriv (scaledPrimalPath x_lasso) 0 = 0 := by
+      by_cases hd : DifferentiableAt ℝ (scaledPrimalPath x_lasso) 0
+      · have h_zero_right : ∀ᶠ t in 𝓝[>] 0, scaledPrimalPath x_lasso t = 0 := by
+          filter_upwards [Ioo_mem_nhdsGT hμ₀_pos] with t ht
+          exact h_zero t ⟨ht.1.le, ht.2.le⟩
+        have h_f0 : scaledPrimalPath x_lasso 0 = 0 := by
+          simpa using h_zero 0 ⟨le_refl 0, hμ₀_pos.le⟩
+        have h_slope_zero : ∀ᶠ t in 𝓝[>] 0,
+            t⁻¹ • (scaledPrimalPath x_lasso (0 + t) - scaledPrimalPath x_lasso 0) =
+            (0 : EuclideanSpace ℝ ι) := by
+          filter_upwards [h_zero_right] with t ht
+          simp [ht, h_f0]
+        have h_tendsto_zero : Tendsto
+            (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) - scaledPrimalPath x_lasso 0))
+            (𝓝[>] 0) (𝓝 (0 : EuclideanSpace ℝ ι)) :=
+          Filter.Tendsto.congr' h_slope_zero
+            (tendsto_const_nhds (a := (0 : EuclideanSpace ℝ ι)))
+        have h_tendsto_deriv := hd.hasDerivAt.tendsto_slope_zero_right
+        exact tendsto_nhds_unique h_tendsto_deriv h_tendsto_zero
+      · exact deriv_zero_of_not_differentiableAt hd
+    rw [h_deriv_zero, inner_zero_left, neg_zero]
+    apply mul_nonneg
+    · exact (lt_max_of_lt_left hC_low_pos).le
+    · apply add_nonneg
+      · exact mul_nonneg
+          (div_nonneg zero_le_one (Real.log_pos
+            (one_lt_one_div hε_mem.1 hε_mem.2)).le) h_nonneg.1
+      · exact h_nonneg.2
+  · -- τ > 0: the main case, mirroring the proof of `pos_delta_bound_3`.
+    have hτ_pos : 0 < τ := lt_of_le_of_ne hτ.left (Ne.symm hτ_zero)
+    by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
+    swap
+    · -- non-differentiable case (identical to pos_delta_bound_3)
+      have h_nonneg' := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
+      rw [deriv_zero_of_not_differentiableAt h_path_diff, inner_zero_left, neg_zero]
+      apply mul_nonneg
+      · exact (lt_max_of_lt_left hC_low_pos).le
+      · apply add_nonneg
+        · exact mul_nonneg
+            (div_nonneg zero_le_one (Real.log_pos
+              (one_lt_one_div hε_mem.1 hε_mem.2)).le) h_nonneg'.1
+        · exact h_nonneg'.2
+    -- differentiable case (τ > 0, differentiable)
+    set zDot := deriv (scaledPrimalPath x_lasso) τ
+    set w := posRescaledMirrorVariable ε (u ε) τ
+    rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
+      (hW_low_ε τ hτ)
+      (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
+    -- Use monotone derivative identities instead of `deriv_pos_z_identities`
+    have h_derivs := deriv_pos_z_identities_of_monotone x_lasso τ hτ_pos h_regular h_mono h_path_diff
+    rcases h_derivs with ⟨h_upward_eq, h_downward_eq⟩
+    rw [← h_upward_eq] at h_bound_pos
+    rw [← h_downward_eq] at h_bound_neg
+    -- Nonnegativity of the Z-derivatives (same as in pos_delta_bound_3)
+    have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := by
+      rw [h_upward_eq]
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      exact le_max_left _ _
+    have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := by
+      rw [h_downward_eq]
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      have h_nonneg_max : 0 ≤ max 0 (-zDot i) := le_max_left _ _
+      have h_nonneg_factor : 0 ≤ 1 + τ := by linarith
+      nlinarith
+    -- Assemble the final inequality from the pos/neg bounds
+    exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
+      (le_max_left _ _) (le_max_right _ _)
+      h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
 
 /--
 If `f, g : ℝ → ℝ` are continuous on `[0, ∞)` and their product is identically zero on `[0, ∞)`,

@@ -1545,9 +1545,30 @@ private lemma positive_energy_G_bound
     rw [h_lhs_eq, h_rhs_eq]
     exact mul_le_mul_of_nonneg_left h_core h_factor_nonneg
   have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
-    sorry
+    -- From hδ_D, compute 2*C_D*δ_D as a perfect square
+    have h_radicand_sq : 2 * C_D * δ_D = ((s * δ) / (4 * (1 + s * lambda) * C_E)) ^ 2 := by
+      rw [hδ_D]
+      have h_2CD_ne_zero : 2 * C_D ≠ 0 := by nlinarith
+      field_simp [h_2CD_ne_zero]
+    rw [h_radicand_sq]
+    -- Now we have Real.sqrt (A^2) where A = (s*δ)/(4*(1+s*λ)*C_E) ≥ 0
+    have hA_nonneg : 0 ≤ (s * δ) / (4 * (1 + s * lambda) * C_E) := by
+      positivity
+    rw [Real.sqrt_sq hA_nonneg]
+    -- Goal: (1+s*λ)*s*C_E * (s*δ/(4*(1+s*λ)*C_E)) ≤ s^2*δ/4
+    -- This is an equality, so we prove equality and note it implies ≤
+    have h_denom1_ne_zero : 1 + s * lambda ≠ 0 := by nlinarith
+    have h_eq : (1 + s * lambda) * s * C_E * ((s * δ) / (4 * (1 + s * lambda) * C_E)) = s^2 * δ / 4 := by
+      field_simp [h_denom1_ne_zero, hC_E_pos.ne.symm]
+    rw [h_eq]
   have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
-    sorry
+    rw [hδ_E]
+    -- Goal: (1+s*λ)*s * (s*δ/(4*(1+s*λ))) ≤ s^2*δ/4
+    -- This is an equality
+    have h_denom1_ne_zero : 1 + s * lambda ≠ 0 := by nlinarith
+    have h_eq : (1 + s * lambda) * s * (s * δ / (4 * (1 + s * lambda))) = s^2 * δ / 4 := by
+      field_simp [h_denom1_ne_zero]
+    rw [h_eq]
   nlinarith [h_leading, h_delta_D, h_delta_E, hR]
 
 /--
