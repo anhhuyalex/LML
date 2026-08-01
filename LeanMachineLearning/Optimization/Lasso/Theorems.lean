@@ -10,6 +10,7 @@ public import LeanMachineLearning.Optimization.Lasso.LCP
 public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
+public import LeanMachineLearning.Optimization.Lasso.Bounds.Energy
 public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Data.Matrix.Block
@@ -623,26 +624,6 @@ lemma positive_energy_integrated_bound
           (scaledPrimalPath x_lasso) s
       ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
   sorry
-
-/--
-Algebraic identity rewriting the difference of positive lasso objectives as
-an energy inner product.  Extracted from `Bounds/Energy.lean` so that this
-file does not depend on that module's currently broken proofs.
--/
-lemma positiveLassoObjective_eq_energy
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ) (s : ℝ) (_hs : 0 < s)
-    (z zε : EuclideanSpace ℝ ι) (w : EuclideanSpace ℝ ι)
-    (hx_nonneg : Nonnegative (s⁻¹ • z)) (hxE_nonneg : Nonnegative (s⁻¹ • zε))
-    (hw_eq : matVec M (s⁻¹ • z) + lcpQ r lambda s = s⁻¹ • w)
-    (hM_symm : M.IsSymm) :
-    positiveLassoObjective M r lambda s (s⁻¹ • zε) - positiveLassoObjective M r lambda s (s⁻¹ • z) =
-      s⁻¹ ^ 2 * (inner ℝ w (zε - z) + (1 / 2 : ℝ) * inner ℝ (zε - z) (matVec M (zε - z))) := by
-  rw [positiveLassoObjective_eq M r lambda s (s⁻¹ • zε) hxE_nonneg,
-    positiveLassoObjective_eq M r lambda s (s⁻¹ • z) hx_nonneg,
-    quadratic_expansion M (lcpQ r lambda s) (s⁻¹ • z) (s⁻¹ • zε) hM_symm, hw_eq]
-  rw [(smul_sub s⁻¹ zε z).symm, matVec_smul_eq, real_inner_smul_left, real_inner_smul_left,
-    real_inner_smul_right, real_inner_smul_right]
-  ring
 
 /--
 Section 4.6 final estimate: the `Δε` control implies the positive-lasso

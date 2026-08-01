@@ -642,18 +642,18 @@ private lemma pos_param_ne_zero_of_gradient_flow
 -- uniformly in τ ∈ [0, s].
 private lemma uniform_trajectory_coordinate_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ)
+    (β : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε)) :
-    ∃ X > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+    ∃ X > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X := by
   obtain ⟨C, ε₀, hCpos, hε₀pos, hbound⟩ :=
     pos_trajectory_uniform_bound M r lambda β u hdata hβ hu
   -- Shrink ε₀ to also be ≤ 1, so that log(1/ε) ≥ 0 for the rescaled time.
   set ε₁ := min ε₀ 1
   have hε₁pos : 0 < ε₁ := lt_min hε₀pos one_pos
-  refine ⟨C, hCpos, ?_⟩
+  refine ⟨C, hCpos, fun s _hs => ?_⟩
   filter_upwards [show Set.Ioo (0 : ℝ) ε₁ ∈ 𝓝[>] (0 : ℝ) from by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨ε₁, hε₁pos, fun _ hx => hx⟩] with ε hε
@@ -681,16 +681,16 @@ omit [Fintype ι] in
 -- Uses the uniform upper bound X on the effective parameter xᵋ_i ≤ X,
 -- from which log(xᵋ_i) ≤ max(1, log X), so -log(xᵋ_i) ≥ -C_low.
 private lemma rescaled_mirror_lower_bound
-    (X : ℝ) (u : ℝ → ℝ → EuclideanSpace ℝ ι) (s : ℝ)
-    (hX_ev : ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+    (X : ℝ) (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hX_ev : ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X)
     (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0) :
-    ∃ C_low > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+    ∃ C_low > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, -C_low / Real.log (1 / ε) ≤ posRescaledMirrorVariable ε (u ε) τ i := by
   set C_low := max 1 (Real.log X)
-  refine ⟨C_low, lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1), ?_⟩
+  refine ⟨C_low, lt_max_of_lt_left (by norm_num : (0 : ℝ) < 1), fun s hs => ?_⟩
   -- Intersect the uniform upper bound with ε ∈ (0,1) so that log(1/ε) > 0
-  filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
+  filter_upwards [hX_ev s hs, show Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) from by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hX hε_mem
   rcases hε_mem with ⟨hε_pos, hε_lt_one⟩
@@ -814,15 +814,15 @@ private lemma abs_one_sub_log_div_log_bound
 -- Uses the integrated mirror equation, the uniform trajectory bound, and bounds on r, M, β.
 private lemma rescaled_mirror_upper_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ)
+    (β : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0)
     (X : ℝ) (hX_pos : 0 < X)
-    (hX_ev : ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+    (hX_ev : ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, posEffectiveParameter (u ε) (posTimeFromRescaled ε τ) i ≤ X) :
-    ∃ C_w > 0, ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
+    ∃ C_w > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0, ∀ τ ∈ Set.Icc (0 : ℝ) s,
       ∀ i, |posRescaledMirrorVariable ε (u ε) τ i| ≤ C_w * (1 + τ) := by
     /-
     INFORMAL PROOF (docs/Lasso.md, Section 4.3):
@@ -848,9 +848,9 @@ private lemma rescaled_mirror_upper_bound
           le_ciSup_of_le (Finite.bddAbove_range _) (Classical.arbitrary ι) (abs_nonneg _)
         positivity
       set C_w := max C_init (r_max + M_row_max * X + |lambda|)
-      refine ⟨C_w, lt_max_of_lt_left hC_init_pos, ?_⟩
+      refine ⟨C_w, lt_max_of_lt_left hC_init_pos, fun s hs => ?_⟩
       -- Step 3: Restrict ε to a small enough neighborhood
-      filter_upwards [hX_ev, show Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) from by
+      filter_upwards [hX_ev s hs, show Set.Ioo (0 : ℝ) (1/2) ∈ 𝓝[>] (0 : ℝ) from by
         rw [mem_nhdsGT_iff_exists_Ioo_subset]
         exact ⟨1/2, by norm_num, fun _ hx => hx⟩] with ε hX hε_half
       rcases hε_half with ⟨hε_pos, hε_lt_half⟩
@@ -1035,7 +1035,7 @@ private lemma rescaled_mirror_upper_bound
       -- Combine
       exact (abs_sub_add_add_four _ _ _ _).trans h_final
     · -- ι is empty, then the goal ∀ i, ... is vacuously true
-      refine ⟨1, by norm_num, ?_⟩
+      refine ⟨1, by norm_num, fun s _hs => ?_⟩
       filter_upwards [] with ε
       intro τ hτ i
       exact False.elim (h_nonempty ⟨i⟩)
@@ -1470,52 +1470,62 @@ that both integral functions are monotone on nonnegative time, then uses
 `MonotoneOn.derivWithin_nonneg` at differentiability points and Mathlib's zero
 convention at nondifferentiability points.
 -/
+lemma positiveZUpward_monotoneOn
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    MonotoneOn (positiveZUpward x_lasso) (Set.Ici 0) := by
+  intro a ha b hb hab
+  unfold positiveZUpward
+  apply Finset.sum_le_sum
+  intro i _
+  let g := fun u : ℝ => max 0 (deriv (fun u' => u' * x_lasso u' i) u)
+  have h0a : IntervalIntegrable g volume 0 a :=
+    max_zero_deriv_intervalIntegrable x_lasso i a ha h_regular
+  have h0b : IntervalIntegrable g volume 0 b :=
+    max_zero_deriv_intervalIntegrable x_lasso i b hb h_regular
+  have hab_int : IntervalIntegrable g volume a b := h0b.mono_set (by
+    rw [Set.uIcc_of_le hab, Set.uIcc_of_le hb]
+    exact Set.Icc_subset_Icc ha le_rfl)
+  have hadd := intervalIntegral.integral_add_adjacent_intervals h0a hab_int
+  have hnonneg : 0 ≤ ∫ u in a..b, g u :=
+    intervalIntegral.integral_nonneg_of_forall hab (fun u => le_max_left _ _)
+  linarith
+
+lemma positiveZDownward_monotoneOn
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    MonotoneOn (positiveZDownward x_lasso) (Set.Ici 0) := by
+  intro a ha b hb hab
+  unfold positiveZDownward
+  apply Finset.sum_le_sum
+  intro i _
+  let g := fun u : ℝ => (1 + u) *
+    max 0 (-deriv (fun u' => u' * x_lasso u' i) u)
+  have h0a_neg := max_zero_neg_deriv_intervalIntegrable x_lasso i a ha h_regular
+  have h0b_neg := max_zero_neg_deriv_intervalIntegrable x_lasso i b hb h_regular
+  have h0a : IntervalIntegrable g volume 0 a := by
+    dsimp [g]
+    exact h0a_neg.continuousOn_mul (by fun_prop)
+  have h0b : IntervalIntegrable g volume 0 b := by
+    dsimp [g]
+    exact h0b_neg.continuousOn_mul (by fun_prop)
+  have hab_int : IntervalIntegrable g volume a b := h0b.mono_set (by
+    rw [Set.uIcc_of_le hab, Set.uIcc_of_le hb]
+    exact Set.Icc_subset_Icc ha le_rfl)
+  have hadd := intervalIntegral.integral_add_adjacent_intervals h0a hab_int
+  have hnonneg : 0 ≤ ∫ u in a..b, g u := by
+    apply intervalIntegral.integral_nonneg hab
+    intro u hu
+    have ha' : 0 ≤ a := ha
+    exact mul_nonneg (by linarith [ha', hu.1]) (le_max_left _ _)
+  linarith
+
 lemma positiveZ_deriv_nonneg
     (x_lasso : ℝ → EuclideanSpace ℝ ι) (τ : ℝ) (hτ : 0 ≤ τ)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
     0 ≤ deriv (positiveZUpward x_lasso) τ ∧ 0 ≤ deriv (positiveZDownward x_lasso) τ := by
-  have h_up_mono : MonotoneOn (positiveZUpward x_lasso) (Set.Ici 0) := by
-    intro a ha b hb hab
-    unfold positiveZUpward
-    apply Finset.sum_le_sum
-    intro i _
-    let g := fun u : ℝ => max 0 (deriv (fun u' => u' * x_lasso u' i) u)
-    have h0a : IntervalIntegrable g volume 0 a :=
-      max_zero_deriv_intervalIntegrable x_lasso i a ha h_regular
-    have h0b : IntervalIntegrable g volume 0 b :=
-      max_zero_deriv_intervalIntegrable x_lasso i b hb h_regular
-    have hab_int : IntervalIntegrable g volume a b := h0b.mono_set (by
-      rw [Set.uIcc_of_le hab, Set.uIcc_of_le hb]
-      exact Set.Icc_subset_Icc ha le_rfl)
-    have hadd := intervalIntegral.integral_add_adjacent_intervals h0a hab_int
-    have hnonneg : 0 ≤ ∫ u in a..b, g u :=
-      intervalIntegral.integral_nonneg_of_forall hab (fun u => le_max_left _ _)
-    linarith
-  have h_down_mono : MonotoneOn (positiveZDownward x_lasso) (Set.Ici 0) := by
-    intro a ha b hb hab
-    unfold positiveZDownward
-    apply Finset.sum_le_sum
-    intro i _
-    let g := fun u : ℝ => (1 + u) *
-      max 0 (-deriv (fun u' => u' * x_lasso u' i) u)
-    have h0a_neg := max_zero_neg_deriv_intervalIntegrable x_lasso i a ha h_regular
-    have h0b_neg := max_zero_neg_deriv_intervalIntegrable x_lasso i b hb h_regular
-    have h0a : IntervalIntegrable g volume 0 a := by
-      dsimp [g]
-      exact h0a_neg.continuousOn_mul (by fun_prop)
-    have h0b : IntervalIntegrable g volume 0 b := by
-      dsimp [g]
-      exact h0b_neg.continuousOn_mul (by fun_prop)
-    have hab_int : IntervalIntegrable g volume a b := h0b.mono_set (by
-      rw [Set.uIcc_of_le hab, Set.uIcc_of_le hb]
-      exact Set.Icc_subset_Icc ha le_rfl)
-    have hadd := intervalIntegral.integral_add_adjacent_intervals h0a hab_int
-    have hnonneg : 0 ≤ ∫ u in a..b, g u := by
-      apply intervalIntegral.integral_nonneg hab
-      intro u hu
-      have ha' : 0 ≤ a := ha
-      exact mul_nonneg (by linarith [ha', hu.1]) (le_max_left _ _)
-    linarith
+  have h_up_mono := positiveZUpward_monotoneOn x_lasso h_regular
+  have h_down_mono := positiveZDownward_monotoneOn x_lasso h_regular
   constructor
   · by_cases hd : DifferentiableAt ℝ (positiveZUpward x_lasso) τ
     · have h := h_up_mono.derivWithin_nonneg (x := τ)
@@ -1528,7 +1538,7 @@ lemma positiveZ_deriv_nonneg
 
 lemma pos_delta_bound_3
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (_hs : 0 < s)
+    (β : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
@@ -1540,7 +1550,7 @@ lemma pos_delta_bound_3
         ∃ ε > 0, ∀ t, |t - τ'| < ε →
           deriv (fun u' => u' * (x_lasso u').ofLp i') t =
           deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
-    ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
             (posRescaledMirrorVariable ε (u ε) τ)
@@ -1548,28 +1558,28 @@ lemma pos_delta_bound_3
           deriv (positiveZDownward x_lasso) τ) := by
   -- Postulate the uniform trajectory bound (Proposition 4.1, not yet formalized).
   -- This gives a constant X > 0 such that for all sufficiently small ε and all
-  -- τ ∈ [0,s], every coordinate of xᵋ(τ) is bounded above by X.
+  -- τ ≥ 0, every coordinate of xᵋ(τ) is bounded above by X.
   have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
     pos_effective_param_ne_zero M r lambda β u hdata hβ hu
-  rcases uniform_trajectory_coordinate_bound M r lambda β s u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
+  rcases uniform_trajectory_coordinate_bound M r lambda β u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
   -- From the trajectory bound and the definition wᵋ_i = -log(xᵋ_i)/log(1/ε),
   -- we obtain a lower bound: wᵋ_i(τ) ≥ -C_low / log(1/ε).
   -- Since xᵋ_i ≤ X, we have log(xᵋ_i) ≤ max(0, log X), so
   -- -log(xᵋ_i) ≥ -max(0, log X), giving the bound.
-  rcases rescaled_mirror_lower_bound X u s hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
+  rcases rescaled_mirror_lower_bound X u hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
   -- From the integrated mirror equation (positive_integrated_mirror_equation)
   -- together with the trajectory bound, we obtain an upper bound:
   -- |wᵋ_i(τ)| ≤ C_w * (1 + τ).
   -- The integrated mirror equation gives:
   --   wᵋ(τ) = wᵋ(0) - τ·r + M·zᵋ(τ) + τ·λ·𝟙
   -- Since xᵋ is bounded, zᵋ(τ) = ∫₀ᵗ xᵋ is bounded by τ·X, and wᵋ(0) ≈ 𝟙 is bounded.
-  rcases rescaled_mirror_upper_bound M r lambda β s u hdata hβ hu hu_pos X hX_pos hX_ev with
+  rcases rescaled_mirror_upper_bound M r lambda β u hdata hβ hu hu_pos X hX_pos hX_ev with
     ⟨C_w, _, hW_ev⟩
   -- Combine the constants
   set C := max C_low C_w
-  refine ⟨C, lt_max_of_lt_left hC_low_pos, ?_⟩
+  refine ⟨C, lt_max_of_lt_left hC_low_pos, fun s _hs => ?_⟩
   -- Intersect the three "eventually" filters, also restrict to ε ∈ (0,1) so that log(1/ε) > 0
-  filter_upwards [hX_ev, hW_low_ev, hW_ev, by
+  filter_upwards [hX_ev s _hs, hW_low_ev s _hs, hW_ev s _hs, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
   intro τ hτ
@@ -3116,7 +3126,7 @@ to encapsulate the almost-everywhere differentiability of the Lipschitz paths.
 -/
 lemma positive_delta_complementarity_bound
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (β : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
@@ -3129,7 +3139,7 @@ lemma positive_delta_complementarity_bound
     (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
-    ∃ C > 0, ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ δ > 0, ∀ᶠ ε in 𝓝[>] 0,
       ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s →
         deriv
           (fun σ =>
@@ -3140,8 +3150,7 @@ lemma positive_delta_complementarity_bound
           (1 / Real.log (1 / ε) *
               (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
-  obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β s hs u hdata hβ hu
-  have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
+  obtain ⟨C1, hC1, h1⟩ := pos_delta_bound_1 M r lambda β u hdata hβ hu
   have h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
       DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
       ∃ ε > 0, ∀ t, |t - τ'| < ε →
@@ -3149,13 +3158,13 @@ lemma positive_delta_complementarity_bound
         deriv (fun u' => u' * (x_lasso u').ofLp i') τ' :=
     fun τ' i' hτ' h_diff =>
       scaledPrimalPath_deriv_locally_constant x_lasso h_local_affine τ' i' hτ' h_diff
-  obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β s hs u hdata hβ hu x_lasso
+  obtain ⟨C3, hC3, h3⟩ := pos_delta_bound_3 M r lambda β u hdata hβ hu x_lasso
     hx_lasso h_regular h_piecewise_deriv
-  use max C1 C3, lt_max_of_lt_left hC1
-  intro δ hδ
+  refine ⟨max C1 C3, lt_max_of_lt_left hC1, fun s hs δ hδ => ?_⟩
+  have h2 := pos_delta_bound_2 M r lambda β s hs u hdata hu x_lasso hx_lasso
   have h4 := pos_delta_bound_4 M r lambda β s hs u hdata hβ hu x_lasso hx_lasso
     h_lipschitz δ hδ
-  filter_upwards [h1, h2, h3, h4, by
+  filter_upwards [h1 s hs, h2, h3 s hs, h4, by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε h1ε h2ε h3ε h4ε hε_range
   have h_path_diff_ae : ∀ᵐ τ ∂volume, τ ∈ Set.Icc 0 s →
@@ -3252,8 +3261,9 @@ theorem positive_delta_differential_inequality
           (1 / Real.log (1 / ε) *
               (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
-  exact positive_delta_complementarity_bound M r lambda β s hs u hdata hβ hu x_lasso hx_lasso
-    Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
+  obtain ⟨C, hC, h⟩ := positive_delta_complementarity_bound M r lambda β u hdata hβ hu x_lasso
+    hx_lasso Mdagger w hdual hdual_selected h_local_affine h_regular h_lipschitz
+  exact ⟨C, hC, h s hs⟩
 
 /--
 The path delta at `τ = 0` is `0`.
