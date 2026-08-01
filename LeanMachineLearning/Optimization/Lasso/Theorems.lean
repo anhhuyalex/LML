@@ -859,18 +859,6 @@ private lemma positive_energy_F_ac
   -- Product of two ℝ→ℝ AC functions is AC; the factor 1/(1+τλ) is AC (λ≥0 ensures denominator ≥1>0)
   exact (one_div_one_plus_tau_mul_lambda_ac lambda s hdata.lambda_nonneg hs_nonneg).mul h_sum_ac
 
-private lemma positiveZUpward_ac {ι : Type*} [Fintype ι]
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
-    AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
-  sorry
-
-private lemma positiveZDownward_ac {ι : Type*} [Fintype ι]
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
-    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
-    AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
-  sorry
-
 /--
 Helper lemma: proves that the bounding function G(τ) is absolutely continuous.
 Informal proof: G(τ) is a linear combination of identity, and integrals of the positive
@@ -885,7 +873,15 @@ private lemma positive_energy_G_ac
       (fun (τ : ℝ) =>
         K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ)
       0 s := by
-  sorry
+  have h_id_ac : AbsolutelyContinuousOnInterval (fun τ : ℝ => τ) 0 s := by
+    have hK : LipschitzOnWith 1 (fun τ : ℝ => τ) (Set.uIcc 0 s) := fun x _ y _ => by simp
+    exact hK.absolutelyContinuousOnInterval
+  have h_up_ac : AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s :=
+    positiveZUpward_ac x_lasso s hs.le h_regular
+  have h_down_ac : AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s :=
+    positiveZDownward_ac x_lasso s hs.le h_regular
+  exact ((h_id_ac.const_mul K).add (h_up_ac.const_mul (C_E / L))).add
+    (h_down_ac.const_mul C_E)
 
 /--
 Helper lemma: bound on the derivative of F(τ) by G(τ).

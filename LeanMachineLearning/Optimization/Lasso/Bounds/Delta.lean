@@ -3470,6 +3470,57 @@ lemma pathDelta_ac {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (ε : ℝ)
   exact h_inner_ac.const_mul (1 / 2 : ℝ)
 
 /--
+`positiveZUpward x_lasso` is absolutely continuous on `[0, s]`.
+
+Informal proof: `positiveZUpward x_lasso μ = ∑ i, ∫ u in 0..μ, max 0 (deriv f_i u)`, where
+`f_i u = u * x_lasso(u) i`. Each summand is the interval integral (from a fixed lower endpoint)
+of the `L¹` function `max 0 (deriv f_i)` (integrable by `max_zero_deriv_intervalIntegrable`,
+itself a consequence of the 1-Lipschitz coordinate projection applied to `h_regular`), hence
+absolutely continuous by the FTC-type lemma
+`IntervalIntegrable.absolutelyContinuousOnInterval_intervalIntegral`. Summing finitely many
+absolutely continuous functions (`absolutelyContinuousOnInterval_sum`) gives the claim.
+
+CITATION: `docs/Lasso.md`, Section 4.6.
+-/
+lemma positiveZUpward_ac {ι : Type*} [Fintype ι]
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 ≤ s)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
+  unfold positiveZUpward
+  apply absolutelyContinuousOnInterval_sum Finset.univ
+    (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+  intro i _
+  have h_int : IntervalIntegrable
+      (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 s :=
+    max_zero_deriv_intervalIntegrable x_lasso i s hs h_regular
+  exact h_int.absolutelyContinuousOnInterval_intervalIntegral Set.left_mem_uIcc
+
+/--
+`positiveZDownward x_lasso` is absolutely continuous on `[0, s]`.
+
+Informal proof: same shape as `positiveZUpward_ac`, using
+`max_zero_neg_deriv_intervalIntegrable` for the integrability of the summand
+`(1+u) * max 0 (-deriv f_i u)`.
+
+CITATION: `docs/Lasso.md`, Section 4.6.
+-/
+lemma positiveZDownward_ac {ι : Type*} [Fintype ι]
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 ≤ s)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
+  unfold positiveZDownward
+  apply absolutelyContinuousOnInterval_sum Finset.univ
+    (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
+      (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+  intro i _
+  have h_int : IntervalIntegrable
+      (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
+      volume 0 s :=
+    (max_zero_neg_deriv_intervalIntegrable x_lasso i s hs h_regular).continuousOn_mul
+      (by fun_prop)
+  exact h_int.absolutelyContinuousOnInterval_intervalIntegral Set.left_mem_uIcc
+
+/--
 Helper lemma: The G bound is absolutely continuous.
 
 INFORMAL PROOF:
@@ -3496,28 +3547,10 @@ lemma G_ac {ι : Type*} [Fintype ι] (C ε s δ : ℝ) (hs : 0 < s)
   have h_id_ac : AbsolutelyContinuousOnInterval (fun τ : ℝ => τ) 0 s := by
     have hK : LipschitzOnWith 1 (fun τ : ℝ => τ) (Set.uIcc 0 s) := fun x _ y _ => by simp
     exact hK.absolutelyContinuousOnInterval
-  have hc_mem : (0 : ℝ) ∈ Set.uIcc (0 : ℝ) s := Set.left_mem_uIcc
-  have h_up_ac : AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
-    unfold positiveZUpward
-    apply absolutelyContinuousOnInterval_sum Finset.univ
-      (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ, max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u))
-    intro i _
-    have h_int : IntervalIntegrable
-        (fun u => max 0 (deriv (fun u' => u' * (x_lasso u').ofLp i) u)) volume 0 s :=
-      max_zero_deriv_intervalIntegrable x_lasso i s hs.le h_regular
-    exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
-  have h_down_ac : AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
-    unfold positiveZDownward
-    apply absolutelyContinuousOnInterval_sum Finset.univ
-      (fun i (μ : ℝ) => ∫ u in (0 : ℝ)..μ,
-        (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
-    intro i _
-    have h_int : IntervalIntegrable
-        (fun u => (1 + u) * max 0 (-deriv (fun u' => u' * (x_lasso u').ofLp i) u))
-        volume 0 s :=
-      (max_zero_neg_deriv_intervalIntegrable x_lasso i s hs.le h_regular).continuousOn_mul
-        (by fun_prop)
-    exact h_int.absolutelyContinuousOnInterval_intervalIntegral hc_mem
+  have h_up_ac : AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s :=
+    positiveZUpward_ac x_lasso s hs.le h_regular
+  have h_down_ac : AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s :=
+    positiveZDownward_ac x_lasso s hs.le h_regular
   have h1 : AbsolutelyContinuousOnInterval (fun τ : ℝ => τ + positiveZUpward x_lasso τ) 0 s :=
     h_id_ac.add h_up_ac
   have h2 : AbsolutelyContinuousOnInterval
