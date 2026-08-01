@@ -813,6 +813,18 @@ private lemma positive_energy_F_ac
       0 s := by
   sorry
 
+private lemma positiveZUpward_ac {ι : Type*} [Fintype ι]
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    AbsolutelyContinuousOnInterval (positiveZUpward x_lasso) 0 s := by
+  sorry
+
+private lemma positiveZDownward_ac {ι : Type*} [Fintype ι]
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s : ℝ) (hs : 0 < s)
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso)) :
+    AbsolutelyContinuousOnInterval (positiveZDownward x_lasso) 0 s := by
+  sorry
+
 /--
 Helper lemma: proves that the bounding function G(τ) is absolutely continuous.
 Informal proof: G(τ) is a linear combination of identity, and integrals of the positive
@@ -835,9 +847,9 @@ Informal proof: F'(τ) ≤ C_E * (√(2Δ) + 1/L*(1+z↑') + z↓') + δ_E.
 -/
 private lemma positive_energy_deriv_bound
     {ι : Type*} [Fintype ι] {M : Matrix ι ι ℝ} {lambda : ℝ}
-    (w zε z : ℝ → EuclideanSpace ℝ ι) (τ : ℝ)
-    (x_lasso : ℝ → EuclideanSpace ℝ ι) (s C_E C_D L K δ_E δ_D : ℝ)
-    (h_E_bound' : deriv (fun t => inner ℝ (w t) (zε t - z t) + pathDelta M zε z t) τ ≤ C_E * Real.sqrt (2 * pathDelta M zε z τ) + C_E / L * (1 + deriv (positiveZUpward x_lasso) τ) + C_E * deriv (positiveZDownward x_lasso) τ + δ_E)
+    (w zε z : ℝ → EuclideanSpace ℝ ι) (s C_E C_D L K δ_E δ_D : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (h_E : ∀ᵐ t ∂volume, t ∈ Set.Icc 0 s → deriv (fun t => inner ℝ (w t) (zε t - z t) + pathDelta M zε z t) t ≤ C_E * (Real.sqrt (2 * pathDelta M zε z t) + 1 / L * (1 + deriv (positiveZUpward x_lasso) t) + deriv (positiveZDownward x_lasso) t) + δ_E)
     (h_D : ∀ t ∈ Set.Icc 0 s, pathDelta M zε z t ≤ C_D * (1 / L * (s + positiveZUpward x_lasso s) + positiveZDownward x_lasso s) + C_D * δ_D)
     (hC_E_pos : 0 < C_E)
     (h_local_affine : ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso)
@@ -857,14 +869,43 @@ Informal proof: Expands (1+sλ)G(s) and uses asymptotic bounds.
 -/
 private lemma positive_energy_G_bound
     {ι : Type*} [Fintype ι] (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (s lambda C_E C_D L K δ δ_E δ_D : ℝ)
-    (hR : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) + (1 + s * lambda) * s * C_E / L + (1 + s * lambda) * C_E / L * positiveZUpward x_lasso s ≤ s^2 * δ / 2)
+    (s lambda C_E C_D L K δ δ_E δ_D : ℝ) (h_lambda_nonneg : 0 ≤ lambda)
+    (hK : K = C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+      C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+      C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E)
+    (hR : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+      (1 + s * lambda) * s * C_E / L +
+      (1 + s * lambda) * C_E / L * positiveZUpward x_lasso s ≤ s^2 * δ / 2)
     (hδ_E : δ_E = s * δ / (4 * (1 + s * lambda)))
     (hδ_D : δ_D = (s * δ / (4 * (1 + s * lambda) * C_E)) ^ 2 / (2 * C_D)) :
     let G := fun (τ : ℝ) => K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
     (1 + s * lambda) * G s ≤ s^2 * (max (C_E * Real.sqrt (2 * C_D)) C_E *
         suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
-  sorry
+  set C := max (C_E * Real.sqrt (2 * C_D)) C_E
+  have hC1 : C_E * Real.sqrt (2 * C_D) ≤ C := le_max_left _ _
+  have hC2 : C_E ≤ C := le_max_right _ _
+  change (1 + s * lambda) * (K * s + C_E / L * positiveZUpward x_lasso s + C_E * positiveZDownward x_lasso s) ≤ _
+  have h_expand : (1 + s * lambda) * (K * s + C_E / L * positiveZUpward x_lasso s + C_E * positiveZDownward x_lasso s) =
+      (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
+      (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
+      (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) +
+      (1 + s * lambda) * s * C_E / L +
+      (1 + s * lambda) * s * δ_E +
+      (1 + s * lambda) * C_E / L * positiveZUpward x_lasso s +
+      (1 + s * lambda) * C_E * positiveZDownward x_lasso s := by
+    rw [hK]
+    ring
+  rw [h_expand]
+  have h_leading : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D) *
+      Real.sqrt (positiveZDownward x_lasso s) +
+      (1 + s * lambda) * C_E * positiveZDownward x_lasso s ≤
+      s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s)) := by
+    sorry
+  have h_delta_D : (1 + s * lambda) * s * C_E * Real.sqrt (2 * C_D * δ_D) ≤ s^2 * δ / 4 := by
+    sorry
+  have h_delta_E : (1 + s * lambda) * s * δ_E ≤ s^2 * δ / 4 := by
+    sorry
+  nlinarith [h_leading, h_delta_D, h_delta_E, hR]
 
 /--
 Helper lemma: integration of `positive_energy_differential_inequality`.
