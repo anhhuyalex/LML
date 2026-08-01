@@ -3626,7 +3626,6 @@ lemma positive_delta_complementarity_bound_of_monotone
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
-    (Mdagger : Matrix ι ι ℝ) (w : ℝ → EuclideanSpace ℝ ι)
     (h_mono : ∀ ν ν', 0 ≤ ν → ν ≤ ν' → ∀ i, ν * (x_lasso ν).ofLp i ≤ ν' * (x_lasso ν').ofLp i)
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
     (h_lipschitz : LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)) :
