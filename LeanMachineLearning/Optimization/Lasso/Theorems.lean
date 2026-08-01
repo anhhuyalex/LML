@@ -645,34 +645,20 @@ private lemma inner_diff_absolutelyContinuous
     (hw_ac : LocallyAbsolutelyContinuousOnNonnegativeCompacts w) :
     AbsolutelyContinuousOnInterval
       (fun (τ : ℝ) => inner ℝ (w τ) (posIntegratedTrajectoryRescaled ε u τ - z τ)) 0 s := by
-  have hzε_ac : AbsolutelyContinuousOnInterval
-      (fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε u τ) 0 s :=
-    (posIntegratedTrajectoryRescaled_contDiff_one ε u h_cont_u h_log_ne).contDiffOn.absolutelyContinuousOnInterval
-  have hz_ac_local : AbsolutelyContinuousOnInterval z 0 s :=
-    hz_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs
   have hdiff_ac : AbsolutelyContinuousOnInterval
       (fun (τ : ℝ) => posIntegratedTrajectoryRescaled ε u τ - z τ) 0 s :=
-    hzε_ac.sub hz_ac_local
+    ((posIntegratedTrajectoryRescaled_contDiff_one ε u h_cont_u h_log_ne).contDiffOn.absolutelyContinuousOnInterval).sub
+      (hz_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)
   have h_coord_ac : ∀ (i : ι), AbsolutelyContinuousOnInterval
       (fun (τ : ℝ) => (w τ : EuclideanSpace ℝ ι) i *
         (posIntegratedTrajectoryRescaled ε u τ - z τ) i) 0 s := by
     intro i
-    let proj := fun (x : EuclideanSpace ℝ ι) => (x i : ℝ)
-    have h_lip : LipschitzWith 1 proj := coordinateProjection_lipschitzWith i
-    have hw_ac_i : AbsolutelyContinuousOnInterval
-        (fun (τ : ℝ) => (w τ : EuclideanSpace ℝ ι) i) 0 s :=
-      h_lip.comp_absolutelyContinuousOnInterval (hw_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)
-    have hdiff_ac_i : AbsolutelyContinuousOnInterval
-        (fun (τ : ℝ) => (posIntegratedTrajectoryRescaled ε u τ - z τ : EuclideanSpace ℝ ι) i) 0 s :=
-      h_lip.comp_absolutelyContinuousOnInterval hdiff_ac
-    exact hw_ac_i.mul hdiff_ac_i
-  have h_sum_ac : AbsolutelyContinuousOnInterval
-      (fun (τ : ℝ) => ∑ (i : ι), (w τ : EuclideanSpace ℝ ι) i *
-        (posIntegratedTrajectoryRescaled ε u τ - z τ : EuclideanSpace ℝ ι) i) 0 s :=
-    absolutelyContinuousOnInterval_sum Finset.univ _ 0 s (fun i _ => h_coord_ac i)
-  convert h_sum_ac with τ
-  simp only [PiLp.inner_apply, PiLp.sub_apply, RCLike.inner_apply, conj_trivial]
-  exact Finset.sum_congr rfl (fun i _ => by ring)
+    have h_lip : LipschitzWith 1 (fun (x : EuclideanSpace ℝ ι) => (x i : ℝ)) :=
+      coordinateProjection_lipschitzWith i
+    exact (h_lip.comp_absolutelyContinuousOnInterval (hw_ac.absolutelyContinuousOn_Icc 0 s le_rfl hs)).mul
+      (h_lip.comp_absolutelyContinuousOnInterval hdiff_ac)
+  convert absolutelyContinuousOnInterval_sum Finset.univ _ 0 s (fun i _ => h_coord_ac i) with τ
+  simp [PiLp.inner_apply, PiLp.sub_apply, RCLike.inner_apply, mul_comm]
 /--
 Section 4.6, Eq. (4.15) restated as a bound holding **uniformly over `[0, s]`**, not just at the
 endpoint `τ = s`. This is the key extra ingredient needed for `positive_energy_integrated_bound`:
@@ -802,8 +788,9 @@ private lemma pathDelta_uniform_bound
 -- This uses Lipschitz continuity: denominator ≥ 1 implies the function is λ-Lipschitz.
 private lemma one_div_one_plus_tau_mul_lambda_ac (lambda s : ℝ) (hlambda_nonneg : 0 ≤ lambda) (hs_nonneg : 0 ≤ s) :
     AbsolutelyContinuousOnInterval (fun (τ : ℝ) => 1 / (1 + τ * lambda)) 0 s := by
-  have h_lip : LipschitzOnWith ⟨lambda, hlambda_nonneg⟩
-      (fun (τ : ℝ) => 1 / (1 + τ * lambda)) (Set.uIcc (0 : ℝ) s) := by
+  set lam_nn : NNReal := ⟨lambda, hlambda_nonneg⟩ with h_lam_nn_def
+  have h_lip :
+      LipschitzOnWith lam_nn (fun (τ : ℝ) => 1 / (1 + τ * lambda)) (Set.uIcc (0 : ℝ) s) := by
     refine LipschitzOnWith.of_dist_le_mul (fun τ₁ hτ₁ τ₂ hτ₂ => ?_)
     have hτ₁_nonneg : 0 ≤ τ₁ := by
       rcases Set.mem_uIcc.1 hτ₁ with (⟨h, _⟩ | ⟨h₁, h₂⟩)
@@ -815,7 +802,12 @@ private lemma one_div_one_plus_tau_mul_lambda_ac (lambda s : ℝ) (hlambda_nonne
       · nlinarith
     have h_denom1_ne : 1 + τ₁ * lambda ≠ 0 := by nlinarith
     have h_denom2_ne : 1 + τ₂ * lambda ≠ 0 := by nlinarith
-    have h_denom_ge_one : 1 ≤ (1 + τ₁ * lambda) * (1 + τ₂ * lambda) := by nlinarith
+    have h_denom_nonneg : 0 ≤ (1 + τ₁ * lambda) * (1 + τ₂ * lambda) :=
+      mul_nonneg (by nlinarith) (by nlinarith)
+    have h_denom_ge_one : 1 ≤ (1 + τ₁ * lambda) * (1 + τ₂ * lambda) := by
+      have h1 : 1 ≤ 1 + τ₁ * lambda := by nlinarith
+      have h2 : 1 ≤ 1 + τ₂ * lambda := by nlinarith
+      nlinarith
     have h_num_nonneg : 0 ≤ lambda * |τ₁ - τ₂| :=
       mul_nonneg hlambda_nonneg (abs_nonneg _)
     -- Rewrite the LHS difference as a single fraction
@@ -828,10 +820,11 @@ private lemma one_div_one_plus_tau_mul_lambda_ac (lambda s : ℝ) (hlambda_nonne
     rw [Real.dist_eq, Real.dist_eq, h_left]
     have h_goal : |lambda * (τ₂ - τ₁) / ((1 + τ₁ * lambda) * (1 + τ₂ * lambda))| ≤
         lambda * |τ₁ - τ₂| := by
-      rw [abs_div, abs_of_nonneg (by nlinarith), abs_mul,
+      rw [abs_div, abs_of_nonneg h_denom_nonneg, abs_mul,
         abs_of_nonneg hlambda_nonneg, ← abs_neg, neg_sub]
       exact div_le_self h_num_nonneg h_denom_ge_one
-    exact h_goal
+    have h_lam_eq : (lam_nn : ℝ) = lambda := rfl
+    simpa [h_lam_eq] using h_goal
   exact h_lip.absolutelyContinuousOnInterval
 
 /--
@@ -854,14 +847,13 @@ private lemma positive_energy_F_ac
           (scaledPrimalPath x_lasso) τ))
       0 s := by
   have hs_nonneg : 0 ≤ s := hs.le
-  have h_cont_u : Continuous u_eps := hu_cont_diff.continuous
   -- The inner product term ⟨w(τ), zε(τ) - z(τ)⟩ is absolutely continuous on [0,s]
   have h_inner_ac :=
     inner_diff_absolutelyContinuous ε u_eps (scaledPrimalPath x_lasso) w s hs_nonneg
-      h_cont_u hlog_ne h_regular hdual_ac
+      hu_cont_diff.continuous hlog_ne h_regular hdual_ac
   -- The path-delta term Δε(τ) = ½‖zε(τ) - z(τ)‖_M² is absolutely continuous on [0,s]
   have h_delta_ac :=
-    pathDelta_ac M ε u_eps x_lasso s hs_nonneg h_cont_u hlog_ne h_regular
+    pathDelta_ac M ε u_eps x_lasso s hs_nonneg hu_cont_diff.continuous hlog_ne h_regular
   -- Sum of the two AC functions is AC
   have h_sum_ac := h_inner_ac.add h_delta_ac
   -- Product of two ℝ→ℝ AC functions is AC; the factor 1/(1+τλ) is AC (λ≥0 ensures denominator ≥1>0)
