@@ -421,6 +421,14 @@ theorem scaledPrimalPath_regular_of_path_regular
     (scaled_path_ac_on_positive x_lasso h_regular)
     (scaled_path_zero_near_zero M r lambda x_lasso hdata hx_lasso)
 
+-- For μ ≠ 0, scaling lcpQ by μ yields parametricLcpQ
+omit [Fintype ι] in
+private lemma lcpQ_smul_eq_parametricLcpQ (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) (hμ : μ ≠ 0) :
+    μ • lcpQ r lambda μ = parametricLcpQ r lambda μ := by
+  ext i
+  dsimp [lcpQ, parametricLcpQ, euclideanOf]
+  field_simp [hμ]
+  ring
 
 /--
 For `μ > 0`, if `x` minimizes the positive lasso, there exists a dual solution `w` such that
@@ -439,36 +447,20 @@ lemma exists_parametric_lcp_solution_for_positive_lasso
     (hμ : 0 < μ)
     (hx_lasso : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
     ∃ w : EuclideanSpace ℝ ι, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) w := by
-  -- Extract symmetry and PSD from the bundled ProblemData hypothesis
-  have hM_symm : M.IsSymm := hdata.psd.get_symm
-  have hM_psd : IsPositiveSemidefinite M := hdata.psd
   -- Step 1: pos_lasso_is_lcp turns the positive Lasso minimizer into a standard LCP solution
-  rcases ((pos_lasso_is_lcp M r lambda μ (x_lasso μ) hM_symm hM_psd).mp hx_lasso) with
+  rcases ((pos_lasso_is_lcp M r lambda μ (x_lasso μ) hdata.psd.get_symm hdata.psd).mp hx_lasso) with
     ⟨v, hv_eq, hv_nonneg, hx_nonneg, hvx_zero⟩
   -- Step 2: scale the dual variable by μ to obtain the parametric LCP witness
   use μ • v
   -- Step 3: unfold the goal and verify the four LCP conditions
   dsimp [isParametricLCP, isLCP, scaledPrimalPath]
-  -- Key algebraic identity: μ • lcpQ = parametricLcpQ (requires μ ≠ 0)
-  have h_scale_q : μ • lcpQ r lambda μ = parametricLcpQ r lambda μ := by
-    ext i
-    dsimp [lcpQ, parametricLcpQ, euclideanOf]
-    field_simp [hμ.ne.symm]
-    ring
-  have h_mu_nonneg : 0 ≤ μ := hμ.le
   refine ⟨?_, ?_, ?_, ?_⟩
   · -- Condition 1: stationarity (μ·v = parametricLcpQ + M(μ·x))
-    calc
-      μ • v = μ • (lcpQ r lambda μ + matVec M (x_lasso μ)) := by rw [hv_eq]
-      _ = μ • lcpQ r lambda μ + μ • matVec M (x_lasso μ) := by rw [smul_add]
-      _ = parametricLcpQ r lambda μ + matVec M (μ • x_lasso μ) := by
-        rw [h_scale_q, matVec_smul_eq]
+    rw [hv_eq, smul_add, lcpQ_smul_eq_parametricLcpQ r lambda μ hμ.ne.symm, matVec_smul_eq]
   · -- Condition 2: dual feasibility (μ·v ≥ 0)
-    intro i
-    exact mul_nonneg h_mu_nonneg (hv_nonneg i)
+    exact fun i => mul_nonneg hμ.le (hv_nonneg i)
   · -- Condition 3: primal feasibility (μ·x ≥ 0)
-    intro i
-    exact mul_nonneg h_mu_nonneg (hx_nonneg i)
+    exact fun i => mul_nonneg hμ.le (hx_nonneg i)
   · -- Condition 4: complementarity ⟨μ·v, μ·x⟩ = 0
     simp [inner_smul_right, inner_smul_left, hvx_zero]
 
@@ -486,14 +478,11 @@ lemma exists_parametric_lcp_solution_at_zero
     ∃ w : EuclideanSpace ℝ ι, isParametricLCP M r lambda 0 (scaledPrimalPath x_lasso 0) w := by
   use parametricLcpQ r lambda 0
   have hz0 : scaledPrimalPath x_lasso 0 = 0 := by ext i; simp [scaledPrimalPath]
-  have hq0 : parametricLcpQ r lambda 0 = ones := by ext i; simp [parametricLcpQ, ones, euclideanOf]
   refine ⟨?_, ?_, ?_, ?_⟩
-  · rw [hz0]
-    have hMz : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by ext i; simp [matVec, euclideanOf]
-    rw [hMz, add_zero]
-  · rw [hq0]; intro i; simp [ones, euclideanOf]
-  · rw [hz0]; intro i; simp
-  · rw [hz0]; simp
+  · simp [hz0, matVec, euclideanOf]
+  · intro i; simp [parametricLcpQ, euclideanOf]
+  · rw [hz0]; exact Nonnegative_zero
+  · simp [hz0]
 
 /--
 Given that `w(μ)` can be constructed piecewise to solve the parametric LCP,
@@ -509,10 +498,9 @@ lemma dual_certificate_regularity
     (hdata : ProblemData M r lambda)
     (hinverse : IsPSDRangeInverse M Mdagger)
     (hsol : ∀ μ ≥ 0, isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ)) :
-    ParametricLCPDualRegular M Mdagger r lambda w := by
-  exact parametric_lcp_dual_regular M Mdagger r lambda _ _ hdata hsol
-    (fun μ _ z1 z2 w1 w2 h1 h2 =>
-      psd_lcp_unique_dual M hdata.psd (parametricLcpQ r lambda μ) z1 z2 w1 w2 h1 h2)
+    ParametricLCPDualRegular M Mdagger r lambda w :=
+  parametric_lcp_dual_regular M Mdagger r lambda _ _ hdata hsol
+    (fun μ _ => psd_lcp_unique_dual M hdata.psd (parametricLcpQ r lambda μ))
     hinverse
 /-- Construct the auxiliary Moore--Penrose/LCP data from the selected positive
 Lasso minimizer path.
@@ -583,6 +571,38 @@ Informal proof: Integrate `positive_energy_differential_inequality` from 0 to $s
 By FTC and `initial_positive_energy_zero`, the integral evaluates exactly to the energy
 at time $s$ scaled by $1 / (1 + s \lambda)$. The right-hand side is bounded by substituting
 the uniform bound on $\Delta^\varepsilon(\tau)$ from `positive_path_delta_bound`.
+
+**Status (verified 2026-07-31): genuinely blocked on incomplete upstream infrastructure, not
+just unassembled.** `Bounds/Energy.lean` (1012 lines, `lake env lean` succeeds with 0 errors)
+contains the two named ingredients:
+* `initial_positive_energy_zero` (`Bounds/Energy.lean:968`) — fully proved, no sorry.
+* `positive_energy_differential_inequality` (`Bounds/Energy.lean:885`) — its *statement* matches
+  this lemma's integrand exactly, but its proof calls `energy_complementarity_bound`
+  (`Energy.lean:659`), which in turn calls `energy_deriv_bound_kink_case` (`Energy.lean:425`)
+  and `energy_deriv_bound_zero_case` (`Energy.lean:474`), each of which still has `sorry`s
+  (`Energy.lean:443,445,449,528,531`, all about non-differentiability of `w` / `φ • w` at kink
+  points and at `ε`-independent zero-locus points). So `positive_energy_differential_inequality`
+  is *not* actually usable yet, only its statement is trustworthy.
+* The Delta-bound half, `positive_path_delta_bound` (`Bounds/Delta.lean:3667`), *is* fully
+  proved, no sorry.
+
+Both `positive_energy_differential_inequality` and `positive_path_delta_bound` additionally
+require two hypotheses this lemma does not currently take: `h_lipschitz :
+LocallyLipschitzOnCompacts (scaledPrimalPath x_lasso)` and `h_local_affine :
+ScaledPrimalPathLocallyAffineAtDifferentiable x_lasso` (both defined in `Bounds/Delta.lean`).
+These would need to be added to this lemma's signature (and threaded through from its callers,
+which currently only carry `h_regular`).
+
+**To complete this lemma**: (1) fill the 5 sorries in `Bounds/Energy.lean`'s two kink/zero-case
+helper lemmas; (2) add `h_lipschitz`/`h_local_affine` hypotheses here and thread them from
+`positive_path_energy_bound`; (3) `public import LeanMachineLearning.Optimization.Lasso.Bounds.
+Energy` into `Theorems.lean`; (4) perform the FTC/Gronwall-style integration of the differential
+inequality from `0` to `s`, using `initial_positive_energy_zero` as the boundary condition and
+`positive_path_delta_bound` to bound the `Δ^ε` term appearing on the differential inequality's
+right-hand side — this final integration step is not yet written anywhere in the codebase and
+is themselves nontrivial (comparison of a scalar ODE inequality against its bound, standard but
+not close to a one-line Mathlib lemma). See Section 4.6 ("Proof of Theorem 3.2") of
+<https://arxiv.org/abs/2509.18766> for the informal mathematical argument this formalizes.
 -/
 lemma positive_energy_integrated_bound
     (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -683,11 +703,8 @@ theorem positive_path_energy_bound
     -- The first condition is exactly what we need, after identifying w(s) with the slack.
     have hlcp := hdual_selected s hs.le
     obtain ⟨hw_eq0, -, -, -⟩ := hlcp
-    have hscale : parametricLcpQ r lambda s = s • lcpQ r lambda s := by
-      ext i
-      dsimp [lcpQ, parametricLcpQ, euclideanOf]
-      field_simp
-      ring
+    have hscale : parametricLcpQ r lambda s = s • lcpQ r lambda s :=
+      (lcpQ_smul_eq_parametricLcpQ r lambda s hs.ne').symm
     rw [hscale] at hw_eq0
     have hgoal :
         s⁻¹ • w s = s⁻¹ • (s • lcpQ r lambda s + matVec M (scaledPrimalPath x_lasso s)) := by
@@ -840,6 +857,49 @@ Informal proof reference: Section 4.7, Lemma 4.12. Lemma 4.11 gives local
 Lipschitz control of the dual path and hence of the projection of `z(μ)` onto
 `Span M`. Complementarity controls the kernel component; monotonicity converts
 coordinatewise variation into an `L¹` bound on compact intervals.
+
+**Status (verified 2026-07-31): the generic Lipschitz⟹AC machinery exists and matches, but
+one genuinely new hypothesis (LCP-solution uniqueness) is needed and not yet available.**
+`Bounds/Delta.lean` already contains a general lemma exactly shaped for this:
+
+```
+lemma parametric_lcp_lipschitz
+    (M) (r) (lambda) (z : ℝ → EuclideanSpace ℝ ι) (hdata)
+    (h_lcp : ∀ μ ≥ 0, isLCP M (parametricLcpQ r lambda μ) (z μ)
+      (matVec M (z μ) + parametricLcpQ r lambda μ))
+    (h_unique : ∀ μ ≥ 0, ∀ z', isLCP M (parametricLcpQ r lambda μ) z'
+      (matVec M z' + parametricLcpQ r lambda μ) → z' = z μ)
+    (h_mono : ∀ μ ν, 0 ≤ μ → μ ≤ ν → ∀ i, z μ i ≤ z ν i) :
+    LocallyLipschitzOnCompacts z
+```
+(`Bounds/Delta.lean:2259`), and `LocallyLipschitzOnCompacts.absolutelyContinuous`
+(`LCP.lean:90`) turns its conclusion directly into this lemma's goal (applied to `z :=
+scaledPrimalPath x_lasso`).
+
+What is missing to invoke it:
+* `h_lcp` and the `isLCP`-vs-`isParametricLCP` argument-order match: this is exactly the
+  content of `exists_parametric_lcp_solution_for_positive_lasso` (this file, already proved)
+  plus `exists_parametric_lcp_solution_at_zero` (already proved), bridged through
+  `pos_lasso_is_lcp` (`LCP.lean:633`), giving existence of *a* dual `v(μ)` with `w(μ) =
+  matVec M (z μ) + parametricLcpQ r lambda μ` for each `μ ≥ 0`.
+* `h_mono` follows directly from `h_monotone` together with `scaledPrimalPath x_lasso μ i = μ *
+  x_lasso μ i` — routine.
+* `h_unique`, the genuinely missing piece: `parametric_lcp_lipschitz` needs the *selected*
+  `z μ = scaledPrimalPath x_lasso μ` to be the **unique** solution of the LCP at every `μ`, not
+  merely *a* solution. This is not automatic for a merely-PSD (not positive-definite) `M`: the
+  LCP solution set can have multiple primal points differing along `ker M` in general (e.g.
+  `M = 0, q = 0` admits every nonnegative `z`). `parametric_lcp_lipschitz`'s own proof sketch
+  (comments at `Delta.lean:2323-2334`) explains why uniqueness *does* hold for this specific
+  family: the kernel component of `q(μ) = (1 + μλ) • 1` is strictly positive for `λ, μ ≥ 0`,
+  which (via complementarity) forces the kernel component of any solution to vanish. Formalizing
+  this — i.e. proving `h_unique` as a standalone fact about `IsPositiveLassoMinimizer`-selected
+  paths — is not yet done anywhere in the codebase and is a nontrivial piece of linear algebra
+  (needs `IsPSDRangeInverse`/pseudoinverse machinery already present for the *dual* uniqueness
+  argument `psd_lcp_unique_dual` at `LCP.lean:1634`, adapted to primal uniqueness).
+
+See Lemma 4.12 of <https://arxiv.org/abs/2509.18766> and Mathlib's implication
+Lipschitz `⇒` absolutely continuous
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/AbsolutelyContinuous.html>.
 -/
 theorem monotone_positive_path_regular
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
@@ -848,17 +908,6 @@ theorem monotone_positive_path_regular
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_monotone : ∀ i, MonotoneOn (fun μ => μ * x_lasso μ i) (Set.Ioi 0)) :
     LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso) := by
-  /-
-  INFORMAL PROOF. KKT gives the unique dual path attached to `x_lasso`.
-  Lemma 4.11 controls the range projection of `z`; complementarity expresses
-  the scalar kernel contribution in terms of locally Lipschitz quantities.
-  Coordinatewise monotonicity turns its increment into the `ℓ¹` norm of the
-  full increment, yielding local Lipschitz continuity of `z`, hence absolute
-  continuity. Lemma 4.10 supplies `z=0` near the endpoint. See Lemma 4.12 of
-  <https://arxiv.org/abs/2509.18766> and Mathlib's implication
-  Lipschitz `⇒` absolutely continuous
-  <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/AbsolutelyContinuous.html>.
-  -/
   sorry
 
 /--
@@ -893,6 +942,21 @@ theorem pos_lasso_connection_monotone
   Sections 4.6--4.7 of <https://arxiv.org/abs/2509.18766> and the standard
   a.e.-derivative characterization of absolute continuity
   <https://en.wikipedia.org/wiki/Absolute_continuity>.
+
+  Status (verified 2026-07-31): blocked transitively on `monotone_positive_path_regular`
+  (still sorry, see its docstring for exactly what's missing) and on
+  `pos_lasso_connection_approx`'s upstream `positive_energy_integrated_bound` (also still
+  sorry, likewise documented). Given those two, the assembly here should mirror the *already
+  proved* signed-case theorem `lasso_connection_monotone` (this file): squeeze via
+  `tendsto_of_tendsto_of_tendsto_of_le_of_le'` between the constant `posLassoMin M r lambda s`
+  (lower bound, via `posLassoMin_eq_of_isPositiveLassoMinimizer`/`ciInf_le`-style feasibility,
+  as in that proof's first bullet) and `pos_lasso_connection_approx`'s upper bound specialized
+  to `positiveZDownward x_lasso s = 0`. The extra fact needed for that specialization —
+  "coordinatewise nondecreasing + absolutely continuous ⟹ a.e. nonnegative derivative ⟹ the
+  `max 0 (-deriv ⋯)` integrand defining `positiveZDownward` vanishes a.e. ⟹ the integral is
+  `0`" — is a standard consequence of `MonotoneOn.deriv_nonneg`-type facts (search Mathlib for
+  the exact monotone-derivative-sign lemma) combined with `intervalIntegral.integral_eq_zero_iff`
+  or a direct a.e.-nonneg-integrand argument; it is not yet stated anywhere in this codebase.
   -/
   sorry
 

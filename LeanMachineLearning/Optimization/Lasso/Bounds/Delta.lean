@@ -343,17 +343,17 @@ lemma posIntegratedTrajectoryRescaled_hasDerivAt
 
 lemma pos_delta_bound_1
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
-    (β : EuclideanSpace ℝ ι) (s : ℝ) (_hs : 0 < s)
+    (β : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (_hdata : ProblemData M r lambda) (_hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε)) :
-    ∃ C > 0, ∀ᶠ ε in 𝓝[>] 0,
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         inner ℝ (deriv (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ) τ)
           (posRescaledMirrorVariable ε (u ε) τ)
         ≤ C / Real.log (1 / ε) := by
   set C := max 1 (Fintype.card ι : ℝ)
-  refine ⟨C, lt_max_of_lt_left (by norm_num), ?_⟩
+  refine ⟨C, lt_max_of_lt_left (by norm_num), fun s _hs => ?_⟩
   -- Restrict to ε ∈ (0, 1/2), where log(1/ε) > 0
   filter_upwards [by
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
