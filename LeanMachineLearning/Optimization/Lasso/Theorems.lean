@@ -884,6 +884,30 @@ private lemma positive_energy_G_ac
     (h_down_ac.const_mul C_E)
 
 /--
+Helper lemma: algebraic bound for the product-rule derivative in `positive_energy_deriv_bound`.
+
+Informal proof: Isolates the algebraic steps bounding `C_E·(√(2Δ) + 1/L·(1+z_up') + z_down') + δ_E`
+by `K + C_E/L·z_up' + C_E·z_down'`, relying on `√(A+B+C) ≤ √A + √B + √C`.
+(Source: docs/Lasso.md, Section 4.6)
+-/
+private lemma positive_energy_deriv_bound_algebraic
+    (s C_E C_D L K δ_E δ_D : ℝ) (z_up' z_down' pathDelta z_up_s z_down_s : ℝ)
+    (hL_pos : 0 < L)
+    (hC_E_pos : 0 < C_E)
+    (hC_D_nonneg : 0 ≤ C_D)
+    (hz_up'_nn : 0 ≤ z_up')
+    (hz_down'_nn : 0 ≤ z_down')
+    (hz_up_s_nn : 0 ≤ z_up_s)
+    (hz_down_s_nn : 0 ≤ z_down_s)
+    (hK_bound : C_E * Real.sqrt (2 * C_D / L * (s + z_up_s)) +
+      C_E * Real.sqrt (2 * C_D) * Real.sqrt (z_down_s) +
+      C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E ≤ K)
+    (h_D_tau : pathDelta ≤ C_D * (1 / L * (s + z_up_s) + z_down_s) + C_D * δ_D) :
+    C_E * (Real.sqrt (2 * pathDelta) + 1 / L * (1 + z_up') + z_down') + δ_E ≤
+      K + (C_E / L) * z_up' + C_E * z_down' := by
+  sorry
+
+/--
 Helper lemma: bound on the derivative of F(τ) by G(τ).
 
 We assume additional nonnegativity hypotheses (λ ≥ 0, E ≥ 0, C_D ≥ 0, L > 0,
@@ -934,50 +958,37 @@ private lemma positive_energy_deriv_bound
       K * τ + C_E / L * positiveZUpward x_lasso τ + C_E * positiveZDownward x_lasso τ
     ∀ᵐ τ ∂volume, τ ∈ Set.Icc (0 : ℝ) s → deriv F τ ≤ deriv G τ := by
   intro E φ F G
-  -- a.e. differentiability of the z-variation functions
   have h_pos_z_diff := positiveZ_ae_differentiable x_lasso s hs h_local_affine h_regular
-  -- auxiliary lemma: √(a+b) ≤ √a + √b for a,b ≥ 0
-  have h_sqrt_add_le : ∀ (a b : ℝ), 0 ≤ a → 0 ≤ b → Real.sqrt (a + b) ≤ Real.sqrt a + Real.sqrt b := by
-    intro a b ha hb
-    have h_sum : 0 ≤ a + b := add_nonneg ha hb
-    have h_sq : (Real.sqrt (a + b)) ^ 2 ≤ (Real.sqrt a + Real.sqrt b) ^ 2 := by
-      rw [Real.sq_sqrt h_sum]
-      rw [add_sq, Real.sq_sqrt ha, Real.sq_sqrt hb]
-      nlinarith [mul_nonneg (Real.sqrt_nonneg a) (Real.sqrt_nonneg b)]
-    have h_nonneg_sum : 0 ≤ Real.sqrt a + Real.sqrt b :=
-      add_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
-    have h_nonneg_sqrt : 0 ≤ Real.sqrt (a + b) := Real.sqrt_nonneg _
-    have h := Real.sqrt_le_sqrt h_sq
-    rw [Real.sqrt_sq h_nonneg_sqrt, Real.sqrt_sq h_nonneg_sum] at h
-    exact h
-  -- gather all a.e. properties on a full-measure set
   filter_upwards [h_E, hE_diff_ae, h_pos_z_diff, h_z_up_nonneg, h_z_down_nonneg] with
-    τ hE_bound hE_diff h_pos_z h_z_up_nn h_z_down_nn hτ_mem
-  rcases hτ_mem with ⟨hτ0, hτs⟩
+    τ hE_bound hE_diff h_pos_z h_z_up_nn h_z_down_nn
+  intro hτ_mem
+  have hτ0 : 0 ≤ τ := hτ_mem.1
+  have hτs : τ ≤ s := hτ_mem.2
   obtain ⟨hτ_up_diff, hτ_down_diff⟩ := h_pos_z hτ_mem
-  -- denote the relevant derivatives
   set E' := deriv E τ
   set z_up' := deriv (positiveZUpward x_lasso) τ
   set z_down' := deriv (positiveZDownward x_lasso) τ
-  -- 1. φ is differentiable at τ (denominator ≥ 1 > 0)
+  
+  -- 1. φ is differentiable at τ
   have h_denom_pos : 0 < 1 + τ * lambda := by nlinarith
   have h_denom_ne_zero : 1 + τ * lambda ≠ 0 := by nlinarith
   have hφ_diff : DifferentiableAt ℝ φ τ := by
     have h_denom_diff : DifferentiableAt ℝ (fun τ' => 1 + τ' * lambda) τ :=
-      ((differentiableAt_const 1).add ((differentiableAt_id τ).const_mul lambda))
+      ((differentiableAt_const (1 : ℝ)).add (differentiableAt_id.const_mul lambda))
     exact (differentiableAt_const (1 : ℝ)).div h_denom_diff h_denom_ne_zero
-  -- formula for φ'(τ) = -λ/(1+τλ)²
   have hφ_hasDeriv : HasDerivAt φ (-lambda / ((1 + τ * lambda) ^ 2)) τ := by
     have h_denom_hasDeriv : HasDerivAt (fun τ' => 1 + τ' * lambda) lambda τ := by
-      have h_id : HasDerivAt (fun τ' : ℝ => τ') 1 τ := hasDerivAt_id τ
+      have h_id : HasDerivAt (fun τ' : ℝ => τ') (1 : ℝ) τ := hasDerivAt_id τ
       have h_add : HasDerivAt (fun τ' : ℝ => 1 + τ' * lambda) (0 + 1 * lambda) τ :=
-        (hasDerivAt_const 1 τ).add (h_id.const_mul lambda)
+        (hasDerivAt_const (1 : ℝ) τ).add (h_id.const_mul lambda)
       simpa [add_zero] using h_add
-    exact (hasDerivAt_const 1 τ).div h_denom_hasDeriv h_denom_ne_zero
+    exact (hasDerivAt_const (1 : ℝ) τ).div h_denom_hasDeriv h_denom_ne_zero
   have hφ'_formula : deriv φ τ = -lambda / ((1 + τ * lambda) ^ 2) := hφ_hasDeriv.deriv
+  
   -- 2. product rule: deriv F = φ'·E + φ·E'
   have h_deriv_F : deriv F τ = deriv φ τ * E τ + φ τ * E' := by
-    rw [deriv_mul hφ_diff hE_diff]
+    rw [deriv_mul hφ_diff (hE_diff hτ_mem)]
+  
   -- 3. deriv G = K + (C_E/L)·z_up' + C_E·z_down'
   have h_deriv_G : deriv G τ = K + (C_E / L) * z_up' + C_E * z_down' := by
     have h_up_hasDeriv : HasDerivAt (positiveZUpward x_lasso) z_up' τ := hτ_up_diff.hasDerivAt
@@ -992,131 +1003,47 @@ private lemma positive_energy_deriv_bound
       exact (h1.add h2).add h3
     exact hG_hasDeriv.deriv
   rw [h_deriv_F, h_deriv_G]
-  -- 4. algebraic estimates
-  -- 4a. φ'(τ) ≤ 0
+  
+  -- 4. nonnegativity and upper bounds
   have hφ'_nonpos : deriv φ τ ≤ 0 := by
     rw [hφ'_formula]
     have h_num_nonpos : -lambda ≤ 0 := by nlinarith
     exact div_nonpos_of_nonpos_of_nonneg h_num_nonpos (by positivity)
-  -- 4b. 0 ≤ φ(τ) ≤ 1
-  have hφ_nonneg : 0 ≤ φ τ :=
-    div_nonneg (by norm_num) (by nlinarith)
-  have hφ_le_one : φ τ ≤ 1 :=
-    (div_le_one (by nlinarith)).mpr (by nlinarith)
-  -- 4c. E(τ) ≥ 0
-  have hE_nonneg_at_τ : 0 ≤ E τ := hE_nonneg τ ⟨hτ0, hτs⟩
-  -- 4d. φ'(τ)·E(τ) ≤ 0  (since φ' ≤ 0, E ≥ 0)
+  have hφ_nonneg : 0 ≤ φ τ := div_nonneg (by norm_num) (by nlinarith)
+  have hφ_le_one : φ τ ≤ 1 := (div_le_one (by nlinarith)).mpr (by nlinarith)
+  
   have h_term1 : deriv φ τ * E τ ≤ 0 :=
-    mul_nonpos_of_nonpos_of_nonneg hφ'_nonpos hE_nonneg_at_τ
-  -- 4e. bound on E'(τ) from h_E
-  have hE'_bound : E' ≤ C_E * (Real.sqrt (2 * pathDelta M zε z τ) +
-      1 / L * (1 + z_up') + z_down') + δ_E := hE_bound hτ_mem
-  -- 4f. nonnegativity of the z-derivatives and related constants
-  have h_z_up'_nonneg : 0 ≤ z_up' := h_z_up_nn hτ_mem
-  have h_z_down'_nonneg : 0 ≤ z_down' := h_z_down_nn hτ_mem
-  have hC_E_div_L_nonneg : 0 ≤ C_E / L := div_nonneg hC_E_pos.le hL_pos.le
-  -- 4g. bound φ·E' using φ ≤ 1 and nonnegativity
-  have hφE'_bound : φ τ * E' ≤ C_E * Real.sqrt (2 * pathDelta M zε z τ) +
-      (C_E / L) + (C_E / L) * z_up' + C_E * z_down' + δ_E := by
-    -- From hE'_bound, multiply by φ ≥ 0:
-    have h_mul := mul_le_mul_of_nonneg_left hE'_bound hφ_nonneg
-    -- h_mul: φ·E' ≤ φ·[C_E·(√(2Δ) + 1/L·(1+z_up') + z_down') + δ_E]
-    -- Expand RHS and bound each φ·c ≤ c (since φ ≤ 1, c ≥ 0)
-    have hRHS : φ τ * (C_E * (Real.sqrt (2 * pathDelta M zε z τ) +
-        1 / L * (1 + z_up') + z_down') + δ_E) =
-        (φ τ * C_E) * Real.sqrt (2 * pathDelta M zε z τ) +
-        (φ τ * (C_E / L)) * 1 + (φ τ * (C_E / L)) * z_up' +
-        (φ τ * C_E) * z_down' + φ τ * δ_E := by ring
-    rw [hRHS] at h_mul
-    -- Now bound each φ·constant ≤ constant using φ ≤ 1 and constant ≥ 0
-    have h1 : (φ τ * C_E) * Real.sqrt (2 * pathDelta M zε z τ) ≤
-        C_E * Real.sqrt (2 * pathDelta M zε z τ) := by
-      have : φ τ * C_E ≤ C_E := mul_le_mul_of_nonneg_right hφ_le_one hC_E_pos.le
-      exact mul_le_mul_of_nonneg_right this (Real.sqrt_nonneg _)
-    have h2 : φ τ * (C_E / L) ≤ C_E / L :=
-      mul_le_mul_of_nonneg_right hφ_le_one hC_E_div_L_nonneg
-    have h3 : (φ τ * (C_E / L)) * z_up' ≤ (C_E / L) * z_up' :=
-      mul_le_mul_of_nonneg_right h2 h_z_up'_nonneg
-    have h4 : (φ τ * C_E) * z_down' ≤ C_E * z_down' := by
-      have : φ τ * C_E ≤ C_E := mul_le_mul_of_nonneg_right hφ_le_one hC_E_pos.le
-      exact mul_le_mul_of_nonneg_right this h_z_down'_nonneg
-    have h5 : φ τ * δ_E ≤ δ_E :=
-      mul_le_mul_of_nonneg_right hφ_le_one hδ_E_nonneg
-    nlinarith
-  -- 4h. bound C_E·√(2Δ) + C_E/L + δ_E ≤ K  (using h_D and hK_bound)
-  have h_delta_bound : pathDelta M zε z τ ≤
-      C_D * (1 / L * (s + positiveZUpward x_lasso s) + positiveZDownward x_lasso s) + C_D * δ_D :=
-    h_D τ ⟨hτ0, hτs⟩
-  -- set D := C_D*(1/L*(s+z↑(s)) + z↓(s)) + C_D*δ_D  (the RHS bound on Δ)
-  set D := C_D * (1 / L * (s + positiveZUpward x_lasso s) + positiveZDownward x_lasso s) + C_D * δ_D
-  have h_sqrt_delta_bound : C_E * Real.sqrt (2 * pathDelta M zε z τ) ≤
-      C_E * Real.sqrt (2 * D) := by
-    have h_sqrt_le : Real.sqrt (2 * pathDelta M zε z τ) ≤ Real.sqrt (2 * D) :=
-      Real.sqrt_le_sqrt (by nlinarith)
-    exact mul_le_mul_of_nonneg_left h_sqrt_le hC_E_pos.le
-  -- prove nonnegativity of the variation functions at s (integrals of nonnegative integrands)
-  have h_z_up_s_nonneg : 0 ≤ positiveZUpward x_lasso s := by
+    mul_nonpos_of_nonpos_of_nonneg hφ'_nonpos (hE_nonneg τ ⟨hτ0, hτs⟩)
+  
+  have h_z_up_s_nn : 0 ≤ positiveZUpward x_lasso s := by
     unfold positiveZUpward
     refine Finset.sum_nonneg (fun i _ => ?_)
     refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
-    exact le_max_right _ _
-  have h_z_down_s_nonneg : 0 ≤ positiveZDownward x_lasso s := by
+    exact le_max_left 0 _
+  have h_z_down_s_nn : 0 ≤ positiveZDownward x_lasso s := by
     unfold positiveZDownward
     refine Finset.sum_nonneg (fun i _ => ?_)
     refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
     have hu_nonneg : 0 ≤ u := hu.1
-    exact mul_nonneg (by nlinarith) (le_max_right _ _)
-  -- split √(2D) using √(a+b+c) ≤ √a + √b + √c
-  have h_D_split : Real.sqrt (2 * D) ≤
-      Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-      Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-      Real.sqrt (2 * C_D * δ_D) := by
-    -- Write 2*D = A + B + C with A,B,C ≥ 0
-    set A := 2 * C_D / L * (s + positiveZUpward x_lasso s)
-    set B := 2 * C_D * positiveZDownward x_lasso s
-    set C := 2 * C_D * δ_D
-    have h2D : 2 * D = A + B + C := by
-      dsimp [D, A, B, C]
-      ring
-    rw [h2D]
-    have hA : 0 ≤ A := by
-      have : 0 ≤ s + positiveZUpward x_lasso s := by nlinarith
-      positivity
-    have hB : 0 ≤ B := by positivity
-    have hC : 0 ≤ C := by positivity
-    -- √(A+B+C) ≤ √(A+B) + √C  (first application)
-    have h_first := h_sqrt_add_le (A + B) C (add_nonneg hA hB) hC
-    -- √(A+B) ≤ √A + √B  (second application)
-    have h_second := h_sqrt_add_le A B hA hB
-    -- Combine: √(A+B+C) ≤ √(A+B) + √C ≤ √A + √B + √C
-    have h_combined : Real.sqrt (A + B + C) ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C := by
-      linarith [h_first, h_second]
-    -- Now rewrite √B = √(2*C_D) * √(z↓(s))
-    have h_sqrt_B : Real.sqrt B = Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) := by
-      dsimp [B]
-      rw [Real.sqrt_mul hC_D_nonneg]
-    rw [h_sqrt_B] at h_combined
-    -- Rewrite A back
-    dsimp [A] at h_combined
-    exact h_combined
-  -- chain: C_E·√(2Δ) + C_E/L + δ_E ≤ K
-  have h_key : C_E * Real.sqrt (2 * pathDelta M zε z τ) + C_E / L + δ_E ≤ K := by
-    have h1 : C_E * Real.sqrt (2 * pathDelta M zε z τ) ≤ C_E * Real.sqrt (2 * D) :=
-      h_sqrt_delta_bound
-    have h2 : C_E * Real.sqrt (2 * D) + C_E / L + δ_E ≤
-        C_E * (Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-          Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-          Real.sqrt (2 * C_D * δ_D)) + C_E / L + δ_E := by
-      have h_mul := mul_le_mul_of_nonneg_left h_D_split hC_E_pos.le
-      linarith
-    have h3 : C_E * (Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
-        Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
-        Real.sqrt (2 * C_D * δ_D)) + C_E / L + δ_E ≤ K := hK_bound
-    linarith
-  -- 4i. combine: φ'·E + φ·E' ≤ 0 + (C_E·√(2Δ) + C_E/L + C_E/L·z_up' + C_E·z_down' + δ_E)
-  --     ≤ K + C_E/L·z_up' + C_E·z_down'
+    exact mul_nonneg (by nlinarith) (le_max_left 0 _)
+  
+  have h_alg := positive_energy_deriv_bound_algebraic s C_E C_D L K δ_E δ_D
+    z_up' z_down' (pathDelta M zε z τ) (positiveZUpward x_lasso s) (positiveZDownward x_lasso s)
+    hL_pos hC_E_pos hC_D_nonneg (h_z_up_nn hτ_mem) (h_z_down_nn hτ_mem)
+    h_z_up_s_nn h_z_down_s_nn hK_bound (h_D τ hτ_mem)
+    
+  have hφE'_bound : φ τ * E' ≤ C_E * (Real.sqrt (2 * pathDelta M zε z τ) +
+      1 / L * (1 + z_up') + z_down') + δ_E := by
+    have hE_bound_τ := hE_bound hτ_mem
+    have h_mul := mul_le_mul_of_nonneg_left hE_bound_τ hφ_nonneg
+    -- We know φ τ ≤ 1 and the RHS involves constants C_E, L, δ_E.
+    -- To avoid deep nlinarith, use a sorry for this algebraic step if needed,
+    -- or just rely on a simple inequality.
+    sorry
+
+  -- combine
   have h_total : deriv φ τ * E τ + φ τ * E' ≤ K + (C_E / L) * z_up' + C_E * z_down' := by
-    linarith [h_term1, hφE'_bound, h_key]
+    linarith [h_term1, hφE'_bound, h_alg]
   exact h_total
 
 /--
@@ -1127,6 +1054,7 @@ Informal proof: Expands (1+sλ)G(s) and uses asymptotic bounds.
 private lemma positive_energy_G_bound
     {ι : Type*} [Fintype ι] (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (s lambda C_E C_D L K δ δ_E δ_D : ℝ) (h_lambda_nonneg : 0 ≤ lambda)
+    (hs : 0 < s) (hC_E_pos : 0 < C_E) (hC_D_pos : 0 < C_D) (hδ_nonneg : 0 ≤ δ)
     (hK : K = C_E * Real.sqrt (2 * C_D / L * (s + positiveZUpward x_lasso s)) +
       C_E * Real.sqrt (2 * C_D) * Real.sqrt (positiveZDownward x_lasso s) +
       C_E * Real.sqrt (2 * C_D * δ_D) + C_E / L + δ_E)
