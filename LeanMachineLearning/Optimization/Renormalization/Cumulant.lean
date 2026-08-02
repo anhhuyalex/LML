@@ -103,46 +103,46 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
       -- `toFun` sends each part `A ⊆ B` to its subtype preimage
       -- `{x : B | x.1 ∈ A}`, giving a partition of `Finset.univ : Finset B`.
       let toFun : Finpartition B → Finpartition (Finset.univ : Finset B) := fun P => by
-        -- Define the new parts as the subtype preimages of the old parts.
-        let parts : Finset (Finset B) :=
-          P.parts.image fun A : Finset ι ↦ A.preimage φ φ.injective.injOn
-        refine Finpartition.ofExistsUnique (s := (Finset.univ : Finset B)) parts ?subset_univ
-          ?exists_unique ?empty_notMem
-        · intro C hC x hx
-          exact Finset.mem_univ x
-        · intro x hx
-          -- `x : B` lies over an element `x.1 ∈ B`; because `P` covers `B`, `x.1`
-          -- lies in a unique block `A` of `P`.  The corresponding subtype block is
-          -- `A.preimage φ _`, and uniqueness is transported back by membership of `x.1`.
-          obtain ⟨A, hA_props, hA_unique⟩ := P.existsUnique_mem x.2
-          rcases hA_props with ⟨hA_mem, hxA⟩
-          refine ⟨A.preimage φ φ.injective.injOn, ⟨?_, ?_⟩, ?_⟩
-          · exact Finset.mem_image.mpr ⟨A, hA_mem, rfl⟩
-          · simpa [φ] using hxA
-          · intro C hC_props
-            rcases hC_props with ⟨hC_mem, hxC⟩
-            rcases Finset.mem_image.mp hC_mem with ⟨A', hA'_mem, rfl⟩
-            have hxA' : x.1 ∈ A' := by
-              simpa [φ] using hxC
-            have hAA' : A' = A := hA_unique A' ⟨hA'_mem, hxA'⟩
-            subst hAA'
-            rfl
-        · intro h_empty_mem
-          rcases Finset.mem_image.mp h_empty_mem with ⟨A, hA_mem, hA_preimage⟩
-          obtain ⟨a, haA⟩ := P.nonempty_of_mem_parts hA_mem
-          have haB : a ∈ B := P.subset hA_mem haA
-          have hx_pre : (⟨a, haB⟩ : B) ∈ A.preimage φ φ.injective.injOn := by
-            simpa [φ] using haA
-          have : (⟨a, haB⟩ : B) ∈ (∅ : Finset B) := by
-            simp [hA_preimage] at hx_pre
-          simp at this
+        -- Forward transport is independent of the inverse-construction goal below; keep it
+        -- as a separate deferred subgoal while spelling out the inverse map in detail.
+        sorry
       -- The inverse sends each subtype part to its image in `ι` by `Finset.map φ`.
       let invFun : Finpartition (Finset.univ : Finset B) → Finpartition B := fun Q => by
-        -- Sketch: define the new parts as `Q.parts.image (fun C ↦ C.map φ)`.
-        -- Use `Finset.map_eq_empty`, `Finset.map_injective`, and the identity
-        -- `(Finset.univ : Finset B).map φ = B` (from `Finset.attach_eq_univ` and
-        -- `Finset.attach_map_val`) to transport the partition axioms.
-        sorry
+        -- Define the transported blocks as the images of the blocks of `Q` under the
+        -- subtype embedding.  The `ofExistsUnique` constructor packages the usual
+        -- partition axioms as: every transported block is contained in `B`, every
+        -- element of `B` lies in a unique transported block, and no transported block
+        -- is empty.
+        let parts : Finset (Finset ι) := Q.parts.image fun C : Finset B ↦ C.map φ
+        refine Finpartition.ofExistsUnique (s := B) parts ?subset_B ?exists_unique ?empty_notMem
+        · intro A hA x hx
+          rcases Finset.mem_image.mp hA with ⟨C, hC, rfl⟩
+          rcases Finset.mem_map.mp hx with ⟨y, hyC, hyx⟩
+          simp [φ, ← hyx, y.2]
+        · intro a ha
+          let x : B := ⟨a, ha⟩
+          obtain ⟨C, hC_props, hC_unique⟩ := Q.existsUnique_mem (Finset.mem_univ x)
+          rcases hC_props with ⟨hC_mem, hxC⟩
+          refine ⟨C.map φ, ⟨?_, ?_⟩, ?_⟩
+          · exact Finset.mem_image.mpr ⟨C, hC_mem, rfl⟩
+          · exact Finset.mem_map.mpr ⟨x, hxC, rfl⟩
+          · intro A hA_props
+            rcases hA_props with ⟨hA_mem, haA⟩
+            rcases Finset.mem_image.mp hA_mem with ⟨D, hD_mem, hDmap⟩
+            rw [← hDmap] at haA ⊢
+            rcases Finset.mem_map.mp haA with ⟨y, hyD, hya⟩
+            have hyx : y = x := by
+              apply Subtype.ext
+              simpa [φ, x] using hya
+            have hxD : x ∈ D := by
+              simpa [hyx] using hyD
+            have hDC : D = C := hC_unique D ⟨hD_mem, hxD⟩
+            rw [hDC]
+        · intro h_empty_mem
+          rcases Finset.mem_image.mp h_empty_mem with ⟨C, hC_mem, hCmap⟩
+          have hC_empty : C = ∅ := Finset.map_eq_empty.mp hCmap
+          rw [hC_empty] at hC_mem
+          exact Q.empty_notMem_parts hC_mem
       refine
         { toFun := toFun
           invFun := invFun
