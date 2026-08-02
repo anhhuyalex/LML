@@ -103,9 +103,38 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
       -- `toFun` sends each part `A ⊆ B` to its subtype preimage
       -- `{x : B | x.1 ∈ A}`, giving a partition of `Finset.univ : Finset B`.
       let toFun : Finpartition B → Finpartition (Finset.univ : Finset B) := fun P => by
-        -- Forward transport is independent of the inverse-construction goal below; keep it
-        -- as a separate deferred subgoal while spelling out the inverse map in detail.
-        sorry
+        -- Define the new parts as the subtype preimages of the old parts.
+        let parts : Finset (Finset B) :=
+          P.parts.image fun A : Finset ι ↦ A.preimage φ φ.injective.injOn
+        refine Finpartition.ofExistsUnique (s := (Finset.univ : Finset B)) parts ?subset_univ
+          ?exists_unique ?empty_notMem
+        · intro C hC x hx
+          exact Finset.mem_univ x
+        · intro x hx
+          -- `x : B` lies over an element `x.1 ∈ B`; because `P` covers `B`, `x.1`
+          -- lies in a unique block `A` of `P`.  The corresponding subtype block is
+          -- `A.preimage φ _`, and uniqueness is transported back by membership of `x.1`.
+          obtain ⟨A, hA_props, hA_unique⟩ := P.existsUnique_mem x.2
+          rcases hA_props with ⟨hA_mem, hxA⟩
+          refine ⟨A.preimage φ φ.injective.injOn, ⟨?_, ?_⟩, ?_⟩
+          · exact Finset.mem_image.mpr ⟨A, hA_mem, rfl⟩
+          · simpa [φ] using hxA
+          · intro C hC_props
+            rcases hC_props with ⟨hC_mem, hxC⟩
+            rcases Finset.mem_image.mp hC_mem with ⟨A', hA'_mem, rfl⟩
+            have hxA' : x.1 ∈ A' := by
+              simpa [φ] using hxC
+            have hAA' : A' = A := hA_unique A' ⟨hA'_mem, hxA'⟩
+            simpa [hAA']
+        · intro h_empty_mem
+          rcases Finset.mem_image.mp h_empty_mem with ⟨A, hA_mem, hA_preimage⟩
+          obtain ⟨a, haA⟩ := P.nonempty_of_mem_parts hA_mem
+          have haB : a ∈ B := P.subset hA_mem haA
+          have hx_pre : (⟨a, haB⟩ : B) ∈ A.preimage φ φ.injective.injOn := by
+            simpa [φ] using haA
+          have : (⟨a, haB⟩ : B) ∈ (∅ : Finset B) := by
+            simpa [hA_preimage] using hx_pre
+          simpa using this
       -- The inverse sends each subtype part to its image in `ι` by `Finset.map φ`.
       let invFun : Finpartition (Finset.univ : Finset B) → Finpartition B := fun Q => by
         -- Define the transported blocks as the images of the blocks of `Q` under the
@@ -114,7 +143,7 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
         -- element of `B` lies in a unique transported block, and no transported block
         -- is empty.
         let parts : Finset (Finset ι) := Q.parts.image fun C : Finset B ↦ C.map φ
-        refine Finpartition.ofExistsUnique (s := B) parts ?subset_B ?exists_unique ?empty_notMem
+        refine Finpartition.ofExistsUnique (s := B) parts ?subset_B ?_ ?_
         · intro A hA x hx
           rcases Finset.mem_image.mp hA with ⟨C, hC, rfl⟩
           rcases Finset.mem_map.mp hx with ⟨y, hyC, hyx⟩
