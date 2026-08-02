@@ -326,7 +326,7 @@ lemma stepsUntil_eq_leastGE (a : 𝓐) (hm : m ≠ 0) :
   swap; · simp_rw [h_iff]; simp [h_exists]
   rw [if_pos h_exists, dif_pos]
   swap; · rwa [h_iff]
-  norm_cast
+  simp only [ENat.some_eq_natCast, Nat.cast_inj]
   rw [Nat.find_eq_iff]
   constructor
   · apply le_antisymm

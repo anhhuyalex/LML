@@ -17,7 +17,7 @@ rev = "main"
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "abb22825db7e020c94f38a007ae3fffe6c3a7532"
+rev = "1f8806b67d6f09e6d2552c031e6d3a3171016116"
 
 [[require]]
 name = "checkdecls"
