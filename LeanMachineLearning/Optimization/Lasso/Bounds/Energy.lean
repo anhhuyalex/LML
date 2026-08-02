@@ -486,6 +486,8 @@ complementarity defect terms analyzed in Eq. (4.14). These defect terms are unif
 bounded by `C * [ 1/log(1/ε) * (1 + (z↑)') + (z↓)' ]` as established by the global bound
 in `positive_delta_differential_inequality`.
 -/
+-- `hdual` documents the dual-regularity assumption on `w`; the proof only needs the
+-- pointwise selection `hdual_selected`, so the linter flags it as unused.
 lemma energy_complementarity_bound
     (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι)
@@ -495,7 +497,6 @@ lemma energy_complementarity_bound
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
     (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (w : ℝ → EuclideanSpace ℝ ι)
-    (hdual : ParametricLCPDualRegular M Mdagger r lambda w)
     (hdual_selected : ∀ μ, 0 ≤ μ →
       isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
@@ -698,6 +699,9 @@ replaced by a direct call to `pos_delta_bound_3_of_monotone` with `h_mono`. Cita
 `docs/Lasso.md`, Sec. 4.6, Eq. (4.14) and Eq. (789), and Sec. 3.1/4.7 for the monotone
 specialization.
 -/
+-- `hdual` documents the dual-regularity assumption on `w`; the proof only needs the
+-- pointwise selection `hdual_selected`, so the linter flags it as unused.
+@[nolint unusedArguments]
 lemma energy_complementarity_bound_of_monotone
     (M Mdagger : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι)
@@ -935,7 +939,7 @@ theorem positive_energy_differential_inequality
             1 / Real.log (1 / ε) * (1 + deriv (positiveZUpward x_lasso) τ) +
             deriv (positiveZDownward x_lasso) τ) + δ := by
   obtain ⟨C, hC_pos, hC_ge, h_bound⟩ := energy_complementarity_bound M Mdagger r lambda β u
-    hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_local_affine
+    hdata hβ hu x_lasso hx_lasso w hdual_selected h_regular h_lipschitz h_local_affine
   use C, hC_pos
   intro s hs δ hδ
   filter_upwards [h_bound s hs δ hδ] with ε hε
