@@ -68,7 +68,116 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
     Finpartition.cumulantTransform f B =
       Finpartition.cumulantTransform
         (fun s : Finset B ↦ f (s.map (Function.Embedding.subtype _))) Finset.univ := by
-  sorry
+  -- If B is empty, both sides are 0 by the convention in cumulantTransform
+  by_cases hB : B = ∅
+  · simp [Finpartition.cumulantTransform, hB]
+  · have hB_ne : B ≠ ∅ := hB
+    -- Expand both sides using the nonempty case of cumulantTransform
+    have hU : (Finset.univ : Finset B) ≠ ∅ := by
+      intro h
+      exact hB_ne (Finset.attach_eq_empty_iff.mp ((Finset.univ_eq_attach B).symm.trans h))
+    simp only [Finpartition.cumulantTransform, if_neg hB_ne, if_neg hU]
+    -- Goal: ∑ P : Finpartition B, c(P) * ∏ f =
+    --       ∑ Q : Finpartition (Finset.univ : Finset B), c(Q) * ∏ g
+    -- where g(s) = f(s.map (Function.Embedding.subtype (· ∈ B))).
+    --
+    -- Proof strategy: There is a natural bijection between Finpartition B (partitions of B
+    -- as a Finset ι) and Finpartition (Finset.univ : Finset B) (partitions of the full subtype).
+    -- The bijection sends each part C (a subset of B) to its preimage under the subtype embedding
+    -- φ : {x // x ∈ B} ↪ ι, and conversely maps each part D (a subset of the subtype) to D.map φ.
+    -- This bijection preserves:
+    --   1. The number of parts (so cumulantCoefficient matches)
+    --   2. The block products (since D.map φ maps back via f to f of the original part)
+    -- The result then follows from Fintype.sum_bijective or Finset.sum_bij.
+    let φ : B ↪ ι := Function.Embedding.subtype (fun x : ι ↦ x ∈ B)
+    -- Step 1: construct the canonical equivalence between the two partition types.
+    -- Forward direction: a partition `Q` of the subtype is sent to the partition of `B`
+    -- whose parts are the images `C.map φ`.  The inverse sends a part `A ⊆ B` to its
+    -- subtype/preimage `{x : B | x.1 ∈ A}`.  Injectivity of the subtype embedding proves
+    -- disjointness and the two inverse laws; the identity `Finset.univ.map φ = B` proves
+    -- that the transported parts cover `B`.
+    have partitionEquiv :
+        Finpartition B ≃ Finpartition (Finset.univ : Finset B) := by
+      classical
+      -- Transport partitions partwise across the subtype embedding `φ : B ↪ ι`.
+      -- `toFun` sends each part `A ⊆ B` to its subtype preimage
+      -- `{x : B | x.1 ∈ A}`, giving a partition of `Finset.univ : Finset B`.
+      let toFun : Finpartition B → Finpartition (Finset.univ : Finset B) := fun P => by
+        -- Define the new parts as the subtype preimages of the old parts.
+        let parts : Finset (Finset B) :=
+          P.parts.image fun A : Finset ι ↦ A.preimage φ φ.injective.injOn
+        refine Finpartition.ofExistsUnique (s := (Finset.univ : Finset B)) parts ?subset_univ
+          ?exists_unique ?empty_notMem
+        · intro C hC x hx
+          exact Finset.mem_univ x
+        · intro x hx
+          -- `x : B` lies over an element `x.1 ∈ B`; because `P` covers `B`, `x.1`
+          -- lies in a unique block `A` of `P`.  The corresponding subtype block is
+          -- `A.preimage φ _`, and uniqueness is transported back by membership of `x.1`.
+          obtain ⟨A, hA_props, hA_unique⟩ := P.existsUnique_mem x.2
+          rcases hA_props with ⟨hA_mem, hxA⟩
+          refine ⟨A.preimage φ φ.injective.injOn, ⟨?_, ?_⟩, ?_⟩
+          · exact Finset.mem_image.mpr ⟨A, hA_mem, rfl⟩
+          · simpa [φ] using hxA
+          · intro C hC_props
+            rcases hC_props with ⟨hC_mem, hxC⟩
+            rcases Finset.mem_image.mp hC_mem with ⟨A', hA'_mem, rfl⟩
+            have hxA' : x.1 ∈ A' := by
+              simpa [φ] using hxC
+            have hAA' : A' = A := hA_unique A' ⟨hA'_mem, hxA'⟩
+            subst hAA'
+            rfl
+        · intro h_empty_mem
+          rcases Finset.mem_image.mp h_empty_mem with ⟨A, hA_mem, hA_preimage⟩
+          obtain ⟨a, haA⟩ := P.nonempty_of_mem_parts hA_mem
+          have haB : a ∈ B := P.subset hA_mem haA
+          have hx_pre : (⟨a, haB⟩ : B) ∈ A.preimage φ φ.injective.injOn := by
+            simpa [φ] using haA
+          have : (⟨a, haB⟩ : B) ∈ (∅ : Finset B) := by
+            simp [hA_preimage] at hx_pre
+          simp at this
+      -- The inverse sends each subtype part to its image in `ι` by `Finset.map φ`.
+      let invFun : Finpartition (Finset.univ : Finset B) → Finpartition B := fun Q => by
+        -- Sketch: define the new parts as `Q.parts.image (fun C ↦ C.map φ)`.
+        -- Use `Finset.map_eq_empty`, `Finset.map_injective`, and the identity
+        -- `(Finset.univ : Finset B).map φ = B` (from `Finset.attach_eq_univ` and
+        -- `Finset.attach_map_val`) to transport the partition axioms.
+        sorry
+      refine
+        { toFun := toFun
+          invFun := invFun
+          left_inv := ?_
+          right_inv := ?_ }
+      · intro P
+        -- The partwise round-trip is `A ↦ (A.preimage φ _).map φ = A` for every
+        -- part `A` of `P`, using that partition parts of `B` are subsets of `B`.
+        -- Extensionality for `Finpartition` then gives the equality of partitions.
+        sorry
+      · intro Q
+        -- The other round-trip is the standard `Finset.preimage_map φ` on every
+        -- subtype part, again followed by extensionality for `Finpartition`.
+        sorry
+    -- Step 2: this equivalence preserves the summand in the cumulant sum.  More precisely,
+    -- it preserves the number of parts, hence `cumulantCoefficient`, and it transports the
+    -- block product by the identity
+    --   `∏ A ∈ P.parts, f A = ∏ C ∈ (partitionEquiv P).parts, f (C.map φ)`.
+    -- In Lean this is proved by `Finset.card_map` for the coefficient and `Finset.prod_map`
+    -- (or `Finset.prod_bij`) for the block products.
+    have summand_transport :
+        ∀ P : Finpartition B,
+          P.cumulantCoefficient * P.blockProduct f =
+            (partitionEquiv P).cumulantCoefficient *
+              (partitionEquiv P).blockProduct (fun s : Finset B ↦ f (s.map φ)) := by
+      sorry
+    -- Step 3: reindex the finite sum over partitions using `partitionEquiv`.  This is the
+    -- `Equiv.sum_comp`/`Fintype.sum_bijective` step: after replacing every summand by the
+    -- transported summand from Step 2, the two sums are the same finite sum under a bijection.
+    have h_reindex :
+        (∑ P : Finpartition B, P.cumulantCoefficient * P.blockProduct f) =
+          ∑ Q : Finpartition (Finset.univ : Finset B),
+            Q.cumulantCoefficient * Q.blockProduct (fun s : Finset B ↦ f (s.map φ)) := by
+      sorry
+    simpa [φ] using h_reindex
 
 /-- The block moment of a family `X` on a subset of `B` equals the block moment of the
 restricted family `X|_B`.
