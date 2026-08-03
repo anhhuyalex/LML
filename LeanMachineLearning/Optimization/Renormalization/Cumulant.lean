@@ -221,7 +221,7 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
   · simp [Finpartition.cumulantTransform, hB]
   · -- Expand both sides using the nonempty case of cumulantTransform
     simp only [Finpartition.cumulantTransform, if_neg hB,
-      if_neg (by simpa [Finset.univ_eq_attach] using hB)]
+      if_neg (show (Finset.univ : Finset B) ≠ ∅ by simpa [Finset.univ_eq_attach] using hB)]
     -- Reindex the cumulant sum along the subtype equivalence.  `finpartition_subtypeEquiv_summand`
     -- shows every summand is transported unchanged, and `Equiv.sum_comp` rewrites the transported
     -- sum back to the sum over partitions of the full subtype.
@@ -236,13 +236,21 @@ subtype `B`. -/
 lemma blockMoment_subtype (X : ι → Ω → ℝ) (B : Finset ι) (s : Finset B) :
     blockMoment μ X (s.map (Function.Embedding.subtype (· ∈ B))) =
       blockMoment μ (fun i : B ↦ X i.1) s := by
-  simp [blockMoment]
+  -- Both sides are integrals over `ω` of a pointwise product, so compare the integrands.
+  dsimp [blockMoment]
+  congr 1
+  ext ω
+  -- A product over the mapped block reindexes to `s` by `Finset.prod_map`.
+  exact Finset.prod_map s (Function.Embedding.subtype (· ∈ B)) (fun i : ι ↦ X i ω)
 
 theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (B : Finset ι) :
     blockCumulant μ X B = jointCumulant μ (fun i : B ↦ X i.1) := by
-  rw [blockCumulant, jointCumulant, blockCumulant, cumulantTransform_subtype B]
-  simp [blockMoment_subtype]
+  dsimp [blockCumulant, jointCumulant]
+  rw [cumulantTransform_subtype B]
+  congr 1
+  ext s
+  rw [blockMoment_subtype]
 
 /-- A joint moment is the block moment on the universal set.
 

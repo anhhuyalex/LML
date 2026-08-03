@@ -98,10 +98,6 @@ def Pairing.blockProduct [CommMonoid R] {s : Finset α} (P : Pairing s)
 noncomputable def pairingSum [CommSemiring R] (f : Finset α → R) (s : Finset α) : R :=
   ∑ P : Pairing s, P.blockProduct f
 
--- The recursive decomposition of `pairingSum` (`pairingSum_erase_aux` and
--- `pairingSum_erase`) is defined after `Pairing.insertPair_parts` below, since the proof
--- needs `Pairing.insertPair` and `Pairing.existsUnique_partner`.
-
 /-- Every pairing has half as many blocks as elements.
 
 Informal proof: sum the cardinalities of the blocks using `Finpartition.sum_card_parts` and replace
@@ -142,18 +138,14 @@ theorem Pairing.existsUnique_partner {s : Finset α} (P : Pairing s) {a : α} (h
   have ha_in : a ∈ P.1.part a := P.1.mem_part ha
   set t := P.1.part a \ {a} with ht
   have ht_card : t.card = 1 := by
-    rw [ht]
-    rw [Finset.card_sdiff_of_subset (Finset.singleton_subset_iff.2 ha_in)]
+    rw [ht, Finset.card_sdiff_of_subset (Finset.singleton_subset_iff.2 ha_in)]
     simp [h_card]
   obtain ⟨b, hb_eq⟩ := Finset.card_eq_one.1 ht_card
-  have hb_in : b ∈ P.1.part a := by
-    have hbt : b ∈ t := by rw [hb_eq]; simp
-    exact (Finset.mem_sdiff.1 hbt).1
+  have hbt : b ∈ t := by rw [hb_eq]; simp
+  have hb_in : b ∈ P.1.part a := (Finset.mem_sdiff.1 hbt).1
   have hb_ne : b ≠ a := by
-    have hbt : b ∈ t := by rw [hb_eq]; simp
     intro h
-    have : b ∈ ({a} : Finset α) := by rw [h]; simp
-    exact (Finset.mem_sdiff.1 hbt).2 this
+    exact (Finset.mem_sdiff.1 hbt).2 (by rw [h]; simp)
   use b
   have h_card_ab : ({a, b} : Finset α).card = 2 := by
     rw [Finset.card_insert_of_notMem (by simpa using hb_ne.symm)]
@@ -162,8 +154,7 @@ theorem Pairing.existsUnique_partner {s : Finset α} (P : Pairing s) {a : α} (h
     apply Finset.eq_of_subset_of_card_le
     · intro x hx
       by_cases h : x = a
-      · rw [h]
-        simp
+      · simp [h]
       · have hx_t : x ∈ t := by
           rw [ht]
           exact Finset.mem_sdiff.2 ⟨hx, by simpa using h⟩
@@ -173,16 +164,11 @@ theorem Pairing.existsUnique_partner {s : Finset α} (P : Pairing s) {a : α} (h
   constructor
   · exact ⟨P.1.subset h_mem hb_in, hb_ne, h_eq_ab⟩
   · intro c hc
-    rcases hc with ⟨hc_s, hc_ne, hc_eq⟩
-    have hc_in : c ∈ P.1.part a := by
-      rw [hc_eq]
-      simp
+    rcases hc with ⟨_, hc_ne, hc_eq⟩
     have : c ∈ t := by
       rw [ht]
-      exact Finset.mem_sdiff.2 ⟨hc_in, by simpa using hc_ne⟩
-    rw [hb_eq] at this
-    rw [Finset.mem_singleton] at this
-    exact this
+      exact Finset.mem_sdiff.2 ⟨by rw [hc_eq]; simp, by simpa using hc_ne⟩
+    rwa [hb_eq, Finset.mem_singleton] at this
 
 /-- Add a fresh two-element block to a pairing.
 
@@ -193,14 +179,12 @@ def Pairing.insertPair {s : Finset α} (P : Pairing s) {a b : α} (hab : a ≠ b
   have h_disj : Disjoint s {a, b} := by
     simp [Finset.disjoint_iff_inter_eq_empty, ha, hb]
   have h_sup : s ∪ {a, b} = insert a (insert b s) := by
-    ext x
     simp
   refine ⟨P.1.extend (show ({a, b} : Finset α) ≠ ∅ by simp) h_disj h_sup, ?_⟩
   intro B hB
-  rw [Finpartition.extend_parts] at hB
-  simp only [Finset.mem_insert] at hB
+  simp only [Finpartition.extend_parts, Finset.mem_insert] at hB
   rcases hB with (rfl | hB)
-  · rw [Finset.card_pair hab]
+  · simp [hab]
   · exact P.2 B hB
 
 /-- The blocks of `insertPair` are the new pair together with the original blocks.
@@ -212,12 +196,221 @@ theorem Pairing.insertPair_parts {s : Finset α} (P : Pairing s) {a b : α} (hab
     (P.insertPair hab ha hb).1.parts = insert {a, b} P.1.parts := by
   simp [insertPair, Finpartition.extend_parts]
 
-/-- The order isomorphism on finite sets induced by an equivalence of element types. -/
-def _root_.Equiv.finsetOrderIso (e : α ≃ β) : Finset α ≃o Finset β where
-  toEquiv := e.finsetCongr
-  map_rel_iff' := by
-    intro s t
-    simp [Equiv.finsetCongr_apply]
+/-- Change the carrier of a pairing to an equal finset. -/
+noncomputable abbrev Pairing.copy {s t : Finset α} (P : Pairing s) (h : s = t) : Pairing t :=
+  ⟨P.1.copy h, P.2⟩
+
+/-- The data of the partner of `a` in `P`: the partner itself, its membership in `s.erase a`,
+and the identity of the block containing `a`.  Bundling these as a subtype keeps the proof data
+out of the signature of `Pairing.erasePair`, so equality of residual pairings does not require
+proof irrelevance. -/
+abbrev Pairing.PartnerData {s : Finset α} (P : Pairing s) (a : α) :=
+  {b : α // b ∈ s.erase a ∧ P.1.part a = {a, b}}
+
+/-- The residual pairing obtained by deleting the block `{a, b}` containing `a`.
+
+The argument `pd : P.PartnerData a` identifies the partner `b = pd.1` of `a` together with the
+identity of the block `P.1.part a = {a, b}`.  The parts of the result are exactly
+`P.1.parts.erase {a, pd.1}` (see `Pairing.erasePair_parts`), so all blocks remain two-element
+sets. -/
+noncomputable abbrev Pairing.erasePair {s : Finset α} {a : α} (P : Pairing s) (ha : a ∈ s)
+    (pd : P.PartnerData a) : Pairing ((s.erase a).erase pd.1) := by
+  refine ⟨Finpartition.ofExistsUnique (P.1.parts.erase {a, pd.1}) ?_ ?_ ?_, ?_⟩
+  · -- every remaining part avoids both `a` and `pd.1`, hence stays inside the residual carrier
+    intro p hp
+    rcases Finset.mem_erase.mp hp with ⟨hp_ne, hp_mem⟩
+    intro x hx
+    have hx_s : x ∈ s := P.1.subset hp_mem hx
+    have hx_ne_a : x ≠ a := by
+      intro hxa
+      subst x
+      exact hp_ne ((P.1.part_eq_of_mem hp_mem hx).symm.trans pd.2.2)
+    have hx_ne_b : x ≠ pd.1 := by
+      intro hxb
+      subst x
+      have hb_mem_part : pd.1 ∈ P.1.part a := by
+        simp [pd.2.2]
+      exact hp_ne ((P.1.eq_of_mem_parts hp_mem (P.1.part_mem.2 ha) hx hb_mem_part).trans pd.2.2)
+    exact Finset.mem_erase.mpr ⟨hx_ne_b, Finset.mem_erase.mpr ⟨hx_ne_a, hx_s⟩⟩
+  · -- every element of the residual carrier lies in exactly one remaining part
+    intro x hx
+    rcases Finset.mem_erase.mp hx with ⟨hx_ne_b, hx_sa⟩
+    rcases Finset.mem_erase.mp hx_sa with ⟨hx_ne_a, hx_s⟩
+    obtain ⟨t, ht1, ht_uniq⟩ := P.1.existsUnique_mem hx_s
+    rcases ht1 with ⟨ht_mem, ht_x⟩
+    have ht_ne : t ≠ {a, pd.1} := by
+      intro ht
+      have : x ∈ ({a, pd.1} : Finset α) := by
+        rw [← ht]
+        exact ht_x
+      rcases Finset.mem_insert.mp this with (hxa | hxb)
+      · exact hx_ne_a hxa
+      · exact hx_ne_b (Finset.mem_singleton.mp hxb)
+    refine ⟨t, ⟨Finset.mem_erase.mpr ⟨ht_ne, ht_mem⟩, ht_x⟩, ?_⟩
+    intro u hu
+    exact ht_uniq u ⟨(Finset.mem_erase.mp hu.1).2, hu.2⟩
+  · -- the empty set is not a remaining part
+    intro h
+    exact P.1.bot_notMem (Finset.mem_erase.mp h).2
+  · -- deleting a two-element block preserves the pairing property
+    intro B hB
+    exact P.2 B (Finset.mem_erase.mp hB).2
+
+@[simp]
+lemma Pairing.erasePair_parts {s : Finset α} {a : α} (P : Pairing s) (ha : a ∈ s)
+    (pd : P.PartnerData a) :
+    (P.erasePair ha pd).1.parts = P.1.parts.erase {a, pd.1} := rfl
+
+/-- Reconstruct a pairing of `s` from the partner `b` of `a` and a pairing of the residual set.
+
+This is the inverse of `Pairing.erasePair`: it inserts the fresh block `{a, b}` into `Q` using
+`Pairing.insertPair` and then changes the carrier from `insert a (insert b ((s.erase a).erase b))`
+back to `s`. -/
+noncomputable abbrev Pairing.insertErasedPair (s : Finset α) (a : α) (ha : a ∈ s)
+    (b : {b : α // b ∈ s.erase a}) (Q : Pairing ((s.erase a).erase b.1)) : Pairing s :=
+  (Q.insertPair (Finset.mem_erase.mp b.2).1.symm (by simp) (by simp)).copy (by
+    -- inserting `b` recovers `s.erase a`, and inserting `a` recovers `s`
+    rw [Finset.insert_erase b.2, Finset.insert_erase ha])
+
+@[simp]
+lemma Pairing.insertErasedPair_parts (s : Finset α) (a : α) (ha : a ∈ s)
+    (b : {b : α // b ∈ s.erase a}) (Q : Pairing ((s.erase a).erase b.1)) :
+    (insertErasedPair s a ha b Q).1.parts = insert {a, b.1} Q.1.parts := by
+  simp [insertPair_parts]
+
+/-- The block product of a reconstructed pairing factors into the new pair and the residual. -/
+lemma Pairing.blockProduct_insertErasedPair [CommMonoid R] (s : Finset α) (a : α) (ha : a ∈ s)
+    (b : {b : α // b ∈ s.erase a}) (Q : Pairing ((s.erase a).erase b.1)) (f : Finset α → R) :
+    (insertErasedPair s a ha b Q).blockProduct f = f {a, b.1} * Q.blockProduct f := by
+  -- the new block `{a, b.1}` is not among the old parts, so `Finset.prod_insert` applies
+  have hnot : {a, b.1} ∉ Q.1.parts := by
+    intro h
+    have : a ∈ (s.erase a).erase b.1 := Q.1.subset h (by simp)
+    simp at this
+  unfold Pairing.blockProduct Finpartition.blockProduct
+  rw [insertErasedPair_parts, Finset.prod_insert hnot]
+
+/-- The partner data of `a` in `P`, obtained from `Pairing.existsUnique_partner`. -/
+noncomputable def Pairing.partnerData {s : Finset α} {a : α} (P : Pairing s) (ha : a ∈ s) :
+    P.PartnerData a := by
+  refine ⟨Classical.choose (P.existsUnique_partner ha), ?_⟩
+  rcases Classical.choose_spec (P.existsUnique_partner ha) with ⟨⟨hb, hne, hpart⟩, _⟩
+  exact ⟨Finset.mem_erase.mpr ⟨hne, hb⟩, hpart⟩
+
+/-- The partner of `a` in `P`, as an element of `s.erase a` (the projection of `partnerData`). -/
+noncomputable abbrev Pairing.partner {s : Finset α} {a : α} (P : Pairing s) (ha : a ∈ s) :
+    {b : α // b ∈ s.erase a} :=
+  ⟨(P.partnerData ha).1, (P.partnerData ha).2.1⟩
+
+/-- The partner of `a` is the unique element satisfying the given partner data. -/
+lemma Pairing.partnerData_eq {s : Finset α} {a : α} (P : Pairing s) (ha : a ∈ s) {b : α}
+    (hb : b ∈ s) (hne : b ≠ a) (hpart : P.1.part a = {a, b}) :
+    P.partnerData ha = ⟨b, Finset.mem_erase.mpr ⟨hne, hb⟩, hpart⟩ := by
+  rcases Classical.choose_spec (P.existsUnique_partner ha) with ⟨_, huniq⟩
+  exact Subtype.ext (huniq b ⟨hb, hne, hpart⟩).symm
+
+/-- A pairing of `s` is determined by the partner `b` of `a` and the residual pairing.
+
+`toFun` deletes the block containing `a` (via `Pairing.erasePair`), and `invFun` reconstructs it
+(via `Pairing.insertErasedPair`).  The two maps are inverse because the block containing `a` is
+unique. -/
+noncomputable def Pairing.eraseEquiv (s : Finset α) (a : α) (ha : a ∈ s) :
+    Pairing s ≃ Σ b : {b : α // b ∈ s.erase a}, Pairing ((s.erase a).erase b) where
+  toFun P := ⟨P.partner ha, P.erasePair ha (P.partnerData ha)⟩
+  invFun x := Pairing.insertErasedPair s a ha x.1 x.2
+  left_inv P := by
+    -- deleting the block containing `a` and reinserting it recovers the original parts
+    change (Pairing.insertErasedPair s a ha
+      (⟨(P.partnerData ha).1, (P.partnerData ha).2.1⟩ : {b : α // b ∈ s.erase a})
+      (P.erasePair ha (P.partnerData ha))) = P
+    apply Subtype.ext
+    ext B
+    have hmem : {a, (P.partnerData ha).1} ∈ P.1.parts := by
+      rw [← (P.partnerData ha).2.2]
+      exact P.1.part_mem.2 ha
+    rw [insertErasedPair_parts, erasePair_parts, Finset.insert_erase hmem]
+  right_inv x := by
+    -- the partner of `a` in the reconstructed pairing is `b`, and the residual is `Q`
+    rcases x with ⟨b, Q⟩
+    have hb_ne_a : b.1 ≠ a := (Finset.mem_erase.mp b.2).1
+    have hb_mem_s : b.1 ∈ s := (Finset.mem_erase.mp b.2).2
+    have hR_part : (insertErasedPair s a ha b Q).1.part a = {a, b.1} := by
+      -- the block of `a` in the reconstructed pairing is the freshly inserted pair
+      apply Finpartition.part_eq_of_mem
+      · rw [insertErasedPair_parts]
+        simp
+      · simp
+    have hpd : (insertErasedPair s a ha b Q).partnerData ha =
+        ⟨b.1, Finset.mem_erase.mpr ⟨hb_ne_a, hb_mem_s⟩, hR_part⟩ :=
+      Pairing.partnerData_eq (insertErasedPair s a ha b Q) ha hb_mem_s hb_ne_a hR_part
+    have hQ_eq : (insertErasedPair s a ha b Q).erasePair ha
+        ⟨b.1, Finset.mem_erase.mpr ⟨hb_ne_a, hb_mem_s⟩, hR_part⟩ = Q := by
+      -- the residual parts are `(insertErasedPair ...).1.parts.erase {a, b.1}` = `Q.1.parts`
+      apply Subtype.ext
+      ext B
+      have hnot : {a, b.1} ∉ Q.1.parts := by
+        intro h
+        have : a ∈ (s.erase a).erase b.1 := Q.1.subset h (by simp)
+        simp at this
+      simp [insertPair_parts, Finset.erase_insert hnot]
+    have hb_val :
+        (⟨b.1, Finset.mem_erase.mpr ⟨hb_ne_a, hb_mem_s⟩⟩ : {x : α // x ∈ s.erase a}) = b :=
+      Subtype.ext rfl
+    -- unfold the forward map: the partner of `a` is `b.1` and the residual is `Q`
+    change (⟨(insertErasedPair s a ha b Q).partner ha,
+      (insertErasedPair s a ha b Q).erasePair ha ((insertErasedPair s a ha b Q).partnerData ha)⟩ :
+        Σ b : {b : α // b ∈ s.erase a}, Pairing ((s.erase a).erase b)) = ⟨b, Q⟩
+    apply Sigma.ext
+    · -- the partner of `a` in the reconstructed pairing is `b.1`
+      simp [Pairing.partner, hpd, hb_val]
+    · -- the residual pairing is `Q`
+      change (insertErasedPair s a ha b Q).erasePair ha
+        ((insertErasedPair s a ha b Q).partnerData ha) ≍ Q
+      rw [hpd, hQ_eq]
+
+/-- Auxiliary form of the recursive decomposition of pairings by a distinguished element.
+
+Informal proof: send a pairing `P` of `s` to the unique partner `b` of `a` in `P`
+(together with `b ∈ s.erase a`) and to the residual pairing obtained by deleting the block
+`{a, b}`.  The inverse sends a partner `b ∈ s.erase a` and a residual pairing of
+`(s.erase a).erase b` to the pairing obtained by adjoining the fresh block `{a, b}`; the
+freshness hypotheses required by `Pairing.insertPair` are immediate from membership in the erased
+set.  Under the resulting equivalence `Pairing.eraseEquiv`, `Pairing.insertErasedPair_parts`
+identifies the parts as `insert {a, b} Q.1.parts`, so the block product factors as
+`f {a, b} * Q.blockProduct f`.  Reindexing the finite sum over the equivalence and using
+`Finset.mul_sum` gives the displayed identity.
+
+This is the standard "choose the partner of a fixed vertex" recursion for perfect matchings;
+see the proof of the recurrence for perfect matchings of a complete graph at
+<https://en.wikipedia.org/wiki/Perfect_matching>. -/
+theorem pairingSum_erase_aux {R : Type*} [CommSemiring R] (f : Finset α → R)
+    (s : Finset α) {a : α} (ha : a ∈ s) :
+    pairingSum f s =
+      ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) := by
+  -- Step 1: reindex the pairing sum along the erase equivalence
+  calc
+    pairingSum f s = ∑ P : Pairing s, P.blockProduct f := rfl
+    _ = ∑ x : Σ b : {b : α // b ∈ s.erase a}, Pairing ((s.erase a).erase b),
+          ((Pairing.eraseEquiv s a ha).symm x).blockProduct f :=
+      ((Pairing.eraseEquiv s a ha).symm.sum_comp (fun P : Pairing s ↦ P.blockProduct f)).symm
+    _ = ∑ b : {b : α // b ∈ s.erase a},
+          ∑ Q : Pairing ((s.erase a).erase b), f {a, b.1} * Q.blockProduct f := by
+      -- the block product of the reconstructed pairing splits over the fresh block
+      have hsummand :
+          ∀ x : Σ b : {b : α // b ∈ s.erase a}, Pairing ((s.erase a).erase b),
+            ((Pairing.eraseEquiv s a ha).symm x).blockProduct f =
+              f {a, x.1.1} * x.2.blockProduct f := fun x =>
+        Pairing.blockProduct_insertErasedPair s a ha x.1 x.2 f
+      simp only [hsummand]
+      exact Fintype.sum_sigma
+        (fun x : Σ b : {b : α // b ∈ s.erase a}, Pairing ((s.erase a).erase b) ↦
+          f {a, x.1.1} * x.2.blockProduct f)
+    _ = ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) := by
+      -- reindex the subtype-indexed sum as a bounded sum over `s.erase a`
+      rw [Finset.sum_coe_sort (s.erase a) (fun b : α ↦ (∑ Q : Pairing ((s.erase a).erase b),
+        f {a, b} * Q.blockProduct f))]
+      -- unfold `pairingSum` on the right and factor `f {a, b}` out of each inner sum
+      simp [pairingSum, Finset.mul_sum]
 
 /-- Decompose the pairing sum by choosing the partner of a distinguished element.
 
@@ -228,9 +421,15 @@ This formalizes the recursive structure of perfect matchings. (Source: Perfect m
 theorem pairingSum_erase {R : Type*} [CommSemiring R] (f : Finset α → R)
     (s : Finset α) {a : α} (ha : a ∈ s) :
     pairingSum f s =
-      ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) := by
-  sorry
+      ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) :=
+  pairingSum_erase_aux f s ha
 
+/-- The order isomorphism on finite sets induced by an equivalence of element types. -/
+def _root_.Equiv.finsetOrderIso (e : α ≃ β) : Finset α ≃o Finset β where
+  toEquiv := e.finsetCongr
+  map_rel_iff' := by
+    intro s t
+    simp [Equiv.finsetCongr_apply]
 
 /-- Reindex a finite partition along an equivalence. -/
 def mapEquiv [DecidableEq β] (e : α ≃ β) {s : Finset α} (P : Finpartition s) :
@@ -411,6 +610,408 @@ theorem partitionTransform_bind [CommSemiring R] {s : Finset α} (P : Finpartiti
   simp_rw [blockProduct_bind, partitionTransform]
   exact Fintype.prod_sum (fun (B : P.parts) (q : Finpartition B.1) ↦ q.blockProduct f) |>.symm
 
+/-- Delete the block `B` from a partition of `s`, leaving a partition of `s \ B`.
+
+This is the inverse of `insertBlock`: the remaining parts are the original parts with `B` removed,
+and they cover exactly `s \ B` because `B` is a part. -/
+private def deleteBlock {s : Finset α} (P : Finpartition s) (B : Finset α)
+    (hB : B ∈ P.parts) : Finpartition (s \ B) := by
+  refine ofExistsUnique (P.parts.erase B) ?_ ?_ ?_
+  · -- every remaining part stays inside `s \ B`: a point of it cannot lie in `B`
+    intro C hC
+    rw [Finset.mem_erase] at hC
+    intro x hx
+    exact Finset.mem_sdiff.mpr ⟨P.subset hC.2 hx, by
+      intro hxB
+      exact hC.1 (P.eq_of_mem_parts hC.2 hB hx hxB)⟩
+  · -- each element of `s \ B` lies in the unique remaining part that contained it
+    intro x hx
+    rcases Finset.mem_sdiff.mp hx with ⟨hx_s, hx_nB⟩
+    obtain ⟨C, hC, hxC⟩ := P.existsUnique_mem hx_s
+    refine ⟨C, ⟨Finset.mem_erase.mpr ⟨?_, hC.1⟩, hC.2⟩, ?_⟩
+    · intro hC_eq
+      exact hx_nB (by simpa [hC_eq] using hC.2)
+    · -- any other remaining part containing `x` equals `C` by uniqueness in `P`
+      intro D hD
+      rcases hD with ⟨hD_mem, hxD⟩
+      exact hxC D ⟨(Finset.mem_erase.mp hD_mem).2, hxD⟩
+  · -- `∅` is not a remaining part
+    intro h
+    exact P.empty_notMem_parts (Finset.mem_erase.mp h).2
+
+/-- Insert a new block `B` into a partition of `s \ B`, giving a partition of `s`.
+
+This is the inverse of `deleteBlock`: the new part `B` is added to the parts of `Q`, and the
+resulting parts cover `s = B ∪ (s \ B)`. -/
+private def insertBlock {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
+    (hBsub : B ⊆ s) (Q : Finpartition (s \ B)) : Finpartition s := by
+  refine ofExistsUnique (insert B Q.parts) ?_ ?_ ?_
+  · -- every part (the new block or an old block) is contained in `s`
+    intro C hC
+    rcases Finset.mem_insert.mp hC with (rfl | hC)
+    · exact hBsub
+    · intro x hx
+      exact (Finset.mem_sdiff.mp (Q.subset hC hx)).1
+  · -- each element of `s` lies in the new block or in the unique old block containing it
+    intro x hx
+    by_cases hx_B : x ∈ B
+    · refine ⟨B, ⟨by simp, hx_B⟩, ?_⟩
+      intro C hC
+      rcases hC with ⟨hC_mem, hxC⟩
+      rcases Finset.mem_insert.mp hC_mem with (rfl | hC_mem)
+      · rfl
+      · exfalso
+        exact (Finset.mem_sdiff.mp (Q.subset hC_mem hxC)).2 hx_B
+    · have hx_sB : x ∈ s \ B := Finset.mem_sdiff.mpr ⟨hx, hx_B⟩
+      obtain ⟨C, hC, hxC⟩ := Q.existsUnique_mem hx_sB
+      refine ⟨C, ⟨by simp [hC.1], hC.2⟩, ?_⟩
+      intro D hD
+      rcases hD with ⟨hD_mem, hxD⟩
+      rcases Finset.mem_insert.mp hD_mem with (rfl | hD_mem)
+      · exfalso
+        exact hx_B (by simpa using hxD)
+      · exact hxC D ⟨hD_mem, hxD⟩
+  · -- `∅` is not a part: neither the new block (nonempty) nor an old part
+    intro h
+    rcases Finset.mem_insert.mp h with (hB | hbot)
+    · exact hBne hB.symm
+    · exact Q.empty_notMem_parts hbot
+
+/-- The parts of `insertBlock` are the new block together with the old parts. -/
+private lemma insertBlock_parts {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
+    (hBsub : B ⊆ s) (Q : Finpartition (s \ B)) :
+    (Q.insertBlock B hBne hBsub).parts = insert B Q.parts := rfl
+
+/-- The parts of `deleteBlock` are the original parts with `B` removed. -/
+private lemma deleteBlock_parts {s : Finset α} (P : Finpartition s) (B : Finset α)
+    (hB : B ∈ P.parts) :
+    (P.deleteBlock B hB).parts = P.parts.erase B := rfl
+
+/-- Deleting the block containing `a` and then reinserting it recovers the partition. -/
+private lemma insertBlock_deleteBlock {s : Finset α} (P : Finpartition s)
+    (a : α) (ha : a ∈ s) :
+    (P.deleteBlock (P.part a) (P.part_mem.2 ha)).insertBlock (P.part a)
+      (by exact P.ne_empty (P.part_mem.2 ha)) (P.part_subset a) = P := by
+  apply Finpartition.ext
+  ext B
+  change B ∈ insert (P.part a) (P.parts.erase (P.part a)) ↔ B ∈ P.parts
+  by_cases h : B = P.part a
+  · -- `B` is the distinguished block: present on both sides
+    simp [h]
+    exact ha
+  · -- any other part of the rebuilt partition is an original part and conversely
+    simp [h]
+
+/-- In a reinserted partition, the block containing `a` is the new block `B`. -/
+private lemma insertBlock_part_of_mem {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
+    (hBsub : B ⊆ s) (Q : Finpartition (s \ B)) (a : α) (hBa : a ∈ B) :
+    (Q.insertBlock B hBne hBsub).part a = B := by
+  apply part_eq_of_mem
+  · change B ∈ insert B Q.parts
+    simp
+  · exact hBa
+
+/-- Casting a partition along a carrier equality preserves its parts. -/
+private lemma cast_congrArg_parts (t u : Finset α) (h : t = u) (Q : Finpartition t) :
+    (cast (congrArg Finpartition h) Q).parts = Q.parts := by
+  cases h
+  rfl
+
+/-- Reinserting a block and deleting the block containing `a` recovers the original partition.
+
+The residual carriers (`s \ B` versus `s \ (insertBlock ...).part a`) differ only by the equality
+`(insertBlock ...).part a = B`, so the two residual partitions are heterogeneously equal. -/
+private lemma deleteBlock_insertBlock {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
+    (hBsub : B ⊆ s) (Q : Finpartition (s \ B)) (a : α) (ha : a ∈ s) (hBa : a ∈ B) :
+    (Q.insertBlock B hBne hBsub).deleteBlock ((Q.insertBlock B hBne hBsub).part a)
+      ((Q.insertBlock B hBne hBsub).part_mem.2 ha) ≍ Q := by
+  have hX1 : (Q.insertBlock B hBne hBsub).part a = B :=
+    insertBlock_part_of_mem B hBne hBsub Q a hBa
+  -- cast `Q` to the residual carrier and compare parts (the membership proof is not rewritten)
+  refine heq_of_eq_cast ?e ?h
+  · exact congrArg Finpartition (congrArg (fun t : Finset α => s \ t) hX1).symm
+  · apply Finpartition.ext
+    ext C
+    rw [cast_congrArg_parts (s \ B) (s \ (Q.insertBlock B hBne hBsub).part a)
+      (congrArg (fun t : Finset α => s \ t) hX1).symm]
+    simp [deleteBlock_parts, insertBlock_parts]
+    rw [hX1]
+    by_cases h : C = B
+    · -- the new block is deleted, so it is absent from the residual parts
+      simp [h]
+      intro hBQ
+      -- `B ∈ Q.parts` would force `B ⊆ s \ B`, hence `B = ∅`, contradicting nonemptiness
+      have hBempty : B = ∅ := by
+        rw [Finset.eq_empty_iff_forall_notMem]
+        intro x hx
+        exact (Finset.mem_sdiff.mp (Q.subset hBQ hx)).2 hx
+      exact hBne hBempty
+    · -- old blocks are kept exactly
+      simp [h]
+
+/-- The block product factors over the block containing `a` and the remaining blocks. -/
+private lemma blockProduct_deleteBlock [CommMonoid R] {s : Finset α} (P : Finpartition s)
+    (g : Finset α → R) (a : α) (ha : a ∈ s) :
+    P.blockProduct g = g (P.part a) * (P.deleteBlock (P.part a) (P.part_mem.2 ha)).blockProduct g := by
+  rw [blockProduct, blockProduct, deleteBlock_parts]
+  rw [← Finset.insert_erase (P.part_mem.2 ha)]
+  rw [Finset.prod_insert]
+  · simp
+  · simp
+
+/-- Add a new block `D` to a partition of `B`, giving a partition of `B ∪ D`.
+
+This is `Finpartition.extend` specialised to finsets: the carrier becomes `s` via `B ∪ D = s`. -/
+private def Finpartition.extendBlock {s B D : Finset α} (Q : Finpartition B) (hDne : D ≠ ∅)
+    (hdisj : Disjoint B D) (hsup : B ∪ D = s) : Finpartition s :=
+  Q.extend hDne hdisj hsup
+
+/-- The parts of `extendBlock` are the new block together with the old parts. -/
+private lemma Finpartition.extendBlock_parts {s B D : Finset α} (Q : Finpartition B)
+    (hDne : D ≠ ∅) (hdisj : Disjoint B D) (hsup : B ∪ D = s) :
+    (Q.extendBlock hDne hdisj hsup).parts = insert D Q.parts := rfl
+
+/-- The block product of an extended partition factors over the new block. -/
+private lemma blockProduct_extendBlock [CommMonoid R] {s B D : Finset α} (Q : Finpartition B)
+    (hDne : D ≠ ∅) (hdisj : Disjoint B D) (hsup : B ∪ D = s) (f : Finset α → R) :
+    (Q.extendBlock hDne hdisj hsup).blockProduct f = f D * Q.blockProduct f := by
+  rw [blockProduct, blockProduct, extendBlock_parts]
+  rw [Finset.prod_insert]
+  · rfl
+  · -- `D ∉ Q.parts`: `D ⊆ B` would contradict `Disjoint B D` unless `D = ∅`
+    intro hD
+    apply hDne
+    apply Finset.eq_empty_iff_forall_notMem.2
+    intro x hx
+    exact (Finset.disjoint_left.mp hdisj (Q.subset hD hx)) hx
+
+/-- Restricting a partition to `s \ D`, for a block `D`, deletes exactly that block. -/
+private lemma Finpartition.restrict_parts_of_mem {s : Finset α} (T : Finpartition s) {D : Finset α}
+    (hD : D ∈ T.parts) :
+    (T.restrict (show s \ D ⊆ s by exact Finset.sdiff_subset)).parts = T.parts.erase D := by
+  ext C
+  constructor
+  · intro hC
+    rw [restrict, Finset.mem_erase, Finset.mem_image] at hC
+    rcases hC with ⟨hC_ne, ⟨E, hE, hE_eq⟩⟩
+    by_cases hED : E = D
+    · -- `E = D` would make `E ∩ (s \ D) = ∅`, contradicting `C ≠ ∅`
+      exfalso
+      apply hC_ne
+      rw [← hE_eq, hED]
+      ext x
+      simp
+    · rw [Finset.mem_erase]
+      refine ⟨?_, ?_⟩
+      · -- `C ≠ D`, since `C = E` and `E ≠ D`
+        intro hC_D
+        apply hED
+        symm
+        -- `E ∩ (s \ D) = E`, so `C = E`
+        rw [← hE_eq]
+        apply Finset.inter_eq_left.2
+        intro x hx
+        exact Finset.mem_sdiff.mpr ⟨T.subset hE hx, by
+          intro hxD
+          have : x ∈ E ∩ D := Finset.mem_inter.mpr ⟨hx, hxD⟩
+          exact (Finset.disjoint_iff_inter_eq_empty.mp (T.disjoint hE hD hED)) ▸ (by simp at this)⟩
+      · -- `C = E ∩ (s \ D)` is the image of `E ∈ T.parts`
+        rw [← hE_eq]
+        exact hE
+  · intro hC
+    rw [Finset.mem_erase] at hC
+    rw [restrict, Finset.mem_erase]
+    refine ⟨T.ne_empty hC.2, ?_⟩
+    -- `C ∩ (s \ D) = C`, since `C` and `D` are distinct disjoint blocks
+    exact Finset.mem_image.mpr ⟨C, hC.2, by
+      apply Finset.inter_eq_left.2
+      intro x hx
+      exact Finset.mem_sdiff.mpr ⟨T.subset hC.2 hx, by
+        intro hxD
+        have : x ∈ C ∩ D := Finset.mem_inter.mpr ⟨hx, hxD⟩
+        exact (Finset.disjoint_iff_inter_eq_empty.mp (T.disjoint hC.2 hD hC.1)) ▸ (by simp at this)⟩⟩
+
+/-- Extending and then restricting back to the original block recovers the partition. -/
+private lemma restrict_extendBlock {s B D : Finset α} (Q : Finpartition B) (hDne : D ≠ ∅)
+    (hdisj : Disjoint B D) (hsup : B ∪ D = s) (hBs : B ⊆ s) :
+    ((Q.extendBlock hDne hdisj hsup).restrict (show B ⊆ s by exact hBs)) = Q := by
+  apply Finpartition.ext
+  ext C
+  change C ∈ ((insert D Q.parts).image (fun E : Finset α => E ∩ B)).erase ∅ ↔ C ∈ Q.parts
+  constructor
+  · intro hC
+    rw [Finset.mem_erase, Finset.mem_image] at hC
+    rcases hC with ⟨hC_ne, ⟨E, hE, hE_eq⟩⟩
+    rcases Finset.mem_insert.mp hE with (rfl | hE)
+    · -- `E = D`: `D ∩ B = ∅` contradicts `C ≠ ∅`
+      exfalso
+      apply hC_ne
+      rw [← hE_eq, Finset.inter_comm]
+      exact Finset.disjoint_iff_inter_eq_empty.mp hdisj
+    · -- `E ∈ Q.parts`: `E ∩ B = E`
+      rw [← hE_eq]
+      rw [Finset.inter_eq_left.2 (Q.subset hE)]
+      exact hE
+  · intro hC
+    rw [Finset.mem_erase]
+    refine ⟨Q.ne_empty hC, Finset.mem_image.mpr ⟨C, Finset.mem_insert_of_mem hC, ?_⟩⟩
+    rw [Finset.inter_eq_left.2 (Q.subset hC)]
+
+/-- The partition transform of the empty set is the empty product `1`. -/
+private lemma partitionTransform_empty [CommSemiring R] (g : Finset α → R) :
+    partitionTransform g ∅ = 1 := by
+  classical
+  have hbot : (∅ : Finset α) = ⊥ := by rfl
+  rw [hbot]
+  have hparts : (default : Finpartition (⊥ : Finset α)).parts = ∅ := by simp
+  simpa [partitionTransform, blockProduct, hparts] using
+    (Fintype.sum_unique (fun P : Finpartition (⊥ : Finset α) ↦ P.blockProduct g))
+
+/-- The partition transform of the cumulant transform decomposes by the block containing `a`.
+
+This is the induction step of the Möbius-inversion proof: a partition of `s` is determined by the
+block `B` containing `a` and the induced partition of the complement `s \ B`, so the transform on
+`s` splits into the `a`-block contribution times the transform on the complement.  Splitting off
+the full block `B = s` (whose complement transform is `1`) yields the recursion used by
+`partitionTransform_cumulantTransform_of_nonempty_mobius`. -/
+private lemma partitionTransform_cumulantTransform_rec [CommRing R] (f : Finset α → R)
+    (s : Finset α) (_hs : s ≠ ∅) (a : α) (ha : a ∈ s) :
+    partitionTransform (cumulantTransform f) s =
+      cumulantTransform f s +
+        ∑ B ∈ s.powerset.filter (fun B => a ∈ B ∧ B ≠ s),
+          cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
+  classical
+  let t : Finset (Finset α) := s.powerset.filter (fun B => a ∈ B)
+  have hstep1 :
+      partitionTransform (cumulantTransform f) s =
+        ∑ B ∈ t, cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
+    calc
+      partitionTransform (cumulantTransform f) s
+          = ∑ P : Finpartition s, P.blockProduct (cumulantTransform f) := rfl
+      _ = ∑ x ∈ t.sigma (fun B => (Finset.univ : Finset (Finpartition (s \ B)))),
+            cumulantTransform f x.1 * x.2.blockProduct (cumulantTransform f) := by
+        -- reindex along the bijection `P ↦ (P.part a, deleteBlock ...)`
+        rw [← Finset.sum_bij' (s := Finset.univ) (t := t.sigma (fun B => Finset.univ))
+          (i := fun P _ => ⟨P.part a, P.deleteBlock (P.part a) (P.part_mem.2 ha)⟩)
+          (j := fun x hx => x.2.insertBlock x.1
+            (Finset.nonempty_iff_ne_empty.1 ⟨a, (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2⟩)
+            (Finset.mem_powerset.mp (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).1))]
+        · -- membership of the forward image in the sigma finset
+          intro P hP
+          exact Finset.mem_sigma.mpr ⟨Finset.mem_filter.mpr
+            ⟨Finset.mem_powerset.mpr (P.part_subset a), P.mem_part ha⟩, Finset.mem_univ _⟩
+        · -- membership of the backward image in the partition finset
+          intro x hx
+          exact Finset.mem_univ _
+        · -- deleting then reinserting the block containing `a` recovers `P`
+          intro P hP
+          exact insertBlock_deleteBlock P a ha
+        · -- inserting then deleting recovers `⟨B, Q⟩`
+          intro x hx
+          rcases x with ⟨B, Q⟩
+          have hBne : B ≠ ∅ := Finset.nonempty_iff_ne_empty.1
+            ⟨a, (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2⟩
+          have hBsub : B ⊆ s := Finset.mem_powerset.mp (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).1
+          have hBa : a ∈ B := (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2
+          apply Sigma.ext
+          · exact insertBlock_part_of_mem B hBne hBsub Q a hBa
+          · -- the residual partition after deleting the new block is `Q`
+            exact deleteBlock_insertBlock B hBne hBsub Q a (hBsub hBa) hBa
+        · -- the block products match: `P.blockProduct = K f (P.part a) * residual product`
+          intro P hP
+          exact blockProduct_deleteBlock P (cumulantTransform f) a ha
+      _ = ∑ B ∈ t, cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
+        -- convert the sigma sum over `B ∈ t` into the double sum
+        rw [Finset.sum_sigma]
+        apply Finset.sum_congr rfl
+        intro B hB
+        simp [partitionTransform, Finset.mul_sum]
+  -- Step 2: split off the `B = s` summand, whose complement transform is `1`
+  have hs_mem : s ∈ t := by
+    simp [t, ha]
+  calc
+    partitionTransform (cumulantTransform f) s
+        = ∑ B ∈ t, cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := hstep1
+    _ = cumulantTransform f s + ∑ B ∈ t.erase s,
+          cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
+      -- `t = insert s (t.erase s)`, and the `B = s` summand is `K f s * S ∅ = K f s`
+      nth_rw 1 [← Finset.insert_erase hs_mem]
+      rw [Finset.sum_insert (Finset.notMem_erase _ _)]
+      congr 1
+      simp [partitionTransform_empty]
+    _ = cumulantTransform f s +
+          ∑ B ∈ s.powerset.filter (fun B => a ∈ B ∧ B ≠ s),
+            cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
+      congr 1
+      -- `t.erase s` is exactly the filter with the extra condition `B ≠ s`
+      rw [show t.erase s = s.powerset.filter (fun B => a ∈ B ∧ B ≠ s) by
+        ext B
+        by_cases hBs : B = s
+        · simp [t, hBs, ha]
+        · simp [t, hBs]]
+
+/-- Möbius inversion kernel for the partition transform on nonempty carriers.
+
+This lemma packages the only substantial combinatorial fact needed for moment--cumulant
+inversion.  Expanding the left hand side produces a double sum over an outer partition and an
+inner partition of each outer block.  The already-proved lemma `partitionTransform_bind` is the
+formal API for this distribution/rebinding step: the choices of inner partitions glue to a single
+refinement via `Finpartition.bind`, and `blockProduct_bind` identifies the corresponding block
+products.  After regrouping by the glued partition `T`, the remaining scalar coefficient is the
+classical partition-lattice Möbius interval sum
+`∑ ρ, ∏ C ∈ ρ, (-1)^(|C|-1)(|C|-1)!`.  This sum is `1` when `T` is the one-block partition and
+`0` otherwise; equivalently, it is the signed count of permutations by their cycle-support
+partition, so for at least two cycles/elements cancellation is given by sign reversal under a
+transposition.
+
+References for the informal proof and the Möbius value: Rota, *On the foundations of
+combinatorial theory I. Theory of Möbius functions*, Z. Wahrscheinlichkeitstheorie verw. Gebiete 2
+(1964), and Stanley, *Enumerative Combinatorics I*, 2nd ed., Example 3.10.4.  The project
+blueprint records this as the partition-inversion theorem in
+`blueprint/src/chapters/renormalization.tex`, `thm:renorm:partitionInversion`. -/
+private theorem partitionTransform_cumulantTransform_of_nonempty_mobius [CommRing R]
+    (f : Finset α → R) {s : Finset α} (hs : s ≠ ∅) :
+    partitionTransform (cumulantTransform f) s = f s := by
+  classical
+  -- Step 1: unfold the outer transform.  Because every block of a `Finpartition` is nonempty
+  -- (`Finpartition.bot_notMem`), every inner `cumulantTransform f B` uses its nonempty branch.
+  -- Step 2: distribute products of inner sums over the outer blocks and glue the chosen inner
+  -- partitions with `Finpartition.bind`; the local API lemmas `partitionTransform_bind` and
+  -- `blockProduct_bind` are designed for exactly this reindexing.
+  -- Step 3: apply the classical Möbius cancellation on the interval above each glued partition.
+  -- Only the indiscrete partition of the nonempty set `s` survives, and its block product is `f s`.
+  sorry
+
+/-- Nonempty-set part of moment-cumulant inversion for finite partitions.
+
+Informal proof: for `s ≠ ∅`, expand `partitionTransform (cumulantTransform f) s`.  Since every
+block of a `Finpartition` is nonempty (`Finpartition.bot_notMem`), every occurrence of
+`cumulantTransform f B` unfolds to the signed sum defining the Möbius transform.  Distributing the
+product of these sums over the blocks of an outer partition and using `Finpartition.bind` identifies
+such data with a refinement of the outer partition.  Regrouping by the resulting bound partition
+leaves, for each partition `T`, the standard interval Möbius sum in the partition lattice.  The
+coefficient `(-1)^(k-1)(k-1)!` is the classical Möbius value of the interval from a `k`-block
+partition to the indiscrete partition; hence all partitions cancel except the indiscrete partition,
+whose remaining block product is `f s`.
+
+References: Rota, *On the foundations of combinatorial theory I. Theory of Möbius functions*,
+Z. Wahrscheinlichkeitstheorie verw. Gebiete 2 (1964), and Stanley, *Enumerative Combinatorics I*,
+Prop. 3.10.1 for the Möbius value of the partition lattice. -/
+theorem partitionTransform_cumulantTransform_of_nonempty [CommRing R] (f : Finset α → R)
+    {s : Finset α} (hs : s ≠ ∅) :
+    partitionTransform (cumulantTransform f) s = f s := by
+  exact partitionTransform_cumulantTransform_of_nonempty_mobius f hs
+
+-- The empty carrier is a self-contained edge case: the only partition is the empty one, whose
+-- block product is the empty product `1`, equal to `f ∅` by the normalization hypothesis `hf`.
+-- Used as the `s = ∅` branch of `partitionTransform_cumulantTransform`.
+private lemma partitionTransform_cumulantTransform_empty [CommRing R] (f : Finset α → R)
+    (hf : f ∅ = 1) :
+    partitionTransform (cumulantTransform f) ⊥ = f ⊥ := by
+  have hparts : (default : Finpartition (⊥ : Finset α)).parts = ∅ := by simp
+  simpa [partitionTransform, blockProduct, hf, hparts] using Fintype.sum_unique
+    (fun P : Finpartition (⊥ : Finset α) ↦ P.blockProduct (cumulantTransform f))
+
 /-- The partition transform inverts the cumulant transform for functions normalized at the empty
 set.
 
@@ -423,7 +1024,12 @@ https://link.springer.com/article/10.1007/BF01899123) -/
 theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
     (hf : f ∅ = 1) :
     partitionTransform (cumulantTransform f) = f := by
-  sorry
+  funext s
+  rcases eq_or_ne s ∅ with rfl | hs
+  · -- empty carrier: both transforms collapse to the single empty product, equal to `f ∅ = 1`
+    exact partitionTransform_cumulantTransform_empty f hf
+  · -- nonempty carrier: deferred to the Möbius-inversion identity for nonempty sets
+    exact partitionTransform_cumulantTransform_of_nonempty f hs
 
 /-- The cumulant transform inverts the partition transform for functions vanishing at the empty
 set.

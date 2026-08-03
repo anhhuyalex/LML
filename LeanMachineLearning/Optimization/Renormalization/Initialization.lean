@@ -169,14 +169,13 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
     unfold μ₀ gaussianWeightLaw
     rw [← Measure.infinitePi_eq_pi (μ := fun _ : κ × ι => G)]
     rw [Measure.infinitePi_map_curry (μ := fun (_ : κ) (_ : ι) => G)]
-    rw [Measure.infinitePi_eq_pi (μ := fun _ : κ => infinitePi fun _ : ι => G)]
+    rw [Measure.infinitePi_eq_pi (μ := fun _ : κ => Measure.infinitePi fun _ : ι => G)]
     congr 1
     funext j
     rw [Measure.infinitePi_eq_pi (μ := fun _ : ι => G)]
   let e : (κ × ι → ℝ) ≃ᵐ (κ → ι → ℝ) := MeasurableEquiv.curry κ ι ℝ
-  have hCurrySymm : gaussianWeightLaw p ι κ = μ₀.map e.symm := by
-    rw [hCurry]
-    exact (MeasurableEquiv.map_apply_eq_iff_map_symm_apply_eq (e := e) (μ := μ₀)).mpr hCurry |>.symm
+  have hCurrySymm : (gaussianWeightLaw p ι κ).map e.symm = μ₀ := by
+    rw [← hCurry, MeasurableEquiv.map_symm_map e]
   have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
     unfold gaussianWeightLaw
     infer_instance
@@ -189,8 +188,9 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
       (gaussianWeightLaw p ι κ) :=
     (ProbabilityTheory.iIndepFun_map_iff (μ := gaussianWeightLaw p ι κ) (f := e.symm)
       e.symm.measurable.aemeasurable hX₀).mp (by simpa [hCurrySymm] using hFlat)
-  have hW : iIndepFun (fun ji (w : κ → ι → ℝ) => w ji.1 ji.2) (gaussianWeightLaw p ι κ) := by
-    simpa [e, MeasurableEquiv.coe_curry_symm, Function.comp_def] using hPull
+  have hW : iIndepFun (fun ji : κ × ι => fun w : κ → ι → ℝ => w ji.1 ji.2)
+      (gaussianWeightLaw p ι κ) := by
+    simpa [e, MeasurableEquiv.coe_curry_symm, Function.comp_def, Function.uncurry] using hPull
   -- 2. Pull back through `Prod.fst` from the outer product law.
   let f : LayerParams ι κ → κ → ι → ℝ := Prod.fst
   have hf : AEMeasurable f (layerGaussianInit p ι κ) := measurable_fst.aemeasurable
@@ -208,7 +208,7 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
   have hX : ∀ ji, AEMeasurable (X ji) (Measure.map f (layerGaussianInit p ι κ)) := by
     intro ji
     rw [hmap]
-    exact ((measurable_pi_apply ji.1).comp (measurable_pi_apply ji.2)).aemeasurable
+    exact ((measurable_pi_apply ji.2).comp (measurable_pi_apply ji.1)).aemeasurable
   have hFinal : iIndepFun (fun ji => X ji ∘ f) (layerGaussianInit p ι κ) :=
     (ProbabilityTheory.iIndepFun_map_iff hf hX).mp (by simpa [hmap, X] using hW)
   simpa [X, f, Function.comp_def] using hFinal
@@ -283,7 +283,43 @@ theorem covariance_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (�
     [Fintype ι] [Fintype κ] [DecidableEq κ] (j j' : κ) :
     cov[fun q : LayerParams ι κ => q.2 j, fun q => q.2 j'; layerGaussianInit p ι κ] =
       if j = j' then p.biasVariance else 0 := by
-  sorry
+  classical
+  by_cases hjj : j = j'
+  · subst j'
+    let X : LayerParams ι κ → ℝ := fun q => q.2 j
+    have hX : AEMeasurable X (layerGaussianInit p ι κ) :=
+      ((measurable_pi_apply j).comp measurable_snd).aemeasurable
+    have hmapX : Measure.map X (layerGaussianInit p ι κ) = gaussianReal 0 p.biasVariance :=
+      map_bias_layerGaussianInit p ι κ j
+    rw [covariance_self hX]
+    rw [← variance_id_map hX]
+    have hvar : Var[id; Measure.map X (layerGaussianInit p ι κ)] = (p.biasVariance : ℝ) := by
+      rw [hmapX]
+      exact variance_id_gaussianReal
+    rw [hvar, if_pos rfl]
+  · let X : LayerParams ι κ → ℝ := fun q => q.2 j
+    let Y : LayerParams ι κ → ℝ := fun q => q.2 j'
+    have hX : AEMeasurable X (layerGaussianInit p ι κ) :=
+      ((measurable_pi_apply j).comp measurable_snd).aemeasurable
+    have hY : AEMeasurable Y (layerGaussianInit p ι κ) :=
+      ((measurable_pi_apply j').comp measurable_snd).aemeasurable
+    have hIndep : X ⟂ᵢ[layerGaussianInit p ι κ] Y := by
+      exact (iIndepFun_bias_layerGaussianInit p ι κ).indepFun hjj
+    have hXlp : MemLp X 2 (layerGaussianInit p ι κ) := by
+      have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map X (layerGaussianInit p ι κ)) := by
+        rw [map_bias_layerGaussianInit p ι κ j]
+        exact memLp_id_gaussianReal 2
+      exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := X)
+        (by exact measurable_id.aestronglyMeasurable) hX).1 hmem
+    have hYlp : MemLp Y 2 (layerGaussianInit p ι κ) := by
+      have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map Y (layerGaussianInit p ι κ)) := by
+        rw [map_bias_layerGaussianInit p ι κ j']
+        exact memLp_id_gaussianReal 2
+      exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := Y)
+        (by exact measurable_id.aestronglyMeasurable) hY).1 hmem
+    have hXY : cov[X, Y; layerGaussianInit p ι κ] = 0 :=
+      ProbabilityTheory.IndepFun.covariance_eq_zero hIndep hXlp hYlp
+    simpa [X, Y, hjj] using hXY
 
 /-- Weight covariance is diagonal in both neuron and input coordinates.
 
@@ -295,7 +331,48 @@ theorem covariance_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) 
     (j j' : κ) (i i' : ι) :
     cov[fun q : LayerParams ι κ => q.1 j i, fun q => q.1 j' i'; layerGaussianInit p ι κ] =
       if j = j' ∧ i = i' then scaledWeightVariance p ι else 0 := by
-  sorry
+  classical
+  by_cases hjj : j = j' ∧ i = i'
+  · rcases hjj with ⟨rfl, rfl⟩
+    let X : LayerParams ι κ → ℝ := fun q => q.1 j i
+    have hX : AEMeasurable X (layerGaussianInit p ι κ) :=
+      ((measurable_pi_apply i).comp ((measurable_pi_apply j).comp measurable_fst)).aemeasurable
+    have hmapX :
+        Measure.map X (layerGaussianInit p ι κ) = gaussianReal 0 (scaledWeightVariance p ι) :=
+      map_weight_layerGaussianInit p ι κ j i
+    rw [covariance_self hX]
+    rw [← variance_id_map hX]
+    have hvar : Var[id; Measure.map X (layerGaussianInit p ι κ)] =
+        (scaledWeightVariance p ι : ℝ) := by
+      rw [hmapX]
+      exact variance_id_gaussianReal
+    rw [hvar, if_pos ⟨rfl, rfl⟩]
+  · let X : LayerParams ι κ → ℝ := fun q => q.1 j i
+    let Y : LayerParams ι κ → ℝ := fun q => q.1 j' i'
+    have hX : AEMeasurable X (layerGaussianInit p ι κ) :=
+      ((measurable_pi_apply i).comp ((measurable_pi_apply j).comp measurable_fst)).aemeasurable
+    have hY : AEMeasurable Y (layerGaussianInit p ι κ) :=
+      ((measurable_pi_apply i').comp ((measurable_pi_apply j').comp measurable_fst)).aemeasurable
+    have hji : (j, i) ≠ (j', i') := by
+      intro hprod
+      exact hjj (Prod.ext_iff.mp hprod)
+    have hIndep : X ⟂ᵢ[layerGaussianInit p ι κ] Y := by
+      exact (iIndepFun_weight_layerGaussianInit p ι κ).indepFun hji
+    have hXlp : MemLp X 2 (layerGaussianInit p ι κ) := by
+      have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map X (layerGaussianInit p ι κ)) := by
+        rw [map_weight_layerGaussianInit p ι κ j i]
+        exact memLp_id_gaussianReal 2
+      exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := X)
+        (by exact measurable_id.aestronglyMeasurable) hX).1 hmem
+    have hYlp : MemLp Y 2 (layerGaussianInit p ι κ) := by
+      have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map Y (layerGaussianInit p ι κ)) := by
+        rw [map_weight_layerGaussianInit p ι κ j' i']
+        exact memLp_id_gaussianReal 2
+      exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := Y)
+        (by exact measurable_id.aestronglyMeasurable) hY).1 hmem
+    have hXY : cov[X, Y; layerGaussianInit p ι κ] = 0 :=
+      ProbabilityTheory.IndepFun.covariance_eq_zero hIndep hXlp hYlp
+    simpa [X, Y, hjj] using hXY
 
 end NeuralNetwork
 
