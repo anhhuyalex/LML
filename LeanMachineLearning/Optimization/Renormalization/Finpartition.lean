@@ -762,12 +762,12 @@ private lemma blockProduct_deleteBlock [CommMonoid R] {s : Finset α} (P : Finpa
 /-- Add a new block `D` to a partition of `B`, giving a partition of `B ∪ D`.
 
 This is `Finpartition.extend` specialised to finsets: the carrier becomes `s` via `B ∪ D = s`. -/
-private def Finpartition.extendBlock {s B D : Finset α} (Q : Finpartition B) (hDne : D ≠ ∅)
+private def extendBlock {s B D : Finset α} (Q : Finpartition B) (hDne : D ≠ ∅)
     (hdisj : Disjoint B D) (hsup : B ∪ D = s) : Finpartition s :=
   Q.extend hDne hdisj hsup
 
 /-- The parts of `extendBlock` are the new block together with the old parts. -/
-private lemma Finpartition.extendBlock_parts {s B D : Finset α} (Q : Finpartition B)
+private lemma extendBlock_parts {s B D : Finset α} (Q : Finpartition B)
     (hDne : D ≠ ∅) (hdisj : Disjoint B D) (hsup : B ∪ D = s) :
     (Q.extendBlock hDne hdisj hsup).parts = insert D Q.parts := rfl
 
@@ -777,13 +777,23 @@ private lemma blockProduct_extendBlock [CommMonoid R] {s B D : Finset α} (Q : F
     (Q.extendBlock hDne hdisj hsup).blockProduct f = f D * Q.blockProduct f := by
   rw [blockProduct, blockProduct, extendBlock_parts]
   rw [Finset.prod_insert]
-  · rfl
   · -- `D ∉ Q.parts`: `D ⊆ B` would contradict `Disjoint B D` unless `D = ∅`
     intro hD
     apply hDne
     apply Finset.eq_empty_iff_forall_notMem.2
     intro x hx
     exact (Finset.disjoint_left.mp hdisj (Q.subset hD hx)) hx
+
+/-- Distinct blocks of a partition stay unchanged when intersected with the complement of another
+block: the blocks are disjoint, and both lie inside the carrier. -/
+private lemma inter_sdiff_self_of_mem {s : Finset α} {T : Finpartition s} {D E : Finset α}
+    (hE : E ∈ T.parts) (hD : D ∈ T.parts) (hED : E ≠ D) :
+    E ⊓ (s \ D) = E := by
+  apply Finset.inter_eq_left.2
+  intro x hx
+  exact Finset.mem_sdiff.mpr ⟨T.subset hE hx, by
+    intro hxD
+    exact (Finset.disjoint_left.mp (T.disjoint hE hD hED)) hx hxD⟩
 
 /-- Restricting a partition to `s \ D`, for a block `D`, deletes exactly that block. -/
 private lemma Finpartition.restrict_parts_of_mem {s : Finset α} (T : Finpartition s) {D : Finset α}
@@ -802,34 +812,23 @@ private lemma Finpartition.restrict_parts_of_mem {s : Finset α} (T : Finpartiti
       ext x
       simp
     · rw [Finset.mem_erase]
-      refine ⟨?_, ?_⟩
-      · -- `C ≠ D`, since `C = E` and `E ≠ D`
+      constructor
+      · -- `C ≠ D`: `C = E` and `E ≠ D`
         intro hC_D
         apply hED
-        symm
-        -- `E ∩ (s \ D) = E`, so `C = E`
-        rw [← hE_eq]
-        apply Finset.inter_eq_left.2
-        intro x hx
-        exact Finset.mem_sdiff.mpr ⟨T.subset hE hx, by
-          intro hxD
-          have : x ∈ E ∩ D := Finset.mem_inter.mpr ⟨hx, hxD⟩
-          exact (Finset.disjoint_iff_inter_eq_empty.mp (T.disjoint hE hD hED)) ▸ (by simp at this)⟩
-      · -- `C = E ∩ (s \ D)` is the image of `E ∈ T.parts`
-        rw [← hE_eq]
-        exact hE
+        have hC_E : C = E := by
+          rw [← hE_eq, inter_sdiff_self_of_mem hE hD hED]
+        exact hC_E.symm.trans hC_D
+      · -- `C = E ∩ (s \ D)` is the image of the part `E`
+        have hC_E : C = E := by
+          rw [← hE_eq, inter_sdiff_self_of_mem hE hD hED]
+        rwa [hC_E]
   · intro hC
     rw [Finset.mem_erase] at hC
     rw [restrict, Finset.mem_erase]
-    refine ⟨T.ne_empty hC.2, ?_⟩
-    -- `C ∩ (s \ D) = C`, since `C` and `D` are distinct disjoint blocks
-    exact Finset.mem_image.mpr ⟨C, hC.2, by
-      apply Finset.inter_eq_left.2
-      intro x hx
-      exact Finset.mem_sdiff.mpr ⟨T.subset hC.2 hx, by
-        intro hxD
-        have : x ∈ C ∩ D := Finset.mem_inter.mpr ⟨hx, hxD⟩
-        exact (Finset.disjoint_iff_inter_eq_empty.mp (T.disjoint hC.2 hD hC.1)) ▸ (by simp at this)⟩⟩
+    constructor
+    · exact T.ne_empty hC.2
+    · exact Finset.mem_image.mpr ⟨C, hC.2, inter_sdiff_self_of_mem hC.2 hD hC.1⟩
 
 /-- Extending and then restricting back to the original block recovers the partition. -/
 private lemma restrict_extendBlock {s B D : Finset α} (Q : Finpartition B) (hDne : D ≠ ∅)
@@ -837,25 +836,386 @@ private lemma restrict_extendBlock {s B D : Finset α} (Q : Finpartition B) (hDn
     ((Q.extendBlock hDne hdisj hsup).restrict (show B ⊆ s by exact hBs)) = Q := by
   apply Finpartition.ext
   ext C
-  change C ∈ ((insert D Q.parts).image (fun E : Finset α => E ∩ B)).erase ∅ ↔ C ∈ Q.parts
+  change C ∈ ((insert D Q.parts).image (fun E : Finset α => E ⊓ B)).erase ∅ ↔ C ∈ Q.parts
   constructor
   · intro hC
     rw [Finset.mem_erase, Finset.mem_image] at hC
     rcases hC with ⟨hC_ne, ⟨E, hE, hE_eq⟩⟩
     rcases Finset.mem_insert.mp hE with (rfl | hE)
-    · -- `E = D`: `D ∩ B = ∅` contradicts `C ≠ ∅`
+    · -- `E = D`: `E ⊓ B = ∅` contradicts `C ≠ ∅`
       exfalso
       apply hC_ne
-      rw [← hE_eq, Finset.inter_comm]
+      rw [← hE_eq, Finset.inf_eq_inter, Finset.inter_comm]
       exact Finset.disjoint_iff_inter_eq_empty.mp hdisj
-    · -- `E ∈ Q.parts`: `E ∩ B = E`
-      rw [← hE_eq]
-      rw [Finset.inter_eq_left.2 (Q.subset hE)]
+    · -- `E ∈ Q.parts`: `E ⊓ B = E`
+      rw [← hE_eq, Finset.inf_eq_inter, Finset.inter_eq_left.2 (Q.subset hE)]
       exact hE
   · intro hC
     rw [Finset.mem_erase]
     refine ⟨Q.ne_empty hC, Finset.mem_image.mpr ⟨C, Finset.mem_insert_of_mem hC, ?_⟩⟩
-    rw [Finset.inter_eq_left.2 (Q.subset hC)]
+    rw [Finset.inf_eq_inter, Finset.inter_eq_left.2 (Q.subset hC)]
+
+/-- The indiscrete partition `⊤` is the unique partition with a single block. -/
+private lemma Finpartition.eq_top_iff_card_parts_eq_one {s : Finset α} (T : Finpartition s)
+    (hs : s ≠ ∅) : T = ⊤ ↔ T.parts.card = 1 := by
+  classical
+  -- the indiscrete partition has the single block `s`
+  have hpartsT : (⊤ : Finpartition s).parts = {s} := by
+    apply Finset.eq_singleton_iff_unique_mem.2
+    constructor
+    · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
+      have hB_eq : B = s :=
+        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
+      simpa [hB_eq] using hB
+    · intro D hD
+      exact Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+  constructor
+  · intro h
+    rw [h, hpartsT]
+    simp
+  · intro hcard
+    -- a single block must be `s` itself, since the blocks cover `s`
+    apply Finpartition.ext
+    rcases Finset.card_eq_one.mp hcard with ⟨B, hB⟩
+    have hBsup : B = s := by
+      have : T.parts.biUnion id = s := T.biUnion_parts
+      rw [hB] at this
+      simpa using this
+    rw [hB, hBsup]
+    exact hpartsT.symm
+
+/-- The coefficient identity for the Möbius inversion on the partition lattice.
+
+For a partition `T` of a nonempty set `s` and a distinguished element `a ∈ s`, the signed sum
+`c T + Σ_{D ∈ T.parts, a ∉ D} c (T restricted to s \ D)` is `1` exactly when `T` is the one-block
+partition `⊤`, and `0` otherwise.  For `k = |T.parts| ≥ 2` blocks the cancellation is the
+telescoping identity `(-1)^(k-1)(k-1)! + (k-1)(-1)^(k-2)(k-2)! = 0`. -/
+private lemma cumulantCoefficient_sum_coarser [CommRing R] (s : Finset α) (a : α) (ha : a ∈ s)
+    (T : Finpartition s) :
+    cumulantCoefficient T +
+      ∑ D ∈ T.parts.filter (fun D => a ∉ D),
+        cumulantCoefficient (T.restrict (show s \ D ⊆ s by exact Finset.sdiff_subset)) =
+      if T = ⊤ then (1 : R) else 0 := by
+  classical
+  have hs : s ≠ ∅ := Finset.nonempty_iff_ne_empty.1 ⟨a, ha⟩
+  by_cases hT : T = ⊤
+  · -- `T = ⊤`: single block `s`, no block avoids `a`, and `c (⊤) = 1`
+    subst hT
+    have hparts : (⊤ : Finpartition s).parts = {s} := by
+      apply Finset.eq_singleton_iff_unique_mem.2
+      constructor
+      · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
+        have hB_eq : B = s :=
+          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
+        simpa [hB_eq] using hB
+      · intro D hD
+        exact Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+    -- the only block `s` contains `a`, so the filter over blocks avoiding `a` is empty
+    have hfilter_empty : ({s} : Finset (Finset α)).filter (fun D => a ∉ D) = ∅ := by
+      ext D
+      by_cases h : D = s <;> simp [h, ha]
+    simp [hparts, hfilter_empty, cumulantCoefficient]
+  · -- `T ≠ ⊤`: `k = |T.parts| ≥ 2` blocks, and the identity telescopes
+    have hk : 2 ≤ T.parts.card := by
+      have hne1 : T.parts.card ≠ 1 := by
+        intro h1
+        apply hT
+        exact (Finpartition.eq_top_iff_card_parts_eq_one T hs).2 h1
+      have hpos : 0 < T.parts.card :=
+        Finset.card_pos.mpr (Finpartition.parts_nonempty T hs)
+      omega
+    set k := T.parts.card with hk_def
+    -- the blocks avoiding `a` are exactly the blocks other than `T.part a`
+    have hfilter : T.parts.filter (fun D => a ∉ D) = T.parts.erase (T.part a) := by
+      ext D
+      constructor
+      · intro hD
+        rw [Finset.mem_filter] at hD
+        exact Finset.mem_erase.mpr ⟨by
+          intro h_eq
+          exact hD.2 (by rw [h_eq]; exact T.mem_part ha), hD.1⟩
+      · intro hD
+        rw [Finset.mem_erase] at hD
+        exact Finset.mem_filter.mpr ⟨hD.2, by
+          intro haD
+          exact hD.1 (T.eq_of_mem_parts hD.2 (T.part_mem.2 ha) haD (T.mem_part ha))⟩
+    -- each restricted coefficient is the constant `(-1)^(k-2)(k-2)!`
+    have hsummand : ∀ D ∈ T.parts.filter (fun D => a ∉ D),
+        cumulantCoefficient (T.restrict (show s \ D ⊆ s by exact Finset.sdiff_subset)) =
+          (-1 : R) ^ (k - 2) * Nat.factorial (k - 2) := by
+      intro D hD
+      rw [Finset.mem_filter] at hD
+      unfold cumulantCoefficient
+      have hcard : (T.restrict (show s \ D ⊆ s by exact Finset.sdiff_subset)).parts.card - 1 =
+          k - 2 := by
+        rw [Finpartition.restrict_parts_of_mem T hD.1]
+        rw [Finset.card_erase_of_mem hD.1]
+        rw [hk_def]
+        omega
+      rw [hcard]
+    have hsum :
+        ∑ D ∈ T.parts.filter (fun D => a ∉ D),
+          cumulantCoefficient (T.restrict (show s \ D ⊆ s by exact Finset.sdiff_subset)) =
+          ((k - 1 : ℕ) : R) * ((-1 : R) ^ (k - 2) * Nat.factorial (k - 2)) := by
+      rw [Finset.sum_congr rfl hsummand]
+      rw [Finset.sum_const, nsmul_eq_mul]
+      congr 1
+      rw [hfilter, Finset.card_erase_of_mem (T.part_mem.2 ha), hk_def]
+    -- the two summands cancel: `(-1)^(k-1)(k-1)! + (k-1)(-1)^(k-2)(k-2)! = 0`
+    have htest : k - 1 = (k - 2) + 1 := by
+      rw [hk_def]
+      omega
+    have hpow : (-1 : R) ^ (k - 1) = -((-1 : R) ^ (k - 2)) := by
+      rw [htest, pow_succ]
+      exact mul_neg_one ((-1 : R) ^ (k - 2))
+    have hfac : (Nat.factorial (k - 1) : R) = ((k - 1 : ℕ) : R) * Nat.factorial (k - 2) := by
+      rw [htest, Nat.factorial_succ, Nat.cast_mul, htest.symm]
+    rw [if_neg hT, hsum]
+    rw [show cumulantCoefficient T = (-1 : R) ^ (k - 1) * Nat.factorial (k - 1) by
+      unfold cumulantCoefficient
+      rfl]
+    rw [hpow, hfac]
+    -- the two summands cancel: `-p * (x * f) + x * (p * f) = 0`
+    rw [neg_mul, mul_left_comm]
+    exact neg_add_cancel (((k - 1 : ℕ) : R) * ((-1 : R) ^ (k - 2) * Nat.factorial (k - 2)))
+
+/-- The regrouping identity behind the Möbius inversion.
+
+Expanding every `cumulantTransform` in `K f s + Σ_{B ⊊ s, a ∈ B} K f B * f (s \ B)` and
+reindexing the second double sum by the glued partition `T = Q` extended with the block `s \ B`
+yields, for each partition `T` of `s`, the coefficient
+`c T + Σ_{D ∈ T.parts, a ∉ D} c (T restricted to s \ D)`, which is `1` for `T = ⊤` and `0`
+otherwise (`cumulantCoefficient_sum_coarser`).  Only the one-block partition survives. -/
+private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset α) (a : α)
+    (ha : a ∈ s) :
+    cumulantTransform f s +
+      ∑ B ∈ s.powerset.filter (fun B => a ∈ B ∧ B ≠ s),
+        cumulantTransform f B * f (s \ B) = f s := by
+  classical
+  let t : Finset (Finset α) := s.powerset.filter (fun B => a ∈ B ∧ B ≠ s)
+  have hs : s ≠ ∅ := Finset.nonempty_iff_ne_empty.1 ⟨a, ha⟩
+  have hK (u : Finset α) (hu : u ≠ ∅) :
+      cumulantTransform f u = ∑ Q : Finpartition u, cumulantCoefficient Q * Q.blockProduct f := by
+    simp [cumulantTransform, hu]
+  -- Step 1: expand both `cumulantTransform` sums (all carriers are nonempty)
+  have hstep1 :
+      cumulantTransform f s +
+        ∑ B ∈ t, cumulantTransform f B * f (s \ B) =
+        (∑ Q : Finpartition s, cumulantCoefficient Q * Q.blockProduct f) +
+          ∑ x ∈ t.sigma (fun B => (Finset.univ : Finset (Finpartition B))),
+            (cumulantCoefficient x.2 * x.2.blockProduct f) * f (s \ x.1) := by
+    rw [hK s hs]
+    rw [Finset.sum_sigma]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro B hB
+    rw [hK B (Finset.nonempty_iff_ne_empty.1 ⟨a, (Finset.mem_filter.mp hB).2.1⟩)]
+    rw [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro Q hQ
+    rfl
+  -- Step 2: reindex the second double sum by the glued partition `T = Q` extended with `s \ B`
+  have hstep2 :
+      ∑ x ∈ t.sigma (fun B => (Finset.univ : Finset (Finpartition B))),
+        (cumulantCoefficient x.2 * x.2.blockProduct f) * f (s \ x.1) =
+        ∑ y ∈ (Finset.univ : Finset (Finpartition s)).sigma
+          (fun T => T.parts.filter (fun D => a ∉ D)),
+          cumulantCoefficient (y.1.restrict (show s \ y.2 ⊆ s by exact Finset.sdiff_subset)) *
+            y.1.blockProduct f := by
+    -- forward map: glue the block `s \ B` onto `Q` and record it as the distinguished block
+    let i : ∀ x ∈ t.sigma (fun B => (Finset.univ : Finset (Finpartition B))),
+        ↥((Finset.univ : Finset (Finpartition s)).sigma (fun T => T.parts.filter (fun D => a ∉ D))) :=
+      fun x hx =>
+        let hB : x.1 ∈ s.powerset ∧ a ∈ x.1 ∧ x.1 ≠ s :=
+          Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1
+        let hDne : s \ x.1 ≠ ∅ := by
+          intro h
+          exact hB.2.2 (le_antisymm (Finset.mem_powerset.mp hB.1) (Finset.sdiff_eq_empty_iff_subset.mp h))
+        let hdisj : Disjoint x.1 (s \ x.1) := by simp [Finset.disjoint_iff_inter_eq_empty]
+        let hsup : x.1 ∪ (s \ x.1) = s := Finset.union_sdiff_of_subset (Finset.mem_powerset.mp hB.1)
+        ⟨(x.2.extendBlock hDne hdisj hsup, s \ x.1),
+          Finset.mem_sigma.mpr ⟨Finset.mem_univ _, by
+            rw [Finset.mem_filter]
+            constructor
+            · simp [extendBlock_parts]
+            · exact fun h => (Finset.mem_sdiff.mp h).2 hB.2.1⟩⟩
+    -- backward map: delete the block `D` from `T` and restrict to the complement
+    let j : ∀ y ∈ (Finset.univ : Finset (Finpartition s)).sigma
+          (fun T => T.parts.filter (fun D => a ∉ D)),
+        ↥(t.sigma (fun B => (Finset.univ : Finset (Finpartition B)))) :=
+      fun y hy =>
+        let hD : y.2 ∈ y.1.parts ∧ a ∉ y.2 := Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2
+        ⟨(s \ y.2, y.1.restrict (show s \ y.2 ⊆ s by exact Finset.sdiff_subset)),
+          Finset.mem_sigma.mpr ⟨by
+            rw [Finset.mem_filter]
+            constructor
+            · exact Finset.mem_powerset.mpr (Finset.sdiff_subset)
+            · constructor
+              · exact Finset.mem_sdiff.mpr ⟨ha, hD.2⟩
+              · intro h
+                rcases Finset.nonempty_iff_ne_empty.2 (show y.2 ≠ ∅ from y.1.ne_empty hD.1) with ⟨x, hx⟩
+                have : x ∈ s \ y.2 := by rw [h]; exact hx
+                exact (Finset.mem_sdiff.mp this).2 hx
+            , Finset.mem_univ _⟩⟩
+    rw [← Finset.sum_bij' (s := t.sigma (fun B => (Finset.univ : Finset (Finpartition B))))
+      (t := (Finset.univ : Finset (Finpartition s)).sigma
+        (fun T => T.parts.filter (fun D => a ∉ D)))
+      (i := i) (j := j)
+      (hi := fun x hx => (i x hx).2) (hj := fun y hy => (j y hy).2)]
+    · -- deleting then gluing back recovers the pair `⟨B, Q⟩`
+      intro x hx
+      rcases x.1 with ⟨B, Q⟩
+      have hB : B ∈ s.powerset ∧ a ∈ B ∧ B ≠ s := Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1
+      have hBsub : B ⊆ s := Finset.mem_powerset.mp hB.1
+      have hsdiff : s \ (s \ B) = B := by
+        ext z
+        by_cases hz : z ∈ B <;> simp [Finset.mem_sdiff, hz, hBsub]
+      apply Subtype.ext
+      congr 1
+      · exact hsdiff
+      · rw [hsdiff]
+        exact restrict_extendBlock Q (show s \ B ≠ ∅ by
+            intro h
+            exact hB.2.2 (le_antisymm hBsub (Finset.sdiff_eq_empty_iff_subset.mp h)))
+          (by simp [Finset.disjoint_iff_inter_eq_empty])
+          (Finset.union_sdiff_of_subset hBsub) hBsub
+    · -- gluing then deleting recovers the pair `⟨T, D⟩`
+      intro y hy
+      have hD : y.2 ∈ y.1.parts ∧ a ∉ y.2 := Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2
+      have hDsub : y.2 ⊆ y.1.1 := y.1.subset hD.1
+      have hsdiff : s \ (s \ y.2) = y.2 := by
+        ext z
+        by_cases hz : z ∈ y.2 <;> simp [Finset.mem_sdiff, hz, hDsub]
+      apply Subtype.ext
+      congr 1
+      · -- the glued partition is `T`
+        apply Finpartition.ext
+        rw [extendBlock_parts, Finpartition.restrict_parts_of_mem y.1 hD.1, hsdiff]
+        exact Finset.insert_erase hD.1
+      · exact hsdiff
+    · -- the summands match: `(c Q * Q.blockProduct f) * f (s \ B) = c (T.restrict B) * T.blockProduct f`
+      intro x hx
+      rcases x.1 with ⟨B, Q⟩
+      have hB : B ∈ s.powerset ∧ a ∈ B ∧ B ≠ s := Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1
+      have hBsub : B ⊆ s := Finset.mem_powerset.mp hB.1
+      have hsdiff : s \ (s \ B) = B := by
+        ext z
+        by_cases hz : z ∈ B <;> simp [Finset.mem_sdiff, hz, hBsub]
+      rw [hsdiff]
+      rw [restrict_extendBlock Q (show s \ B ≠ ∅ by
+            intro h
+            exact hB.2.2 (le_antisymm hBsub (Finset.sdiff_eq_empty_iff_subset.mp h)))
+          (by simp [Finset.disjoint_iff_inter_eq_empty])
+          (Finset.union_sdiff_of_subset hBsub) hBsub]
+      rw [blockProduct_extendBlock]
+      -- `c Q * (f (s \ B) * Q.blockProduct f) = (c Q * Q.blockProduct f) * f (s \ B)`
+      rw [← mul_assoc]
+      congr 1
+      rw [mul_comm]
+    · -- membership of the residual pair in the domain sigma finset
+      intro y hy
+      let T := y.1
+      let D := y.2
+      have hD : D ∈ T.parts ∧ a ∉ D := Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2
+      refine Finset.mem_sigma.mpr ⟨?_, Finset.mem_univ _⟩
+      rw [Finset.mem_filter]
+      constructor
+      · -- `s \ D ∈ s.powerset`
+        exact Finset.mem_powerset.mpr (Finset.sdiff_subset)
+      · constructor
+        · -- `a ∈ s \ D`
+          exact Finset.mem_sdiff.mpr ⟨ha, hD.2⟩
+        · -- `s \ D ≠ s`, since `D` is a nonempty block
+          intro h
+          rcases (Finset.nonempty_iff_ne_empty.2 (show D ≠ ∅ from T.ne_empty hD.1)) with ⟨x, hx⟩
+          have : x ∈ s \ D := by rw [h]; exact hx
+          exact (Finset.mem_sdiff.mp this).2 hx
+    · -- left inverse: deleting the glued block and restricting back recovers the pair
+      intro x hx
+      let B := x.1
+      let Q := x.2
+      have hB : B ∈ s.powerset ∧ a ∈ B ∧ B ≠ s := Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1
+      have hBsub : B ⊆ s := Finset.mem_powerset.mp hB.1
+      have hsdiff : s \ (s \ B) = B := by
+        ext z
+        by_cases hz : z ∈ B <;> simp [Finset.mem_sdiff, hz, hBsub]
+      apply Sigma.ext
+      · -- the residual carrier is `B`
+        exact hsdiff
+      · -- the restricted extended partition is `Q`
+        apply heq_of_eq
+        rw [hsdiff]
+        exact restrict_extendBlock Q (show s \ B ≠ ∅ by
+            intro h
+            exact hB.2.2 (le_antisymm hBsub (Finset.sdiff_eq_empty_iff_subset.mp h)))
+          (by rw [Finset.disjoint_iff_inter_eq_empty]; simp)
+          (by exact Finset.union_sdiff_of_subset hBsub) hBsub
+    · -- right inverse: gluing the restricted partition back recovers the partition
+      intro y hy
+      let T := y.1
+      let D := y.2
+      have hD : D ∈ T.parts ∧ a ∉ D := Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2
+      have hDsub : D ⊆ s := T.subset hD.1
+      have hsdiff : s \ (s \ D) = D := by
+        ext z
+        by_cases hz : z ∈ D <;> simp [Finset.mem_sdiff, hz, hDsub]
+      apply Sigma.ext
+      · -- the glued partition is `T`
+        apply Finpartition.ext
+        rw [extendBlock_parts, Finpartition.restrict_parts_of_mem T hD.1]
+        rw [hsdiff]
+        exact Finset.insert_erase hD.1
+      · -- the distinguished block is `D`
+        apply heq_of_eq
+        exact hsdiff
+    · -- the summands match: `(c Q * Q.blockProduct f) * f (s \ B) = c (T.restrict B) * T.blockProduct f`
+      intro x hx
+      let B := x.1
+      let Q := x.2
+      have hB : B ∈ s.powerset ∧ a ∈ B ∧ B ≠ s := Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1
+      have hBsub : B ⊆ s := Finset.mem_powerset.mp hB.1
+      have hsdiff : s \ (s \ B) = B := by
+        ext z
+        by_cases hz : z ∈ B <;> simp [Finset.mem_sdiff, hz, hBsub]
+      rw [hsdiff]
+      rw [restrict_extendBlock Q (show s \ B ≠ ∅ by
+            intro h
+            exact hB.2.2 (le_antisymm hBsub (Finset.sdiff_eq_empty_iff_subset.mp h)))
+          (by rw [Finset.disjoint_iff_inter_eq_empty]; simp)
+          (by exact Finset.union_sdiff_of_subset hBsub) hBsub]
+      rw [blockProduct_extendBlock]
+      -- `c Q * (f (s \ B) * Q.blockProduct f) = (c Q * Q.blockProduct f) * f (s \ B)`
+      rw [← mul_assoc]
+      congr 1
+      rw [mul_comm]
+  -- Step 3: combine the two sums over `T` and apply the coefficient identity
+  rw [hstep1, hstep2]
+  rw [Finset.sum_sigma]
+  -- rewrite `∑ T, c T * T.blockProduct f` + `∑ T, ∑ D, c (T.restrict) * T.blockProduct f`
+  -- as `∑ T, (c T + ∑ D, c (T.restrict)) * T.blockProduct f`
+  rw [← Finset.sum_add_distrib]
+  apply Finset.sum_congr rfl
+  intro T hT
+  rw [← Finset.mul_sum]
+  rw [← add_mul]
+  congr 1
+  exact cumulantCoefficient_sum_coarser s a ha T
+  -- Step 4: only the one-block partition `⊤` survives, contributing `f s`
+  -- (the `∑_D` is already folded by `cumulantCoefficient_sum_coarser`; the remaining sum over `T`
+  -- of `(if T = ⊤ then 1 else 0) * T.blockProduct f` is `⊤.blockProduct f = f s`)
+  rw [Finset.sum_ite_eq' (Finset.univ : Finset (Finpartition s)) ⊤]
+  · -- `⊤ ∈ univ` and `⊤.blockProduct f = f s`
+    have hparts : (⊤ : Finpartition s).parts = {s} := by
+      apply Finset.eq_singleton_iff_unique_mem.2
+      constructor
+      · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
+        have hB_eq : B = s :=
+          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
+        simpa [hB_eq] using hB
+      · intro D hD
+        exact Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+    simp [hparts, blockProduct, hs]
+  · exact Finset.mem_univ _
 
 /-- The partition transform of the empty set is the empty product `1`. -/
 private lemma partitionTransform_empty [CommSemiring R] (g : Finset α → R) :

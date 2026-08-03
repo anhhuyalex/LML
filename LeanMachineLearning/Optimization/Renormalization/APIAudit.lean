@@ -17,6 +17,9 @@ public import Mathlib.Probability.Kernel.Composition.Prod
 public import Mathlib.Probability.Moments.Covariance
 public import Mathlib.Probability.Moments.MGFAnalytic
 public import Mathlib.Probability.Moments.Tilted
+public import LeanMachineLearning.Optimization.Renormalization.Convolution
+public import LeanMachineLearning.Optimization.Renormalization.InducedLaw
+public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 
 /-!
 # Renormalization API audit
@@ -133,3 +136,84 @@ only `#check` and `#synth` commands.
 #check ProbabilityTheory.gaussianReal_zero_var
 #check ProbabilityTheory.integral_id_gaussianReal
 #check ProbabilityTheory.variance_id_gaussianReal
+
+/-! ## Chapter 2 equation-by-equation coverage -/
+
+-- `eq:exponential-Taylor-expansion`
+#check NeuralNetwork.exp_eq_tsum_div_factorial
+
+-- `eq:preactivation` and the firing criterion
+#check NeuralNetwork.DenseLayer.preactivation_apply
+#check NeuralNetwork.DenseLayer.activate_apply
+#check NeuralNetwork.DenseLayer.activate_threshold_eq_one_iff
+
+-- `eq:mlp-definition`, `f(x;θ) = z⁽ᴸ⁾(x)`, widths, depth, and parameter count
+#check NeuralNetwork.MLP.eval_output
+#check NeuralNetwork.MLP.eval_hidden
+#check NeuralNetwork.MLP.depth
+#check NeuralNetwork.MLP.widths
+#check NeuralNetwork.MLP.paramCount_eq_paramCountFromWidths
+#check NeuralNetwork.MLPShape.Params
+#check NeuralNetwork.MLPShape.eval
+#check NeuralNetwork.MLPShape.measurable_eval
+#check NeuralNetwork.MLPShape.paramModel
+
+-- `eq:conv-layer` and its precise translation-equivariance statement
+#check NeuralNetwork.Conv2DLayer.preactivation_apply
+#check NeuralNetwork.Conv2DLayer.preactivation_ofOffsetTiedDense
+#check NeuralNetwork.Conv2DLayer.preactivation_shift
+
+-- Standard activation displays and exact qualitative claims
+#check NeuralNetwork.threshold
+#check NeuralNetwork.signedThreshold
+#check NeuralNetwork.logistic
+#check NeuralNetwork.logistic_eq_half_add_half_tanh
+#check NeuralNetwork.tanh_eq_exp_div
+#check NeuralNetwork.tanh_eq_exp_two_mul
+#check Real.sin
+#check NeuralNetwork.sinActivation_periodic
+#check NeuralNetwork.PosHomogeneous
+#check NeuralNetwork.posHomogeneous_iff_eq_piecewiseLinear
+#check NeuralNetwork.differentiableAt_piecewiseLinear_zero_iff
+#check NeuralNetwork.softplus
+#check NeuralNetwork.swish
+#check NeuralNetwork.gaussianErf
+#check NeuralNetwork.gelu
+#check NeuralNetwork.gelu_eq_erf
+#check NeuralNetwork.smooth_activations
+#check NeuralNetwork.activation_asymptotics
+#check NeuralNetwork.nonhomogeneous_activations
+
+-- `eq:bias-variance-def-naive`, `eq:weight-variance-def-naive`, and both densities
+#check NeuralNetwork.layerGaussianInit
+#check NeuralNetwork.iIndepFun_layerCoordinate_layerGaussianInit
+#check NeuralNetwork.covariance_bias_layerGaussianInit
+#check NeuralNetwork.covariance_weight_layerGaussianInit
+#check NeuralNetwork.covariance_weight_bias_layerGaussianInit
+#check NeuralNetwork.gaussianPDFReal_bias_eq
+#check NeuralNetwork.gaussianPDFReal_weight_eq_source
+
+-- `eq:gigantic-beast-that-we-tame` and its generic Dirac/pushforward form
+#check NeuralNetwork.ParamModel.outputLaw
+#check NeuralNetwork.ParamModel.integral_outputLaw
+#check NeuralNetwork.ParamModel.parameterOutputKernel_comp_eq_outputLaw
+
+-- `eq:dirac-mean` through `eq:dirac-delta-normalization` and self-averaging
+#check NeuralNetwork.integral_dirac_apply
+#check NeuralNetwork.integral_id_dirac
+#check NeuralNetwork.integral_sq_dirac
+#check NeuralNetwork.variance_id_dirac
+#check NeuralNetwork.dirac_apply_univ
+#check NeuralNetwork.SelfAveragingAt
+#check NeuralNetwork.selfAveragingAt_iff_eq_dirac
+
+-- `eq:gaussian-limit-delta-function` and the corrected Fourier interpretation
+#check NeuralNetwork.tendsto_gaussianProbabilityMeasure_zero_variance
+#check NeuralNetwork.gaussianPDFReal_eq_regularizedFourierIntegral
+#check NeuralNetwork.not_integrable_dirac_fourierKernel
+#check NeuralNetwork.charFun_dirac
+
+-- First-layer, deeper-layer, and general induced laws
+#check NeuralNetwork.map_evalBatch_layerGaussianInit
+#check NeuralNetwork.randomLayerKernel_apply
+#check NeuralNetwork.MLPEnsemble.outputKernel

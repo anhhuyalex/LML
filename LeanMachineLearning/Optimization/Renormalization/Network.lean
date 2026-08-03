@@ -29,6 +29,10 @@ namespace NeuralNetwork
 
 universe u v
 
+/-- A finite or indexed dataset whose samples have coordinates indexed by `ι`.  Keeping the sample
+index type explicit prevents the sample and feature axes from being transposed accidentally. -/
+abbrev Dataset (A : Type v) (ι : Type u) := A → ι → ℝ
+
 /-- Parameters of an affine map from coordinates `ι` to coordinates `κ`. -/
 structure DenseLayer (ι κ : Type*) where
   /-- Matrix of affine weights, indexed by output and then input coordinates. -/
@@ -84,7 +88,7 @@ theorem continuous_preactivation [Fintype ι] :
 
 theorem measurable_preactivation [Fintype ι] [Finite κ] :
     Measurable (preactivationFromParams : LayerParams ι κ × (ι → ℝ) → κ → ℝ) :=
-  letI := Fintype.ofFinite κ
+  let _ := Fintype.ofFinite κ
   continuous_preactivation.measurable
 
 /-- Joint activated evaluation in product-form parameters and inputs. -/
@@ -99,7 +103,7 @@ theorem continuous_activate [Fintype ι] {σ : ℝ → ℝ} (hσ : Continuous σ
 
 theorem measurable_activate [Fintype ι] [Finite κ] {σ : ℝ → ℝ} (hσ : Measurable σ) :
     Measurable (activateFromParams σ : LayerParams ι κ × (ι → ℝ) → κ → ℝ) := by
-  letI := Fintype.ofFinite κ
+  let _ := Fintype.ofFinite κ
   change Measurable (fun p j => σ (preactivationFromParams p j))
   exact measurable_pi_lambda _ fun j =>
     hσ.comp ((measurable_pi_apply j).comp measurable_preactivation)
@@ -111,7 +115,7 @@ theorem continuous_preactivation_fixed [Fintype ι] (L : DenseLayer ι κ) :
 
 theorem measurable_preactivation_fixed [Fintype ι] [Finite κ] (L : DenseLayer ι κ) :
     Measurable L.preactivation := by
-  letI := Fintype.ofFinite κ
+  let _ := Fintype.ofFinite κ
   exact L.continuous_preactivation_fixed.measurable
 
 theorem continuous_activate_fixed [Fintype ι] (L : DenseLayer ι κ)
@@ -121,7 +125,7 @@ theorem continuous_activate_fixed [Fintype ι] (L : DenseLayer ι κ)
 
 theorem measurable_activate_fixed [Fintype ι] [Finite κ] (L : DenseLayer ι κ)
     {σ : ℝ → ℝ} (hσ : Measurable σ) : Measurable (L.activate σ) := by
-  letI := Fintype.ofFinite κ
+  let _ := Fintype.ofFinite κ
   change Measurable (fun x j => σ (L.preactivation x j))
   exact measurable_pi_lambda _ fun j =>
     hσ.comp ((measurable_pi_apply j).comp L.measurable_preactivation_fixed)
@@ -140,6 +144,27 @@ theorem preactivation_zero_eq [Fintype ι] (x : ι → ℝ) (j j' : κ) :
     (DenseLayer.mk (0 : Matrix κ ι ℝ) 0).preactivation x j =
       (DenseLayer.mk (0 : Matrix κ ι ℝ) 0).preactivation x j' := by
   simp
+
+/-- A threshold neuron fires exactly when its weighted evidence exceeds the negative bias, as
+stated in the source. -/
+theorem activate_threshold_eq_one_iff [Fintype ι] (L : DenseLayer ι κ)
+    (x : ι → ℝ) (j : κ) :
+    L.activate threshold x j = 1 ↔ -L.bias j ≤ ∑ i, L.weight j i * x i := by
+  simp only [activate_apply, threshold, preactivation_apply]
+  by_cases h : 0 ≤ L.bias j + ∑ i, L.weight j i * x i <;> simp [h] <;> linarith
+
+/-- The complementary non-firing criterion for a threshold neuron. -/
+theorem activate_threshold_eq_zero_iff [Fintype ι] (L : DenseLayer ι κ)
+    (x : ι → ℝ) (j : κ) :
+    L.activate threshold x j = 0 ↔ ∑ i, L.weight j i * x i < -L.bias j := by
+  simp only [activate_apply, threshold]
+  split_ifs with h
+  · simp only [one_ne_zero, false_iff]
+    rw [preactivation_apply] at h
+    linarith
+  · simp only [true_iff]
+    rw [preactivation_apply] at h
+    linarith
 
 end DenseLayer
 
@@ -181,10 +206,27 @@ def paramCount {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → ℕ
   | .output L => L.paramCount
   | .hidden L N => L.paramCount + N.paramCount
 
+/-- Number of affine layers in an MLP. -/
+def depth {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → ℕ
+  | .output _ => 1
+  | .hidden _ N => N.depth + 1
+
 /-- The input width followed by every successive layer width. -/
 def widths {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → List ℕ
   | .output _ => [m, n]
   | .hidden _ N => m :: N.widths
+
+@[simp] theorem widths_length {σ : ℝ → ℝ} {m n : ℕ} (N : MLP σ m n) :
+    N.widths.length = N.depth + 1 := by
+  induction N with
+  | output L => simp [widths, depth]
+  | hidden L N ih => simp [widths, depth, ih, Nat.add_comm]
+
+/-- The source's convention that depth is one less than the number of listed widths. -/
+theorem depth_eq_widths_length_sub_one {σ : ℝ → ℝ} {m n : ℕ} (N : MLP σ m n) :
+    N.depth = N.widths.length - 1 := by
+  rw [N.widths_length]
+  omega
 
 /-- Parameter count computed directly from a nonempty list of widths. -/
 def paramCountFromWidths : List ℕ → ℕ
@@ -206,7 +248,7 @@ theorem paramCount_eq_paramCountFromWidths {σ : ℝ → ℝ} {m n : ℕ} (N : M
 
 /-- Evaluate on a finite collection of inputs while keeping sample and neuron indices separate. -/
 def evalBatch {σ : ℝ → ℝ} {m n : ℕ} {A : Type v}
-    (N : MLP σ m n) (D : A → Fin m → ℝ) : A → Fin n → ℝ :=
+    (N : MLP σ m n) (D : Dataset A (Fin m)) : A → Fin n → ℝ :=
   fun a => N.eval (D a)
 
 @[simp] theorem evalBatch_apply {σ : ℝ → ℝ} {m n : ℕ} {A : Type v}

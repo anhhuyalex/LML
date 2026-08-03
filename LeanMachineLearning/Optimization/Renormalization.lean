@@ -8,11 +8,13 @@ module
 public import LeanMachineLearning.Optimization.Renormalization.Basic
 public import LeanMachineLearning.Optimization.Renormalization.Activation
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
+public import LeanMachineLearning.Optimization.Renormalization.Convolution
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
 public import LeanMachineLearning.Optimization.Renormalization.InducedLaw
 public import LeanMachineLearning.Optimization.Renormalization.Initialization
 public import LeanMachineLearning.Optimization.Renormalization.Network
+public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
 

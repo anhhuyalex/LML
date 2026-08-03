@@ -6,8 +6,10 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Initialization
+public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Kernel.Composition.Comp
 public import Mathlib.Probability.Kernel.Composition.MapComap
@@ -25,7 +27,7 @@ independently initialized layers compositional without using formal products of 
 
 noncomputable section
 
-open MeasureTheory ProbabilityTheory
+open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal NNReal ProbabilityTheory ComplexConjugate
 
 namespace NeuralNetwork
@@ -111,6 +113,27 @@ theorem parameterOutputKernel_comp_eq_outputLaw (F : ParamModel Θ X Y) (D : A �
 
 end ParamModel
 
+namespace MLPShape
+
+/-- A fixed MLP architecture as an architecture-independent measurable parameterized model. -/
+def paramModel {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ) (hσ : Measurable σ) :
+    ParamModel S.Params (Fin m → ℝ) (Fin n → ℝ) where
+  eval := S.eval σ
+  measurable_eval := S.measurable_eval hσ
+
+@[simp] theorem paramModel_eval {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
+    (hσ : Measurable σ) (θ : S.Params) (x : Fin m → ℝ) :
+    (S.paramModel σ hσ).eval θ x = S.eval σ θ x := rfl
+
+/-- The output law of `f(x; θ)` on a dataset is exactly the parameter-law pushforward, now
+specialized to an MLP shape. -/
+theorem outputLaw_eq_map_eval {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
+    (hσ : Measurable σ) (D : A → Fin m → ℝ) (μ : Measure S.Params) :
+    (S.paramModel σ hσ).outputLaw D μ =
+      μ.map (fun θ a => S.eval σ θ (D a)) := rfl
+
+end MLPShape
+
 /-- Discoverability wrapper for Bochner integration against a Dirac measure. -/
 theorem integral_dirac_apply [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     [MeasurableSpace S] [MeasurableSingletonClass S] (f : S → E) (s : S) :
@@ -121,12 +144,89 @@ theorem integral_dirac_apply [NormedAddCommGroup E] [NormedSpace ℝ E] [Complet
 theorem variance_id_dirac (s : ℝ) : Var[id; Measure.dirac s] = 0 := by
   exact variance_dirac s
 
+/-- The source's Dirac mean equation. -/
+theorem integral_id_dirac (s : ℝ) : ∫ z, z ∂Measure.dirac s = s := by
+  exact integral_dirac _ _
+
+/-- The source's Dirac second-moment equation. -/
+theorem integral_sq_dirac (s : ℝ) : ∫ z, z ^ 2 ∂Measure.dirac s = s ^ 2 := by
+  exact integral_dirac _ _
+
+/-- The source's Dirac normalization equation. -/
+theorem dirac_apply_univ (s : S) [MeasurableSpace S] [MeasurableSingletonClass S] :
+    Measure.dirac s Set.univ = 1 := by
+  simp
+
+/-- A probability law is self-averaging at `s` when every bounded continuous observable has the
+same expectation as under the point mass at `s`. -/
+def SelfAveragingAt (μ : Measure ℝ) (s : ℝ) : Prop :=
+  ∀ f : BoundedContinuousFunction ℝ ℝ, ∫ x, f x ∂μ = f s
+
+theorem selfAveragingAt_dirac (s : ℝ) : SelfAveragingAt (Measure.dirac s) s := by
+  intro f
+  exact integral_dirac _ _
+
+/-- Self-averaging for every bounded continuous observable characterizes a Dirac law.
+
+Informal proof: bounded continuous functions separate finite Borel measures on `ℝ`.  The defining
+identity says that `μ` and `dirac s` integrate every such function equally, so the measures are
+equal; the reverse direction is `integral_dirac`.  See the bounded-continuous characterization of
+weak equality in Mathlib's finite-measure API:
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Measure/FiniteMeasure.html>. -/
+theorem selfAveragingAt_iff_eq_dirac (μ : Measure ℝ) [IsProbabilityMeasure μ] (s : ℝ) :
+    SelfAveragingAt μ s ↔ μ = Measure.dirac s := by
+  sorry
+
 /-- Characteristic function of a deterministic real law. -/
 theorem charFun_dirac (s t : ℝ) :
     charFun (Measure.dirac s) t = Complex.exp ((t * s : ℂ) * Complex.I) := by
   rw [MeasureTheory.charFun_dirac]
   congr 2
   simp [mul_comm]
+
+/-- A Gaussian law bundled with its probability certificate. -/
+def gaussianProbabilityMeasure (m : ℝ) (v : ℝ≥0) : ProbabilityMeasure ℝ :=
+  ⟨gaussianReal m v, inferInstance⟩
+
+/-- A Dirac law bundled as a probability measure. -/
+def diracProbabilityMeasure (s : ℝ) : ProbabilityMeasure ℝ :=
+  ⟨Measure.dirac s, inferInstance⟩
+
+/-- The source's zero-variance Gaussian limit, stated rigorously as weak convergence of probability
+measures.
+
+Informal proof: write a Gaussian sample as `s + sqrt(v) Z` with `Z` standard normal.  As `v → 0`,
+this converges to `s` in probability, hence in distribution.  Equivalently, dominated convergence
+applied to every bounded continuous test function gives the weak limit.  See
+<https://en.wikipedia.org/wiki/Convergence_of_random_variables#Convergence_in_distribution>. -/
+theorem tendsto_gaussianProbabilityMeasure_zero_variance (s : ℝ) :
+    Tendsto (gaussianProbabilityMeasure s) (nhds 0) (nhds (diracProbabilityMeasure s)) := by
+  sorry
+
+/-- The unregularized Fourier kernel in the source's formal delta representation is not Lebesgue
+integrable.
+
+Informal proof: the complex exponential has norm one for every real frequency, so its norm has
+infinite integral over `ℝ`.  Thus the displayed Fourier integral cannot be a Bochner/Lebesgue
+integral; it must be interpreted distributionally.  See
+<https://en.wikipedia.org/wiki/Dirac_delta_function#Fourier_transform>. -/
+theorem not_integrable_dirac_fourierKernel (z s : ℝ) :
+    ¬ Integrable (fun Λ : ℝ => Complex.exp ((Λ * (z - s) : ℂ) * Complex.I)) := by
+  sorry
+
+/-- For positive variance, the regularized Fourier integral in the source is an ordinary integral
+and equals the Gaussian density.
+
+Informal proof: this is the Fourier transform of the centered Gaussian.  Complete the square (or
+apply the already-formalized Gaussian Fourier transform), then translate by `s`; the factor
+`1/(2π)` yields variance `K`.  See Mathlib's Gaussian Fourier transform development:
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/SpecialFunctions/Gaussian/FourierTransform.html>. -/
+theorem gaussianPDFReal_eq_regularizedFourierIntegral (s z : ℝ) (K : ℝ≥0) (hK : K ≠ 0) :
+    (gaussianPDFReal s K z : ℂ) =
+      (1 / (2 * Real.pi) : ℂ) *
+        ∫ Λ : ℝ, Complex.exp
+          (-(K : ℂ) / 2 * (Λ : ℂ) ^ 2 + Complex.I * (Λ : ℂ) * ((z - s : ℝ) : ℂ)) := by
+  sorry
 
 /-- A randomized measurable map, represented as a Markov kernel.  The same random parameter is
 used throughout one evaluation. -/
@@ -166,9 +266,27 @@ to measurability of every coordinate. See
 theorem measurable_batchPreactivation [Fintype ι] [Finite κ] :
     Measurable (fun p : LayerParams ι κ × (A → ι → ℝ) =>
       batchPreactivation p.1 p.2) := by
-  letI := Fintype.ofFinite κ
+  let _ := Fintype.ofFinite κ
   exact measurable_pi_lambda _ fun a => DenseLayer.measurable_preactivation.comp
     (measurable_fst.prodMk ((measurable_pi_apply a).comp measurable_snd))
+
+/-- Apply an activation coordinatewise to every sample in a batch. -/
+def batchActivate (σ : ℝ → ℝ) (z : A → ι → ℝ) : A → ι → ℝ :=
+  fun a i => σ (z a i)
+
+theorem measurable_batchActivate {σ : ℝ → ℝ} (hσ : Measurable σ) :
+    Measurable (batchActivate σ : (A → ι → ℝ) → A → ι → ℝ) := by
+  exact measurable_pi_lambda _ fun a => measurable_pi_lambda _ fun i =>
+    hσ.comp ((measurable_pi_apply i).comp (measurable_pi_apply a))
+
+/-- Deterministic kernel applying an activation to a batch. -/
+def batchActivationKernel (σ : ℝ → ℝ) (hσ : Measurable σ) :
+    Kernel (A → ι → ℝ) (A → ι → ℝ) :=
+  Kernel.deterministic (batchActivate σ) (measurable_batchActivate hσ)
+
+@[simp] theorem batchActivationKernel_apply (σ : ℝ → ℝ) (hσ : Measurable σ)
+    (z : A → ι → ℝ) : batchActivationKernel σ hσ z = Measure.dirac (batchActivate σ z) := by
+  exact Kernel.deterministic_apply _ _
 
 /-- Covariance across samples for one initialized output neuron. -/
 def layerCovariance (p : InitHyperparams) (s : A → ι → ℝ) [Fintype ι] : Matrix A A ℝ :=
@@ -208,12 +326,31 @@ def randomLayerKernel [Fintype ι] [Fintype κ] (p : InitHyperparams) :
     Kernel (A → ι → ℝ) (A → κ → ℝ) :=
   randomMapKernel (layerGaussianInit p ι κ) batchPreactivation measurable_batchPreactivation
 
+/-- The conditional law of a deeper affine layer is the pushforward of a fresh independent
+parameter law, the rigorous measure-theoretic form of the source's product-of-Dirac display. -/
+theorem randomLayerKernel_apply [Fintype ι] [Fintype κ] (p : InitHyperparams)
+    (s : A → ι → ℝ) :
+    randomLayerKernel p s =
+      Measure.map (fun q : LayerParams ι κ => batchPreactivation q s)
+        (layerGaussianInit p ι κ) := by
+  exact randomMapKernel_apply _ _ _ _
+
 /-- A shape-safe list of independently initialized layer laws. -/
 inductive MLPEnsemble (σ : ℝ → ℝ) : ℕ → ℕ → Type where
   | output {m n : ℕ} : InitHyperparams → MLPEnsemble σ m n
   | hidden {m n k : ℕ} : InitHyperparams → MLPEnsemble σ k n → MLPEnsemble σ m n
 
 namespace MLPEnsemble
+
+/-- Depth of an ensemble architecture. -/
+def depth {σ : ℝ → ℝ} {m n : ℕ} : MLPEnsemble σ m n → ℕ
+  | .output _ => 1
+  | .hidden _ N => N.depth + 1
+
+/-- Input width followed by all layer widths of an ensemble architecture. -/
+def widths {σ : ℝ → ℝ} {m n : ℕ} : MLPEnsemble σ m n → List ℕ
+  | .output _ => [m, n]
+  | .hidden _ N => m :: N.widths
 
 /-- Kernel semantics of an independently initialized MLP on a shared finite batch.
 
@@ -223,8 +360,20 @@ constructed tail.  Kernel composition integrates over the fresh parameter law at
 which is exactly independent initialization.  See
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Kernel/Composition/Comp.html>. -/
 def outputKernel {σ : ℝ → ℝ} (hσ : Measurable σ) {m n : ℕ} (N : MLPEnsemble σ m n)
-    (A : Type uA) : Kernel (A → Fin m → ℝ) (A → Fin n → ℝ) := by
-  sorry
+    (A : Type uA) : Kernel (A → Fin m → ℝ) (A → Fin n → ℝ) :=
+  match N with
+  | .output p => randomLayerKernel p
+  | .hidden p N => N.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ randomLayerKernel p
+
+@[simp] theorem outputKernel_output {σ : ℝ → ℝ} (hσ : Measurable σ) {m n : ℕ}
+    (p : InitHyperparams) (A : Type uA) :
+    (MLPEnsemble.output p : MLPEnsemble σ m n).outputKernel hσ A = randomLayerKernel p := rfl
+
+@[simp] theorem outputKernel_hidden {σ : ℝ → ℝ} (hσ : Measurable σ) {m n k : ℕ}
+    (p : InitHyperparams) (N : MLPEnsemble σ k n) (A : Type uA) :
+    (@MLPEnsemble.hidden σ m n k p N).outputKernel hσ A =
+      N.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ
+        (randomLayerKernel (A := A) (ι := Fin m) (κ := Fin k) p) := rfl
 
 end MLPEnsemble
 

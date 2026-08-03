@@ -54,6 +54,17 @@ def layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : Type v)
     [Fintype ι] [Fintype κ] : Measure (LayerParams ι κ) :=
   (gaussianWeightLaw p ι κ).prod (gaussianBiasLaw p κ)
 
+/-- A single index type for every scalar parameter of a dense layer.  Weight coordinates are on
+the left and bias coordinates are on the right. -/
+abbrev LayerCoordinate (ι : Type u) (κ : Type v) := (κ × ι) ⊕ κ
+
+/-- Read a scalar layer parameter at a flattened coordinate. -/
+def layerCoordinate {ι : Type u} {κ : Type v}
+    (c : LayerCoordinate ι κ) (q : LayerParams ι κ) : ℝ :=
+  match c with
+  | .inl ji => q.1 ji.1 ji.2
+  | .inr j => q.2 j
+
 instance instIsProbabilityMeasureLayerGaussianInit (p : InitHyperparams)
     (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ] :
     IsProbabilityMeasure (layerGaussianInit p ι κ) := by
@@ -111,6 +122,56 @@ theorem map_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : T
   simp only [measure_univ, Finset.prod_const_one, one_smul]
   rw [Measure.pi_map_eval]
   simp only [measure_univ, Finset.prod_const_one, one_smul]
+
+/-- The bias marginal has exactly the normalized Gaussian density displayed in the source whenever
+its variance is nonzero. -/
+theorem map_bias_layerGaussianInit_eq_withDensity (p : InitHyperparams)
+    (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ]
+    (hp : p.biasVariance ≠ 0) (j : κ) :
+    Measure.map (fun q : LayerParams ι κ => q.2 j) (layerGaussianInit p ι κ) =
+      volume.withDensity (gaussianPDF 0 p.biasVariance) := by
+  rw [map_bias_layerGaussianInit, gaussianReal_of_var_ne_zero _ hp]
+
+/-- The weight marginal has the fan-in-normalized Gaussian density displayed in the source whenever
+the scaled variance is nonzero. -/
+theorem map_weight_layerGaussianInit_eq_withDensity (p : InitHyperparams)
+    (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ]
+    (hp : scaledWeightVariance p ι ≠ 0) (j : κ) (i : ι) :
+    Measure.map (fun q : LayerParams ι κ => q.1 j i) (layerGaussianInit p ι κ) =
+      volume.withDensity (gaussianPDF 0 (scaledWeightVariance p ι)) := by
+  rw [map_weight_layerGaussianInit, gaussianReal_of_var_ne_zero _ hp]
+
+/-- Pointwise expansion of the displayed centered bias density. -/
+theorem gaussianPDFReal_bias_eq (p : InitHyperparams) (x : ℝ) :
+    gaussianPDFReal 0 p.biasVariance x =
+      (Real.sqrt (2 * Real.pi * (p.biasVariance : ℝ)))⁻¹ *
+        Real.exp (-(x ^ 2) / (2 * (p.biasVariance : ℝ))) := by
+  rw [gaussianPDFReal]
+  simp only [sub_zero]
+
+/-- Pointwise expansion of the displayed fan-in-scaled weight density. -/
+theorem gaussianPDFReal_weight_eq (p : InitHyperparams) (ι : Type u)
+    [Fintype ι] (x : ℝ) :
+    gaussianPDFReal 0 (scaledWeightVariance p ι) x =
+      (Real.sqrt (2 * Real.pi * (scaledWeightVariance p ι : ℝ)))⁻¹ *
+        Real.exp (-(x ^ 2) / (2 * (scaledWeightVariance p ι : ℝ))) := by
+  rw [gaussianPDFReal]
+  simp only [sub_zero]
+
+/-- The fan-in-scaled weight density in exactly the algebraic form printed in Chapter 2.
+
+Informal proof: substitute `scaledWeightVariance = C_W / |ι|` into `gaussianPDFReal_weight_eq`.
+Since both `C_W` and `|ι|` are positive, move the quotient through the square root and simplify the
+exponent by field arithmetic.  See the normal-density scaling formula at
+<https://en.wikipedia.org/wiki/Normal_distribution#General_normal_distribution>. -/
+theorem gaussianPDFReal_weight_eq_source (p : InitHyperparams) (ι : Type u)
+    [Fintype ι] [Nonempty ι] (hp : p.weightVariance ≠ 0) (x : ℝ) :
+    gaussianPDFReal 0 (scaledWeightVariance p ι) x =
+      Real.sqrt ((Fintype.card ι : ℝ) /
+          (2 * Real.pi * (p.weightVariance : ℝ))) *
+        Real.exp (-((Fintype.card ι : ℝ) * x ^ 2) /
+          (2 * (p.weightVariance : ℝ))) := by
+  sorry
 
 /-- Bias coordinates are mutually independent.
 
@@ -234,6 +295,19 @@ theorem indepFun_weight_bias_layerGaussianInit (p : InitHyperparams) (ι : Type 
     (@ProbabilityTheory.indepFun_prod (κ → ι → ℝ) (κ → ℝ) _ _
       (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hWprob hBprob
       _ _ _ _ (fun w : κ → ι → ℝ => w) (fun b : κ → ℝ => b) measurable_id measurable_id)
+
+/-- All weights and biases are jointly independent, not merely pairwise independent.
+
+Informal proof: the two nested `Measure.pi` constructions make all weight evaluations jointly
+independent; the bias `Measure.pi` does the same for biases; and the outer product makes the two
+complete vectors independent.  Combining independent indexed families on a sum index gives the
+claim.  See Mathlib's product-independence API:
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Independence/Basic.html>. -/
+theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
+    (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ] :
+    iIndepFun (fun c : LayerCoordinate ι κ => layerCoordinate c)
+      (layerGaussianInit p ι κ) := by
+  sorry
 
 /-- Every initialized bias is centered.
 
@@ -373,6 +447,19 @@ theorem covariance_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) 
     have hXY : cov[X, Y; layerGaussianInit p ι κ] = 0 :=
       ProbabilityTheory.IndepFun.covariance_eq_zero hIndep hXlp hYlp
     simpa [X, Y, hjj] using hXY
+
+/-- Every bias coordinate is uncorrelated with every weight coordinate.
+
+Informal proof: the complete weight and bias vectors are independent under the outer product law;
+measurable coordinate projections preserve independence.  Both Gaussian coordinates are in
+`L²`, so `IndepFun.covariance_eq_zero` applies.  See
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Moments/Covariance.html>. -/
+theorem covariance_weight_bias_layerGaussianInit (p : InitHyperparams)
+    (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ]
+    (jW : κ) (i : ι) (jB : κ) :
+    cov[fun q : LayerParams ι κ => q.1 jW i,
+      fun q => q.2 jB; layerGaussianInit p ι κ] = 0 := by
+  sorry
 
 end NeuralNetwork
 
