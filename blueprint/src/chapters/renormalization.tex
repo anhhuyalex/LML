@@ -521,7 +521,7 @@ For $v\in\mathbb R_{\geq0}$ and $m\in\mathbb N$,
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Pretraining'', subsection ``Single-variable Gaussian integrals'' of
 \texttt{sec:Gauss}, especially \texttt{eq:single-variable-z-insertions} and
-\texttt{eq:single_Wick}.
+\texttt{eq:single\_Wick}.
 \end{theorem}
 
 \begin{proof}
@@ -1129,7 +1129,7 @@ The implementation is a thin wrapper around \texttt{Matrix.mulVec}; its coordina
 part of the public API.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), especially
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), especially
 the neuron preactivation \texttt{eq:preactivation} and the immediately following coordinatewise
 activation display.
 \end{definition}
@@ -1146,7 +1146,7 @@ is jointly measurable when $\sigma$ is measurable and jointly continuous when $\
 continuous.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_intro}, the affine neuron formula
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_intro}, the affine neuron formula
 \texttt{eq:preactivation} and its coordinatewise activation.  Joint parameter/input regularity is
 the formal condition required later by the source's induced-distribution integrals.
 \end{lemma}
@@ -1172,7 +1172,7 @@ uses \texttt{Fin n}.  This is the verified width-indexed fallback anticipated in
 ambiguous stored \texttt{Fintype} dictionaries in GADT recursion without weakening shape safety.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), especially
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), especially
 the recursive MLP equations \texttt{eq:mlp-definition} and the subsequent display
 $f(x;\theta)=z^{(L)}(x)$.
 \end{definition}
@@ -1186,7 +1186,7 @@ The two recursion equations above are simp lemmas.  If $\sigma$ is measurable (r
 continuous), evaluation by a fixed MLP is measurable (respectively continuous).
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_intro}, the recursive network equations
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_intro}, the recursive network equations
 \texttt{eq:mlp-definition} and the final-output display $f(x;\theta)=z^{(L)}(x)$.
 \end{lemma}
 
@@ -1204,7 +1204,7 @@ This separates architecture hyperparameters from model parameters instead of tre
 instantiated \texttt{MLP} as its own parameter space.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), beginning
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), beginning
 with the parameterized family $\{f(x;\theta)\}$ and continuing through the MLP discussion after
 \texttt{eq:mlp-definition}, where $\theta$ is defined as the union of all layer biases and weights.
 The dependent \texttt{Params} type is the formal shape-safe realization of that prose.
@@ -1226,7 +1226,7 @@ $n_0,\ldots,n_L$, prove
 The source's example with widths $(4,5,5,5,1)$ is a compile-time test whose result is $91$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), in the
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), in the
 paragraph following \texttt{eq:mlp-definition} that defines depth and widths, gives
 $P=\sum_{\ell=1}^{L}(n_\ell+n_\ell n_{\ell-1})$, and records the $(4,5,5,5,1)$ example in the MLP
 figure caption.
@@ -1244,9 +1244,9 @@ Keep sample indices and neural indices in separate arguments.  This makes the in
 $A\to(J\to\mathbb R)$ explicit and prevents accidental transposition of the two indices.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}) for the
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}) for the
 dataset and sample-index conventions, together with Section ``Ensembles''
-(\texttt{sec:MLP_distribution}), subsection ``Induced distributions'', where the output array is
+(\texttt{sec:MLP\_distribution}), subsection ``Induced distributions'', where the output array is
 indexed simultaneously by neuron $i$ and sample $\alpha$.
 \end{definition}
 
@@ -1259,7 +1259,7 @@ input.  In particular, all output coordinates of a zero-initialized layer agree.
 algebraic content of the source's symmetry observation; persistence under training is not claimed.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, the zero-initialization and
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the zero-initialization and
 permutation-symmetry discussion immediately before the subsection ``Initialization distribution of
 biases and weights''.
 \end{lemma}
@@ -1283,7 +1283,7 @@ one fixed dense affine map applied to the extracted local patch; the fact that t
 independent of absolute position is the exact weight-tying claim.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), in the CNN
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), in the CNN
 example \texttt{eq:conv-layer} and the following prose defining channels, spatial coordinates,
 local windows, shared weights, and weight tying.
 \end{definition}
@@ -1296,7 +1296,7 @@ Convolution commutes with every spatial shift.  This is equivariance, not invari
 phrase ``translational invariance'' requires an invariant readout such as global pooling.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_intro}, the CNN discussion containing
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_intro}, the CNN discussion containing
 \texttt{eq:conv-layer} and the claim that shared spatial weights encode translational behavior.  The
 blueprint states the mathematically correct equivariance consequence of that source construction.
 \end{theorem}
@@ -1313,9 +1313,9 @@ layers, MLPs with a fixed shape, convolutional networks, and other future models
 it.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}) for the
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}) for the
 general parameterized family $f(x;\theta)$, and Section ``Ensembles''
-(\texttt{sec:MLP_distribution}), especially the generic model in
+(\texttt{sec:MLP\_distribution}), especially the generic model in
 \texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.  Joint measurability is the formal hypothesis
 needed to turn that source notation into a measure pushforward.
 \end{definition}
@@ -1333,7 +1333,7 @@ The batched evaluator has a named measurability theorem, so \texttt{Measure.map}
 zero because of an unproved measurability obligation.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), subsection
 ``Induced distributions'', especially \texttt{eq:gigantic-beast-that-we-tame}; the later generic
 Dirac form is \texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
 \end{definition}
@@ -1351,7 +1351,7 @@ hypotheses,
 If $\mu$ is a probability measure, so is the output law.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Induced
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, subsection ``Induced
 distributions'', especially \texttt{eq:gigantic-beast-that-we-tame}.  This is its test-observable
 pushforward formula.
 \end{lemma}
@@ -1373,7 +1373,7 @@ latter against the parameter law recovers Definition~\ref{def:renorm:outputLaw} 
 \texttt{Measure.deterministic\_comp\_eq\_map}.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsections
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), subsections
 ``Deterministic distributions and the Dirac delta function'' and ``Induced distributions, redux''.
 It formalizes the conditional deterministic factors in
 \texttt{eq:first-layer-formal-expression-first-encounter},
@@ -1395,7 +1395,7 @@ These are small discoverability wrappers; the proof must reuse \texttt{integral\
 rebuild Dirac integration.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Deterministic
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, subsection ``Deterministic
 distributions and the Dirac delta function'', equations \texttt{eq:dirac-mean},
 \texttt{eq:dirac-variance-zero}, \texttt{eq:dirac-variance}, and
 \texttt{eq:dirac-defining-property}.
@@ -1411,7 +1411,7 @@ $\mu=\delta_s$.  Bounded continuous observables are integrable under every proba
 separate finite Borel measures.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, the self-averaging footnote
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the self-averaging footnote
 attached to \texttt{eq:dirac-delta-normalization} and the defining property
 \texttt{eq:dirac-defining-property}.
 \end{theorem}
@@ -1423,7 +1423,7 @@ The characteristic function of $\delta_s$ is $t\mapsto e^{its}$.  This is the ri
 in the initial library for the source's formal Fourier integral representation of $\delta$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Deterministic
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, subsection ``Deterministic
 distributions and the Dirac delta function'', especially the Fourier display
 \texttt{eq:integral-form-delta-function}.  The characteristic function is the ordinary
 measure-theoretic statement extracted from that formal representation.
@@ -1441,7 +1441,7 @@ integrable.  This records both the rigorous content and the exact failure of the
 pointwise Fourier display.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, equations
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, equations
 \texttt{eq:gaussian-limit-delta-function} and \texttt{eq:integral-form-delta-function}, together with
 the source warning that the Gaussian limit is taken only after integration against a test function.
 \end{theorem}
@@ -1458,7 +1458,7 @@ so the measure exists for empty shapes; any theorem interpreting this as fan-in 
 add \texttt{Nonempty I}.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), subsection
 ``Initialization distribution of biases and weights'', specifically
 \texttt{eq:bias-variance-def-naive} and \texttt{eq:weight-variance-def-naive}, followed by the prose
 defining layer-dependent initialization hyperparameters.
@@ -1482,7 +1482,7 @@ uses finite \texttt{Measure.pi}; no \texttt{Fintype} instance is requested for a
 type, and no blanket \texttt{IsGaussian (Measure.pi ...)} instance is assumed.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), subsection
 ``Initialization distribution of biases and weights''.  The scalar marginal densities are
 \texttt{eq:full-bias-initialization} and \texttt{eq:full-weights-initialization}; independence is
 asserted with the covariance formulas \texttt{eq:bias-variance-def-naive} and
@@ -1506,7 +1506,7 @@ families are independent.  Consequently their means, variances, and off-diagonal
 exactly the Kronecker-delta formulas in the source.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Initialization
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, subsection ``Initialization
 distribution of biases and weights'', equations \texttt{eq:bias-variance-def-naive} and
 \texttt{eq:weight-variance-def-naive}, including the accompanying independence claim.
 \end{lemma}
@@ -1529,7 +1529,7 @@ The nonzero assumptions are essential: at variance zero the law is Dirac and has
 density.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Initialization
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, subsection ``Initialization
 distribution of biases and weights'', exactly \texttt{eq:full-bias-initialization} and
 \texttt{eq:full-weights-initialization}.
 \end{lemma}
@@ -1549,7 +1549,7 @@ The Gaussian layer initialization is a probability measure, including when eithe
 zero.  A separate density theorem may assume $C_b>0$ and $C_W>0$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Initialization
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, subsection ``Initialization
 distribution of biases and weights'', where the two displayed Gaussian densities are normalized
 initialization distributions.  The zero-variance extension is the measure-theoretic completion of
 that source specification.
@@ -1574,7 +1574,7 @@ $p(\theta)$ is an actual probability measure on the exact dependent parameter sp
 $f(x;\theta)$, rather than an informal product of scalar densities.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}).  It combines the
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}).  It combines the
 layerwise initialization subsection with the all-parameter law $p(\theta)$ in
 \texttt{eq:gigantic-beast-that-we-tame} and
 \texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.  This recursive product is a formal elaboration
@@ -1595,7 +1595,7 @@ pairwise zero covariances: it formalizes the chapter's claim that every bias and
 layer is sampled independently.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}; it combines the layerwise
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}; it combines the layerwise
 independence claim in the initialization subsection with the all-parameter $p(\theta)$ integrated in
 \texttt{eq:gigantic-beast-that-we-tame} and
 \texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
@@ -1617,7 +1617,7 @@ Equation~\eqref{eq:renorm:layerCovariance} defines a matrix on the sample index 
 layer, replace $s(a)_i$ by $\sigma(z_i(a))$; the same definition is reused.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), obtained by
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), obtained by
 combining \texttt{eq:bias-variance-def-naive}, \texttt{eq:weight-variance-def-naive}, and the affine
 sums inside \texttt{eq:first-layer-formal-expression-first-encounter} and
 \texttt{eq:deeper-layer-formal-expression-first-encounter}.  The source does not name $K_s$ in
@@ -1631,7 +1631,7 @@ Chapter~2; this is the reusable covariance extracted from those equations.
 For nonnegative $C_b,C_W$, $K_s$ is symmetric and positive semidefinite.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}; the covariance is derived from
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}; the covariance is derived from
 \texttt{eq:bias-variance-def-naive}, \texttt{eq:weight-variance-def-naive}, and the affine sums in
 the first- and deeper-layer conditional-law displays.  Positive semidefiniteness is the formal
 well-formedness obligation implicit in treating that covariance as Gaussian.
@@ -1663,7 +1663,7 @@ In particular, different output neurons are independent and identically distribu
 sample coordinates for one neuron have covariance $K_s$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, the one-layer induced law
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the one-layer induced law
 \texttt{eq:first-layer-formal-expression-first-encounter}, specialized to the independent Gaussian
 initialization of the preceding subsection.
 \end{theorem}
@@ -1690,7 +1690,7 @@ Construct it from \texttt{Kernel.id}, \texttt{Kernel.const}, kernel products, an
 \texttt{Kernel.map}, rather than hand-proving measurability of $x\mapsto\nu(F_x^{-1}(B))$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), subsection
 ``Induced distributions, redux'', especially the conditional deeper-layer law
 \texttt{eq:deeper-layer-formal-expression-first-encounter}.  The kernel is the rigorous
 measure-theoretic replacement for that equation's parameter integrals and product of Dirac deltas.
@@ -1711,7 +1711,7 @@ Definition~\ref{def:renorm:mlpGaussianInit} through \texttt{MLPShape.eval}.  At 
 conditional covariance is Equation~\eqref{eq:renorm:layerCovariance} with $s=\sigma\circ z$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
-Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, equations
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, equations
 \texttt{eq:first-layer-formal-expression-first-encounter},
 \texttt{eq:deeper-layer-formal-expression-first-encounter}, and the generic output law
 \texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
