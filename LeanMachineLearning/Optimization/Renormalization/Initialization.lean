@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Network
+public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Moments.Covariance
 
@@ -76,7 +77,7 @@ theorem map_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : Typ
     Measure.map (fun q : LayerParams ι κ => q.2 j) (layerGaussianInit p ι κ) =
       gaussianReal 0 p.biasVariance := by
   classical
-  haveI : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
+  have : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
     unfold gaussianWeightLaw
     infer_instance
   rw [show (fun q : LayerParams ι κ => q.2 j) = Function.eval j ∘ Prod.snd from rfl,
@@ -95,7 +96,7 @@ theorem map_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : T
     Measure.map (fun q : LayerParams ι κ => q.1 j i) (layerGaussianInit p ι κ) =
       gaussianReal 0 (scaledWeightVariance p ι) := by
   classical
-  haveI : IsProbabilityMeasure (gaussianBiasLaw p κ) := by
+  have : IsProbabilityMeasure (gaussianBiasLaw p κ) := by
     unfold gaussianBiasLaw
     infer_instance
   rw [show (fun q : LayerParams ι κ => q.1 j i) =
@@ -120,7 +121,32 @@ with the second projection preserves it under the independent outer product.  Se
 theorem iIndepFun_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : Type v)
     [Fintype ι] [Fintype κ] :
     iIndepFun (fun j (q : LayerParams ι κ) => q.2 j) (layerGaussianInit p ι κ) := by
-  sorry
+  classical
+  have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
+    unfold gaussianWeightLaw
+    infer_instance
+  have hBsfinite : SFinite (gaussianBiasLaw p κ) := by
+    unfold gaussianBiasLaw
+    infer_instance
+  let X : κ → (κ → ℝ) → ℝ := fun j b => b j
+  let f : LayerParams ι κ → κ → ℝ := Prod.snd
+  have hf : AEMeasurable f (layerGaussianInit p ι κ) := measurable_snd.aemeasurable
+  have hmap : Measure.map f (layerGaussianInit p ι κ) = gaussianBiasLaw p κ := by
+    rw [show f = (Prod.snd : LayerParams ι κ → κ → ℝ) from rfl, layerGaussianInit]
+    exact (@MeasureTheory.measurePreserving_snd (κ → ι → ℝ) (κ → ℝ) _ _
+      (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hBsfinite hWprob).map_eq
+  have hX : ∀ j, AEMeasurable (X j) (Measure.map f (layerGaussianInit p ι κ)) := by
+    intro j
+    exact (measurable_pi_apply j).aemeasurable
+  have hBias : iIndepFun X (Measure.map f (layerGaussianInit p ι κ)) := by
+    rw [hmap]
+    change iIndepFun (fun j (b : κ → ℝ) => (id : ℝ → ℝ) (b j))
+      (Measure.pi fun _ : κ => gaussianReal 0 p.biasVariance)
+    exact iIndepFun_pi (mΩ := fun _ : κ => inferInstance)
+      (mX := fun _ : κ => aemeasurable_id)
+  have hPullback : iIndepFun (fun j => X j ∘ f) (layerGaussianInit p ι κ) :=
+    (ProbabilityTheory.iIndepFun_map_iff hf hX).mp hBias
+  simpa [X, f, Function.comp_def] using hPullback
 
 /-- All flattened weight coordinates are mutually independent.
 
@@ -132,7 +158,60 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
     [Fintype ι] [Fintype κ] :
     iIndepFun (fun ji : κ × ι => fun q : LayerParams ι κ => q.1 ji.1 ji.2)
       (layerGaussianInit p ι κ) := by
-  sorry
+  classical
+  -- 1. The flattened product measure, transported to `gaussianWeightLaw` by currying.
+  let G : Measure ℝ := gaussianReal 0 (scaledWeightVariance p ι)
+  let μ₀ : Measure (κ × ι → ℝ) := Measure.pi fun _ : κ × ι => G
+  have hFlat : iIndepFun (fun ji (w : κ × ι → ℝ) => w ji) μ₀ := by
+    exact iIndepFun_pi (mΩ := fun _ : κ × ι => inferInstance)
+      (mX := fun _ : κ × ι => aemeasurable_id)
+  have hCurry : μ₀.map (MeasurableEquiv.curry κ ι ℝ) = gaussianWeightLaw p ι κ := by
+    unfold μ₀ gaussianWeightLaw
+    rw [← Measure.infinitePi_eq_pi (μ := fun _ : κ × ι => G)]
+    rw [Measure.infinitePi_map_curry (μ := fun (_ : κ) (_ : ι) => G)]
+    rw [Measure.infinitePi_eq_pi (μ := fun _ : κ => infinitePi fun _ : ι => G)]
+    congr 1
+    funext j
+    rw [Measure.infinitePi_eq_pi (μ := fun _ : ι => G)]
+  let e : (κ × ι → ℝ) ≃ᵐ (κ → ι → ℝ) := MeasurableEquiv.curry κ ι ℝ
+  have hCurrySymm : gaussianWeightLaw p ι κ = μ₀.map e.symm := by
+    rw [hCurry]
+    exact (MeasurableEquiv.map_apply_eq_iff_map_symm_apply_eq (e := e) (μ := μ₀)).mpr hCurry |>.symm
+  have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
+    unfold gaussianWeightLaw
+    infer_instance
+  have hX₀ : ∀ ji, AEMeasurable (fun w : κ × ι → ℝ => w ji)
+      ((gaussianWeightLaw p ι κ).map e.symm) := by
+    intro ji
+    rw [hCurrySymm]
+    exact (measurable_pi_apply ji).aemeasurable
+  have hPull : iIndepFun (fun ji => (fun w : κ × ι → ℝ => w ji) ∘ e.symm)
+      (gaussianWeightLaw p ι κ) :=
+    (ProbabilityTheory.iIndepFun_map_iff (μ := gaussianWeightLaw p ι κ) (f := e.symm)
+      e.symm.measurable.aemeasurable hX₀).mp (by simpa [hCurrySymm] using hFlat)
+  have hW : iIndepFun (fun ji (w : κ → ι → ℝ) => w ji.1 ji.2) (gaussianWeightLaw p ι κ) := by
+    simpa [e, MeasurableEquiv.coe_curry_symm, Function.comp_def] using hPull
+  -- 2. Pull back through `Prod.fst` from the outer product law.
+  let f : LayerParams ι κ → κ → ι → ℝ := Prod.fst
+  have hf : AEMeasurable f (layerGaussianInit p ι κ) := measurable_fst.aemeasurable
+  have hBsfinite : SFinite (gaussianBiasLaw p κ) := by
+    unfold gaussianBiasLaw
+    infer_instance
+  have hBprob : IsProbabilityMeasure (gaussianBiasLaw p κ) := by
+    unfold gaussianBiasLaw
+    infer_instance
+  have hmap : Measure.map f (layerGaussianInit p ι κ) = gaussianWeightLaw p ι κ := by
+    rw [show f = (Prod.fst : LayerParams ι κ → κ → ι → ℝ) from rfl, layerGaussianInit]
+    exact (@MeasureTheory.measurePreserving_fst (κ → ι → ℝ) (κ → ℝ) _ _
+      (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hBsfinite hBprob).map_eq
+  let X : κ × ι → (κ → ι → ℝ) → ℝ := fun ji w => w ji.1 ji.2
+  have hX : ∀ ji, AEMeasurable (X ji) (Measure.map f (layerGaussianInit p ι κ)) := by
+    intro ji
+    rw [hmap]
+    exact ((measurable_pi_apply ji.1).comp (measurable_pi_apply ji.2)).aemeasurable
+  have hFinal : iIndepFun (fun ji => X ji ∘ f) (layerGaussianInit p ι κ) :=
+    (ProbabilityTheory.iIndepFun_map_iff hf hX).mp (by simpa [hmap, X] using hW)
+  simpa [X, f, Function.comp_def] using hFinal
 
 /-- The complete weight vector is independent of the complete bias vector.
 
@@ -143,7 +222,18 @@ product-measure theorem.  See
 theorem indepFun_weight_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : Type v)
     [Fintype ι] [Fintype κ] :
     IndepFun (fun q : LayerParams ι κ => q.1) (fun q => q.2) (layerGaussianInit p ι κ) := by
-  sorry
+  classical
+  have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
+    unfold gaussianWeightLaw
+    infer_instance
+  have hBprob : IsProbabilityMeasure (gaussianBiasLaw p κ) := by
+    unfold gaussianBiasLaw
+    infer_instance
+  rw [layerGaussianInit]
+  simpa using
+    (@ProbabilityTheory.indepFun_prod (κ → ι → ℝ) (κ → ℝ) _ _
+      (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hWprob hBprob
+      _ _ _ _ (fun w : κ → ι → ℝ => w) (fun b : κ → ℝ => b) measurable_id measurable_id)
 
 /-- Every initialized bias is centered.
 

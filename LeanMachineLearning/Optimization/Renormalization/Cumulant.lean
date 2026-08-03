@@ -73,8 +73,7 @@ def finpartition_subtypeEquiv [DecidableEq ι] (B : Finset ι) :
       P.parts.image fun A : Finset ι ↦ A.preimage φ φ.injective.injOn
     refine Finpartition.ofExistsUnique (s := (Finset.univ : Finset B)) parts ?subset_univ
       ?exists_unique ?empty_notMem
-    · intro C hC x hx
-      exact Finset.mem_univ x
+    · exact fun _ _ x _ => Finset.mem_univ x
     · intro x hx
       obtain ⟨A, hA_props, hA_unique⟩ := P.existsUnique_mem x.2
       rcases hA_props with ⟨hA_mem, hxA⟩
@@ -84,19 +83,13 @@ def finpartition_subtypeEquiv [DecidableEq ι] (B : Finset ι) :
       · intro C hC_props
         rcases hC_props with ⟨hC_mem, hxC⟩
         rcases Finset.mem_image.mp hC_mem with ⟨A', hA'_mem, rfl⟩
-        have hxA' : x.1 ∈ A' := by
-          simpa [φ] using hxC
-        have hAA' : A' = A := hA_unique A' ⟨hA'_mem, hxA'⟩
-        simp [hAA']
+        rw [hA_unique A' ⟨hA'_mem, by simpa [φ] using hxC⟩]
     · intro h_empty_mem
       rcases Finset.mem_image.mp h_empty_mem with ⟨A, hA_mem, hA_preimage⟩
       obtain ⟨a, haA⟩ := P.nonempty_of_mem_parts hA_mem
-      have haB : a ∈ B := P.subset hA_mem haA
-      have hx_pre : (⟨a, haB⟩ : B) ∈ A.preimage φ φ.injective.injOn := by
-        simpa [φ] using haA
-      have : (⟨a, haB⟩ : B) ∈ (∅ : Finset B) := by
+      have : (⟨a, P.subset hA_mem haA⟩ : B) ∈ (∅ : Finset B) := by
         rw [← hA_preimage]
-        exact hx_pre
+        simpa [φ] using haA
       exact Finset.notMem_empty _ this
   -- Inverse: each subtype block is mapped back to its image in `ι`.
   let invFun : Finpartition (Finset.univ : Finset B) → Finpartition B := fun Q => by
@@ -118,17 +111,11 @@ def finpartition_subtypeEquiv [DecidableEq ι] (B : Finset ι) :
         rcases Finset.mem_image.mp hA_mem with ⟨D, hD_mem, hDmap⟩
         rw [← hDmap] at haA ⊢
         rcases Finset.mem_map.mp haA with ⟨y, hyD, hya⟩
-        have hyx : y = x := by
-          apply Subtype.ext
-          simpa [φ, x] using hya
-        have hxD : x ∈ D := by
-          simpa [hyx] using hyD
-        have hDC : D = C := hC_unique D ⟨hD_mem, hxD⟩
-        rw [hDC]
+        rw [hC_unique D ⟨hD_mem, by
+          simpa [(Subtype.ext (by simpa [φ, x] using hya) : y = x)] using hyD⟩]
     · intro h_empty_mem
       rcases Finset.mem_image.mp h_empty_mem with ⟨C, hC_mem, hCmap⟩
-      have hC_empty : C = ∅ := Finset.map_eq_empty.mp hCmap
-      rw [hC_empty] at hC_mem
+      rw [Finset.map_eq_empty.mp hCmap] at hC_mem
       exact Q.empty_notMem_parts hC_mem
   refine
     { toFun := toFun
@@ -147,74 +134,33 @@ def finpartition_subtypeEquiv [DecidableEq ι] (B : Finset ι) :
       constructor
       · intro hx
         rcases Finset.mem_map.mp hx with ⟨y, hy, hyx⟩
-        have : φ y ∈ A := by
-          simpa using hy
-        simpa [hyx] using this
+        simpa [hyx] using hy
       · intro hx
-        have hxB : x ∈ B := P.subset hA hx
-        exact Finset.mem_map.mpr ⟨⟨x, hxB⟩, by simpa [φ] using hx, by simp [φ]⟩
-    have h_toFun_parts :
-        (toFun P).parts =
-          P.parts.image (fun A : Finset ι ↦ A.preimage φ φ.injective.injOn) := by
-      rfl
-    have h_invFun_parts (Q : Finpartition (Finset.univ : Finset B)) :
-        (invFun Q).parts = Q.parts.image (fun C : Finset B ↦ C.map φ) := by
-      rfl
+        exact Finset.mem_map.mpr ⟨⟨x, P.subset hA hx⟩, by simpa [φ] using hx, rfl⟩
     apply Finpartition.ext
     ext A
     constructor
     · intro hA
-      rw [h_invFun_parts (toFun P)] at hA
       rcases Finset.mem_image.mp hA with ⟨C, hC, hCA⟩
-      rw [h_toFun_parts] at hC
       rcases Finset.mem_image.mp hC with ⟨A', hA', hCeq⟩
-      have hAeq : A' = A := by
-        calc
-          A' = (A'.preimage φ φ.injective.injOn).map φ := (h_roundtrip A' hA').symm
-          _ = C.map φ := by rw [hCeq]
-          _ = A := hCA
-      simpa [hAeq] using hA'
+      simpa [show A' = A by rw [← h_roundtrip A' hA', hCeq, hCA]] using hA'
     · intro hA
-      rw [h_invFun_parts (toFun P)]
-      have hCmem_raw :
-          A.preimage φ φ.injective.injOn ∈
-            P.parts.image (fun A : Finset ι ↦ A.preimage φ φ.injective.injOn) :=
-        Finset.mem_image.mpr ⟨A, hA, rfl⟩
-      have hCmem : A.preimage φ φ.injective.injOn ∈ (toFun P).parts := by
-        rw [h_toFun_parts]
-        exact hCmem_raw
       exact Finset.mem_image.mpr
-        ⟨A.preimage φ φ.injective.injOn, hCmem, h_roundtrip A hA⟩
+        ⟨A.preimage φ φ.injective.injOn, Finset.mem_image.mpr ⟨A, hA, rfl⟩,
+          h_roundtrip A hA⟩
   · intro Q
     -- The backward round-trip is the standard `Finset.preimage_map φ` on every subtype part,
     -- again followed by extensionality for `Finpartition`.
-    have h_toFun_parts (P : Finpartition B) :
-        (toFun P).parts =
-          P.parts.image (fun A : Finset ι ↦ A.preimage φ φ.injective.injOn) := by
-      rfl
-    have h_invFun_parts :
-        (invFun Q).parts = Q.parts.image (fun C : Finset B ↦ C.map φ) := by
-      rfl
     apply Finpartition.ext
     ext C
     constructor
     · intro hC
-      rw [h_toFun_parts (invFun Q)] at hC
       rcases Finset.mem_image.mp hC with ⟨A, hA, hAC⟩
-      rw [h_invFun_parts] at hA
       rcases Finset.mem_image.mp hA with ⟨D, hD, hDA⟩
-      have hDC : D = C := by
-        calc
-          D = (D.map φ).preimage φ φ.injective.injOn := (Finset.preimage_map φ D).symm
-          _ = A.preimage φ φ.injective.injOn := by rw [hDA]
-          _ = C := hAC
-      simpa [hDC] using hD
+      simpa [show D = C by rw [← Finset.preimage_map φ D, hDA, hAC]] using hD
     · intro hC
-      rw [h_toFun_parts (invFun Q)]
-      have hA : C.map φ ∈ (invFun Q).parts := by
-        rw [h_invFun_parts]
-        exact Finset.mem_image.mpr ⟨C, hC, rfl⟩
-      exact Finset.mem_image.mpr ⟨C.map φ, hA, Finset.preimage_map φ C⟩
+      exact Finset.mem_image.mpr
+        ⟨C.map φ, Finset.mem_image.mpr ⟨C, hC, rfl⟩, Finset.preimage_map φ C⟩
 
 -- The subtype equivalence preserves the cumulant summand: the number of blocks (hence the Möbius
 -- coefficient) is unchanged, and the block products correspond via the preimage/image round-trip
@@ -229,8 +175,7 @@ private lemma finpartition_subtypeEquiv_summand [DecidableEq ι] {R : Type*} [Co
   classical
   let φ : B ↪ ι := Function.Embedding.subtype (fun x : ι ↦ x ∈ B)
   let pre : Finset ι → Finset B := fun A ↦ A.preimage φ φ.injective.injOn
-  have h_parts : (finpartition_subtypeEquiv B P).parts = P.parts.image pre := by
-    rfl
+  have h_parts : (finpartition_subtypeEquiv B P).parts = P.parts.image pre := rfl
   have h_roundtrip : ∀ A ∈ P.parts, (pre A).map φ = A := by
     intro A hA
     apply Finset.ext
@@ -238,35 +183,25 @@ private lemma finpartition_subtypeEquiv_summand [DecidableEq ι] {R : Type*} [Co
     constructor
     · intro hx
       rcases Finset.mem_map.mp hx with ⟨y, hy, hyx⟩
-      have : φ y ∈ A := by
-        simpa [pre] using hy
-      simpa [hyx] using this
+      simpa [pre, hyx] using hy
     · intro hx
-      have hxB : x ∈ B := P.subset hA hx
-      exact Finset.mem_map.mpr ⟨⟨x, hxB⟩, by simpa [pre, φ] using hx, by simp [φ]⟩
+      exact Finset.mem_map.mpr ⟨⟨x, P.subset hA hx⟩, by simpa [pre, φ] using hx, rfl⟩
   have h_pre_inj : Set.InjOn pre (↑P.parts) := by
     intro A hA A' hA' hAA'
-    have hmap : (pre A).map φ = (pre A').map φ := congrArg (fun C : Finset B ↦ C.map φ) hAA'
-    simpa [h_roundtrip A hA, h_roundtrip A' hA'] using hmap
+    simpa [h_roundtrip A hA, h_roundtrip A' hA'] using
+      congrArg (fun C : Finset B ↦ C.map φ) hAA'
   have h_card : (finpartition_subtypeEquiv B P).parts.card = P.parts.card := by
-    rw [h_parts]
-    exact Finset.card_image_of_injOn h_pre_inj
+    rw [h_parts, Finset.card_image_of_injOn h_pre_inj]
   have h_coeff :
       Finpartition.cumulantCoefficient (R := R) (finpartition_subtypeEquiv B P) =
         Finpartition.cumulantCoefficient (R := R) P := by
-    change (-1 : R) ^ ((finpartition_subtypeEquiv B P).parts.card - 1) *
-        ((finpartition_subtypeEquiv B P).parts.card - 1).factorial =
-      (-1 : R) ^ (P.parts.card - 1) * (P.parts.card - 1).factorial
-    rw [h_card]
+    rw [Finpartition.cumulantCoefficient, h_card, Finpartition.cumulantCoefficient]
   have h_block :
       (finpartition_subtypeEquiv B P).blockProduct (fun s : Finset B ↦ f (s.map φ)) =
         P.blockProduct f := by
     rw [Finpartition.blockProduct, Finpartition.blockProduct, h_parts]
-    rw [Finset.prod_image]
-    · apply Finset.prod_congr rfl
-      intro A hA
-      rw [h_roundtrip A hA]
-    · exact h_pre_inj
+    exact (Finset.prod_image h_pre_inj).trans
+      (Finset.prod_congr rfl (fun A hA => congrArg f (h_roundtrip A hA)))
   rw [h_coeff, h_block]
 
 /-- A block cumulant is the joint cumulant of the family restricted to that block.
@@ -284,57 +219,30 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
   -- If B is empty, both sides are 0 by the convention in cumulantTransform
   by_cases hB : B = ∅
   · simp [Finpartition.cumulantTransform, hB]
-  · have hB_ne : B ≠ ∅ := hB
-    -- Expand both sides using the nonempty case of cumulantTransform
-    have hU : (Finset.univ : Finset B) ≠ ∅ := by
-      intro h
-      exact hB_ne (Finset.attach_eq_empty_iff.mp ((Finset.univ_eq_attach B).symm.trans h))
-    simp only [Finpartition.cumulantTransform, if_neg hB_ne, if_neg hU]
-    -- The subtype embedding `φ : B ↪ ι` is the bridge between the two partition types:
-    -- `finpartition_subtypeEquiv` transports partitions of `B` to partitions of the full
-    -- subtype, and `finpartition_subtypeEquiv_summand` shows the cumulant summand is preserved.
-    let φ : B ↪ ι := Function.Embedding.subtype (fun x : ι ↦ x ∈ B)
+  · -- Expand both sides using the nonempty case of cumulantTransform
+    simp only [Finpartition.cumulantTransform, if_neg hB,
+      if_neg (by simpa [Finset.univ_eq_attach] using hB)]
     -- Reindex the cumulant sum along the subtype equivalence.  `finpartition_subtypeEquiv_summand`
     -- shows every summand is transported unchanged, and `Equiv.sum_comp` rewrites the transported
     -- sum back to the sum over partitions of the full subtype.
-    have h_reindex :
-        (∑ P : Finpartition B, P.cumulantCoefficient * P.blockProduct f) =
-          ∑ Q : Finpartition (Finset.univ : Finset B),
-            Q.cumulantCoefficient * Q.blockProduct (fun s : Finset B ↦ f (s.map φ)) := by
-      calc
-        (∑ P : Finpartition B, P.cumulantCoefficient * P.blockProduct f)
-            = ∑ P : Finpartition B,
-                (finpartition_subtypeEquiv B P).cumulantCoefficient *
-                  (finpartition_subtypeEquiv B P).blockProduct (fun s : Finset B ↦ f (s.map φ)) := by
-              apply Finset.sum_congr rfl
-              intro P _
-              exact finpartition_subtypeEquiv_summand B f P
-        _ = ∑ Q : Finpartition (Finset.univ : Finset B),
-              Q.cumulantCoefficient * Q.blockProduct (fun s : Finset B ↦ f (s.map φ)) := by
-              exact (finpartition_subtypeEquiv B).sum_comp
-                (fun Q : Finpartition (Finset.univ : Finset B) ↦
-                  Q.cumulantCoefficient * Q.blockProduct (fun s : Finset B ↦ f (s.map φ)))
-    simpa [φ] using h_reindex
+    rw [← (finpartition_subtypeEquiv B).sum_comp]
+    exact Finset.sum_congr rfl (fun P _ => finpartition_subtypeEquiv_summand B f P)
 
 /-- The block moment of a family `X` on a subset of `B` equals the block moment of the
 restricted family `X|_B`.
 
 Informal proof: The product of `X i` over a subset is the same whether indexed in `ι` or in the
 subtype `B`. -/
-lemma blockMoment_subtype [IsProbabilityMeasure μ]
-    (X : ι → Ω → ℝ) (B : Finset ι) (s : Finset B) :
+lemma blockMoment_subtype (X : ι → Ω → ℝ) (B : Finset ι) (s : Finset B) :
     blockMoment μ X (s.map (Function.Embedding.subtype (· ∈ B))) =
       blockMoment μ (fun i : B ↦ X i.1) s := by
-  sorry
+  simp [blockMoment]
 
 theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMeasure μ]
     (X : ι → Ω → ℝ) (B : Finset ι) :
     blockCumulant μ X B = jointCumulant μ (fun i : B ↦ X i.1) := by
-  dsimp [blockCumulant, jointCumulant]
-  rw [cumulantTransform_subtype B]
-  congr 1
-  ext s
-  rw [blockMoment_subtype]
+  rw [blockCumulant, jointCumulant, blockCumulant, cumulantTransform_subtype B]
+  simp [blockMoment_subtype]
 
 /-- A joint moment is the block moment on the universal set.
 

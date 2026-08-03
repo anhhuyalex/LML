@@ -98,18 +98,9 @@ def Pairing.blockProduct [CommMonoid R] {s : Finset α} (P : Pairing s)
 noncomputable def pairingSum [CommSemiring R] (f : Finset α → R) (s : Finset α) : R :=
   ∑ P : Pairing s, P.blockProduct f
 
-/-- Decompose the pairing sum by choosing the partner of a distinguished element.
-
-Informal proof: Every perfect matching of `s` pairs a distinguished element `a ∈ s` with a unique
-element `b ∈ s \ {a}`. Thus, the sum over all pairings of `s` equals the sum over all `b ∈ s \ {a}`
-of the block weight `f {a, b}` multiplied by the sum over all pairings of `s \ {a, b}`.
-This formalizes the recursive structure of perfect matchings. (Source: Perfect matching, Wikipedia, https://en.wikipedia.org/wiki/Perfect_matching) -/
-theorem pairingSum_erase {R : Type*} [CommSemiring R] (f : Finset α → R)
-    (s : Finset α) {a : α} (ha : a ∈ s) :
-    pairingSum f s =
-      ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) := by
-  sorry
-
+-- The recursive decomposition of `pairingSum` (`pairingSum_erase_aux` and
+-- `pairingSum_erase`) is defined after `Pairing.insertPair_parts` below, since the proof
+-- needs `Pairing.insertPair` and `Pairing.existsUnique_partner`.
 
 /-- Every pairing has half as many blocks as elements.
 
@@ -227,6 +218,19 @@ def _root_.Equiv.finsetOrderIso (e : α ≃ β) : Finset α ≃o Finset β where
   map_rel_iff' := by
     intro s t
     simp [Equiv.finsetCongr_apply]
+
+/-- Decompose the pairing sum by choosing the partner of a distinguished element.
+
+Informal proof: Every perfect matching of `s` pairs a distinguished element `a ∈ s` with a unique
+element `b ∈ s \ {a}`. Thus, the sum over all pairings of `s` equals the sum over all `b ∈ s \ {a}`
+of the block weight `f {a, b}` multiplied by the sum over all pairings of `s \ {a, b}`.
+This formalizes the recursive structure of perfect matchings. (Source: Perfect matching, Wikipedia, https://en.wikipedia.org/wiki/Perfect_matching) -/
+theorem pairingSum_erase {R : Type*} [CommSemiring R] (f : Finset α → R)
+    (s : Finset α) {a : α} (ha : a ∈ s) :
+    pairingSum f s =
+      ∑ b ∈ s.erase a, f {a, b} * pairingSum f ((s.erase a).erase b) := by
+  sorry
+
 
 /-- Reindex a finite partition along an equivalence. -/
 def mapEquiv [DecidableEq β] (e : α ≃ β) {s : Finset α} (P : Finpartition s) :
