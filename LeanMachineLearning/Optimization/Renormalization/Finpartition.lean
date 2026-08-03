@@ -24,8 +24,7 @@ It has no probability or measure-theory imports.
 
 ## Verified external API
 
-The declarations used from the pinned Mathlib revision were checked in
-`Renormalization/APIAudit.lean`: `Finpartition.map`, `Finpartition.bind`,
+The declarations used from the pinned Mathlib revision were checked in: `Finpartition.map`, `Finpartition.bind`,
 `Finpartition.bind_parts`, `Finpartition.mem_bind`, `Finpartition.card_bind`,
 `Finpartition.sum_card_parts`, `Equiv.finsetCongr`, `Finset.prod_biUnion`,
 `Finset.prod_sum`, `Fintype.prod_sum`, and
@@ -272,7 +271,6 @@ noncomputable abbrev Pairing.insertErasedPair (s : Finset α) (a : α) (ha : a �
     -- inserting `b` recovers `s.erase a`, and inserting `a` recovers `s`
     rw [Finset.insert_erase b.2, Finset.insert_erase ha])
 
-@[simp]
 lemma Pairing.insertErasedPair_parts (s : Finset α) (a : α) (ha : a ∈ s)
     (b : {b : α // b ∈ s.erase a}) (Q : Pairing ((s.erase a).erase b.1)) :
     (insertErasedPair s a ha b Q).1.parts = insert {a, b.1} Q.1.parts := by
@@ -1291,18 +1289,102 @@ theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
   · -- nonempty carrier: deferred to the Möbius-inversion identity for nonempty sets
     exact partitionTransform_cumulantTransform_of_nonempty f hs
 
+/-- The indiscrete partition has block product `f s` on a nonempty carrier. -/
+private lemma blockProduct_top [CommMonoid R] (f : Finset α → R) {s : Finset α} (hs : s ≠ ∅) :
+    (⊤ : Finpartition s).blockProduct f = f s := by
+  classical
+  have hparts : (⊤ : Finpartition s).parts = {s} := by
+    apply Finset.eq_singleton_iff_unique_mem.2
+    constructor
+    · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
+      have hB_eq : B = s :=
+        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
+      simpa [hB_eq] using hB
+    · exact fun D hD => Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+  simp [blockProduct, hparts]
+
+/-- If a part of `P` is the whole carrier, then `P` is the indiscrete partition. -/
+private lemma eq_top_of_mem_parts_eq_self {s : Finset α} (P : Finpartition s) {B : Finset α}
+    (hB : B ∈ P.parts) (hBs : B = s) :
+    P = ⊤ := by
+  classical
+  rcases eq_or_ne s ∅ with rfl | hs
+  · exact @Subsingleton.elim (Finpartition (⊥ : Finset α)) inferInstance P ⊤
+  · refine (Finpartition.eq_top_iff_card_parts_eq_one P hs).2 ?_
+    have hparts : P.parts = {s} := by
+      apply Finset.eq_singleton_iff_unique_mem.2
+      constructor
+      · simpa [hBs] using hB
+      · intro C hC
+        by_contra hCs
+        rcases Finset.nonempty_iff_ne_empty.2 (P.ne_empty hC) with ⟨x, hxC⟩
+        have hxB : x ∈ B := by
+          rw [hBs]
+          exact P.subset hC hxC
+        have hCB : C = B := P.eq_of_mem_parts hC hB hxC hxB
+        exact hCs (by rw [hCB, hBs])
+    rw [hparts]
+    simp
+
+/-- Every block of a non-top partition is a proper subset of the carrier, hence smaller. -/
+private lemma card_lt_card_of_mem_parts_of_ne_top {s : Finset α} (P : Finpartition s)
+    {B : Finset α} (hB : B ∈ P.parts) (hP : P ≠ ⊤) :
+    B.card < s.card := by
+  classical
+  exact Finset.card_lt_card (Finset.ssubset_iff_subset_ne.mpr
+    ⟨P.subset hB, fun hBs => hP (eq_top_of_mem_parts_eq_self P hB hBs)⟩)
+
+/-- The partition transform is injective on functions with prescribed value `0` at the empty set.
+
+Informal proof: argue by strong induction on `s.card`.  The empty case is exactly the two
+normalization hypotheses.  For a nonempty carrier `s`, split the defining sum
+`partitionTransform f s = ∑ P, P.blockProduct f` into the one-block partition `⊤`, whose
+contribution is `f s`, and the remaining partitions.  In any non-top partition every block is a
+proper subset of `s`, so the induction hypothesis identifies the block-products for `f` and `g`.
+The equality of the two partition transforms then cancels the equal lower-order remainder and
+leaves `f s = g s`.
+
+This is a triangularity/injectivity argument for the zeta transform on the finite partition
+poset.  It is equivalent to Möbius inversion; see Rota, *On the foundations of combinatorial
+theory I. Theory of Möbius functions*, and the project blueprint theorem
+`thm:renorm:partitionInversion`. -/
+private theorem partitionTransform_injective_of_empty [CommRing R] {f g : Finset α → R}
+    (hf : f ∅ = 0) (hg : g ∅ = 0)
+    (hfg : partitionTransform f = partitionTransform g) :
+    f = g := by
+  classical
+  -- A complete proof should implement the triangular induction described above.  The key
+  -- reusable sublemmas to extract are:
+  -- * `(⊤ : Finpartition s).blockProduct f = f s` for `s ≠ ∅`;
+  -- * if `P ≠ ⊤` and `B ∈ P.parts`, then `B.card < s.card`;
+  -- * the expansion of `partitionTransform f s` as the top summand plus the sum over
+  --   `(Finset.univ.erase (⊤ : Finpartition s))`.
+  funext s
+  rcases eq_or_ne s ∅ with rfl | hs
+  · rw [hf, hg]
+  · -- Nonempty carriers follow by strong induction on `s.card`, comparing the lower-order
+    -- summands using the induction hypothesis and cancelling them from `hfg` evaluated at `s`.
+    sorry
+
 /-- The cumulant transform inverts the partition transform for functions vanishing at the empty
 set.
 
-Informal proof: this is the converse direction of the same Möbius inversion on the partition
-lattice.
-The special value of `cumulantTransform` at the empty set agrees with the hypothesis `f ∅ = 0`.
+Informal proof: apply the already-proved forward inversion to the function `partitionTransform f`.
+Its value on the empty set is `1`, so
+`partitionTransform (cumulantTransform (partitionTransform f)) = partitionTransform f`.  The
+partition transform is triangular with leading term `f s` on each nonempty `s`; hence it is
+injective among functions with value `0` at the empty set.  Since `cumulantTransform` is
+conventionally `0` on the empty set and `f ∅ = 0`, this injectivity gives the result.
 (Source: Theory of Möbius Functions, Rota (1964),
 https://link.springer.com/article/10.1007/BF01899123) -/
 theorem cumulantTransform_partitionTransform [CommRing R] (f : Finset α → R)
     (hf : f ∅ = 0) :
     cumulantTransform (partitionTransform f) = f := by
-  sorry
+  classical
+  refine partitionTransform_injective_of_empty
+    (f := cumulantTransform (partitionTransform f)) (g := f) ?_ hf ?_
+  · simp [cumulantTransform]
+  · exact partitionTransform_cumulantTransform (partitionTransform f) (partitionTransform_empty f)
 
 end Finpartition
 

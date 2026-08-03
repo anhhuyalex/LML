@@ -17,6 +17,12 @@ reusable mathematical API needed by later formalizations of wide neural networks
   \item Gaussian initialization and the induced laws of activities on a finite dataset.
 \end{enumerate}
 
+Every formal declaration below ends with a ``Source in \texttt{Renormalization.md}'' paragraph.
+Section and equation identifiers such as \texttt{sec:not-Gauss} and \texttt{eq:cumu} are the literal
+labels in \texttt{docs/Renormalization.md}; subsection names are included when the source has no
+label.  When a declaration is a reusable abstraction or a rigorous correction rather than a
+verbatim source definition, the annotation says so explicitly.
+
 The implementation, including its initially generic supporting results, lives under
 \texttt{LeanMachineLearning/Optimization/Renormalization}.  Those supporting declarations should
 still be stated without optimization-specific assumptions and at a level suitable for eventual
@@ -175,6 +181,11 @@ and, for $B\subseteq\operatorname{Fin}(n)$ finite,
   m_\mu(X;B) := \int_\Omega \prod_{i\in B}X_i(\omega)\,d\mu(\omega).
 \]
 Thus $m_\mu(X;\varnothing)=\mu(\Omega)$; it is $1$ when $\mu$ is a probability measure.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Probability, Correlation and Statistics, and All That''
+(\texttt{sec:not-Gauss}), especially \texttt{eq:expectation-value-definition} and
+\texttt{eq:observables-and-moments}.
 \end{definition}
 
 The implementation should use \texttt{Finset.prod} directly.  It should not encode an
@@ -194,6 +205,10 @@ Joint moments satisfy the following reusable rules:
   \item replacing each $X_i$ by an almost-everywhere equal variable does not change the moment.
 \end{enumerate}
 Every statement that splits an integral must carry the necessary integrability assumptions.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss}, especially
+\texttt{eq:expectation-value-definition} and \texttt{eq:observables-and-moments}.
 \end{lemma}
 
 \begin{definition}[Parity invariance]
@@ -202,6 +217,11 @@ Every statement that splits an integral must carry the necessary integrability a
 A measure on a measurable additive group is parity-invariant if it is invariant under $x\mapsto-x$.
 Use Mathlib's class \texttt{Measure.IsNegInvariant}; do not introduce an LML duplicate.
 An observable $F$ is odd if $F(-x)=-F(x)$ and even if $F(-x)=F(x)$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Probability, Correlation and Statistics, and All That''
+(\texttt{sec:not-Gauss}), in the parity-symmetry discussion preceding \texttt{eq:C4} and following
+\texttt{eq:C4-reversed}.
 \end{definition}
 
 \begin{lemma}[Odd observables integrate to zero]
@@ -213,6 +233,11 @@ Let $\mu$ be finite and parity-invariant, and let $F:E\to\mathbb R$ be integrabl
   \int F\,d\mu=0.
 \]
 Consequently, the joint moment of an odd number of odd linear observables vanishes.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Sections \texttt{sec:Gauss} and \texttt{sec:not-Gauss}, in the discussions
+that odd Gaussian moments vanish and that parity symmetry forces odd moments and connected
+correlators to vanish.
 \end{lemma}
 
 \begin{proof}
@@ -237,6 +262,11 @@ For $f:\operatorname{Finset}(\alpha)\to R$, define
   :=\sum_{P\in\Pi(s)}\prod_{B\in P}f(B),
 \]
 where $\Pi(s)$ is the finite set of partitions of $s$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Probability, Correlation and Statistics, and All That''
+(\texttt{sec:not-Gauss}), especially the subdivision sum in \texttt{eq:cumu}.  This generic
+transform is the reusable finite-partition abstraction of that source formula.
 \end{definition}
 
 \begin{definition}[Cumulant transform]
@@ -250,6 +280,12 @@ For nonempty $s$, define
 \]
 and set $\mathcal K(f)(\varnothing)=0$.
 The factorial and sign are cast into $R$ explicitly.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Probability, Correlation and Statistics, and All That''
+(\texttt{sec:not-Gauss}), especially \texttt{eq:cumu} and its inversions
+\texttt{eq:C4-reversed}--\texttt{eq:C6}.  The M\"obius coefficient is the formal inversion of the
+source's inductive subdivision formula.
 \end{definition}
 
 \begin{theorem}[Moment--cumulant M\"obius inversion]
@@ -266,6 +302,11 @@ Conversely, if $k(\varnothing)=0$, then
   \mathcal K(\mathcal P(k))(s)=k(s)
 \]
 for every nonempty $s$, with the conventional value $\mathcal P(k)(\varnothing)=1$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss}; this is the formal M\"obius inversion of
+the moment decomposition \texttt{eq:cumu}, illustrated by \texttt{eq:C4-reversed} and
+\texttt{eq:C6}.
 \end{theorem}
 
 \begin{proof}
@@ -283,6 +324,11 @@ blocks, and keep all subsequent probability proofs independent of the combinator
 Finpartition.cumulantTransform_map}
 Both transforms commute with equivalences of finite index sets.  Partition products over
 \texttt{P.bind Q} factor into products over $P$ and over the refinements $Q(B)$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss}, where \texttt{eq:cumu} sums over unordered
+subdivisions and products their connected correlators.  These are the formal invariances implicit
+in that subdivision notation.
 \end{lemma}
 
 These are the reusable combinatorial lemmas: proofs of fourth-, sixth-, and eighth-order identities
@@ -300,6 +346,11 @@ For a probability measure $\mu$, define
   :=\mathcal K\bigl(B\mapsto m_\mu(X;B)\bigr)(\operatorname{univ}).
 \]
 The zeroth cumulant is $0$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Probability, Correlation and Statistics, and All That''
+(\texttt{sec:not-Gauss}), from the low-order definitions \texttt{eq:C1}, \texttt{eq:C2}, and
+\texttt{eq:C4}, and the general connected-correlator definition \texttt{eq:cumu}.
 \end{definition}
 
 \begin{theorem}[Moment as a sum of connected pieces]
@@ -313,6 +364,10 @@ For every $n$,
 \]
 The restriction to a block is performed through its subtype; no arbitrary ordering of a block is
 part of the public API.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss}, exactly the general connected-correlator
+decomposition \texttt{eq:cumu}.
 \end{theorem}
 
 \begin{lemma}[Low-order cumulants]
@@ -334,6 +389,10 @@ If $X_1,\ldots,X_4$ are centered and all odd block moments vanish, then
  &\quad-\mathbb E[X_1X_3]\mathbb E[X_2X_4]
    -\mathbb E[X_1X_4]\mathbb E[X_2X_3].
 \end{align*}
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss}, equations \texttt{eq:C1},
+\texttt{eq:C2}, \texttt{eq:C4}, and \texttt{eq:C4-reversed}.
 \end{lemma}
 
 \begin{lemma}[Symmetry, multilinearity, and independent splitting]
@@ -345,6 +404,11 @@ Renormalization.jointCumulant_eq_zero_of_indepFun_split}
 Joint cumulants are invariant under permutations and are linear in each argument when all required
 products are integrable.  If the variables split into two nonempty independent subfamilies, their
 joint cumulant is zero.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss} for the symmetry of \texttt{eq:cumu}, and
+subsection ``Aside: statistical independence and interactions'' in \texttt{sec:perturbation} for
+the independent-factorization principle.
 \end{lemma}
 
 \begin{proof}
@@ -365,6 +429,13 @@ For $X:\Omega\to\mathbb R$, define its $n$th scalar cumulant by
 \]
 This is a thin, discoverable wrapper around \texttt{ProbabilityTheory.cgf}; it is justified because
 Mathlib has no named scalar cumulant declaration.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Sections ``Gaussian Integrals'' (\texttt{sec:Gauss}) and ``Probability,
+Correlation and Statistics, and All That'' (\texttt{sec:not-Gauss}).  This is the analytic
+generating-function counterpart of the cumulants in \texttt{eq:C1}--\texttt{eq:cumu}, motivated by
+the source partition functions \texttt{eq:partition-function-single-variable-definition} and
+\texttt{eq:multi-variate-gaussian-partition}.
 \end{definition}
 
 \begin{theorem}[Analytic and combinatorial cumulants agree]
@@ -376,6 +447,11 @@ If $0$ lies in the interior of \texttt{integrableExpSet X}~$\mu$, then
   \operatorname{cumulant}_\mu(X,n)
   =\kappa_\mu(\underbrace{X,\ldots,X}_{n\text{ copies}}).
 \]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', the generating-function discussion in \texttt{sec:Gauss} together with the
+general cumulant definition \texttt{eq:cumu} in \texttt{sec:not-Gauss}.  This theorem is the formal
+bridge between those two presentations.
 \end{theorem}
 
 \begin{proof}
@@ -404,6 +480,11 @@ symmetric covariance kernel $C$ by
 \]
 Internally, the two elements of a block may be selected by \texttt{min'} and \texttt{max'}; prove
 once that the result is independent of orientation because $C$ is symmetric.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Gaussian Integrals'' (\texttt{sec:Gauss}), especially
+\texttt{eq:nice-formula-for-multivariable-moments}, \texttt{eq:Wick-second-moment},
+\texttt{eq:Wick-fourth-moment}, and the general Wick formula \texttt{eq:Wick-multi}.
 \end{definition}
 
 \begin{lemma}[Pairing API]
@@ -418,6 +499,10 @@ Wick sums satisfy the recurrence
   =\sum_{j=1}^{n+1}C(X_0,X_j)
      W_n(X_1,\ldots,\widehat{X_j},\ldots,X_{n+1}).
 \]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:Gauss}, especially the pairing count and Wick
+contractions surrounding \texttt{eq:Wick-fourth-moment} and \texttt{eq:Wick-multi}.
 \end{lemma}
 
 The recurrence is the preferred proof interface.  Cardinality formulae such as
@@ -432,6 +517,11 @@ For $v\in\mathbb R_{\geq0}$ and $m\in\mathbb N$,
  \int x^{2m+1}\,d\mathcal N(0,v)(x)&=0,\\
  \int x^{2m}\,d\mathcal N(0,v)(x)&=\frac{(2m)!}{2^m m!}v^m.
 \end{align*}
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Single-variable Gaussian integrals'' of
+\texttt{sec:Gauss}, especially \texttt{eq:single-variable-z-insertions} and
+\texttt{eq:single_Wick}.
 \end{theorem}
 
 \begin{proof}
@@ -456,6 +546,11 @@ Then
   =\operatorname{Wick}_C(0,\ldots,n-1).
 \]
 In particular, the left side is zero for odd $n$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Multivariable Gaussian integrals'' of
+\texttt{sec:Gauss}, especially \texttt{eq:nice-formula-for-multivariable-moments} and
+\texttt{eq:Wick-multi}.
 \end{theorem}
 
 \begin{proof}
@@ -477,6 +572,10 @@ $Z\sim\texttt{multivariateGaussian}\ m\ S$.  Then the centered coordinate correl
   \mathbb E\!\left[\prod_{r=1}^n(Z_{i_r}-m_{i_r})\right]
   =\sum_{P\text{ pairing}}\prod_{\{a,b\}\in P}S_{i_a i_b}.
 \]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Multivariable Gaussian integrals'' of
+\texttt{sec:Gauss}, the coordinate Wick formula \texttt{eq:Wick-multi}.
 \end{corollary}
 
 \begin{proof}
@@ -490,6 +589,11 @@ covariances with \texttt{ProbabilityTheory.covariance\_eval\_multivariateGaussia
 For centered continuous linear observables of a Gaussian measure, the joint cumulant is their
 covariance when $n=2$ and is zero when $n\neq2$.  For noncentered observables, the first cumulant is
 the mean, the second is the covariance, and every cumulant of order greater than $2$ vanishes.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:not-Gauss}, especially \texttt{eq:C4-gaussian} and the
+discussion following \texttt{eq:C6} that all Gaussian connected correlators above degree two
+vanish.
 \end{corollary}
 
 \section{Actions as exponential deformations}
@@ -513,6 +617,12 @@ Define
  Z_{\mu,V}(\epsilon)&:=\int e^{-\epsilon V}\,d\mu.
 \end{align*}
 If $Z_{\mu,V}(\epsilon)$ is finite and nonzero, \texttt{deform} is a probability measure.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Nearly-Gaussian Distributions'' (\texttt{sec:perturbation}),
+especially the action representation \texttt{eq:action-representation-of-distribution}, its
+normalization \texttt{eq:general-prob-ac-map}, and the quartic deformation
+\texttt{eq:quartic-action-intro}.
 \end{definition}
 
 \begin{lemma}[Exact normalized-expectation formula]
@@ -525,6 +635,11 @@ For a Banach-valued observable $O$,
  =\frac{\int e^{-\epsilon V}O\,d\mu}{Z_{\mu,V}(\epsilon)}.
 \]
 Scalar multiplication is used for vector-valued $O$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section \texttt{sec:perturbation}, the normalized action law
+\texttt{eq:general-prob-ac-map} and the normalized perturbative expectations in
+\texttt{eq:second-moment-interaction} and \texttt{eq:full-four-point-intro}.
 \end{lemma}
 
 \begin{proof}
@@ -543,6 +658,14 @@ For a Banach-valued $O$ and real $V$, define
 \]
 using scalar multiplication in the Banach space.  In the real-valued case this agrees with
 Mathlib's covariance after swapping arguments if necessary.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Nearly-Gaussian Distributions'' (\texttt{sec:perturbation}), in
+the first-order normalized-expectation calculations
+\texttt{eq:first-order-perturbation-theory-partition-function},
+\texttt{eq:second-moment-interaction}, and \texttt{eq:full-four-point-intro}.  The source does not
+name this Banach-valued covariance; it is the reusable formal coefficient extracted from those
+calculations.
 \end{definition}
 
 \begin{theorem}[Linear response for a nonnegative potential]
@@ -556,6 +679,12 @@ integrable.  Then
    \epsilon\mapsto\int O\,d\mu_{\epsilon,V},
    -\operatorname{Cov}_\mu(O,V),[0,\infty),0\right).
 \]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Quartic action and perturbation theory'' of
+\texttt{sec:perturbation}, equations \texttt{eq:first-order-perturbation-theory-partition-function},
+\texttt{eq:second-moment-interaction}, and \texttt{eq:full-four-point-intro}.  The one-sided
+derivative is the rigorous form of their first-order expansion.
 \end{theorem}
 
 \begin{proof}
@@ -583,6 +712,12 @@ $V^2$ and $V^2O$ are integrable, the remainder satisfies
    +\epsilon\operatorname{Cov}_\mu(O,V)\right)
  =O_{\operatorname{nhdsWithin}(0,[0,\infty))}(\epsilon\mapsto\epsilon^2).
 \]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Quartic action and perturbation theory'' of
+\texttt{sec:perturbation}, where the three displayed perturbative formulas retain an
+$O(\epsilon^2)$ remainder.  The explicit right-neighborhood filter corrects the source's schematic
+two-sided notation for nonnegative quartic potentials.
 \end{theorem}
 
 \begin{proof}
@@ -618,6 +753,12 @@ enough.
 \texttt{QuarticCoupling}~$\iota$ contains the coefficient function and a proof of invariance under
 permutations.  Nonnegativity is a separate predicate on its potential, since useful contraction
 identities need symmetry but not positivity.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Nearly-Gaussian Distributions'' (\texttt{sec:perturbation}),
+subsection ``Quartic action and perturbation theory'', especially
+\texttt{eq:quartic-action-intro} and its statement that the four-index coupling is completely
+symmetric.
 \end{definition}
 
 \begin{lemma}[Quartic potential moments]
@@ -630,6 +771,12 @@ The Gaussian expectations of $V_A$, $z_i z_jV_A$, and
 $z_i z_j z_k z_lV_A$ reduce to Wick sums.  Total symmetry of $A$ combines terms in the same orbit;
 the orbit multiplicities are respectively $3$, $3+12$, and the corresponding eighth-moment
 classes.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Quartic action and perturbation theory'' of
+\texttt{sec:perturbation}, the Wick expansions used in
+\texttt{eq:first-order-perturbation-theory-partition-function},
+\texttt{eq:second-moment-interaction}, and \texttt{eq:full-four-point-intro}.
 \end{lemma}
 
 This lemma must be proved from the pairing recurrence and finite-sum reindexing.  The proof should
@@ -648,6 +795,11 @@ If $V_A\geq0$, then, as $\epsilon\to0^+$,
 This is the \emph{relative} partition function.  The factor
 $\sqrt{\det(2\pi K)}$ from the source belongs only to an unnormalized Lebesgue-density
 presentation and cancels from every normalized expectation.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Quartic action and perturbation theory'' of
+\texttt{sec:perturbation}, exactly \texttt{eq:first-order-perturbation-theory-partition-function},
+with normalization recast relative to the Gaussian probability measure.
 \end{theorem}
 
 \begin{theorem}[Two-point linear response]
@@ -661,6 +813,10 @@ If $V_A\geq0$, then
    \sum_{a,b,c,d}A(a,b,c,d)K_{ia}K_{jb}K_{cd}+O(\epsilon^2),
 \]
 where the Big-O filter is the right-neighborhood of $0$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Quartic action and perturbation theory'' of
+\texttt{sec:perturbation}, the two-point expansion \texttt{eq:second-moment-interaction}.
 \end{theorem}
 
 \begin{theorem}[Connected four-point linear response]
@@ -675,6 +831,12 @@ If $V_A\geq0$, then
      K_{ia}K_{jb}K_{kc}K_{ld}+O(\epsilon^2)
 \]
 as $\epsilon\to0^+$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Quartic action and perturbation theory'' of
+\texttt{sec:perturbation}, the connected four-point expansion
+\texttt{eq:single-variable-connected-four-point}, derived from
+\texttt{eq:full-four-point-intro}.
 \end{theorem}
 
 \begin{proof}
@@ -694,6 +856,11 @@ equivalent terms into the displayed contraction and cancels the $1/4!$ in $V_A$.
 For an independent family $(X_i)$, a joint cumulant involving variables from at least two
 independent nonempty groups is zero.  In particular, after an orthogonal diagonalization of a
 Gaussian covariance, mixed connected correlators vanish.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', subsection ``Aside: statistical independence and interactions'' of
+\texttt{sec:perturbation}, especially \texttt{eq:independence-random-variables} and
+\texttt{eq:gaussian-statistical-independence-day}.
 \end{proposition}
 
 The first sentence is part of the core API and uses Mathlib's \texttt{iIndepFun}.  The second
@@ -712,6 +879,12 @@ $2m$,
    (\epsilon\mapsto\epsilon^{m-1}).
 \]
 The definition should accept an explicit set of admissible observables and an explicit filter.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Pretraining'', Section ``Nearly-Gaussian Distributions'' (\texttt{sec:perturbation}),
+subsection ``Nearly-Gaussian actions'', especially the hierarchy
+\texttt{eq:connected-correlator-hierarchy}.  The explicit filter and admissible-observable class
+make the source's schematic scaling into a well-typed proposition.
 \end{definition}
 
 This definition records scaling; it does not by itself assert convergence of measures or validity
@@ -821,6 +994,13 @@ Mathlib at the pinned revision has no \texttt{Real.erf}; defining GELU through t
 inventing that declaration.  The source's error function is instead defined as the displayed
 interval integral \texttt{gaussianErf};
 \texttt{standardNormalCDF\_eq\_erf} and \texttt{gelu\_eq\_erf} state the exact bridge.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Activation Functions'' (\texttt{sec:activations}), including
+the ``Perceptron'', ``Sigmoid'', ``Tanh'', ``Sin'', ``Scale-invariant'', and ``ReLU-like''
+subsections.  The principal displayed formulas are \texttt{eq:sigmoid},
+\texttt{eq:scale-invariant-def}, and \texttt{eq:softplus}; the SWISH, GELU, and error-function
+displays immediately follow \texttt{eq:softplus}.
 \end{definition}
 
 \begin{lemma}[Measurability and continuity of activations]
@@ -829,12 +1009,20 @@ interval integral \texttt{gaussianErf};
 \lean{NeuralNetwork.measurable_threshold, NeuralNetwork.continuous_logistic,
 NeuralNetwork.continuous_relu, NeuralNetwork.continuous_leakyRelu,
 NeuralNetwork.continuous_softplus, NeuralNetwork.continuous_swish,
-NeuralNetwork.continuous_gelu, NeuralNetwork.smooth_activations,
-NeuralNetwork.not_continuousAt_threshold_zero}
+NeuralNetwork.continuous_gelu, NeuralNetwork.contDiff_logistic,
+NeuralNetwork.contDiff_tanhActivation, NeuralNetwork.contDiff_sinActivation,
+NeuralNetwork.contDiff_softplus, NeuralNetwork.contDiff_swish,
+NeuralNetwork.contDiff_gaussianErf, NeuralNetwork.contDiff_standardNormalCDF,
+NeuralNetwork.contDiff_gelu, NeuralNetwork.not_continuousAt_threshold_zero}
 Threshold is Borel measurable and discontinuous at zero.  Logistic, ReLU, leaky ReLU, softplus,
 SWISH, and GELU are continuous.  Logistic, tanh, sine, softplus, SWISH, the error function, the
 standard normal CDF, and GELU are smooth.  Every activation used to form an induced law has a named
 measurability theorem.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:activations}, throughout the activation catalogue;
+continuity and smoothness are asserted in the sigmoid, tanh, and ReLU-like subsections, while the
+perceptron display shows the threshold jump.
 \end{lemma}
 
 \begin{proof}
@@ -851,6 +1039,11 @@ An activation is positively one-homogeneous when
 \[
   \forall \lambda>0,\ \forall z,\qquad \sigma(\lambda z)=\lambda\sigma(z).
 \]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Activation Functions'' (\texttt{sec:activations}), subsection
+``Scale-invariant: linear, ReLU, and leaky ReLU'', specifically
+\texttt{eq:scale-invariant-def-first}.
 \end{definition}
 
 \begin{theorem}[Classification of scalar positively homogeneous activations]
@@ -865,6 +1058,11 @@ $a_+,a_-\in\mathbb R$ such that
 \]
 One may take $a_+=\sigma(1)$ and $a_-=-\sigma(-1)$.  No continuity or differentiability hypothesis
 is necessary.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:activations}, subsection ``Scale-invariant: linear,
+ReLU, and leaky ReLU'', equations \texttt{eq:scale-invariant-def-first} and
+\texttt{eq:scale-invariant-def}, including the source footnote claiming necessity.
 \end{theorem}
 
 \begin{proof}
@@ -880,8 +1078,12 @@ present in the statement.
 \uses{def:renorm:activations, thm:renorm:posHomogeneousClassification}
 \lean{NeuralNetwork.logistic_eq_half_add_half_tanh,
 NeuralNetwork.tanh_eq_exp_div, NeuralNetwork.tanh_eq_exp_two_mul,
-NeuralNetwork.gelu_eq_erf, NeuralNetwork.activation_asymptotics,
-NeuralNetwork.nonhomogeneous_activations,
+NeuralNetwork.gelu_eq_erf, NeuralNetwork.tendsto_logistic_atTop,
+NeuralNetwork.tendsto_logistic_atBot, NeuralNetwork.tendsto_tanh_atTop,
+NeuralNetwork.tendsto_tanh_atBot, NeuralNetwork.tendsto_softplus_sub_id_atTop,
+NeuralNetwork.tendsto_softplus_div_exp_atBot, NeuralNetwork.tendsto_swish_sub_id_atTop,
+NeuralNetwork.tendsto_swish_atBot, NeuralNetwork.tendsto_gelu_sub_id_atTop,
+NeuralNetwork.tendsto_gelu_atBot, NeuralNetwork.nonhomogeneous_activations,
 NeuralNetwork.not_posHomogeneous_threshold,
 NeuralNetwork.not_posHomogeneous_logistic,
 NeuralNetwork.differentiableAt_piecewiseLinear_zero_iff}
@@ -889,6 +1091,11 @@ The exact exponential, logistic--tanh, and CDF--error-function identities all ho
 Every informal approximation in the activation section is represented by a Tendsto statement.
 Threshold, logistic, tanh, softplus, SWISH, and GELU are not positively homogeneous.  Finally,
 \texttt{piecewiseLinear aPos aNeg} is differentiable at zero exactly when the slopes agree.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:activations}: \texttt{eq:sigmoid}; the tanh, sin,
+scale-invariant, and ReLU-like subsections; and the asymptotic and intrinsic-scale prose following
+their displayed formulas.
 \end{theorem}
 
 \subsection{Affine layers and compositional MLPs}
@@ -920,6 +1127,11 @@ For $x:I\to\mathbb R$, define
 \]
 The implementation is a thin wrapper around \texttt{Matrix.mulVec}; its coordinate simp lemma is
 part of the public API.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), especially
+the neuron preactivation \texttt{eq:preactivation} and the immediately following coordinatewise
+activation display.
 \end{definition}
 
 \begin{lemma}[Dense-layer regularity]
@@ -932,6 +1144,11 @@ NeuralNetwork.DenseLayer.continuous_activate}
 Preactivation is jointly continuous, hence jointly measurable, in parameters and input.  Activation
 is jointly measurable when $\sigma$ is measurable and jointly continuous when $\sigma$ is
 continuous.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_intro}, the affine neuron formula
+\texttt{eq:preactivation} and its coordinatewise activation.  Joint parameter/input regularity is
+the formal condition required later by the source's induced-distribution integrals.
 \end{lemma}
 
 These joint statements are more reusable than a theorem with fixed weights: they directly justify
@@ -953,6 +1170,11 @@ Ill-shaped layer composition is unrepresentable.  \texttt{DenseLayer} supports a
 index types, while the first stable \texttt{MLP} implementation is indexed by numerical widths and
 uses \texttt{Fin n}.  This is the verified width-indexed fallback anticipated in Phase~N2: it avoids
 ambiguous stored \texttt{Fintype} dictionaries in GADT recursion without weakening shape safety.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), especially
+the recursive MLP equations \texttt{eq:mlp-definition} and the subsequent display
+$f(x;\theta)=z^{(L)}(x)$.
 \end{definition}
 
 \begin{lemma}[Evaluation recursion and composition]
@@ -962,6 +1184,10 @@ ambiguous stored \texttt{Fintype} dictionaries in GADT recursion without weakeni
 NeuralNetwork.MLP.measurable_eval, NeuralNetwork.MLP.continuous_eval}
 The two recursion equations above are simp lemmas.  If $\sigma$ is measurable (respectively
 continuous), evaluation by a fixed MLP is measurable (respectively continuous).
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_intro}, the recursive network equations
+\texttt{eq:mlp-definition} and the final-output display $f(x;\theta)=z^{(L)}(x)$.
 \end{lemma}
 
 \begin{definition}[Fixed shape and explicit parameter space]
@@ -976,6 +1202,12 @@ $f(x;\theta)$ is literally \texttt{MLPShape.eval S sigma theta x}, and
 \texttt{MLPShape.paramModel} packages it with joint measurability for the generic induced-law API.
 This separates architecture hyperparameters from model parameters instead of treating an already
 instantiated \texttt{MLP} as its own parameter space.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), beginning
+with the parameterized family $\{f(x;\theta)\}$ and continuing through the MLP discussion after
+\texttt{eq:mlp-definition}, where $\theta$ is defined as the union of all layer biases and weights.
+The dependent \texttt{Params} type is the formal shape-safe realization of that prose.
 \end{definition}
 
 \begin{definition}[Parameter count]
@@ -992,6 +1224,12 @@ $n_0,\ldots,n_L$, prove
   \operatorname{paramCount}=\sum_{\ell=1}^{L}(n_\ell+n_\ell n_{\ell-1}).
 \]
 The source's example with widths $(4,5,5,5,1)$ is a compile-time test whose result is $91$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), in the
+paragraph following \texttt{eq:mlp-definition} that defines depth and widths, gives
+$P=\sum_{\ell=1}^{L}(n_\ell+n_\ell n_{\ell-1})$, and records the $(4,5,5,5,1)$ example in the MLP
+figure caption.
 \end{definition}
 
 \begin{definition}[Evaluation on a finite dataset]
@@ -1004,6 +1242,12 @@ For a finite sample type $A$ and data $D:A\to(I\to\mathbb R)$, define
 \]
 Keep sample indices and neural indices in separate arguments.  This makes the intended output type
 $A\to(J\to\mathbb R)$ explicit and prevents accidental transposition of the two indices.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}) for the
+dataset and sample-index conventions, together with Section ``Ensembles''
+(\texttt{sec:MLP_distribution}), subsection ``Induced distributions'', where the output array is
+indexed simultaneously by neuron $i$ and sample $\alpha$.
 \end{definition}
 
 \begin{lemma}[Identical neurons and zero initialization]
@@ -1013,6 +1257,11 @@ $A\to(J\to\mathbb R)$ explicit and prevents accidental transposition of the two 
 If two output neurons have equal weight rows and equal biases, their preactivations agree on every
 input.  In particular, all output coordinates of a zero-initialized layer agree.  This is the exact
 algebraic content of the source's symmetry observation; persistence under training is not claimed.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, the zero-initialization and
+permutation-symmetry discussion immediately before the subsection ``Initialization distribution of
+biases and weights''.
 \end{lemma}
 
 \begin{definition}[Two-dimensional convolutional layer]
@@ -1032,6 +1281,11 @@ whose $W_{ij}$ omits offset indices, is the specialization
 For each spatial position, \texttt{preactivation\_eq\_toLocalDenseLayer} identifies the result with
 one fixed dense affine map applied to the extracted local patch; the fact that this dense layer is
 independent of absolute position is the exact weight-tying claim.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}), in the CNN
+example \texttt{eq:conv-layer} and the following prose defining channels, spatial coordinates,
+local windows, shared weights, and weight tying.
 \end{definition}
 
 \begin{theorem}[Translation equivariance]
@@ -1040,6 +1294,11 @@ independent of absolute position is the exact weight-tying claim.
 \lean{NeuralNetwork.Conv2DLayer.preactivation_shift}
 Convolution commutes with every spatial shift.  This is equivariance, not invariance; the source's
 phrase ``translational invariance'' requires an invariant readout such as global pooling.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_intro}, the CNN discussion containing
+\texttt{eq:conv-layer} and the claim that shared spatial weights encode translational behavior.  The
+blueprint states the mathematically correct equivariance consequence of that source construction.
 \end{theorem}
 
 \subsection{Parameterized models, Dirac laws, and pushforwards}
@@ -1052,6 +1311,13 @@ $F:\Theta\to X\to Y$ together with measurability of
 $(\theta,x)\mapsto F(\theta,x)$.  The structure is deliberately architecture-agnostic: dense
 layers, MLPs with a fixed shape, convolutional networks, and other future models can all instantiate
 it.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP_intro}) for the
+general parameterized family $f(x;\theta)$, and Section ``Ensembles''
+(\texttt{sec:MLP_distribution}), especially the generic model in
+\texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.  Joint measurability is the formal hypothesis
+needed to turn that source notation into a measure pushforward.
 \end{definition}
 
 \begin{definition}[Induced output law]
@@ -1065,6 +1331,11 @@ For finite $A$, dataset $D:A\to X$, and parameter measure $\mu$, define
 \]
 The batched evaluator has a named measurability theorem, so \texttt{Measure.map} never falls back to
 zero because of an unproved measurability obligation.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+``Induced distributions'', especially \texttt{eq:gigantic-beast-that-we-tame}; the later generic
+Dirac form is \texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
 \end{definition}
 
 \begin{lemma}[Observable formula for an induced law]
@@ -1078,6 +1349,11 @@ hypotheses,
  =\int G\bigl(a\mapsto F(\theta,D(a))\bigr)\,d\mu(\theta).
 \]
 If $\mu$ is a probability measure, so is the output law.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Induced
+distributions'', especially \texttt{eq:gigantic-beast-that-we-tame}.  This is its test-observable
+pushforward formula.
 \end{lemma}
 
 \begin{definition}[Deterministic conditional output]
@@ -1095,6 +1371,14 @@ useful orientations: \texttt{deterministicOutputKernel} fixes parameters and var
 whereas \texttt{parameterOutputKernel} fixes a dataset and varies parameters.  Integrating the
 latter against the parameter law recovers Definition~\ref{def:renorm:outputLaw} through
 \texttt{Measure.deterministic\_comp\_eq\_map}.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsections
+``Deterministic distributions and the Dirac delta function'' and ``Induced distributions, redux''.
+It formalizes the conditional deterministic factors in
+\texttt{eq:first-layer-formal-expression-first-encounter},
+\texttt{eq:deeper-layer-formal-expression-first-encounter}, and
+\texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
 \end{definition}
 
 \begin{lemma}[Dirac expectation and variance]
@@ -1109,6 +1393,12 @@ For every $s\in\mathbb R$,
 under exactly the measurability assumptions required by Mathlib's Dirac integral theorem.
 These are small discoverability wrappers; the proof must reuse \texttt{integral\_dirac} rather than
 rebuild Dirac integration.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Deterministic
+distributions and the Dirac delta function'', equations \texttt{eq:dirac-mean},
+\texttt{eq:dirac-variance-zero}, \texttt{eq:dirac-variance}, and
+\texttt{eq:dirac-defining-property}.
 \end{lemma}
 
 \begin{theorem}[Self-averaging characterizes a point mass]
@@ -1119,6 +1409,11 @@ For a probability measure $\mu$ on $\mathbb R$, the identity
 $\int f\,d\mu=f(s)$ for every bounded continuous $f$ holds if and only if
 $\mu=\delta_s$.  Bounded continuous observables are integrable under every probability law and
 separate finite Borel measures.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, the self-averaging footnote
+attached to \texttt{eq:dirac-delta-normalization} and the defining property
+\texttt{eq:dirac-defining-property}.
 \end{theorem}
 
 \begin{lemma}[Characteristic function of a deterministic law]
@@ -1126,6 +1421,12 @@ separate finite Borel measures.
 \lean{NeuralNetwork.charFun_dirac}
 The characteristic function of $\delta_s$ is $t\mapsto e^{its}$.  This is the rigorous replacement
 in the initial library for the source's formal Fourier integral representation of $\delta$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Deterministic
+distributions and the Dirac delta function'', especially the Fourier display
+\texttt{eq:integral-form-delta-function}.  The characteristic function is the ordinary
+measure-theoretic statement extracted from that formal representation.
 \end{lemma}
 
 \begin{theorem}[Gaussian regularization and the Dirac limit]
@@ -1138,6 +1439,11 @@ For $K>0$, the regularized Fourier integral is an ordinary Gaussian integral and
 Gaussian density.  At $K=0$, the bare complex exponential has norm one and is not Lebesgue
 integrable.  This records both the rigorous content and the exact failure of the source's
 pointwise Fourier display.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, equations
+\texttt{eq:gaussian-limit-delta-function} and \texttt{eq:integral-form-delta-function}, together with
+the source warning that the Gaussian limit is taken only after integration against a test function.
 \end{theorem}
 
 \subsection{Independent Gaussian initialization}
@@ -1150,6 +1456,12 @@ $C_b,C_W\in\mathbb R_{\ge0}$.  The variance of every weight is $C_W/|I|$ and the
 bias is $C_b$.  The implementation leaves NNReal division total at $|I|=0$ (where it returns zero),
 so the measure exists for empty shapes; any theorem interpreting this as fan-in normalization may
 add \texttt{Nonempty I}.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+``Initialization distribution of biases and weights'', specifically
+\texttt{eq:bias-variance-def-naive} and \texttt{eq:weight-variance-def-naive}, followed by the prose
+defining layer-dependent initialization hyperparameters.
 \end{definition}
 
 \begin{definition}[Gaussian layer-parameter law]
@@ -1168,6 +1480,13 @@ Take their product as \texttt{LayerParams}, the canonical raw measurable paramet
 \texttt{DenseLayer.ofParams} is the deterministic conversion used by evaluation.  The construction
 uses finite \texttt{Measure.pi}; no \texttt{Fintype} instance is requested for an infinite index
 type, and no blanket \texttt{IsGaussian (Measure.pi ...)} instance is assumed.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+``Initialization distribution of biases and weights''.  The scalar marginal densities are
+\texttt{eq:full-bias-initialization} and \texttt{eq:full-weights-initialization}; independence is
+asserted with the covariance formulas \texttt{eq:bias-variance-def-naive} and
+\texttt{eq:weight-variance-def-naive}.
 \end{definition}
 
 \begin{lemma}[Coordinate laws and independence]
@@ -1185,6 +1504,11 @@ Every bias coordinate has law $\mathcal N(0,C_b)$, every weight coordinate has l
 $\mathcal N(0,C_W/|I|)$, all coordinates within each family are independent, and the bias and weight
 families are independent.  Consequently their means, variances, and off-diagonal covariances are
 exactly the Kronecker-delta formulas in the source.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Initialization
+distribution of biases and weights'', equations \texttt{eq:bias-variance-def-naive} and
+\texttt{eq:weight-variance-def-naive}, including the accompanying independence claim.
 \end{lemma}
 
 \begin{lemma}[Displayed initialization densities]
@@ -1203,6 +1527,11 @@ fan-in form
 \]
 The nonzero assumptions are essential: at variance zero the law is Dirac and has no Lebesgue
 density.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Initialization
+distribution of biases and weights'', exactly \texttt{eq:full-bias-initialization} and
+\texttt{eq:full-weights-initialization}.
 \end{lemma}
 
 \begin{proof}
@@ -1218,6 +1547,12 @@ coordinate lemma once; do not repeat product-measure calculations for weights, b
 \lean{NeuralNetwork.isProbabilityMeasure_layerGaussianInit}
 The Gaussian layer initialization is a probability measure, including when either variance is
 zero.  A separate density theorem may assume $C_b>0$ and $C_W>0$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, subsection ``Initialization
+distribution of biases and weights'', where the two displayed Gaussian densities are normalized
+initialization distributions.  The zero-variance extension is the measure-theoretic completion of
+that source specification.
 \end{lemma}
 
 \begin{definition}[Full-network Gaussian initialization]
@@ -1237,6 +1572,13 @@ Define the law $p_S(d\theta)$ on \texttt{S.Params} recursively by
 where $\nu_1$ is Definition~\ref{def:renorm:layerGaussianInit} for the first layer.  Thus the source's
 $p(\theta)$ is an actual probability measure on the exact dependent parameter space used by
 $f(x;\theta)$, rather than an informal product of scalar densities.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}).  It combines the
+layerwise initialization subsection with the all-parameter law $p(\theta)$ in
+\texttt{eq:gigantic-beast-that-we-tame} and
+\texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.  This recursive product is a formal elaboration
+of the source's product over every parameter, not an additional modeling assumption.
 \end{definition}
 
 \begin{theorem}[Full-network coordinate laws and independence]
@@ -1251,6 +1593,12 @@ the variance prescribed for its layer and coordinate kind, and the family indexe
 \texttt{S.Coordinate} is jointly independent.  This is stronger and more precise than merely listing
 pairwise zero covariances: it formalizes the chapter's claim that every bias and weight in every
 layer is sampled independently.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}; it combines the layerwise
+independence claim in the initialization subsection with the all-parameter $p(\theta)$ integrated in
+\texttt{eq:gigantic-beast-that-we-tame} and
+\texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
 \end{theorem}
 
 \subsection{Gaussian laws of layer preactivations}
@@ -1267,6 +1615,13 @@ Define the covariance matrix
 \lean{NeuralNetwork.layerCovariance}
 Equation~\eqref{eq:renorm:layerCovariance} defines a matrix on the sample index type.  For a deeper
 layer, replace $s(a)_i$ by $\sigma(z_i(a))$; the same definition is reused.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), obtained by
+combining \texttt{eq:bias-variance-def-naive}, \texttt{eq:weight-variance-def-naive}, and the affine
+sums inside \texttt{eq:first-layer-formal-expression-first-encounter} and
+\texttt{eq:deeper-layer-formal-expression-first-encounter}.  The source does not name $K_s$ in
+Chapter~2; this is the reusable covariance extracted from those equations.
 \end{definition}
 
 \begin{lemma}[Layer covariance is positive semidefinite]
@@ -1274,6 +1629,12 @@ layer, replace $s(a)_i$ by $\sigma(z_i(a))$; the same definition is reused.
 \uses{def:renorm:layerCovariance}
 \lean{NeuralNetwork.layerCovariance_posSemidef}
 For nonnegative $C_b,C_W$, $K_s$ is symmetric and positive semidefinite.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}; the covariance is derived from
+\texttt{eq:bias-variance-def-naive}, \texttt{eq:weight-variance-def-naive}, and the affine sums in
+the first- and deeper-layer conditional-law displays.  Positive semidefiniteness is the formal
+well-formedness obligation implicit in treating that covariance as Gaussian.
 \end{lemma}
 
 \begin{proof}
@@ -1300,6 +1661,11 @@ $J\to\texttt{EuclideanSpace }\mathbb R\ A$, the result is
 \]
 In particular, different output neurons are independent and identically distributed, while the
 sample coordinates for one neuron have covariance $K_s$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, the one-layer induced law
+\texttt{eq:first-layer-formal-expression-first-encounter}, specialized to the independent Gaussian
+initialization of the preceding subsection.
 \end{theorem}
 
 \begin{proof}
@@ -1322,6 +1688,12 @@ Given a parameter measure $\nu$ and a jointly measurable layer evaluator $F$, de
 \]
 Construct it from \texttt{Kernel.id}, \texttt{Kernel.const}, kernel products, and
 \texttt{Kernel.map}, rather than hand-proving measurability of $x\mapsto\nu(F_x^{-1}(B))$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP_distribution}), subsection
+``Induced distributions, redux'', especially the conditional deeper-layer law
+\texttt{eq:deeper-layer-formal-expression-first-encounter}.  The kernel is the rigorous
+measure-theoretic replacement for that equation's parameter integrals and product of Dirac deltas.
 \end{definition}
 
 \begin{theorem}[Deep ensemble law by kernel composition]
@@ -1337,6 +1709,12 @@ between consecutive affine layers, gives the induced law of the final MLP output
 batch, this recursive law equals the output law obtained by pushing
 Definition~\ref{def:renorm:mlpGaussianInit} through \texttt{MLPShape.eval}.  At a deeper layer its
 conditional covariance is Equation~\eqref{eq:renorm:layerCovariance} with $s=\sigma\circ z$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP_distribution}, equations
+\texttt{eq:first-layer-formal-expression-first-encounter},
+\texttt{eq:deeper-layer-formal-expression-first-encounter}, and the generic output law
+\texttt{eq:gigantic-beast-that-we-tame-with-Dirac}.
 \end{theorem}
 
 The kernel theorem is the formal replacement for the products of Dirac deltas in the source's

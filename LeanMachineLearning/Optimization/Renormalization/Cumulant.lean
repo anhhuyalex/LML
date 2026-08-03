@@ -56,13 +56,13 @@ theorem jointCumulant_zero (X : Fin 0 → Ω → ℝ) :
     jointCumulant μ X = 0 := by
   simp [jointCumulant, blockCumulant, Finpartition.cumulantTransform]
 
--- The canonical equivalence between partitions of a finset `B : Finset ι` and partitions of the
--- full subtype `{x : ι // x ∈ B}`.  Each block is transported by the preimage/image correspondence
--- induced by the injective subtype embedding: a block `A ⊆ B` becomes `{x : B | x.1 ∈ A}` and a
--- block `C : Finset B` becomes `C.map φ`.  Both round-trips are the standard
--- `Finset.preimage_map`/preimage-of-image identities, and `Finset.univ.map φ = B` supplies the
--- coverage.  Used by `cumulantTransform_subtype` to reindex the cumulant sum.
-def finpartition_subtypeEquiv [DecidableEq ι] (B : Finset ι) :
+/-- The canonical equivalence between partitions of a finset `B : Finset ι` and partitions of the
+full subtype `{x : ι // x ∈ B}`.  Each block is transported by the preimage/image correspondence
+induced by the injective subtype embedding: a block `A ⊆ B` becomes `{x : B | x.1 ∈ A}` and a
+block `C : Finset B` becomes `C.map φ`.  Both round-trips are the standard
+`Finset.preimage_map`/preimage-of-image identities, and `Finset.univ.map φ = B` supplies the
+coverage.  Used by `cumulantTransform_subtype` to reindex the cumulant sum. -/
+def finpartitionSubtypeEquiv [DecidableEq ι] (B : Finset ι) :
     Finpartition B ≃ Finpartition (Finset.univ : Finset B) := by
   classical
   -- The injective subtype embedding `φ : B ↪ ι` moves blocks between the two worlds.
@@ -166,16 +166,16 @@ def finpartition_subtypeEquiv [DecidableEq ι] (B : Finset ι) :
 -- coefficient) is unchanged, and the block products correspond via the preimage/image round-trip
 -- `(A.preimage φ _).map φ = A` for parts of `P`.  Used by `cumulantTransform_subtype` to replace
 -- each summand by its transported image before reindexing.
-private lemma finpartition_subtypeEquiv_summand [DecidableEq ι] {R : Type*} [CommRing R]
+private lemma finpartitionSubtypeEquiv_summand [DecidableEq ι] {R : Type*} [CommRing R]
     (B : Finset ι) (f : Finset ι → R) (P : Finpartition B) :
     P.cumulantCoefficient * P.blockProduct f =
-      (finpartition_subtypeEquiv B P).cumulantCoefficient *
-        (finpartition_subtypeEquiv B P).blockProduct
+      (finpartitionSubtypeEquiv B P).cumulantCoefficient *
+        (finpartitionSubtypeEquiv B P).blockProduct
           (fun s : Finset B ↦ f (s.map (Function.Embedding.subtype (· ∈ B)))) := by
   classical
   let φ : B ↪ ι := Function.Embedding.subtype (fun x : ι ↦ x ∈ B)
   let pre : Finset ι → Finset B := fun A ↦ A.preimage φ φ.injective.injOn
-  have h_parts : (finpartition_subtypeEquiv B P).parts = P.parts.image pre := rfl
+  have h_parts : (finpartitionSubtypeEquiv B P).parts = P.parts.image pre := rfl
   have h_roundtrip : ∀ A ∈ P.parts, (pre A).map φ = A := by
     intro A hA
     apply Finset.ext
@@ -190,14 +190,14 @@ private lemma finpartition_subtypeEquiv_summand [DecidableEq ι] {R : Type*} [Co
     intro A hA A' hA' hAA'
     simpa [h_roundtrip A hA, h_roundtrip A' hA'] using
       congrArg (fun C : Finset B ↦ C.map φ) hAA'
-  have h_card : (finpartition_subtypeEquiv B P).parts.card = P.parts.card := by
+  have h_card : (finpartitionSubtypeEquiv B P).parts.card = P.parts.card := by
     rw [h_parts, Finset.card_image_of_injOn h_pre_inj]
   have h_coeff :
-      Finpartition.cumulantCoefficient (R := R) (finpartition_subtypeEquiv B P) =
+      Finpartition.cumulantCoefficient (R := R) (finpartitionSubtypeEquiv B P) =
         Finpartition.cumulantCoefficient (R := R) P := by
     rw [Finpartition.cumulantCoefficient, h_card, Finpartition.cumulantCoefficient]
   have h_block :
-      (finpartition_subtypeEquiv B P).blockProduct (fun s : Finset B ↦ f (s.map φ)) =
+      (finpartitionSubtypeEquiv B P).blockProduct (fun s : Finset B ↦ f (s.map φ)) =
         P.blockProduct f := by
     rw [Finpartition.blockProduct, Finpartition.blockProduct, h_parts]
     exact (Finset.prod_image h_pre_inj).trans
@@ -222,11 +222,11 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
   · -- Expand both sides using the nonempty case of cumulantTransform
     simp only [Finpartition.cumulantTransform, if_neg hB,
       if_neg (show (Finset.univ : Finset B) ≠ ∅ by simpa [Finset.univ_eq_attach] using hB)]
-    -- Reindex the cumulant sum along the subtype equivalence.  `finpartition_subtypeEquiv_summand`
+    -- Reindex the cumulant sum along the subtype equivalence.  `finpartitionSubtypeEquiv_summand`
     -- shows every summand is transported unchanged, and `Equiv.sum_comp` rewrites the transported
     -- sum back to the sum over partitions of the full subtype.
-    rw [← (finpartition_subtypeEquiv B).sum_comp]
-    exact Finset.sum_congr rfl (fun P _ => finpartition_subtypeEquiv_summand B f P)
+    rw [← (finpartitionSubtypeEquiv B).sum_comp]
+    exact Finset.sum_congr rfl (fun P _ => finpartitionSubtypeEquiv_summand B f P)
 
 /-- The block moment of a family `X` on a subset of `B` equals the block moment of the
 restricted family `X|_B`.
@@ -243,7 +243,7 @@ lemma blockMoment_subtype (X : ι → Ω → ℝ) (B : Finset ι) (s : Finset B)
   -- A product over the mapped block reindexes to `s` by `Finset.prod_map`.
   exact Finset.prod_map s (Function.Embedding.subtype (· ∈ B)) (fun i : ι ↦ X i ω)
 
-theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMeasure μ]
+theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι]
     (X : ι → Ω → ℝ) (B : Finset ι) :
     blockCumulant μ X B = jointCumulant μ (fun i : B ↦ X i.1) := by
   dsimp [blockCumulant, jointCumulant]
@@ -256,8 +256,7 @@ theorem blockCumulant_eq_jointCumulant_subtype [DecidableEq ι] [IsProbabilityMe
 
 Informal proof: The joint moment is defined as the integral of the product of all `X i`, which
 matches `blockMoment` on `univ`. -/
-lemma jointMoment_eq_blockMoment_univ [Fintype ι]
-    [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) :
+lemma jointMoment_eq_blockMoment_univ [Fintype ι] (X : ι → Ω → ℝ) :
     jointMoment μ X = blockMoment μ X Finset.univ := by
   rfl
 
@@ -741,7 +740,7 @@ lemma cumulantTransform_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [Decida
           ext B
           simp [h, hround]
 
-lemma blockMoment_map_equiv [IsProbabilityMeasure μ]
+lemma blockMoment_map_equiv
     (e : ι ≃ κ) (X : ι → Ω → ℝ) (s : Finset κ) :
     blockMoment μ (fun j ↦ X (e.symm j)) s = blockMoment μ X (s.map e.symm.toEmbedding) := by
   dsimp [blockMoment]
@@ -753,7 +752,7 @@ lemma blockMoment_map_equiv [IsProbabilityMeasure μ]
 
 Informal proof: use `Finpartition.cumulantTransform_map` and `jointMoment_perm` on every block. -/
 theorem jointCumulant_perm [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ]
-    [IsProbabilityMeasure μ] (e : ι ≃ κ) (X : ι → Ω → ℝ) :
+    (e : ι ≃ κ) (X : ι → Ω → ℝ) :
     jointCumulant μ (fun j ↦ X (e.symm j)) = jointCumulant μ X := by
   dsimp [jointCumulant, blockCumulant]
   have h := cumulantTransform_equiv e (blockMoment μ X)
@@ -825,7 +824,7 @@ lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing 
     intro P hP
     rw [blockProduct_add P f g h i h_add h_id, mul_add]
 
-lemma blockMoment_add_update [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_add_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
     (hX : HasFiniteJointMoments μ X)
     (hY : HasFiniteJointMoments μ (Function.update X i Y))
@@ -896,7 +895,7 @@ lemma blockMoment_add_update [DecidableEq ι] [IsProbabilityMeasure μ]
       exact hi (by simpa [hji] using hj)
     simp [hj_ne]
 
-lemma blockMoment_update_not_mem [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_update_not_mem [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
     (s : Finset ι) (hi : i ∉ s) :
     blockMoment μ (Function.update X i Y) s = blockMoment μ X s := by
@@ -915,7 +914,7 @@ lemma blockMoment_update_not_mem [DecidableEq ι] [IsProbabilityMeasure μ]
 Informal proof: split each block moment containing `i` with integral additivity, then distribute
 through the finite Möbius sum.  Blocks not containing `i` occur identically on both sides and their
 coefficients cancel by the same partition identity. -/
-theorem jointCumulant_add [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ]
+theorem jointCumulant_add [Fintype ι] [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
     (hX : HasFiniteJointMoments μ X)
     (hY : HasFiniteJointMoments μ (Function.update X i Y)) :
@@ -976,7 +975,7 @@ lemma cumulantTransform_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing
     rw [← Finset.mul_sum Finset.univ (fun P : Finpartition (Finset.univ : Finset ι) =>
       (P.cumulantCoefficient : R) * P.blockProduct f)]
 
-lemma blockMoment_smul_update [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_smul_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (c : ℝ)
     (s : Finset ι) :
     blockMoment μ (Function.update X i (c • X i)) s =
@@ -1018,7 +1017,7 @@ lemma blockMoment_smul_update [DecidableEq ι] [IsProbabilityMeasure μ]
 
 Informal proof: every block containing `i` acquires one factor `c`; finite integral and product
 linearity pull that factor through the Möbius sum. -/
-theorem jointCumulant_smul [Fintype ι] [DecidableEq ι] [IsProbabilityMeasure μ]
+theorem jointCumulant_smul [Fintype ι] [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (c : ℝ) :
     jointCumulant μ (Function.update X i (c • X i)) = c * jointCumulant μ X := by
   dsimp [jointCumulant, blockCumulant]
@@ -1070,7 +1069,7 @@ raised to the power of the block size.
 
 Informal proof: The product over $B$ of $X$ is $X^{|B|}$. So the block moment is exactly the
 expectation of $X^{|B|}$. -/
-lemma blockMoment_const_eq_integral_pow [IsProbabilityMeasure μ]
+lemma blockMoment_const_eq_integral_pow
     (X : Ω → ℝ) (n : ℕ) (s : Finset (Fin n)) :
     blockMoment μ (fun _ : Fin n ↦ X) s = ∫ ω, X ω ^ s.card ∂μ := by
   dsimp [blockMoment]
@@ -1080,7 +1079,7 @@ lemma blockMoment_const_eq_integral_pow [IsProbabilityMeasure μ]
 
 /-- The $k$-th derivative of the MGF at zero is the $k$-th moment.
 Informal proof: Differentiate under the integral sign $k$ times and evaluate at $t=0$. -/
-lemma iteratedDeriv_mgf_zero_eq_moment [IsProbabilityMeasure μ] (X : Ω → ℝ) (k : ℕ)
+lemma iteratedDeriv_mgf_zero_eq_moment (X : Ω → ℝ) (k : ℕ)
     (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
     iteratedDeriv k (mgf X μ) 0 = ∫ ω, X ω ^ k ∂μ := by
   simpa using ProbabilityTheory.iteratedDeriv_mgf_zero hmgf k

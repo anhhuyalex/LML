@@ -159,7 +159,7 @@ theorem integral_sq_dirac (s : ℝ) : ∫ z, z ^ 2 ∂Measure.dirac s = s ^ 2 :=
   exact integral_dirac _ _
 
 /-- The source's Dirac normalization equation. -/
-theorem dirac_apply_univ (s : S) [MeasurableSpace S] [MeasurableSingletonClass S] :
+theorem dirac_apply_univ (s : S) [MeasurableSpace S] :
     Measure.dirac s Set.univ = 1 := by
   simp
 

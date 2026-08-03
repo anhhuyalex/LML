@@ -109,7 +109,7 @@ def ofOffsetTiedDense (L : DenseLayer ι κ) : Conv2DLayer ι κ where
   weight o i _ _ := L.weight o i
   bias := L.bias
 
-@[simp] theorem preactivation_ofOffsetTiedDense [Fintype ι] (L : DenseLayer ι κ) (k : ℕ)
+theorem preactivation_ofOffsetTiedDense [Fintype ι] (L : DenseLayer ι κ) (k : ℕ)
     (x : ι → ℤ → ℤ → ℝ) (o : κ) (c d : ℤ) :
     (ofOffsetTiedDense L).preactivation k x o c d = L.bias o +
       ∑ i, ∑ dc ∈ window k, ∑ dd ∈ window k,

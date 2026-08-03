@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Data.Real.Sign
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Probability.CDF
@@ -204,9 +205,9 @@ lemma continuous_sinActivation : Continuous Real.sin := Real.continuous_sin
 
 lemma measurable_sinActivation : Measurable Real.sin := Real.continuous_sin.measurable
 
-@[simp] theorem tanhActivation_zero : Real.tanh 0 = 0 := Real.tanh_zero
+theorem tanhActivation_zero : Real.tanh 0 = 0 := Real.tanh_zero
 
-@[simp] theorem sinActivation_zero : Real.sin 0 = 0 := Real.sin_zero
+theorem sinActivation_zero : Real.sin 0 = 0 := Real.sin_zero
 
 theorem sinActivation_periodic : Function.Periodic Real.sin (2 * Real.pi) := Real.sin_periodic
 
@@ -283,27 +284,14 @@ theorem logistic_eq_half_add_half_tanh (x : ℝ) :
 -- is even and its total mass is one, so the two half-lines carry equal mass.
 private lemma standardGaussianIntegral_Iic_zero :
     (∫ t in Set.Iic (0 : ℝ), gaussianPDFReal 0 1 t) = 1 / 2 := by
-  -- Total mass of the standard-normal density is one.
-  have htotal : (∫ t, gaussianPDFReal 0 1 t) = 1 :=
-    integral_gaussianPDFReal_eq_one 0 (by norm_num : (1 : ℝ≥0) ≠ 0)
-  -- The density is even, so the positive half-line carries the same mass as the negative one.
-  have heven : ∀ t : ℝ, gaussianPDFReal 0 1 (-t) = gaussianPDFReal 0 1 t := by
-    intro t
-    simp [gaussianPDFReal]
-  -- Splitting the full integral at zero and using evenness gives `2 * ∫ Iic 0 = 1`.
   have hsplit : (∫ t in Set.Iic 0, gaussianPDFReal 0 1 t) + (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = 1 := by
-    rw [intervalIntegral.integral_Iic_add_Ioi]
-    · exact htotal
-    · exact (integrable_gaussianPDFReal 0 1).integrableOn
-    · exact (integrable_gaussianPDFReal 0 1).integrableOn
+    rw [intervalIntegral.integral_Iic_add_Ioi (integrable_gaussianPDFReal 0 1).integrableOn
+      (integrable_gaussianPDFReal 0 1).integrableOn]
+    exact integral_gaussianPDFReal_eq_one 0 (by norm_num : (1 : ℝ≥0) ≠ 0)
   have hhalf : (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = ∫ t in Set.Iic 0, gaussianPDFReal 0 1 t := by
-    calc
-      (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = ∫ t in Set.Ioi 0, gaussianPDFReal 0 1 (-t) := by
-        apply setIntegral_congr_fun measurableSet_Ioi
-        intro t ht
-        exact (heven t).symm
-      _ = ∫ t in Set.Iic 0, gaussianPDFReal 0 1 t := by
-        simp
+    rw [setIntegral_congr_fun (g := fun t => gaussianPDFReal 0 1 (-t)) measurableSet_Ioi
+      (fun t _ => by simp [gaussianPDFReal])]
+    simp
   linarith
 
 /-- Split the standard-normal CDF at the origin.
@@ -318,20 +306,16 @@ oriented interval-integral formula below.  This is the first half of the standar
 at <https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function>. -/
 private lemma standardNormalCDF_eq_half_add_standardGaussianIntegral (x : ℝ) :
     standardNormalCDF x = 1 / 2 + ∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t := by
-  -- Step 1: the CDF is the real measure of `Iic x`, i.e. the density integral over `Iic x`.
   have hIic : standardNormalCDF x = ∫ t in Set.Iic x, gaussianPDFReal 0 1 t := by
-    rw [standardNormalCDF, ProbabilityTheory.cdf_eq_real]
-    rw [measureReal_def]
-    rw [gaussianReal_apply_eq_integral 0 (by norm_num : (1 : ℝ≥0) ≠ 0) (Set.Iic x)]
-    rw [ENNReal.toReal_ofReal]
+    rw [standardNormalCDF, ProbabilityTheory.cdf_eq_real, measureReal_def,
+      gaussianReal_apply_eq_integral 0 (by norm_num : (1 : ℝ≥0) ≠ 0) (Set.Iic x),
+      ENNReal.toReal_ofReal]
     exact setIntegral_nonneg measurableSet_Iic (fun t _ => gaussianPDFReal_nonneg 0 1 t)
-  -- Step 2: `∫ Iic x = ∫ Iic 0 + ∫ 0..x` by cutting the half-line at zero.
   have hsplit : (∫ t in Set.Iic x, gaussianPDFReal 0 1 t) =
       (∫ t in Set.Iic 0, gaussianPDFReal 0 1 t) + ∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t := by
-    rw [← intervalIntegral.integral_Iic_sub_Iic (a := 0) (b := x) (f := gaussianPDFReal 0 1)
-        (integrable_gaussianPDFReal 0 1).integrableOn (integrable_gaussianPDFReal 0 1).integrableOn]
+    rw [← intervalIntegral.integral_Iic_sub_Iic (integrable_gaussianPDFReal 0 1).integrableOn
+      (integrable_gaussianPDFReal 0 1).integrableOn]
     ring
-  -- Step 3: the half-line integral is `1 / 2`, giving the desired formula.
   rw [hIic, hsplit, standardGaussianIntegral_Iic_zero]
 
 /-- The oriented integral of the standard-normal density from `0` to `x` is half of `gaussianErf`.
@@ -350,31 +334,20 @@ private lemma standardGaussianIntegral_eq_half_gaussianErf (x : ℝ) :
       1 / 2 * gaussianErf (x / Real.sqrt 2) := by
   have hsqrt : Real.sqrt 2 ≠ 0 := Real.sqrt_ne_zero'.2 (by norm_num : (0 : ℝ) < 2)
   have hsqrtpi : Real.sqrt π ≠ 0 := Real.sqrt_ne_zero'.2 Real.pi_pos
-  -- Step 1: the scaled density `gaussianPDFReal 0 1 (√2 * u)` is the Gaussian kernel.
   have hpdf : ∀ u : ℝ, gaussianPDFReal 0 1 (Real.sqrt 2 * u) =
       (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
     intro u
-    have hsq : (Real.sqrt 2) ^ 2 = 2 := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
     calc
       gaussianPDFReal 0 1 (Real.sqrt 2 * u) = (Real.sqrt (2 * π))⁻¹ * Real.exp (-(Real.sqrt 2 * u) ^ 2 / 2) := by
         simp [gaussianPDFReal]
       _ = (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
-        congr 1
-        congr 1
-        rw [mul_pow, hsq]
+        congr
+        rw [mul_pow, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
         ring
-  -- Step 2: `√2 * (√(2π))⁻¹ = (√π)⁻¹`, i.e. `√(2π) = √2 * √π`.
-  have hsqrtmul : Real.sqrt 2 * (Real.sqrt (2 * π))⁻¹ = (Real.sqrt π)⁻¹ := by
-    rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2) π]
-    field_simp [hsqrt, hsqrtpi]
-  -- Step 3: change of variables `t = √2 * u` and simplify the kernel to `gaussianErf`.
   calc
     (∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t)
         = Real.sqrt 2 * ∫ u in (0 : ℝ)..(x / Real.sqrt 2), gaussianPDFReal 0 1 (Real.sqrt 2 * u) := by
-          symm
-          rw [← smul_eq_mul]
-          rw [intervalIntegral.smul_integral_comp_mul_left (c := Real.sqrt 2) (f := gaussianPDFReal 0 1)
-            (a := 0) (b := x / Real.sqrt 2)]
+          rw [← smul_eq_mul, intervalIntegral.smul_integral_comp_mul_left (c := Real.sqrt 2)]
           congr 1
           · norm_num
           · rw [mul_comm, div_mul_cancel₀ x hsqrt]
@@ -382,8 +355,9 @@ private lemma standardGaussianIntegral_eq_half_gaussianErf (x : ℝ) :
           (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
           simp_rw [hpdf]
     _ = (Real.sqrt π)⁻¹ * ∫ u in (0 : ℝ)..(x / Real.sqrt 2), Real.exp (-u ^ 2) := by
-          rw [intervalIntegral.integral_const_mul]
-          rw [← mul_assoc, hsqrtmul]
+          rw [intervalIntegral.integral_const_mul, ← mul_assoc,
+            Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2) π]
+          field_simp [hsqrt, hsqrtpi]
     _ = 1 / 2 * gaussianErf (x / Real.sqrt 2) := by
           rw [gaussianErf]
           field_simp [hsqrtpi]
@@ -404,23 +378,66 @@ theorem gelu_eq_erf (x : ℝ) :
   rw [gelu, standardNormalCDF_eq_erf]
   ring
 
-/-- The source's smooth activations are genuinely smooth, not merely continuous.
+/-- The logistic activation is smooth. -/
+theorem contDiff_logistic : ContDiff ℝ ⊤ logistic := by
+  unfold logistic
+  apply ContDiff.inv (f := fun x => 1 + Real.exp (-x))
+  · fun_prop
+  · intro x
+    positivity
 
-Informal proof: exponential, logarithm on the positive range `1 + exp x`, sine, sinh, and cosh are
-smooth and smoothness is closed under sums, products, quotients with nonzero denominator, and
-composition.  Differentiating the defining interval integral gives the smooth Gaussian integrand;
-the CDF/error-function identity transfers smoothness to the standard-normal CDF and GELU.  See
-<https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions>. -/
-theorem smooth_activations :
-    ContDiff ℝ ⊤ logistic ∧ ContDiff ℝ ⊤ Real.tanh ∧ ContDiff ℝ ⊤ Real.sin ∧
-      ContDiff ℝ ⊤ softplus ∧ ContDiff ℝ ⊤ swish ∧ ContDiff ℝ ⊤ gaussianErf ∧
-      ContDiff ℝ ⊤ standardNormalCDF ∧ ContDiff ℝ ⊤ gelu := by
+/-- `tanh` is smooth.
+
+Informal proof: `sinh` and `cosh` are smooth and `cosh` is nowhere zero.  See
+<https://en.wikipedia.org/wiki/Hyperbolic_functions#Derivatives>. -/
+theorem contDiff_tanhActivation : ContDiff ℝ ⊤ Real.tanh := by
+  rw [show Real.tanh = fun x => Real.sinh x / Real.cosh x by
+    funext x
+    exact Real.tanh_eq_sinh_div_cosh x]
+  exact Real.contDiff_sinh.div Real.contDiff_cosh fun x => (Real.cosh_pos x).ne'
+
+/-- `sin` is smooth. -/
+theorem contDiff_sinActivation : ContDiff ℝ ⊤ Real.sin := Real.contDiff_sin
+
+/-- Softplus is smooth. -/
+theorem contDiff_softplus : ContDiff ℝ ⊤ softplus := by
+  unfold softplus
+  exact (contDiff_const.add (Real.contDiff_exp)).log (fun x => by positivity)
+
+/-- SWISH is smooth. -/
+theorem contDiff_swish : ContDiff ℝ ⊤ swish := by
+  unfold swish
+  exact contDiff_id.mul contDiff_logistic
+
+/-- `gaussianErf` is smooth.
+
+Informal proof: differentiate the defining interval integral; the integrand `exp (-t^2)` is
+smooth, so the resulting derivative is smooth and the antiderivative is smooth by induction on the
+order of differentiability. -/
+theorem contDiff_gaussianErf : ContDiff ℝ ⊤ gaussianErf := by
   sorry
 
-theorem continuous_standardNormalCDF : Continuous standardNormalCDF :=
-  smooth_activations.2.2.2.2.2.2.1.continuous
+/-- The standard-normal CDF is smooth.
 
-theorem continuous_gelu : Continuous gelu := smooth_activations.2.2.2.2.2.2.2.continuous
+Informal proof: transfer smoothness from `gaussianErf` along the identity
+`standardNormalCDF_eq_erf`. -/
+theorem contDiff_standardNormalCDF : ContDiff ℝ ⊤ standardNormalCDF := by
+  have h : standardNormalCDF = fun x => 1 / 2 + 1 / 2 * gaussianErf (x / Real.sqrt 2) := by
+    funext x
+    exact standardNormalCDF_eq_erf x
+  rw [h]
+  exact contDiff_const.add (contDiff_const.mul (contDiff_gaussianErf.comp
+    (contDiff_id.div_const _)))
+
+/-- GELU is smooth. -/
+theorem contDiff_gelu : ContDiff ℝ ⊤ gelu := by
+  unfold gelu
+  exact contDiff_id.mul contDiff_standardNormalCDF
+
+theorem continuous_standardNormalCDF : Continuous standardNormalCDF :=
+  contDiff_standardNormalCDF.continuous
+
+theorem continuous_gelu : Continuous gelu := contDiff_gelu.continuous
 
 /-- The source's statement that `tanh x ≈ x` near zero, made exact by its derivative.
 
@@ -429,55 +446,74 @@ See <https://en.wikipedia.org/wiki/Hyperbolic_functions#Derivatives>. -/
 theorem hasDerivAt_tanh_zero : HasDerivAt Real.tanh 1 0 := by
   sorry
 
-/-- Saturation and ReLU-like asymptotics asserted in Chapter 2, stated as actual limits.
+/-- Logistic saturates to `1` at `+∞`.
 
-Informal proof: divide the logistic expressions by the dominant exponential at each end.  For
-softplus use `log (1 + exp x) - x = log (1 + exp (-x))` at `+∞` and
-`log (1+y)/y → 1` with `y = exp x` at `-∞`.  SWISH follows by multiplying the logistic limits.
-For GELU use the standard-normal CDF limits together with Gaussian tail decay.  References:
-<https://en.wikipedia.org/wiki/Logistic_function#Mathematical_properties> and
-<https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function>. -/
-theorem activation_asymptotics :
-    Tendsto logistic atTop (nhds 1) ∧
-    Tendsto logistic atBot (nhds 0) ∧
-    Tendsto Real.tanh atTop (nhds 1) ∧
-    Tendsto Real.tanh atBot (nhds (-1)) ∧
-    Tendsto (fun x => softplus x - x) atTop (nhds 0) ∧
-    Tendsto (fun x => softplus x / Real.exp x) atBot (nhds 1) ∧
-    Tendsto (fun x => swish x - x) atTop (nhds 0) ∧
-    Tendsto swish atBot (nhds 0) ∧
-    Tendsto (fun x => gelu x - x) atTop (nhds 0) ∧
-    Tendsto gelu atBot (nhds 0) := by
+Informal proof: divide the logistic expression by the dominant exponential. -/
+theorem tendsto_logistic_atTop : Tendsto logistic atTop (nhds 1) := by
   sorry
 
-theorem tendsto_logistic_atTop : Tendsto logistic atTop (nhds 1) := activation_asymptotics.1
+/-- Logistic saturates to `0` at `-∞`.
 
-theorem tendsto_logistic_atBot : Tendsto logistic atBot (nhds 0) := activation_asymptotics.2.1
+Informal proof: divide the logistic expression by the dominant exponential. -/
+theorem tendsto_logistic_atBot : Tendsto logistic atBot (nhds 0) := by
+  sorry
 
-theorem tendsto_tanh_atTop : Tendsto Real.tanh atTop (nhds 1) := activation_asymptotics.2.2.1
+/-- `tanh` saturates to `1` at `+∞`.
 
-theorem tendsto_tanh_atBot : Tendsto Real.tanh atBot (nhds (-1)) :=
-  activation_asymptotics.2.2.2.1
+Informal proof: divide the exponential expression for `tanh` by the dominant exponential.  See
+<https://en.wikipedia.org/wiki/Hyperbolic_functions#Definitions>. -/
+theorem tendsto_tanh_atTop : Tendsto Real.tanh atTop (nhds 1) := by
+  sorry
 
-theorem tendsto_softplus_sub_id_atTop :
-    Tendsto (fun x => softplus x - x) atTop (nhds 0) := activation_asymptotics.2.2.2.2.1
+/-- `tanh` saturates to `-1` at `-∞`.
 
+Informal proof: divide the exponential expression for `tanh` by the dominant exponential.  See
+<https://en.wikipedia.org/wiki/Hyperbolic_functions#Definitions>. -/
+theorem tendsto_tanh_atBot : Tendsto Real.tanh atBot (nhds (-1)) := by
+  sorry
+
+/-- Softplus agrees with the identity to within a vanishing error at `+∞`.
+
+Informal proof: `log (1 + exp x) - x = log (1 + exp (-x)) → log 1 = 0`.  See
+<https://en.wikipedia.org/wiki/Softplus>. -/
+theorem tendsto_softplus_sub_id_atTop : Tendsto (fun x => softplus x - x) atTop (nhds 0) := by
+  sorry
+
+/-- Softplus matches the dominant exponential at `-∞`.
+
+Informal proof: `log (1 + exp x) / exp x → 1` using `log (1 + y) / y → 1` as `y → 0`. See
+<https://en.wikipedia.org/wiki/Softplus>. -/
 theorem tendsto_softplus_div_exp_atBot :
-    Tendsto (fun x => softplus x / Real.exp x) atBot (nhds 1) :=
-  activation_asymptotics.2.2.2.2.2.1
+    Tendsto (fun x => softplus x / Real.exp x) atBot (nhds 1) := by
+  sorry
 
-theorem tendsto_swish_sub_id_atTop :
-    Tendsto (fun x => swish x - x) atTop (nhds 0) := activation_asymptotics.2.2.2.2.2.2.1
+/-- SWISH agrees with the identity to within a vanishing error at `+∞`.
 
-theorem tendsto_swish_atBot : Tendsto swish atBot (nhds 0) :=
-  activation_asymptotics.2.2.2.2.2.2.2.1
+Informal proof: multiply the `+∞` logistic limit against `x`, using that the correction term
+`x * logistic (-x)` is dominated by the exponential decay of `logistic (-x)`. -/
+theorem tendsto_swish_sub_id_atTop : Tendsto (fun x => swish x - x) atTop (nhds 0) := by
+  sorry
 
-theorem tendsto_gelu_sub_id_atTop :
-    Tendsto (fun x => gelu x - x) atTop (nhds 0) :=
-  activation_asymptotics.2.2.2.2.2.2.2.2.1
+/-- SWISH vanishes at `-∞`.
 
-theorem tendsto_gelu_atBot : Tendsto gelu atBot (nhds 0) :=
-  activation_asymptotics.2.2.2.2.2.2.2.2.2
+Informal proof: `swish x = x * logistic x` with `logistic x` decaying like `exp x`, so the product
+of the linearly growing `|x|` against the exponentially decaying `logistic x` vanishes. -/
+theorem tendsto_swish_atBot : Tendsto swish atBot (nhds 0) := by
+  sorry
+
+/-- GELU agrees with the identity to within a vanishing error at `+∞`.
+
+Informal proof: use the `+∞` standard-normal CDF limit together with Gaussian tail decay for the
+vanishing correction term. -/
+theorem tendsto_gelu_sub_id_atTop : Tendsto (fun x => gelu x - x) atTop (nhds 0) := by
+  sorry
+
+/-- GELU vanishes at `-∞`.
+
+Informal proof: `gelu x = x * standardNormalCDF x` with `standardNormalCDF x` decaying faster than
+any polynomial, so the product with the linearly growing `|x|` vanishes. -/
+theorem tendsto_gelu_atBot : Tendsto gelu atBot (nhds 0) := by
+  sorry
 
 /-- Positive one-homogeneity of a scalar activation. -/
 def PosHomogeneous (σ : ℝ → ℝ) : Prop :=
