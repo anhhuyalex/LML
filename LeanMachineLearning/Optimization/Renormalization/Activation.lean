@@ -29,6 +29,8 @@ noncomputable section
 
 open MeasureTheory ProbabilityTheory Real Filter
 
+open scoped NNReal
+
 namespace NeuralNetwork
 
 /-- The threshold (Heaviside) activation, with value one at the origin. -/
@@ -232,9 +234,39 @@ theorem tanh_eq_exp_div (x : ℝ) :
 Informal proof: start from `tanh_eq_exp_div`, multiply numerator and denominator by `exp x`, and
 use `exp x * exp x = exp (2*x)` and `exp (-x) * exp x = 1`.  See
 <https://en.wikipedia.org/wiki/Hyperbolic_functions#Exponential_definitions>. -/
+-- Clearing the inverse in a `tanh`-style quotient: for `a ≠ 0`, the quotient
+-- `(a - a⁻¹) / (a + a⁻¹)` equals the single-square form `(a * a - 1) / (a * a + 1)`.
+-- This is the algebraic core of `tanh_eq_exp_two_mul`, independent of `exp`.
+private lemma div_sub_inv_eq (a : ℝ) (ha : a ≠ 0) :
+    (a - a⁻¹) / (a + a⁻¹) = (a * a - 1) / (a * a + 1) := by
+  field_simp [ha]
+
+-- Doubling the argument of the real exponential: `exp (2 * x) = exp x * exp x`.
+-- This notation conversion is used in `tanh_eq_exp_two_mul` to turn the
+-- double-angle exponential into a square of `exp x`.
+private lemma exp_two_mul (x : ℝ) : Real.exp (2 * x) = Real.exp x * Real.exp x := by
+  rw [two_mul, Real.exp_add]
+
 theorem tanh_eq_exp_two_mul (x : ℝ) :
     Real.tanh x = (Real.exp (2 * x) - 1) / (Real.exp (2 * x) + 1) := by
-  sorry
+  rw [Real.tanh_eq, Real.exp_neg, exp_two_mul,
+    div_sub_inv_eq (Real.exp x) (Real.exp_ne_zero x)]
+
+-- Specializing `tanh_eq_exp_two_mul` to the half-argument: `tanh (x / 2)` is the
+-- single-exponential quotient `(exp x - 1) / (exp x + 1)`.  This is the exponential
+-- quotient substituted into the logistic/tanh identity below.
+private lemma tanh_half_eq (x : ℝ) :
+    Real.tanh (x / 2) = (Real.exp x - 1) / (Real.exp x + 1) := by
+  rw [tanh_eq_exp_two_mul, show 2 * (x / 2) = x by ring]
+
+-- Algebraic core of the logistic/tanh identity: for `a ≠ 0` with `a + 1 ≠ 0`, the
+-- reciprocal `(1 + a⁻¹)⁻¹` equals `1 / 2 + 1 / 2 * ((a - 1) / (a + 1))`.  This is the
+-- denominator-clearing step of `logistic_eq_half_add_half_tanh`, independent of `exp`
+-- (compare `div_sub_inv_eq` above).
+private lemma inv_add_one_eq_half_add_half (a : ℝ) (ha : a ≠ 0) (ha1 : a + 1 ≠ 0) :
+    (1 + a⁻¹)⁻¹ = 1 / 2 + 1 / 2 * ((a - 1) / (a + 1)) := by
+  field_simp [ha, ha1]
+  ring
 
 /-- The logistic/tanh identity in the source.
 
@@ -244,7 +276,117 @@ recorded, for example, at
 <https://en.wikipedia.org/wiki/Logistic_function#Mathematical_properties>. -/
 theorem logistic_eq_half_add_half_tanh (x : ℝ) :
     logistic x = 1 / 2 + 1 / 2 * Real.tanh (x / 2) := by
-  sorry
+  rw [logistic, tanh_half_eq, Real.exp_neg,
+    inv_add_one_eq_half_add_half (Real.exp x) (Real.exp_ne_zero x) (by positivity)]
+
+-- The standard-normal density integrates to `1 / 2` on the non-positive half-line.  The density
+-- is even and its total mass is one, so the two half-lines carry equal mass.
+private lemma standardGaussianIntegral_Iic_zero :
+    (∫ t in Set.Iic (0 : ℝ), gaussianPDFReal 0 1 t) = 1 / 2 := by
+  -- Total mass of the standard-normal density is one.
+  have htotal : (∫ t, gaussianPDFReal 0 1 t) = 1 :=
+    integral_gaussianPDFReal_eq_one 0 (by norm_num : (1 : ℝ≥0) ≠ 0)
+  -- The density is even, so the positive half-line carries the same mass as the negative one.
+  have heven : ∀ t : ℝ, gaussianPDFReal 0 1 (-t) = gaussianPDFReal 0 1 t := by
+    intro t
+    simp [gaussianPDFReal]
+  -- Splitting the full integral at zero and using evenness gives `2 * ∫ Iic 0 = 1`.
+  have hsplit : (∫ t in Set.Iic 0, gaussianPDFReal 0 1 t) + (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = 1 := by
+    rw [intervalIntegral.integral_Iic_add_Ioi]
+    · exact htotal
+    · exact (integrable_gaussianPDFReal 0 1).integrableOn
+    · exact (integrable_gaussianPDFReal 0 1).integrableOn
+  have hhalf : (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = ∫ t in Set.Iic 0, gaussianPDFReal 0 1 t := by
+    calc
+      (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = ∫ t in Set.Ioi 0, gaussianPDFReal 0 1 (-t) := by
+        apply setIntegral_congr_fun measurableSet_Ioi
+        intro t ht
+        exact (heven t).symm
+      _ = ∫ t in Set.Iic 0, gaussianPDFReal 0 1 t := by
+        simp
+  linarith
+
+/-- Split the standard-normal CDF at the origin.
+
+Informal proof: unfold `standardNormalCDF` as `cdf (gaussianReal 0 1)` and use
+`ProbabilityTheory.cdf_eq_real` together with
+`ProbabilityTheory.gaussianReal_apply_eq_integral` to rewrite it as the integral of
+`gaussianPDFReal 0 1` over `Set.Iic x`.  The Gaussian density is even, and the total mass is one,
+so the integral over `(-∞,0]` is `1/2`.  Splitting `Set.Iic x` at `0` (with a case split on
+`x ≤ 0`/`0 ≤ x` and using `intervalIntegral.integral_symm` for the negative case) gives the
+oriented interval-integral formula below.  This is the first half of the standard identity recorded
+at <https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function>. -/
+private lemma standardNormalCDF_eq_half_add_standardGaussianIntegral (x : ℝ) :
+    standardNormalCDF x = 1 / 2 + ∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t := by
+  -- Step 1: the CDF is the real measure of `Iic x`, i.e. the density integral over `Iic x`.
+  have hIic : standardNormalCDF x = ∫ t in Set.Iic x, gaussianPDFReal 0 1 t := by
+    rw [standardNormalCDF, ProbabilityTheory.cdf_eq_real]
+    rw [measureReal_def]
+    rw [gaussianReal_apply_eq_integral 0 (by norm_num : (1 : ℝ≥0) ≠ 0) (Set.Iic x)]
+    rw [ENNReal.toReal_ofReal]
+    exact setIntegral_nonneg measurableSet_Iic (fun t _ => gaussianPDFReal_nonneg 0 1 t)
+  -- Step 2: `∫ Iic x = ∫ Iic 0 + ∫ 0..x` by cutting the half-line at zero.
+  have hsplit : (∫ t in Set.Iic x, gaussianPDFReal 0 1 t) =
+      (∫ t in Set.Iic 0, gaussianPDFReal 0 1 t) + ∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t := by
+    rw [← intervalIntegral.integral_Iic_sub_Iic (a := 0) (b := x) (f := gaussianPDFReal 0 1)
+        (integrable_gaussianPDFReal 0 1).integrableOn (integrable_gaussianPDFReal 0 1).integrableOn]
+    ring
+  -- Step 3: the half-line integral is `1 / 2`, giving the desired formula.
+  rw [hIic, hsplit, standardGaussianIntegral_Iic_zero]
+
+/-- The oriented integral of the standard-normal density from `0` to `x` is half of `gaussianErf`.
+
+Informal proof: unfold `gaussianPDFReal 0 1` and `gaussianErf`.  In the integral
+`∫ t in 0..x, (√(2π))⁻¹ * exp (-t^2/2)`, make the linear change of variables
+`t = √2 * u`, equivalently `u = t / √2`, using
+`intervalIntegral.smul_integral_comp_mul_left`.  Since `(√2 * u)^2 / 2 = u^2` and
+`√2 / √(2π) = 1 / √π`, the transformed integral is
+`(1 / √π) * ∫ u in 0..x/√2, exp (-u^2)`, which is exactly
+`1/2 * gaussianErf (x/√2)`.  The interval integral is oriented, so the same calculation covers
+negative `x`.  See also ProofWiki's derivation:
+<https://proofwiki.org/wiki/Normal_Distribution_CDF_in_terms_of_Gauss_Error_Function>. -/
+private lemma standardGaussianIntegral_eq_half_gaussianErf (x : ℝ) :
+    (∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t) =
+      1 / 2 * gaussianErf (x / Real.sqrt 2) := by
+  have hsqrt : Real.sqrt 2 ≠ 0 := Real.sqrt_ne_zero'.2 (by norm_num : (0 : ℝ) < 2)
+  have hsqrtpi : Real.sqrt π ≠ 0 := Real.sqrt_ne_zero'.2 Real.pi_pos
+  -- Step 1: the scaled density `gaussianPDFReal 0 1 (√2 * u)` is the Gaussian kernel.
+  have hpdf : ∀ u : ℝ, gaussianPDFReal 0 1 (Real.sqrt 2 * u) =
+      (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
+    intro u
+    have hsq : (Real.sqrt 2) ^ 2 = 2 := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
+    calc
+      gaussianPDFReal 0 1 (Real.sqrt 2 * u) = (Real.sqrt (2 * π))⁻¹ * Real.exp (-(Real.sqrt 2 * u) ^ 2 / 2) := by
+        simp [gaussianPDFReal]
+      _ = (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
+        congr 1
+        congr 1
+        rw [mul_pow, hsq]
+        ring
+  -- Step 2: `√2 * (√(2π))⁻¹ = (√π)⁻¹`, i.e. `√(2π) = √2 * √π`.
+  have hsqrtmul : Real.sqrt 2 * (Real.sqrt (2 * π))⁻¹ = (Real.sqrt π)⁻¹ := by
+    rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2) π]
+    field_simp [hsqrt, hsqrtpi]
+  -- Step 3: change of variables `t = √2 * u` and simplify the kernel to `gaussianErf`.
+  calc
+    (∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t)
+        = Real.sqrt 2 * ∫ u in (0 : ℝ)..(x / Real.sqrt 2), gaussianPDFReal 0 1 (Real.sqrt 2 * u) := by
+          symm
+          rw [← smul_eq_mul]
+          rw [intervalIntegral.smul_integral_comp_mul_left (c := Real.sqrt 2) (f := gaussianPDFReal 0 1)
+            (a := 0) (b := x / Real.sqrt 2)]
+          congr 1
+          · norm_num
+          · rw [mul_comm, div_mul_cancel₀ x hsqrt]
+    _ = Real.sqrt 2 * ∫ u in (0 : ℝ)..(x / Real.sqrt 2),
+          (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
+          simp_rw [hpdf]
+    _ = (Real.sqrt π)⁻¹ * ∫ u in (0 : ℝ)..(x / Real.sqrt 2), Real.exp (-u ^ 2) := by
+          rw [intervalIntegral.integral_const_mul]
+          rw [← mul_assoc, hsqrtmul]
+    _ = 1 / 2 * gaussianErf (x / Real.sqrt 2) := by
+          rw [gaussianErf]
+          field_simp [hsqrtpi]
 
 /-- The CDF definition of GELU agrees with the error-function display in the source.
 
@@ -254,7 +396,8 @@ See the standard normal CDF/error-function identity at
 <https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function>. -/
 theorem standardNormalCDF_eq_erf (x : ℝ) :
     standardNormalCDF x = 1 / 2 + 1 / 2 * gaussianErf (x / Real.sqrt 2) := by
-  sorry
+  rw [standardNormalCDF_eq_half_add_standardGaussianIntegral,
+    standardGaussianIntegral_eq_half_gaussianErf]
 
 theorem gelu_eq_erf (x : ℝ) :
     gelu x = (1 / 2 + 1 / 2 * gaussianErf (x / Real.sqrt 2)) * x := by
@@ -344,6 +487,19 @@ lemma PosHomogeneous.zero {σ : ℝ → ℝ} (hσ : PosHomogeneous σ) : σ 0 = 
   have h := hσ (by norm_num : (0 : ℝ) < 2) 0
   norm_num at h ⊢
   linarith
+
+/-- The historical perceptron activation is not positively homogeneous. -/
+theorem not_posHomogeneous_threshold : ¬ PosHomogeneous threshold := by
+  intro h
+  have h0 := h.zero
+  simp [threshold] at h0
+
+/-- Logistic is not positively homogeneous; in particular, it does not pass through the origin. -/
+theorem not_posHomogeneous_logistic : ¬ PosHomogeneous logistic := by
+  intro h
+  have h0 := h.zero
+  rw [logistic_zero] at h0
+  norm_num at h0
 
 lemma posHomogeneous_linear (a : ℝ) : PosHomogeneous (linear a) := by
   intro c _ x

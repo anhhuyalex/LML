@@ -153,25 +153,39 @@ only `#check` and `#synth` commands.
 #check NeuralNetwork.MLP.depth
 #check NeuralNetwork.MLP.widths
 #check NeuralNetwork.MLP.paramCount_eq_paramCountFromWidths
+#check NeuralNetwork.exampleMLP45551
 #check NeuralNetwork.MLPShape.Params
 #check NeuralNetwork.MLPShape.eval
 #check NeuralNetwork.MLPShape.measurable_eval
 #check NeuralNetwork.MLPShape.paramModel
+#check NeuralNetwork.MLPShape.Hyperparams
+#check NeuralNetwork.MLPShape.gaussianInit
+#check NeuralNetwork.MLPShape.map_coordinate_gaussianInit
+#check NeuralNetwork.MLPShape.iIndepFun_coordinate_gaussianInit
 
 -- `eq:conv-layer` and its precise translation-equivariance statement
 #check NeuralNetwork.Conv2DLayer.preactivation_apply
 #check NeuralNetwork.Conv2DLayer.preactivation_ofOffsetTiedDense
 #check NeuralNetwork.Conv2DLayer.preactivation_shift
+#check NeuralNetwork.Conv2DLayer.preactivation_eq_toLocalDenseLayer
+#check NeuralNetwork.Conv2DLayer.paramCount
 
 -- Standard activation displays and exact qualitative claims
 #check NeuralNetwork.threshold
 #check NeuralNetwork.signedThreshold
+#check NeuralNetwork.signedThreshold_eq_sign
 #check NeuralNetwork.logistic
+#check NeuralNetwork.logistic_pos
+#check NeuralNetwork.logistic_lt_one
+#check NeuralNetwork.relu
+#check NeuralNetwork.linear
+#check NeuralNetwork.leakyRelu
 #check NeuralNetwork.logistic_eq_half_add_half_tanh
 #check NeuralNetwork.tanh_eq_exp_div
 #check NeuralNetwork.tanh_eq_exp_two_mul
 #check Real.sin
 #check NeuralNetwork.sinActivation_periodic
+#check NeuralNetwork.hasDerivAt_tanh_zero
 #check NeuralNetwork.PosHomogeneous
 #check NeuralNetwork.posHomogeneous_iff_eq_piecewiseLinear
 #check NeuralNetwork.differentiableAt_piecewiseLinear_zero_iff
@@ -183,6 +197,11 @@ only `#check` and `#synth` commands.
 #check NeuralNetwork.smooth_activations
 #check NeuralNetwork.activation_asymptotics
 #check NeuralNetwork.nonhomogeneous_activations
+#check NeuralNetwork.not_posHomogeneous_threshold
+#check NeuralNetwork.not_posHomogeneous_logistic
+#check NeuralNetwork.posHomogeneous_linear
+#check NeuralNetwork.posHomogeneous_relu
+#check NeuralNetwork.posHomogeneous_leakyRelu
 
 -- `eq:bias-variance-def-naive`, `eq:weight-variance-def-naive`, and both densities
 #check NeuralNetwork.layerGaussianInit
@@ -197,6 +216,7 @@ only `#check` and `#synth` commands.
 #check NeuralNetwork.ParamModel.outputLaw
 #check NeuralNetwork.ParamModel.integral_outputLaw
 #check NeuralNetwork.ParamModel.parameterOutputKernel_comp_eq_outputLaw
+#check NeuralNetwork.MLPShape.outputLaw_gaussianInit_eq_map
 
 -- `eq:dirac-mean` through `eq:dirac-delta-normalization` and self-averaging
 #check NeuralNetwork.integral_dirac_apply
@@ -217,3 +237,4 @@ only `#check` and `#synth` commands.
 #check NeuralNetwork.map_evalBatch_layerGaussianInit
 #check NeuralNetwork.randomLayerKernel_apply
 #check NeuralNetwork.MLPEnsemble.outputKernel
+#check NeuralNetwork.MLPEnsemble.outputKernel_apply_eq_outputLaw

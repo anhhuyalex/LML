@@ -5,8 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.Renormalization.Initialization
-public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
+public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
@@ -131,6 +130,13 @@ theorem outputLaw_eq_map_eval {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
     (hσ : Measurable σ) (D : A → Fin m → ℝ) (μ : Measure S.Params) :
     (S.paramModel σ hσ).outputLaw D μ =
       μ.map (fun θ a => S.eval σ θ (D a)) := rfl
+
+/-- The Chapter 2 output ensemble is the pushforward of the explicit full-network Gaussian
+parameter law. -/
+theorem outputLaw_gaussianInit_eq_map {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
+    (hσ : Measurable σ) (p : S.Hyperparams) (D : A → Fin m → ℝ) :
+    (S.paramModel σ hσ).outputLaw D (S.gaussianInit p) =
+      (S.gaussianInit p).map (fun θ a => S.eval σ θ (D a)) := rfl
 
 end MLPShape
 
@@ -342,6 +348,16 @@ inductive MLPEnsemble (σ : ℝ → ℝ) : ℕ → ℕ → Type where
 
 namespace MLPEnsemble
 
+/-- The fixed parameterized shape underlying an ensemble architecture. -/
+def shape {σ : ℝ → ℝ} {m n : ℕ} : MLPEnsemble σ m n → MLPShape m n
+  | .output _ => .output
+  | .hidden _ N => .hidden N.shape
+
+/-- The layerwise initialization hyperparameters, viewed as data for `shape.gaussianInit`. -/
+def hyperparams {σ : ℝ → ℝ} {m n : ℕ} : (N : MLPEnsemble σ m n) → N.shape.Hyperparams
+  | .output p => p
+  | .hidden p N => (p, N.hyperparams)
+
 /-- Depth of an ensemble architecture. -/
 def depth {σ : ℝ → ℝ} {m n : ℕ} : MLPEnsemble σ m n → ℕ
   | .output _ => 1
@@ -374,6 +390,20 @@ def outputKernel {σ : ℝ → ℝ} (hσ : Measurable σ) {m n : ℕ} (N : MLPEn
     (@MLPEnsemble.hidden σ m n k p N).outputKernel hσ A =
       N.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ
         (randomLayerKernel (A := A) (ι := Fin m) (κ := Fin k) p) := rfl
+
+/-- Recursive integration of fresh layer parameters agrees with one global pushforward of the
+joint independent parameter law.
+
+Informal proof: induct on `N`. The output case is `randomLayerKernel_apply`. In the hidden case,
+expand kernel composition, use Tonelli/Fubini for the product probability measure, and apply the
+induction hypothesis. The evaluator recursion `MLPShape.eval_hidden` identifies the composed
+integrand with full MLP evaluation. See Mathlib's kernel-composition API:
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Kernel/Composition/Comp.html>. -/
+theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
+    {m n : ℕ} (N : MLPEnsemble σ m n) (A : Type uA) (D : A → Fin m → ℝ) :
+    N.outputKernel hσ A D =
+      (N.shape.paramModel σ hσ).outputLaw D (N.shape.gaussianInit N.hyperparams) := by
+  sorry
 
 end MLPEnsemble
 

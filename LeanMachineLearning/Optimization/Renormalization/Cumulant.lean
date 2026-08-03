@@ -426,7 +426,7 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
     ext B
     constructor
     · intro hB
-      rw [Finset.mem_singleton]
+      rw [top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅), Finset.mem_singleton]
       by_contra hB_ne
       have hB_sub : B ⊆ ({x, y} : Finset α) := P.le hB
       have hB_card_le : B.card ≤ 2 := by simpa [hxy] using Finset.card_le_card hB_sub
@@ -445,11 +445,12 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
       have hcontra : B = P.part x := P.eq_of_mem_parts hB (P.part_mem.2 hx_mem) hzB hz_px
       apply hB_ne
       rw [hcontra]
-      exact hpx_full.symm
+      exact hpx_full
     · intro hB
+      rw [top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅)] at hB
       rw [Finset.mem_singleton] at hB
       rw [hB]
-      exact hpx_full ▸ P.part_mem.2 hx_mem
+      simpa [hpx_full] using P.part_mem.2 hx_mem
   · left
     -- `P.part x` is a nonempty subset of `{x, y}` different from the full set, hence `{x}`
     have hpx : P.part x = ({x} : Finset α) := by
@@ -478,13 +479,13 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
         have hinsert : ({x, y} : Finset α) = ({x} : Finset α) := by
           calc
             ({x, y} : Finset α) = B := hBf.symm
-            _ = P.part x := hcontra.symm
+            _ = P.part x := hcontra
             _ = ({x} : Finset α) := hpx
         have hy_in : y ∈ ({x} : Finset α) := by
           rw [← hinsert]
           simp
         simpa using hy_in
-      exact hxy hxy_eq
+      exact hxy hxy_eq.symm
     have hpyp : P.part y = ({y} : Finset α) := by
       have hpy_sub : P.part y ⊆ ({x, y} : Finset α) := P.le (P.part_mem.2 hy_mem)
       have hpy_card_le : (P.part y).card ≤ 2 := by
@@ -509,7 +510,7 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
     ext B
     constructor
     · intro hB
-      rw [Finset.mem_insert]
+      rw [Finpartition.parts_bot, Finset.mem_map]
       have hB_sub : B ⊆ ({x, y} : Finset α) := P.le hB
       have hB_card_le : B.card ≤ 2 := by simpa [hxy] using Finset.card_le_card hB_sub
       have hB_pos : 0 < B.card := Finset.card_pos.2 (P.nonempty_of_mem_parts hB)
@@ -524,16 +525,16 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
       have hzB : z ∈ B := by rw [hz]; simp
       have hz_xy : z ∈ ({x, y} : Finset α) := hB_sub hzB
       rcases Finset.mem_insert.mp hz_xy with hzx | hzy
-      · left
-        rw [hz, hzx]
-      · right
-        rw [hz, hzy]
+      · exact ⟨x, by simp, by simp [hz, hzx]⟩
+      · exact ⟨y, by simp, by simp [hz, Finset.mem_singleton.mp hzy]⟩
     · intro hB
-      rcases Finset.mem_insert.mp hB with hBx | hBy
-      · rw [hBx]
-        exact hpx ▸ P.part_mem.2 hx_mem
-      · rw [hBy]
-        exact hpyp ▸ P.part_mem.2 hy_mem
+      rw [Finpartition.parts_bot, Finset.mem_map] at hB
+      rcases hB with ⟨z, hz, rfl⟩
+      rcases Finset.mem_insert.mp hz with hzx | hzy
+      · rw [hzx]
+        simpa [hpx] using P.part_mem.2 hx_mem
+      · rw [Finset.mem_singleton.mp hzy]
+        simpa [hpyp] using P.part_mem.2 hy_mem
 
 /-- The sum over partitions of a two-element set evaluates to the value at `⊤` plus the value at
 `⊥`.
@@ -551,7 +552,7 @@ lemma sum_Finpartition_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x �
     · intro hP
       rcases pair_part_eq_bot_or_top hxy P with rfl | rfl <;> simp
     · intro hP
-      simp at hP ⊢
+      simp only [Finset.mem_insert, Finset.mem_singleton] at hP
       rcases hP with rfl | rfl <;> simp
   have hbot_ne_top : (⊥ : Finpartition ({x, y} : Finset α)) ≠ ⊤ := by
     intro h
@@ -567,7 +568,7 @@ lemma sum_Finpartition_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x �
     have hy_in : y ∈ ({x} : Finset α) := by
       rw [hx_eq]
       simp
-    exact hxy (by simpa using hy_in)
+    exact hxy (Finset.mem_singleton.mp hy_in).symm
   calc
     ∑ P, f P = ∑ P ∈ (Finset.univ : Finset (Finpartition ({x, y} : Finset α))), f P := rfl
     _ = ∑ P ∈ ({⊥, ⊤} : Finset (Finpartition ({x, y} : Finset α))), f P := by rw [huniv]
@@ -776,7 +777,7 @@ lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     rw [← Finset.insert_erase ha_mem]
     rw [Finset.prod_insert (Finset.notMem_erase a P.parts)]
     rw [h_add a]
-    simp [hi_mem_a]
+    simp only [hi_mem_a, ↓reduceIte]
     congr 1
     apply Finset.prod_congr rfl
     intro B hB
@@ -938,7 +939,7 @@ lemma blockProduct_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
   have hf : P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * rest := by
     dsimp [Finpartition.blockProduct]
     rw [← Finset.mul_prod_erase P.parts (fun B : Finset ι => if i ∈ B then c * f B else f B) ha_mem]
-    simp [hi_mem_a]
+    simp only [hi_mem_a, ↓reduceIte]
     congr 1
     apply Finset.prod_congr rfl
     intro B hB

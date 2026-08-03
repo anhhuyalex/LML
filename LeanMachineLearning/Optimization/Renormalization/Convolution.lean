@@ -41,6 +41,12 @@ variable {ι : Type u} {κ : Type v}
 /-- Integer offsets in a radius-`k` convolution window. -/
 def window (k : ℕ) : Finset ℤ := Finset.Icc (-(k : ℤ)) (k : ℤ)
 
+/-- An offset occurring in a radius-`k` convolutional window. -/
+abbrev WindowIndex (k : ℕ) := {d : ℤ // d ∈ window k}
+
+/-- The finite input-coordinate type seen by one convolutional output location. -/
+abbrev PatchIndex (ι : Type u) (k : ℕ) := ι × (WindowIndex k × WindowIndex k)
+
 /-- The two-dimensional convolutional preactivation from the source, in the usual generality where
 the kernel may depend on the relative offset. -/
 def preactivation [Fintype ι] (L : Conv2DLayer ι κ) (k : ℕ)
@@ -74,6 +80,28 @@ theorem preactivation_shift [Fintype ι] (L : Conv2DLayer ι κ) (k : ℕ)
   apply Finset.sum_congr rfl
   intro dd _
   congr 2 <;> omega
+
+/-- Extract the finite local patch centered at spatial coordinate `(c,d)`. -/
+def extractPatch (k : ℕ) (x : ι → ℤ → ℤ → ℝ) (c d : ℤ) : PatchIndex ι k → ℝ :=
+  fun p => x p.1 (c + p.2.1) (d + p.2.2)
+
+/-- The dense affine layer applied at every spatial location of a convolution. -/
+def toLocalDenseLayer (L : Conv2DLayer ι κ) (k : ℕ) : DenseLayer (PatchIndex ι k) κ where
+  weight o p := L.weight o p.1 p.2.1 p.2.2
+  bias := L.bias
+
+/-- A convolutional preactivation is one fixed dense affine map applied to every extracted local
+patch. This is the precise weight-tying statement from Chapter 2.
+
+Informal proof: expand both preactivations. A sum over the subtype `WindowIndex k` is the same as a
+sum over integers restricted to `window k`; after this finite-sum reindexing, corresponding
+summands are definitionally equal. See the standard sparse-matrix description of convolution:
+<https://en.wikipedia.org/wiki/Toeplitz_matrix#Discrete_convolution>. -/
+theorem preactivation_eq_toLocalDenseLayer [Fintype ι] (L : Conv2DLayer ι κ) (k : ℕ)
+    (x : ι → ℤ → ℤ → ℝ) (o : κ) (c d : ℤ) :
+    L.preactivation k x o c d =
+      (L.toLocalDenseLayer k).preactivation (extractPatch k x c d) o := by
+  sorry
 
 /-- Embed the literal source formula, whose displayed weights do not carry offset indices, into the
 more general convolutional representation. -/
