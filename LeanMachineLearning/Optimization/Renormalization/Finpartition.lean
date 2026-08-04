@@ -1466,10 +1466,13 @@ finpartition of `A ∪ B` from a pair of trace partitions and a matching between
 `Matching.ofFinpartition` / `Matching.glue_ofFinpartition` (below) show this is (one half of) an
 equivalence with `Finpartition (A ∪ B)`. -/
 structure Matching (π : Finpartition A) (σ : Finpartition B) where
+  /-- The chosen subset of `π`'s blocks that participate in the matching. -/
   S : Finset (Finset α)
+  /-- The chosen subset of `σ`'s blocks that participate in the matching. -/
   T : Finset (Finset α)
   hS : S ⊆ π.parts
   hT : T ⊆ σ.parts
+  /-- The bijection pairing each matched `π`-block in `S` with a `σ`-block in `T`. -/
   e : {p // p ∈ S} ≃ {q // q ∈ T}
 
 /-- If `p ⊆ A` and `q ⊆ B` for disjoint `A`, `B`, then `p ∪ q` meets `A` exactly in `p`. -/
@@ -2026,6 +2029,129 @@ lemma restrict_glue_right (M : Matching π σ) (hAB : Disjoint A B) :
         exact Finset.mem_union_left _ (Finset.mem_union_right _ (Finset.mem_sdiff.mpr ⟨ht, hmatch⟩))
       · exact Finset.inter_eq_left.mpr (σ.subset ht)
 
+/-- In the glue of a matching, the blocks meeting both sides of the cut are exactly the merged
+blocks. -/
+lemma mergedOf_glue (M : Matching π σ) (hAB : Disjoint A B) :
+    mergedOf (M.glue hAB) =
+      M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1) := by
+  ext t
+  rw [mergedOf, glue_parts]
+  constructor
+  · intro ht
+    rw [Finset.mem_filter, glueParts, Finset.mem_union, Finset.mem_union] at ht
+    rcases ht with ⟨(ht | ht) | ht, hspan⟩
+    · exact False.elim (hspan.2.elim fun x hx =>
+        (Finset.disjoint_left.mp hAB)
+          (π.subset (Finset.mem_sdiff.mp ht).1 (Finset.mem_inter.mp hx).1)
+          (Finset.mem_inter.mp hx).2)
+    · exact False.elim (hspan.1.elim fun x hx =>
+        (Finset.disjoint_left.mp hAB)
+          (Finset.mem_inter.mp hx).2
+          (σ.subset (Finset.mem_sdiff.mp ht).1 (Finset.mem_inter.mp hx).1))
+    · exact ht
+  · intro ht
+    rw [Finset.mem_filter, glueParts]
+    exact ⟨Finset.mem_union_right _ ht, M.merged_inter_nonempty hAB ht⟩
+
+-- Intersecting a merged block of `M` with `A` recovers its `π`-side: if a merged block has
+-- `A`-trace `p`, then `p` is a matched `π`-block of `M`.
+private lemma mem_left_of_merged_inter (M : Matching π σ) (hAB : Disjoint A B)
+    {p t : Finset α} (ht : t ∈ M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1))
+    (htp : t ∩ A = p) : p ∈ M.S := by
+  obtain ⟨s, -, hs⟩ := Finset.mem_image.mp ht
+  -- The trace of the merged block `s.1 ∪ (M.e s).1` on `A` is exactly `s.1`, so `p = s.1`.
+  have hleft := union_inter_left_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))
+  have hp_eq := (htp.symm.trans (congrArg (· ∩ A) hs).symm).trans hleft
+  exact hp_eq ▸ s.2
+
+-- Intersecting a merged block of `M` with `B` recovers its `σ`-side: if a merged block has
+-- `B`-trace `q`, then `q` is a matched `σ`-block of `M`.
+private lemma mem_right_of_merged_inter (M : Matching π σ) (hAB : Disjoint A B)
+    {q t : Finset α} (ht : t ∈ M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1))
+    (htq : t ∩ B = q) : q ∈ M.T := by
+  obtain ⟨s, -, hs⟩ := Finset.mem_image.mp ht
+  -- The trace of the merged block `s.1 ∪ (M.e s).1` on `B` is exactly `(M.e s).1`, so `q` is
+  -- the matched `σ`-block.
+  have hright := union_inter_right_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))
+  have hq_eq := (htq.symm.trans (congrArg (· ∩ B) hs).symm).trans hright
+  exact hq_eq ▸ (M.e s).2
+
+-- If two matchings glue to the same partition, their matched `π`-blocks agree: every merged
+-- block of `M₁` occurs among the merged blocks of `M₂`, and its `A`-trace pins down the
+-- `π`-side.
+private lemma S_eq_of_glue_eq (M₁ M₂ : Matching π σ) (hAB : Disjoint A B)
+    (hglue : M₁.glue hAB = M₂.glue hAB) : M₁.S = M₂.S := by
+  ext p
+  constructor
+  · intro hp
+    -- The merged block of `M₁` containing `p` lies in the common merged-block set of `M₂`.
+    exact mem_left_of_merged_inter M₂ hAB
+      (by
+        rw [← M₂.mergedOf_glue hAB, ← hglue, M₁.mergedOf_glue hAB]
+        exact Finset.mem_image.mpr ⟨⟨p, hp⟩, Finset.mem_attach _ _, rfl⟩)
+      (union_inter_left_of_subset hAB (π.subset (M₁.hS hp))
+        (σ.subset (M₁.hT (M₁.e ⟨p, hp⟩).2)))
+  · intro hp
+    -- Symmetric: transfer `p`'s merged block of `M₂` back to `M₁` using `hglue.symm`.
+    exact mem_left_of_merged_inter M₁ hAB
+      (by
+        rw [← M₁.mergedOf_glue hAB, ← hglue.symm, M₂.mergedOf_glue hAB]
+        exact Finset.mem_image.mpr ⟨⟨p, hp⟩, Finset.mem_attach _ _, rfl⟩)
+      (union_inter_left_of_subset hAB (π.subset (M₂.hS hp))
+        (σ.subset (M₂.hT (M₂.e ⟨p, hp⟩).2)))
+
+-- If two matchings glue to the same partition, their matched `σ`-blocks agree, by the
+-- symmetric argument on the `B`-side of the cut.
+private lemma T_eq_of_glue_eq (M₁ M₂ : Matching π σ) (hAB : Disjoint A B)
+    (hglue : M₁.glue hAB = M₂.glue hAB) : M₁.T = M₂.T := by
+  ext q
+  constructor
+  · intro hq
+    -- The merged block of `M₁` whose `σ`-side is `q` lies in the common merged-block set.
+    let s₁ := M₁.e.symm ⟨q, hq⟩
+    exact mem_right_of_merged_inter M₂ hAB
+      (by
+        rw [← M₂.mergedOf_glue hAB, ← hglue, M₁.mergedOf_glue hAB]
+        exact Finset.mem_image.mpr ⟨s₁, Finset.mem_attach _ _, by simp [s₁]⟩)
+      (union_inter_right_of_subset hAB (π.subset (M₁.hS s₁.2)) (σ.subset (M₁.hT hq)))
+  · intro hq
+    -- Symmetric: transfer `q`'s merged block of `M₂` back to `M₁` using `hglue.symm`.
+    let s₂ := M₂.e.symm ⟨q, hq⟩
+    exact mem_right_of_merged_inter M₁ hAB
+      (by
+        rw [← M₁.mergedOf_glue hAB, ← hglue.symm, M₂.mergedOf_glue hAB]
+        exact Finset.mem_image.mpr ⟨s₂, Finset.mem_attach _ _, by simp [s₂]⟩)
+      (union_inter_right_of_subset hAB (π.subset (M₂.hS s₂.2)) (σ.subset (M₂.hT hq)))
+
+-- If two matchings glue to the same partition, they are equal: the two previous lemmas give
+-- `S`- and `T`-equality, and intersecting a common merged block with `A` (resp. `B`) pins down
+-- the matched pair `s ↦ (s.1, (e s).1)`, so `e₁ = e₂` by `Equiv.ext`.
+private lemma eq_of_glue_eq (M₁ M₂ : Matching π σ) (hAB : Disjoint A B)
+    (hglue : M₁.glue hAB = M₂.glue hAB) : M₁ = M₂ := by
+  have hS := S_eq_of_glue_eq M₁ M₂ hAB hglue
+  have hT := T_eq_of_glue_eq M₁ M₂ hAB hglue
+  rcases M₁ with ⟨S₁, T₁, hS₁, hT₁, e₁⟩
+  rcases M₂ with ⟨S₂, T₂, hS₂, hT₂, e₂⟩
+  cases hS
+  cases hT
+  congr
+  ext s
+  let M₁' : Matching π σ := { S := S₁, T := T₁, hS := hS₁, hT := hT₁, e := e₁ }
+  let M₂' : Matching π σ := { S := S₁, T := T₁, hS := hS₂, hT := hT₂, e := e₂ }
+  have hmerged : s.1 ∪ (e₁ s).1 ∈
+      S₁.attach.image (fun s => (s.1 : Finset α) ∪ (e₂ s).1) := by
+    rw [← M₂'.mergedOf_glue hAB, ← hglue, M₁'.mergedOf_glue hAB]
+    exact Finset.mem_image.mpr ⟨s, Finset.mem_attach _ _, rfl⟩
+  obtain ⟨s', -, hs'⟩ := Finset.mem_image.mp hmerged
+  have hleft₁ := union_inter_left_of_subset hAB (π.subset (hS₁ s.2)) (σ.subset (hT₁ (e₁ s).2))
+  have hleft₂ := union_inter_left_of_subset hAB (π.subset (hS₂ s'.2)) (σ.subset (hT₂ (e₂ s').2))
+  have hs_eq := Subtype.ext ((hleft₁.symm.trans (congrArg (· ∩ A) hs').symm).trans hleft₂)
+  subst s'
+  have hright₁ := union_inter_right_of_subset hAB (π.subset (hS₁ s.2)) (σ.subset (hT₁ (e₁ s).2))
+  have hright₂ := union_inter_right_of_subset hAB (π.subset (hS₂ s.2)) (σ.subset (hT₂ (e₂ s).2))
+  have heq_fin := (hright₁.symm.trans (congrArg (· ∩ B) hs').symm).trans hright₂
+  rw [heq_fin]
+
 /-- Distinct matchings glue to distinct partitions of `A ∪ B`.
 
 Informal proof.  Suppose `M.glue hAB = M'.glue hAB =: T`.  A block of `T` meets both `A` and `B`
@@ -2039,8 +2165,8 @@ lies in the common merged-block set, hence equals `s'.1 ∪ (M'.e s').1` for som
 intersecting with `A` forces `s' = s`, and intersecting with `B` then forces
 `(M.e s).1 = (M'.e s).1`; so `M.e = M'.e` by `Equiv.ext`, giving `M = M'`. -/
 lemma glue_injective (hAB : Disjoint A B) :
-    Function.Injective (fun M : Matching π σ => M.glue hAB) := by
-  sorry
+    Function.Injective (fun M : Matching π σ => M.glue hAB) :=
+  fun M₁ M₂ hglue => eq_of_glue_eq M₁ M₂ hAB hglue
 
 /-- The number of size-`m` matchings between `π` and `σ` is `p.choose m * q.choose m * m!`, where
 `p = π.parts.card`, `q = σ.parts.card`.

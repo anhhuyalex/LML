@@ -1035,7 +1035,7 @@ one of the 3 pairings.
 Informal proof: Split the sum into partitions with and without a singleton. For a centered family,
 a singleton block moment is zero, so its block product vanishes. Thus only `⊤` (coefficient one)
 and the three pairings (coefficient negative one) remain. -/
-lemma jointCumulant_four_of_centered_combinatorics [IsProbabilityMeasure μ]
+lemma jointCumulant_four_of_centered_combinatorics
     (X : Fin 4 → Ω → ℝ)
     (hcenter : ∀ i, ∫ ω, X i ω ∂μ = 0) :
     Finpartition.cumulantTransform (blockMoment μ X) Finset.univ =
@@ -1084,7 +1084,7 @@ Informal proof: specialize the generic Möbius formula to four positions.  Every
 singleton block vanishes by `hcenter`; the remaining partitions are the one four-element block and
 the three partitions into two pairs.  The classification should be proved once as a finite-
 partition lemma, not by enumerating terms in this probability theorem. -/
-theorem jointCumulant_four_of_centered [IsProbabilityMeasure μ] (X : Fin 4 → Ω → ℝ)
+theorem jointCumulant_four_of_centered (X : Fin 4 → Ω → ℝ)
     (hcenter : ∀ i, ∫ ω, X i ω ∂μ = 0) :
     jointCumulant μ X =
       (∫ ω, X 0 ω * X 1 ω * X 2 ω * X 3 ω ∂μ)
@@ -1463,7 +1463,7 @@ private lemma indepFun_split_integral [DecidableEq ι]
     hφ.aestronglyMeasurable hψ.aestronglyMeasurable
   simpa [hφ_eval, hψ_eval] using hfactor
 
-lemma blockMoment_indepFun_split [DecidableEq ι] [IsProbabilityMeasure μ]
+lemma blockMoment_indepFun_split [DecidableEq ι]
     (X : ι → Ω → ℝ) (A : Finset ι) (_hX : HasFiniteJointMoments μ X)
     (hmeas : ∀ i, Measurable (X i)) (hindep : IndepAcross μ X A) (s : Finset ι) :
     blockMoment μ X s = blockMoment μ X (s ∩ A) * blockMoment μ X (s \ A) := by
@@ -2060,7 +2060,7 @@ Informal proof: independence factors every mixed block moment into its two restr
 those factorizations into the Möbius formula; Möbius inversion on the product of the two partition
 lattices makes the total coefficient zero. -/
 theorem jointCumulant_eq_zero_of_indepFun_split [Fintype ι] [DecidableEq ι]
-    [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) (A : Finset ι)
+    (X : ι → Ω → ℝ) (A : Finset ι)
     (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
     (hX : HasFiniteJointMoments μ X) (hmeas : ∀ i, Measurable (X i))
     (hindep : IndepAcross μ X A) :

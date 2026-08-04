@@ -127,7 +127,7 @@ theorem tendsto_covariance_of_weightVariance_lt_one (Cw q : ℝ)
   simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hCw0 hCw1).mul_const q
 
 /-- At criticality the covariance amplitude is exactly constant. -/
-@[simp] theorem covariance_eq_of_weightVariance_eq_one (q : ℝ) (L : ℕ) :
+@[simp, nolint simpNF] theorem covariance_eq_of_weightVariance_eq_one (q : ℝ) (L : ℕ) :
     (1 : ℝ) ^ L * q = q := by simp
 
 /-- A positive supercritical covariance amplitude diverges to `+∞`.

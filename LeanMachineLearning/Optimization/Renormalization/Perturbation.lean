@@ -146,7 +146,7 @@ private lemma integrable_exp_neg_mul_nonneg [IsFiniteMeasure μ] {V : Ω → ℝ
     (hVmeas : AEStronglyMeasurable V μ) (hVnonneg : 0 ≤ V) {ε : ℝ} (hε : 0 ≤ ε) :
     Integrable (fun x : Ω => Real.exp (-ε * V x)) μ :=
   Integrable.of_mem_Icc 0 1
-    ((hVmeas.aemeasurable.const_mul (-ε)).exp)
+    (hVmeas.aemeasurable.const_mul (-ε)).exp
     (ae_of_all μ fun x => exp_neg_mul_nonneg_mem_Icc hε (hVnonneg x))
 
 -- The slope of the integrated exponential equals the integral of the pointwise difference
@@ -399,6 +399,102 @@ theorem hasDerivWithinAt_integral_deform_zero [IsProbabilityMeasure μ]
 
 /-! ## Quadratic remainders -/
 
+/-- Scalar Taylor bound for the exponential remainder on the nonnegative half-line.
+
+Informal proof: Taylor's theorem with integral remainder gives
+`exp (-t) = 1 - t + ∫ s in 0..t, (t - s) * exp (-s)`.  If `0 ≤ t`, then
+`0 ≤ exp (-s) ≤ 1` for `s ∈ [0,t]`, hence the absolute value of the remainder is at most
+`∫ s in 0..t, (t - s) = t ^ 2 / 2`.  Equivalently, the function
+`1 - t + t ^ 2 / 2 - exp (-t)` has nonnegative second derivative on `[0,∞)` and vanishes to
+first order at zero.  This is the scalar estimate used in the blueprint proof of the quadratic
+response theorem. -/
+private lemma abs_exp_neg_sub_one_add_le {t : ℝ} (ht : 0 ≤ t) :
+    |Real.exp (-t) - 1 + t| ≤ t ^ 2 / 2 := by
+  have hnonneg : 0 ≤ Real.exp (-t) - 1 + t := by
+    linarith [Real.one_sub_le_exp_neg t]
+  rw [abs_of_nonneg hnonneg]
+  have hA_nonneg : 0 ≤ 1 - t + t ^ 2 / 2 := by
+    nlinarith [sq_nonneg (t - 1)]
+  have hprod : 1 ≤ (1 - t + t ^ 2 / 2) * (1 + t + t ^ 2 / 2) := by
+    nlinarith [sq_nonneg (t ^ 2 / 2)]
+  have hquad : 1 + t + t ^ 2 / 2 ≤ Real.exp t :=
+    Real.quadratic_le_exp_of_nonneg ht
+  have hmul : 1 ≤ (1 - t + t ^ 2 / 2) * Real.exp t := by
+    exact hprod.trans (mul_le_mul_of_nonneg_left hquad hA_nonneg)
+  have hupper : Real.exp (-t) ≤ 1 - t + t ^ 2 / 2 := by
+    rw [Real.exp_neg]
+    rwa [inv_le_iff_one_le_mul₀ (Real.exp_pos t)]
+  linarith
+
+-- For `ε ≥ 0` and `v ≥ 0`, the quadratic Taylor remainder of `exp` at `t = ε * v` is bounded
+-- by `(ε²/2) * v²`.  This is `abs_exp_neg_sub_one_add_le` with `t = ε * v`, multiplied out;
+-- the product form is what survives integration against `V²` in the quadratic-response bounds.
+private lemma abs_exp_neg_mul_add_le {ε v : ℝ} (hε : 0 ≤ ε) (hv : 0 ≤ v) :
+    |Real.exp (-(ε * v)) - 1 + ε * v| ≤ (ε ^ 2 / 2) * v ^ 2 := by
+  calc
+    |Real.exp (-(ε * v)) - 1 + ε * v| ≤ (ε * v) ^ 2 / 2 :=
+      abs_exp_neg_sub_one_add_le (mul_nonneg hε hv)
+    _ = (ε ^ 2 / 2) * v ^ 2 := by ring
+
+-- The partition-function linear remainder equals the integral of the pointwise remainder:
+-- `Z(ε) - 1 + ε ∫ V = ∫ (exp (-ε V) - 1 + ε V)`.  This is Bochner-integral linearity
+-- (`integral_sub`, `integral_const_mul`, `integral_add`) together with the probability
+-- normalization `∫ 1 = 1`; the integrability of the tilted exponential is passed in as `hExp`.
+private lemma integral_partitionFunction_sub_linear [IsProbabilityMeasure μ]
+    {V : Ω → ℝ} {ε : ℝ}
+    (hExp : Integrable (fun x : Ω ↦ Real.exp (-ε * V x)) μ)
+    (hV : Integrable V μ) :
+    partitionFunction μ V ε - 1 + ε * ∫ x, V x ∂μ =
+      ∫ x, (Real.exp (-ε * V x) - 1 + ε * V x) ∂μ := by
+  calc
+    partitionFunction μ V ε - 1 + ε * ∫ x, V x ∂μ
+        = (∫ x, Real.exp (-ε * V x) ∂μ) - (∫ x, (1 : ℝ) ∂μ) +
+            ε * ∫ x, V x ∂μ := by
+            simp [partitionFunction]
+    _ = ∫ x, (Real.exp (-ε * V x) - 1) ∂μ + ε * ∫ x, V x ∂μ := by
+            rw [integral_sub hExp (integrable_const (1 : ℝ))]
+    _ = ∫ x, (Real.exp (-ε * V x) - 1) ∂μ + ∫ x, ε * V x ∂μ := by
+            rw [integral_const_mul]
+    _ = ∫ x, Real.exp (-ε * V x) - 1 + ε * V x ∂μ :=
+            (integral_add (hExp.sub (integrable_const (1 : ℝ))) (hV.const_mul ε)).symm
+
+/-- Integrated quadratic bound for the partition-function remainder.
+
+Informal proof: for `t ≥ 0`, Taylor's theorem with the Lagrange (or integral) remainder gives
+`|exp (-t) - 1 + t| ≤ t ^ 2 / 2`.  With `t = ε * V x`, using `ε ≥ 0` and `V x ≥ 0`, this yields
+`|exp (-ε * V x) - 1 + ε * V x| ≤ (ε ^ 2 / 2) * V x ^ 2`.  The left-hand side of the displayed
+estimate is the norm of the integral of this pointwise remainder (by linearity of the Bochner
+integral and `μ univ = 1`).  Finally, `norm_integral_le_integral_norm`, integral monotonicity, and
+integrability of `V²` give the claimed bound.  This is the standard second-order Taylor remainder
+argument recorded in `blueprint/src/chapters/renormalization.tex`, Theorem
+`thm:renorm:quadraticResponse`. -/
+private lemma norm_partitionFunction_sub_linear_le [IsProbabilityMeasure μ]
+    {V : Ω → ℝ} (hVnonneg : 0 ≤ V) (hV : Integrable V μ)
+    (hV2 : Integrable (fun x ↦ V x ^ 2) μ) {ε : ℝ} (hε : 0 ≤ ε) :
+    ‖partitionFunction μ V ε - 1 + ε * ∫ x, V x ∂μ‖ ≤
+      ((∫ x, V x ^ 2 ∂μ) / 2) * ‖ε ^ 2‖ := by
+  have hExp := integrable_exp_neg_mul_nonneg hV.aestronglyMeasurable hVnonneg hε
+  -- Rewrite the linear remainder as the integral of the pointwise remainder
+  -- (`integral_partitionFunction_sub_linear`); this is Bochner-integral linearity.
+  rw [integral_partitionFunction_sub_linear hExp hV]
+  let R : Ω → ℝ := fun x ↦ Real.exp (-ε * V x) - 1 + ε * V x
+  let B : Ω → ℝ := fun x ↦ (ε ^ 2 / 2) * V x ^ 2
+  have hR : Integrable R μ := (hExp.sub (integrable_const (1 : ℝ))).add (hV.const_mul ε)
+  have hB : Integrable B μ := hV2.const_mul (ε ^ 2 / 2)
+  -- Pointwise domination `‖R x‖ ≤ B x` via the scalar Taylor bound
+  -- (`abs_exp_neg_mul_add_le`) applied with `v = V x`.
+  have hRB : ∀ᵐ x ∂μ, ‖R x‖ ≤ B x :=
+    ae_of_all μ (fun x ↦ by simpa [R, B] using abs_exp_neg_mul_add_le hε (hVnonneg x))
+  -- `norm_integral_le_integral_norm` and integral monotonicity push the bound through the
+  -- integral; `∫ B = (ε²/2) * ∫ V²` and `‖ε²‖ = ε²` finish the computation.
+  calc
+    ‖∫ x, R x ∂μ‖ ≤ ∫ x, ‖R x‖ ∂μ := norm_integral_le_integral_norm R
+    _ ≤ ∫ x, B x ∂μ := integral_mono_ae hR.norm hB hRB
+    _ = ((∫ x, V x ^ 2 ∂μ) / 2) * ‖ε ^ 2‖ := by
+          rw [show (∫ x, B x ∂μ) = (ε ^ 2 / 2) * ∫ x, V x ^ 2 ∂μ by
+            simp [B, integral_const_mul], Real.norm_of_nonneg (sq_nonneg ε)]
+          ring
+
 /-- Quadratic right-hand remainder for the partition function.
 
 Informal proof: apply `|exp (-t)-1+t| ≤ t²/2` with `t=ε V x`, integrate the bound using
@@ -410,7 +506,9 @@ theorem partitionFunction_sub_linear_isBigO [IsProbabilityMeasure μ]
     Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
       (fun ε ↦ partitionFunction μ V ε - 1 + ε * ∫ x, V x ∂μ)
       (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+  exact Asymptotics.IsBigO.of_bound ((∫ x, V x ^ 2 ∂μ) / 2) (by
+    filter_upwards [self_mem_nhdsWithin] with ε hε
+    exact norm_partitionFunction_sub_linear_le (μ := μ) hVnonneg hV hV2 hε)
 
 /-- Quadratic right-hand remainder for an unnormalized weighted integral.
 
