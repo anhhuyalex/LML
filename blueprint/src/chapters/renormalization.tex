@@ -971,11 +971,26 @@ The existing \texttt{Approximation.Basic} file already defines
 module described above, preserving compatibility aliases during migration.  In particular, there
 must be only one ReLU definition in LML.
 
+\begin{lemma}[Taylor expansion of the exponential]
+\label{lem:renorm:expTaylor}
+\lean{NeuralNetwork.exp_eq_tsum_div_factorial}
+For every $x\in\mathbb R$,
+\[
+  e^x=\sum_{k=0}^{\infty}\frac{x^k}{k!}.
+\]
+Here the right-hand side is Lean's convergent infinite sum, not merely a formal power series.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}),
+Equation~\texttt{eq:exponential-Taylor-expansion}.
+\end{lemma}
+
 \begin{definition}[Standard activations]
 \label{def:renorm:activations}
 \lean{NeuralNetwork.threshold, NeuralNetwork.logistic, NeuralNetwork.relu,
 NeuralNetwork.linear, NeuralNetwork.leakyRelu, NeuralNetwork.softplus,
-NeuralNetwork.swish, NeuralNetwork.gaussianErf, NeuralNetwork.gelu}
+NeuralNetwork.swish, NeuralNetwork.standardNormalCDF, NeuralNetwork.gaussianErf,
+NeuralNetwork.gelu, NeuralNetwork.signedThreshold, NeuralNetwork.signedThreshold_eq_sign}
 Define
 \begin{align*}
  \operatorname{threshold}(z)&=\mathbf 1_{[0,\infty)}(z),&
@@ -988,6 +1003,8 @@ Define
  \operatorname{gelu}(z)&=z\,\Phi(z),
 \end{align*}
 where $\Phi=\texttt{ProbabilityTheory.cdf (gaussianReal 0 1)}$ is the standard normal CDF.
+The alternative signed perceptron from the source footnote is \texttt{signedThreshold}; away from
+the convention-sensitive value at zero it agrees with \texttt{Real.sign}.
 The hyperbolic-tangent and sinusoidal activations are Mathlib's \texttt{Real.tanh} and
 \texttt{Real.sin}; LML should not wrap them merely to change their names.
 Mathlib at the pinned revision has no \texttt{Real.erf}; defining GELU through the CDF avoids
@@ -1007,8 +1024,15 @@ displays immediately follow \texttt{eq:softplus}.
 \label{lem:renorm:activationRegularity}
 \uses{def:renorm:activations}
 \lean{NeuralNetwork.measurable_threshold, NeuralNetwork.continuous_logistic,
-NeuralNetwork.continuous_relu, NeuralNetwork.continuous_leakyRelu,
-NeuralNetwork.continuous_softplus, NeuralNetwork.continuous_swish,
+NeuralNetwork.measurable_logistic, NeuralNetwork.continuous_relu,
+NeuralNetwork.measurable_relu, NeuralNetwork.continuous_linear,
+NeuralNetwork.measurable_linear, NeuralNetwork.continuous_leakyRelu,
+NeuralNetwork.measurable_leakyRelu, NeuralNetwork.continuous_softplus,
+NeuralNetwork.measurable_softplus, NeuralNetwork.continuous_swish,
+NeuralNetwork.measurable_swish, NeuralNetwork.measurable_standardNormalCDF,
+NeuralNetwork.measurable_gelu, NeuralNetwork.continuous_tanhActivation,
+NeuralNetwork.measurable_tanhActivation, NeuralNetwork.continuous_sinActivation,
+NeuralNetwork.measurable_sinActivation, NeuralNetwork.continuous_standardNormalCDF,
 NeuralNetwork.continuous_gelu, NeuralNetwork.contDiff_logistic,
 NeuralNetwork.contDiff_tanhActivation, NeuralNetwork.contDiff_sinActivation,
 NeuralNetwork.contDiff_softplus, NeuralNetwork.contDiff_swish,
@@ -1050,7 +1074,11 @@ Chapter ``Neural Networks'', Section ``Activation Functions'' (\texttt{sec:activ
 \label{thm:renorm:posHomogeneousClassification}
 \uses{def:renorm:posHomogeneous, def:renorm:activations}
 \lean{NeuralNetwork.posHomogeneous_iff_eq_piecewiseLinear,
-NeuralNetwork.posHomogeneous_and_apply_one_iff_eq_leakyRelu}
+NeuralNetwork.posHomogeneous_and_apply_one_iff_eq_leakyRelu,
+NeuralNetwork.piecewiseLinear, NeuralNetwork.PosHomogeneous.zero,
+NeuralNetwork.posHomogeneous_piecewiseLinear, NeuralNetwork.piecewiseLinear_one,
+NeuralNetwork.posHomogeneous_linear, NeuralNetwork.posHomogeneous_relu,
+NeuralNetwork.posHomogeneous_leakyRelu}
 For $\sigma:\mathbb R\to\mathbb R$, positive one-homogeneity is equivalent to the existence of
 $a_+,a_-\in\mathbb R$ such that
 \[
@@ -1078,7 +1106,14 @@ present in the statement.
 \uses{def:renorm:activations, thm:renorm:posHomogeneousClassification}
 \lean{NeuralNetwork.logistic_eq_half_add_half_tanh,
 NeuralNetwork.tanh_eq_exp_div, NeuralNetwork.tanh_eq_exp_two_mul,
-NeuralNetwork.gelu_eq_erf, NeuralNetwork.tendsto_logistic_atTop,
+NeuralNetwork.standardNormalCDF_eq_erf, NeuralNetwork.gelu_eq_erf,
+NeuralNetwork.logistic_zero, NeuralNetwork.tanhActivation_zero,
+NeuralNetwork.sinActivation_zero, NeuralNetwork.sinActivation_periodic,
+NeuralNetwork.softplus_zero, NeuralNetwork.swish_zero, NeuralNetwork.gelu_zero,
+NeuralNetwork.hasDerivAt_tanh_zero,
+NeuralNetwork.tendsto_standardNormalCDF_atTop,
+NeuralNetwork.tendsto_standardNormalCDF_atBot,
+NeuralNetwork.tendsto_logistic_atTop,
 NeuralNetwork.tendsto_logistic_atBot, NeuralNetwork.tendsto_tanh_atTop,
 NeuralNetwork.tendsto_tanh_atBot, NeuralNetwork.tendsto_softplus_sub_id_atTop,
 NeuralNetwork.tendsto_softplus_div_exp_atBot, NeuralNetwork.tendsto_swish_sub_id_atTop,
@@ -1087,8 +1122,11 @@ NeuralNetwork.tendsto_gelu_atBot, NeuralNetwork.nonhomogeneous_activations,
 NeuralNetwork.not_posHomogeneous_threshold,
 NeuralNetwork.not_posHomogeneous_logistic,
 NeuralNetwork.differentiableAt_piecewiseLinear_zero_iff}
-The exact exponential, logistic--tanh, and CDF--error-function identities all hold.
-Every informal approximation in the activation section is represented by a Tendsto statement.
+The exact exponential formulas for tanh, the logistic--tanh identity, the CDF--error-function
+identity, the values at zero, and sine periodicity all hold.  The statement that tanh is linear to
+first order at zero is formalized by \texttt{hasDerivAt\_tanh\_zero}.
+Every informal large-argument approximation in the activation section is represented by a
+\texttt{Tendsto} statement.
 Threshold, logistic, tanh, softplus, SWISH, and GELU are not positively homogeneous.  Finally,
 \texttt{piecewiseLinear aPos aNeg} is differentiable at zero exactly when the slopes agree.
 
@@ -1111,8 +1149,10 @@ must not alternate between the two representations inside a proof.
 
 \begin{definition}[Dense affine layer]
 \label{def:renorm:denseLayer}
-\lean{NeuralNetwork.DenseLayer, NeuralNetwork.DenseLayer.preactivation,
-NeuralNetwork.DenseLayer.activate}
+\lean{NeuralNetwork.DenseLayer, NeuralNetwork.LayerParams,
+NeuralNetwork.DenseLayer.ofParams, NeuralNetwork.DenseLayer.toParams,
+NeuralNetwork.DenseLayer.preactivation, NeuralNetwork.DenseLayer.preactivation_apply,
+NeuralNetwork.DenseLayer.activate, NeuralNetwork.DenseLayer.activate_apply}
 For finite input and output index types $I$ and $J$, a dense layer has
 \[
   W:J\to I\to\mathbb R,\qquad b:J\to\mathbb R.
@@ -1140,7 +1180,11 @@ activation display.
 \lean{NeuralNetwork.DenseLayer.measurable_preactivation,
 NeuralNetwork.DenseLayer.measurable_activate,
 NeuralNetwork.DenseLayer.continuous_preactivation,
-NeuralNetwork.DenseLayer.continuous_activate}
+NeuralNetwork.DenseLayer.continuous_activate,
+NeuralNetwork.DenseLayer.measurable_preactivation_fixed,
+NeuralNetwork.DenseLayer.measurable_activate_fixed,
+NeuralNetwork.DenseLayer.continuous_preactivation_fixed,
+NeuralNetwork.DenseLayer.continuous_activate_fixed}
 Preactivation is jointly continuous, hence jointly measurable, in parameters and input.  Activation
 is jointly measurable when $\sigma$ is measurable and jointly continuous when $\sigma$ is
 continuous.
@@ -1195,6 +1239,8 @@ Chapter ``Neural Networks'', Section \texttt{sec:MLP\_intro}, the recursive netw
 \uses{def:renorm:mlp}
 \lean{NeuralNetwork.MLPShape, NeuralNetwork.MLPShape.Params,
 NeuralNetwork.MLPShape.instantiate, NeuralNetwork.MLPShape.eval,
+NeuralNetwork.MLPShape.eval_output, NeuralNetwork.MLPShape.eval_hidden,
+NeuralNetwork.MLPShape.measurable_eval, NeuralNetwork.MLPShape.continuous_eval,
 NeuralNetwork.MLPShape.paramModel}
 \texttt{MLPShape} stores the typed nonempty architecture without values.  Its dependent type
 \texttt{Params} is the nested product of all weight and bias arrays.  Consequently the source's
@@ -1213,7 +1259,13 @@ The dependent \texttt{Params} type is the formal shape-safe realization of that 
 \begin{definition}[Parameter count]
 \label{def:renorm:paramCount}
 \uses{def:renorm:mlp}
-\lean{NeuralNetwork.DenseLayer.paramCount, NeuralNetwork.MLP.paramCount}
+\lean{NeuralNetwork.DenseLayer.paramCount, NeuralNetwork.MLP.paramCount,
+NeuralNetwork.MLP.depth, NeuralNetwork.MLP.widths,
+NeuralNetwork.MLP.depth_eq_widths_length_sub_one,
+NeuralNetwork.MLP.paramCountFromWidths,
+NeuralNetwork.MLP.paramCount_eq_paramCountFromWidths,
+NeuralNetwork.MLPShape.paramCount, NeuralNetwork.MLPShape.depth,
+NeuralNetwork.MLPShape.widths, NeuralNetwork.exampleMLP45551}
 Set
 \[
   \operatorname{paramCount}(L)=|J|+|J||I|
@@ -1235,7 +1287,8 @@ figure caption.
 \begin{definition}[Evaluation on a finite dataset]
 \label{def:renorm:evalBatch}
 \uses{def:renorm:mlp}
-\lean{NeuralNetwork.MLP.evalBatch}
+\lean{NeuralNetwork.Dataset, NeuralNetwork.MLP.evalBatch,
+NeuralNetwork.MLP.evalBatch_apply}
 For a finite sample type $A$ and data $D:A\to(I\to\mathbb R)$, define
 \[
   \operatorname{evalBatch}(N,D)(a)=\operatorname{eval}(N,D(a)).
@@ -1253,7 +1306,8 @@ indexed simultaneously by neuron $i$ and sample $\alpha$.
 \begin{lemma}[Identical neurons and zero initialization]
 \label{lem:renorm:identicalNeurons}
 \uses{def:renorm:denseLayer}
-\lean{NeuralNetwork.DenseLayer.preactivation_eq_of_row_eq}
+\lean{NeuralNetwork.DenseLayer.preactivation_eq_of_row_eq,
+NeuralNetwork.DenseLayer.preactivation_zero_eq}
 If two output neurons have equal weight rows and equal biases, their preactivations agree on every
 input.  In particular, all output coordinates of a zero-initialized layer agree.  This is the exact
 algebraic content of the source's symmetry observation; persistence under training is not claimed.
@@ -1267,9 +1321,15 @@ biases and weights''.
 \begin{definition}[Two-dimensional convolutional layer]
 \label{def:renorm:conv2d}
 \lean{NeuralNetwork.Conv2DLayer, NeuralNetwork.Conv2DLayer.window,
+NeuralNetwork.Conv2DLayer.WindowIndex, NeuralNetwork.Conv2DLayer.PatchIndex,
 NeuralNetwork.Conv2DLayer.preactivation,
+NeuralNetwork.Conv2DLayer.preactivation_apply,
+NeuralNetwork.Conv2DLayer.extractPatch,
 NeuralNetwork.Conv2DLayer.ofOffsetTiedDense,
-NeuralNetwork.Conv2DLayer.toLocalDenseLayer}
+NeuralNetwork.Conv2DLayer.preactivation_ofOffsetTiedDense,
+NeuralNetwork.Conv2DLayer.toLocalDenseLayer,
+NeuralNetwork.Conv2DLayer.preactivation_eq_toLocalDenseLayer,
+NeuralNetwork.Conv2DLayer.paramCount}
 For channel types $I,J$, integer spatial coordinates, and a radius-$k$ window, define
 \[
  z_{o,c,d}=b_o+\sum_{i:I}\sum_{u,v}
@@ -1281,6 +1341,9 @@ whose $W_{ij}$ omits offset indices, is the specialization
 For each spatial position, \texttt{preactivation\_eq\_toLocalDenseLayer} identifies the result with
 one fixed dense affine map applied to the extracted local patch; the fact that this dense layer is
 independent of absolute position is the exact weight-tying claim.
+Its independent parameter count is
+$|J|+|J||I|(2k+1)^2$, rather than the parameter count of an unconstrained dense layer on all spatial
+locations.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), in the CNN
@@ -1291,7 +1354,8 @@ local windows, shared weights, and weight tying.
 \begin{theorem}[Translation equivariance]
 \label{thm:renorm:convEquivariant}
 \uses{def:renorm:conv2d}
-\lean{NeuralNetwork.Conv2DLayer.preactivation_shift}
+\lean{NeuralNetwork.Conv2DLayer.shift,
+NeuralNetwork.Conv2DLayer.preactivation_shift}
 Convolution commutes with every spatial shift.  This is equivariance, not invariance; the source's
 phrase ``translational invariance'' requires an invariant readout such as global pooling.
 
@@ -1323,7 +1387,13 @@ needed to turn that source notation into a measure pushforward.
 \begin{definition}[Induced output law]
 \label{def:renorm:outputLaw}
 \uses{def:renorm:paramModel}
-\lean{NeuralNetwork.ParamModel.evalBatch, NeuralNetwork.ParamModel.outputLaw}
+\lean{NeuralNetwork.ParamModel.evalBatch,
+NeuralNetwork.ParamModel.measurable_eval_fixed,
+NeuralNetwork.ParamModel.measurable_evalBatch,
+NeuralNetwork.ParamModel.outputLaw,
+NeuralNetwork.ParamModel.instIsProbabilityMeasureOutputLaw,
+NeuralNetwork.MLPShape.outputLaw_eq_map_eval,
+NeuralNetwork.MLPShape.outputLaw_gaussianInit_eq_map}
 For finite $A$, dataset $D:A\to X$, and parameter measure $\mu$, define
 \[
   \operatorname{outputLaw}(F,D,\mu)
@@ -1361,7 +1431,8 @@ pushforward formula.
 \uses{def:renorm:paramModel}
 \lean{NeuralNetwork.ParamModel.deterministicOutputKernel,
 NeuralNetwork.ParamModel.parameterOutputKernel,
-NeuralNetwork.ParamModel.parameterOutputKernel_comp_eq_outputLaw}
+NeuralNetwork.ParamModel.parameterOutputKernel_comp_eq_outputLaw,
+NeuralNetwork.ParamModel.deterministicOutputKernel_apply}
 For fixed parameters $\theta$, the conditional output kernel is
 \[
   \texttt{Kernel.deterministic}\bigl(D\mapsto F(\theta,D)\bigr).
@@ -1383,7 +1454,9 @@ It formalizes the conditional deterministic factors in
 
 \begin{lemma}[Dirac expectation and variance]
 \label{lem:renorm:diracMoments}
-\lean{NeuralNetwork.integral_dirac_apply, NeuralNetwork.variance_id_dirac}
+\lean{NeuralNetwork.integral_dirac_apply, NeuralNetwork.integral_id_dirac,
+NeuralNetwork.integral_sq_dirac, NeuralNetwork.variance_id_dirac,
+NeuralNetwork.dirac_apply_univ}
 For every $s\in\mathbb R$,
 \[
   \int f\,d\delta_s=f(s),\qquad
@@ -1404,6 +1477,7 @@ distributions and the Dirac delta function'', equations \texttt{eq:dirac-mean},
 \begin{theorem}[Self-averaging characterizes a point mass]
 \label{thm:renorm:selfAveraging}
 \lean{NeuralNetwork.SelfAveragingAt,
+NeuralNetwork.selfAveragingAt_dirac,
 NeuralNetwork.selfAveragingAt_iff_eq_dirac}
 For a probability measure $\mu$ on $\mathbb R$, the identity
 $\int f\,d\mu=f(s)$ for every bounded continuous $f$ holds if and only if
@@ -1431,7 +1505,9 @@ measure-theoretic statement extracted from that formal representation.
 
 \begin{theorem}[Gaussian regularization and the Dirac limit]
 \label{thm:renorm:diracLimit}
-\lean{NeuralNetwork.tendsto_gaussianProbabilityMeasure_zero_variance,
+\lean{NeuralNetwork.gaussianProbabilityMeasure,
+NeuralNetwork.diracProbabilityMeasure,
+NeuralNetwork.tendsto_gaussianProbabilityMeasure_zero_variance,
 NeuralNetwork.gaussianPDFReal_eq_regularizedFourierIntegral,
 NeuralNetwork.not_integrable_dirac_fourierKernel}
 The laws $\mathcal N(s,K)$ converge weakly to $\delta_s$ as $K\to0$ in $\mathbb R_{\ge0}$.
@@ -1450,7 +1526,7 @@ the source warning that the Gaussian limit is taken only after integration again
 
 \begin{definition}[Layer initialization hyperparameters]
 \label{def:renorm:initHyperparams}
-\lean{NeuralNetwork.InitHyperparams}
+\lean{NeuralNetwork.InitHyperparams, NeuralNetwork.scaledWeightVariance}
 For a layer with input index type $I$, store nonnegative real variances
 $C_b,C_W\in\mathbb R_{\ge0}$.  The variance of every weight is $C_W/|I|$ and the variance of every
 bias is $C_b$.  The implementation leaves NNReal division total at $|I|=0$ (where it returns zero),
@@ -1467,7 +1543,8 @@ defining layer-dependent initialization hyperparameters.
 \begin{definition}[Gaussian layer-parameter law]
 \label{def:renorm:layerGaussianInit}
 \uses{def:renorm:denseLayer, def:renorm:initHyperparams}
-\lean{NeuralNetwork.layerGaussianInit}
+\lean{NeuralNetwork.gaussianWeightLaw, NeuralNetwork.gaussianBiasLaw,
+NeuralNetwork.layerGaussianInit}
 For finite $I,J$, define the bias law by
 \[
   \bigotimes_{j:J}\mathcal N(0,C_b)
@@ -1494,9 +1571,13 @@ asserted with the covariance formulas \texttt{eq:bias-variance-def-naive} and
 \uses{def:renorm:layerGaussianInit}
 \lean{NeuralNetwork.map_bias_layerGaussianInit,
 NeuralNetwork.map_weight_layerGaussianInit,
+NeuralNetwork.LayerCoordinate, NeuralNetwork.layerCoordinate,
 NeuralNetwork.iIndepFun_bias_layerGaussianInit,
 NeuralNetwork.iIndepFun_weight_layerGaussianInit,
+NeuralNetwork.indepFun_weight_bias_layerGaussianInit,
 NeuralNetwork.iIndepFun_layerCoordinate_layerGaussianInit,
+NeuralNetwork.integral_bias_layerGaussianInit,
+NeuralNetwork.integral_weight_layerGaussianInit,
 NeuralNetwork.covariance_bias_layerGaussianInit,
 NeuralNetwork.covariance_weight_layerGaussianInit,
 NeuralNetwork.covariance_weight_bias_layerGaussianInit}
@@ -1517,6 +1598,7 @@ distribution of biases and weights'', equations \texttt{eq:bias-variance-def-nai
 \lean{NeuralNetwork.map_bias_layerGaussianInit_eq_withDensity,
 NeuralNetwork.map_weight_layerGaussianInit_eq_withDensity,
 NeuralNetwork.gaussianPDFReal_bias_eq,
+NeuralNetwork.gaussianPDFReal_weight_eq,
 NeuralNetwork.gaussianPDFReal_weight_eq_source}
 When the relevant variance is nonzero, each marginal law is Lebesgue measure weighted by Mathlib's
 normalized \texttt{gaussianPDF}.  Expanding it gives exactly the source's bias density and the
@@ -1561,7 +1643,8 @@ that source specification.
 \lean{NeuralNetwork.MLPShape.Hyperparams,
 NeuralNetwork.MLPShape.gaussianInit,
 NeuralNetwork.MLPShape.Coordinate,
-NeuralNetwork.MLPShape.coordinate}
+NeuralNetwork.MLPShape.coordinate,
+NeuralNetwork.MLPShape.coordinateVariance}
 For a fixed shape $S$, let $h$ contain one pair $(C_b^{(\ell)},C_W^{(\ell)})$ per affine layer.
 Define the law $p_S(d\theta)$ on \texttt{S.Params} recursively by
 \[
@@ -1652,7 +1735,10 @@ This keeps \texttt{ring} on exposed scalar sums and avoids mixing raw functions 
 \label{thm:renorm:gaussianLayerLaw}
 \uses{def:renorm:layerGaussianInit, def:renorm:layerCovariance,
 lem:renorm:layerCovariancePSD, lem:renorm:initCoordinates}
-\lean{NeuralNetwork.map_evalBatch_layerGaussianInit}
+\lean{NeuralNetwork.batchPreactivation,
+NeuralNetwork.measurable_batchPreactivation,
+NeuralNetwork.batchToEuclidean,
+NeuralNetwork.map_evalBatch_layerGaussianInit}
 Push forward the Gaussian layer-parameter law through batched preactivation on $s$.  After the
 single named equivalence from raw batches to
 $J\to\texttt{EuclideanSpace }\mathbb R\ A$, the result is
@@ -1681,7 +1767,11 @@ of different neurons follows because their parameter rows are independent.  Fina
 \begin{definition}[Randomized layer kernel]
 \label{def:renorm:randomLayerKernel}
 \uses{def:renorm:layerGaussianInit, def:renorm:denseLayer}
-\lean{NeuralNetwork.randomLayerKernel, NeuralNetwork.randomLayerKernel_apply}
+\lean{NeuralNetwork.randomMapKernel, NeuralNetwork.randomMapKernel_apply,
+NeuralNetwork.batchActivate, NeuralNetwork.measurable_batchActivate,
+NeuralNetwork.batchActivationKernel,
+NeuralNetwork.batchActivationKernel_apply,
+NeuralNetwork.randomLayerKernel, NeuralNetwork.randomLayerKernel_apply}
 Given a parameter measure $\nu$ and a jointly measurable layer evaluator $F$, define the kernel
 \[
   x\longmapsto \nu.\operatorname{map}(\theta\mapsto F(\theta,x)).
@@ -1700,6 +1790,9 @@ measure-theoretic replacement for that equation's parameter integrals and produc
 \label{thm:renorm:deepKernelLaw}
 \uses{def:renorm:randomLayerKernel, thm:renorm:gaussianLayerLaw}
 \lean{NeuralNetwork.MLPEnsemble.outputKernel,
+NeuralNetwork.MLPEnsemble, NeuralNetwork.MLPEnsemble.shape,
+NeuralNetwork.MLPEnsemble.hyperparams, NeuralNetwork.MLPEnsemble.depth,
+NeuralNetwork.MLPEnsemble.widths,
 NeuralNetwork.MLPEnsemble.outputKernel_output,
 NeuralNetwork.MLPEnsemble.outputKernel_hidden,
 NeuralNetwork.MLPEnsemble.outputKernel_apply_eq_outputLaw}
@@ -1725,13 +1818,15 @@ applied directly to each layer law.
 \subsection{Chapter~2 implementation phases and acceptance criteria}
 
 \subsubsection*{Phase N0: scope and API audit}
-Create a direct-import scratch file that checks
+Use a temporary direct-import scratch file to check
 \texttt{Measure.pi\_map\_eval}, \texttt{iIndepFun\_pi},
 \texttt{iIndepFun.map\_fun\_eq\_pi\_map}, \texttt{Kernel.deterministic},
 \texttt{Measure.deterministic\_comp\_eq\_map}, \texttt{ProbabilityTheory.cdf},
 \texttt{gaussianReal\_zero\_var}, and the multivariate-Gaussian mean and covariance API.  Search the
-pinned source for every name before it enters implementation.  Acceptance criterion: the audit
-file compiles under the exact proposed imports and contains no guessed declaration.
+pinned source for every name before it enters implementation.  Acceptance criterion: the scratch
+file compiles under the exact proposed imports and contains no guessed declaration.  There is no
+persistent \texttt{APIAudit.lean} in the current tree, so this blueprint must not claim that such a
+file checks the Chapter~2 API.
 
 \subsubsection*{Phase N1: activations and the dense-layer core}
 Extract the shared activation definitions, remove the false threshold/sigmoidal theorem discussed
@@ -1772,11 +1867,14 @@ dense-layer API without changing their public mathematical statements.  Add the 
 renormalization umbrella only after targeted checks pass, then run the full LML build and linters.
 No phase is complete while a theorem in that phase contains \texttt{sorry}.
 
-\subsubsection*{Chapter~2 statement status (2026-08-02)}
+\subsubsection*{Chapter~2 implementation status (2026-08-03)}
 The statement-level library is now present in seven modules:
 \begin{enumerate}
-  \item \texttt{Activation.lean} contains every activation display, exact identities, smoothness,
-    origin values, asymptotic limits, and the corrected homogeneity classification.
+  \item \texttt{Activation.lean} contains the exponential Taylor identity, every activation
+    display (including the signed-perceptron alternative), exact identities, named measurable and
+    continuous APIs, individual smoothness theorems, origin values, individual asymptotic limits,
+    and the corrected homogeneity classification.  The former bundled smoothness and asymptotics
+    declarations are not part of the current API.
   \item \texttt{Network.lean} contains arbitrary finite-index dense layers, joint and fixed
     regularity, threshold firing criteria, MLPs, datasets, depths, batches, parameter counts, and
     the checked value $91$.
@@ -1794,11 +1892,22 @@ The statement-level library is now present in seven modules:
 All seven modules are exported by both the renormalization umbrella and the root LML umbrella.
 The false \texttt{Approximation.thresholdActivation\_sigmoidal} declaration has been removed;
 \texttt{Approximation} now uses compatibility wrappers with bridge theorems to the shared
-activations and exports the true negated statement.  Statement completeness is separate from proof
-completeness: every deferred proof has an informal argument and a source.
+activations and exports the true negated statement.  A targeted \texttt{lake build} of all seven
+modules succeeds.  Proof completeness remains separate from statement completeness: the build
+reports exactly 19 \texttt{declaration uses sorry} warnings---three in \texttt{Activation.lean},
+one in \texttt{Convolution.lean}, two in \texttt{ParameterizedMLP.lean}, three in
+\texttt{Initialization.lean}, three in \texttt{MLPInitialization.lean}, and seven in
+\texttt{InducedLaw.lean}; \texttt{Network.lean} has none.  In particular, the newly supplied proofs
+establish the tanh derivative, both logistic and tanh limits, both softplus limits, both SWISH
+limits, non-homogeneity, and the piecewise-linear differentiability classification.  The remaining
+activation proof boundary is analyticity of \texttt{gaussianErf} and the two GELU tail limits.
+Every deferred public result has an informal argument and a source in its Lean docstring; the
+private analytic helper has the same documentation discipline.
 
 \subsubsection*{Source-equation coverage}
-The matching \texttt{APIAudit.lean} mechanically checks every declaration below.
+The \texttt{\textbackslash lean} links in this section name the current declarations, and the seven
+direct modules compile together.  The following index records the principal source equations; it
+does not rely on a nonexistent standalone audit file.
 \begin{itemize}
   \item \texttt{exponential-Taylor-expansion}: \texttt{exp\_eq\_tsum\_div\_factorial}.
   \item \texttt{preactivation}: \texttt{DenseLayer.preactivation\_apply}.
@@ -1807,7 +1916,10 @@ The matching \texttt{APIAudit.lean} mechanically checks every declaration below.
   \item \texttt{sigmoid}: \texttt{logistic\_eq\_half\_add\_half\_tanh}.
   \item \texttt{scale-invariant-def}: \texttt{posHomogeneous\_iff\_eq\_piecewiseLinear}.
   \item \texttt{softplus} and all ReLU-like approximation prose:
-    \texttt{activation\_asymptotics}.
+    \texttt{tendsto\_softplus\_sub\_id\_atTop},
+    \texttt{tendsto\_softplus\_div\_exp\_atBot},
+    \texttt{tendsto\_swish\_sub\_id\_atTop}, \texttt{tendsto\_swish\_atBot},
+    \texttt{tendsto\_gelu\_sub\_id\_atTop}, and \texttt{tendsto\_gelu\_atBot}.
   \item \texttt{bias/weight-variance-def-naive}: covariance and flattened-independence theorems.
   \item \texttt{full-bias/weights-initialization}: Gaussian density theorems.
   \item \texttt{gigantic-beast-that-we-tame}: \texttt{ParamModel.outputLaw} and

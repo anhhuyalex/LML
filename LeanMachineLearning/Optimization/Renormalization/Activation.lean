@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sigmoid
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Data.Real.Sign
@@ -284,11 +285,13 @@ theorem logistic_eq_half_add_half_tanh (x : ℝ) :
 -- is even and its total mass is one, so the two half-lines carry equal mass.
 private lemma standardGaussianIntegral_Iic_zero :
     (∫ t in Set.Iic (0 : ℝ), gaussianPDFReal 0 1 t) = 1 / 2 := by
-  have hsplit : (∫ t in Set.Iic 0, gaussianPDFReal 0 1 t) + (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = 1 := by
+  have hsplit : (∫ t in Set.Iic 0, gaussianPDFReal 0 1 t) +
+      (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = 1 := by
     rw [intervalIntegral.integral_Iic_add_Ioi (integrable_gaussianPDFReal 0 1).integrableOn
       (integrable_gaussianPDFReal 0 1).integrableOn]
     exact integral_gaussianPDFReal_eq_one 0 (by norm_num : (1 : ℝ≥0) ≠ 0)
-  have hhalf : (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) = ∫ t in Set.Iic 0, gaussianPDFReal 0 1 t := by
+  have hhalf : (∫ t in Set.Ioi 0, gaussianPDFReal 0 1 t) =
+      ∫ t in Set.Iic 0, gaussianPDFReal 0 1 t := by
     rw [setIntegral_congr_fun (g := fun t => gaussianPDFReal 0 1 (-t)) measurableSet_Ioi
       (fun t _ => by simp [gaussianPDFReal])]
     simp
@@ -338,7 +341,8 @@ private lemma standardGaussianIntegral_eq_half_gaussianErf (x : ℝ) :
       (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
     intro u
     calc
-      gaussianPDFReal 0 1 (Real.sqrt 2 * u) = (Real.sqrt (2 * π))⁻¹ * Real.exp (-(Real.sqrt 2 * u) ^ 2 / 2) := by
+      gaussianPDFReal 0 1 (Real.sqrt 2 * u) =
+          (Real.sqrt (2 * π))⁻¹ * Real.exp (-(Real.sqrt 2 * u) ^ 2 / 2) := by
         simp [gaussianPDFReal]
       _ = (Real.sqrt (2 * π))⁻¹ * Real.exp (-u ^ 2) := by
         congr
@@ -346,7 +350,8 @@ private lemma standardGaussianIntegral_eq_half_gaussianErf (x : ℝ) :
         ring
   calc
     (∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t)
-        = Real.sqrt 2 * ∫ u in (0 : ℝ)..(x / Real.sqrt 2), gaussianPDFReal 0 1 (Real.sqrt 2 * u) := by
+        = Real.sqrt 2 * ∫ u in (0 : ℝ)..(x / Real.sqrt 2),
+            gaussianPDFReal 0 1 (Real.sqrt 2 * u) := by
           rw [← smul_eq_mul, intervalIntegral.smul_integral_comp_mul_left (c := Real.sqrt 2)]
           congr 1
           · norm_num
@@ -409,13 +414,207 @@ theorem contDiff_swish : ContDiff ℝ ⊤ swish := by
   unfold swish
   exact contDiff_id.mul contDiff_logistic
 
+-- The Taylor coefficients of the odd power series for `gaussianErf`: the term of degree
+-- `2*n + 1` is `(-1)^n / (n! * (2*n + 1))`.  These are the coefficients obtained by
+-- integrating the Maclaurin series of `exp (-t^2)` term by term.
+private def erfSeriesCoeff (n : ℕ) : ℝ := (-1 : ℝ) ^ n / (Nat.factorial n * (2 * n + 1))
+
+-- `exp (-t^2)` expands as the alternating Maclaurin series `∑ n, (-1)^n * t^(2*n) / n!`.
+-- This is `exp_eq_tsum_div_factorial` specialized to `z = -t^2`.
+private lemma exp_neg_sq_tsum (t : ℝ) :
+    Real.exp (-(t ^ 2)) = ∑' n : ℕ, (-1 : ℝ) ^ n * t ^ (2 * n) / Nat.factorial n := by
+  rw [exp_eq_tsum_div_factorial]
+  refine tsum_congr ?_
+  intro n
+  have hpow : (-(t ^ 2)) ^ n = (-1 : ℝ) ^ n * t ^ (2 * n) := by
+    calc
+      (-(t ^ 2)) ^ n = ((-1 : ℝ) * t ^ 2) ^ n := by ring
+      _ = (-1 : ℝ) ^ n * (t ^ 2) ^ n := by rw [mul_pow]
+      _ = (-1 : ℝ) ^ n * t ^ (2 * n) := by rw [pow_mul]
+  rw [hpow]
+  ring
+
+-- The integral over `[0, x]` of the Maclaurin series of `exp (-t^2)` equals the termwise
+-- integral.  Each monomial `t^(2*n)` integrates to `x^(2*n+1) / (2*n+1)`, giving the odd power
+-- series `∑ n, erfSeriesCoeff n * x^(2*n+1)`.  Termwise integration is justified by the
+-- dominated convergence theorem via `tsum_intervalIntegral_eq_of_summable_norm`; the required
+-- summability of the sup norms on `uIcc 0 x` follows from the bound `‖term n‖ ≤ x^(2*n) / n!`
+-- and the convergence of `∑ x^(2*n) / n!` (a subseries of the exponential series).
+private lemma gaussianIntegral_eq_tsum (x : ℝ) :
+    (∫ t in (0 : ℝ)..x, Real.exp (-(t ^ 2))) =
+      ∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1) := by
+  let f : ℕ → C(ℝ, ℝ) := fun n => ⟨fun t => (-1 : ℝ) ^ n * t ^ (2 * n) / Nat.factorial n, by
+    fun_prop⟩
+  have hf_sum :
+      Summable fun n => ‖(f n).restrict (⟨uIcc 0 x, isCompact_uIcc⟩ : Compacts ℝ)‖ := by
+    refine Summable.of_norm_bounded (fun n => x ^ (2 * n) / Nat.factorial n) ?_ ?_
+    · simpa [pow_mul] using (Real.summable_pow_div_factorial (x ^ 2) :
+        Summable fun n : ℕ => (x ^ 2) ^ n / Nat.factorial n)
+    · intro n
+      rw [ContinuousMap.norm_le]
+      · intro t
+        have ht_le : |(t : ℝ)| ≤ |x| := by
+          rcases Set.mem_uIcc.mp t.property with h | h
+          · rw [abs_of_nonneg h.1]
+            exact h.2.trans (le_abs_self x)
+          · rw [abs_of_nonpos h.2]
+            have hx : |x| = -x := abs_of_nonpos (h.1.trans h.2)
+            rw [hx]
+            linarith
+        have hxpow : |x| ^ (2 * n) = x ^ (2 * n) := by
+          calc
+            |x| ^ (2 * n) = (|x| ^ 2) ^ n := by rw [← pow_mul]
+            _ = (x ^ 2) ^ n := by rw [sq_abs]
+            _ = x ^ (2 * n) := by rw [pow_mul]
+        calc
+          ‖(f n) t‖ = |(-1 : ℝ) ^ n * (t : ℝ) ^ (2 * n) / Nat.factorial n| := rfl
+          _ = |(-1 : ℝ) ^ n * (t : ℝ) ^ (2 * n)| / Nat.factorial n := by
+            rw [abs_div, abs_of_nonneg (Nat.cast_nonneg _)]
+          _ = |(t : ℝ)| ^ (2 * n) / Nat.factorial n := by
+            have hmul : |(-1 : ℝ) ^ n * (t : ℝ) ^ (2 * n)| = |(t : ℝ)| ^ (2 * n) := by
+              rw [abs_mul, abs_pow, abs_pow]
+              norm_num
+            rw [hmul]
+          _ ≤ x ^ (2 * n) / Nat.factorial n := by
+            exact div_le_div_of_nonneg_right
+              ((pow_le_pow_left₀ (abs_nonneg (t : ℝ)) ht_le (2 * n)).trans (le_of_eq hxpow))
+              (Nat.cast_nonneg _)
+      · positivity
+  have htsum : ∑' n : ℕ, ∫ t in (0 : ℝ)..x, f n t = ∫ t in (0 : ℝ)..x, ∑' n, f n t :=
+    tsum_intervalIntegral_eq_of_summable_norm hf_sum
+  have hpoint : ∀ t : ℝ, (∑' n : ℕ, f n t) = Real.exp (-(t ^ 2)) := by
+    intro t
+    exact (exp_neg_sq_tsum t).symm
+  have hterm : ∀ n : ℕ, (∫ t in (0 : ℝ)..x, f n t) =
+      erfSeriesCoeff n * x ^ (2 * n + 1) := by
+    intro n
+    calc
+      (∫ t in (0 : ℝ)..x, f n t) = ∫ t in (0 : ℝ)..x, ((-1 : ℝ) ^ n / Nat.factorial n) * t ^ (2 * n) := by
+        congr 1
+        funext t
+        field_simp [Nat.factorial_ne_zero n]
+        ring
+      _ = ((-1 : ℝ) ^ n / Nat.factorial n) * ∫ t in (0 : ℝ)..x, t ^ (2 * n) := by
+        rw [intervalIntegral.integral_const_mul]
+      _ = ((-1 : ℝ) ^ n / Nat.factorial n) * (x ^ (2 * n + 1) - 0 ^ (2 * n + 1)) / (2 * n + 1) := by
+        rw [integral_pow]
+      _ = erfSeriesCoeff n * x ^ (2 * n + 1) := by
+        simp [erfSeriesCoeff]
+        ring
+  calc
+    (∫ t in (0 : ℝ)..x, Real.exp (-(t ^ 2))) = ∫ t in (0 : ℝ)..x, ∑' n, f n t := by
+      congr 1
+      funext t
+      exact (hpoint t).symm
+    _ = ∑' n : ℕ, ∫ t in (0 : ℝ)..x, f n t := htsum.symm
+    _ = ∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1) := by
+      exact tsum_congr fun n => hterm n
+
+-- The coefficients decay like `1 / n!`, which is exactly what is needed for the comparison test
+-- below: `‖erfSeriesCoeff n‖ = 1 / (n! * (2*n + 1)) ≤ 1 / n!`.
+private lemma erfSeriesCoeff_norm_le (n : ℕ) : ‖erfSeriesCoeff n‖ ≤ 1 / Nat.factorial n := by
+  unfold erfSeriesCoeff
+  rw [norm_div]
+  have hfac : (Nat.factorial n : ℝ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero n
+  have hodd : (2 * n + 1 : ℝ) ≠ 0 := by norm_num
+  simp [hfac, hodd]
+  exact one_div_le_one_div_of_le (by positivity) (by exact_mod_cast Nat.le_factorial_self n)
+
+-- The odd power series for `gaussianErf` has infinite radius of convergence: bounding the terms
+-- by `x^n / n!` reduces the comparison test to the everywhere-convergent exponential series.
+private lemma erfSeries_radius_top : (ofScalars ℝ erfSeriesCoeff).radius = ⊤ := by
+  apply (ofScalars ℝ erfSeriesCoeff).radius_eq_top_of_summable_norm
+  intro r
+  refine Summable.of_norm_bounded (fun n => (r : ℝ) ^ n / Nat.factorial n) ?_ ?_
+  · simpa using (Real.summable_pow_div_factorial (r : ℝ) :
+      Summable fun n : ℕ => (r : ℝ) ^ n / Nat.factorial n)
+  · intro n
+    calc
+      ‖ofScalars ℝ erfSeriesCoeff n‖ * (r : ℝ) ^ n = ‖erfSeriesCoeff n‖ * (r : ℝ) ^ n := by
+        rw [ofScalars_norm]
+      _ ≤ (1 / Nat.factorial n) * (r : ℝ) ^ n := by
+        exact mul_le_mul_of_nonneg_right (erfSeriesCoeff_norm_le n) (pow_nonneg (NNReal.coe_nonneg r) n)
+      _ = (r : ℝ) ^ n / Nat.factorial n := by ring
+
+-- A power series with infinite radius of convergence is analytic on all of `ℝ`: it admits
+-- `HasFPowerSeriesOnBall` on the whole line, and change of origin gives analyticity at every point.
+private lemma ofScalarsSum_erfSeries_analyticOnNhd :
+    AnalyticOnNhd ℝ (ofScalarsSum ℝ erfSeriesCoeff) Set.univ := by
+  have hpos : 0 < (ofScalars ℝ erfSeriesCoeff).radius := by
+    rw [erfSeries_radius_top]
+    exact ENNReal.top_pos
+  have hfps : HasFPowerSeriesOnBall (ofScalarsSum ℝ erfSeriesCoeff) (ofScalars ℝ erfSeriesCoeff) 0
+      (ofScalars ℝ erfSeriesCoeff).radius := by
+    exact (ofScalars ℝ erfSeriesCoeff).hasFPowerSeriesOnBall hpos
+  intro x hx
+  exact hfps.analyticAt_of_mem (by simp)
+
+-- The termwise-integrated series is exactly `x * ∑ n, erfSeriesCoeff n * (x^2)^n`, i.e. the
+-- product of `x` with the `ofScalarsSum` series evaluated at `x^2`.  This is the analytic
+-- expression of `gaussianErf` used below.
+private lemma gaussianErf_eq_mul_ofScalarsSum (x : ℝ) :
+    gaussianErf x = (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) := by
+  have hint := gaussianIntegral_eq_tsum x
+  have hsum : (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1)) =
+      x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2) := by
+    calc
+      (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1))
+          = ∑' n : ℕ, x * (erfSeriesCoeff n * x ^ (2 * n)) := by
+            refine tsum_congr ?_
+            intro n
+            rw [show 2 * n + 1 = (2 * n) + 1 by omega, pow_succ]
+            ring
+      _ = x * ∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n) := by
+            rw [tsum_mul_left]
+      _ = x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2) := by
+            congr 1
+            rw [ofScalars_sum_eq]
+            refine tsum_congr ?_
+            intro n
+            simp [pow_mul]
+  calc
+    gaussianErf x = (2 / Real.sqrt Real.pi) * (∫ t in (0 : ℝ)..x, Real.exp (-(t ^ 2))) := rfl
+    _ = (2 / Real.sqrt Real.pi) * (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1)) := by
+      rw [hint]
+    _ = (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) := by
+      rw [hsum]
+
+/-- The real error function is analytic on all of `ℝ`.
+
+Informal proof: expand `exp (-t^2)` into its everywhere-convergent Maclaurin series
+`∑ n, (-1)^n * t^(2*n) / n!`, integrate term-by-term on each compact interval, and obtain
+`gaussianErf x = (2 / √π) * ∑ n, (-1)^n * x^(2*n+1) / (n! * (2*n+1))`.  The ratio test gives
+infinite radius of convergence, so this power series defines an analytic function on every
+neighborhood.  This is the standard Taylor-series proof that `erf` is entire; see, for example,
+<https://en.wikipedia.org/wiki/Error_function#Taylor_series> and
+<https://mathworld.wolfram.com/Erf.html>. -/
+private lemma analyticOnNhd_gaussianErf : AnalyticOnNhd ℝ gaussianErf Set.univ := by
+  -- Rewrite `gaussianErf` as the product of a constant with `x * g(x^2)` where `g` is the
+  -- everywhere-convergent odd power series, then assemble analyticity from its pieces.
+  have hsum_an : AnalyticOnNhd ℝ (ofScalarsSum ℝ erfSeriesCoeff) Set.univ :=
+    ofScalarsSum_erfSeries_analyticOnNhd
+  intro x hx
+  have h1 : AnalyticAt ℝ (fun x : ℝ => x) x := analyticAt_id
+  have h2 : AnalyticAt ℝ (fun x : ℝ => x ^ 2) x := by fun_prop
+  have h3 : AnalyticAt ℝ (fun x : ℝ => ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) x := by
+    simpa [Function.comp_def] using (hsum_an (x ^ 2) trivial).comp h2
+  have h4 : AnalyticAt ℝ (fun x : ℝ => x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) x := h1.mul h3
+  have h5 : AnalyticAt ℝ (fun x : ℝ =>
+      (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2))) x := by
+    simpa using (analyticAt_const.mul h4)
+  rw [show gaussianErf = fun x : ℝ =>
+      (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) by
+    funext x
+    exact gaussianErf_eq_mul_ofScalarsSum x]
+  exact h5
+
 /-- `gaussianErf` is smooth.
 
-Informal proof: differentiate the defining interval integral; the integrand `exp (-t^2)` is
-smooth, so the resulting derivative is smooth and the antiderivative is smooth by induction on the
-order of differentiability. -/
+Informal proof: the previous lemma records the stronger fact that the error function is analytic
+(on all of `ℝ`), and analytic functions are `C^n` for every differentiability order `n`, including
+`⊤`. -/
 theorem contDiff_gaussianErf : ContDiff ℝ ⊤ gaussianErf := by
-  sorry
+  exact analyticOnNhd_gaussianErf.contDiff
 
 /-- The standard-normal CDF is smooth.
 
@@ -444,40 +643,107 @@ theorem continuous_gelu : Continuous gelu := contDiff_gelu.continuous
 Informal proof: differentiating `sinh x / cosh x` gives `1 / cosh x ^ 2`, which equals one at zero.
 See <https://en.wikipedia.org/wiki/Hyperbolic_functions#Derivatives>. -/
 theorem hasDerivAt_tanh_zero : HasDerivAt Real.tanh 1 0 := by
-  sorry
+  rw [show Real.tanh = fun x => Real.sinh x / Real.cosh x by
+    funext x
+    exact Real.tanh_eq_sinh_div_cosh x]
+  refine (((Real.hasDerivAt_sinh 0).div (Real.hasDerivAt_cosh 0)
+      (Real.cosh_pos 0).ne').congr_deriv ?_)
+  norm_num [Real.sinh_zero, Real.cosh_zero]
 
 /-- Logistic saturates to `1` at `+∞`.
 
 Informal proof: divide the logistic expression by the dominant exponential. -/
 theorem tendsto_logistic_atTop : Tendsto logistic atTop (nhds 1) := by
-  sorry
+  unfold logistic
+  have h : Tendsto (fun x => 1 + Real.exp (-x)) atTop (nhds 1) := by
+    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (nhds (1 : ℝ))).add
+      Real.tendsto_exp_neg_atTop_nhds_zero
+  simpa using h.inv₀ (by norm_num : (1 : ℝ) ≠ 0)
 
 /-- Logistic saturates to `0` at `-∞`.
 
 Informal proof: divide the logistic expression by the dominant exponential. -/
 theorem tendsto_logistic_atBot : Tendsto logistic atBot (nhds 0) := by
-  sorry
+  have he : Tendsto (fun x => Real.exp x) atBot (nhds 0) := Real.tendsto_exp_atBot
+  have hd : Tendsto (fun x => 1 + Real.exp x) atBot (nhds 1) := by
+    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (nhds (1 : ℝ))).add he
+  have h : Tendsto (fun x => Real.exp x / (1 + Real.exp x)) atBot (nhds 0) := by
+    change Tendsto ((fun x => Real.exp x) / (fun x => 1 + Real.exp x)) atBot (nhds 0)
+    simpa using he.div hd (by norm_num : (1 : ℝ) ≠ 0)
+  have hlog : (fun x => logistic x) = fun x => Real.exp x / (1 + Real.exp x) := by
+    funext x
+    unfold logistic
+    rw [Real.exp_neg]
+    field_simp [Real.exp_ne_zero x]
+    ring
+  simpa [hlog] using h
 
 /-- `tanh` saturates to `1` at `+∞`.
 
 Informal proof: divide the exponential expression for `tanh` by the dominant exponential.  See
 <https://en.wikipedia.org/wiki/Hyperbolic_functions#Definitions>. -/
 theorem tendsto_tanh_atTop : Tendsto Real.tanh atTop (nhds 1) := by
-  sorry
+  have hz : Tendsto (fun x => (Real.exp (2 * x) + 1)⁻¹) atTop (nhds 0) := by
+    have h : Tendsto (fun x => Real.exp (2 * x)) atTop atTop :=
+      Real.tendsto_exp_atTop.comp (tendsto_id.const_mul_atTop (by norm_num : (0 : ℝ) < 2))
+    have h' : Tendsto (fun x => Real.exp (2 * x) + 1) atTop atTop :=
+      tendsto_atTop_add_const_right atTop 1 h
+    exact tendsto_inv_atTop_zero.comp h'
+  have h : Tendsto (fun x => 1 - 2 * (Real.exp (2 * x) + 1)⁻¹) atTop (nhds 1) := by
+    simpa using tendsto_const_nhds.sub (hz.const_mul 2)
+  have htanh : (fun x => Real.tanh x) = fun x => 1 - 2 * (Real.exp (2 * x) + 1)⁻¹ := by
+    funext x
+    rw [tanh_eq_exp_two_mul]
+    field_simp
+    ring
+  simpa [htanh] using h
 
 /-- `tanh` saturates to `-1` at `-∞`.
 
 Informal proof: divide the exponential expression for `tanh` by the dominant exponential.  See
 <https://en.wikipedia.org/wiki/Hyperbolic_functions#Definitions>. -/
 theorem tendsto_tanh_atBot : Tendsto Real.tanh atBot (nhds (-1)) := by
-  sorry
+  have he : Tendsto (fun x => Real.exp (2 * x)) atBot (nhds 0) :=
+    Real.tendsto_exp_atBot.comp (tendsto_id.const_mul_atBot (by norm_num : (0 : ℝ) < 2))
+  have hd : Tendsto (fun x => Real.exp (2 * x) + 1) atBot (nhds 1) := by
+    simpa using he.add (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (nhds (1 : ℝ)))
+  have h : Tendsto (fun x => (Real.exp (2 * x) - 1) / (Real.exp (2 * x) + 1)) atBot (nhds (-1)) :=
+    by
+    have hnum : Tendsto (fun x => Real.exp (2 * x) - 1) atBot (nhds (-1)) := by
+      simpa using he.sub (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (nhds (1 : ℝ)))
+    change Tendsto ((fun x => Real.exp (2 * x) - 1) / (fun x => Real.exp (2 * x) + 1))
+      atBot (nhds (-1))
+    simpa using hnum.div hd (by norm_num : (1 : ℝ) ≠ 0)
+  have htanh : (fun x => Real.tanh x) = fun x =>
+      (Real.exp (2 * x) - 1) / (Real.exp (2 * x) + 1) := by
+    funext x
+    exact tanh_eq_exp_two_mul x
+  simpa [htanh] using h
 
 /-- Softplus agrees with the identity to within a vanishing error at `+∞`.
 
 Informal proof: `log (1 + exp x) - x = log (1 + exp (-x)) → log 1 = 0`.  See
 <https://en.wikipedia.org/wiki/Softplus>. -/
 theorem tendsto_softplus_sub_id_atTop : Tendsto (fun x => softplus x - x) atTop (nhds 0) := by
-  sorry
+  have h : (fun x => softplus x - x) = fun x => Real.log (1 + Real.exp (-x)) := by
+    funext x
+    unfold softplus
+    calc
+      Real.log (1 + Real.exp x) - x = Real.log (1 + Real.exp x) - Real.log (Real.exp x) := by
+        rw [Real.log_exp x]
+      _ = Real.log ((1 + Real.exp x) / Real.exp x) := by
+        rw [← Real.log_div (by positivity : (1 + Real.exp x) ≠ 0) (Real.exp_ne_zero x)]
+      _ = Real.log (1 + Real.exp (-x)) := by
+        congr 1
+        rw [Real.exp_neg]
+        field_simp [Real.exp_ne_zero x]
+        ring
+  rw [h]
+  have hz : Tendsto (fun x => 1 + Real.exp (-x)) atTop (nhds 1) := by
+    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (nhds (1 : ℝ))).add
+      Real.tendsto_exp_neg_atTop_nhds_zero
+  have hc : ContinuousAt Real.log (1 : ℝ) := Real.continuousAt_log (by norm_num : (1 : ℝ) ≠ 0)
+  simpa [Function.comp_def, Real.log_one] using hc.tendsto.comp hz
 
 /-- Softplus matches the dominant exponential at `-∞`.
 
@@ -485,21 +751,73 @@ Informal proof: `log (1 + exp x) / exp x → 1` using `log (1 + y) / y → 1` as
 <https://en.wikipedia.org/wiki/Softplus>. -/
 theorem tendsto_softplus_div_exp_atBot :
     Tendsto (fun x => softplus x / Real.exp x) atBot (nhds 1) := by
-  sorry
+  have hslope : Tendsto (fun y : ℝ => Real.log (1 + y) / y)
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 1) := by
+    have hd : HasDerivAt Real.log (1 : ℝ) 1 := by
+      simpa using Real.hasDerivAt_log (x := 1) one_ne_zero
+    have hzero := hd.tendsto_slope_zero.mono_left (nhdsGT_le_nhdsNE 0)
+    refine hzero.congr' ?_
+    filter_upwards with y
+    dsimp
+    simp [Real.log_one]
+    ring
+  have hg : Tendsto (fun x => Real.exp x) atBot (nhdsWithin (0 : ℝ) (Set.Ioi 0)) :=
+    Real.tendsto_exp_atBot_nhdsGT
+  have hlim : Tendsto (fun x => Real.log (1 + Real.exp x) / Real.exp x) atBot (nhds 1) :=
+    hslope.comp hg
+  have h : (fun x => softplus x / Real.exp x) = fun x =>
+      Real.log (1 + Real.exp x) / Real.exp x := by
+    funext x
+    unfold softplus
+    rfl
+  simpa [h] using hlim
 
 /-- SWISH agrees with the identity to within a vanishing error at `+∞`.
 
 Informal proof: multiply the `+∞` logistic limit against `x`, using that the correction term
 `x * logistic (-x)` is dominated by the exponential decay of `logistic (-x)`. -/
 theorem tendsto_swish_sub_id_atTop : Tendsto (fun x => swish x - x) atTop (nhds 0) := by
-  sorry
+  have h1 : Tendsto (fun x => x * Real.exp (-x)) atTop (nhds 0) := by
+    simpa using (Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 1)
+  have h2 : Tendsto (fun x => (Real.exp (-x) + 1)⁻¹) atTop (nhds 1) := by
+    have h : Tendsto (fun x => Real.exp (-x) + 1) atTop (nhds 1) := by
+      simpa using Real.tendsto_exp_neg_atTop_nhds_zero.add
+        (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (nhds (1 : ℝ)))
+    simpa using h.inv₀ (by norm_num : (1 : ℝ) ≠ 0)
+  have h : Tendsto (fun x => (x * Real.exp (-x)) * (Real.exp (-x) + 1)⁻¹) atTop (nhds 0) := by
+    simpa using h1.mul h2
+  have hswish : (fun x => swish x - x) = fun x =>
+      -((x * Real.exp (-x)) * (Real.exp (-x) + 1)⁻¹) := by
+    funext x
+    unfold swish logistic
+    field_simp
+    ring
+  rw [hswish]
+  simpa using h.neg
 
 /-- SWISH vanishes at `-∞`.
 
 Informal proof: `swish x = x * logistic x` with `logistic x` decaying like `exp x`, so the product
 of the linearly growing `|x|` against the exponentially decaying `logistic x` vanishes. -/
 theorem tendsto_swish_atBot : Tendsto swish atBot (nhds 0) := by
-  sorry
+  have hxexp : Tendsto (fun x => x * Real.exp x) atBot (nhds 0) := by
+    have h : Tendsto (fun y : ℝ => -(y * Real.exp (-y))) atTop (nhds 0) := by
+      simpa using (Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 1).neg
+    simpa [Function.comp_def, neg_mul, neg_neg] using h.comp tendsto_neg_atBot_atTop
+  have hd : Tendsto (fun x => 1 + Real.exp x) atBot (nhds 1) := by
+    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (nhds (1 : ℝ))).add
+      Real.tendsto_exp_atBot
+  have hinv : Tendsto (fun x => (1 + Real.exp x)⁻¹) atBot (nhds 1) := by
+    simpa using hd.inv₀ (by norm_num : (1 : ℝ) ≠ 0)
+  have h : Tendsto (fun x => (x * Real.exp x) * (1 + Real.exp x)⁻¹) atBot (nhds 0) := by
+    simpa using hxexp.mul hinv
+  have hswish : (fun x => swish x) = fun x => (x * Real.exp x) * (1 + Real.exp x)⁻¹ := by
+    funext x
+    unfold swish logistic
+    rw [Real.exp_neg]
+    field_simp [Real.exp_ne_zero x]
+    ring
+  simpa [hswish] using h
 
 /-- GELU agrees with the identity to within a vanishing error at `+∞`.
 
@@ -572,7 +890,78 @@ classification proof below and the discussion of homogeneous functions at
 theorem nonhomogeneous_activations :
     ¬ PosHomogeneous Real.tanh ∧ ¬ PosHomogeneous softplus ∧
       ¬ PosHomogeneous swish ∧ ¬ PosHomogeneous gelu := by
-  sorry
+  constructor
+  · intro h
+    have h2 : Real.tanh 2 = 2 * Real.tanh 1 := by
+      have hh := h (by norm_num : (0 : ℝ) < 2) 1
+      simpa using hh
+    have hlt : Real.tanh 2 < 1 := Real.tanh_lt_one 2
+    have hgt : (1 : ℝ) < 2 * Real.tanh 1 := by
+      have htanh1 : 1 / 2 < Real.tanh 1 := by
+        rw [tanh_eq_exp_two_mul]
+        have hgt3 : (3 : ℝ) < Real.exp 2 := by
+          rw [show (2 : ℝ) = 1 + 1 by norm_num, Real.exp_add]
+          nlinarith [Real.add_one_le_exp 1]
+        field_simp
+        nlinarith
+      nlinarith
+    nlinarith [h2, hlt, hgt]
+  · constructor
+    · intro h
+      have h0 := h.zero
+      have hz : Real.log 2 = 0 := by
+        rw [softplus_zero] at h0
+        exact h0
+      have hpos : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num : (1 : ℝ) < 2)
+      linarith
+    · constructor
+      · intro h
+        have h2 := h (by norm_num : (0 : ℝ) < 2) 1
+        have hc : logistic 2 = logistic 1 := by
+          have hs2 : swish 2 = 2 * logistic 2 := by simp [swish]
+          have hs1 : swish 1 = logistic 1 := by simp [swish]
+          have h2' : 2 * logistic 2 = 2 * logistic 1 := by
+            simpa [hs2, hs1] using h2
+          exact mul_left_cancel₀ (by norm_num : (2 : ℝ) ≠ 0) h2'
+        have hne : ¬ logistic 2 = logistic 1 := by
+          intro h'
+          have hl : logistic 1 < logistic 2 := by
+            unfold logistic
+            have he : Real.exp (-2) < Real.exp (-1) := by
+              exact Real.exp_lt_exp.mpr (by norm_num : (-2 : ℝ) < -1)
+            have hsum : 1 + Real.exp (-2) < 1 + Real.exp (-1) := by linarith
+            exact (inv_lt_inv₀ (by positivity : 0 < 1 + Real.exp (-1))
+              (by positivity : 0 < 1 + Real.exp (-2))).2 hsum
+          exact (ne_of_lt hl) h'.symm
+        exact hne hc
+      · intro h
+        have h2 := h (by norm_num : (0 : ℝ) < 2) 1
+        have hc : standardNormalCDF 2 = standardNormalCDF 1 := by
+          have hg2 : gelu 2 = 2 * standardNormalCDF 2 := by simp [gelu]
+          have hg1 : gelu 1 = standardNormalCDF 1 := by simp [gelu]
+          have h2' : 2 * standardNormalCDF 2 = 2 * standardNormalCDF 1 := by
+            simpa [hg2, hg1] using h2
+          exact mul_left_cancel₀ (by norm_num : (2 : ℝ) ≠ 0) h2'
+        have hne : ¬ standardNormalCDF 2 = standardNormalCDF 1 := by
+          intro hc_eq
+          have hdiff : standardNormalCDF 2 - standardNormalCDF 1 =
+              ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t := by
+            rw [standardNormalCDF_eq_half_add_standardGaussianIntegral 2,
+              standardNormalCDF_eq_half_add_standardGaussianIntegral 1]
+            have hadd : (∫ t in (0 : ℝ)..2, gaussianPDFReal 0 1 t) =
+                (∫ t in (0 : ℝ)..1, gaussianPDFReal 0 1 t) +
+                  ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t := by
+              rw [intervalIntegral.integral_add_adjacent_intervals
+                (integrable_gaussianPDFReal 0 1).intervalIntegrable
+                (integrable_gaussianPDFReal 0 1).intervalIntegrable]
+            linarith
+          have hpos : 0 < ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t := by
+            exact intervalIntegral.intervalIntegral_pos_of_pos
+              (integrable_gaussianPDFReal 0 1).intervalIntegrable
+              (fun x => gaussianPDFReal_pos 0 1 x (by norm_num : (1 : ℝ≥0) ≠ 0))
+              (by norm_num : (1 : ℝ) < 2)
+          linarith
+        exact hne hc
 
 theorem not_posHomogeneous_tanh : ¬ PosHomogeneous Real.tanh := nonhomogeneous_activations.1
 
@@ -599,7 +988,45 @@ derivative is `aNeg`; differentiability forces equality.  If they agree, the fun
 linear.  See <https://en.wikipedia.org/wiki/Piecewise_linear_function>. -/
 theorem differentiableAt_piecewiseLinear_zero_iff (aPos aNeg : ℝ) :
     DifferentiableAt ℝ (piecewiseLinear aPos aNeg) 0 ↔ aPos = aNeg := by
-  sorry
+  constructor
+  · intro hd
+    have hslope := hasDerivAt_iff_tendsto_slope.mp hd.hasDerivAt
+    have hright : Tendsto (fun y : ℝ => aPos) (nhdsWithin (0 : ℝ) (Set.Ioi 0))
+        (nhds (deriv (piecewiseLinear aPos aNeg) 0)) := by
+      have h := hslope.mono_left (nhdsGT_le_nhdsNE 0)
+      refine h.congr' ?_
+      change ∀ᶠ y in nhdsWithin (0 : ℝ) (Set.Ioi 0),
+        slope (piecewiseLinear aPos aNeg) 0 y = aPos
+      rw [eventually_nhdsWithin_iff]
+      filter_upwards with y hy
+      dsimp [slope, piecewiseLinear]
+      simp [le_of_lt (Set.mem_Ioi.mp hy)]
+      have hy0 : y ≠ 0 := ne_of_gt (Set.mem_Ioi.mp hy)
+      field_simp [hy0]
+    have hleft : Tendsto (fun y : ℝ => aNeg) (nhdsWithin (0 : ℝ) (Set.Iio 0))
+        (nhds (deriv (piecewiseLinear aPos aNeg) 0)) := by
+      have h := hslope.mono_left (nhdsLT_le_nhdsNE 0)
+      refine h.congr' ?_
+      change ∀ᶠ y in nhdsWithin (0 : ℝ) (Set.Iio 0),
+        slope (piecewiseLinear aPos aNeg) 0 y = aNeg
+      rw [eventually_nhdsWithin_iff]
+      filter_upwards with y hy
+      dsimp [slope, piecewiseLinear]
+      simp [not_le.mpr (Set.mem_Iio.mp hy)]
+      have hy0 : y ≠ 0 := ne_of_lt (Set.mem_Iio.mp hy)
+      field_simp [hy0]
+    have haPos : aPos = deriv (piecewiseLinear aPos aNeg) 0 := tendsto_const_nhds_iff.mp hright
+    have haNeg : aNeg = deriv (piecewiseLinear aPos aNeg) 0 := tendsto_const_nhds_iff.mp hleft
+    exact haPos.trans haNeg.symm
+  · intro h
+    have hf : piecewiseLinear aPos aNeg = fun x : ℝ => aPos * x := by
+      funext x
+      rw [h]
+      by_cases hx : 0 ≤ x
+      · simp [piecewiseLinear, hx]
+      · simp [piecewiseLinear, hx]
+    rw [hf]
+    exact (hasDerivAt_const_mul aPos).differentiableAt
 
 @[simp]
 lemma piecewiseLinear_one (a x : ℝ) : piecewiseLinear 1 a x = leakyRelu a x := by
