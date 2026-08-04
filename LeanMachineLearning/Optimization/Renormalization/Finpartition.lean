@@ -1723,7 +1723,7 @@ def mergedOf (T : Finpartition (A ∪ B)) : Finset (Finset α) :=
 lemma injOn_inter_left_mergedOf (T : Finpartition (A ∪ B)) :
     Set.InjOn (· ∩ A) (mergedOf T : Set (Finset α)) := by
   intro D1 hD1 D2 hD2 heq
-  simp only [mergedOf, Finset.coe_filter, Set.mem_setOf_eq] at hD1 hD2
+  simp only [mergedOf, Finset.coe_filter, Set.mem_ofPred_eq] at hD1 hD2
   dsimp only at heq
   by_contra hne
   have hdisj : Disjoint (D1 ∩ A) (D2 ∩ A) :=
@@ -1734,7 +1734,7 @@ lemma injOn_inter_left_mergedOf (T : Finpartition (A ∪ B)) :
 lemma injOn_inter_right_mergedOf (T : Finpartition (A ∪ B)) :
     Set.InjOn (· ∩ B) (mergedOf T : Set (Finset α)) := by
   intro D1 hD1 D2 hD2 heq
-  simp only [mergedOf, Finset.coe_filter, Set.mem_setOf_eq] at hD1 hD2
+  simp only [mergedOf, Finset.coe_filter, Set.mem_ofPred_eq] at hD1 hD2
   dsimp only at heq
   by_contra hne
   have hdisj : Disjoint (D1 ∩ B) (D2 ∩ B) :=
@@ -1774,7 +1774,7 @@ variable {π : Finpartition A} {σ : Finpartition B}
 
 /-- The partial matching extracted from a finpartition of `A ∪ B`: the merged blocks, split into
 their `A`- and `B`-traces. -/
-noncomputable def ofFinpartition (T : Finpartition (A ∪ B)) (hAB : Disjoint A B) :
+noncomputable def ofFinpartition (T : Finpartition (A ∪ B)) (_hAB : Disjoint A B) :
     Matching (T.restrict (Finset.subset_union_left)) (T.restrict (Finset.subset_union_right)) := by
   classical
   refine
@@ -1856,7 +1856,16 @@ occurrences with explicit parentheses `(T.restrict h).parts` and the proof goes 
 same case structure as `restrict_glue_left`/`restrict_glue_right` below. -/
 lemma glue_ofFinpartition (T : Finpartition (A ∪ B)) (hAB : Disjoint A B) :
     (ofFinpartition T hAB).glue hAB = T := by
-  sorry
+  classical
+  have hparts : (ofFinpartition T hAB).glueParts = T.parts := by
+    /- The remaining combinatorial content is the double-inclusion described in the docstring:
+    unfold `glueParts`, split membership into the left-unmatched, right-unmatched, and merged
+    cases, and use `mergedOfLeft_inter`/`injOn_inter_left_mergedOf` plus the corresponding
+    right-hand lemmas to identify the merged block. Keeping this as a named assertion avoids
+    forcing Lean to normalize the large dependent `ofFinpartition` expression in the outer proof. -/
+    sorry
+  apply Finpartition.ext
+  simp [glue_parts, hparts]
 
 /-- Matchings between the blocks of `π` and `σ` form a finite type: a matching is the same data as
 a pair of subsets of `π.parts`, `σ.parts` together with a bijection between their coercions. -/
