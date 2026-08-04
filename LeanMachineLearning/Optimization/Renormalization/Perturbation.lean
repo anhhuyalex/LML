@@ -135,12 +135,9 @@ private lemma abs_diffQuot_exp_neg_mul_le {h v : ℝ} (hh : 0 < h) (hv : 0 ≤ v
 -- zero.  This is the scalar derivative of `exp` (chain rule) restricted to the right half-line.
 private lemma tendsto_diffQuot_exp_neg_mul {v : ℝ} :
     Tendsto (fun h : ℝ => (Real.exp (-h * v) - 1) / h) (𝓝[Set.Ioi (0 : ℝ)] 0) (𝓝 (-v)) := by
-  have hderiv : HasDerivWithinAt (fun h : ℝ => Real.exp (-h * v)) (-v) (Set.Ioi (0 : ℝ)) 0 := by
-    simpa [mul_comm] using (((hasDerivAt_id' 0).const_mul (-v)).exp.hasDerivWithinAt)
-  rw [hasDerivWithinAt_iff_tendsto_slope' (s := Set.Ioi (0 : ℝ)) (x := 0) (by simp)] at hderiv
-  convert hderiv using 1
-  funext h
-  simp [slope_def_field]
+  simpa [slope_def_field] using
+    (hasDerivWithinAt_iff_tendsto_slope' (s := Set.Ioi (0 : ℝ)) (x := 0) (by simp)).mp
+      (by simpa [mul_comm] using (((hasDerivAt_id' 0).const_mul (-v)).exp.hasDerivWithinAt))
 
 -- For `ε ≥ 0`, the exponential `x ↦ exp (-ε * V x)` is integrable: it is measurable and lies
 -- pointwise in `[0, 1]`, while the base measure is finite.
@@ -162,14 +159,13 @@ private lemma slope_integral_exp_neg_mul_eq_integral_diffQuot [IsFiniteMeasure �
   -- For `0 < h` the slope is the integral of the pointwise difference quotients: pull the
   -- scalar `h⁻¹` through the integral and combine the two resulting integrals with
   -- `integral_sub` (both exponentials are integrable by `integrable_exp_neg_mul_nonneg`).
-  have h_int_exp : Integrable (fun x : Ω => Real.exp (-h * V x)) μ :=
-    integrable_exp_neg_mul_nonneg hV.aestronglyMeasurable hVnonneg hh.le
   calc
     slope (fun ε : ℝ => ∫ x, Real.exp (-ε * V x) ∂μ) 0 h
         = h⁻¹ * ((∫ x, Real.exp (-h * V x) ∂μ) - (∫ x, 1 ∂μ)) := by
             simp [slope_def_module]
     _ = ∫ x, (Real.exp (-h * V x) - 1) / h ∂μ := by
-            rw [← integral_sub h_int_exp (integrable_const (1 : ℝ)), ← integral_const_mul]
+            rw [← integral_sub (integrable_exp_neg_mul_nonneg hV.aestronglyMeasurable hVnonneg
+              hh.le) (integrable_const (1 : ℝ)), ← integral_const_mul]
             exact integral_congr_ae (ae_of_all μ (fun x => by ring))
 
 /-- Right differentiation under the integral for a nonnegative exponential tilt at the origin.
@@ -223,7 +219,7 @@ private theorem hasDerivWithinAt_integral_exp_neg_mul_zero [IsProbabilityMeasure
   -- pointwise difference quotients (`slope_integral_exp_neg_mul_eq_integral_diffQuot`), so the
   -- dominated-convergence limit is the slope limit, and `∫ -V = -∫ V` finishes the proof.
   exact (tendsto_congr' (slope_integral_exp_neg_mul_eq_integral_diffQuot (μ := μ) hVnonneg hV)).2
-    (by simpa [integral_neg] using hDCT)
+    (integral_neg ▸ hDCT)
 
 /-- Right derivative of the relative partition function at zero.
 
@@ -257,16 +253,13 @@ private lemma slope_weightedIntegral_eq_integral_diffQuot
     ae_of_all μ (fun x => by
       simpa [Real.norm_eq_abs] using Real.exp_le_one_iff.2
         (mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.2 hh.le) (hVnonneg x)))
-  have h_int_exp_smul : Integrable (fun x : Ω => Real.exp (-h * V x) • O x) μ :=
-    hO.bdd_smul 1 h_exp_meas h_exp_bound
   calc
     slope (weightedIntegral μ V O) 0 h
         = h⁻¹ • ((∫ x, Real.exp (-h * V x) • O x ∂μ) - ∫ x, O x ∂μ) := by
             simp [slope_def_module, weightedIntegral]
     _ = ∫ x, ((Real.exp (-h * V x) - 1) / h) • O x ∂μ := by
-            rw [← integral_sub h_int_exp_smul hO, ← integral_smul]
+            rw [← integral_sub (hO.bdd_smul 1 h_exp_meas h_exp_bound) hO, ← integral_smul]
             exact integral_congr_ae (ae_of_all μ (fun x => by
-              dsimp only
               rw [div_eq_inv_mul, smul_sub, smul_smul, ← sub_smul]
               exact congrArg (fun t : ℝ => t • O x) (by ring)))
 
@@ -346,15 +339,7 @@ private lemma integral_deform_eq_inv_smul_weightedIntegral
   dsimp [weightedIntegral]
   rw [← integral_smul]
   exact integral_congr_ae (ae_of_all μ (fun x => by
-    dsimp only
-    calc
-      (Real.exp (-ε * V x) / partitionFunction μ V ε) • O x =
-          ((partitionFunction μ V ε)⁻¹ * Real.exp (-ε * V x)) • O x := by
-            congr 1
-            rw [div_eq_mul_inv]
-            ring
-      _ = (partitionFunction μ V ε)⁻¹ • Real.exp (-ε * V x) • O x := by
-            rw [smul_smul]))
+    simpa [div_eq_mul_inv, mul_comm, smul_smul]))
 
 -- The quotient rule at zero for the normalized weighted numerator `Z⁻¹ • N`, where
 -- `Z = partitionFunction μ V` and `N = weightedIntegral μ V O`.  The reciprocal of the partition
@@ -377,19 +362,14 @@ private lemma hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero
     simp [Z, partitionFunction]
   have hN0 : N 0 = ∫ x, O x ∂μ := by
     simp [N, weightedIntegral]
-  have hN' : HasDerivWithinAt N (-(∫ x, V x • O x ∂μ)) (Set.Ici 0) 0 := by
-    simpa [N] using hasDerivWithinAt_weightedIntegral_zero (μ := μ)
-      hVnonneg hV hO hVO
-  have hZ' : HasDerivWithinAt Z (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 := by
-    simpa [Z] using hasDerivWithinAt_partitionFunction_zero (μ := μ) hVnonneg hV
+  have hN' : HasDerivWithinAt N (-(∫ x, V x • O x ∂μ)) (Set.Ici 0) 0 :=
+    hasDerivWithinAt_weightedIntegral_zero (μ := μ) hVnonneg hV hO hVO
+  have hZ' : HasDerivWithinAt Z (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 :=
+    hasDerivWithinAt_partitionFunction_zero (μ := μ) hVnonneg hV
   have hZinv' : HasDerivWithinAt Z⁻¹ (∫ x, V x ∂μ) (Set.Ici 0) 0 := by
-    have h := hZ'.inv (by simp [hZ0])
-    simpa [hZ0] using h
-  have hprod : HasDerivWithinAt (Z⁻¹ • N) (-covarianceWith μ O V) (Set.Ici 0) 0 := by
-    have h := hZinv'.smul hN'
-    simpa [Z, N, hZ0, hN0, covarianceWith, sub_eq_add_neg, add_comm, add_left_comm,
-      add_assoc] using h
-  simpa [Z, N, Pi.inv_def, Pi.smul_def] using hprod
+    simpa [hZ0] using hZ'.inv (by simp [hZ0])
+  simpa [Z, N, hZ0, hN0, Pi.smul_def', covarianceWith, sub_eq_add_neg, add_comm, add_left_comm,
+    add_assoc] using hZinv'.smul hN'
 
 /-- Linear response of a normalized expectation along the nonnegative-coupling half-line.
 
@@ -403,17 +383,11 @@ theorem hasDerivWithinAt_integral_deform_zero [IsProbabilityMeasure μ]
     (hVO : Integrable (fun x ↦ V x • O x) μ) :
     HasDerivWithinAt (fun ε ↦ ∫ x, O x ∂deform μ V ε) (-covarianceWith μ O V)
       (Set.Ici 0) 0 := by
-  -- The quotient rule at zero gives the derivative of the normalized numerator
-  -- `ε ↦ (partitionFunction μ V ε)⁻¹ • weightedIntegral μ V O ε`.
-  have hprod : HasDerivWithinAt
-      (fun ε : ℝ => (partitionFunction μ V ε)⁻¹ • weightedIntegral μ V O ε)
-      (-covarianceWith μ O V) (Set.Ici 0) 0 :=
-    hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero (μ := μ)
-      hVnonneg hV hO hVO
-  -- The deformed expectation equals that normalized numerator for every coupling
+  -- The deformed expectation equals the normalized numerator for every coupling
   -- (`integral_deform`), so the two functions agree on a neighborhood of zero and their
   -- derivatives coincide at zero.
-  exact hprod.congr
+  exact (hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero (μ := μ)
+      hVnonneg hV hO hVO).congr
     (fun ε _hε => integral_deform_eq_inv_smul_weightedIntegral (μ := μ) V O ε)
     (integral_deform_eq_inv_smul_weightedIntegral (μ := μ) V O 0)
 
