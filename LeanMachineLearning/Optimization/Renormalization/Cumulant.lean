@@ -706,14 +706,6 @@ private lemma finFourPairing_parts (a : Fin 4) :
   dsimp [finFourPairing]
   rw [Finpartition.ofExistsUnique_parts]
 
-/-- In `finFourPairing a`, the block containing `0` is exactly `{0, a}`. -/
-private lemma finFourPairing_part_zero (a : Fin 4) :
-    (finFourPairing a).part (0 : Fin 4) = ({0, a} : Finset (Fin 4)) := by
-  apply Finpartition.part_eq_of_mem
-  · rw [finFourPairing_parts]
-    simp
-  · simp
-
 /-- The two blocks of `finFourPairing a` are distinct.
 
 This holds because `0` lies in `{0, a}` but never in its complement. -/
@@ -722,27 +714,20 @@ private lemma finFourPairing_blocks_ne (a : Fin 4) :
       Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4)) := by
   intro h
   have h0in : (0 : Fin 4) ∈ ({(0 : Fin 4), a} : Finset (Fin 4)) := by simp
-  have h0not : (0 : Fin 4) ∉ (Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))) :=
-    fun h0 => (Finset.mem_sdiff.mp h0).2 h0in
-  exact h0not (by rw [← h]; exact h0in)
+  exact (Finset.mem_sdiff.mp (by rw [← h]; exact h0in)).2 h0in
 
 /-- The block product of a pairing factors over its two blocks. -/
 private lemma blockProduct_finFourPairing (f : Finset (Fin 4) → ℝ) (a : Fin 4) :
     (finFourPairing a).blockProduct f =
       f {0, a} * f (Finset.univ \ ({0, a} : Finset (Fin 4))) := by
   dsimp [Finpartition.blockProduct]
-  rw [finFourPairing_parts]
-  rw [Finset.prod_pair (finFourPairing_blocks_ne a)]
+  rw [finFourPairing_parts, Finset.prod_pair (finFourPairing_blocks_ne a)]
 
 /-- The cumulant coefficient of a pairing of `Fin 4` is `-1`. -/
 private lemma cumulantCoefficient_finFourPairing (a : Fin 4) :
     (Finpartition.cumulantCoefficient (finFourPairing a) : ℝ) = -1 := by
   dsimp [Finpartition.cumulantCoefficient]
-  rw [finFourPairing_parts]
-  have hcard : ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
-      Finset (Finset (Fin 4))).card = 2 := by
-    rw [Finset.card_pair (finFourPairing_blocks_ne a)]
-  rw [hcard]
+  rw [finFourPairing_parts, Finset.card_pair (finFourPairing_blocks_ne a)]
   norm_num
 
 /-- The complementary blocks of the three pairings of `Fin 4`.
@@ -766,9 +751,7 @@ private lemma finFour_sdiff_pair_12 :
 /-- The carrier `Fin 4` is nonempty. -/
 private lemma finFour_univ_ne_empty : (Finset.univ : Finset (Fin 4)) ≠ ∅ := by
   intro h
-  have : (0 : Fin 4) ∈ (Finset.univ : Finset (Fin 4)) := by simp
-  rw [h] at this
-  simp at this
+  simpa [h] using (Finset.mem_univ (0 : Fin 4))
 
 /-- The four positions of `Fin 4` are `0, 1, 2, 3`. -/
 private lemma finFour_univ_eq_0123 :
@@ -781,15 +764,10 @@ private lemma finFourTop_no_singleton :
     ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉
       (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).parts := by
   intro i hi
-  have htop : (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).parts =
-      {(Finset.univ : Finset (Fin 4))} :=
-    top_parts_eq_singleton finFour_univ_ne_empty
-  rw [htop] at hi
-  rw [Finset.mem_singleton] at hi
+  rw [top_parts_eq_singleton finFour_univ_ne_empty, Finset.mem_singleton] at hi
   have hc1 : ({i} : Finset (Fin 4)).card = 1 := by simp
   have hc2 : (Finset.univ : Finset (Fin 4)).card = 4 := by simp
-  rw [hi] at hc1
-  rw [hc2] at hc1
+  rw [hi, hc2] at hc1
   norm_num at hc1
 
 /-- A pairing of `Fin 4` (with partner `a ≠ 0`) has no singleton block. -/
@@ -803,18 +781,16 @@ private lemma finFourPairing_no_singleton {a : Fin 4} (ha : a ≠ 0) :
     have hc2 : ({(0 : Fin 4), a} : Finset (Fin 4)).card = 2 := by
       rw [Finset.card_insert_of_notMem (by simpa [eq_comm] using ha)]
       simp
-    rw [hi] at hc1
-    rw [hc2] at hc1
+    rw [hi, hc2] at hc1
     norm_num at hc1
   · -- `{i} = univ \ {0, a}`: cardinality one versus two
     have hc1 : ({i} : Finset (Fin 4)).card = 1 := by simp
     have hc2 : ((Finset.univ : Finset (Fin 4)) \ ({(0 : Fin 4), a} : Finset (Fin 4))).card = 2 := by
-      rw [Finset.card_sdiff_of_subset (by simp : ({(0 : Fin 4), a} : Finset (Fin 4)) ⊆ Finset.univ)]
-      rw [Finset.card_univ, Fintype.card_fin]
-      rw [Finset.card_insert_of_notMem (by simpa using ha.symm)]
+      rw [Finset.card_sdiff_of_subset (by simp : ({(0 : Fin 4), a} : Finset (Fin 4)) ⊆ Finset.univ),
+        Finset.card_univ, Fintype.card_fin,
+        Finset.card_insert_of_notMem (by simpa using ha.symm)]
       norm_num
-    rw [Finset.mem_singleton.mp hi] at hc1
-    rw [hc2] at hc1
+    rw [Finset.mem_singleton.mp hi, hc2] at hc1
     norm_num at hc1
 
 /-- In a partition without singleton blocks, every block has at least two elements. -/
@@ -829,14 +805,7 @@ private lemma finFour_no_singleton_card_ge_two (P : Finpartition (Finset.univ : 
     exact hBne (Finset.card_eq_zero.mp hc)
   have hBcard : B.card = 1 := by omega
   obtain ⟨x, hx⟩ := Finset.card_eq_one.mp hBcard
-  have hBx : B = ({x} : Finset (Fin 4)) := by
-    apply Finset.eq_of_subset_of_card_le
-    · intro y hy
-      rw [hx] at hy
-      simpa using hy
-    · rw [hBcard]
-      simp
-  exact hno x (by simpa [hBx] using hB)
+  exact hno x (by simpa [hx] using hB)
 
 /-- A partition of `Fin 4` with exactly two blocks and no singleton blocks is one of the three
 pairings.
@@ -847,7 +816,6 @@ pairing `finFourPairing a`; since `a ≠ 0`, the partner is `1`, `2` or `3`. -/
 private lemma finFour_two_block_eq_pairing (P : Finpartition (Finset.univ : Finset (Fin 4)))
     (hno : ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts) (hcard : P.parts.card = 2) :
     P = finFourPairing 1 ∨ P = finFourPairing 2 ∨ P = finFourPairing 3 := by
-  classical
   -- the block of `0`; the remaining part is a singleton `{C}`
   have hB0_mem : P.part (0 : Fin 4) ∈ P.parts := P.part_mem.2 (by simp)
   have hrest : (P.parts.erase (P.part 0)).card = 1 := by
@@ -863,17 +831,13 @@ private lemma finFour_two_block_eq_pairing (P : Finpartition (Finset.univ : Fins
   have hB0_ge : 2 ≤ (P.part 0).card := finFour_no_singleton_card_ge_two P hno (P.part 0) hB0_mem
   have hC_ge : 2 ≤ C.card := finFour_no_singleton_card_ge_two P hno C (by rw [hparts]; simp)
   have hsum2 : (P.part 0).card + C.card = 4 := by
-    have hsum' := P.sum_card_parts
-    rw [hparts] at hsum'
-    simp [hC_ne.symm] at hsum'
-    exact hsum'
+    simpa [hparts, hC_ne.symm] using P.sum_card_parts
   have hB0_card : (P.part 0).card = 2 := by omega
   have hC_card : C.card = 2 := by omega
   -- `P.part 0 = {0, a}` for a unique `a ≠ 0`
   obtain ⟨a, ha0, ha_eq⟩ : ∃ a : Fin 4, a ≠ 0 ∧ P.part 0 = ({0, a} : Finset (Fin 4)) := by
     have herase : ((P.part 0).erase 0).card = 1 := by
-      rw [Finset.card_erase_of_mem (P.mem_part (by simp : (0 : Fin 4) ∈ Finset.univ))]
-      rw [hB0_card]
+      rw [Finset.card_erase_of_mem (P.mem_part (by simp : (0 : Fin 4) ∈ Finset.univ)), hB0_card]
     obtain ⟨a, ha⟩ := Finset.card_eq_one.mp herase
     refine ⟨a, ?_, ?_⟩
     · -- `a ≠ 0`: otherwise `0` would lie in `(P.part 0).erase 0`
@@ -914,8 +878,7 @@ private lemma finFour_two_block_eq_pairing (P : Finpartition (Finset.univ : Fins
   -- `a ≠ 0`, so the partner is one of `1, 2, 3`
   have ha_cases : a = 1 ∨ a = 2 ∨ a = 3 := by
     fin_cases a
-    · exfalso
-      exact ha0 rfl
+    · exact (ha0 rfl).elim
     · simp
     · simp
     · simp
@@ -934,11 +897,9 @@ private lemma finFour_no_singleton_eq_top_or_pairing
     (P : Finpartition (Finset.univ : Finset (Fin 4)))
     (hno : ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts) :
     P = ⊤ ∨ P = finFourPairing 1 ∨ P = finFourPairing 2 ∨ P = finFourPairing 3 := by
-  classical
   -- the block cardinalities sum to four and each block contributes at least two
   have hsum : ∑ B ∈ P.parts, B.card = 4 := by
-    rw [P.sum_card_parts]
-    simp
+    simpa using P.sum_card_parts
   have hparts_le : P.parts.card ≤ 2 := by
     have hge : ∑ B ∈ P.parts, 2 ≤ ∑ B ∈ P.parts, B.card :=
       Finset.sum_le_sum (fun B hB => finFour_no_singleton_card_ge_two P hno B hB)
@@ -955,14 +916,9 @@ private lemma finFour_no_singleton_eq_top_or_pairing
     rcases Finset.card_eq_one.mp hcard with ⟨B, hB⟩
     have hB_univ : B = (Finset.univ : Finset (Fin 4)) := by
       apply Finset.eq_of_subset_of_card_le
-      · intro x hx
-        exact Finset.mem_univ x
+      · exact Finset.subset_univ B
       · -- the single block `B` covers all four elements
-        have hsumB : B.card = 4 := by
-          have hsum' := P.sum_card_parts
-          rw [hB] at hsum'
-          simp at hsum'
-          exact hsum'
+        have hsumB : B.card = 4 := by simpa [hB] using P.sum_card_parts
         rw [hsumB]
         simp
     have hP_top : P = ⊤ := by
@@ -972,30 +928,7 @@ private lemma finFour_no_singleton_eq_top_or_pairing
   · -- exactly two blocks: `P` is one of the three pairings
     exact Or.inr (finFour_two_block_eq_pairing P hno hcard)
 
-/-- A pairing of `Fin 4` is not the top partition: it has two blocks while `⊤` has one. -/
-private lemma finFourPairing_ne_top (a : Fin 4) :
-    finFourPairing a ≠ (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) := by
-  intro h
-  have hcard := congrArg (fun P : Finpartition (Finset.univ : Finset (Fin 4)) => P.parts.card) h
-  rw [finFourPairing_parts, top_parts_eq_singleton finFour_univ_ne_empty] at hcard
-  have htwo : ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
-      Finset (Finset (Fin 4))).card = 2 := by
-    rw [Finset.card_pair (finFourPairing_blocks_ne a)]
-  rw [htwo] at hcard
-  norm_num at hcard
-
-/-- Two pairings with different partners are different partitions. -/
-private lemma finFourPairing_ne_pairing (a b : Fin 4) (ha : a ≠ 0) (hab : a ≠ b) :
-    finFourPairing a ≠ finFourPairing b := by
-  intro h
-  have hpart := congrArg (fun P : Finpartition (Finset.univ : Finset (Fin 4)) =>
-    P.part (0 : Fin 4)) h
-  rw [finFourPairing_part_zero a, finFourPairing_part_zero b] at hpart
-  -- `a` lies in the block `{0, b}` of the second pairing, so `a = 0` or `a = b`
-  have ha_in : a ∈ ({0, b} : Finset (Fin 4)) := by rw [← hpart]; simp
-  rcases Finset.mem_insert.mp ha_in with ha0 | hab'
-  · exact ha ha0
-  · exact hab (Finset.mem_singleton.mp hab')
+-- (unused after `by decide` golf: pairwise-distinctness of the four partitions is decidable)
 
 /-- The singleton-free partitions of `Fin 4` are exactly `⊤` and the three pairings. -/
 private lemma finFour_no_singleton_filter :
@@ -1011,15 +944,13 @@ private lemma finFour_no_singleton_filter :
     rcases finFour_no_singleton_eq_top_or_pairing P hno with rfl | rfl | rfl | rfl <;> simp
   · -- each of the four listed partitions is singleton-free
     intro hP
-    rw [Finset.mem_filter]
-    constructor
-    · exact Finset.mem_univ P
-    · simp at hP
-      rcases hP with rfl | rfl | rfl | rfl
-      · exact finFourTop_no_singleton
-      · exact finFourPairing_no_singleton (by decide : (1 : Fin 4) ≠ 0)
-      · exact finFourPairing_no_singleton (by decide : (2 : Fin 4) ≠ 0)
-      · exact finFourPairing_no_singleton (by decide : (3 : Fin 4) ≠ 0)
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    simp only [Fin.isValue, Finset.mem_insert, Finset.mem_singleton] at hP
+    rcases hP with rfl | rfl | rfl | rfl
+    · exact finFourTop_no_singleton
+    · exact finFourPairing_no_singleton (by decide : (1 : Fin 4) ≠ 0)
+    · exact finFourPairing_no_singleton (by decide : (2 : Fin 4) ≠ 0)
+    · exact finFourPairing_no_singleton (by decide : (3 : Fin 4) ≠ 0)
 
 /-- Fourth-order cumulant expansion for any block weight whose singleton weights vanish.
 
@@ -1041,7 +972,6 @@ lemma cumulantTransform_fin_four_of_singleton_vanish (f : Finset (Fin 4) → ℝ
       - f {0, 1} * f {2, 3}
       - f {0, 2} * f {1, 3}
       - f {0, 3} * f {1, 2} := by
-  classical
   -- `Fin 4` is nonempty, so the transform is the plain sum over all partitions
   rw [Finpartition.cumulantTransform, if_neg finFour_univ_ne_empty]
   -- Step 1: partitions with a singleton block contribute zero (`f {i} = 0`)
@@ -1050,65 +980,44 @@ lemma cumulantTransform_fin_four_of_singleton_vanish (f : Finset (Fin 4) → ℝ
       Finpartition.cumulantCoefficient P * P.blockProduct f = 0 := by
     intro P hP
     rcases Finset.mem_filter.mp hP with ⟨_, hnot⟩
-    simp only [not_forall, Decidable.not_not] at hnot
+    push Not at hnot
     rcases hnot with ⟨i, hi⟩
-    dsimp [Finpartition.blockProduct]
-    rw [Finset.prod_eq_zero hi (hsingle i)]
-    simp
+    simp [Finpartition.blockProduct, Finset.prod_eq_zero hi (hsingle i)]
   -- Step 2: split off the zero contribution and keep only the singleton-free partitions
   rw [← Finset.sum_filter_add_sum_filter_not (s := Finset.univ)
     (p := fun P : Finpartition (Finset.univ : Finset (Fin 4)) ↦
       ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts)
-    (f := fun P => Finpartition.cumulantCoefficient P * P.blockProduct f)]
-  rw [Finset.sum_eq_zero hzero, add_zero]
+    (f := fun P => Finpartition.cumulantCoefficient P * P.blockProduct f),
+    Finset.sum_eq_zero hzero, add_zero]
   -- Step 3: the singleton-free partitions are exactly `⊤` and the three pairings
   rw [finFour_no_singleton_filter]
   -- Step 4: the four surviving summands evaluate to the displayed expression
   have h_top : Finpartition.cumulantCoefficient (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) *
       (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).blockProduct f = f {0, 1, 2, 3} := by
-    rw [cumulantCoefficient_top (show (Finset.univ : Finset (Fin 4)).Nonempty by exact ⟨0, by simp⟩),
-      blockProduct_top (show (Finset.univ : Finset (Fin 4)).Nonempty by exact ⟨0, by simp⟩),
-      finFour_univ_eq_0123]
-    simp
+    simp [cumulantCoefficient_top, blockProduct_top, finFour_univ_eq_0123]
   have h_p1 : Finpartition.cumulantCoefficient (finFourPairing 1) *
       (finFourPairing 1).blockProduct f = -(f {0, 1} * f {2, 3}) := by
-    rw [cumulantCoefficient_finFourPairing 1, blockProduct_finFourPairing f 1, finFour_sdiff_pair_23]
-    ring
+    simp [cumulantCoefficient_finFourPairing 1, blockProduct_finFourPairing f 1, finFour_sdiff_pair_23]
   have h_p2 : Finpartition.cumulantCoefficient (finFourPairing 2) *
       (finFourPairing 2).blockProduct f = -(f {0, 2} * f {1, 3}) := by
-    rw [cumulantCoefficient_finFourPairing 2, blockProduct_finFourPairing f 2, finFour_sdiff_pair_13]
-    ring
+    simp [cumulantCoefficient_finFourPairing 2, blockProduct_finFourPairing f 2, finFour_sdiff_pair_13]
   have h_p3 : Finpartition.cumulantCoefficient (finFourPairing 3) *
       (finFourPairing 3).blockProduct f = -(f {0, 3} * f {1, 2}) := by
-    rw [cumulantCoefficient_finFourPairing 3, blockProduct_finFourPairing f 3, finFour_sdiff_pair_12]
-    ring
+    simp [cumulantCoefficient_finFourPairing 3, blockProduct_finFourPairing f 3, finFour_sdiff_pair_12]
   -- the four partitions are pairwise distinct, so the sum splits into four summands
   have h_top_not : (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) ∉
       ({finFourPairing 1, finFourPairing 2, finFourPairing 3} :
         Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
-    intro h
-    rcases Finset.mem_insert.mp h with h | h
-    · exact finFourPairing_ne_top 1 h.symm
-    · rcases Finset.mem_insert.mp h with h | h
-      · exact finFourPairing_ne_top 2 h.symm
-      · exact finFourPairing_ne_top 3 (Finset.mem_singleton.mp h).symm
+    decide
   have h_p1_not : finFourPairing 1 ∉
       ({finFourPairing 2, finFourPairing 3} :
         Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
-    intro h
-    rcases Finset.mem_insert.mp h with h | h
-    · exact finFourPairing_ne_pairing 1 2 (by decide : (1 : Fin 4) ≠ 0)
-        (by decide : (1 : Fin 4) ≠ 2) h
-    · exact finFourPairing_ne_pairing 1 3 (by decide : (1 : Fin 4) ≠ 0)
-        (by decide : (1 : Fin 4) ≠ 3) (Finset.mem_singleton.mp h)
+    decide
   have h_p2_not : finFourPairing 2 ∉
       ({finFourPairing 3} : Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
-    intro h
-    exact finFourPairing_ne_pairing 2 3 (by decide : (2 : Fin 4) ≠ 0)
-      (by decide : (2 : Fin 4) ≠ 3) (Finset.mem_singleton.mp h)
+    decide
   rw [Finset.sum_insert h_top_not, Finset.sum_insert h_p1_not, Finset.sum_insert h_p2_not,
-    Finset.sum_singleton]
-  rw [h_top, h_p1, h_p2, h_p3]
+    Finset.sum_singleton, h_top, h_p1, h_p2, h_p3]
   ring
 
 /-- A partition of a 4-element set without singletons must be either the indiscrete partition, or
@@ -1125,11 +1034,8 @@ lemma jointCumulant_four_of_centered_combinatorics [IsProbabilityMeasure μ]
       - blockMoment μ X {0, 1} * blockMoment μ X {2, 3}
       - blockMoment μ X {0, 2} * blockMoment μ X {1, 3}
       - blockMoment μ X {0, 3} * blockMoment μ X {1, 2} := by
-  classical
-  have hsingle : ∀ i : Fin 4, blockMoment μ X {i} = 0 := by
-    intro i
-    dsimp [blockMoment]
-    simpa using hcenter i
+  have hsingle : ∀ i : Fin 4, blockMoment μ X {i} = 0 :=
+    fun i => by simpa [blockMoment] using hcenter i
   simpa using cumulantTransform_fin_four_of_singleton_vanish (blockMoment μ X) hsingle
 
 lemma blockMoment_four_eq (X : Fin 4 → Ω → ℝ) :
@@ -1137,50 +1043,31 @@ lemma blockMoment_four_eq (X : Fin 4 → Ω → ℝ) :
   dsimp [blockMoment]
   congr 1
   ext ω
-  have h0123 : ({0, 1, 2, 3} : Finset (Fin 4)) = Finset.univ := by decide
-  rw [h0123, Fin.prod_univ_four]
+  rw [← finFour_univ_eq_0123, Fin.prod_univ_four]
 
 lemma blockMoment_pair_eq_01 (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {0, 1} = ∫ ω, X 0 ω * X 1 ω ∂μ := by
-  dsimp [blockMoment]
-  congr 1
-  ext ω
-  simp [Finset.prod_insert, Finset.prod_singleton]
+  simp [blockMoment, Finset.prod_insert, Finset.prod_singleton]
 
 lemma blockMoment_pair_eq_23 (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {2, 3} = ∫ ω, X 2 ω * X 3 ω ∂μ := by
-  dsimp [blockMoment]
-  congr 1
-  ext ω
-  simp [Finset.prod_insert, Finset.prod_singleton]
+  simp [blockMoment, Finset.prod_insert, Finset.prod_singleton]
 
 lemma blockMoment_pair_eq_02 (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {0, 2} = ∫ ω, X 0 ω * X 2 ω ∂μ := by
-  dsimp [blockMoment]
-  congr 1
-  ext ω
-  simp [Finset.prod_insert, Finset.prod_singleton]
+  simp [blockMoment, Finset.prod_insert, Finset.prod_singleton]
 
 lemma blockMoment_pair_eq_13 (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {1, 3} = ∫ ω, X 1 ω * X 3 ω ∂μ := by
-  dsimp [blockMoment]
-  congr 1
-  ext ω
-  simp [Finset.prod_insert, Finset.prod_singleton]
+  simp [blockMoment, Finset.prod_insert, Finset.prod_singleton]
 
 lemma blockMoment_pair_eq_03 (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {0, 3} = ∫ ω, X 0 ω * X 3 ω ∂μ := by
-  dsimp [blockMoment]
-  congr 1
-  ext ω
-  simp [Finset.prod_insert, Finset.prod_singleton]
+  simp [blockMoment, Finset.prod_insert, Finset.prod_singleton]
 
 lemma blockMoment_pair_eq_12 (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {1, 2} = ∫ ω, X 1 ω * X 2 ω ∂μ := by
-  dsimp [blockMoment]
-  congr 1
-  ext ω
-  simp [Finset.prod_insert, Finset.prod_singleton]
+  simp [blockMoment, Finset.prod_insert, Finset.prod_singleton]
 
 /-- Exact centered fourth-cumulant formula.
 
@@ -1196,10 +1083,9 @@ theorem jointCumulant_four_of_centered [IsProbabilityMeasure μ] (X : Fin 4 → 
         - (∫ ω, X 0 ω * X 2 ω ∂μ) * (∫ ω, X 1 ω * X 3 ω ∂μ)
         - (∫ ω, X 0 ω * X 3 ω ∂μ) * (∫ ω, X 1 ω * X 2 ω ∂μ) := by
   dsimp [jointCumulant, blockCumulant]
-  rw [jointCumulant_four_of_centered_combinatorics X hcenter]
-  rw [blockMoment_four_eq, blockMoment_pair_eq_01, blockMoment_pair_eq_23]
-  rw [blockMoment_pair_eq_02, blockMoment_pair_eq_13]
-  rw [blockMoment_pair_eq_03, blockMoment_pair_eq_12]
+  rw [jointCumulant_four_of_centered_combinatorics X hcenter, blockMoment_four_eq,
+    blockMoment_pair_eq_01, blockMoment_pair_eq_23, blockMoment_pair_eq_02,
+    blockMoment_pair_eq_13, blockMoment_pair_eq_03, blockMoment_pair_eq_12]
 
 lemma cumulantTransform_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ]
     {R : Type*} [CommRing R]
