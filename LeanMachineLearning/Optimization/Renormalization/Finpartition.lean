@@ -24,8 +24,8 @@ It has no probability or measure-theory imports.
 
 ## Verified external API
 
-The declarations used from the pinned Mathlib revision were checked in: `Finpartition.map`, `Finpartition.bind`,
-`Finpartition.bind_parts`, `Finpartition.mem_bind`, `Finpartition.card_bind`,
+The declarations used from the pinned Mathlib revision were checked in: `Finpartition.map`,
+`Finpartition.bind`, `Finpartition.bind_parts`, `Finpartition.mem_bind`, `Finpartition.card_bind`,
 `Finpartition.sum_card_parts`, `Equiv.finsetCongr`, `Finset.prod_biUnion`,
 `Finset.prod_sum`, `Fintype.prod_sum`, and
 `IncidenceAlgebra.moebius_inversion_bot`.
@@ -695,10 +695,18 @@ private lemma insertBlock_deleteBlock {s : Finset α} (P : Finpartition s)
   change B ∈ insert (P.part a) (P.parts.erase (P.part a)) ↔ B ∈ P.parts
   by_cases h : B = P.part a
   · -- `B` is the distinguished block: present on both sides
-    simp [h]
-    exact ha
+    subst B
+    constructor
+    · intro _
+      exact P.part_mem.2 ha
+    · intro _
+      exact Finset.mem_insert.mpr (Or.inl rfl)
   · -- any other part of the rebuilt partition is an original part and conversely
-    simp [h]
+    constructor
+    · intro hB
+      exact (Finset.mem_erase.mp (Finset.mem_insert.mp hB |>.resolve_left h)).2
+    · intro hB
+      exact Finset.mem_insert.mpr (Or.inr (Finset.mem_erase.mpr ⟨h, hB⟩))
 
 /-- In a reinserted partition, the block containing `a` is the new block `B`. -/
 private lemma insertBlock_part_of_mem {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
@@ -732,22 +740,30 @@ private lemma deleteBlock_insertBlock {s : Finset α} (B : Finset α) (hBne : B 
     ext C
     rw [cast_congrArg_parts (s \ B) (s \ (Q.insertBlock B hBne hBsub).part a)
       (congrArg (fun t : Finset α => s \ t) hX1).symm]
-    simp [deleteBlock_parts, insertBlock_parts]
+    rw [deleteBlock_parts, insertBlock_parts]
     rw [hX1]
     by_cases h : C = B
     · -- the new block is deleted, so it is absent from the residual parts
-      simp [h]
-      intro hBQ
-      -- `B ∈ Q.parts` would force `B ⊆ s \ B`, hence `B = ∅`, contradicting nonemptiness
-      exact hBne (Finset.eq_empty_iff_forall_notMem.2
-        (fun x hx => (Finset.mem_sdiff.mp (Q.subset hBQ hx)).2 hx))
+      subst C
+      constructor
+      · intro hC
+        exact False.elim ((Finset.mem_erase.mp hC).1 rfl)
+      · intro hBQ
+        -- `B ∈ Q.parts` would force `B ⊆ s \ B`, hence `B = ∅`, contradicting nonemptiness
+        exact False.elim (hBne (Finset.eq_empty_iff_forall_notMem.2
+          (fun x hx => (Finset.mem_sdiff.mp (Q.subset hBQ hx)).2 hx)))
     · -- old blocks are kept exactly
-      simp [h]
+      constructor
+      · intro hC
+        exact (Finset.mem_insert.mp (Finset.mem_erase.mp hC).2).resolve_left h
+      · intro hC
+        exact Finset.mem_erase.mpr ⟨h, Finset.mem_insert.mpr (Or.inr hC)⟩
 
 /-- The block product factors over the block containing `a` and the remaining blocks. -/
 private lemma blockProduct_deleteBlock [CommMonoid R] {s : Finset α} (P : Finpartition s)
     (g : Finset α → R) (a : α) (ha : a ∈ s) :
-    P.blockProduct g = g (P.part a) * (P.deleteBlock (P.part a) (P.part_mem.2 ha)).blockProduct g := by
+    P.blockProduct g =
+      g (P.part a) * (P.deleteBlock (P.part a) (P.part_mem.2 ha)).blockProduct g := by
   rw [blockProduct, blockProduct, deleteBlock_parts, ← Finset.insert_erase (P.part_mem.2 ha),
     Finset.prod_insert]
   · simp
@@ -847,7 +863,8 @@ private lemma Finpartition.eq_top_iff_card_parts_eq_one {s : Finset α} (T : Fin
       have hB_eq : B = s :=
         Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
       simpa [hB_eq] using hB
-    · exact fun D hD => Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+    · exact fun D hD =>
+        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
   constructor
   · intro h
     rw [h, hpartsT]
@@ -883,7 +900,8 @@ private lemma cumulantCoefficient_sum_coarser [CommRing R] (s : Finset α) (a : 
         have hB_eq : B = s :=
           Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
         simpa [hB_eq] using hB
-      · exact fun D hD => Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+      · exact fun D hD =>
+          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
     -- the only block `s` contains `a`, so the filter over blocks avoiding `a` is empty
     have hfilter_empty : ({s} : Finset (Finset α)).filter (fun D => a ∉ D) = ∅ := by
       simp [ha]
@@ -934,7 +952,8 @@ private lemma cumulantCoefficient_sum_coarser [CommRing R] (s : Finset α) (a : 
       rw [htest, pow_succ, mul_neg_one]
     have hfac : (Nat.factorial (k - 1) : R) = ((k - 1 : ℕ) : R) * Nat.factorial (k - 2) := by
       rw [htest, Nat.factorial_succ, Nat.cast_mul, htest.symm]
-    rw [if_neg hT, hsum, show cumulantCoefficient T = (-1 : R) ^ (k - 1) * Nat.factorial (k - 1) by rfl,
+    rw [if_neg hT, hsum,
+      show cumulantCoefficient T = (-1 : R) ^ (k - 1) * Nat.factorial (k - 1) by rfl,
       hpow, hfac]
     -- the two summands cancel: `-p * (x * f) + x * (p * f) = 0`
     rw [neg_mul, mul_left_comm]
@@ -1002,16 +1021,20 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
       (hi := fun x hx => Finset.mem_sigma.mpr ⟨Finset.mem_univ _, by
         rw [Finset.mem_filter]
         exact ⟨by simp [i, extendBlock_parts],
-          fun h => (Finset.mem_sdiff.mp h).2 (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2.1⟩⟩)
+          fun h =>
+            (Finset.mem_sdiff.mp h).2 (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2.1⟩⟩)
       (hj := fun y hy => Finset.mem_sigma.mpr ⟨by
         rw [Finset.mem_filter]
         exact ⟨Finset.mem_powerset.mpr (Finset.sdiff_subset), ⟨Finset.mem_sdiff.mpr ⟨ha,
           (Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2).2⟩, fun h => by
-          rcases Finset.nonempty_iff_ne_empty.2 (show y.2 ≠ ∅ from y.1.ne_empty (Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2).1) with ⟨x, hx⟩
+          have hne : y.2 ≠ ∅ :=
+            y.1.ne_empty (Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2).1
+          rcases Finset.nonempty_iff_ne_empty.2 hne with ⟨x, hx⟩
           -- `s \ y.2 = s` would put every element of the nonempty block `y.2` in `s \ y.2`
           have hx_sd : x ∈ s \ y.2 := by
             rw [show s \ y.2 = s by simpa [j] using h]
-            exact Finset.mem_of_subset (y.1.subset (Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2).1) hx
+            exact Finset.mem_of_subset
+              (y.1.subset (Finset.mem_filter.mp (Finset.mem_sigma.mp hy).2).1) hx
           exact (Finset.mem_sdiff.mp hx_sd).2 hx⟩⟩
         , Finset.mem_univ _⟩)]
     · -- deleting then gluing back recovers the pair `⟨B, Q⟩`
@@ -1034,8 +1057,9 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
         ext C
         rw [cast_congrArg_parts B (s \ (s \ B)) hsdiff.symm]
         -- the restriction deletes the new block `s \ B` and keeps the old parts
-        rw [Finpartition.restrict_parts_of_mem (Q.extendBlock hBne' hdisj' hsup')
-            (show s \ B ∈ (Q.extendBlock hBne' hdisj' hsup').parts from by simp [extendBlock_parts])]
+        have hnew : s \ B ∈ (Q.extendBlock hBne' hdisj' hsup').parts := by
+          simp [extendBlock_parts]
+        rw [Finpartition.restrict_parts_of_mem (Q.extendBlock hBne' hdisj' hsup') hnew]
         rw [extendBlock_parts, Finset.erase_insert]
         · -- `s \ B ∉ Q.parts`: `s \ B ⊆ B` would force `s \ B = ∅`
           intro hD
@@ -1054,7 +1078,8 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
       exact Sigma.ext (Finpartition.ext (by
         rw [extendBlock_parts, Finpartition.restrict_parts_of_mem T hD.1, hsdiff]
         exact Finset.insert_erase hD.1)) (heq_of_eq hsdiff)
-    · -- the summands match: `(c Q * Q.blockProduct f) * f (s \ B) = c (T.restrict B) * T.blockProduct f`
+    · -- the summands match:
+      -- `(c Q * Q.blockProduct f) * f (s \ B) = c (T.restrict B) * T.blockProduct f`
       intro x hx
       rcases x with ⟨B, Q⟩
       have hB : B ∈ s.powerset ∧ a ∈ B ∧ B ≠ s := Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1
@@ -1107,7 +1132,8 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
         have hB_eq : B = s :=
           Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
         simpa [hB_eq] using hB
-      · exact fun D hD => Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+      · exact fun D hD =>
+          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
     simp [Finset.sum_ite_eq', hparts, blockProduct, ite_mul, one_mul, zero_mul]
 
 /-- The partition transform of the empty set is the empty product `1`. -/
@@ -1147,7 +1173,8 @@ private lemma partitionTransform_cumulantTransform_rec [CommRing R] (f : Finset 
         rw [← Finset.sum_bij' (s := Finset.univ) (t := t.sigma (fun B => Finset.univ))
           (i := fun P _ => ⟨P.part a, P.deleteBlock (P.part a) (P.part_mem.2 ha)⟩)
           (j := fun x hx => x.2.insertBlock x.1
-            (Finset.nonempty_iff_ne_empty.1 ⟨a, (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2⟩)
+            (Finset.nonempty_iff_ne_empty.1
+              ⟨a, (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2⟩)
             (Finset.mem_powerset.mp (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).1))]
         · -- membership of the forward image in the sigma finset
           exact fun P _ => Finset.mem_sigma.mpr ⟨Finset.mem_filter.mpr
@@ -1161,7 +1188,8 @@ private lemma partitionTransform_cumulantTransform_rec [CommRing R] (f : Finset 
           rcases x with ⟨B, Q⟩
           have hBne : B ≠ ∅ := Finset.nonempty_iff_ne_empty.1
             ⟨a, (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2⟩
-          have hBsub : B ⊆ s := Finset.mem_powerset.mp (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).1
+          have hBsub : B ⊆ s :=
+            Finset.mem_powerset.mp (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).1
           have hBa : a ∈ B := (Finset.mem_filter.mp (Finset.mem_sigma.mp hx).1).2
           exact Sigma.ext (insertBlock_part_of_mem B hBne hBsub Q a hBa)
             (deleteBlock_insertBlock B hBne hBsub Q a (hBsub hBa) hBa)
@@ -1176,7 +1204,8 @@ private lemma partitionTransform_cumulantTransform_rec [CommRing R] (f : Finset 
   -- Step 2: split off the `B = s` summand, whose complement transform is `1`
   calc
     partitionTransform (cumulantTransform f) s
-        = ∑ B ∈ t, cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := hstep1
+        = ∑ B ∈ t,
+            cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := hstep1
     _ = cumulantTransform f s + ∑ B ∈ t.erase s,
           cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
       -- `t = insert s (t.erase s)`, and the `B = s` summand is `K f s * S ∅ = K f s`
@@ -1300,7 +1329,8 @@ private lemma blockProduct_top [CommMonoid R] (f : Finset α → R) {s : Finset 
       have hB_eq : B = s :=
         Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
       simpa [hB_eq] using hB
-    · exact fun D hD => Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+    · exact fun D hD =>
+        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
   simp [blockProduct, hparts]
 
 /-- If a part of `P` is the whole carrier, then `P` is the indiscrete partition. -/
@@ -1334,6 +1364,24 @@ private lemma card_lt_card_of_mem_parts_of_ne_top {s : Finset α} (P : Finpartit
   exact Finset.card_lt_card (Finset.ssubset_iff_subset_ne.mpr
     ⟨P.subset hB, fun hBs => hP (eq_top_of_mem_parts_eq_self P hB hBs)⟩)
 
+/-- Split the partition transform into the top partition and all lower partitions. -/
+private lemma partitionTransform_eq_top_add_erase [CommSemiring R] (f : Finset α → R)
+    {s : Finset α} (hs : s ≠ ∅) :
+    partitionTransform f s =
+      f s + ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
+  classical
+  calc
+    partitionTransform f s =
+        ∑ P ∈ insert (⊤ : Finpartition s) (Finset.univ.erase (⊤ : Finpartition s)),
+          P.blockProduct f := by
+      rw [partitionTransform, Finset.insert_erase (Finset.mem_univ (⊤ : Finpartition s))]
+    _ = (⊤ : Finpartition s).blockProduct f +
+        ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
+      rw [Finset.sum_insert]
+      simp
+    _ = f s + ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
+      rw [blockProduct_top f hs]
+
 /-- The partition transform is injective on functions with prescribed value `0` at the empty set.
 
 Informal proof: argue by strong induction on `s.card`.  The empty case is exactly the two
@@ -1353,18 +1401,32 @@ private theorem partitionTransform_injective_of_empty [CommRing R] {f g : Finset
     (hfg : partitionTransform f = partitionTransform g) :
     f = g := by
   classical
-  -- A complete proof should implement the triangular induction described above.  The key
-  -- reusable sublemmas to extract are:
-  -- * `(⊤ : Finpartition s).blockProduct f = f s` for `s ≠ ∅`;
-  -- * if `P ≠ ⊤` and `B ∈ P.parts`, then `B.card < s.card`;
-  -- * the expansion of `partitionTransform f s` as the top summand plus the sum over
-  --   `(Finset.univ.erase (⊤ : Finpartition s))`.
+  have hcard : ∀ n, ∀ s : Finset α, s.card = n → f s = g s := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | h n ih =>
+      intro s hs_card
+      rcases eq_or_ne s ∅ with rfl | hs
+      · rw [hf, hg]
+      · have hlower :
+            (∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f) =
+              ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct g := by
+          apply Finset.sum_congr rfl
+          intro P hP
+          apply Finset.prod_congr rfl
+          intro B hB
+          exact ih B.card
+            (by
+              have hP_ne_top : P ≠ ⊤ := (Finset.mem_erase.mp hP).1
+              have hlt_s : B.card < s.card := card_lt_card_of_mem_parts_of_ne_top P hB hP_ne_top
+              simpa [hs_card] using hlt_s)
+            B rfl
+        have hpoint : partitionTransform f s = partitionTransform g s := congrFun hfg s
+        rw [partitionTransform_eq_top_add_erase f hs,
+          partitionTransform_eq_top_add_erase g hs, hlower] at hpoint
+        exact add_right_cancel hpoint
   funext s
-  rcases eq_or_ne s ∅ with rfl | hs
-  · rw [hf, hg]
-  · -- Nonempty carriers follow by strong induction on `s.card`, comparing the lower-order
-    -- summands using the induction hypothesis and cancelling them from `hfg` evaluated at `s`.
-    sorry
+  exact hcard s.card s rfl
 
 /-- The cumulant transform inverts the partition transform for functions vanishing at the empty
 set.

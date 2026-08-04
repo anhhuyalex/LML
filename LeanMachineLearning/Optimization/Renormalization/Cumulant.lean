@@ -278,7 +278,8 @@ lemma partitionTransform_cumulantTransform_univ [Fintype ι] [DecidableEq ι]
     (f : Finset ι → R) (h_empty : f ∅ = 1) :
     Finpartition.partitionTransform (Finpartition.cumulantTransform f) Finset.univ =
       f Finset.univ := by
-  simpa using congrFun (Finpartition.partitionTransform_cumulantTransform (R := R) f h_empty) Finset.univ
+  have h := Finpartition.partitionTransform_cumulantTransform (R := R) f h_empty
+  simpa using congrFun h Finset.univ
 
 /-- A joint moment is the sum over partitions of products of connected correlators.
 
@@ -629,6 +630,33 @@ theorem jointCumulant_two_eq_covariance [IsProbabilityMeasure μ] (X : Fin 2 →
   rw [jointCumulant_two, covariance_eq_sub h0 h1]
   rfl
 
+/-- Fourth-order cumulant expansion for any block weight whose singleton weights vanish.
+
+This is the purely finite combinatorial core of the centered fourth-cumulant formula.  Informally,
+expand `Finpartition.cumulantTransform f Finset.univ` as the sum over the 15 set partitions of
+`Fin 4`, with coefficient `(-1)^(#parts-1) * (#parts-1)!`.  Any partition containing a singleton
+block contributes zero because its block product contains a factor `f {i} = 0`.  A partition of a
+4-element set with no singleton blocks is either the one-block partition, or one of the three
+pairings `{0,1}|{2,3}`, `{0,2}|{1,3}`, and `{0,3}|{1,2}`.  The one-block coefficient is `1`, and
+each two-block coefficient is `-1`, which gives exactly the displayed expression.
+
+References for the coefficient and partition expansion: Rota's Möbius-function formula for the
+partition lattice, <https://doi.org/10.1007/BF00531932>, and McCullagh--Kolassa, "Cumulants",
+Scholarpedia 4(3):4699 (2009), <http://www.scholarpedia.org/article/Cumulants>. -/
+lemma cumulantTransform_fin_four_of_singleton_vanish (f : Finset (Fin 4) → ℝ)
+    (hsingle : ∀ i : Fin 4, f {i} = 0) :
+    Finpartition.cumulantTransform f Finset.univ =
+      f {0, 1, 2, 3}
+      - f {0, 1} * f {2, 3}
+      - f {0, 2} * f {1, 3}
+      - f {0, 3} * f {1, 2} := by
+  classical
+  -- TODO: replace this finite enumeration by a reusable classification theorem for partitions of
+  -- a four-element finset.  The proof is the informal enumeration in the docstring above: all
+  -- singleton-bearing summands vanish by `hsingle`; the remaining four partitions are `⊤` and the
+  -- three pairings, with coefficients `1, -1, -1, -1`.
+  sorry
+
 /-- A partition of a 4-element set without singletons must be either the indiscrete partition, or
 one of the 3 pairings.
 
@@ -643,7 +671,12 @@ lemma jointCumulant_four_of_centered_combinatorics [IsProbabilityMeasure μ]
       - blockMoment μ X {0, 1} * blockMoment μ X {2, 3}
       - blockMoment μ X {0, 2} * blockMoment μ X {1, 3}
       - blockMoment μ X {0, 3} * blockMoment μ X {1, 2} := by
-  sorry
+  classical
+  have hsingle : ∀ i : Fin 4, blockMoment μ X {i} = 0 := by
+    intro i
+    dsimp [blockMoment]
+    simpa using hcenter i
+  simpa using cumulantTransform_fin_four_of_singleton_vanish (blockMoment μ X) hsingle
 
 lemma blockMoment_four_eq (X : Fin 4 → Ω → ℝ) :
     blockMoment μ X {0, 1, 2, 3} = ∫ ω, X 0 ω * X 1 ω * X 2 ω * X 3 ω ∂μ := by
@@ -991,7 +1024,8 @@ lemma blockMoment_smul_update [DecidableEq ι]
             ext ω
             rw [← Finset.mul_prod_erase s (fun j : ι => (Function.update X i (c • X i)) j ω) hi]
             have hrest :
-                (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) = ∏ j ∈ s.erase i, X j ω := by
+                (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) =
+                  ∏ j ∈ s.erase i, X j ω := by
               apply Finset.prod_congr rfl
               intro j hj
               have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
