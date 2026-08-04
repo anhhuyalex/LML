@@ -1858,12 +1858,120 @@ lemma glue_ofFinpartition (T : Finpartition (A ∪ B)) (hAB : Disjoint A B) :
     (ofFinpartition T hAB).glue hAB = T := by
   classical
   have hparts : (ofFinpartition T hAB).glueParts = T.parts := by
-    /- The remaining combinatorial content is the double-inclusion described in the docstring:
-    unfold `glueParts`, split membership into the left-unmatched, right-unmatched, and merged
-    cases, and use `mergedOfLeft_inter`/`injOn_inter_left_mergedOf` plus the corresponding
-    right-hand lemmas to identify the merged block. Keeping this as a named assertion avoids
-    forcing Lean to normalize the large dependent `ofFinpartition` expression in the outer proof. -/
-    sorry
+    apply Finset.Subset.antisymm
+    · intro t ht
+      have hsplit : ∀ ⦃D : Finset α⦄, D ∈ T.parts → (D ∩ A) ∪ (D ∩ B) = D := by
+        intro D hD
+        apply Finset.Subset.antisymm
+        · intro x hx
+          rcases Finset.mem_union.mp hx with hx | hx
+          · exact (Finset.mem_inter.mp hx).1
+          · exact (Finset.mem_inter.mp hx).1
+        · intro x hx
+          have hxAB : x ∈ A ∪ B := T.subset hD hx
+          rcases Finset.mem_union.mp hxAB with hxA | hxB
+          · exact Finset.mem_union_left _ (Finset.mem_inter.mpr ⟨hx, hxA⟩)
+          · exact Finset.mem_union_right _ (Finset.mem_inter.mpr ⟨hx, hxB⟩)
+      simp only [glueParts, ofFinpartition, Finpartition.restrict] at ht
+      simp only [Finset.inf_eq_inter, Finset.mem_union, Finset.mem_sdiff, Finset.mem_erase,
+        Finset.mem_image, Finset.mem_attach, true_and] at ht
+      rcases ht with (ht | ht) | ht
+      · rcases ht with ⟨⟨htne, D, hD, rfl⟩, hnot⟩
+        have hDnot : D ∉ mergedOf T := fun hDm => hnot ⟨D, hDm, rfl⟩
+        have hDB : D ∩ B = ∅ := by
+          by_contra hDBne
+          exact hDnot (by
+            rw [mergedOf, Finset.mem_filter]
+            exact ⟨hD, ⟨Finset.nonempty_iff_ne_empty.mpr htne,
+              Finset.nonempty_iff_ne_empty.mpr hDBne⟩⟩)
+        convert hD using 1
+        simpa [hDB] using hsplit hD
+      · rcases ht with ⟨⟨htne, D, hD, rfl⟩, hnot⟩
+        have hDnot : D ∉ mergedOf T := fun hDm => hnot ⟨D, hDm, rfl⟩
+        have hDA : D ∩ A = ∅ := by
+          by_contra hDAne
+          exact hDnot (by
+            rw [mergedOf, Finset.mem_filter]
+            exact ⟨hD, ⟨Finset.nonempty_iff_ne_empty.mpr hDAne,
+              Finset.nonempty_iff_ne_empty.mpr htne⟩⟩)
+        convert hD using 1
+        simpa [hDA] using hsplit hD
+      · obtain ⟨s, -, rfl⟩ := ht
+        change (s.1 : Finset α) ∪ (mergedOfLeft T s.2 ∩ B) ∈ T.parts
+        have hDmerged : mergedOfLeft T s.2 ∈ mergedOf T := mergedOfLeft_mem T s.2
+        have hDmem : mergedOfLeft T s.2 ∈ T.parts := by
+          have hDmerged' := hDmerged
+          simp only [mergedOf, Finset.mem_filter] at hDmerged'
+          exact hDmerged'.1
+        convert hDmem using 1
+        have hleft : mergedOfLeft T s.2 ∩ A = s.1 := mergedOfLeft_inter T s.2
+        simpa [hleft] using hsplit hDmem
+    · intro t ht
+      have hsplit : (t ∩ A) ∪ (t ∩ B) = t := by
+        apply Finset.Subset.antisymm
+        · intro x hx
+          rcases Finset.mem_union.mp hx with hx | hx
+          · exact (Finset.mem_inter.mp hx).1
+          · exact (Finset.mem_inter.mp hx).1
+        · intro x hx
+          have hxAB : x ∈ A ∪ B := T.subset ht hx
+          rcases Finset.mem_union.mp hxAB with hxA | hxB
+          · exact Finset.mem_union_left _ (Finset.mem_inter.mpr ⟨hx, hxA⟩)
+          · exact Finset.mem_union_right _ (Finset.mem_inter.mpr ⟨hx, hxB⟩)
+      simp only [glueParts, ofFinpartition, Finpartition.restrict]
+      simp only [Finset.inf_eq_inter, Finset.mem_union, Finset.mem_sdiff, Finset.mem_erase,
+        Finset.mem_image, Finset.mem_attach, true_and]
+      by_cases htm : t ∈ mergedOf T
+      · right
+        let hs : t ∩ A ∈ (mergedOf T).image (· ∩ A) :=
+          Finset.mem_image.mpr ⟨t, htm, rfl⟩
+        refine ⟨⟨t ∩ A, hs⟩, ?_⟩
+        change (t ∩ A) ∪ (mergedOfLeft T hs ∩ B) = t
+        have hleft : mergedOfLeft T hs ∩ A = t ∩ A := mergedOfLeft_inter T hs
+        have hmemL : mergedOfLeft T hs ∈ mergedOf T := mergedOfLeft_mem T hs
+        have hEq : mergedOfLeft T hs = t :=
+          T.injOn_inter_left_mergedOf hmemL htm hleft
+        rw [hEq]
+        exact hsplit
+      · by_cases hA : t ∩ A = ∅
+        · left
+          right
+          have htB : t ∩ B = t := by
+            simpa [hA] using hsplit
+          refine ⟨?_, ?_⟩
+          · refine ⟨T.ne_empty ht, t, ht, htB⟩
+          · intro htT
+            obtain ⟨D, hDm, hDt⟩ := htT
+            obtain ⟨x, hx⟩ := T.nonempty_of_mem_parts ht
+            have hxD : x ∈ D := (Finset.mem_inter.mp (hDt ▸ hx)).1
+            have hDparts : D ∈ T.parts := by
+              have hDm' := hDm
+              simp only [mergedOf, Finset.mem_filter] at hDm'
+              exact hDm'.1
+            have hEq : D = t := T.eq_of_mem_parts hDparts ht hxD hx
+            exact htm (hEq ▸ hDm)
+        · left
+          left
+          have hB : t ∩ B = ∅ := by
+            by_contra hBne
+            exact htm (by
+              rw [mergedOf, Finset.mem_filter]
+              exact ⟨ht, ⟨Finset.nonempty_iff_ne_empty.mpr hA,
+                Finset.nonempty_iff_ne_empty.mpr hBne⟩⟩)
+          have htA : t ∩ A = t := by
+            simpa [hB] using hsplit
+          refine ⟨?_, ?_⟩
+          · refine ⟨T.ne_empty ht, t, ht, htA⟩
+          · intro htS
+            obtain ⟨D, hDm, hDt⟩ := htS
+            obtain ⟨x, hx⟩ := T.nonempty_of_mem_parts ht
+            have hxD : x ∈ D := (Finset.mem_inter.mp (hDt ▸ hx)).1
+            have hDparts : D ∈ T.parts := by
+              have hDm' := hDm
+              simp only [mergedOf, Finset.mem_filter] at hDm'
+              exact hDm'.1
+            have hEq : D = t := T.eq_of_mem_parts hDparts ht hxD hx
+            exact htm (hEq ▸ hDm)
   apply Finpartition.ext
   simp [glue_parts, hparts]
 

@@ -128,23 +128,15 @@ private lemma abs_exp_neg_sub_one_le {t : ℝ} (ht : 0 ≤ t) : |Real.exp (-t) -
 -- This is the pointwise domination used in the dominated convergence theorem below.
 private lemma abs_diffQuot_exp_neg_mul_le {h v : ℝ} (hh : 0 < h) (hv : 0 ≤ v) :
     |(Real.exp (-h * v) - 1) / h| ≤ v := by
-  calc
-    |(Real.exp (-h * v) - 1) / h| = |Real.exp (-h * v) - 1| / h := by
-      rw [abs_div, abs_of_pos hh]
-    _ ≤ (h * v) / h := by
-      exact div_le_div_of_nonneg_right (by
-        simpa using abs_exp_neg_sub_one_le (mul_nonneg hh.le hv)) hh.le
-    _ = v := by
-      rw [div_eq_mul_inv, mul_comm, ← mul_assoc, inv_mul_cancel₀ hh.ne', one_mul]
+  simpa [abs_div, abs_of_pos hh, div_le_iff₀ hh, mul_comm] using
+    abs_exp_neg_sub_one_le (mul_nonneg hh.le hv)
 
 -- Pointwise, the right difference quotient of `fun h ↦ exp (-h * v)` converges to `-v` at
 -- zero.  This is the scalar derivative of `exp` (chain rule) restricted to the right half-line.
 private lemma tendsto_diffQuot_exp_neg_mul {v : ℝ} :
     Tendsto (fun h : ℝ => (Real.exp (-h * v) - 1) / h) (𝓝[Set.Ioi (0 : ℝ)] 0) (𝓝 (-v)) := by
   have hderiv : HasDerivWithinAt (fun h : ℝ => Real.exp (-h * v)) (-v) (Set.Ioi (0 : ℝ)) 0 := by
-    have hlin : HasDerivAt (fun h : ℝ => -h * v) (-v) 0 := by
-      simpa [mul_comm] using ((hasDerivAt_id' 0).const_mul (-v))
-    simpa using hlin.exp.hasDerivWithinAt
+    simpa [mul_comm] using (((hasDerivAt_id' 0).const_mul (-v)).exp.hasDerivWithinAt)
   rw [hasDerivWithinAt_iff_tendsto_slope' (s := Set.Ioi (0 : ℝ)) (x := 0) (by simp)] at hderiv
   convert hderiv using 1
   funext h
@@ -258,13 +250,12 @@ private lemma slope_weightedIntegral_eq_integral_diffQuot
       (fun h : ℝ => ∫ x, ((Real.exp (-h * V x) - 1) / h) • O x ∂μ) := by
   filter_upwards [self_mem_nhdsWithin] with h hh
   have h_exp_meas : AEStronglyMeasurable
-      (fun x : Ω => Real.exp (-h * V x)) μ := by
-    exact (Real.continuous_exp.comp (continuous_const.mul continuous_id)).comp_aestronglyMeasurable
+      (fun x : Ω => Real.exp (-h * V x)) μ :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).comp_aestronglyMeasurable
       hV.aestronglyMeasurable
   have h_exp_bound : ∀ᵐ x ∂μ, ‖Real.exp (-h * V x)‖ ≤ (1 : ℝ) :=
     ae_of_all μ (fun x => by
-      rw [Real.norm_eq_abs, abs_of_nonneg (Real.exp_pos _).le]
-      exact Real.exp_le_one_iff.2
+      simpa [Real.norm_eq_abs] using Real.exp_le_one_iff.2
         (mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.2 hh.le) (hVnonneg x)))
   have h_int_exp_smul : Integrable (fun x : Ω => Real.exp (-h * V x) • O x) μ :=
     hO.bdd_smul 1 h_exp_meas h_exp_bound
@@ -275,11 +266,9 @@ private lemma slope_weightedIntegral_eq_integral_diffQuot
     _ = ∫ x, ((Real.exp (-h * V x) - 1) / h) • O x ∂μ := by
             rw [← integral_sub h_int_exp_smul hO, ← integral_smul]
             exact integral_congr_ae (ae_of_all μ (fun x => by
-              change h⁻¹ • (Real.exp (-h * V x) • O x - O x) =
-                ((Real.exp (-h * V x) - 1) / h) • O x
+              dsimp only
               rw [div_eq_inv_mul, smul_sub, smul_smul, ← sub_smul]
-              congr 1
-              ring))
+              exact congrArg (fun t : ℝ => t • O x) (by ring)))
 
 -- Pointwise, the vector difference quotient of `fun h ↦ exp (-h * v) • z` at zero is dominated
 -- by `‖v • z‖`.  This is the vector-valued analogue of `abs_diffQuot_exp_neg_mul_le`: the scalar
@@ -288,9 +277,8 @@ private lemma norm_smul_diffQuot_exp_neg_mul_le
     [NormedAddCommGroup E] [NormedSpace ℝ E] {h v : ℝ} {z : E}
     (hh : 0 < h) (hv : 0 ≤ v) :
     ‖((Real.exp (-h * v) - 1) / h) • z‖ ≤ ‖v • z‖ := by
-  rw [norm_smul, Real.norm_eq_abs, norm_smul, Real.norm_eq_abs]
-  rw [abs_of_nonneg hv]
-  exact mul_le_mul_of_nonneg_right (abs_diffQuot_exp_neg_mul_le hh hv) (norm_nonneg z)
+  simpa [norm_smul, Real.norm_eq_abs, abs_div, abs_of_nonneg hv] using
+    mul_le_mul_of_nonneg_right (abs_diffQuot_exp_neg_mul_le hh hv) (norm_nonneg z)
 
 -- Dominated convergence for the weighted difference quotients on the right half-line: the
 -- quotients converge pointwise to `-V • O` (`tendsto_diffQuot_exp_neg_mul`), are dominated by the
@@ -311,12 +299,9 @@ private lemma tendsto_integral_diffQuot_weighted
     (f := fun x => (-V x) • O x)
     (fun x => ‖V x • O x‖) ?_ ?_ hVO.norm ?_
   · filter_upwards [self_mem_nhdsWithin] with h hh
-    have hscalar : AEStronglyMeasurable
-        (fun x : Ω => (Real.exp (-h * V x) - 1) / h) μ := by
-      exact (((Real.continuous_exp.comp (continuous_const.mul continuous_id)).sub
-        continuous_const).div continuous_const (fun _ => hh.ne')).comp_aestronglyMeasurable
-        hV.aestronglyMeasurable
-    exact AEStronglyMeasurable.smul hscalar hO.aestronglyMeasurable
+    exact ((((Real.continuous_exp.comp (continuous_const.mul continuous_id)).sub
+      continuous_const).div continuous_const (fun _ => hh.ne')).comp_aestronglyMeasurable
+        hV.aestronglyMeasurable).smul hO.aestronglyMeasurable
   · filter_upwards [self_mem_nhdsWithin] with h hh
     exact ae_of_all μ (fun x => norm_smul_diffQuot_exp_neg_mul_le hh (hVnonneg x))
   · exact ae_of_all μ (fun x =>
@@ -340,15 +325,12 @@ theorem hasDerivWithinAt_weightedIntegral_zero
   -- punctured right half-line (`hasDerivWithinAt_iff_tendsto_slope`).
   rw [← hasDerivWithinAt_Ioi_iff_Ici (x := 0),
     hasDerivWithinAt_iff_tendsto_slope' (s := Set.Ioi (0 : ℝ)) (x := 0) (by simp)]
-  -- Step 1: dominated convergence supplies the limit of the integrated difference quotients
-  -- (`tendsto_integral_diffQuot_weighted`).
-  have hDCT := tendsto_integral_diffQuot_weighted (μ := μ) hVnonneg hV hO hVO
-  -- Step 2: on the right half-line the slope of the weighted numerator equals the integral of the
-  -- pointwise difference quotients, so the DCT limit is the slope limit; `∫ (-V) • O = -∫ V • O`
-  -- finishes the proof.
+  -- Dominated convergence supplies the limit of the integrated difference quotients
+  -- (`tendsto_integral_diffQuot_weighted`), which is the slope limit on the right half-line
+  -- (`slope_weightedIntegral_eq_integral_diffQuot`); `∫ (-V) • O = -∫ V • O` finishes the proof.
   exact (tendsto_congr' (slope_weightedIntegral_eq_integral_diffQuot
       (μ := μ) hVnonneg hV hO)).2 (by
-    simpa [integral_neg] using hDCT)
+    simpa [integral_neg] using tendsto_integral_diffQuot_weighted (μ := μ) hVnonneg hV hO hVO)
 
 /-- Linear response of a normalized expectation along the nonnegative-coupling half-line.
 
