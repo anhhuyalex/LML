@@ -360,6 +360,8 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
     exact measurable_pi_lambda _ fun ji : κ × ι => measurable_layerCoordinate (.inl ji)
   have hBmeas : Measurable B := by
     exact measurable_pi_lambda _ fun j => measurable_layerCoordinate (.inr j)
+  -- The weight and bias tuple maps are flat product measures; this is the `iIndepFun`
+  -- characterization `map_fun_eq_pi_map` applied to the weight and bias independence theorems.
   have hWeightTuple :
       μ.map W =
         Measure.pi (fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2)) := by
@@ -368,12 +370,11 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
         (measurable_layerCoordinate (.inl ji)).aemeasurable)
   have hBiasTuple :
       μ.map B = Measure.pi (fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j)) := by
-    change
-      μ.map B =
-        Measure.pi (fun j : κ => μ.map (((fun b : κ → ℝ => b j) ∘ Prod.snd) : LayerParams ι κ → ℝ))
     simpa [μ, B, layerCoordinate] using
       (iIndepFun_bias_layerGaussianInit p ι κ).map_fun_eq_pi_map (fun j =>
         (measurable_layerCoordinate (.inr j)).aemeasurable)
+  -- The two complete vectors stay independent under the outer product, hence so do their
+  -- flattened-coordinate projections `W` and `B`.
   have hBlock : W ⟂ᵢ[μ] B := by
     have hWB := indepFun_weight_bias_layerGaussianInit p ι κ
     exact hWB.comp
@@ -384,12 +385,16 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
     rw [Measure.map_map e.measurable hFmeas]
     change Measure.map (fun q : LayerParams ι κ => (W q, B q)) μ = (μ.map W).prod (μ.map B)
     rw [hBlock.map_prod_eq_prod_map_map hWmeas.aemeasurable hBmeas.aemeasurable]
+  -- Transporting the flat product measure through the sum-pi equivalence splits it into the
+  -- weight and bias product measures (reassembling the coordinate law `ρ`).
   have hRight :
       (Measure.pi ρ).map e =
         (Measure.pi (fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2))).prod
           (Measure.pi (fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j))) := by
     simpa [e, LayerCoordinate, layerCoordinate, ρ] using
       (measurePreserving_sumPiEquivProdPi (X := fun _ : LayerCoordinate ι κ => ℝ) ρ).map_eq
+  -- Both transports of the flattened map `F` and of the flat coordinate law agree, which is
+  -- exactly the equality of the two sides of `iIndepFun_iff_map_fun_eq_pi_map`.
   calc
     (μ.map F).map e = (μ.map W).prod (μ.map B) := hLeft
     _ = (Measure.pi fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2)).prod

@@ -1754,6 +1754,41 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero_int_of_le
           rw [← Finset.mul_sum, hFiniteDifference]
           simp
 
+-- Integer-valued version of `partialMatching_mobius_coeff_sum_eq_zero` for arbitrary `p, q`.
+--
+-- The summand is symmetric in `p` and `q`, so `le_total` reduces the claim to the ordered helper
+-- `partialMatching_mobius_coeff_sum_eq_zero_int_of_le`; in the `q ≤ p` branch the two traces are
+-- swapped using the symmetry equality `hsymm`.
+private lemma partialMatching_mobius_coeff_sum_eq_zero_int
+    (p q : ℕ) (hp : 0 < p) (hq : 0 < q) :
+    (∑ m ∈ Finset.range (Nat.min p q + 1),
+      (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
+        ((-1 : ℤ) ^ (p + q - m - 1) *
+          (((p + q - m - 1).factorial : ℕ) : ℤ))))) = 0 := by
+  classical
+  -- The summand is symmetric in `p` and `q`; thus one may assume `p ≤ q` and treat the other
+  -- case by swapping the traces.
+  have hsymm :
+      (∑ m ∈ Finset.range (Nat.min p q + 1),
+        (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
+          ((-1 : ℤ) ^ (p + q - m - 1) *
+            (((p + q - m - 1).factorial : ℕ) : ℤ))))) =
+      (∑ m ∈ Finset.range (Nat.min q p + 1),
+        (((((q.choose m) * (p.choose m) * m.factorial : ℕ) : ℤ) *
+          ((-1 : ℤ) ^ (q + p - m - 1) *
+            (((q + p - m - 1).factorial : ℕ) : ℤ))))) := by
+    -- This is just commutativity of `Nat.min`, addition, and multiplication in each summand.
+    simp [Nat.min_comm, Nat.add_comm, mul_comm, mul_assoc]
+  rcases le_total p q with hpq | hqp
+  · -- Now `Nat.min p q = p`, so the range is `0, ..., p`; use the ordered integer helper.
+    simpa [Nat.min_eq_left hpq] using
+      partialMatching_mobius_coeff_sum_eq_zero_int_of_le p q hp hq hpq
+  · -- The case `q ≤ p` is identical after swapping the two traces.  The equality `hsymm` records
+    -- the required symmetry of the integer summand.
+    rw [hsymm]
+    simpa [Nat.min_eq_left hqp] using
+      partialMatching_mobius_coeff_sum_eq_zero_int_of_le q p hq hp hqp
+
 /-- The signed Möbius coefficient of a non-trivial two-sided partial-matching fiber is zero.
 
 For fixed nonempty traces with `p` left blocks and `q` right blocks, a partition in the fiber is
@@ -1776,37 +1811,12 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero {R : Type*} [CommRing R]
         ((-1 : R) ^ (p + q - m - 1) * ((p + q - m - 1).factorial : R)))) = 0 := by
   classical
   -- The identity is universal in the target commutative ring: prove it over `ℤ` and cast through
-  -- the canonical homomorphism `ℤ → R`.
-  have hInt :
-      (∑ m ∈ Finset.range (Nat.min p q + 1),
-        (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
-          ((-1 : ℤ) ^ (p + q - m - 1) *
-            (((p + q - m - 1).factorial : ℕ) : ℤ))))) = 0 := by
-    -- The summand is symmetric in `p` and `q`; thus one may assume `p ≤ q` and treat the other
-    -- case by swapping the traces.
-    have hsymm :
-        (∑ m ∈ Finset.range (Nat.min p q + 1),
-          (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
-            ((-1 : ℤ) ^ (p + q - m - 1) *
-              (((p + q - m - 1).factorial : ℕ) : ℤ))))) =
-        (∑ m ∈ Finset.range (Nat.min q p + 1),
-          (((((q.choose m) * (p.choose m) * m.factorial : ℕ) : ℤ) *
-            ((-1 : ℤ) ^ (q + p - m - 1) *
-              (((q + p - m - 1).factorial : ℕ) : ℤ))))) := by
-      -- This is just commutativity of `Nat.min`, addition, and multiplication in each summand.
-      simp [Nat.min_comm, Nat.add_comm, mul_comm, mul_assoc]
-    rcases le_total p q with hpq | hqp
-    · -- Now `Nat.min p q = p`, so the range is `0, ..., p`; use the ordered integer helper.
-      simpa [Nat.min_eq_left hpq] using
-        partialMatching_mobius_coeff_sum_eq_zero_int_of_le p q hp hq hpq
-    · -- The case `q ≤ p` is identical after swapping the two traces.  The equality `hsymm` records
-      -- the required symmetry of the integer summand.
-      rw [hsymm]
-      simpa [Nat.min_eq_left hqp] using
-        partialMatching_mobius_coeff_sum_eq_zero_int_of_le q p hq hp hqp
-  -- Cast the integer identity to the arbitrary commutative ring `R`, distributing the cast through
-  -- the finite sum, products, powers of `-1`, and factorial casts.
-  exact_mod_cast hInt
+  -- the canonical homomorphism `ℤ → R`; the symmetry reduction to the ordered case is isolated in
+  -- `partialMatching_mobius_coeff_sum_eq_zero_int`.
+  have hInt := partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq
+  -- Cast the integer identity to `R`, distributing the cast through the finite sum, products,
+  -- powers of `-1`, and factorial casts.
+  simpa using congrArg (fun z : ℤ => (z : R)) hInt
 
 /-- Core trace-fiber Möbius cancellation for split block weights.
 
