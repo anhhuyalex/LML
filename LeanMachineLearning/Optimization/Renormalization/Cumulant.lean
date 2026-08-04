@@ -630,6 +630,397 @@ theorem jointCumulant_two_eq_covariance [IsProbabilityMeasure μ] (X : Fin 2 →
   rw [jointCumulant_two, covariance_eq_sub h0 h1]
   rfl
 
+/-- The pairing of `Fin 4` whose block containing `0` is `{0, a}`.
+
+The complementary block is `univ \ {0, a}`.  The definition is total in `a` (no proof argument is
+needed); for `a = 1, 2, 3` this is one of the three pairings of the four positions, which are the
+only pairings that survive in `cumulantTransform_fin_four_of_singleton_vanish`. -/
+private def finFourPairing (a : Fin 4) : Finpartition (Finset.univ : Finset (Fin 4)) := by
+  classical
+  refine Finpartition.ofExistsUnique (s := Finset.univ)
+    ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
+      Finset (Finset (Fin 4))) ?_ ?_ ?_
+  · -- every part is a subset of `univ`
+    intro B hB
+    rcases Finset.mem_insert.mp hB with hB | hB
+    · rw [hB]
+      simp
+    · rw [Finset.mem_singleton.mp hB]
+      simp
+  · -- `x` lies in exactly one of the two parts: `{0, a}` when it contains `x`, else the complement
+    intro x hx
+    by_cases hx01 : x ∈ ({(0 : Fin 4), a} : Finset (Fin 4))
+    · refine ⟨({(0 : Fin 4), a} : Finset (Fin 4)), ⟨by simp, hx01⟩, ?_⟩
+      intro t ht
+      rcases ht with ⟨ht_mem, hxt⟩
+      rcases Finset.mem_insert.mp ht_mem with ht_eq | ht_mem
+      · -- `t = {0, a}` is the distinguished block
+        rw [ht_eq]
+      · -- the complement cannot contain `x`
+        exfalso
+        have ht_eq' : t = Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4)) :=
+          Finset.mem_singleton.mp ht_mem
+        have hxt' : x ∈ Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4)) := by
+          simpa [ht_eq'] using hxt
+        exact (Finset.mem_sdiff.mp hxt').2 hx01
+    · refine ⟨Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4)), ⟨by simp, ?_⟩, ?_⟩
+      · exact Finset.mem_sdiff.mpr ⟨Finset.mem_univ x, hx01⟩
+      · intro t ht
+        rcases ht with ⟨ht_mem, hxt⟩
+        rcases Finset.mem_insert.mp ht_mem with ht_eq | ht_mem
+        · -- `t = {0, a}`, which does not contain `x`
+          exfalso
+          exact hx01 (by rwa [ht_eq] at hxt)
+        · -- `t` is the complement, the distinguished block
+          rw [Finset.mem_singleton.mp ht_mem]
+  · -- the empty set is not a part: both blocks are nonempty
+    intro hB
+    simp at hB
+    rcases hB with hB | hB
+    · -- `∅ = {0, a}` would put `0` in the empty set
+      have h0in : (0 : Fin 4) ∈ ({(0 : Fin 4), a} : Finset (Fin 4)) := by simp
+      have h0empty : (0 : Fin 4) ∈ (∅ : Finset (Fin 4)) := by rwa [← hB] at h0in
+      exact Finset.notMem_empty (0 : Fin 4) h0empty
+    · -- `∅ = univ \ {0, a}` is impossible because the complement is nonempty
+      have hne : (Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))).Nonempty := by
+        -- `univ` has four elements and `{0, a}` at most two, so the complement has at least two
+        rw [← Finset.card_pos,
+          Finset.card_sdiff_of_subset (by simp : ({(0 : Fin 4), a} : Finset (Fin 4)) ⊆ Finset.univ)]
+        rw [Finset.card_univ, Fintype.card_fin]
+        have hcard : ({(0 : Fin 4), a} : Finset (Fin 4)).card ≤ 2 := by
+          by_cases ha : a = 0
+          · rw [ha]
+            simp
+          · rw [Finset.card_insert_of_notMem (by simpa [eq_comm] using ha)]
+            simp
+        omega
+      rcases hne with ⟨x, hx⟩
+      have hx_empty : x ∈ (∅ : Finset (Fin 4)) := by rwa [← hB] at hx
+      exact Finset.notMem_empty x hx_empty
+
+/-- The parts of `finFourPairing a` are the block `{0, a}` and its complement. -/
+private lemma finFourPairing_parts (a : Fin 4) :
+    (finFourPairing a).parts =
+      ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
+        Finset (Finset (Fin 4))) := by
+  dsimp [finFourPairing]
+  rw [Finpartition.ofExistsUnique_parts]
+
+/-- In `finFourPairing a`, the block containing `0` is exactly `{0, a}`. -/
+private lemma finFourPairing_part_zero (a : Fin 4) :
+    (finFourPairing a).part (0 : Fin 4) = ({0, a} : Finset (Fin 4)) := by
+  apply Finpartition.part_eq_of_mem
+  · rw [finFourPairing_parts]
+    simp
+  · simp
+
+/-- The two blocks of `finFourPairing a` are distinct.
+
+This holds because `0` lies in `{0, a}` but never in its complement. -/
+private lemma finFourPairing_blocks_ne (a : Fin 4) :
+    ({(0 : Fin 4), a} : Finset (Fin 4)) ≠
+      Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4)) := by
+  intro h
+  have h0in : (0 : Fin 4) ∈ ({(0 : Fin 4), a} : Finset (Fin 4)) := by simp
+  have h0not : (0 : Fin 4) ∉ (Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))) :=
+    fun h0 => (Finset.mem_sdiff.mp h0).2 h0in
+  exact h0not (by rw [← h]; exact h0in)
+
+/-- The block product of a pairing factors over its two blocks. -/
+private lemma blockProduct_finFourPairing (f : Finset (Fin 4) → ℝ) (a : Fin 4) :
+    (finFourPairing a).blockProduct f =
+      f {0, a} * f (Finset.univ \ ({0, a} : Finset (Fin 4))) := by
+  dsimp [Finpartition.blockProduct]
+  rw [finFourPairing_parts]
+  rw [Finset.prod_pair (finFourPairing_blocks_ne a)]
+
+/-- The cumulant coefficient of a pairing of `Fin 4` is `-1`. -/
+private lemma cumulantCoefficient_finFourPairing (a : Fin 4) :
+    (Finpartition.cumulantCoefficient (finFourPairing a) : ℝ) = -1 := by
+  dsimp [Finpartition.cumulantCoefficient]
+  rw [finFourPairing_parts]
+  have hcard : ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
+      Finset (Finset (Fin 4))).card = 2 := by
+    rw [Finset.card_pair (finFourPairing_blocks_ne a)]
+  rw [hcard]
+  norm_num
+
+/-- The complementary blocks of the three pairings of `Fin 4`.
+
+Each is checked by enumerating the four elements of `Fin 4`. -/
+private lemma finFour_sdiff_pair_23 :
+    (Finset.univ \ ({(0 : Fin 4), 1} : Finset (Fin 4)) : Finset (Fin 4)) = ({2, 3} : Finset (Fin 4)) := by
+  ext i
+  fin_cases i <;> simp
+
+private lemma finFour_sdiff_pair_13 :
+    (Finset.univ \ ({(0 : Fin 4), 2} : Finset (Fin 4)) : Finset (Fin 4)) = ({1, 3} : Finset (Fin 4)) := by
+  ext i
+  fin_cases i <;> simp
+
+private lemma finFour_sdiff_pair_12 :
+    (Finset.univ \ ({(0 : Fin 4), 3} : Finset (Fin 4)) : Finset (Fin 4)) = ({1, 2} : Finset (Fin 4)) := by
+  ext i
+  fin_cases i <;> simp
+
+/-- The carrier `Fin 4` is nonempty. -/
+private lemma finFour_univ_ne_empty : (Finset.univ : Finset (Fin 4)) ≠ ∅ := by
+  intro h
+  have : (0 : Fin 4) ∈ (Finset.univ : Finset (Fin 4)) := by simp
+  rw [h] at this
+  simp at this
+
+/-- The four positions of `Fin 4` are `0, 1, 2, 3`. -/
+private lemma finFour_univ_eq_0123 :
+    (Finset.univ : Finset (Fin 4)) = ({0, 1, 2, 3} : Finset (Fin 4)) := by
+  ext i
+  fin_cases i <;> simp
+
+/-- The top partition of `Fin 4` has no singleton block. -/
+private lemma finFourTop_no_singleton :
+    ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉
+      (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).parts := by
+  intro i hi
+  have htop : (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).parts =
+      {(Finset.univ : Finset (Fin 4))} :=
+    top_parts_eq_singleton finFour_univ_ne_empty
+  rw [htop] at hi
+  rw [Finset.mem_singleton] at hi
+  have hc1 : ({i} : Finset (Fin 4)).card = 1 := by simp
+  have hc2 : (Finset.univ : Finset (Fin 4)).card = 4 := by simp
+  rw [hi] at hc1
+  rw [hc2] at hc1
+  norm_num at hc1
+
+/-- A pairing of `Fin 4` (with partner `a ≠ 0`) has no singleton block. -/
+private lemma finFourPairing_no_singleton {a : Fin 4} (ha : a ≠ 0) :
+    ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ (finFourPairing a).parts := by
+  intro i hi
+  rw [finFourPairing_parts] at hi
+  rcases Finset.mem_insert.mp hi with hi | hi
+  · -- `{i} = {0, a}`: cardinality one versus two
+    have hc1 : ({i} : Finset (Fin 4)).card = 1 := by simp
+    have hc2 : ({(0 : Fin 4), a} : Finset (Fin 4)).card = 2 := by
+      rw [Finset.card_insert_of_notMem (by simpa [eq_comm] using ha)]
+      simp
+    rw [hi] at hc1
+    rw [hc2] at hc1
+    norm_num at hc1
+  · -- `{i} = univ \ {0, a}`: cardinality one versus two
+    have hc1 : ({i} : Finset (Fin 4)).card = 1 := by simp
+    have hc2 : ((Finset.univ : Finset (Fin 4)) \ ({(0 : Fin 4), a} : Finset (Fin 4))).card = 2 := by
+      rw [Finset.card_sdiff_of_subset (by simp : ({(0 : Fin 4), a} : Finset (Fin 4)) ⊆ Finset.univ)]
+      rw [Finset.card_univ, Fintype.card_fin]
+      rw [Finset.card_insert_of_notMem (by simpa using ha.symm)]
+      norm_num
+    rw [Finset.mem_singleton.mp hi] at hc1
+    rw [hc2] at hc1
+    norm_num at hc1
+
+/-- In a partition without singleton blocks, every block has at least two elements. -/
+private lemma finFour_no_singleton_card_ge_two (P : Finpartition (Finset.univ : Finset (Fin 4)))
+    (hno : ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts) :
+    ∀ B ∈ P.parts, 2 ≤ B.card := by
+  intro B hB
+  by_contra h
+  have hBne : B ≠ ∅ := P.ne_empty hB
+  have hBcard_ne : B.card ≠ 0 := by
+    intro hc
+    exact hBne (Finset.card_eq_zero.mp hc)
+  have hBcard : B.card = 1 := by omega
+  obtain ⟨x, hx⟩ := Finset.card_eq_one.mp hBcard
+  have hBx : B = ({x} : Finset (Fin 4)) := by
+    apply Finset.eq_of_subset_of_card_le
+    · intro y hy
+      rw [hx] at hy
+      simpa using hy
+    · rw [hBcard]
+      simp
+  exact hno x (by simpa [hBx] using hB)
+
+/-- A partition of `Fin 4` with exactly two blocks and no singleton blocks is one of the three
+pairings.
+
+Informal proof: four elements split into two blocks of cardinality two (no singleton blocks).  The
+block of `0` is `{0, a}` with `a ≠ 0`, and the second block is its complement, so `P` is the
+pairing `finFourPairing a`; since `a ≠ 0`, the partner is `1`, `2` or `3`. -/
+private lemma finFour_two_block_eq_pairing (P : Finpartition (Finset.univ : Finset (Fin 4)))
+    (hno : ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts) (hcard : P.parts.card = 2) :
+    P = finFourPairing 1 ∨ P = finFourPairing 2 ∨ P = finFourPairing 3 := by
+  classical
+  -- the block of `0`; the remaining part is a singleton `{C}`
+  have hB0_mem : P.part (0 : Fin 4) ∈ P.parts := P.part_mem.2 (by simp)
+  have hrest : (P.parts.erase (P.part 0)).card = 1 := by
+    rw [Finset.card_erase_of_mem hB0_mem, hcard]
+  rcases Finset.card_eq_one.mp hrest with ⟨C, hC⟩
+  have hparts : P.parts = insert (P.part 0) {C} := by
+    rw [← Finset.insert_erase hB0_mem, hC]
+  have hC_ne : C ≠ P.part 0 := by
+    intro h
+    have hC_erase : C ∈ P.parts.erase (P.part 0) := by rw [hC]; simp
+    exact (Finset.mem_erase.mp hC_erase).1 h
+  -- both blocks have cardinality two (the sum is four and each is at least two)
+  have hB0_ge : 2 ≤ (P.part 0).card := finFour_no_singleton_card_ge_two P hno (P.part 0) hB0_mem
+  have hC_ge : 2 ≤ C.card := finFour_no_singleton_card_ge_two P hno C (by rw [hparts]; simp)
+  have hsum2 : (P.part 0).card + C.card = 4 := by
+    have hsum' := P.sum_card_parts
+    rw [hparts] at hsum'
+    simp [hC_ne.symm] at hsum'
+    exact hsum'
+  have hB0_card : (P.part 0).card = 2 := by omega
+  have hC_card : C.card = 2 := by omega
+  -- `P.part 0 = {0, a}` for a unique `a ≠ 0`
+  obtain ⟨a, ha0, ha_eq⟩ : ∃ a : Fin 4, a ≠ 0 ∧ P.part 0 = ({0, a} : Finset (Fin 4)) := by
+    have herase : ((P.part 0).erase 0).card = 1 := by
+      rw [Finset.card_erase_of_mem (P.mem_part (by simp : (0 : Fin 4) ∈ Finset.univ))]
+      rw [hB0_card]
+    obtain ⟨a, ha⟩ := Finset.card_eq_one.mp herase
+    refine ⟨a, ?_, ?_⟩
+    · -- `a ≠ 0`: otherwise `0` would lie in `(P.part 0).erase 0`
+      intro ha0
+      have h0a : (0 : Fin 4) ∈ (P.part 0).erase 0 := by
+        rw [ha, ha0]
+        simp
+      exact (Finset.mem_erase.mp h0a).1 rfl
+    · -- `P.part 0 = {0, a}` by reinserting `0`
+      calc
+        P.part 0 = insert (0 : Fin 4) ((P.part 0).erase 0) :=
+          (Finset.insert_erase (P.mem_part (by simp : (0 : Fin 4) ∈ Finset.univ))).symm
+        _ = insert (0 : Fin 4) {a} := by rw [ha]
+        _ = ({0, a} : Finset (Fin 4)) := by simp
+  -- the second block is the complement of `{0, a}`
+  have hC_univ : C = Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4)) := by
+    apply Finset.eq_of_subset_of_card_le
+    · intro x hx
+      exact Finset.mem_sdiff.mpr ⟨Finset.mem_univ x, by
+        intro hx01
+        have hx_B0 : x ∈ P.part 0 := by simpa [ha_eq] using hx01
+        have hC_eq' : C = P.part 0 := P.eq_of_mem_parts (by rw [hparts]; simp) hB0_mem hx hx_B0
+        exact hC_ne hC_eq'⟩
+    · -- both sides have cardinality two
+      rw [hC_card,
+        Finset.card_sdiff_of_subset (by simp : ({(0 : Fin 4), a} : Finset (Fin 4)) ⊆ Finset.univ),
+        Finset.card_univ, Fintype.card_fin]
+      rw [Finset.card_insert_of_notMem (by simpa [eq_comm] using ha0)]
+      norm_num
+  -- assemble the parts and identify `P` with the pairing `finFourPairing a`
+  have hparts_eq :
+      P.parts = ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
+        Finset (Finset (Fin 4))) := by
+    rw [hparts, ha_eq, hC_univ]
+  have hP_eq : P = finFourPairing a := by
+    apply Finpartition.ext
+    simp [hparts_eq, finFourPairing_parts]
+  -- `a ≠ 0`, so the partner is one of `1, 2, 3`
+  have ha_cases : a = 1 ∨ a = 2 ∨ a = 3 := by
+    fin_cases a
+    · exfalso
+      exact ha0 rfl
+    · simp
+    · simp
+    · simp
+  rcases ha_cases with rfl | rfl | rfl
+  · exact Or.inl hP_eq
+  · exact Or.inr (Or.inl hP_eq)
+  · exact Or.inr (Or.inr hP_eq)
+
+/-- A partition of `Fin 4` without singleton blocks is either the indiscrete partition `⊤` or one
+of the three pairings.
+
+Informal proof: every block has at least two elements and the blocks cover four elements, so
+`P.parts` has one or two blocks.  One block forces `P = ⊤`; two blocks reduce to
+`finFour_two_block_eq_pairing`. -/
+private lemma finFour_no_singleton_eq_top_or_pairing
+    (P : Finpartition (Finset.univ : Finset (Fin 4)))
+    (hno : ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts) :
+    P = ⊤ ∨ P = finFourPairing 1 ∨ P = finFourPairing 2 ∨ P = finFourPairing 3 := by
+  classical
+  -- the block cardinalities sum to four and each block contributes at least two
+  have hsum : ∑ B ∈ P.parts, B.card = 4 := by
+    rw [P.sum_card_parts]
+    simp
+  have hparts_le : P.parts.card ≤ 2 := by
+    have hge : ∑ B ∈ P.parts, 2 ≤ ∑ B ∈ P.parts, B.card :=
+      Finset.sum_le_sum (fun B hB => finFour_no_singleton_card_ge_two P hno B hB)
+    -- `∑ B ∈ P.parts, 2 = P.parts.card * 2` and the total is four, so `2 * card ≤ 4`
+    have hge' : P.parts.card * 2 ≤ 4 := by
+      simpa [Finset.sum_const, hsum, mul_comm] using hge
+    omega
+  have hparts_pos : 1 ≤ P.parts.card :=
+    Finset.card_pos.mpr (P.parts_nonempty finFour_univ_ne_empty)
+  have hcard_cases : P.parts.card = 1 ∨ P.parts.card = 2 := by
+    interval_cases P.parts.card <;> simp
+  rcases hcard_cases with hcard | hcard
+  · -- exactly one block: it must be the whole set, so `P = ⊤`
+    rcases Finset.card_eq_one.mp hcard with ⟨B, hB⟩
+    have hB_univ : B = (Finset.univ : Finset (Fin 4)) := by
+      apply Finset.eq_of_subset_of_card_le
+      · intro x hx
+        exact Finset.mem_univ x
+      · -- the single block `B` covers all four elements
+        have hsumB : B.card = 4 := by
+          have hsum' := P.sum_card_parts
+          rw [hB] at hsum'
+          simp at hsum'
+          exact hsum'
+        rw [hsumB]
+        simp
+    have hP_top : P = ⊤ := by
+      apply Finpartition.ext
+      rw [hB, hB_univ, top_parts_eq_singleton finFour_univ_ne_empty]
+    exact Or.inl hP_top
+  · -- exactly two blocks: `P` is one of the three pairings
+    exact Or.inr (finFour_two_block_eq_pairing P hno hcard)
+
+/-- A pairing of `Fin 4` is not the top partition: it has two blocks while `⊤` has one. -/
+private lemma finFourPairing_ne_top (a : Fin 4) :
+    finFourPairing a ≠ (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) := by
+  intro h
+  have hcard := congrArg (fun P : Finpartition (Finset.univ : Finset (Fin 4)) => P.parts.card) h
+  rw [finFourPairing_parts, top_parts_eq_singleton finFour_univ_ne_empty] at hcard
+  have htwo : ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
+      Finset (Finset (Fin 4))).card = 2 := by
+    rw [Finset.card_pair (finFourPairing_blocks_ne a)]
+  rw [htwo] at hcard
+  norm_num at hcard
+
+/-- Two pairings with different partners are different partitions. -/
+private lemma finFourPairing_ne_pairing (a b : Fin 4) (ha : a ≠ 0) (hab : a ≠ b) :
+    finFourPairing a ≠ finFourPairing b := by
+  intro h
+  have hpart := congrArg (fun P : Finpartition (Finset.univ : Finset (Fin 4)) =>
+    P.part (0 : Fin 4)) h
+  rw [finFourPairing_part_zero a, finFourPairing_part_zero b] at hpart
+  -- `a` lies in the block `{0, b}` of the second pairing, so `a = 0` or `a = b`
+  have ha_in : a ∈ ({0, b} : Finset (Fin 4)) := by rw [← hpart]; simp
+  rcases Finset.mem_insert.mp ha_in with ha0 | hab'
+  · exact ha ha0
+  · exact hab (Finset.mem_singleton.mp hab')
+
+/-- The singleton-free partitions of `Fin 4` are exactly `⊤` and the three pairings. -/
+private lemma finFour_no_singleton_filter :
+    (Finset.univ.filter fun P : Finpartition (Finset.univ : Finset (Fin 4)) ↦
+      ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts) =
+    ({⊤, finFourPairing 1, finFourPairing 2, finFourPairing 3} :
+      Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
+  ext P
+  constructor
+  · -- every singleton-free partition is one of the four listed
+    intro hP
+    rcases (Finset.mem_filter.mp hP) with ⟨_, hno⟩
+    rcases finFour_no_singleton_eq_top_or_pairing P hno with rfl | rfl | rfl | rfl <;> simp
+  · -- each of the four listed partitions is singleton-free
+    intro hP
+    rw [Finset.mem_filter]
+    constructor
+    · exact Finset.mem_univ P
+    · simp at hP
+      rcases hP with rfl | rfl | rfl | rfl
+      · exact finFourTop_no_singleton
+      · exact finFourPairing_no_singleton (by decide : (1 : Fin 4) ≠ 0)
+      · exact finFourPairing_no_singleton (by decide : (2 : Fin 4) ≠ 0)
+      · exact finFourPairing_no_singleton (by decide : (3 : Fin 4) ≠ 0)
+
 /-- Fourth-order cumulant expansion for any block weight whose singleton weights vanish.
 
 This is the purely finite combinatorial core of the centered fourth-cumulant formula.  Informally,
@@ -651,11 +1042,74 @@ lemma cumulantTransform_fin_four_of_singleton_vanish (f : Finset (Fin 4) → ℝ
       - f {0, 2} * f {1, 3}
       - f {0, 3} * f {1, 2} := by
   classical
-  -- TODO: replace this finite enumeration by a reusable classification theorem for partitions of
-  -- a four-element finset.  The proof is the informal enumeration in the docstring above: all
-  -- singleton-bearing summands vanish by `hsingle`; the remaining four partitions are `⊤` and the
-  -- three pairings, with coefficients `1, -1, -1, -1`.
-  sorry
+  -- `Fin 4` is nonempty, so the transform is the plain sum over all partitions
+  rw [Finpartition.cumulantTransform, if_neg finFour_univ_ne_empty]
+  -- Step 1: partitions with a singleton block contribute zero (`f {i} = 0`)
+  have hzero : ∀ P ∈ (Finset.univ.filter fun P : Finpartition (Finset.univ : Finset (Fin 4)) ↦
+      ¬ ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts),
+      Finpartition.cumulantCoefficient P * P.blockProduct f = 0 := by
+    intro P hP
+    rcases Finset.mem_filter.mp hP with ⟨_, hnot⟩
+    simp only [not_forall, Decidable.not_not] at hnot
+    rcases hnot with ⟨i, hi⟩
+    dsimp [Finpartition.blockProduct]
+    rw [Finset.prod_eq_zero hi (hsingle i)]
+    simp
+  -- Step 2: split off the zero contribution and keep only the singleton-free partitions
+  rw [← Finset.sum_filter_add_sum_filter_not (s := Finset.univ)
+    (p := fun P : Finpartition (Finset.univ : Finset (Fin 4)) ↦
+      ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts)
+    (f := fun P => Finpartition.cumulantCoefficient P * P.blockProduct f)]
+  rw [Finset.sum_eq_zero hzero, add_zero]
+  -- Step 3: the singleton-free partitions are exactly `⊤` and the three pairings
+  rw [finFour_no_singleton_filter]
+  -- Step 4: the four surviving summands evaluate to the displayed expression
+  have h_top : Finpartition.cumulantCoefficient (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) *
+      (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).blockProduct f = f {0, 1, 2, 3} := by
+    rw [cumulantCoefficient_top (show (Finset.univ : Finset (Fin 4)).Nonempty by exact ⟨0, by simp⟩),
+      blockProduct_top (show (Finset.univ : Finset (Fin 4)).Nonempty by exact ⟨0, by simp⟩),
+      finFour_univ_eq_0123]
+    simp
+  have h_p1 : Finpartition.cumulantCoefficient (finFourPairing 1) *
+      (finFourPairing 1).blockProduct f = -(f {0, 1} * f {2, 3}) := by
+    rw [cumulantCoefficient_finFourPairing 1, blockProduct_finFourPairing f 1, finFour_sdiff_pair_23]
+    ring
+  have h_p2 : Finpartition.cumulantCoefficient (finFourPairing 2) *
+      (finFourPairing 2).blockProduct f = -(f {0, 2} * f {1, 3}) := by
+    rw [cumulantCoefficient_finFourPairing 2, blockProduct_finFourPairing f 2, finFour_sdiff_pair_13]
+    ring
+  have h_p3 : Finpartition.cumulantCoefficient (finFourPairing 3) *
+      (finFourPairing 3).blockProduct f = -(f {0, 3} * f {1, 2}) := by
+    rw [cumulantCoefficient_finFourPairing 3, blockProduct_finFourPairing f 3, finFour_sdiff_pair_12]
+    ring
+  -- the four partitions are pairwise distinct, so the sum splits into four summands
+  have h_top_not : (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) ∉
+      ({finFourPairing 1, finFourPairing 2, finFourPairing 3} :
+        Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
+    intro h
+    rcases Finset.mem_insert.mp h with h | h
+    · exact finFourPairing_ne_top 1 h.symm
+    · rcases Finset.mem_insert.mp h with h | h
+      · exact finFourPairing_ne_top 2 h.symm
+      · exact finFourPairing_ne_top 3 (Finset.mem_singleton.mp h).symm
+  have h_p1_not : finFourPairing 1 ∉
+      ({finFourPairing 2, finFourPairing 3} :
+        Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
+    intro h
+    rcases Finset.mem_insert.mp h with h | h
+    · exact finFourPairing_ne_pairing 1 2 (by decide : (1 : Fin 4) ≠ 0)
+        (by decide : (1 : Fin 4) ≠ 2) h
+    · exact finFourPairing_ne_pairing 1 3 (by decide : (1 : Fin 4) ≠ 0)
+        (by decide : (1 : Fin 4) ≠ 3) (Finset.mem_singleton.mp h)
+  have h_p2_not : finFourPairing 2 ∉
+      ({finFourPairing 3} : Finset (Finpartition (Finset.univ : Finset (Fin 4)))) := by
+    intro h
+    exact finFourPairing_ne_pairing 2 3 (by decide : (2 : Fin 4) ≠ 0)
+      (by decide : (2 : Fin 4) ≠ 3) (Finset.mem_singleton.mp h)
+  rw [Finset.sum_insert h_top_not, Finset.sum_insert h_p1_not, Finset.sum_insert h_p2_not,
+    Finset.sum_singleton]
+  rw [h_top, h_p1, h_p2, h_p3]
+  ring
 
 /-- A partition of a 4-element set without singletons must be either the indiscrete partition, or
 one of the 3 pairings.

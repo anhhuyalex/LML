@@ -1321,7 +1321,6 @@ theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
 /-- The indiscrete partition has block product `f s` on a nonempty carrier. -/
 private lemma blockProduct_top [CommMonoid R] (f : Finset α → R) {s : Finset α} (hs : s ≠ ∅) :
     (⊤ : Finpartition s).blockProduct f = f s := by
-  classical
   have hparts : (⊤ : Finpartition s).parts = {s} := by
     apply Finset.eq_singleton_iff_unique_mem.2
     constructor
@@ -1331,37 +1330,31 @@ private lemma blockProduct_top [CommMonoid R] (f : Finset α → R) {s : Finset 
       simpa [hB_eq] using hB
     · exact fun D hD =>
         Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
-  simp [blockProduct, hparts]
+  rw [blockProduct, hparts, Finset.prod_singleton]
 
 /-- If a part of `P` is the whole carrier, then `P` is the indiscrete partition. -/
 private lemma eq_top_of_mem_parts_eq_self {s : Finset α} (P : Finpartition s) {B : Finset α}
     (hB : B ∈ P.parts) (hBs : B = s) :
     P = ⊤ := by
-  classical
   rcases eq_or_ne s ∅ with rfl | hs
-  · exact @Subsingleton.elim (Finpartition (⊥ : Finset α)) inferInstance P ⊤
+  · exact (P.empty_notMem_parts (hBs ▸ hB)).elim
   · refine (Finpartition.eq_top_iff_card_parts_eq_one P hs).2 ?_
     have hparts : P.parts = {s} := by
       apply Finset.eq_singleton_iff_unique_mem.2
       constructor
-      · simpa [hBs] using hB
+      · exact hBs ▸ hB
       · intro C hC
         by_contra hCs
         rcases Finset.nonempty_iff_ne_empty.2 (P.ne_empty hC) with ⟨x, hxC⟩
-        have hxB : x ∈ B := by
-          rw [hBs]
-          exact P.subset hC hxC
-        have hCB : C = B := P.eq_of_mem_parts hC hB hxC hxB
-        exact hCs (by rw [hCB, hBs])
+        exact hCs ((P.eq_of_mem_parts hC hB hxC (hBs.symm ▸ P.subset hC hxC)).trans hBs)
     rw [hparts]
     simp
 
 /-- Every block of a non-top partition is a proper subset of the carrier, hence smaller. -/
 private lemma card_lt_card_of_mem_parts_of_ne_top {s : Finset α} (P : Finpartition s)
     {B : Finset α} (hB : B ∈ P.parts) (hP : P ≠ ⊤) :
-    B.card < s.card := by
-  classical
-  exact Finset.card_lt_card (Finset.ssubset_iff_subset_ne.mpr
+    B.card < s.card :=
+  Finset.card_lt_card (Finset.ssubset_iff_subset_ne.mpr
     ⟨P.subset hB, fun hBs => hP (eq_top_of_mem_parts_eq_self P hB hBs)⟩)
 
 /-- Split the partition transform into the top partition and all lower partitions. -/
@@ -1369,18 +1362,31 @@ private lemma partitionTransform_eq_top_add_erase [CommSemiring R] (f : Finset �
     {s : Finset α} (hs : s ≠ ∅) :
     partitionTransform f s =
       f s + ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
-  classical
-  calc
-    partitionTransform f s =
-        ∑ P ∈ insert (⊤ : Finpartition s) (Finset.univ.erase (⊤ : Finpartition s)),
-          P.blockProduct f := by
-      rw [partitionTransform, Finset.insert_erase (Finset.mem_univ (⊤ : Finpartition s))]
-    _ = (⊤ : Finpartition s).blockProduct f +
-        ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
-      rw [Finset.sum_insert]
-      simp
-    _ = f s + ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
-      rw [blockProduct_top f hs]
+  nth_rw 1 [partitionTransform, ← Finset.insert_erase (Finset.mem_univ (⊤ : Finpartition s))]
+  rw [Finset.sum_insert, blockProduct_top f hs]
+  simp
+
+-- Triangularity step for the partition transform on a nonempty carrier: if `f` and `g` agree on
+-- every strictly smaller carrier, then equality of the two transforms at `s` forces `f s = g s`.
+-- The one-block partition `⊤` contributes exactly `f s` / `g s`, and the lower-order remainder
+-- (sum over non-top partitions) agrees block by block by the smaller-carrier hypothesis.
+private lemma eq_of_partitionTransform_eq_of_lt_card [CommRing R] {f g : Finset α → R}
+    {s : Finset α} (hs : s ≠ ∅)
+    (hfg : partitionTransform f s = partitionTransform g s)
+    (hsub : ∀ B : Finset α, B.card < s.card → f B = g B) :
+    f s = g s := by
+  -- Every block of a non-top partition is a proper subset of `s` (hence smaller), so the block
+  -- products of `f` and `g` agree term by term.
+  have hlower :
+      (∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f) =
+        ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct g :=
+    Finset.sum_congr rfl (fun P hP =>
+      Finset.prod_congr rfl (fun B hB =>
+        hsub B (card_lt_card_of_mem_parts_of_ne_top P hB (Finset.mem_erase.mp hP).1)))
+  -- Split both transforms into the top contribution `f s`/`g s` and the (equal) remainder.
+  rw [partitionTransform_eq_top_add_erase f hs,
+    partitionTransform_eq_top_add_erase g hs, hlower] at hfg
+  exact add_right_cancel hfg
 
 /-- The partition transform is injective on functions with prescribed value `0` at the empty set.
 
@@ -1400,7 +1406,8 @@ private theorem partitionTransform_injective_of_empty [CommRing R] {f g : Finset
     (hf : f ∅ = 0) (hg : g ∅ = 0)
     (hfg : partitionTransform f = partitionTransform g) :
     f = g := by
-  classical
+  -- Strong induction on the cardinality of the carrier: the empty carrier is exactly the two
+  -- normalization hypotheses, and the nonempty step is the triangularity lemma.
   have hcard : ∀ n, ∀ s : Finset α, s.card = n → f s = g s := by
     intro n
     induction n using Nat.strong_induction_on with
@@ -1408,25 +1415,10 @@ private theorem partitionTransform_injective_of_empty [CommRing R] {f g : Finset
       intro s hs_card
       rcases eq_or_ne s ∅ with rfl | hs
       · rw [hf, hg]
-      · have hlower :
-            (∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f) =
-              ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct g := by
-          apply Finset.sum_congr rfl
-          intro P hP
-          apply Finset.prod_congr rfl
-          intro B hB
-          exact ih B.card
-            (by
-              have hP_ne_top : P ≠ ⊤ := (Finset.mem_erase.mp hP).1
-              have hlt_s : B.card < s.card := card_lt_card_of_mem_parts_of_ne_top P hB hP_ne_top
-              simpa [hs_card] using hlt_s)
-            B rfl
-        have hpoint : partitionTransform f s = partitionTransform g s := congrFun hfg s
-        rw [partitionTransform_eq_top_add_erase f hs,
-          partitionTransform_eq_top_add_erase g hs, hlower] at hpoint
-        exact add_right_cancel hpoint
-  funext s
-  exact hcard s.card s rfl
+      · -- The induction hypothesis applies to every block, whose carrier is strictly smaller.
+        exact eq_of_partitionTransform_eq_of_lt_card hs (congrFun hfg s)
+          (fun B hBlt => ih B.card (hs_card ▸ hBlt) B rfl)
+  exact funext fun s => hcard s.card s rfl
 
 /-- The cumulant transform inverts the partition transform for functions vanishing at the empty
 set.
