@@ -393,7 +393,7 @@ theorem map_multivariateGaussian_eq_pi_of_orthogonal_diagonalization
 /-- A nonzero mixed cumulant rules out independence across that split. -/
 theorem not_indepAcross_of_jointCumulant_ne_zero
     {Ω : Type uΩ} {ι : Type uI} [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι]
-    (μ : Measure Ω) [IsProbabilityMeasure μ] (X : ι → Ω → ℝ) (A : Finset ι)
+    (μ : Measure Ω) (X : ι → Ω → ℝ) (A : Finset ι)
     (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
     (hX : HasFiniteJointMoments μ X) (hmeas : ∀ i, Measurable (X i))
     (hne : jointCumulant μ X ≠ 0) :

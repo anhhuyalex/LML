@@ -2180,10 +2180,65 @@ together with a bijection `↥S ≃ ↥T` (`m!` ways by `Fintype.card_equiv`, ap
 in `σ.parts.powersetCard m`), with inverse packaging `⟨S, T, e⟩` plus the subset proofs back into a
 `Matching`; then take `Fintype.card` of both sides via `Fintype.card_congr` and
 `Fintype.card_sigma`. -/
+private lemma card_equiv_between_finsets_of_card_eq {γ δ : Type*} [DecidableEq γ] [DecidableEq δ]
+    (S : Finset γ) (T : Finset δ)
+    {m : ℕ} (hS : S.card = m) (hT : T.card = m) :
+    Fintype.card ({x // x ∈ S} ≃ {y // y ∈ T}) = m.factorial := by
+  classical
+  have hcard : Fintype.card {x // x ∈ S} = Fintype.card {y // y ∈ T} := by
+    rw [Fintype.card_coe, Fintype.card_coe, hS, hT]
+  obtain ⟨e⟩ := Fintype.card_eq.mp hcard
+  rw [Fintype.card_equiv e, Fintype.card_coe, hS]
+
 lemma card_filter_size_eq (m : ℕ) :
     (Finset.univ.filter (fun M : Matching π σ => M.size = m)).card =
       π.parts.card.choose m * σ.parts.card.choose m * m.factorial := by
-  sorry
+  classical
+  let Ω : Type _ :=
+    Σ (S' : {S : Finset (Finset α) // S ∈ π.parts.powersetCard m}),
+      Σ (T' : {T : Finset (Finset α) // T ∈ σ.parts.powersetCard m}),
+        ({p // p ∈ S'.1} ≃ {q // q ∈ T'.1})
+  let e : {M : Matching π σ // M.size = m} ≃ Ω :=
+    { toFun := fun M =>
+        let hSmem : M.1.S ∈ π.parts.powersetCard m := by
+          rw [Finset.mem_powersetCard]
+          exact ⟨M.1.hS, by simpa [size] using M.2⟩
+        let hTmem : M.1.T ∈ σ.parts.powersetCard m := by
+          rw [Finset.mem_powersetCard]
+          exact ⟨M.1.hT, by rw [card_T_eq_card_S M.1]; simpa [size] using M.2⟩
+        ⟨⟨M.1.S, hSmem⟩, ⟨⟨M.1.T, hTmem⟩, M.1.e⟩⟩
+      invFun := fun x =>
+        ⟨{ S := x.1.1
+           T := x.2.1.1
+           hS := (Finset.mem_powersetCard.mp x.1.2).1
+           hT := (Finset.mem_powersetCard.mp x.2.1.2).1
+           e := x.2.2 },
+          by
+            dsimp [size]
+            exact (Finset.mem_powersetCard.mp x.1.2).2⟩
+      left_inv := by
+        rintro ⟨⟨S, T, hS, hT, e⟩, hsize⟩
+        apply Subtype.ext
+        simp
+      right_inv := by
+        rintro ⟨⟨S, hS⟩, ⟨⟨T, hT⟩, e⟩⟩
+        simp }
+  have hΩ : Fintype.card Ω =
+      (π.parts.powersetCard m).card * (σ.parts.powersetCard m).card * m.factorial := by
+    have hfiber : ∀ (S' : {S : Finset (Finset α) // S ∈ π.parts.powersetCard m})
+        (T' : {T : Finset (Finset α) // T ∈ σ.parts.powersetCard m}),
+        Fintype.card ({p // p ∈ S'.1} ≃ {q // q ∈ T'.1}) = m.factorial := by
+      intro S' T'
+      exact card_equiv_between_finsets_of_card_eq S'.1 T'.1
+        (Finset.mem_powersetCard.mp S'.2).2 (Finset.mem_powersetCard.mp T'.2).2
+    simp [Ω, hfiber, Finset.sum_const, Nat.mul_assoc]
+  calc
+    (Finset.univ.filter (fun M : Matching π σ => M.size = m)).card =
+        Fintype.card {M : Matching π σ // M.size = m} := by
+      rw [← Fintype.card_subtype (fun M : Matching π σ => M.size = m)]
+    _ = Fintype.card Ω := Fintype.card_congr e
+    _ = π.parts.card.choose m * σ.parts.card.choose m * m.factorial := by
+      rw [hΩ, Finset.card_powersetCard, Finset.card_powersetCard]
 
 end Matching
 

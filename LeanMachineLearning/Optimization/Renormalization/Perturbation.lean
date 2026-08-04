@@ -399,6 +399,17 @@ theorem hasDerivWithinAt_integral_deform_zero [IsProbabilityMeasure μ]
 
 /-! ## Quadratic remainders -/
 
+-- For `t ≥ 0` the exponential satisfies the quadratic upper bound
+-- `exp (-t) ≤ 1 - t + t ^ 2 / 2`.  Multiply the quadratic lower bound
+-- `exp t ≥ 1 + t + t ^ 2 / 2` (`Real.quadratic_le_exp_of_nonneg`) by the nonnegative factor
+-- `1 - t + t ^ 2 / 2`; the algebraic inequality
+-- `(1 - t + t²/2) * (1 + t + t²/2) ≥ 1` then yields `1 ≤ (1 - t + t²/2) * exp t`, and inverting
+-- through `Real.exp_neg` (`inv_le_iff_one_le_mul₀`) gives the claim.
+private lemma exp_neg_le_one_sub_add {t : ℝ} (ht : 0 ≤ t) :
+    Real.exp (-t) ≤ 1 - t + t ^ 2 / 2 := by
+  rw [Real.exp_neg, inv_le_iff_one_le_mul₀ (Real.exp_pos t)]
+  nlinarith [sq_nonneg (t - 1), sq_nonneg (t ^ 2 / 2), Real.quadratic_le_exp_of_nonneg ht]
+
 /-- Scalar Taylor bound for the exponential remainder on the nonnegative half-line.
 
 Informal proof: Taylor's theorem with integral remainder gives
@@ -410,21 +421,8 @@ first order at zero.  This is the scalar estimate used in the blueprint proof of
 response theorem. -/
 private lemma abs_exp_neg_sub_one_add_le {t : ℝ} (ht : 0 ≤ t) :
     |Real.exp (-t) - 1 + t| ≤ t ^ 2 / 2 := by
-  have hnonneg : 0 ≤ Real.exp (-t) - 1 + t := by
-    linarith [Real.one_sub_le_exp_neg t]
-  rw [abs_of_nonneg hnonneg]
-  have hA_nonneg : 0 ≤ 1 - t + t ^ 2 / 2 := by
-    nlinarith [sq_nonneg (t - 1)]
-  have hprod : 1 ≤ (1 - t + t ^ 2 / 2) * (1 + t + t ^ 2 / 2) := by
-    nlinarith [sq_nonneg (t ^ 2 / 2)]
-  have hquad : 1 + t + t ^ 2 / 2 ≤ Real.exp t :=
-    Real.quadratic_le_exp_of_nonneg ht
-  have hmul : 1 ≤ (1 - t + t ^ 2 / 2) * Real.exp t := by
-    exact hprod.trans (mul_le_mul_of_nonneg_left hquad hA_nonneg)
-  have hupper : Real.exp (-t) ≤ 1 - t + t ^ 2 / 2 := by
-    rw [Real.exp_neg]
-    rwa [inv_le_iff_one_le_mul₀ (Real.exp_pos t)]
-  linarith
+  rw [abs_of_nonneg (by linarith [Real.one_sub_le_exp_neg t])]
+  linarith [exp_neg_le_one_sub_add ht]
 
 -- For `ε ≥ 0` and `v ≥ 0`, the quadratic Taylor remainder of `exp` at `t = ε * v` is bounded
 -- by `(ε²/2) * v²`.  This is `abs_exp_neg_sub_one_add_le` with `t = ε * v`, multiplied out;
