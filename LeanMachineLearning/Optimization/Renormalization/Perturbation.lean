@@ -332,6 +332,65 @@ theorem hasDerivWithinAt_weightedIntegral_zero
       (μ := μ) hVnonneg hV hO)).2 (by
     simpa [integral_neg] using tendsto_integral_diffQuot_weighted (μ := μ) hVnonneg hV hO hVO)
 
+-- For every coupling `ε`, the deformed expectation equals the normalized weighted numerator.
+-- This is a pure notation conversion: `integral_deform` moves the tilt through the integral, and
+-- `integral_smul` pulls the inverse partition function back inside, leaving the scalar times the
+-- weighted integrand.  It is used by the linear-response theorem below to pass from the deformed
+-- expectation to the quotient `Z⁻¹ • N` whose derivative is computed by
+-- `hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero`.
+private lemma integral_deform_eq_inv_smul_weightedIntegral
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (V : Ω → ℝ) (O : Ω → E) (ε : ℝ) :
+    ∫ x, O x ∂deform μ V ε = (partitionFunction μ V ε)⁻¹ • weightedIntegral μ V O ε := by
+  rw [integral_deform]
+  dsimp [weightedIntegral]
+  rw [← integral_smul]
+  exact integral_congr_ae (ae_of_all μ (fun x => by
+    dsimp only
+    calc
+      (Real.exp (-ε * V x) / partitionFunction μ V ε) • O x =
+          ((partitionFunction μ V ε)⁻¹ * Real.exp (-ε * V x)) • O x := by
+            congr 1
+            rw [div_eq_mul_inv]
+            ring
+      _ = (partitionFunction μ V ε)⁻¹ • Real.exp (-ε * V x) • O x := by
+            rw [smul_smul]))
+
+-- The quotient rule at zero for the normalized weighted numerator `Z⁻¹ • N`, where
+-- `Z = partitionFunction μ V` and `N = weightedIntegral μ V O`.  The reciprocal of the partition
+-- function has derivative `∫ V` at zero because `Z 0 = 1`; the product rule then leaves
+-- `-covarianceWith μ O V` as the derivative, using `N 0 = ∫ O` and the known derivatives of
+-- `Z` and `N` from `hasDerivWithinAt_partitionFunction_zero` and
+-- `hasDerivWithinAt_weightedIntegral_zero`.
+private lemma hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero
+    [IsProbabilityMeasure μ]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
+    (hV : Integrable V μ) (hO : Integrable O μ)
+    (hVO : Integrable (fun x ↦ V x • O x) μ) :
+    HasDerivWithinAt
+      (fun ε : ℝ => (partitionFunction μ V ε)⁻¹ • weightedIntegral μ V O ε)
+      (-covarianceWith μ O V) (Set.Ici 0) 0 := by
+  let Z : ℝ → ℝ := partitionFunction μ V
+  let N : ℝ → E := weightedIntegral μ V O
+  have hZ0 : Z 0 = 1 := by
+    simp [Z, partitionFunction]
+  have hN0 : N 0 = ∫ x, O x ∂μ := by
+    simp [N, weightedIntegral]
+  have hN' : HasDerivWithinAt N (-(∫ x, V x • O x ∂μ)) (Set.Ici 0) 0 := by
+    simpa [N] using hasDerivWithinAt_weightedIntegral_zero (μ := μ)
+      hVnonneg hV hO hVO
+  have hZ' : HasDerivWithinAt Z (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 := by
+    simpa [Z] using hasDerivWithinAt_partitionFunction_zero (μ := μ) hVnonneg hV
+  have hZinv' : HasDerivWithinAt Z⁻¹ (∫ x, V x ∂μ) (Set.Ici 0) 0 := by
+    have h := hZ'.inv (by simp [hZ0])
+    simpa [hZ0] using h
+  have hprod : HasDerivWithinAt (Z⁻¹ • N) (-covarianceWith μ O V) (Set.Ici 0) 0 := by
+    have h := hZinv'.smul hN'
+    simpa [Z, N, hZ0, hN0, covarianceWith, sub_eq_add_neg, add_comm, add_left_comm,
+      add_assoc] using h
+  simpa [Z, N, Pi.inv_def, Pi.smul_def] using hprod
+
 /-- Linear response of a normalized expectation along the nonnegative-coupling half-line.
 
 Informal proof: use `integral_deform` to write the expectation as the weighted numerator divided by
@@ -344,7 +403,19 @@ theorem hasDerivWithinAt_integral_deform_zero [IsProbabilityMeasure μ]
     (hVO : Integrable (fun x ↦ V x • O x) μ) :
     HasDerivWithinAt (fun ε ↦ ∫ x, O x ∂deform μ V ε) (-covarianceWith μ O V)
       (Set.Ici 0) 0 := by
-  sorry
+  -- The quotient rule at zero gives the derivative of the normalized numerator
+  -- `ε ↦ (partitionFunction μ V ε)⁻¹ • weightedIntegral μ V O ε`.
+  have hprod : HasDerivWithinAt
+      (fun ε : ℝ => (partitionFunction μ V ε)⁻¹ • weightedIntegral μ V O ε)
+      (-covarianceWith μ O V) (Set.Ici 0) 0 :=
+    hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero (μ := μ)
+      hVnonneg hV hO hVO
+  -- The deformed expectation equals that normalized numerator for every coupling
+  -- (`integral_deform`), so the two functions agree on a neighborhood of zero and their
+  -- derivatives coincide at zero.
+  exact hprod.congr
+    (fun ε _hε => integral_deform_eq_inv_smul_weightedIntegral (μ := μ) V O ε)
+    (integral_deform_eq_inv_smul_weightedIntegral (μ := μ) V O 0)
 
 /-! ## Quadratic remainders -/
 
