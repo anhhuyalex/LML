@@ -218,6 +218,74 @@ theorem fourthCumulant_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
       (fun ε : ℝ ↦ ε ^ 2) := by
   sorry
 
+/-- Two-point function of the quartically deformed Gaussian law. -/
+def deformedTwoPoint (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
+    (ε : ℝ) (i j : ι) : ℝ :=
+  ∫ z, z i * z j ∂deform (multivariateGaussian 0 K) A.potential ε
+
+/-- Full, non-connected four-point function of the quartically deformed Gaussian law. -/
+def deformedFourPoint (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
+    (ε : ℝ) (index : Fin 4 → ι) : ℝ :=
+  ∫ z, coordinateProduct index z ∂deform (multivariateGaussian 0 K) A.potential ε
+
+/-- First-order formula for the full, rather than connected, four-point correlator.
+
+The leading expression is written in terms of the deformed two-point functions, exactly as in the
+source: the three disconnected products are retained, and the connected contraction is subtracted
+at order `ε`.
+
+Informal proof: use `jointCumulant_four_of_centered` to express the full four-point moment as the
+connected fourth cumulant plus the three products of two-point functions.  Apply
+`fourthCumulant_isBigO`; its `O(ε²)` remainder is unchanged.  Source: equation
+`eq:full-four-point-intro` and its simplified display immediately before
+`eq:single-variable-connected-four-point` in `docs/Renormalization.md`.
+-/
+theorem fullFourPoint_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
+    (hK : K.PosSemidef) (hA : A.Nonnegative)
+    (hnorm : ∀ ε ∈ Set.Ici (0 : ℝ), Normalizable (multivariateGaussian 0 K) A.potential ε)
+    (hV2 : Integrable (fun z ↦ A.potential z ^ 2) (multivariateGaussian 0 K))
+    (index : Fin 4 → ι)
+    (hV2two : ∀ r s : Fin 4,
+      Integrable (fun z ↦ A.potential z ^ 2 * (z (index r) * z (index s)))
+        (multivariateGaussian 0 K))
+    (hV2four : Integrable
+      (fun z ↦ A.potential z ^ 2 * coordinateProduct index z)
+      (multivariateGaussian 0 K)) :
+    Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
+      (fun ε ↦ A.deformedFourPoint K ε index -
+        (A.deformedTwoPoint K ε (index 0) (index 1) *
+            A.deformedTwoPoint K ε (index 2) (index 3) +
+          A.deformedTwoPoint K ε (index 0) (index 2) *
+            A.deformedTwoPoint K ε (index 1) (index 3) +
+          A.deformedTwoPoint K ε (index 0) (index 3) *
+            A.deformedTwoPoint K ε (index 1) (index 2) -
+          ε * A.fourPointContraction K index))
+      (fun ε : ℝ ↦ ε ^ 2) := by
+  sorry
+
+/-- One-dimensional specialization exhibiting quartic self-interaction.
+
+Even though there are no distinct coordinates to couple, the two-point function is shifted from
+its Gaussian value by the quartic contraction.
+
+Informal proof: specialize `twoPoint_isBigO` to the unique coordinate `0 : Fin 1`.  Source: the
+`n=1` self-interaction footnote following equation `eq:gaussian-statistical-independence-day` in
+`docs/Renormalization.md`.
+-/
+theorem oneDimensional_selfInteraction_isBigO
+    (A : QuarticCoupling (Fin 1)) (K : Matrix (Fin 1) (Fin 1) ℝ)
+    (hK : K.PosSemidef) (hA : A.Nonnegative)
+    (hnorm : ∀ ε ∈ Set.Ici (0 : ℝ), Normalizable (multivariateGaussian 0 K) A.potential ε)
+    (hV2 : Integrable (fun z ↦ A.potential z ^ 2) (multivariateGaussian 0 K))
+    (hV2O : Integrable (fun z ↦ A.potential z ^ 2 * (z 0 * z 0))
+      (multivariateGaussian 0 K)) :
+    Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
+      (fun ε ↦ A.deformedTwoPoint K ε 0 0 -
+        (K 0 0 - (ε / 2) * A.twoPointContraction K 0 0))
+      (fun ε : ℝ ↦ ε ^ 2) := by
+  simpa only [deformedTwoPoint] using
+    A.twoPoint_isBigO K hK hA 0 0 hnorm hV2 hV2O
+
 end QuarticCoupling
 
 end Renormalization

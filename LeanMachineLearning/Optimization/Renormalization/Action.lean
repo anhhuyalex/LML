@@ -51,7 +51,7 @@ def measure {Ω : Type uΩ} [MeasurableSpace Ω]
 
 /-- Bundle a normalizable action law as a probability measure. -/
 def probabilityMeasure {Ω : Type uΩ} [MeasurableSpace Ω]
-    (μ : Measure Ω) [IsProbabilityMeasure μ] (S : Action Ω)
+    (μ : Measure Ω) [NeZero μ] (S : Action Ω)
     (hnorm : S.Normalizable μ) : ProbabilityMeasure Ω :=
   ⟨S.measure μ, MeasureTheory.isProbabilityMeasure_tilted hnorm⟩
 
@@ -91,6 +91,22 @@ def gaussianExpectation {ι : Type uI} [Fintype ι] {E : Type uE}
 
 /-- Bra-ket notation for Gaussian expectation with covariance `K`. -/
 scoped notation "⟪" O "⟫ᵍ[" K "]" => gaussianExpectation K O
+
+/-- A positive-definite quadratic action is normalizable against Euclidean volume.
+
+Informal proof: diagonalize the precision matrix and factor the nonnegative integrand into a
+finite product of one-dimensional Gaussian integrals.  Each factor is finite.  Source:
+<https://en.wikipedia.org/wiki/Gaussian_integral#Multidimensional_and_functional_generalizations>.
+-/
+theorem quadraticAction_normalizable {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    (K : Matrix ι ι ℝ) (hK : K.PosDef) :
+    Action.Normalizable (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹) := by
+  sorry
+
+/-- The probability measure canonically represented by a positive-definite quadratic action. -/
+def quadraticActionProbabilityMeasure {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    (K : Matrix ι ι ℝ) (hK : K.PosDef) : ProbabilityMeasure (EuclideanSpace ℝ ι) :=
+  Action.probabilityMeasure volume (quadraticAction K⁻¹) (quadraticAction_normalizable K hK)
 
 /-- The partition function of the positive-definite quadratic action.
 

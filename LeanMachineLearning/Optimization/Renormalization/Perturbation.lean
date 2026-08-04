@@ -71,19 +71,19 @@ theorem integral_deform [NormedAddCommGroup E] [NormedSpace ℝ E]
     ∫ x, O x ∂deform μ V ε =
       ∫ x, (Real.exp (-ε * V x) / partitionFunction μ V ε) • O x ∂μ := by
   simpa only [deform, partitionFunction] using
-    (MeasureTheory.integral_tilted (μ := μ) (fun x ↦ -ε * V x) O)
+    MeasureTheory.integral_tilted (μ := μ) (fun x ↦ -ε * V x) O
 
 /-- An explicit normalizability proof promotes a deformation to a probability measure. -/
 theorem isProbabilityMeasure_deform [IsProbabilityMeasure μ]
     (V : Ω → ℝ) (ε : ℝ) (hnorm : Normalizable μ V ε) :
-    IsProbabilityMeasure (deform μ V ε) := by
-  exact MeasureTheory.isProbabilityMeasure_tilted hnorm
+    IsProbabilityMeasure (deform μ V ε) :=
+  MeasureTheory.isProbabilityMeasure_tilted hnorm
 
 -- The exponential of an (a.e.) measurable real function is (a.e.) measurable.
 -- This isolates the measurability step of `normalizable_of_nonnegative`.
 private lemma aemeasurable_exp {f : Ω → ℝ} (hf : AEMeasurable f μ) :
     AEMeasurable (fun x ↦ Real.exp (f x)) μ :=
-  Real.continuous_exp.measurable.comp_aemeasurable' hf
+  hf.exp
 
 -- For `ε ≥ 0` and `v ≥ 0`, the scalar `exp (-ε * v)` lies in `[0, 1]`.
 -- This is the pointwise content behind "the exponential lies between zero and one":
@@ -100,9 +100,9 @@ measurability follows from that of `V`, and the constant one function is integra
 measure; domination gives integrability. -/
 theorem normalizable_of_nonnegative [IsFiniteMeasure μ] {V : Ω → ℝ}
     (hVmeas : AEStronglyMeasurable V μ) (hVnonneg : 0 ≤ V) {ε : ℝ} (hε : 0 ≤ ε) :
-    Normalizable μ V ε := by
-  refine Integrable.of_mem_Icc 0 1 (aemeasurable_exp (hVmeas.aemeasurable.const_mul (-ε))) ?_
-  filter_upwards with x using exp_neg_mul_nonneg_mem_Icc hε (hVnonneg x)
+    Normalizable μ V ε :=
+  Integrable.of_mem_Icc 0 1 (aemeasurable_exp (hVmeas.aemeasurable.const_mul (-ε)))
+    (ae_of_all μ fun x => exp_neg_mul_nonneg_mem_Icc hε (hVnonneg x))
 
 /-- The partition function of a normalizable nonzero base measure is strictly positive.
 
@@ -110,12 +110,8 @@ Informal proof: unfold the partition function and apply positivity of the integr
 integrable strictly positive exponential. -/
 theorem partitionFunction_pos [NeZero μ] {V : Ω → ℝ} {ε : ℝ}
     (hnorm : Normalizable μ V ε) :
-    0 < partitionFunction μ V ε := by
-  -- By definition the partition function is the integral of `exp (-ε * V x)`.
-  unfold partitionFunction
-  -- Positivity: `hnorm` is exactly the integrability that `integral_exp_pos` needs,
-  -- because the integrand is a.e. strictly positive and `μ` is nonzero.
-  exact MeasureTheory.integral_exp_pos (f := fun x ↦ -ε * V x) hnorm
+    0 < partitionFunction μ V ε :=
+  MeasureTheory.integral_exp_pos (f := fun x ↦ -ε * V x) hnorm
 
 /-! ## First-order response -/
 

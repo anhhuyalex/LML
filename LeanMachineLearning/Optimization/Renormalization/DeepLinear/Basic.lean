@@ -57,8 +57,8 @@ private theorem rankOneGram_posSemidef {A : Type uA} (y : A → ℝ) :
   · ext a b
     simp [rankOneGram, mul_comm]
   · intro v
-    simpa [rankOneGram, Finsupp.sum, Finset.sum_mul, Finset.mul_sum, star_trivial] using
-      mul_self_nonneg (v.sum fun a va => va * y a)
+    simpa [rankOneGram, Finsupp.sum, Finset.mul_sum, star_trivial, mul_assoc, mul_left_comm,
+        mul_comm] using mul_self_nonneg (v.sum fun a va => va * y a)
 
 -- A sum of rank-one Gram kernels `a, b ↦ y i a * y i b` is positive semidefinite:
 -- each summand is by `rankOneGram_posSemidef`, and positivity survives finite sums.
