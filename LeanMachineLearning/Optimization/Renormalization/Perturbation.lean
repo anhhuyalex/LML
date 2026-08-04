@@ -111,7 +111,11 @@ integrable strictly positive exponential. -/
 theorem partitionFunction_pos [NeZero μ] {V : Ω → ℝ} {ε : ℝ}
     (hnorm : Normalizable μ V ε) :
     0 < partitionFunction μ V ε := by
-  sorry
+  -- By definition the partition function is the integral of `exp (-ε * V x)`.
+  unfold partitionFunction
+  -- Positivity: `hnorm` is exactly the integrability that `integral_exp_pos` needs,
+  -- because the integrand is a.e. strictly positive and `μ` is nonzero.
+  exact MeasureTheory.integral_exp_pos (f := fun x ↦ -ε * V x) hnorm
 
 /-! ## First-order response -/
 

@@ -1857,9 +1857,8 @@ private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
             (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
               ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
                 ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
-                  ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
-  classical
-  exact cumulantTransform_tracePair_partialMatching_regrouping f A hA hAc huniv_ne hcompl_ne
+                  ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) :=
+  cumulantTransform_tracePair_partialMatching_regrouping f A hA hAc huniv_ne hcompl_ne
     hcut_cover hcut_disjoint hcompl_subset_univ hblock_split_compl hleft_id_on_trace
     hright_id_on_trace
 

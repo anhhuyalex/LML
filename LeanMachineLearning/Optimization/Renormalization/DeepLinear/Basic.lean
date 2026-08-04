@@ -54,21 +54,25 @@ private def rankOneGram {A : Type uA} (y : A → ℝ) : Matrix A A ℝ :=
 private theorem rankOneGram_posSemidef {A : Type uA} (y : A → ℝ) :
     Matrix.PosSemidef (rankOneGram y) := by
   refine ⟨?_, ?_⟩
-  · rw [Matrix.isHermitian_iff_isSymm]
-    ext a b
-    simp [rankOneGram, Matrix.transpose_apply, mul_comm]
+  · ext a b
+    simp [rankOneGram, mul_comm]
   · intro v
-    have hquad :
-        v.sum (fun a va => v.sum (fun b vb => star va * rankOneGram y a b * vb)) =
-          (v.sum fun a va => va * y a) * (v.sum fun a va => va * y a) := by
-      simp only [rankOneGram, Finsupp.sum, Finset.sum_mul, Finset.mul_sum, star_trivial]
-      apply Finset.sum_congr rfl
-      intro a _
-      apply Finset.sum_congr rfl
-      intro b _
-      ring
-    rw [hquad]
-    exact mul_self_nonneg _
+    simpa [rankOneGram, Finsupp.sum, Finset.sum_mul, Finset.mul_sum, star_trivial] using
+      mul_self_nonneg (v.sum fun a va => va * y a)
+
+-- A sum of rank-one Gram kernels `a, b ↦ y i a * y i b` is positive semidefinite:
+-- each summand is by `rankOneGram_posSemidef`, and positivity survives finite sums.
+private theorem sum_rankOneGram_posSemidef {A : Type uA} {ι : Type uI} [Fintype ι]
+    (y : ι → A → ℝ) : Matrix.PosSemidef (∑ i, rankOneGram (y i)) :=
+  Matrix.posSemidef_sum Finset.univ (fun i _ => rankOneGram_posSemidef (y i))
+
+-- The normalized Gram matrix is exactly the sum of rank-one Gram kernels, scaled by the
+-- reciprocal of the input dimension `|ι|`.
+private theorem normalizedGram_eq_sum_rankOneGram {A : Type uA} {ι : Type uI} [Fintype ι]
+    (x : A → ι → ℝ) :
+    normalizedGram x = (Fintype.card ι : ℝ)⁻¹ • (∑ i, rankOneGram (fun a => x a i)) := by
+  ext a b
+  simp [normalizedGram, rankOneGram, Matrix.sum_apply]
 
 /-- The normalized Gram matrix is positive semidefinite.
 
@@ -77,25 +81,9 @@ Informal proof: expand the quadratic form and interchange the two finite sums.  
 standard Gram-matrix proof; see <https://en.wikipedia.org/wiki/Gram_matrix#Positive-semidefiniteness>.
 -/
 theorem normalizedGram_posSemidef {A : Type uA} {ι : Type uI} [Fintype ι]
-    (x : A → ι → ℝ) : (normalizedGram x).PosSemidef := by
-  have hsum :
-      Matrix.PosSemidef (∑ i, rankOneGram (fun a => x a i)) := by
-    exact Matrix.posSemidef_sum Finset.univ (fun i _ => rankOneGram_posSemidef (fun a => x a i))
-  have hscalar : 0 ≤ (Fintype.card ι : ℝ)⁻¹ := by
-    exact inv_nonneg.mpr (Nat.cast_nonneg _)
-  have hmatrix :
-      normalizedGram x = (Fintype.card ι : ℝ)⁻¹ • (∑ i, rankOneGram (fun a => x a i)) := by
-    ext a b
-    have hentry :
-        (∑ i, rankOneGram (fun a => x a i)) a b = ∑ i, x a i * x b i := by
-      simpa [rankOneGram] using
-        Matrix.sum_apply a b Finset.univ (fun i => rankOneGram (fun a => x a i))
-    calc
-      normalizedGram x a b = (Fintype.card ι : ℝ)⁻¹ * (∑ i, x a i * x b i) := rfl
-      _ = (Fintype.card ι : ℝ)⁻¹ * (∑ i, rankOneGram (fun a => x a i)) a b := by
-            rw [hentry]
-      _ = ((Fintype.card ι : ℝ)⁻¹ • (∑ i, rankOneGram (fun a => x a i))) a b := rfl
-  exact hmatrix ▸ hsum.smul hscalar
+    (x : A → ι → ℝ) : (normalizedGram x).PosSemidef :=
+  (normalizedGram_eq_sum_rankOneGram x) ▸
+    (sum_rankOneGram_posSemidef (fun i a => x a i)).smul (inv_nonneg.mpr (Nat.cast_nonneg _))
 
 /-- A singleton batch recovers normalized energy on the diagonal. -/
 @[simp] theorem normalizedGram_singleton {ι : Type uI} [Fintype ι] (x : ι → ℝ) :
