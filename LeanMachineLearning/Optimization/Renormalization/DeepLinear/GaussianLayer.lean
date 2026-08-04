@@ -42,12 +42,11 @@ def widthMomentFactor (m n : ℕ) : ℝ :=
 
 theorem widthMomentFactor_two (n : ℕ) :
     widthMomentFactor 2 n = 1 + 2 / (n : ℝ) := by
-  simp [widthMomentFactor]
+  norm_num [widthMomentFactor, Finset.prod_range_succ]
 
 theorem widthMomentFactor_three (n : ℕ) :
     widthMomentFactor 3 n = (1 + 2 / (n : ℝ)) * (1 + 4 / (n : ℝ)) := by
-  simp [widthMomentFactor]
-  ring
+  norm_num [widthMomentFactor, Finset.prod_range_succ]
 
 /-- The product law of `n` independent standard real Gaussians. -/
 def standardGaussianVectorLaw (n : ℕ) : Measure (Fin n → ℝ) :=
@@ -69,14 +68,18 @@ Informal proof: specialize `map_evalBatch_layerGaussianInit`; the bias term vani
 multivariate Gaussian API at
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/Multivariate.html>.
 -/
-theorem map_batchPreactivation [Fintype ι] [Fintype κ] [Fintype A] [DecidableEq A]
+theorem map_batchPreactivation
+    {A : Type uA} {ι : Type uI} {κ : Type uJ}
+    [Fintype ι] [Fintype κ] [Fintype A] [DecidableEq A]
     (Cw : ℝ≥0) (x : A → ι → ℝ) :
     Measure.map
         (fun q : LayerParams ι κ => fun j => batchToEuclidean (batchPreactivation q x) j)
         (layerGaussianInit (hyperparams Cw) ι κ) =
       Measure.pi (fun _ : κ =>
         multivariateGaussian 0 (fun a b => (Cw : ℝ) * NeuralNetwork.normalizedGram x a b)) := by
-  sorry
+  simpa only [NeuralNetwork.layerCovariance_eq_bias_add_weight_mul_normalizedGram,
+    hyperparams_biasVariance, hyperparams_weightVariance, NNReal.coe_zero, zero_add] using
+    map_evalBatch_layerGaussianInit (p := hyperparams Cw) x
 
 /-- Exact moments of normalized energy under an independent standard Gaussian vector.
 
@@ -102,7 +105,8 @@ recursion leading to equation `eq:deep-linear-2m-point-function`.
 theorem integral_normalizedEnergy_pow_randomLayerKernel
     {ι : Type uI} {κ : Type uJ} [Fintype ι] [Fintype κ]
     (Cw : ℝ≥0) (x : ι → ℝ) (m : ℕ) (hκ : 0 < Fintype.card κ) :
-    ∫ z, NeuralNetwork.normalizedEnergy z ^ m ∂oneLayerOutputLaw Cw x =
+    ∫ z : κ → ℝ, NeuralNetwork.normalizedEnergy z ^ m
+        ∂oneLayerOutputLaw (ι := ι) (κ := κ) Cw x =
       ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m *
         widthMomentFactor m (Fintype.card κ) := by
   sorry

@@ -9,6 +9,7 @@ public import LeanMachineLearning.Optimization.Renormalization.Basic
 public import LeanMachineLearning.Optimization.Renormalization.Activation
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import LeanMachineLearning.Optimization.Renormalization.Convolution
+public import LeanMachineLearning.Optimization.Renormalization.DeepLinear
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
 public import LeanMachineLearning.Optimization.Renormalization.InducedLaw

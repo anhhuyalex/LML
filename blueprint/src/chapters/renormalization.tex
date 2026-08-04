@@ -2334,6 +2334,53 @@ An umbrella \texttt{DeepLinear.lean} is publicly imported by
 \texttt{Optimization/Renormalization.lean}; the project-wide umbrella is updated only after all
 targeted modules compile.
 
+\subsection{Implemented statement skeleton and exact conventions}
+
+The declaration skeleton described in this chapter is now implemented and typechecked.  This is a
+statement-complete milestone, not a claim that every proof is complete: nontrivial Gaussian
+transport, tower-property, cumulant, asymptotic, and weak-convergence proofs currently use
+\texttt{sorry}.  Each such placeholder is attached to a docstring containing both an informal
+proof and a precise source.  Elementary normalization lemmas and several structural facts are
+already proved.  The umbrella module
+\texttt{LeanMachineLearning.Optimization.Renormalization.DeepLinear} exports the following layers:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Module & Public mathematical interface & Status \\
+\midrule
+\texttt{Basic} & Gram/energy, shape specialization, output laws & typechecked \\
+\texttt{GaussianLayer} & conditional Gaussian law, radial moments & typechecked \\
+\texttt{Moments} & odd/even correlators, batch covariance, criticality & typechecked \\
+\texttt{Fluctuations} & connected four/six point and energy variance & typechecked \\
+\texttt{Asymptotics} & finite-product and exponential remainders & typechecked \\
+\texttt{Limits} & width/depth/double-scaling and weak-law limits & typechecked \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The following conventions are enforced by the actual Lean signatures and should be preserved by
+later proof work.
+\begin{enumerate}
+  \item \texttt{MLPShape.constantHiddenShape $d_{\rm in}$ $d_{\rm out}$ $n$ $h$} has $h$
+    hidden layers and total depth $h+1$.  Thus its limiting output variance is
+    $C_W^{h+1}Q(x)$.
+  \item \texttt{equalWidthCorrection $m$ $n$ $L$} is
+    $c_{2m}(n)^{L-1}$.  This makes the empty hidden-width list at $L=1$ definitionally equal to
+    one and prevents an off-by-one ambiguity in every limit theorem.
+  \item The general covariance theorem is stated with Mathlib's \texttt{covariance}; a separate
+    closed-form theorem states the corresponding integral of $z_a(i)z_b(j)$.  Centering is not
+    silently assumed in a rewrite.
+  \item Positive input and hidden widths occur in the finite-network moment statements.  Positive
+    observed width is additionally required by normalized-output-energy variance.  This prevents
+    Lean's total division at zero from changing the intended fan-in scaling.
+  \item Divergence is a \texttt{Tendsto ... atTop atTop} proposition.  The noncommuting-regime
+    theorem is a conjunction of a finite real limit and a divergence statement; it does not place
+    $+\infty$ in $\mathbb R$.
+  \item The weak-limit theorem is a limit in \texttt{ProbabilityMeasure}; its target is the
+    explicit product law \texttt{iidGaussianProbabilityMeasure}.  It is separate from the fixed
+    moment limit, so moment determinacy is never assumed.
+\end{enumerate}
+
 \section{Shared deterministic and probabilistic objects}
 
 Fix finite index types $A$ for samples, $I$ for input neurons, and $J$ for output neurons.  Unless
@@ -2843,9 +2890,9 @@ $\mathbb R_{\geq0}\cup\{\infty\}$), not as a real-valued limit equal to infinity
 \uses{thm:dln:fixedDepthLimit, thm:dln:fixedWidthDivergence}
 \lean{NeuralNetwork.DeepLinear.width_depth_limits_do_not_commute}
 For $m\geq2$ and positive critical input energy, taking width to infinity at fixed depth gives the
-finite Gaussian amplitude, whereas taking depth to infinity at fixed width diverges.  A fully
-literal iterated-limit equality is stated in \texttt{ENNReal}; the real theorem records the two
-filter limits separately.
+finite Gaussian amplitude, whereas taking depth to infinity at fixed width diverges.  The theorem
+records these as two real filter statements: convergence to a finite \texttt{nhds} limit and
+divergence via \texttt{atTop}.  No unimplemented extended-real iterated-limit equality is claimed.
 \end{corollary}
 
 \begin{theorem}[Double-scaling limit]
@@ -3018,9 +3065,10 @@ The new plan complies with the lessons completely in both workflow and theorem d
   \item Low-order formulas are derived from general declarations before long downstream proofs,
     and declaration order follows the displayed dependency graph, complying with
     \textbf{Rule 9} and Section~14.34.
-  \item If the weak-limit theorem temporarily remains \texttt{sorry}, its docstring must contain
-    the informal coupling/Slutsky proof and a precise source as specified above.  No phase is
-    accepted as mergeable while such a placeholder remains.
+  \item While the weak-limit theorem remains \texttt{sorry}, its docstring contains the informal
+    coupling/Slutsky proof and a precise source as specified above.  This is acceptable for the
+    present statement-complete milestone requested here; the later proof-complete/mergeable
+    milestone does not accept the placeholder.
 \end{enumerate}
 
 This is total rather than aspirational compliance: every phase has a mathematical acceptance

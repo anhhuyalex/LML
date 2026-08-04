@@ -1789,9 +1789,7 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero {R : Type*} [CommRing R]
   -- The identity is universal in the target commutative ring: prove it over `ℤ` and cast through
   -- the canonical homomorphism `ℤ → R`; the symmetry reduction to the ordered case is isolated in
   -- `partialMatching_mobius_coeff_sum_eq_zero_int`.
-  simpa using
-    congrArg (fun z : ℤ => (z : R))
-      (partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq)
+  simpa using congrArg ((↑) : ℤ → R) (partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq)
 
 /-- Core trace-fiber Möbius cancellation for split block weights.
 
@@ -1842,6 +1840,57 @@ This is the classical partition-lattice proof of vanishing mixed cumulants; see 
 "Cumulants and partition lattices", Austral. J. Statist. 25 (1983), 378--388.  A future cleanup
 should formalize the trace-pair map and the partial-matching equivalence as lemmas in the
 `Finpartition` namespace. -/
+private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
+    [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
+    (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
+    (_huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
+    (_hcompl_ne : (Finset.univ \ A : Finset ι) ≠ ∅)
+    (_hcut_cover : A ∪ (Finset.univ \ A) = (Finset.univ : Finset ι))
+    (_hcut_disjoint : Disjoint A (Finset.univ \ A))
+    (_hcompl_subset_univ : Finset.univ \ A ⊆ (Finset.univ : Finset ι))
+    (_hblock_split_compl : ∀ B : Finset ι,
+      f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)))
+    (_hleft_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ A → f B = f ∅ * f B)
+    (_hright_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ Finset.univ \ A → f B = f ∅ * f B) :
+    Finpartition.cumulantTransform f Finset.univ =
+      ∑ π : Finpartition A,
+        ∑ σ : Finpartition (Finset.univ \ A),
+          (π.blockProduct f * σ.blockProduct f) *
+            (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
+              ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
+                ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
+                  ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
+  classical
+  -- This is the exact finite regrouping missing from the current `Finpartition` API.  Restrict
+  -- each partition of `univ` to `A` and `univ \ A`; over fixed traces `π, σ`, the fiber is counted
+  -- by partial matchings of their block sets.  The block-product is constant on the fiber by the
+  -- split and trace-absorption hypotheses, and a matching of size `m` contributes the displayed
+  -- Möbius coefficient.  See the docstring of the caller for the detailed informal proof and
+  -- references (Speed 1983, partition-lattice cumulants).
+  sorry
+
+-- For fixed trace partitions `π` of `A` and `σ` of `univ \ A`, the partial-matching coefficient
+-- sum vanishes: both sides of the cut are nonempty, so `π.parts` and `σ.parts` have positive
+-- cardinalities, and the supplied finite-difference cancellation `hfiber_coeff_cancel` applies
+-- with `p = |π.parts|` and `q = |σ.parts|`.  `f` is deliberately not a parameter: the coefficient
+-- sum is independent of the block weights.
+private lemma trace_fiber_coeff_cancel_eq_zero [Fintype ι] [DecidableEq ι] {R : Type*}
+    [CommRing R] (A : Finset ι) (π : Finpartition A) (σ : Finpartition (Finset.univ \ A))
+    (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
+    (hfiber_coeff_cancel : ∀ p q : ℕ, 0 < p → 0 < q →
+        (∑ m ∈ Finset.range (Nat.min p q + 1),
+          ((((p.choose m) * (q.choose m) * m.factorial : ℕ) : R) *
+            ((-1 : R) ^ (p + q - m - 1) * ((p + q - m - 1).factorial : R)))) = 0) :
+    (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
+      ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
+        ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
+          ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) = 0 := by
+  -- Nonempty sides give nonempty trace partitions, hence positive block counts; with
+  -- `p = |π.parts|` and `q = |σ.parts|` both positive, the hypothesis cancels the sum.
+  exact hfiber_coeff_cancel π.parts.card σ.parts.card
+    (Finset.card_pos.mpr (π.parts_nonempty (Finset.ne_empty_of_mem hA.choose_spec)))
+    (Finset.card_pos.mpr (σ.parts_nonempty (Finset.ne_empty_of_mem hAc.choose_spec)))
+
 private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
@@ -1858,11 +1907,17 @@ private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux [Fintype
         (∑ m ∈ Finset.range (Nat.min p q + 1),
           ((((p.choose m) * (q.choose m) * m.factorial : ℕ) : R) *
             ((-1 : R) ^ (p + q - m - 1) * ((p + q - m - 1).factorial : R)))) = 0) :
-    Finpartition.cumulantTransform f Finset.univ = 0 := by
-  classical
-  -- Deferred formalization: trace partitions, fiber/partial-matching equivalence, constant
-  -- block-product on fibers, and the final finite-sum reindexing described in the docstring.
-  sorry
+    Finpartition.cumulantTransform f Finset.univ = 0 :=
+  -- First reindex the cumulant sum by the two trace partitions.  The hard combinatorial content
+  -- is isolated in `cumulantTransform_split_trace_fiber_regrouping`: after fixing traces `π, σ`,
+  -- all terms have the same block-product factor and the remaining fiber coefficient is the
+  -- partial-matching sum below.  Every trace partition of a nonempty side has a positive number of
+  -- blocks, so the supplied finite-difference cancellation applies fiber by fiber.
+  (cumulantTransform_split_trace_fiber_regrouping f A _hA _hAc _huniv_ne _hcompl_ne
+    _hcut_cover _hcut_disjoint _hcompl_subset_univ _hblock_split_compl _hleft_id_on_trace
+    _hright_id_on_trace).trans
+    (Finset.sum_eq_zero (fun π _ => Finset.sum_eq_zero (fun σ _ => by
+      rw [trace_fiber_coeff_cancel_eq_zero A π σ _hA _hAc _hfiber_coeff_cancel, mul_zero])))
 
 -- The two sides `A` and `univ \ A` of a cut form a disjoint cover of `univ`, and the complement is
 -- a subset of `univ`.  These three set-theoretic facts are always used together: they package the
@@ -1880,10 +1935,9 @@ private lemma cut_cover_disjoint_subset [Fintype ι] [DecidableEq ι] (A : Finse
 -- `A`-restriction and its `(univ \ A)`-restriction.
 private lemma block_split_compl [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     (f : Finset ι → R) (A : Finset ι) (h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A)) :
-    ∀ B : Finset ι, f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)) := by
+    ∀ B : Finset ι, f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)) :=
   -- `B \ A = B ∩ (univ \ A)` is the set-theoretic conversion between the two notations.
-  intro B
-  simpa [Finset.sdiff_eq_inter_compl] using h_factor B
+  fun B => by simpa [Finset.sdiff_eq_inter_compl] using h_factor B
 
 private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
@@ -1893,16 +1947,16 @@ private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintyp
     (_hcompl_ne : (Finset.univ \ A : Finset ι) ≠ ∅)
     (_hleft_absorb : ∀ ⦃b : Finset ι⦄, b ⊆ A → f ∅ * f b = f b)
     (_hright_absorb : ∀ ⦃b : Finset ι⦄, b ⊆ Finset.univ \ A → f ∅ * f b = f b) :
-    Finpartition.cumulantTransform f Finset.univ = 0 := by
+    Finpartition.cumulantTransform f Finset.univ = 0 :=
   -- The two sides form a genuine non-trivial cut of `univ`: they cover `univ`, are disjoint, and
   -- the complement is a subset of `univ`.  `block_split_compl` rewrites the split hypothesis using
   -- the named complement, and the absorption hypotheses remove the harmless `f ∅` factors from
   -- pure-side trace blocks; the remaining fiber Möbius coefficients cancel by
   -- `partialMatching_mobius_coeff_sum_eq_zero`.
-  have hcut := cut_cover_disjoint_subset A
-  exact cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux f A _hA _hAc _huniv_ne
+  let hcut := cut_cover_disjoint_subset A
+  cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux f A _hA _hAc _huniv_ne
     _hcompl_ne hcut.1 hcut.2.1 hcut.2.2 (block_split_compl f A _h_factor)
-    (fun B hB => (_hleft_absorb hB).symm) (fun B hB => (_hright_absorb hB).symm)
+    (fun _ hB => (_hleft_absorb hB).symm) (fun _ hB => (_hright_absorb hB).symm)
     partialMatching_mobius_coeff_sum_eq_zero
 
 /-- Trace-fiber cancellation for split block weights.
