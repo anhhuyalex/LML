@@ -429,10 +429,8 @@ private lemma abs_exp_neg_sub_one_add_le {t : ℝ} (ht : 0 ≤ t) :
 -- the product form is what survives integration against `V²` in the quadratic-response bounds.
 private lemma abs_exp_neg_mul_add_le {ε v : ℝ} (hε : 0 ≤ ε) (hv : 0 ≤ v) :
     |Real.exp (-(ε * v)) - 1 + ε * v| ≤ (ε ^ 2 / 2) * v ^ 2 := by
-  calc
-    |Real.exp (-(ε * v)) - 1 + ε * v| ≤ (ε * v) ^ 2 / 2 :=
-      abs_exp_neg_sub_one_add_le (mul_nonneg hε hv)
-    _ = (ε ^ 2 / 2) * v ^ 2 := by ring
+  simpa [pow_two, div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm] using
+    abs_exp_neg_sub_one_add_le (mul_nonneg hε hv)
 
 -- The partition-function linear remainder equals the integral of the pointwise remainder:
 -- `Z(ε) - 1 + ε ∫ V = ∫ (exp (-ε V) - 1 + ε V)`.  This is Bochner-integral linearity
@@ -503,25 +501,133 @@ theorem partitionFunction_sub_linear_isBigO [IsProbabilityMeasure μ]
     (hV2 : Integrable (fun x ↦ V x ^ 2) μ) :
     Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
       (fun ε ↦ partitionFunction μ V ε - 1 + ε * ∫ x, V x ∂μ)
-      (fun ε : ℝ ↦ ε ^ 2) := by
-  exact Asymptotics.IsBigO.of_bound ((∫ x, V x ^ 2 ∂μ) / 2) (by
+      (fun ε : ℝ ↦ ε ^ 2) :=
+  Asymptotics.IsBigO.of_bound ((∫ x, V x ^ 2 ∂μ) / 2) (by
     filter_upwards [self_mem_nhdsWithin] with ε hε
     exact norm_partitionFunction_sub_linear_le (μ := μ) hVnonneg hV hV2 hε)
+
+-- For `ε ≥ 0` and `V ≥ 0`, the weighted exponential `x ↦ exp (-ε * V x) • O x` is integrable:
+-- the scalar factor is ae-strongly measurable and has norm at most one, so `hO.bdd_smul`
+-- supplies the integrable envelope.  This is the vector-valued analogue of
+-- `integrable_exp_neg_mul_nonneg` above; it provides the integrability of the tilted weighted
+-- integrand required by `norm_weightedIntegral_sub_linear_le`.
+private lemma integrable_exp_neg_mul_nonneg_smul
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {V : Ω → ℝ} {O : Ω → E} (hVmeas : AEStronglyMeasurable V μ)
+    (hVnonneg : 0 ≤ V) (hO : Integrable O μ) {ε : ℝ} (hε : 0 ≤ ε) :
+    Integrable (fun x : Ω => Real.exp (-ε * V x) • O x) μ := by
+  have h_exp_meas : AEStronglyMeasurable (fun x : Ω => Real.exp (-ε * V x)) μ :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).comp_aestronglyMeasurable
+      hVmeas
+  have h_exp_bound : ∀ᵐ x ∂μ, ‖Real.exp (-ε * V x)‖ ≤ (1 : ℝ) :=
+    ae_of_all μ (fun x => by
+      simpa [Real.norm_eq_abs, Real.exp_le_one_iff] using
+        mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.2 hε) (hVnonneg x))
+  exact hO.bdd_smul 1 h_exp_meas h_exp_bound
+
+-- Pointwise, the quadratic Taylor remainder of the weighted exponential at `v` is bounded by
+-- `(ε²/2) * ‖v² • z‖`.  This is the vector-valued analogue of `abs_exp_neg_mul_add_le`: multiply
+-- the scalar bound `|exp (-ε v) - 1 + ε v| ≤ (ε²/2) * v²` by the nonnegative factor `‖z‖` and
+-- rewrite `‖v ^ 2 • z‖ = v ^ 2 * ‖z‖`.  It is the pointwise domination used inside
+-- `norm_weightedIntegral_sub_linear_le` (applied with `v = V x` and `z = O x`).
+private lemma norm_exp_neg_mul_add_smul_le
+    [NormedAddCommGroup E] [NormedSpace ℝ E] {ε v : ℝ} {z : E}
+    (hε : 0 ≤ ε) (hv : 0 ≤ v) :
+    ‖(Real.exp (-ε * v) - 1 + ε * v) • z‖ ≤ (ε ^ 2 / 2) * ‖v ^ 2 • z‖ := by
+  simpa [norm_smul, Real.norm_eq_abs, abs_of_nonneg (sq_nonneg v), mul_assoc] using
+    mul_le_mul_of_nonneg_right (abs_exp_neg_mul_add_le hε hv) (norm_nonneg z)
+
+-- The weighted-integral linear remainder equals the integral of the pointwise remainder:
+-- `N(ε) - ∫ O + ε • ∫ (V • O) = ∫ (exp (-ε V) • O - O + ε • (V • O))`.  This is
+-- Bochner-integral linearity (`integral_sub`, `integral_smul`, `integral_add`); the
+-- integrability of the tilted weighted exponential is passed in as `hExp`.  It is the
+-- vector-valued analogue of `integral_partitionFunction_sub_linear`, used by
+-- `norm_weightedIntegral_sub_linear_le` to turn the linear remainder into an integral of the
+-- pointwise remainder.
+private lemma weightedIntegral_sub_linear_eq_integral
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {V : Ω → ℝ} {O : Ω → E} {ε : ℝ}
+    (hExp : Integrable (fun x : Ω ↦ Real.exp (-ε * V x) • O x) μ)
+    (hO : Integrable O μ) (hVO : Integrable (fun x ↦ V x • O x) μ) :
+    weightedIntegral μ V O ε - (∫ x, O x ∂μ) + ε • ∫ x, V x • O x ∂μ =
+      ∫ x, (Real.exp (-ε * V x) • O x - O x + ε • (V x • O x)) ∂μ := by
+  rw [weightedIntegral, ← integral_smul, ← integral_sub hExp hO]
+  exact (integral_add (hExp.sub hO) (hVO.smul ε)).symm
+
+/-- Integrated quadratic bound for the weighted-integral remainder.
+
+Informal proof: rewrite the displayed vector as the Bochner integral of the pointwise Taylor
+remainder
+`(exp (-ε * V x) - 1 + ε * V x) • O x`.  The scalar estimate
+`abs_exp_neg_mul_add_le hε (hVnonneg x)` gives
+`‖(exp (-ε * V x) - 1 + ε * V x) • O x‖ ≤ (ε ^ 2 / 2) * ‖V x ^ 2 • O x‖`.
+Then apply `norm_integral_le_integral_norm` and `integral_mono_ae`, using `hV2O.norm` as the
+integrable dominating function.  The measurability/integrability of the weighted exponential
+`x ↦ exp (-ε * V x) • O x` follows from the scalar hypothesis `hV` (a.e. measurability of `V`),
+the pointwise bound `0 ≤ exp (-ε * V x) ≤ 1`, and `hO.bdd_smul`.  This is the standard
+Taylor-remainder argument from the blueprint theorem `thm:renorm:quadraticResponse`; see also the
+elementary scalar estimate recorded above in `abs_exp_neg_mul_add_le` (equivalently Taylor's
+theorem with integral remainder, e.g. <https://www.bowaggoner.com/blog/2017/10-06-useful-bounds-taylors>). -/
+private lemma norm_weightedIntegral_sub_linear_le
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
+    (hV : Integrable V μ) (hO : Integrable O μ)
+    (hVO : Integrable (fun x ↦ V x • O x) μ)
+    (hV2O : Integrable (fun x ↦ V x ^ 2 • O x) μ) {ε : ℝ} (hε : 0 ≤ ε) :
+    ‖weightedIntegral μ V O ε - (∫ x, O x ∂μ) + ε • ∫ x, V x • O x ∂μ‖ ≤
+      ((∫ x, ‖V x ^ 2 • O x‖ ∂μ) / 2) * ‖ε ^ 2‖ := by
+  -- The tilted weighted integrand is integrable: measurable scalar factor bounded by one
+  -- (`integrable_exp_neg_mul_nonneg_smul`); the remaining pieces are integrable by hypothesis
+  -- (`hO`, `hVO`).
+  have hExp : Integrable (fun x : Ω => Real.exp (-ε * V x) • O x) μ :=
+    integrable_exp_neg_mul_nonneg_smul hV.aestronglyMeasurable hVnonneg hO hε
+  let R : Ω → E := fun x => Real.exp (-ε * V x) • O x - O x + ε • (V x • O x)
+  let B : Ω → ℝ := fun x => (ε ^ 2 / 2) * ‖V x ^ 2 • O x‖
+  have hR : Integrable R μ := (hExp.sub hO).add (hVO.smul ε)
+  have hB : Integrable B μ := hV2O.norm.const_mul (ε ^ 2 / 2)
+  -- `R x` is the pointwise Taylor remainder `(exp (-ε V x) - 1 + ε V x) • O x`, and
+  -- `norm_exp_neg_mul_add_smul_le` bounds its norm pointwise by `B x`.
+  have hR_eq : ∀ x, R x = (Real.exp (-ε * V x) - 1 + ε * V x) • O x := by
+    intro x
+    dsimp [R]
+    module
+  have hRB : ∀ᵐ x ∂μ, ‖R x‖ ≤ B x :=
+    ae_of_all μ (fun x => by
+      simpa [hR_eq x, B] using norm_exp_neg_mul_add_smul_le (z := O x) hε (hVnonneg x))
+  -- Rewrite the linear remainder as the integral of `R`
+  -- (`weightedIntegral_sub_linear_eq_integral`), then `norm_integral_le_integral_norm` and
+  -- integral monotonicity push the pointwise bound through the integral;
+  -- `∫ B = (ε²/2) * ∫ ‖V² • O‖`
+  -- and `‖ε²‖ = ε²` finish the computation.
+  calc
+    ‖weightedIntegral μ V O ε - (∫ x, O x ∂μ) + ε • ∫ x, V x • O x ∂μ‖
+        = ‖∫ x, R x ∂μ‖ := by
+            rw [weightedIntegral_sub_linear_eq_integral hExp hO hVO]
+    _ ≤ ∫ x, ‖R x‖ ∂μ := norm_integral_le_integral_norm R
+    _ ≤ ∫ x, B x ∂μ := integral_mono_ae hR.norm hB hRB
+    _ = ((∫ x, ‖V x ^ 2 • O x‖ ∂μ) / 2) * ‖ε ^ 2‖ := by
+          simp [B, integral_const_mul, Real.norm_of_nonneg (sq_nonneg ε)]
+          ring
 
 /-- Quadratic right-hand remainder for an unnormalized weighted integral.
 
 Informal proof: use the same pointwise exponential remainder and multiply its bound by `‖O x‖`.
-The `V² • O` hypothesis is exactly the integrable dominating function required after integration. -/
+The `V² • O` hypothesis is exactly the integrable dominating function required after integration,
+and the scalar hypothesis `hV` supplies the measurability of `V` used to prove integrability of
+the weighted exponential. -/
 theorem weightedIntegral_sub_linear_isBigO
     [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
-    (hO : Integrable O μ) (hVO : Integrable (fun x ↦ V x • O x) μ)
+    (hV : Integrable V μ) (hO : Integrable O μ)
+    (hVO : Integrable (fun x ↦ V x • O x) μ)
     (hV2O : Integrable (fun x ↦ V x ^ 2 • O x) μ) :
     Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
       (fun ε ↦ weightedIntegral μ V O ε - (∫ x, O x ∂μ) +
         ε • ∫ x, V x • O x ∂μ)
-      (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+      (fun ε : ℝ ↦ ε ^ 2) :=
+  Asymptotics.IsBigO.of_bound ((∫ x, ‖V x ^ 2 • O x‖ ∂μ) / 2) (by
+    filter_upwards [self_mem_nhdsWithin] with ε hε
+    exact norm_weightedIntegral_sub_linear_le hVnonneg hV hO hVO hV2O hε)
 
 /-- Quadratic right-hand remainder for the normalized deformed expectation.
 
@@ -539,7 +645,112 @@ theorem integral_deform_sub_linear_isBigO [IsProbabilityMeasure μ]
       (fun ε ↦ (∫ x, O x ∂deform μ V ε) - (∫ x, O x ∂μ) +
         ε • covarianceWith μ O V)
       (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+  let l : Filter ℝ := nhdsWithin 0 (Set.Ici 0)
+  let sq : ℝ → ℝ := fun ε => ε ^ 2
+  let Z : ℝ → ℝ := partitionFunction μ V
+  let N : ℝ → E := weightedIntegral μ V O
+  let C : E := ∫ x, O x ∂μ
+  let A : E := ∫ x, V x • O x ∂μ
+  let B : ℝ := ∫ x, V x ∂μ
+  let w : ℝ → ℝ := fun ε => (Z ε)⁻¹
+  let rZ : ℝ → ℝ := fun ε => Z ε - 1 + ε * B
+  let rN : ℝ → E := fun ε => N ε - C + ε • A
+  have hZrem : Asymptotics.IsBigO l rZ sq := by
+    simpa [l, sq, Z, B, rZ] using
+      partitionFunction_sub_linear_isBigO (μ := μ) hVnonneg hV hV2
+  have hNrem : Asymptotics.IsBigO l rN sq := by
+    simpa [l, sq, N, C, A, rN] using
+      weightedIntegral_sub_linear_isBigO (μ := μ) hVnonneg hV hO hVO hV2O
+  -- `ε ^ 2` is `o(ε)` at zero on the right half-line.
+  have hsq_id : Asymptotics.IsLittleO l sq (fun ε : ℝ => ε) := by
+    have h0 : Asymptotics.IsLittleO (𝓝 0) (fun ε : ℝ => ε ^ 2) (fun ε : ℝ => ε) := by
+      simpa using (Asymptotics.isLittleO_pow_id (n := 2) (𝕜 := ℝ) (by norm_num : 1 < (2 : ℕ)))
+    simpa [l, sq] using h0.mono (nhdsWithin_le_nhds (s := Set.Ici 0) (a := 0))
+  -- `ε * B` is `O(ε)`.
+  have hεB : Asymptotics.IsBigO l (fun ε => ε * B) (fun ε : ℝ => ε) := by
+    simpa using ((Asymptotics.isBigO_refl (fun ε : ℝ => ε) l).mul
+      (Asymptotics.isBigO_const_one (F := ℝ) B l)).congr_right (fun _ => mul_one _)
+  -- `Z` is continuous at zero, tends to `1`, and is eventually nonzero.
+  have hsq0 : Tendsto sq l (𝓝 0) := by
+    have h0 : Tendsto (fun ε : ℝ => ε ^ 2) (𝓝 0) (𝓝 0) := by
+      simpa using (tendsto_id (x := 𝓝 (0 : ℝ))).pow 2
+    simpa [l, sq] using tendsto_nhdsWithin_of_tendsto_nhds (s := Set.Ici 0) h0
+  have hZtend : Tendsto Z l (𝓝 1) := by
+    have hεB0 : Tendsto (fun ε => ε * B) l (𝓝 0) := by
+      simpa [l, mul_comm] using tendsto_nhdsWithin_of_tendsto_nhds (s := Set.Ici 0)
+        ((tendsto_id (x := 𝓝 (0 : ℝ))).const_mul B)
+    have hZsub1 : Tendsto (fun ε => Z ε - 1) l (𝓝 0) := by
+      have hsub : Tendsto (fun ε => rZ ε - ε * B) l (𝓝 (0 - 0)) :=
+        (hZrem.trans_tendsto hsq0).sub hεB0
+      have hcongr : ∀ ε, rZ ε - ε * B = Z ε - 1 := fun ε => by
+        dsimp [rZ]
+        ring
+      simpa using Tendsto.congr hcongr hsub
+    have hadd : Tendsto (fun ε => (Z ε - 1) + 1) l (𝓝 (0 + 1)) :=
+      hZsub1.add (tendsto_const_nhds (x := (1 : ℝ)))
+    have hcongr : ∀ ε, (Z ε - 1) + 1 = Z ε := fun ε => by ring
+    simpa using Tendsto.congr hcongr hadd
+  have hZne0 : ∀ᶠ ε in l, Z ε ≠ 0 := hZtend.eventually_ne (by norm_num : (1 : ℝ) ≠ 0)
+  have hw_tend : Tendsto w l (𝓝 1) := by
+    simpa [w] using hZtend.inv₀ (by norm_num : (1 : ℝ) ≠ 0)
+  have hw_bigO : Asymptotics.IsBigO l w (fun _ : ℝ => (1 : ℝ)) := hw_tend.isBigO_one ℝ
+  -- `sZ := w - 1` is `O(ε)`, and `tZ := w - 1 - ε * B` is `O(ε²)`.
+  have hrZ_id : Asymptotics.IsBigO l rZ (fun ε : ℝ => ε) :=
+    (hZrem.trans_isLittleO hsq_id).isBigO
+  have h1mZ : Asymptotics.IsBigO l (fun ε => 1 - Z ε) (fun ε : ℝ => ε) := by
+    exact (hεB.sub hrZ_id).congr_left (fun ε => by dsimp [rZ]; ring)
+  have hwsub : Asymptotics.IsBigO l (fun ε => w ε - 1) (fun ε : ℝ => ε) := by
+    have heq : (fun ε => w ε - 1) =ᶠ[l] fun ε => (1 - Z ε) * w ε := by
+      filter_upwards [hZne0] with ε hε
+      have hsZ : w ε - 1 = (1 - Z ε) * w ε := by
+        dsimp [w]
+        field_simp [hε]
+      exact hsZ
+    have hRHS : Asymptotics.IsBigO l (fun ε => (1 - Z ε) * w ε) (fun ε : ℝ => ε) := by
+      simpa using (h1mZ.mul hw_bigO).congr_right (fun _ => mul_one _)
+    exact hRHS.congr' heq.symm (EventuallyEq.refl l (fun ε : ℝ => ε))
+  have htZ : Asymptotics.IsBigO l (fun ε => w ε - 1 - ε * B) sq := by
+    have heq : (fun ε => w ε - 1 - ε * B) =ᶠ[l]
+        fun ε => (ε * B) * (w ε - 1) - rZ ε * w ε := by
+      filter_upwards [hZne0] with ε hε
+      have hsZ : w ε - 1 = (1 - Z ε) * w ε := by
+        dsimp [w]
+        field_simp [hε]
+      rw [hsZ]
+      dsimp [w, rZ]
+      field_simp [hε]
+      ring
+    have hRHS : Asymptotics.IsBigO l
+        (fun ε => (ε * B) * (w ε - 1) - rZ ε * w ε) sq := by
+      have h1 : Asymptotics.IsBigO l (fun ε => (ε * B) * (w ε - 1)) sq := by
+        simpa [sq, pow_two] using (hεB.mul hwsub).congr_right (fun ε => (pow_two ε).symm)
+      have h2 : Asymptotics.IsBigO l (fun ε => rZ ε * w ε) sq := by
+        simpa [sq] using (hZrem.mul hw_bigO).congr_right (fun _ => mul_one _)
+      exact h1.sub h2
+    exact hRHS.congr' heq.symm (EventuallyEq.refl l sq)
+  -- The normalized remainder splits pointwise as
+  -- `(w - 1 - εB) • C - (w - 1) • (ε • A) + w • rN`, each piece of which is `O(ε²)`.
+  have hq_pieces : Asymptotics.IsBigO l
+      (fun ε => (w ε - 1 - ε * B) • C - (w ε - 1) • (ε • A) + w ε • rN ε) sq := by
+    have hC1 : Asymptotics.IsBigO l (fun ε => (w ε - 1 - ε * B) • C) sq := by
+      have hsmul := htZ.smul (Asymptotics.isBigO_const_one (F := ℝ) C l)
+      simpa [sq, smul_eq_mul] using hsmul.congr_right (fun ε => by simp [sq, smul_eq_mul])
+    have hC2 : Asymptotics.IsBigO l (fun ε => (w ε - 1) • (ε • A)) sq := by
+      have hεA : Asymptotics.IsBigO l (fun ε => ε • A) (fun ε : ℝ => ε) := by
+        have hsmul := (Asymptotics.isBigO_refl (fun ε : ℝ => ε) l).smul
+          (Asymptotics.isBigO_const_one (F := ℝ) A l)
+        simpa [smul_eq_mul] using hsmul.congr_right (fun ε => by simp [smul_eq_mul])
+      have hprod : Asymptotics.IsBigO l (fun ε => (w ε - 1) • (ε • A))
+          (fun ε : ℝ => ε • ε) := hwsub.smul hεA
+      simpa [sq, smul_eq_mul] using hprod.congr_right (fun ε => by simp [pow_two, smul_eq_mul])
+    have hC3 : Asymptotics.IsBigO l (fun ε => w ε • rN ε) sq := by
+      have hsmul := hw_bigO.smul hNrem
+      simpa [sq, smul_eq_mul] using hsmul.congr_right (fun ε => by simp [sq, smul_eq_mul])
+    exact hC1.sub hC2 |>.add hC3
+  have hq : Asymptotics.IsBigO l (fun ε => w ε • N ε - C + ε • (A - B • C)) sq := by
+    exact hq_pieces.congr (fun ε => by dsimp [rN]; module) (fun _ => rfl)
+  simpa [l, sq, Z, N, C, A, B, w, rZ, rN, covarianceWith,
+    integral_deform_eq_inv_smul_weightedIntegral] using hq
 
 end Renormalization
 
