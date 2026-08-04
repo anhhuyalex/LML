@@ -166,6 +166,32 @@ def deepLinearEnsemble {m n : ℕ} :
   | output => rfl
   | hidden tail ih => simp [deepLinearEnsemble, MLPEnsemble.shape, ih]
 
+/-- Casting a pair along a type equality in its second coordinate preserves the first
+coordinate. -/
+private lemma cast_congrArg_prod {A : Type*} {B C : Type uA} (h : B = C) (a : A) (b : B) :
+    cast (congrArg (fun T : Type uA => A × T) h) (a, b) = (a, cast h b) := by
+  cases h
+  rfl
+
+/-- The recursively accumulated hyperparameter tuple agrees with the shape-wise one.
+
+The two sides live in the dependent types `(S.deepLinearEnsemble Cw).shape.Hyperparams` and
+`S.Hyperparams`, which are equal only along `shape_deepLinearEnsemble`, so the statement uses
+heterogeneous equality. -/
+@[simp] theorem deepLinearEnsemble_hyperparams {m n : ℕ} (S : MLPShape m n) (Cw : ℝ≥0) :
+    HEq (S.deepLinearEnsemble Cw).hyperparams (S.deepLinearHyperparams Cw) := by
+  induction S with
+  | output => rfl
+  | hidden tail ih =>
+      -- Both tuples start with `DeepLinear.hyperparams Cw`; the recursive `HEq` in `ih`
+      -- transports the tail hyperparameters back and rebuilds the pair.
+      rcases heq_iff_exists_eq_cast.mp ih with ⟨hT, hx⟩
+      refine heq_of_eq_cast ?e ?h
+      · exact congrArg (fun T : Type => InitHyperparams × T) hT
+      · exact (congrArg (fun z => (DeepLinear.hyperparams Cw, z)) hx).trans
+          (cast_congrArg_prod hT (DeepLinear.hyperparams Cw)
+            (tail.deepLinearHyperparams Cw)).symm
+
 /-- The hidden widths of a shape, excluding its input and output widths. -/
 def hiddenWidths {m n : ℕ} (S : MLPShape m n) : List ℕ :=
   S.widths.tail.dropLast
@@ -213,7 +239,18 @@ theorem deepLinearOutputKernel_apply {A : Type uA} {m n : ℕ} (S : MLPShape m n
     (Cw : ℝ≥0) (D : A → Fin m → ℝ) :
     (S.deepLinearEnsemble Cw).outputKernel (measurable_linear 1) A D =
       S.deepLinearBatchLaw Cw D := by
-  sorry
+  unfold deepLinearBatchLaw
+  rw [MLPEnsemble.outputKernel_apply_eq_outputLaw]
+  conv_rhs => rw [← shape_deepLinearEnsemble S Cw]
+  -- Both sides now evaluate the same shape `(S.deepLinearEnsemble Cw).shape`; the only
+  -- remaining differences are the measurability proof and the hyperparameter tuple.
+  congr 1
+  · -- the Gaussian measures agree: the ensemble hyperparameters equal `deepLinearHyperparams`
+    congr 1
+    exact heq_iff_eq.mp
+      (HEq.trans (deepLinearEnsemble_hyperparams S Cw)
+        (HEq.symm (Mathlib.Tactic.DepRewrite.hdcongrArg (shape_deepLinearEnsemble S Cw)
+          (fun T _ => deepLinearHyperparams T Cw))))
 
 end MLPShape
 

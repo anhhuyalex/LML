@@ -79,6 +79,20 @@ theorem isProbabilityMeasure_deform [IsProbabilityMeasure μ]
     IsProbabilityMeasure (deform μ V ε) := by
   exact MeasureTheory.isProbabilityMeasure_tilted hnorm
 
+-- The exponential of an (a.e.) measurable real function is (a.e.) measurable.
+-- This isolates the measurability step of `normalizable_of_nonnegative`.
+private lemma aemeasurable_exp {f : Ω → ℝ} (hf : AEMeasurable f μ) :
+    AEMeasurable (fun x ↦ Real.exp (f x)) μ :=
+  Real.continuous_exp.measurable.comp_aemeasurable' hf
+
+-- For `ε ≥ 0` and `v ≥ 0`, the scalar `exp (-ε * v)` lies in `[0, 1]`.
+-- This is the pointwise content behind "the exponential lies between zero and one":
+-- the exponent `-ε * v` is nonpositive, so the exponential is positive and at most `exp 0 = 1`.
+private lemma exp_neg_mul_nonneg_mem_Icc {ε v : ℝ} (hε : 0 ≤ ε) (hv : 0 ≤ v) :
+    Real.exp (-ε * v) ∈ Set.Icc (0 : ℝ) 1 :=
+  ⟨(Real.exp_pos _).le,
+    Real.exp_le_one_iff.2 (mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.2 hε) hv)⟩
+
 /-- A nonnegative potential is normalizable for every nonnegative coupling.
 
 Informal proof: for `ε ≥ 0` and `V ≥ 0`, the exponential lies between zero and one.  Its strong
@@ -87,7 +101,8 @@ measure; domination gives integrability. -/
 theorem normalizable_of_nonnegative [IsFiniteMeasure μ] {V : Ω → ℝ}
     (hVmeas : AEStronglyMeasurable V μ) (hVnonneg : 0 ≤ V) {ε : ℝ} (hε : 0 ≤ ε) :
     Normalizable μ V ε := by
-  sorry
+  refine Integrable.of_mem_Icc 0 1 (aemeasurable_exp (hVmeas.aemeasurable.const_mul (-ε))) ?_
+  filter_upwards with x using exp_neg_mul_nonneg_mem_Icc hε (hVnonneg x)
 
 /-- The partition function of a normalizable nonzero base measure is strictly positive.
 

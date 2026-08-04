@@ -1791,56 +1791,27 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero {R : Type*} [CommRing R]
   -- `partialMatching_mobius_coeff_sum_eq_zero_int`.
   simpa using congrArg ((↑) : ℤ → R) (partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq)
 
-/-- Core trace-fiber Möbius cancellation for split block weights.
+/-- Trace-pair partial-matching regrouping for the cumulant transform.
 
-This is the reusable combinatorial statement underlying
-`cumulantTransform_eq_zero_of_split_trace_fiber`.  It is stated with all elementary side facts
-already exposed, so callers can keep their proofs short and readable.
+This lemma is the missing reusable `Finpartition` API needed by the split-cumulant proof below.
+It states that the defining sum over partitions of `univ` can be reindexed by the two trace
+partitions on the cut `A | univ \ A`; the fiber over traces `π, σ` is the finite set of partial
+matchings between `π.parts` and `σ.parts`, grouped by its size `m`.
 
-Informal proof.  Restrict each partition of `univ` to the two sides `A` and `univ \ A`, erasing
-empty intersections.  For fixed trace partitions with `p` and `q` blocks, the fiber consists of
-partial matchings between the two block sets.  A matching of size `m` has
-`p + q - m` blocks.  The split hypothesis factors the weight of every glued block, while the two
-absorption hypotheses remove the harmless `f ∅` factors from pure-side blocks, so the block product
-is constant on each fiber.  The remaining signed Möbius coefficient of the fiber is the standard
-finite-difference sum
+Informal proof.  Map `P : Finpartition univ` to its restrictions to `A` and to `univ \ A`.  For
+fixed traces `π, σ`, a partition in the fiber is uniquely obtained by choosing a partial matching
+between trace blocks and gluing each matched pair; unmatched blocks remain pure.  A matching of size
+`m` has `π.parts.card + σ.parts.card - m` blocks and there are
+`π.parts.card.choose m * σ.parts.card.choose m * m.factorial` such matchings.  The split hypothesis
+makes the block product of every element of the fiber equal to
+`π.blockProduct f * σ.blockProduct f`; the pure-block `f ∅` factors are absorbed by the two
+trace-identity hypotheses.  Expanding `Finpartition.cumulantTransform`, summing each fiber, and
+using `Finpartition.cumulantCoefficient` gives exactly the displayed inner coefficient sum.
 
-`∑ m, (p.choose m) * (q.choose m) * m! * (-1)^(p+q-m-1) * (p+q-m-1)!`,
-
-which vanishes for `p,q ≥ 1`: after assuming `p ≤ q`, it is the `p`-th forward difference of a
-polynomial of degree `< p`.  This is the classical partition-lattice proof of vanishing mixed
-cumulants; see T. P. Speed, "Cumulants and partition lattices", Austral. J. Statist. 25 (1983),
-378--388, and Mathlib's finite-difference API in `Mathlib/Algebra/Group/ForwardDiff.lean`.
-
-TODO: formalize the trace restriction map, the partial-matching fiber equivalence, and the displayed
-coefficient identity as `Finpartition` API.
-
-Trace-fiber regrouping lemma for the split-cumulant cancellation.
-
-This is the missing reusable `Finpartition` API isolated from the elementary algebra around the
-split.  Its hypotheses expose every fact needed by the combinatorial proof: the two sides cover
-`univ` and are disjoint; block weights split along the named complement; `f ∅` is an identity on
-both trace sides; and the signed partial-matching coefficient sum vanishes for all nonempty trace
-sizes.
-
-Informal proof.  For each `P : Finpartition univ`, form its two trace partitions by applying
-`Finpartition.restrict` to `A` and to `univ \ A` and erasing empty intersections.  Group the
-cumulant sum by these trace pairs.  For fixed traces `π, σ`, every partition in the fiber is
-obtained uniquely from a partial matching between `π.parts` and `σ.parts`: a matched pair of trace
-blocks is glued to a mixed block, and unmatched blocks remain pure.  A matching of size `m` has
-`π.parts.card + σ.parts.card - m` blocks, and there are
-`π.parts.card.choose m * σ.parts.card.choose m * m.factorial` such matchings.  The block-product
-factor is constant on the fiber: `hblock_split_compl` splits every block, while
-`hleft_id_on_trace` and `hright_id_on_trace` absorb the additional `f ∅` factors attached to pure
-blocks.  Hence the inner fiber contribution is this constant block-product times exactly the
-coefficient sum supplied by `hfiber_coeff_cancel`, with positive trace sizes coming from `_hA` and
-`_hAc`; it is therefore zero.  Summing over all trace pairs gives the desired vanishing.
-
-This is the classical partition-lattice proof of vanishing mixed cumulants; see T. P. Speed,
-"Cumulants and partition lattices", Austral. J. Statist. 25 (1983), 378--388.  A future cleanup
-should formalize the trace-pair map and the partial-matching equivalence as lemmas in the
-`Finpartition` namespace. -/
-private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
+This is the classical partition-lattice regrouping used in T. P. Speed, "Cumulants and partition
+lattices", Austral. J. Statist. 25 (1983), 378--388.  Future work should move the trace map and
+partial-matching fiber equivalence into the `Finpartition` namespace. -/
+private lemma cumulantTransform_tracePair_partialMatching_regrouping [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
     (_huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
@@ -1861,13 +1832,36 @@ private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
                 ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
                   ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
   classical
-  -- This is the exact finite regrouping missing from the current `Finpartition` API.  Restrict
-  -- each partition of `univ` to `A` and `univ \ A`; over fixed traces `π, σ`, the fiber is counted
-  -- by partial matchings of their block sets.  The block-product is constant on the fiber by the
-  -- split and trace-absorption hypotheses, and a matching of size `m` contributes the displayed
-  -- Möbius coefficient.  See the docstring of the caller for the detailed informal proof and
-  -- references (Speed 1983, partition-lattice cumulants).
+  -- TODO(API): formalize the trace restriction map
+  -- `P ↦ (P.restrict A, P.restrict (univ \ A))`, the equivalence from each fiber to partial
+  -- matchings of the trace block sets, and the corresponding `Finset.sum_bij` regrouping.
+  -- The preceding docstring gives the complete finite combinatorial proof and literature source.
   sorry
+
+private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
+    [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
+    (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
+    (huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
+    (hcompl_ne : (Finset.univ \ A : Finset ι) ≠ ∅)
+    (hcut_cover : A ∪ (Finset.univ \ A) = (Finset.univ : Finset ι))
+    (hcut_disjoint : Disjoint A (Finset.univ \ A))
+    (hcompl_subset_univ : Finset.univ \ A ⊆ (Finset.univ : Finset ι))
+    (hblock_split_compl : ∀ B : Finset ι,
+      f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)))
+    (hleft_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ A → f B = f ∅ * f B)
+    (hright_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ Finset.univ \ A → f B = f ∅ * f B) :
+    Finpartition.cumulantTransform f Finset.univ =
+      ∑ π : Finpartition A,
+        ∑ σ : Finpartition (Finset.univ \ A),
+          (π.blockProduct f * σ.blockProduct f) *
+            (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
+              ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
+                ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
+                  ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
+  classical
+  exact cumulantTransform_tracePair_partialMatching_regrouping f A hA hAc huniv_ne hcompl_ne
+    hcut_cover hcut_disjoint hcompl_subset_univ hblock_split_compl hleft_id_on_trace
+    hright_id_on_trace
 
 -- For fixed trace partitions `π` of `A` and `σ` of `univ \ A`, the partial-matching coefficient
 -- sum vanishes: both sides of the cut are nonempty, so `π.parts` and `σ.parts` have positive
