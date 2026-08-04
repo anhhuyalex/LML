@@ -2211,3 +2211,821 @@ This workflow also follows LML's stated goals: it supplies high-quality reusable
 essential machine-learning theory, an extensible framework for later wide-network results,
 documentation aligned with code, and a trusted rather than merely plausible basis for research
 formalization.
+
+
+\chapter{Effective theory of deep linear networks at initialization}
+\label{chap:deep-linear-renormalization}
+
+\section{Scope, conventions, and corrections to the source}
+
+This chapter is the implementation blueprint for the chapter ``Effective Theory of Deep Linear
+Networks at Initialization'' in \texttt{docs/Renormalization.md}, beginning at line~1536 and ending
+at the end of that file.  It deliberately builds on the preceding renormalization and neural-network
+infrastructure rather than introducing another representation of an MLP, Gaussian initialization,
+joint moment, cumulant, or induced law.
+
+The formalization boundary is initialization, not training.  The principal results are:
+\begin{enumerate}
+  \item the exact conditional Gaussian law of one bias-free linear layer;
+  \item the covariance recursion for a finite dataset and its exact solution;
+  \item a normalized-energy recursion which simultaneously gives every even single-input
+    correlator;
+  \item exact connected four-point, fluctuation, and six-point formulae;
+  \item fixed-depth large-width, fixed-width large-depth, and double-scaling limits; and
+  \item a weak-convergence theorem, stated separately from moment convergence.
+\end{enumerate}
+
+We number the input as layer zero.  A network of depth $L$ has $L$ independently initialized
+weight matrices.  If its widths are $n_0,n_1,\ldots,n_L$, then the list supplied to an output
+correlator is $[n_1,\ldots,n_{L-1}]$: it contains the hidden widths strictly before the observed
+output and does not contain $n_0$ or $n_L$.  All width-dependent theorems assume positive widths.
+This is mathematically necessary and prevents Lean's totalized division by zero from silently
+turning the variance scaling $C_W/n$ into an unintended zero-variance model.
+
+\subsection{Truth-seeking corrections}
+
+The informal source is an excellent guide to the calculation, but the following qualifications are
+part of the formal statements.
+
+\begin{remark}[Covariance need not diverge to $+\infty$ for every pair]
+If $C_W>1$, a positive diagonal covariance diverges to $+\infty$.  An off-diagonal covariance can
+be zero or negative; it then remains zero or diverges to $-\infty$.  The general theorem is stated
+for its absolute value, while the $+\infty$ theorem assumes a positive initial covariance.  This
+corrects the unqualified claim in the discussion following
+\texttt{eq:deep-linear-exponential-solution}.
+\end{remark}
+
+\begin{remark}[Moments are not an unconditional characterization of a law]
+The assertion preceding Section~\texttt{sec:criticality\_DLN} that all correlators determine an
+arbitrary distribution is false without a determinacy hypothesis.  The library proves exact moment
+formulae as moment formulae.  Gaussian convergence of laws is a separate weak-convergence theorem,
+proved through the normalized-energy representation (or characteristic functions), never inferred
+solely from convergence of all moments.
+\end{remark}
+
+\begin{remark}[The combinatorial factor is a product]
+For $m,n\in\mathbb N$ with $n>0$, the primary definition is
+\[
+ c_{2m}(n)=\prod_{s=0}^{m-1}\left(1+\frac{2s}{n}\right).
+\]
+This works for every positive integer width.  The factorial display in
+\texttt{eq:combinatorial-2m} uses factorial notation at $n/2$ and is therefore not literally a
+natural-number factorial formula when $n$ is odd.  An optional Gamma-function restatement is
+\[
+ c_{2m}(n)=\left(\frac2n\right)^m
+   \frac{\Gamma(n/2+m)}{\Gamma(n/2)},
+\]
+but no Gamma-function API is needed for the network proof.
+\end{remark}
+
+\begin{remark}[Limits require filters and fixed parameters]
+Every $1/n$ expansion below fixes $m$ and, where applicable, the depth.  The double-scaling theorem
+quantifies over a sequence $L(n)$ and assumes both $L(n)\to\infty$ and
+$L(n)/n\to r$.  It does not assert uniformity in the moment order $m$.  The two iterated limits are
+stated in $\mathbb R_{\geq0}\cup\{\infty\}$ (or as filter divergence), because one of them is not a
+finite real limit.
+\end{remark}
+
+\begin{remark}[``Chaos'' is not a formal predicate]
+The formal conclusion at fixed width is divergence of higher moments and of normalized-energy
+fluctuations.  Claims about practical uselessness or chaos are interpretation, not theorem
+statements, until a quantitative stability predicate has been defined.
+\end{remark}
+
+\section{Modules and dependency order}
+
+The new code should be a sublibrary, not another collection of unrelated flat files:
+\begin{verbatim}
+Renormalization/Network, Initialization, InducedLaw
+                         |
+                         v
+Renormalization/DeepLinear/Basic
+          |                         \
+          v                          v
+DeepLinear/GaussianLayer      DeepLinear/Asymptotics
+          |
+          v
+DeepLinear/Moments
+          |
+          v
+DeepLinear/Fluctuations
+          |
+          v
+DeepLinear/Limits  <--------- DeepLinear/Asymptotics
+\end{verbatim}
+The files have the following responsibilities.
+\begin{description}
+  \item[\texttt{DeepLinear/Basic.lean}] Bias-free hyperparameters, the identity-activation
+    specialization of \texttt{MLPShape}/\texttt{MLPEnsemble}, normalized Gram matrices and energy,
+    and output-law wrappers.
+  \item[\texttt{DeepLinear/GaussianLayer.lean}] The conditional Gaussian layer law and moments of
+    normalized Gaussian energy.
+  \item[\texttt{DeepLinear/Moments.lean}] Width factors, hidden-width corrections, exact odd and
+    even correlators, and covariance criticality.
+  \item[\texttt{DeepLinear/Fluctuations.lean}] Connected four- and six-point amplitudes,
+    distinct-neuron square covariance, and exact energy variance.
+  \item[\texttt{DeepLinear/Asymptotics.lean}] Reusable finite-product expansions and
+    one-plus-small-factor limits.  Generic lemmas should be promoted to
+    \texttt{ForMathlib/Analysis/Asymptotics} after their second use.
+  \item[\texttt{DeepLinear/Limits.lean}] Fixed-depth, fixed-width, double-scaling, and weak-law
+    limits.
+\end{description}
+An umbrella \texttt{DeepLinear.lean} is publicly imported by
+\texttt{Optimization/Renormalization.lean}; the project-wide umbrella is updated only after all
+targeted modules compile.
+
+\section{Shared deterministic and probabilistic objects}
+
+Fix finite index types $A$ for samples, $I$ for input neurons, and $J$ for output neurons.  Unless
+explicitly stated otherwise, $I$ and every width index type are nonempty.
+
+\begin{definition}[Normalized Gram matrix and normalized energy]
+\label{def:dln:normalizedGram}
+\lean{NeuralNetwork.normalizedGram, NeuralNetwork.normalizedEnergy}
+For a batch $x:A\to I\to\mathbb R$, define
+\[
+ \operatorname{gram}(x)_{ab}
+   =\frac1{|I|}\sum_{i:I}x_a(i)x_b(i).
+\]
+For one vector $x:I\to\mathbb R$, define
+\[
+ Q_I(x)=\frac1{|I|}\sum_{i:I}x(i)^2.
+\]
+Thus $Q_I(x)=\operatorname{gram}(x)_{**}$ when $A$ is a singleton.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Equations \texttt{eq:deep-linear-normalized-inner-product-inputs} and
+\texttt{eq:deep-linear-covariance-notation-2}, and the observable in Section
+\texttt{sec:fluctuations\_DLN}.
+\end{definition}
+
+\begin{lemma}[Normalized Gram API]
+\label{lem:dln:normalizedGramAPI}
+\uses{def:dln:normalizedGram}
+\lean{NeuralNetwork.normalizedGram_symm, NeuralNetwork.normalizedGram_posSemidef,
+NeuralNetwork.normalizedGram_singleton, NeuralNetwork.normalizedEnergy_nonneg}
+The normalized Gram matrix is symmetric and positive semidefinite, its diagonal entries are
+normalized energies, and normalized energy is nonnegative.  These proofs are finite-sum algebra;
+they should not pass through \texttt{EuclideanSpace}.
+\end{lemma}
+
+\begin{lemma}[Initialization covariance in Gram form]
+\label{lem:dln:layerCovarianceGram}
+\uses{def:dln:normalizedGram}
+\lean{NeuralNetwork.layerCovariance_eq_bias_add_weight_mul_normalizedGram}
+For existing \texttt{InitHyperparams} $p$,
+\[
+ \operatorname{layerCovariance}(p,x)_{ab}
+ =p.C_b+p.C_W\operatorname{gram}(x)_{ab}.
+\]
+This should become the implementation of \texttt{layerCovariance}, or at least its canonical simp
+lemma.  It makes the fan-in cancellation visible and lets the existing positive-semidefinite proof
+reuse Lemma~\ref{lem:dln:normalizedGramAPI}.
+\end{lemma}
+
+\begin{definition}[Bias-free critical family]
+\label{def:dln:hyperparams}
+\lean{NeuralNetwork.DeepLinear.hyperparams}
+For $C_W:\mathbb R_{\geq0}$, define
+\[
+ \operatorname{hyperparams}(C_W)
+   :=\{\texttt{biasVariance}=0,\ \texttt{weightVariance}=C_W\}.
+\]
+The scalar weight variance supplied by the existing initialization API is then $C_W/|I|$, and the
+zero-variance Gaussian bias is a Dirac mass at zero.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:deep-linear-weight-init} and the zero-bias convention in Section
+\texttt{sec:DLN}.
+\end{definition}
+
+\begin{definition}[Deep-linear ensemble and its laws]
+\label{def:dln:ensemble}
+\uses{def:dln:hyperparams}
+\lean{NeuralNetwork.MLPShape.deepLinearEnsemble,
+NeuralNetwork.MLPShape.deepLinearOutputLaw,
+NeuralNetwork.MLPShape.deepLinearBatchLaw}
+Recursively specialize an existing \texttt{MLPShape} by putting
+\texttt{DeepLinear.hyperparams $C_W$} at every layer and using
+\texttt{NeuralNetwork.linear 1}.  Define the single-input and finite-batch output laws through the
+existing \texttt{ParamModel.outputLaw}; do not define them by an informal density.
+\end{definition}
+
+\begin{lemma}[Compatibility with existing kernel semantics]
+\label{lem:dln:kernelCompatibility}
+\uses{def:dln:ensemble}
+\lean{NeuralNetwork.MLPShape.deepLinearOutputKernel_apply}
+The recursively composed layer kernel of the deep-linear ensemble equals the global pushforward of
+\texttt{MLPShape.gaussianInit}.  The proof is a specialization of
+\texttt{MLPEnsemble.outputKernel\_apply\_eq\_outputLaw}; no Fubini argument is repeated here.
+\end{lemma}
+
+\section{One Gaussian layer and the radial recursion}
+
+The key design decision is to formalize a Gaussian scale mixture.  Conditional on a deterministic
+input $x$, different output rows are independent centered Gaussians with common variance
+$C_W Q_I(x)$.  All higher-moment calculations should descend from this statement.
+
+\begin{definition}[Gaussian and width moment factors]
+\label{def:dln:momentFactors}
+\lean{NeuralNetwork.DeepLinear.gaussianEvenCoeff,
+NeuralNetwork.DeepLinear.widthMomentFactor}
+Define
+\[
+ d_m=\frac{(2m)!}{2^m m!}=(2m-1)!!,
+ \qquad
+ c_{2m}(n)=\prod_{s=0}^{m-1}\left(1+\frac{2s}{n}\right).
+\]
+The Lean definition of $c_{2m}$ uses \texttt{Finset.range}; statements involving division assume
+$0<n$.
+\end{definition}
+
+\begin{lemma}[Small moment factors]
+\label{lem:dln:smallFactors}
+\uses{def:dln:momentFactors}
+\lean{NeuralNetwork.DeepLinear.widthMomentFactor_zero,
+NeuralNetwork.DeepLinear.widthMomentFactor_one,
+NeuralNetwork.DeepLinear.widthMomentFactor_two,
+NeuralNetwork.DeepLinear.widthMomentFactor_three}
+For positive $n$,
+\[
+ c_0(n)=c_2(n)=1,\qquad
+ c_4(n)=1+\frac2n,\qquad
+ c_6(n)=\left(1+\frac2n\right)\left(1+\frac4n\right).
+\]
+These are normalization lemmas used by every low-order corollary.
+\end{lemma}
+
+\begin{theorem}[Conditional law of a bias-free Gaussian layer]
+\label{thm:dln:conditionalLayerLaw}
+\uses{def:dln:normalizedGram, def:dln:hyperparams}
+\lean{NeuralNetwork.DeepLinear.map_batchPreactivation}
+For deterministic $x:A\to I\to\mathbb R$, the initialized preactivation batch, grouped by output
+neuron, has law
+\[
+ \bigotimes_{j:J}\mathcal N\!\left(0,C_W\operatorname{gram}(x)\right).
+\]
+Formally this is the specialization of
+\texttt{map\_evalBatch\_layerGaussianInit} together with
+Lemma~\ref{lem:dln:layerCovarianceGram}.  The target is Mathlib's
+\texttt{multivariateGaussian}, not a newly defined density.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The independence step in \texttt{eq:two-point-function-deep-linear-layer-ell} and the Wick
+contractions in \texttt{eq:deep-linear-four-point-a}.
+\end{theorem}
+
+\begin{theorem}[Moments of normalized standard-Gaussian energy]
+\label{thm:dln:gaussianEnergyMoment}
+\uses{def:dln:normalizedGram, def:dln:momentFactors}
+\lean{NeuralNetwork.DeepLinear.integral_normalizedEnergy_pow_stdGaussian}
+If $g_1,\ldots,g_n$ are independent standard Gaussians and $n>0$, then
+\[
+ \mathbb E\left[\left(\frac1n\sum_{j=1}^n g_j^2\right)^m\right]=c_{2m}(n).
+\]
+
+\begin{proof}
+Induct on $m$ using the Gaussian integration-by-parts recurrence, or expand the finite product and
+use \texttt{Renormalization.integral\_pow\_gaussianReal\_even} together with product-measure
+integration.  The preferred proof packages the sum of squares once and derives the recurrence
+$c_{2(m+1)}(n)=(1+2m/n)c_{2m}(n)$; it must not enumerate set partitions for each $m$.
+\end{proof}
+\end{theorem}
+
+\begin{theorem}[One-step energy-moment recursion]
+\label{thm:dln:energyStep}
+\uses{thm:dln:conditionalLayerLaw, thm:dln:gaussianEnergyMoment}
+\lean{NeuralNetwork.DeepLinear.integral_normalizedEnergy_pow_randomLayerKernel}
+For an input vector $x:I\to\mathbb R$ and an output width $n=|J|>0$,
+\[
+ \mathbb E\!\left[Q_J(z)^m\mid x\right]
+   =\big(C_WQ_I(x)\big)^m c_{2m}(n).
+\]
+This is the reusable radial recursion.  Its proof transports the integral through the conditional
+law and scales a standard Gaussian; all integrability facts are explicit.
+\end{theorem}
+
+\section{Exact correlators at arbitrary finite width and depth}
+
+\begin{definition}[Hidden-width correction and correlator amplitude]
+\label{def:dln:amplitude}
+\uses{def:dln:momentFactors}
+\lean{NeuralNetwork.DeepLinear.hiddenWidthCorrection,
+NeuralNetwork.DeepLinear.correlatorAmplitude}
+For a list $w=[n_1,\ldots,n_{L-1}]$ of hidden widths before an observed output, define
+\[
+ C_m(w)=\prod_{n\in w}c_{2m}(n),\qquad
+ G_{2m}(C_W,q,w)=\big(C_W^{|w|+1}q\big)^m C_m(w).
+\]
+Here $q=Q_{n_0}(x)$ for a single deterministic input.  The empty list gives the first-layer value.
+\end{definition}
+
+\begin{definition}[Kronecker pairing tensor]
+\label{def:dln:pairingTensor}
+\lean{NeuralNetwork.DeepLinear.pairingTensor}
+For output indices $a:\operatorname{Fin}(2m)\to J$, define
+\[
+ \Delta(a)=\sum_{P\text{ pairing of }\operatorname{Fin}(2m)}
+   \prod_{\{r,s\}\in P}\mathbf 1_{a_r=a_s}.
+\]
+Implement this as \texttt{Renormalization.wick} applied to the Kronecker covariance.  This reuses
+the existing pairing API and avoids a second notion of Wick contraction.
+\end{definition}
+
+\begin{theorem}[Odd correlators vanish]
+\label{thm:dln:oddMoments}
+\uses{def:dln:ensemble}
+\lean{NeuralNetwork.DeepLinear.jointMoment_outputLaw_odd}
+Every odd joint moment of a bias-free deep-linear output is zero.  The proof is by the conditional
+centered-Gaussian law (or parity invariance), not by expanding all weights.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The final paragraphs of Section \texttt{sec:DLN}.
+\end{theorem}
+
+\begin{theorem}[Exact $2m$-point correlator]
+\label{thm:dln:evenMoments}
+\uses{thm:dln:energyStep, def:dln:amplitude, def:dln:pairingTensor}
+\lean{NeuralNetwork.DeepLinear.jointMoment_outputLaw_even}
+Let all widths in $w$ be positive.  For a fixed input of normalized energy $q$ and output indices
+$a:\operatorname{Fin}(2m)\to J$,
+\[
+ \mathbb E\prod_{r=0}^{2m-1}z_{a_r}^{(L)}
+   =\Delta(a)G_{2m}(C_W,q,w).
+\]
+
+\begin{proof}
+Condition on the penultimate layer.  Wick's theorem gives the tensor $\Delta(a)$ times
+$(C_WQ)^m$.  Repeatedly apply Theorem~\ref{thm:dln:energyStep}; the tower property turns the
+conditional integrals into the product of width factors.  This proof is an induction on the
+existing shape or hidden-width list and contains no explicit six-point enumeration.
+\end{proof}
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:deep-linear-gaussian-first-layer},
+\texttt{eq:deep-linear-inductive-ansatz},
+\texttt{eq:combinatorial-2m}, and \texttt{eq:2m-full-solution}.
+\end{theorem}
+
+\begin{corollary}[Scalar even moment]
+\label{cor:dln:scalarMoment}
+\uses{thm:dln:evenMoments}
+\lean{NeuralNetwork.DeepLinear.integral_coordinate_pow_outputLaw_even}
+For any output coordinate $j$,
+\[
+ \mathbb E\big[(z_j^{(L)})^{2m}\big]=d_mG_{2m}(C_W,q,w).
+\]
+The proof reduces the all-equal Kronecker pairing tensor to the number of pairings.
+\end{corollary}
+
+\begin{theorem}[Finite-dataset covariance recursion]
+\label{thm:dln:covarianceRecursion}
+\uses{thm:dln:conditionalLayerLaw, def:dln:ensemble}
+\lean{NeuralNetwork.DeepLinear.covariance_batchOutputLaw,
+NeuralNetwork.DeepLinear.covariance_batchOutputLaw_closedForm}
+For samples $a,b:A$ and output neurons $i,j$, the depth-$L$ batch law satisfies
+\[
+ \mathbb E[z_i^{(L)}(x_a)z_j^{(L)}(x_b)]
+ =\mathbf 1_{i=j}\,C_W^L\operatorname{gram}(x)_{ab}.
+\]
+Equivalently, $G^{(\ell+1)}=C_WG^{(\ell)}$ and
+$G^{(\ell)}=C_W^\ell G^{(0)}$.  Centering is included in the theorem, so this is also a statement
+using Mathlib's \texttt{covariance}.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:two-point-function-deep-linear-layer-ell},
+\texttt{eq:deep-linear-kernel-recursion}, and
+\texttt{eq:deep-linear-exponential-solution}.
+\end{theorem}
+
+\begin{theorem}[Critical, subcritical, and supercritical regimes]
+\label{thm:dln:criticality}
+\uses{thm:dln:covarianceRecursion}
+\lean{NeuralNetwork.DeepLinear.tendsto_covariance_of_weightVariance_lt_one,
+NeuralNetwork.DeepLinear.covariance_eq_of_weightVariance_eq_one,
+NeuralNetwork.DeepLinear.tendsto_covariance_atTop_of_one_lt_weightVariance}
+For $q\geq0$:
+\begin{enumerate}
+  \item if $0\leq C_W<1$, then $C_W^Lq\to0$;
+  \item if $C_W=1$, then $C_W^Lq=q$ for every $L$; and
+  \item if $1<C_W$ and $0<q$, then $C_W^Lq\to+\infty$.
+\end{enumerate}
+For a signed nonzero off-diagonal covariance, the corresponding absolute value tends to infinity.
+\end{theorem}
+
+\begin{corollary}[The first layer is exactly Gaussian]
+\label{cor:dln:firstLayerGaussian}
+\uses{thm:dln:conditionalLayerLaw}
+\lean{NeuralNetwork.DeepLinear.firstLayerOutputLaw_eq_pi_gaussianReal}
+For a single input, the first-layer output law is the finite product
+$\bigotimes_j\mathcal N(0,C_Wq)$.  This is equality of measures, stronger than equality of all
+moments.
+\end{corollary}
+
+\section{Four-point correlations and fluctuations}
+
+Let $w=[n_1,\ldots,n_{\ell-1}]$ contain widths strictly before the observed layer and let
+$G_2=C_W^\ell q$.
+
+\begin{corollary}[Exact four-point amplitude]
+\label{cor:dln:fourPoint}
+\uses{thm:dln:evenMoments, lem:dln:smallFactors}
+\lean{NeuralNetwork.DeepLinear.fourPointAmplitude_eq}
+\[
+ G_4=C_2(w)G_2^2
+   =\left[\prod_{n\in w}\left(1+\frac2n\right)\right]G_2^2.
+\]
+Appending a hidden width $n_\ell$ gives the recursion
+$G_4^{(\ell+1)}=C_W^2(1+2/n_\ell)G_4^{(\ell)}$.
+\end{corollary}
+
+\begin{corollary}[Connected four-point tensor]
+\label{cor:dln:connectedFour}
+\uses{cor:dln:fourPoint}
+\lean{NeuralNetwork.DeepLinear.jointCumulant_four_outputLaw}
+The connected four-point correlator is the three-pairing Kronecker tensor multiplied by
+\[
+ \big(C_2(w)-1\big)G_2^2.
+\]
+The proof should use \texttt{jointCumulant\_four\_of\_centered}; it should not re-expand the
+partition lattice.
+\end{corollary}
+
+\begin{corollary}[Interaction between distinct squared neurons]
+\label{cor:dln:squareCovariance}
+\uses{cor:dln:connectedFour}
+\lean{NeuralNetwork.DeepLinear.covariance_sq_coordinates}
+If $j\neq k$, then
+\[
+ \operatorname{Cov}\big((z_j^{(\ell)})^2,(z_k^{(\ell)})^2\big)
+   =\big(C_2(w)-1\big)G_2^2.
+\]
+This is the formal content of \texttt{eq:deep-linear-scale}.
+\end{corollary}
+
+\begin{theorem}[Exact normalized-energy fluctuation]
+\label{thm:dln:energyVariance}
+\uses{thm:dln:energyStep, cor:dln:fourPoint}
+\lean{NeuralNetwork.DeepLinear.variance_normalizedEnergy}
+If the observed layer also has width $n_\ell>0$, then
+\[
+ \operatorname{Var}\big(Q_{n_\ell}(z^{(\ell)})\big)
+ =\left[\prod_{s=1}^{\ell}\left(1+\frac2{n_s}\right)-1\right]G_2^2.
+\]
+This exact identity is preferable to the source's final asymptotic line.  It follows immediately
+from the $m=1,2$ energy moments and \texttt{variance\_eq\_sub}.
+\end{theorem}
+
+\begin{corollary}[Equal-width fluctuation]
+\label{cor:dln:equalWidthVariance}
+\uses{thm:dln:energyVariance}
+\lean{NeuralNetwork.DeepLinear.variance_normalizedEnergy_equalWidth}
+For $n_1=\cdots=n_\ell=n$,
+\[
+ \operatorname{Var}(Q)=\left[\left(1+\frac2n\right)^\ell-1\right]G_2^2.
+\]
+The leading $2\ell/n$ term is proved later with a filter and fixed $\ell$.
+\end{corollary}
+
+\section{Six-point and general connected correlators}
+
+\begin{corollary}[Exact six-point amplitude]
+\label{cor:dln:sixPoint}
+\uses{thm:dln:evenMoments, lem:dln:smallFactors}
+\lean{NeuralNetwork.DeepLinear.sixPointAmplitude_eq}
+\[
+ G_6=C_3(w)G_2^3
+ =\left[\prod_{n\in w}\left(1+\frac2n\right)
+                         \left(1+\frac4n\right)\right]G_2^3.
+\]
+Consequently
+$G_6^{(\ell+1)}=C_W^3(1+6/n_\ell+8/n_\ell^2)G_6^{(\ell)}$.
+\end{corollary}
+
+\begin{corollary}[Connected six-point amplitude]
+\label{cor:dln:connectedSix}
+\uses{cor:dln:fourPoint, cor:dln:sixPoint}
+\lean{NeuralNetwork.DeepLinear.sixthCumulantAmplitude_eq}
+The coefficient of the sixth connected Kronecker tensor is
+\[
+ \big(C_3(w)-3C_2(w)+2\big)G_2^3.
+\]
+For one repeated coordinate, the scalar sixth cumulant is fifteen times this coefficient.  The
+factor fifteen must remain explicit so that the tensor amplitude is not confused with the scalar
+cumulant.
+\end{corollary}
+
+\begin{theorem}[General amplitude recursion]
+\label{thm:dln:generalRecursion}
+\uses{thm:dln:evenMoments}
+\lean{NeuralNetwork.DeepLinear.correlatorAmplitude_append}
+Appending a hidden layer of width $n$ gives
+\[
+ G_{2m}^{(\ell+1)}=C_W^m c_{2m}(n)G_{2m}^{(\ell)}.
+\]
+This is a one-line consequence of the list-product definition and is the public recurrence used by
+later signal-propagation chapters.
+\end{theorem}
+
+\section{Reusable asymptotic API}
+
+The generic lemmas in this section should be developed independently of probability and neural
+networks.  They are the main reusable API contribution of this chapter.
+
+\begin{lemma}[First-order expansion of a finite product]
+\label{lem:dln:finiteProductExpansion}
+\lean{Asymptotics.finset_prod_one_add_inv_sub}
+For a finite family $a_i\in\mathbb R$,
+\[
+ \prod_i\left(1+\frac{a_i}{n}\right)
+  =1+\frac{\sum_i a_i}{n}+O(n^{-2})
+ \qquad(n\to\infty).
+\]
+In Lean this is an \texttt{IsBigO} statement on \texttt{atTop} with functions
+$\mathbb N\to\mathbb R$.
+
+\begin{proof}
+Induct over the finset.  In the successor step multiply
+$(1+A/n+O(n^{-2}))(1+a/n)$, collect the new linear coefficient $A+a$, and absorb
+$Aa/n^2$ and the old remainder times $1+a/n$ into $O(n^{-2})$.  Eventual boundedness of
+$1+a/n$ follows from $1/n\to0$.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}[Width-factor expansion]
+\label{lem:dln:widthFactorExpansion}
+\uses{def:dln:momentFactors, lem:dln:finiteProductExpansion}
+\lean{NeuralNetwork.DeepLinear.widthMomentFactor_sub_linear_isBigO}
+For fixed $m$,
+\[
+ c_{2m}(n)=1+\frac{m(m-1)}n+O(n^{-2}).
+\]
+The coefficient follows from $\sum_{s<m}2s=m(m-1)$.
+\end{lemma}
+
+\begin{lemma}[Fixed-depth equal-width expansion]
+\label{lem:dln:fixedDepthExpansion}
+\uses{lem:dln:widthFactorExpansion}
+\lean{NeuralNetwork.DeepLinear.equalWidthCorrection_sub_linear_isBigO}
+For fixed $m$ and $L\geq1$,
+\[
+ c_{2m}(n)^{L-1}
+ =1+\frac{m(m-1)(L-1)}n+O(n^{-2}).
+\]
+In particular, $G_4-G_2^2=2(L-1)G_2^2/n+O(n^{-2})$ and
+$\operatorname{Var}(Q)=2LG_2^2/n+O(n^{-2})$.
+\end{lemma}
+
+\begin{lemma}[Exponential Taylor remainders]
+\label{lem:dln:expRemainders}
+\lean{NeuralNetwork.DeepLinear.exp_two_sub_linear_isBigO,
+NeuralNetwork.DeepLinear.exp_six_sub_three_exp_two_add_two_isBigO}
+At $r\to0$,
+\[
+ e^{2r}-1=2r+O(r^2),\qquad
+ e^{6r}-3e^{2r}+2=12r^2+O(r^3).
+\]
+Use the verified Mathlib theorem \texttt{Real.exp\_sub\_sum\_range\_isBigO\_pow} and finite
+algebra.  Do not introduce a custom Taylor theorem.
+\end{lemma}
+
+\section{Large-width, large-depth, and double-scaling limits}
+
+\begin{theorem}[Fixed-depth moment limit]
+\label{thm:dln:fixedDepthLimit}
+\uses{thm:dln:evenMoments, lem:dln:widthFactorExpansion}
+\lean{NeuralNetwork.DeepLinear.tendsto_equalWidth_correlatorAmplitude}
+For fixed $m,L$ and fixed two-point amplitude $G_2$,
+\[
+ \lim_{n\to\infty}G_{2m}^{(L)}=G_2^m.
+\]
+Thus every fixed finite joint moment tends to its Gaussian Wick value.  This theorem does not by
+itself claim convergence of measures.
+\end{theorem}
+
+\begin{theorem}[Fixed-depth weak Gaussian limit]
+\label{thm:dln:weakGaussianLimit}
+\uses{def:dln:ensemble, thm:dln:energyStep}
+\lean{NeuralNetwork.DeepLinear.tendsto_outputLaw_fixedDepth_atTop}
+Fix positive input and output dimensions, depth $L$, input $x$, and $C_W$.  Let every hidden width
+equal $n$.  As $n\to\infty$, the single-input output probability measure converges weakly to
+\[
+ \bigotimes_{j=1}^{n_L}\mathcal N\big(0,C_W^LQ_{n_0}(x)\big).
+\]
+
+\begin{proof}
+Couple each layer to a fresh standard Gaussian vector.  The normalized squared norm multiplier has
+mean $1$ and variance $2/n$, hence converges to $1$ in $L^2$ and in probability.  Induction over
+the fixed number of layers and the continuous-mapping/Slutsky argument make the random variance
+converge to $C_W^LQ(x)$.  Bounded continuous test functions then give weak convergence of the
+finite output vector.  A provisional \texttt{sorry} is permitted only with this proof in its
+docstring and a precise citation to a standard Slutsky theorem, for example
+\texttt{https://en.wikipedia.org/wiki/Slutsky\%27s\_theorem}; moment convergence is not an accepted
+substitute.
+\end{proof}
+\end{theorem}
+
+\begin{theorem}[Fixed-width higher moments diverge]
+\label{thm:dln:fixedWidthDivergence}
+\uses{def:dln:momentFactors, thm:dln:evenMoments}
+\lean{NeuralNetwork.DeepLinear.tendsto_correlatorAmplitude_fixedWidth_atTop}
+Assume $m\geq2$, $n>0$, $q>0$, and criticality $C_W=1$.  Then
+\[
+ c_{2m}(n)^{L-1}q^m\longrightarrow+\infty
+ \qquad(L\to\infty),
+\]
+because $c_{2m}(n)>1$.  The theorem is stated with the \texttt{atTop} filter (or in
+$\mathbb R_{\geq0}\cup\{\infty\}$), not as a real-valued limit equal to infinity.
+\end{theorem}
+
+\begin{corollary}[Noncommuting regimes]
+\label{cor:dln:noncommuting}
+\uses{thm:dln:fixedDepthLimit, thm:dln:fixedWidthDivergence}
+\lean{NeuralNetwork.DeepLinear.width_depth_limits_do_not_commute}
+For $m\geq2$ and positive critical input energy, taking width to infinity at fixed depth gives the
+finite Gaussian amplitude, whereas taking depth to infinity at fixed width diverges.  A fully
+literal iterated-limit equality is stated in \texttt{ENNReal}; the real theorem records the two
+filter limits separately.
+\end{corollary}
+
+\begin{theorem}[Double-scaling limit]
+\label{thm:dln:doubleScaling}
+\uses{lem:dln:widthFactorExpansion}
+\lean{NeuralNetwork.DeepLinear.tendsto_equalWidthCorrection_doubleScaling}
+Fix $m$.  Let $L:\mathbb N\to\mathbb N$ satisfy
+\[
+ L(n)\to\infty,\qquad \frac{L(n)}n\to r\in\mathbb R_{\geq0}.
+\]
+Then
+\[
+ c_{2m}(n)^{L(n)-1}\longrightarrow e^{m(m-1)r}.
+\]
+Consequently the critical correlator amplitude tends to
+$e^{m(m-1)r}q^m$.
+
+\begin{proof}
+Lemma~\ref{lem:dln:widthFactorExpansion} gives
+$c_{2m}(n)=1+a/n+O(n^{-2})$ with $a=m(m-1)$.  Hence
+$L(n)(c_{2m}(n)-1)\to ar$ and
+$L(n)(c_{2m}(n)-1)^2\to0$.  Apply the logarithmic form of the
+$(1+u_n)^{L_n}$ exponential limit; first prove it as a reusable lemma if Mathlib's
+\texttt{Real.tendsto\_one\_add\_pow\_exp\_of\_tendsto} does not match the varying exponent.  The
+subtraction of one from $L(n)$ is negligible.  All eventual positivity obligations are discharged
+before applying \texttt{log}.
+\end{proof}
+\end{theorem}
+
+\begin{corollary}[Double-scaled connected correlators]
+\label{cor:dln:doubleScaledCumulants}
+\uses{cor:dln:connectedFour, cor:dln:connectedSix, thm:dln:doubleScaling,
+lem:dln:expRemainders}
+\lean{NeuralNetwork.DeepLinear.tendsto_fourthCumulantAmplitude_doubleScaling,
+NeuralNetwork.DeepLinear.tendsto_sixthCumulantAmplitude_doubleScaling}
+At criticality,
+\[
+ \kappa_4^{\mathrm{amp}}\to(e^{2r}-1)q^2,
+ \qquad
+ \kappa_6^{\mathrm{amp}}\to(e^{6r}-3e^{2r}+2)q^3.
+\]
+As $r\to0$, these are respectively $2rq^2+O(r^2)$ and
+$12r^2q^3+O(r^3)$.  This proves the claimed hierarchy at orders four and six without asserting an
+unproved all-orders cumulant theorem.
+\end{corollary}
+
+\section{Refactors and reusable API policy}
+
+The following refactors improve generality without making this chapter depend on an unstable
+redesign.
+\begin{enumerate}
+  \item Move deterministic \texttt{batchPreactivation} and \texttt{batchActivate} from
+    \texttt{InducedLaw.lean} to \texttt{Network.lean}, leaving deprecated compatibility aliases.
+    They are architecture operations, not facts about induced measures.
+  \item Define \texttt{normalizedGram} once and express \texttt{layerCovariance} through it.  NTK
+    and future signal-propagation code should share this object.
+  \item Retain raw finite functions and \texttt{Matrix.mulVec} for layer algebra.  Cross to
+    \texttt{EuclideanSpace} exactly once in the multivariate-Gaussian law through the existing
+    \texttt{batchToEuclidean}; do not alternate representations inside a calculation.
+  \item Reuse \texttt{Renormalization.wick}, \texttt{jointCumulant}, and the low-order cumulant API.
+    No deep-linear-specific partition type is introduced.
+  \item Keep the radial moment theorem independent of MLP shapes.  Its hypotheses are simply a
+    product standard-Gaussian law and a positive finite dimension, making it suitable for later
+    promotion.
+  \item Do not immediately replace the parallel \texttt{MLPShape} and \texttt{MLPEnsemble}
+    inductives.  First prove their existing shape/hyperparameter correspondence and the kernel-law
+    bridge.  A later refactor may represent an ensemble as a dependent pair
+    $\sum_S S.\texttt{Hyperparams}$ while preserving aliases.
+\end{enumerate}
+
+\section{Implementation phases and acceptance criteria}
+
+\subsection*{Phase DL0: exact API audit}
+Create an exact-import scratch file and \texttt{\#check} every Mathlib/LML declaration used by the
+first module.  In particular verify \texttt{integral\_map},
+\texttt{integral\_pow\_gaussianReal\_even}, \texttt{variance\_eq\_sub},
+\texttt{map\_evalBatch\_layerGaussianInit}, \texttt{Renormalization.wick}, and the asymptotic
+exponential lemmas.  Acceptance: the scratch file compiles and no proposed external name is merely
+plausible.
+
+\subsection*{Phase DL1: deterministic specialization}
+Implement normalized Gram/energy, Gram-form covariance, bias-free hyperparameters, deep-linear
+shape specialization, and law wrappers.  Acceptance: zero biases are proved almost surely or
+eliminated by an exact map-law theorem; positive-width assumptions are visible.
+
+\subsection*{Phase DL2: one-layer radial API}
+Prove the conditional Gaussian law, Gaussian energy moments, and the one-step recursion.
+Acceptance: $m=0,1,2,3$ reduce to the displayed factors by \texttt{simp}/small named lemmas; no
+proof enumerates fifteen Wick terms.
+
+\subsection*{Phase DL3: finite-depth moments}
+Prove odd vanishing, the general even tensor theorem, scalar moments, covariance recursion, and
+criticality.  Acceptance: the first-layer law is equality of measures and the arbitrary-depth
+theorem is an induction using the radial API.
+
+\subsection*{Phase DL4: cumulants and fluctuations}
+Derive four- and six-point results and exact normalized-energy variance from the general theorem.
+Acceptance: low-order cumulants reuse \texttt{Cumulant.lean}, and the source's coefficients are
+checked as corollaries of the product formula.
+
+\subsection*{Phase DL5: asymptotics}
+Prove the finite-product expansion in isolation, followed by fixed-depth, fixed-width, and
+double-scaling results.  Acceptance: every asymptotic statement names its filter and fixed
+parameters; infinity lives in a filter or extended nonnegative reals.
+
+\subsection*{Phase DL6: weak convergence and integration}
+Prove the fixed-depth weak Gaussian limit using normalized-energy concentration, then add umbrella
+imports and documentation.  Acceptance: no law equality or convergence is deduced only from moment
+convergence; run \texttt{lake env lean} on each edited file, targeted \texttt{lake build} modules,
+the full LML build, and linters.
+
+\section{Failure analysis and complete compliance with \texttt{lessons\_learned.md}}
+
+The concrete error in the pre-existing plan is a source-boundary failure: despite its length, it
+formalizes Chapters~1 and~2 and stops before line~1536.  It contains no definition or theorem for a
+deep-linear specialization, normalized energy, layer-to-layer correlator recursion, width factor,
+finite-width fluctuation, or double-scaling limit.  Treating that document as a plan for the
+requested chapter because its filename is \texttt{renormalization.tex} would repeat exactly the
+following violations:
+\begin{enumerate}
+  \item \textbf{Rule 1 (Verify Before Implementation):} the source line and headings were not
+    checked against the declarations actually covered by the blueprint.
+  \item \textbf{Rule 8 (scratch verification) and Rules 13--14 (ground-truth diagnostics):} a
+    large, compiling artifact was mistaken for evidence of semantic coverage.  Compilation cannot
+    show that the requested source range was read.
+  \item \textbf{Rule 9 (Skeleton-First):} the source-level objects $G_{2m}$, $c_{2m}(n)$,
+    normalized energy, and the three limiting regimes were absent before proof planning.
+  \item \textbf{Rule 19 (API extraction):} without the radial recursion, each four-, six-, and
+    $2m$-point proof would repeat a growing Wick calculation and create goal-state bloat.
+\end{enumerate}
+
+Several tempting mathematical errors would compound the boundary error.  Claiming that all moments
+always determine a law, using the source's factorial display at odd width, forcing every
+off-diagonal covariance to $+\infty$, writing $\infty$ as a real limit, or treating an $O(n^{-2})$
+expansion as uniform in depth or moment order would violate \textbf{Rule 18 (Never Hallucinate
+Mathematical Bounds / No Goal Forcing)}.  Enumerating the six-point Wick terms would violate
+\textbf{Rule 12 (monolithic calculations)} and \textbf{Rule 7 (modularize tactic-heavy subgoals)}.
+Guessing a product-Gaussian \texttt{IsGaussian} instance or a row-dot-product map lemma would
+violate \textbf{Rules 1 and 3}; \texttt{docs/hallucinated\_mathlib.md} specifically records that
+there is no blanket \texttt{IsGaussian (Measure.pi ...)} instance and no theorem named
+\texttt{map\_gaussianRowMeasure\_dotProduct}.  The verified routes are the existing
+\texttt{map\_evalBatch\_layerGaussianInit}, \texttt{multivariateGaussian},
+\texttt{IsGaussian.map\_eq\_gaussianReal}, and explicit product-measure coordinate laws.
+
+The new plan complies with the lessons completely in both workflow and theorem design:
+\begin{enumerate}
+  \item It begins with the literal line-1536 source boundary and supplies a source citation for
+    every mathematical group of declarations, satisfying \textbf{Rule 1}.
+  \item Phase DL0 uses exact imports and exact signatures before implementation, satisfying
+    \textbf{Rules 3, 8, and 11}.  The verified current interfaces include
+    \texttt{Renormalization.integral\_pow\_gaussianReal\_even},
+    \texttt{Renormalization.wick}, \texttt{MeasureTheory.integral\_map},
+    \texttt{ProbabilityTheory.variance\_eq\_sub},
+    \texttt{NeuralNetwork.map\_evalBatch\_layerGaussianInit}, and
+    \texttt{Real.exp\_sub\_sum\_range\_isBigO\_pow}.
+  \item Declarations are added one dependency layer at a time and checked in their actual files,
+    satisfying \textbf{Rules 2, 4, 13, and 14}.  A full build is a final integration check, not a
+    substitute for targeted checks.
+  \item The one-step radial theorem is the extracted API boundary; all higher moments reuse it.
+    This satisfies \textbf{Rules 7, 12, and 19} and keeps proofs short and readable.
+  \item Raw function/\texttt{Matrix.mulVec} algebra and \texttt{EuclideanSpace} Gaussian analysis
+    are separated by one named bridge, complying with Sections~13.9 and~14.17 and preventing the
+    instance/coercion failures catalogued there.
+  \item Probability measures, maps, integrability, nonempty widths, and filters are explicit in
+    theorem statements, complying with Section~1.4 and preventing hidden zero-measure or
+    division-by-zero semantics.
+  \item Every asymptotic theorem fixes the parameters on which its constants depend.  Weak
+    convergence is proved separately from moments, so no false inference is hidden by a
+    \texttt{sorry}; this is direct compliance with \textbf{Rule 18}.
+  \item Low-order formulas are derived from general declarations before long downstream proofs,
+    and declaration order follows the displayed dependency graph, complying with
+    \textbf{Rule 9} and Section~14.34.
+  \item If the weak-limit theorem temporarily remains \texttt{sorry}, its docstring must contain
+    the informal coupling/Slutsky proof and a precise source as specified above.  No phase is
+    accepted as mergeable while such a placeholder remains.
+\end{enumerate}
+
+This is total rather than aspirational compliance: every phase has a mathematical acceptance
+criterion and a targeted compilation criterion, every potentially false informal claim has been
+weakened to a correct formal statement, and every recurring calculation has a named reusable API
+before specialization.  The result matches LML's goals of high-quality definitions, essential
+machine-learning theorems, extensible algorithmic infrastructure, explicit documentation, and a
+trusted basis for research formalization.

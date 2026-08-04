@@ -1789,7 +1789,9 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero {R : Type*} [CommRing R]
   -- The identity is universal in the target commutative ring: prove it over `ℤ` and cast through
   -- the canonical homomorphism `ℤ → R`; the symmetry reduction to the ordered case is isolated in
   -- `partialMatching_mobius_coeff_sum_eq_zero_int`.
-  simpa using congrArg (fun z : ℤ => (z : R)) (partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq)
+  simpa using
+    congrArg (fun z : ℤ => (z : R))
+      (partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq)
 
 /-- Core trace-fiber Möbius cancellation for split block weights.
 
@@ -1862,6 +1864,27 @@ private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux [Fintype
   -- block-product on fibers, and the final finite-sum reindexing described in the docstring.
   sorry
 
+-- The two sides `A` and `univ \ A` of a cut form a disjoint cover of `univ`, and the complement is
+-- a subset of `univ`.  These three set-theoretic facts are always used together: they package the
+-- "genuine cut" setup needed to form the trace partitions on both sides of the split.
+private lemma cut_cover_disjoint_subset [Fintype ι] [DecidableEq ι] (A : Finset ι) :
+    A ∪ (Finset.univ \ A) = (Finset.univ : Finset ι) ∧
+      Disjoint A (Finset.univ \ A) ∧
+      Finset.univ \ A ⊆ (Finset.univ : Finset ι) := by
+  -- The three facts are the Boolean-algebra identities `A ∪ Aᶜ = univ`, `Disjoint A Aᶜ`,
+  -- `Aᶜ ⊆ univ` (with `univ \ A = Aᶜ` by definition).
+  simp [Finset.disjoint_sdiff]
+
+-- Rewrite the split hypothesis `f s = f (s ∩ A) * f (s \ A)` in terms of the named complement
+-- `univ \ A`: for every block `B` we have `B \ A = B ∩ (univ \ A)`, so `f B` factors into its
+-- `A`-restriction and its `(univ \ A)`-restriction.
+private lemma block_split_compl [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
+    (f : Finset ι → R) (A : Finset ι) (h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A)) :
+    ∀ B : Finset ι, f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)) := by
+  -- `B \ A = B ∩ (univ \ A)` is the set-theoretic conversion between the two notations.
+  intro B
+  simpa [Finset.sdiff_eq_inter_compl] using h_factor B
+
 private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
@@ -1871,55 +1894,16 @@ private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintyp
     (_hleft_absorb : ∀ ⦃b : Finset ι⦄, b ⊆ A → f ∅ * f b = f b)
     (_hright_absorb : ∀ ⦃b : Finset ι⦄, b ⊆ Finset.univ \ A → f ∅ * f b = f b) :
     Finpartition.cumulantTransform f Finset.univ = 0 := by
-  classical
-  -- The two sides form a genuine non-trivial cut of `univ`.
-  have hcut_cover : A ∪ (Finset.univ \ A) = (Finset.univ : Finset ι) := by
-    ext i
-    simp [or_iff_not_imp_left]
-  have hcut_disjoint : Disjoint A (Finset.univ \ A) := by
-    rw [Finset.disjoint_iff_inter_eq_empty]
-    ext i
-    simp
-  have hcompl_subset_univ : Finset.univ \ A ⊆ (Finset.univ : Finset ι) :=
-    Finset.sdiff_subset
-  -- Rewrite the split hypothesis using the named complement.  This is the identity used on every
-  -- block before regrouping partitions by their traces on `A` and on `univ \ A`.
-  have hblock_split_compl (B : Finset ι) :
-      f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)) := by
-    have hsdiff_eq_inter_compl : B \ A = B ∩ (Finset.univ \ A) := by
-      ext i
-      simp
-    simpa [hsdiff_eq_inter_compl] using _h_factor B
-  -- Pure-side trace blocks may pick up a harmless factor `f ∅`; the absorption hypotheses remove
-  -- exactly those factors.
-  have hleft_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ A → f B = f ∅ * f B :=
-    fun {B} hB ↦ (_hleft_absorb (b := B) hB).symm
-  have hright_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ Finset.univ \ A → f B = f ∅ * f B :=
-    fun {B} hB ↦ (_hright_absorb (b := B) hB).symm
-  -- The numerical cancellation left after fixing left/right trace partitions.  For trace sizes
-  -- `p,q ≥ 1`, a fiber is enumerated by partial matchings of size `m`; the displayed sum is its
-  -- total Möbius coefficient.  The proof is the standard finite-difference argument described in
-  -- the lemma docstring and in Speed, "Cumulants and partition lattices" (1983): after assuming
-  -- `p ≤ q`, the inner alternating binomial sum is the `p`-th forward difference of a polynomial of
-  -- degree `< p`.
-  have hfiber_coeff_cancel :
-      ∀ p q : ℕ, 0 < p → 0 < q →
-        (∑ m ∈ Finset.range (Nat.min p q + 1),
-          ((((p.choose m) * (q.choose m) * m.factorial : ℕ) : R) *
-            ((-1 : R) ^ (p + q - m - 1) * ((p + q - m - 1).factorial : R)))) = 0 := by
-    intro p q hp hq
-    exact partialMatching_mobius_coeff_sum_eq_zero p q hp hq
-  -- Main trace-fiber step.  Restrict each partition of `univ` to `A` and to `univ \ A`, erasing
-  -- empty intersections.  The preceding facts give:
-  -- * traces are nonempty because `_hA` and `_hAc` are nonempty;
-  -- * `hblock_split_compl`, `hleft_id_on_trace`, and `hright_id_on_trace` make the block product
-  --   constant on each trace fiber;
-  -- * each fiber is counted by partial matchings of its trace blocks, and `hfiber_coeff_cancel`
-  --   makes its total Möbius coefficient vanish.
-  -- Summing the zero fiber contributions gives the cumulant cancellation.
+  -- The two sides form a genuine non-trivial cut of `univ`: they cover `univ`, are disjoint, and
+  -- the complement is a subset of `univ`.  `block_split_compl` rewrites the split hypothesis using
+  -- the named complement, and the absorption hypotheses remove the harmless `f ∅` factors from
+  -- pure-side trace blocks; the remaining fiber Möbius coefficients cancel by
+  -- `partialMatching_mobius_coeff_sum_eq_zero`.
+  have hcut := cut_cover_disjoint_subset A
   exact cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux f A _hA _hAc _huniv_ne
-    _hcompl_ne hcut_cover hcut_disjoint hcompl_subset_univ hblock_split_compl
-    hleft_id_on_trace hright_id_on_trace hfiber_coeff_cancel
+    _hcompl_ne hcut.1 hcut.2.1 hcut.2.2 (block_split_compl f A _h_factor)
+    (fun B hB => (_hleft_absorb hB).symm) (fun B hB => (_hright_absorb hB).symm)
+    partialMatching_mobius_coeff_sum_eq_zero
 
 /-- Trace-fiber cancellation for split block weights.
 
