@@ -6,6 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Basic
+public import Mathlib.Algebra.Group.ForwardDiff
+public import Mathlib.Tactic.ComputeDegree
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Independence.Integration
 public import Mathlib.Probability.Moments.Covariance
@@ -1566,6 +1568,192 @@ private lemma restrict_sdiff_parts {ι : Type*} [DecidableEq ι] {s : Finset ι}
           hCneB (P.eq_of_mem_parts hCparts hB hx hxB)⟩
       exact ⟨C, hCparts, Finset.inter_eq_left.mpr hC_sub⟩
 
+-- The alternating binomial sum `∑ m, (-1)^m * p.choose m * P(m)` vanishes, where
+-- `P(m) = ∏_{j < p-1} (q + (j + 1) - m)`.
+--
+-- This is the finite-difference step: regard `P` as the evaluation at `m` of the polynomial
+-- `∏ j < p-1, (C (q + (j + 1)) - X)`, which has degree at most `p - 1` and therefore degree
+-- `< p` because `hp : 0 < p`.  Expanding the `p`-th forward difference at zero gives exactly
+-- this alternating binomial sum (up to the harmless global sign `(-1)^p`).
+private lemma partialMatching_finiteDifference_sum_eq_zero (p q : ℕ) (hp : 0 < p) :
+    (∑ m ∈ Finset.range (p + 1),
+      (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) *
+        ∏ j ∈ Finset.range (p - 1), (((q + (j + 1) : ℕ) : ℤ) - (m : ℤ)))) = 0 := by
+  let P : ℕ → ℤ := fun m =>
+    ∏ j ∈ Finset.range (p - 1), (((q + (j + 1) : ℕ) : ℤ) - (m : ℤ))
+  have hFiniteDifference :
+      (∑ m ∈ Finset.range (p + 1),
+        (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) = 0 := by
+    let Q : Polynomial ℤ :=
+      ∏ j ∈ Finset.range (p - 1),
+        (Polynomial.C (((q + (j + 1) : ℕ) : ℤ)) - Polynomial.X)
+    have hQ_eval : ∀ m : ℕ, Q.eval (m : ℤ) = P m := fun m => by
+      simp [Q, P, Polynomial.eval_prod, Polynomial.eval_sub, Polynomial.eval_X]
+    have hQ_degree : Q.natDegree < p := by
+      have hdeg_le : Q.natDegree ≤ p - 1 := by
+        calc
+          Q.natDegree ≤
+              ∑ j ∈ Finset.range (p - 1),
+                (Polynomial.C (((q + (j + 1) : ℕ) : ℤ)) -
+                  (Polynomial.X : Polynomial ℤ)).natDegree := by
+            simpa [Q] using
+              (Polynomial.natDegree_prod_le (Finset.range (p - 1)) fun j ↦
+                Polynomial.C (((q + (j + 1) : ℕ) : ℤ)) - (Polynomial.X : Polynomial ℤ))
+          _ ≤ ∑ _j ∈ Finset.range (p - 1), 1 := by
+            refine Finset.sum_le_sum ?_
+            intro j _hj
+            compute_degree
+          _ = p - 1 := by simp
+      exact lt_of_le_of_lt hdeg_le (Nat.sub_lt hp Nat.zero_lt_one)
+    have hsum_pminus :
+        (∑ m ∈ Finset.range (p + 1),
+          (((-1 : ℤ) ^ (p - m) * (((p.choose m : ℕ) : ℤ))) * P m)) = 0 := by
+      simpa [hQ_eval, zsmul_eq_mul, mul_assoc,
+        fwdDiff_iter_eq_sum_shift (1 : ℤ) Q.eval p (0 : ℤ)] using
+        congrFun (Polynomial.fwdDiff_iter_eq_zero_of_degree_lt hQ_degree) (0 : ℤ)
+    have hsign : ∀ m ∈ Finset.range (p + 1),
+        (-1 : ℤ) ^ m = (-1 : ℤ) ^ p * (-1 : ℤ) ^ (p - m) := by
+      intro m hm
+      have hm_le_p : m ≤ p := Nat.lt_succ_iff.mp (Finset.mem_range.mp hm)
+      have hpm : p - m + m = p := Nat.sub_add_cancel hm_le_p
+      have hmul : (-1 : ℤ) ^ (p - m) * (-1 : ℤ) ^ m = (-1 : ℤ) ^ p := by
+        rw [← pow_add, hpm]
+      have hsquare : (-1 : ℤ) ^ (p - m) * (-1 : ℤ) ^ (p - m) = 1 := by
+        rw [← pow_add, ← two_mul, pow_mul]
+        norm_num
+      rw [mul_comm, ← hmul, ← mul_assoc, hsquare, one_mul]
+    calc
+      (∑ m ∈ Finset.range (p + 1),
+        (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m))
+          = ∑ m ∈ Finset.range (p + 1),
+              (-1 : ℤ) ^ p *
+                (((-1 : ℤ) ^ (p - m) * (((p.choose m : ℕ) : ℤ))) * P m) := by
+            exact Finset.sum_congr rfl (fun m hm => by rw [hsign m hm]; ring)
+      _ = 0 := by
+            rw [← Finset.mul_sum, hsum_pminus]
+            simp
+  -- Unfold the local `P` to recover the stated (inline) form of the conclusion.
+  simpa [P] using hFiniteDifference
+
+-- The factorial core of the per-term rewrite: using `q.choose m * m! * (q-m)! = q!`
+-- (`Nat.choose_mul_factorial_mul_factorial`) and
+-- `(q-m)! * (q-m+1).ascFactorial (p-1) = (p+q-m-1)!`
+-- (`Nat.factorial_mul_ascFactorial`), the product of the binomial coefficients and factorials
+-- collapses to `q! * p.choose m * (q-m+1).ascFactorial (p-1)`.
+private lemma partialMatching_factorial_core (p q m : ℕ) (hp : 0 < p) (hm_le_q : m ≤ q) :
+    p.choose m * q.choose m * m.factorial * (p + q - m - 1).factorial =
+      q.factorial * (p.choose m * (q - m + 1).ascFactorial (p - 1)) := by
+  have hasc :
+      (q - m).factorial * (q - m + 1).ascFactorial (p - 1) =
+        (p + q - m - 1).factorial := by
+    rw [Nat.factorial_mul_ascFactorial (q - m) (p - 1)]
+    congr 1
+    omega
+  calc
+    p.choose m * q.choose m * m.factorial * (p + q - m - 1).factorial
+        = p.choose m * (q.choose m * m.factorial * (q - m).factorial) *
+            (q - m + 1).ascFactorial (p - 1) := by
+          rw [← hasc]
+          ring
+    _ = p.choose m * q.factorial * (q - m + 1).ascFactorial (p - 1) := by
+          rw [Nat.choose_mul_factorial_mul_factorial hm_le_q]
+    _ = q.factorial * (p.choose m * (q - m + 1).ascFactorial (p - 1)) := by ring
+
+-- Each summand of the original sum rewrites as
+-- `q! * (-1)^(p+q-1) * ((-1)^m * p.choose m * P(m))`, with
+-- `P(m) = ∏_{j < p-1} (q + (j+1) - m)`.
+--
+-- The rewrite uses `partialMatching_factorial_core` to collapse the factorial part and the sign
+-- identity `(-1)^(p+q-m-1) = (-1)^(p+q-1) * (-1)^m` (the two exponents differ by `m` modulo 2).
+private lemma partialMatching_summand_eq (p q m : ℕ) (hp : 0 < p) (hq : 0 < q)
+    (hpq : p ≤ q) (hm : m ∈ Finset.range (p + 1)) :
+    (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
+      ((-1 : ℤ) ^ (p + q - m - 1) *
+        (((p + q - m - 1).factorial : ℕ) : ℤ)))) =
+    ((q.factorial : ℕ) : ℤ) * (-1 : ℤ) ^ (p + q - 1) *
+      ((-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) *
+        ∏ j ∈ Finset.range (p - 1), (((q + (j + 1) : ℕ) : ℤ) - (m : ℤ)))) := by
+  -- Here `m ≤ p ≤ q`, since `m ∈ range (p+1)`: the arithmetic side conditions for the factorial
+  -- and sign rewrites below.
+  have hm_le_q : m ≤ q := (Nat.lt_succ_iff.mp (Finset.mem_range.mp hm)).trans hpq
+  -- `P m` equals the rising factorial `(q - m + 1).ascFactorial (p - 1)`.
+  have hP :
+      (∏ j ∈ Finset.range (p - 1), (((q + (j + 1) : ℕ) : ℤ) - (m : ℤ))) =
+        (((q - m + 1).ascFactorial (p - 1) : ℕ) : ℤ) := by
+    simp only [Nat.ascFactorial_eq_prod_range, Nat.cast_prod]
+    refine Finset.prod_congr rfl (fun j _ => by omega)
+  -- Collapse the factorial part to `q! * p.choose m * (q-m+1).ascFactorial (p-1)` (in `ℤ`).
+  have hfact_core_int :
+      (((p.choose m * q.choose m * m.factorial : ℕ) : ℤ) *
+        (((p + q - m - 1).factorial : ℕ) : ℤ)) =
+        ((q.factorial : ℕ) : ℤ) *
+          (((p.choose m : ℕ) : ℤ) *
+            (((q - m + 1).ascFactorial (p - 1) : ℕ) : ℤ)) := by
+    exact_mod_cast partialMatching_factorial_core p q m hp hm_le_q
+  -- Sign identity: the two exponents `p+q-m-1` and `p+q-1` differ by `m` modulo 2.
+  have hsign :
+      (-1 : ℤ) ^ (p + q - m - 1) =
+        (-1 : ℤ) ^ (p + q - 1) * (-1 : ℤ) ^ m := by
+    have hmul :
+        (-1 : ℤ) ^ (p + q - m - 1) * (-1 : ℤ) ^ m =
+          (-1 : ℤ) ^ (p + q - 1) := by
+      rw [← pow_add, show p + q - m - 1 + m = p + q - 1 by omega]
+    have hsquare : (-1 : ℤ) ^ m * (-1 : ℤ) ^ m = 1 := by
+      rw [← pow_add, ← two_mul, pow_mul]
+      norm_num
+    rw [← hmul, mul_assoc, hsquare, mul_one]
+  rw [hP]
+  calc
+    (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
+      ((-1 : ℤ) ^ (p + q - m - 1) *
+        (((p + q - m - 1).factorial : ℕ) : ℤ))))
+        = (-1 : ℤ) ^ (p + q - m - 1) *
+            (((p.choose m * q.choose m * m.factorial : ℕ) : ℤ) *
+              (((p + q - m - 1).factorial : ℕ) : ℤ)) := by ring
+    _ = ((q.factorial : ℕ) : ℤ) * (-1 : ℤ) ^ (p + q - 1) *
+          ((-1 : ℤ) ^ m *
+            (((p.choose m : ℕ) : ℤ) *
+              (((q - m + 1).ascFactorial (p - 1) : ℕ) : ℤ))) := by
+          rw [hsign, hfact_core_int]
+          ring
+
+/-- Integer version of the partial-matching cancellation in the ordered case `p ≤ q`.
+
+This helper isolates the real combinatorial work needed below.  The proof is intentionally written
+as the standard finite-difference reduction: after defining
+`P(m) = ∏_{j < p - 1} (q + (j + 1) - m)`, the factorial identities rewrite each summand as the
+constant `q! * (-1)^(p + q - 1)` times
+`(-1)^m * p.choose m * P(m)`.  The latter alternating binomial sum is the `p`-th forward
+difference of a polynomial of degree `< p`, hence zero.  See Speed, "Cumulants and partition
+lattices", Austral. J. Statist. 25 (1983), 378--388, and Mathlib's
+`Polynomial.fwdDiff_iter_eq_zero_of_degree_lt` / `fwdDiff_iter_eq_sum_shift`. -/
+private lemma partialMatching_mobius_coeff_sum_eq_zero_int_of_le
+    (p q : ℕ) (hp : 0 < p) (hq : 0 < q) (hpq : p ≤ q) :
+    (∑ m ∈ Finset.range (p + 1),
+      (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
+        ((-1 : ℤ) ^ (p + q - m - 1) *
+          (((p + q - m - 1).factorial : ℕ) : ℤ))))) = 0 := by
+  let P : ℕ → ℤ := fun m =>
+    ∏ j ∈ Finset.range (p - 1), (((q + (j + 1) : ℕ) : ℤ) - (m : ℤ))
+  have hFiniteDifference :
+      (∑ m ∈ Finset.range (p + 1),
+        (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) = 0 := by
+    -- Finite-difference cancellation of the alternating binomial sum over `P` (degree `< p`).
+    simpa [P] using partialMatching_finiteDifference_sum_eq_zero p q hp
+  calc
+    (∑ m ∈ Finset.range (p + 1),
+      (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
+        ((-1 : ℤ) ^ (p + q - m - 1) *
+          (((p + q - m - 1).factorial : ℕ) : ℤ)))))
+        = ∑ m ∈ Finset.range (p + 1),
+            ((q.factorial : ℕ) : ℤ) * (-1 : ℤ) ^ (p + q - 1) *
+              ((-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) := by
+          exact Finset.sum_congr rfl (fun m hm => by
+            simpa [P] using partialMatching_summand_eq p q m hp hq hpq hm)
+    _ = 0 := by
+          rw [← Finset.mul_sum, hFiniteDifference]
+          simp
+
 /-- The signed Möbius coefficient of a non-trivial two-sided partial-matching fiber is zero.
 
 For fixed nonempty traces with `p` left blocks and `q` right blocks, a partition in the fiber is
@@ -1608,19 +1796,17 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero {R : Type*} [CommRing R]
       -- This is just commutativity of `Nat.min`, addition, and multiplication in each summand.
       simp [Nat.min_comm, Nat.add_comm, mul_comm, mul_assoc]
     rcases le_total p q with hpq | hqp
-    · -- Now `Nat.min p q = p`, so the range is `0, ..., p`.  Introduce the polynomial
-      -- `P(X) = ∏ j = 1..p-1 (q - X + j)`.  Its degree is `< p`, so
-      -- `Polynomial.fwdDiff_iter_eq_zero_of_degree_lt` and `fwdDiff_iter_eq_sum_shift` give
-      -- `∑ m = 0..p, (-1)^m * p.choose m * P(m) = 0`.  Factorial-ratio identities rewrite the
-      -- original summand as the constant `q! * (-1)^(p+q-1)` times this alternating sum.
-      sorry
+    · -- Now `Nat.min p q = p`, so the range is `0, ..., p`; use the ordered integer helper.
+      simpa [Nat.min_eq_left hpq] using
+        partialMatching_mobius_coeff_sum_eq_zero_int_of_le p q hp hq hpq
     · -- The case `q ≤ p` is identical after swapping the two traces.  The equality `hsymm` records
       -- the required symmetry of the integer summand.
-      have _ := hsymm
-      sorry
+      rw [hsymm]
+      simpa [Nat.min_eq_left hqp] using
+        partialMatching_mobius_coeff_sum_eq_zero_int_of_le q p hq hp hqp
   -- Cast the integer identity to the arbitrary commutative ring `R`, distributing the cast through
   -- the finite sum, products, powers of `-1`, and factorial casts.
-  sorry
+  exact_mod_cast hInt
 
 /-- Core trace-fiber Möbius cancellation for split block weights.
 

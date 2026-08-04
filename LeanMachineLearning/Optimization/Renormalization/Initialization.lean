@@ -146,8 +146,7 @@ theorem gaussianPDFReal_bias_eq (p : InitHyperparams) (x : ℝ) :
     gaussianPDFReal 0 p.biasVariance x =
       (Real.sqrt (2 * Real.pi * (p.biasVariance : ℝ)))⁻¹ *
         Real.exp (-(x ^ 2) / (2 * (p.biasVariance : ℝ))) := by
-  rw [gaussianPDFReal]
-  simp only [sub_zero]
+  simp [gaussianPDFReal]
 
 /-- Pointwise expansion of the displayed fan-in-scaled weight density. -/
 theorem gaussianPDFReal_weight_eq (p : InitHyperparams) (ι : Type u)
@@ -155,8 +154,17 @@ theorem gaussianPDFReal_weight_eq (p : InitHyperparams) (ι : Type u)
     gaussianPDFReal 0 (scaledWeightVariance p ι) x =
       (Real.sqrt (2 * Real.pi * (scaledWeightVariance p ι : ℝ)))⁻¹ *
         Real.exp (-(x ^ 2) / (2 * (scaledWeightVariance p ι : ℝ))) := by
-  rw [gaussianPDFReal]
-  simp only [sub_zero]
+  simp [gaussianPDFReal]
+
+-- For positive `C` and `n`, moving the quotient `C / n` through the square root and inverting
+-- gives the fan-in-scaled normalization factor: 1/√(2π·(C/n)) = √(n/(2π·C)).
+-- Used by `gaussianPDFReal_weight_eq_source` to rewrite the weight density into the printed form.
+private lemma gaussianNorm_scaled_eq (C n : ℝ) (hC : 0 < C) (hn : 0 < n) :
+    (Real.sqrt (2 * Real.pi * (C / n)))⁻¹ =
+      Real.sqrt (n / (2 * Real.pi * C)) := by
+  rw [← Real.sqrt_inv]
+  congr 1
+  field_simp [ne_of_gt hC, ne_of_gt hn, Real.pi_ne_zero]
 
 /-- The fan-in-scaled weight density in exactly the algebraic form printed in Chapter 2.
 
@@ -171,7 +179,18 @@ theorem gaussianPDFReal_weight_eq_source (p : InitHyperparams) (ι : Type u)
           (2 * Real.pi * (p.weightVariance : ℝ))) *
         Real.exp (-((Fintype.card ι : ℝ) * x ^ 2) /
           (2 * (p.weightVariance : ℝ))) := by
-  sorry
+  rw [gaussianPDFReal_weight_eq]
+  simp only [scaledWeightVariance, NNReal.coe_div, NNReal.coe_natCast]
+  -- Positivity of the variance and of the fan-in, needed by the field simplifications below.
+  have hCpos : 0 < (p.weightVariance : ℝ) := by
+    exact_mod_cast pos_iff_ne_zero.mpr hp
+  have hnpos : 0 < (Fintype.card ι : ℝ) := by
+    exact_mod_cast Fintype.card_pos
+  -- Rewrite the square-root factor with the fan-in-scaled helper, then simplify the exponent.
+  rw [gaussianNorm_scaled_eq (p.weightVariance : ℝ) (Fintype.card ι : ℝ) hCpos hnpos]
+  congr 1
+  congr 1
+  field_simp [ne_of_gt hCpos, ne_of_gt hnpos]
 
 /-- Bias coordinates are mutually independent.
 
@@ -296,6 +315,17 @@ theorem indepFun_weight_bias_layerGaussianInit (p : InitHyperparams) (ι : Type 
       (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hWprob hBprob
       _ _ _ _ (fun w : κ → ι → ℝ => w) (fun b : κ → ℝ => b) measurable_id measurable_id)
 
+-- Measurability of one flattened coordinate evaluation: `layerCoordinate` is a case split
+-- between the weight coordinate `q.1 ji.1 ji.2` and the bias coordinate `q.2 j`.
+private lemma measurable_layerCoordinate {ι : Type u} {κ : Type v}
+    (c : LayerCoordinate ι κ) :
+    Measurable (fun q : LayerParams ι κ => layerCoordinate c q) := by
+  cases c with
+  | inl ji =>
+      exact (measurable_pi_apply ji.2).comp ((measurable_pi_apply ji.1).comp measurable_fst)
+  | inr j =>
+      exact (measurable_pi_apply j).comp measurable_snd
+
 /-- All weights and biases are jointly independent, not merely pairwise independent.
 
 Informal proof: the two nested `Measure.pi` constructions make all weight evaluations jointly
@@ -307,7 +337,65 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
     (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ] :
     iIndepFun (fun c : LayerCoordinate ι κ => layerCoordinate c)
       (layerGaussianInit p ι κ) := by
-  sorry
+  classical
+  let μ : Measure (LayerParams ι κ) := layerGaussianInit p ι κ
+  let W : LayerParams ι κ → (κ × ι → ℝ) := fun q ji => q.1 ji.1 ji.2
+  let B : LayerParams ι κ → (κ → ℝ) := fun q j => q.2 j
+  let F : LayerParams ι κ → (LayerCoordinate ι κ → ℝ) := fun q c => layerCoordinate c q
+  let e : (LayerCoordinate ι κ → ℝ) ≃ᵐ ((κ × ι → ℝ) × (κ → ℝ)) :=
+    MeasurableEquiv.sumPiEquivProdPi (fun _ : LayerCoordinate ι κ => ℝ)
+  let ρ : LayerCoordinate ι κ → Measure ℝ :=
+    fun c => μ.map (fun q : LayerParams ι κ => layerCoordinate c q)
+  -- Measurability of the flattened map `F` and of each coordinate evaluation.
+  have hFmeas : Measurable F := by
+    exact measurable_pi_lambda _ fun c => measurable_layerCoordinate c
+  have hF : ∀ c : LayerCoordinate ι κ,
+      AEMeasurable (fun q : LayerParams ι κ => layerCoordinate c q) μ := by
+    intro c
+    exact (measurable_layerCoordinate c).aemeasurable
+  rw [iIndepFun_iff_map_fun_eq_pi_map (μ := μ) hF]
+  apply MeasurableEquiv.map_measurableEquiv_injective e
+  have hWmeas : Measurable W := by
+    dsimp [W]
+    exact measurable_pi_lambda _ fun ji : κ × ι => measurable_layerCoordinate (.inl ji)
+  have hBmeas : Measurable B := by
+    exact measurable_pi_lambda _ fun j => measurable_layerCoordinate (.inr j)
+  have hWeightTuple :
+      μ.map W =
+        Measure.pi (fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2)) := by
+    simpa [μ, W, layerCoordinate] using
+      (iIndepFun_weight_layerGaussianInit p ι κ).map_fun_eq_pi_map (fun ji =>
+        (measurable_layerCoordinate (.inl ji)).aemeasurable)
+  have hBiasTuple :
+      μ.map B = Measure.pi (fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j)) := by
+    change
+      μ.map B =
+        Measure.pi (fun j : κ => μ.map (((fun b : κ → ℝ => b j) ∘ Prod.snd) : LayerParams ι κ → ℝ))
+    simpa [μ, B, layerCoordinate] using
+      (iIndepFun_bias_layerGaussianInit p ι κ).map_fun_eq_pi_map (fun j =>
+        (measurable_layerCoordinate (.inr j)).aemeasurable)
+  have hBlock : W ⟂ᵢ[μ] B := by
+    have hWB := indepFun_weight_bias_layerGaussianInit p ι κ
+    exact hWB.comp
+      (measurable_pi_lambda _ fun ji : κ × ι =>
+        (measurable_pi_apply ji.2).comp (measurable_pi_apply ji.1))
+      measurable_id
+  have hLeft : (μ.map F).map e = (μ.map W).prod (μ.map B) := by
+    rw [Measure.map_map e.measurable hFmeas]
+    change Measure.map (fun q : LayerParams ι κ => (W q, B q)) μ = (μ.map W).prod (μ.map B)
+    rw [hBlock.map_prod_eq_prod_map_map hWmeas.aemeasurable hBmeas.aemeasurable]
+  have hRight :
+      (Measure.pi ρ).map e =
+        (Measure.pi (fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2))).prod
+          (Measure.pi (fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j))) := by
+    simpa [e, LayerCoordinate, layerCoordinate, ρ] using
+      (measurePreserving_sumPiEquivProdPi (X := fun _ : LayerCoordinate ι κ => ℝ) ρ).map_eq
+  calc
+    (μ.map F).map e = (μ.map W).prod (μ.map B) := hLeft
+    _ = (Measure.pi fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2)).prod
+        (Measure.pi fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j)) := by
+          rw [hWeightTuple, hBiasTuple]
+    _ = (Measure.pi ρ).map e := hRight.symm
 
 /-- Every initialized bias is centered.
 
@@ -459,7 +547,33 @@ theorem covariance_weight_bias_layerGaussianInit (p : InitHyperparams)
     (jW : κ) (i : ι) (jB : κ) :
     cov[fun q : LayerParams ι κ => q.1 jW i,
       fun q => q.2 jB; layerGaussianInit p ι κ] = 0 := by
-  sorry
+  classical
+  let X : LayerParams ι κ → ℝ := fun q => q.1 jW i
+  let Y : LayerParams ι κ → ℝ := fun q => q.2 jB
+  have hX : AEMeasurable X (layerGaussianInit p ι κ) :=
+    ((measurable_pi_apply i).comp
+      ((measurable_pi_apply jW).comp measurable_fst)).aemeasurable
+  have hY : AEMeasurable Y (layerGaussianInit p ι κ) :=
+    ((measurable_pi_apply jB).comp measurable_snd).aemeasurable
+  have hIndep : X ⟂ᵢ[layerGaussianInit p ι κ] Y := by
+    exact (indepFun_weight_bias_layerGaussianInit p ι κ).comp
+      ((measurable_pi_apply i).comp (measurable_pi_apply jW))
+      (measurable_pi_apply jB)
+  have hXlp : MemLp X 2 (layerGaussianInit p ι κ) := by
+    have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map X (layerGaussianInit p ι κ)) := by
+      rw [map_weight_layerGaussianInit p ι κ jW i]
+      exact memLp_id_gaussianReal 2
+    exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := X)
+      (by exact measurable_id.aestronglyMeasurable) hX).1 hmem
+  have hYlp : MemLp Y 2 (layerGaussianInit p ι κ) := by
+    have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map Y (layerGaussianInit p ι κ)) := by
+      rw [map_bias_layerGaussianInit p ι κ jB]
+      exact memLp_id_gaussianReal 2
+    exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := Y)
+      (by exact measurable_id.aestronglyMeasurable) hY).1 hmem
+  have hXY : cov[X, Y; layerGaussianInit p ι κ] = 0 :=
+    ProbabilityTheory.IndepFun.covariance_eq_zero hIndep hXlp hYlp
+  simpa [X, Y] using hXY
 
 end NeuralNetwork
 
