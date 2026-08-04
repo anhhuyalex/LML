@@ -203,27 +203,19 @@ theorem iIndepFun_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ
     iIndepFun (fun j (q : LayerParams ι κ) => q.2 j) (layerGaussianInit p ι κ) := by
   classical
   have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
-    unfold gaussianWeightLaw
-    infer_instance
+    unfold gaussianWeightLaw; infer_instance
   have hBsfinite : SFinite (gaussianBiasLaw p κ) := by
-    unfold gaussianBiasLaw
-    infer_instance
+    unfold gaussianBiasLaw; infer_instance
   let X : κ → (κ → ℝ) → ℝ := fun j b => b j
   let f : LayerParams ι κ → κ → ℝ := Prod.snd
   have hf : AEMeasurable f (layerGaussianInit p ι κ) := measurable_snd.aemeasurable
   have hmap : Measure.map f (layerGaussianInit p ι κ) = gaussianBiasLaw p κ := by
-    rw [show f = (Prod.snd : LayerParams ι κ → κ → ℝ) from rfl, layerGaussianInit]
-    exact (@MeasureTheory.measurePreserving_snd (κ → ι → ℝ) (κ → ℝ) _ _
-      (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hBsfinite hWprob).map_eq
-  have hX : ∀ j, AEMeasurable (X j) (Measure.map f (layerGaussianInit p ι κ)) := by
-    intro j
-    exact (measurable_pi_apply j).aemeasurable
+    simp [f, layerGaussianInit]
+  have hX : ∀ j, AEMeasurable (X j) (Measure.map f (layerGaussianInit p ι κ)) :=
+    fun j => (measurable_pi_apply j).aemeasurable
   have hBias : iIndepFun X (Measure.map f (layerGaussianInit p ι κ)) := by
-    rw [hmap]
-    change iIndepFun (fun j (b : κ → ℝ) => (id : ℝ → ℝ) (b j))
-      (Measure.pi fun _ : κ => gaussianReal 0 p.biasVariance)
-    exact iIndepFun_pi (mΩ := fun _ : κ => inferInstance)
-      (mX := fun _ : κ => aemeasurable_id)
+    simpa [hmap, X, gaussianBiasLaw] using
+      (iIndepFun_pi (mΩ := fun _ : κ => inferInstance) (mX := fun _ : κ => aemeasurable_id))
   have hPullback : iIndepFun (fun j => X j ∘ f) (layerGaussianInit p ι κ) :=
     (ProbabilityTheory.iIndepFun_map_iff hf hX).mp hBias
   simpa [X, f, Function.comp_def] using hPullback
@@ -242,28 +234,23 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
   -- 1. The flattened product measure, transported to `gaussianWeightLaw` by currying.
   let G : Measure ℝ := gaussianReal 0 (scaledWeightVariance p ι)
   let μ₀ : Measure (κ × ι → ℝ) := Measure.pi fun _ : κ × ι => G
-  have hFlat : iIndepFun (fun ji (w : κ × ι → ℝ) => w ji) μ₀ := by
-    exact iIndepFun_pi (mΩ := fun _ : κ × ι => inferInstance)
+  have hFlat : iIndepFun (fun ji (w : κ × ι → ℝ) => w ji) μ₀ :=
+    iIndepFun_pi (mΩ := fun _ : κ × ι => inferInstance)
       (mX := fun _ : κ × ι => aemeasurable_id)
   have hCurry : μ₀.map (MeasurableEquiv.curry κ ι ℝ) = gaussianWeightLaw p ι κ := by
     unfold μ₀ gaussianWeightLaw
-    rw [← Measure.infinitePi_eq_pi (μ := fun _ : κ × ι => G)]
-    rw [Measure.infinitePi_map_curry (μ := fun (_ : κ) (_ : ι) => G)]
-    rw [Measure.infinitePi_eq_pi (μ := fun _ : κ => Measure.infinitePi fun _ : ι => G)]
-    congr 1
-    funext j
-    rw [Measure.infinitePi_eq_pi (μ := fun _ : ι => G)]
+    rw [← Measure.infinitePi_eq_pi (μ := fun _ : κ × ι => G),
+      Measure.infinitePi_map_curry (μ := fun (_ : κ) (_ : ι) => G)]
+    simp [G, Measure.infinitePi_eq_pi]
   let e : (κ × ι → ℝ) ≃ᵐ (κ → ι → ℝ) := MeasurableEquiv.curry κ ι ℝ
   have hCurrySymm : (gaussianWeightLaw p ι κ).map e.symm = μ₀ := by
     rw [← hCurry, MeasurableEquiv.map_symm_map e]
   have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
-    unfold gaussianWeightLaw
-    infer_instance
+    unfold gaussianWeightLaw; infer_instance
   have hX₀ : ∀ ji, AEMeasurable (fun w : κ × ι → ℝ => w ji)
       ((gaussianWeightLaw p ι κ).map e.symm) := by
     intro ji
-    rw [hCurrySymm]
-    exact (measurable_pi_apply ji).aemeasurable
+    simpa [hCurrySymm] using (measurable_pi_apply ji).aemeasurable
   have hPull : iIndepFun (fun ji => (fun w : κ × ι → ℝ => w ji) ∘ e.symm)
       (gaussianWeightLaw p ι κ) :=
     (ProbabilityTheory.iIndepFun_map_iff (μ := gaussianWeightLaw p ι κ) (f := e.symm)
@@ -275,15 +262,11 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
   let f : LayerParams ι κ → κ → ι → ℝ := Prod.fst
   have hf : AEMeasurable f (layerGaussianInit p ι κ) := measurable_fst.aemeasurable
   have hBsfinite : SFinite (gaussianBiasLaw p κ) := by
-    unfold gaussianBiasLaw
-    infer_instance
+    unfold gaussianBiasLaw; infer_instance
   have hBprob : IsProbabilityMeasure (gaussianBiasLaw p κ) := by
-    unfold gaussianBiasLaw
-    infer_instance
+    unfold gaussianBiasLaw; infer_instance
   have hmap : Measure.map f (layerGaussianInit p ι κ) = gaussianWeightLaw p ι κ := by
-    rw [show f = (Prod.fst : LayerParams ι κ → κ → ι → ℝ) from rfl, layerGaussianInit]
-    exact (@MeasureTheory.measurePreserving_fst (κ → ι → ℝ) (κ → ℝ) _ _
-      (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hBsfinite hBprob).map_eq
+    simp [f, layerGaussianInit]
   let X : κ × ι → (κ → ι → ℝ) → ℝ := fun ji w => w ji.1 ji.2
   have hX : ∀ ji, AEMeasurable (X ji) (Measure.map f (layerGaussianInit p ι κ)) := by
     intro ji
@@ -304,16 +287,12 @@ theorem indepFun_weight_bias_layerGaussianInit (p : InitHyperparams) (ι : Type 
     IndepFun (fun q : LayerParams ι κ => q.1) (fun q => q.2) (layerGaussianInit p ι κ) := by
   classical
   have hWprob : IsProbabilityMeasure (gaussianWeightLaw p ι κ) := by
-    unfold gaussianWeightLaw
-    infer_instance
+    unfold gaussianWeightLaw; infer_instance
   have hBprob : IsProbabilityMeasure (gaussianBiasLaw p κ) := by
-    unfold gaussianBiasLaw
-    infer_instance
-  rw [layerGaussianInit]
-  simpa using
-    (@ProbabilityTheory.indepFun_prod (κ → ι → ℝ) (κ → ℝ) _ _
-      (gaussianWeightLaw p ι κ) (gaussianBiasLaw p κ) hWprob hBprob
-      _ _ _ _ (fun w : κ → ι → ℝ => w) (fun b : κ → ℝ => b) measurable_id measurable_id)
+    unfold gaussianBiasLaw; infer_instance
+  simpa [layerGaussianInit] using
+    (ProbabilityTheory.indepFun_prod (μ := gaussianWeightLaw p ι κ) (ν := gaussianBiasLaw p κ)
+      (X := id) (Y := id) measurable_id measurable_id)
 
 -- Measurability of one flattened coordinate evaluation: `layerCoordinate` is a case split
 -- between the weight coordinate `q.1 ji.1 ji.2` and the bias coordinate `q.2 j`.
@@ -321,10 +300,8 @@ private lemma measurable_layerCoordinate {ι : Type u} {κ : Type v}
     (c : LayerCoordinate ι κ) :
     Measurable (fun q : LayerParams ι κ => layerCoordinate c q) := by
   cases c with
-  | inl ji =>
-      exact (measurable_pi_apply ji.2).comp ((measurable_pi_apply ji.1).comp measurable_fst)
-  | inr j =>
-      exact (measurable_pi_apply j).comp measurable_snd
+  | inl ji => exact (measurable_pi_apply ji.2).comp ((measurable_pi_apply ji.1).comp measurable_fst)
+  | inr j => exact (measurable_pi_apply j).comp measurable_snd
 
 /-- All weights and biases are jointly independent, not merely pairwise independent.
 
@@ -347,19 +324,15 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
   let ρ : LayerCoordinate ι κ → Measure ℝ :=
     fun c => μ.map (fun q : LayerParams ι κ => layerCoordinate c q)
   -- Measurability of the flattened map `F` and of each coordinate evaluation.
-  have hFmeas : Measurable F := by
-    exact measurable_pi_lambda _ fun c => measurable_layerCoordinate c
+  have hFmeas : Measurable F := measurable_pi_lambda _ fun c => measurable_layerCoordinate c
   have hF : ∀ c : LayerCoordinate ι κ,
-      AEMeasurable (fun q : LayerParams ι κ => layerCoordinate c q) μ := by
-    intro c
-    exact (measurable_layerCoordinate c).aemeasurable
+      AEMeasurable (fun q : LayerParams ι κ => layerCoordinate c q) μ :=
+    fun c => (measurable_layerCoordinate c).aemeasurable
   rw [iIndepFun_iff_map_fun_eq_pi_map (μ := μ) hF]
   apply MeasurableEquiv.map_measurableEquiv_injective e
-  have hWmeas : Measurable W := by
-    dsimp [W]
-    exact measurable_pi_lambda _ fun ji : κ × ι => measurable_layerCoordinate (.inl ji)
-  have hBmeas : Measurable B := by
-    exact measurable_pi_lambda _ fun j => measurable_layerCoordinate (.inr j)
+  have hWmeas : Measurable W :=
+    measurable_pi_lambda _ fun ji : κ × ι => measurable_layerCoordinate (.inl ji)
+  have hBmeas : Measurable B := measurable_pi_lambda _ fun j => measurable_layerCoordinate (.inr j)
   -- The weight and bias tuple maps are flat product measures; this is the `iIndepFun`
   -- characterization `map_fun_eq_pi_map` applied to the weight and bias independence theorems.
   have hWeightTuple :
@@ -375,32 +348,25 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
         (measurable_layerCoordinate (.inr j)).aemeasurable)
   -- The two complete vectors stay independent under the outer product, hence so do their
   -- flattened-coordinate projections `W` and `B`.
-  have hBlock : W ⟂ᵢ[μ] B := by
-    have hWB := indepFun_weight_bias_layerGaussianInit p ι κ
-    exact hWB.comp
+  have hBlock : W ⟂ᵢ[μ] B :=
+    (indepFun_weight_bias_layerGaussianInit p ι κ).comp
       (measurable_pi_lambda _ fun ji : κ × ι =>
         (measurable_pi_apply ji.2).comp (measurable_pi_apply ji.1))
       measurable_id
   have hLeft : (μ.map F).map e = (μ.map W).prod (μ.map B) := by
     rw [Measure.map_map e.measurable hFmeas]
-    change Measure.map (fun q : LayerParams ι κ => (W q, B q)) μ = (μ.map W).prod (μ.map B)
-    rw [hBlock.map_prod_eq_prod_map_map hWmeas.aemeasurable hBmeas.aemeasurable]
+    exact hBlock.map_prod_eq_prod_map_map hWmeas.aemeasurable hBmeas.aemeasurable
   -- Transporting the flat product measure through the sum-pi equivalence splits it into the
   -- weight and bias product measures (reassembling the coordinate law `ρ`).
   have hRight :
       (Measure.pi ρ).map e =
         (Measure.pi (fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2))).prod
           (Measure.pi (fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j))) := by
-    simpa [e, LayerCoordinate, layerCoordinate, ρ] using
+    simpa [layerCoordinate, ρ] using
       (measurePreserving_sumPiEquivProdPi (X := fun _ : LayerCoordinate ι κ => ℝ) ρ).map_eq
   -- Both transports of the flattened map `F` and of the flat coordinate law agree, which is
   -- exactly the equality of the two sides of `iIndepFun_iff_map_fun_eq_pi_map`.
-  calc
-    (μ.map F).map e = (μ.map W).prod (μ.map B) := hLeft
-    _ = (Measure.pi fun ji : κ × ι => μ.map (fun q : LayerParams ι κ => q.1 ji.1 ji.2)).prod
-        (Measure.pi fun j : κ => μ.map (fun q : LayerParams ι κ => q.2 j)) := by
-          rw [hWeightTuple, hBiasTuple]
-    _ = (Measure.pi ρ).map e := hRight.symm
+  exact (hLeft.trans (hWeightTuple ▸ hBiasTuple ▸ rfl)).trans hRight.symm
 
 /-- Every initialized bias is centered.
 

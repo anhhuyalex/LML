@@ -1599,10 +1599,8 @@ private lemma partialMatching_finiteDifference_sum_eq_zero (p q : ℕ) (hp : 0 <
             simpa [Q] using
               (Polynomial.natDegree_prod_le (Finset.range (p - 1)) fun j ↦
                 Polynomial.C (((q + (j + 1) : ℕ) : ℤ)) - (Polynomial.X : Polynomial ℤ))
-          _ ≤ ∑ _j ∈ Finset.range (p - 1), 1 := by
-            refine Finset.sum_le_sum ?_
-            intro j _hj
-            compute_degree
+          _ ≤ ∑ _j ∈ Finset.range (p - 1), 1 :=
+            Finset.sum_le_sum (fun j _ => by compute_degree)
           _ = p - 1 := by simp
       exact lt_of_le_of_lt hdeg_le (Nat.sub_lt hp Nat.zero_lt_one)
     have hsum_pminus :
@@ -1614,10 +1612,8 @@ private lemma partialMatching_finiteDifference_sum_eq_zero (p q : ℕ) (hp : 0 <
     have hsign : ∀ m ∈ Finset.range (p + 1),
         (-1 : ℤ) ^ m = (-1 : ℤ) ^ p * (-1 : ℤ) ^ (p - m) := by
       intro m hm
-      have hm_le_p : m ≤ p := Nat.lt_succ_iff.mp (Finset.mem_range.mp hm)
-      have hpm : p - m + m = p := Nat.sub_add_cancel hm_le_p
       have hmul : (-1 : ℤ) ^ (p - m) * (-1 : ℤ) ^ m = (-1 : ℤ) ^ p := by
-        rw [← pow_add, hpm]
+        rw [← pow_add, Nat.sub_add_cancel (Nat.lt_succ_iff.mp (Finset.mem_range.mp hm))]
       have hsquare : (-1 : ℤ) ^ (p - m) * (-1 : ℤ) ^ (p - m) = 1 := by
         rw [← pow_add, ← two_mul, pow_mul]
         norm_num
@@ -1627,11 +1623,10 @@ private lemma partialMatching_finiteDifference_sum_eq_zero (p q : ℕ) (hp : 0 <
         (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m))
           = ∑ m ∈ Finset.range (p + 1),
               (-1 : ℤ) ^ p *
-                (((-1 : ℤ) ^ (p - m) * (((p.choose m : ℕ) : ℤ))) * P m) := by
-            exact Finset.sum_congr rfl (fun m hm => by rw [hsign m hm]; ring)
+                (((-1 : ℤ) ^ (p - m) * (((p.choose m : ℕ) : ℤ))) * P m) :=
+            Finset.sum_congr rfl (fun m hm => by rw [hsign m hm]; ring)
       _ = 0 := by
-            rw [← Finset.mul_sum, hsum_pminus]
-            simp
+            rw [← Finset.mul_sum, hsum_pminus, mul_zero]
   -- Unfold the local `P` to recover the stated (inline) form of the conclusion.
   simpa [P] using hFiniteDifference
 
@@ -1643,17 +1638,15 @@ private lemma partialMatching_finiteDifference_sum_eq_zero (p q : ℕ) (hp : 0 <
 private lemma partialMatching_factorial_core (p q m : ℕ) (hp : 0 < p) (hm_le_q : m ≤ q) :
     p.choose m * q.choose m * m.factorial * (p + q - m - 1).factorial =
       q.factorial * (p.choose m * (q - m + 1).ascFactorial (p - 1)) := by
-  have hasc :
-      (q - m).factorial * (q - m + 1).ascFactorial (p - 1) =
-        (p + q - m - 1).factorial := by
-    rw [Nat.factorial_mul_ascFactorial (q - m) (p - 1)]
-    congr 1
-    omega
   calc
     p.choose m * q.choose m * m.factorial * (p + q - m - 1).factorial
         = p.choose m * (q.choose m * m.factorial * (q - m).factorial) *
             (q - m + 1).ascFactorial (p - 1) := by
-          rw [← hasc]
+          rw [← show (q - m).factorial * (q - m + 1).ascFactorial (p - 1) =
+              (p + q - m - 1).factorial by
+            rw [Nat.factorial_mul_ascFactorial (q - m) (p - 1)]
+            congr 1
+            omega]
           ring
     _ = p.choose m * q.factorial * (q - m + 1).ascFactorial (p - 1) := by
           rw [Nat.choose_mul_factorial_mul_factorial hm_le_q]
@@ -1735,11 +1728,6 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero_int_of_le
           (((p + q - m - 1).factorial : ℕ) : ℤ))))) = 0 := by
   let P : ℕ → ℤ := fun m =>
     ∏ j ∈ Finset.range (p - 1), (((q + (j + 1) : ℕ) : ℤ) - (m : ℤ))
-  have hFiniteDifference :
-      (∑ m ∈ Finset.range (p + 1),
-        (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) = 0 := by
-    -- Finite-difference cancellation of the alternating binomial sum over `P` (degree `< p`).
-    simpa [P] using partialMatching_finiteDifference_sum_eq_zero p q hp
   calc
     (∑ m ∈ Finset.range (p + 1),
       (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
@@ -1747,46 +1735,35 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero_int_of_le
           (((p + q - m - 1).factorial : ℕ) : ℤ)))))
         = ∑ m ∈ Finset.range (p + 1),
             ((q.factorial : ℕ) : ℤ) * (-1 : ℤ) ^ (p + q - 1) *
-              ((-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) := by
-          exact Finset.sum_congr rfl (fun m hm => by
+              ((-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) :=
+          Finset.sum_congr rfl (fun m hm => by
             simpa [P] using partialMatching_summand_eq p q m hp hq hpq hm)
     _ = 0 := by
-          rw [← Finset.mul_sum, hFiniteDifference]
-          simp
+          rw [← Finset.mul_sum,
+            show (∑ m ∈ Finset.range (p + 1),
+                (-1 : ℤ) ^ m * (((p.choose m : ℕ) : ℤ) * P m)) = 0 by
+              simpa [P] using partialMatching_finiteDifference_sum_eq_zero p q hp,
+            mul_zero]
 
 -- Integer-valued version of `partialMatching_mobius_coeff_sum_eq_zero` for arbitrary `p, q`.
 --
 -- The summand is symmetric in `p` and `q`, so `le_total` reduces the claim to the ordered helper
 -- `partialMatching_mobius_coeff_sum_eq_zero_int_of_le`; in the `q ≤ p` branch the two traces are
--- swapped using the symmetry equality `hsymm`.
+-- swapped, since `simp` rewrites the summand by commutativity of `min`, addition, and
+-- multiplication.
 private lemma partialMatching_mobius_coeff_sum_eq_zero_int
     (p q : ℕ) (hp : 0 < p) (hq : 0 < q) :
     (∑ m ∈ Finset.range (Nat.min p q + 1),
       (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
         ((-1 : ℤ) ^ (p + q - m - 1) *
           (((p + q - m - 1).factorial : ℕ) : ℤ))))) = 0 := by
-  classical
-  -- The summand is symmetric in `p` and `q`; thus one may assume `p ≤ q` and treat the other
-  -- case by swapping the traces.
-  have hsymm :
-      (∑ m ∈ Finset.range (Nat.min p q + 1),
-        (((((p.choose m) * (q.choose m) * m.factorial : ℕ) : ℤ) *
-          ((-1 : ℤ) ^ (p + q - m - 1) *
-            (((p + q - m - 1).factorial : ℕ) : ℤ))))) =
-      (∑ m ∈ Finset.range (Nat.min q p + 1),
-        (((((q.choose m) * (p.choose m) * m.factorial : ℕ) : ℤ) *
-          ((-1 : ℤ) ^ (q + p - m - 1) *
-            (((q + p - m - 1).factorial : ℕ) : ℤ))))) := by
-    -- This is just commutativity of `Nat.min`, addition, and multiplication in each summand.
-    simp [Nat.min_comm, Nat.add_comm, mul_comm, mul_assoc]
   rcases le_total p q with hpq | hqp
   · -- Now `Nat.min p q = p`, so the range is `0, ..., p`; use the ordered integer helper.
     simpa [Nat.min_eq_left hpq] using
       partialMatching_mobius_coeff_sum_eq_zero_int_of_le p q hp hq hpq
-  · -- The case `q ≤ p` is identical after swapping the two traces.  The equality `hsymm` records
-    -- the required symmetry of the integer summand.
-    rw [hsymm]
-    simpa [Nat.min_eq_left hqp] using
+  · -- The case `q ≤ p` is identical after swapping the two traces: the summand is symmetric in
+    -- `p` and `q` (commutativity of `Nat.min`, addition, and multiplication).
+    simpa [Nat.min_eq_right hqp, Nat.add_comm, mul_comm, mul_assoc] using
       partialMatching_mobius_coeff_sum_eq_zero_int_of_le q p hq hp hqp
 
 /-- The signed Möbius coefficient of a non-trivial two-sided partial-matching fiber is zero.
@@ -1809,14 +1786,10 @@ private lemma partialMatching_mobius_coeff_sum_eq_zero {R : Type*} [CommRing R]
     (∑ m ∈ Finset.range (Nat.min p q + 1),
       ((((p.choose m) * (q.choose m) * m.factorial : ℕ) : R) *
         ((-1 : R) ^ (p + q - m - 1) * ((p + q - m - 1).factorial : R)))) = 0 := by
-  classical
   -- The identity is universal in the target commutative ring: prove it over `ℤ` and cast through
   -- the canonical homomorphism `ℤ → R`; the symmetry reduction to the ordered case is isolated in
   -- `partialMatching_mobius_coeff_sum_eq_zero_int`.
-  have hInt := partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq
-  -- Cast the integer identity to `R`, distributing the cast through the finite sum, products,
-  -- powers of `-1`, and factorial casts.
-  simpa using congrArg (fun z : ℤ => (z : R)) hInt
+  simpa using congrArg (fun z : ℤ => (z : R)) (partialMatching_mobius_coeff_sum_eq_zero_int p q hp hq)
 
 /-- Core trace-fiber Möbius cancellation for split block weights.
 
@@ -1840,7 +1813,55 @@ cumulants; see T. P. Speed, "Cumulants and partition lattices", Austral. J. Stat
 378--388, and Mathlib's finite-difference API in `Mathlib/Algebra/Group/ForwardDiff.lean`.
 
 TODO: formalize the trace restriction map, the partial-matching fiber equivalence, and the displayed
-coefficient identity as `Finpartition` API. -/
+coefficient identity as `Finpartition` API.
+
+Trace-fiber regrouping lemma for the split-cumulant cancellation.
+
+This is the missing reusable `Finpartition` API isolated from the elementary algebra around the
+split.  Its hypotheses expose every fact needed by the combinatorial proof: the two sides cover
+`univ` and are disjoint; block weights split along the named complement; `f ∅` is an identity on
+both trace sides; and the signed partial-matching coefficient sum vanishes for all nonempty trace
+sizes.
+
+Informal proof.  For each `P : Finpartition univ`, form its two trace partitions by applying
+`Finpartition.restrict` to `A` and to `univ \ A` and erasing empty intersections.  Group the
+cumulant sum by these trace pairs.  For fixed traces `π, σ`, every partition in the fiber is
+obtained uniquely from a partial matching between `π.parts` and `σ.parts`: a matched pair of trace
+blocks is glued to a mixed block, and unmatched blocks remain pure.  A matching of size `m` has
+`π.parts.card + σ.parts.card - m` blocks, and there are
+`π.parts.card.choose m * σ.parts.card.choose m * m.factorial` such matchings.  The block-product
+factor is constant on the fiber: `hblock_split_compl` splits every block, while
+`hleft_id_on_trace` and `hright_id_on_trace` absorb the additional `f ∅` factors attached to pure
+blocks.  Hence the inner fiber contribution is this constant block-product times exactly the
+coefficient sum supplied by `hfiber_coeff_cancel`, with positive trace sizes coming from `_hA` and
+`_hAc`; it is therefore zero.  Summing over all trace pairs gives the desired vanishing.
+
+This is the classical partition-lattice proof of vanishing mixed cumulants; see T. P. Speed,
+"Cumulants and partition lattices", Austral. J. Statist. 25 (1983), 378--388.  A future cleanup
+should formalize the trace-pair map and the partial-matching equivalence as lemmas in the
+`Finpartition` namespace. -/
+private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux [Fintype ι]
+    [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
+    (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
+    (_huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
+    (_hcompl_ne : (Finset.univ \ A : Finset ι) ≠ ∅)
+    (_hcut_cover : A ∪ (Finset.univ \ A) = (Finset.univ : Finset ι))
+    (_hcut_disjoint : Disjoint A (Finset.univ \ A))
+    (_hcompl_subset_univ : Finset.univ \ A ⊆ (Finset.univ : Finset ι))
+    (_hblock_split_compl : ∀ B : Finset ι,
+      f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)))
+    (_hleft_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ A → f B = f ∅ * f B)
+    (_hright_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ Finset.univ \ A → f B = f ∅ * f B)
+    (_hfiber_coeff_cancel : ∀ p q : ℕ, 0 < p → 0 < q →
+        (∑ m ∈ Finset.range (Nat.min p q + 1),
+          ((((p.choose m) * (q.choose m) * m.factorial : ℕ) : R) *
+            ((-1 : R) ^ (p + q - m - 1) * ((p + q - m - 1).factorial : R)))) = 0) :
+    Finpartition.cumulantTransform f Finset.univ = 0 := by
+  classical
+  -- Deferred formalization: trace partitions, fiber/partial-matching equivalence, constant
+  -- block-product on fibers, and the final finite-sum reindexing described in the docstring.
+  sorry
+
 private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
@@ -1896,12 +1917,9 @@ private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintyp
   -- * each fiber is counted by partial matchings of its trace blocks, and `hfiber_coeff_cancel`
   --   makes its total Möbius coefficient vanish.
   -- Summing the zero fiber contributions gives the cumulant cancellation.
-  have htrace_fiber_cancellation : Finpartition.cumulantTransform f Finset.univ = 0 := by
-    -- TODO: expose the trace restriction map and the partial-matching fiber equivalence as
-    -- `Finpartition` API, then finish by reindexing the cumulant sum and applying
-    -- `hfiber_coeff_cancel` to every trace pair.
-    sorry
-  exact htrace_fiber_cancellation
+  exact cumulantTransform_eq_zero_of_split_trace_fiber_cancel_aux f A _hA _hAc _huniv_ne
+    _hcompl_ne hcut_cover hcut_disjoint hcompl_subset_univ hblock_split_compl
+    hleft_id_on_trace hright_id_on_trace hfiber_coeff_cancel
 
 /-- Trace-fiber cancellation for split block weights.
 
