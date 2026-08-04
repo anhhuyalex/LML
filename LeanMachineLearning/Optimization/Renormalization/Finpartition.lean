@@ -1774,7 +1774,6 @@ variable {π : Finpartition A} {σ : Finpartition B}
 their `A`- and `B`-traces. -/
 noncomputable def ofFinpartition (T : Finpartition (A ∪ B)) (_hAB : Disjoint A B) :
     Matching (T.restrict (Finset.subset_union_left)) (T.restrict (Finset.subset_union_right)) := by
-  classical
   refine
     { S := (mergedOf T).image (· ∩ A)
       T := (mergedOf T).image (· ∩ B)
@@ -1789,39 +1788,29 @@ noncomputable def ofFinpartition (T : Finpartition (A ∪ B)) (_hAB : Disjoint A
           right_inv := ?_ } }
   · intro t ht
     obtain ⟨D, hD, rfl⟩ := Finset.mem_image.mp ht
-    simp only [mergedOf, Finset.mem_filter] at hD
     rw [restrict]
-    exact Finset.mem_erase.mpr ⟨Finset.nonempty_iff_ne_empty.mp hD.2.1,
-      Finset.mem_image.mpr ⟨D, hD.1, rfl⟩⟩
+    exact Finset.mem_erase.mpr
+      ⟨Finset.nonempty_iff_ne_empty.mp (Finset.mem_filter.mp hD).2.1,
+        Finset.mem_image.mpr ⟨D, (Finset.mem_filter.mp hD).1, rfl⟩⟩
   · intro t ht
     obtain ⟨D, hD, rfl⟩ := Finset.mem_image.mp ht
-    simp only [mergedOf, Finset.mem_filter] at hD
     rw [restrict]
-    exact Finset.mem_erase.mpr ⟨Finset.nonempty_iff_ne_empty.mp hD.2.2,
-      Finset.mem_image.mpr ⟨D, hD.1, rfl⟩⟩
+    exact Finset.mem_erase.mpr
+      ⟨Finset.nonempty_iff_ne_empty.mp (Finset.mem_filter.mp hD).2.2,
+        Finset.mem_image.mpr ⟨D, (Finset.mem_filter.mp hD).1, rfl⟩⟩
   · intro s
     apply Subtype.ext
     change mergedOfRight T (Finset.mem_image.mpr
       ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩) ∩ A = s.1
-    have hmem : mergedOfRight T (Finset.mem_image.mpr
-        ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩) ∈ mergedOf T :=
-      mergedOfRight_mem T _
-    have heq : mergedOfRight T (Finset.mem_image.mpr
-        ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩) ∩ B = mergedOfLeft T s.2 ∩ B :=
-      mergedOfRight_inter T _
-    rw [T.injOn_inter_right_mergedOf hmem (mergedOfLeft_mem T s.2) heq]
+    rw [T.injOn_inter_right_mergedOf (mergedOfRight_mem T _) (mergedOfLeft_mem T s.2)
+      (mergedOfRight_inter T _)]
     exact mergedOfLeft_inter T s.2
   · intro t
     apply Subtype.ext
     change mergedOfLeft T (Finset.mem_image.mpr
       ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩) ∩ B = t.1
-    have hmem : mergedOfLeft T (Finset.mem_image.mpr
-        ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩) ∈ mergedOf T :=
-      mergedOfLeft_mem T _
-    have heq : mergedOfLeft T (Finset.mem_image.mpr
-        ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩) ∩ A = mergedOfRight T t.2 ∩ A :=
-      mergedOfLeft_inter T _
-    rw [T.injOn_inter_left_mergedOf hmem (mergedOfRight_mem T t.2) heq]
+    rw [T.injOn_inter_left_mergedOf (mergedOfLeft_mem T _) (mergedOfRight_mem T t.2)
+      (mergedOfLeft_inter T _)]
     exact mergedOfRight_inter T t.2
 
 -- A set contained in `A ∪ B` is the union of its two traces: `D = (D ∩ A) ∪ (D ∩ B)`.
@@ -1833,9 +1822,7 @@ private lemma union_inter_inter_eq_self {D A B : Finset α} (hD : D ⊆ A ∪ B)
 private lemma inter_eq_empty_of_not_merged (T : Finpartition (A ∪ B)) {D : Finset α}
     (hD : D ∈ T.parts) (hnot : D ∉ mergedOf T) : D ∩ A = ∅ ∨ D ∩ B = ∅ := by
   by_contra h
-  exact hnot (by
-    rw [mergedOf, Finset.mem_filter]
-    simpa [Finset.nonempty_iff_ne_empty] using ⟨hD, not_or.mp h⟩)
+  exact hnot (by simpa [mergedOf, Finset.nonempty_iff_ne_empty] using ⟨hD, not_or.mp h⟩)
 
 -- If `t` is a `T`-block that does not span the cut, no merged block has `t` as its trace:
 -- any such block would share a point with `t` and hence equal `t` by `eq_of_mem_parts`.
@@ -1882,7 +1869,6 @@ private lemma glueParts_subset_parts (T : Finpartition (A ∪ B)) (hAB : Disjoin
 private lemma parts_subset_glueParts (T : Finpartition (A ∪ B)) (hAB : Disjoint A B) :
     T.parts ⊆ (ofFinpartition T hAB).glueParts := by
   intro t ht
-  classical
   -- `t = (t ∩ A) ∪ (t ∩ B)`: `t` is a merged block iff it spans the cut, otherwise it is
   -- unmatched on exactly one side.
   have hsplit : (t ∩ A) ∪ (t ∩ B) = t := union_inter_inter_eq_self (T.subset ht)
