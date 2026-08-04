@@ -90,6 +90,29 @@ def toLocalDenseLayer (L : Conv2DLayer ι κ) (k : ℕ) : DenseLayer (PatchIndex
   weight o p := L.weight o p.1 p.2.1 p.2.2
   bias := L.bias
 
+/-- Summing over integer offsets in the window is the same as summing over the corresponding
+subtype of admissible offsets. -/
+private theorem sum_window_eq_sum_windowIndex (k : ℕ) (f : ℤ → ℝ) :
+    (∑ z ∈ window k, f z) = ∑ z : WindowIndex k, f z := by
+  exact Finset.sum_subtype (window k) (fun z => Iff.rfl) f
+
+/-- A sum over a local patch decomposes as nested sums over the channel and the two window
+offsets. -/
+private theorem sum_patchIndex [Fintype ι] (k : ℕ)
+    (f : ι → WindowIndex k → WindowIndex k → ℝ) :
+    (∑ p : PatchIndex ι k, f p.1 p.2.1 p.2.2) =
+      ∑ i, ∑ dc : WindowIndex k, ∑ dd : WindowIndex k, f i dc dd := by
+  calc
+    (∑ p : PatchIndex ι k, f p.1 p.2.1 p.2.2)
+        = ∑ i : ι, ∑ q : WindowIndex k × WindowIndex k, f i q.1 q.2 := by
+          simpa [PatchIndex] using
+            (Fintype.sum_prod_type' (fun (i : ι) (q : WindowIndex k × WindowIndex k) =>
+              f i q.1 q.2))
+    _ = ∑ i, ∑ dc : WindowIndex k, ∑ dd : WindowIndex k, f i dc dd := by
+      congr with i
+      exact Fintype.sum_prod_type' (fun (dc : WindowIndex k) (dd : WindowIndex k) =>
+        f i dc dd)
+
 /-- A convolutional preactivation is one fixed dense affine map applied to every extracted local
 patch. This is the precise weight-tying statement from Chapter 2.
 
@@ -101,7 +124,12 @@ theorem preactivation_eq_toLocalDenseLayer [Fintype ι] (L : Conv2DLayer ι κ) 
     (x : ι → ℤ → ℤ → ℝ) (o : κ) (c d : ℤ) :
     L.preactivation k x o c d =
       (L.toLocalDenseLayer k).preactivation (extractPatch k x c d) o := by
-  sorry
+  simp only [preactivation_apply, PatchIndex, WindowIndex, toLocalDenseLayer,
+    DenseLayer.preactivation_apply, extractPatch, add_right_inj]
+  simp_rw [sum_window_eq_sum_windowIndex]
+  symm
+  exact sum_patchIndex k (fun i dc dd =>
+    L.weight o i dc dd * x i (c + dc) (d + dd))
 
 /-- Embed the literal source formula, whose displayed weights do not carry offset indices, into the
 more general convolutional representation. -/

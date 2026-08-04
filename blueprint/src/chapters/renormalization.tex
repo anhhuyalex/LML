@@ -607,6 +607,75 @@ Taking $\mu$ Gaussian absorbs the entire quadratic action and its normalization 
 probability measure.  This is both shorter and more general than repeatedly integrating a density
 against Lebesgue measure.
 
+\begin{definition}[Expectation and convergent moment expansion]
+\label{def:renorm:expectation}
+\lean{Renormalization.expectation, Renormalization.coordinateMonomial,
+Renormalization.homogeneousObservable}
+For a measure $\mu$ and a Bochner-integrable observable $O$, write
+$\mathbb E_\mu[O]:=\int O\,d\mu$.  For finite $\iota$, an index tuple
+$a:\operatorname{Fin}(n)\to\iota$ determines the coordinate monomial
+$z\mapsto\prod_r z_{a_r}$, and a coefficient tensor $c_n$ determines the homogeneous observable
+\[
+ H_n(z)=\sum_{a:\operatorname{Fin}(n)\to\iota}c_n(a)\prod_r z_{a_r}.
+\]
+\end{definition}
+
+\begin{theorem}[Termwise expectation of an observable expansion]
+\label{thm:renorm:expectationMomentExpansion}
+\uses{def:renorm:expectation}
+\lean{Renormalization.expectation_eq_tsum_jointMoments_of_expansion}
+If $O(z)=\sum'_{n\geq0}H_n(z)$ pointwise, every $H_n$ is strongly measurable almost everywhere,
+and $\sum_n\int\lVert H_n\rVert\,d\mu<\infty$, then
+\[
+ \mathbb E_\mu[O]
+ =\sum'_{n\geq0}\sum_{a:\operatorname{Fin}(n)\to\iota}
+   c_n(a)\,\operatorname{jointMoment}_\mu(z_{a_1},\ldots,z_{a_n}).
+\]
+The convergence hypotheses are essential: this theorem does not claim that an arbitrary smooth
+observable has a globally convergent Taylor series, or that a law is determined by its moments.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Equation \texttt{eq:observables-and-moments}, with the missing sum--integral interchange hypotheses
+made explicit.
+\end{theorem}
+
+\begin{definition}[Actions relative to a reference measure]
+\label{def:renorm:action}
+\lean{Renormalization.Action, Renormalization.Action.partitionFunction,
+Renormalization.Action.Normalizable, Renormalization.Action.measure,
+Renormalization.Action.probabilityMeasure, Renormalization.Action.expectation}
+An action is a function $S:\Omega\to\mathbb R$.  Relative to a reference measure $\mu$, set
+\[
+ Z_\mu[S]=\int e^{-S(x)}\,d\mu(x),\qquad
+ \mu_S=\mu.\texttt{tilted}(-S).
+\]
+\texttt{Action.Normalizable} means that $e^{-S}$ is integrable.  Together with
+$\mu\neq0$, this bundles $\mu_S$ as a \texttt{ProbabilityMeasure}.  This explicit reference
+measure avoids silently assuming that every configuration space has Lebesgue measure.
+\end{definition}
+
+\begin{theorem}[Quadratic action is the multivariate Gaussian]
+\label{thm:renorm:quadraticActionGaussian}
+\uses{def:renorm:action}
+\lean{Renormalization.quadraticAction, Renormalization.quadraticAction_normalizable,
+Renormalization.quadraticAction_partitionFunction,
+Renormalization.quadraticAction_measure_eq_multivariateGaussian,
+Renormalization.gaussianExpectation}
+For a positive-definite covariance $K$ and Euclidean volume $dz$, define
+$S_K(z)=\frac12 z^\top K^{-1}z$.  Then $S_K$ is normalizable,
+\[
+ Z_{dz}[S_K]=\sqrt{(2\pi)^{|\iota|}\det K},\qquad
+ (dz)_{S_K}=\operatorname{multivariateGaussian}(0,K).
+\]
+The scoped notation $\left\langle O\right\rangle_K$ is represented in Lean by
+\texttt{$\langle\!\langle$O$\rangle\!\rangle^{g}$[K]} and abbreviates integration against this
+Gaussian measure.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The quadratic action, its normalization, and \texttt{eq:gauss-braket}.  Positive definiteness,
+rather than mere semidefiniteness, is required for a Lebesgue density with $K^{-1}$.
+\end{theorem}
+
 \begin{definition}[Exponential deformation and relative partition function]
 \label{def:renorm:deform}
 \lean{Renormalization.deform, Renormalization.partitionFunction}
@@ -848,7 +917,72 @@ each external coordinate to one leg of the quartic coupling.  Symmetry of $A$ tu
 equivalent terms into the displayed contraction and cancels the $1/4!$ in $V_A$.
 \end{proof}
 
+\begin{theorem}[Full four-point linear response]
+\label{thm:renorm:quarticFullFourPoint}
+\uses{thm:renorm:quarticTwoPoint, thm:renorm:quarticFourPoint}
+\lean{Renormalization.QuarticCoupling.deformedTwoPoint,
+Renormalization.QuarticCoupling.deformedFourPoint,
+Renormalization.QuarticCoupling.fullFourPoint_isBigO}
+The full deformed four-point function equals the sum of the three products of deformed two-point
+functions minus
+\[
+ \epsilon\sum_{a,b,c,d}A_{abcd}K_{i a}K_{j b}K_{k c}K_{l d}
+\]
+up to $O(\epsilon^2)$ on a right-neighborhood of zero.  Stating this separately preserves the
+intermediate result \texttt{eq:full-four-point-intro}, rather than only its connected remainder.
+\end{theorem}
+
+\begin{corollary}[One-dimensional quartic self-interaction]
+\label{cor:renorm:oneDimensionalSelfInteraction}
+\uses{thm:renorm:quarticTwoPoint}
+\lean{Renormalization.QuarticCoupling.oneDimensional_selfInteraction_isBigO}
+For $\iota=\operatorname{Fin}(1)$, the same two-point expansion holds at the unique coordinate.
+Thus the quartic interaction has a nontrivial self-interaction correction even though there are no
+distinct coordinates whose statistical dependence could be tested.
+\end{corollary}
+
 \section{Independence and hierarchical scaling}
+
+\begin{theorem}[Parity consequences]
+\label{thm:renorm:parityConsequences}
+\lean{Renormalization.jointMoment_coordinates_eq_zero_of_odd,
+Renormalization.jointCumulant_coordinates_eq_zero_of_odd}
+If a law on Euclidean space is invariant under $z\mapsto-z$, then every integrable odd coordinate
+moment vanishes.  If all joint moments required by the cumulant transform are finite, every odd
+joint cumulant vanishes as well.  The second result is not merely a restatement of the first: its
+proof partitions an odd set of positions and observes that every partition has an odd block.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The parity statement at lines 457--459 and the even-action discussion.
+\end{theorem}
+
+\begin{theorem}[The six-point moment and cumulant formulas]
+\label{thm:renorm:sixPointDecomposition}
+\uses{thm:renorm:parityConsequences, thm:renorm:momentCumulant}
+\lean{Renormalization.IsFourTwoPartition, Renormalization.fourTwoPartitions,
+Renormalization.sixPointFourTwoCumulantSum,
+Renormalization.sixPointPairingCumulantSum,
+Renormalization.jointMoment_six_eq_connected_decomposition,
+Renormalization.sixPointFourTwoMomentSum,
+Renormalization.sixPointPairingMomentSum,
+Renormalization.jointCumulant_six_eq_moments,
+Renormalization.card_pairing_fin_six,
+Renormalization.card_fourTwoPartition_fin_six}
+For six parity-symmetric observables,
+\[
+ M_6=C_6+\sum_{(4,2)}C_4C_2+\sum_{(2,2,2)}C_2C_2C_2,
+\]
+and equivalently
+\[
+ C_6=M_6-\sum_{(4,2)}M_4M_2+2\sum_{(2,2,2)}M_2M_2M_2.
+\]
+Both indexing families have cardinality fifteen.  The formal hypotheses state vanishing of every
+odd block moment or cumulant; centeredness alone would be insufficient because $(3,3)$ partitions
+can contribute.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Equations \texttt{eq:six-point-moment-in-terms-of-connected} and \texttt{eq:C6}.
+\end{theorem}
 
 \begin{proposition}[Independent coordinates have no mixed connected correlator]
 \label{prop:renorm:independentCumulant}
@@ -867,8 +1001,63 @@ The first sentence is part of the core API and uses Mathlib's \texttt{iIndepFun}
 sentence should be a later corollary only if the required spectral and product-measure bridges are
 already available; it is not needed to prove Wick's theorem.
 
+\begin{theorem}[Diagonal Gaussian law is a product law]
+\label{thm:renorm:diagonalGaussianIndependence}
+\uses{prop:renorm:independentCumulant}
+\lean{Renormalization.multivariateGaussian_diagonal_eq_map_pi_gaussianReal,
+Renormalization.iIndepFun_coordinate_multivariateGaussian_diagonal,
+Renormalization.map_multivariateGaussian_eq_pi_of_orthogonal_diagonalization}
+For $v:\iota\to\mathbb R_{\geq0}$, mapping
+$\operatorname{multivariateGaussian}(0,\operatorname{diag}v)$ to its coordinate-function model
+gives $\bigotimes_i\operatorname{gaussianReal}(0,v_i)$, so its coordinate maps are mutually
+independent.  More generally, if $O^\top O=I$ and
+$OKO^\top=\operatorname{diag}v$, then the pushforward $z\mapsto Oz$ of
+$\operatorname{multivariateGaussian}(0,K)$ is that product measure.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Lines 807--817 and \texttt{eq:gaussian-statistical-independence-day}.
+\end{theorem}
+
+\begin{theorem}[A mixed quartic response obstructs factorization]
+\label{thm:renorm:quarticNonfactorization}
+\uses{prop:renorm:independentCumulant, thm:renorm:quarticFourPoint}
+\lean{Renormalization.not_indepAcross_of_jointCumulant_ne_zero,
+Renormalization.QuarticCoupling.eventually_not_indepAcross_of_fourPointContraction_ne_zero}
+A nonzero joint cumulant rules out independence across any nontrivial split of its observables.
+Consequently, if a specified four-point contraction of a nonnegative quartic coupling is nonzero,
+then for all sufficiently small positive $\epsilon$ the corresponding four observables are not
+independent across that split.  The hypothesis is deliberately about a \emph{mixed contraction},
+not merely $A\neq0$: a nonzero sum of coordinate-separable quartic potentials can retain a product
+law.
+\end{theorem}
+
+\begin{definition}[General even-order action hierarchy]
+\label{def:renorm:evenAction}
+\lean{Renormalization.EvenCoupling, Renormalization.EvenCoupling.potential,
+Renormalization.EvenCoupling.Nonnegative, Renormalization.EvenAction,
+Renormalization.EvenAction.interactionPotential, Renormalization.EvenAction.potential,
+Renormalization.EvenAction.measure, Renormalization.EvenAction.truncate,
+Renormalization.EvenAction.ofQuartic}
+An \texttt{EvenCoupling $\iota$ $m$} is a totally symmetric tensor with $2m$ slots and potential
+\[
+ V_m(z)=\frac1{(2m)!}\sum_{a:\operatorname{Fin}(2m)\to\iota}
+ s_m(a)\prod_r z_{a_r}.
+\]
+An \texttt{EvenAction} stores a precision matrix $P$, a finite cutoff $k$, and such a coupling at
+every half-degree.  Its hierarchically scaled action and law are
+\[
+ S_\epsilon(z)=\tfrac12z^\top Pz+
+   \sum_{m=2}^{k}\epsilon^{m-1}V_m(z),\qquad
+ \mu_\epsilon=(dz).\texttt{tilted}(-S_\epsilon).
+\]
+The quartic API embeds as the case $k=2$.  Defining the law from the stored full action prevents
+the precision matrix and the Gaussian base law from silently disagreeing.
+\end{definition}
+
 \begin{definition}[Hierarchically nearly Gaussian family]
 \label{def:renorm:hierarchical}
+\lean{Renormalization.ParametricallySmall, Renormalization.NearlyGaussian,
+Renormalization.HierarchicallyNearlyGaussian, Renormalization.TruncationAccurateTo}
 Let $\mu_\epsilon$ be a family of probability measures and $X_i$ fixed observables.  A precise
 version of the source's hierarchy is that for every $m\geq2$ and every index tuple $i$ of length
 $2m$,
@@ -890,6 +1079,39 @@ make the source's schematic scaling into a well-typed proposition.
 This definition records scaling; it does not by itself assert convergence of measures or validity
 of an action truncation.  Those conclusions require additional uniform moment bounds and a chosen
 notion of approximation.
+
+\begin{theorem}[Linked-cluster hierarchy and truncation]
+\label{thm:renorm:connectedCorrelatorHierarchy}
+\uses{def:renorm:evenAction, def:renorm:hierarchical, thm:renorm:parityConsequences}
+\lean{Renormalization.EvenAction.connectedCorrelatorHierarchy,
+Renormalization.HierarchicallyNearlyGaussian.nearlyGaussian_of_odd_eq_zero,
+Renormalization.EvenAction.nearlyGaussian,
+Renormalization.HierarchicallyNearlyGaussian.truncationAccurateTo}
+Assume the stored precision $P$ is positive definite and every retained interaction potential
+$V_m$ is nonnegative.  Then the law of the explicitly scaled even action satisfies, for $m\geq2$,
+\[
+ \kappa_{\mu_\epsilon}(z_{a_1},\ldots,z_{a_{2m}})
+ =O_{\epsilon\to0^+}(\epsilon^{m-1}).
+\]
+Parity supplies the vanishing odd cumulants, so this family is also \texttt{NearlyGaussian}.
+Moreover, connected correlators above half-degree $k$ are $O(\epsilon^k)$, the precise
+cumulant-level truncation conclusion.
+
+The scaling is a theorem only because the action assigns $V_m$ the weight
+$\epsilon^{m-1}$.  It would be false to infer the hierarchy from the weaker statement that all
+nonquadratic couplings are merely $O(\epsilon)$.
+
+\paragraph{Proof architecture.}
+Expand normalized expectations in interaction vertices.  A connected diagram with $2m$ external
+legs and vertices of half-degrees $d_1,\ldots,d_r$ obeys
+$\sum_j(d_j-1)\geq m-1$, while its coefficient has weight
+$\epsilon^{\sum_j(d_j-1)}$.  The cumulant Möbius transform cancels disconnected diagrams.
+Nonnegative potentials dominate the right-hand Taylor remainders by Gaussian polynomial moments.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The general nearly-Gaussian action ansatz and
+\texttt{eq:connected-correlator-hierarchy} near line 940.
+\end{theorem}
 
 \section{Neural networks and induced laws}
 \label{sec:renorm:neuralNetworks}

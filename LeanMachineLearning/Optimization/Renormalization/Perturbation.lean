@@ -115,6 +115,33 @@ theorem partitionFunction_pos [NeZero μ] {V : Ω → ℝ} {ε : ℝ}
 
 /-! ## First-order response -/
 
+/-- Right differentiation under the integral for a nonnegative exponential tilt at the origin.
+
+This is the reusable analytic core of `hasDerivWithinAt_partitionFunction_zero`.
+
+Informal proof: by `hasDerivWithinAt_iff_tendsto_slope`, it suffices to prove convergence of the
+right-hand difference quotients.  For `h > 0` and `h ≥ 0`,
+`(exp (-h * V x) - 1) / h → -V x` pointwise as `h → 0` by the scalar derivative of `exp` and the
+chain rule.  The domination is
+`‖(exp (-h * V x) - 1) / h‖ ≤ V x`: put `t = h * V x ≥ 0`, use `exp (-t) ≤ 1` and
+`1 - exp (-t) ≤ t` (Mathlib lemma `Real.one_sub_le_exp_neg`, equivalently convexity of `exp`).
+The bound `V` is integrable by hypothesis.  The filter-version dominated convergence theorem
+`MeasureTheory.tendsto_integral_filter_of_dominated_convergence` on `𝓝[Set.Ici 0] 0` then gives
+`∫ x, (exp (-h * V x) - 1) / h ∂μ → ∫ x, -V x ∂μ`.  Finally, integral linearity and
+`IsProbabilityMeasure.measure_univ = 1` identify these integrals with the slope of
+`fun h ↦ ∫ x, exp (-h * V x) ∂μ` at zero.  This is the standard one-sided dominated-convergence
+argument recorded in `blueprint/src/chapters/renormalization.tex`, Section "Actions as exponential
+deformations"; the one-sided restriction is essential without exponential integrability for
+negative couplings. -/
+private theorem hasDerivWithinAt_integral_exp_neg_mul_zero [IsProbabilityMeasure μ]
+    {V : Ω → ℝ} (hVnonneg : 0 ≤ V) (hV : Integrable V μ) :
+    HasDerivWithinAt (fun ε : ℝ ↦ ∫ x, Real.exp (-ε * V x) ∂μ)
+      (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 := by
+  -- TODO: formalize the dominated-convergence proof described above using
+  -- `MeasureTheory.tendsto_integral_filter_of_dominated_convergence` and
+  -- `hasDerivWithinAt_iff_tendsto_slope`.
+  sorry
+
 /-- Right derivative of the relative partition function at zero.
 
 Informal proof: for nonnegative `ε` and `V`, differentiate the exponential pointwise and dominate
@@ -123,7 +150,9 @@ normalization gives `Z(0)=1`. -/
 theorem hasDerivWithinAt_partitionFunction_zero [IsProbabilityMeasure μ]
     {V : Ω → ℝ} (hVnonneg : 0 ≤ V) (hV : Integrable V μ) :
     HasDerivWithinAt (partitionFunction μ V) (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 := by
-  sorry
+  change HasDerivWithinAt (fun ε : ℝ ↦ ∫ x, Real.exp (-ε * V x) ∂μ)
+    (-(∫ x, V x ∂μ)) (Set.Ici 0) 0
+  exact hasDerivWithinAt_integral_exp_neg_mul_zero (μ := μ) hVnonneg hV
 
 /-- Right derivative of an unnormalized weighted integral at zero.
 

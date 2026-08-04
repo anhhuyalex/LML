@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Renormalization.Basic
 public import LeanMachineLearning.Optimization.Renormalization.Activation
+public import LeanMachineLearning.Optimization.Renormalization.Action
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import LeanMachineLearning.Optimization.Renormalization.Convolution
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear
@@ -16,6 +17,7 @@ public import LeanMachineLearning.Optimization.Renormalization.InducedLaw
 public import LeanMachineLearning.Optimization.Renormalization.Initialization
 public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
 public import LeanMachineLearning.Optimization.Renormalization.Network
+public import LeanMachineLearning.Optimization.Renormalization.NearlyGaussian
 public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
@@ -27,6 +29,7 @@ Formal infrastructure for the renormalization and nearly-Gaussian expansions use
 learning theory.
 
 The library exports finite-partition algebra, joint moments, cumulants, Gaussian Wick calculus,
-general exponential perturbations, symmetric quartic Gaussian specializations, and the Chapter 2
-neural-network architecture, initialization, and induced-law APIs.
+explicit actions and Gaussian expectation, general exponential perturbations, symmetric quartic
+Gaussian specializations, general even-coupling hierarchies, and the Chapter 2 neural-network
+architecture, initialization, and induced-law APIs.
 -/

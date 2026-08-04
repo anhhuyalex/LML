@@ -94,11 +94,9 @@ def interactionPotential (A : EvenAction ι) (ε : ℝ) (z : EuclideanSpace ℝ 
 def potential (A : EvenAction ι) (ε : ℝ) (z : EuclideanSpace ℝ ι) : ℝ :=
   quadraticAction A.precision z + A.interactionPotential ε z
 
-/-- The normalized deformation of a Gaussian base law by the interaction part of `A`. -/
-def measure (A : EvenAction ι) (K : Matrix ι ι ℝ) (ε : ℝ) : Measure (EuclideanSpace ℝ ι) :=
-  by
-    classical
-    exact Action.measure (multivariateGaussian 0 K) (A.interactionPotential ε)
+/-- The normalized law of the full action, relative to Euclidean volume. -/
+def measure (A : EvenAction ι) (ε : ℝ) : Measure (EuclideanSpace ℝ ι) :=
+  Action.measure volume (A.potential ε)
 
 /-- Truncate an even action by lowering its interaction cutoff. -/
 def truncate (A : EvenAction ι) (k : ℕ) : EvenAction ι where
@@ -131,13 +129,13 @@ theorem potential_neg (A : EvenAction ι) (ε : ℝ) (z : EuclideanSpace ℝ ι)
 
 /-- The interaction-deformed Gaussian law is sign-flip invariant.
 
-Informal proof: the centered Gaussian base measure is invariant under negation and
-`interactionPotential` is even by the same monomial-parity argument as `potential_neg`.  Changing
-variables `z ↦ -z` in the tilted density leaves the measure unchanged.  Source: parity discussion
+Informal proof: Euclidean volume is invariant under negation and the full action is even by
+`potential_neg`.  Changing variables `z ↦ -z` in the tilted density leaves the measure unchanged.
+Source: parity discussion
 in `docs/Renormalization.md`, lines 457--459 and the nearly-Gaussian action subsection.
 -/
-theorem measure_isNegInvariant (A : EvenAction ι) (K : Matrix ι ι ℝ) (ε : ℝ) :
-    (A.measure K ε).IsNegInvariant := by
+theorem measure_isNegInvariant (A : EvenAction ι) (ε : ℝ) :
+    (A.measure ε).IsNegInvariant := by
   sorry
 
 end EvenAction
@@ -179,7 +177,8 @@ theorem HierarchicallyNearlyGaussian.nearlyGaussian_of_odd_eq_zero
 
 /-- Linked-cluster hierarchy for the explicitly scaled even action.
 
-Informal proof: expand normalized expectations in the interaction vertices.  In a connected
+Informal proof: use positive-definiteness of the stored precision to identify the quadratic law
+with a Gaussian, then expand normalized expectations in the interaction vertices.  In a connected
 diagram with `2m` external legs, a collection of vertices of half-degrees `d₁,...,dᵣ` can be
 connected only if `Σ(dᵢ-1) ≥ m-1`.  Its coupling weight is exactly
 `ε^Σ(dᵢ-1)`, so every connected contribution is `O(ε^(m-1))`.  Disconnected diagrams cancel in
@@ -190,9 +189,9 @@ remainder by Gaussian polynomial moments.  This is the linked-cluster theorem; s
 -/
 theorem EvenAction.connectedCorrelatorHierarchy
     {ι : Type uI} [Fintype ι] [DecidableEq ι]
-    (A : EvenAction ι) (K : Matrix ι ι ℝ) (hK : K.PosSemidef)
+    (A : EvenAction ι) (hP : A.precision.PosDef)
     (hnonneg : ∀ m ∈ Finset.Icc 2 A.cutoff, (A.coupling m).Nonnegative) :
-    HierarchicallyNearlyGaussian (A.measure K) (fun i z => z i)
+    HierarchicallyNearlyGaussian A.measure (fun i z => z i)
       (nhdsWithin 0 (Set.Ici 0)) := by
   sorry
 
@@ -206,9 +205,9 @@ definition of nearly-Gaussianity and equation `eq:connected-correlator-hierarchy
 -/
 theorem EvenAction.nearlyGaussian
     {ι : Type uI} [Fintype ι] [DecidableEq ι]
-    (A : EvenAction ι) (K : Matrix ι ι ℝ) (hK : K.PosSemidef)
+    (A : EvenAction ι) (hP : A.precision.PosDef)
     (hnonneg : ∀ m ∈ Finset.Icc 2 A.cutoff, (A.coupling m).Nonnegative) :
-    NearlyGaussian (A.measure K) (fun i z => z i) (nhdsWithin 0 (Set.Ici 0)) := by
+    NearlyGaussian A.measure (fun i z => z i) (nhdsWithin 0 (Set.Ici 0)) := by
   sorry
 
 /-- Formal truncation consequence of hierarchical connected-correlator scaling. -/
@@ -325,12 +324,22 @@ theorem jointCumulant_six_eq_moments
       2 * sixPointPairingMomentSum μ X := by
   sorry
 
-/-- There are fifteen pairings of six labelled positions. -/
+/-- There are fifteen pairings of six labelled positions.
+
+Informal proof: choose the partner of position zero in five ways.  Pair the least remaining
+position in three ways, after which the last pair is forced, giving `5 * 3 * 1 = 15`.  Source:
+the fifteen pairing terms displayed in equation `eq:C6` of `docs/Renormalization.md`.
+-/
 theorem card_pairing_fin_six :
     Fintype.card (Finpartition.Pairing (Finset.univ : Finset (Fin 6))) = 15 := by
   sorry
 
-/-- There are fifteen partitions of type `(4,2)` on six labelled positions. -/
+/-- There are fifteen partitions of type `(4,2)` on six labelled positions.
+
+Informal proof: such a partition is uniquely determined by its two-element block; its complement
+is the four-element block.  There are `choose 6 2 = 15` choices.  Source: the fifteen `(4,2)`
+terms in equation `eq:C6` of `docs/Renormalization.md`.
+-/
 theorem card_fourTwoPartition_fin_six :
     fourTwoPartitions.card = 15 := by
   sorry
