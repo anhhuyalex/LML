@@ -1832,11 +1832,10 @@ private lemma cumulantTransform_tracePair_partialMatching_regrouping [Fintype ι
                 ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
                   ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
   classical
-  -- TODO(API): formalize the trace restriction map
-  -- `P ↦ (P.restrict A, P.restrict (univ \ A))`, the equivalence from each fiber to partial
-  -- matchings of the trace block sets, and the corresponding `Finset.sum_bij` regrouping.
-  -- The preceding docstring gives the complete finite combinatorial proof and literature source.
-  sorry
+  have hne' : A ∪ (Finset.univ \ A) ≠ ∅ := by rw [_hcut_cover]; exact _huniv_ne
+  have hkey := Finpartition.cumulantTransform_eq_sum_matching _hcut_disjoint hne' f
+    _hblock_split_compl
+  rwa [_hcut_cover] at hkey
 
 private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)

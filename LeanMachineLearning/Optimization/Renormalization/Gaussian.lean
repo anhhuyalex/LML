@@ -53,7 +53,7 @@ Informal proof: `Finpartition.Pairing.isEmpty_of_odd_card` says the indexing typ
 empty, so the finite sum is zero. -/
 theorem wick_eq_zero_of_odd_card (C : ι → ι → ℝ) (s : Finset ι) (hs : Odd s.card) :
     wick C s = 0 := by
-  haveI h : IsEmpty (Finpartition.Pairing s) := Finpartition.Pairing.isEmpty_of_odd_card hs
+  have h : IsEmpty (Finpartition.Pairing s) := Finpartition.Pairing.isEmpty_of_odd_card hs
   unfold wick Finpartition.pairingSum
   apply Fintype.sum_empty
 
@@ -536,7 +536,7 @@ private lemma isGaussian_map_centeredDual_linearCombination (μ : Measure E)
   have h_translated_gaussian :
       ProbabilityTheory.IsGaussian
         (Measure.map (fun y : ℝ ↦ y - c) (Measure.map (fun x ↦ H x) μ)) := by
-    haveI : ProbabilityTheory.IsGaussian (Measure.map (fun x ↦ H x) μ) := by
+    have : ProbabilityTheory.IsGaussian (Measure.map (fun x ↦ H x) μ) := by
       change ProbabilityTheory.IsGaussian (Measure.map H μ)
       infer_instance
     infer_instance
@@ -753,7 +753,7 @@ private lemma isProbabilityMeasure_of_jointGaussian_zero_linear {Ω ι : Type*}
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k, a k * Z k ω) ν)) :
     IsProbabilityMeasure ν := by
-  haveI : ProbabilityTheory.IsGaussian (Measure.map (fun _ : Ω ↦ (0 : ℝ)) ν) := by
+  have : ProbabilityTheory.IsGaussian (Measure.map (fun _ : Ω ↦ (0 : ℝ)) ν) := by
     simpa using h_joint (fun _ : ι ↦ 0)
   exact MeasureTheory.Measure.isProbabilityMeasure_of_map (μ := ν) fun _ : Ω ↦ (0 : ℝ)
 
@@ -770,7 +770,7 @@ private lemma integrable_coordinate_of_jointGaussian {Ω ι : Type*} [Measurable
   classical
   intro k
   let e : ι → ℝ := fun l ↦ if l = k then 1 else 0
-  haveI : ProbabilityTheory.IsGaussian (Measure.map (fun ω ↦ Z k ω) ν) := by
+  have : ProbabilityTheory.IsGaussian (Measure.map (fun ω ↦ Z k ω) ν) := by
     simpa [e] using h_joint e
   have hZ_ae : AEMeasurable (fun ω ↦ Z k ω) ν :=
     aemeasurable_of_map_neZero (μ := ν) (f := fun ω ↦ Z k ω)
@@ -817,7 +817,7 @@ private lemma memLp_coordinate_of_jointGaussian {Ω ι : Type*} [MeasurableSpace
   classical
   intro k
   let e : ι → ℝ := fun l ↦ if l = k then 1 else 0
-  haveI : ProbabilityTheory.IsGaussian (Measure.map (fun ω ↦ Z k ω) ν) := by
+  have : ProbabilityTheory.IsGaussian (Measure.map (fun ω ↦ Z k ω) ν) := by
     simpa [e] using h_joint e
   have h_id_memLp : MemLp id 2 (Measure.map (fun ω ↦ Z k ω) ν) := by
     simpa [id] using
@@ -894,7 +894,7 @@ private lemma mgf_linear_combination_centered_jointGaussian {Ω ι : Type*}
   -- variance, then pull those parameters back along `X`.
   have hX_law :
       Measure.map X ν = gaussianReal 0 (Var[X; ν]).toNNReal := by
-    haveI : ProbabilityTheory.IsGaussian (Measure.map X ν) := hX_gaussian
+    have : ProbabilityTheory.IsGaussian (Measure.map X ν) := hX_gaussian
     have hX_ae : AEMeasurable X ν :=
       aemeasurable_of_map_neZero (μ := ν) (f := X)
         inferInstance
@@ -1001,6 +1001,79 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
     exact pairWeight_pair (fun k l : ι ↦ covariance (Z k) (Z l) ν) hsym hij
   exact h_lhs_cov.trans h_rhs_cov.symm
 
+/-- Higher centered Gaussian cumulants vanish.
+
+This is the analytic coefficient-extraction step used in the finite-dimensional Wick proof.
+If every linear combination of the finite family has MGF
+`exp ((t^2 / 2) * aᵀ C a)`, then the cumulant generating function is the quadratic polynomial
+`(1 / 2) * aᵀ C a`.  Hence every squarefree mixed coefficient of total degree at least three is
+zero, and this coefficient is exactly the Möbius/partition-lattice cumulant
+`Finpartition.cumulantTransform (blockMoment ν Z) B`.
+
+Informal references: the equivalence between joint cumulants and coefficients of the joint CGF is
+standard; see Scholarpedia, *Cumulants*, <http://www.scholarpedia.org/article/Cumulants>, and
+Wikipedia, *Cumulant*, <https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants>. -/
+private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_three_le {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
+    [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
+    (h_mgf : ∀ a : ι → ℝ,
+      (fun t : ℝ ↦ ProbabilityTheory.mgf
+          (fun ω ↦ ∑ k : ι, a k * Z k ω) ν t) =
+        (fun t : ℝ ↦ Real.exp
+          (((∑ i : ι, ∑ j : ι,
+              a i * a j * covariance (Z i) (Z j) ν) * t ^ 2) / 2)))
+    {B : Finset ι} (hBcard : 3 ≤ B.card) :
+    Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
+  -- This is the missing analytic theorem: identify `cumulantTransform` with the squarefree
+  -- coefficient of `log (mgf (∑ aᵢ Zᵢ) 1)`, then use `h_mgf` to rewrite that logarithm as a
+  -- quadratic polynomial.  Since `3 ≤ B.card`, the relevant squarefree coefficient has degree at
+  -- least three, so it vanishes.
+  --
+  -- A future complete proof should combine `jointMoment_eq_sum_partition_jointCumulant` with the
+  -- finite polynomial identity expressing the exponential of the cumulant series, or equivalently
+  -- differentiate Mathlib's `ProbabilityTheory.cgf` using the analytic MGF API.
+  sorry
+
+/-- Centered Gaussian block cumulants vanish in every cardinality except two.
+
+The proof is purely combinatorial for cardinalities `0` and `1`: the empty cumulant is zero by the
+project convention, while a singleton cumulant is the corresponding mean and therefore vanishes by
+centering.  Cardinalities at least `3` are delegated to the analytic CGF coefficient-extraction
+lemma above. -/
+private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_card_ne_two {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
+    [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
+    (h_mgf : ∀ a : ι → ℝ,
+      (fun t : ℝ ↦ ProbabilityTheory.mgf
+          (fun ω ↦ ∑ k : ι, a k * Z k ω) ν t) =
+        (fun t : ℝ ↦ Real.exp
+          (((∑ i : ι, ∑ j : ι,
+              a i * a j * covariance (Z i) (Z j) ν) * t ^ 2) / 2)))
+    (h_centered : ∀ k : ι, ∫ ω, Z k ω ∂ν = 0)
+    {B : Finset ι} (hBcard : B.card ≠ 2) :
+    Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
+  classical
+  rcases Nat.lt_trichotomy B.card 2 with hlt | heq | hgt
+  · have hzero_or_one : B.card = 0 ∨ B.card = 1 := by omega
+    rcases hzero_or_one with hB0 | hB1
+    · have hBempty : B = ∅ := Finset.card_eq_zero.mp hB0
+      simp [Finpartition.cumulantTransform, hBempty]
+    · obtain ⟨i, rfl⟩ := Finset.card_eq_one.mp hB1
+      have h_single :
+          Finpartition.cumulantTransform (blockMoment ν Z) ({i} : Finset ι) =
+            blockMoment ν Z ({i} : Finset ι) := by
+        dsimp [Finpartition.cumulantTransform]
+        rw [sum_Finpartition_singleton i]
+        rw [cumulantCoefficient_top (Finset.singleton_nonempty i)]
+        rw [blockProduct_top (Finset.singleton_nonempty i)]
+        ring
+      rw [h_single]
+      dsimp [blockMoment]
+      simpa using h_centered i
+  · exact False.elim (hBcard heq)
+  · have hB3 : 3 ≤ B.card := by omega
+    exact cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_three_le ν Z h_mgf hB3
+
 -- Combine the two cardinality branches for a block-local formula.  This keeps
 -- analytic proofs focused on the pair and non-pair cases, leaving the `if`
 -- bookkeeping to a reusable finite-set helper.
@@ -1080,7 +1153,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
 
       -- The zero linear combination supplies the probability normalization
       -- required by moment-cumulant inversion.
-      haveI : IsProbabilityMeasure ν :=
+      have : IsProbabilityMeasure ν :=
         isProbabilityMeasure_of_jointGaussian_zero_linear ν Zs h_joint_s
 
       -- Analytic Gaussian input: Cramér-Wold plus centering gives the
@@ -1138,12 +1211,8 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
             ∀ {B : Finset σ}, B.card ≠ 2 →
               Finpartition.cumulantTransform (blockMoment ν Zs) B = 0 := by
           intro hmgf hcent B hBcard
-          -- TODO: split on `B.card`.  For `0`, unfold
-          -- `Finpartition.cumulantTransform` and use the empty-block convention;
-          -- for `1`, rewrite as `jointCumulant_one` and use `hcent`; for
-          -- cardinality at least `3`, all mixed derivatives of the quadratic
-          -- cumulant generating function supplied by `hmgf` vanish.
-          sorry
+          exact cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_card_ne_two
+            ν Zs hmgf hcent hBcard
 
         exact eq_if_card_two_of_eq_of_ne
           (Finpartition.cumulantTransform (blockMoment ν Zs)) K

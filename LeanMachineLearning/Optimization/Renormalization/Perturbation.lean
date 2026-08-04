@@ -120,12 +120,8 @@ theorem partitionFunction_pos [NeZero μ] {V : Ω → ℝ} {ε : ℝ}
 -- `exp (-t) ≤ 1` makes `|exp (-t) - 1| = 1 - exp (-t)`, and convexity of the exponential
 -- (`Real.one_sub_le_exp_neg`) gives `1 - exp (-t) ≤ t`.
 private lemma abs_exp_neg_sub_one_le {t : ℝ} (ht : 0 ≤ t) : |Real.exp (-t) - 1| ≤ t := by
-  have h_nonpos : Real.exp (-t) - 1 ≤ 0 := sub_nonpos.2 (Real.exp_le_one_iff.2 (neg_nonpos.2 ht))
-  calc
-    |Real.exp (-t) - 1| = 1 - Real.exp (-t) := by simpa using abs_of_nonpos h_nonpos
-    _ ≤ t := by
-      have h := Real.one_sub_le_exp_neg t
-      linarith
+  rw [abs_of_nonpos (sub_nonpos.2 (Real.exp_le_one_iff.2 (neg_nonpos.2 ht)))]
+  linarith [Real.one_sub_le_exp_neg t]
 
 -- For `h > 0` and `v ≥ 0`, the right difference quotient of `exp (-h * v)` at zero is
 -- dominated by `v`: `|(exp (-h * v) - 1) / h| = |exp (-h * v) - 1| / h ≤ (h * v) / h = v`.
@@ -148,9 +144,7 @@ private lemma tendsto_diffQuot_exp_neg_mul {v : ℝ} :
   have hderiv : HasDerivWithinAt (fun h : ℝ => Real.exp (-h * v)) (-v) (Set.Ioi (0 : ℝ)) 0 := by
     have hlin : HasDerivAt (fun h : ℝ => -h * v) (-v) 0 := by
       simpa [mul_comm] using ((hasDerivAt_id' 0).const_mul (-v))
-    have hderivAt : HasDerivAt (fun h : ℝ => Real.exp (-h * v)) (-v) 0 := by
-      simpa using hlin.exp
-    exact hderivAt.hasDerivWithinAt
+    simpa using hlin.exp.hasDerivWithinAt
   rw [hasDerivWithinAt_iff_tendsto_slope' (s := Set.Ioi (0 : ℝ)) (x := 0) (by simp)] at hderiv
   convert hderiv using 1
   funext h
@@ -162,7 +156,7 @@ private lemma integrable_exp_neg_mul_nonneg [IsFiniteMeasure μ] {V : Ω → ℝ
     (hVmeas : AEStronglyMeasurable V μ) (hVnonneg : 0 ≤ V) {ε : ℝ} (hε : 0 ≤ ε) :
     Integrable (fun x : Ω => Real.exp (-ε * V x)) μ :=
   Integrable.of_mem_Icc 0 1
-    ((Real.continuous_exp.comp_aestronglyMeasurable (hVmeas.const_mul (-ε))).aemeasurable)
+    ((hVmeas.aemeasurable.const_mul (-ε)).exp)
     (ae_of_all μ fun x => exp_neg_mul_nonneg_mem_Icc hε (hVnonneg x))
 
 -- The slope of the integrated exponential equals the integral of the pointwise difference
@@ -178,29 +172,14 @@ private lemma slope_integral_exp_neg_mul_eq_integral_diffQuot [IsFiniteMeasure �
   -- `integral_sub` (both exponentials are integrable by `integrable_exp_neg_mul_nonneg`).
   have h_int_exp : Integrable (fun x : Ω => Real.exp (-h * V x)) μ :=
     integrable_exp_neg_mul_nonneg hV.aestronglyMeasurable hVnonneg hh.le
-  have h_int_zero : Integrable (fun x : Ω => Real.exp (-0 * V x)) μ :=
-    integrable_exp_neg_mul_nonneg hV.aestronglyMeasurable hVnonneg (by simp)
   calc
     slope (fun ε : ℝ => ∫ x, Real.exp (-ε * V x) ∂μ) 0 h
-        = h⁻¹ * ((∫ x, Real.exp (-h * V x) ∂μ) - (∫ x, Real.exp (-0 * V x) ∂μ)) := by
-            rw [slope_def_module]
-            simp
-    _ = h⁻¹ * (∫ x, (Real.exp (-h * V x) - Real.exp (-0 * V x)) ∂μ) := by
-            rw [integral_sub h_int_exp h_int_zero]
-    _ = ∫ x, h⁻¹ * (Real.exp (-h * V x) - Real.exp (-0 * V x)) ∂μ := by
-            rw [← integral_const_mul]
-    _ = ∫ x, h⁻¹ * (Real.exp (-h * V x) - 1) ∂μ := by
-            apply integral_congr_ae
-            refine ae_of_all μ ?_
-            intro x
-            simp
+        = h⁻¹ * ((∫ x, Real.exp (-h * V x) ∂μ) - (∫ x, 1 ∂μ)) := by
+            simp [slope_def_module]
     _ = ∫ x, (Real.exp (-h * V x) - 1) / h ∂μ := by
+            rw [← integral_sub h_int_exp (integrable_const (1 : ℝ)), ← integral_const_mul]
             apply integral_congr_ae
-            refine ae_of_all μ ?_
-            intro x
-            change h⁻¹ * (Real.exp (-h * V x) - 1) = (Real.exp (-h * V x) - 1) / h
-            rw [div_eq_mul_inv]
-            ring
+            exact ae_of_all μ (fun x => by ring)
 
 /-- Right differentiation under the integral for a nonnegative exponential tilt at the origin.
 
@@ -226,43 +205,32 @@ private theorem hasDerivWithinAt_integral_exp_neg_mul_zero [IsProbabilityMeasure
       (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 := by
   -- The derivative is a limit of right difference quotients of the integrated exponential along
   -- the punctured right half-line `𝓝[Ioi 0] 0` (`hasDerivWithinAt_iff_tendsto_slope`).
-  rw [hasDerivWithinAt_iff_tendsto_slope]
-  have hs : Set.Ici (0 : ℝ) \ {0} = Set.Ioi (0 : ℝ) := by
-    ext x
-    simp [Set.Ici, Set.Ioi, lt_iff_le_and_ne, eq_comm]
-  rw [hs]
+  rw [← hasDerivWithinAt_Ioi_iff_Ici (x := 0), hasDerivWithinAt_iff_tendsto_slope' (s := Set.Ioi (0 : ℝ)) (x := 0) (by simp)]
 
   -- Step 1: dominated convergence on the right half-line.  The difference quotients converge
   -- pointwise to `-V` (`tendsto_diffQuot_exp_neg_mul`) and are dominated by the integrable
   -- function `V` (`abs_diffQuot_exp_neg_mul_le`).
-  have hDCT : Filter.Tendsto
+  have hDCT : Tendsto
       (fun h : ℝ => ∫ x, (Real.exp (-h * V x) - 1) / h ∂μ)
       (𝓝[Set.Ioi (0 : ℝ)] 0) (𝓝 (∫ x, -V x ∂μ)) := by
-    refine MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+    refine tendsto_integral_filter_of_dominated_convergence
       (l := 𝓝[Set.Ioi (0 : ℝ)] 0)
       (F := fun h : ℝ => fun x : Ω => (Real.exp (-h * V x) - 1) / h)
       (f := fun x : Ω => -V x) V ?_ ?_ ?_ ?_
     · filter_upwards [self_mem_nhdsWithin] with h hh
       -- `v ↦ (exp (-h * v) - 1) / h` is continuous for `h > 0`, so composing with the
       -- ae-strongly measurable `V` gives ae-strongly measurable difference quotients.
-      have hc : Continuous (fun v : ℝ => (Real.exp (-h * v) - 1) / h) := by
-        have h1 : Continuous (fun v : ℝ => Real.exp (-h * v)) :=
-          Real.continuous_exp.comp (continuous_const.mul continuous_id)
-        exact (h1.sub continuous_const).div continuous_const (fun _ => hh.ne')
-      exact hc.comp_aestronglyMeasurable hV.aestronglyMeasurable
+      exact (((Real.continuous_exp.comp (continuous_const.mul continuous_id)).sub continuous_const).div
+        continuous_const (fun _ => hh.ne')).comp_aestronglyMeasurable hV.aestronglyMeasurable
     · filter_upwards [self_mem_nhdsWithin] with h hh
-      refine ae_of_all μ ?_
-      intro x
-      simpa [Real.norm_eq_abs, abs_div] using abs_diffQuot_exp_neg_mul_le hh (hVnonneg x)
+      exact ae_of_all μ (fun x => by simpa [Real.norm_eq_abs, abs_div] using abs_diffQuot_exp_neg_mul_le hh (hVnonneg x))
     · exact hV
-    · refine ae_of_all μ ?_
-      intro x
-      exact tendsto_diffQuot_exp_neg_mul (v := V x)
+    · exact ae_of_all μ (fun x => tendsto_diffQuot_exp_neg_mul (v := V x))
 
   -- Step 2: on the right half-line the slope of the integral equals the integral of the
   -- pointwise difference quotients (`slope_integral_exp_neg_mul_eq_integral_diffQuot`), so the
   -- dominated-convergence limit is the slope limit, and `∫ -V = -∫ V` finishes the proof.
-  exact (Filter.tendsto_congr' (slope_integral_exp_neg_mul_eq_integral_diffQuot (μ := μ) hVnonneg hV)).2
+  exact (tendsto_congr' (slope_integral_exp_neg_mul_eq_integral_diffQuot (μ := μ) hVnonneg hV)).2
     (by simpa [integral_neg] using hDCT)
 
 /-- Right derivative of the relative partition function at zero.
@@ -272,10 +240,8 @@ the difference quotient by `V`.  Dominated convergence gives the derivative `-�
 normalization gives `Z(0)=1`. -/
 theorem hasDerivWithinAt_partitionFunction_zero [IsProbabilityMeasure μ]
     {V : Ω → ℝ} (hVnonneg : 0 ≤ V) (hV : Integrable V μ) :
-    HasDerivWithinAt (partitionFunction μ V) (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 := by
-  change HasDerivWithinAt (fun ε : ℝ ↦ ∫ x, Real.exp (-ε * V x) ∂μ)
-    (-(∫ x, V x ∂μ)) (Set.Ici 0) 0
-  exact hasDerivWithinAt_integral_exp_neg_mul_zero (μ := μ) hVnonneg hV
+    HasDerivWithinAt (partitionFunction μ V) (-(∫ x, V x ∂μ)) (Set.Ici 0) 0 :=
+  hasDerivWithinAt_integral_exp_neg_mul_zero (μ := μ) hVnonneg hV
 
 /-- Right derivative of an unnormalized weighted integral at zero.
 

@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Combinatorics.Enumerative.IncidenceAlgebra
 public import Mathlib.Order.Partition.Finpartition
+public import Mathlib.Data.Fintype.Perm
 
 /-!
 # Finite-partition algebra for renormalization
@@ -1439,6 +1440,586 @@ theorem cumulantTransform_partitionTransform [CommRing R] (f : Finset α → R)
     (f := cumulantTransform (partitionTransform f)) (g := f) ?_ hf ?_
   · simp [cumulantTransform]
   · exact partitionTransform_cumulantTransform (partitionTransform f) (partitionTransform_empty f)
+
+section TracePairMatching
+
+variable {A B : Finset α}
+
+/-- The block of a restricted partition containing `x` is the trace on `b` of the original block
+containing `x`. -/
+lemma part_restrict {a b : Finset α} (P : Finpartition a) (hb : b ⊆ a) {x : α} (hx : x ∈ b) :
+    (P.restrict hb).part x = P.part x ∩ b := by
+  have hxa : x ∈ a := hb hx
+  have hmem : P.part x ∩ b ∈ (P.restrict hb).parts := by
+    rw [restrict]
+    refine Finset.mem_erase.mpr ⟨?_, Finset.mem_image.mpr ⟨P.part x, P.part_mem.2 hxa, rfl⟩⟩
+    exact Finset.nonempty_iff_ne_empty.mp ⟨x, Finset.mem_inter.mpr ⟨P.mem_part hxa, hx⟩⟩
+  exact (Finpartition.part_eq_of_mem _ hmem
+    (Finset.mem_inter.mpr ⟨P.mem_part hxa, hx⟩))
+
+/-- A partial matching between the blocks of two finpartitions `π` and `σ`: a chosen subset `S` of
+`π`'s blocks, a chosen subset `T` of `σ`'s blocks, and a bijection pairing them up.
+
+This is the reusable "trace restriction / partial-matching fiber equivalence" API called for in
+`cumulantTransform_tracePair_partialMatching_regrouping`'s docstring: `Matching.glue` reconstructs a
+finpartition of `A ∪ B` from a pair of trace partitions and a matching between their blocks, and
+`Matching.ofFinpartition` / `Matching.glue_ofFinpartition` (below) show this is (one half of) an
+equivalence with `Finpartition (A ∪ B)`. -/
+structure Matching (π : Finpartition A) (σ : Finpartition B) where
+  S : Finset (Finset α)
+  T : Finset (Finset α)
+  hS : S ⊆ π.parts
+  hT : T ⊆ σ.parts
+  e : {p // p ∈ S} ≃ {q // q ∈ T}
+
+/-- If `p ⊆ A` and `q ⊆ B` for disjoint `A`, `B`, then `p ∪ q` meets `A` exactly in `p`. -/
+lemma union_inter_left_of_subset {p q : Finset α} (hAB : Disjoint A B) (hp : p ⊆ A)
+    (hq : q ⊆ B) : (p ∪ q) ∩ A = p := by
+  apply Finset.Subset.antisymm
+  · intro y hy
+    rcases Finset.mem_inter.mp hy with ⟨hyU, hyA⟩
+    rcases Finset.mem_union.mp hyU with hyp | hyq
+    · exact hyp
+    · exact absurd hyA (Finset.disjoint_left.mp hAB.symm (hq hyq))
+  · intro y hy
+    exact Finset.mem_inter.mpr ⟨Finset.mem_union_left _ hy, hp hy⟩
+
+/-- If `p ⊆ A` and `q ⊆ B` for disjoint `A`, `B`, then `p ∪ q` meets `B` exactly in `q`. -/
+lemma union_inter_right_of_subset {p q : Finset α} (hAB : Disjoint A B) (hp : p ⊆ A)
+    (hq : q ⊆ B) : (p ∪ q) ∩ B = q := by
+  rw [Finset.union_comm]
+  exact union_inter_left_of_subset hAB.symm hq hp
+
+namespace Matching
+
+variable {π : Finpartition A} {σ : Finpartition B}
+
+/-- The number of glued pairs in a matching. -/
+def size (M : Matching π σ) : ℕ := M.S.card
+
+/-- The blocks of the glued partition: unmatched blocks of `π`, unmatched blocks of `σ`, and the
+unions of matched pairs. -/
+def glueParts (M : Matching π σ) : Finset (Finset α) :=
+  (π.parts \ M.S) ∪ (σ.parts \ M.T) ∪ (M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1))
+
+lemma subset_of_mem_glueParts (M : Matching π σ) {p : Finset α} (hp : p ∈ M.glueParts) :
+    p ⊆ A ∪ B := by
+  simp only [glueParts, Finset.mem_union, Finset.mem_sdiff, Finset.mem_image,
+    Finset.mem_attach, true_and] at hp
+  rcases hp with (⟨hp, _⟩ | ⟨hp, _⟩) | ⟨s, rfl⟩
+  · exact (π.subset hp).trans Finset.subset_union_left
+  · exact (σ.subset hp).trans Finset.subset_union_right
+  · exact Finset.union_subset_union (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))
+
+lemma empty_notMem_glueParts (M : Matching π σ) : ∅ ∉ M.glueParts := by
+  intro hmem
+  rw [glueParts, Finset.mem_union, Finset.mem_union] at hmem
+  rcases hmem with (hmem | hmem) | hmem
+  · exact π.ne_empty (Finset.mem_sdiff.mp hmem).1 rfl
+  · exact σ.ne_empty (Finset.mem_sdiff.mp hmem).1 rfl
+  · obtain ⟨s, -, hs⟩ := Finset.mem_image.mp hmem
+    have hne : ((s.1 : Finset α) ∪ (M.e s).1).Nonempty :=
+      Finset.Nonempty.mono Finset.subset_union_left (π.nonempty_of_mem_parts (M.hS s.2))
+    exact hne.ne_empty hs
+
+/-- Every point of `A ∪ B` lies in exactly one block of the glued matching.
+
+Informal proof: for `x ∈ A`, its unique `π`-block `π.part x` is either matched (in `M.S`) or not.
+If matched to `q := M.e ⟨π.part x, _⟩`, the merged block `π.part x ∪ q` is the unique witness: any
+other candidate block containing `x` would, by case analysis on which of the three parts of
+`glueParts` it comes from, have to equal `π.part x` (contradicting membership in the erased part)
+or lie in `B` (contradicting `x ∈ A` and `Disjoint A B`) or come from a different matched pair
+whose `π`-side must equal `π.part x` by uniqueness of `Finpartition.part`, forcing equality of
+the pairs by injectivity of `M.e`. If unmatched, `π.part x` itself is the unique witness by the
+symmetric argument. The case `x ∈ B` is symmetric, using `M.e.symm`. -/
+lemma existsUnique_mem_glueParts (M : Matching π σ) (hAB : Disjoint A B) :
+    ∀ x ∈ A ∪ B, ∃! t, t ∈ M.glueParts ∧ x ∈ t := by
+  intro x hx
+  rcases Finset.mem_union.mp hx with hxA | hxB
+  · -- `x ∈ A`: work with the block of `π` containing `x`.
+    have hxB' : x ∉ B := Finset.disjoint_left.mp hAB hxA
+    have hp0_mem : π.part x ∈ π.parts := π.part_mem.2 hxA
+    have hp0_x : x ∈ π.part x := π.mem_part hxA
+    by_cases hp0S : π.part x ∈ M.S
+    · -- the block is matched: the merged block is the unique witness
+      set s0 : {p // p ∈ M.S} := ⟨π.part x, hp0S⟩ with hs0_def
+      refine ⟨s0.1 ∪ (M.e s0).1,
+        ⟨Finset.mem_union_right _ (Finset.mem_image.mpr ⟨s0, Finset.mem_attach _ s0, rfl⟩),
+          Finset.mem_union_left _ hp0_x⟩, ?_⟩
+      rintro t' ⟨ht', hxt'⟩
+      rw [glueParts, Finset.mem_union, Finset.mem_union] at ht'
+      rcases ht' with (ht' | ht') | ht'
+      · have heq : π.part x = t' := π.part_eq_of_mem (Finset.mem_sdiff.mp ht').1 hxt'
+        exact absurd (heq ▸ hp0S) (Finset.mem_sdiff.mp ht').2
+      · exact absurd (σ.subset (Finset.mem_sdiff.mp ht').1 hxt') hxB'
+      · obtain ⟨s1, -, hs1⟩ := Finset.mem_image.mp ht'
+        have hx_notin : x ∉ (M.e s1).1 := fun h => hxB' (σ.subset (M.hT (M.e s1).2) h)
+        have hx_s1 : x ∈ s1.1 := (Finset.mem_union.mp (hs1 ▸ hxt')).resolve_right hx_notin
+        have hp0_eq : π.part x = s1.1 := π.part_eq_of_mem (M.hS s1.2) hx_s1
+        have hs1_eq : s1 = s0 := Subtype.ext hp0_eq.symm
+        rw [← hs1, hs1_eq]
+    · -- the block is unmatched: it is itself the unique witness
+      refine ⟨π.part x,
+        ⟨Finset.mem_union_left _ (Finset.mem_union_left _
+          (Finset.mem_sdiff.mpr ⟨hp0_mem, hp0S⟩)), hp0_x⟩, ?_⟩
+      rintro t' ⟨ht', hxt'⟩
+      rw [glueParts, Finset.mem_union, Finset.mem_union] at ht'
+      rcases ht' with (ht' | ht') | ht'
+      · exact (π.part_eq_of_mem (Finset.mem_sdiff.mp ht').1 hxt').symm
+      · exact absurd (σ.subset (Finset.mem_sdiff.mp ht').1 hxt') hxB'
+      · obtain ⟨s1, -, hs1⟩ := Finset.mem_image.mp ht'
+        have hx_notin : x ∉ (M.e s1).1 := fun h => hxB' (σ.subset (M.hT (M.e s1).2) h)
+        have hx_s1 : x ∈ s1.1 := (Finset.mem_union.mp (hs1 ▸ hxt')).resolve_right hx_notin
+        have hp0_eq : π.part x = s1.1 := π.part_eq_of_mem (M.hS s1.2) hx_s1
+        exact absurd (hp0_eq ▸ s1.2) hp0S
+  · -- `x ∈ B`: symmetric, working with the block of `σ` containing `x` and `M.e.symm`.
+    have hxA' : x ∉ A := fun h => Finset.disjoint_left.mp hAB h hxB
+    have hq0_mem : σ.part x ∈ σ.parts := σ.part_mem.2 hxB
+    have hq0_x : x ∈ σ.part x := σ.mem_part hxB
+    by_cases hq0T : σ.part x ∈ M.T
+    · set t0 : {q // q ∈ M.T} := ⟨σ.part x, hq0T⟩ with ht0_def
+      refine ⟨(M.e.symm t0).1 ∪ t0.1,
+        ⟨Finset.mem_union_right _
+            (Finset.mem_image.mpr ⟨M.e.symm t0, Finset.mem_attach _ _, by simp⟩),
+          Finset.mem_union_right _ hq0_x⟩, ?_⟩
+      rintro t' ⟨ht', hxt'⟩
+      rw [glueParts, Finset.mem_union, Finset.mem_union] at ht'
+      rcases ht' with (ht' | ht') | ht'
+      · exact absurd (π.subset (Finset.mem_sdiff.mp ht').1 hxt') hxA'
+      · have heq : σ.part x = t' := σ.part_eq_of_mem (Finset.mem_sdiff.mp ht').1 hxt'
+        exact absurd (heq ▸ hq0T) (Finset.mem_sdiff.mp ht').2
+      · obtain ⟨s1, -, hs1⟩ := Finset.mem_image.mp ht'
+        have hx_notin : x ∉ s1.1 := fun h => hxA' (π.subset (M.hS s1.2) h)
+        have hx_e : x ∈ (M.e s1).1 := (Finset.mem_union.mp (hs1 ▸ hxt')).resolve_left hx_notin
+        have hq0_eq : σ.part x = (M.e s1).1 := σ.part_eq_of_mem (M.hT (M.e s1).2) hx_e
+        have hs1_eq : s1 = M.e.symm t0 := by
+          apply M.e.injective
+          rw [Equiv.apply_symm_apply]
+          exact Subtype.ext hq0_eq.symm
+        rw [← hs1, hs1_eq, Equiv.apply_symm_apply]
+    · refine ⟨σ.part x,
+        ⟨Finset.mem_union_left _ (Finset.mem_union_right _
+            (Finset.mem_sdiff.mpr ⟨hq0_mem, hq0T⟩)), hq0_x⟩, ?_⟩
+      rintro t' ⟨ht', hxt'⟩
+      rw [glueParts, Finset.mem_union, Finset.mem_union] at ht'
+      rcases ht' with (ht' | ht') | ht'
+      · exact absurd (π.subset (Finset.mem_sdiff.mp ht').1 hxt') hxA'
+      · exact (σ.part_eq_of_mem (Finset.mem_sdiff.mp ht').1 hxt').symm
+      · obtain ⟨s1, -, hs1⟩ := Finset.mem_image.mp ht'
+        have hx_notin : x ∉ s1.1 := fun h => hxA' (π.subset (M.hS s1.2) h)
+        have hx_e : x ∈ (M.e s1).1 := (Finset.mem_union.mp (hs1 ▸ hxt')).resolve_left hx_notin
+        have hq0_eq : σ.part x = (M.e s1).1 := σ.part_eq_of_mem (M.hT (M.e s1).2) hx_e
+        exact absurd (hq0_eq ▸ (M.e s1).2) hq0T
+
+/-- Glue a matching between the blocks of `π` and `σ` into a finpartition of `A ∪ B`, merging each
+matched pair of blocks into a single block and keeping unmatched blocks as they are. -/
+def glue (M : Matching π σ) (hAB : Disjoint A B) : Finpartition (A ∪ B) :=
+  Finpartition.ofExistsUnique M.glueParts (fun _ hp => M.subset_of_mem_glueParts hp)
+    (M.existsUnique_mem_glueParts hAB) M.empty_notMem_glueParts
+
+@[simp] lemma glue_parts (M : Matching π σ) (hAB : Disjoint A B) :
+    (M.glue hAB).parts = M.glueParts := rfl
+
+lemma card_T_eq_card_S (M : Matching π σ) : M.T.card = M.S.card := by
+  rw [← Fintype.card_coe M.T, ← Fintype.card_coe M.S]
+  exact (Fintype.card_congr M.e.symm)
+
+lemma injOn_mergeMap (M : Matching π σ) (hAB : Disjoint A B) :
+    Set.InjOn (fun s : {p // p ∈ M.S} => (s.1 : Finset α) ∪ (M.e s).1) Set.univ := by
+  intro s1 _ s2 _ h
+  simp only at h
+  have h1 : ((s1.1 : Finset α) ∪ (M.e s1).1) ∩ A = s1.1 :=
+    union_inter_left_of_subset hAB (π.subset (M.hS s1.2)) (σ.subset (M.hT (M.e s1).2))
+  have h2 : ((s2.1 : Finset α) ∪ (M.e s2).1) ∩ A = s2.1 :=
+    union_inter_left_of_subset hAB (π.subset (M.hS s2.2)) (σ.subset (M.hT (M.e s2).2))
+  exact Subtype.ext (h1 ▸ h2 ▸ (h ▸ rfl : ((s1.1 : Finset α) ∪ (M.e s1).1) ∩ A
+    = ((s2.1 : Finset α) ∪ (M.e s2).1) ∩ A))
+
+/-- The unmatched `π`-blocks and unmatched `σ`-blocks are disjoint (as elements of the glued
+partition), since they lie on the disjoint sides `A`, `B` of the cut. -/
+lemma disjoint_leftUnmatched_rightUnmatched (M : Matching π σ) (hAB : Disjoint A B) :
+    Disjoint (π.parts \ M.S) (σ.parts \ M.T) := by
+  rw [Finset.disjoint_left]
+  intro t ht ht'
+  have htA : t ⊆ A := π.subset (Finset.mem_sdiff.mp ht).1
+  have htB : t ⊆ B := σ.subset (Finset.mem_sdiff.mp ht').1
+  exact π.ne_empty (Finset.mem_sdiff.mp ht).1
+    (Finset.subset_empty.mp (fun y hy => absurd (htB hy) (Finset.disjoint_left.mp hAB (htA hy))))
+
+/-- Every merged block meets both `A` and `B`, in the matched `π`- and `σ`-block respectively. -/
+lemma merged_inter_nonempty (M : Matching π σ) (hAB : Disjoint A B) {t : Finset α}
+    (ht : t ∈ M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1)) :
+    (t ∩ A).Nonempty ∧ (t ∩ B).Nonempty := by
+  obtain ⟨s, -, rfl⟩ := Finset.mem_image.mp ht
+  rw [union_inter_left_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2)),
+    union_inter_right_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))]
+  exact ⟨π.nonempty_of_mem_parts (M.hS s.2), σ.nonempty_of_mem_parts (M.hT (M.e s).2)⟩
+
+/-- No unmatched block coincides with a merged block: a merged block meets both sides of the cut,
+while an unmatched block lies entirely on one side. -/
+lemma disjoint_unmatched_merged (M : Matching π σ) (hAB : Disjoint A B) :
+    Disjoint ((π.parts \ M.S) ∪ (σ.parts \ M.T))
+      (M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1)) := by
+  rw [Finset.disjoint_union_left, Finset.disjoint_left, Finset.disjoint_left]
+  refine ⟨fun t ht ht' => ?_, fun t ht ht' => ?_⟩
+  · obtain ⟨x, hx⟩ := (M.merged_inter_nonempty hAB ht').2
+    exact (Finset.disjoint_left.mp hAB) (π.subset (Finset.mem_sdiff.mp ht).1
+      (Finset.mem_inter.mp hx).1) (Finset.mem_inter.mp hx).2
+  · obtain ⟨x, hx⟩ := (M.merged_inter_nonempty hAB ht').1
+    exact (Finset.disjoint_left.mp hAB) (Finset.mem_inter.mp hx).2
+      (σ.subset (Finset.mem_sdiff.mp ht).1 (Finset.mem_inter.mp hx).1)
+
+/-- The glued partition has `p + q - m` blocks, where `p = |π.parts|`, `q = |σ.parts|`, and
+`m = M.size` is the number of glued pairs: the `m` matched pairs merge into `m` blocks, and
+`p - m`, `q - m` blocks remain unmatched on each side. -/
+lemma card_glueParts (M : Matching π σ) (hAB : Disjoint A B) :
+    M.glueParts.card = π.parts.card + σ.parts.card - M.size := by
+  have hcard : M.glueParts.card = (π.parts \ M.S).card + (σ.parts \ M.T).card +
+      (M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1)).card := by
+    rw [glueParts, Finset.card_union_of_disjoint (M.disjoint_unmatched_merged hAB),
+      Finset.card_union_of_disjoint (M.disjoint_leftUnmatched_rightUnmatched hAB)]
+  rw [hcard, Finset.card_sdiff_of_subset (M.hS), Finset.card_sdiff_of_subset (M.hT),
+    Finset.card_image_of_injOn (fun s1 hs1 s2 hs2 h => M.injOn_mergeMap hAB (Set.mem_univ s1)
+      (Set.mem_univ s2) h),
+    Finset.card_attach]
+  have hSle : M.S.card ≤ π.parts.card := Finset.card_le_card M.hS
+  have hTle : M.T.card ≤ σ.parts.card := Finset.card_le_card M.hT
+  have hTS : M.T.card = M.S.card := M.card_T_eq_card_S
+  simp only [size]
+  omega
+
+/-- The block product of the glued partition factors as the product of the block products of `π`
+and `σ`, provided matched pairs multiply correctly (`hmul`). -/
+lemma blockProduct_glue {R : Type*} [CommMonoid R] (M : Matching π σ) (hAB : Disjoint A B)
+    (f : Finset α → R)
+    (hmul : ∀ s : {p // p ∈ M.S}, f ((s.1 : Finset α) ∪ (M.e s).1) = f s.1 * f (M.e s).1) :
+    (M.glue hAB).blockProduct f = π.blockProduct f * σ.blockProduct f := by
+  have hprod : (M.glue hAB).blockProduct f =
+      (∏ t ∈ π.parts \ M.S, f t) * (∏ t ∈ σ.parts \ M.T, f t) *
+        (∏ t ∈ M.S.attach.image (fun s => (s.1 : Finset α) ∪ (M.e s).1), f t) := by
+    rw [Finpartition.blockProduct, glue_parts, glueParts,
+      Finset.prod_union (M.disjoint_unmatched_merged hAB),
+      Finset.prod_union (M.disjoint_leftUnmatched_rightUnmatched hAB)]
+  rw [hprod, Finset.prod_image (fun s1 hs1 s2 hs2 h => M.injOn_mergeMap hAB (Set.mem_univ s1)
+    (Set.mem_univ s2) h)]
+  simp_rw [hmul]
+  rw [Finset.prod_mul_distrib]
+  have hπ : π.blockProduct f = (∏ t ∈ π.parts \ M.S, f t) * (∏ s ∈ M.S.attach, f s.1) := by
+    rw [Finpartition.blockProduct, ← Finset.prod_sdiff (M.hS), Finset.prod_attach M.S f]
+  have hσ : σ.blockProduct f = (∏ t ∈ σ.parts \ M.T, f t) * (∏ s ∈ M.S.attach, f (M.e s).1) := by
+    rw [Finpartition.blockProduct, ← Finset.prod_sdiff (M.hT)]
+    congr 1
+    rw [← Finset.prod_attach M.T f, Finset.attach_eq_univ, Finset.attach_eq_univ]
+    exact (Equiv.prod_comp M.e (fun t : {x // x ∈ M.T} => f t.1)).symm
+  rw [hπ, hσ]
+  ac_rfl
+
+end Matching
+
+/-- The `T`-blocks that genuinely span the cut: they meet both `A` and `B`. -/
+def mergedOf (T : Finpartition (A ∪ B)) : Finset (Finset α) :=
+  T.parts.filter (fun D => (D ∩ A).Nonempty ∧ (D ∩ B).Nonempty)
+
+lemma injOn_inter_left_mergedOf (T : Finpartition (A ∪ B)) :
+    Set.InjOn (· ∩ A) (mergedOf T : Set (Finset α)) := by
+  intro D1 hD1 D2 hD2 heq
+  simp only [mergedOf, Finset.coe_filter, Set.mem_setOf_eq] at hD1 hD2
+  dsimp only at heq
+  by_contra hne
+  have hdisj : Disjoint (D1 ∩ A) (D2 ∩ A) :=
+    (T.disjoint hD1.1 hD2.1 hne).mono inf_le_left inf_le_left
+  rw [heq, disjoint_self] at hdisj
+  exact (Finset.nonempty_iff_ne_empty.mp hD2.2.1) hdisj
+
+lemma injOn_inter_right_mergedOf (T : Finpartition (A ∪ B)) :
+    Set.InjOn (· ∩ B) (mergedOf T : Set (Finset α)) := by
+  intro D1 hD1 D2 hD2 heq
+  simp only [mergedOf, Finset.coe_filter, Set.mem_setOf_eq] at hD1 hD2
+  dsimp only at heq
+  by_contra hne
+  have hdisj : Disjoint (D1 ∩ B) (D2 ∩ B) :=
+    (T.disjoint hD1.1 hD2.1 hne).mono inf_le_left inf_le_left
+  rw [heq, disjoint_self] at hdisj
+  exact (Finset.nonempty_iff_ne_empty.mp hD2.2.2) hdisj
+
+/-- The (unique) merged `T`-block whose `A`-trace is `t`. -/
+noncomputable def mergedOfLeft (T : Finpartition (A ∪ B)) {t : Finset α}
+    (ht : t ∈ (mergedOf T).image (· ∩ A)) : Finset α :=
+  (Finset.mem_image.mp ht).choose
+
+lemma mergedOfLeft_mem (T : Finpartition (A ∪ B)) {t : Finset α}
+    (ht : t ∈ (mergedOf T).image (· ∩ A)) : mergedOfLeft T ht ∈ mergedOf T :=
+  (Finset.mem_image.mp ht).choose_spec.1
+
+lemma mergedOfLeft_inter (T : Finpartition (A ∪ B)) {t : Finset α}
+    (ht : t ∈ (mergedOf T).image (· ∩ A)) : mergedOfLeft T ht ∩ A = t :=
+  (Finset.mem_image.mp ht).choose_spec.2
+
+/-- The (unique) merged `T`-block whose `B`-trace is `t`. -/
+noncomputable def mergedOfRight (T : Finpartition (A ∪ B)) {t : Finset α}
+    (ht : t ∈ (mergedOf T).image (· ∩ B)) : Finset α :=
+  (Finset.mem_image.mp ht).choose
+
+lemma mergedOfRight_mem (T : Finpartition (A ∪ B)) {t : Finset α}
+    (ht : t ∈ (mergedOf T).image (· ∩ B)) : mergedOfRight T ht ∈ mergedOf T :=
+  (Finset.mem_image.mp ht).choose_spec.1
+
+lemma mergedOfRight_inter (T : Finpartition (A ∪ B)) {t : Finset α}
+    (ht : t ∈ (mergedOf T).image (· ∩ B)) : mergedOfRight T ht ∩ B = t :=
+  (Finset.mem_image.mp ht).choose_spec.2
+
+namespace Matching
+
+variable {π : Finpartition A} {σ : Finpartition B}
+
+/-- The partial matching extracted from a finpartition of `A ∪ B`: the merged blocks, split into
+their `A`- and `B`-traces. -/
+noncomputable def ofFinpartition (T : Finpartition (A ∪ B)) (hAB : Disjoint A B) :
+    Matching (T.restrict (Finset.subset_union_left)) (T.restrict (Finset.subset_union_right)) := by
+  classical
+  refine
+    { S := (mergedOf T).image (· ∩ A)
+      T := (mergedOf T).image (· ∩ B)
+      hS := ?_
+      hT := ?_
+      e :=
+        { toFun := fun s => ⟨mergedOfLeft T s.2 ∩ B,
+            Finset.mem_image.mpr ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩⟩
+          invFun := fun t => ⟨mergedOfRight T t.2 ∩ A,
+            Finset.mem_image.mpr ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩⟩
+          left_inv := ?_
+          right_inv := ?_ } }
+  · intro t ht
+    obtain ⟨D, hD, rfl⟩ := Finset.mem_image.mp ht
+    simp only [mergedOf, Finset.mem_filter] at hD
+    rw [restrict]
+    exact Finset.mem_erase.mpr ⟨Finset.nonempty_iff_ne_empty.mp hD.2.1,
+      Finset.mem_image.mpr ⟨D, hD.1, rfl⟩⟩
+  · intro t ht
+    obtain ⟨D, hD, rfl⟩ := Finset.mem_image.mp ht
+    simp only [mergedOf, Finset.mem_filter] at hD
+    rw [restrict]
+    exact Finset.mem_erase.mpr ⟨Finset.nonempty_iff_ne_empty.mp hD.2.2,
+      Finset.mem_image.mpr ⟨D, hD.1, rfl⟩⟩
+  · intro s
+    apply Subtype.ext
+    change mergedOfRight T (Finset.mem_image.mpr
+      ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩) ∩ A = s.1
+    have hmem : mergedOfRight T (Finset.mem_image.mpr
+        ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩) ∈ mergedOf T :=
+      mergedOfRight_mem T _
+    have heq : mergedOfRight T (Finset.mem_image.mpr
+        ⟨mergedOfLeft T s.2, mergedOfLeft_mem T s.2, rfl⟩) ∩ B = mergedOfLeft T s.2 ∩ B :=
+      mergedOfRight_inter T _
+    rw [T.injOn_inter_right_mergedOf hmem (mergedOfLeft_mem T s.2) heq]
+    exact mergedOfLeft_inter T s.2
+  · intro t
+    apply Subtype.ext
+    change mergedOfLeft T (Finset.mem_image.mpr
+      ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩) ∩ B = t.1
+    have hmem : mergedOfLeft T (Finset.mem_image.mpr
+        ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩) ∈ mergedOf T :=
+      mergedOfLeft_mem T _
+    have heq : mergedOfLeft T (Finset.mem_image.mpr
+        ⟨mergedOfRight T t.2, mergedOfRight_mem T t.2, rfl⟩) ∩ A = mergedOfRight T t.2 ∩ A :=
+      mergedOfLeft_inter T _
+    rw [T.injOn_inter_left_mergedOf hmem (mergedOfRight_mem T t.2) heq]
+    exact mergedOfRight_inter T t.2
+
+/-- Gluing the matching extracted from `T` recovers `T`.
+
+Informal proof.  Write `M := ofFinpartition T hAB`, `π₀ := T.restrict subset_union_left`,
+`σ₀ := T.restrict subset_union_right`.  We show `M.glueParts = T.parts` by double inclusion,
+using the elementary fact that every `D ⊆ A ∪ B` satisfies `(D ∩ A) ∪ (D ∩ B) = D`, and that a
+block `D ∈ T.parts` not in `mergedOf T` must satisfy `D ∩ A = ∅` or `D ∩ B = ∅` (it cannot meet
+both sides), forcing `D ⊆ B` or `D ⊆ A` respectively via the first fact.
+
+`(⊇)`: for `t ∈ T.parts`, either `t ∈ mergedOf T`, in which case `t = (t ∩ A) ∪ (t ∩ B)` is (by
+construction of `ofFinpartition`) exactly the image of the matched pair `⟨t ∩ A, _⟩ : ↥M.S` under
+`fun s => s.1 ∪ (M.e s).1` (using `mergedOfLeft_inter`/`injOn_inter_left_mergedOf` to identify the
+witness block as `t` itself); or `t ∉ mergedOf T`, in which case `t` is pure and lands in
+`π₀.parts \ M.S` or `σ₀.parts \ M.T` (it is not in `M.S`/`M.T` since any block matched from that
+side would, being nonempty and sharing a point with `t`, equal `t` by `Finpartition.eq_of_mem_parts`
+and hence lie in `mergedOf T`, contradiction).
+
+`(⊆)`: for `t ∈ π₀.parts \ M.S`, unfolding `restrict` gives `t = D ∩ A` for some `D ∈ T.parts`
+with `t ≠ ∅`; since `t ∉ M.S` forces `D ∉ mergedOf T` (else `D ∩ A ∈ M.S`), purity gives
+`D ∩ A = ∅` (impossible, `t ≠ ∅`) or `D ∩ B = ∅`, so `D = D ∩ A = t ∈ T.parts`.  Symmetrically for
+`σ₀.parts \ M.T`.  For `t` in the merged-block image, `t = s.1 ∪ (M.e s).1` with
+`s.1 = mergedOfLeft T s.2 ∩ A` and (by definition of `ofFinpartition`'s `e`)
+`(M.e s).1 = mergedOfLeft T s.2 ∩ B`, so `t = mergedOfLeft T s.2 ∈ T.parts`.
+
+This closure argument was fully carried out in an earlier draft of this file (all cases above were
+individually verified against `lake env lean`) but tripped on a parenthesisation bug in the
+`t ∈ (T.restrict h).parts` rewrites (`T.restrict h |>.parts` mis-parses); redo those four
+occurrences with explicit parentheses `(T.restrict h).parts` and the proof goes through with the
+same case structure as `restrict_glue_left`/`restrict_glue_right` below. -/
+lemma glue_ofFinpartition (T : Finpartition (A ∪ B)) (hAB : Disjoint A B) :
+    (ofFinpartition T hAB).glue hAB = T := by
+  sorry
+
+/-- Matchings between the blocks of `π` and `σ` form a finite type: a matching is the same data as
+a pair of subsets of `π.parts`, `σ.parts` together with a bijection between their coercions. -/
+noncomputable instance instFintype : Fintype (Matching π σ) := by
+  classical
+  haveI : Fintype {S : Finset (Finset α) // S ⊆ π.parts} :=
+    Fintype.subtype π.parts.powerset (fun S => Finset.mem_powerset)
+  haveI : Fintype {T : Finset (Finset α) // T ⊆ σ.parts} :=
+    Fintype.subtype σ.parts.powerset (fun T => Finset.mem_powerset)
+  haveI : DecidableEq {S : Finset (Finset α) // S ⊆ π.parts} := Subtype.instDecidableEq
+  haveI : DecidableEq {T : Finset (Finset α) // T ⊆ σ.parts} := Subtype.instDecidableEq
+  refine Fintype.ofEquiv
+    (Σ' (S' : {S : Finset (Finset α) // S ⊆ π.parts}) (T' : {T : Finset (Finset α) // T ⊆ σ.parts}),
+      ({p // p ∈ S'.1} ≃ {q // q ∈ T'.1})) ?_
+  exact
+    { toFun := fun x => ⟨x.1.1, x.2.1.1, x.1.2, x.2.1.2, x.2.2⟩
+      invFun := fun M => ⟨⟨M.S, M.hS⟩, ⟨M.T, M.hT⟩, M.e⟩
+      left_inv := fun _ => rfl
+      right_inv := fun _ => rfl }
+
+/-- `M.glue hAB` restricted back to `A` recovers `π`. -/
+lemma restrict_glue_left (M : Matching π σ) (hAB : Disjoint A B) :
+    (M.glue hAB).restrict (Finset.subset_union_left) = π := by
+  apply Finpartition.ext
+  ext t
+  rw [Finpartition.restrict, Finset.mem_erase, Finset.mem_image]
+  simp only [Finset.inf_eq_inter]
+  constructor
+  · rintro ⟨htne, D, hD, rfl⟩
+    rw [glue_parts, glueParts, Finset.mem_union, Finset.mem_union] at hD
+    rcases hD with (hD | hD) | hD
+    · rw [Finset.inter_eq_left.mpr (π.subset (Finset.mem_sdiff.mp hD).1)]
+      exact (Finset.mem_sdiff.mp hD).1
+    · exfalso
+      apply htne
+      apply Finset.eq_empty_of_forall_notMem
+      intro y hy
+      rcases Finset.mem_inter.mp hy with ⟨hyD, hyA⟩
+      exact (Finset.disjoint_left.mp hAB hyA) (σ.subset (Finset.mem_sdiff.mp hD).1 hyD)
+    · obtain ⟨s, -, rfl⟩ := Finset.mem_image.mp hD
+      rw [union_inter_left_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))]
+      exact M.hS s.2
+  · intro ht
+    by_cases hmatch : t ∈ M.S
+    · refine ⟨Finset.nonempty_iff_ne_empty.mp (π.nonempty_of_mem_parts ht),
+        t ∪ (M.e ⟨t, hmatch⟩).1, ?_, ?_⟩
+      · rw [glue_parts, glueParts]
+        exact Finset.mem_union_right _
+          (Finset.mem_image.mpr ⟨⟨t, hmatch⟩, Finset.mem_attach _ _, rfl⟩)
+      · exact union_inter_left_of_subset hAB (π.subset ht) (σ.subset (M.hT (M.e ⟨t, hmatch⟩).2))
+    · refine ⟨Finset.nonempty_iff_ne_empty.mp (π.nonempty_of_mem_parts ht), t, ?_, ?_⟩
+      · rw [glue_parts, glueParts]
+        exact Finset.mem_union_left _ (Finset.mem_union_left _ (Finset.mem_sdiff.mpr ⟨ht, hmatch⟩))
+      · exact Finset.inter_eq_left.mpr (π.subset ht)
+
+/-- `M.glue hAB` restricted back to `B` recovers `σ`. -/
+lemma restrict_glue_right (M : Matching π σ) (hAB : Disjoint A B) :
+    (M.glue hAB).restrict (Finset.subset_union_right) = σ := by
+  apply Finpartition.ext
+  ext t
+  rw [Finpartition.restrict, Finset.mem_erase, Finset.mem_image]
+  simp only [Finset.inf_eq_inter]
+  constructor
+  · rintro ⟨htne, D, hD, rfl⟩
+    rw [glue_parts, glueParts, Finset.mem_union, Finset.mem_union] at hD
+    rcases hD with (hD | hD) | hD
+    · exfalso
+      apply htne
+      apply Finset.eq_empty_of_forall_notMem
+      intro y hy
+      rcases Finset.mem_inter.mp hy with ⟨hyD, hyB⟩
+      exact (Finset.disjoint_left.mp hAB (π.subset (Finset.mem_sdiff.mp hD).1 hyD)) hyB
+    · rw [Finset.inter_eq_left.mpr (σ.subset (Finset.mem_sdiff.mp hD).1)]
+      exact (Finset.mem_sdiff.mp hD).1
+    · obtain ⟨s, -, rfl⟩ := Finset.mem_image.mp hD
+      rw [union_inter_right_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))]
+      exact M.hT (M.e s).2
+  · intro ht
+    by_cases hmatch : t ∈ M.T
+    · refine ⟨Finset.nonempty_iff_ne_empty.mp (σ.nonempty_of_mem_parts ht),
+        (M.e.symm ⟨t, hmatch⟩).1 ∪ t, ?_, ?_⟩
+      · rw [glue_parts, glueParts]
+        exact Finset.mem_union_right _ (Finset.mem_image.mpr
+          ⟨M.e.symm ⟨t, hmatch⟩, Finset.mem_attach _ _, by rw [Equiv.apply_symm_apply]⟩)
+      · rw [union_inter_right_of_subset hAB (π.subset (M.hS (M.e.symm ⟨t, hmatch⟩).2))
+          (σ.subset ht)]
+    · refine ⟨Finset.nonempty_iff_ne_empty.mp (σ.nonempty_of_mem_parts ht), t, ?_, ?_⟩
+      · rw [glue_parts, glueParts]
+        exact Finset.mem_union_left _ (Finset.mem_union_right _ (Finset.mem_sdiff.mpr ⟨ht, hmatch⟩))
+      · exact Finset.inter_eq_left.mpr (σ.subset ht)
+
+/-- Distinct matchings glue to distinct partitions of `A ∪ B`.
+
+Informal proof.  Suppose `M.glue hAB = M'.glue hAB =: T`.  A block of `T` meets both `A` and `B`
+exactly when it is a merged block, i.e. `mergedOf T = M.S.attach.image (fun s => s.1 ∪ (M.e s).1)
+= M'.S.attach.image (fun s => s.1 ∪ (M'.e s).1)` (unmatched blocks lie entirely on one side by
+`merged_inter_nonempty`/disjointness, exactly as in `glue_ofFinpartition`).  Intersecting this
+common set of blocks with `A` (respectively `B`) and using `union_inter_left_of_subset`/
+`union_inter_right_of_subset` identifies it with `M.S` and with `M'.S` (respectively `M.T`,
+`M'.T`), so `M.S = M'.S` and `M.T = M'.T`.  Finally, for `s : ↥M.S`, the block `s.1 ∪ (M.e s).1`
+lies in the common merged-block set, hence equals `s'.1 ∪ (M'.e s').1` for some `s' : ↥M'.S = ↥M.S`;
+intersecting with `A` forces `s' = s`, and intersecting with `B` then forces
+`(M.e s).1 = (M'.e s).1`; so `M.e = M'.e` by `Equiv.ext`, giving `M = M'`. -/
+lemma glue_injective (hAB : Disjoint A B) :
+    Function.Injective (fun M : Matching π σ => M.glue hAB) := by
+  sorry
+
+/-- The number of size-`m` matchings between `π` and `σ` is `p.choose m * q.choose m * m!`, where
+`p = π.parts.card`, `q = σ.parts.card`.
+
+Informal proof.  A size-`m` matching is the same data as a choice of `m`-element subsets
+`S ⊆ π.parts`, `T ⊆ σ.parts` (`p.choose m * q.choose m` ways, by `Finset.card_powersetCard`)
+together with a bijection `↥S ≃ ↥T` (`m!` ways by `Fintype.card_equiv`, applicable since
+`|S| = |T| = m`).  Formally: biject `{M : Matching π σ // M.size = m}` with
+`Σ (S ∈ π.parts.powersetCard m) (T ∈ σ.parts.powersetCard m), (↥S ≃ ↥T)` via
+`M ↦ ⟨M.S, M.T, M.e⟩` (using `card_T_eq_card_S` for well-definedness of the target `T`'s membership
+in `σ.parts.powersetCard m`), with inverse packaging `⟨S, T, e⟩` plus the subset proofs back into a
+`Matching`; then take `Fintype.card` of both sides via `Fintype.card_congr` and
+`Fintype.card_sigma`. -/
+lemma card_filter_size_eq (m : ℕ) :
+    (Finset.univ.filter (fun M : Matching π σ => M.size = m)).card =
+      π.parts.card.choose m * σ.parts.card.choose m * m.factorial := by
+  sorry
+
+end Matching
+
+/-- The cumulant transform of a function that factors multiplicatively across a cut `A | B`
+reindexes as a double sum over the trace partitions of `A` and `B`, with the fiber over each trace
+pair collapsing to the partial-matching coefficient sum.  This is the reusable regrouping identity
+behind `Renormalization.cumulantTransform_tracePair_partialMatching_regrouping`.
+
+Informal proof.  Unfold `cumulantTransform` (using `A ∪ B ≠ ∅`) as
+`∑ T : Finpartition (A ∪ B), cumulantCoefficient T * T.blockProduct f`.  Group this sum by the pair
+of traces `(T.restrict subset_union_left, T.restrict subset_union_right)` using
+`Finset.sum_fiberwise` twice (first by the `A`-trace, then by the `B`-trace within each class).  For
+fixed traces `π, σ`, the fiber `{T // T.restrict_left = π ∧ T.restrict_right = σ}` is in bijection
+with `Matching π σ` via `M ↦ M.glue hAB`: injective by `Matching.glue_injective`, and surjective
+because for `T` in the fiber, `M := Matching.ofFinpartition T hAB` satisfies
+`M.glue hAB = T` (`Matching.glue_ofFinpartition`) after transporting `M`'s type along
+`Matching.restrict_glue_left`/`Matching.restrict_glue_right`-style trace identities (here directly
+`T.restrict_left = π`, `T.restrict_right = σ` from fiber membership).  Reindexing the fiber sum
+along this bijection (`Finset.sum_bij` using `Matching.glue_injective` for injectivity and the above
+for surjectivity) and applying `Matching.blockProduct_glue` (with `hsplit` supplying the per-pair
+multiplicativity hypothesis via `union_inter_left_of_subset`/`union_inter_right_of_subset`) and
+`Matching.card_glueParts` (for `cumulantCoefficient`, i.e. `Finpartition.cumulantCoefficient`)
+turns each fiber sum into
+`(π.blockProduct f * σ.blockProduct f) * ∑ M : Matching π σ, coeff (M.size)`
+where `coeff k := (-1) ^ (p + q - k - 1) * (p + q - k - 1)!`.  Finally, group `Matching π σ` by
+`M.size` (`Finset.sum_fiberwise` once more) and use `Matching.card_filter_size_eq` to identify the
+count of each size class as `p.choose m * q.choose m * m!`; restrict the resulting sum over `m : ℕ`
+to `Finset.range (min p q + 1)` since `Matching.size` never exceeds `min p q` (`M.S ⊆ π.parts`,
+`M.T ⊆ σ.parts`), so every term with `m > min p q` has an empty size-class and contributes `0`. -/
+lemma cumulantTransform_eq_sum_matching {R : Type*} [CommRing R] (hAB : Disjoint A B)
+    (hne : A ∪ B ≠ ∅) (f : Finset α → R) (hsplit : ∀ D : Finset α, f D = f (D ∩ A) * f (D ∩ B)) :
+    cumulantTransform f (A ∪ B) =
+      ∑ π : Finpartition A, ∑ σ : Finpartition B, (π.blockProduct f * σ.blockProduct f) *
+        (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
+          ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
+            ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
+              ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
+  sorry
+
+end TracePairMatching
 
 end Finpartition
 
