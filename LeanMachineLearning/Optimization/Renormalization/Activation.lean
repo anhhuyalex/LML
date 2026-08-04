@@ -419,6 +419,11 @@ theorem contDiff_swish : ContDiff ℝ ⊤ swish := by
 -- integrating the Maclaurin series of `exp (-t^2)` term by term.
 private def erfSeriesCoeff (n : ℕ) : ℝ := (-1 : ℝ) ^ n / (Nat.factorial n * (2 * n + 1))
 
+-- The formal power series with these coefficients.  Its radius of convergence is infinite, so its
+-- sum is analytic on all of `ℝ`.
+private def erfSeries : FormalMultilinearSeries ℝ ℝ ℝ :=
+  FormalMultilinearSeries.ofScalars ℝ erfSeriesCoeff
+
 -- `exp (-t^2)` expands as the alternating Maclaurin series `∑ n, (-1)^n * t^(2*n) / n!`.
 -- This is `exp_eq_tsum_div_factorial` specialized to `z = -t^2`.
 private lemma exp_neg_sq_tsum (t : ℝ) :
@@ -432,7 +437,6 @@ private lemma exp_neg_sq_tsum (t : ℝ) :
       _ = (-1 : ℝ) ^ n * (t ^ 2) ^ n := by rw [mul_pow]
       _ = (-1 : ℝ) ^ n * t ^ (2 * n) := by rw [pow_mul]
   rw [hpow]
-  ring
 
 -- The integral over `[0, x]` of the Maclaurin series of `exp (-t^2)` equals the termwise
 -- integral.  Each monomial `t^(2*n)` integrates to `x^(2*n+1) / (2*n+1)`, giving the odd power
@@ -446,12 +450,13 @@ private lemma gaussianIntegral_eq_tsum (x : ℝ) :
   let f : ℕ → C(ℝ, ℝ) := fun n => ⟨fun t => (-1 : ℝ) ^ n * t ^ (2 * n) / Nat.factorial n, by
     fun_prop⟩
   have hf_sum :
-      Summable fun n => ‖(f n).restrict (⟨uIcc 0 x, isCompact_uIcc⟩ : Compacts ℝ)‖ := by
-    refine Summable.of_norm_bounded (fun n => x ^ (2 * n) / Nat.factorial n) ?_ ?_
+      Summable fun n =>
+        ‖(f n).restrict (⟨Set.uIcc 0 x, isCompact_uIcc⟩ : TopologicalSpace.Compacts ℝ)‖ := by
+    refine Summable.of_norm_bounded (g := fun n => x ^ (2 * n) / Nat.factorial n) ?_ ?_
     · simpa [pow_mul] using (Real.summable_pow_div_factorial (x ^ 2) :
         Summable fun n : ℕ => (x ^ 2) ^ n / Nat.factorial n)
     · intro n
-      rw [ContinuousMap.norm_le]
+      rw [Real.norm_of_nonneg (norm_nonneg _), ContinuousMap.norm_le]
       · intro t
         have ht_le : |(t : ℝ)| ≤ |x| := by
           rcases Set.mem_uIcc.mp t.property with h | h
@@ -466,41 +471,43 @@ private lemma gaussianIntegral_eq_tsum (x : ℝ) :
             |x| ^ (2 * n) = (|x| ^ 2) ^ n := by rw [← pow_mul]
             _ = (x ^ 2) ^ n := by rw [sq_abs]
             _ = x ^ (2 * n) := by rw [pow_mul]
+        have hfact_abs : |(Nat.factorial n : ℝ)| = (Nat.factorial n : ℝ) :=
+          abs_of_nonneg (Nat.cast_nonneg _)
         calc
           ‖(f n) t‖ = |(-1 : ℝ) ^ n * (t : ℝ) ^ (2 * n) / Nat.factorial n| := rfl
-          _ = |(-1 : ℝ) ^ n * (t : ℝ) ^ (2 * n)| / Nat.factorial n := by
-            rw [abs_div, abs_of_nonneg (Nat.cast_nonneg _)]
           _ = |(t : ℝ)| ^ (2 * n) / Nat.factorial n := by
-            have hmul : |(-1 : ℝ) ^ n * (t : ℝ) ^ (2 * n)| = |(t : ℝ)| ^ (2 * n) := by
-              rw [abs_mul, abs_pow, abs_pow]
-              norm_num
-            rw [hmul]
+            rw [abs_div, abs_mul, abs_pow, abs_pow, abs_neg, abs_one, one_pow, one_mul,
+              hfact_abs]
           _ ≤ x ^ (2 * n) / Nat.factorial n := by
             exact div_le_div_of_nonneg_right
               ((pow_le_pow_left₀ (abs_nonneg (t : ℝ)) ht_le (2 * n)).trans (le_of_eq hxpow))
               (Nat.cast_nonneg _)
-      · positivity
+      · rw [pow_mul]
+        exact div_nonneg (pow_nonneg (sq_nonneg x) n) (Nat.cast_nonneg _)
   have htsum : ∑' n : ℕ, ∫ t in (0 : ℝ)..x, f n t = ∫ t in (0 : ℝ)..x, ∑' n, f n t :=
-    tsum_intervalIntegral_eq_of_summable_norm hf_sum
+    intervalIntegral.tsum_intervalIntegral_eq_of_summable_norm hf_sum
   have hpoint : ∀ t : ℝ, (∑' n : ℕ, f n t) = Real.exp (-(t ^ 2)) := by
     intro t
     exact (exp_neg_sq_tsum t).symm
   have hterm : ∀ n : ℕ, (∫ t in (0 : ℝ)..x, f n t) =
       erfSeriesCoeff n * x ^ (2 * n + 1) := by
     intro n
+    have hn0 : (Nat.factorial n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n)
     calc
-      (∫ t in (0 : ℝ)..x, f n t) = ∫ t in (0 : ℝ)..x, ((-1 : ℝ) ^ n / Nat.factorial n) * t ^ (2 * n) := by
+      (∫ t in (0 : ℝ)..x, f n t) =
+          ∫ t in (0 : ℝ)..x, ((-1 : ℝ) ^ n / Nat.factorial n) * t ^ (2 * n) := by
         congr 1
         funext t
-        field_simp [Nat.factorial_ne_zero n]
-        ring
+        change (-1 : ℝ) ^ n * t ^ (2 * n) / Nat.factorial n =
+          ((-1 : ℝ) ^ n / Nat.factorial n) * t ^ (2 * n)
+        field_simp
       _ = ((-1 : ℝ) ^ n / Nat.factorial n) * ∫ t in (0 : ℝ)..x, t ^ (2 * n) := by
         rw [intervalIntegral.integral_const_mul]
-      _ = ((-1 : ℝ) ^ n / Nat.factorial n) * (x ^ (2 * n + 1) - 0 ^ (2 * n + 1)) / (2 * n + 1) := by
-        rw [integral_pow]
       _ = erfSeriesCoeff n * x ^ (2 * n + 1) := by
-        simp [erfSeriesCoeff]
-        ring
+        rw [integral_pow, zero_pow (by omega : 2 * n + 1 ≠ 0), sub_zero]
+        unfold erfSeriesCoeff
+        push_cast
+        field_simp
   calc
     (∫ t in (0 : ℝ)..x, Real.exp (-(t ^ 2))) = ∫ t in (0 : ℝ)..x, ∑' n, f n t := by
       congr 1
@@ -514,49 +521,58 @@ private lemma gaussianIntegral_eq_tsum (x : ℝ) :
 -- below: `‖erfSeriesCoeff n‖ = 1 / (n! * (2*n + 1)) ≤ 1 / n!`.
 private lemma erfSeriesCoeff_norm_le (n : ℕ) : ‖erfSeriesCoeff n‖ ≤ 1 / Nat.factorial n := by
   unfold erfSeriesCoeff
-  rw [norm_div]
-  have hfac : (Nat.factorial n : ℝ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero n
-  have hodd : (2 * n + 1 : ℝ) ≠ 0 := by norm_num
-  simp [hfac, hodd]
-  exact one_div_le_one_div_of_le (by positivity) (by exact_mod_cast Nat.le_factorial_self n)
+  have hpos : (0 : ℝ) < (Nat.factorial n : ℝ) * (2 * n + 1) := by positivity
+  calc
+    ‖(-1 : ℝ) ^ n / (Nat.factorial n * (2 * n + 1))‖
+        = |(-1 : ℝ) ^ n| / |(Nat.factorial n : ℝ) * (2 * n + 1)| := by
+          rw [Real.norm_eq_abs, abs_div]
+    _ = 1 / (Nat.factorial n * (2 * n + 1)) := by
+      rw [abs_neg_one_pow, abs_of_pos hpos]
+    _ ≤ 1 / Nat.factorial n := by
+      exact one_div_le_one_div_of_le (by positivity : (0 : ℝ) < Nat.factorial n)
+        (by
+          calc
+            (Nat.factorial n : ℝ) = (Nat.factorial n : ℝ) * 1 := by ring
+            _ ≤ (Nat.factorial n : ℝ) * (2 * n + 1 : ℝ) := by
+              exact mul_le_mul_of_nonneg_left (by norm_num) (Nat.cast_nonneg _))
 
 -- The odd power series for `gaussianErf` has infinite radius of convergence: bounding the terms
 -- by `x^n / n!` reduces the comparison test to the everywhere-convergent exponential series.
-private lemma erfSeries_radius_top : (ofScalars ℝ erfSeriesCoeff).radius = ⊤ := by
-  apply (ofScalars ℝ erfSeriesCoeff).radius_eq_top_of_summable_norm
+private lemma erfSeries_radius_top : erfSeries.radius = ⊤ := by
+  apply erfSeries.radius_eq_top_of_summable_norm
   intro r
-  refine Summable.of_norm_bounded (fun n => (r : ℝ) ^ n / Nat.factorial n) ?_ ?_
+  refine Summable.of_norm_bounded (g := fun n => (r : ℝ) ^ n / Nat.factorial n) ?_ ?_
   · simpa using (Real.summable_pow_div_factorial (r : ℝ) :
       Summable fun n : ℕ => (r : ℝ) ^ n / Nat.factorial n)
   · intro n
+    rw [Real.norm_of_nonneg (by positivity : (0 : ℝ) ≤ ‖erfSeries n‖ * (r : ℝ) ^ n)]
     calc
-      ‖ofScalars ℝ erfSeriesCoeff n‖ * (r : ℝ) ^ n = ‖erfSeriesCoeff n‖ * (r : ℝ) ^ n := by
-        rw [ofScalars_norm]
+      ‖erfSeries n‖ * (r : ℝ) ^ n = ‖erfSeriesCoeff n‖ * (r : ℝ) ^ n := by
+        unfold erfSeries
+        rw [FormalMultilinearSeries.ofScalars_norm]
       _ ≤ (1 / Nat.factorial n) * (r : ℝ) ^ n := by
-        exact mul_le_mul_of_nonneg_right (erfSeriesCoeff_norm_le n) (pow_nonneg (NNReal.coe_nonneg r) n)
+        exact mul_le_mul_of_nonneg_right (erfSeriesCoeff_norm_le n)
+          (pow_nonneg (NNReal.coe_nonneg r) n)
       _ = (r : ℝ) ^ n / Nat.factorial n := by ring
 
 -- A power series with infinite radius of convergence is analytic on all of `ℝ`: it admits
 -- `HasFPowerSeriesOnBall` on the whole line, and change of origin gives analyticity at every point.
-private lemma ofScalarsSum_erfSeries_analyticOnNhd :
-    AnalyticOnNhd ℝ (ofScalarsSum ℝ erfSeriesCoeff) Set.univ := by
-  have hpos : 0 < (ofScalars ℝ erfSeriesCoeff).radius := by
+private lemma erfSeriesSum_analyticOnNhd : AnalyticOnNhd ℝ erfSeries.sum Set.univ := by
+  have hpos : 0 < erfSeries.radius := by
     rw [erfSeries_radius_top]
-    exact ENNReal.top_pos
-  have hfps : HasFPowerSeriesOnBall (ofScalarsSum ℝ erfSeriesCoeff) (ofScalars ℝ erfSeriesCoeff) 0
-      (ofScalars ℝ erfSeriesCoeff).radius := by
-    exact (ofScalars ℝ erfSeriesCoeff).hasFPowerSeriesOnBall hpos
+    simp
+  have hfps : HasFPowerSeriesOnBall erfSeries.sum erfSeries 0 erfSeries.radius := by
+    exact erfSeries.hasFPowerSeriesOnBall hpos
   intro x hx
-  exact hfps.analyticAt_of_mem (by simp)
+  exact hfps.analyticAt_of_mem (by simp [erfSeries_radius_top])
 
 -- The termwise-integrated series is exactly `x * ∑ n, erfSeriesCoeff n * (x^2)^n`, i.e. the
--- product of `x` with the `ofScalarsSum` series evaluated at `x^2`.  This is the analytic
+-- product of `x` with the `erfSeries` sum evaluated at `x^2`.  This is the analytic
 -- expression of `gaussianErf` used below.
-private lemma gaussianErf_eq_mul_ofScalarsSum (x : ℝ) :
-    gaussianErf x = (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) := by
+private lemma gaussianErf_eq_mul_erfSeriesSum (x : ℝ) :
+    gaussianErf x = (2 / Real.sqrt Real.pi) * (x * erfSeries.sum (x ^ 2)) := by
   have hint := gaussianIntegral_eq_tsum x
-  have hsum : (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1)) =
-      x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2) := by
+  have hsum : (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1)) = x * erfSeries.sum (x ^ 2) := by
     calc
       (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1))
           = ∑' n : ℕ, x * (erfSeriesCoeff n * x ^ (2 * n)) := by
@@ -566,17 +582,17 @@ private lemma gaussianErf_eq_mul_ofScalarsSum (x : ℝ) :
             ring
       _ = x * ∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n) := by
             rw [tsum_mul_left]
-      _ = x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2) := by
+      _ = x * erfSeries.sum (x ^ 2) := by
             congr 1
-            rw [ofScalars_sum_eq]
-            refine tsum_congr ?_
-            intro n
-            simp [pow_mul]
+            rw [show erfSeries.sum (x ^ 2) =
+                FormalMultilinearSeries.ofScalarsSum erfSeriesCoeff (x ^ 2) from rfl,
+              FormalMultilinearSeries.ofScalars_sum_eq]
+            simp [smul_eq_mul, pow_mul]
   calc
     gaussianErf x = (2 / Real.sqrt Real.pi) * (∫ t in (0 : ℝ)..x, Real.exp (-(t ^ 2))) := rfl
     _ = (2 / Real.sqrt Real.pi) * (∑' n : ℕ, erfSeriesCoeff n * x ^ (2 * n + 1)) := by
       rw [hint]
-    _ = (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) := by
+    _ = (2 / Real.sqrt Real.pi) * (x * erfSeries.sum (x ^ 2)) := by
       rw [hsum]
 
 /-- The real error function is analytic on all of `ℝ`.
@@ -591,21 +607,20 @@ neighborhood.  This is the standard Taylor-series proof that `erf` is entire; se
 private lemma analyticOnNhd_gaussianErf : AnalyticOnNhd ℝ gaussianErf Set.univ := by
   -- Rewrite `gaussianErf` as the product of a constant with `x * g(x^2)` where `g` is the
   -- everywhere-convergent odd power series, then assemble analyticity from its pieces.
-  have hsum_an : AnalyticOnNhd ℝ (ofScalarsSum ℝ erfSeriesCoeff) Set.univ :=
-    ofScalarsSum_erfSeries_analyticOnNhd
+  have hsum_an : AnalyticOnNhd ℝ erfSeries.sum Set.univ := erfSeriesSum_analyticOnNhd
   intro x hx
   have h1 : AnalyticAt ℝ (fun x : ℝ => x) x := analyticAt_id
   have h2 : AnalyticAt ℝ (fun x : ℝ => x ^ 2) x := by fun_prop
-  have h3 : AnalyticAt ℝ (fun x : ℝ => ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) x := by
-    simpa [Function.comp_def] using (hsum_an (x ^ 2) trivial).comp h2
-  have h4 : AnalyticAt ℝ (fun x : ℝ => x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) x := h1.mul h3
+  have h3 : AnalyticAt ℝ (fun x : ℝ => erfSeries.sum (x ^ 2)) x :=
+    AnalyticAt.fun_comp (f := fun x : ℝ => x ^ 2) (hsum_an (x ^ 2) trivial) h2
+  have h4 : AnalyticAt ℝ (fun x : ℝ => x * erfSeries.sum (x ^ 2)) x := h1.mul h3
   have h5 : AnalyticAt ℝ (fun x : ℝ =>
-      (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2))) x := by
-    simpa using (analyticAt_const.mul h4)
+      (2 / Real.sqrt Real.pi) * (x * erfSeries.sum (x ^ 2))) x := by
+    simpa [smul_eq_mul] using h4.fun_const_smul (c := 2 / Real.sqrt Real.pi)
   rw [show gaussianErf = fun x : ℝ =>
-      (2 / Real.sqrt Real.pi) * (x * ofScalarsSum ℝ erfSeriesCoeff (x ^ 2)) by
+      (2 / Real.sqrt Real.pi) * (x * erfSeries.sum (x ^ 2)) by
     funext x
-    exact gaussianErf_eq_mul_ofScalarsSum x]
+    exact gaussianErf_eq_mul_erfSeriesSum x]
   exact h5
 
 /-- `gaussianErf` is smooth.
@@ -819,19 +834,217 @@ theorem tendsto_swish_atBot : Tendsto swish atBot (nhds 0) := by
     ring
   simpa [hswish] using h
 
+-- The standard-normal CDF's increment over `[x, b]` is the interval integral of the density
+-- there.  This isolates the FTC bookkeeping already used once for the numeric points `1` and `2`
+-- in `nonhomogeneous_activations`, and reuses it for arbitrary endpoints below.
+private lemma standardNormalCDF_sub_eq_integral (x b : ℝ) :
+    standardNormalCDF b - standardNormalCDF x = ∫ t in x..b, gaussianPDFReal 0 1 t := by
+  rw [standardNormalCDF_eq_half_add_standardGaussianIntegral b,
+    standardNormalCDF_eq_half_add_standardGaussianIntegral x]
+  have hadd : (∫ t in (0 : ℝ)..b, gaussianPDFReal 0 1 t) =
+      (∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t) + ∫ t in x..b, gaussianPDFReal 0 1 t := by
+    rw [intervalIntegral.integral_add_adjacent_intervals
+      (integrable_gaussianPDFReal 0 1).intervalIntegrable
+      (integrable_gaussianPDFReal 0 1).intervalIntegrable]
+  linarith
+
+-- The standard-normal CDF never exceeds one: its increment past any point is a nonnegative
+-- integral, and it tends to one at `+∞`.
+private lemma standardNormalCDF_le_one (x : ℝ) : standardNormalCDF x ≤ 1 := by
+  have hbound : ∀ b : ℝ, x ≤ b → standardNormalCDF x ≤ standardNormalCDF b := by
+    intro b hb
+    have hnonneg : 0 ≤ ∫ t in x..b, gaussianPDFReal 0 1 t :=
+      intervalIntegral.integral_nonneg hb (fun t _ => gaussianPDFReal_nonneg 0 1 t)
+    linarith [standardNormalCDF_sub_eq_integral x b]
+  exact ge_of_tendsto tendsto_standardNormalCDF_atTop (Filter.eventually_atTop.2 ⟨x, hbound⟩)
+
+-- The standard-normal density, as a continuous function of its argument.
+private lemma continuous_gaussianPDFReal : Continuous (gaussianPDFReal 0 1) := by
+  unfold gaussianPDFReal
+  fun_prop
+
+-- The standard-normal density vanishes at `+∞`: it is a constant multiple of `exp (-x^2/2)`.
+private lemma tendsto_gaussianPDFReal_atTop : Tendsto (gaussianPDFReal 0 1) atTop (nhds 0) := by
+  have hpow : Tendsto (fun x : ℝ => x ^ 2) atTop atTop := tendsto_pow_atTop (by norm_num)
+  have hneg : Tendsto (fun x : ℝ => -(x ^ 2)) atTop atBot := tendsto_neg_atTop_atBot.comp hpow
+  have hdiv : Tendsto (fun x : ℝ => -(x ^ 2) / 2) atTop atBot := hneg.atBot_div_const (by norm_num)
+  have hexp : Tendsto (fun x : ℝ => Real.exp (-(x ^ 2) / 2)) atTop (nhds 0) :=
+    Real.tendsto_exp_atBot.comp hdiv
+  have heq : gaussianPDFReal 0 1 =
+      fun x : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(x ^ 2) / 2) := by
+    funext x
+    simp [gaussianPDFReal]
+  rw [heq]
+  simpa using hexp.const_mul (Real.sqrt (2 * Real.pi))⁻¹
+
+-- The derivative of the standard-normal density: `φ'(t) = -t φ(t)`.
+private lemma hasDerivAt_gaussianPDFReal (t : ℝ) :
+    HasDerivAt (gaussianPDFReal 0 1) (-(t * gaussianPDFReal 0 1 t)) t := by
+  have hinner : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) (-t) t := by
+    have h1 : HasDerivAt (fun s : ℝ => s ^ 2) (2 * t) t := by simpa using hasDerivAt_pow 2 t
+    have h2 : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) ((-(2 * t)) / 2) t := h1.neg.div_const 2
+    convert h2 using 1
+    ring
+  have hexp : HasDerivAt (fun s : ℝ => Real.exp (-(s ^ 2) / 2))
+      (Real.exp (-(t ^ 2) / 2) * (-t)) t := hinner.exp
+  have hmul : HasDerivAt (fun s : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2))
+      ((Real.sqrt (2 * Real.pi))⁻¹ * (Real.exp (-(t ^ 2) / 2) * (-t))) t :=
+    hexp.const_mul _
+  have heq : (fun s : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2)) =
+      gaussianPDFReal 0 1 := by
+    funext s
+    simp [gaussianPDFReal]
+  rw [heq] at hmul
+  convert hmul using 1
+  simp only [gaussianPDFReal, NNReal.coe_one, sub_zero, mul_one]
+  ring
+
+-- The negated density is an antiderivative of `t ↦ t φ(t)`, used to evaluate the Mills-ratio
+-- integral below via the fundamental theorem of calculus.
+private lemma hasDerivAt_neg_gaussianPDFReal (t : ℝ) :
+    HasDerivAt (fun s => -gaussianPDFReal 0 1 s) (t * gaussianPDFReal 0 1 t) t := by
+  have hinner : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) (-t) t := by
+    have h1 : HasDerivAt (fun s : ℝ => s ^ 2) (2 * t) t := by simpa using hasDerivAt_pow 2 t
+    have h2 : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) ((-(2 * t)) / 2) t := h1.neg.div_const 2
+    convert h2 using 1
+    ring
+  have hexp : HasDerivAt (fun s : ℝ => Real.exp (-(s ^ 2) / 2))
+      (Real.exp (-(t ^ 2) / 2) * (-t)) t := hinner.exp
+  have hmul : HasDerivAt (fun s : ℝ => -((Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2)))
+      (-((Real.sqrt (2 * Real.pi))⁻¹ * (Real.exp (-(t ^ 2) / 2) * (-t)))) t :=
+    (hexp.const_mul (Real.sqrt (2 * Real.pi))⁻¹).neg
+  have heq : (fun s : ℝ => -((Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2))) =
+      fun s => -gaussianPDFReal 0 1 s := by
+    funext s
+    simp [gaussianPDFReal]
+  rw [heq] at hmul
+  convert hmul using 1
+  simp only [gaussianPDFReal, NNReal.coe_one, sub_zero, mul_one]
+  ring
+
+-- The exact antiderivative identity `∫ t in x..b, t φ(t) = φ(x) - φ(b)`.
+private lemma intervalIntegral_mul_gaussianPDFReal_eq (x b : ℝ) :
+    (∫ t in x..b, t * gaussianPDFReal 0 1 t) = gaussianPDFReal 0 1 x - gaussianPDFReal 0 1 b := by
+  have hderiv : ∀ t ∈ Set.uIcc x b, HasDerivAt (fun s => -gaussianPDFReal 0 1 s)
+      (t * gaussianPDFReal 0 1 t) t := fun t _ => hasDerivAt_neg_gaussianPDFReal t
+  have hcont : Continuous (fun t : ℝ => t * gaussianPDFReal 0 1 t) :=
+    continuous_id.mul continuous_gaussianPDFReal
+  have hint : IntervalIntegrable (fun t : ℝ => t * gaussianPDFReal 0 1 t) volume x b :=
+    hcont.intervalIntegrable x b
+  have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint
+  rw [hFTC]
+  ring
+
+/-- Mills-ratio bound on the standard-normal survival function.
+
+Informal proof: for `t ≥ x > 0`, `φ(t) ≤ (t/x) φ(t)`.  Integrating from `x` to `b` gives
+`∫ t in x..b, φ(t) ≤ (1/x) ∫ t in x..b, t φ(t) = (1/x)(φ(x) - φ(b)) ≤ φ(x)/x`.  Letting `b → ∞`
+(so that `Φ(b) → 1`) turns the left side into `1 - Φ(x)`.  This is the standard Mills ratio bound;
+see <https://en.wikipedia.org/wiki/Mills_ratio> and
+<https://en.wikipedia.org/wiki/Normal_distribution#Numerical_approximations_for_the_normal_CDF>. -/
+private lemma one_sub_standardNormalCDF_le (x : ℝ) (hx : 0 < x) :
+    1 - standardNormalCDF x ≤ gaussianPDFReal 0 1 x / x := by
+  have hbound : ∀ b : ℝ, x ≤ b →
+      standardNormalCDF b - standardNormalCDF x ≤ gaussianPDFReal 0 1 x / x := by
+    intro b hb
+    rw [standardNormalCDF_sub_eq_integral]
+    have hf : IntervalIntegrable (gaussianPDFReal 0 1) volume x b :=
+      continuous_gaussianPDFReal.intervalIntegrable x b
+    have hg : IntervalIntegrable (fun t : ℝ => (t / x) * gaussianPDFReal 0 1 t) volume x b :=
+      ((continuous_id.div_const x).mul continuous_gaussianPDFReal).intervalIntegrable x b
+    have hle : (∫ t in x..b, gaussianPDFReal 0 1 t) ≤
+        ∫ t in x..b, (t / x) * gaussianPDFReal 0 1 t := by
+      apply intervalIntegral.integral_mono_on hb hf hg
+      intro t ht
+      have ht1 : (1 : ℝ) ≤ t / x := (one_le_div hx).mpr ht.1
+      calc gaussianPDFReal 0 1 t = 1 * gaussianPDFReal 0 1 t := (one_mul _).symm
+        _ ≤ (t / x) * gaussianPDFReal 0 1 t :=
+          mul_le_mul_of_nonneg_right ht1 (gaussianPDFReal_nonneg 0 1 t)
+    have hrhs : (∫ t in x..b, (t / x) * gaussianPDFReal 0 1 t) =
+        (1 / x) * (gaussianPDFReal 0 1 x - gaussianPDFReal 0 1 b) := by
+      have hrw : (fun t : ℝ => (t / x) * gaussianPDFReal 0 1 t) =
+          fun t : ℝ => (1 / x) * (t * gaussianPDFReal 0 1 t) := by
+        funext t; ring
+      rw [hrw, intervalIntegral.integral_const_mul, intervalIntegral_mul_gaussianPDFReal_eq]
+    rw [hrhs] at hle
+    have hxinv : (0 : ℝ) ≤ 1 / x := by positivity
+    have hb_nonneg : 0 ≤ gaussianPDFReal 0 1 b := gaussianPDFReal_nonneg 0 1 b
+    calc (∫ t in x..b, gaussianPDFReal 0 1 t)
+        ≤ (1 / x) * (gaussianPDFReal 0 1 x - gaussianPDFReal 0 1 b) := hle
+      _ ≤ (1 / x) * gaussianPDFReal 0 1 x := by
+          apply mul_le_mul_of_nonneg_left _ hxinv
+          linarith
+      _ = gaussianPDFReal 0 1 x / x := by ring
+  have htendsto : Tendsto (fun b => standardNormalCDF b - standardNormalCDF x) atTop
+      (nhds (1 - standardNormalCDF x)) :=
+    tendsto_standardNormalCDF_atTop.sub tendsto_const_nhds
+  exact le_of_tendsto htendsto (Filter.eventually_atTop.2 ⟨x, hbound⟩)
+
+-- The Mills-ratio bound gives the vanishing of `x (1 - Φ(x))` at `+∞`, squeezed between `0` and
+-- the vanishing density `φ(x)`.
+private lemma tendsto_mul_one_sub_standardNormalCDF_atTop :
+    Tendsto (fun x : ℝ => x * (1 - standardNormalCDF x)) atTop (nhds 0) := by
+  have hupper : ∀ᶠ x in atTop, x * (1 - standardNormalCDF x) ≤ gaussianPDFReal 0 1 x := by
+    filter_upwards [eventually_gt_atTop (0 : ℝ)] with x hx
+    calc x * (1 - standardNormalCDF x)
+        ≤ x * (gaussianPDFReal 0 1 x / x) :=
+          mul_le_mul_of_nonneg_left (one_sub_standardNormalCDF_le x hx) hx.le
+      _ = gaussianPDFReal 0 1 x := by field_simp
+  have hlower : ∀ᶠ x in atTop, (0 : ℝ) ≤ x * (1 - standardNormalCDF x) := by
+    filter_upwards [eventually_gt_atTop (0 : ℝ)] with x hx
+    exact mul_nonneg hx.le (by linarith [standardNormalCDF_le_one x])
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    tendsto_gaussianPDFReal_atTop hlower hupper
+
 /-- GELU agrees with the identity to within a vanishing error at `+∞`.
 
-Informal proof: use the `+∞` standard-normal CDF limit together with Gaussian tail decay for the
-vanishing correction term. -/
+Informal proof: `gelu x - x = -x (1 - Φ(x))`, and `x (1 - Φ(x)) → 0` by the Mills-ratio Gaussian
+tail bound `tendsto_mul_one_sub_standardNormalCDF_atTop`. -/
 theorem tendsto_gelu_sub_id_atTop : Tendsto (fun x => gelu x - x) atTop (nhds 0) := by
-  sorry
+  have hgelu : (fun x => gelu x - x) = fun x => -(x * (1 - standardNormalCDF x)) := by
+    funext x
+    unfold gelu
+    ring
+  rw [hgelu]
+  simpa using tendsto_mul_one_sub_standardNormalCDF_atTop.neg
+
+-- The standard-normal CDF is symmetric about the origin: `Φ(x) + Φ(-x) = 1`.
+private lemma standardNormalCDF_symm (x : ℝ) :
+    standardNormalCDF x + standardNormalCDF (-x) = 1 := by
+  have heq : (fun t : ℝ => gaussianPDFReal 0 1 (-t)) = gaussianPDFReal 0 1 := by
+    funext t
+    simp [gaussianPDFReal]
+  have hstep : (∫ t in (-x : ℝ)..0, gaussianPDFReal 0 1 t) =
+      ∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 (-t) := by
+    have := (intervalIntegral.integral_comp_neg
+      (f := gaussianPDFReal 0 1) (a := (0 : ℝ)) (b := x)).symm
+    simp only [neg_zero] at this
+    exact this
+  have hcomp : (∫ t in (0 : ℝ)..(-x), gaussianPDFReal 0 1 t) =
+      -∫ t in (0 : ℝ)..x, gaussianPDFReal 0 1 t := by
+    rw [intervalIntegral.integral_symm]
+    congr 1
+    rw [hstep, heq]
+  rw [standardNormalCDF_eq_half_add_standardGaussianIntegral x,
+    standardNormalCDF_eq_half_add_standardGaussianIntegral (-x), hcomp]
+  ring
 
 /-- GELU vanishes at `-∞`.
 
-Informal proof: `gelu x = x * standardNormalCDF x` with `standardNormalCDF x` decaying faster than
-any polynomial, so the product with the linearly growing `|x|` vanishes. -/
+Informal proof: by the CDF symmetry `Φ(x) = 1 - Φ(-x)`, `gelu x = -(-x)(1 - Φ(-x))`.  As
+`x → -∞`, `y := -x → +∞`, and `y (1 - Φ(y)) → 0` by `tendsto_mul_one_sub_standardNormalCDF_atTop`,
+so `gelu x → 0`. -/
 theorem tendsto_gelu_atBot : Tendsto gelu atBot (nhds 0) := by
-  sorry
+  have hgelu : gelu = fun x => -((-x) * (1 - standardNormalCDF (-x))) := by
+    funext x
+    have hsymm : standardNormalCDF (-x) = 1 - standardNormalCDF x := by
+      linarith [standardNormalCDF_symm x]
+    unfold gelu
+    rw [hsymm]
+    ring
+  rw [hgelu]
+  have h := tendsto_mul_one_sub_standardNormalCDF_atTop.comp tendsto_neg_atBot_atTop
+  simpa [Function.comp_def] using h.neg
 
 /-- Positive one-homogeneity of a scalar activation. -/
 def PosHomogeneous (σ : ℝ → ℝ) : Prop :=
@@ -945,16 +1158,8 @@ theorem nonhomogeneous_activations :
         have hne : ¬ standardNormalCDF 2 = standardNormalCDF 1 := by
           intro hc_eq
           have hdiff : standardNormalCDF 2 - standardNormalCDF 1 =
-              ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t := by
-            rw [standardNormalCDF_eq_half_add_standardGaussianIntegral 2,
-              standardNormalCDF_eq_half_add_standardGaussianIntegral 1]
-            have hadd : (∫ t in (0 : ℝ)..2, gaussianPDFReal 0 1 t) =
-                (∫ t in (0 : ℝ)..1, gaussianPDFReal 0 1 t) +
-                  ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t := by
-              rw [intervalIntegral.integral_add_adjacent_intervals
-                (integrable_gaussianPDFReal 0 1).intervalIntegrable
-                (integrable_gaussianPDFReal 0 1).intervalIntegrable]
-            linarith
+              ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t :=
+            standardNormalCDF_sub_eq_integral 1 2
           have hpos : 0 < ∫ t in (1 : ℝ)..2, gaussianPDFReal 0 1 t := by
             exact intervalIntegral.intervalIntegral_pos_of_pos
               (integrable_gaussianPDFReal 0 1).intervalIntegrable
