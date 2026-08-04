@@ -50,18 +50,18 @@ def zero (ι : Type uI) (m : ℕ) : EvenCoupling ι m where
   coeff_perm := by simp
 
 /-- Regard an existing quartic coupling as the general even coupling at half-degree two. -/
-def ofQuartic (A : QuarticCoupling ι) : EvenCoupling ι 2 where
+def ofQuartic {ι : Type uI} (A : QuarticCoupling ι) : EvenCoupling ι 2 where
   coeff := A.coeff
   coeff_perm := A.coeff_perm
 
 /-- Even homogeneous potential with the conventional `1 / (2m)!` symmetry factor. -/
-def potential {ι : Type uI} [Fintype ι] (s : EvenCoupling ι m)
+def potential {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m)
     (z : EuclideanSpace ℝ ι) : ℝ :=
   (((2 * m).factorial : ℝ)⁻¹) *
     ∑ q : Fin (2 * m) → ι, s.coeff q * coordinateMonomial q z
 
 /-- Pointwise nonnegativity, used as a sufficient normalizability hypothesis. -/
-def Nonnegative {ι : Type uI} [Fintype ι] (s : EvenCoupling ι m) : Prop :=
+def Nonnegative {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m) : Prop :=
   ∀ z, 0 ≤ s.potential z
 
 end EvenCoupling
@@ -188,7 +188,7 @@ remainder by Gaussian polynomial moments.  This is the linked-cluster theorem; s
 `eq:connected-correlator-hierarchy` in `docs/Renormalization.md`.
 -/
 theorem EvenAction.connectedCorrelatorHierarchy
-    {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    {ι : Type uI} [Fintype ι]
     (A : EvenAction ι) (hP : A.precision.PosDef)
     (hnonneg : ∀ m ∈ Finset.Icc 2 A.cutoff, (A.coupling m).Nonnegative) :
     HierarchicallyNearlyGaussian A.measure (fun i z => z i)
@@ -204,7 +204,7 @@ definition of nearly-Gaussianity and equation `eq:connected-correlator-hierarchy
 `docs/Renormalization.md`.
 -/
 theorem EvenAction.nearlyGaussian
-    {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    {ι : Type uI} [Fintype ι]
     (A : EvenAction ι) (hP : A.precision.PosDef)
     (hnonneg : ∀ m ∈ Finset.Icc 2 A.cutoff, (A.coupling m).Nonnegative) :
     NearlyGaussian A.measure (fun i z => z i) (nhdsWithin 0 (Set.Ici 0)) := by
@@ -239,7 +239,7 @@ Informal proof: a product of `n` coordinates changes by `(-1)^n=-1` under global
 `n` is odd.  Apply `integral_eq_zero_of_odd`.  Source: `docs/Renormalization.md`, lines 457--459.
 -/
 theorem jointMoment_coordinates_eq_zero_of_odd
-    {ι : Type uI} [Fintype ι] (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
+    {ι : Type uI} (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
     (n : ℕ) (hn : Odd n) (index : Fin n → ι)
     (hint : Integrable (coordinateMonomial index) ν) :
     jointMoment ν (fun r : Fin n => fun z => z (index r)) = 0 := by
@@ -254,7 +254,7 @@ is odd, every partition has an odd-cardinality block.  Its block moment is zero 
 `eq:schematic-action-decomposition`.
 -/
 theorem jointCumulant_coordinates_eq_zero_of_odd
-    {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    {ι : Type uI}
     (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
     (n : ℕ) (hn : Odd n) (index : Fin n → ι)
     (hfinite : HasFiniteJointMoments ν (fun r : Fin n => fun z => z (index r))) :
