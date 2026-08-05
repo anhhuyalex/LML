@@ -1038,6 +1038,33 @@ private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι 
   -- at least three.
   sorry
 
+-- Evaluating the Gaussian MGF identity at `t = 1` and taking logs converts the pointwise MGF
+-- hypothesis `MGF(a)(t) = exp ((q a * t^2) / 2)` into the log-MGF identity
+-- `log (MGF(a)(1)) = q a / 2`.  It is generic over the quadratic form `q`, so it only depends
+-- on the shape of the MGF, not on how `q` is built (e.g. from a covariance polynomial).
+private lemma log_mgf_quadratic_of_mgf_exp_quadratic {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω) (Z : ι → Ω → ℝ)
+    (q : (ι → ℝ) → ℝ)
+    (h_mgf : ∀ a : ι → ℝ,
+      (fun t : ℝ ↦ ProbabilityTheory.mgf
+          (fun ω ↦ ∑ k : ι, a k * Z k ω) ν t) =
+        (fun t : ℝ ↦ Real.exp ((q a * t ^ 2) / 2))) :
+    (fun a : ι → ℝ ↦
+        Real.log (ProbabilityTheory.mgf
+          (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) =
+      (fun a : ι → ℝ ↦ q a / 2) := by
+  funext a
+  -- The MGF hypothesis is an equality of functions of `t`; specialize it to `t = 1`.
+  have h_at_one := congrFun (h_mgf a) (1 : ℝ)
+  calc
+    Real.log (ProbabilityTheory.mgf (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)
+        = Real.log (Real.exp ((q a * (1 : ℝ) ^ 2) / 2)) := by
+          rw [h_at_one]
+    _ = (q a * (1 : ℝ) ^ 2) / 2 := by
+          rw [Real.log_exp]
+    _ = q a / 2 := by
+          norm_num
+
 /-- Higher centered Gaussian cumulants vanish.
 
 This is the analytic coefficient-extraction step used in the finite-dimensional Wick proof.
@@ -1062,26 +1089,11 @@ private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_three_l
     {B : Finset ι} (hBcard : 3 ≤ B.card) :
     Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
   classical
-  have h_log_mgf :
-      (fun a : ι → ℝ ↦
-          Real.log (ProbabilityTheory.mgf
-            (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) =
-        (fun a : ι → ℝ ↦
-          (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2) := by
-    funext a
-    have h_at_one := congrFun (h_mgf a) (1 : ℝ)
-    calc
-      Real.log (ProbabilityTheory.mgf (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)
-          = Real.log (Real.exp
-              (((∑ i : ι, ∑ j : ι,
-                  a i * a j * covariance (Z i) (Z j) ν) * (1 : ℝ) ^ 2) / 2)) := by
-            rw [h_at_one]
-      _ = ((∑ i : ι, ∑ j : ι,
-              a i * a j * covariance (Z i) (Z j) ν) * (1 : ℝ) ^ 2) / 2 := by
-            rw [Real.log_exp]
-      _ = (∑ i : ι, ∑ j : ι,
-              a i * a j * covariance (Z i) (Z j) ν) / 2 := by
-            norm_num
+  -- Step 1: Evaluate the pointwise MGF identity at `t = 1` and take logs, converting it into
+  -- the log-MGF identity at `1`; the quadratic form is the covariance polynomial.
+  have h_log_mgf := log_mgf_quadratic_of_mgf_exp_quadratic ν Z
+    (fun a : ι → ℝ ↦ ∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) h_mgf
+  -- Step 2: A quadratic log-MGF has no squarefree cumulant of order at least three.
   exact cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic ν Z h_log_mgf hBcard
 
 /-- Centered Gaussian block cumulants vanish in every cardinality except two.
@@ -1167,7 +1179,8 @@ private lemma partitionTransform_card_two_eq_pairingSum {α : Type*} [DecidableE
     exact Finset.prod_eq_zero hBmem (by simp [hBcard])
   rw [h_rest, add_zero]
   -- Reindex the remaining filtered sum (over the pairings) back to the `Pairing s` subtype.
-  refine Finset.sum_bij (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ : Finpartition.Pairing s)) ?_ ?_ ?_ ?_
+  refine Finset.sum_bij (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ : Finpartition.Pairing s))
+    ?_ ?_ ?_ ?_
   · intro P hp
     exact Finset.mem_univ _
   · intro P₁ hp₁ P₂ hp₂ h
@@ -1374,7 +1387,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
       wick (fun k l ↦ covariance (Z k) (Z l) ν) s := by
   classical
   let C : ι → ι → ℝ := fun k l ↦ covariance (Z k) (Z l) ν
-
   -- Step 1: analytic Gaussian input.  From the Cramér-Wold hypothesis `h_joint`,
   -- the finite vector `(Z k)_{k : ι}` is jointly Gaussian.  Since `h_centered`
   -- makes all first moments vanish, its multivariate MGF is
@@ -1390,7 +1402,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
     -- is being computed.
     let σ := {k : ι // k ∈ s}
     let Zs : σ → Ω → ℝ := fun k ω ↦ Z k.1 ω
-
     -- The Cramér-Wold, centering, and integrability hypotheses all restrict to
     -- the subtype of indices in `s`; the helpers isolate this bookkeeping so the
     -- remaining proof can focus on the analytic Isserlis input.
@@ -1398,10 +1409,8 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
         ProbabilityTheory.IsGaussian
           (Measure.map (fun ω ↦ ∑ k : σ, a k * Zs k ω) ν) :=
       jointGaussian_restrict_finset_subtype ν Z s h_joint
-
     have h_centered_s : ∀ k : σ, ∫ ω, Zs k ω ∂ν = 0 :=
       centered_restrict_finset_subtype ν Z s h_centered
-
     -- Analytic Wick/Isserlis input on the restricted finite vector.  This is the
     -- missing theorem: from `h_joint_s`, `h_centered_s`, and `h_integrability_s`,
     -- derive the multivariate Gaussian MGF `exp (1 / 2 * tᵀ C t)` and extract the
@@ -1418,12 +1427,10 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
       -- quadratic ones vanish, and then apply the moment-cumulant inversion.
       let K : Finset σ → ℝ :=
         pairWeight (fun k l : σ ↦ covariance (Zs k) (Zs l) ν)
-
       -- The zero linear combination supplies the probability normalization
       -- required by moment-cumulant inversion.
       have : IsProbabilityMeasure ν :=
         isProbabilityMeasure_of_jointGaussian_zero_linear ν Zs h_joint_s
-
       -- Analytic Gaussian input: Cramér-Wold plus centering gives the
       -- multivariate MGF `exp ((t^2 / 2) * aᵀ C a)` for each direction `a`.
       have h_mgf_linear :
@@ -1434,7 +1441,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
                 (((∑ i : σ, ∑ j : σ,
                     a i * a j * covariance (Zs i) (Zs j) ν) * t ^ 2) / 2)) :=
         mgf_linear_combination_centered_jointGaussian ν Zs h_joint_s h_centered_s
-
       -- Coefficient extraction from the logarithm of the MGF: the only nonzero
       -- joint cumulants of a centered Gaussian vector are the second cumulants,
       -- and on a two-element block the cumulant is exactly the covariance weight.
@@ -1463,7 +1469,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
           intro _hmgf hsym B hBcard
           dsimp [K]
           exact cumulantTransform_pair_eq_pairWeight_covariance ν Zs h_joint_s hsym hBcard
-
         -- Non-quadratic coefficient extraction.  The same logarithmic MGF is a
         -- homogeneous quadratic polynomial in the coefficients `a`; hence every
         -- squarefree mixed derivative of order other than two vanishes.  The
@@ -1481,12 +1486,10 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
           intro hmgf hcent B hBcard
           exact cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_card_ne_two
             ν Zs hmgf hcent hBcard
-
         exact eq_if_card_two_of_eq_of_ne
           (Finpartition.cumulantTransform (blockMoment ν Zs)) K
           (h_pair_from_cgf h_mgf_linear (fun i j ↦ covariance_comm (Zs i) (Zs j)))
           (h_not_pair_from_cgf h_mgf_linear h_centered_s) B
-
       -- Moment-cumulant inversion expresses the full moment as the partition
       -- transform of the block cumulants.  The explicit integrability hypothesis
       -- `h_integrability_s` is the side condition for the left-hand moment.
@@ -1498,7 +1501,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
         rw [partitionTransform_cumulantTransform_univ
           (blockMoment ν Zs) (blockMoment_empty Zs)]
         simp [blockMoment]
-
       -- If the block weight is zero away from two-element blocks, then the
       -- partition transform restricts exactly to pair partitions, i.e. to the
       -- project's `pairingSum`.
@@ -1511,10 +1513,8 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
         -- block of cardinality different from two has product zero, while the
         -- remaining partitions are precisely `Finpartition.Pairing`.
         exact partitionTransform_card_two_eq_pairingSum K (Finset.univ : Finset σ)
-
       rw [h_moment_cumulant, funext h_cumulant_blocks]
       simpa [K] using h_partition_to_pairings
-
     -- Transport the subtype statement back to the original finset `s`.  The left
     -- side is just the same product, and the right side is the same sum over
     -- pairings after relabelling blocks by the subtype equivalence.
@@ -1533,7 +1533,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
               (pairWeight (fun k l : {x : ι // x ∈ s} ↦ C k.1 l.1)) := rfl
         rw [h_weight]
         exact pairingSum_subtype_weight s C
-
   -- Step 2: unfold the local definition of the Wick sum.  The previous step is
   -- already expressed with exactly the block weight used by `wick`.
   simpa [wick, C] using h_pairing_formula
