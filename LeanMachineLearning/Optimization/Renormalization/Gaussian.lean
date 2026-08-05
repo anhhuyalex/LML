@@ -1019,6 +1019,7 @@ References: Wikipedia, *Cumulant*, section "Joint cumulants"
 <https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants>, and the local sorry-free
 moment-cumulant partition identity `jointMoment_eq_sum_partition_jointCumulant` in
 `Renormalization.Cumulant`. -/
+
 private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
     [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
     [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
@@ -1031,11 +1032,19 @@ private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι 
     {B : Finset ι} (hBcard : 3 ≤ B.card) :
     Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
   classical
-  -- The missing formal step is the multivariate coefficient-extraction theorem sketched in the
-  -- docstring: the left-hand side is the squarefree coefficient of `h_log_mgf` at `B`, while the
-  -- right-hand side is a quadratic polynomial and hence has no squarefree coefficient of degree
-  -- at least three.
-  sorry
+  calc
+    Finpartition.cumulantTransform (blockMoment ν Z) B =
+        squarefreeCGFCoeff
+          (fun a : ι → ℝ ↦
+            Real.log (ProbabilityTheory.mgf
+              (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) B :=
+      cumulantTransform_blockMoment_eq_squarefreeCGFCoeff_log_mgf ν Z
+    _ = squarefreeCGFCoeff
+          (fun a : ι → ℝ ↦
+            (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2) B := by
+      rw [h_log_mgf]
+    _ = 0 :=
+      squarefreeCGFCoeff_covariance_quadratic_eq_zero ν Z hBcard
 
 -- Evaluating the Gaussian MGF identity at `t = 1` and taking logs converts the pointwise MGF
 -- hypothesis `MGF(a)(t) = exp ((q a * t^2) / 2)` into the log-MGF identity
