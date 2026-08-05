@@ -964,9 +964,8 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
       rw [if_neg]
       · rw [sum_Finpartition_pair i j hij]
         have hne : ({i, j} : Finset ι).Nonempty := by simp
-        rw [cumulantCoefficient_top hne, blockProduct_top hne]
-        rw [cumulantCoefficient_bot_pair i j hij]
-        rw [blockProduct_bot_pair i j hij]
+        rw [cumulantCoefficient_top hne, blockProduct_top hne,
+          cumulantCoefficient_bot_pair i j hij, blockProduct_bot_pair i j hij]
         ring
       · simp
     have h_pair_moment :
@@ -1043,7 +1042,7 @@ private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι 
 -- `log (MGF(a)(1)) = q a / 2`.  It is generic over the quadratic form `q`, so it only depends
 -- on the shape of the MGF, not on how `q` is built (e.g. from a covariance polynomial).
 private lemma log_mgf_quadratic_of_mgf_exp_quadratic {Ω ι : Type*}
-    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω) (Z : ι → Ω → ℝ)
+    [MeasurableSpace Ω] [Fintype ι] (ν : Measure Ω) (Z : ι → Ω → ℝ)
     (q : (ι → ℝ) → ℝ)
     (h_mgf : ∀ a : ι → ℝ,
       (fun t : ℝ ↦ ProbabilityTheory.mgf
@@ -1054,16 +1053,8 @@ private lemma log_mgf_quadratic_of_mgf_exp_quadratic {Ω ι : Type*}
           (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) =
       (fun a : ι → ℝ ↦ q a / 2) := by
   funext a
-  -- The MGF hypothesis is an equality of functions of `t`; specialize it to `t = 1`.
-  have h_at_one := congrFun (h_mgf a) (1 : ℝ)
-  calc
-    Real.log (ProbabilityTheory.mgf (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)
-        = Real.log (Real.exp ((q a * (1 : ℝ) ^ 2) / 2)) := by
-          rw [h_at_one]
-    _ = (q a * (1 : ℝ) ^ 2) / 2 := by
-          rw [Real.log_exp]
-    _ = q a / 2 := by
-          norm_num
+  rw [congrFun (h_mgf a) (1 : ℝ), Real.log_exp]
+  norm_num
 
 /-- Higher centered Gaussian cumulants vanish.
 
@@ -1087,14 +1078,10 @@ private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_three_l
           (((∑ i : ι, ∑ j : ι,
               a i * a j * covariance (Z i) (Z j) ν) * t ^ 2) / 2)))
     {B : Finset ι} (hBcard : 3 ≤ B.card) :
-    Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
-  classical
-  -- Step 1: Evaluate the pointwise MGF identity at `t = 1` and take logs, converting it into
-  -- the log-MGF identity at `1`; the quadratic form is the covariance polynomial.
-  have h_log_mgf := log_mgf_quadratic_of_mgf_exp_quadratic ν Z
-    (fun a : ι → ℝ ↦ ∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) h_mgf
-  -- Step 2: A quadratic log-MGF has no squarefree cumulant of order at least three.
-  exact cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic ν Z h_log_mgf hBcard
+    Finpartition.cumulantTransform (blockMoment ν Z) B = 0 :=
+  cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic ν Z
+    (log_mgf_quadratic_of_mgf_exp_quadratic ν Z
+      (fun a : ι → ℝ ↦ ∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) h_mgf) hBcard
 
 /-- Centered Gaussian block cumulants vanish in every cardinality except two.
 
