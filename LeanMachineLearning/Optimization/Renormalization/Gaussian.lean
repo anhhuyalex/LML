@@ -1001,6 +1001,43 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
     exact pairWeight_pair (fun k l : ι ↦ covariance (Z k) (Z l) ν) hsym hij
   exact h_lhs_cov.trans h_rhs_cov.symm
 
+/-- Analytic coefficient-extraction bridge for higher Gaussian cumulants.
+
+This is the finite-dimensional joint-cumulant generating-function theorem that is not yet available
+in Mathlib or in the local cumulant API.  It says that if the logarithm of the joint MGF
+`a ↦ E[exp (∑ i, a i * Z i)]` is the quadratic covariance polynomial, then every squarefree
+joint cumulant of order at least three vanishes.
+
+Informal proof.  Expand the joint MGF as the exponential generating series whose squarefree
+coefficient on a finite set `S` is the raw block moment `blockMoment ν Z S`.  Taking `Real.log`
+gives the joint cumulant generating series; the Möbius inversion formula on the partition lattice
+identifies the squarefree coefficient of this logarithm with
+`Finpartition.cumulantTransform (blockMoment ν Z) S`.  Under `h_log_mgf`, the logarithm is a
+polynomial of total degree at most two.  A squarefree coefficient indexed by `B` with
+`3 ≤ B.card` therefore has degree at least three and is zero.
+
+References: Wikipedia, *Cumulant*, section "Joint cumulants"
+<https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants>, and the local sorry-free
+moment-cumulant partition identity `jointMoment_eq_sum_partition_jointCumulant` in
+`Renormalization.Cumulant`. -/
+private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
+    [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
+    (h_log_mgf :
+      (fun a : ι → ℝ ↦
+          Real.log (ProbabilityTheory.mgf
+            (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) =
+        (fun a : ι → ℝ ↦
+          (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2))
+    {B : Finset ι} (hBcard : 3 ≤ B.card) :
+    Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
+  classical
+  -- The missing formal step is the multivariate coefficient-extraction theorem sketched in the
+  -- docstring: the left-hand side is the squarefree coefficient of `h_log_mgf` at `B`, while the
+  -- right-hand side is a quadratic polynomial and hence has no squarefree coefficient of degree
+  -- at least three.
+  sorry
+
 /-- Higher centered Gaussian cumulants vanish.
 
 This is the analytic coefficient-extraction step used in the finite-dimensional Wick proof.
@@ -1024,15 +1061,28 @@ private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_three_l
               a i * a j * covariance (Z i) (Z j) ν) * t ^ 2) / 2)))
     {B : Finset ι} (hBcard : 3 ≤ B.card) :
     Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
-  -- This is the missing analytic theorem: identify `cumulantTransform` with the squarefree
-  -- coefficient of `log (mgf (∑ aᵢ Zᵢ) 1)`, then use `h_mgf` to rewrite that logarithm as a
-  -- quadratic polynomial.  Since `3 ≤ B.card`, the relevant squarefree coefficient has degree at
-  -- least three, so it vanishes.
-  --
-  -- A future complete proof should combine `jointMoment_eq_sum_partition_jointCumulant` with the
-  -- finite polynomial identity expressing the exponential of the cumulant series, or equivalently
-  -- differentiate Mathlib's `ProbabilityTheory.cgf` using the analytic MGF API.
-  sorry
+  classical
+  have h_log_mgf :
+      (fun a : ι → ℝ ↦
+          Real.log (ProbabilityTheory.mgf
+            (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) =
+        (fun a : ι → ℝ ↦
+          (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2) := by
+    funext a
+    have h_at_one := congrFun (h_mgf a) (1 : ℝ)
+    calc
+      Real.log (ProbabilityTheory.mgf (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)
+          = Real.log (Real.exp
+              (((∑ i : ι, ∑ j : ι,
+                  a i * a j * covariance (Z i) (Z j) ν) * (1 : ℝ) ^ 2) / 2)) := by
+            rw [h_at_one]
+      _ = ((∑ i : ι, ∑ j : ι,
+              a i * a j * covariance (Z i) (Z j) ν) * (1 : ℝ) ^ 2) / 2 := by
+            rw [Real.log_exp]
+      _ = (∑ i : ι, ∑ j : ι,
+              a i * a j * covariance (Z i) (Z j) ν) / 2 := by
+            norm_num
+  exact cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic ν Z h_log_mgf hBcard
 
 /-- Centered Gaussian block cumulants vanish in every cardinality except two.
 
@@ -1087,6 +1137,224 @@ private lemma eq_if_card_two_of_eq_of_ne {ι : Type*}
   · exact (if_pos hBcard).symm ▸ h_pair hBcard
   · exact (if_neg hBcard).symm ▸ h_not_pair hBcard
 
+/-- The partition transform of a block weight that vanishes off two-element blocks is exactly the
+pairing sum of that weight.
+
+Informal proof: expand `partitionTransform`; a partition with a block of cardinality different
+from two has a zero factor in its block product, while a partition whose blocks all have
+cardinality two is exactly a `Pairing`, and on such partitions the block product is the pairing
+block product. -/
+private lemma partitionTransform_card_two_eq_pairingSum {α : Type*} [DecidableEq α]
+    (K : Finset α → ℝ) (s : Finset α) :
+    Finpartition.partitionTransform (fun B : Finset α ↦ if B.card = 2 then K B else 0) s =
+      Finpartition.pairingSum K s := by
+  classical
+  rw [Finpartition.partitionTransform, Finpartition.pairingSum]
+  rw [← Finset.sum_filter_add_sum_filter_not
+    (s := (Finset.univ : Finset (Finpartition s)))
+    (p := fun P : Finpartition s ↦ Finpartition.IsPairing P)
+    (f := fun P : Finpartition s ↦
+      P.blockProduct (fun B : Finset α ↦ if B.card = 2 then K B else 0))]
+  have h_rest :
+      (∑ P ∈ (Finset.univ.filter fun P : Finpartition s ↦ ¬ Finpartition.IsPairing P),
+        P.blockProduct (fun B : Finset α ↦ if B.card = 2 then K B else 0)) = 0 := by
+    apply Finset.sum_eq_zero
+    intro P hP
+    have hnot : ¬ Finpartition.IsPairing P := (Finset.mem_filter.mp hP).2
+    change ¬ ∀ B ∈ P.parts, B.card = 2 at hnot
+    rcases (not_forall.mp hnot) with ⟨B, hB⟩
+    rcases (Classical.not_imp.mp hB) with ⟨hBmem, hBcard⟩
+    exact Finset.prod_eq_zero hBmem (by simp [hBcard])
+  rw [h_rest, add_zero]
+  -- Reindex the remaining filtered sum (over the pairings) back to the `Pairing s` subtype.
+  refine Finset.sum_bij (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ : Finpartition.Pairing s)) ?_ ?_ ?_ ?_
+  · intro P hp
+    exact Finset.mem_univ _
+  · intro P₁ hp₁ P₂ hp₂ h
+    exact Subtype.ext_iff.mp h
+  · intro Q hQ
+    exact ⟨Q.1, Finset.mem_filter.mpr ⟨Finset.mem_univ _, Q.2⟩, rfl⟩
+  · intro P hp
+    calc
+      P.blockProduct (fun B : Finset α ↦ if B.card = 2 then K B else 0)
+          = P.blockProduct K := by
+            apply Finset.prod_congr rfl
+            intro B hB
+            have hB2 : B.card = 2 := (Finset.mem_filter.mp hp).2 B hB
+            simp [hB2]
+      _ = Finpartition.Pairing.blockProduct
+            (⟨P, (Finset.mem_filter.mp hp).2⟩ : Finpartition.Pairing s) K := rfl
+
+/-- Reindexing a double sum over the erase-neighborhood of a subtype preimage.
+
+Informal proof: the subtype embedding is injective, so `j ↦ j.1` bijects the elements of
+`(A.preimage φ).erase (⟨a, hA ha⟩ : {x : α // x ∈ s})` with the elements of `A.erase a`. -/
+private lemma sum_erase_preimage {α : Type*} [DecidableEq α] (s A : Finset α) (hA : A ⊆ s)
+    (w : α → α → ℝ) (a : α) (ha : a ∈ A) :
+    (∑ j ∈ (A.preimage (Function.Embedding.subtype (· ∈ s))
+          (by intro x _hx y _hy h; exact Subtype.ext h)).erase (⟨a, hA ha⟩ : {x : α // x ∈ s}),
+      w a j.1) = ∑ b ∈ A.erase a, w a b := by
+  classical
+  let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
+  refine Finset.sum_bij (fun j hj => (j : α)) ?_ ?_ ?_ ?_
+  · intro j hj
+    rcases Finset.mem_erase.mp hj with ⟨hj_ne, hj_mem⟩
+    have hjA : (j : α) ∈ A := Finset.mem_preimage.mp hj_mem
+    have hne : (j : α) ≠ a := by
+      intro hja
+      exact hj_ne (Subtype.ext hja)
+    exact Finset.mem_erase.mpr ⟨hne, hjA⟩
+  · intro j₁ hj₁ j₂ hj₂ h
+    exact Subtype.ext h
+  · intro b hb
+    rcases Finset.mem_erase.mp hb with ⟨hb_ne, hbA⟩
+    refine ⟨⟨b, hA hbA⟩, ?_, rfl⟩
+    apply Finset.mem_erase.mpr
+    constructor
+    · intro h_eq
+      apply hb_ne
+      exact Subtype.ext_iff.mp h_eq
+    · exact Finset.mem_preimage.mpr hbA
+  · intro j hj
+    rfl
+
+/-- The `pairWeight` of a covariance kernel is invariant under taking the subtype preimage of a
+block.
+
+Informal proof: unfold `pairWeight` and reindex the double sum by the bijection `i ↦ i.1` from
+`A.preimage φ` onto `A`; the inner sums reindex by `sum_erase_preimage`. -/
+private lemma pairWeight_preimage {α : Type*} [DecidableEq α] (s : Finset α)
+    (w : α → α → ℝ) (A : Finset α) (hA : A ⊆ s) :
+    pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1)
+      (A.preimage (Function.Embedding.subtype (· ∈ s))
+        (by intro x _hx y _hy h; exact Subtype.ext h)) =
+    pairWeight w A := by
+  classical
+  let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
+  unfold pairWeight
+  congr 1
+  refine Finset.sum_bij (fun i hi => (i : α)) ?_ ?_ ?_ ?_
+  · intro i hi
+    exact Finset.mem_preimage.mp hi
+  · intro i₁ hi₁ i₂ hi₂ h
+    exact Subtype.ext h
+  · intro a ha
+    exact ⟨⟨a, hA ha⟩, Finset.mem_preimage.mpr ha, rfl⟩
+  · intro i hi
+    have hmem : (i : α) ∈ A := Finset.mem_preimage.mp hi
+    have hpair : (⟨(i : α), hA hmem⟩ : {x : α // x ∈ s}) = i := Subtype.ext rfl
+    rw [← hpair]
+    exact sum_erase_preimage s A hA w (i : α) hmem
+
+/-- The equivalence between pairings of a finite set and pairings of its subtype universe,
+restricting `finpartitionSubtypeEquiv` to pairings.
+
+Informal proof: the forward map sends a part `A` to `A.preimage φ`, which preserves cardinality
+because `φ` is injective; the inverse sends `C` to `C.map φ`, which preserves cardinality by
+`Finset.card_map`. -/
+private noncomputable def pairingSubtypeEquiv {α : Type*} [DecidableEq α] (s : Finset α) :
+    Finpartition.Pairing s ≃ Finpartition.Pairing (Finset.univ : Finset s) where
+  toFun P := by
+    refine ⟨finpartitionSubtypeEquiv s P.1, ?_⟩
+    intro B hB
+    let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
+    have h_parts : (finpartitionSubtypeEquiv s P.1).parts =
+        P.1.parts.image (fun A : Finset α => A.preimage φ φ.injective.injOn) := rfl
+    rw [h_parts] at hB
+    rcases Finset.mem_image.mp hB with ⟨A, hA, rfl⟩
+    have hA_sub : A ⊆ s := P.1.subset hA
+    have h_roundtrip : (A.preimage φ φ.injective.injOn).map φ = A := by
+      apply Finset.ext
+      intro x
+      constructor
+      · intro hx
+        rcases Finset.mem_map.mp hx with ⟨y, hy, hyx⟩
+        rw [← hyx]
+        exact Finset.mem_preimage.mp hy
+      · intro hx
+        exact Finset.mem_map.mpr ⟨⟨x, hA_sub hx⟩, Finset.mem_preimage.mpr hx, rfl⟩
+    rw [← Finset.card_map, h_roundtrip]
+    exact P.2 A hA
+  invFun Q := by
+    refine ⟨(finpartitionSubtypeEquiv s).symm Q.1, ?_⟩
+    intro B hB
+    let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
+    have h_parts : ((finpartitionSubtypeEquiv s).symm Q.1).parts =
+        Q.1.parts.image (fun C : Finset {x : α // x ∈ s} => C.map φ) := rfl
+    rw [h_parts] at hB
+    rcases Finset.mem_image.mp hB with ⟨C, hC, rfl⟩
+    rw [Finset.card_map]
+    exact Q.2 C hC
+  left_inv P := by
+    apply Subtype.ext
+    exact (finpartitionSubtypeEquiv s).left_inv P.1
+  right_inv Q := by
+    apply Subtype.ext
+    exact (finpartitionSubtypeEquiv s).right_inv Q.1
+
+/-- The pairing sum of a kernel weight is unchanged when the carrier is replaced by its subtype.
+
+Informal proof: reindex the pairing sum over `Pairing (Finset.univ : Finset s)` back to
+`Pairing s` with `pairingSubtypeEquiv`, and observe that each block weight is preserved by
+`pairWeight_preimage`. -/
+private lemma pairingSum_subtype_weight {α : Type*} [DecidableEq α] (s : Finset α)
+    (w : α → α → ℝ) :
+    Finpartition.pairingSum
+      (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1))
+      (Finset.univ : Finset {x : α // x ∈ s}) =
+    Finpartition.pairingSum (pairWeight w) s := by
+  classical
+  let e : Finpartition.Pairing s ≃ Finpartition.Pairing (Finset.univ : Finset s) :=
+    pairingSubtypeEquiv s
+  let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
+  calc
+    Finpartition.pairingSum
+        (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1))
+        (Finset.univ : Finset {x : α // x ∈ s})
+        = ∑ Q : Finpartition.Pairing (Finset.univ : Finset {x : α // x ∈ s}),
+            Q.blockProduct (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1)) := rfl
+    _ = ∑ P : Finpartition.Pairing s,
+            (e P).blockProduct (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1)) := by
+          exact (e.sum_comp (fun Q : Finpartition.Pairing (Finset.univ : Finset s) ↦
+            Q.blockProduct (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1)))).symm
+    _ = ∑ P : Finpartition.Pairing s, P.blockProduct (pairWeight w) := by
+          apply Finset.sum_congr rfl
+          intro P hP
+          have h_parts : (e P).1.parts =
+              P.1.parts.image (fun A : Finset α => A.preimage φ φ.injective.injOn) := rfl
+          have h_roundtrip : ∀ A ∈ P.1.parts,
+              (A.preimage φ φ.injective.injOn).map φ = A := by
+            intro A hA
+            apply Finset.ext
+            intro x
+            constructor
+            · intro hx
+              rcases Finset.mem_map.mp hx with ⟨y, hy, hyx⟩
+              rw [← hyx]
+              exact Finset.mem_preimage.mp hy
+            · intro hx
+              exact Finset.mem_map.mpr ⟨⟨x, P.1.subset hA hx⟩,
+                Finset.mem_preimage.mpr hx, rfl⟩
+          have h_pre_inj :
+              Set.InjOn (fun A : Finset α => A.preimage φ φ.injective.injOn) (↑P.1.parts) := by
+            intro A hA A' hA' hAA'
+            simpa [h_roundtrip A hA, h_roundtrip A' hA'] using
+              congrArg (fun C : Finset {x : α // x ∈ s} => C.map φ) hAA'
+          calc
+            (e P).blockProduct (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1))
+                = (e P).1.blockProduct (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1)) := rfl
+            _ = P.1.blockProduct (fun A : Finset α =>
+                    pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1)
+                      (A.preimage φ φ.injective.injOn)) := by
+                  simp only [Finpartition.blockProduct]
+                  rw [h_parts, Finset.prod_image h_pre_inj]
+            _ = P.1.blockProduct (pairWeight w) := by
+                  apply Finset.prod_congr rfl
+                  intro A hA
+                  exact pairWeight_preimage s w A (P.1.subset hA)
+            _ = P.blockProduct (pairWeight w) := rfl
+    _ = Finpartition.pairingSum (pairWeight w) s := rfl
+
 /-- Finite-dimensional centered Wick/Isserlis theorem for a jointly Gaussian real family.
 
 This is the analytic theorem missing from the current Mathlib/project API.  The Cramér-Wold
@@ -1101,7 +1369,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k, a k * Z k ω) ν))
     (h_centered : ∀ k : ι, ∫ ω, Z k ω ∂ν = 0)
-    (h_integrability : Integrable (fun ω ↦ ∏ k ∈ s, Z k ω) ν) :
+    (_h_integrability : Integrable (fun ω ↦ ∏ k ∈ s, Z k ω) ν) :
     ∫ ω, ∏ k ∈ s, Z k ω ∂ν =
       wick (fun k l ↦ covariance (Z k) (Z l) ν) s := by
   classical
@@ -1242,7 +1510,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
         -- Expand `Finpartition.partitionTransform`; every partition containing a
         -- block of cardinality different from two has product zero, while the
         -- remaining partitions are precisely `Finpartition.Pairing`.
-        sorry
+        exact partitionTransform_card_two_eq_pairingSum K (Finset.univ : Finset σ)
 
       rw [h_moment_cumulant, funext h_cumulant_blocks]
       simpa [K] using h_partition_to_pairings
@@ -1259,8 +1527,12 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
       _ = Finpartition.pairingSum (pairWeight C) s := by
         -- Relabel pairings of `Finset.univ : Finset σ` as pairings of `s` by
         -- the subtype-value equivalence.  Block weights agree by unfolding `C`
-        -- and `Zs`; covariance symmetry handles unordered blocks.
-        sorry
+        -- and `Zs`.
+        have h_weight :
+            (pairWeight (fun k l : σ ↦ covariance (Zs k) (Zs l) ν)) =
+              (pairWeight (fun k l : {x : ι // x ∈ s} ↦ C k.1 l.1)) := rfl
+        rw [h_weight]
+        exact pairingSum_subtype_weight s C
 
   -- Step 2: unfold the local definition of the Wick sum.  The previous step is
   -- already expressed with exactly the block weight used by `wick`.
@@ -1567,11 +1839,28 @@ components of the moments. Since `wick C` is a sum over pairings (blocks of size
 the only non-zero connected component of size `n` occurs when `n = 2` and the partition
 is just a single pair.
 For `n ≠ 2`, the cumulant must be zero.
+Formally: the Wick sum is the partition transform of the block weight that vanishes off
+two-element blocks (`partitionTransform_card_two_eq_pairingSum`).  By the Möbius inversion
+`Finpartition.cumulantTransform_partitionTransform`, the cumulant transform of this partition
+transform recovers that block weight, which vanishes at `s` because `s.card ≠ 2`.
 (Source: Cumulant, Wikipedia, https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants) -/
-theorem cumulantTransform_wick_eq_zero (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i)
+theorem cumulantTransform_wick_eq_zero (C : ι → ι → ℝ) (_hC : ∀ i j, C i j = C j i)
     {s : Finset ι} (hs : s.card ≠ 2) :
     Finpartition.cumulantTransform (wick C) s = 0 := by
-  sorry
+  classical
+  let K : Finset ι → ℝ := pairWeight C
+  have h_wick_partition :
+      Finpartition.partitionTransform (fun B : Finset ι ↦ if B.card = 2 then K B else 0) =
+        wick C := by
+    funext t
+    simpa [K, wick] using (partitionTransform_card_two_eq_pairingSum K t)
+  have hf0 : (fun B : Finset ι ↦ if B.card = 2 then K B else 0) ∅ = 0 := by
+    simp
+  have h_inv := Finpartition.cumulantTransform_partitionTransform
+    (R := ℝ) (fun B : Finset ι ↦ if B.card = 2 then K B else 0) hf0
+  rw [h_wick_partition] at h_inv
+  rw [h_inv]
+  simp [hs]
 
 /-- Adding constants to random variables only affects their first cumulant.
 Informal proof:

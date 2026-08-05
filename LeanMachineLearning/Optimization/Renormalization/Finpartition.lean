@@ -2236,11 +2236,9 @@ lemma card_filter_size_eq (m : ℕ) :
 
 /-- A matching has size at most the smaller number of available blocks. -/
 lemma size_le_min (M : Matching π σ) : M.size ≤ Nat.min π.parts.card σ.parts.card := by
-  have hSle : M.S.card ≤ π.parts.card := Finset.card_le_card M.hS
-  have hTle : M.T.card ≤ σ.parts.card := Finset.card_le_card M.hT
-  have hTS : M.T.card = M.S.card := M.card_T_eq_card_S
   simp only [size]
-  exact le_min hSle (by simpa [hTS] using hTle)
+  exact le_min (Finset.card_le_card M.hS)
+    (by simpa [M.card_T_eq_card_S] using (Finset.card_le_card M.hT))
 
 /-- Sum a coefficient depending only on the matching size by first choosing the size.
 
@@ -2253,24 +2251,19 @@ lemma sum_coeff_by_size {R : Type*} [CommRing R]
       ∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
         (((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) * c m := by
   have hmaps : ((Finset.univ : Finset (Matching π σ)) : Set (Matching π σ)).MapsTo size
-      (Finset.range (Nat.min π.parts.card σ.parts.card + 1)) := by
-    intro M _
-    simpa [Finset.mem_range] using Nat.lt_succ_of_le M.size_le_min
+      (Finset.range (Nat.min π.parts.card σ.parts.card + 1)) :=
+    fun M _ => by simpa [Finset.mem_range] using Nat.lt_succ_of_le M.size_le_min
   rw [← Finset.sum_fiberwise_of_maps_to hmaps]
-  apply Finset.sum_congr rfl
-  intro m hm
-  rw [Finset.sum_filter]
-  calc
-    ∑ x : Matching π σ, (if size x = m then c (size x) else 0) =
-        ∑ x : Matching π σ, (if size x = m then c m else 0) := by
-      apply Finset.sum_congr rfl
-      intro x _
-      by_cases hx : size x = m <;> simp [hx]
-    _ = ((Finset.univ.filter (fun M : Matching π σ => M.size = m)).card : R) * c m := by
-      rw [← Finset.sum_filter]
-      simp [Finset.sum_const, nsmul_eq_mul]
-    _ = (((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) * c m := by
-      rw [Matching.card_filter_size_eq]
+  simp_rw [Finset.sum_filter]
+  exact Finset.sum_congr rfl (fun m _ => by
+    calc
+      ∑ x : Matching π σ, (if size x = m then c (size x) else 0) =
+          ∑ x : Matching π σ, (if size x = m then c m else 0) := by
+        exact Finset.sum_congr rfl (fun x _ => by by_cases hx : size x = m <;> simp [hx])
+      _ = ((Finset.univ.filter (fun M : Matching π σ => M.size = m)).card : R) * c m := by
+        simp [Finset.sum_const, nsmul_eq_mul, ← Finset.sum_filter]
+      _ = (((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) * c m := by
+        rw [Matching.card_filter_size_eq])
 
 end Matching
 
@@ -2329,21 +2322,17 @@ private lemma glue_summand_eq {R : Type*} [CommRing R] (hAB : Disjoint A B)
       (π.blockProduct f * σ.blockProduct f) *
         ((-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
           ((π.parts.card + σ.parts.card - M.size - 1).factorial : R)) := by
-  have hcard : (M.glue hAB).parts.card = π.parts.card + σ.parts.card - M.size := by
-    simpa using Matching.card_glueParts M hAB
   have hcoeff : cumulantCoefficient (M.glue hAB) =
       (-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
         ((π.parts.card + σ.parts.card - M.size - 1).factorial : R) := by
     simp [cumulantCoefficient, Matching.card_glueParts M hAB]
-  have hblock : (M.glue hAB).blockProduct f = π.blockProduct f * σ.blockProduct f := by
-    refine Matching.blockProduct_glue M hAB f ?_
-    intro s
-    -- per matched pair, `hsplit` turns the union into the product of the two traces
-    rw [hsplit ((s.1 : Finset α) ∪ (M.e s).1),
-      union_inter_left_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2)),
-      union_inter_right_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))]
-  rw [hblock, hcoeff]
-  rw [mul_comm]
+  have hblock : (M.glue hAB).blockProduct f = π.blockProduct f * σ.blockProduct f :=
+    Matching.blockProduct_glue M hAB f (fun s => by
+      -- per matched pair, `hsplit` turns the union into the product of the two traces
+      rw [hsplit ((s.1 : Finset α) ∪ (M.e s).1),
+        union_inter_left_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2)),
+        union_inter_right_of_subset hAB (π.subset (M.hS s.2)) (σ.subset (M.hT (M.e s).2))])
+  rw [hblock, hcoeff, mul_comm]
 
 -- Regroup the defining sum over all partitions of `A ∪ B` by the trace pair: first by the
 -- `A`-trace, then by the `B`-trace inside each `A`-class (`Finset.sum_fiberwise` on the product
@@ -2357,33 +2346,20 @@ private lemma sum_cumulant_by_trace {R : Type*} [CommRing R] (f : Finset α → 
   classical
   calc
     (∑ T : Finpartition (A ∪ B), cumulantCoefficient T * T.blockProduct f)
-        = ∑ j : Finpartition A × Finpartition B,
+        = ∑ π : Finpartition A, ∑ σ : Finpartition B,
             ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
-                (T.restrict (Finset.subset_union_left), T.restrict (Finset.subset_union_right)) = j),
+                (T.restrict (Finset.subset_union_left), T.restrict (Finset.subset_union_right)) = (π, σ)),
               cumulantCoefficient T * T.blockProduct f := by
       rw [← Finset.sum_fiberwise (Finset.univ : Finset (Finpartition (A ∪ B)))
-        (fun T : Finpartition (A ∪ B) => (T.restrict (Finset.subset_union_left),
-          T.restrict (Finset.subset_union_right)))
-        (fun T : Finpartition (A ∪ B) => cumulantCoefficient T * T.blockProduct f)]
-    _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,
-          ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
-              (T.restrict (Finset.subset_union_left), T.restrict (Finset.subset_union_right)) = (π, σ)),
-            cumulantCoefficient T * T.blockProduct f := by
-      rw [Fintype.sum_prod_type]
+        (fun T => (T.restrict (Finset.subset_union_left), T.restrict (Finset.subset_union_right)))
+        (fun T => cumulantCoefficient T * T.blockProduct f),
+        Fintype.sum_prod_type]
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,
           ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
               T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ),
-            cumulantCoefficient T * T.blockProduct f := by
-      apply Finset.sum_congr rfl
-      intro π _
-      apply Finset.sum_congr rfl
-      intro σ _
-      -- the two fiber predicates are pointwise equivalent, so the filters (and the sums) agree
-      apply Finset.sum_congr
-      · ext T
-        simp [Prod.ext_iff]
-      · intro T hT
-        rfl
+            cumulantCoefficient T * T.blockProduct f :=
+      Finset.sum_congr rfl (fun π _ => Finset.sum_congr rfl (fun σ _ =>
+        Finset.sum_congr (by ext T; simp [Prod.ext_iff]) (fun _ _ => rfl)))
 
 -- Within a fixed trace pair fiber, the sum over partitions reindexes along the bijection
 -- `M ↦ M.glue hAB` (`traceFiberToMatching` is the inverse, see the two round-trip lemmas above).
@@ -2398,26 +2374,26 @@ private lemma sum_traceFiber_eq_sum_matching {R : Type*} [CommRing R] (hAB : Dis
   -- are the two round-trip lemmas, and the summand equality is round-trip 1 applied to `T`.
   apply Finset.sum_bij (fun T hT =>
       traceFiberToMatching π σ hAB T (Finset.mem_filter.mp hT).2.1 (Finset.mem_filter.mp hT).2.2)
-  · intro T hT
-    simp
+  · intro T _
+    exact Finset.mem_univ _
   · intro T₁ hT₁ T₂ hT₂ h
     -- injectivity: two matchings that glue to the same partition are equal
-    have hglue := congrArg (fun M : Matching π σ => M.glue hAB) h
-    rwa [glue_traceFiberToMatching π σ hAB T₁ (Finset.mem_filter.mp hT₁).2.1
+    simpa [glue_traceFiberToMatching π σ hAB T₁ (Finset.mem_filter.mp hT₁).2.1
         (Finset.mem_filter.mp hT₁).2.2,
       glue_traceFiberToMatching π σ hAB T₂ (Finset.mem_filter.mp hT₂).2.1
-        (Finset.mem_filter.mp hT₂).2.2] at hglue
-  · intro M hM
+        (Finset.mem_filter.mp hT₂).2.2] using
+        congrArg (fun M : Matching π σ => M.glue hAB) h
+  · intro M _
     -- surjectivity: `M` is extracted from its own glue
     have hmem : M.glue hAB ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
         T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ) :=
       Finset.mem_filter.mpr ⟨Finset.mem_univ _,
         ⟨Matching.restrict_glue_left M hAB, Matching.restrict_glue_right M hAB⟩⟩
-    refine ⟨M.glue hAB, hmem, ?_⟩
     -- the extracted matching differs from `M` only by the choice of the trace-equality proofs
-    exact (traceFiberToMatching_congr π σ hAB (M.glue hAB) (Finset.mem_filter.mp hmem).2.1
-      (Matching.restrict_glue_left M hAB) (Finset.mem_filter.mp hmem).2.2
-      (Matching.restrict_glue_right M hAB)).trans (traceFiberToMatching_glue π σ hAB M)
+    exact ⟨M.glue hAB, hmem,
+      (traceFiberToMatching_congr π σ hAB (M.glue hAB) (Finset.mem_filter.mp hmem).2.1
+        (Matching.restrict_glue_left M hAB) (Finset.mem_filter.mp hmem).2.2
+        (Matching.restrict_glue_right M hAB)).trans (traceFiberToMatching_glue π σ hAB M)⟩
   · intro T hT
     -- the summand of `T` is the glued summand of the matching extracted from `T`
     rw [glue_traceFiberToMatching π σ hAB T (Finset.mem_filter.mp hT).2.1
@@ -2459,7 +2435,7 @@ round-trip lemmas `glue_traceFiberToMatching`/`traceFiberToMatching_glue`). On a
 `Matching.blockProduct_glue` turns the block product into `π.blockProduct f * σ.blockProduct f`,
 with `hsplit` applied to each matched union using `union_inter_left_of_subset` and
 `union_inter_right_of_subset`; `Matching.card_glueParts` changes the cumulant coefficient to the
-coefficient depending on `M.size` displayed below.  The separate, fully formalized counting of
+coefficient depending on `M.size` displayed below. The separate, fully formalized counting of
 matchings by size happens in `cumulantTransform_eq_sum_matching`. -/
 lemma cumulantTransform_eq_sum_matchings_by_trace {R : Type*} [CommRing R]
     (hAB : Disjoint A B) (hne : A ∪ B ≠ ∅) (f : Finset α → R)
@@ -2478,40 +2454,19 @@ lemma cumulantTransform_eq_sum_matchings_by_trace {R : Type*} [CommRing R]
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,
           ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
               T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ),
-            cumulantCoefficient T * T.blockProduct f := by
-      -- regroup by the trace pair `(T.restrict left, T.restrict right)`
-      exact sum_cumulant_by_trace f
+            cumulantCoefficient T * T.blockProduct f :=
+      sum_cumulant_by_trace f
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,
-          ∑ M : Matching π σ, cumulantCoefficient (M.glue hAB) * (M.glue hAB).blockProduct f := by
-      -- within each trace-pair fiber, reindex along the glue bijection `M ↦ M.glue hAB`
-      apply Finset.sum_congr rfl
-      intro π _
-      apply Finset.sum_congr rfl
-      intro σ _
-      exact sum_traceFiber_eq_sum_matching hAB f π σ
+          ∑ M : Matching π σ, cumulantCoefficient (M.glue hAB) * (M.glue hAB).blockProduct f :=
+      Finset.sum_congr rfl (fun π _ => Finset.sum_congr rfl (fun σ _ =>
+        sum_traceFiber_eq_sum_matching hAB f π σ))
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B, (π.blockProduct f * σ.blockProduct f) *
           (∑ M : Matching π σ,
             ((-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
-              ((π.parts.card + σ.parts.card - M.size - 1).factorial : R))) := by
-      -- each glued summand factors: `hsplit` splits the block product, `card_glueParts` the
-      -- coefficient; pull the common trace factor out of the matching sum
-      apply Finset.sum_congr rfl
-      intro π _
-      apply Finset.sum_congr rfl
-      intro σ _
-      calc
-        ∑ M : Matching π σ, cumulantCoefficient (M.glue hAB) * (M.glue hAB).blockProduct f
-            = ∑ M : Matching π σ, (π.blockProduct f * σ.blockProduct f) *
-                ((-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
-                  ((π.parts.card + σ.parts.card - M.size - 1).factorial : R)) := by
-          apply Finset.sum_congr rfl
-          intro M _
-          exact glue_summand_eq hAB f hsplit π σ M
-        _ = (π.blockProduct f * σ.blockProduct f) *
-            ∑ M : Matching π σ,
-              ((-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
-                ((π.parts.card + σ.parts.card - M.size - 1).factorial : R)) := by
-          simp [Finset.mul_sum]
+              ((π.parts.card + σ.parts.card - M.size - 1).factorial : R))) :=
+      Finset.sum_congr rfl (fun π _ => Finset.sum_congr rfl (fun σ _ =>
+        (Finset.sum_congr rfl (fun M _ => glue_summand_eq hAB f hsplit π σ M)).trans (by
+          simp [Finset.mul_sum])))
 
 lemma cumulantTransform_eq_sum_matching {R : Type*} [CommRing R] (hAB : Disjoint A B)
     (hne : A ∪ B ≠ ∅) (f : Finset α → R) (hsplit : ∀ D : Finset α, f D = f (D ∩ A) * f (D ∩ B)) :
@@ -2521,27 +2476,13 @@ lemma cumulantTransform_eq_sum_matching {R : Type*} [CommRing R] (hAB : Disjoint
           ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
             ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
               ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
-  calc
-    cumulantTransform f (A ∪ B) =
-        ∑ π : Finpartition A, ∑ σ : Finpartition B, (π.blockProduct f * σ.blockProduct f) *
-          (∑ M : Matching π σ,
-            ((-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
-              ((π.parts.card + σ.parts.card - M.size - 1).factorial : R))) :=
-      cumulantTransform_eq_sum_matchings_by_trace hAB hne f hsplit
-    _ = ∑ π : Finpartition A, ∑ σ : Finpartition B, (π.blockProduct f * σ.blockProduct f) *
-        (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
-          ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
-            ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
-              ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
-      apply Finset.sum_congr rfl
-      intro π _
-      apply Finset.sum_congr rfl
-      intro σ _
-      rw [Matching.sum_coeff_by_size
-        (π := π) (σ := σ)
-        (c := fun m : ℕ =>
-          ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
-            ((π.parts.card + σ.parts.card - m - 1).factorial : R)))]
+  rw [cumulantTransform_eq_sum_matchings_by_trace hAB hne f hsplit]
+  exact Finset.sum_congr rfl (fun π _ => Finset.sum_congr rfl (fun σ _ => by
+    rw [Matching.sum_coeff_by_size
+      (π := π) (σ := σ)
+      (c := fun m : ℕ =>
+        ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
+          ((π.parts.card + σ.parts.card - m - 1).factorial : R)))]))
 
 end TracePairMatching
 
