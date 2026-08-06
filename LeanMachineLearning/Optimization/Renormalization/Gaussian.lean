@@ -32,7 +32,7 @@ Every deferred theorem below includes its own informal proof.
 noncomputable section
 
 open MeasureTheory ProbabilityTheory
-open scoped BigOperators ENNReal NNReal
+open scoped BigOperators ENNReal NNReal MatrixOrder
 
 namespace Renormalization
 
@@ -2525,18 +2525,16 @@ instance instIsNegInvariantMultivariateGaussianZero
     calc
       ((stdGaussian (EuclideanSpace ℝ ι)).map L).map (fun x ↦ -x) =
           (stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ -(L x)) := by
-        rw [Measure.map_map]
-        all_goals fun_prop
+        rw [Measure.map_map (by fun_prop) (by fun_prop)]
+        rfl
       _ = (stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ L (-x)) := by
         congr 1
         funext x
         exact (L.map_neg x).symm
       _ = ((stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ -x)).map L := by
-        rw [Measure.map_map]
-        all_goals fun_prop
+        rw [Measure.map_map (by fun_prop) (by fun_prop)]
+        rfl
       _ = (stdGaussian (EuclideanSpace ℝ ι)).map L := by rw [hstd]
-      _ = multivariateGaussian (0 : EuclideanSpace ℝ ι) S := by
-        simp [multivariateGaussian, L]
 
 /-- Finite products of coordinate projections are integrable under any Gaussian measure.
 

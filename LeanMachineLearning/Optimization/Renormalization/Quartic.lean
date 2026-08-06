@@ -33,7 +33,7 @@ Every deferred theorem below includes its own informal proof.
 
 noncomputable section
 
-open MeasureTheory ProbabilityTheory
+open Filter MeasureTheory ProbabilityTheory
 open scoped BigOperators Topology
 
 namespace Renormalization
@@ -85,6 +85,7 @@ theorem continuous_potential (A : QuarticCoupling ι) : Continuous A.potential :
   unfold potential
   fun_prop
 
+omit [DecidableEq ι] in
 /-- A quartic potential is invariant under the global sign flip. -/
 theorem potential_neg (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
     A.potential (-z) = A.potential z := by
@@ -93,8 +94,7 @@ theorem potential_neg (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
   exact Finset.sum_congr rfl (fun q _hq ↦ by
     congr 1
     rw [Fin.prod_univ_four, Fin.prod_univ_four]
-    simp
-    ring)
+    simp)
 
 /-- Nonnegative quartic potentials are normalizable at every nonnegative coupling.
 
@@ -117,8 +117,9 @@ theorem integral_coordinate_deform_eq_zero (A : QuarticCoupling ι)
   have hF : AEStronglyMeasurable F (multivariateGaussian 0 K) := by
     apply Continuous.aestronglyMeasurable
     dsimp [F]
-    exact (((continuous_const.mul A.continuous_potential).exp.div_const _).mul
-      (continuous_apply i))
+    exact (((Real.continuous_exp.comp (continuous_const.mul A.continuous_potential)).div_const _).mul
+      ((continuous_apply i).comp
+        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous))
   have hodd : ∀ z, F (-z) = -F z := by
     intro z
     simp [F, A.potential_neg]
@@ -786,16 +787,8 @@ theorem partitionFunction_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
   have hVnonneg : 0 ≤ A.potential := by
     intro z
     exact hA z
-  -- `A.potential` is integrable: its pointwise norm is bounded by `1 + A.potential ^ 2`,
-  -- the sum of the integrable constant `1` and the second-moment hypothesis `hV2`.
-  have hV : Integrable (fun z ↦ A.potential z) (multivariateGaussian 0 K) := by
-    refine Integrable.mono' ((integrable_const (1 : ℝ)).add hV2) ?_ ?_
-    · exact A.continuous_potential.aestronglyMeasurable
-    · filter_upwards with z
-      dsimp
-      rw [abs_of_nonneg (hA z)]
-      -- `v ≤ 1 + v²` follows from `(v - 1/2)² ≥ 0`
-      nlinarith [sq_nonneg (A.potential z - (1 / 2 : ℝ))]
+  have hV : Integrable (fun z ↦ A.potential z) (multivariateGaussian 0 K) :=
+    A.integrable_potential_of_sq hA hV2
   -- The generic quadratic remainder of the partition function, with the linear term rewritten
   -- by `integral_potential`.
   have hbase : Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
@@ -839,14 +832,8 @@ theorem twoPoint_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
   have hVnonneg : 0 ≤ A.potential := by
     intro z
     exact hA z
-  -- `A.potential` is integrable, exactly as in `partitionFunction_isBigO`.
-  have hV : Integrable (fun z ↦ A.potential z) μ := by
-    refine Integrable.mono' ((integrable_const (1 : ℝ)).add hV2) ?_ ?_
-    · exact A.continuous_potential.aestronglyMeasurable
-    · filter_upwards with z
-      dsimp
-      rw [abs_of_nonneg (hA z)]
-      nlinarith [sq_nonneg (A.potential z - (1 / 2 : ℝ))]
+  have hV : Integrable (fun z ↦ A.potential z) μ :=
+    A.integrable_potential_of_sq hA hV2
   -- `z i * z j` is a finite Gaussian coordinate product, hence integrable.
   have hO : Integrable O μ := by
     dsimp [O]
@@ -854,43 +841,9 @@ theorem twoPoint_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
       (integrable_finset_prod_gaussian_coordinate (μ := μ)
         (s := (Finset.univ : Finset (Fin 2)))
         (coord := fun t : Fin 2 ↦ if t = 0 then i else j))
-  -- `V * O` is a finite sum of Gaussian coordinate products over `Sum (Fin 2) (Fin 4)`.
-  have hmono : ∀ q : Fin 4 → ι,
-      Integrable (fun z : EuclideanSpace ℝ ι ↦ (z i * z j) * ∏ r : Fin 4, z (q r)) μ := fun q => by
-    simpa [Fintype.prod_sum_type, Fin.prod_univ_two] using
-      (integrable_finset_prod_gaussian_coordinate (μ := μ)
-        (s := (Finset.univ : Finset (Sum (Fin 2) (Fin 4))))
-        (coord := Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q))
-  have hsum : Integrable (fun z : EuclideanSpace ℝ ι ↦
-      ∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r)) μ := by
-    simpa [mul_assoc] using
-      (integrable_finsetSum (Finset.univ : Finset (Fin 4 → ι))
-        (fun q _hq => (hmono q).const_mul (A.coeff q)))
   have hVO' : Integrable (fun z : EuclideanSpace ℝ ι ↦ (z i * z j) * A.potential z) μ := by
-    let c : ℝ := (((4 : ℕ).factorial : ℝ)⁻¹)
-    have hfun : (fun z : EuclideanSpace ℝ ι ↦ (z i * z j) * A.potential z) =
-        fun z ↦ c * (∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r)) := by
-      funext z
-      let S : ℝ := ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, z (q r)
-      change (z i * z j) * ((((4 : ℕ).factorial : ℝ)⁻¹) * S) =
-        (((4 : ℕ).factorial : ℝ)⁻¹) *
-          ∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r)
-      calc
-        (z i * z j) * ((((4 : ℕ).factorial : ℝ)⁻¹) * S) =
-            (((4 : ℕ).factorial : ℝ)⁻¹) * ((z i * z j) * S) := by ring
-        _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
-              ∑ q : Fin 4 → ι, (z i * z j) * (A.coeff q * ∏ r : Fin 4, z (q r)) := by
-          congr 1
-          dsimp [S]
-          rw [Finset.mul_sum]
-        _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
-              ∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r) := by
-          apply congrArg (fun t : ℝ => (((4 : ℕ).factorial : ℝ)⁻¹) * t)
-          apply Finset.sum_congr rfl
-          intro q _
-          ring
-    rw [hfun]
-    exact hsum.const_mul c
+    simpa [coordinateProduct, Fin.prod_univ_two, index] using
+      A.integrable_coordinateProduct_mul_potential K index
   have hVO : Integrable (fun z : EuclideanSpace ℝ ι ↦ A.potential z * (z i * z j)) μ := by
     convert hVO' using 1
     ext z
@@ -974,7 +927,84 @@ theorem fourthCumulant_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
       (fun ε ↦ jointCumulant (deform (multivariateGaussian 0 K) A.potential ε)
         (fun r : Fin 4 ↦ fun z ↦ z (index r)) + ε * A.fourPointContraction K index)
       (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+  let μ : Measure (EuclideanSpace ℝ ι) := multivariateGaussian 0 K
+  let V : EuclideanSpace ℝ ι → ℝ := A.potential
+  let O₄ : EuclideanSpace ℝ ι → ℝ := coordinateProduct index
+  let P : Fin 4 → Fin 4 → ℝ → ℝ := fun r s ε ↦
+    ∫ z, z (index r) * z (index s) ∂deform μ V ε
+  let k : Fin 4 → Fin 4 → ℝ := fun r s ↦ K (index r) (index s)
+  let t : Fin 4 → Fin 4 → ℝ := fun r s ↦ A.twoPointContraction K (index r) (index s)
+  let M₄ : ℝ := k 0 1 * k 2 3 + k 0 2 * k 1 3 + k 0 3 * k 1 2
+  let C₄ : ℝ := covarianceWith μ O₄ V
+  let l : Filter ℝ := nhdsWithin 0 (Set.Ici 0)
+  have hl : Tendsto (fun ε : ℝ ↦ ε) l (𝓝 0) := by
+    exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_id
+  have hVnonneg : 0 ≤ V := by
+    intro z
+    exact hA z
+  have hV : Integrable V μ := by
+    exact A.integrable_potential_of_sq hA hV2
+  have hO₄ : Integrable O₄ μ := by
+    change Integrable (fun z : EuclideanSpace ℝ ι ↦ ∏ r : Fin 4, z (index r)) μ
+    simpa using
+      (integrable_finset_prod_gaussian_coordinate (μ := μ)
+        (s := (Finset.univ : Finset (Fin 4))) (coord := index))
+  have hVO₄ : Integrable (fun z ↦ V z • O₄ z) μ := by
+    have h := A.integrable_coordinateProduct_mul_potential K index
+    simpa only [V, O₄, smul_eq_mul, mul_comm] using h
+  have hM₄ : (∫ z, O₄ z ∂μ) = M₄ := by
+    rw [show (∫ z, O₄ z ∂μ) =
+        ∫ z, coordinateProduct index z ∂multivariateGaussian 0 K by rfl,
+      integral_coordinateProduct_eq_wick K hK index,
+      wick_quartic_slots (fun r s : Fin 4 ↦ K (index r) (index s))
+        (fun r s ↦ hK.isHermitian.apply (index s) (index r))]
+  have hC₄ : C₄ =
+      (1 / 2 : ℝ) *
+        (k 0 1 * t 2 3 + k 0 2 * t 1 3 + k 0 3 * t 1 2 +
+          k 1 2 * t 0 3 + k 1 3 * t 0 2 + k 2 3 * t 0 1) +
+        A.fourPointContraction K index := by
+    exact A.covarianceWith_coordinateProduct_potential K hK index
+  have hfourBase : Asymptotics.IsBigO l
+      (fun ε ↦ (∫ z, O₄ z ∂deform μ V ε) - (∫ z, O₄ z ∂μ) + ε • C₄)
+      (fun ε : ℝ ↦ ε ^ 2) :=
+    integral_deform_sub_linear_isBigO (μ := μ) (V := V) (O := O₄)
+      hVnonneg hV hO₄ hVO₄ hV2 hV2four
+  have hfour : Asymptotics.IsBigO l
+      (fun ε ↦ (∫ z, O₄ z ∂deform μ V ε) - (M₄ + ε * (-C₄)))
+      (fun ε : ℝ ↦ ε ^ 2) := by
+    refine hfourBase.congr_left ?_
+    intro ε
+    rw [hM₄]
+    simp only [smul_eq_mul]
+    ring
+  have hpair (r s : Fin 4) : Asymptotics.IsBigO l
+      (fun ε ↦ P r s ε - (k r s + ε * (-(1 / 2 : ℝ) * t r s)))
+      (fun ε : ℝ ↦ ε ^ 2) := by
+    have h := A.twoPoint_isBigO K hK hA (index r) (index s) hnorm hV2 (hV2two r s)
+    refine h.congr_left ?_
+    intro ε
+    dsimp [l, P, k, t, μ, V]
+    ring
+  have hp01 := mul_sub_linear_isBigO hl (hpair 0 1) (hpair 2 3)
+  have hp02 := mul_sub_linear_isBigO hl (hpair 0 2) (hpair 1 3)
+  have hp03 := mul_sub_linear_isBigO hl (hpair 0 3) (hpair 1 2)
+  have hcumul (ε : ℝ) :
+      jointCumulant (deform μ V ε) (fun r : Fin 4 ↦ fun z ↦ z (index r)) =
+        (∫ z, O₄ z ∂deform μ V ε) - P 0 1 ε * P 2 3 ε -
+          P 0 2 ε * P 1 3 ε - P 0 3 ε * P 1 2 ε := by
+    have hcenter : ∀ r : Fin 4,
+        ∫ z, z (index r) ∂deform μ V ε = 0 := by
+      intro r
+      exact A.integral_coordinate_deform_eq_zero K ε (index r)
+    simpa [O₄, P, coordinateProduct, Fin.prod_univ_four] using
+      (jointCumulant_four_of_centered
+        (μ := deform μ V ε) (fun r : Fin 4 ↦ fun z ↦ z (index r)) hcenter)
+  have hrem := hfour.sub hp01 |>.sub hp02 |>.sub hp03
+  refine hrem.congr_left ?_
+  intro ε
+  rw [hcumul ε, hC₄]
+  dsimp [M₄]
+  ring
 
 /-- Two-point function of the quartically deformed Gaussian law. -/
 def deformedTwoPoint (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
@@ -1019,7 +1049,18 @@ theorem fullFourPoint_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
             A.deformedTwoPoint K ε (index 1) (index 2) -
           ε * A.fourPointContraction K index))
       (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+  have hconnected := A.fourthCumulant_isBigO K hK hA hnorm hV2 index hV2two hV2four
+  refine hconnected.congr_left ?_
+  intro ε
+  have hcenter : ∀ r : Fin 4,
+      ∫ z, z (index r) ∂deform (multivariateGaussian 0 K) A.potential ε = 0 := by
+    intro r
+    exact A.integral_coordinate_deform_eq_zero K ε (index r)
+  rw [jointCumulant_four_of_centered
+    (μ := deform (multivariateGaussian 0 K) A.potential ε)
+    (fun r : Fin 4 ↦ fun z ↦ z (index r)) hcenter]
+  simp only [deformedFourPoint, deformedTwoPoint, coordinateProduct, Fin.prod_univ_four]
+  ring
 
 /-- One-dimensional specialization exhibiting quartic self-interaction.
 
