@@ -200,6 +200,24 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_integral
           ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K := by
       simp [μ, c, monomial]
 
+/-- Arbitrary-finite-position version of the coordinate Wick theorem.
+
+Informal proof: choose an equivalence `e : Fin (Fintype.card α) ≃ α`.  Apply
+`integral_prod_multivariateGaussian_centered_eq_wick` from `Gaussian.lean` to the finite sequence
+`index ∘ e`.  The left hand side is transported to the `α`-indexed joint moment by
+`jointMoment_perm`; the right hand side is transported along the same equivalence by reindexing
+`Finpartition.Pairing` in the definition of `wick`.  This is exactly Isserlis' theorem for an
+arbitrary finite set of positions; see L. Isserlis, Biometrika 12 (1918), 134--139,
+<https://doi.org/10.1093/biomet/12.1-2.134>. -/
+theorem integral_prod_multivariateGaussian_centered_eq_wick_fintype
+    {κ α : Type*} [Fintype κ] [DecidableEq κ] [Fintype α] [DecidableEq α]
+    (m : EuclideanSpace ℝ κ) (S : Matrix κ κ ℝ) (hS : S.PosSemidef)
+    (index : α → κ) :
+    jointMoment (multivariateGaussian m S)
+        (fun a z ↦ z (index a) - m (index a)) =
+      wick (fun a b ↦ S (index a) (index b)) Finset.univ := by
+  sorry
+
 /-- Wick evaluation of the monomial obtained by adjoining a quartic tuple to external
 coordinates.
 
@@ -214,7 +232,19 @@ theorem integral_coordinateProduct_mul_quarticMonomial_eq_wick
     ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K =
       wick (fun r s : Sum (Fin n) (Fin 4) ↦
         K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
-  sorry
+  let combined : Sum (Fin n) (Fin 4) → ι := Sum.elim index q
+  have hwick := integral_prod_multivariateGaussian_centered_eq_wick_fintype
+    (m := (0 : EuclideanSpace ℝ ι)) (S := K) hK combined
+  calc
+    ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K =
+        jointMoment (multivariateGaussian (0 : EuclideanSpace ℝ ι) K)
+          (fun a : Sum (Fin n) (Fin 4) ↦ fun z ↦ z (combined a) -
+            (0 : EuclideanSpace ℝ ι) (combined a)) := by
+      simp [jointMoment, blockMoment, coordinateProduct, combined, Fintype.prod_sum_type]
+    _ = wick (fun r s : Sum (Fin n) (Fin 4) ↦ K (combined r) (combined s)) Finset.univ := hwick
+    _ = wick (fun r s : Sum (Fin n) (Fin 4) ↦
+        K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
+      rfl
 
 /-- A coordinate product times the quartic potential reduces to one Wick sum per coefficient
 tuple.

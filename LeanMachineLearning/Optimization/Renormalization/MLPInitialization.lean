@@ -237,32 +237,24 @@ private lemma iIndepFun_sum_prod_real {Ω Ω' ι κ : Type*} [MeasurableSpace Ω
     (hf : iIndepFun f μ) (hg : iIndepFun g ν) :
     iIndepFun
       (fun c : ι ⊕ κ => fun ω : Ω × Ω' =>
-        match c with
-        | Sum.inl i => f i ω.1
-        | Sum.inr j => g j ω.2)
+        Sum.elim (fun i => f i ω.1) (fun j => g j ω.2) c)
       (μ.prod ν) := by
   classical
   have : Fintype ι := Fintype.ofFinite ι
   have : Fintype κ := Fintype.ofFinite κ
   let μπ : Measure (Ω × Ω') := μ.prod ν
   let F : Ω × Ω' → (ι ⊕ κ → ℝ) := fun ω c =>
-    match c with
-    | Sum.inl i => f i ω.1
-    | Sum.inr j => g j ω.2
+    Sum.elim (fun i => f i ω.1) (fun j => g j ω.2) c
   let A : Ω → ι → ℝ := fun x i => f i x
   let B : Ω' → κ → ℝ := fun y j => g j y
   let ρ : ι ⊕ κ → Measure ℝ := fun c =>
     μπ.map (fun ω : Ω × Ω' =>
-      match c with
-      | Sum.inl i => f i ω.1
-      | Sum.inr j => g j ω.2)
+      Sum.elim (fun i => f i ω.1) (fun j => g j ω.2) c)
   let e : (ι ⊕ κ → ℝ) ≃ᵐ (ι → ℝ) × (κ → ℝ) :=
     MeasurableEquiv.sumPiEquivProdPi (fun _ : ι ⊕ κ => ℝ)
   have hFmeas : ∀ c : ι ⊕ κ,
       AEMeasurable (fun ω : Ω × Ω' =>
-        match c with
-        | Sum.inl i => f i ω.1
-        | Sum.inr j => g j ω.2) μπ := by
+        Sum.elim (fun i => f i ω.1) (fun j => g j ω.2) c) μπ := by
     intro c
     cases c with
     | inl i => exact ((hfmeas i).comp measurable_fst).aemeasurable
@@ -320,7 +312,6 @@ factors of the product measure. Apply `iIndepFun_sum_prod_real` with
 `iIndepFun_layerCoordinate_layerGaussianInit` for the first layer and the induction hypothesis for
 the tail. See the product-measure factorization characterization of independence in Mathlib:
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Independence/Basic.html>. -/
-set_option pp.all true
 private theorem iIndepFun_coordinate_gaussianInit_hidden {m n k : ℕ} (tail : MLPShape k n)
     (p : (MLPShape.hidden tail : MLPShape m n).Hyperparams)
     (ih : iIndepFun (fun c : tail.Coordinate => tail.coordinate c) (tail.gaussianInit p.2)) :
@@ -328,17 +319,24 @@ private theorem iIndepFun_coordinate_gaussianInit_hidden {m n k : ℕ} (tail : M
       (fun c : (MLPShape.hidden tail : MLPShape m n).Coordinate =>
         (MLPShape.hidden tail : MLPShape m n).coordinate c)
       ((MLPShape.hidden tail : MLPShape m n).gaussianInit p) := by
-  simpa [Coordinate, coordinate, gaussianInit, Params, Hyperparams] using
-    iIndepFun_sum_prod_real
-      (μ := layerGaussianInit p.1 (Fin m) (Fin k))
-      (ν := tail.gaussianInit p.2)
-      (f := fun c : LayerCoordinate (Fin m) (Fin k) =>
-        fun q : LayerParams (Fin m) (Fin k) => layerCoordinate c q)
-      (g := fun c : tail.Coordinate => tail.coordinate c)
-      (hfmeas := fun c => measurable_layerCoordinate' c)
-      (hgmeas := fun c => measurable_coordinate tail c)
-      (hf := iIndepFun_layerCoordinate_layerGaussianInit p.1 (Fin m) (Fin k))
-      (hg := ih)
+  have hfam : (fun c : (MLPShape.hidden tail : MLPShape m n).Coordinate =>
+        (MLPShape.hidden tail : MLPShape m n).coordinate c) =
+      (fun c : LayerCoordinate (Fin m) (Fin k) ⊕ tail.Coordinate =>
+        fun θ : LayerParams (Fin m) (Fin k) × tail.Params =>
+          Sum.elim (fun c₁ => layerCoordinate c₁ θ.1)
+            (fun c₂ => tail.coordinate c₂ θ.2) c) := by
+    ext c θ; cases c <;> rfl
+  rw [hfam]
+  exact iIndepFun_sum_prod_real
+    (μ := layerGaussianInit p.1 (Fin m) (Fin k))
+    (ν := tail.gaussianInit p.2)
+    (f := fun c : LayerCoordinate (Fin m) (Fin k) =>
+      fun q : LayerParams (Fin m) (Fin k) => layerCoordinate c q)
+    (g := fun c : tail.Coordinate => tail.coordinate c)
+    (hfmeas := fun c => measurable_layerCoordinate' c)
+    (hgmeas := fun c => measurable_coordinate tail c)
+    (hf := iIndepFun_layerCoordinate_layerGaussianInit p.1 (Fin m) (Fin k))
+    (hg := ih)
 
 /-- All scalar weights and biases in all layers of a fixed MLP are jointly independent.
 
