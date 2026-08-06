@@ -756,6 +756,267 @@ private lemma integral_coordinateProduct_four (K : Matrix ι ι ℝ) (hK : K.Pos
   exact wick_quartic_slots (fun r s : Fin 4 ↦ K (index r) (index s))
     (fun r s ↦ hK.isHermitian.apply (index s) (index r))
 
+/-! ## Eighth-order Wick-orbit machinery -/
+
+-- Transport of a Wick sum under a relabelling of the carrier: `wick (C ∘ e) s` is the same
+-- Wick sum over the image `s.map e`.
+private lemma wick_perm {α : Type*} [DecidableEq α] (e : Equiv.Perm α)
+    (C : α → α → ℝ) (s : Finset α) :
+    wick (fun a b : α ↦ C (e a) (e b)) s = wick C (s.map e.toEmbedding) := by
+  unfold wick
+  rw [pairingSum_map]
+  unfold Finpartition.pairingSum
+  apply Finset.sum_congr rfl
+  intro P hP
+  simp only [Finpartition.Pairing.blockProduct, Finpartition.blockProduct]
+  apply Finset.prod_congr rfl
+  intro B hB
+  exact (pairWeight_map e C B).symm
+
+-- Per-`q` sixth-order Wick evaluation of a two-external, four-vertex set
+-- `{Sum.inl m, Sum.inl n, Sum.inr 0, ..., Sum.inr 3}`.  This is the `Fin 4`-slot instance of
+-- `two_external_wick_sum_eq_three_twelve_contractions` before the sum over `q`.
+private lemma wick_six_external (C : Sum (Fin 4) (Fin 4) → Sum (Fin 4) (Fin 4) → ℝ)
+    (hC : ∀ r s, C r s = C s r) {m n : Fin 4} (hmn : m ≠ n) :
+    wick C
+        ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+          Finset (Sum (Fin 4) (Fin 4))) =
+      C (Sum.inl m) (Sum.inl n) *
+          (C (Sum.inr 0) (Sum.inr 1) * C (Sum.inr 2) (Sum.inr 3) +
+            C (Sum.inr 0) (Sum.inr 2) * C (Sum.inr 1) (Sum.inr 3) +
+            C (Sum.inr 0) (Sum.inr 3) * C (Sum.inr 1) (Sum.inr 2)) +
+        C (Sum.inl m) (Sum.inr 0) *
+          (C (Sum.inl n) (Sum.inr 1) * C (Sum.inr 2) (Sum.inr 3) +
+            C (Sum.inl n) (Sum.inr 2) * C (Sum.inr 1) (Sum.inr 3) +
+            C (Sum.inl n) (Sum.inr 3) * C (Sum.inr 1) (Sum.inr 2)) +
+        C (Sum.inl m) (Sum.inr 1) *
+          (C (Sum.inl n) (Sum.inr 0) * C (Sum.inr 2) (Sum.inr 3) +
+            C (Sum.inl n) (Sum.inr 2) * C (Sum.inr 0) (Sum.inr 3) +
+            C (Sum.inl n) (Sum.inr 3) * C (Sum.inr 0) (Sum.inr 2)) +
+        C (Sum.inl m) (Sum.inr 2) *
+          (C (Sum.inl n) (Sum.inr 0) * C (Sum.inr 1) (Sum.inr 3) +
+            C (Sum.inl n) (Sum.inr 1) * C (Sum.inr 0) (Sum.inr 3) +
+            C (Sum.inl n) (Sum.inr 3) * C (Sum.inr 0) (Sum.inr 1)) +
+        C (Sum.inl m) (Sum.inr 3) *
+          (C (Sum.inl n) (Sum.inr 0) * C (Sum.inr 1) (Sum.inr 2) +
+            C (Sum.inl n) (Sum.inr 1) * C (Sum.inr 0) (Sum.inr 2) +
+            C (Sum.inl n) (Sum.inr 2) * C (Sum.inr 0) (Sum.inr 1)) := by
+  have hresE : wick C
+        ({Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4))) =
+      C (Sum.inr 0) (Sum.inr 1) * C (Sum.inr 2) (Sum.inr 3) +
+        C (Sum.inr 0) (Sum.inr 2) * C (Sum.inr 1) (Sum.inr 3) +
+        C (Sum.inr 0) (Sum.inr 3) * C (Sum.inr 1) (Sum.inr 2) := by
+    simpa using
+      wick_four C hC (a := (Sum.inr 0 : Sum (Fin 4) (Fin 4))) (b := Sum.inr 1)
+        (c := Sum.inr 2) (d := Sum.inr 3)
+        (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  have hres0 : wick C
+        ({Sum.inl n, Sum.inr 1, Sum.inr 2, Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4))) =
+      C (Sum.inl n) (Sum.inr 1) * C (Sum.inr 2) (Sum.inr 3) +
+        C (Sum.inl n) (Sum.inr 2) * C (Sum.inr 1) (Sum.inr 3) +
+        C (Sum.inl n) (Sum.inr 3) * C (Sum.inr 1) (Sum.inr 2) := by
+    simpa using
+      wick_four C hC (a := (Sum.inl n : Sum (Fin 4) (Fin 4))) (b := Sum.inr 1)
+        (c := Sum.inr 2) (d := Sum.inr 3)
+        (by simp) (by simp) (by simp) (by decide) (by decide) (by decide)
+  have hres1 : wick C
+        ({Sum.inl n, Sum.inr 0, Sum.inr 2, Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4))) =
+      C (Sum.inl n) (Sum.inr 0) * C (Sum.inr 2) (Sum.inr 3) +
+        C (Sum.inl n) (Sum.inr 2) * C (Sum.inr 0) (Sum.inr 3) +
+        C (Sum.inl n) (Sum.inr 3) * C (Sum.inr 0) (Sum.inr 2) := by
+    simpa using
+      wick_four C hC (a := (Sum.inl n : Sum (Fin 4) (Fin 4))) (b := Sum.inr 0)
+        (c := Sum.inr 2) (d := Sum.inr 3)
+        (by simp) (by simp) (by simp) (by decide) (by decide) (by decide)
+  have hres2 : wick C
+        ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4))) =
+      C (Sum.inl n) (Sum.inr 0) * C (Sum.inr 1) (Sum.inr 3) +
+        C (Sum.inl n) (Sum.inr 1) * C (Sum.inr 0) (Sum.inr 3) +
+        C (Sum.inl n) (Sum.inr 3) * C (Sum.inr 0) (Sum.inr 1) := by
+    simpa using
+      wick_four C hC (a := (Sum.inl n : Sum (Fin 4) (Fin 4))) (b := Sum.inr 0)
+        (c := Sum.inr 1) (d := Sum.inr 3)
+        (by simp) (by simp) (by simp) (by decide) (by decide) (by decide)
+  have hres3 : wick C
+        ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2} : Finset (Sum (Fin 4) (Fin 4))) =
+      C (Sum.inl n) (Sum.inr 0) * C (Sum.inr 1) (Sum.inr 2) +
+        C (Sum.inl n) (Sum.inr 1) * C (Sum.inr 0) (Sum.inr 2) +
+        C (Sum.inl n) (Sum.inr 2) * C (Sum.inr 0) (Sum.inr 1) := by
+    simpa using
+      wick_four C hC (a := (Sum.inl n : Sum (Fin 4) (Fin 4))) (b := Sum.inr 0)
+        (c := Sum.inr 1) (d := Sum.inr 2)
+        (by simp) (by simp) (by simp) (by decide) (by decide) (by decide)
+  have herase : ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inl m) =
+      {Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} := by
+    ext x
+    simp [hmn]
+  have hre0 : ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inl n) =
+      {Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} := by
+    rw [Finset.erase_insert]
+    simp
+  have hre1 : ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inr 0) =
+      {Sum.inl n, Sum.inr 1, Sum.inr 2, Sum.inr 3} := by
+    rw [show (insert (Sum.inl n) ({Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+          Finset (Sum (Fin 4) (Fin 4)))) = {Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3}
+        by rfl]
+    rw [Finset.erase_insert_of_ne (by simp : Sum.inl n ≠ Sum.inr 0)]
+    rw [Finset.erase_insert]
+    rfl
+  have hre2 : ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inr 1) =
+      {Sum.inl n, Sum.inr 0, Sum.inr 2, Sum.inr 3} := by
+    ext x
+    aesop
+  have hre3 : ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inr 2) =
+      {Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 3} := by
+    ext x
+    aesop
+  have hre4 : ({Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inr 3) =
+      {Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2} := by
+    ext x
+    aesop
+  rw [wick_erase C hC
+      ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4)))
+      (show Sum.inl m ∈
+        ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+          Finset (Sum (Fin 4) (Fin 4))) by simp),
+    herase]
+  rw [Finset.sum_insert
+      (by simp : Sum.inl n ∉ ({Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4)))),
+    Finset.sum_insert
+      (by simp : Sum.inr 0 ∉ ({Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+        Finset (Sum (Fin 4) (Fin 4)))),
+    Finset.sum_insert
+      (by simp : Sum.inr 1 ∉ ({Sum.inr 2, Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4)))),
+    Finset.sum_insert
+      (by simp : Sum.inr 2 ∉ ({Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4)))),
+    Finset.sum_singleton]
+  rw [hre0, hre1, hre2, hre3, hre4, hresE, hres0, hres1, hres2, hres3]
+  ring
+
+-- Sum-level sixth-order collapse for a two-external residual set, used in the eighth-order
+-- orbit computation.  Generic in the two external Fin indices `m n`.
+omit [DecidableEq ι] in
+private lemma external_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
+    (hKsymm : ∀ i j, K i j = K j i) (index : Fin 4 → ι) {m n : Fin 4} (hmn : m ≠ n) :
+    (∑ q : Fin 4 → ι, A.coeff q *
+      wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s))
+        ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+          Finset (Sum (Fin 4) (Fin 4)))) =
+      3 * (K (index m) (index n) * A.quarticContraction K) +
+        12 * A.twoPointContraction K (index m) (index n) := by
+  classical
+  have hWick : ∀ q : Fin 4 → ι,
+      wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s))
+          ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+            Finset (Sum (Fin 4) (Fin 4))) =
+        K (index m) (index n) * (K (q 0) (q 1) * K (q 2) (q 3) +
+          K (q 0) (q 2) * K (q 1) (q 3) +
+          K (q 0) (q 3) * K (q 1) (q 2)) +
+        K (index m) (q 0) * (K (index n) (q 1) * K (q 2) (q 3) +
+          K (index n) (q 2) * K (q 1) (q 3) +
+          K (index n) (q 3) * K (q 1) (q 2)) +
+        K (index m) (q 1) * (K (index n) (q 0) * K (q 2) (q 3) +
+          K (index n) (q 2) * K (q 0) (q 3) +
+          K (index n) (q 3) * K (q 0) (q 2)) +
+        K (index m) (q 2) * (K (index n) (q 0) * K (q 1) (q 3) +
+          K (index n) (q 1) * K (q 0) (q 3) +
+          K (index n) (q 3) * K (q 0) (q 1)) +
+        K (index m) (q 3) * (K (index n) (q 0) * K (q 1) (q 2) +
+          K (index n) (q 1) * K (q 0) (q 2) +
+          K (index n) (q 2) * K (q 0) (q 1)) := by
+    intro q
+    exact wick_six_external
+      (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s))
+      (fun r s ↦ hKsymm _ _) (m := m) (n := n) hmn
+  have hVac :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        (K (index m) (index n) * (K (q 0) (q 1) * K (q 2) (q 3) +
+          K (q 0) (q 2) * K (q 1) (q 3) +
+          K (q 0) (q 3) * K (q 1) (q 2)))) =
+        3 * (K (index m) (index n) * A.quarticContraction K) := by
+    have hquartic : ∀ q : Fin 4 → ι,
+        wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ =
+          K (q 0) (q 1) * K (q 2) (q 3) + K (q 0) (q 2) * K (q 1) (q 3) +
+            K (q 0) (q 3) * K (q 1) (q 2) := fun q ↦
+      wick_quartic_slots (fun r s : Fin 4 ↦ K (q r) (q s))
+        (fun r s ↦ hKsymm (q r) (q s))
+    calc
+      _ = K (index m) (index n) * (∑ q : Fin 4 → ι, A.coeff q *
+          wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ) := by
+        simp_rw [hquartic]
+        rw [Finset.mul_sum]
+        exact Finset.sum_congr rfl (fun q _hq ↦ by ring)
+      _ = K (index m) (index n) * (3 * A.quarticContraction K) := by
+        rw [quartic_wick_sum_eq_three_quarticContraction A K hKsymm]
+      _ = 3 * (K (index m) (index n) * A.quarticContraction K) := by ring
+  have hMixed :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        (K (index m) (q 0) * (K (index n) (q 1) * K (q 2) (q 3)) +
+          K (index m) (q 0) * (K (index n) (q 2) * K (q 1) (q 3)) +
+          K (index m) (q 0) * (K (index n) (q 3) * K (q 1) (q 2)) +
+          K (index m) (q 1) * (K (index n) (q 0) * K (q 2) (q 3)) +
+          K (index m) (q 1) * (K (index n) (q 2) * K (q 0) (q 3)) +
+          K (index m) (q 1) * (K (index n) (q 3) * K (q 0) (q 2)) +
+          K (index m) (q 2) * (K (index n) (q 0) * K (q 1) (q 3)) +
+          K (index m) (q 2) * (K (index n) (q 1) * K (q 0) (q 3)) +
+          K (index m) (q 2) * (K (index n) (q 3) * K (q 0) (q 1)) +
+          K (index m) (q 3) * (K (index n) (q 0) * K (q 1) (q 2)) +
+          K (index m) (q 3) * (K (index n) (q 1) * K (q 0) (q 2)) +
+          K (index m) (q 3) * (K (index n) (q 2) * K (q 0) (q 1)))) =
+        12 * A.twoPointContraction K (index m) (index n) := by
+    let perm (a b c d : Fin 4) (h : Function.Bijective ![a, b, c, d]) :
+        Equiv.Perm (Fin 4) := Equiv.ofBijective ![a, b, c, d] h
+    let σ01 : Equiv.Perm (Fin 4) := perm 0 1 2 3 (by decide)
+    let σ02 : Equiv.Perm (Fin 4) := perm 0 2 1 3 (by decide)
+    let σ03 : Equiv.Perm (Fin 4) := perm 0 3 1 2 (by decide)
+    let σ10 : Equiv.Perm (Fin 4) := perm 1 0 2 3 (by decide)
+    let σ12 : Equiv.Perm (Fin 4) := perm 1 2 0 3 (by decide)
+    let σ13 : Equiv.Perm (Fin 4) := perm 1 3 0 2 (by decide)
+    let σ20 : Equiv.Perm (Fin 4) := perm 2 0 1 3 (by decide)
+    let σ21 : Equiv.Perm (Fin 4) := perm 2 1 0 3 (by decide)
+    let σ23 : Equiv.Perm (Fin 4) := perm 2 3 0 1 (by decide)
+    let σ30 : Equiv.Perm (Fin 4) := perm 3 0 1 2 (by decide)
+    let σ31 : Equiv.Perm (Fin 4) := perm 3 1 0 2 (by decide)
+    let σ32 : Equiv.Perm (Fin 4) := perm 3 2 0 1 (by decide)
+    have h01 := twoPointContraction_sum_perm A K (index m) (index n) σ01
+    have h02 := twoPointContraction_sum_perm A K (index m) (index n) σ02
+    have h03 := twoPointContraction_sum_perm A K (index m) (index n) σ03
+    have h10 := twoPointContraction_sum_perm A K (index m) (index n) σ10
+    have h12 := twoPointContraction_sum_perm A K (index m) (index n) σ12
+    have h13 := twoPointContraction_sum_perm A K (index m) (index n) σ13
+    have h20 := twoPointContraction_sum_perm A K (index m) (index n) σ20
+    have h21 := twoPointContraction_sum_perm A K (index m) (index n) σ21
+    have h23 := twoPointContraction_sum_perm A K (index m) (index n) σ23
+    have h30 := twoPointContraction_sum_perm A K (index m) (index n) σ30
+    have h31 := twoPointContraction_sum_perm A K (index m) (index n) σ31
+    have h32 := twoPointContraction_sum_perm A K (index m) (index n) σ32
+    simp only [Fin.isValue, Nat.succ_eq_add_one, Nat.reduceAdd, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, σ01, perm, σ02, σ03, σ10,
+      σ12, σ13, σ20, σ21, σ23, σ30, σ31, σ32]
+        at h01 h02 h03 h10 h12 h13 h20 h21 h23 h30 h31 h32
+    simp only [mul_add, Finset.sum_add_distrib]
+    rw [h01, h02, h03, h10, h12, h13, h20, h21, h23, h30, h31, h32]
+    ring
+  have hAssemble :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s))
+          ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+            Finset (Sum (Fin 4) (Fin 4)))) =
+        3 * (K (index m) (index n) * A.quarticContraction K) +
+          12 * A.twoPointContraction K (index m) (index n) := by
+    simp_rw [hWick]
+    simp only [mul_add, Finset.sum_add_distrib] at hVac hMixed ⊢
+    linear_combination hVac + hMixed
+  exact hAssemble
+
 /-- Closed eighth-order Wick-orbit evaluation for four external legs and one quartic vertex.
 
 Informal proof: start from `integral_fourCoords_mul_potential`, i.e. the Wick sum over

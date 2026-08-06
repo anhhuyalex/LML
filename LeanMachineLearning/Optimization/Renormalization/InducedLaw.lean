@@ -11,6 +11,7 @@ public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Kernel.Composition.Comp
 public import Mathlib.Probability.Kernel.Composition.MapComap
@@ -441,7 +442,6 @@ and every square is nonnegative.  The covariance is symmetric by commutativity. 
 matrix argument described at <https://en.wikipedia.org/wiki/Gram_matrix#Positive-semidefiniteness>. -/
 theorem layerCovariance_posSemidef [Fintype ι] [Finite A]
     (p : InitHyperparams) (s : A → ι → ℝ) : (layerCovariance p s).PosSemidef := by
-  classical
   -- The covariance matrix is the all-ones matrix scaled by the bias variance plus the Gram
   -- matrix `S * Sᴴ` of the input vectors scaled by the fan-in-normalized weight variance.
   let _ : StarOrderedRing ℝ := RCLike.toStarOrderedRing (K := ℝ)
@@ -477,20 +477,340 @@ theorem layerCovariance_posSemidef [Fintype ι] [Finite A]
 def batchToEuclidean (z : A → κ → ℝ) (j : κ) : EuclideanSpace ℝ A :=
   (EuclideanSpace.equiv A ℝ).symm fun a => z a j
 
+/-- The batched preactivation `b + ∑ i, w i * s a i` of one output neuron has covariance
+`layerCovariance p s` under the row law `(∏ᵢ gaussianReal 0 σw²) × gaussianReal 0 σb²`. -/
+private lemma cov_row_preactivation [Fintype ι] (p : InitHyperparams) (s : A → ι → ℝ) (a a' : A) :
+    cov[fun q : (ι → ℝ) × ℝ => q.2 + ∑ i, q.1 i * s a i,
+        fun q : (ι → ℝ) × ℝ => q.2 + ∑ j, q.1 j * s a' j;
+        (Measure.pi (fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι))).prod
+          (gaussianReal 0 p.biasVariance)] =
+      (layerCovariance p s a a' : ℝ) := by
+  classical
+  let ρW : Measure (ι → ℝ) := Measure.pi (fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι))
+  let νB : Measure ℝ := gaussianReal 0 p.biasVariance
+  let ρ : Measure ((ι → ℝ) × ℝ) := ρW.prod νB
+  let α := ι ⊕ PUnit
+  let C (a : A) : α → ((ι → ℝ) × ℝ) → ℝ := fun c q =>
+    match c with | Sum.inl i => s a i * q.1 i | Sum.inr _ => q.2
+  have hmapW (i : ι) : ρW.map (fun w : ι → ℝ => w i) = gaussianReal 0 (scaledWeightVariance p ι) := by
+    simpa [ρW] using
+      (Measure.pi_map_eval (μ := fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι)) i)
+  have hmapWi (i : ι) : ρ.map (fun q : (ι → ℝ) × ℝ => q.1 i) =
+      gaussianReal 0 (scaledWeightVariance p ι) := by
+    rw [show (fun q : (ι → ℝ) × ℝ => q.1 i) = (fun w : ι → ℝ => w i) ∘ Prod.fst from rfl]
+    rw [← Measure.map_map (measurable_pi_apply i) measurable_fst, Measure.map_fst_prod]
+    simp [ρ, ρW]
+    exact hmapW i
+  have hmapB : ρ.map (fun q : (ι → ℝ) × ℝ => q.2) = gaussianReal 0 p.biasVariance := by
+    rw [Measure.map_snd_prod]
+    simp [ρ, ρW, νB]
+  have hmemW (i : ι) : MemLp (fun q : (ι → ℝ) × ℝ => q.1 i) 2 ρ := by
+    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
+      (f := fun q : (ι → ℝ) × ℝ => q.1 i)
+      (by exact measurable_id.aestronglyMeasurable)
+      (((measurable_pi_apply i).comp measurable_fst).aemeasurable)).1 ?_
+    rw [hmapWi i]
+    exact memLp_id_gaussianReal 2
+  have hmemB : MemLp (fun q : (ι → ℝ) × ℝ => q.2) 2 ρ := by
+    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
+      (f := fun q : (ι → ℝ) × ℝ => q.2)
+      (by exact measurable_id.aestronglyMeasurable) measurable_snd.aemeasurable).1 ?_
+    rw [hmapB]
+    exact memLp_id_gaussianReal 2
+  have hmemW_ρW (i : ι) : MemLp (fun w : ι → ℝ => w i) 2 ρW := by
+    refine (memLp_map_measure_iff (μ := ρW) (g := (id : ℝ → ℝ)) (p := 2)
+      (f := fun w : ι → ℝ => w i)
+      (by exact measurable_id.aestronglyMeasurable) ((measurable_pi_apply i).aemeasurable)).1 ?_
+    rw [hmapW i]
+    exact memLp_id_gaussianReal 2
+  have hmemC (a : A) (c : α) : MemLp (C a c) 2 ρ := by
+    cases c with
+    | inl i => simpa [C, mul_comm] using (hmemW i).const_mul (s a i)
+    | inr _ => simpa [C] using hmemB
+  have hXsum (a : A) :
+      (fun q : (ι → ℝ) × ℝ => q.2 + ∑ i, q.1 i * s a i) = ∑ c : α, C a c := by
+    funext q
+    simp [C, α, Fintype.sum_sum_type, mul_comm, add_comm]
+  have hcovBB : cov[fun q : (ι → ℝ) × ℝ => q.2, fun q : (ι → ℝ) × ℝ => q.2; ρ] =
+      (p.biasVariance : ℝ) := by
+    rw [covariance_self (by simpa using measurable_snd.aemeasurable)]
+    rw [← variance_id_map (by simpa using measurable_snd.aemeasurable)]
+    rw [hmapB]
+    exact variance_id_gaussianReal
+  have hcovWB (i : ι) : cov[fun q : (ι → ℝ) × ℝ => q.1 i, fun q : (ι → ℝ) × ℝ => q.2; ρ] = 0 := by
+    exact covariance_fst_snd_prod (hmemW_ρW i) (memLp_id_gaussianReal 2)
+  have hcovBW (i : ι) : cov[fun q : (ι → ℝ) × ℝ => q.2, fun q : (ι → ℝ) × ℝ => q.1 i; ρ] = 0 := by
+    rw [covariance_comm, hcovWB i]
+  have hfamW : iIndepFun (fun i : ι => fun q : (ι → ℝ) × ℝ => q.1 i) ρ := by
+    rw [iIndepFun_iff_map_fun_eq_pi_map (μ := ρ)
+      (f := fun (i : ι) (q : (ι → ℝ) × ℝ) => q.1 i)
+      (hf := fun i => ((measurable_pi_apply i).comp measurable_fst).aemeasurable)]
+    rw [show (fun q : (ι → ℝ) × ℝ => fun i : ι => q.1 i) =
+        (fun w : ι → ℝ => fun i : ι => w i) ∘ Prod.fst from rfl]
+    rw [← Measure.map_map (measurable_pi_lambda _ fun i => measurable_pi_apply i) measurable_fst]
+    rw [Measure.map_fst_prod]
+    simp [ρ, ρW, hmapWi]
+  have hcovWW (i j : ι) : cov[fun q : (ι → ℝ) × ℝ => q.1 i, fun q : (ι → ℝ) × ℝ => q.1 j; ρ] =
+      if i = j then (scaledWeightVariance p ι : ℝ) else 0 := by
+    by_cases hij : i = j
+    · subst j
+      rw [covariance_self (by simpa using (hmemW i).aemeasurable)]
+      rw [← variance_id_map (by simpa using (hmemW i).aemeasurable)]
+      rw [hmapWi i]
+      simpa using variance_id_gaussianReal
+    · simpa [hij] using IndepFun.covariance_eq_zero (hfamW.indepFun hij) (hmemW i) (hmemW j)
+  have hcovC (c d : α) : cov[C a c, C a' d; ρ] =
+      match c, d with
+      | Sum.inl i, Sum.inl j => s a i * s a' j * (if i = j then (scaledWeightVariance p ι : ℝ) else 0)
+      | Sum.inl i, Sum.inr _ => 0
+      | Sum.inr _, Sum.inl j => 0
+      | Sum.inr _, Sum.inr _ => (p.biasVariance : ℝ) := by
+    cases c <;> cases d <;> simp [C]
+    · rw [covariance_const_mul_left, covariance_const_mul_right, hcovWW]
+      ring
+    · rw [covariance_const_mul_left, hcovWB i]
+      simp
+    · rw [covariance_const_mul_right, hcovBW j]
+      simp
+    · exact hcovBB
+  calc
+    cov[fun q : (ι → ℝ) × ℝ => q.2 + ∑ i, q.1 i * s a i,
+        fun q : (ι → ℝ) × ℝ => q.2 + ∑ j, q.1 j * s a' j; ρ]
+        = cov[∑ c : α, C a c, ∑ c : α, C a' c; ρ] := by
+          rw [hXsum a, hXsum a']
+    _ = ∑ c : α, ∑ d : α, cov[C a c, C a' d; ρ] := by
+          exact covariance_fun_sum_fun_sum (X := C a) (Y := C a') (hX := hmemC a) (hY := hmemC a')
+    _ = (p.biasVariance : ℝ) + (scaledWeightVariance p ι : ℝ) * ∑ i, s a i * s a' i := by
+          rw [hcovC]
+          simp [Fintype.sum_sum_type]
+          simp [Finset.sum_ite_eq']
+          ring
+    _ = (layerCovariance p s a a' : ℝ) := by
+          simp [layerCovariance, mul_comm]
+
+/-- One initialized output neuron's batched preactivation has the multivariate Gaussian law with
+covariance `layerCovariance p s`. -/
+private theorem map_row_preactivation [Fintype ι] [Fintype A] [DecidableEq A]
+    (p : InitHyperparams) (s : A → ι → ℝ) :
+    ((Measure.pi (fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι))).prod
+        (gaussianReal 0 p.biasVariance)).map
+      (fun q : (ι → ℝ) × ℝ => (EuclideanSpace.equiv A ℝ).symm (fun a => q.2 + ∑ i, q.1 i * s a i)) =
+      multivariateGaussian 0 (layerCovariance p s) := by
+  classical
+  let ρW : Measure (ι → ℝ) := Measure.pi (fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι))
+  let νB : Measure ℝ := gaussianReal 0 p.biasVariance
+  let ρ : Measure ((ι → ℝ) × ℝ) := ρW.prod νB
+  let Sₗ : (ι → ℝ) × ℝ →ₗ[ℝ] (A → ℝ) :=
+    { toFun := fun q a => q.2 + ∑ i, q.1 i * s a i
+      map_add' := by
+        intro q q'
+        funext a
+        simp [Finset.sum_add_distrib, add_mul, add_assoc, add_left_comm]
+      map_smul' := by
+        intro c q
+        funext a
+        calc
+          (c • q).2 + ∑ x, (c • q).1 x * s a x
+              = c * q.2 + ∑ x, (c * q.1 x) * s a x := by
+                simp [Prod.smul_fst, Prod.smul_snd, Pi.smul_apply, smul_eq_mul]
+          _ = c * q.2 + c * (∑ x, q.1 x * s a x) := by
+                rw [Finset.mul_sum]
+                congr 1
+                ext i
+                ring
+          _ = c * (q.2 + ∑ x, q.1 x * s a x) := by
+                ring
+          _ = (c • (fun q a => q.2 + ∑ x, q.1 x * s a x)) q a := by
+                simp [Pi.smul_apply, smul_eq_mul] }
+  let T : (ι → ℝ) × ℝ →L[ℝ] EuclideanSpace ℝ A :=
+    (EuclideanSpace.equiv A ℝ).symm.toContinuousLinearMap.comp Sₗ.toContinuousLinearMap
+  have hT : (fun q : (ι → ℝ) × ℝ =>
+        (EuclideanSpace.equiv A ℝ).symm (fun a => q.2 + ∑ i, q.1 i * s a i)) = T := by
+    funext q
+    rfl
+  have hmapW (i : ι) : ρW.map (fun w : ι → ℝ => w i) = gaussianReal 0 (scaledWeightVariance p ι) := by
+    simpa [ρW] using
+      (Measure.pi_map_eval (μ := fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι)) i)
+  have hmapWi (i : ι) : ρ.map (fun q : (ι → ℝ) × ℝ => q.1 i) =
+      gaussianReal 0 (scaledWeightVariance p ι) := by
+    rw [show (fun q : (ι → ℝ) × ℝ => q.1 i) = (fun w : ι → ℝ => w i) ∘ Prod.fst from rfl]
+    rw [← Measure.map_map (measurable_pi_apply i) measurable_fst, Measure.map_fst_prod]
+    simp [ρ, ρW]
+    exact hmapW i
+  have hmapB : ρ.map (fun q : (ι → ℝ) × ℝ => q.2) = gaussianReal 0 p.biasVariance := by
+    rw [Measure.map_snd_prod]
+    simp [ρ, ρW, νB]
+  have hmemW (i : ι) : MemLp (fun q : (ι → ℝ) × ℝ => q.1 i) 2 ρ := by
+    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
+      (f := fun q : (ι → ℝ) × ℝ => q.1 i)
+      (by exact measurable_id.aestronglyMeasurable)
+      (((measurable_pi_apply i).comp measurable_fst).aemeasurable)).1 ?_
+    rw [hmapWi i]
+    exact memLp_id_gaussianReal 2
+  have hmemB : MemLp (fun q : (ι → ℝ) × ℝ => q.2) 2 ρ := by
+    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
+      (f := fun q : (ι → ℝ) × ℝ => q.2)
+      (by exact measurable_id.aestronglyMeasurable) measurable_snd.aemeasurable).1 ?_
+    rw [hmapB]
+    exact memLp_id_gaussianReal 2
+  have hIsG_ρW : IsGaussian ρW := by
+    let μ : ι → Measure ℝ := fun _ => gaussianReal 0 (scaledWeightVariance p ι)
+    have hX1 : ∀ i : ι, HasGaussianLaw (fun w : ι → ℝ => w i) (Measure.pi μ) := by
+      intro i
+      refine IsGaussian.hasGaussianLaw ?_
+      rw [Measure.pi_map_eval]
+      simp [μ]
+    have hX2 : iIndepFun (fun i : ι => fun w : ι → ℝ => w i) (Measure.pi μ) :=
+      iIndepFun_pi (mX := fun i : ι => measurable_id.aemeasurable)
+    have h := (iIndepFun.hasGaussianLaw hX1 hX2).isGaussian_map
+    simpa [ρW, μ] using h
+  have hIsG_ρ : IsGaussian ρ := inferInstance
+  have hIsG_map : IsGaussian (ρ.map T) := inferInstance
+  haveI : IsGaussian ρW := hIsG_ρW
+  haveI : IsGaussian ρ := hIsG_ρ
+  have hInt : Integrable (id : ((ι → ℝ) × ℝ) → (ι → ℝ) × ℝ) ρ :=
+    IsGaussian.integrable_id
+  have h_int_rhoW : (∫ w : ι → ℝ, w ∂ρW) = 0 := by
+    funext i
+    calc
+      (∫ w : ι → ℝ, w ∂ρW) i = ∫ w : ι → ℝ, w i ∂ρW := by
+        rw [← (ContinuousLinearMap.proj (R := ℝ) i).integral_comp_comm
+          (by exact IsGaussian.integrable_id)]
+        rfl
+      _ = 0 := by
+        rw [← integral_map (by simpa using (measurable_pi_apply i).aemeasurable)
+          (by fun_prop : AEStronglyMeasurable id (ρW.map (fun w : ι → ℝ => w i)))]
+        rw [hmapW i]
+        exact integral_id_gaussianReal
+  have h_int_rho : (∫ q : (ι → ℝ) × ℝ, q ∂ρ) = 0 := by
+    refine Prod.ext ?_ ?_
+    · calc
+        (∫ q : (ι → ℝ) × ℝ, q ∂ρ).1 = ∫ q : (ι → ℝ) × ℝ, q.1 ∂ρ := (fst_integral hInt).symm
+        _ = ∫ w : ι → ℝ, w ∂ρW := by
+          rw [← integral_map (by fun_prop : AEMeasurable Prod.fst ρ)
+            (by fun_prop : AEStronglyMeasurable id (ρ.map Prod.fst))]
+          rw [Measure.map_fst_prod]
+          simp [ρ, ρW]
+        _ = 0 := h_int_rhoW
+    · calc
+        (∫ q : (ι → ℝ) × ℝ, q ∂ρ).2 = ∫ q : (ι → ℝ) × ℝ, q.2 ∂ρ := (snd_integral hInt).symm
+        _ = ∫ b : ℝ, b ∂νB := by
+          rw [← integral_map measurable_snd.aemeasurable
+            (by fun_prop : AEStronglyMeasurable id (ρ.map Prod.snd))]
+          rw [Measure.map_snd_prod]
+          simp [ρ, ρW]
+        _ = 0 := by
+          rw [hmapB]
+          exact integral_id_gaussianReal
+  have hm : (ρ.map T)[id] = (multivariateGaussian 0 (layerCovariance p s))[id] := by
+    have hRHS : (multivariateGaussian 0 (layerCovariance p s))[id] = 0 := by
+      simpa using integral_id_multivariateGaussian (μ := (0 : EuclideanSpace ℝ A))
+        (S := layerCovariance p s)
+    rw [hRHS]
+    calc
+      (ρ.map T)[id] = ∫ q : (ι → ℝ) × ℝ, T q ∂ρ := by
+        rw [integral_map T.measurable.aemeasurable
+          (by fun_prop : AEStronglyMeasurable id (ρ.map T))]
+        rfl
+      _ = T (∫ q : (ι → ℝ) × ℝ, q ∂ρ) := by
+        exact T.integral_comp_comm hInt
+      _ = 0 := by
+        rw [h_int_rho]
+        simp
+  have hmemX (a : A) : MemLp (fun q : (ι → ℝ) × ℝ => q.2 + ∑ i, q.1 i * s a i) 2 ρ := by
+    have hmem (i : ι) : MemLp (fun q : (ι → ℝ) × ℝ => q.1 i * s a i) 2 ρ := by
+      simpa [mul_comm] using (hmemW i).const_mul (s a i)
+    exact (by
+      have hb : MemLp (fun q : (ι → ℝ) × ℝ => q.2) 2 ρ := by simpa using hmemB
+      have hs : MemLp (fun q : (ι → ℝ) × ℝ => ∑ i, q.1 i * s a i) 2 ρ := by
+        refine memLp_finsetSum Finset.univ (p := 2) (μ := ρ) (f := fun i q => q.1 i * s a i) ?_
+        intro i hi
+        exact hmem i
+      exact hb.add hs)
+  have hv : covarianceBilin (ρ.map T) = covarianceBilin (multivariateGaussian 0 (layerCovariance p s)) := by
+    ext x y
+    rw [covarianceBilin_multivariateGaussian (layerCovariance_posSemidef p s)]
+    change covarianceBilin (ρ.map (fun q : (ι → ℝ) × ℝ =>
+        WithLp.toLp 2 (fun a => q.2 + ∑ i, q.1 i * s a i))) x y =
+        x ⬝ᵥ (layerCovariance p s *ᵥ y)
+    rw [covarianceBilin_apply_pi (μ := ρ) (X := fun a q => q.2 + ∑ i, q.1 i * s a i)
+      (hX := hmemX) x y]
+    rw [cov_row_preactivation p s]
+    simp [Matrix.mulVec, Matrix.dotProduct, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+  rw [hT]
+  exact IsGaussian.ext (μ := ρ.map T) (ν := multivariateGaussian 0 (layerCovariance p s)) hm hv
+
 /-- Exact joint law of all batched preactivations in one initialized layer.
 
 Informal proof: for fixed `j`, the batch is an affine linear image of the centered jointly Gaussian
 bias and weight row.  Its mean is zero and its covariance is `layerCovariance p s` by the coordinate
-moment lemmas.  Different `j` use disjoint independent parameter rows, so
-`iIndepFun.map_fun_eq_pi_map` identifies the joint law with the finite product shown below.  See
-Mathlib's multivariate Gaussian construction:
+moment lemmas.  Different `j` use disjoint independent parameter rows, so the joint law is the
+product of the per-neuron row laws; `map_row_preactivation` identifies each row law with
+`multivariateGaussian 0 (layerCovariance p s)`.  See Mathlib's multivariate Gaussian construction:
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/Multivariate.html>. -/
 theorem map_evalBatch_layerGaussianInit [Fintype ι] [Fintype κ] [Fintype A] [DecidableEq A]
     (p : InitHyperparams) (s : A → ι → ℝ) :
     Measure.map (fun q : LayerParams ι κ => fun j => batchToEuclidean (batchPreactivation q s) j)
         (layerGaussianInit p ι κ) =
       Measure.pi (fun _ : κ => multivariateGaussian 0 (layerCovariance p s)) := by
-  sorry
+  classical
+  let ρW : Measure (ι → ℝ) := Measure.pi (fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι))
+  let νB : Measure ℝ := gaussianReal 0 p.biasVariance
+  let rowLaw : κ → Measure ((ι → ℝ) × ℝ) := fun _ => ρW.prod νB
+  let T : (ι → ℝ) × ℝ → EuclideanSpace ℝ A := fun q =>
+    (EuclideanSpace.equiv A ℝ).symm (fun a => q.2 + ∑ i, q.1 i * s a i)
+  let e : (κ → ι → ℝ) × (κ → ℝ) ≃ᵐ (κ → (ι → ℝ) × ℝ) :=
+    (MeasurableEquiv.arrowProdEquivProdArrow (ι → ℝ) ℝ κ).symm
+  have hT_meas : Measurable T := by
+    dsimp [T]
+    fun_prop
+  have he_apply (q : LayerParams ι κ) (j : κ) : e q j = (q.1 j, q.2 j) := by
+    dsimp [e]
+    change (Equiv.arrowProdEquivProdArrow κ (fun _ : κ => ι → ℝ) (fun _ : κ => ℝ)).symm q j =
+      (q.1 j, q.2 j)
+    rfl
+  have hF : (fun q : LayerParams ι κ => fun j => batchToEuclidean (batchPreactivation q s) j) =
+      (fun r : κ → (ι → ℝ) × ℝ => fun j => T (r j)) ∘ e := by
+    funext q j
+    change batchToEuclidean (batchPreactivation q s) j = T (e q j)
+    rw [he_apply]
+    simp [T, batchToEuclidean, batchPreactivation]
+  have hmap_e : (layerGaussianInit p ι κ).map e = Measure.pi rowLaw := by
+    have h := (measurePreserving_arrowProdEquivProdArrow (α := ι → ℝ) (β := ℝ) (γ := κ)
+      (μ := fun _ : κ => ρW) (ν := fun _ : κ => gaussianReal 0 p.biasVariance)).symm
+    simpa [e, rowLaw, ρW, νB, layerGaussianInit, gaussianWeightLaw, gaussianBiasLaw] using h.map_eq
+  have hpi : (Measure.pi rowLaw).map (fun r : κ → (ι → ℝ) × ℝ => fun j : κ => T (r j)) =
+      Measure.pi (fun j : κ => (rowLaw j).map T) := by
+    have h' := iIndepFun.map_fun_eq_pi_map (μ := Measure.pi rowLaw)
+      (f := fun (j : κ) (r : κ → (ι → ℝ) × ℝ) => T (r j))
+      (hf := fun j => (hT_meas.comp (measurable_pi_apply j)).aemeasurable)
+      (iIndepFun_pi (mX := fun j : κ => hT_meas.aemeasurable))
+    calc
+      (Measure.pi rowLaw).map (fun r : κ → (ι → ℝ) × ℝ => fun j : κ => T (r j))
+          = Measure.pi (fun j : κ => (Measure.pi rowLaw).map
+              (fun r : κ → (ι → ℝ) × ℝ => T (r j))) := h'
+      _ = Measure.pi (fun j : κ => (rowLaw j).map T) := by
+            congr
+            funext j
+            rw [show (fun r : κ → (ι → ℝ) × ℝ => T (r j)) =
+                T ∘ (fun r : κ → (ι → ℝ) × ℝ => r j) from rfl]
+            rw [Measure.map_map hT_meas (measurable_pi_apply j)]
+            rw [(measurePreserving_eval rowLaw j).map_eq]
+  calc
+    Measure.map (fun q : LayerParams ι κ => fun j => batchToEuclidean (batchPreactivation q s) j)
+        (layerGaussianInit p ι κ)
+        = Measure.map (fun r : κ → (ι → ℝ) × ℝ => fun j => T (r j))
+            ((layerGaussianInit p ι κ).map e) := by
+          rw [hF]
+          exact (Measure.map_map (measurable_pi_lambda _ fun j =>
+            hT_meas.comp (measurable_pi_apply j)) e.measurable).symm
+    _ = Measure.pi (fun j : κ => (rowLaw j).map T) := by
+          rw [hmap_e]
+          exact hpi
+    _ = Measure.pi (fun _ : κ => multivariateGaussian 0 (layerCovariance p s)) := by
+          congr
+          funext j
+          exact map_row_preactivation p s
 
 /-- Randomized dense-layer kernel under independent Gaussian initialization. -/
 def randomLayerKernel [Fintype ι] [Fintype κ] (p : InitHyperparams) :
@@ -648,18 +968,9 @@ theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
           rw [ih (act (f q))]
           rfl
         _ = ((layerGaussianInit p (Fin m) (Fin k)).prod
-              (N'.shape.gaussianInit N'.hyperparams)).map G := by
-          exact hprod.symm
-        _ = ((layerGaussianInit p (Fin m) (Fin k)).prod
-              (N'.shape.gaussianInit N'.hyperparams)).map
-              (fun p : (MLPShape.hidden N'.shape).Params =>
-                fun a => (MLPShape.hidden N'.shape).eval σ p (D a)) := by
-          congr 1
-          funext p a
-          dsimp [G, act, f]
+              (N'.shape.gaussianInit N'.hyperparams)).map G := hprod.symm
         _ = ((MLPShape.hidden N'.shape).paramModel σ hσ).outputLaw D
-              ((MLPShape.hidden N'.shape).gaussianInit (p, N'.hyperparams)) := by
-          rfl
+              ((MLPShape.hidden N'.shape).gaussianInit (p, N'.hyperparams)) := rfl
 
 end MLPEnsemble
 
