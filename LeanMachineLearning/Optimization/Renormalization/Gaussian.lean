@@ -1000,6 +1000,59 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
     exact pairWeight_pair (fun k l : ι ↦ covariance (Z k) (Z l) ν) hsym hij
   exact h_lhs_cov.trans h_rhs_cov.symm
 
+/-- A finite sum over a subtype is the ambient sum of the extension by zero.
+
+This elementary reindexing lemma is useful whenever an analytic statement about a finite family is
+restricted to a block of indices. -/
+private lemma sum_subtype_eq_sum_ite {α R : Type*} [Fintype α] [DecidableEq α]
+    [AddCommMonoid R] (s : Finset α) (f : s → R) :
+    (∑ x : s, f x) = ∑ x : α, if hx : x ∈ s then f ⟨x, hx⟩ else 0 := by
+  classical
+  calc
+    (∑ x : s, f x) = ∑ x ∈ s, (if hx : x ∈ s then f ⟨x, hx⟩ else 0) := by
+      rw [← Finset.sum_attach s
+        (fun x ↦ if hx : x ∈ s then f ⟨x, hx⟩ else 0), ← Finset.attach_eq_univ]
+      apply Finset.sum_congr rfl
+      intro x _hx
+      simp
+    _ = ∑ x : α, (if hx : x ∈ s then f ⟨x, hx⟩ else 0) :=
+      Finset.sum_subset (Finset.subset_univ s) (fun x _ hx ↦ by simp [hx])
+
+/-- Full-family analytic coefficient extraction for a quadratic joint CGF.
+
+If the exponential defining the joint MGF is integrable for every coefficient vector and the
+logarithm of that MGF is a quadratic polynomial, then the full joint cumulant vanishes in degree at
+least three.  This is the analytic core of the block theorem below; separating it from block
+restriction keeps the finite-index bookkeeping reusable.
+
+Informal proof.  Global exponential integrability makes the joint MGF analytic near the origin.
+Differentiate its logarithm once in every coordinate.  The multivariate moment--cumulant formula
+identifies this mixed derivative with `jointCumulant ν Z`.  A quadratic polynomial has zero mixed
+derivative in every order at least three.
+
+References: Scholarpedia, *Cumulants*, <http://www.scholarpedia.org/article/Cumulants>; Statlect,
+*Cumulant generating function*,
+<https://www.statlect.com/fundamentals-of-probability/cumulant-generating-function>; and Mathlib's
+one-variable analytic MGF implementation,
+<https://github.com/leanprover-community/mathlib4/blob/master/Mathlib/Probability/Moments/MGFAnalytic.lean>.
+
+This multivariate analytic bridge is not yet present in Mathlib.  Its proof is deferred here rather
+than represented by nonexistent coefficient-extraction declarations. -/
+lemma jointCumulant_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
+    [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
+    (h_exp_integrable : ∀ a : ι → ℝ,
+      Integrable (fun ω ↦ Real.exp (∑ k : ι, a k * Z k ω)) ν)
+    (h_log_mgf :
+      (fun a : ι → ℝ ↦
+          Real.log (ProbabilityTheory.mgf
+            (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) =
+        (fun a : ι → ℝ ↦
+          (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2))
+    (hcard : 3 ≤ Fintype.card ι) :
+    jointCumulant ν Z = 0 := by
+  sorry
+
 /-- Analytic coefficient-extraction bridge for higher Gaussian cumulants.
 
 This is the finite-dimensional joint-cumulant generating-function theorem that is not yet available
@@ -1023,6 +1076,8 @@ moment-cumulant partition identity `jointMoment_eq_sum_partition_jointCumulant` 
 private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
     [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
     [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
+    (h_exp_integrable : ∀ a : ι → ℝ,
+      Integrable (fun ω ↦ Real.exp (∑ k : ι, a k * Z k ω)) ν)
     (h_log_mgf :
       (fun a : ι → ℝ ↦
           Real.log (ProbabilityTheory.mgf
@@ -1032,19 +1087,57 @@ private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι 
     {B : Finset ι} (hBcard : 3 ≤ B.card) :
     Finpartition.cumulantTransform (blockMoment ν Z) B = 0 := by
   classical
-  calc
-    Finpartition.cumulantTransform (blockMoment ν Z) B =
-        squarefreeCGFCoeff
-          (fun a : ι → ℝ ↦
-            Real.log (ProbabilityTheory.mgf
-              (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1)) B :=
-      cumulantTransform_blockMoment_eq_squarefreeCGFCoeff_log_mgf ν Z
-    _ = squarefreeCGFCoeff
-          (fun a : ι → ℝ ↦
-            (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2) B := by
-      rw [h_log_mgf]
-    _ = 0 :=
-      squarefreeCGFCoeff_covariance_quadratic_eq_zero ν Z hBcard
+  let σ := {k : ι // k ∈ B}
+  let Zs : σ → Ω → ℝ := fun k ω ↦ Z k.1 ω
+  have h_sum (a : σ → ℝ) :
+      (fun ω ↦ ∑ k : σ, a k * Zs k ω) =
+        (fun ω ↦ ∑ k : ι, (if hk : k ∈ B then a ⟨k, hk⟩ else 0) * Z k ω) := by
+    funext ω
+    change (∑ k : B, a k * Z k.1 ω) =
+      ∑ k : ι, (if hk : k ∈ B then a ⟨k, hk⟩ else 0) * Z k ω
+    rw [sum_subtype_eq_sum_ite B]
+    apply Finset.sum_congr rfl
+    intro k _hk
+    by_cases hk : k ∈ B <;> simp [hk]
+  have h_exp_integrable_s : ∀ a : σ → ℝ,
+      Integrable (fun ω ↦ Real.exp (∑ k : σ, a k * Zs k ω)) ν := by
+    intro a
+    apply (h_exp_integrable
+      (fun k ↦ if hk : k ∈ B then a ⟨k, hk⟩ else 0)).congr
+    filter_upwards with ω
+    rw [congrFun (h_sum a) ω]
+  have h_quadratic_sum (a : σ → ℝ) :
+      (∑ i : σ, ∑ j : σ,
+          a i * a j * covariance (Zs i) (Zs j) ν) =
+        ∑ i : ι, ∑ j : ι,
+          (if hi : i ∈ B then a ⟨i, hi⟩ else 0) *
+            (if hj : j ∈ B then a ⟨j, hj⟩ else 0) *
+              covariance (Z i) (Z j) ν := by
+    rw [sum_subtype_eq_sum_ite B]
+    apply Finset.sum_congr rfl
+    intro i _hi
+    by_cases hi : i ∈ B
+    · simp only [hi, ↓reduceDIte]
+      rw [sum_subtype_eq_sum_ite B]
+      apply Finset.sum_congr rfl
+      intro j _hj
+      by_cases hj : j ∈ B <;> simp [Zs, hj]
+    · simp [hi]
+  have h_log_mgf_s :
+      (fun a : σ → ℝ ↦
+          Real.log (ProbabilityTheory.mgf
+            (fun ω ↦ ∑ k : σ, a k * Zs k ω) ν 1)) =
+        (fun a : σ → ℝ ↦
+          (∑ i : σ, ∑ j : σ,
+            a i * a j * covariance (Zs i) (Zs j) ν) / 2) := by
+    funext a
+    rw [h_sum a, congrFun h_log_mgf
+      (fun k ↦ if hk : k ∈ B then a ⟨k, hk⟩ else 0)]
+    rw [h_quadratic_sum a]
+  change blockCumulant ν Z B = 0
+  rw [blockCumulant_eq_jointCumulant_subtype]
+  exact jointCumulant_eq_zero_of_log_mgf_quadratic ν Zs h_exp_integrable_s h_log_mgf_s
+    (by simpa [σ] using hBcard)
 
 -- Evaluating the Gaussian MGF identity at `t = 1` and taking logs converts the pointwise MGF
 -- hypothesis `MGF(a)(t) = exp ((q a * t^2) / 2)` into the log-MGF identity
@@ -1064,6 +1157,27 @@ private lemma log_mgf_quadratic_of_mgf_exp_quadratic {Ω ι : Type*}
   funext a
   rw [congrFun (h_mgf a) (1 : ℝ), Real.log_exp]
   norm_num
+
+-- A pointwise Gaussian MGF identity also supplies the exponential-integrability hypothesis needed
+-- by analytic coefficient extraction: Mathlib's undefined MGF is zero, whereas an exponential is
+-- never zero.
+private lemma integrable_exp_linear_of_mgf_exp_quadratic {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] (ν : Measure Ω) (Z : ι → Ω → ℝ)
+    (q : (ι → ℝ) → ℝ)
+    (h_mgf : ∀ a : ι → ℝ,
+      (fun t : ℝ ↦ ProbabilityTheory.mgf
+          (fun ω ↦ ∑ k : ι, a k * Z k ω) ν t) =
+        (fun t : ℝ ↦ Real.exp ((q a * t ^ 2) / 2))) :
+    ∀ a : ι → ℝ, Integrable (fun ω ↦ Real.exp (∑ k : ι, a k * Z k ω)) ν := by
+  intro a
+  by_contra h_not_integrable
+  have h_mgf_zero :
+      ProbabilityTheory.mgf (fun ω ↦ ∑ k : ι, a k * Z k ω) ν 1 = 0 := by
+    apply ProbabilityTheory.mgf_undef
+    simpa using h_not_integrable
+  have h_exp_zero := congrFun (h_mgf a) (1 : ℝ)
+  rw [h_mgf_zero] at h_exp_zero
+  exact (Real.exp_ne_zero (q a / 2)) (by simpa using h_exp_zero.symm)
 
 /-- Higher centered Gaussian cumulants vanish.
 
@@ -1089,6 +1203,8 @@ private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_three_l
     {B : Finset ι} (hBcard : 3 ≤ B.card) :
     Finpartition.cumulantTransform (blockMoment ν Z) B = 0 :=
   cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic ν Z
+    (integrable_exp_linear_of_mgf_exp_quadratic ν Z
+      (fun a : ι → ℝ ↦ ∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) h_mgf)
     (log_mgf_quadratic_of_mgf_exp_quadratic ν Z
       (fun a : ι → ℝ ↦ ∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) h_mgf) hBcard
 
