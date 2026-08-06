@@ -6,8 +6,10 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
+public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Kernel.Composition.Comp
@@ -168,9 +170,15 @@ same expectation as under the point mass at `s`. -/
 def SelfAveragingAt (μ : Measure ℝ) (s : ℝ) : Prop :=
   ∀ f : BoundedContinuousFunction ℝ ℝ, ∫ x, f x ∂μ = f s
 
-theorem selfAveragingAt_dirac (s : ℝ) : SelfAveragingAt (Measure.dirac s) s := by
-  intro f
-  exact integral_dirac _ _
+theorem selfAveragingAt_dirac (s : ℝ) : SelfAveragingAt (Measure.dirac s) s := fun f =>
+  integral_dirac f s
+
+-- Agreement with the point mass at `s` on every bounded continuous observable forces the
+-- measures to be equal: bounded continuous functions separate finite Borel measures on `ℝ`.
+private lemma eq_dirac_of_selfAveragingAt (μ : Measure ℝ) [IsProbabilityMeasure μ] (s : ℝ)
+    (hμ : SelfAveragingAt μ s) : μ = Measure.dirac s :=
+  MeasureTheory.ext_of_forall_integral_eq_of_IsFiniteMeasure (μ := μ) (ν := Measure.dirac s)
+    fun f => (hμ f).trans (integral_dirac f s).symm
 
 /-- Self-averaging for every bounded continuous observable characterizes a Dirac law.
 
@@ -180,17 +188,8 @@ equal; the reverse direction is `integral_dirac`.  See the bounded-continuous ch
 weak equality in Mathlib's finite-measure API:
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Measure/FiniteMeasure.html>. -/
 theorem selfAveragingAt_iff_eq_dirac (μ : Measure ℝ) [IsProbabilityMeasure μ] (s : ℝ) :
-    SelfAveragingAt μ s ↔ μ = Measure.dirac s := by
-  constructor
-  · intro hμ
-    apply MeasureTheory.ext_of_forall_integral_eq_of_IsFiniteMeasure
-      (μ := μ) (ν := Measure.dirac s)
-    intro f
-    rw [hμ f]
-    exact (integral_dirac f s).symm
-  · intro hμ
-    rw [hμ]
-    exact selfAveragingAt_dirac s
+    SelfAveragingAt μ s ↔ μ = Measure.dirac s :=
+  ⟨eq_dirac_of_selfAveragingAt μ s, fun hμ => hμ ▸ selfAveragingAt_dirac s⟩
 
 /-- Characteristic function of a deterministic real law. -/
 theorem charFun_dirac (s t : ℝ) :
@@ -216,7 +215,39 @@ applied to every bounded continuous test function gives the weak limit.  See
 <https://en.wikipedia.org/wiki/Convergence_of_random_variables#Convergence_in_distribution>. -/
 theorem tendsto_gaussianProbabilityMeasure_zero_variance (s : ℝ) :
     Tendsto (gaussianProbabilityMeasure s) (nhds 0) (nhds (diracProbabilityMeasure s)) := by
-  sorry
+  rw [tendsto_nhds_iff_seq_tendsto]
+  intro u hu
+  refine ProbabilityMeasure.tendsto_of_tendsto_charFun ?_
+  intro t
+  have hlin : Tendsto (fun n : ℕ => ((u n : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2)
+      atTop (nhds (((0 : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2)) := by
+    exact (((continuous_subtype_val.tendsto 0).comp hu).ofReal.mul tendsto_const_nhds).div_const 2
+  have hneg : Tendsto (fun n : ℕ => -(((u n : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))
+      atTop (nhds (-(((0 : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))) := hlin.neg
+  have hexp : Tendsto (fun n : ℕ => Complex.exp ((t : ℂ) * s * Complex.I -
+        ((u n : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))
+      atTop (nhds (Complex.exp ((t : ℂ) * s * Complex.I -
+        ((0 : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))) := by
+    have harg : Tendsto (fun n : ℕ => (t : ℂ) * s * Complex.I +
+        -(((u n : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))
+        atTop (nhds ((t : ℂ) * s * Complex.I +
+          -(((0 : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))) :=
+      tendsto_const_nhds.add hneg
+    change Tendsto (Complex.exp ∘ fun n : ℕ => (t : ℂ) * s * Complex.I +
+        -(((u n : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2)) atTop
+      (nhds (Complex.exp ((t : ℂ) * s * Complex.I +
+        -(((0 : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2))))
+    exact (Complex.continuous_exp.tendsto _).comp harg
+  have htarget : Complex.exp ((t : ℂ) * s * Complex.I - ((0 : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2) =
+      charFun (diracProbabilityMeasure s) t := by
+    simp [diracProbabilityMeasure]
+  have hrew : (fun n : ℕ => charFun ((gaussianProbabilityMeasure s ∘ u) n) t) =
+      fun n : ℕ => Complex.exp ((t : ℂ) * s * Complex.I -
+        ((u n : ℝ≥0) : ℂ) * (t : ℂ) ^ 2 / 2) := by
+    funext n
+    simp [Function.comp, gaussianProbabilityMeasure, charFun_gaussianReal]
+  rw [hrew, ← htarget]
+  exact hexp
 
 /-- The unregularized Fourier kernel in the source's formal delta representation is not Lebesgue
 integrable.
@@ -289,18 +320,22 @@ theorem gaussianPDFReal_eq_regularizedFourierIntegral (s z : ℝ) (K : ℝ≥0) 
   -- `2πK`, and the translated exponent is `-(z - s)² / (2K)`.
   have hConst : (1 / (2 * Real.pi) : ℂ) * ((Real.pi : ℂ) / b) ^ (1 / 2 : ℂ) =
       (Real.sqrt (2 * Real.pi * (K : ℝ)))⁻¹ := by
+    have hbase : (Real.pi : ℂ) / b = ((2 * Real.pi / (K : ℝ) : ℝ) : ℂ) := by
+      change (Real.pi : ℂ) / ((K : ℂ) / ((2 : ℝ) : ℂ)) = ((2 * Real.pi / (K : ℝ) : ℝ) : ℂ)
+      rw [← Complex.ofReal_div]
+      rw [← Complex.ofReal_div]
+      exact_mod_cast (by
+        field_simp [hKpos.ne', (by norm_num : (2 : ℝ) ≠ 0)]
+        norm_num)
     have hcpow : ((Real.pi : ℂ) / b) ^ (1 / 2 : ℂ) =
         (Real.sqrt (2 * Real.pi / (K : ℝ)) : ℂ) := by
       calc
         ((Real.pi : ℂ) / b) ^ (1 / 2 : ℂ) = ((2 * Real.pi / (K : ℝ) : ℝ) : ℂ) ^ (1 / 2 : ℂ) := by
-          congr 1
-          dsimp [b]
-          rw [← Complex.ofReal_div]
-          field_simp [hK_ne]
-          ring
-        _ = (((2 * Real.pi / (K : ℝ) : ℝ) ^ (1 / 2 : ℝ)) : ℂ) := by
-          simpa using (Complex.ofReal_cpow h2pi_over_K_pos.le (1 / 2 : ℝ)).symm
+          rw [hbase]
         _ = (Real.sqrt (2 * Real.pi / (K : ℝ)) : ℂ) := by
+          have hE : (1 / 2 : ℂ) = (((1 / 2 : ℝ) : ℂ)) := by norm_num
+          rw [hE]
+          rw [← Complex.ofReal_cpow h2pi_over_K_pos.le (1 / 2 : ℝ)]
           congr 1
           rw [Real.sqrt_eq_rpow]
     rw [hcpow]

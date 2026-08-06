@@ -117,9 +117,10 @@ theorem integral_coordinate_deform_eq_zero (A : QuarticCoupling ι)
   have hF : AEStronglyMeasurable F (multivariateGaussian 0 K) := by
     apply Continuous.aestronglyMeasurable
     dsimp [F]
-    exact (((Real.continuous_exp.comp (continuous_const.mul A.continuous_potential)).div_const _).mul
-      ((continuous_apply i).comp
-        (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous))
+    exact
+      (((Real.continuous_exp.comp (continuous_const.mul A.continuous_potential)).div_const _).mul
+        ((continuous_apply i).comp
+          (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv.continuous))
   have hodd : ∀ z, F (-z) = -F z := by
     intro z
     simp [F, A.potential_neg]
@@ -670,8 +671,10 @@ private lemma two_external_wick_sum_eq_three_twelve_contractions
     have h30 := twoPointContraction_sum_perm A K i j σ30
     have h31 := twoPointContraction_sum_perm A K i j σ31
     have h32 := twoPointContraction_sum_perm A K i j σ32
-    simp [σ01, σ02, σ03, σ10, σ12, σ13, σ20, σ21, σ23, σ30, σ31, σ32, perm]
-      at h01 h02 h03 h10 h12 h13 h20 h21 h23 h30 h31 h32
+    simp only [Fin.isValue, Nat.succ_eq_add_one, Nat.reduceAdd, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, σ01, perm, σ02, σ03, σ10,
+      σ12, σ13, σ20, σ21, σ23, σ30, σ31, σ32]
+        at h01 h02 h03 h10 h12 h13 h20 h21 h23 h30 h31 h32
     simp only [mul_add, Finset.sum_add_distrib]
     rw [h01, h02, h03, h10, h12, h13, h20, h21, h23, h30, h31, h32]
     ring
