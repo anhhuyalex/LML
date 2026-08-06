@@ -82,7 +82,8 @@ omit [DecidableEq ι] in
 Informal proof: coordinate evaluation is continuous on Euclidean space; finite products, scalar
 multiples, and finite sums of continuous real-valued functions remain continuous. -/
 theorem continuous_potential (A : QuarticCoupling ι) : Continuous A.potential := by
-  sorry
+  unfold potential
+  fun_prop
 
 /-- Nonnegative quartic potentials are normalizable at every nonnegative coupling.
 
@@ -91,10 +92,126 @@ pointwise bound `exp (-ε V_A) ≤ 1` for `ε ≥ 0`.  Apply
 `Renormalization.normalizable_of_nonnegative` to the Gaussian probability measure. -/
 theorem normalizable (A : QuarticCoupling ι) {K : Matrix ι ι ℝ}
     (hA : A.Nonnegative) {ε : ℝ} (hε : 0 ≤ ε) :
-    Normalizable (multivariateGaussian 0 K) A.potential ε := by
-  sorry
+    Normalizable (multivariateGaussian 0 K) A.potential ε :=
+  normalizable_of_nonnegative A.continuous_potential.aestronglyMeasurable hA hε
 
 /-! ## Pairing-orbit moment formulae -/
+
+omit [DecidableEq ι] in
+/-- Finite products of coordinate projections are integrable under any Gaussian measure.
+
+This is the coordinate-projection specialization of the finite Hölder argument used in
+`Gaussian.lean` for products of centered linear observables: each coordinate is a continuous
+linear functional, hence has all finite Gaussian moments, and Hölder turns finitely many such
+bounds into an `L¹` bound for the product. -/
+private lemma integrable_finset_prod_gaussian_coordinate
+    (μ : Measure (EuclideanSpace ℝ ι)) [ProbabilityTheory.IsGaussian μ]
+    {α : Type*} (s : Finset α) (coord : α → ι) :
+    Integrable (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) μ := by
+  by_cases hs : s.Nonempty
+  · have h_coord_memLp : ∀ a ∈ s,
+        MemLp (fun z : EuclideanSpace ℝ ι ↦ z (coord a))
+          (((s.card : ℕ) : ℝ≥0∞)) μ := fun a _ha ↦ by
+      simpa [EuclideanSpace.coe_proj] using
+        (ProbabilityTheory.IsGaussian.memLp_dual μ (EuclideanSpace.proj (coord a))
+          (((s.card : ℕ) : ℝ≥0∞)) (ENNReal.natCast_ne_top _))
+    have h_holder_product :
+        MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a))
+          ((∑ a ∈ s, (((s.card : ℕ) : ℝ≥0∞))⁻¹)⁻¹) μ := by
+      convert
+        (MeasureTheory.MemLp.prod
+          (μ := μ)
+          (f := fun a z : EuclideanSpace ℝ ι ↦ z (coord a))
+          (p := fun _ : α ↦ (((s.card : ℕ) : ℝ≥0∞)))
+          (s := s)
+          h_coord_memLp) using 1
+      ext z
+      simp
+    have h_exponent :
+        ((∑ a ∈ s, (((s.card : ℕ) : ℝ≥0∞))⁻¹)⁻¹) =
+          (1 : ℝ≥0∞) := by
+      rw [Finset.sum_const]
+      rw [nsmul_eq_mul]
+      have hcard_pos : 0 < s.card := Finset.card_pos.mpr hs
+      have hcard_ne_zero : s.card ≠ 0 := Nat.ne_of_gt hcard_pos
+      have h0 : (((s.card : ℕ) : ℝ≥0∞) ≠ 0) := by
+        norm_num [hcard_ne_zero]
+      have htop : (((s.card : ℕ) : ℝ≥0∞) ≠ ∞) := ENNReal.natCast_ne_top _
+      have hmul :
+          (((s.card : ℕ) : ℝ≥0∞) * (((s.card : ℕ) : ℝ≥0∞)⁻¹)) =
+            (1 : ℝ≥0∞) :=
+        ENNReal.mul_inv_cancel h0 htop
+      change ((((s.card : ℕ) : ℝ≥0∞) *
+        (((s.card : ℕ) : ℝ≥0∞)⁻¹))⁻¹) = (1 : ℝ≥0∞)
+      rw [hmul]
+      simp
+    exact (h_exponent ▸ h_holder_product :
+      MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) 1 μ).integrable
+        (by norm_num)
+  · have hs_empty : s = ∅ := Finset.not_nonempty_iff_eq_empty.mp hs
+    simp [hs_empty]
+
+/-- Expanding the quartic potential inside a Gaussian integral.
+
+Informal proof: unfold `coordinateProduct` and `potential`, distribute multiplication over the
+finite sum over quartic labels, and use finite linearity of the Bochner integral.  The required
+integrability statements are polynomial-moment bounds for a finite-dimensional Gaussian. -/
+theorem integral_coordinateProduct_mul_potential_eq_sum_integral
+    {n : ℕ} (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (index : Fin n → ι) :
+    ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
+      (((4 : ℕ).factorial : ℝ)⁻¹) *
+        ∑ q : Fin 4 → ι, A.coeff q *
+          ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K := by
+  let μ : Measure (EuclideanSpace ℝ ι) := multivariateGaussian 0 K
+  let c : ℝ := (((4 : ℕ).factorial : ℝ)⁻¹)
+  let monomial (q : Fin 4 → ι) (z : EuclideanSpace ℝ ι) : ℝ :=
+    coordinateProduct index z * ∏ r, z (q r)
+  have h_integrable_monomial : ∀ q : Fin 4 → ι, Integrable (monomial q) μ := by
+    intro q
+    let coord : Sum (Fin n) (Fin 4) → ι := Sum.elim index q
+    have hprod := integrable_finset_prod_gaussian_coordinate
+      (μ := μ) (s := (Finset.univ : Finset (Sum (Fin n) (Fin 4)))) (coord := coord)
+    have h_eq : (fun z : EuclideanSpace ℝ ι ↦ ∏ a : Sum (Fin n) (Fin 4), z (coord a)) =
+        monomial q := by
+      funext z
+      simp [monomial, coordinateProduct, coord, Fintype.prod_sum_type]
+    simpa [h_eq] using hprod
+  have h_integrable_summand :
+      ∀ q ∈ (Finset.univ : Finset (Fin 4 → ι)),
+        Integrable (fun z : EuclideanSpace ℝ ι ↦ A.coeff q * monomial q z) μ := by
+    intro q _hq
+    exact (h_integrable_monomial q).const_mul _
+  calc
+    ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
+        ∫ z, c * ∑ q : Fin 4 → ι, A.coeff q * monomial q z ∂μ := by
+      simp [μ, c, monomial, coordinateProduct, potential, mul_sum, mul_assoc]
+    _ = c * ∫ z, ∑ q : Fin 4 → ι, A.coeff q * monomial q z ∂μ := by
+      rw [MeasureTheory.integral_const_mul]
+    _ = c * ∑ q : Fin 4 → ι, ∫ z, A.coeff q * monomial q z ∂μ := by
+      rw [MeasureTheory.integral_finsetSum]
+      exact h_integrable_summand
+    _ = c * ∑ q : Fin 4 → ι, A.coeff q * ∫ z, monomial q z ∂μ := by
+      simp [MeasureTheory.integral_const_mul]
+    _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
+        ∑ q : Fin 4 → ι, A.coeff q *
+          ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K := by
+      simp [μ, c, monomial]
+
+/-- Wick evaluation of the monomial obtained by adjoining a quartic tuple to external
+coordinates.
+
+Informal proof: identify
+`(coordinateProduct index z) * (∏ r, z (q r))` with the product over the disjoint union
+`Sum (Fin n) (Fin 4)` of the coordinate family `Sum.elim index q`.  Then apply the centered
+multivariate Wick theorem/Isserlis formula to the Gaussian `multivariateGaussian 0 K`; its
+covariance entries are `K`, by `covariance_eval_multivariateGaussian hK`. -/
+theorem integral_coordinateProduct_mul_quarticMonomial_eq_wick
+    {n : ℕ} (K : Matrix ι ι ℝ) (hK : K.PosSemidef)
+    (index : Fin n → ι) (q : Fin 4 → ι) :
+    ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K =
+      wick (fun r s : Sum (Fin n) (Fin 4) ↦
+        K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
+  sorry
 
 /-- A coordinate product times the quartic potential reduces to one Wick sum per coefficient
 tuple.
@@ -110,7 +227,17 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_wick
         ∑ q : Fin 4 → ι, A.coeff q *
           wick (fun r s : Sum (Fin n) (Fin 4) ↦
             K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
-  sorry
+  calc
+    ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
+        (((4 : ℕ).factorial : ℝ)⁻¹) *
+          ∑ q : Fin 4 → ι, A.coeff q *
+            ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K :=
+      integral_coordinateProduct_mul_potential_eq_sum_integral A K index
+    _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
+          ∑ q : Fin 4 → ι, A.coeff q *
+            wick (fun r s : Sum (Fin n) (Fin 4) ↦
+              K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
+      simp_rw [integral_coordinateProduct_mul_quarticMonomial_eq_wick K hK index]
 
 /-- Gaussian expectation of a symmetric quartic potential.
 
