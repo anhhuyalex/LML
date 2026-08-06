@@ -109,44 +109,44 @@ private lemma integrable_finset_prod_gaussian_coordinate
     {α : Type*} (s : Finset α) (coord : α → ι) :
     Integrable (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) μ := by
   by_cases hs : s.Nonempty
-  · have h_coord_memLp : ∀ a ∈ s,
+  · have h_coord_memLp : ∀ (a : α), a ∈ s →
         MemLp (fun z : EuclideanSpace ℝ ι ↦ z (coord a))
-          (((s.card : ℕ) : ℝ≥0∞)) μ := fun a _ha ↦ by
+          (((s.card : ℕ) : ENNReal)) μ := fun a _ha ↦ by
       simpa [EuclideanSpace.coe_proj] using
         (ProbabilityTheory.IsGaussian.memLp_dual μ (EuclideanSpace.proj (coord a))
-          (((s.card : ℕ) : ℝ≥0∞)) (ENNReal.natCast_ne_top _))
+          (((s.card : ℕ) : ENNReal)) (ENNReal.natCast_ne_top _))
     have h_holder_product :
         MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a))
-          ((∑ a ∈ s, (((s.card : ℕ) : ℝ≥0∞))⁻¹)⁻¹) μ := by
+          ((∑ a ∈ s, (((s.card : ℕ) : ENNReal))⁻¹)⁻¹) μ := by
       convert
         (MeasureTheory.MemLp.prod
           (μ := μ)
-          (f := fun a z : EuclideanSpace ℝ ι ↦ z (coord a))
-          (p := fun _ : α ↦ (((s.card : ℕ) : ℝ≥0∞)))
+          (f := fun a (z : EuclideanSpace ℝ ι) ↦ z (coord a))
+          (p := fun _ : α ↦ (((s.card : ℕ) : ENNReal)))
           (s := s)
           h_coord_memLp) using 1
       ext z
       simp
     have h_exponent :
-        ((∑ a ∈ s, (((s.card : ℕ) : ℝ≥0∞))⁻¹)⁻¹) =
-          (1 : ℝ≥0∞) := by
+        ((∑ a ∈ s, (((s.card : ℕ) : ENNReal))⁻¹)⁻¹) =
+          (1 : ENNReal) := by
       rw [Finset.sum_const]
       rw [nsmul_eq_mul]
       have hcard_pos : 0 < s.card := Finset.card_pos.mpr hs
       have hcard_ne_zero : s.card ≠ 0 := Nat.ne_of_gt hcard_pos
-      have h0 : (((s.card : ℕ) : ℝ≥0∞) ≠ 0) := by
+      have h0 : (((s.card : ℕ) : ENNReal) ≠ 0) := by
         norm_num [hcard_ne_zero]
-      have htop : (((s.card : ℕ) : ℝ≥0∞) ≠ ∞) := ENNReal.natCast_ne_top _
+      have htop := ENNReal.natCast_ne_top s.card
       have hmul :
-          (((s.card : ℕ) : ℝ≥0∞) * (((s.card : ℕ) : ℝ≥0∞)⁻¹)) =
-            (1 : ℝ≥0∞) :=
+          (((s.card : ℕ) : ENNReal) * (((s.card : ℕ) : ENNReal)⁻¹)) =
+            (1 : ENNReal) :=
         ENNReal.mul_inv_cancel h0 htop
-      change ((((s.card : ℕ) : ℝ≥0∞) *
-        (((s.card : ℕ) : ℝ≥0∞)⁻¹))⁻¹) = (1 : ℝ≥0∞)
+      change ((((s.card : ℕ) : ENNReal) *
+        (((s.card : ℕ) : ENNReal)⁻¹))⁻¹) = (1 : ENNReal)
       rw [hmul]
       simp
     exact (h_exponent ▸ h_holder_product :
-      MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) 1 μ).integrable
+      MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) (1 : ENNReal) μ).integrable
         (by norm_num)
   · have hs_empty : s = ∅ := Finset.not_nonempty_iff_eq_empty.mp hs
     simp [hs_empty]
@@ -175,7 +175,8 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_integral
         monomial q := by
       funext z
       simp [monomial, coordinateProduct, coord, Fintype.prod_sum_type]
-    simpa [h_eq] using hprod
+    rw [h_eq] at hprod
+    exact hprod
   have h_integrable_summand :
       ∀ q ∈ (Finset.univ : Finset (Fin 4 → ι)),
         Integrable (fun z : EuclideanSpace ℝ ι ↦ A.coeff q * monomial q z) μ := by
@@ -184,7 +185,9 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_integral
   calc
     ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
         ∫ z, c * ∑ q : Fin 4 → ι, A.coeff q * monomial q z ∂μ := by
-      simp [μ, c, monomial, coordinateProduct, potential, mul_sum, mul_assoc]
+      congr with z
+      simp [c, monomial, coordinateProduct, potential, Finset.mul_sum]
+      ring_nf
     _ = c * ∫ z, ∑ q : Fin 4 → ι, A.coeff q * monomial q z ∂μ := by
       rw [MeasureTheory.integral_const_mul]
     _ = c * ∑ q : Fin 4 → ι, ∫ z, A.coeff q * monomial q z ∂μ := by
