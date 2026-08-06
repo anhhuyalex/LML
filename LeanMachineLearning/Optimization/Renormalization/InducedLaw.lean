@@ -227,7 +227,18 @@ integral; it must be interpreted distributionally.  See
 <https://en.wikipedia.org/wiki/Dirac_delta_function#Fourier_transform>. -/
 theorem not_integrable_dirac_fourierKernel (z s : ℝ) :
     ¬ Integrable (fun Λ : ℝ => Complex.exp ((Λ * (z - s) : ℂ) * Complex.I)) := by
-  sorry
+  intro h
+  -- The integrand has norm one at every frequency, so integrability would force the constant
+  -- function `1` to be integrable against Lebesgue measure, contradicting `volume univ = ∞`.
+  have hrew : (fun Λ : ℝ => ‖Complex.exp ((Λ * (z - s) : ℂ) * Complex.I)‖ₑ) =
+      fun _ : ℝ => (1 : ℝ≥0∞) := by
+    funext Λ
+    exact Complex.enorm_exp_ofReal_mul_I (Λ * (z - s))
+  have hln : ∫⁻ Λ : ℝ, (1 : ℝ≥0∞) ∂volume < ∞ := by
+    simpa [hrew] using h.2
+  rw [lintegral_one] at hln
+  rw [volume_univ] at hln
+  exact (lt_irrefl ∞) hln
 
 /-- For positive variance, the regularized Fourier integral in the source is an ordinary integral
 and equals the Gaussian density.
@@ -315,7 +326,22 @@ and every square is nonnegative.  The covariance is symmetric by commutativity. 
 matrix argument described at <https://en.wikipedia.org/wiki/Gram_matrix#Positive-semidefiniteness>. -/
 theorem layerCovariance_posSemidef [Fintype ι]
     (p : InitHyperparams) (s : A → ι → ℝ) : (layerCovariance p s).PosSemidef := by
-  sorry
+  classical
+  -- The covariance matrix is the all-ones matrix scaled by the bias variance plus the Gram
+  -- matrix `S * Sᵀ` of the input vectors scaled by the fan-in-normalized weight variance.
+  let S : Matrix A ι ℝ := fun a i => s a i
+  let J : Matrix A A ℝ := vecMulVec (fun _ : A => (1 : ℝ)) (star (fun _ : A => (1 : ℝ)))
+  have hS : layerCovariance p s =
+      (p.biasVariance : ℝ) • J + (scaledWeightVariance p ι : ℝ) • (S * Sᵀ) := by
+    ext a a'
+    simp [layerCovariance, S, J, vecMulVec, smul_eq_mul, Matrix.mul_apply]
+  rw [hS]
+  exact (Matrix.PosSemidef.smul
+      (Matrix.posSemidef_vecMulVec_self_star (fun _ : A => (1 : ℝ)))
+      (show 0 ≤ (p.biasVariance : ℝ) from (p.biasVariance : ℝ≥0).property)).add
+    (Matrix.PosSemidef.smul
+      (Matrix.posSemidef_self_mul_conjTranspose S)
+      (show 0 ≤ (scaledWeightVariance p ι : ℝ) from (scaledWeightVariance p ι : ℝ≥0).property))
 
 /-- Convert one neuron's raw sample vector to Mathlib's Euclidean representation. -/
 def batchToEuclidean (z : A → κ → ℝ) (j : κ) : EuclideanSpace ℝ A :=
