@@ -219,55 +219,6 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_integral
           ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K := by
       simp [μ, c, monomial, MeasureTheory.integral_const_mul]
 
-/-! ### Reindexing pairing sums along equivalences -/
-
-private lemma mapEquiv_isPairing_iff {α β : Type*} [DecidableEq α] [DecidableEq β]
-    (e : α ≃ β) {s : Finset α} (P : Finpartition s) :
-    (∀ B ∈ P.parts, B.card = 2) ↔
-      (∀ B ∈ (Finpartition.mapEquiv e P).parts, B.card = 2) := by
-  rw [Finpartition.parts_mapEquiv]
-  constructor
-  · intro hP B hB
-    rcases Finset.mem_map.mp hB with ⟨C, hC, rfl⟩
-    exact (Finset.card_map e.toEmbedding).trans (hP C hC)
-  · intro hQ B hB
-    simpa [Finset.card_map] using
-      hQ (B.map e.toEmbedding) (Finset.mem_map.mpr ⟨B, hB, rfl⟩)
-
-private def pairingMapEquivEquiv {α β : Type*} [DecidableEq α] [DecidableEq β]
-    (e : α ≃ β) (s : Finset α) :
-    Finpartition.Pairing s ≃ Finpartition.Pairing (s.map e.toEmbedding) :=
-  (Finpartition.mapEquivEquiv e s).subtypeEquiv (mapEquiv_isPairing_iff e)
-
-private lemma pairingSum_map {α β : Type*} [DecidableEq α] [DecidableEq β]
-    {R : Type*} [CommSemiring R] (e : α ≃ β) (f : Finset β → R) (s : Finset α) :
-    Finpartition.pairingSum f (s.map e.toEmbedding) =
-      Finpartition.pairingSum (fun B : Finset α ↦ f (B.map e.toEmbedding)) s := by
-  unfold Finpartition.pairingSum
-  exact (((pairingMapEquivEquiv e s).sum_comp
-    (fun Q : Finpartition.Pairing (s.map e.toEmbedding) ↦ Q.blockProduct f)).symm.trans
-    (Finset.sum_congr rfl (fun P _hP ↦ Finpartition.blockProduct_mapEquiv e P.1 f)))
-
-private lemma pairWeight_map {α β : Type*} [DecidableEq α] [DecidableEq β]
-    (e : α ≃ β) (C : β → β → ℝ) (B : Finset α) :
-    Renormalization.pairWeight C (B.map e.toEmbedding) =
-      Renormalization.pairWeight (fun a b : α ↦ C (e a) (e b)) B := by
-  unfold Renormalization.pairWeight
-  congr 1
-  rw [Finset.sum_map]
-  exact Finset.sum_congr rfl (fun a _ha ↦ by
-    rw [← Finset.map_erase e.toEmbedding B a, Finset.sum_map]
-    simp [Equiv.toEmbedding_apply])
-
-private lemma wick_univ_perm {α β : Type*} [Fintype α] [DecidableEq α]
-    [Fintype β] [DecidableEq β]
-    (e : α ≃ β) (C : β → β → ℝ) :
-    Renormalization.wick (fun a b : α ↦ C (e a) (e b)) (Finset.univ : Finset α) =
-      Renormalization.wick C (Finset.univ : Finset β) := by
-  unfold Renormalization.wick
-  rw [← Finset.map_univ_equiv e, pairingSum_map]
-  simp [pairWeight_map]
-
 /-- Arbitrary-finite-position version of the coordinate Wick theorem.
 
 Informal proof: choose an equivalence `e : Fin (Fintype.card α) ≃ α`.  Apply
@@ -289,7 +240,7 @@ theorem integral_prod_multivariateGaussian_centered_eq_wick_fintype
     (X := fun a z ↦ z (index a) - m (index a))).symm.trans
     (integral_prod_multivariateGaussian_centered_eq_wick (m := m) (S := S) (hS := hS)
       (fun r : Fin (Fintype.card α) ↦ index (e.symm r)))).trans
-    (wick_univ_perm e.symm (fun a b : α ↦ S (index a) (index b)))
+    (wick_univ_equiv e.symm (fun a b : α ↦ S (index a) (index b)))
 
 /-- A finite product of coordinates of a centered multivariate Gaussian is its Wick sum. -/
 theorem integral_coordinateProduct_eq_wick {n : ℕ} (K : Matrix ι ι ℝ)
@@ -362,7 +313,7 @@ Informal proof: apply `integral_coordinateProduct_mul_potential_eq_sum_wick` wit
 unique empty index map.  The factor `coordinateProduct` is an empty product, hence `1`.  On the
 right-hand side, the equivalence `Sum (Fin 0) (Fin 4) ≃ Fin 4` identifies the Wick sum over the
 coproduct with the Wick sum over the quartic slots; this is exactly the reindexing lemma
-`wick_univ_perm` proved above. -/
+`wick_univ_equiv` from `Gaussian.lean`. -/
 private lemma integral_potential_eq_sum_wick_fin_four
     (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (hK : K.PosSemidef) :
     ∫ z, A.potential z ∂multivariateGaussian 0 K =
@@ -381,7 +332,7 @@ private lemma integral_potential_eq_sum_wick_fin_four
       rcases a with r | r
       · exact Fin.elim0 r
       · rfl
-    simpa [hfun'] using wick_univ_perm e (fun r s : Fin 4 ↦ K (q r) (q s))
+    simpa [hfun'] using wick_univ_equiv e (fun r s : Fin 4 ↦ K (q r) (q s))
   simp_rw [← hstep, ← integral_coordinateProduct_mul_potential_eq_sum_wick A K hK (index := index)]
   simp [coordinateProduct]
 
@@ -397,12 +348,12 @@ private lemma wick_quartic_slots (C : Fin 4 → Fin 4 → ℝ) (hC : ∀ r s, C 
     (c := (2 : Fin 4)) (d := (3 : Fin 4))
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
--- Pull a coefficient-weighted tuple sum back along a slot permutation `σ`:
--- `∑ q, A.coeff q * g (q ∘ σ) = ∑ q, A.coeff q * g q`.  This packages the two ingredients used
--- by both the `(1 2)` and `(1 3)` reindexings below: total symmetry of `A` (`coeff_perm`) and
--- equivariance of `∑` under `Equiv.arrowCongr`.
 omit [DecidableEq ι] in
-private lemma coeff_sum_perm (A : QuarticCoupling ι) (σ : Equiv.Perm (Fin 4))
+/-- Pull a coefficient-weighted tuple sum back along a permutation of the quartic slots.
+
+This packages total symmetry of `A` together with equivariance of finite sums under
+`Equiv.arrowCongr`. -/
+theorem coeff_sum_perm (A : QuarticCoupling ι) (σ : Equiv.Perm (Fin 4))
     (g : (Fin 4 → ι) → ℝ) :
     (∑ q : Fin 4 → ι, A.coeff q * g (q ∘ σ)) = ∑ q : Fin 4 → ι, A.coeff q * g q := by
   simpa [A.coeff_perm, Equiv.arrowCongr, Equiv.symm_symm] using
@@ -410,7 +361,7 @@ private lemma coeff_sum_perm (A : QuarticCoupling ι) (σ : Equiv.Perm (Fin 4))
 
 omit [DecidableEq ι] in
 /-- Every ordering of the four vertex legs gives the same two-point contraction. -/
-private lemma twoPointContraction_sum_perm (A : QuarticCoupling ι)
+theorem twoPointContraction_sum_perm (A : QuarticCoupling ι)
     (K : Matrix ι ι ℝ) (i j : ι) (σ : Equiv.Perm (Fin 4)) :
     (∑ q : Fin 4 → ι, A.coeff q *
       (K i (q (σ 0)) * (K j (q (σ 1)) * K (q (σ 2)) (q (σ 3))))) =
@@ -420,13 +371,31 @@ private lemma twoPointContraction_sum_perm (A : QuarticCoupling ι)
       (fun q : Fin 4 → ι ↦ K i (q 0) * (K j (q 1) * K (q 2) (q 3)))
 
 omit [DecidableEq ι] in
+/-- A constant factor may be inserted anywhere in a permuted two-point contraction sum.
+
+This is the form needed when a Wick orbit contains one external-external covariance together with
+a two-external quartic contraction. -/
+theorem twoPointContraction_sum_perm_mul_const (A : QuarticCoupling ι)
+    (K : Matrix ι ι ℝ) (i j : ι) (σ : Equiv.Perm (Fin 4)) (c : ℝ) :
+    (∑ q : Fin 4 → ι, A.coeff q * K i (q (σ 0)) *
+      (c * (K j (q (σ 1)) * K (q (σ 2)) (q (σ 3))))) =
+        c * A.twoPointContraction K i j := by
+  calc
+    _ = c * (∑ q : Fin 4 → ι, A.coeff q *
+          (K i (q (σ 0)) * (K j (q (σ 1)) * K (q (σ 2)) (q (σ 3))))) := by
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl (fun q _hq ↦ by ring)
+    _ = c * A.twoPointContraction K i j := by
+      rw [twoPointContraction_sum_perm A K i j σ]
+
+omit [DecidableEq ι] in
 /-- The quartic Wick sum collapses to three copies of the vacuum contraction.
 
 Informal proof: for each ordered tuple `q`, Isserlis' fourth-moment formula gives the three pairings
 `01|23`, `02|13`, and `03|12`.  The first sum is exactly `A.quarticContraction K`.  The other two
 are reindexed by the transpositions of the four slots sending their pairings to `01|23`; the
 coefficient tensor is invariant under all such permutations by `A.coeff_perm`. -/
-private lemma quartic_wick_sum_eq_three_quarticContraction
+theorem quartic_wick_sum_eq_three_quarticContraction
     (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (hKsymm : ∀ i j, K i j = K j i) :
     (∑ q : Fin 4 → ι, A.coeff q *
       wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ) =
@@ -746,7 +715,7 @@ theorem integral_fourCoords_mul_potential (A : QuarticCoupling ι)
 This is the four-slot specialization of Isserlis' theorem already encoded in
 `integral_coordinateProduct_eq_wick`; the remaining step is the local pairing enumeration
 `wick_quartic_slots`. -/
-private lemma integral_coordinateProduct_four (K : Matrix ι ι ℝ) (hK : K.PosSemidef)
+theorem integral_coordinateProduct_four (K : Matrix ι ι ℝ) (hK : K.PosSemidef)
     (index : Fin 4 → ι) :
     ∫ z, coordinateProduct index z ∂multivariateGaussian 0 K =
       K (index 0) (index 1) * K (index 2) (index 3) +
@@ -757,21 +726,6 @@ private lemma integral_coordinateProduct_four (K : Matrix ι ι ℝ) (hK : K.Pos
     (fun r s ↦ hK.isHermitian.apply (index s) (index r))
 
 /-! ## Eighth-order Wick-orbit machinery -/
-
--- Transport of a Wick sum under a relabelling of the carrier: `wick (C ∘ e) s` is the same
--- Wick sum over the image `s.map e`.
-private lemma wick_perm {α : Type*} [DecidableEq α] (e : Equiv.Perm α)
-    (C : α → α → ℝ) (s : Finset α) :
-    wick (fun a b : α ↦ C (e a) (e b)) s = wick C (s.map e.toEmbedding) := by
-  unfold wick
-  rw [pairingSum_map]
-  unfold Finpartition.pairingSum
-  apply Finset.sum_congr rfl
-  intro P hP
-  simp only [Finpartition.Pairing.blockProduct, Finpartition.blockProduct]
-  apply Finset.prod_congr rfl
-  intro B hB
-  exact (pairWeight_map e C B).symm
 
 -- Per-`q` sixth-order Wick evaluation of a two-external, four-vertex set
 -- `{Sum.inl m, Sum.inl n, Sum.inr 0, ..., Sum.inr 3}`.  This is the `Fin 4`-slot instance of
@@ -1058,7 +1012,6 @@ private lemma vertex_partner_wick_sum_zero (A : QuarticCoupling ι) (K : Matrix 
     K (Sum.elim index q r) (Sum.elim index q s)
   have hC : ∀ q : Fin 4 → ι, ∀ r s : Sum (Fin 4) (Fin 4), C q r s = C q s r := by
     intro q r s
-    simp [C]
     exact hKsymm _ _
   -- Per-`q` Wick expansion of the three-external residual set.
   have hWick : ∀ q : Fin 4 → ι,
@@ -1184,7 +1137,7 @@ private lemma vertex_partner_wick_sum_zero (A : QuarticCoupling ι) (K : Matrix 
             K (index 1) (index 2)) := by
         apply Finset.sum_congr rfl
         intro q hq
-        ring
+        ring_nf
       _ = (∑ q : Fin 4 → ι, A.coeff q *
             (K (index 0) (q 0) * (K (index 3) (q 1) * K (q 2) (q 3)))) *
             K (index 1) (index 2) := by
@@ -1451,13 +1404,14 @@ private lemma vertex_partner_wick_sum_zero (A : QuarticCoupling ι) (K : Matrix 
         K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
       6 * A.fourPointContraction K index := by
     simp_rw [hWick]
-    simp only [mul_add, Finset.sum_add_distrib] at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 ⊢
+    simp only [mul_add, Finset.sum_add_distrib]
+      at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 ⊢
     linear_combination
       h1 + h2 + h3 + h4 + h5 + h6 + h7 + h10 + h13 + h8 + h9 + h11 + h12 + h14 + h15
   exact hAssemble
 
 -- The vertex-partner contribution for an arbitrary quartic slot `a`: relabel the quartic slots
--- by the transposition `swap 0 a` and transport with `wick_perm`, reducing the sum to the
+-- by the transposition `swap 0 a` and transport with `wick_map`, reducing the sum to the
 -- already-computed `vertex_partner_wick_sum_zero` case.
 omit [DecidableEq ι] in
 private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
@@ -1496,7 +1450,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
             K (Sum.elim index (q ∘ τ) r) (Sum.elim index (q ∘ τ) s)) R0 := by
       intro q
       rw [← hmap]
-      rw [← wick_perm T (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0]
+      rw [← wick_map T (fun r s : Sum (Fin 4) (Fin 4) ↦
+        K (Sum.elim index q r) (Sum.elim index q s)) R0]
       apply congrArg (fun C : Sum (Fin 4) (Fin 4) → Sum (Fin 4) (Fin 4) → ℝ ↦ wick C R0)
       funext x y
       exact hC q x y
@@ -1504,7 +1459,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
       (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 1) *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R1) =
           (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
-            wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
+            wick (fun r s : Sum (Fin 4) (Fin 4) ↦
+              K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
         let g : (Fin 4 → ι) → ℝ := fun q ↦ K (index 0) (q 0) *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0
         calc
@@ -1515,7 +1471,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
           _ = (∑ q : Fin 4 → ι, A.coeff q * g q) := by
             exact coeff_sum_perm A τ g
           _ = (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
-              wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
+              wick (fun r s : Sum (Fin 4) (Fin 4) ↦
+                K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
             simp [g, mul_assoc]
       _ = 3 * (K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
           K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
@@ -1549,7 +1506,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
             K (Sum.elim index (q ∘ τ) r) (Sum.elim index (q ∘ τ) s)) R0 := by
       intro q
       rw [← hmap]
-      rw [← wick_perm T (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0]
+      rw [← wick_map T (fun r s : Sum (Fin 4) (Fin 4) ↦
+        K (Sum.elim index q r) (Sum.elim index q s)) R0]
       apply congrArg (fun C : Sum (Fin 4) (Fin 4) → Sum (Fin 4) (Fin 4) → ℝ ↦ wick C R0)
       funext x y
       exact hC q x y
@@ -1557,7 +1515,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
       (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 2) *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R2) =
           (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
-            wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
+            wick (fun r s : Sum (Fin 4) (Fin 4) ↦
+              K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
         let g : (Fin 4 → ι) → ℝ := fun q ↦ K (index 0) (q 0) *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0
         calc
@@ -1568,7 +1527,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
           _ = (∑ q : Fin 4 → ι, A.coeff q * g q) := by
             exact coeff_sum_perm A τ g
           _ = (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
-              wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
+              wick (fun r s : Sum (Fin 4) (Fin 4) ↦
+                K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
             simp [g, mul_assoc]
       _ = 3 * (K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
           K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
@@ -1602,7 +1562,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
             K (Sum.elim index (q ∘ τ) r) (Sum.elim index (q ∘ τ) s)) R0 := by
       intro q
       rw [← hmap]
-      rw [← wick_perm T (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0]
+      rw [← wick_map T (fun r s : Sum (Fin 4) (Fin 4) ↦
+        K (Sum.elim index q r) (Sum.elim index q s)) R0]
       apply congrArg (fun C : Sum (Fin 4) (Fin 4) → Sum (Fin 4) (Fin 4) → ℝ ↦ wick C R0)
       funext x y
       exact hC q x y
@@ -1610,7 +1571,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
       (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 3) *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R3) =
           (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
-            wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
+            wick (fun r s : Sum (Fin 4) (Fin 4) ↦
+              K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
         let g : (Fin 4 → ι) → ℝ := fun q ↦ K (index 0) (q 0) *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0
         calc
@@ -1621,7 +1583,8 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
           _ = (∑ q : Fin 4 → ι, A.coeff q * g q) := by
             exact coeff_sum_perm A τ g
           _ = (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
-              wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
+              wick (fun r s : Sum (Fin 4) (Fin 4) ↦
+                K (Sum.elim index q r) (Sum.elim index q s)) R0) := by
             simp [g, mul_assoc]
       _ = 3 * (K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
           K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
@@ -1639,6 +1602,7 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
 -- Erase external leg `0` and split over its seven partners: three external legs reduce to the
 -- two-external sixth-order collapse, and four quartic legs reduce to the three-external collapse.
 set_option maxHeartbeats 800000 in
+-- The nested eighth-order Wick recurrence and its finite coefficient sums exceed the default.
 omit [DecidableEq ι] in
 private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
     (hKsymm : ∀ i j, K i j = K j i) (index : Fin 4 → ι) :
@@ -1663,7 +1627,7 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
     K (Sum.elim index q r) (Sum.elim index q s)
   have hC : ∀ q : Fin 4 → ι, ∀ r s : Sum (Fin 4) (Fin 4), C q r s = C q s r := by
     intro q r s
-    simp [C]
+    simp only [C]
     exact hKsymm _ _
   let R23 : Finset (Sum (Fin 4) (Fin 4)) :=
     {Sum.inl 2, Sum.inl 3, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3}
@@ -1687,8 +1651,9 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
         Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inl 3) = R12 := by
     dsimp [R12]
     decide
-  have hUv (a : Fin 4) : ({Sum.inl 1, Sum.inl 2, Sum.inl 3, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
-        Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inr a) = Rv a := by
+  have hUv (a : Fin 4) :
+      ({Sum.inl 1, Sum.inl 2, Sum.inl 3, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
+          Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inr a) = Rv a := by
     fin_cases a <;> dsimp [Rv] <;> decide
   have helim1 : ∀ q : Fin 4 → ι, Sum.elim index q (Sum.inl 1) = index 1 := by
     intro q; rfl
@@ -1698,6 +1663,10 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
     intro q; rfl
   have helimv (a : Fin 4) : ∀ q : Fin 4 → ι, Sum.elim index q (Sum.inr a) = q a := by
     intro q; rfl
+  have hC0ext (q : Fin 4 → ι) (a : Fin 4) :
+      C q (Sum.inl 0) (Sum.inl a) = K (index 0) (index a) := rfl
+  have hC0vertex (q : Fin 4 → ι) (a : Fin 4) :
+      C q (Sum.inl 0) (Sum.inr a) = K (index 0) (q a) := rfl
   have hWick8 : ∀ q : Fin 4 → ι,
       wick (C q) (Finset.univ : Finset (Sum (Fin 4) (Fin 4))) =
         ∑ b ∈ U, C q (Sum.inl 0) b * wick (C q) (U.erase b) := by
@@ -1706,8 +1675,9 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
       (show Sum.inl 0 ∈ (Finset.univ : Finset (Sum (Fin 4) (Fin 4))) by simp)]
   -- Factor the constant `K 0 1` etc. out of the split sums.
   have hfac (S : Finset (Sum (Fin 4) (Fin 4))) (c : ℝ) :
-      (∑ q : Fin 4 → ι, A.coeff q * (c * wick (C q) S)) = c * (∑ q : Fin 4 → ι, A.coeff q * wick (C q) S) := by
-    have hcongr : (∑ q : Fin 4 → ι, A.coeff q * (c * wick (C q) S)) =
+      (∑ q : Fin 4 → ι, A.coeff q * c * wick (C q) S) =
+        c * (∑ q : Fin 4 → ι, A.coeff q * wick (C q) S) := by
+    have hcongr : (∑ q : Fin 4 → ι, A.coeff q * c * wick (C q) S) =
         (∑ q : Fin 4 → ι, c * (A.coeff q * wick (C q) S)) := by
       apply Finset.sum_congr rfl
       intro q hq
@@ -1767,11 +1737,19 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
             ({Sum.inr 3} : Finset (Sum (Fin 4) (Fin 4)))),
           Finset.sum_singleton]
         rw [hU1, hU2, hU3, hUv 0, hUv 1, hUv 2, hUv 3]
-        simp only [C, Sum.elim]
+        simp only [hC0ext, hC0vertex]
         rw [hfac R23 (K (index 0) (index 1)),
           hfac R13 (K (index 0) (index 2)),
           hfac R12 (K (index 0) (index 3))]
-        ac_rfl
+        ring_nf
+  have hvertex (a : Fin 4) :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        (K (index 0) (q a) * wick (C q) (Rv a))) =
+          3 * (K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
+            K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
+            K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
+          6 * A.fourPointContraction K index := by
+    simpa only [C, Rv, mul_assoc] using vertex_partner_wick_sum A K hKsymm index a
   calc
     (∑ q : Fin 4 → ι, A.coeff q * wick (C q) (Finset.univ : Finset (Sum (Fin 4) (Fin 4)))) =
         K (index 0) (index 1) * (∑ q : Fin 4 → ι, A.coeff q * wick (C q) R23) +
@@ -1809,10 +1787,7 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
       rw [external_partner_wick_sum A K hKsymm index (m := 2) (n := 3) (hmn := by decide)]
       rw [external_partner_wick_sum A K hKsymm index (m := 1) (n := 3) (hmn := by decide)]
       rw [external_partner_wick_sum A K hKsymm index (m := 1) (n := 2) (hmn := by decide)]
-      simpa [mul_assoc] using vertex_partner_wick_sum A K hKsymm index 0
-      simpa [mul_assoc] using vertex_partner_wick_sum A K hKsymm index 1
-      simpa [mul_assoc] using vertex_partner_wick_sum A K hKsymm index 2
-      simpa [mul_assoc] using vertex_partner_wick_sum A K hKsymm index 3
+      rw [hvertex 0, hvertex 1, hvertex 2, hvertex 3]
       ring
     _ = 3 * (K (index 0) (index 1) * K (index 2) (index 3) +
             K (index 0) (index 2) * K (index 1) (index 3) +
@@ -1844,7 +1819,7 @@ without hand enumeration into three equivariant classes:
 This is exactly the orbit count recorded in `docs/Renormalization.md`, equation
 `eq:full-four-point-intro`, and follows from Isserlis' theorem
 <https://doi.org/10.1093/biomet/12.1-2.134>. -/
-private lemma integral_fourCoords_mul_potential_closed (A : QuarticCoupling ι)
+theorem integral_fourCoords_mul_potential_closed (A : QuarticCoupling ι)
     (K : Matrix ι ι ℝ) (hK : K.PosSemidef) (index : Fin 4 → ι) :
     ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
       ((1 / 8 : ℝ) * A.quarticContraction K) *
@@ -1859,11 +1834,10 @@ private lemma integral_fourCoords_mul_potential_closed (A : QuarticCoupling ι)
             K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
             K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
           A.fourPointContraction K index := by
-  -- The full formal combinatorial proof should factor through
-  -- `integral_fourCoords_mul_potential` and a reusable eighth-order analogue of
-  -- `two_external_wick_sum_eq_three_twelve_contractions`.  The proof is deferred here as a
-  -- named API lemma rather than hidden in the covariance theorem.
-  sorry
+  rw [integral_fourCoords_mul_potential A K hK index,
+    four_external_wick_sum A K (fun i j ↦ hK.isHermitian.apply j i) index]
+  norm_num
+  ring
 
 /-- Covariance of a four-coordinate observable with a symmetric quartic potential.
 

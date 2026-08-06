@@ -156,6 +156,71 @@ theorem wick_four (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i)
     hed, wick_pair C hC hbc]
   ring
 
+/-! ### Transporting Wick sums along equivalences -/
+
+/-- Mapping a finite partition along an equivalence preserves the property of being a pairing. -/
+theorem mapEquiv_isPairing_iff {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) {s : Finset α} (P : Finpartition s) :
+    (∀ B ∈ P.parts, B.card = 2) ↔
+      (∀ B ∈ (Finpartition.mapEquiv e P).parts, B.card = 2) := by
+  rw [Finpartition.parts_mapEquiv]
+  constructor
+  · intro hP B hB
+    rcases Finset.mem_map.mp hB with ⟨C, hC, rfl⟩
+    exact (Finset.card_map e.toEmbedding).trans (hP C hC)
+  · intro hQ B hB
+    simpa [Finset.card_map] using
+      hQ (B.map e.toEmbedding) (Finset.mem_map.mpr ⟨B, hB, rfl⟩)
+
+/-- Equivalence between pairings of a finite set and pairings of its image. -/
+def pairingMapEquivEquiv {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) (s : Finset α) :
+    Finpartition.Pairing s ≃ Finpartition.Pairing (s.map e.toEmbedding) :=
+  (Finpartition.mapEquivEquiv e s).subtypeEquiv (mapEquiv_isPairing_iff e)
+
+/-- A pairing sum over an image is the pairing sum of the pulled-back block weight. -/
+theorem pairingSum_map {α β : Type*} [DecidableEq α] [DecidableEq β]
+    {R : Type*} [CommSemiring R] (e : α ≃ β) (f : Finset β → R) (s : Finset α) :
+    Finpartition.pairingSum f (s.map e.toEmbedding) =
+      Finpartition.pairingSum (fun B : Finset α ↦ f (B.map e.toEmbedding)) s := by
+  unfold Finpartition.pairingSum
+  exact (((pairingMapEquivEquiv e s).sum_comp
+    (fun Q : Finpartition.Pairing (s.map e.toEmbedding) ↦ Q.blockProduct f)).symm.trans
+    (Finset.sum_congr rfl (fun P _hP ↦ Finpartition.blockProduct_mapEquiv e P.1 f)))
+
+/-- The weight of a pair is natural under relabelling of its two positions. -/
+theorem pairWeight_map {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) (C : β → β → ℝ) (B : Finset α) :
+    pairWeight C (B.map e.toEmbedding) =
+      pairWeight (fun a b : α ↦ C (e a) (e b)) B := by
+  unfold pairWeight
+  congr 1
+  rw [Finset.sum_map]
+  exact Finset.sum_congr rfl (fun a _ha ↦ by
+    rw [← Finset.map_erase e.toEmbedding B a, Finset.sum_map]
+    simp [Equiv.toEmbedding_apply])
+
+/-- Transport a Wick sum and its covariance kernel along an equivalence. -/
+theorem wick_map {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) (C : β → β → ℝ) (s : Finset α) :
+    wick (fun a b : α ↦ C (e a) (e b)) s = wick C (s.map e.toEmbedding) := by
+  unfold wick
+  rw [pairingSum_map]
+  unfold Finpartition.pairingSum
+  apply Finset.sum_congr rfl
+  intro P hP
+  simp only [Finpartition.Pairing.blockProduct, Finpartition.blockProduct]
+  apply Finset.prod_congr rfl
+  intro B hB
+  exact (pairWeight_map e C B).symm
+
+/-- Wick sums over finite universal sets are invariant under an equivalence of positions. -/
+theorem wick_univ_equiv {α β : Type*} [Fintype α] [DecidableEq α]
+    [Fintype β] [DecidableEq β] (e : α ≃ β) (C : β → β → ℝ) :
+    wick (fun a b : α ↦ C (e a) (e b)) (Finset.univ : Finset α) =
+      wick C (Finset.univ : Finset β) := by
+  rw [wick_map, Finset.map_univ_equiv]
+
 /-- The moment of a centered real Gaussian is given by the derivative of its MGF at zero.
 Informal proof:
 Apply `ProbabilityTheory.iteratedDeriv_mgf_zero`.

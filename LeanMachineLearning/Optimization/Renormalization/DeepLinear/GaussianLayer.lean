@@ -81,6 +81,65 @@ theorem map_batchPreactivation
     hyperparams_biasVariance, hyperparams_weightVariance, NNReal.coe_zero, zero_add] using
     map_evalBatch_layerGaussianInit (p := hyperparams Cw) x
 
+/-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector.
+
+Informal proof: write `X g = ∑ i, g i ^ 2`.  The Gaussian integration-by-parts/Stein identity
+for one coordinate, applied to `z * (z^2 + R)^k` while holding the other coordinates fixed, gives
+`∫ X^(k+1) = ((n : ℝ) + 2*k) * ∫ X^k`.  The base case is the integral of the constant `1` under a
+probability measure.  Induction over `k` then gives the product formula below.  This is exactly the
+standard moment formula for a chi-square random variable with `n` degrees of freedom; see
+<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>.  A complete formal proof should
+combine `Renormalization.integral_mul_pow_gaussianReal` with finite-product Fubini for
+`Measure.pi`.
+-/
+theorem integral_sumSq_pow_stdGaussian (m n : ℕ) :
+    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n =
+      ∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s) := by
+  sorry
+
+private lemma normalized_chiSquare_product_algebra (m n : ℕ) (hn : 0 < n) :
+    ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) =
+      widthMomentFactor m n := by
+  classical
+  have hn_ne : (n : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hn)
+  unfold widthMomentFactor
+  calc
+    ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s))
+        = (∏ _s ∈ Finset.range m, (n : ℝ)⁻¹) *
+            (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) := by
+          simp [Finset.prod_const]
+    _ = ∏ s ∈ Finset.range m, ((n : ℝ)⁻¹ * ((n : ℝ) + 2 * s)) := by
+          rw [Finset.prod_mul_distrib]
+    _ = ∏ s ∈ Finset.range m, (1 + (2 * s : ℝ) / (n : ℝ)) := by
+          refine Finset.prod_congr rfl ?_
+          intro s hs
+          field_simp [hn_ne]
+          ring
+
+/-- Moment formula for the empirical mean of squares of an independent standard Gaussian vector.
+
+This is the radial analytic core used by `integral_normalizedEnergy_pow_stdGaussian`.  In informal
+terms, if `X g = ∑ i, g i ^ 2`, then the Gaussian integration-by-parts recurrence gives
+`E[X^(m+1)] = ((n : ℝ) + 2 * m) * E[X^m]`; with `E[X^0] = 1`, this yields
+`E[X^m] = ∏ s<m ((n : ℝ) + 2*s)`.  Multiplying by `(n : ℝ)⁻¹` inside the `m`-th power gives the
+stated product `∏ s<m (1 + 2*s/n)`.  This is also the standard chi-square moment formula; see
+<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>.  A full Lean proof should derive
+the recurrence using the local one-dimensional Stein identity
+`Renormalization.integral_mul_pow_gaussianReal` and finite-product Fubini.
+-/
+theorem integral_normalizedSumSq_pow_stdGaussian (m n : ℕ) (hn : 0 < n) :
+    ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n =
+      widthMomentFactor m n := by
+  calc
+    ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n
+        = ((n : ℝ)⁻¹) ^ m *
+            ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n := by
+          simp_rw [mul_pow]
+          rw [MeasureTheory.integral_const_mul]
+    _ = ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) := by
+          rw [integral_sumSq_pow_stdGaussian]
+    _ = widthMomentFactor m n := normalized_chiSquare_product_algebra m n hn
+
 /-- Exact moments of normalized energy under an independent standard Gaussian vector.
 
 Informal proof: `n * normalizedEnergy g` has the chi-square distribution with `n` degrees of
@@ -92,7 +151,8 @@ proof can instead induct using Gaussian integration by parts and
 theorem integral_normalizedEnergy_pow_stdGaussian (m n : ℕ) (hn : 0 < n) :
     ∫ g, NeuralNetwork.normalizedEnergy g ^ m ∂standardGaussianVectorLaw n =
       widthMomentFactor m n := by
-  sorry
+  simpa [NeuralNetwork.normalizedEnergy, Fintype.card_fin] using
+    integral_normalizedSumSq_pow_stdGaussian m n hn
 
 /-- One freshly initialized layer multiplies the `m`-th normalized-energy moment by
 `(Cw * Q(x))^m c_{2m}(n)`.
