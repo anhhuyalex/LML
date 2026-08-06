@@ -556,6 +556,23 @@ def outputKernel {σ : ℝ → ℝ} (hσ : Measurable σ) {m n : ℕ} (N : MLPEn
       N.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ
         (randomLayerKernel (A := A) (ι := Fin m) (κ := Fin k) p) := rfl
 
+/-- `(μ.map f).bind g = μ.bind (g ∘ f)` for measurable maps, the measure-monad pullback rule. -/
+private lemma bind_map {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    [MeasurableSpace γ] (μ : Measure α) {f : α → β} {g : β → Measure γ}
+    (hf : Measurable f) (hg : Measurable g) :
+    (μ.map f).bind g = μ.bind (fun x => g (f x)) := by
+  rw [Measure.bind, Measure.bind, Measure.map_map hg hf]
+  rfl
+
+/-- `(μ.bind f).map g = μ.bind (fun x => (f x).map g)` for a measurable map `g`. -/
+private lemma map_bind {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    [MeasurableSpace γ] (μ : Measure α) (f : α → Measure β) {g : β → γ}
+    (hf : Measurable f) (hg : Measurable g) :
+    (μ.bind f).map g = μ.bind (fun x => (f x).map g) := by
+  rw [Measure.bind, ← Measure.join_map_map hg]
+  rw [Measure.bind, Measure.map_map (Measure.measurable_map g hg) hf]
+  rfl
+
 /-- Recursive integration of fresh layer parameters agrees with one global pushforward of the
 joint independent parameter law.
 
@@ -568,7 +585,81 @@ theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
     {m n : ℕ} (N : MLPEnsemble σ m n) (A : Type uA) (D : A → Fin m → ℝ) :
     N.outputKernel hσ A D =
       (N.shape.paramModel σ hσ).outputLaw D (N.shape.gaussianInit N.hyperparams) := by
-  sorry
+  induction N with
+  | output p =>
+      simp only [ParamModel.outputLaw, outputKernel_output, MLPShape.paramModel]
+      rw [randomLayerKernel_apply]
+      rfl
+  | hidden p N' ih =>
+      rename_i m n k
+      let μ : Measure (LayerParams (Fin m) (Fin k)) := layerGaussianInit p (Fin m) (Fin k)
+      let ν : Measure N'.shape.Params := N'.shape.gaussianInit N'.hyperparams
+      let f : LayerParams (Fin m) (Fin k) → A → Fin k → ℝ := fun q => batchPreactivation q D
+      let act : (A → Fin k → ℝ) → A → Fin k → ℝ := batchActivate σ
+      have hf_meas : Measurable f := by
+        dsimp [f]
+        exact measurable_pi_lambda _ fun a => DenseLayer.measurable_preactivation.comp
+          (measurable_id.prodMk measurable_const)
+      have hact_meas : Measurable act := measurable_batchActivate hσ
+      have hcomp : (N'.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ) =
+          fun z => N'.outputKernel hσ A (act z) := by
+        funext z
+        rw [Kernel.comp_apply, batchActivationKernel_apply]
+        exact Measure.dirac_bind (N'.outputKernel hσ A).measurable (batchActivate σ z)
+      let G : (LayerParams (Fin m) (Fin k) × N'.shape.Params) → A → Fin n → ℝ :=
+        fun p a => N'.shape.eval σ p.2 (act (f p.1) a)
+      have hG_meas : Measurable G := by
+        dsimp [G]
+        refine measurable_pi_lambda _ fun a => ?_
+        exact (N'.shape.measurable_eval hσ).comp
+          (measurable_snd.prodMk
+            (((measurable_pi_apply a).comp hact_meas).comp (hf_meas.comp measurable_fst)))
+      have hprod :
+          (μ.prod ν).map G =
+          μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
+        rw [Measure.prod]
+        calc
+          (μ.bind (fun q : LayerParams (Fin m) (Fin k) => Measure.map (Prod.mk q) ν)).map G
+              = μ.bind (fun q => (Measure.map (Prod.mk q) ν).map G) := by
+                exact map_bind μ (fun q => Measure.map (Prod.mk q) ν) (g := G)
+                  (by exact Measurable.map_prodMk_left) hG_meas
+          _ = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
+                congr
+                funext q
+                exact Measure.map_map hG_meas (measurable_const.prodMk measurable_id)
+      calc
+        (@MLPEnsemble.hidden σ m n k p N').outputKernel hσ A D
+            = (N'.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ
+                randomLayerKernel (A := A) (ι := Fin m) (κ := Fin k) p) D := by
+          rw [outputKernel_hidden]
+        _ = (randomLayerKernel (A := A) (ι := Fin m) (κ := Fin k) p D).bind
+              (N'.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ) := by
+          rw [Kernel.comp_apply]
+        _ = (layerGaussianInit p (Fin m) (Fin k)).bind
+              (fun q => N'.outputKernel hσ A (act (f q))) := by
+          rw [randomLayerKernel_apply]
+          rw [hcomp]
+          exact bind_map (layerGaussianInit p (Fin m) (Fin k)) (hf := hf_meas)
+            (hg := (N'.outputKernel hσ A).measurable.comp hact_meas)
+        _ = (layerGaussianInit p (Fin m) (Fin k)).bind
+              (fun q => ν.map (fun θ' => fun a => N'.shape.eval σ θ' (act (f q) a))) := by
+          apply congrArg (Measure.bind (layerGaussianInit p (Fin m) (Fin k)))
+          funext q
+          rw [ih (act (f q))]
+          rfl
+        _ = ((layerGaussianInit p (Fin m) (Fin k)).prod
+              (N'.shape.gaussianInit N'.hyperparams)).map G := by
+          exact hprod.symm
+        _ = ((layerGaussianInit p (Fin m) (Fin k)).prod
+              (N'.shape.gaussianInit N'.hyperparams)).map
+              (fun p : (MLPShape.hidden N'.shape).Params =>
+                fun a => (MLPShape.hidden N'.shape).eval σ p (D a)) := by
+          congr 1
+          funext p a
+          dsimp [G, act, f]
+        _ = ((MLPShape.hidden N'.shape).paramModel σ hσ).outputLaw D
+              ((MLPShape.hidden N'.shape).gaussianInit (p, N'.hyperparams)) := by
+          rfl
 
 end MLPEnsemble
 

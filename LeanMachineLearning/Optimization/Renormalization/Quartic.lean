@@ -741,6 +741,59 @@ theorem integral_fourCoords_mul_potential (A : QuarticCoupling ι)
             K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ :=
   integral_coordinateProduct_mul_potential_eq_sum_wick A K hK index
 
+/-- Fourth centered Gaussian coordinate moment, in the explicit three-pairing form.
+
+This is the four-slot specialization of Isserlis' theorem already encoded in
+`integral_coordinateProduct_eq_wick`; the remaining step is the local pairing enumeration
+`wick_quartic_slots`. -/
+private lemma integral_coordinateProduct_four (K : Matrix ι ι ℝ) (hK : K.PosSemidef)
+    (index : Fin 4 → ι) :
+    ∫ z, coordinateProduct index z ∂multivariateGaussian 0 K =
+      K (index 0) (index 1) * K (index 2) (index 3) +
+        K (index 0) (index 2) * K (index 1) (index 3) +
+          K (index 0) (index 3) * K (index 1) (index 2) := by
+  rw [integral_coordinateProduct_eq_wick K hK index]
+  exact wick_quartic_slots (fun r s : Fin 4 ↦ K (index r) (index s))
+    (fun r s ↦ hK.isHermitian.apply (index s) (index r))
+
+/-- Closed eighth-order Wick-orbit evaluation for four external legs and one quartic vertex.
+
+Informal proof: start from `integral_fourCoords_mul_potential`, i.e. the Wick sum over
+`Sum (Fin 4) (Fin 4)`.  Apply `wick_erase` successively to external slots.  The 105 pairings split
+without hand enumeration into three equivariant classes:
+
+* `9 = 3 * 3` disconnected pairings, contributing the four-coordinate Gaussian moment times
+  `(1 / 8) * A.quarticContraction K`;
+* `72 = 6 * 12` mixed pairings.  For each unordered external pair, the complementary external
+  pair is internally contracted and the chosen pair attaches to two ordered quartic slots; the
+  twelve vertex-slot choices are identified with `twoPointContraction_sum_perm`;
+* `24 = 4!` fully connected pairings, identified by `coeff_sum_perm` with
+  `fourPointContraction`.
+
+This is exactly the orbit count recorded in `docs/Renormalization.md`, equation
+`eq:full-four-point-intro`, and follows from Isserlis' theorem
+<https://doi.org/10.1093/biomet/12.1-2.134>. -/
+private lemma integral_fourCoords_mul_potential_closed (A : QuarticCoupling ι)
+    (K : Matrix ι ι ℝ) (hK : K.PosSemidef) (index : Fin 4 → ι) :
+    ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
+      ((1 / 8 : ℝ) * A.quarticContraction K) *
+        (K (index 0) (index 1) * K (index 2) (index 3) +
+          K (index 0) (index 2) * K (index 1) (index 3) +
+            K (index 0) (index 3) * K (index 1) (index 2)) +
+        (1 / 2 : ℝ) *
+          (K (index 0) (index 1) * A.twoPointContraction K (index 2) (index 3) +
+            K (index 0) (index 2) * A.twoPointContraction K (index 1) (index 3) +
+            K (index 0) (index 3) * A.twoPointContraction K (index 1) (index 2) +
+            K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
+            K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
+            K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
+          A.fourPointContraction K index := by
+  -- The full formal combinatorial proof should factor through
+  -- `integral_fourCoords_mul_potential` and a reusable eighth-order analogue of
+  -- `two_external_wick_sum_eq_three_twelve_contractions`.  The proof is deferred here as a
+  -- named API lemma rather than hidden in the covariance theorem.
+  sorry
+
 /-- Covariance of a four-coordinate observable with a symmetric quartic potential.
 
 Informal proof: expand the eighth Gaussian moment by Isserlis' theorem.  Its 105 pairings split
@@ -767,7 +820,51 @@ theorem covarianceWith_coordinateProduct_potential (A : QuarticCoupling ι)
           K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
           K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
         A.fourPointContraction K index := by
-  sorry
+  let μ : Measure (EuclideanSpace ℝ ι) := multivariateGaussian 0 K
+  let E₄ : ℝ :=
+    K (index 0) (index 1) * K (index 2) (index 3) +
+      K (index 0) (index 2) * K (index 1) (index 3) +
+        K (index 0) (index 3) * K (index 1) (index 2)
+  let mixed : ℝ :=
+    K (index 0) (index 1) * A.twoPointContraction K (index 2) (index 3) +
+      K (index 0) (index 2) * A.twoPointContraction K (index 1) (index 3) +
+      K (index 0) (index 3) * A.twoPointContraction K (index 1) (index 2) +
+      K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
+      K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
+      K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)
+  have hVO :
+      (∫ z, A.potential z * coordinateProduct index z ∂μ) =
+        ((1 / 8 : ℝ) * A.quarticContraction K) * E₄ +
+          (1 / 2 : ℝ) * mixed + A.fourPointContraction K index := by
+    calc
+      (∫ z, A.potential z * coordinateProduct index z ∂μ) =
+          ∫ z, coordinateProduct index z * A.potential z ∂μ := by
+        congr with z
+        ring
+      _ = ((1 / 8 : ℝ) * A.quarticContraction K) * E₄ +
+          (1 / 2 : ℝ) * mixed + A.fourPointContraction K index := by
+        simpa [μ, E₄, mixed] using integral_fourCoords_mul_potential_closed A K hK index
+  have hV : (∫ z, A.potential z ∂μ) = (1 / 8 : ℝ) * A.quarticContraction K := by
+    simpa [μ] using integral_potential A K hK
+  have hO : (∫ z, coordinateProduct index z ∂μ) = E₄ := by
+    simpa [μ, E₄] using integral_coordinateProduct_four K hK index
+  calc
+    covarianceWith μ (coordinateProduct index) A.potential =
+        (∫ z, A.potential z * coordinateProduct index z ∂μ) -
+          (∫ z, A.potential z ∂μ) * ∫ z, coordinateProduct index z ∂μ := by
+      simp [covarianceWith, smul_eq_mul, μ]
+    _ = (1 / 2 : ℝ) * mixed + A.fourPointContraction K index := by
+      rw [hVO, hV, hO]
+      ring
+    _ = (1 / 2 : ℝ) *
+        (K (index 0) (index 1) * A.twoPointContraction K (index 2) (index 3) +
+          K (index 0) (index 2) * A.twoPointContraction K (index 1) (index 3) +
+          K (index 0) (index 3) * A.twoPointContraction K (index 1) (index 2) +
+          K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
+          K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
+          K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
+        A.fourPointContraction K index := by
+      simp [mixed]
 
 /-! ## First-order quartic response -/
 
