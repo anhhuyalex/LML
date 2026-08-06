@@ -97,60 +97,6 @@ theorem normalizable (A : QuarticCoupling ι) {K : Matrix ι ι ℝ}
 
 /-! ## Pairing-orbit moment formulae -/
 
-omit [DecidableEq ι] in
-/-- Finite products of coordinate projections are integrable under any Gaussian measure.
-
-This is the coordinate-projection specialization of the finite Hölder argument used in
-`Gaussian.lean` for products of centered linear observables: each coordinate is a continuous
-linear functional, hence has all finite Gaussian moments, and Hölder turns finitely many such
-bounds into an `L¹` bound for the product. -/
-private lemma integrable_finset_prod_gaussian_coordinate
-    (μ : Measure (EuclideanSpace ℝ ι)) [ProbabilityTheory.IsGaussian μ]
-    {α : Type*} (s : Finset α) (coord : α → ι) :
-    Integrable (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) μ := by
-  by_cases hs : s.Nonempty
-  · have h_coord_memLp : ∀ (a : α), a ∈ s →
-        MemLp (fun z : EuclideanSpace ℝ ι ↦ z (coord a))
-          (((s.card : ℕ) : ENNReal)) μ := fun a _ha ↦ by
-      simpa [EuclideanSpace.coe_proj] using
-        (ProbabilityTheory.IsGaussian.memLp_dual μ (EuclideanSpace.proj (coord a))
-          (((s.card : ℕ) : ENNReal)) (ENNReal.natCast_ne_top _))
-    have h_holder_product :
-        MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a))
-          ((∑ a ∈ s, (((s.card : ℕ) : ENNReal))⁻¹)⁻¹) μ := by
-      convert
-        (MeasureTheory.MemLp.prod
-          (μ := μ)
-          (f := fun a (z : EuclideanSpace ℝ ι) ↦ z (coord a))
-          (p := fun _ : α ↦ (((s.card : ℕ) : ENNReal)))
-          (s := s)
-          h_coord_memLp) using 1
-      ext z
-      simp
-    have h_exponent :
-        ((∑ a ∈ s, (((s.card : ℕ) : ENNReal))⁻¹)⁻¹) =
-          (1 : ENNReal) := by
-      rw [Finset.sum_const]
-      rw [nsmul_eq_mul]
-      have hcard_pos : 0 < s.card := Finset.card_pos.mpr hs
-      have hcard_ne_zero : s.card ≠ 0 := Nat.ne_of_gt hcard_pos
-      have h0 : (((s.card : ℕ) : ENNReal) ≠ 0) := by
-        norm_num [hcard_ne_zero]
-      have htop := ENNReal.natCast_ne_top s.card
-      have hmul :
-          (((s.card : ℕ) : ENNReal) * (((s.card : ℕ) : ENNReal)⁻¹)) =
-            (1 : ENNReal) :=
-        ENNReal.mul_inv_cancel h0 htop
-      change ((((s.card : ℕ) : ENNReal) *
-        (((s.card : ℕ) : ENNReal)⁻¹))⁻¹) = (1 : ENNReal)
-      rw [hmul]
-      simp
-    exact (h_exponent ▸ h_holder_product :
-      MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) (1 : ENNReal) μ).integrable
-        (by norm_num)
-  · have hs_empty : s = ∅ := Finset.not_nonempty_iff_eq_empty.mp hs
-    simp [hs_empty]
-
 /-- Expanding the quartic potential inside a Gaussian integral.
 
 Informal proof: unfold `coordinateProduct` and `potential`, distribute multiplication over the
@@ -166,22 +112,14 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_integral
   let c : ℝ := (((4 : ℕ).factorial : ℝ)⁻¹)
   let monomial (q : Fin 4 → ι) (z : EuclideanSpace ℝ ι) : ℝ :=
     coordinateProduct index z * ∏ r, z (q r)
-  have h_integrable_monomial : ∀ q : Fin 4 → ι, Integrable (monomial q) μ := by
-    intro q
-    let coord : Sum (Fin n) (Fin 4) → ι := Sum.elim index q
-    have hprod := integrable_finset_prod_gaussian_coordinate
-      (μ := μ) (s := (Finset.univ : Finset (Sum (Fin n) (Fin 4)))) (coord := coord)
-    have h_eq : (fun z : EuclideanSpace ℝ ι ↦ ∏ a : Sum (Fin n) (Fin 4), z (coord a)) =
-        monomial q := by
-      funext z
-      simp [monomial, coordinateProduct, coord, Fintype.prod_sum_type]
-    rw [h_eq] at hprod
-    exact hprod
+  have h_integrable_monomial : ∀ q : Fin 4 → ι, Integrable (monomial q) μ := fun q => by
+    simpa [monomial, coordinateProduct, Fintype.prod_sum_type] using
+      (integrable_finset_prod_gaussian_coordinate (μ := μ)
+        (s := (Finset.univ : Finset (Sum (Fin n) (Fin 4)))) (coord := Sum.elim index q))
   have h_integrable_summand :
       ∀ q ∈ (Finset.univ : Finset (Fin 4 → ι)),
-        Integrable (fun z : EuclideanSpace ℝ ι ↦ A.coeff q * monomial q z) μ := by
-    intro q _hq
-    exact (h_integrable_monomial q).const_mul _
+        Integrable (fun z : EuclideanSpace ℝ ι ↦ A.coeff q * monomial q z) μ :=
+    fun q _ => (h_integrable_monomial q).const_mul _
   calc
     ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
         ∫ z, c * ∑ q : Fin 4 → ι, A.coeff q * monomial q z ∂μ := by
@@ -191,14 +129,60 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_integral
     _ = c * ∫ z, ∑ q : Fin 4 → ι, A.coeff q * monomial q z ∂μ := by
       rw [MeasureTheory.integral_const_mul]
     _ = c * ∑ q : Fin 4 → ι, ∫ z, A.coeff q * monomial q z ∂μ := by
-      rw [MeasureTheory.integral_finsetSum]
-      exact h_integrable_summand
-    _ = c * ∑ q : Fin 4 → ι, A.coeff q * ∫ z, monomial q z ∂μ := by
-      simp [MeasureTheory.integral_const_mul]
+      rwa [MeasureTheory.integral_finsetSum]
     _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
         ∑ q : Fin 4 → ι, A.coeff q *
           ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K := by
-      simp [μ, c, monomial]
+      simp [μ, c, monomial, MeasureTheory.integral_const_mul]
+
+/-! ### Reindexing pairing sums along equivalences -/
+
+private lemma mapEquiv_isPairing_iff {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) {s : Finset α} (P : Finpartition s) :
+    (∀ B ∈ P.parts, B.card = 2) ↔
+      (∀ B ∈ (Finpartition.mapEquiv e P).parts, B.card = 2) := by
+  rw [Finpartition.parts_mapEquiv]
+  constructor
+  · intro hP B hB
+    rcases Finset.mem_map.mp hB with ⟨C, hC, rfl⟩
+    exact (Finset.card_map e.toEmbedding).trans (hP C hC)
+  · intro hQ B hB
+    simpa [Finset.card_map] using
+      hQ (B.map e.toEmbedding) (Finset.mem_map.mpr ⟨B, hB, rfl⟩)
+
+private def pairingMapEquivEquiv {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) (s : Finset α) :
+    Finpartition.Pairing s ≃ Finpartition.Pairing (s.map e.toEmbedding) :=
+  (Finpartition.mapEquivEquiv e s).subtypeEquiv (mapEquiv_isPairing_iff e)
+
+private lemma pairingSum_map {α β : Type*} [DecidableEq α] [DecidableEq β]
+    {R : Type*} [CommSemiring R] (e : α ≃ β) (f : Finset β → R) (s : Finset α) :
+    Finpartition.pairingSum f (s.map e.toEmbedding) =
+      Finpartition.pairingSum (fun B : Finset α ↦ f (B.map e.toEmbedding)) s := by
+  unfold Finpartition.pairingSum
+  exact (((pairingMapEquivEquiv e s).sum_comp
+    (fun Q : Finpartition.Pairing (s.map e.toEmbedding) ↦ Q.blockProduct f)).symm.trans
+    (Finset.sum_congr rfl (fun P _hP ↦ Finpartition.blockProduct_mapEquiv e P.1 f)))
+
+private lemma pairWeight_map {α β : Type*} [DecidableEq α] [DecidableEq β]
+    (e : α ≃ β) (C : β → β → ℝ) (B : Finset α) :
+    Renormalization.pairWeight C (B.map e.toEmbedding) =
+      Renormalization.pairWeight (fun a b : α ↦ C (e a) (e b)) B := by
+  unfold Renormalization.pairWeight
+  congr 1
+  rw [Finset.sum_map]
+  exact Finset.sum_congr rfl (fun a _ha ↦ by
+    rw [← Finset.map_erase e.toEmbedding B a, Finset.sum_map]
+    simp [Equiv.toEmbedding_apply])
+
+private lemma wick_univ_perm {α β : Type*} [Fintype α] [DecidableEq α]
+    [Fintype β] [DecidableEq β]
+    (e : α ≃ β) (C : β → β → ℝ) :
+    Renormalization.wick (fun a b : α ↦ C (e a) (e b)) (Finset.univ : Finset α) =
+      Renormalization.wick C (Finset.univ : Finset β) := by
+  unfold Renormalization.wick
+  rw [← Finset.map_univ_equiv e, pairingSum_map]
+  simp [pairWeight_map]
 
 /-- Arbitrary-finite-position version of the coordinate Wick theorem.
 
@@ -216,7 +200,26 @@ theorem integral_prod_multivariateGaussian_centered_eq_wick_fintype
     jointMoment (multivariateGaussian m S)
         (fun a z ↦ z (index a) - m (index a)) =
       wick (fun a b ↦ S (index a) (index b)) Finset.univ := by
-  sorry
+  let e := Fintype.equivFin α
+  exact ((jointMoment_perm (μ := multivariateGaussian m S) e
+    (X := fun a z ↦ z (index a) - m (index a))).symm.trans
+    (integral_prod_multivariateGaussian_centered_eq_wick (m := m) (S := S) (hS := hS)
+      (fun r : Fin (Fintype.card α) ↦ index (e.symm r)))).trans
+    (wick_univ_perm e.symm (fun a b : α ↦ S (index a) (index b)))
+
+omit [Fintype ι] [DecidableEq ι] in
+-- Notation conversion: a coordinate product times the quartic monomial `∏ r, z (q r)` is the
+-- zero-centered joint moment of the coordinate family `Sum.elim index q` indexed by the disjoint
+-- union `Sum (Fin n) (Fin 4)`.  This puts integrals of the shape needed by the centered Wick
+-- theorem, and holds for any measure (no Gaussian hypothesis is required).
+private lemma integral_coordinateProduct_mul_prod_eq_jointMoment
+    {n : ℕ} (μ : Measure (EuclideanSpace ℝ ι))
+    (index : Fin n → ι) (q : Fin 4 → ι) :
+    ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂μ =
+      jointMoment μ
+        (fun a : Sum (Fin n) (Fin 4) ↦ fun z ↦
+          z (Sum.elim index q a) - (0 : EuclideanSpace ℝ ι) (Sum.elim index q a)) := by
+  simp [jointMoment, blockMoment, coordinateProduct, Fintype.prod_sum_type]
 
 /-- Wick evaluation of the monomial obtained by adjoining a quartic tuple to external
 coordinates.
@@ -231,20 +234,10 @@ theorem integral_coordinateProduct_mul_quarticMonomial_eq_wick
     (index : Fin n → ι) (q : Fin 4 → ι) :
     ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K =
       wick (fun r s : Sum (Fin n) (Fin 4) ↦
-        K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
-  let combined : Sum (Fin n) (Fin 4) → ι := Sum.elim index q
-  have hwick := integral_prod_multivariateGaussian_centered_eq_wick_fintype
-    (m := (0 : EuclideanSpace ℝ ι)) (S := K) hK combined
-  calc
-    ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K =
-        jointMoment (multivariateGaussian (0 : EuclideanSpace ℝ ι) K)
-          (fun a : Sum (Fin n) (Fin 4) ↦ fun z ↦ z (combined a) -
-            (0 : EuclideanSpace ℝ ι) (combined a)) := by
-      simp [jointMoment, blockMoment, coordinateProduct, combined, Fintype.prod_sum_type]
-    _ = wick (fun r s : Sum (Fin n) (Fin 4) ↦ K (combined r) (combined s)) Finset.univ := hwick
-    _ = wick (fun r s : Sum (Fin n) (Fin 4) ↦
-        K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
-      rfl
+        K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ :=
+  (integral_coordinateProduct_mul_prod_eq_jointMoment (μ := multivariateGaussian 0 K) index q).trans
+    (integral_prod_multivariateGaussian_centered_eq_wick_fintype
+      (m := (0 : EuclideanSpace ℝ ι)) (S := K) hK (Sum.elim index q))
 
 /-- A coordinate product times the quartic potential reduces to one Wick sum per coefficient
 tuple.
@@ -259,18 +252,137 @@ theorem integral_coordinateProduct_mul_potential_eq_sum_wick
       (((4 : ℕ).factorial : ℝ)⁻¹) *
         ∑ q : Fin 4 → ι, A.coeff q *
           wick (fun r s : Sum (Fin n) (Fin 4) ↦
-            K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
+            K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ :=
+  (integral_coordinateProduct_mul_potential_eq_sum_integral A K index).trans (by
+    simp [integral_coordinateProduct_mul_quarticMonomial_eq_wick K hK index])
+
+/-- Vacuum version of the quartic Wick reduction, with the empty external product removed
+and the indexing type `Sum (Fin 0) (Fin 4)` transported to `Fin 4`.
+
+Informal proof: apply `integral_coordinateProduct_mul_potential_eq_sum_wick` with `n = 0` and the
+unique empty index map.  The factor `coordinateProduct` is an empty product, hence `1`.  On the
+right-hand side, the equivalence `Sum (Fin 0) (Fin 4) ≃ Fin 4` identifies the Wick sum over the
+coproduct with the Wick sum over the quartic slots; this is exactly the reindexing lemma
+`wick_univ_perm` proved above. -/
+private lemma integral_potential_eq_sum_wick_fin_four
+    (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (hK : K.PosSemidef) :
+    ∫ z, A.potential z ∂multivariateGaussian 0 K =
+      (((4 : ℕ).factorial : ℝ)⁻¹) *
+        ∑ q : Fin 4 → ι, A.coeff q *
+          wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ := by
+  let index : Fin 0 → ι := Fin.elim0
+  let e : Sum (Fin 0) (Fin 4) ≃ Fin 4 :=
+    (Equiv.sumComm (Fin 0) (Fin 4)).trans (Equiv.sumEmpty (Fin 4) (Fin 0))
+  have hstep : ∀ q : Fin 4 → ι,
+      wick (fun r s : Sum (Fin 0) (Fin 4) ↦
+        K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ =
+        wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ := fun q => by
+    have hfun' : Sum.elim index q = q ∘ e := by
+      funext a
+      rcases a with r | r
+      · exact Fin.elim0 r
+      · rfl
+    simpa [hfun'] using wick_univ_perm e (fun r s : Fin 4 ↦ K (q r) (q s))
+  simp_rw [← hstep, ← integral_coordinateProduct_mul_potential_eq_sum_wick A K hK (index := index)]
+  simp [coordinateProduct]
+
+/-- The empty carrier has a unique pairing, namely `⊥`; its block product is the empty product
+`1`. -/
+private instance instUniquePairingEmpty {α : Type*} [DecidableEq α] :
+    Unique (Finpartition.Pairing (∅ : Finset α)) where
+  default := ⟨⊥, by simp⟩
+  uniq P := by
+    apply Subtype.ext
+    ext a
+    have hparts : P.1.parts = ∅ := (Finpartition.parts_eq_empty_iff).mpr (by simp)
+    rw [hparts]
+    simp
+
+private lemma wick_empty {α : Type*} [DecidableEq α] (C : α → α → ℝ) :
+    wick C (∅ : Finset α) = 1 := by
+  unfold wick Finpartition.pairingSum
+  rw [Fintype.sum_unique]
+  change (∏ B ∈ (∅ : Finset (Finset α)), pairWeight C B) = 1
+  simp
+
+-- Isserlis' fourth-moment formula on four slots: the Wick sum of a symmetric covariance
+-- `C : Fin 4 → Fin 4 → ℝ` is the sum over the three pairings `01|23`, `02|13`, `03|12`.
+-- This is the `Fin 4` instance of the general recurrence `wick_erase` specialized to a
+-- symmetric covariance.  It is generic in `C` so that it applies to `C r s = K (q r) (q s)`
+-- for every quartic tuple `q` in the contraction proofs below.
+private lemma wick_quartic_slots (C : Fin 4 → Fin 4 → ℝ) (hC : ∀ r s, C r s = C s r) :
+    wick C Finset.univ = C 0 1 * C 2 3 + C 0 2 * C 1 3 + C 0 3 * C 1 2 := by
+  classical
+  have hwick2 : ∀ {a b : Fin 4}, a ≠ b → wick C ({a, b} : Finset (Fin 4)) = C a b := by
+    intro a b hab
+    rw [wick_erase C hC ({a, b} : Finset (Fin 4)) (by simp : a ∈ ({a, b} : Finset (Fin 4)))]
+    simp [hab, wick_empty C]
+  rw [wick_erase C hC Finset.univ (by simp),
+    (by decide : (Finset.univ : Finset (Fin 4)).erase 0 = ({1, 2, 3} : Finset (Fin 4)))]
+  simp [hwick2, add_assoc,
+    (by decide : (({1, 2, 3} : Finset (Fin 4)).erase 1) = ({2, 3} : Finset (Fin 4))),
+    (by decide : (({1, 2, 3} : Finset (Fin 4)).erase 2) = ({1, 3} : Finset (Fin 4))),
+    (by decide : (({1, 2, 3} : Finset (Fin 4)).erase 3) = ({1, 2} : Finset (Fin 4)))]
+
+-- Pull a coefficient-weighted tuple sum back along a slot permutation `σ`:
+-- `∑ q, A.coeff q * g (q ∘ σ) = ∑ q, A.coeff q * g q`.  This packages the two ingredients used
+-- by both the `(1 2)` and `(1 3)` reindexings below: total symmetry of `A` (`coeff_perm`) and
+-- equivariance of `∑` under `Equiv.arrowCongr`.
+omit [DecidableEq ι] in
+private lemma coeff_sum_perm (A : QuarticCoupling ι) (σ : Equiv.Perm (Fin 4))
+    (g : (Fin 4 → ι) → ℝ) :
+    (∑ q : Fin 4 → ι, A.coeff q * g (q ∘ σ)) = ∑ q : Fin 4 → ι, A.coeff q * g q := by
+  simpa [A.coeff_perm, Equiv.arrowCongr, Equiv.symm_symm] using
+    (Equiv.sum_comp (Equiv.arrowCongr σ.symm (Equiv.refl ι)) (fun q : Fin 4 → ι ↦ A.coeff q * g q))
+
+omit [DecidableEq ι] in
+/-- The quartic Wick sum collapses to three copies of the vacuum contraction.
+
+Informal proof: for each ordered tuple `q`, Isserlis' fourth-moment formula gives the three pairings
+`01|23`, `02|13`, and `03|12`.  The first sum is exactly `A.quarticContraction K`.  The other two
+are reindexed by the transpositions of the four slots sending their pairings to `01|23`; the
+coefficient tensor is invariant under all such permutations by `A.coeff_perm`. -/
+private lemma quartic_wick_sum_eq_three_quarticContraction
+    (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (hKsymm : ∀ i j, K i j = K j i) :
+    (∑ q : Fin 4 → ι, A.coeff q *
+      wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ) =
+        3 * A.quarticContraction K := by
+  classical
+  -- The second and third pairing sums are reindexed to the first by the transpositions
+  -- `(1 2)` and `(1 3)` of the four slots, using `A.coeff_perm`.
+  have hT2 :
+      (∑ q : Fin 4 → ι, A.coeff q * (K (q 0) (q 2) * K (q 1) (q 3))) =
+        (∑ q : Fin 4 → ι, A.coeff q * (K (q 0) (q 1) * K (q 2) (q 3))) := by
+    let σ : Equiv.Perm (Fin 4) := Equiv.swap 1 2
+    have hσ : ∀ q : Fin 4 → ι,
+        K (q (σ 0)) (q (σ 1)) * K (q (σ 2)) (q (σ 3)) =
+          K (q 0) (q 2) * K (q 1) (q 3) := by
+      intro q
+      simp [σ, Equiv.swap_apply_of_ne_of_ne]
+    simpa [hσ] using coeff_sum_perm A σ (fun q : Fin 4 → ι ↦ K (q 0) (q 1) * K (q 2) (q 3))
+  have hT3 :
+      (∑ q : Fin 4 → ι, A.coeff q * (K (q 0) (q 3) * K (q 1) (q 2))) =
+        (∑ q : Fin 4 → ι, A.coeff q * (K (q 0) (q 1) * K (q 2) (q 3))) := by
+    let σ : Equiv.Perm (Fin 4) := Equiv.swap 1 3
+    have hσ : ∀ q : Fin 4 → ι,
+        K (q (σ 0)) (q (σ 1)) * K (q (σ 2)) (q (σ 3)) =
+          K (q 0) (q 3) * K (q 1) (q 2) := by
+      intro q
+      simp [σ, Equiv.swap_apply_of_ne_of_ne, hKsymm (q 2) (q 1)]
+    simpa [hσ] using coeff_sum_perm A σ (fun q : Fin 4 → ι ↦ K (q 0) (q 1) * K (q 2) (q 3))
   calc
-    ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
-        (((4 : ℕ).factorial : ℝ)⁻¹) *
-          ∑ q : Fin 4 → ι, A.coeff q *
-            ∫ z, coordinateProduct index z * ∏ r, z (q r) ∂multivariateGaussian 0 K :=
-      integral_coordinateProduct_mul_potential_eq_sum_integral A K index
-    _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
-          ∑ q : Fin 4 → ι, A.coeff q *
-            wick (fun r s : Sum (Fin n) (Fin 4) ↦
-              K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
-      simp_rw [integral_coordinateProduct_mul_quarticMonomial_eq_wick K hK index]
+    (∑ q : Fin 4 → ι, A.coeff q *
+        wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ)
+        = ∑ q : Fin 4 → ι, A.coeff q *
+            (K (q 0) (q 1) * K (q 2) (q 3) + K (q 0) (q 2) * K (q 1) (q 3) +
+              K (q 0) (q 3) * K (q 1) (q 2)) := by
+            exact Finset.sum_congr rfl (fun q _hq => by
+              rw [wick_quartic_slots (fun r s ↦ K (q r) (q s)) (fun r s ↦ hKsymm (q r) (q s))])
+    _ = 3 * (∑ q : Fin 4 → ι, A.coeff q * (K (q 0) (q 1) * K (q 2) (q 3))) := by
+            simp [Finset.sum_add_distrib, mul_add, hT2, hT3]
+            ring
+    _ = 3 * A.quarticContraction K := by
+            simp [quarticContraction, mul_assoc]
 
 /-- Gaussian expectation of a symmetric quartic potential.
 
@@ -281,7 +393,122 @@ theorem integral_potential (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
     (hK : K.PosSemidef) :
     ∫ z, A.potential z ∂multivariateGaussian 0 K =
       (1 / 8 : ℝ) * A.quarticContraction K := by
-  sorry
+  rw [integral_potential_eq_sum_wick_fin_four A K hK,
+    quartic_wick_sum_eq_three_quarticContraction A K (fun i j => (hK.isHermitian.apply j i))]
+  ring_nf
+
+omit [DecidableEq ι] in
+/-- Sixth-order Wick orbit collapse for two external legs and one symmetric quartic vertex.
+
+Informal proof: apply `wick_erase` to the first external leg in
+`Sum (Fin 2) (Fin 4)`.  The partner is either the second external leg, leaving the three quartic
+pairings already computed by `wick_quartic_slots`, or one of the four quartic legs.  In the latter
+case the second external leg pairs with one of the three remaining quartic legs, and the last two
+quartic legs pair with each other, giving `4 * 3 = 12` pairings.  Reindex the four quartic slots by
+permutations and use `A.coeff_perm` (plus `hKsymm`) to identify the three internal-pairing sums
+with `A.quarticContraction K` and all twelve mixed sums with
+`A.twoPointContraction K i j`.  This is the sixth-order Isserlis orbit count described in
+`docs/Renormalization.md`, equation `eq:second-moment-interaction`, and in Isserlis' theorem
+<https://doi.org/10.1093/biomet/12.1-2.134>. -/
+private lemma two_external_wick_sum_eq_three_twelve_contractions
+    (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (hKsymm : ∀ i j, K i j = K j i)
+    (i j : ι) :
+    (∑ q : Fin 4 → ι, A.coeff q *
+      wick (fun r s : Sum (Fin 2) (Fin 4) ↦
+        K (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q r)
+          (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q s)) Finset.univ) =
+        3 * (K i j * A.quarticContraction K) +
+          12 * A.twoPointContraction K i j := by
+  classical
+  let ext : Fin 2 → ι := fun t ↦ if t = 0 then i else j
+  have hC : ∀ q : Fin 4 → ι, ∀ r s : Sum (Fin 2) (Fin 4),
+      K (Sum.elim ext q r) (Sum.elim ext q s) =
+        K (Sum.elim ext q s) (Sum.elim ext q r) := by
+    intro q r s
+    exact hKsymm _ _
+  -- First genuine subgoal: enumerate the fifteen sixth-order Wick pairings.  This is obtained
+  -- by applying `wick_erase` to `Sum.inl 0`; the residual four-quartic term is evaluated by
+  -- `wick_quartic_slots`, while each mixed residual is evaluated by a second `wick_erase`.
+  have hWick : ∀ q : Fin 4 → ι,
+      wick (fun r s : Sum (Fin 2) (Fin 4) ↦
+        K (Sum.elim ext q r) (Sum.elim ext q s)) Finset.univ =
+        K i j * (K (q 0) (q 1) * K (q 2) (q 3) +
+          K (q 0) (q 2) * K (q 1) (q 3) +
+          K (q 0) (q 3) * K (q 1) (q 2)) +
+        K i (q 0) * (K j (q 1) * K (q 2) (q 3) +
+          K j (q 2) * K (q 1) (q 3) +
+          K j (q 3) * K (q 1) (q 2)) +
+        K i (q 1) * (K j (q 0) * K (q 2) (q 3) +
+          K j (q 2) * K (q 0) (q 3) +
+          K j (q 3) * K (q 0) (q 2)) +
+        K i (q 2) * (K j (q 0) * K (q 1) (q 3) +
+          K j (q 1) * K (q 0) (q 3) +
+          K j (q 3) * K (q 0) (q 1)) +
+        K i (q 3) * (K j (q 0) * K (q 1) (q 2) +
+          K j (q 1) * K (q 0) (q 2) +
+          K j (q 2) * K (q 0) (q 1)) := by
+    intro q
+    -- Informal proof: use `wick_erase _ (hC q) Finset.univ` at `Sum.inl 0`, then simplify the
+    -- five possible partners (`Sum.inl 1` and `Sum.inr k`, `k : Fin 4`).
+    -- The two-element residual Wick sums are closed by `wick_empty`/`pairWeight_pair` through
+    -- `wick_erase`; the four-quartic residual is `wick_quartic_slots`.
+    sorry
+  have hVac :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        (K i j * (K (q 0) (q 1) * K (q 2) (q 3) +
+          K (q 0) (q 2) * K (q 1) (q 3) +
+          K (q 0) (q 3) * K (q 1) (q 2)))) =
+        3 * (K i j * A.quarticContraction K) := by
+    -- This is the already-proved vacuum orbit collapse, multiplied by the external covariance
+    -- `K i j`; formally, rewrite the parenthesized quartic Wick expansion with
+    -- `wick_quartic_slots`, apply `quartic_wick_sum_eq_three_quarticContraction`, and normalize.
+    sorry
+  have hMixed :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        (K i (q 0) * (K j (q 1) * K (q 2) (q 3)) +
+          K i (q 0) * (K j (q 2) * K (q 1) (q 3)) +
+          K i (q 0) * (K j (q 3) * K (q 1) (q 2)) +
+          K i (q 1) * (K j (q 0) * K (q 2) (q 3)) +
+          K i (q 1) * (K j (q 2) * K (q 0) (q 3)) +
+          K i (q 1) * (K j (q 3) * K (q 0) (q 2)) +
+          K i (q 2) * (K j (q 0) * K (q 1) (q 3)) +
+          K i (q 2) * (K j (q 1) * K (q 0) (q 3)) +
+          K i (q 2) * (K j (q 3) * K (q 0) (q 1)) +
+          K i (q 3) * (K j (q 0) * K (q 1) (q 2)) +
+          K i (q 3) * (K j (q 1) * K (q 0) (q 2)) +
+          K i (q 3) * (K j (q 2) * K (q 0) (q 1)))) =
+        12 * A.twoPointContraction K i j := by
+    -- Each of these twelve sums is the canonical `twoPointContraction`, after reindexing the
+    -- four quartic slots by a suitable permutation.  The reindexing API is `coeff_sum_perm A σ`;
+    -- `hKsymm` handles the orientation of the final internal pair.
+    sorry
+  have hAssemble :
+      (∑ q : Fin 4 → ι, A.coeff q *
+        wick (fun r s : Sum (Fin 2) (Fin 4) ↦
+          K (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q r)
+            (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q s)) Finset.univ) =
+        3 * (K i j * A.quarticContraction K) +
+          12 * A.twoPointContraction K i j := by
+    -- Rewrite each Wick sum using `hWick`, split the finite sum into the vacuum and mixed
+    -- contributions, and finish with `hVac`, `hMixed`, and `ring`.
+    sorry
+  exact hAssemble
+
+-- Two-coordinate specialization of the quartic Wick reduction: `z i * z j * V_A` expands into
+-- one Wick sum per coefficient tuple `q` over the disjoint union `Sum (Fin 2) (Fin 4)`.  The
+-- coordinate product over the family `t ↦ if t = 0 then i else j` is exactly `z i * z j`, so the
+-- generic `integral_coordinateProduct_mul_potential_eq_sum_wick` applies verbatim.
+private lemma integral_coord_mul_potential_eq_sum_wick
+    (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (hK : K.PosSemidef) (i j : ι) :
+    ∫ z, z i * z j * A.potential z ∂multivariateGaussian 0 K =
+      (((4 : ℕ).factorial : ℝ)⁻¹) *
+        ∑ q : Fin 4 → ι, A.coeff q *
+          wick (fun r s : Sum (Fin 2) (Fin 4) ↦
+            K (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q r)
+              (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q s)) Finset.univ := by
+  rw [← integral_coordinateProduct_mul_potential_eq_sum_wick A K hK
+    (index := (fun t : Fin 2 ↦ if t = 0 then i else j))]
+  simp [coordinateProduct]
 
 /-- Gaussian moment of two coordinates times a symmetric quartic potential.
 
@@ -293,7 +520,10 @@ theorem integral_coord_mul_potential (A : QuarticCoupling ι) (K : Matrix ι ι 
     ∫ z, z i * z j * A.potential z ∂multivariateGaussian 0 K =
       K i j * ((1 / 8 : ℝ) * A.quarticContraction K) +
         (1 / 2 : ℝ) * A.twoPointContraction K i j := by
-  sorry
+  rw [integral_coord_mul_potential_eq_sum_wick A K hK i j,
+    two_external_wick_sum_eq_three_twelve_contractions A K
+      (fun i j ↦ hK.isHermitian.apply j i) i j]
+  ring_nf
 
 /-- Gaussian moment of four coordinates times the potential, retained as an eighth-order Wick
 sum rather than a list of 105 terms.
@@ -307,8 +537,8 @@ theorem integral_fourCoords_mul_potential (A : QuarticCoupling ι)
       (((4 : ℕ).factorial : ℝ)⁻¹) *
         ∑ q : Fin 4 → ι, A.coeff q *
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦
-            K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ := by
-  sorry
+            K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ :=
+  integral_coordinateProduct_mul_potential_eq_sum_wick A K hK index
 
 /-! ## First-order quartic response -/
 
@@ -322,13 +552,41 @@ Informal proof: apply `partitionFunction_sub_linear_isBigO` and rewrite `∫ V_A
 than a manual list. -/
 theorem partitionFunction_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
     (hK : K.PosSemidef) (hA : A.Nonnegative)
-    (hnorm : ∀ ε ∈ Set.Ici (0 : ℝ), Normalizable (multivariateGaussian 0 K) A.potential ε)
+    (_hnorm : ∀ ε ∈ Set.Ici (0 : ℝ), Normalizable (multivariateGaussian 0 K) A.potential ε)
     (hV2 : Integrable (fun z ↦ A.potential z ^ 2) (multivariateGaussian 0 K)) :
     Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
       (fun ε ↦ partitionFunction (multivariateGaussian 0 K) A.potential ε -
         (1 - (ε / 8) * A.quarticContraction K))
       (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+  have hVnonneg : 0 ≤ A.potential := by
+    intro z
+    exact hA z
+  -- `A.potential` is integrable: its pointwise norm is bounded by `1 + A.potential ^ 2`,
+  -- the sum of the integrable constant `1` and the second-moment hypothesis `hV2`.
+  have hV : Integrable (fun z ↦ A.potential z) (multivariateGaussian 0 K) := by
+    refine Integrable.mono' ((integrable_const (1 : ℝ)).add hV2) ?_ ?_
+    · exact A.continuous_potential.aestronglyMeasurable
+    · filter_upwards with z
+      dsimp
+      rw [abs_of_nonneg (hA z)]
+      -- `v ≤ 1 + v²` follows from `(v - 1/2)² ≥ 0`
+      nlinarith [sq_nonneg (A.potential z - (1 / 2 : ℝ))]
+  -- The generic quadratic remainder of the partition function, with the linear term rewritten
+  -- by `integral_potential`.
+  have hbase : Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
+      (fun ε ↦ partitionFunction (multivariateGaussian 0 K) A.potential ε - 1 +
+        ε * ∫ z, A.potential z ∂multivariateGaussian 0 K)
+      (fun ε : ℝ ↦ ε ^ 2) :=
+    partitionFunction_sub_linear_isBigO (μ := multivariateGaussian 0 K)
+      (V := A.potential) hVnonneg hV hV2
+  have hint : (∫ z, A.potential z ∂multivariateGaussian 0 K) =
+      (1 / 8 : ℝ) * A.quarticContraction K :=
+    integral_potential A K hK
+  -- `1 - (ε / 8) * C = 1 - ε * ∫ V`, so the displayed remainder is exactly the generic one.
+  refine hbase.congr_left ?_
+  intro ε
+  rw [hint]
+  ring
 
 /-- First-order two-point function with a quadratic right-hand remainder.
 
@@ -340,7 +598,7 @@ Informal proof: apply `integral_deform_sub_linear_isBigO` to `O(z)=z_i z_j`.  Su
 the covariance, leaving the twelve-element pairing orbit and hence the coefficient `1 / 2`. -/
 theorem twoPoint_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
     (hK : K.PosSemidef) (hA : A.Nonnegative) (i j : ι)
-    (hnorm : ∀ ε ∈ Set.Ici (0 : ℝ), Normalizable (multivariateGaussian 0 K) A.potential ε)
+    (_hnorm : ∀ ε ∈ Set.Ici (0 : ℝ), Normalizable (multivariateGaussian 0 K) A.potential ε)
     (hV2 : Integrable (fun z ↦ A.potential z ^ 2) (multivariateGaussian 0 K))
     (hV2O : Integrable (fun z ↦ A.potential z ^ 2 * (z i * z j))
       (multivariateGaussian 0 K)) :
@@ -348,7 +606,122 @@ theorem twoPoint_isBigO (A : QuarticCoupling ι) (K : Matrix ι ι ℝ)
       (fun ε ↦ (∫ z, z i * z j ∂deform (multivariateGaussian 0 K) A.potential ε) -
         (K i j - (ε / 2) * A.twoPointContraction K i j))
       (fun ε : ℝ ↦ ε ^ 2) := by
-  sorry
+  let μ : Measure (EuclideanSpace ℝ ι) := multivariateGaussian 0 K
+  let O : EuclideanSpace ℝ ι → ℝ := fun z ↦ z i * z j
+  let index : Fin 2 → ι := fun t ↦ if t = 0 then i else j
+  have hindex0 : index 0 = i := by simp [index]
+  have hindex1 : index 1 = j := by simp [index]
+  have hVnonneg : 0 ≤ A.potential := by
+    intro z
+    exact hA z
+  -- `A.potential` is integrable, exactly as in `partitionFunction_isBigO`.
+  have hV : Integrable (fun z ↦ A.potential z) μ := by
+    refine Integrable.mono' ((integrable_const (1 : ℝ)).add hV2) ?_ ?_
+    · exact A.continuous_potential.aestronglyMeasurable
+    · filter_upwards with z
+      dsimp
+      rw [abs_of_nonneg (hA z)]
+      nlinarith [sq_nonneg (A.potential z - (1 / 2 : ℝ))]
+  -- `z i * z j` is a finite Gaussian coordinate product, hence integrable.
+  have hO : Integrable O μ := by
+    dsimp [O]
+    simpa [Fin.prod_univ_two] using
+      (integrable_finset_prod_gaussian_coordinate (μ := μ)
+        (s := (Finset.univ : Finset (Fin 2)))
+        (coord := fun t : Fin 2 ↦ if t = 0 then i else j))
+  -- `V * O` is a finite sum of Gaussian coordinate products over `Sum (Fin 2) (Fin 4)`.
+  have hmono : ∀ q : Fin 4 → ι,
+      Integrable (fun z : EuclideanSpace ℝ ι ↦ (z i * z j) * ∏ r : Fin 4, z (q r)) μ := fun q => by
+    simpa [Fintype.prod_sum_type, Fin.prod_univ_two] using
+      (integrable_finset_prod_gaussian_coordinate (μ := μ)
+        (s := (Finset.univ : Finset (Sum (Fin 2) (Fin 4))))
+        (coord := Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q))
+  have hsum : Integrable (fun z : EuclideanSpace ℝ ι ↦
+      ∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r)) μ := by
+    simpa [mul_assoc] using
+      (integrable_finsetSum (Finset.univ : Finset (Fin 4 → ι))
+        (fun q _hq => (hmono q).const_mul (A.coeff q)))
+  have hVO' : Integrable (fun z : EuclideanSpace ℝ ι ↦ (z i * z j) * A.potential z) μ := by
+    let c : ℝ := (((4 : ℕ).factorial : ℝ)⁻¹)
+    have hfun : (fun z : EuclideanSpace ℝ ι ↦ (z i * z j) * A.potential z) =
+        fun z ↦ c * (∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r)) := by
+      funext z
+      let S : ℝ := ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, z (q r)
+      change (z i * z j) * ((((4 : ℕ).factorial : ℝ)⁻¹) * S) =
+        (((4 : ℕ).factorial : ℝ)⁻¹) *
+          ∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r)
+      calc
+        (z i * z j) * ((((4 : ℕ).factorial : ℝ)⁻¹) * S) =
+            (((4 : ℕ).factorial : ℝ)⁻¹) * ((z i * z j) * S) := by ring
+        _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
+              ∑ q : Fin 4 → ι, (z i * z j) * (A.coeff q * ∏ r : Fin 4, z (q r)) := by
+          congr 1
+          dsimp [S]
+          rw [Finset.mul_sum]
+        _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
+              ∑ q : Fin 4 → ι, A.coeff q * (z i * z j) * ∏ r : Fin 4, z (q r) := by
+          apply congrArg (fun t : ℝ => (((4 : ℕ).factorial : ℝ)⁻¹) * t)
+          apply Finset.sum_congr rfl
+          intro q _
+          ring
+    rw [hfun]
+    exact hsum.const_mul c
+  have hVO : Integrable (fun z : EuclideanSpace ℝ ι ↦ A.potential z * (z i * z j)) μ := by
+    convert hVO' using 1
+    ext z
+    ring
+  -- Gaussian two-point moment: `∫ z i * z j` is the covariance entry `K i j`.
+  have hW : jointMoment μ
+      (fun a : Fin 2 ↦ fun z ↦ z (index a) - (0 : EuclideanSpace ℝ ι) (index a)) =
+      wick (fun a b : Fin 2 ↦ K (index a) (index b)) Finset.univ :=
+    integral_prod_multivariateGaussian_centered_eq_wick_fintype (m := (0 : EuclideanSpace ℝ ι))
+      (S := K) hK index
+  have hC : ∀ a b : Fin 2, K (index a) (index b) = K (index b) (index a) := fun a b =>
+    hK.isHermitian.apply (index b) (index a)
+  have hwick2 : wick (fun a b : Fin 2 ↦ K (index a) (index b)) Finset.univ = K i j := by
+    rw [wick_erase (fun a b : Fin 2 ↦ K (index a) (index b)) hC Finset.univ
+      (by simp : (0 : Fin 2) ∈ (Finset.univ : Finset (Fin 2)))]
+    rw [show (Finset.univ : Finset (Fin 2)).erase (0 : Fin 2) = ({1} : Finset (Fin 2)) by decide]
+    simp [hindex0, hindex1, wick_empty]
+  have hintO : (∫ z, z i * z j ∂μ) = K i j := by
+    calc
+      (∫ z, z i * z j ∂μ) = jointMoment μ
+          (fun a : Fin 2 ↦ fun z ↦ z (index a) - (0 : EuclideanSpace ℝ ι) (index a)) := by
+        simp [jointMoment, blockMoment, index, Fin.prod_univ_two]
+      _ = wick (fun a b : Fin 2 ↦ K (index a) (index b)) Finset.univ := hW
+      _ = K i j := hwick2
+  have hintV : (∫ z, A.potential z ∂μ) = (1 / 8 : ℝ) * A.quarticContraction K :=
+    integral_potential A K hK
+  have hintVO : (∫ z, A.potential z * (z i * z j) ∂μ) =
+      K i j * ((1 / 8 : ℝ) * A.quarticContraction K) +
+        (1 / 2 : ℝ) * A.twoPointContraction K i j := by
+    rw [show (fun z : EuclideanSpace ℝ ι ↦ A.potential z * (z i * z j)) =
+        fun z ↦ z i * z j * A.potential z by
+      funext z
+      ring]
+    exact integral_coord_mul_potential A K hK i j
+  -- The covariance term collapses: `∫ V O - (∫ V)(∫ O) = (1/2) * T`.
+  have hcovWith : covarianceWith μ O A.potential =
+      (1 / 2 : ℝ) * A.twoPointContraction K i j := by
+    unfold covarianceWith
+    simp only [O, smul_eq_mul]
+    rw [hintVO, hintV, hintO]
+    ring
+  -- Generic quadratic response of the deformed two-point expectation.
+  have hbase : Asymptotics.IsBigO (nhdsWithin 0 (Set.Ici 0))
+      (fun ε ↦ (∫ z, O z ∂deform μ A.potential ε) - (∫ z, O z ∂μ) +
+        ε • covarianceWith μ O A.potential)
+      (fun ε : ℝ ↦ ε ^ 2) :=
+    integral_deform_sub_linear_isBigO (μ := μ) (V := A.potential) (O := O)
+      hVnonneg hV hO hVO hV2 hV2O
+  -- `1 - (ε/2) * T = ...`; the disconnected `K i j` term cancels in the covariance.
+  refine hbase.congr_left ?_
+  intro ε
+  rw [hcovWith]
+  simp only [O, smul_eq_mul]
+  rw [hintO]
+  dsimp [μ]
+  ring
 
 /-- First-order connected four-point function with a quadratic right-hand remainder.
 

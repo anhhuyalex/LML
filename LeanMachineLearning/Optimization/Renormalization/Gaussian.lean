@@ -2458,6 +2458,48 @@ end IsGaussian
 
 /-! ## Multivariate Gaussian coordinates -/
 
+/-- Finite products of coordinate projections are integrable under any Gaussian measure.
+
+This is the coordinate specialization of the finite Hölder estimate used in the coordinate-free
+Wick theorem.  It is public because polynomial observables recur throughout Gaussian
+perturbation theory. -/
+theorem integrable_finset_prod_gaussian_coordinate
+    {ι : Type*} [Finite ι] (μ : Measure (EuclideanSpace ℝ ι))
+    [ProbabilityTheory.IsGaussian μ] {α : Type*} (s : Finset α) (coord : α → ι) :
+    Integrable (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) μ := by
+  letI : Fintype ι := Fintype.ofFinite ι
+  by_cases hs : s.Nonempty
+  · have h_coord_memLp : ∀ (a : α), a ∈ s →
+        MemLp (fun z : EuclideanSpace ℝ ι ↦ z (coord a))
+          (((s.card : ℕ) : ENNReal)) μ := fun a _ha ↦ by
+      simpa [EuclideanSpace.coe_proj] using
+        (ProbabilityTheory.IsGaussian.memLp_dual μ (EuclideanSpace.proj (coord a))
+          (((s.card : ℕ) : ENNReal)) (ENNReal.natCast_ne_top _))
+    have h_holder_product :
+        MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a))
+          ((∑ a ∈ s, (((s.card : ℕ) : ENNReal))⁻¹)⁻¹) μ := by
+      convert
+        (MeasureTheory.MemLp.prod
+          (μ := μ)
+          (f := fun a (z : EuclideanSpace ℝ ι) ↦ z (coord a))
+          (p := fun _ : α ↦ (((s.card : ℕ) : ENNReal)))
+          (s := s)
+          h_coord_memLp) using 1
+      ext z
+      simp
+    have h_exponent :
+        ((∑ a ∈ s, (((s.card : ℕ) : ENNReal))⁻¹)⁻¹) =
+          (1 : ENNReal) := by
+      rw [Finset.sum_const, nsmul_eq_mul,
+        ENNReal.mul_inv_cancel (by norm_num [Nat.ne_of_gt (Finset.card_pos.mpr hs)])
+          (ENNReal.natCast_ne_top s.card)]
+      simp
+    exact (h_exponent ▸ h_holder_product :
+      MemLp (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) (1 : ENNReal) μ).integrable
+        (by norm_num)
+  · have hs_empty : s = ∅ := Finset.not_nonempty_iff_eq_empty.mp hs
+    simp [hs_empty]
+
 /-- Wick theorem for repeated coordinates of a multivariate Gaussian.
 
 Informal proof:
