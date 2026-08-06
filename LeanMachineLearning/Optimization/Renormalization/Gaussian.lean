@@ -2136,17 +2136,18 @@ theorem cumulantTransform_wick_eq_zero (C : ι → ι → ℝ) (_hC : ∀ i j, C
 This is the integrability half of translation invariance: every finite product of the translated
 observables expands by `Finset.prod_add` into a finite sum of constant multiples of finite
 products of the original observables, and each summand is integrable by `hX`. -/
-private lemma hasFiniteJointMoments_add_const {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    (X : ι → Ω → ℝ) (d : ι → ℝ) (hX : HasFiniteJointMoments μ X) :
+private lemma hasFiniteJointMoments_add_const {ι : Type*} {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} (X : ι → Ω → ℝ) (d : ι → ℝ) (hX : HasFiniteJointMoments μ X) :
     HasFiniteJointMoments μ (fun j x ↦ X j x + d j) := by
+  classical
   intro B
   change Integrable (fun ω => ∏ j ∈ B, (X j ω + d j)) μ
   have h_expand : (fun ω : Ω => ∏ j ∈ B, (X j ω + d j)) =
       (fun ω : Ω => ∑ T ∈ B.powerset, (∏ j ∈ T, d j) * (∏ j ∈ B \ T, X j ω)) := by
     funext ω
-    exact Finset.prod_add (fun j => X j ω) (fun j => d j) B
+    simpa [add_comm] using Finset.prod_add (fun j => d j) (fun j => X j ω) B
   rw [h_expand]
-  exact MeasureTheory.Integrable.fun_finsetSum B.powerset
+  exact MeasureTheory.integrable_finsetSum B.powerset
     (fun T _hT => (hX (B \ T)).const_mul (∏ j ∈ T, d j))
 
 -- Replacing one coordinate by a constant preserves finite joint moments: on blocks containing
@@ -2195,20 +2196,20 @@ private lemma cumulantTransform_const_coordinate_eq_zero {Ω : Type*} [Measurabl
   · rcases (Fintype.one_lt_card_iff.mp hs) with ⟨a, b, hab⟩
     by_cases hia : a ≠ i
     · exact ⟨a, by simp [hia]⟩
-    · refine ⟨b, ?_⟩
-      simp
+    · have ha_eq : a = i := by
+        by_contra h
+        exact hia h
+      refine ⟨b, ?_⟩
+      simp only [Finset.mem_sdiff, Finset.mem_univ, Finset.mem_singleton, true_and]
       intro hbi
-      exact hab (by simpa [hia] using hbi.symm)
+      exact hab (ha_eq.trans hbi.symm)
   · intro s
     by_cases hi : i ∈ s
     · have h_inter : s ∩ ({i} : Finset ι) = {i} := by
         ext x
-        simp
-        constructor
-        · intro hx
-          exact hx.2
-        · intro hx
-          exact ⟨by simpa [hx] using hi, hx⟩
+        simp only [Finset.mem_inter, Finset.mem_singleton, and_iff_right_iff_imp]
+        intro hx
+        simpa [hx] using hi
       have h_sdiff : s \ ({i} : Finset ι) = s.erase i := by
         rw [Finset.sdiff_singleton_eq_erase]
       have h_erased : blockMoment μ U (s.erase i) = blockMoment μ Y (s.erase i) := by
@@ -2243,19 +2244,19 @@ private lemma cumulantTransform_const_coordinate_eq_zero {Ω : Type*} [Measurabl
             blockMoment μ U (s \ ({i} : Finset ι)) =
           c * blockMoment μ Y (s.erase i) := by
         rw [h_inter, h_sdiff, h_single, h_erased]
-        ring
       exact h_lhs.trans h_rhs.symm
     · have h_inter : s ∩ ({i} : Finset ι) = ∅ := by
         ext x
-        simp
+        rw [Finset.mem_inter, Finset.mem_singleton]
         constructor
         · intro hx
+          exfalso
           exact hi (hx.2 ▸ hx.1)
         · intro hx
-          cases hx
+          simp at hx
       have h_sdiff : s \ ({i} : Finset ι) = s := by
         ext x
-        simp
+        rw [Finset.mem_sdiff, Finset.mem_singleton]
         constructor
         · intro hx
           exact hx.1

@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Renormalization.Basic
 public import Mathlib.Algebra.Group.ForwardDiff
+public import Mathlib.Analysis.Calculus.IteratedDeriv.FaaDiBruno
 public import Mathlib.Tactic.ComputeDegree
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Independence.Integration
@@ -1488,26 +1489,13 @@ private lemma jointCumulantMultilinearMap_symm [Fintype ι] [DecidableEq ι] [Fi
     (hfinite : ∀ A : ι → κ → ℝ, HasFiniteJointMoments μ (linearCombinationFamily X A))
     (e : Equiv.Perm ι) (A : ι → κ → ℝ) :
     jointCumulantMultilinearMap (μ := μ) X hfinite (fun i ↦ A (e.symm i)) =
-      jointCumulantMultilinearMap (μ := μ) X hfinite A := by
-  dsimp [jointCumulantMultilinearMap]
-  exact jointCumulant_perm (μ := μ) e (linearCombinationFamily X A)
-
--- Diagonal values of the joint-cumulant multilinear map coincide with the joint cumulants of the
--- corresponding linear combinations of `X`; this connects the abstract vanishing hypothesis on
--- the map to the concrete hypothesis `hdiag` on joint cumulants.
-private lemma jointCumulantMultilinearMap_diag_eq_zero [Fintype ι] [DecidableEq ι] [Fintype κ]
-    (X : κ → Ω → ℝ)
-    (hfinite : ∀ A : ι → κ → ℝ, HasFiniteJointMoments μ (linearCombinationFamily X A))
-    (hdiag : ∀ a : κ → ℝ,
-      jointCumulant μ (fun _ : ι ↦ fun ω ↦ ∑ j : κ, a j * X j ω) = 0)
-    (a : κ → ℝ) :
-    jointCumulantMultilinearMap (μ := μ) X hfinite (fun _ : ι ↦ a) = 0 := by
-  dsimp [jointCumulantMultilinearMap, linearCombinationFamily]
-  exact hdiag a
+      jointCumulantMultilinearMap (μ := μ) X hfinite A :=
+  jointCumulant_perm e (linearCombinationFamily X A)
 
 -- Applying `linearCombinationFamily` with the identity matrix (diagonal `1`s, zero elsewhere)
 -- recovers the original family; this is the notation conversion that turns the basis value of the
 -- multilinear map back into a joint cumulant of `X`.
+omit [MeasurableSpace Ω] in
 private lemma linearCombinationFamily_id_eq_self [Fintype κ] [DecidableEq κ] (X : κ → Ω → ℝ) :
     linearCombinationFamily X (fun i j : κ ↦ if i = j then (1 : ℝ) else 0) = X := by
   ext i ω
@@ -1551,7 +1539,7 @@ finite, these are permutations; symmetry identifies all surviving summands, so t
 Reference: Erik G. F. Thomas, *A polarization identity for multilinear maps*, Theorem 1,
 <https://arxiv.org/abs/1309.1275>. -/
 theorem multilinearMap_apply_eq_zero_of_diagonal_eq_zero
-    {E : Type*} [Finite ι] [DecidableEq ι] [AddCommMonoid E] [Module ℝ E]
+    {E : Type*} [Finite ι] [AddCommMonoid E] [Module ℝ E]
     (M : MultilinearMap ℝ (fun _ : ι ↦ E) ℝ)
     (hsymm : ∀ (e : Equiv.Perm ι) (A : ι → E),
       M (fun i ↦ A (e.symm i)) = M A)
@@ -1574,7 +1562,7 @@ theorem multilinearMap_apply_eq_zero_of_diagonal_eq_zero
       Finset.univ.image f = Finset.univ ↔ Function.Surjective f := by
     constructor
     · intro hf y
-      have hy : y ∈ Finset.univ.image f := by rw [hf]; simp
+      have hy : y ∈ Finset.univ.image f := by simp [hf]
       simpa using hy
     · exact Finset.image_univ_of_surjective
   have hzero :
@@ -1680,28 +1668,11 @@ theorem jointCumulant_eq_zero_of_diagonal_linearCombination [Fintype ι] [Decida
     (hdiag : ∀ a : ι → ℝ,
       jointCumulant μ (fun _ : ι ↦ fun ω ↦ ∑ j : ι, a j * X j ω) = 0) :
     jointCumulant μ X = 0 := by
-  let M := jointCumulantMultilinearMap (μ := μ) X hfinite
-  -- The multilinear map is symmetric, which is exactly what the polarization helper needs.
-  have hsymm : ∀ (e : Equiv.Perm ι) (A : ι → ι → ℝ),
-      M (fun i ↦ A (e.symm i)) = M A :=
-    jointCumulantMultilinearMap_symm X hfinite
-  -- Diagonal values of `M` are precisely the diagonal joint cumulants, which vanish by `hdiag`.
-  have hdiagM : ∀ a : ι → ℝ, M (fun _ : ι ↦ a) = 0 :=
-    jointCumulantMultilinearMap_diag_eq_zero X hfinite hdiag
-  -- Symmetry plus vanishing on the diagonal forces the value on the standard basis tuple to be
-  -- zero (polarization).
-  have hbasis : M (fun i j ↦ if i = j then (1 : ℝ) else 0) = 0 :=
-    multilinearMap_eq_zero_on_basis_of_diagonal_eq_zero M hsymm hdiagM
-  -- The identity matrix expresses `X` as a linear combination of itself, so the joint cumulant
-  -- of `X` is exactly the basis value of `M` just proved to be zero.
-  have hid : linearCombinationFamily X (fun i j ↦ if i = j then (1 : ℝ) else 0) = X :=
-    linearCombinationFamily_id_eq_self X
-  calc
-    jointCumulant μ X =
-        jointCumulant μ (linearCombinationFamily X (fun i j ↦ if i = j then (1 : ℝ) else 0)) := by
-          rw [hid]
-    _ = M (fun i j ↦ if i = j then (1 : ℝ) else 0) := rfl
-    _ = 0 := hbasis
+  let M := jointCumulantMultilinearMap X hfinite
+  exact (linearCombinationFamily_id_eq_self X).symm ▸
+    multilinearMap_eq_zero_on_basis_of_diagonal_eq_zero M
+      (jointCumulantMultilinearMap_symm X hfinite)
+      (by apply hdiag)
 
 /-- Independence of the observables indexed by `A` from those indexed by its complement. -/
 def IndepAcross (μ : Measure Ω) (X : ι → Ω → ℝ)
@@ -2124,7 +2095,6 @@ private lemma cumulantTransform_tracePair_partialMatching_regrouping [Fintype ι
               ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
                 ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
                   ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) := by
-  classical
   have hne' : A ∪ (Finset.univ \ A) ≠ ∅ := by rw [_hcut_cover]; exact _huniv_ne
   have hkey := Finpartition.cumulantTransform_eq_sum_matching _hcut_disjoint hne' f
     _hblock_split_compl
@@ -2385,6 +2355,46 @@ lemma iteratedDeriv_mgf_zero_eq_moment (X : Ω → ℝ) (k : ℕ)
     iteratedDeriv k (mgf X μ) 0 = ∫ ω, X ω ^ k ∂μ := by
   simpa using ProbabilityTheory.iteratedDeriv_mgf_zero hmgf k
 
+/-- Analytic Faà di Bruno expansion of the scalar cumulant-generating function.
+
+This is the reusable analytic/combinatorial core behind
+`iteratedDeriv_cgf_zero_eq_sum_partitions`.  Informally, unfold `cgf` as
+`Real.log ∘ mgf X μ`, use `ProbabilityTheory.mgf_zero` to get `mgf X μ 0 = 1`, and apply the
+one-variable Faà di Bruno formula
+`iteratedDeriv_comp_eq_sum_orderedFinpartition` to `Real.log ∘ mgf X μ`.  The assumptions give the
+required smoothness (`analyticAt_mgf hmgf`, hence `ContDiffAt`); the derivatives of `Real.log` at
+`1` are `(-1)^(k-1) * (k-1)!` for `k ≥ 1`; finally, reindex Mathlib's
+`OrderedFinpartition n` by ordinary `Finpartition (Finset.univ : Finset (Fin n))`.
+
+References: Mathlib's `Analysis/Calculus/IteratedDeriv/FaaDiBruno.lean` for the analytic formula,
+and the classical cumulant/moment formula, e.g. Scholarpedia "Cumulants"
+<http://www.scholarpedia.org/article/Cumulants>. -/
+lemma iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno [IsProbabilityMeasure μ]
+    (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
+    (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
+    iteratedDeriv n (cgf X μ) 0 =
+      ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
+        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 := by
+  sorry
+
+/-- The `(k + 1)`-st derivative of `Real.log` at `1` equals `(-1)^k * k!`.
+
+This is the classical `deriv^[k] (1/x)` computation: `deriv log = Inv.inv`, and
+`iter_deriv_inv` gives `deriv^[k] Inv.inv x = (-1)^k * k! * x^(-1-k)`, evaluated at `x = 1`. -/
+private lemma iteratedDeriv_log_one (k : ℕ) :
+    iteratedDeriv (k + 1) Real.log 1 = (-1 : ℝ) ^ k * (k.factorial : ℝ) := by
+  rw [iteratedDeriv_eq_iterate]
+  rw [Function.iterate_succ_apply]
+  rw [Real.deriv_log']
+  rw [iter_deriv_inv k 1]
+  simp
+
+/-- The `k`-th derivative of `Real.log` at `1`, for `k ≥ 1`. -/
+private lemma iteratedDeriv_log_one_of_pos {k : ℕ} (hk : 0 < k) :
+    iteratedDeriv k Real.log 1 = (-1 : ℝ) ^ (k - 1) * ((k - 1).factorial : ℝ) := by
+  rcases Nat.exists_eq_succ_of_ne_zero (ne_of_gt hk) with ⟨m, rfl⟩
+  simpa using iteratedDeriv_log_one m
+
 /-- The $n$-th derivative of the CGF at zero expands to a sum over partition lattices of products
 of MGF derivatives.
 
@@ -2397,7 +2407,7 @@ lemma iteratedDeriv_cgf_zero_eq_sum_partitions [IsProbabilityMeasure μ]
     iteratedDeriv n (cgf X μ) 0 =
       ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
         (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 := by
-  sorry
+  exact iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno X n hn hmgf
 
 /-- The cumulant of order 0 is 0. -/
 lemma cumulant_zero [IsProbabilityMeasure μ] (X : Ω → ℝ) : cumulant μ X 0 = 0 := by
@@ -2412,7 +2422,20 @@ coefficients, so the `n`th CGF derivative is exactly the joint cumulant of `n` c
 theorem cumulant_eq_jointCumulant [IsProbabilityMeasure μ] (X : Ω → ℝ) (n : ℕ)
     (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
     cumulant μ X n = jointCumulant μ (fun _ : Fin n ↦ X) := by
-  sorry
+  by_cases hn : n = 0
+  · subst n
+    simp [cumulant]
+  · dsimp [cumulant, jointCumulant, blockCumulant]
+    rw [iteratedDeriv_cgf_zero_eq_sum_partitions X n hn hmgf]
+    have h_univ_ne : (Finset.univ : Finset (Fin n)) ≠ ∅ := by
+      intro h_empty
+      have hmem : (⟨0, Nat.pos_of_ne_zero hn⟩ : Fin n) ∈
+          (Finset.univ : Finset (Fin n)) := by
+        simp
+      rw [h_empty] at hmem
+      simp at hmem
+    simp [Finpartition.cumulantTransform, Finpartition.blockProduct, h_univ_ne,
+      blockMoment_const_eq_integral_pow, iteratedDeriv_mgf_zero_eq_moment, hmgf]
 
 end Renormalization
 
