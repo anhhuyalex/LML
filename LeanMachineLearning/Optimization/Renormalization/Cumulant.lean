@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.Optimization.Renormalization.Basic
 public import Mathlib.Algebra.Group.ForwardDiff
 public import Mathlib.Analysis.Calculus.IteratedDeriv.FaaDiBruno
+public import Mathlib.Logic.Function.Basic
 public import Mathlib.Tactic.ComputeDegree
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Independence.Integration
@@ -2355,28 +2356,6 @@ lemma iteratedDeriv_mgf_zero_eq_moment (X : Ω → ℝ) (k : ℕ)
     iteratedDeriv k (mgf X μ) 0 = ∫ ω, X ω ^ k ∂μ := by
   simpa using ProbabilityTheory.iteratedDeriv_mgf_zero hmgf k
 
-/-- Analytic Faà di Bruno expansion of the scalar cumulant-generating function.
-
-This is the reusable analytic/combinatorial core behind
-`iteratedDeriv_cgf_zero_eq_sum_partitions`.  Informally, unfold `cgf` as
-`Real.log ∘ mgf X μ`, use `ProbabilityTheory.mgf_zero` to get `mgf X μ 0 = 1`, and apply the
-one-variable Faà di Bruno formula
-`iteratedDeriv_comp_eq_sum_orderedFinpartition` to `Real.log ∘ mgf X μ`.  The assumptions give the
-required smoothness (`analyticAt_mgf hmgf`, hence `ContDiffAt`); the derivatives of `Real.log` at
-`1` are `(-1)^(k-1) * (k-1)!` for `k ≥ 1`; finally, reindex Mathlib's
-`OrderedFinpartition n` by ordinary `Finpartition (Finset.univ : Finset (Fin n))`.
-
-References: Mathlib's `Analysis/Calculus/IteratedDeriv/FaaDiBruno.lean` for the analytic formula,
-and the classical cumulant/moment formula, e.g. Scholarpedia "Cumulants"
-<http://www.scholarpedia.org/article/Cumulants>. -/
-lemma iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno [IsProbabilityMeasure μ]
-    (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
-    (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
-    iteratedDeriv n (cgf X μ) 0 =
-      ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
-        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 := by
-  sorry
-
 /-- The `(k + 1)`-st derivative of `Real.log` at `1` equals `(-1)^k * k!`.
 
 This is the classical `deriv^[k] (1/x)` computation: `deriv log = Inv.inv`, and
@@ -2690,55 +2669,292 @@ lemma toFinpartition_parts (c : OrderedFinpartition n) :
   dsimp [toFinpartition]
   exact Finpartition.ofExistsUnique_parts _ _ _ _
 
+/-- The ranges of the embeddings of `c` are pairwise distinct, so they index the parts of
+`toFinpartition c` injectively. -/
+lemma toFinpartition_parts_injective (c : OrderedFinpartition n) :
+    Function.Injective (fun m : Fin c.length =>
+      (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m)) := by
+  intro m m' h
+  change (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m) =
+    (Finset.univ : Finset (Fin (c.partSize m'))).image (c.emb m') at h
+  have hmem : c.emb m ⟨0, c.partSize_pos m⟩ ∈
+      (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m) :=
+    Finset.mem_image.mpr ⟨⟨0, c.partSize_pos m⟩, Finset.mem_univ _, rfl⟩
+  rw [h] at hmem
+  rcases Finset.mem_image.mp hmem with ⟨r', hr', hr'eq⟩
+  exact congrArg (fun p : Σ j : Fin c.length, Fin (c.partSize j) => p.1)
+    (c.emb_injective (a₁ := ⟨m, ⟨0, c.partSize_pos m⟩⟩) (a₂ := ⟨m', r'⟩)
+      (by simp [hr'eq]))
+
 /-- The number of parts of `toFinpartition c` is the length of `c`. -/
 lemma toFinpartition_parts_card (c : OrderedFinpartition n) :
     (toFinpartition n c).parts.card = c.length := by
   rw [toFinpartition_parts]
-  have hinj : Function.Injective (fun m : Fin c.length =>
-      (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m)) := by
-    intro m m' h
-    change (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m) =
-      (Finset.univ : Finset (Fin (c.partSize m'))).image (c.emb m') at h
-    have hmem : c.emb m ⟨0, c.partSize_pos m⟩ ∈
-        (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m) :=
-      Finset.mem_image.mpr ⟨⟨0, c.partSize_pos m⟩, Finset.mem_univ _, rfl⟩
-    rw [h] at hmem
-    rcases Finset.mem_image.mp hmem with ⟨r', hr', hr'eq⟩
-    exact congrArg (fun p : Σ j : Fin c.length, Fin (c.partSize j) => p.1)
-      (c.emb_injective (a₁ := ⟨m, ⟨0, c.partSize_pos m⟩⟩) (a₂ := ⟨m', r'⟩)
-        (by simp [hr'eq]))
-  simp [Fintype.card_fin, Finset.card_image_of_injective (Finset.univ : Finset (Fin c.length)) hinj]
+  simp [Fintype.card_fin,
+    Finset.card_image_of_injective (Finset.univ : Finset (Fin c.length))
+      (toFinpartition_parts_injective c)]
+
+/-- Sorting the image of a strictly increasing family on `Fin l` gives back the family in its
+original order. -/
+private lemma sort_image_strictMono {α : Type*} [LinearOrder α] (l : ℕ) (f : Fin l → α)
+    (hf : StrictMono f) :
+    ((Finset.univ : Finset (Fin l)).image f).sort (· ≤ ·) = List.ofFn f := by
+  apply List.SortedLT.eq_of_mem_iff
+  · exact Finset.sortedLT_sort _
+  · exact hf.sortedLT_ofFn
+  · intro a
+    rw [Finset.mem_sort, Finset.mem_image, List.mem_ofFn]
+    constructor
+    · rintro ⟨i, _hi, rfl⟩
+      exact ⟨i, rfl⟩
+    · rintro ⟨i, rfl⟩
+      exact ⟨i, Finset.mem_univ i, rfl⟩
+
+/-- `toFinpartition` undoes `ofFinpartition`: reconstructing a finite partition from its sorted
+parts gives back `P` itself. -/
+lemma toFinpartition_ofFinpartition (P : Finpartition (Finset.univ : Finset (Fin n))) :
+    toFinpartition n (ofFinpartition P) = P := by
+  apply Finpartition.ext
+  rw [toFinpartition_parts]
+  -- each part `{emb m r | r}` of `ofFinpartition P` is the sorted part `sortedParts P m`
+  change (Finset.univ : Finset (Fin P.parts.card)).image
+    (fun m : Fin P.parts.card =>
+      (Finset.univ : Finset (Fin ((sortedParts P m).card))).image
+        ((sortedParts P m).orderEmbOfFin rfl)) = P.parts
+  simp only [Finset.image_orderEmbOfFin_univ]
+  ext A
+  constructor
+  · intro hA
+    rcases Finset.mem_image.mp hA with ⟨m, hm, rfl⟩
+    exact sortedParts_mem P m
+  · intro hA
+    rcases sortedParts_surj P A hA with ⟨m, hm⟩
+    exact Finset.mem_image.mpr ⟨m, Finset.mem_univ m, hm⟩
+
+/-- `ofFinpartition` undoes `toFinpartition`: sorting the parts of `toFinpartition c` by their
+maxima and re-enumerating them recovers exactly `c`. -/
+lemma ofFinpartition_toFinpartition (c : OrderedFinpartition n) :
+    ofFinpartition (toFinpartition n c) = c := by
+  let P : Finpartition (Finset.univ : Finset (Fin n)) := toFinpartition n c
+  -- `B m` is the range of the `m`-th embedding of `c`; these are the parts of `P`
+  let B : Fin c.length → Finset (Fin n) := fun m =>
+    (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m)
+  -- `idx m` is `m` viewed as an index into `P.parts`
+  let idx (m : Fin c.length) : Fin P.parts.card :=
+    ⟨m.1, by rw [toFinpartition_parts_card]; exact m.2⟩
+  have mem (m : Fin c.length) : B m ∈ P.parts := by
+    dsimp [P, B]
+    rw [toFinpartition_parts]
+    exact Finset.mem_image.mpr ⟨m, Finset.mem_univ m, rfl⟩
+  -- The maximum of the part `B m` is the last element of its increasing enumeration
+  have hmaxOfPart (m : Fin c.length) :
+      maxOfPart P ⟨B m, mem m⟩ =
+        c.emb m ⟨c.partSize m - 1, Nat.sub_one_lt_of_lt (c.partSize_pos m)⟩ := by
+    dsimp [maxOfPart, B]
+    rw [Finset.max'_image (c.emb_strictMono m).monotone]
+    congr 1
+    rw [Finset.max'_eq_iff]
+    constructor
+    · simp
+    · intro a ha
+      exact Nat.le_pred_of_lt a.2
+  -- The maxima of the parts, sorted increasingly, are the values `maxOfPart P ⟨B m, mem m⟩`
+  have hmax_image :
+      P.parts.attach.image (maxOfPart P) =
+        (Finset.univ : Finset (Fin c.length)).image
+          (fun m : Fin c.length => maxOfPart P ⟨B m, mem m⟩) := by
+    ext v
+    constructor
+    · intro hv
+      rcases Finset.mem_image.mp hv with ⟨⟨A, hA⟩, hmemA, rfl⟩
+      have hA' : A ∈ (Finset.univ : Finset (Fin c.length)).image B := by
+        simpa [P, B, toFinpartition_parts] using hA
+      rcases Finset.mem_image.mp hA' with ⟨m, hm, rfl⟩
+      refine Finset.mem_image.mpr ⟨m, Finset.mem_univ m, ?_⟩
+      exact congrArg (maxOfPart P) (Subtype.ext (rfl : B m = B m))
+    · intro hv
+      rcases Finset.mem_image.mp hv with ⟨m, hm, rfl⟩
+      refine Finset.mem_image.mpr ⟨⟨B m, mem m⟩, ?_, rfl⟩
+      exact Finset.mem_attach P.parts ⟨B m, mem m⟩
+  have hmax : maxes P = List.ofFn (fun m : Fin c.length => maxOfPart P ⟨B m, mem m⟩) := by
+    dsimp [maxes]
+    rw [hmax_image]
+    exact sort_image_strictMono c.length (fun m => maxOfPart P ⟨B m, mem m⟩) (by
+      intro m₁ m₂ hm₁₂
+      change maxOfPart P ⟨B m₁, mem m₁⟩ < maxOfPart P ⟨B m₂, mem m₂⟩
+      rw [hmaxOfPart m₁, hmaxOfPart m₂]
+      exact c.parts_strictMono hm₁₂)
+  -- The `m`-th sorted part is exactly the range `B m`
+  have hpart (m : Fin c.length) : sortedParts P (idx m) = B m := by
+    -- `sortedParts` picks the part whose maximum is the `m`-th element of `maxes P`
+    change partOfMax P ((maxes P).get ⟨m.1, by rw [maxes_length P]; exact (idx m).2⟩) = B m
+    have hget : (maxes P).get ⟨m.1, by rw [maxes_length P]; exact (idx m).2⟩ =
+        maxOfPart P ⟨B m, mem m⟩ := by
+      simp [hmax]
+    rw [hget]
+    exact partOfMax_eq_of_mem P (mem m)
+  -- The `m`-th part size of `ofFinpartition P` is `c.partSize m`
+  have hpartSize (m : Fin c.length) : (ofFinpartition P).partSize (idx m) = c.partSize m := by
+    change (sortedParts P (idx m)).card = c.partSize m
+    rw [hpart m]
+    dsimp [B]
+    rw [Finset.card_image_of_injective]
+    · simp
+    · exact (c.emb_strictMono _).injective
+  -- The `m`-th embedding of `ofFinpartition P` is `c.emb m` (after aligning the part-size cast)
+  have hemb (m : Fin c.length) (r : Fin (c.partSize m)) :
+      (ofFinpartition P).emb (idx m) (Fin.cast (hpartSize m).symm r) = c.emb m r := by
+    -- `(ofFinpartition P).emb (idx m) = orderEmbOfFin (sortedParts P (idx m)) rfl`, and the
+    -- increasing enumeration of the sorted part is `c.emb m`
+    have hunique : (sortedParts P (idx m)).orderEmbOfFin (hpartSize m) = c.emb m := by
+      symm
+      exact Finset.orderEmbOfFin_unique (hpartSize m) (by
+        intro x
+        -- `c.emb m x` lies in the sorted part `sortedParts P (idx m) = B m`
+        rw [hpart m]
+        exact Finset.mem_image.mpr ⟨x, Finset.mem_univ x, rfl⟩) (c.emb_strictMono m)
+    change ((sortedParts P (idx m)).orderEmbOfFin rfl) (Fin.cast (hpartSize m).symm r) =
+      c.emb m r
+    rw [← hunique]
+    -- `orderEmbOfFin` depends only on the index, not on the cardinality proof
+    exact (Finset.orderEmbOfFin_eq_orderEmbOfFin_iff (s := sortedParts P (idx m))
+      (h := rfl) (h' := hpartSize m)).2 (by rfl)
+  -- Compare the three data fields of `ofFinpartition P` and `c`
+  have hlength : (ofFinpartition P).length = c.length := by
+    dsimp [ofFinpartition, P]
+    rw [toFinpartition_parts_card]
+  -- Data of `ofFinpartition P` at index `m : Fin c.length`, expressed at `Fin (ofFinpartition P).length`
+  have hpartSize' (m : Fin (ofFinpartition P).length) :
+      (ofFinpartition P).partSize m = c.partSize (Fin.cast hlength m) := by
+    have hm' : m = idx (Fin.cast hlength m) := by
+      apply Fin.ext
+      rfl
+    rw [hm']
+    exact hpartSize (Fin.cast hlength m)
+  have hemb' (m : Fin (ofFinpartition P).length) :
+      (ofFinpartition P).emb m ≍ c.emb (Fin.cast hlength m) := by
+    refine (Fin.heq_fun_iff (hpartSize' m)).2 ?_
+    -- transport `m` to the `idx`-form (this also aligns the domain of the quantifier)
+    have hm' : m = idx (Fin.cast hlength m) := by
+      apply Fin.ext
+      rfl
+    rw [hm'] at ⊢
+    intro r
+    -- `r : Fin ((ofFinpartition P).partSize (idx (Fin.cast hlength m)))`; align `r` with the
+    -- cast inside `hemb`, whose conclusion now matches the goal exactly
+    have hr : r = Fin.cast (hpartSize (Fin.cast hlength m)).symm
+        ⟨r.1, hpartSize' (idx (Fin.cast hlength m)) ▸ r.2⟩ := by
+      apply Fin.ext
+      rfl
+    rw [hr]
+    exact hemb (Fin.cast hlength m) ⟨r.1, hpartSize' (idx (Fin.cast hlength m)) ▸ r.2⟩
+  apply OrderedFinpartition.ext
+  · -- lengths agree
+    exact hlength
+  · -- block sizes agree
+    refine (Fin.heq_fun_iff hlength).2 ?_
+    · intro m
+      exact hpartSize' m
+  · -- embedding functions agree
+    refine Function.hfunext (congrArg Fin hlength) ?_
+    · intro m m' hm
+      -- `m : Fin ((ofFinpartition P).length)`, `m' : Fin c.length`, `hm : m ≍ m'`
+      have hm' : m' = Fin.cast hlength m := Fin.eq_of_val_eq (by
+        exact (Fin.val_eq_val_of_heq hm.symm).trans (by rfl))
+      subst m'
+      exact hemb' m
+
+/-- The Möbius coefficient of `toFinpartition c` is `(-1)^(c.length - 1) * (c.length - 1)!`,
+which is exactly the value of the `c.length`-th derivative of `Real.log` at `1`. -/
+private lemma toFinpartition_cumulantCoefficient (c : OrderedFinpartition n) :
+    (toFinpartition n c).cumulantCoefficient =
+      (-1 : ℝ) ^ (c.length - 1) * ((c.length - 1).factorial : ℝ) := by
+  dsimp [Finpartition.cumulantCoefficient]
+  rw [toFinpartition_parts_card]
+
+/-- The product over the parts of `toFinpartition c` of a block weight equals the product over
+the blocks `j` of the same weight applied to the range of the `j`-th embedding. -/
+private lemma toFinpartition_blockProduct (c : OrderedFinpartition n) (f : Finset (Fin n) → ℝ) :
+    ∏ B ∈ (toFinpartition n c).parts, f B =
+      ∏ j : Fin c.length, f ((Finset.univ : Finset (Fin (c.partSize j))).image (c.emb j)) := by
+  rw [toFinpartition_parts]
+  exact Finset.prod_image (toFinpartition_parts_injective c).injOn
+
+/-- `OrderedFinpartition n` and `Finpartition (Finset.univ : Finset (Fin n))` are in bijection:
+`toFinpartition` forgets the ordering of the parts, `ofFinpartition` sorts them by maximum. -/
+noncomputable def orderedFinpartitionEquiv (n : ℕ) :
+    OrderedFinpartition n ≃ Finpartition (Finset.univ : Finset (Fin n)) where
+  toFun := toFinpartition n
+  invFun := ofFinpartition
+  left_inv := ofFinpartition_toFinpartition
+  right_inv := toFinpartition_ofFinpartition
 
 end OrderedFinpartition
 
--- TEMP EXPLORATION
-#check OrderedFinpartition.ext
-#check OrderedFinpartition.ext_iff
-#check Finpartition.ext
-#check Finset.image_orderEmbOfFin_univ
-#check Equiv.sum_comp
-#check Fintype.sum_equiv
-#check AnalyticAt.contDiffAt
-#check ProbabilityTheory.mgf_zero
-#check ProbabilityTheory.mgf_pos'
-#check Real.contDiffAt_log
-#check iteratedDeriv_comp_eq_sum_orderedFinpartition
-#check OrderedFinpartition.length_pos
-#check Finset.card_image_of_injective
-#check Finset.prod_image
-#check Finset.orderEmbOfFin_unique
-#check Finpartition.cumulantCoefficient
-#check Finpartition.blockProduct
-#check Finset.image_orderEmbOfFin_univ
-#check Nat.factorial
-#check OrderedFinpartition.ofFinpartition
-#check OrderedFinpartition.toFinpartition_parts_card
-#check OrderedFinpartition.toFinpartition_parts
-#check OrderedFinpartition.sortedParts_surj
-#check OrderedFinpartition.sortedParts_mem
-#check OrderedFinpartition.partOfMax_eq_of_mem
-#check OrderedFinpartition.sortedParts_max
--- END TEMP EXPLORATION
+
+/-- Analytic Faà di Bruno expansion of the scalar cumulant-generating function.
+
+This is the reusable analytic/combinatorial core behind
+`iteratedDeriv_cgf_zero_eq_sum_partitions`.  Informally, unfold `cgf` as
+`Real.log ∘ mgf X μ`, use `ProbabilityTheory.mgf_zero` to get `mgf X μ 0 = 1`, and apply the
+one-variable Faà di Bruno formula
+`iteratedDeriv_comp_eq_sum_orderedFinpartition` to `Real.log ∘ mgf X μ`.  The assumptions give the
+required smoothness (`analyticAt_mgf hmgf`, hence `ContDiffAt`); the derivatives of `Real.log` at
+`1` are `(-1)^(k-1) * (k-1)!` for `k ≥ 1`; finally, reindex Mathlib's
+`OrderedFinpartition n` by ordinary `Finpartition (Finset.univ : Finset (Fin n))`.
+
+References: Mathlib's `Analysis/Calculus/IteratedDeriv/FaaDiBruno.lean` for the analytic formula,
+and the classical cumulant/moment formula, e.g. Scholarpedia "Cumulants"
+<http://www.scholarpedia.org/article/Cumulants>. -/
+lemma iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno [IsProbabilityMeasure μ]
+    (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
+    (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
+    iteratedDeriv n (cgf X μ) 0 =
+      ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
+        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 := by
+  -- `cgf X μ` is the logarithm of the moment-generating function
+  change iteratedDeriv n (Real.log ∘ mgf X μ) 0 =
+      ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
+        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0
+  have hmgf1 : mgf X μ 0 = 1 := ProbabilityTheory.mgf_zero
+  -- The derivatives of `Real.log` at `1` are the Möbius coefficients
+  have hlog (c : OrderedFinpartition n) :
+      iteratedDeriv c.length Real.log 1 =
+        (-1 : ℝ) ^ (c.length - 1) * ((c.length - 1).factorial : ℝ) :=
+    iteratedDeriv_log_one_of_pos (c.length_pos (Nat.pos_of_ne_zero hn))
+  -- Each ordered Faà di Bruno summand coincides with the corresponding finpartition summand
+  have hsum (c : OrderedFinpartition n) :
+      iteratedDeriv c.length Real.log 1 *
+          ∏ j : Fin c.length, iteratedDeriv (c.partSize j) (mgf X μ) 0 =
+        (OrderedFinpartition.toFinpartition n c).cumulantCoefficient *
+          ∏ B ∈ (OrderedFinpartition.toFinpartition n c).parts, iteratedDeriv B.card (mgf X μ) 0 := by
+    rw [hlog c, OrderedFinpartition.toFinpartition_cumulantCoefficient c,
+      OrderedFinpartition.toFinpartition_blockProduct c (fun B => iteratedDeriv B.card (mgf X μ) 0)]
+    congr 1
+    apply Finset.prod_congr rfl
+    intro j hj
+    rw [Finset.card_image_of_injective]
+    · simp
+    · exact (c.emb_strictMono _).injective
+  -- Faà di Bruno for the composition `Real.log ∘ mgf X μ`
+  rw [iteratedDeriv_comp_eq_sum_orderedFinpartition (𝕜 := ℝ) (g := Real.log) (f := mgf X μ)
+    (x := 0) (i := n) (n := (⊤ : WithTop ℕ∞))
+    (by
+      -- `Real.log` is smooth away from zero; `mgf X μ 0 = 1 ≠ 0`
+      rw [Real.contDiffAt_log]
+      rw [hmgf1]
+      norm_num)
+    (analyticAt_mgf hmgf).contDiffAt
+    (le_top : (n : WithTop ℕ∞) ≤ ⊤)]
+  rw [hmgf1]
+  -- reindex the sum over ordered finpartitions to a sum over ordinary finpartitions
+  rw [← Equiv.sum_comp (OrderedFinpartition.orderedFinpartitionEquiv n)
+    (fun P : Finpartition (Finset.univ : Finset (Fin n)) =>
+      (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0)]
+  -- compare the two sums term by term
+  apply Finset.sum_congr rfl
+  intro c hc
+  exact hsum c
 
 
 /-- The $n$-th derivative of the CGF at zero expands to a sum over partition lattices of products
