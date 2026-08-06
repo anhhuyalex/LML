@@ -286,25 +286,6 @@ private lemma integral_potential_eq_sum_wick_fin_four
   simp_rw [← hstep, ← integral_coordinateProduct_mul_potential_eq_sum_wick A K hK (index := index)]
   simp [coordinateProduct]
 
-/-- The empty carrier has a unique pairing, namely `⊥`; its block product is the empty product
-`1`. -/
-private instance instUniquePairingEmpty {α : Type*} [DecidableEq α] :
-    Unique (Finpartition.Pairing (∅ : Finset α)) where
-  default := ⟨⊥, by simp⟩
-  uniq P := by
-    apply Subtype.ext
-    ext a
-    have hparts : P.1.parts = ∅ := (Finpartition.parts_eq_empty_iff).mpr (by simp)
-    rw [hparts]
-    simp
-
-private lemma wick_empty {α : Type*} [DecidableEq α] (C : α → α → ℝ) :
-    wick C (∅ : Finset α) = 1 := by
-  unfold wick Finpartition.pairingSum
-  rw [Fintype.sum_unique]
-  change (∏ B ∈ (∅ : Finset (Finset α)), pairWeight C B) = 1
-  simp
-
 -- Isserlis' fourth-moment formula on four slots: the Wick sum of a symmetric covariance
 -- `C : Fin 4 → Fin 4 → ℝ` is the sum over the three pairings `01|23`, `02|13`, `03|12`.
 -- This is the `Fin 4` instance of the general recurrence `wick_erase` specialized to a
@@ -313,13 +294,9 @@ private lemma wick_empty {α : Type*} [DecidableEq α] (C : α → α → ℝ) :
 private lemma wick_quartic_slots (C : Fin 4 → Fin 4 → ℝ) (hC : ∀ r s, C r s = C s r) :
     wick C Finset.univ = C 0 1 * C 2 3 + C 0 2 * C 1 3 + C 0 3 * C 1 2 := by
   classical
-  have hwick2 : ∀ {a b : Fin 4}, a ≠ b → wick C ({a, b} : Finset (Fin 4)) = C a b := by
-    intro a b hab
-    rw [wick_erase C hC ({a, b} : Finset (Fin 4)) (by simp : a ∈ ({a, b} : Finset (Fin 4)))]
-    simp [hab, wick_empty C]
   rw [wick_erase C hC Finset.univ (by simp),
     (by decide : (Finset.univ : Finset (Fin 4)).erase 0 = ({1, 2, 3} : Finset (Fin 4)))]
-  simp [hwick2, add_assoc,
+  simp [wick_pair, add_assoc,
     (by decide : (({1, 2, 3} : Finset (Fin 4)).erase 1) = ({2, 3} : Finset (Fin 4))),
     (by decide : (({1, 2, 3} : Finset (Fin 4)).erase 2) = ({1, 3} : Finset (Fin 4))),
     (by decide : (({1, 2, 3} : Finset (Fin 4)).erase 3) = ({1, 2} : Finset (Fin 4)))]

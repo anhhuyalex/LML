@@ -109,6 +109,53 @@ theorem wick_erase (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i)
   have h_pair := pairWeight_pair C hC hb.1.symm
   rw [h_pair]
 
+/-- The Wick sum on the empty set is the empty product, hence one. -/
+theorem wick_empty (C : ι → ι → ℝ) : wick C (∅ : Finset ι) = 1 := by
+  let _ : Unique (Finpartition.Pairing (∅ : Finset ι)) :=
+    { default := ⟨⊥, by simp⟩
+      uniq := fun P ↦ by
+        apply Subtype.ext
+        ext a
+        have hparts : P.1.parts = ∅ := (Finpartition.parts_eq_empty_iff).mpr (by simp)
+        rw [hparts]
+        simp }
+  unfold wick Finpartition.pairingSum
+  rw [Fintype.sum_unique]
+  change (∏ B ∈ (∅ : Finset (Finset ι)), pairWeight C B) = 1
+  simp
+
+/-- The Wick sum on two distinct positions is their covariance. -/
+theorem wick_pair (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i)
+    {a b : ι} (hab : a ≠ b) : wick C ({a, b} : Finset ι) = C a b := by
+  rw [wick_erase C hC ({a, b} : Finset ι) (Finset.mem_insert_self a {b})]
+  simp [hab, wick_empty]
+
+/-- The fourth-order Wick sum is the sum of its three pairings. -/
+theorem wick_four (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i)
+    {a b c d : ι} (hab : a ≠ b) (hac : a ≠ c) (had : a ≠ d)
+    (hbc : b ≠ c) (hbd : b ≠ d) (hcd : c ≠ d) :
+    wick C ({a, b, c, d} : Finset ι) =
+      C a b * C c d + C a c * C b d + C a d * C b c := by
+  have hea : ({a, b, c, d} : Finset ι).erase a = {b, c, d} := by
+    ext x
+    simp [eq_comm, hab, hac, had]
+  have heb : ({b, c, d} : Finset ι).erase b = {c, d} := by
+    ext x
+    simp [eq_comm, hbc, hbd]
+  have hec : ({b, c, d} : Finset ι).erase c = {b, d} := by
+    ext x
+    simp only [Finset.mem_erase, Finset.mem_insert, Finset.mem_singleton]
+    aesop
+  have hed : ({b, c, d} : Finset ι).erase d = {b, c} := by
+    ext x
+    simp only [Finset.mem_erase, Finset.mem_insert, Finset.mem_singleton]
+    aesop
+  rw [wick_erase C hC ({a, b, c, d} : Finset ι) (Finset.mem_insert_self a _), hea,
+    Finset.sum_insert (by simp [hbc, hbd]), Finset.sum_insert (by simp [hcd]),
+    Finset.sum_singleton, heb, wick_pair C hC hcd, hec, wick_pair C hC hbd,
+    hed, wick_pair C hC hbc]
+  ring
+
 /-- The moment of a centered real Gaussian is given by the derivative of its MGF at zero.
 Informal proof:
 Apply `ProbabilityTheory.iteratedDeriv_mgf_zero`.
@@ -2467,7 +2514,7 @@ theorem integrable_finset_prod_gaussian_coordinate
     {ι : Type*} [Finite ι] (μ : Measure (EuclideanSpace ℝ ι))
     [ProbabilityTheory.IsGaussian μ] {α : Type*} (s : Finset α) (coord : α → ι) :
     Integrable (fun z : EuclideanSpace ℝ ι ↦ ∏ a ∈ s, z (coord a)) μ := by
-  letI : Fintype ι := Fintype.ofFinite ι
+  let _ : Fintype ι := Fintype.ofFinite ι
   by_cases hs : s.Nonempty
   · have h_coord_memLp : ∀ (a : α), a ∈ s →
         MemLp (fun z : EuclideanSpace ℝ ι ↦ z (coord a))

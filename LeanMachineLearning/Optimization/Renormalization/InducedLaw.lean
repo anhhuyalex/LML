@@ -181,7 +181,16 @@ weak equality in Mathlib's finite-measure API:
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Measure/FiniteMeasure.html>. -/
 theorem selfAveragingAt_iff_eq_dirac (μ : Measure ℝ) [IsProbabilityMeasure μ] (s : ℝ) :
     SelfAveragingAt μ s ↔ μ = Measure.dirac s := by
-  sorry
+  constructor
+  · intro hμ
+    apply MeasureTheory.ext_of_forall_integral_eq_of_IsFiniteMeasure
+      (μ := μ) (ν := Measure.dirac s)
+    intro f
+    rw [hμ f]
+    exact (integral_dirac f s).symm
+  · intro hμ
+    rw [hμ]
+    exact selfAveragingAt_dirac s
 
 /-- Characteristic function of a deterministic real law. -/
 theorem charFun_dirac (s t : ℝ) :
