@@ -109,23 +109,39 @@ private lemma integral_pow_two_mul_succ_stdGaussian (a : ℕ) :
     _ = (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a) ∂gaussianReal 0 1 := by
             rw [show 2 * a + 1 - 1 = 2 * a by omega]
 
-/-- Stein/chi-square recurrence for the raw moments of the squared norm of a standard
-Gaussian vector.
+/-- Closed form for the raw moments of the squared Euclidean norm of a standard Gaussian vector.
 
-Informal proof: put `X g = ∑ i, g i ^ 2`.  For each coordinate `i`, condition on the remaining
-coordinates and apply the one-dimensional Gaussian integration-by-parts identity (Stein's lemma) to
-`z * (z^2 + R)^k`, where `R` is the sum of the other coordinate squares.  This gives
-`E[g_i^2 * X^k] = E[X^k] + 2*k*E[g_i^2 * X^(k-1)]`.  Summing over `i` yields
-`E[X^(k+1)] = ((n : ℝ) + 2*k) * E[X^k]`.  The formal proof should combine the local lemma
-`Renormalization.integral_mul_pow_gaussianReal` with finite-product Fubini for `Measure.pi`; the
-mathematical identity is also the standard moment recurrence for a chi-square random variable
-(<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>).
--/
+This is the chi-square moment formula.  If `g` has law `standardGaussianVectorLaw n`, then
+`∑ i, g i ^ 2` has the chi-square distribution with `n` degrees of freedom, whose `m`-th raw
+moment is `∏ s<m (n + 2s)`.
+
+Informal proof: expand `(∑ i, g i ^ 2)^m` by the multinomial theorem.  Each monomial factors,
+under `Measure.pi`, into a product of one-dimensional even Gaussian moments; those moments are
+computed by `Renormalization.integral_pow_gaussianReal_even` (or recursively by
+`integral_pow_two_mul_succ_stdGaussian`).  Recombining the multinomial coefficients gives the
+standard chi-square product.  Equivalently, the moment generating function of the sum of `n`
+independent squares is `(1 - 2t)^{-n/2}`, whose Taylor coefficients are the displayed product;
+see <https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>. -/
+private lemma integral_sumSq_pow_stdGaussian_closed_form (m n : ℕ) :
+    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n =
+      ∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s) := by
+  sorry
+
 private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
     ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n =
       ((n : ℝ) + 2 * k) *
         ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
-  sorry
+  calc
+    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n
+        = ∏ s ∈ Finset.range (k + 1), ((n : ℝ) + 2 * s) := by
+          exact integral_sumSq_pow_stdGaussian_closed_form (k + 1) n
+    _ = ((n : ℝ) + 2 * k) *
+          (∏ s ∈ Finset.range k, ((n : ℝ) + 2 * s)) := by
+          rw [Finset.prod_range_succ]
+          ring
+    _ = ((n : ℝ) + 2 * k) *
+          ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
+          rw [integral_sumSq_pow_stdGaussian_closed_form k n]
 
 /-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector.
 
