@@ -109,6 +109,254 @@ private lemma integral_pow_two_mul_succ_stdGaussian (a : ℕ) :
     _ = (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a) ∂gaussianReal 0 1 := by
             rw [show 2 * a + 1 - 1 = 2 * a by omega]
 
+/-- Monomials are integrable under the standard one-dimensional Gaussian. -/
+private lemma integrable_pow_stdGaussian (n : ℕ) :
+    Integrable (fun z : ℝ => z ^ n) (gaussianReal 0 1) := by
+  -- The Gaussian has finite moments of every order (Fernique), so `‖z‖^(n+1)` is integrable.
+  have hmem : MemLp (fun z : ℝ => z) ((n + 1 : ℕ) : ℝ≥0∞) (gaussianReal 0 1) :=
+    memLp_id_gaussianReal' ((n + 1 : ℕ) : ℝ≥0∞) (by norm_num)
+  have hint_dom : Integrable (fun z : ℝ => (1 : ℝ) + ‖z‖ ^ (n + 1)) (gaussianReal 0 1) := by
+    exact (integrable_const _).add hmem.integrable_norm_pow'
+  refine Integrable.mono' hint_dom ?_ (Filter.Eventually.of_forall ?_)
+  · fun_prop
+  · intro z
+    rw [norm_pow]
+    by_cases hz : ‖z‖ ≤ 1
+    · have hzpow : ‖z‖ ^ n ≤ 1 := pow_le_one₀ (norm_nonneg z) hz
+      nlinarith [hzpow, pow_nonneg (norm_nonneg z) (n + 1)]
+    · have hz' : 1 ≤ ‖z‖ := le_of_not_ge hz
+      have hzpow : ‖z‖ ^ n ≤ ‖z‖ ^ (n + 1) :=
+        pow_le_pow_right₀ hz' (Nat.le_add_right n 1)
+      nlinarith [hzpow]
+
+/-- The elementary binomial identity `(j+1) * (k choose (j+1)) = k * ((k-1) choose j)`
+for `j < k`, used to reindex the coefficient sums in the chi-square moment recursion. -/
+private lemma Nat_choose_mul_succ (j k : ℕ) (hj : j < k) :
+    (j + 1) * (k.choose (j + 1)) = k * ((k - 1).choose j) := by
+  have hk : k = (k - 1) + 1 := by omega
+  calc
+    (j + 1) * (k.choose (j + 1)) = (j + 1) * (((k - 1) + 1).choose (j + 1)) := by
+      rw [← hk]
+    _ = ((k - 1) + 1).choose (j + 1) * (j + 1) := by rw [Nat.mul_comm]
+    _ = ((k - 1) + 1) * ((k - 1).choose j) := (Nat.add_one_mul_choose_eq (k - 1) j).symm
+    _ = k * ((k - 1).choose j) := by rw [← hk]
+
+/-- Stein's identity for `z^2 (z^2 + R)^k` under the standard Gaussian:
+`E[z^2 (z^2+R)^k] = E[(z^2+R)^k] + 2k E[z^2 (z^2+R)^(k-1)]`.
+
+The proof expands both sides by the binomial theorem, evaluates the resulting even moments with
+`integral_pow_two_mul_succ_stdGaussian`, and reindexes the coefficient sums with
+`Nat_choose_mul_succ`.  This is the one-coordinate engine behind the chi-square recursion. -/
+private lemma integral_sq_mul_sq_add_pow_stdGaussian (k : ℕ) (R : ℝ) :
+    ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1 =
+      ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1 +
+        (2 : ℝ) * k * ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 := by
+  classical
+  let M : ℕ → ℝ := fun a => ∫ z : ℝ, z ^ (2 * a) ∂gaussianReal 0 1
+  have hM_succ : ∀ a : ℕ, M (a + 1) = (2 * (a : ℝ) + 1) * M a := by
+    intro a
+    simpa [M] using integral_pow_two_mul_succ_stdGaussian a
+  let A : ℕ → ℝ := fun j => (k.choose j : ℝ) * R ^ (k - j)
+  let B : ℕ → ℝ := fun j => ((k - 1).choose j : ℝ) * R ^ (k - 1 - j)
+  have h_int_pow (a : ℕ) : Integrable (fun z : ℝ => z ^ a) (gaussianReal 0 1) :=
+    integrable_pow_stdGaussian a
+  have hP : ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1 =
+      ∑ j ∈ Finset.range (k + 1), (A j * M (j + 1)) := by
+    calc
+      ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1
+          = ∫ z : ℝ, z ^ 2 * (∑ j ∈ Finset.range (k + 1),
+              (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ)) ∂gaussianReal 0 1 := by
+              rw [add_pow (z ^ 2) R k]
+      _ = ∫ z : ℝ, ∑ j ∈ Finset.range (k + 1),
+              (z ^ 2 * (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ)) ∂gaussianReal 0 1 := by
+              apply MeasureTheory.integral_congr_ae
+              filter_upwards with z
+              rw [Finset.mul_sum]
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              ring
+      _ = ∑ j ∈ Finset.range (k + 1),
+            ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1 := by
+            rw [integral_finsetSum]
+            intro j _
+            simpa [pow_mul, ← pow_add, show 2 * (j + 1) = 2 + 2 * j by omega,
+              mul_assoc, mul_comm, mul_left_comm] using
+              (h_int_pow (2 * (j + 1))).const_mul ((k.choose j : ℝ) * R ^ (k - j))
+      _ = ∑ j ∈ Finset.range (k + 1), (A j * M (j + 1)) := by
+            refine Finset.sum_congr rfl ?_
+            intro j _
+            dsimp [A, M]
+            calc
+              ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1
+                  = ∫ z : ℝ, (k.choose j : ℝ) * (R ^ (k - j) * (z ^ 2 * (z ^ 2) ^ j))
+                      ∂gaussianReal 0 1 := by
+                      apply MeasureTheory.integral_congr_ae
+                      filter_upwards with z
+                      ring
+              _ = (k.choose j : ℝ) *
+                      ∫ z : ℝ, R ^ (k - j) * (z ^ 2 * (z ^ 2) ^ j) ∂gaussianReal 0 1 := by
+                      rw [integral_const_mul]
+              _ = (k.choose j : ℝ) * (R ^ (k - j) *
+                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1) := by
+                      rw [integral_const_mul]
+              _ = (k.choose j : ℝ) * R ^ (k - j) *
+                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1 := by
+                      ring
+              _ = (k.choose j : ℝ) * R ^ (k - j) *
+                      ∫ z : ℝ, z ^ (2 * (j + 1)) ∂gaussianReal 0 1 := by
+                      congr 1
+                      apply MeasureTheory.integral_congr_ae
+                      filter_upwards with z
+                      rw [pow_mul, ← pow_add, show 2 * (j + 1) = 2 + 2 * j by omega]
+  have hQ : ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1 =
+      ∑ j ∈ Finset.range (k + 1), (A j * M j) := by
+    calc
+      ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1
+          = ∫ z : ℝ, ∑ j ∈ Finset.range (k + 1),
+              ((z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ)) ∂gaussianReal 0 1 := by
+              rw [add_pow (z ^ 2) R k]
+      _ = ∑ j ∈ Finset.range (k + 1),
+            ∫ z : ℝ, (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1 := by
+            rw [integral_finsetSum]
+            intro j _
+            simpa [pow_mul, mul_assoc, mul_comm, mul_left_comm] using
+              (h_int_pow (2 * j)).const_mul ((k.choose j : ℝ) * R ^ (k - j))
+      _ = ∑ j ∈ Finset.range (k + 1), (A j * M j) := by
+            refine Finset.sum_congr rfl ?_
+            intro j _
+            dsimp [A, M]
+            calc
+              ∫ z : ℝ, (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1
+                  = ∫ z : ℝ, (k.choose j : ℝ) * (R ^ (k - j) * (z ^ 2) ^ j)
+                      ∂gaussianReal 0 1 := by
+                      apply MeasureTheory.integral_congr_ae
+                      filter_upwards with z
+                      ring
+              _ = (k.choose j : ℝ) *
+                      ∫ z : ℝ, R ^ (k - j) * (z ^ 2) ^ j ∂gaussianReal 0 1 := by
+                      rw [integral_const_mul]
+              _ = (k.choose j : ℝ) * (R ^ (k - j) *
+                      ∫ z : ℝ, (z ^ 2) ^ j ∂gaussianReal 0 1) := by
+                      rw [integral_const_mul]
+              _ = (k.choose j : ℝ) * R ^ (k - j) *
+                      ∫ z : ℝ, (z ^ 2) ^ j ∂gaussianReal 0 1 := by
+                      ring
+              _ = (k.choose j : ℝ) * R ^ (k - j) * M j := by
+                      dsimp [M]
+                      congr 1
+                      apply MeasureTheory.integral_congr_ae
+                      filter_upwards with z
+                      rw [pow_mul]
+  have hP' : ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 =
+      ∑ j ∈ Finset.range k, (B j * M (j + 1)) := by
+    calc
+      ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1
+          = ∫ z : ℝ, z ^ 2 * (∑ j ∈ Finset.range k,
+              (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ)) ∂gaussianReal 0 1 := by
+              rw [add_pow (z ^ 2) R (k - 1)]
+      _ = ∫ z : ℝ, ∑ j ∈ Finset.range k,
+              (z ^ 2 * (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ))
+                ∂gaussianReal 0 1 := by
+              apply MeasureTheory.integral_congr_ae
+              filter_upwards with z
+              rw [Finset.mul_sum]
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              ring
+      _ = ∑ j ∈ Finset.range k,
+            ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ)
+              ∂gaussianReal 0 1 := by
+            rw [integral_finsetSum]
+            intro j _
+            simpa [pow_mul, ← pow_add, show 2 * (j + 1) = 2 + 2 * j by omega,
+              mul_assoc, mul_comm, mul_left_comm] using
+              (h_int_pow (2 * (j + 1))).const_mul
+                (((k - 1).choose j : ℝ) * R ^ (k - 1 - j))
+      _ = ∑ j ∈ Finset.range k, (B j * M (j + 1)) := by
+            refine Finset.sum_congr rfl ?_
+            intro j _
+            dsimp [B, M]
+            calc
+              ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ)
+                  ∂gaussianReal 0 1
+                  = ∫ z : ℝ, ((k - 1).choose j : ℝ) *
+                      (R ^ (k - 1 - j) * (z ^ 2 * (z ^ 2) ^ j)) ∂gaussianReal 0 1 := by
+                      apply MeasureTheory.integral_congr_ae
+                      filter_upwards with z
+                      ring
+              _ = ((k - 1).choose j : ℝ) *
+                      ∫ z : ℝ, R ^ (k - 1 - j) * (z ^ 2 * (z ^ 2) ^ j) ∂gaussianReal 0 1 := by
+                      rw [integral_const_mul]
+              _ = ((k - 1).choose j : ℝ) * (R ^ (k - 1 - j) *
+                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1) := by
+                      rw [integral_const_mul]
+              _ = ((k - 1).choose j : ℝ) * R ^ (k - 1 - j) *
+                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1 := by
+                      ring
+              _ = ((k - 1).choose j : ℝ) * R ^ (k - 1 - j) *
+                      ∫ z : ℝ, z ^ (2 * (j + 1)) ∂gaussianReal 0 1 := by
+                      congr 1
+                      apply MeasureTheory.integral_congr_ae
+                      filter_upwards with z
+                      rw [pow_mul, ← pow_add, show 2 * (j + 1) = 2 + 2 * j by omega]
+  -- The coefficient identity: reindex the `j · A j · M j` sum.
+  have h_reindex :
+      (∑ j ∈ Finset.range (k + 1), (j : ℝ) * A j * M j) =
+        (k : ℝ) * ∑ j ∈ Finset.range k, (B j * M (j + 1)) := by
+    rw [Finset.sum_range_succ']
+    have hf0 : (0 : ℝ) * A 0 * M 0 = 0 := by simp
+    rw [hf0, add_zero]
+    refine Finset.sum_congr rfl ?_
+    intro j hj
+    have hchoose := Nat_choose_mul_succ j k hj
+    have hpow : k - (j + 1) = k - 1 - j := by omega
+    have hc : ((j + 1 : ℕ) : ℝ) * (k.choose (j + 1) : ℝ) = (k : ℝ) * ((k - 1).choose j : ℝ) := by
+      exact_mod_cast hchoose
+    dsimp [A, B]
+    have hA : ((j + 1 : ℕ) : ℝ) * ((k.choose (j + 1) : ℝ) * R ^ (k - (j + 1))) =
+        (k : ℝ) * (((k - 1).choose j : ℝ) * R ^ (k - 1 - j)) := by
+      rw [hpow]
+      rw [show ((j + 1 : ℕ) : ℝ) * ((k.choose (j + 1) : ℝ) * R ^ (k - 1 - j)) =
+          (((j + 1 : ℕ) : ℝ) * (k.choose (j + 1) : ℝ)) * R ^ (k - 1 - j) by ring]
+      rw [hc]
+      ring
+    calc
+      ((j + 1 : ℕ) : ℝ) * A (j + 1) * M (j + 1)
+          = ((j + 1 : ℕ) : ℝ) * ((k.choose (j + 1) : ℝ) * R ^ (k - (j + 1))) * M (j + 1) := by
+            rfl
+      _ = (k : ℝ) * (((k - 1).choose j : ℝ) * R ^ (k - 1 - j)) * M (j + 1) := by
+            rw [hA]
+      _ = (k : ℝ) * (B j * M (j + 1)) := by
+            rfl
+  calc
+    ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1
+        = ∑ j ∈ Finset.range (k + 1), (A j * M (j + 1)) := hP
+    _ = ∑ j ∈ Finset.range (k + 1), (A j * ((2 * (j : ℝ) + 1) * M j)) := by
+          refine Finset.sum_congr rfl ?_
+          intro j _
+          rw [hM_succ]
+    _ = ∑ j ∈ Finset.range (k + 1), (A j * M j) +
+          2 * ∑ j ∈ Finset.range (k + 1), ((j : ℝ) * A j * M j) := by
+          have hsummand : (∑ j ∈ Finset.range (k + 1), A j * ((2 * (j : ℝ) + 1) * M j)) =
+              ∑ j ∈ Finset.range (k + 1), (A j * M j + 2 * (j : ℝ) * A j * M j) := by
+            refine Finset.sum_congr rfl ?_
+            intro j _
+            ring
+          rw [hsummand, Finset.sum_add_distrib]
+          congr 1
+          rw [Finset.mul_sum]
+          refine Finset.sum_congr rfl ?_
+          intro j _
+          ring
+    _ = ∑ j ∈ Finset.range (k + 1), (A j * M j) +
+          (2 * (k : ℝ)) * ∑ j ∈ Finset.range k, (B j * M (j + 1)) := by
+          rw [h_reindex]
+          ring
+    _ = ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1 +
+          (2 : ℝ) * k * ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 := by
+          rw [hQ, hP']
+          ring
+
 /-- Closed form for the raw moments of the squared Euclidean norm of a standard Gaussian vector.
 
 This is the chi-square moment formula.  If `g` has law `standardGaussianVectorLaw n`, then

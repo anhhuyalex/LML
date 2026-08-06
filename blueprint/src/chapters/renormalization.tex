@@ -3299,3 +3299,732 @@ weakened to a correct formal statement, and every recurring calculation has a na
 before specialization.  The result matches LML's goals of high-quality definitions, essential
 machine-learning theorems, extensible algorithmic infrastructure, explicit documentation, and a
 trusted basis for research formalization.
+
+\chapter{RG flow of preactivations: from Gaussian to nearly-Gaussian ensembles}
+\label{chap:rg-flow-preactivations}
+
+\section{Scope, conventions, and corrections to the source}
+
+This chapter is the implementation blueprint for the chapter ``RG Flow of Preactivations''
+(\texttt{ch:ngp}) of \texttt{docs/Renormalization.md}, beginning at line~2204 and ending at
+line~3394, the end of that file as currently transcribed.  (The source's own forward reference to
+``the next chapter'' at line~3394 is to a signal-propagation chapter not yet present in
+\texttt{docs/Renormalization.md}; nothing here depends on it.)
+
+This chapter deliberately does \emph{not} reprove what Chapter~\ref{chap:renormalization} already
+proves.  Definition~\ref{def:renorm:layerCovariance} and
+Theorems~\ref{thm:renorm:gaussianLayerLaw}, \ref{thm:renorm:deepKernelLaw} already give the exact
+conditional law of one Gaussian-initialized dense layer, for a fixed or random batch of inputs,
+as a product of independent \texttt{multivariateGaussian} laws.  The source itself says this
+explicitly at line~2839: the conditional-distribution calculation for an arbitrary layer ``proceeds
+identically to the one we performed for the first layer.''  Consequently
+\texttt{sec:first-layer-gaussian} of the source (book lines 2337--2515) contributes \emph{no new
+Lean declaration}: it is the
+special case of Theorem~\ref{thm:renorm:gaussianLayerLaw} with $s$ equal to the fixed dataset
+$x:A\to(\iota\to\mathbb R)$, and its ``two derivations'' (Wick contraction and
+Hubbard--Stratonovich) are two informal proofs of one theorem already on the books.  This
+chapter's job starts where Chapter~\ref{chap:renormalization} stops: at the \emph{statistics of
+the covariance matrix itself} when the layer input is a random activation rather than a fixed
+dataset, which is exactly what makes deeper layers non-Gaussian.
+
+The principal new results of this chapter are:
+\begin{enumerate}
+  \item the stochastic-metric mean/fluctuation decomposition at an arbitrary layer, and the
+    identification of the fluctuation's variance with a fourth joint cumulant (the
+    \emph{four-point vertex});
+  \item the exact identification of one layer's marginal law, to relative order $O(1/n)$, with the
+    law of an \texttt{EvenAction} of half-degree two (Definition~\ref{def:renorm:evenAction}),
+    with precision the mean metric and quartic coupling the four-point vertex;
+  \item an induction on depth propagating \texttt{HierarchicallyNearlyGaussian}
+    (Definition~\ref{def:renorm:hierarchical}) from layer $\ell$ to layer $\ell+1$, yielding the
+    kernel recursion and the leading four-point-vertex recursion;
+  \item the marginalization/restriction rules that let every one of the above statements quantify
+    only over the finitely many samples and neurons that actually appear in a given correlator; and
+  \item the vocabulary layer (kernel, kernel recursion, relevant/irrelevant coupling) that gives a
+    formal meaning to ``representation group flow.''
+\end{enumerate}
+The next-to-leading-order (NLO) metric recursion of \texttt{sec:loop-correction} (book
+lines~3127--3218) is included as a stated, but lowest-priority, milestone: see
+Phase~NGP6 in \S\ref{sec:ngp:phases}.
+
+We fix a finite sample type $A$ (the dataset $\mathcal D$), a finite index type $\iota$ for one layer's
+input coordinates, and widths as positive naturals, exactly as in
+Chapter~\ref{chap:deep-linear-renormalization}.  Every width-dependent statement below assumes
+positive widths, for the same reason given there: Lean's totalized division does not
+distinguish ``the fan-in is zero'' from ``the fan-in is large,'' so an unstated positivity
+hypothesis would silently turn $C_W/n_\ell$ into the wrong number instead of failing to typecheck.
+
+\subsection{Corrections to the informal source}
+\label{sec:ngp:corrections}
+
+\begin{remark}[The Hubbard--Stratonovich derivation is not a formalization target]
+Both \texttt{sec:first-layer-gaussian} and \texttt{sec:second-layer-non-gaussian} give two proofs of
+each law: one by Wick contraction, one by introducing an auxiliary variable through the Fourier
+integral representation of the Dirac delta,
+$\delta(z-a)=\int\frac{d\Lambda}{2\pi}e^{i\Lambda(z-a)}$ (\texttt{eq:integral-form-delta-function}),
+and completing the square.  Mathlib has no ready-made infinite-dimensional Fourier representation
+of the Dirac measure, and building one only to re-derive a law already available from
+Theorem~\ref{thm:renorm:gaussianLayerLaw} would violate Rule~19 (API extraction over goal-state
+bloat): it adds a second, harder proof of an already-proved statement instead of reusable API.  The
+Hubbard--Stratonovich subsections are recorded here as informal cross-checks only; no Lean
+declaration is planned for them.
+\end{remark}
+
+\begin{remark}[The determinant formulas need positive-definiteness, not just symmetry]
+The source writes $\det(2\pi G^{(\ell)})$ freely, including in denominators
+(\texttt{eq:first-layer-distribution-HS-derivation}). Lemma~\ref{lem:renorm:layerCovariancePSD}
+proves only positive \emph{semi}definiteness of a layer covariance (it is a Gram matrix). Every
+statement below that needs an actual Gaussian density, a well-defined inverse metric $K^{-1}$, or a
+nonzero partition function must carry an explicit \texttt{Matrix.PosDef} hypothesis on the relevant
+metric (equivalently, injectivity of the batch of inputs of the layer in the appropriate sense).
+Statements that only need the \emph{law itself}, such as Theorem~\ref{thm:renorm:gaussianLayerLaw},
+do not need this hypothesis, because \texttt{multivariateGaussian} is already defined for
+merely positive-semidefinite covariances.
+\end{remark}
+
+\begin{remark}[``$n\to\infty$'' is always a fixed-order $O(1/n)$ or $O(1/n^2)$ statement]
+Every claim in this chapter of the form ``vanishes as the network gets wide'' or ``is exact in the
+infinite-width limit'' is formalized as \texttt{Renormalization.ParametricallySmall} along an
+explicit filter at \emph{fixed} moment order $m$ and \emph{fixed} depth $\ell$, exactly as
+Definition~\ref{def:renorm:hierarchical} already requires. No theorem below quantifies a limit over
+an actual sequence of distinct probability spaces indexed by $n\to\infty$; each width lives in its
+own finite-dimensional Euclidean space, and there is no single ambient space in which such a limit
+of measures could even be stated without extra machinery (weak convergence, projective limits)
+that is out of scope here. This is the same discipline Chapter~\ref{chap:deep-linear-renormalization}
+already adopted.
+\end{remark}
+
+\begin{remark}[The general covariance formula generalizes rather than duplicates the vertex]
+Equation~\texttt{eq:general-covariance} states a formula for
+$\mathrm{Cov}[\mathcal F(z_{i_1;B_1}),\mathcal G(z_{i_2;B_2})]$ for \emph{arbitrary} observables
+$\mathcal F,\mathcal G$ of a subsample, not just coordinate products. This is exactly
+\texttt{Renormalization.Perturbation.covarianceWith} applied to the quartic-tilted measure of
+Theorem~\ref{thm:renorm:quarticTwoPoint}'s proof architecture, together with
+\texttt{Renormalization.QuarticCoupling.covarianceWith\_coordinateProduct\_potential}. No new
+definition is needed for it; it is recorded here as a reuse target
+(\S\ref{sec:ngp:refactors}), not a new theorem statement.
+\end{remark}
+
+\begin{remark}[The $m_\ell$-vs-$n_\ell$ running-coupling subsection is an instance, not a new object]
+The subsubsection ``Running couplings with partial marginalizations'' (book lines 3067--3124)
+introduces a family of couplings $g_{(\ell),m_\ell}$ indexed by how many neurons are kept. Formally
+introducing a coupling-valued function of a sub-width would duplicate
+\texttt{Renormalization.QuarticCoupling}/\texttt{EvenAction}, whose index type $\iota$ is already
+an arbitrary \texttt{Fintype}. The content of this subsubsection is exactly
+Theorem~\ref{thm:ngp:fourPointVertexMatch} applied twice, once with $\iota$ the full neuron set and
+once with $\iota$ a sub-\texttt{Finset} coerced to a subtype, plus the marginalization rule of
+\S\ref{sec:ngp:marginalization} that identifies the two resulting laws' marginal on the shared
+neurons. Recording $g_{(\ell),m_\ell}$ itself as a first-class Lean object is unnecessary generality
+and is not planned.
+\end{remark}
+
+\section{Modules and dependency order}
+\label{sec:ngp:modules}
+
+The new code is a subtree of the existing library, reusing
+\texttt{NeuralNetwork.layerCovariance}/\texttt{map\_evalBatch\_layerGaussianInit} from
+\texttt{InducedLaw.lean} and \texttt{Renormalization.QuarticCoupling}/\texttt{EvenAction}/
+\texttt{HierarchicallyNearlyGaussian} from \texttt{Quartic.lean}/\texttt{NearlyGaussian.lean}
+rather than re-deriving any of them:
+\begin{verbatim}
+Renormalization/InducedLaw, NearlyGaussian, Cumulant
+                         |
+                         v
+Renormalization/RGFlow/Metric
+          |                          \
+          v                           v
+RGFlow/FourPointVertex          RGFlow/Marginalization
+          |
+          v
+RGFlow/DepthInduction
+          |
+          v
+RGFlow/Subleading  <---(lowest priority; see Phase NGP6)
+          |
+          v
+RGFlow/Flow
+\end{verbatim}
+with an umbrella \texttt{RGFlow.lean} publicly imported from
+\texttt{Optimization/Renormalization.lean} only once every targeted module compiles, following the
+same discipline as \texttt{DeepLinear.lean}. File responsibilities:
+\begin{description}
+  \item[\texttt{RGFlow/Metric.lean}] the stochastic metric $\widehat G^{(\ell+1)}$ of an arbitrary
+    layer as a random matrix built from \texttt{layerCovariance} applied to the previous layer's
+    (random) activations; its mean $G^{(\ell+1)}$ and centered fluctuation $\Delta G^{(\ell+1)}$;
+    and the general even-moment Wick formula from \texttt{eq:general-even-moment} for
+    $z^{(\ell+1)}$ specialized from \texttt{Renormalization.Gaussian}'s coordinate Wick theorem.
+  \item[\texttt{RGFlow/FourPointVertex.lean}] the four-point vertex $V^{(\ell+1)}$ as the joint
+    fourth cumulant of $\widehat G^{(\ell+1)}$'s entries (equivalently, as
+    \texttt{covariance} of two entries of $\widehat G^{(\ell+1)}$); the packaging of
+    $(G^{(\ell+1)},V^{(\ell+1)}/n_\ell)$ as an \texttt{EvenAction} of half-degree two; and the
+    matching theorem identifying the layer's marginal law with that action's law to $O(1/n_\ell)$.
+  \item[\texttt{RGFlow/Marginalization.lean}] the sample- and neuron-restriction corollaries of
+    \texttt{sec:sum-rule}, each stated as an instance of the four-point-vertex matching theorem with
+    $\iota$ or $A$ specialized to a sub-\texttt{Finset} coerced to a subtype, plus the identity
+    relating an expectation on the full index type to the same expectation on the restriction.
+  \item[\texttt{RGFlow/DepthInduction.lean}] the induction transporting
+    \texttt{HierarchicallyNearlyGaussian} (equivalently, $G^{(\ell)}=O(1)$ and $V^{(\ell)}=O(1)$)
+    from layer $\ell$ to layer $\ell+1$, and the kernel recursion
+    $K^{(\ell+1)}_{\alpha_1\alpha_2}=C_b+C_W\langle\sigma_{\alpha_1}\sigma_{\alpha_2}\rangle_{K^{(\ell)}}$
+    together with the leading vertex recursion.
+  \item[\texttt{RGFlow/Subleading.lean}] the kernel $K^{(\ell)}$ as the zeroth-order term of the
+    $1/n_{\ell-1}$-expansion of $G^{(\ell)}$, and the NLO metric $\Sigma^{(\ell)}$ recursion of
+    \texttt{sec:loop-correction}. This file is the lowest-priority phase (Phase~NGP6): it is
+    algebraically the most intricate content in the chapter and reuses everything from the other
+    files without motivating new reusable API on its own.
+  \item[\texttt{RGFlow/Flow.lean}] the vocabulary layer: the definitions \texttt{RelevantCoupling}/
+    \texttt{IrrelevantCoupling} for how $V^{(\ell)}$ behaves as $\ell$ grows, and the observation
+    that \texttt{NeuralNetwork.MLPEnsemble.outputKernel}
+    (Theorem~\ref{thm:renorm:deepKernelLaw}) already \emph{is} the sequential-marginalization
+    kernel composition that the source calls representation group flow, so no new pushforward
+    machinery is introduced here.
+\end{description}
+
+\section{The stochastic metric at an arbitrary layer}
+\label{sec:ngp:metric}
+
+Fix hyperparameters $C_b,C_W\geq0$ and let $z^{(\ell)}:A\to\iota_\ell\to\mathbb R$ denote the
+$\ell$-th layer's (random) preactivations, with $\sigma^{(\ell)}=\sigma\circ z^{(\ell)}$ its
+activations.
+
+\begin{definition}[Stochastic, mean, and fluctuation metric]
+\label{def:ngp:stochasticMetric}
+\uses{def:renorm:layerCovariance}
+\lean{RGFlow.stochasticMetric, RGFlow.meanMetric, RGFlow.metricFluctuation}
+Define
+\[
+  \widehat G^{(\ell+1)} := \texttt{NeuralNetwork.layerCovariance}\ p\ \sigma^{(\ell)},
+  \qquad
+  G^{(\ell+1)} := \mathbb E\big[\widehat G^{(\ell+1)}\big],
+  \qquad
+  \Delta G^{(\ell+1)} := \widehat G^{(\ell+1)} - G^{(\ell+1)},
+\]
+where the expectation of a matrix-valued random variable is taken entrywise (Bochner integral on
+each of the finitely many coordinates). The first layer is the case $\sigma^{(0)}:=x$, the fixed
+dataset, for which $\widehat G^{(1)}=G^{(1)}$ is already deterministic and
+Theorem~\ref{thm:renorm:gaussianLayerLaw} applies directly with no fluctuation.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:general-stochastic-metric}, \texttt{eq:mean-metric-any-layer}, and
+\texttt{eq:metric-fluctuation-general-layer}, specialized from
+\texttt{eq:second-layer-metric-mean} and \texttt{eq:second-layer-mean-fluctuation}.
+\end{definition}
+
+\begin{lemma}[The fluctuation is centered]
+\label{lem:ngp:fluctuationMeanZero}
+\uses{def:ngp:stochasticMetric}
+\lean{RGFlow.integral\_metricFluctuation\_eq\_zero}
+$\mathbb E[\Delta G^{(\ell+1)}]=0$ entrywise, by linearity of the Bochner integral.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The sentence immediately following \texttt{eq:metric-fluctuation-general-layer}.
+\end{lemma}
+
+\begin{theorem}[Conditional law and even moments at an arbitrary layer]
+\label{thm:ngp:generalEvenMoment}
+\uses{def:ngp:stochasticMetric, thm:renorm:gaussianLayerLaw, thm:renorm:wick}
+\lean{RGFlow.map\_batchPreactivation\_eq\_pi\_multivariateGaussian\_stochasticMetric,
+RGFlow.integral\_coordinateProduct\_eq\_wick\_stochasticMetric}
+Conditionally on $z^{(\ell)}$, the law of $z^{(\ell+1)}$ is
+$\bigotimes_{j}\texttt{multivariateGaussian}(0,\widehat G^{(\ell+1)})$ — an immediate instance of
+Theorem~\ref{thm:renorm:gaussianLayerLaw} with $s=\sigma^{(\ell)}$ (a random, rather than fixed,
+batch). Consequently, for any pairing-indexed even correlator, Wick's theorem
+(Theorem~\ref{thm:renorm:wick}) applied conditionally and then the tower property give
+\[
+  \mathbb E\big[z^{(\ell+1)}_{i_1;\alpha_1}\cdots z^{(\ell+1)}_{i_{2m};\alpha_{2m}}\big]
+  =\sum_{\text{pairings }P}\ \mathbb E\Big[\textstyle\prod_{(k_1,k_2)\in P}
+    \delta_{i_{k_1}i_{k_2}}\widehat G^{(\ell+1)}_{\alpha_{k_1}\alpha_{k_2}}\Big].
+\]
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:general-layer-conditional} and \texttt{eq:general-even-moment}.
+\end{theorem}
+
+\begin{proof}
+The conditional statement is Theorem~\ref{thm:renorm:gaussianLayerLaw} instantiated at $s=\sigma^{(\ell)}$; it
+does not need $\sigma^{(\ell)}$ to be independent of anything, only that, conditionally on
+$z^{(\ell)}$, the next layer's parameters are freshly and independently Gaussian, which is exactly
+what \texttt{randomLayerKernel} (Definition~\ref{def:renorm:randomLayerKernel}) already encodes.
+The even-moment formula follows by applying Wick's theorem inside the conditional expectation and
+then using \texttt{MeasureTheory.integral\_integral} (tower property) to remove the conditioning; a
+formal \texttt{Kernel}-level statement of ``apply a theorem about a fixed covariance to a
+random covariance and then integrate'' is the one genuinely new proof-engineering pattern this
+file introduces, and it should be extracted as a named lemma
+(\texttt{RGFlow.integral\_kernel\_lemma\_of\_conditional}, tracked in
+\S\ref{sec:ngp:refactors}) rather than inlined at each use site.
+\end{proof}
+
+\section{The four-point vertex and the nearly-Gaussian action match}
+\label{sec:ngp:vertex}
+
+\begin{definition}[Four-point vertex]
+\label{def:ngp:fourPointVertex}
+\uses{def:ngp:stochasticMetric, def:renorm:jointCumulant}
+\lean{RGFlow.fourPointVertex}
+\[
+  V^{(\ell+1)}_{(\alpha_1\alpha_2)(\alpha_3\alpha_4)}
+  := n_\ell\cdot\mathrm{Cov}\big[\widehat G^{(\ell+1)}_{\alpha_1\alpha_2},\,
+     \widehat G^{(\ell+1)}_{\alpha_3\alpha_4}\big]
+  = n_\ell\cdot\texttt{Renormalization.jointCumulant}\ \mu\
+     \big[\widehat G^{(\ell+1)}_{\alpha_1\alpha_2},\widehat G^{(\ell+1)}_{\alpha_3\alpha_4}\big].
+\]
+This uses \texttt{jointCumulant\_two\_eq\_covariance} to identify the second joint cumulant with
+covariance; using \texttt{jointCumulant} rather than a bespoke covariance definition means every
+symmetry, bilinearity, and vanishing-under-independence lemma already proved for
+\texttt{jointCumulant} (the ``Finite partitions and connected correlators'' section of
+Chapter~\ref{chap:renormalization}) transfers to $V^{(\ell+1)}$ for free.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:vertex-in-terms-of-metric-fluctuation}, specialized at $\ell+1=2$ to
+\texttt{eq:second-layer-metric-fluctuation-two-point-function}, where the source names the object
+$V^{(2)}_{(\alpha_1\alpha_2)(\alpha_3\alpha_4)}$.
+\end{definition}
+
+\begin{theorem}[Second-layer marginal law matches an even action to relative order $1/n_1$]
+\label{thm:ngp:fourPointVertexMatch}
+\uses{def:ngp:fourPointVertex, thm:ngp:generalEvenMoment, def:renorm:evenAction,
+thm:renorm:quarticTwoPoint, thm:renorm:quarticFourPoint}
+\lean{RGFlow.EvenAction.ofLayer, RGFlow.twoPoint\_ofLayer\_isBigO,
+RGFlow.fourthCumulant\_ofLayer\_isBigO}
+Let $A:=\texttt{EvenAction.ofQuartic}\ G^{(\ell+1)}\ (\texttt{QuarticCoupling.ofVertex}\
+V^{(\ell+1)})$, an \texttt{EvenAction} on $A$ (the sample type) with precision $G^{(\ell+1)}$ and
+quartic coupling $V^{(\ell+1)}/n_\ell$. Then, as $n_\ell\to\infty$ along any sequence realizing the
+scaling $V^{(\ell+1)}=O(1)$,
+\[
+  \mathbb E[z^{(\ell+1)}_{i_1;\alpha_1}z^{(\ell+1)}_{i_2;\alpha_2}]
+    = \delta_{i_1i_2}\big(A.\texttt{measure}(1/n_\ell)\text{'s two-point moment}\big)+O(1/n_\ell^2),
+\]
+and the connected four-point correlator of $z^{(\ell+1)}$ equals $A$'s connected four-point moment
+up to $O(1/n_\ell^2)$, both by direct instantiation of
+Theorems~\ref{thm:renorm:quarticTwoPoint}/\ref{thm:renorm:quarticFourPoint} at
+$\epsilon=1/n_\ell$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:second-layer-quadratic-coupling}, \texttt{eq:second-layer-quartic-coupling}, and their
+general-layer restatement \texttt{eq:two-point-match-general}/\texttt{eq:four-point-match-general},
+which the source derives twice (\S\S ``Wick this way''/``Schwinger-Dyson this way'') from
+\texttt{eq:second-moment-from-action}/\texttt{eq:fourth-cumulant-from-action}.
+\end{theorem}
+
+\begin{proof}
+Do not re-derive \texttt{eq:second-moment-from-action}/\texttt{eq:fourth-cumulant-from-action}:
+these are exactly Theorems~\ref{thm:renorm:quarticTwoPoint} and~\ref{thm:renorm:quarticFourPoint},
+already proved in the ``Quartic Gaussian deformation'' section of
+Chapter~\ref{chap:renormalization} for a completely generic quadratic/quartic pair. The
+only new work is (i) checking that $(G^{(\ell+1)},V^{(\ell+1)})$ as defined in
+\S\ref{sec:ngp:vertex} literally instantiate the hypotheses ($V^{(\ell+1)}\geq0$ needs a
+positive-semidefiniteness argument specific to a variance, not assumed for free — this is the one
+genuinely new nonnegativity lemma the module must supply, since a covariance-of-covariances is
+automatically a variance and hence nonnegative diagonal, but the tensor $V^{(\ell+1)}$'s associated
+quartic potential being pointwise nonnegative needs the Cauchy--Schwarz-type argument sketched at
+\texttt{eq:midpoint-vertex-recursion}'s ``two types of contributions'' discussion) and (ii)
+converting the source's schematic ``$O(1/n_1)$'' into the explicit
+\texttt{ParametricallySmall}/\texttt{IsBigO} statement, following
+Remark~2 of \S\ref{sec:ngp:corrections}.
+\end{proof}
+
+\section{Depth induction: the kernel and vertex recursions}
+\label{sec:ngp:induction}
+
+\begin{definition}[Order-one layer statistics]
+\label{def:ngp:orderOneLayer}
+\uses{def:ngp:stochasticMetric, def:ngp:fourPointVertex}
+A layer $\ell$ has \emph{order-one statistics} if $G^{(\ell)}=O(1)$ and $V^{(\ell)}=O(1)$
+(as $n_{\ell-1}\to\infty$, in the sense of \texttt{ParametricallySmall} at order $0$). By
+Theorem~\ref{thm:ngp:fourPointVertexMatch}, this is exactly the hypothesis under which layer
+$\ell$'s marginal law is \texttt{HierarchicallyNearlyGaussian}
+(Definition~\ref{def:renorm:hierarchical}) at half-degree cutoff $2$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The inductive assumption stated at \texttt{eq:wide-regime} and the paragraph immediately following.
+\end{definition}
+
+\begin{theorem}[Kernel and leading vertex recursion]
+\label{thm:ngp:depthRecursion}
+\uses{def:ngp:orderOneLayer, thm:ngp:generalEvenMoment, thm:renorm:connectedCorrelatorHierarchy}
+\lean{RGFlow.meanMetric\_succ\_eq\_gaussianExpectation, RGFlow.fourPointVertex\_succ\_isBigO}
+If layer $\ell$ has order-one statistics, then layer $\ell+1$ does too, and
+\[
+  G^{(\ell+1)}_{\alpha_1\alpha_2}=C_b+C_W\,
+    \texttt{Action.gaussianExpectation}\ G^{(\ell)}\
+    (\sigma_{\alpha_1}\sigma_{\alpha_2}) + O(1/n_{\ell-1}),
+\]
+\[
+  V^{(\ell+1)}_{(\alpha_1\alpha_2)(\alpha_3\alpha_4)}
+  = C_W^2\Big[\langle\sigma_{\alpha_1}\sigma_{\alpha_2}\sigma_{\alpha_3}\sigma_{\alpha_4}\rangle_{G^{(\ell)}}
+   -\langle\sigma_{\alpha_1}\sigma_{\alpha_2}\rangle_{G^{(\ell)}}
+    \langle\sigma_{\alpha_3}\sigma_{\alpha_4}\rangle_{G^{(\ell)}}\Big] + O(1/n_{\ell-1}),
+\]
+where $\langle\cdot\rangle_{G^{(\ell)}}$ abbreviates \texttt{Action.gaussianExpectation}
+with covariance $G^{(\ell)}$. In particular $V^{(\ell+1)}/n_\ell=O(1/n_\ell)$, closing the
+induction.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:G-recursion-tree}, \texttt{eq:V-recursion-tree}, and their clean restatement at the
+chapter summary \texttt{eq:K-recursion-reprint}/\texttt{eq:V-recursion-reprint} (there written with
+$G^{(\ell)}$ replaced by its leading part, the kernel $K^{(\ell)}$; see
+\S\ref{sec:ngp:subleading} for why that replacement is itself only valid to $O(1/n)$).
+\end{theorem}
+
+\begin{proof}
+Apply Theorem~\ref{thm:ngp:generalEvenMoment}'s two- and four-point instances to
+$\mathbb E[\sigma^{(\ell)}_{j;\alpha_1}\sigma^{(\ell)}_{j;\alpha_2}]$ and the connected four-point
+activation correlator, using that layer $\ell$'s marginal law is
+\texttt{HierarchicallyNearlyGaussian} by the inductive hypothesis
+(Theorem~\ref{thm:renorm:connectedCorrelatorHierarchy}) to discard cumulants of order $\geq3$ at
+relative order $O(1/n_{\ell-1})$. Two cases split the sum defining $V^{(\ell+1)}$ in
+Definition~\ref{def:ngp:fourPointVertex}: coincident-neuron terms, which survive at leading order
+and give the displayed Gaussian-bracket difference, and distinct-neuron terms, which are already
+suppressed by an extra $1/n_{\ell-1}$ because they route through the previous layer's
+\emph{connected} four-point vertex $V^{(\ell)}$. This proof must not enumerate the disconnected
+pairings by hand; it should call
+\texttt{Renormalization.QuarticCoupling.covarianceWith\_coordinateProduct\_potential} (or its
+generalization proposed in \S\ref{sec:ngp:refactors}) exactly as
+that section's proofs do.
+\end{proof}
+
+\begin{corollary}[Order-one statistics for every finite depth]
+\label{cor:ngp:everyLayerOrderOne}
+\uses{thm:ngp:depthRecursion}
+\lean{RGFlow.orderOneLayer\_of\_le}
+If layer $1$ has order-one statistics (true unconditionally, since $V^{(1)}=0$ and $G^{(1)}$ is the
+fixed-dataset covariance), then every layer $\ell\leq L$ does, by finite induction on $\ell$ using
+Theorem~\ref{thm:ngp:depthRecursion}.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The inductive proof described in the paragraph following \texttt{eq:wide-regime} and concluded at
+\texttt{eq:V-recursion-tree-redux}.
+\end{corollary}
+
+\section{Marginalization rules}
+\label{sec:ngp:marginalization}
+
+\begin{theorem}[Restriction to a subsample and a subset of neurons]
+\label{thm:ngp:marginalizationRule}
+\uses{thm:renorm:deepKernelLaw}
+\lean{RGFlow.map\_restrict\_eq\_outputLaw\_restrict}
+Let $B\subseteq A$ and $I\subseteq\{1,\ldots,n_\ell\}$ be finite subsets. The pushforward of layer
+$\ell$'s marginal law under the coordinate-restriction map
+$z_{\mathcal N;A}\mapsto z_{I;B}$ equals the marginal law of layer $\ell$ computed with the
+dataset restricted to $B$ and the neuron set restricted to $I$. Consequently, for any integrable
+$F$ depending only on $z_{I;B}$,
+\[
+  \mathbb E[F(z_{I;B})] = \mathbb E_{B}[F(z_{I;B})],
+\]
+where the right side is computed entirely inside the (much smaller) $B$-indexed,
+$I$-indexed model.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:marginalization-rule} and \texttt{eq:sum-rule-mlp}.
+\end{theorem}
+
+\begin{proof}
+This is the general fact that a pushforward measure's expectation of a function of finitely many
+coordinates depends only on the pushforward under projection to those coordinates: use
+\texttt{MeasureTheory.integral\_map} composed with the coordinate-projection measurability already
+proved for \texttt{batchPreactivation}, plus the observation that
+\texttt{layerCovariance}$(p,s)$ restricted to $B\times B$ literally equals
+\texttt{layerCovariance} applied to $s$ restricted to $B$, since its defining sum is over $\iota$
+(the input coordinates), not over $A$ (the sample coordinates); the analogous statement for the
+neuron restriction $I$ is that \texttt{multivariateGaussian} laws on a finite product
+(Theorem~\ref{thm:renorm:gaussianLayerLaw}) restrict to their sub-product via
+\texttt{MeasureTheory.Measure.pi} projection lemmas. The exact Mathlib names for the
+finite-product projection step must be verified in a scratch file (Rule~1/Rule~8) before
+implementation; they are not yet checked in this library.
+\end{proof}
+
+\begin{corollary}[Vertex and kernel recursions need only finitely many samples]
+\label{cor:ngp:finiteSampleRecursion}
+\uses{thm:ngp:marginalizationRule, thm:ngp:depthRecursion, def:ngp:fourPointVertex}
+The right-hand sides of Theorem~\ref{thm:ngp:depthRecursion}, evaluated at a fixed finite tuple of
+samples $\alpha_1,\ldots,\alpha_4$, depend on $G^{(\ell)}$ and $V^{(\ell)}$ only through their
+restriction to $\{\alpha_1,\ldots,\alpha_4\}\times\{\alpha_1,\ldots,\alpha_4\}$ (and, for the
+inverse-metric contraction of \texttt{eq:vertex-UUUU-dddd}, only through that restricted
+submatrix's inverse). This is an immediate corollary of
+Theorem~\ref{thm:ngp:marginalizationRule}, not a new proof.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The subsubsection ``Marginalization over samples,'' book lines 3023--3036.
+\end{corollary}
+
+The neuron-marginalization content of book lines 3039--3121 (the naive $O(n)$ vs.\ $O(1)$
+scale-counting resolution and the $m_\ell$-vs-$n_\ell$ running coupling) is, per
+Remark~5 of \S\ref{sec:ngp:corrections}, an application of
+Theorem~\ref{thm:ngp:marginalizationRule} and Theorem~\ref{thm:ngp:fourPointVertexMatch} at two
+different neuron-index Fintypes; it needs no further Lean declaration beyond the two already
+listed, and is recorded here only as a worked example to include in module documentation.
+
+\section{Subleading corrections: the kernel and the NLO metric}
+\label{sec:ngp:subleading}
+
+\begin{definition}[Kernel]
+\label{def:ngp:kernel}
+\uses{def:ngp:orderOneLayer}
+\lean{RGFlow.kernel}
+The \emph{kernel} $K^{(\ell)}$ is the $n_{\ell-1}\to\infty$ leading term of $G^{(\ell)}$, i.e.\ the
+metric produced by Theorem~\ref{thm:ngp:depthRecursion} with the $O(1/n_{\ell-1})$ remainder
+dropped: $K^{(1)}:=G^{(1)}$ (exact, no remainder at the first layer), and
+$K^{(\ell+1)}_{\alpha_1\alpha_2}:=C_b+C_W\langle\sigma_{\alpha_1}\sigma_{\alpha_2}\rangle_{K^{(\ell)}}$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:definition-of-kernel-first} and \texttt{eq:K-recursion}.
+\end{definition}
+
+\begin{theorem}[NLO metric recursion]
+\label{thm:ngp:nloMetricRecursion}
+\uses{def:ngp:kernel, thm:ngp:fourPointVertexMatch, thm:ngp:depthRecursion}
+\lean{RGFlow.nloMetric, RGFlow.nloMetric\_succ\_eq}
+Writing $G^{(\ell)}=K^{(\ell)}+\tfrac1{n_{\ell-1}}\Sigma^{(\ell)}+O(1/n_{\ell-1}^2)$, the NLO metric
+$\Sigma^{(\ell)}$ satisfies the recursion displayed at \texttt{eq:NLO-metric-recursion}, expressing
+$\Sigma^{(\ell+1)}/n_\ell$ as an explicit bilinear expression in $\Sigma^{(\ell)}$, $V^{(\ell)}$,
+and Gaussian brackets $\langle\cdot\rangle_{K^{(\ell)}}$.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+\texttt{eq:self-energy-decomposition} through \texttt{eq:NLO-metric-recursion}, book
+lines~3130--3211.
+\end{theorem}
+
+\begin{proof}[Proof status]
+\textbf{This theorem is deferred and will initially be recorded as \texttt{sorry} with the
+informal proof below cited in its docstring, per the project convention for reusable API whose
+full proof is out of scope for the present phase.} Informally: substitute the
+$1/n_{\ell-1}$-expansions~\texttt{eq:self-energy-decomposition}/\texttt{eq:vertex-decomposition}
+into the exact two-point matching identity
+\texttt{eq:second-moment-from-action-reprinted} (an instance of
+Theorem~\ref{thm:renorm:quarticTwoPoint} at one further order), invert to isolate
+$g^{(\ell)}-K^{(\ell)}$ (\texttt{eq:inverse-difference}), substitute the quartic-coupling
+correction into the leading two-activation Gaussian bracket via a first-order tilted-measure
+expansion (\texttt{eq:subleading-sigma-sigma}, an instance of
+\texttt{Renormalization.Perturbation.hasDerivWithinAt\_integral\_deform\_zero}), and collect terms
+order by order in $1/n_{\ell-1}$. Source: \cite{Yaida2019} as cited by the book at this chapter's
+introduction, and book lines 3147--3211 for the full manual computation. This is by a wide margin
+the most algebraically intricate derivation in the chapter, touches no new mathematical concept
+beyond what Theorem~\ref{thm:ngp:fourPointVertexMatch} already introduces, and is therefore
+Phase~NGP6 (\S\ref{sec:ngp:phases}): lowest priority, attempted only after Phases NGP0--NGP5 are
+complete and compiling.
+\end{proof}
+
+\section{RG flow: vocabulary}
+\label{sec:ngp:flow}
+
+\begin{definition}[Relevant and irrelevant couplings]
+\label{def:ngp:relevance}
+\uses{def:ngp:fourPointVertex}
+\lean{RGFlow.RelevantCoupling, RGFlow.IrrelevantCoupling}
+Given a family $(V^{(\ell)})_{\ell}$ (or, more precisely, a chosen scalar summary of it, such as
+its operator norm), call the coupling \emph{relevant along the flow} if
+$\ell\mapsto\|V^{(\ell)}\|$ is eventually increasing, and \emph{irrelevant} if it is eventually
+decreasing. These are ordinary \texttt{Monotone}/\texttt{Antitone} (or eventual, i.e.\
+\texttt{Filter.atTop}-eventual) predicates on a real sequence; no new order-theoretic machinery
+is needed.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The paragraph defining relevant/irrelevant couplings, book lines 3356--3361, and the footnote
+introducing ``marginal.''
+\end{definition}
+
+\begin{remark}[Representation group flow is exactly kernel composition]
+\uses{thm:renorm:deepKernelLaw}
+The source's Equations \texttt{eq:full-distribution-factorization} and
+\texttt{eq:full-action-decomposition} describe the joint law of all layers as a Markov chain and
+its marginals as sequential integration. This is, verbatim, what
+\texttt{NeuralNetwork.MLPEnsemble.outputKernel} (Theorem~\ref{thm:renorm:deepKernelLaw}) already
+computes by \texttt{Kernel} composition. Nothing new needs to be proved to formalize the ``RG
+flow'' slogan itself; the mathematical content of this chapter is entirely in
+\S\S\ref{sec:ngp:metric}--\ref{sec:ngp:subleading}, which describe \emph{how} the composed kernel's
+marginal statistics change with depth. This chapter therefore adds no Lean declaration for
+\texttt{eq:full-distribution-factorization}/\texttt{eq:full-action-decomposition} beyond citing
+Theorem~\ref{thm:renorm:deepKernelLaw}, and none is planned for the physics-history footnote or the
+field-theory analogy (book lines 3280--3348), which are expository.
+\end{remark}
+
+Whether the network's finite-width four-point vertex is relevant or irrelevant along the flow is
+answered only in the \emph{next} book chapter (``the next chapter explores these relevant
+questions by explicitly solving recursion equations''), which is outside
+\texttt{docs/Renormalization.md} as currently transcribed and hence outside the present milestone.
+Phase~NGP7 in \S\ref{sec:ngp:phases} records this as a tracked follow-up, not a gap in the present
+chapter's own scope.
+
+\section{Refactors and reuse in LML}
+\label{sec:ngp:refactors}
+
+\begin{enumerate}
+  \item \textbf{Kernel-conditional integration lemma.} Theorem~\ref{thm:ngp:generalEvenMoment}'s
+    proof needs one genuinely new, reusable pattern: ``apply a theorem about a Gaussian law with a
+    fixed covariance matrix to a covariance matrix that is itself a random variable, then integrate
+    out the randomness.'' This is not specific to neural networks. Propose adding
+    \texttt{Renormalization.Gaussian.integral\_of\_conditional\_multivariateGaussian} to
+    \texttt{Gaussian.lean}, taking a measurable map into positive-semidefinite matrices and an
+    observable, concluding an unconditional even-moment formula as a mixture over the random
+    covariance. \texttt{RGFlow.Metric.lean} would then be a thin specialization, and any future
+    chapter with a randomized covariance (e.g.\ dropout, random features) inherits the lemma for
+    free.
+  \item \textbf{\texttt{QuarticCoupling.ofVertex} bridge.} Definition~\ref{def:ngp:fourPointVertex}
+    needs a constructor turning a symmetric fourth-cumulant tensor into a
+    \texttt{QuarticCoupling}. Propose adding \texttt{QuarticCoupling.ofFourthCumulant} to
+    \texttt{Quartic.lean}: given a family $X:\iota\to\iota\to\Omega\to\mathbb R$ with the right
+    symmetry, package $n\cdot\text{(fourth joint cumulant of appropriate pairs)}$ as a
+    \texttt{QuarticCoupling}, with the permutation-invariance proof obligation reduced to
+    \texttt{jointCumulant\_perm}. This directly benefits \texttt{DeepLinear/Fluctuations.lean},
+    whose \texttt{jointCumulant\_four\_outputLaw} could be restated as an instance once the bridge
+    exists, though no change to \texttt{DeepLinear.lean} is proposed at this time (it is already
+    complete and proved; churn is not justified until \texttt{RGFlow} exists and the bridge is
+    exercised at least twice, matching the promotion criterion already stated in the
+    ``Refactors and reuse in LML'' section of Chapter~\ref{chap:renormalization}).
+  \item \textbf{Reuse, do not duplicate, \texttt{covarianceWith}.} Every appearance of
+    $\langle\sigma_{\alpha_1}\sigma_{\alpha_2}(z_{\beta_1}z_{\beta_2}-g_{\beta_1\beta_2})\rangle_g$
+    in the source (e.g.\ \texttt{eq:two-activations-deep}, \texttt{eq:NLO-metric-recursion}) is a
+    \texttt{covarianceWith} in the sense of \texttt{Renormalization.Perturbation.covarianceWith};
+    no bespoke ``bracket of a bracket'' notation should be introduced in \texttt{RGFlow}.
+  \item \textbf{Finite-index marginalization helper.} Theorem~\ref{thm:ngp:marginalizationRule}'s
+    proof depends on a finite-product-measure restriction lemma whose exact Mathlib name is not
+    yet verified (flagged explicitly in its proof sketch). If no sufficiently general lemma exists,
+    propose adding a small, activation-independent helper to
+    \texttt{ForMathlib/MeasureTheory/Measure/Pi.lean} (new file) rather than to \texttt{RGFlow},
+    since the statement (``pushforward of a finite product measure under coordinate projection is
+    a sub-product'') has no neural-network content.
+  \item \textbf{Do not touch \texttt{DeepLinear}.} \texttt{DeepLinear}'s exact recursion
+    (\texttt{thm:dln:generalRecursion}) is the $\sigma=\mathrm{id}$, exactly-Gaussian
+    specialization of Theorem~\ref{thm:ngp:depthRecursion} (with $V^{(\ell)}\equiv0$ identically,
+    not just to leading order, since a linear map of a Gaussian is exactly Gaussian). Once
+    \texttt{RGFlow/DepthInduction.lean} exists, deriving \texttt{DeepLinear}'s recursion as a
+    corollary would be a good regression test of this chapter's general theorem, but is explicitly
+    \emph{not} required for Phases NGP0--NGP6: \texttt{DeepLinear} is fully proved today, and
+    replacing a complete proof with a corollary of a not-yet-proved general theorem would be a net
+    decrease in the number of theorems this library can actually typecheck at any given time.
+\end{enumerate}
+
+\section{Implementation phases and acceptance criteria}
+\label{sec:ngp:phases}
+
+\subsection*{Phase NGP0: exact imports and signatures}
+Open a scratch file importing \texttt{InducedLaw}, \texttt{NearlyGaussian}, \texttt{Quartic}, and
+\texttt{Cumulant}, and \texttt{\#check} every name cited by
+\S\S\ref{sec:ngp:metric}--\ref{sec:ngp:flow} above (in particular the exact dotted names of
+\texttt{NeuralNetwork.layerCovariance}, \texttt{NeuralNetwork.map\_evalBatch\_layerGaussianInit},
+\texttt{Renormalization.QuarticCoupling.twoPoint\_isBigO},
+\texttt{Renormalization.QuarticCoupling.fourthCumulant\_isBigO}, and
+\texttt{Renormalization.jointCumulant\_two\_eq\_covariance}). Acceptance: the scratch file compiles
+with zero \texttt{sorry} and zero unknown identifiers before any file in
+\S\ref{sec:ngp:modules} is started, per Rule~8/Rule~11.
+
+\subsection*{Phase NGP1: the stochastic metric}
+Implement \texttt{RGFlow/Metric.lean}: Definition~\ref{def:ngp:stochasticMetric},
+Lemma~\ref{lem:ngp:fluctuationMeanZero}, and the conditional-law half of
+Theorem~\ref{thm:ngp:generalEvenMoment}. Acceptance: \texttt{lake env lean} succeeds on the file;
+the conditional law statement type-checks against \texttt{multivariateGaussian} with no
+\texttt{sorry} in its statement (the even-moment formula's proof may still be \texttt{sorry} at
+this phase, since it depends on the not-yet-extracted kernel-conditional integration lemma of
+\S\ref{sec:ngp:refactors}).
+
+\subsection*{Phase NGP2: the four-point vertex and the action match}
+Implement \texttt{RGFlow/FourPointVertex.lean}: Definition~\ref{def:ngp:fourPointVertex} and
+Theorem~\ref{thm:ngp:fourPointVertexMatch}, including the nonnegativity lemma flagged in its proof
+sketch. Acceptance: the \texttt{EvenAction} instance's precision and coupling literally unify
+(up to \texttt{rfl} or a one-line \texttt{simp}) with $G^{(\ell+1)}$ and $V^{(\ell+1)}/n_\ell$ as
+displayed; no proof enumerates Wick pairings by hand (Rule~19).
+
+\subsection*{Phase NGP3: depth induction}
+Implement \texttt{RGFlow/DepthInduction.lean}: Definition~\ref{def:ngp:orderOneLayer},
+Theorem~\ref{thm:ngp:depthRecursion}, Corollary~\ref{cor:ngp:everyLayerOrderOne}. Acceptance: the
+induction is a genuine \texttt{Nat} induction with a single named inductive-step lemma reused for
+every layer (Rule~7/Rule~9), not one \texttt{have} block per depth.
+
+\subsection*{Phase NGP4: marginalization}
+Implement \texttt{RGFlow/Marginalization.lean}: Theorem~\ref{thm:ngp:marginalizationRule} and
+Corollary~\ref{cor:ngp:finiteSampleRecursion}, after first verifying (or adding, per
+\S\ref{sec:ngp:refactors}) the finite-product projection lemma it depends on. Acceptance: the
+restriction theorem is proved for a generic \texttt{Finset} restriction, not merely illustrated on
+an example dataset.
+
+\subsection*{Phase NGP5: RG-flow vocabulary and documentation}
+Implement \texttt{RGFlow/Flow.lean}: Definition~\ref{def:ngp:relevance} and the umbrella
+\texttt{RGFlow.lean}, wire it into \texttt{Optimization/Renormalization.lean}. Acceptance: full
+targeted \texttt{lake build} of every \texttt{RGFlow} module, then the project-wide
+\texttt{lake build}, then linters, matching the closing step of
+Phase~DL6 in Chapter~\ref{chap:deep-linear-renormalization}.
+
+\subsection*{Phase NGP6: subleading NLO metric (lowest priority)}
+Implement \texttt{RGFlow/Subleading.lean}: Definition~\ref{def:ngp:kernel} and
+Theorem~\ref{thm:ngp:nloMetricRecursion}, the latter shipped with \texttt{sorry} and its cited
+informal proof until a contributor has time for the full $1/n^2$ bookkeeping. Acceptance: the
+\emph{statement} type-checks and the docstring names every lemma its eventual proof will need
+(Rule~9, skeleton-first); the file must not block Phase~NGP5's build.
+
+\subsection*{Phase NGP7: relevance/irrelevance of the finite-width vertex (tracked, out of scope)}
+Recorded for the chapter that solves \texttt{eq:K-recursion-reprint}/\texttt{eq:V-recursion-reprint}
+explicitly (the book's next chapter, not yet in \texttt{docs/Renormalization.md}). No acceptance
+criterion is set here; this phase exists only so the dependency is not silently forgotten.
+
+\section{Failure analysis and compliance with \texttt{lessons\_learned.md}}
+\label{sec:ngp:compliance}
+
+A naive plan for this chapter would treat \texttt{docs/Renormalization.md}'s ch:ngp as a
+free-standing derivation and formalize its two Gaussian-law derivations, its Wick-contraction
+combinatorics, and its quartic-action matching from scratch, independently of
+Chapter~\ref{chap:renormalization} and of \texttt{Quartic.lean}/\texttt{NearlyGaussian.lean}. Every
+one of the following mistakes is a concrete, named violation of \texttt{lessons\_learned.md}, not a
+generic worry:
+
+\begin{enumerate}
+  \item \textbf{Rule~1 (Verify Before Implementation) and Rule~19 (API extraction over goal-state
+    bloat):} re-deriving \texttt{eq:first-layer-distribution-HS-derivation} would duplicate
+    Theorem~\ref{thm:renorm:gaussianLayerLaw}, which is already proved. Re-deriving
+    \texttt{eq:second-moment-from-action}/\texttt{eq:fourth-cumulant-from-action} would duplicate
+    Theorems~\ref{thm:renorm:quarticTwoPoint}/\ref{thm:renorm:quarticFourPoint}. Both duplications
+    were caught only by reading Chapter~\ref{chap:renormalization} and the current
+    \texttt{Quartic.lean}/\texttt{InducedLaw.lean} \emph{before} drafting this chapter, exactly the
+    verification step Rule~1 requires and the API-reuse discipline Rule~19 requires.
+  \item \textbf{Rule~3 (Pattern-Based Search) and the hallucinated-mathlib record:} a plan that
+    tried to formalize the Hubbard--Stratonovich derivation's Fourier representation of the Dirac
+    delta, or that assumed a blanket \texttt{IsGaussian (Measure.pi ...)} instance to shortcut
+    Theorem~\ref{thm:renorm:gaussianLayerLaw}'s proof, would walk directly into the two entries
+    \texttt{docs/hallucinated\_mathlib.md} already records for this library:
+    \texttt{map\_gaussianRowMeasure\_dotProduct} does not exist, and
+    \texttt{IsGaussian (Measure.pi ...)} does not auto-synthesize. This chapter instead routes
+    every Gaussian-law statement through the already-verified
+    \texttt{iIndepFun.map\_fun\_eq\_pi\_map} route recorded in
+    Theorem~\ref{thm:renorm:gaussianLayerLaw}'s proof.
+  \item \textbf{Rule~9 (Skeleton-First Proof Development) and Rule~12 (monolithic \texttt{calc}
+    blocks are anti-patterns):} the source's own NLO-metric derivation
+    (\S\ref{sec:ngp:subleading}) is a five-equation chain of substitutions
+    (\texttt{eq:matching-two-point-subleading} through \texttt{eq:NLO-metric-recursion}). A plan
+    that tried to prove Theorem~\ref{thm:ngp:nloMetricRecursion} in one pass, in the same session as
+    Phases NGP0--NGP5, would produce exactly the unreadable, hard-to-localize goal state Rule~12
+    warns about. This plan instead isolates it as Phase~NGP6, stated with \texttt{sorry} and a full
+    informal proof plus source citation, which is the explicitly licensed exception in the task's
+    own instructions and matches how \texttt{EvenAction.connectedCorrelatorHierarchy} itself is
+    currently shipped in \texttt{NearlyGaussian.lean}.
+  \item \textbf{Rule~18 (Never Hallucinate Mathematical Bounds):} the source states unconditionally
+    that ``in the strict $n\to\infty$ limit, the quartic coupling vanishes.'' Formalizing this as an
+    actual limit over a single measure space would be false — there is no single probability space
+    indexed by $n$ in this construction. Every asymptotic statement in
+    \S\S\ref{sec:ngp:vertex}--\ref{sec:ngp:subleading} is instead stated with an explicit
+    \texttt{IsBigO}/\texttt{ParametricallySmall} predicate at fixed depth and fixed moment order,
+    per Remark~3 of \S\ref{sec:ngp:corrections}, matching the discipline
+    Chapter~\ref{chap:deep-linear-renormalization} already established for exactly this kind of
+    claim.
+  \item \textbf{Rule~7 (Modularize tactic-heavy subgoals) and the project's existing
+    \texttt{EvenAction} abstraction:} a plan that gave the second layer its own bespoke
+    ``second-layer action'' structure, separate from the general-layer one used for
+    \S\ref{sec:ngp:induction}, would duplicate proof obligations at every depth instead of proving
+    Theorem~\ref{thm:ngp:fourPointVertexMatch} once and reusing it inside
+    Theorem~\ref{thm:ngp:depthRecursion}'s induction step. This is exactly the API-extraction
+    discipline of Rule~19 applied across, not just within, a single theorem.
+  \item \textbf{Section~1.4 (Measure Theory Typeclasses) and the positive-definiteness remark:}
+    treating \texttt{layerCovariance}'s positive-\emph{semi}definiteness
+    (\texttt{lem:renorm:layerCovariancePSD}) as sufficient for a density/determinant formula would
+    silently produce a singular or non-invertible metric whenever two samples' inputs coincide or
+    are linearly dependent, exactly the kind of hidden-hypothesis failure Section~1.4 warns about
+    for measure-theoretic typeclasses. Every determinant- or inverse-metric-bearing statement above
+    carries an explicit \texttt{PosDef} hypothesis instead.
+\end{enumerate}
+
+This chapter's plan is total, not aspirational, compliance: every new definition cites the exact
+existing declaration it builds on or generalizes (\S\ref{sec:ngp:refactors}), every asymptotic
+claim is a named filter-relative \texttt{IsBigO} statement, every genuinely hard piece
+(Theorem~\ref{thm:ngp:nloMetricRecursion}) is isolated into its own lowest-priority phase with a
+complete informal proof and citation rather than either being skipped silently or forced into a
+false, simplified statement, and the module structure of \S\ref{sec:ngp:modules} makes the
+depth-induction step (Theorem~\ref{thm:ngp:depthRecursion}) the one reusable API boundary that
+every downstream layer, and any future chapter on signal propagation, consumes.
