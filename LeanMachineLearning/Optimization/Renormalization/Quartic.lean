@@ -374,7 +374,10 @@ omit [DecidableEq ι] in
 /-- A constant factor may be inserted anywhere in a permuted two-point contraction sum.
 
 This is the form needed when a Wick orbit contains one external-external covariance together with
-a two-external quartic contraction. -/
+a two-external quartic contraction.
+
+Informal proof: commute and reassociate the constant to the outside of each summand, distribute it
+over the finite sum, and apply `twoPointContraction_sum_perm`. -/
 theorem twoPointContraction_sum_perm_mul_const (A : QuarticCoupling ι)
     (K : Matrix ι ι ℝ) (i j : ι) (σ : Equiv.Perm (Fin 4)) (c : ℝ) :
     (∑ q : Fin 4 → ι, A.coeff q * K i (q (σ 0)) *
@@ -387,6 +390,17 @@ theorem twoPointContraction_sum_perm_mul_const (A : QuarticCoupling ι)
       exact Finset.sum_congr rfl (fun q _hq ↦ by ring)
     _ = c * A.twoPointContraction K i j := by
       rw [twoPointContraction_sum_perm A K i j σ]
+
+omit [DecidableEq ι] in
+/-- Permuting the four vertex legs does not change a four-point contraction.
+
+Informal proof: apply `coeff_sum_perm` to the product of the four external-to-vertex covariance
+factors. Total symmetry of `A.coeff` absorbs the permutation of the vertex tuple. -/
+theorem fourPointContraction_sum_perm (A : QuarticCoupling ι)
+    (K : Matrix ι ι ℝ) (index : Fin 4 → ι) (σ : Equiv.Perm (Fin 4)) :
+    (∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q (σ r))) =
+      A.fourPointContraction K index := by
+  exact coeff_sum_perm A σ (fun q : Fin 4 → ι ↦ ∏ r : Fin 4, K (index r) (q r))
 
 omit [DecidableEq ι] in
 /-- The quartic Wick sum collapses to three copies of the vacuum contraction.
@@ -1118,283 +1132,105 @@ private lemma vertex_partner_wick_sum_zero (A : QuarticCoupling ι) (K : Matrix 
   let σ123 : Equiv.Perm (Fin 4) := perm 0 2 3 1 (by decide)
   let σ132 : Equiv.Perm (Fin 4) := perm 0 3 1 2 (by decide)
   let σ132b : Equiv.Perm (Fin 4) := perm 0 3 2 1 (by decide)
-  have hsimp {σ : Equiv.Perm (Fin 4)} :
-      (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q (σ 0)) * (K (index 3) (q (σ 1)) * K (q (σ 2)) (q (σ 3))))) =
-        A.twoPointContraction K (index 0) (index 3) := by
-    exact twoPointContraction_sum_perm A K (index 0) (index 3) σ
   have h1 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (index 2) * (K (index 3) (q 1) * K (q 2) (q 3)))) =
         K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 1) * K (q 2) (q 3)))) =
-          A.twoPointContraction K (index 0) (index 3) := by
-      simpa [σid, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using (hsimp (σ := σid))
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 1) * K (q 2) (q 3)))) *
-            K (index 1) (index 2)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring_nf
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 1) * K (q 2) (q 3)))) *
-            K (index 1) (index 2) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 3) * K (index 1) (index 2) := by
-        rw [h]
-      _ = K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) := by ring
+    simpa only [σid, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 3) σid
+        (K (index 1) (index 2))
   have h2 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (index 2) * (K (index 3) (q 2) * K (q 1) (q 3)))) =
         K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 2) * K (q 1) (q 3)))) =
-          A.twoPointContraction K (index 0) (index 3) := by
-      simpa [σ12, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using (hsimp (σ := σ12))
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 2) * K (q 1) (q 3)))) *
-            K (index 1) (index 2)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 2) * K (q 1) (q 3)))) *
-            K (index 1) (index 2) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 3) * K (index 1) (index 2) := by
-        rw [h]
-      _ = K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) := by ring
+    simpa only [σ12, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 3) σ12
+        (K (index 1) (index 2))
   have h3 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (index 2) * (K (index 3) (q 3) * K (q 1) (q 2)))) =
         K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 3) * K (q 1) (q 2)))) =
-          A.twoPointContraction K (index 0) (index 3) := by
-      simpa [σ13, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using (hsimp (σ := σ13))
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 3) * K (q 1) (q 2)))) *
-            K (index 1) (index 2)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 3) (q 3) * K (q 1) (q 2)))) *
-            K (index 1) (index 2) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 3) * K (index 1) (index 2) := by
-        rw [h]
-      _ = K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) := by ring
+    simpa only [σ13, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 3) σ13
+        (K (index 1) (index 2))
   have h4 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (index 3) * (K (index 2) (q 1) * K (q 2) (q 3)))) =
         K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 1) * K (q 2) (q 3)))) =
-          A.twoPointContraction K (index 0) (index 2) := by
-      simpa [σid, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using
-        (twoPointContraction_sum_perm A K (index 0) (index 2) σid)
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 1) * K (q 2) (q 3)))) *
-            K (index 1) (index 3)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 1) * K (q 2) (q 3)))) *
-            K (index 1) (index 3) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 2) * K (index 1) (index 3) := by
-        rw [h]
-      _ = K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) := by ring
+    simpa only [σid, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 2) σid
+        (K (index 1) (index 3))
   have h5 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (index 3) * (K (index 2) (q 2) * K (q 1) (q 3)))) =
         K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 2) * K (q 1) (q 3)))) =
-          A.twoPointContraction K (index 0) (index 2) := by
-      simpa [σ12, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using
-        (twoPointContraction_sum_perm A K (index 0) (index 2) σ12)
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 2) * K (q 1) (q 3)))) *
-            K (index 1) (index 3)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 2) * K (q 1) (q 3)))) *
-            K (index 1) (index 3) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 2) * K (index 1) (index 3) := by
-        rw [h]
-      _ = K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) := by ring
+    simpa only [σ12, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 2) σ12
+        (K (index 1) (index 3))
   have h6 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (index 3) * (K (index 2) (q 3) * K (q 1) (q 2)))) =
         K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 3) * K (q 1) (q 2)))) =
-          A.twoPointContraction K (index 0) (index 2) := by
-      simpa [σ13, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using
-        (twoPointContraction_sum_perm A K (index 0) (index 2) σ13)
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 3) * K (q 1) (q 2)))) *
-            K (index 1) (index 3)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 2) (q 3) * K (q 1) (q 2)))) *
-            K (index 1) (index 3) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 2) * K (index 1) (index 3) := by
-        rw [h]
-      _ = K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) := by ring
+    simpa only [σ13, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 2) σ13
+        (K (index 1) (index 3))
   have h7 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 1) * (K (index 2) (index 3) * K (q 2) (q 3)))) =
         K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 1) * K (q 2) (q 3)))) =
-          A.twoPointContraction K (index 0) (index 1) := by
-      simpa [σid, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using
-        (twoPointContraction_sum_perm A K (index 0) (index 1) σid)
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 1) * K (q 2) (q 3)))) *
-            K (index 2) (index 3)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 1) * K (q 2) (q 3)))) *
-            K (index 2) (index 3) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 1) * K (index 2) (index 3) := by
-        rw [h]
-      _ = K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1) := by ring
+    simpa only [σid, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val, mul_comm, mul_left_comm, mul_assoc] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 1) σid
+        (K (index 2) (index 3))
   have h10 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 2) * (K (index 2) (index 3) * K (q 1) (q 3)))) =
         K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 2) * K (q 1) (q 3)))) =
-          A.twoPointContraction K (index 0) (index 1) := by
-      simpa [σ12, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using
-        (twoPointContraction_sum_perm A K (index 0) (index 1) σ12)
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 2) * K (q 1) (q 3)))) *
-            K (index 2) (index 3)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 2) * K (q 1) (q 3)))) *
-            K (index 2) (index 3) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 1) * K (index 2) (index 3) := by
-        rw [h]
-      _ = K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1) := by ring
+    simpa only [σ12, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val, mul_comm, mul_left_comm, mul_assoc] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 1) σ12
+        (K (index 2) (index 3))
   have h13 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 3) * (K (index 2) (index 3) * K (q 1) (q 2)))) =
         K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1) := by
-    have h : (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 3) * K (q 1) (q 2)))) =
-          A.twoPointContraction K (index 0) (index 1) := by
-      simpa [σ13, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.cons_val] using
-        (twoPointContraction_sum_perm A K (index 0) (index 1) σ13)
-    calc
-      _ = (∑ q : Fin 4 → ι, (A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 3) * K (q 1) (q 2)))) *
-            K (index 2) (index 3)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        ring
-      _ = (∑ q : Fin 4 → ι, A.coeff q *
-            (K (index 0) (q 0) * (K (index 1) (q 3) * K (q 1) (q 2)))) *
-            K (index 2) (index 3) := by
-        rw [← Finset.sum_mul]
-      _ = A.twoPointContraction K (index 0) (index 1) * K (index 2) (index 3) := by
-        rw [h]
-      _ = K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1) := by ring
+    simpa only [σ13, perm, Equiv.ofBijective_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val, mul_comm, mul_left_comm, mul_assoc] using
+      twoPointContraction_sum_perm_mul_const A K (index 0) (index 1) σ13
+        (K (index 2) (index 3))
   have h8 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 1) * (K (index 2) (q 2) * K (index 3) (q 3)))) =
         A.fourPointContraction K index := by
-    calc
-      _ = ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q r) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        simp [Fin.prod_univ_four, mul_assoc]
-      _ = A.fourPointContraction K index := rfl
-  have hsimp4 {σ : Equiv.Perm (Fin 4)} :
-      (∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) ((q ∘ σ) r)) =
-        A.fourPointContraction K index := by
-    exact coeff_sum_perm A σ (fun q : Fin 4 → ι ↦ ∏ r : Fin 4, K (index r) (q r))
+    simpa only [Fin.prod_univ_four, σid, perm, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, mul_assoc] using
+      fourPointContraction_sum_perm A K index σid
   have h9 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 1) * (K (index 2) (q 3) * K (index 3) (q 2)))) =
         A.fourPointContraction K index := by
-    have h := hsimp4 (σ := σ23)
-    calc
-      _ = ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q (σ23 r)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        simp only [Fin.prod_univ_four, mul_assoc, σ23, perm, Equiv.ofBijective_apply,
-          Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val]
-      _ = A.fourPointContraction K index := h
+    simpa only [Fin.prod_univ_four, σ23, perm, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, mul_assoc] using
+      fourPointContraction_sum_perm A K index σ23
   have h11 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 2) * (K (index 2) (q 1) * K (index 3) (q 3)))) =
         A.fourPointContraction K index := by
-    have h := hsimp4 (σ := σ12)
-    calc
-      _ = ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q (σ12 r)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        simp only [Fin.prod_univ_four, mul_assoc, σ12, perm, Equiv.ofBijective_apply,
-          Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val]
-      _ = A.fourPointContraction K index := h
+    simpa only [Fin.prod_univ_four, σ12, perm, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, mul_assoc] using
+      fourPointContraction_sum_perm A K index σ12
   have h12 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 2) * (K (index 2) (q 3) * K (index 3) (q 1)))) =
         A.fourPointContraction K index := by
-    have h := hsimp4 (σ := σ123)
-    calc
-      _ = ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q (σ123 r)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        simp only [Fin.prod_univ_four, mul_assoc, σ123, perm, Equiv.ofBijective_apply,
-          Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val]
-      _ = A.fourPointContraction K index := h
+    simpa only [Fin.prod_univ_four, σ123, perm, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, mul_assoc] using
+      fourPointContraction_sum_perm A K index σ123
   have h14 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 3) * (K (index 2) (q 1) * K (index 3) (q 2)))) =
         A.fourPointContraction K index := by
-    have h := hsimp4 (σ := σ132)
-    calc
-      _ = ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q (σ132 r)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        simp only [Fin.prod_univ_four, mul_assoc, σ132, perm, Equiv.ofBijective_apply,
-          Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val]
-      _ = A.fourPointContraction K index := h
+    simpa only [Fin.prod_univ_four, σ132, perm, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, mul_assoc] using
+      fourPointContraction_sum_perm A K index σ132
   have h15 : (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
           (K (index 1) (q 3) * (K (index 2) (q 2) * K (index 3) (q 1)))) =
         A.fourPointContraction K index := by
-    have h := hsimp4 (σ := σ132b)
-    calc
-      _ = ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, K (index r) (q (σ132b r)) := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        simp only [Fin.prod_univ_four, mul_assoc, σ132b, perm, Equiv.ofBijective_apply,
-          Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val]
-      _ = A.fourPointContraction K index := h
+    simpa only [Fin.prod_univ_four, σ132b, perm, Equiv.ofBijective_apply,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val, mul_assoc] using
+      fourPointContraction_sum_perm A K index σ132b
   have hAssemble :
       (∑ q : Fin 4 → ι, A.coeff q * K (index 0) (q 0) *
         wick (C q) ({Sum.inl 1, Sum.inl 2, Sum.inl 3, Sum.inr 1, Sum.inr 2, Sum.inr 3} :

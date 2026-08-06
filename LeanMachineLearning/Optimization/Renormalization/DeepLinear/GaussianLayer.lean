@@ -81,6 +81,52 @@ theorem map_batchPreactivation
     hyperparams_biasVariance, hyperparams_weightVariance, NNReal.coe_zero, zero_add] using
     map_evalBatch_layerGaussianInit (p := hyperparams Cw) x
 
+/-- Even-moment recurrence for a standard one-dimensional Gaussian:
+`∫ z, z ^ (2 * (a + 1)) = (2a + 1) * ∫ z, z ^ (2 * a)`.
+
+This is the one-coordinate instance of the chi-square recursion used below in
+`integral_sumSq_pow_stdGaussian_succ`.  It follows directly from
+`Renormalization.integral_mul_pow_gaussianReal` (Stein's lemma for monomials). -/
+private lemma integral_pow_two_mul_succ_stdGaussian (a : ℕ) :
+    ∫ u : ℝ, u ^ (2 * (a + 1)) ∂gaussianReal 0 1 =
+      (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a) ∂gaussianReal 0 1 := by
+  calc
+    ∫ u : ℝ, u ^ (2 * (a + 1)) ∂gaussianReal 0 1
+        = ∫ u : ℝ, u ^ (2 * a + 2) ∂gaussianReal 0 1 := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with u
+            rw [show 2 * (a + 1) = 2 * a + 2 by omega]
+    _ = ∫ u : ℝ, u * u ^ (2 * a + 1) ∂gaussianReal 0 1 := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with u
+            rw [show 2 * a + 2 = (2 * a + 1) + 1 by omega]
+            rw [pow_succ']
+    _ = (1 : ℝ) * ((2 * a + 1 : ℕ) : ℝ) *
+          ∫ u : ℝ, u ^ (2 * a + 1 - 1) ∂gaussianReal 0 1 := by
+            exact Renormalization.integral_mul_pow_gaussianReal 1 (2 * a + 1)
+    _ = (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a + 1 - 1) ∂gaussianReal 0 1 := by
+            norm_num
+    _ = (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a) ∂gaussianReal 0 1 := by
+            rw [show 2 * a + 1 - 1 = 2 * a by omega]
+
+/-- Stein/chi-square recurrence for the raw moments of the squared norm of a standard
+Gaussian vector.
+
+Informal proof: put `X g = ∑ i, g i ^ 2`.  For each coordinate `i`, condition on the remaining
+coordinates and apply the one-dimensional Gaussian integration-by-parts identity (Stein's lemma) to
+`z * (z^2 + R)^k`, where `R` is the sum of the other coordinate squares.  This gives
+`E[g_i^2 * X^k] = E[X^k] + 2*k*E[g_i^2 * X^(k-1)]`.  Summing over `i` yields
+`E[X^(k+1)] = ((n : ℝ) + 2*k) * E[X^k]`.  The formal proof should combine the local lemma
+`Renormalization.integral_mul_pow_gaussianReal` with finite-product Fubini for `Measure.pi`; the
+mathematical identity is also the standard moment recurrence for a chi-square random variable
+(<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>).
+-/
+private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
+    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n =
+      ((n : ℝ) + 2 * k) *
+        ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
+  sorry
+
 /-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector.
 
 Informal proof: write `X g = ∑ i, g i ^ 2`.  The Gaussian integration-by-parts/Stein identity
@@ -95,7 +141,21 @@ combine `Renormalization.integral_mul_pow_gaussianReal` with finite-product Fubi
 theorem integral_sumSq_pow_stdGaussian (m n : ℕ) :
     ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n =
       ∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s) := by
-  sorry
+  induction m with
+  | zero =>
+      simp [standardGaussianVectorLaw]
+  | succ k ih =>
+      calc
+        ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n
+            = ((n : ℝ) + 2 * k) *
+                ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
+              exact integral_sumSq_pow_stdGaussian_succ k n
+        _ = ((n : ℝ) + 2 * k) *
+              (∏ s ∈ Finset.range k, ((n : ℝ) + 2 * s)) := by
+              rw [ih]
+        _ = ∏ s ∈ Finset.range (k + 1), ((n : ℝ) + 2 * s) := by
+              rw [Finset.prod_range_succ]
+              ring
 
 private lemma normalized_chiSquare_product_algebra (m n : ℕ) (hn : 0 < n) :
     ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) =
@@ -114,7 +174,6 @@ private lemma normalized_chiSquare_product_algebra (m n : ℕ) (hn : 0 < n) :
           refine Finset.prod_congr rfl ?_
           intro s hs
           field_simp [hn_ne]
-          ring
 
 /-- Moment formula for the empirical mean of squares of an independent standard Gaussian vector.
 
