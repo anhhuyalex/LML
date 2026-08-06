@@ -1032,7 +1032,7 @@ References: Mathlib, `Probability.Moments.IntegrableExpMul`,
 and Terence Tao, *An Introduction to Measure Theory*, §1.11 (Hölder's inequality),
 <https://terrytao.files.wordpress.com/2011/01/measure-book1.pdf>. -/
 lemma hasFiniteJointMoments_linearCombinationFamily_of_integrable_exp {Ω ι κ : Type*}
-    [MeasurableSpace Ω] [Fintype ι] [Fintype κ] (ν : Measure Ω) [IsFiniteMeasure ν]
+    [MeasurableSpace Ω] [Fintype κ] (ν : Measure Ω) [IsFiniteMeasure ν]
     (Z : κ → Ω → ℝ)
     (h_exp_integrable : ∀ a : κ → ℝ,
       Integrable (fun ω ↦ Real.exp (∑ j : κ, a j * Z j ω)) ν)
@@ -1122,19 +1122,21 @@ logarithm of that MGF is a quadratic polynomial, then the full joint cumulant va
 least three.  This is the analytic core of the block theorem below; separating it from block
 restriction keeps the finite-index bookkeeping reusable.
 
-Informal proof.  Global exponential integrability makes the joint MGF analytic near the origin.
-Differentiate its logarithm once in every coordinate.  The multivariate moment--cumulant formula
-identifies this mixed derivative with `jointCumulant ν Z`.  A quadratic polynomial has zero mixed
-derivative in every order at least three.
+Informal proof.  Fix a coefficient vector `a` and put `Xₐ = ∑ i, a i Zᵢ`.  The assumed identity
+along the line `t ↦ t a` says that the scalar CGF of `Xₐ` is `q(a) t²`, so its derivative of every
+order at least three is zero.  The scalar moment--cumulant bridge identifies that derivative with
+the joint cumulant of repeated copies of `Xₐ`.  Joint cumulants are symmetric multilinear forms
+when the needed moments exist; the polarization identity therefore recovers the mixed cumulant
+from these zero diagonal values.  Global exponential integrability supplies all required finite
+moments by finite Hölder.
 
 References: Scholarpedia, *Cumulants*, <http://www.scholarpedia.org/article/Cumulants>; Statlect,
 *Cumulant generating function*,
 <https://www.statlect.com/fundamentals-of-probability/cumulant-generating-function>; and Mathlib's
 one-variable analytic MGF implementation,
 <https://github.com/leanprover-community/mathlib4/blob/master/Mathlib/Probability/Moments/MGFAnalytic.lean>.
-
-This multivariate analytic bridge is not yet present in Mathlib.  Its proof is deferred here rather
-than represented by nonexistent coefficient-extraction declarations. -/
+The polarization step is Theorem 1 of Erik G. F. Thomas,
+<https://arxiv.org/abs/1309.1275>. -/
 lemma jointCumulant_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
     [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
     [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
@@ -1217,11 +1219,18 @@ identifies the squarefree coefficient of this logarithm with
 polynomial of total degree at most two.  A squarefree coefficient indexed by `B` with
 `3 ≤ B.card` therefore has degree at least three and is zero.
 
+Formal Lean proof sketch.  Restrict the family to the subtype `σ = {k // k ∈ B}`.  Reindex
+all subtype sums as ambient sums with coefficients extended by zero, first for the exponent in the
+MGF and then for the covariance quadratic form.  These two reindexing steps transfer both the
+exponential-integrability hypothesis and the log-MGF identity to the restricted family.  Finally,
+rewrite the block cumulant as the full joint cumulant of this subtype family using
+`blockCumulant_eq_jointCumulant_subtype`, and apply the full-family theorem
+`jointCumulant_eq_zero_of_log_mgf_quadratic`.
+
 References: Wikipedia, *Cumulant*, section "Joint cumulants"
 <https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants>, and the local sorry-free
 moment-cumulant partition identity `jointMoment_eq_sum_partition_jointCumulant` in
 `Renormalization.Cumulant`. -/
-
 private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
     [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
     [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)

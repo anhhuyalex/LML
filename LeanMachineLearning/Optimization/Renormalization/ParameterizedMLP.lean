@@ -92,6 +92,50 @@ def depth {m n : ℕ} : MLPShape m n → ℕ
   | .output => 1
   | .hidden tail => tail.depth + 1
 
+-- Measurability of a single affine layer in (parameters, input) form.  The expression
+-- `(DenseLayer.ofParams p.1).preactivation p.2` is definitionally `preactivationFromParams`,
+-- so this is just `DenseLayer.measurable_preactivation` restated for `Fin m`/`Fin n`.
+-- Used as the base case of `measurable_eval`.
+private lemma measurable_ofParams_preactivation (m n : ℕ) :
+    Measurable
+      (fun p : LayerParams (Fin m) (Fin n) × (Fin m → ℝ) =>
+        (DenseLayer.ofParams p.1).preactivation p.2) :=
+  DenseLayer.measurable_preactivation
+
+-- Measurability of the hidden-layer transition map: pairing the tail parameters with the
+-- activated output of the head affine layer is jointly measurable whenever `σ` is.  `A` is
+-- any measurable tail parameter type (here `tail.Params`).  Used in the hidden case of
+-- `measurable_eval` to thread the induction hypothesis through the first affine layer.
+private lemma measurable_activateFromParams_prod (m k : ℕ) {A : Type*} [MeasurableSpace A]
+    {σ : ℝ → ℝ} (hσ : Measurable σ) :
+    Measurable
+      (fun p : (LayerParams (Fin m) (Fin k) × A) × (Fin m → ℝ) =>
+        (p.1.2, DenseLayer.activateFromParams σ (p.1.1, p.2))) :=
+  (measurable_snd.comp measurable_fst).prodMk
+    ((DenseLayer.measurable_activate hσ).comp
+      ((measurable_fst.comp measurable_fst).prodMk measurable_snd))
+
+-- Continuity of a single affine layer in (parameters, input) form.  This is the topological
+-- analogue of `measurable_ofParams_preactivation`, and is used as the base case of
+-- `continuous_eval`.
+private lemma continuous_ofParams_preactivation (m n : ℕ) :
+    Continuous
+      (fun p : LayerParams (Fin m) (Fin n) × (Fin m → ℝ) =>
+        (DenseLayer.ofParams p.1).preactivation p.2) :=
+  DenseLayer.continuous_preactivation
+
+-- Continuity of the hidden-layer transition map: keep the tail parameters and replace the input by
+-- the activated output of the head layer.  This is the topological analogue of
+-- `measurable_activateFromParams_prod`.
+private lemma continuous_activateFromParams_prod (m k : ℕ) {A : Type*} [TopologicalSpace A]
+    {σ : ℝ → ℝ} (hσ : Continuous σ) :
+    Continuous
+      (fun p : (LayerParams (Fin m) (Fin k) × A) × (Fin m → ℝ) =>
+        (p.1.2, DenseLayer.activateFromParams σ (p.1.1, p.2))) :=
+  (continuous_snd.comp continuous_fst).prodMk
+    ((DenseLayer.continuous_activate hσ).comp
+      ((continuous_fst.comp continuous_fst).prodMk continuous_snd))
+
 /-- Joint measurability in all parameters and the input.
 
 Informal proof: induction over the shape.  A single affine layer is jointly measurable by
@@ -104,19 +148,11 @@ theorem measurable_eval {m n : ℕ} (S : MLPShape m n) {σ : ℝ → ℝ} (hσ :
     Measurable (fun p : S.Params × (Fin m → ℝ) => S.eval σ p.1 p.2) := by
   induction S with
   | output =>
-      simpa [eval, instantiate, Params, DenseLayer.preactivationFromParams] using
-        (DenseLayer.measurable_preactivation (ι := Fin m) (κ := Fin n) :
-          Measurable
-            (DenseLayer.preactivationFromParams :
-              LayerParams (Fin m) (Fin n) × (Fin m → ℝ) → Fin n → ℝ))
+      rename_i m₀ n₀
+      exact measurable_ofParams_preactivation m₀ n₀
   | hidden tail ih =>
-      refine ih.comp ?_
-      refine (measurable_snd.comp measurable_fst).prodMk ?_
-      change Measurable
-        (fun p : (LayerParams (Fin m) (Fin _) × tail.Params) × (Fin m → ℝ) =>
-          DenseLayer.activateFromParams σ (p.1.1, p.2))
-      exact (DenseLayer.measurable_activate hσ).comp
-        ((measurable_fst.comp measurable_fst).prodMk measurable_snd)
+      rename_i m₀ n₀ k
+      exact ih.comp (measurable_activateFromParams_prod m₀ k hσ)
 
 /-- Joint continuity in all parameters and the input.
 
@@ -125,7 +161,13 @@ and activation composition lemmas instead.  See
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/Topology/ContinuousMap/Basic.html>. -/
 theorem continuous_eval {m n : ℕ} (S : MLPShape m n) {σ : ℝ → ℝ} (hσ : Continuous σ) :
     Continuous (fun p : S.Params × (Fin m → ℝ) => S.eval σ p.1 p.2) := by
-  sorry
+  induction S with
+  | output =>
+      rename_i m₀ n₀
+      exact continuous_ofParams_preactivation m₀ n₀
+  | hidden tail ih =>
+      rename_i m₀ n₀ k
+      exact ih.comp (continuous_activateFromParams_prod m₀ k hσ)
 
 end MLPShape
 
