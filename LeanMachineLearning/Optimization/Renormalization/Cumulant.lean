@@ -1410,6 +1410,97 @@ theorem jointCumulant_smul [Fintype ι] [DecidableEq ι]
   ext s
   exact blockMoment_smul_update X i c s
 
+/-- Apply a matrix of coefficients to a finite family of real observables.  The first index is
+the output position and the second index selects an observable in the original family. -/
+def linearCombinationFamily [Fintype κ] (X : κ → Ω → ℝ) (A : ι → κ → ℝ) :
+    ι → Ω → ℝ :=
+  fun i ω ↦ ∑ j : κ, A i j * X j ω
+
+/-- Joint cumulant, viewed as a multilinear map in the coefficient vectors of its arguments.
+
+The hypothesis is deliberately stated for every coefficient matrix: `jointCumulant_add` needs
+integrability both before and after replacing one row.  Exponential moments of all scalar linear
+combinations imply this hypothesis by finite Hölder; see
+`hasFiniteJointMoments_linearCombinationFamily_of_integrable_exp` in `Gaussian.lean`. -/
+def jointCumulantMultilinearMap [Fintype ι] [DecidableEq ι] [Fintype κ]
+    (X : κ → Ω → ℝ)
+    (hfinite : ∀ A : ι → κ → ℝ, HasFiniteJointMoments μ (linearCombinationFamily X A)) :
+    MultilinearMap ℝ (fun _ : ι ↦ κ → ℝ) ℝ :=
+  MultilinearMap.mk'
+    (fun A ↦ jointCumulant μ (linearCombinationFamily X A))
+    (fun A i x y ↦ by
+      let U := linearCombinationFamily X (Function.update A i x)
+      let Y : Ω → ℝ := fun ω ↦ ∑ j : κ, y j * X j ω
+      have hadd := jointCumulant_add U i Y
+        (hfinite (Function.update A i x)) (by
+          convert hfinite (Function.update A i y) using 1
+          ext r ω
+          by_cases hri : r = i
+          · subst r
+            simp [U, Y, linearCombinationFamily]
+          · simp [U, Y, linearCombinationFamily, hri])
+      have hleft :
+          linearCombinationFamily X (Function.update A i (x + y)) =
+            Function.update U i (U i + Y) := by
+        ext r ω
+        by_cases hri : r = i
+        · subst r
+          simp [U, Y, linearCombinationFamily, add_mul, Finset.sum_add_distrib]
+        · simp [U, Y, linearCombinationFamily, hri]
+      have hright :
+          linearCombinationFamily X (Function.update A i y) =
+            Function.update U i Y := by
+        ext r ω
+        by_cases hri : r = i
+        · subst r
+          simp [U, Y, linearCombinationFamily]
+        · simp [U, Y, linearCombinationFamily, hri]
+      calc
+        jointCumulant μ (linearCombinationFamily X (Function.update A i (x + y))) =
+            jointCumulant μ (Function.update U i (U i + Y)) := congrArg _ hleft
+        _ = jointCumulant μ U + jointCumulant μ (Function.update U i Y) := hadd
+        _ = jointCumulant μ (linearCombinationFamily X (Function.update A i x)) +
+            jointCumulant μ (linearCombinationFamily X (Function.update A i y)) := by
+              rw [hright])
+    (fun A i c x ↦ by
+      let U := linearCombinationFamily X (Function.update A i x)
+      have hsmul := jointCumulant_smul (μ := μ) U i c
+      have hleft :
+          linearCombinationFamily X (Function.update A i (c • x)) =
+            Function.update U i (c • U i) := by
+        ext r ω
+        by_cases hri : r = i
+        · subst r
+          simp [U, linearCombinationFamily, Finset.mul_sum, mul_assoc]
+        · simp [U, linearCombinationFamily, hri]
+      calc
+        jointCumulant μ (linearCombinationFamily X (Function.update A i (c • x))) =
+            jointCumulant μ (Function.update U i (c • U i)) := congrArg _ hleft
+        _ = c * jointCumulant μ U := hsmul
+        _ = c • jointCumulant μ (linearCombinationFamily X (Function.update A i x)) := rfl)
+
+/-- Polarization for joint cumulants: if every repeated-variable cumulant in the linear span of
+`X` vanishes, then the mixed cumulant vanishes.
+
+Informal proof.  Under `hfinite`, `jointCumulantMultilinearMap X hfinite` is a symmetric
+multilinear form.  The polarization identity for a symmetric `n`-linear form over a
+characteristic-zero field expresses its value at `(x₁, …, xₙ)` as `1 / n!` times an alternating
+sum of diagonal values at sums of subsets of the `xᵢ`.  Every diagonal value is zero by `hdiag`.
+Symmetry is `jointCumulant_perm`, and multilinearity is packaged by
+`jointCumulantMultilinearMap`.
+
+Reference: Erik G. F. Thomas, *A polarization identity for multilinear maps*, Theorem 1,
+<https://arxiv.org/abs/1309.1275>.  The paper proves the finite-difference formula over any field
+whose characteristic does not divide `n!`, hence in particular over `ℝ`. -/
+theorem jointCumulant_eq_zero_of_diagonal_linearCombination [Fintype ι] [DecidableEq ι]
+    (X : ι → Ω → ℝ)
+    (hfinite : ∀ A : ι → ι → ℝ,
+      HasFiniteJointMoments μ (linearCombinationFamily X A))
+    (hdiag : ∀ a : ι → ℝ,
+      jointCumulant μ (fun _ : ι ↦ fun ω ↦ ∑ j : ι, a j * X j ω) = 0) :
+    jointCumulant μ X = 0 := by
+  sorry
+
 /-- Independence of the observables indexed by `A` from those indexed by its complement. -/
 def IndepAcross (μ : Measure Ω) (X : ι → Ω → ℝ)
     (A : Finset ι) : Prop :=

@@ -102,7 +102,21 @@ finite-product measurable-space API:
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Constructions/Pi.html>. -/
 theorem measurable_eval {m n : ℕ} (S : MLPShape m n) {σ : ℝ → ℝ} (hσ : Measurable σ) :
     Measurable (fun p : S.Params × (Fin m → ℝ) => S.eval σ p.1 p.2) := by
-  sorry
+  induction S with
+  | output =>
+      simpa [eval, instantiate, Params, DenseLayer.preactivationFromParams] using
+        (DenseLayer.measurable_preactivation (ι := Fin m) (κ := Fin n) :
+          Measurable
+            (DenseLayer.preactivationFromParams :
+              LayerParams (Fin m) (Fin n) × (Fin m → ℝ) → Fin n → ℝ))
+  | hidden tail ih =>
+      refine ih.comp ?_
+      refine (measurable_snd.comp measurable_fst).prodMk ?_
+      change Measurable
+        (fun p : (LayerParams (Fin m) (Fin _) × tail.Params) × (Fin m → ℝ) =>
+          DenseLayer.activateFromParams σ (p.1.1, p.2))
+      exact (DenseLayer.measurable_activate hσ).comp
+        ((measurable_fst.comp measurable_fst).prodMk measurable_snd)
 
 /-- Joint continuity in all parameters and the input.
 

@@ -1018,6 +1018,103 @@ private lemma sum_subtype_eq_sum_ite {α R : Type*} [Fintype α] [DecidableEq α
     _ = ∑ x : α, (if hx : x ∈ s then f ⟨x, hx⟩ else 0) :=
       Finset.sum_subset (Finset.subset_univ s) (fun x _ hx ↦ by simp [hx])
 
+/-- Exponential moments of every scalar linear combination give finite joint moments for every
+matrix of linear combinations.
+
+Informal proof.  For each row `r`, scaling that row by an arbitrary real `t` shows that the
+exponential-integrability interval of `∑ j, A r j * Z j` is all of `ℝ`.  Mathlib's
+`memLp_of_mem_interior_integrableExpSet` therefore puts that row in every finite `L^p`.  For a
+nonempty block `B`, put each factor in `L^{|B|}` and apply finite Hölder; the resulting product is
+in `L¹`.  The empty product is the integrable constant one.
+
+References: Mathlib, `Probability.Moments.IntegrableExpMul`,
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Moments/IntegrableExpMul.html>;
+and Terence Tao, *An Introduction to Measure Theory*, §1.11 (Hölder's inequality),
+<https://terrytao.files.wordpress.com/2011/01/measure-book1.pdf>. -/
+lemma hasFiniteJointMoments_linearCombinationFamily_of_integrable_exp {Ω ι κ : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [Fintype κ] (ν : Measure Ω) [IsFiniteMeasure ν]
+    (Z : κ → Ω → ℝ)
+    (h_exp_integrable : ∀ a : κ → ℝ,
+      Integrable (fun ω ↦ Real.exp (∑ j : κ, a j * Z j ω)) ν)
+    (A : ι → κ → ℝ) :
+    HasFiniteJointMoments ν (linearCombinationFamily Z A) := by
+  intro B
+  by_cases hB : B.Nonempty
+  · have hrow_memLp : ∀ r ∈ B,
+        MemLp (linearCombinationFamily Z A r) (((B.card : ℕ) : ℝ≥0∞)) ν := by
+      intro r _hr
+      have hset : integrableExpSet (linearCombinationFamily Z A r) ν = Set.univ := by
+        ext t
+        simp only [Set.mem_univ, iff_true]
+        change Integrable
+          (fun ω ↦ Real.exp (t * linearCombinationFamily Z A r ω)) ν
+        have heq :
+            (fun ω ↦ Real.exp (t * linearCombinationFamily Z A r ω)) =
+              (fun ω ↦ Real.exp (∑ j : κ, (t * A r j) * Z j ω)) := by
+          funext ω
+          congr 1
+          change t * (∑ j : κ, A r j * Z j ω) = _
+          rw [Finset.mul_sum]
+          apply Finset.sum_congr rfl
+          intro j _hj
+          ring
+        rw [heq]
+        exact h_exp_integrable (fun j ↦ t * A r j)
+      have hzero : 0 ∈ interior (integrableExpSet (linearCombinationFamily Z A r) ν) := by
+        rw [hset]
+        simp
+      simpa using
+        (ProbabilityTheory.memLp_of_mem_interior_integrableExpSet hzero (B.card : ℝ≥0))
+    have hprod :
+        MemLp (fun ω ↦ ∏ r ∈ B, linearCombinationFamily Z A r ω)
+          ((∑ r ∈ B, (((B.card : ℕ) : ℝ≥0∞))⁻¹)⁻¹) ν := by
+      convert
+        (MeasureTheory.MemLp.prod
+          (μ := ν) (f := fun r ω ↦ linearCombinationFamily Z A r ω)
+          (p := fun _ : ι ↦ (((B.card : ℕ) : ℝ≥0∞))) (s := B) hrow_memLp) using 1
+      ext ω
+      simp
+    have hexponent :
+        ((∑ r ∈ B, (((B.card : ℕ) : ℝ≥0∞))⁻¹)⁻¹) = (1 : ℝ≥0∞) := by
+      rw [Finset.sum_const, nsmul_eq_mul]
+      have hcard_ne_zero : B.card ≠ 0 := Nat.ne_of_gt (Finset.card_pos.mpr hB)
+      have hzero : (((B.card : ℕ) : ℝ≥0∞) ≠ 0) := by
+        norm_num [hcard_ne_zero]
+      have htop : (((B.card : ℕ) : ℝ≥0∞) ≠ ∞) := ENNReal.natCast_ne_top _
+      rw [ENNReal.mul_inv_cancel hzero htop]
+      simp
+    exact (hexponent ▸ hprod :
+      MemLp (fun ω ↦ ∏ r ∈ B, linearCombinationFamily Z A r ω) 1 ν).integrable
+        (by norm_num)
+  · have hB_empty : B = ∅ := Finset.not_nonempty_iff_eq_empty.mp hB
+    simp [hB_empty]
+
+/-- A repeated-variable joint cumulant of order at least three vanishes when its scalar CGF is a
+quadratic monomial.
+
+This is the one-dimensional analytic part of the multivariate argument.  The local theorem
+`cumulant_eq_jointCumulant` identifies the derivative definition with the partition definition;
+Mathlib's `iteratedDeriv_fun_pow_zero` then evaluates the derivative of `t²`. -/
+lemma jointCumulant_const_eq_zero_of_cgf_eq_quadratic {Ω ι : Type*}
+    [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι] (ν : Measure Ω)
+    [IsProbabilityMeasure ν] (X : Ω → ℝ) (q : ℝ)
+    (hmgf : 0 ∈ interior (integrableExpSet X ν))
+    (hcgf : cgf X ν = fun t ↦ q * t ^ 2)
+    (hcard : 3 ≤ Fintype.card ι) :
+    jointCumulant ν (fun _ : ι ↦ X) = 0 := by
+  let n := Fintype.card ι
+  have hn_two : n ≠ 2 := by omega
+  have hfin : jointCumulant ν (fun _ : Fin n ↦ X) = 0 := by
+    rw [← cumulant_eq_jointCumulant X n hmgf]
+    change iteratedDeriv n (cgf X ν) 0 = 0
+    rw [hcgf]
+    rw [iteratedDeriv_const_mul_field, iteratedDeriv_fun_pow_zero]
+    simp [hn_two]
+  let e : ι ≃ Fin n := Fintype.equivFin ι
+  have hperm := jointCumulant_perm (μ := ν) e (fun _ : ι ↦ X)
+  rw [← hperm]
+  exact hfin
+
 /-- Full-family analytic coefficient extraction for a quadratic joint CGF.
 
 If the exponential defining the joint MGF is integrable for every coefficient vector and the
@@ -1051,7 +1148,59 @@ lemma jointCumulant_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
           (∑ i : ι, ∑ j : ι, a i * a j * covariance (Z i) (Z j) ν) / 2))
     (hcard : 3 ≤ Fintype.card ι) :
     jointCumulant ν Z = 0 := by
-  sorry
+  apply jointCumulant_eq_zero_of_diagonal_linearCombination Z
+  · intro A
+    exact hasFiniteJointMoments_linearCombinationFamily_of_integrable_exp ν Z
+      h_exp_integrable A
+  · intro a
+    let X : Ω → ℝ := fun ω ↦ ∑ j : ι, a j * Z j ω
+    have hset : integrableExpSet X ν = Set.univ := by
+      ext t
+      simp only [Set.mem_univ, iff_true]
+      change Integrable (fun ω ↦ Real.exp (t * X ω)) ν
+      have heq :
+          (fun ω ↦ Real.exp (t * X ω)) =
+            (fun ω ↦ Real.exp (∑ j : ι, (t * a j) * Z j ω)) := by
+        funext ω
+        apply congrArg Real.exp
+        dsimp [X]
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro j _hj
+        ring
+      rw [heq]
+      exact h_exp_integrable (fun j ↦ t * a j)
+    have hzero : 0 ∈ interior (integrableExpSet X ν) := by
+      rw [hset]
+      simp
+    let q : ℝ := (∑ i : ι, ∑ j : ι,
+      a i * a j * covariance (Z i) (Z j) ν) / 2
+    have hcgf : cgf X ν = fun t ↦ q * t ^ 2 := by
+      funext t
+      have hmgf_reindex :
+          mgf X ν t = mgf (fun ω ↦ ∑ j : ι, (t * a j) * Z j ω) ν 1 := by
+        unfold mgf
+        congr 1
+        ext ω
+        apply congrArg Real.exp
+        dsimp [X]
+        simp only [one_mul]
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro j _hj
+        ring
+      have hlog := congrFun h_log_mgf (fun j ↦ t * a j)
+      change Real.log (mgf X ν t) = q * t ^ 2
+      rw [hmgf_reindex, hlog]
+      dsimp [q]
+      simp_rw [show ∀ i j : ι,
+        (t * a i) * (t * a j) * covariance (Z i) (Z j) ν =
+          t ^ 2 * (a i * a j * covariance (Z i) (Z j) ν) by
+            intro i j
+            ring]
+      simp only [← Finset.mul_sum]
+      ring
+    exact jointCumulant_const_eq_zero_of_cgf_eq_quadratic ν X q hzero hcgf hcard
 
 /-- Analytic coefficient-extraction bridge for higher Gaussian cumulants.
 
