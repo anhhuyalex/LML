@@ -2362,17 +2362,14 @@ This is the classical `deriv^[k] (1/x)` computation: `deriv log = Inv.inv`, and
 `iter_deriv_inv` gives `deriv^[k] Inv.inv x = (-1)^k * k! * x^(-1-k)`, evaluated at `x = 1`. -/
 private lemma iteratedDeriv_log_one (k : ℕ) :
     iteratedDeriv (k + 1) Real.log 1 = (-1 : ℝ) ^ k * (k.factorial : ℝ) := by
-  rw [iteratedDeriv_eq_iterate]
-  rw [Function.iterate_succ_apply]
-  rw [Real.deriv_log']
-  rw [iter_deriv_inv k 1]
+  rw [iteratedDeriv_eq_iterate, Function.iterate_succ_apply, Real.deriv_log',
+    iter_deriv_inv k 1]
   simp
 
 /-- The `k`-th derivative of `Real.log` at `1`, for `k ≥ 1`. -/
 private lemma iteratedDeriv_log_one_of_pos {k : ℕ} (hk : 0 < k) :
     iteratedDeriv k Real.log 1 = (-1 : ℝ) ^ (k - 1) * ((k - 1).factorial : ℝ) := by
-  rcases Nat.exists_eq_succ_of_ne_zero (ne_of_gt hk) with ⟨m, rfl⟩
-  simpa using iteratedDeriv_log_one m
+  simpa [Nat.sub_add_cancel hk] using iteratedDeriv_log_one (k - 1)
 
 namespace OrderedFinpartition
 
@@ -2444,28 +2441,20 @@ noncomputable def partOfMax (P : Finpartition (Finset.univ : Finset (Fin n))) (v
 /-- `partOfMax` sends a maximum element back to a part of `P`. -/
 lemma partOfMax_mem (P : Finpartition (Finset.univ : Finset (Fin n))) {v : Fin n}
     (hv : v ∈ (P.parts.attach.image (maxOfPart P))) : partOfMax P v ∈ P.parts := by
-  have hreduce : partOfMax P v = (Classical.choose (Finset.mem_image.mp hv)).1 := by
-    dsimp [partOfMax]
-    rw [dif_pos hv]
-  rw [hreduce]
+  dsimp [partOfMax]
+  rw [dif_pos hv]
   exact (Classical.choose (Finset.mem_image.mp hv)).2
 
 /-- `partOfMax` is a right inverse of `maxOfPart` on the image. -/
 lemma partOfMax_maxOfPart (P : Finpartition (Finset.univ : Finset (Fin n))) {v : Fin n}
     (hv : v ∈ (P.parts.attach.image (maxOfPart P))) :
     maxOfPart P ⟨partOfMax P v, partOfMax_mem P hv⟩ = v := by
-  have hreduce : partOfMax P v = (Classical.choose (Finset.mem_image.mp hv)).1 := by
-    dsimp [partOfMax]
-    rw [dif_pos hv]
   have hsub : (⟨partOfMax P v, partOfMax_mem P hv⟩ : {A : Finset (Fin n) // A ∈ P.parts}) =
       Classical.choose (Finset.mem_image.mp hv) := by
     apply Subtype.ext
-    exact hreduce
-  calc
-    maxOfPart P ⟨partOfMax P v, partOfMax_mem P hv⟩ =
-        maxOfPart P (Classical.choose (Finset.mem_image.mp hv)) := by
-      rw [hsub]
-    _ = v := (Classical.choose_spec (Finset.mem_image.mp hv)).2
+    dsimp [partOfMax]
+    rw [dif_pos hv]
+  simpa [hsub] using (Classical.choose_spec (Finset.mem_image.mp hv)).2
 
 /-- `partOfMax` is a left inverse of `maxOfPart` on the parts. -/
 lemma partOfMax_eq_of_mem (P : Finpartition (Finset.univ : Finset (Fin n)))
@@ -2485,26 +2474,21 @@ noncomputable def maxes (P : Finpartition (Finset.univ : Finset (Fin n))) : List
 
 lemma maxes_length (P : Finpartition (Finset.univ : Finset (Fin n))) :
     (maxes P).length = P.parts.card := by
-  rw [maxes, Finset.length_sort]
-  rw [Finset.card_image_of_injective (P.parts.attach) (maxOfPart_injective P)]
-  exact Finset.card_attach
+  rw [maxes, Finset.length_sort, Finset.card_image_of_injective (P.parts.attach)
+    (maxOfPart_injective P), Finset.card_attach]
 
 lemma maxes_sorted (P : Finpartition (Finset.univ : Finset (Fin n))) :
-    (maxes P).SortedLT := by
-  dsimp [maxes]
-  exact Finset.sortedLT_sort (P.parts.attach.image (maxOfPart P))
+    (maxes P).SortedLT :=
+  Finset.sortedLT_sort (P.parts.attach.image (maxOfPart P))
 
 lemma maxes_nodup (P : Finpartition (Finset.univ : Finset (Fin n))) :
-    (maxes P).Nodup := by
-  dsimp [maxes]
-  exact Finset.sort_nodup _ _
+    (maxes P).Nodup :=
+  Finset.sort_nodup _ _
 
 /-- Elements of the sorted list of maxima are maxima of some part. -/
 lemma maxes_mem_image (P : Finpartition (Finset.univ : Finset (Fin n))) (v : Fin n) :
     v ∈ maxes P → v ∈ (P.parts.attach.image (maxOfPart P)) := by
-  rw [maxes]
-  intro hv
-  simpa using hv
+  simp [maxes]
 
 /-- The parts of a finite partition of `Finset.univ`, sorted by increasing maximum element and
 indexed by `Fin (P.parts.card)`. -/
@@ -2517,8 +2501,8 @@ noncomputable def sortedParts (P : Finpartition (Finset.univ : Finset (Fin n))) 
 /-- Each sorted part is indeed a part of `P`. -/
 lemma sortedParts_mem (P : Finpartition (Finset.univ : Finset (Fin n)))
     (m : Fin (P.parts.card)) : sortedParts P m ∈ P.parts := by
-  dsimp [sortedParts]
-  exact partOfMax_mem P (maxes_mem_image P ((maxes P).get ⟨m.1, by rw [maxes_length P]; exact m.2⟩)
+  simpa [sortedParts] using partOfMax_mem P (maxes_mem_image P ((maxes P).get ⟨m.1, by
+    rw [maxes_length P]; exact m.2⟩)
     (List.get_mem (maxes P) ⟨m.1, by rw [maxes_length P]; exact m.2⟩))
 
 /-- Sorting parts by maximum is injective: distinct indices give distinct parts. -/
@@ -2567,9 +2551,7 @@ lemma sortedParts_surj (P : Finpartition (Finset.univ : Finset (Fin n))) :
   let m : Fin (P.parts.card) := i.cast (maxes_length P)
   refine ⟨m, ?_⟩
   change partOfMax P ((maxes P).get ⟨m.1, by rw [maxes_length P]; exact m.2⟩) = A
-  have hfin : (⟨m.1, by rw [maxes_length P]; exact m.2⟩ : Fin (maxes P).length) = i := by
-    apply Fin.ext
-    rfl
+  have hfin : (⟨m.1, by rw [maxes_length P]; exact m.2⟩ : Fin (maxes P).length) = i := rfl
   have hget : (maxes P).get ⟨m.1, by rw [maxes_length P]; exact m.2⟩ = v := by
     rw [hfin, hi]
   rw [hget]
@@ -2584,13 +2566,12 @@ lemma sortedParts_max (P : Finpartition (Finset.univ : Finset (Fin n)))
       (P.parts.attach.image (maxOfPart P)) :=
     maxes_mem_image P _ (List.get_mem (maxes P) ⟨m.1, by rw [maxes_length P]; exact m.2⟩)
   rw [← show maxOfPart P ⟨sortedParts P m, sortedParts_mem P m⟩ =
-      (sortedParts P m).max' (P.nonempty_of_mem_parts (sortedParts_mem P m)) by rfl]
-  have hsub : (⟨sortedParts P m, sortedParts_mem P m⟩ : {A : Finset (Fin n) // A ∈ P.parts}) =
+      (sortedParts P m).max' (P.nonempty_of_mem_parts (sortedParts_mem P m)) by rfl,
+    show (⟨sortedParts P m, sortedParts_mem P m⟩ : {A : Finset (Fin n) // A ∈ P.parts}) =
       ⟨partOfMax P ((maxes P).get ⟨m.1, by rw [maxes_length P]; exact m.2⟩),
-        partOfMax_mem P hv⟩ := by
-    apply Subtype.ext
-    rfl
-  rw [hsub]
+        partOfMax_mem P hv⟩ by
+      apply Subtype.ext
+      rfl]
   exact partOfMax_maxOfPart P hv
 
 /-- The maxima of the sorted parts are strictly increasing in the index. -/
@@ -2598,8 +2579,8 @@ private lemma sortedPartList_max_strictMono (P : Finpartition (Finset.univ : Fin
     StrictMono fun m : Fin (P.parts.card) =>
       (sortedParts P m).max' (P.nonempty_of_mem_parts (sortedParts_mem P m)) := by
   intro m₁ m₂ hm₁₂
-  simpa [sortedParts_max] using (List.SortedLT.getElem_lt_getElem_of_lt (maxes_sorted P) (by
-    exact Fin.lt_def.mpr hm₁₂))
+  simpa [sortedParts_max] using (List.SortedLT.getElem_lt_getElem_of_lt (maxes_sorted P)
+    (Fin.lt_def.mpr hm₁₂))
 
 /-- The ordered finpartition of `Fin n` whose parts are the parts of `P` sorted by increasing
 maximum element, each part enumerated in increasing order. -/
@@ -2641,8 +2622,7 @@ noncomputable def ofFinpartition (P : Finpartition (Finset.univ : Finset (Fin n)
     apply Set.disjoint_iff_forall_ne.mpr
     intro x hx y hy hxy
     rw [← hxy] at hy
-    have hnot : x ∉ sortedParts P m' := (Finset.disjoint_left.mp hdisj) hx
-    exact False.elim (hnot hy)
+    exact False.elim ((Finset.disjoint_left.mp hdisj) hx hy)
   cover := by
     intro a
     -- `a ∈ Finset.univ = P.parts.sup id`, so `a` belongs to some part.
@@ -2665,9 +2645,7 @@ noncomputable def ofFinpartition (P : Finpartition (Finset.univ : Finset (Fin n)
 lemma toFinpartition_parts (c : OrderedFinpartition n) :
     (toFinpartition n c).parts =
       (Finset.univ : Finset (Fin c.length)).image (fun m : Fin c.length =>
-        (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m)) := by
-  dsimp [toFinpartition]
-  exact Finpartition.ofExistsUnique_parts _ _ _ _
+        (Finset.univ : Finset (Fin (c.partSize m))).image (c.emb m)) := rfl
 
 /-- The ranges of the embeddings of `c` are pairwise distinct, so they index the parts of
 `toFinpartition c` injectively. -/
@@ -2682,17 +2660,16 @@ lemma toFinpartition_parts_injective (c : OrderedFinpartition n) :
     Finset.mem_image.mpr ⟨⟨0, c.partSize_pos m⟩, Finset.mem_univ _, rfl⟩
   rw [h] at hmem
   rcases Finset.mem_image.mp hmem with ⟨r', hr', hr'eq⟩
-  exact congrArg (fun p : Σ j : Fin c.length, Fin (c.partSize j) => p.1)
+  exact congrArg Sigma.fst
     (c.emb_injective (a₁ := ⟨m, ⟨0, c.partSize_pos m⟩⟩) (a₂ := ⟨m', r'⟩)
       (by simp [hr'eq]))
 
 /-- The number of parts of `toFinpartition c` is the length of `c`. -/
 lemma toFinpartition_parts_card (c : OrderedFinpartition n) :
     (toFinpartition n c).parts.card = c.length := by
-  rw [toFinpartition_parts]
-  simp [Fintype.card_fin,
-    Finset.card_image_of_injective (Finset.univ : Finset (Fin c.length))
-      (toFinpartition_parts_injective c)]
+  rw [toFinpartition_parts, Finset.card_image_of_injective (Finset.univ : Finset (Fin c.length))
+    (toFinpartition_parts_injective c)]
+  simp
 
 /-- Sorting the image of a strictly increasing family on `Fin l` gives back the family in its
 original order. -/
@@ -2743,9 +2720,7 @@ lemma ofFinpartition_toFinpartition (c : OrderedFinpartition n) :
   let idx (m : Fin c.length) : Fin P.parts.card :=
     ⟨m.1, by rw [toFinpartition_parts_card]; exact m.2⟩
   have mem (m : Fin c.length) : B m ∈ P.parts := by
-    dsimp [P, B]
-    rw [toFinpartition_parts]
-    exact Finset.mem_image.mpr ⟨m, Finset.mem_univ m, rfl⟩
+    simp [P, B, toFinpartition_parts]
   -- The maximum of the part `B m` is the last element of its increasing enumeration
   have hmaxOfPart (m : Fin c.length) :
       maxOfPart P ⟨B m, mem m⟩ =
@@ -2770,20 +2745,18 @@ lemma ofFinpartition_toFinpartition (c : OrderedFinpartition n) :
       have hA' : A ∈ (Finset.univ : Finset (Fin c.length)).image B := by
         simpa [P, B, toFinpartition_parts] using hA
       rcases Finset.mem_image.mp hA' with ⟨m, hm, rfl⟩
-      refine Finset.mem_image.mpr ⟨m, Finset.mem_univ m, ?_⟩
-      exact congrArg (maxOfPart P) (Subtype.ext (rfl : B m = B m))
+      exact Finset.mem_image.mpr ⟨m, Finset.mem_univ m,
+        congrArg (maxOfPart P) (Subtype.ext (rfl : B m = B m))⟩
     · intro hv
       rcases Finset.mem_image.mp hv with ⟨m, hm, rfl⟩
       refine Finset.mem_image.mpr ⟨⟨B m, mem m⟩, ?_, rfl⟩
       exact Finset.mem_attach P.parts ⟨B m, mem m⟩
   have hmax : maxes P = List.ofFn (fun m : Fin c.length => maxOfPart P ⟨B m, mem m⟩) := by
-    dsimp [maxes]
-    rw [hmax_image]
-    exact sort_image_strictMono c.length (fun m => maxOfPart P ⟨B m, mem m⟩) (by
-      intro m₁ m₂ hm₁₂
-      change maxOfPart P ⟨B m₁, mem m₁⟩ < maxOfPart P ⟨B m₂, mem m₂⟩
-      rw [hmaxOfPart m₁, hmaxOfPart m₂]
-      exact c.parts_strictMono hm₁₂)
+    simpa [maxes, hmax_image] using sort_image_strictMono c.length
+      (fun m => maxOfPart P ⟨B m, mem m⟩)
+      (by
+        intro m₁ m₂ hm₁₂
+        simpa [hmaxOfPart] using c.parts_strictMono hm₁₂)
   -- The `m`-th sorted part is exactly the range `B m`
   have hpart (m : Fin c.length) : sortedParts P (idx m) = B m := by
     -- `sortedParts` picks the part whose maximum is the `m`-th element of `maxes P`
@@ -2795,49 +2768,39 @@ lemma ofFinpartition_toFinpartition (c : OrderedFinpartition n) :
     exact partOfMax_eq_of_mem P (mem m)
   -- The `m`-th part size of `ofFinpartition P` is `c.partSize m`
   have hpartSize (m : Fin c.length) : (ofFinpartition P).partSize (idx m) = c.partSize m := by
-    change (sortedParts P (idx m)).card = c.partSize m
-    rw [hpart m]
-    dsimp [B]
-    rw [Finset.card_image_of_injective]
-    · simp
-    · exact (c.emb_strictMono _).injective
+    simp [ofFinpartition, hpart m, B,
+      Finset.card_image_of_injective (Finset.univ : Finset (Fin (c.partSize m)))
+        (c.emb_strictMono m).injective]
   -- The `m`-th embedding of `ofFinpartition P` is `c.emb m` (after aligning the part-size cast)
   have hemb (m : Fin c.length) (r : Fin (c.partSize m)) :
       (ofFinpartition P).emb (idx m) (Fin.cast (hpartSize m).symm r) = c.emb m r := by
     -- `(ofFinpartition P).emb (idx m) = orderEmbOfFin (sortedParts P (idx m)) rfl`, and the
     -- increasing enumeration of the sorted part is `c.emb m`
     have hunique : (sortedParts P (idx m)).orderEmbOfFin (hpartSize m) = c.emb m := by
-      symm
-      exact Finset.orderEmbOfFin_unique (hpartSize m) (by
+      exact (Finset.orderEmbOfFin_unique (hpartSize m) (by
         intro x
         -- `c.emb m x` lies in the sorted part `sortedParts P (idx m) = B m`
         rw [hpart m]
-        exact Finset.mem_image.mpr ⟨x, Finset.mem_univ x, rfl⟩) (c.emb_strictMono m)
+        exact Finset.mem_image.mpr ⟨x, Finset.mem_univ x, rfl⟩) (c.emb_strictMono m)).symm
     change ((sortedParts P (idx m)).orderEmbOfFin rfl) (Fin.cast (hpartSize m).symm r) =
       c.emb m r
     rw [← hunique]
     -- `orderEmbOfFin` depends only on the index, not on the cardinality proof
     exact (Finset.orderEmbOfFin_eq_orderEmbOfFin_iff (s := sortedParts P (idx m))
-      (h := rfl) (h' := hpartSize m)).2 (by rfl)
+      (h := rfl) (h' := hpartSize m)).2 rfl
   -- Compare the three data fields of `ofFinpartition P` and `c`
   have hlength : (ofFinpartition P).length = c.length := by
-    dsimp [ofFinpartition, P]
-    rw [toFinpartition_parts_card]
-  -- Data of `ofFinpartition P` at index `m : Fin c.length`, expressed at `Fin (ofFinpartition P).length`
+    simp [ofFinpartition, P, toFinpartition_parts_card]
   have hpartSize' (m : Fin (ofFinpartition P).length) :
       (ofFinpartition P).partSize m = c.partSize (Fin.cast hlength m) := by
-    have hm' : m = idx (Fin.cast hlength m) := by
-      apply Fin.ext
-      rfl
+    have hm' : m = idx (Fin.cast hlength m) := rfl
     rw [hm']
     exact hpartSize (Fin.cast hlength m)
   have hemb' (m : Fin (ofFinpartition P).length) :
       (ofFinpartition P).emb m ≍ c.emb (Fin.cast hlength m) := by
     refine (Fin.heq_fun_iff (hpartSize' m)).2 ?_
     -- transport `m` to the `idx`-form (this also aligns the domain of the quantifier)
-    have hm' : m = idx (Fin.cast hlength m) := by
-      apply Fin.ext
-      rfl
+    have hm' : m = idx (Fin.cast hlength m) := rfl
     rw [hm'] at ⊢
     intro r
     -- `r : Fin ((ofFinpartition P).partSize (idx (Fin.cast hlength m)))`; align `r` with the
@@ -2859,8 +2822,8 @@ lemma ofFinpartition_toFinpartition (c : OrderedFinpartition n) :
     refine Function.hfunext (congrArg Fin hlength) ?_
     · intro m m' hm
       -- `m : Fin ((ofFinpartition P).length)`, `m' : Fin c.length`, `hm : m ≍ m'`
-      have hm' : m' = Fin.cast hlength m := Fin.eq_of_val_eq (by
-        exact (Fin.val_eq_val_of_heq hm.symm).trans (by rfl))
+      have hm' : m' = Fin.cast hlength m :=
+        Fin.eq_of_val_eq ((Fin.val_eq_val_of_heq hm.symm).trans rfl)
       subst m'
       exact hemb' m
 
@@ -2869,16 +2832,14 @@ which is exactly the value of the `c.length`-th derivative of `Real.log` at `1`.
 private lemma toFinpartition_cumulantCoefficient (c : OrderedFinpartition n) :
     (toFinpartition n c).cumulantCoefficient =
       (-1 : ℝ) ^ (c.length - 1) * ((c.length - 1).factorial : ℝ) := by
-  dsimp [Finpartition.cumulantCoefficient]
-  rw [toFinpartition_parts_card]
+  rw [Finpartition.cumulantCoefficient, toFinpartition_parts_card]
 
 /-- The product over the parts of `toFinpartition c` of a block weight equals the product over
 the blocks `j` of the same weight applied to the range of the `j`-th embedding. -/
 private lemma toFinpartition_blockProduct (c : OrderedFinpartition n) (f : Finset (Fin n) → ℝ) :
     ∏ B ∈ (toFinpartition n c).parts, f B =
       ∏ j : Fin c.length, f ((Finset.univ : Finset (Fin (c.partSize j))).image (c.emb j)) := by
-  rw [toFinpartition_parts]
-  exact Finset.prod_image (toFinpartition_parts_injective c).injOn
+  simpa [toFinpartition_parts] using Finset.prod_image (toFinpartition_parts_injective c).injOn
 
 /-- `OrderedFinpartition n` and `Finpartition (Finset.univ : Finset (Fin n))` are in bijection:
 `toFinpartition` forgets the ordering of the parts, `ofFinpartition` sorts them by maximum. -/
@@ -2924,37 +2885,29 @@ lemma iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno [IsProbabilityMeasure 
     iteratedDeriv_log_one_of_pos (c.length_pos (Nat.pos_of_ne_zero hn))
   -- Each ordered Faà di Bruno summand coincides with the corresponding finpartition summand
   have hsum (c : OrderedFinpartition n) :
-      iteratedDeriv c.length Real.log 1 *
-          ∏ j : Fin c.length, iteratedDeriv (c.partSize j) (mgf X μ) 0 =
-        (OrderedFinpartition.toFinpartition n c).cumulantCoefficient *
-          ∏ B ∈ (OrderedFinpartition.toFinpartition n c).parts, iteratedDeriv B.card (mgf X μ) 0 := by
+    iteratedDeriv c.length Real.log 1 *
+        ∏ j : Fin c.length, iteratedDeriv (c.partSize j) (mgf X μ) 0 =
+      (OrderedFinpartition.toFinpartition n c).cumulantCoefficient *
+        ∏ B ∈ (OrderedFinpartition.toFinpartition n c).parts, iteratedDeriv B.card (mgf X μ) 0 := by
     rw [hlog c, OrderedFinpartition.toFinpartition_cumulantCoefficient c,
       OrderedFinpartition.toFinpartition_blockProduct c (fun B => iteratedDeriv B.card (mgf X μ) 0)]
     congr 1
-    apply Finset.prod_congr rfl
-    intro j hj
-    rw [Finset.card_image_of_injective]
-    · simp
-    · exact (c.emb_strictMono _).injective
+    exact Finset.prod_congr rfl (fun j hj => by
+      simp [Finset.card_image_of_injective (Finset.univ : Finset (Fin (c.partSize j)))
+        (c.emb_strictMono j).injective])
   -- Faà di Bruno for the composition `Real.log ∘ mgf X μ`
   rw [iteratedDeriv_comp_eq_sum_orderedFinpartition (𝕜 := ℝ) (g := Real.log) (f := mgf X μ)
     (x := 0) (i := n) (n := (⊤ : WithTop ℕ∞))
-    (by
-      -- `Real.log` is smooth away from zero; `mgf X μ 0 = 1 ≠ 0`
-      rw [Real.contDiffAt_log]
-      rw [hmgf1]
-      norm_num)
+    (by simp [Real.contDiffAt_log, hmgf1])
     (analyticAt_mgf hmgf).contDiffAt
-    (le_top : (n : WithTop ℕ∞) ≤ ⊤)]
-  rw [hmgf1]
+    (le_top : (n : WithTop ℕ∞) ≤ ⊤),
+    hmgf1]
   -- reindex the sum over ordered finpartitions to a sum over ordinary finpartitions
   rw [← Equiv.sum_comp (OrderedFinpartition.orderedFinpartitionEquiv n)
     (fun P : Finpartition (Finset.univ : Finset (Fin n)) =>
       (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0)]
   -- compare the two sums term by term
-  apply Finset.sum_congr rfl
-  intro c hc
-  exact hsum c
+  exact Finset.sum_congr rfl (fun c hc => hsum c)
 
 
 /-- The $n$-th derivative of the CGF at zero expands to a sum over partition lattices of products
@@ -2968,8 +2921,8 @@ lemma iteratedDeriv_cgf_zero_eq_sum_partitions [IsProbabilityMeasure μ]
     (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
     iteratedDeriv n (cgf X μ) 0 =
       ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
-        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 := by
-  exact iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno X n hn hmgf
+        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 :=
+  iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno X n hn hmgf
 
 /-- The cumulant of order 0 is 0. -/
 lemma cumulant_zero [IsProbabilityMeasure μ] (X : Ω → ℝ) : cumulant μ X 0 = 0 := by

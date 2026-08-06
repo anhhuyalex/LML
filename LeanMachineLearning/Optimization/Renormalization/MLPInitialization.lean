@@ -75,6 +75,17 @@ def Coordinate {m n : ℕ} : MLPShape m n → Type
   | .output => LayerCoordinate (Fin m) (Fin n)
   | .hidden (k := k) tail => LayerCoordinate (Fin m) (Fin k) ⊕ tail.Coordinate
 
+/-- The scalar-coordinate type of a finite MLP shape is finite. -/
+private instance instFintypeCoordinate {m n : ℕ} (S : MLPShape m n) : Fintype S.Coordinate := by
+  induction S with
+  | output =>
+      simp only [Coordinate]
+      infer_instance
+  | hidden tail ih =>
+      simp only [Coordinate]
+      letI : Fintype tail.Coordinate := ih
+      infer_instance
+
 /-- Read one scalar parameter from the structured parameter space of a fixed MLP. -/
 def coordinate {m n : ℕ} (S : MLPShape m n) (c : S.Coordinate) (θ : S.Params) : ℝ :=
   match S with
@@ -125,10 +136,8 @@ private theorem measurable_coordinate {m n : ℕ} (S : MLPShape m n) (c : S.Coor
     Measurable (S.coordinate c) := by
   induction S with
   | output =>
-      rename_i m₀ n₀
       exact measurable_layerCoordinate' c
   | hidden tail ih =>
-      rename_i m₀ n₀ k
       cases c with
       | inl c =>
           exact (measurable_layerCoordinate' c).comp measurable_fst
@@ -138,15 +147,21 @@ private theorem measurable_coordinate {m n : ℕ} (S : MLPShape m n) (c : S.Coor
 /-- Output-layer case of `map_coordinate_gaussianInit`.
 
 Informal proof: after unfolding `coordinate`, `gaussianInit`, and `coordinateVariance`, this is
-exactly `map_layerCoordinate_layerGaussianInit`, hence ultimately the single-layer marginal
-lemmas `map_weight_layerGaussianInit` and `map_bias_layerGaussianInit`. -/
+exactly the single-layer marginal lemmas `map_weight_layerGaussianInit` and
+`map_bias_layerGaussianInit`. -/
 private theorem map_coordinate_gaussianInit_output {m n : ℕ}
     (p : (MLPShape.output : MLPShape m n).Hyperparams)
     (c : (MLPShape.output : MLPShape m n).Coordinate) :
     Measure.map ((MLPShape.output : MLPShape m n).coordinate c)
         ((MLPShape.output : MLPShape m n).gaussianInit p) =
       gaussianReal 0 ((MLPShape.output : MLPShape m n).coordinateVariance p c) := by
-  sorry
+  cases c with
+  | inl ji =>
+      simpa [coordinate, gaussianInit, coordinateVariance, layerCoordinate, Params] using
+        map_weight_layerGaussianInit p (Fin m) (Fin n) ji.1 ji.2
+  | inr j =>
+      simpa [coordinate, gaussianInit, coordinateVariance, layerCoordinate, Params] using
+        map_bias_layerGaussianInit p (Fin m) (Fin n) j
 
 /-- Hidden-layer induction step for `map_coordinate_gaussianInit`.
 
@@ -166,7 +181,29 @@ private theorem map_coordinate_gaussianInit_hidden {m n k : ℕ} (tail : MLPShap
     Measure.map ((MLPShape.hidden tail : MLPShape m n).coordinate c)
         ((MLPShape.hidden tail : MLPShape m n).gaussianInit p) =
       gaussianReal 0 ((MLPShape.hidden tail : MLPShape m n).coordinateVariance p c) := by
-  sorry
+  cases c with
+  | inl ji =>
+      cases ji with
+      | inl jiW =>
+          simp only [coordinate, gaussianInit, coordinateVariance, layerCoordinate, Params]
+          rw [show (fun q : LayerParams (Fin m) (Fin k) × tail.Params => q.1.1 jiW.1 jiW.2) =
+              layerCoordinate (Sum.inl jiW) ∘ Prod.fst from rfl,
+            ← Measure.map_map (measurable_layerCoordinate' (Sum.inl jiW)) measurable_fst]
+          simpa [layerCoordinate, Measure.map_fst_prod, measure_univ, one_smul] using
+            map_weight_layerGaussianInit p.1 (Fin m) (Fin k) jiW.1 jiW.2
+      | inr jB =>
+          simp only [coordinate, gaussianInit, coordinateVariance, layerCoordinate, Params]
+          rw [show (fun q : LayerParams (Fin m) (Fin k) × tail.Params => q.1.2 jB) =
+              layerCoordinate (Sum.inr jB) ∘ Prod.fst from rfl,
+            ← Measure.map_map (measurable_layerCoordinate' (Sum.inr jB)) measurable_fst]
+          simpa [layerCoordinate, Measure.map_fst_prod, measure_univ, one_smul] using
+            map_bias_layerGaussianInit p.1 (Fin m) (Fin k) jB
+  | inr c =>
+      simp only [coordinate, gaussianInit, coordinateVariance, Params]
+      rw [show (fun q : LayerParams (Fin m) (Fin k) × tail.Params => tail.coordinate c q.2) =
+          tail.coordinate c ∘ Prod.snd from rfl,
+        ← Measure.map_map (measurable_coordinate tail c) measurable_snd]
+      simpa [Measure.map_snd_prod, measure_univ, one_smul] using ih p.2 c
 
 /-- Every scalar parameter of a fixed MLP has its prescribed centered Gaussian marginal law.
 
@@ -183,6 +220,126 @@ theorem map_coordinate_gaussianInit {m n : ℕ} (S : MLPShape m n)
   | output => exact map_coordinate_gaussianInit_output p c
   | hidden tail ih => exact map_coordinate_gaussianInit_hidden tail ih p c
 
+/-- Combine two independent finite families living on the two factors of a product probability
+space into one independent family indexed by the disjoint union.
+
+Informal proof: use `iIndepFun_iff_map_fun_eq_pi_map`. The tuple map indexed by `ι ⊕ κ`
+becomes, under `MeasurableEquiv.sumPiEquivProdPi`, the pair of tuple maps indexed by `ι` and by
+`κ`. The two tuple maps are independent by `indepFun_prod`, and their laws are finite product
+measures by `hf.map_fun_eq_pi_map` and `hg.map_fun_eq_pi_map`; projection marginals are normalized
+by `Measure.map_fst_prod` and `Measure.map_snd_prod`. This is the standard product-measure
+factorization characterization of independence; see Mathlib's independence API:
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Independence/Basic.html>. -/
+private lemma iIndepFun_sum_prod_real {Ω Ω' ι κ : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace Ω'] [Finite ι] [Finite κ] (μ : Measure Ω) (ν : Measure Ω')
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] (f : ι → Ω → ℝ) (g : κ → Ω' → ℝ)
+    (hfmeas : ∀ i, Measurable (f i)) (hgmeas : ∀ j, Measurable (g j))
+    (hf : iIndepFun f μ) (hg : iIndepFun g ν) :
+    iIndepFun
+      (fun c : ι ⊕ κ => fun ω : Ω × Ω' =>
+        match c with
+        | Sum.inl i => f i ω.1
+        | Sum.inr j => g j ω.2)
+      (μ.prod ν) := by
+  classical
+  have : Fintype ι := Fintype.ofFinite ι
+  have : Fintype κ := Fintype.ofFinite κ
+  let μπ : Measure (Ω × Ω') := μ.prod ν
+  let F : Ω × Ω' → (ι ⊕ κ → ℝ) := fun ω c =>
+    match c with
+    | Sum.inl i => f i ω.1
+    | Sum.inr j => g j ω.2
+  let A : Ω → ι → ℝ := fun x i => f i x
+  let B : Ω' → κ → ℝ := fun y j => g j y
+  let ρ : ι ⊕ κ → Measure ℝ := fun c =>
+    μπ.map (fun ω : Ω × Ω' =>
+      match c with
+      | Sum.inl i => f i ω.1
+      | Sum.inr j => g j ω.2)
+  let e : (ι ⊕ κ → ℝ) ≃ᵐ (ι → ℝ) × (κ → ℝ) :=
+    MeasurableEquiv.sumPiEquivProdPi (fun _ : ι ⊕ κ => ℝ)
+  have hFmeas : ∀ c : ι ⊕ κ,
+      AEMeasurable (fun ω : Ω × Ω' =>
+        match c with
+        | Sum.inl i => f i ω.1
+        | Sum.inr j => g j ω.2) μπ := by
+    intro c
+    cases c with
+    | inl i => exact ((hfmeas i).comp measurable_fst).aemeasurable
+    | inr j => exact ((hgmeas j).comp measurable_snd).aemeasurable
+  have hF : Measurable F :=
+    measurable_pi_lambda _ (fun c => by
+      cases c with
+      | inl i => exact (hfmeas i).comp measurable_fst
+      | inr j => exact (hgmeas j).comp measurable_snd)
+  have hA : Measurable A := measurable_pi_lambda _ (fun i => hfmeas i)
+  have hB : Measurable B := measurable_pi_lambda _ (fun j => hgmeas j)
+  have hAπ : μ.map A = Measure.pi (fun i : ι => μ.map (f i)) := by
+    simpa [A] using hf.map_fun_eq_pi_map (fun i => (hfmeas i).aemeasurable)
+  have hBπ : ν.map B = Measure.pi (fun j : κ => ν.map (g j)) := by
+    simpa [B] using hg.map_fun_eq_pi_map (fun j => (hgmeas j).aemeasurable)
+  rw [iIndepFun_iff_map_fun_eq_pi_map (μ := μπ) hFmeas]
+  apply MeasurableEquiv.map_measurableEquiv_injective e
+  have hLeft : (μπ.map F).map e = (μ.map A).prod (ν.map B) := by
+    rw [Measure.map_map e.measurable hF]
+    rw [show e ∘ F = Prod.map A B from rfl]
+    exact (Measure.map_prod_map μ ν hA hB).symm
+  have hρ_left : ∀ i : ι, ρ (Sum.inl i) = μ.map (f i) := by
+    intro i
+    dsimp [ρ, μπ]
+    rw [show (fun ω : Ω × Ω' => f i ω.1) = f i ∘ Prod.fst from rfl,
+      ← Measure.map_map (hfmeas i) measurable_fst,
+      Measure.map_fst_prod, measure_univ, one_smul]
+  have hρ_right : ∀ j : κ, ρ (Sum.inr j) = ν.map (g j) := by
+    intro j
+    dsimp [ρ, μπ]
+    rw [show (fun ω : Ω × Ω' => g j ω.2) = g j ∘ Prod.snd from rfl,
+      ← Measure.map_map (hgmeas j) measurable_snd,
+      Measure.map_snd_prod, measure_univ, one_smul]
+  have hRight : (Measure.pi ρ).map e =
+      (Measure.pi (fun i : ι => μ.map (f i))).prod
+        (Measure.pi (fun j : κ => ν.map (g j))) := by
+    calc
+      (Measure.pi ρ).map e =
+          (Measure.pi (fun i : ι => ρ (Sum.inl i))).prod
+            (Measure.pi (fun j : κ => ρ (Sum.inr j))) :=
+        (measurePreserving_sumPiEquivProdPi (X := fun _ : ι ⊕ κ => ℝ) ρ).map_eq
+      _ = (Measure.pi (fun i : ι => μ.map (f i))).prod
+            (Measure.pi (fun j : κ => ν.map (g j))) := by
+        rw [show (fun i : ι => ρ (Sum.inl i)) = fun i : ι => μ.map (f i) from
+            funext fun i => hρ_left i,
+          show (fun j : κ => ρ (Sum.inr j)) = fun j : κ => ν.map (g j) from
+            funext fun j => hρ_right j]
+  exact (hLeft.trans (hAπ ▸ hBπ ▸ rfl)).trans hRight.symm
+
+/-- Hidden-constructor step for full-network coordinate independence.
+
+Informal proof: unfold `Coordinate`, `coordinate`, and `gaussianInit`. The coordinate family is the
+sum of the first-layer scalar coordinate family and the tail scalar coordinate family on the two
+factors of the product measure. Apply `iIndepFun_sum_prod_real` with
+`iIndepFun_layerCoordinate_layerGaussianInit` for the first layer and the induction hypothesis for
+the tail. See the product-measure factorization characterization of independence in Mathlib:
+<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Independence/Basic.html>. -/
+set_option pp.all true
+private theorem iIndepFun_coordinate_gaussianInit_hidden {m n k : ℕ} (tail : MLPShape k n)
+    (p : (MLPShape.hidden tail : MLPShape m n).Hyperparams)
+    (ih : iIndepFun (fun c : tail.Coordinate => tail.coordinate c) (tail.gaussianInit p.2)) :
+    iIndepFun
+      (fun c : (MLPShape.hidden tail : MLPShape m n).Coordinate =>
+        (MLPShape.hidden tail : MLPShape m n).coordinate c)
+      ((MLPShape.hidden tail : MLPShape m n).gaussianInit p) := by
+  simpa [Coordinate, coordinate, gaussianInit, Params, Hyperparams] using
+    iIndepFun_sum_prod_real
+      (μ := layerGaussianInit p.1 (Fin m) (Fin k))
+      (ν := tail.gaussianInit p.2)
+      (f := fun c : LayerCoordinate (Fin m) (Fin k) =>
+        fun q : LayerParams (Fin m) (Fin k) => layerCoordinate c q)
+      (g := fun c : tail.Coordinate => tail.coordinate c)
+      (hfmeas := fun c => measurable_layerCoordinate' c)
+      (hgmeas := fun c => measurable_coordinate tail c)
+      (hf := iIndepFun_layerCoordinate_layerGaussianInit p.1 (Fin m) (Fin k))
+      (hg := ih)
+
 /-- All scalar weights and biases in all layers of a fixed MLP are jointly independent.
 
 Informal proof: `iIndepFun_layerCoordinate_layerGaussianInit` gives joint independence in the first
@@ -193,7 +350,14 @@ See Mathlib's independence API:
 theorem iIndepFun_coordinate_gaussianInit {m n : ℕ} (S : MLPShape m n)
     (p : S.Hyperparams) :
     iIndepFun (fun c : S.Coordinate => S.coordinate c) (S.gaussianInit p) := by
-  sorry
+  induction S with
+  | output =>
+      rename_i m₀ n₀
+      change iIndepFun (fun c : LayerCoordinate (Fin m₀) (Fin n₀) => layerCoordinate c)
+        (layerGaussianInit p (Fin m₀) (Fin n₀))
+      exact iIndepFun_layerCoordinate_layerGaussianInit p (Fin m₀) (Fin n₀)
+  | hidden tail ih =>
+      exact iIndepFun_coordinate_gaussianInit_hidden tail p (ih p.2)
 
 end MLPShape
 
