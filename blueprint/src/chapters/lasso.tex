@@ -61,6 +61,7 @@ as fully formalized until its \texttt{sorry} is removed.
 \section{Basic Objects}
 
 \begin{definition}[Euclidean coordinate API]\label{def:lassoEuclideanAPI}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 1 Notations\\
   \lean{Lasso.euclideanOf, Lasso.ones, Lasso.Nonnegative, Lasso.Positive,
     Lasso.NonzeroCoordinates, Lasso.hadamard, Lasso.coordinateSquare,
     Lasso.matVec}
@@ -73,6 +74,7 @@ conditions.
 \end{definition}
 
 \begin{definition}[Standing problem assumptions]\label{def:lassoProblemData}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 1 Context\\
   \lean{Lasso.IsPositiveSemidefinite, Lasso.InMatrixSpan, Lasso.ProblemData}
 Let $M \in \mathbb{R}^{d \times d}$, $r \in \mathbb{R}^d$, and
 $\lambda \in \mathbb{R}$.
@@ -90,6 +92,7 @@ This corresponds to the standing assumptions in Chapters 1--4.
 \end{definition}
 
 \begin{definition}[Quadratic and lasso objectives]\label{def:lassoObjectives}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 1 Eq. 1.3\\
   \uses{def:lassoEuclideanAPI}
   \lean{Lasso.quadraticLoss, Lasso.lassoObjective,
     Lasso.positiveLassoObjective, Lasso.tiltedLoss}
@@ -110,6 +113,7 @@ The tilted loss used in Chapter 4 is
 \end{definition}
 
 \begin{definition}[DLN objectives]\label{def:lassoDLNObjectives}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 1 Eq. 1.1 and Section 3 Eq. 3.1\\
   \uses{def:lassoObjectives}
   \lean{Lasso.dlnObjective, Lasso.posDlnObjective}
 For the signed diagonal linear network,
@@ -123,6 +127,7 @@ For the positive/tied model,
 \end{definition}
 
 \begin{definition}[Lasso minimizer predicates]\label{def:lassoMinimizers}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2 Eq. 2.1 and Section 3 Eq. 3.4\\
   \uses{def:lassoObjectives}
   \lean{Lasso.IsLassoMinimizer, Lasso.IsPositiveLassoMinimizer}
 The predicates \texttt{IsLassoMinimizer} and
@@ -133,6 +138,7 @@ positive lasso objectives.
 \section{Gradient-Flow Dynamics}
 
 \begin{definition}[Gradient-flow vector fields]\label{def:lassoGradientFlows}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 1 Eq. 1.2 and Section 3 Eq. 3.2\\
   \uses{def:lassoDLNObjectives}
   \lean{Lasso.dlnVectorField, Lasso.dlnGradientFlow,
     Lasso.posDlnVectorField, Lasso.posDlnGradientFlow}
@@ -151,6 +157,7 @@ in the positive case.
 \end{definition}
 
 \begin{definition}[Effective and averaged trajectories]\label{def:lassoTrajectories}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2 and Section 3\\
   \uses{def:lassoGradientFlows}
   \lean{Lasso.effectiveParameter, Lasso.averageTrajectory,
     Lasso.integratedTrajectory, Lasso.posEffectiveParameter,
@@ -168,6 +175,7 @@ and the integrated trajectory is
 \end{definition}
 
 \begin{definition}[Rescaled time]\label{def:lassoRescaledTime}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2 Eq. 2.2 and Section 3 Eq. 3.5\\
   \uses{def:lassoTrajectories}
   \lean{Lasso.rescaledTime, Lasso.timeFromRescaled,
     Lasso.posRescaledTime, Lasso.posTimeFromRescaled,
@@ -195,6 +203,7 @@ The signed version has the analogous factor $2/\log(1/\varepsilon)$.
 \end{definition}
 
 \begin{definition}[Initialization assumptions]\label{def:lassoInitializations}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2 and Section 3\\
   \uses{def:lassoEuclideanAPI}
   \lean{Lasso.PositiveInitialization, Lasso.SignedInitialization}
 The positive case assumes all coordinates of the initialization vector are
@@ -206,6 +215,7 @@ all coordinates.
 \section{Entropy Mirror Flow}
 
 \begin{definition}[Entropy and Bregman divergence]\label{def:lassoEntropy}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.2 Eq. 4.2\\
   \uses{def:lassoEuclideanAPI}
   \lean{Lasso.entropyMirror, Lasso.entropyBregman,
     Lasso.entropyMirrorGradient}
@@ -222,6 +232,7 @@ Its Bregman divergence is
 \end{definition}
 
 \begin{lemma}[Effective-parameter ODE]\label{lem:posEffectiveODE}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 3 Eq. 3.3\\
   \uses{def:lassoGradientFlows, def:lassoTrajectories}
   \lean{Lasso.positiveEffectiveVectorField,
     Lasso.pos_effective_parameter_hasDerivAt}
@@ -232,6 +243,7 @@ The positive effective parameter satisfies
 \end{lemma}
 
 \begin{lemma}[Mirror-flow equation]\label{lem:posMirrorFlow}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.2 Eq. 4.1\\
   \uses{def:lassoEntropy, lem:posEffectiveODE}
   \lean{Lasso.IsEntropyMirrorFlow, Lasso.dln_is_mirror_flow,
     Lasso.pos_dln_is_entropy_mirror_flow}
@@ -243,6 +255,7 @@ The positive DLN dynamics can be written as
 \end{lemma}
 
 \begin{lemma}[Tilted loss decreases]\label{lem:tiltedLossDecrease}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Proof of Lemma 4.2\\
   \uses{lem:posEffectiveODE, def:lassoObjectives}
   \lean{Lasso.tiltedLoss_antitone_along_pos_flow}
 Along the positive DLN effective trajectory,
@@ -254,12 +267,14 @@ Along the positive DLN effective trajectory,
 \end{lemma}
 
 \begin{lemma}[Bregman divergence is nonnegative]\label{lem:entropyBregmanNonneg}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.2\\
   \uses{def:lassoEntropy}
   \lean{Lasso.entropyBregman_nonnegative}
 For positive coordinate vectors $x,y$, $D(x,y)\ge 0$.
 \end{lemma}
 
 \begin{lemma}[Bregman projection characterization]\label{lem:bregmanProjection}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Lemma 4.4\\
   \uses{lem:posMirrorFlow, def:lassoEntropy}
   \lean{Lasso.bregman_projection_characterization}
 For each time $t$, the trajectory point $x^\varepsilon(t)$ is the Bregman
@@ -272,6 +287,7 @@ matching Lemma 4.4 of \texttt{docs/Lasso.md}.
 \end{lemma}
 
 \begin{lemma}[Uniform bound on the image under $M$]\label{lem:posMatVecBound}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Lemma 4.3\\
   \uses{lem:tiltedLossDecrease, def:lassoProblemData}
   \lean{Lasso.pos_trajectory_matVec_uniform_bound}
 Assume $\lambda=0$ and coercivity is unavailable.
@@ -283,6 +299,7 @@ This is Lemma 4.3 of \texttt{docs/Lasso.md}.
 \end{lemma}
 
 \begin{lemma}[Bregman projection fiber norm bound]\label{lem:bregmanFiberBound}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Lemma 4.5\\
   \uses{lem:bregmanProjection, lem:nonnegativeSolutionBound}
   \lean{Lasso.bregman_projection_fiber_norm_bound}
 For small enough $\varepsilon$, if $y=Mu$ for some $u\ge0$ and $x$ minimizes
@@ -300,6 +317,7 @@ This is Lemma 4.5 of \texttt{docs/Lasso.md}.
 \end{lemma}
 
 \begin{proposition}[Uniform trajectory bound]\label{prop:posTrajectoryBound}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Proposition 4.1\\
   \uses{lem:tiltedLossDecrease, lem:posMatVecBound, lem:bregmanProjection,
     lem:bregmanFiberBound}
   \lean{Lasso.pos_trajectory_uniform_bound}
@@ -313,6 +331,7 @@ $0<\varepsilon\le \varepsilon_0$ and all $t\ge0$,
 \section{Linear Complementarity Problems}
 
 \begin{definition}[LCP data]\label{def:lassoLCP}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.4 Eq. 4.9 and Section 4.5 Eq. 4.11\\
   \uses{def:lassoObjectives}
   \lean{Lasso.lcpQ, Lasso.parametricLcpQ, Lasso.isLCP,
     Lasso.isParametricLCP}
@@ -331,6 +350,7 @@ After scaling $w=\mu v$ and $z=\mu x$, the parametric LCP is
 \end{definition}
 
 \begin{proposition}[Positive lasso iff LCP]\label{prop:posLassoIffLCP}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.4 Proposition 4.8\\
   \uses{def:lassoLCP, def:lassoMinimizers}
   \lean{Lasso.pos_lasso_is_lcp}
 A vector $x$ minimizes the positive lasso objective if and only if there is a
@@ -338,6 +358,7 @@ dual vector $v$ such that $(v,x)$ solves the positive-lasso LCP.
 \end{proposition}
 
 \begin{lemma}[Small-parameter LCP solution]\label{lem:parametricSmallMu}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.5 Lemma 4.10\\
   \uses{def:lassoLCP}
   \lean{Lasso.parametric_lcp_eq_iff_of_small_mu,
     Lasso.parametric_lcp_unique_small_mu, Lasso.lcp_eq_iff_of_small_mu}
@@ -354,6 +375,7 @@ $x(\mu)=0$ and $v(\mu)=-r+(\lambda+1/\mu)\mathbf 1$.
 \end{lemma}
 
 \begin{theorem}[Conic Caratheodory]\label{thm:conicCaratheodory}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Theorem 4.6\\
   \lean{Lasso.InCone, Lasso.conic_caratheodory}
 If $y$ belongs to the cone generated by a finite family of vectors, then $y$
 belongs to the cone generated by a linearly independent subfamily of cardinality
@@ -361,6 +383,7 @@ at most the ambient dimension.
 \end{theorem}
 
 \begin{lemma}[Nonnegative solution norm bound]\label{lem:nonnegativeSolutionBound}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.3 Lemma 4.7\\
   \uses{thm:conicCaratheodory}
   \lean{Lasso.nonnegative_minNorm_solution_norm_bound}
 If $y$ is in the cone generated by a finite family, then there is a nonnegative
@@ -369,6 +392,7 @@ is bounded by $C\|y\|$ for a constant depending only on the family.
 \end{lemma}
 
 \begin{proposition}[LCP existence and dual uniqueness]\label{prop:lcpExistsUniqueDual}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.4 Proposition 4.9\\
   \uses{prop:posLassoIffLCP, def:lassoProblemData}
   \lean{Lasso.lcp_exists_unique_dual}
 For positive-lasso problem data and $\mu>0$, the LCP has a solution.
@@ -377,6 +401,7 @@ unique.
 \end{proposition}
 
 \begin{definition}[Parametric dual regularity]\label{def:parametricDualRegular}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.5 Lemma 4.11\\
   \uses{def:lassoLCP}
   \lean{Lasso.coordinateDeriv,
     Lasso.LocallyAbsolutelyContinuousOnNonnegativeCompacts,
@@ -393,6 +418,7 @@ auxiliary matrix.
 \end{definition}
 
 \begin{lemma}[Parametric LCP dual regularity]\label{lem:parametricDualRegular}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.5 Lemma 4.11\\
   \uses{def:parametricDualRegular, prop:lcpExistsUniqueDual}
   \lean{Lasso.parametric_lcp_dual_regular}
 The unique dual solution of the parametric LCP satisfies the regularity package
@@ -408,6 +434,7 @@ Formally, the derivative estimate should read
 \end{lemma}
 
 \begin{definition}[LCP with derivatives]\label{def:lcpWithDerivatives}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.1 LCP with derivatives\\
   \uses{def:lassoLCP}
   \lean{Lasso.isLCPWithDerivatives}
 The derivative LCP is the integrated-mirror-flow analogue:
@@ -422,6 +449,7 @@ The derivative LCP is the integrated-mirror-flow analogue:
 \section{The Positive-Lasso Connection}
 
 \begin{definition}[Path quantities]\label{def:positivePathQuantities}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 3.2 Eq. 3.6\\
   \uses{def:lassoTrajectories, def:lassoLCP}
   \lean{Lasso.matrixSeminormSq, Lasso.pathDelta, Lasso.scaledPrimalPath,
     Lasso.positiveZDownward, Lasso.positiveZUpward,
@@ -454,6 +482,7 @@ The error profile is
 \end{definition}
 
 \begin{lemma}[Integrated mirror equation]\label{lem:positiveIntegratedMirrorEquation}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.6 Eq. 4.13\\
   \uses{lem:posMirrorFlow, def:lassoRescaledTime}
   \lean{Lasso.positive_integrated_mirror_equation}
 In rescaled time, the positive DLN mirror variable satisfies
@@ -466,6 +495,7 @@ This is Eq. (4.13) of \texttt{docs/Lasso.md}.
 \end{lemma}
 
 \begin{lemma}[Delta differential inequality]\label{lem:positiveDeltaDifferential}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.6 Eq. 4.14\\
   \uses{lem:positiveIntegratedMirrorEquation, prop:posTrajectoryBound,
     def:positivePathQuantities}
   \lean{Lasso.positive_delta_differential_inequality}
@@ -480,6 +510,7 @@ terms displayed in Eq. (4.14) of \texttt{docs/Lasso.md}.
 \end{lemma}
 
 \begin{lemma}[Delta estimate]\label{lem:positiveDeltaEstimate}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.6 Eq. 4.15\\
   \uses{lem:positiveDeltaDifferential, lem:parametricDualRegular,
     def:positivePathQuantities}
   \lean{Lasso.positive_path_delta_bound_full,
@@ -498,6 +529,7 @@ arbitrary \(\delta>0\).
 \end{lemma}
 
 \begin{lemma}[Energy differential inequality]\label{lem:positiveEnergyDifferential}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.6\\
   \uses{lem:positiveDeltaEstimate, lem:parametricDualRegular}
   \lean{Lasso.positive_energy_differential_inequality}
 Let
@@ -514,6 +546,7 @@ terms used in the delta estimate.
 \end{lemma}
 
 \begin{lemma}[Energy estimate]\label{lem:positiveEnergyEstimate}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.6\\
   \uses{lem:positiveEnergyDifferential, def:positivePathQuantities}
   \lean{Lasso.positive_path_energy_bound}
 The delta estimate implies the positive-lasso objective suboptimality bound.
@@ -523,6 +556,7 @@ This is the quantitative core of Theorem~\ref{thm:posLassoConnectionApprox}.
 \end{lemma}
 
 \begin{theorem}[Approximate positive-lasso connection]\label{thm:posLassoConnectionApprox}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 3.2 Theorem 3.2\\
   \uses{lem:positiveEnergyEstimate}
   \lean{Lasso.pos_lasso_connection_approx}
 For every $s>0$,
@@ -539,6 +573,7 @@ $(0,+\infty)$, as in Theorem 3.2.
 \end{theorem}
 
 \begin{lemma}[Monotone paths are regular]\label{lem:monotonePositivePathRegular}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 4.7 Lemma 4.12\\
   \uses{lem:parametricDualRegular}
   \lean{Lasso.monotone_positive_path_regular}
 Under the monotonicity assumption of Theorem 3.1, the scaled path
@@ -547,6 +582,7 @@ approximate theorem.
 \end{lemma}
 
 \begin{theorem}[Exact positive-lasso connection]\label{thm:posLassoConnectionMonotone}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 3.1 Theorem 3.1\\
   \uses{thm:posLassoConnectionApprox, lem:monotonePositivePathRegular}
   \lean{Lasso.pos_lasso_connection_monotone}
 If $\mu\mapsto \mu x(\mu)$ is coordinatewise nondecreasing on $\mu>0$, then
@@ -561,6 +597,7 @@ for all $s>0$,
 \section{The Signed Lasso Reduction}
 
 \begin{definition}[Augmented signed-to-positive system]\label{def:augmentedSystem}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.2\\
   \lean{Lasso.augmentedMatrix, Lasso.augmentedVector,
     Lasso.augmented_problem_data}
 The signed lasso is reduced to positive lasso on the doubled index type
@@ -581,6 +618,7 @@ $\iota\oplus\iota$ by
 \end{definition}
 
 \begin{definition}[Signed split API]\label{def:signedSplitAPI}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.1\\
   \uses{def:augmentedSystem, def:lassoObjectives}
   \lean{Lasso.coordinatePositivePart, Lasso.coordinateNegativePart,
     Lasso.signedCanonicalSplit, Lasso.splitDifference,
@@ -599,6 +637,7 @@ The predicate \texttt{SplitComplementary} states coordinatewise
 \end{definition}
 
 \begin{proposition}[Objective reduction, inequality]\label{prop:lassoSplitObjectiveLe}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.1 Lemma 5.1\\
   \uses{def:signedSplitAPI}
   \lean{Lasso.lasso_split_objective_le}
 If the penalty coefficient $\lambda+1/\mu$ is nonnegative, then for every
@@ -612,6 +651,7 @@ This is Lemma 5.1(1), inequality part.
 \end{proposition}
 
 \begin{proposition}[Objective reduction, equality criterion]\label{prop:lassoSplitObjectiveEq}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.1 Lemma 5.1\\
   \uses{prop:lassoSplitObjectiveLe}
   \lean{Lasso.lasso_split_objective_eq_iff_complementary}
 If the lasso penalty coefficient is positive, equality in
@@ -621,6 +661,7 @@ This is Lemma 5.1(1), equality part.
 \end{proposition}
 
 \begin{proposition}[Canonical objective equality]\label{prop:lassoObjectiveReduction}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.1\\
   \uses{def:signedSplitAPI}
   \lean{Lasso.lasso_objective_reduction}
 For each signed vector \(x\), the canonical split \(x=(x_+)-x_-\) is
@@ -633,6 +674,7 @@ nonnegative and satisfies
 \end{proposition}
 
 \begin{proposition}[Minimizer transfer]\label{prop:lassoMinimizerTransfer}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.1 Lemma 5.1\\
   \uses{prop:lassoObjectiveReduction, prop:lassoSplitObjectiveLe}
   \lean{Lasso.lasso_minimizer_to_augmented_positive_minimizer}
 If \(x\) minimizes the signed lasso problem, then \((x_+,x_-)\) minimizes the
@@ -641,6 +683,7 @@ This is Lemma 5.1(2).
 \end{proposition}
 
 \begin{proposition}[Minimum value equality]\label{prop:lassoMinimumEquality}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.1 Lemma 5.1\\
   \uses{prop:lassoMinimizerTransfer}
   \lean{Lasso.lasso_min_eq_augmented_pos_lasso_min}
 The signed lasso minimum equals the augmented positive-lasso minimum:
@@ -653,6 +696,7 @@ This is Lemma 5.1(3).
 \end{proposition}
 
 \begin{proposition}[Dynamics reduction]\label{prop:dlnDynamicsReduction}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 5.1.2\\
   \uses{def:augmentedSystem, def:lassoGradientFlows}
   \lean{Lasso.signedToPositiveInitialization,
     Lasso.signedToPositiveWeights,
@@ -673,6 +717,7 @@ the corresponding averaged-trajectory identity, the exact time change
 \end{proposition}
 
 \begin{definition}[Signed downward variation]\label{def:signedZDownward}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2.3 Eq. 2.3\\
   \uses{def:positivePathQuantities}
   \lean{Lasso.signedZDownward}
 For signed lasso, downward variation is computed separately on the positive and
@@ -689,6 +734,7 @@ negative parts:
 \end{definition}
 
 \begin{theorem}[Approximate signed-lasso connection]\label{thm:lassoConnectionApprox}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2.3 Theorem 2.2\\
   \uses{thm:posLassoConnectionApprox, prop:lassoObjectiveReduction,
     prop:dlnDynamicsReduction, def:signedZDownward}
   \lean{Lasso.lasso_connection_approx}
@@ -697,6 +743,7 @@ theorem to the augmented system.
 \end{theorem}
 
 \begin{theorem}[Exact signed-lasso connection]\label{thm:lassoConnectionMonotone}
+  \textbf{Reference in \texttt{docs/Lasso.md}:} Section 2.1 Theorem 2.1\\
   \uses{thm:posLassoConnectionMonotone, prop:lassoObjectiveReduction,
     prop:dlnDynamicsReduction}
   \lean{Lasso.lasso_connection_monotone}
