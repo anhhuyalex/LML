@@ -752,6 +752,47 @@ theorem integral_deform_sub_linear_isBigO [IsProbabilityMeasure μ]
   simpa [l, sq, Z, N, C, A, B, w, rZ, rN, covarianceWith,
     integral_deform_eq_inv_smul_weightedIntegral] using hq
 
+/-- Products preserve a first-order expansion with a quadratic remainder.
+
+If `f(ε) = a + ε b + O(ε²)` and `g(ε) = c + ε d + O(ε²)` along a filter on which
+`ε → 0`, then `f(ε)g(ε) = ac + ε(bc + ad) + O(ε²)`. -/
+theorem mul_sub_linear_isBigO {l : Filter ℝ} (hl : Tendsto (fun ε : ℝ ↦ ε) l (𝓝 0))
+    {f g : ℝ → ℝ} {a b c d : ℝ}
+    (hf : Asymptotics.IsBigO l (fun ε ↦ f ε - (a + ε * b)) (fun ε ↦ ε ^ 2))
+    (hg : Asymptotics.IsBigO l (fun ε ↦ g ε - (c + ε * d)) (fun ε ↦ ε ^ 2)) :
+    Asymptotics.IsBigO l
+      (fun ε ↦ f ε * g ε - (a * c + ε * (b * c + a * d)))
+      (fun ε ↦ ε ^ 2) := by
+  let p : ℝ → ℝ := fun ε ↦ a + ε * b
+  let q : ℝ → ℝ := fun ε ↦ c + ε * d
+  have hsq0 : Tendsto (fun ε : ℝ ↦ ε ^ 2) l (𝓝 0) := by
+    simpa [pow_two] using hl.mul hl
+  have hp : Tendsto p l (𝓝 a) := by
+    simpa [p] using (tendsto_const_nhds.add (hl.mul tendsto_const_nhds))
+  have hq : Tendsto q l (𝓝 c) := by
+    simpa [q] using (tendsto_const_nhds.add (hl.mul tendsto_const_nhds))
+  have hft : Tendsto f l (𝓝 a) := by
+    have hr := (hf.trans_tendsto hsq0).add hp
+    simpa [p] using hr
+  have hgt : Tendsto g l (𝓝 c) := by
+    have hr := (hg.trans_tendsto hsq0).add hq
+    simpa [q] using hr
+  have hgO : Asymptotics.IsBigO l g (fun _ : ℝ ↦ (1 : ℝ)) := hgt.isBigO_one ℝ
+  have hpO : Asymptotics.IsBigO l p (fun _ : ℝ ↦ (1 : ℝ)) := hp.isBigO_one ℝ
+  have h₁ : Asymptotics.IsBigO l (fun ε ↦ (f ε - p ε) * g ε)
+      (fun ε ↦ ε ^ 2) := by
+    simpa [p] using (hf.mul hgO).congr_right (fun ε ↦ by simp)
+  have h₂ : Asymptotics.IsBigO l (fun ε ↦ p ε * (g ε - q ε))
+      (fun ε ↦ ε ^ 2) := by
+    simpa [q] using (hpO.mul hg).congr_right (fun ε ↦ by simp)
+  have h₃ : Asymptotics.IsBigO l (fun ε ↦ ε ^ 2 * (b * d))
+      (fun ε ↦ ε ^ 2) := by
+    simpa [mul_comm] using
+      (Asymptotics.isBigO_refl (fun ε : ℝ ↦ ε ^ 2) l).const_mul_left (b * d)
+  exact (h₁.add h₂ |>.add h₃).congr_left (fun ε ↦ by
+    dsimp [p, q]
+    ring)
+
 end Renormalization
 
 end

@@ -2505,6 +2505,39 @@ end IsGaussian
 
 /-! ## Multivariate Gaussian coordinates -/
 
+/-- A centered multivariate Gaussian is invariant under global negation. -/
+instance instIsNegInvariantMultivariateGaussianZero
+    {ι : Type*} [Fintype ι] [DecidableEq ι] (S : Matrix ι ι ℝ) :
+    Measure.IsNegInvariant (multivariateGaussian (0 : EuclideanSpace ℝ ι) S) where
+  neg_eq_self := by
+    let L : EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι :=
+      Matrix.toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt S)
+    have hstd : (stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ -x) =
+        stdGaussian (EuclideanSpace ℝ ι) := by
+      simpa using
+        (stdGaussian_map (E := EuclideanSpace ℝ ι) (F := EuclideanSpace ℝ ι)
+          (LinearIsometryEquiv.neg ℝ))
+    rw [Measure.neg_def]
+    change (multivariateGaussian (0 : EuclideanSpace ℝ ι) S).map (fun x ↦ -x) = _
+    rw [multivariateGaussian]
+    simp only [zero_add]
+    change ((stdGaussian (EuclideanSpace ℝ ι)).map L).map (fun x ↦ -x) = _
+    calc
+      ((stdGaussian (EuclideanSpace ℝ ι)).map L).map (fun x ↦ -x) =
+          (stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ -(L x)) := by
+        rw [Measure.map_map]
+        all_goals fun_prop
+      _ = (stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ L (-x)) := by
+        congr 1
+        funext x
+        exact (L.map_neg x).symm
+      _ = ((stdGaussian (EuclideanSpace ℝ ι)).map (fun x ↦ -x)).map L := by
+        rw [Measure.map_map]
+        all_goals fun_prop
+      _ = (stdGaussian (EuclideanSpace ℝ ι)).map L := by rw [hstd]
+      _ = multivariateGaussian (0 : EuclideanSpace ℝ ι) S := by
+        simp [multivariateGaussian, L]
+
 /-- Finite products of coordinate projections are integrable under any Gaussian measure.
 
 This is the coordinate specialization of the finite Hölder estimate used in the coordinate-free

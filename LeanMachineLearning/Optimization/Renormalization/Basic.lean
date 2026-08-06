@@ -107,12 +107,12 @@ theorem integral_center [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : Integra
   rw [integral_sub hX h_const]
   simp [integral_const]
 
-/-- An integrable odd observable has integral zero against a negation-invariant measure.
-
-Informal proof: `Measure.measurePreserving_neg` changes variables by `x ↦ -x`.  Oddness makes the
-transformed integral the negative of the original, so the original equals zero. -/
-theorem integral_eq_zero_of_odd {E : Type*} [MeasurableSpace E] [Neg E] [MeasurableNeg E]
-    (ν : Measure E) [ν.IsNegInvariant] {F : E → ℝ} (hF : Integrable F ν)
+/-- A strongly a.e.-measurable odd observable has integral zero against a negation-invariant
+measure.  No integrability assumption is needed because Lean's Bochner integral is defined to be
+zero for nonintegrable functions. -/
+theorem integral_eq_zero_of_odd_of_aestronglyMeasurable
+    {E : Type*} [MeasurableSpace E] [Neg E] [MeasurableNeg E]
+    (ν : Measure E) [ν.IsNegInvariant] {F : E → ℝ} (hF : AEStronglyMeasurable F ν)
     (hodd : ∀ x, F (-x) = -F x) :
     ∫ x, F x ∂ν = 0 := by
   have h1 : ∫ x, F x ∂ν = ∫ x, F (-x) ∂ν := by
@@ -120,13 +120,23 @@ theorem integral_eq_zero_of_odd {E : Type*} [MeasurableSpace E] [Neg E] [Measura
     nth_rw 1 [h_map]
     have hfm : AEStronglyMeasurable F (Measure.map (fun x ↦ -x) ν) := by
       rw [← h_map]
-      exact hF.1
+      exact hF
     rw [MeasureTheory.integral_map measurable_neg.aemeasurable hfm]
   have h2 : ∫ x, F (-x) ∂ν = - ∫ x, F x ∂ν := by
     simp_rw [hodd]
     exact integral_neg F
   rw [h2] at h1
   linarith
+
+/-- An integrable odd observable has integral zero against a negation-invariant measure.
+
+Informal proof: `Measure.measurePreserving_neg` changes variables by `x ↦ -x`.  Oddness makes the
+transformed integral the negative of the original, so the original equals zero. -/
+theorem integral_eq_zero_of_odd {E : Type*} [MeasurableSpace E] [Neg E] [MeasurableNeg E]
+    (ν : Measure E) [ν.IsNegInvariant] {F : E → ℝ} (hF : Integrable F ν)
+    (hodd : ∀ x, F (-x) = -F x) :
+    ∫ x, F x ∂ν = 0 :=
+  integral_eq_zero_of_odd_of_aestronglyMeasurable ν hF.1 hodd
 
 end Renormalization
 

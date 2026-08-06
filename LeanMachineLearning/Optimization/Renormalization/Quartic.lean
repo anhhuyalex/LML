@@ -85,6 +85,17 @@ theorem continuous_potential (A : QuarticCoupling ι) : Continuous A.potential :
   unfold potential
   fun_prop
 
+/-- A quartic potential is invariant under the global sign flip. -/
+theorem potential_neg (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
+    A.potential (-z) = A.potential z := by
+  unfold potential
+  congr 1
+  exact Finset.sum_congr rfl (fun q _hq ↦ by
+    congr 1
+    rw [Fin.prod_univ_four, Fin.prod_univ_four]
+    simp
+    ring)
+
 /-- Nonnegative quartic potentials are normalizable at every nonnegative coupling.
 
 Informal proof: `continuous_potential` supplies measurability, and `A.Nonnegative` gives the
@@ -95,6 +106,38 @@ theorem normalizable (A : QuarticCoupling ι) {K : Matrix ι ι ℝ}
     Normalizable (multivariateGaussian 0 K) A.potential ε :=
   normalizable_of_nonnegative A.continuous_potential.aestronglyMeasurable hA hε
 
+/-- Every coordinate remains centered under an even quartic deformation of a centered Gaussian. -/
+theorem integral_coordinate_deform_eq_zero (A : QuarticCoupling ι)
+    (K : Matrix ι ι ℝ) (ε : ℝ) (i : ι) :
+    ∫ z, z i ∂deform (multivariateGaussian 0 K) A.potential ε = 0 := by
+  rw [integral_deform]
+  let F : EuclideanSpace ℝ ι → ℝ := fun z ↦
+    (Real.exp (-ε * A.potential z) /
+      partitionFunction (multivariateGaussian 0 K) A.potential ε) * z i
+  have hF : AEStronglyMeasurable F (multivariateGaussian 0 K) := by
+    apply Continuous.aestronglyMeasurable
+    dsimp [F]
+    exact (((continuous_const.mul A.continuous_potential).exp.div_const _).mul
+      (continuous_apply i))
+  have hodd : ∀ z, F (-z) = -F z := by
+    intro z
+    simp [F, A.potential_neg]
+  simpa only [F, smul_eq_mul] using
+    (integral_eq_zero_of_odd_of_aestronglyMeasurable
+      (multivariateGaussian 0 K) hF hodd)
+
+omit [DecidableEq ι] in
+/-- Square-integrability of a nonnegative quartic potential implies integrability. -/
+theorem integrable_potential_of_sq (A : QuarticCoupling ι) (hA : A.Nonnegative)
+    {μ : Measure (EuclideanSpace ℝ ι)} [IsFiniteMeasure μ]
+    (hV2 : Integrable (fun z ↦ A.potential z ^ 2) μ) : Integrable A.potential μ := by
+  refine Integrable.mono' ((integrable_const (1 : ℝ)).add hV2)
+    A.continuous_potential.aestronglyMeasurable ?_
+  filter_upwards with z
+  dsimp
+  rw [abs_of_nonneg (hA z)]
+  nlinarith [sq_nonneg (A.potential z - (1 / 2 : ℝ))]
+
 /-! ## Pairing-orbit moment formulae -/
 
 /-- Expanding the quartic potential inside a Gaussian integral.
@@ -102,6 +145,45 @@ theorem normalizable (A : QuarticCoupling ι) {K : Matrix ι ι ℝ}
 Informal proof: unfold `coordinateProduct` and `potential`, distribute multiplication over the
 finite sum over quartic labels, and use finite linearity of the Bochner integral.  The required
 integrability statements are polynomial-moment bounds for a finite-dimensional Gaussian. -/
+theorem integrable_coordinateProduct_mul_potential
+    {n : ℕ} (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (index : Fin n → ι) :
+    Integrable (fun z : EuclideanSpace ℝ ι ↦ coordinateProduct index z * A.potential z)
+      (multivariateGaussian 0 K) := by
+  let μ : Measure (EuclideanSpace ℝ ι) := multivariateGaussian 0 K
+  have hmono : ∀ q : Fin 4 → ι, Integrable (fun z : EuclideanSpace ℝ ι ↦
+      coordinateProduct index z * ∏ r : Fin 4, z (q r)) μ := fun q ↦ by
+    simpa [coordinateProduct, Fintype.prod_sum_type] using
+      (integrable_finset_prod_gaussian_coordinate (μ := μ)
+        (s := (Finset.univ : Finset (Sum (Fin n) (Fin 4)))) (coord := Sum.elim index q))
+  have hsum : Integrable (fun z : EuclideanSpace ℝ ι ↦
+      ∑ q : Fin 4 → ι, A.coeff q *
+        (coordinateProduct index z * ∏ r : Fin 4, z (q r))) μ :=
+    integrable_finsetSum Finset.univ (fun q _hq ↦ (hmono q).const_mul (A.coeff q))
+  have hfun : (fun z : EuclideanSpace ℝ ι ↦ coordinateProduct index z * A.potential z) =
+      fun z ↦ (((4 : ℕ).factorial : ℝ)⁻¹) *
+        ∑ q : Fin 4 → ι, A.coeff q *
+          (coordinateProduct index z * ∏ r : Fin 4, z (q r)) := by
+    funext z
+    unfold potential
+    calc
+      coordinateProduct index z *
+          ((((4 : ℕ).factorial : ℝ)⁻¹) *
+            ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, z (q r)) =
+          (((4 : ℕ).factorial : ℝ)⁻¹) *
+            (coordinateProduct index z *
+              ∑ q : Fin 4 → ι, A.coeff q * ∏ r : Fin 4, z (q r)) := by ring
+      _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
+            ∑ q : Fin 4 → ι,
+              coordinateProduct index z * (A.coeff q * ∏ r : Fin 4, z (q r)) := by
+        rw [Finset.mul_sum]
+      _ = (((4 : ℕ).factorial : ℝ)⁻¹) *
+            ∑ q : Fin 4 → ι, A.coeff q *
+              (coordinateProduct index z * ∏ r : Fin 4, z (q r)) := by
+        congr 1
+        exact Finset.sum_congr rfl (fun q _hq ↦ by ring)
+  rw [hfun]
+  exact hsum.const_mul _
+
 theorem integral_coordinateProduct_mul_potential_eq_sum_integral
     {n : ℕ} (A : QuarticCoupling ι) (K : Matrix ι ι ℝ) (index : Fin n → ι) :
     ∫ z, coordinateProduct index z * A.potential z ∂multivariateGaussian 0 K =
@@ -206,6 +288,21 @@ theorem integral_prod_multivariateGaussian_centered_eq_wick_fintype
     (integral_prod_multivariateGaussian_centered_eq_wick (m := m) (S := S) (hS := hS)
       (fun r : Fin (Fintype.card α) ↦ index (e.symm r)))).trans
     (wick_univ_perm e.symm (fun a b : α ↦ S (index a) (index b)))
+
+/-- A finite product of coordinates of a centered multivariate Gaussian is its Wick sum. -/
+theorem integral_coordinateProduct_eq_wick {n : ℕ} (K : Matrix ι ι ℝ)
+    (hK : K.PosSemidef) (index : Fin n → ι) :
+    ∫ z, coordinateProduct index z ∂multivariateGaussian 0 K =
+      wick (fun r s : Fin n ↦ K (index r) (index s)) Finset.univ := by
+  calc
+    (∫ z, coordinateProduct index z ∂multivariateGaussian 0 K) =
+        jointMoment (multivariateGaussian 0 K)
+          (fun r : Fin n ↦ fun z ↦ z (index r) -
+            (0 : EuclideanSpace ℝ ι) (index r)) := by
+      simp [jointMoment, blockMoment, coordinateProduct]
+    _ = wick (fun r s : Fin n ↦ K (index r) (index s)) Finset.univ :=
+      integral_prod_multivariateGaussian_centered_eq_wick_fintype
+        (m := (0 : EuclideanSpace ℝ ι)) (S := K) hK index
 
 omit [Fintype ι] [DecidableEq ι] in
 -- Notation conversion: a coordinate product times the quartic monomial `∏ r, z (q r)` is the
@@ -639,6 +736,34 @@ theorem integral_fourCoords_mul_potential (A : QuarticCoupling ι)
           wick (fun r s : Sum (Fin 4) (Fin 4) ↦
             K (Sum.elim index q r) (Sum.elim index q s)) Finset.univ :=
   integral_coordinateProduct_mul_potential_eq_sum_wick A K hK index
+
+/-- Covariance of a four-coordinate observable with a symmetric quartic potential.
+
+Informal proof: expand the eighth Gaussian moment by Isserlis' theorem.  Its 105 pairings split
+into three equivariant classes.  There are nine pairings with no external-to-vertex edge; these
+are exactly the product of the four-point Gaussian moment and `integral_potential`, so they cancel
+in `covarianceWith`.  There are 72 pairings with exactly two external-to-vertex edges: for each of
+the six choices of an external pair, the remaining two external legs can be attached to ordered
+distinct vertex legs in `4 * 3 = 12` ways.  After the `1 / 4!` symmetry factor these give the six
+terms below with coefficient `1 / 2`.  The remaining `4! = 24` pairings biject all four external
+legs with the vertex legs, giving `fourPointContraction` with coefficient one.  Reindexing each
+orbit uses `coeff_sum_perm` and total symmetry of `A`; no list of 105 pairings is required.
+
+This is the orbit calculation in `docs/Renormalization.md`, equation
+`eq:full-four-point-intro`, and is an instance of Isserlis' formula
+<https://doi.org/10.1093/biomet/12.1-2.134>. -/
+theorem covarianceWith_coordinateProduct_potential (A : QuarticCoupling ι)
+    (K : Matrix ι ι ℝ) (hK : K.PosSemidef) (index : Fin 4 → ι) :
+    covarianceWith (multivariateGaussian 0 K) (coordinateProduct index) A.potential =
+      (1 / 2 : ℝ) *
+        (K (index 0) (index 1) * A.twoPointContraction K (index 2) (index 3) +
+          K (index 0) (index 2) * A.twoPointContraction K (index 1) (index 3) +
+          K (index 0) (index 3) * A.twoPointContraction K (index 1) (index 2) +
+          K (index 1) (index 2) * A.twoPointContraction K (index 0) (index 3) +
+          K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
+          K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
+        A.fourPointContraction K index := by
+  sorry
 
 /-! ## First-order quartic response -/
 

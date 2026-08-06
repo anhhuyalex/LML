@@ -233,11 +233,13 @@ theorem not_integrable_dirac_fourierKernel (z s : ℝ) :
   have hrew : (fun Λ : ℝ => ‖Complex.exp ((Λ * (z - s) : ℂ) * Complex.I)‖ₑ) =
       fun _ : ℝ => (1 : ℝ≥0∞) := by
     funext Λ
-    exact Complex.enorm_exp_ofReal_mul_I (Λ * (z - s))
+    simpa [Complex.ofReal_mul, Complex.ofReal_sub] using
+      Complex.enorm_exp_ofReal_mul_I (Λ * (z - s))
   have hln : ∫⁻ Λ : ℝ, (1 : ℝ≥0∞) ∂volume < ∞ := by
-    simpa [hrew] using h.2
+    rw [← hrew]
+    exact h.2
   rw [lintegral_one] at hln
-  rw [volume_univ] at hln
+  rw [Real.volume_univ] at hln
   exact (lt_irrefl ∞) hln
 
 /-- For positive variance, the regularized Fourier integral in the source is an ordinary integral
@@ -324,17 +326,21 @@ Informal proof: for a coefficient vector `v`, expand its quadratic form as
 `C_b (∑ a, v a)^2 + (C_W / |ι|) ∑ i, (∑ a, v a * s a i)^2`.  Both coefficients are nonnegative
 and every square is nonnegative.  The covariance is symmetric by commutativity.  This is the Gram
 matrix argument described at <https://en.wikipedia.org/wiki/Gram_matrix#Positive-semidefiniteness>. -/
-theorem layerCovariance_posSemidef [Fintype ι]
+theorem layerCovariance_posSemidef [Fintype ι] [Fintype A]
     (p : InitHyperparams) (s : A → ι → ℝ) : (layerCovariance p s).PosSemidef := by
   classical
   -- The covariance matrix is the all-ones matrix scaled by the bias variance plus the Gram
-  -- matrix `S * Sᵀ` of the input vectors scaled by the fan-in-normalized weight variance.
+  -- matrix `S * Sᴴ` of the input vectors scaled by the fan-in-normalized weight variance.
+  let _ : StarOrderedRing ℝ := RCLike.toStarOrderedRing (K := ℝ)
   let S : Matrix A ι ℝ := fun a i => s a i
-  let J : Matrix A A ℝ := vecMulVec (fun _ : A => (1 : ℝ)) (star (fun _ : A => (1 : ℝ)))
+  let J : Matrix A A ℝ := Matrix.vecMulVec (fun _ : A => (1 : ℝ)) (star (fun _ : A => (1 : ℝ)))
   have hS : layerCovariance p s =
-      (p.biasVariance : ℝ) • J + (scaledWeightVariance p ι : ℝ) • (S * Sᵀ) := by
+      (p.biasVariance : ℝ) • J + (scaledWeightVariance p ι : ℝ) • (S * Matrix.conjTranspose S) := by
     ext a a'
-    simp [layerCovariance, S, J, vecMulVec, smul_eq_mul, Matrix.mul_apply]
+    dsimp [S, J]
+    rw [Matrix.mul_apply]
+    simp [layerCovariance, Matrix.conjTranspose, Matrix.transpose_apply, Matrix.map_apply,
+      Matrix.vecMulVec, smul_eq_mul]
   rw [hS]
   exact (Matrix.PosSemidef.smul
       (Matrix.posSemidef_vecMulVec_self_star (fun _ : A => (1 : ℝ)))
