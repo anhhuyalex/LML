@@ -1479,6 +1479,187 @@ def jointCumulantMultilinearMap [Fintype ι] [DecidableEq ι] [Fintype κ]
         _ = c * jointCumulant μ U := hsmul
         _ = c • jointCumulant μ (linearCombinationFamily X (Function.update A i x)) := rfl)
 
+-- The joint-cumulant multilinear map is symmetric: permuting the argument coefficient vectors is
+-- absorbed by the invariance of joint cumulants under equivalences of position types
+-- (`jointCumulant_perm`).  Stated directly in terms of `jointCumulantMultilinearMap` (no `let`
+-- binding) so that it unifies cleanly at use sites.
+private lemma jointCumulantMultilinearMap_symm [Fintype ι] [DecidableEq ι] [Fintype κ]
+    (X : κ → Ω → ℝ)
+    (hfinite : ∀ A : ι → κ → ℝ, HasFiniteJointMoments μ (linearCombinationFamily X A))
+    (e : Equiv.Perm ι) (A : ι → κ → ℝ) :
+    jointCumulantMultilinearMap (μ := μ) X hfinite (fun i ↦ A (e.symm i)) =
+      jointCumulantMultilinearMap (μ := μ) X hfinite A := by
+  dsimp [jointCumulantMultilinearMap]
+  exact jointCumulant_perm (μ := μ) e (linearCombinationFamily X A)
+
+-- Diagonal values of the joint-cumulant multilinear map coincide with the joint cumulants of the
+-- corresponding linear combinations of `X`; this connects the abstract vanishing hypothesis on
+-- the map to the concrete hypothesis `hdiag` on joint cumulants.
+private lemma jointCumulantMultilinearMap_diag_eq_zero [Fintype ι] [DecidableEq ι] [Fintype κ]
+    (X : κ → Ω → ℝ)
+    (hfinite : ∀ A : ι → κ → ℝ, HasFiniteJointMoments μ (linearCombinationFamily X A))
+    (hdiag : ∀ a : κ → ℝ,
+      jointCumulant μ (fun _ : ι ↦ fun ω ↦ ∑ j : κ, a j * X j ω) = 0)
+    (a : κ → ℝ) :
+    jointCumulantMultilinearMap (μ := μ) X hfinite (fun _ : ι ↦ a) = 0 := by
+  dsimp [jointCumulantMultilinearMap, linearCombinationFamily]
+  exact hdiag a
+
+-- Applying `linearCombinationFamily` with the identity matrix (diagonal `1`s, zero elsewhere)
+-- recovers the original family; this is the notation conversion that turns the basis value of the
+-- multilinear map back into a joint cumulant of `X`.
+private lemma linearCombinationFamily_id_eq_self [Fintype κ] [DecidableEq κ] (X : κ → Ω → ℝ) :
+    linearCombinationFamily X (fun i j : κ ↦ if i = j then (1 : ℝ) else 0) = X := by
+  ext i ω
+  simp [linearCombinationFamily]
+
+private def finsetComplEquiv [Fintype ι] [DecidableEq ι] : Finset ι ≃ Finset ι where
+  toFun s := sᶜ
+  invFun s := sᶜ
+  left_inv s := by simp
+  right_inv s := by simp
+
+private lemma polarizationCoefficient [Fintype ι] [DecidableEq ι] (r : Finset ι) :
+    (∑ s : Finset ι, if r ⊆ s then
+      (-1 : ℝ) ^ (Fintype.card ι - s.card) else 0) =
+      if r = Finset.univ then 1 else 0 := by
+  rw [← Finset.sum_filter]
+  calc
+    (∑ s ∈ (Finset.univ.filter (r ⊆ ·)),
+        (-1 : ℝ) ^ (Fintype.card ι - s.card)) =
+        ∑ t ∈ rᶜ.powerset, (-1 : ℝ) ^ t.card := by
+          apply Finset.sum_equiv (@finsetComplEquiv ι _ _)
+          · intro s
+            simp only [Finset.mem_filter, Finset.mem_univ, true_and,
+              Finset.mem_powerset]
+            exact (Finset.compl_subset_compl (s := s) (t := r)).symm
+          · intro s hs
+            change (-1 : ℝ) ^ (Fintype.card ι - s.card) = (-1 : ℝ) ^ sᶜ.card
+            rw [Finset.card_compl]
+    _ = if rᶜ = ∅ then 1 else 0 := by
+      exact_mod_cast Finset.sum_powerset_neg_one_pow_card (x := rᶜ)
+    _ = if r = Finset.univ then 1 else 0 := by simp
+
+/-- A symmetric finite multilinear form over `ℝ` that vanishes on the diagonal vanishes on every
+tuple.
+
+This is the vanishing form of the polarization identity.  Expanding the alternating sum of
+diagonal values leaves only surjective self-maps of the argument index type.  Since the type is
+finite, these are permutations; symmetry identifies all surviving summands, so the sum is
+`(Fintype.card ι)! * M v`.  The factorial is nonzero over `ℝ`.
+
+Reference: Erik G. F. Thomas, *A polarization identity for multilinear maps*, Theorem 1,
+<https://arxiv.org/abs/1309.1275>. -/
+theorem multilinearMap_apply_eq_zero_of_diagonal_eq_zero
+    {E : Type*} [Finite ι] [DecidableEq ι] [AddCommMonoid E] [Module ℝ E]
+    (M : MultilinearMap ℝ (fun _ : ι ↦ E) ℝ)
+    (hsymm : ∀ (e : Equiv.Perm ι) (A : ι → E),
+      M (fun i ↦ A (e.symm i)) = M A)
+    (hdiag : ∀ a : E, M (fun _ : ι ↦ a) = 0) (v : ι → E) : M v = 0 := by
+  classical
+  let _ := Fintype.ofFinite ι
+  let T : (ι → ι) → ℝ := fun f ↦ M (fun i ↦ v (f i))
+  have hexpand (s : Finset ι) :
+      M (fun _ : ι ↦ ∑ j ∈ s, v j) =
+        ∑ f : ι → ι, if Finset.univ.image f ⊆ s then T f else 0 := by
+    rw [M.map_sum_finset (fun _ j ↦ v j) (fun _ ↦ s)]
+    have hpi : Fintype.piFinset (fun _ : ι ↦ s) =
+        (Finset.univ : Finset (ι → ι)).filter
+          (fun f ↦ Finset.univ.image f ⊆ s) := by
+      ext f
+      simp only [Fintype.mem_piFinset, Finset.mem_filter, Finset.mem_univ, true_and,
+        Finset.image_subset_iff, true_implies]
+    rw [hpi, Finset.sum_filter]
+  have himage (f : ι → ι) :
+      Finset.univ.image f = Finset.univ ↔ Function.Surjective f := by
+    constructor
+    · intro hf y
+      have hy : y ∈ Finset.univ.image f := by rw [hf]; simp
+      simpa using hy
+    · exact Finset.image_univ_of_surjective
+  have hzero :
+      (∑ s : Finset ι, (-1 : ℝ) ^ (Fintype.card ι - s.card) *
+        M (fun _ : ι ↦ ∑ j ∈ s, v j)) = 0 := by
+    simp only [hdiag, mul_zero, Finset.sum_const_zero]
+  have hsurj : (∑ f : ι → ι, if Function.Surjective f then T f else 0) = 0 := by
+    calc
+      (∑ f : ι → ι, if Function.Surjective f then T f else 0) =
+          ∑ f : ι → ι,
+            (∑ s : Finset ι, if Finset.univ.image f ⊆ s then
+              (-1 : ℝ) ^ (Fintype.card ι - s.card) else 0) * T f := by
+            apply Finset.sum_congr rfl
+            intro f hf
+            simp only [polarizationCoefficient, himage, ite_mul, one_mul, zero_mul]
+      _ = ∑ s : Finset ι, (-1 : ℝ) ^ (Fintype.card ι - s.card) *
+          (∑ f : ι → ι, if Finset.univ.image f ⊆ s then T f else 0) := by
+            simp_rw [Finset.sum_mul]
+            rw [Finset.sum_comm]
+            apply Finset.sum_congr rfl
+            intro s hs
+            rw [Finset.mul_sum]
+            apply Finset.sum_congr rfl
+            intro f hf
+            by_cases hfs : Finset.univ.image f ⊆ s <;> simp [hfs]
+      _ = ∑ s : Finset ι, (-1 : ℝ) ^ (Fintype.card ι - s.card) *
+          M (fun _ : ι ↦ ∑ j ∈ s, v j) := by simp_rw [hexpand]
+      _ = 0 := hzero
+  let surjEquivPerm : {f : ι → ι // Function.Surjective f} ≃ Equiv.Perm ι := {
+    toFun f := Equiv.ofBijective f.1 f.2.bijective_of_finite
+    invFun e := ⟨e, e.surjective⟩
+    left_inv f := by ext i; rfl
+    right_inv e := by ext i; rfl }
+  have hfactorial : ((Fintype.card ι).factorial : ℝ) * M v = 0 := by
+    calc
+      ((Fintype.card ι).factorial : ℝ) * M v =
+          (∑ f : ι → ι, if Function.Surjective f then T f else 0) := by
+        symm
+        calc
+          (∑ f : ι → ι, if Function.Surjective f then T f else 0) =
+              ∑ f : {f : ι → ι // Function.Surjective f}, T f.1 := by
+            rw [← Finset.sum_filter]
+            apply Finset.sum_subtype
+            intro f
+            simp
+          _ = ∑ e : Equiv.Perm ι, T e := by
+            apply Fintype.sum_equiv surjEquivPerm
+            intro f
+            rfl
+          _ = ∑ _e : Equiv.Perm ι, M v := by
+            apply Finset.sum_congr rfl
+            intro e he
+            exact hsymm e.symm v
+          _ = ((Fintype.card ι).factorial : ℝ) * M v := by
+            simp [Fintype.card_perm]
+      _ = 0 := hsurj
+  have hfac : ((Fintype.card ι).factorial : ℝ) ≠ 0 := by positivity
+  exact (mul_eq_zero.mp hfactorial).resolve_left hfac
+
+/-- A finite-dimensional polarization corollary for symmetric multilinear maps on `ι → ℝ`.
+
+If a symmetric `|ι|`-linear form vanishes on the diagonal, then its coefficient on the tuple of
+standard basis vectors is zero.  This is the precise algebraic fact needed below for joint
+cumulants: the matrix `(fun i j ↦ if i = j then 1 else 0)` feeds the `i`-th basis vector to the
+`i`-th argument of the multilinear map.
+
+Informal proof.  The Bochnak--Siciak/Thomas polarization identity says
+`M v = (Fintype.card ι)!⁻¹ • ∑ S : Finset ι, (-1) ^ (Fintype.card ι - S.card) •
+  M (fun _ ↦ ∑ i in S, v i)`
+for every symmetric multilinear map `M` over `ℝ`.  Apply this to the basis tuple
+`v i j = if i = j then 1 else 0`.  Each term on the right is a diagonal value, so it is zero by
+`hdiag`; hence the whole sum is zero.  The symmetry hypothesis `hsymm` is exactly the invariance
+under permutations used to combine the `|ι|!` surviving terms in the standard proof of the
+polarization formula.
+
+Reference: Erik G. F. Thomas, *A polarization identity for multilinear maps*, Theorem 1,
+<https://arxiv.org/abs/1309.1275>. -/
+theorem multilinearMap_eq_zero_on_basis_of_diagonal_eq_zero [Finite ι] [DecidableEq ι]
+    (M : MultilinearMap ℝ (fun _ : ι ↦ ι → ℝ) ℝ)
+    (hsymm : ∀ (e : Equiv.Perm ι) (A : ι → ι → ℝ),
+      M (fun i ↦ A (e.symm i)) = M A)
+    (hdiag : ∀ a : ι → ℝ, M (fun _ : ι ↦ a) = 0) :
+    M (fun i j ↦ if i = j then (1 : ℝ) else 0) = 0 := by
+  apply multilinearMap_apply_eq_zero_of_diagonal_eq_zero M hsymm hdiag
+
 /-- Polarization for joint cumulants: if every repeated-variable cumulant in the linear span of
 `X` vanishes, then the mixed cumulant vanishes.
 
@@ -1499,7 +1680,28 @@ theorem jointCumulant_eq_zero_of_diagonal_linearCombination [Fintype ι] [Decida
     (hdiag : ∀ a : ι → ℝ,
       jointCumulant μ (fun _ : ι ↦ fun ω ↦ ∑ j : ι, a j * X j ω) = 0) :
     jointCumulant μ X = 0 := by
-  sorry
+  let M := jointCumulantMultilinearMap (μ := μ) X hfinite
+  -- The multilinear map is symmetric, which is exactly what the polarization helper needs.
+  have hsymm : ∀ (e : Equiv.Perm ι) (A : ι → ι → ℝ),
+      M (fun i ↦ A (e.symm i)) = M A :=
+    jointCumulantMultilinearMap_symm X hfinite
+  -- Diagonal values of `M` are precisely the diagonal joint cumulants, which vanish by `hdiag`.
+  have hdiagM : ∀ a : ι → ℝ, M (fun _ : ι ↦ a) = 0 :=
+    jointCumulantMultilinearMap_diag_eq_zero X hfinite hdiag
+  -- Symmetry plus vanishing on the diagonal forces the value on the standard basis tuple to be
+  -- zero (polarization).
+  have hbasis : M (fun i j ↦ if i = j then (1 : ℝ) else 0) = 0 :=
+    multilinearMap_eq_zero_on_basis_of_diagonal_eq_zero M hsymm hdiagM
+  -- The identity matrix expresses `X` as a linear combination of itself, so the joint cumulant
+  -- of `X` is exactly the basis value of `M` just proved to be zero.
+  have hid : linearCombinationFamily X (fun i j ↦ if i = j then (1 : ℝ) else 0) = X :=
+    linearCombinationFamily_id_eq_self X
+  calc
+    jointCumulant μ X =
+        jointCumulant μ (linearCombinationFamily X (fun i j ↦ if i = j then (1 : ℝ) else 0)) := by
+          rw [hid]
+    _ = M (fun i j ↦ if i = j then (1 : ℝ) else 0) := rfl
+    _ = 0 := hbasis
 
 /-- Independence of the observables indexed by `A` from those indexed by its complement. -/
 def IndepAcross (μ : Measure Ω) (X : ι → Ω → ℝ)

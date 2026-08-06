@@ -1228,7 +1228,7 @@ rewrite the block cumulant as the full joint cumulant of this subtype family usi
 `jointCumulant_eq_zero_of_log_mgf_quadratic`.
 
 References: Wikipedia, *Cumulant*, section "Joint cumulants"
-<https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants>, and the local sorry-free
+<https://en.wikipedia.org/wiki/Cumulant#Joint_cumulants>, and the local
 moment-cumulant partition identity `jointMoment_eq_sum_partition_jointCumulant` in
 `Renormalization.Cumulant`. -/
 private lemma cumulantTransform_blockMoment_eq_zero_of_log_mgf_quadratic {Ω ι : Type*}
@@ -2131,16 +2131,249 @@ theorem cumulantTransform_wick_eq_zero (C : ι → ι → ℝ) (_hC : ∀ i j, C
   rw [h_inv]
   simp [hs]
 
+/-- Adding constants to all coordinates preserves finite joint moments.
+
+This is the integrability half of translation invariance: every finite product of the translated
+observables expands by `Finset.prod_add` into a finite sum of constant multiples of finite
+products of the original observables, and each summand is integrable by `hX`. -/
+private lemma hasFiniteJointMoments_add_const {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : ι → Ω → ℝ) (d : ι → ℝ) (hX : HasFiniteJointMoments μ X) :
+    HasFiniteJointMoments μ (fun j x ↦ X j x + d j) := by
+  intro B
+  change Integrable (fun ω => ∏ j ∈ B, (X j ω + d j)) μ
+  have h_expand : (fun ω : Ω => ∏ j ∈ B, (X j ω + d j)) =
+      (fun ω : Ω => ∑ T ∈ B.powerset, (∏ j ∈ T, d j) * (∏ j ∈ B \ T, X j ω)) := by
+    funext ω
+    exact Finset.prod_add (fun j => X j ω) (fun j => d j) B
+  rw [h_expand]
+  exact MeasureTheory.Integrable.fun_finsetSum B.powerset
+    (fun T _hT => (hX (B \ T)).const_mul (∏ j ∈ T, d j))
+
+-- Replacing one coordinate by a constant preserves finite joint moments: on blocks containing
+-- the coordinate the product acquires a constant factor, and elsewhere it is unchanged.
+private lemma hasFiniteJointMoments_update_const {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Y : ι → Ω → ℝ) (i : ι) (c : ℝ) (hY : HasFiniteJointMoments μ Y) :
+    HasFiniteJointMoments μ (Function.update Y i (fun _ => c)) := by
+  intro s
+  by_cases hi : i ∈ s
+  · have h_int : Integrable (fun ω => c * ∏ j ∈ s.erase i, Y j ω) μ :=
+      (hY (s.erase i)).const_mul c
+    convert h_int using 1
+    ext ω
+    rw [← Finset.mul_prod_erase s (fun j : ι => (Function.update Y i (fun _ => c)) j ω) hi]
+    have hrest : (∏ j ∈ s.erase i, (Function.update Y i (fun _ => c)) j ω) =
+        ∏ j ∈ s.erase i, Y j ω := by
+      apply Finset.prod_congr rfl
+      intro j hj
+      have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
+      simp [hj_ne]
+    rw [hrest]
+    simp
+  · convert hY s using 1
+    ext ω
+    apply Finset.prod_congr rfl
+    intro j hj
+    have hj_ne : j ≠ i := by
+      intro hji
+      exact hi (by simpa [hji] using hj)
+    simp [hj_ne]
+
+/-- A family with one constant coordinate has zero cumulant transform on a carrier of
+cardinality at least two.
+
+The block-moment sequence of such a family factors over the singleton `{i}` and its complement,
+so `cumulantTransform_eq_zero_of_split` forces the cumulant transform on `univ` to vanish. -/
+private lemma cumulantTransform_const_coordinate_eq_zero {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ] [Fintype ι]
+    (hs : 1 < Fintype.card ι) (Y : ι → Ω → ℝ) (i : ι) (c : ℝ) :
+    Finpartition.cumulantTransform (blockMoment μ (Function.update Y i (fun _ => c)))
+      (Finset.univ : Finset ι) = 0 := by
+  classical
+  let U : ι → Ω → ℝ := Function.update Y i (fun _ => c)
+  apply cumulantTransform_eq_zero_of_split (blockMoment μ U) ({i} : Finset ι)
+  · simp
+  · rcases (Fintype.one_lt_card_iff.mp hs) with ⟨a, b, hab⟩
+    by_cases hia : a ≠ i
+    · exact ⟨a, by simp [hia]⟩
+    · refine ⟨b, ?_⟩
+      simp
+      intro hbi
+      exact hab (by simpa [hia] using hbi.symm)
+  · intro s
+    by_cases hi : i ∈ s
+    · have h_inter : s ∩ ({i} : Finset ι) = {i} := by
+        ext x
+        simp
+        constructor
+        · intro hx
+          exact hx.2
+        · intro hx
+          exact ⟨by simpa [hx] using hi, hx⟩
+      have h_sdiff : s \ ({i} : Finset ι) = s.erase i := by
+        rw [Finset.sdiff_singleton_eq_erase]
+      have h_erased : blockMoment μ U (s.erase i) = blockMoment μ Y (s.erase i) := by
+        dsimp [blockMoment, U]
+        apply MeasureTheory.integral_congr_ae
+        filter_upwards with ω
+        apply Finset.prod_congr rfl
+        intro j hj
+        have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
+        simp [hj_ne]
+      have h_single : blockMoment μ U ({i} : Finset ι) = c := by
+        dsimp [blockMoment, U]
+        simp
+      have h_lhs : blockMoment μ U s = c * blockMoment μ Y (s.erase i) := by
+        dsimp [blockMoment]
+        calc
+          ∫ ω, ∏ j ∈ s, U j ω ∂μ = ∫ ω, c * (∏ j ∈ s.erase i, Y j ω) ∂μ := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with ω
+            rw [← Finset.mul_prod_erase s (fun j : ι => U j ω) hi]
+            have hrest : (∏ j ∈ s.erase i, U j ω) = ∏ j ∈ s.erase i, Y j ω := by
+              apply Finset.prod_congr rfl
+              intro j hj
+              have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
+              simp [U, hj_ne]
+            rw [hrest]
+            simp [U]
+          _ = c * blockMoment μ Y (s.erase i) := by
+            dsimp [blockMoment]
+            rw [MeasureTheory.integral_const_mul]
+      have h_rhs : blockMoment μ U (s ∩ ({i} : Finset ι)) *
+            blockMoment μ U (s \ ({i} : Finset ι)) =
+          c * blockMoment μ Y (s.erase i) := by
+        rw [h_inter, h_sdiff, h_single, h_erased]
+        ring
+      exact h_lhs.trans h_rhs.symm
+    · have h_inter : s ∩ ({i} : Finset ι) = ∅ := by
+        ext x
+        simp
+        constructor
+        · intro hx
+          exact hi (hx.2 ▸ hx.1)
+        · intro hx
+          cases hx
+      have h_sdiff : s \ ({i} : Finset ι) = s := by
+        ext x
+        simp
+        constructor
+        · intro hx
+          exact hx.1
+        · intro hx
+          exact ⟨hx, by intro hxi; exact hi (hxi ▸ hx)⟩
+      have h_empty : blockMoment μ U ∅ = 1 := by
+        dsimp [blockMoment]
+        simp
+      have h_rhs : blockMoment μ U (s ∩ ({i} : Finset ι)) *
+            blockMoment μ U (s \ ({i} : Finset ι)) =
+          blockMoment μ U s := by
+        rw [h_inter, h_sdiff, h_empty]
+        ring
+      exact h_rhs.symm
+
+/-- Block-moment version of translation invariance for cumulants of order at least two.
+
+This is the combinatorial heart of `jointCumulant_add_const`.  The hypothesis
+`HasFiniteJointMoments μ X` is essential: without it Lean's total Bochner integral sends
+non-integrable functions to `0`, and integral additivity/finite-sum expansion of block moments
+is unavailable (indeed the unqualified statement is false).
+
+Informal proof: expand every translated block moment by the finite product identity
+`∏ i ∈ B, (X i + c i) = ∑ S ⊆ B, (∏ i ∈ S, c i) * ∏ i ∈ B \ S, X i` and integrate termwise using
+`hX`.  In the partition-lattice moment--cumulant relation this corresponds to adding the
+singleton cumulant `c i` to each one-point block and leaving all higher cumulants unchanged.
+By Möbius inversion (`Finpartition.cumulantTransform_partitionTransform`), the cumulant on
+`univ` is therefore unchanged once `univ.card > 1`, which is exactly `hs`.
+
+Reference: the standard joint-cumulant partition formula and translation invariance are stated in
+Wikipedia, *Cumulant*, §Joint cumulants and §Some basic properties,
+<https://en.wikipedia.org/wiki/Cumulant>. -/
+lemma cumulantTransform_blockMoment_add_const {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ] [Fintype ι]
+    (hs : 1 < Fintype.card ι) (X : ι → Ω → ℝ) (c : ι → ℝ)
+    (hX : HasFiniteJointMoments μ X) :
+    Finpartition.cumulantTransform (blockMoment μ (fun i x ↦ X i x + c i))
+        (Finset.univ : Finset ι) =
+      Finpartition.cumulantTransform (blockMoment μ X) (Finset.univ : Finset ι) := by
+  classical
+  -- The family obtained by adding the constants indexed by `S` to `X`.
+  let XS : Finset ι → ι → Ω → ℝ := fun S j x => X j x + (if j ∈ S then c j else 0)
+  -- Adding one constant at a time preserves the cumulant transform on `univ`: the block moments
+  -- differ only on blocks containing the updated coordinate, where the difference is the block
+  -- moment of the constant-coordinate family; `cumulantTransform_add` distributes the Möbius sum
+  -- and the constant-coordinate cumulant vanishes (`cumulantTransform_const_coordinate_eq_zero`).
+  have h_step : ∀ (Y : ι → Ω → ℝ), HasFiniteJointMoments μ Y → ∀ i : ι,
+      Finpartition.cumulantTransform
+        (blockMoment μ (Function.update Y i (Y i + (fun _ => c i))))
+        (Finset.univ : Finset ι) =
+      Finpartition.cumulantTransform (blockMoment μ Y) (Finset.univ : Finset ι) := by
+    intro Y hY i
+    let U : ι → Ω → ℝ := Function.update Y i (fun _ => c i)
+    have hU : HasFiniteJointMoments μ U :=
+      hasFiniteJointMoments_update_const (μ := μ) Y i (c i) hY
+    have h_add := cumulantTransform_add
+      (blockMoment μ (Function.update Y i (Y i + (fun _ => c i))))
+      (blockMoment μ Y) (blockMoment μ U) i
+      (fun s => blockMoment_add_update (μ := μ) Y i (fun _ => c i) hY hU s)
+      (fun s hs => blockMoment_update_not_mem (μ := μ) Y i (fun _ => c i) s hs)
+    have hUzero : Finpartition.cumulantTransform (blockMoment μ U)
+        (Finset.univ : Finset ι) = 0 :=
+      cumulantTransform_const_coordinate_eq_zero (μ := μ) hs Y i (c i)
+    calc
+      Finpartition.cumulantTransform
+          (blockMoment μ (Function.update Y i (Y i + (fun _ => c i))))
+          (Finset.univ : Finset ι)
+          = Finpartition.cumulantTransform (blockMoment μ Y) (Finset.univ : Finset ι) +
+              Finpartition.cumulantTransform (blockMoment μ U) (Finset.univ : Finset ι) :=
+            h_add
+      _ = Finpartition.cumulantTransform (blockMoment μ Y) (Finset.univ : Finset ι) := by
+            rw [hUzero, add_zero]
+  -- Induction over the set of shifted coordinates.
+  have h_main : ∀ S : Finset ι,
+      Finpartition.cumulantTransform (blockMoment μ (XS S)) (Finset.univ : Finset ι) =
+        Finpartition.cumulantTransform (blockMoment μ X) (Finset.univ : Finset ι) := by
+    intro S
+    induction S using Finset.induction_on with
+    | empty =>
+        simp [XS]
+    | insert i S hi ih =>
+        have hXS : HasFiniteJointMoments μ (XS S) :=
+          hasFiniteJointMoments_add_const (μ := μ) X (fun j => if j ∈ S then c j else 0) hX
+        have h_id : Function.update (XS S) i ((XS S) i + (fun _ => c i)) = XS (insert i S) := by
+          funext j x
+          by_cases hji : j = i
+          · subst j
+            simp [XS, hi]
+          · simp [XS, hji]
+        calc
+          Finpartition.cumulantTransform (blockMoment μ (XS (insert i S)))
+              (Finset.univ : Finset ι)
+              = Finpartition.cumulantTransform
+                  (blockMoment μ (Function.update (XS S) i ((XS S) i + (fun _ => c i))))
+                  (Finset.univ : Finset ι) := by
+                  rw [← h_id]
+          _ = Finpartition.cumulantTransform (blockMoment μ (XS S)) (Finset.univ : Finset ι) := by
+                  exact h_step (XS S) hXS i
+          _ = Finpartition.cumulantTransform (blockMoment μ X) (Finset.univ : Finset ι) := ih
+  -- At `S = univ` every coordinate is shifted by exactly `c i`.
+  have h_final : XS Finset.univ = (fun j x => X j x + c j) := by
+    funext j x
+    simp [XS]
+  rw [← h_final]
+  exact h_main Finset.univ
+
 /-- Adding constants to random variables only affects their first cumulant.
-Informal proof:
-The cumulant transform is translation-invariant for orders greater than 1. This follows from the
-multilinearity of cumulants and the fact that constants have zero cumulants for orders > 1.
-(Source: Cumulant, Wikipedia, https://en.wikipedia.org/wiki/Cumulant#Properties) -/
+
+The finite-moment hypothesis is necessary: the version without it is false for Lean's total
+Bochner integral convention, since non-integrable block moments are assigned value `0` and the
+usual finite-sum expansion of translated moments can fail. -/
 theorem jointCumulant_add_const {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     [IsProbabilityMeasure μ] [Fintype ι]
-    (hs : 1 < Fintype.card ι) (X : ι → Ω → ℝ) (c : ι → ℝ) :
+    (hs : 1 < Fintype.card ι) (X : ι → Ω → ℝ) (c : ι → ℝ)
+    (hX : HasFiniteJointMoments μ X) :
     jointCumulant μ (fun i x ↦ X i x + c i) = jointCumulant μ X := by
-  sorry
+  dsimp [jointCumulant, blockCumulant]
+  exact cumulantTransform_blockMoment_add_const hs X c hX
 
 /-- Centered Gaussian cumulants vanish in every order other than two.
 
@@ -2202,9 +2435,12 @@ theorem jointCumulant_dual_eq_zero (μ : Measure E) [ProbabilityTheory.IsGaussia
     omega
   let X : Fin n → E → ℝ := fun i x ↦ centeredDual μ (L i) x
   let c : Fin n → ℝ := fun i ↦ ∫ y, L i y ∂μ
+  have hXfinite : HasFiniteJointMoments μ X := by
+    intro B
+    exact integrable_finset_prod_centeredDual μ B L
   have htranslate :
       jointCumulant μ (fun i x ↦ X i x + c i) = jointCumulant μ X :=
-    jointCumulant_add_const (μ := μ) hcard X c
+    jointCumulant_add_const (μ := μ) hcard X c hXfinite
   have hpoint : (fun i x ↦ X i x + c i) = (fun i x ↦ L i x) := by
     funext i x
     simp [X, c, centeredDual]
