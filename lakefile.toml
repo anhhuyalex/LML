@@ -25,6 +25,7 @@ git = "https://github.com/PatrickMassot/checkdecls.git"
 
 [[lean_lib]]
 name = "LeanMachineLearning"
+globs = ["LeanMachineLearning.**"]
 
 [[lean_lib]]
 name = "LMLTutorial"
