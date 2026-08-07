@@ -132,6 +132,26 @@ def truncate (A : EvenAction ι) (k : ℕ) : EvenAction ι where
   cutoff := min A.cutoff k
   coupling := A.coupling
 
+-- An action with cutoff `2` has interaction potential equal to its single half-degree-two term:
+-- the sum in `interactionPotential` runs over `m ∈ Icc 2 2 = {2}` with weight `ε^(2-1) = ε`.
+private lemma interactionPotential_eq_of_cutoff_two {ι : Type uI} [Fintype ι]
+    (A : EvenAction ι) (hcut : A.cutoff = 2) (ε : ℝ) (z : EuclideanSpace ℝ ι) :
+    A.interactionPotential ε z = ε * (A.coupling 2).potential z := by
+  simp [interactionPotential, hcut]
+
+-- The half-degree-two slot of `ofQuartic` carries the original quartic coupling.
+private lemma ofQuartic_coupling_two {ι : Type uI} [Fintype ι]
+    (P : Matrix ι ι ℝ) (A : QuarticCoupling ι) :
+    (ofQuartic P A).coupling 2 = EvenCoupling.ofQuartic A := by
+  simp [ofQuartic]
+
+-- The even potential of the embedded quartic coupling is the quartic potential: both expand to
+-- `(4!)⁻¹ * ∑ q, A.coeff q * ∏ r, z (q r)`, since `(2*2)! = 4!`.
+private lemma evenCoupling_ofQuartic_potential {ι : Type uI} [Fintype ι]
+    (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
+    (EvenCoupling.ofQuartic A).potential z = A.potential z := by
+  simp [EvenCoupling.potential, EvenCoupling.ofQuartic, QuarticCoupling.potential, coordinateMonomial]
+
 /-- The general interaction potential specializes to the existing quartic potential.
 
 Informal proof: `Finset.Icc 2 2` contains only two, the assigned scaling is `ε^(2-1)=ε`, and
@@ -142,8 +162,8 @@ Informal proof: `Finset.Icc 2 2` contains only two, the assigned scaling is `ε^
 theorem interactionPotential_ofQuartic (P : Matrix ι ι ℝ) (A : QuarticCoupling ι)
     (ε : ℝ) (z : EuclideanSpace ℝ ι) :
     (ofQuartic P A).interactionPotential ε z = ε * A.potential z := by
-  simp [interactionPotential, ofQuartic, EvenCoupling.potential, EvenCoupling.ofQuartic,
-    QuarticCoupling.potential, coordinateMonomial]
+  rw [interactionPotential_eq_of_cutoff_two (ofQuartic P A) rfl,
+    ofQuartic_coupling_two, evenCoupling_ofQuartic_potential]
 
 /-- The full action is invariant under the global sign flip.
 
@@ -304,7 +324,7 @@ theorem HierarchicallyNearlyGaussian.nearlyGaussian_of_odd_eq_zero
     have heven_n : Even n := Nat.not_odd_iff_even.mp hnodd
     rcases heven_n with ⟨m, hm⟩
     have hm2 : 2 ≤ m := by omega
-    let e : Fin n ≃ Fin (2 * m) := Equiv.cast (by rw [hm]; ring)
+    let e : Fin n ≃ Fin (2 * m) := Equiv.cast (by rw [hm]; ring_nf)
     have hcore : (fun ε : ℝ => jointCumulant (law ε) (fun r : Fin n => X (index r))) =O[
         nhdsWithin 0 (Set.Ici 0)] (fun ε : ℝ => ε ^ (m - 1)) := by
       have hpoint : (fun ε : ℝ =>
@@ -386,10 +406,11 @@ Informal proof: a product of `n` coordinates changes by `(-1)^n=-1` under global
 `n` is odd.  Apply `integral_eq_zero_of_odd`.  Source: `docs/Renormalization.md`, lines 457--459.
 -/
 theorem jointMoment_coordinates_eq_zero_of_odd
-    {ι : Type uI} [Fintype ι] (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
+    {ι : Type uI} [Finite ι] (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
     (n : ℕ) (hn : Odd n) (index : Fin n → ι)
     (hint : Integrable (coordinateMonomial index) ν) :
     jointMoment ν (fun r : Fin n => fun z => z (index r)) = 0 := by
+  let : Fintype ι := Fintype.ofFinite ι
   have hodd : ∀ z : EuclideanSpace ℝ ι,
       coordinateMonomial index (-z) = -coordinateMonomial index z := by
     intro z
@@ -407,11 +428,12 @@ is odd, every partition has an odd-cardinality block.  Its block moment is zero 
 `eq:schematic-action-decomposition`.
 -/
 theorem jointCumulant_coordinates_eq_zero_of_odd
-    {ι : Type uI} [Fintype ι]
+    {ι : Type uI} [Finite ι]
     (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
     (n : ℕ) (hn : Odd n) (index : Fin n → ι)
     (hfinite : HasFiniteJointMoments ν (fun r : Fin n => fun z => z (index r))) :
     jointCumulant ν (fun r : Fin n => fun z => z (index r)) = 0 := by
+  let : Fintype ι := Fintype.ofFinite ι
   let X : Fin n → EuclideanSpace ℝ ι → ℝ := fun r z => z (index r)
   have hB : ∀ B : Finset (Fin n), Odd B.card → blockMoment ν X B = 0 := by
     intro B hB
