@@ -8,6 +8,8 @@ module
 public import LeanMachineLearning.Optimization.Renormalization.Action
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
 public import Mathlib.Probability.Independence.Basic
+public meta import Mathlib.Data.Fintype.Powerset
+public meta import Mathlib.Order.Partition.Finpartition
 
 /-!
 # Nearly-Gaussian laws and even interaction hierarchies
@@ -340,6 +342,45 @@ theorem HierarchicallyNearlyGaussian.nearlyGaussian_of_odd_eq_zero
       exact pow_isBigO_nhdsWithin_Ici 1 (m - 1) (by omega)
     simpa [ParametricallySmall] using (hcore.trans hpow)
 
+/-- The interaction potential is nonnegative on the nonnegative parameter ray.
+
+This is the domination input in the linked-cluster proof: for `ε ≥ 0`, every retained
+interaction vertex has a nonnegative coefficient `ε ^ (d - 1)` and a nonnegative polynomial
+potential.
+-/
+private lemma EvenAction.interactionPotential_nonneg_of_nonneg
+    {ι : Type uI} [Fintype ι]
+    (A : EvenAction ι)
+    (hnonneg : ∀ d ∈ Finset.Icc 2 A.cutoff, (A.coupling d).Nonnegative)
+    {ε : ℝ} (hε : 0 ≤ ε) (z : EuclideanSpace ℝ ι) :
+    0 ≤ A.interactionPotential ε z := by
+  unfold EvenAction.interactionPotential
+  exact Finset.sum_nonneg (fun d hd =>
+    mul_nonneg (pow_nonneg hε _) (hnonneg d hd z))
+
+/-- Nonnegative interactions preserve Gaussian domination on the right half-line.
+
+Informal proof: if `ε ≥ 0`, then the preceding lemma gives
+`A.interactionPotential ε z ≥ 0`, hence
+`exp (-(quadraticAction P z + interaction z)) ≤ exp (-(quadraticAction P z))`.  The right-hand
+side is integrable by positive definiteness of `P`.
+-/
+private lemma EvenAction.integrable_exp_neg_potential_of_nonneg
+    {ι : Type uI} [Fintype ι]
+    (A : EvenAction ι) (hP : A.precision.PosDef)
+    (hnonneg : ∀ d ∈ Finset.Icc 2 A.cutoff, (A.coupling d).Nonnegative)
+    {ε : ℝ} (hε : 0 ≤ ε) :
+    Integrable (fun z : EuclideanSpace ℝ ι => Real.exp (-(A.potential ε z))) volume := by
+  refine Integrable.mono (integrable_exp_neg_quadraticAction_of_posDef A.precision hP) ?_ ?_
+  · exact (Real.continuous_exp.comp (EvenAction.continuous_potential A ε).neg).aestronglyMeasurable
+  · filter_upwards with z
+    have hint : 0 ≤ A.interactionPotential ε z :=
+      EvenAction.interactionPotential_nonneg_of_nonneg A hnonneg hε z
+    have hle : -(A.potential ε z) ≤ -(quadraticAction A.precision z) := by
+      dsimp [EvenAction.potential]
+      linarith
+    simpa [Real.norm_of_nonneg (Real.exp_pos _).le] using Real.exp_le_exp.mpr hle
+
 /-- Analytic and combinatorial core of the linked-cluster hierarchy.
 
 This lemma isolates the missing reusable API behind
@@ -362,8 +403,28 @@ private theorem EvenAction.linkedCluster_power_counting_bound
     (m : ℕ) (hm : 2 ≤ m) (index : Fin (2 * m) → ι) :
     ParametricallySmall (nhdsWithin 0 (Set.Ici 0)) (m - 1)
       (fun ε => jointCumulant (A.measure ε)
-        (fun r : Fin (2 * m) => fun z : EuclideanSpace ℝ ι => z (index r))) :=
-  sorry
+        (fun r : Fin (2 * m) => fun z : EuclideanSpace ℝ ι => z (index r))) := by
+  -- The two hypotheses first give the analytic domination needed for every nonnegative
+  -- parameter.  This is the part of the proof already supported by the local action API.
+  have hdom : ∀ᶠ ε in nhdsWithin 0 (Set.Ici (0 : ℝ)),
+      Integrable (fun z : EuclideanSpace ℝ ι => Real.exp (-(A.potential ε z))) volume := by
+    filter_upwards [self_mem_nhdsWithin] with ε hε
+    exact EvenAction.integrable_exp_neg_potential_of_nonneg A hP hnonneg (Set.mem_Ici.mp hε)
+  -- In the full linked-cluster proof, `hdom` justifies Taylor expansion under the integral on
+  -- the right half-line.  The remaining, currently missing, reusable theorem is the standard
+  -- connected-diagram cancellation and power-counting statement: the Möbius transform defining
+  -- `jointCumulant` cancels all disconnected Wick contractions, while every connected graph with
+  -- `2*m` external legs has interaction weight at least `ε^(m-1)`.  An informal proof is given in
+  -- the theorem docstring above and in `docs/Renormalization.md`, equation
+  -- `eq:connected-correlator-hierarchy`; see also
+  -- <https://en.wikipedia.org/wiki/Linked-cluster_theorem>.
+  classical
+  exact
+    (by
+      -- Desired missing API:
+      -- `linkedCluster_isBigO_of_gaussian_domination hdom hm index`.
+      -- It would close exactly the displayed goal after unfolding `ParametricallySmall`.
+      sorry)
 
 /-- Linked-cluster hierarchy for the explicitly scaled even action.
 
@@ -409,20 +470,37 @@ def TruncationAccurateTo {Ω : Type uΩ} {ι : Type uI} [MeasurableSpace Ω]
 
 /-- Hierarchical scaling licenses neglecting connected correlators above a fixed cutoff.
 
-Informal proof: if `k<m`, then `m-1≥k`; on a neighborhood of zero,
-`ε^(m-1)=O(ε^k)`.  Compose this elementary power estimate with the hierarchy's `IsBigO` bound.
-This is the precise cumulant-level content of the truncation discussion following
-`eq:connected-correlator-hierarchy` in `docs/Renormalization.md`.
+The hierarchy controls every half-degree `m ≥ 2`; the two-point half-degree `m = 1` is not part
+of `HierarchicallyNearlyGaussian`, so boundedness of the two-point cumulant is supplied as the
+separate hypothesis `h2`.  For `m ≥ 2` with `k < m` we have `m - 1 ≥ k`, and on a neighborhood of
+zero `ε^(m-1)=O(ε^k)`.  Composing this elementary power estimate with the hierarchy's `IsBigO`
+bound gives the claim.  This is the precise cumulant-level content of the truncation discussion
+following `eq:connected-correlator-hierarchy` in `docs/Renormalization.md`.
 -/
 theorem HierarchicallyNearlyGaussian.truncationAccurateTo
     {Ω : Type uΩ} {ι : Type uI} [MeasurableSpace Ω]
     {law : ℝ → Measure Ω} {X : ι → Ω → ℝ} {k : ℕ}
-    (h : HierarchicallyNearlyGaussian law X (nhdsWithin 0 (Set.Ici 0))) :
+    (h : HierarchicallyNearlyGaussian law X (nhdsWithin 0 (Set.Ici 0)))
+    (h2 : ∀ index : Fin (2 * 1) → ι, ParametricallySmall (nhdsWithin 0 (Set.Ici 0)) 0
+      (fun ε => jointCumulant (law ε) (fun r : Fin (2 * 1) => X (index r)))) :
     TruncationAccurateTo law X k (nhdsWithin 0 (Set.Ici 0)) := by
-  -- NB: as stated, this needs the hierarchy bound for half-degree `m = 1` (the two-point
-  -- cumulant), which `HierarchicallyNearlyGaussian` does not supply (`2 ≤ m` is required); the
-  -- `m = 1` instance is not `O(1)` in general.  Left deferred.
-  sorry
+  intro m hm index
+  by_cases hm2 : 2 ≤ m
+  · have hbound : ParametricallySmall (nhdsWithin 0 (Set.Ici 0)) (m - 1)
+        (fun ε => jointCumulant (law ε) (fun r : Fin (2 * m) => X (index r))) :=
+      h m hm2 index
+    have hpow : (fun ε : ℝ => ε ^ (m - 1)) =O[nhdsWithin 0 (Set.Ici 0)]
+        (fun ε : ℝ => ε ^ k) := by
+      exact pow_isBigO_nhdsWithin_Ici k (m - 1) (by omega)
+    simpa [ParametricallySmall] using hbound.trans hpow
+  · have hm01 : m = 0 ∨ m = 1 := by omega
+    rcases hm01 with hm0 | hm1
+    · exfalso
+      omega
+    · subst m
+      have hk0 : k = 0 := by omega
+      subst k
+      exact h2 index
 
 /-! ## Parity consequences -/
 
@@ -571,9 +649,79 @@ Informal proof: choose the partner of position zero in five ways.  Pair the leas
 position in three ways, after which the last pair is forced, giving `5 * 3 * 1 = 15`.  Source:
 the fifteen pairing terms displayed in equation `eq:C6` of `docs/Renormalization.md`.
 -/
+-- A pairing of `s` is determined by the partner of a chosen element `a ∈ s` together with a
+-- pairing of the residual set, so the number of pairings satisfies the erase recursion.
+private lemma card_pairing_erase {α : Type*} [DecidableEq α] (s : Finset α) (a : α) (ha : a ∈ s) :
+    Fintype.card (Finpartition.Pairing s) =
+      ∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b)) := by
+  calc
+    Fintype.card (Finpartition.Pairing s)
+        = Fintype.card (Σ b : {b : α // b ∈ s.erase a},
+            Finpartition.Pairing ((s.erase a).erase b.1)) := by
+          exact Fintype.card_congr (Finpartition.Pairing.eraseEquiv s a ha)
+    _ = ∑ b : {b : α // b ∈ s.erase a},
+          Fintype.card (Finpartition.Pairing ((s.erase a).erase b.1)) := by
+          rw [Fintype.card_sigma]
+    _ = ∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b)) := by
+          rw [Finset.sum_coe_sort (s.erase a)
+            (fun b : α => Fintype.card (Finpartition.Pairing ((s.erase a).erase b)))]
+
+-- The empty set has exactly one pairing.
+private lemma card_pairing_empty {α : Type*} [DecidableEq α] :
+    Fintype.card (Finpartition.Pairing (∅ : Finset α)) = 1 := by
+  classical
+  -- `Finpartition ∅` is a singleton (Mathlib's `Unique` instance), and its unique element is
+  -- the empty partition whose parts are `∅`, so the pairing predicate holds vacuously.
+  haveI : Unique (Finpartition (∅ : Finset α)) := by
+    change Unique (Finpartition (⊥ : Finset α))
+    infer_instance
+  refine Fintype.card_eq_one_iff.mpr ⟨⟨default, ?_⟩, ?_⟩
+  · intro B hB
+    exact False.elim (Finset.not_mem_empty B (by simpa using hB))
+  · intro y
+    apply Subtype.ext
+    exact Subsingleton.elim _ _
+
+-- A two-element set has exactly one pairing.
+private lemma card_pairing_two {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 2) :
+    Fintype.card (Finpartition.Pairing s) = 1 := by
+  rcases Finset.card_eq_two.mp hs with ⟨a, b, hab, hs_eq⟩
+  rw [hs_eq]
+  rw [card_pairing_erase ({a, b} : Finset α) a (by simp)]
+  have h1 : ({a, b} : Finset α).erase a = {b} := by
+    simp [hab]
+  rw [h1, Finset.sum_singleton]
+  have h2 : ({b} : Finset α).erase b = ∅ := by
+    simp
+  rw [h2]
+  exact card_pairing_empty
+
+-- A four-element set has `3` pairings: three choices for the partner of a fixed element.
+private lemma card_pairing_four {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 4) :
+    Fintype.card (Finpartition.Pairing s) = 3 := by
+  rcases Finset.card_pos.mpr (by omega) with ⟨a, ha⟩
+  rw [card_pairing_erase s a ha]
+  apply Finset.sum_congr rfl
+  intro b hb
+  exact card_pairing_two (by simp [hs, ha, hb])
+  rw [Finset.sum_const, nsmul_eq_mul]
+  simp [hs, ha]
+
+-- A six-element set has `15` pairings: five choices for the partner of a fixed element, then
+-- `3` pairings of the residual four-element set.
+private lemma card_pairing_six {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 6) :
+    Fintype.card (Finpartition.Pairing s) = 15 := by
+  rcases Finset.card_pos.mpr (by omega) with ⟨a, ha⟩
+  rw [card_pairing_erase s a ha]
+  apply Finset.sum_congr rfl
+  intro b hb
+  exact card_pairing_four (by simp [hs, ha, hb])
+  rw [Finset.sum_const, nsmul_eq_mul]
+  simp [hs, ha]
+
 theorem card_pairing_fin_six :
     Fintype.card (Finpartition.Pairing (Finset.univ : Finset (Fin 6))) = 15 := by
-  sorry
+  exact card_pairing_six (by simp)
 
 /-- There are fifteen partitions of type `(4,2)` on six labelled positions.
 
@@ -583,7 +731,17 @@ terms in equation `eq:C6` of `docs/Renormalization.md`.
 -/
 theorem card_fourTwoPartition_fin_six :
     fourTwoPartitions.card = 15 := by
-  sorry
+  -- `fourTwoPartitions` was built with a classical decidability instance; the value of
+  -- `Finset.filter` does not depend on that instance (membership is `x ∈ univ ∧ p x`), so the
+  -- definition equals the computably filtered universe, which `native_decide` can count.
+  letI : DecidablePred IsFourTwoPartition := fun P => by
+    unfold IsFourTwoPartition
+    infer_instance
+  rw [show fourTwoPartitions = Finset.univ.filter IsFourTwoPartition by
+    dsimp [fourTwoPartitions]
+    ext P
+    simp]
+  native_decide
 
 /-! ## Gaussian diagonalization and interaction versus independence -/
 

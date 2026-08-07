@@ -426,6 +426,81 @@ private lemma oneLayerOutputLaw_eq_pi_gaussianReal {dIn dOut : ℕ} (Cw : ℝ≥
           funext j
           exact hν
 
+/-- Scaling a centered real Gaussian by `Real.sqrt (v : ℝ)` produces variance `v`. -/
+private lemma gaussianReal_scaling (v : ℝ≥0) :
+    gaussianReal 0 v = (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt (v : ℝ) * y) := by
+  have h := gaussianReal_map_const_mul (μ := (0 : ℝ)) (v := (1 : ℝ≥0)) (c := Real.sqrt (v : ℝ))
+  calc
+    gaussianReal 0 v = gaussianReal (Real.sqrt (v : ℝ) * 0)
+        (⟨(Real.sqrt (v : ℝ)) ^ 2, sq_nonneg (Real.sqrt (v : ℝ))⟩ * (1 : ℝ≥0)) := by
+          congr 1
+          · ring
+          · apply Subtype.ext
+            change (v : ℝ) = (Real.sqrt (v : ℝ) ^ 2) * 1
+            calc
+              (v : ℝ) = (Real.sqrt (v : ℝ)) ^ 2 := (Real.sq_sqrt v.property).symm
+              _ = (Real.sqrt (v : ℝ)) ^ 2 * 1 := by ring
+    _ = (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt (v : ℝ) * y) := h.symm
+
+/-- A monomial in the coordinates of the standard multivariate Gaussian is its Wick pairing sum.
+
+Informal proof: apply the coordinate Wick theorem
+`Renormalization.integral_prod_multivariateGaussian_centered_eq_wick` to the identity covariance
+matrix; each coordinate projection has mean zero and covariance `if i = j then 1 else 0`. -/
+private lemma integral_stdGaussian_monomial_eq_wick {κ : Type uJ} [Fintype κ] [DecidableEq κ]
+    (m : ℕ) (a : Fin (2 * m) → κ) :
+    ∫ x : EuclideanSpace ℝ κ, (∏ r : Fin (2 * m), x (a r)) ∂stdGaussian (EuclideanSpace ℝ κ) =
+      pairingTensor a := by
+  classical
+  have hS : (1 : Matrix κ κ ℝ).PosSemidef := Matrix.PosSemidef.one
+  have hWick := Renormalization.integral_prod_multivariateGaussian_centered_eq_wick
+    (m := (0 : EuclideanSpace ℝ κ)) (S := (1 : Matrix κ κ ℝ)) (hS := hS) (index := a)
+  have hInt : ∫ x : EuclideanSpace ℝ κ, (∏ r : Fin (2 * m), x (a r))
+      ∂multivariateGaussian (0 : EuclideanSpace ℝ κ) (1 : Matrix κ κ ℝ) =
+    Renormalization.wick (fun r q : Fin (2 * m) => (1 : Matrix κ κ ℝ) (a r) (a q)) Finset.univ := by
+    -- unfold the joint moment and drop the zero mean
+    simpa [Renormalization.jointMoment, Renormalization.blockMoment] using hWick
+  calc
+    ∫ x : EuclideanSpace ℝ κ, (∏ r : Fin (2 * m), x (a r)) ∂stdGaussian (EuclideanSpace ℝ κ)
+        = ∫ x : EuclideanSpace ℝ κ, (∏ r : Fin (2 * m), x (a r))
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ κ) (1 : Matrix κ κ ℝ) := by
+            rw [← multivariateGaussian_zero_one]
+    _ = Renormalization.wick (fun r q : Fin (2 * m) => (1 : Matrix κ κ ℝ) (a r) (a q))
+          Finset.univ := hInt
+    _ = Renormalization.wick (fun r q : Fin (2 * m) => if a r = a q then 1 else 0)
+          Finset.univ := by
+          have hk : (fun r q : Fin (2 * m) => (1 : Matrix κ κ ℝ) (a r) (a q)) =
+              (fun r q : Fin (2 * m) => if a r = a q then 1 else 0) := by
+            funext r q
+            rw [Matrix.one_apply]
+          rw [hk]
+    _ = pairingTensor a := rfl
+
+/-- The monomial integral over the product of standard Gaussians is the Wick pairing sum. -/
+private lemma integral_pi_stdGaussian_monomial_eq_pairingTensor {κ : Type uJ} [Fintype κ]
+    [DecidableEq κ] (m : ℕ) (a : Fin (2 * m) → κ) :
+    ∫ z, (∏ r, z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 1) =
+      pairingTensor a := by
+  classical
+  have hφ_meas : AEMeasurable (fun u : κ → ℝ => WithLp.toLp 2 u)
+      (Measure.pi (fun _ : κ => gaussianReal 0 1)) := by
+    fun_prop
+  have hG_meas : AEStronglyMeasurable
+      (fun x : EuclideanSpace ℝ κ => ∏ r : Fin (2 * m), x (a r))
+      (Measure.map (fun u : κ → ℝ => WithLp.toLp 2 u)
+        (Measure.pi (fun _ : κ => gaussianReal 0 1))) := by
+    have hcont : Continuous (fun x : EuclideanSpace ℝ κ => ∏ r : Fin (2 * m), x (a r)) := by
+      fun_prop
+    exact hcont.aestronglyMeasurable
+  have hstep : ∫ x : EuclideanSpace ℝ κ, (∏ r : Fin (2 * m), x (a r))
+        ∂stdGaussian (EuclideanSpace ℝ κ) =
+      ∫ z, (∏ r : Fin (2 * m), z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 1) := by
+    rw [← map_pi_eq_stdGaussian (ι := κ)]
+    exact MeasureTheory.integral_map
+      (φ := fun u : κ → ℝ => WithLp.toLp 2 u) hφ_meas
+      (f := fun x : EuclideanSpace ℝ κ => ∏ r : Fin (2 * m), x (a r)) hG_meas
+  exact (hstep.symm.trans (integral_stdGaussian_monomial_eq_wick m a))
+
 /-- Wick/Isserlis theorem for a product of independent centered one-dimensional Gaussians with
 common variance `v`.
 
@@ -441,7 +516,67 @@ private lemma integral_prod_pi_gaussianReal_eq_pairingTensor
     (a : Fin (2 * m) → κ) :
     ∫ z, (∏ r, z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 v) =
       pairingTensor a * (v : ℝ) ^ m := by
-  sorry
+  classical
+  -- Step 1: reduce to the standard Gaussian (v = 1) by rescaling each coordinate.
+  have hscale_pi : Measure.pi (fun _ : κ => gaussianReal 0 v) =
+      (Measure.pi (fun _ : κ => gaussianReal 0 1)).map
+        (fun z : κ → ℝ => fun i => Real.sqrt (v : ℝ) * z i) := by
+    rw [MeasureTheory.Measure.pi_map_pi
+      (μ := fun _ : κ => gaussianReal 0 1)
+      (f := fun _ : κ => fun y : ℝ => Real.sqrt (v : ℝ) * y)
+      (hf := fun i => (by fun_prop : AEMeasurable (fun y : ℝ => Real.sqrt (v : ℝ) * y)
+        (gaussianReal 0 1)))]
+    congr 1
+    funext i
+    exact gaussianReal_scaling v
+  have hφ_meas : AEMeasurable (fun z : κ → ℝ => fun i : κ => Real.sqrt (v : ℝ) * z i)
+      (Measure.pi (fun _ : κ => gaussianReal 0 1)) := by
+    refine (measurable_pi_lambda _ (fun i => ?_)).aemeasurable
+    fun_prop
+  have hG_meas : AEStronglyMeasurable
+      (fun z : κ → ℝ => ∏ r : Fin (2 * m), z (a r))
+      (Measure.map (fun z : κ → ℝ => fun i : κ => Real.sqrt (v : ℝ) * z i)
+        (Measure.pi (fun _ : κ => gaussianReal 0 1))) := by
+    have hcont : Continuous (fun z : κ → ℝ => ∏ r : Fin (2 * m), z (a r)) := by
+      fun_prop
+    exact hcont.aestronglyMeasurable
+  have hprod : ∀ u : κ → ℝ,
+      (∏ r : Fin (2 * m), Real.sqrt (v : ℝ) * u (a r)) =
+        (Real.sqrt (v : ℝ)) ^ (2 * m) * (∏ r : Fin (2 * m), u (a r)) := by
+    intro u
+    calc
+      (∏ r : Fin (2 * m), Real.sqrt (v : ℝ) * u (a r))
+          = (∏ r : Fin (2 * m), Real.sqrt (v : ℝ)) * (∏ r : Fin (2 * m), u (a r)) := by
+            rw [Finset.prod_mul_distrib]
+      _ = (Real.sqrt (v : ℝ)) ^ (2 * m) * (∏ r : Fin (2 * m), u (a r)) := by
+            rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+  calc
+    ∫ z, (∏ r, z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 v)
+        = ∫ z, (∏ r, z (a r))
+            ∂(Measure.pi (fun _ : κ => gaussianReal 0 1)).map
+              (fun z : κ → ℝ => fun i => Real.sqrt (v : ℝ) * z i) := by
+            rw [hscale_pi]
+    _ = ∫ u : κ → ℝ, (∏ r : Fin (2 * m), Real.sqrt (v : ℝ) * u (a r))
+          ∂Measure.pi (fun _ : κ => gaussianReal 0 1) := by
+          exact MeasureTheory.integral_map
+            (φ := fun z : κ → ℝ => fun i : κ => Real.sqrt (v : ℝ) * z i) hφ_meas
+            (f := fun z : κ → ℝ => ∏ r : Fin (2 * m), z (a r)) hG_meas
+    _ = (Real.sqrt (v : ℝ)) ^ (2 * m) *
+          ∫ u : κ → ℝ, (∏ r : Fin (2 * m), u (a r))
+            ∂Measure.pi (fun _ : κ => gaussianReal 0 1) := by
+          simp_rw [hprod]
+          rw [MeasureTheory.integral_const_mul]
+    _ = (Real.sqrt (v : ℝ)) ^ (2 * m) * pairingTensor a := by
+          rw [integral_pi_stdGaussian_monomial_eq_pairingTensor m a]
+    _ = pairingTensor a * (v : ℝ) ^ m := by
+          have hpow2 : (Real.sqrt (v : ℝ)) ^ (2 * m) = (v : ℝ) ^ m := by
+            calc
+              (Real.sqrt (v : ℝ)) ^ (2 * m) = ((Real.sqrt (v : ℝ)) ^ 2) ^ m := by
+                rw [pow_mul]
+              _ = (v : ℝ) ^ m := by
+                exact congrArg (fun t : ℝ => t ^ m) (Real.sq_sqrt v.property)
+          rw [hpow2]
+          ring
 
 /-- Base case of `jointMoment_outputLaw_even`: a single bias-free Gaussian layer.
 
@@ -545,6 +680,48 @@ theorem jointMoment_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
   | hidden tail ih =>
       exact jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ih
 
+/-- The Wick pairing sum for the constant output-index map is the even Gaussian coefficient. -/
+private lemma pairingTensor_const {κ : Type uJ} [DecidableEq κ] (m : ℕ) (j : κ) :
+    pairingTensor (fun _ : Fin (2 * m) => j) = gaussianEvenCoeff m := by
+  classical
+  have hWick := integral_prod_pi_gaussianReal_eq_pairingTensor
+    (κ := Fin 1) (v := 1) m (fun _ : Fin (2 * m) => (0 : Fin 1))
+  have hL : ∫ z, (∏ r : Fin (2 * m), z (0 : Fin 1))
+        ∂Measure.pi (fun _ : Fin 1 => gaussianReal 0 1) = gaussianEvenCoeff m := by
+    calc
+      ∫ z, (∏ r : Fin (2 * m), z (0 : Fin 1))
+          ∂Measure.pi (fun _ : Fin 1 => gaussianReal 0 1)
+          = ∫ z, (z 0) ^ (2 * m) ∂Measure.pi (fun _ : Fin 1 => gaussianReal 0 1) := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with z
+            simp [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+      _ = ∫ x : ℝ, x ^ (2 * m) ∂gaussianReal 0 1 := by
+            let π₁ : Measure (Fin 1 → ℝ) := Measure.pi (fun _ : Fin 1 => gaussianReal 0 1)
+            let e : (Fin 1 → ℝ) → ℝ := fun z => z 0
+            have hmap := (measurePreserving_eval (fun _ : Fin 1 => gaussianReal 0 1) 0).map_eq
+            calc
+              ∫ z, (z 0) ^ (2 * m) ∂π₁
+                  = ∫ x : ℝ, x ^ (2 * m) ∂π₁.map e := by
+                    dsimp [π₁, e]
+                    exact (MeasureTheory.integral_map (φ := fun z : Fin 1 → ℝ => z 0)
+                      (measurable_pi_apply 0).aemeasurable
+                      (by fun_prop : AEStronglyMeasurable (fun x : ℝ => x ^ (2 * m))
+                        (Measure.map (fun z : Fin 1 → ℝ => z 0)
+                          (Measure.pi (fun _ : Fin 1 => gaussianReal 0 1))))).symm
+              _ = ∫ x : ℝ, x ^ (2 * m) ∂gaussianReal 0 1 := by
+                    rw [hmap]
+      _ = gaussianEvenCoeff m := by
+            simpa [gaussianEvenCoeff] using
+              Renormalization.integral_pow_gaussianReal_even (v := (1 : ℝ≥0)) m
+  have hcoef : pairingTensor (fun _ : Fin (2 * m) => (0 : Fin 1)) = gaussianEvenCoeff m := by
+    have htmp : pairingTensor (fun _ : Fin (2 * m) => (0 : Fin 1)) * (1 : ℝ) ^ m =
+        gaussianEvenCoeff m := hWick.symm.trans hL
+    simpa using htmp
+  have hsame : pairingTensor (fun _ : Fin (2 * m) => j) =
+      pairingTensor (fun _ : Fin (2 * m) => (0 : Fin 1)) := by
+    simp [pairingTensor]
+  exact hsame.trans hcoef
+
 /-- Exact even moment of one output coordinate.
 
 Informal proof: specialize `jointMoment_outputLaw_even` to the constant output-index map.  Every
@@ -558,7 +735,19 @@ theorem integral_coordinate_pow_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dI
     ∫ z, z j ^ (2 * m) ∂S.deepLinearOutputLaw Cw x =
       gaussianEvenCoeff m *
         correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
-  sorry
+  calc
+    ∫ z, z j ^ (2 * m) ∂S.deepLinearOutputLaw Cw x
+        = ∫ z, (∏ r : Fin (2 * m), z ((fun _ : Fin (2 * m) => j) r))
+            ∂S.deepLinearOutputLaw Cw x := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with z
+            simp [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+    _ = pairingTensor (fun _ : Fin (2 * m) => j) *
+          correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths :=
+          jointMoment_outputLaw_even S Cw x m (fun _ => j) hIn hWidths
+    _ = gaussianEvenCoeff m *
+          correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
+          rw [pairingTensor_const m j]
 
 /-- Covariance of two batch-output coordinates.  The theorem explicitly uses Mathlib's
 `covariance`, not merely an uncentered second moment.
