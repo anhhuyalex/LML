@@ -138,8 +138,8 @@ divergence.  This is the geometric-sequence criterion; see
 -/
 theorem tendsto_covariance_atTop_of_one_lt_weightVariance (Cw q : ℝ)
     (hCw : 1 < Cw) (hq : 0 < q) :
-    Tendsto (fun L : ℕ => Cw ^ L * q) atTop atTop := by
-  exact Tendsto.atTop_mul_const hq (tendsto_pow_atTop_atTop_of_one_lt hCw)
+    Tendsto (fun L : ℕ => Cw ^ L * q) atTop atTop :=
+  Tendsto.atTop_mul_const hq (tendsto_pow_atTop_atTop_of_one_lt hCw)
 
 /-- A negative supercritical off-diagonal covariance diverges in absolute value. -/
 theorem tendsto_abs_covariance_atTop_of_one_lt_weightVariance (Cw q : ℝ)

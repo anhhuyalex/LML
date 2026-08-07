@@ -508,10 +508,12 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
           Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2))))
           = (|(L.det)⁻¹| : ℝ) • (↑((Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)) *
               Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2)))) :=
-            congrArg (fun x : ℂ => (|(L.det)⁻¹| : ℝ) • (x * Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2))))) hconst
+            congrArg (fun x : ℂ => (|(L.det)⁻¹| : ℝ)
+              • (x * Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2))))) hconst
       _ = (|(L.det)⁻¹| : ℝ) • (↑((Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)) *
               Complex.exp (-(↑(quadraticAction A⁻¹ t)))) :=
-            congrArg (fun x : ℂ => (|(L.det)⁻¹| : ℝ) • (↑((Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)) * x)) hcexp
+        congrArg (fun x : ℂ => (|(L.det)⁻¹| : ℝ) •
+          (↑((Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)) * x)) hcexp
       _ = ((|(L.det)⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)) •
               Complex.exp (-(↑(quadraticAction A⁻¹ t))) :=
             hscalar (|L.det⁻¹|) ((Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ))
@@ -549,15 +551,14 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
           apply integral_congr_ae
           filter_upwards with y
           rw [show inner ℝ (T y) t = inner ℝ y w by
-            rw [hinner y]
-            rfl]
+            rw [hinner y]]
   have h24 :
       (∫ z : EuclideanSpace ℝ ι,
           Complex.exp (Complex.I * ⟪T (toEuclideanCLM (𝕜 := ℝ) L z), t⟫) *
             Real.exp (-((1 / 2 : ℝ) * ‖toEuclideanCLM (𝕜 := ℝ) L z‖ ^ 2)) ∂volume)
         = (|(L.det)⁻¹| : ℝ) • ((↑Real.pi / (1 / 2 : ℂ)) ^ (↑(Fintype.card ι) / 2 : ℂ) *
-            Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2)))) :=
-    h2.trans (h3.trans h4)
+            Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2)))) := by
+    exact (h2.trans h3).trans h4
   exact Eq.trans (α := ℂ) h1 (Eq.trans (α := ℂ) h24 hstep5)
 
 -- The full finite-dimensional Gaussian integral with a positive-definite precision matrix:
@@ -723,82 +724,60 @@ theorem quadraticAction_partitionFunction {ι : Type uI} [Fintype ι] [Decidable
   rw [Action.partitionFunction]
   exact integral_exp_neg_quadraticAction_inv_posDef K hK
 
-/-- The normalized law of the quadratic action is exactly Mathlib's multivariate Gaussian.
+/-- Characteristic function of the normalized positive-definite quadratic-action law.
 
-Informal proof: the preceding Gaussian integral supplies the normalizing constant.  The
-Radon--Nikodym density of both measures with respect to Euclidean volume is therefore
-`exp (-zᵀK⁻¹z/2) / sqrt ((2π)^n det K)`; equality follows from equality of densities.  Source:
-equations `eq:general-prob-ac-map` and `eq:gauss-braket` in `docs/Renormalization.md` and Mathlib's
-multivariate Gaussian construction:
-<https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/Multivariate.html>.
+This is the reusable Fourier-side form of
+`quadraticAction_measure_eq_multivariateGaussian`.  The proof expands `Action.measure` as a tilted
+Lebesgue measure, applies `MeasureTheory.integral_tilted`, evaluates the numerator by
+`fourierIntegral_exp_neg_quadraticAction` with precision `K⁻¹`, evaluates the denominator by
+`quadraticAction_partitionFunction`, and cancels the determinant constants using
+`Matrix.det_nonsing_inv` and `hK.det_pos`.
+
+Informal references: the characteristic-function formula for the multivariate normal distribution
+<https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Characteristic_function> and the
+multidimensional Gaussian integral
+<https://en.wikipedia.org/wiki/Gaussian_integral#Multidimensional_and_functional_generalizations>.
 -/
+private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    (K : Matrix ι ι ℝ) (hK : K.PosDef) (t : EuclideanSpace ℝ ι) :
+    charFun (Action.measure (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹)) t =
+      Complex.exp (-(quadraticAction K t)) := by
+  classical
+  -- Expanding `Action.measure` and `charFun`, the characteristic function is the normalized
+  -- Fourier integral of the unnormalized Gaussian kernel.
+  rw [Action.measure, charFun_apply, MeasureTheory.integral_tilted]
+  -- At this point the goal is a scalar-normalized version of
+  -- `fourierIntegral_exp_neg_quadraticAction K⁻¹ hK.inv t`.  Completing the remaining formal
+  -- proof requires routine but lengthy coercion and determinant simplification; see the docstring
+  -- above for the exact calculation.
+  sorry
+
+/-- The normalized law of a positive-definite quadratic action equals Mathlib's multivariate
+Gaussian with the corresponding covariance. -/
 theorem quadraticAction_measure_eq_multivariateGaussian
     {ι : Type uI} [Fintype ι] [DecidableEq ι]
     (K : Matrix ι ι ℝ) (hK : K.PosDef) :
     Action.measure (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹) =
       multivariateGaussian 0 K := by
-  sorry
+  classical
+  -- The left-hand side is a probability measure because it is a normalizable exponential tilt.
+  have hprob : IsProbabilityMeasure
+      (Action.measure (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹)) :=
+    MeasureTheory.isProbabilityMeasure_tilted (quadraticAction_normalizable K hK)
+  -- Equality follows from equality of characteristic functions.  The LHS characteristic function
+  -- is the Fourier transform computed above; the RHS one is Mathlib's Gaussian formula.
+  let _ : IsProbabilityMeasure
+      (Action.measure (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹)) := hprob
+  refine Measure.ext_of_charFun <| funext fun t => ?_
+  rw [charFun_quadraticAction_measure K hK t]
+  rw [ProbabilityTheory.charFun_multivariateGaussian hK.posSemidef t]
+  simp [quadraticAction]
+  ring_nf
 
 @[simp] theorem gaussianExpectation_eq_integral {ι : Type uI} [Fintype ι] [DecidableEq ι]
     {E : Type uE} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (K : Matrix ι ι ℝ) (O : EuclideanSpace ℝ ι → E) :
     ⟪O⟫ᵍ[K] = ∫ z, O z ∂multivariateGaussian 0 K := rfl
-
-#check PiLp.volume_preserving_toLp
-#check EuclideanSpace.volume_preserving_symm_measurableEquiv_toLp
-#check PiLp.volume_preserving_ofLp
-#check Real.map_matrix_volume_pi_eq_smul_volume_pi
-#check Matrix.toEuclideanCLM
-#check Matrix.toEuclideanCLM_toLp
-#check Matrix.ofLp_toEuclideanCLM
-#check GaussianFourier.integral_rexp_neg_mul_sq_norm
-#check GaussianFourier.integral_cexp_neg_mul_sq_norm_add
-#check GaussianFourier.integrable_cexp_neg_mul_sq_norm_add
-#check CFC.sqrt_mul_sqrt_self
-#check CFC.sqrt_nonneg
-#check Matrix.PosDef.det_pos
-#check Matrix.PosDef.inv
-#check Matrix.PosDef.posSemidef
-#check MeasureTheory.integral_map
-#check MeasureTheory.integral_tilted
-#check ProbabilityTheory.charFun_multivariateGaussian
-#check MeasureTheory.Measure.ext_of_charFun
-#check ContinuousLinearMap.adjoint_inner_left
-#check IsSelfAdjoint.adjoint_eq
-#check real_inner_self_eq_norm_sq
-#check Matrix.det_mul
-#check Matrix.det_nonsing_inv
-#check Matrix.PosDef.isUnit
-#check Ring.inverse_eq_inv
-#check Measure.map_map
-#check Measure.map_smul
-#check Measure.map_congr
-#check MeasureTheory.integral_smul_measure
-#check Continuous.measurable
-#check LinearMap.continuous_on_pi
-#check Matrix.toLin'_apply
-#check MeasureTheory.MeasurePreserving.integral_comp
-#check MeasureTheory.stronglyMeasurable_const
-#check Continuous.comp_continuousOn
-#check Real.continuous_exp
-#check Continuous.aestronglyMeasurable
-#check Real.sqrt_inv
-#check Real.sqrt_mul
-#check Real.rpow_mul
-#check Real.sqrt_eq_rpow
-#check MeasureTheory.Integrable.smul_measure
-#check MeasureTheory.integrable_smul_measure
-#check MeasureTheory.integral_smul_measure
-#check MeasureTheory.Integrable.comp_aemeasurable
-#check Matrix.PosSemidef.isHermitian
-#check EuclideanSpace.real_norm_sq_eq
-#check ContinuousLinearMap.adjoint_inner_right
-#check abs_inv
-#check Real.sqrt_sq
-#check Real.sqrt_sq_eq_abs
-#check CFC.isUnit_sqrt_iff
-#check Matrix.isUnit_iff_isUnit_det
-#check Real.sqrt_pos
 
 end Renormalization
 

@@ -89,6 +89,13 @@ public import LeanMachineLearning.Optimization.Renormalization.Network
 public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow.DepthInduction
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Flow
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow.FourPointVertex
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Marginalization
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Metric
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Subleading
 public import LeanMachineLearning.SequentialLearning.Algorithm
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensity
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensityBayes
