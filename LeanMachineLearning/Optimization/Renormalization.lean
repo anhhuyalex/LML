@@ -21,6 +21,7 @@ public import LeanMachineLearning.Optimization.Renormalization.NearlyGaussian
 public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
+public import LeanMachineLearning.Optimization.Renormalization.RGFlow
 
 /-!
 # Renormalization
@@ -30,6 +31,7 @@ learning theory.
 
 The library exports finite-partition algebra, joint moments, cumulants, Gaussian Wick calculus,
 explicit actions and Gaussian expectation, general exponential perturbations, symmetric quartic
-Gaussian specializations, general even-coupling hierarchies, and the Chapter 2 neural-network
-architecture, initialization, and induced-law APIs.
+Gaussian specializations, general even-coupling hierarchies, the Chapter 2 neural-network
+architecture, initialization, and induced-law APIs, and the RG-flow theory of preactivation
+statistics at an arbitrary layer.
 -/

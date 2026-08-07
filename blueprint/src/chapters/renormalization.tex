@@ -3480,6 +3480,64 @@ same discipline as \texttt{DeepLinear.lean}. File responsibilities:
     machinery is introduced here.
 \end{description}
 
+\subsection{Implemented statement skeleton and naming corrections}
+
+The module skeleton described above is implemented and typechecked under
+\texttt{LeanMachineLearning/Optimization/Renormalization/RGFlow/}, six files plus the umbrella
+\texttt{RGFlow.lean}, publicly imported from \texttt{Optimization/Renormalization.lean}. This is a
+statement-complete milestone in the sense of Chapter~\ref{chap:deep-linear-renormalization}: every
+definition and theorem below compiles, but the following are recorded with \texttt{sorry} and a
+cited informal proof rather than a completed proof term, exactly as licensed for reusable API by
+the task instructions and by Rule~9 of \texttt{lessons\_learned.md}: the even-moment Wick formula
+\texttt{RGFlow.integral\_coordinateProduct\_eq\_wick\_stochasticMetric} (needs the kernel-conditional
+integration lemma of item~1 below); the full $S_4$-symmetry of the vertex,
+\texttt{RGFlow.fourPointVertex\_perm}; the propagation of hierarchical near-Gaussianity,
+\texttt{RGFlow.hierarchicallyNearlyGaussian\_of\_orderOneLayer}; the two halves of the depth
+recursion, \texttt{RGFlow.meanMetric\_eq\_gaussianExpectation\_add} and
+\texttt{RGFlow.fourPointVertex\_eq\_gaussianExpectation\_add}; the sample/neuron marginalization
+theorem \texttt{RGFlow.map\_restrict\_eq\_outputLaw\_restrict} and its corollary
+\texttt{RGFlow.fourPointVertex\_eq\_of\_mem}; and the entire lowest-priority Phase~NGP6,
+\texttt{RGFlow.nloMetric\_succ\_eq}. Two structural theorems are fully proved: the finite-depth
+induction \texttt{RGFlow.orderOneLayer\_of\_le} (an ordinary \texttt{Nat} induction reusing one
+named step hypothesis, per Rule~7/Rule~9) and the marginal/relevant-coupling monotonicity fact
+\texttt{RGFlow.vertexNormSq\_const\_of\_relevant\_of\_irrelevant} in \texttt{RGFlow/Flow.lean}.
+Several purely algebraic lemmas are also fully proved without \texttt{sorry}: coordinate unfolding
+and positive-semidefiniteness of the stochastic metric, centeredness of the fluctuation
+(Lemma~\ref{lem:ngp:fluctuationMeanZero}), the conditional-law corollary
+(the non-Wick half of Theorem~\ref{thm:ngp:generalEvenMoment}), the mixture-law identity
+\texttt{RGFlow.nextLayerLaw\_eq\_bind\_pi\_multivariateGaussian}, the dihedral symmetry
+\texttt{RGFlow.fourPointVertex\_swap\_left}, and the metric-restriction identity
+\texttt{RGFlow.stochasticMetric\_eq\_of\_mem}.
+
+Verifying every declaration cited an exact scratch-file signature check before it was written
+(Rule~1/Rule~8) surfaced two corrections to this chapter's original plan, both now reflected in the
+\texttt{\textbackslash lean\{\}} tags above and not just in this paragraph:
+\begin{enumerate}
+  \item \texttt{NeuralNetwork.layerCovariance}, \texttt{NeuralNetwork.map\_evalBatch\_layerGaussianInit},
+    and the rest of the induced-law API live in the \texttt{NeuralNetwork} namespace, \emph{not}
+    \texttt{Renormalization.NeuralNetwork} or a bare \texttt{Renormalization} name as an early
+    draft of this chapter assumed; likewise \texttt{Renormalization.quadraticAction},
+    \texttt{Renormalization.gaussianExpectation}, \texttt{Renormalization.deform}, and
+    \texttt{Renormalization.covarianceWith} live directly under \texttt{Renormalization}, with no
+    intervening \texttt{Action} or \texttt{Perturbation} namespace despite the file names
+    \texttt{Action.lean}/\texttt{Perturbation.lean}.
+  \item The originally planned single declaration \texttt{RGFlow.EvenAction.ofLayer} is
+    implemented as two declarations, \texttt{RGFlow.QuarticCouplingOfLayer} (packaging
+    \texttt{fourPointVertex}$/n$ as a \texttt{Renormalization.QuarticCoupling}, which needs its own
+    permutation-invariance proof, \texttt{RGFlow.fourPointVertex\_perm}) and
+    \texttt{RGFlow.EvenActionOfLayer} (applying \texttt{EvenAction.ofQuartic} to that coupling and
+    the mean metric), because the total-$S_4$-symmetry proof obligation is more naturally attached
+    to the coupling than to the action.
+\end{enumerate}
+A third scope decision, not a correction: \texttt{RGFlow.OrderOneLayer} is defined as the
+\emph{static} regularity pair (mean metric positive definite, packaged coupling nonnegative)
+needed to invoke \texttt{Renormalization.EvenAction.connectedCorrelatorHierarchy}, rather than the
+literal asymptotic reading "$O(1)$ as $n_{\ell-1}\to\infty$" of
+Definition~\ref{def:ngp:orderOneLayer}. The literal asymptotic reading needs an explicit family of
+layers indexed by width, which is not yet threaded through this file; every declaration that
+depends on this simplification says so in its own docstring, so the gap is local and cannot be
+mistaken for a completed proof of the stronger statement.
+
 \section{The stochastic metric at an arbitrary layer}
 \label{sec:ngp:metric}
 
@@ -3584,8 +3642,8 @@ $V^{(2)}_{(\alpha_1\alpha_2)(\alpha_3\alpha_4)}$.
 \label{thm:ngp:fourPointVertexMatch}
 \uses{def:ngp:fourPointVertex, thm:ngp:generalEvenMoment, def:renorm:evenAction,
 thm:renorm:quarticTwoPoint, thm:renorm:quarticFourPoint}
-\lean{RGFlow.EvenAction.ofLayer, RGFlow.twoPoint\_ofLayer\_isBigO,
-RGFlow.fourthCumulant\_ofLayer\_isBigO}
+\lean{RGFlow.QuarticCouplingOfLayer, RGFlow.EvenActionOfLayer, RGFlow.twoPoint\_ofLayer\_isBigO,
+RGFlow.fourthCumulant\_ofLayer\_isBigO, RGFlow.fourPointVertex\_perm}
 Let $A:=\texttt{EvenAction.ofQuartic}\ G^{(\ell+1)}\ (\texttt{QuarticCoupling.ofVertex}\
 V^{(\ell+1)})$, an \texttt{EvenAction} on $A$ (the sample type) with precision $G^{(\ell+1)}$ and
 quartic coupling $V^{(\ell+1)}/n_\ell$. Then, as $n_\ell\to\infty$ along any sequence realizing the
@@ -3642,7 +3700,8 @@ The inductive assumption stated at \texttt{eq:wide-regime} and the paragraph imm
 \begin{theorem}[Kernel and leading vertex recursion]
 \label{thm:ngp:depthRecursion}
 \uses{def:ngp:orderOneLayer, thm:ngp:generalEvenMoment, thm:renorm:connectedCorrelatorHierarchy}
-\lean{RGFlow.meanMetric\_succ\_eq\_gaussianExpectation, RGFlow.fourPointVertex\_succ\_isBigO}
+\lean{RGFlow.OrderOneLayer, RGFlow.hierarchicallyNearlyGaussian\_of\_orderOneLayer,
+RGFlow.meanMetric\_eq\_gaussianExpectation\_add, RGFlow.fourPointVertex\_eq\_gaussianExpectation\_add}
 If layer $\ell$ has order-one statistics, then layer $\ell+1$ does too, and
 \[
   G^{(\ell+1)}_{\alpha_1\alpha_2}=C_b+C_W\,
@@ -3773,7 +3832,7 @@ $K^{(\ell+1)}_{\alpha_1\alpha_2}:=C_b+C_W\langle\sigma_{\alpha_1}\sigma_{\alpha_
 \begin{theorem}[NLO metric recursion]
 \label{thm:ngp:nloMetricRecursion}
 \uses{def:ngp:kernel, thm:ngp:fourPointVertexMatch, thm:ngp:depthRecursion}
-\lean{RGFlow.nloMetric, RGFlow.nloMetric\_succ\_eq}
+\lean{RGFlow.NloMetric, RGFlow.nloMetric\_succ\_eq}
 Writing $G^{(\ell)}=K^{(\ell)}+\tfrac1{n_{\ell-1}}\Sigma^{(\ell)}+O(1/n_{\ell-1}^2)$, the NLO metric
 $\Sigma^{(\ell)}$ satisfies the recursion displayed at \texttt{eq:NLO-metric-recursion}, expressing
 $\Sigma^{(\ell+1)}/n_\ell$ as an explicit bilinear expression in $\Sigma^{(\ell)}$, $V^{(\ell)}$,
