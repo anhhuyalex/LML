@@ -45,6 +45,21 @@ def correlatorAmplitude (Cw : ℝ≥0) (q : ℝ) (m : ℕ) (widths : List ℕ) :
 def pairingTensor {κ : Type uJ} [DecidableEq κ] {m : ℕ} (a : Fin (2 * m) → κ) : ℝ :=
   Renormalization.wick (fun r s => if a r = a s then 1 else 0) Finset.univ
 
+/-- The one-input deep-linear output law is invariant under the coordinatewise sign flip.
+
+Informal proof: negate only the final affine layer's weights and biases.  This parameter-space
+involution preserves the independent centered Gaussian initialization law (centered Gaussians, and
+variance-zero Gaussian biases, are sign-invariant) and it sends the network output pointwise to its
+negative.  Pushing the initialization law forward by evaluation therefore gives an output law
+invariant under `z ↦ -z`.  This is the parity argument in `docs/Renormalization.md`, final
+paragraphs of Section `sec:DLN`; equivalently see the standard symmetry proof of odd Gaussian
+moments in <https://en.wikipedia.org/wiki/Isserlis%27s_theorem>.
+-/
+theorem deepLinearOutputLaw_isNegInvariant {dIn dOut : ℕ} (S : MLPShape dIn dOut)
+    (Cw : ℝ≥0) (x : Fin dIn → ℝ) :
+    Measure.IsNegInvariant (S.deepLinearOutputLaw Cw x) := by
+  sorry
+
 /-- Every odd joint output moment vanishes.
 
 Informal proof: condition on the penultimate layer.  The final output row is a centered Gaussian,
@@ -54,9 +69,33 @@ base case is `Renormalization.integral_pow_gaussianReal_odd`.  Source:
 -/
 theorem jointMoment_outputLaw_odd {dIn dOut : ℕ} (S : MLPShape dIn dOut)
     (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m + 1) → Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    (_hIn : 0 < dIn) (_hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x = 0 := by
-  sorry
+  classical
+  have hneg : Measure.IsNegInvariant (S.deepLinearOutputLaw Cw x) :=
+    deepLinearOutputLaw_isNegInvariant S Cw x
+  let F : (Fin dOut → ℝ) → ℝ := fun z => ∏ r, z (a r)
+  have hF : AEStronglyMeasurable F (S.deepLinearOutputLaw Cw x) := by
+    apply Measurable.aestronglyMeasurable
+    dsimp [F]
+    exact Finset.measurable_prod Finset.univ (fun r _ => measurable_pi_apply (a r))
+  have hodd : ∀ z : Fin dOut → ℝ, F (-z) = -F z := by
+    intro z
+    dsimp [F]
+    calc
+      (∏ r : Fin (2 * m + 1), (-z) (a r)) =
+          ∏ r : Fin (2 * m + 1), -(z (a r)) := by
+        simp
+      _ = (-1 : ℝ) ^ Fintype.card (Fin (2 * m + 1)) *
+          ∏ r : Fin (2 * m + 1), z (a r) := by
+        simpa using
+          (Finset.prod_neg (s := Finset.univ)
+            (f := fun r : Fin (2 * m + 1) => z (a r)))
+      _ = -∏ r : Fin (2 * m + 1), z (a r) := by
+        simp [Fintype.card_fin, Odd.neg_one_pow (odd_two_mul_add_one m)]
+  simpa [F] using
+    @Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable
+      (Fin dOut → ℝ) _ _ _ (S.deepLinearOutputLaw Cw x) hneg F hF hodd
 
 /-- Exact even joint output moment at arbitrary finite positive widths.
 

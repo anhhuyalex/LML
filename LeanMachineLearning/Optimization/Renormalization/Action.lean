@@ -724,6 +724,50 @@ theorem quadraticAction_partitionFunction {ι : Type uI} [Fintype ι] [Decidable
   rw [Action.partitionFunction]
   exact integral_exp_neg_quadraticAction_inv_posDef K hK
 
+-- The numerator of the normalized Fourier integral: with precision matrix `P`, the smul form of
+-- the characteristic exponential rewrites pointwise as the product form used by
+-- `fourierIntegral_exp_neg_quadraticAction`, so the integral evaluates to the Fourier-side
+-- constant `sqrt ((2π)^n / det P)` times the Gaussian characteristic exponential in `P⁻¹`.
+-- Used in `charFun_quadraticAction_measure` with `P = K⁻¹`.
+private lemma charFun_numerator {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    (P : Matrix ι ι ℝ) (hP : P.PosDef) (t : EuclideanSpace ℝ ι) :
+    (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction P z)) •
+        Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) =
+      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / P.det) •
+        Complex.exp (-(quadraticAction P⁻¹ t)) := by
+  calc
+    (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction P z)) •
+          Complex.exp (⟪z, t⟫ * Complex.I) ∂volume)
+        = ∫ z : EuclideanSpace ℝ ι, Complex.exp (Complex.I * ⟪z, t⟫) *
+            Real.exp (-(quadraticAction P z)) ∂volume := by
+          apply integral_congr_ae
+          filter_upwards with z
+          rw [Algebra.smul_def, Complex.coe_algebraMap]
+          rw [mul_comm]
+          congr 1
+          · exact congrArg Complex.exp (mul_comm (⟪z, t⟫ : ℂ) Complex.I)
+    _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / P.det) •
+          Complex.exp (-(quadraticAction P⁻¹ t)) :=
+          fourierIntegral_exp_neg_quadraticAction P hP t
+
+-- The Gaussian normalization constant `sqrt ((2π)^n * det K)` is positive because the covariance
+-- determinant is positive.
+private lemma charFun_normalizing_const_pos {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    (K : Matrix ι ι ℝ) (hK : K.PosDef) :
+    0 < Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
+  exact Real.sqrt_pos_of_pos
+    (mul_pos (pow_pos (mul_pos zero_lt_two Real.pi_pos) (Fintype.card ι)) hK.det_pos)
+
+-- `det (K⁻¹) = (det K)⁻¹`, so the denominator constant `sqrt ((2π)^n / det (K⁻¹))` equals the
+-- normalization constant `sqrt ((2π)^n * det K)`.
+private lemma charFun_det_inv_sqrt_eq {ι : Type uI} [Fintype ι] [DecidableEq ι]
+    (K : Matrix ι ι ℝ) (hK : K.PosDef) :
+    Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) =
+      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
+  congr 1
+  rw [Matrix.det_nonsing_inv, Ring.inverse_eq_inv]
+  field_simp [ne_of_gt hK.det_pos]
+
 /-- Characteristic function of the normalized positive-definite quadratic-action law.
 
 This is the reusable Fourier-side form of
@@ -746,11 +790,71 @@ private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [Decid
   -- Expanding `Action.measure` and `charFun`, the characteristic function is the normalized
   -- Fourier integral of the unnormalized Gaussian kernel.
   rw [Action.measure, charFun_apply, MeasureTheory.integral_tilted]
-  -- At this point the goal is a scalar-normalized version of
-  -- `fourierIntegral_exp_neg_quadraticAction K⁻¹ hK.inv t`.  Completing the remaining formal
-  -- proof requires routine but lengthy coercion and determinant simplification; see the docstring
-  -- above for the exact calculation.
-  sorry
+  -- `Action.measure` expands to the tilted measure, and `integral_tilted` expresses the integral
+  -- as the normalized expectation of the characteristic exponential.  Write `Z` for the
+  -- unnormalized partition function, i.e. the normalization constant in the tilted density.
+  let Z : ℝ := ∫ x, Real.exp (-(quadraticAction K⁻¹ x)) ∂volume
+  change (∫ z : EuclideanSpace ℝ ι,
+      (Real.exp (-(quadraticAction K⁻¹ z)) / Z) • Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) =
+      Complex.exp (-(quadraticAction K t))
+  have hZ : Z = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
+    dsimp [Z]
+    simpa [Action.partitionFunction] using (quadraticAction_partitionFunction K hK)
+  have hZpos : 0 < Z := by
+    rw [hZ]
+    exact Real.sqrt_pos_of_pos
+      (mul_pos (pow_pos (mul_pos zero_lt_two Real.pi_pos) (Fintype.card ι)) hK.det_pos)
+  have hZne : Z ≠ 0 := ne_of_gt hZpos
+  -- Numerator: the Fourier integral of the unnormalized kernel with precision `K⁻¹`.
+  have hnum :
+      (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) •
+          Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) =
+        Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) •
+          Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) := by
+    calc
+      (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) •
+            Complex.exp (⟪z, t⟫ * Complex.I) ∂volume)
+          = ∫ z : EuclideanSpace ℝ ι, Complex.exp (Complex.I * ⟪z, t⟫) *
+              Real.exp (-(quadraticAction K⁻¹ z)) ∂volume := by
+            apply integral_congr_ae
+            filter_upwards with z
+            rw [Algebra.smul_def, Complex.coe_algebraMap]
+            rw [mul_comm]
+            congr 1
+            · exact congrArg Complex.exp (mul_comm (⟪z, t⟫ : ℂ) Complex.I)
+      _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) •
+            Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) :=
+            fourierIntegral_exp_neg_quadraticAction K⁻¹ hK.inv t
+  -- The denominator constant `sqrt ((2π)^n / det (K⁻¹))` is exactly `Z` by the partition
+  -- function identity combined with `det (K⁻¹) = (det K)⁻¹`.
+  have hZdet : Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) = Z := by
+    rw [hZ]
+    congr 1
+    rw [Matrix.det_nonsing_inv, Ring.inverse_eq_inv]
+    field_simp [ne_of_gt hK.det_pos]
+  -- The inverse of the inverse of `K` is `K` itself.
+  have hquad : quadraticAction (K⁻¹)⁻¹ t = quadraticAction K t := by
+    let : Invertible K := hK.isUnit.invertible
+    simp [quadraticAction]
+  calc
+    (∫ z : EuclideanSpace ℝ ι,
+        (Real.exp (-(quadraticAction K⁻¹ z)) / Z) • Complex.exp (⟪z, t⟫ * Complex.I) ∂volume)
+        = Z⁻¹ • (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) •
+            Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) := by
+          rw [← MeasureTheory.integral_smul]
+          apply integral_congr_ae
+          filter_upwards with z
+          rw [div_eq_mul_inv, mul_comm, smul_smul]
+    _ = Z⁻¹ • (Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) •
+            Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t))) := by
+          rw [hnum]
+    _ = Z⁻¹ • (Z • Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t))) := by
+          rw [hZdet]
+    _ = (Z⁻¹ * Z) • Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) := by
+          rw [smul_smul]
+    _ = Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) := by
+          rw [inv_mul_cancel₀ hZne, one_smul]
+    _ = Complex.exp (-(quadraticAction K t)) := by rw [hquad]
 
 /-- The normalized law of a positive-definite quadratic action equals Mathlib's multivariate
 Gaussian with the corresponding covariance. -/
