@@ -176,12 +176,11 @@ theorem integrable_exp_neg_quadraticAction_of_posDef {ι : Type uI} [Fintype ι]
         fun_prop : Continuous fun z : EuclideanSpace ℝ ι =>
           -(quadraticAction P z))).aestronglyMeasurable
   · filter_upwards with z
-    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.norm_of_nonneg (Real.exp_pos _).le]
-    apply Real.exp_le_exp.mpr
     have hle : (c / 2) * ‖z‖ ^ 2 ≤ quadraticAction P z := by
       dsimp [quadraticAction]
       nlinarith [hbound z]
-    simpa using neg_le_neg hle
+    simpa [Real.norm_of_nonneg (Real.exp_pos _).le] using
+      (Real.exp_le_exp.mpr (neg_le_neg hle))
 
 /-- A positive-definite quadratic action is normalizable against Euclidean volume.
 
@@ -239,10 +238,9 @@ private lemma integral_comp_toEuclideanCLM {ι : Type*} [Fintype ι] [DecidableE
   calc
     (∫ y : EuclideanSpace ℝ ι, f (toEuclideanCLM (𝕜 := ℝ) M y) ∂volume)
         = ∫ z : EuclideanSpace ℝ ι, f z
-            ∂Measure.map (fun y : EuclideanSpace ℝ ι => toEuclideanCLM (𝕜 := ℝ) M y) volume := by
-          symm
-          exact MeasureTheory.integral_map
-            (toEuclideanCLM (𝕜 := ℝ) M).continuous.aemeasurable hf.aestronglyMeasurable
+            ∂Measure.map (fun y : EuclideanSpace ℝ ι => toEuclideanCLM (𝕜 := ℝ) M y) volume :=
+          (MeasureTheory.integral_map
+            (toEuclideanCLM (𝕜 := ℝ) M).continuous.aemeasurable hf.aestronglyMeasurable).symm
     _ = ∫ z : EuclideanSpace ℝ ι, f z
           ∂(ENNReal.ofReal (|(M.det)⁻¹|) • volume) := by
           rw [map_toEuclideanCLM_volume M hM]
@@ -267,10 +265,6 @@ private lemma quadraticAction_eq_half_normSq {ι : Type*} [Fintype ι] [Decidabl
           (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) z) := by
     rw [← ContinuousLinearMap.adjoint_inner_right]
     rw [hL.adjoint_eq]
-  have hmap : toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A * CFC.sqrt A) =
-      (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) * toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) :
-        EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι) := by
-    rw [map_mul]
   calc
     quadraticAction A z = (1 / 2 : ℝ) * (z ⬝ᵥ A *ᵥ z) := rfl
     _ = (1 / 2 : ℝ) * inner ℝ z (toEuclideanCLM (𝕜 := ℝ) A z) := by
@@ -285,7 +279,7 @@ private lemma quadraticAction_eq_half_normSq {ι : Type*} [Fintype ι] [Decidabl
               rw [CFC.sqrt_mul_sqrt_self A hA.nonneg]
         _ = inner ℝ z (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A)
               (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) z)) := by
-              rw [hmap]
+              rw [map_mul]
               simp [ContinuousLinearMap.mul_def]
         _ = inner ℝ (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) z)
               (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) z) := hadj
@@ -307,11 +301,7 @@ private lemma normSq_toEuclideanCLM {ι : Type*} [Fintype ι] [DecidableEq ι]
           rw [← ContinuousLinearMap.adjoint_inner_right]
           rw [hS.adjoint_eq]
     _ = inner ℝ t (toEuclideanCLM (𝕜 := ℝ) (S * S) t) := by
-          have hmap : toEuclideanCLM (𝕜 := ℝ) (S * S) =
-              (toEuclideanCLM (𝕜 := ℝ) S * toEuclideanCLM (𝕜 := ℝ) S :
-                EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι) := by
-            rw [map_mul]
-          rw [hmap]
+          rw [map_mul]
           simp [ContinuousLinearMap.mul_def]
     _ = t ⬝ᵥ (S * S) *ᵥ t := by
           rw [inner_toEuclideanCLM]
@@ -322,8 +312,6 @@ private lemma normSq_sqrt_inv {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (hA : A.PosDef) (t : EuclideanSpace ℝ ι) :
     ‖toEuclideanCLM (𝕜 := ℝ) ((CFC.sqrt A)⁻¹) t‖ ^ 2 = t ⬝ᵥ (A⁻¹) *ᵥ t := by
   classical
-  have hL_sq : CFC.sqrt A * CFC.sqrt A = A :=
-    CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg
   have hT_nonneg : 0 ≤ (CFC.sqrt A)⁻¹ := by
     simpa using (Matrix.PosSemidef.inv (CFC.sqrt_nonneg A)).nonneg
   have hT_selfadj : IsSelfAdjoint (toEuclideanCLM (𝕜 := ℝ) ((CFC.sqrt A)⁻¹)) :=
@@ -336,7 +324,7 @@ private lemma normSq_sqrt_inv {ι : Type*} [Fintype ι] [DecidableEq ι]
           congr 1
           rw [Matrix.mul_inv_rev]
     _ = t ⬝ᵥ (A⁻¹) *ᵥ t := by
-          rw [hL_sq]
+          rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
 
 -- The normalization constant of the Gaussian integral, isolated for reuse:
 -- `sqrt ((2π)^n / det A) = |det (sqrt A)⁻¹| * (π / (1/2))^(n/2)`.
@@ -353,13 +341,10 @@ private lemma gaussianConstant {ι : Type*} [Fintype ι] [DecidableEq ι]
       _ = A.det := by rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
   have hA_det_pos : 0 < A.det := hA.det_pos
   have hL_abs : |(CFC.sqrt A).det| = Real.sqrt (A.det) := by
-    rw [← hL_sq]
-    rw [Real.sqrt_sq_eq_abs]
+    rw [← hL_sq, Real.sqrt_sq_eq_abs]
   have hsq : Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) =
       (2 * Real.pi) ^ ((Fintype.card ι : ℝ) / 2) := by
-    rw [Real.sqrt_eq_rpow]
-    rw [← Real.rpow_natCast]
-    rw [← Real.rpow_mul (by positivity : 0 ≤ (2 * Real.pi))]
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast, ← Real.rpow_mul (by positivity : 0 ≤ (2 * Real.pi))]
     congr 1
     ring
   calc
@@ -367,18 +352,11 @@ private lemma gaussianConstant {ι : Type*} [Fintype ι] [DecidableEq ι]
         = Real.sqrt ((A.det)⁻¹ * (2 * Real.pi) ^ Fintype.card ι) := by
           congr 1
           field_simp [ne_of_gt hA_det_pos]
-    _ = Real.sqrt (A.det)⁻¹ * Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) := by
-          rw [Real.sqrt_mul (by positivity : 0 ≤ (A.det)⁻¹)]
-    _ = (Real.sqrt (A.det))⁻¹ * Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) := by
-          rw [← Real.sqrt_inv]
-    _ = (|(CFC.sqrt A).det|⁻¹) * Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) := by
-          rw [← hL_abs]
     _ = (|(CFC.sqrt A).det⁻¹| : ℝ) * Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) := by
-          rw [← abs_inv]
+          rw [Real.sqrt_mul (by positivity : 0 ≤ (A.det)⁻¹), Real.sqrt_inv, ← hL_abs, ← abs_inv]
     _ = (|(CFC.sqrt A).det⁻¹| : ℝ) * (2 * Real.pi) ^ ((Fintype.card ι : ℝ) / 2) := by
           rw [hsq]
     _ = (|(CFC.sqrt A).det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) := by
-          congr 1
           rw [show Real.pi / (1 / 2 : ℝ) = 2 * Real.pi by ring_nf]
 
 -- The complex Fourier transform of the Gaussian with quadratic action:
@@ -408,27 +386,21 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
   have hTcomp : ∀ z : EuclideanSpace ℝ ι, T (toEuclideanCLM (𝕜 := ℝ) L z) = z := by
     intro z
     dsimp [T]
-    have hL_unit_det : IsUnit L.det := isUnit_iff_ne_zero.mpr hL_det_ne
-    have hinv : L⁻¹ * L = 1 := Matrix.nonsing_inv_mul L hL_unit_det
     have hmap : toEuclideanCLM (𝕜 := ℝ) (L⁻¹ * L) =
         (toEuclideanCLM (𝕜 := ℝ) (L⁻¹) * toEuclideanCLM (𝕜 := ℝ) L :
           EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι) := by
       rw [map_mul]
     have hcomp : (toEuclideanCLM (𝕜 := ℝ) (L⁻¹) * toEuclideanCLM (𝕜 := ℝ) L :
         EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι) z = z := by
-      rw [← hmap, hinv]
+      rw [← hmap, Matrix.nonsing_inv_mul L (isUnit_iff_ne_zero.mpr hL_det_ne)]
       simp
     simpa [ContinuousLinearMap.mul_def] using hcomp
   have hT_adj : T.adjoint = T := by
     have hT_nonneg : 0 ≤ L⁻¹ := by
       simpa using (Matrix.PosSemidef.inv (CFC.sqrt_nonneg A)).nonneg
-    have hT_selfadj : IsSelfAdjoint (toEuclideanCLM (𝕜 := ℝ) (L⁻¹)) :=
-      hT_nonneg.isSelfAdjoint.map (toEuclideanCLM (𝕜 := ℝ))
-    exact hT_selfadj.adjoint_eq
-  have hinner : ∀ y : EuclideanSpace ℝ ι, inner ℝ (T y) t = inner ℝ y (T t) := by
-    intro y
-    rw [← ContinuousLinearMap.adjoint_inner_right]
-    rw [hT_adj]
+    exact (hT_nonneg.isSelfAdjoint.map (toEuclideanCLM (𝕜 := ℝ))).adjoint_eq
+  have hinner : ∀ y : EuclideanSpace ℝ ι, inner ℝ (T y) t = inner ℝ y (T t) := fun y => by
+    rw [← ContinuousLinearMap.adjoint_inner_right, hT_adj]
   have hnorm_w : ‖w‖ ^ 2 = t ⬝ᵥ (A⁻¹) *ᵥ t := by
     dsimp [w, T]
     exact normSq_sqrt_inv A hA t
@@ -448,8 +420,7 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
             filter_upwards with y
             rw [Complex.ofReal_exp, ← Complex.exp_add]
             congr 1
-            rw [real_inner_comm]
-            rw [Complex.ofReal_neg, Complex.ofReal_mul, Complex.ofReal_pow]
+            rw [real_inner_comm, Complex.ofReal_neg, Complex.ofReal_mul, Complex.ofReal_pow]
             norm_num
             ring_nf
       _ = (↑Real.pi / (1 / 2 : ℂ)) ^ (↑(Module.finrank ℝ (EuclideanSpace ℝ ι)) / 2 : ℂ) *
@@ -459,41 +430,25 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
             congr 1
             · congr 1
               simp
-            · rw [Complex.I_sq]
-              rw [← Complex.ofReal_pow]
-              rw [Complex.ofReal_mul]
+            · rw [Complex.I_sq, ← Complex.ofReal_pow, Complex.ofReal_mul]
               norm_num
               ring_nf
-  have h4 :
-      (|(L.det)⁻¹| : ℝ) • (∫ y : EuclideanSpace ℝ ι,
-          Complex.exp (Complex.I * ⟪y, w⟫) * Real.exp (-((1 / 2 : ℝ) * ‖y‖ ^ 2)) ∂volume) =
-        (|(L.det)⁻¹| : ℝ) • ((↑Real.pi / (1 / 2 : ℂ)) ^ (↑(Fintype.card ι) / 2 : ℂ) *
-          Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2)))) := by
-    exact congrArg (fun x : ℂ => (|(L.det)⁻¹| : ℝ) • x) hisoF
   have hZ : Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) =
       (|L.det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) := by
     dsimp [L]
     exact gaussianConstant A hA
   have hconst : (↑Real.pi / (1 / 2 : ℂ)) ^ (↑(Fintype.card ι) / 2 : ℂ) =
       ↑((Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)) := by
-    have hbase : ↑Real.pi / (1 / 2 : ℂ) = ↑(Real.pi / (1 / 2 : ℝ)) := by
-      rw [show (1 / 2 : ℂ) = ↑(1 / 2 : ℝ) by norm_num]
-      rw [← Complex.ofReal_div]
-    have hexp : (↑(Fintype.card ι) : ℂ) / 2 = ↑((Fintype.card ι : ℝ) / 2) := by
-      norm_num
-    rw [hbase, hexp]
-    rw [Complex.ofReal_cpow (by positivity : 0 ≤ Real.pi / (1 / 2 : ℝ))]
+    rw [show ↑Real.pi / (1 / 2 : ℂ) = ↑(Real.pi / (1 / 2 : ℝ)) by
+      rw [show (1 / 2 : ℂ) = ↑(1 / 2 : ℝ) by norm_num, ← Complex.ofReal_div]]
+    rw [show (↑(Fintype.card ι) : ℂ) / 2 = ↑((Fintype.card ι : ℝ) / 2) by norm_num,
+      Complex.ofReal_cpow (by positivity : 0 ≤ Real.pi / (1 / 2 : ℝ))]
   have hreal : (1 / 2 : ℝ) * ‖w‖ ^ 2 = quadraticAction A⁻¹ t := by
     dsimp [quadraticAction]
     rw [hnorm_w]
-  have hneg_real : -quadraticAction A⁻¹ t = -((1 / 2 : ℝ) * ‖w‖ ^ 2) :=
-    congrArg Neg.neg hreal.symm
   have hcexp : Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2))) =
       Complex.exp (-(↑(quadraticAction A⁻¹ t))) := by
-    apply congrArg Complex.exp
-    rw [← Complex.ofReal_neg]
-    rw [← Complex.ofReal_neg]
-    exact congrArg (fun x : ℝ => (x : ℂ)) hneg_real.symm
+    rw [hreal]
   have hscalar : ∀ (a d : ℝ) (z : ℂ), (a : ℝ) • (↑d * z) = (a * d : ℝ) • z := by
     intro a d z
     rw [Algebra.smul_def, Algebra.smul_def, Complex.coe_algebraMap]
@@ -529,9 +484,7 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
               Real.exp (-((1 / 2 : ℝ) * ‖toEuclideanCLM (𝕜 := ℝ) L z‖ ^ 2)) ∂volume := by
           apply integral_congr_ae
           filter_upwards with z
-          rw [show inner ℝ z t = inner ℝ (T (toEuclideanCLM (𝕜 := ℝ) L z)) t by
-            rw [hTcomp z]]
-          rw [quadraticAction_eq_half_normSq A hA.posSemidef z]
+          rw [hTcomp z, quadraticAction_eq_half_normSq A hA.posSemidef z]
   have h2 :
       (∫ z : EuclideanSpace ℝ ι,
           Complex.exp (Complex.I * ⟪T (toEuclideanCLM (𝕜 := ℝ) L z), t⟫) *
@@ -550,16 +503,15 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
           congr 1
           apply integral_congr_ae
           filter_upwards with y
-          rw [show inner ℝ (T y) t = inner ℝ y w by
-            rw [hinner y]]
+          rw [hinner y]
   have h24 :
       (∫ z : EuclideanSpace ℝ ι,
           Complex.exp (Complex.I * ⟪T (toEuclideanCLM (𝕜 := ℝ) L z), t⟫) *
             Real.exp (-((1 / 2 : ℝ) * ‖toEuclideanCLM (𝕜 := ℝ) L z‖ ^ 2)) ∂volume)
         = (|(L.det)⁻¹| : ℝ) • ((↑Real.pi / (1 / 2 : ℂ)) ^ (↑(Fintype.card ι) / 2 : ℂ) *
-            Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2)))) := by
-    exact (h2.trans h3).trans h4
-  exact Eq.trans (α := ℂ) h1 (Eq.trans (α := ℂ) h24 hstep5)
+            Complex.exp (-(↑((1 / 2 : ℝ) * ‖w‖ ^ 2)))) :=
+    (h2.trans h3).trans (congrArg (fun x : ℂ => (|(L.det)⁻¹| : ℝ) • x) hisoF)
+  exact h1.trans (h24.trans hstep5)
 
 -- The full finite-dimensional Gaussian integral with a positive-definite precision matrix:
 -- `∫ exp (-quadraticAction A z) dz = sqrt ((2π)^n / det A)`.  The proof substitutes
@@ -576,40 +528,11 @@ private lemma gaussianIntegral_exp_neg_quadraticAction_of_posDef {ι : Type*} [F
         rw [Matrix.det_mul]
         ring
       _ = A.det := by rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
-  have hA_det_pos : 0 < A.det := hA.det_pos
   have hL_det_ne : (CFC.sqrt A).det ≠ 0 := by
     intro hzero
     have : ((CFC.sqrt A).det) ^ 2 = 0 := by rw [hzero, zero_pow two_ne_zero]
     rw [hL_sq] at this
-    exact (ne_of_gt hA_det_pos) this
-  have hL_abs : |(CFC.sqrt A).det| = Real.sqrt (A.det) := by
-    rw [← hL_sq]
-    rw [Real.sqrt_sq_eq_abs]
-  have hsq : Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) =
-      (2 * Real.pi) ^ ((Fintype.card ι : ℝ) / 2) := by
-    rw [Real.sqrt_eq_rpow]
-    rw [← Real.rpow_natCast]
-    rw [← Real.rpow_mul (by positivity : 0 ≤ (2 * Real.pi))]
-    congr 1
-    ring
-  have h_alg : (|(CFC.sqrt A).det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) =
-      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) := by
-    calc
-      (|(CFC.sqrt A).det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ)
-          = (|(CFC.sqrt A).det⁻¹| : ℝ) * (2 * Real.pi) ^ ((Fintype.card ι : ℝ) / 2) := by
-            have hb : Real.pi / (1 / 2 : ℝ) = 2 * Real.pi := by ring_nf
-            rw [hb]
-      _ = (|(CFC.sqrt A).det⁻¹| : ℝ) * Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) := by
-            rw [← hsq]
-      _ = Real.sqrt (A.det)⁻¹ * Real.sqrt ((2 * Real.pi) ^ Fintype.card ι) := by
-            rw [abs_inv]
-            rw [hL_abs]
-            rw [← Real.sqrt_inv]
-      _ = Real.sqrt ((A.det)⁻¹ * (2 * Real.pi) ^ Fintype.card ι) := by
-            rw [← Real.sqrt_mul (by positivity : 0 ≤ (A.det)⁻¹)]
-      _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) := by
-            congr 1
-            field_simp [ne_of_gt hA_det_pos]
+    exact (ne_of_gt hA.det_pos) this
   have hiso : (∫ y : EuclideanSpace ℝ ι, Real.exp (-((1 / 2 : ℝ) * ‖y‖ ^ 2)) ∂volume) =
       (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) := by
     convert GaussianFourier.integral_rexp_neg_mul_sq_norm (V := EuclideanSpace ℝ ι)
@@ -630,7 +553,7 @@ private lemma gaussianIntegral_exp_neg_quadraticAction_of_posDef {ι : Type*} [F
     _ = (|(CFC.sqrt A).det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) := by
           rw [hiso]
           simp
-    _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) := h_alg
+    _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) := (gaussianConstant A hA).symm
 
 /-- Analytic core of the finite-dimensional Gaussian normalization formula.
 
@@ -660,16 +583,13 @@ theorem gaussianIntegral_exp_neg_quadraticAction_inv_of_posDef {ι : Type uI}
       Integrable (fun z : EuclideanSpace ℝ ι => Real.exp (-(quadraticAction K⁻¹ z))) volume) :
     (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) ∂volume) =
       Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
-  classical
   -- The general integral identity applies to the positive-definite precision matrix `K⁻¹`.
-  have hmain := gaussianIntegral_exp_neg_quadraticAction_of_posDef K⁻¹ hK.inv
   calc
     (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) ∂volume)
-        = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) := hmain
+        = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) :=
+          gaussianIntegral_exp_neg_quadraticAction_of_posDef K⁻¹ hK.inv
     _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
-          congr 1
-          rw [Matrix.det_nonsing_inv]
-          rw [Ring.inverse_eq_inv]
+          rw [Matrix.det_nonsing_inv, Ring.inverse_eq_inv]
           field_simp [ne_of_gt hK.det_pos]
 
 /-- The exact multidimensional Gaussian integral for the quadratic action with covariance `K`.
@@ -689,17 +609,9 @@ with `A = K⁻¹`, this is exactly the statement below.
 theorem integral_exp_neg_quadraticAction_inv_posDef {ι : Type uI} [Fintype ι] [DecidableEq ι]
     (K : Matrix ι ι ℝ) (hK : K.PosDef) :
     (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) ∂volume) =
-      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
-  classical
-  -- The inverse covariance is the positive-definite precision matrix in the exponent.
-  have hPpos : (K⁻¹).PosDef := hK.inv
-  -- The existing coercivity comparison gives the needed finiteness of the Bochner integral.
-  have h_integrable :
-      Integrable (fun z : EuclideanSpace ℝ ι => Real.exp (-(quadraticAction K⁻¹ z))) volume :=
-    integrable_exp_neg_quadraticAction_of_posDef K⁻¹ hPpos
-  -- The remaining analytic computation is the standard orthogonal-diagonalization/Fubini
-  -- Gaussian integral described in the docstring.  This is the reusable missing API point.
-  exact gaussianIntegral_exp_neg_quadraticAction_inv_of_posDef K hK hPpos h_integrable
+      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) :=
+  gaussianIntegral_exp_neg_quadraticAction_inv_of_posDef K hK hK.inv
+    (integrable_exp_neg_quadraticAction_of_posDef K⁻¹ hK.inv)
 
 /-- The probability measure canonically represented by a positive-definite quadratic action. -/
 def quadraticActionProbabilityMeasure {ι : Type uI} [Fintype ι] [DecidableEq ι]
@@ -720,9 +632,8 @@ formula following it in `docs/Renormalization.md`; see also
 theorem quadraticAction_partitionFunction {ι : Type uI} [Fintype ι] [DecidableEq ι]
     (K : Matrix ι ι ℝ) (hK : K.PosDef) :
     Action.partitionFunction (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹) =
-      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
-  rw [Action.partitionFunction]
-  exact integral_exp_neg_quadraticAction_inv_posDef K hK
+      Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) :=
+  integral_exp_neg_quadraticAction_inv_posDef K hK
 
 -- The numerator of the normalized Fourier integral: with precision matrix `P`, the smul form of
 -- the characteristic exponential rewrites pointwise as the product form used by
@@ -742,10 +653,9 @@ private lemma charFun_numerator {ι : Type uI} [Fintype ι] [DecidableEq ι]
             Real.exp (-(quadraticAction P z)) ∂volume := by
           apply integral_congr_ae
           filter_upwards with z
-          rw [Algebra.smul_def, Complex.coe_algebraMap]
-          rw [mul_comm]
+          rw [Algebra.smul_def, Complex.coe_algebraMap, mul_comm]
           congr 1
-          · exact congrArg Complex.exp (mul_comm (⟪z, t⟫ : ℂ) Complex.I)
+          · rw [mul_comm]
     _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / P.det) •
           Complex.exp (-(quadraticAction P⁻¹ t)) :=
           fourierIntegral_exp_neg_quadraticAction P hP t
@@ -754,8 +664,8 @@ private lemma charFun_numerator {ι : Type uI} [Fintype ι] [DecidableEq ι]
 -- determinant is positive.
 private lemma charFun_normalizing_const_pos {ι : Type uI} [Fintype ι] [DecidableEq ι]
     (K : Matrix ι ι ℝ) (hK : K.PosDef) :
-    0 < Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
-  exact Real.sqrt_pos_of_pos
+    0 < Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) :=
+  Real.sqrt_pos_of_pos
     (mul_pos (pow_pos (mul_pos zero_lt_two Real.pi_pos) (Fintype.card ι)) hK.det_pos)
 
 -- `det (K⁻¹) = (det K)⁻¹`, so the denominator constant `sqrt ((2π)^n / det (K⁻¹))` equals the
@@ -797,45 +707,16 @@ private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [Decid
   change (∫ z : EuclideanSpace ℝ ι,
       (Real.exp (-(quadraticAction K⁻¹ z)) / Z) • Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) =
       Complex.exp (-(quadraticAction K t))
-  have hZ : Z = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
-    dsimp [Z]
-    simpa [Action.partitionFunction] using (quadraticAction_partitionFunction K hK)
-  have hZpos : 0 < Z := by
-    rw [hZ]
-    exact Real.sqrt_pos_of_pos
-      (mul_pos (pow_pos (mul_pos zero_lt_two Real.pi_pos) (Fintype.card ι)) hK.det_pos)
+  have hZ : Z = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) :=
+    quadraticAction_partitionFunction K hK
+  have hZpos : 0 < Z := hZ ▸ charFun_normalizing_const_pos K hK
   have hZne : Z ≠ 0 := ne_of_gt hZpos
   -- Numerator: the Fourier integral of the unnormalized kernel with precision `K⁻¹`.
-  have hnum :
-      (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) •
-          Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) =
-        Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) •
-          Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) := by
-    calc
-      (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction K⁻¹ z)) •
-            Complex.exp (⟪z, t⟫ * Complex.I) ∂volume)
-          = ∫ z : EuclideanSpace ℝ ι, Complex.exp (Complex.I * ⟪z, t⟫) *
-              Real.exp (-(quadraticAction K⁻¹ z)) ∂volume := by
-            apply integral_congr_ae
-            filter_upwards with z
-            rw [Algebra.smul_def, Complex.coe_algebraMap]
-            rw [mul_comm]
-            congr 1
-            · exact congrArg Complex.exp (mul_comm (⟪z, t⟫ : ℂ) Complex.I)
-      _ = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) •
-            Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) :=
-            fourierIntegral_exp_neg_quadraticAction K⁻¹ hK.inv t
+  have hnum := charFun_numerator K⁻¹ hK.inv t
   -- The denominator constant `sqrt ((2π)^n / det (K⁻¹))` is exactly `Z` by the partition
   -- function identity combined with `det (K⁻¹) = (det K)⁻¹`.
-  have hZdet : Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) = Z := by
-    rw [hZ]
-    congr 1
-    rw [Matrix.det_nonsing_inv, Ring.inverse_eq_inv]
-    field_simp [ne_of_gt hK.det_pos]
-  -- The inverse of the inverse of `K` is `K` itself.
-  have hquad : quadraticAction (K⁻¹)⁻¹ t = quadraticAction K t := by
-    let : Invertible K := hK.isUnit.invertible
-    simp [quadraticAction]
+  have hZdet : Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) = Z :=
+    (charFun_det_inv_sqrt_eq K hK).trans hZ.symm
   calc
     (∫ z : EuclideanSpace ℝ ι,
         (Real.exp (-(quadraticAction K⁻¹ z)) / Z) • Complex.exp (⟪z, t⟫ * Complex.I) ∂volume)
@@ -845,16 +726,11 @@ private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [Decid
           apply integral_congr_ae
           filter_upwards with z
           rw [div_eq_mul_inv, mul_comm, smul_smul]
-    _ = Z⁻¹ • (Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / (K⁻¹).det) •
-            Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t))) := by
-          rw [hnum]
-    _ = Z⁻¹ • (Z • Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t))) := by
-          rw [hZdet]
-    _ = (Z⁻¹ * Z) • Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) := by
-          rw [smul_smul]
     _ = Complex.exp (-(quadraticAction (K⁻¹)⁻¹ t)) := by
-          rw [inv_mul_cancel₀ hZne, one_smul]
-    _ = Complex.exp (-(quadraticAction K t)) := by rw [hquad]
+          rw [hnum, hZdet, smul_smul, inv_mul_cancel₀ hZne, one_smul]
+    _ = Complex.exp (-(quadraticAction K t)) := by
+          let : Invertible K := hK.isUnit.invertible
+          simp [quadraticAction]
 
 /-- The normalized law of a positive-definite quadratic action equals Mathlib's multivariate
 Gaussian with the corresponding covariance. -/
@@ -872,11 +748,11 @@ theorem quadraticAction_measure_eq_multivariateGaussian
   -- is the Fourier transform computed above; the RHS one is Mathlib's Gaussian formula.
   let _ : IsProbabilityMeasure
       (Action.measure (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹)) := hprob
-  refine Measure.ext_of_charFun <| funext fun t => ?_
-  rw [charFun_quadraticAction_measure K hK t]
-  rw [ProbabilityTheory.charFun_multivariateGaussian hK.posSemidef t]
-  simp [quadraticAction]
-  ring_nf
+  exact Measure.ext_of_charFun <| funext fun t => by
+    rw [charFun_quadraticAction_measure K hK t,
+      ProbabilityTheory.charFun_multivariateGaussian hK.posSemidef t]
+    simp [quadraticAction]
+    ring_nf
 
 @[simp] theorem gaussianExpectation_eq_integral {ι : Type uI} [Fintype ι] [DecidableEq ι]
     {E : Type uE} [NormedAddCommGroup E] [NormedSpace ℝ E]
