@@ -50,11 +50,9 @@ private lemma pi_map_neg_invariant {ι : Type*} [Fintype ι] {α : Type*} [Measu
     [Neg α] [MeasurableNeg α] (μ : ι → Measure α) [∀ i, IsProbabilityMeasure (μ i)]
     (hμ : ∀ i, (μ i).map (fun x : α => -x) = μ i) :
     (Measure.pi μ).map (fun f : ι → α => -f) = Measure.pi μ := by
-  classical
-  have hIndep : iIndepFun (fun i : ι => fun f : ι → α => -f i) (Measure.pi μ) := by
-    simpa using
-      (iIndepFun_pi (μ := μ) (X := fun _ : ι => fun x : α => -x)
-        (mX := fun i => (by fun_prop : Measurable fun x : α => -x).aemeasurable))
+  have hIndep : iIndepFun (fun i : ι => fun f : ι → α => -f i) (Measure.pi μ) :=
+    iIndepFun_pi (μ := μ) (X := fun _ : ι => fun x : α => -x)
+      (mX := fun _ => (by fun_prop : Measurable fun x : α => -x).aemeasurable)
   have hmap := iIndepFun.map_fun_eq_pi_map
     (μ := Measure.pi μ)
     (f := fun (i : ι) (f : ι → α) => -f i)
@@ -68,17 +66,13 @@ private lemma pi_map_neg_invariant {ι : Type*} [Fintype ι] {α : Type*} [Measu
           funext i
           calc
             (Measure.pi μ).map (fun f : ι → α => -f i)
-                = ((Measure.pi μ).map (fun f : ι → α => f i)).map (fun x : α => -x) := by
-                  rw [show (fun f : ι → α => -f i) =
-                      (fun x : α => -x) ∘ (fun f : ι → α => f i) from rfl]
-                  rw [Measure.map_map (by fun_prop : Measurable fun x : α => -x)
-                    (measurable_pi_apply i)]
-            _ = (μ i).map (fun x : α => -x) := by
-                  rw [(measurePreserving_eval μ i).map_eq]
-    _ = Measure.pi μ := by
-          congr 1
-          funext i
-          exact hμ i
+                = ((Measure.pi μ).map (fun f : ι → α => f i)).map (fun x : α => -x) :=
+                  (Measure.map_map (g := fun x : α => -x) (f := fun f : ι → α => f i)
+                    (by fun_prop : Measurable fun x : α => -x) (measurable_pi_apply i)).symm
+            _ = (μ i).map (fun x : α => -x) :=
+                  congrArg (fun ν : Measure α => ν.map (fun x : α => -x))
+                    (measurePreserving_eval μ i).map_eq
+    _ = Measure.pi μ := congrArg Measure.pi (funext hμ)
 
 /-- Negate the weights and biases of the final affine layer of a structured parameter tuple. -/
 noncomputable def negLastLayer {m n : ℕ} : (S : MLPShape m n) → S.Params → S.Params
@@ -92,7 +86,6 @@ theorem measurable_negLastLayer {m n : ℕ} (S : MLPShape m n) : Measurable (neg
       dsimp [negLastLayer]
       fun_prop
   | hidden tail ih =>
-      dsimp [negLastLayer]
       exact measurable_fst.prodMk (ih.comp measurable_snd)
 
 /-- Negating the final layer's weights and biases negates the deep-linear output pointwise. -/
@@ -107,32 +100,12 @@ theorem eval_negLastLayer {m n : ℕ} (S : MLPShape m n) (θ : S.Params) (x : Fi
       funext j
       simp only [negLastLayer, DenseLayer.ofParams, DenseLayer.preactivation_apply]
       have hsum : (∑ i : Fin m₀, (-θ.1 j i) * x i) = -(∑ i : Fin m₀, θ.1 j i * x i) := by
-        rw [← Finset.sum_neg_distrib]
-        refine Finset.sum_congr rfl ?_
-        intro i _
-        ring
+        simp [Finset.sum_neg_distrib]
       rw [hsum]
       simp [DenseLayer.preactivation_apply]
       ring
   | hidden tail ih =>
-      rename_i m₀ n₀ k
-      simp only [MLPShape.eval_hidden, negLastLayer]
-      calc
-        MLPShape.eval tail (linear 1) (negLastLayer tail θ.2)
-            ((DenseLayer.ofParams θ.1).activate (linear 1) x)
-            = MLPShape.eval tail (linear 1) (negLastLayer tail θ.2)
-                ((DenseLayer.ofParams θ.1).preactivation x) := by
-              exact congrArg (MLPShape.eval tail (linear 1) (negLastLayer tail θ.2)) (by
-                funext y
-                simp [DenseLayer.activate, linear, one_mul])
-        _ = -MLPShape.eval tail (linear 1) θ.2
-              ((DenseLayer.ofParams θ.1).preactivation x) := by
-              exact ih θ.2 ((DenseLayer.ofParams θ.1).preactivation x)
-        _ = -MLPShape.eval tail (linear 1) θ.2
-              ((DenseLayer.ofParams θ.1).activate (linear 1) x) := by
-              exact congrArg Neg.neg (congrArg (MLPShape.eval tail (linear 1) θ.2) (by
-                funext y
-                simp [DenseLayer.activate, linear, one_mul]))
+      exact ih θ.2 ((DenseLayer.ofParams θ.1).activate (linear 1) x)
 
 /-- The Gaussian initialization law is invariant under `negLastLayer`. -/
 theorem gaussianInit_negLastLayer {m n : ℕ} (S : MLPShape m n) (Cw : ℝ≥0) :
@@ -144,29 +117,23 @@ theorem gaussianInit_negLastLayer {m n : ℕ} (S : MLPShape m n) (Cw : ℝ≥0) 
       let p : InitHyperparams := DeepLinear.hyperparams Cw
       have hgW : ∀ i : Fin m₀,
           (gaussianReal 0 (scaledWeightVariance p (Fin m₀))).map (fun x : ℝ => -x) =
-            gaussianReal 0 (scaledWeightVariance p (Fin m₀)) := by
-        intro i
-        simpa using
-          (ProbabilityTheory.gaussianReal_map_neg (μ := (0 : ℝ))
-            (v := scaledWeightVariance p (Fin m₀)))
+            gaussianReal 0 (scaledWeightVariance p (Fin m₀)) :=
+        fun _ => by
+          simpa using gaussianReal_map_neg (μ := (0 : ℝ)) (v := scaledWeightVariance p (Fin m₀))
       have hgB : ∀ j : Fin n₀,
           (gaussianReal 0 p.biasVariance).map (fun x : ℝ => -x) =
-            gaussianReal 0 p.biasVariance := by
-        intro j
-        simpa using
-          (ProbabilityTheory.gaussianReal_map_neg (μ := (0 : ℝ)) (v := p.biasVariance))
+            gaussianReal 0 p.biasVariance :=
+        fun _ => by simpa using gaussianReal_map_neg (μ := (0 : ℝ)) (v := p.biasVariance)
       have hW : (gaussianWeightLaw p (Fin m₀) (Fin n₀)).map
-          (fun W : Fin n₀ → Fin m₀ → ℝ => -W) = gaussianWeightLaw p (Fin m₀) (Fin n₀) := by
-        unfold gaussianWeightLaw
-        exact pi_map_neg_invariant
+          (fun W : Fin n₀ → Fin m₀ → ℝ => -W) = gaussianWeightLaw p (Fin m₀) (Fin n₀) :=
+        pi_map_neg_invariant
           (μ := fun _ : Fin n₀ => Measure.pi fun _ : Fin m₀ =>
             gaussianReal 0 (scaledWeightVariance p (Fin m₀)))
           (fun _ => pi_map_neg_invariant
             (μ := fun _ : Fin m₀ => gaussianReal 0 (scaledWeightVariance p (Fin m₀))) hgW)
       have hB : (gaussianBiasLaw p (Fin n₀)).map (fun b : Fin n₀ → ℝ => -b) =
-          gaussianBiasLaw p (Fin n₀) := by
-        unfold gaussianBiasLaw
-        exact pi_map_neg_invariant (μ := fun _ : Fin n₀ => gaussianReal 0 p.biasVariance) hgB
+          gaussianBiasLaw p (Fin n₀) :=
+        pi_map_neg_invariant (μ := fun _ : Fin n₀ => gaussianReal 0 p.biasVariance) hgB
       have : SFinite (gaussianWeightLaw p (Fin m₀) (Fin n₀)) := by
         unfold gaussianWeightLaw
         infer_instance
@@ -175,48 +142,24 @@ theorem gaussianInit_negLastLayer {m n : ℕ} (S : MLPShape m n) (Cw : ℝ≥0) 
         infer_instance
       have hmap : Measure.map (negLastLayer (MLPShape.output : MLPShape m₀ n₀))
           (layerGaussianInit p (Fin m₀) (Fin n₀)) = layerGaussianInit p (Fin m₀) (Fin n₀) := by
-        dsimp [negLastLayer]
-        rw [layerGaussianInit]
-        calc
-          Measure.map (fun q : LayerParams (Fin m₀) (Fin n₀) =>
-              (fun j i => -q.1 j i, fun j => -q.2 j))
-              ((gaussianWeightLaw p (Fin m₀) (Fin n₀)).prod (gaussianBiasLaw p (Fin n₀)))
-              = ((gaussianWeightLaw p (Fin m₀) (Fin n₀)).map
-                    (fun W : Fin n₀ → Fin m₀ → ℝ => -W)).prod
-                  ((gaussianBiasLaw p (Fin n₀)).map (fun b : Fin n₀ → ℝ => -b)) := by
-                exact (Measure.map_prod_map
-                  (μa := gaussianWeightLaw p (Fin m₀) (Fin n₀))
-                  (μc := gaussianBiasLaw p (Fin n₀))
-                  (hf := measurable_neg) (hg := measurable_neg)).symm
-          _ = (gaussianWeightLaw p (Fin m₀) (Fin n₀)).prod (gaussianBiasLaw p (Fin n₀)) := by
-                rw [hW, hB]
+        change Measure.map (Prod.map (fun W : Fin n₀ → Fin m₀ → ℝ => -W)
+            (fun b : Fin n₀ → ℝ => -b))
+            ((gaussianWeightLaw p (Fin m₀) (Fin n₀)).prod (gaussianBiasLaw p (Fin n₀))) =
+          (gaussianWeightLaw p (Fin m₀) (Fin n₀)).prod (gaussianBiasLaw p (Fin n₀))
+        rw [← Measure.map_prod_map (μa := gaussianWeightLaw p (Fin m₀) (Fin n₀))
+          (μc := gaussianBiasLaw p (Fin n₀)) (hf := measurable_neg) (hg := measurable_neg),
+          hW, hB]
       simpa [p, MLPShape.gaussianInit, MLPShape.deepLinearHyperparams] using hmap
   | hidden tail ih =>
       rename_i m₀ n₀ k
-      let μ₁ : Measure (LayerParams (Fin m₀) (Fin k)) :=
-        layerGaussianInit (DeepLinear.hyperparams Cw) (Fin m₀) (Fin k)
-      let ν : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)
-      have : IsProbabilityMeasure μ₁ := by
-        dsimp [μ₁]
-        exact isProbabilityMeasure_layerGaussianInit (DeepLinear.hyperparams Cw) (Fin m₀) (Fin k)
-      have : IsProbabilityMeasure ν := by
-        dsimp [ν]
-        exact tail.isProbabilityMeasure_gaussianInit (tail.deepLinearHyperparams Cw)
-      have : SFinite μ₁ := inferInstance
-      have : SFinite ν := inferInstance
+      let μ₁ := layerGaussianInit (DeepLinear.hyperparams Cw) (Fin m₀) (Fin k)
+      let ν := tail.gaussianInit (tail.deepLinearHyperparams Cw)
       have hmap : Measure.map (negLastLayer (MLPShape.hidden tail : MLPShape m₀ n₀))
           (μ₁.prod ν) = μ₁.prod ν := by
-        dsimp [negLastLayer]
-        calc
-          Measure.map (fun q : LayerParams (Fin m₀) (Fin k) × tail.Params =>
-              (q.1, negLastLayer tail q.2)) (μ₁.prod ν)
-              = (μ₁.map id).prod (ν.map (negLastLayer tail)) := by
-                exact (Measure.map_prod_map (μa := μ₁) (μc := ν)
-                  (hf := measurable_id) (hg := measurable_negLastLayer tail)).symm
-          _ = μ₁.prod ν := by
-                dsimp [ν]
-                rw [ih]
-                simp
+        change Measure.map (Prod.map id (negLastLayer tail)) (μ₁.prod ν) = μ₁.prod ν
+        rw [← Measure.map_prod_map (μa := μ₁) (μc := ν)
+          (hf := measurable_id) (hg := measurable_negLastLayer tail), ih]
+        simp [ν]
       simpa [μ₁, ν, MLPShape.gaussianInit, MLPShape.deepLinearHyperparams] using hmap
 
 /-- The one-input deep-linear output law is invariant under the coordinatewise sign flip.
@@ -232,63 +175,41 @@ moments in <https://en.wikipedia.org/wiki/Isserlis%27s_theorem>.
 theorem deepLinearOutputLaw_isNegInvariant {dIn dOut : ℕ} (S : MLPShape dIn dOut)
     (Cw : ℝ≥0) (x : Fin dIn → ℝ) :
     Measure.IsNegInvariant (S.deepLinearOutputLaw Cw x) := ⟨by
-  rw [Measure.neg_def]
   let μ₀ : Measure S.Params := S.gaussianInit (S.deepLinearHyperparams Cw)
   let F : S.Params → Fin dOut → ℝ := fun θ => S.eval (linear 1) θ x
-  have hF_meas : Measurable F := by
-    dsimp [F]
-    exact (S.measurable_eval (measurable_linear 1)).comp (measurable_id.prodMk measurable_const)
+  have hF_meas : Measurable F :=
+    (S.measurable_eval (measurable_linear 1)).comp (measurable_id.prodMk measurable_const)
   have hJ_meas : Measurable (negLastLayer S) := measurable_negLastLayer S
-  have hJ_inv : Measure.map (negLastLayer S) μ₀ = μ₀ := by
-    dsimp [μ₀]
-    exact gaussianInit_negLastLayer S Cw
-  have hG : (fun θ : S.Params => -(S.eval (linear 1) θ x)) =
-      (fun θ : S.Params => F (negLastLayer S θ)) := by
-    funext θ
-    dsimp [F]
-    rw [eval_negLastLayer S θ x]
+  have hJ_inv : Measure.map (negLastLayer S) μ₀ = μ₀ := gaussianInit_negLastLayer S Cw
   calc
     (S.deepLinearOutputLaw Cw x).map (fun z : Fin dOut → ℝ => -z)
-        = (μ₀.map F).map (fun z : Fin dOut → ℝ => -z) := by
-          unfold MLPShape.deepLinearOutputLaw
-          dsimp [μ₀, F]
-    _ = μ₀.map (fun θ : S.Params => -F θ) := by
-          rw [Measure.map_map (by fun_prop : Measurable fun z : Fin dOut → ℝ => -z) hF_meas]
-          rfl
+        = (μ₀.map F).map (fun z : Fin dOut → ℝ => -z) := rfl
+    _ = μ₀.map (fun θ : S.Params => -F θ) :=
+          Measure.map_map (g := fun z : Fin dOut → ℝ => -z) (f := F)
+            (by fun_prop : Measurable fun z : Fin dOut → ℝ => -z) hF_meas
     _ = μ₀.map (fun θ : S.Params => F (negLastLayer S θ)) := by
-          apply congrArg (fun G : S.Params → Fin dOut → ℝ => μ₀.map G)
+          congr 1
           funext θ
-          dsimp [F]
-          rw [eval_negLastLayer S θ x]
-    _ = (μ₀.map (negLastLayer S)).map F := by
-          change μ₀.map (F ∘ negLastLayer S) = (μ₀.map (negLastLayer S)).map F
-          exact (Measure.map_map hF_meas hJ_meas).symm
+          exact (eval_negLastLayer S θ x).symm
+    _ = (μ₀.map (negLastLayer S)).map F := (Measure.map_map hF_meas hJ_meas).symm
     _ = μ₀.map F := by
           rw [hJ_inv]
-    _ = S.deepLinearOutputLaw Cw x := by
-          unfold MLPShape.deepLinearOutputLaw
-          dsimp [μ₀, F]
+    _ = S.deepLinearOutputLaw Cw x := rfl
   ⟩
 
 -- The monomial `z ↦ ∏ r, z (a r)` in coordinate projections is measurable: each coordinate
 -- projection is measurable and finite products of measurable functions are measurable.
 private lemma measurable_monomial {κ : Type*} {n : ℕ} (a : Fin n → κ) :
-    Measurable (fun z : κ → ℝ => ∏ r : Fin n, z (a r)) := by
-  exact Finset.measurable_prod Finset.univ (fun r _ => measurable_pi_apply (a r))
+    Measurable (fun z : κ → ℝ => ∏ r : Fin n, z (a r)) :=
+  Finset.measurable_prod Finset.univ (fun r _ => measurable_pi_apply (a r))
 
 -- A monomial of odd degree is an odd function of its arguments: negating the vector `z` negates
 -- the whole product.  `Finset.prod_neg` factors out `(-1) ^ n`, and `Odd.neg_one_pow` collapses
 -- that factor to `-1` because `n` is odd.
 private lemma odd_monomial_neg {κ : Type*} {n : ℕ} (hn : Odd n) (a : Fin n → κ) (z : κ → ℝ) :
     (∏ r : Fin n, (-z) (a r)) = -∏ r : Fin n, z (a r) := by
-  calc
-    (∏ r : Fin n, (-z) (a r)) = ∏ r : Fin n, -(z (a r)) := by
-      simp
-    _ = (-1 : ℝ) ^ Fintype.card (Fin n) * ∏ r : Fin n, z (a r) := by
-      simpa using
-        (Finset.prod_neg (s := Finset.univ) (f := fun r : Fin n => z (a r)))
-    _ = -∏ r : Fin n, z (a r) := by
-      simp [Fintype.card_fin, hn.neg_one_pow]
+  simpa [Fintype.card_fin, hn.neg_one_pow] using
+    Finset.prod_neg (s := Finset.univ) (f := fun r : Fin n => z (a r))
 
 /-- Every odd joint output moment vanishes.
 
@@ -301,25 +222,64 @@ theorem jointMoment_outputLaw_odd {dIn dOut : ℕ} (S : MLPShape dIn dOut)
     (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m + 1) → Fin dOut)
     (_hIn : 0 < dIn) (_hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x = 0 := by
-  classical
-  -- The output law is invariant under the global sign flip `z ↦ -z`.
-  have hneg : Measure.IsNegInvariant (S.deepLinearOutputLaw Cw x) :=
-    deepLinearOutputLaw_isNegInvariant S Cw x
-  -- `F` is the odd monomial `z ↦ ∏ r, z (a r)`: it is measurable, and it is odd because there
-  -- are `2m + 1` (an odd number of) factors, so its integral against the sign-invariant law
-  -- vanishes by `integral_eq_zero_of_odd_of_aestronglyMeasurable`.
   let F : (Fin dOut → ℝ) → ℝ := fun z => ∏ r, z (a r)
-  have hF : AEStronglyMeasurable F (S.deepLinearOutputLaw Cw x) := by
-    apply Measurable.aestronglyMeasurable
-    dsimp [F]
-    exact measurable_monomial a
-  have hodd : ∀ z : Fin dOut → ℝ, F (-z) = -F z := by
-    intro z
-    dsimp [F]
-    exact odd_monomial_neg (hn := odd_two_mul_add_one m) (a := a) (z := z)
-  simpa [F] using
-    @Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable
-      (Fin dOut → ℝ) _ _ _ (S.deepLinearOutputLaw Cw x) hneg F hF hodd
+  let : Measure.IsNegInvariant (S.deepLinearOutputLaw Cw x) :=
+    deepLinearOutputLaw_isNegInvariant S Cw x
+  have hF : AEStronglyMeasurable F (S.deepLinearOutputLaw Cw x) :=
+    (measurable_monomial a).aestronglyMeasurable
+  have hodd : ∀ z : Fin dOut → ℝ, F (-z) = -F z :=
+    fun z => odd_monomial_neg (hn := odd_two_mul_add_one m) (a := a) (z := z)
+  exact Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable
+    (S.deepLinearOutputLaw Cw x) hF hodd
+
+/-- Base case of `jointMoment_outputLaw_even`: a single bias-free Gaussian layer.
+
+Informal proof: `deepLinearOutputLaw` for `MLPShape.output` is exactly `oneLayerOutputLaw`.
+That law is a product of centered real Gaussians with variance
+`(Cw : ℝ) * NeuralNetwork.normalizedEnergy x`; Wick/Isserlis then gives the Kronecker pairing sum
+`pairingTensor a` and one variance factor for each of the `m` pairs.  The hidden-width list is
+empty, so `correlatorAmplitude` reduces to `((Cw : ℝ) * normalizedEnergy x) ^ m`.
+Source: Wick's theorem, <https://en.wikipedia.org/wiki/Isserlis%27s_theorem>, and the one-layer
+law API in `GaussianLayer.lean`.
+-/
+private lemma jointMoment_outputLaw_output_even {dIn dOut : ℕ}
+    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut)
+    (_hIn : 0 < dIn) :
+    ∫ z, (∏ r, z (a r))
+        ∂(MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+      pairingTensor a *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+          (MLPShape.output : MLPShape dIn dOut).hiddenWidths := by
+  sorry
+
+/-- Inductive step for `jointMoment_outputLaw_even` through one hidden layer.
+
+Informal proof: rewrite the output law of `.hidden tail` as the Markov composition obtained by
+first sampling the initial layer output `y ∼ oneLayerOutputLaw Cw x` and then sampling the tail
+network from input `y`.  Apply the induction hypothesis to the inner tail integral.  The only
+remaining integral is
+`∫ (normalizedEnergy y)^m ∂oneLayerOutputLaw Cw x`, evaluated by
+`integral_normalizedEnergy_pow_randomLayerKernel`; its width factor is exactly the new head hidden
+width.  The deterministic algebra is the `hiddenWidthCorrection_cons`/`correlatorAmplitude`
+recursion.  This is the recursive correlator computation in `docs/Renormalization.md`, equations
+`eq:deep-linear-recursion-relation-2m` and `eq:2m-full-solution`.
+-/
+private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
+    (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
+    (a : Fin (2 * m) → Fin dOut)
+    (hIn : 0 < dIn)
+    (hWidths : ∀ n ∈ (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths, 0 < n)
+    (ih : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin dOut),
+        0 < k → (∀ n ∈ tail.hiddenWidths, 0 < n) →
+        ∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y =
+          pairingTensor a *
+            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths) :
+    ∫ z, (∏ r, z (a r))
+        ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+      pairingTensor a *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+          (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths := by
+  sorry
 
 /-- Exact even joint output moment at arbitrary finite positive widths.
 
@@ -336,7 +296,11 @@ theorem jointMoment_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
     ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x =
       pairingTensor a *
         correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
-  sorry
+  induction S with
+  | output =>
+      exact jointMoment_outputLaw_output_even Cw x m a hIn
+  | hidden tail ih =>
+      exact jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ih
 
 /-- Exact even moment of one output coordinate.
 

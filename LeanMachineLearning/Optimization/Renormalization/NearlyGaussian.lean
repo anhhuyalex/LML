@@ -64,6 +64,34 @@ def potential {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m)
 def Nonnegative {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m) : Prop :=
   ∀ z, 0 ≤ s.potential z
 
+/-- An even homogeneous potential is invariant under the global sign flip.
+
+Informal proof: each monomial has degree `2m`, so replacing every coordinate by its negative
+contributes the factor `(-1)^(2m)=1`; the scalar factor and the finite sum preserve the equality. -/
+theorem potential_neg {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m)
+    (z : EuclideanSpace ℝ ι) :
+    s.potential (-z) = s.potential z := by
+  unfold EvenCoupling.potential
+  congr 1
+  exact Finset.sum_congr rfl (fun q _hq => by
+    congr 1
+    -- `coordinateMonomial q (-z) = coordinateMonomial q z`: an even number of sign flips
+    dsimp [coordinateMonomial]
+    rw [Finset.prod_neg]
+    have hcard : (Finset.univ : Finset (Fin (2 * m))).card = 2 * m := by simp
+    have heven : Even (2 * m) := ⟨m, by ring⟩
+    rw [hcard, Even.neg_one_pow heven]
+    simp)
+
+/-- An even homogeneous potential is continuous.
+
+Informal proof: coordinate evaluation is continuous on Euclidean space; finite products, scalar
+multiples, and finite sums of continuous real-valued functions remain continuous. -/
+theorem continuous_potential {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m) :
+    Continuous s.potential := by
+  unfold EvenCoupling.potential coordinateMonomial
+  fun_prop
+
 end EvenCoupling
 
 /-- A parity-even polynomial action with interactions through a finite cutoff.  Couplings below
@@ -114,7 +142,8 @@ Informal proof: `Finset.Icc 2 2` contains only two, the assigned scaling is `ε^
 theorem interactionPotential_ofQuartic (P : Matrix ι ι ℝ) (A : QuarticCoupling ι)
     (ε : ℝ) (z : EuclideanSpace ℝ ι) :
     (ofQuartic P A).interactionPotential ε z = ε * A.potential z := by
-  sorry
+  simp [interactionPotential, ofQuartic, EvenCoupling.potential, EvenCoupling.ofQuartic,
+    QuarticCoupling.potential, coordinateMonomial]
 
 /-- The full action is invariant under the global sign flip.
 
@@ -125,7 +154,31 @@ preserve the equality.  Source: the parity discussion preceding
 -/
 theorem potential_neg (A : EvenAction ι) (ε : ℝ) (z : EuclideanSpace ℝ ι) :
     A.potential ε (-z) = A.potential ε z := by
-  sorry
+  dsimp [EvenAction.potential]
+  have hquad : quadraticAction A.precision (-z) = quadraticAction A.precision z := by
+    simp [quadraticAction, mulVec_neg]
+  have hint : A.interactionPotential ε (-z) = A.interactionPotential ε z := by
+    unfold EvenAction.interactionPotential
+    apply Finset.sum_congr rfl
+    intro m _hm
+    rw [EvenCoupling.potential_neg (A.coupling m) z]
+  rw [hquad, hint]
+
+/-- The quadratic action with a fixed precision matrix is continuous.
+
+Informal proof: unfolding the dot-product and matrix-vector product, the quadratic action is a
+finite sum of products of coordinate projections, hence continuous. -/
+theorem quadraticAction_continuous (P : Matrix ι ι ℝ) : Continuous (quadraticAction P) := by
+  unfold quadraticAction dotProduct mulVec
+  fun_prop
+
+/-- The full hierarchical even action is continuous. -/
+theorem continuous_potential (A : EvenAction ι) (ε : ℝ) : Continuous (A.potential ε) := by
+  unfold EvenAction.potential
+  exact (quadraticAction_continuous A.precision).add (by
+    unfold EvenAction.interactionPotential
+    exact continuous_finsetSum (Finset.Icc 2 A.cutoff) (fun m _hm => by
+      exact (EvenCoupling.continuous_potential (A.coupling m)).const_mul (ε ^ (m - 1))))
 
 /-- The interaction-deformed Gaussian law is sign-flip invariant.
 
@@ -136,7 +189,62 @@ in `docs/Renormalization.md`, lines 457--459 and the nearly-Gaussian action subs
 -/
 theorem measure_isNegInvariant (A : EvenAction ι) (ε : ℝ) :
     (A.measure ε).IsNegInvariant := by
-  sorry
+  let g : EuclideanSpace ℝ ι → ℝ := fun x => -(A.potential ε x)
+  have hg : ∀ x, g (-x) = g x := by
+    intro x
+    dsimp [g]
+    congr 1
+    exact potential_neg A ε x
+  have hgmeas : Measurable g := by
+    dsimp [g]
+    exact (continuous_potential A ε).neg.measurable
+  refine ⟨?_⟩
+  rw [Measure.neg_def, EvenAction.measure, Action.measure]
+  apply Measure.ext
+  intro s hs
+  rw [Measure.map_apply measurable_neg hs]
+  rw [MeasureTheory.tilted_apply_eq_ofReal_integral' g (measurable_neg hs)]
+  rw [MeasureTheory.tilted_apply_eq_ofReal_integral' g hs]
+  congr 1
+  let C : ℝ := ∫ x, Real.exp (g x) ∂volume
+  let F : EuclideanSpace ℝ ι → ℝ := fun a => Real.exp (g a) / C
+  have hFneg : ∀ a, F (-a) = F a := by
+    intro a
+    dsimp [F]
+    rw [hg a]
+  have hFmeas : Measurable F := by
+    dsimp [F]
+    exact (Real.continuous_exp.measurable.comp hgmeas).div_const C
+  have hvol_neg : (volume : Measure (EuclideanSpace ℝ ι)).map (fun x => -x) = volume := by
+    exact Measure.map_neg_eq_self (volume : Measure (EuclideanSpace ℝ ι))
+  have hset : ∫ a in (fun x => -x) ⁻¹' s, F a ∂volume = ∫ a in s, F (-a) ∂volume := by
+    calc
+      ∫ a in (fun x => -x) ⁻¹' s, F a ∂volume
+          = ∫ a in (fun x => -x) ⁻¹' s, F a
+              ∂((volume : Measure (EuclideanSpace ℝ ι)).map (fun x => -x)) := by
+            rw [hvol_neg]
+      _ = ∫ x, ((fun x => -x) ⁻¹' s).indicator F x
+              ∂((volume : Measure (EuclideanSpace ℝ ι)).map (fun x => -x)) := by
+            rw [← MeasureTheory.integral_indicator (measurable_neg hs)]
+      _ = ∫ x, ((fun x => -x) ⁻¹' s).indicator F ((fun x => -x) x) ∂volume := by
+            exact MeasureTheory.integral_map measurable_neg.aemeasurable
+              (hFmeas.indicator (measurable_neg hs)).aestronglyMeasurable
+      _ = ∫ x, s.indicator (fun x => F (-x)) x ∂volume := by
+            congr 1
+            funext x
+            by_cases hx : x ∈ s
+            · have hx' : (-x) ∈ -s := Set.neg_mem_neg.mpr hx
+              simp [hx, hx']
+            · have hx' : (-x) ∉ -s := fun h => hx (Set.neg_mem_neg.mp h)
+              simp [hx, hx']
+      _ = ∫ x in s, F (-x) ∂volume := by
+            rw [MeasureTheory.integral_indicator hs]
+  calc
+    ∫ a in (fun x => -x) ⁻¹' s, F a ∂volume = ∫ a in s, F (-a) ∂volume := hset
+    _ = ∫ a in s, F a ∂volume := by
+          congr 1
+          funext a
+          rw [hFneg a]
 
 end EvenAction
 
@@ -159,6 +267,18 @@ def HierarchicallyNearlyGaussian {Ω : Type uΩ} {ι : Type uI} [MeasurableSpace
     ParametricallySmall l (m - 1)
       (fun ε => jointCumulant (law ε) (fun r : Fin (2 * m) => X (index r)))
 
+/-- On a right-neighborhood of zero, a higher power of `ε` is `O` of a lower one.
+
+Informal proof: eventually `0 ≤ ε ≤ 1`, so `ε^b ≤ ε^a` whenever `a ≤ b`. -/
+private lemma pow_isBigO_nhdsWithin_Ici (a b : ℕ) (hab : a ≤ b) :
+    (fun ε : ℝ => ε ^ b) =O[nhdsWithin 0 (Set.Ici 0)] (fun ε : ℝ => ε ^ a) := by
+  refine Asymptotics.IsBigO.of_bound 1 ?_
+  filter_upwards [self_mem_nhdsWithin,
+    (mem_nhdsWithin_of_mem_nhds (Iio_mem_nhds (by norm_num : (0 : ℝ) < 1)))] with ε hε0 hε1
+  have hε0' : 0 ≤ ε := Set.mem_Ici.mp hε0
+  rw [one_mul, Real.norm_of_nonneg (pow_nonneg hε0' _), Real.norm_of_nonneg (pow_nonneg hε0' _)]
+  exact pow_le_pow_of_le_one hε0' (le_of_lt hε1) hab
+
 /-- A hierarchical family is nearly Gaussian on a neighborhood of zero.
 
 Informal proof: for `m≥2`, `ε^(m-1)=O(ε)` near zero.  Odd cumulants vanish for the even-action
@@ -173,7 +293,31 @@ theorem HierarchicallyNearlyGaussian.nearlyGaussian_of_odd_eq_zero
     (hodd : ∀ n : ℕ, Odd n → ∀ index : Fin n → ι,
       (fun ε => jointCumulant (law ε) (fun r : Fin n => X (index r))) = 0) :
     NearlyGaussian law X (nhdsWithin 0 (Set.Ici 0)) := by
-  sorry
+  intro n hn index
+  by_cases hnodd : Odd n
+  · -- odd order: the cumulant is identically zero, and `0 = O(ε)`
+    have hzero : (fun ε => jointCumulant (law ε) (fun r : Fin n => X (index r))) = 0 :=
+      hodd n hnodd index
+    simpa [ParametricallySmall, hzero] using
+      (Asymptotics.isBigO_of_le (nhdsWithin 0 (Set.Ici 0)) (fun x : ℝ => by simp))
+  · -- even order: `n = 2*m` with `2 ≤ m`; use the hierarchy and `ε^(m-1) = O(ε)`
+    have heven_n : Even n := Nat.not_odd_iff_even.mp hnodd
+    rcases heven_n with ⟨m, hm⟩
+    have hm2 : 2 ≤ m := by omega
+    let e : Fin n ≃ Fin (2 * m) := Equiv.cast (by rw [hm]; ring)
+    have hcore : (fun ε : ℝ => jointCumulant (law ε) (fun r : Fin n => X (index r))) =O[
+        nhdsWithin 0 (Set.Ici 0)] (fun ε : ℝ => ε ^ (m - 1)) := by
+      have hpoint : (fun ε : ℝ =>
+          jointCumulant (law ε) (fun j : Fin (2 * m) => X (index (e.symm j)))) =
+          fun ε : ℝ => jointCumulant (law ε) (fun r : Fin n => X (index r)) := by
+        funext ε
+        exact jointCumulant_perm e (fun i : Fin n => X (index i))
+      simpa [ParametricallySmall, hpoint] using
+        h m hm2 (fun j : Fin (2 * m) => index (e.symm j))
+    have hpow : (fun ε : ℝ => ε ^ (m - 1)) =O[nhdsWithin 0 (Set.Ici 0)]
+        (fun ε : ℝ => ε ^ 1) := by
+      exact pow_isBigO_nhdsWithin_Ici 1 (m - 1) (by omega)
+    simpa [ParametricallySmall] using (hcore.trans hpow)
 
 /-- Linked-cluster hierarchy for the explicitly scaled even action.
 
@@ -229,6 +373,9 @@ theorem HierarchicallyNearlyGaussian.truncationAccurateTo
     {law : ℝ → Measure Ω} {X : ι → Ω → ℝ} {k : ℕ}
     (h : HierarchicallyNearlyGaussian law X (nhdsWithin 0 (Set.Ici 0))) :
     TruncationAccurateTo law X k (nhdsWithin 0 (Set.Ici 0)) := by
+  -- NB: as stated, this needs the hierarchy bound for half-degree `m = 1` (the two-point
+  -- cumulant), which `HierarchicallyNearlyGaussian` does not supply (`2 ≤ m` is required); the
+  -- `m = 1` instance is not `O(1)` in general.  Left deferred.
   sorry
 
 /-! ## Parity consequences -/
@@ -239,11 +386,17 @@ Informal proof: a product of `n` coordinates changes by `(-1)^n=-1` under global
 `n` is odd.  Apply `integral_eq_zero_of_odd`.  Source: `docs/Renormalization.md`, lines 457--459.
 -/
 theorem jointMoment_coordinates_eq_zero_of_odd
-    {ι : Type uI} (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
+    {ι : Type uI} [Fintype ι] (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
     (n : ℕ) (hn : Odd n) (index : Fin n → ι)
     (hint : Integrable (coordinateMonomial index) ν) :
     jointMoment ν (fun r : Fin n => fun z => z (index r)) = 0 := by
-  sorry
+  have hodd : ∀ z : EuclideanSpace ℝ ι,
+      coordinateMonomial index (-z) = -coordinateMonomial index z := by
+    intro z
+    unfold coordinateMonomial
+    simp [Finset.prod_neg, hn.neg_one_pow]
+  simpa [jointMoment, blockMoment, coordinateMonomial] using
+    integral_eq_zero_of_odd ν hint hodd
 
 /-- Every odd connected coordinate correlator vanishes under parity symmetry.
 
@@ -254,12 +407,52 @@ is odd, every partition has an odd-cardinality block.  Its block moment is zero 
 `eq:schematic-action-decomposition`.
 -/
 theorem jointCumulant_coordinates_eq_zero_of_odd
-    {ι : Type uI}
+    {ι : Type uI} [Fintype ι]
     (ν : Measure (EuclideanSpace ℝ ι)) [ν.IsNegInvariant]
     (n : ℕ) (hn : Odd n) (index : Fin n → ι)
     (hfinite : HasFiniteJointMoments ν (fun r : Fin n => fun z => z (index r))) :
     jointCumulant ν (fun r : Fin n => fun z => z (index r)) = 0 := by
-  sorry
+  let X : Fin n → EuclideanSpace ℝ ι → ℝ := fun r z => z (index r)
+  have hB : ∀ B : Finset (Fin n), Odd B.card → blockMoment ν X B = 0 := by
+    intro B hB
+    apply integral_eq_zero_of_odd
+    · exact hfinite B
+    · intro z
+      dsimp [X]
+      simp [Finset.prod_neg, hB.neg_one_pow]
+  dsimp [jointCumulant, blockCumulant]
+  rw [Finpartition.cumulantTransform]
+  by_cases hempty : (Finset.univ : Finset (Fin n)) = ∅
+  · simp [hempty]
+  · rw [if_neg hempty]
+    apply Finset.sum_eq_zero
+    intro P hP
+    have hodd_block : ∃ B ∈ P.parts, Odd B.card := by
+      by_contra h
+      push Not at h
+      have hall_even : ∀ B ∈ P.parts, Even B.card := by
+        intro B hBmem
+        exact Nat.not_odd_iff_even.mp (h B hBmem)
+      have hsum_even : Even (∑ B ∈ P.parts, B.card) := by
+        refine ⟨∑ B ∈ P.parts, B.card / 2, ?_⟩
+        symm
+        calc
+          (∑ B ∈ P.parts, B.card / 2) + (∑ B ∈ P.parts, B.card / 2)
+              = ∑ B ∈ P.parts, (B.card / 2 + B.card / 2) := by
+                rw [Finset.sum_add_distrib]
+          _ = ∑ B ∈ P.parts, B.card := by
+                apply Finset.sum_congr rfl
+                intro B hBmem
+                rcases hall_even B hBmem with ⟨k, hk⟩
+                rw [hk]
+                omega
+      have hsum_odd : Odd (∑ B ∈ P.parts, B.card) := by
+        simpa [P.sum_card_parts] using hn
+      exact (Nat.not_even_iff_odd.mpr hsum_odd) hsum_even
+    rcases hodd_block with ⟨B, hBmem, hBodd⟩
+    rw [Finpartition.blockProduct]
+    rw [Finset.prod_eq_zero hBmem (hB B hBodd)]
+    simp
 
 /-! ## The six-point worked example -/
 
