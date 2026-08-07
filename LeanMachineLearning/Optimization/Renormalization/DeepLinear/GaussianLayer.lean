@@ -738,13 +738,16 @@ private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
   by_cases hk : k = 0
   · -- `k = 0`: `∫ X = n` (each `g i ^ 2` contributes `1`) and the right side is `n · ∫ 1 = n`.
     subst k
-    haveI : IsProbabilityMeasure (standardGaussianVectorLaw n) := by
+    have : IsProbabilityMeasure (standardGaussianVectorLaw n) := by
       dsimp [standardGaussianVectorLaw]
       infer_instance
     have hcoord (i : Fin n) :
         ∫ g : Fin n → ℝ, g i ^ 2 ∂standardGaussianVectorLaw n = 1 := by
       -- Stein's identity at `k = 0` gives `∫ g i ^ 2 · X ^ 0 = ∫ X ^ 0`.
       simpa using integral_coord_sq_mul_sumSq_pow_stdGaussian 0 n i
+    have hone : ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ 0)
+        ∂standardGaussianVectorLaw n = 1 := by
+      simp [hprob]
     calc
       ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ (0 + 1)) ∂standardGaussianVectorLaw n
           = ∫ g : Fin n → ℝ, (∑ i : Fin n, g i ^ 2) ∂standardGaussianVectorLaw n := by
@@ -752,12 +755,13 @@ private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
       _ = ∑ i : Fin n, ∫ g : Fin n → ℝ, g i ^ 2 ∂standardGaussianVectorLaw n := by
             exact (integral_finsetSum Finset.univ
               (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2)
-              (fun i _ => by simpa using integrable_sq_mul_sumSq_pow_stdGaussian 0 n i)).symm
+              (fun i _ => by simpa using integrable_sq_mul_sumSq_pow_stdGaussian 0 n i))
       _ = ∑ _i : Fin n, (1 : ℝ) := by
             simp [hcoord]
       _ = (n : ℝ) := by simp [Finset.sum_const, Fintype.card_fin]
       _ = ((n : ℝ) + 2 * 0) *
             ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ 0) ∂standardGaussianVectorLaw n := by
+            rw [hone]
             norm_num
   · -- `k = k' + 1`: factor `X ^ (k + 1) = X · X ^ k`, apply the coordinate Stein identity to
     -- each summand `g i ^ 2 · X ^ k`, and recombine `∑ g i ^ 2 · X ^ k' = X · X ^ k'`.
@@ -780,7 +784,7 @@ private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
               ∂standardGaussianVectorLaw n := by
             exact (integral_finsetSum Finset.univ
               (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1))
-              (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian (k' + 1) n i)).symm
+              (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian (k' + 1) n i))
       _ = ∑ i : Fin n,
             (∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
               (2 : ℝ) * (k' + 1) *
@@ -813,6 +817,7 @@ private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
               (integral_finsetSum Finset.univ
                 (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k')
                 (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian k' n i)).symm]
+            congr 2
             apply MeasureTheory.integral_congr_ae
             filter_upwards with g
             rw [← Finset.sum_mul]
@@ -827,7 +832,8 @@ private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
             rw [← pow_succ']
       _ = ((n : ℝ) + 2 * (k' + 1)) *
             ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n := by
-            ring_nf
+            rw [Nat.cast_succ]
+            ring
 
 /-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector.
 
