@@ -554,98 +554,163 @@ private lemma momentRecurrence_coefficient (k : ℕ) (M C : ℕ → ℝ)
             (((k - 1).choose j : ℝ) * C (k - 1 - j) * M (j + 1))) := by
           dsimp [A, B]
 
--- The sum of squares splits off coordinate `i`: `(∑ j, g j ^ 2) = g i ^ 2 + (rest sum)`.
--- Used to apply the one-dimensional Stein identity `integral_sq_mul_sq_add_pow_stdGaussian`
--- to a single coordinate while the remaining coordinates are held fixed.
-private lemma sumSq_eq_coord_add_rest {n : ℕ} (g : Fin n → ℝ) (i : Fin n) :
-    (∑ j : Fin n, g j ^ 2) = g i ^ 2 + ∑ j : {j : Fin n // j ≠ i}, g j ^ 2 := by
-  classical
-  calc
-    (∑ j : Fin n, g j ^ 2)
-        = (∑ j : {j : Fin n // j = i}, g j ^ 2) +
-            (∑ j : {j : Fin n // j ≠ i}, g j ^ 2) := by
-          simpa using (Fintype.sum_subtype_add_sum_subtype (fun j : Fin n => j = i)
-            (fun j => g j ^ 2)).symm
-    _ = g i ^ 2 + ∑ j : {j : Fin n // j ≠ i}, g j ^ 2 := by
-          congr 1
-          -- The `j = i`-subtype is a singleton, so its sum is just the value at `i`.
-          calc
-            (∑ j : {j : Fin n // j = i}, g j ^ 2)
-                = ∑ _j : {j : Fin n // j = i}, (g i ^ 2) := by
-                  refine Finset.sum_congr rfl ?_
-                  intro j _
-                  rw [show g (j : Fin n) = g i by exact congrArg g j.2]
-            _ = g i ^ 2 := by simp
-
--- Fubini for the split `standardGaussianVectorLaw n`: an integral over the product law of
--- coordinate `i` and of the remaining coordinates equals the iterated integral in which the
--- single coordinate is integrated first (so that the one-dimensional Stein identity applies).
+-- Fubini for the split `standardGaussianVectorLaw (m+1)`: splitting off coordinate `i` from
+-- `Fin (m+1)` via `i.succAbove` (so the remaining coordinates are indexed by `Fin m`), an
+-- integral over the product law equals the iterated integral in which the single coordinate is
+-- integrated first.  That order is what lets the one-dimensional Stein identity
+-- `integral_sq_mul_sq_add_pow_stdGaussian` apply inside the inner integral.
 -- The integrability hypothesis is carried by the caller; it is the only side condition Fubini
 -- requires.
-private lemma integral_split_coord (n : ℕ) (i : Fin n)
-    (F : ((j : {j : Fin n // j = i}) → ℝ) × ((j : {j : Fin n // j ≠ i}) → ℝ) → ℝ)
-    (hF : Integrable F ((Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1).prod
-      (Measure.pi fun _ : {j : Fin n // j ≠ i} => gaussianReal 0 1))) :
-    ∫ g : Fin n → ℝ,
-        F (MeasurableEquiv.piEquivPiSubtypeProd (fun _ : Fin n => ℝ) (fun j : Fin n => j = i) g)
-          ∂standardGaussianVectorLaw n =
-      ∫ y : {j : Fin n // j ≠ i} → ℝ,
-        ∫ z : {j : Fin n // j = i} → ℝ, F (z, y)
-          ∂(Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1)
-        ∂(Measure.pi fun _ : {j : Fin n // j ≠ i} => gaussianReal 0 1) := by
+private lemma integral_split_coord {m : ℕ} (i : Fin (m + 1))
+    (F : ℝ × (Fin m → ℝ) → ℝ)
+    (hF : Integrable F ((gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin m => gaussianReal 0 1))) :
+    ∫ g : Fin (m + 1) → ℝ, F (g i, fun j : Fin m => g (i.succAbove j))
+        ∂standardGaussianVectorLaw (m + 1) =
+      ∫ y : Fin m → ℝ, ∫ t : ℝ, F (t, y) ∂gaussianReal 0 1
+        ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
   classical
-  let e : (Fin n → ℝ) ≃ᵐ ({j : Fin n // j = i} → ℝ) × ({j : Fin n // j ≠ i} → ℝ) :=
-    MeasurableEquiv.piEquivPiSubtypeProd (fun _ : Fin n => ℝ) (fun j : Fin n => j = i)
-  have hp : MeasurePreserving e (standardGaussianVectorLaw n)
-      ((Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1).prod
-        (Measure.pi fun _ : {j : Fin n // j ≠ i} => gaussianReal 0 1)) := by
+  let e : (Fin (m + 1) → ℝ) ≃ᵐ ℝ × (Fin m → ℝ) :=
+    MeasurableEquiv.piFinSuccAbove (fun _ : Fin (m + 1) => ℝ) i
+  have hp : MeasurePreserving e (standardGaussianVectorLaw (m + 1))
+      ((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
     simpa [e, standardGaussianVectorLaw] using
-      (measurePreserving_piEquivPiSubtypeProd (fun _ : Fin n => gaussianReal 0 1)
-        (fun j : Fin n => j = i))
+      (measurePreserving_piFinSuccAbove (fun _ : Fin (m + 1) => gaussianReal 0 1) i)
   calc
-    ∫ g : Fin n → ℝ, F (e g) ∂standardGaussianVectorLaw n
-        = ∫ zy : ({j : Fin n // j = i} → ℝ) × ({j : Fin n // j ≠ i} → ℝ), F zy
-            ∂((Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1).prod
-              (Measure.pi fun _ : {j : Fin n // j ≠ i} => gaussianReal 0 1)) := by
+    ∫ g : Fin (m + 1) → ℝ, F (e g) ∂standardGaussianVectorLaw (m + 1)
+        = ∫ ty : ℝ × (Fin m → ℝ), F ty
+            ∂((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
           exact hp.integral_comp' F
-    _ = ∫ y : {j : Fin n // j ≠ i} → ℝ,
-          ∫ z : {j : Fin n // j = i} → ℝ, F (z, y)
-            ∂(Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1)
-        ∂(Measure.pi fun _ : {j : Fin n // j ≠ i} => gaussianReal 0 1) := by
+    _ = ∫ y : Fin m → ℝ, ∫ t : ℝ, F (t, y) ∂gaussianReal 0 1
+          ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
           exact MeasureTheory.integral_prod_symm F hF
 
--- Stein's identity for the single-coordinate factor of the split law: the coordinate is a
--- standard Gaussian, so `E[z₀² (z₀² + R)^k] = E[(z₀² + R)^k] + 2k · E[z₀² (z₀² + R)^(k-1)]`.
--- `R` is the (fixed) sum of squares of the remaining coordinates.
-private lemma integral_single_coord_stein (k : ℕ) {n : ℕ} (i : Fin n) (R : ℝ) :
-    ∫ z : {j : Fin n // j = i} → ℝ,
-        z ⟨i, rfl⟩ ^ 2 * (z ⟨i, rfl⟩ ^ 2 + R) ^ k
-          ∂(Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1) =
-      ∫ t : ℝ, (t ^ 2 + R) ^ k ∂gaussianReal 0 1 +
-        (2 : ℝ) * k * ∫ t : ℝ, t ^ 2 * (t ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 := by
+-- Integrability transport across the split `piFinSuccAbove` equivalence: a function is
+-- integrable on the split product law iff its pullback is integrable on the vector law.
+-- This is the integrability half of `integral_split_coord`; the equivalence is a measurable
+-- map, so `integrable_map_equiv` applies with no measurability side condition.
+private lemma integrable_split_coord_iff {m : ℕ} (i : Fin (m + 1))
+    (F : ℝ × (Fin m → ℝ) → ℝ) :
+    Integrable F ((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) ↔
+      Integrable (fun g : Fin (m + 1) → ℝ => F (g i, fun j : Fin m => g (i.succAbove j)))
+        (standardGaussianVectorLaw (m + 1)) := by
   classical
-  letI : Unique {j : Fin n // j = i} :=
-    { default := ⟨i, rfl⟩, uniq := fun j => by
-        apply Subtype.ext
-        exact j.2 }
-  calc
-    ∫ z : {j : Fin n // j = i} → ℝ,
-        z ⟨i, rfl⟩ ^ 2 * (z ⟨i, rfl⟩ ^ 2 + R) ^ k
-          ∂(Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1)
-        = ∫ z : {j : Fin n // j = i} → ℝ,
-            (fun t : ℝ => t ^ 2 * (t ^ 2 + R) ^ k)
-              (MeasurableEquiv.funUnique {j : Fin n // j = i} ℝ z)
-              ∂(Measure.pi fun _ : {j : Fin n // j = i} => gaussianReal 0 1) := by
+  let e : (Fin (m + 1) → ℝ) ≃ᵐ ℝ × (Fin m → ℝ) :=
+    MeasurableEquiv.piFinSuccAbove (fun _ : Fin (m + 1) => ℝ) i
+  have hp : MeasurePreserving e (standardGaussianVectorLaw (m + 1))
+      ((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
+    simpa [e, standardGaussianVectorLaw] using
+      (measurePreserving_piFinSuccAbove (fun _ : Fin (m + 1) => gaussianReal 0 1) i)
+  rw [← hp.map_eq]
+  exact integrable_map_equiv e F
+
+-- Stein's identity for a single coordinate of the squared-norm vector:
+-- `E[g_i ^ 2 · X ^ k] = E[X ^ k] + 2k · E[g_i ^ 2 · X ^ (k-1)]` with `X = ∑ j, g j ^ 2`.
+-- Proof: split off coordinate `i` with `integral_split_coord`, apply the one-dimensional
+-- Stein identity `integral_sq_mul_sq_add_pow_stdGaussian` to the inner integral, then
+-- reassemble the two terms with the same split.
+private lemma integral_coord_sq_mul_sumSq_pow_stdGaussian (k n : ℕ) (i : Fin n) :
+    ∫ g : Fin n → ℝ, g i ^ 2 * ((∑ j : Fin n, g j ^ 2) ^ k) ∂standardGaussianVectorLaw n =
+      ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ k) ∂standardGaussianVectorLaw n +
+        (2 : ℝ) * k * ∫ g : Fin n → ℝ, g i ^ 2 * ((∑ j : Fin n, g j ^ 2) ^ (k - 1))
+          ∂standardGaussianVectorLaw n := by
+  classical
+  by_cases hn : n = 0
+  · subst n
+    exact False.elim (Nat.not_lt_zero i.1 i.2)
+  · obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
+    -- split-space integrands: `t` is the coordinate value, `y` collects the remaining coordinates
+    let R : (Fin m → ℝ) → ℝ := fun y => ∑ j : Fin m, y j ^ 2
+    let Fs : ℝ × (Fin m → ℝ) → ℝ := fun ty => ty.1 ^ 2 * (ty.1 ^ 2 + R ty.2) ^ k
+    let F0 : ℝ × (Fin m → ℝ) → ℝ := fun ty => (ty.1 ^ 2 + R ty.2) ^ k
+    let Fp : ℝ × (Fin m → ℝ) → ℝ := fun ty => ty.1 ^ 2 * (ty.1 ^ 2 + R ty.2) ^ (k - 1)
+    -- Under the split, `∑ g ^ 2 = g i ^ 2 + (rest sum)`, so each split integrand matches its
+    -- unsplit counterpart pointwise.
+    have hFs (g : Fin (m + 1) → ℝ) :
+        Fs (g i, fun j : Fin m => g (i.succAbove j)) =
+          g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ k) := by
+      dsimp [Fs, R]
+      congr 1
+      rw [Fin.sum_univ_succAbove (fun j : Fin (m + 1) => g j ^ 2) i]
+    have hF0 (g : Fin (m + 1) → ℝ) :
+        F0 (g i, fun j : Fin m => g (i.succAbove j)) =
+          (∑ j : Fin (m + 1), g j ^ 2) ^ k := by
+      dsimp [F0, R]
+      rw [Fin.sum_univ_succAbove (fun j : Fin (m + 1) => g j ^ 2) i]
+    have hFp (g : Fin (m + 1) → ℝ) :
+        Fp (g i, fun j : Fin m => g (i.succAbove j)) =
+          g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ (k - 1)) := by
+      dsimp [Fp, R]
+      congr 1
+      rw [Fin.sum_univ_succAbove (fun j : Fin (m + 1) => g j ^ 2) i]
+    -- Integrability on the split measure, transported from the known vector-law integrability.
+    have hFs_int : Integrable Fs ((gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
+      rw [integrable_split_coord_iff i Fs]
+      convert integrable_sq_mul_sumSq_pow_stdGaussian k (m + 1) i using 1
+      funext g
+      exact hFs g
+    have hF0_int : Integrable F0 ((gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
+      rw [integrable_split_coord_iff i F0]
+      convert integrable_sumSq_pow_stdGaussian k (m + 1) using 1
+      funext g
+      exact hF0 g
+    have hFp_int : Integrable Fp ((gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
+      rw [integrable_split_coord_iff i Fp]
+      convert integrable_sq_mul_sumSq_pow_stdGaussian (k - 1) (m + 1) i using 1
+      funext g
+      exact hFp g
+    -- The inner (single-coordinate) integrals are integrable as functions of the rest.
+    have hA_int : Integrable (fun y : Fin m → ℝ => ∫ t : ℝ, F0 (t, y) ∂gaussianReal 0 1)
+        (Measure.pi fun _ : Fin m => gaussianReal 0 1) :=
+      MeasureTheory.Integrable.integral_prod_right hF0_int
+    have hB_int : Integrable (fun y : Fin m → ℝ => ∫ t : ℝ, Fp (t, y) ∂gaussianReal 0 1)
+        (Measure.pi fun _ : Fin m => gaussianReal 0 1) :=
+      MeasureTheory.Integrable.integral_prod_right hFp_int
+    calc
+      ∫ g : Fin (m + 1) → ℝ, g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ k)
+            ∂standardGaussianVectorLaw (m + 1)
+          = ∫ g : Fin (m + 1) → ℝ, Fs (g i, fun j : Fin m => g (i.succAbove j))
+              ∂standardGaussianVectorLaw (m + 1) := by
+              apply MeasureTheory.integral_congr_ae
+              filter_upwards with g
+              exact (hFs g).symm
+      _ = ∫ y : Fin m → ℝ, ∫ t : ℝ, Fs (t, y) ∂gaussianReal 0 1
+            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
+            exact integral_split_coord i Fs hFs_int
+      _ = ∫ y : Fin m → ℝ,
+            (∫ t : ℝ, F0 (t, y) ∂gaussianReal 0 1 +
+              (2 : ℝ) * k * ∫ t : ℝ, Fp (t, y) ∂gaussianReal 0 1)
+              ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
             apply MeasureTheory.integral_congr_ae
-            filter_upwards with z
-            -- `funUnique` evaluates at the unique element `⟨i, rfl⟩`.
-            simp
-    _ = ∫ t : ℝ, t ^ 2 * (t ^ 2 + R) ^ k ∂gaussianReal 0 1 := by
-            exact (measurePreserving_funUnique (gaussianReal 0 1) {j : Fin n // j = i}).integral_comp'
-              (fun t : ℝ => t ^ 2 * (t ^ 2 + R) ^ k)
-    _ = ∫ t : ℝ, (t ^ 2 + R) ^ k ∂gaussianReal 0 1 +
-          (2 : ℝ) * k * ∫ t : ℝ, t ^ 2 * (t ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 := by
-          exact integral_sq_mul_sq_add_pow_stdGaussian k R
+            filter_upwards with y
+            -- the one-dimensional Stein identity with `R = ∑ y ^ 2`
+            simpa [Fs, F0, Fp, R] using integral_sq_mul_sq_add_pow_stdGaussian k (R y)
+      _ = ∫ y : Fin m → ℝ, ∫ t : ℝ, F0 (t, y) ∂gaussianReal 0 1
+            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) +
+          (2 : ℝ) * k * ∫ y : Fin m → ℝ, ∫ t : ℝ, Fp (t, y) ∂gaussianReal 0 1
+            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
+            rw [integral_add hA_int (hB_int.const_mul ((2 : ℝ) * k))]
+            congr 1
+            rw [MeasureTheory.integral_const_mul]
+      _ = ∫ g : Fin (m + 1) → ℝ, ((∑ j : Fin (m + 1), g j ^ 2) ^ k)
+            ∂standardGaussianVectorLaw (m + 1) +
+          (2 : ℝ) * k * ∫ g : Fin (m + 1) → ℝ,
+            g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ (k - 1))
+            ∂standardGaussianVectorLaw (m + 1) := by
+            -- reassemble the two terms back on the vector law
+            rw [← integral_split_coord i F0 hF0_int]
+            rw [← integral_split_coord i Fp hFp_int]
+            congr 1
+            · apply MeasureTheory.integral_congr_ae
+              filter_upwards with g
+              exact hF0 g
+            · congr 1
+              apply MeasureTheory.integral_congr_ae
+              filter_upwards with g
+              exact hFp g
 
 /-- Closed form for the raw moments of the squared Euclidean norm of a standard Gaussian vector.
 
@@ -669,17 +734,100 @@ private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
     ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n =
       ((n : ℝ) + 2 * k) *
         ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
-  calc
-    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n
-        = ∏ s ∈ Finset.range (k + 1), ((n : ℝ) + 2 * s) := by
-          exact integral_sumSq_pow_stdGaussian_closed_form (k + 1) n
-    _ = ((n : ℝ) + 2 * k) *
-          (∏ s ∈ Finset.range k, ((n : ℝ) + 2 * s)) := by
-          rw [Finset.prod_range_succ]
-          ring
-    _ = ((n : ℝ) + 2 * k) *
-          ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
-          rw [integral_sumSq_pow_stdGaussian_closed_form k n]
+  classical
+  by_cases hk : k = 0
+  · -- `k = 0`: `∫ X = n` (each `g i ^ 2` contributes `1`) and the right side is `n · ∫ 1 = n`.
+    subst k
+    haveI : IsProbabilityMeasure (standardGaussianVectorLaw n) := by
+      dsimp [standardGaussianVectorLaw]
+      infer_instance
+    have hcoord (i : Fin n) :
+        ∫ g : Fin n → ℝ, g i ^ 2 ∂standardGaussianVectorLaw n = 1 := by
+      -- Stein's identity at `k = 0` gives `∫ g i ^ 2 · X ^ 0 = ∫ X ^ 0`.
+      simpa using integral_coord_sq_mul_sumSq_pow_stdGaussian 0 n i
+    calc
+      ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ (0 + 1)) ∂standardGaussianVectorLaw n
+          = ∫ g : Fin n → ℝ, (∑ i : Fin n, g i ^ 2) ∂standardGaussianVectorLaw n := by
+            simp [pow_succ]
+      _ = ∑ i : Fin n, ∫ g : Fin n → ℝ, g i ^ 2 ∂standardGaussianVectorLaw n := by
+            exact (integral_finsetSum Finset.univ
+              (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2)
+              (fun i _ => by simpa using integrable_sq_mul_sumSq_pow_stdGaussian 0 n i)).symm
+      _ = ∑ _i : Fin n, (1 : ℝ) := by
+            simp [hcoord]
+      _ = (n : ℝ) := by simp [Finset.sum_const, Fintype.card_fin]
+      _ = ((n : ℝ) + 2 * 0) *
+            ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ 0) ∂standardGaussianVectorLaw n := by
+            norm_num
+  · -- `k = k' + 1`: factor `X ^ (k + 1) = X · X ^ k`, apply the coordinate Stein identity to
+    -- each summand `g i ^ 2 · X ^ k`, and recombine `∑ g i ^ 2 · X ^ k' = X · X ^ k'`.
+    obtain ⟨k', rfl⟩ := Nat.exists_eq_succ_of_ne_zero hk
+    calc
+      ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ (k' + 1 + 1)) ∂standardGaussianVectorLaw n
+          = ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) * (∑ i : Fin n, g i ^ 2) ^ (k' + 1))
+              ∂standardGaussianVectorLaw n := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with g
+            rw [pow_succ']
+      _ = ∫ g : Fin n → ℝ,
+            (∑ i : Fin n, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1))
+              ∂standardGaussianVectorLaw n := by
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with g
+            rw [Finset.sum_mul]
+      _ = ∑ i : Fin n,
+            ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1)
+              ∂standardGaussianVectorLaw n := by
+            exact (integral_finsetSum Finset.univ
+              (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1))
+              (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian (k' + 1) n i)).symm
+      _ = ∑ i : Fin n,
+            (∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
+              (2 : ℝ) * (k' + 1) *
+                ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k'
+                  ∂standardGaussianVectorLaw n) := by
+            refine Finset.sum_congr rfl ?_
+            intro i _
+            -- the coordinate Stein identity with `k = k' + 1`
+            simpa using integral_coord_sq_mul_sumSq_pow_stdGaussian (k' + 1) n i
+      _ = (n : ℝ) *
+            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
+          (2 : ℝ) * (k' + 1) *
+            ∑ i : Fin n,
+              ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k'
+                ∂standardGaussianVectorLaw n := by
+            rw [Finset.sum_add_distrib]
+            rw [Finset.sum_const]
+            rw [← Finset.mul_sum]
+            simp [Fintype.card_fin]
+      _ = (n : ℝ) *
+            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
+          (2 : ℝ) * (k' + 1) *
+            ∫ g : Fin n → ℝ, (∑ i : Fin n, g i ^ 2) * (∑ j : Fin n, g j ^ 2) ^ k'
+              ∂standardGaussianVectorLaw n := by
+            -- `∑ i, ∫ g i ^ 2 · X ^ k' = ∫ (∑ g i ^ 2) · X ^ k'`
+            rw [show (∑ i : Fin n, ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k'
+                    ∂standardGaussianVectorLaw n) =
+                  ∫ g : Fin n → ℝ, (∑ i : Fin n, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k')
+                    ∂standardGaussianVectorLaw n from
+              (integral_finsetSum Finset.univ
+                (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k')
+                (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian k' n i)).symm]
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with g
+            rw [← Finset.sum_mul]
+      _ = (n : ℝ) *
+            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
+          (2 : ℝ) * (k' + 1) *
+            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n := by
+            -- `X · X ^ k' = X ^ (k' + 1)`
+            congr 2
+            apply MeasureTheory.integral_congr_ae
+            filter_upwards with g
+            rw [← pow_succ']
+      _ = ((n : ℝ) + 2 * (k' + 1)) *
+            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n := by
+            ring_nf
 
 /-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector.
 
