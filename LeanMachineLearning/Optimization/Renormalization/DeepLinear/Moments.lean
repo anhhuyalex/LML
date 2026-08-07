@@ -232,149 +232,6 @@ theorem jointMoment_outputLaw_odd {dIn dOut : ℕ} (S : MLPShape dIn dOut)
   exact Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable
     (S.deepLinearOutputLaw Cw x) hF hodd
 
-/-- Base case of `jointMoment_outputLaw_even`: a single bias-free Gaussian layer.
-
-Informal proof: `deepLinearOutputLaw` for `MLPShape.output` is exactly `oneLayerOutputLaw`.
-That law is a product of centered real Gaussians with variance
-`(Cw : ℝ) * NeuralNetwork.normalizedEnergy x`; Wick/Isserlis then gives the Kronecker pairing sum
-`pairingTensor a` and one variance factor for each of the `m` pairs.  The hidden-width list is
-empty, so `correlatorAmplitude` reduces to `((Cw : ℝ) * normalizedEnergy x) ^ m`.
-Source: Wick's theorem, <https://en.wikipedia.org/wiki/Isserlis%27s_theorem>, and the one-layer
-law API in `GaussianLayer.lean`.
--/
-private lemma jointMoment_outputLaw_output_even {dIn dOut : ℕ}
-    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut)
-    (_hIn : 0 < dIn) :
-    ∫ z, (∏ r, z (a r))
-        ∂(MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
-      pairingTensor a *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
-          (MLPShape.output : MLPShape dIn dOut).hiddenWidths := by
-  sorry
-
-/-- Inductive step for `jointMoment_outputLaw_even` through one hidden layer.
-
-Informal proof: rewrite the output law of `.hidden tail` as the Markov composition obtained by
-first sampling the initial layer output `y ∼ oneLayerOutputLaw Cw x` and then sampling the tail
-network from input `y`.  Apply the induction hypothesis to the inner tail integral.  The only
-remaining integral is
-`∫ (normalizedEnergy y)^m ∂oneLayerOutputLaw Cw x`, evaluated by
-`integral_normalizedEnergy_pow_randomLayerKernel`; its width factor is exactly the new head hidden
-width.  The deterministic algebra is the `hiddenWidthCorrection_cons`/`correlatorAmplitude`
-recursion.  This is the recursive correlator computation in `docs/Renormalization.md`, equations
-`eq:deep-linear-recursion-relation-2m` and `eq:2m-full-solution`.
--/
-private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
-    (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
-    (a : Fin (2 * m) → Fin dOut)
-    (hIn : 0 < dIn)
-    (hWidths : ∀ n ∈ (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths, 0 < n)
-    (ih : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin dOut),
-        0 < k → (∀ n ∈ tail.hiddenWidths, 0 < n) →
-        ∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y =
-          pairingTensor a *
-            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths) :
-    ∫ z, (∏ r, z (a r))
-        ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
-      pairingTensor a *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
-          (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths := by
-  sorry
-
-/-- Exact even joint output moment at arbitrary finite positive widths.
-
-Informal proof: condition on the penultimate activations and apply Wick's theorem to the centered
-Gaussian final layer.  The index contractions give `pairingTensor`; the random variance gives the
-`m`-th normalized-energy moment.  Iterating
-`integral_normalizedEnergy_pow_randomLayerKernel` over the shape yields precisely the product
-`hiddenWidthCorrection`.  Source: `docs/Renormalization.md`, equations
-`eq:deep-linear-inductive-ansatz`, `eq:combinatorial-2m`, and `eq:2m-full-solution`.
--/
-theorem jointMoment_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
-    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
-    ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x =
-      pairingTensor a *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
-  induction S with
-  | output =>
-      exact jointMoment_outputLaw_output_even Cw x m a hIn
-  | hidden tail ih =>
-      exact jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ih
-
-/-- Exact even moment of one output coordinate.
-
-Informal proof: specialize `jointMoment_outputLaw_even` to the constant output-index map.  Every
-Kronecker factor is one and the number of pairings of `2m` points is
-`(2m)!/(2^m m!) = gaussianEvenCoeff m`.  Source:
-<https://en.wikipedia.org/wiki/Double_factorial#Applications>.
--/
-theorem integral_coordinate_pow_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
-    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (j : Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
-    ∫ z, z j ^ (2 * m) ∂S.deepLinearOutputLaw Cw x =
-      gaussianEvenCoeff m *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
-  sorry
-
-/-- Covariance of two batch-output coordinates.  The theorem explicitly uses Mathlib's
-`covariance`, not merely an uncentered second moment.
-
-Informal proof: all outputs are centered by the odd-moment theorem.  Conditioning one layer gives
-zero for different output rows and `Cw` times the previous normalized Gram entry for equal rows.
-Induction over `S` gives the displayed closed form.  Source: `docs/Renormalization.md`, equations
-`eq:two-point-function-deep-linear-layer-ell` and `eq:deep-linear-kernel-recursion`.
--/
-theorem covariance_batchOutputLaw {A : Type uA}
-    {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
-    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
-    covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D) =
-      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
-  sorry
-
-/-- Uncentered form of the exact finite-dataset covariance solution.
-
-Informal proof: use `jointMoment_outputLaw_odd` to replace covariance by the second moment, then
-apply `covariance_batchOutputLaw`.  This is the closed solution `G^(L)=Cw^L G^(0)` in
-`docs/Renormalization.md`, equation `eq:deep-linear-exponential-solution`.
--/
-theorem covariance_batchOutputLaw_closedForm {A : Type uA}
-    {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
-    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
-    ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D =
-      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
-  sorry
-
-/-- Subcritical covariance amplitudes tend to zero. -/
-theorem tendsto_covariance_of_weightVariance_lt_one (Cw q : ℝ)
-    (hCw0 : 0 ≤ Cw) (hCw1 : Cw < 1) :
-    Tendsto (fun L : ℕ => Cw ^ L * q) atTop (nhds 0) := by
-  simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hCw0 hCw1).mul_const q
-
-/-- At criticality the covariance amplitude is exactly constant. -/
-@[simp, nolint simpNF] theorem covariance_eq_of_weightVariance_eq_one (q : ℝ) (L : ℕ) :
-    (1 : ℝ) ^ L * q = q := by simp
-
-/-- A positive supercritical covariance amplitude diverges to `+∞`.
-
-Informal proof: `Cw^L → +∞` for `Cw>1`; multiplication by the fixed positive `q` preserves
-divergence.  This is the geometric-sequence criterion; see
-<https://en.wikipedia.org/wiki/Geometric_progression#Geometric_series>.
--/
-theorem tendsto_covariance_atTop_of_one_lt_weightVariance (Cw q : ℝ)
-    (hCw : 1 < Cw) (hq : 0 < q) :
-    Tendsto (fun L : ℕ => Cw ^ L * q) atTop atTop :=
-  Tendsto.atTop_mul_const hq (tendsto_pow_atTop_atTop_of_one_lt hCw)
-
-/-- A negative supercritical off-diagonal covariance diverges in absolute value. -/
-theorem tendsto_abs_covariance_atTop_of_one_lt_weightVariance (Cw q : ℝ)
-    (hCw : 1 < Cw) (hq : q ≠ 0) :
-    Tendsto (fun L : ℕ => |Cw ^ L * q|) atTop atTop := by
-  simpa [abs_mul, abs_of_pos (lt_trans (by norm_num) hCw)] using
-    tendsto_covariance_atTop_of_one_lt_weightVariance Cw |q| hCw (abs_pos.mpr hq)
-
 /-- The law of one freshly initialized bias-free layer is a product of independent scalar
 Gaussians with variance `Cw * normalizedEnergy x`.
 
@@ -568,6 +425,199 @@ private lemma oneLayerOutputLaw_eq_pi_gaussianReal {dIn dOut : ℕ} (Cw : ℝ≥
           congr 1
           funext j
           exact hν
+
+/-- Wick/Isserlis theorem for a product of independent centered one-dimensional Gaussians with
+common variance `v`.
+
+Informal proof: identify the product law with the centered multivariate Gaussian whose covariance
+matrix is `Matrix.diagonal (fun _ => (v : ℝ))`.  Then apply the coordinate Wick theorem
+`Renormalization.integral_prod_multivariateGaussian_centered_eq_wick`.  Each covariance entry is
+`(v : ℝ) * if i = j then 1 else 0`; every pairing has exactly `m` pairs, so the common factor
+`(v : ℝ) ^ m` factors out, leaving exactly `pairingTensor a`.  This is Isserlis' theorem for
+independent coordinates; see <https://en.wikipedia.org/wiki/Isserlis%27s_theorem>.
+-/
+private lemma integral_prod_pi_gaussianReal_eq_pairingTensor
+    {κ : Type uJ} [Fintype κ] [DecidableEq κ] (v : ℝ≥0) (m : ℕ)
+    (a : Fin (2 * m) → κ) :
+    ∫ z, (∏ r, z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 v) =
+      pairingTensor a * (v : ℝ) ^ m := by
+  sorry
+
+/-- Base case of `jointMoment_outputLaw_even`: a single bias-free Gaussian layer.
+
+Informal proof: `deepLinearOutputLaw` for `MLPShape.output` is exactly `oneLayerOutputLaw`.
+That law is a product of centered real Gaussians with variance
+`(Cw : ℝ) * NeuralNetwork.normalizedEnergy x`; Wick/Isserlis then gives the Kronecker pairing sum
+`pairingTensor a` and one variance factor for each of the `m` pairs.  The hidden-width list is
+empty, so `correlatorAmplitude` reduces to `((Cw : ℝ) * normalizedEnergy x) ^ m`.
+Source: Wick's theorem, <https://en.wikipedia.org/wiki/Isserlis%27s_theorem>, and the one-layer
+law API in `GaussianLayer.lean`.
+-/
+private lemma jointMoment_outputLaw_output_even {dIn dOut : ℕ}
+    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut)
+    (_hIn : 0 < dIn) :
+    ∫ z, (∏ r, z (a r))
+        ∂(MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+      pairingTensor a *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+          (MLPShape.output : MLPShape dIn dOut).hiddenWidths := by
+  -- Step 1: reduce the output law of one bias-free layer to a product of scalar Gaussians.
+  -- This is exactly `firstLayerOutputLaw_eq_pi_gaussianReal`, which is declared later in this
+  -- file; keeping it as a local explicit step avoids hiding the probabilistic reduction.
+  have hLaw : (MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+      Measure.pi (fun _ : Fin dOut =>
+        gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x)) := by
+    change oneLayerOutputLaw (ι := Fin dIn) (κ := Fin dOut) Cw x =
+      Measure.pi (fun _ : Fin dOut =>
+        gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x))
+    exact oneLayerOutputLaw_eq_pi_gaussianReal Cw x
+  rw [hLaw]
+  -- Step 2: apply the reusable product-Gaussian Wick theorem, then normalize the deterministic
+  -- amplitude for the output shape (`hiddenWidths = []`).
+  calc
+    ∫ z, (∏ r, z (a r))
+        ∂Measure.pi (fun _ : Fin dOut =>
+          gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x)) =
+        pairingTensor a * ((Cw * NeuralNetwork.normalizedEnergyNNReal x : ℝ≥0) : ℝ) ^ m :=
+      integral_prod_pi_gaussianReal_eq_pairingTensor
+        (κ := Fin dOut) (v := Cw * NeuralNetwork.normalizedEnergyNNReal x) m a
+    _ = pairingTensor a *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+          (MLPShape.output : MLPShape dIn dOut).hiddenWidths := by
+      have hAmp : ((Cw * NeuralNetwork.normalizedEnergyNNReal x : ℝ≥0) : ℝ) ^ m =
+          correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+            (MLPShape.output : MLPShape dIn dOut).hiddenWidths := by
+        simp only [normalizedEnergyNNReal, correlatorAmplitude, MLPShape.hiddenWidths,
+          MLPShape.widths, List.tail_cons, List.dropLast_singleton, List.length_nil, zero_add,
+          pow_one, hiddenWidthCorrection, List.map_nil, List.prod_nil, mul_one]
+        change ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m =
+          ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m
+        rfl
+      exact congrArg (fun t : ℝ => pairingTensor a * t) hAmp
+
+/-- Inductive step for `jointMoment_outputLaw_even` through one hidden layer.
+
+Informal proof: rewrite the output law of `.hidden tail` as the Markov composition obtained by
+first sampling the initial layer output `y ∼ oneLayerOutputLaw Cw x` and then sampling the tail
+network from input `y`.  Apply the induction hypothesis to the inner tail integral.  The only
+remaining integral is
+`∫ (normalizedEnergy y)^m ∂oneLayerOutputLaw Cw x`, evaluated by
+`integral_normalizedEnergy_pow_randomLayerKernel`; its width factor is exactly the new head hidden
+width.  The deterministic algebra is the `hiddenWidthCorrection_cons`/`correlatorAmplitude`
+recursion.  This is the recursive correlator computation in `docs/Renormalization.md`, equations
+`eq:deep-linear-recursion-relation-2m` and `eq:2m-full-solution`.
+-/
+private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
+    (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
+    (a : Fin (2 * m) → Fin dOut)
+    (hIn : 0 < dIn)
+    (hWidths : ∀ n ∈ (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths, 0 < n)
+    (ih : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin dOut),
+        0 < k → (∀ n ∈ tail.hiddenWidths, 0 < n) →
+        ∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y =
+          pairingTensor a *
+            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths) :
+    ∫ z, (∏ r, z (a r))
+        ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+      pairingTensor a *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+          (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths := by
+  sorry
+
+/-- Exact even joint output moment at arbitrary finite positive widths.
+
+Informal proof: condition on the penultimate activations and apply Wick's theorem to the centered
+Gaussian final layer.  The index contractions give `pairingTensor`; the random variance gives the
+`m`-th normalized-energy moment.  Iterating
+`integral_normalizedEnergy_pow_randomLayerKernel` over the shape yields precisely the product
+`hiddenWidthCorrection`.  Source: `docs/Renormalization.md`, equations
+`eq:deep-linear-inductive-ansatz`, `eq:combinatorial-2m`, and `eq:2m-full-solution`.
+-/
+theorem jointMoment_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
+    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut)
+    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x =
+      pairingTensor a *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
+  induction S with
+  | output =>
+      exact jointMoment_outputLaw_output_even Cw x m a hIn
+  | hidden tail ih =>
+      exact jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ih
+
+/-- Exact even moment of one output coordinate.
+
+Informal proof: specialize `jointMoment_outputLaw_even` to the constant output-index map.  Every
+Kronecker factor is one and the number of pairings of `2m` points is
+`(2m)!/(2^m m!) = gaussianEvenCoeff m`.  Source:
+<https://en.wikipedia.org/wiki/Double_factorial#Applications>.
+-/
+theorem integral_coordinate_pow_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
+    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (j : Fin dOut)
+    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    ∫ z, z j ^ (2 * m) ∂S.deepLinearOutputLaw Cw x =
+      gaussianEvenCoeff m *
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
+  sorry
+
+/-- Covariance of two batch-output coordinates.  The theorem explicitly uses Mathlib's
+`covariance`, not merely an uncentered second moment.
+
+Informal proof: all outputs are centered by the odd-moment theorem.  Conditioning one layer gives
+zero for different output rows and `Cw` times the previous normalized Gram entry for equal rows.
+Induction over `S` gives the displayed closed form.  Source: `docs/Renormalization.md`, equations
+`eq:two-point-function-deep-linear-layer-ell` and `eq:deep-linear-kernel-recursion`.
+-/
+theorem covariance_batchOutputLaw {A : Type uA}
+    {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
+    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
+    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D) =
+      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
+  sorry
+
+/-- Uncentered form of the exact finite-dataset covariance solution.
+
+Informal proof: use `jointMoment_outputLaw_odd` to replace covariance by the second moment, then
+apply `covariance_batchOutputLaw`.  This is the closed solution `G^(L)=Cw^L G^(0)` in
+`docs/Renormalization.md`, equation `eq:deep-linear-exponential-solution`.
+-/
+theorem covariance_batchOutputLaw_closedForm {A : Type uA}
+    {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
+    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
+    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D =
+      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
+  sorry
+
+/-- Subcritical covariance amplitudes tend to zero. -/
+theorem tendsto_covariance_of_weightVariance_lt_one (Cw q : ℝ)
+    (hCw0 : 0 ≤ Cw) (hCw1 : Cw < 1) :
+    Tendsto (fun L : ℕ => Cw ^ L * q) atTop (nhds 0) := by
+  simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hCw0 hCw1).mul_const q
+
+/-- At criticality the covariance amplitude is exactly constant. -/
+@[simp, nolint simpNF] theorem covariance_eq_of_weightVariance_eq_one (q : ℝ) (L : ℕ) :
+    (1 : ℝ) ^ L * q = q := by simp
+
+/-- A positive supercritical covariance amplitude diverges to `+∞`.
+
+Informal proof: `Cw^L → +∞` for `Cw>1`; multiplication by the fixed positive `q` preserves
+divergence.  This is the geometric-sequence criterion; see
+<https://en.wikipedia.org/wiki/Geometric_progression#Geometric_series>.
+-/
+theorem tendsto_covariance_atTop_of_one_lt_weightVariance (Cw q : ℝ)
+    (hCw : 1 < Cw) (hq : 0 < q) :
+    Tendsto (fun L : ℕ => Cw ^ L * q) atTop atTop :=
+  Tendsto.atTop_mul_const hq (tendsto_pow_atTop_atTop_of_one_lt hCw)
+
+/-- A negative supercritical off-diagonal covariance diverges in absolute value. -/
+theorem tendsto_abs_covariance_atTop_of_one_lt_weightVariance (Cw q : ℝ)
+    (hCw : 1 < Cw) (hq : q ≠ 0) :
+    Tendsto (fun L : ℕ => |Cw ^ L * q|) atTop atTop := by
+  simpa [abs_mul, abs_of_pos (lt_trans (by norm_num) hCw)] using
+    tendsto_covariance_atTop_of_one_lt_weightVariance Cw |q| hCw (abs_pos.mpr hq)
+
 
 /-- The first layer is exactly a product Gaussian law, not merely moment-equivalent to it.
 

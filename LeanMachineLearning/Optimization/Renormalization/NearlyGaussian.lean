@@ -140,7 +140,7 @@ private lemma interactionPotential_eq_of_cutoff_two {ι : Type uI} [Fintype ι]
   simp [interactionPotential, hcut]
 
 -- The half-degree-two slot of `ofQuartic` carries the original quartic coupling.
-private lemma ofQuartic_coupling_two {ι : Type uI} [Fintype ι]
+private lemma ofQuartic_coupling_two {ι : Type uI}
     (P : Matrix ι ι ℝ) (A : QuarticCoupling ι) :
     (ofQuartic P A).coupling 2 = EvenCoupling.ofQuartic A := by
   simp [ofQuartic]
@@ -150,7 +150,8 @@ private lemma ofQuartic_coupling_two {ι : Type uI} [Fintype ι]
 private lemma evenCoupling_ofQuartic_potential {ι : Type uI} [Fintype ι]
     (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
     (EvenCoupling.ofQuartic A).potential z = A.potential z := by
-  simp [EvenCoupling.potential, EvenCoupling.ofQuartic, QuarticCoupling.potential, coordinateMonomial]
+  simp [EvenCoupling.potential, EvenCoupling.ofQuartic, QuarticCoupling.potential,
+    coordinateMonomial]
 
 /-- The general interaction potential specializes to the existing quartic potential.
 
@@ -339,6 +340,31 @@ theorem HierarchicallyNearlyGaussian.nearlyGaussian_of_odd_eq_zero
       exact pow_isBigO_nhdsWithin_Ici 1 (m - 1) (by omega)
     simpa [ParametricallySmall] using (hcore.trans hpow)
 
+/-- Analytic and combinatorial core of the linked-cluster hierarchy.
+
+This lemma isolates the missing reusable API behind
+`EvenAction.connectedCorrelatorHierarchy`.  Its intended proof is the standard linked-cluster
+argument: compare `A.measure ε` with the Gaussian law at `ε = 0`; use `hP` for Gaussian tails and
+`hnonneg` for domination of the normalized tilt on `ε ≥ 0`; Taylor-expand the normalized moments
+up to order `m - 2`; then use the Möbius transform defining `jointCumulant` to cancel disconnected
+Wick contractions.  A connected Wick graph with `2m` external legs and vertices of half-degrees
+`d₁, …, dᵣ` has `ℓ ≥ r - 1` internal edges and satisfies `Σ dᵢ = m + ℓ`, hence its interaction
+weight is `ε ^ Σ(dᵢ - 1)` with exponent `m + ℓ - r ≥ m - 1`.
+
+References: Roberts--Yaida--Hanin, *The Principles of Deep Learning Theory*, equation (1.83)
+(also `docs/Renormalization.md`, `eq:connected-correlator-hierarchy`), and the linked-cluster
+summary at <https://en.wikipedia.org/wiki/Linked-cluster_theorem>.
+-/
+private theorem EvenAction.linkedCluster_power_counting_bound
+    {ι : Type uI} [Fintype ι]
+    (A : EvenAction ι) (hP : A.precision.PosDef)
+    (hnonneg : ∀ m ∈ Finset.Icc 2 A.cutoff, (A.coupling m).Nonnegative)
+    (m : ℕ) (hm : 2 ≤ m) (index : Fin (2 * m) → ι) :
+    ParametricallySmall (nhdsWithin 0 (Set.Ici 0)) (m - 1)
+      (fun ε => jointCumulant (A.measure ε)
+        (fun r : Fin (2 * m) => fun z : EuclideanSpace ℝ ι => z (index r))) :=
+  sorry
+
 /-- Linked-cluster hierarchy for the explicitly scaled even action.
 
 Informal proof: use positive-definiteness of the stored precision to identify the quadratic law
@@ -356,8 +382,8 @@ theorem EvenAction.connectedCorrelatorHierarchy
     (A : EvenAction ι) (hP : A.precision.PosDef)
     (hnonneg : ∀ m ∈ Finset.Icc 2 A.cutoff, (A.coupling m).Nonnegative) :
     HierarchicallyNearlyGaussian A.measure (fun i z => z i)
-      (nhdsWithin 0 (Set.Ici 0)) := by
-  sorry
+      (nhdsWithin 0 (Set.Ici 0)) :=
+  fun m hm index => EvenAction.linkedCluster_power_counting_bound A hP hnonneg m hm index
 
 /-- The hierarchically scaled even action is, in particular, nearly Gaussian.
 
