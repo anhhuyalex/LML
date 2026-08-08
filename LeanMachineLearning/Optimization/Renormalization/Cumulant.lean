@@ -1145,6 +1145,14 @@ theorem jointCumulant_perm [Fintype ι] [DecidableEq ι] [Fintype κ] [Decidable
   ext s
   rw [blockMoment_map_equiv]
 
+lemma Finpartition.blockProduct_eq_part_mul_rest [Fintype ι] [DecidableEq ι] {R : Type*} [CommMonoid R]
+    (P : Finpartition (Finset.univ : Finset ι)) (f : Finset ι → R) (i : ι) :
+    P.blockProduct f = f (P.part i) * ∏ B ∈ P.parts.erase (P.part i), f B := by
+  dsimp [Finpartition.blockProduct]
+  have ha_mem : P.part i ∈ P.parts := P.part_mem.2 (Finset.mem_univ i)
+  rw [← Finset.insert_erase ha_mem]
+  exact Finset.prod_insert (Finset.notMem_erase (P.part i) P.parts)
+
 lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     (P : Finpartition (Finset.univ : Finset ι)) (f g h : Finset ι → R) (i : ι)
     (h_add : ∀ s, f s = if i ∈ s then g s + h s else g s)
@@ -1152,45 +1160,24 @@ lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     P.blockProduct f = P.blockProduct g + P.blockProduct h := by
   classical
   let a : Finset ι := P.part i
-  have ha_mem : a ∈ P.parts := P.part_mem.2 (by simp)
-  have hi_mem_a : i ∈ a := P.mem_part (by simp)
-  let rest : R := ∏ B ∈ P.parts.erase a, g B
-  have hf : P.blockProduct f = (g a + h a) * rest := by
-    dsimp [Finpartition.blockProduct]
-    rw [← Finset.insert_erase ha_mem]
-    rw [Finset.prod_insert (Finset.notMem_erase a P.parts)]
-    rw [h_add a]
-    simp only [hi_mem_a, ↓reduceIte]
-    congr 1
+  have hf : P.blockProduct f = f a * ∏ B ∈ P.parts.erase a, f B := Finpartition.blockProduct_eq_part_mul_rest P f i
+  have hg : P.blockProduct g = g a * ∏ B ∈ P.parts.erase a, g B := Finpartition.blockProduct_eq_part_mul_rest P g i
+  have hh : P.blockProduct h = h a * ∏ B ∈ P.parts.erase a, h B := Finpartition.blockProduct_eq_part_mul_rest P h i
+  rw [hf, hg, hh]
+  have hi_mem_a : i ∈ a := P.mem_part (Finset.mem_univ i)
+  have ha_add : f a = g a + h a := by simp [h_add, hi_mem_a]
+  rw [ha_add, add_mul]
+  congr 1
+  · apply congrArg (g a * ·)
     apply Finset.prod_congr rfl
     intro B hB
-    have hB_ne : B ≠ a := (Finset.mem_erase.mp hB).1
-    have hB_mem : B ∈ P.parts := (Finset.mem_erase.mp hB).2
-    have hiB : i ∉ B := by
-      intro hiB
-      exact hB_ne (P.eq_of_mem_parts hB_mem ha_mem hiB hi_mem_a)
-    simp [h_add B, hiB]
-  have hg : P.blockProduct g = g a * rest := by
-    dsimp [Finpartition.blockProduct]
-    rw [← Finset.insert_erase ha_mem]
-    rw [Finset.prod_insert (Finset.notMem_erase a P.parts)]
-  have hh : P.blockProduct h = h a * rest := by
-    dsimp [Finpartition.blockProduct]
-    rw [← Finset.insert_erase ha_mem]
-    rw [Finset.prod_insert (Finset.notMem_erase a P.parts)]
-    congr 1
+    have hiB : i ∉ B := fun hiB => (Finset.mem_erase.mp hB).1 (P.eq_of_mem_parts (Finset.mem_erase.mp hB).2 (P.part_mem.2 (Finset.mem_univ i)) hiB hi_mem_a)
+    simp [h_add, hiB]
+  · apply congrArg (h a * ·)
     apply Finset.prod_congr rfl
     intro B hB
-    have hB_ne : B ≠ a := (Finset.mem_erase.mp hB).1
-    have hB_mem : B ∈ P.parts := (Finset.mem_erase.mp hB).2
-    have hiB : i ∉ B := by
-      intro hiB
-      exact hB_ne (P.eq_of_mem_parts hB_mem ha_mem hiB hi_mem_a)
+    have hiB : i ∉ B := fun hiB => (Finset.mem_erase.mp hB).1 (P.eq_of_mem_parts (Finset.mem_erase.mp hB).2 (P.part_mem.2 (Finset.mem_univ i)) hiB hi_mem_a)
     exact h_id B hiB
-  calc
-    P.blockProduct f = (g a + h a) * rest := hf
-    _ = g a * rest + h a * rest := by ring
-    _ = P.blockProduct g + P.blockProduct h := by rw [hg, hh]
 
 lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     (f g h : Finset ι → R) (i : ι)
@@ -1208,17 +1195,27 @@ lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing 
     intro P hP
     rw [blockProduct_add P f g h i h_add h_id, mul_add]
 
+lemma blockMoment_eq_integral_mul_prod_erase [DecidableEq ι]
+    (X : ι → Ω → ℝ) (i : ι) (s : Finset ι) (hi : i ∈ s) :
+    blockMoment μ X s = ∫ ω, X i ω * ∏ j ∈ s.erase i, X j ω ∂μ := by
+  dsimp [blockMoment]
+  congr 1
+  ext ω
+  exact Finset.mul_prod_erase s (fun j => X j ω) hi
+
 lemma blockMoment_add_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
     (hX : HasFiniteJointMoments μ X)
     (hY : HasFiniteJointMoments μ (Function.update X i Y))
     (s : Finset ι) :
     blockMoment μ (Function.update X i (X i + Y)) s =
-      if i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
+      if hi : i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
       else blockMoment μ X s := by
-  dsimp [blockMoment]
   by_cases hi : i ∈ s
   · rw [if_pos hi]
+    rw [blockMoment_eq_integral_mul_prod_erase _ i s hi,
+        blockMoment_eq_integral_mul_prod_erase _ i s hi,
+        blockMoment_eq_integral_mul_prod_erase _ i s hi]
     have hIntX : Integrable (fun ω => X i ω * ∏ j ∈ s.erase i, X j ω) μ := by
       convert hX s using 1
       ext ω
@@ -1316,28 +1313,19 @@ lemma blockProduct_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     P.blockProduct (fun s => if i ∈ s then c * f s else f s) = c * P.blockProduct f := by
   classical
   let a : Finset ι := P.part i
-  have ha_mem : a ∈ P.parts := P.part_mem.2 (by simp)
-  have hi_mem_a : i ∈ a := P.mem_part (by simp)
-  let rest : R := ∏ B ∈ P.parts.erase a, f B
-  have hf : P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * rest := by
-    dsimp [Finpartition.blockProduct]
-    rw [← Finset.mul_prod_erase P.parts (fun B : Finset ι => if i ∈ B then c * f B else f B) ha_mem]
-    simp only [hi_mem_a, ↓reduceIte]
+  have hf : P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * ∏ B ∈ P.parts.erase a, f B := by
+    rw [Finpartition.blockProduct_eq_part_mul_rest P _ i]
+    have hi_mem_a : i ∈ a := P.mem_part (Finset.mem_univ i)
+    simp [hi_mem_a]
     congr 1
     apply Finset.prod_congr rfl
     intro B hB
-    have hB_ne : B ≠ a := (Finset.mem_erase.mp hB).1
-    have hB_mem : B ∈ P.parts := (Finset.mem_erase.mp hB).2
-    have hiB : i ∉ B := by
-      intro hiB
-      exact hB_ne (P.eq_of_mem_parts hB_mem ha_mem hiB hi_mem_a)
+    have hiB : i ∉ B := fun hiB => (Finset.mem_erase.mp hB).1 (P.eq_of_mem_parts (Finset.mem_erase.mp hB).2 (P.part_mem.2 (Finset.mem_univ i)) hiB hi_mem_a)
     simp [hiB]
-  have hg : P.blockProduct f = f a * rest := by
-    dsimp [Finpartition.blockProduct]
-    rw [← Finset.mul_prod_erase P.parts f ha_mem]
+  have hg : P.blockProduct f = f a * ∏ B ∈ P.parts.erase a, f B := Finpartition.blockProduct_eq_part_mul_rest P f i
   calc
-    P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * rest := hf
-    _ = c * (f a * rest) := by ring
+    P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * ∏ B ∈ P.parts.erase a, f B := hf
+    _ = c * (f a * ∏ B ∈ P.parts.erase a, f B) := by ring
     _ = c * P.blockProduct f := by rw [hg]
 
 lemma cumulantTransform_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
@@ -1363,38 +1351,28 @@ lemma blockMoment_smul_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (c : ℝ)
     (s : Finset ι) :
     blockMoment μ (Function.update X i (c • X i)) s =
-      if i ∈ s then c * blockMoment μ X s
+      if hi : i ∈ s then c * blockMoment μ X s
       else blockMoment μ X s := by
-  dsimp [blockMoment]
   by_cases hi : i ∈ s
-  · rw [if_pos hi]
+  · simp only [hi, if_true]
+    rw [blockMoment_eq_integral_mul_prod_erase _ i s hi,
+        blockMoment_eq_integral_mul_prod_erase _ i s hi]
     calc
-      ∫ ω, ∏ j ∈ s, (Function.update X i (c • X i)) j ω ∂μ
-          = ∫ ω, (c • X i ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
+      ∫ ω, (Function.update X i (c • X i)) i ω * ∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω ∂μ
+          = ∫ ω, (c * X i ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
             congr 1
             ext ω
-            rw [← Finset.mul_prod_erase s (fun j : ι => (Function.update X i (c • X i)) j ω) hi]
-            have hrest :
-                (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) =
-                  ∏ j ∈ s.erase i, X j ω := by
+            have hrest : (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) = ∏ j ∈ s.erase i, X j ω := by
               apply Finset.prod_congr rfl
               intro j hj
-              have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
-              simp [hj_ne]
+              simp [(Finset.mem_erase.mp hj).1]
             rw [hrest]
             simp [Function.update_self]
       _ = c * ∫ ω, X i ω * ∏ j ∈ s.erase i, X j ω ∂μ := by
-            rw [← smul_eq_mul]
-            rw [← MeasureTheory.integral_smul]
+            rw [← MeasureTheory.integral_mul_left c]
             congr 1
             ext ω
-            simp [smul_eq_mul, mul_assoc]
-      _ = c * blockMoment μ X s := by
-            congr 1
-            rw [blockMoment]
-            congr 1
-            ext ω
-            exact Finset.mul_prod_erase s (fun j : ι => X j ω) hi
+            ring
   · rw [if_neg hi]
     exact blockMoment_update_not_mem X i (c • X i) s hi
 
@@ -2076,7 +2054,7 @@ using `Finpartition.cumulantCoefficient` gives exactly the displayed inner coeff
 This is the classical partition-lattice regrouping used in T. P. Speed, "Cumulants and partition
 lattices", Austral. J. Statist. 25 (1983), 378--388.  Future work should move the trace map and
 partial-matching fiber equivalence into the `Finpartition` namespace. -/
-private lemma cumulantTransform_tracePair_partialMatching_regrouping [Fintype ι]
+private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
     (_huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
@@ -2100,30 +2078,6 @@ private lemma cumulantTransform_tracePair_partialMatching_regrouping [Fintype ι
   have hkey := Finpartition.cumulantTransform_eq_sum_matching _hcut_disjoint hne' f
     _hblock_split_compl
   rwa [_hcut_cover] at hkey
-
-private lemma cumulantTransform_split_trace_fiber_regrouping [Fintype ι]
-    [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
-    (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
-    (huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
-    (hcompl_ne : (Finset.univ \ A : Finset ι) ≠ ∅)
-    (hcut_cover : A ∪ (Finset.univ \ A) = (Finset.univ : Finset ι))
-    (hcut_disjoint : Disjoint A (Finset.univ \ A))
-    (hcompl_subset_univ : Finset.univ \ A ⊆ (Finset.univ : Finset ι))
-    (hblock_split_compl : ∀ B : Finset ι,
-      f B = f (B ∩ A) * f (B ∩ (Finset.univ \ A)))
-    (hleft_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ A → f B = f ∅ * f B)
-    (hright_id_on_trace : ∀ ⦃B : Finset ι⦄, B ⊆ Finset.univ \ A → f B = f ∅ * f B) :
-    Finpartition.cumulantTransform f Finset.univ =
-      ∑ π : Finpartition A,
-        ∑ σ : Finpartition (Finset.univ \ A),
-          (π.blockProduct f * σ.blockProduct f) *
-            (∑ m ∈ Finset.range (Nat.min π.parts.card σ.parts.card + 1),
-              ((((π.parts.card.choose m) * (σ.parts.card.choose m) * m.factorial : ℕ) : R) *
-                ((-1 : R) ^ (π.parts.card + σ.parts.card - m - 1) *
-                  ((π.parts.card + σ.parts.card - m - 1).factorial : R)))) :=
-  cumulantTransform_tracePair_partialMatching_regrouping f A hA hAc huniv_ne hcompl_ne
-    hcut_cover hcut_disjoint hcompl_subset_univ hblock_split_compl hleft_id_on_trace
-    hright_id_on_trace
 
 -- For fixed trace partitions `π` of `A` and `σ` of `univ \ A`, the partial-matching coefficient
 -- sum vanishes: both sides of the cut are nonempty, so `π.parts` and `σ.parts` have positive
@@ -2195,7 +2149,7 @@ private lemma block_split_compl [Fintype ι] [DecidableEq ι] {R : Type*} [CommR
   -- `B \ A = B ∩ (univ \ A)` is the set-theoretic conversion between the two notations.
   fun B => by simpa [Finset.sdiff_eq_inter_compl] using h_factor B
 
-private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core [Fintype ι]
+private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel [Fintype ι]
     [DecidableEq ι] {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
     (_h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A))
@@ -2236,87 +2190,16 @@ Informal references: T. P. Speed, "Cumulants and partition lattices", Austral. J
 independence split.  A formal proof should expose the trace restriction/fiber matching bijection as
 `Finpartition` API and prove the displayed coefficient identity from
 `fwdDiff_iter_sum_mul_pow_eq_zero`. -/
-private lemma cumulantTransform_eq_zero_of_split_trace_fiber [Fintype ι] [DecidableEq ι]
+lemma cumulantTransform_eq_zero_of_split [Fintype ι] [DecidableEq ι]
     {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
     (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
     (h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A)) :
     Finpartition.cumulantTransform f Finset.univ = 0 :=
-  cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core f A hA hAc h_factor
+  cumulantTransform_eq_zero_of_split_trace_fiber_cancel f A hA hAc h_factor
     (Finset.ne_empty_of_mem (Finset.mem_univ hA.choose))
     (Finset.ne_empty_of_mem hAc.choose_spec)
     (fun _ hb => split_absorb_empty_left f A h_factor hb)
     (fun _ hb => split_absorb_empty_right f A h_factor hb)
-
-/-- Möbius cancellation for one trace fiber in the split cumulant proof.
-
-This helper is deliberately stated at the level needed by
-`cumulantTransform_eq_zero_of_split_trace_fiber`: besides the split hypothesis it receives the two
-nonemptiness facts and the two absorption lemmas that the caller proves explicitly.  Its informal
-proof is the standard trace-fiber argument.  For a partition `P` of `univ`, restrict its blocks to
-`A` and to `univ \ A`, erasing empty intersections, obtaining trace partitions `π` and `σ`.  For
-fixed traces, the fiber is equivalent to partial matchings between the blocks of `π` and `σ`; a
-matching of size `m` glues `m` pairs and gives `|π.parts| + |σ.parts| - m` blocks.  The split
-hypothesis factors every glued block, and the supplied absorption lemmas remove the extra `f ∅`
-factors from unmatched pure-side blocks, so the block product is constant on that fiber.  The
-remaining coefficient is
-
-`∑ m, (p.choose m) * (q.choose m) * m! * (-1)^(p+q-m-1) * (p+q-m-1)!`,
-
-where `p = |π.parts|` and `q = |σ.parts|`; since both sides of the cut are nonempty, `p,q ≥ 1`.
-After assuming `p ≤ q`, this is a `p`-th finite difference of a polynomial of degree `< p`, hence
-zero by Mathlib's `fwdDiff_iter_sum_mul_pow_eq_zero` (equivalently
-`fwdDiff_iter_eq_sum_shift`).  Summing the zero contribution over all trace pairs proves the whole
-cumulant sum is zero.
-
-References: T. P. Speed, "Cumulants and partition lattices", Austral. J. Statist. 25 (1983),
-378--388; and the finite-difference identity formalized in
-`Mathlib/Algebra/Group/ForwardDiff.lean`. -/
-private lemma cumulantTransform_eq_zero_of_split_trace_fiber_cancel [Fintype ι] [DecidableEq ι]
-    {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
-    (_hA : A.Nonempty) (_hAc : (Finset.univ \ A).Nonempty)
-    (_h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A))
-    (_huniv_ne : (Finset.univ : Finset ι) ≠ ∅)
-    (_hcompl_ne : (Finset.univ \ A : Finset ι) ≠ ∅)
-    (_hleft_absorb : ∀ ⦃b : Finset ι⦄, b ⊆ A → f ∅ * f b = f b)
-    (_hright_absorb : ∀ ⦃b : Finset ι⦄, b ⊆ Finset.univ \ A → f ∅ * f b = f b) :
-    Finpartition.cumulantTransform f Finset.univ = 0 :=
-  cumulantTransform_eq_zero_of_split_trace_fiber_cancel_core f A _hA _hAc _h_factor
-    _huniv_ne _hcompl_ne _hleft_absorb _hright_absorb
-
-/-- Möbius cancellation for a set function that factors across a non-trivial cut.
-
-Informal proof.  For a partition `P` of `univ`, take the nonempty traces of each block on
-`A` and on `univ \ A`.  These traces are partitions `π` of `A` and `σ` of `univ \ A`.  The
-hypothesis factors each block weight, and the special cases where a block lies entirely on one
-side use the same hypothesis on that block to absorb the extra factors of `f ∅`.  Thus the block
-product depends only on `(π, σ)`.  The fiber over fixed trace partitions with `p = |π.parts|` and
-`q = |σ.parts|` is the set of matchings between the `p` left blocks and `q` right blocks: matching
-`m` pairs glues those pairs and leaves the other blocks unmatched, so the resulting partition has
-`p + q - m` blocks.  Hence the total Möbius coefficient of the fiber is
-
-`∑ m, (p.choose m) * (q.choose m) * m! * (-1)^(p+q-m-1) * (p+q-m-1)!`.
-
-Since `hA` and `hAc` force `p,q ≥ 1`, this sum is zero by the standard finite-difference identity
-`∑ m=0..p (-1)^m * (p.choose m) * Q(m) = 0` for every polynomial `Q` of degree `< p` (after
-assuming `p ≤ q` and taking `Q(m) = (p+q-m-1)!/(q-m)!`).  Therefore every trace fiber contributes
-zero, and the whole cumulant sum is zero.  This is the classical partition-lattice proof that mixed
-cumulants of independent blocks vanish; see T. P. Speed, "Cumulants and partition lattices",
-Austral. J. Statist. 25 (1983), 378--388, and the "Cumulant" article on Wikipedia.
-
-TODO: formalize the trace-partition/matching bijection and the finite-difference coefficient
-identity as reusable `Finpartition` API. -/
-private lemma cumulantTransform_eq_zero_of_split_mobius [Fintype ι] [DecidableEq ι]
-    {R : Type*} [CommRing R] (f : Finset ι → R) (A : Finset ι)
-    (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
-    (h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A)) :
-    Finpartition.cumulantTransform f Finset.univ = 0 :=
-  cumulantTransform_eq_zero_of_split_trace_fiber f A hA hAc h_factor
-
-lemma cumulantTransform_eq_zero_of_split [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
-    (f : Finset ι → R) (A : Finset ι) (hA : A.Nonempty) (hAc : (Finset.univ \ A).Nonempty)
-    (h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A)) :
-    Finpartition.cumulantTransform f Finset.univ = 0 :=
-  cumulantTransform_eq_zero_of_split_mobius f A hA hAc h_factor
 
 /-- A joint cumulant vanishes when its positions split into two nonempty independent blocks.
 
@@ -2867,7 +2750,7 @@ required smoothness (`analyticAt_mgf hmgf`, hence `ContDiffAt`); the derivatives
 References: Mathlib's `Analysis/Calculus/IteratedDeriv/FaaDiBruno.lean` for the analytic formula,
 and the classical cumulant/moment formula, e.g. Scholarpedia "Cumulants"
 <http://www.scholarpedia.org/article/Cumulants>. -/
-lemma iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno [IsProbabilityMeasure μ]
+lemma iteratedDeriv_cgf_zero_eq_sum_partitions [IsProbabilityMeasure μ]
     (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
     (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
     iteratedDeriv n (cgf X μ) 0 =
@@ -2908,21 +2791,6 @@ lemma iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno [IsProbabilityMeasure 
       (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0)]
   -- compare the two sums term by term
   exact Finset.sum_congr rfl (fun c hc => hsum c)
-
-
-/-- The $n$-th derivative of the CGF at zero expands to a sum over partition lattices of products
-of MGF derivatives.
-
-Informal proof: By Faà di Bruno's formula (or the relation between moments and cumulants), the
-derivatives of the logarithm of a power series are a sum over set partitions, with coefficients
-given by the Möbius function of the partition lattice. -/
-lemma iteratedDeriv_cgf_zero_eq_sum_partitions [IsProbabilityMeasure μ]
-    (X : Ω → ℝ) (n : ℕ) (hn : n ≠ 0)
-    (hmgf : 0 ∈ interior (integrableExpSet X μ)) :
-    iteratedDeriv n (cgf X μ) 0 =
-      ∑ P : Finpartition (Finset.univ : Finset (Fin n)),
-        (P.cumulantCoefficient : ℝ) * ∏ B ∈ P.parts, iteratedDeriv B.card (mgf X μ) 0 :=
-  iteratedDeriv_cgf_zero_eq_sum_partitions_faaDiBruno X n hn hmgf
 
 /-- The cumulant of order 0 is 0. -/
 lemma cumulant_zero [IsProbabilityMeasure μ] (X : Ω → ℝ) : cumulant μ X 0 = 0 := by
