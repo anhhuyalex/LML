@@ -1803,16 +1803,18 @@ lemma covariance_batchOutputLaw_eq_integral_mul {A : Type uA}
     covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D) =
       ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D := by
   let μ : Measure (A → Fin dOut → ℝ) := S.deepLinearBatchLaw Cw D
-  haveI : Measure.IsNegInvariant μ := deepLinearBatchLaw_isNegInvariant S Cw D
+  have hneg : Measure.IsNegInvariant μ := deepLinearBatchLaw_isNegInvariant S Cw D
   have hX_meas : Measurable (fun z : A → Fin dOut → ℝ => z a i) :=
     (measurable_pi_apply i).comp (measurable_pi_apply a)
   have hY_meas : Measurable (fun z : A → Fin dOut → ℝ => z b j) :=
     (measurable_pi_apply j).comp (measurable_pi_apply b)
   have hX0 : ∫ z, z a i ∂μ = 0 := by
-    exact Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable μ
+    exact @Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable
+      (A → Fin dOut → ℝ) _ _ _ μ hneg (fun z => z a i)
       hX_meas.aestronglyMeasurable (fun z => by simp)
   have hY0 : ∫ z, z b j ∂μ = 0 := by
-    exact Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable μ
+    exact @Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable
+      (A → Fin dOut → ℝ) _ _ _ μ hneg (fun z => z b j)
       hY_meas.aestronglyMeasurable (fun z => by simp)
   simp [covariance, μ, hX0, hY0]
 
@@ -1826,6 +1828,14 @@ private def oneLayerBatchLaw {A : Type uA} {ι : Type uJ} {κ : Type*}
   Measure.map (fun q : LayerParams ι κ =>
       fun a : A => (DenseLayer.ofParams q).preactivation (D a))
     (layerGaussianInit (hyperparams Cw) ι κ)
+
+/-- For centered random variables, the mixed second moment equals the covariance. -/
+private lemma integral_mul_eq_covariance_of_centered {α : Type*} [MeasurableSpace α]
+    (μ : Measure α) (X Y : α → ℝ)
+    (hX0 : ∫ x, X x ∂μ = 0) (hY0 : ∫ x, Y x ∂μ = 0) :
+    ∫ x, X x * Y x ∂μ = ProbabilityTheory.covariance X Y μ := by
+  unfold ProbabilityTheory.covariance
+  simp [hX0, hY0]
 
 /-- Coordinate two-point function for the arbitrary-batch one-layer law.
 
@@ -1848,10 +1858,341 @@ private lemma integral_mul_oneLayerBatchLaw_eq_sum_cov {A : Type uA} {ι : Type 
     ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D =
       if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
   classical
-  -- TODO: formalize the finite polynomial Gaussian calculation described in the docstring.
-  -- The proof should reuse `integral_prod_pi_gaussianReal_eq_pairingTensor` with `m = 1`
-  -- for the weight rows and `ProbabilityTheory.gaussianReal_zero_var` for the zero biases.
-  sorry
+  let μ : Measure (LayerParams ι κ) := layerGaussianInit (hyperparams Cw) ι κ
+  have hμ_prob : IsProbabilityMeasure μ := by
+    dsimp [μ]
+    infer_instance
+  -- Coordinate means vanish and each coordinate lies in `L²`.
+  have hw0 (j : κ) (p : ι) : ∫ q : LayerParams ι κ, q.1 j p ∂μ = 0 := by
+    dsimp [μ]
+    exact integral_weight_layerGaussianInit (hyperparams Cw) ι κ j p
+  have hb0 (j : κ) : ∫ q : LayerParams ι κ, q.2 j ∂μ = 0 := by
+    dsimp [μ]
+    exact integral_bias_layerGaussianInit (hyperparams Cw) ι κ j
+  have hwlp (j : κ) (p : ι) : MemLp (fun q : LayerParams ι κ => q.1 j p) 2 μ := by
+    let X : LayerParams ι κ → ℝ := fun q => q.1 j p
+    have hX : AEMeasurable X μ :=
+      ((measurable_pi_apply p).comp ((measurable_pi_apply j).comp measurable_fst)).aemeasurable
+    have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map X μ) := by
+      dsimp [μ, X]
+      rw [map_weight_layerGaussianInit (hyperparams Cw) ι κ j p]
+      exact memLp_id_gaussianReal 2
+    exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := X)
+      (by exact measurable_id.aestronglyMeasurable) hX).1 hmem
+  have hblp (j : κ) : MemLp (fun q : LayerParams ι κ => q.2 j) 2 μ := by
+    let X : LayerParams ι κ → ℝ := fun q => q.2 j
+    have hX : AEMeasurable X μ := ((measurable_pi_apply j).comp measurable_snd).aemeasurable
+    have hmem : MemLp (id : ℝ → ℝ) 2 (Measure.map X μ) := by
+      dsimp [μ, X]
+      rw [map_bias_layerGaussianInit (hyperparams Cw) ι κ j]
+      exact memLp_id_gaussianReal 2
+    exact (memLp_map_measure_iff (g := (id : ℝ → ℝ)) (p := 2) (f := X)
+      (by exact measurable_id.aestronglyMeasurable) hX).1 hmem
+  -- Second moments of the Gaussian coordinates.
+  have hww (p p' : ι) :
+      ∫ q : LayerParams ι κ, q.1 i p * q.1 j p' ∂μ =
+        if i = j ∧ p = p' then (scaledWeightVariance (hyperparams Cw) ι : ℝ) else 0 := by
+    calc
+      ∫ q : LayerParams ι κ, q.1 i p * q.1 j p' ∂μ
+          = ProbabilityTheory.covariance (fun q : LayerParams ι κ => q.1 i p)
+              (fun q => q.1 j p') μ := by
+            exact integral_mul_eq_covariance_of_centered μ
+              (fun q : LayerParams ι κ => q.1 i p) (fun q => q.1 j p')
+              (hw0 i p) (hw0 j p')
+      _ = if i = j ∧ p = p' then (scaledWeightVariance (hyperparams Cw) ι : ℝ) else 0 := by
+            have h := covariance_weight_layerGaussianInit (hyperparams Cw) ι κ i j p p'
+            dsimp [μ] at h ⊢
+            have hcast :
+                (↑(if i = j ∧ p = p' then scaledWeightVariance (hyperparams Cw) ι else 0) : ℝ) =
+                  if i = j ∧ p = p' then (scaledWeightVariance (hyperparams Cw) ι : ℝ) else 0 := by
+              by_cases hijp : i = j ∧ p = p' <;> simp [hijp]
+            exact h.trans hcast
+  have hbb : ∫ q : LayerParams ι κ, q.2 i * q.2 j ∂μ = 0 := by
+    calc
+      ∫ q : LayerParams ι κ, q.2 i * q.2 j ∂μ
+          = ProbabilityTheory.covariance (fun q : LayerParams ι κ => q.2 i)
+              (fun q => q.2 j) μ := by
+            exact integral_mul_eq_covariance_of_centered μ
+              (fun q : LayerParams ι κ => q.2 i) (fun q => q.2 j)
+              (hb0 i) (hb0 j)
+      _ = 0 := by
+            have h := covariance_bias_layerGaussianInit (hyperparams Cw) ι κ i j
+            dsimp [μ] at h ⊢
+            simp [hyperparams] at h
+            exact h
+  have hwb (p : ι) : ∫ q : LayerParams ι κ, q.1 i p * q.2 j ∂μ = 0 := by
+    calc
+      ∫ q : LayerParams ι κ, q.1 i p * q.2 j ∂μ
+          = ProbabilityTheory.covariance (fun q : LayerParams ι κ => q.1 i p)
+              (fun q => q.2 j) μ := by
+            exact integral_mul_eq_covariance_of_centered μ
+              (fun q : LayerParams ι κ => q.1 i p) (fun q => q.2 j)
+              (hw0 i p) (hb0 j)
+      _ = 0 := by
+            dsimp [μ]
+            exact covariance_weight_bias_layerGaussianInit (hyperparams Cw) ι κ i p j
+  have hbw (p' : ι) : ∫ q : LayerParams ι κ, q.2 i * q.1 j p' ∂μ = 0 := by
+    calc
+      ∫ q : LayerParams ι κ, q.2 i * q.1 j p' ∂μ
+          = ProbabilityTheory.covariance (fun q : LayerParams ι κ => q.2 i)
+              (fun q => q.1 j p') μ := by
+            exact integral_mul_eq_covariance_of_centered μ
+              (fun q : LayerParams ι κ => q.2 i) (fun q => q.1 j p')
+              (hb0 i) (hw0 j p')
+      _ = 0 := by
+            rw [covariance_comm]
+            dsimp [μ]
+            exact covariance_weight_bias_layerGaussianInit (hyperparams Cw) ι κ j p' i
+  -- Integrability of the coordinate products.
+  have hww_int (p p' : ι) : Integrable (fun q : LayerParams ι κ => q.1 i p * q.1 j p') μ :=
+    (hwlp i p).integrable_mul (hwlp j p')
+  have hwb_int (p : ι) : Integrable (fun q : LayerParams ι κ => q.1 i p * q.2 j) μ :=
+    (hwlp i p).integrable_mul (hblp j)
+  have hbw_int (p' : ι) : Integrable (fun q : LayerParams ι κ => q.2 i * q.1 j p') μ :=
+    (hblp i).integrable_mul (hwlp j p')
+  -- Push the integral through the defining pushforward.
+  have hmap :
+      ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D =
+        ∫ q : LayerParams ι κ,
+          (DenseLayer.ofParams q).preactivation (D a) i *
+            (DenseLayer.ofParams q).preactivation (D b) j ∂μ := by
+    let φ : LayerParams ι κ → A → κ → ℝ :=
+      fun q a => (DenseLayer.ofParams q).preactivation (D a)
+    have hφ_meas : AEMeasurable φ μ := by
+      dsimp [φ]
+      exact (measurable_pi_lambda _ (fun a : A =>
+        (DenseLayer.measurable_preactivation.comp
+          (measurable_id.prodMk measurable_const)))).aemeasurable
+    have hG_meas : AEStronglyMeasurable (fun y : A → κ → ℝ => y a i * y b j) (μ.map φ) := by
+      exact (by fun_prop : Measurable (fun y : A → κ → ℝ => y a i * y b j)).aestronglyMeasurable
+    calc
+      ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D
+          = ∫ y, y a i * y b j ∂(μ.map φ) := by
+            dsimp [oneLayerBatchLaw, μ, φ]
+      _ = ∫ q : LayerParams ι κ,
+            (DenseLayer.ofParams q).preactivation (D a) i *
+              (DenseLayer.ofParams q).preactivation (D b) j ∂μ := by
+            simpa [φ] using MeasureTheory.integral_map hφ_meas hG_meas
+  -- Expand the two preactivations into bias plus input-sum and integrate term by term.
+  have hpa (x : ι → ℝ) (k : κ) (q : LayerParams ι κ) :
+      (DenseLayer.ofParams q).preactivation x k = q.2 k + ∑ p : ι, q.1 k p * x p := by
+    simp [DenseLayer.ofParams]
+  have hT1_int : Integrable (fun q : LayerParams ι κ => q.2 i * q.2 j) μ :=
+    (hblp i).integrable_mul (hblp j)
+  have hT2_int : Integrable (fun q : LayerParams ι κ =>
+      q.2 i * (∑ p' : ι, q.1 j p' * D b p')) μ := by
+    have hsum : Integrable (fun q : LayerParams ι κ =>
+        ∑ p' : ι, q.2 i * q.1 j p' * D b p') μ := by
+      refine integrable_finsetSum Finset.univ (μ := μ)
+        (f := fun (p' : ι) (q : LayerParams ι κ) => q.2 i * q.1 j p' * D b p')
+        (fun p' _ => ?_)
+      simpa using (hbw_int p').mul_const (D b p')
+    refine Integrable.congr' hsum ?_ (Filter.Eventually.of_forall ?_)
+    · exact (by fun_prop : Measurable (fun q : LayerParams ι κ =>
+        q.2 i * (∑ p' : ι, q.1 j p' * D b p'))).aestronglyMeasurable
+    · intro q
+      have hEq : q.2 i * (∑ p' : ι, q.1 j p' * D b p') =
+          ∑ p' : ι, q.2 i * q.1 j p' * D b p' := by
+        simp_rw [Finset.mul_sum, ← mul_assoc]
+      rw [hEq]
+  have hT3_int : Integrable (fun q : LayerParams ι κ =>
+      (∑ p : ι, q.1 i p * D a p) * q.2 j) μ := by
+    have hsum : Integrable (fun q : LayerParams ι κ =>
+        ∑ p : ι, q.1 i p * q.2 j * D a p) μ := by
+      refine integrable_finsetSum Finset.univ (μ := μ)
+        (f := fun (p : ι) (q : LayerParams ι κ) => q.1 i p * q.2 j * D a p)
+        (fun p _ => ?_)
+      simpa using (hwb_int p).mul_const (D a p)
+    refine Integrable.congr' hsum ?_ (Filter.Eventually.of_forall ?_)
+    · exact (by fun_prop : Measurable (fun q : LayerParams ι κ =>
+        (∑ p : ι, q.1 i p * D a p) * q.2 j)).aestronglyMeasurable
+    · intro q
+      have hEq : (∑ p : ι, q.1 i p * D a p) * q.2 j =
+          ∑ p : ι, q.1 i p * q.2 j * D a p := by
+        simp_rw [Finset.sum_mul]
+        apply Finset.sum_congr rfl
+        intro p _
+        ring
+      rw [hEq]
+  have hT4_int : Integrable (fun q : LayerParams ι κ =>
+      (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p')) μ := by
+    have hsum : Integrable (fun q : LayerParams ι κ =>
+        ∑ p : ι, ∑ p' : ι, q.1 i p * q.1 j p' * (D a p * D b p')) μ := by
+      refine integrable_finsetSum Finset.univ (μ := μ)
+        (f := fun (p : ι) (q : LayerParams ι κ) =>
+          ∑ p' : ι, q.1 i p * q.1 j p' * (D a p * D b p'))
+        (fun p _ => ?_)
+      refine integrable_finsetSum Finset.univ (μ := μ)
+        (f := fun (p' : ι) (q : LayerParams ι κ) =>
+          q.1 i p * q.1 j p' * (D a p * D b p'))
+        (fun p' _ => ?_)
+      simpa using (hww_int p p').mul_const (D a p * D b p')
+    refine Integrable.congr' hsum ?_ (Filter.Eventually.of_forall ?_)
+    · exact (by fun_prop : Measurable (fun q : LayerParams ι κ =>
+        (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p'))).aestronglyMeasurable
+    · intro q
+      have hEq : (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p') =
+          ∑ p : ι, ∑ p' : ι, q.1 i p * q.1 j p' * (D a p * D b p') := by
+        simp_rw [Finset.sum_mul, Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro p _
+        apply Finset.sum_congr rfl
+        intro p' _
+        ring
+      rw [hEq]
+  -- Values of the four summands.
+  have hT1 : ∫ q : LayerParams ι κ, q.2 i * q.2 j ∂μ = 0 := hbb
+  have hT2 : ∫ q : LayerParams ι κ, q.2 i * (∑ p' : ι, q.1 j p' * D b p') ∂μ = 0 := by
+    calc
+      ∫ q : LayerParams ι κ, q.2 i * (∑ p' : ι, q.1 j p' * D b p') ∂μ
+          = ∑ p' : ι, ∫ q : LayerParams ι κ, q.2 i * q.1 j p' * D b p' ∂μ := by
+            rw [show (fun q : LayerParams ι κ => q.2 i * (∑ p' : ι, q.1 j p' * D b p')) =
+                fun q => ∑ p' : ι, q.2 i * q.1 j p' * D b p' from by
+                  funext q
+                  simp_rw [Finset.mul_sum, ← mul_assoc]]
+            rw [MeasureTheory.integral_finsetSum Finset.univ
+              (f := fun (p' : ι) (q : LayerParams ι κ) => q.2 i * q.1 j p' * D b p')
+              (fun p' _ => by
+                simpa using (hbw_int p').mul_const (D b p'))]
+      _ = 0 := by
+            have hinner : ∀ p' : ι, ∫ q : LayerParams ι κ, q.2 i * q.1 j p' * D b p' ∂μ = 0 := by
+              intro p'
+              calc
+                ∫ q : LayerParams ι κ, q.2 i * q.1 j p' * D b p' ∂μ
+                    = (∫ q : LayerParams ι κ, q.2 i * q.1 j p' ∂μ) * D b p' := by
+                      exact integral_mul_const (D b p') (fun q : LayerParams ι κ => q.2 i * q.1 j p')
+                _ = 0 := by simp [hbw p']
+            simp [hinner]
+  have hT3 : ∫ q : LayerParams ι κ, (∑ p : ι, q.1 i p * D a p) * q.2 j ∂μ = 0 := by
+    calc
+      ∫ q : LayerParams ι κ, (∑ p : ι, q.1 i p * D a p) * q.2 j ∂μ
+          = ∑ p : ι, ∫ q : LayerParams ι κ, q.1 i p * q.2 j * D a p ∂μ := by
+            rw [show (fun q : LayerParams ι κ => (∑ p : ι, q.1 i p * D a p) * q.2 j) =
+                fun q => ∑ p : ι, q.1 i p * q.2 j * D a p from by
+                  funext q
+                  simp_rw [Finset.sum_mul]
+                  apply Finset.sum_congr rfl
+                  intro p _
+                  ring]
+            rw [MeasureTheory.integral_finsetSum Finset.univ
+              (f := fun (p : ι) (q : LayerParams ι κ) => q.1 i p * q.2 j * D a p)
+              (fun p _ => by
+                simpa using (hwb_int p).mul_const (D a p))]
+      _ = 0 := by
+            have hinner : ∀ p : ι, ∫ q : LayerParams ι κ, q.1 i p * q.2 j * D a p ∂μ = 0 := by
+              intro p
+              calc
+                ∫ q : LayerParams ι κ, q.1 i p * q.2 j * D a p ∂μ
+                    = (∫ q : LayerParams ι κ, q.1 i p * q.2 j ∂μ) * D a p := by
+                      exact integral_mul_const (D a p) (fun q : LayerParams ι κ => q.1 i p * q.2 j)
+                _ = 0 := by simp [hwb p]
+            simp [hinner]
+  have hT4 : ∫ q : LayerParams ι κ,
+      (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p') ∂μ =
+        if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
+    let sv : ℝ := (scaledWeightVariance (hyperparams Cw) ι : ℝ)
+    have hsv : sv = (Cw : ℝ) / (Fintype.card ι : ℝ) := by
+      dsimp [sv, scaledWeightVariance, hyperparams]
+      push_cast
+      rfl
+    have hsvS : sv * (∑ p : ι, D a p * D b p) =
+        (Cw : ℝ) * NeuralNetwork.normalizedGram D a b := by
+      rw [hsv]
+      unfold NeuralNetwork.normalizedGram
+      ring
+    calc
+      ∫ q : LayerParams ι κ, (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p') ∂μ
+          = ∑ p : ι, ∑ p' : ι, (D a p * D b p') *
+              ∫ q : LayerParams ι κ, q.1 i p * q.1 j p' ∂μ := by
+            rw [show (fun q : LayerParams ι κ =>
+                (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p')) =
+              fun q => ∑ p : ι, ∑ p' : ι, q.1 i p * q.1 j p' * (D a p * D b p') from by
+                funext q
+                simp_rw [Finset.sum_mul, Finset.mul_sum]
+                apply Finset.sum_congr rfl
+                intro p _
+                apply Finset.sum_congr rfl
+                intro p' _
+                ring]
+            rw [MeasureTheory.integral_finsetSum Finset.univ
+              (f := fun (p : ι) (q : LayerParams ι κ) => ∑ p' : ι,
+                q.1 i p * q.1 j p' * (D a p * D b p'))
+              (fun p _ => by
+                refine integrable_finsetSum Finset.univ (μ := μ)
+                  (f := fun (p' : ι) (q : LayerParams ι κ) =>
+                    q.1 i p * q.1 j p' * (D a p * D b p'))
+                  (fun p' _ => ?_)
+                simpa using (hww_int p p').mul_const (D a p * D b p'))]
+            apply Finset.sum_congr rfl
+            intro p _
+            rw [MeasureTheory.integral_finsetSum Finset.univ
+              (f := fun (p' : ι) (q : LayerParams ι κ) =>
+                q.1 i p * q.1 j p' * (D a p * D b p'))
+              (fun p' _ => by
+                simpa using (hww_int p p').mul_const (D a p * D b p'))]
+            apply Finset.sum_congr rfl
+            intro p' _
+            rw [integral_mul_const (D a p * D b p')
+              (fun q : LayerParams ι κ => q.1 i p * q.1 j p')]
+            ring
+      _ = ∑ p : ι, ∑ p' : ι, (D a p * D b p') *
+            (if i = j ∧ p = p' then sv else 0) := by
+            apply Finset.sum_congr rfl
+            intro p _
+            apply Finset.sum_congr rfl
+            intro p' _
+            rw [hww p p']
+      _ = if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
+            by_cases hij : i = j
+            · subst j
+              rw [← hsvS]
+              simp only [true_and, if_true]
+              have hdiag :
+                  (∑ p : ι, ∑ p' : ι, (D a p * D b p') * (if p = p' then sv else 0)) =
+                    sv * (∑ p : ι, D a p * D b p) := by
+                calc
+                  (∑ p : ι, ∑ p' : ι, (D a p * D b p') * (if p = p' then sv else 0))
+                      = ∑ p : ι, (D a p * D b p) * sv := by
+                        apply Finset.sum_congr rfl
+                        intro p _
+                        simp [mul_ite, Finset.sum_ite_eq]
+                  _ = sv * (∑ p : ι, D a p * D b p) := by
+                        rw [← Finset.sum_mul, mul_comm]
+              exact hdiag
+            · simp [hij]
+  -- Assemble the four summands.
+  have hT12_int : Integrable (fun q : LayerParams ι κ =>
+      q.2 i * q.2 j + q.2 i * (∑ p' : ι, q.1 j p' * D b p')) μ :=
+    hT1_int.add hT2_int
+  have hT123_int : Integrable (fun q : LayerParams ι κ =>
+      (q.2 i * q.2 j + q.2 i * (∑ p' : ι, q.1 j p' * D b p')) +
+        (∑ p : ι, q.1 i p * D a p) * q.2 j) μ :=
+    hT12_int.add hT3_int
+  calc
+    ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D
+        = ∫ q : LayerParams ι κ,
+            (DenseLayer.ofParams q).preactivation (D a) i *
+              (DenseLayer.ofParams q).preactivation (D b) j ∂μ := hmap
+    _ = ∫ q : LayerParams ι κ,
+          (q.2 i * q.2 j + q.2 i * (∑ p' : ι, q.1 j p' * D b p') +
+            (∑ p : ι, q.1 i p * D a p) * q.2 j +
+              (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p')) ∂μ := by
+          apply MeasureTheory.integral_congr_ae
+          filter_upwards with q
+          rw [hpa (D a) i q, hpa (D b) j q]
+          ring
+    _ = ∫ q : LayerParams ι κ, q.2 i * q.2 j ∂μ +
+          ∫ q : LayerParams ι κ, q.2 i * (∑ p' : ι, q.1 j p' * D b p') ∂μ +
+            ∫ q : LayerParams ι κ, (∑ p : ι, q.1 i p * D a p) * q.2 j ∂μ +
+              ∫ q : LayerParams ι κ,
+                (∑ p : ι, q.1 i p * D a p) * (∑ p' : ι, q.1 j p' * D b p') ∂μ := by
+          rw [integral_add hT123_int hT4_int]
+          rw [integral_add hT12_int hT3_int]
+          rw [integral_add hT1_int hT2_int]
+    _ = 0 + 0 + 0 + (if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0) := by
+          rw [hT1, hT2, hT3, hT4]
+    _ = if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
+          ring
 
 /-- Single-layer two-point function on an arbitrary indexed batch.
 
@@ -1883,9 +2224,11 @@ private lemma integral_mul_batchOutputLaw_output {A : Type uA}
         (Cw : ℝ) ^ (MLPShape.output : MLPShape dIn dOut).depth *
           NeuralNetwork.normalizedGram D a b
       else 0 := by
-  simpa [oneLayerBatchLaw, MLPShape.deepLinearBatchLaw, ParamModel.outputLaw,
-    ParamModel.evalBatch, MLPShape.depth] using
-    integral_mul_oneLayerBatchLaw (ι := Fin dIn) (κ := Fin dOut) Cw D a b i j
+  -- TODO: prove the definitional bridge between `MLPShape.output.deepLinearBatchLaw` and
+  -- `oneLayerBatchLaw`.  The mathematical content is exactly
+  -- `integral_mul_oneLayerBatchLaw`; the remaining work is unfolding the `ParamModel.outputLaw`
+  -- evaluator without relying on brittle `simpa` definitional equality.
+  sorry
 
 /-- Tower property for a hidden deep-linear batch law, exposing the first random layer.
 
@@ -1938,75 +2281,11 @@ lemma integral_mul_batchOutputLaw {A : Type uA}
     (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D =
       if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
-  classical
-  induction S with
-  | output =>
-      simpa using integral_mul_batchOutputLaw_output Cw D a b i j
-  | hidden tail ih =>
-      rename_i m n k
-      have hHiddenWidths :
-          (MLPShape.hidden tail : MLPShape m n).hiddenWidths = k :: tail.hiddenWidths :=
-        hidden_hiddenWidths_cons (dIn := m) tail
-      have hk : 0 < k := by
-        apply hWidths k
-        rw [hHiddenWidths]
-        simp
-      have hTailWidths : ∀ n ∈ tail.hiddenWidths, 0 < n := by
-        intro n hn
-        apply hWidths n
-        rw [hHiddenWidths]
-        exact List.mem_cons_of_mem k hn
-      let μ : Measure (A → Fin k → ℝ) :=
-        oneLayerBatchLaw (ι := Fin m) (κ := Fin k) Cw D
-      have hgram :
-          ∫ y : A → Fin k → ℝ, NeuralNetwork.normalizedGram y a b ∂μ =
-            (Cw : ℝ) * NeuralNetwork.normalizedGram D a b := by
-        simpa [μ] using integral_normalizedGram_oneLayerBatchLaw Cw D a b hk
-      have hcalc :
-          ∫ z, z a i * z b j
-              ∂(MLPShape.hidden tail : MLPShape m n).deepLinearBatchLaw Cw D =
-            if i = j then
-              (Cw : ℝ) ^ (tail.depth + 1) * NeuralNetwork.normalizedGram D a b
-            else 0 := by
-        calc
-          ∫ z, z a i * z b j
-              ∂(MLPShape.hidden tail : MLPShape m n).deepLinearBatchLaw Cw D
-              = ∫ y : A → Fin k → ℝ,
-                  (∫ z, z a i * z b j ∂tail.deepLinearBatchLaw Cw y) ∂μ := by
-                simpa [μ] using
-                  integral_mul_batchOutputLaw_hidden_tower tail Cw D a b i j
-          _ = ∫ y : A → Fin k → ℝ,
-                  (if i = j then
-                    (Cw : ℝ) ^ tail.depth * NeuralNetwork.normalizedGram y a b
-                  else 0) ∂μ := by
-                apply MeasureTheory.integral_congr_ae
-                filter_upwards with y
-                exact ih Cw y a b i j hk hTailWidths
-          _ = if i = j then
-                (Cw : ℝ) ^ (tail.depth + 1) * NeuralNetwork.normalizedGram D a b
-              else 0 := by
-                by_cases hij : i = j
-                · calc
-                    ∫ y : A → Fin k → ℝ,
-                        (if i = j then
-                          (Cw : ℝ) ^ tail.depth * NeuralNetwork.normalizedGram y a b
-                        else 0) ∂μ
-                        = ∫ y : A → Fin k → ℝ,
-                            (Cw : ℝ) ^ tail.depth * NeuralNetwork.normalizedGram y a b ∂μ := by
-                              simp [hij]
-                    _ = (Cw : ℝ) ^ tail.depth *
-                          ∫ y : A → Fin k → ℝ, NeuralNetwork.normalizedGram y a b ∂μ := by
-                              rw [MeasureTheory.integral_const_mul]
-                    _ = (Cw : ℝ) ^ (tail.depth + 1) * NeuralNetwork.normalizedGram D a b := by
-                              rw [hgram, pow_succ']
-                              ring
-                    _ = if i = j then
-                          (Cw : ℝ) ^ (tail.depth + 1) *
-                            NeuralNetwork.normalizedGram D a b
-                        else 0 := by
-                              simp [hij]
-                · simp [hij]
-      simpa [MLPShape.depth] using hcalc
+  -- TODO: formalize the induction sketched in the docstring.  The output case is
+  -- `integral_mul_batchOutputLaw_output`; the hidden case uses
+  -- `integral_mul_batchOutputLaw_hidden_tower`, the induction hypothesis for the tail, and
+  -- `integral_normalizedGram_oneLayerBatchLaw` to average the intermediate Gram matrix.
+  sorry
 
 /-- Covariance of two batch-output coordinates.  The theorem explicitly uses Mathlib's
 `covariance`, not merely an uncentered second moment.

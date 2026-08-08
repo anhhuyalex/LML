@@ -706,7 +706,7 @@ private lemma sixPoint_even_partitions_card_one :
   ext P
   simp only [Finset.mem_filter, Finset.mem_singleton]
   constructor
-  · rintro h
+  · intro h
     exact sixPoint_card_one_eq_top h.2
   · rintro rfl
     have htop_parts := sixPoint_top_parts_eq_singleton Finset.univ_nonempty.ne_empty
@@ -725,9 +725,11 @@ private lemma sixPoint_even_partitions_card_two :
   ext P
   simp only [Finset.mem_filter, fourTwoPartitions, Finset.mem_univ, true_and]
   constructor
-  · rintro h
-    exact sixPoint_card_two_eq_fourTwo h.1.2 h.2
-  · rintro ⟨hcard, hshape⟩
+  · intro h
+    exact sixPoint_card_two_eq_fourTwo h.1 h.2
+  · intro h
+    have hcard := h.1
+    have hshape := h.2
     refine ⟨⟨Finset.mem_univ _, ?_⟩, hcard⟩
     intro B hB
     rcases hshape B hB with h2 | h4
@@ -744,8 +746,8 @@ private lemma sixPoint_even_partitions_card_three :
   ext P
   simp only [Finset.mem_filter, Finset.mem_univ, true_and]
   constructor
-  · rintro h
-    exact sixPoint_card_three_eq_pairing h.1.2 h.2
+  · intro h
+    exact sixPoint_card_three_eq_pairing h.1 h.2
   · intro hPairing
     have hcard2 : ∀ B ∈ P.parts, B.card = 2 := hPairing
     have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
@@ -766,8 +768,8 @@ private lemma sixPoint_even_partitions_cover (S : Finset (Finpartition (Finset.u
       ∪ S.filter (fun P => P.parts.card = 3) := by
   have hS_even : ∀ P ∈ S, ∀ B ∈ P.parts, Even B.card := by
     intro P hP
-    rw [hS, Finset.mem_filter] at hP
-    exact hP.2
+    have h1 := Finset.mem_filter.mp (hS ▸ hP)
+    exact h1.2
   have hcard_le : ∀ P ∈ S, P.parts.card ≤ 3 :=
     fun P hP => sixPoint_parts_card_le_three (hS_even P hP)
   have hcard_pos : ∀ P ∈ S, 1 ≤ P.parts.card := fun P _ =>
@@ -948,7 +950,8 @@ private lemma card_pairing_two {α : Type*} [DecidableEq α] {s : Finset α} (hs
 -- A four-element set has `3` pairings: three choices for the partner of a fixed element.
 private lemma card_pairing_four {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 4) :
     Fintype.card (Finpartition.Pairing s) = 3 := by
-  rcases Finset.card_pos.mpr (by omega) with ⟨a, ha⟩
+  have hs_pos : 0 < s.card := hs.symm ▸ by decide
+  rcases Finset.card_pos.mp hs_pos with ⟨a, ha⟩
   rw [card_pairing_erase s a ha]
   apply Finset.sum_congr rfl
   intro b hb
@@ -960,7 +963,8 @@ private lemma card_pairing_four {α : Type*} [DecidableEq α] {s : Finset α} (h
 -- `3` pairings of the residual four-element set.
 private lemma card_pairing_six {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 6) :
     Fintype.card (Finpartition.Pairing s) = 15 := by
-  rcases Finset.card_pos.mpr (by omega) with ⟨a, ha⟩
+  have hs_pos : 0 < s.card := hs.symm ▸ by decide
+  rcases Finset.card_pos.mp hs_pos with ⟨a, ha⟩
   rw [card_pairing_erase s a ha]
   apply Finset.sum_congr rfl
   intro b hb
