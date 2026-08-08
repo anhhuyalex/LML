@@ -309,24 +309,6 @@ theorem jointMoment_eq_sum_partition_jointCumulant [Fintype ι] [DecidableEq ι]
   rw [← blockCumulant_eq_jointCumulant_subtype]
   rfl
 
-/-- The parts of the top partition of a nonempty finset are exactly the singleton of the whole
-set. -/
-private lemma top_parts_eq_singleton {α : Type*} [DecidableEq α] {s : Finset α} (hs : s ≠ ∅) :
-    (⊤ : Finpartition s).parts = {s} := by
-  classical
-  ext B
-  constructor
-  · intro hB
-    exact Finpartition.parts_top_subset s hB
-  · intro hB
-    rw [Finset.mem_singleton] at hB
-    rw [hB]
-    have hne : (⊤ : Finpartition s).parts.Nonempty :=
-      Finpartition.parts_nonempty (⊤ : Finpartition s) hs
-    rcases hne with ⟨C, hC⟩
-    have hC_eq : C = s := Finset.mem_singleton.mp (Finpartition.parts_top_subset s hC)
-    rwa [hC_eq] at hC
-
 /-- A nonempty subset of a singleton is the singleton itself. -/
 private lemma singleton_part_eq {α : Type*} {x : α} {B : Finset α}
     (hB_sub : B ⊆ ({x} : Finset α)) (hB_ne : B ≠ ∅) : B = {x} := by
@@ -369,7 +351,7 @@ lemma sum_Finpartition_singleton {α : Type*} [DecidableEq α] (x : α)
     exfalso
     apply hP
     apply Finpartition.ext
-    rw [singleton_parts_eq P, top_parts_eq_singleton (by simp : ({x} : Finset α) ≠ ∅)]
+    rw [singleton_parts_eq P, Finpartition.top_parts_eq_singleton (by simp : ({x} : Finset α) ≠ ∅)]
 
 /-- The cumulant coefficient of the top partition is 1.
 
@@ -378,7 +360,7 @@ lemma cumulantCoefficient_top {α : Type*} [DecidableEq α] {s : Finset α} (hs 
     (Finpartition.cumulantCoefficient (⊤ : Finpartition s) : ℝ) = 1 := by
   classical
   dsimp [Finpartition.cumulantCoefficient]
-  rw [top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
+  rw [Finpartition.top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
   simp
 
 /-- The block product of a function on the top partition is the function applied to the whole
@@ -392,7 +374,7 @@ lemma blockProduct_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Non
     (⊤ : Finpartition s).blockProduct f = f s := by
   classical
   dsimp [Finpartition.blockProduct]
-  rw [top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
+  rw [Finpartition.top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
   simp
 
 /-- The first cumulant is the expectation.
@@ -431,7 +413,7 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
     ext B
     constructor
     · intro hB
-      rw [top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅), Finset.mem_singleton]
+      rw [Finpartition.top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅), Finset.mem_singleton]
       by_contra hB_ne
       have hB_sub : B ⊆ ({x, y} : Finset α) := P.le hB
       have hB_card_le : B.card ≤ 2 := by simpa [hxy] using Finset.card_le_card hB_sub
@@ -452,7 +434,7 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
       rw [hcontra]
       exact hpx_full
     · intro hB
-      rw [top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅)] at hB
+      rw [Finpartition.top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅)] at hB
       rw [Finset.mem_singleton] at hB
       rw [hB]
       simpa [hpx_full] using P.part_mem.2 hx_mem
@@ -772,7 +754,7 @@ private lemma finFourTop_no_singleton :
     ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉
       (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).parts := by
   intro i hi
-  rw [top_parts_eq_singleton finFour_univ_ne_empty, Finset.mem_singleton] at hi
+  rw [Finpartition.top_parts_eq_singleton finFour_univ_ne_empty, Finset.mem_singleton] at hi
   have hc1 : ({i} : Finset (Fin 4)).card = 1 := by simp
   have hc2 : (Finset.univ : Finset (Fin 4)).card = 4 := by simp
   rw [hi, hc2] at hc1
@@ -931,7 +913,7 @@ private lemma finFour_no_singleton_eq_top_or_pairing
         simp
     have hP_top : P = ⊤ := by
       apply Finpartition.ext
-      rw [hB, hB_univ, top_parts_eq_singleton finFour_univ_ne_empty]
+      rw [hB, hB_univ, Finpartition.top_parts_eq_singleton finFour_univ_ne_empty]
     exact Or.inl hP_top
   · -- exactly two blocks: `P` is one of the three pairings
     exact Or.inr (finFour_two_block_eq_pairing P hno hcard)
@@ -1150,7 +1132,7 @@ lemma Finpartition.blockProduct_eq_part_mul_rest [Fintype ι] [DecidableEq ι] {
     P.blockProduct f = f (P.part i) * ∏ B ∈ P.parts.erase (P.part i), f B := by
   dsimp [Finpartition.blockProduct]
   have ha_mem : P.part i ∈ P.parts := P.part_mem.2 (Finset.mem_univ i)
-  rw [← Finset.insert_erase ha_mem]
+  conv_lhs => rw [← Finset.insert_erase ha_mem]
   exact Finset.prod_insert (Finset.notMem_erase (P.part i) P.parts)
 
 lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
@@ -1165,7 +1147,7 @@ lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
   let rest : R := ∏ B ∈ P.parts.erase a, g B
   have hf : P.blockProduct f = (g a + h a) * rest := by
     rw [Finpartition.blockProduct_eq_part_mul_rest P f i, h_add a]
-    simp only [P.mem_part (Finset.mem_univ i), ↓reduceIte]
+    rw [if_pos hi_mem_a]
     congr 1
     apply Finset.prod_congr rfl
     intro B hB
@@ -1205,8 +1187,7 @@ lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing 
 
 lemma blockMoment_eq_integral_mul_prod_erase [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (s : Finset ι) (hi : i ∈ s) :
-    blockMoment μ X s = ∫ ω, X i ω * ∏ j ∈ s.erase i, X j ω ∂μ := by
-  dsimp [blockMoment]
+    ∫ ω, ∏ j ∈ s, X j ω ∂μ = ∫ ω, X i ω * ∏ j ∈ s.erase i, X j ω ∂μ := by
   congr 1
   ext ω
   exact (Finset.mul_prod_erase s (fun j => X j ω) hi).symm
@@ -1219,12 +1200,8 @@ lemma blockMoment_add_update [DecidableEq ι]
     blockMoment μ (Function.update X i (X i + Y)) s =
       if hi : i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
       else blockMoment μ X s := by
-  dsimp [blockMoment]
   by_cases hi : i ∈ s
   · rw [dif_pos hi]
-    rw [blockMoment_eq_integral_mul_prod_erase (Function.update X i (X i + Y)) i s hi,
-        blockMoment_eq_integral_mul_prod_erase X i s hi,
-        blockMoment_eq_integral_mul_prod_erase (Function.update X i Y) i s hi]
     have hIntX : Integrable (fun ω => X i ω * ∏ j ∈ s.erase i, X j ω) μ := by
       convert hX s using 1
       ext ω
@@ -1240,8 +1217,9 @@ lemma blockMoment_add_update [DecidableEq ι]
       have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
       simp [hj_ne]
     calc
-      ∫ ω, ∏ j ∈ s, (Function.update X i (X i + Y)) j ω ∂μ
-          = ∫ ω, (X i ω + Y ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
+      blockMoment μ (Function.update X i (X i + Y)) s
+          = ∫ ω, ∏ j ∈ s, (Function.update X i (X i + Y)) j ω ∂μ := rfl
+      _ = ∫ ω, (X i ω + Y ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
             congr 1
             ext ω
             rw [← Finset.mul_prod_erase s (fun j : ι => (Function.update X i (X i + Y)) j ω) hi]
@@ -1275,7 +1253,8 @@ lemma blockMoment_add_update [DecidableEq ι]
               intro j hj
               have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
               simp [hj_ne]
-  · rw [dif_neg hi]
+  · dsimp [blockMoment]
+    rw [if_neg hi]
     congr 1
     ext ω
     apply Finset.prod_congr rfl
@@ -1369,7 +1348,7 @@ lemma blockMoment_smul_update [DecidableEq ι]
       else blockMoment μ X s := by
   dsimp [blockMoment]
   by_cases hi : i ∈ s
-  · rw [dif_pos hi]
+  · rw [if_pos hi]
     rw [blockMoment_eq_integral_mul_prod_erase (Function.update X i (c • X i)) i s hi,
         blockMoment_eq_integral_mul_prod_erase X i s hi]
     calc
@@ -1389,7 +1368,7 @@ lemma blockMoment_smul_update [DecidableEq ι]
             congr 1
             ext ω
             simp [smul_eq_mul, mul_assoc]
-  · rw [dif_neg hi]
+  · rw [if_neg hi]
     exact blockMoment_update_not_mem X i (c • X i) s hi
 
 /-- Joint cumulants are homogeneous in one argument.
@@ -1894,7 +1873,7 @@ private lemma partialMatching_finiteDifference_sum_eq_zero (p q : ℕ) (hp : 0 <
 -- `(q-m)! * (q-m+1).ascFactorial (p-1) = (p+q-m-1)!`
 -- (`Nat.factorial_mul_ascFactorial`), the product of the binomial coefficients and factorials
 -- collapses to `q! * p.choose m * (q-m+1).ascFactorial (p-1)`.
-private lemma partialMatching_factorial_core (p q m : ℕ) (hp : 0 < p) (hm_le_q : m ≤ q) :
+private lemma partialMatching_factorial_formula (p q m : ℕ) (hp : 0 < p) (hm_le_q : m ≤ q) :
     p.choose m * q.choose m * m.factorial * (p + q - m - 1).factorial =
       q.factorial * (p.choose m * (q - m + 1).ascFactorial (p - 1)) := by
   calc
@@ -1915,7 +1894,7 @@ private lemma partialMatching_factorial_core (p q m : ℕ) (hp : 0 < p) (hm_le_q
 -- `q! * (-1)^(p+q-1) * ((-1)^m * p.choose m * P(m))`, with
 -- `P(m) = ∏_{j < p-1} (q + (j+1) - m)`.
 --
--- The rewrite uses `partialMatching_factorial_core` to collapse the factorial part and the sign
+-- The rewrite uses `partialMatching_factorial_formula` to collapse the factorial part and the sign
 -- identity `(-1)^(p+q-m-1) = (-1)^(p+q-1) * (-1)^m` (the two exponents differ by `m` modulo 2).
 private lemma partialMatching_summand_eq (p q m : ℕ) (hp : 0 < p) (hq : 0 < q)
     (hpq : p ≤ q) (hm : m ∈ Finset.range (p + 1)) :
@@ -1941,7 +1920,7 @@ private lemma partialMatching_summand_eq (p q m : ℕ) (hp : 0 < p) (hq : 0 < q)
         ((q.factorial : ℕ) : ℤ) *
           (((p.choose m : ℕ) : ℤ) *
             (((q - m + 1).ascFactorial (p - 1) : ℕ) : ℤ)) := by
-    exact_mod_cast partialMatching_factorial_core p q m hp hm_le_q
+    exact_mod_cast partialMatching_factorial_formula p q m hp hm_le_q
   -- Sign identity: the two exponents `p+q-m-1` and `p+q-1` differ by `m` modulo 2.
   have hsign :
       (-1 : ℤ) ^ (p + q - m - 1) =

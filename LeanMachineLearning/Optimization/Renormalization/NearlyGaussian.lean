@@ -699,6 +699,108 @@ private lemma sixPoint_card_three_eq_pairing
   have hpointwise := (Finset.sum_eq_sum_iff_of_le (sixPoint_block_card_ge_two heven)).mp heq
   exact fun B hB => (hpointwise B hB).symm
 
+-- Helper: The single-block even partition is the top partition
+private lemma sixPoint_even_partitions_card_one :
+    (Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
+      ∀ B ∈ P.parts, Even B.card)).filter (fun P => P.parts.card = 1) = {⊤} := by
+  ext P
+  simp only [Finset.mem_filter, Finset.mem_singleton]
+  constructor
+  · rintro h
+    exact sixPoint_card_one_eq_top h.2
+  · rintro rfl
+    have htop_parts := sixPoint_top_parts_eq_singleton Finset.univ_nonempty.ne_empty
+    refine ⟨⟨Finset.mem_univ _, ?_⟩, ?_⟩
+    · intro B hB
+      rw [htop_parts, Finset.mem_singleton] at hB
+      subst hB
+      rw [show (Finset.univ : Finset (Fin 6)).card = 6 from by simp]
+      decide
+    · rw [htop_parts]; simp
+
+-- Helper: The two-block even partitions are exactly the (4,2) partitions
+private lemma sixPoint_even_partitions_card_two :
+    (Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
+      ∀ B ∈ P.parts, Even B.card)).filter (fun P => P.parts.card = 2) = fourTwoPartitions := by
+  ext P
+  simp only [Finset.mem_filter, fourTwoPartitions, Finset.mem_univ, true_and]
+  constructor
+  · rintro h
+    exact sixPoint_card_two_eq_fourTwo h.1.2 h.2
+  · rintro ⟨hcard, hshape⟩
+    refine ⟨⟨Finset.mem_univ _, ?_⟩, hcard⟩
+    intro B hB
+    rcases hshape B hB with h2 | h4
+    · exact ⟨1, by omega⟩
+    · exact ⟨2, by omega⟩
+
+-- Helper: The three-block even partitions are exactly the pairings
+private lemma sixPoint_even_partitions_card_three :
+    (Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
+      ∀ B ∈ P.parts, Even B.card)).filter (fun P => P.parts.card = 3) =
+      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
+        Finpartition.IsPairing P) := by
+  classical
+  ext P
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+  constructor
+  · rintro h
+    exact sixPoint_card_three_eq_pairing h.1.2 h.2
+  · intro hPairing
+    have hcard2 : ∀ B ∈ P.parts, B.card = 2 := hPairing
+    have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
+    have hsum6' : ∑ C ∈ P.parts, (2 : ℕ) = 6 :=
+      (Finset.sum_congr rfl (fun C hC => (hcard2 C hC).symm)).trans hsum6
+    have hcardP : P.parts.card = 3 := by
+      rw [Finset.sum_const, smul_eq_mul] at hsum6'
+      omega
+    refine ⟨⟨Finset.mem_univ _, ?_⟩, hcardP⟩
+    intro B hB
+    rw [hcard2 B hB]
+    decide
+
+-- Helper: All even partitions of Fin 6 have 1, 2, or 3 blocks
+private lemma sixPoint_even_partitions_cover (S : Finset (Finpartition (Finset.univ : Finset (Fin 6))))
+    (hS : S = Finset.univ.filter (fun P => ∀ B ∈ P.parts, Even B.card)) :
+    S = (S.filter (fun P => P.parts.card = 1) ∪ S.filter (fun P => P.parts.card = 2))
+      ∪ S.filter (fun P => P.parts.card = 3) := by
+  have hS_even : ∀ P ∈ S, ∀ B ∈ P.parts, Even B.card := by
+    intro P hP
+    rw [hS, Finset.mem_filter] at hP
+    exact hP.2
+  have hcard_le : ∀ P ∈ S, P.parts.card ≤ 3 :=
+    fun P hP => sixPoint_parts_card_le_three (hS_even P hP)
+  have hcard_pos : ∀ P ∈ S, 1 ≤ P.parts.card := fun P _ =>
+    Finset.card_pos.mpr (P.parts_nonempty Finset.univ_nonempty.ne_empty)
+  ext P
+  simp only [Finset.mem_union, Finset.mem_filter]
+  constructor
+  · intro hP
+    have h1 := hcard_le P hP
+    have h2 := hcard_pos P hP
+    have h3 : P.parts.card = 1 ∨ P.parts.card = 2 ∨ P.parts.card = 3 := by omega
+    rcases h3 with h | h | h
+    · exact Or.inl (Or.inl ⟨hP, h⟩)
+    · exact Or.inl (Or.inr ⟨hP, h⟩)
+    · exact Or.inr ⟨hP, h⟩
+  · rintro ((⟨h, _⟩ | ⟨h, _⟩) | ⟨h, _⟩) <;> exact h
+
+-- Helper: Reindex the filtered sum along the Pairing subtype
+private lemma sixPoint_sum_pairing_eq {Ω : Type uΩ} [MeasurableSpace Ω]
+    (μ : Measure Ω) (X : Fin 6 → Ω → ℝ) :
+    (∑ P ∈ Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => Finpartition.IsPairing P),
+      P.blockProduct (blockCumulant μ X)) = sixPointPairingCumulantSum μ X := by
+  classical
+  unfold sixPointPairingCumulantSum Finpartition.pairingSum
+  refine Finset.sum_bij
+    (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ :
+      Finpartition.Pairing (Finset.univ : Finset (Fin 6))))
+    ?_ ?_ ?_ ?_
+  · intro P hp; exact Finset.mem_univ _
+  · intro P₁ hp₁ P₂ hp₂ h; exact Subtype.ext_iff.mp h
+  · intro Q hQ; exact ⟨Q.1, Finset.mem_filter.mpr ⟨Finset.mem_univ _, Q.2⟩, rfl⟩
+  · intro P hp; rfl
+
 /-- The six-point moment decomposes into connected `6`, `(4,2)`, and `(2,2,2)` pieces.
 
 Informal proof: specialize `jointMoment_eq_sum_partition_jointCumulant` to `Fin 6`.  Odd block
@@ -713,7 +815,6 @@ theorem jointMoment_six_eq_connected_decomposition
     jointMoment μ X = jointCumulant μ X + sixPointFourTwoCumulantSum μ X +
       sixPointPairingCumulantSum μ X := by
   classical
-  have hsu_ne : (Finset.univ : Finset (Fin 6)) ≠ ∅ := Finset.univ_nonempty.ne_empty
   -- Step 1: `jointMoment` as the sum over all partitions.
   have hsum : jointMoment μ X =
       ∑ P : Finpartition (Finset.univ : Finset (Fin 6)), P.blockProduct (blockCumulant μ X) := by
@@ -737,125 +838,33 @@ theorem jointMoment_six_eq_connected_decomposition
   rw [hrest0, add_zero]
   set S : Finset (Finpartition (Finset.univ : Finset (Fin 6))) :=
     Finset.univ.filter (fun P => ∀ B ∈ P.parts, Even B.card) with hS_def
-  have hSmem : ∀ P, P ∈ S ↔ ∀ B ∈ P.parts, Even B.card := by
-    intro P
-    rw [hS_def, Finset.mem_filter]
-    exact ⟨fun h => h.2, fun h => ⟨Finset.mem_univ _, h⟩⟩
   -- Step 3: identify the three buckets of `S` by number of parts.
-  have hbucket1 :
-      S.filter (fun P => P.parts.card = 1) = {(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} := by
-    ext P
-    simp only [Finset.mem_filter, Finset.mem_singleton]
-    constructor
-    · rintro ⟨_, hcard⟩
-      exact sixPoint_card_one_eq_top hcard
-    · rintro rfl
-      have htop_parts := sixPoint_top_parts_eq_singleton hsu_ne
-      refine ⟨(hSmem _).2 ?_, ?_⟩
-      · intro B hB
-        rw [htop_parts, Finset.mem_singleton] at hB
-        subst hB
-        rw [show (Finset.univ : Finset (Fin 6)).card = 6 from by simp]
-        decide
-      · rw [htop_parts]; simp
+  have hbucket1 : S.filter (fun P => P.parts.card = 1) = {(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} := by
+    rw [hS_def, sixPoint_even_partitions_card_one]
   have hbucket2 : S.filter (fun P => P.parts.card = 2) = fourTwoPartitions := by
-    ext P
-    simp only [Finset.mem_filter, fourTwoPartitions, Finset.mem_univ, true_and]
-    constructor
-    · rintro ⟨hPS, hcard⟩
-      exact sixPoint_card_two_eq_fourTwo ((hSmem P).1 hPS) hcard
-    · rintro ⟨hcard, hshape⟩
-      refine ⟨(hSmem P).2 ?_, hcard⟩
-      intro B hB
-      rcases hshape B hB with h2 | h4
-      · exact ⟨1, by omega⟩
-      · exact ⟨2, by omega⟩
+    rw [hS_def, sixPoint_even_partitions_card_two]
   have hbucket3 : S.filter (fun P => P.parts.card = 3) =
-      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
-        Finpartition.IsPairing P) := by
-    ext P
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-    constructor
-    · rintro ⟨hPS, hcard⟩
-      exact sixPoint_card_three_eq_pairing ((hSmem P).1 hPS) hcard
-    · intro hPairing
-      have hcard2 : ∀ B ∈ P.parts, B.card = 2 := hPairing
-      have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
-      have hsum6' : ∑ C ∈ P.parts, (2 : ℕ) = 6 :=
-        (Finset.sum_congr rfl (fun C hC => (hcard2 C hC).symm)).trans hsum6
-      have hcardP : P.parts.card = 3 := by
-        rw [Finset.sum_const, smul_eq_mul] at hsum6'
-        omega
-      refine ⟨(hSmem P).2 ?_, hcardP⟩
-      intro B hB
-      rw [hcard2 B hB]
-      decide
+      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => Finpartition.IsPairing P) := by
+    rw [hS_def, sixPoint_even_partitions_card_three]
   -- Step 4: assemble the three buckets into a disjoint cover of `S`.
-  have hcard_le : ∀ P ∈ S, P.parts.card ≤ 3 :=
-    fun P hP => sixPoint_parts_card_le_three ((hSmem P).1 hP)
-  have hcard_pos : ∀ P ∈ S, 1 ≤ P.parts.card := fun P _ =>
-    Finset.card_pos.mpr (P.parts_nonempty hsu_ne)
-  have hS12 :
-      Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 2)) := by
-    rw [Finset.disjoint_left]
-    intro P h1 h2
-    have e1 := (Finset.mem_filter.mp h1).2
-    have e2 := (Finset.mem_filter.mp h2).2
-    omega
-  have hS13 :
-      Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 3)) := by
-    rw [Finset.disjoint_left]
-    intro P h1 h3
-    have e1 := (Finset.mem_filter.mp h1).2
-    have e3 := (Finset.mem_filter.mp h3).2
-    omega
-  have hS23 :
-      Disjoint (S.filter (fun P => P.parts.card = 2)) (S.filter (fun P => P.parts.card = 3)) := by
-    rw [Finset.disjoint_left]
-    intro P h2 h3
-    have e2 := (Finset.mem_filter.mp h2).2
-    have e3 := (Finset.mem_filter.mp h3).2
-    omega
-  have hSunion : S = (S.filter (fun P => P.parts.card = 1) ∪ S.filter (fun P => P.parts.card = 2))
-      ∪ S.filter (fun P => P.parts.card = 3) := by
-    ext P
-    simp only [Finset.mem_union, Finset.mem_filter]
-    constructor
-    · intro hP
-      have h1 := hcard_le P hP
-      have h2 := hcard_pos P hP
-      have h3 : P.parts.card = 1 ∨ P.parts.card = 2 ∨ P.parts.card = 3 := by omega
-      rcases h3 with h | h | h
-      · exact Or.inl (Or.inl ⟨hP, h⟩)
-      · exact Or.inl (Or.inr ⟨hP, h⟩)
-      · exact Or.inr ⟨hP, h⟩
-    · rintro ((⟨h, _⟩ | ⟨h, _⟩) | ⟨h, _⟩) <;> exact h
+  have hS12 : Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 2)) := by
+    rw [Finset.disjoint_left]; intro P h1 h2; have e1 := (Finset.mem_filter.mp h1).2; have e2 := (Finset.mem_filter.mp h2).2; omega
+  have hS13 : Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 3)) := by
+    rw [Finset.disjoint_left]; intro P h1 h3; have e1 := (Finset.mem_filter.mp h1).2; have e3 := (Finset.mem_filter.mp h3).2; omega
+  have hS23 : Disjoint (S.filter (fun P => P.parts.card = 2)) (S.filter (fun P => P.parts.card = 3)) := by
+    rw [Finset.disjoint_left]; intro P h2 h3; have e2 := (Finset.mem_filter.mp h2).2; have e3 := (Finset.mem_filter.mp h3).2; omega
   have hsplit : ∑ P ∈ S, P.blockProduct (blockCumulant μ X) =
       (∑ P ∈ S.filter (fun P => P.parts.card = 1), P.blockProduct (blockCumulant μ X)) +
       (∑ P ∈ S.filter (fun P => P.parts.card = 2), P.blockProduct (blockCumulant μ X)) +
       (∑ P ∈ S.filter (fun P => P.parts.card = 3), P.blockProduct (blockCumulant μ X)) := by
-    conv_lhs => rw [hSunion]
+    conv_lhs => rw [sixPoint_even_partitions_cover S hS_def]
     rw [Finset.sum_union (Finset.disjoint_union_left.mpr ⟨hS13, hS23⟩), Finset.sum_union hS12]
   have htop_eq : (∑ P ∈ ({(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} :
       Finset (Finpartition (Finset.univ : Finset (Fin 6)))), P.blockProduct (blockCumulant μ X)) =
       jointCumulant μ X := by
     rw [Finset.sum_singleton, blockProduct_top Finset.univ_nonempty]
     rfl
-  have hpairing_eq : (∑ P ∈ Finset.univ.filter
-      (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => Finpartition.IsPairing P),
-      P.blockProduct (blockCumulant μ X)) = sixPointPairingCumulantSum μ X := by
-    unfold sixPointPairingCumulantSum Finpartition.pairingSum
-    -- Reindex the filtered sum along the `Pairing univ` subtype; mirrors the bijection in
-    -- `partitionTransform_card_two_eq_pairingSum` (`Gaussian.lean`).
-    refine Finset.sum_bij
-      (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ :
-        Finpartition.Pairing (Finset.univ : Finset (Fin 6))))
-      ?_ ?_ ?_ ?_
-    · intro P hp; exact Finset.mem_univ _
-    · intro P₁ hp₁ P₂ hp₂ h; exact Subtype.ext_iff.mp h
-    · intro Q hQ; exact ⟨Q.1, Finset.mem_filter.mpr ⟨Finset.mem_univ _, Q.2⟩, rfl⟩
-    · intro P hp; rfl
-  rw [hsplit, hbucket1, hbucket2, hbucket3, htop_eq, hpairing_eq]
+  rw [hsplit, hbucket1, hbucket2, hbucket3, htop_eq, sixPoint_sum_pairing_eq]
   rfl
 
 /-- Sum of the fifteen `(4,2)` products of raw moments. -/

@@ -614,67 +614,15 @@ theorem partitionTransform_bind [CommSemiring R] {s : Finset α} (P : Finpartiti
 This is the inverse of `insertBlock`: the remaining parts are the original parts with `B` removed,
 and they cover exactly `s \ B` because `B` is a part. -/
 private def deleteBlock {s : Finset α} (P : Finpartition s) (B : Finset α)
-    (hB : B ∈ P.parts) : Finpartition (s \ B) := by
-  refine ofExistsUnique (P.parts.erase B) ?_ ?_ ?_
-  · -- every remaining part stays inside `s \ B`: a point of it cannot lie in `B`
-    intro C hC
-    rw [Finset.mem_erase] at hC
-    intro x hx
-    exact Finset.mem_sdiff.mpr ⟨P.subset hC.2 hx, by
-      intro hxB
-      exact hC.1 (P.eq_of_mem_parts hC.2 hB hx hxB)⟩
-  · -- each element of `s \ B` lies in the unique remaining part that contained it
-    intro x hx
-    rcases Finset.mem_sdiff.mp hx with ⟨hx_s, hx_nB⟩
-    obtain ⟨C, hC, hxC⟩ := P.existsUnique_mem hx_s
-    refine ⟨C, ⟨Finset.mem_erase.mpr ⟨?_, hC.1⟩, hC.2⟩, ?_⟩
-    · intro hC_eq
-      exact hx_nB (by simpa [hC_eq] using hC.2)
-    · -- any other remaining part containing `x` equals `C` by uniqueness in `P`
-      intro D hD
-      rcases hD with ⟨hD_mem, hxD⟩
-      exact hxC D ⟨(Finset.mem_erase.mp hD_mem).2, hxD⟩
-  · -- `∅` is not a remaining part
-    intro h
-    exact P.empty_notMem_parts (Finset.mem_erase.mp h).2
+    (hB : B ∈ P.parts) : Finpartition (s \ B) := P.avoid B
 
 /-- Insert a new block `B` into a partition of `s \ B`, giving a partition of `s`.
 
 This is the inverse of `deleteBlock`: the new part `B` is added to the parts of `Q`, and the
 resulting parts cover `s = B ∪ (s \ B)`. -/
 private def insertBlock {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
-    (hBsub : B ⊆ s) (Q : Finpartition (s \ B)) : Finpartition s := by
-  refine ofExistsUnique (insert B Q.parts) ?_ ?_ ?_
-  · -- every part (the new block or an old block) is contained in `s`
-    intro C hC
-    rcases Finset.mem_insert.mp hC with (rfl | hC)
-    · exact hBsub
-    · intro x hx
-      exact (Finset.mem_sdiff.mp (Q.subset hC hx)).1
-  · -- each element of `s` lies in the new block or in the unique old block containing it
-    intro x hx
-    by_cases hx_B : x ∈ B
-    · refine ⟨B, ⟨by simp, hx_B⟩, ?_⟩
-      intro C hC
-      rcases hC with ⟨hC_mem, hxC⟩
-      rcases Finset.mem_insert.mp hC_mem with (rfl | hC_mem)
-      · rfl
-      · exfalso
-        exact (Finset.mem_sdiff.mp (Q.subset hC_mem hxC)).2 hx_B
-    · have hx_sB : x ∈ s \ B := Finset.mem_sdiff.mpr ⟨hx, hx_B⟩
-      obtain ⟨C, hC, hxC⟩ := Q.existsUnique_mem hx_sB
-      refine ⟨C, ⟨by simp [hC.1], hC.2⟩, ?_⟩
-      intro D hD
-      rcases hD with ⟨hD_mem, hxD⟩
-      rcases Finset.mem_insert.mp hD_mem with (rfl | hD_mem)
-      · exfalso
-        exact hx_B (by simpa using hxD)
-      · exact hxC D ⟨hD_mem, hxD⟩
-  · -- `∅` is not a part: neither the new block (nonempty) nor an old part
-    intro h
-    rcases Finset.mem_insert.mp h with (hB | hbot)
-    · exact hBne hB.symm
-    · exact Q.empty_notMem_parts hbot
+    (hBsub : B ⊆ s) (Q : Finpartition (s \ B)) : Finpartition s :=
+  Q.extend hBne disjoint_sdiff_self_left (Finset.sdiff_union_of_subset hBsub)
 
 /-- The parts of `insertBlock` are the new block together with the old parts. -/
 private lemma insertBlock_parts {s : Finset α} (B : Finset α) (hBne : B ≠ ∅)
@@ -684,7 +632,23 @@ private lemma insertBlock_parts {s : Finset α} (B : Finset α) (hBne : B ≠ �
 /-- The parts of `deleteBlock` are the original parts with `B` removed. -/
 private lemma deleteBlock_parts {s : Finset α} (P : Finpartition s) (B : Finset α)
     (hB : B ∈ P.parts) :
-    (P.deleteBlock B hB).parts = P.parts.erase B := rfl
+    (P.deleteBlock B hB).parts = P.parts.erase B := by
+  ext C
+  dsimp [deleteBlock]
+  rw [Finset.mem_erase, Finpartition.mem_avoid]
+  constructor
+  · rintro ⟨D, hD, hD_not_le, hD_eq⟩
+    have hdisj : Disjoint D B := P.disjoint hD hB (fun h => hD_not_le (h.symm ▸ subset_refl _))
+    have hD_sdiff : D \ B = D := sdiff_eq_left.mpr hdisj
+    rw [hD_sdiff] at hD_eq
+    subst hD_eq
+    exact ⟨fun h => hD_not_le (h ▸ subset_refl _), hD⟩
+  · rintro ⟨hC_ne, hC⟩
+    have hdisj : Disjoint C B := P.disjoint hC hB hC_ne
+    refine ⟨C, hC, ?_, sdiff_eq_left.mpr hdisj⟩
+    intro hCB
+    have hC_empty : C = ∅ := disjoint_self.mp (hdisj.mono_right hCB)
+    exact P.ne_empty hC hC_empty
 
 /-- Deleting the block containing `a` and then reinserting it recovers the partition. -/
 private lemma insertBlock_deleteBlock {s : Finset α} (P : Finpartition s)
@@ -693,7 +657,7 @@ private lemma insertBlock_deleteBlock {s : Finset α} (P : Finpartition s)
       (P.ne_empty (P.part_mem.2 ha)) (P.part_subset a) = P := by
   apply Finpartition.ext
   ext B
-  change B ∈ insert (P.part a) (P.parts.erase (P.part a)) ↔ B ∈ P.parts
+  rw [insertBlock_parts, deleteBlock_parts]
   by_cases h : B = P.part a
   · -- `B` is the distinguished block: present on both sides
     subst B
@@ -852,20 +816,23 @@ private lemma restrict_extendBlock {s B D : Finset α} (Q : Finpartition B) (hDn
     refine ⟨Q.ne_empty hC, Finset.mem_image.mpr ⟨C, Finset.mem_insert_of_mem hC, ?_⟩⟩
     rw [Finset.inf_eq_inter, Finset.inter_eq_left.2 (Q.subset hC)]
 
+/-- The parts of the indiscrete partition `⊤` is exactly the singleton containing the set. -/
+lemma top_parts_eq_singleton {s : Finset α} (hs : s ≠ ∅) :
+    (⊤ : Finpartition s).parts = {s} := by
+  apply Finset.eq_singleton_iff_unique_mem.2
+  constructor
+  · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
+    have hB_eq : B = s :=
+      Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
+    simpa [hB_eq] using hB
+  · exact fun D hD =>
+      Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+
 /-- The indiscrete partition `⊤` is the unique partition with a single block. -/
 private lemma Finpartition.eq_top_iff_card_parts_eq_one {s : Finset α} (T : Finpartition s)
     (hs : s ≠ ∅) : T = ⊤ ↔ T.parts.card = 1 := by
   classical
-  -- the indiscrete partition has the single block `s`
-  have hpartsT : (⊤ : Finpartition s).parts = {s} := by
-    apply Finset.eq_singleton_iff_unique_mem.2
-    constructor
-    · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
-      have hB_eq : B = s :=
-        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
-      simpa [hB_eq] using hB
-    · exact fun D hD =>
-        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+  have hpartsT : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs
   constructor
   · intro h
     rw [h, hpartsT]
@@ -1474,6 +1441,22 @@ structure Matching (π : Finpartition A) (σ : Finpartition B) where
   hT : T ⊆ σ.parts
   /-- The bijection pairing each matched `π`-block in `S` with a `σ`-block in `T`. -/
   e : {p // p ∈ S} ≃ {q // q ∈ T}
+
+namespace Matching
+
+/-- The symmetric matching swapping the two partitions. -/
+def symm {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : Matching σ π where
+  S := M.T
+  T := M.S
+  hS := M.hT
+  hT := M.hS
+  e := M.e.symm
+
+@[simp] lemma symm_S {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : M.symm.S = M.T := rfl
+@[simp] lemma symm_T {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : M.symm.T = M.S := rfl
+@[simp] lemma symm_e {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : M.symm.e = M.e.symm := rfl
+
+end Matching
 
 /-- If `p ⊆ A` and `q ⊆ B` for disjoint `A`, `B`, then `p ∪ q` meets `A` exactly in `p`. -/
 lemma union_inter_left_of_subset {p q : Finset α} (hAB : Disjoint A B) (hp : p ⊆ A)

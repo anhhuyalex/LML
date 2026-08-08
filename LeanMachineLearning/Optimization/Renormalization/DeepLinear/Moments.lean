@@ -1816,6 +1816,110 @@ lemma covariance_batchOutputLaw_eq_integral_mul {A : Type uA}
       hY_meas.aestronglyMeasurable (fun z => by simp)
   simp [covariance, μ, hX0, hY0]
 
+/-- The batch law of a single bias-free initialized affine layer.
+
+This is the batch analogue of `oneLayerOutputLaw`; it keeps the sample index `A` explicit rather
+than bundling a finite batch into a Euclidean vector. -/
+private def oneLayerBatchLaw {A : Type uA} {ι : Type uJ} {κ : Type*}
+    [Fintype ι] [Fintype κ] (Cw : ℝ≥0) (D : A → ι → ℝ) :
+    Measure (A → κ → ℝ) :=
+  Measure.map (fun q : LayerParams ι κ =>
+      fun a : A => (DenseLayer.ofParams q).preactivation (D a))
+    (layerGaussianInit (hyperparams Cw) ι κ)
+
+/-- Coordinate two-point function for the arbitrary-batch one-layer law.
+
+This is the reusable analytic core behind `integral_mul_oneLayerBatchLaw`.  Informally, push the
+integral through the defining `Measure.map`, unfold `DenseLayer.preactivation`, expand the two
+finite sums over input coordinates, and use the product Gaussian initialization.  Biases vanish
+because `hyperparams_biasVariance` makes their law `gaussianReal 0 0 = dirac 0`; weights have
+centered independent coordinates, so Wick/Isserlis with two factors gives
+`E[W i p * W j q] = if i = j then if p = q then (Cw / Fintype.card ι : ℝ≥0) else 0 else 0`.
+Contracting the two finite sums leaves exactly
+`(if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0)`, including the degenerate
+empty-input case by Lean's zero-division convention.  This is the standard one-layer NNGP
+covariance computation; see Isserlis' theorem
+<https://en.wikipedia.org/wiki/Isserlis%27s_theorem> and Lee et al.,
+"Deep Neural Networks as Gaussian Processes", Eq. (2), <https://arxiv.org/abs/1711.00165>.
+-/
+private lemma integral_mul_oneLayerBatchLaw_eq_sum_cov {A : Type uA} {ι : Type uJ} {κ : Type*}
+    [Fintype ι] [Fintype κ] [DecidableEq κ] (Cw : ℝ≥0) (D : A → ι → ℝ)
+    (a b : A) (i j : κ) :
+    ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D =
+      if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
+  classical
+  -- TODO: formalize the finite polynomial Gaussian calculation described in the docstring.
+  -- The proof should reuse `integral_prod_pi_gaussianReal_eq_pairingTensor` with `m = 1`
+  -- for the weight rows and `ProbabilityTheory.gaussianReal_zero_var` for the zero biases.
+  sorry
+
+/-- Single-layer two-point function on an arbitrary indexed batch.
+
+Informal proof: expand the preactivation
+`y a i = ∑ p, W i p * D a p`.  The product initialization has centered independent Gaussian
+weights with covariance
+`E[W i p * W j q] = δᵢⱼ δₚq (Cw / Fintype.card ι)`.  Linearity of the integral over the two finite
+sums gives exactly the Kronecker factor in output coordinates times `Cw * normalizedGram D a b`.
+This is the two-point (`m = 1`) Wick/Isserlis computation; see
+<https://en.wikipedia.org/wiki/Isserlis%27s_theorem>. -/
+private lemma integral_mul_oneLayerBatchLaw {A : Type uA} {ι : Type uJ} {κ : Type*}
+    [Fintype ι] [Fintype κ] [DecidableEq κ] (Cw : ℝ≥0) (D : A → ι → ℝ)
+    (a b : A) (i j : κ) :
+    ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D =
+      if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
+  -- The hard work is isolated in `integral_mul_oneLayerBatchLaw_eq_sum_cov`; keeping this public-facing
+  -- private lemma as a one-line wrapper makes downstream recursive moment proofs read cleanly.
+  exact integral_mul_oneLayerBatchLaw_eq_sum_cov (ι := ι) (κ := κ) Cw D a b i j
+
+/-- The output case of `integral_mul_batchOutputLaw` is the single-layer two-point function.
+
+Informal proof: for `MLPShape.output`, `deepLinearBatchLaw` is precisely the pushforward of
+`layerGaussianInit` by the batch preactivation map, i.e. `oneLayerBatchLaw`.  Then use
+`integral_mul_oneLayerBatchLaw` and `MLPShape.depth .output = 1`. -/
+private lemma integral_mul_batchOutputLaw_output {A : Type uA}
+    {dIn dOut : ℕ} (Cw : ℝ≥0) (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut) :
+    ∫ z, z a i * z b j ∂(MLPShape.output : MLPShape dIn dOut).deepLinearBatchLaw Cw D =
+      if i = j then
+        (Cw : ℝ) ^ (MLPShape.output : MLPShape dIn dOut).depth *
+          NeuralNetwork.normalizedGram D a b
+      else 0 := by
+  simpa [oneLayerBatchLaw, MLPShape.deepLinearBatchLaw, ParamModel.outputLaw,
+    ParamModel.evalBatch, MLPShape.depth] using
+    integral_mul_oneLayerBatchLaw (ι := Fin dIn) (κ := Fin dOut) Cw D a b i j
+
+/-- Tower property for a hidden deep-linear batch law, exposing the first random layer.
+
+Informal proof: unfold `deepLinearBatchLaw` as a parameter-law pushforward.  The parameter law of
+`.hidden tail` is the product of the first-layer Gaussian initialization and the independent tail
+initialization.  Push this product through the evaluator, use
+`MLPShape.eval_hidden` and `activate_linear_eq_preactivation`, and then apply the measure-level
+identity `map_prod_eq_bind_map` / `measure_bind_map_comp`, exactly as in
+`deepLinearOutputLaw_hidden_eq_bind`, but with `D : A → Fin dIn → ℝ` instead of a single input.
+Finally apply `integral_bind_of_integrable` to the observable `z ↦ z a i * z b j`. -/
+private lemma integral_mul_batchOutputLaw_hidden_tower {A : Type uA}
+    {dIn k dOut : ℕ} (tail : MLPShape k dOut) (Cw : ℝ≥0)
+    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut) :
+    ∫ z, z a i * z b j
+        ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearBatchLaw Cw D =
+      ∫ y : A → Fin k → ℝ,
+        (∫ z, z a i * z b j ∂tail.deepLinearBatchLaw Cw y)
+          ∂oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D := by
+  sorry
+
+/-- The expected normalized Gram matrix after one random linear layer.
+
+Informal proof: unfold `normalizedGram` and use linearity of the integral over the finite sum over
+`p : Fin k`.  The previous single-layer two-point lemma with identical output coordinates gives
+`E[y a p * y b p] = Cw * normalizedGram D a b` for each `p`; the positive-width hypothesis cancels
+`(Fintype.card (Fin k) : ℝ)⁻¹ * Fintype.card (Fin k)`. -/
+private lemma integral_normalizedGram_oneLayerBatchLaw {A : Type uA}
+    {dIn k : ℕ} (Cw : ℝ≥0) (D : A → Fin dIn → ℝ) (a b : A) (hk : 0 < k) :
+    ∫ y : A → Fin k → ℝ, NeuralNetwork.normalizedGram y a b
+        ∂oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D =
+      (Cw : ℝ) * NeuralNetwork.normalizedGram D a b := by
+  sorry
+
+
 /-- Uncentered second moment of two batch-output coordinates.
 
 Informal proof: induct on `S`.  For `S = .output`, `map_batchPreactivation` identifies the law as a
@@ -1834,7 +1938,75 @@ lemma integral_mul_batchOutputLaw {A : Type uA}
     (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D =
       if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
-  sorry
+  classical
+  induction S with
+  | output =>
+      simpa using integral_mul_batchOutputLaw_output Cw D a b i j
+  | hidden tail ih =>
+      rename_i m n k
+      have hHiddenWidths :
+          (MLPShape.hidden tail : MLPShape m n).hiddenWidths = k :: tail.hiddenWidths :=
+        hidden_hiddenWidths_cons (dIn := m) tail
+      have hk : 0 < k := by
+        apply hWidths k
+        rw [hHiddenWidths]
+        simp
+      have hTailWidths : ∀ n ∈ tail.hiddenWidths, 0 < n := by
+        intro n hn
+        apply hWidths n
+        rw [hHiddenWidths]
+        exact List.mem_cons_of_mem k hn
+      let μ : Measure (A → Fin k → ℝ) :=
+        oneLayerBatchLaw (ι := Fin m) (κ := Fin k) Cw D
+      have hgram :
+          ∫ y : A → Fin k → ℝ, NeuralNetwork.normalizedGram y a b ∂μ =
+            (Cw : ℝ) * NeuralNetwork.normalizedGram D a b := by
+        simpa [μ] using integral_normalizedGram_oneLayerBatchLaw Cw D a b hk
+      have hcalc :
+          ∫ z, z a i * z b j
+              ∂(MLPShape.hidden tail : MLPShape m n).deepLinearBatchLaw Cw D =
+            if i = j then
+              (Cw : ℝ) ^ (tail.depth + 1) * NeuralNetwork.normalizedGram D a b
+            else 0 := by
+        calc
+          ∫ z, z a i * z b j
+              ∂(MLPShape.hidden tail : MLPShape m n).deepLinearBatchLaw Cw D
+              = ∫ y : A → Fin k → ℝ,
+                  (∫ z, z a i * z b j ∂tail.deepLinearBatchLaw Cw y) ∂μ := by
+                simpa [μ] using
+                  integral_mul_batchOutputLaw_hidden_tower tail Cw D a b i j
+          _ = ∫ y : A → Fin k → ℝ,
+                  (if i = j then
+                    (Cw : ℝ) ^ tail.depth * NeuralNetwork.normalizedGram y a b
+                  else 0) ∂μ := by
+                apply MeasureTheory.integral_congr_ae
+                filter_upwards with y
+                exact ih Cw y a b i j hk hTailWidths
+          _ = if i = j then
+                (Cw : ℝ) ^ (tail.depth + 1) * NeuralNetwork.normalizedGram D a b
+              else 0 := by
+                by_cases hij : i = j
+                · calc
+                    ∫ y : A → Fin k → ℝ,
+                        (if i = j then
+                          (Cw : ℝ) ^ tail.depth * NeuralNetwork.normalizedGram y a b
+                        else 0) ∂μ
+                        = ∫ y : A → Fin k → ℝ,
+                            (Cw : ℝ) ^ tail.depth * NeuralNetwork.normalizedGram y a b ∂μ := by
+                              simp [hij]
+                    _ = (Cw : ℝ) ^ tail.depth *
+                          ∫ y : A → Fin k → ℝ, NeuralNetwork.normalizedGram y a b ∂μ := by
+                              rw [MeasureTheory.integral_const_mul]
+                    _ = (Cw : ℝ) ^ (tail.depth + 1) * NeuralNetwork.normalizedGram D a b := by
+                              rw [hgram, pow_succ']
+                              ring
+                    _ = if i = j then
+                          (Cw : ℝ) ^ (tail.depth + 1) *
+                            NeuralNetwork.normalizedGram D a b
+                        else 0 := by
+                              simp [hij]
+                · simp [hij]
+      simpa [MLPShape.depth] using hcalc
 
 /-- Covariance of two batch-output coordinates.  The theorem explicitly uses Mathlib's
 `covariance`, not merely an uncentered second moment.
