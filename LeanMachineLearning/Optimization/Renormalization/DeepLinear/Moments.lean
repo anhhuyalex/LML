@@ -777,6 +777,49 @@ private lemma integrable_pow_preactivation {ι κ : Type*} [Fintype ι] [Fintype
             exact mul_le_mul_of_nonneg_left (by nlinarith [hsumle])
               (pow_nonneg (by positivity : 0 ≤ (Fintype.card ι + 1 : ℝ)) _)
 
+/-- Measure-level tower decomposition for a deep-linear network with one hidden layer exposed.
+
+Informal proof: specialize `MLPEnsemble.outputKernel_apply_eq_outputLaw` (or equivalently repeat
+its hidden-case `hprod` calculation) to a singleton batch and to the linear activation.  The
+initialization law of `MLPShape.hidden tail` is the product of the first-layer Gaussian law and the
+independent tail-parameter law.  Mapping this product through `MLPShape.eval_hidden` and using
+`activate_linear_eq_preactivation` identifies the first marginal pushforward with
+`oneLayerOutputLaw Cw x`, leaving the conditional tail law `tail.deepLinearOutputLaw Cw y`.
+-/
+private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
+    (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) :
+    (MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+      (oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
+        (fun y => tail.deepLinearOutputLaw Cw y) := by
+  classical
+  -- This is the one-input specialization of the reusable kernel-composition theorem
+  -- `MLPEnsemble.outputKernel_apply_eq_outputLaw`; see `InducedLaw.lean`, hidden case.
+  sorry
+
+/-- Bochner integral form of the tower property for the monomial output observable.
+
+Informal proof: apply Fubini/Tonelli to the bind measure in
+`deepLinearOutputLaw_hidden_eq_bind`.  The integrand `z ↦ ∏ r, z (a r)` is measurable by
+`measurable_monomial`; integrability follows because the output coordinates are polynomials in
+finitely many independent Gaussian weights, hence have finite moments of all orders (the one-layer
+case is `integrable_pow_preactivation`, and the general case follows by induction over `tail`).
+This is the standard law of total expectation; see Mathlib's `Measure.lintegral_bind` / product
+Fubini API and the discussion in `docs/Renormalization.md` on Gaussian moments.
+-/
+private lemma integral_monomial_deepLinearOutputLaw_bind {dIn k dOut : ℕ}
+    (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
+    (a : Fin (2 * m) → Fin dOut) :
+    ∫ z, (∏ r, z (a r))
+        ∂((oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
+          (fun y => tail.deepLinearOutputLaw Cw y)) =
+      ∫ y : Fin k → ℝ,
+        (∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y)
+          ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
+  classical
+  -- The pinned Mathlib has only a lintegral bind theorem, so the real-valued Bochner version
+  -- requires first proving the finite Gaussian moment/integrability side conditions.
+  sorry
+
 /-- Conditioning a `.hidden tail` deep-linear network on the output of its first random layer.
 
 The first layer produces `y ∼ oneLayerOutputLaw Cw x`; conditional on this `y`, the remaining
@@ -794,7 +837,8 @@ private lemma integral_monomial_deepLinearOutputLaw_hidden_bind {dIn k dOut : �
       ∫ y : Fin k → ℝ,
         (∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y)
           ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
-  sorry
+  rw [deepLinearOutputLaw_hidden_eq_bind tail Cw x]
+  exact integral_monomial_deepLinearOutputLaw_bind tail Cw x m a
 
 /-- The scalar part of the induction step after applying the tail moment formula.
 
