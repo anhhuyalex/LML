@@ -177,10 +177,42 @@ inductive MLP (σ : ℝ → ℝ) : ℕ → ℕ → Type where
 
 namespace MLP
 
+/-- A width-tagged hidden representation.  The dependent pair retains the coordinate type, so a
+trace never conflates activations belonging to layers of different widths. -/
+abbrev HiddenRepresentation := Σ k : ℕ, Fin k → ℝ
+
 /-- Evaluate a typed MLP. -/
 def eval {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → (Fin m → ℝ) → (Fin n → ℝ)
   | .output L => L.preactivation
   | .hidden L N => fun x => N.eval (L.activate σ x)
+
+/-- All activated hidden representations, in evaluation order.  The affine output is intentionally
+absent because `MLP.eval` does not apply the hidden activation to it. -/
+def hiddenTrace {σ : ℝ → ℝ} {m n : ℕ} :
+    MLP σ m n → (Fin m → ℝ) → List HiddenRepresentation
+  | .output _, _ => []
+  | .hidden (k := k) L N, x =>
+      ⟨k, L.activate σ x⟩ :: N.hiddenTrace (L.activate σ x)
+
+/-- Evaluate an MLP while exposing every intermediate hidden representation. -/
+def evalWithTrace {σ : ℝ → ℝ} {m n : ℕ} (N : MLP σ m n) (x : Fin m → ℝ) :
+    (Fin n → ℝ) × List HiddenRepresentation :=
+  (N.eval x, N.hiddenTrace x)
+
+@[simp] theorem hiddenTrace_output {σ : ℝ → ℝ} {m n : ℕ}
+    (L : DenseLayer (Fin m) (Fin n)) (x : Fin m → ℝ) :
+    (MLP.output L : MLP σ m n).hiddenTrace x = [] := rfl
+
+@[simp] theorem hiddenTrace_hidden {σ : ℝ → ℝ} {m n k : ℕ}
+    (L : DenseLayer (Fin m) (Fin k)) (N : MLP σ k n) (x : Fin m → ℝ) :
+    (MLP.hidden L N).hiddenTrace x =
+      ⟨k, L.activate σ x⟩ :: N.hiddenTrace (L.activate σ x) := rfl
+
+@[simp] theorem evalWithTrace_fst {σ : ℝ → ℝ} {m n : ℕ}
+    (N : MLP σ m n) (x : Fin m → ℝ) : (N.evalWithTrace x).1 = N.eval x := rfl
+
+@[simp] theorem evalWithTrace_snd {σ : ℝ → ℝ} {m n : ℕ}
+    (N : MLP σ m n) (x : Fin m → ℝ) : (N.evalWithTrace x).2 = N.hiddenTrace x := rfl
 
 @[simp] theorem eval_output {σ : ℝ → ℝ} {m n : ℕ} (L : DenseLayer (Fin m) (Fin n)) :
     (MLP.output L : MLP σ m n).eval = L.preactivation := rfl
@@ -210,6 +242,14 @@ def paramCount {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → ℕ
 def depth {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → ℕ
   | .output _ => 1
   | .hidden _ N => N.depth + 1
+
+/-- A depth-`d` MLP has exactly `d - 1` activated hidden representations. -/
+@[simp] theorem hiddenTrace_length {σ : ℝ → ℝ} {m n : ℕ}
+    (N : MLP σ m n) (x : Fin m → ℝ) : (N.hiddenTrace x).length = N.depth - 1 := by
+  induction N with
+  | output L => simp [hiddenTrace, depth]
+  | hidden L N ih =>
+      simp [hiddenTrace, depth, ih]
 
 /-- The input width followed by every successive layer width. -/
 def widths {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → List ℕ

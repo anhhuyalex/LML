@@ -1179,6 +1179,17 @@ theorem not_posHomogeneous_swish : ¬ PosHomogeneous swish :=
 theorem not_posHomogeneous_gelu : ¬ PosHomogeneous gelu :=
   nonhomogeneous_activations.2.2.2
 
+/-- The sine activation is not positively one-homogeneous.
+
+This named result avoids making downstream users recover the fact indirectly from the
+piecewise-linear classification. -/
+theorem not_posHomogeneous_sin : ¬ PosHomogeneous Real.sin := by
+  intro h
+  have htwo := h (by norm_num : (0 : ℝ) < 2) (Real.pi / 2)
+  rw [show (2 : ℝ) * (Real.pi / 2) = Real.pi by ring, Real.sin_pi,
+    Real.sin_pi_div_two] at htwo
+  norm_num at htwo
+
 /-- A scalar map with independently specified slopes on the two half-lines.
 This is the correct normal form for a positively homogeneous function on `ℝ`;
 `leakyRelu a` is the special case `piecewiseLinear 1 a`. -/
@@ -1236,6 +1247,20 @@ theorem differentiableAt_piecewiseLinear_zero_iff (aPos aNeg : ℝ) :
 @[simp]
 lemma piecewiseLinear_one (a x : ℝ) : piecewiseLinear 1 a x = leakyRelu a x := by
   simp [piecewiseLinear, leakyRelu]
+
+/-- ReLU has a genuine kink at the origin. -/
+theorem not_differentiableAt_relu_zero : ¬ DifferentiableAt ℝ relu 0 := by
+  rw [show relu = piecewiseLinear 1 0 by
+    funext x
+    by_cases hx : 0 ≤ x
+    · simp [relu, piecewiseLinear, hx]
+    · simp [relu, piecewiseLinear, hx, le_of_not_ge hx]]
+  simp [differentiableAt_piecewiseLinear_zero_iff]
+
+/-- A leaky ReLU is differentiable at the origin exactly in the degenerate linear case. -/
+theorem differentiableAt_leakyRelu_zero_iff (a : ℝ) :
+    DifferentiableAt ℝ (leakyRelu a) 0 ↔ a = 1 := by
+  rw [← funext (piecewiseLinear_one a), differentiableAt_piecewiseLinear_zero_iff, eq_comm]
 
 lemma posHomogeneous_piecewiseLinear (aPos aNeg : ℝ) :
     PosHomogeneous (piecewiseLinear aPos aNeg) := by
