@@ -117,7 +117,8 @@ theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P
   simp_rw [toGlobalDenseLayer_weight, Finset.sum_mul]
   rw [Finset.sum_comm]
   rw [← Fintype.sum_prod_type'
-    (fun dc dd => L.weight o i dc dd * x (i, B.shift p dc dd))]
+    (fun (dc dd : WindowIndex k) =>
+      L.weight o i dc dd * x (i, B.shift p dc dd))]
   apply Finset.sum_congr rfl
   intro r _
   rcases r with ⟨dc, dd⟩
