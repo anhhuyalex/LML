@@ -68,6 +68,22 @@ def eval {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
     (θ : S.Params) (x : Fin m → ℝ) : Fin n → ℝ :=
   (S.instantiate θ : MLP σ m n).eval x
 
+/-- All hidden activated representations of the parameterized MLP. -/
+def hiddenTrace {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
+    (θ : S.Params) (x : Fin m → ℝ) : List MLP.HiddenRepresentation :=
+  (S.instantiate θ : MLP σ m n).hiddenTrace x
+
+/-- All hidden affine preactivations paired with their activated representations. -/
+def hiddenLayerTrace {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
+    (θ : S.Params) (x : Fin m → ℝ) : List MLP.HiddenLayerState :=
+  (S.instantiate θ : MLP σ m n).hiddenLayerTrace x
+
+/-- Parameterized evaluation with a full intermediate-layer trace. -/
+def evalWithLayerTrace {m n : ℕ} (S : MLPShape m n) (σ : ℝ → ℝ)
+    (θ : S.Params) (x : Fin m → ℝ) :
+    (Fin n → ℝ) × List MLP.HiddenLayerState :=
+  (S.eval σ θ x, S.hiddenLayerTrace σ θ x)
+
 @[simp] theorem eval_output {m n : ℕ} (σ : ℝ → ℝ)
     (θ : (MLPShape.output : MLPShape m n).Params) (x : Fin m → ℝ) :
     eval .output σ θ x = (DenseLayer.ofParams θ).preactivation x := rfl

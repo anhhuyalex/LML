@@ -181,6 +181,9 @@ namespace MLP
 trace never conflates activations belonging to layers of different widths. -/
 abbrev HiddenRepresentation := Σ k : ℕ, Fin k → ℝ
 
+/-- A width-tagged pair of hidden preactivation and activated representation. -/
+abbrev HiddenLayerState := Σ k : ℕ, (Fin k → ℝ) × (Fin k → ℝ)
+
 /-- Evaluate a typed MLP. -/
 def eval {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → (Fin m → ℝ) → (Fin n → ℝ)
   | .output L => L.preactivation
@@ -194,10 +197,22 @@ def hiddenTrace {σ : ℝ → ℝ} {m n : ℕ} :
   | .hidden (k := k) L N, x =>
       ⟨k, L.activate σ x⟩ :: N.hiddenTrace (L.activate σ x)
 
+/-- Full hidden-layer trace, retaining both affine preactivations and activated representations. -/
+def hiddenLayerTrace {σ : ℝ → ℝ} {m n : ℕ} :
+    MLP σ m n → (Fin m → ℝ) → List HiddenLayerState
+  | .output _, _ => []
+  | .hidden (k := k) L N, x =>
+      ⟨k, L.preactivation x, L.activate σ x⟩ :: N.hiddenLayerTrace (L.activate σ x)
+
 /-- Evaluate an MLP while exposing every intermediate hidden representation. -/
 def evalWithTrace {σ : ℝ → ℝ} {m n : ℕ} (N : MLP σ m n) (x : Fin m → ℝ) :
     (Fin n → ℝ) × List HiddenRepresentation :=
   (N.eval x, N.hiddenTrace x)
+
+/-- Evaluate an MLP together with the full preactivation/representation trace. -/
+def evalWithLayerTrace {σ : ℝ → ℝ} {m n : ℕ} (N : MLP σ m n) (x : Fin m → ℝ) :
+    (Fin n → ℝ) × List HiddenLayerState :=
+  (N.eval x, N.hiddenLayerTrace x)
 
 @[simp] theorem hiddenTrace_output {σ : ℝ → ℝ} {m n : ℕ}
     (L : DenseLayer (Fin m) (Fin n)) (x : Fin m → ℝ) :
@@ -208,11 +223,28 @@ def evalWithTrace {σ : ℝ → ℝ} {m n : ℕ} (N : MLP σ m n) (x : Fin m →
     (MLP.hidden L N).hiddenTrace x =
       ⟨k, L.activate σ x⟩ :: N.hiddenTrace (L.activate σ x) := rfl
 
+@[simp] theorem hiddenLayerTrace_output {σ : ℝ → ℝ} {m n : ℕ}
+    (L : DenseLayer (Fin m) (Fin n)) (x : Fin m → ℝ) :
+    (MLP.output L : MLP σ m n).hiddenLayerTrace x = [] := rfl
+
+@[simp] theorem hiddenLayerTrace_hidden {σ : ℝ → ℝ} {m n k : ℕ}
+    (L : DenseLayer (Fin m) (Fin k)) (N : MLP σ k n) (x : Fin m → ℝ) :
+    (MLP.hidden L N).hiddenLayerTrace x =
+      ⟨k, L.preactivation x, L.activate σ x⟩ ::
+        N.hiddenLayerTrace (L.activate σ x) := rfl
+
 @[simp] theorem evalWithTrace_fst {σ : ℝ → ℝ} {m n : ℕ}
     (N : MLP σ m n) (x : Fin m → ℝ) : (N.evalWithTrace x).1 = N.eval x := rfl
 
 @[simp] theorem evalWithTrace_snd {σ : ℝ → ℝ} {m n : ℕ}
     (N : MLP σ m n) (x : Fin m → ℝ) : (N.evalWithTrace x).2 = N.hiddenTrace x := rfl
+
+@[simp] theorem evalWithLayerTrace_fst {σ : ℝ → ℝ} {m n : ℕ}
+    (N : MLP σ m n) (x : Fin m → ℝ) : (N.evalWithLayerTrace x).1 = N.eval x := rfl
+
+@[simp] theorem evalWithLayerTrace_snd {σ : ℝ → ℝ} {m n : ℕ}
+    (N : MLP σ m n) (x : Fin m → ℝ) :
+    (N.evalWithLayerTrace x).2 = N.hiddenLayerTrace x := rfl
 
 @[simp] theorem eval_output {σ : ℝ → ℝ} {m n : ℕ} (L : DenseLayer (Fin m) (Fin n)) :
     (MLP.output L : MLP σ m n).eval = L.preactivation := rfl
@@ -250,6 +282,15 @@ def depth {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → ℕ
   | output L => simp [hiddenTrace, depth]
   | hidden L N ih =>
       simp only [hiddenTrace, List.length_cons, ih, depth]
+      cases N <;> simp [depth]
+
+/-- The full layer trace has one entry per hidden layer. -/
+@[simp] theorem hiddenLayerTrace_length {σ : ℝ → ℝ} {m n : ℕ}
+    (N : MLP σ m n) (x : Fin m → ℝ) : (N.hiddenLayerTrace x).length = N.depth - 1 := by
+  induction N with
+  | output L => simp [hiddenLayerTrace, depth]
+  | hidden L N ih =>
+      simp only [hiddenLayerTrace, List.length_cons, ih, depth]
       cases N <;> simp [depth]
 
 /-- The input width followed by every successive layer width. -/

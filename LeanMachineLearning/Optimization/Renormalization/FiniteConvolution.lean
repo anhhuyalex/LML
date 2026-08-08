@@ -51,13 +51,13 @@ variable {P : Type uP} {ι : Type uι} {κ : Type uκ}
 def finitePreactivation [Fintype ι] (L : Conv2DLayer ι κ) (B : FiniteBoundary P)
     (k : ℕ) (x : ι × P → ℝ) : κ × P → ℝ :=
   fun op => L.bias op.1 +
-    ∑ i, ∑ dc ∈ window k, ∑ dd ∈ window k,
+    ∑ i, ∑ dc : WindowIndex k, ∑ dd : WindowIndex k,
       L.weight op.1 i dc dd * x (i, B.shift op.2 dc dd)
 
 @[simp] theorem finitePreactivation_apply [Fintype ι] (L : Conv2DLayer ι κ)
     (B : FiniteBoundary P) (k : ℕ) (x : ι × P → ℝ) (o : κ) (p : P) :
     L.finitePreactivation B k x (o, p) = L.bias o +
-      ∑ i, ∑ dc ∈ window k, ∑ dd ∈ window k,
+      ∑ i, ∑ dc : WindowIndex k, ∑ dd : WindowIndex k,
         L.weight o i dc dd * x (i, B.shift p dc dd) := rfl
 
 /-- The global sparse dense layer implementing a finite convolution.  Its output coordinates are
@@ -105,7 +105,23 @@ Mathlib-quality lemma. -/
 theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ) (x : ι × P → ℝ) :
     (L.toGlobalDenseLayer B k).preactivation x = L.finitePreactivation B k x := by
-  sorry
+  funext op
+  rcases op with ⟨o, p⟩
+  simp only [DenseLayer.preactivation_apply, finitePreactivation_apply,
+    toGlobalDenseLayer_bias]
+  congr 1
+  rw [Fintype.sum_prod_type'
+    (fun i q => (L.toGlobalDenseLayer B k).weight (o, p) (i, q) * x (i, q))]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp_rw [toGlobalDenseLayer_weight, Finset.sum_mul]
+  rw [Finset.sum_comm]
+  rw [← Fintype.sum_prod_type'
+    (fun dc dd => L.weight o i dc dd * x (i, B.shift p dc dd))]
+  apply Finset.sum_congr rfl
+  intro r _
+  rcases r with ⟨dc, dd⟩
+  simp
 
 /-- Number of scalar parameters in an unrestricted global dense layer with the same input and
 output coordinates as the finite convolution. -/

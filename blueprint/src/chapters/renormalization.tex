@@ -1178,11 +1178,14 @@ the fact that every marginal parameter is Gaussian.
 
 \begin{remark}[Claims that are not propositions as written]
 The claim that non-Gaussian initialization differs from Gaussian initialization only by
-$1/\text{width}$ needs a metric, moment assumptions, and a quantitative central-limit theorem.  The
-claim that zero initialization remains permutation-symmetric during training additionally needs an
-equivariant optimizer and loss.  This chapter proves the algebraic symmetry of an initialized
-layer.  These sentences contain missing hypotheses rather than missing Lean declarations; a future
-quantitative theorem must first choose the metric, moment assumptions, loss, and optimizer.
+$1/\text{width}$ needs a metric, moment assumptions, and a quantitative central-limit theorem.
+The formal API therefore separates three statements: qualitative convergence in distribution
+under the finite-variance i.i.d. CLT, a Berry--Esseen CDF bound of order
+$\text{width}^{-1/2}$ under a third absolute moment, and an exact $1/\text{width}$ correction for
+the fourth moment under a fourth-moment hypothesis.  The claim that zero initialization remains
+permutation-symmetric during training additionally needs an equivariant update; claims about task
+performance need a loss.  The symmetry API proves fixed-point preservation for an abstract update
+and does not infer equivariance from the word ``optimizer.''
 \end{remark}
 
 \subsection{Activation API}
@@ -2037,6 +2040,247 @@ equations for first and deeper layers.  It also creates the exact interface need
 wide-network and renormalization arguments: Chapter~1's moment, cumulant, and Gaussian APIs can be
 applied directly to each layer law.
 
+\subsection{Intermediate traces, approximation, and learning}
+
+\begin{definition}[Full hidden-layer trace]
+\label{def:renorm:hiddenLayerTrace}
+\uses{def:renorm:mlp, def:renorm:mlpShape}
+\lean{NeuralNetwork.MLP.HiddenLayerState,
+NeuralNetwork.MLP.hiddenTrace, NeuralNetwork.MLP.hiddenLayerTrace,
+NeuralNetwork.MLP.evalWithLayerTrace, NeuralNetwork.MLP.hiddenLayerTrace_length,
+NeuralNetwork.MLPShape.hiddenTrace, NeuralNetwork.MLPShape.hiddenLayerTrace,
+NeuralNetwork.MLPShape.evalWithLayerTrace}
+For each hidden layer of width $k$, record the dependent pair
+\[
+  \bigl(k,(z^{(\ell)},x^{(\ell)})\bigr),\qquad
+  z^{(\ell)}=W^{(\ell)}x^{(\ell-1)}+b^{(\ell)},\quad
+  x^{(\ell)}=\sigma\circ z^{(\ell)}.
+\]
+The trace is ordered from input to output and has length $\operatorname{depth}(N)-1$.  Keeping the
+width in a dependent pair prevents states from different layers from being compared at the wrong
+coordinate type.  The final affine output is not mislabeled as a hidden activation.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_intro}, the recursive definitions of every
+$z^{(\ell)}$ and $x^{(\ell)}$.  This API exposes all of the source's intermediate objects rather
+than only $z^{(L)}$.
+\end{definition}
+
+\begin{definition}[Target, function class, and approximation]
+\label{def:renorm:learningVocabulary}
+\uses{def:renorm:paramModel}
+\lean{NeuralNetwork.ParamModel.functionClass, NeuralNetwork.ParamModel.Realizes,
+NeuralNetwork.ParamModel.ApproximatesOn, NeuralNetwork.ParamModel.IsDenseOn,
+NeuralNetwork.ParamModel.EmbedsInto,
+NeuralNetwork.ParamModel.EmbedsInto.realizes,
+NeuralNetwork.ParamModel.EmbedsInto.approximatesOn,
+NeuralNetwork.SupervisedProblem}
+For $F:\Theta\to X\to Y$, define its represented function class as
+$\{F(\theta,\cdot):\theta\in\Theta\}$.  A target $f:X\to Y$ is realized when it belongs to that
+class.  On a set $S\subseteq X$ in a pseudometric output space, $F$ approximates $f$ to tolerance
+$\varepsilon$ when
+\[
+  \exists\theta,\ \forall x\in S,\quad d(F(\theta,x),f(x))\le\varepsilon.
+\]
+An evaluation-preserving parameter embedding transports realization and approximation.  This is
+the reusable expressivity monotonicity theorem; no universal-approximation theorem is attributed to
+this chapter.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'', the target $f$, family
+$f(\mathord\cdot;\theta)$, approximation relation, and discussion of selecting parameters.
+\end{definition}
+
+\begin{definition}[Loss, empirical risk, and update trajectory]
+\label{def:renorm:updateRule}
+\uses{def:renorm:learningVocabulary}
+\lean{NeuralNetwork.SupervisedProblem.empiricalRisk,
+NeuralNetwork.UpdateRule, NeuralNetwork.UpdateRule.trajectory,
+NeuralNetwork.UpdateRule.NonincreasingFor,
+NeuralNetwork.UpdateRule.NonincreasingFor.trajectory}
+A supervised problem stores a target and pointwise loss.  On a finite dataset $D:A\to X$, define
+the empirical risk by
+\[
+  R_D(\theta)=\frac1{|A|}\sum_{a:A}
+    \operatorname{loss}(F(\theta,D(a)),f(D(a))).
+\]
+An update rule is a map $T:\Theta\to\Theta$, and its trajectory is defined recursively by
+$\theta_0$ and $\theta_{n+1}=T(\theta_n)$.  If $R(T\theta)\le R(\theta)$ for every $\theta$, then
+$n\mapsto R(\theta_n)$ is antitone.  Convergence and optimizer-specific results require additional
+hypotheses and are not fabricated here.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section ``Function Approximation'', the prose description of a
+learning algorithm that chooses parameters to approximate the target.
+\end{definition}
+
+\subsection{Permutation symmetry and the zero-initialization collapse}
+
+\begin{theorem}[Hidden-neuron relabeling]
+\label{thm:renorm:hiddenRelabeling}
+\uses{def:renorm:mlp}
+\lean{NeuralNetwork.permuteCoordinates,
+NeuralNetwork.DenseLayer.permuteOutput,
+NeuralNetwork.DenseLayer.permuteInput,
+NeuralNetwork.DenseLayer.preactivation_permuteOutput,
+NeuralNetwork.DenseLayer.preactivation_permuteInput,
+NeuralNetwork.MLP.permuteInput, NeuralNetwork.MLP.eval_permuteInput,
+NeuralNetwork.MLP.relabelFirstHidden,
+NeuralNetwork.MLP.eval_relabelFirstHidden}
+Let $\pi$ permute the neurons in any hidden layer.  Permute the output rows and biases of that layer
+by $\pi$, and permute the input columns of the following subnetwork by the inverse change of
+coordinates.  The resulting MLP evaluates to exactly the same function.  Applying this local
+theorem at each hidden constructor supplies arbitrary hidden-layer relabelings without introducing
+an untyped global permutation.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the statement that hidden
+neurons may be permuted without changing the represented network when adjacent parameters are
+permuted consistently.
+\end{theorem}
+
+\begin{theorem}[Zero initialization has effective hidden width one]
+\label{thm:renorm:zeroCollapse}
+\uses{def:renorm:hiddenLayerTrace, thm:renorm:hiddenRelabeling}
+\lean{NeuralNetwork.AllCoordinatesEqual,
+NeuralNetwork.DenseLayer.IdenticalNeurons,
+NeuralNetwork.DenseLayer.IdenticalNeurons.preactivation,
+NeuralNetwork.DenseLayer.IdenticalNeurons.activate,
+NeuralNetwork.DenseLayer.collapseInputToOne,
+NeuralNetwork.DenseLayer.preactivation_eq_collapseInputToOne,
+NeuralNetwork.MLP.HiddenLayersIdentical,
+NeuralNetwork.MLP.TraceCollapsed, NeuralNetwork.MLP.zeroLike,
+NeuralNetwork.MLP.zeroLike_traceCollapsed}
+If every hidden layer has identical rows and biases, every hidden representation has equal
+coordinates.  This holds in particular for \texttt{zeroLike}.  Moreover, whenever the input to a
+dense layer has equal coordinates, its preactivation is exactly that of a one-input layer whose
+weight row is the sum of the original row.  This last factorization is the precise sense in which
+the following layer cannot access independent width directions; it avoids the false claim that
+the numeric output is independent of width.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the zero-initialization
+permutation-collapse discussion.
+\end{theorem}
+
+\begin{theorem}[Equivariant training preserves symmetry]
+\label{thm:renorm:equivariantTraining}
+\uses{def:renorm:updateRule, thm:renorm:zeroCollapse}
+\lean{NeuralNetwork.FixedBy, NeuralNetwork.EquivariantUpdate,
+NeuralNetwork.EquivariantUpdate.fixedBy,
+NeuralNetwork.EquivariantUpdate.trajectory_fixedBy,
+NeuralNetwork.permutationSymmetricTraining_preservesCollapse}
+For an action $g\cdot\theta$, call $T$ equivariant when
+$T(g\cdot\theta)=g\cdot T(\theta)$.  If $\theta_0$ is fixed by every $g$, every iterate
+$T^n(\theta_0)$ is fixed as well.  A concrete gradient method must separately prove that its loss
+is invariant and that its update is equivariant; no such fact follows from the generic theorem.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+The same zero-initialization discussion, with the missing optimizer hypothesis made explicit.
+\end{theorem}
+
+\subsection{Finite global convolution matrix}
+
+\begin{definition}[Finite boundary and global dense embedding]
+\label{def:renorm:globalConvolution}
+\uses{def:renorm:conv2d, def:renorm:denseLayer}
+\lean{NeuralNetwork.FiniteBoundary, NeuralNetwork.FiniteBoundary.periodic,
+NeuralNetwork.Conv2DLayer.finitePreactivation,
+NeuralNetwork.Conv2DLayer.toGlobalDenseLayer,
+NeuralNetwork.Conv2DLayer.toGlobalDenseLayer_weight,
+NeuralNetwork.Conv2DLayer.toGlobalDenseLayer_weight_eq_zero_of_not_reachable}
+A finite boundary convention is a map
+$B:P\times\mathbb Z\times\mathbb Z\to P$ resolving every offset in a finite spatial type $P$;
+periodic boundary conditions are supplied on
+$\mathbb Z/r\mathbb Z\times\mathbb Z/c\mathbb Z$.  The global dense layer has indices
+$(I\times P)\to(J\times P)$ and coefficient
+\[
+ M_{(o,p),(i,q)}=
+ \sum_{u,v\in[-k,k]}\mathbf 1\{B(p,u,v)=q\}\,W_{o,i,u,v}.
+\]
+The sum handles collisions caused by small periodic domains correctly.  If no window offset reaches
+$q$, the coefficient is zero.
+\end{definition}
+
+\begin{theorem}[Global dense matrix equals finite convolution]
+\label{thm:renorm:globalConvolutionCorrect}
+\uses{def:renorm:globalConvolution}
+\lean{NeuralNetwork.Conv2DLayer.preactivation_toGlobalDenseLayer}
+For every input and every output channel-position pair, preactivation by the constructed global
+dense layer equals finite convolution with boundary $B$.
+
+\begin{proof}
+Expand both sides, interchange the finite sums over input positions and offsets, and use the unique
+surviving indicator at $q=B(p,u,v)$.  Offset collisions remain separate summands and therefore add.
+\end{proof}
+\end{theorem}
+
+\begin{theorem}[Convolutional versus unrestricted parameter count]
+\label{thm:renorm:convParamComparison}
+\uses{def:renorm:globalConvolution}
+\lean{NeuralNetwork.Conv2DLayer.unrestrictedGlobalDenseParamCount,
+NeuralNetwork.Conv2DLayer.toGlobalDenseLayer_paramCount,
+NeuralNetwork.Conv2DLayer.paramCount_le_unrestrictedGlobalDense}
+The unrestricted global layer has
+$|J||P|\,|I||P|+|J||P|$ scalar parameters.  Convolution has
+$|J||I|(2k+1)^2+|J|$ independent parameters.  If $P$ is nonempty and
+$(2k+1)^2\le |P|$, the convolutional count is no larger.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', the CNN paragraph's sparse-connectivity and weight-tying comparison
+with an unrestricted dense layer.
+\end{theorem}
+
+\subsection{Non-Gaussian initialization universality}
+
+\begin{definition}[i.i.d. scalar initialization and normalized preactivation]
+\label{def:renorm:iidInitialization}
+\lean{NeuralNetwork.IIDScalarInitialization,
+NeuralNetwork.IIDScalarInitialization.normalizedPreactivation,
+NeuralNetwork.IIDScalarInitialization.IsNonGaussian}
+An i.i.d. scalar initialization consists of mutually independent, identically distributed random
+weights $X_i$ with $\mathbb E X_0=0$, $\mathbb E X_0^2=1$, and $X_0\in L^2$.  Define
+\[
+ Z_n=\frac1{\sqrt n}\sum_{i=0}^{n-1}X_i.
+\]
+This is a zero-bias preactivation with unit input coordinates and fan-in-scaled weights.  More
+general deterministic input arrays require a triangular-array/Lindeberg theorem and are not hidden
+inside this definition.
+\end{definition}
+
+\begin{theorem}[Qualitative initialization universality]
+\label{thm:renorm:initUniversality}
+\uses{def:renorm:iidInitialization}
+\lean{NeuralNetwork.IIDScalarInitialization.tendstoInDistribution_normalizedPreactivation,
+NeuralNetwork.IIDScalarInitialization.IsNonGaussian.tendstoInDistribution_normalizedPreactivation,
+NeuralNetwork.IIDScalarInitialization.same_limit_of_matching_first_two_moments}
+$Z_n$ converges in distribution to $\mathcal N(0,1)$.  Gaussianity of the individual weights is not
+a hypothesis.  Consequently two i.i.d. initializations with matching centered unit second moments
+have the same wide-width limit.  This theorem is proved from Mathlib's
+\texttt{tendstoInDistribution\_inv\_sqrt\_mul\_sum}; it claims no rate.
+
+\paragraph{Source in \texttt{Renormalization.md}.}
+Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the footnote invoking the CLT
+to compare Gaussian and non-Gaussian initialization.
+\end{theorem}
+
+\begin{theorem}[Quantitative rate and the valid inverse-width correction]
+\label{thm:renorm:initUniversalityRates}
+\uses{def:renorm:iidInitialization, thm:renorm:initUniversality}
+\lean{NeuralNetwork.IIDScalarInitialization.berryEsseen_normalizedPreactivation,
+NeuralNetwork.IIDScalarInitialization.fourthMoment_normalizedPreactivation,
+NeuralNetwork.IIDScalarInitialization.fourthMoment_difference_eq_div_width}
+If $\rho=\mathbb E|X_0|^3<\infty$, the Kolmogorov/CDF error obeys a Berry--Esseen bound
+$C\rho/\sqrt n$.  If $X_0\in L^4$, then
+\[
+  \mathbb E Z_n^4=3+\frac{\mathbb E X_0^4-3}{n}.
+\]
+Thus for two matching first-two-moment laws, the difference of their fourth moments is exactly the
+difference of their fourth input moments divided by $n$.  The first statement refutes a blanket
+$O(1/n)$ distributional reading; the second makes the source's heuristic rigorous for a selected
+moment under the necessary stronger assumption.
+\end{theorem}
+
 \subsection{Chapter~2 implementation phases and acceptance criteria}
 
 \subsubsection*{Phase N0: scope and API audit}
@@ -2089,52 +2333,50 @@ dense-layer API without changing their public mathematical statements.  Add the 
 renormalization umbrella only after targeted checks pass, then run the full LML build and linters.
 No phase is complete while a theorem in that phase contains \texttt{sorry}.
 
-\subsubsection*{Chapter~2 implementation status (2026-08-03)}
-The statement-level library is now present in seven modules:
+\subsubsection*{Chapter~2 implementation status (2026-08-07)}
+The directly relevant library now consists of the original seven modules together with four
+focused additions:
 \begin{enumerate}
-  \item \texttt{Activation.lean} contains the exponential Taylor identity, every activation
-    display (including the signed-perceptron alternative), exact identities, named measurable and
-    continuous APIs, individual smoothness theorems, origin values, individual asymptotic limits,
-    and the corrected homogeneity classification.  The former bundled smoothness and asymptotics
-    declarations are not part of the current API.
-  \item \texttt{Network.lean} contains arbitrary finite-index dense layers, joint and fixed
-    regularity, threshold firing criteria, MLPs, datasets, depths, batches, parameter counts, and
-    the checked value $91$.
-  \item \texttt{ParameterizedMLP.lean} separates fixed shapes from nested parameter spaces and makes
-    the source notation for $f(x;\theta)$ literal.
-  \item \texttt{Convolution.lean} formalizes the displayed convolution and translation equivariance.
-  \item \texttt{Initialization.lean} constructs the nested finite Gaussian product law and states
-    all independence, mean, covariance, and displayed density formulas.
-  \item \texttt{MLPInitialization.lean} constructs the full dependent parameter law $p(\theta)$,
-    states its scalar marginals and joint independence, and certifies probability normalization.
-  \item \texttt{InducedLaw.lean} contains architecture-independent pushforwards, both orientations
-    of deterministic kernels, every Dirac equation, self-averaging, Gaussian-to-Dirac and Fourier
-    statements, randomized layers, the one-layer Gaussian law, and deep kernel semantics.
+  \item \texttt{Learning.lean} supplies target/function-class, approximation, loss, empirical-risk,
+    update-trajectory, and model-embedding APIs without asserting an unmentioned universal
+    approximation or convergence theorem.
+  \item \texttt{Symmetry.lean} supplies finite neuron relabelings, evaluation invariance, identical
+    hidden-state collapse, exact reduction of an all-equal width to one input, and preservation of
+    the permutation-fixed locus by equivariant updates.
+  \item \texttt{FiniteConvolution.lean} supplies finite boundary conventions (including a periodic
+    torus), the global sparse weight-tied matrix, structural zeros, global correctness, and exact
+    convolutional/unrestricted parameter-count statements.
+  \item \texttt{InitializationUniversality.lean} supplies a reusable i.i.d. initialization
+    structure, a proved qualitative CLT and same-limit universality theorem, a Berry--Esseen
+    statement with the honest $n^{-1/2}$ CDF rate, and the exact selected-fourth-moment $1/n$
+    correction.
 \end{enumerate}
-All seven modules are exported by both the renormalization umbrella and the root LML umbrella.
-The false \texttt{Approximation.thresholdActivation\_sigmoidal} declaration has been removed;
-\texttt{Approximation} now uses compatibility wrappers with bridge theorems to the shared
-activations and exports the true negated statement.  A targeted \texttt{lake build} of all seven
-modules succeeds.  Proof completeness remains separate from statement completeness: the build
-reports exactly 19 \texttt{declaration uses sorry} warnings---three in \texttt{Activation.lean},
-one in \texttt{Convolution.lean}, two in \texttt{ParameterizedMLP.lean}, three in
-\texttt{Initialization.lean}, three in \texttt{MLPInitialization.lean}, and seven in
-\texttt{InducedLaw.lean}; \texttt{Network.lean} has none.  In particular, the newly supplied proofs
-establish the tanh derivative, both logistic and tanh limits, both softplus limits, both SWISH
-limits, non-homogeneity, and the piecewise-linear differentiability classification.  The remaining
-activation proof boundary is analyticity of \texttt{gaussianErf} and the two GELU tail limits.
-Every deferred public result has an informal argument and a source in its Lean docstring; the
-private analytic helper has the same documentation discipline.
+\texttt{Network.lean} and \texttt{ParameterizedMLP.lean} additionally expose both activated-only
+and full preactivation/representation traces.  \texttt{Activation.lean} adds named sine
+non-homogeneity, direct ReLU and leaky-ReLU kink corollaries, origin-passing and binary-valued
+predicates, and mathematically neutral saturation statements for logistic and tanh.
+
+All eleven chapter modules are exported by both umbrellas.  The original seven direct modules are
+proof-complete.  The new code has exactly four documented deferred proofs: Berry--Esseen, the
+fourth-moment expansion, equality of the global sparse matrix with convolution, and the elementary
+parameter-count inequality.  Every deferred theorem has explicit hypotheses, an informal proof,
+and a source URL in its Lean docstring.  Therefore statement completeness has been reached, while
+the four affected proof-completion phases remain open under the acceptance rule above.
 
 \subsubsection*{Source-equation coverage}
-The \texttt{\textbackslash lean} links in this section name the current declarations, and the seven
+The \texttt{\textbackslash lean} links in this section name the current declarations, and the eleven
 direct modules compile together.  The following index records the principal source equations; it
 does not rely on a nonexistent standalone audit file.
 \begin{itemize}
   \item \texttt{exponential-Taylor-expansion}: \texttt{exp\_eq\_tsum\_div\_factorial}.
   \item \texttt{preactivation}: \texttt{DenseLayer.preactivation\_apply}.
   \item \texttt{mlp-definition}: \texttt{MLP.eval\_output} and \texttt{MLP.eval\_hidden}.
+  \item all intermediate $z^{(\ell)}$ and $x^{(\ell)}$:
+    \texttt{MLP.hiddenLayerTrace} and \texttt{MLPShape.hiddenLayerTrace}.
   \item \texttt{conv-layer}: \texttt{Conv2DLayer.preactivation\_apply}.
+  \item global sparse convolution and tying prose:
+    \texttt{Conv2DLayer.toGlobalDenseLayer} and
+    \texttt{Conv2DLayer.preactivation\_toGlobalDenseLayer}.
   \item \texttt{sigmoid}: \texttt{logistic\_eq\_half\_add\_half\_tanh}.
   \item \texttt{scale-invariant-def}: \texttt{posHomogeneous\_iff\_eq\_piecewiseLinear}.
   \item \texttt{softplus} and all ReLU-like approximation prose:
@@ -2143,6 +2385,12 @@ does not rely on a nonexistent standalone audit file.
     \texttt{tendsto\_swish\_sub\_id\_atTop}, \texttt{tendsto\_swish\_atBot},
     \texttt{tendsto\_gelu\_sub\_id\_atTop}, and \texttt{tendsto\_gelu\_atBot}.
   \item \texttt{bias/weight-variance-def-naive}: covariance and flattened-independence theorems.
+  \item non-Gaussian CLT footnote:
+    \texttt{IIDScalarInitialization.tendstoInDistribution\_normalizedPreactivation},
+    \texttt{berryEsseen\_normalizedPreactivation}, and the fourth-moment correction.
+  \item zero-initialization permutation discussion:
+    \texttt{MLP.eval\_relabelFirstHidden}, \texttt{MLP.zeroLike\_traceCollapsed}, and
+    \texttt{permutationSymmetricTraining\_preservesCollapse}.
   \item \texttt{full-bias/weights-initialization}: Gaussian density theorems.
   \item \texttt{gigantic-beast-that-we-tame}: \texttt{ParamModel.outputLaw} and
     \texttt{MLPShape.outputLaw\_gaussianInit\_eq\_map} with the explicit full-network law.
@@ -2352,6 +2600,24 @@ $\theta$, so a layer-only measure does not verify the expression as written.  Th
 Definition~\ref{def:renorm:mlpGaussianInit}, its full-coordinate marginal and independence API, and
 Theorem~\ref{thm:renorm:deepKernelLaw}, which states equality of the two semantics.
 
+Fifth, the first Chapter~2 audit stopped after recognizing the missing universality, global
+permutation-collapse, and global-convolution claims; it did not turn that recognition into a
+statement-complete API.  Calling the translation's ``core mathematical content'' complete while
+the source's only non-Gaussian wide-width claim had no theorem was too permissive.  This violated
+\textbf{Rule 9 (Skeleton-First)}: all source-level objects and theorem boundaries should exist
+before proof completeness is assessed.  It violated \textbf{Rule 19 (API Extraction)} because the
+available local equal-row and local-patch lemmas were not lifted into reusable global symmetry and
+sparse-matrix APIs.  It also violated \textbf{Rules 13--14 (ground truth from targeted builds and
+complete source coverage)}: a clean build of seven selected files established only that those files
+compiled, not that every substantial source claim had been represented.  Finally, repeating the
+source's $1/n$ language without first separating probability metrics would violate
+\textbf{Rule 18}; Berry--Esseen generally supplies $n^{-1/2}$ distributional error, whereas $1/n$
+is valid here only for a selected fourth-moment correction under $L^4$ assumptions.  The repair is
+the four new modules and the explicit theorem boundaries in
+Definitions~\ref{def:renorm:learningVocabulary}, \ref{def:renorm:globalConvolution}, and
+\ref{def:renorm:iidInitialization} and Theorems~\ref{thm:renorm:zeroCollapse}--
+\ref{thm:renorm:initUniversalityRates}.
+
 A further class of errors to avoid is treating the informal density manipulations as if they were
 already well-typed theorems: inventing Gaussian/MGF/tilting APIs, omitting normalizability, treating
 Dirac delta as a function, or writing a two-sided $O(\epsilon^2)$ expansion for a quartic tilt.  Such
@@ -2406,8 +2672,8 @@ The new plan fully complies with those lessons at the level of workflow and theo
   \item false or underspecified source claims are corrected before proof work: threshold is not
     called continuous, positive homogeneity is classified by two independent slopes, zero-variance
     Gaussians are measures rather than densities, the Fourier delta display is not asserted as a
-    Lebesgue integral, and the CLT claim is deferred until a metric and quantitative assumptions
-    are chosen;
+    Lebesgue integral, and the CLT claim is split into qualitative weak convergence, a CDF-based
+    Berry--Esseen rate, and a selected-moment correction with separate moment assumptions;
   \item new proofs are developed in exact-signature scratch files, then checked with
     \texttt{lake env lean} on the edited file and a targeted \texttt{lake build} on its module,
     complying with \textbf{Rules 8, 11, 13, and 14};

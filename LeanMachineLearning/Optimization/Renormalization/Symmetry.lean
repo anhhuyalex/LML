@@ -101,7 +101,8 @@ sum of the outgoing weights. -/
 theorem preactivation_eq_collapseInputToOne [Fintype ι] [Nonempty ι]
     (L : DenseLayer ι κ) (x : ι → ℝ) (hx : AllCoordinatesEqual x) :
     L.preactivation x =
-      (L.collapseInputToOne).preactivation (fun _ : Fin 1 => x (Classical.choice inferInstance)) := by
+      (L.collapseInputToOne).preactivation
+        (fun _ : Fin 1 => x (Classical.choice inferInstance)) := by
   let i₀ : ι := Classical.choice inferInstance
   funext j
   simp only [preactivation_apply, collapseInputToOne]
@@ -109,7 +110,7 @@ theorem preactivation_eq_collapseInputToOne [Fintype ι] [Nonempty ι]
   simp_rw [hxi]
   simp [Finset.sum_mul]
 
-theorem identicalNeurons_zero [Fintype ι] [Fintype κ] :
+theorem identicalNeurons_zero :
     (DenseLayer.mk (0 : Matrix κ ι ℝ) 0).IdenticalNeurons := by
   intro j j'
   constructor

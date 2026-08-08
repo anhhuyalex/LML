@@ -851,7 +851,22 @@ private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
     -- the deterministic input.  This is the one-input form of the kernel measurability packaged
     -- by `MLPEnsemble.outputKernel`; it follows by unfolding `deepLinearOutputLaw` and using
     -- `Measure.measurable_map` on the jointly measurable map `(θ, y) ↦ tail.eval (linear 1) θ y`.
-    sorry
+    let μ₀ : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)
+    change Measurable fun y : Fin k → ℝ =>
+      μ₀.map (fun θ : tail.Params => tail.eval (linear 1) θ y)
+    let G : tail.Params × (Fin k → ℝ) → Fin dOut → ℝ :=
+      fun p => tail.eval (linear 1) p.1 p.2
+    have hG_meas : Measurable G := by
+      dsimp [G]
+      exact (tail.measurable_eval (measurable_linear 1)).comp (measurable_fst.prodMk measurable_snd)
+    have hEq : (fun y : Fin k → ℝ =>
+          μ₀.map (fun θ : tail.Params => tail.eval (linear 1) θ y)) =
+        fun y : Fin k → ℝ => (μ₀.map (fun θ : tail.Params => (θ, y))).map G := by
+      funext y
+      rw [Measure.map_map hG_meas measurable_prodMk_right]
+      rfl
+    rw [hEq]
+    exact (Measure.measurable_map G hG_meas).comp (Measurable.map_prodMk_right (μ := μ₀))
   have hprod : (μ.prod ν).map G = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
     exact map_prod_eq_bind_map μ ν hG_meas
   have hpull : (μ.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) =
@@ -1206,6 +1221,62 @@ theorem firstLayerOutputLaw_eq_pi_gaussianReal {dIn dOut : ℕ} (Cw : ℝ≥0)
   change oneLayerOutputLaw (ι := Fin dIn) (κ := Fin dOut) Cw x =
     Measure.pi (fun _ : Fin dOut => gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x))
   exact oneLayerOutputLaw_eq_pi_gaussianReal (dIn := dIn) (dOut := dOut) Cw x
+
+-- temporary #check block
+#check @Measurable.map_prodMk_right
+#check @Measure.measurable_map
+#check @Measure.map_map
+#check @ProbabilityTheory.Kernel.integral_comp
+#check @ProbabilityTheory.Kernel.aemeasurable
+#check @ProbabilityTheory.Kernel.comp_apply
+#check @MeasureTheory.Measure.comp_eq_comp_const_apply
+#check @MeasureTheory.Measure.comp_assoc
+#check @MeasureTheory.Measure.integrable_comp_iff
+#check @MeasureTheory.Measure.lintegral_bind
+#check @MeasureTheory.integral_eq_lintegral_pos_part_sub_lintegral_neg_part
+#check @MeasureTheory.MemLp.mul
+#check @ProbabilityTheory.memLp_id_gaussianReal
+#check @ProbabilityTheory.memLp_id_gaussianReal'
+#check @MeasureTheory.MemLp.comp_measurePreserving
+#check @MeasureTheory.Integrable.mono'
+#check @MeasureTheory.integrable_map_measure
+#check @MeasureTheory.integrable_finsetSum
+#check @MeasureTheory.Integrable.const_mul
+#check @MeasureTheory.Integrable.norm
+#check @MeasureTheory.MemLp.integrable_norm_pow'
+#check @MeasureTheory.MemLp.integrable
+#check @MeasureTheory.memLp_map_measure_iff
+#check @MeasureTheory.Integrable.aestronglyMeasurable
+#check @MeasureTheory.norm_integral_le_integral_norm
+#check @MeasureTheory.integral_mono_ae
+#check @MeasureTheory.integral_mono
+#check @MeasureTheory.Integrable.congr
+#check @MeasureTheory.Integrable.mono
+#check @MeasureTheory.Integrable.congr'
+#check @MeasureTheory.Integrable.mono_measure
+#check @MeasureTheory.measurePreserving_eval
+#check @ProbabilityTheory.Kernel.const_apply
+#check @ProbabilityTheory.Kernel.deterministic_apply
+#check @MeasureTheory.Measure.dirac_bind
+#check @MeasureTheory.Measure.bind_dirac_eq_map
+#check @MeasureTheory.integral_map
+#check @MeasureTheory.Measure.prod
+#check @MeasureTheory.integral_prod
+#check @MeasureTheory.Integrable.integral_prod_right
+#check @MeasureTheory.integrable_const
+#check @MeasureTheory.Measure.isProbabilityMeasure_map
+#check @MLPShape.deepLinearOutputLaw
+#check @MLPShape.measurable_eval
+#check @MLPShape.gaussianInit
+#check @MLPShape.deepLinearHyperparams
+#check @MLPShape.eval
+#check @measurable_linear
+#check @LayerParams
+#check @DenseLayer.preactivation
+#check @DenseLayer.ofParams
+#check @DenseLayer.preactivation_apply
+#check @DenseLayer.measurable_preactivation
+#check @Measure.map_map
 
 end NeuralNetwork.DeepLinear
 
