@@ -922,6 +922,32 @@ private lemma map_prod_eq_bind_map {α β γ : Type*} [MeasurableSpace α] [Meas
           funext a
           exact Measure.map_map hG (measurable_const.prodMk measurable_id)
 
+/-- The tail output law varies measurably in the deterministic input.
+
+Informal proof: unfold `deepLinearOutputLaw` and use `Measure.measurable_map` on the jointly
+measurable map `(θ, y) ↦ tail.eval (linear 1) θ y`: the parameter pushforward is measurable in
+the input (`Measurable.map_prodMk_right`) and `Measure.map` is measurable in the measure
+argument (`Measure.measurable_map`). -/
+private lemma measurable_deepLinearOutputLaw_kernel {k dOut : ℕ} (tail : MLPShape k dOut)
+    (Cw : ℝ≥0) :
+    Measurable fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y := by
+  let μ₀ : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)
+  change Measurable fun y : Fin k → ℝ =>
+    μ₀.map (fun θ : tail.Params => tail.eval (linear 1) θ y)
+  let G : tail.Params × (Fin k → ℝ) → Fin dOut → ℝ :=
+    fun p => tail.eval (linear 1) p.1 p.2
+  have hG_meas : Measurable G := by
+    dsimp [G]
+    exact (tail.measurable_eval (measurable_linear 1)).comp (measurable_fst.prodMk measurable_snd)
+  have hEq : (fun y : Fin k → ℝ =>
+        μ₀.map (fun θ : tail.Params => tail.eval (linear 1) θ y)) =
+      fun y : Fin k → ℝ => (μ₀.map (fun θ : tail.Params => (θ, y))).map G := by
+    funext y
+    rw [Measure.map_map hG_meas measurable_prodMk_right]
+    rfl
+  rw [hEq]
+  exact (Measure.measurable_map G hG_meas).comp (Measurable.map_prodMk_right (μ := μ₀))
+
 /-- Measure-level tower decomposition for a deep-linear network with one hidden layer exposed.
 
 Informal proof: specialize `MLPEnsemble.outputKernel_apply_eq_outputLaw` (or equivalently repeat
@@ -954,27 +980,8 @@ private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
       (measurable_snd.prodMk
         (DenseLayer.measurable_preactivation.comp
           (measurable_fst.prodMk measurable_const)))
-  have htailLaw_meas : Measurable fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y := by
-    -- Joint measurability of `tail.eval` makes the parameter pushforward vary measurably in
-    -- the deterministic input.  This is the one-input form of the kernel measurability packaged
-    -- by `MLPEnsemble.outputKernel`; it follows by unfolding `deepLinearOutputLaw` and using
-    -- `Measure.measurable_map` on the jointly measurable map `(θ, y) ↦ tail.eval (linear 1) θ y`.
-    let μ₀ : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)
-    change Measurable fun y : Fin k → ℝ =>
-      μ₀.map (fun θ : tail.Params => tail.eval (linear 1) θ y)
-    let G : tail.Params × (Fin k → ℝ) → Fin dOut → ℝ :=
-      fun p => tail.eval (linear 1) p.1 p.2
-    have hG_meas : Measurable G := by
-      dsimp [G]
-      exact (tail.measurable_eval (measurable_linear 1)).comp (measurable_fst.prodMk measurable_snd)
-    have hEq : (fun y : Fin k → ℝ =>
-          μ₀.map (fun θ : tail.Params => tail.eval (linear 1) θ y)) =
-        fun y : Fin k → ℝ => (μ₀.map (fun θ : tail.Params => (θ, y))).map G := by
-      funext y
-      rw [Measure.map_map hG_meas measurable_prodMk_right]
-      rfl
-    rw [hEq]
-    exact (Measure.measurable_map G hG_meas).comp (Measurable.map_prodMk_right (μ := μ₀))
+  have htailLaw_meas : Measurable fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y :=
+    measurable_deepLinearOutputLaw_kernel tail Cw
   have hprod : (μ.prod ν).map G = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
     exact map_prod_eq_bind_map μ ν hG_meas
   have hpull : (μ.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) =
@@ -996,19 +1003,46 @@ private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
           (fun y => tail.deepLinearOutputLaw Cw y) := by
           dsimp [oneLayerOutputLaw, μ, f]
 
+/-- Bochner tower property for a bind of a measurable kernel.
+
+Informal proof: identify `κ ∘ₘ μ = μ.bind κ`, convert the measure composition into a kernel
+composition with a constant kernel (`Measure.comp_eq_comp_const_apply`), and apply Mathlib's
+kernel Fubini theorem `Kernel.integral_comp`.  The only side condition is integrability of the
+integrand on the composed measure. -/
+private lemma integral_bind_of_integrable {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    (μ : Measure α) (κ : α → Measure β) (hκ : Measurable κ) {F : β → ℝ}
+    (hF : Integrable F (μ.bind κ)) :
+    ∫ z, F z ∂(μ.bind κ) = ∫ a, (∫ z, F z ∂(κ a)) ∂μ := by
+  let η : Kernel α β := ⟨κ, hκ⟩
+  have hF' : Integrable F (η ∘ₘ μ) := by
+    dsimp [η]
+    exact hF
+  have htower := Kernel.integral_comp (η := η) (κ := Kernel.const Unit μ) (a := ()) (f := F)
+    (by
+      rw [Measure.comp_eq_comp_const_apply] at hF'
+      exact hF')
+  rw [Kernel.comp_apply, Kernel.const_apply] at htower
+  change ∫ z, F z ∂(μ.bind κ) = ∫ a, (∫ z, F z ∂(κ a)) ∂μ
+  simpa [η] using htower
+
 /-- Bochner integral form of the tower property for the monomial output observable.
 
 Informal proof: apply Fubini/Tonelli to the bind measure in
-`deepLinearOutputLaw_hidden_eq_bind`.  The integrand `z ↦ ∏ r, z (a r)` is measurable by
-`measurable_monomial`; integrability follows because the output coordinates are polynomials in
-finitely many independent Gaussian weights, hence have finite moments of all orders (the one-layer
-case is `integrable_pow_preactivation`, and the general case follows by induction over `tail`).
-This is the standard law of total expectation; see Mathlib's `Measure.lintegral_bind` / product
-Fubini API and the discussion in `docs/Renormalization.md` on Gaussian moments.
+`deepLinearOutputLaw_hidden_eq_bind`, packaged as the kernel tower property
+`integral_bind_of_integrable` (`Kernel.integral_comp`).  The integrand
+`z ↦ ∏ r, z (a r)` is measurable by `measurable_monomial`; the integrability side condition is
+carried explicitly because the output coordinates are polynomials in finitely many independent
+Gaussian weights, hence have finite moments of all orders (proved together with the moment
+formulas by induction over the shape).  This is the standard law of total expectation; see
+Mathlib's `Measure.lintegral_bind` / kernel-composition Fubini API and the discussion in
+`docs/Renormalization.md` on Gaussian moments.
 -/
 private lemma integral_monomial_deepLinearOutputLaw_bind {dIn k dOut : ℕ}
     (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
-    (a : Fin (2 * m) → Fin dOut) :
+    (a : Fin (2 * m) → Fin dOut)
+    (hInt : Integrable (fun z => ∏ r, z (a r))
+      ((oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
+        (fun y => tail.deepLinearOutputLaw Cw y))) :
     ∫ z, (∏ r, z (a r))
         ∂((oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
           (fun y => tail.deepLinearOutputLaw Cw y)) =
@@ -1016,9 +1050,10 @@ private lemma integral_monomial_deepLinearOutputLaw_bind {dIn k dOut : ℕ}
         (∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y)
           ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
   classical
-  -- The pinned Mathlib has only a lintegral bind theorem, so the real-valued Bochner version
-  -- requires first proving the finite Gaussian moment/integrability side conditions.
-  sorry
+  let μ : Measure (Fin k → ℝ) := oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x
+  have htower := integral_bind_of_integrable μ (fun y => tail.deepLinearOutputLaw Cw y)
+    (measurable_deepLinearOutputLaw_kernel tail Cw) (F := fun z => ∏ r, z (a r)) hInt
+  simpa [μ] using htower
 
 /-- Conditioning a `.hidden tail` deep-linear network on the output of its first random layer.
 
@@ -1031,7 +1066,9 @@ one-input specialization of the Markov/kernel composition theorem
 -/
 private lemma integral_monomial_deepLinearOutputLaw_hidden_bind {dIn k dOut : ℕ}
     (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
-    (a : Fin (2 * m) → Fin dOut) :
+    (a : Fin (2 * m) → Fin dOut)
+    (hInt : Integrable (fun z => ∏ r, z (a r))
+      ((MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x)) :
     ∫ z, (∏ r, z (a r))
         ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
       ∫ y : Fin k → ℝ,
@@ -1039,6 +1076,7 @@ private lemma integral_monomial_deepLinearOutputLaw_hidden_bind {dIn k dOut : �
           ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
   rw [deepLinearOutputLaw_hidden_eq_bind tail Cw x]
   exact integral_monomial_deepLinearOutputLaw_bind tail Cw x m a
+    (by simpa [deepLinearOutputLaw_hidden_eq_bind tail Cw x] using hInt)
 
 /-- The scalar part of the induction step after applying the tail moment formula.
 
@@ -1115,6 +1153,25 @@ private lemma hidden_hiddenWidths_cons {dIn k dOut : ℕ} (tail : MLPShape k dOu
       · rcases List.exists_cons_of_ne_nil hnil with ⟨b, l, hw⟩
         simp [MLPShape.hiddenWidths, MLPShape.widths, hw, List.dropLast_cons_cons]
 
+/-- Absolute-value bound for the deterministic correlator amplitude: it grows at most like a
+constant times `|q|^m`. -/
+private lemma correlatorAmplitude_abs_bound (Cw : ℝ≥0) (q : ℝ) (m : ℕ) (widths : List ℕ) :
+    |correlatorAmplitude Cw q m widths| ≤
+      |((Cw : ℝ) ^ (widths.length + 1)) ^ m| * |hiddenWidthCorrection m widths| * |q| ^ m := by
+  unfold correlatorAmplitude
+  calc
+    |((Cw : ℝ) ^ (widths.length + 1) * q) ^ m * hiddenWidthCorrection m widths|
+        = |((Cw : ℝ) ^ (widths.length + 1)) ^ m * q ^ m * hiddenWidthCorrection m widths| := by
+          rw [mul_pow]
+    _ = |((Cw : ℝ) ^ (widths.length + 1)) ^ m| * |q| ^ m * |hiddenWidthCorrection m widths| := by
+          simp_rw [abs_mul, abs_pow]
+    _ ≤ |((Cw : ℝ) ^ (widths.length + 1)) ^ m| * |hiddenWidthCorrection m widths| * |q| ^ m := by
+          have hEq : |((Cw : ℝ) ^ (widths.length + 1)) ^ m| * |q| ^ m *
+                |hiddenWidthCorrection m widths| =
+              |((Cw : ℝ) ^ (widths.length + 1)) ^ m| * |hiddenWidthCorrection m widths| * |q| ^ m := by
+            ring
+          exact le_of_eq hEq
+
 private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
     (tail : MLPShape k dOut) (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ)
     (a : Fin (2 * m) → Fin dOut)
@@ -1124,12 +1181,17 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
         0 < k → (∀ n ∈ tail.hiddenWidths, 0 < n) →
         ∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y =
           pairingTensor a *
-            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths) :
-    ∫ z, (∏ r, z (a r))
+            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths)
+    (ihInt : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin dOut),
+        0 < k → (∀ n ∈ tail.hiddenWidths, 0 < n) →
+        Integrable (fun z => ∏ r, z (a r)) (tail.deepLinearOutputLaw Cw y)) :
+    (∫ z, (∏ r, z (a r))
         ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
       pairingTensor a *
         correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
-          (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths := by
+          (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths) ∧
+    Integrable (fun z => ∏ r, z (a r))
+      ((MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
   classical
   have hHiddenWidths :
       (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths = k :: tail.hiddenWidths :=
@@ -1143,27 +1205,460 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
     apply hWidths n
     rw [hHiddenWidths]
     exact List.mem_cons_of_mem k hn
-  calc
-    ∫ z, (∏ r, z (a r))
-        ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
-        ∫ y : Fin k → ℝ,
-          (∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y)
-            ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
-          exact integral_monomial_deepLinearOutputLaw_hidden_bind tail Cw x m a
-    _ = ∫ y : Fin k → ℝ,
-          pairingTensor a *
-            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths
-            ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
-          refine MeasureTheory.integral_congr_ae ?_
-          filter_upwards with y
-          exact ih y a hk hTailWidths
-    _ = pairingTensor a *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m (k :: tail.hiddenWidths) :=
-          integral_pairingTensor_correlatorAmplitude_oneLayer Cw x m a tail.hiddenWidths hk
-    _ = pairingTensor a *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
-          (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths := by
-          rw [hHiddenWidths]
+  let F : (Fin dOut → ℝ) → ℝ := fun z => ∏ r, z (a r)
+  let μ₁ : Measure (LayerParams (Fin dIn) (Fin k)) :=
+    layerGaussianInit (hyperparams Cw) (Fin dIn) (Fin k)
+  let f : LayerParams (Fin dIn) (Fin k) → Fin k → ℝ :=
+    fun q => (DenseLayer.ofParams q).preactivation x
+  have hf_meas : Measurable f := by
+    dsimp [f]
+    exact DenseLayer.measurable_preactivation.comp
+      (measurable_id.prodMk measurable_const)
+  -- pointwise power-mean bound `‖F z‖ ≤ dOut^(m-1) * ∑_j z j^(2m)` (also covers `m = 0`).
+  have hFpoint (z : Fin dOut → ℝ) :
+      ‖F z‖ ≤ (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+        (1 + ∑ j : Fin dOut, z j ^ (2 * m)) := by
+    by_cases hm : m = 0
+    · subst m
+      dsimp [F]
+      simp
+    · have hmpos : 1 ≤ m := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hm)
+      have hprod : |∏ r : Fin (2 * m), z (a r)| ≤ (∑ j : Fin dOut, z j ^ 2) ^ m := by
+        have hle (r : Fin (2 * m)) : |z (a r)| ≤ Real.sqrt (∑ j : Fin dOut, z j ^ 2) := by
+          calc
+            |z (a r)| = Real.sqrt (z (a r) ^ 2) := by rw [Real.sqrt_sq_eq_abs]
+            _ ≤ Real.sqrt (∑ j : Fin dOut, z j ^ 2) := Real.sqrt_le_sqrt
+              (Finset.single_le_sum (f := fun j : Fin dOut => z j ^ 2)
+                (fun j _ => sq_nonneg (z j)) (Finset.mem_univ (a r)))
+        calc
+          |∏ r : Fin (2 * m), z (a r)| = ∏ r : Fin (2 * m), |z (a r)| := by
+            rw [Finset.abs_prod]
+          _ ≤ ∏ r : Fin (2 * m), Real.sqrt (∑ j : Fin dOut, z j ^ 2) := by
+            exact Finset.prod_le_prod (fun r _ => abs_nonneg _) (fun r _ => hle r)
+          _ = (Real.sqrt (∑ j : Fin dOut, z j ^ 2)) ^ (2 * m) := by
+            rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+          _ = (∑ j : Fin dOut, z j ^ 2) ^ m := by
+            rw [pow_mul, Real.sq_sqrt (Finset.sum_nonneg (fun j _ => sq_nonneg (z j)))]
+      have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
+        (s := (Finset.univ : Finset (Fin dOut)))
+        (f := fun j : Fin dOut => z j ^ 2)
+        (p := (m : ℝ)) (hp := by exact_mod_cast hmpos) (hf := fun j _ => sq_nonneg (z j))
+      have hpm' : (∑ j : Fin dOut, z j ^ 2) ^ m ≤
+          (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+            (1 + ∑ j : Fin dOut, z j ^ (2 * m)) := by
+        have hpm2 : (∑ j : Fin dOut, z j ^ 2) ^ (m : ℝ) ≤
+            (Fintype.card (Fin dOut) : ℝ) ^ ((m : ℝ) - 1) *
+              ∑ j : Fin dOut, (z j ^ 2) ^ (m : ℝ) := by
+          simpa [Finset.card_univ, Fintype.card_fin] using hpm
+        have hpowle : (∑ j : Fin dOut, z j ^ 2) ^ m ≤
+            (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+              ∑ j : Fin dOut, z j ^ (2 * m) := by
+          calc
+            (∑ j : Fin dOut, z j ^ 2) ^ m = (∑ j : Fin dOut, z j ^ 2) ^ (m : ℝ) := by
+              rw [Real.rpow_natCast]
+            _ ≤ (Fintype.card (Fin dOut) : ℝ) ^ ((m : ℝ) - 1) *
+                ∑ j : Fin dOut, (z j ^ 2) ^ (m : ℝ) := hpm2
+            _ = (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+                ∑ j : Fin dOut, z j ^ (2 * m) := by
+              have hexp : ((m : ℝ) - 1) = ((m - 1 : ℕ) : ℝ) := by
+                rw [Nat.cast_sub hmpos]
+                norm_num
+              rw [hexp, Real.rpow_natCast]
+              congr 1
+              apply Finset.sum_congr rfl
+              intro j _
+              rw [Real.rpow_natCast]
+              simp [← pow_mul]
+        have hcard : 0 ≤ (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) := by positivity
+        have hsum : 0 ≤ ∑ j : Fin dOut, z j ^ (2 * m) := by
+          exact Finset.sum_nonneg (fun j _ =>
+            by simpa [← pow_mul] using pow_nonneg (sq_nonneg (z j)) m)
+        calc
+          (∑ j : Fin dOut, z j ^ 2) ^ m ≤
+              (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) * ∑ j : Fin dOut, z j ^ (2 * m) := hpowle
+          _ ≤ (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) * (1 + ∑ j : Fin dOut, z j ^ (2 * m)) := by
+                exact mul_le_mul_of_nonneg_left (le_add_of_nonneg_left (by norm_num)) hcard
+      calc
+        ‖F z‖ = |∏ r : Fin (2 * m), z (a r)| := by
+          simp [F, Real.norm_eq_abs, Finset.abs_prod]
+        _ ≤ (∑ j : Fin dOut, z j ^ 2) ^ m := hprod
+        _ ≤ (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) * (1 + ∑ j : Fin dOut, z j ^ (2 * m)) := hpm'
+  -- fibre norm-integral bound via the tail moment formulas
+  have hFnorm (y : Fin k → ℝ) :
+      ∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw y) ≤
+        (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+          (1 + ∑ j : Fin dOut,
+            (pairingTensor (fun _ : Fin (2 * m) => j) *
+              correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths)) := by
+    -- the tail law is a probability measure, so constants are integrable
+    have hprob : IsProbabilityMeasure (tail.deepLinearOutputLaw Cw y) := by
+      unfold MLPShape.deepLinearOutputLaw
+      exact Measure.isProbabilityMeasure_map
+        (((tail.measurable_eval (measurable_linear 1)).comp
+          (measurable_id.prodMk measurable_const)).aemeasurable)
+    have hfin : IsFiniteMeasure (tail.deepLinearOutputLaw Cw y) :=
+      ⟨by rw [hprob.measure_univ]; norm_num⟩
+    have hint (j : Fin dOut) :
+        Integrable (fun z : Fin dOut → ℝ => z j ^ (2 * m)) (tail.deepLinearOutputLaw Cw y) := by
+      simpa using ihInt y (fun _ : Fin (2 * m) => j) hk hTailWidths
+    have hsum : Integrable (fun z : Fin dOut → ℝ =>
+        ∑ j : Fin dOut, z j ^ (2 * m)) (tail.deepLinearOutputLaw Cw y) := by
+      simpa using (integrable_finsetSum Finset.univ
+        (f := fun (j : Fin dOut) (z : Fin dOut → ℝ) => z j ^ (2 * m)) (fun j _ => hint j))
+    have hone : Integrable (fun z : Fin dOut → ℝ => (1 : ℝ))
+        (tail.deepLinearOutputLaw Cw y) :=
+      @integrable_const (Fin dOut → ℝ) ℝ _ _ (by infer_instance : NormedAddCommGroup ℝ)
+        hfin (1 : ℝ)
+    have hsumInt : Integrable (fun z : Fin dOut → ℝ =>
+        1 + ∑ j : Fin dOut, z j ^ (2 * m)) (tail.deepLinearOutputLaw Cw y) := by
+      simpa using hsum.add hone
+    have hmono : ∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw y) ≤
+        (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+          ∫ z, (1 + ∑ j : Fin dOut, z j ^ (2 * m)) ∂(tail.deepLinearOutputLaw Cw y) := by
+      rw [← MeasureTheory.integral_const_mul]
+      have hFint : Integrable (fun z : Fin dOut → ℝ => ‖F z‖) (tail.deepLinearOutputLaw Cw y) :=
+        (ihInt y a hk hTailWidths).norm
+      exact integral_mono_ae hFint
+        (hsumInt.const_mul ((Fintype.card (Fin dOut) : ℝ) ^ (m - 1)))
+        (Filter.Eventually.of_forall fun z => hFpoint z)
+    calc
+      ∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw y) ≤
+          (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+            ∫ z, (1 + ∑ j : Fin dOut, z j ^ (2 * m)) ∂(tail.deepLinearOutputLaw Cw y) := hmono
+      _ = (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+            (1 + ∑ j : Fin dOut, ∫ z, z j ^ (2 * m) ∂(tail.deepLinearOutputLaw Cw y)) := by
+            congr 1
+            rw [MeasureTheory.integral_add hone hsum]
+            rw [MeasureTheory.integral_finsetSum (s := Finset.univ)
+              (f := fun (j : Fin dOut) (z : Fin dOut → ℝ) => z j ^ (2 * m)) (fun j _ => hint j)]
+            simp [MeasureTheory.integral_const, Measure.real, hprob.measure_univ]
+      _ = (Fintype.card (Fin dOut) : ℝ) ^ (m - 1) *
+            (1 + ∑ j : Fin dOut,
+              (pairingTensor (fun _ : Fin (2 * m) => j) *
+                correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths)) := by
+            congr 1
+            congr 1
+            apply Finset.sum_congr rfl
+            intro j _
+            simpa using ih y (fun _ : Fin (2 * m) => j) hk hTailWidths
+  -- the fibre-norm integral is integrable under the Gaussian parameter law
+  have hnorm : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+      ∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw (f q))) μ₁ := by
+    let C₀ : ℝ := (Fintype.card (Fin dOut) : ℝ) ^ (m - 1)
+    let C₁ : ℝ :=
+      (∑ j : Fin dOut, |pairingTensor (fun _ : Fin (2 * m) => j)|) *
+        |((Cw : ℝ) ^ (tail.hiddenWidths.length + 1)) ^ m| * |hiddenWidthCorrection m tail.hiddenWidths|
+    let C₂ : ℝ := (Fintype.card (Fin k) : ℝ) ^ (m - 1)
+    have hamp (y : Fin k → ℝ) :
+        ∑ j : Fin dOut,
+          (pairingTensor (fun _ : Fin (2 * m) => j) *
+            correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths) ≤
+          C₁ * NeuralNetwork.normalizedEnergy y ^ m := by
+      calc
+        ∑ j : Fin dOut,
+            (pairingTensor (fun _ : Fin (2 * m) => j) *
+              correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths)
+            ≤ ∑ j : Fin dOut,
+                |pairingTensor (fun _ : Fin (2 * m) => j) * 
+                  correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths| := by
+              exact Finset.sum_le_sum (fun j _ => le_abs_self _)
+        _ ≤ ∑ j : Fin dOut,
+              (|pairingTensor (fun _ : Fin (2 * m) => j)| *
+                |((Cw : ℝ) ^ (tail.hiddenWidths.length + 1)) ^ m| *
+                |hiddenWidthCorrection m tail.hiddenWidths| * NeuralNetwork.normalizedEnergy y ^ m) := by
+              apply Finset.sum_le_sum
+              intro j _
+              have h := correlatorAmplitude_abs_bound Cw (NeuralNetwork.normalizedEnergy y) m
+                tail.hiddenWidths
+              have hq : |NeuralNetwork.normalizedEnergy y| = NeuralNetwork.normalizedEnergy y :=
+                abs_of_nonneg (NeuralNetwork.normalizedEnergy_nonneg y)
+              rw [abs_mul]
+              calc
+                |pairingTensor (fun _ : Fin (2 * m) => j)| *
+                      |correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths|
+                    ≤ |pairingTensor (fun _ : Fin (2 * m) => j)| *
+                        (|((Cw : ℝ) ^ (tail.hiddenWidths.length + 1)) ^ m| *
+                          |hiddenWidthCorrection m tail.hiddenWidths| *
+                          |NeuralNetwork.normalizedEnergy y| ^ m) := by
+                      exact mul_le_mul_of_nonneg_left h (abs_nonneg _)
+                _ = |pairingTensor (fun _ : Fin (2 * m) => j)| *
+                      |((Cw : ℝ) ^ (tail.hiddenWidths.length + 1)) ^ m| *
+                      |hiddenWidthCorrection m tail.hiddenWidths| * NeuralNetwork.normalizedEnergy y ^ m := by
+                      rw [hq]
+                      ring
+        _ = C₁ * NeuralNetwork.normalizedEnergy y ^ m := by
+              dsimp [C₁]
+              simp only [← Finset.mul_sum, mul_assoc, mul_comm, mul_left_comm]
+    have hnormEnergy : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+        NeuralNetwork.normalizedEnergy (f q) ^ m) μ₁ := by
+      by_cases hm : m = 0
+      · subst m
+        simp
+      · have hmpos : 1 ≤ m := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hm)
+        have hpre (p : Fin k) : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+            (DenseLayer.ofParams q).preactivation x p ^ (2 * m)) μ₁ := by
+          have h := integrable_pow_preactivation Cw (2 * m) p x
+          refine Integrable.congr' h ?_ (Filter.Eventually.of_forall ?_)
+          · exact ((((measurable_pi_apply p).comp (DenseLayer.measurable_preactivation.comp
+              (measurable_id.prodMk measurable_const))).pow_const (2 * m))).aestronglyMeasurable
+          · intro q
+            simp_rw [Real.norm_eq_abs, abs_pow, abs_abs]
+        have hsum : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+            ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m)) μ₁ := by
+          simpa using (integrable_finsetSum Finset.univ
+            (f := fun (p : Fin k) (q : LayerParams (Fin dIn) (Fin k)) =>
+              (DenseLayer.ofParams q).preactivation x p ^ (2 * m)) (fun p _ => hpre p))
+        have hmeasE : Measurable (fun q : LayerParams (Fin dIn) (Fin k) =>
+            NeuralNetwork.normalizedEnergy (f q)) := by
+          dsimp [f, NeuralNetwork.normalizedEnergy]
+          have hsumm : Measurable (fun q : LayerParams (Fin dIn) (Fin k) =>
+              ∑ p : Fin k, ((DenseLayer.ofParams q).preactivation x p) ^ 2) := by
+            refine Finset.measurable_sum Finset.univ (fun p _ => ?_)
+            exact ((((measurable_pi_apply p).comp (DenseLayer.measurable_preactivation.comp
+              (measurable_id.prodMk measurable_const)))).pow_const 2)
+          simpa [Fintype.card_fin] using hsumm.const_mul ((Fintype.card (Fin k) : ℝ)⁻¹)
+        let hcoef : ℝ := (Fintype.card (Fin k) : ℝ) ^ (m - 1) * ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m
+        have hdom : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+            hcoef * (1 + ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m))) μ₁ := by
+          have hsum' : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+              hcoef * ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m) + hcoef) μ₁ :=
+            (hsum.const_mul hcoef).add (integrable_const hcoef)
+          convert hsum' using 1
+          funext q
+          ring
+        refine Integrable.mono' hdom ?_ (Filter.Eventually.of_forall ?_)
+        · exact (hmeasE.pow_const m).aestronglyMeasurable
+        · intro q
+          have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
+            (s := (Finset.univ : Finset (Fin k)))
+            (f := fun p : Fin k => (DenseLayer.ofParams q).preactivation x p ^ 2)
+            (p := (m : ℝ)) (hp := by exact_mod_cast hmpos) (hf := fun p _ => sq_nonneg _)
+          have hpm' : (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m ≤
+              (Fintype.card (Fin k) : ℝ) ^ (m - 1) *
+                ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m) := by
+            have hpm2 : (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) ≤
+                (Fintype.card (Fin k) : ℝ) ^ ((m : ℝ) - 1) *
+                  ∑ p : Fin k, ((DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) := by
+              simpa [Finset.card_univ, Fintype.card_fin] using hpm
+            calc
+              (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m
+                  = (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) := by
+                    rw [Real.rpow_natCast]
+              _ ≤ (Fintype.card (Fin k) : ℝ) ^ ((m : ℝ) - 1) *
+                    ∑ p : Fin k, ((DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) := hpm2
+              _ = (Fintype.card (Fin k) : ℝ) ^ (m - 1) *
+                    ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m) := by
+                    have hexp : ((m : ℝ) - 1) = ((m - 1 : ℕ) : ℝ) := by
+                      rw [Nat.cast_sub hmpos]
+                      norm_num
+                    rw [hexp, Real.rpow_natCast]
+                    congr 1
+                    apply Finset.sum_congr rfl
+                    intro p _
+                    rw [Real.rpow_natCast]
+                    simp [← pow_mul]
+          have hnormE : NeuralNetwork.normalizedEnergy (f q) ^ m =
+              ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m * (∑ p : Fin k,
+                (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m := by
+            dsimp [f]
+            simp only [NeuralNetwork.normalizedEnergy, Fintype.card_fin]
+            rw [mul_pow]
+          calc
+            ‖NeuralNetwork.normalizedEnergy (f q) ^ m‖
+                = NeuralNetwork.normalizedEnergy (f q) ^ m := by
+                  rw [Real.norm_eq_abs]
+                  exact abs_of_nonneg (pow_nonneg (NeuralNetwork.normalizedEnergy_nonneg (f q)) m)
+            _ = ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m * (∑ p : Fin k,
+                (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m := hnormE
+            _ ≤ ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m *
+                  ((Fintype.card (Fin k) : ℝ) ^ (m - 1) *
+                    ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m)) := by
+                  exact mul_le_mul_of_nonneg_left hpm' (pow_nonneg (inv_nonneg.mpr
+                    (Nat.cast_nonneg _)) _)
+            _ = ((Fintype.card (Fin k) : ℝ) ^ (m - 1) * ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m) *
+                  ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m) := by
+                  ring
+            _ ≤ ((Fintype.card (Fin k) : ℝ) ^ (m - 1) * ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m) *
+                  (1 + ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m)) := by
+                  have hnon : 0 ≤ ∑ p : Fin k,
+                      (DenseLayer.ofParams q).preactivation x p ^ (2 * m) := by
+                    exact Finset.sum_nonneg (fun p _ =>
+                      by simpa [pow_mul, mul_comm] using
+                        sq_nonneg ((DenseLayer.ofParams q).preactivation x p ^ m))
+                  have hcoef : 0 ≤ (Fintype.card (Fin k) : ℝ) ^ (m - 1) *
+                      ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m := by positivity
+                  nlinarith
+    -- assemble `hnorm` from `hFnorm ∘ f`, `hamp`, and `hnormEnergy`.
+    have hdom : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+        (C₀ * (1 + C₁)) * (1 + NeuralNetwork.normalizedEnergy (f q) ^ m)) μ₁ := by
+      have hsum' : Integrable (fun q : LayerParams (Fin dIn) (Fin k) =>
+          (C₀ * (1 + C₁)) * NeuralNetwork.normalizedEnergy (f q) ^ m + (C₀ * (1 + C₁))) μ₁ :=
+        (hnormEnergy.const_mul (C₀ * (1 + C₁))).add (integrable_const (C₀ * (1 + C₁)))
+      convert hsum' using 1
+      funext q
+      ring
+    refine Integrable.mono' hdom ?_ (Filter.Eventually.of_forall ?_)
+    · -- measurability of the fibre norm-integral `q ↦ ∫ z, ‖F z‖ ∂tail.deepLinearOutputLaw Cw (f q)`
+      have hg : Measurable (fun z : Fin dOut → ℝ => ENNReal.ofReal ‖F z‖) := by
+        exact ENNReal.measurable_ofReal.comp (measurable_monomial a).norm
+      have hlin : Measurable (fun q : LayerParams (Fin dIn) (Fin k) =>
+          ∫⁻ z, ENNReal.ofReal ‖F z‖ ∂(tail.deepLinearOutputLaw Cw (f q))) := by
+        exact (Measure.measurable_lintegral hg).comp
+          ((measurable_deepLinearOutputLaw_kernel tail Cw).comp hf_meas)
+      have hEq : (fun q : LayerParams (Fin dIn) (Fin k) =>
+          ∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw (f q))) =
+        fun q => (∫⁻ z, ENNReal.ofReal ‖F z‖ ∂(tail.deepLinearOutputLaw Cw (f q))).toReal := by
+        funext q
+        exact integral_eq_lintegral_of_nonneg_ae
+          (Filter.Eventually.of_forall (fun z => norm_nonneg (F z)))
+          ((measurable_monomial a).norm.aestronglyMeasurable)
+      rw [hEq]
+      exact (ENNReal.measurable_toReal.comp hlin).aestronglyMeasurable
+    · intro q
+      have hb := hFnorm (f q)
+      have ha := hamp (f q)
+      have hE : 0 ≤ NeuralNetwork.normalizedEnergy (f q) ^ m :=
+        pow_nonneg (NeuralNetwork.normalizedEnergy_nonneg (f q)) m
+      have hC₀ : 0 ≤ C₀ := by
+        dsimp [C₀]
+        positivity
+      calc
+        ‖∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw (f q))‖
+            = ∫ z, ‖F z‖ ∂(tail.deepLinearOutputLaw Cw (f q)) := by
+              rw [Real.norm_eq_abs]
+              exact abs_of_nonneg (MeasureTheory.integral_nonneg (fun z => norm_nonneg (F z)))
+        _ ≤ C₀ * (1 + ∑ j : Fin dOut,
+              (pairingTensor (fun _ : Fin (2 * m) => j) *
+                correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy (f q)) m tail.hiddenWidths)) := by
+              dsimp [C₀]
+              exact hb
+        _ ≤ C₀ * (1 + C₁ * NeuralNetwork.normalizedEnergy (f q) ^ m) := by
+              exact mul_le_mul_of_nonneg_left (by nlinarith [ha]) hC₀
+        _ = C₀ + C₀ * C₁ * NeuralNetwork.normalizedEnergy (f q) ^ m := by ring
+        _ ≤ C₀ * (1 + C₁) * (1 + NeuralNetwork.normalizedEnergy (f q) ^ m) := by
+              have hC₁ : 0 ≤ C₁ := by
+                dsimp [C₁]
+                positivity
+              nlinarith [mul_nonneg hC₀ hC₁, mul_nonneg hC₀ hE]
+    -- integrability of the monomial under the hidden law
+  have hInt : Integrable F
+      ((MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
+    rw [deepLinearOutputLaw_hidden_eq_bind tail Cw x]
+    have hpull : (μ₁.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) =
+        μ₁.bind (fun q => tail.deepLinearOutputLaw Cw (f q)) := by
+      exact measure_bind_map_comp μ₁ hf_meas (measurable_deepLinearOutputLaw_kernel tail Cw)
+    let η' : Kernel (LayerParams (Fin dIn) (Fin k)) (Fin dOut → ℝ) :=
+      ⟨fun q => tail.deepLinearOutputLaw Cw (f q),
+        (measurable_deepLinearOutputLaw_kernel tail Cw).comp hf_meas⟩
+    have hFmeas : AEStronglyMeasurable F (η' ∘ₘ μ₁) :=
+      (measurable_monomial a).aestronglyMeasurable
+    have hIntComp := (Measure.integrable_comp_iff (μ := μ₁) (κ := η') (f := F) hFmeas).2
+    have hconj1 : ∀ᵐ q ∂μ₁, Integrable F (η' q) := by
+      filter_upwards with q
+      dsimp [η', F]
+      exact ihInt (f q) a hk hTailWidths
+    have hconj2 : Integrable (fun q => ∫ z, ‖F z‖ ∂η' q) μ₁ := by
+      dsimp [η', F]
+      exact hnorm
+    have hIntBind : Integrable F (η' ∘ₘ μ₁) := (hIntComp ⟨hconj1, hconj2⟩)
+    -- bridge the bind form back to the hidden-shape law
+    have hbind : (oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
+          (fun y => tail.deepLinearOutputLaw Cw y) = η' ∘ₘ μ₁ := by
+      calc
+        (oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
+            (fun y => tail.deepLinearOutputLaw Cw y)
+            = (μ₁.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) := by
+              dsimp [μ₁, f, oneLayerOutputLaw]
+        _ = μ₁.bind (fun q => tail.deepLinearOutputLaw Cw (f q)) := hpull
+        _ = η' ∘ₘ μ₁ := rfl
+    rw [hbind]
+    simpa [F] using hIntBind
+  exact ⟨
+    calc
+      ∫ z, (∏ r, z (a r))
+          ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
+          ∫ y : Fin k → ℝ,
+            (∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y)
+              ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
+            exact integral_monomial_deepLinearOutputLaw_hidden_bind tail Cw x m a hInt
+      _ = ∫ y : Fin k → ℝ,
+            pairingTensor a *
+              correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths
+              ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
+            refine MeasureTheory.integral_congr_ae ?_
+            filter_upwards with y
+            exact ih y a hk hTailWidths
+      _ = pairingTensor a *
+          correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m (k :: tail.hiddenWidths) :=
+            integral_pairingTensor_correlatorAmplitude_oneLayer Cw x m a tail.hiddenWidths hk
+      _ = pairingTensor a *
+          correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m
+            (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths := by
+            rw [hHiddenWidths],
+    hInt
+  ⟩
+
+/-- Combined even-moment formula and monomial integrability for every finite-width shape.
+
+Informal proof: induction over the shape.  The output case is the product-Gaussian Wick theorem
+(`jointMoment_outputLaw_output_even`) and Gaussian `L^p` finiteness
+(`integrable_monomial_outputLaw_even`).  In the hidden case the induction hypothesis supplies both
+the tail moment formulas and the tail integrability; the latter makes the tower-property
+integrability side condition available for `integral_monomial_deepLinearOutputLaw_hidden_bind`. -/
+private theorem jointMoment_outputLaw_even_and_integrable {dIn dOut : ℕ} (S : MLPShape dIn dOut)
+    (Cw : ℝ≥0) (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    (∀ (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut),
+      ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x =
+        pairingTensor a *
+          correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths) ∧
+    (∀ (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut),
+      Integrable (fun z => ∏ r, z (a r)) (S.deepLinearOutputLaw Cw x)) := by
+  induction S with
+  | output =>
+      constructor
+      · intro x m a
+        exact jointMoment_outputLaw_output_even Cw x m a hIn
+      · intro x m a
+        exact integrable_monomial_outputLaw_even Cw x m a
+  | hidden tail ih =>
+      rename_i m n k
+      have hHiddenWidths :
+          (MLPShape.hidden tail : MLPShape m n).hiddenWidths = k :: tail.hiddenWidths :=
+        hidden_hiddenWidths_cons (dIn := m) tail
+      have hk : 0 < k := by
+        apply hWidths k
+        rw [hHiddenWidths]
+        simp
+      have hTailWidths : ∀ n ∈ tail.hiddenWidths, 0 < n := by
+        intro n hn
+        apply hWidths n
+        rw [hHiddenWidths]
+        exact List.mem_cons_of_mem k hn
+      constructor
+      · intro x m a
+        have ihMoment : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin n), 0 < k →
+            (∀ n₁ ∈ tail.hiddenWidths, 0 < n₁) →
+            ∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y =
+              pairingTensor a *
+                correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths :=
+          fun y a' hk' hw => (ih hk' hw).1 y m a'
+        have ihInt : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin n), 0 < k →
+            (∀ n₁ ∈ tail.hiddenWidths, 0 < n₁) →
+            Integrable (fun z => ∏ r, z (a r)) (tail.deepLinearOutputLaw Cw y) :=
+          fun y a' hk' hw => (ih hk' hw).2 y m a'
+        exact (jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ihMoment ihInt).1
+      · intro x m a
+        have ihMoment : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin n), 0 < k →
+            (∀ n₁ ∈ tail.hiddenWidths, 0 < n₁) →
+            ∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y =
+              pairingTensor a *
+                correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy y) m tail.hiddenWidths :=
+          fun y a' hk' hw => (ih hk' hw).1 y m a'
+        have ihInt : ∀ (y : Fin k → ℝ) (a : Fin (2 * m) → Fin n), 0 < k →
+            (∀ n₁ ∈ tail.hiddenWidths, 0 < n₁) →
+            Integrable (fun z => ∏ r, z (a r)) (tail.deepLinearOutputLaw Cw y) :=
+          fun y a' hk' hw => (ih hk' hw).2 y m a'
+        exact (jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ihMoment ihInt).2
 
 /-- Exact even joint output moment at arbitrary finite positive widths.
 
@@ -1179,12 +1674,8 @@ theorem jointMoment_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
     (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     ∫ z, (∏ r, z (a r)) ∂S.deepLinearOutputLaw Cw x =
       pairingTensor a *
-        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
-  induction S with
-  | output =>
-      exact jointMoment_outputLaw_output_even Cw x m a hIn
-  | hidden tail ih =>
-      exact jointMoment_outputLaw_hidden_even_of_tail tail Cw x m a hIn hWidths ih
+        correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths :=
+  (jointMoment_outputLaw_even_and_integrable S Cw hIn hWidths).1 x m a
 
 /-- The Wick pairing sum for the constant output-index map is the even Gaussian coefficient. -/
 private lemma pairingTensor_const {κ : Type uJ} [DecidableEq κ] (m : ℕ) (j : κ) :
