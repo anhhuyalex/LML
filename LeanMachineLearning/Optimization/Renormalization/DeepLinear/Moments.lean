@@ -197,6 +197,38 @@ theorem deepLinearOutputLaw_isNegInvariant {dIn dOut : ℕ} (S : MLPShape dIn dO
     _ = S.deepLinearOutputLaw Cw x := rfl
   ⟩
 
+/-- The batch deep-linear output law is invariant under the coordinatewise sign flip.
+
+Informal proof: this is the same final-layer sign symmetry as
+`deepLinearOutputLaw_isNegInvariant`, applied simultaneously to every input in the batch.  Negating
+the last layer preserves the centered Gaussian initialization law and negates `S.eval` at each
+batch entry, hence the pushforward batch law is fixed by `z ↦ -z`.
+-/
+theorem deepLinearBatchLaw_isNegInvariant {A : Type uA} {dIn dOut : ℕ}
+    (S : MLPShape dIn dOut) (Cw : ℝ≥0) (D : A → Fin dIn → ℝ) :
+    Measure.IsNegInvariant (S.deepLinearBatchLaw Cw D) := ⟨by
+  let μ₀ : Measure S.Params := S.gaussianInit (S.deepLinearHyperparams Cw)
+  let F : S.Params → A → Fin dOut → ℝ := fun θ a => S.eval (linear 1) θ (D a)
+  have hF_meas : Measurable F :=
+    (S.paramModel (linear 1) (measurable_linear 1)).measurable_evalBatch D
+  have hJ_meas : Measurable (negLastLayer S) := measurable_negLastLayer S
+  have hJ_inv : Measure.map (negLastLayer S) μ₀ = μ₀ := gaussianInit_negLastLayer S Cw
+  calc
+    (S.deepLinearBatchLaw Cw D).map (fun z : A → Fin dOut → ℝ => -z)
+        = (μ₀.map F).map (fun z : A → Fin dOut → ℝ => -z) := rfl
+    _ = μ₀.map (fun θ : S.Params => -F θ) :=
+          Measure.map_map (g := fun z : A → Fin dOut → ℝ => -z) (f := F)
+            (by fun_prop : Measurable fun z : A → Fin dOut → ℝ => -z) hF_meas
+    _ = μ₀.map (fun θ : S.Params => F (negLastLayer S θ)) := by
+          congr 1
+          funext θ a
+          exact (eval_negLastLayer S θ (D a)).symm
+    _ = (μ₀.map (negLastLayer S)).map F := (Measure.map_map hF_meas hJ_meas).symm
+    _ = μ₀.map F := by
+          rw [hJ_inv]
+    _ = S.deepLinearBatchLaw Cw D := rfl
+  ⟩
+
 -- The monomial `z ↦ ∏ r, z (a r)` in coordinate projections is measurable: each coordinate
 -- projection is measurable and finite products of measurable functions are measurable.
 private lemma measurable_monomial {κ : Type*} {n : ℕ} (a : Fin n → κ) :
@@ -1767,10 +1799,22 @@ This is the standard symmetry argument behind `jointMoment_outputLaw_odd` above.
 lemma covariance_batchOutputLaw_eq_integral_mul {A : Type uA}
     {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
     (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    (_hIn : 0 < dIn) (_hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D) =
       ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D := by
-  sorry
+  let μ : Measure (A → Fin dOut → ℝ) := S.deepLinearBatchLaw Cw D
+  haveI : Measure.IsNegInvariant μ := deepLinearBatchLaw_isNegInvariant S Cw D
+  have hX_meas : Measurable (fun z : A → Fin dOut → ℝ => z a i) :=
+    (measurable_pi_apply i).comp (measurable_pi_apply a)
+  have hY_meas : Measurable (fun z : A → Fin dOut → ℝ => z b j) :=
+    (measurable_pi_apply j).comp (measurable_pi_apply b)
+  have hX0 : ∫ z, z a i ∂μ = 0 := by
+    exact Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable μ
+      hX_meas.aestronglyMeasurable (fun z => by simp)
+  have hY0 : ∫ z, z b j ∂μ = 0 := by
+    exact Renormalization.integral_eq_zero_of_odd_of_aestronglyMeasurable μ
+      hY_meas.aestronglyMeasurable (fun z => by simp)
+  simp [covariance, μ, hX0, hY0]
 
 /-- Uncentered second moment of two batch-output coordinates.
 
