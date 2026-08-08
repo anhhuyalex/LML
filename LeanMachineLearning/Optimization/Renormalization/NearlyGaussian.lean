@@ -691,7 +691,7 @@ three blocks of cardinality at least two summing to six forces equality througho
 private lemma sixPoint_card_three_eq_pairing
     {P : Finpartition (Finset.univ : Finset (Fin 6))} (heven : ∀ B ∈ P.parts, Even B.card)
     (hcard : P.parts.card = 3) :
-    Finpartition.IsPairing P := by
+    ∀ B ∈ P.parts, B.card = 2 := by
   have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
   have hconst : ∑ _C ∈ P.parts, (2 : ℕ) = 6 := by
     rw [Finset.sum_const, hcard]; decide
@@ -730,7 +730,7 @@ private lemma sixPoint_even_partitions_card_two :
   · intro h
     have hcard := h.1
     have hshape := h.2
-    refine ⟨⟨Finset.mem_univ _, ?_⟩, hcard⟩
+    refine ⟨?_, hcard⟩
     intro B hB
     rcases hshape B hB with h2 | h4
     · exact ⟨1, by omega⟩
@@ -741,7 +741,7 @@ private lemma sixPoint_even_partitions_card_three :
     (Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
       ∀ B ∈ P.parts, Even B.card)).filter (fun P => P.parts.card = 3) =
       Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
-        Finpartition.IsPairing P) := by
+        ∀ B ∈ P.parts, B.card = 2) := by
   classical
   ext P
   simp only [Finset.mem_filter, Finset.mem_univ, true_and]
@@ -756,7 +756,7 @@ private lemma sixPoint_even_partitions_card_three :
     have hcardP : P.parts.card = 3 := by
       rw [Finset.sum_const, smul_eq_mul] at hsum6'
       omega
-    refine ⟨⟨Finset.mem_univ _, ?_⟩, hcardP⟩
+    refine ⟨?_, hcardP⟩
     intro B hB
     rw [hcard2 B hB]
     decide
@@ -790,7 +790,7 @@ private lemma sixPoint_even_partitions_cover (S : Finset (Finpartition (Finset.u
 -- Helper: Reindex the filtered sum along the Pairing subtype
 private lemma sixPoint_sum_pairing_eq {Ω : Type uΩ} [MeasurableSpace Ω]
     (μ : Measure Ω) (X : Fin 6 → Ω → ℝ) :
-    (∑ P ∈ Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => Finpartition.IsPairing P),
+    (∑ P ∈ Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2),
       P.blockProduct (blockCumulant μ X)) = sixPointPairingCumulantSum μ X := by
   classical
   unfold sixPointPairingCumulantSum Finpartition.pairingSum
@@ -846,7 +846,7 @@ theorem jointMoment_six_eq_connected_decomposition
   have hbucket2 : S.filter (fun P => P.parts.card = 2) = fourTwoPartitions := by
     rw [hS_def, sixPoint_even_partitions_card_two]
   have hbucket3 : S.filter (fun P => P.parts.card = 3) =
-      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => Finpartition.IsPairing P) := by
+      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2) := by
     rw [hS_def, sixPoint_even_partitions_card_three]
   -- Step 4: assemble the three buckets into a disjoint cover of `S`.
   have hS12 : Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 2)) := by
@@ -886,13 +886,48 @@ Informal proof: substitute the two- and four-point moment--cumulant relations in
 pairings occurs once in the six-point moment, three times through the `(4,2)` subtraction, and
 hence with final coefficient `+2`.  Source: equation `eq:C6` in `docs/Renormalization.md`.
 -/
+private lemma blockCumulant_eq_zero_of_odd
+    {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X : Fin 6 → Ω → ℝ)
+    (hodd : ∀ C : Finset (Fin 6), Odd C.card → blockMoment μ X C = 0)
+    (B : Finset (Fin 6)) (hB : Odd B.card) :
+    blockCumulant μ X B = 0 := by
+  sorry
+
+private lemma blockCumulant_eq_blockMoment_of_card_two
+    {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X : Fin 6 → Ω → ℝ) (B : Finset (Fin 6)) (hB : B.card = 2)
+    (hodd : ∀ C : Finset (Fin 6), Odd C.card → blockMoment μ X C = 0) :
+    blockCumulant μ X B = blockMoment μ X B := by
+  sorry
+
+private lemma sixPointFourTwoCumulantSum_eq
+    {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X : Fin 6 → Ω → ℝ)
+    (hodd : ∀ B : Finset (Fin 6), Odd B.card → blockMoment μ X B = 0) :
+    sixPointFourTwoCumulantSum μ X = sixPointFourTwoMomentSum μ X - 3 * sixPointPairingMomentSum μ X := by
+  sorry
+
 theorem jointCumulant_six_eq_moments
     {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : Fin 6 → Ω → ℝ)
     (hodd : ∀ B : Finset (Fin 6), Odd B.card → blockMoment μ X B = 0) :
     jointCumulant μ X = jointMoment μ X - sixPointFourTwoMomentSum μ X +
       2 * sixPointPairingMomentSum μ X := by
-  sorry
+  have h_odd_cumulant : ∀ B : Finset (Fin 6), Odd B.card → blockCumulant μ X B = 0 :=
+    blockCumulant_eq_zero_of_odd μ X hodd
+  have h_cumulant := jointMoment_six_eq_connected_decomposition μ X h_odd_cumulant
+  rw [sixPointFourTwoCumulantSum_eq μ X hodd] at h_cumulant
+  have h_pairing : sixPointPairingCumulantSum μ X = sixPointPairingMomentSum μ X := by
+    dsimp [sixPointPairingCumulantSum, sixPointPairingMomentSum, Finpartition.pairingSum]
+    apply Finset.sum_congr rfl
+    intro P _hP
+    apply Finset.prod_congr rfl
+    intro B hB
+    have hB_card : B.card = 2 := P.property B hB
+    exact blockCumulant_eq_blockMoment_of_card_two μ X B hB_card hodd
+  rw [h_pairing] at h_cumulant
+  linarith
 
 /-- There are fifteen pairings of six labelled positions.
 
@@ -928,7 +963,7 @@ private lemma card_pairing_empty {α : Type*} [DecidableEq α] :
     infer_instance
   refine Fintype.card_eq_one_iff.mpr ⟨⟨default, ?_⟩, ?_⟩
   · intro B hB
-    exact False.elim (Finset.not_mem_empty B (by simpa using hB))
+    simpa using hB
   · intro y
     apply Subtype.ext
     exact Subsingleton.elim _ _
@@ -953,10 +988,14 @@ private lemma card_pairing_four {α : Type*} [DecidableEq α] {s : Finset α} (h
   have hs_pos : 0 < s.card := hs.symm ▸ by decide
   rcases Finset.card_pos.mp hs_pos with ⟨a, ha⟩
   rw [card_pairing_erase s a ha]
-  apply Finset.sum_congr rfl
-  intro b hb
-  exact card_pairing_two (by simp [hs, ha, hb])
-  rw [Finset.sum_const, nsmul_eq_mul]
+  have h_sum : (∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b))) =
+               (∑ b ∈ s.erase a, (1 : ℕ)) := by
+    apply Finset.sum_congr rfl
+    intro b hb
+    have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
+    have h2 : ((s.erase a).erase b).card = (s.erase a).card - 1 := Finset.card_erase_of_mem hb
+    exact card_pairing_two (by omega)
+  rw [h_sum, Finset.sum_const, nsmul_eq_mul]
   simp [hs, ha]
 
 -- A six-element set has `15` pairings: five choices for the partner of a fixed element, then
@@ -966,10 +1005,14 @@ private lemma card_pairing_six {α : Type*} [DecidableEq α] {s : Finset α} (hs
   have hs_pos : 0 < s.card := hs.symm ▸ by decide
   rcases Finset.card_pos.mp hs_pos with ⟨a, ha⟩
   rw [card_pairing_erase s a ha]
-  apply Finset.sum_congr rfl
-  intro b hb
-  exact card_pairing_four (by simp [hs, ha, hb])
-  rw [Finset.sum_const, nsmul_eq_mul]
+  have h_sum : (∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b))) =
+               (∑ b ∈ s.erase a, (3 : ℕ)) := by
+    apply Finset.sum_congr rfl
+    intro b hb
+    have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
+    have h2 : ((s.erase a).erase b).card = (s.erase a).card - 1 := Finset.card_erase_of_mem hb
+    exact card_pairing_four (by omega)
+  rw [h_sum, Finset.sum_const, nsmul_eq_mul]
   simp [hs, ha]
 
 theorem card_pairing_fin_six :

@@ -1918,7 +1918,9 @@ private lemma integral_mul_oneLayerBatchLaw_eq_sum_cov {A : Type uA} {ι : Type 
       _ = 0 := by
             have h := covariance_bias_layerGaussianInit (hyperparams Cw) ι κ i j
             dsimp [μ] at h ⊢
-            simp [hyperparams] at h
+            have hcast : (↑(if i = j then (0 : ℝ≥0) else 0) : ℝ) = 0 := by
+              by_cases hij : i = j <;> simp [hij]
+            rw [hcast] at h
             exact h
   have hwb (p : ι) : ∫ q : LayerParams ι κ, q.1 i p * q.2 j ∂μ = 0 := by
     calc
@@ -2060,7 +2062,8 @@ private lemma integral_mul_oneLayerBatchLaw_eq_sum_cov {A : Type uA} {ι : Type 
               calc
                 ∫ q : LayerParams ι κ, q.2 i * q.1 j p' * D b p' ∂μ
                     = (∫ q : LayerParams ι κ, q.2 i * q.1 j p' ∂μ) * D b p' := by
-                      exact integral_mul_const (D b p') (fun q : LayerParams ι κ => q.2 i * q.1 j p')
+                      exact integral_mul_const (D b p')
+                        (fun q : LayerParams ι κ => q.2 i * q.1 j p')
                 _ = 0 := by simp [hbw p']
             simp [hinner]
   have hT3 : ∫ q : LayerParams ι κ, (∑ p : ι, q.1 i p * D a p) * q.2 j ∂μ = 0 := by
@@ -2208,8 +2211,8 @@ private lemma integral_mul_oneLayerBatchLaw {A : Type uA} {ι : Type uJ} {κ : T
     (a b : A) (i j : κ) :
     ∫ y, y a i * y b j ∂oneLayerBatchLaw (ι := ι) (κ := κ) Cw D =
       if i = j then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0 := by
-  -- The hard work is isolated in `integral_mul_oneLayerBatchLaw_eq_sum_cov`; keeping this public-facing
-  -- private lemma as a one-line wrapper makes downstream recursive moment proofs read cleanly.
+  -- The hard work is isolated in `integral_mul_oneLayerBatchLaw_eq_sum_cov`; keeping this
+  -- public-facing private lemma as a one-line wrapper makes the recursive proofs read cleanly.
   exact integral_mul_oneLayerBatchLaw_eq_sum_cov (ι := ι) (κ := κ) Cw D a b i j
 
 /-- The output case of `integral_mul_batchOutputLaw` is the single-layer two-point function.
@@ -2252,7 +2255,8 @@ private lemma deepLinearBatchLaw_map_coord {A : Type uA} {m n : ℕ} (S : MLPSha
           rfl
     _ = (S.gaussianInit (S.deepLinearHyperparams Cw)).map
           (fun θ => S.eval (linear 1) θ (D a)) := by
-          have hmm := Measure.map_map (g := fun z : A → Fin n → ℝ => z a)
+          have hmm := Measure.map_map (μ := S.gaussianInit (S.deepLinearHyperparams Cw))
+            (g := fun z : A → Fin n → ℝ => z a)
             (f := fun θ b => S.eval (linear 1) θ (D b))
             (by fun_prop : Measurable fun z : A → Fin n → ℝ => z a)
             ((S.paramModel (linear 1) (measurable_linear 1)).measurable_evalBatch D)
@@ -2311,11 +2315,13 @@ private lemma integrable_coord_mul_deepBatchLaw {A : Type uA} {dIn dOut : ℕ}
     funext z
     ring
   refine Integrable.mono' hdom ?_ (Filter.Eventually.of_forall ?_)
-  · exact (by fun_prop : Measurable (fun z : A → Fin dOut → ℝ => z a i * z b j)).aestronglyMeasurable
+  · exact (by fun_prop : Measurable (fun z : A → Fin dOut → ℝ =>
+        z a i * z b j)).aestronglyMeasurable
   · intro z
     rw [Real.norm_eq_abs, abs_mul]
-    rw [← sq_abs, ← sq_abs]
-    nlinarith [sq_nonneg (|z a i| - |z b j|)]
+    have h₁ : |z a i| ^ 2 = z a i ^ 2 := sq_abs (z a i)
+    have h₂ : |z b j| ^ 2 = z b j ^ 2 := sq_abs (z b j)
+    nlinarith [sq_nonneg (|z a i| - |z b j|), h₁, h₂]
 
 /-- Two batch coordinates of the one-layer batch law have a finite mixed second moment.
 
@@ -2375,8 +2381,9 @@ private lemma integrable_coord_mul_oneLayerBatchLaw {A : Type uA} {dIn k : ℕ}
   · exact (by fun_prop : Measurable (fun y : A → Fin k → ℝ => y a i * y b j)).aestronglyMeasurable
   · intro y
     rw [Real.norm_eq_abs, abs_mul]
-    rw [← sq_abs, ← sq_abs]
-    nlinarith [sq_nonneg (|y a i| - |y b j|)]
+    have h₁ : |y a i| ^ 2 = y a i ^ 2 := sq_abs (y a i)
+    have h₂ : |y b j| ^ 2 = y b j ^ 2 := sq_abs (y b j)
+    nlinarith [sq_nonneg (|y a i| - |y b j|), h₁, h₂]
 
 /-- The deep-linear batch law varies measurably in the input batch. -/
 private lemma measurable_deepLinearBatchLaw_kernel {A : Type uA} {k dOut : ℕ}
@@ -2439,6 +2446,9 @@ private lemma deepLinearBatchLaw_hidden_eq_bind {A : Type uA} {dIn k dOut : ℕ}
           congr
           funext θ
           funext b
+          change tail.hidden.eval (linear 1) θ (D b) =
+            tail.eval (linear 1) θ.2 ((DenseLayer.ofParams θ.1).preactivation (D b))
+          rw [MLPShape.eval_hidden]
           simp [activate_linear_eq_preactivation]
     _ = μ₁.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
           exact map_prod_eq_bind_map μ₁ ν hG_meas
@@ -2462,7 +2472,8 @@ Finally apply `integral_bind_of_integrable` to the observable `z ↦ z a i * z b
 private lemma integral_mul_batchOutputLaw_hidden_tower {A : Type uA}
     {dIn k dOut : ℕ} (tail : MLPShape k dOut) (Cw : ℝ≥0)
     (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
-    (hIn : 0 < dIn) (hWidths : ∀ n ∈ (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths, 0 < n) :
+    (hIn : 0 < dIn)
+    (hWidths : ∀ n ∈ (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths, 0 < n) :
     ∫ z, z a i * z b j
         ∂(MLPShape.hidden tail : MLPShape dIn dOut).deepLinearBatchLaw Cw D =
       ∫ y : A → Fin k → ℝ,
@@ -2472,7 +2483,6 @@ private lemma integral_mul_batchOutputLaw_hidden_tower {A : Type uA}
   have hInt : Integrable (fun z : A → Fin dOut → ℝ => z a i * z b j)
       (μ.bind (fun y => tail.deepLinearBatchLaw Cw y)) := by
     rw [← deepLinearBatchLaw_hidden_eq_bind tail Cw D]
-    dsimp [μ]
     exact integrable_coord_mul_deepBatchLaw (MLPShape.hidden tail) Cw D a b i j hIn hWidths
   have htower := integral_bind_of_integrable μ (fun y => tail.deepLinearBatchLaw Cw y)
     (measurable_deepLinearBatchLaw_kernel tail Cw) (F := fun z => z a i * z b j) hInt
@@ -2509,8 +2519,9 @@ private lemma integral_normalizedGram_oneLayerBatchLaw {A : Type uA}
           rw [integral_mul_oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D a b p p]
     _ = (Fintype.card (Fin k) : ℝ)⁻¹ * (Fintype.card (Fin k) : ℝ) *
           ((Cw : ℝ) * NeuralNetwork.normalizedGram D a b) := by
-          have hsum : (∑ p : Fin k, (if p = p then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0)) =
-              (Fintype.card (Fin k) : ℝ) * ((Cw : ℝ) * NeuralNetwork.normalizedGram D a b) := by
+          have hsum :
+              (∑ p : Fin k, (if p = p then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0)) =
+                (Fintype.card (Fin k) : ℝ) * ((Cw : ℝ) * NeuralNetwork.normalizedGram D a b) := by
             calc
               (∑ p : Fin k, (if p = p then (Cw : ℝ) * NeuralNetwork.normalizedGram D a b else 0))
                   = ∑ p : Fin k, (Cw : ℝ) * NeuralNetwork.normalizedGram D a b := by
@@ -2519,7 +2530,6 @@ private lemma integral_normalizedGram_oneLayerBatchLaw {A : Type uA}
                     simp
               _ = (Fintype.card (Fin k) : ℝ) * ((Cw : ℝ) * NeuralNetwork.normalizedGram D a b) := by
                     rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-                    rfl
           rw [hsum]
           ring
     _ = (Cw : ℝ) * NeuralNetwork.normalizedGram D a b := by
@@ -2586,14 +2596,14 @@ lemma integral_mul_batchOutputLaw {A : Type uA}
                 ∂oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D else 0 := by
               by_cases hij : i = j
               · subst j
-                simp
+                simp only [if_true]
                 rw [MeasureTheory.integral_const_mul]
               · simp [hij]
         _ = if i = j then (Cw : ℝ) ^ tail.depth * ((Cw : ℝ) * NeuralNetwork.normalizedGram D a b)
             else 0 := by
               by_cases hij : i = j
               · subst j
-                simp
+                simp only [if_true]
                 congr 1
                 rw [integral_normalizedGram_oneLayerBatchLaw Cw D a b hk]
               · simp [hij]
@@ -2601,7 +2611,8 @@ lemma integral_mul_batchOutputLaw {A : Type uA}
             else 0 := by
               by_cases hij : i = j
               · subst j
-                simp
+                simp only [if_true]
+                rw [pow_succ]
                 ring
               · simp [hij]
         _ = if i = j then (Cw : ℝ) ^ (MLPShape.hidden tail : MLPShape dIn dOut).depth *
