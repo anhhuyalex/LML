@@ -605,6 +605,100 @@ def sixPointPairingCumulantSum
     {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω) (X : Fin 6 → Ω → ℝ) : ℝ :=
   Finpartition.pairingSum (blockCumulant μ X) Finset.univ
 
+/-- The (unique) top partition of a nonempty finset has that finset as its only block.
+
+`Cumulant.lean` already proves this fact as `top_parts_eq_singleton`, but marks it `private`, so
+it is re-derived here from the public `Finpartition.parts_top_subset` and
+`Finpartition.parts_nonempty`. -/
+private lemma sixPoint_top_parts_eq_singleton {s : Finset (Fin 6)} (hs : s ≠ ∅) :
+    (⊤ : Finpartition s).parts = {s} := by
+  ext B
+  constructor
+  · exact fun hB => Finpartition.parts_top_subset s hB
+  · intro hB
+    rw [Finset.mem_singleton] at hB
+    rw [hB]
+    obtain ⟨C, hC⟩ := Finpartition.parts_nonempty (⊤ : Finpartition s) hs
+    have hC_eq : C = s := Finset.mem_singleton.mp (Finpartition.parts_top_subset s hC)
+    rwa [hC_eq] at hC
+
+/-- Every block of an all-even partition of `Fin 6` has cardinality at least two. -/
+private lemma sixPoint_block_card_ge_two
+    {P : Finpartition (Finset.univ : Finset (Fin 6))} (heven : ∀ B ∈ P.parts, Even B.card) :
+    ∀ B ∈ P.parts, 2 ≤ B.card := by
+  intro B hB
+  obtain ⟨k, hk⟩ := heven B hB
+  have := (P.nonempty_of_mem_parts hB).card_pos
+  omega
+
+/-- An all-even partition of `Fin 6` has at most three blocks: each contributes at least two to a
+sum of six. -/
+private lemma sixPoint_parts_card_le_three
+    {P : Finpartition (Finset.univ : Finset (Fin 6))} (heven : ∀ B ∈ P.parts, Even B.card) :
+    P.parts.card ≤ 3 := by
+  have hsum6 : ∑ B ∈ P.parts, B.card = 6 := by simpa using P.sum_card_parts
+  have hge : ∑ B ∈ P.parts, 2 ≤ ∑ B ∈ P.parts, B.card :=
+    Finset.sum_le_sum (sixPoint_block_card_ge_two heven)
+  have hge' : P.parts.card * 2 ≤ 6 := by
+    simpa [Finset.sum_const, hsum6, mul_comm] using hge
+  omega
+
+/-- A one-block partition of `Fin 6` is the indiscrete partition `⊤`. -/
+private lemma sixPoint_card_one_eq_top
+    {P : Finpartition (Finset.univ : Finset (Fin 6))} (hcard : P.parts.card = 1) :
+    P = ⊤ := by
+  obtain ⟨B, hBparts⟩ := Finset.card_eq_one.mp hcard
+  have hBmem : B ∈ P.parts := by rw [hBparts]; exact Finset.mem_singleton_self B
+  have hBsub : B ⊆ (Finset.univ : Finset (Fin 6)) := P.subset hBmem
+  have hsum : B.card = (Finset.univ : Finset (Fin 6)).card := by
+    have hsc := P.sum_card_parts
+    rw [hBparts, Finset.sum_singleton] at hsc
+    exact hsc
+  have hBsu : B = (Finset.univ : Finset (Fin 6)) :=
+    Finset.eq_of_subset_of_card_le hBsub (le_of_eq hsum.symm)
+  have hParts : P.parts = (⊤ : Finpartition (Finset.univ : Finset (Fin 6))).parts := by
+    rw [hBparts, hBsu, sixPoint_top_parts_eq_singleton Finset.univ_nonempty.ne_empty]
+  exact Finpartition.ext hParts
+
+/-- A two-block all-even partition of `Fin 6` has block sizes `4` and `2`. -/
+private lemma sixPoint_card_two_eq_fourTwo
+    {P : Finpartition (Finset.univ : Finset (Fin 6))} (heven : ∀ B ∈ P.parts, Even B.card)
+    (hcard : P.parts.card = 2) :
+    IsFourTwoPartition P := by
+  refine ⟨hcard, ?_⟩
+  intro B hB
+  have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
+  have hrest : (P.parts.erase B).card = 1 := by rw [Finset.card_erase_of_mem hB, hcard]
+  obtain ⟨C, hCeq⟩ := Finset.card_eq_one.mp hrest
+  have hCmem : C ∈ P.parts := by
+    have : C ∈ P.parts.erase B := by rw [hCeq]; exact Finset.mem_singleton_self C
+    exact (Finset.mem_erase.mp this).2
+  have hCne : C ≠ B := by
+    have : C ∈ P.parts.erase B := by rw [hCeq]; exact Finset.mem_singleton_self C
+    exact (Finset.mem_erase.mp this).1
+  have hpartsEq : P.parts = insert B {C} := by rw [← Finset.insert_erase hB, hCeq]
+  have hsumBC : B.card + C.card = 6 := by
+    rw [hpartsEq] at hsum6
+    rwa [Finset.sum_insert (by simp [hCne.symm]), Finset.sum_singleton] at hsum6
+  obtain ⟨kB, hkB⟩ := heven B hB
+  obtain ⟨kC, hkC⟩ := heven C hCmem
+  have hBge := sixPoint_block_card_ge_two heven B hB
+  have hCge := sixPoint_block_card_ge_two heven C hCmem
+  omega
+
+/-- A three-block all-even partition of `Fin 6` is a pairing (every block has cardinality two):
+three blocks of cardinality at least two summing to six forces equality throughout. -/
+private lemma sixPoint_card_three_eq_pairing
+    {P : Finpartition (Finset.univ : Finset (Fin 6))} (heven : ∀ B ∈ P.parts, Even B.card)
+    (hcard : P.parts.card = 3) :
+    Finpartition.IsPairing P := by
+  have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
+  have hconst : ∑ _C ∈ P.parts, (2 : ℕ) = 6 := by
+    rw [Finset.sum_const, hcard]; decide
+  have heq : (∑ C ∈ P.parts, (2 : ℕ)) = ∑ C ∈ P.parts, C.card := hconst.trans hsum6.symm
+  have hpointwise := (Finset.sum_eq_sum_iff_of_le (sixPoint_block_card_ge_two heven)).mp heq
+  exact fun B hB => (hpointwise B hB).symm
+
 /-- The six-point moment decomposes into connected `6`, `(4,2)`, and `(2,2,2)` pieces.
 
 Informal proof: specialize `jointMoment_eq_sum_partition_jointCumulant` to `Fin 6`.  Odd block
@@ -618,7 +712,151 @@ theorem jointMoment_six_eq_connected_decomposition
     (hodd : ∀ B : Finset (Fin 6), Odd B.card → blockCumulant μ X B = 0) :
     jointMoment μ X = jointCumulant μ X + sixPointFourTwoCumulantSum μ X +
       sixPointPairingCumulantSum μ X := by
-  sorry
+  classical
+  have hsu_ne : (Finset.univ : Finset (Fin 6)) ≠ ∅ := Finset.univ_nonempty.ne_empty
+  -- Step 1: `jointMoment` as the sum over all partitions.
+  have hsum : jointMoment μ X =
+      ∑ P : Finpartition (Finset.univ : Finset (Fin 6)), P.blockProduct (blockCumulant μ X) := by
+    have h_empty : blockMoment μ X ∅ = 1 := blockMoment_empty X
+    have h_inv := partitionTransform_cumulantTransform_univ (blockMoment μ X) h_empty
+    rw [jointMoment_eq_blockMoment_univ, ← h_inv]
+    rfl
+  -- Step 2: split off odd-block partitions (contribute zero).
+  rw [hsum, ← Finset.sum_filter_add_sum_filter_not
+    (s := (Finset.univ : Finset (Finpartition (Finset.univ : Finset (Fin 6)))))
+    (p := fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, Even B.card)
+    (f := fun P => P.blockProduct (blockCumulant μ X))]
+  have hrest0 : (∑ P ∈ Finset.univ.filter
+      (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ¬ ∀ B ∈ P.parts, Even B.card),
+      P.blockProduct (blockCumulant μ X)) = 0 := by
+    apply Finset.sum_eq_zero
+    intro P hP
+    obtain ⟨B, hB⟩ := not_forall.mp (Finset.mem_filter.mp hP).2
+    obtain ⟨hBmem, hBnodd⟩ := Classical.not_imp.mp hB
+    exact Finset.prod_eq_zero hBmem (hodd B (Nat.not_even_iff_odd.mp hBnodd))
+  rw [hrest0, add_zero]
+  set S : Finset (Finpartition (Finset.univ : Finset (Fin 6))) :=
+    Finset.univ.filter (fun P => ∀ B ∈ P.parts, Even B.card) with hS_def
+  have hSmem : ∀ P, P ∈ S ↔ ∀ B ∈ P.parts, Even B.card := by
+    intro P
+    rw [hS_def, Finset.mem_filter]
+    exact ⟨fun h => h.2, fun h => ⟨Finset.mem_univ _, h⟩⟩
+  -- Step 3: identify the three buckets of `S` by number of parts.
+  have hbucket1 :
+      S.filter (fun P => P.parts.card = 1) = {(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} := by
+    ext P
+    simp only [Finset.mem_filter, Finset.mem_singleton]
+    constructor
+    · rintro ⟨_, hcard⟩
+      exact sixPoint_card_one_eq_top hcard
+    · rintro rfl
+      have htop_parts := sixPoint_top_parts_eq_singleton hsu_ne
+      refine ⟨(hSmem _).2 ?_, ?_⟩
+      · intro B hB
+        rw [htop_parts, Finset.mem_singleton] at hB
+        subst hB
+        rw [show (Finset.univ : Finset (Fin 6)).card = 6 from by simp]
+        decide
+      · rw [htop_parts]; simp
+  have hbucket2 : S.filter (fun P => P.parts.card = 2) = fourTwoPartitions := by
+    ext P
+    simp only [Finset.mem_filter, fourTwoPartitions, Finset.mem_univ, true_and]
+    constructor
+    · rintro ⟨hPS, hcard⟩
+      exact sixPoint_card_two_eq_fourTwo ((hSmem P).1 hPS) hcard
+    · rintro ⟨hcard, hshape⟩
+      refine ⟨(hSmem P).2 ?_, hcard⟩
+      intro B hB
+      rcases hshape B hB with h2 | h4
+      · exact ⟨1, by omega⟩
+      · exact ⟨2, by omega⟩
+  have hbucket3 : S.filter (fun P => P.parts.card = 3) =
+      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
+        Finpartition.IsPairing P) := by
+    ext P
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    constructor
+    · rintro ⟨hPS, hcard⟩
+      exact sixPoint_card_three_eq_pairing ((hSmem P).1 hPS) hcard
+    · intro hPairing
+      have hcard2 : ∀ B ∈ P.parts, B.card = 2 := hPairing
+      have hsum6 : ∑ C ∈ P.parts, C.card = 6 := by simpa using P.sum_card_parts
+      have hsum6' : ∑ C ∈ P.parts, (2 : ℕ) = 6 :=
+        (Finset.sum_congr rfl (fun C hC => (hcard2 C hC).symm)).trans hsum6
+      have hcardP : P.parts.card = 3 := by
+        rw [Finset.sum_const, smul_eq_mul] at hsum6'
+        omega
+      refine ⟨(hSmem P).2 ?_, hcardP⟩
+      intro B hB
+      rw [hcard2 B hB]
+      decide
+  -- Step 4: assemble the three buckets into a disjoint cover of `S`.
+  have hcard_le : ∀ P ∈ S, P.parts.card ≤ 3 :=
+    fun P hP => sixPoint_parts_card_le_three ((hSmem P).1 hP)
+  have hcard_pos : ∀ P ∈ S, 1 ≤ P.parts.card := fun P _ =>
+    Finset.card_pos.mpr (P.parts_nonempty hsu_ne)
+  have hS12 :
+      Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 2)) := by
+    rw [Finset.disjoint_left]
+    intro P h1 h2
+    have e1 := (Finset.mem_filter.mp h1).2
+    have e2 := (Finset.mem_filter.mp h2).2
+    omega
+  have hS13 :
+      Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 3)) := by
+    rw [Finset.disjoint_left]
+    intro P h1 h3
+    have e1 := (Finset.mem_filter.mp h1).2
+    have e3 := (Finset.mem_filter.mp h3).2
+    omega
+  have hS23 :
+      Disjoint (S.filter (fun P => P.parts.card = 2)) (S.filter (fun P => P.parts.card = 3)) := by
+    rw [Finset.disjoint_left]
+    intro P h2 h3
+    have e2 := (Finset.mem_filter.mp h2).2
+    have e3 := (Finset.mem_filter.mp h3).2
+    omega
+  have hSunion : S = (S.filter (fun P => P.parts.card = 1) ∪ S.filter (fun P => P.parts.card = 2))
+      ∪ S.filter (fun P => P.parts.card = 3) := by
+    ext P
+    simp only [Finset.mem_union, Finset.mem_filter]
+    constructor
+    · intro hP
+      have h1 := hcard_le P hP
+      have h2 := hcard_pos P hP
+      have h3 : P.parts.card = 1 ∨ P.parts.card = 2 ∨ P.parts.card = 3 := by omega
+      rcases h3 with h | h | h
+      · exact Or.inl (Or.inl ⟨hP, h⟩)
+      · exact Or.inl (Or.inr ⟨hP, h⟩)
+      · exact Or.inr ⟨hP, h⟩
+    · rintro ((⟨h, _⟩ | ⟨h, _⟩) | ⟨h, _⟩) <;> exact h
+  have hsplit : ∑ P ∈ S, P.blockProduct (blockCumulant μ X) =
+      (∑ P ∈ S.filter (fun P => P.parts.card = 1), P.blockProduct (blockCumulant μ X)) +
+      (∑ P ∈ S.filter (fun P => P.parts.card = 2), P.blockProduct (blockCumulant μ X)) +
+      (∑ P ∈ S.filter (fun P => P.parts.card = 3), P.blockProduct (blockCumulant μ X)) := by
+    conv_lhs => rw [hSunion]
+    rw [Finset.sum_union (Finset.disjoint_union_left.mpr ⟨hS13, hS23⟩), Finset.sum_union hS12]
+  have htop_eq : (∑ P ∈ ({(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} :
+      Finset (Finpartition (Finset.univ : Finset (Fin 6)))), P.blockProduct (blockCumulant μ X)) =
+      jointCumulant μ X := by
+    rw [Finset.sum_singleton, blockProduct_top Finset.univ_nonempty]
+    rfl
+  have hpairing_eq : (∑ P ∈ Finset.univ.filter
+      (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => Finpartition.IsPairing P),
+      P.blockProduct (blockCumulant μ X)) = sixPointPairingCumulantSum μ X := by
+    unfold sixPointPairingCumulantSum Finpartition.pairingSum
+    -- Reindex the filtered sum along the `Pairing univ` subtype; mirrors the bijection in
+    -- `partitionTransform_card_two_eq_pairingSum` (`Gaussian.lean`).
+    refine Finset.sum_bij
+      (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ :
+        Finpartition.Pairing (Finset.univ : Finset (Fin 6))))
+      ?_ ?_ ?_ ?_
+    · intro P hp; exact Finset.mem_univ _
+    · intro P₁ hp₁ P₂ hp₂ h; exact Subtype.ext_iff.mp h
+    · intro Q hQ; exact ⟨Q.1, Finset.mem_filter.mpr ⟨Finset.mem_univ _, Q.2⟩, rfl⟩
+    · intro P hp; rfl
+  rw [hsplit, hbucket1, hbucket2, hbucket3, htop_eq, hpairing_eq]
+  rfl
 
 /-- Sum of the fifteen `(4,2)` products of raw moments. -/
 def sixPointFourTwoMomentSum

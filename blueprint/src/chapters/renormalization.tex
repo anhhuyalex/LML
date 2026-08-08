@@ -131,12 +131,20 @@ with an umbrella module
   \item[\texttt{Renormalization/Convolution.lean}]
     the two-dimensional convolution display, local dense-layer representation, and translation
     equivariance;
+  \item[\texttt{Renormalization/FiniteConvolution.lean}]
+    finite boundary conventions, the global sparse weight-tied dense matrix, and parameter counts;
   \item[\texttt{Renormalization/Initialization.lean}]
     product Gaussian measures for layer parameters and their coordinate laws;
   \item[\texttt{Renormalization/MLPInitialization.lean}]
     full-network product initialization on a fixed dependent parameter space;
   \item[\texttt{Renormalization/InducedLaw.lean}]
-    parameter pushforwards, deterministic and randomized layer kernels, and Gaussian layer laws.
+    parameter pushforwards, deterministic and randomized layer kernels, and Gaussian layer laws;
+  \item[\texttt{Renormalization/Learning.lean}]
+    targets, approximation, losses, empirical risk, and abstract update trajectories;
+  \item[\texttt{Renormalization/Symmetry.lean}]
+    neuron relabeling, zero/identical-neuron collapse, and equivariant-update fixed points;
+  \item[\texttt{Renormalization/InitializationUniversality.lean}]
+    i.i.d. and weighted preactivation CLTs, quantitative rates, and moment universality.
 \end{description}
 
 The Chapter~2 modules have the additional dependency graph
@@ -148,12 +156,15 @@ Renormalization/Activation
        |          |          |
        v          v          v
 Convolution  ParameterizedMLP  Initialization
-                   \          /
-                    v        v
-               MLPInitialization
-                       |
-                       v
-                   InducedLaw
+     |             |  \          /
+     v             |   v        v
+FiniteConvolution  |  MLPInitialization
+                   |          |
+                   v          v
+                Symmetry   InducedLaw
+                   ^        /       \
+                   |       v         v
+                Learning       InitializationUniversality
 \end{verbatim}
 The approximation library retains compatibility aliases to the shared activation declarations.
 Only genuinely architecture-independent declarations should later move outward to a neutral
@@ -1121,9 +1132,10 @@ mathematical core is the MLP recursion, not the historical discussion or claims 
 architectures and activations work best in practice.  The formal library should cover dense affine
 layers, activation functions, independent Gaussian initialization, and the law induced on a finite
 batch of activities.  The single displayed convolutional equation is also formalized.  Attention
-has no mathematical definition in this chapter, while training dynamics and quantitative
-central-limit claims require data that the source does not specify and are therefore recorded as
-out-of-scope prose rather than silently promoted to false theorems.
+has no mathematical definition in this chapter.  Training and quantitative central-limit claims
+are formalized only after supplying the missing abstractions and hypotheses: an equivariant update,
+a named CDF error, moment bounds, and Lyapunov conditions.  Qualitative judgments about which
+activation or optimizer is ``good'' remain prose rather than being promoted to false theorems.
 
 \subsection{Corrections and precise scope for Chapter~2}
 
@@ -1346,14 +1358,23 @@ NeuralNetwork.tendsto_swish_atBot, NeuralNetwork.tendsto_gelu_sub_id_atTop,
 NeuralNetwork.tendsto_gelu_atBot, NeuralNetwork.nonhomogeneous_activations,
 NeuralNetwork.not_posHomogeneous_threshold,
 NeuralNetwork.not_posHomogeneous_logistic,
-NeuralNetwork.differentiableAt_piecewiseLinear_zero_iff}
+NeuralNetwork.not_posHomogeneous_sin,
+NeuralNetwork.differentiableAt_piecewiseLinear_zero_iff,
+NeuralNetwork.not_differentiableAt_relu_zero,
+NeuralNetwork.differentiableAt_leakyRelu_zero_iff,
+NeuralNetwork.PassesThroughOrigin, NeuralNetwork.BinaryValued,
+NeuralNetwork.Saturates, NeuralNetwork.binaryValued_threshold,
+NeuralNetwork.saturates_logistic, NeuralNetwork.saturates_tanh}
 The exact exponential formulas for tanh, the logistic--tanh identity, the CDF--error-function
 identity, the values at zero, and sine periodicity all hold.  The statement that tanh is linear to
 first order at zero is formalized by \texttt{hasDerivAt\_tanh\_zero}.
 Every informal large-argument approximation in the activation section is represented by a
 \texttt{Tendsto} statement.
 Threshold, logistic, tanh, softplus, SWISH, and GELU are not positively homogeneous.  Finally,
-\texttt{piecewiseLinear aPos aNeg} is differentiable at zero exactly when the slopes agree.
+\texttt{piecewiseLinear aPos aNeg} is differentiable at zero exactly when the slopes agree.  Sine
+has its own named non-homogeneity theorem; ReLU is not differentiable at zero, and leaky ReLU is
+differentiable there exactly at slope parameter one.  Binary-valuedness, passing through the
+origin, and two-sided saturation package objective properties without asserting optimizer quality.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section \texttt{sec:activations}: \texttt{eq:sigmoid}; the tanh, sin,
@@ -1535,7 +1556,9 @@ indexed simultaneously by neuron $i$ and sample $\alpha$.
 NeuralNetwork.DenseLayer.preactivation_zero_eq}
 If two output neurons have equal weight rows and equal biases, their preactivations agree on every
 input.  In particular, all output coordinates of a zero-initialized layer agree.  This is the exact
-algebraic content of the source's symmetry observation; persistence under training is not claimed.
+local algebraic content of the source's symmetry observation; the global trace collapse and
+equivariant-training persistence results appear in
+Theorems~\ref{thm:renorm:zeroCollapse} and~\ref{thm:renorm:equivariantTraining}.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section \texttt{sec:MLP\_distribution}, the zero-initialization and
@@ -2237,6 +2260,7 @@ with an unrestricted dense layer.
 \label{def:renorm:iidInitialization}
 \lean{NeuralNetwork.IIDScalarInitialization,
 NeuralNetwork.IIDScalarInitialization.normalizedPreactivation,
+NeuralNetwork.IIDScalarInitialization.weightedPreactivation,
 NeuralNetwork.IIDScalarInitialization.IsNonGaussian}
 An i.i.d. scalar initialization consists of mutually independent, identically distributed random
 weights $X_i$ with $\mathbb E X_0=0$, $\mathbb E X_0^2=1$, and $X_0\in L^2$.  Define
@@ -2244,8 +2268,11 @@ weights $X_i$ with $\mathbb E X_0=0$, $\mathbb E X_0^2=1$, and $X_0\in L^2$.  De
  Z_n=\frac1{\sqrt n}\sum_{i=0}^{n-1}X_i.
 \]
 This is a zero-bias preactivation with unit input coordinates and fan-in-scaled weights.  More
-general deterministic input arrays require a triangular-array/Lindeberg theorem and are not hidden
-inside this definition.
+general deterministic input arrays use \texttt{weightedPreactivation}; their theorem exposes
+variance normalization and a Lyapunov condition rather than hiding a triangular-array assumption.
+The theorem uses zero bias: a single order-one non-Gaussian bias is not averaged by width and would
+survive in the limit by convolution with the Gaussian weight-sum law.  Bias universality therefore
+requires a Gaussian, deterministic, or separately vanishing bias hypothesis.
 \end{definition}
 
 \begin{theorem}[Qualitative initialization universality]
@@ -2253,10 +2280,13 @@ inside this definition.
 \uses{def:renorm:iidInitialization}
 \lean{NeuralNetwork.IIDScalarInitialization.tendstoInDistribution_normalizedPreactivation,
 NeuralNetwork.IIDScalarInitialization.IsNonGaussian.tendstoInDistribution_normalizedPreactivation,
-NeuralNetwork.IIDScalarInitialization.same_limit_of_matching_first_two_moments}
+NeuralNetwork.IIDScalarInitialization.same_limit_of_matching_first_two_moments,
+NeuralNetwork.IIDScalarInitialization.tendstoInDistribution_weightedPreactivation}
 $Z_n$ converges in distribution to $\mathcal N(0,1)$.  Gaussianity of the individual weights is not
 a hypothesis.  Consequently two i.i.d. initializations with matching centered unit second moments
-have the same wide-width limit.  This theorem is proved from Mathlib's
+have the same wide-width limit.  For deterministic width-dependent coefficients, variance
+normalization together with vanishing third-power coefficient mass gives the same limit by the
+Lyapunov triangular-array theorem.  The equal-coefficient theorem is proved from Mathlib's
 \texttt{tendstoInDistribution\_inv\_sqrt\_mul\_sum}; it claims no rate.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
@@ -2357,11 +2387,12 @@ non-homogeneity, direct ReLU and leaky-ReLU kink corollaries, origin-passing and
 predicates, and mathematically neutral saturation statements for logistic and tanh.
 
 All eleven chapter modules are exported by both umbrellas.  The original seven direct modules are
-proof-complete.  The new code has exactly four documented deferred proofs: Berry--Esseen, the
-fourth-moment expansion, equality of the global sparse matrix with convolution, and the elementary
-parameter-count inequality.  Every deferred theorem has explicit hypotheses, an informal proof,
-and a source URL in its Lean docstring.  Therefore statement completeness has been reached, while
-the four affected proof-completion phases remain open under the acceptance rule above.
+proof-complete.  The new code has exactly three documented deferred probability proofs: the
+weighted Lyapunov CLT, Berry--Esseen, and the fourth-moment expansion.  Global convolution
+correctness and its parameter-count comparison are proved.  Every deferred theorem has explicit
+hypotheses, an informal proof, and a source URL in its Lean docstring.  Therefore statement
+completeness has been reached, while the three affected proof-completion phases remain open under
+the acceptance rule above.
 
 \subsubsection*{Source-equation coverage}
 The \texttt{\textbackslash lean} links in this section name the current declarations, and the eleven

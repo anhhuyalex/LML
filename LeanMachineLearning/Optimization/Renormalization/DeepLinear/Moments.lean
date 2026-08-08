@@ -630,6 +630,114 @@ private lemma jointMoment_outputLaw_output_even {dIn dOut : ℕ}
         rfl
       exact congrArg (fun t : ℝ => pairingTensor a * t) hAmp
 
+/-- Monomials in the outputs of a single bias-free Gaussian layer are integrable.
+
+Informal proof: the one-layer output law is a product of centered scalar Gaussians, so every
+output coordinate lies in every `L^p`; the monomial is then bounded by a power-mean combination
+of the coordinate `2m`-th powers, each of which is integrable by the finite Gaussian moments
+(`ProbabilityTheory.memLp_id_gaussianReal'`). -/
+private lemma integrable_monomial_outputLaw_even {dIn dOut : ℕ}
+    (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut) :
+    Integrable (fun z => ∏ r, z (a r))
+      ((MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
+  classical
+  by_cases hm : m = 0
+  · subst m
+    have hIsProb : IsProbabilityMeasure
+        ((MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
+      unfold MLPShape.deepLinearOutputLaw
+      exact Measure.isProbabilityMeasure_map
+        (((MLPShape.output : MLPShape dIn dOut).measurable_eval (measurable_linear 1)).comp
+          (measurable_id.prodMk measurable_const)).aemeasurable
+    have hFin : IsFiniteMeasure
+        ((MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x) :=
+      ⟨by rw [hIsProb.measure_univ]; norm_num⟩
+    have h1 : (fun z : Fin dOut → ℝ => ∏ r : Fin 0, z (a r)) = fun _ => (1 : ℝ) := by
+      funext z
+      simp
+    rw [h1]
+    exact @integrable_const (Fin dOut → ℝ) ℝ _ _
+      (by infer_instance : NormedAddCommGroup ℝ)
+      hFin (1 : ℝ)
+  · have hmpos : 1 ≤ m := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hm)
+    let v : ℝ≥0 := Cw * NeuralNetwork.normalizedEnergyNNReal x
+    let π : Measure (Fin dOut → ℝ) := Measure.pi (fun _ : Fin dOut => gaussianReal 0 v)
+    have hLaw : (MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x = π := by
+      change oneLayerOutputLaw (ι := Fin dIn) (κ := Fin dOut) Cw x = π
+      exact oneLayerOutputLaw_eq_pi_gaussianReal Cw x
+    rw [hLaw]
+    have hmemCoord (j : Fin dOut) :
+        MemLp (fun z : Fin dOut → ℝ => z j) ((2 * m : ℕ) : ℝ≥0∞) π := by
+      dsimp [π]
+      simpa using (MemLp.comp_measurePreserving
+        (memLp_id_gaussianReal' ((2 * m : ℕ) : ℝ≥0∞) (ENNReal.natCast_ne_top (2 * m)))
+        (measurePreserving_eval (fun _ : Fin dOut => gaussianReal 0 v) j))
+    have hIntCoord (j : Fin dOut) :
+        Integrable (fun z : Fin dOut → ℝ => z j ^ (2 * m)) π := by
+      have hint : Integrable (fun z : Fin dOut → ℝ => ‖z j‖ ^ (2 * m)) π := by
+        exact (hmemCoord j).integrable_norm_pow'
+      refine Integrable.mono' hint ?_ (Filter.Eventually.of_forall ?_)
+      · exact (((measurable_pi_apply j).pow_const (2 * m))).aestronglyMeasurable
+      · intro z
+        rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow]
+    have hsum : Integrable (fun z : Fin dOut → ℝ =>
+        ∑ j : Fin dOut, z j ^ (2 * m)) π := by
+      simpa using (integrable_finsetSum Finset.univ (μ := π)
+        (f := fun (j : Fin dOut) (z : Fin dOut → ℝ) => z j ^ (2 * m)) (fun j _ => hIntCoord j))
+    let C : ℝ := (Fintype.card (Fin dOut) : ℝ) ^ (m - 1)
+    have hbound : ∀ z : Fin dOut → ℝ,
+        ‖∏ r : Fin (2 * m), z (a r)‖ ≤ C * ∑ j : Fin dOut, z j ^ (2 * m) := by
+      intro z
+      have hprod : |∏ r : Fin (2 * m), z (a r)| ≤ (∑ j : Fin dOut, z j ^ 2) ^ m := by
+        have hle (r : Fin (2 * m)) : |z (a r)| ≤ Real.sqrt (∑ j : Fin dOut, z j ^ 2) := by
+          calc
+            |z (a r)| = Real.sqrt (z (a r) ^ 2) := by rw [Real.sqrt_sq_eq_abs]
+            _ ≤ Real.sqrt (∑ j : Fin dOut, z j ^ 2) := Real.sqrt_le_sqrt
+              (Finset.single_le_sum (f := fun j : Fin dOut => z j ^ 2)
+                (fun j _ => sq_nonneg (z j)) (Finset.mem_univ (a r)))
+        calc
+          |∏ r : Fin (2 * m), z (a r)| = ∏ r : Fin (2 * m), |z (a r)| := by
+            rw [Finset.abs_prod]
+          _ ≤ ∏ r : Fin (2 * m), Real.sqrt (∑ j : Fin dOut, z j ^ 2) := by
+            exact Finset.prod_le_prod (fun r _ => abs_nonneg _) (fun r _ => hle r)
+          _ = (Real.sqrt (∑ j : Fin dOut, z j ^ 2)) ^ (2 * m) := by
+            rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+          _ = (∑ j : Fin dOut, z j ^ 2) ^ m := by
+            rw [pow_mul, Real.sq_sqrt (Finset.sum_nonneg (fun j _ => sq_nonneg (z j)))]
+      have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
+        (s := (Finset.univ : Finset (Fin dOut)))
+        (f := fun j : Fin dOut => z j ^ 2)
+        (p := (m : ℝ)) (hp := by exact_mod_cast hmpos) (hf := fun j _ => sq_nonneg (z j))
+      have hpm' : (∑ j : Fin dOut, z j ^ 2) ^ m ≤ C * ∑ j : Fin dOut, z j ^ (2 * m) := by
+        have hpm2 : (∑ j : Fin dOut, z j ^ 2) ^ (m : ℝ) ≤
+            (Fintype.card (Fin dOut) : ℝ) ^ ((m : ℝ) - 1) *
+              ∑ j : Fin dOut, (z j ^ 2) ^ (m : ℝ) := by
+          simpa [Finset.card_univ, Fintype.card_fin] using hpm
+        calc
+          (∑ j : Fin dOut, z j ^ 2) ^ m = (∑ j : Fin dOut, z j ^ 2) ^ (m : ℝ) := by
+            rw [Real.rpow_natCast]
+          _ ≤ (Fintype.card (Fin dOut) : ℝ) ^ ((m : ℝ) - 1) *
+              ∑ j : Fin dOut, (z j ^ 2) ^ (m : ℝ) := hpm2
+          _ = C * ∑ j : Fin dOut, z j ^ (2 * m) := by
+            have hexp : ((m : ℝ) - 1) = ((m - 1 : ℕ) : ℝ) := by
+              rw [Nat.cast_sub hmpos]
+              norm_num
+            rw [hexp, Real.rpow_natCast]
+            congr 1
+            apply Finset.sum_congr rfl
+            intro j _
+            rw [Real.rpow_natCast]
+            simp [← pow_mul]
+      calc
+        ‖∏ r : Fin (2 * m), z (a r)‖ = |∏ r : Fin (2 * m), z (a r)| := by
+          rw [Real.norm_eq_abs]
+        _ ≤ (∑ j : Fin dOut, z j ^ 2) ^ m := hprod
+        _ ≤ C * ∑ j : Fin dOut, z j ^ (2 * m) := hpm'
+    refine Integrable.mono' (hsum.const_mul C) ?_ (Filter.Eventually.of_forall ?_)
+    · exact (measurable_monomial a).aestronglyMeasurable
+    · intro z
+      exact hbound z
+
 /-- The linear activation is the identity, so activating equals preactivating. -/
 private lemma activate_linear_eq_preactivation {ι κ : Type*} [Fintype ι]
     (q : LayerParams ι κ) (x : ι → ℝ) :
