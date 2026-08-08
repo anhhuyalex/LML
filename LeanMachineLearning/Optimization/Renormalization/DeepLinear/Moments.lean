@@ -1755,13 +1755,49 @@ theorem integral_coordinate_pow_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dI
           correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m S.hiddenWidths := by
           rw [pairingTensor_const m j]
 
+/-- Centeredness reduction for two batch-output coordinates.
+
+Informal proof: first prove `MemLp`/integrability for the two coordinate maps by the polynomial
+Gaussian moment bounds already developed for the output law.  The law is invariant under negating
+the final layer (the batch analogue of `deepLinearOutputLaw_isNegInvariant`), while each coordinate
+is odd under this involution, so both expectations vanish.  Mathlib's covariance identity
+`ProbabilityTheory.covariance_eq_sub` then reduces the covariance to the uncentered second moment.
+This is the standard symmetry argument behind `jointMoment_outputLaw_odd` above.
+-/
+lemma covariance_batchOutputLaw_eq_integral_mul {A : Type uA}
+    {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
+    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
+    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D) =
+      ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D := by
+  sorry
+
+/-- Uncentered second moment of two batch-output coordinates.
+
+Informal proof: induct on `S`.  For `S = .output`, `map_batchPreactivation` identifies the law as a
+product over output rows of centered multivariate Gaussians with covariance kernel
+`Cw * normalizedGram D`, giving the displayed diagonal covariance.  For `S = .hidden tail`, use the
+batch bind/tower decomposition: condition on the first-layer batch `y`, apply the induction
+hypothesis to `tail` with input batch `y`, and average `normalizedGram y a b`.  The first-layer
+calculation gives `E[y a p * y b p] = Cw * normalizedGram D a b`; summing over `p : Fin width` and
+using the positive-width hypothesis cancels the `1 / width` in `normalizedGram`.
+Sources: law of total covariance, <https://en.wikipedia.org/wiki/Law_of_total_covariance>, and
+`docs/Renormalization.md`'s kernel recursion.
+-/
+lemma integral_mul_batchOutputLaw {A : Type uA}
+    {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
+    (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
+    (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
+    ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D =
+      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
+  sorry
+
 /-- Covariance of two batch-output coordinates.  The theorem explicitly uses Mathlib's
 `covariance`, not merely an uncentered second moment.
 
-Informal proof: all outputs are centered by the odd-moment theorem.  Conditioning one layer gives
-zero for different output rows and `Cw` times the previous normalized Gram entry for equal rows.
-Induction over `S` gives the displayed closed form.  Source: `docs/Renormalization.md`, equations
-`eq:two-point-function-deep-linear-layer-ell` and `eq:deep-linear-kernel-recursion`.
+Informal proof: all outputs are centered by final-layer sign symmetry, so covariance equals the
+uncentered second moment.  The exact second moment is the finite-depth kernel recursion
+`G^(L) = Cw^L G^(0)`, with a Kronecker delta in the output row indices.
 -/
 theorem covariance_batchOutputLaw {A : Type uA}
     {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
@@ -1769,21 +1805,25 @@ theorem covariance_batchOutputLaw {A : Type uA}
     (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D) =
       if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
-  sorry
+  calc
+    covariance (fun z => z a i) (fun z => z b j) (S.deepLinearBatchLaw Cw D)
+        = ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D :=
+          covariance_batchOutputLaw_eq_integral_mul S Cw D a b i j hIn hWidths
+    _ = if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 :=
+          integral_mul_batchOutputLaw S Cw D a b i j hIn hWidths
 
 /-- Uncentered form of the exact finite-dataset covariance solution.
 
-Informal proof: use `jointMoment_outputLaw_odd` to replace covariance by the second moment, then
-apply `covariance_batchOutputLaw`.  This is the closed solution `G^(L)=Cw^L G^(0)` in
-`docs/Renormalization.md`, equation `eq:deep-linear-exponential-solution`.
+Informal proof: this is the second-moment lemma `integral_mul_batchOutputLaw`, proved by the same
+one-layer Gaussian covariance plus tower-property induction as the covariance theorem above.
 -/
 theorem covariance_batchOutputLaw_closedForm {A : Type uA}
     {dIn dOut : ℕ} (S : MLPShape dIn dOut) (Cw : ℝ≥0)
     (D : A → Fin dIn → ℝ) (a b : A) (i j : Fin dOut)
     (hIn : 0 < dIn) (hWidths : ∀ n ∈ S.hiddenWidths, 0 < n) :
     ∫ z, z a i * z b j ∂S.deepLinearBatchLaw Cw D =
-      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 := by
-  sorry
+      if i = j then (Cw : ℝ) ^ S.depth * NeuralNetwork.normalizedGram D a b else 0 :=
+  integral_mul_batchOutputLaw S Cw D a b i j hIn hWidths
 
 /-- Subcritical covariance amplitudes tend to zero. -/
 theorem tendsto_covariance_of_weightVariance_lt_one (Cw q : ℝ)

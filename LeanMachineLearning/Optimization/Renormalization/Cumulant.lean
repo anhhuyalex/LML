@@ -1160,24 +1160,38 @@ lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     P.blockProduct f = P.blockProduct g + P.blockProduct h := by
   classical
   let a : Finset ι := P.part i
-  have hf : P.blockProduct f = f a * ∏ B ∈ P.parts.erase a, f B := Finpartition.blockProduct_eq_part_mul_rest P f i
-  have hg : P.blockProduct g = g a * ∏ B ∈ P.parts.erase a, g B := Finpartition.blockProduct_eq_part_mul_rest P g i
-  have hh : P.blockProduct h = h a * ∏ B ∈ P.parts.erase a, h B := Finpartition.blockProduct_eq_part_mul_rest P h i
-  rw [hf, hg, hh]
-  have hi_mem_a : i ∈ a := P.mem_part (Finset.mem_univ i)
-  have ha_add : f a = g a + h a := by simp [h_add, hi_mem_a]
-  rw [ha_add, add_mul]
-  congr 1
-  · apply congrArg (g a * ·)
+  have ha_mem : a ∈ P.parts := P.part_mem.2 (by simp)
+  have hi_mem_a : i ∈ a := P.mem_part (by simp)
+  let rest : R := ∏ B ∈ P.parts.erase a, g B
+  have hf : P.blockProduct f = (g a + h a) * rest := by
+    rw [Finpartition.blockProduct_eq_part_mul_rest P f i, h_add a]
+    simp only [hi_mem_a, ↓reduceIte]
+    congr 1
     apply Finset.prod_congr rfl
     intro B hB
-    have hiB : i ∉ B := fun hiB => (Finset.mem_erase.mp hB).1 (P.eq_of_mem_parts (Finset.mem_erase.mp hB).2 (P.part_mem.2 (Finset.mem_univ i)) hiB hi_mem_a)
-    simp [h_add, hiB]
-  · apply congrArg (h a * ·)
+    have hB_ne : B ≠ a := (Finset.mem_erase.mp hB).1
+    have hB_mem : B ∈ P.parts := (Finset.mem_erase.mp hB).2
+    have hiB : i ∉ B := by
+      intro hiB
+      exact hB_ne (P.eq_of_mem_parts hB_mem ha_mem hiB hi_mem_a)
+    simp [h_add B, hiB]
+  have hg : P.blockProduct g = g a * rest := by
+    rw [Finpartition.blockProduct_eq_part_mul_rest P g i]
+  have hh : P.blockProduct h = h a * rest := by
+    rw [Finpartition.blockProduct_eq_part_mul_rest P h i]
+    congr 1
     apply Finset.prod_congr rfl
     intro B hB
-    have hiB : i ∉ B := fun hiB => (Finset.mem_erase.mp hB).1 (P.eq_of_mem_parts (Finset.mem_erase.mp hB).2 (P.part_mem.2 (Finset.mem_univ i)) hiB hi_mem_a)
+    have hB_ne : B ≠ a := (Finset.mem_erase.mp hB).1
+    have hB_mem : B ∈ P.parts := (Finset.mem_erase.mp hB).2
+    have hiB : i ∉ B := by
+      intro hiB
+      exact hB_ne (P.eq_of_mem_parts hB_mem ha_mem hiB hi_mem_a)
     exact h_id B hiB
+  calc
+    P.blockProduct f = (g a + h a) * rest := hf
+    _ = g a * rest + h a * rest := by ring
+    _ = P.blockProduct g + P.blockProduct h := by rw [hg, hh]
 
 lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     (f g h : Finset ι → R) (i : ι)
@@ -1201,7 +1215,7 @@ lemma blockMoment_eq_integral_mul_prod_erase [DecidableEq ι]
   dsimp [blockMoment]
   congr 1
   ext ω
-  exact Finset.mul_prod_erase s (fun j => X j ω) hi
+  exact (Finset.mul_prod_erase s (fun j => X j ω) hi).symm
 
 lemma blockMoment_add_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (Y : Ω → ℝ)
@@ -1209,13 +1223,13 @@ lemma blockMoment_add_update [DecidableEq ι]
     (hY : HasFiniteJointMoments μ (Function.update X i Y))
     (s : Finset ι) :
     blockMoment μ (Function.update X i (X i + Y)) s =
-      if hi : i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
+      if i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
       else blockMoment μ X s := by
   by_cases hi : i ∈ s
   · rw [if_pos hi]
-    rw [blockMoment_eq_integral_mul_prod_erase _ i s hi,
-        blockMoment_eq_integral_mul_prod_erase _ i s hi,
-        blockMoment_eq_integral_mul_prod_erase _ i s hi]
+    rw [blockMoment_eq_integral_mul_prod_erase (Function.update X i (X i + Y)) i s hi,
+        blockMoment_eq_integral_mul_prod_erase X i s hi,
+        blockMoment_eq_integral_mul_prod_erase (Function.update X i Y) i s hi]
     have hIntX : Integrable (fun ω => X i ω * ∏ j ∈ s.erase i, X j ω) μ := by
       convert hX s using 1
       ext ω
@@ -1313,19 +1327,26 @@ lemma blockProduct_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     P.blockProduct (fun s => if i ∈ s then c * f s else f s) = c * P.blockProduct f := by
   classical
   let a : Finset ι := P.part i
-  have hf : P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * ∏ B ∈ P.parts.erase a, f B := by
+  have ha_mem : a ∈ P.parts := P.part_mem.2 (by simp)
+  have hi_mem_a : i ∈ a := P.mem_part (by simp)
+  let rest : R := ∏ B ∈ P.parts.erase a, f B
+  have hf : P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * rest := by
     rw [Finpartition.blockProduct_eq_part_mul_rest P _ i]
-    have hi_mem_a : i ∈ a := P.mem_part (Finset.mem_univ i)
-    simp [hi_mem_a]
+    simp only [hi_mem_a, ↓reduceIte]
     congr 1
     apply Finset.prod_congr rfl
     intro B hB
-    have hiB : i ∉ B := fun hiB => (Finset.mem_erase.mp hB).1 (P.eq_of_mem_parts (Finset.mem_erase.mp hB).2 (P.part_mem.2 (Finset.mem_univ i)) hiB hi_mem_a)
+    have hB_ne : B ≠ a := (Finset.mem_erase.mp hB).1
+    have hB_mem : B ∈ P.parts := (Finset.mem_erase.mp hB).2
+    have hiB : i ∉ B := by
+      intro hiB
+      exact hB_ne (P.eq_of_mem_parts hB_mem ha_mem hiB hi_mem_a)
     simp [hiB]
-  have hg : P.blockProduct f = f a * ∏ B ∈ P.parts.erase a, f B := Finpartition.blockProduct_eq_part_mul_rest P f i
+  have hg : P.blockProduct f = f a * rest := by
+    rw [Finpartition.blockProduct_eq_part_mul_rest P f i]
   calc
-    P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * ∏ B ∈ P.parts.erase a, f B := hf
-    _ = c * (f a * ∏ B ∈ P.parts.erase a, f B) := by ring
+    P.blockProduct (fun s => if i ∈ s then c * f s else f s) = (c * f a) * rest := hf
+    _ = c * (f a * rest) := by ring
     _ = c * P.blockProduct f := by rw [hg]
 
 lemma cumulantTransform_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
@@ -1351,15 +1372,15 @@ lemma blockMoment_smul_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (c : ℝ)
     (s : Finset ι) :
     blockMoment μ (Function.update X i (c • X i)) s =
-      if hi : i ∈ s then c * blockMoment μ X s
+      if i ∈ s then c * blockMoment μ X s
       else blockMoment μ X s := by
   by_cases hi : i ∈ s
-  · simp only [hi, if_true]
-    rw [blockMoment_eq_integral_mul_prod_erase _ i s hi,
-        blockMoment_eq_integral_mul_prod_erase _ i s hi]
+  · rw [if_pos hi]
+    rw [blockMoment_eq_integral_mul_prod_erase (Function.update X i (c • X i)) i s hi,
+        blockMoment_eq_integral_mul_prod_erase X i s hi]
     calc
       ∫ ω, (Function.update X i (c • X i)) i ω * ∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω ∂μ
-          = ∫ ω, (c * X i ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
+          = ∫ ω, (c • X i ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
             congr 1
             ext ω
             have hrest : (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) = ∏ j ∈ s.erase i, X j ω := by
@@ -1369,10 +1390,11 @@ lemma blockMoment_smul_update [DecidableEq ι]
             rw [hrest]
             simp [Function.update_self]
       _ = c * ∫ ω, X i ω * ∏ j ∈ s.erase i, X j ω ∂μ := by
-            rw [← MeasureTheory.integral_mul_left c]
+            rw [← smul_eq_mul]
+            rw [← MeasureTheory.integral_smul]
             congr 1
             ext ω
-            ring
+            simp [smul_eq_mul, mul_assoc]
   · rw [if_neg hi]
     exact blockMoment_update_not_mem X i (c • X i) s hi
 
