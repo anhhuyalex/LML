@@ -7,7 +7,9 @@ module
 
 public import LeanMachineLearning.Optimization.Renormalization.Action
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
+public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 public import Mathlib.Probability.Independence.Basic
+public import Mathlib.Probability.Independence.CharacteristicFunction
 public meta import Mathlib.Data.Fintype.Powerset
 public meta import Mathlib.Order.Partition.Finpartition
 
@@ -30,7 +32,7 @@ that arbitrary small non-Gaussian couplings automatically obey the hierarchy.
 noncomputable section
 
 open MeasureTheory ProbabilityTheory Filter Matrix
-open scoped BigOperators ENNReal NNReal Topology
+open scoped BigOperators ENNReal NNReal Topology RealInnerProductSpace
 
 namespace Renormalization
 
@@ -757,7 +759,27 @@ theorem multivariateGaussian_diagonal_eq_map_pi_gaussianReal
     Measure.map (EuclideanSpace.equiv ι ℝ)
         (multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ))) =
       Measure.pi fun i : ι => gaussianReal 0 (v i) := by
-  sorry
+  have hS : (Matrix.diagonal fun i => (v i : ℝ)).PosSemidef :=
+    Matrix.PosSemidef.diagonal fun i => (v i).coe_nonneg
+  refine charFun_eq_pi_iff.mp fun t => ?_
+  have hcomp : (WithLp.toLp 2) ∘ (EuclideanSpace.equiv ι ℝ) = id := by
+    funext x; rfl
+  have hmap : (Measure.map (EuclideanSpace.equiv ι ℝ)
+      (multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ)))).map (WithLp.toLp 2) =
+      multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ)) := by
+    rw [Measure.map_map (by fun_prop) (by fun_prop), hcomp, Measure.map_id]
+  have hquad : (t : EuclideanSpace ℝ ι) ⬝ᵥ (Matrix.diagonal fun i => (v i : ℝ)) *ᵥ t =
+      ∑ i, (v i : ℝ) * (t i) ^ 2 := by
+    unfold dotProduct
+    simp only [Matrix.mulVec_diagonal]
+    exact Finset.sum_congr rfl fun i _ => by ring
+  rw [hmap, charFun_multivariateGaussian hS, hquad, inner_zero_right]
+  simp_rw [charFun_gaussianReal]
+  rw [← Complex.exp_sum]
+  congr 1
+  push_cast
+  simp only [zero_mul, mul_zero, zero_sub]
+  rw [Finset.sum_neg_distrib, Finset.sum_div]
 
 /-- Coordinates of a centered Gaussian with diagonal covariance are mutually independent.
 
@@ -770,7 +792,23 @@ theorem iIndepFun_coordinate_multivariateGaussian_diagonal
     {ι : Type uI} [Fintype ι] [DecidableEq ι] (v : ι → ℝ≥0) :
     iIndepFun (fun i (z : EuclideanSpace ℝ ι) => z i)
       (multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ))) := by
-  sorry
+  have hS : (Matrix.diagonal fun i => (v i : ℝ)).PosSemidef :=
+    Matrix.PosSemidef.diagonal fun i => (v i).coe_nonneg
+  have hmeas : ∀ i : ι, AEMeasurable (fun z : EuclideanSpace ℝ ι => z i)
+      (multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ))) := fun i => by fun_prop
+  refine (iIndepFun_iff_map_fun_eq_pi_map hmeas).2 ?_
+  have hcoord : ∀ i : ι,
+      (multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ))).map (fun z => z i) =
+        gaussianReal 0 (v i) := by
+    intro i
+    have h := (measurePreserving_eval_multivariateGaussian
+      (μ := (0 : EuclideanSpace ℝ ι)) hS (i := i)).map_eq
+    simpa using h
+  rw [show (fun (ω : EuclideanSpace ℝ ι) (i : ι) => ω i) = ⇑(EuclideanSpace.equiv ι ℝ) from rfl,
+    multivariateGaussian_diagonal_eq_map_pi_gaussianReal]
+  congr 1
+  funext i
+  exact (hcoord i).symm
 
 /-- Orthogonal diagonalization transports a Gaussian to independent one-dimensional coordinates.
 
@@ -787,7 +825,53 @@ theorem map_multivariateGaussian_eq_pi_of_orthogonal_diagonalization
         (fun z : EuclideanSpace ℝ ι => O *ᵥ (EuclideanSpace.equiv ι ℝ z))
         (multivariateGaussian 0 K) =
       Measure.pi fun i : ι => gaussianReal 0 (v i) := by
-  sorry
+  -- `O` is orthogonal, so `K` is recovered as `Oᵀ * diag v * O`, which is `PosSemidef`.
+  have hKeq : O.transpose * (Matrix.diagonal fun i => (v i : ℝ)) * O = K := by
+    calc O.transpose * (Matrix.diagonal fun i => (v i : ℝ)) * O
+        = O.transpose * (O * K * O.transpose) * O := by rw [hdiag]
+      _ = O.transpose * O * K * (O.transpose * O) := by noncomm_ring
+      _ = 1 * K * 1 := by rw [hO]
+      _ = K := by simp
+  have hK : K.PosSemidef := by
+    rw [← hKeq]
+    have h := (Matrix.PosSemidef.diagonal (fun i => (v i).coe_nonneg)).mul_mul_conjTranspose_same
+      O.transpose
+    simpa using h
+  -- Reduce to the diagonal case: `O *ᵥ (equiv z) = equiv (toEuclideanCLM O z)`.
+  have hfun : (fun z : EuclideanSpace ℝ ι => O *ᵥ (EuclideanSpace.equiv ι ℝ z)) =
+      (EuclideanSpace.equiv ι ℝ) ∘ (toEuclideanCLM (𝕜 := ℝ) O) := by
+    funext z
+    exact (ofLp_toEuclideanCLM O z).symm
+  rw [hfun, ← Measure.map_map (by fun_prop) (by fun_prop)]
+  have hD : (Matrix.diagonal fun i => (v i : ℝ)).PosSemidef :=
+    Matrix.PosSemidef.diagonal fun i => (v i).coe_nonneg
+  have hip : ∀ x y : EuclideanSpace ℝ ι, (⟪x, y⟫ : ℝ) = x ⬝ᵥ y := by
+    intro x y
+    simp only [PiLp.inner_apply, RCLike.inner_apply, starRingEnd_apply, star_trivial, dotProduct]
+    exact Finset.sum_congr rfl fun i _ => mul_comm _ _
+  have hstep : Measure.map (toEuclideanCLM (𝕜 := ℝ) O) (multivariateGaussian 0 K) =
+      multivariateGaussian 0 (Matrix.diagonal fun i => (v i : ℝ)) := by
+    apply Measure.ext_of_charFun (E := EuclideanSpace ℝ ι)
+    ext t
+    rw [charFun_apply, integral_map (by fun_prop) (by fun_prop)]
+    set w : EuclideanSpace ℝ ι := WithLp.toLp 2 (O.transpose *ᵥ t) with hw_def
+    have hpt : ∀ z : EuclideanSpace ℝ ι,
+        (⟪toEuclideanCLM (𝕜 := ℝ) O z, t⟫ : ℝ) = ⟪z, w⟫ := by
+      intro z
+      rw [hw_def, hip z (WithLp.toLp 2 (O.transpose *ᵥ t)), real_inner_comm, inner_toEuclideanCLM]
+      exact dotProduct_transpose_mulVec O.transpose t z
+    simp_rw [hpt]
+    rw [← charFun_apply, charFun_multivariateGaussian hK]
+    have hquad : w ⬝ᵥ K *ᵥ w = t ⬝ᵥ (Matrix.diagonal fun i => (v i : ℝ)) *ᵥ t := by
+      rw [hw_def, ← hdiag]
+      rw [show (O * K * O.transpose) *ᵥ t = O *ᵥ (K *ᵥ (O.transpose *ᵥ t)) by
+        rw [Matrix.mulVec_mulVec, Matrix.mulVec_mulVec]]
+      rw [show t ⬝ᵥ O *ᵥ (K *ᵥ (O.transpose *ᵥ t)) =
+          (K *ᵥ (O.transpose *ᵥ t)) ⬝ᵥ O.transpose *ᵥ t from
+          dotProduct_transpose_mulVec O.transpose t (K *ᵥ (O.transpose *ᵥ t))]
+      exact dotProduct_comm _ _
+    rw [hquad, charFun_multivariateGaussian hD, inner_zero_right, inner_zero_right]
+  rw [hstep, multivariateGaussian_diagonal_eq_map_pi_gaussianReal]
 
 /-- A nonzero mixed cumulant rules out independence across that split. -/
 theorem not_indepAcross_of_jointCumulant_ne_zero

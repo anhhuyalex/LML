@@ -777,6 +777,43 @@ private lemma integrable_pow_preactivation {ι κ : Type*} [Fintype ι] [Fintype
             exact mul_le_mul_of_nonneg_left (by nlinarith [hsumle])
               (pow_nonneg (by positivity : 0 ≤ (Fintype.card ι + 1 : ℝ)) _)
 
+/-- Pulling a measurable map out of the left side of a measure bind. -/
+private lemma measure_bind_map_comp {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    [MeasurableSpace γ] (μ : Measure α) {f : α → β} {g : β → Measure γ}
+    (hf : Measurable f) (hg : Measurable g) :
+    (μ.map f).bind g = μ.bind (fun x => g (f x)) := by
+  rw [Measure.bind, Measure.bind, Measure.map_map hg hf]
+  rfl
+
+/-- Mapping a bind through a measurable function. -/
+private lemma measure_map_bind {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    [MeasurableSpace γ] (μ : Measure α) (f : α → Measure β) {g : β → γ}
+    (hf : Measurable f) (hg : Measurable g) :
+    (μ.bind f).map g = μ.bind (fun x => (f x).map g) := by
+  rw [Measure.bind, ← Measure.join_map_map hg]
+  rw [Measure.bind, Measure.map_map (Measure.measurable_map g hg) hf]
+  rfl
+
+/-- The product-measure pushforward of a two-variable measurable function is the iterated bind
+that first samples the left coordinate and then pushes the right measure forward.
+
+This is the measure-level Fubini/Giry-monad calculation used in the hidden case of
+`MLPEnsemble.outputKernel_apply_eq_outputLaw`. -/
+private lemma map_prod_eq_bind_map {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    [MeasurableSpace γ] (μ : Measure α) (ν : Measure β) [SFinite ν] {G : α × β → γ}
+    (hG : Measurable G) :
+    (μ.prod ν).map G = μ.bind (fun a => ν.map (fun b => G (a, b))) := by
+  rw [Measure.prod]
+  calc
+    (μ.bind (fun a : α => Measure.map (Prod.mk a) ν)).map G
+        = μ.bind (fun a => (Measure.map (Prod.mk a) ν).map G) := by
+          exact measure_map_bind μ (fun a : α => Measure.map (Prod.mk a) ν) (g := G)
+            (by exact Measurable.map_prodMk_left) hG
+    _ = μ.bind (fun a => ν.map (fun b => G (a, b))) := by
+          congr
+          funext a
+          exact Measure.map_map hG (measurable_const.prodMk measurable_id)
+
 /-- Measure-level tower decomposition for a deep-linear network with one hidden layer exposed.
 
 Informal proof: specialize `MLPEnsemble.outputKernel_apply_eq_outputLaw` (or equivalently repeat
@@ -792,9 +829,49 @@ private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
       (oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
         (fun y => tail.deepLinearOutputLaw Cw y) := by
   classical
-  -- This is the one-input specialization of the reusable kernel-composition theorem
-  -- `MLPEnsemble.outputKernel_apply_eq_outputLaw`; see `InducedLaw.lean`, hidden case.
-  sorry
+  let μ : Measure (LayerParams (Fin dIn) (Fin k)) :=
+    layerGaussianInit (hyperparams Cw) (Fin dIn) (Fin k)
+  let ν : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)
+  let f : LayerParams (Fin dIn) (Fin k) → Fin k → ℝ :=
+    fun q => (DenseLayer.ofParams q).preactivation x
+  let G : LayerParams (Fin dIn) (Fin k) × tail.Params → Fin dOut → ℝ :=
+    fun p => tail.eval (linear 1) p.2 (f p.1)
+  have hf_meas : Measurable f := by
+    dsimp [f]
+    exact DenseLayer.measurable_preactivation.comp
+      (measurable_id.prodMk measurable_const)
+  have hG_meas : Measurable G := by
+    dsimp [G, f]
+    exact (tail.measurable_eval (measurable_linear 1)).comp
+      (measurable_snd.prodMk
+        (DenseLayer.measurable_preactivation.comp
+          (measurable_fst.prodMk measurable_const)))
+  have htailLaw_meas : Measurable fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y := by
+    -- Joint measurability of `tail.eval` makes the parameter pushforward vary measurably in
+    -- the deterministic input.  This is the one-input form of the kernel measurability packaged
+    -- by `MLPEnsemble.outputKernel`; it follows by unfolding `deepLinearOutputLaw` and using
+    -- `Measure.measurable_map` on the jointly measurable map `(θ, y) ↦ tail.eval (linear 1) θ y`.
+    sorry
+  have hprod : (μ.prod ν).map G = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
+    exact map_prod_eq_bind_map μ ν hG_meas
+  have hpull : (μ.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) =
+      μ.bind (fun q => tail.deepLinearOutputLaw Cw (f q)) := by
+    exact measure_bind_map_comp μ hf_meas htailLaw_meas
+  calc
+    (MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x
+        = (μ.prod ν).map G := by
+          dsimp [MLPShape.deepLinearOutputLaw, MLPShape.gaussianInit,
+            MLPShape.deepLinearHyperparams, μ, ν, G, f]
+          congr
+          funext θ
+          rw [activate_linear_eq_preactivation]
+    _ = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := hprod
+    _ = μ.bind (fun q => tail.deepLinearOutputLaw Cw (f q)) := by
+          congr
+    _ = (μ.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) := hpull.symm
+    _ = (oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
+          (fun y => tail.deepLinearOutputLaw Cw y) := by
+          dsimp [oneLayerOutputLaw, μ, f]
 
 /-- Bochner integral form of the tower property for the monomial output observable.
 
