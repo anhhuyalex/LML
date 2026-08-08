@@ -61,6 +61,12 @@ these are i.i.d. weights of variance `1 / n` summed across the input coordinates
 def normalizedPreactivation (I : IIDScalarInitialization Ω P) (n : ℕ) (ω : Ω) : ℝ :=
   (Real.sqrt n)⁻¹ * ∑ k ∈ Finset.range n, I.weight k ω
 
+/-- A deterministic triangular array of input coefficients applied to the i.i.d. weights.  This is
+the appropriate scalar preactivation for inputs that vary with width. -/
+def weightedPreactivation (I : IIDScalarInitialization Ω P)
+    (a : ℕ → ℕ → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ∑ k ∈ Finset.range n, a n k * I.weight k ω
+
 /-- The initialization law itself need not be Gaussian. -/
 def IsNonGaussian (I : IIDScalarInitialization Ω P) : Prop :=
   Measure.map (I.weight 0) P ≠ gaussianReal 0 1
@@ -101,6 +107,28 @@ theorem same_limit_of_matching_first_two_moments
       TendstoInDistribution J.normalizedPreactivation atTop Z (fun _ => P') PG :=
   ⟨I.tendstoInDistribution_normalizedPreactivation hZ,
     J.tendstoInDistribution_normalizedPreactivation hZ⟩
+
+/-- Lyapunov universality for deterministic width-dependent inputs.
+
+Informal proof: for row `n`, the independent summands are `a n k * X k`.  Their total variance is
+the sum of coefficient squares.  The third absolute moment sum is
+`E|X|³ * ∑ |a n k|³`, which tends to zero.  Hence the Lyapunov condition holds, and the
+triangular-array CLT gives a standard Gaussian limit.  See
+<https://en.wikipedia.org/wiki/Central_limit_theorem#Lyapunov_CLT>.
+
+This theorem is deferred because the pinned Mathlib CLT is i.i.d. with equal coefficients and does
+not yet expose a triangular-array Lyapunov theorem. -/
+theorem tendstoInDistribution_weightedPreactivation [IsProbabilityMeasure P]
+    (I : IIDScalarInitialization Ω P) (a : ℕ → ℕ → ℝ)
+    (h3 : Integrable (fun ω => |I.weight 0 ω| ^ 3) P)
+    (hvariance : Tendsto (fun n => ∑ k ∈ Finset.range n, (a n k) ^ 2)
+      atTop (nhds 1))
+    (hlyapunov : Tendsto (fun n => ∑ k ∈ Finset.range n, |a n k| ^ 3)
+      atTop (nhds 0))
+    {ΩG : Type uΩG} [MeasurableSpace ΩG] {PG : Measure ΩG} [IsProbabilityMeasure PG]
+    {Z : ΩG → ℝ} (hZ : HasLaw Z (gaussianReal 0 1) PG) :
+    TendstoInDistribution (I.weightedPreactivation a) atTop Z (fun _ => P) PG := by
+  sorry
 
 /-- Berry--Esseen bound for normalized i.i.d. preactivations.
 

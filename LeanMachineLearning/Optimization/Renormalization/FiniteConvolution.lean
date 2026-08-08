@@ -99,9 +99,7 @@ term `q = B.shift p dc dd` survives the indicator sum over positions.  This rema
 different offsets collide because the construction sums their coefficients.  This is the standard
 sparse doubly-block Toeplitz representation of discrete convolution; see
 <https://en.wikipedia.org/wiki/Toeplitz_matrix#Discrete_convolution>.
-
-The proof is deferred until the repeated finite-sum/indicator reindexing is extracted as a generic
-Mathlib-quality lemma. -/
+-/
 theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ) (x : ι × P → ℝ) :
     (L.toGlobalDenseLayer B k).preactivation x = L.finitePreactivation B k x := by
@@ -142,14 +140,31 @@ window cardinalities.  The counts are `O + O*I*W` and `O*S + O*S*I*S`.  From `1 
 monotonicity of multiplication bounds the bias and weight terms separately.  See the elementary
 ordered-semiring lemmas documented at
 <https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/Ring/Nat.html>.
-
-The arithmetic proof is deferred; the architectural construction and both exact count formulas
-are already executable. -/
+-/
 theorem paramCount_le_unrestrictedGlobalDense [Fintype ι] [Fintype κ] [Fintype P]
     (L : Conv2DLayer ι κ) (k : ℕ) (hP : 0 < Fintype.card P)
     (hwindow : (2 * k + 1) ^ 2 ≤ Fintype.card P) :
     L.paramCount k ≤ unrestrictedGlobalDenseParamCount (ι := ι) (κ := κ) (P := P) := by
-  sorry
+  let O := Fintype.card κ
+  let I := Fintype.card ι
+  let S := Fintype.card P
+  let W := (2 * k + 1) ^ 2
+  have hS : 1 ≤ S := hP
+  have hbias : O ≤ O * S := by
+    simpa using Nat.mul_le_mul_left O hS
+  have hweight₁ : O * I * W ≤ O * I * S := by
+    exact Nat.mul_le_mul_left (O * I) hwindow
+  have hweight₂ : O * I * S ≤ O * I * S * S := by
+    simpa using Nat.mul_le_mul_left (O * I * S) hS
+  have hweight : O * I * W ≤ O * S * (I * S) := by
+    calc
+      O * I * W ≤ O * I * S := hweight₁
+      _ ≤ O * I * S * S := hweight₂
+      _ = O * S * (I * S) := by ac_rfl
+  unfold Conv2DLayer.paramCount unrestrictedGlobalDenseParamCount
+  simp only [Fintype.card_prod]
+  change O + O * I * W ≤ O * S * (I * S) + O * S
+  omega
 
 end Conv2DLayer
 

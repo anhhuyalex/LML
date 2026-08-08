@@ -1254,6 +1254,9 @@ theorem firstLayerOutputLaw_eq_pi_gaussianReal {dIn dOut : ℕ} (Cw : ℝ≥0)
 #check @MeasureTheory.Integrable.mono
 #check @MeasureTheory.Integrable.congr'
 #check @MeasureTheory.Integrable.mono_measure
+#check @MeasureTheory.integral_eq_lintegral_of_nonneg_ae
+#check @MeasureTheory.Measure.measurable_lintegral
+#check @MeasureTheory.Measure.measurable_map
 #check @MeasureTheory.measurePreserving_eval
 #check @ProbabilityTheory.Kernel.const_apply
 #check @ProbabilityTheory.Kernel.deterministic_apply
