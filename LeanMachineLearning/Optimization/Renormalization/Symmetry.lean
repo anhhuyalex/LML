@@ -90,6 +90,25 @@ theorem IdenticalNeurons.activate [Fintype ι] {L : DenseLayer ι κ}
   simp only [activate_apply]
   rw [hL.preactivation x j j']
 
+/-- Collapse a layer's input axis to one coordinate by summing every weight row. -/
+def collapseInputToOne [Fintype ι] (L : DenseLayer ι κ) : DenseLayer (Fin 1) κ where
+  weight j _ := ∑ i, L.weight j i
+  bias := L.bias
+
+/-- If all input coordinates agree, a dense layer is exactly equivalent to a one-input layer.
+Thus a collapsed width supplies no independent hidden features; its only remaining effect is the
+sum of the outgoing weights. -/
+theorem preactivation_eq_collapseInputToOne [Fintype ι] [Nonempty ι]
+    (L : DenseLayer ι κ) (x : ι → ℝ) (hx : AllCoordinatesEqual x) :
+    L.preactivation x =
+      (L.collapseInputToOne).preactivation (fun _ : Fin 1 => x (Classical.choice inferInstance)) := by
+  let i₀ : ι := Classical.choice inferInstance
+  funext j
+  simp only [preactivation_apply, collapseInputToOne]
+  have hxi : ∀ i, x i = x i₀ := fun i => hx i i₀
+  simp_rw [hxi]
+  simp [Finset.sum_mul]
+
 theorem identicalNeurons_zero [Fintype ι] [Fintype κ] :
     (DenseLayer.mk (0 : Matrix κ ι ℝ) 0).IdenticalNeurons := by
   intro j j'

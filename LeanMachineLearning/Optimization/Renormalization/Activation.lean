@@ -1050,6 +1050,41 @@ theorem tendsto_gelu_atBot : Tendsto gelu atBot (nhds 0) := by
 def PosHomogeneous (σ : ℝ → ℝ) : Prop :=
   ∀ ⦃c : ℝ⦄, 0 < c → ∀ x, σ (c * x) = c * σ x
 
+/-- An activation passes through the origin.  This is a useful local property, but by itself is not
+a theorem about trainability in a deep network. -/
+def PassesThroughOrigin (σ : ℝ → ℝ) : Prop := σ 0 = 0
+
+/-- An activation takes only the two Boolean values represented in `ℝ`. -/
+def BinaryValued (σ : ℝ → ℝ) : Prop := ∀ x, σ x = 0 ∨ σ x = 1
+
+theorem binaryValued_threshold : BinaryValued threshold := by
+  intro x
+  simp only [threshold]
+  split_ifs <;> simp
+
+theorem not_passesThroughOrigin_threshold : ¬ PassesThroughOrigin threshold := by
+  simp [PassesThroughOrigin, threshold]
+
+theorem not_passesThroughOrigin_logistic : ¬ PassesThroughOrigin logistic := by
+  simp [PassesThroughOrigin, logistic_zero]
+
+theorem passesThroughOrigin_relu : PassesThroughOrigin relu := by
+  simp [PassesThroughOrigin, relu]
+
+theorem passesThroughOrigin_tanh : PassesThroughOrigin Real.tanh := by
+  simp [PassesThroughOrigin]
+
+/-- Convergence to finite limits at both ends formalizes saturation without asserting the
+chapter's optimizer-dependent judgment that an activation is "poor". -/
+def Saturates (σ : ℝ → ℝ) : Prop :=
+  ∃ yBot yTop : ℝ, Tendsto σ atBot (nhds yBot) ∧ Tendsto σ atTop (nhds yTop)
+
+theorem saturates_logistic : Saturates logistic :=
+  ⟨0, 1, tendsto_logistic_atBot, tendsto_logistic_atTop⟩
+
+theorem saturates_tanh : Saturates Real.tanh :=
+  ⟨-1, 1, tendsto_tanh_atBot, tendsto_tanh_atTop⟩
+
 lemma PosHomogeneous.zero {σ : ℝ → ℝ} (hσ : PosHomogeneous σ) : σ 0 = 0 := by
   have h := hσ (by norm_num : (0 : ℝ) < 2) 0
   norm_num at h ⊢

@@ -79,10 +79,13 @@ public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Gaussi
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Limits
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Moments
 public import LeanMachineLearning.Optimization.Renormalization.Expectation
+public import LeanMachineLearning.Optimization.Renormalization.FiniteConvolution
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
 public import LeanMachineLearning.Optimization.Renormalization.InducedLaw
 public import LeanMachineLearning.Optimization.Renormalization.Initialization
+public import LeanMachineLearning.Optimization.Renormalization.InitializationUniversality
+public import LeanMachineLearning.Optimization.Renormalization.Learning
 public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
 public import LeanMachineLearning.Optimization.Renormalization.NearlyGaussian
 public import LeanMachineLearning.Optimization.Renormalization.Network
@@ -96,6 +99,7 @@ public import LeanMachineLearning.Optimization.Renormalization.RGFlow.FourPointV
 public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Marginalization
 public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Metric
 public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Subleading
+public import LeanMachineLearning.Optimization.Renormalization.Symmetry
 public import LeanMachineLearning.SequentialLearning.Algorithm
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensity
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensityBayes

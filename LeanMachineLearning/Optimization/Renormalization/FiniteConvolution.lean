@@ -64,18 +64,18 @@ def finitePreactivation [Fintype ι] (L : Conv2DLayer ι κ) (B : FiniteBoundary
 channel-position pairs, as are its input coordinates.  The matrix coefficient is zero when no
 window offset connects the two positions, and it sums coefficients if the boundary convention
 identifies several offsets. -/
-def toGlobalDenseLayer [Fintype ι] [Fintype P] (L : Conv2DLayer ι κ)
+def toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P] (L : Conv2DLayer ι κ)
     (B : FiniteBoundary P) (k : ℕ) : DenseLayer (ι × P) (κ × P) where
   weight op iq :=
     ∑ r : WindowIndex k × WindowIndex k,
       if B.shift op.2 r.1 r.2 = iq.2 then L.weight op.1 iq.1 r.1 r.2 else 0
   bias op := L.bias op.1
 
-@[simp] theorem toGlobalDenseLayer_bias [Fintype ι] [Fintype P]
+@[simp] theorem toGlobalDenseLayer_bias [Fintype ι] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ) (o : κ) (p : P) :
     (L.toGlobalDenseLayer B k).bias (o, p) = L.bias o := rfl
 
-@[simp] theorem toGlobalDenseLayer_weight [Fintype ι] [Fintype P]
+@[simp] theorem toGlobalDenseLayer_weight [Fintype ι] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ)
     (o : κ) (p : P) (i : ι) (q : P) :
     (L.toGlobalDenseLayer B k).weight (o, p) (i, q) =
@@ -83,7 +83,8 @@ def toGlobalDenseLayer [Fintype ι] [Fintype P] (L : Conv2DLayer ι κ)
         if B.shift p r.1 r.2 = q then L.weight o i r.1 r.2 else 0 := rfl
 
 /-- Entries outside the receptive field are structurally zero. -/
-theorem toGlobalDenseLayer_weight_eq_zero_of_not_reachable [Fintype ι] [Fintype P]
+theorem toGlobalDenseLayer_weight_eq_zero_of_not_reachable
+    [Fintype ι] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ)
     (o : κ) (p : P) (i : ι) (q : P)
     (h : ∀ dc : WindowIndex k, ∀ dd : WindowIndex k, B.shift p dc dd ≠ q) :
@@ -101,7 +102,7 @@ sparse doubly-block Toeplitz representation of discrete convolution; see
 
 The proof is deferred until the repeated finite-sum/indicator reindexing is extracted as a generic
 Mathlib-quality lemma. -/
-theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P]
+theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ) (x : ι × P → ℝ) :
     (L.toGlobalDenseLayer B k).preactivation x = L.finitePreactivation B k x := by
   sorry
@@ -111,7 +112,7 @@ output coordinates as the finite convolution. -/
 def unrestrictedGlobalDenseParamCount [Fintype ι] [Fintype κ] [Fintype P] : ℕ :=
   Fintype.card (κ × P) * Fintype.card (ι × P) + Fintype.card (κ × P)
 
-theorem toGlobalDenseLayer_paramCount [Fintype ι] [Fintype κ] [Fintype P]
+theorem toGlobalDenseLayer_paramCount [Fintype ι] [Fintype κ] [Fintype P] [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ) :
     (L.toGlobalDenseLayer B k).paramCount =
       unrestrictedGlobalDenseParamCount (ι := ι) (κ := κ) (P := P) := rfl

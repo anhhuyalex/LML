@@ -897,6 +897,16 @@ the cumulant is nonzero for all sufficiently small positive `ε`.  Independence 
 force it to vanish by `jointCumulant_eq_zero_of_indepFun_split`, a contradiction.  Source: the
 interaction/independence discussion after equation `eq:gaussian-statistical-independence-day` in
 `docs/Renormalization.md`.
+
+Unstated assumption made precise: `jointCumulant_eq_zero_of_indepFun_split` needs
+`HasFiniteJointMoments` for the *deformed* law, i.e. finiteness of every partial block moment of
+the four coordinates against `deform (multivariateGaussian 0 K) A.potential ε`.  The informal
+source proof is silent on this integrability point; `hV2`, `hV2two`, and `hV2four` only bound
+moments of the *undeformed* Gaussian law, so they do not by themselves supply it (that would need
+a further uniform-domination argument, extra to what is stated informally).  We record the needed
+finiteness as the explicit hypothesis `hfin`, holding eventually on the same right-neighborhood of
+zero as the conclusion, exactly mirroring how `hnorm` already externalizes normalizability instead
+of asserting it follows automatically.
 -/
 theorem QuarticCoupling.eventually_not_indepAcross_of_fourPointContraction_ne_zero
     {ι : Type uI} [Fintype ι] [DecidableEq ι]
@@ -911,12 +921,42 @@ theorem QuarticCoupling.eventually_not_indepAcross_of_fourPointContraction_ne_ze
     (hV2four : Integrable
       (fun z ↦ A.potential z ^ 2 * QuarticCoupling.coordinateProduct index z)
       (multivariateGaussian 0 K))
+    (hfin : ∀ᶠ ε in nhdsWithin 0 (Set.Ioi (0 : ℝ)),
+      HasFiniteJointMoments (deform (multivariateGaussian 0 K) A.potential ε)
+        (fun r : Fin 4 => fun z => z (index r)))
     (B : Finset (Fin 4)) (hB : B.Nonempty) (hBc : (Finset.univ \ B).Nonempty)
     (hcontract : A.fourPointContraction K index ≠ 0) :
     ∀ᶠ ε in nhdsWithin 0 (Set.Ioi 0),
       ¬ IndepAcross (deform (multivariateGaussian 0 K) A.potential ε)
         (fun r : Fin 4 => fun z => z (index r)) B := by
-  sorry
+  set l : Filter ℝ := nhdsWithin 0 (Set.Ioi (0 : ℝ)) with hl_def
+  set c : ℝ := A.fourPointContraction K index with hc_def
+  set f : ℝ → ℝ := fun ε => jointCumulant (deform (multivariateGaussian 0 K) A.potential ε)
+    (fun r : Fin 4 => fun z => z (index r)) with hf_def
+  have hcore := A.fourthCumulant_isBigO K hK hA hnorm hV2 index hV2two hV2four
+  have hsq : Asymptotics.IsLittleO l (fun ε : ℝ => ε ^ 2) (fun ε : ℝ => ε) := by
+    have h0 : Asymptotics.IsLittleO (𝓝 (0 : ℝ)) (fun ε : ℝ => ε ^ 2) (fun ε : ℝ => ε) := by
+      simpa using (Asymptotics.isLittleO_pow_id (n := 2) (𝕜 := ℝ) (by norm_num : 1 < (2 : ℕ)))
+    exact h0.mono (nhdsWithin_le_nhds (s := Set.Ioi (0 : ℝ)) (a := 0))
+  have hlittleO : Asymptotics.IsLittleO l (fun ε => f ε + ε * c) (fun ε : ℝ => ε) :=
+    (hcore.mono (nhdsWithin_mono 0 Set.Ioi_subset_Ici_self)).trans_isLittleO hsq
+  have htend0 : Tendsto (fun ε => (f ε + ε * c) / ε) l (𝓝 0) :=
+    hlittleO.tendsto_div_nhds_zero
+  have hcongr : (fun ε => (f ε + ε * c) / ε) =ᶠ[l] fun ε => f ε / ε + c := by
+    filter_upwards [self_mem_nhdsWithin] with ε hε
+    have hεne : ε ≠ 0 := ne_of_gt hε
+    field_simp
+  have htend0' : Tendsto (fun ε => f ε / ε + c) l (𝓝 0) := htend0.congr' hcongr
+  have htend : Tendsto (fun ε => f ε / ε) l (𝓝 (-c)) := by
+    have h := htend0'.sub (tendsto_const_nhds (x := c))
+    simpa using h
+  have hne : ∀ᶠ ε in l, f ε / ε ≠ 0 :=
+    htend.eventually_ne (by simpa using hcontract)
+  have hfne : ∀ᶠ ε in l, f ε ≠ 0 := by
+    filter_upwards [hne] with ε hε
+    exact fun h => hε (by rw [h, zero_div])
+  filter_upwards [hfne, hfin] with ε hεne hεfin
+  exact not_indepAcross_of_jointCumulant_ne_zero _ _ B hB hBc hεfin (fun r => by fun_prop) hεne
 
 end Renormalization
 
