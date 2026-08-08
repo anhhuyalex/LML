@@ -1137,6 +1137,50 @@ are formalized only after supplying the missing abstractions and hypotheses: an 
 a named CDF error, moment bounds, and Lyapunov conditions.  Qualitative judgments about which
 activation or optimizer is ``good'' remain prose rather than being promoted to false theorems.
 
+\subsection{Source narrative and conceptual commitments}
+
+The chapter presents neural networks as trainable, neuroscience-inspired families of functions,
+not as faithful biological models.  Its historical examples---the McCulloch--Pitts neuron,
+Rosenblatt's perceptron, the later importance of backpropagation and GPU computation, and the
+cat-image classifier---motivate the mathematics but do not themselves state mathematical
+propositions.  The formal counterpart is the progression
+\[
+  \text{target and data}\longrightarrow
+  \text{parameterized family}\longrightarrow
+  \text{learning rule}\longrightarrow
+  \text{law of the initialized outputs}.
+\]
+The key conceptual shift in the last arrow is from treating parameters as the random variables of
+interest to studying the activities and outputs obtained by pushing their law through evaluation.
+
+The function-approximation discussion distinguishes a target $f$, a flexible family
+$f(\mathord\cdot;\theta)$, parameters $\theta$, a selected value $\theta^\star$, and a finite
+dataset whose sample and feature indices must not be conflated.  Training adjusts parameters from
+data, in contrast to directly programming an elementary formula.  Neural networks are the chosen
+family, but the source explicitly notes that other families, such as finite sums of Gaussian
+bumps with trainable locations and scales, could play the same role.  The chapter states no
+universal-approximation theorem; Definitions~\ref{def:renorm:learningVocabulary} and
+\ref{def:renorm:updateRule} therefore formalize the vocabulary without inventing expressivity or
+optimizer-convergence conclusions.
+
+An MLP is the chapter's archetype and ``minimal model'' of deep learning: it stacks structurally
+similar neuron layers, is fully connected within each adjacent pair of layers, and propagates
+signals only forward.  The inductive datatype in Definition~\ref{def:renorm:mlp} makes the
+feedforward/no-loop property structural, rather than proving a separate theorem about a graph.
+Depth and hidden widths are architecture hyperparameters; input and output widths are fixed by the
+task; weights and biases are model parameters; and the final preactivation is the model output.
+The hidden preactivations and representations are both computational intermediates and the formal
+objects corresponding to the source's informal ``features.''
+
+The source also explains architecture choice as inductive bias.  Convolution imposes locality,
+structural zeros, and spatial weight tying; attention is mentioned as a sequence-modeling bias;
+residual networks, ResNets, and transformers are forward references to a later appendix.  Only
+convolution receives an iteration equation in this chapter, so it is the only non-MLP architecture
+defined here.  The expectation that effective-theory arguments can be reused by substituting a
+different layer kernel is a research program, not a theorem; the architecture-neutral
+\texttt{ParamModel} and randomized-kernel APIs are the reusable interfaces that make such later
+specialization possible.
+
 \subsection{Corrections and precise scope for Chapter~2}
 
 The informal chapter changes freely between functions, densities, random variables, and laws.  The
@@ -1198,6 +1242,15 @@ the fourth moment under a fourth-moment hypothesis.  The claim that zero initial
 permutation-symmetric during training additionally needs an equivariant update; claims about task
 performance need a loss.  The symmetry API proves fixed-point preservation for an abstract update
 and does not infer equivariance from the word ``optimizer.''
+
+Likewise, ``independent random initialization breaks permutation symmetry'' requires a non-atomic,
+nondegenerate coordinate law if read as an almost-sure distinctness claim; independence alone does
+not exclude two coordinates being equal.  Gaussian initialization with positive variance has the
+intended property, whereas the admitted zero-variance case does not.  The library constructs the
+exact initialization ensemble and proves what happens on the symmetric locus, but does not silently
+strengthen independence into almost-sure distinctness.  The source's claim that a favorable initial
+output law makes training easier also needs a specified loss and dynamics and remains a motivation
+for later chapters, not a Chapter~2 theorem.
 \end{remark}
 
 \subsection{Activation API}
@@ -1344,6 +1397,7 @@ present in the statement.
 \lean{NeuralNetwork.logistic_eq_half_add_half_tanh,
 NeuralNetwork.tanh_eq_exp_div, NeuralNetwork.tanh_eq_exp_two_mul,
 NeuralNetwork.standardNormalCDF_eq_erf, NeuralNetwork.gelu_eq_erf,
+NeuralNetwork.logistic_pos, NeuralNetwork.logistic_lt_one,
 NeuralNetwork.logistic_zero, NeuralNetwork.tanhActivation_zero,
 NeuralNetwork.sinActivation_zero, NeuralNetwork.sinActivation_periodic,
 NeuralNetwork.softplus_zero, NeuralNetwork.swish_zero, NeuralNetwork.gelu_zero,
@@ -1364,10 +1418,16 @@ NeuralNetwork.not_differentiableAt_relu_zero,
 NeuralNetwork.differentiableAt_leakyRelu_zero_iff,
 NeuralNetwork.PassesThroughOrigin, NeuralNetwork.BinaryValued,
 NeuralNetwork.Saturates, NeuralNetwork.binaryValued_threshold,
+NeuralNetwork.not_passesThroughOrigin_threshold,
+NeuralNetwork.not_passesThroughOrigin_logistic,
+NeuralNetwork.passesThroughOrigin_relu,
+NeuralNetwork.passesThroughOrigin_tanh,
 NeuralNetwork.saturates_logistic, NeuralNetwork.saturates_tanh}
 The exact exponential formulas for tanh, the logistic--tanh identity, the CDF--error-function
-identity, the values at zero, and sine periodicity all hold.  The statement that tanh is linear to
-first order at zero is formalized by \texttt{hasDerivAt\_tanh\_zero}.
+identity, the values at zero, and sine periodicity all hold.  For every finite input, logistic takes
+values strictly between zero and one; this supplies the source's stated $[0,1]$ range while making
+the unattained endpoints precise.  The statement that tanh is linear to first order at zero is
+formalized by \texttt{hasDerivAt\_tanh\_zero}.
 Every informal large-argument approximation in the activation section is represented by a
 \texttt{Tendsto} statement.
 Threshold, logistic, tanh, softplus, SWISH, and GELU are not positively homogeneous.  Finally,
@@ -1375,6 +1435,11 @@ Threshold, logistic, tanh, softplus, SWISH, and GELU are not positively homogene
 has its own named non-homogeneity theorem; ReLU is not differentiable at zero, and leaky ReLU is
 differentiable there exactly at slope parameter one.  Binary-valuedness, passing through the
 origin, and two-sided saturation package objective properties without asserting optimizer quality.
+
+The interpretation of logistic as mapping log-odds to probabilities is semantic once the formula
+and range are established.  Likewise, statements about historical popularity, backpropagation,
+or one activation being ``poor'' for deep learning are deliberately not theorem statements: the
+chapter defers their mathematical justification to later signal-propagation and training analyses.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section \texttt{sec:activations}: \texttt{eq:sigmoid}; the tanh, sin,
@@ -1398,7 +1463,9 @@ must not alternate between the two representations inside a proof.
 \lean{NeuralNetwork.DenseLayer, NeuralNetwork.LayerParams,
 NeuralNetwork.DenseLayer.ofParams, NeuralNetwork.DenseLayer.toParams,
 NeuralNetwork.DenseLayer.preactivation, NeuralNetwork.DenseLayer.preactivation_apply,
-NeuralNetwork.DenseLayer.activate, NeuralNetwork.DenseLayer.activate_apply}
+NeuralNetwork.DenseLayer.activate, NeuralNetwork.DenseLayer.activate_apply,
+NeuralNetwork.DenseLayer.activate_threshold_eq_one_iff,
+NeuralNetwork.DenseLayer.activate_threshold_eq_zero_iff}
 For finite input and output index types $I$ and $J$, a dense layer has
 \[
   W:J\to I\to\mathbb R,\qquad b:J\to\mathbb R.
@@ -1412,7 +1479,9 @@ For $x:I\to\mathbb R$, define
     =\sigma(\operatorname{preactivation}_{W,b}(x)_j).
 \]
 The implementation is a thin wrapper around \texttt{Matrix.mulVec}; its coordinate simp lemma is
-part of the public API.
+part of the public API.  For the threshold activation it additionally proves that neuron $j$ fires
+exactly when $\sum_i W_{ji}x_i\ge -b_j$, and is zero exactly when that weighted evidence is below
+$-b_j$.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), especially
@@ -1460,6 +1529,10 @@ Ill-shaped layer composition is unrepresentable.  \texttt{DenseLayer} supports a
 index types, while the first stable \texttt{MLP} implementation is indexed by numerical widths and
 uses \texttt{Fin n}.  This is the verified width-indexed fallback anticipated in Phase~N2: it avoids
 ambiguous stored \texttt{Fintype} dictionaries in GADT recursion without weakening shape safety.
+Because the recursion has only a tail subnetwork and no backward edge, it is a feedforward directed
+acyclic architecture by construction.  Each dense matrix permits a connection between every pair
+of adjacent coordinates; sparsity is represented by zero coefficients or by a more constrained
+layer type such as convolution.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section ``Function Approximation'' (\texttt{sec:MLP\_intro}), especially
@@ -1529,6 +1602,10 @@ paragraph following \texttt{eq:mlp-definition} that defines depth and widths, gi
 $P=\sum_{\ell=1}^{L}(n_\ell+n_\ell n_{\ell-1})$, and records the $(4,5,5,5,1)$ example in the MLP
 figure caption.
 \end{definition}
+
+For comparable hidden widths $n$, the exact sum above has the source's qualitative scaling
+$O(Ln^2)$: quadratic in width and linear in depth.  This shorthand is not asserted uniformly over
+arbitrary width profiles, for which the exact adjacent-width products are the correct statement.
 
 \begin{definition}[Evaluation on a finite dataset]
 \label{def:renorm:evalBatch}
@@ -1612,6 +1689,14 @@ Chapter ``Neural Networks'', Section \texttt{sec:MLP\_intro}, the CNN discussion
 \texttt{eq:conv-layer} and the claim that shared spatial weights encode translational behavior.  The
 blueprint states the mathematically correct equivariance consequence of that source construction.
 \end{theorem}
+
+The source's further claim that unconstrained training is unlikely to discover the convolutional
+zero-and-tying pattern is a heuristic about an unspecified optimizer and data distribution.  It is
+not promoted to a theorem.  The exact global embedding and parameter-count comparison below prove
+the structural-zero, weight-tying, and storage content of the claim.  A runtime advantage would
+additionally require a computational cost model and a sparse implementation.  Spatial
+translation is equivariance at this layer; invariance of a classifier requires an additional
+invariant readout.
 
 \subsection{Parameterized models, Dirac laws, and pushforwards}
 
@@ -1780,6 +1865,15 @@ $C_b,C_W\in\mathbb R_{\ge0}$.  The variance of every weight is $C_W/|I|$ and the
 bias is $C_b$.  The implementation leaves NNReal division total at $|I|=0$ (where it returns zero),
 so the measure exists for empty shapes; any theorem interpreting this as fan-in normalization may
 add \texttt{Nonempty I}.
+
+The fan-in factor implements the source's normalization argument: an affine preactivation sums
+$|I|$ centered random weight contributions, so assigning each weight variance proportional to
+$1/|I|$ keeps the variance of the sum at order one when the inputs have order-one squared norm per
+coordinate.  Equivalently, weight amplitudes are scaled by $1/\sqrt{|I|}$.  A bias is a single
+summand rather than a fan-in sum and therefore receives no analogous width normalization.  The
+exact covariance theorem below states the rigorous finite-width result; this paragraph records
+the scaling motivation and does not assume independence between arbitrary random inputs and
+weights.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
 Chapter ``Neural Networks'', Section ``Ensembles'' (\texttt{sec:MLP\_distribution}), subsection
@@ -2432,6 +2526,85 @@ does not rely on a nonexistent standalone audit file.
   \item \texttt{gigantic-beast-with-Dirac}: deterministic-kernel composition and
     \texttt{MLPEnsemble.outputKernel\_apply\_eq\_outputLaw}.
 \end{itemize}
+
+\subsubsection*{Complete source-concept coverage ledger}
+
+The equation index above is not by itself a completeness argument.  The following ledger accounts
+for the remaining mathematical and conceptual content of the Neural Networks chapter, including
+claims that properly remain prose.
+
+\begin{enumerate}
+  \item \emph{Orientation and history.}  The perceptron/neuroscience origin, the historical role of
+    learnable weights, backpropagation, and GPUs, and the choice of MLPs as a pedagogical archetype
+    are motivation.  Their formal consequence is the chapter's focus on a compositional trainable
+    family; dates, popularity claims, epigraphs, figures, and bibliography are not theorem targets.
+
+  \item \emph{Function approximation and data.}  Exact elementary descriptions, the exponential
+    Taylor example, the hard-to-program classifier, a target $f$, a family
+    $f(\mathord\cdot;\theta)$, approximate selection of $\theta^\star$, finite sample/feature
+    indexing, and the training-versus-programming distinction are represented by the Taylor,
+    dataset, parameterized-model, approximation, supervised-loss, and update APIs.  Gaussian-bump
+    sums are recorded above as an example of a possible alternative family, not a neural-network
+    theorem.  The source asserts no universal approximation or optimizer convergence result.
+
+  \item \emph{Neurons, layers, and MLP architecture.}  Bias plus weighted evidence, coordinatewise
+    activation, threshold firing at evidence $-b_i$, full connectivity, typed forward composition,
+    absence of recurrent loops, depth, hidden widths, task-fixed endpoint dimensions, final affine
+    output, the union and exact count of parameters, qualitative $O(Ln^2)$ scaling, and hidden
+    preactivations/representations as features all have explicit definitions or statements above.
+
+  \item \emph{Architecture-dependent inductive bias.}  The convolution equation, channels,
+    finite windows, locality, shared weights, structural zeros, translation equivariance, global
+    dense realization, and parameter economy are formalized.  The claim that these constraints are
+    unlikely to be learned unless enforced is optimizer-dependent prose.  Attention for sequential
+    inputs and residual/ResNet/transformer effective theories are named forward references because
+    Chapter~2 supplies no corresponding equation.  The reusable model and kernel interfaces encode
+    the source's proposed ``swap the layer equation'' specialization point.
+
+  \item \emph{Activation catalogue.}  Threshold and signed threshold; logistic's formula, strict
+    finite-input range, saturation, smoothness, log-odds interpretation, and failure to pass through
+    the origin; tanh's two formulas, origin value, first-order behavior, and saturation; sine's
+    periodicity; positive homogeneity and its complete two-slope classification; linear, ReLU, and
+    leaky-ReLU cases and their kink behavior; and the formulas, origin values, smoothness,
+    asymptotics, intrinsic scales, and non-homogeneity of softplus, SWISH, and GELU are all accounted
+    for.  Popularity and ``good'' or ``poor'' activation judgments are deferred to the later
+    signal-propagation and training chapters exactly as the source itself indicates.
+
+  \item \emph{Ensembles and symmetry.}  Initialization affects the starting network; identical or
+    zero hidden neurons lie on a permutation-fixed locus; hidden relabeling leaves evaluation
+    unchanged; the hidden activity then has only one coordinate direction; and equivariant updates
+    preserve the locus.  Independent random sampling creates an ensemble.  Almost-sure symmetry
+    breaking additionally requires non-atomic, nondegenerate laws, so it is not inferred from
+    independence alone.
+
+  \item \emph{Gaussian initialization and universality.}  Independent centered bias and weight
+    laws, Kronecker-delta covariance, displayed densities for positive variance, layer-dependent
+    $(C_b,C_W)$ hyperparameters, fan-in normalization, and the lack of a bias fan-in sum are
+    formalized or explicitly motivated above.  Gaussian laws are singled out in the source because
+    they are determined by mean and covariance and are analytically and computationally convenient;
+    uniform and truncated-normal initialization are alternative examples.  Later effective-theory
+    chapters, not Chapter~2, are tasked with prescribing the hyperparameter values.  The source's
+    first-two-moment CLT claim is split into qualitative
+    universality, the honest $n^{-1/2}$ Berry--Esseen distributional rate, and the exact selected
+    fourth-moment $n^{-1}$ correction.  Its future recommendation $C_b=0$ for ``good'' activations
+    is not assumed; the non-Gaussian-bias obstruction is stated explicitly.
+
+  \item \emph{Induced and deterministic laws.}  The neural/sample-indexed output array, the
+    pushforward from parameters to outputs, the deterministic conditional law, and the generic
+    parameter integral are represented as measures and kernels.  The practical association between
+    initial output statistics and ease of training is motivation for later dynamics, not a theorem
+    without a loss and optimizer.
+
+  \item \emph{Dirac laws and layerwise reduction.}  Normalization, mean, second moment, zero
+    variance, the observable evaluation rule, self-averaging, Gaussian weak approximation, the
+    regulated Fourier identity, the failure of the unregulated integral as an ordinary Lebesgue
+    integral, the first-layer output law, the deeper conditional law, and the generic deterministic
+    output formula are all covered by the Dirac, pushforward, Gaussian-layer, and kernel-composition
+    results above.  The Dirac law is the continuous-space analogue of a Kronecker point mass and is
+    a distribution/measure rather than an ordinary function.  This retains the source's intended
+    calculation while replacing products of generalized ``delta functions'' by rigorous
+    measure-theoretic objects.
+\end{enumerate}
 
 \section{Refactors and reuse in LML}
 
