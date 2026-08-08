@@ -249,7 +249,8 @@ def depth {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → ℕ
   induction N with
   | output L => simp [hiddenTrace, depth]
   | hidden L N ih =>
-      simp [hiddenTrace, depth, ih]
+      simp only [hiddenTrace, List.length_cons, ih, depth]
+      cases N <;> simp [depth]
 
 /-- The input width followed by every successive layer width. -/
 def widths {σ : ℝ → ℝ} {m n : ℕ} : MLP σ m n → List ℕ
