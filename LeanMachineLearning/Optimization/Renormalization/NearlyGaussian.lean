@@ -420,13 +420,7 @@ private theorem EvenAction.linkedCluster_power_counting_bound
   -- the theorem docstring above and in `docs/Renormalization.md`, equation
   -- `eq:connected-correlator-hierarchy`; see also
   -- <https://en.wikipedia.org/wiki/Linked-cluster_theorem>.
-  classical
-  exact
-    (by
-      -- Desired missing API:
-      -- `linkedCluster_isBigO_of_gaussian_domination hdom hm index`.
-      -- It would close exactly the displayed goal after unfolding `ParametricallySmall`.
-      sorry)
+  sorry
 
 /-- Linked-cluster hierarchy for the explicitly scaled even action.
 
@@ -958,12 +952,14 @@ private lemma card_pairing_empty {α : Type*} [DecidableEq α] :
   classical
   -- `Finpartition ∅` is a singleton (Mathlib's `Unique` instance), and its unique element is
   -- the empty partition whose parts are `∅`, so the pairing predicate holds vacuously.
-  haveI : Unique (Finpartition (∅ : Finset α)) := by
+  have : Unique (Finpartition (∅ : Finset α)) := by
     change Unique (Finpartition (⊥ : Finset α))
     infer_instance
   refine Fintype.card_eq_one_iff.mpr ⟨⟨default, ?_⟩, ?_⟩
   · intro B hB
-    simpa using hB
+    have h_bot : (default : Finpartition (∅ : Finset α)) = ⊥ := Subsingleton.elim _ _
+    rw [h_bot] at hB
+    simp at hB
   · intro y
     apply Subtype.ext
     exact Subsingleton.elim _ _
@@ -996,7 +992,9 @@ private lemma card_pairing_four {α : Type*} [DecidableEq α] {s : Finset α} (h
     have h2 : ((s.erase a).erase b).card = (s.erase a).card - 1 := Finset.card_erase_of_mem hb
     exact card_pairing_two (by omega)
   rw [h_sum, Finset.sum_const, nsmul_eq_mul]
-  simp [hs, ha]
+  have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
+  rw [h1, hs]
+  norm_num
 
 -- A six-element set has `15` pairings: five choices for the partner of a fixed element, then
 -- `3` pairings of the residual four-element set.
@@ -1013,7 +1011,9 @@ private lemma card_pairing_six {α : Type*} [DecidableEq α] {s : Finset α} (hs
     have h2 : ((s.erase a).erase b).card = (s.erase a).card - 1 := Finset.card_erase_of_mem hb
     exact card_pairing_four (by omega)
   rw [h_sum, Finset.sum_const, nsmul_eq_mul]
-  simp [hs, ha]
+  have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
+  rw [h1, hs]
+  norm_num
 
 theorem card_pairing_fin_six :
     Fintype.card (Finpartition.Pairing (Finset.univ : Finset (Fin 6))) = 15 := by

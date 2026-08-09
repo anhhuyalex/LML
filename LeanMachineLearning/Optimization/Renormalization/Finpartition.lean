@@ -614,7 +614,7 @@ theorem partitionTransform_bind [CommSemiring R] {s : Finset α} (P : Finpartiti
 This is the inverse of `insertBlock`: the remaining parts are the original parts with `B` removed,
 and they cover exactly `s \ B` because `B` is a part. -/
 private def deleteBlock {s : Finset α} (P : Finpartition s) (B : Finset α)
-    (hB : B ∈ P.parts) : Finpartition (s \ B) := P.avoid B
+    (_hB : B ∈ P.parts) : Finpartition (s \ B) := P.avoid B
 
 /-- Insert a new block `B` into a partition of `s \ B`, giving a partition of `s`.
 
@@ -861,15 +861,7 @@ private lemma cumulantCoefficient_sum_coarser [CommRing R] (s : Finset α) (a : 
   by_cases hT : T = ⊤
   · -- `T = ⊤`: single block `s`, no block avoids `a`, and `c (⊤) = 1`
     subst hT
-    have hparts : (⊤ : Finpartition s).parts = {s} := by
-      apply Finset.eq_singleton_iff_unique_mem.2
-      constructor
-      · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
-        have hB_eq : B = s :=
-          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
-        simpa [hB_eq] using hB
-      · exact fun D hD =>
-          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+    have hparts : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs
     -- the only block `s` contains `a`, so the filter over blocks avoiding `a` is empty
     have hfilter_empty : ({s} : Finset (Finset α)).filter (fun D => a ∉ D) = ∅ := by
       simp [ha]
@@ -1093,15 +1085,7 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
     rw [← Finset.sum_mul, ← add_mul]
     exact congrArg (· * T.blockProduct f) (cumulantCoefficient_sum_coarser s a ha T)
   · -- only the one-block partition `⊤` survives, contributing `⊤.blockProduct f = f s`
-    have hparts : (⊤ : Finpartition s).parts = {s} := by
-      apply Finset.eq_singleton_iff_unique_mem.2
-      constructor
-      · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
-        have hB_eq : B = s :=
-          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
-        simpa [hB_eq] using hB
-      · exact fun D hD =>
-          Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+    have hparts : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs
     simp [Finset.sum_ite_eq', hparts, blockProduct, ite_mul, one_mul, zero_mul]
 
 /-- The partition transform of the empty set is the empty product `1`. -/
@@ -1289,15 +1273,7 @@ theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
 /-- The indiscrete partition has block product `f s` on a nonempty carrier. -/
 private lemma blockProduct_top [CommMonoid R] (f : Finset α → R) {s : Finset α} (hs : s ≠ ∅) :
     (⊤ : Finpartition s).blockProduct f = f s := by
-  have hparts : (⊤ : Finpartition s).parts = {s} := by
-    apply Finset.eq_singleton_iff_unique_mem.2
-    constructor
-    · rcases Finpartition.parts_nonempty (⊤ : Finpartition s) hs with ⟨B, hB⟩
-      have hB_eq : B = s :=
-        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hB)
-      simpa [hB_eq] using hB
-    · exact fun D hD =>
-        Finset.mem_singleton.mp (Finset.mem_of_subset (Finpartition.parts_top_subset s) hD)
+  have hparts : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs
   rw [blockProduct, hparts, Finset.prod_singleton]
 
 /-- If a part of `P` is the whole carrier, then `P` is the indiscrete partition. -/

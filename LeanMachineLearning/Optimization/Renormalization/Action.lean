@@ -37,17 +37,17 @@ namespace Action
 /-- The unnormalized partition function of an action relative to `μ`. -/
 def partitionFunction {Ω : Type uΩ} [MeasurableSpace Ω]
     (μ : Measure Ω) (S : Action Ω) : ℝ :=
-  ∫ x, Real.exp (-S x) ∂μ
+  Renormalization.partitionFunction μ S 1
 
 /-- The exact integrability condition for an action to induce a probability law. -/
 def Normalizable {Ω : Type uΩ} [MeasurableSpace Ω]
     (μ : Measure Ω) (S : Action Ω) : Prop :=
-  Integrable (fun x => Real.exp (-S x)) μ
+  Renormalization.Normalizable μ S 1
 
 /-- The normalized law represented by `S`, relative to reference measure `μ`. -/
 def measure {Ω : Type uΩ} [MeasurableSpace Ω]
     (μ : Measure Ω) (S : Action Ω) : Measure Ω :=
-  μ.tilted fun x => -S x
+  deform μ S 1
 
 /-- Bundle a normalizable action law as a probability measure. -/
 def probabilityMeasure {Ω : Type uΩ} [MeasurableSpace Ω]
@@ -190,7 +190,8 @@ and the preceding reusable Gaussian-integrability lemma applies to this precisio
 theorem quadraticAction_normalizable {ι : Type uI} [Fintype ι] [DecidableEq ι]
     (K : Matrix ι ι ℝ) (hK : K.PosDef) :
     Action.Normalizable (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹) :=
-  integrable_exp_neg_quadraticAction_of_posDef K⁻¹ hK.inv
+  by simpa only [Action.Normalizable, Renormalization.Normalizable, neg_one_mul] using
+    integrable_exp_neg_quadraticAction_of_posDef K⁻¹ hK.inv
 
 -- The Lebesgue measure on `EuclideanSpace ℝ ι` is the transport of the product measure on
 -- `ι → ℝ` along the canonical equivalence; an invertible matrix therefore rescales it by the
@@ -633,7 +634,8 @@ theorem quadraticAction_partitionFunction {ι : Type uI} [Fintype ι] [Decidable
     (K : Matrix ι ι ℝ) (hK : K.PosDef) :
     Action.partitionFunction (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹) =
       Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) :=
-  integral_exp_neg_quadraticAction_inv_posDef K hK
+  by simpa only [Action.partitionFunction, Renormalization.partitionFunction, neg_one_mul] using
+    integral_exp_neg_quadraticAction_inv_posDef K hK
 
 -- The numerator of the normalized Fourier integral: with precision matrix `P`, the smul form of
 -- the characteristic exponential rewrites pointwise as the product form used by
@@ -699,7 +701,8 @@ private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [Decid
   classical
   -- Expanding `Action.measure` and `charFun`, the characteristic function is the normalized
   -- Fourier integral of the unnormalized Gaussian kernel.
-  rw [Action.measure, charFun_apply, MeasureTheory.integral_tilted]
+  rw [Action.measure, deform, charFun_apply, MeasureTheory.integral_tilted]
+  simp only [neg_one_mul]
   -- `Action.measure` expands to the tilted measure, and `integral_tilted` expresses the integral
   -- as the normalized expectation of the characteristic exponential.  Write `Z` for the
   -- unnormalized partition function, i.e. the normalization constant in the tilted density.
@@ -707,8 +710,9 @@ private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [Decid
   change (∫ z : EuclideanSpace ℝ ι,
       (Real.exp (-(quadraticAction K⁻¹ z)) / Z) • Complex.exp (⟪z, t⟫ * Complex.I) ∂volume) =
       Complex.exp (-(quadraticAction K t))
-  have hZ : Z = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) :=
-    quadraticAction_partitionFunction K hK
+  have hZ : Z = Real.sqrt ((2 * Real.pi) ^ Fintype.card ι * K.det) := by
+    simpa only [Z, Action.partitionFunction, Renormalization.partitionFunction, neg_one_mul] using
+      quadraticAction_partitionFunction K hK
   have hZpos : 0 < Z := hZ ▸ charFun_normalizing_const_pos K hK
   have hZne : Z ≠ 0 := ne_of_gt hZpos
   -- Numerator: the Fourier integral of the unnormalized kernel with precision `K⁻¹`.

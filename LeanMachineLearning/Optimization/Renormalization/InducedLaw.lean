@@ -510,24 +510,12 @@ private lemma cov_row_preactivation [Fintype ι] (p : InitHyperparams) (s : A �
     simp only [measure_univ, one_smul]
     rfl
   have hmemW (i : ι) : MemLp (fun q : (ι → ℝ) × ℝ => q.1 i) 2 ρ := by
-    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
-      (f := fun q : (ι → ℝ) × ℝ => q.1 i)
-      (by exact measurable_id.aestronglyMeasurable)
-      (((measurable_pi_apply i).comp measurable_fst).aemeasurable)).1 ?_
-    rw [hmapWi i]
-    exact memLp_id_gaussianReal 2
+    exact memLp_two_of_map_eq_gaussianReal ρ _
+      (((measurable_pi_apply i).comp measurable_fst).aemeasurable) _ (hmapWi i)
   have hmemB : MemLp (fun q : (ι → ℝ) × ℝ => q.2) 2 ρ := by
-    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
-      (f := fun q : (ι → ℝ) × ℝ => q.2)
-      (by exact measurable_id.aestronglyMeasurable) measurable_snd.aemeasurable).1 ?_
-    rw [hmapB]
-    exact memLp_id_gaussianReal 2
+    exact memLp_two_of_map_eq_gaussianReal ρ _ measurable_snd.aemeasurable _ hmapB
   have hmemW_ρW (i : ι) : MemLp (fun w : ι → ℝ => w i) 2 ρW := by
-    refine (memLp_map_measure_iff (μ := ρW) (g := (id : ℝ → ℝ)) (p := 2)
-      (f := fun w : ι → ℝ => w i)
-      (by exact measurable_id.aestronglyMeasurable) ((measurable_pi_apply i).aemeasurable)).1 ?_
-    rw [hmapW i]
-    exact memLp_id_gaussianReal 2
+    exact memLp_two_of_map_eq_gaussianReal ρW _ (measurable_pi_apply i).aemeasurable _ (hmapW i)
   have hmemC (a : A) (c : α) : MemLp (C a c) 2 ρ := by
     cases c with
     | inl i => simpa [C, mul_comm] using (hmemW i).const_mul (s a i)
@@ -673,24 +661,12 @@ private theorem map_row_preactivation [Fintype ι] [Fintype A] [DecidableEq A]
     simp only [measure_univ, one_smul]
     rfl
   have hmemW (i : ι) : MemLp (fun q : (ι → ℝ) × ℝ => q.1 i) 2 ρ := by
-    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
-      (f := fun q : (ι → ℝ) × ℝ => q.1 i)
-      (by exact measurable_id.aestronglyMeasurable)
-      (((measurable_pi_apply i).comp measurable_fst).aemeasurable)).1 ?_
-    rw [hmapWi i]
-    exact memLp_id_gaussianReal 2
+    exact memLp_two_of_map_eq_gaussianReal ρ _
+      (((measurable_pi_apply i).comp measurable_fst).aemeasurable) _ (hmapWi i)
   have hmemB : MemLp (fun q : (ι → ℝ) × ℝ => q.2) 2 ρ := by
-    refine (memLp_map_measure_iff (μ := ρ) (g := (id : ℝ → ℝ)) (p := 2)
-      (f := fun q : (ι → ℝ) × ℝ => q.2)
-      (by exact measurable_id.aestronglyMeasurable) measurable_snd.aemeasurable).1 ?_
-    rw [hmapB]
-    exact memLp_id_gaussianReal 2
+    exact memLp_two_of_map_eq_gaussianReal ρ _ measurable_snd.aemeasurable _ hmapB
   have hmemW_ρW (i : ι) : MemLp (fun w : ι → ℝ => w i) 2 ρW := by
-    refine (memLp_map_measure_iff (μ := ρW) (g := (id : ℝ → ℝ)) (p := 2)
-      (f := fun w : ι → ℝ => w i)
-      (by exact measurable_id.aestronglyMeasurable) ((measurable_pi_apply i).aemeasurable)).1 ?_
-    rw [hmapW i]
-    exact memLp_id_gaussianReal 2
+    exact memLp_two_of_map_eq_gaussianReal ρW _ (measurable_pi_apply i).aemeasurable _ (hmapW i)
   have hIsG_ρW : IsGaussian ρW := by
     let μ : ι → Measure ℝ := fun _ => gaussianReal 0 (scaledWeightVariance p ι)
     have hX1 : ∀ i : ι, HasGaussianLaw (fun w : ι → ℝ => w i) (Measure.pi μ) := by
