@@ -476,6 +476,55 @@ noncomputable def empiricalNTKFromRows
     ((width : ℝ)⁻¹ * ∑ j : Fin width,
       σ' (rows j.val ⊙ x) * σ' (rows j.val ⊙ x'))
 
+/-- The strong law for empirical averages of a measurable integrable function of
+i.i.d. Gaussian rows. This packages the product-measure independence, identical-distribution,
+expectation-transport, and `Finset.range`/`Fin` conversion used by kernel limit proofs. -/
+lemma gaussianRow_average_tendsto_integral
+    (g : (Fin d → ℝ) → ℝ)
+    (hg_meas : Measurable g)
+    (hg_int : Integrable g (gaussianRowMeasure d)) :
+    ∀ᵐ rows : ℕ → Fin d → ℝ
+      ∂(Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d),
+      Filter.Tendsto
+        (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, g (rows j))
+        Filter.atTop
+        (nhds (∫ w, g w ∂(gaussianRowMeasure d))) := by
+  set μ := Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)
+  have hmap_eval : ∀ i : ℕ, μ.map (fun rows => rows i) = gaussianRowMeasure d :=
+    fun i => Measure.infinitePi_map_eval _ i
+  have hmp : MeasurePreserving (fun rows : ℕ → Fin d → ℝ => rows 0) μ
+      (gaussianRowMeasure d) :=
+    measurePreserving_eval_infinitePi (fun _ : ℕ => gaussianRowMeasure d) 0
+  have hint : Integrable (fun rows : ℕ → Fin d → ℝ => g (rows 0)) μ :=
+    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
+  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j rows => g (rows j)) := by
+    have h := iIndepFun_infinitePi (P := fun _ : ℕ => gaussianRowMeasure d)
+      (X := fun _ : ℕ => g) (fun _ => hg_meas)
+    intro i j hij
+    exact h.indepFun hij
+  have hident : ∀ i : ℕ,
+      IdentDistrib (fun rows : ℕ → Fin d → ℝ => g (rows i))
+        (fun rows : ℕ → Fin d → ℝ => g (rows 0)) μ μ := by
+    intro i
+    have hcoord : IdentDistrib (fun rows : ℕ → Fin d → ℝ => rows i)
+        (fun rows : ℕ → Fin d → ℝ => rows 0) μ μ := by
+      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
+      rw [hmap_eval i, hmap_eval 0]
+    exact hcoord.comp hg_meas
+  have hslln : ∀ᵐ rows ∂μ, Filter.Tendsto
+      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (rows i))
+      Filter.atTop (nhds (∫ rows, g (rows 0) ∂μ)) :=
+    strong_law_ae _ hint hindep hident
+  have hexp : ∫ rows, g (rows 0) ∂μ = ∫ w, g w ∂(gaussianRowMeasure d) := by
+    rw [← hmap_eval 0]
+    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
+      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
+  filter_upwards [hslln] with rows hrows
+  rw [← hexp]
+  convert hrows using 1
+  ext width
+  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (rows i)) width]
+
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
 For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid
 rows `w₀, w₁, ... ~ 𝒩(0,Iᵈ)`:
@@ -505,63 +554,11 @@ theorem ntk_convergence
         (nhds (limitingNTK σ' x x')) := by
   obtain ⟨C, hC⟩ := hσ'_bounded
   have hg_meas : Measurable (ntkSummand σ' x x') := measurable_ntkSummand hσ'_meas x x'
-  set μ := MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d) with hμ
-  -- Each row `rows i` has law `gaussianRowMeasure d` under the product measure.
-  have hmap_eval : ∀ i : ℕ, μ.map (fun rows => rows i) = gaussianRowMeasure d :=
-    fun i => Measure.infinitePi_map_eval _ i
-  -- The summands are measurable and bounded, hence integrable.
-  have hX_meas : ∀ j : ℕ,
-      Measurable (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows j)) :=
-    fun j => hg_meas.comp (measurable_pi_apply j)
-  have hint : Integrable (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows 0)) μ :=
-    Integrable.of_bound (hX_meas 0).aestronglyMeasurable (C * C)
-      (Filter.Eventually.of_forall fun rows => by
-        rw [Real.norm_eq_abs]; exact abs_ntkSummand_le hC x x' (rows 0))
-  -- The summands are pairwise independent, being functions of independent rows.
-  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·)
-      fun j rows => ntkSummand σ' x x' (rows j)) := by
-    have h := iIndepFun_infinitePi (P := fun _ : ℕ => gaussianRowMeasure d)
-      (X := fun _ : ℕ => ntkSummand σ' x x') (fun _ => hg_meas)
-    intro i j hij
-    exact h.indepFun hij
-  -- The summands are identically distributed, since the rows are.
-  have hident : ∀ i : ℕ,
-      IdentDistrib (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows i))
-        (fun rows : ℕ → Fin d → ℝ => ntkSummand σ' x x' (rows 0)) μ μ := by
-    intro i
-    have hcoord : IdentDistrib (fun rows : ℕ → Fin d → ℝ => rows i)
-        (fun rows : ℕ → Fin d → ℝ => rows 0) μ μ := by
-      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable,
-        ?_⟩
-      rw [hmap_eval i, hmap_eval 0]
-    exact hcoord.comp hg_meas
-  -- Etemadi's strong law: the empirical means converge a.s. to the common mean.
-  have hslln : ∀ᵐ rows ∂μ, Filter.Tendsto
-      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, ntkSummand σ' x x' (rows i))
-      Filter.atTop (nhds (∫ rows, ntkSummand σ' x x' (rows 0) ∂μ)) :=
-    strong_law_ae _ hint hindep hident
-  -- The common mean is the expectation over a single Gaussian row.
-  have hexp : ∫ rows, ntkSummand σ' x x' (rows 0) ∂μ =
-      ∫ w, ntkSummand σ' x x' w ∂(gaussianRowMeasure d) := by
-    rw [← hmap_eval 0]
-    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
-      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
-  filter_upwards [hslln] with rows hrows
-  -- Repackage the `Finset.range` average as a `Fin width` average.
-  have hfin : Filter.Tendsto
-      (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, ntkSummand σ' x x' (rows j))
-      Filter.atTop (nhds (∫ w, ntkSummand σ' x x' w ∂(gaussianRowMeasure d))) := by
-    rw [← hexp]
-    have hcongr :
-        (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, ntkSummand σ' x x' (rows i))
-        = fun width : ℕ =>
-            (width : ℝ)⁻¹ * ∑ j : Fin width, ntkSummand σ' x x' (rows j) := by
-      ext n
-      rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => ntkSummand σ' x x' (rows i)) n]
-    rw [← hcongr]
-    exact hrows
-  -- Multiply by the constant `xᵀx'`: this is exactly `empiricalNTKFromRows → limitingNTK`.
-  exact hfin.const_mul (x ⊙ x')
+  have hg_int : Integrable (ntkSummand σ' x x') (gaussianRowMeasure d) :=
+    integrable_ntkSummand hσ'_meas hC x x'
+  filter_upwards [gaussianRow_average_tendsto_integral (ntkSummand σ' x x') hg_meas hg_int]
+    with rows hrows
+  exact hrows.const_mul (x ⊙ x')
 
 /-! ### ReLU NTK closed form (Proposition 4.2) -/
 

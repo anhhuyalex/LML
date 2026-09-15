@@ -96,13 +96,21 @@ private theorem sum_window_eq_sum_windowIndex (k : ℕ) (f : ℤ → ℝ) :
     (∑ z ∈ window k, f z) = ∑ z : WindowIndex k, f z :=
   Finset.sum_subtype (window k) (fun _ => Iff.rfl) f
 
+/-- Reindexing a finite sum over a product type as nested sums.  Both local and finite-boundary
+convolution use this same product-index normalization. -/
+theorem sum_over_prod {α β R : Type*} [Fintype α] [Fintype β] [AddCommMonoid R]
+    (f : α × β → R) :
+    (∑ p : α × β, f p) = ∑ a : α, ∑ b : β, f (a, b) :=
+  Fintype.sum_prod_type' (fun a b => f (a, b))
+
 /-- A sum over a local patch decomposes as nested sums over the channel and the two window
 offsets. -/
 private theorem sum_patchIndex [Fintype ι] (k : ℕ)
     (f : ι → WindowIndex k → WindowIndex k → ℝ) :
     (∑ p : PatchIndex ι k, f p.1 p.2.1 p.2.2) =
       ∑ i, ∑ dc : WindowIndex k, ∑ dd : WindowIndex k, f i dc dd := by
-  exact (Fintype.sum_prod_type' (fun i (q : WindowIndex k × WindowIndex k) => f i q.1 q.2)).trans
+  exact (sum_over_prod
+    (fun (iq : ι × (WindowIndex k × WindowIndex k)) => f iq.1 iq.2.1 iq.2.2)).trans
     (Finset.sum_congr rfl (fun i _ => Fintype.sum_prod_type' (f i)))
 
 -- Nested sums over integer offsets in the window equal the single sum over the local patch, for

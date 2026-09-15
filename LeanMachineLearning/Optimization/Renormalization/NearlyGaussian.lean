@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Renormalization.Action
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
+public import LeanMachineLearning.Optimization.Renormalization.EvenCoupling
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Independence.CharacteristicFunction
@@ -37,66 +38,6 @@ open scoped BigOperators ENNReal NNReal Topology RealInnerProductSpace
 namespace Renormalization
 
 universe uΩ uI
-
-/-- A totally symmetric coefficient tensor with `2m` finite-index slots. -/
-structure EvenCoupling (ι : Type uI) (m : ℕ) where
-  /-- Coefficient of an ordered `2m`-tuple. -/
-  coeff : (Fin (2 * m) → ι) → ℝ
-  /-- Invariance under every permutation of the slots. -/
-  coeff_perm : ∀ (σ : Equiv.Perm (Fin (2 * m))) (q : Fin (2 * m) → ι),
-    coeff (q ∘ σ) = coeff q
-
-namespace EvenCoupling
-
-/-- The zero coupling at any even order. -/
-def zero (ι : Type uI) (m : ℕ) : EvenCoupling ι m where
-  coeff := 0
-  coeff_perm := by simp
-
-/-- Regard an existing quartic coupling as the general even coupling at half-degree two. -/
-def ofQuartic {ι : Type uI} (A : QuarticCoupling ι) : EvenCoupling ι 2 where
-  coeff := A.coeff
-  coeff_perm := A.coeff_perm
-
-/-- Even homogeneous potential with the conventional `1 / (2m)!` symmetry factor. -/
-def potential {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m)
-    (z : EuclideanSpace ℝ ι) : ℝ :=
-  (((2 * m).factorial : ℝ)⁻¹) *
-    ∑ q : Fin (2 * m) → ι, s.coeff q * coordinateMonomial q z
-
-/-- Pointwise nonnegativity, used as a sufficient normalizability hypothesis. -/
-def Nonnegative {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m) : Prop :=
-  ∀ z, 0 ≤ s.potential z
-
-/-- An even homogeneous potential is invariant under the global sign flip.
-
-Informal proof: each monomial has degree `2m`, so replacing every coordinate by its negative
-contributes the factor `(-1)^(2m)=1`; the scalar factor and the finite sum preserve the equality. -/
-theorem potential_neg {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m)
-    (z : EuclideanSpace ℝ ι) :
-    s.potential (-z) = s.potential z := by
-  unfold EvenCoupling.potential
-  congr 1
-  exact Finset.sum_congr rfl (fun q _hq => by
-    congr 1
-    -- `coordinateMonomial q (-z) = coordinateMonomial q z`: an even number of sign flips
-    dsimp [coordinateMonomial]
-    rw [Finset.prod_neg]
-    have hcard : (Finset.univ : Finset (Fin (2 * m))).card = 2 * m := by simp
-    have heven : Even (2 * m) := ⟨m, by ring⟩
-    rw [hcard, Even.neg_one_pow heven]
-    simp)
-
-/-- An even homogeneous potential is continuous.
-
-Informal proof: coordinate evaluation is continuous on Euclidean space; finite products, scalar
-multiples, and finite sums of continuous real-valued functions remain continuous. -/
-theorem continuous_potential {ι : Type uI} {m : ℕ} [Fintype ι] (s : EvenCoupling ι m) :
-    Continuous s.potential := by
-  unfold EvenCoupling.potential coordinateMonomial
-  fun_prop
-
-end EvenCoupling
 
 /-- A parity-even polynomial action with interactions through a finite cutoff.  Couplings below
 order two and above `cutoff` are ignored by `interactionPotential`. -/
@@ -154,8 +95,7 @@ private lemma ofQuartic_coupling_two {ι : Type uI}
 private lemma evenCoupling_ofQuartic_potential {ι : Type uI} [Fintype ι]
     (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
     (EvenCoupling.ofQuartic A).potential z = A.potential z := by
-  simp [EvenCoupling.potential, EvenCoupling.ofQuartic, QuarticCoupling.potential,
-    coordinateMonomial]
+  exact QuarticCoupling.evenCoupling_ofQuartic_potential A z
 
 /-- The general interaction potential specializes to the existing quartic potential.
 
@@ -194,8 +134,7 @@ theorem potential_neg (A : EvenAction ι) (ε : ℝ) (z : EuclideanSpace ℝ ι)
 Informal proof: unfolding the dot-product and matrix-vector product, the quadratic action is a
 finite sum of products of coordinate projections, hence continuous. -/
 theorem quadraticAction_continuous (P : Matrix ι ι ℝ) : Continuous (quadraticAction P) := by
-  unfold quadraticAction dotProduct mulVec
-  fun_prop
+  exact Action.quadraticAction_continuous P
 
 /-- The full hierarchical even action is continuous. -/
 theorem continuous_potential (A : EvenAction ι) (ε : ℝ) : Continuous (A.potential ε) := by

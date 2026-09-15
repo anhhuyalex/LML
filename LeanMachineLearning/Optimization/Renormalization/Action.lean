@@ -82,6 +82,16 @@ def quadraticAction {ι : Type uI} [Fintype ι]
     (P : Matrix ι ι ℝ) (z : EuclideanSpace ℝ ι) : ℝ :=
   (1 / 2 : ℝ) * dotProduct z (P *ᵥ z)
 
+namespace Action
+
+/-- The quadratic action with a fixed precision matrix is continuous. -/
+theorem quadraticAction_continuous {ι : Type uI} [Fintype ι]
+    (P : Matrix ι ι ℝ) : Continuous (quadraticAction P) := by
+  unfold quadraticAction dotProduct mulVec
+  fun_prop
+
+end Action
+
 /-- Gaussian expectation, the rigorous counterpart of the source's bra-ket notation. -/
 def gaussianExpectation {ι : Type uI} [Fintype ι] {E : Type uE}
     [NormedAddCommGroup E] [NormedSpace ℝ E]
@@ -327,6 +337,16 @@ private lemma normSq_sqrt_inv {ι : Type*} [Fintype ι] [DecidableEq ι]
     _ = t ⬝ᵥ (A⁻¹) *ᵥ t := by
           rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
 
+/-- Squaring the determinant of the positive square root recovers the determinant. -/
+private lemma det_sqrt_sq {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (A : Matrix ι ι ℝ) (hA : A.PosDef) :
+    ((CFC.sqrt A).det) ^ 2 = A.det := by
+  calc
+    ((CFC.sqrt A).det) ^ 2 = (CFC.sqrt A * CFC.sqrt A).det := by
+      rw [Matrix.det_mul]
+      ring
+    _ = A.det := by rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
+
 -- The normalization constant of the Gaussian integral, isolated for reuse:
 -- `sqrt ((2π)^n / det A) = |det (sqrt A)⁻¹| * (π / (1/2))^(n/2)`.
 private lemma gaussianConstant {ι : Type*} [Fintype ι] [DecidableEq ι]
@@ -334,12 +354,7 @@ private lemma gaussianConstant {ι : Type*} [Fintype ι] [DecidableEq ι]
     Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) =
       (|(CFC.sqrt A).det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) := by
   classical
-  have hL_sq : ((CFC.sqrt A).det) ^ 2 = A.det := by
-    calc
-      ((CFC.sqrt A).det) ^ 2 = (CFC.sqrt A * CFC.sqrt A).det := by
-        rw [Matrix.det_mul]
-        ring
-      _ = A.det := by rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
+  have hL_sq := det_sqrt_sq A hA
   have hA_det_pos : 0 < A.det := hA.det_pos
   have hL_abs : |(CFC.sqrt A).det| = Real.sqrt (A.det) := by
     rw [← hL_sq, Real.sqrt_sq_eq_abs]
@@ -375,11 +390,7 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
   have hL_det_ne : L.det ≠ 0 := by
     have hL_sq : (L.det) ^ 2 = A.det := by
       dsimp [L]
-      calc
-        ((CFC.sqrt A).det) ^ 2 = (CFC.sqrt A * CFC.sqrt A).det := by
-          rw [Matrix.det_mul]
-          ring
-        _ = A.det := by rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
+      exact det_sqrt_sq A hA
     intro hzero
     have : (L.det) ^ 2 = 0 := by rw [hzero, zero_pow two_ne_zero]
     rw [hL_sq] at this
@@ -523,12 +534,7 @@ private lemma gaussianIntegral_exp_neg_quadraticAction_of_posDef {ι : Type*} [F
     (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction A z)) ∂volume) =
       Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) := by
   classical
-  have hL_sq : ((CFC.sqrt A).det) ^ 2 = A.det := by
-    calc
-      ((CFC.sqrt A).det) ^ 2 = (CFC.sqrt A * CFC.sqrt A).det := by
-        rw [Matrix.det_mul]
-        ring
-      _ = A.det := by rw [CFC.sqrt_mul_sqrt_self A hA.posSemidef.nonneg]
+  have hL_sq := det_sqrt_sq A hA
   have hL_det_ne : (CFC.sqrt A).det ≠ 0 := by
     intro hzero
     have : ((CFC.sqrt A).det) ^ 2 = 0 := by rw [hzero, zero_pow two_ne_zero]

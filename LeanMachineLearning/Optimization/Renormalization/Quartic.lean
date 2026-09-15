@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
+public import LeanMachineLearning.Optimization.Renormalization.EvenCoupling
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 
 /-!
@@ -45,6 +46,15 @@ structure QuarticCoupling (ι : Type*) where
   /-- Coefficients are invariant under every permutation of the four slots. -/
   coeff_perm : ∀ (σ : Equiv.Perm (Fin 4)) (q : Fin 4 → ι), coeff (q ∘ σ) = coeff q
 
+namespace EvenCoupling
+
+/-- Regard a quartic coupling as an even coupling of half-degree two. -/
+def ofQuartic {ι : Type*} (A : QuarticCoupling ι) : EvenCoupling ι 2 where
+  coeff := A.coeff
+  coeff_perm := A.coeff_perm
+
+end EvenCoupling
+
 namespace QuarticCoupling
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
@@ -52,6 +62,13 @@ variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 /-- Quartic potential with the conventional `1 / 4!` symmetry factor. -/
 def potential (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) : ℝ :=
   (((4 : ℕ).factorial : ℝ)⁻¹) * ∑ q : Fin 4 → ι, A.coeff q * ∏ r, z (q r)
+
+omit [DecidableEq ι] in
+/-- The quartic potential is the half-degree-two even potential. -/
+@[simp] theorem evenCoupling_ofQuartic_potential (A : QuarticCoupling ι)
+    (z : EuclideanSpace ℝ ι) :
+    (EvenCoupling.ofQuartic A).potential z = A.potential z := by
+  rfl
 
 /-- Pointwise nonnegativity of a quartic potential.  This is not implied by total symmetry. -/
 def Nonnegative (A : QuarticCoupling ι) : Prop :=
@@ -82,19 +99,17 @@ omit [DecidableEq ι] in
 Informal proof: coordinate evaluation is continuous on Euclidean space; finite products, scalar
 multiples, and finite sums of continuous real-valued functions remain continuous. -/
 theorem continuous_potential (A : QuarticCoupling ι) : Continuous A.potential := by
-  unfold potential
-  fun_prop
+  rw [← show (EvenCoupling.ofQuartic A).potential = A.potential by
+    funext z
+    exact evenCoupling_ofQuartic_potential A z]
+  exact EvenCoupling.continuous_potential (EvenCoupling.ofQuartic A)
 
 omit [DecidableEq ι] in
 /-- A quartic potential is invariant under the global sign flip. -/
 theorem potential_neg (A : QuarticCoupling ι) (z : EuclideanSpace ℝ ι) :
     A.potential (-z) = A.potential z := by
-  unfold potential
-  congr 1
-  exact Finset.sum_congr rfl (fun q _hq ↦ by
-    congr 1
-    rw [Fin.prod_univ_four, Fin.prod_univ_four]
-    simp)
+  rw [← evenCoupling_ofQuartic_potential A (-z), ← evenCoupling_ofQuartic_potential A z]
+  exact EvenCoupling.potential_neg (EvenCoupling.ofQuartic A) z
 
 /-- Nonnegative quartic potentials are normalizable at every nonnegative coupling.
 

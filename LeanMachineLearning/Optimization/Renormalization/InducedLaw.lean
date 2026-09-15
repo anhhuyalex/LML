@@ -860,14 +860,12 @@ def hyperparams {σ : ℝ → ℝ} {m n : ℕ} : (N : MLPEnsemble σ m n) → N.
   | .hidden p N => (p, N.hyperparams)
 
 /-- Depth of an ensemble architecture. -/
-def depth {σ : ℝ → ℝ} {m n : ℕ} : MLPEnsemble σ m n → ℕ
-  | .output _ => 1
-  | .hidden _ N => N.depth + 1
+def depth {σ : ℝ → ℝ} {m n : ℕ} (N : MLPEnsemble σ m n) : ℕ :=
+  N.shape.depth
 
 /-- Input width followed by all layer widths of an ensemble architecture. -/
-def widths {σ : ℝ → ℝ} {m n : ℕ} : MLPEnsemble σ m n → List ℕ
-  | .output _ => [m, n]
-  | .hidden _ N => m :: N.widths
+def widths {σ : ℝ → ℝ} {m n : ℕ} (N : MLPEnsemble σ m n) : List ℕ :=
+  N.shape.widths
 
 /-- Kernel semantics of an independently initialized MLP on a shared finite batch.
 

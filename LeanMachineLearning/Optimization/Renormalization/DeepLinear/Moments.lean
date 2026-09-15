@@ -736,30 +736,10 @@ private lemma integrable_monomial_outputLaw_even {dIn dOut : ℕ}
             rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
           _ = (∑ j : Fin dOut, z j ^ 2) ^ m := by
             rw [pow_mul, Real.sq_sqrt (Finset.sum_nonneg (fun j _ => sq_nonneg (z j)))]
-      have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
-        (s := (Finset.univ : Finset (Fin dOut)))
-        (f := fun j : Fin dOut => z j ^ 2)
-        (p := (m : ℝ)) (hp := by exact_mod_cast hmpos) (hf := fun j _ => sq_nonneg (z j))
       have hpm' : (∑ j : Fin dOut, z j ^ 2) ^ m ≤ C * ∑ j : Fin dOut, z j ^ (2 * m) := by
-        have hpm2 : (∑ j : Fin dOut, z j ^ 2) ^ (m : ℝ) ≤
-            (Fintype.card (Fin dOut) : ℝ) ^ ((m : ℝ) - 1) *
-              ∑ j : Fin dOut, (z j ^ 2) ^ (m : ℝ) := by
-          simpa [Finset.card_univ, Fintype.card_fin] using hpm
-        calc
-          (∑ j : Fin dOut, z j ^ 2) ^ m = (∑ j : Fin dOut, z j ^ 2) ^ (m : ℝ) := by
-            rw [Real.rpow_natCast]
-          _ ≤ (Fintype.card (Fin dOut) : ℝ) ^ ((m : ℝ) - 1) *
-              ∑ j : Fin dOut, (z j ^ 2) ^ (m : ℝ) := hpm2
-          _ = C * ∑ j : Fin dOut, z j ^ (2 * m) := by
-            have hexp : ((m : ℝ) - 1) = ((m - 1 : ℕ) : ℝ) := by
-              rw [Nat.cast_sub hmpos]
-              norm_num
-            rw [hexp, Real.rpow_natCast]
-            congr 1
-            apply Finset.sum_congr rfl
-            intro j _
-            rw [Real.rpow_natCast]
-            simp [← pow_mul]
+        simpa [C, Fintype.card_fin, pow_mul] using
+          (sum_pow_le_card_pow_mul_sum_pow_nat (fun j : Fin dOut => z j ^ 2) m hmpos
+            (fun j => sq_nonneg (z j)))
       calc
         ‖∏ r : Fin (2 * m), z (a r)‖ = |∏ r : Fin (2 * m), z (a r)| := by
           rw [Real.norm_eq_abs]
@@ -1469,34 +1449,13 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
         refine Integrable.mono' hdom ?_ (Filter.Eventually.of_forall ?_)
         · exact (hmeasE.pow_const m).aestronglyMeasurable
         · intro q
-          have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
-            (s := (Finset.univ : Finset (Fin k)))
-            (f := fun p : Fin k => (DenseLayer.ofParams q).preactivation x p ^ 2)
-            (p := (m : ℝ)) (hp := by exact_mod_cast hmpos) (hf := fun p _ => sq_nonneg _)
           have hpm' : (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m ≤
               (Fintype.card (Fin k) : ℝ) ^ (m - 1) *
                 ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m) := by
-            have hpm2 : (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) ≤
-                (Fintype.card (Fin k) : ℝ) ^ ((m : ℝ) - 1) *
-                  ∑ p : Fin k, ((DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) := by
-              simpa [Finset.card_univ, Fintype.card_fin] using hpm
-            calc
-              (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m
-                  = (∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) := by
-                    rw [Real.rpow_natCast]
-              _ ≤ (Fintype.card (Fin k) : ℝ) ^ ((m : ℝ) - 1) *
-                    ∑ p : Fin k, ((DenseLayer.ofParams q).preactivation x p ^ 2) ^ (m : ℝ) := hpm2
-              _ = (Fintype.card (Fin k) : ℝ) ^ (m - 1) *
-                    ∑ p : Fin k, (DenseLayer.ofParams q).preactivation x p ^ (2 * m) := by
-                    have hexp : ((m : ℝ) - 1) = ((m - 1 : ℕ) : ℝ) := by
-                      rw [Nat.cast_sub hmpos]
-                      norm_num
-                    rw [hexp, Real.rpow_natCast]
-                    congr 1
-                    apply Finset.sum_congr rfl
-                    intro p _
-                    rw [Real.rpow_natCast]
-                    simp [← pow_mul]
+            simpa [Fintype.card_fin, pow_mul] using
+              (sum_pow_le_card_pow_mul_sum_pow_nat
+                (fun p : Fin k => (DenseLayer.ofParams q).preactivation x p ^ 2) m hmpos
+                (fun p => sq_nonneg _))
           have hnormE : NeuralNetwork.normalizedEnergy (f q) ^ m =
               ((Fintype.card (Fin k) : ℝ)⁻¹) ^ m * (∑ p : Fin k,
                 (DenseLayer.ofParams q).preactivation x p ^ 2) ^ m := by

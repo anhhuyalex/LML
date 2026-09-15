@@ -903,24 +903,8 @@ private lemma hasDerivAt_gaussianPDFReal (t : ℝ) :
 -- integral below via the fundamental theorem of calculus.
 private lemma hasDerivAt_neg_gaussianPDFReal (t : ℝ) :
     HasDerivAt (fun s => -gaussianPDFReal 0 1 s) (t * gaussianPDFReal 0 1 t) t := by
-  have hinner : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) (-t) t := by
-    have h1 : HasDerivAt (fun s : ℝ => s ^ 2) (2 * t) t := by simpa using hasDerivAt_pow 2 t
-    have h2 : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) ((-(2 * t)) / 2) t := h1.neg.div_const 2
-    convert h2 using 1
-    ring
-  have hexp : HasDerivAt (fun s : ℝ => Real.exp (-(s ^ 2) / 2))
-      (Real.exp (-(t ^ 2) / 2) * (-t)) t := hinner.exp
-  have hmul : HasDerivAt (fun s : ℝ => -((Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2)))
-      (-((Real.sqrt (2 * Real.pi))⁻¹ * (Real.exp (-(t ^ 2) / 2) * (-t)))) t :=
-    (hexp.const_mul (Real.sqrt (2 * Real.pi))⁻¹).neg
-  have heq : (fun s : ℝ => -((Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2))) =
-      fun s => -gaussianPDFReal 0 1 s := by
-    funext s
-    simp [gaussianPDFReal]
-  rw [heq] at hmul
-  convert hmul using 1
-  simp only [gaussianPDFReal, NNReal.coe_one, sub_zero, mul_one]
-  ring
+  change HasDerivAt (-(gaussianPDFReal 0 1)) (t * gaussianPDFReal 0 1 t) t
+  simpa using (hasDerivAt_gaussianPDFReal t).neg
 
 -- The exact antiderivative identity `∫ t in x..b, t φ(t) = φ(x) - φ(b)`.
 private lemma intervalIntegral_mul_gaussianPDFReal_eq (x b : ℝ) :

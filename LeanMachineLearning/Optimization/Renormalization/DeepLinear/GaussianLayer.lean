@@ -48,6 +48,26 @@ theorem widthMomentFactor_three (n : ℕ) :
     widthMomentFactor 3 n = (1 + 2 / (n : ℝ)) * (1 + 4 / (n : ℝ)) := by
   norm_num [widthMomentFactor, Finset.prod_range_succ]
 
+/-- The natural-power form of the finite power-mean bound.  This packages the recurring
+conversion from Mathlib's real-exponent inequality to the integer exponents used for Gaussian
+moment bounds. -/
+theorem sum_pow_le_card_pow_mul_sum_pow_nat {ι : Type*} [Fintype ι]
+    (f : ι → ℝ) (m : ℕ) (hm : 1 ≤ m) (hf : ∀ i, 0 ≤ f i) :
+    (∑ i, f i) ^ m ≤ (Fintype.card ι : ℝ) ^ (m - 1) * ∑ i, f i ^ m := by
+  have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
+    (s := (Finset.univ : Finset ι)) (f := f) (p := (m : ℝ))
+    (hp := by exact_mod_cast hm) (hf := fun i _ => hf i)
+  calc
+    (∑ i, f i) ^ m = (∑ i, f i) ^ (m : ℝ) := by rw [Real.rpow_natCast]
+    _ ≤ (Fintype.card ι : ℝ) ^ ((m : ℝ) - 1) * ∑ i, f i ^ (m : ℝ) := by
+      simpa [Finset.card_univ] using hpm
+    _ = (Fintype.card ι : ℝ) ^ (m - 1) * ∑ i, f i ^ m := by
+      have hsub : (m : ℝ) - 1 = ((m - 1 : ℕ) : ℝ) := by
+        rw [Nat.cast_sub hm]
+        norm_num
+      rw [hsub, Real.rpow_natCast]
+      simp_rw [Real.rpow_natCast]
+
 /-- The product law of `n` independent standard real Gaussians. -/
 def standardGaussianVectorLaw (n : ℕ) : Measure (Fin n → ℝ) :=
   Measure.pi fun _ : Fin n => gaussianReal 0 1
@@ -162,20 +182,9 @@ private lemma integrable_sumSq_pow_stdGaussian (m : ℕ) (n : ℕ) :
       have hbound : ∀ g : Fin n → ℝ,
           (∑ i : Fin n, g i ^ 2) ^ m ≤ (n : ℝ) ^ (m - 1) * ∑ j : Fin n, g j ^ (2 * m) := by
         intro g
-        have hpm := Real.rpow_sum_le_const_mul_sum_rpow_of_nonneg
-          (s := Finset.univ) (f := fun i : Fin n => g i ^ 2) (p := (m : ℝ))
-          (hp := by exact_mod_cast hmpos) (hf := fun i _ => sq_nonneg (g i))
-        have hpm' : (∑ i : Fin n, g i ^ 2) ^ m ≤
-            (n : ℝ) ^ (m - 1) * ∑ j : Fin n, (g j ^ 2) ^ m := by
-          calc
-            (∑ i : Fin n, g i ^ 2) ^ m = (∑ i : Fin n, g i ^ 2) ^ ((m : ℝ)) := by
-              rw [← Real.rpow_natCast]
-            _ ≤ (n : ℝ) ^ ((m : ℝ) - 1) * ∑ i : Fin n, (g i ^ 2) ^ ((m : ℝ)) := by
-              simpa [Finset.card_univ, Fintype.card_fin] using hpm
-            _ = (n : ℝ) ^ (m - 1) * ∑ j : Fin n, (g j ^ 2) ^ m := by
-              rw [← Nat.cast_one, ← Nat.cast_sub hmpos]
-              simp_rw [Real.rpow_natCast]
-        simpa [← pow_mul] using hpm'
+        simpa [Fintype.card_fin, pow_mul] using
+          (sum_pow_le_card_pow_mul_sum_pow_nat (fun i : Fin n => g i ^ 2) m hmpos
+            (fun i => sq_nonneg (g i)))
       refine Integrable.mono' (hsum.const_mul ((n : ℝ) ^ (m - 1))) ?_
         (Filter.Eventually.of_forall ?_)
       · exact ((Finset.measurable_sum Finset.univ (fun i _ =>
