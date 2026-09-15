@@ -48,6 +48,8 @@ derived via a geometric argument on the sphere.
 * `NTK.ntkSummand` : the iid summand `σ'(wᵀx)σ'(wᵀx')` of the empirical average,
   with measurability/boundedness/integrability API (`measurable_ntkSummand`,
   `abs_ntkSummand_le`, `integrable_ntkSummand`).
+* `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
+  measurable integrable functions of iid Gaussian rows.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
 
