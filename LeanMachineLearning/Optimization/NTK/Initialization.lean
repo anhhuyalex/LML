@@ -402,13 +402,7 @@ private lemma posSemidef_of_bilin_nonneg
   simp_rw [h_inner]
   have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * M i j * x j) =
       (fun i => x i) ⬝ᵥ M *ᵥ (fun i => x i) := by
-    simp only [dotProduct, mulVec]
-    apply Finset.sum_congr rfl
-    intro i _
-    rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro j _
-    ring
+    rw [Finset.sum_comm, ← Matrix.dot_mulVec_eq_sum_sum]
   rw [h_dot]
   exact h_nonneg (fun i => x i)
 
@@ -709,14 +703,8 @@ lemma continuous_matrix_quadratic (c : Fin m → ℝ) :
     Continuous (fun M : Matrix (Fin m) (Fin m) ℝ => c ⬝ᵥ M *ᵥ c) := by
   have h_eq : (fun M : Matrix (Fin m) (Fin m) ℝ => c ⬝ᵥ M *ᵥ c) =
       fun M => ∑ α : Fin m, ∑ β : Fin m, c α * M α β * c β := by
-    ext M
-    simp only [dotProduct, mulVec]
-    apply Finset.sum_congr rfl
-    intro α _
-    rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro β _
-    ring
+    funext M
+    rw [Matrix.dot_mulVec_eq_sum_sum, Finset.sum_comm]
   rw [h_eq]
   have h_entry (α β : Fin m) : Continuous (fun M : Matrix (Fin m) (Fin m) ℝ => M α β) :=
     (continuous_apply β).comp (continuous_apply α)
@@ -868,14 +856,8 @@ lemma measurable_exp_quadratic_empiricalCovariance
       t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) := by
     have h_eq : (fun W : Fin n → Fin d → ℝ => t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) =
         fun W => ∑ α : Fin m, ∑ β : Fin m, t.ofLp α * (empiricalCovariance n φ W X α β) * t.ofLp β := by
-      ext W
-      simp only [dotProduct, mulVec]
-      apply Finset.sum_congr rfl
-      intro α _
-      rw [Finset.mul_sum]
-      apply Finset.sum_congr rfl
-      intro β _
-      ring
+      funext W
+      rw [Matrix.dot_mulVec_eq_sum_sum, Finset.sum_comm]
     rw [h_eq]
     refine Finset.measurable_sum _ fun α _ => Finset.measurable_sum _ fun β _ => ?_
     have h_cov : Measurable (fun W : Fin n → Fin d → ℝ => empiricalCovariance n φ W X α β) := by
