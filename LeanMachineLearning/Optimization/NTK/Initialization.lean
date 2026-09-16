@@ -20,7 +20,6 @@ public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
 
-
 /-!
 # NTK Initialization and Exact Finite-Width Conditional Distribution
 
@@ -92,6 +91,30 @@ for the Covariance Tensor / Asymptotic NNGP Limit) for neural networks.
     $$\Phi^{(n), \alpha \beta} = \frac{1}{n} \sum_{i=1}^n Y_i
       \xrightarrow{\text{a.s.}} \mathbb{E}_{\mathbf{w}}[Y_1]$$
 
+* **Theorem (Gaussianity of Linear Combinations / Asymptotic NNGP Limit)**:
+  * As width $n \to \infty$, the scalar linear combination converges in distribution to a
+    zero-mean univariate normal random variable with variance
+    $\mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u}$:
+    $$S_n(\mathbf{u}) = \sum_{\alpha=1}^m u_\alpha f(\mathbf{x}^\alpha; \boldsymbol{\theta})
+      \xrightarrow{d} \mathcal{N}\left( 0, \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u} \right)$$
+  * Step 1: Linear combination of readout weights:
+    $S_n(\mathbf{u}) = \sum_{i=1}^n a_i \psi_i(\mathbf{u})$.
+  * Step 2: Exact conditional distribution:
+    $S_n(\mathbf{u}) \mid \mathcal{F} \sim
+      \mathcal{N}(0, \mathbf{u}^\top \boldsymbol{\Phi}^{(n)} \mathbf{u})$.
+  * Step 3: Almost sure convergence of conditional variance:
+    $\mathbf{u}^\top \boldsymbol{\Phi}^{(n)} \mathbf{u} \xrightarrow{\text{a.s.}}
+      \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u}$.
+  * Step 4: Unconditional characteristic function:
+    $\psi_n(t) =
+      \mathbb{E}_{\mathbf{W}}[\exp(-\frac{t^2}{2}
+        \mathbf{u}^\top \boldsymbol{\Phi}^{(n)} \mathbf{u})]$.
+  * Step 5: Passing the limit via Dominated Convergence Theorem:
+    $\lim_{n \to \infty} \psi_n(t) =
+      \exp(-\frac{t^2}{2} \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u})$.
+  * Step 6: Weak convergence conclusion via Lévy's Continuity Theorem:
+    $S_n(\mathbf{u}) \xrightarrow{d} \mathcal{N}(0, \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u})$.
+
 ## Main definitions and theorems
 
 * `NTK.gaussianReadoutMeasure` : transparent product measure $\bigotimes_{i=1}^n \mathcal{N}(0, 1)$.
@@ -115,6 +138,14 @@ for the Covariance Tensor / Asymptotic NNGP Limit) for neural networks.
   pushforward API.
 * `NTK.charFun_outputMeasure` : total-expectation formula for the unconditional
   characteristic function.
+* `NTK.outputMeasure_tendsto_multivariateGaussian` : Theorem 3 multivariate weak convergence.
+* `NTK.tendstoInDistribution_evalVector` : Theorem 3 multivariate convergence in distribution.
+* `NTK.conditionalVariance_tendsto_limitingVariance_ae` : Step 3 almost sure convergence of
+  conditional variance.
+* `NTK.charFun_map_projection` : Step 4 unconditional characteristic function of projections.
+* `NTK.tendsto_charFun_map_projection` : Step 5 DCT limit of projection characteristic function.
+* `NTK.map_projection_tendsto_gaussianReal` : Step 6 weak convergence of linear combinations.
+* `NTK.tendstoInDistribution_projection` : Theorem (Gaussianity of Linear Combinations).
 -/
 
 @[expose] public section
@@ -400,11 +431,10 @@ private lemma posSemidef_of_bilin_nonneg
       ∑ j : Fin m, x i * M i j * x j := by
     rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
   simp_rw [h_inner]
-  have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * M i j * x j) =
-      (fun i => x i) ⬝ᵥ M *ᵥ (fun i => x i) := by
+  have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * M i j * x j) = x ⬝ᵥ M *ᵥ x := by
     rw [Finset.sum_comm, ← Matrix.dot_mulVec_eq_sum_sum]
   rw [h_dot]
-  exact h_nonneg (fun i => x i)
+  exact h_nonneg x
 
 /-- The empirical covariance matrix `Φ^{(n)}` is positive semidefinite (`PosSemidef`). -/
 theorem empiricalCovariance_posSemidef
@@ -435,13 +465,12 @@ lemma map_gaussianReadoutMeasure_inner (v : Fin n → ℝ) :
     rw [h_map]
     have h_mean : ∫ (u : EuclideanSpace ℝ (Fin n)),
         (innerSL ℝ (WithLp.toLp 2 v)) u ∂stdGaussian (EuclideanSpace ℝ (Fin n)) = 0 := by
-      rw [(innerSL ℝ (WithLp.toLp 2 v)).integral_comp_id_comm IsGaussian.integrable_id]
-      rw [integral_id_stdGaussian]
+      rw [(innerSL ℝ (WithLp.toLp 2 v)).integral_comp_id_comm IsGaussian.integrable_id,
+        integral_id_stdGaussian]
       exact map_zero (innerSL ℝ (WithLp.toLp 2 v))
     have h_var : Var[innerSL ℝ (WithLp.toLp 2 v); stdGaussian (EuclideanSpace ℝ (Fin n))] =
         ∑ i : Fin n, v i ^ 2 := by
-      rw [variance_dual_stdGaussian]
-      rw [innerSL_apply_norm]
+      rw [variance_dual_stdGaussian, innerSL_apply_norm]
       simp only [EuclideanSpace.real_norm_sq_eq]
     rw [h_mean, h_var]
   all_goals fun_prop
@@ -505,8 +534,7 @@ lemma charFun_readout_evalVector
   have h_int_map : (∫ a, Complex.exp (⟪t, evalVector φ W a X⟫ * Complex.I) ∂gaussianReadoutMeasure n) =
       ∫ y : ℝ, Complex.exp (y * Complex.I) ∂Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) := by
     rw [integral_map h_meas_inner.aemeasurable (by fun_prop)]
-  rw [h_int_map]
-  rw [map_readout_inner_evalVector φ W X t]
+  rw [h_int_map, map_readout_inner_evalVector φ W X t]
   have h_cf_1 : (∫ y : ℝ, Complex.exp (y * Complex.I) ∂(gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp)))) =
       charFun (gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp))) 1 := by
     rw [charFun_apply_real]
@@ -539,8 +567,7 @@ theorem exact_conditional_normality
     empiricalCovariance_posSemidef n φ W X
   apply Measure.ext_of_charFun
   ext t
-  rw [charFun_readout_evalVector]
-  rw [charFun_multivariateGaussian hPos]
+  rw [charFun_readout_evalVector, charFun_multivariateGaussian hPos]
   congr 1
   simp only [inner_zero_right, Complex.ofReal_zero, zero_mul, zero_sub, neg_div]
 
@@ -654,8 +681,7 @@ theorem empiricalCovariance_tendsto_matrix_integral
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
-  refine tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => ?_
-  exact hrows α β
+  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hrows α β
 
 end Theorem2
 
@@ -708,8 +734,8 @@ lemma continuous_matrix_quadratic (c : Fin m → ℝ) :
   rw [h_eq]
   have h_entry (α β : Fin m) : Continuous (fun M : Matrix (Fin m) (Fin m) ℝ => M α β) :=
     (continuous_apply β).comp (continuous_apply α)
-  refine continuous_finsetSum _ fun α _ => continuous_finsetSum _ fun β _ => ?_
-  exact (continuous_const.mul (h_entry α β)).mul continuous_const
+  exact continuous_finsetSum _ fun α _ => continuous_finsetSum _ fun β _ =>
+    (continuous_const.mul (h_entry α β)).mul continuous_const
 
 /-- The quadratic form with the limiting NNGP covariance matrix `c ⬝ᵥ Φ^{(∞)} *ᵥ c` is nonnegative. -/
 lemma limitingCovariance_nonneg
@@ -746,9 +772,8 @@ lemma evalSingle_joint_measurable
   refine Finset.measurable_sum _ fun i _ => ?_
   have h_ai : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i) :=
     (measurable_pi_apply i).comp measurable_snd
-  have h_Wi : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => φ (p.1 i ⊙ x)) := by
-    refine hφ.comp ?_
-    exact (measurable_innerProduct_left x).comp ((measurable_pi_apply i).comp measurable_fst)
+  have h_Wi : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => φ (p.1 i ⊙ x)) :=
+    hφ.comp ((measurable_innerProduct_left x).comp ((measurable_pi_apply i).comp measurable_fst))
   exact h_ai.mul h_Wi
 
 lemma evalVector_joint_measurable
@@ -756,8 +781,8 @@ lemma evalVector_joint_measurable
     Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalVector φ p.1 p.2 X) := by
   change Measurable ((WithLp.toLp 2) ∘
     (fun (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) α => evalSingle φ p.1 p.2 (X α)))
-  refine (PiLp.continuous_toLp 2 _).measurable.comp ?_
-  exact measurable_pi_iff.2 fun α => evalSingle_joint_measurable φ hφ (X α)
+  exact (PiLp.continuous_toLp 2 _).measurable.comp
+    (measurable_pi_iff.2 fun α => evalSingle_joint_measurable φ hφ (X α))
 
 /-- Joint distribution of network outputs across evaluation points `X` at width `n`:
   `outputMeasure n d φ X = (initMeasure n d).map (fun (W, a) => evalVector φ W a X)`. -/
@@ -784,8 +809,7 @@ first `n` hidden units is exactly the finite-width input weight measure `gaussia
 lemma map_infinitePi_rows_eq_gaussianInit (n d : ℕ) :
     Measure.map (fun (rows : ℕ → Fin d → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d) = gaussianInit n d := by
-  rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective]
-  rw [Measure.infinitePi_eq_pi]
+  rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
   rfl
 
 /-! ### Step 1 & Step 2: Unconditional Characteristic Function -/
@@ -868,20 +892,15 @@ lemma measurable_exp_quadratic_empiricalCovariance
         measurable_cov_summand φ hφ (X α) (X β)
       exact h_summand.comp (measurable_pi_apply i)
     exact (measurable_const.mul h_cov).mul measurable_const
-  refine Complex.measurable_exp.comp ?_
-  refine Measurable.div_const ?_ 2
-  refine Measurable.neg ?_
-  exact Complex.measurable_ofReal.comp h_quad
+  exact Complex.measurable_exp.comp
+    (((Complex.measurable_ofReal.comp h_quad).neg).div_const 2)
 
 /-- The characteristic integrand `M ↦ exp(- (1/2) t ⬝ᵥ M *ᵥ t)` is continuous. -/
 lemma continuous_charFun_integrand (t : EuclideanSpace ℝ (Fin m)) :
     Continuous (fun M : Matrix (Fin m) (Fin m) ℝ =>
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ M *ᵥ t.ofLp) / 2)) := by
-  refine Complex.continuous_exp.comp ?_
-  refine Continuous.div_const ?_ 2
-  refine Continuous.neg ?_
-  refine Complex.continuous_ofReal.comp ?_
-  exact continuous_matrix_quadratic t.ofLp
+  exact Complex.continuous_exp.comp
+    (((Complex.continuous_ofReal.comp (continuous_matrix_quadratic t.ofLp)).neg).div_const 2)
 
 /-- Expressing the expectation under `gaussianInit n d` as an expectation under `infinitePi`. -/
 lemma integral_charFun_gaussianInit_eq_infinitePi
@@ -921,11 +940,8 @@ lemma charFun_integrand_tendsto_ae
 /-- Auxiliary: `‖exp(- s / 2)‖ ≤ 1` for nonnegative real `s`. -/
 lemma norm_exp_neg_ofReal_div_two_le_one {s : ℝ} (hs : 0 ≤ s) :
     ‖Complex.exp (- Complex.ofReal s / 2)‖ ≤ 1 := by
-  have h_re : (- Complex.ofReal s / 2).re = - s / 2 := by simp
-  rw [Complex.norm_exp, h_re]
-  have h_le : - s / 2 ≤ 0 := by linarith
-  have h_exp := Real.exp_le_exp_of_le h_le
-  rwa [Real.exp_zero] at h_exp
+  rw [Complex.norm_exp, show (- Complex.ofReal s / 2).re = - s / 2 by simp, ← Real.exp_zero]
+  exact Real.exp_le_exp_of_le (by linarith)
 
 /-- Step 4 uniform bound: The characteristic integrand is bounded by `1` uniformly in `n` and `W`. -/
 lemma norm_charFun_readout_le_one
@@ -1056,6 +1072,200 @@ theorem tendstoInDistribution_evalVector
   aemeasurable_limit := measurable_id.aemeasurable
   tendsto := by
     convert! outputMeasure_tendsto_multivariateGaussian φ X hφ_meas hφ_L2
+    exact Subtype.ext Measure.map_id
+
+/-! ### Gaussianity of Linear Combinations (Scalar NNGP Limit) -/
+
+/-- Homogeneity of matrix quadratic forms under scalar multiplication. -/
+lemma dot_mulVec_smul (t : ℝ) (M : Matrix (Fin m) (Fin m) ℝ) (u : Fin m → ℝ) :
+    (t • u) ⬝ᵥ M *ᵥ (t • u) = t ^ 2 * (u ⬝ᵥ M *ᵥ u) := by
+  rw [mulVec_smul, smul_dotProduct, dotProduct_smul]
+  simp only [smul_eq_mul]
+  ring
+
+/-- The scalar projection is measurable as a joint function of `(W, a)`. -/
+lemma projection_joint_measurable
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (X : Fin m → Fin d → ℝ) (u : Fin m → ℝ) :
+    Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) := by
+  exact Finset.measurable_sum _ fun α _ =>
+    measurable_const.mul (evalSingle_joint_measurable φ hφ_meas (X α))
+
+/-- Expressing the inner product with `WithLp.toLp 2 (t • u)` as a scaled projection sum. -/
+lemma inner_smul_evalVector (t : ℝ) (u : Fin m → ℝ)
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (X : Fin m → Fin d → ℝ) :
+    ⟪evalVector φ W a X, WithLp.toLp 2 (t • u)⟫ =
+      t * ∑ α : Fin m, u α * evalSingle φ W a (X α) := by
+  rw [real_inner_comm, evalVector_inner]
+  simp only [Pi.smul_apply, smul_eq_mul]
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro α _
+  ring
+
+/-- **Step 3 (Almost sure convergence of conditional variance)**:
+By Theorem 2 and continuity of matrix quadratic forms, the conditional variance
+converges almost surely:
+  `u ⬝ᵥ Φ^{(n)} *ᵥ u →_as u ⬝ᵥ Φ^{(∞)} *ᵥ u`. -/
+lemma conditionalVariance_tendsto_limitingVariance_ae
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (u : Fin m → ℝ) :
+    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ => u ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ u)
+        Filter.atTop
+        (nhds (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u)) := by
+  have h_mat := empiricalCovariance_tendsto_limitingCovariance φ X hφ_meas hφ_L2
+  filter_upwards [h_mat] with rows hrows
+  exact ((continuous_matrix_quadratic u).tendsto (limitingCovariance φ X)).comp hrows
+
+/-- Characteristic function of the projection expressed as evaluation of `charFun (outputMeasure n)`. -/
+lemma charFun_map_projection_eq_outputMeasure
+    (n : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (X : Fin m → Fin d → ℝ)
+    (u : Fin m → ℝ) (t : ℝ) :
+    charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t =
+      charFun (outputMeasure n d φ X) (WithLp.toLp 2 (t • u)) := by
+  have h_proj_meas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) :=
+    projection_joint_measurable φ hφ_meas X u
+  rw [charFun_apply_real, integral_map h_proj_meas.aemeasurable (by fun_prop)]
+  rw [charFun_apply, outputMeasure_eq_map,
+    integral_map (evalVector_joint_measurable φ hφ_meas X).aemeasurable (by fun_prop)]
+  congr 1 with p
+  congr 1
+  rw [inner_smul_evalVector]
+  push_cast
+  ring
+
+/-- **Step 4 (Law of Total Expectation for Scalar Characteristic Function)**:
+The unconditional characteristic function of the linear projection is obtained by
+evaluating `charFun (outputMeasure n)` at the projection direction `WithLp.toLp 2 (t • u)`:
+  `ψ_n(t) = 𝔼_W [exp(- (t²/2) u ⬝ᵥ Φ^{(n)} *ᵥ u)]`. -/
+lemma charFun_map_projection
+    (n : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (X : Fin m → Fin d → ℝ)
+    (u : Fin m → ℝ) (t : ℝ) :
+    charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t =
+      ∫ W, Complex.exp (- Complex.ofReal (t ^ 2 * (u ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ u)) / 2)
+        ∂(gaussianInit n d) := by
+  rw [charFun_map_projection_eq_outputMeasure n φ hφ_meas X u t,
+    charFun_outputMeasure n φ hφ_meas X (WithLp.toLp 2 (t • u))]
+  congr 1 with W
+  congr 2
+  rw [show (WithLp.toLp 2 (t • u)).ofLp = t • u from rfl, dot_mulVec_smul]
+
+/-- **Step 5 (Passing the Limit via Dominated Convergence)**:
+Specializing `tendsto_charFun_outputMeasure` at `WithLp.toLp 2 (t • u)` directly yields
+the limit of the scalar characteristic function without repeating the DCT proof:
+  `lim_{n → ∞} ψ_n(t) = exp(- (t²/2) u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
+lemma tendsto_charFun_map_projection
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (u : Fin m → ℝ) (t : ℝ) :
+    Filter.Tendsto
+      (fun n : ℕ => charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t)
+      Filter.atTop
+      (nhds (Complex.exp (- Complex.ofReal (t ^ 2 * (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u)) / 2))) := by
+  have h_eq (n : ℕ) :
+      charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t =
+      charFun (outputMeasure n d φ X) (WithLp.toLp 2 (t • u)) :=
+    charFun_map_projection_eq_outputMeasure n φ hφ_meas X u t
+  simp_rw [h_eq]
+  have h_lim := tendsto_charFun_outputMeasure φ X hφ_meas hφ_L2 (WithLp.toLp 2 (t • u))
+  have h_quad : (WithLp.toLp 2 (t • u)).ofLp ⬝ᵥ (limitingCovariance φ X) *ᵥ (WithLp.toLp 2 (t • u)).ofLp =
+      t ^ 2 * (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u) := by
+    rw [show (WithLp.toLp 2 (t • u)).ofLp = t • u from rfl, dot_mulVec_smul]
+  rwa [h_quad] at h_lim
+
+/-- Pointwise convergence of scalar characteristic functions to the characteristic function
+of the univariate Gaussian `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
+lemma tendsto_charFun_map_projection_eq_gaussianReal
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (u : Fin m → ℝ) (t : ℝ) :
+    Filter.Tendsto
+      (fun n : ℕ => charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t)
+      Filter.atTop
+      (nhds (charFun (gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u))) t)) := by
+  have h_nonneg : 0 ≤ u ⬝ᵥ (limitingCovariance φ X) *ᵥ u :=
+    limitingCovariance_nonneg φ X hφ_meas hφ_L2 u
+  have h_cf : charFun (gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u))) t =
+      Complex.exp (- Complex.ofReal (t ^ 2 * (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u)) / 2) := by
+    rw [charFun_gaussianReal]
+    simp only [mul_zero, zero_mul, ofReal_zero, zero_sub, neg_div]
+    rw [Real.coe_toNNReal _ h_nonneg]
+    congr 1
+    push_cast
+    ring
+  rw [h_cf]
+  exact tendsto_charFun_map_projection φ X hφ_meas hφ_L2 u t
+
+/-- `Measure.map` of the projection is a probability measure when `φ` is measurable. -/
+lemma isProbabilityMeasure_map_projection
+    (n d : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (X : Fin m → Fin d → ℝ) (u : Fin m → ℝ) :
+    IsProbabilityMeasure (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) :=
+  Measure.isProbabilityMeasure_map (projection_joint_measurable φ hφ_meas X u).aemeasurable
+
+/-- **Theorem (Weak Convergence of Linear Combinations)**:
+As width `n → ∞`, the pushforward law of the scalar linear combination converges weakly
+to the centered univariate Gaussian `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
+theorem map_projection_tendsto_gaussianReal
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (u : Fin m → ℝ) :
+    Filter.Tendsto (β := ProbabilityMeasure ℝ)
+      (fun n : ℕ => ⟨Measure.map (fun p => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d),
+        isProbabilityMeasure_map_projection n d φ hφ_meas X u⟩)
+      Filter.atTop
+      (nhds ⟨gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u)), inferInstance⟩) := by
+  apply ProbabilityMeasure.tendsto_of_tendsto_charFun
+  intro t
+  exact tendsto_charFun_map_projection_eq_gaussianReal φ X hφ_meas hφ_L2 u t
+
+set_option backward.isDefEq.respectTransparency.types false in
+/-- **Theorem (Gaussianity of Linear Combinations / Asymptotic Univariate NNGP)**:
+As width `n → ∞`, the scalar linear combination `S_n(u) = ∑ α, u α * f(X α; θ)` under
+parameter initialization converges in distribution to the centered univariate normal
+distribution `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`:
+  `∑ α, u α * f(X α; θ) →_d 𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`.
+
+**Proof (6 Steps)**:
+* Step 1: `projection_eq_sum_psi` reformulates the projection as `∑ i, a_i * ψ_i`.
+* Step 2: `map_readout_projection_eq_gaussianReal` shows that conditional on input weights,
+  the projection is distributed as `𝒩(0, u ⬝ᵥ Φ^{(n)} *ᵥ u)`.
+* Step 3: `conditionalVariance_tendsto_limitingVariance_ae` proves `u ⬝ᵥ Φ^{(n)} *ᵥ u →_as u ⬝ᵥ Φ^{(∞)} *ᵥ u`.
+* Step 4: `charFun_map_projection` evaluates the unconditional characteristic function as
+  `𝔼_W [exp(- (t²/2) u ⬝ᵥ Φ^{(n)} *ᵥ u)]`.
+* Step 5: `tendsto_charFun_map_projection` uses Dominated Convergence to show that the characteristic
+  function converges to `exp(- (t²/2) u ⬝ᵥ Φ^{(∞)} *ᵥ u)`.
+* Step 6: `tendstoInDistribution_projection` concludes convergence in distribution by Lévy's
+  Continuity Theorem (`ProbabilityMeasure.tendsto_of_tendsto_charFun`). -/
+theorem tendstoInDistribution_projection
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (u : Fin m → ℝ) :
+    TendstoInDistribution
+      (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α))
+      Filter.atTop
+      id
+      (fun n => initMeasure n d)
+      (gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u))) where
+  forall_aemeasurable n := (projection_joint_measurable φ hφ_meas X u).aemeasurable
+  aemeasurable_limit := measurable_id.aemeasurable
+  tendsto := by
+    convert! map_projection_tendsto_gaussianReal φ X hφ_meas hφ_L2 u
     exact Subtype.ext Measure.map_id
 
 end Theorem3
