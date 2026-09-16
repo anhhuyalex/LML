@@ -101,7 +101,8 @@ for the Covariance Tensor / Asymptotic NNGP Limit) for neural networks.
 * `NTK.evalVector` : output vector $\mathbf{f}_m(\mathbf{W}, a)$.
 * `NTK.empiricalCovariance` : empirical covariance matrix $\boldsymbol{\Phi}^{(n)}$.
 * `NTK.psi` : projection coefficients $\psi_i$.
-* `NTK.psi_eq_normalized_sum`, `NTK.psi_sq` : equation and square-expansion API for `psi`.
+* `NTK.psi_eq_normalized_sum`, `NTK.psi_sq`, `NTK.psi_measurable` : equation,
+  square-expansion, and measurability API for `psi`.
 * `NTK.projection_eq_sum_psi` : Step 1 algebraic identity.
 * `NTK.sum_psi_sq_eq_bilin` : Step 4 variance identity
   $\sum_i \psi_i^2 = \mathbf{c}^\top \boldsymbol{\Phi}^{(n)} \mathbf{c}$.
@@ -110,6 +111,10 @@ for the Covariance Tensor / Asymptotic NNGP Limit) for neural networks.
 * `NTK.exact_conditional_normality` : Theorem 1 (multivariate conditional normality).
 * `NTK.empiricalCovariance_tendsto_integral` : Theorem 2 entrywise almost sure convergence.
 * `NTK.empiricalCovariance_tendsto_matrix_integral` : Theorem 2 matrix almost sure convergence.
+* `NTK.outputMeasure`, `NTK.outputMeasure_eq_map` : unconditional output law and its
+  pushforward API.
+* `NTK.charFun_outputMeasure` : total-expectation formula for the unconditional
+  characteristic function.
 -/
 
 @[expose] public section
@@ -381,20 +386,22 @@ private lemma finsupp_sum_eq_sum_univ {α β γ : Type*} [Fintype α] [Zero β] 
     simp only [Finsupp.mem_support_iff, not_not] at hi
     rw [hi, hf]
 
-/-- The empirical covariance matrix `Φ^{(n)}` is positive semidefinite (`PosSemidef`). -/
-theorem empiricalCovariance_posSemidef
-    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
-    (empiricalCovariance n φ W X).PosSemidef := by
-  refine ⟨empiricalCovariance_isHermitian n φ W X, fun x => ?_⟩
+/-- A real Hermitian matrix whose matrix quadratic form is nonnegative is positive semidefinite.
+This bridges the function-vector API used by covariance proofs and the Finsupp-based definition. -/
+private lemma posSemidef_of_bilin_nonneg
+    (M : Matrix (Fin m) (Fin m) ℝ)
+    (hM : M.IsHermitian)
+    (h_nonneg : ∀ c : Fin m → ℝ, 0 ≤ c ⬝ᵥ M *ᵥ c) :
+    M.PosSemidef := by
+  refine ⟨hM, fun x => ?_⟩
   simp only [star_trivial]
   rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
-  have h_inner (i : Fin m) :
-      (x.sum fun j xj ↦ x i * empiricalCovariance n φ W X i j * xj) =
-        ∑ j : Fin m, x i * empiricalCovariance n φ W X i j * x j := by
+  have h_inner (i : Fin m) : (x.sum fun j xj ↦ x i * M i j * xj) =
+      ∑ j : Fin m, x i * M i j * x j := by
     rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
   simp_rw [h_inner]
-  have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * empiricalCovariance n φ W X i j * x j) =
-      (fun i => x i) ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ (fun i => x i) := by
+  have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * M i j * x j) =
+      (fun i => x i) ⬝ᵥ M *ᵥ (fun i => x i) := by
     simp only [dotProduct, mulVec]
     apply Finset.sum_congr rfl
     intro i _
@@ -403,7 +410,14 @@ theorem empiricalCovariance_posSemidef
     intro j _
     ring
   rw [h_dot]
-  exact empiricalCovariance_nonneg n φ W X (fun i => x i)
+  exact h_nonneg (fun i => x i)
+
+/-- The empirical covariance matrix `Φ^{(n)}` is positive semidefinite (`PosSemidef`). -/
+theorem empiricalCovariance_posSemidef
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
+    (empiricalCovariance n φ W X).PosSemidef :=
+  posSemidef_of_bilin_nonneg _ (empiricalCovariance_isHermitian n φ W X)
+    (empiricalCovariance_nonneg n φ W X)
 
 /-! ### Step 3, 4 & 5: Conditional Distribution and Theorem 1 -/
 
@@ -732,26 +746,9 @@ theorem limitingCovariance_posSemidef
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
-    (limitingCovariance φ X).PosSemidef := by
-  refine ⟨limitingCovariance_isHermitian φ X, fun x => ?_⟩
-  simp only [star_trivial]
-  rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
-  have h_inner (i : Fin m) :
-      (x.sum fun j xj ↦ x i * limitingCovariance φ X i j * xj) =
-        ∑ j : Fin m, x i * limitingCovariance φ X i j * x j := by
-    rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
-  simp_rw [h_inner]
-  have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * limitingCovariance φ X i j * x j) =
-      (fun i => x i) ⬝ᵥ (limitingCovariance φ X) *ᵥ (fun i => x i) := by
-    simp only [dotProduct, mulVec]
-    apply Finset.sum_congr rfl
-    intro i _
-    rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro j _
-    ring
-  rw [h_dot]
-  exact limitingCovariance_nonneg φ X hφ_meas hφ_L2 (fun i => x i)
+    (limitingCovariance φ X).PosSemidef :=
+  posSemidef_of_bilin_nonneg _ (limitingCovariance_isHermitian φ X)
+    (limitingCovariance_nonneg φ X hφ_meas hφ_L2)
 
 lemma evalSingle_joint_measurable
     (φ : ℝ → ℝ) (hφ : Measurable φ) (x : Fin d → ℝ) :
@@ -769,9 +766,8 @@ lemma evalSingle_joint_measurable
 lemma evalVector_joint_measurable
     (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ) :
     Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalVector φ p.1 p.2 X) := by
-  have h_toLp : (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalVector φ p.1 p.2 X) =
-      (WithLp.toLp 2) ∘ (fun p α => evalSingle φ p.1 p.2 (X α)) := rfl
-  rw [h_toLp]
+  change Measurable ((WithLp.toLp 2) ∘
+    (fun (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) α => evalSingle φ p.1 p.2 (X α)))
   refine (PiLp.continuous_toLp 2 _).measurable.comp ?_
   exact measurable_pi_iff.2 fun α => evalSingle_joint_measurable φ hφ (X α)
 
@@ -814,11 +810,14 @@ lemma integral_exp_inner_evalVector
     (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I) ∂(gaussianReadoutMeasure n)) =
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) := by
   have h_meas : Measurable (fun a => evalVector φ W a X) := evalVector_measurable φ W X
-  have h_cf : charFun (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) t =
-      ∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I) ∂(gaussianReadoutMeasure n) := by
-    rw [charFun_apply, integral_map h_meas.aemeasurable (by fun_prop)]
-  rw [← h_cf]
-  exact charFun_readout_evalVector φ W X t
+  calc
+    (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)
+        ∂(gaussianReadoutMeasure n)) =
+        charFun (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) t := by
+      rw [charFun_apply, integral_map h_meas.aemeasurable (by fun_prop)]
+    _ = Complex.exp
+        (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) :=
+      charFun_readout_evalVector φ W X t
 
 /-- **Step 2 (Law of Total Expectation for the Characteristic Function)**:
 The unconditional characteristic function of the network output vector under `initMeasure n d` is the
@@ -830,26 +829,34 @@ lemma charFun_outputMeasure
     charFun (outputMeasure n d φ X) t =
       ∫ W, Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2)
         ∂(gaussianInit n d) := by
-  dsimp [outputMeasure]
-  rw [charFun_apply]
   have h_meas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalVector φ p.1 p.2 X) :=
     evalVector_joint_measurable φ hφ X
-  rw [integral_map h_meas.aemeasurable (by fun_prop)]
-  have h_prod : (∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I) ∂(initMeasure n d)) =
-      ∫ W, (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I) ∂(gaussianReadoutMeasure n))
-        ∂(gaussianInit n d) := by
-    dsimp [initMeasure]
-    have h_exp_meas : AEStronglyMeasurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-        Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I)) ((gaussianInit n d).prod (gaussianReadoutMeasure n)) := by
-      have h_inner : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => ⟪evalVector φ p.1 p.2 X, t⟫) :=
-        (continuous_id.inner continuous_const).measurable.comp (evalVector_joint_measurable φ hφ X)
-      exact (Complex.continuous_exp.measurable.comp
-        ((Complex.measurable_ofReal.comp h_inner).mul_const Complex.I)).aestronglyMeasurable
-    exact integral_prod _ (Integrable.of_bound h_exp_meas 1
-      (ae_of_all _ fun p => (Complex.norm_exp_ofReal_mul_I _).le))
-  rw [h_prod]
-  congr 1 with W
-  exact integral_exp_inner_evalVector φ W X t
+  calc
+    charFun (outputMeasure n d φ X) t =
+        ∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I) ∂(initMeasure n d) := by
+      rw [outputMeasure_eq_map, charFun_apply,
+        integral_map h_meas.aemeasurable (by fun_prop)]
+    _ = ∫ W, (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)
+          ∂(gaussianReadoutMeasure n)) ∂(gaussianInit n d) := by
+      change (∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I)
+          ∂((gaussianInit n d).prod (gaussianReadoutMeasure n))) = _
+      have h_inner : Measurable
+          (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+            ⟪evalVector φ p.1 p.2 X, t⟫) :=
+        (continuous_id.inner continuous_const).measurable.comp h_meas
+      have h_exp_meas : AEStronglyMeasurable
+          (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+            Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I))
+          ((gaussianInit n d).prod (gaussianReadoutMeasure n)) :=
+        (Complex.continuous_exp.measurable.comp
+          ((Complex.measurable_ofReal.comp h_inner).mul_const Complex.I)).aestronglyMeasurable
+      exact integral_prod _ (Integrable.of_bound h_exp_meas 1
+        (ae_of_all _ fun p => (Complex.norm_exp_ofReal_mul_I _).le))
+    _ = ∫ W, Complex.exp
+        (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2)
+          ∂(gaussianInit n d) := by
+      congr 1 with W
+      exact integral_exp_inner_evalVector φ W X t
 
 /-- Measurability of the characteristic integrand on input weight matrices. -/
 lemma measurable_exp_quadratic_empiricalCovariance
@@ -1065,6 +1072,7 @@ theorem tendstoInDistribution_evalVector
       (multivariateGaussian 0 (limitingCovariance φ X)) where
   forall_aemeasurable n := (evalVector_joint_measurable φ hφ_meas X).aemeasurable
   aemeasurable_limit := measurable_id.aemeasurable
+  tendsto := by
     convert! outputMeasure_tendsto_multivariateGaussian φ X hφ_meas hφ_L2
     exact Subtype.ext Measure.map_id
 
