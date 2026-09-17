@@ -69,6 +69,7 @@ theorem map_restrict_eq_outputLaw_restrict
       multivariateGaussian 0 (fun a₁ a₂ : B => stochasticMetric p σ z (a₁ : A) (a₂ : A))) := by
   sorry
 
+omit [Fintype A] [DecidableEq A] in
 /-- **Vertex and kernel recursions need only finitely many samples.**
 
 Immediate corollary of `stochasticMetric_eq_of_mem`: the right-hand sides of
@@ -77,7 +78,6 @@ a fixed finite tuple of samples, depend on the previous layer's metric only thro
 restriction to those samples.
 
 Source: subsubsection "Marginalization over samples," book lines 3023-3036. -/
-omit [Fintype A] [DecidableEq A] in
 theorem fourPointVertex_eq_of_mem (ν : Measure (A → ι → ℝ)) (n : ℕ) (p : InitHyperparams)
     (σ : ℝ → ℝ) (B : Finset A) {a₁ a₂ a₃ a₄ : A}
     (h₁ : a₁ ∈ B) (h₂ : a₂ ∈ B) (h₃ : a₃ ∈ B) (h₄ : a₄ ∈ B) :

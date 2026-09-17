@@ -50,10 +50,10 @@ omit [Fintype A] [DecidableEq A] in
       p.biasVariance + scaledWeightVariance p ι * ∑ i, σ (z a i) * σ (z a' i) := by
   simp [stochasticMetric, layerCovariance, batchActivate]
 
-omit [DecidableEq A] in
+omit [DecidableEq A] [Fintype A] in
 /-- The stochastic metric is positive semidefinite, entrywise-pointwise in `z`; a direct corollary
 of `NeuralNetwork.layerCovariance_posSemidef`. -/
-theorem stochasticMetric_posSemidef (p : InitHyperparams) (σ : ℝ → ℝ) (z : A → ι → ℝ) :
+theorem stochasticMetric_posSemidef [Finite A] (p : InitHyperparams) (σ : ℝ → ℝ) (z : A → ι → ℝ) :
     (stochasticMetric p σ z).PosSemidef :=
   layerCovariance_posSemidef p (batchActivate σ z)
 
@@ -132,6 +132,7 @@ theorem nextLayerLaw_eq_bind_pi_multivariateGaussian
   refine congrArg (Measure.bind ν) (funext fun z => ?_)
   exact map_batchPreactivation_eq_pi_multivariateGaussian_stochasticMetric p σ z
 
+omit [DecidableEq A] [Fintype A] in
 /-- **General even-moment Wick formula at an arbitrary layer.**
 
 Fix one neuron `j₀`. The `2m`-point correlator of that neuron's preactivations across the sample
@@ -158,7 +159,6 @@ Fubini/tower-property argument), which for each fixed `z` is exactly
 `integral_prod_multivariateGaussian_centered_eq_wick` (already proved in `Gaussian.lean`, applied
 with mean `0`) evaluated at covariance `stochasticMetric p σ z`.
 Source: `eq:general-even-moment` and `eq:general-layer-conditional`, book lines 2840-2854. -/
-omit [DecidableEq A] [Fintype A] in
 theorem integral_coordinateProduct_eq_wick_stochasticMetric
     (ν : Measure (A → ι → ℝ)) (p : InitHyperparams) (σ : ℝ → ℝ)
     (κ : Type*) [Fintype κ]
