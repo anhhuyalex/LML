@@ -96,12 +96,12 @@ lemma posLassoMin_eq_of_isPositiveLassoMinimizer
   have hg_eq_of_nonneg : ∀ y, Nonnegative y → g y = positiveLassoObjective M r lambda μ y := by
     intro y hy
     rw [hg]
-    haveI : Nonempty (Nonnegative y) := ⟨hy⟩
+    have : Nonempty (Nonnegative y) := ⟨hy⟩
     exact ciInf_const
   have hg_eq_of_not_nonneg : ∀ y, ¬ Nonnegative y → g y = 0 := by
     intro y hy
     rw [hg]
-    haveI : IsEmpty (Nonnegative y) := ⟨hy⟩
+    have : IsEmpty (Nonnegative y) := ⟨hy⟩
     exact Real.iInf_of_isEmpty _
   have hg_y0 : g y0 = positiveLassoObjective M r lambda μ y0 := hg_eq_of_nonneg y0 hy0nn
   have hy0_le_zero : positiveLassoObjective M r lambda μ y0 ≤ 0 := by
@@ -1826,8 +1826,10 @@ lemma positive_energy_integrated_bound
       C_E / L * (1 + deriv (positiveZUpward x_lasso) τ) +
       C_E * deriv (positiveZDownward x_lasso) τ + δ_E := by ring
     rw [h_expand] at h_bound
-    have h_bound_le : C_E * Real.sqrt (2 * pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
-        (scaledPrimalPath x_lasso) τ) ≤ C_E * Real.sqrt (2 * D) :=
+    have h_bound_le :
+        C_E * Real.sqrt (2 * pathDelta M
+          (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+          (scaledPrimalPath x_lasso) τ) ≤ C_E * Real.sqrt (2 * D) :=
       mul_le_mul_of_nonneg_left h_sqrt_le hC_E_pos.le
     linarith
   -- Step 11: apply FTC
@@ -1897,7 +1899,8 @@ lemma positive_energy_integrated_bound
     calc Real.sqrt (A + B + C_rem)
       _ ≤ Real.sqrt (A + B) + Real.sqrt C_rem := h_tot
       _ ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C_rem := by linarith [hAB]
-      _ = Real.sqrt A + Real.sqrt (2 * C_D) * Real.sqrt z_down_s + Real.sqrt C_rem := by rw [h_sqrt_B]
+      _ = Real.sqrt A + Real.sqrt (2 * C_D) * Real.sqrt z_down_s + Real.sqrt C_rem := by
+        rw [h_sqrt_B]
   have h_coeff_le : C_E * Real.sqrt (2 * D) + C_E / L + δ_E ≤ K := by
     have h_mul : C_E * Real.sqrt (2 * D) ≤
         C_E * (Real.sqrt (2 * C_D / L * (s + z_up_s)) +
@@ -1973,11 +1976,12 @@ lemma positive_energy_integrated_bound_of_monotone
           (scaledPrimalPath x_lasso) s
       ≤ s^2 * (C * suboptimalityGap lambda s (positiveZDownward x_lasso s) + δ) := by
   -- Step 1: get constants C_E and C_D from the two main lemmas
-  obtain ⟨C_E, hC_E_pos, h_deriv_bound⟩ := positive_energy_differential_inequality_of_monotone M Mdagger r
-    lambda β u hdata hβ hu x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz
-    h_mono
-  obtain ⟨C_D, hC_D_pos, h_delta_bound⟩ := pathDelta_uniform_bound_of_monotone M r lambda β u hdata hβ hu
-    x_lasso hx_lasso Mdagger w hdual hdual_selected h_mono h_regular h_lipschitz
+  obtain ⟨C_E, hC_E_pos, h_deriv_bound⟩ :=
+    positive_energy_differential_inequality_of_monotone M Mdagger r lambda β u hdata hβ hu
+      x_lasso hx_lasso w hdual hdual_selected h_regular h_lipschitz h_mono
+  obtain ⟨C_D, hC_D_pos, h_delta_bound⟩ :=
+    pathDelta_uniform_bound_of_monotone M r lambda β u hdata hβ hu x_lasso hx_lasso
+      Mdagger w hdual hdual_selected h_mono h_regular h_lipschitz
   -- Step 2: define the final constant C = max(C_E·√(2·C_D), C_E)
   set C := max (C_E * Real.sqrt (2 * C_D)) C_E with hC_def
   have hC_pos : 0 < C := by
@@ -2025,7 +2029,6 @@ lemma positive_energy_integrated_bound_of_monotone
     have h_rem_eq : remainder = fun ε => T1 ε + T2 ε + T3 ε := by
       ext ε; dsimp [remainder, T1, T2, T3]
     -- T2 → 0 and T3 → 0: const * (log(1/ε))⁻¹
-
     have hT2 : Tendsto T2 (𝓝[>] 0) (𝓝 0) := by
       dsimp [T2]
       have h_eq : (fun ε => (1 + s * lambda) * s * C_E / Real.log (1 / ε)) =
@@ -2175,8 +2178,10 @@ lemma positive_energy_integrated_bound_of_monotone
       C_E / L * (1 + deriv (positiveZUpward x_lasso) τ) +
       C_E * deriv (positiveZDownward x_lasso) τ + δ_E := by ring
     rw [h_expand] at h_bound
-    have h_bound_le : C_E * Real.sqrt (2 * pathDelta M (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
-        (scaledPrimalPath x_lasso) τ) ≤ C_E * Real.sqrt (2 * D) :=
+    have h_bound_le :
+        C_E * Real.sqrt (2 * pathDelta M
+          (fun ρ => posIntegratedTrajectoryRescaled ε (u ε) ρ)
+          (scaledPrimalPath x_lasso) τ) ≤ C_E * Real.sqrt (2 * D) :=
       mul_le_mul_of_nonneg_left h_sqrt_le hC_E_pos.le
     linarith
   -- Step 11: apply FTC
@@ -2246,7 +2251,8 @@ lemma positive_energy_integrated_bound_of_monotone
     calc Real.sqrt (A + B + C_rem)
       _ ≤ Real.sqrt (A + B) + Real.sqrt C_rem := h_tot
       _ ≤ Real.sqrt A + Real.sqrt B + Real.sqrt C_rem := by linarith [hAB]
-      _ = Real.sqrt A + Real.sqrt (2 * C_D) * Real.sqrt z_down_s + Real.sqrt C_rem := by rw [h_sqrt_B]
+      _ = Real.sqrt A + Real.sqrt (2 * C_D) * Real.sqrt z_down_s + Real.sqrt C_rem := by
+        rw [h_sqrt_B]
   have h_coeff_le : C_E * Real.sqrt (2 * D) + C_E / L + δ_E ≤ K := by
     have h_mul : C_E * Real.sqrt (2 * D) ≤
         C_E * (Real.sqrt (2 * C_D / L * (s + z_up_s)) +
