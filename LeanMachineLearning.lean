@@ -60,6 +60,7 @@ public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import LeanMachineLearning.Optimization.Lasso.LCP
 public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Theorems
+public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Initialization
@@ -79,6 +80,7 @@ public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Fluctu
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.GaussianLayer
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Limits
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Moments
+public import LeanMachineLearning.Optimization.Renormalization.EvenCoupling
 public import LeanMachineLearning.Optimization.Renormalization.Expectation
 public import LeanMachineLearning.Optimization.Renormalization.FiniteConvolution
 public import LeanMachineLearning.Optimization.Renormalization.Finpartition
