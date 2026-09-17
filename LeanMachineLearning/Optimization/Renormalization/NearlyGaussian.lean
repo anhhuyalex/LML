@@ -892,25 +892,9 @@ theorem card_pairing_fin_six :
     Fintype.card (Finpartition.Pairing (Finset.univ : Finset (Fin 6))) = 15 := by
   exact card_pairing_six (by simp)
 
-/-- There are fifteen partitions of type `(4,2)` on six labelled positions.
-
-Informal proof: such a partition is uniquely determined by its two-element block; its complement
-is the four-element block.  There are `choose 6 2 = 15` choices.  Source: the fifteen `(4,2)`
-terms in equation `eq:C6` of `docs/Renormalization.md`.
--/
-theorem card_fourTwoPartition_fin_six :
-    fourTwoPartitions.card = 15 := by
-  -- `fourTwoPartitions` was built with a classical decidability instance; the value of
-  -- `Finset.filter` does not depend on that instance (membership is `x ∈ univ ∧ p x`), so the
-  -- definition equals the computably filtered universe, which `native_decide` can count.
-  letI : DecidablePred IsFourTwoPartition := fun P => by
-    unfold IsFourTwoPartition
-    infer_instance
-  rw [show fourTwoPartitions = Finset.univ.filter IsFourTwoPartition by
-    dsimp [fourTwoPartitions]
-    ext P
-    simp]
-  native_decide
+-- `card_fourTwoPartition_fin_six` (there are fifteen `(4,2)` partitions of six labelled
+-- positions) has moved to `SixPointCounting.lean`: its `native_decide` proof is expensive to
+-- compile, and nothing here depends on it, so it's kept out of this file's build.
 
 /-! ## Gaussian diagonalization and interaction versus independence -/
 
