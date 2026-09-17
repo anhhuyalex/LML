@@ -75,6 +75,67 @@ theorem measure_smul_eq_deform {Ω : Type uΩ} [MeasurableSpace Ω]
   funext x
   ring
 
+/-- The tilted law of a negation-symmetric action, relative to a negation-invariant reference
+measure, is itself invariant under the global sign flip.
+
+Informal proof: change variables `z ↦ -z` in the tilted density; the reference measure is
+sign-flip invariant by hypothesis and the numerator `exp (-S)` is unchanged since `S` is even. -/
+theorem measure_isNegInvariant {Ω : Type uΩ} [MeasurableSpace Ω] [InvolutiveNeg Ω]
+    [MeasurableNeg Ω] (μ : Measure Ω) [μ.IsNegInvariant] (S : Action Ω)
+    (hSmeas : Measurable S) (hSeven : ∀ x, S (-x) = S x) :
+    (measure μ S).IsNegInvariant := by
+  let g : Ω → ℝ := fun x => -S x
+  have hg : ∀ x, g (-x) = g x := by
+    intro x
+    dsimp [g]
+    congr 1
+    exact hSeven x
+  have hgmeas : Measurable g := hSmeas.neg
+  refine ⟨?_⟩
+  rw [Measure.neg_def, measure, deform]
+  simp only [neg_one_mul]
+  apply Measure.ext
+  intro s hs
+  rw [Measure.map_apply measurable_neg hs]
+  rw [MeasureTheory.tilted_apply_eq_ofReal_integral' g (measurable_neg hs)]
+  rw [MeasureTheory.tilted_apply_eq_ofReal_integral' g hs]
+  congr 1
+  let C : ℝ := ∫ x, Real.exp (g x) ∂μ
+  let F : Ω → ℝ := fun a => Real.exp (g a) / C
+  have hFneg : ∀ a, F (-a) = F a := by
+    intro a
+    dsimp [F]
+    rw [hg a]
+  have hFmeas : Measurable F :=
+    (Real.continuous_exp.measurable.comp hgmeas).div_const C
+  have hvol_neg : μ.map (fun x => -x) = μ := Measure.map_neg_eq_self μ
+  have hset : ∫ a in (fun x => -x) ⁻¹' s, F a ∂μ = ∫ a in s, F (-a) ∂μ := by
+    calc
+      ∫ a in (fun x => -x) ⁻¹' s, F a ∂μ
+          = ∫ a in (fun x => -x) ⁻¹' s, F a ∂(μ.map (fun x => -x)) := by
+            rw [hvol_neg]
+      _ = ∫ x, ((fun x => -x) ⁻¹' s).indicator F x ∂(μ.map (fun x => -x)) := by
+            rw [← MeasureTheory.integral_indicator (measurable_neg hs)]
+      _ = ∫ x, ((fun x => -x) ⁻¹' s).indicator F ((fun x => -x) x) ∂μ :=
+            MeasureTheory.integral_map measurable_neg.aemeasurable
+              (hFmeas.indicator (measurable_neg hs)).aestronglyMeasurable
+      _ = ∫ x, s.indicator (fun x => F (-x)) x ∂μ := by
+            congr 1
+            funext x
+            by_cases hx : x ∈ s
+            · have hx' : (-x) ∈ -s := Set.neg_mem_neg.mpr hx
+              simp [hx, hx']
+            · have hx' : (-x) ∉ -s := fun h => hx (Set.neg_mem_neg.mp h)
+              simp [hx, hx']
+      _ = ∫ x in s, F (-x) ∂μ := by
+            rw [MeasureTheory.integral_indicator hs]
+  calc
+    ∫ a in (fun x => -x) ⁻¹' s, F a ∂μ = ∫ a in s, F (-a) ∂μ := hset
+    _ = ∫ a in s, F a ∂μ := by
+          congr 1
+          funext a
+          rw [hFneg a]
+
 end Action
 
 /-- The quadratic action with precision matrix `P`. -/

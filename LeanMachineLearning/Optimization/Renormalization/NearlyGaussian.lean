@@ -152,63 +152,9 @@ Source: parity discussion
 in `docs/Renormalization.md`, lines 457--459 and the nearly-Gaussian action subsection.
 -/
 theorem measure_isNegInvariant (A : EvenAction ι) (ε : ℝ) :
-    (A.measure ε).IsNegInvariant := by
-  let g : EuclideanSpace ℝ ι → ℝ := fun x => -(A.potential ε x)
-  have hg : ∀ x, g (-x) = g x := by
-    intro x
-    dsimp [g]
-    congr 1
-    exact potential_neg A ε x
-  have hgmeas : Measurable g := by
-    dsimp [g]
-    exact (continuous_potential A ε).neg.measurable
-  refine ⟨?_⟩
-  rw [Measure.neg_def, EvenAction.measure, Action.measure]
-  apply Measure.ext
-  intro s hs
-  rw [Measure.map_apply measurable_neg hs]
-  rw [MeasureTheory.tilted_apply_eq_ofReal_integral' g (measurable_neg hs)]
-  rw [MeasureTheory.tilted_apply_eq_ofReal_integral' g hs]
-  congr 1
-  let C : ℝ := ∫ x, Real.exp (g x) ∂volume
-  let F : EuclideanSpace ℝ ι → ℝ := fun a => Real.exp (g a) / C
-  have hFneg : ∀ a, F (-a) = F a := by
-    intro a
-    dsimp [F]
-    rw [hg a]
-  have hFmeas : Measurable F := by
-    dsimp [F]
-    exact (Real.continuous_exp.measurable.comp hgmeas).div_const C
-  have hvol_neg : (volume : Measure (EuclideanSpace ℝ ι)).map (fun x => -x) = volume := by
-    exact Measure.map_neg_eq_self (volume : Measure (EuclideanSpace ℝ ι))
-  have hset : ∫ a in (fun x => -x) ⁻¹' s, F a ∂volume = ∫ a in s, F (-a) ∂volume := by
-    calc
-      ∫ a in (fun x => -x) ⁻¹' s, F a ∂volume
-          = ∫ a in (fun x => -x) ⁻¹' s, F a
-              ∂((volume : Measure (EuclideanSpace ℝ ι)).map (fun x => -x)) := by
-            rw [hvol_neg]
-      _ = ∫ x, ((fun x => -x) ⁻¹' s).indicator F x
-              ∂((volume : Measure (EuclideanSpace ℝ ι)).map (fun x => -x)) := by
-            rw [← MeasureTheory.integral_indicator (measurable_neg hs)]
-      _ = ∫ x, ((fun x => -x) ⁻¹' s).indicator F ((fun x => -x) x) ∂volume := by
-            exact MeasureTheory.integral_map measurable_neg.aemeasurable
-              (hFmeas.indicator (measurable_neg hs)).aestronglyMeasurable
-      _ = ∫ x, s.indicator (fun x => F (-x)) x ∂volume := by
-            congr 1
-            funext x
-            by_cases hx : x ∈ s
-            · have hx' : (-x) ∈ -s := Set.neg_mem_neg.mpr hx
-              simp [hx, hx']
-            · have hx' : (-x) ∉ -s := fun h => hx (Set.neg_mem_neg.mp h)
-              simp [hx, hx']
-      _ = ∫ x in s, F (-x) ∂volume := by
-            rw [MeasureTheory.integral_indicator hs]
-  calc
-    ∫ a in (fun x => -x) ⁻¹' s, F a ∂volume = ∫ a in s, F (-a) ∂volume := hset
-    _ = ∫ a in s, F a ∂volume := by
-          congr 1
-          funext a
-          rw [hFneg a]
+    (A.measure ε).IsNegInvariant :=
+  Action.measure_isNegInvariant volume (A.potential ε) (continuous_potential A ε).measurable
+    (potential_neg A ε)
 
 end EvenAction
 
@@ -458,6 +404,32 @@ theorem jointMoment_coordinates_eq_zero_of_odd
   simpa [jointMoment, blockMoment, coordinateMonomial] using
     integral_eq_zero_of_odd ν hint hodd
 
+/-- An odd-cardinality finset has no partition all of whose blocks are even: the block cardinalities
+would sum to an even number, contradicting `P.sum_card_parts`. -/
+private lemma exists_odd_block_of_odd_card {α : Type*} [DecidableEq α]
+    {n : Finset α} (P : Finpartition n) (hn : Odd n.card) : ∃ B ∈ P.parts, Odd B.card := by
+  by_contra h
+  push Not at h
+  have hall_even : ∀ B ∈ P.parts, Even B.card := by
+    intro B hBmem
+    exact Nat.not_odd_iff_even.mp (h B hBmem)
+  have hsum_even : Even (∑ B ∈ P.parts, B.card) := by
+    refine ⟨∑ B ∈ P.parts, B.card / 2, ?_⟩
+    symm
+    calc
+      (∑ B ∈ P.parts, B.card / 2) + (∑ B ∈ P.parts, B.card / 2)
+          = ∑ B ∈ P.parts, (B.card / 2 + B.card / 2) := by
+            rw [Finset.sum_add_distrib]
+      _ = ∑ B ∈ P.parts, B.card := by
+            apply Finset.sum_congr rfl
+            intro B hBmem
+            rcases hall_even B hBmem with ⟨k, hk⟩
+            rw [hk]
+            omega
+  have hsum_odd : Odd (∑ B ∈ P.parts, B.card) := by
+    simpa [P.sum_card_parts] using hn
+  exact (Nat.not_even_iff_odd.mpr hsum_odd) hsum_even
+
 /-- Every odd connected coordinate correlator vanishes under parity symmetry.
 
 Informal proof: expand `jointCumulant` as its partition Möbius sum.  Since the total cardinality
@@ -488,29 +460,7 @@ theorem jointCumulant_coordinates_eq_zero_of_odd
   · rw [if_neg hempty]
     apply Finset.sum_eq_zero
     intro P hP
-    have hodd_block : ∃ B ∈ P.parts, Odd B.card := by
-      by_contra h
-      push Not at h
-      have hall_even : ∀ B ∈ P.parts, Even B.card := by
-        intro B hBmem
-        exact Nat.not_odd_iff_even.mp (h B hBmem)
-      have hsum_even : Even (∑ B ∈ P.parts, B.card) := by
-        refine ⟨∑ B ∈ P.parts, B.card / 2, ?_⟩
-        symm
-        calc
-          (∑ B ∈ P.parts, B.card / 2) + (∑ B ∈ P.parts, B.card / 2)
-              = ∑ B ∈ P.parts, (B.card / 2 + B.card / 2) := by
-                rw [Finset.sum_add_distrib]
-          _ = ∑ B ∈ P.parts, B.card := by
-                apply Finset.sum_congr rfl
-                intro B hBmem
-                rcases hall_even B hBmem with ⟨k, hk⟩
-                rw [hk]
-                omega
-      have hsum_odd : Odd (∑ B ∈ P.parts, B.card) := by
-        simpa [P.sum_card_parts] using hn
-      exact (Nat.not_even_iff_odd.mpr hsum_odd) hsum_even
-    rcases hodd_block with ⟨B, hBmem, hBodd⟩
+    rcases exists_odd_block_of_odd_card P (by simpa using hn) with ⟨B, hBmem, hBodd⟩
     rw [Finpartition.blockProduct]
     rw [Finset.prod_eq_zero hBmem (hB B hBodd)]
     simp
@@ -537,23 +487,6 @@ def sixPointFourTwoCumulantSum
 def sixPointPairingCumulantSum
     {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω) (X : Fin 6 → Ω → ℝ) : ℝ :=
   Finpartition.pairingSum (blockCumulant μ X) Finset.univ
-
-/-- The (unique) top partition of a nonempty finset has that finset as its only block.
-
-`Cumulant.lean` already proves this fact as `top_parts_eq_singleton`, but marks it `private`, so
-it is re-derived here from the public `Finpartition.parts_top_subset` and
-`Finpartition.parts_nonempty`. -/
-private lemma sixPoint_top_parts_eq_singleton {s : Finset (Fin 6)} (hs : s ≠ ∅) :
-    (⊤ : Finpartition s).parts = {s} := by
-  ext B
-  constructor
-  · exact fun hB => Finpartition.parts_top_subset s hB
-  · intro hB
-    rw [Finset.mem_singleton] at hB
-    rw [hB]
-    obtain ⟨C, hC⟩ := Finpartition.parts_nonempty (⊤ : Finpartition s) hs
-    have hC_eq : C = s := Finset.mem_singleton.mp (Finpartition.parts_top_subset s hC)
-    rwa [hC_eq] at hC
 
 /-- Every block of an all-even partition of `Fin 6` has cardinality at least two. -/
 private lemma sixPoint_block_card_ge_two
@@ -590,7 +523,7 @@ private lemma sixPoint_card_one_eq_top
   have hBsu : B = (Finset.univ : Finset (Fin 6)) :=
     Finset.eq_of_subset_of_card_le hBsub (le_of_eq hsum.symm)
   have hParts : P.parts = (⊤ : Finpartition (Finset.univ : Finset (Fin 6))).parts := by
-    rw [hBparts, hBsu, sixPoint_top_parts_eq_singleton Finset.univ_nonempty.ne_empty]
+    rw [hBparts, hBsu, Finpartition.top_parts_eq_singleton Finset.univ_nonempty.ne_empty]
   exact Finpartition.ext hParts
 
 /-- A two-block all-even partition of `Fin 6` has block sizes `4` and `2`. -/
@@ -642,7 +575,8 @@ private lemma sixPoint_even_partitions_card_one :
   · intro h
     exact sixPoint_card_one_eq_top h.2
   · rintro rfl
-    have htop_parts := sixPoint_top_parts_eq_singleton Finset.univ_nonempty.ne_empty
+    have htop_parts := Finpartition.top_parts_eq_singleton (s := (Finset.univ : Finset (Fin 6)))
+      Finset.univ_nonempty.ne_empty
     refine ⟨⟨Finset.mem_univ _, ?_⟩, ?_⟩
     · intro B hB
       rw [htop_parts, Finset.mem_singleton] at hB
