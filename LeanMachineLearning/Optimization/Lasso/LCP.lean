@@ -651,7 +651,7 @@ lemma pos_lasso_is_lcp
     (hM_symm : M.IsSymm) (hM_psd : IsPositiveSemidefinite M) :
     IsPositiveLassoMinimizer M r lambda μ x ↔
     ∃ v : EuclideanSpace ℝ ι, isLCP M (lcpQ r lambda μ) x v := by
-  haveI := Classical.decEq ι
+  have := Classical.decEq ι
   dsimp [IsPositiveLassoMinimizer, IsMinOn, isLCP]
   let q := lcpQ r lambda μ
   let f := positiveLassoObjective M r lambda μ
@@ -963,7 +963,7 @@ lemma minCardFinsetOfMemCone {κ : Type*} [Fintype κ] (a : κ → EuclideanSpac
     ∃ s : Finset κ, InCone (fun i : {i // i ∈ s} => a i) y ∧
       ∀ s' : Finset κ, InCone (fun i : {i // i ∈ s'} => a i) y → s.card ≤ s'.card := by
   let P := fun s : Finset κ => InCone (fun i : {i // i ∈ s} => a i) y
-  haveI : DecidablePred P := fun s => Classical.propDecidable (P s)
+  have : DecidablePred P := fun s => Classical.propDecidable (P s)
   let S := Finset.filter P Finset.univ
   have hS_nonempty : S.Nonempty := by
     use Finset.univ
@@ -1005,7 +1005,7 @@ lemma linearIndependent_of_minCardFinsetOfMemCone {κ : Type*}
     (h_in : InCone (fun i : {i // i ∈ s} => a i) y)
     (h_min : ∀ s' : Finset κ, InCone (fun i : {i // i ∈ s'} => a i) y → s.card ≤ s'.card) :
     LinearIndependent ℝ (fun i : {i // i ∈ s} => a i) := by
-  haveI : DecidableEq κ := Classical.decEq κ
+  have : DecidableEq κ := Classical.decEq κ
   by_contra h_dep
   have h_exists := mem_cone_erase a s h_dep y h_in
   rcases h_exists with ⟨k, hk_in⟩
@@ -1040,7 +1040,7 @@ theorem conic_caratheodory
       s.card ≤ Fintype.card ι ∧
       LinearIndependent ℝ (fun i : {i // i ∈ s} => a i) ∧
       InCone (fun i : {i // i ∈ s} => a i) y := by
-  haveI : DecidableEq κ := Classical.decEq κ
+  have : DecidableEq κ := Classical.decEq κ
   obtain ⟨s, hs_in, hs_min⟩ := minCardFinsetOfMemCone a y hy
   have h_ind := linearIndependent_of_minCardFinsetOfMemCone a y hs_in hs_min
   use s
@@ -1092,7 +1092,7 @@ lemma max_linearIndependent_coefficient_bound {κ : Type*} [Finite κ] (a : κ �
       ∀ x : {i // i ∈ s} → ℝ, (∀ i, 0 ≤ x i) →
         ‖euclideanOf x‖ ≤ C * ‖∑ i : {i // i ∈ s}, x i • a i‖ := by
   classical
-  haveI : Fintype κ := Fintype.ofFinite κ
+  have : Fintype κ := Fintype.ofFinite κ
   -- Collect a constant for each subset s (or 0 if not linearly independent)
   let C_for_s (s : Finset κ) : ℝ :=
     if h : LinearIndependent ℝ (fun i : {i // i ∈ s} => a i) then
@@ -1348,7 +1348,7 @@ theorem nonnegative_minNorm_solution_norm_bound
     have hK_closed : IsClosed K :=
       IsClosed.inter hS_closed ((isClosed_Iic (a := M)).preimage hf_cont)
     have hK_compact : IsCompact K := by
-      haveI : FiniteDimensional ℝ (EuclideanSpace ℝ κ) :=
+      have : FiniteDimensional ℝ (EuclideanSpace ℝ κ) :=
         ((EuclideanSpace.equiv κ ℝ).symm.toLinearEquiv).finiteDimensional
       let φ := EuclideanSpace.equiv κ ℝ
       have h_image_compact : IsCompact (φ '' Metric.closedBall (0 : EuclideanSpace ℝ κ) M) :=
@@ -1856,6 +1856,7 @@ theorem parametric_lcp_unique_small_mu
   exact Prod.ext h'.1 h'.2
 
 -- Scaling identity: μ • lcpQ = parametricLcpQ (componentwise algebra in ℝ)
+omit [Fintype ι] in
 private lemma lcpQ_smul_eq_parametricLcpQ
     (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) (hμ_ne : μ ≠ 0) :
     μ • lcpQ r lambda μ = parametricLcpQ r lambda μ := by

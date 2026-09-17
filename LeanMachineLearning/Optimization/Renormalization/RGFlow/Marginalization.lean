@@ -77,6 +77,7 @@ a fixed finite tuple of samples, depend on the previous layer's metric only thro
 restriction to those samples.
 
 Source: subsubsection "Marginalization over samples," book lines 3023-3036. -/
+omit [Fintype A] [DecidableEq A] in
 theorem fourPointVertex_eq_of_mem (ν : Measure (A → ι → ℝ)) (n : ℕ) (p : InitHyperparams)
     (σ : ℝ → ℝ) (B : Finset A) {a₁ a₂ a₃ a₄ : A}
     (h₁ : a₁ ∈ B) (h₂ : a₂ ∈ B) (h₃ : a₃ ∈ B) (h₄ : a₄ ∈ B) :

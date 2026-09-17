@@ -158,9 +158,10 @@ Fubini/tower-property argument), which for each fixed `z` is exactly
 `integral_prod_multivariateGaussian_centered_eq_wick` (already proved in `Gaussian.lean`, applied
 with mean `0`) evaluated at covariance `stochasticMetric p σ z`.
 Source: `eq:general-even-moment` and `eq:general-layer-conditional`, book lines 2840-2854. -/
+omit [DecidableEq A] [Fintype A] in
 theorem integral_coordinateProduct_eq_wick_stochasticMetric
     (ν : Measure (A → ι → ℝ)) (p : InitHyperparams) (σ : ℝ → ℝ)
-    (κ : Type*) [Fintype κ] [DecidableEq κ]
+    (κ : Type*) [Fintype κ]
     (j₀ : κ) (m : ℕ) (index : Fin (2 * m) → A) :
     jointMoment (Measure.map (fun w : κ → EuclideanSpace ℝ A => w j₀) (nextLayerLaw ν p σ κ))
         (fun r w => w.ofLp (index r)) =

@@ -312,7 +312,7 @@ theorem isUniversal_of_separatesPoints (σ : ℝ → ℝ) (hσ : Continuous σ)
       ∃ f ∈ OneHiddenLayer.UnboundedClass σ d, f x ≠ f y) :
     IsUniversal (OneHiddenLayer.UnboundedClass σ d) := by
   intro S hS g hg ε hε
-  haveI : CompactSpace S := isCompact_iff_compactSpace.mp hS
+  have : CompactSpace S := isCompact_iff_compactSpace.mp hS
   -- Restrict the network subalgebra to the compact set `S`.
   let restr : C(EuclideanSpace ℝ (Fin d), ℝ) →⋆ₐ[ℝ] C(S, ℝ) :=
     ContinuousMap.compStarAlgHom' ℝ ℝ ⟨Subtype.val, continuous_subtype_val⟩
@@ -326,7 +326,7 @@ theorem isUniversal_of_separatesPoints (σ : ℝ → ℝ) (hσ : Continuous σ)
   obtain ⟨g₀, hg₀⟩ :=
     ContinuousMap.exists_mem_subalgebra_near_continuous_of_separatesPoints
       (Subalgebra.map restr.toAlgHom (networkSubalgebra σ hmul hone)) hsepS
-      (S.restrict g) (continuousOn_iff_continuous_restrict.mp hg) ε hε
+      (S.domRestrict g) (continuousOn_iff_continuous_domRestrict.mp hg) ε hε
   obtain ⟨f₀, hf₀, hmap⟩ := Subalgebra.mem_map.mp g₀.2
   refine ⟨f₀, hf₀, fun x hx => ?_⟩
   have h := hg₀ ⟨x, hx⟩

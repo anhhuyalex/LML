@@ -36,10 +36,12 @@ each call site that needs, e.g., continuity of a map built from coordinate proje
 noncomputable def euclideanToPiEquiv : EuclideanSpace ℝ ι ≃L[ℝ] (ι → ℝ) :=
   (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toContinuousLinearEquiv
 
+omit [Fintype ι] in
 /-- Coordinate projection `x ↦ x i` is continuous on `EuclideanSpace ℝ ι`. -/
-lemma continuous_euclidean_apply (i : ι) :
-    Continuous (fun x : EuclideanSpace ℝ ι => x i) :=
-  (continuous_apply i).comp euclideanToPiEquiv.continuous
+lemma continuous_euclidean_apply [Finite ι] (i : ι) :
+    Continuous (fun x : EuclideanSpace ℝ ι => x i) := by
+  have : Fintype ι := Fintype.ofFinite ι
+  exact (continuous_apply i).comp euclideanToPiEquiv.continuous
 
 /--
 Unfold an inner product against an `euclideanOf`-built vector into a coordinate sum. This is
