@@ -1300,697 +1300,6 @@ set_option backward.isDefEq.respectTransparency.types false
 
 /-! ## Multilayer Sequential NNGP: Conditional Normality & Recurrence Convergence -/
 
-/-! ### Step 1: Base Case at Layer 1 -/
-
-/-- Linear projection of layer preactivations as a linear combination of parameter coordinates. -/
-lemma projection_layer_eq (σw σb : ℝ) (n : ℕ) (H : Fin n → Fin 2 → ℝ)
-    (w : Fin n → ℝ) (b : ℝ) (t : EuclideanSpace ℝ (Fin 2)) :
-    ⟪t, WithLp.toLp 2 (fun α => σb * b + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, w j * H j α)⟫ =
-      (σb * (t.ofLp 0 + t.ofLp 1)) * b +
-        ∑ j : Fin n, w j * ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) := by
-  have h_inner : ⟪t, WithLp.toLp 2 (fun α => σb * b + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, w j * H j α)⟫ =
-      ∑ α : Fin 2, t.ofLp α * (σb * b + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, w j * H j α) := by
-    simp only [PiLp.inner_apply, RCLike.inner_apply', conj_trivial]
-  rw [h_inner, Fin.sum_univ_two]
-  calc
-    t.ofLp 0 * (σb * b + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, w j * H j 0) +
-        t.ofLp 1 * (σb * b + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, w j * H j 1)
-      = (t.ofLp 0 * σb * b + t.ofLp 1 * σb * b) +
-          (∑ j, (t.ofLp 0 * (σw * (n : ℝ)⁻¹.sqrt)) * (w j * H j 0) +
-           ∑ j, (t.ofLp 1 * (σw * (n : ℝ)⁻¹.sqrt)) * (w j * H j 1)) := by
-        simp only [mul_add, Finset.mul_sum]
-        ring_nf
-    _ = (σb * (t.ofLp 0 + t.ofLp 1)) * b +
-          ∑ j, ((t.ofLp 0 * (σw * (n : ℝ)⁻¹.sqrt)) * (w j * H j 0) +
-                (t.ofLp 1 * (σw * (n : ℝ)⁻¹.sqrt)) * (w j * H j 1)) := by
-        rw [← Finset.sum_add_distrib]
-        ring_nf
-    _ = (σb * (t.ofLp 0 + t.ofLp 1)) * b +
-          ∑ j : Fin n, w j * ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) := by
-        congr 1
-        apply Finset.sum_congr rfl
-        intro j _
-        ring
-
-/-- Variance identity: sum of squared projection coefficients equals the quadratic form. -/
-lemma projection_layer_variance_eq (σw σb : ℝ) (n : ℕ) (H : Fin n → Fin 2 → ℝ)
-    (t : EuclideanSpace ℝ (Fin 2)) :
-    (σb * (t.ofLp 0 + t.ofLp 1)) ^ 2 +
-      ∑ j : Fin n, ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) ^ 2 =
-      t.ofLp ⬝ᵥ (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β) *ᵥ t.ofLp := by
-  simp only [dotProduct, mulVec, Fin.sum_univ_two]
-  have h_sq (j : Fin n) :
-      ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) ^ 2 =
-        t.ofLp 0 * ((σw ^ 2 * (n : ℝ)⁻¹) * (H j 0 * H j 0)) * t.ofLp 0 +
-        t.ofLp 0 * ((σw ^ 2 * (n : ℝ)⁻¹) * (H j 0 * H j 1)) * t.ofLp 1 +
-        t.ofLp 1 * ((σw ^ 2 * (n : ℝ)⁻¹) * (H j 1 * H j 0)) * t.ofLp 0 +
-        t.ofLp 1 * ((σw ^ 2 * (n : ℝ)⁻¹) * (H j 1 * H j 1)) * t.ofLp 1 := by
-    rw [mul_pow, mul_pow, Real.sq_sqrt (by positivity)]
-    ring
-  simp_rw [h_sq]
-  simp only [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.sum_mul]
-  ring
-
-/-- Quadratic form of the empirical layer covariance matrix is non-negative. -/
-lemma empirical_layer_covariance_nonneg (σw σb : ℝ) (n : ℕ) (H : Fin n → Fin 2 → ℝ)
-    (t : EuclideanSpace ℝ (Fin 2)) :
-    0 ≤ t.ofLp ⬝ᵥ (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β) *ᵥ t.ofLp := by
-  rw [← projection_layer_variance_eq]
-  exact add_nonneg (sq_nonneg _) (Finset.sum_nonneg fun j _ => sq_nonneg _)
-
-/-- Empirical layer covariance matrix is Hermitian (symmetric). -/
-lemma empirical_layer_covariance_isHermitian (σw σb : ℝ) (n : ℕ) (H : Fin n → Fin 2 → ℝ) :
-    Matrix.IsHermitian (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β) := by
-  ext α β
-  rw [conjTranspose_apply]
-  simp only [star_trivial]
-  congr 1
-  congr 1
-  apply Finset.sum_congr rfl
-  intro j _
-  ring
-
-/-- Empirical layer covariance matrix is positive semidefinite. -/
-lemma empirical_layer_covariance_posSemidef (σw σb : ℝ) (n : ℕ) (H : Fin n → Fin 2 → ℝ) :
-    (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β).PosSemidef := by
-  refine posSemidef_of_bilin_nonneg
-    (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β)
-    (empirical_layer_covariance_isHermitian σw σb n H) ?_
-  intro c
-  exact empirical_layer_covariance_nonneg σw σb n H (WithLp.toLp 2 c)
-
-/-- Layer 1 covariance matrix is Hermitian (symmetric). -/
-lemma layer1_covariance_isHermitian (σw σb : ℝ) (d : ℕ) (X : Fin 2 → Fin d → ℝ) :
-    Matrix.IsHermitian (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (d : ℝ)⁻¹) * (X α ⊙ X β)) :=
-  empirical_layer_covariance_isHermitian σw σb d (fun k α => X α k)
-
-/-- Layer 1 covariance matrix is positive semidefinite. -/
-lemma layer1_covariance_posSemidef (σw σb : ℝ) (d : ℕ) (X : Fin 2 → Fin d → ℝ) :
-    (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (d : ℝ)⁻¹) * (X α ⊙ X β)).PosSemidef :=
-  empirical_layer_covariance_posSemidef σw σb d (fun k α => X α k)
-
-/-- Pushforward of independent Gaussian weights and bias under a bivariate linear combination
-follows an exact bivariate centered normal distribution. This unifies Step 1 (layer 1) and
-Step 2 (layer l conditional on previous activations). -/
-lemma exact_conditional_normality_general (σw σb : ℝ) (n : ℕ) (H : Fin n → Fin 2 → ℝ) :
-    Measure.map
-      (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-        σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * H j α)
-      ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)) =
-      multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-          ∑ j : Fin n, H j α * H j β) := by
-  have hPos : (show Matrix (Fin 2) (Fin 2) ℝ from fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-      ∑ j : Fin n, H j α * H j β).PosSemidef :=
-    empirical_layer_covariance_posSemidef σw σb n H
-  have : IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-      (show Matrix (Fin 2) (Fin 2) ℝ from fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β)) := by
-    infer_instance
-  apply Measure.ext_of_charFun
-  ext t
-  set F := fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-    σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * H j α
-  have hF_meas : Measurable F := by
-    refine (PiLp.continuous_toLp 2 (fun _ : Fin 2 => ℝ)).measurable.comp ?_
-    refine measurable_pi_iff.2 fun α => ?_
-    refine (measurable_const.mul measurable_snd).add ?_
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact ((measurable_pi_apply j).comp measurable_fst).mul_const _
-  rw [charFun_apply, integral_map hF_meas.aemeasurable (by fun_prop)]
-  have h_inner (p : (Fin n → ℝ) × ℝ) : ⟪F p, t⟫ = ⟪t, F p⟫ := real_inner_comm _ _
-  simp_rw [h_inner]
-  have h_proj (p : (Fin n → ℝ) × ℝ) :
-      ⟪t, F p⟫ = (σb * (t.ofLp 0 + t.ofLp 1)) * p.2 +
-        ∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) :=
-    projection_layer_eq σw σb n H p.1 p.2 t
-  simp_rw [h_proj]
-  have h_split (p : (Fin n → ℝ) × ℝ) :
-      Complex.exp ((((σb * (t.ofLp 0 + t.ofLp 1)) * p.2 +
-        ∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1))) : ℝ) * Complex.I) =
-      Complex.exp ((∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) : ℝ) * Complex.I) *
-      Complex.exp (((σb * (t.ofLp 0 + t.ofLp 1)) * p.2 : ℝ) * Complex.I) := by
-    push_cast
-    rw [← Complex.exp_add]
-    congr 1
-    ring
-  simp_rw [h_split]
-  set cw := fun j : Fin n => (σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)
-  set cb := σb * (t.ofLp 0 + t.ofLp 1)
-  have h_prod : (∫ p : (Fin n → ℝ) × ℝ,
-      Complex.exp ((∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * (t.ofLp 0 * H j 0 + t.ofLp 1 * H j 1)) : ℝ) * Complex.I) *
-        Complex.exp (((σb * (t.ofLp 0 + t.ofLp 1)) * p.2 : ℝ) * Complex.I) ∂(gaussianReadoutMeasure n).prod (gaussianReal 0 1)) =
-    (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I) ∂gaussianReadoutMeasure n) *
-      (∫ b : ℝ, Complex.exp ((cb * b : ℝ) * Complex.I) ∂gaussianReal 0 1) :=
-    integral_prod_mul (fun (w : Fin n → ℝ) => Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I))
-      (fun (b : ℝ) => Complex.exp ((cb * b : ℝ) * Complex.I))
-  rw [h_prod]
-  have h_w : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I) ∂gaussianReadoutMeasure n) =
-      Complex.exp (- Complex.ofReal (∑ j : Fin n, (cw j) ^ 2) / 2) := by
-    have h_map := map_gaussianReadoutMeasure_inner cw
-    have h_meas_dot : Measurable (fun w : Fin n → ℝ => ∑ j : Fin n, w j * cw j) := by
-      refine Finset.measurable_sum _ fun j _ => ?_
-      exact (measurable_pi_apply j).mul_const _
-    have h_int : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I) ∂gaussianReadoutMeasure n) =
-        ∫ y : ℝ, Complex.exp (y * Complex.I) ∂Measure.map (fun w => ∑ j : Fin n, w j * cw j) (gaussianReadoutMeasure n) := by
-      rw [integral_map h_meas_dot.aemeasurable (by fun_prop)]
-    rw [h_int, h_map]
-    have h_cf : (∫ y : ℝ, Complex.exp (y * Complex.I) ∂(gaussianReal 0 (Real.toNNReal (∑ j : Fin n, (cw j) ^ 2)))) =
-        charFun (gaussianReal 0 (Real.toNNReal (∑ j : Fin n, (cw j) ^ 2))) 1 := by
-      rw [charFun_apply_real]
-      simp
-    rw [h_cf, charFun_gaussianReal]
-    simp only [ofReal_zero, mul_zero, zero_mul, ofReal_one, mul_one, one_pow, zero_sub]
-    have h_nn : 0 ≤ ∑ j : Fin n, (cw j) ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
-    rw [Real.coe_toNNReal _ h_nn]
-    congr 1
-    rw [neg_div]
-  have h_b : (∫ b : ℝ, Complex.exp ((cb * b : ℝ) * Complex.I) ∂gaussianReal 0 1) =
-      Complex.exp (- Complex.ofReal (cb ^ 2) / 2) := by
-    have h_cf : (∫ b : ℝ, Complex.exp ((cb * b : ℝ) * Complex.I) ∂gaussianReal 0 1) =
-        charFun (gaussianReal 0 1) cb := by
-      rw [charFun_apply_real]
-      congr 1 with b
-      push_cast
-      ring
-    rw [h_cf, charFun_gaussianReal]
-    congr 1
-    push_cast
-    ring
-  rw [h_w, h_b, ← Complex.exp_add]
-  have h_var := projection_layer_variance_eq σw σb n H t
-  have h_alg : - Complex.ofReal (∑ j : Fin n, (cw j) ^ 2) / 2 + - Complex.ofReal (cb ^ 2) / 2 =
-      - Complex.ofReal (cb ^ 2 + ∑ j : Fin n, (cw j) ^ 2) / 2 := by
-    push_cast
-    ring
-  rw [h_alg, h_var]
-  rw [charFun_multivariateGaussian hPos]
-  simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
-
-/-- **Step 1 (Base Case at Layer 1: Exact Bivariate Normality)**:
-Under standard Gaussian parameter priors, the preactivation vector
-`(h_i^{(1)}(x), h_i^{(1)}(x'))` is distributed exactly as a centered bivariate normal
-vector with covariance `K^{(1)}(x, x')_{α β} = σ_b² + (σ_w² / d) * (X α ⊙ X β)`:
-  `(h_i^{(1)}(x), h_i^{(1)}(x')) ~ 𝒩(0, K^{(1)}(x, x'))`. -/
-theorem exact_bivariate_normality_layer1
-    (σw σb : ℝ) (d : ℕ) (X : Fin 2 → Fin d → ℝ) :
-    Measure.map
-      (fun p : (Fin d → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-        σb * p.2 + (σw * (d : ℝ)⁻¹.sqrt) * (p.1 ⊙ X α))
-      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) =
-      multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (d : ℝ)⁻¹) * (X α ⊙ X β)) := by
-  change Measure.map _ ((gaussianReadoutMeasure d).prod (gaussianReal 0 1)) = _
-  exact exact_conditional_normality_general σw σb d (fun j α => X α j)
-
-/-! ### Step 2: Conditional Mean and Covariance at Layer l -/
-
-/-- **Step 2 (Exact Conditional Normality at Layer l)**:
-Conditional on previous layer activations `u, v`, the bivariate preactivation vector
-follows an exact bivariate normal distribution with empirical covariance:
-  `(h_i^{(l)}(x), h_i^{(l)}(x')) | ℱ_{l-1} ~ 𝒩(0, K^{(l)}_{empirical})`. -/
-theorem exact_conditional_normality_layer
-    (σw σb : ℝ) (n : ℕ) (u v : Fin n → ℝ) :
-    Measure.map
-      (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-        σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * (if α = 0 then u j else v j))
-      ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)) =
-      multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-          ∑ j : Fin n, (if α = 0 then u j else v j) * (if β = 0 then u j else v j)) :=
-  exact_conditional_normality_general σw σb n (fun j α => if α = 0 then u j else v j)
-
-/-- Step 2 (Conditional Expectation Vanishes):
-Conditional on the previous layer, the preactivation expectation is zero:
-  `𝔼[h_i^{(l)} | ℱ_{l-1}] = 0`. -/
-lemma integral_conditional_preactivation_eq_zero
-    (σw σb : ℝ) (n : ℕ) (u v : Fin n → ℝ) :
-    ∫ z, z ∂(Measure.map
-      (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-        σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * (if α = 0 then u j else v j))
-      ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))) = 0 := by
-  rw [exact_conditional_normality_layer]
-  exact integral_id_multivariateGaussian
-
-/-- Step 2 (Conditional Covariance Formula):
-The conditional covariance between evaluations on `x` and `x'` equals the empirical covariance:
-  `cov(h_i^{(l)}(x), h_i^{(l)}(x') | ℱ_{l-1}) = σ_b² + (σ_w² / n) * ∑ j, u j * v j`. -/
-lemma cov_conditional_preactivation_eq_empiricalCovariance
-    (σw σb : ℝ) (n : ℕ) (u v : Fin n → ℝ) (α β : Fin 2) :
-    cov[fun z : EuclideanSpace ℝ (Fin 2) => z.ofLp α,
-        fun z : EuclideanSpace ℝ (Fin 2) => z.ofLp β;
-        Measure.map (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun γ : Fin 2 =>
-          σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * (if γ = 0 then u j else v j))
-          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))] =
-      σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-        ∑ j : Fin n, (if α = 0 then u j else v j) * (if β = 0 then u j else v j) := by
-  rw [exact_conditional_normality_layer]
-  have hPos : (show Matrix (Fin 2) (Fin 2) ℝ from fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-      ∑ j : Fin n, (if α = 0 then u j else v j) * (if β = 0 then u j else v j)).PosSemidef :=
-    empirical_layer_covariance_posSemidef σw σb n (fun j α => if α = 0 then u j else v j)
-  exact covariance_eval_multivariateGaussian hPos α β
-
-/-! ### Step 3: Strong Law of Large Numbers Convergence -/
-
-/-- SLLN for empirical averages of i.i.d. draws from a multivariate Gaussian distribution. -/
-lemma multivariateGaussian_average_tendsto_integral
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (g : EuclideanSpace ℝ (Fin 2) → ℝ)
-    (hg_meas : Measurable g)
-    (hg_int : Integrable g (multivariateGaussian 0 K)) :
-    ∀ᵐ seq : ℕ → EuclideanSpace ℝ (Fin 2)
-      ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-      Filter.Tendsto
-        (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, g (seq j))
-        Filter.atTop
-        (nhds (∫ z, g z ∂(multivariateGaussian 0 K))) := by
-  set μ := Measure.infinitePi (fun _ : ℕ => multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)
-  have hmap_eval : ∀ i : ℕ, μ.map (fun seq => seq i) = multivariateGaussian 0 K :=
-    fun i => Measure.infinitePi_map_eval _ i
-  have hmp : MeasurePreserving (fun seq : ℕ → EuclideanSpace ℝ (Fin 2) => seq 0) μ
-      (multivariateGaussian 0 K) :=
-    measurePreserving_eval_infinitePi (fun _ : ℕ => multivariateGaussian 0 K) 0
-  have hint : Integrable (fun seq : ℕ → EuclideanSpace ℝ (Fin 2) => g (seq 0)) μ :=
-    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
-  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j seq => g (seq j)) := by
-    have h := iIndepFun_infinitePi (P := fun _ : ℕ => multivariateGaussian 0 K)
-      (X := fun _ : ℕ => g) (fun _ => hg_meas)
-    intro i j hij
-    exact h.indepFun hij
-  have hident : ∀ i : ℕ,
-      IdentDistrib (fun seq : ℕ → EuclideanSpace ℝ (Fin 2) => g (seq i))
-        (fun seq : ℕ → EuclideanSpace ℝ (Fin 2) => g (seq 0)) μ μ := by
-    intro i
-    have hcoord : IdentDistrib (fun seq : ℕ → EuclideanSpace ℝ (Fin 2) => seq i)
-        (fun seq : ℕ → EuclideanSpace ℝ (Fin 2) => seq 0) μ μ := by
-      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
-      rw [hmap_eval i, hmap_eval 0]
-    exact hcoord.comp hg_meas
-  have hslln : ∀ᵐ seq ∂μ, Filter.Tendsto
-      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (seq i))
-      Filter.atTop (nhds (∫ seq, g (seq 0) ∂μ)) :=
-    strong_law_ae _ hint hindep hident
-  have hexp : ∫ seq, g (seq 0) ∂μ = ∫ z, g z ∂(multivariateGaussian 0 K) := by
-    rw [← hmap_eval 0]
-    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
-      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
-  filter_upwards [hslln] with seq hseq
-  rw [← hexp]
-  convert hseq using 1
-  ext width
-  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
-
-/-- **Step 3 (Application of the Strong Law of Large Numbers)**:
-Under i.i.d. draws of previous-layer preactivations from `multivariateGaussian 0 K`,
-the empirical covariance matrix converges almost surely to the limiting expectation:
-  `K^{(l)}_{empirical} →_as (fun α β => σ_b² + σ_w² * 𝔼_{(u,v) ~ 𝒩(0, K)} [φ(u) φ(v)])`. -/
-theorem empiricalCovariance_tendsto_limitingRecurrence_ae
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2 (multivariateGaussian 0 K)) :
-    ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin 2) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-      Filter.Tendsto
-        (fun n : ℕ => (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-          ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)))
-        Filter.atTop
-        (nhds (fun α β => σb ^ 2 + σw ^ 2 *
-          ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
-  have h_entry : ∀ α β : Fin 2,
-      ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin 2) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-        Filter.Tendsto
-          (fun n : ℕ => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-            ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
-          Filter.atTop
-          (nhds (σb ^ 2 + σw ^ 2 *
-            ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
-    intro α β
-    set g := fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α) * φ (z.ofLp β)
-    have hg_meas : Measurable g :=
-      (hφ_meas.comp (PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) α).measurable).mul
-      (hφ_meas.comp (PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) β).measurable)
-    have hg_int : Integrable g (multivariateGaussian 0 K) :=
-      (hφ_L2 α).integrable_mul (hφ_L2 β)
-    have hslln := multivariateGaussian_average_tendsto_integral K g hg_meas hg_int
-    filter_upwards [hslln] with Z hZ
-    have h_scale := hZ.const_mul (σw ^ 2)
-    simp_rw [← mul_assoc] at h_scale
-    have h_shift := h_scale.const_add (σb ^ 2)
-    exact h_shift
-  have h_all :
-      ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin 2) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-        ∀ α β : Fin 2,
-          Filter.Tendsto
-            (fun n : ℕ => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-              ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
-            Filter.atTop
-            (nhds (σb ^ 2 + σw ^ 2 *
-              ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
-    rw [ae_all_iff]
-    intro α
-    rw [ae_all_iff]
-    intro β
-    exact h_entry α β
-  filter_upwards [h_all] with Z hZ
-  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hZ α β
-
-/-! ### Step 4: Deterministic Recurrence Formulation & 2D Gaussian Density -/
-
-/-- **Step 4 (Deterministic Recurrence Formulation & 2D Gaussian Integral)**:
-When `K` is positive definite (`K.PosDef`), the deterministic kernel recurrence expectation
-coincides with the 2D Gaussian improper integral against the bivariate normal density:
-  `𝔼 [φ(u) φ(v)] = ∬ φ(u) φ(v) (1 / (2π √(det K))) exp(- (1/2) (u, v) K⁻¹ (u, v)ᵀ) du dv`.
-
-Note: Mathlib defines `multivariateGaussian` intrinsically as a pushforward of standard Gaussian
-measure under `toEuclideanCLM (CFC.sqrt K)` and does not currently possess multivariate Radon-Nikodym
-Lebesgue density infrastructure. The Master Theorem (`tendstoInDistribution_sequential_bivariate`)
-operates natively on the intrinsic expectation representation without needing this density identity. -/
-theorem expectation_multivariateGaussian_eq_bivariate_integral
-    (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) (hK_pos : K.PosDef) :
-    (∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp 0) * φ (z.ofLp 1) ∂(multivariateGaussian 0 K)) =
-      ∫ u : ℝ, ∫ v : ℝ, φ u * φ v *
-        ((2 * Real.pi * Real.sqrt K.det)⁻¹ *
-          Real.exp (- (![u, v] ⬝ᵥ K⁻¹ *ᵥ ![u, v]) / 2)) := by
-  sorry
-
-/-! ### Step 5: Inductive Step via Characteristic Functions & Convergence in Distribution -/
-
-/-- Step 5 (Conditional Characteristic Function):
-The conditional characteristic function of the bivariate preactivation is:
-  `𝔼[exp(i tᵀ h_i^{(l)}) | ℱ_{l-1}] = exp(- (1/2) tᵀ K^{(l)}_{empirical} t)`. -/
-lemma charFun_conditional_preactivation
-    (σw σb : ℝ) (n : ℕ) (u v : Fin n → ℝ) (t : EuclideanSpace ℝ (Fin 2)) :
-    charFun
-      (Measure.map (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-        σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * (if α = 0 then u j else v j))
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))) t =
-      Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-        (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-          ∑ j : Fin n, (if α = 0 then u j else v j) * (if β = 0 then u j else v j)) *ᵥ t.ofLp) / 2) := by
-  rw [exact_conditional_normality_layer]
-  have hPos : (show Matrix (Fin 2) (Fin 2) ℝ from fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-      ∑ j : Fin n, (if α = 0 then u j else v j) * (if β = 0 then u j else v j)).PosSemidef :=
-    empirical_layer_covariance_posSemidef σw σb n (fun j α => if α = 0 then u j else v j)
-  rw [charFun_multivariateGaussian hPos]
-  simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
-
-/-- Step 5 (Passing the Limit via Dominated Convergence):
-Using almost sure convergence of empirical covariance and the uniform bound ≤ 1,
-the unconditional characteristic function converges to the Gaussian characteristic function:
-  `lim_{n → ∞} ψ_n(t) = exp(- (1/2) tᵀ K^{(l)} t)`. -/
-lemma tendsto_charFun_preactivation_dct
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (_hK_pos : K.PosSemidef)
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2 (multivariateGaussian 0 K))
-    (t : EuclideanSpace ℝ (Fin 2)) :
-    Filter.Tendsto
-      (fun n : ℕ => ∫ Z : ℕ → EuclideanSpace ℝ (Fin 2),
-        Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-          (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2)
-        ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K))
-      Filter.atTop
-      (nhds (Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ t.ofLp) / 2))) := by
-  have hslln := empiricalCovariance_tendsto_limitingRecurrence_ae σw σb φ hφ_meas K hφ_L2
-  have h_cont : Continuous (fun M : Matrix (Fin 2) (Fin 2) ℝ =>
-      Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ M *ᵥ t.ofLp) / 2)) :=
-    continuous_charFun_integrand t
-  have h_ae : ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin 2) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-      Filter.Tendsto
-        (fun n : ℕ => Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-          (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2))
-        Filter.atTop
-        (nhds (Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ t.ofLp) / 2))) := by
-    filter_upwards [hslln] with Z hZ
-    exact (h_cont.tendsto _).comp hZ
-  have h_bound : ∀ n : ℕ, ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin 2) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-      ‖Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-        (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2)‖ ≤ (1 : ℝ) := by
-    intro n
-    refine ae_of_all _ fun Z => norm_exp_neg_ofReal_div_two_le_one ?_
-    exact empirical_layer_covariance_nonneg σw σb n (fun j α => φ ((Z j).ofLp α)) t
-  have h_meas (n : ℕ) : Measurable (fun Z : ℕ → EuclideanSpace ℝ (Fin 2) =>
-      Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-        (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2)) := by
-    have h_quad : Measurable (fun Z : ℕ → EuclideanSpace ℝ (Fin 2) =>
-        t.ofLp ⬝ᵥ (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) := by
-      simp only [dotProduct, mulVec]
-      refine Finset.measurable_sum _ fun α _ => ?_
-      refine measurable_const.mul (Finset.measurable_sum _ fun β _ => ?_)
-      have h_entry : Measurable (fun Z : ℕ → EuclideanSpace ℝ (Fin 2) =>
-          σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) := by
-        refine measurable_const.add (measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_))
-        refine (hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) α).measurable.comp (measurable_pi_apply j.val))).mul ?_
-        exact (hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) β).measurable.comp (measurable_pi_apply j.val)))
-      exact h_entry.mul_const (t.ofLp β)
-    exact Complex.measurable_exp.comp
-      ((Complex.measurable_ofReal.comp h_quad).neg.div_const 2)
-  have h_lim := tendsto_integral_of_dominated_convergence (bound := fun _ => (1 : ℝ))
-    (fun n => (h_meas n).aestronglyMeasurable)
-    (integrable_const 1)
-    h_bound
-    h_ae
-  simpa only [integral_const, probReal_univ, one_smul] using h_lim
-
-/-- Limiting recurrence matrix is Hermitian (symmetric). -/
-lemma limitingRecurrence_isHermitian
-    (σw σb : ℝ) (φ : ℝ → ℝ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) :
-    Matrix.IsHermitian (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) := by
-  ext α β
-  rw [conjTranspose_apply]
-  simp only [star_trivial]
-  congr 2
-  congr 1 with z
-  ring
-
-/-- Quadratic form of the limiting recurrence matrix is non-negative. -/
-lemma limitingRecurrence_nonneg
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2 (multivariateGaussian 0 K))
-    (c : Fin 2 → ℝ) :
-    0 ≤ c ⬝ᵥ (fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ c := by
-  have hslln := empiricalCovariance_tendsto_limitingRecurrence_ae σw σb φ hφ_meas K hφ_L2
-  have h_ex := hslln.exists
-  rcases h_ex with ⟨Z, hZ⟩
-  have h_quad : Filter.Tendsto
-      (fun n : ℕ => c ⬝ᵥ (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-        ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ c)
-      Filter.atTop
-      (nhds (c ⬝ᵥ (fun α β : Fin 2 => σb ^ 2 + σw ^ 2 *
-        ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ c)) :=
-    (continuous_matrix_quadratic c).continuousAt.tendsto.comp hZ
-  refine ge_of_tendsto h_quad (Filter.Eventually.of_forall fun n => ?_)
-  exact empirical_layer_covariance_nonneg σw σb n (fun j α => φ ((Z j).ofLp α)) (WithLp.toLp 2 c)
-
-/-- Limiting recurrence matrix is positive semidefinite. -/
-lemma limitingRecurrence_posSemidef
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2 (multivariateGaussian 0 K)) :
-    (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)).PosSemidef :=
-  posSemidef_of_bilin_nonneg _ (limitingRecurrence_isHermitian σw σb φ K)
-    (limitingRecurrence_nonneg σw σb φ hφ_meas K hφ_L2)
-
-/-- Step 5 (Unconditional Characteristic Function via Fubini):
-Under the sequential product initialization measure, the characteristic function of the
-bivariate preactivation vector is the expectation over previous layer Gaussian activations. -/
-lemma charFun_map_sequential_preactivation
-    (σw σb : ℝ) (n : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (t : EuclideanSpace ℝ (Fin 2)) :
-    charFun (Measure.map
-      (fun (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-        WithLp.toLp 2 fun α : Fin 2 =>
-          σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-      ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t =
-      ∫ Z : ℕ → EuclideanSpace ℝ (Fin 2),
-        Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-          (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2)
-        ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K) := by
-  set F := fun (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-    WithLp.toLp 2 fun α : Fin 2 =>
-      σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α)
-  set μZ := Measure.infinitePi fun _ : ℕ => multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K
-  set μP := (gaussianReadoutMeasure n).prod (gaussianReal 0 1)
-  have hF_meas : Measurable F := by
-    apply (PiLp.continuous_toLp 2 (fun _ : Fin 2 => ℝ)).measurable.comp
-    refine measurable_pi_iff.2 fun α => ?_
-    refine (measurable_const.mul (measurable_snd.comp measurable_snd)).add ?_
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    refine ((measurable_pi_apply j).comp (measurable_fst.comp measurable_snd)).mul ?_
-    exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) α).measurable.comp
-      ((measurable_pi_apply j.val).comp measurable_fst))
-  rw [charFun_apply, integral_map hF_meas.aemeasurable (by fun_prop)]
-  have h_inner (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) :
-      ⟪F p, t⟫ = ⟪t, F p⟫ := real_inner_comm _ _
-  simp_rw [h_inner]
-  have h_exp_meas : AEStronglyMeasurable
-      (fun p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ) =>
-        Complex.exp (⟪t, F p⟫ * Complex.I)) (μZ.prod μP) := by
-    have h_inner_meas : Measurable (fun p => ⟪t, F p⟫) :=
-      (continuous_const.inner continuous_id).measurable.comp hF_meas
-    exact (Complex.continuous_exp.measurable.comp
-      ((Complex.measurable_ofReal.comp h_inner_meas).mul_const Complex.I)).aestronglyMeasurable
-  have h_prod := integral_prod (fun p => Complex.exp (⟪t, F p⟫ * Complex.I))
-    (Integrable.of_bound h_exp_meas 1 (ae_of_all _ fun p => (Complex.norm_exp_ofReal_mul_I _).le))
-  rw [h_prod]
-  congr 1 with Z
-  set F_Z := fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin 2 =>
-    σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.1 j * (if α = 0 then φ ((Z j.val).ofLp 0) else φ ((Z j.val).ofLp 1))
-  have h_FZ_eq (p : (Fin n → ℝ) × ℝ) : F (Z, p) = F_Z p := by
-    dsimp [F, F_Z]
-    congr 1
-    ext α
-    congr 2
-    apply Finset.sum_congr rfl
-    intro j _
-    congr 1
-    fin_cases α <;> rfl
-  simp_rw [h_FZ_eq]
-  have h_FZ_meas : Measurable F_Z := by
-    apply (PiLp.continuous_toLp 2 (fun _ : Fin 2 => ℝ)).measurable.comp
-    refine measurable_pi_iff.2 fun α => ?_
-    refine (measurable_const.mul measurable_snd).add ?_
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact ((measurable_pi_apply j).comp measurable_fst).mul_const _
-  have h_cf : (∫ p : (Fin n → ℝ) × ℝ, Complex.exp (⟪t, F_Z p⟫ * Complex.I) ∂μP) =
-      charFun (Measure.map F_Z μP) t := by
-    rw [charFun_apply, integral_map h_FZ_meas.aemeasurable (by fun_prop)]
-    congr 1 with p
-    rw [real_inner_comm]
-  have h_cond := charFun_conditional_preactivation σw σb n
-    (fun j => φ ((Z j.val).ofLp 0)) (fun j => φ ((Z j.val).ofLp 1)) t
-  have h_mat : (fun α β : Fin 2 => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-      ∑ j : Fin n, (if α = 0 then φ ((Z j.val).ofLp 0) else φ ((Z j.val).ofLp 1)) *
-        (if β = 0 then φ ((Z j.val).ofLp 0) else φ ((Z j.val).ofLp 1))) =
-    (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) := by
-    ext α β
-    congr 2
-    apply Finset.sum_congr rfl
-    intro j _
-    fin_cases α <;> fin_cases β <;> rfl
-  rw [h_cf, h_cond, h_mat]
-
-/-- Step 5 (Pointwise Characteristic Function Convergence to Limiting Gaussian):
-Pointwise in `t`, the characteristic function converges to that of the limiting bivariate Gaussian. -/
-lemma tendsto_charFun_sequential_preactivation
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (hK_pos : K.PosSemidef)
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2 (multivariateGaussian 0 K))
-    (t : EuclideanSpace ℝ (Fin 2)) :
-    Filter.Tendsto
-      (fun n : ℕ => charFun (Measure.map
-        (fun (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-          WithLp.toLp 2 fun α : Fin 2 =>
-            σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-        ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t)
-      Filter.atTop
-      (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) t)) := by
-  have hPos : (show Matrix (Fin 2) (Fin 2) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)).PosSemidef :=
-    limitingRecurrence_posSemidef σw σb φ hφ_meas K hφ_L2
-  have h_cf : charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-      (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) t =
-      Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ t.ofLp) / 2) := by
-    rw [charFun_multivariateGaussian hPos]
-    congr 1
-    simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
-  rw [h_cf]
-  have h_eq (n : ℕ) :
-      charFun (Measure.map
-        (fun (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-          WithLp.toLp 2 fun α : Fin 2 =>
-            σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-        ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t =
-      ∫ Z : ℕ → EuclideanSpace ℝ (Fin 2),
-        Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
-          (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2)
-        ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K) :=
-    charFun_map_sequential_preactivation σw σb n φ hφ_meas K t
-  simp_rw [h_eq]
-  exact tendsto_charFun_preactivation_dct σw σb φ hφ_meas K hK_pos hφ_L2 t
-
-set_option backward.isDefEq.respectTransparency.types false in
-/-- **Master Theorem (Conditional Normality & Convergence in Distribution)**:
-In the sequential infinite-width limit, the pre-activation vector `(h_i^{(l)}(x), h_i^{(l)}(x'))`
-converges in distribution to the centered bivariate normal vector with limiting covariance:
-  `(h_i^{(l)}(x), h_i^{(l)}(x'))ᵀ →_d 𝒩(0, K^{(l)}(x, x'))`. -/
-theorem tendstoInDistribution_sequential_bivariate
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ) [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (hK_pos : K.PosSemidef)
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2 (multivariateGaussian 0 K)) :
-    TendstoInDistribution
-      (fun n (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-        WithLp.toLp 2 fun α : Fin 2 =>
-          σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-      Filter.atTop
-      id
-      (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))
-      (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) where
-  forall_aemeasurable n := by
-    refine Measurable.aemeasurable ?_
-    apply (PiLp.continuous_toLp 2 (fun _ : Fin 2 => ℝ)).measurable.comp
-    refine measurable_pi_iff.2 fun α => ?_
-    refine (measurable_const.mul (measurable_snd.comp measurable_snd)).add ?_
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    refine ((measurable_pi_apply j).comp (measurable_fst.comp measurable_snd)).mul ?_
-    exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) α).measurable.comp
-      ((measurable_pi_apply j.val).comp measurable_fst))
-  aemeasurable_limit := measurable_id.aemeasurable
-  tendsto := by
-    have h_meas (n : ℕ) : AEMeasurable
-        (fun (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-          WithLp.toLp 2 fun α : Fin 2 =>
-            σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-        ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))) := by
-      refine Measurable.aemeasurable ?_
-      apply (PiLp.continuous_toLp 2 (fun _ : Fin 2 => ℝ)).measurable.comp
-      refine measurable_pi_iff.2 fun α => ?_
-      refine (measurable_const.mul (measurable_snd.comp measurable_snd)).add ?_
-      refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-      refine ((measurable_pi_apply j).comp (measurable_fst.comp measurable_snd)).mul ?_
-      exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin 2 => ℝ) α).measurable.comp
-        ((measurable_pi_apply j.val).comp measurable_fst))
-    have h_weak : Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin 2)))
-        (fun n : ℕ => ⟨Measure.map
-          (fun (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-            WithLp.toLp 2 fun α : Fin 2 =>
-              σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-          ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-            ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))),
-          Measure.isProbabilityMeasure_map (h_meas n)⟩)
-        Filter.atTop
-        (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)), inferInstance⟩) := by
-      apply ProbabilityMeasure.tendsto_of_tendsto_charFun
-      intro t
-      exact tendsto_charFun_sequential_preactivation σw σb φ hφ_meas K hK_pos hφ_L2 t
-    have h_lim : (⟨(multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))).map id,
-          Measure.isProbabilityMeasure_map measurable_id.aemeasurable⟩ : ProbabilityMeasure (EuclideanSpace ℝ (Fin 2))) =
-        ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)), inferInstance⟩ := by
-      ext1
-      exact Measure.map_id
-    rw [h_lim]
-    exact h_weak
-
 /-! ### Multivariate sequential preactivation convergence -/
 
 /-- The projection identity used by the conditional Gaussian calculation, for any finite
@@ -2466,6 +1775,144 @@ lemma charFun_map_sequential_preactivation_multivariate
   rw [h_cf]
   exact charFun_conditional_preactivation_multivariate σw σb n m
     (fun j α => φ ((Z j.val).ofLp α)) t
+
+lemma tendsto_charFun_sequential_preactivation_multivariate
+    (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (K : Matrix (Fin m) (Fin m) ℝ)
+    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
+    (hK_pos : K.PosSemidef)
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+      (multivariateGaussian 0 K)) (t : EuclideanSpace ℝ (Fin m)) :
+    Filter.Tendsto
+      (fun n : ℕ => charFun (Measure.map
+        (fun (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
+          WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
+            ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
+        ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
+          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t)
+      Filter.atTop
+      (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) t)) := by
+  have hPos : (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
+      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)).PosSemidef :=
+    limitingRecurrence_posSemidef_multivariate σw σb m φ hφ_meas K hφ_L2
+  have h_cf : charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+      (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+        φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) t =
+      Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
+        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ t.ofLp) / 2) := by
+    rw [charFun_multivariateGaussian hPos]
+    simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
+  rw [h_cf]
+  have h_eq (n : ℕ) : charFun (Measure.map
+      (fun (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
+        WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
+          ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
+      ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
+        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t =
+      ∫ Z : ℕ → EuclideanSpace ℝ (Fin m),
+        Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
+          (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n,
+            φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ t.ofLp) / 2)
+        ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K) :=
+    charFun_map_sequential_preactivation_multivariate σw σb n m φ hφ_meas K t
+  simp_rw [h_eq]
+  exact tendsto_charFun_preactivation_dct_multivariate σw σb m φ hφ_meas K hK_pos hφ_L2 t
+
+set_option backward.isDefEq.respectTransparency.types false in
+theorem tendstoInDistribution_sequential_preactivation
+    (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (K : Matrix (Fin m) (Fin m) ℝ)
+    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
+    (hK_pos : K.PosSemidef)
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+      (multivariateGaussian 0 K)) :
+    TendstoInDistribution
+      (fun n (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
+        WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
+          ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
+      Filter.atTop id
+      (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
+        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) where
+  forall_aemeasurable n := by
+    refine Measurable.aemeasurable ?_
+    apply (PiLp.continuous_toLp 2 (fun _ : Fin m => ℝ)).measurable.comp
+    refine measurable_pi_iff.2 fun α => ?_
+    refine (measurable_const.mul (measurable_snd.comp measurable_snd)).add ?_
+    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
+    refine ((measurable_pi_apply j).comp (measurable_fst.comp measurable_snd)).mul ?_
+    exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable.comp
+      ((measurable_pi_apply j.val).comp measurable_fst))
+  aemeasurable_limit := measurable_id.aemeasurable
+  tendsto := by
+    have h_meas (n : ℕ) : AEMeasurable
+        (fun (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
+          WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
+            ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
+        ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
+          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))) := by
+      refine Measurable.aemeasurable ?_
+      apply (PiLp.continuous_toLp 2 (fun _ : Fin m => ℝ)).measurable.comp
+      refine measurable_pi_iff.2 fun α => ?_
+      refine (measurable_const.mul (measurable_snd.comp measurable_snd)).add ?_
+      refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
+      refine ((measurable_pi_apply j).comp (measurable_fst.comp measurable_snd)).mul ?_
+      exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable.comp
+        ((measurable_pi_apply j.val).comp measurable_fst))
+    have h_weak : Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
+        (fun n : ℕ => ⟨Measure.map
+          (fun (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
+            WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
+              ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
+          ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
+            ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))),
+          Measure.isProbabilityMeasure_map (h_meas n)⟩)
+        Filter.atTop
+        (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+            φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)), inferInstance⟩) := by
+      apply ProbabilityMeasure.tendsto_of_tendsto_charFun
+      intro t
+      exact tendsto_charFun_sequential_preactivation_multivariate σw σb m φ hφ_meas K hK_pos hφ_L2 t
+    have h_lim :
+        (⟨(multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+            φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))).map id,
+          Measure.isProbabilityMeasure_map measurable_id.aemeasurable⟩ :
+          ProbabilityMeasure (EuclideanSpace ℝ (Fin m))) =
+        ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+            φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)), inferInstance⟩ := by
+      ext1
+      exact Measure.map_id
+    rw [h_lim]
+    exact h_weak
+
+/-- The two-input sequential NNGP theorem is the `m = 2` specialization of the
+multivariate preactivation convergence theorem. -/
+theorem tendstoInDistribution_sequential_bivariate
+    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (K : Matrix (Fin 2) (Fin 2) ℝ)
+    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
+    (hK_pos : K.PosSemidef)
+    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2
+      (multivariateGaussian 0 K)) :
+    TendstoInDistribution
+      (fun n (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
+        WithLp.toLp 2 fun α : Fin 2 => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
+          ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
+      Filter.atTop id
+      (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
+        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
+        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2),
+          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
+  exact tendstoInDistribution_sequential_preactivation σw σb 2 φ hφ_meas K hK_pos hφ_L2
 
 end MultilayerSequentialNNGP
 
