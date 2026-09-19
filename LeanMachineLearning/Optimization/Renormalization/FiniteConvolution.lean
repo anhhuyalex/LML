@@ -37,7 +37,7 @@ structure FiniteBoundary (P : Type uP) where
 namespace FiniteBoundary
 
 /-- Periodic boundary conditions on a finite two-dimensional torus. -/
-def periodic (rows cols : ℕ) [NeZero rows] [NeZero cols] :
+def periodic (rows cols : ℕ) :
     FiniteBoundary (ZMod rows × ZMod cols) where
   shift p dc dd := (p.1 + dc, p.2 + dd)
 
@@ -64,18 +64,18 @@ def finitePreactivation [Fintype ι] (L : Conv2DLayer ι κ) (B : FiniteBoundary
 channel-position pairs, as are its input coordinates.  The matrix coefficient is zero when no
 window offset connects the two positions, and it sums coefficients if the boundary convention
 identifies several offsets. -/
-def toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P] (L : Conv2DLayer ι κ)
+def toGlobalDenseLayer [DecidableEq P] (L : Conv2DLayer ι κ)
     (B : FiniteBoundary P) (k : ℕ) : DenseLayer (ι × P) (κ × P) where
   weight op iq :=
     ∑ r : WindowIndex k × WindowIndex k,
       if B.shift op.2 r.1 r.2 = iq.2 then L.weight op.1 iq.1 r.1 r.2 else 0
   bias op := L.bias op.1
 
-@[simp] theorem toGlobalDenseLayer_bias [Fintype ι] [Fintype P] [DecidableEq P]
+@[simp] theorem toGlobalDenseLayer_bias [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ) (o : κ) (p : P) :
     (L.toGlobalDenseLayer B k).bias (o, p) = L.bias o := rfl
 
-@[simp] theorem toGlobalDenseLayer_weight [Fintype ι] [Fintype P] [DecidableEq P]
+@[simp] theorem toGlobalDenseLayer_weight [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ)
     (o : κ) (p : P) (i : ι) (q : P) :
     (L.toGlobalDenseLayer B k).weight (o, p) (i, q) =
@@ -84,7 +84,7 @@ def toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P] (L : Conv2DLayer
 
 /-- Entries outside the receptive field are structurally zero. -/
 theorem toGlobalDenseLayer_weight_eq_zero_of_not_reachable
-    [Fintype ι] [Fintype P] [DecidableEq P]
+    [DecidableEq P]
     (L : Conv2DLayer ι κ) (B : FiniteBoundary P) (k : ℕ)
     (o : κ) (p : P) (i : ι) (q : P)
     (h : ∀ dc : WindowIndex k, ∀ dd : WindowIndex k, B.shift p dc dd ≠ q) :

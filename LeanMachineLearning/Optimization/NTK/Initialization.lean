@@ -1886,27 +1886,6 @@ theorem tendstoInDistribution_sequential_preactivation
     rw [h_lim]
     exact h_weak
 
-/-- The two-input sequential NNGP theorem is the `m = 2` specialization of the
-multivariate preactivation convergence theorem. -/
-theorem tendstoInDistribution_sequential_bivariate
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
-    (hK_pos : K.PosSemidef)
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2
-      (multivariateGaussian 0 K)) :
-    TendstoInDistribution
-      (fun n (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-        WithLp.toLp 2 fun α : Fin 2 => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
-          ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-      Filter.atTop id
-      (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))
-      (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2),
-          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
-  exact tendstoInDistribution_sequential_preactivation σw σb 2 φ hφ_meas K hK_pos hφ_L2
-
 end MultilayerSequentialNNGP
 
 end NTK
