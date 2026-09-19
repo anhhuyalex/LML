@@ -102,6 +102,7 @@ public import LeanMachineLearning.Optimization.Renormalization.RGFlow.FourPointV
 public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Marginalization
 public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Metric
 public import LeanMachineLearning.Optimization.Renormalization.RGFlow.Subleading
+public import LeanMachineLearning.Optimization.Renormalization.SixPointCounting
 public import LeanMachineLearning.Optimization.Renormalization.Symmetry
 public import LeanMachineLearning.SequentialLearning.Algorithm
 public import LeanMachineLearning.SequentialLearning.AlgorithmDensity

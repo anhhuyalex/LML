@@ -59,7 +59,7 @@ Mathlib API for `Measure.pi`, whose exact name must still be verified in a scrat
 Rule 1/Rule 8 of `lessons_learned.md` before this proof is filled in).
 Source: `eq:marginalization-rule` and `eq:sum-rule-mlp`. -/
 theorem map_restrict_eq_outputLaw_restrict
-    {κ : Type*} [Fintype κ] [DecidableEq κ] (p : InitHyperparams) (σ : ℝ → ℝ) (z : A → ι → ℝ)
+    {κ : Type*} [Fintype κ] (p : InitHyperparams) (σ : ℝ → ℝ) (z : A → ι → ℝ)
     (B : Finset A) (I : Finset κ) :
     Measure.map
       (fun w : κ → EuclideanSpace ℝ A =>

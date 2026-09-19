@@ -63,6 +63,7 @@ theorem fourPointVertex_swap_left (ν : Measure (A → ι → ℝ)) (n : ℕ) (p
     fourPointVertex ν n p σ a₂ a₁ a₃ a₄ = fourPointVertex ν n p σ a₁ a₂ a₃ a₄ := by
   simp [fourPointVertex, mul_comm]
 
+omit [Fintype A] [DecidableEq A] in
 /-- **The four-point vertex is fully permutation-symmetric in its four sample legs.**
 
 This is the genuinely new nonnegativity/symmetry fact the chapter needs: the vertex, defined via

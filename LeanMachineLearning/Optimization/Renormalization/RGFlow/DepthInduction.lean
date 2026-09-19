@@ -39,7 +39,7 @@ namespace RGFlow
 
 universe uA uI
 
-variable {A : Type uA} {ι : Type uI} [Fintype ι] [Fintype A] [DecidableEq A]
+variable {A : Type uA} {ι : Type uI} [Fintype ι] [Fintype A]
 
 /-- **Order-one layer statistics** (static regularity form; see the module docstring). A layer's
 mean metric is positive definite and its packaged quartic coupling is nonnegative — exactly the
