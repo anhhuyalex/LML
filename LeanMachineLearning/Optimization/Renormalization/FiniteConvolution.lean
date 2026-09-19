@@ -118,8 +118,7 @@ theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P
       L.weight o i r.1 r.2 * x (i, B.shift p r.1 r.2))]
   apply Finset.sum_congr rfl
   intro r _
-  rcases r with ⟨dc, dd⟩
-  simp
+  rcases r with ⟨dc, dd⟩; simp
 
 /-- Number of scalar parameters in an unrestricted global dense layer with the same input and
 output coordinates as the finite convolution. -/
