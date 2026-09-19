@@ -2332,6 +2332,95 @@ lemma choSaul_expectation_algebra (ρ : ℝ) :
   field_simp
   ring
 
+/-- Adjoint of the continuous linear map induced by a real 2x2 matrix on `EuclideanSpace ℝ (Fin 2)`. -/
+lemma toEuclideanCLM_adjoint (A : Matrix (Fin 2) (Fin 2) ℝ) :
+    (toEuclideanCLM (𝕜 := ℝ) A).adjoint = toEuclideanCLM (𝕜 := ℝ) Aᵀ := by
+  apply ContinuousLinearMap.ext
+  intro x
+  apply ext_inner_right ℝ
+  intro y
+  rw [ContinuousLinearMap.adjoint_inner_left]
+  rw [inner_toEuclideanCLM]
+  rw [real_inner_comm]
+  rw [inner_toEuclideanCLM]
+  simp only [dotProduct, mulVec, Fin.sum_univ_two, transpose_apply]
+  ring
+
+/-- Self-adjointness of the 2x2 diagonal scaling operator. -/
+lemma toEuclideanCLM_diagScale_adjoint (s0 s1 : ℝ) :
+    let D := (!![s0, 0; 0, s1] : Matrix (Fin 2) (Fin 2) ℝ)
+    (toEuclideanCLM (𝕜 := ℝ) D).adjoint = toEuclideanCLM (𝕜 := ℝ) D := by
+  intro D
+  rw [toEuclideanCLM_adjoint D]
+  have hD : Dᵀ = D := by
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp [D]
+  rw [hD]
+
+/-- Cholesky factorization of the 2x2 correlation matrix: `L * Lᵀ = !![1, ρ; ρ, 1]`. -/
+lemma cholesky2x2_mul_transpose (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
+    let L : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; ρ, Real.sqrt (1 - ρ ^ 2)]
+    L * Lᵀ = !![1, ρ; ρ, 1] := by
+  intro L
+  ext i j
+  fin_cases i <;> fin_cases j
+  · dsimp [L]
+    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two]
+  · dsimp [L]
+    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two]
+  · dsimp [L]
+    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two]
+  · dsimp [L]
+    have h_diff : 0 ≤ 1 - ρ ^ 2 := by
+      rcases hρ with ⟨h_ge, h_le⟩
+      nlinarith
+    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two, Real.mul_self_sqrt h_diff]
+    ring
+
+/-- Pushforward of the standard bivariate normal distribution under the lower-triangular Cholesky
+factor `L_ρ = !![1, 0; ρ, √(1 - ρ²)]` yields the standardized correlation normal `𝒩(0, R_ρ)`. -/
+lemma map_cholesky2x2_stdGaussian (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
+    let L : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; ρ, Real.sqrt (1 - ρ ^ 2)]
+    Measure.map (toEuclideanCLM (𝕜 := ℝ) L) (stdGaussian (EuclideanSpace ℝ (Fin 2))) =
+      multivariateGaussian 0 !![1, ρ; ρ, 1] := by
+  intro L
+  have hR_pos : (!![1, ρ; ρ, 1] : Matrix (Fin 2) (Fin 2) ℝ).PosSemidef :=
+    corrMatrix2x2_posSemidef hρ
+  set T := toEuclideanCLM (𝕜 := ℝ) L
+  set μ_target := multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) !![1, ρ; ρ, 1]
+  have : IsGaussian (Measure.map T (stdGaussian (EuclideanSpace ℝ (Fin 2)))) := isGaussian_map T
+  have : IsGaussian μ_target := isGaussian_multivariateGaussian
+  apply ProbabilityTheory.IsGaussian.ext
+  · simp only [id_eq]
+    rw [integral_id_multivariateGaussian]
+    rw [integral_map T.continuous.measurable.aemeasurable (by fun_prop)]
+    have hT_int : ∫ x, T x ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) =
+        T (∫ x, x ∂(stdGaussian (EuclideanSpace ℝ (Fin 2)))) :=
+      ContinuousLinearMap.integral_comp_comm T IsGaussian.integrable_id
+    rw [hT_int]
+    rw [integral_id_stdGaussian]
+    exact ContinuousLinearMap.map_zero T
+  · ext u v
+    rw [covarianceBilin_map IsGaussian.memLp_two_id T u v]
+    rw [toEuclideanCLM_adjoint L]
+    rw [covarianceBilin_stdGaussian]
+    rw [innerSL_apply_apply]
+    rw [inner_toEuclideanCLM]
+    rw [covarianceBilin_multivariateGaussian hR_pos]
+    have h_u : (toEuclideanCLM (𝕜 := ℝ) Lᵀ u : Fin 2 → ℝ) = Lᵀ *ᵥ u := ofLp_toEuclideanCLM Lᵀ u
+    rw [h_u]
+    have h_eval : (Lᵀ *ᵥ (u : Fin 2 → ℝ)) ⬝ᵥ (Lᵀ *ᵥ (v : Fin 2 → ℝ)) =
+        (u : Fin 2 → ℝ) ⬝ᵥ (L * Lᵀ) *ᵥ (v : Fin 2 → ℝ) := by
+      rw [← vecMul_transpose]
+      rw [dotProduct_mulVec]
+      rw [transpose_transpose]
+      rw [vecMul_vecMul]
+      rw [dotProduct_mulVec]
+    rw [h_eval]
+    have h_L := cholesky2x2_mul_transpose ρ hρ
+    dsimp [L] at h_L
+    rw [h_L]
+
 /-! ### Step 1: Reduction to Standardized Variables via Positive Homogeneity -/
 
 /-- Scaling of bivariate Gaussian distributions: pushforward of the standardized bivariate normal
@@ -2343,7 +2432,44 @@ lemma map_diagScale2x2_multivariateGaussian
     let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
     Measure.map (toEuclideanCLM (𝕜 := ℝ) D) (multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ] := by
-  sorry
+  intro ρ D
+  have hρ : ρ ∈ Set.Icc (-1) 1 := pearsonRho_mem_Icc Φαα Φββ Φαβ hΦαα hΦββ hSigma
+  have hR_pos : (!![1, ρ; ρ, 1] : Matrix (Fin 2) (Fin 2) ℝ).PosSemidef :=
+    corrMatrix2x2_posSemidef hρ
+  set μ_R := multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) !![1, ρ; ρ, 1]
+  set μ_target := multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) !![Φαα, Φαβ; Φαβ, Φββ]
+  set T := toEuclideanCLM (𝕜 := ℝ) D
+  have : IsGaussian (Measure.map T μ_R) := isGaussian_map T
+  have : IsGaussian μ_target := isGaussian_multivariateGaussian
+  apply ProbabilityTheory.IsGaussian.ext
+  · simp only [id_eq]
+    rw [integral_id_multivariateGaussian]
+    rw [integral_map T.continuous.measurable.aemeasurable (by fun_prop)]
+    have hT_int : ∫ x, T x ∂μ_R = T (∫ x, x ∂μ_R) := ContinuousLinearMap.integral_comp_comm T IsGaussian.integrable_id
+    rw [hT_int]
+    dsimp [μ_R]
+    rw [integral_id_multivariateGaussian]
+    exact ContinuousLinearMap.map_zero T
+  · ext u v
+    rw [covarianceBilin_map IsGaussian.memLp_two_id T u v]
+    have hT_adj : T.adjoint = T := toEuclideanCLM_diagScale_adjoint (Real.sqrt Φαα) (Real.sqrt Φββ)
+    rw [hT_adj]
+    rw [covarianceBilin_multivariateGaussian hR_pos]
+    rw [covarianceBilin_multivariateGaussian hSigma]
+    have h_u : (T u : Fin 2 → ℝ) = D *ᵥ u := ofLp_toEuclideanCLM D u
+    have h_v : (T v : Fin 2 → ℝ) = D *ᵥ v := ofLp_toEuclideanCLM D v
+    rw [h_u, h_v]
+    have h_scale := diagScale2x2_mul_corr_mul_diagScale Φαα Φββ Φαβ hΦαα hΦββ
+    dsimp [D, ρ] at h_scale
+    have h_eval : (D *ᵥ (u : Fin 2 → ℝ)) ⬝ᵥ !![1, ρ; ρ, 1] *ᵥ (D *ᵥ (v : Fin 2 → ℝ)) =
+        (u : Fin 2 → ℝ) ⬝ᵥ (D * !![1, ρ; ρ, 1] * Dᵀ) *ᵥ (v : Fin 2 → ℝ) := by
+      simp only [dotProduct, mulVec, Fin.sum_univ_two, D]
+      simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
+        smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
+        empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
+        cons_val_fin_one, cons_val_zero, transpose_apply, Fin.sum_univ_two, cons_val_one, mul_zero]
+      ring
+    rw [h_eval, h_scale]
 
 /--
 Informal proof of Step 1 for ReLU products:
@@ -2424,7 +2550,50 @@ lemma expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector
     ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       (Real.pi - Real.arccos ρ) / (2 * Real.pi) := by
-  sorry
+  let L : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; ρ, Real.sqrt (1 - ρ ^ 2)]
+  have hmap := map_cholesky2x2_stdGaussian ρ hρ
+  dsimp [L] at hmap
+  rw [← hmap]
+  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) L) := (toEuclideanCLM (𝕜 := ℝ) L).continuous.measurable
+  have h_int : AEStronglyMeasurable
+      (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
+      (Measure.map (toEuclideanCLM (𝕜 := ℝ) L) (stdGaussian (EuclideanSpace ℝ (Fin 2)))) := by
+    apply StronglyMeasurable.aestronglyMeasurable
+    exact ((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+      (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable
+  rw [integral_map h_meas.aemeasurable h_int]
+  let x : Fin 2 → ℝ := ![1, 0]
+  let x' : Fin 2 → ℝ := ![ρ, Real.sqrt (1 - ρ ^ 2)]
+  have hx : x ⊙ x = 1 := by
+    simp [innerProduct, Fin.sum_univ_two, x]
+  have hx' : x' ⊙ x' = 1 := by
+    have h_diff : 0 ≤ 1 - ρ ^ 2 := by
+      rcases hρ with ⟨h_ge, h_le⟩
+      nlinarith
+    simp [innerProduct, Fin.sum_univ_two, x', Real.mul_self_sqrt h_diff]
+    ring
+  have h_dot : x ⊙ x' = ρ := by
+    simp [innerProduct, Fin.sum_univ_two, x, x']
+  have h_sec := prob_halfspace_intersect x x' hx hx'
+  rw [h_dot] at h_sec
+  rw [← h_sec]
+  rw [integral_gaussianRowMeasure_eq_integral_stdGaussian]
+  congr 1 with w
+  have h0 : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 0 = w.ofLp ⊙ x := by
+    have h := ofLp_toEuclideanCLM L w
+    have h0' : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 0 = (L *ᵥ w.ofLp) 0 := by rw [h]
+    rw [h0']
+    dsimp [L, x, mulVec, dotProduct, innerProduct]
+    simp only [Fin.sum_univ_two, cons_val_zero, cons_val_one]
+    ring
+  have h1 : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 1 = w.ofLp ⊙ x' := by
+    have h := ofLp_toEuclideanCLM L w
+    have h1' : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 1 = (L *ᵥ w.ofLp) 1 := by rw [h]
+    rw [h1']
+    dsimp [L, x', mulVec, dotProduct, innerProduct]
+    simp only [Fin.sum_univ_two, cons_val_zero, cons_val_one]
+    ring
+  rw [h0, h1]
 
 /--
 Informal proof of Step 2 (Orthant probability derivation):
