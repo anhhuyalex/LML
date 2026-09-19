@@ -2161,6 +2161,108 @@ lemma pearsonRho_mem_Icc
   · rw [div_le_iff₀ h_sqrt_pos, one_mul]
     exact le_of_abs_le h_abs
 
+/-- Scaling identity: congruent transformation of the standardized correlation matrix by diagonal standard deviations
+recovers the unstandardized 2x2 covariance matrix `!![Φαα, Φαβ; Φαβ, Φββ]`. -/
+lemma diagScale2x2_mul_corr_mul_diagScale
+    (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ) :
+    let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
+    let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
+    D * !![1, ρ; ρ, 1] * Dᵀ = !![Φαα, Φαβ; Φαβ, Φββ] := by
+  intro ρ D
+  ext i j
+  fin_cases i <;> fin_cases j
+  · dsimp [D]
+    simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
+      smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
+      empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
+      cons_val_fin_one, cons_val_zero, transpose_apply, Fin.sum_univ_two, cons_val_one, mul_zero]
+    exact Real.mul_self_sqrt (le_of_lt hΦαα)
+  · dsimp [D, ρ]
+    simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
+      smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
+      empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
+      cons_val_fin_one, cons_val_zero, transpose_apply, cons_val_one, Fin.sum_univ_two, mul_zero]
+    have hprod : 0 < Φαα * Φββ := mul_pos hΦαα hΦββ
+    have h_sqrt_ne : Real.sqrt (Φαα * Φββ) ≠ 0 := (Real.sqrt_pos.mpr hprod).ne'
+    have h_split : Real.sqrt Φαα * Real.sqrt Φββ = Real.sqrt (Φαα * Φββ) := by
+      rw [← Real.sqrt_mul (le_of_lt hΦαα)]
+    calc Real.sqrt Φαα * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φββ
+      _ = (Real.sqrt Φαα * Real.sqrt Φββ) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by ring
+      _ = Real.sqrt (Φαα * Φββ) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by rw [h_split]
+      _ = Φαβ := mul_div_cancel₀ Φαβ h_sqrt_ne
+  · dsimp [D, ρ]
+    simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
+      smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
+      empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
+      cons_val_fin_one, cons_val_one, transpose_apply, cons_val_zero, Fin.sum_univ_two, mul_zero]
+    have hprod : 0 < Φαα * Φββ := mul_pos hΦαα hΦββ
+    have h_sqrt_ne : Real.sqrt (Φαα * Φββ) ≠ 0 := (Real.sqrt_pos.mpr hprod).ne'
+    have h_split : Real.sqrt Φββ * Real.sqrt Φαα = Real.sqrt (Φαα * Φββ) := by
+      rw [mul_comm, ← Real.sqrt_mul (le_of_lt hΦαα)]
+    calc Real.sqrt Φββ * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φαα
+      _ = (Real.sqrt Φββ * Real.sqrt Φαα) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by ring
+      _ = Real.sqrt (Φαα * Φββ) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by rw [h_split]
+      _ = Φαβ := mul_div_cancel₀ Φαβ h_sqrt_ne
+  · dsimp [D]
+    simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
+      smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
+      empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
+      cons_val_fin_one, cons_val_one, transpose_apply, Fin.sum_univ_two, cons_val_zero, mul_zero]
+    exact Real.mul_self_sqrt (le_of_lt hΦββ)
+
+/-- Coordinate-wise action of the 2x2 diagonal scaling operator on `EuclideanSpace ℝ (Fin 2)`. -/
+lemma toEuclideanCLM_diagScale_apply
+    (s0 s1 : ℝ) (z : EuclideanSpace ℝ (Fin 2)) :
+    let D := (!![s0, 0; 0, s1] : Matrix (Fin 2) (Fin 2) ℝ)
+    (toEuclideanCLM (𝕜 := ℝ) D z).ofLp 0 = s0 * z.ofLp 0 ∧
+    (toEuclideanCLM (𝕜 := ℝ) D z).ofLp 1 = s1 * z.ofLp 1 := by
+  intro D
+  constructor
+  · have h : (toEuclideanCLM (𝕜 := ℝ) D z).ofLp = D *ᵥ z.ofLp := ofLp_toEuclideanCLM D z
+    have h0 : (toEuclideanCLM (𝕜 := ℝ) D z).ofLp 0 = (D *ᵥ z.ofLp) 0 := by rw [h]
+    rw [h0]
+    dsimp [D]
+    simp [mulVec, dotProduct, Fin.sum_univ_two]
+  · have h : (toEuclideanCLM (𝕜 := ℝ) D z).ofLp = D *ᵥ z.ofLp := ofLp_toEuclideanCLM D z
+    have h1 : (toEuclideanCLM (𝕜 := ℝ) D z).ofLp 1 = (D *ᵥ z.ofLp) 1 := by rw [h]
+    rw [h1]
+    dsimp [D]
+    simp [mulVec, dotProduct, Fin.sum_univ_two]
+
+/-- Pullback of the ReLU product under diagonal scaling:
+`relu (D z)₀ * relu (D z)₁ = √(Φαα * Φββ) * (relu z₀ * relu z₁)`. -/
+lemma relu_mul_relu_toEuclideanCLM_diagScale
+    (Φαα Φββ : ℝ) (hΦαα : 0 ≤ Φαα) (_hΦββ : 0 ≤ Φββ)
+    (z : EuclideanSpace ℝ (Fin 2)) :
+    relu ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 0) *
+      relu ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
+      Real.sqrt (Φαα * Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by
+  obtain ⟨h0, h1⟩ := toEuclideanCLM_diagScale_apply (Real.sqrt Φαα) (Real.sqrt Φββ) z
+  rw [h0, h1]
+  have h_sqrt_α : 0 ≤ Real.sqrt Φαα := Real.sqrt_nonneg Φαα
+  have h_sqrt_β : 0 ≤ Real.sqrt Φββ := Real.sqrt_nonneg Φββ
+  rw [relu_pos_mul (Real.sqrt Φαα) (z.ofLp 0) h_sqrt_α]
+  rw [relu_pos_mul (Real.sqrt Φββ) (z.ofLp 1) h_sqrt_β]
+  calc
+    Real.sqrt Φαα * relu (z.ofLp 0) * (Real.sqrt Φββ * relu (z.ofLp 1))
+      = (Real.sqrt Φαα * Real.sqrt Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by ring
+    _ = Real.sqrt (Φαα * Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by rw [Real.sqrt_mul hΦαα]
+
+/-- Pullback of the ReLU indicator product under diagonal scaling:
+positive multipliers leave signs invariant, so `reluIndicator (D z)₀ * reluIndicator (D z)₁ = reluIndicator z₀ * reluIndicator z₁`. -/
+lemma reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale
+    (Φαα Φββ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
+    (z : EuclideanSpace ℝ (Fin 2)) :
+    reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 0) *
+      reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
+      reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1) := by
+  obtain ⟨h0, h1⟩ := toEuclideanCLM_diagScale_apply (Real.sqrt Φαα) (Real.sqrt Φββ) z
+  rw [h0, h1]
+  have h_sqrt_α : 0 < Real.sqrt Φαα := Real.sqrt_pos.mpr hΦαα
+  have h_sqrt_β : 0 < Real.sqrt Φββ := Real.sqrt_pos.mpr hΦββ
+  rw [reluIndicator_pos_mul (Real.sqrt Φαα) (z.ofLp 0) h_sqrt_α]
+  rw [reluIndicator_pos_mul (Real.sqrt Φββ) (z.ofLp 1) h_sqrt_β]
+
 /-! ### Analytic Connection to Kernel Methods -/
 
 /-- Trigonometric bridge connecting the Cho-Saul derivative orthant probability to the
@@ -2172,7 +2274,76 @@ lemma div_two_pi_pi_sub_arccos_eq_arcsin (ρ : ℝ) :
   field_simp
   ring
 
+/-- Quadratic exponent form of the standardized bivariate Gaussian density with correlation `ρ`. -/
+noncomputable def bivariateGaussianQuad (ρ u v : ℝ) : ℝ :=
+  (u ^ 2 - 2 * ρ * u * v + v ^ 2) / (2 * (1 - ρ ^ 2))
+
+/-- Joint probability density function `f_ρ(u, v)` of standard bivariate normal variables `(z₁, z₂)`. -/
+noncomputable def bivariateGaussianPdf (ρ u v : ℝ) : ℝ :=
+  (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * Real.exp (- bivariateGaussianQuad ρ u v)
+
+/-- Boundary value of the bivariate Gaussian density on the axis `u = 0`. -/
+lemma bivariateGaussianPdf_zero_left (ρ v : ℝ) :
+    bivariateGaussianPdf ρ 0 v =
+      (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * Real.exp (- v ^ 2 / (2 * (1 - ρ ^ 2))) := by
+  dsimp [bivariateGaussianPdf, bivariateGaussianQuad]
+  ring_nf
+
+/-- Algebraic identity underlying Cho-Saul integration by parts (Step 3):
+for `1 - ρ² ≠ 0`, the weighted linear combination of density derivatives satisfies
+`(u - ρ * v) / (1 - ρ²) + ρ * ((v - ρ * u) / (1 - ρ²)) = u`. -/
+lemma bivariateGaussian_pde_identity (ρ u v : ℝ) (hρ : 1 - ρ ^ 2 ≠ 0) :
+    (u - ρ * v) / (1 - ρ ^ 2) + ρ * ((v - ρ * u) / (1 - ρ ^ 2)) = u := by
+  field_simp
+  ring
+
+/-- Derivative of the orthant probability integral kernel (Step 2):
+`(1 / (2π (1 - ρ²)^(3/2))) * (1 - ρ²) = 1 / (2π √(1 - ρ²))`. -/
+lemma orthant_deriv_scale (ρ : ℝ) (hρ : 0 < 1 - ρ ^ 2) :
+    (1 / (2 * Real.pi * (1 - ρ ^ 2) * Real.sqrt (1 - ρ ^ 2))) * (1 - ρ ^ 2) =
+      1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2)) := by
+  have h_ne : 1 - ρ ^ 2 ≠ 0 := ne_of_gt hρ
+  have h_pi : Real.pi ≠ 0 := Real.pi_pos.ne'
+  have h_sqrt_ne : Real.sqrt (1 - ρ ^ 2) ≠ 0 := (Real.sqrt_pos.mpr hρ).ne'
+  field_simp
+
+/-- 1D boundary integral evaluation for the standardized ReLU product (Step 3):
+`∫₀^∞ v f_ρ(0, v) dv = (1 / (2π √(1 - ρ²))) * (1 - ρ²) = √(1 - ρ²) / (2π)`. -/
+lemma bivariateGaussian_boundary_integral_eval (ρ : ℝ) (hρ : 0 < 1 - ρ ^ 2) :
+    (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * (1 - ρ ^ 2) =
+      Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) := by
+  have h_pos : 0 < Real.sqrt (1 - ρ ^ 2) := Real.sqrt_pos.mpr hρ
+  have h_pi : Real.pi ≠ 0 := Real.pi_pos.ne'
+  calc
+    (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * (1 - ρ ^ 2)
+      = (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) *
+          (Real.sqrt (1 - ρ ^ 2) * Real.sqrt (1 - ρ ^ 2)) := by
+          congr 1
+          rw [← Real.sqrt_mul (le_of_lt hρ), Real.sqrt_mul_self (le_of_lt hρ)]
+    _ = Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) := by
+          field_simp
+
+/-- Exact algebraic identity combining the boundary integral and orthant probability (Step 3):
+`√(1 - ρ²) / (2π) + ρ * (1/4 + (1 / (2π)) * arcsin ρ) = (1 / (2π)) * (√(1 - ρ²) + ρ * (π/2 + arcsin ρ))`. -/
+lemma choSaul_expectation_algebra (ρ : ℝ) :
+    Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) + ρ * (1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ) =
+      (1 / (2 * Real.pi)) * (Real.sqrt (1 - ρ ^ 2) + ρ * (Real.pi / 2 + Real.arcsin ρ)) := by
+  have hpi : Real.pi ≠ 0 := Real.pi_pos.ne'
+  field_simp
+  ring
+
 /-! ### Step 1: Reduction to Standardized Variables via Positive Homogeneity -/
+
+/-- Scaling of bivariate Gaussian distributions: pushforward of the standardized bivariate normal
+under the diagonal standard deviation scaling yields the unstandardized bivariate normal (Step 1). -/
+lemma map_diagScale2x2_multivariateGaussian
+    (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
+    (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
+    let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
+    let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
+    Measure.map (toEuclideanCLM (𝕜 := ℝ) D) (multivariateGaussian 0 !![1, ρ; ρ, 1]) =
+      multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ] := by
+  sorry
 
 /--
 Informal proof of Step 1 for ReLU products:
@@ -2190,7 +2361,26 @@ lemma expected_relu_mul_relu_eq_scale_mul_standardized
       Real.sqrt (Φαα * Φββ) *
         ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
           ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
-  sorry
+  intro ρ
+  let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
+  have hmap := map_diagScale2x2_multivariateGaussian Φαα Φββ Φαβ hΦαα hΦββ hSigma
+  rw [← hmap]
+  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) D) := (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable
+  have h_int : AEStronglyMeasurable (fun z : EuclideanSpace ℝ (Fin 2) => relu (z.ofLp 0) * relu (z.ofLp 1))
+      (Measure.map (toEuclideanCLM (𝕜 := ℝ) D) (multivariateGaussian 0 !![1, ρ; ρ, 1])) := by
+    apply Continuous.aestronglyMeasurable
+    exact ((continuous_relu.comp (EuclideanSpace.proj (0 : Fin 2)).continuous).mul
+      (continuous_relu.comp (EuclideanSpace.proj (1 : Fin 2)).continuous))
+  rw [integral_map h_meas.aemeasurable h_int]
+  have h_comp : (fun z : EuclideanSpace ℝ (Fin 2) => relu (z.ofLp 0) * relu (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D) =
+      fun z => Real.sqrt (Φαα * Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by
+    ext z
+    dsimp [D]
+    exact relu_mul_relu_toEuclideanCLM_diagScale Φαα Φββ (le_of_lt hΦαα) (le_of_lt hΦββ) z
+  change ∫ z, ((fun z => relu (z.ofLp 0) * relu (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D)) z
+      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
+  rw [h_comp]
+  exact integral_const_mul (Real.sqrt (Φαα * Φββ)) _
 
 /--
 Informal proof of Step 1 for derivative products:
@@ -2206,9 +2396,35 @@ lemma expected_reluIndicator_mul_reluIndicator_eq_standardized
       ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
       ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
         ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
-  sorry
+  intro ρ
+  let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
+  have hmap := map_diagScale2x2_multivariateGaussian Φαα Φββ Φαβ hΦαα hΦββ hSigma
+  rw [← hmap]
+  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) D) := (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable
+  have h_int : AEStronglyMeasurable (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
+      (Measure.map (toEuclideanCLM (𝕜 := ℝ) D) (multivariateGaussian 0 !![1, ρ; ρ, 1])) := by
+    apply StronglyMeasurable.aestronglyMeasurable
+    exact ((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+      (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable
+  rw [integral_map h_meas.aemeasurable h_int]
+  have h_comp : (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D) =
+      fun z => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1) := by
+    ext z
+    dsimp [D]
+    exact reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale Φαα Φββ hΦαα hΦββ z
+  change ∫ z, ((fun z => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D)) z
+      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
+  rw [h_comp]
 
 /-! ### Step 2: Derivation of the Orthant Probability -/
+
+/-- Equivalence between the orthant probability integral and the geometric sector probability (Step 2). -/
+lemma expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector
+    (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
+    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
+      (Real.pi - Real.arccos ρ) / (2 * Real.pi) := by
+  sorry
 
 /--
 Informal proof of Step 2 (Orthant probability derivation):
@@ -2227,9 +2443,22 @@ lemma expected_reluIndicator_mul_reluIndicator_standardized
     ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
-  sorry
+  rw [expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector ρ hρ]
+  exact div_two_pi_pi_sub_arccos_eq_arcsin ρ
 
 /-! ### Step 3: Derivation of the Standardized ReLU Expectation -/
+
+/-- Integration by parts decomposition of the standardized ReLU expectation (Step 3):
+the expectation decomposes into the 1D boundary integral `√(1 - ρ²) / (2π)` plus `ρ` times
+the orthant probability `p(ρ) = 𝔼[1[z₁ ≥ 0] 1[z₂ ≥ 0]]`. -/
+lemma expected_relu_mul_relu_eq_boundary_add_rho_mul_orthant
+    (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
+    ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
+      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
+      Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) +
+        ρ * ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+          ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
+  sorry
 
 /--
 Informal proof of Step 3 (Standardized ReLU expectation):
@@ -2250,7 +2479,9 @@ lemma expected_relu_mul_relu_standardized
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       (1 / (2 * Real.pi)) *
         (Real.sqrt (1 - ρ ^ 2) + ρ * (Real.pi / 2 + Real.arcsin ρ)) := by
-  sorry
+  rw [expected_relu_mul_relu_eq_boundary_add_rho_mul_orthant ρ hρ]
+  rw [expected_reluIndicator_mul_reluIndicator_standardized ρ hρ]
+  exact choSaul_expectation_algebra ρ
 
 /-! ### Step 4: Boundary Cases and Final Assembly -/
 
