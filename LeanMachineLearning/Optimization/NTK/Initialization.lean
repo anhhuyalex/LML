@@ -125,14 +125,15 @@ Kernel for ReLU).
     $$\sum_{\alpha=1}^m c_\alpha f(\mathbf{x}^\alpha; \boldsymbol{\theta}) =
       \sum_{i=1}^n a_i \psi_i$$
     where $\psi_i := \frac{1}{\sqrt{n}} \sum_{\alpha=1}^m c_\alpha \varphi(h_i(\mathbf{x}^\alpha))$
-    (`NTK.projection_eq_sum_psi`).
+    (`NTK.projection_eq_sum_projectionCoeff`).
   * Step 2: $\psi_i$ is $\mathcal{F}$-measurable, so conditional on $\mathcal{F}$ the coefficients
-    $\psi_i$ are deterministic constants (`NTK.psi_measurable`).
+    $\psi_i$ are deterministic constants (`NTK.projectionCoeff_measurable`).
   * Step 3: $\{a_i\}_{i=1}^n$ are independent of $\mathcal{F}$ and i.i.d. standard Gaussian; thus
     $\sum_{i=1}^n a_i \psi_i$ is a linear combination of independent zero-mean Gaussians.
   * Step 4: The variance of the linear combination is
     $$\sum_{i=1}^n \psi_i^2 = \mathbf{c}^\top \boldsymbol{\Phi}^{(n)} \mathbf{c}$$
-    (`NTK.sum_psi_sq_eq_bilin`), and the 1D pushforward distribution along $\mathbf{c}$ is
+    (`NTK.sum_projectionCoeff_sq_eq_bilin`),
+    and the 1D pushforward distribution along $\mathbf{c}$ is
     $\mathcal{N}(0, \mathbf{c}^\top \boldsymbol{\Phi}^{(n)} \mathbf{c})$
     (`NTK.map_readout_projection_eq_gaussianReal`).
   * Step 5: By the Cramér-Wold device / characteristic function uniqueness for multivariate
@@ -410,13 +411,14 @@ Kernel for ReLU).
     generalizations of Propositions 2.9-2.10.
 
 * **Theorem 1: Exact Finite-Width Conditional Normality**:
-  * `NTK.psi` : projection coefficients
+  * `NTK.projectionCoeff` : projection coefficients
     $\psi_i = \frac{1}{\sqrt{n}} \sum_\alpha c_\alpha \varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)$.
-  * `NTK.psi_eq_normalized_sum`, `NTK.psi_sq`, `NTK.psi_measurable` : equation, square-expansion,
-    and $\mathcal{F}$-measurability API for `psi`.
-  * `NTK.projection_eq_sum_psi` : Step 1 algebraic identity
+  * `NTK.projectionCoeff_eq_normalized_sum`, `NTK.projectionCoeff_sq`,
+    `NTK.projectionCoeff_measurable` : equation, square-expansion,
+    and $\mathcal{F}$-measurability API for `projectionCoeff`.
+  * `NTK.projection_eq_sum_projectionCoeff` : Step 1 algebraic identity
     $\sum_\alpha c_\alpha f(\mathbf{x}^\alpha) = \sum_i a_i \psi_i$.
-  * `NTK.sum_psi_sq_eq_bilin` : Step 4 variance identity
+  * `NTK.sum_projectionCoeff_sq_eq_bilin` : Step 4 variance identity
     $\sum_i \psi_i^2 = \mathbf{c}^\top \boldsymbol{\Phi}^{(n)} \mathbf{c}$.
   * `NTK.empiricalCovariance_posSemidef` : positive semidefiniteness of $\boldsymbol{\Phi}^{(n)}$.
   * `NTK.map_readout_projection_eq_gaussianReal` : Step 4 1D conditional normality.
@@ -822,29 +824,30 @@ section Theorem1
 
 /-! ## Theorem 1: Exact Finite-Width Conditional Normality -/
 
-/-! ### Step 1 & Step 2: Linear Projections and ψ Coefficients -/
+/-! ### Step 1 & Step 2: Linear Projections and Projection Coefficients -/
 
-/-- The $\mathcal{F}$-measurable coefficients `ψ_i` for each hidden unit `i`:
-  `ψ_i = (1/√n) ∑_α c_α φ(W i ⊙ X α)`. -/
-noncomputable def psi
+/-- The $\mathcal{F}$-measurable projection coefficients `projectionCoeff` (mathematically `ψ_i`)
+for each hidden unit `i`:
+  `projectionCoeff n φ W X c i = (1/√n) ∑_α c_α φ(W i ⊙ X α)`. -/
+noncomputable def projectionCoeff
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) (i : Fin n) : ℝ :=
   (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α)
 
 /-- The normalized-sum formula for a projection coefficient. This is the public
-equation lemma for `psi`, so proofs need not unfold its implementation. -/
-lemma psi_eq_normalized_sum
+equation lemma for `projectionCoeff`, so proofs need not unfold its implementation. -/
+lemma projectionCoeff_eq_normalized_sum
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) (i : Fin n) :
-    psi n φ W X c i = (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α) := rfl
+    projectionCoeff n φ W X c i = (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α) := rfl
 
 /-- For measurable `φ`, each projection coefficient is measurable as a function of the input
 weight matrix. This formalizes the `ℱ`-measurability assertion in Step 2. -/
-lemma psi_measurable
+lemma projectionCoeff_measurable
     (n : ℕ) (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) (i : Fin n) :
-    Measurable (fun W : Fin n → Fin d → ℝ => psi n φ W X c i) := by
-  simp_rw [psi_eq_normalized_sum]
+    Measurable (fun W : Fin n → Fin d → ℝ => projectionCoeff n φ W X c i) := by
+  simp_rw [projectionCoeff_eq_normalized_sum]
   refine Measurable.const_mul (Finset.measurable_sum _ fun α _ => ?_) _
   exact measurable_const.mul
     (hφ.comp ((measurable_innerProduct_left (X α)).comp (measurable_pi_apply i)))
@@ -852,12 +855,12 @@ lemma psi_measurable
 /-- **Step 1 (Linear projection identity)**:
 For any linear combination vector `c : Fin m → ℝ`, the scalar linear projection of
 the network output satisfies:
-  `∑ α, c α * f(X α; W, a) = ∑ i, a i * ψ_i`. -/
-lemma projection_eq_sum_psi
+  `∑ α, c α * f(X α; W, a) = ∑ i, a i * projectionCoeff n φ W X c i`. -/
+lemma projection_eq_sum_projectionCoeff
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
     (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) :
     (∑ α : Fin m, c α * evalSingle φ W a (X α)) =
-      ∑ i : Fin n, a i * psi n φ W X c i :=
+      ∑ i : Fin n, a i * projectionCoeff n φ W X c i :=
   calc
     (∑ α : Fin m, c α * evalSingle φ W a (X α)) =
         ∑ α : Fin m, c α * ((n : ℝ)⁻¹.sqrt *
@@ -872,21 +875,21 @@ lemma projection_eq_sum_psi
       apply Finset.sum_congr rfl
       intro α _
       ring
-    _ = ∑ i : Fin n, a i * psi n φ W X c i := by
-      simp_rw [psi_eq_normalized_sum]
+    _ = ∑ i : Fin n, a i * projectionCoeff n φ W X c i := by
+      simp_rw [projectionCoeff_eq_normalized_sum]
 
 /-! ### Step 4: Variance and Positive Semidefiniteness -/
 
 /-- The square of a projection coefficient expanded as a double sum. -/
-lemma psi_sq (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ)
+lemma projectionCoeff_sq (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ)
     (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) (i : Fin n) :
-    (psi n φ W X c i) ^ 2 =
+    (projectionCoeff n φ W X c i) ^ 2 =
       (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ β : Fin m,
         c α * c β * (φ (W i ⊙ X α) * φ (W i ⊙ X β)) :=
   calc
-    (psi n φ W X c i) ^ 2 =
+    (projectionCoeff n φ W X c i) ^ 2 =
         ((n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α)) ^ 2 := by
-      rw [psi_eq_normalized_sum]
+      rw [projectionCoeff_eq_normalized_sum]
     _ = (n : ℝ)⁻¹ * (∑ α : Fin m, c α * φ (W i ⊙ X α)) ^ 2 := by
       rw [mul_pow, Real.sq_sqrt (by positivity)]
     _ = (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ β : Fin m,
@@ -900,15 +903,15 @@ lemma psi_sq (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ)
       ring
 
 /-- **Step 4 (Variance identity)**:
-The sum of squared coefficients `∑ i, ψ_i^2` equals the quadratic form
+The sum of squared coefficients `∑ i, (projectionCoeff ... i)^2` equals the quadratic form
 `c ⬝ᵥ Φ^{(n)} *ᵥ c`:
-  `∑ i, ψ_i^2 = c ⬝ᵥ Φ^{(n)} *ᵥ c`. -/
-lemma sum_psi_sq_eq_bilin
+  `∑ i, (projectionCoeff n φ W X c i)^2 = c ⬝ᵥ Φ^{(n)} *ᵥ c`. -/
+lemma sum_projectionCoeff_sq_eq_bilin
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) :
-    ∑ i : Fin n, (psi n φ W X c i) ^ 2 =
+    ∑ i : Fin n, (projectionCoeff n φ W X c i) ^ 2 =
       c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c := by
-  simp_rw [psi_sq]
+  simp_rw [projectionCoeff_sq]
   simp only [dotProduct, mulVec, empiricalCovariance]
   simp_rw [Finset.mul_sum]
   rw [Finset.sum_comm]
@@ -947,8 +950,8 @@ lemma empiricalCovariance_nonneg
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) :
     0 ≤ c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c := by
-  rw [← sum_psi_sq_eq_bilin]
-  exact Finset.sum_nonneg (fun i _ => sq_nonneg (psi n φ W X c i))
+  rw [← sum_projectionCoeff_sq_eq_bilin]
+  exact Finset.sum_nonneg (fun i _ => sq_nonneg (projectionCoeff n φ W X c i))
 
 /-- Finitely supported sum on a finite type coincides with universal sum when vanishing at zero. -/
 private lemma finsupp_sum_eq_sum_univ {α β γ : Type*} [Fintype α] [Zero β] [AddCommMonoid γ]
@@ -1027,15 +1030,15 @@ theorem map_readout_projection_eq_gaussianReal
   calc
     Measure.map (fun a => ∑ α : Fin m, c α * evalSingle φ W a (X α))
         (gaussianReadoutMeasure n) =
-        Measure.map (fun a => ∑ i : Fin n, a i * psi n φ W X c i)
+        Measure.map (fun a => ∑ i : Fin n, a i * projectionCoeff n φ W X c i)
           (gaussianReadoutMeasure n) := by
       congr 1
       funext a
-      exact projection_eq_sum_psi φ W a X c
-    _ = gaussianReal 0 (Real.toNNReal (∑ i : Fin n, (psi n φ W X c i) ^ 2)) :=
-      map_gaussianReadoutMeasure_inner (psi n φ W X c)
+      exact projection_eq_sum_projectionCoeff φ W a X c
+    _ = gaussianReal 0 (Real.toNNReal (∑ i : Fin n, (projectionCoeff n φ W X c i) ^ 2)) :=
+      map_gaussianReadoutMeasure_inner (projectionCoeff n φ W X c)
     _ = gaussianReal 0 (Real.toNNReal (c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c)) := by
-      rw [sum_psi_sq_eq_bilin]
+      rw [sum_projectionCoeff_sq_eq_bilin]
 
 /-- Pushforward under inner product with `t` yields a 1D Gaussian with variance
 `t.ofLp ⬝ᵥ Φ^{(n)} *ᵥ t.ofLp`. -/
@@ -1860,7 +1863,8 @@ distribution `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`:
   `∑ α, u α * f(X α; θ) →_d 𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`.
 
 **Proof (6 Steps)**:
-* Step 1: `projection_eq_sum_psi` reformulates the projection as `∑ i, a_i * ψ_i`.
+* Step 1: `projection_eq_sum_projectionCoeff` reformulates the projection
+  as `∑ i, a_i * projectionCoeff`.
 * Step 2: `map_readout_projection_eq_gaussianReal` shows that conditional on input weights,
   the projection is distributed as `𝒩(0, u ⬝ᵥ Φ^{(n)} *ᵥ u)`.
 * Step 3: `conditionalVariance_tendsto_limitingVariance_ae` proves `u ⬝ᵥ Φ^{(n)} *ᵥ u →_as u ⬝ᵥ Φ^{(∞)} *ᵥ u`.
