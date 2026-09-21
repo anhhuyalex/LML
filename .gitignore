@@ -1,10 +1,7 @@
-blueprint/src/print.pdf
-blueprint/src/web.pdf
-
 ## macOS
 .DS_Store
 ## Lake
-.lake/*
+.lake/
 .cache/*
 ## Blueprint
 /blueprint/lean_decls
@@ -44,9 +41,7 @@ blueprint/src/web.pdf
 /exposition/
 
 ## Tutorial and docs
-/LMLTutorial/.lake/
 /LMLTutorial/_out/
-/LMLDocs/.lake/
 /LMLDocs/_out/
 
 ## Verso Blueprint

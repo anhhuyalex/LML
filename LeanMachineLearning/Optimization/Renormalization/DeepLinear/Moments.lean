@@ -341,12 +341,12 @@ private lemma oneLayerOutputLaw_eq_pi_gaussianReal {dIn dOut : ℕ} (Cw : ℝ≥
         (fun _ : PUnit => (DenseLayer.ofParams q).preactivation x j)) := by
     have h1 : Measurable (fun v : Fin dOut → ℝ =>
         fun j : Fin dOut => (EuclideanSpace.equiv PUnit ℝ).symm (fun _ : PUnit => v j)) := by
-      refine measurable_pi_lambda _ (fun j => ?_)
+      refine Measurable.of_eval (fun j => ?_)
       exact hT_meas.comp (measurable_pi_apply j)
     exact h1.comp hz_meas
   have hg_meas : Measurable g := by
     dsimp [g]
-    refine measurable_pi_lambda _ (fun j => ?_)
+    refine Measurable.of_eval (fun j => ?_)
     exact hEval_meas.comp (measurable_pi_apply j)
   have hcomp : g ∘
       (fun q : LayerParams (Fin dIn) (Fin dOut) => fun j : Fin dOut =>
@@ -563,7 +563,7 @@ private lemma integral_prod_pi_gaussianReal_eq_pairingTensor
     exact gaussianReal_scaling v
   have hφ_meas : AEMeasurable (fun z : κ → ℝ => fun i : κ => Real.sqrt (v : ℝ) * z i)
       (Measure.pi (fun _ : κ => gaussianReal 0 1)) := by
-    refine (measurable_pi_lambda _ (fun i => ?_)).aemeasurable
+    refine (Measurable.of_eval (fun i => ?_)).aemeasurable
     fun_prop
   have hG_meas : AEStronglyMeasurable
       (fun z : κ → ℝ => ∏ r : Fin (2 * m), z (a r))
@@ -678,9 +678,9 @@ private lemma integrable_monomial_outputLaw_even {dIn dOut : ℕ}
     have hIsProb : IsProbabilityMeasure
         ((MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
       unfold MLPShape.deepLinearOutputLaw
-      exact Measure.isProbabilityMeasure_map
+      exact (Measure.isProbabilityMeasure_map_iff
         (((MLPShape.output : MLPShape dIn dOut).measurable_eval (measurable_linear 1)).comp
-          (measurable_id.prodMk measurable_const)).aemeasurable
+          (measurable_id.prodMk measurable_const)).aemeasurable).mpr inferInstance
     have hFin : IsFiniteMeasure
         ((MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x) :=
       ⟨by rw [hIsProb.measure_univ]; norm_num⟩
@@ -731,7 +731,7 @@ private lemma integrable_monomial_outputLaw_even {dIn dOut : ℕ}
           |∏ r : Fin (2 * m), z (a r)| = ∏ r : Fin (2 * m), |z (a r)| := by
             rw [Finset.abs_prod]
           _ ≤ ∏ r : Fin (2 * m), Real.sqrt (∑ j : Fin dOut, z j ^ 2) := by
-            exact Finset.prod_le_prod (fun r _ => abs_nonneg _) (fun r _ => hle r)
+            exact Finset.prod_le_prod₀ (fun r _ => abs_nonneg _) (fun r _ => hle r)
           _ = (Real.sqrt (∑ j : Fin dOut, z j ^ 2)) ^ (2 * m) := by
             rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
           _ = (∑ j : Fin dOut, z j ^ 2) ^ m := by
@@ -1247,7 +1247,7 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
           |∏ r : Fin (2 * m), z (a r)| = ∏ r : Fin (2 * m), |z (a r)| := by
             rw [Finset.abs_prod]
           _ ≤ ∏ r : Fin (2 * m), Real.sqrt (∑ j : Fin dOut, z j ^ 2) := by
-            exact Finset.prod_le_prod (fun r _ => abs_nonneg _) (fun r _ => hle r)
+            exact Finset.prod_le_prod₀ (fun r _ => abs_nonneg _) (fun r _ => hle r)
           _ = (Real.sqrt (∑ j : Fin dOut, z j ^ 2)) ^ (2 * m) := by
             rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
           _ = (∑ j : Fin dOut, z j ^ 2) ^ m := by
@@ -1306,9 +1306,9 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
     -- the tail law is a probability measure, so constants are integrable
     have hprob : IsProbabilityMeasure (tail.deepLinearOutputLaw Cw y) := by
       unfold MLPShape.deepLinearOutputLaw
-      exact Measure.isProbabilityMeasure_map
+      exact (Measure.isProbabilityMeasure_map_iff
         (((tail.measurable_eval (measurable_linear 1)).comp
-          (measurable_id.prodMk measurable_const)).aemeasurable)
+          (measurable_id.prodMk measurable_const)).aemeasurable)).mpr inferInstance
     have hfin : IsFiniteMeasure (tail.deepLinearOutputLaw Cw y) :=
       ⟨by rw [hprob.measure_univ]; norm_num⟩
     have hint (j : Fin dOut) :
@@ -1921,7 +1921,7 @@ private lemma integral_mul_oneLayerBatchLaw_eq_sum_cov {A : Type uA} {ι : Type 
       fun q a => (DenseLayer.ofParams q).preactivation (D a)
     have hφ_meas : AEMeasurable φ μ := by
       dsimp [φ]
-      exact (measurable_pi_lambda _ (fun a : A =>
+      exact (Measurable.of_eval (fun a : A =>
         (DenseLayer.measurable_preactivation.comp
           (measurable_id.prodMk measurable_const)))).aemeasurable
     have hG_meas : AEStronglyMeasurable (fun y : A → κ → ℝ => y a i * y b j) (μ.map φ) := by
@@ -2298,9 +2298,8 @@ private lemma integrable_coord_mul_oneLayerBatchLaw {A : Type uA} {dIn k : ℕ}
       dsimp [μ, oneLayerBatchLaw]
       rw [Measure.map_map (measurable_pi_apply a)]
       · rfl
-      · exact (measurable_pi_lambda (fun q : LayerParams (Fin dIn) (Fin k) =>
-            fun a : A => (DenseLayer.ofParams q).preactivation (D a))
-          (fun a : A => (DenseLayer.measurable_preactivation (ι := Fin dIn) (κ := Fin k)).comp
+      · exact (Measurable.of_eval (fun a : A =>
+            (DenseLayer.measurable_preactivation (ι := Fin dIn) (κ := Fin k)).comp
             (measurable_id.prodMk measurable_const)))
     have hz : AEMeasurable (fun y : A → Fin k → ℝ => y a) μ :=
       (measurable_pi_apply a).aemeasurable
@@ -2355,7 +2354,7 @@ private lemma measurable_deepLinearBatchLaw_kernel {A : Type uA} {k dOut : ℕ}
     fun p a => tail.eval (linear 1) p.1 (p.2 a)
   have hG_meas : Measurable G := by
     dsimp [G]
-    refine measurable_pi_lambda _ (fun a : A => ?_)
+    refine Measurable.of_eval (fun a : A => ?_)
     exact (tail.measurable_eval (measurable_linear 1)).comp
       (measurable_fst.prodMk ((measurable_pi_apply a).comp measurable_snd))
   have hEq : (fun y : A → Fin k → ℝ =>
@@ -2384,12 +2383,12 @@ private lemma deepLinearBatchLaw_hidden_eq_bind {A : Type uA} {dIn k dOut : ℕ}
     fun p a => tail.eval (linear 1) p.2 (f p.1 a)
   have hf_meas : Measurable f := by
     dsimp [f]
-    exact measurable_pi_lambda _ (fun a : A =>
+    exact Measurable.of_eval (fun a : A =>
       (DenseLayer.measurable_preactivation.comp
         (measurable_id.prodMk measurable_const)))
   have hG_meas : Measurable G := by
     dsimp [G, f]
-    refine measurable_pi_lambda _ (fun a : A => ?_)
+    refine Measurable.of_eval (fun a : A => ?_)
     exact (tail.measurable_eval (measurable_linear 1)).comp
       (measurable_snd.prodMk
         (DenseLayer.measurable_preactivation.comp

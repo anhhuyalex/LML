@@ -105,7 +105,7 @@ theorem measurable_activate [Fintype ι] [Finite κ] {σ : ℝ → ℝ} (hσ : M
     Measurable (activateFromParams σ : LayerParams ι κ × (ι → ℝ) → κ → ℝ) := by
   let _ := Fintype.ofFinite κ
   change Measurable (fun p j => σ (preactivationFromParams p j))
-  exact measurable_pi_lambda _ fun j =>
+  exact Measurable.of_eval fun j =>
     hσ.comp ((measurable_pi_apply j).comp measurable_preactivation)
 
 theorem continuous_preactivation_fixed [Fintype ι] (L : DenseLayer ι κ) :
@@ -127,7 +127,7 @@ theorem measurable_activate_fixed [Fintype ι] [Finite κ] (L : DenseLayer ι κ
     {σ : ℝ → ℝ} (hσ : Measurable σ) : Measurable (L.activate σ) := by
   let _ := Fintype.ofFinite κ
   change Measurable (fun x j => σ (L.preactivation x j))
-  exact measurable_pi_lambda _ fun j =>
+  exact Measurable.of_eval fun j =>
     hσ.comp ((measurable_pi_apply j).comp L.measurable_preactivation_fixed)
 
 /-- Number of scalar weights and biases in a dense layer. -/

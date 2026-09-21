@@ -1457,41 +1457,6 @@ private lemma deriv_pos_z_identities
     simp_rw [h_ftc_down, h_component]
   exact ⟨h_upward_eq, h_downward_eq⟩
 
-/--
-Composing an absolutely continuous curve with a Lipschitz map preserves absolute continuity.
-
-We need this because Mathlib's `AbsolutelyContinuousOnInterval.ae_differentiableAt` is stated
-only for `ℝ`-valued curves (`MeasureTheory.Function.AbsolutelyContinuous`), while the Lasso
-path lives in the vector space `EuclideanSpace ℝ ι`. Directly feeding a vector-valued
-`AbsolutelyContinuousOnInterval` hypothesis into that scalar-only lemma is a type mismatch;
-attempting it forces Lean into an expensive, ultimately failing unification search (this is
-what caused the `whnf` timeout here previously — the fix is this coordinate-wise reduction,
-not a larger heartbeat budget). Projecting onto a single coordinate is `1`-Lipschitz, so
-composing with it turns the vector-valued absolute continuity of `f` into scalar-valued
-absolute continuity of `g ∘ f`, to which `ae_differentiableAt` applies.
-
-Informal proof: absolute continuity is characterized by `∑ dist (f aᵢ) (f bᵢ) → 0` as the total
-length `∑ dist aᵢ bᵢ → 0`. Since `g` is `K`-Lipschitz,
-`∑ dist (g (f aᵢ)) (g (f bᵢ)) ≤ K * ∑ dist (f aᵢ) (f bᵢ) → 0`.
-(Source: Lipschitz images of absolutely continuous functions are absolutely continuous; this is
-the direct analogue of the standard fact that Lipschitz images of bounded-variation functions
-have bounded variation, e.g. Royden & Fitzpatrick, *Real Analysis*, 4th ed., Ch. 5.)
--/
-theorem _root_.LipschitzWith.comp_absolutelyContinuousOnInterval
-    {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y]
-    {f : ℝ → X} {g : X → Y} {K : NNReal} {a b : ℝ}
-    (hg : LipschitzWith K g) (hf : AbsolutelyContinuousOnInterval f a b) :
-    AbsolutelyContinuousOnInterval (g ∘ f) a b := by
-  have hf' : Tendsto
-      (fun E : ℕ × (ℕ → ℝ × ℝ) ↦ ∑ i ∈ Finset.range E.1, dist (f (E.2 i).1) (f (E.2 i).2))
-      (AbsolutelyContinuousOnInterval.totalLengthFilter ⊓
-        𝓟 (AbsolutelyContinuousOnInterval.disjWithin a b)) (𝓝 0) := hf
-  apply squeeze_zero (fun _ ↦ Finset.sum_nonneg (fun _ _ ↦ dist_nonneg))
-    (fun _ ↦ ?_) (by simpa using hf'.const_mul (K : ℝ))
-  simp only [Function.comp_apply]
-  rw [Finset.mul_sum]
-  exact Finset.sum_le_sum (fun i _ ↦ hg.dist_le_mul _ _)
-
 /-! ### Monotone-case closed forms for `positiveZUpward`/`positiveZDownward`
 
 Under the monotonicity hypothesis of Theorem 3.1 (`docs/Lasso.md`, Sec. 3.1), the scaled path

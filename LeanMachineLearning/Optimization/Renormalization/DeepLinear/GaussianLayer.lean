@@ -915,12 +915,12 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
         (fun _ : PUnit => (DenseLayer.ofParams q).preactivation x j)) := by
     have h1 : Measurable (fun v : κ → ℝ =>
         fun j : κ => (EuclideanSpace.equiv PUnit ℝ).symm (fun _ : PUnit => v j)) := by
-      refine measurable_pi_lambda _ (fun j => ?_)
+      refine Measurable.of_eval (fun j => ?_)
       exact hT_meas.comp (measurable_pi_apply j)
     exact h1.comp hz_meas
   have hg_meas : Measurable (fun v : κ → EuclideanSpace ℝ PUnit =>
       fun j : κ => (v j) PUnit.unit) := by
-    refine measurable_pi_lambda _ (fun j => ?_)
+    refine Measurable.of_eval (fun j => ?_)
     exact hEval_meas.comp (measurable_pi_apply j)
   have hcomp : (fun v : κ → EuclideanSpace ℝ PUnit => fun j : κ => (v j) PUnit.unit) ∘
       (fun q : LayerParams ι κ => fun j : κ => (EuclideanSpace.equiv PUnit ℝ).symm
@@ -1169,7 +1169,7 @@ theorem integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian
     simpa [φ, s] using oneLayerOutputLaw_eq_map_stdGaussian Cw x
   have hφ_meas : Measurable φ := by
     dsimp [φ]
-    refine measurable_pi_lambda _ (fun j => ?_)
+    refine Measurable.of_eval (fun j => ?_)
     exact (by fun_prop : Measurable fun y : ℝ => Real.sqrt s * y).comp
       (measurable_pi_apply (Fintype.equivFin κ j))
   have hcont : Continuous (fun z : κ → ℝ => NeuralNetwork.normalizedEnergy z ^ m) := by

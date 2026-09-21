@@ -670,7 +670,7 @@ theorem isGaussianProcess_exact_conditional_output
     let e := Fintype.equivFin I
     let X : Fin (Fintype.card I) → Fin d → ℝ := fun α => (e.symm α).1
     have h_gauss : HasGaussianLaw (fun a => evalVector φ W a X) (gaussianReadoutMeasure n) :=
-      ⟨isGaussian_conditional_output φ W X⟩
+      ⟨(evalVector_measurable φ W X).aemeasurable, isGaussian_conditional_output φ W X⟩
     let L : EuclideanSpace ℝ (Fin (Fintype.card I)) →L[ℝ] (I → ℝ) :=
       { toFun := fun v i => v.ofLp (e i)
         map_add' := fun u v => by ext i; simp
@@ -958,7 +958,7 @@ lemma isProbabilityMeasure_outputMeasure
     (n d : ℕ) (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ) :
     IsProbabilityMeasure (outputMeasure n d φ X) := by
   rw [outputMeasure_eq_map]
-  exact Measure.isProbabilityMeasure_map (evalVector_joint_measurable φ hφ X).aemeasurable
+  exact (Measure.isProbabilityMeasure_map_iff (evalVector_joint_measurable φ hφ X).aemeasurable).mpr inferInstance
 
 /-- Transport: The pushforward of the infinite Gaussian row product measure under restriction to the
 first `n` hidden units is exactly the finite-width input weight measure `gaussianInit n d`. -/
@@ -1370,7 +1370,7 @@ lemma isProbabilityMeasure_map_projection
     (X : Fin m → Fin d → ℝ) (u : Fin m → ℝ) :
     IsProbabilityMeasure (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
       ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) :=
-  Measure.isProbabilityMeasure_map (projection_joint_measurable φ hφ_meas X u).aemeasurable
+  (Measure.isProbabilityMeasure_map_iff (projection_joint_measurable φ hφ_meas X u).aemeasurable).mpr inferInstance
 
 /-- **Theorem (Weak Convergence of Linear Combinations)**:
 As width `n → ∞`, the pushforward law of the scalar linear combination converges weakly
@@ -2012,7 +2012,7 @@ theorem tendstoInDistribution_sequential_preactivation
               ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
           ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
             ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))),
-          Measure.isProbabilityMeasure_map (h_meas n)⟩)
+          (Measure.isProbabilityMeasure_map_iff (h_meas n)).mpr inferInstance⟩)
         Filter.atTop
         (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
@@ -2024,7 +2024,7 @@ theorem tendstoInDistribution_sequential_preactivation
         (⟨(multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
             φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))).map id,
-          Measure.isProbabilityMeasure_map measurable_id.aemeasurable⟩ :
+          (Measure.isProbabilityMeasure_map_iff measurable_id.aemeasurable).mpr inferInstance⟩ :
           ProbabilityMeasure (EuclideanSpace ℝ (Fin m))) =
         ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),

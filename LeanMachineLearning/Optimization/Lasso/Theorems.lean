@@ -2984,7 +2984,7 @@ theorem signedCanonicalSplit_path_regular
   -- Note: applying this via dot notation (`lipschitzWith_signedCanonicalSplit.comp_...`)
   -- causes a `whnf` timeout during unification; explicit named arguments avoid it.
   exact LipschitzWith.comp_absolutelyContinuousOnInterval
-    (f := x) (g := signedCanonicalSplit) lipschitzWith_signedCanonicalSplit
+    (f := signedCanonicalSplit) (g := x) lipschitzWith_signedCanonicalSplit
     (hx.absolutelyContinuousOn_Icc a b ha hab)
 
 /-- Difference map `(y_pos, y_neg) ↦ y_pos - y_neg`. -/

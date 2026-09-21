@@ -283,7 +283,7 @@ private lemma map_toEuclideanCLM_volume {ι : Type*} [Fintype ι] [DecidableEq �
             rw [← hvol_pi]
     _ = Measure.map (fun x : ι → ℝ => WithLp.toLp 2 x)
           (ENNReal.ofReal (|(M.det)⁻¹|) • (volume : Measure (ι → ℝ))) := by
-            rw [Measure.map_smul]
+            rw [Measure.map_smul _ (PiLp.volume_preserving_toLp ι).measurable.aemeasurable]
     _ = Measure.map (fun x : ι → ℝ => WithLp.toLp 2 x)
           (Measure.map (fun x : ι → ℝ => toLin' M x) (volume : Measure (ι → ℝ))) := by
             rw [Real.map_matrix_volume_pi_eq_smul_volume_pi hM]

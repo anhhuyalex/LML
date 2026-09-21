@@ -434,11 +434,8 @@ private lemma energy_product_rule_identity
       deriv φ τ * (inner ℝ (w τ) (zε τ - z τ) + Δε τ) +
       φ τ * deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ := by
     exact deriv_mul h_diff_φ h_diff_E
-  have h_deriv_vec : deriv (fun σ => φ σ • w σ) τ = deriv φ τ • w τ + φ τ • deriv w τ := by
-    have h := deriv_smul h_diff_φ h_diff_w
-    convert h using 1
-    · rfl
-    · rw [add_comm]
+  have h_deriv_vec : deriv (fun σ => φ σ • w σ) τ = deriv φ τ • w τ + φ τ • deriv w τ :=
+    (deriv_smul h_diff_φ h_diff_w).trans (add_comm _ _)
   have h_deriv_E_sum : deriv (fun σ => inner ℝ (w σ) (zε σ - z σ) + Δε σ) τ =
       deriv (fun σ => inner ℝ (w σ) (zε σ - z σ)) τ + deriv Δε τ := by
     exact deriv_add h_diff_inner h_diff_Δε

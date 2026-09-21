@@ -325,15 +325,15 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
   let ρ : LayerCoordinate ι κ → Measure ℝ :=
     fun c => μ.map (fun q : LayerParams ι κ => layerCoordinate c q)
   -- Measurability of the flattened map `F` and of each coordinate evaluation.
-  have hFmeas : Measurable F := measurable_pi_lambda _ fun c => measurable_layerCoordinate c
+  have hFmeas : Measurable F := Measurable.of_eval fun c => measurable_layerCoordinate c
   have hF : ∀ c : LayerCoordinate ι κ,
       AEMeasurable (fun q : LayerParams ι κ => layerCoordinate c q) μ :=
     fun c => (measurable_layerCoordinate c).aemeasurable
   rw [iIndepFun_iff_map_fun_eq_pi_map (μ := μ) hF]
   apply MeasurableEquiv.map_measurableEquiv_injective e
   have hWmeas : Measurable W :=
-    measurable_pi_lambda _ fun ji : κ × ι => measurable_layerCoordinate (.inl ji)
-  have hBmeas : Measurable B := measurable_pi_lambda _ fun j => measurable_layerCoordinate (.inr j)
+    Measurable.of_eval fun ji : κ × ι => measurable_layerCoordinate (.inl ji)
+  have hBmeas : Measurable B := Measurable.of_eval fun j => measurable_layerCoordinate (.inr j)
   -- The weight and bias tuple maps are flat product measures; this is the `iIndepFun`
   -- characterization `map_fun_eq_pi_map` applied to the weight and bias independence theorems.
   have hWeightTuple :
@@ -351,7 +351,7 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
   -- flattened-coordinate projections `W` and `B`.
   have hBlock : W ⟂ᵢ[μ] B :=
     (indepFun_weight_bias_layerGaussianInit p ι κ).comp
-      (measurable_pi_lambda _ fun ji : κ × ι =>
+      (Measurable.of_eval fun ji : κ × ι =>
         (measurable_pi_apply ji.2).comp (measurable_pi_apply ji.1))
       measurable_id
   have hLeft : (μ.map F).map e = (μ.map W).prod (μ.map B) := by

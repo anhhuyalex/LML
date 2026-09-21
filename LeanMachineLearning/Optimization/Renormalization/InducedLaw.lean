@@ -65,7 +65,7 @@ theorem measurable_eval_fixed (F : ParamModel Θ X Y) (x : X) :
 
 theorem measurable_evalBatch (F : ParamModel Θ X Y) (D : A → X) :
     Measurable (F.evalBatch D) := by
-  exact measurable_pi_lambda _ fun a => F.measurable_eval_fixed (D a)
+  exact Measurable.of_eval fun a => F.measurable_eval_fixed (D a)
 
 /-- Distribution of the finite-dataset outputs induced by a parameter law. -/
 def outputLaw (F : ParamModel Θ X Y) (D : A → X) (μ : Measure Θ) : Measure (A → Y) :=
@@ -79,7 +79,7 @@ evaluator turns the preimage of `univ` into `univ`, whose mass is one. See
 instance instIsProbabilityMeasureOutputLaw (F : ParamModel Θ X Y) (D : A → X)
     (μ : Measure Θ) [IsProbabilityMeasure μ] : IsProbabilityMeasure (F.outputLaw D μ) := by
   unfold outputLaw
-  exact μ.isProbabilityMeasure_map (F.measurable_evalBatch D).aemeasurable
+  exact (Measure.isProbabilityMeasure_map_iff (F.measurable_evalBatch D).aemeasurable).mpr inferInstance
 
 /-- Observable formula for the induced output law.
 
@@ -96,7 +96,7 @@ theorem integral_outputLaw [NormedAddCommGroup E] [NormedSpace ℝ E]
 /-- Conditional output kernel at fixed parameters, with datasets as inputs. -/
 def deterministicOutputKernel (F : ParamModel Θ X Y) (θ : Θ) : Kernel (A → X) (A → Y) :=
   Kernel.deterministic (fun D a => F.eval θ (D a)) <| by
-    exact measurable_pi_lambda _ fun a =>
+    exact Measurable.of_eval fun a =>
       F.measurable_eval.comp (measurable_const.prodMk (measurable_pi_apply a))
 
 /-- Deterministic conditional-output kernel with the parameter as kernel input and the dataset
@@ -412,7 +412,7 @@ theorem measurable_batchPreactivation [Fintype ι] [Finite κ] :
     Measurable (fun p : LayerParams ι κ × (A → ι → ℝ) =>
       batchPreactivation p.1 p.2) := by
   let _ := Fintype.ofFinite κ
-  exact measurable_pi_lambda _ fun a => DenseLayer.measurable_preactivation.comp
+  exact Measurable.of_eval fun a => DenseLayer.measurable_preactivation.comp
     (measurable_fst.prodMk ((measurable_pi_apply a).comp measurable_snd))
 
 /-- Apply an activation coordinatewise to every sample in a batch. -/
@@ -421,7 +421,7 @@ def batchActivate (σ : ℝ → ℝ) (z : A → ι → ℝ) : A → ι → ℝ :
 
 theorem measurable_batchActivate {σ : ℝ → ℝ} (hσ : Measurable σ) :
     Measurable (batchActivate σ : (A → ι → ℝ) → A → ι → ℝ) := by
-  exact measurable_pi_lambda _ fun a => measurable_pi_lambda _ fun i =>
+  exact Measurable.of_eval fun a => Measurable.of_eval fun i =>
     hσ.comp ((measurable_pi_apply i).comp (measurable_pi_apply a))
 
 /-- Deterministic kernel applying an activation to a batch. -/
@@ -540,7 +540,7 @@ private lemma cov_row_preactivation [Fintype ι] (p : InitHyperparams) (s : A �
       (hf := fun i => ((measurable_pi_apply i).comp measurable_fst).aemeasurable)]
     rw [show (fun q : (ι → ℝ) × ℝ => fun i : ι => q.1 i) =
         (fun w : ι → ℝ => fun i : ι => w i) ∘ Prod.fst from rfl]
-    rw [← Measure.map_map (measurable_pi_lambda _ fun i => measurable_pi_apply i) measurable_fst]
+    rw [← Measure.map_map (Measurable.of_eval fun i => measurable_pi_apply i) measurable_fst]
     rw [Measure.map_fst_prod]
     simp [ρ, ρW, hmapWi]
   have hcovWW (i j : ι) : cov[fun q : (ι → ℝ) × ℝ => q.1 i, fun q : (ι → ℝ) × ℝ => q.1 j; ρ] =
@@ -671,7 +671,7 @@ private theorem map_row_preactivation [Fintype ι] [Fintype A] [DecidableEq A]
     let μ : ι → Measure ℝ := fun _ => gaussianReal 0 (scaledWeightVariance p ι)
     have hX1 : ∀ i : ι, HasGaussianLaw (fun w : ι → ℝ => w i) (Measure.pi μ) := by
       intro i
-      exact ⟨by
+      exact ⟨(measurable_pi_apply i).aemeasurable, by
         rw [Measure.pi_map_eval]
         simp only [measure_univ, Finset.prod_const_one, one_smul]
         infer_instance⟩
@@ -818,7 +818,7 @@ theorem map_evalBatch_layerGaussianInit [Fintype ι] [Fintype κ] [Fintype A] [D
         = Measure.map (fun r : κ → (ι → ℝ) × ℝ => fun j => T (r j))
             ((layerGaussianInit p ι κ).map e) := by
           rw [hF]
-          exact (Measure.map_map (measurable_pi_lambda _ fun j =>
+          exact (Measure.map_map (Measurable.of_eval fun j =>
             hT_meas.comp (measurable_pi_apply j)) e.measurable).symm
     _ = Measure.pi (fun j : κ => (rowLaw j).map T) := by
           rw [hmap_e]
@@ -932,7 +932,7 @@ theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
       let act : (A → Fin k → ℝ) → A → Fin k → ℝ := batchActivate σ
       have hf_meas : Measurable f := by
         dsimp [f]
-        exact measurable_pi_lambda _ fun a => DenseLayer.measurable_preactivation.comp
+        exact Measurable.of_eval fun a => DenseLayer.measurable_preactivation.comp
           (measurable_id.prodMk measurable_const)
       have hact_meas : Measurable act := measurable_batchActivate hσ
       have hcomp : (N'.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ) =
@@ -944,7 +944,7 @@ theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
         fun p a => N'.shape.eval σ p.2 (act (f p.1) a)
       have hG_meas : Measurable G := by
         dsimp [G]
-        refine measurable_pi_lambda _ fun a => ?_
+        refine Measurable.of_eval fun a => ?_
         exact (N'.shape.measurable_eval hσ).comp
           (measurable_snd.prodMk
             (((measurable_pi_apply a).comp hact_meas).comp (hf_meas.comp measurable_fst)))

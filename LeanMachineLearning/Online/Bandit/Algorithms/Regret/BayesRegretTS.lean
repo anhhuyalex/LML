@@ -24,7 +24,7 @@ and properties are also given in this file.
   bound `l : ℝ`, reward upper bound `u : ℝ`, sub-Gaussian variance proxy `σ2 : ℝ`, confidence
   parameter `δ : ℝ`, action `a : Fin K`, and time `n : ℕ`.
 * `ucb' n h l u σ2 δ a`: clipped upper confidence bound for action `a : Fin K` at time `n : ℕ` given
-  the history `h : Iic n → Fin K × ℝ` (rather than the entire sequences of actions and rewards).
+  the history `h : Fin n → Fin K × ℝ` (rather than the entire sequences of actions and rewards).
 
 ## Main results
 
@@ -93,21 +93,19 @@ lemma integrable_uncurry_ucb_comp [MeasurableSpace Ω] (hA : ∀ t, Measurable (
 
 /-- Clipped upper confidence bound (history-based version). -/
 noncomputable
-def ucb' (n : ℕ) (h : Iic n → Fin K × ℝ) (l u σ2 δ : ℝ) (a : Fin K) : ℝ :=
+def ucb' (n : ℕ) (h : Hist Unit (Fin K) ℝ n) (l u σ2 δ : ℝ) (a : Fin K) : ℝ :=
   if pullCount' n h a = 0 then u
   else max l (min u (empMean' n h a + √(2 * σ2 * Real.log (1 / δ) / (pullCount' n h a))))
 
 @[fun_prop]
 lemma measurable_uncurry_ucb' {n : ℕ} :
-    Measurable (fun p : (Iic n → Fin K × ℝ) × Fin K ↦ ucb' n p.1 l u σ2 δ p.2) :=
+    Measurable (fun p : Hist Unit (Fin K) ℝ n × Fin K ↦ ucb' n p.1 l u σ2 δ p.2) :=
   Measurable.ite (by measurability) (by fun_prop) (by fun_prop)
 
-lemma ucb_succ_eq_ucb' {a : Fin K} {n : ℕ} {ω : Ω} :
-    ucb A R l u σ2 δ a (n + 1) ω = ucb' n (history A R n ω) l u σ2 δ a := by
-  have hp : pullCount A a (n + 1) ω = pullCount' n (history A R n ω) a :=
-    pullCount_add_one_eq_pullCount'
-  have he : empMean A R a (n + 1) ω = empMean' n (history A R n ω) a :=
-    empMean_add_one_eq_empMean'
+lemma ucb_eq_ucb' {O : ℕ → Ω → Unit} {a : Fin K} {n : ℕ} {ω : Ω} :
+    ucb A R l u σ2 δ a n ω = ucb' n (history O A R n ω) l u σ2 δ a := by
+  have hp : pullCount A a n ω = pullCount' n (history O A R n ω) a := pullCount_eq_pullCount'
+  have he : empMean A R a n ω = empMean' n (history O A R n ω) a := empMean_eq_empMean'
   rw [ucb, ucb', hp, he]
 
 /-- Helper for `sum_ucb_sub_mean_le`. -/
@@ -202,11 +200,11 @@ variable [Nonempty (Fin K)]
 variable [MeasurableSpace Ω]
 variable {𝓔 : Type*} [MeasurableSpace 𝓔]
 variable {E : Ω → 𝓔}
-variable {Q : Measure 𝓔} {κ : Kernel (𝓔 × Fin K) ℝ} [IsMarkovKernel κ]
+variable {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (𝓔 × Fin K) ℝ} [IsMarkovKernel κ]
 variable {P : Measure Ω} [IsProbabilityMeasure P]
 
-lemma integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le {alg : Algorithm (Fin K) ℝ}
-    (h : IsBayesAlgEnvSeq Q κ alg E A R P)
+lemma integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le
+    {alg : Algorithm Unit (Fin K) ℝ} (h : IsBayesAlgEnvSeq Q κ alg E A R P)
     (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
     (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a)))
     (hδ : 0 < δ) (n : ℕ) :
@@ -253,7 +251,7 @@ lemma integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le {alg : Algo
     _ = _ := by
       ring
 
-lemma integral_sum_range_ucb_action_sub_actionMean_action_le {alg : Algorithm (Fin K) ℝ}
+lemma integral_sum_range_ucb_action_sub_actionMean_action_le {alg : Algorithm Unit (Fin K) ℝ}
     (h : IsBayesAlgEnvSeq Q κ alg E A R P)
     (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
     (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a)))
@@ -308,7 +306,7 @@ namespace TS
 
 open ClippedUCB
 
-variable {K : ℕ} [Nonempty (Fin K)]
+variable {K : ℕ} [NeZero K]
 variable {l u σ2 δ : ℝ}
 variable {Ω : Type*} [MeasurableSpace Ω]
 variable {𝓔 : Type*} [MeasurableSpace 𝓔] [StandardBorelSpace 𝓔] [Nonempty 𝓔]
@@ -316,30 +314,28 @@ variable {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (𝓔 × Fin K
 variable {E : Ω → 𝓔} {A : ℕ → Ω → Fin K} {R : ℕ → Ω → ℝ}
 variable {P : Measure Ω} [IsProbabilityMeasure P]
 
-lemma integral_ucb_action_eq_integral_ucb_bestAction (hK : 0 < K)
-    (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm hK Q κ) E A R P) (n : ℕ) :
+lemma integral_ucb_action_eq_integral_ucb_bestAction
+    (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P) (n : ℕ) :
     P[fun ω ↦ ucb A R l u σ2 δ (A n ω) n ω] =
       P[fun ω ↦ ucb A R l u σ2 δ (bestAction κ E ω) n ω] := by
   have := h.measurable_action
   have := h.measurable_param
   have := h.measurable_feedback
-  by_cases hn : n = 0
-  · simp [hn]
-  obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
-  let uc (ha : (Iic n → Fin K × ℝ) × Fin K) := ucb' n ha.1 l u σ2 δ ha.2
+  let uc (ha : Hist Unit (Fin K) ℝ n × Fin K) := ucb' n ha.1 l u σ2 δ ha.2
   calc
-    _  = P[fun ω ↦ uc (history A R n ω, A (n + 1) ω)] := by
-        simp_rw [uc, ucb_succ_eq_ucb']
-    _ = ∫ ha, uc ha ∂P.map (fun ω ↦ (history A R n ω, A (n + 1) ω)) := by
+    _  = P[fun ω ↦ uc (history (noObs Ω) A R n ω, A n ω)] := by
+        simp_rw [uc, ucb_eq_ucb' (O := noObs Ω)]
+    _ = ∫ ha, uc ha ∂P.map (fun ω ↦ (history (noObs Ω) A R n ω, A n ω)) := by
         rw [← integral_map (by fun_prop) (by fun_prop)]
-    _ = ∫ ha, uc ha ∂P.map (fun ω ↦ (history A R n ω, bestAction κ E ω)) := by
-        rw [← compProd_map_condDistrib (by fun_prop), ← compProd_map_condDistrib (by fun_prop),
-            Measure.compProd_congr (hasCondDistrib_action hK h n).condDistrib_eq]
-    _ = P[fun ω ↦ ucb A R l u σ2 δ (bestAction κ E ω) (n + 1) ω] := by
+    _ = ∫ ha, uc ha ∂P.map (fun ω ↦ (history (noObs Ω) A R n ω, bestAction κ E ω)) := by
+        rw [← compProd_map_condDistrib (by fun_prop) (by fun_prop),
+          ← compProd_map_condDistrib (by fun_prop) (by fun_prop),
+            Measure.compProd_congr (hasCondDistrib_action h n).condDistrib_eq]
+    _ = P[fun ω ↦ ucb A R l u σ2 δ (bestAction κ E ω) n ω] := by
         rw [integral_map (by fun_prop) (by fun_prop)]
-        simp_rw [uc, ucb_succ_eq_ucb']
+        simp_rw [uc, ucb_eq_ucb' (O := noObs Ω)]
 
-lemma integral_regret_eq_add (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm hK Q κ) E A R P)
+lemma integral_regret_eq_add (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P)
     (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (n : ℕ) :
     P[IsBayesAlgEnvSeq.regret κ E A n] =
       P[fun ω ↦ ∑ t ∈ range n,
@@ -368,7 +364,7 @@ lemma integral_regret_eq_add (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorith
             ∑ t ∈ range n, ∫ ω, ucb A R l u σ2 δ (bestAction κ E ω) t ω ∂P) +
           ((∑ t ∈ range n, ∫ ω, ucb A R l u σ2 δ (A t ω) t ω ∂P) -
             ∑ t ∈ range n, ∫ ω, actionMean κ E (A t ω) ω ∂P) := by
-        simp [integral_ucb_action_eq_integral_ucb_bestAction hK h]
+        simp [integral_ucb_action_eq_integral_ucb_bestAction h]
     _ = (∑ t ∈ range n, ∫ ω, actionMean κ E (bestAction κ E ω) ω -
               ucb A R l u σ2 δ (bestAction κ E ω) t ω ∂P) +
           ∑ t ∈ range n, ∫ ω, ucb A R l u σ2 δ (A t ω) t ω -
@@ -382,7 +378,7 @@ lemma integral_regret_eq_add (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorith
 actions, each of which has a corresponding reward between `l` and `u` that is sub-Gaussian with
 variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at time `n` is at most
 `(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n)`. -/
-theorem integral_regret_le (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm hK Q κ) E A R P)
+theorem integral_regret_le (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P)
     (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
     (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a))) (n : ℕ) :
     P[IsBayesAlgEnvSeq.regret κ E A n]
@@ -393,7 +389,7 @@ theorem integral_regret_le (hK : 0 < K) (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm 
   have hδ : (0 : ℝ) < 1 / n ^ 2 := by positivity
   calc P[IsBayesAlgEnvSeq.regret κ E A n]
       = _ :=
-        integral_regret_eq_add hK h hm n
+        integral_regret_eq_add h hm n
     _ ≤ _ :=
         add_le_add
           (integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le h hlu hm hσ2 hs hδ n)

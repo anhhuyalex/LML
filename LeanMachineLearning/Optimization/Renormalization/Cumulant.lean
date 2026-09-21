@@ -1680,9 +1680,9 @@ private lemma indepFun_split_integral [DecidableEq ι]
     fun y ↦ ∏ i : {i // i ∈ s \ A}, y ⟨i.1, (Finset.mem_sdiff.mp i.2).2⟩
   -- Coordinatewise measurability makes the restriction maps AEMeasurable.
   have hF : AEMeasurable F μ :=
-    (measurable_pi_lambda F fun i ↦ hmeas i.1).aemeasurable
+    (Measurable.of_eval (f := F) fun i ↦ hmeas i.1).aemeasurable
   have hG : AEMeasurable G μ :=
-    (measurable_pi_lambda G fun i ↦ hmeas i.1).aemeasurable
+    (Measurable.of_eval (f := G) fun i ↦ hmeas i.1).aemeasurable
   -- The evaluation functionals are measurable products of coordinate projections.
   have hφ : Measurable φ :=
     Finset.measurable_prod Finset.univ fun i _ ↦

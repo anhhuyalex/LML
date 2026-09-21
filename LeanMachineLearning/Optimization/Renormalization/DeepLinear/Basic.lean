@@ -212,9 +212,9 @@ def deepLinearOutputProbabilityMeasure {m n : ℕ} (S : MLPShape m n) (Cw : ℝ�
     (x : Fin m → ℝ) : ProbabilityMeasure (Fin n → ℝ) := by
   refine ⟨S.deepLinearOutputLaw Cw x, ?_⟩
   unfold deepLinearOutputLaw
-  apply Measure.isProbabilityMeasure_map
-  exact ((S.measurable_eval (measurable_linear 1)).comp
-    (measurable_id.prodMk measurable_const)).aemeasurable
+  exact (Measure.isProbabilityMeasure_map_iff
+    (((S.measurable_eval (measurable_linear 1)).comp
+      (measurable_id.prodMk measurable_const)).aemeasurable)).mpr inferInstance
 
 /-- Recursive kernel semantics agrees with the explicit batch pushforward.
 

@@ -605,6 +605,11 @@ def centeredDual {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [Measura
     (μ : Measure E) (L : StrongDual ℝ E) : E → ℝ :=
   fun x ↦ L x - ∫ y, L y ∂μ
 
+lemma centeredDual_aemeasurable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [MeasurableSpace E] [BorelSpace E] (μ : Measure E) (L : StrongDual ℝ E) :
+    AEMeasurable (centeredDual μ L) μ :=
+  (L.continuous.sub continuous_const).measurable.aemeasurable
+
 /-- Covariance kernel of two continuous linear functionals. -/
 def dualCovariance {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [MeasurableSpace E] (μ : Measure E) (L K : StrongDual ℝ E) : ℝ :=
@@ -867,7 +872,8 @@ private lemma isProbabilityMeasure_of_jointGaussian_zero_linear {Ω ι : Type*}
     IsProbabilityMeasure ν := by
   have : ProbabilityTheory.IsGaussian (Measure.map (fun _ : Ω ↦ (0 : ℝ)) ν) := by
     simpa using h_joint (fun _ : ι ↦ 0)
-  exact MeasureTheory.Measure.isProbabilityMeasure_of_map (μ := ν) fun _ : Ω ↦ (0 : ℝ)
+  have : IsProbabilityMeasure (Measure.map (fun _ : Ω ↦ (0 : ℝ)) ν) := inferInstance
+  exact Measure.isProbabilityMeasure_of_map (f := fun _ : Ω ↦ (0 : ℝ)) aemeasurable_const
 
 -- A coordinate is a jointly Gaussian linear combination: choose the one-hot
 -- coefficient vector and identify the finite sum with the selected coordinate.
@@ -877,20 +883,18 @@ private lemma integrable_coordinate_of_jointGaussian {Ω ι : Type*} [Measurable
     (Z : ι → Ω → ℝ)
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
-        (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν)) :
+        (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν))
+    (hZ_ae : ∀ k : ι, AEMeasurable (fun ω ↦ Z k ω) ν) :
     ∀ k : ι, Integrable (fun ω ↦ Z k ω) ν := by
   classical
   intro k
   let e : ι → ℝ := fun l ↦ if l = k then 1 else 0
   have : ProbabilityTheory.IsGaussian (Measure.map (fun ω ↦ Z k ω) ν) := by
     simpa [e] using h_joint e
-  have hZ_ae : AEMeasurable (fun ω ↦ Z k ω) ν :=
-    aemeasurable_of_map_neZero (μ := ν) (f := fun ω ↦ Z k ω)
-      inferInstance
   simpa [id, Function.comp_def] using
     (ProbabilityTheory.IsGaussian.integrable_dual
       (Measure.map (fun ω ↦ Z k ω) ν)
-      (ContinuousLinearMap.id ℝ ℝ)).comp_aemeasurable hZ_ae
+      (ContinuousLinearMap.id ℝ ℝ)).comp_aemeasurable (hZ_ae k)
 
 -- Once coordinates are integrable, centering passes to every finite linear
 -- combination by integrating the finite sum termwise and pulling out constants.
@@ -900,6 +904,7 @@ private lemma integral_linear_combination_eq_zero_of_centered_jointGaussian {Ω 
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν))
+    (hZ_ae : ∀ k : ι, AEMeasurable (fun ω ↦ Z k ω) ν)
     (h_centered : ∀ k : ι, ∫ ω, Z k ω ∂ν = 0) (a : ι → ℝ) :
     ∫ ω, (∑ k : ι, a k * Z k ω) ∂ν = 0 := by
   calc
@@ -909,7 +914,7 @@ private lemma integral_linear_combination_eq_zero_of_centered_jointGaussian {Ω 
         (MeasureTheory.integral_finsetSum (Finset.univ : Finset ι)
           (μ := ν) (f := fun k ω ↦ a k * Z k ω)
           (fun k _hk ↦
-            (integrable_coordinate_of_jointGaussian ν Z h_joint k).const_mul (a k)))
+            (integrable_coordinate_of_jointGaussian ν Z h_joint hZ_ae k).const_mul (a k)))
     _ = ∑ k : ι, a k * ∫ ω, Z k ω ∂ν := by
       simp [MeasureTheory.integral_const_mul]
     _ = 0 := by
@@ -924,7 +929,8 @@ private lemma memLp_coordinate_of_jointGaussian {Ω ι : Type*} [MeasurableSpace
     (Z : ι → Ω → ℝ)
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
-        (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν)) :
+        (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν))
+    (hZ_ae : ∀ k : ι, AEMeasurable (fun ω ↦ Z k ω) ν) :
     ∀ k : ι, MemLp (fun ω ↦ Z k ω) 2 ν := by
   classical
   intro k
@@ -936,10 +942,7 @@ private lemma memLp_coordinate_of_jointGaussian {Ω ι : Type*} [MeasurableSpace
       (ProbabilityTheory.IsGaussian.memLp_dual
         (Measure.map (fun ω ↦ Z k ω) ν)
         (ContinuousLinearMap.id ℝ ℝ) 2 (by norm_num))
-  have hZ_ae : AEMeasurable (fun ω ↦ Z k ω) ν :=
-    aemeasurable_of_map_neZero (μ := ν) (f := fun ω ↦ Z k ω)
-      (show NeZero (Measure.map (fun ω ↦ Z k ω) ν) from inferInstance)
-  simpa [id, Function.comp_def] using h_id_memLp.comp_of_map hZ_ae
+  simpa [id, Function.comp_def] using h_id_memLp.comp_of_map (hZ_ae k)
 
 -- Variance of a finite weighted sum is the covariance quadratic form.
 -- The only analytic input needed here is `MemLp` for each coordinate; the rest
@@ -975,6 +978,7 @@ private lemma mgf_linear_combination_centered_jointGaussian {Ω ι : Type*}
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν))
+    (hZ_ae : ∀ k : ι, AEMeasurable (fun ω ↦ Z k ω) ν)
     (h_centered : ∀ k : ι, ∫ ω, Z k ω ∂ν = 0) :
     ∀ a : ι → ℝ,
       (fun t : ℝ ↦ ProbabilityTheory.mgf
@@ -991,7 +995,7 @@ private lemma mgf_linear_combination_centered_jointGaussian {Ω ι : Type*}
   -- Gaussian law supplies integrability of each coordinate.
   have hX_mean_zero : ∫ ω, X ω ∂ν = 0 := by
     simpa [X] using
-      integral_linear_combination_eq_zero_of_centered_jointGaussian ν Z h_joint
+      integral_linear_combination_eq_zero_of_centered_jointGaussian ν Z h_joint hZ_ae
         h_centered a
   -- The variance is the covariance quadratic form by finite covariance
   -- bilinearity.
@@ -1001,15 +1005,18 @@ private lemma mgf_linear_combination_centered_jointGaussian {Ω ι : Type*}
           a i * a j * covariance (Z i) (Z j) ν := by
     simpa [X] using
       variance_linear_combination_eq_covariance_quadratic ν Z
-        (memLp_coordinate_of_jointGaussian ν Z h_joint) a
+        (memLp_coordinate_of_jointGaussian ν Z h_joint hZ_ae) a
   -- Identify the one-dimensional Gaussian law by its pushed-forward mean and
   -- variance, then pull those parameters back along `X`.
+  have hX_ae : AEMeasurable X ν := by
+    have h_eq : X = ∑ k : ι, (fun ω ↦ a k * Z k ω) := by
+      ext ω
+      simp only [X, Finset.sum_apply]
+    rw [h_eq]
+    exact Finset.aemeasurable_sum (Finset.univ : Finset ι) (fun k _ ↦ (hZ_ae k).const_mul (a k))
   have hX_law :
       Measure.map X ν = gaussianReal 0 (Var[X; ν]).toNNReal := by
     have : ProbabilityTheory.IsGaussian (Measure.map X ν) := hX_gaussian
-    have hX_ae : AEMeasurable X ν :=
-      aemeasurable_of_map_neZero (μ := ν) (f := X)
-        inferInstance
     calc
       Measure.map X ν
           = gaussianReal (Measure.map X ν)[id]
@@ -1029,7 +1036,7 @@ private lemma mgf_linear_combination_centered_jointGaussian {Ω ι : Type*}
     ext t
     have hvar_coe : ((Var[X; ν]).toNNReal : ℝ) = Var[X; ν] := by
       simp [Real.toNNReal_of_nonneg (ProbabilityTheory.variance_nonneg X ν)]
-    rw [ProbabilityTheory.mgf_gaussianReal hX_law t]
+    rw [ProbabilityTheory.mgf_gaussianReal ⟨hX_ae, hX_law⟩ t]
     simp [hvar_coe]
   calc
     (fun t : ℝ ↦ ProbabilityTheory.mgf
@@ -1050,6 +1057,7 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν))
+    (hZ_ae : ∀ k : ι, AEMeasurable (fun ω ↦ Z k ω) ν)
     (hsym : ∀ i j : ι, covariance (Z i) (Z j) ν = covariance (Z j) (Z i) ν)
     {B : Finset ι} (hBcard : B.card = 2) :
     Finpartition.cumulantTransform (blockMoment ν Z) B =
@@ -1065,7 +1073,7 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
       Finpartition.cumulantTransform (blockMoment ν Z) ({i, j} : Finset ι) =
         covariance (Z i) (Z j) ν := by
     have hMem : ∀ k : ι, MemLp (fun ω ↦ Z k ω) 2 ν :=
-      memLp_coordinate_of_jointGaussian ν Z h_joint
+      memLp_coordinate_of_jointGaussian ν Z h_joint hZ_ae
     have hiMem : MemLp (fun ω ↦ Z i ω) 2 ν := hMem i
     have hjMem : MemLp (fun ω ↦ Z j ω) 2 ν := hMem j
     have h_cumulant_expand :
@@ -1763,6 +1771,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k, a k * Z k ω) ν))
+    (hZ_ae : ∀ k : ι, AEMeasurable (fun ω ↦ Z k ω) ν)
     (h_centered : ∀ k : ι, ∫ ω, Z k ω ∂ν = 0)
     (_h_integrability : Integrable (fun ω ↦ ∏ k ∈ s, Z k ω) ν) :
     ∫ ω, ∏ k ∈ s, Z k ω ∂ν =
@@ -1784,6 +1793,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
     -- is being computed.
     let σ := {k : ι // k ∈ s}
     let Zs : σ → Ω → ℝ := fun k ω ↦ Z k.1 ω
+    have hZ_ae_s : ∀ k : σ, AEMeasurable (fun ω ↦ Zs k ω) ν := fun k ↦ hZ_ae k.1
     -- The Cramér-Wold, centering, and integrability hypotheses all restrict to
     -- the subtype of indices in `s`; the helpers isolate this bookkeeping so the
     -- remaining proof can focus on the analytic Isserlis input.
@@ -1822,7 +1832,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
               (fun t : ℝ ↦ Real.exp
                 (((∑ i : σ, ∑ j : σ,
                     a i * a j * covariance (Zs i) (Zs j) ν) * t ^ 2) / 2)) :=
-        mgf_linear_combination_centered_jointGaussian ν Zs h_joint_s h_centered_s
+        mgf_linear_combination_centered_jointGaussian ν Zs h_joint_s hZ_ae_s h_centered_s
       -- Coefficient extraction from the logarithm of the MGF: the only nonzero
       -- joint cumulants of a centered Gaussian vector are the second cumulants,
       -- and on a two-element block the cumulant is exactly the covariance weight.
@@ -1850,7 +1860,7 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
               Finpartition.cumulantTransform (blockMoment ν Zs) B = K B := by
           intro _hmgf hsym B hBcard
           dsimp [K]
-          exact cumulantTransform_pair_eq_pairWeight_covariance ν Zs h_joint_s hsym hBcard
+          exact cumulantTransform_pair_eq_pairWeight_covariance ν Zs h_joint_s hZ_ae_s hsym hBcard
         -- Non-quadratic coefficient extraction.  The same logarithmic MGF is a
         -- homogeneous quadratic polynomial in the coefficients `a`; hence every
         -- squarefree mixed derivative of order other than two vanishes.  The
@@ -1930,6 +1940,7 @@ private lemma gaussian_stein_product_centered {Ω : Type*} [MeasurableSpace Ω]
     (h_joint : ∀ (a0 : ℝ) (a : Fin n → ℝ),
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ a0 * Y0 ω + ∑ i, a i * Y i ω) ν))
+    (hY0_ae : AEMeasurable Y0 ν) (hY_ae : ∀ i, AEMeasurable (Y i) ν)
     (h_integrability : Integrable (fun ω ↦ Y0 ω * ∏ i, Y i ω) ν)
     (h_erased_integrability : ∀ j : Fin n,
       Integrable (fun ω ↦ ∏ i ∈ Finset.univ.erase j, Y i ω) ν)
@@ -1979,6 +1990,9 @@ private lemma gaussian_stein_product_centered {Ω : Type*} [MeasurableSpace Ω]
     have h_centered_Z : ∀ k : Option (Fin n), ∫ ω, Z k ω ∂ν = 0
       | none => by simpa [Z] using h_centered_means.1
       | some i => by simpa [Z] using h_centered_means.2 i
+    have hZ_ae : ∀ k : Option (Fin n), AEMeasurable (Z k) ν
+      | none => hY0_ae
+      | some i => hY_ae i
     -- Analytic Wick/Isserlis theorem for the full product.  The top-level lemma
     -- above isolates the missing finite-dimensional Gaussian analysis; this
     -- block only rewrites the product over `Option (Fin n)` into the distinguished
@@ -1991,7 +2005,7 @@ private lemma gaussian_stein_product_centered {Ω : Type*} [MeasurableSpace Ω]
             wick C (Finset.univ : Finset (Option (Fin n))) := by
         simpa [C] using
           isserlis_centered_jointGaussian_finset ν Z
-            (Finset.univ : Finset (Option (Fin n))) h_joint_Z h_centered_Z
+            (Finset.univ : Finset (Option (Fin n))) h_joint_Z hZ_ae h_centered_Z
             (by simpa [Z, Fintype.prod_option] using h_integrability)
       simpa [Fintype.prod_option] using h_prod_univ
     -- Analytic Wick/Isserlis theorem for every erased product.  These are the
@@ -2009,7 +2023,7 @@ private lemma gaussian_stein_product_centered {Ω : Type*} [MeasurableSpace Ω]
         simpa [C] using
           isserlis_centered_jointGaussian_finset ν Z
             (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j))
-            h_joint_Z h_centered_Z
+            h_joint_Z hZ_ae h_centered_Z
             (by
               -- Finite-product reindexing side condition: the product over
               -- `univ.erase none |>.erase (some j)` is the same as the product
@@ -2129,6 +2143,8 @@ theorem integral_mul_prod_centered_dual_eq_sum (μ : Measure E) [ProbabilityTheo
   (gaussian_stein_product_centered μ (centeredDual μ L)
     (fun i ↦ centeredDual μ (K i))
     (fun a₀ a ↦ isGaussian_map_centeredDual_linearCombination μ L K a₀ a)
+    (centeredDual_aemeasurable μ L)
+    (fun i ↦ centeredDual_aemeasurable μ (K i))
     (integrable_centeredDual_mul_prod μ L K)
     (fun j ↦ integrable_finset_prod_centeredDual μ (Finset.univ.erase j) K)
     ⟨integral_centeredDual_eq_zero μ L, fun i ↦ integral_centeredDual_eq_zero μ (K i)⟩).trans
@@ -2168,6 +2184,7 @@ theorem integral_prod_centered_dual_eq_wick (μ : Measure E) [ProbabilityTheory.
           (Finset.univ : Finset (Fin n)) :=
     isserlis_centered_jointGaussian_finset μ (fun k x ↦ centeredDual μ (L k) x)
       (Finset.univ : Finset (Fin n)) h_joint
+      (fun k ↦ centeredDual_aemeasurable μ (L k))
       (fun k ↦ integral_centeredDual_eq_zero μ (L k))
       (integrable_finset_prod_centeredDual μ (Finset.univ : Finset (Fin n)) L)
   calc
@@ -2516,7 +2533,8 @@ theorem jointCumulant_centered_dual_eq_zero (μ : Measure E)
         ∫ x, ∏ k ∈ B, centeredDual μ (L k) x ∂μ =
           wick (fun k l ↦ covariance (centeredDual μ (L k)) (centeredDual μ (L l)) μ) B :=
       isserlis_centered_jointGaussian_finset μ (fun k x ↦ centeredDual μ (L k) x) B
-        h_joint (fun k ↦ integral_centeredDual_eq_zero μ (L k))
+        h_joint (fun k ↦ centeredDual_aemeasurable μ (L k))
+        (fun k ↦ integral_centeredDual_eq_zero μ (L k))
         (integrable_finset_prod_centeredDual μ B L)
     calc
       blockMoment μ (fun i ↦ centeredDual μ (L i)) B =

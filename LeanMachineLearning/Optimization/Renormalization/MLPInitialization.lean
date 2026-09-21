@@ -257,12 +257,13 @@ private lemma sumPi_tuple_map_prod_map {Ω Ω' ι κ : Type*} [MeasurableSpace �
         (ν.map (fun y : Ω' => fun j : κ => g j y)) := by
   have hF : Measurable (fun ω : Ω × Ω' => fun c : ι ⊕ κ =>
       Sum.elim (fun i => f i ω.1) (fun j => g j ω.2) c) :=
-    measurable_pi_lambda _ (Sum.rec (fun i => (hfmeas i).comp measurable_fst)
-      (fun j => (hgmeas j).comp measurable_snd))
+    Measurable.of_eval (fun c => match c with
+      | Sum.inl i => (hfmeas i).comp measurable_fst
+      | Sum.inr j => (hgmeas j).comp measurable_snd)
   have hA : Measurable (fun x : Ω => fun i : ι => f i x) :=
-    measurable_pi_lambda _ hfmeas
+    Measurable.of_eval hfmeas
   have hB : Measurable (fun y : Ω' => fun j : κ => g j y) :=
-    measurable_pi_lambda _ hgmeas
+    Measurable.of_eval hgmeas
   rw [Measure.map_map (MeasurableEquiv.sumPiEquivProdPi (fun _ : ι ⊕ κ => ℝ)).measurable hF]
   exact (Measure.map_prod_map μ ν hA hB).symm
 
