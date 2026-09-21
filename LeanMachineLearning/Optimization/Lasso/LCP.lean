@@ -586,9 +586,9 @@ lemma inner_single [DecidableEq ι] (v : EuclideanSpace ℝ ι) (i : ι) :
     intro j _
     by_cases h : j = i
     · subst h
-      rw [Pi.single_eq_same, if_pos rfl]
+      rw [Pi.single_eq_same, ite_eq_left rfl]
       ring
-    · rw [Pi.single_eq_of_ne h, if_neg h]
+    · rw [Pi.single_eq_of_ne h, ite_eq_right h]
       ring
   rw [h_sum]
   simp
@@ -1101,7 +1101,7 @@ lemma max_linearIndependent_coefficient_bound {κ : Type*} [Finite κ] (a : κ �
   have hC_bound (s : Finset κ) (h_ind : LinearIndependent ℝ (fun i : {i // i ∈ s} => a i))
       (x : {i // i ∈ s} → ℝ) : ‖euclideanOf x‖ ≤ C_for_s s * ‖∑ i : {i // i ∈ s}, x i • a i‖ := by
     dsimp [C_for_s]
-    rw [dif_pos h_ind]
+    rw [dite_eq_left h_ind]
     exact (Classical.choose_spec (linearIndependent_coefficient_bound a s h_ind)).2 x
   -- Take the maximum of all C_for_s over all subsets (or 0 if empty, but univ is nonempty)
   let C := (Finset.univ : Finset (Finset κ)).fold max 0 C_for_s
@@ -1143,12 +1143,12 @@ lemma euclideanOf_norm_extend_by_zero {κ : Type*} [Fintype κ] (s : Finset κ)
       apply Finset.sum_congr rfl
       intro i _
       have hi : i.val ∈ s := i.property
-      rw [dif_pos hi]
+      rw [dite_eq_left hi]
     have h_sc : (∑ i ∈ sᶜ, (if h : i ∈ s then x_s ⟨i, h⟩ else 0)^2) = 0 := by
       apply Finset.sum_eq_zero
       intro i hi
       rw [Finset.mem_compl] at hi
-      rw [dif_neg hi]
+      rw [dite_eq_right hi]
       ring
     rw [h_s, h_sc, add_zero]
   have h3 : ‖euclideanOf x_s‖^2 = ∑ i : {x // x ∈ s}, (x_s i)^2 := by
@@ -1188,12 +1188,12 @@ lemma sum_extend_by_zero {κ : Type*} [Fintype κ] (s : Finset κ)
     apply Finset.sum_congr rfl
     intro i _
     have hi : i.val ∈ s := i.property
-    rw [dif_pos hi]
+    rw [dite_eq_left hi]
   have h_sc : (∑ i ∈ sᶜ, (if h : i ∈ s then x_s ⟨i, h⟩ else 0) • a i) = 0 := by
     apply Finset.sum_eq_zero
     intro i hi
     rw [Finset.mem_compl] at hi
-    rw [dif_neg hi]
+    rw [dite_eq_right hi]
     exact zero_smul ℝ (a i)
   rw [h_s, h_sc, add_zero]
 

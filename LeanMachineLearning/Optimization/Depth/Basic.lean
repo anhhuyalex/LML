@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
-public import Mathlib.Data.Real.Basic
+public import Mathlib.Basic.Real.Basic
 public import Mathlib.Topology.Algebra.Order.LiminfLimsup
 
 /-!

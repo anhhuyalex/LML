@@ -79,7 +79,8 @@ evaluator turns the preimage of `univ` into `univ`, whose mass is one. See
 instance instIsProbabilityMeasureOutputLaw (F : ParamModel Θ X Y) (D : A → X)
     (μ : Measure Θ) [IsProbabilityMeasure μ] : IsProbabilityMeasure (F.outputLaw D μ) := by
   unfold outputLaw
-  exact (Measure.isProbabilityMeasure_map_iff (F.measurable_evalBatch D).aemeasurable).mpr inferInstance
+  exact (Measure.isProbabilityMeasure_map_iff
+    (F.measurable_evalBatch D).aemeasurable).mpr inferInstance
 
 /-- Observable formula for the induced output law.
 

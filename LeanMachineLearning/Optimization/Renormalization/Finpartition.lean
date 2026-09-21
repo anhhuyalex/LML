@@ -1421,16 +1421,20 @@ structure Matching (π : Finpartition A) (σ : Finpartition B) where
 namespace Matching
 
 /-- The symmetric matching swapping the two partitions. -/
-def symm {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : Matching σ π where
+def symm {A B : Finset α} {π : Finpartition A} {σ : Finpartition B}
+    (M : Matching π σ) : Matching σ π where
   S := M.T
   T := M.S
   hS := M.hT
   hT := M.hS
   e := M.e.symm
 
-@[simp] lemma symm_S {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : M.symm.S = M.T := rfl
-@[simp] lemma symm_T {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : M.symm.T = M.S := rfl
-@[simp] lemma symm_e {A B : Finset α} {π : Finpartition A} {σ : Finpartition B} (M : Matching π σ) : M.symm.e = M.e.symm := rfl
+@[simp] lemma symm_S {A B : Finset α} {π : Finpartition A} {σ : Finpartition B}
+    (M : Matching π σ) : M.symm.S = M.T := rfl
+@[simp] lemma symm_T {A B : Finset α} {π : Finpartition A} {σ : Finpartition B}
+    (M : Matching π σ) : M.symm.T = M.S := rfl
+@[simp] lemma symm_e {A B : Finset α} {π : Finpartition A} {σ : Finpartition B}
+    (M : Matching π σ) : M.symm.e = M.e.symm := rfl
 
 end Matching
 
@@ -2307,7 +2311,8 @@ private lemma sum_cumulant_by_trace {R : Type*} [CommRing R] (f : Finset α → 
     (∑ T : Finpartition (A ∪ B), cumulantCoefficient T * T.blockProduct f)
         = ∑ π : Finpartition A, ∑ σ : Finpartition B,
             ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
-                (T.restrict (Finset.subset_union_left), T.restrict (Finset.subset_union_right)) = (π, σ)),
+                (T.restrict (Finset.subset_union_left),
+                 T.restrict (Finset.subset_union_right)) = (π, σ)),
               cumulantCoefficient T * T.blockProduct f := by
       rw [← Finset.sum_fiberwise (Finset.univ : Finset (Finpartition (A ∪ B)))
         (fun T => (T.restrict (Finset.subset_union_left), T.restrict (Finset.subset_union_right)))
@@ -2315,7 +2320,8 @@ private lemma sum_cumulant_by_trace {R : Type*} [CommRing R] (f : Finset α → 
         Fintype.sum_prod_type]
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,
           ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
-              T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ),
+              T.restrict (Finset.subset_union_left) = π ∧
+              T.restrict (Finset.subset_union_right) = σ),
             cumulantCoefficient T * T.blockProduct f :=
       Finset.sum_congr rfl (fun π _ => Finset.sum_congr rfl (fun σ _ =>
         Finset.sum_congr (by ext T; simp [Prod.ext_iff]) (fun _ _ => rfl)))
@@ -2412,7 +2418,8 @@ lemma cumulantTransform_eq_sum_matchings_by_trace {R : Type*} [CommRing R]
       simp [cumulantTransform, hne]
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,
           ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
-              T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ),
+              T.restrict (Finset.subset_union_left) = π ∧
+              T.restrict (Finset.subset_union_right) = σ),
             cumulantCoefficient T * T.blockProduct f :=
       sum_cumulant_by_trace f
     _ = ∑ π : Finpartition A, ∑ σ : Finpartition B,

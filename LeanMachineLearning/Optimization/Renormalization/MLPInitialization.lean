@@ -127,7 +127,8 @@ private theorem map_layerCoordinate_layerGaussianInit (p : InitHyperparams)
 private theorem measurable_layerCoordinate' {ι : Type u} {κ : Type v}
     (c : LayerCoordinate ι κ) :
     Measurable (fun q : LayerParams ι κ => layerCoordinate c q) :=
-  Sum.rec (fun ji => (measurable_pi_apply ji.2).comp ((measurable_pi_apply ji.1).comp measurable_fst))
+  Sum.rec
+    (fun ji => (measurable_pi_apply ji.2).comp ((measurable_pi_apply ji.1).comp measurable_fst))
     (fun j => (measurable_pi_apply j).comp measurable_snd) c
 
 /-- Reading any scalar coordinate of an MLP parameter tuple is measurable. -/
