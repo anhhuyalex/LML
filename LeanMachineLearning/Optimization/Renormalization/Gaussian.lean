@@ -879,7 +879,7 @@ private lemma isProbabilityMeasure_of_jointGaussian_zero_linear {Ω ι : Type*}
 -- coefficient vector and identify the finite sum with the selected coordinate.
 -- Integrability then pulls back from the one-dimensional Gaussian pushforward.
 private lemma integrable_coordinate_of_jointGaussian {Ω ι : Type*} [MeasurableSpace Ω]
-    [Fintype ι] (ν : Measure Ω) [IsProbabilityMeasure ν]
+    [Fintype ι] (ν : Measure Ω)
     (Z : ι → Ω → ℝ)
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
@@ -900,7 +900,7 @@ private lemma integrable_coordinate_of_jointGaussian {Ω ι : Type*} [Measurable
 -- combination by integrating the finite sum termwise and pulling out constants.
 private lemma integral_linear_combination_eq_zero_of_centered_jointGaussian {Ω ι : Type*}
     [MeasurableSpace Ω] [Fintype ι] (ν : Measure Ω)
-    [IsProbabilityMeasure ν] (Z : ι → Ω → ℝ)
+    (Z : ι → Ω → ℝ)
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian
         (Measure.map (fun ω ↦ ∑ k : ι, a k * Z k ω) ν))
@@ -925,7 +925,7 @@ private lemma integral_linear_combination_eq_zero_of_centered_jointGaussian {Ω 
 -- integrability helper above, but uses the Gaussian `MemLp` API needed for
 -- covariance and variance calculations.
 private lemma memLp_coordinate_of_jointGaussian {Ω ι : Type*} [MeasurableSpace Ω]
-    [Fintype ι] (ν : Measure Ω) [IsProbabilityMeasure ν]
+    [Fintype ι] (ν : Measure Ω)
     (Z : ι → Ω → ℝ)
     (h_joint : ∀ a : ι → ℝ,
       ProbabilityTheory.IsGaussian

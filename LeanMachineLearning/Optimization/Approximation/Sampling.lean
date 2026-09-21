@@ -77,7 +77,7 @@ namespace Approximation.Sampling
 
 private lemma integral_norm_sq_eq_of_map_eq
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
-    {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
+    {H : Type*} [NormedAddCommGroup H]
     [MeasurableSpace H] [BorelSpace H]
     {μ : Measure Ω} {X Y : Ω → H}
     (hX_L2 : MemLp X 2 μ) (hY_L2 : MemLp Y 2 μ)
@@ -94,7 +94,6 @@ private lemma integral_norm_sq_eq_of_map_eq
 private lemma integral_centered_eq_zero
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {V W : Ω → H}
     (hV_L2 : MemLp V 2 μ)
@@ -123,7 +122,7 @@ Lean plan:
 private lemma integral_inner_eq_inner_integral
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
+    [MeasurableSpace H] [BorelSpace H]
     {μ : Measure Ω}
     {X Y : Ω → H}
     (hXY : X ⟂ᵢ[μ] Y)
@@ -156,7 +155,7 @@ This is the key step making all off-diagonal terms disappear in Maurey's lemma.
 private lemma integral_centered_inner_eq_zero
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
+    [MeasurableSpace H] [BorelSpace H]
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {k : ℕ}
     {V : Ω → H}
@@ -205,7 +204,6 @@ This is the diagonal term in the Maurey expansion.
 private lemma integral_centered_norm_sq
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {V W : Ω → H}
     (hV_L2 : MemLp V 2 μ)
@@ -331,7 +329,7 @@ private lemma maurey_final_algebraic_step (k : ℕ) (hk : 0 < k) (int_V2 : ℝ) 
 private lemma integral_norm_smul_sum_centered_eq
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
+    [MeasurableSpace H] [BorelSpace H]
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {k : ℕ} {V : Ω → H} {Vᵢ : Fin k → Ω → H}
     (hV_L2 : MemLp V 2 μ)
@@ -428,7 +426,7 @@ private lemma integral_norm_smul_sum_centered_eq
 theorem maureySampling
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
+    [MeasurableSpace H] [BorelSpace H]
     {μ_prob : Measure Ω} [IsProbabilityMeasure μ_prob]
     {V : Ω → H}
     (hV_L2 : MemLp V 2 μ_prob)
@@ -787,7 +785,7 @@ integrable (it is `‖F‖²` for `F ∈ L²`), so some sample point `ω₀` rea
 mean; take `uᵢ := Vᵢ(ω₀)`, which lies in `S` by `hVi_mem`. -/
 theorem maureySamplingExistence_of_iid
     {Ω : Type*} {mΩ : MeasurableSpace Ω}
-    [CompleteSpace H] [MeasurableSpace H] [BorelSpace H] [MeasurableSub₂ H]
+    [CompleteSpace H] [MeasurableSpace H] [BorelSpace H]
     {μ_prob : Measure Ω} [IsProbabilityMeasure μ_prob]
     {S : Set H} {V : Ω → H} (hV_L2 : MemLp V 2 μ_prob)
     {k : ℕ} (hk : 0 < k)

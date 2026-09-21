@@ -240,7 +240,7 @@ The proof is only algebra plus Bochner integral linearity: at `h > 0`, both weig
 integrable, so `integral_sub` and `integral_smul` move the difference quotient through the
 integral. -/
 private lemma slope_weightedIntegral_eq_integral_diffQuot
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ) :
     (fun h : ℝ => slope (weightedIntegral μ V O) 0 h) =ᶠ[𝓝[Set.Ioi (0 : ℝ)] 0]
@@ -283,7 +283,7 @@ private lemma norm_smul_diffQuot_exp_neg_mul_le
 -- measurable for `h > 0`.  `tendsto_integral_filter_of_dominated_convergence` then yields the
 -- limit of the integrated quotients.
 private lemma tendsto_integral_diffQuot_weighted
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ) :
@@ -312,7 +312,7 @@ integrable envelope, so dominated convergence gives the displayed derivative.  T
 hypothesis `hV` supplies measurability of the scalar potential, which is needed to state the
 Bochner dominated-convergence hypotheses for the difference quotients. -/
 theorem hasDerivWithinAt_weightedIntegral_zero
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ) :
@@ -353,7 +353,7 @@ private lemma integral_deform_eq_inv_smul_weightedIntegral
 -- `hasDerivWithinAt_weightedIntegral_zero`.
 private lemma hasDerivWithinAt_inv_partitionFunction_smul_weightedIntegral_zero
     [IsProbabilityMeasure μ]
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ) :
@@ -383,7 +383,7 @@ Informal proof: use `integral_deform` to write the expectation as the weighted n
 the partition function.  Apply the preceding two derivative lemmas and the quotient rule; at zero
 the denominator is one, and the resulting derivative is `-covarianceWith μ O V`. -/
 theorem hasDerivWithinAt_integral_deform_zero [IsProbabilityMeasure μ]
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ) :
@@ -569,7 +569,7 @@ Taylor-remainder argument from the blueprint theorem `thm:renorm:quadraticRespon
 elementary scalar estimate recorded above in `abs_exp_neg_mul_add_le` (equivalently Taylor's
 theorem with integral remainder, e.g. <https://www.bowaggoner.com/blog/2017/10-06-useful-bounds-taylors>). -/
 private lemma norm_weightedIntegral_sub_linear_le
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ)
@@ -616,7 +616,7 @@ The `V² • O` hypothesis is exactly the integrable dominating function require
 and the scalar hypothesis `hV` supplies the measurability of `V` used to prove integrability of
 the weighted exponential. -/
 theorem weightedIntegral_sub_linear_isBigO
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ)
@@ -635,7 +635,7 @@ Informal proof: combine the numerator and denominator expansions above.  Positiv
 of the partition function bound its reciprocal on a sufficiently small right-neighborhood of zero;
 the quotient algebra leaves the covariance as the linear coefficient and an `O(ε²)` remainder. -/
 theorem integral_deform_sub_linear_isBigO [IsProbabilityMeasure μ]
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {V : Ω → ℝ} {O : Ω → E} (hVnonneg : 0 ≤ V)
     (hV : Integrable V μ) (hO : Integrable O μ)
     (hVO : Integrable (fun x ↦ V x • O x) μ)
