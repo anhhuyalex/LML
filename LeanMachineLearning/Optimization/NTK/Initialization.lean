@@ -23,6 +23,9 @@ public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Probability.Independence.CharacteristicFunction
 
 /-!
 # NTK Initialization, Gaussian Processes, and Finite-Dimensional NNGP Limit
@@ -31,7 +34,9 @@ This file formalizes the parameter initialization probability space, mutual inde
 structure, Definition 2.2 (Gaussian Processes), Theorem 1 / Step 1 (Exact Conditional Normality),
 Theorem 2 / Step 2 (Strong Law of Large Numbers for the Covariance Tensor), Theorem 2.3 /
 Theorem 3 (Finite-Dimensional NNGP Limit at Initialization), Multilayer Sequential NNGP
-recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU).
+recurrence convergence, the Layer-by-Layer Conditional Gaussian Structure (independence across
+depth and the depth-$d$ recursive kernel $\Phi_\ell$), and Proposition 2.5 (Cho-Saul / Arc-Cosine
+Kernel for ReLU).
 
 ## Mathematical Formulation
 
@@ -74,12 +79,12 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
   * Compact subset $K \subset \mathbb{R}^{n_0}$ and Banach space
     $C(K) = \{g: K \to \mathbb{R} \mid g \text{ continuous}\}$ equipped with supremum norm
     (Mathlib's `C(K, ℝ)` via `ContinuousMap.Compact`).
-  * The general depth-$d$ recursive network notation ($h_1^\alpha, h_{\ell+1}^\alpha$,
-    the limiting recursion $\boldsymbol{\Phi}_\ell$, the covariance operator
-    $\mathcal{C}_\varphi$, and the filtration $\mathcal{F}_\ell$) is not yet formalized: this
-    file only proves facts about the two-layer network above and the single-layer transition
-    of `MultilayerSequentialNNGP`. That deeper scaffolding is deferred until a theorem that
-    actually needs the full $d$-layer recursion is formalized.
+  * The depth-$d$ recursive network notation ($h_1^\alpha, h_{\ell+1}^\alpha$, the limiting
+    recursion $\boldsymbol{\Phi}_\ell$ via the covariance operator $\mathcal{C}_\varphi$, and
+    independence across the per-layer weight matrices $\mathbf{W}_0, \dots, \mathbf{W}_d$ in place
+    of an explicit filtration $\mathcal{F}_\ell$) is formalized in
+    `section LayerByLayerConditionalGaussian`: see `layerCovarianceSeq`,
+    `indepFun_layer_history`, and `exact_conditional_normality_layer` below.
 
 * **Definition 2.2 (Gaussian Process)**:
   A random function $f : \mathbb{R}^{n_0} \to \mathbb{R}$ on $(\Omega, \Sigma, \mathbb{P})$
@@ -272,6 +277,34 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
   * Public Bivariate Corollary ($m = 2$):
     `NTK.tendstoInDistribution_sequential_bivariate`.
 
+* **Layer-by-Layer Conditional Gaussian Structure**:
+  * **Independence Across Depth**: mutual independence of the per-layer weight matrices
+    $\mathbf{W}_0, \dots, \mathbf{W}_{L-1}$ implies each $\mathbf{W}_\ell$ is independent of the
+    history $(\mathbf{W}_i)_{i < \ell}$, formalized for a common per-layer shape by
+    `NTK.indepFun_layer_history`.
+  * The recursively-defined deterministic limiting forward covariance kernel
+    $\boldsymbol{\Phi}_0, \boldsymbol{\Phi}_{\ell+1} := \mathcal{C}_\varphi(\boldsymbol{\Phi}_\ell)$
+    is formalized by `NTK.layerCovarianceSeq`, with positive semidefiniteness at every layer
+    `NTK.layerCovarianceSeq_posSemidef` (reusing `NTK.limitingRecurrence_posSemidef_multivariate`
+    at each step).
+  * **Theorem (Conditional Pre-Activation Distribution)**: conditioned on the width-$n$
+    previous-layer post-activations $\mathbf{H}$ (representing conditioning on $\mathcal{F}_\ell$,
+    as throughout this file), the full width-$n'$ next-layer preactivation vector
+    $\mathbf{H}_{\ell+1} \in \mathbb{R}^{m n'}$ (stacked
+    $[(\mathbf{h}_{\ell+1}^1)^\top, \dots, (\mathbf{h}_{\ell+1}^m)^\top]^\top$) is exactly Gaussian
+    with covariance $\boldsymbol{\Phi}_\ell^{(n)} \otimes \mathbf{I}_{n'}$:
+    $$\mathbf{H}_{\ell+1} \mid \mathbf{H} \sim
+      \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Phi}_\ell^{(n)} \otimes \mathbf{I}_{n'}\right)$$
+    formalized by `NTK.exact_conditional_normality_layer`, via two Gaussian-vector-algebra
+    ingredients:
+    * The `Fin m`-family generalizations of Propositions 2.9-2.10 from a fixed pair of vectors to
+      a fixed family (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), giving
+      the row-indexed (neuron-indexed) family of $n'$ i.i.d. copies of the single-neuron
+      $m$-variate Gaussian $\mathcal{N}(\mathbf{0}, \boldsymbol{\Phi}_\ell^{(n)})$.
+    * The Kronecker concatenation of $n'$ i.i.d. Gaussian vectors into one Gaussian vector with
+      covariance $\boldsymbol{\Phi}_\ell^{(n)} \otimes \mathbf{I}_{n'}$
+      (`NTK.multivariateGaussian_pi_eq_kronecker`).
+
 * **Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU)**:
   Under the joint Gaussian distribution
   $(h^\alpha, h^\beta) \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$ with
@@ -330,6 +363,10 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
     family `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v)` consists of `n` i.i.d. copies of Proposition 2.9's
     bivariate Gaussian (`NTK.gaussianMatrix_mulVec_pair`), proved by pushing the row-product
     measure `gaussianInit n n` forward row-by-row via `Measure.pi_map_pi`.
+  * Propositions 2.9' and 2.10': the direct `Fin m`-indexed generalizations of Propositions 2.9
+    and 2.10 from a fixed pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`
+    (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), proved by the same
+    techniques; used by the Layer-by-Layer Conditional Gaussian Structure below.
 
 ## Main definitions and theorems
 
@@ -358,6 +395,8 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
     `g ~ 𝒩(0, I_n)`.
   * `NTK.gaussianMatrix_mulVec_pair` : Proposition 2.10, the row-indexed joint law of
     `(W ⬝ᵥ u, W ⬝ᵥ v)` for an i.i.d. Gaussian matrix `W`.
+  * `NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family` : the `Fin m`-family
+    generalizations of Propositions 2.9-2.10.
 
 * **Theorem 1: Exact Finite-Width Conditional Normality**:
   * `NTK.psi` : projection coefficients
@@ -425,6 +464,17 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
   * `NTK.tendstoInDistribution_sequential_preactivation` : master theorem for arbitrary `Fin m`.
   * `NTK.tendstoInDistribution_sequential_bivariate` : public `m = 2` bivariate corollary.
 
+* **Layer-by-Layer Conditional Gaussian Structure**:
+  * `NTK.multivariateGaussian_pi_eq_kronecker` : Kronecker-product concatenation of `n` i.i.d.
+    Gaussian vectors (built on the `Fin m`-family Propositions 2.9'-2.10' above).
+  * `NTK.indepFun_layer_history` : Independence Across Depth, `W_ℓ` independent of the history
+    `(W_i)_{i < ℓ}`.
+  * `NTK.layerCovarianceSeq`, `NTK.layerCovarianceSeq_posSemidef` : the recursive limiting kernel
+    $\Phi_\ell$ and its positive semidefiniteness at every layer.
+  * `NTK.exact_conditional_normality_layer` : Theorem (Conditional Pre-Activation Distribution),
+    $\mathbf{H}_{\ell+1} \mid \mathbf{H} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Phi}_\ell^{(n)}
+      \otimes \mathbf{I}_{n'})$.
+
 * **Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5)**:
   * `NTK.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
   * `NTK.reluDeriv` : weak derivative alias to `Kernel.reluIndicator`.
@@ -453,7 +503,7 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
 set_option linter.style.longLine false
 
 open Real MeasureTheory ProbabilityTheory Matrix Complex
-open scoped BigOperators MatrixOrder RealInnerProductSpace
+open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker
 
 namespace NTK
 
@@ -683,6 +733,68 @@ theorem gaussianMatrix_mulVec_pair (n : ℕ) (u v : Fin n → ℝ) :
   congr 1
   funext i
   exact stdGaussian_inner_pair n u v
+
+/-- **Proposition 2.9' (Inner Products with a Standard Gaussian Vector, `Fin m`-Family)**:
+The `Fin m`-indexed generalization of Proposition 2.9 (`stdGaussian_inner_pair`) from a fixed pair
+of vectors to a fixed family `u : Fin m → Fin n → ℝ`. For `g ~ 𝒩(0, I_n)` and fixed deterministic
+vectors `u α`, the joint law of the projections `α ↦ ⟪g, u α⟫ = g ⬝ᵥ u α` is the `m`-variate
+Gaussian with covariance matrix `(α, β) ↦ u α ⬝ᵥ u β`. -/
+theorem stdGaussian_inner_family (n m : ℕ) (u : Fin m → Fin n → ℝ) :
+    Measure.map (fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α))
+        (gaussianReadoutMeasure n) =
+      multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+        (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β) := by
+  set A : Matrix (Fin m) (Fin n) ℝ := Matrix.of u with hA_def
+  have hA_mulVec : ∀ a : Fin n → ℝ, A *ᵥ a = fun α => a ⬝ᵥ u α := by
+    intro a
+    ext α
+    simp [A, mulVec, dotProduct, mul_comm]
+  have hF_eq : (fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α)) =
+      (fun x : EuclideanSpace ℝ (Fin n) => WithLp.toLp 2 (A *ᵥ x.ofLp)) ∘ (WithLp.toLp 2) := by
+    ext a
+    simp [hA_mulVec]
+  have hSpos : (1 : Matrix (Fin n) (Fin n) ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h_map := gaussian_map_mulVec (0 : EuclideanSpace ℝ (Fin n)) 1 hSpos A
+  rw [hF_eq, ← Measure.map_map (by fun_prop) (by fun_prop)]
+  have h_toLp : Measure.map (WithLp.toLp 2) (gaussianReadoutMeasure n) =
+      multivariateGaussian (0 : EuclideanSpace ℝ (Fin n)) 1 := by
+    rw [map_pi_eq_stdGaussian, multivariateGaussian_zero_one]
+  rw [h_toLp, h_map]
+  have h_mean0 : A *ᵥ (0 : EuclideanSpace ℝ (Fin n)).ofLp = (0 : Fin m → ℝ) := by simp
+  have h_cov : A * (1 : Matrix (Fin n) (Fin n) ℝ) * Aᵀ =
+      (Matrix.of fun α β => u α ⬝ᵥ u β) := by
+    rw [Matrix.mul_one]
+    ext α β
+    simp [A, Matrix.mul_apply, Matrix.transpose_apply, dotProduct]
+  rw [h_mean0, h_cov]
+  simp
+
+/-- **Proposition 2.10' (Matrix-Vector Multiplication by a Gaussian Matrix, `Fin m`-Family)**:
+The `Fin m`-indexed generalization of Proposition 2.10 (`gaussianMatrix_mulVec_pair`) from a fixed
+pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`. For `W : Fin r → Fin n → ℝ` with i.i.d.
+standard Gaussian rows (`gaussianInit r n`), the row-indexed family
+`i ↦ (α ↦ W i ⬝ᵥ u α) : Fin r → EuclideanSpace ℝ (Fin m)` consists of `r` i.i.d. copies of
+Proposition 2.9''s `m`-variate Gaussian with covariance `(α, β) ↦ u α ⬝ᵥ u β`. -/
+theorem gaussianMatrix_mulVec_family (n r m : ℕ) (u : Fin m → Fin n → ℝ) :
+    Measure.map
+      (fun W : Fin r → Fin n → ℝ =>
+        fun i : Fin r => WithLp.toLp 2 (fun α : Fin m => W i ⬝ᵥ u α))
+      (gaussianInit r n) =
+      Measure.pi (fun _ : Fin r =>
+        multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β)) := by
+  have h_init_eq : gaussianInit r n = Measure.pi (fun _ : Fin r => gaussianReadoutMeasure n) := rfl
+  set f := fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α) with hf_def
+  have hf_cont : Continuous f := by
+    apply (PiLp.continuous_toLp 2 _).comp
+    exact continuous_pi fun α => by fun_prop
+  have hf_meas : Measurable f := hf_cont.measurable
+  have hσ : ∀ i : Fin r, SigmaFinite ((gaussianReadoutMeasure n).map f) := fun i => by
+    rw [hf_def, stdGaussian_inner_family]; infer_instance
+  rw [h_init_eq, Measure.pi_map_pi (μ := fun _ : Fin r => gaussianReadoutMeasure n)
+    (f := fun _ : Fin r => f) (fun _ => hf_meas.aemeasurable)]
+  congr 1
+  funext i
+  exact stdGaussian_inner_family n m u
 
 end GaussianVectorAlgebra
 
@@ -2390,6 +2502,213 @@ theorem tendstoInDistribution_sequential_bivariate
   tendstoInDistribution_sequential_preactivation σw σb 2 φ hφ_meas K hK_pos hφ_L2
 
 end MultilayerSequentialNNGP
+
+section LayerByLayerConditionalGaussian
+
+/-! ## Layer-by-Layer Conditional Gaussian Structure -/
+
+/-! ### Independence Across Depth -/
+
+/-- **Independence Across Depth**: if the per-layer weight matrices `W_0, …, W_{L-1}` are mutually
+independent and identically initialized (`Measure.pi (fun _ : Fin L => gaussianInit n d)`), then
+for every layer `ℓ`, the weight matrix `W_ℓ` is independent of the history
+`(W_i)_{i < ℓ}` — the finite-width analogue of "`W_ℓ` is independent of `F_ℓ`". -/
+theorem indepFun_layer_history (L n d : ℕ) (ℓ : Fin L) :
+    IndepFun (fun ω : Fin L → Fin n → Fin d → ℝ => ω ℓ)
+      (fun ω : Fin L → Fin n → Fin d → ℝ => fun i : Finset.Iio ℓ => ω i)
+      (Measure.pi (fun _ : Fin L => gaussianInit n d)) := by
+  have h_indep : iIndepFun (fun ℓ : Fin L => fun ω : Fin L → Fin n → Fin d → ℝ => ω ℓ)
+      (Measure.pi (fun _ : Fin L => gaussianInit n d)) :=
+    iIndepFun_pi (fun _ => aemeasurable_id)
+  have h_meas : ∀ i : Fin L, Measurable (fun ω : Fin L → Fin n → Fin d → ℝ => ω i) :=
+    fun i => measurable_pi_apply i
+  have h_disj : Disjoint ({ℓ} : Finset (Fin L)) (Finset.Iio ℓ) :=
+    Finset.disjoint_singleton_left.2 (by simp)
+  have h := h_indep.indepFun_finset {ℓ} (Finset.Iio ℓ) h_disj h_meas
+  exact h.comp (measurable_pi_apply (⟨ℓ, Finset.mem_singleton_self ℓ⟩ :
+    ({ℓ} : Finset (Fin L)))) measurable_id
+
+/-! ### Recursive Limiting Kernel `Φ_ℓ` -/
+
+/-- The recursively-defined deterministic limiting forward covariance kernel `Φ_ℓ ∈ ℝ^{m × m}`,
+built from a base kernel `Φ0` by repeatedly applying the covariance operator
+`𝒞_φ(K) := fun α β => σb ^ 2 + σw ^ 2 * ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)`
+(the same map that already appears throughout `MultilayerSequentialNNGP`, e.g. in
+`limitingRecurrence_posSemidef_multivariate`): `Φ_0 := Φ0`, `Φ_{ℓ+1} := 𝒞_φ(Φ_ℓ)`. -/
+noncomputable def layerCovarianceSeq (σw σb : ℝ) (φ : ℝ → ℝ) (m : ℕ)
+    (Φ0 : Matrix (Fin m) (Fin m) ℝ) : ℕ → Matrix (Fin m) (Fin m) ℝ
+  | 0 => Φ0
+  | ℓ + 1 => fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
+      φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 (layerCovarianceSeq σw σb φ m Φ0 ℓ))
+
+/-- The recursive kernel `Φ_ℓ` is positive semidefinite at every layer, provided the base kernel
+`Φ0` is and `φ` is square-integrable against `Φ_ℓ` at every layer `ℓ`. Each step reuses the
+already-proven `limitingRecurrence_posSemidef_multivariate` (the `MultilayerSequentialNNGP`
+single-transition PSD fact) rather than re-deriving positive semidefiniteness from scratch. -/
+theorem layerCovarianceSeq_posSemidef (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (m : ℕ)
+    (Φ0 : Matrix (Fin m) (Fin m) ℝ) (hΦ0 : Φ0.PosSemidef)
+    (hφ_L2 : ∀ ℓ : ℕ, ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+      (multivariateGaussian 0 (layerCovarianceSeq σw σb φ m Φ0 ℓ))) :
+    ∀ ℓ : ℕ, (layerCovarianceSeq σw σb φ m Φ0 ℓ).PosSemidef := by
+  intro ℓ
+  induction ℓ with
+  | zero => exact hΦ0
+  | succ ℓ _ih =>
+    exact limitingRecurrence_posSemidef_multivariate σw σb m φ hφ_meas
+      (layerCovarianceSeq σw σb φ m Φ0 ℓ) (hφ_L2 ℓ)
+
+/-! ### Kronecker Concatenation of i.i.d. Gaussian Vectors -/
+
+/-- Concatenating `n` i.i.d. copies of the `m`-variate Gaussian `𝒩(0, Φ)` (indexed `(α, j)` with
+`α` the coordinate within a copy and `j` the copy index, matching the paper's stacking
+`H = [(h^1)ᵀ, …, (h^m)ᵀ]ᵀ`) is again Gaussian, with Kronecker-product covariance `Φ ⊗ₖ I_n`. -/
+theorem multivariateGaussian_pi_eq_kronecker (n m : ℕ) (Φ : Matrix (Fin m) (Fin m) ℝ)
+    (hΦ : Φ.PosSemidef) :
+    Measure.map (fun Y : Fin n → EuclideanSpace ℝ (Fin m) =>
+        WithLp.toLp 2 (fun p : Fin m × Fin n => (Y p.2).ofLp p.1))
+      (Measure.pi (fun _ : Fin n => multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) Φ)) =
+      multivariateGaussian (0 : EuclideanSpace ℝ (Fin m × Fin n))
+        (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) := by
+  set F := fun Y : Fin n → EuclideanSpace ℝ (Fin m) =>
+    WithLp.toLp 2 (fun p : Fin m × Fin n => (Y p.2).ofLp p.1) with hF_def
+  have hF_meas : Measurable F := by
+    apply (PiLp.continuous_toLp 2 (fun _ : Fin m × Fin n => ℝ)).measurable.comp
+    refine measurable_pi_iff.2 fun p => ?_
+    exact ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) p.1).measurable).comp
+      (measurable_pi_apply p.2)
+  have hΦ1 : (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)).PosSemidef := hΦ.kronecker Matrix.PosSemidef.one
+  apply Measure.ext_of_charFun
+  ext t
+  set tb : Fin n → EuclideanSpace ℝ (Fin m) := fun j => WithLp.toLp 2 (fun α => t.ofLp (α, j))
+    with htb_def
+  have h_inner (Y : Fin n → EuclideanSpace ℝ (Fin m)) :
+      ⟪F Y, t⟫ = ∑ j : Fin n, ⟪Y j, tb j⟫ := by
+    simp only [PiLp.inner_apply, RCLike.inner_apply', conj_trivial, hF_def, htb_def]
+    rw [Fintype.sum_prod_type, Finset.sum_comm]
+  have h_exp : ∀ Y : Fin n → EuclideanSpace ℝ (Fin m),
+      Complex.exp ((⟪F Y, t⟫ : ℝ) * Complex.I) =
+        ∏ j : Fin n, Complex.exp ((⟪Y j, tb j⟫ : ℝ) * Complex.I) := by
+    intro Y
+    rw [h_inner Y]
+    push_cast
+    rw [Finset.sum_mul, Complex.exp_sum]
+  rw [charFun_apply, integral_map hF_meas.aemeasurable (by fun_prop)]
+  simp_rw [h_exp]
+  rw [MeasureTheory.integral_fintype_prod_eq_prod (fun j (y : EuclideanSpace ℝ (Fin m)) =>
+    Complex.exp ((⟪y, tb j⟫ : ℝ) * Complex.I))]
+  simp_rw [← charFun_apply, charFun_multivariateGaussian hΦ]
+  rw [charFun_multivariateGaussian hΦ1]
+  simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub]
+  have hlhs : ∀ j : Fin n, (tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp =
+      ∑ α : Fin m, ∑ β : Fin m, t.ofLp (α, j) * Φ α β * t.ofLp (β, j) := by
+    intro j
+    simp only [dotProduct, mulVec, htb_def, WithLp.ofLp_toLp, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro α _
+    apply Finset.sum_congr rfl
+    intro β _
+    ring
+  have hcollapse : ∀ (α β : Fin m) (j : Fin n),
+      ∑ j' : Fin n, Φ α β * (1 : Matrix (Fin n) (Fin n) ℝ) j j' * t.ofLp (β, j') =
+        Φ α β * t.ofLp (β, j) := by
+    intro α β j
+    simp [Matrix.one_apply, mul_ite, mul_zero]
+  have hrhs : t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp =
+      ∑ α : Fin m, ∑ j : Fin n, ∑ β : Fin m, t.ofLp (α, j) * Φ α β * t.ofLp (β, j) := by
+    simp only [dotProduct, mulVec, Fintype.sum_prod_type, kronecker_apply, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro α _
+    apply Finset.sum_congr rfl
+    intro j _
+    simp_rw [← Finset.mul_sum, hcollapse]
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro β _
+    ring
+  have h_alg : ∑ j : Fin n, (tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp =
+      t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp := by
+    rw [hrhs]
+    simp_rw [hlhs]
+    rw [Finset.sum_comm]
+  have h_real : ∑ j : Fin n, -((tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp / 2) =
+      -(t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp / 2) := by
+    rw [← h_alg, Finset.sum_div]
+    simp
+  have h_arg : (∑ j : Fin n, -((((tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp : ℝ) : ℂ) / 2)) =
+      -((((t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp : ℝ) : ℂ)) / 2) := by
+    exact_mod_cast h_real
+  rw [← Complex.exp_sum, h_arg]
+
+/-! ### Main Theorem: Conditional Pre-Activation Distribution -/
+
+/-- **Theorem (Conditional Pre-Activation Distribution)**: conditioned on the `Fin n`-wide
+previous-layer post-activations `H` (i.e. on `𝓕_ℓ`; as throughout this file, e.g.
+`exact_conditional_normality_general_multivariate`, conditioning is represented by taking `H` as a
+plain given argument rather than through `condDistrib`/`Kernel` machinery), the full width-`n'`
+next-layer preactivation vector `H_{ℓ+1} ∈ ℝ^{m n'}` — stacked `(α, i)` with `α` the input index and
+`i` the neuron index, matching `[(h^1)ᵀ, …, (h^m)ᵀ]ᵀ` — is exactly Gaussian with covariance
+`Φ_ℓ^{(n)} ⊗ I_{n'}`, where `Φ_ℓ^{(n)} α β := n⁻¹ ∑ k, H k α * H k β` is the finite-width empirical
+covariance of `H` (the `σw = 1, σb = 0` case of `empirical_layer_covariance_posSemidef_multivariate`).
+This is the depth generalization of Theorem 1 (`exact_conditional_normality`) combining the
+`Fin m`-family Gaussian vector algebra (`gaussianMatrix_mulVec_family`) with the Kronecker
+concatenation of the resulting `n'` i.i.d. neuron preactivations
+(`multivariateGaussian_pi_eq_kronecker`). -/
+theorem exact_conditional_normality_layer (n n' m : ℕ) (H : Fin n → Fin m → ℝ) :
+    Measure.map (fun W : Fin n' → Fin n → ℝ =>
+        WithLp.toLp 2 (fun p : Fin m × Fin n' =>
+          (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W p.2 k * H k p.1))
+      (gaussianInit n' n) =
+      multivariateGaussian (0 : EuclideanSpace ℝ (Fin m × Fin n'))
+        ((show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ k : Fin n, H k α * H k β) ⊗ₖ
+          (1 : Matrix (Fin n') (Fin n') ℝ)) := by
+  set u : Fin m → Fin n → ℝ := fun α k => (n : ℝ)⁻¹.sqrt * H k α with hu_def
+  have hΦ_eq : (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β) =
+      (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ k : Fin n, H k α * H k β) := by
+    have hroot : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ := Real.mul_self_sqrt (by positivity)
+    ext α β
+    simp only [Matrix.of_apply, dotProduct, hu_def, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro k _
+    rw [show (n : ℝ)⁻¹.sqrt * H k α * ((n : ℝ)⁻¹.sqrt * H k β) =
+        ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) * (H k α * H k β) from by ring, hroot]
+  have hΦ_pos : (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β).PosSemidef := by
+    rw [hΦ_eq]
+    simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m H
+  set F1 : (Fin n' → Fin n → ℝ) → (Fin n' → EuclideanSpace ℝ (Fin m)) :=
+    fun W i => WithLp.toLp 2 (fun α : Fin m => W i ⬝ᵥ u α) with hF1_def
+  set F2 : (Fin n' → EuclideanSpace ℝ (Fin m)) → EuclideanSpace ℝ (Fin m × Fin n') :=
+    fun Y => WithLp.toLp 2 (fun p : Fin m × Fin n' => (Y p.2).ofLp p.1) with hF2_def
+  have hF1_meas : Measurable F1 := by
+    rw [hF1_def]
+    refine measurable_pi_iff.2 fun i => ?_
+    refine (PiLp.continuous_toLp 2 (fun _ : Fin m => ℝ)).measurable.comp ?_
+    refine measurable_pi_iff.2 fun α => ?_
+    simp only [dotProduct]
+    refine Finset.measurable_sum _ fun k _ => ?_
+    have hik : Measurable (fun W : Fin n' → Fin n → ℝ => W i k) :=
+      (measurable_pi_apply k).comp (measurable_pi_apply i)
+    exact hik.mul_const (u α k)
+  have hF2_meas : Measurable F2 := by
+    rw [hF2_def]
+    apply (PiLp.continuous_toLp 2 (fun _ : Fin m × Fin n' => ℝ)).measurable.comp
+    refine measurable_pi_iff.2 fun p => ?_
+    exact ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) p.1).measurable).comp
+      (measurable_pi_apply p.2)
+  have hmap_eq : (fun W : Fin n' → Fin n → ℝ =>
+      WithLp.toLp 2 (fun p : Fin m × Fin n' => (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W p.2 k * H k p.1)) =
+      F2 ∘ F1 := by
+    funext W
+    rw [hF2_def, hF1_def]
+    congr 1
+    funext p
+    simp only [dotProduct, hu_def, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro k _
+    ring
+  rw [hmap_eq, ← Measure.map_map hF2_meas hF1_meas, hF1_def, gaussianMatrix_mulVec_family,
+    multivariateGaussian_pi_eq_kronecker n' m _ hΦ_pos, hΦ_eq]
+
+end LayerByLayerConditionalGaussian
 
 section ChoSaulArcCosineKernel
 
