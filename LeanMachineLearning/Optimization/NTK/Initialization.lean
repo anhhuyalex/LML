@@ -21,6 +21,7 @@ public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
+public import Mathlib.MeasureTheory.Function.ConvergenceInMeasure
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
 public import Mathlib.LinearAlgebra.Matrix.Kronecker
@@ -305,6 +306,16 @@ Kernel for ReLU).
       covariance $\boldsymbol{\Phi}_\ell^{(n)} \otimes \mathbf{I}_{n'}$
       (`NTK.multivariateGaussian_pi_eq_kronecker`).
 
+* **Asymptotic Propagation of the Empirical Covariance Matrix**:
+  * `NTK.conditional_preactivations_eq_pi` makes the coordinate-decoupling consequence explicit:
+    conditionally on a fixed preceding layer, new-neuron preactivation vectors have a product law
+    of identical centered multivariate Gaussians with the activated empirical covariance.
+  * For continuous activations of polynomial growth,
+    `NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` proves that the
+    activated empirical covariance of this conditional i.i.d. Gaussian layer converges in
+    probability to the next deterministic forward kernel.  The reusable fixed-covariance form is
+    `NTK.conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth`.
+
 * **Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU)**:
   Under the joint Gaussian distribution
   $(h^\alpha, h^\beta) \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$ with
@@ -475,6 +486,15 @@ Kernel for ReLU).
     $\mathbf{H}_{\ell+1} \mid \mathbf{H} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Phi}_\ell^{(n)}
       \otimes \mathbf{I}_{n'})$.
 
+* **Asymptotic Empirical Covariance Propagation**:
+  * `NTK.conditional_preactivations_eq_pi` : conditional i.i.d. neuron-vector product law.
+  * `NTK.memLp_activation_coordinate_of_polynomial_growth` : polynomial growth implies the
+    coordinatewise Gaussian $L^2$ condition.
+  * `NTK.conditional_empiricalCovariance_tendstoInMeasure` : conditional empirical covariance
+    convergence in probability under a direct $L^2$ hypothesis.
+  * `NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` : the corresponding
+    recursive forward-kernel statement for continuous polynomial-growth activations.
+
 * **Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5)**:
   * `NTK.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
   * `NTK.reluDeriv` : weak derivative alias to `Kernel.reluIndicator`.
@@ -503,7 +523,7 @@ Kernel for ReLU).
 set_option linter.style.longLine false
 
 open Real MeasureTheory ProbabilityTheory Matrix Complex
-open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker
+open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
 namespace NTK
 
@@ -2709,6 +2729,203 @@ theorem exact_conditional_normality_layer (n n' m : ℕ) (H : Fin n → Fin m �
     multivariateGaussian_pi_eq_kronecker n' m _ hΦ_pos, hΦ_eq]
 
 end LayerByLayerConditionalGaussian
+
+section AsymptoticEmpiricalCovariancePropagation
+
+/-! ## Asymptotic Propagation of the Empirical Covariance Matrix
+
+For a fixed realization of the preceding layer, the next-layer weight matrix is independent of
+that realization.  `conditional_preactivations_eq_pi` records the resulting conditional product
+law: its neuron-indexed preactivation vectors are i.i.d. centered multivariate Gaussians whose
+covariance is the empirical activated covariance of the preceding layer.  The theorems below then
+apply the existing multivariate SLLN on this conditional product space.  In particular,
+`TendstoInMeasure` is convergence in probability.
+
+The polynomial-growth theorem assumes continuity as well as the growth bound.  Continuity is
+needed for the subsequent deterministic covariance recursion at singular covariance matrices;
+the SLLN itself only needs the resulting `L²` hypothesis.
+-/
+
+/-- **Coordinate decoupling for a conditional layer.**  After the preceding preactivations `H`
+are fixed, the vectors indexed by the new neurons are independent, identically distributed
+centered Gaussians.  Their common covariance is the activated empirical covariance of `H`.
+
+This is the product-law form of the Kronecker statement in
+`exact_conditional_normality_layer`; it is obtained directly from
+`gaussianMatrix_mulVec_family`. -/
+theorem conditional_preactivations_eq_pi (n n' m : ℕ) (φ : ℝ → ℝ)
+    (H : Fin n → EuclideanSpace ℝ (Fin m)) :
+    Measure.map
+      (fun W : Fin n' → Fin n → ℝ =>
+        fun j : Fin n' => WithLp.toLp 2 fun α : Fin m =>
+          (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W j k * φ ((H k).ofLp α))
+      (gaussianInit n' n) =
+      Measure.pi (fun _ : Fin n' =>
+        multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (fun α β : Fin m =>
+            (n : ℝ)⁻¹ * ∑ k : Fin n,
+              φ ((H k).ofLp α) * φ ((H k).ofLp β))) := by
+  let u : Fin m → Fin n → ℝ := fun α k =>
+    (n : ℝ)⁻¹.sqrt * φ ((H k).ofLp α)
+  have h_map :
+      (fun W : Fin n' → Fin n → ℝ =>
+        fun j : Fin n' => WithLp.toLp 2 fun α : Fin m =>
+          (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W j k * φ ((H k).ofLp α)) =
+      (fun W : Fin n' → Fin n → ℝ =>
+        fun j : Fin n' => WithLp.toLp 2 fun α : Fin m => W j ⬝ᵥ u α) := by
+    funext W j
+    congr 1
+    funext α
+    simp only [dotProduct, u, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro k _
+    ring
+  rw [h_map, gaussianMatrix_mulVec_family]
+  congr 1
+  funext j
+  congr 1
+  ext α β
+  simp only [Matrix.of_apply, dotProduct, u, Finset.mul_sum]
+  have hroot : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
+    Real.mul_self_sqrt (by positivity)
+  apply Finset.sum_congr rfl
+  intro k _
+  rw [show (n : ℝ)⁻¹.sqrt * φ ((H k).ofLp α) *
+      ((n : ℝ)⁻¹.sqrt * φ ((H k).ofLp β)) =
+      ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
+        (φ ((H k).ofLp α) * φ ((H k).ofLp β)) by ring, hroot]
+
+/-- The activated empirical covariance appearing in `conditional_preactivations_eq_pi` is
+positive semidefinite. -/
+lemma conditional_preactivation_covariance_posSemidef (n m : ℕ) (φ : ℝ → ℝ)
+    (H : Fin n → EuclideanSpace ℝ (Fin m)) :
+    (show Matrix (Fin m) (Fin m) ℝ from fun α β : Fin m =>
+      (n : ℝ)⁻¹ * ∑ k : Fin n,
+        φ ((H k).ofLp α) * φ ((H k).ofLp β)).PosSemidef := by
+  simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
+    (fun k α => φ ((H k).ofLp α))
+
+/-- Polynomial growth gives the coordinatewise `L²` hypothesis required by the conditional
+covariance SLLN.  Gaussian measures have moments of every finite order, so no boundedness
+assumption on the activation is needed. -/
+lemma memLp_activation_coordinate_of_polynomial_growth
+    (m : ℕ) (K : Matrix (Fin m) (Fin m) ℝ)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (α : Fin m) :
+    MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+      (multivariateGaussian 0 K) := by
+  let μ : Measure (EuclideanSpace ℝ (Fin m)) := multivariateGaussian 0 K
+  have h_id : MemLp id (↑(2 * p) : ℝ≥0∞) μ :=
+    IsGaussian.memLp_id μ (↑(2 * p) : ℝ≥0∞)
+      (ENNReal.natCast_ne_top (2 * p))
+  have hnorm : MemLp (fun z : EuclideanSpace ℝ (Fin m) => ‖z‖ ^ p) 2 μ := by
+    have h := (memLp_norm_rpow_iff (f := id) (q := (p : ℝ≥0∞))
+      (by fun_prop) (by exact_mod_cast hp.ne') (by simp)).mpr h_id
+    have hp0 : (p : ℝ≥0∞) ≠ 0 := by exact_mod_cast hp.ne'
+    have hquot : (↑(2 * p) : ℝ≥0∞) / (p : ℝ≥0∞) = 2 := by
+      rw [Nat.cast_mul, ENNReal.mul_div_cancel_right hp0 (by simp)]
+      norm_num
+    rw [hquot] at h
+    simpa using h
+  have hbase : MemLp (fun z : EuclideanSpace ℝ (Fin m) => C * (1 + ‖z‖ ^ p)) 2 μ := by
+    simpa using ((memLp_const (μ := μ) (1 : ℝ)).add hnorm).const_mul C
+  refine hbase.mono ?_ ?_
+  · exact (hφ_meas.comp
+      (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable).aestronglyMeasurable
+  filter_upwards with z
+  rw [Real.norm_eq_abs]
+  calc
+    |φ (z.ofLp α)| ≤ C * (1 + |z.ofLp α| ^ p) := hφ_growth _
+    _ ≤ C * (1 + ‖z‖ ^ p) := by
+      apply mul_le_mul_of_nonneg_left _ hC
+      apply add_le_add_right
+      simpa only [Real.norm_eq_abs] using
+        pow_le_pow_left₀ (abs_nonneg _) (PiLp.norm_apply_le z α) p
+    _ ≤ |C * (1 + ‖z‖ ^ p)| := le_abs_self _
+
+/-- **Conditional empirical covariance propagation.**  For an i.i.d. sequence of conditional
+preactivation vectors with law `𝒩(0, K)`, the empirical activated covariance converges in
+probability to the Gaussian covariance update of `K`.
+
+The `TendstoInMeasure` conclusion is the formal convergence-in-probability statement.  The
+almost-sure SLLN used in the proof is stronger than the conditional Chebyshev conclusion for a
+fixed conditioning realization. -/
+theorem conditional_empiricalCovariance_tendstoInMeasure
+    (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (K : Matrix (Fin m) (Fin m) ℝ)
+    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
+    (hφ_L2 : ∀ α : Fin m,
+      MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+        (multivariateGaussian 0 K)) :
+    TendstoInMeasure
+      (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K)
+      (fun n : ℕ => fun (Z : ℕ → EuclideanSpace ℝ (Fin m)) => fun α β : Fin m =>
+        (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
+      Filter.atTop
+      (fun _ => fun α β : Fin m =>
+        ∫ z : EuclideanSpace ℝ (Fin m),
+          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) := by
+  apply tendstoInMeasure_of_tendsto_ae
+  · intro n
+    refine (measurable_pi_iff.2 fun α => measurable_pi_iff.2 fun β => ?_).aestronglyMeasurable
+    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
+    exact
+      (hφ_meas.comp
+        ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable.comp
+          (measurable_pi_apply j.val))).mul
+      (hφ_meas.comp
+        ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) β).measurable.comp
+          (measurable_pi_apply j.val)))
+  simpa using
+    (empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate
+      1 0 m φ hφ_meas K hφ_L2)
+
+/-- The conditional covariance propagation theorem under the stated polynomial-growth condition.
+Continuity supplies measurability, while
+`memLp_activation_coordinate_of_polynomial_growth` supplies the SLLN integrability hypothesis. -/
+theorem conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth
+    (m : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (K : Matrix (Fin m) (Fin m) ℝ) :
+    TendstoInMeasure
+      (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K)
+      (fun n : ℕ => fun (Z : ℕ → EuclideanSpace ℝ (Fin m)) => fun α β : Fin m =>
+        (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
+      Filter.atTop
+      (fun _ => fun α β : Fin m =>
+        ∫ z : EuclideanSpace ℝ (Fin m),
+          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) :=
+  conditional_empiricalCovariance_tendstoInMeasure m φ hφ_cont.measurable K
+    (fun α => memLp_activation_coordinate_of_polynomial_growth
+      m K φ hφ_cont.measurable C hC p hp hφ_growth α)
+
+/-- **Deterministic recursive forward kernel.**  At every fixed depth `ℓ`, an i.i.d. conditional
+Gaussian layer with covariance `layerCovarianceSeq 1 0 φ m Φ0 ℓ` has empirical activated
+covariance converging in probability to the next deterministic forward kernel. -/
+theorem conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq
+    (m ℓ : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (Φ0 : Matrix (Fin m) (Fin m) ℝ) :
+    TendstoInMeasure
+      (Measure.infinitePi fun _ : ℕ =>
+        multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ))
+      (fun n : ℕ => fun (Z : ℕ → EuclideanSpace ℝ (Fin m)) => fun α β : Fin m =>
+        (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
+      Filter.atTop
+      (fun _ => layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)) := by
+  simpa [layerCovarianceSeq] using
+    (conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth
+      m φ hφ_cont C hC p hp hφ_growth
+        (layerCovarianceSeq 1 0 φ m Φ0 ℓ))
+
+end AsymptoticEmpiricalCovariancePropagation
 
 section ChoSaulArcCosineKernel
 
