@@ -1303,14 +1303,14 @@ theorem PosHomogeneous.eq_piecewiseLinear {σ : ℝ → ℝ} (hσ : PosHomogeneo
     · simp [hx0, piecewiseLinear, hσ.zero]
     · have hxpos : 0 < x := lt_of_le_of_ne hx (Ne.symm hx0)
       have h := hσ hxpos 1
-      rw [piecewiseLinear, if_pos hx]
+      rw [piecewiseLinear, ite_eq_left hx]
       simpa only [mul_one] using h.trans (mul_comm x (σ 1))
   · have hxneg : x < 0 := lt_of_not_ge hx
     have hpos : 0 < -x := neg_pos.mpr hxneg
     have h := hσ hpos (-1)
     have harg : (-x) * (-1 : ℝ) = x := by ring
     rw [harg] at h
-    rw [piecewiseLinear, if_neg hx]
+    rw [piecewiseLinear, ite_eq_right hx]
     calc
       σ x = (-x) * σ (-1) := h
       _ = (-σ (-1)) * x := by ring

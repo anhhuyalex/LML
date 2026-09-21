@@ -182,7 +182,7 @@ lemma deltaTent_of_Icc (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
   rcases Set.mem_Icc.mp hx with ⟨hx0, hx1⟩
   by_cases hx_lt_half : x < 1/2
   · rw [deltaTent_of_Ico_left x ⟨hx0, hx_lt_half⟩]
-    rw [if_pos hx_lt_half]
+    rw [ite_eq_left hx_lt_half]
   · have hx_ge_half : 1/2 ≤ x := by linarith
     by_cases hx_eq_one : x = 1
     · rw [hx_eq_one]
@@ -191,7 +191,7 @@ lemma deltaTent_of_Icc (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
     · have hx_lt_one : x < 1 := by
         by_contra! H; exact hx_eq_one (by linarith)
       rw [deltaTent_of_Ico_right x ⟨hx_ge_half, hx_lt_one⟩]
-      rw [if_neg (by linarith : ¬ (x < 1/2))]
+      rw [ite_eq_right (by linarith : ¬ (x < 1/2))]
 
 /-- Key identity: Δ(Δ(t)) = Δ(⟨2t⟩) for t ∈ [0,1). -/
 lemma deltaTent_twice_eq (t : ℝ) (ht : t ∈ Set.Ico (0 : ℝ) 1) :
@@ -236,7 +236,7 @@ lemma deltaTent_twice_eq (t : ℝ) (ht : t ∈ Set.Ico (0 : ℝ) 1) :
       · -- 2t-1 ∈ [0, 1/2): δ(2t-1) = 2(2t-1) = 4t-2
         -- 2-2t ∈ (1/2, 1]: δ(2-2t) = 2-2(2-2t) = 4t-2
         have h2t_d_cond : ¬ (2-2*t < 1/2) := by nlinarith
-        rw [if_pos h2t_sub_one_half, if_neg h2t_d_cond]
+        rw [ite_eq_left h2t_sub_one_half, ite_eq_right h2t_d_cond]
         ring
       · -- 2t-1 ≥ 1/2 and 2t-1 ≠ 1/2, so 2t-1 > 1/2
         have h2t_sub_one_gt_half : 2*t - 1 > 1/2 := by
@@ -244,7 +244,7 @@ lemma deltaTent_twice_eq (t : ℝ) (ht : t ∈ Set.Ico (0 : ℝ) 1) :
         -- 2-2t ∈ [0, 1/2): δ(2-2t) = 2(2-2t) = 4-4t
         -- 2t-1 ∈ (1/2, 1): δ(2t-1) = 2-2(2t-1) = 4-4t
         have h2t_d_cond : (2-2*t) < 1/2 := by nlinarith
-        rw [if_neg (by linarith : ¬ (2*t - 1 < 1/2)), if_pos h2t_d_cond]
+        rw [ite_eq_right (by linarith : ¬ (2*t - 1 < 1/2)), ite_eq_left h2t_d_cond]
         ring
 
 /-- Proposition 5.1: Δ^L(x) = Δ(⟨2^{L-1} x⟩) for all x ∈ [0,1].

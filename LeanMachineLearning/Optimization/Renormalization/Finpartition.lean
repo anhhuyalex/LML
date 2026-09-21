@@ -912,7 +912,7 @@ private lemma cumulantCoefficient_sum_coarser [CommRing R] (s : Finset α) (a : 
       rw [htest, pow_succ, mul_neg_one]
     have hfac : (Nat.factorial (k - 1) : R) = ((k - 1 : ℕ) : R) * Nat.factorial (k - 2) := by
       rw [htest, Nat.factorial_succ, Nat.cast_mul, htest.symm]
-    rw [if_neg hT, hsum,
+    rw [ite_eq_right hT, hsum,
       show cumulantCoefficient T = (-1 : R) ^ (k - 1) * Nat.factorial (k - 1) by rfl,
       hpow, hfac]
     -- the two summands cancel: `-p * (x * f) + x * (p * f) = 0`

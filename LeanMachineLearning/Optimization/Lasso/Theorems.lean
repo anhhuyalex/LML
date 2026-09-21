@@ -326,8 +326,8 @@ lemma locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
         intro i
         dsimp [I']
         by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
-        · rw [if_pos hi_low]; simp
-        · rw [if_neg hi_low]
+        · rw [ite_eq_left hi_low]; simp
+        · rw [ite_eq_right hi_low]
       -- Hence (n, I') ∈ disjWithin c b
       have hI'_mem : (n, I') ∈ AbsolutelyContinuousOnInterval.disjWithin c b := by
         rw [AbsolutelyContinuousOnInterval.disjWithin]
@@ -335,9 +335,9 @@ lemma locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
         · intro i hi
           dsimp [I']
           by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
-          · rw [if_pos hi_low]
+          · rw [ite_eq_left hi_low]
             exact ⟨Set.left_mem_uIcc, Set.left_mem_uIcc⟩
-          · rw [if_neg hi_low]
+          · rw [ite_eq_right hi_low]
             rcases h_key i (Finset.mem_range.1 hi) with (⟨hx_le, hy_le⟩ | ⟨hx_ge, hy_ge⟩)
             · exfalso; exact hi_low ⟨hx_le, hy_le⟩
             · rcases hE_mem_Icc i hi with ⟨hx0, hxb, hy0, hyb⟩
@@ -356,22 +356,22 @@ lemma locally_ac_on_nonnegative_of_zero_near_zero_and_ac_on_positive
         refine Finset.sum_le_sum (fun i hi => ?_)
         dsimp [I']
         by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
-        · rw [if_pos hi_low]
+        · rw [ite_eq_left hi_low]
           simp [dist_nonneg]
-        · rw [if_neg hi_low]
+        · rw [ite_eq_right hi_low]
       -- Total variation of I' = total variation of I (low intervals contribute 0 on both sides)
       have h_var_eq : (∑ i ∈ Finset.range n, dist (f (I' i).1) (f (I' i).2)) =
           (∑ i ∈ Finset.range n, dist (f (I i).1) (f (I i).2)) := by
         refine Finset.sum_congr rfl (fun i hi => ?_)
         dsimp [I']
         by_cases hi_low : (I i).1 ≤ μ₀ ∧ (I i).2 ≤ μ₀
-        · rw [if_pos hi_low]
+        · rw [ite_eq_left hi_low]
           rcases hi_low with ⟨hx_le, hy_le⟩
           rcases hE_mem_Icc i hi with ⟨hx0, hxb, hy0, hyb⟩
           have hfx : f (I i).1 = 0 := hf_zero_on (I i).1 ⟨hx0, hx_le⟩
           have hfy : f (I i).2 = 0 := hf_zero_on (I i).2 ⟨hy0, hy_le⟩
           simp [hfc_zero, hfx, hfy]
-        · rw [if_neg hi_low]
+        · rw [ite_eq_right hi_low]
       -- Now apply the ε-δ property for AC on [c, b]
       -- Unfold the let definitions n = E.1, I = E.2 for rewriting
       dsimp [n, I] at h_len_I'_le h_var_eq hI'_mem

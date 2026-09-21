@@ -760,7 +760,7 @@ theorem norm_sq_le_biSup {S : Set H} (hbdd : BddAbove ((fun u => ‖u‖ ^ 2) ''
     by_cases hv : v ∈ S
     · rw [ciSup_pos (f := fun _ : v ∈ S => ‖v‖ ^ 2) hv]
       exact le_max_of_le_left (hb ⟨v, hv, rfl⟩)
-    · haveI : IsEmpty (v ∈ S) := ⟨hv⟩
+    · have : IsEmpty (v ∈ S) := ⟨hv⟩
       rw [Real.iSup_of_isEmpty (f := fun _ : v ∈ S => ‖v‖ ^ 2)]
       exact le_max_right _ _
   calc ‖u‖ ^ 2 = ⨆ _ : u ∈ S, ‖u‖ ^ 2 := (ciSup_pos (f := fun _ : u ∈ S => ‖u‖ ^ 2) hu).symm
@@ -1409,8 +1409,8 @@ lemma totalMass_nonneg (μ : SignedMeasure W) : 0 ≤ totalMass μ := ENNReal.to
 Proof: if `‖μ‖₁ = 0`, then by monotonicity `μ.totalVariation i = 0` for *every* measurable `i`,
 so `μ i = 0` by `SignedMeasure.null_of_totalVariation_zero`, so `μ = 0`. -/
 lemma totalMass_pos {μ : SignedMeasure W} (hμ : μ ≠ 0) : 0 < totalMass μ := by
-  haveI := μ.toJordanDecomposition.posPart_finite
-  haveI := μ.toJordanDecomposition.negPart_finite
+  have := μ.toJordanDecomposition.posPart_finite
+  have := μ.toJordanDecomposition.negPart_finite
   have hfin : μ.totalVariation Set.univ ≠ ⊤ := by
     rw [SignedMeasure.totalVariation]
     exact measure_ne_top _ _
@@ -1442,8 +1442,8 @@ inverse gives mass `1`. -/
 instance isProbabilityMeasure_jordanSample {μ : SignedMeasure W} [NeZero μ] :
     IsProbabilityMeasure (jordanSample μ) := by
   constructor
-  haveI := μ.toJordanDecomposition.posPart_finite
-  haveI := μ.toJordanDecomposition.negPart_finite
+  have := μ.toJordanDecomposition.posPart_finite
+  have := μ.toJordanDecomposition.negPart_finite
   have h_meas_true : Measurable (fun w : W => (w, true)) :=
     Measurable.prodMk measurable_id measurable_const
   have h_meas_false : Measurable (fun w : W => (w, false)) :=
@@ -1599,7 +1599,7 @@ theorem maureySamplingSignedMeasure
   4. The returned `ws : Fin k → W × Bool` avoids `N`, i.e. `(ws i).1 ∈ S`, which is the first
      conjunct; the second is the returned bound.
   -/
-  haveI : NeZero μ := ⟨hμ⟩
+  have : NeZero μ := ⟨hμ⟩
   let ν := jordanSample μ
   let F : W × Bool → Ω_x → ℝ := fun z x => rescaled μ (fun w => g w x) z
   let f_mean : Ω_x → ℝ := fun x => signedIntegral μ (fun w => g w x)

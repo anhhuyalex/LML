@@ -457,7 +457,7 @@ theorem jointCumulant_coordinates_eq_zero_of_odd
   rw [Finpartition.cumulantTransform]
   by_cases hempty : (Finset.univ : Finset (Fin n)) = ∅
   · simp [hempty]
-  · rw [if_neg hempty]
+  · rw [ite_eq_right hempty]
     apply Finset.sum_eq_zero
     intro P hP
     rcases exists_odd_block_of_odd_card P (by simpa using hn) with ⟨B, hBmem, hBodd⟩
@@ -629,7 +629,8 @@ private lemma sixPoint_even_partitions_card_three :
     decide
 
 -- Helper: All even partitions of Fin 6 have 1, 2, or 3 blocks
-private lemma sixPoint_even_partitions_cover (S : Finset (Finpartition (Finset.univ : Finset (Fin 6))))
+private lemma sixPoint_even_partitions_cover
+    (S : Finset (Finpartition (Finset.univ : Finset (Fin 6))))
     (hS : S = Finset.univ.filter (fun P => ∀ B ∈ P.parts, Even B.card)) :
     S = (S.filter (fun P => P.parts.card = 1) ∪ S.filter (fun P => P.parts.card = 2))
       ∪ S.filter (fun P => P.parts.card = 3) := by
@@ -657,7 +658,8 @@ private lemma sixPoint_even_partitions_cover (S : Finset (Finpartition (Finset.u
 -- Helper: Reindex the filtered sum along the Pairing subtype
 private lemma sixPoint_sum_pairing_eq {Ω : Type uΩ} [MeasurableSpace Ω]
     (μ : Measure Ω) (X : Fin 6 → Ω → ℝ) :
-    (∑ P ∈ Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2),
+    (∑ P ∈ Finset.univ.filter
+        (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2),
       P.blockProduct (blockCumulant μ X)) = sixPointPairingCumulantSum μ X := by
   classical
   unfold sixPointPairingCumulantSum Finpartition.pairingSum
@@ -708,20 +710,37 @@ theorem jointMoment_six_eq_connected_decomposition
   set S : Finset (Finpartition (Finset.univ : Finset (Fin 6))) :=
     Finset.univ.filter (fun P => ∀ B ∈ P.parts, Even B.card) with hS_def
   -- Step 3: identify the three buckets of `S` by number of parts.
-  have hbucket1 : S.filter (fun P => P.parts.card = 1) = {(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} := by
+  have hbucket1 : S.filter (fun P => P.parts.card = 1) =
+      {(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} := by
     rw [hS_def, sixPoint_even_partitions_card_one]
   have hbucket2 : S.filter (fun P => P.parts.card = 2) = fourTwoPartitions := by
     rw [hS_def, sixPoint_even_partitions_card_two]
   have hbucket3 : S.filter (fun P => P.parts.card = 3) =
-      Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2) := by
+      Finset.univ.filter
+        (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2) := by
     rw [hS_def, sixPoint_even_partitions_card_three]
   -- Step 4: assemble the three buckets into a disjoint cover of `S`.
-  have hS12 : Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 2)) := by
-    rw [Finset.disjoint_left]; intro P h1 h2; have e1 := (Finset.mem_filter.mp h1).2; have e2 := (Finset.mem_filter.mp h2).2; omega
-  have hS13 : Disjoint (S.filter (fun P => P.parts.card = 1)) (S.filter (fun P => P.parts.card = 3)) := by
-    rw [Finset.disjoint_left]; intro P h1 h3; have e1 := (Finset.mem_filter.mp h1).2; have e3 := (Finset.mem_filter.mp h3).2; omega
-  have hS23 : Disjoint (S.filter (fun P => P.parts.card = 2)) (S.filter (fun P => P.parts.card = 3)) := by
-    rw [Finset.disjoint_left]; intro P h2 h3; have e2 := (Finset.mem_filter.mp h2).2; have e3 := (Finset.mem_filter.mp h3).2; omega
+  have hS12 : Disjoint (S.filter (fun P => P.parts.card = 1))
+      (S.filter (fun P => P.parts.card = 2)) := by
+    rw [Finset.disjoint_left]
+    intro P h1 h2
+    have e1 := (Finset.mem_filter.mp h1).2
+    have e2 := (Finset.mem_filter.mp h2).2
+    omega
+  have hS13 : Disjoint (S.filter (fun P => P.parts.card = 1))
+      (S.filter (fun P => P.parts.card = 3)) := by
+    rw [Finset.disjoint_left]
+    intro P h1 h3
+    have e1 := (Finset.mem_filter.mp h1).2
+    have e3 := (Finset.mem_filter.mp h3).2
+    omega
+  have hS23 : Disjoint (S.filter (fun P => P.parts.card = 2))
+      (S.filter (fun P => P.parts.card = 3)) := by
+    rw [Finset.disjoint_left]
+    intro P h2 h3
+    have e2 := (Finset.mem_filter.mp h2).2
+    have e3 := (Finset.mem_filter.mp h3).2
+    omega
   have hsplit : ∑ P ∈ S, P.blockProduct (blockCumulant μ X) =
       (∑ P ∈ S.filter (fun P => P.parts.card = 1), P.blockProduct (blockCumulant μ X)) +
       (∑ P ∈ S.filter (fun P => P.parts.card = 2), P.blockProduct (blockCumulant μ X)) +
@@ -772,7 +791,8 @@ private lemma sixPointFourTwoCumulantSum_eq
     {Ω : Type uΩ} [MeasurableSpace Ω] (μ : Measure Ω)
     (X : Fin 6 → Ω → ℝ)
     (hodd : ∀ B : Finset (Fin 6), Odd B.card → blockMoment μ X B = 0) :
-    sixPointFourTwoCumulantSum μ X = sixPointFourTwoMomentSum μ X - 3 * sixPointPairingMomentSum μ X := by
+    sixPointFourTwoCumulantSum μ X =
+      sixPointFourTwoMomentSum μ X - 3 * sixPointPairingMomentSum μ X := by
   sorry
 
 theorem jointCumulant_six_eq_moments

@@ -1081,7 +1081,7 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
           blockMoment ν Z ({i, j} : Finset ι)
             - blockMoment ν Z ({i} : Finset ι) * blockMoment ν Z ({j} : Finset ι) := by
       dsimp [Finpartition.cumulantTransform]
-      rw [if_neg]
+      rw [ite_eq_right]
       · rw [sum_Finpartition_pair i j hij]
         have hne : ({i, j} : Finset ι).Nonempty := by simp
         rw [cumulantCoefficient_top hne, blockProduct_top hne,
@@ -1536,8 +1536,8 @@ private lemma eq_if_card_two_of_eq_of_ne {ι : Type*}
     (B : Finset ι) :
     F B = if B.card = 2 then K B else 0 := by
   by_cases hBcard : B.card = 2
-  · exact (if_pos hBcard).symm ▸ h_pair hBcard
-  · exact (if_neg hBcard).symm ▸ h_not_pair hBcard
+  · exact (ite_eq_left hBcard).symm ▸ h_pair hBcard
+  · exact (ite_eq_right hBcard).symm ▸ h_not_pair hBcard
 
 /-- The partition transform of a block weight that vanishes off two-element blocks is exactly the
 pairing sum of that weight.

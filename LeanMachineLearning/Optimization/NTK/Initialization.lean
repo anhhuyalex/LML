@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Linearization
+public import LeanMachineLearning.Optimization.NTK.ChoSaulPolar
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Distributions.Gaussian.Basic
@@ -167,11 +168,9 @@ Theorem 3 (Finite-Dimensional NNGP Limit at Initialization) for neural networks.
       \mathbb{P}\left( h^\alpha > 0, h^\beta > 0 \right) =
       \frac{1}{4} + \frac{1}{2\pi} \arcsin(\rho)$$
   * Step 1: Reduction to standardized variables via positive homogeneity.
-  * Step 2: Derivation of the orthant probability $p(\rho)$ for $|\rho| < 1$ via Leibniz's rule
-    and arcsine integration.
-  * Step 3: Derivation of the standardized ReLU expectation $\mathbb{E}[\varphi(z_1)\varphi(z_2)]$
-    via Gaussian gradient identity and quadrant integration by parts.
-  * Step 4: Boundary cases $\rho = \pm 1$ and final scaling assembly.
+  * Step 2: Cholesky reduction to two independent standard Gaussian coordinates.
+  * Step 3: Polar-coordinate evaluation of the angular sectors for ReLU and its derivative.
+  * Step 4: Final scaling assembly.
 
 ## Main definitions and theorems
 
@@ -220,9 +219,11 @@ Theorem 3 (Finite-Dimensional NNGP Limit at Initialization) for neural networks.
 * `NTK.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
 * `NTK.reluDeriv` : weak derivative alias to `Kernel.reluIndicator`.
 * `NTK.expected_reluIndicator_mul_reluIndicator_bivariate` : Proposition 2.5 derivative kernel.
+* `NTK.expected_reluDeriv_mul_reluDeriv_bivariate` : the same derivative formula stated using
+  the paper's weak-derivative notation.
 * `NTK.expected_relu_mul_relu_bivariate` : Proposition 2.5 0-th order / NNGP kernel.
-* `NTK.div_two_pi_pi_sub_arccos_eq_arcsin` : analytic bridge connecting Proposition 2.5
-  derivative kernel to `Kernel.prob_halfspace_intersect`.
+* `NTK.div_two_pi_pi_sub_arccos_eq_arcsin` : trigonometric conversion between the
+  arccosine sector formula and the arcsine presentation of Proposition 2.5.
 * `NTK.limitingRecurrence_relu_bivariate` : closed-form evaluation of the bivariate limiting
   recurrence for ReLU.
 -/
@@ -2079,39 +2080,15 @@ lemma relu_pos_mul (c u : ℝ) (hc : 0 ≤ c) : relu (c * u) = c * relu u := by
   · rw [max_eq_left hu, max_eq_left (mul_nonneg hc hu)]
   · rw [max_eq_right hu, mul_zero, max_eq_right (mul_nonpos_of_nonneg_of_nonpos hc hu)]
 
-/-- Pointwise nonnegativity of the ReLU activation function. -/
-lemma relu_nonneg (u : ℝ) : 0 ≤ relu u := by
-  simp [relu]
-
 /-- Continuity of the ReLU activation function. -/
 lemma continuous_relu : Continuous relu :=
   continuous_id.max continuous_const
-
-/-- Borel measurability of the ReLU activation function. -/
-lemma measurable_relu : Measurable relu :=
-  continuous_relu.measurable
 
 /-- Scale invariance of the ReLU derivative for positive multipliers. -/
 lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : reluIndicator (c * u) = reluIndicator u := by
   unfold reluIndicator
   have : 0 ≤ c * u ↔ 0 ≤ u := mul_nonneg_iff_of_pos_left hc
   rw [if_congr this rfl rfl]
-
-/-- Multiplication identity: `relu u = u * reluIndicator u`. -/
-lemma relu_eq_mul_reluIndicator (u : ℝ) : relu u = u * reluIndicator u := by
-  simp only [relu, reluIndicator]
-  split_ifs with h
-  · rw [max_eq_left h, mul_one]
-  · have hu : u ≤ 0 := le_of_not_ge h
-    rw [max_eq_right hu, mul_zero]
-
-/-- Orthogonality of opposing half-lines under ReLU: `relu u * relu (-u) = 0`. -/
-lemma relu_mul_relu_neg (u : ℝ) : relu u * relu (-u) = 0 := by
-  simp only [relu]
-  rcases le_total 0 u with hu | hu
-  · have hneg : -u ≤ 0 := neg_nonpos.mpr hu
-    rw [max_eq_right hneg, mul_zero]
-  · rw [max_eq_right hu, zero_mul]
 
 /-! ### 2×2 Covariance and Correlation Geometry -/
 
@@ -2263,187 +2240,13 @@ lemma reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale
   rw [reluIndicator_pos_mul (Real.sqrt Φαα) (z.ofLp 0) h_sqrt_α]
   rw [reluIndicator_pos_mul (Real.sqrt Φββ) (z.ofLp 1) h_sqrt_β]
 
-/-! ### Analytic Connection to Kernel Methods -/
+/-! ### Trigonometric Conversion -/
 
 /-- Trigonometric bridge connecting the Cho-Saul derivative orthant probability to the
-complementary arccosine form `(π - arccos ρ) / (2π)` in `Kernel.prob_halfspace_intersect`. -/
+complementary arccosine form `(π - arccos ρ) / (2π)`. -/
 lemma div_two_pi_pi_sub_arccos_eq_arcsin (ρ : ℝ) :
     (Real.pi - Real.arccos ρ) / (2 * Real.pi) = 1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
   rw [Real.arccos_eq_pi_div_two_sub_arcsin]
-  have hpi : Real.pi ≠ 0 := Real.pi_pos.ne'
-  field_simp
-  ring
-
-/-- Quadratic exponent form of the standardized bivariate Gaussian density with correlation `ρ`. -/
-noncomputable def bivariateGaussianQuad (ρ u v : ℝ) : ℝ :=
-  (u ^ 2 - 2 * ρ * u * v + v ^ 2) / (2 * (1 - ρ ^ 2))
-
-/-- Joint probability density function `f_ρ(u, v)` of standard bivariate normal variables `(z₁, z₂)`. -/
-noncomputable def bivariateGaussianPdf (ρ u v : ℝ) : ℝ :=
-  (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * Real.exp (- bivariateGaussianQuad ρ u v)
-
-/-- Boundary value of the bivariate Gaussian density on the axis `u = 0`. -/
-lemma bivariateGaussianPdf_zero_left (ρ v : ℝ) :
-    bivariateGaussianPdf ρ 0 v =
-      (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * Real.exp (- v ^ 2 / (2 * (1 - ρ ^ 2))) := by
-  dsimp [bivariateGaussianPdf, bivariateGaussianQuad]
-  ring_nf
-
-/-- Algebraic identity underlying Cho-Saul integration by parts (Step 3):
-for `1 - ρ² ≠ 0`, the weighted linear combination of density derivatives satisfies
-`(u - ρ * v) / (1 - ρ²) + ρ * ((v - ρ * u) / (1 - ρ²)) = u`. -/
-lemma bivariateGaussian_pde_identity (ρ u v : ℝ) (hρ : 1 - ρ ^ 2 ≠ 0) :
-    (u - ρ * v) / (1 - ρ ^ 2) + ρ * ((v - ρ * u) / (1 - ρ ^ 2)) = u := by
-  field_simp
-  ring
-
-/-- Partial derivative of the bivariate Gaussian density `f_ρ(u, v)` with respect to `u` (Step 3). -/
-lemma hasDerivAt_bivariateGaussianPdf_left
-    (ρ : ℝ) (u v : ℝ) :
-    HasDerivAt (fun u ↦ bivariateGaussianPdf ρ u v)
-      (- ((u - ρ * v) / (1 - ρ ^ 2)) * bivariateGaussianPdf ρ u v) u := by
-  dsimp [bivariateGaussianPdf, bivariateGaussianQuad]
-  have h_poly : HasDerivAt (fun u ↦ u ^ 2 - 2 * ρ * u * v + v ^ 2) (2 * u - 2 * ρ * v) u := by
-    have h1 : HasDerivAt (fun u ↦ u ^ 2) (2 * u) u := by
-      simpa using hasDerivAt_pow 2 u
-    have h2 : HasDerivAt (fun u ↦ 2 * ρ * u * v) (2 * ρ * v) u := by
-      have : (fun u ↦ 2 * ρ * u * v) = (fun u ↦ (2 * ρ * v) * u) := by ext; ring
-      rw [this]
-      simpa using (hasDerivAt_id u).const_mul (2 * ρ * v)
-    have h3 : HasDerivAt (fun u ↦ v ^ 2) 0 u := hasDerivAt_const u (v ^ 2)
-    have h12 := h1.sub h2
-    have h123 := h12.add h3
-    have h_add : 2 * u - 2 * ρ * v = 2 * u - 2 * ρ * v + 0 := by ring
-    rw [h_add]
-    exact h123
-  have h_div := h_poly.div_const (2 * (1 - ρ ^ 2))
-  have h_neg := h_div.neg
-  have h_exp := h_neg.exp
-  have h_pdf := h_exp.const_mul (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2)))
-  have h_ne : (2 : ℝ) ≠ 0 := by norm_num
-  have h_frac : (2 * u - 2 * ρ * v) / (2 * (1 - ρ ^ 2)) = (u - ρ * v) / (1 - ρ ^ 2) := by
-    calc (2 * u - 2 * ρ * v) / (2 * (1 - ρ ^ 2))
-      _ = (2 * (u - ρ * v)) / (2 * (1 - ρ ^ 2)) := by ring_nf
-      _ = (u - ρ * v) / (1 - ρ ^ 2) := mul_div_mul_left _ _ h_ne
-  have h_deriv : (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) *
-      (Real.exp (- ((u ^ 2 - 2 * ρ * u * v + v ^ 2) / (2 * (1 - ρ ^ 2)))) *
-        - ((2 * u - 2 * ρ * v) / (2 * (1 - ρ ^ 2)))) =
-      - ((u - ρ * v) / (1 - ρ ^ 2)) *
-        ((1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) *
-          Real.exp (- ((u ^ 2 - 2 * ρ * u * v + v ^ 2) / (2 * (1 - ρ ^ 2))))) := by
-    rw [h_frac]
-    ring
-  exact h_pdf.congr_deriv h_deriv
-
-/-- Partial derivative of the bivariate Gaussian density `f_ρ(u, v)` with respect to `v` (Step 3). -/
-lemma hasDerivAt_bivariateGaussianPdf_right
-    (ρ : ℝ) (u v : ℝ) :
-    HasDerivAt (fun v ↦ bivariateGaussianPdf ρ u v)
-      (- ((v - ρ * u) / (1 - ρ ^ 2)) * bivariateGaussianPdf ρ u v) v := by
-  dsimp [bivariateGaussianPdf, bivariateGaussianQuad]
-  have h_poly : HasDerivAt (fun v ↦ u ^ 2 - 2 * ρ * u * v + v ^ 2) (2 * v - 2 * ρ * u) v := by
-    have h1 : HasDerivAt (fun _ : ℝ ↦ u ^ 2) 0 v := hasDerivAt_const v (u ^ 2)
-    have h2 : HasDerivAt (fun v ↦ 2 * ρ * u * v) (2 * ρ * u) v := by
-      have : (fun v ↦ 2 * ρ * u * v) = (fun v ↦ (2 * ρ * u) * v) := by ext; ring
-      rw [this]
-      simpa using (hasDerivAt_id v).const_mul (2 * ρ * u)
-    have h3 : HasDerivAt (fun v ↦ v ^ 2) (2 * v) v := by
-      simpa using hasDerivAt_pow 2 v
-    have h12 := h1.sub h2
-    have h123 := h12.add h3
-    have h_add : 2 * v - 2 * ρ * u = 0 - 2 * ρ * u + 2 * v := by ring
-    rw [h_add]
-    exact h123
-  have h_div := h_poly.div_const (2 * (1 - ρ ^ 2))
-  have h_neg := h_div.neg
-  have h_exp := h_neg.exp
-  have h_pdf := h_exp.const_mul (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2)))
-  have h_ne : (2 : ℝ) ≠ 0 := by norm_num
-  have h_frac : (2 * v - 2 * ρ * u) / (2 * (1 - ρ ^ 2)) = (v - ρ * u) / (1 - ρ ^ 2) := by
-    calc (2 * v - 2 * ρ * u) / (2 * (1 - ρ ^ 2))
-      _ = (2 * (v - ρ * u)) / (2 * (1 - ρ ^ 2)) := by ring_nf
-      _ = (v - ρ * u) / (1 - ρ ^ 2) := mul_div_mul_left _ _ h_ne
-  have h_deriv : (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) *
-      (Real.exp (- ((u ^ 2 - 2 * ρ * u * v + v ^ 2) / (2 * (1 - ρ ^ 2)))) *
-        - ((2 * v - 2 * ρ * u) / (2 * (1 - ρ ^ 2)))) =
-      - ((v - ρ * u) / (1 - ρ ^ 2)) *
-        ((1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) *
-          Real.exp (- ((u ^ 2 - 2 * ρ * u * v + v ^ 2) / (2 * (1 - ρ ^ 2))))) := by
-    rw [h_frac]
-    ring
-  exact h_pdf.congr_deriv h_deriv
-
-/-- Linear combination of bivariate Gaussian density partial derivatives (Step 3):
-`-∂_u f_ρ - ρ ∂_v f_ρ = u f_ρ`. -/
-lemma bivariateGaussian_linear_comb_pde
-    (ρ : ℝ) (hρ : 1 - ρ ^ 2 ≠ 0) (u v : ℝ) :
-    - (- ((u - ρ * v) / (1 - ρ ^ 2)) * bivariateGaussianPdf ρ u v) -
-      ρ * (- ((v - ρ * u) / (1 - ρ ^ 2)) * bivariateGaussianPdf ρ u v) =
-      u * bivariateGaussianPdf ρ u v := by
-  have h := bivariateGaussian_pde_identity ρ u v hρ
-  calc
-    - (- ((u - ρ * v) / (1 - ρ ^ 2)) * bivariateGaussianPdf ρ u v) -
-      ρ * (- ((v - ρ * u) / (1 - ρ ^ 2)) * bivariateGaussianPdf ρ u v)
-      = ((u - ρ * v) / (1 - ρ ^ 2) + ρ * ((v - ρ * u) / (1 - ρ ^ 2))) * bivariateGaussianPdf ρ u v := by ring
-    _ = u * bivariateGaussianPdf ρ u v := by rw [h]
-
-/-- 1D boundary antiderivative for the standardized ReLU expectation (Step 3):
-`d/dv [- (1 - ρ²) exp(- (v² / (2(1 - ρ²))))] = v exp(- (v² / (2(1 - ρ²))))`. -/
-lemma hasDerivAt_bivariateGaussian_boundary_primitive
-    (ρ : ℝ) (hρ : 1 - ρ ^ 2 ≠ 0) (v : ℝ) :
-    HasDerivAt (fun v ↦ - (1 - ρ ^ 2) * Real.exp (- (v ^ 2 / (2 * (1 - ρ ^ 2)))))
-      (v * Real.exp (- (v ^ 2 / (2 * (1 - ρ ^ 2))))) v := by
-  have h1 : HasDerivAt (fun v ↦ v ^ 2) (2 * v) v := by
-    simpa using hasDerivAt_pow 2 v
-  have h2 := h1.div_const (2 * (1 - ρ ^ 2))
-  have h3 := h2.neg.exp
-  have h4 := h3.const_mul (- (1 - ρ ^ 2))
-  have h_ne : (2 : ℝ) ≠ 0 := by norm_num
-  have h_frac : 2 * v / (2 * (1 - ρ ^ 2)) = v / (1 - ρ ^ 2) := by
-    calc 2 * v / (2 * (1 - ρ ^ 2))
-      _ = (2 * v) / (2 * (1 - ρ ^ 2)) := rfl
-      _ = v / (1 - ρ ^ 2) := mul_div_mul_left v (1 - ρ ^ 2) h_ne
-  have h_deriv : - (1 - ρ ^ 2) * (Real.exp (- (v ^ 2 / (2 * (1 - ρ ^ 2)))) * - (2 * v / (2 * (1 - ρ ^ 2)))) =
-      v * Real.exp (- (v ^ 2 / (2 * (1 - ρ ^ 2)))) := by
-    rw [h_frac]
-    have h_mul : - (1 - ρ ^ 2) * (Real.exp (- (v ^ 2 / (2 * (1 - ρ ^ 2)))) * - (v / (1 - ρ ^ 2))) =
-        ((1 - ρ ^ 2) * (v / (1 - ρ ^ 2))) * Real.exp (- (v ^ 2 / (2 * (1 - ρ ^ 2)))) := by ring
-    rw [h_mul]
-    rw [mul_div_cancel₀ v hρ]
-  exact h4.congr_deriv h_deriv
-
-
-/-- Derivative of the orthant probability integral kernel (Step 2):
-`(1 / (2π (1 - ρ²)^(3/2))) * (1 - ρ²) = 1 / (2π √(1 - ρ²))`. -/
-lemma orthant_deriv_scale (ρ : ℝ) (hρ : 0 < 1 - ρ ^ 2) :
-    (1 / (2 * Real.pi * (1 - ρ ^ 2) * Real.sqrt (1 - ρ ^ 2))) * (1 - ρ ^ 2) =
-      1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2)) := by
-  have h_ne : 1 - ρ ^ 2 ≠ 0 := ne_of_gt hρ
-  have h_pi : Real.pi ≠ 0 := Real.pi_pos.ne'
-  have h_sqrt_ne : Real.sqrt (1 - ρ ^ 2) ≠ 0 := (Real.sqrt_pos.mpr hρ).ne'
-  field_simp
-
-/-- 1D boundary integral evaluation for the standardized ReLU product (Step 3):
-`∫₀^∞ v f_ρ(0, v) dv = (1 / (2π √(1 - ρ²))) * (1 - ρ²) = √(1 - ρ²) / (2π)`. -/
-lemma bivariateGaussian_boundary_integral_eval (ρ : ℝ) (hρ : 0 < 1 - ρ ^ 2) :
-    (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * (1 - ρ ^ 2) =
-      Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) := by
-  have h_pos : 0 < Real.sqrt (1 - ρ ^ 2) := Real.sqrt_pos.mpr hρ
-  have h_pi : Real.pi ≠ 0 := Real.pi_pos.ne'
-  calc
-    (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) * (1 - ρ ^ 2)
-      = (1 / (2 * Real.pi * Real.sqrt (1 - ρ ^ 2))) *
-          (Real.sqrt (1 - ρ ^ 2) * Real.sqrt (1 - ρ ^ 2)) := by
-          congr 1
-          rw [← Real.sqrt_mul (le_of_lt hρ), Real.sqrt_mul_self (le_of_lt hρ)]
-    _ = Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) := by
-          field_simp
-
-/-- Exact algebraic identity combining the boundary integral and orthant probability (Step 3):
-`√(1 - ρ²) / (2π) + ρ * (1/4 + (1 / (2π)) * arcsin ρ) = (1 / (2π)) * (√(1 - ρ²) + ρ * (π/2 + arcsin ρ))`. -/
-lemma choSaul_expectation_algebra (ρ : ℝ) :
-    Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) + ρ * (1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ) =
-      (1 / (2 * Real.pi)) * (Real.sqrt (1 - ρ ^ 2) + ρ * (Real.pi / 2 + Real.arcsin ρ)) := by
   have hpi : Real.pi ≠ 0 := Real.pi_pos.ne'
   field_simp
   ring
@@ -2658,71 +2461,71 @@ lemma expected_reluIndicator_mul_reluIndicator_eq_standardized
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
   rw [h_comp]
 
-/-! ### Step 2: Derivation of the Orthant Probability -/
+/-! ### Steps 2–3: Cholesky Reduction and Polar-Coordinate Evaluation -/
 
-/-- Equivalence between the orthant probability integral and the geometric sector probability (Step 2). -/
+/-- Pull a correlated standard Gaussian integral back to independent Gaussian coordinates.
+The Cholesky factor has rows `(1, 0)` and
+`(cos (arccos ρ), sin (arccos ρ))`. -/
+private lemma integral_corrGaussian_eq_angle
+    (f g : ℝ → ℝ) (hf : Measurable f) (hg : Measurable g)
+    (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
+    ∫ z : EuclideanSpace ℝ (Fin 2), f (z.ofLp 0) * g (z.ofLp 1)
+      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
+    ∫ z : EuclideanSpace ℝ (Fin 2), f (z.ofLp 0) *
+        g (Real.cos (Real.arccos ρ) * z.ofLp 0 +
+          Real.sin (Real.arccos ρ) * z.ofLp 1)
+      ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) := by
+  let L : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; ρ, Real.sqrt (1 - ρ ^ 2)]
+  have hmap := map_cholesky2x2_stdGaussian ρ hρ
+  dsimp [L] at hmap
+  rw [← hmap]
+  have hmeas : Measurable (toEuclideanCLM (𝕜 := ℝ) L) :=
+    (toEuclideanCLM (𝕜 := ℝ) L).continuous.measurable
+  have hint : AEStronglyMeasurable
+      (fun z : EuclideanSpace ℝ (Fin 2) => f (z.ofLp 0) * g (z.ofLp 1))
+      (Measure.map (toEuclideanCLM (𝕜 := ℝ) L)
+        (stdGaussian (EuclideanSpace ℝ (Fin 2)))) := by
+    apply StronglyMeasurable.aestronglyMeasurable
+    exact ((hf.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+      (hg.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable
+  rw [integral_map hmeas.aemeasurable hint]
+  change ∫ z : EuclideanSpace ℝ (Fin 2),
+      f ((toEuclideanCLM (𝕜 := ℝ) L z).ofLp 0) *
+        g ((toEuclideanCLM (𝕜 := ℝ) L z).ofLp 1)
+      ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) = _
+  congr 1 with z
+  have hz := ofLp_toEuclideanCLM L z
+  have hz0 : (toEuclideanCLM (𝕜 := ℝ) L z).ofLp 0 = z.ofLp 0 := by
+    rw [hz]
+    simp [L, mulVec, dotProduct, Fin.sum_univ_two]
+  have hz1 : (toEuclideanCLM (𝕜 := ℝ) L z).ofLp 1 =
+      ρ * z.ofLp 0 + Real.sqrt (1 - ρ ^ 2) * z.ofLp 1 := by
+    rw [hz]
+    simp [L, mulVec, dotProduct, Fin.sum_univ_two]
+  have htheta0 : 0 ≤ Real.arccos ρ := Real.arccos_nonneg ρ
+  have hthetapi : Real.arccos ρ ≤ Real.pi := Real.arccos_le_pi ρ
+  have hcos : Real.cos (Real.arccos ρ) = ρ := Real.cos_arccos hρ.1 hρ.2
+  have hsin : Real.sin (Real.arccos ρ) = Real.sqrt (1 - ρ ^ 2) :=
+    Real.sin_eq_sqrt_one_sub_cos_sq htheta0 hthetapi |>.trans (by rw [hcos])
+  rw [hz0, hz1, hcos, hsin]
+
+/-- The derivative kernel is the angular size of the intersection of two half-planes. -/
 lemma expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector
     (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
     ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       (Real.pi - Real.arccos ρ) / (2 * Real.pi) := by
-  let L : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; ρ, Real.sqrt (1 - ρ ^ 2)]
-  have hmap := map_cholesky2x2_stdGaussian ρ hρ
-  dsimp [L] at hmap
-  rw [← hmap]
-  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) L) := (toEuclideanCLM (𝕜 := ℝ) L).continuous.measurable
-  have h_int : AEStronglyMeasurable
-      (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
-      (Measure.map (toEuclideanCLM (𝕜 := ℝ) L) (stdGaussian (EuclideanSpace ℝ (Fin 2)))) := by
-    apply StronglyMeasurable.aestronglyMeasurable
-    exact ((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
-      (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable
-  rw [integral_map h_meas.aemeasurable h_int]
-  let x : Fin 2 → ℝ := ![1, 0]
-  let x' : Fin 2 → ℝ := ![ρ, Real.sqrt (1 - ρ ^ 2)]
-  have hx : x ⊙ x = 1 := by
-    simp [innerProduct, Fin.sum_univ_two, x]
-  have hx' : x' ⊙ x' = 1 := by
-    have h_diff : 0 ≤ 1 - ρ ^ 2 := by
-      rcases hρ with ⟨h_ge, h_le⟩
-      nlinarith
-    simp [innerProduct, Fin.sum_univ_two, x', Real.mul_self_sqrt h_diff]
-    ring
-  have h_dot : x ⊙ x' = ρ := by
-    simp [innerProduct, Fin.sum_univ_two, x, x']
-  have h_sec := prob_halfspace_intersect x x' hx hx'
-  rw [h_dot] at h_sec
-  rw [← h_sec]
-  rw [integral_gaussianRowMeasure_eq_integral_stdGaussian]
-  congr 1 with w
-  have h0 : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 0 = w.ofLp ⊙ x := by
-    have h := ofLp_toEuclideanCLM L w
-    have h0' : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 0 = (L *ᵥ w.ofLp) 0 := by rw [h]
-    rw [h0']
-    dsimp [L, x, mulVec, dotProduct, innerProduct]
-    simp only [Fin.sum_univ_two, cons_val_zero, cons_val_one]
-    ring
-  have h1 : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 1 = w.ofLp ⊙ x' := by
-    have h := ofLp_toEuclideanCLM L w
-    have h1' : (toEuclideanCLM (𝕜 := ℝ) L w).ofLp 1 = (L *ᵥ w.ofLp) 1 := by rw [h]
-    rw [h1']
-    dsimp [L, x', mulVec, dotProduct, innerProduct]
-    simp only [Fin.sum_univ_two, cons_val_zero, cons_val_one]
-    ring
-  rw [h0, h1]
+  calc
+    _ = ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) *
+          reluIndicator (Real.cos (Real.arccos ρ) * z.ofLp 0 +
+            Real.sin (Real.arccos ρ) * z.ofLp 1)
+          ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) :=
+      integral_corrGaussian_eq_angle reluIndicator reluIndicator
+        measurable_reluIndicator measurable_reluIndicator ρ hρ
+    _ = _ := integral_stdGaussian_reluIndicator_angle (Real.arccos ρ)
+      (Real.arccos_nonneg ρ) (Real.arccos_le_pi ρ)
 
-/--
-Informal proof of Step 2 (Orthant probability derivation):
-Couple `(z₁, z₂)` via independent standard normal variables `w₁, w₂ ~ 𝒩(0, 1)`:
-  `z₁ = w₁`, `z₂ = ρ w₁ + √(1 - ρ²) w₂`.
-Conditioning on `w₁ = u > 0` yields:
-  `p(ρ) = ∫₀^∞ f(u) F(ρ u / √(1 - ρ²)) du`.
-Differentiating with respect to `ρ` under the integral sign via Leibniz's rule gives:
-  `p'(ρ) = 1 / (2π (1 - ρ²)^(3/2)) ∫₀^∞ u exp(-u² / (2(1 - ρ²))) du = 1 / (2π √(1 - ρ²))`.
-Integrating from `0` to `ρ` with initial condition `p(0) = 1/4` (by independence of marginals)
-yields `p(ρ) = 1/4 + (1 / (2π)) * arcsin ρ`.
-See Cho & Saul (2009), "Kernel Methods for Deep Learning", Section 2.
--/
+/-- Standardized form of the Cho-Saul derivative kernel. -/
 lemma expected_reluIndicator_mul_reluIndicator_standardized
     (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
     ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
@@ -2731,106 +2534,38 @@ lemma expected_reluIndicator_mul_reluIndicator_standardized
   rw [expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector ρ hρ]
   exact div_two_pi_pi_sub_arccos_eq_arcsin ρ
 
-/-! ### Step 3: Derivation of the Standardized ReLU Expectation -/
-
-/--
-**Foundational Lemma: 2D Gaussian Integration by Parts Decomposition for ReLU** (Cho & Saul 2009, Cho 2012).
-
-For centered standardized bivariate Gaussian pre-activations `(z₁, z₂) ~ 𝒩(0, R_ρ)` with correlation
-`ρ ∈ [-1, 1]`, the expected product of ReLU activations decomposes into the 1D boundary integral
-`√(1 - ρ²) / (2π)` plus `ρ` times the expected product of ReLU weak derivatives (the orthant probability):
-  `𝔼[φ(z₁) φ(z₂)] = √(1 - ρ²) / (2π) + ρ * 𝔼[φ'(z₁) φ'(z₂)]`.
-
-**Mathematical Derivation (Cho 2012, Appendix B):**
-1. Let `f_ρ(u, v) = (1 / (2π √(1 - ρ²))) exp(- (u² - 2ρ u v + v²) / (2(1 - ρ²)))` denote the joint
-   bivariate Gaussian density.
-2. The partial derivatives satisfy the linear PDE identity (`bivariateGaussian_linear_comb_pde`):
-     `-∂_u f_ρ(u, v) - ρ ∂_v f_ρ(u, v) = u f_ρ(u, v)`.
-3. Multiplying by `v` and integrating over the first quadrant `(u, v) ∈ [0, ∞) × [0, ∞)`:
-     `𝔼[φ(z₁) φ(z₂)] = ∫₀^∞ ∫₀^∞ u v f_ρ(u, v) du dv
-                     = -∫₀^∞ v (∫₀^∞ ∂_u f_ρ(u, v) du) dv - ρ ∫₀^∞ u (∫₀^∞ ∂_v f_ρ(u, v) dv) du`.
-4. Evaluating the inner `u`-integral via the Fundamental Theorem of Calculus:
-     `∫₀^∞ ∂_u f_ρ(u, v) du = lim_{u → ∞} f_ρ(u, v) - f_ρ(0, v) = -f_ρ(0, v)`.
-5. Evaluating the inner `v`-integral via 1D integration by parts:
-     `∫₀^∞ v (-∂_v f_ρ(u, v)) dv = [-v f_ρ(u, v)]₀^∞ + ∫₀^∞ f_ρ(u, v) dv = ∫₀^∞ f_ρ(u, v) dv`.
-6. Evaluating the 1D boundary integral using `hasDerivAt_bivariateGaussian_boundary_primitive`:
-     `∫₀^∞ v f_ρ(0, v) dv = (1 / (2π √(1 - ρ²))) * (1 - ρ²) = √(1 - ρ²) / (2π)`.
-7. Combining the boundary term and the interior orthant term yields the formula.
-
-**Formalization Note:**
-Like `prob_halfspace_intersect` in `Kernel.lean` (which provides the 2D Gaussian sector probability
-without requiring 2D polar coordinates in Mathlib), this theorem serves as the foundational 2D
-integration lemma connecting the Gaussian measure expectation to the PDE boundary decomposition.
-Full first-principles formalization in Lean requires 2D multivariable integration by parts on
-unbounded domains and the Lebesgue Radon-Nikodym derivative for `multivariateGaussian`, neither of
-which is currently available in Mathlib.
-
-References:
-- Youngmin Cho and Lawrence K. Saul (2009), "Kernel Methods for Deep Learning", NeurIPS 22, Section 2.
-- Youngmin Cho (2012), "Kernel Methods for Deep Learning", Ph.D. Dissertation, UC San Diego, Appendix B.
--/
-lemma expected_relu_mul_relu_eq_boundary_add_rho_mul_orthant
-    (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
-    ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
-      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
-      Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) +
-        ρ * ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
-          ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
-  sorry
-
-/-- Equivalence between the standardized ReLU expectation and the geometric sector formula (Step 3).
-Derived by combining the integration by parts decomposition (`expected_relu_mul_relu_eq_boundary_add_rho_mul_orthant`)
-with the orthant sector probability (`expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector`). -/
-lemma expected_relu_mul_relu_eq_halfspace_sector
-    (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
-    ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
-      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
-      Real.sqrt (1 - ρ ^ 2) / (2 * Real.pi) +
-        ρ * ((Real.pi - Real.arccos ρ) / (2 * Real.pi)) := by
-  rw [expected_relu_mul_relu_eq_boundary_add_rho_mul_orthant ρ hρ]
-  rw [expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector ρ hρ]
-
-/--
-Informal proof of Step 3 (Standardized ReLU expectation):
-Let `f_ρ(u, v) = (1 / (2π √(1 - ρ²))) exp(- (u² - 2ρ u v + v²) / (2(1 - ρ²)))`.
-Partial derivatives satisfy the identity:
-  `-∂_u f_ρ(u, v) - ρ ∂_v f_ρ(u, v) = u f_ρ(u, v)`.
-Multiplying by `v` and integrating over `[0, ∞) × [0, ∞)`:
-  `𝔼[φ(z₁) φ(z₂)] = ∫₀^∞ ∫₀^∞ u v f_ρ(u, v) du dv = ∫₀^∞ v f_ρ(0, v) dv + ρ p(ρ)`.
-Evaluating the boundary 1D integral:
-  `∫₀^∞ v f_ρ(0, v) dv = (1 / (2π √(1 - ρ²))) ∫₀^∞ v exp(-v² / (2(1 - ρ²))) dv = √(1 - ρ²) / (2π)`.
-Substituting `p(ρ) = 1/4 + (1 / (2π)) * arcsin ρ` yields:
-  `𝔼[φ(z₁) φ(z₂)] = (√(1 - ρ²) / (2π)) + ρ * (1/4 + (1 / (2π)) * arcsin ρ)
-                  = (1 / (2π)) * (√(1 - ρ²) + ρ * (π/2 + arcsin ρ))`.
--/
+/-- Standardized form of the Cho-Saul ReLU kernel, obtained by evaluating the same
+two-dimensional Gaussian integral in polar coordinates. -/
 lemma expected_relu_mul_relu_standardized
     (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
     ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       (1 / (2 * Real.pi)) *
         (Real.sqrt (1 - ρ ^ 2) + ρ * (Real.pi / 2 + Real.arcsin ρ)) := by
-  rw [expected_relu_mul_relu_eq_boundary_add_rho_mul_orthant ρ hρ]
-  rw [expected_reluIndicator_mul_reluIndicator_standardized ρ hρ]
-  exact choSaul_expectation_algebra ρ
+  have htheta0 : 0 ≤ Real.arccos ρ := Real.arccos_nonneg ρ
+  have hthetapi : Real.arccos ρ ≤ Real.pi := Real.arccos_le_pi ρ
+  have hcos : Real.cos (Real.arccos ρ) = ρ := Real.cos_arccos hρ.1 hρ.2
+  have hsin : Real.sin (Real.arccos ρ) = Real.sqrt (1 - ρ ^ 2) :=
+    Real.sin_eq_sqrt_one_sub_cos_sq htheta0 hthetapi |>.trans (by rw [hcos])
+  have hangle : Real.pi - Real.arccos ρ = Real.pi / 2 + Real.arcsin ρ := by
+    rw [Real.arccos_eq_pi_div_two_sub_arcsin]
+    ring
+  calc
+    _ = ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) *
+          relu (Real.cos (Real.arccos ρ) * z.ofLp 0 +
+            Real.sin (Real.arccos ρ) * z.ofLp 1)
+          ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) :=
+      integral_corrGaussian_eq_angle relu relu
+        continuous_relu.measurable continuous_relu.measurable ρ hρ
+    _ = (Real.sin (Real.arccos ρ) +
+          (Real.pi - Real.arccos ρ) * Real.cos (Real.arccos ρ)) /
+          (2 * Real.pi) :=
+      integral_stdGaussian_relu_angle (Real.arccos ρ) htheta0 hthetapi
+    _ = _ := by
+      rw [hcos, hsin, hangle]
+      ring
 
-/-! ### Step 4: Boundary Cases and Final Assembly -/
-
-/-- Boundary case `ρ = 1`: `z₂ = z₁` implies `𝔼[φ(z₁)²] = (1/2) 𝔼[z₁²] = 1/2`.
-The formula yields `(1 / (2π)) * (0 + 1 * (π/2 + π/2)) = 1/2`. -/
-lemma expected_relu_sq_standardized :
-    (1 / (2 * Real.pi)) * (Real.sqrt (1 - (1 : ℝ) ^ 2) + 1 * (Real.pi / 2 + Real.arcsin 1)) = 1 / 2 := by
-  simp only [Real.arcsin_one, one_pow, sub_self, Real.sqrt_zero, zero_add, one_mul]
-  have h_add : Real.pi / 2 + Real.pi / 2 = Real.pi := by ring
-  rw [h_add]
-  have h_pi : Real.pi ≠ 0 := Real.pi_pos.ne'
-  field_simp
-
-/-- Boundary case `ρ = -1`: `z₂ = -z₁` implies `φ(z₁)φ(-z₁) = 0` everywhere.
-The formula yields `(1 / (2π)) * (0 - 1 * (π/2 - π/2)) = 0`. -/
-lemma expected_relu_neg_standardized :
-    (1 / (2 * Real.pi)) * (Real.sqrt (1 - (-1 : ℝ) ^ 2) + (-1) * (Real.pi / 2 + Real.arcsin (-1))) = 0 := by
-  simp only [Real.arcsin_neg_one, neg_sq, one_pow, sub_self, Real.sqrt_zero, zero_add, neg_mul, one_mul]
-  ring
+/-! ### Step 4: Final Scaling Assembly -/
 
 /-- **Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU Derivative - 1st order / Derivative Kernel)**:
 Under centered bivariate Gaussian preactivations `(h^α, h^β) ~ 𝒩(0, Σ)` with positive diagonal
@@ -2847,6 +2582,19 @@ theorem expected_reluIndicator_mul_reluIndicator_bivariate
   have hρ : ρ ∈ Set.Icc (-1) 1 := pearsonRho_mem_Icc Φαα Φββ Φαβ hΦαα hΦββ hSigma
   rw [expected_reluIndicator_mul_reluIndicator_eq_standardized Φαα Φββ Φαβ hΦαα hΦββ hSigma]
   exact expected_reluIndicator_mul_reluIndicator_standardized ρ hρ
+
+/-- Proposition 2.5 stated with the weak-derivative name used in the paper. -/
+theorem expected_reluDeriv_mul_reluDeriv_bivariate
+    (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
+    (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from
+      !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
+    let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
+    ∫ z : EuclideanSpace ℝ (Fin 2), reluDeriv (z.ofLp 0) * reluDeriv (z.ofLp 1)
+      ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
+      1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
+  rw [reluDeriv_eq_reluIndicator]
+  exact expected_reluIndicator_mul_reluIndicator_bivariate
+    Φαα Φββ Φαβ hΦαα hΦββ hSigma
 
 /-- **Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU - 0th order / NNGP Kernel)**:
 Under centered bivariate Gaussian preactivations `(h^α, h^β) ~ 𝒩(0, Σ)` with positive diagonal

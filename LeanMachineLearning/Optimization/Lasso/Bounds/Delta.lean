@@ -1488,16 +1488,16 @@ private lemma deriv_scaledPrimalPath_coord_nonneg_of_monotone
     intro a b hab
     by_cases ha : 0 ≤ a
     · have hb : 0 ≤ b := ha.trans hab
-      simp only [hg_ext_def, if_pos ha, if_pos hb]
+      simp only [hg_ext_def, ite_eq_left ha, ite_eq_left hb]
       exact h_mono a b ha hab
     · by_cases hb : 0 ≤ b
-      · simp only [hg_ext_def, if_neg ha, if_pos hb]
+      · simp only [hg_ext_def, ite_eq_right ha, ite_eq_left hb]
         exact h_mono 0 b le_rfl hb
-      · simp only [hg_ext_def, if_neg ha, if_neg hb]
+      · simp only [hg_ext_def, ite_eq_right ha, ite_eq_right hb]
         exact le_refl _
   have heq : g_ext =ᶠ[𝓝 τ] g := by
     filter_upwards [eventually_gt_nhds hτ] with t ht
-    simp only [hg_ext_def, if_pos ht.le]
+    simp only [hg_ext_def, ite_eq_left ht.le]
   exact ((h_diff.hasDerivAt).congr_of_eventuallyEq heq).nonneg_of_monotone hg_ext_mono
 
 /-- `positiveZDownward` vanishes identically on `[0, ∞)` when `z = scaledPrimalPath x_lasso`

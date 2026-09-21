@@ -144,7 +144,7 @@ lemma stepApprox_collapse (g : ℝ → ℝ) (ρ ε x : ℝ) {k : ℕ}
     have hcond : ¬ (x - breakpoint ρ ε i ≥ 0) := by
       simp only [ge_iff_le, not_le]; linarith
     simp only [thresholdActivation]
-    rw [if_neg hcond, mul_zero]
+    rw [ite_eq_right hcond, mul_zero]
   -- Terms with index ≤ k keep coefficient `aᵢ` because `bᵢ ≤ x` forces threshold `1`.
   have hone : ∀ i ∈ Finset.range (k + 1),
       coeff g ρ ε i * thresholdActivation (x - breakpoint ρ ε i) = coeff g ρ ε i := by
@@ -153,7 +153,7 @@ lemma stepApprox_collapse (g : ℝ → ℝ) (ρ ε x : ℝ) {k : ℕ}
     have hbi : breakpoint ρ ε i ≤ x := hle i (by omega)
     have hcond : x - breakpoint ρ ε i ≥ 0 := by simp only [ge_iff_le]; linarith
     simp only [thresholdActivation]
-    rw [if_pos hcond, mul_one]
+    rw [ite_eq_left hcond, mul_one]
   rw [stepApprox, ← sum_coeff_eq g ρ ε k, ← Finset.sum_subset hsub hzero]
   exact Finset.sum_congr rfl hone
 

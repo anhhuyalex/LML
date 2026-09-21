@@ -225,8 +225,8 @@ lemma cumulantTransform_subtype [DecidableEq ι] (B : Finset ι) {R : Type*} [Co
   by_cases hB : B = ∅
   · simp [Finpartition.cumulantTransform, hB]
   · -- Expand both sides using the nonempty case of cumulantTransform
-    simp only [Finpartition.cumulantTransform, if_neg hB,
-      if_neg (show (Finset.univ : Finset B) ≠ ∅ by simpa [Finset.univ_eq_attach] using hB)]
+    simp only [Finpartition.cumulantTransform, ite_eq_right hB,
+      ite_eq_right (show (Finset.univ : Finset B) ≠ ∅ by simpa [Finset.univ_eq_attach] using hB)]
     -- Reindex the cumulant sum along the subtype equivalence.  `finpartitionSubtypeEquiv_summand`
     -- shows every summand is transported unchanged, and `Equiv.sum_comp` rewrites the transported
     -- sum back to the sum over partitions of the full subtype.
@@ -963,7 +963,7 @@ lemma cumulantTransform_fin_four_of_singleton_vanish (f : Finset (Fin 4) → ℝ
       - f {0, 2} * f {1, 3}
       - f {0, 3} * f {1, 2} := by
   -- `Fin 4` is nonempty, so the transform is the plain sum over all partitions
-  rw [Finpartition.cumulantTransform, if_neg finFour_univ_ne_empty]
+  rw [Finpartition.cumulantTransform, ite_eq_right finFour_univ_ne_empty]
   -- Step 1: partitions with a singleton block contribute zero (`f {i} = 0`)
   have hzero : ∀ P ∈ (Finset.univ.filter fun P : Finpartition (Finset.univ : Finset (Fin 4)) ↦
       ¬ ∀ i : Fin 4, ({i} : Finset (Fin 4)) ∉ P.parts),
@@ -1147,7 +1147,7 @@ lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
   let rest : R := ∏ B ∈ P.parts.erase a, g B
   have hf : P.blockProduct f = (g a + h a) * rest := by
     rw [Finpartition.blockProduct_eq_part_mul_rest P f i, h_add a]
-    rw [if_pos hi_mem_a]
+    rw [ite_eq_left hi_mem_a]
     congr 1
     apply Finset.prod_congr rfl
     intro B hB
@@ -1179,7 +1179,7 @@ lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing 
   classical
   by_cases huniv : (Finset.univ : Finset ι) = ∅
   · simp [Finpartition.cumulantTransform, huniv]
-  · simp only [Finpartition.cumulantTransform, if_neg huniv]
+  · simp only [Finpartition.cumulantTransform, ite_eq_right huniv]
     rw [← Finset.sum_add_distrib]
     apply Finset.sum_congr rfl
     intro P hP
@@ -1201,7 +1201,7 @@ lemma blockMoment_add_update [DecidableEq ι]
       if hi : i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
       else blockMoment μ X s := by
   by_cases hi : i ∈ s
-  · rw [dif_pos hi]
+  · rw [dite_eq_left hi]
     have hIntX : Integrable (fun ω => X i ω * ∏ j ∈ s.erase i, X j ω) μ := by
       convert hX s using 1
       ext ω
@@ -1254,7 +1254,7 @@ lemma blockMoment_add_update [DecidableEq ι]
               have hj_ne : j ≠ i := (Finset.mem_erase.mp hj).1
               simp [hj_ne]
   · dsimp [blockMoment]
-    rw [if_neg hi]
+    rw [ite_eq_right hi]
     congr 1
     ext ω
     apply Finset.prod_congr rfl
@@ -1328,7 +1328,7 @@ lemma cumulantTransform_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing
   classical
   by_cases huniv : (Finset.univ : Finset ι) = ∅
   · simp [Finpartition.cumulantTransform, huniv]
-  · simp only [Finpartition.cumulantTransform, if_neg huniv]
+  · simp only [Finpartition.cumulantTransform, ite_eq_right huniv]
     rw [show (∑ P : Finpartition (Finset.univ : Finset ι),
           (P.cumulantCoefficient : R) * P.blockProduct (fun s => if i ∈ s then c * f s else f s)) =
         (∑ P : Finpartition (Finset.univ : Finset ι),
@@ -1348,7 +1348,7 @@ lemma blockMoment_smul_update [DecidableEq ι]
       else blockMoment μ X s := by
   dsimp [blockMoment]
   by_cases hi : i ∈ s
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     rw [blockMoment_eq_integral_mul_prod_erase (Function.update X i (c • X i)) i s hi,
         blockMoment_eq_integral_mul_prod_erase X i s hi]
     calc
@@ -1368,7 +1368,7 @@ lemma blockMoment_smul_update [DecidableEq ι]
             congr 1
             ext ω
             simp [smul_eq_mul, mul_assoc]
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     exact blockMoment_update_not_mem X i (c • X i) s hi
 
 /-- Joint cumulants are homogeneous in one argument.
@@ -1741,7 +1741,7 @@ private lemma split_cumulantTransform_mul_empty [DecidableEq ι] {R : Type*} [Co
   classical
   by_cases hu_empty : u = ∅
   · simp [Finpartition.cumulantTransform, hu_empty]
-  · simp only [Finpartition.cumulantTransform, if_neg hu_empty]
+  · simp only [Finpartition.cumulantTransform, ite_eq_right hu_empty]
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro P hP
@@ -2320,7 +2320,7 @@ noncomputable def partOfMax (P : Finpartition (Finset.univ : Finset (Fin n))) (v
 lemma partOfMax_mem (P : Finpartition (Finset.univ : Finset (Fin n))) {v : Fin n}
     (hv : v ∈ (P.parts.attach.image (maxOfPart P))) : partOfMax P v ∈ P.parts := by
   dsimp [partOfMax]
-  rw [dif_pos hv]
+  rw [dite_eq_left hv]
   exact (Classical.choose (Finset.mem_image.mp hv)).2
 
 /-- `partOfMax` is a right inverse of `maxOfPart` on the image. -/
@@ -2331,7 +2331,7 @@ lemma partOfMax_maxOfPart (P : Finpartition (Finset.univ : Finset (Fin n))) {v :
       Classical.choose (Finset.mem_image.mp hv) := by
     apply Subtype.ext
     dsimp [partOfMax]
-    rw [dif_pos hv]
+    rw [dite_eq_left hv]
   simpa [hsub] using (Classical.choose_spec (Finset.mem_image.mp hv)).2
 
 /-- `partOfMax` is a left inverse of `maxOfPart` on the parts. -/

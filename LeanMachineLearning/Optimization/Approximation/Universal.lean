@@ -114,11 +114,11 @@ theorem cos_mul_mem (f₁ f₂ : (EuclideanSpace ℝ (Fin d)) → ℝ)
             (if s = 0 then net₁.biases i + net₂.biases j else net₁.biases i - net₂.biases j) x
           = if s = 0 then a i + b j else a i - b j := by
       by_cases hs : s = 0
-      · rw [if_pos hs, if_pos hs, hs]
+      · rw [ite_eq_left hs, ite_eq_left hs, hs]
         simpa [a, b] using
           (OneHiddenLayer.affineMap_add (net₁.weights i) (net₂.weights j)
             (net₁.biases i) (net₂.biases j) x)
-      · rw [if_neg hs, if_neg hs]
+      · rw [ite_eq_right hs, ite_eq_right hs]
         simpa [a, b, hs] using
           (OneHiddenLayer.affineMap_sub (net₁.weights i) (net₂.weights j)
             (net₁.biases i) (net₂.biases j) x)

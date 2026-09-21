@@ -430,7 +430,7 @@ theorem covariance_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (�
     have hvar : Var[id; Measure.map X (layerGaussianInit p ι κ)] = (p.biasVariance : ℝ) := by
       rw [hmapX]
       exact variance_id_gaussianReal
-    rw [hvar, if_pos rfl]
+    rw [hvar, ite_eq_left rfl]
   · let X : LayerParams ι κ → ℝ := fun q => q.2 j
     let Y : LayerParams ι κ → ℝ := fun q => q.2 j'
     have hX : AEMeasurable X (layerGaussianInit p ι κ) :=
@@ -474,7 +474,7 @@ theorem covariance_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) 
         (scaledWeightVariance p ι : ℝ) := by
       rw [hmapX]
       exact variance_id_gaussianReal
-    rw [hvar, if_pos ⟨rfl, rfl⟩]
+    rw [hvar, ite_eq_left ⟨rfl, rfl⟩]
   · let X : LayerParams ι κ → ℝ := fun q => q.1 j i
     let Y : LayerParams ι κ → ℝ := fun q => q.1 j' i'
     have hX : AEMeasurable X (layerGaussianInit p ι κ) :=

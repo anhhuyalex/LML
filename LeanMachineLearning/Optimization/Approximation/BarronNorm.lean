@@ -366,7 +366,7 @@ private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
             rw [norm_eq_zero.mp hw, inner_zero_left],
             Complex.ofReal_zero, mul_zero, Complex.exp_zero, sub_self],
         zero_mul, Complex.zero_re]
-    rw [barronCosineBump, if_pos hw, zero_mul]
+    rw [barronCosineBump, ite_eq_left hw, zero_mul]
   · -- Step 1: Prove polar decomposition of the Fourier transform
     have h_polar := fourierTransform_polar f w
     -- Step 2: Simplify the real part of the integrand in the Fourier inversion formula
@@ -404,7 +404,7 @@ private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
     -- Conclude the main goal by substitution
     rw [h_polar]
     unfold barronCosineBump barronIntegrand
-    rw [if_neg hw, h_LHS, h_RHS]
+    rw [ite_eq_right hw, h_LHS, h_RHS]
 
 -- A cosine bump can be represented as an integral against a threshold activation:
 -- for any w, θ, x there exists g such that barronCosineBump w θ x = ∫ b, σ(⟨w,x⟩ - b) · g(b) db.
@@ -629,7 +629,7 @@ private lemma barronCosineBump_sin_repr_pos {d : ℕ}
       _ = ∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖) := by simp
       _ = (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) := h_ftc
       _ = barronCosineBump w θ x := by
-        rw [barronCosineBump, if_neg hw0, ha_def]
+        rw [barronCosineBump, ite_eq_right hw0, ha_def]
   exact hgoal
 
 private lemma barronCosineBump_sin_repr_neg {d : ℕ}
@@ -699,7 +699,7 @@ private lemma barronCosineBump_sin_repr_neg {d : ℕ}
       _ = ∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖) := by simp
       _ = (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) := h_ftc
       _ = barronCosineBump w θ x := by
-        rw [barronCosineBump, if_neg hw0, ha_def]
+        rw [barronCosineBump, ite_eq_right hw0, ha_def]
   exact hgoal
 
 -- A cosine bump can also be represented as an integral against a threshold activation
@@ -719,7 +719,7 @@ private lemma barronCosineBump_sin_repr {d : ℕ}
   · -- Case ‖w‖ = 0: both sides are 0 (division by 0 yields 0, integrals over {0} are 0)
     have hbar : barronCosineBump w θ x = 0 := by
       unfold barronCosineBump
-      rw [if_pos hw0]
+      rw [ite_eq_left hw0]
     have hRHS : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
         thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
