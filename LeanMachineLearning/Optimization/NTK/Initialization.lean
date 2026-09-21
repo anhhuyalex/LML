@@ -529,6 +529,55 @@ lemma indepFun_input_readout (n d : ℕ) :
 
 end Preliminaries
 
+section GaussianVectorAlgebra
+
+/-! ## Gaussian Vector Algebra (Propositions 2.8-2.10) -/
+
+/-- **Proposition 2.8 (Linear Transformations of Gaussian Vectors)**:
+If `g ~ 𝒩(μ, S)` on `EuclideanSpace ℝ ι` and `A` is a deterministic `κ × ι` matrix, then the
+linear image `A g` is again Gaussian: `A g ~ 𝒩(A μ, A S Aᵀ)`. -/
+theorem gaussian_map_mulVec {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Fintype κ] [DecidableEq κ]
+    (μ : EuclideanSpace ℝ ι) (S : Matrix ι ι ℝ) (hS : S.PosSemidef) (A : Matrix κ ι ℝ) :
+    Measure.map (fun x : EuclideanSpace ℝ ι => WithLp.toLp 2 (A *ᵥ x.ofLp))
+        (multivariateGaussian μ S) =
+      multivariateGaussian (WithLp.toLp 2 (A *ᵥ μ.ofLp)) (A * S * Aᵀ) := by
+  have hAST : (A * S * Aᵀ).PosSemidef := by simpa using hS.mul_mul_conjTranspose_same A
+  set F := fun x : EuclideanSpace ℝ ι => WithLp.toLp 2 (A *ᵥ x.ofLp) with hF_def
+  have hF_cont : Continuous F := by
+    apply (PiLp.continuous_toLp 2 _).comp
+    exact continuous_pi fun k => continuous_finset_sum _ fun j _ =>
+      continuous_const.mul (PiLp.continuous_apply 2 _ j)
+  have h_inner_apply : ∀ (a b : EuclideanSpace ℝ ι), ⟪a, b⟫ = a.ofLp ⬝ᵥ b.ofLp := by
+    intro a b
+    simp only [PiLp.inner_apply, RCLike.inner_apply', conj_trivial, dotProduct]
+  apply Measure.ext_of_charFun
+  ext t
+  rw [charFun_apply, integral_map hF_cont.measurable.aemeasurable (by fun_prop)]
+  have h_inner : ∀ x : EuclideanSpace ℝ ι, ⟪F x, t⟫ = x.ofLp ⬝ᵥ (Aᵀ *ᵥ t.ofLp) := by
+    intro x
+    rw [real_inner_comm, h_inner_apply]
+    show t.ofLp ⬝ᵥ (A *ᵥ x.ofLp) = x.ofLp ⬝ᵥ (Aᵀ *ᵥ t.ofLp)
+    rw [dotProduct_mulVec, ← mulVec_transpose, dotProduct_comm]
+  simp_rw [h_inner]
+  have h_as_charFun : (∫ x : EuclideanSpace ℝ ι,
+      Complex.exp ((x.ofLp ⬝ᵥ (Aᵀ *ᵥ t.ofLp) : ℝ) * Complex.I) ∂(multivariateGaussian μ S)) =
+      charFun (multivariateGaussian μ S) (WithLp.toLp 2 (Aᵀ *ᵥ t.ofLp)) := by
+    rw [charFun_apply]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun x => ?_)
+    rw [h_inner_apply]
+  rw [h_as_charFun, charFun_multivariateGaussian hS, charFun_multivariateGaussian hAST]
+  have h_mean : ⟪(WithLp.toLp 2 (Aᵀ *ᵥ t.ofLp) : EuclideanSpace ℝ ι), μ⟫ =
+      ⟪t, (WithLp.toLp 2 (A *ᵥ μ.ofLp) : EuclideanSpace ℝ κ)⟫ := by
+    rw [h_inner_apply, h_inner_apply]
+    show (Aᵀ *ᵥ t.ofLp) ⬝ᵥ μ.ofLp = t.ofLp ⬝ᵥ (A *ᵥ μ.ofLp)
+    rw [← mulVec_transpose, dotProduct_comm, dotProduct_mulVec, dotProduct_comm]
+  have h_quad : (Aᵀ *ᵥ t.ofLp) ⬝ᵥ S *ᵥ (Aᵀ *ᵥ t.ofLp) = t.ofLp ⬝ᵥ (A * S * Aᵀ) *ᵥ t.ofLp := by
+    simp only [dotProduct_mulVec, ← mulVec_mulVec, ← mulVec_transpose, mulVec_mulVec]
+    rw [dotProduct_comm]
+  rw [h_mean, h_quad]
+
+end GaussianVectorAlgebra
+
 section Theorem1
 
 /-! ## Theorem 1: Exact Finite-Width Conditional Normality -/
@@ -2799,6 +2848,44 @@ theorem limitingRecurrence_relu_bivariate
         (Real.sqrt (1 - ρ ^ 2) + ρ * (Real.pi / 2 + Real.arcsin ρ))) := by
   intro ρ
   rw [expected_relu_mul_relu_bivariate Φαα Φββ Φαβ hΦαα hΦββ hSigma]
+
+/-! ### Arc-Cosine Kernel Representation (Cho & Saul) -/
+
+/-- **Connection to Arc-Cosine Kernel Geometry (Cho & Saul)**:
+with `θ := arccos ρ ∈ [0, π]`, Proposition 2.5's derivative kernel is exactly half of the
+0-th order arc-cosine kernel `J₀(θ) = (1/π) * (π - θ)`. -/
+theorem expected_reluDeriv_mul_reluDeriv_bivariate_eq_arcCosineJ0
+    (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
+    (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
+    let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
+    ∫ z : EuclideanSpace ℝ (Fin 2), reluDeriv (z.ofLp 0) * reluDeriv (z.ofLp 1)
+      ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
+      (1 / 2) * ((1 / Real.pi) * (Real.pi - Real.arccos ρ)) := by
+  intro ρ
+  rw [expected_reluDeriv_mul_reluDeriv_bivariate Φαα Φββ Φαβ hΦαα hΦββ hSigma,
+    ← div_two_pi_pi_sub_arccos_eq_arcsin ρ]
+  ring
+
+/-- **Connection to Arc-Cosine Kernel Geometry (Cho & Saul)**:
+with `θ := arccos ρ ∈ [0, π]`, Proposition 2.5's activation kernel is exactly
+`(√(Φαα * Φββ) / 2) * J₁(θ)` for the 1-st order arc-cosine kernel
+`J₁(θ) = (1/π) * (sin θ + (π - θ) * cos θ)`. -/
+theorem expected_relu_mul_relu_bivariate_eq_arcCosineJ1
+    (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
+    (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
+    let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
+    ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
+      ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
+      (Real.sqrt (Φαα * Φββ) / 2) * ((1 / Real.pi) * (Real.sin (Real.arccos ρ) +
+        (Real.pi - Real.arccos ρ) * Real.cos (Real.arccos ρ))) := by
+  intro ρ
+  have hρ : ρ ∈ Set.Icc (-1) 1 := pearsonRho_mem_Icc Φαα Φββ Φαβ hΦαα hΦββ hSigma
+  rw [expected_relu_mul_relu_bivariate Φαα Φββ Φαβ hΦαα hΦββ hSigma,
+    Real.cos_arccos hρ.1 hρ.2, Real.sin_arccos]
+  have hangle : Real.pi - Real.arccos ρ = Real.pi / 2 + Real.arcsin ρ := by
+    rw [Real.arccos_eq_pi_div_two_sub_arcsin]; ring
+  rw [hangle]
+  ring
 
 end ChoSaulArcCosineKernel
 
