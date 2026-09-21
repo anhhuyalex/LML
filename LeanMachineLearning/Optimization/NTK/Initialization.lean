@@ -74,6 +74,12 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
   * Compact subset $K \subset \mathbb{R}^{n_0}$ and Banach space
     $C(K) = \{g: K \to \mathbb{R} \mid g \text{ continuous}\}$ equipped with supremum norm
     (Mathlib's `C(K, ℝ)` via `ContinuousMap.Compact`).
+  * The general depth-$d$ recursive network notation ($h_1^\alpha, h_{\ell+1}^\alpha$,
+    the limiting recursion $\boldsymbol{\Phi}_\ell$, the covariance operator
+    $\mathcal{C}_\varphi$, and the filtration $\mathcal{F}_\ell$) is not yet formalized: this
+    file only proves facts about the two-layer network above and the single-layer transition
+    of `MultilayerSequentialNNGP`. That deeper scaffolding is deferred until a theorem that
+    actually needs the full $d$-layer recursion is formalized.
 
 * **Definition 2.2 (Gaussian Process)**:
   A random function $f : \mathbb{R}^{n_0} \to \mathbb{R}$ on $(\Omega, \Sigma, \mathbb{P})$
@@ -298,6 +304,33 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
     `NTK.expected_relu_mul_relu_standardized`, `NTK.div_two_pi_pi_sub_arccos_eq_arcsin`).
   * Step 4: Final scaling assembly.
 
+* **Connection to Arc-Cosine Kernel Geometry (Cho & Saul)**:
+  With $\theta := \arccos(\rho) \in [0, \pi]$, Proposition 2.5's two kernels rewrite exactly as
+  half of the order-0 and order-1 arc-cosine kernels:
+  $$J_0(\theta) := \frac{1}{\pi}(\pi - \theta), \qquad
+    J_1(\theta) := \frac{1}{\pi}\left(\sin\theta + (\pi - \theta)\cos\theta\right)$$
+  $$\mathbb{E}[\varphi'(h^\alpha)\varphi'(h^\beta)] = \frac{1}{2}J_0(\theta)
+    \quad\text{(`NTK.expected_reluDeriv_mul_reluDeriv_bivariate_eq_arcCosineJ0`)}$$
+  $$\mathbb{E}[\varphi(h^\alpha)\varphi(h^\beta)] =
+    \frac{\sqrt{\Phi^{\alpha\alpha}\Phi^{\beta\beta}}}{2}J_1(\theta)
+    \quad\text{(`NTK.expected_relu_mul_relu_bivariate_eq_arcCosineJ1`)}$$
+  Both are proved as trigonometric rewrites of the already-established $\rho$-form of
+  Proposition 2.5, with no new probabilistic content.
+
+* **Propositions 2.8-2.10 (Gaussian Vector Algebra)**:
+  General, non-NTK-specific facts about Gaussian vectors under linear maps, underlying the
+  conditional-normality arguments used throughout Theorem 1 and `MultilayerSequentialNNGP`:
+  * Proposition 2.8: a linear image `A g` of a Gaussian vector `g ~ 𝒩(μ, S)` is again Gaussian,
+    `A g ~ 𝒩(A μ, A S Aᵀ)` (`NTK.gaussian_map_mulVec`).
+  * Proposition 2.9: for `g ~ 𝒩(0, I_n)` and fixed `u, v : Fin n → ℝ`, the joint law of
+    `(⟪g,u⟫, ⟪g,v⟫)` is the bivariate Gaussian with covariance
+    `!![u⬝ᵥu, u⬝ᵥv; u⬝ᵥv, v⬝ᵥv]` (`NTK.stdGaussian_inner_pair`), proved as a corollary of
+    Proposition 2.8.
+  * Proposition 2.10: for a matrix `W` with i.i.d. standard Gaussian entries, the row-indexed
+    family `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v)` consists of `n` i.i.d. copies of Proposition 2.9's
+    bivariate Gaussian (`NTK.gaussianMatrix_mulVec_pair`), proved by pushing the row-product
+    measure `gaussianInit n n` forward row-by-row via `Measure.pi_map_pi`.
+
 ## Main definitions and theorems
 
 * **Preliminaries and Initialization Probability Space**:
@@ -315,6 +348,16 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
       (\bigotimes_{i=1}^n \mathcal{N}(0, 1))$.
   * `NTK.indepFun_input_readout` : mutual independence of input weights $\mathbf{W}$ and
     readout weights $a$.
+
+* **Gaussian Vector Algebra (Propositions 2.8-2.10)**:
+  * `NTK.inner_eq_dotProduct_ofLp` : the real `EuclideanSpace` inner product is the `dotProduct`
+    of the underlying coordinate functions.
+  * `NTK.gaussian_map_mulVec` : Proposition 2.8, `A g ~ 𝒩(A μ, A S Aᵀ)` for a linear image of a
+    Gaussian vector.
+  * `NTK.stdGaussian_inner_pair` : Proposition 2.9, the joint law of `(⟪g,u⟫, ⟪g,v⟫)` for
+    `g ~ 𝒩(0, I_n)`.
+  * `NTK.gaussianMatrix_mulVec_pair` : Proposition 2.10, the row-indexed joint law of
+    `(W ⬝ᵥ u, W ⬝ᵥ v)` for an i.i.d. Gaussian matrix `W`.
 
 * **Theorem 1: Exact Finite-Width Conditional Normality**:
   * `NTK.psi` : projection coefficients
@@ -399,6 +442,10 @@ recurrence convergence, and Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for Re
       \rho(\frac{\pi}{2}+\arcsin(\rho)))$.
   * `NTK.limitingRecurrence_relu_bivariate` : closed-form evaluation of the bivariate limiting
     recurrence for ReLU.
+  * `NTK.expected_reluDeriv_mul_reluDeriv_bivariate_eq_arcCosineJ0` : the derivative kernel as
+    `(1/2) J₀(arccos ρ)`, the order-0 arc-cosine kernel of Cho & Saul.
+  * `NTK.expected_relu_mul_relu_bivariate_eq_arcCosineJ1` : the activation kernel as
+    `(√(Φαα Φββ)/2) J₁(arccos ρ)`, the order-1 arc-cosine kernel of Cho & Saul.
 -/
 
 @[expose] public section
@@ -533,6 +580,12 @@ section GaussianVectorAlgebra
 
 /-! ## Gaussian Vector Algebra (Propositions 2.8-2.10) -/
 
+/-- The real inner product on any finite-dimensional `EuclideanSpace` is the `dotProduct` of the
+underlying coordinate functions. -/
+lemma inner_eq_dotProduct_ofLp {γ : Type*} [Fintype γ] (a b : EuclideanSpace ℝ γ) :
+    ⟪a, b⟫ = a.ofLp ⬝ᵥ b.ofLp := by
+  simp only [PiLp.inner_apply, RCLike.inner_apply', conj_trivial, dotProduct]
+
 /-- **Proposition 2.8 (Linear Transformations of Gaussian Vectors)**:
 If `g ~ 𝒩(μ, S)` on `EuclideanSpace ℝ ι` and `A` is a deterministic `κ × ι` matrix, then the
 linear image `A g` is again Gaussian: `A g ~ 𝒩(A μ, A S Aᵀ)`. -/
@@ -545,18 +598,14 @@ theorem gaussian_map_mulVec {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Finty
   set F := fun x : EuclideanSpace ℝ ι => WithLp.toLp 2 (A *ᵥ x.ofLp) with hF_def
   have hF_cont : Continuous F := by
     apply (PiLp.continuous_toLp 2 _).comp
-    exact continuous_pi fun k => continuous_finset_sum _ fun j _ =>
+    exact continuous_pi fun k => continuous_finsetSum _ fun j _ =>
       continuous_const.mul (PiLp.continuous_apply 2 _ j)
-  have h_inner_apply : ∀ (a b : EuclideanSpace ℝ ι), ⟪a, b⟫ = a.ofLp ⬝ᵥ b.ofLp := by
-    intro a b
-    simp only [PiLp.inner_apply, RCLike.inner_apply', conj_trivial, dotProduct]
   apply Measure.ext_of_charFun
   ext t
   rw [charFun_apply, integral_map hF_cont.measurable.aemeasurable (by fun_prop)]
   have h_inner : ∀ x : EuclideanSpace ℝ ι, ⟪F x, t⟫ = x.ofLp ⬝ᵥ (Aᵀ *ᵥ t.ofLp) := by
     intro x
-    rw [real_inner_comm, h_inner_apply]
-    show t.ofLp ⬝ᵥ (A *ᵥ x.ofLp) = x.ofLp ⬝ᵥ (Aᵀ *ᵥ t.ofLp)
+    rw [real_inner_comm, inner_eq_dotProduct_ofLp]
     rw [dotProduct_mulVec, ← mulVec_transpose, dotProduct_comm]
   simp_rw [h_inner]
   have h_as_charFun : (∫ x : EuclideanSpace ℝ ι,
@@ -564,17 +613,76 @@ theorem gaussian_map_mulVec {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Finty
       charFun (multivariateGaussian μ S) (WithLp.toLp 2 (Aᵀ *ᵥ t.ofLp)) := by
     rw [charFun_apply]
     refine integral_congr_ae (Filter.Eventually.of_forall fun x => ?_)
-    rw [h_inner_apply]
+    simp only [inner_eq_dotProduct_ofLp]
   rw [h_as_charFun, charFun_multivariateGaussian hS, charFun_multivariateGaussian hAST]
   have h_mean : ⟪(WithLp.toLp 2 (Aᵀ *ᵥ t.ofLp) : EuclideanSpace ℝ ι), μ⟫ =
       ⟪t, (WithLp.toLp 2 (A *ᵥ μ.ofLp) : EuclideanSpace ℝ κ)⟫ := by
-    rw [h_inner_apply, h_inner_apply]
-    show (Aᵀ *ᵥ t.ofLp) ⬝ᵥ μ.ofLp = t.ofLp ⬝ᵥ (A *ᵥ μ.ofLp)
-    rw [← mulVec_transpose, dotProduct_comm, dotProduct_mulVec, dotProduct_comm]
+    rw [inner_eq_dotProduct_ofLp, inner_eq_dotProduct_ofLp]
+    conv_rhs => rw [dotProduct_mulVec, ← mulVec_transpose]
   have h_quad : (Aᵀ *ᵥ t.ofLp) ⬝ᵥ S *ᵥ (Aᵀ *ᵥ t.ofLp) = t.ofLp ⬝ᵥ (A * S * Aᵀ) *ᵥ t.ofLp := by
-    simp only [dotProduct_mulVec, ← mulVec_mulVec, ← mulVec_transpose, mulVec_mulVec]
-    rw [dotProduct_comm]
+    conv_rhs => rw [← mulVec_mulVec, ← mulVec_mulVec, dotProduct_mulVec, ← mulVec_transpose]
   rw [h_mean, h_quad]
+
+/-- **Proposition 2.9 (Inner Products with a Standard Gaussian Vector)**:
+For `g ~ 𝒩(0, I_n)` (`gaussianReadoutMeasure n`) and fixed deterministic vectors `u v : Fin n → ℝ`,
+the joint law of the pair of projections `(⟪g,u⟫, ⟪g,v⟫) = (g ⬝ᵥ u, g ⬝ᵥ v)` is the bivariate
+Gaussian with covariance matrix `!![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v]`. -/
+theorem stdGaussian_inner_pair (n : ℕ) (u v : Fin n → ℝ) :
+    Measure.map (fun a : Fin n → ℝ => WithLp.toLp 2 (![a ⬝ᵥ u, a ⬝ᵥ v] : Fin 2 → ℝ))
+        (gaussianReadoutMeasure n) =
+      multivariateGaussian 0 !![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v] := by
+  set A : Matrix (Fin 2) (Fin n) ℝ := Matrix.of ![u, v] with hA_def
+  have hA_mulVec : ∀ a : Fin n → ℝ, A *ᵥ a = ![a ⬝ᵥ u, a ⬝ᵥ v] := by
+    intro a
+    ext i
+    fin_cases i <;> simp [A, mulVec, dotProduct, mul_comm]
+  have hF_eq : (fun a : Fin n → ℝ => WithLp.toLp 2 (![a ⬝ᵥ u, a ⬝ᵥ v] : Fin 2 → ℝ)) =
+      (fun x : EuclideanSpace ℝ (Fin n) => WithLp.toLp 2 (A *ᵥ x.ofLp)) ∘ (WithLp.toLp 2) := by
+    ext a
+    simp [hA_mulVec]
+  have hSpos : (1 : Matrix (Fin n) (Fin n) ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h_map := gaussian_map_mulVec (0 : EuclideanSpace ℝ (Fin n)) 1 hSpos A
+  rw [hF_eq, ← Measure.map_map (by fun_prop) (by fun_prop)]
+  have h_toLp : Measure.map (WithLp.toLp 2) (gaussianReadoutMeasure n) =
+      multivariateGaussian (0 : EuclideanSpace ℝ (Fin n)) 1 := by
+    rw [map_pi_eq_stdGaussian, multivariateGaussian_zero_one]
+  rw [h_toLp, h_map]
+  have h_mean0 : A *ᵥ (0 : EuclideanSpace ℝ (Fin n)).ofLp = (0 : Fin 2 → ℝ) := by simp
+  have h_cov : A * (1 : Matrix (Fin n) (Fin n) ℝ) * Aᵀ =
+      !![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v] := by
+    rw [Matrix.mul_one]
+    ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [A, Matrix.mul_apply, Matrix.transpose_apply, dotProduct, mul_comm]
+  rw [h_mean0, h_cov]
+  simp
+
+/-- **Proposition 2.10 (Matrix-Vector Multiplication by a Gaussian Matrix)**:
+For `W : Fin n → Fin n → ℝ` with i.i.d. standard Gaussian entries (`gaussianInit n n`) and fixed
+deterministic vectors `u v : Fin n → ℝ`, the joint law of the row-indexed pairs
+`i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v) = i ↦ ((W *ᵥ u) i, (W *ᵥ v) i)` consists of `n` i.i.d. copies of the
+bivariate Gaussian from Proposition 2.9, i.e. the block/Kronecker-structured covariance
+`!![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v] ⊗ Iₙ`. -/
+theorem gaussianMatrix_mulVec_pair (n : ℕ) (u v : Fin n → ℝ) :
+    Measure.map
+      (fun W : Fin n → Fin n → ℝ =>
+        fun i : Fin n => WithLp.toLp 2 (![W i ⬝ᵥ u, W i ⬝ᵥ v] : Fin 2 → ℝ))
+      (gaussianInit n n) =
+      Measure.pi (fun _ : Fin n => multivariateGaussian 0 !![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v]) := by
+  have h_init_eq : gaussianInit n n = Measure.pi (fun _ : Fin n => gaussianReadoutMeasure n) := rfl
+  set f := fun a : Fin n → ℝ => WithLp.toLp 2 (![a ⬝ᵥ u, a ⬝ᵥ v] : Fin 2 → ℝ) with hf_def
+  have hf_cont : Continuous f := by
+    apply (PiLp.continuous_toLp 2 _).comp
+    refine continuous_pi fun k => ?_
+    fin_cases k <;> fun_prop
+  have hf_meas : Measurable f := hf_cont.measurable
+  have hσ : ∀ i : Fin n, SigmaFinite ((gaussianReadoutMeasure n).map f) := fun i => by
+    rw [hf_def, stdGaussian_inner_pair]; infer_instance
+  rw [h_init_eq, Measure.pi_map_pi (μ := fun _ : Fin n => gaussianReadoutMeasure n)
+    (f := fun _ : Fin n => f) (fun _ => hf_meas.aemeasurable)]
+  congr 1
+  funext i
+  exact stdGaussian_inner_pair n u v
 
 end GaussianVectorAlgebra
 
