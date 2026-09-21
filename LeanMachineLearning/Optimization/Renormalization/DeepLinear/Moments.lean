@@ -2108,7 +2108,7 @@ private lemma integral_mul_oneLayerBatchLaw_eq_sum_cov {A : Type uA} {ι : Type 
             by_cases hij : i = j
             · subst j
               rw [← hsvS]
-              simp only [true_and, if_true]
+              simp only [true_and, ite_true]
               have hdiag :
                   (∑ p : ι, ∑ p' : ι, (D a p * D b p') * (if p = p' then sv else 0)) =
                     sv * (∑ p : ι, D a p * D b p) := by
@@ -2554,14 +2554,14 @@ lemma integral_mul_batchOutputLaw {A : Type uA}
                 ∂oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D else 0 := by
               by_cases hij : i = j
               · subst j
-                simp only [if_true]
+                simp only [ite_true]
                 rw [MeasureTheory.integral_const_mul]
               · simp [hij]
         _ = if i = j then (Cw : ℝ) ^ tail.depth * ((Cw : ℝ) * NeuralNetwork.normalizedGram D a b)
             else 0 := by
               by_cases hij : i = j
               · subst j
-                simp only [if_true]
+                simp only [ite_true]
                 congr 1
                 rw [integral_normalizedGram_oneLayerBatchLaw Cw D a b hk]
               · simp [hij]
@@ -2569,7 +2569,7 @@ lemma integral_mul_batchOutputLaw {A : Type uA}
             else 0 := by
               by_cases hij : i = j
               · subst j
-                simp only [if_true]
+                simp only [ite_true]
                 rw [pow_succ]
                 ring
               · simp [hij]

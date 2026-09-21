@@ -413,7 +413,8 @@ private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (
     ext B
     constructor
     · intro hB
-      rw [Finpartition.top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅), Finset.mem_singleton]
+      rw [Finpartition.top_parts_eq_singleton (by simp : ({x, y} : Finset α) ≠ ∅),
+        Finset.mem_singleton]
       by_contra hB_ne
       have hB_sub : B ⊆ ({x, y} : Finset α) := P.le hB
       have hB_card_le : B.card ≤ 2 := by simpa [hxy] using Finset.card_le_card hB_sub
@@ -1127,7 +1128,8 @@ theorem jointCumulant_perm [Fintype ι] [DecidableEq ι] [Fintype κ] [Decidable
   ext s
   rw [blockMoment_map_equiv]
 
-lemma Finpartition.blockProduct_eq_part_mul_rest [Fintype ι] [DecidableEq ι] {R : Type*} [CommMonoid R]
+lemma Finpartition.blockProduct_eq_part_mul_rest [Fintype ι] [DecidableEq ι]
+    {R : Type*} [CommMonoid R]
     (P : Finpartition (Finset.univ : Finset ι)) (f : Finset ι → R) (i : ι) :
     P.blockProduct f = f (P.part i) * ∏ B ∈ P.parts.erase (P.part i), f B := by
   dsimp [Finpartition.blockProduct]
@@ -1198,10 +1200,10 @@ lemma blockMoment_add_update [DecidableEq ι]
     (hY : HasFiniteJointMoments μ (Function.update X i Y))
     (s : Finset ι) :
     blockMoment μ (Function.update X i (X i + Y)) s =
-      if hi : i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
+      if i ∈ s then blockMoment μ X s + blockMoment μ (Function.update X i Y) s
       else blockMoment μ X s := by
   by_cases hi : i ∈ s
-  · rw [dite_eq_left hi]
+  · rw [ite_eq_left hi]
     have hIntX : Integrable (fun ω => X i ω * ∏ j ∈ s.erase i, X j ω) μ := by
       convert hX s using 1
       ext ω
@@ -1344,7 +1346,7 @@ lemma blockMoment_smul_update [DecidableEq ι]
     (X : ι → Ω → ℝ) (i : ι) (c : ℝ)
     (s : Finset ι) :
     blockMoment μ (Function.update X i (c • X i)) s =
-      if hi : i ∈ s then c * blockMoment μ X s
+      if i ∈ s then c * blockMoment μ X s
       else blockMoment μ X s := by
   dsimp [blockMoment]
   by_cases hi : i ∈ s
@@ -1352,11 +1354,13 @@ lemma blockMoment_smul_update [DecidableEq ι]
     rw [blockMoment_eq_integral_mul_prod_erase (Function.update X i (c • X i)) i s hi,
         blockMoment_eq_integral_mul_prod_erase X i s hi]
     calc
-      ∫ ω, (Function.update X i (c • X i)) i ω * ∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω ∂μ
+      ∫ ω, (Function.update X i (c • X i)) i ω *
+          ∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω ∂μ
           = ∫ ω, (c • X i ω) * ∏ j ∈ s.erase i, X j ω ∂μ := by
             congr 1
             ext ω
-            have hrest : (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) = ∏ j ∈ s.erase i, X j ω := by
+            have hrest : (∏ j ∈ s.erase i, (Function.update X i (c • X i)) j ω) =
+                ∏ j ∈ s.erase i, X j ω := by
               apply Finset.prod_congr rfl
               intro j hj
               simp [(Finset.mem_erase.mp hj).1]

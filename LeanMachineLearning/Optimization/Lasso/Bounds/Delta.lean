@@ -837,7 +837,7 @@ private lemma rescaled_mirror_upper_bound
     have hM_symm : M.IsSymm := hdata.psd.symm
     -- Step 1: Handle the case where ι is empty (then the goal is vacuously true)
     by_cases h_nonempty : Nonempty ι
-    · haveI := h_nonempty
+    · have := h_nonempty
       -- Step 2: Define the constant C_w (now safe with Nonempty)
       set r_max := ⨆ i, |r i|
       set M_row_max := ⨆ i, ∑ j, |M i j|
