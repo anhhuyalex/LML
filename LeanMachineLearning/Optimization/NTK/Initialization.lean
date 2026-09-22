@@ -27,6 +27,7 @@ public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
 public import Mathlib.LinearAlgebra.Matrix.Kronecker
 public import Mathlib.Analysis.Matrix.Order
 public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
+public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Probability.Independence.CharacteristicFunction
 
 /-!
@@ -521,13 +522,11 @@ are declared in this module.
     `NTK.tendsto_integral_of_tendstoInMeasure_of_bounded` : general-purpose
     convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence)
     missing from Mathlib's `ConvergenceInMeasure` API, needed by the theorems below.
-  * `NTK.continuousAt_covarianceMap` : continuity of the covariance-update map $\mathcal{C}_\varphi$
-    on all of $\mathcal{S}_+^m$. **Currently `sorry`d** — see its docstring for what is missing and
-    why it should not be narrowed to positive-definite matrices.
+  * `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
+    $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
   * `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in
     probability $\Phi_\ell^{(n)} \xrightarrow{\mathbb{P}} \Phi_\ell$. **Currently `sorry`d** — see
-    its docstring for the induction structure and the two flagged open gaps (one of which is
-    `continuousAt_covarianceMap` above).
+    its docstring for the remaining random-conditional-layer fluctuation argument.
   * `NTK.measurable_deepEval`, `NTK.deepEval_covariance_posSemidef`,
     `NTK.map_deepEval_snd_eq_multivariateGaussian`, `NTK.charFun_map_deepEval`,
     `NTK.norm_charFun_deepEval_le_one`, `NTK.aestronglyMeasurable_charFun_deepEval`,
@@ -2647,9 +2646,8 @@ already inlined throughout `AsymptoticEmpiricalCovariancePropagation`, e.g. in
 gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)` (as in
 `indepFun_deepLayer_history` below).
 
-**The hardest new fact needed below is flagged where it is proved**: continuity of the covariance
-map `K ↦ 𝒞_φ(K) := fun α β => ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)` on all
-of `PosSemidef` (not just positive-definite `K`).  See `continuousAt_covarianceMap` below.
+The covariance update is continuous relative to `PosSemidef`, including the singular boundary;
+see `continuousWithinAt_covarianceMap` below.
 -/
 
 /-! ### Depth-`L` Network Construction -/
@@ -2910,12 +2908,13 @@ open scoped Matrix.Norms.L2Operator
 
 /-- **
 The claim: `K ↦ 𝒞_φ(K) := fun α β => ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)`
-is continuous *at every* `K0 : Matrix (Fin m) (Fin m) ℝ` — in particular at singular /
-rank-deficient `K0`, not only at positive-definite ones. It is needed twice in the Part 1 induction
-below: (i) to turn the inductive hypothesis `Φ_ℓ^{(n)} → Φ_ℓ` (in probability) into
-`𝒞_φ(Φ_ℓ^{(n)}) → 𝒞_φ(Φ_ℓ)` via `tendstoInMeasure_comp_of_continuousAt`, and (ii) to get a
-*uniform* variance bound on a compact neighborhood of `Φ_ℓ` for the Chebyshev step of that same
-induction (extreme value theorem applied to a continuous function on a compact ball).
+is continuous *within the positive-semidefinite cone* at every
+`K0 : Matrix (Fin m) (Fin m) ℝ` in that cone — in particular at singular / rank-deficient `K0`,
+not only at positive-definite ones. The relative formulation is essential: Mathlib deliberately
+defines `multivariateGaussian 0 K` as a Dirac measure for non-PSD `K`, so ambient continuity at a
+nonzero singular PSD matrix would be false. In the Part 1 induction this theorem turns
+`Φ_ℓ^{(n)} → Φ_ℓ` into `𝒞_φ(Φ_ℓ^{(n)}) → 𝒞_φ(Φ_ℓ)` through
+`tendstoInMeasure_comp_of_continuousWithinAt` and the PSD invariant.
 
 **Why this should be true in general, not just for positive-definite `K`**: the underlying
 mathematical fact is standard on the *whole* PSD cone. Mathlib's own
@@ -2989,7 +2988,7 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
   intro α
   rw [continuousWithinAt_pi]
   intro β
-  letI : CompleteSpace (Matrix (Fin m) (Fin m) ℝ) := FiniteDimensional.complete ℝ _
+  let : CompleteSpace (Matrix (Fin m) (Fin m) ℝ) := FiniteDimensional.complete ℝ _
   have hsqrt : ContinuousWithinAt (fun K : Matrix (Fin m) (Fin m) ℝ => CFC.sqrt K)
       {K | K.PosSemidef} K0 := by
     have hsqrt' : ContinuousOn (fun K : Matrix (Fin m) (Fin m) ℝ => CFC.sqrt K)
@@ -4032,6 +4031,131 @@ lemma input_empiricalCovariance_tendstoInMeasure
       (measurable_const : Measurable g)
   simpa [f, g, Z] using htransport
 
+/-- The layer-zero case of the deep covariance recursion.  This is the input empirical-covariance
+transport composed with evaluation of the first independent layer population. -/
+lemma deepEmpiricalCovariance_zero_tendstoInMeasure
+    (d m L : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (X : Fin m → Fin d → ℝ) (hL : 0 < L) :
+    TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ =>
+        fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) 0 α j) *
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) 0 β j))
+      Filter.atTop
+      (fun _ => layerCovarianceSeq 1 0 φ m
+        (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) 1) := by
+  let T : (Fin L → ℕ → ℕ → ℝ) → ℕ → ℕ → ℝ := fun w => w ⟨0, hL⟩
+  have hT : MeasurePreserving T
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
+    simpa [T] using
+      (measurePreserving_eval (fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) ⟨0, hL⟩)
+  have hbase := input_empiricalCovariance_tendstoInMeasure d m φ hφ_cont C hC p hp hφ_growth X
+  have hf : ∀ n : ℕ, Measurable (fun W : ℕ → ℕ → ℝ => fun α β : Fin m =>
+      (n : ℝ)⁻¹ * ∑ j : Fin n,
+        φ ((d : ℝ)⁻¹.sqrt * ∑ k : Fin d, W j.val k.val * X α k) *
+        φ ((d : ℝ)⁻¹.sqrt * ∑ k : Fin d, W j.val k.val * X β k)) := by
+    intro n
+    refine measurable_pi_iff.2 fun α => measurable_pi_iff.2 fun β => ?_
+    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
+    exact
+      (hφ_cont.measurable.comp
+        (measurable_const.mul (Finset.measurable_sum _ fun k _ =>
+          ((measurable_pi_apply k.val).comp (measurable_pi_apply j.val)).mul_const _))).mul
+      (hφ_cont.measurable.comp
+        (measurable_const.mul (Finset.measurable_sum _ fun k _ =>
+          ((measurable_pi_apply k.val).comp (measurable_pi_apply j.val)).mul_const _)))
+  have htransport := tendstoInMeasure_comp_measurePreserving
+    (E := Fin m → Fin m → ℝ) hbase hT hf
+      (measurable_const : Measurable fun _ : ℕ → ℕ → ℝ =>
+        layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) 1)
+  simpa [T, deepPreactivation, hL, innerProduct, dotProduct] using htransport
+
+/-- Restricting an infinite independent Gaussian weight population to its first `n` rows and
+columns gives the finite conditional Gaussian layer law.  This is the raw-population counterpart
+of `conditional_preactivations_eq_pi`; keeping it separate avoids rebuilding finite restrictions
+inside the depth induction. -/
+lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
+    (H : Fin n → EuclideanSpace ℝ (Fin m)) :
+    Measure.map
+      (fun W : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+        (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W j.val k.val * φ ((H k).ofLp α))
+      (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
+      Measure.pi (fun _ : Fin n =>
+        multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ k : Fin n,
+            φ ((H k).ofLp α) * φ ((H k).ofLp β))) := by
+  let restrictColumns : (ℕ → ℕ → ℝ) → (ℕ → Fin n → ℝ) :=
+    fun W j k => W j k.val
+  have hrestrictColumns_meas : Measurable restrictColumns := by
+    refine measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun k => ?_
+    exact (measurable_pi_apply k.val).comp (measurable_pi_apply j)
+  have hrestrictColumns : Measure.map restrictColumns
+      (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
+      Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n := by
+    calc
+      Measure.map restrictColumns
+          (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
+        Measure.infinitePi fun _ : ℕ =>
+          Measure.map (fun r : ℕ → ℝ => fun k : Fin n => r k.val)
+            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
+          simpa [restrictColumns] using
+            (Measure.infinitePi_map_pi
+              (μ := fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+              (f := fun _ (r : ℕ → ℝ) (k : Fin n) => r k.val)
+              (fun _ => measurable_pi_iff.2 fun k => measurable_pi_apply k.val))
+      _ = Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n := by
+        congr 1
+        funext j
+        rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective,
+          Measure.infinitePi_eq_pi]
+        rfl
+  let restrictRows : (ℕ → Fin n → ℝ) → (Fin n → Fin n → ℝ) :=
+    fun W j k => W j.val k
+  have hrestrictRows_meas : Measurable restrictRows := by
+    refine measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun k => ?_
+    exact (measurable_pi_apply k).comp (measurable_pi_apply j.val)
+  have hrestrictRows : Measure.map restrictRows
+      (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n) = gaussianInit n n := by
+    exact map_infinitePi_rows_eq_gaussianInit n n
+  let F : (Fin n → Fin n → ℝ) → Fin n → EuclideanSpace ℝ (Fin m) :=
+    fun W j => WithLp.toLp 2 fun α =>
+      (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W j k * φ ((H k).ofLp α)
+  have hF_meas : Measurable F := by
+    refine measurable_pi_iff.2 fun j => ?_
+    apply (PiLp.continuous_toLp 2 _).measurable.comp
+    refine measurable_pi_iff.2 fun α => ?_
+    refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
+    exact ((measurable_pi_apply k).comp (measurable_pi_apply j)).mul_const _
+  have hcomp : F ∘ restrictRows ∘ restrictColumns =
+      fun W : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+        (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W j.val k.val * φ ((H k).ofLp α) := rfl
+  rw [← hcomp]
+  calc
+    Measure.map ((F ∘ restrictRows) ∘ restrictColumns)
+        (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
+      Measure.map (F ∘ restrictRows)
+        (Measure.map restrictColumns
+          (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
+        rw [← Measure.map_map (hF_meas.comp hrestrictRows_meas) hrestrictColumns_meas]
+    _ = Measure.map (F ∘ restrictRows) (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n) := by
+      rw [hrestrictColumns]
+    _ = Measure.map F (Measure.map restrictRows
+        (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n)) := by
+      rw [← Measure.map_map hF_meas hrestrictRows_meas]
+    _ = Measure.map F (gaussianInit n n) := by rw [hrestrictRows]
+    _ = Measure.pi (fun _ : Fin n =>
+        multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ k : Fin n,
+            φ ((H k).ofLp α) * φ ((H k).ofLp β))) :=
+      conditional_preactivations_eq_pi n n m φ H
+
 end AsymptoticEmpiricalCovariancePropagation
 
 section DeepNNGPRecursion
@@ -4052,40 +4176,10 @@ empirical covariance of the depth-`L` network's layer-`(ℓ+1)` post-activations
 probability to the deterministic recursive kernel `layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)`, where
 `Φ0 α β := (d:ℝ)⁻¹ * (X α ⊙ X β)` is the base Gram matrix.
 
-**Proof sketch (`sorry`d below — see the two flagged gaps).** By induction on `ℓ`.
-
-* Base case `ℓ = 0`: the layer-`0` population `deepPreactivation … 0` is, by construction, an
-  infinite i.i.d. family drawn from `multivariateGaussian 0 Φ0` (each draw a linear combination of
-  `d` i.i.d. standard Gaussians dotted with the fixed input `X`, matching the setup of
-  `stdGaussian_inner_family` / `gaussianMatrix_mulVec_family`, generalized to an infinite
-  population). Given that distributional fact, the claim is *exactly*
-  `conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` applied at `Φ0`
-  (already fully proved above, no new probabilistic content) — the only missing piece is the
-  routine "infinite population pushforward" bridge between the raw `W`-population construction and
-  that theorem's `Measure.infinitePi (multivariateGaussian 0 Φ0)` hypothesis, i.e. an
-  infinite-population analogue of `conditional_preactivations_eq_pi`.
-* Inductive step `ℓ → ℓ + 1`: write `Φ_ℓ^{(n)}` for the layer-`ℓ` empirical covariance (the
-  induction hypothesis `ih` says `Φ_ℓ^{(n)} →_P Φ_ℓ`) and `𝒞_φ(K) := layerCovarianceSeq 1 0 φ m K 1`
-  for one step of the recursive update. By the triangle inequality,
-  `dist(Φ_{ℓ+1}^{(n)}, Φ_{ℓ+1}) ≤ dist(Φ_{ℓ+1}^{(n)}, 𝒞_φ(Φ_ℓ^{(n)})) + dist(𝒞_φ(Φ_ℓ^{(n)}), Φ_{ℓ+1})`,
-  so it suffices that each right-hand term `→_P 0`:
-  * *Second term*: `⚠️ depends on the HARD gap `continuousAt_covarianceMap`.` Given that lemma,
-    this term is exactly `tendstoInMeasure_comp_of_continuousAt ih (continuousAt_covarianceMap …)`
-    (both already proved / stated above) — no further new content.
-  * *First term*: `⚠️ HARD, not yet reduced to an existing lemma.` This term needs the layer-`ℓ`
-    weights `q.1 ⟨ℓ, hℓ⟩` (independent of the history `q.1 ⟨i,_⟩, i < ℓ` by
-    `indepFun_deepLayer_history`) to satisfy a version of
-    `conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` where the *conditioning*
-    covariance is itself the random, only-convergent-in-probability `Φ_ℓ^{(n)}(ω)` rather than an
-    exact deterministic `K`. The proof strategy (mirroring the source theorem's own "Step 4"):
-    on the event `{dist(Φ_ℓ^{(n)}, Φ_ℓ) ≤ 1}` (probability `→ 1` by `ih`), continuity of
-    `K ↦ Var_{N(0,K)}(φ(g^α)φ(g^β))` on the compact ball `{K : dist(K, Φ_ℓ) ≤ 1}` gives a genuine
-    finite uniform bound `M` (extreme value theorem on a compact set — itself downstream of
-    `continuousAt_covarianceMap`-style continuity, applied to the *second* moment
-    `∫ φ²φ²` rather than the first), and Chebyshev at width `n` gives a probability bound
-    `≤ M / (n ε²) → 0` uniformly over that ball; the complementary bad event has probability `→ 0`
-    directly by `ih`. This is real additional bookkeeping beyond `continuousAt_covarianceMap`
-    itself (a genuine "uniform-in-a-shrinking-neighborhood Chebyshev" argument), not yet formalized. -/
+The base-layer transport is `input_empiricalCovariance_tendstoInMeasure`.  The remaining proof
+must package the conditional Gaussian product law for a layer whose preceding empirical covariance
+is random, then combine its conditional Chebyshev bound with the relative continuous-mapping
+theorem. -/
 theorem deepEmpiricalCovariance_tendstoInMeasure
     (d m L : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
