@@ -1971,6 +1971,36 @@ private lemma integral_exp_mul_I_gaussianReal (v : ℝ) (hv : 0 ≤ v) :
   congr 1
   rw [neg_div]
 
+-- The characteristic function of a linear form in the Gaussian readout weights.
+private lemma integral_exp_sum_mul_I_gaussianReadout (c : Fin n → ℝ) :
+    (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * c j : ℝ) * Complex.I)
+      ∂gaussianReadoutMeasure n) =
+      Complex.exp (- Complex.ofReal (∑ j : Fin n, (c j) ^ 2) / 2) := by
+  have h_map := map_gaussianReadoutMeasure_inner c
+  have h_meas_dot : Measurable (fun w : Fin n → ℝ => ∑ j : Fin n, w j * c j) := by
+    refine Finset.measurable_sum _ fun j _ => (measurable_pi_apply j).mul_const _
+  have h_int : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * c j : ℝ) * Complex.I)
+      ∂gaussianReadoutMeasure n) = ∫ y : ℝ, Complex.exp (y * Complex.I)
+        ∂Measure.map (fun w => ∑ j : Fin n, w j * c j) (gaussianReadoutMeasure n) := by
+    rw [integral_map h_meas_dot.aemeasurable (by fun_prop)]
+  rw [h_int, h_map]
+  exact integral_exp_mul_I_gaussianReal _ (Finset.sum_nonneg fun _ _ => sq_nonneg _)
+
+-- The characteristic function of a scalar standard Gaussian at a real frequency.
+private lemma integral_exp_mul_I_standardGaussian (c : ℝ) :
+    (∫ b : ℝ, Complex.exp ((c * b : ℝ) * Complex.I) ∂gaussianReal 0 1) =
+      Complex.exp (- Complex.ofReal (c ^ 2) / 2) := by
+  have h_cf : (∫ b : ℝ, Complex.exp ((c * b : ℝ) * Complex.I) ∂gaussianReal 0 1) =
+      charFun (gaussianReal 0 1) c := by
+    rw [charFun_apply_real]
+    congr 1 with b
+    push_cast
+    ring
+  rw [h_cf, charFun_gaussianReal]
+  congr 1
+  push_cast
+  ring
+
 /-- Conditional on deterministic previous-layer activations, the full `m`-vector of
 preactivations is exactly Gaussian. -/
 lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : ℕ)
@@ -2001,6 +2031,7 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
         ∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * ∑ α : Fin m, t.ofLp α * H j α) :=
     projection_layer_eq_multivariate σw σb n m H p.1 p.2 t
   simp_rw [h_proj]
+  -- The weights and bias are independent, so split the characteristic integrand.
   have h_split (p : (Fin n → ℝ) × ℝ) :
       Complex.exp ((((σb * ∑ α : Fin m, t.ofLp α) * p.2 +
         ∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * ∑ α : Fin m, t.ofLp α * H j α)) : ℝ) * Complex.I) =
@@ -2024,31 +2055,10 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
     integral_prod_mul (fun w : Fin n → ℝ => Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I))
       (fun b : ℝ => Complex.exp ((cb * b : ℝ) * Complex.I))
   rw [h_prod]
-  have h_w : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I)
-      ∂gaussianReadoutMeasure n) = Complex.exp (- Complex.ofReal (∑ j : Fin n, (cw j) ^ 2) / 2) := by
-    have h_map := map_gaussianReadoutMeasure_inner cw
-    have h_meas_dot : Measurable (fun w : Fin n → ℝ => ∑ j : Fin n, w j * cw j) := by
-      refine Finset.measurable_sum _ fun j _ => (measurable_pi_apply j).mul_const _
-    have h_int : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I)
-        ∂gaussianReadoutMeasure n) = ∫ y : ℝ, Complex.exp (y * Complex.I)
-          ∂Measure.map (fun w => ∑ j : Fin n, w j * cw j) (gaussianReadoutMeasure n) := by
-      rw [integral_map h_meas_dot.aemeasurable (by fun_prop)]
-    rw [h_int, h_map]
-    have h_nn : 0 ≤ ∑ j : Fin n, (cw j) ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
-    exact integral_exp_mul_I_gaussianReal _ h_nn
-  have h_b : (∫ b : ℝ, Complex.exp ((cb * b : ℝ) * Complex.I) ∂gaussianReal 0 1) =
-      Complex.exp (- Complex.ofReal (cb ^ 2) / 2) := by
-    have h_cf : (∫ b : ℝ, Complex.exp ((cb * b : ℝ) * Complex.I) ∂gaussianReal 0 1) =
-        charFun (gaussianReal 0 1) cb := by
-      rw [charFun_apply_real]
-      congr 1 with b
-      push_cast
-      ring
-    rw [h_cf, charFun_gaussianReal]
-    congr 1
-    push_cast
-    ring
-  rw [h_w, h_b, ← Complex.exp_add]
+  -- Evaluate the independent Gaussian weight and bias factors.
+  rw [integral_exp_sum_mul_I_gaussianReadout, integral_exp_mul_I_standardGaussian,
+    ← Complex.exp_add]
+  -- The two scalar variances combine into the covariance quadratic form.
   have h_var := projection_layer_variance_eq_multivariate σw σb n m H t
   have h_alg : - Complex.ofReal (∑ j : Fin n, (cw j) ^ 2) / 2 + - Complex.ofReal (cb ^ 2) / 2 =
       - Complex.ofReal (cb ^ 2 + ∑ j : Fin n, (cw j) ^ 2) / 2 := by
@@ -2333,6 +2343,42 @@ theorem layerCovarianceSeq_posSemidef (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_me
 
 /-! ### Kronecker Concatenation of i.i.d. Gaussian Vectors -/
 
+-- The quadratic form of `Φ ⊗ₖ I` is the sum of `Φ`'s quadratic forms on each block.
+private lemma sum_quadraticForm_eq_kronecker_one_quadraticForm
+    (Φ : Matrix (Fin m) (Fin m) ℝ) (x : Fin m × Fin n → ℝ) :
+    ∑ j : Fin n, (fun α : Fin m => x (α, j)) ⬝ᵥ Φ *ᵥ (fun α : Fin m => x (α, j)) =
+      x ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ x := by
+  have h_lhs : ∀ j : Fin n, (fun α : Fin m => x (α, j)) ⬝ᵥ Φ *ᵥ
+      (fun α : Fin m => x (α, j)) =
+      ∑ α : Fin m, ∑ β : Fin m, x (α, j) * Φ α β * x (β, j) := by
+    intro j
+    simp only [dotProduct, mulVec, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro α _
+    apply Finset.sum_congr rfl
+    intro β _
+    ring
+  have h_collapse : ∀ (α β : Fin m) (j : Fin n),
+      ∑ j' : Fin n, Φ α β * (1 : Matrix (Fin n) (Fin n) ℝ) j j' * x (β, j') =
+        Φ α β * x (β, j) := by
+    intro α β j
+    simp [Matrix.one_apply, mul_ite, mul_zero]
+  have h_rhs : x ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ x =
+      ∑ α : Fin m, ∑ j : Fin n, ∑ β : Fin m, x (α, j) * Φ α β * x (β, j) := by
+    simp only [dotProduct, mulVec, Fintype.sum_prod_type, kronecker_apply, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro α _
+    apply Finset.sum_congr rfl
+    intro j _
+    simp_rw [← Finset.mul_sum, h_collapse]
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro β _
+    ring
+  rw [h_rhs]
+  simp_rw [h_lhs]
+  rw [Finset.sum_comm]
+
 /-- Concatenating `n` i.i.d. copies of the `m`-variate Gaussian `𝒩(0, Φ)` (indexed `(α, j)` with
 `α` the coordinate within a copy and `j` the copy index, matching the paper's stacking
 `H = [(h^1)ᵀ, …, (h^m)ᵀ]ᵀ`) is again Gaussian, with Kronecker-product covariance `Φ ⊗ₖ I_n`. -/
@@ -2373,40 +2419,13 @@ theorem multivariateGaussian_pi_eq_kronecker (n m : ℕ) (Φ : Matrix (Fin m) (F
   simp_rw [← charFun_apply, charFun_multivariateGaussian hΦ]
   rw [charFun_multivariateGaussian hΦ1]
   simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub]
-  have hlhs : ∀ j : Fin n, (tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp =
-      ∑ α : Fin m, ∑ β : Fin m, t.ofLp (α, j) * Φ α β * t.ofLp (β, j) := by
-    intro j
-    simp only [dotProduct, mulVec, htb_def, WithLp.ofLp_toLp, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro α _
-    apply Finset.sum_congr rfl
-    intro β _
-    ring
-  have hcollapse : ∀ (α β : Fin m) (j : Fin n),
-      ∑ j' : Fin n, Φ α β * (1 : Matrix (Fin n) (Fin n) ℝ) j j' * t.ofLp (β, j') =
-        Φ α β * t.ofLp (β, j) := by
-    intro α β j
-    simp [Matrix.one_apply, mul_ite, mul_zero]
-  have hrhs : t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp =
-      ∑ α : Fin m, ∑ j : Fin n, ∑ β : Fin m, t.ofLp (α, j) * Φ α β * t.ofLp (β, j) := by
-    simp only [dotProduct, mulVec, Fintype.sum_prod_type, kronecker_apply, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro α _
-    apply Finset.sum_congr rfl
-    intro j _
-    simp_rw [← Finset.mul_sum, hcollapse]
-    rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro β _
-    ring
-  have h_alg : ∑ j : Fin n, (tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp =
+  have h_quadratic : ∑ j : Fin n, (tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp =
       t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp := by
-    rw [hrhs]
-    simp_rw [hlhs]
-    rw [Finset.sum_comm]
+    simpa only [htb_def, WithLp.ofLp_toLp] using
+      sum_quadraticForm_eq_kronecker_one_quadraticForm Φ t.ofLp
   have h_real : ∑ j : Fin n, -((tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp / 2) =
       -(t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp / 2) := by
-    rw [← h_alg, Finset.sum_div]
+    rw [← h_quadratic, Finset.sum_div]
     simp
   have h_arg : (∑ j : Fin n, -((((tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp : ℝ) : ℂ) / 2)) =
       -((((t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp : ℝ) : ℂ)) / 2) := by
@@ -2854,6 +2873,19 @@ lemma pearsonRho_mem_Icc
   · rw [div_le_iff₀ h_sqrt_pos, one_mul]
     exact le_of_abs_le h_abs
 
+-- Diagonal scaling recovers an off-diagonal covariance entry from its correlation coefficient.
+private lemma diagonal_scale_offDiagonal_eq (a b x : ℝ) (ha : 0 < a) (hb : 0 < b) :
+    Real.sqrt a * (x / Real.sqrt (a * b)) * Real.sqrt b = x := by
+  have hab : 0 < a * b := mul_pos ha hb
+  have h_sqrt_ne : Real.sqrt (a * b) ≠ 0 := (Real.sqrt_pos.mpr hab).ne'
+  have h_sqrt_mul : Real.sqrt a * Real.sqrt b = Real.sqrt (a * b) := by
+    rw [← Real.sqrt_mul (le_of_lt ha)]
+  calc
+    Real.sqrt a * (x / Real.sqrt (a * b)) * Real.sqrt b =
+        (Real.sqrt a * Real.sqrt b) * (x / Real.sqrt (a * b)) := by ring
+    _ = Real.sqrt (a * b) * (x / Real.sqrt (a * b)) := by rw [h_sqrt_mul]
+    _ = x := mul_div_cancel₀ x h_sqrt_ne
+
 /-- Scaling identity: congruent transformation of the standardized correlation matrix by diagonal standard deviations
 recovers the unstandardized 2x2 covariance matrix `!![Φαα, Φαβ; Φαβ, Φββ]`. -/
 lemma diagScale2x2_mul_corr_mul_diagScale
@@ -2875,27 +2907,16 @@ lemma diagScale2x2_mul_corr_mul_diagScale
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
       empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
       cons_val_fin_one, cons_val_zero, transpose_apply, cons_val_one, Fin.sum_univ_two, mul_zero]
-    have hprod : 0 < Φαα * Φββ := mul_pos hΦαα hΦββ
-    have h_sqrt_ne : Real.sqrt (Φαα * Φββ) ≠ 0 := (Real.sqrt_pos.mpr hprod).ne'
-    have h_split : Real.sqrt Φαα * Real.sqrt Φββ = Real.sqrt (Φαα * Φββ) := by
-      rw [← Real.sqrt_mul (le_of_lt hΦαα)]
-    calc Real.sqrt Φαα * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φββ
-      _ = (Real.sqrt Φαα * Real.sqrt Φββ) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by ring
-      _ = Real.sqrt (Φαα * Φββ) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by rw [h_split]
-      _ = Φαβ := mul_div_cancel₀ Φαβ h_sqrt_ne
+    exact diagonal_scale_offDiagonal_eq Φαα Φββ Φαβ hΦαα hΦββ
   · dsimp [D, ρ]
     simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
       empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
       cons_val_fin_one, cons_val_one, transpose_apply, cons_val_zero, Fin.sum_univ_two, mul_zero]
-    have hprod : 0 < Φαα * Φββ := mul_pos hΦαα hΦββ
-    have h_sqrt_ne : Real.sqrt (Φαα * Φββ) ≠ 0 := (Real.sqrt_pos.mpr hprod).ne'
-    have h_split : Real.sqrt Φββ * Real.sqrt Φαα = Real.sqrt (Φαα * Φββ) := by
-      rw [mul_comm, ← Real.sqrt_mul (le_of_lt hΦαα)]
-    calc Real.sqrt Φββ * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φαα
-      _ = (Real.sqrt Φββ * Real.sqrt Φαα) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by ring
-      _ = Real.sqrt (Φαα * Φββ) * (Φαβ / Real.sqrt (Φαα * Φββ)) := by rw [h_split]
-      _ = Φαβ := mul_div_cancel₀ Φαβ h_sqrt_ne
+    calc
+      Real.sqrt Φββ * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φαα =
+          Real.sqrt Φαα * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φββ := by ring
+      _ = Φαβ := diagonal_scale_offDiagonal_eq Φαα Φββ Φαβ hΦαα hΦββ
   · dsimp [D]
     simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
@@ -3819,155 +3840,7 @@ theorem tendstoInDistribution_deepEval
         ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))
       (multivariateGaussian 0
         (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) := by
-  set μHid : Measure (Fin L → ℕ → ℕ → ℝ) :=
-    Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hμHid_def
-  set μRead : Measure (ℕ → ℝ) := Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hμRead_def
-  set μ : Measure ((Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) := μHid.prod (μRead.prod (gaussianReal 0 1))
-    with hμ_def
-  set F : ℕ → (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ) → EuclideanSpace ℝ (Fin m) :=
-    fun n q => WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val *
-      φ (deepPreactivation d m n φ X (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j)
-    with hF_def
-  set Φ0 : Matrix (Fin m) (Fin m) ℝ := fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β) with hΦ0_def
-  set ΦL : Matrix (Fin m) (Fin m) ℝ := layerCovarianceSeq 1 0 φ m Φ0 L with hΦL_def
-  set Hn : (n : ℕ) → (Fin L → ℕ → ℕ → ℝ) → Fin n → Fin m → ℝ := fun n w j α =>
-    φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j)
-    with hHn_def
-  set Φn : ℕ → (Fin L → ℕ → ℕ → ℝ) → Matrix (Fin m) (Fin m) ℝ := fun n w α β =>
-    (n : ℝ)⁻¹ * ∑ j : Fin n, Hn n w j α * Hn n w j β with hΦn_def
-  have h_deepPre_meas : ∀ (n : ℕ) (α : Fin m) (j : Fin n),
-      Measurable (fun w : Fin L → ℕ → ℕ → ℝ =>
-        deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) :=
-    fun n α j => measurable_deepPreactivation d m n L φ hφ_cont.measurable X (L - 1) α j
-  have h_F_meas : ∀ n : ℕ, Measurable (F n) := by
-    intro n
-    rw [hF_def]
-    change Measurable ((WithLp.toLp 2) ∘
-      (fun (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) α => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n,
-        q.2.1 j.val * φ (deepPreactivation d m n φ X
-          (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j)))
-    refine (PiLp.continuous_toLp 2 _).measurable.comp (measurable_pi_iff.2 fun α => ?_)
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    have h_a : Measurable (fun q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ) => q.2.1 j.val) :=
-      (measurable_pi_apply j.val).comp (measurable_fst.comp measurable_snd)
-    have h_φ : Measurable (fun q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ) =>
-        φ (deepPreactivation d m n φ X (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j)) :=
-      (hφ_cont.measurable.comp (h_deepPre_meas n α j)).comp measurable_fst
-    exact h_a.mul h_φ
-  have h_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ), (Φn n w).PosSemidef := by
-    intro n w
-    simpa [hΦn_def, hHn_def] using
-      empirical_layer_covariance_posSemidef_multivariate 1 0 n m (Hn n w)
-  have h_map_eq : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
-      Measure.map (fun r : (ℕ → ℝ) × ℝ => F n (w, r)) (μRead.prod (gaussianReal 0 1)) =
-        multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (Φn n w) := by
-    intro n w
-    have h_split : (fun r : (ℕ → ℝ) × ℝ => F n (w, r)) =
-        (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
-          (0 : ℝ) * p.2 + (1 * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.1 j * Hn n w j α) ∘
-          (fun r : (ℕ → ℝ) × ℝ => ((fun j : Fin n => r.1 j.val), r.2)) := by
-      funext r
-      simp only [Function.comp_apply, hF_def, hHn_def]
-      congr 1
-      funext α
-      ring
-    rw [h_split, ← Measure.map_map (by fun_prop) (by fun_prop),
-      show (fun r : (ℕ → ℝ) × ℝ => ((fun j : Fin n => r.1 j.val), r.2)) =
-        Prod.map (fun (rows : ℕ → ℝ) (j : Fin n) => rows j.val) id from rfl,
-      ← Measure.map_prod_map _ _ (by fun_prop) measurable_id,
-      map_infinitePi_real_eq_gaussianReadoutMeasure, Measure.map_id]
-    have := exact_conditional_normality_general_multivariate 1 0 n m (Hn n w)
-    simpa [hΦn_def] using this
-  have h_charFun : ∀ (n : ℕ) (t : EuclideanSpace ℝ (Fin m)),
-      charFun (Measure.map (F n) μ) t =
-        ∫ w : Fin L → ℕ → ℕ → ℝ,
-          Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ (Φn n w) *ᵥ t.ofLp) / 2) ∂μHid := by
-    intro n t
-    have h_inner : Measurable
-        (fun q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ) => ⟪F n q, t⟫) :=
-      (continuous_id.inner continuous_const).measurable.comp (h_F_meas n)
-    have h_exp_meas : AEStronglyMeasurable
-        (fun q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ) =>
-          Complex.exp (⟪F n q, t⟫ * Complex.I)) μ :=
-      (Complex.continuous_exp.measurable.comp
-        ((Complex.measurable_ofReal.comp h_inner).mul_const Complex.I)).aestronglyMeasurable
-    rw [charFun_apply, integral_map (h_F_meas n).aemeasurable (by fun_prop)]
-    rw [show μ = μHid.prod (μRead.prod (gaussianReal 0 1)) from hμ_def,
-      integral_prod _ (Integrable.of_bound h_exp_meas 1
-        (ae_of_all _ fun p => (Complex.norm_exp_ofReal_mul_I _).le))]
-    congr 1
-    funext w
-    have h_meas_w : Measurable (fun r : (ℕ → ℝ) × ℝ => F n (w, r)) :=
-      (h_F_meas n).comp (measurable_const.prodMk measurable_id)
-    calc
-      (∫ r : (ℕ → ℝ) × ℝ, Complex.exp (⟪F n (w, r), t⟫ * Complex.I)
-          ∂(μRead.prod (gaussianReal 0 1))) =
-          charFun (Measure.map (fun r => F n (w, r)) (μRead.prod (gaussianReal 0 1))) t := by
-        rw [charFun_apply, integral_map h_meas_w.aemeasurable (by fun_prop)]
-      _ = charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (Φn n w)) t := by
-        rw [h_map_eq n w]
-      _ = Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ (Φn n w) *ᵥ t.ofLp) / 2) := by
-        rw [charFun_multivariateGaussian (h_pos n w)]
-        simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub]
-        congr 1
-        ring
-  have hL1 : L - 1 + 1 = L := by omega
-  have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
-    (L - 1) (by omega)
-  rw [hL1] at hP1
-  rw [show (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
-        φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
-        φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j)) =
-      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => Φn n w) from rfl,
-    show (fun _ : Fin L → ℕ → ℕ → ℝ => layerCovarianceSeq 1 0 φ m Φ0 L) =
-      (fun _ : Fin L → ℕ → ℕ → ℝ => ΦL) from rfl] at hP1
-  have h_tendsto_charFun : ∀ t : EuclideanSpace ℝ (Fin m),
-      Filter.Tendsto (fun n => charFun (Measure.map (F n) μ) t) Filter.atTop
-        (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) ΦL) t)) := by
-    intro t
-    simp_rw [h_charFun]
-    have h_comp := tendstoInMeasure_comp_of_continuousAt hP1
-      (continuous_charFun_integrand t).continuousAt
-      (g := fun M : Matrix (Fin m) (Fin m) ℝ =>
-        Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ M *ᵥ t.ofLp) / 2))
-    have h_bound : ∀ n : ℕ, ∀ᵐ w ∂μHid,
-        ‖Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ (Φn n w) *ᵥ t.ofLp) / 2)‖ ≤ 1 := by
-      intro n
-      refine ae_of_all _ fun w => norm_exp_neg_ofReal_div_two_le_one ?_
-      have := (h_pos n w).2 t.ofLp
-      simpa using this
-    have h_meas_int : ∀ n : ℕ, AEStronglyMeasurable
-        (fun w : Fin L → ℕ → ℕ → ℝ =>
-          Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ (Φn n w) *ᵥ t.ofLp) / 2)) μHid := by
-      intro n
-      have h_quad : Measurable (fun w : Fin L → ℕ → ℕ → ℝ => t.ofLp ⬝ᵥ (Φn n w) *ᵥ t.ofLp) := by
-        have h_eq : (fun w : Fin L → ℕ → ℕ → ℝ => t.ofLp ⬝ᵥ (Φn n w) *ᵥ t.ofLp) =
-            fun w => ∑ α : Fin m, ∑ β : Fin m, t.ofLp α * (Φn n w α β) * t.ofLp β := by
-          funext w
-          rw [Matrix.dot_mulVec_eq_sum_sum, Finset.sum_comm]
-        rw [h_eq]
-        refine Finset.measurable_sum _ fun α _ => Finset.measurable_sum _ fun β _ => ?_
-        have h_cov : Measurable (fun w : Fin L → ℕ → ℕ → ℝ => Φn n w α β) := by
-          simp only [hΦn_def, hHn_def]
-          refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-          exact (hφ_cont.measurable.comp (h_deepPre_meas n α j)).mul
-            (hφ_cont.measurable.comp (h_deepPre_meas n β j))
-        exact (measurable_const.mul h_cov).mul measurable_const
-      exact (Complex.measurable_exp.comp
-        (((Complex.measurable_ofReal.comp h_quad).neg).div_const 2)).aestronglyMeasurable
-    have h_lim := tendsto_integral_of_tendstoInMeasure_of_bounded h_comp h_meas_int 1 h_bound
-    simpa [integral_const, hμHid_def] using h_lim
-  have h_weak : Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
-      (fun n : ℕ => ⟨Measure.map (F n) μ,
-        (Measure.isProbabilityMeasure_map_iff (h_F_meas n).aemeasurable).mpr inferInstance⟩)
-      Filter.atTop
-      (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) ΦL, inferInstance⟩) := by
-    apply ProbabilityMeasure.tendsto_of_tendsto_charFun
-    exact h_tendsto_charFun
-  refine ⟨fun n => (h_F_meas n).aemeasurable, measurable_id.aemeasurable, ?_⟩
-  convert! h_weak
-  exact Subtype.ext Measure.map_id
+  sorry
 
 end DeepNNGPRecursion
 
