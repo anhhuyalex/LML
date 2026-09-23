@@ -2617,8 +2617,13 @@ lemma memLp_activation_product_of_polynomial_growth
       (multivariateGaussian 0 K) :=
     memLp_activation_coordinate_of_polynomial_growth_of_nat m K φ hφ_meas C hC p 4 hp
       hφ_growth β
-  letI : ENNReal.HolderTriple (4 : ℝ≥0∞) 4 2 := ⟨by norm_num [ENNReal.inv_eq_inv]⟩
-  simpa only [Pi.mul_apply] using hα.mul (r := (2 : ℝ≥0∞)) hβ
+  let _ : ENNReal.HolderTriple (4 : ℝ≥0∞) 4 2 := ⟨by
+    apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
+    rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
+    norm_num [ENNReal.toReal_inv]⟩
+  change MemLp ((fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) *
+    fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) 2 (multivariateGaussian 0 K)
+  exact hβ.mul (r := (2 : ℝ≥0∞)) hα
 
 /-- **Conditional empirical covariance propagation.**  For an i.i.d. sequence of conditional
 preactivation vectors with law `𝒩(0, K)`, the empirical activated covariance converges in
