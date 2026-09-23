@@ -2560,6 +2560,66 @@ lemma memLp_activation_coordinate_of_polynomial_growth
         pow_le_pow_left₀ (abs_nonneg _) (PiLp.norm_apply_le z α) p
     _ ≤ |C * (1 + ‖z‖ ^ p)| := le_abs_self _
 
+/-- The polynomial-growth activation bound at any finite natural `Lq` exponent.  The `L²`
+specialization above is the SLLN interface; this slightly more general companion is used for the
+fourth moments which control the conditional empirical-covariance fluctuation. -/
+lemma memLp_activation_coordinate_of_polynomial_growth_of_nat
+    (m : ℕ) (K : Matrix (Fin m) (Fin m) ℝ)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (C : ℝ) (hC : 0 ≤ C) (p q : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (α : Fin m) :
+    MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) q
+      (multivariateGaussian 0 K) := by
+  let μ : Measure (EuclideanSpace ℝ (Fin m)) := multivariateGaussian 0 K
+  have h_id : MemLp id (↑(q * p) : ℝ≥0∞) μ :=
+    IsGaussian.memLp_id μ (↑(q * p) : ℝ≥0∞)
+      (ENNReal.natCast_ne_top (q * p))
+  have hnorm : MemLp (fun z : EuclideanSpace ℝ (Fin m) => ‖z‖ ^ p) q μ := by
+    have h := (memLp_norm_rpow_iff (f := id) (q := (p : ℝ≥0∞))
+      (by fun_prop) (by exact_mod_cast hp.ne') (by simp)).mpr h_id
+    have hp0 : (p : ℝ≥0∞) ≠ 0 := by exact_mod_cast hp.ne'
+    have hquot : (↑(q * p) : ℝ≥0∞) / (p : ℝ≥0∞) = q := by
+      rw [Nat.cast_mul, ENNReal.mul_div_cancel_right hp0 (by simp)]
+    rw [hquot] at h
+    simpa using h
+  have hbase : MemLp (fun z : EuclideanSpace ℝ (Fin m) => C * (1 + ‖z‖ ^ p)) q μ := by
+    simpa using ((memLp_const (μ := μ) (1 : ℝ)).add hnorm).const_mul C
+  refine hbase.mono ?_ ?_
+  · exact (hφ_meas.comp
+      (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable).aestronglyMeasurable
+  filter_upwards with z
+  rw [Real.norm_eq_abs]
+  calc
+    |φ (z.ofLp α)| ≤ C * (1 + |z.ofLp α| ^ p) := hφ_growth _
+    _ ≤ C * (1 + ‖z‖ ^ p) := by
+      apply mul_le_mul_of_nonneg_left _ hC
+      apply add_le_add_right
+      simpa only [Real.norm_eq_abs] using
+        pow_le_pow_left₀ (abs_nonneg _) (PiLp.norm_apply_le z α) p
+    _ ≤ |C * (1 + ‖z‖ ^ p)| := le_abs_self _
+
+/-- Products of two activated Gaussian coordinates are square-integrable.  This is the exact
+moment hypothesis for Chebyshev's inequality applied to a covariance entry. -/
+lemma memLp_activation_product_of_polynomial_growth
+    (m : ℕ) (K : Matrix (Fin m) (Fin m) ℝ)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (α β : Fin m) :
+    MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α) * φ (z.ofLp β)) 2
+      (multivariateGaussian 0 K) := by
+  have hα : MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) (4 : ℝ≥0∞)
+      (multivariateGaussian 0 K) :=
+    memLp_activation_coordinate_of_polynomial_growth_of_nat m K φ hφ_meas C hC p 4 hp
+      hφ_growth α
+  have hβ : MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) (4 : ℝ≥0∞)
+      (multivariateGaussian 0 K) :=
+    memLp_activation_coordinate_of_polynomial_growth_of_nat m K φ hφ_meas C hC p 4 hp
+      hφ_growth β
+  letI : ENNReal.HolderTriple (4 : ℝ≥0∞) 4 2 := ⟨by norm_num [ENNReal.inv_eq_inv]⟩
+  simpa only [Pi.mul_apply] using hα.mul (r := (2 : ℝ≥0∞)) hβ
+
 /-- **Conditional empirical covariance propagation.**  For an i.i.d. sequence of conditional
 preactivation vectors with law `𝒩(0, K)`, the empirical activated covariance converges in
 probability to the Gaussian covariance update of `K`.
@@ -2677,6 +2737,30 @@ noncomputable def deepPreactivation (d m n : ℕ) (φ : ℝ → ℝ) (X : Fin m 
   | ℓ + 1 => fun α j => (n : ℝ)⁻¹.sqrt * ∑ k : Fin n,
       W (ℓ + 1) j.val k.val * φ (deepPreactivation d m n φ X W ℓ α k)
 
+/-- A preactivation at layer `ℓ` depends only on weight populations at indices at most `ℓ`.
+This is the deterministic bridge from the finite earlier-layer history in
+`indepFun_deepLayer_history` back to `deepPreactivation`. -/
+lemma deepPreactivation_congr_of_eqOn (d m n : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (W W' : ℕ → ℕ → ℕ → ℝ) (ℓ : ℕ)
+    (hW : ∀ k : ℕ, k ≤ ℓ → W k = W' k) :
+    deepPreactivation d m n φ X W ℓ = deepPreactivation d m n φ X W' ℓ := by
+  induction ℓ with
+  | zero =>
+      simp only [deepPreactivation]
+      rw [hW 0 le_rfl]
+  | succ ℓ ih =>
+      simp only [deepPreactivation]
+      rw [hW (ℓ + 1) le_rfl]
+      apply funext
+      intro α
+      apply funext
+      intro j
+      apply congrArg (fun q : Fin n → ℝ => (n : ℝ)⁻¹.sqrt * ∑ k : Fin n,
+        W' (ℓ + 1) j.val k.val * φ (q k))
+      apply funext
+      intro k
+      exact congrFun (congrFun (ih fun r hr => hW r (Nat.le_succ_of_le hr)) α) k
+
 /-- The infinite input-weight population, evaluated at the fixed inputs and normalized by the
 input dimension, is an i.i.d. family of centered Gaussians with the base Gram covariance. This
 is the distributional bridge needed for the base case of the deep covariance induction. -/
@@ -2793,6 +2877,28 @@ theorem indepFun_deepLayer_history (L : ℕ) (ℓ : Fin L) :
   exact h.comp (measurable_pi_apply (⟨ℓ, Finset.mem_singleton_self ℓ⟩ :
     ({ℓ} : Finset (Fin L)))) measurable_id
 
+/-- The current infinite weight population is independent of all earlier populations.  This
+pushforward form is the measure-theoretic interface used by the deep covariance induction: it
+separates the fresh layer weights from the history without introducing a second network state. -/
+lemma map_deepLayer_history_eq_prod (L : ℕ) (ℓ : Fin L) :
+    Measure.map
+      (fun w : Fin L → ℕ → ℕ → ℝ => (w ℓ, fun i : Finset.Iio ℓ => w i))
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
+      (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+        (Measure.map (fun w : Fin L → ℕ → ℕ → ℝ => fun i : Finset.Iio ℓ => w i)
+          (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+            Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
+  have hhistory_meas : Measurable
+      (fun w : Fin L → ℕ → ℕ → ℝ => fun i : Finset.Iio ℓ => w i) := by
+    refine measurable_pi_iff.2 fun i => ?_
+    exact measurable_pi_apply (i : Fin L)
+  rw [(indepFun_deepLayer_history L ℓ).map_prod_eq_prod_map_map]
+  · rw [(measurePreserving_eval (fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) ℓ).map_eq]
+  · exact (measurable_pi_apply ℓ).aemeasurable
+  · exact hhistory_meas.aemeasurable
+
 /-! ### General-Purpose Convergence-in-Probability Lemmas
 
 The two lemmas below are genuinely general (not NTK-specific): they are missing pieces of
@@ -2854,6 +2960,50 @@ theorem tendstoInMeasure_comp_of_continuousWithinAt
     push Not at hlt
     exact absurd (hδg (hf n a) hlt) (not_lt.mpr ha)
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (hfg δ hδ)
+    (fun _ => zero_le) hmono
+
+/-- A two-stage convergence-in-probability argument.  If `f n` is close in probability to a
+possibly `n`-dependent intermediate approximation `g n`, and `g n` converges in probability to
+`h`, then `f n` converges in probability to `h`.  The deep covariance induction uses this after
+separating the fresh-layer empirical fluctuation from the deterministic covariance update. -/
+theorem tendstoInMeasure_trans
+    {α E : Type*} {mα : MeasurableSpace α} {μ : Measure α}
+    [PseudoMetricSpace E] {f g : ℕ → α → E} {h : α → E}
+    (hfg : ∀ ε : ℝ, 0 < ε →
+      Filter.Tendsto (fun n => μ {a | ε ≤ dist (f n a) (g n a)}) Filter.atTop (nhds 0))
+    (hgh : TendstoInMeasure μ g Filter.atTop h) :
+    TendstoInMeasure μ f Filter.atTop h := by
+  rw [tendstoInMeasure_iff_dist] at hgh ⊢
+  intro ε hε
+  have hhalf : 0 < ε / 2 := by linarith
+  have hsum := (hfg (ε / 2) hhalf).add (hgh (ε / 2) hhalf)
+  have hmono : ∀ n, μ {a | ε ≤ dist (f n a) (h a)} ≤
+      μ {a | ε / 2 ≤ dist (f n a) (g n a)} +
+        μ {a | ε / 2 ≤ dist (g n a) (h a)} := by
+    intro n
+    calc
+      μ {a | ε ≤ dist (f n a) (h a)} ≤
+          μ ({a | ε / 2 ≤ dist (f n a) (g n a)} ∪
+            {a | ε / 2 ≤ dist (g n a) (h a)}) := by
+        apply measure_mono
+        intro a ha
+        simp only [Set.mem_ofPred_eq] at ha ⊢
+        by_cases hfg' : ε / 2 ≤ dist (f n a) (g n a)
+        · exact Or.inl hfg'
+        · right
+          by_contra hgh'
+          have hfg_lt : dist (f n a) (g n a) < ε / 2 := lt_of_not_ge hfg'
+          have hgh_lt : dist (g n a) (h a) < ε / 2 := lt_of_not_ge hgh'
+          have hlt : dist (f n a) (h a) < ε := by
+            calc
+              dist (f n a) (h a) ≤ dist (f n a) (g n a) + dist (g n a) (h a) :=
+                dist_triangle _ _ _
+              _ < ε / 2 + ε / 2 := add_lt_add hfg_lt hgh_lt
+              _ = ε := by ring
+          exact (not_lt_of_ge ha) hlt
+      _ ≤ μ {a | ε / 2 ≤ dist (f n a) (g n a)} +
+          μ {a | ε / 2 ≤ dist (g n a) (h a)} := measure_union_le _ _
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (by simpa using hsum)
     (fun _ => zero_le) hmono
 
 /-- Convergence in probability is preserved by precomposition with a measure-preserving map.
@@ -4193,7 +4343,68 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))
       Filter.atTop
       (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (ℓ + 1)) := by
-  sorry
+  induction ℓ with
+  | zero =>
+      exact deepEmpiricalCovariance_zero_tendstoInMeasure d m L φ hφ_cont C hC p hp
+        hφ_growth X (Nat.zero_lt_of_lt hℓ)
+  | succ ℓ ih =>
+      have hℓ' : ℓ < L := by omega
+      have hprevious := ih hℓ'
+      have hbase_pos : (show Matrix (Fin m) (Fin m) ℝ from
+          fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k).PosSemidef := by
+        simpa [innerProduct, dotProduct] using
+          empirical_layer_covariance_posSemidef_multivariate 1 0 d m
+          (fun k α => X α k)
+      have hφ_L2 : ∀ r : ℕ, ∀ α : Fin m,
+          MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+            (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m
+              (show Matrix (Fin m) (Fin m) ℝ from
+                fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) r)) := fun r α =>
+        memLp_activation_coordinate_of_polynomial_growth m
+          (layerCovarianceSeq 1 0 φ m
+            (show Matrix (Fin m) (Fin m) ℝ from
+              fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) r) φ
+          hφ_cont.measurable C hC p hp hφ_growth α
+      have hlimit_pos : ∀ r : ℕ,
+          (layerCovarianceSeq 1 0 φ m
+            (show Matrix (Fin m) (Fin m) ℝ from
+              fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) r).PosSemidef :=
+        layerCovarianceSeq_posSemidef 1 0 φ hφ_cont.measurable m
+          (show Matrix (Fin m) (Fin m) ℝ from
+            fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) hbase_pos hφ_L2
+      have hempirical_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
+          (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+            φ (deepPreactivation d m n φ X
+              (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+            φ (deepPreactivation d m n φ X
+              (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)).PosSemidef := by
+        intro n w
+        simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
+          (fun j α => φ (deepPreactivation d m n φ X
+            (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j))
+      have hmapped := tendstoInMeasure_comp_of_continuousWithinAt hprevious hempirical_pos
+        (continuousWithinAt_covarianceMap φ hφ_cont C hC p hp hφ_growth m
+          (layerCovarianceSeq 1 0 φ m
+            (show Matrix (Fin m) (Fin m) ℝ from
+              fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) (ℓ + 1))
+          (hlimit_pos (ℓ + 1)))
+      have hmean : TendstoInMeasure
+          (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+            Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+          (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => fun α β : Fin m =>
+            ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂
+              multivariateGaussian 0 (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
+                φ (deepPreactivation d m n φ X
+                  (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+                φ (deepPreactivation d m n φ X
+                  (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)))
+          Filter.atTop
+          (fun _ => layerCovarianceSeq 1 0 φ m
+            (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (ℓ + 1 + 1)) := by
+        simpa [layerCovarianceSeq, innerProduct, dotProduct] using hmapped
+      apply tendstoInMeasure_trans ?_ hmean
+      intro ε hε
+      sorry
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
 `gaussianReadoutMeasure n`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/
