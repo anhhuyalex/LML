@@ -3322,6 +3322,40 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
           hlinear (Set.mapsTo_univ _ _)) (Set.mapsTo_univ _ _)
     exact hα.mul hβ
 
+/-- The conditional second-moment matrix of activated Gaussian coordinates is continuous on the
+positive-semidefinite cone.  This is `continuousWithinAt_covarianceMap` applied to `φ²`, with the
+entries normalized back to the form used by the conditional Chebyshev estimate. -/
+theorem continuousWithinAt_activationProductSq
+    (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (_hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (m : ℕ) (K0 : Matrix (Fin m) (Fin m) ℝ) (hK0 : K0.PosSemidef) :
+    ContinuousWithinAt (fun K : Matrix (Fin m) (Fin m) ℝ => fun α β : Fin m =>
+      ∫ z : EuclideanSpace ℝ (Fin m),
+        (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K)
+      {K | K.PosSemidef} K0 := by
+  have hφsq_growth : ∀ x : ℝ, |φ x ^ 2| ≤ (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by
+    intro x
+    have hpow : |x| ^ (2 * p) = (|x| ^ p) ^ 2 := by
+      rw [← pow_mul]
+      congr 1
+      omega
+    have hsq : (1 + |x| ^ p) ^ 2 ≤ 2 * (1 + |x| ^ (2 * p)) := by
+      rw [hpow]
+      nlinarith [sq_nonneg (|x| ^ p - 1)]
+    calc
+      |φ x ^ 2| = |φ x| ^ 2 := by rw [abs_pow]
+      _ ≤ (C * (1 + |x| ^ p)) ^ 2 := by
+        nlinarith [hφ_growth x, abs_nonneg (φ x),
+          mul_nonneg _hC (by positivity)]
+      _ = C ^ 2 * (1 + |x| ^ p) ^ 2 := by ring
+      _ ≤ C ^ 2 * (2 * (1 + |x| ^ (2 * p))) :=
+        mul_le_mul_of_nonneg_left hsq (sq_nonneg C)
+      _ = (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by ring
+  have hcont := continuousWithinAt_covarianceMap (fun x : ℝ => φ x ^ 2)
+    (hφ_cont.pow 2) (2 * C ^ 2) (by positivity) (2 * p) (by omega) hφsq_growth m K0 hK0
+  simpa only [pow_two, mul_mul_mul_comm] using hcont
+
 end CovarianceMapContinuity
 
 end DeepNNGPRecursion
@@ -4412,6 +4446,51 @@ lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
           (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ k : Fin n,
             φ ((H k).ofLp α) * φ ((H k).ofLp β))) :=
       conditional_preactivations_eq_pi n n m φ H
+
+/-- With all preceding populations fixed, a fresh infinite population produces an i.i.d. Gaussian
+next preactivation layer.  This is the `deepPreactivation` specialization of
+`conditional_preactivations_infinite_eq_pi`; it is the conditional-law bridge for the successor
+step of the deep covariance induction. -/
+lemma conditional_deepPreactivation_succ_infinite_eq_pi
+    (d m n : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (W : ℕ → ℕ → ℕ → ℝ) (ℓ : ℕ) :
+    Measure.map
+      (fun V : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+        deepPreactivation d m n φ X
+          (fun k => if _ : k ≤ ℓ then W k else if k = ℓ + 1 then V else 0) (ℓ + 1) α j)
+      (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
+      Measure.pi (fun _ : Fin n => multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+        (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ k : Fin n,
+          φ (deepPreactivation d m n φ X W ℓ α k) *
+          φ (deepPreactivation d m n φ X W ℓ β k))) := by
+  let Wnext : (ℕ → ℕ → ℝ) → ℕ → ℕ → ℕ → ℝ :=
+    fun V k => if _ : k ≤ ℓ then W k else if k = ℓ + 1 then V else 0
+  have hprevious : ∀ V : ℕ → ℕ → ℝ,
+      deepPreactivation d m n φ X (Wnext V) ℓ = deepPreactivation d m n φ X W ℓ := by
+    intro V
+    apply deepPreactivation_congr_of_eqOn d m n φ X (Wnext V) W ℓ
+    intro k hk
+    simp [Wnext, hk]
+  let H : Fin n → EuclideanSpace ℝ (Fin m) := fun k => WithLp.toLp 2 fun α : Fin m =>
+    deepPreactivation d m n φ X W ℓ α k
+  have hmap :
+      (fun V : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+        deepPreactivation d m n φ X (Wnext V) (ℓ + 1) α j) =
+      (fun V : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+        (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, V j.val k.val * φ ((H k).ofLp α)) := by
+    funext V j
+    congr 1
+    funext α
+    simp only [deepPreactivation]
+    rw [show Wnext V (ℓ + 1) = V by simp [Wnext]]
+    rw [hprevious V]
+  rw [show (fun V : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+      deepPreactivation d m n φ X
+        (fun k => if _ : k ≤ ℓ then W k else if k = ℓ + 1 then V else 0) (ℓ + 1) α j) =
+      (fun V : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α : Fin m =>
+        deepPreactivation d m n φ X (Wnext V) (ℓ + 1) α j) by rfl, hmap]
+  simpa only [H, WithLp.ofLp_toLp] using
+    conditional_preactivations_infinite_eq_pi n m φ H
 
 end AsymptoticEmpiricalCovariancePropagation
 
