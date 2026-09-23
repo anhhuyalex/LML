@@ -34,7 +34,7 @@ lemma integral_conditional_output_eq_zero
 /-- The conditional covariance between outputs `f(X α)` and `f(X β)` is `Φ^{(n), α β}`. -/
 lemma cov_conditional_output_eq_covariance
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) (α β : Fin m) :
-    cov[fun v => v.ofLp α, fun v => v.ofLp β;
+    cov[fun (v : EuclideanSpace ℝ (Fin m)) => v.ofLp α, fun v => v.ofLp β;
       Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)] =
       empiricalCovariance n φ W X α β := by
   rw [exact_conditional_normality]
@@ -107,6 +107,45 @@ theorem expected_relu_mul_relu_bivariate_eq_arcCosineJ1
   rw [hangle]
   ring
 
+
+
+/-- The conditional expectation of the depth-`L` network's output vector vanishes. -/
+lemma integral_conditional_deepOutput_eq_zero
+    (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (w : Fin L → ℕ → ℕ → ℝ) :
+    ∫ v, v ∂(Measure.map
+      (fun r : (ℕ → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n,
+        r.1 j.val * φ (deepPreactivation d m n φ X
+          (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j))
+      ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1))) = 0 := by
+  rw [map_deepEval_snd_eq_multivariateGaussian d m n L φ X w]
+  exact integral_id_multivariateGaussian
+
+/-- The conditional covariance between depth-`L` network outputs at `X α` and `X β` is
+`Φ_L^{(n), α β}`. -/
+lemma cov_conditional_deepOutput_eq_covariance
+    (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (w : Fin L → ℕ → ℕ → ℝ)
+    (α β : Fin m) :
+    cov[fun (v : EuclideanSpace ℝ (Fin m)) => v.ofLp α, fun v => v.ofLp β;
+      Measure.map
+        (fun r : (ℕ → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n,
+          r.1 j.val * φ (deepPreactivation d m n φ X
+            (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j))
+        ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1))] =
+      (n : ℝ)⁻¹ * ∑ j : Fin n,
+        φ (deepPreactivation d m n φ X
+          (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
+        φ (deepPreactivation d m n φ X
+          (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j) := by
+  rw [map_deepEval_snd_eq_multivariateGaussian d m n L φ X w]
+  have hPos : (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+      φ (deepPreactivation d m n φ X
+        (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
+      φ (deepPreactivation d m n φ X
+        (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j)).PosSemidef :=
+    deepEval_covariance_posSemidef d m n L φ X w
+  have (i : Fin m) : (fun (v : EuclideanSpace ℝ (Fin m)) => v.ofLp i) = (fun v => v i) := rfl
+  rw [this, this]
+  exact covariance_eval_multivariateGaussian hPos α β
 
 
 end NTK

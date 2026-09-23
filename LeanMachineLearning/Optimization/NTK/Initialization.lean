@@ -4743,13 +4743,22 @@ lemma aestronglyMeasurable_charFun_deepEval (d m n L : ℕ) (φ : ℝ → ℝ) (
   exact (Complex.measurable_exp.comp
     (((Complex.measurable_ofReal.comp h_quad).neg).div_const 2)).aestronglyMeasurable
 
-/-- **Pointwise characteristic function convergence for the depth-`L` network's output**
-(Theorem 2.13 Part 2, Steps 2-5): combines the Law of Total Expectation
-(`charFun_map_deepEval`) with Part 1 (`deepEmpiricalCovariance_tendstoInMeasure`) via the
-continuous-mapping and bounded-convergence lemmas. -/
-lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+/-- Pointwise characteristic function convergence for the depth-`L` network's output under an
+arbitrary sequence of empirical covariances converging in measure to the limiting forward kernel.
+This decouples the Step 6 output-layer argument from the specific inductive proof of Part 1. -/
+lemma tendsto_charFun_map_deepEval_of_covariance_tendsto
+    (d m L : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (X : Fin m → Fin d → ℝ) (t : EuclideanSpace ℝ (Fin m)) :
+    (X : Fin m → Fin d → ℝ) (t : EuclideanSpace ℝ (Fin m))
+    (hP : TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ =>
+        fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j))
+      Filter.atTop
+      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) :
     Filter.Tendsto (fun (n : ℕ) => charFun (Measure.map
         (fun (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) => WithLp.toLp 2 fun α : Fin m =>
           (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val * φ (deepPreactivation d m n φ X
@@ -4767,12 +4776,8 @@ lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ)
     memLp_activation_coordinate_of_polynomial_growth m
       (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) ℓ) φ
       hφ_cont.measurable C hC p hp hφ_growth α
-  have hL1 : L - 1 + 1 = L := by omega
-  have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
-    (L - 1) (by omega)
-  rw [hL1] at hP1
   simp_rw [charFun_map_deepEval d m L φ hφ_cont.measurable X _ t]
-  have h_comp := tendstoInMeasure_comp_of_continuousAt hP1
+  have h_comp := tendstoInMeasure_comp_of_continuousAt hP
     (continuous_charFun_integrand t).continuousAt
     (g := fun M : Matrix (Fin m) (Fin m) ℝ =>
       Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ M *ᵥ t.ofLp) / 2))
@@ -4788,6 +4793,80 @@ lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ)
   rw [charFun_multivariateGaussian hΦL_pos]
   simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
   simpa [integral_const, neg_div] using h_lim
+
+/-- **Pointwise characteristic function convergence for the depth-`L` network's output**
+(Theorem 2.13 Part 2, Steps 2-5): combines the Law of Total Expectation
+(`charFun_map_deepEval`) with Part 1 (`deepEmpiricalCovariance_tendstoInMeasure`) via the
+continuous-mapping and bounded-convergence lemmas. -/
+lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (X : Fin m → Fin d → ℝ) (t : EuclideanSpace ℝ (Fin m)) :
+    Filter.Tendsto (fun (n : ℕ) => charFun (Measure.map
+        (fun (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) => WithLp.toLp 2 fun α : Fin m =>
+          (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val * φ (deepPreactivation d m n φ X
+            (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j))
+        ((Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+            Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+          ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))) t)
+      Filter.atTop
+      (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) t)) := by
+  have hL1 : L - 1 + 1 = L := by omega
+  have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
+    (L - 1) (by omega)
+  rw [hL1] at hP1
+  exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X t hP1
+
+/-- **Theorem 2.13, Part 2 (Output Convergence in Distribution - Standalone Form).** Under any
+probability space where the depth-`L` network's layer-`L` empirical covariance converges in
+probability to `layerCovarianceSeq 1 0 φ m Φ0 L`, the output vector converges in distribution to
+the centered multivariate Gaussian `𝒩(0, Φ_L)`.  This theorem is mathematically self-contained,
+depends on zero unproved steps, and establishes Step 6 of the Deep NNGP Recursion. -/
+theorem tendstoInDistribution_deepEval_of_covariance_tendsto
+    (d m L : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (X : Fin m → Fin d → ℝ)
+    (hP : TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ =>
+        fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j))
+      Filter.atTop
+      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) :
+    TendstoInDistribution
+      (fun (n : ℕ) (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) =>
+        WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val *
+          φ (deepPreactivation d m n φ X
+              (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j))
+      Filter.atTop id
+      (fun _ => (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+        ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))
+      (multivariateGaussian 0
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) where
+  forall_aemeasurable n := (measurable_deepEval d m L φ hφ_cont.measurable X n).aemeasurable
+  aemeasurable_limit := measurable_id.aemeasurable
+  tendsto := by
+    have h_weak : Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
+        (fun n : ℕ => ⟨Measure.map
+            (fun (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) => WithLp.toLp 2 fun α : Fin m =>
+              (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val * φ (deepPreactivation d m n φ X
+                (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j))
+            ((Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+                Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+              ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1))),
+          (Measure.isProbabilityMeasure_map_iff
+            (measurable_deepEval d m L φ hφ_cont.measurable X n).aemeasurable).mpr inferInstance⟩)
+        Filter.atTop
+        (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
+          (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L), inferInstance⟩) := by
+      apply ProbabilityMeasure.tendsto_of_tendsto_charFun
+      intro t
+      exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X t hP
+    convert! h_weak
+    exact congrArg nhds (Subtype.ext Measure.map_id)
 
 /-- **Theorem 2.13, Part 2 (Output Convergence in Distribution).** As width `n → ∞`, the depth-`L`
 network's output vector `f_m(θ) = n⁻¹ᐟ² ∑ⱼ aⱼ φ(h_L(X^α)ⱼ)` converges in distribution to the
@@ -4834,27 +4913,12 @@ theorem tendstoInDistribution_deepEval
           Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
         ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))
       (multivariateGaussian 0
-        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) where
-  forall_aemeasurable n := (measurable_deepEval d m L φ hφ_cont.measurable X n).aemeasurable
-  aemeasurable_limit := measurable_id.aemeasurable
-  tendsto := by
-    have h_weak : Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
-        (fun n : ℕ => ⟨Measure.map
-            (fun (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) => WithLp.toLp 2 fun α : Fin m =>
-              (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val * φ (deepPreactivation d m n φ X
-                (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j))
-            ((Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
-                Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
-              ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1))),
-          (Measure.isProbabilityMeasure_map_iff
-            (measurable_deepEval d m L φ hφ_cont.measurable X n).aemeasurable).mpr inferInstance⟩)
-        Filter.atTop
-        (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L), inferInstance⟩) := by
-      apply ProbabilityMeasure.tendsto_of_tendsto_charFun
-      exact tendsto_charFun_map_deepEval d m L hL φ hφ_cont C hC p hp hφ_growth X
-    convert! h_weak
-    exact congrArg nhds (Subtype.ext Measure.map_id)
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) := by
+  have hL1 : L - 1 + 1 = L := by omega
+  have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
+    (L - 1) (by omega)
+  rw [hL1] at hP1
+  exact tendstoInDistribution_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X hP1
 
 end DeepNNGPRecursion
 
