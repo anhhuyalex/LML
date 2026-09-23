@@ -19,6 +19,17 @@ public import Mathlib.Analysis.SpecialFunctions.PolarCoord
 public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import Mathlib.MeasureTheory.Integral.Prod
 public import Mathlib.MeasureTheory.Measure.Real
+public import LeanMachineLearning.Optimization.ConvexOpt.Basic
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Mathlib.Analysis.Calculus.Deriv.Pi
+public import Mathlib.Analysis.Calculus.FDeriv.Linear
+public import Mathlib.Analysis.Calculus.FDeriv.Add
+public import Mathlib.Analysis.Calculus.FDeriv.Mul
+public import Mathlib.Analysis.Calculus.Gradient.Basic
 
 /-!
 # The neural tangent kernel (NTK)
@@ -52,13 +63,22 @@ derived via a geometric argument on the sphere.
   measurable integrable functions of iid Gaussian rows.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
+* `NTK.trainingOutputs` : the vector `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions on the training dataset.
+* `NTK.trainingResidual` : the residual error vector `r(θ) = f(θ) - y`.
+* `NTK.mseLoss` : the empirical MSE loss objective `L(θ) = (1 / 2m) ‖r(θ)‖²`.
+* `NTK.tangentFeature` : the sensitivity vector `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`.
+* `NTK.outputJacobian` : the network output Jacobian matrix `J(θ) ∈ ℝ^{m × P}`.
+* `NTK.empiricalNTKMatrix` : the empirical NTK Gram matrix `K_t = J(θ) J(θ)ᵀ ∈ ℝ^{m × m}`.
+* `NTK.gradient_flow_output_coord_ode` : coordinate ODE `∂_t f^α(t) = - (1/m) ∑_β K_t^{α β} r^β(t)` under gradient flow.
+* `NTK.gradient_flow_output_vector_ode` : vector output ODE `∂_t f(t) = - (1/m) K_t r(t)`.
+* `NTK.gradient_flow_residual_vector_ode` : vector residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
 
 -/
 
 @[expose] public section
 
-open Real MeasureTheory ProbabilityTheory Filter
-open scoped RealInnerProductSpace
+open Real MeasureTheory ProbabilityTheory Filter ConvexOpt
+open scoped RealInnerProductSpace Matrix
 
 namespace NTK
 
@@ -881,6 +901,350 @@ lemma reluNTK_self
   simp [Real.arccos_one]
   ring_nf
   simp [Real.pi_pos.ne']
+
+/-! ### Finite-Dataset Empirical NTK, Optimization, and Function-Space Dynamics
+
+This section formalizes the empirical Neural Tangent Kernel (NTK) on finite datasets,
+the discrete gradient descent and continuous gradient flow optimization regimes,
+the Gram factorization and positive semidefiniteness of the empirical NTK matrix,
+and the exact induced function-space training dynamics.
+-/
+
+variable {ι : Type*} {P : ℕ}
+
+/-- The vector of network outputs on the training dataset:
+  `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ ∈ ℝᵐ`. -/
+noncomputable def trainingOutputs (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
+  WithLp.toLp 2 (fun α => f (X α) θ)
+
+/-- The residual error vector function:
+  `r(θ) = f(θ) - y ∈ ℝᵐ`. -/
+noncomputable def trainingResidual (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
+  trainingOutputs f X θ - y
+
+/-- The empirical Mean-Squared Error (MSE) loss objective:
+  `L(θ) = (1 / 2m) ∑_α (f(x^α; θ) - y^α)² = (1 / 2m) ‖f(θ) - y‖² = (1 / 2m) ‖r(θ)‖²`. -/
+noncomputable def mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : ℝ :=
+  (2 * (m : ℝ))⁻¹ * ‖trainingResidual f X y θ‖ ^ 2
+
+lemma mseLoss_eq_sum (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) :
+    mseLoss f X y θ = (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ - y α) ^ 2 := by
+  unfold mseLoss
+  rw [EuclideanSpace.real_norm_sq_eq]
+  rfl
+
+/-- The tangent feature map `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`, representing the sensitivity
+of the scalar output with respect to parameters. -/
+noncomputable def tangentFeature (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (x : ι)
+    (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin P) :=
+  gradient (fun θ' => f x θ') θ
+
+/-- The network output Jacobian matrix evaluated on the training dataset `J(θ) ∈ ℝ^{m × P}`,
+whose `α`-th row is the transposed tangent feature vector `∇_θ f(x^α; θ)ᵀ`. -/
+noncomputable def outputJacobian (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) : Matrix (Fin m) (Fin P) ℝ :=
+  Matrix.of fun α j => tangentFeature f (X α) θ j
+
+/-- The empirical Neural Tangent Kernel (NTK) Gram matrix `K_t = J(θ) J(θ)ᵀ ∈ ℝ^{m × m}`. -/
+noncomputable def empiricalNTKMatrix (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) : Matrix (Fin m) (Fin m) ℝ :=
+  outputJacobian f X θ * (outputJacobian f X θ)ᵀ
+
+/-- The entries of the empirical NTK matrix are the inner products of tangent features:
+  `K_t^{α β} = ⟨∇_θ f(x^α; θ(t)), ∇_θ f(x^β; θ(t))⟩`. -/
+lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) (α β : Fin m) :
+    empiricalNTKMatrix f X θ α β = ⟪tangentFeature f (X α) θ, tangentFeature f (X β) θ⟫ := by
+  simp only [empiricalNTKMatrix, Matrix.mul_apply, Matrix.transpose_apply, outputJacobian, Matrix.of_apply]
+  rw [show tangentFeature f (X α) θ = WithLp.toLp 2 (tangentFeature f (X α) θ).ofLp by rfl]
+  rw [show tangentFeature f (X β) θ = WithLp.toLp 2 (tangentFeature f (X β) θ).ofLp by rfl]
+  rw [EuclideanSpace.inner_toLp_toLp]
+  simp [dotProduct, mul_comm]
+
+/-! ### Positive Semidefiniteness and Gram Factorization -/
+
+/-- The empirical NTK Gram matrix is positive semidefinite (`PosSemidef`) for any parameter state. -/
+theorem empiricalNTKMatrix_posSemidef (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) :
+    (empiricalNTKMatrix f X θ).PosSemidef := by
+  have h1 : (1 : Matrix (Fin P) (Fin P) ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h := h1.mul_mul_conjTranspose_same (outputJacobian f X θ)
+  simp only [Matrix.mul_one] at h
+  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
+
+/-- Quadratic form evaluation: `vᵀ K v = ‖Jᵀ v‖²`. -/
+theorem empiricalNTKMatrix_quad_form (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) (v : Fin m → ℝ) :
+    v ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v) =
+      ‖(WithLp.toLp 2 ((outputJacobian f X θ)ᵀ *ᵥ v) : EuclideanSpace ℝ (Fin P))‖ ^ 2 := by
+  have h_eq : v ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v) =
+      ((outputJacobian f X θ)ᵀ *ᵥ v) ⬝ᵥ ((outputJacobian f X θ)ᵀ *ᵥ v) := by
+    dsimp [empiricalNTKMatrix]
+    rw [← Matrix.mulVec_mulVec v (outputJacobian f X θ) (outputJacobian f X θ)ᵀ]
+    rw [Matrix.dotProduct_mulVec]
+    rw [← Matrix.mulVec_transpose]
+  rw [h_eq, EuclideanSpace.real_norm_sq_eq]
+  simp [dotProduct, pow_two]
+
+/-- The quadratic form of the empirical NTK matrix is non-negative: `vᵀ K v ≥ 0`. -/
+theorem empiricalNTKMatrix_quad_form_nonneg (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ : EuclideanSpace ℝ (Fin P)) (v : Fin m → ℝ) :
+    0 ≤ v ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v) := by
+  rw [empiricalNTKMatrix_quad_form]
+  exact sq_nonneg _
+
+/-! ### Compatibility with Existing Shallow Network and Gradient Matrices -/
+
+/-- The dataset empirical NTK matrix with arbitrary outer coefficients is positive semidefinite. -/
+theorem empiricalNTKWithOuter_dataset_posSemidef
+    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ) :
+    (Matrix.of (fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β))).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)) =
+      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
+      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
+    ext α β
+    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
+    rw [Fintype.sum_prod_type]
+    exact (frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)).symm
+  rw [h_eq]
+  have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h := h1.mul_mul_conjTranspose_same (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
+  simp only [Matrix.mul_one] at h
+  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
+
+/-- The dataset empirical NTK matrix (`aⱼ² = 1` case) is positive semidefinite. -/
+theorem empiricalNTK_dataset_posSemidef
+    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ)
+    (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
+    (Matrix.of (fun α β => empiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => empiricalNTK σ' W₀ (X α) (X β)) =
+      Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
+    ext α β
+    simp only [Matrix.of_apply]
+    exact (empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one σ' outerCoeffs W₀ (X α) (X β) houter).symm
+  rw [h_eq]
+  exact empiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
+
+/-! ### Gradient of the MSE Loss -/
+
+lemma hasFDerivAt_sq_diff (θ : EuclideanSpace ℝ (Fin P)) {g : EuclideanSpace ℝ (Fin P) → ℝ}
+    (hg : DifferentiableAt ℝ g θ) (c : ℝ) :
+    HasFDerivAt (fun θ' => (g θ' - c) ^ 2)
+      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P)) ((2 * (g θ - c)) • gradient g θ)) θ := by
+  have h1 : HasFDerivAt (fun θ' => g θ' - c) (fderiv ℝ g θ) θ := by
+    have h := hg.hasFDerivAt.sub (hasFDerivAt_const c θ)
+    rw [sub_zero] at h
+    exact h
+  have h2 := h1.mul h1
+  have h_eq : (fun θ' => (g θ' - c) ^ 2) = (fun θ' => (g θ' - c) * (g θ' - c)) := by
+    ext; ring
+  rw [h_eq]
+  convert h2 using 1
+  ext v
+  have h_grad : fderiv ℝ g θ v = ⟪gradient g θ, v⟫ := by
+    rw [← toDual_gradient, InnerProductSpace.toDual_apply_apply]
+  simp only [add_apply, smul_apply, smul_eq_mul]
+  rw [h_grad]
+  simp only [InnerProductSpace.toDual_apply_apply, inner_smul_left, starRingEnd_apply, star_trivial]
+  ring
+
+/-- The gradient of the empirical MSE loss with respect to parameters:
+  `∇_θ L(θ) = (1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`. -/
+theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
+    gradient (mseLoss f X y) θ = (m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ := by
+  have h_term : ∀ α ∈ (Finset.univ : Finset (Fin m)),
+      HasFDerivAt (fun θ' => (f (X α) θ' - y α) ^ 2)
+        (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
+          ((2 * (trainingResidual f X y θ α)) • tangentFeature f (X α) θ)) θ := by
+    intro α _
+    exact hasFDerivAt_sq_diff θ (hdiff α) (y α)
+  have h_sum := HasFDerivAt.sum (u := Finset.univ) (A := fun α θ' => (f (X α) θ' - y α) ^ 2) h_term
+  have h_sum_eq : (∑ α ∈ (Finset.univ : Finset (Fin m)), fun θ' => (f (X α) θ' - y α) ^ 2) =
+      (fun θ' => ∑ α : Fin m, (f (X α) θ' - y α) ^ 2) := by
+    ext θ'
+    simp only [Finset.sum_apply]
+  rw [h_sum_eq] at h_sum
+  have h_scaled := h_sum.const_smul (2 * (m : ℝ))⁻¹
+  have h_loss_eq : mseLoss f X y = fun θ' => (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ' - y α) ^ 2 := by
+    ext θ'
+    unfold mseLoss trainingResidual trainingOutputs
+    rw [EuclideanSpace.real_norm_sq_eq]
+    rfl
+  rw [h_loss_eq]
+  have h_grad : HasGradientAt (fun θ' => (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ' - y α) ^ 2)
+      ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) θ := by
+    rw [hasGradientAt_iff_hasFDerivAt]
+    convert h_scaled using 1
+    ext v
+    simp only [smul_apply, sum_apply,
+      InnerProductSpace.toDual_apply_apply, smul_eq_mul]
+    rw [inner_smul_left]
+    simp only [starRingEnd_apply, star_trivial]
+    rw [sum_inner]
+    simp only [inner_smul_left, starRingEnd_apply, star_trivial]
+    rw [Finset.mul_sum]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro α _
+    ring
+  exact h_grad.gradient
+
+/-- Coordinate-wise formulation matching the Jacobian-residual product:
+  `[∇_θ L(θ)]_j = (1 / m) [J(θ)ᵀ r(θ)]_j = (1 / m) ∑_α (f(x^α; θ) - y^α) [∇_θ f(x^α; θ)]_j`. -/
+lemma gradient_mseLoss_apply_j (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) (j : Fin P) :
+    gradient (mseLoss f X y) θ j = (m : ℝ)⁻¹ * ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) j := by
+  rw [gradient_mseLoss f X y θ hdiff]
+  have h_eval : ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) j =
+      (m : ℝ)⁻¹ * ∑ α : Fin m, (trainingResidual f X y θ α) * tangentFeature f (X α) θ j := by
+    change (m : ℝ)⁻¹ * (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp j = _
+    rw [show (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp =
+        ∑ α : Fin m, ((trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp from
+        map_sum (WithLp.linearEquiv 2 ℝ (Fin P → ℝ)) _ Finset.univ]
+    rw [Finset.sum_apply]
+    rfl
+  rw [h_eval]
+  rw [Finset.mul_sum]
+  congr 1
+  apply Finset.sum_congr rfl
+  intro α _
+  rw [Matrix.mulVec_apply]
+  simp only [Matrix.transpose_apply, Matrix.of_apply]
+  rw [dotProduct]
+  ring
+
+/-- Vectorized formulation of the MSE gradient:
+  `∇_θ L(θ) = (1 / m) J(θ)ᵀ r(θ)`. -/
+lemma gradient_mseLoss_eq_mulVec (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
+    (gradient (mseLoss f X y) θ).ofLp = (m : ℝ)⁻¹ • ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) := by
+  ext j
+  exact gradient_mseLoss_apply_j f X y θ hdiff j
+
+/-! ### Discrete Gradient Descent Dynamics -/
+
+/-- Discrete gradient descent step equation starting at `θ₀` with constant learning rate `η`
+for the empirical MSE loss:
+  `θ_{k+1} = θ_k - η ∇_θ L(θ_k)`. -/
+lemma gdIterate_mseLoss_succ
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (η : ℝ) (θ₀ : EuclideanSpace ℝ (Fin P)) (k : ℕ) :
+    gdIterate (mseLoss f X y) (fun _ => η) θ₀ (k + 1) =
+      gdIterate (mseLoss f X y) (fun _ => η) θ₀ k - η • gradient (mseLoss f X y) (gdIterate (mseLoss f X y) (fun _ => η) θ₀ k) := rfl
+
+/-! ### Continuous Gradient Flow and Function-Space Dynamics -/
+
+/-- Step 1 (Multivariate Chain Rule):
+  `∂_t f^α(t) = ⟨∇_θ f(x^α; θ(t)), ∂_t θ(t)⟩`. -/
+theorem hasDerivAt_trainingOutputs_coord
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ_traj : ℝ → EuclideanSpace ℝ (Fin P))
+    (θ' : ℝ → EuclideanSpace ℝ (Fin P)) (t : ℝ) (α : Fin m)
+    (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t))
+    (hθ : HasDerivAt θ_traj (θ' t) t) :
+    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+      ⟪tangentFeature f (X α) (θ_traj t), θ' t⟫ t := by
+  have hcomp := hdiff.hasFDerivAt.comp_hasDerivAt t hθ
+  have hgrad : fderiv ℝ (fun θ' => f (X α) θ') (θ_traj t) (θ' t) =
+      ⟪tangentFeature f (X α) (θ_traj t), θ' t⟫ := by
+    rw [← toDual_gradient, InnerProductSpace.toDual_apply_apply]
+    rfl
+  rw [hgrad] at hcomp
+  exact hcomp
+
+/-- Steps 2–4 (Assembly with Empirical NTK):
+Along the gradient flow trajectory `∂_t θ(t) = -∇_θ L(θ(t))`, the output coordinates satisfy:
+  `∂_t f^α(t) = - (1 / m) ∑_β K_t^{α β} (f^β(t) - y^β) = - (1 / m) ∑_β K_t^{α β} r^β(t)`. -/
+theorem gradient_flow_output_coord_ode
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (t : ℝ) (α : Fin m)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+      (- (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β) t := by
+  have h_chain := hasDerivAt_trainingOutputs_coord f X θ_traj
+    (fun s => -gradient (mseLoss f X y) (θ_traj s)) t α (hdiff α) (hflow.ode t)
+  rw [gradient_mseLoss f X y (θ_traj t) hdiff] at h_chain
+  have h_inner : ⟪tangentFeature f (X α) (θ_traj t),
+      -((m : ℝ)⁻¹ • ∑ β : Fin m, (trainingResidual f X y (θ_traj t)) β • tangentFeature f (X β) (θ_traj t))⟫ =
+      - (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β := by
+    rw [inner_neg_right, inner_smul_right, sum_inner]
+    simp only [inner_smul_right, starRingEnd_apply, star_trivial]
+    rw [Finset.mul_sum]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro β _
+    have hK := (empiricalNTKMatrix_apply f X (θ_traj t) α β).symm
+    rw [hK]
+    ring
+  rw [h_inner] at h_chain
+  exact h_chain
+
+lemma hasDerivAt_euclideanSpace (v : ℝ → EuclideanSpace ℝ (Fin m))
+    (v' : EuclideanSpace ℝ (Fin m)) (t : ℝ) :
+    HasDerivAt v v' t ↔ ∀ i : Fin m, HasDerivAt (fun s => v s i) (v' i) t := by
+  let e := (EuclideanSpace.equiv (Fin m) ℝ).toContinuousLinearEquiv
+  have h := hasDerivAt_pi (φ := fun s => e (v s)) (φ' := e v') (x := t)
+  constructor
+  · intro hv i
+    have he := (e : EuclideanSpace ℝ (Fin m) →L[ℝ] (Fin m → ℝ)).hasFDerivAt.comp_hasDerivAt t hv
+    exact (h.mp he) i
+  · intro hi
+    have he : HasDerivAt (fun s => e (v s)) (e v') t := h.mpr hi
+    have h_orig := (e.symm : (Fin m → ℝ) →L[ℝ] EuclideanSpace ℝ (Fin m)).hasFDerivAt.comp_hasDerivAt t he
+    convert h_orig
+    · ext s; simp [e]
+    · simp [e]
+
+/-- Step 5 (Vector Matrix-Vector Formulation):
+Along continuous gradient flow, the training output vector satisfies:
+  `∂_t f(t) = - (1 / m) K_t r(t)`. -/
+theorem gradient_flow_output_vector_ode
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (t : ℝ)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
+      (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
+  rw [hasDerivAt_euclideanSpace]
+  intro α
+  have h_coord := gradient_flow_output_coord_ode f X y hflow t α hdiff
+  have h_eq : - (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β =
+      (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp)) : EuclideanSpace ℝ (Fin m)) α := by
+    change - (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β =
+      (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp)) α
+    simp only [Pi.smul_apply, smul_eq_mul, Matrix.mulVec_apply]
+    rw [dotProduct]
+  rw [h_eq] at h_coord
+  exact h_coord
+
+/-- Function-space residual ODE under gradient flow:
+  `∂_t r(t) = - (1 / m) K_t r(t)`. -/
+theorem gradient_flow_residual_vector_ode
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (t : ℝ)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
+      (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
+  have h_out := gradient_flow_output_vector_ode f X y hflow t hdiff
+  have h_sub := h_out.sub_const y
+  convert h_sub using 1
+  ext s
+  rfl
 
 end NTK
 

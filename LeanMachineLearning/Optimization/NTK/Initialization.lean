@@ -3006,6 +3006,28 @@ lemma map_deepLayer_history_eq_prod (L : ℕ) (ℓ : Fin L) :
   · exact (measurable_pi_apply ℓ).aemeasurable
   · exact hhistory_meas.aemeasurable
 
+/-- The total weight family reconstructed from the populations strictly before `r`.  Values at
+and after `r` are irrelevant for preactivations before `r` and are set to zero. -/
+noncomputable def deepHistoryWeight (L : ℕ) (r : Fin L)
+    (h : Finset.Iio r → ℕ → ℕ → ℝ) : ℕ → ℕ → ℕ → ℝ := fun k =>
+  if hk : k < r.val then
+    h ⟨⟨k, lt_trans hk r.isLt⟩, Finset.mem_Iio.mpr (show (⟨k, lt_trans hk r.isLt⟩ : Fin L) < r
+      from hk)⟩
+  else 0
+
+/-- A preactivation before `r` depends only on the `Iio r` history. -/
+lemma deepPreactivation_eq_deepHistoryWeight
+    (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (r : Fin L) (ℓ : ℕ) (hℓ : ℓ < r.val)
+    (w : Fin L → ℕ → ℕ → ℝ) :
+    deepPreactivation d m n φ X
+      (fun k => if hk : k < L then w ⟨k, hk⟩ else 0) ℓ =
+    deepPreactivation d m n φ X (deepHistoryWeight L r (fun i : Finset.Iio r => w i)) ℓ := by
+  apply deepPreactivation_congr_of_eqOn d m n φ X _ _ ℓ
+  intro k hk
+  have hkr : k < r.val := lt_of_le_of_lt hk hℓ
+  simp [deepHistoryWeight, hkr, lt_trans hkr r.isLt]
+
 /-! ### General-Purpose Convergence-in-Probability Lemmas
 
 The two lemmas below are genuinely general (not NTK-specific): they are missing pieces of
@@ -3025,6 +3047,11 @@ search does not unfold it automatically), so it is registered here. Needed so
 `tendstoInMeasure_comp_of_continuousAt` below applies to the `Matrix`-valued sequences in Part 1
 and Part 2. -/
 instance instPseudoEMetricSpaceMatrix (m : ℕ) : PseudoEMetricSpace (Matrix (Fin m) (Fin m) ℝ) := by
+  unfold Matrix; infer_instance
+
+/-- The matching pseudo-metric instance is needed for the real-valued `dist` tail events used in
+convergence-in-measure statements.  As above, it is inherited from the underlying finite Pi type. -/
+instance instPseudoMetricSpaceMatrix (m : ℕ) : PseudoMetricSpace (Matrix (Fin m) (Fin m) ℝ) := by
   unfold Matrix; infer_instance
 
 /-- **Continuous mapping theorem for convergence in probability to a constant.** If `f n → y` in
@@ -3112,6 +3139,47 @@ theorem tendstoInMeasure_trans
           μ {a | ε / 2 ≤ dist (g n a) (h a)} := measure_union_le _ _
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (by simpa using hsum)
     (fun _ => zero_le) hmono
+
+/-- To prove convergence in measure of a finite matrix-valued family, it suffices to prove the
+corresponding tail estimate for every entry.  The proof uses the sup metric on Pi types and finite
+subadditivity of measure.  This is the matrix reduction used by the conditional covariance
+concentration argument. -/
+theorem tendsto_matrixTail_of_tendsto_entrywise
+    {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω} (m : ℕ)
+    {f g : ℕ → Ω → Matrix (Fin m) (Fin m) ℝ}
+    (hentry : ∀ (α β : Fin m) (ε : ℝ), 0 < ε →
+      Filter.Tendsto (fun n => μ {a | ε ≤ dist (f n a α β) (g n a α β)})
+        Filter.atTop (nhds 0)) :
+    ∀ ε : ℝ, 0 < ε →
+      Filter.Tendsto (fun n => μ {a | ε ≤ dist (f n a) (g n a)})
+        Filter.atTop (nhds 0) := by
+  intro ε hε
+  have hsum : Filter.Tendsto
+      (fun n => ∑ q : Fin m × Fin m,
+        μ {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)})
+      Filter.atTop (nhds 0) := by
+    simpa using tendsto_finsetSum (s := Finset.univ)
+      (fun q _ => hentry q.1 q.2 ε hε)
+  have hbound : ∀ n : ℕ,
+      μ {a | ε ≤ dist (f n a) (g n a)} ≤
+        ∑ q : Fin m × Fin m, μ {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)} := by
+    intro n
+    calc
+      μ {a | ε ≤ dist (f n a) (g n a)} ≤
+          μ (⋃ q : Fin m × Fin m, {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)}) := by
+        apply measure_mono
+        intro a ha
+        simp only [Set.mem_setOf_eq] at ha
+        by_contra h
+        simp only [Set.mem_iUnion, Set.mem_setOf_eq] at h
+        push Not at h
+        exact (not_lt_of_ge ha) ((dist_pi_lt_iff hε).2 fun α =>
+          (dist_pi_lt_iff hε).2 fun β => h ⟨α, β⟩)
+      _ ≤ ∑ q : Fin m × Fin m,
+          μ {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)} :=
+        measure_iUnion_fintype_le _ _
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
+    (fun _ => zero_le) hbound
 
 /-- Convergence in probability is preserved by precomposition with a measure-preserving map.
 The explicit measurability hypotheses make the result applicable to the finite-dimensional
