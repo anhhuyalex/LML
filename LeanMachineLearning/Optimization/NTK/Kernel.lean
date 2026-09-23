@@ -1090,8 +1090,7 @@ theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fi
     simp only [starRingEnd_apply, star_trivial]
     rw [sum_inner]
     simp only [inner_smul_left, starRingEnd_apply, star_trivial]
-    rw [Finset.mul_sum]
-    congr 1
+    rw [Finset.mul_sum, Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro α _
     ring
@@ -1113,13 +1112,12 @@ lemma gradient_mseLoss_apply_j (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (
     rw [Finset.sum_apply]
     rfl
   rw [h_eval]
-  rw [Finset.mul_sum]
   congr 1
+  rw [Matrix.mulVec_apply]
+  rw [dotProduct]
+  simp only [Matrix.row_apply, Matrix.transpose_apply, outputJacobian, Matrix.of_apply]
   apply Finset.sum_congr rfl
   intro α _
-  rw [Matrix.mulVec_apply]
-  simp only [Matrix.transpose_apply, Matrix.of_apply]
-  rw [dotProduct]
   ring
 
 /-- Vectorized formulation of the MSE gradient:
@@ -1179,9 +1177,10 @@ theorem gradient_flow_output_coord_ode
   have h_inner : ⟪tangentFeature f (X α) (θ_traj t),
       -((m : ℝ)⁻¹ • ∑ β : Fin m, (trainingResidual f X y (θ_traj t)) β • tangentFeature f (X β) (θ_traj t))⟫ =
       - (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β := by
-    rw [inner_neg_right, inner_smul_right, sum_inner]
-    simp only [inner_smul_right, starRingEnd_apply, star_trivial]
-    rw [Finset.mul_sum]
+    rw [inner_neg_right, inner_smul_right, inner_sum]
+    simp only [inner_smul_right]
+    rw [neg_mul]
+    congr 1
     congr 1
     apply Finset.sum_congr rfl
     intro β _
@@ -1225,8 +1224,9 @@ theorem gradient_flow_output_vector_ode
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp)) : EuclideanSpace ℝ (Fin m)) α := by
     change - (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β =
       (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp)) α
-    simp only [Pi.smul_apply, smul_eq_mul, Matrix.mulVec_apply]
-    rw [dotProduct]
+    have h_row : (empiricalNTKMatrix f X (θ_traj t)).row α =
+      empiricalNTKMatrix f X (θ_traj t) α := rfl
+    simp only [Pi.smul_apply, smul_eq_mul, Matrix.mulVec_apply, dotProduct, h_row]
   rw [h_eq] at h_coord
   exact h_coord
 

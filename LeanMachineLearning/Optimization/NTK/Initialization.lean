@@ -3158,8 +3158,11 @@ theorem tendsto_matrixTail_of_tendsto_entrywise
       (fun n => ∑ q : Fin m × Fin m,
         μ {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)})
       Filter.atTop (nhds 0) := by
-    simpa using tendsto_finsetSum (s := Finset.univ)
-      (fun q _ => hentry q.1 q.2 ε hε)
+    simpa using (tendsto_finsetSum
+      (f := fun q : Fin m × Fin m => fun n =>
+        μ {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)})
+      (a := fun _ => 0) (s := Finset.univ)
+      (fun q _ => hentry q.1 q.2 ε hε))
   have hbound : ∀ n : ℕ,
       μ {a | ε ≤ dist (f n a) (g n a)} ≤
         ∑ q : Fin m × Fin m, μ {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)} := by
@@ -3169,9 +3172,9 @@ theorem tendsto_matrixTail_of_tendsto_entrywise
           μ (⋃ q : Fin m × Fin m, {a | ε ≤ dist (f n a q.1 q.2) (g n a q.1 q.2)}) := by
         apply measure_mono
         intro a ha
-        simp only [Set.mem_setOf_eq] at ha
+        simp only [Set.mem_ofPred_eq] at ha
         by_contra h
-        simp only [Set.mem_iUnion, Set.mem_setOf_eq] at h
+        simp only [Set.mem_iUnion, Set.mem_ofPred_eq] at h
         push Not at h
         exact (not_lt_of_ge ha) ((dist_pi_lt_iff hε).2 fun α =>
           (dist_pi_lt_iff hε).2 fun β => h ⟨α, β⟩)
@@ -4658,6 +4661,8 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
         simpa [layerCovarianceSeq, innerProduct, dotProduct] using hmapped
       apply tendstoInMeasure_trans ?_ hmean
       intro ε hε
+      refine tendsto_matrixTail_of_tendsto_entrywise m ?_ ε hε
+      intro α β δ hδ
       sorry
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
