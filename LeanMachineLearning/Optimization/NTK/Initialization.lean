@@ -2625,6 +2625,108 @@ lemma memLp_activation_product_of_polynomial_growth
     fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) 2 (multivariateGaussian 0 K)
   exact hβ.mul (r := (2 : ℝ≥0∞)) hα
 
+/-- The same square-integrability statement after selecting one coordinate from a finite i.i.d.
+Gaussian layer.  This is the form consumed by `variance_sum_pi`. -/
+lemma memLp_activation_product_pi_of_polynomial_growth
+    (n m : ℕ) (K : Matrix (Fin m) (Fin m) ℝ)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (j : Fin n) (α β : Fin m) :
+    MemLp (fun Z : Fin n → EuclideanSpace ℝ (Fin m) =>
+      φ ((Z j).ofLp α) * φ ((Z j).ofLp β)) 2
+      (Measure.pi fun _ : Fin n => multivariateGaussian 0 K) :=
+  (memLp_activation_product_of_polynomial_growth m K φ hφ_meas C hC p hp hφ_growth α β).comp_measurePreserving
+    (measurePreserving_eval (fun _ : Fin n => multivariateGaussian 0 K) j)
+
+/-- Entrywise Chebyshev estimate for a finite i.i.d. Gaussian layer.  The variance is deliberately
+left explicit: in the deep induction it is controlled after conditioning on the previous random
+layer and localizing its empirical covariance near the deterministic limit. -/
+lemma empiricalCovariance_entry_chebyshev_of_polynomial_growth
+    (n m : ℕ) (K : Matrix (Fin m) (Fin m) ℝ)
+    (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (α β : Fin m) {ε : ℝ} (hε : 0 < ε) :
+    let μ : Measure (Fin n → EuclideanSpace ℝ (Fin m)) :=
+      Measure.pi fun _ : Fin n => multivariateGaussian 0 K
+    μ {Z | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n,
+        φ ((Z j).ofLp α) * φ ((Z j).ofLp β) -
+          ∫ z : Fin n → EuclideanSpace ℝ (Fin m),
+            (n : ℝ)⁻¹ * ∑ j : Fin n,
+              φ ((z j).ofLp α) * φ ((z j).ofLp β) ∂μ|} ≤
+      ENNReal.ofReal
+        (variance (fun Z : Fin n → EuclideanSpace ℝ (Fin m) => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ ((Z j).ofLp α) * φ ((Z j).ofLp β)) μ / ε ^ 2) := by
+  dsimp
+  apply meas_ge_le_variance_div_sq
+  · exact (memLp_finsetSum Finset.univ fun j _ =>
+      memLp_activation_product_pi_of_polynomial_growth n m K φ hφ_cont.measurable C hC p hp
+        hφ_growth j α β).const_mul _
+  · exact hε
+
+/-- The variance in the entrywise Chebyshev estimate is `O(n⁻¹)`.  The right-hand side is the
+single-neuron second moment; it will be locally bounded when the random empirical covariance of
+the preceding layer converges to its deterministic limit. -/
+lemma variance_empiricalCovariance_entry_le_of_polynomial_growth
+    (n m : ℕ) (hn : 0 < n) (K : Matrix (Fin m) (Fin m) ℝ)
+    (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (α β : Fin m) :
+    let μ : Measure (Fin n → EuclideanSpace ℝ (Fin m)) :=
+      Measure.pi fun _ : Fin n => multivariateGaussian 0 K
+    variance (fun Z : Fin n → EuclideanSpace ℝ (Fin m) => (n : ℝ)⁻¹ * ∑ j : Fin n,
+      φ ((Z j).ofLp α) * φ ((Z j).ofLp β)) μ ≤
+      (n : ℝ)⁻¹ * ∫ z : EuclideanSpace ℝ (Fin m),
+        (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K := by
+  dsimp
+  let Y : Fin n → EuclideanSpace ℝ (Fin m) → ℝ :=
+    fun j z => φ (z.ofLp α) * φ (z.ofLp β)
+  have hY : ∀ j : Fin n, MemLp (Y j) 2 (multivariateGaussian 0 K) := fun j =>
+    memLp_activation_product_of_polynomial_growth m K φ hφ_cont.measurable C hC p hp
+      hφ_growth α β
+  have hsum : MemLp (fun Z : Fin n → EuclideanSpace ℝ (Fin m) => ∑ j : Fin n, Y j (Z j)) 2
+      (Measure.pi fun _ : Fin n => multivariateGaussian 0 K) :=
+    memLp_finsetSum Finset.univ fun j _ => hY j |>.comp_measurePreserving
+      (measurePreserving_eval (fun _ : Fin n => multivariateGaussian 0 K) j)
+  have hvar_sum : variance (fun Z : Fin n → EuclideanSpace ℝ (Fin m) => ∑ j : Fin n, Y j (Z j))
+      (Measure.pi fun _ : Fin n => multivariateGaussian 0 K) =
+      ∑ j : Fin n, variance (Y j) (multivariateGaussian 0 K) := by
+    have hsum_eq : (fun Z : Fin n → EuclideanSpace ℝ (Fin m) => ∑ j : Fin n, Y j (Z j)) =
+        ∑ j : Fin n, fun Z => Y j (Z j) := by
+      funext Z
+      simp
+    rw [hsum_eq]
+    exact variance_sum_pi (μ := fun _ : Fin n => multivariateGaussian 0 K) hY
+  have hvar_le : ∀ j : Fin n, variance (Y j) (multivariateGaussian 0 K) ≤
+      ∫ z : EuclideanSpace ℝ (Fin m), (Y j z) ^ 2 ∂multivariateGaussian 0 K := fun j =>
+    variance_le_expectation_sq (hY j).aestronglyMeasurable
+  have hsecond_nonneg : 0 ≤ ∫ z : EuclideanSpace ℝ (Fin m),
+      (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K :=
+    integral_nonneg fun _ => sq_nonneg _
+  have hsum_le : ∑ j : Fin n, variance (Y j) (multivariateGaussian 0 K) ≤
+      ∑ j : Fin n, ∫ z : EuclideanSpace ℝ (Fin m), (Y j z) ^ 2 ∂multivariateGaussian 0 K := by
+    exact Finset.sum_le_sum fun j _ => hvar_le j
+  have hsum_second : ∑ j : Fin n, ∫ z : EuclideanSpace ℝ (Fin m), (Y j z) ^ 2 ∂
+      multivariateGaussian 0 K = (n : ℝ) * ∫ z : EuclideanSpace ℝ (Fin m),
+        (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K := by
+    simp only [Y]
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  rw [show (fun Z : Fin n → EuclideanSpace ℝ (Fin m) => (n : ℝ)⁻¹ * ∑ j : Fin n,
+      φ ((Z j).ofLp α) * φ ((Z j).ofLp β)) =
+      fun Z => (n : ℝ)⁻¹ * ∑ j : Fin n, Y j (Z j) by rfl, variance_const_mul, hvar_sum]
+  calc
+    (n : ℝ)⁻¹ ^ 2 * ∑ j : Fin n, variance (Y j) (multivariateGaussian 0 K) ≤
+        (n : ℝ)⁻¹ ^ 2 * ∑ j : Fin n, ∫ z : EuclideanSpace ℝ (Fin m),
+          (Y j z) ^ 2 ∂multivariateGaussian 0 K := by
+      gcongr
+    _ = (n : ℝ)⁻¹ * ∫ z : EuclideanSpace ℝ (Fin m),
+        (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K := by
+      rw [hsum_second]
+      have hn0 : (n : ℝ) ≠ 0 := by positivity
+      field_simp
+
 /-- **Conditional empirical covariance propagation.**  For an i.i.d. sequence of conditional
 preactivation vectors with law `𝒩(0, K)`, the empirical activated covariance converges in
 probability to the Gaussian covariance update of `K`.
