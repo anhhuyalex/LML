@@ -82,6 +82,7 @@ public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.ChoSaulAngular
 public import LeanMachineLearning.Optimization.NTK.ChoSaulPolar
+public import LeanMachineLearning.Optimization.NTK.InfiniteNTK
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.InitializationHelpers
 public import LeanMachineLearning.Optimization.NTK.Kernel
