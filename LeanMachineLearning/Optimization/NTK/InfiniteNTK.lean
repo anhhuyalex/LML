@@ -9,6 +9,7 @@ public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import Mathlib.Analysis.InnerProductSpace.Calculus
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Mul
 public import Mathlib.Analysis.SpecialFunctions.Exponential
 public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 public import Mathlib.Analysis.Matrix.Normed
@@ -72,12 +73,18 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.matrix_exp_residual_trajectory_zero` : Initial condition `r(0) = r₀`.
 * `NTK.matrix_exp_output_trajectory_zero` : Initial condition `f(0) = f₀`.
 * `NTK.matrix_exp_residual_eq_output_sub_y` : Residual relation `f(t) - y = r(t)`.
+* `NTK.matrix_exp_residual_trajectory_hasDerivAt` : Residual ODE satisfaction
+  via matrix exponential.
+* `NTK.matrix_exp_output_trajectory_hasDerivAt` : Output ODE satisfaction via matrix exponential.
+* `NTK.matrix_exp_residual_decay` : Exponential decay for explicit matrix exponential trajectory.
+* `NTK.matrix_exp_loss_decay` : Exponential loss decay for explicit matrix exponential trajectory.
 * `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
 * `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.
 * `NTK.tendsto_lazy_training_kernel_freeze_matrix` : Empirical NTK matrix freeze as `n → ∞`.
 * `NTK.deterministic_initialization_empiricalNTK_tendsto_ae` : Property 1 a.s. initialization limit.
-* `NTK.deterministic_initialization_chebyshev_bound` : Property 1 entrywise Chebyshev concentration.
-* `NTK.tendsto_chebyshev_bound_atTop` : Reusable Chebyshev tail decay limit.
+* `NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae` : Gram matrix a.s. limit.
+* `NTK.deterministic_initialization_chebyshev_bound` : Property 1 entrywise Chebyshev bound.
+* `NTK.tendsto_empiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
 
 -/
 
@@ -275,6 +282,124 @@ theorem matrix_exp_residual_eq_output_sub_y
   intro f_traj r_traj
   dsimp [f_traj, r_traj]
   abel
+
+/-- Auxiliary lemma: evaluation of a constant continuous linear map preserves derivatives. -/
+lemma hasDerivAt_clm_apply_const
+    {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F]
+    (L : E →L[ℝ] F) (u : ℝ → E) (u' : E) (x : ℝ) (hu : HasDerivAt u u' x) :
+    HasDerivAt (fun y => L (u y)) (L u') x := by
+  have hc : HasDerivAt (fun _ : ℝ => L) (0 : E →L[ℝ] F) x := hasDerivAt_const x L
+  have h := hc.clm_apply hu
+  simpa using h
+
+/-- Continuous linear map realizing matrix-vector multiplication into `EuclideanSpace`. -/
+noncomputable def toEuclideanVecCLM (v : Fin m → ℝ) :
+    Matrix (Fin m) (Fin m) ℝ →L[ℝ] (EuclideanSpace ℝ (Fin m)) :=
+  { toLinearMap := {
+      toFun := fun M => WithLp.toLp 2 (M *ᵥ v)
+      map_add' := fun M N => by
+        ext i
+        simp [Matrix.add_mulVec]
+      map_smul' := fun c M => by
+        ext i
+        simp [Matrix.smul_mulVec]
+    }
+    cont := by fun_prop }
+
+private lemma exp_smul_eq (K_inf : Matrix (Fin m) (Fin m) ℝ) (u : ℝ) :
+    u • (-(m : ℝ)⁻¹ • K_inf) = -(u / (m : ℝ)) • K_inf := by
+  rw [smul_smul]
+  congr 1
+  ring
+
+private lemma mat_vec_mul_assoc
+    (K_inf : Matrix (Fin m) (Fin m) ℝ) (M : Matrix (Fin m) (Fin m) ℝ) (v : Fin m → ℝ) :
+    ((-(m : ℝ)⁻¹ • K_inf) * M) *ᵥ v = -(m : ℝ)⁻¹ • (K_inf *ᵥ (M *ᵥ v)) := by
+  rw [Matrix.mul_mulVec, Matrix.smul_mulVec]
+
+/-- The closed-form matrix exponential residual trajectory satisfies the linear autonomous ODE:
+  `∂_t r(t) = - (1 / m) K_∞ r(t)`. -/
+theorem matrix_exp_residual_trajectory_hasDerivAt
+    (K_inf : Matrix (Fin m) (Fin m) ℝ) (r₀ : EuclideanSpace ℝ (Fin m)) (t : ℝ) :
+    HasDerivAt
+      (fun s => (WithLp.toLp 2 ((NormedSpace.exp (-(s / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) :
+        EuclideanSpace ℝ (Fin m)))
+      (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ
+        ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp)))) t := by
+  have h_exp := hasDerivAt_exp_smul_const' (-(m : ℝ)⁻¹ • K_inf) t
+  have h_clm := hasDerivAt_clm_apply_const (toEuclideanVecCLM r₀.ofLp)
+    (fun u => NormedSpace.exp (u • (-(m : ℝ)⁻¹ • K_inf)))
+    ((-(m : ℝ)⁻¹ • K_inf) * NormedSpace.exp (t • (-(m : ℝ)⁻¹ • K_inf))) t h_exp
+  simp only [toEuclideanVecCLM, ContinuousLinearMap.coe_mk', LinearMap.coe_mk,
+    AddHom.coe_mk] at h_clm
+  simp_rw [exp_smul_eq K_inf] at h_clm
+  rw [mat_vec_mul_assoc K_inf] at h_clm
+  exact h_clm
+
+/-- The closed-form network prediction trajectory satisfies the linear output ODE:
+  `∂_t f(t) = - (1 / m) K_∞ (f(t) - y)`. -/
+theorem matrix_exp_output_trajectory_hasDerivAt
+    (K_inf : Matrix (Fin m) (Fin m) ℝ) (y f₀ : EuclideanSpace ℝ (Fin m)) (t : ℝ) :
+    HasDerivAt
+      (fun s => y + (WithLp.toLp 2 ((NormedSpace.exp (-(s / (m : ℝ)) • K_inf)) *ᵥ (f₀ - y).ofLp) :
+        EuclideanSpace ℝ (Fin m)))
+      (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ
+        ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ (f₀ - y).ofLp)))) t := by
+  have h_res := matrix_exp_residual_trajectory_hasDerivAt K_inf (f₀ - y) t
+  exact h_res.const_add y
+
+/-- Exponential norm decay for the closed-form matrix exponential residual trajectory:
+  `‖r(t)‖ ≤ ‖r₀‖ exp(- (lambda_min / m) t)`. -/
+theorem matrix_exp_residual_decay
+    (K_inf : Matrix (Fin m) (Fin m) ℝ) (r₀ : EuclideanSpace ℝ (Fin m)) (lambda_min : ℝ)
+    (h_rr : ∀ v : EuclideanSpace ℝ (Fin m), lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K_inf *ᵥ v.ofLp))
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
+    ‖(WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) :
+      EuclideanSpace ℝ (Fin m))‖ ≤
+      ‖r₀‖ * Real.exp (-(lambda_min / (m : ℝ)) * t) := by
+  have hr : ∀ s, HasDerivAt
+      (fun u => (WithLp.toLp 2 ((NormedSpace.exp (-(u / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) :
+        EuclideanSpace ℝ (Fin m)))
+      (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ
+        ((NormedSpace.exp (-(s / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp)))) s :=
+    fun s => matrix_exp_residual_trajectory_hasDerivAt K_inf r₀ s
+  have h_decay := residual_norm_exponential_decay K_inf lambda_min h_rr
+    (fun u => WithLp.toLp 2 ((NormedSpace.exp (-(u / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp))
+    hr hm t ht
+  have h0 : (WithLp.toLp 2 ((NormedSpace.exp (-(0 / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) :
+      EuclideanSpace ℝ (Fin m)) = r₀ := by
+    have h_zero : -(0 / (m : ℝ)) = -(0 * (m : ℝ)⁻¹) := by ring
+    rw [h_zero]
+    exact matrix_exp_residual_trajectory_zero K_inf r₀
+  rw [h0] at h_decay
+  exact h_decay
+
+/-- Exponential loss decay for the closed-form matrix exponential trajectory:
+  `(1 / 2m) ‖r(t)‖² ≤ ((1 / 2m) ‖r₀‖²) exp(- (2 lambda_min / m) t)`. -/
+theorem matrix_exp_loss_decay
+    (K_inf : Matrix (Fin m) (Fin m) ℝ) (r₀ : EuclideanSpace ℝ (Fin m)) (lambda_min : ℝ)
+    (h_rr : ∀ v : EuclideanSpace ℝ (Fin m), lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K_inf *ᵥ v.ofLp))
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
+    (2 * (m : ℝ))⁻¹ * ‖(WithLp.toLp 2
+      ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) : EuclideanSpace ℝ (Fin m))‖ ^ 2 ≤
+      ((2 * (m : ℝ))⁻¹ * ‖r₀‖ ^ 2) * Real.exp (-(2 * lambda_min / (m : ℝ)) * t) := by
+  have hr : ∀ s, HasDerivAt
+      (fun u => (WithLp.toLp 2 ((NormedSpace.exp (-(u / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) :
+        EuclideanSpace ℝ (Fin m)))
+      (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ
+        ((NormedSpace.exp (-(s / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp)))) s :=
+    fun s => matrix_exp_residual_trajectory_hasDerivAt K_inf r₀ s
+  have h_decay := mse_loss_exponential_decay K_inf lambda_min h_rr
+    (fun u => WithLp.toLp 2 ((NormedSpace.exp (-(u / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp))
+    hr hm t ht
+  have h0 : (WithLp.toLp 2 ((NormedSpace.exp (-(0 / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp) :
+      EuclideanSpace ℝ (Fin m)) = r₀ := by
+    have h_zero : -(0 / (m : ℝ)) = -(0 * (m : ℝ)⁻¹) := by ring
+    rw [h_zero]
+    exact matrix_exp_residual_trajectory_zero K_inf r₀
+  rw [h0] at h_decay
+  exact h_decay
 
 /-! ### Asymptotic Properties in the Infinite-Width Limit -/
 

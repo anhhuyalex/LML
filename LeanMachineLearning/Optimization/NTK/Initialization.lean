@@ -2454,12 +2454,11 @@ theorem conditional_preactivations_eq_pi (n n' m : ℕ) (φ : ℝ → ℝ)
   simp only [Matrix.of_apply, dotProduct, u, Finset.mul_sum]
   have hroot : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
     Real.mul_self_sqrt (by positivity)
-  apply Finset.sum_congr rfl
-  intro k _
-  rw [show (n : ℝ)⁻¹.sqrt * φ ((H k).ofLp α) *
-      ((n : ℝ)⁻¹.sqrt * φ ((H k).ofLp β)) =
-      ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
-        (φ ((H k).ofLp α) * φ ((H k).ofLp β)) by ring, hroot]
+  exact Finset.sum_congr rfl fun k _ => by
+    rw [show (n : ℝ)⁻¹.sqrt * φ ((H k).ofLp α) *
+        ((n : ℝ)⁻¹.sqrt * φ ((H k).ofLp β)) =
+        ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
+          (φ ((H k).ofLp α) * φ ((H k).ofLp β)) by ring, hroot]
 
 /-- The activated empirical covariance appearing in `conditional_preactivations_eq_pi` is
 positive semidefinite. -/
@@ -2895,10 +2894,9 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
           have hroot : (d : ℝ)⁻¹.sqrt * (d : ℝ)⁻¹.sqrt = (d : ℝ)⁻¹ :=
             Real.mul_self_sqrt (by positivity)
           rw [Finset.mul_sum]
-          apply Finset.sum_congr rfl
-          intro k _
-          rw [show (d : ℝ)⁻¹.sqrt * X α k * ((d : ℝ)⁻¹.sqrt * X β k) =
-            ((d : ℝ)⁻¹.sqrt * (d : ℝ)⁻¹.sqrt) * (X α k * X β k) by ring, hroot]
+          exact Finset.sum_congr rfl fun k _ => by
+            rw [show (d : ℝ)⁻¹.sqrt * X α k * ((d : ℝ)⁻¹.sqrt * X β k) =
+              ((d : ℝ)⁻¹.sqrt * (d : ℝ)⁻¹.sqrt) * (X α k * X β k) by ring, hroot]
         rw [stdGaussian_inner_family, hcov]
   have hcomp : projectRows ∘ restrictRows =
       fun W : ℕ → ℕ → ℝ => fun j : ℕ => WithLp.toLp 2 fun α : Fin m =>
@@ -2908,9 +2906,7 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
     congr 1
     funext α
     simp only [u, dotProduct, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro k _
-    ring
+    exact Finset.sum_congr rfl fun k _ => by ring
   rw [← hcomp, ← Measure.map_map hprojectRows_meas hrestrictRows_meas, hrestrictRows, hprojectRows]
 
 /-- **Independence Across Depth**, for the uniform `Fin L → ℕ → ℕ → ℝ` layer population feeding
@@ -3754,8 +3750,8 @@ private lemma integral_multivariateGaussian_eq_const_mul_integral_of_diagScale_p
   let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
   have hmap := map_diagScale2x2_multivariateGaussian Φαα Φββ Φαβ hΦαα hΦββ hSigma
   rw [← hmap]
-  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) D) := (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable
-  rw [integral_map h_meas.aemeasurable hg_meas.aestronglyMeasurable]
+  rw [integral_map (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable.aemeasurable
+    hg_meas.aestronglyMeasurable]
   have h_comp : g ∘ (toEuclideanCLM (𝕜 := ℝ) D) = fun z => c * g z := funext hpullback
   change ∫ z, (g ∘ (toEuclideanCLM (𝕜 := ℝ) D)) z ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
   rw [h_comp]
@@ -3826,16 +3822,13 @@ private lemma integral_corrGaussian_eq_angle
   have hmap := map_cholesky2x2_stdGaussian ρ hρ
   dsimp [L] at hmap
   rw [← hmap]
-  have hmeas : Measurable (toEuclideanCLM (𝕜 := ℝ) L) :=
-    (toEuclideanCLM (𝕜 := ℝ) L).continuous.measurable
   have hint : AEStronglyMeasurable
       (fun z : EuclideanSpace ℝ (Fin 2) => f (z.ofLp 0) * g (z.ofLp 1))
       (Measure.map (toEuclideanCLM (𝕜 := ℝ) L)
-        (stdGaussian (EuclideanSpace ℝ (Fin 2)))) := by
-    apply StronglyMeasurable.aestronglyMeasurable
-    exact ((hf.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
-      (hg.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable
-  rw [integral_map hmeas.aemeasurable hint]
+        (stdGaussian (EuclideanSpace ℝ (Fin 2)))) :=
+    (((hf.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+      (hg.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable).aestronglyMeasurable
+  rw [integral_map (toEuclideanCLM (𝕜 := ℝ) L).continuous.measurable.aemeasurable hint]
   change ∫ z : EuclideanSpace ℝ (Fin 2),
       f ((toEuclideanCLM (𝕜 := ℝ) L z).ofLp 0) *
         g ((toEuclideanCLM (𝕜 := ℝ) L z).ofLp 1)
@@ -4231,10 +4224,9 @@ theorem exact_conditional_normality_layer (n n' m : ℕ) (H : Fin n → Fin m �
     have hroot : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ := Real.mul_self_sqrt (by positivity)
     ext α β
     simp only [Matrix.of_apply, dotProduct, hu_def, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro k _
-    rw [show (n : ℝ)⁻¹.sqrt * H k α * ((n : ℝ)⁻¹.sqrt * H k β) =
-        ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) * (H k α * H k β) from by ring, hroot]
+    exact Finset.sum_congr rfl fun k _ => by
+      rw [show (n : ℝ)⁻¹.sqrt * H k α * ((n : ℝ)⁻¹.sqrt * H k β) =
+          ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) * (H k α * H k β) from by ring, hroot]
   have hΦ_pos : (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β).PosSemidef := by
     rw [hΦ_eq]
     simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m H
@@ -4266,9 +4258,7 @@ theorem exact_conditional_normality_layer (n n' m : ℕ) (H : Fin n → Fin m �
     congr 1
     funext p
     simp only [dotProduct, hu_def, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro k _
-    ring
+    exact Finset.sum_congr rfl fun k _ => by ring
   rw [hmap_eq, ← Measure.map_map hF2_meas hF1_meas, hF1_def, gaussianMatrix_mulVec_family,
     multivariateGaussian_pi_eq_kronecker n' m _ hΦ_pos, hΦ_eq]
 
