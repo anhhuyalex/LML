@@ -69,9 +69,15 @@ derived via a geometric argument on the sphere.
 * `NTK.tangentFeature` : the sensitivity vector `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`.
 * `NTK.outputJacobian` : the network output Jacobian matrix `J(θ) ∈ ℝ^{m × P}`.
 * `NTK.empiricalNTKMatrix` : the empirical NTK Gram matrix `K_t = J(θ) J(θ)ᵀ ∈ ℝ^{m × m}`.
-* `NTK.gradient_flow_output_coord_ode` : coordinate ODE `∂_t f^α(t) = - (1/m) ∑_β K_t^{α β} r^β(t)` under gradient flow.
-* `NTK.gradient_flow_output_vector_ode` : vector output ODE `∂_t f(t) = - (1/m) K_t r(t)`.
-* `NTK.gradient_flow_residual_vector_ode` : vector residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
+* `NTK.euclideanSpace_inner_eq_sum` : coordinate summation identity `⟪u, v⟫ = ∑ j, u j * v j` for EuclideanSpace.
+* `NTK.hasDerivAt_trainingOutputs_coord` : Step 1 multivariate chain rule `∂_t f^α(t) = ⟨∇_θ f^α, ∂_t θ⟩`.
+* `NTK.hasDerivAt_trainingOutputs_coord_sum` : Step 1 coordinate-sum chain rule `∂_t f^α(t) = ∑_j (∂f^α/∂θ_j) (dθ_j/dt)`.
+* `NTK.gradient_flow_output_coord_deriv_eq_inner_grad` : Step 2 rate of change `∂_t f^α(t) = - ⟨∇_θ f^α, ∇_θ L⟩`.
+* `NTK.gradient_flow_output_coord_deriv_eq_sum_inner` : Step 3 rate of change `∂_t f^α(t) = - (1/m) ∑_β ⟨∇_θ f^α, ∇_θ f^β⟩ (f^β - y^β)`.
+* `NTK.gradient_flow_output_coord_ode` : Step 4 coordinate ODE `∂_t f^α(t) = - (1/m) ∑_β K_t^{α β} r^β(t)`.
+* `NTK.gradient_flow_output_vector_ode` : Step 5 vector output ODE `∂_t f(t) = - (1/m) K_t r(t)`.
+* `NTK.gradient_flow_output_vector_ode_sub_y` : Step 5 vector output ODE `∂_t f(t) = - (1/m) K_t (f(t) - y)`.
+* `NTK.gradient_flow_residual_vector_ode` : Step 5 vector residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
 
 -/
 
@@ -1140,9 +1146,30 @@ lemma gdIterate_mseLoss_succ
     gdIterate (mseLoss f X y) (fun _ => η) θ₀ (k + 1) =
       gdIterate (mseLoss f X y) (fun _ => η) θ₀ k - η • gradient (mseLoss f X y) (gdIterate (mseLoss f X y) (fun _ => η) θ₀ k) := rfl
 
-/-! ### Continuous Gradient Flow and Function-Space Dynamics -/
+/-! ### Continuous Gradient Flow and Function-Space Dynamics
 
-/-- Step 1 (Multivariate Chain Rule):
+This section formalizes the exact induced function-space training dynamics along the
+continuous gradient flow trajectory:
+  `∂_t θ(t) = - ∇_θ L(θ(t))`
+under the empirical MSE loss. Across five sequential steps, we prove that the output vector
+`f(t) ∈ ℝ^m` and residual error vector `r(t) = f(t) - y` satisfy the closed-form ODEs:
+  `∂_t f(t) = - (1 / m) K_t (f(t) - y) = - (1 / m) K_t r(t)`
+  `∂_t r(t) = - (1 / m) K_t r(t)`
+where `K_t = J(θ(t)) J(θ(t))ᵀ ∈ ℝ^{m × m}` is the empirical NTK Gram matrix at time `t`.
+In particular, for neural network architectures parameterized by width `n` (as in
+`LeanMachineLearning.Optimization.NTK.Initialization`), `K_t` corresponds to the width-`n`
+empirical kernel matrix `K_t^{(n)}`.
+-/
+
+/-- Helper: The inner product on `EuclideanSpace ℝ (Fin P)` equals the sum of entrywise products. -/
+lemma euclideanSpace_inner_eq_sum (u v : EuclideanSpace ℝ (Fin P)) :
+    ⟪u, v⟫ = ∑ j : Fin P, u j * v j := by
+  rw [show u = WithLp.toLp 2 u.ofLp by rfl, show v = WithLp.toLp 2 v.ofLp by rfl]
+  rw [EuclideanSpace.inner_toLp_toLp]
+  simp [dotProduct, mul_comm]
+
+/-- Step 1 (Multivariate Chain Rule - Inner Product Formulation):
+Evaluate the time derivative of component output `f^α(t) ≡ f(x^α; θ(t))`:
   `∂_t f^α(t) = ⟨∇_θ f(x^α; θ(t)), ∂_t θ(t)⟩`. -/
 theorem hasDerivAt_trainingOutputs_coord
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
@@ -1160,8 +1187,71 @@ theorem hasDerivAt_trainingOutputs_coord
   rw [hgrad] at hcomp
   exact hcomp
 
-/-- Steps 2–4 (Assembly with Empirical NTK):
-Along the gradient flow trajectory `∂_t θ(t) = -∇_θ L(θ(t))`, the output coordinates satisfy:
+/-- Step 1 (Multivariate Chain Rule - Coordinate Sum Formulation):
+Along any differentiable parameter curve `θ(t)`, the rate of change of the component output satisfies:
+  `∂_t f^α(t) = ∑_{j=1}^P (∂f(x^α; θ(t)) / ∂θ_j) · (dθ_j(t) / dt) = ⟨∇_θ f(x^α; θ(t)), ∂_t θ(t)⟩`. -/
+theorem hasDerivAt_trainingOutputs_coord_sum
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ_traj : ℝ → EuclideanSpace ℝ (Fin P))
+    (θ' : ℝ → EuclideanSpace ℝ (Fin P)) (t : ℝ) (α : Fin m)
+    (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t))
+    (hθ : HasDerivAt θ_traj (θ' t) t) :
+    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+      (∑ j : Fin P, tangentFeature f (X α) (θ_traj t) j * θ' t j) t := by
+  have h := hasDerivAt_trainingOutputs_coord f X θ_traj θ' t α hdiff hθ
+  rw [euclideanSpace_inner_eq_sum] at h
+  exact h
+
+/-- Step 2 (Substitution of Gradient Flow Law):
+Insert the continuous gradient flow parameter ODE `∂_t θ(t) = -∇_θ L(θ(t))`:
+  `∂_t f^α(t) = - ⟨∇_θ f(x^α; θ(t)), ∇_θ L(θ(t))⟩`. -/
+theorem gradient_flow_output_coord_deriv_eq_inner_grad
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (t : ℝ) (α : Fin m)
+    (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t)) :
+    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+      (-⟪tangentFeature f (X α) (θ_traj t), gradient (mseLoss f X y) (θ_traj t)⟫) t := by
+  have h := hasDerivAt_trainingOutputs_coord f X θ_traj
+    (fun s => -gradient (mseLoss f X y) (θ_traj s)) t α hdiff (hflow.ode t)
+  rw [inner_neg_right] at h
+  exact h
+
+/-- Step 3 (Insertion of Loss Gradient):
+Substitute `∇_θ L(θ(t)) = (1 / m) ∑_β (f^β(t) - y^β) ∇_θ f(x^β; θ(t))` into the rate of change:
+  `∂_t f^α(t) = - ⟨∇_θ f^α(θ(t)), (1 / m) ∑_β (f^β(t) - y^β) ∇_θ f^β(θ(t))⟩`
+              `= - (1 / m) ∑_β ⟨∇_θ f^α(θ(t)), ∇_θ f^β(θ(t))⟩ (f^β(t) - y^β)`. -/
+theorem gradient_flow_output_coord_deriv_eq_sum_inner
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (t : ℝ) (α : Fin m)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+      (- (m : ℝ)⁻¹ * ∑ β : Fin m,
+        ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ *
+          (trainingResidual f X y (θ_traj t)) β) t := by
+  have h := gradient_flow_output_coord_deriv_eq_inner_grad f X y hflow t α (hdiff α)
+  rw [gradient_mseLoss f X y (θ_traj t) hdiff] at h
+  have h_inner : -⟪tangentFeature f (X α) (θ_traj t),
+      (m : ℝ)⁻¹ • ∑ β : Fin m, (trainingResidual f X y (θ_traj t)) β • tangentFeature f (X β) (θ_traj t)⟫ =
+      - (m : ℝ)⁻¹ * ∑ β : Fin m,
+        ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ *
+          (trainingResidual f X y (θ_traj t)) β := by
+    rw [inner_smul_right, inner_sum]
+    simp only [inner_smul_right]
+    rw [neg_mul]
+    congr 1
+    congr 1
+    apply Finset.sum_congr rfl
+    intro β _
+    ring
+  rw [h_inner] at h
+  exact h
+
+/-- Step 4 (Assembly with Empirical NTK):
+Recognizing the empirical NTK matrix entries `K_t^{α β} = ⟨∇_θ f(x^α; θ(t)), ∇_θ f(x^β; θ(t))⟩`:
   `∂_t f^α(t) = - (1 / m) ∑_β K_t^{α β} (f^β(t) - y^β) = - (1 / m) ∑_β K_t^{α β} r^β(t)`. -/
 theorem gradient_flow_output_coord_ode
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
@@ -1171,24 +1261,13 @@ theorem gradient_flow_output_coord_ode
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
       (- (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β) t := by
-  have h_chain := hasDerivAt_trainingOutputs_coord f X θ_traj
-    (fun s => -gradient (mseLoss f X y) (θ_traj s)) t α (hdiff α) (hflow.ode t)
-  rw [gradient_mseLoss f X y (θ_traj t) hdiff] at h_chain
-  have h_inner : ⟪tangentFeature f (X α) (θ_traj t),
-      -((m : ℝ)⁻¹ • ∑ β : Fin m, (trainingResidual f X y (θ_traj t)) β • tangentFeature f (X β) (θ_traj t))⟫ =
-      - (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β * (trainingResidual f X y (θ_traj t)) β := by
-    rw [inner_neg_right, inner_smul_right, inner_sum]
-    simp only [inner_smul_right]
-    rw [neg_mul]
-    congr 1
-    congr 1
-    apply Finset.sum_congr rfl
-    intro β _
-    have hK := (empiricalNTKMatrix_apply f X (θ_traj t) α β).symm
-    rw [hK]
-    ring
-  rw [h_inner] at h_chain
-  exact h_chain
+  have h := gradient_flow_output_coord_deriv_eq_sum_inner f X y hflow t α hdiff
+  have h_ntk : ∀ β : Fin m, ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ =
+      empiricalNTKMatrix f X (θ_traj t) α β := by
+    intro β
+    exact (empiricalNTKMatrix_apply f X (θ_traj t) α β).symm
+  simp_rw [h_ntk] at h
+  exact h
 
 lemma hasDerivAt_euclideanSpace (v : ℝ → EuclideanSpace ℝ (Fin m))
     (v' : EuclideanSpace ℝ (Fin m)) (t : ℝ) :
@@ -1206,7 +1285,7 @@ lemma hasDerivAt_euclideanSpace (v : ℝ → EuclideanSpace ℝ (Fin m))
     · ext s; simp [e]
     · simp [e]
 
-/-- Step 5 (Vector Matrix-Vector Formulation):
+/-- Step 5 (Matrix-Vector Formulation for Output Vector):
 Along continuous gradient flow, the training output vector satisfies:
   `∂_t f(t) = - (1 / m) K_t r(t)`. -/
 theorem gradient_flow_output_vector_ode
@@ -1230,7 +1309,22 @@ theorem gradient_flow_output_vector_ode
   rw [h_eq] at h_coord
   exact h_coord
 
-/-- Function-space residual ODE under gradient flow:
+/-- Step 5 (Matrix-Vector Formulation with Explicit `f(t) - y`):
+Along continuous gradient flow, the training output vector satisfies:
+  `∂_t f(t) = - (1 / m) K_t (f(t) - y)`. -/
+theorem gradient_flow_output_vector_ode_sub_y
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (t : ℝ)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
+      (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+        ((trainingOutputs f X (θ_traj t)) - y).ofLp))) t :=
+  gradient_flow_output_vector_ode f X y hflow t hdiff
+
+/-- Step 5 (Matrix-Vector Formulation for Residual Vector):
+Function-space residual ODE under gradient flow:
   `∂_t r(t) = - (1 / m) K_t r(t)`. -/
 theorem gradient_flow_residual_vector_ode
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))

@@ -709,10 +709,9 @@ theorem gaussian_map_mulVec {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Finty
       multivariateGaussian (WithLp.toLp 2 (A *ᵥ μ.ofLp)) (A * S * Aᵀ) := by
   have hAST : (A * S * Aᵀ).PosSemidef := by simpa using hS.mul_mul_conjTranspose_same A
   set F := fun x : EuclideanSpace ℝ ι => WithLp.toLp 2 (A *ᵥ x.ofLp) with hF_def
-  have hF_cont : Continuous F := by
-    apply (PiLp.continuous_toLp 2 _).comp
-    exact continuous_pi fun k => continuous_finsetSum _ fun j _ =>
-      continuous_const.mul (PiLp.continuous_apply 2 _ j)
+  have hF_cont : Continuous F :=
+    (PiLp.continuous_toLp 2 _).comp (continuous_pi fun k => continuous_finsetSum _ fun j _ =>
+      continuous_const.mul (PiLp.continuous_apply 2 _ j))
   apply Measure.ext_of_charFun
   ext t
   rw [charFun_apply, integral_map hF_cont.measurable.aemeasurable (by fun_prop)]
@@ -847,9 +846,8 @@ theorem gaussianMatrix_mulVec_family (n r m : ℕ) (u : Fin m → Fin n → ℝ)
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β)) := by
   have h_init_eq : gaussianInit r n = Measure.pi (fun _ : Fin r => gaussianReadoutMeasure n) := rfl
   set f := fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α) with hf_def
-  have hf_cont : Continuous f := by
-    apply (PiLp.continuous_toLp 2 _).comp
-    exact continuous_pi fun α => by fun_prop
+  have hf_cont : Continuous f :=
+    (PiLp.continuous_toLp 2 _).comp (continuous_pi fun α => by fun_prop)
   have hf_meas : Measurable f := hf_cont.measurable
   have hσ : ∀ i : Fin r, SigmaFinite ((gaussianReadoutMeasure n).map f) := fun i => by
     rw [hf_def, stdGaussian_inner_family]; infer_instance
@@ -911,11 +909,7 @@ lemma projection_eq_sum_projectionCoeff
           ∑ α : Fin m, c α * φ (W i ⊙ X α)) := by
       simp_rw [Finset.mul_sum]
       rw [Finset.sum_comm]
-      apply Finset.sum_congr rfl
-      intro i _
-      apply Finset.sum_congr rfl
-      intro α _
-      ring
+      exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun α _ => by ring
     _ = ∑ i : Fin n, a i * projectionCoeff n φ W X c i := by
       simp_rw [projectionCoeff_eq_normalized_sum]
 
@@ -937,11 +931,7 @@ lemma projectionCoeff_sq (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → �
         c α * c β * (φ (W i ⊙ X α) * φ (W i ⊙ X β)) := by
       congr 1
       rw [sq, Finset.sum_mul_sum]
-      apply Finset.sum_congr rfl
-      intro α _
-      apply Finset.sum_congr rfl
-      intro β _
-      ring
+      exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring
 
 /-- **Step 4 (Variance identity)**:
 The sum of squared coefficients `∑ i, (projectionCoeff ... i)^2` equals the quadratic form
@@ -956,24 +946,18 @@ lemma sum_projectionCoeff_sq_eq_bilin
   simp only [dotProduct, mulVec, empiricalCovariance]
   simp_rw [Finset.mul_sum]
   rw [Finset.sum_comm]
-  apply Finset.sum_congr rfl
-  intro α _
+  refine Finset.sum_congr rfl fun α _ => ?_
   rw [Finset.sum_comm]
-  apply Finset.sum_congr rfl
-  intro β _
+  refine Finset.sum_congr rfl fun β _ => ?_
   calc
     (∑ i : Fin n, (n : ℝ)⁻¹ *
         (c α * c β * (φ (W i ⊙ X α) * φ (W i ⊙ X β)))) =
-        ∑ i : Fin n, c α * ((n : ℝ)⁻¹ * (φ (W i ⊙ X α) * φ (W i ⊙ X β))) * c β := by
-      apply Finset.sum_congr rfl
-      intro i _
-      ring
+        ∑ i : Fin n, c α * ((n : ℝ)⁻¹ * (φ (W i ⊙ X α) * φ (W i ⊙ X β))) * c β :=
+      Finset.sum_congr rfl fun i _ => by ring
     _ = c α * ((∑ i : Fin n, (n : ℝ)⁻¹ *
         (φ (W i ⊙ X α) * φ (W i ⊙ X β))) * c β) := by
       rw [Finset.sum_mul, Finset.mul_sum]
-      apply Finset.sum_congr rfl
-      intro i _
-      ring
+      exact Finset.sum_congr rfl fun i _ => by ring
 
 /-- The empirical covariance matrix `Φ^{(n)}` is symmetric (Hermitian). -/
 lemma empiricalCovariance_isHermitian
@@ -982,9 +966,7 @@ lemma empiricalCovariance_isHermitian
   ext α β
   simp only [empiricalCovariance, conjTranspose_apply, star_trivial]
   congr 1
-  apply Finset.sum_congr rfl
-  intro i _
-  ring
+  exact Finset.sum_congr rfl fun i _ => by ring
 
 /-- The quadratic form with `Φ^{(n)}` is always nonnegative. -/
 lemma empiricalCovariance_nonneg
@@ -1107,8 +1089,7 @@ lemma charFun_readout_evalVector
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) := by
   set μ := Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)
   rw [charFun_apply]
-  have h_meas : Measurable (fun a => evalVector φ W a X) := evalVector_measurable φ W X
-  rw [integral_map h_meas.aemeasurable (by fun_prop)]
+  rw [integral_map (evalVector_measurable φ W X).aemeasurable (by fun_prop)]
   have h_exp : (fun a => Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)) =
       (fun a => Complex.exp (⟪t, evalVector φ W a X⟫ * Complex.I)) := by
     ext a
@@ -1300,12 +1281,9 @@ lemma sum_sum_mul_limitingCovariance_eq_integral_sq
   have h_alg : (∑ α : Fin m, ∑ β : Fin m, u α * u β * (φ (w ⊙ X α) * φ (w ⊙ X β))) =
       (∑ α : Fin m, u α * φ (w ⊙ X α)) * (∑ β : Fin m, u β * φ (w ⊙ X β)) := by
     rw [Finset.sum_mul]
-    apply Finset.sum_congr rfl
-    intro α _
+    refine Finset.sum_congr rfl fun α _ => ?_
     rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro β _
-    ring
+    exact Finset.sum_congr rfl fun β _ => by ring
   exact h_alg
 
 /-- The quadratic form with the limiting covariance kernel is nonnegative by the
@@ -1631,9 +1609,7 @@ lemma inner_smul_evalVector (t : ℝ) (u : Fin m → ℝ)
   rw [real_inner_comm, evalVector_inner]
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [Finset.mul_sum]
-  apply Finset.sum_congr rfl
-  intro α _
-  ring
+  exact Finset.sum_congr rfl fun α _ => by ring
 
 /-- **Step 3 (Almost sure convergence of conditional variance)**:
 By Theorem 2 and continuity of matrix quadratic forms, the conditional variance
@@ -1777,16 +1753,10 @@ lemma projection_layer_eq_multivariate (σw σb : ℝ) (n m : ℕ) (H : Fin n �
       ∑ α : Fin m, t.ofLp α * (σb * b) = (∑ α : Fin m, t.ofLp α) * (σb * b) :=
         (Finset.sum_mul _ _ _).symm
       _ = ∑ α : Fin m, t.ofLp α * (σb * b) := Finset.sum_mul _ _ _
-      _ = ∑ α : Fin m, (σb * t.ofLp α) * b := by
-        apply Finset.sum_congr rfl
-        intro α _
-        ring
+      _ = ∑ α : Fin m, (σb * t.ofLp α) * b :=
+        Finset.sum_congr rfl fun α _ => by ring
       _ = (∑ α : Fin m, σb * t.ofLp α) * b := (Finset.sum_mul _ _ _).symm
-  · apply Finset.sum_congr rfl
-    intro j _
-    apply Finset.sum_congr rfl
-    intro α _
-    ring
+  · exact Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun α _ => by ring
 
 /-- The empirical covariance quadratic form is the sum of the squared Gaussian coefficients. -/
 lemma projection_layer_variance_eq_multivariate (σw σb : ℝ) (n m : ℕ) (H : Fin n → Fin m → ℝ)
@@ -1815,19 +1785,12 @@ lemma projection_layer_variance_eq_multivariate (σw σb : ℝ) (n m : ℕ) (H :
       ∑ α : Fin m, ∑ β : Fin m, ∑ j : Fin n,
         σw ^ 2 * (n : ℝ)⁻¹ * t.ofLp α * H j α * t.ofLp β * H j β := by
     rw [Finset.sum_comm]
-    apply Finset.sum_congr rfl
-    intro α _
-    rw [Finset.sum_comm]
+    exact Finset.sum_congr rfl fun α _ => by rw [Finset.sum_comm]
   rw [h_reorder]
   simp only [Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
   congr 1
-  apply Finset.sum_congr rfl
-  intro α _
-  apply Finset.sum_congr rfl
-  intro β _
-  apply Finset.sum_congr rfl
-  intro j _
-  ring
+  exact Finset.sum_congr rfl fun α _ =>
+    Finset.sum_congr rfl fun β _ => Finset.sum_congr rfl fun j _ => by ring
 
 lemma empirical_layer_covariance_nonneg_multivariate (σw σb : ℝ) (n m : ℕ)
     (H : Fin n → Fin m → ℝ) (t : EuclideanSpace ℝ (Fin m)) :
@@ -1845,9 +1808,7 @@ lemma empirical_layer_covariance_isHermitian_multivariate (σw σb : ℝ) (n m :
   simp only [star_trivial]
   congr 1
   congr 1
-  apply Finset.sum_congr rfl
-  intro j _
-  ring
+  exact Finset.sum_congr rfl fun j _ => by ring
 
 lemma empirical_layer_covariance_posSemidef_multivariate (σw σb : ℝ) (n m : ℕ)
     (H : Fin n → Fin m → ℝ) :
@@ -2361,11 +2322,7 @@ private lemma sum_quadraticForm_eq_kronecker_one_quadraticForm
       ∑ α : Fin m, ∑ β : Fin m, x (α, j) * Φ α β * x (β, j) := by
     intro j
     simp only [dotProduct, mulVec, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro α _
-    apply Finset.sum_congr rfl
-    intro β _
-    ring
+    exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring
   have h_collapse : ∀ (α β : Fin m) (j : Fin n),
       ∑ j' : Fin n, Φ α β * (1 : Matrix (Fin n) (Fin n) ℝ) j j' * x (β, j') =
         Φ α β * x (β, j) := by
@@ -2374,15 +2331,11 @@ private lemma sum_quadraticForm_eq_kronecker_one_quadraticForm
   have h_rhs : x ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ x =
       ∑ α : Fin m, ∑ j : Fin n, ∑ β : Fin m, x (α, j) * Φ α β * x (β, j) := by
     simp only [dotProduct, mulVec, Fintype.sum_prod_type, kronecker_apply, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro α _
-    apply Finset.sum_congr rfl
-    intro j _
+    refine Finset.sum_congr rfl fun α _ => ?_
+    refine Finset.sum_congr rfl fun j _ => ?_
     simp_rw [← Finset.mul_sum, h_collapse]
     rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro β _
-    ring
+    exact Finset.sum_congr rfl fun β _ => by ring
   rw [h_rhs]
   simp_rw [h_lhs]
   rw [Finset.sum_comm]
@@ -2492,9 +2445,7 @@ theorem conditional_preactivations_eq_pi (n n' m : ℕ) (φ : ℝ → ℝ)
     congr 1
     funext α
     simp only [dotProduct, u, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro k _
-    ring
+    exact Finset.sum_congr rfl fun k _ => by ring
   rw [h_map, gaussianMatrix_mulVec_family]
   congr 1
   funext j
@@ -3234,6 +3185,72 @@ section CovarianceMapContinuity
 
 open scoped Matrix.Norms.L2Operator
 
+/-- A coordinate of `toEuclideanCLM K z` is controlled by the operator norm of `K`, uniformly in
+the coordinate index. This is the linear-algebra fact behind the dominating function used by
+`continuousWithinAt_covarianceMap`'s dominated-convergence argument. -/
+lemma abs_toEuclideanCLM_ofLp_le {m : ℕ} (K : Matrix (Fin m) (Fin m) ℝ)
+    (z : EuclideanSpace ℝ (Fin m)) (α : Fin m) :
+    |(toEuclideanCLM (𝕜 := ℝ) K z).ofLp α| ≤ ‖K‖ * ‖z‖ := by
+  rw [← Real.norm_eq_abs]
+  change ‖(toEuclideanCLM (𝕜 := ℝ) K z) α‖ ≤ ‖K‖ * ‖z‖
+  calc
+    ‖(toEuclideanCLM (𝕜 := ℝ) K z) α‖ ≤ ‖toEuclideanCLM (𝕜 := ℝ) K z‖ :=
+      PiLp.norm_apply_le _ _
+    _ ≤ ‖toEuclideanCLM (𝕜 := ℝ) K‖ * ‖z‖ :=
+      (toEuclideanCLM (𝕜 := ℝ) K).le_opNorm z
+    _ = ‖K‖ * ‖z‖ := by rw [l2_opNorm_toEuclideanCLM]
+
+-- Polynomial-growth bound on a product `φ a * φ b`, given a common bound `r` on `|a|` and `|b|`.
+-- Pure real-analysis; no measure theory or matrices involved.
+private lemma abs_mul_le_of_polynomial_growth (φ : ℝ → ℝ) (C : ℝ) (hC : 0 ≤ C) (p : ℕ)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (a b r : ℝ) (hr : 0 ≤ r) (ha : |a| ≤ r) (hb : |b| ≤ r) :
+    |φ a * φ b| ≤ 2 * C ^ 2 * (1 + r ^ (2 * p)) := by
+  have hpa : |a| ^ p ≤ r ^ p := pow_le_pow_left₀ (abs_nonneg a) ha p
+  have hpb : |b| ^ p ≤ r ^ p := pow_le_pow_left₀ (abs_nonneg b) hb p
+  have hφa : |φ a| ≤ C * (1 + r ^ p) := by
+    calc
+      |φ a| ≤ C * (1 + |a| ^ p) := hφ_growth a
+      _ ≤ C * (1 + r ^ p) := by gcongr
+  have hφb : |φ b| ≤ C * (1 + r ^ p) := by
+    calc
+      |φ b| ≤ C * (1 + |b| ^ p) := hφ_growth b
+      _ ≤ C * (1 + r ^ p) := by gcongr
+  have hsquare : (1 + r ^ p) ^ 2 ≤ 2 * (1 + r ^ (2 * p)) := by
+    have hpow : r ^ (2 * p) = (r ^ p) ^ 2 := by
+      rw [← pow_mul]
+      congr 1
+      omega
+    rw [hpow]
+    nlinarith [sq_nonneg (r ^ p - 1)]
+  calc
+    |φ a * φ b| = |φ a| * |φ b| := abs_mul _ _
+    _ ≤ (C * (1 + r ^ p)) * (C * (1 + r ^ p)) := by gcongr
+    _ = C ^ 2 * (1 + r ^ p) ^ 2 := by ring
+    _ ≤ C ^ 2 * (2 * (1 + r ^ (2 * p))) :=
+      mul_le_mul_of_nonneg_left hsquare (sq_nonneg C)
+    _ = 2 * C ^ 2 * (1 + r ^ (2 * p)) := by ring
+
+/-- Rewrites the covariance integral against `multivariateGaussian 0 K` as an integral against the
+fixed reference measure `stdGaussian`, with all `K`-dependence isolated in `CFC.sqrt K`. This is
+the measure-theoretic reduction step behind `continuousWithinAt_covarianceMap`: once the reference
+measure no longer depends on `K`, continuity in `K` becomes an ordinary dominated-convergence
+argument in the integrand. -/
+private lemma integral_activationProduct_multivariateGaussian_eq_stdGaussian
+    {m : ℕ} (φ : ℝ → ℝ) (hφ_cont : Continuous φ) (K : Matrix (Fin m) (Fin m) ℝ) (α β : Fin m) :
+    ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K) =
+      ∫ x : EuclideanSpace ℝ (Fin m),
+        φ ((toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) x).ofLp α) *
+          φ ((toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) x).ofLp β) ∂stdGaussian _ := by
+  rw [multivariateGaussian, integral_map]
+  · simp
+  · exact (by fun_prop : AEMeasurable (fun x : EuclideanSpace ℝ (Fin m) =>
+      0 + toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) x) (stdGaussian _))
+  · exact (hφ_cont.measurable.comp
+      (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable).mul
+      (hφ_cont.measurable.comp
+        (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) β).measurable) |>.aestronglyMeasurable
+
 /-- **
 The claim: `K ↦ 𝒞_φ(K) := fun α β => ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)`
 is continuous *within the positive-semidefinite cone* at every
@@ -3254,7 +3271,10 @@ matrices — a soft continuous-functional-calculus fact about the whole operator
 eigenvalue collisions/rank drops even though the individual eigenprojections are *not* continuous
 there — composed with continuity of `φ`; plus (b) the Dominated Convergence Theorem, with
 domination supplied by `φ`'s polynomial growth exactly as in
-`memLp_activation_coordinate_of_polynomial_growth`.
+`memLp_activation_coordinate_of_polynomial_growth`. The measure-theoretic reduction is
+`integral_activationProduct_multivariateGaussian_eq_stdGaussian`, the linear-algebra bound is
+`abs_toEuclideanCLM_ofLp_le`, and the growth bound on the integrand is
+`abs_mul_le_of_polynomial_growth`.
 -/
 theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
@@ -3262,56 +3282,6 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
     ContinuousWithinAt (fun K : Matrix (Fin m) (Fin m) ℝ => fun α β : Fin m =>
       ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))
       {K | K.PosSemidef} K0 := by
-  have h_integral (K : Matrix (Fin m) (Fin m) ℝ) (α β : Fin m) :
-      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K) =
-        ∫ x : EuclideanSpace ℝ (Fin m),
-          φ ((toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) x).ofLp α) *
-            φ ((toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) x).ofLp β) ∂stdGaussian _ := by
-    rw [multivariateGaussian, integral_map]
-    · simp
-    · exact (by fun_prop : AEMeasurable (fun x : EuclideanSpace ℝ (Fin m) =>
-        0 + toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) x) (stdGaussian _))
-    · exact (hφ_cont.measurable.comp
-        (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable).mul
-        (hφ_cont.measurable.comp
-          (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) β).measurable) |>.aestronglyMeasurable
-  have h_coordinate (K : Matrix (Fin m) (Fin m) ℝ) (z : EuclideanSpace ℝ (Fin m))
-      (α : Fin m) :
-      |(toEuclideanCLM (𝕜 := ℝ) K z).ofLp α| ≤ ‖K‖ * ‖z‖ := by
-    rw [← Real.norm_eq_abs]
-    change ‖(toEuclideanCLM (𝕜 := ℝ) K z) α‖ ≤ ‖K‖ * ‖z‖
-    calc
-      ‖(toEuclideanCLM (𝕜 := ℝ) K z) α‖ ≤ ‖toEuclideanCLM (𝕜 := ℝ) K z‖ :=
-        PiLp.norm_apply_le _ _
-      _ ≤ ‖toEuclideanCLM (𝕜 := ℝ) K‖ * ‖z‖ :=
-        (toEuclideanCLM (𝕜 := ℝ) K).le_opNorm z
-      _ = ‖K‖ * ‖z‖ := by rw [l2_opNorm_toEuclideanCLM]
-  have h_product (a b r : ℝ) (hr : 0 ≤ r) (ha : |a| ≤ r) (hb : |b| ≤ r) :
-      |φ a * φ b| ≤ 2 * C ^ 2 * (1 + r ^ (2 * p)) := by
-    have hpa : |a| ^ p ≤ r ^ p := pow_le_pow_left₀ (abs_nonneg a) ha p
-    have hpb : |b| ^ p ≤ r ^ p := pow_le_pow_left₀ (abs_nonneg b) hb p
-    have hφa : |φ a| ≤ C * (1 + r ^ p) := by
-      calc
-        |φ a| ≤ C * (1 + |a| ^ p) := hφ_growth a
-        _ ≤ C * (1 + r ^ p) := by gcongr
-    have hφb : |φ b| ≤ C * (1 + r ^ p) := by
-      calc
-        |φ b| ≤ C * (1 + |b| ^ p) := hφ_growth b
-        _ ≤ C * (1 + r ^ p) := by gcongr
-    have hsquare : (1 + r ^ p) ^ 2 ≤ 2 * (1 + r ^ (2 * p)) := by
-      have hpow : r ^ (2 * p) = (r ^ p) ^ 2 := by
-        rw [← pow_mul]
-        congr 1
-        omega
-      rw [hpow]
-      nlinarith [sq_nonneg (r ^ p - 1)]
-    calc
-      |φ a * φ b| = |φ a| * |φ b| := abs_mul _ _
-      _ ≤ (C * (1 + r ^ p)) * (C * (1 + r ^ p)) := by gcongr
-      _ = C ^ 2 * (1 + r ^ p) ^ 2 := by ring
-      _ ≤ C ^ 2 * (2 * (1 + r ^ (2 * p))) :=
-        mul_le_mul_of_nonneg_left hsquare (sq_nonneg C)
-      _ = 2 * C ^ 2 * (1 + r ^ (2 * p)) := by ring
   rw [continuousWithinAt_pi]
   intro α
   rw [continuousWithinAt_pi]
@@ -3346,7 +3316,7 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
           (by omega)
     exact ((integrable_const (1 : ℝ)).add (hmoment.const_mul (R ^ (2 * p)))).const_mul
       (2 * C ^ 2)
-  simp_rw [h_integral]
+  simp_rw [integral_activationProduct_multivariateGaussian_eq_stdGaussian φ hφ_cont]
   apply tendsto_integral_filter_of_dominated_convergence
     (bound := fun z : EuclideanSpace ℝ (Fin m) =>
       2 * C ^ 2 * (1 + R ^ (2 * p) * ‖z‖ ^ (2 * p)))
@@ -3361,13 +3331,14 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
     filter_upwards with z
     rw [Real.norm_eq_abs]
     have hα : |(toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) z).ofLp α| ≤ R * ‖z‖ :=
-      (h_coordinate (CFC.sqrt K) z α).trans
+      (abs_toEuclideanCLM_ofLp_le (CFC.sqrt K) z α).trans
         (mul_le_mul_of_nonneg_right (le_of_lt hK) (norm_nonneg z))
     have hβ : |(toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt K) z).ofLp β| ≤ R * ‖z‖ :=
-      (h_coordinate (CFC.sqrt K) z β).trans
+      (abs_toEuclideanCLM_ofLp_le (CFC.sqrt K) z β).trans
         (mul_le_mul_of_nonneg_right (le_of_lt hK) (norm_nonneg z))
     simpa [mul_pow] using
-      (h_product _ _ (R * ‖z‖) (mul_nonneg hR (norm_nonneg z)) hα hβ)
+      (abs_mul_le_of_polynomial_growth φ C hC p hφ_growth _ _ (R * ‖z‖)
+        (mul_nonneg hR (norm_nonneg z)) hα hβ)
   · exact h_integrable
   · filter_upwards with z
     have hlinear : ContinuousWithinAt (fun K : Matrix (Fin m) (Fin m) ℝ =>
@@ -3762,6 +3733,34 @@ lemma map_diagScale2x2_multivariateGaussian
       ring
     rw [h_eval, h_scale]
 
+/-- Change-of-variables skeleton shared by `expected_relu_mul_relu_eq_scale_mul_standardized` and
+`expected_reluIndicator_mul_reluIndicator_eq_standardized`: both pull an integral against
+`multivariateGaussian 0 !![Φαα,Φαβ;Φαβ,Φββ]` back, through the diagonal scaling map
+`D = !![√Φαα, 0; 0, √Φββ]`, to the same integral against the standardized correlation measure
+`multivariateGaussian 0 !![1,ρ;ρ,1]`. They differ only in the integrand `g` and how it transforms
+under the pullback (`hpullback`) — a `√(ΦααΦββ)` factor for the ReLU product, none for the
+sign-invariant indicator product — so that single difference is exposed as the `c` parameter. -/
+private lemma integral_multivariateGaussian_eq_const_mul_integral_of_diagScale_pullback
+    (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
+    (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef)
+    (g : EuclideanSpace ℝ (Fin 2) → ℝ) (hg_meas : Measurable g) (c : ℝ)
+    (hpullback : ∀ z : EuclideanSpace ℝ (Fin 2),
+      g (toEuclideanCLM (𝕜 := ℝ)
+        (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z) = c * g z) :
+    let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
+    ∫ z : EuclideanSpace ℝ (Fin 2), g z ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
+      c * ∫ z : EuclideanSpace ℝ (Fin 2), g z ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
+  intro ρ
+  let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
+  have hmap := map_diagScale2x2_multivariateGaussian Φαα Φββ Φαβ hΦαα hΦββ hSigma
+  rw [← hmap]
+  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) D) := (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable
+  rw [integral_map h_meas.aemeasurable hg_meas.aestronglyMeasurable]
+  have h_comp : g ∘ (toEuclideanCLM (𝕜 := ℝ) D) = fun z => c * g z := funext hpullback
+  change ∫ z, (g ∘ (toEuclideanCLM (𝕜 := ℝ) D)) z ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
+  rw [h_comp]
+  exact integral_const_mul c g
+
 /--
 Informal proof of Step 1 for ReLU products:
 By positive homogeneity `relu (c * u) = c * relu u` for `c ≥ 0`, scaling the centered Gaussian
@@ -3779,25 +3778,12 @@ lemma expected_relu_mul_relu_eq_scale_mul_standardized
         ∫ z : EuclideanSpace ℝ (Fin 2), relu (z.ofLp 0) * relu (z.ofLp 1)
           ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
   intro ρ
-  let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
-  have hmap := map_diagScale2x2_multivariateGaussian Φαα Φββ Φαβ hΦαα hΦββ hSigma
-  rw [← hmap]
-  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) D) := (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable
-  have h_int : AEStronglyMeasurable (fun z : EuclideanSpace ℝ (Fin 2) => relu (z.ofLp 0) * relu (z.ofLp 1))
-      (Measure.map (toEuclideanCLM (𝕜 := ℝ) D) (multivariateGaussian 0 !![1, ρ; ρ, 1])) := by
-    apply Continuous.aestronglyMeasurable
-    exact ((continuous_relu.comp (EuclideanSpace.proj (0 : Fin 2)).continuous).mul
-      (continuous_relu.comp (EuclideanSpace.proj (1 : Fin 2)).continuous))
-  rw [integral_map h_meas.aemeasurable h_int]
-  have h_comp : (fun z : EuclideanSpace ℝ (Fin 2) => relu (z.ofLp 0) * relu (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D) =
-      fun z => Real.sqrt (Φαα * Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by
-    ext z
-    dsimp [D]
-    exact relu_mul_relu_toEuclideanCLM_diagScale Φαα Φββ (le_of_lt hΦαα) (le_of_lt hΦββ) z
-  change ∫ z, ((fun z => relu (z.ofLp 0) * relu (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D)) z
-      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
-  rw [h_comp]
-  exact integral_const_mul (Real.sqrt (Φαα * Φββ)) _
+  exact integral_multivariateGaussian_eq_const_mul_integral_of_diagScale_pullback Φαα Φββ Φαβ
+    hΦαα hΦββ hSigma (fun z => relu (z.ofLp 0) * relu (z.ofLp 1))
+    ((continuous_relu.comp (EuclideanSpace.proj (0 : Fin 2)).continuous).mul
+      (continuous_relu.comp (EuclideanSpace.proj (1 : Fin 2)).continuous)).measurable
+    (Real.sqrt (Φαα * Φββ))
+    (relu_mul_relu_toEuclideanCLM_diagScale Φαα Φββ (le_of_lt hΦαα) (le_of_lt hΦββ))
 
 /--
 Informal proof of Step 1 for derivative products:
@@ -3814,24 +3800,13 @@ lemma expected_reluIndicator_mul_reluIndicator_eq_standardized
       ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
         ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
   intro ρ
-  let D := (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ)
-  have hmap := map_diagScale2x2_multivariateGaussian Φαα Φββ Φαβ hΦαα hΦββ hSigma
-  rw [← hmap]
-  have h_meas : Measurable (toEuclideanCLM (𝕜 := ℝ) D) := (toEuclideanCLM (𝕜 := ℝ) D).continuous.measurable
-  have h_int : AEStronglyMeasurable (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
-      (Measure.map (toEuclideanCLM (𝕜 := ℝ) D) (multivariateGaussian 0 !![1, ρ; ρ, 1])) := by
-    apply StronglyMeasurable.aestronglyMeasurable
-    exact ((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
-      (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable
-  rw [integral_map h_meas.aemeasurable h_int]
-  have h_comp : (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D) =
-      fun z => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1) := by
-    ext z
-    dsimp [D]
-    exact reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale Φαα Φββ hΦαα hΦββ z
-  change ∫ z, ((fun z => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)) ∘ (toEuclideanCLM (𝕜 := ℝ) D)) z
-      ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) = _
-  rw [h_comp]
+  have h := integral_multivariateGaussian_eq_const_mul_integral_of_diagScale_pullback Φαα Φββ Φαβ
+    hΦαα hΦββ hSigma (fun z => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
+    ((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+      (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)) 1
+    (fun z => by
+      simpa using reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale Φαα Φββ hΦαα hΦββ z)
+  simpa using h
 
 /-! ### Steps 2–3: Cholesky Reduction and Polar-Coordinate Evaluation -/
 
@@ -4199,19 +4174,8 @@ theorem tendstoInDistribution_sequential_preactivation
       apply ProbabilityMeasure.tendsto_of_tendsto_charFun
       intro t
       exact tendsto_charFun_sequential_preactivation_multivariate σw σb m φ hφ_meas K hK_pos hφ_L2 t
-    have h_lim :
-        (⟨(multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
-            φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))).map id,
-          (Measure.isProbabilityMeasure_map_iff measurable_id.aemeasurable).mpr inferInstance⟩ :
-          ProbabilityMeasure (EuclideanSpace ℝ (Fin m))) =
-        ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
-            φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)), inferInstance⟩ := by
-      ext1
-      exact Measure.map_id
-    rw [h_lim]
-    exact h_weak
+    convert! h_weak
+    exact Measure.map_id
 
 set_option backward.isDefEq.respectTransparency.types false in
 /-- **Sequential Multilayer NNGP Limit (Bivariate Corollary)**:
@@ -4578,6 +4542,34 @@ a readout population. `deepPreactivation`'s `W : ℕ → ℕ → ℕ → ℝ` ar
 (`fun k => if h : k < L then q.1 ⟨k, h⟩ else 0`), written out at each site below rather than named,
 per the same "no extra top-level definitions" preference as the network construction above. -/
 
+-- The base Gram matrix `(d)⁻¹ * (X α ⊙ X β)` built from the evaluation points is positive
+-- semidefinite: the `σw = 1, σb = 0` case of `empirical_layer_covariance_posSemidef_multivariate`,
+-- applied to the input rows themselves rather than to activated preactivations.
+private lemma inputGramMatrix_posSemidef (d m : ℕ) (X : Fin m → Fin d → ℝ) :
+    (show Matrix (Fin m) (Fin m) ℝ from fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)).PosSemidef := by
+  simpa [innerProduct] using
+    empirical_layer_covariance_posSemidef_multivariate 1 0 d m (fun k α => X α k)
+
+/-- Given that the seed matrix `Φ0` is positive semidefinite, every term of the recursive
+covariance sequence `layerCovarianceSeq 1 0 φ m Φ0` is itself positive semidefinite, and the
+corresponding Gaussian activation coordinates are square-integrable. Both facts are always needed
+together (to invoke `continuousWithinAt_covarianceMap` at the next depth, and to bound the
+characteristic-function integrand), so they are bundled here rather than re-derived at each of the
+two sites below that need them. -/
+private lemma memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
+    (m : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (Φ0 : Matrix (Fin m) (Fin m) ℝ) (hΦ0 : Φ0.PosSemidef) :
+    (∀ r : ℕ, ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 r))) ∧
+      ∀ r : ℕ, (layerCovarianceSeq 1 0 φ m Φ0 r).PosSemidef := by
+  have hφ_L2 : ∀ r : ℕ, ∀ α : Fin m,
+      MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
+        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 r)) := fun r α =>
+    memLp_activation_coordinate_of_polynomial_growth m (layerCovarianceSeq 1 0 φ m Φ0 r) φ
+      hφ_cont.measurable C hC p hp hφ_growth α
+  exact ⟨hφ_L2, layerCovarianceSeq_posSemidef 1 0 φ hφ_cont.measurable m Φ0 hΦ0 hφ_L2⟩
+
 /-- **Theorem 2.13, Part 1 (Covariance Convergence in Probability).** As width `n → ∞`, the
 empirical covariance of the depth-`L` network's layer-`(ℓ+1)` post-activations converges in
 probability to the deterministic recursive kernel `layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)`, where
@@ -4607,28 +4599,9 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
   | succ ℓ ih =>
       have hℓ' : ℓ < L := by omega
       have hprevious := ih hℓ'
-      have hbase_pos : (show Matrix (Fin m) (Fin m) ℝ from
-          fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k).PosSemidef := by
-        simpa [innerProduct, dotProduct] using
-          empirical_layer_covariance_posSemidef_multivariate 1 0 d m
-          (fun k α => X α k)
-      have hφ_L2 : ∀ r : ℕ, ∀ α : Fin m,
-          MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
-            (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m
-              (show Matrix (Fin m) (Fin m) ℝ from
-                fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) r)) := fun r α =>
-        memLp_activation_coordinate_of_polynomial_growth m
-          (layerCovarianceSeq 1 0 φ m
-            (show Matrix (Fin m) (Fin m) ℝ from
-              fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) r) φ
-          hφ_cont.measurable C hC p hp hφ_growth α
-      have hlimit_pos : ∀ r : ℕ,
-          (layerCovarianceSeq 1 0 φ m
-            (show Matrix (Fin m) (Fin m) ℝ from
-              fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) r).PosSemidef :=
-        layerCovarianceSeq_posSemidef 1 0 φ hφ_cont.measurable m
-          (show Matrix (Fin m) (Fin m) ℝ from
-            fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) hbase_pos hφ_L2
+      obtain ⟨hφ_L2, hlimit_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
+        m φ hφ_cont C hC p hp hφ_growth
+        (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (inputGramMatrix_posSemidef d m X)
       have hempirical_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
           (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
             φ (deepPreactivation d m n φ X
@@ -4921,13 +4894,9 @@ lemma tendsto_charFun_map_deepEval_of_covariance_tendsto
       Filter.atTop
       (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) t)) := by
-  have hφ_L2 : ∀ ℓ : ℕ, ∀ α : Fin m,
-      MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
-        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m
-          (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) ℓ)) := fun ℓ α =>
-    memLp_activation_coordinate_of_polynomial_growth m
-      (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) ℓ) φ
-      hφ_cont.measurable C hC p hp hφ_growth α
+  obtain ⟨_, hΦr_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
+    m φ hφ_cont C hC p hp hφ_growth
+    (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (inputGramMatrix_posSemidef d m X)
   simp_rw [charFun_map_deepEval d m L φ hφ_cont.measurable X _ t]
   have h_comp := tendstoInMeasure_comp_of_continuousAt hP
     (continuous_charFun_integrand t).continuousAt
@@ -4936,13 +4905,7 @@ lemma tendsto_charFun_map_deepEval_of_covariance_tendsto
   have h_lim := tendsto_integral_of_tendstoInMeasure_of_bounded h_comp
     (fun n => aestronglyMeasurable_charFun_deepEval d m n L φ hφ_cont X t) 1
     (fun n => ae_of_all _ fun w => norm_charFun_deepEval_le_one d m n L φ X w t)
-  have hΦ0_pos : (show Matrix (Fin m) (Fin m) ℝ from
-      fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)).PosSemidef := by
-    have := empirical_layer_covariance_posSemidef_multivariate 1 0 d m (fun k α => X α k)
-    simpa [innerProduct] using this
-  have hΦL_pos := layerCovarianceSeq_posSemidef 1 0 φ hφ_cont.measurable m
-    (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) hΦ0_pos hφ_L2 L
-  rw [charFun_multivariateGaussian hΦL_pos]
+  rw [charFun_multivariateGaussian (hΦr_pos L)]
   simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
   simpa [integral_const, neg_div] using h_lim
 
