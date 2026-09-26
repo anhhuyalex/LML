@@ -669,7 +669,7 @@ theorem deriv_norm_sq_linear_ode
     exact (real_inner_self_eq_norm_sq (r s)).symm
   rw [h_norm_sq]
   convert h_inner using 1
-  ring
+  ring_nf
 
 /-- Step 2 (Rayleigh-Ritz Lower Bound Substitution):
 Using the Rayleigh-Ritz condition `vᵀ K_inf v ≥ lambda_min ‖v‖²`, the rate of change is bounded:
