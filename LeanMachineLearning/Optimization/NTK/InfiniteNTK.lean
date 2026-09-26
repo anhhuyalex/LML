@@ -597,6 +597,154 @@ theorem gradient_flow_residual_vector_ode
   ext s
   rfl
 
+/-! ### Proposition 2.17: Risk Dissipation Identity
+
+Along continuous gradient flow for the generalized empirical risk `L(θ) = (1/m) ∑_α ℓ(f^α(θ), y^α)`,
+the instantaneous rate of risk dissipation is governed entirely by the empirical NTK Gram matrix
+acting on the residual vector:
+  `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`.
+Since `K_t` is positive semidefinite (`empiricalNTKMatrix_quad_form_nonneg` in `Kernel.lean`), the
+empirical risk is monotonically non-increasing along gradient flow. If the smallest Rayleigh
+quotient of `K_t` is bounded below by `lambda_min > 0`, the dissipation rate is in addition bounded
+strictly away from zero whenever `r(t) ≠ 0`.
+-/
+
+/-- Step 1 (Chain Rule on Empirical Risk):
+Along any curve `θ(t)` whose per-sample outputs `f^α(θ(t))` have known time derivatives `f'`, the
+time derivative of the generalized empirical risk is the residual-weighted sum of output
+derivatives:
+  `∂_t L(θ(t)) = (1/m) ∑_α r^α(t) ∂_t f^α(t) = (1/m) r(t)ᵀ ∂_t f(t)`. -/
+theorem hasDerivAt_generalizedEmpiricalRisk_coord_sum
+    (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ_traj : ℝ → EuclideanSpace ℝ (Fin P)) (t : ℝ)
+    (f' : Fin m → ℝ)
+    (hf' : ∀ α : Fin m, HasDerivAt (fun s => trainingOutputs f X (θ_traj s) α) (f' α) t)
+    (hℓ : ∀ α : Fin m, HasDerivAt (fun v => ℓ v (y α))
+      (generalizedResidual ℓ f X y (θ_traj t) α) (trainingOutputs f X (θ_traj t) α)) :
+    HasDerivAt (fun s => generalizedEmpiricalRisk ℓ f X y (θ_traj s))
+      ((m : ℝ)⁻¹ * ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ f')) t := by
+  have h_term : ∀ α : Fin m,
+      HasDerivAt ((fun v => ℓ v (y α)) ∘ fun s => trainingOutputs f X (θ_traj s) α)
+        (generalizedResidual ℓ f X y (θ_traj t) α * f' α) t :=
+    fun α => HasDerivAt.comp t (hℓ α) (hf' α)
+  have h_sum : HasDerivAt
+      (fun s => ∑ α : Fin m, ((fun v => ℓ v (y α)) ∘ fun s' => trainingOutputs f X (θ_traj s') α) s)
+      (∑ α : Fin m, generalizedResidual ℓ f X y (θ_traj t) α * f' α) t :=
+    HasDerivAt.fun_sum (fun α _ => h_term α)
+  have h_scaled := h_sum.const_mul (m : ℝ)⁻¹
+  have h_rhs_eq :
+      (m : ℝ)⁻¹ * ∑ α : Fin m, generalizedResidual ℓ f X y (θ_traj t) α * f' α =
+        (m : ℝ)⁻¹ * ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ f') := by
+    congr 1
+  rw [h_rhs_eq] at h_scaled
+  exact h_scaled
+
+/-- Step 2 (Substitution of Output Dynamics):
+Insert the generalized output dynamics `∂_t f(t) = - (1/m) K_t r(t)` into the risk derivative
+formula, and simplify the resulting double sum into the quadratic form `r(t)ᵀ K_t r(t)`.
+
+**Proposition 2.17 (Risk Dissipation Identity).** Along continuous gradient flow, the instantaneous
+rate of risk dissipation satisfies:
+  `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`. -/
+theorem risk_dissipation_identity
+    (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
+    (t : ℝ)
+    (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (hℓ : ∀ β : Fin m, HasDerivAt (fun v => ℓ v (y β))
+      (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
+    HasDerivAt (fun s => generalizedEmpiricalRisk ℓ f X y (θ_traj s))
+      (-(((m : ℝ) ^ 2)⁻¹) *
+        ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ
+          ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+            (generalizedResidual ℓ f X y (θ_traj t)).ofLp))) t := by
+  set r := generalizedResidual ℓ f X y (θ_traj t) with hr_def
+  set K := empiricalNTKMatrix f X (θ_traj t) with hK_def
+  set f' : Fin m → ℝ := fun α => - (m : ℝ)⁻¹ * ∑ β : Fin m, K α β * r β with hf'_def
+  have hf' : ∀ α : Fin m, HasDerivAt (fun s => trainingOutputs f X (θ_traj s) α) (f' α) t := by
+    intro α
+    exact gradient_flow_generalizedOutput_coord_ode ℓ f X y hflow t α hf hℓ
+  have h_step1 := hasDerivAt_generalizedEmpiricalRisk_coord_sum ℓ f X y θ_traj t f' hf' hℓ
+  have h_val : (m : ℝ)⁻¹ * (r.ofLp ⬝ᵥ f') =
+      -(((m : ℝ) ^ 2)⁻¹) * (r.ofLp ⬝ᵥ (K *ᵥ r.ofLp)) := by
+    have h_sum_eq : r.ofLp ⬝ᵥ f' = - (m : ℝ)⁻¹ * (r.ofLp ⬝ᵥ (K *ᵥ r.ofLp)) := by
+      have h_row : ∀ α : Fin m, K.row α = K α := fun _ => rfl
+      simp only [dotProduct, hf'_def, Matrix.mulVec_apply, h_row, Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro α _
+      ring
+    rw [h_sum_eq]
+    ring
+  rw [h_val] at h_step1
+  exact h_step1
+
+/-- **Geometric and Stability Implications.**
+Since `K_t` is positive semidefinite for any parameter state (`empiricalNTKMatrix_quad_form_nonneg`,
+`Kernel.lean`), the quadratic form `r(t)ᵀ K_t r(t)` is non-negative, so the empirical risk is
+monotonically non-increasing along gradient flow: `∂_t L(θ(t)) ≤ 0`. -/
+theorem risk_dissipation_nonpos
+    (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
+    (t : ℝ)
+    (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (hℓ : ∀ β : Fin m, HasDerivAt (fun v => ℓ v (y β))
+      (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
+    HasDerivAt (fun s => generalizedEmpiricalRisk ℓ f X y (θ_traj s))
+      (-(((m : ℝ) ^ 2)⁻¹) *
+        ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ
+          ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+            (generalizedResidual ℓ f X y (θ_traj t)).ofLp))) t ∧
+      -(((m : ℝ) ^ 2)⁻¹) *
+        ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ
+          ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+            (generalizedResidual ℓ f X y (θ_traj t)).ofLp)) ≤ 0 := by
+  refine ⟨risk_dissipation_identity ℓ f X y hflow t hf hℓ, ?_⟩
+  have h_nonneg := empiricalNTKMatrix_quad_form_nonneg f X (θ_traj t)
+    (generalizedResidual ℓ f X y (θ_traj t)).ofLp
+  have h_sq_nonneg : (0 : ℝ) ≤ ((m : ℝ) ^ 2)⁻¹ := by positivity
+  have h_mul := mul_nonneg h_sq_nonneg h_nonneg
+  linarith
+
+/-- **Geometric and Stability Implications (Rayleigh-Ritz Bound).**
+If the smallest Rayleigh quotient of `K_t` is bounded below by `lambda_min > 0`
+(`lambda_min * ‖v‖² ≤ vᵀ K_t v` for all `v`), the risk dissipation rate is bounded away
+from zero whenever `r(t) ≠ 0`:
+  `∂_t L(θ(t)) ≤ - (lambda_min / m²) ‖r(t)‖²`. -/
+theorem risk_dissipation_le_of_rayleighRitz
+    (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
+    (t : ℝ)
+    (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (hℓ : ∀ β : Fin m, HasDerivAt (fun v => ℓ v (y β))
+      (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t)))
+    (lambda_min : ℝ)
+    (h_rr : ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ v.ofLp)) :
+    HasDerivAt (fun s => generalizedEmpiricalRisk ℓ f X y (θ_traj s))
+      (-(((m : ℝ) ^ 2)⁻¹) *
+        ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ
+          ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+            (generalizedResidual ℓ f X y (θ_traj t)).ofLp))) t ∧
+      -(((m : ℝ) ^ 2)⁻¹) *
+        ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ
+          ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+            (generalizedResidual ℓ f X y (θ_traj t)).ofLp)) ≤
+      -(lambda_min / (m : ℝ) ^ 2) * ‖generalizedResidual ℓ f X y (θ_traj t)‖ ^ 2 := by
+  refine ⟨risk_dissipation_identity ℓ f X y hflow t hf hℓ, ?_⟩
+  have h1 := h_rr (generalizedResidual ℓ f X y (θ_traj t))
+  have h_sq_nonneg : (0 : ℝ) ≤ ((m : ℝ) ^ 2)⁻¹ := by positivity
+  have h2 := mul_le_mul_of_nonneg_left h1 h_sq_nonneg
+  have h3 : ((m : ℝ) ^ 2)⁻¹ * (lambda_min * ‖generalizedResidual ℓ f X y (θ_traj t)‖ ^ 2) =
+      (lambda_min / (m : ℝ) ^ 2) * ‖generalizedResidual ℓ f X y (θ_traj t)‖ ^ 2 := by ring
+  rw [h3] at h2
+  linarith
+
 /-! ### Reusable Analytic Tool: Grönwall Differential Inequality -/
 
 /-- Reusable Grönwall Decay Lemma:
@@ -827,7 +975,8 @@ theorem matrix_exp_residual_trajectory_hasDerivAt
         EuclideanSpace ℝ (Fin m)))
       (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ
         ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ r₀.ofLp)))) t := by
-  have h_exp := hasDerivAt_exp_smul_const' (-(m : ℝ)⁻¹ • K_inf) t
+  have h_exp := @hasDerivAt_exp_smul_const' ℝ (Matrix (Fin m) (Fin m) ℝ) _ _ _
+    (instCompleteSpaceMatrix m) (-(m : ℝ)⁻¹ • K_inf) t
   have h_clm := hasDerivAt_clm_apply_const (toEuclideanVecCLM r₀.ofLp)
     (fun u => NormedSpace.exp (u • (-(m : ℝ)⁻¹ • K_inf)))
     ((-(m : ℝ)⁻¹ • K_inf) * NormedSpace.exp (t • (-(m : ℝ)⁻¹ • K_inf))) t h_exp
