@@ -48,7 +48,11 @@ in `Initialization.lean` to the flat parameter vector
 
 namespace NTK
 
-open scoped BigOperators RealInnerProductSpace
+open scoped BigOperators RealInnerProductSpace Matrix Matrix.Norms.Frobenius
+
+attribute [local instance]
+  Matrix.frobeniusNormedAddCommGroup
+  Matrix.frobeniusNormedSpace
 
 @[expose] public section
 
@@ -348,6 +352,127 @@ lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
       gradA φ n d (X α) θ i := by
   change unpackA (tangentFeature (netFromParams φ n d) (X α) θ) i = _
   rw [unpackA_tangentFeature φ n d (X α) θ (hφ α)]
+
+/-- Squared Frobenius norm of an output Jacobian as its coordinate energy. -/
+lemma outputJacobian_frobenius_norm_sq_entries (n d m : ℕ) (φ : ℝ → ℝ)
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
+      ∑ α : Fin m, ∑ k : Fin (paramDim n d),
+        (outputJacobian (netFromParams φ n d) X θ α k) ^ (2 : ℝ) := by
+  rw [Matrix.frobenius_norm_def]
+  simp only [Real.norm_eq_abs]
+  rw [← Real.sqrt_eq_rpow]
+  have hnonneg : 0 ≤ ∑ α : Fin m, ∑ k : Fin (paramDim n d),
+      |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ) := by
+    apply Finset.sum_nonneg
+    intro α hα
+    apply Finset.sum_nonneg
+    intro k hk
+    positivity
+  calc
+    √(∑ α : Fin m, ∑ k : Fin (paramDim n d),
+        |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ)) ^ 2 =
+        ∑ α : Fin m, ∑ k : Fin (paramDim n d),
+          |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
+    _ = _ := by simp [sq_abs]
+
+/-- Closed-form decomposition of the squared Frobenius norm of the output Jacobian into the
+input-weight and readout blocks. -/
+lemma outputJacobian_netFromParams_frobenius_norm_sq_rpow (φ : ℝ → ℝ) (n d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n,
+      DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) :
+    ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
+      (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
+        (gradW φ n d (X α) θ i j) ^ (2 : ℝ)) +
+      ∑ α : Fin m, ∑ i : Fin n, (gradA φ n d (X α) θ i) ^ (2 : ℝ) := by
+  rw [outputJacobian_frobenius_norm_sq_entries]
+  simp_rw [← Equiv.sum_comp (paramIndexEquiv n d)]
+  rw [← Finset.sum_add_distrib]
+  apply Finset.sum_congr rfl
+  intro α hα
+  rw [Fintype.sum_sum_type, Fintype.sum_prod_type]
+  congr 1
+  · apply Finset.sum_congr rfl
+    intro i hi
+    apply Finset.sum_congr rfl
+    intro j hj
+    change outputJacobian (netFromParams φ n d) X θ α (idxW i j) ^ (2 : ℝ) = _
+    rw [outputJacobian_netFromParams_apply_W φ n d m X θ hφ α i j]
+  · apply Finset.sum_congr rfl
+    intro i hi
+    change outputJacobian (netFromParams φ n d) X θ α (idxA i) ^ (2 : ℝ) = _
+    rw [outputJacobian_netFromParams_apply_a φ n d m X θ hφ α i]
+
+/-- Natural-power form of `outputJacobian_netFromParams_frobenius_norm_sq_rpow`. -/
+lemma outputJacobian_netFromParams_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n,
+      DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) :
+    ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
+      (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
+        (gradW φ n d (X α) θ i j) ^ 2) +
+      ∑ α : Fin m, ∑ i : Fin n, (gradA φ n d (X α) θ i) ^ 2 := by
+  simpa [Real.rpow_two] using
+    outputJacobian_netFromParams_frobenius_norm_sq_rpow φ n d m X θ hφ
+
+/-- A pointwise width-normalized output-Jacobian bound. Uniform bounds on `φ` and `φ'`
+eliminate the input-weight randomness; the only remaining random quantity is the readout
+energy `n⁻¹ ∑ i, a i ^ 2`. -/
+lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
+    (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m → Fin d → ℝ)
+    (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (C₀ C₁ : ℝ)
+    (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
+    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⊙ X α)) :
+    ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2 ≤
+      (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ i : Fin n,
+        (C₀ ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
+  have hC₀_nonneg : 0 ≤ C₀ := (abs_nonneg (φ 0)).trans (hC₀ 0)
+  have hC₁_nonneg : 0 ≤ C₁ := (abs_nonneg (deriv φ 0)).trans (hC₁ 0)
+  have hroot_sq : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := by
+    rw [Real.sq_sqrt]
+    positivity
+  rw [outputJacobian_netFromParams_frobenius_norm_sq φ n d m X (packParams W a) (by
+    simpa only [unpackW_packParams] using hφ)]
+  rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+  apply Finset.sum_le_sum
+  intro α hα
+  rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+  apply Finset.sum_le_sum
+  intro i hi
+  have hderiv_sq : deriv φ (W i ⊙ X α) ^ 2 ≤ C₁ ^ 2 := by
+    rw [← sq_abs]
+    exact (sq_le_sq₀ (abs_nonneg _) hC₁_nonneg).2 (hC₁ (W i ⊙ X α))
+  have hφ_sq : φ (W i ⊙ X α) ^ 2 ≤ C₀ ^ 2 := by
+    rw [← sq_abs]
+    exact (sq_le_sq₀ (abs_nonneg _) hC₀_nonneg).2 (hC₀ (W i ⊙ X α))
+  have hW : ∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2 ≤
+      (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
+    calc
+      ∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2
+        ≤ ∑ j : Fin d, ((n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * X α j ^ 2)) := by
+          apply Finset.sum_le_sum
+          intro j hj
+          have hpre_nonneg : 0 ≤ (n : ℝ)⁻¹ * a i ^ 2 * X α j ^ 2 := by positivity
+          dsimp [gradW]
+          simp only [unpackA_packParams, unpackW_packParams]
+          rw [mul_pow, mul_pow, mul_pow, hroot_sq]
+          nlinarith
+      _ = (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
+        conv_lhs => rw [← Finset.mul_sum]
+        congr 1
+        rw [Finset.mul_sum]
+  have hA : gradA φ n d (X α) (packParams W a) i ^ 2 ≤ (n : ℝ)⁻¹ * C₀ ^ 2 := by
+    dsimp [gradA]
+    simp only [unpackW_packParams]
+    rw [mul_pow, hroot_sq]
+    exact mul_le_mul_of_nonneg_left hφ_sq (by positivity)
+  calc
+    (∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2) +
+        gradA φ n d (X α) (packParams W a) i ^ 2
+      ≤ (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) +
+          (n : ℝ)⁻¹ * C₀ ^ 2 := add_le_add hW hA
+    _ = (n : ℝ)⁻¹ * (C₀ ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by ring
 
 /-- The empirical NTK Gram matrix of `netFromParams` decomposes into the sum of the
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
