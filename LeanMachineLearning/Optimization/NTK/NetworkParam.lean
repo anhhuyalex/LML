@@ -474,6 +474,57 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
           (n : ℝ)⁻¹ * C₀ ^ 2 := add_le_add hW hA
     _ = (n : ℝ)⁻¹ * (C₀ ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by ring
 
+/-- Regrouping the pointwise Jacobian bound isolates the empirical readout energy
+`n⁻¹ ∑ i, a i²`. This is the deterministic Phase 3a form used by the readout concentration
+argument. -/
+lemma outputJacobian_netFromParams_norm_sq_le
+    (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
+    (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (C₀ C₁ : ℝ)
+    (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
+    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⊙ X α)) :
+    ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2 ≤
+      (m : ℝ) * C₀ ^ 2 + (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
+        ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
+  calc
+    ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2 ≤
+        (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ i : Fin n,
+          (C₀ ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) :=
+      outputJacobian_netFromParams_norm_sq_le_readout_energy φ n d m X W a C₀ C₁ hC₀ hC₁ hφ
+    _ = (m : ℝ) * C₀ ^ 2 + (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
+        ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
+      simp_rw [Finset.sum_add_distrib]
+      have hconst : (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ _i : Fin n, C₀ ^ 2 =
+          (m : ℝ) * C₀ ^ 2 := by
+        simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+        field_simp [Nat.cast_ne_zero.mpr (Nat.ne_of_gt hn)]
+      have hvar : (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ i : Fin n,
+          (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) =
+          (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
+            ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
+        calc
+          (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ i : Fin n,
+              (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) =
+              (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
+                (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
+              rw [Finset.sum_comm]
+          _ = (n : ℝ)⁻¹ * ∑ i : Fin n,
+              (a i ^ 2 * C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) := by
+              congr 1
+              apply Finset.sum_congr rfl
+              intro i hi
+              rw [Finset.mul_sum]
+          _ = (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
+              ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
+              rw [show (∑ i : Fin n, a i ^ 2 * C₁ ^ 2 *
+                  ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) =
+                  (∑ i : Fin n, a i ^ 2) * (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) by
+                rw [Finset.sum_mul]
+                apply Finset.sum_congr rfl
+                intro i hi
+                ring]
+              ring
+      rw [mul_add, hconst, hvar]
+
 /-- The empirical NTK Gram matrix of `netFromParams` decomposes into the sum of the
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
 theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)

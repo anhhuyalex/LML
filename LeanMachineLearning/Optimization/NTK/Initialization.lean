@@ -665,6 +665,103 @@ lemma map_gaussianReadoutMeasure_coord (i : Fin n) :
     Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) = gaussianReal 0 1 :=
   (MeasureTheory.measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
 
+/-- The squared value of every Gaussian readout coordinate is integrable. -/
+lemma integrable_gaussianReadout_coord_sq (i : Fin n) :
+    Integrable (fun a : Fin n → ℝ => a i ^ 2) (gaussianReadoutMeasure n) := by
+  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) =
+      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
+  have hmap_sq : Integrable (fun x : ℝ => x ^ 2)
+      (Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n)) := by
+    rw [hmap]
+    apply (memLp_two_iff_integrable_sq
+      (memLp_id_gaussianReal (2 : NNReal)).aestronglyMeasurable).1
+    exact memLp_id_gaussianReal (2 : NNReal)
+  change Integrable ((fun x : ℝ => x ^ 2) ∘ fun a : Fin n → ℝ => a i)
+    (gaussianReadoutMeasure n)
+  exact hmap_sq.comp_measurable (measurable_pi_apply i)
+
+/-- The normalized squared Euclidean norm of a readout vector. -/
+noncomputable def gaussianReadoutEnergy (n : ℕ) (a : Fin n → ℝ) : ℝ :=
+  (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2
+
+/-- The normalized Gaussian readout energy is integrable. -/
+lemma integrable_gaussianReadout_energy (n : ℕ) :
+    Integrable (gaussianReadoutEnergy n) (gaussianReadoutMeasure n) := by
+  unfold gaussianReadoutEnergy
+  apply Integrable.const_mul
+  exact integrable_finsetSum Finset.univ (fun i _ => integrable_gaussianReadout_coord_sq i)
+
+/-- Each Gaussian readout coordinate has unit second moment. -/
+lemma integral_gaussianReadout_coord_sq (i : Fin n) :
+    ∫ a : Fin n → ℝ, a i ^ 2 ∂(gaussianReadoutMeasure n) = 1 := by
+  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) =
+      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
+  calc
+    ∫ a : Fin n → ℝ, a i ^ 2 ∂(gaussianReadoutMeasure n) =
+        ∫ x : ℝ, x ^ 2 ∂Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) := by
+      rw [integral_map (measurable_pi_apply i).aemeasurable (by fun_prop)]
+    _ = ∫ x : ℝ, x ^ 2 ∂gaussianReal 0 1 := by rw [hmap]
+    _ = 1 := by
+      have h := ProbabilityTheory.variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
+      rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at h
+      simpa [id] using h
+
+/-- The readout-energy average has expectation one under i.i.d. standard-Gaussian readout
+initialization. The positivity hypothesis is necessary: at width zero the average is identically
+zero because `Fin 0` is empty. -/
+lemma integral_gaussianReadout_sum_sq (n : ℕ) (hn : 0 < n) :
+    ∫ a, ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) ∂(gaussianReadoutMeasure n) = 1 := by
+  rw [integral_const_mul]
+  rw [integral_finsetSum Finset.univ (fun i _ => integrable_gaussianReadout_coord_sq i)]
+  simp_rw [integral_gaussianReadout_coord_sq]
+  simp [Finset.sum_const, Fintype.card_fin, hn.ne']
+
+/-- Markov tail bound for the normalized squared readout energy. -/
+lemma prob_gaussianReadout_sum_sq_le
+    (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ) (_hδ1 : δ < 1) :
+    (gaussianReadoutMeasure n).real {a | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} ≥
+      1 - δ := by
+  let F : (Fin n → ℝ) → ℝ := gaussianReadoutEnergy n
+  have hF_int : Integrable F (gaussianReadoutMeasure n) := by
+    exact integrable_gaussianReadout_energy n
+  have hF_nonneg : 0 ≤ᵐ[gaussianReadoutMeasure n] F := by
+    filter_upwards [] with a
+    dsimp [F, gaussianReadoutEnergy]
+    positivity
+  have hmarkov := mul_meas_ge_le_integral_of_nonneg hF_nonneg hF_int δ⁻¹
+  have hbad : (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a} ≤ δ := by
+    have hmul : δ⁻¹ * (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a} ≤ 1 := by
+      rw [show (∫ a, F a ∂(gaussianReadoutMeasure n)) = 1 by
+        simpa [F, gaussianReadoutEnergy] using integral_gaussianReadout_sum_sq n hn] at hmarkov
+      exact hmarkov
+    calc
+      (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a} =
+          δ * (δ⁻¹ * (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a}) := by
+            field_simp [ne_of_gt hδ]
+      _ ≤ δ * 1 := mul_le_mul_of_nonneg_left hmul hδ.le
+      _ = δ := by ring
+  let bad : Set (Fin n → ℝ) := {a | δ⁻¹ ≤ F a}
+  have hF_meas : Measurable F := by
+    dsimp [F]
+    unfold gaussianReadoutEnergy
+    fun_prop
+  have hbad_meas : MeasurableSet bad := by
+    change MeasurableSet (F ⁻¹' Set.Ici δ⁻¹)
+    exact measurableSet_Ici.preimage hF_meas
+  have hsubset : badᶜ ⊆ {a | F a ≤ δ⁻¹} := by
+    intro a ha
+    simp only [Set.mem_compl_iff, Set.mem_ofPred_eq] at ha ⊢
+    by_contra h
+    exact ha (not_le.mp h).le
+  change (gaussianReadoutMeasure n).real {a | F a ≤ δ⁻¹} ≥ 1 - δ
+  calc
+    (gaussianReadoutMeasure n).real {a | F a ≤ δ⁻¹} ≥
+        (gaussianReadoutMeasure n).real badᶜ :=
+      measureReal_mono hsubset
+    _ = 1 - (gaussianReadoutMeasure n).real bad :=
+      probReal_compl_eq_one_sub hbad_meas
+    _ ≥ 1 - δ := sub_le_sub_left hbad 1
+
 /-- Readout weights `a_i` are mutually independent across hidden units `i ∈ Fin n`. -/
 lemma iIndepFun_readoutWeights (n : ℕ) :
     iIndepFun (fun i : Fin n => fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) :=
