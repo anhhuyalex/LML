@@ -86,6 +86,7 @@ public import LeanMachineLearning.Optimization.NTK.InfiniteNTK
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.InitializationHelpers
 public import LeanMachineLearning.Optimization.NTK.Kernel
+public import LeanMachineLearning.Optimization.NTK.NetworkParam
 public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.NTK.Universal
 public import LeanMachineLearning.Optimization.Renormalization

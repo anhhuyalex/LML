@@ -42,6 +42,20 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
   gradient flow induces the generalized output evolution `∂_t f(t) = - (1/m) K_t r(t)`. Proposition
   2.15's squared-loss theorems are proved as corollaries of this general result.
 
+* **Proposition 2.17 (Risk Dissipation Identity)**: Along continuous gradient flow for the
+  generalized empirical risk `L(θ) = (1/m) ∑_α ℓ(f^α(θ), y^α)`, the instantaneous rate of risk
+  dissipation is:
+    `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`.
+  * **Step 1 (Chain Rule on Empirical Risk)**: `∂_t L(θ(t)) = (1/m) ∑_α r^α(t) ∂_t f^α(t)
+    = (1/m) r(t)ᵀ ∂_t f(t)`.
+  * **Step 2 (Substitution of Output Dynamics)**: insert `∂_t f(t) = - (1/m) K_t r(t)` to get
+    `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`.
+  * **Geometric and Stability Implications**: since `K_t` is positive semidefinite for every
+    parameter state, the quadratic form `r(t)ᵀ K_t r(t) ≥ 0`, so the empirical risk is
+    monotonically non-increasing: `∂_t L(θ(t)) ≤ 0`. If the smallest Rayleigh quotient of `K_t` is
+    bounded below by `lambda_min > 0`, the dissipation rate is bounded strictly away from zero
+    whenever `r(t) ≠ 0`: `∂_t L(θ(t)) ≤ - (lambda_min / m²) ‖r(t)‖²`.
+
 * **Asymptotic Properties in the Infinite-Width Limit ($n \to \infty$)**:
   * **Property 1 (Deterministic Initialization)**: As width $n \to \infty$, the initial empirical
     kernel concentrates entrywise around a deterministic limit:
@@ -105,6 +119,13 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.gradient_flow_output_vector_ode_sub_y` : Step 5 output ODE
   `∂_t f(t) = - (1/m) K_t (f(t) - y)`.
 * `NTK.gradient_flow_residual_vector_ode` : Step 5 residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
+* `NTK.hasDerivAt_generalizedEmpiricalRisk_coord_sum` : Prop 2.17 Step 1, chain rule
+  `∂_t L(θ(t)) = (1/m) r(t)ᵀ ∂_t f(t)`.
+* `NTK.risk_dissipation_identity` : **Proposition 2.17**, risk dissipation identity
+  `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`.
+* `NTK.risk_dissipation_nonpos` : Monotone risk dissipation `∂_t L(θ(t)) ≤ 0` via PSD `K_t`.
+* `NTK.risk_dissipation_le_of_rayleighRitz` : Strict dissipation bound
+  `∂_t L(θ(t)) ≤ - (lambda_min / m²) ‖r(t)‖²` under a Rayleigh-Ritz condition on `K_t`.
 * `NTK.gronwall_exponential_decay` : Reusable Grönwall differential inequality for linear decay.
 * `NTK.deriv_norm_sq_linear_ode` : Step 1 derivative `(d/dt) ‖r(t)‖² = - (2/m) r(t)ᵀ K_∞ r(t)`.
 * `NTK.deriv_norm_sq_le_of_rayleighRitz` : Step 2 bound `(d/dt) ‖r(t)‖² ≤ - (2 λ / m) ‖r(t)‖²`.
@@ -674,7 +695,7 @@ theorem risk_dissipation_identity
       simp only [dotProduct, hf'_def, Matrix.mulVec_apply, h_row, Finset.mul_sum]
       apply Finset.sum_congr rfl
       intro α _
-      ring
+      ring_nf
     rw [h_sum_eq]
     ring
   rw [h_val] at h_step1
