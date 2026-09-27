@@ -1146,10 +1146,11 @@ if the output Jacobian is bounded by `M` and has local Lipschitz constant `L_J`,
 the empirical NTK Gram matrix has local Lipschitz constant `2 * M * L_J`. -/
 theorem empiricalNTKMatrix_sub_le_of_jacobian_lipschitz
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ₁ θ₂ : EuclideanSpace ℝ (Fin P)) (M L_J : ℝ) (hM : 0 ≤ M)
+    (θ₁ θ₂ : EuclideanSpace ℝ (Fin P)) (M L_J : ℝ)
     (hJ₁ : ‖outputJacobian f X θ₁‖ ≤ M) (hJ₂ : ‖outputJacobian f X θ₂‖ ≤ M)
     (hJ_lip : ‖outputJacobian f X θ₁ - outputJacobian f X θ₂‖ ≤ L_J * ‖θ₁ - θ₂‖) :
     ‖empiricalNTKMatrix f X θ₁ - empiricalNTKMatrix f X θ₂‖ ≤ (2 * M * L_J) * ‖θ₁ - θ₂‖ := by
+  have hM : 0 ≤ M := (norm_nonneg _).trans hJ₁
   have h1 := empiricalNTKMatrix_sub_le_of_jacobian_bound f X θ₁ θ₂ M hJ₁ hJ₂
   have h2 : 2 * M * ‖outputJacobian f X θ₁ - outputJacobian f X θ₂‖ ≤
       2 * M * (L_J * ‖θ₁ - θ₂‖) := by
@@ -1159,19 +1160,19 @@ theorem empiricalNTKMatrix_sub_le_of_jacobian_lipschitz
   rw [h3] at h2
   exact h1.trans h2
 
-/-- Deterministic Lipschitz propagation:
+/-- Deterministic Lipschitz propagation (Gap 2 deliverable):
 On any set `S` containing `θ₀`, if `‖outputJacobian f X θ‖ ≤ M` and
 `‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖` for all `θ ∈ S`,
 then `‖empiricalNTKMatrix f X θ - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * ‖θ - θ₀‖`. -/
 theorem empiricalNTKMatrix_lipschitz_of_jacobian_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (S : Set (EuclideanSpace ℝ (Fin P))) (θ₀ : EuclideanSpace ℝ (Fin P)) (hθ₀ : θ₀ ∈ S)
-    (M L_J : ℝ) (hM : 0 ≤ M)
+    (M L_J : ℝ)
     (hJ_bdd : ∀ θ ∈ S, ‖outputJacobian f X θ‖ ≤ M)
     (hJ_lip : ∀ θ ∈ S, ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖)
     {θ : EuclideanSpace ℝ (Fin P)} (hθ : θ ∈ S) :
     ‖empiricalNTKMatrix f X θ - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * ‖θ - θ₀‖ :=
-  empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X θ θ₀ M L_J hM
+  empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X θ θ₀ M L_J
     (hJ_bdd θ hθ) (hJ_bdd θ₀ hθ₀) (hJ_lip θ hθ)
 
 /-! ### Asymptotic Properties in the Infinite-Width Limit -/
@@ -1204,31 +1205,34 @@ theorem lazy_training_kernel_freeze_bound
   exact h1.trans h_mul
 
 /-- Property 2 (Kernel Freeze Bound instantiated with Jacobian Bounds):
-When `θ_traj` satisfies lazy displacement `‖θ(t) - θ₀‖ ≤ C / √n` and the output Jacobian
+When `θ_traj` satisfies lazy displacement `‖θ(t) - θ₀‖ ≤ C` and the output Jacobian
 is bounded by `M` and `L_J`-Lipschitz along the trajectory, the empirical NTK matrix satisfies
-`‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C / √n`. -/
+`‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C`.
+The width decay `1/√n` belongs on `L_J = Θ(1/√n)` (from the network parameterization factor
+`n^{-1/2}` in `outputJacobian`), not on parameter displacement `hlazy`. -/
 theorem empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (θ_traj : ℝ → EuclideanSpace ℝ (Fin P)) (θ₀ : EuclideanSpace ℝ (Fin P))
-    (C M L_J : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (n : ℕ)
-    (hlazy : ∀ t ≥ 0, ‖θ_traj t - θ₀‖ ≤ C / Real.sqrt (n : ℝ))
+    (C M L_J : ℝ) (hL_J : 0 ≤ L_J)
+    (hlazy : ∀ t ≥ 0, ‖θ_traj t - θ₀‖ ≤ C)
     (hJ_bdd : ∀ t ≥ 0, ‖outputJacobian f X (θ_traj t)‖ ≤ M)
     (hJ_bdd₀ : ‖outputJacobian f X θ₀‖ ≤ M)
     (hJ_lip : ∀ t ≥ 0, ‖outputJacobian f X (θ_traj t) - outputJacobian f X θ₀‖ ≤
       L_J * ‖θ_traj t - θ₀‖)
     (t : ℝ) (ht : 0 ≤ t) :
     ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤
-      (2 * M * L_J) * C / Real.sqrt (n : ℝ) := by
-  have hLip : ∀ s ≥ 0, ‖empiricalNTKMatrix f X (θ_traj s) - empiricalNTKMatrix f X θ₀‖ ≤
-      (2 * M * L_J) * ‖θ_traj s - θ₀‖ := by
-    intro s hs
-    exact empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X (θ_traj s) θ₀ M L_J hM
-      (hJ_bdd s hs) hJ_bdd₀ (hJ_lip s hs)
+      (2 * M * L_J) * C := by
+  have hLip : ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤
+      (2 * M * L_J) * ‖θ_traj t - θ₀‖ :=
+    empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X (θ_traj t) θ₀ M L_J
+      (hJ_bdd t ht) hJ_bdd₀ (hJ_lip t ht)
+  have hM : 0 ≤ M := (norm_nonneg _).trans hJ_bdd₀
   have h2ML_nonneg : 0 ≤ 2 * M * L_J := by
     have : 0 ≤ 2 * M := by linarith
     exact mul_nonneg this hL_J
-  exact lazy_training_kernel_freeze_bound f X θ_traj θ₀ C (2 * M * L_J) h2ML_nonneg n
-    hlazy hLip t ht
+  have h_disp := hlazy t ht
+  have h_bound := mul_le_mul_of_nonneg_left h_disp h2ML_nonneg
+  exact hLip.trans h_bound
 
 /-- Property 2 (Asymptotic Freeze of Empirical NTK Bound in Infinite-Width Limit):
 As the network width `n → ∞`, the kernel displacement bound `L_K * C / √n` converges to `0`. -/

@@ -140,13 +140,12 @@ lemma packParams_unpack {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (paramDim n d)
     rw [h_k]
     rfl
 
-/-- The continuous linear map `θ ↦ unpackW θ i ⊙ x`. -/
-noncomputable def dotW_CLM {n d : ℕ} (i : Fin n) (x : Fin d → ℝ) :
+/-- The continuous linear map `θ ↦ unpackW θ i ⊙ x`. Internal helper. -/
+private noncomputable def dotW_CLM {n d : ℕ} (i : Fin n) (x : Fin d → ℝ) :
     EuclideanSpace ℝ (Fin (paramDim n d)) →L[ℝ] ℝ :=
   ∑ j : Fin d, (x j) • EuclideanSpace.proj (idxW i j)
 
-@[simp]
-lemma dotW_CLM_apply {n d : ℕ} (i : Fin n) (x : Fin d → ℝ)
+private lemma dotW_CLM_apply {n d : ℕ} (i : Fin n) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
     dotW_CLM i x θ = unpackW θ i ⊙ x := by
   simp only [dotW_CLM, sum_apply, smul_apply, PiLp.proj_apply, smul_eq_mul, innerProduct]
