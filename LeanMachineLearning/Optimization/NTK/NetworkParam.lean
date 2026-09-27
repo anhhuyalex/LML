@@ -525,6 +525,65 @@ lemma outputJacobian_netFromParams_norm_sq_le
               ring
       rw [mul_add, hconst, hvar]
 
+/-- Under the joint Gaussian initialization, the output Jacobian has the stated Frobenius-norm
+bound with probability at least `1 - δ`. The input-weight component of the product measure is
+irrelevant after the deterministic bound; only the readout-energy tail remains. -/
+theorem outputJacobian_netFromParams_frobenius_norm_concentration
+    (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
+    (C₀ C₁ : ℝ) (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
+    (hφ : ∀ (w : Fin d → ℝ) (x : Fin d → ℝ), DifferentiableAt ℝ φ (w ⊙ x))
+    {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < 1) :
+    let M := Real.sqrt ((m : ℝ) * C₀ ^ 2 +
+      (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ)
+    (initMeasure n d).real {p | ‖outputJacobian (netFromParams φ n d) X
+      (packParams p.1 p.2)‖ ≤ M} ≥ 1 - δ := by
+  dsimp only
+  let K : ℝ := C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2
+  let B : ℝ := (m : ℝ) * C₀ ^ 2 + K / δ
+  have hK_nonneg : 0 ≤ K := by
+    dsimp [K]
+    positivity
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    positivity
+  have hdet (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ))
+      (hp : gaussianReadoutEnergy n p.2 ≤ δ⁻¹) :
+      ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤ Real.sqrt B := by
+    have hnorm_sq := outputJacobian_netFromParams_norm_sq_le φ n d m hn X p.1 p.2 C₀ C₁
+      hC₀ hC₁ (fun α i => hφ (p.1 i) (X α))
+    have hbound :
+        ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ^ 2 ≤ B := by
+      calc
+        ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ^ 2 ≤
+            (m : ℝ) * C₀ ^ 2 + K * gaussianReadoutEnergy n p.2 := by
+              simpa [K, gaussianReadoutEnergy] using hnorm_sq
+        _ ≤ (m : ℝ) * C₀ ^ 2 + K * δ⁻¹ :=
+          add_le_add_right (mul_le_mul_of_nonneg_left hp hK_nonneg) _
+        _ = B := by simp [B, div_eq_mul_inv]
+    apply (sq_le_sq₀ (norm_nonneg _) (Real.sqrt_nonneg _)).mp
+    rw [Real.sq_sqrt hB_nonneg]
+    exact hbound
+  have htail := prob_gaussianReadout_sum_sq_le n hn hδ hδ1
+  have hreadout_event :
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | gaussianReadoutEnergy n p.2 ≤ δ⁻¹} =
+        Set.univ ×ˢ {a : Fin n → ℝ | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} := by
+    ext p
+    simp [gaussianReadoutEnergy]
+  have hprod_tail :
+      (initMeasure n d).real {p | gaussianReadoutEnergy n p.2 ≤ δ⁻¹} ≥ 1 - δ := by
+    rw [hreadout_event, MeasureTheory.measureReal_prod_prod]
+    simpa using htail
+  have hsubset :
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | gaussianReadoutEnergy n p.2 ≤ δ⁻¹} ⊆
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+          ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤ Real.sqrt B} := by
+    intro p hp
+    exact hdet p hp
+  change (initMeasure n d).real {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+    ‖outputJacobian (netFromParams φ n d) X
+    (packParams p.1 p.2)‖ ≤ Real.sqrt B} ≥ 1 - δ
+  exact hprod_tail.trans (MeasureTheory.measureReal_mono (μ := initMeasure n d) hsubset)
+
 /-- The empirical NTK Gram matrix of `netFromParams` decomposes into the sum of the
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
 theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
