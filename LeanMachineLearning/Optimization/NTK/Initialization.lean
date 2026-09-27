@@ -718,7 +718,7 @@ lemma integral_gaussianReadout_sum_sq (n : ℕ) (hn : 0 < n) :
 
 /-- Markov tail bound for the normalized squared readout energy. -/
 lemma prob_gaussianReadout_sum_sq_le
-    (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ) (_hδ1 : δ < 1) :
+    (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ) :
     (gaussianReadoutMeasure n).real {a | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} ≥
       1 - δ := by
   let F : (Fin n → ℝ) → ℝ := gaussianReadoutEnergy n
