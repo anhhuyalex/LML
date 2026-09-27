@@ -132,6 +132,14 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.residual_norm_sq_exponential_decay` : Step 3 squared residual norm decay.
 * `NTK.residual_norm_exponential_decay` : Step 3 residual norm decay.
 * `NTK.mse_loss_exponential_decay` : Step 4 empirical MSE loss decay.
+* `NTK.gronwall_exponential_decay_Icc` : Interval-restricted Grönwall decay lemma on `[0, T]`.
+* `NTK.deriv_norm_sq_timeVarying_ode` : Step 1 derivative for time-varying NTK `K(t)`.
+* `NTK.deriv_norm_sq_le_of_rayleighRitz_timeVarying` : Step 2 Rayleigh-Ritz bound for `K(t)`.
+* `NTK.residual_norm_sq_exponential_decay_timeVarying` : Step 3 squared residual decay for `K(t)`.
+* `NTK.residual_norm_exponential_decay_timeVarying` : Step 3 residual norm decay for `K(t)`.
+* `NTK.mse_loss_exponential_decay_timeVarying` : Step 4 MSE loss decay for `K(t)`.
+* `NTK.residual_norm_sq_exponential_decay_timeVarying_Icc` : Local interval squared residual decay.
+* `NTK.residual_norm_exponential_decay_timeVarying_Icc` : Local interval residual decay on `[0, T]`.
 * `NTK.matrix_exp_residual_trajectory_zero` : Initial condition `r(0) = r₀`.
 * `NTK.matrix_exp_output_trajectory_zero` : Initial condition `f(0) = f₀`.
 * `NTK.matrix_exp_residual_eq_output_sub_y` : Residual relation `f(t) - y = r(t)`.
@@ -814,6 +822,51 @@ lemma gronwall_exponential_decay {E E' : ℝ → ℝ} {c : ℝ}
   rw [h_exp_cancel] at h_mul
   exact h_mul
 
+/-- Interval-Restricted Grönwall Decay Lemma:
+If a differentiable scalar quantity `E(t)` satisfies `E'(t) ≤ -c * E(t)` for all `t ∈ [0, T]`,
+then `E(t) ≤ E(0) * exp(-c * t)` for all `t ∈ [0, T]`.
+This localized variant enables continuous induction bootstrap arguments where the differential
+inequality only holds while the state remains inside a bootstrap region. -/
+lemma gronwall_exponential_decay_Icc {E E' : ℝ → ℝ} {c T : ℝ} (hT : 0 ≤ T)
+    (hE : ∀ t, HasDerivAt E (E' t) t)
+    (hbound : ∀ t ∈ Set.Icc 0 T, E' t ≤ -c * E t) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
+    E t ≤ E 0 * Real.exp (-c * t) := by
+  let g : ℝ → ℝ := fun s => E s * Real.exp (c * s)
+  have hg_deriv : ∀ s, HasDerivAt g ((E' s + c * E s) * Real.exp (c * s)) s := by
+    intro s
+    have h1 := hE s
+    have h2 : HasDerivAt (fun u => Real.exp (c * u)) (Real.exp (c * s) * c) s := by
+      have hc : HasDerivAt (fun u => c * u) (c * 1) s := (hasDerivAt_id s).const_mul c
+      rw [mul_one] at hc
+      exact hc.exp
+    have hprod := h1.mul h2
+    convert hprod using 1
+    ring
+  have hg_diff : Differentiable ℝ g := fun s => (hg_deriv s).differentiableAt
+  have hg_cont : ContinuousOn g (Set.Icc 0 T) := hg_diff.continuous.continuousOn
+  have hg_within : ∀ s ∈ interior (Set.Icc 0 T),
+      HasDerivWithinAt g ((E' s + c * E s) * Real.exp (c * s)) (interior (Set.Icc 0 T)) s :=
+    fun s _ => (hg_deriv s).hasDerivWithinAt
+  have hg_nonpos : ∀ s ∈ interior (Set.Icc 0 T), (E' s + c * E s) * Real.exp (c * s) ≤ 0 := by
+    intro s hs
+    have hs_icc : s ∈ Set.Icc 0 T := interior_subset hs
+    have hle : E' s + c * E s ≤ 0 := by linarith [hbound s hs_icc]
+    have hexp : 0 ≤ Real.exp (c * s) := (Real.exp_pos _).le
+    exact mul_nonpos_of_nonpos_of_nonneg hle hexp
+  have h_anti : AntitoneOn g (Set.Icc 0 T) :=
+    antitoneOn_of_hasDerivWithinAt_nonpos (convex_Icc 0 T) hg_cont hg_within hg_nonpos
+  have h0_mem : (0 : ℝ) ∈ Set.Icc 0 T := ⟨le_rfl, hT⟩
+  have h_le := h_anti h0_mem ht ht.1
+  dsimp [g] at h_le
+  rw [mul_zero, Real.exp_zero, mul_one] at h_le
+  have h_mul := mul_le_mul_of_nonneg_right h_le (Real.exp_pos (-c * t)).le
+  have h_exp_cancel : E t * Real.exp (c * t) * Real.exp (-c * t) = E t := by
+    rw [mul_assoc, ← Real.exp_add]
+    ring_nf
+    rw [Real.exp_zero, mul_one]
+  rw [h_exp_cancel] at h_mul
+  exact h_mul
+
 /-! ### Step-by-Step Proof of Exponential Convergence of Training Loss -/
 
 /-- Step 1 (Time Derivative of Squared Residual Norm):
@@ -929,6 +982,176 @@ theorem mse_loss_exponential_decay
   have h_mul := mul_le_mul_of_nonneg_left h hpos
   rw [← mul_assoc] at h_mul
   exact h_mul
+
+/-! ### Exponential Convergence Under Time-Varying NTK Kernel
+
+For the actual finite-width gradient flow trajectory, the empirical Gram matrix
+`K(t) = empiricalNTKMatrix f X (θ_traj t)` varies with time.
+The following sibling theorems establish that exponential decay of the residual norm
+holds along any trajectory whose time-varying kernel satisfies a Rayleigh quotient
+lower bound `lambda_min * ‖v‖² ≤ vᵀ (K(t) v)`.
+-/
+
+/-- Step 1 (Time Derivative of Squared Residual Norm with Time-Varying Kernel):
+Along any trajectory satisfying `∂_t r(t) = - (1 / m) K(t) r(t)` for a time-dependent matrix `K`,
+the rate of change of `‖r(t)‖²` is given by:
+  `(d / dt) ‖r(t)‖² = 2 r(t)ᵀ ∂_t r(t) = - (2 / m) r(t)ᵀ K(t) r(t)`. -/
+theorem deriv_norm_sq_timeVarying_ode
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ)
+    (r : ℝ → EuclideanSpace ℝ (Fin m)) (t : ℝ)
+    (hr : HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t) :
+    HasDerivAt (fun s => ‖r s‖ ^ 2)
+      (-(2 / (m : ℝ)) * ((r t).ofLp ⬝ᵥ (K t *ᵥ (r t).ofLp))) t := by
+  have h_inner : HasDerivAt (fun s => ⟪r s, r s⟫)
+      (⟪r t, WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))⟫ +
+       ⟪WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp)), r t⟫) t :=
+    HasDerivAt.inner ℝ hr hr
+  have h_symm : ⟪WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp)), r t⟫ =
+      ⟪r t, WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))⟫ := real_inner_comm _ _
+  rw [h_symm, ← two_mul] at h_inner
+  have h_dot : ⟪r t, WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))⟫ =
+      -(m : ℝ)⁻¹ * ((r t).ofLp ⬝ᵥ (K t *ᵥ (r t).ofLp)) := by
+    rw [show r t = WithLp.toLp 2 (r t).ofLp by rfl]
+    rw [EuclideanSpace.inner_toLp_toLp]
+    simp only [star_trivial]
+    rw [smul_dotProduct, dotProduct_comm]
+    ring
+  rw [h_dot] at h_inner
+  have h_norm_sq : (fun s => ‖r s‖ ^ 2) = (fun s => ⟪r s, r s⟫) := by
+    ext s
+    exact (real_inner_self_eq_norm_sq (r s)).symm
+  rw [h_norm_sq]
+  convert h_inner using 1
+  ring_nf
+
+/-- Step 2 (Rayleigh-Ritz Lower Bound with Time-Varying Kernel):
+When `vᵀ K(t) v ≥ lambda_min ‖v‖²`, the rate of change is bounded:
+  `(d / dt) ‖r(t)‖² ≤ - (2 lambda_min / m) ‖r(t)‖²`. -/
+theorem deriv_norm_sq_le_of_rayleighRitz_timeVarying
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
+    (r : ℝ → EuclideanSpace ℝ (Fin m)) (t : ℝ)
+    (h_rr : ∀ v : EuclideanSpace ℝ (Fin m), lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (hr : HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hm : 0 < (m : ℝ)) :
+    HasDerivAt (fun s => ‖r s‖ ^ 2)
+      (-(2 / (m : ℝ)) * ((r t).ofLp ⬝ᵥ (K t *ᵥ (r t).ofLp))) t ∧
+      -(2 / (m : ℝ)) * ((r t).ofLp ⬝ᵥ (K t *ᵥ (r t).ofLp)) ≤
+        -(2 * lambda_min / (m : ℝ)) * ‖r t‖ ^ 2 := by
+  constructor
+  · exact deriv_norm_sq_timeVarying_ode K r t hr
+  · have h1 := h_rr (r t)
+    have hpos : 0 < 2 / (m : ℝ) := div_pos (by norm_num) hm
+    have h2 := mul_le_mul_of_nonneg_left h1 hpos.le
+    have h3 : (2 / (m : ℝ)) * (lambda_min * ‖r t‖ ^ 2) =
+        (2 * lambda_min / (m : ℝ)) * ‖r t‖ ^ 2 := by ring
+    rw [h3] at h2
+    linarith
+
+/-- Step 3 (Grönwall Integration for Squared Residual Norm under Time-Varying Kernel):
+Under a uniform-in-time Rayleigh lower bound on `K(t)`:
+  `‖r(t)‖² ≤ ‖r(0)‖² * exp(- (2 lambda_min / m) t)`. -/
+theorem residual_norm_sq_exponential_decay_timeVarying
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
+    (h_rr : ∀ t, ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (r : ℝ → EuclideanSpace ℝ (Fin m))
+    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
+    ‖r t‖ ^ 2 ≤ ‖r 0‖ ^ 2 * Real.exp (-(2 * lambda_min / (m : ℝ)) * t) := by
+  have hE : ∀ s, HasDerivAt (fun u => ‖r u‖ ^ 2)
+      (-(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp))) s :=
+    fun s => deriv_norm_sq_timeVarying_ode K r s (hr s)
+  have hbound : ∀ s, -(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp)) ≤
+      -(2 * lambda_min / (m : ℝ)) * ‖r s‖ ^ 2 := by
+    intro s
+    have h := deriv_norm_sq_le_of_rayleighRitz_timeVarying K lambda_min r s (h_rr s) (hr s) hm
+    exact h.2
+  exact gronwall_exponential_decay hE hbound t ht
+
+/-- Step 3 (Exponential Decay of Residual Norm under Time-Varying Kernel):
+Taking the square root yields:
+  `‖r(t)‖ ≤ ‖r(0)‖ * exp(- (lambda_min / m) t)`. -/
+theorem residual_norm_exponential_decay_timeVarying
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
+    (h_rr : ∀ t, ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (r : ℝ → EuclideanSpace ℝ (Fin m))
+    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
+    ‖r t‖ ≤ ‖r 0‖ * Real.exp (-(lambda_min / (m : ℝ)) * t) := by
+  have h_sq := residual_norm_sq_exponential_decay_timeVarying K lambda_min h_rr r hr hm t ht
+  have h_sqrt := Real.sqrt_le_sqrt h_sq
+  rw [Real.sqrt_mul (sq_nonneg _)] at h_sqrt
+  rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (norm_nonneg _)] at h_sqrt
+  have h_exp_sqrt : Real.sqrt (Real.exp (-(2 * lambda_min / (m : ℝ)) * t)) =
+      Real.exp (-(lambda_min / (m : ℝ)) * t) := by
+    rw [← Real.exp_half]
+    congr 1
+    ring
+  rw [h_exp_sqrt] at h_sqrt
+  exact h_sqrt
+
+/-- Step 4 (Exponential Loss Decay under Time-Varying Kernel):
+  `(1 / (2m)) ‖r(t)‖² ≤ ((1 / (2m)) ‖r(0)‖²) * exp(- (2 lambda_min / m) t)`. -/
+theorem mse_loss_exponential_decay_timeVarying
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
+    (h_rr : ∀ t, ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (r : ℝ → EuclideanSpace ℝ (Fin m))
+    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
+    (2 * (m : ℝ))⁻¹ * ‖r t‖ ^ 2 ≤
+      ((2 * (m : ℝ))⁻¹ * ‖r 0‖ ^ 2) * Real.exp (-(2 * lambda_min / (m : ℝ)) * t) := by
+  have h := residual_norm_sq_exponential_decay_timeVarying K lambda_min h_rr r hr hm t ht
+  have hpos : 0 ≤ (2 * (m : ℝ))⁻¹ := inv_nonneg.mpr (by linarith)
+  have h_mul := mul_le_mul_of_nonneg_left h hpos
+  rw [← mul_assoc] at h_mul
+  exact h_mul
+
+/-- Grönwall Integration for Squared Residual Norm on a Closed Interval `[0, T]`:
+Under a Rayleigh quotient lower bound on `K(s)` holding for all `s ∈ [0, T]`, the squared
+residual norm decays exponentially:
+  `‖r(t)‖² ≤ ‖r(0)‖² * exp(- (2 lambda_min / m) t)` for any `t ∈ [0, T]`. -/
+theorem residual_norm_sq_exponential_decay_timeVarying_Icc
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min T : ℝ) (hT : 0 ≤ T)
+    (r : ℝ → EuclideanSpace ℝ (Fin m))
+    (h_rr : ∀ s ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K s *ᵥ v.ofLp))
+    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
+    ‖r t‖ ^ 2 ≤ ‖r 0‖ ^ 2 * Real.exp (-(2 * lambda_min / (m : ℝ)) * t) := by
+  have hE : ∀ s, HasDerivAt (fun u => ‖r u‖ ^ 2)
+      (-(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp))) s :=
+    fun s => deriv_norm_sq_timeVarying_ode K r s (hr s)
+  have hbound : ∀ s ∈ Set.Icc 0 T, -(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp)) ≤
+      -(2 * lambda_min / (m : ℝ)) * ‖r s‖ ^ 2 := by
+    intro s hs
+    have h := deriv_norm_sq_le_of_rayleighRitz_timeVarying K lambda_min r s (h_rr s hs) (hr s) hm
+    exact h.2
+  exact gronwall_exponential_decay_Icc hT hE hbound t ht
+
+/-- Exponential Decay of Residual Norm on a Closed Interval `[0, T]`:
+  `‖r(t)‖ ≤ ‖r(0)‖ * exp(- (lambda_min / m) t)` for any `t ∈ [0, T]`. -/
+theorem residual_norm_exponential_decay_timeVarying_Icc
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min T : ℝ) (hT : 0 ≤ T)
+    (r : ℝ → EuclideanSpace ℝ (Fin m))
+    (h_rr : ∀ s ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K s *ᵥ v.ofLp))
+    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hm : 0 < (m : ℝ)) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
+    ‖r t‖ ≤ ‖r 0‖ * Real.exp (-(lambda_min / (m : ℝ)) * t) := by
+  have h_sq :=
+    residual_norm_sq_exponential_decay_timeVarying_Icc K lambda_min T hT r h_rr hr hm t ht
+  have h_sqrt := Real.sqrt_le_sqrt h_sq
+  rw [Real.sqrt_mul (sq_nonneg _)] at h_sqrt
+  rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (norm_nonneg _)] at h_sqrt
+  have h_exp_sqrt : Real.sqrt (Real.exp (-(2 * lambda_min / (m : ℝ)) * t)) =
+      Real.exp (-(lambda_min / (m : ℝ)) * t) := by
+    rw [← Real.exp_half]
+    congr 1
+    ring
+  rw [h_exp_sqrt] at h_sqrt
+  exact h_sqrt
 
 /-! ### Closed-Form Linear Output Dynamics via Matrix Exponential -/
 
