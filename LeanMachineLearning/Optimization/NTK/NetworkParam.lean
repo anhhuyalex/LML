@@ -609,20 +609,6 @@ lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (par
     change ((θ₁ - θ₂) (idxA i)) ^ 2 = _
     simp only [PiLp.sub_apply, unpackA]
 
-lemma sum_sq_sub_unpackW_le (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d))) :
-    (∑ i : Fin n, ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) ≤ ‖θ₁ - θ₂‖ ^ 2 := by
-  have h := norm_sq_sub_unpack n d θ₁ θ₂
-  have hnonneg : 0 ≤ ∑ i : Fin n, (unpackA θ₁ i - unpackA θ₂ i) ^ 2 :=
-    Finset.sum_nonneg (fun _ _ => sq_nonneg _)
-  linarith
-
-lemma sum_sq_sub_unpackA_le (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d))) :
-    (∑ i : Fin n, (unpackA θ₁ i - unpackA θ₂ i) ^ 2) ≤ ‖θ₁ - θ₂‖ ^ 2 := by
-  have h := norm_sq_sub_unpack n d θ₁ θ₂
-  have hnonneg : 0 ≤ ∑ i : Fin n, ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2 :=
-    Finset.sum_nonneg (fun _ _ => Finset.sum_nonneg (fun _ _ => sq_nonneg _))
-  linarith
-
 lemma innerProduct_sub (d : ℕ) (x y z : Fin d → ℝ) :
     (x - y) ⊙ z = x ⊙ z - y ⊙ z := by
   simp only [innerProduct, Pi.sub_apply, sub_mul]
@@ -867,10 +853,10 @@ lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
       rw [Finset.sum_add_distrib]
       rw [← norm_sq_sub_unpack n d θ₁ θ₂]
 
-/-- Local Lipschitz bound on the output Jacobian of  in Frobenius norm.
-For parameters  whose readout weights are bounded by , the Frobenius difference
- is bounded by , where  is completely width-independent.
-The  scaling rate is explicit. -/
+/-- Local Lipschitz bound on the output Jacobian of `netFromParams` in Frobenius norm.
+For parameters `θ₁, θ₂` whose readout weights are bounded by `R`, the Frobenius difference
+`‖J(θ₁) - J(θ₂)‖` is bounded by `(K / √n) * ‖θ₁ - θ₂‖`, where `K` is width-independent.
+The `1 / √n` scaling rate is explicit. -/
 theorem outputJacobian_netFromParams_frobenius_sub_le
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
     (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d)))
