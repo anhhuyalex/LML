@@ -1131,6 +1131,84 @@ lemma gradient_mseLoss_eq_mulVec (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
   ext j
   exact gradient_mseLoss_apply_j f X y θ hdiff j
 
+/-! ### Frobenius Norm Utilities and the Gradient Speed Bound
+
+Reusable Cauchy-Schwarz-type norm bounds for the Frobenius norm on matrices, used to bound how
+fast gradient flow can move (Step 1 of the Gap 5 lazy-training bootstrap in `InfiniteNTK.lean`).
+-/
+
+open scoped Matrix.Norms.Frobenius
+
+attribute [local instance]
+  Matrix.frobeniusNormedAddCommGroup
+  Matrix.frobeniusNormedSpace
+
+/-- The squared Frobenius norm of a matrix is the sum of the squares of its entries. -/
+lemma matrix_frobenius_norm_sq {a b : ℕ} (A : Matrix (Fin a) (Fin b) ℝ) :
+    ‖A‖ ^ 2 = ∑ i : Fin a, ∑ j : Fin b, (A i j) ^ 2 := by
+  rw [Matrix.frobenius_norm_def]
+  simp only [Real.norm_eq_abs]
+  rw [← Real.sqrt_eq_rpow]
+  have hnonneg : 0 ≤ ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := by
+    apply Finset.sum_nonneg
+    intro i _
+    apply Finset.sum_nonneg
+    intro j _
+    positivity
+  calc
+    √(∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ)) ^ 2 =
+        ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
+    _ = _ := by simp [sq_abs]
+
+/-- Cauchy-Schwarz bound on a matrix-vector product: `‖M w‖ ≤ ‖M‖_F ‖w‖`. Unlike Mathlib's
+`Matrix.l2_opNorm_mulVec`, this is stated for the *Frobenius* norm, matching the norm instance
+used throughout the NTK Lipschitz-propagation machinery (Gap 2 in `InfiniteNTK.lean`). -/
+theorem mulVec_frobenius_norm_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
+    (w : EuclideanSpace ℝ (Fin b)) :
+    ‖(WithLp.toLp 2 (M *ᵥ w.ofLp) : EuclideanSpace ℝ (Fin a))‖ ≤ ‖M‖ * ‖w‖ := by
+  apply (sq_le_sq₀ (norm_nonneg _) (mul_nonneg (norm_nonneg _) (norm_nonneg _))).mp
+  rw [mul_pow]
+  rw [show ‖(WithLp.toLp 2 (M *ᵥ w.ofLp) : EuclideanSpace ℝ (Fin a))‖ ^ 2 =
+      ∑ i : Fin a, ((M *ᵥ w.ofLp) i) ^ 2 from EuclideanSpace.real_norm_sq_eq _]
+  rw [matrix_frobenius_norm_sq]
+  have hw_sq : ‖w‖ ^ 2 = ∑ j : Fin b, (w.ofLp j) ^ 2 := EuclideanSpace.real_norm_sq_eq _
+  rw [Finset.sum_mul]
+  apply Finset.sum_le_sum
+  intro i _
+  rw [Matrix.mulVec_apply, dotProduct]
+  calc
+    (∑ j : Fin b, M i j * w.ofLp j) ^ 2 ≤
+        (∑ j : Fin b, (M i j) ^ 2) * (∑ j : Fin b, (w.ofLp j) ^ 2) :=
+      Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => M i j) (fun j => w.ofLp j)
+    _ = (∑ j : Fin b, (M i j) ^ 2) * ‖w‖ ^ 2 := by rw [hw_sq]
+
+/-- Gradient speed bound: the norm of the MSE gradient is controlled by the output Jacobian's
+Frobenius norm and the residual norm: `‖∇_θ L(θ)‖ ≤ (1/m) ‖J(θ)‖_F ‖r(θ)‖`. This is Step 1 of
+the Gap 5 displacement-integral bound (`InfiniteNTK.lean`): it bounds the instantaneous "speed"
+`‖∂_t θ(t)‖ = ‖∇_θ L(θ(t))‖` of gradient flow. -/
+theorem gradient_mseLoss_norm_le (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
+    ‖gradient (mseLoss f X y) θ‖ ≤
+      (m : ℝ)⁻¹ * ‖outputJacobian f X θ‖ * ‖trainingResidual f X y θ‖ := by
+  have heq : gradient (mseLoss f X y) θ =
+      (m : ℝ)⁻¹ • (WithLp.toLp 2 ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) :
+        EuclideanSpace ℝ (Fin P)) := by
+    rw [show gradient (mseLoss f X y) θ =
+        WithLp.toLp 2 (gradient (mseLoss f X y) θ).ofLp from rfl]
+    rw [gradient_mseLoss_eq_mulVec f X y θ hdiff]
+    rfl
+  rw [heq, norm_smul, Real.norm_eq_abs, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (m : ℝ)⁻¹),
+    mul_assoc]
+  apply mul_le_mul_of_nonneg_left _ (by positivity)
+  calc
+    ‖(WithLp.toLp 2 ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) :
+        EuclideanSpace ℝ (Fin P))‖ ≤
+        ‖(outputJacobian f X θ)ᵀ‖ * ‖trainingResidual f X y θ‖ :=
+      mulVec_frobenius_norm_le _ _
+    _ = ‖outputJacobian f X θ‖ * ‖trainingResidual f X y θ‖ := by
+      rw [Matrix.frobenius_norm_transpose]
+
 /-! ### Discrete Gradient Descent Dynamics -/
 
 /-- Discrete gradient descent step equation starting at `θ₀` with constant learning rate `η`

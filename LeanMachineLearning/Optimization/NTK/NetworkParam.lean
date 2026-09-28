@@ -620,22 +620,6 @@ lemma innerProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :
   dsimp [innerProduct]
   exact Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => x j - y j) z
 
-lemma matrix_frobenius_norm_sq {m P : ℕ} (A : Matrix (Fin m) (Fin P) ℝ) :
-    ‖A‖ ^ 2 = ∑ α : Fin m, ∑ k : Fin P, (A α k) ^ 2 := by
-  rw [Matrix.frobenius_norm_def]
-  simp only [Real.norm_eq_abs]
-  rw [← Real.sqrt_eq_rpow]
-  have hnonneg : 0 ≤ ∑ α : Fin m, ∑ k : Fin P, |A α k| ^ (2 : ℝ) := by
-    apply Finset.sum_nonneg
-    intro α _
-    apply Finset.sum_nonneg
-    intro k _
-    positivity
-  calc
-    √(∑ α : Fin m, ∑ k : Fin P, |A α k| ^ (2 : ℝ)) ^ 2 =
-        ∑ α : Fin m, ∑ k : Fin P, |A α k| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
-    _ = _ := by simp [sq_abs]
-
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d)))
     (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⊙ X α))

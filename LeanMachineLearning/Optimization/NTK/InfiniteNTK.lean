@@ -155,7 +155,16 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound` : Gap 2 deliverable, deterministic
   Lipschitz propagation on any set `S` around `θ₀`.
 * `NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound` : Kernel freeze bound
-  `‖K(θ(t)) - K(θ₀)‖ ≤ (2 * M * L_J) * C / √n` instantiated with Jacobian bounds.
+  `‖K(θ(t)) - K(θ₀)‖ ≤ (2 * M * L_J) * C` instantiated with Jacobian bounds
+  (the `1/√n` decay lives in `L_J`, not in the displacement bound `C` - see `Kernel.lean`'s
+  `gradient_mseLoss_norm_le` and this file's Rayleigh-quotient stability theorems below).
+* `NTK.abs_dotProduct_mulVec_sub_le` : Quadratic forms of nearby matrices are close:
+  `|vᵀ A v - vᵀ B v| ≤ ‖A - B‖ ‖v‖²`.
+* `NTK.rayleigh_quotient_lower_bound_of_matrix_dist` : Rayleigh-quotient stability under a
+  matrix distance bound `‖K - K₀‖ ≤ ε`.
+* `NTK.rayleigh_quotient_lower_bound_of_displacement` : Gap 5 Step 2 deliverable - the
+  spectral-gap hypothesis at `θ₀` propagates to any `θ` with degraded constant
+  `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
 * `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
 * `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.
 * `NTK.tendsto_lazy_training_kernel_freeze_matrix` : Empirical NTK matrix freeze as `n → ∞`.
@@ -1295,6 +1304,74 @@ theorem empiricalNTKMatrix_lipschitz_of_jacobian_bound
     ‖empiricalNTKMatrix f X θ - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * ‖θ - θ₀‖ :=
   empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X θ θ₀ M L_J
     (hJ_bdd θ hθ) (hJ_bdd θ₀ hθ₀) (hJ_lip θ hθ)
+
+/-! ### Reusable Analytic Tool: Quadratic Form Perturbation and Rayleigh-Quotient Stability
+
+If two matrices are close in Frobenius norm, their quadratic forms are close, and consequently a
+Rayleigh-quotient lower bound established at one matrix propagates - with a correspondingly
+weaker constant - to any matrix within that Frobenius distance. This is Gap 5's Step 2: it shows
+the spectral-gap hypothesis assumed at initialization `θ₀` continues to hold, with a degraded but
+still positive constant, at any `θ` close enough to `θ₀` in parameter space - exactly what the
+Gap 5 bootstrap needs to keep re-deriving a uniform-in-time Rayleigh bound along the trajectory.
+-/
+
+/-- The quadratic forms of two matrices differ by at most their Frobenius distance times `‖v‖²`:
+  `|vᵀ A v - vᵀ B v| ≤ ‖A - B‖ ‖v‖²`. -/
+theorem abs_dotProduct_mulVec_sub_le (A B : Matrix (Fin m) (Fin m) ℝ)
+    (v : EuclideanSpace ℝ (Fin m)) :
+    |v.ofLp ⬝ᵥ (A *ᵥ v.ofLp) - v.ofLp ⬝ᵥ (B *ᵥ v.ofLp)| ≤ ‖A - B‖ * ‖v‖ ^ 2 := by
+  have heq : v.ofLp ⬝ᵥ (A *ᵥ v.ofLp) - v.ofLp ⬝ᵥ (B *ᵥ v.ofLp) =
+      v.ofLp ⬝ᵥ ((A - B) *ᵥ v.ofLp) := by
+    rw [Matrix.sub_mulVec, dotProduct_sub]
+  rw [heq]
+  have h1 : v.ofLp ⬝ᵥ ((A - B) *ᵥ v.ofLp) =
+      ⟪v, (WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫ := by
+    rw [show v = WithLp.toLp 2 v.ofLp from rfl]
+    rw [EuclideanSpace.inner_toLp_toLp]
+    simp only [star_trivial]
+    rw [dotProduct_comm]
+  rw [h1]
+  calc
+    |⟪v, (WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫| ≤
+        ‖v‖ * ‖(WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))‖ :=
+      abs_real_inner_le_norm _ _
+    _ ≤ ‖v‖ * (‖A - B‖ * ‖v‖) :=
+      mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) v) (norm_nonneg _)
+    _ = ‖A - B‖ * ‖v‖ ^ 2 := by ring
+
+/-- Rayleigh-quotient stability under a matrix distance bound: if `K₀`'s Rayleigh quotient is
+bounded below by `lambda_min₀` and `‖K - K₀‖ ≤ ε`, then `K`'s Rayleigh quotient is bounded below
+by `lambda_min₀ - ε`. -/
+theorem rayleigh_quotient_lower_bound_of_matrix_dist
+    (K K₀ : Matrix (Fin m) (Fin m) ℝ) (lambda_min₀ ε : ℝ)
+    (h_rr₀ : ∀ v : EuclideanSpace ℝ (Fin m), lambda_min₀ * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K₀ *ᵥ v.ofLp))
+    (hK_dist : ‖K - K₀‖ ≤ ε) (v : EuclideanSpace ℝ (Fin m)) :
+    (lambda_min₀ - ε) * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K *ᵥ v.ofLp) := by
+  have h1 := h_rr₀ v
+  have h2 := (abs_le.mp (abs_dotProduct_mulVec_sub_le K K₀ v)).1
+  have h3 : ‖K - K₀‖ * ‖v‖ ^ 2 ≤ ε * ‖v‖ ^ 2 :=
+    mul_le_mul_of_nonneg_right hK_dist (sq_nonneg _)
+  nlinarith [h1, h2, h3]
+
+/-- Rayleigh-quotient stability of the empirical NTK Gram matrix under parameter displacement:
+if `θ₀`'s empirical NTK matrix has Rayleigh quotient bounded below by `lambda_min₀`, and the
+output Jacobian is `M`-bounded at both `θ` and `θ₀` and `L_J`-Lipschitz between them, then `θ`'s
+empirical NTK matrix has Rayleigh quotient bounded below by
+`lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`. This is Gap 5's Step 2, connecting Gap 2's Lipschitz
+propagation directly to the spectral-gap hypothesis the Gap 5 bootstrap needs at each `θ`. -/
+theorem rayleigh_quotient_lower_bound_of_displacement
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (θ₀ θ : EuclideanSpace ℝ (Fin P)) (M L_J lambda_min₀ : ℝ)
+    (hJ₀ : ‖outputJacobian f X θ₀‖ ≤ M) (hJ : ‖outputJacobian f X θ‖ ≤ M)
+    (hJ_lip : ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖)
+    (h_rr₀ : ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min₀ * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ₀) *ᵥ v.ofLp))
+    (v : EuclideanSpace ℝ (Fin m)) :
+    (lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖) * ‖v‖ ^ 2 ≤
+      v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v.ofLp) :=
+  rayleigh_quotient_lower_bound_of_matrix_dist (empiricalNTKMatrix f X θ)
+    (empiricalNTKMatrix f X θ₀) lambda_min₀ ((2 * M * L_J) * ‖θ - θ₀‖) h_rr₀
+    (empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X θ θ₀ M L_J hJ hJ₀ hJ_lip) v
 
 /-! ### Asymptotic Properties in the Infinite-Width Limit -/
 
