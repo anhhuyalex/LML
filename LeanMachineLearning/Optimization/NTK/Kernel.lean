@@ -123,31 +123,10 @@ lemma innerProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
     x ⊙ (fun k => c * y k) = c * (x ⊙ y) := by
   rw [innerProduct_comm, innerProduct_mul_left, innerProduct_comm y x]
 
-lemma innerProduct_smul_left (c : ℝ) (x y : Fin d → ℝ) :
-    (c • x) ⊙ y = c * (x ⊙ y) :=
-  innerProduct_mul_left c x y
-
-lemma innerProduct_smul_right (c : ℝ) (x y : Fin d → ℝ) :
-    x ⊙ (c • y) = c * (x ⊙ y) :=
-  innerProduct_mul_right c x y
-
-lemma innerProduct_add_left (x y z : Fin d → ℝ) :
-    (x + y) ⊙ z = x ⊙ z + y ⊙ z := by
-  simp only [innerProduct, Pi.add_apply, add_mul]
-  rw [← Finset.sum_add_distrib]
-
-lemma innerProduct_add_right (x y z : Fin d → ℝ) :
-    x ⊙ (y + z) = x ⊙ y + x ⊙ z := by
-  rw [innerProduct_comm, innerProduct_add_left, innerProduct_comm y x, innerProduct_comm z x]
-
 lemma innerProduct_sub_left (x y z : Fin d → ℝ) :
     (x - y) ⊙ z = x ⊙ z - y ⊙ z := by
   simp only [innerProduct, Pi.sub_apply, sub_mul]
   rw [← Finset.sum_sub_distrib]
-
-lemma innerProduct_sub_right (x y z : Fin d → ℝ) :
-    x ⊙ (y - z) = x ⊙ y - x ⊙ z := by
-  rw [innerProduct_comm, innerProduct_sub_left, innerProduct_comm y x, innerProduct_comm z x]
 
 lemma innerProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
     (fun k => c₁ * x k) ⊙ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⊙ y) := by
@@ -559,9 +538,57 @@ noncomputable def empiricalNTKFromRows
     ((width : ℝ)⁻¹ * ∑ j : Fin width,
       σ' (rows j.val ⊙ x) * σ' (rows j.val ⊙ x'))
 
+/-- The strong law for empirical averages of a measurable integrable observable
+over an i.i.d. sequence drawn from an arbitrary probability measure `ν`. This packages
+product-measure independence, identical distribution, expectation transport,
+and `Finset.range`/`Fin` conversion. -/
+lemma iid_average_tendsto_integral {Ω : Type*} [MeasurableSpace Ω]
+    (ν : Measure Ω) [IsProbabilityMeasure ν]
+    (g : Ω → ℝ)
+    (hg_meas : Measurable g)
+    (hg_int : Integrable g ν) :
+    ∀ᵐ seq : ℕ → Ω ∂(Measure.infinitePi fun _ : ℕ => ν),
+      Filter.Tendsto
+        (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n, g (seq j))
+        Filter.atTop
+        (nhds (∫ ω, g ω ∂ν)) := by
+  set μ := Measure.infinitePi (fun _ : ℕ => ν)
+  have hmap_eval : ∀ i : ℕ, μ.map (fun seq => seq i) = ν :=
+    fun i => Measure.infinitePi_map_eval _ i
+  have hmp : MeasurePreserving (fun seq : ℕ → Ω => seq 0) μ ν :=
+    measurePreserving_eval_infinitePi (fun _ : ℕ => ν) 0
+  have hint : Integrable (fun seq : ℕ → Ω => g (seq 0)) μ :=
+    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
+  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j seq => g (seq j)) := by
+    have h := iIndepFun_infinitePi (P := fun _ : ℕ => ν)
+      (X := fun _ : ℕ => g) (fun _ => hg_meas)
+    intro i j hij
+    exact h.indepFun hij
+  have hident : ∀ i : ℕ,
+      IdentDistrib (fun seq : ℕ → Ω => g (seq i))
+        (fun seq : ℕ → Ω => g (seq 0)) μ μ := by
+    intro i
+    have hcoord : IdentDistrib (fun seq : ℕ → Ω => seq i)
+        (fun seq : ℕ → Ω => seq 0) μ μ := by
+      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
+      rw [hmap_eval i, hmap_eval 0]
+    exact hcoord.comp hg_meas
+  have hslln : ∀ᵐ seq ∂μ, Filter.Tendsto
+      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (seq i))
+      Filter.atTop (nhds (∫ seq, g (seq 0) ∂μ)) :=
+    strong_law_ae _ hint hindep hident
+  have hexp : ∫ seq, g (seq 0) ∂μ = ∫ ω, g ω ∂ν := by
+    rw [← hmap_eval 0]
+    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
+      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
+  filter_upwards [hslln] with seq hseq
+  rw [← hexp]
+  convert hseq using 1
+  ext width
+  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
+
 /-- The strong law for empirical averages of a measurable integrable function of
-i.i.d. Gaussian rows. This packages the product-measure independence, identical-distribution,
-expectation-transport, and `Finset.range`/`Fin` conversion used by kernel limit proofs. -/
+i.i.d. Gaussian rows. Specializes `iid_average_tendsto_integral` to Gaussian row measures. -/
 lemma gaussianRow_average_tendsto_integral
     (g : (Fin d → ℝ) → ℝ)
     (hg_meas : Measurable g)
@@ -571,42 +598,8 @@ lemma gaussianRow_average_tendsto_integral
       Filter.Tendsto
         (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, g (rows j))
         Filter.atTop
-        (nhds (∫ w, g w ∂(gaussianRowMeasure d))) := by
-  set μ := Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)
-  have hmap_eval : ∀ i : ℕ, μ.map (fun rows => rows i) = gaussianRowMeasure d :=
-    fun i => Measure.infinitePi_map_eval _ i
-  have hmp : MeasurePreserving (fun rows : ℕ → Fin d → ℝ => rows 0) μ
-      (gaussianRowMeasure d) :=
-    measurePreserving_eval_infinitePi (fun _ : ℕ => gaussianRowMeasure d) 0
-  have hint : Integrable (fun rows : ℕ → Fin d → ℝ => g (rows 0)) μ :=
-    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
-  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j rows => g (rows j)) := by
-    have h := iIndepFun_infinitePi (P := fun _ : ℕ => gaussianRowMeasure d)
-      (X := fun _ : ℕ => g) (fun _ => hg_meas)
-    intro i j hij
-    exact h.indepFun hij
-  have hident : ∀ i : ℕ,
-      IdentDistrib (fun rows : ℕ → Fin d → ℝ => g (rows i))
-        (fun rows : ℕ → Fin d → ℝ => g (rows 0)) μ μ := by
-    intro i
-    have hcoord : IdentDistrib (fun rows : ℕ → Fin d → ℝ => rows i)
-        (fun rows : ℕ → Fin d → ℝ => rows 0) μ μ := by
-      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
-      rw [hmap_eval i, hmap_eval 0]
-    exact hcoord.comp hg_meas
-  have hslln : ∀ᵐ rows ∂μ, Filter.Tendsto
-      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (rows i))
-      Filter.atTop (nhds (∫ rows, g (rows 0) ∂μ)) :=
-    strong_law_ae _ hint hindep hident
-  have hexp : ∫ rows, g (rows 0) ∂μ = ∫ w, g w ∂(gaussianRowMeasure d) := by
-    rw [← hmap_eval 0]
-    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
-      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
-  filter_upwards [hslln] with rows hrows
-  rw [← hexp]
-  convert hrows using 1
-  ext width
-  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (rows i)) width]
+        (nhds (∫ w, g w ∂(gaussianRowMeasure d))) :=
+  iid_average_tendsto_integral (gaussianRowMeasure d) g hg_meas hg_int
 
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
 For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid

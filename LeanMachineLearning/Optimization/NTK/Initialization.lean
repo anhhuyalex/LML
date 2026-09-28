@@ -559,6 +559,24 @@ are declared in this module.
     `(1/2) J₀(arccos ρ)`, the order-0 arc-cosine kernel of Cho & Saul.
   * `NTK.expected_relu_mul_relu_bivariate_eq_arcCosineJ1` : the activation kernel as
     `(√(Φαα Φββ)/2) J₁(arccos ρ)`, the order-1 arc-cosine kernel of Cho & Saul.
+* **Full Two-Layer NTK Initialization and Strong Law**:
+  * `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
+  * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation between sequence
+    restrictions and `NTK.initMeasure`.
+  * `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
+  * `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.
+  * `NTK.memLp_two_fullNTK_summand` : square-integrability (`MemLp 2`) of full summand.
+  * `NTK.integrable_sq_fullNTK_summand` : second-moment bound for quantitative concentration.
+  * `NTK.integral_fullNTK_summand` : expectation identity decomposing into NNGP plus
+    derivative kernel.
+  * `NTK.fullNTKSummand_tendsto_integral` : entrywise almost-sure convergence of empirical sums.
+  * `NTK.fullNTKMatrix_tendsto_integral` : almost-sure matrix convergence on dataset `X`.
+  * `NTK.fullNTKMatrix_norm_sub_tendsto_zero` : matrix norm almost-sure convergence.
+  * `NTK.fullNTKMatrix_tendstoInMeasure` : matrix convergence in probability (`TendstoInMeasure`).
+  * `NTK.fullNTKMatrix_scaled_dataset_tendsto_integral` : almost-sure matrix convergence on
+    the paper's scaled dataset `(1 / √d) * X`.
+  * `NTK.fullNTKMatrix_scaled_dataset_tendstoInMeasure` : convergence in probability on the
+    paper's scaled dataset `(1 / √d) * X`.
 -/
 
 @[expose] public section
@@ -660,10 +678,46 @@ using the existing `NTK.gaussianInit` from `Basic.lean`. -/
 noncomputable abbrev initMeasure (n d : ℕ) : Measure ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) :=
   (gaussianInit n d).prod (gaussianReadoutMeasure n)
 
-/-- Readout weight coordinates `a_i` have marginal standard normal distribution $\mathcal{N}(0, 1)$. -/
+/-- Readout weight coordinates `a_i` have marginal standard normal distribution
+$\mathcal{N}(0, 1)$. -/
 lemma map_gaussianReadoutMeasure_coord (i : Fin n) :
     Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) = gaussianReal 0 1 :=
   (MeasureTheory.measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
+
+/-- The square function is integrable with respect to the standard real Gaussian measure. -/
+lemma integrable_sq_gaussianReal : Integrable (fun x : ℝ => x ^ 2) (gaussianReal 0 1) := by
+  apply (memLp_two_iff_integrable_sq
+    (memLp_id_gaussianReal (2 : NNReal)).aestronglyMeasurable).1
+  exact memLp_id_gaussianReal (2 : NNReal)
+
+/-- The second moment of the standard real Gaussian measure is 1. -/
+lemma integral_sq_gaussianReal : ∫ x : ℝ, x ^ 2 ∂(gaussianReal 0 1) = 1 := by
+  have h := ProbabilityTheory.variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
+  rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at h
+  simpa [id] using h
+
+/-- The fourth power is integrable with respect to the standard real Gaussian measure. -/
+lemma integrable_pow_four_gaussianReal :
+    Integrable (fun x : ℝ => x ^ 4) (gaussianReal 0 1) := by
+  have h := memLp_id_gaussianReal (4 : NNReal) (μ := 0) (v := 1)
+  have hint := h.integrable_norm_rpow (q := 4) (by norm_num) (by norm_num)
+  have heq : (fun x : ℝ => ‖id x‖ ^ (4 : ℝ)) = (fun x : ℝ => x ^ 4) := by
+    ext x
+    simp only [id]
+    rw [Real.norm_eq_abs, ← sq_abs, ← sq, ← pow_mul]
+    norm_num
+  rw [heq] at hint
+  exact hint
+
+/-- The square function is square-integrable (in `MemLp 2`) with respect to the standard
+real Gaussian measure. -/
+lemma memLp_sq_gaussianReal_two :
+    MemLp (fun x : ℝ => x ^ 2) 2 (gaussianReal 0 1) := by
+  rw [memLp_two_iff_integrable_sq (by fun_prop)]
+  have heq : (fun x : ℝ => (x ^ 2) ^ 2) = (fun x : ℝ => x ^ 4) := by
+    ext x; ring
+  rw [heq]
+  exact integrable_pow_four_gaussianReal
 
 /-- The squared value of every Gaussian readout coordinate is integrable. -/
 lemma integrable_gaussianReadout_coord_sq (i : Fin n) :
@@ -673,9 +727,7 @@ lemma integrable_gaussianReadout_coord_sq (i : Fin n) :
   have hmap_sq : Integrable (fun x : ℝ => x ^ 2)
       (Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n)) := by
     rw [hmap]
-    apply (memLp_two_iff_integrable_sq
-      (memLp_id_gaussianReal (2 : NNReal)).aestronglyMeasurable).1
-    exact memLp_id_gaussianReal (2 : NNReal)
+    exact integrable_sq_gaussianReal
   change Integrable ((fun x : ℝ => x ^ 2) ∘ fun a : Fin n → ℝ => a i)
     (gaussianReadoutMeasure n)
   exact hmap_sq.comp_measurable (measurable_pi_apply i)
@@ -701,10 +753,7 @@ lemma integral_gaussianReadout_coord_sq (i : Fin n) :
         ∫ x : ℝ, x ^ 2 ∂Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) := by
       rw [integral_map (measurable_pi_apply i).aemeasurable (by fun_prop)]
     _ = ∫ x : ℝ, x ^ 2 ∂gaussianReal 0 1 := by rw [hmap]
-    _ = 1 := by
-      have h := ProbabilityTheory.variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
-      rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at h
-      simpa [id] using h
+    _ = 1 := integral_sq_gaussianReal
 
 /-- The readout-energy average has expectation one under i.i.d. standard-Gaussian readout
 initialization. The positivity hypothesis is necessary: at width zero the average is identically
@@ -5354,6 +5403,424 @@ theorem limitingRecurrence_relu_bivariate
 
 
 end ChoSaulArcCosineKernel
+
+
+/-! ## Full Two-Layer NTK Initialization and Infinite-Width Limit -/
+
+section FullTwoLayerNTKInitialization
+
+/-! ### Joint Neuron Law
+
+The joint initialization law of a single hidden neuron `(w, a)` with input weights
+`w ~ 𝒩(0, I_d)` and readout weight `a ~ 𝒩(0, 1)`. -/
+
+/-- The single-neuron initialization probability measure on `(Fin d → ℝ) × ℝ`:
+the product of the input row Gaussian measure and the scalar readout Gaussian measure. -/
+noncomputable def singleNeuronMeasure (d : ℕ) : Measure ((Fin d → ℝ) × ℝ) :=
+  (gaussianRowMeasure d).prod (gaussianReal 0 1)
+
+/-- Instance: `singleNeuronMeasure d` is a probability measure. -/
+instance instIsProbabilityMeasureSingleNeuronMeasure (d : ℕ) :
+    IsProbabilityMeasure (singleNeuronMeasure d) := by
+  dsimp [singleNeuronMeasure]
+  infer_instance
+
+/-- Measure-preserving isomorphism between the finite restriction of an i.i.d. neuron sequence
+and the repository's joint initialization measure `initMeasure n d`. -/
+theorem measurePreserving_arrowProd_singleNeuronMeasure (n d : ℕ) :
+    MeasurePreserving (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n))
+      (Measure.pi fun _ : Fin n => singleNeuronMeasure d)
+      (initMeasure n d) := by
+  dsimp [singleNeuronMeasure, initMeasure, gaussianInit, gaussianReadoutMeasure]
+  exact measurePreserving_arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)
+    (fun _ => gaussianRowMeasure d) (fun _ => gaussianReal 0 1)
+
+/-- Symmetric direction of `measurePreserving_arrowProd_singleNeuronMeasure`. -/
+theorem measurePreserving_arrowProd_singleNeuronMeasure_symm (n d : ℕ) :
+    MeasurePreserving (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)).symm
+      (initMeasure n d)
+      (Measure.pi fun _ : Fin n => singleNeuronMeasure d) :=
+  (measurePreserving_arrowProd_singleNeuronMeasure n d).symm
+
+/-! ### Full NTK Summand Measurability and Moments -/
+
+/-- Measurability of the full activation-plus-derivative single-neuron NTK summand.
+We state measurability directly for the full expression without introducing a one-line wrapper. -/
+lemma measurable_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (hderiv_meas : Measurable (deriv φ))
+    (x x' : Fin d → ℝ) :
+    Measurable (fun p : (Fin d → ℝ) × ℝ =>
+      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) := by
+  have h_w : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1) := measurable_fst
+  have h_a : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2) := measurable_snd
+  have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x) :=
+    (measurable_innerProduct_left x).comp h_w
+  have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x') :=
+    (measurable_innerProduct_left x').comp h_w
+  have h_φx : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x)) :=
+    hφ_meas.comp h_wx
+  have h_φx' : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x')) :=
+    hφ_meas.comp h_wx'
+  have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x)) :=
+    hderiv_meas.comp h_wx
+  have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x')) :=
+    hderiv_meas.comp h_wx'
+  have h_a2 : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2 ^ 2) :=
+    (continuous_pow 2).measurable.comp h_a
+  exact (h_φx.mul h_φx').add (((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⊙ x'))
+
+/-- Integrability of the full activation-plus-derivative single-neuron NTK summand
+under `singleNeuronMeasure d`. Follows from product-measure Fubini and independence of
+weights and readouts. -/
+lemma integrable_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
+    (hφ_int : Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d))
+    (hdφ_int : Integrable (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) (gaussianRowMeasure d)) :
+    Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      (singleNeuronMeasure d) := by
+  dsimp [singleNeuronMeasure]
+  have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x'))
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    hφ_int.comp_fst (gaussianReal 0 1)
+  have h2_prod : Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2)
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    (hdφ_int.mul_const (x ⊙ x')).mul_prod integrable_sq_gaussianReal
+  have h2 : Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) := by
+    refine h2_prod.congr (ae_of_all _ (fun p => ?_))
+    ring
+  exact h1.add h2
+
+/-- Integrability of the full NTK summand under `MemLp 2` hypotheses on `φ` and `deriv φ`. -/
+lemma integrable_fullNTK_summand_of_memLp {d : ℕ}
+    (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
+    (hφ : MemLp (fun w => φ (w ⊙ x)) 2 (gaussianRowMeasure d))
+    (hφ' : MemLp (fun w => φ (w ⊙ x')) 2 (gaussianRowMeasure d))
+    (hdφ : MemLp (fun w => deriv φ (w ⊙ x)) 2 (gaussianRowMeasure d))
+    (hdφ' : MemLp (fun w => deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      (singleNeuronMeasure d) :=
+  integrable_fullNTK_summand φ x x' (hφ.integrable_mul hφ') (hdφ.integrable_mul hdφ')
+
+/-- Square-integrability (`MemLp 2`) of the full single-neuron NTK summand under
+`MemLp 2` hypotheses on the activation product and derivative product. -/
+theorem memLp_two_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
+    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    MemLp (fun p : (Fin d → ℝ) × ℝ =>
+      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      2 (singleNeuronMeasure d) := by
+  dsimp [singleNeuronMeasure]
+  have h1 : MemLp (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x')) 2
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    hφ_L2.comp_fst (gaussianReal 0 1)
+  have hd_scaled : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x')) 2
+      (gaussianRowMeasure d) :=
+    hdφ_L2.mul_const (x ⊙ x')
+  have h2_prod : MemLp (fun p : (Fin d → ℝ) × ℝ =>
+      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2) 2
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    MeasureTheory.MemLp.mul_prod hd_scaled memLp_sq_gaussianReal_two
+  have h2_eq : (fun p : (Fin d → ℝ) × ℝ =>
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) =ᵐ[(gaussianRowMeasure d).prod (gaussianReal 0 1)]
+      (fun p : (Fin d → ℝ) × ℝ =>
+      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2) := by
+    refine ae_of_all _ (fun p => by ring)
+  have h2 : MemLp (fun p : (Fin d → ℝ) × ℝ =>
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) 2
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    h2_prod.congr_ae h2_eq.symm
+  exact h1.add h2
+
+/-- Integrability of the squared full NTK summand under `singleNeuronMeasure d`,
+providing second-moment bounds needed for quantitative concentration and Chebyshev bounds. -/
+theorem integrable_sq_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (x x' : Fin d → ℝ)
+    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      (φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2)
+      (singleNeuronMeasure d) := by
+  have h_mem := memLp_two_fullNTK_summand φ x x' hφ_L2 hdφ_L2
+  have h_meas := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
+  exact (memLp_two_iff_integrable_sq h_meas.aestronglyMeasurable).1 h_mem
+
+/-- The expectation of the full single-neuron NTK summand under `singleNeuronMeasure d`
+equals the sum of the NNGP activation kernel entry and the derivative kernel entry
+scaled by the input inner product `x ⊙ x'`. -/
+lemma integral_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
+    (hφ_int : Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d))
+    (hdφ_int : Integrable (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) (gaussianRowMeasure d)) :
+    ∫ p : (Fin d → ℝ) × ℝ,
+      (φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      ∂(singleNeuronMeasure d) =
+      (∫ w, φ (w ⊙ x) * φ (w ⊙ x') ∂(gaussianRowMeasure d)) +
+        (∫ w, deriv φ (w ⊙ x) * deriv φ (w ⊙ x') ∂(gaussianRowMeasure d)) * (x ⊙ x') := by
+  dsimp [singleNeuronMeasure]
+  have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x'))
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    hφ_int.comp_fst (gaussianReal 0 1)
+  have h2_prod : Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2)
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    (hdφ_int.mul_const (x ⊙ x')).mul_prod integrable_sq_gaussianReal
+  have h2 : Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) := by
+    refine h2_prod.congr (ae_of_all _ (fun p => ?_))
+    ring
+  rw [integral_add h1 h2]
+  have h_int1 : ∫ p : (Fin d → ℝ) × ℝ, φ (p.1 ⊙ x) * φ (p.1 ⊙ x')
+      ∂((gaussianRowMeasure d).prod (gaussianReal 0 1)) =
+      ∫ w, φ (w ⊙ x) * φ (w ⊙ x') ∂(gaussianRowMeasure d) := by
+    have hfst := integral_fun_fst (fun w => φ (w ⊙ x) * φ (w ⊙ x'))
+      (μ := gaussianRowMeasure d) (ν := gaussianReal 0 1)
+    rw [hfst]
+    simp
+  have h_int2 : ∫ p : (Fin d → ℝ) × ℝ,
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')
+      ∂((gaussianRowMeasure d).prod (gaussianReal 0 1)) =
+      (∫ w, deriv φ (w ⊙ x) * deriv φ (w ⊙ x') ∂(gaussianRowMeasure d)) * (x ⊙ x') := by
+    have h_eq : (fun p : (Fin d → ℝ) × ℝ =>
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) =
+        (fun p : (Fin d → ℝ) × ℝ =>
+        (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2) := by
+      ext p; ring
+    rw [h_eq]
+    rw [integral_prod_mul (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x'))
+      (fun a => a ^ 2)]
+    rw [integral_sq_gaussianReal]
+    rw [mul_one]
+    exact integral_mul_const (x ⊙ x') (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x'))
+  rw [h_int1, h_int2]
+
+/-! ### Strong Law of Large Numbers for the Full NTK -/
+
+/-- Strong law of large numbers for empirical averages of the full NTK summand
+over an i.i.d. neuron sequence drawn from `singleNeuronMeasure d`.
+Reuses the generalized `iid_average_tendsto_integral` from `Kernel.lean`. -/
+theorem fullNTKSummand_tendsto_integral {d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (x x' : Fin d → ℝ)
+    (hφ_int : Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d))
+    (hdφ_int : Integrable (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) (gaussianRowMeasure d)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          (φ ((seq j).1 ⊙ x) * φ ((seq j).1 ⊙ x') +
+            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ x) * deriv φ ((seq j).1 ⊙ x') * (x ⊙ x')))
+        Filter.atTop
+        (nhds ((∫ w, φ (w ⊙ x) * φ (w ⊙ x') ∂(gaussianRowMeasure d)) +
+          (∫ w, deriv φ (w ⊙ x) * deriv φ (w ⊙ x') ∂(gaussianRowMeasure d)) * (x ⊙ x'))) := by
+  set g := fun p : (Fin d → ℝ) × ℝ =>
+    φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')
+  have hg_meas : Measurable g := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
+  have hg_int : Integrable g (singleNeuronMeasure d) :=
+    integrable_fullNTK_summand φ x x' hφ_int hdφ_int
+  have h_slln := iid_average_tendsto_integral (singleNeuronMeasure d) g hg_meas hg_int
+  rw [integral_fullNTK_summand φ x x' hφ_int hdφ_int] at h_slln
+  exact h_slln
+
+/-- Full matrix almost-sure convergence of the empirical NTK Gram matrix on dataset `X`
+to the deterministic limiting NTK Gram matrix. Assembles entrywise SLLN convergence
+over the finite index space `Fin m × Fin m` using `tendsto_pi_nhds` and `ae_all_iff`. -/
+theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ X α) * φ (w ⊙ X β)) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β)) (gaussianRowMeasure d)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ => ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
+            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
+              (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ))
+        Filter.atTop
+        (nhds ((fun α β =>
+          (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
+            (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
+              (X α ⊙ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
+  have h_entry : ∀ α β : Fin m,
+      ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+        Filter.Tendsto
+          (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
+            (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
+              (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
+                (X α ⊙ X β)))
+          Filter.atTop
+          (nhds ((∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
+            (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
+              (X α ⊙ X β))) :=
+    fun α β => fullNTKSummand_tendsto_integral φ hφ_meas hdφ_meas (X α) (X β)
+      (hφ_int α β) (hdφ_int α β)
+  have h_all :
+      ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+        ∀ α β : Fin m,
+          Filter.Tendsto
+            (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
+              (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
+                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
+                  (X α ⊙ X β)))
+            Filter.atTop
+            (nhds ((∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
+              (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
+                (X α ⊙ X β))) := by
+    simp_rw [ae_all_iff]
+    exact h_entry
+  filter_upwards [h_all] with seq hseq
+  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hseq α β
+
+/-- Full matrix almost-sure convergence of the empirical NTK on the paper's scaled dataset
+`(1 / √d) * X`, with explicit scaling `1 / d` on the derivative covariance factor. -/
+theorem fullNTKMatrix_scaled_dataset_tendsto_integral {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ => ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          (φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+             φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+            (seq j).2 ^ 2 *
+              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+              ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ))
+        Filter.atTop
+        (nhds ((fun α β =>
+          (∫ w, φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+            φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) +
+            (∫ w, deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+              deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) *
+                ((d : ℝ)⁻¹ * (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
+  have h_base := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas
+    (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
+  simp_rw [innerProduct_scaled_dataset d hd] at h_base
+  exact h_base
+
+/-- Matrix norm almost-sure convergence of the empirical NTK Gram matrix on dataset `X`
+to the deterministic limiting NTK Gram matrix: `‖K_n(0) - K_∞‖ → 0` almost surely. -/
+theorem fullNTKMatrix_norm_sub_tendsto_zero {m d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ X α) * φ (w ⊙ X β)) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β)) (gaussianRowMeasure d)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ =>
+          ‖((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+              (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
+                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
+                  (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ) -
+            ((fun α β =>
+              (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
+                (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
+                  (X α ⊙ X β)) : Matrix (Fin m) (Fin m) ℝ)‖)
+        Filter.atTop
+        (nhds 0) := by
+  set L : Matrix (Fin m) (Fin m) ℝ := fun α β =>
+    (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
+      (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) * (X α ⊙ X β)
+  have h := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas X hφ_int hdφ_int
+  filter_upwards [h] with seq hseq
+  have h_sub : Filter.Tendsto
+      (fun n : ℕ => ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+        (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
+          (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
+            (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ) - L)
+      Filter.atTop (nhds (L - L)) :=
+    hseq.sub tendsto_const_nhds
+  rw [sub_self] at h_sub
+  exact tendsto_zero_iff_norm_tendsto_zero.1 h_sub
+
+/-- Convergence in probability (`TendstoInMeasure`) of the empirical NTK Gram matrix
+to the deterministic limiting NTK Gram matrix on dataset `X`. -/
+theorem fullNTKMatrix_tendstoInMeasure {m d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ X α) * φ (w ⊙ X β)) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β)) (gaussianRowMeasure d)) :
+    TendstoInMeasure
+      (Measure.infinitePi fun _ : ℕ => singleNeuronMeasure d)
+      (fun n : ℕ => fun seq : ℕ → (Fin d → ℝ) × ℝ =>
+        ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
+            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
+              (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ))
+      Filter.atTop
+      (fun _ => ((fun α β =>
+        (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
+          (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
+            (X α ⊙ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
+  apply tendstoInMeasure_of_tendsto_ae
+  · intro n
+    refine (measurable_pi_iff.2 fun α => measurable_pi_iff.2 fun β => ?_).aestronglyMeasurable
+    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
+    have h_eval : Measurable (fun seq : ℕ → (Fin d → ℝ) × ℝ => seq j.val) :=
+      measurable_pi_apply j.val
+    have h_summand := measurable_fullNTK_summand φ hφ_meas hdφ_meas (X α) (X β)
+    exact h_summand.comp h_eval
+  · exact fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas X hφ_int hdφ_int
+
+/-- Convergence in probability (`TendstoInMeasure`) of the empirical NTK Gram matrix
+on the paper's scaled dataset `(1 / √d) * X`. -/
+theorem fullNTKMatrix_scaled_dataset_tendstoInMeasure {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+    TendstoInMeasure
+      (Measure.infinitePi fun _ : ℕ => singleNeuronMeasure d)
+      (fun n : ℕ => fun seq : ℕ → (Fin d → ℝ) × ℝ =>
+        ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          (φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+             φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+            (seq j).2 ^ 2 *
+              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+              ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ))
+      Filter.atTop
+      (fun _ => ((fun α β =>
+        (∫ w, φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+          φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) +
+          (∫ w, deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+            deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) *
+              ((d : ℝ)⁻¹ * (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
+  have h_base := fullNTKMatrix_tendstoInMeasure φ hφ_meas hdφ_meas
+    (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
+  simp_rw [innerProduct_scaled_dataset d hd] at h_base
+  exact h_base
+
+end FullTwoLayerNTKInitialization
 
 
 end NTK

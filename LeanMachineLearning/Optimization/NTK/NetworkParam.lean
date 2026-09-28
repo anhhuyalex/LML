@@ -59,8 +59,6 @@ no free `hlazy`/`hLip` hypotheses.
   Gradients on scaled inputs factoring out `1 / √d` and `1 / √n`.
 - `empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum`:
   Full empirical NTK on the scaled dataset `X / √d`.
-- `initGoodEvent`:
-  Joint initialization event for output Jacobian, readout weights, and kernel.
 - `outputJacobian_netFromParams_frobenius_norm_concentration` : **Gap 3 deliverable** - the
   output Jacobian's Frobenius norm is `O(1)` (width-independent) with probability `≥ 1 - δ`.
 - `outputJacobian_netFromParams_frobenius_sub_le` : **Gap 4 deliverable** - the output Jacobian
@@ -944,7 +942,7 @@ theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
   rw [tangentFeature_netFromParams φ n d (X β) θ (hφ β)]
   exact inner_packParams_packParams _ _ _ _
 
-/-! ### Phase 2: Explicit Full Empirical-NTK Neuron-Sum Formula
+/-! ### Full Neuron-Sum Formula for the Empirical NTK
 
 Derives the explicit single-sum representation of the full empirical NTK Gram matrix
 from the two-block decomposition `empiricalNTKMatrix_netFromParams_apply`. Each Gram entry
@@ -954,7 +952,7 @@ activation and derivative-weight contributions.
 
 section FullTwoLayerNTKFormula
 
-lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
+private lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
     gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by
@@ -967,7 +965,7 @@ lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
         (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by ring
     _ = (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by rw [h_sqrt]
 
-lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
+private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
     gradW φ n d x θ i ⊙ gradW φ n d x' θ i =
       (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
@@ -995,7 +993,7 @@ lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → 
             deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by rw [h_sqrt]
   exact h_alg
 
-lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
+private lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
     gradW φ n d x θ i ⊙ gradW φ n d x' θ i + gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ *
@@ -1023,7 +1021,7 @@ theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m
   simp_rw [gradW_innerProduct_add_gradA_mul]
   rw [← Finset.mul_sum]
 
-/-! ### Phase 1: Scaled-Dataset Network Evaluation and Gradients -/
+/-! ### Scaled-Dataset Network Evaluation and Gradients -/
 
 lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
@@ -1063,6 +1061,8 @@ lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
   dsimp [gradA]
   rw [innerProduct_scaled_input]
 
+/-! ### Scaled-Dataset Corollaries -/
+
 /-- The full empirical NTK matrix of `netFromParams` evaluated on the paper's scaled
 dataset `(1 / √d) * X`, yielding the canonical two-layer NTK neuron-sum formula with
 both activation covariance and `(1 / d) * (X α ⊙ X β)` derivative covariance. -/
@@ -1087,6 +1087,52 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum
   rw [innerProduct_scaled_input d (unpackW θ i) (X α)]
   rw [innerProduct_scaled_input d (unpackW θ i) (X β)]
   rw [innerProduct_scaled_dataset d hd (X α) (X β)]
+
+/-! ### Sequence-Prefix Bridge -/
+
+/-- The empirical NTK at the parameters obtained by packing the first `n` neurons of an
+infinite sequence is the corresponding `n`-neuron empirical average. The packed parameter
+expression is written explicitly to avoid introducing a thin sequence-parameter wrapper. -/
+lemma empiricalNTKMatrix_netFromParams_of_seq (φ : ℝ → ℝ) (n d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (seq : ℕ → (Fin d → ℝ) × ℝ)
+    (hφ : ∀ α : Fin m, ∀ i : Fin n,
+      DifferentiableAt ℝ φ ((seq i.val).1 ⊙ X α))
+    (α β : Fin m) :
+    empiricalNTKMatrix (netFromParams φ n d) X
+      (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) α β =
+      (n : ℝ)⁻¹ * ∑ i : Fin n,
+        (φ ((seq i.val).1 ⊙ X α) * φ ((seq i.val).1 ⊙ X β) +
+          (seq i.val).2 ^ 2 *
+            deriv φ ((seq i.val).1 ⊙ X α) * deriv φ ((seq i.val).1 ⊙ X β) *
+              (X α ⊙ X β)) := by
+  have h := empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m X
+    (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2))
+    (by intro α i; simp only [unpackW_packParams]; exact hφ α i) α β
+  simpa only [unpackW_packParams, unpackA_packParams] using h
+
+/-- Scaled-dataset version of `empiricalNTKMatrix_netFromParams_of_seq`, with the input
+Gram factor written as `(X α ⊙ X β) / d`. -/
+lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq
+    (φ : ℝ → ℝ) (n d m : ℕ) (hd : 0 < d)
+    (X : Fin m → Fin d → ℝ) (seq : ℕ → (Fin d → ℝ) × ℝ)
+    (hφ : ∀ α : Fin m, ∀ i : Fin n,
+      DifferentiableAt ℝ φ
+        ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
+    (α β : Fin m) :
+    empiricalNTKMatrix (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+      (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) α β =
+      (n : ℝ)⁻¹ * ∑ i : Fin n,
+        (φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X α)) *
+           φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X β)) +
+         (seq i.val).2 ^ 2 *
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X α)) *
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X β)) *
+           ((d : ℝ)⁻¹ * (X α ⊙ X β))) := by
+  have h := empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X
+    (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2))
+    (by intro α i; simp only [unpackW_packParams]; exact hφ α i) α β
+  simpa only [unpackW_packParams, unpackA_packParams] using h
 
 end FullTwoLayerNTKFormula
 
@@ -1281,8 +1327,6 @@ training limits of the full two-layer neural network with trainable input weight
 trainable readout weights `a`.
 
 Following the roadmap in `docs/NTK_full_formalization_plan.md`:
-- `InitializationEvents`: defines and bounds the joint initialization events (Jacobian bound,
-  readout weight concentration, and initial kernel concentration).
 - `FiniteHorizonLimit`: states the finite-horizon lazy training theorem on `[0, T]` for any
   fixed `T ≥ 0`, establishing kernel stationarity and weak convergence of predictions without
   requiring a strictly positive limiting spectral gap.
@@ -1293,53 +1337,84 @@ Following the roadmap in `docs/NTK_full_formalization_plan.md`:
 
 section FullTwoLayerTrainingLimit
 
-section InitializationEvents
-
-/-- Joint high-probability initialization event at width `n` for input dimension `d` and
-confidence parameter `δ > 0`. On this event:
-1. The initial output Jacobian Frobenius norm is bounded by `M₀ = O(1)`.
-2. The initial readout weights are entrywise bounded by `R₀ = O(√(log n))`.
-3. The initial empirical NTK is close to its infinite-width limit `K_∞`. -/
-def initGoodEvent (n d m : ℕ) (X : Fin m → Fin d → ℝ) (δ : ℝ)
-    (C₀ C₁ : ℝ) : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) :=
-  {p | ‖outputJacobian (netFromParams id n d) X (packParams p.1 p.2)‖ ≤
-        Real.sqrt ((m : ℝ) * C₀ ^ 2 + (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ) ∧
-       (∀ i : Fin n, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)))}
-
-end InitializationEvents
-
 section FiniteHorizonLimit
 
 /-!
 #### Target Theorem 1: Finite-Horizon NTK Training Limit (Phase 0 Target)
 
-**Statement**:
-For any fixed input dimension `d > 0`, sample count `m > 0`, dataset `X : Fin m → Fin d → ℝ`,
-and target vector `y : EuclideanSpace ℝ (Fin m)`, let the network
-`f_n(θ) = netFromParams φ n d (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) θ`
-be trained under gradient flow on `mseLoss`:
-  `θ_n'(t) = -∇ mseLoss(θ_n(t))`,  with `θ_n(0) ~ initMeasure n d`.
+**Formal Probability Data**:
+For each width `n : ℕ`:
+- Parameter probability space: `Ω n := (Fin n → Fin d → ℝ) × (Fin n → ℝ)` with measure
+  `μ n := initMeasure n d`.
+- Parameter packing: `θ₀ n (p : Ω n) := packParams p.1 p.2`.
+- Random trajectory family:
+  `θ : ∀ n : ℕ, Ω n → ℝ → EuclideanSpace ℝ (Fin (paramDim n d))`
+  satisfying:
+  - Initial condition: `∀ n, ∀ p, θ n p 0 = θ₀ n p`.
+  - Gradient flow ODE: for each `n`, for `μ n`-almost every `p`,
+    `∀ t ∈ Set.Ici 0, HasDerivAt (θ n p ·)`
+      `(- (1 / m : ℝ) •`
+        `∇ (mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y)`
+        `(θ n p t)) t`.
+- Observable random variables:
+  - Residual:
+    `r n t p := evalVector (netFromParams φ n d)`
+      `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - y`.
+  - Empirical NTK:
+    `K n t p := empiricalNTKMatrix (netFromParams φ n d)`
+      `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)`.
 
-Assume:
-1. Activation `φ : ℝ → ℝ` is differentiable with Lipschitz derivative (`C¹` regularity).
-2. The initial parameters `θ_n(0)` are drawn from standard Gaussian initialization
-   `initMeasure n d`.
-3. For each `n`, `θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))` satisfies the gradient
-   flow ODE.
-
-Then for any compact time horizon `[0, T]` with `T ≥ 0`:
+**Conclusions** (on any compact time horizon `[0, T]` with `T ≥ 0`):
 1. **Kernel Stationarity**: The empirical NTK remains asymptotically stationary on `[0, T]`:
-   `sup_{t ∈ [0, T]} ‖K_n(t) - K_n(0)‖ → 0` in probability as `n → ∞`.
-2. **Fixed-Time Residual Convergence**: For each fixed `t ∈ [0, T]`, the residual vector
+   `∀ ε > 0, Filter.Tendsto (fun n => (μ n) {p | ∃ t ∈ Set.Icc 0 T,`
+     `‖K n t p - K n 0 p‖ > ε}) Filter.atTop (nhds 0)`.
+2. **Fixed-Time Residual Weak Convergence**: For each fixed `t ∈ [0, T]`, the residual vector
    converges in distribution to the linearized infinite-width trajectory:
-   `r_n(t) ⟹ exp(-(t / m) K_∞) (G - y)`
-   where `G ~ 𝒩(0, Σ_∞)` is the limiting Gaussian output field from `Initialization.lean`
-   and `K_∞` is the full activation-plus-derivative limiting NTK.
+   `MeasureTheory.TendstoInDistribution (fun n => r n t) μ`
+     `(Measure.map (fun G => Matrix.exp (- (t / m : ℝ) • K_∞) *ᵥ (G - y))`
+       `(multivariateGaussian 0 Σ_∞))`.
 3. **Fixed-Time Prediction Convergence**: The network predictions satisfy:
-   `f_n(t) ⟹ y + exp(-(t / m) K_∞) (G - y)`.
+   pushforward through `fun r => y + r`.
 
-**Critical Design Note**: This theorem does NOT assume `λ_min(K_∞) > 0`. It holds on every bounded
-time horizon purely from positive semidefiniteness of `K_n` and `K_∞`.
+**Mechanism**:
+This theorem does not require a positive spectral gap. PSD controls the residual norm, while
+finite-horizon displacement and the width-decaying Jacobian Lipschitz estimate imply kernel
+stationarity.
+
+**Commented Formal Lean Signature**:
+```lean
+/-
+theorem finite_horizon_ntk_training_limit
+    {d m : ℕ} (hd : 0 < d) (hm : 0 < m)
+    (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hderiv_lip : ∃ L_φ' : ℝ, 0 ≤ L_φ' ∧ LipschitzWith (Real.toNNReal L_φ') (deriv φ))
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (T : ℝ) (hT : 0 ≤ T)
+    (K_∞ : Matrix (Fin m) (Fin m) ℝ) (Σ_∞ : Matrix (Fin m) (Fin m) ℝ)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_init : ∀ n p, θ n p 0 = packParams p.1 p.2)
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d), ∀ t ∈ Set.Ici 0,
+      HasDerivAt (θ n p ·)
+        (- (1 / (m : ℝ)) • ∇ (mseLoss (netFromParams φ n d)
+          (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (θ n p t)) t) :
+    (∀ ε > 0, Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc 0 T,
+        ‖empiricalNTKMatrix (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+          empiricalNTKMatrix (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖ > ε})
+      Filter.atTop (nhds 0)) ∧
+    (∀ t ∈ Set.Icc 0 T,
+      MeasureTheory.TendstoInDistribution
+        (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+          evalVector (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - y)
+        (fun n => initMeasure n d)
+        (Measure.map (fun G => Matrix.exp (- (t / (m : ℝ)) • K_∞) *ᵥ (G - y))
+          (multivariateGaussian 0 Σ_∞)))
+-/
+```
 -/
 
 end FiniteHorizonLimit
@@ -1354,7 +1429,8 @@ Under the same hypotheses as Theorem 1, assume in addition that the limiting ker
 satisfies a strictly positive spectral gap:
   `λ_min(K_∞) = λ_∞ > 0`.
 
-Then there exist constants `c₁, c₂ > 0` such that with probability at least `1 - O(n^{-c₁})`:
+Then for any fixed confidence `δ ∈ (0, 1)`, there exist `N : ℕ` and `C > 0` such that for all
+`n ≥ N`, with probability at least `1 - δ` under `initMeasure n d`:
 1. **Uniform Spectral Gap**: For all `t ≥ 0`, `λ_min(K_n(t)) ≥ λ_∞ / 2`.
 2. **Uniform Kernel Freeze**: For all `t ≥ 0`:
    `‖K_n(t) - K_n(0)‖ ≤ C * √(log n / n)`.
@@ -1364,6 +1440,47 @@ Then there exist constants `c₁, c₂ > 0` such that with probability at least 
    `mseLoss f_n X y (θ_traj t) ≤ mseLoss f_n X y (θ_traj 0) * exp(-(λ_∞ / m) * t)`.
 5. **Infinite-Time Convergence**:
    `lim_{t → ∞} mseLoss f_n X y (θ_traj t) = 0`.
+
+A polynomial rate `1 - O(n^{-c})` may be derived as a corollary after quantitative
+concentration estimates are established in Phase 5.
+
+**Commented Formal Lean Signature**:
+```lean
+/-
+theorem global_positive_gap_lazy_training_limit
+    {d m : ℕ} (hd : 0 < d) (hm : 0 < m)
+    (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hderiv_lip : ∃ L_φ' : ℝ, 0 ≤ L_φ' ∧ LipschitzWith (Real.toNNReal L_φ') (deriv φ))
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (K_∞ : Matrix (Fin m) (Fin m) ℝ) (λ_∞ : ℝ) (hλ_∞ : 0 < λ_∞)
+    (hK_gap : Matrix.PosSemidef (K_∞ - λ_∞ • 1))
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_init : ∀ n p, θ n p 0 = packParams p.1 p.2)
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d), ∀ t ∈ Set.Ici 0,
+      HasDerivAt (θ n p ·)
+        (- (1 / (m : ℝ)) • ∇ (mseLoss (netFromParams φ n d)
+          (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (θ n p t)) t) :
+    ∀ δ ∈ Set.Ioo (0 : ℝ) 1, ∃ (N : ℕ) (C : ℝ), 0 < C ∧ ∀ n ≥ N,
+      (initMeasure n d) {p |
+        (∀ t ≥ 0, Matrix.PosSemidef
+          (empiricalNTKMatrix (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - (λ_∞ / 2) • 1)) ∧
+        (∀ t ≥ 0,
+          ‖empiricalNTKMatrix (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+            empiricalNTKMatrix (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖ ≤
+            C * Real.sqrt (Real.log n / n)) ∧
+        (∀ t ≥ 0,
+          ‖evalVector (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - y‖ ≤
+            ‖evalVector (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) - y‖ *
+              Real.exp (- (λ_∞ / (2 * m)) * t))} ≥
+        1 - δ
+-/
+```
 -/
 
 end GlobalPositiveGapLimit
