@@ -5857,6 +5857,52 @@ lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
     ring
   rw [h1, h2, innerProduct_comm]
 
+/-- The deterministic limiting full NTK matrix is positive semidefinite (`PosSemidef`),
+established via Schur product theorem for the derivative covariance and input Gram matrix. -/
+theorem limitingFullNTKMatrix_posSemidef {m d : ℕ} (_hd : 0 < d)
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hdφ_meas : Measurable (deriv φ))
+    (hφ_L2 : ∀ α : Fin m,
+      MemLp (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+        2 (gaussianRowMeasure d))
+    (hdφ_L2 : ∀ α : Fin m,
+      MemLp (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+        2 (gaussianRowMeasure d)) :
+    (limitingFullNTKMatrix φ X).PosSemidef := by
+  set scaledX : Matrix (Fin m) (Fin d) ℝ := fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k
+  have h_cov1 : (limitingCovariance φ scaledX).PosSemidef :=
+    limitingCovariance_posSemidef φ scaledX hφ_meas hφ_L2
+  have h_cov2 : (limitingCovariance (deriv φ) scaledX).PosSemidef :=
+    limitingCovariance_posSemidef (deriv φ) scaledX hdφ_meas hdφ_L2
+  have h_gram : (scaledX * scaledX.conjTranspose).PosSemidef :=
+    Matrix.posSemidef_self_mul_conjTranspose scaledX
+  have h_schur : ((limitingCovariance (deriv φ) scaledX).hadamard
+      (scaledX * scaledX.conjTranspose)).PosSemidef :=
+    h_cov2.hadamard h_gram
+  have h_sum : ((limitingCovariance φ scaledX) +
+      (limitingCovariance (deriv φ) scaledX).hadamard
+        (scaledX * scaledX.conjTranspose)).PosSemidef :=
+    h_cov1.add h_schur
+  have heq : limitingFullNTKMatrix φ X =
+      (limitingCovariance φ scaledX) +
+        (limitingCovariance (deriv φ) scaledX).hadamard
+          (scaledX * scaledX.conjTranspose) := by
+    ext α β
+    simp only [limitingFullNTKMatrix_apply, Matrix.add_apply, Matrix.hadamard_apply,
+      Matrix.mul_apply, Matrix.conjTranspose_apply, star_trivial]
+    dsimp [scaledX]
+    have hsqrt : (Real.sqrt (d : ℝ))⁻¹ * (Real.sqrt (d : ℝ))⁻¹ = (d : ℝ)⁻¹ := by
+      rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg d)]
+    have hterm (k : Fin d) :
+        ((Real.sqrt (d : ℝ))⁻¹ * X α k) * ((Real.sqrt (d : ℝ))⁻¹ * X β k) =
+          (d : ℝ)⁻¹ * (X α k * X β k) := by
+      rw [mul_mul_mul_comm, hsqrt]
+    simp_rw [hterm, ← Finset.mul_sum]
+    rfl
+  rw [heq]
+  exact h_sum
+
 /-- Matrix almost-sure convergence of the empirical NTK neuron-average matrix to the
 deterministic `limitingFullNTKMatrix` on the paper's scaled dataset `(1 / √d) * X`. -/
 theorem fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix {m d : ℕ} (hd : 0 < d)

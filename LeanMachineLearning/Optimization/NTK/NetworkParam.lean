@@ -72,7 +72,7 @@ no free `hlazy`/`hLip` hypotheses.
 
 namespace NTK
 
-open ConvexOpt
+open ConvexOpt MeasureTheory
 open scoped BigOperators RealInnerProductSpace Matrix Matrix.Norms.Frobenius
 
 attribute [local instance]
@@ -1134,6 +1134,73 @@ lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq
     (by intro α i; simp only [unpackW_packParams]; exact hφ α i) α β
   simpa only [unpackW_packParams, unpackA_packParams] using h
 
+lemma innerProduct_scaled_right {d : ℕ} (c : ℝ) (w : Fin d → ℝ) (x : Fin d → ℝ) :
+    w ⊙ (fun k => c * x k) = c * (w ⊙ x) := by
+  simp only [innerProduct]
+  have : (fun k => w k * (c * x k)) = (fun k => c * (w k * x k)) := by ext; ring
+  rw [this, ← Finset.mul_sum]
+
+/-- Matrix equation identifying the canonical empirical NTK on the scaled dataset at the
+explicitly packed sequence-prefix parameters with the explicit neuron-average matrix. -/
+lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix
+    {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (X : Fin m → Fin d → ℝ) (seq : ℕ → (Fin d → ℝ) × ℝ) (n : ℕ) :
+    empiricalNTKMatrix (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+      (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) =
+    ((fun α β => (n : ℝ)⁻¹ * ∑ i : Fin n,
+        (φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+           φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) +
+         (seq i.val).2 ^ 2 *
+           deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+           deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) *
+           ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ) := by
+  ext α β
+  have h_entry := empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq φ n d m hd X seq
+    (fun α i => hφ_diff.differentiableAt) α β
+  rw [h_entry]
+  simp_rw [innerProduct_scaled_right]
+
+/-- Almost-sure convergence of the canonical empirical NTK matrix at the explicitly packed
+sequence-prefix initialization parameters to `limitingFullNTKMatrix`. -/
+theorem empiricalNTKMatrix_netFromParams_scaled_dataset_tendsto_limitingFullNTKMatrix
+    {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (hφ_diff : Differentiable ℝ φ)
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ =>
+          empiricalNTKMatrix (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+            (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)))
+        Filter.atTop
+        (nhds (limitingFullNTKMatrix φ X)) := by
+  have h_slln := fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix hd φ
+    hφ_meas hdφ_meas X hφ_int hdφ_int
+  filter_upwards [h_slln] with seq hseq
+  have heq (n : ℕ) :
+      empiricalNTKMatrix (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) =
+      ((fun α β => (n : ℝ)⁻¹ * ∑ i : Fin n,
+          (φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+             φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) +
+           (seq i.val).2 ^ 2 *
+             deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+             deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) *
+             ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ) :=
+    empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix hd φ hφ_diff X seq n
+  simp_rw [heq]
+  exact hseq
+
 end FullTwoLayerNTKFormula
 
 /-! ### Phase 6: End-to-End Kernel-Freeze Bound
@@ -1350,16 +1417,21 @@ For each width `n : ℕ`:
 - Random trajectory family:
   `θ : ∀ n : ℕ, Ω n → ℝ → EuclideanSpace ℝ (Fin (paramDim n d))`
   satisfying:
-  - Initial condition: `∀ n, ∀ p, θ n p 0 = θ₀ n p`.
-  - Gradient flow ODE: for each `n`, for `μ n`-almost every `p`,
-    `∀ t ∈ Set.Ici 0, HasDerivAt (θ n p ·)`
-      `(- (1 / m : ℝ) •`
-        `∇ (mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y)`
-        `(θ n p t)) t`.
+  - Initial condition and gradient flow ODE: for each `n`, for `initMeasure n d`-almost every `p`,
+    `GFTrajectory (mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y)`
+      `(packParams p.1 p.2) (θ n p)`.
+    Here `mseLoss` already contains the `1 / m` normalization, so `GFTrajectory` corresponds to
+    `θ' = -∇ mseLoss`, yielding the intended residual dynamics `r'(t) = -(1 / m) K(t) r(t)`.
+  - Trajectory measurability: `∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d)`.
+    Path continuity in `t` and measurability in `p` reduce the uniform supremum event
+    `{p | ∃ t ∈ Set.Icc 0 T, ‖K n t p - K n 0 p‖ > ε}` to a countable dense subset of `[0, T]`,
+    ensuring measurability of the supremum event.
 - Observable random variables:
   - Residual:
-    `r n t p := evalVector (netFromParams φ n d)`
-      `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - y`.
+    `r n t p := trainingResidual (netFromParams φ n d)`
+      `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)`.
+  - Predictions:
+    `trainingOutputs (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)`.
   - Empirical NTK:
     `K n t p := empiricalNTKMatrix (netFromParams φ n d)`
       `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)`.
@@ -1370,9 +1442,9 @@ For each width `n : ℕ`:
      `‖K n t p - K n 0 p‖ > ε}) Filter.atTop (nhds 0)`.
 2. **Fixed-Time Residual Weak Convergence**: For each fixed `t ∈ [0, T]`, the residual vector
    converges in distribution to the linearized infinite-width trajectory:
-   `MeasureTheory.TendstoInDistribution (fun n => r n t) μ`
-     `(Measure.map (fun G => Matrix.exp (- (t / m : ℝ) • K_∞) *ᵥ (G - y))`
-       `(multivariateGaussian 0 Σ_∞))`.
+   `MeasureTheory.TendstoInDistribution (fun n p => r n t p) Filter.atTop`
+     `(fun G => Matrix.exp (- (t / m : ℝ) • K_∞) *ᵥ (G - y))`
+     `(fun n => initMeasure n d) (multivariateGaussian 0 Σ_∞)`.
 3. **Fixed-Time Prediction Convergence**: The network predictions satisfy:
    pushforward through `fun r => y + r`.
 
@@ -1393,11 +1465,10 @@ theorem finite_horizon_ntk_training_limit
     (K_∞ : Matrix (Fin m) (Fin m) ℝ) (Σ_∞ : Matrix (Fin m) (Fin m) ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (paramDim n d)))
-    (hθ_init : ∀ n p, θ n p 0 = packParams p.1 p.2)
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d), ∀ t ∈ Set.Ici 0,
-      HasDerivAt (θ n p ·)
-        (- (1 / (m : ℝ)) • ∇ (mseLoss (netFromParams φ n d)
-          (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (θ n p t)) t) :
+    (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      GFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     (∀ ε > 0, Filter.Tendsto
       (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc 0 T,
         ‖empiricalNTKMatrix (netFromParams φ n d)
@@ -1408,11 +1479,12 @@ theorem finite_horizon_ntk_training_limit
     (∀ t ∈ Set.Icc 0 T,
       MeasureTheory.TendstoInDistribution
         (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
-          evalVector (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - y)
+          trainingResidual (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t))
+        Filter.atTop
+        (fun G => Matrix.exp (- (t / (m : ℝ)) • K_∞) *ᵥ (G - y))
         (fun n => initMeasure n d)
-        (Measure.map (fun G => Matrix.exp (- (t / (m : ℝ)) • K_∞) *ᵥ (G - y))
-          (multivariateGaussian 0 Σ_∞)))
+        (multivariateGaussian 0 Σ_∞))
 -/
 ```
 -/
@@ -1456,11 +1528,10 @@ theorem global_positive_gap_lazy_training_limit
     (hK_gap : Matrix.PosSemidef (K_∞ - λ_∞ • 1))
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (paramDim n d)))
-    (hθ_init : ∀ n p, θ n p 0 = packParams p.1 p.2)
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d), ∀ t ∈ Set.Ici 0,
-      HasDerivAt (θ n p ·)
-        (- (1 / (m : ℝ)) • ∇ (mseLoss (netFromParams φ n d)
-          (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (θ n p t)) t) :
+    (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      GFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     ∀ δ ∈ Set.Ioo (0 : ℝ) 1, ∃ (N : ℕ) (C : ℝ), 0 < C ∧ ∀ n ≥ N,
       (initMeasure n d) {p |
         (∀ t ≥ 0, Matrix.PosSemidef
@@ -1473,10 +1544,10 @@ theorem global_positive_gap_lazy_training_limit
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖ ≤
             C * Real.sqrt (Real.log n / n)) ∧
         (∀ t ≥ 0,
-          ‖evalVector (netFromParams φ n d)
-              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - y‖ ≤
-            ‖evalVector (netFromParams φ n d)
-              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) - y‖ *
+          ‖trainingResidual (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)‖ ≤
+            ‖trainingResidual (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p 0)‖ *
               Real.exp (- (λ_∞ / (2 * m)) * t))} ≥
         1 - δ
 -/
