@@ -114,6 +114,65 @@ lemma norm_sq_eq_innerProduct (x : EuclideanSpace ℝ (Fin d)) :
   rw [EuclideanSpace.real_norm_sq_eq]
   simpa using (innerProduct_self_eq_sum_sq x.ofLp).symm
 
+lemma innerProduct_mul_left (c : ℝ) (x y : Fin d → ℝ) :
+    (fun k => c * x k) ⊙ y = c * (x ⊙ y) := by
+  simp only [innerProduct, mul_assoc]
+  rw [← Finset.mul_sum]
+
+lemma innerProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
+    x ⊙ (fun k => c * y k) = c * (x ⊙ y) := by
+  rw [innerProduct_comm, innerProduct_mul_left, innerProduct_comm y x]
+
+lemma innerProduct_smul_left (c : ℝ) (x y : Fin d → ℝ) :
+    (c • x) ⊙ y = c * (x ⊙ y) :=
+  innerProduct_mul_left c x y
+
+lemma innerProduct_smul_right (c : ℝ) (x y : Fin d → ℝ) :
+    x ⊙ (c • y) = c * (x ⊙ y) :=
+  innerProduct_mul_right c x y
+
+lemma innerProduct_add_left (x y z : Fin d → ℝ) :
+    (x + y) ⊙ z = x ⊙ z + y ⊙ z := by
+  simp only [innerProduct, Pi.add_apply, add_mul]
+  rw [← Finset.sum_add_distrib]
+
+lemma innerProduct_add_right (x y z : Fin d → ℝ) :
+    x ⊙ (y + z) = x ⊙ y + x ⊙ z := by
+  rw [innerProduct_comm, innerProduct_add_left, innerProduct_comm y x, innerProduct_comm z x]
+
+lemma innerProduct_sub_left (x y z : Fin d → ℝ) :
+    (x - y) ⊙ z = x ⊙ z - y ⊙ z := by
+  simp only [innerProduct, Pi.sub_apply, sub_mul]
+  rw [← Finset.sum_sub_distrib]
+
+lemma innerProduct_sub_right (x y z : Fin d → ℝ) :
+    x ⊙ (y - z) = x ⊙ y - x ⊙ z := by
+  rw [innerProduct_comm, innerProduct_sub_left, innerProduct_comm y x, innerProduct_comm z x]
+
+lemma innerProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
+    (fun k => c₁ * x k) ⊙ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⊙ y) := by
+  rw [innerProduct_mul_left, innerProduct_mul_right, mul_assoc]
+
+/-- The dot product of a weight vector with a scaled input `(1 / √d) * x` has the scaling
+factor `1 / √d` factored out. -/
+lemma innerProduct_scaled_input (d : ℕ) (w x : Fin d → ℝ) :
+    w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (Real.sqrt (d : ℝ))⁻¹ * (w ⊙ x) :=
+  innerProduct_mul_right _ _ _
+
+/-- Preactivation form: `w ⊙ (x / √d) = (w ⊙ x) / √d`. -/
+lemma innerProduct_scaled_input_div (d : ℕ) (w x : Fin d → ℝ) :
+    w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (w ⊙ x) / Real.sqrt (d : ℝ) := by
+  rw [innerProduct_scaled_input, div_eq_inv_mul]
+
+/-- Inner product of two scaled inputs factors out `(1 / √d)² = 1 / d`. -/
+lemma innerProduct_scaled_dataset (d : ℕ) (hd : 0 < d) (x y : Fin d → ℝ) :
+    (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * y k) =
+      (d : ℝ)⁻¹ * (x ⊙ y) := by
+  rw [innerProduct_mul_mul]
+  have h_sqrt : (Real.sqrt (d : ℝ))⁻¹ * (Real.sqrt (d : ℝ))⁻¹ = (d : ℝ)⁻¹ := by
+    rw [← mul_inv, Real.mul_self_sqrt (by positivity)]
+  rw [h_sqrt]
+
 /-! ### Empirical NTK (Definition 4.5) -/
 
 /-- The empirical NTK with arbitrary fixed outer coefficients:
