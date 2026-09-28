@@ -5441,15 +5441,8 @@ theorem measurePreserving_arrowProd_singleNeuronMeasure (n d : ℕ) :
   exact measurePreserving_arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)
     (fun _ => gaussianRowMeasure d) (fun _ => gaussianReal 0 1)
 
-/-- Symmetric direction of `measurePreserving_arrowProd_singleNeuronMeasure`. -/
-theorem measurePreserving_arrowProd_singleNeuronMeasure_symm (n d : ℕ) :
-    MeasurePreserving (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)).symm
-      (initMeasure n d)
-      (Measure.pi fun _ : Fin n => singleNeuronMeasure d) :=
-  (measurePreserving_arrowProd_singleNeuronMeasure n d).symm
-
 /-- Equivalence between `Fin n` and `{i : ℕ // i ∈ Finset.range n}`. -/
-def finEquivRange (n : ℕ) : Fin n ≃ ↑(Finset.range n) where
+private def finEquivRange (n : ℕ) : Fin n ≃ ↑(Finset.range n) where
   toFun i := ⟨i.val, Finset.mem_range.2 i.isLt⟩
   invFun j := ⟨j.val, Finset.mem_range.1 j.2⟩
   left_inv i := by ext; rfl
@@ -5457,7 +5450,7 @@ def finEquivRange (n : ℕ) : Fin n ≃ ↑(Finset.range n) where
 
 /-- Restricting an infinite sequence under `Measure.infinitePi` to `Finset.range n` preserves
 measure with respect to the finite product measure on `↑(Finset.range n)`. -/
-theorem measurePreserving_restrict_range {α : Type*} [MeasurableSpace α]
+private theorem measurePreserving_restrict_range {α : Type*} [MeasurableSpace α]
     (ν : Measure α) [IsProbabilityMeasure ν] (n : ℕ) :
     MeasurePreserving (Finset.range n).restrict
       (Measure.infinitePi fun _ : ℕ => ν)
@@ -5931,7 +5924,7 @@ lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
 
 /-- The deterministic limiting full NTK matrix is positive semidefinite (`PosSemidef`),
 established via Schur product theorem for the derivative covariance and input Gram matrix. -/
-theorem limitingFullNTKMatrix_posSemidef {m d : ℕ} (_hd : 0 < d)
+theorem limitingFullNTKMatrix_posSemidef {m d : ℕ}
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
     (hdφ_meas : Measurable (deriv φ))

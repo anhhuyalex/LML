@@ -1134,12 +1134,6 @@ lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq
     (by intro α i; simp only [unpackW_packParams]; exact hφ α i) α β
   simpa only [unpackW_packParams, unpackA_packParams] using h
 
-lemma innerProduct_scaled_right {d : ℕ} (c : ℝ) (w : Fin d → ℝ) (x : Fin d → ℝ) :
-    w ⊙ (fun k => c * x k) = c * (w ⊙ x) := by
-  simp only [innerProduct]
-  have : (fun k => w k * (c * x k)) = (fun k => c * (w k * x k)) := by ext; ring
-  rw [this, ← Finset.mul_sum]
-
 /-- Matrix equation identifying the canonical empirical NTK on the scaled dataset at the
 explicitly packed sequence-prefix parameters with the explicit neuron-average matrix. -/
 lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix
@@ -1160,7 +1154,7 @@ lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix
   have h_entry := empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq φ n d m hd X seq
     (fun α i => hφ_diff.differentiableAt) α β
   rw [h_entry]
-  simp_rw [innerProduct_scaled_right]
+  simp_rw [innerProduct_mul_right]
 
 /-- Almost-sure convergence of the canonical empirical NTK matrix at the explicitly packed
 sequence-prefix initialization parameters to `limitingFullNTKMatrix`. -/
@@ -1443,10 +1437,14 @@ For each width `n : ℕ`:
 2. **Fixed-Time Residual Weak Convergence**: For each fixed `t ∈ [0, T]`, the residual vector
    converges in distribution to the linearized infinite-width trajectory:
    `MeasureTheory.TendstoInDistribution (fun n p => r n t p) Filter.atTop`
-     `(fun G => Matrix.exp (- (t / m : ℝ) • K_∞) *ᵥ (G - y))`
-     `(fun n => initMeasure n d) (multivariateGaussian 0 Σ_∞)`.
-3. **Fixed-Time Prediction Convergence**: The network predictions satisfy:
-   pushforward through `fun r => y + r`.
+     `(fun G => WithLp.toLp 2`
+     `  ((NormedSpace.exp (- (t / m : ℝ) • limitingFullNTKMatrix φ X)) *ᵥ (G - y).ofLp))`
+     `(fun n => initMeasure n d) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
+3. **Fixed-Time Prediction Convergence**: The network predictions converge in distribution:
+   `MeasureTheory.TendstoInDistribution (fun n p => trainingOutputs ... (θ n p t)) Filter.atTop`
+     `(fun G => y + WithLp.toLp 2`
+     `  ((NormedSpace.exp (- (t / m : ℝ) • limitingFullNTKMatrix φ X)) *ᵥ (G - y).ofLp))`
+     `(fun n => initMeasure n d) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
 
 **Mechanism**:
 This theorem does not require a positive spectral gap. PSD controls the residual norm, while
@@ -1462,7 +1460,6 @@ theorem finite_horizon_ntk_training_limit
     (hderiv_lip : ∃ L_φ' : ℝ, 0 ≤ L_φ' ∧ LipschitzWith (Real.toNNReal L_φ') (deriv φ))
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (T : ℝ) (hT : 0 ≤ T)
-    (K_∞ : Matrix (Fin m) (Fin m) ℝ) (Σ_∞ : Matrix (Fin m) (Fin m) ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (paramDim n d)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
@@ -1482,9 +1479,24 @@ theorem finite_horizon_ntk_training_limit
           trainingResidual (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t))
         Filter.atTop
-        (fun G => Matrix.exp (- (t / (m : ℝ)) • K_∞) *ᵥ (G - y))
+        (fun (G : EuclideanSpace ℝ (Fin m)) =>
+          (WithLp.toLp 2 ((NormedSpace.exp (- (t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
+            (G - y).ofLp) : EuclideanSpace ℝ (Fin m)))
         (fun n => initMeasure n d)
-        (multivariateGaussian 0 Σ_∞))
+        (multivariateGaussian 0
+          (limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))) ∧
+    (∀ t ∈ Set.Icc 0 T,
+      MeasureTheory.TendstoInDistribution
+        (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+          trainingOutputs (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t))
+        Filter.atTop
+        (fun (G : EuclideanSpace ℝ (Fin m)) =>
+          y + (WithLp.toLp 2 ((NormedSpace.exp (- (t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
+            (G - y).ofLp) : EuclideanSpace ℝ (Fin m)))
+        (fun n => initMeasure n d)
+        (multivariateGaussian 0
+          (limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k))))
 -/
 ```
 -/
@@ -1497,24 +1509,25 @@ section GlobalPositiveGapLimit
 #### Target Theorem 2: Global Positive-Gap Lazy Training Limit (Phase 0 Target)
 
 **Statement**:
-Under the same hypotheses as Theorem 1, assume in addition that the limiting kernel `K_∞`
+Under the same hypotheses as Theorem 1, assume in addition that the limiting
+kernel `limitingFullNTKMatrix φ X`
 satisfies a strictly positive spectral gap:
-  `λ_min(K_∞) = λ_∞ > 0`.
+  `λ_min(limitingFullNTKMatrix φ X) = lambda_inf > 0`.
 
 Then for any fixed confidence `δ ∈ (0, 1)`, there exist `N : ℕ` and `C > 0` such that for all
 `n ≥ N`, with probability at least `1 - δ` under `initMeasure n d`:
-1. **Uniform Spectral Gap**: For all `t ≥ 0`, `λ_min(K_n(t)) ≥ λ_∞ / 2`.
+1. **Uniform Spectral Gap**: For all `t ≥ 0`, `λ_min(K_n(t)) ≥ lambda_inf / 2`.
 2. **Uniform Kernel Freeze**: For all `t ≥ 0`:
    `‖K_n(t) - K_n(0)‖ ≤ C * √(log n / n)`.
 3. **Exponential Residual Decay**: For all `t ≥ 0`:
-   `‖r_n(t)‖ ≤ ‖r_n(0)‖ * exp(-(λ_∞ / (2 * m)) * t)`.
+   `‖r_n(t)‖ ≤ ‖r_n(0)‖ * exp(-(lambda_inf / (2 * m)) * t)`.
 4. **Exponential Loss Decay**: For all `t ≥ 0`:
-   `mseLoss f_n X y (θ_traj t) ≤ mseLoss f_n X y (θ_traj 0) * exp(-(λ_∞ / m) * t)`.
+   `mseLoss f_n X y (θ_traj t) ≤ mseLoss f_n X y (θ_traj 0) * exp(-(lambda_inf / m) * t)`.
 5. **Infinite-Time Convergence**:
    `lim_{t → ∞} mseLoss f_n X y (θ_traj t) = 0`.
 
 A polynomial rate `1 - O(n^{-c})` may be derived as a corollary after quantitative
-concentration estimates are established in Phase 5.
+concentration estimates are established in Phase 3.5 or commit step 5.
 
 **Commented Formal Lean Signature**:
 ```lean
@@ -1524,8 +1537,8 @@ theorem global_positive_gap_lazy_training_limit
     (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
     (hderiv_lip : ∃ L_φ' : ℝ, 0 ≤ L_φ' ∧ LipschitzWith (Real.toNNReal L_φ') (deriv φ))
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
-    (K_∞ : Matrix (Fin m) (Fin m) ℝ) (λ_∞ : ℝ) (hλ_∞ : 0 < λ_∞)
-    (hK_gap : Matrix.PosSemidef (K_∞ - λ_∞ • 1))
+    (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
+    (hK_gap : Matrix.PosSemidef (limitingFullNTKMatrix φ X - lambda_inf • 1))
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (paramDim n d)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
@@ -1536,7 +1549,7 @@ theorem global_positive_gap_lazy_training_limit
       (initMeasure n d) {p |
         (∀ t ≥ 0, Matrix.PosSemidef
           (empiricalNTKMatrix (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - (λ_∞ / 2) • 1)) ∧
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - (lambda_inf / 2) • 1)) ∧
         (∀ t ≥ 0,
           ‖empiricalNTKMatrix (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
@@ -1548,8 +1561,8 @@ theorem global_positive_gap_lazy_training_limit
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)‖ ≤
             ‖trainingResidual (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p 0)‖ *
-              Real.exp (- (λ_∞ / (2 * m)) * t))} ≥
-        1 - δ
+              Real.exp (- (lambda_inf / (2 * m)) * t))} ≥
+        ENNReal.ofReal (1 - δ)
 -/
 ```
 -/
