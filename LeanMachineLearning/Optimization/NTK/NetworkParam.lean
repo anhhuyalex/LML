@@ -7,19 +7,26 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.Kernel
+public import LeanMachineLearning.Optimization.NTK.InfiniteNTK
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Analysis.Calculus.FDeriv.Prod
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Gradient.Basic
 
 /-!
-# Two-Layer NTK Parameter Packing and Jacobian Bridge
+# Two-Layer NTK Parameter Packing, Concentration, and the End-to-End Kernel-Freeze Bound
 
-This module implements Gap 1 of the NTK lazy training program.
-It bridges the curried `(W, a)` representation used by `evalSingle`/`evalVector`
+This module implements Gaps 1, 3, 4, and 6 of the NTK lazy training program
+(see `docs/NTK_lazy_training_gap_closure_plan.md`).
+
+Gap 1 bridges the curried `(W, a)` representation used by `evalSingle`/`evalVector`
 in `Initialization.lean` to the flat parameter vector
 `θ : EuclideanSpace ℝ (Fin (paramDim n d))` expected by `tangentFeature`,
-`outputJacobian`, and `empiricalNTKMatrix` in `Kernel.lean`.
+`outputJacobian`, and `empiricalNTKMatrix` in `Kernel.lean`. Gap 3 concentrates the output
+Jacobian's Frobenius norm at initialization; Gap 4 gives a local Lipschitz bound on the
+Jacobian. Gap 6 (`lazy_training_kernel_freeze_bound_of_gaussian_init`) wires all of this,
+plus Gap 5's bootstrap in `InfiniteNTK.lean`, into a single fully probabilistic corollary with
+no free `hlazy`/`hLip` hypotheses.
 
 ## Main Definitions
 - `paramDim n d`: Total parameter dimension `n * d + n` for width `n` and input dimension `d`.
@@ -44,10 +51,20 @@ in `Initialization.lean` to the flat parameter vector
   Row evaluations of the output Jacobian delegating to `gradW` / `gradA`.
 - `empiricalNTKMatrix_netFromParams_apply`:
   Two-block decomposition of the empirical NTK matrix.
+- `outputJacobian_netFromParams_frobenius_norm_concentration` : **Gap 3 deliverable** - the
+  output Jacobian's Frobenius norm is `O(1)` (width-independent) with probability `≥ 1 - δ`.
+- `outputJacobian_netFromParams_frobenius_sub_le` : **Gap 4 deliverable** - the output Jacobian
+  is `O(1/√n)`-Lipschitz, given a bound `R` on the readout weights.
+- `abs_unpackA_le_of_displacement` : deterministic ball-propagation of an entrywise
+  readout-weight bound, needed to turn Gap 4b's at-`θ₀`-only bound into the ball-wide bound
+  Gap 4 requires.
+- `lazy_training_kernel_freeze_bound_of_gaussian_init` : **Gap 6, the plan's final
+  deliverable** - the fully probabilistic end-to-end kernel-freeze bound.
 -/
 
 namespace NTK
 
+open ConvexOpt
 open scoped BigOperators RealInnerProductSpace Matrix Matrix.Norms.Frobenius
 
 attribute [local instance]
@@ -917,6 +934,190 @@ theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
   rw [tangentFeature_netFromParams φ n d (X α) θ (hφ α)]
   rw [tangentFeature_netFromParams φ n d (X β) θ (hφ β)]
   exact inner_packParams_packParams _ _ _ _
+
+/-! ### Phase 6: End-to-End Kernel-Freeze Bound
+
+Wires Gaps 1-5 together with the Gaussian-initialized two-layer network: Gap 3's Jacobian-norm
+concentration and Gap 4b's entrywise readout-weight concentration (both at `θ₀`) combine via a
+union bound into one high-probability event; on that event, Gap 4's Lipschitz bound propagates
+both the Jacobian norm and the readout-weight bound through the displacement ball (the same
+"ball propagation" pattern `rayleigh_quotient_lower_bound_of_displacement`/`h_rr_ball` already use
+in `InfiniteNTK.lean`); the result feeds directly into
+`lazy_training_kernel_freeze_bound_of_ball_hypotheses`.
+-/
+
+/-- A coordinate of a `EuclideanSpace` vector is bounded by its norm - the generic fact behind
+propagating an entrywise bound on one sub-block of parameters through a displacement bound on
+the whole packed vector. -/
+lemma abs_apply_le_norm {ι : Type*} [Fintype ι] (x : EuclideanSpace ℝ ι) (j : ι) :
+    |x.ofLp j| ≤ ‖x‖ := by
+  have hsq : (x.ofLp j) ^ 2 ≤ ‖x‖ ^ 2 := by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    exact Finset.single_le_sum (fun k _ => sq_nonneg (x.ofLp k)) (Finset.mem_univ j)
+  exact abs_le.mpr (abs_le_of_sq_le_sq' hsq (norm_nonneg x))
+
+/-- Deterministic ball-propagation of an entrywise readout-weight bound: if `θ₀`'s readout
+weight `a i` is bounded by `R₀` and `θ` is within displacement `r` of `θ₀`, then `θ`'s readout
+weight `a i` is bounded by `R₀ + r`. This is what lets a concentration bound established only at
+the random initialization `θ₀` (Gap 4b) supply the uniform-over-a-ball bound Gap 4's Lipschitz
+theorem needs. -/
+lemma abs_unpackA_le_of_displacement {n d : ℕ} (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (i : Fin n) (R₀ r : ℝ) (h₀ : |unpackA θ₀ i| ≤ R₀) (hr : ‖θ - θ₀‖ ≤ r) :
+    |unpackA θ i| ≤ R₀ + r := by
+  have hproj : |(θ - θ₀).ofLp (idxA i)| ≤ ‖θ - θ₀‖ := abs_apply_le_norm (θ - θ₀) (idxA i)
+  have heq : unpackA θ i - unpackA θ₀ i = (θ - θ₀).ofLp (idxA i) := by dsimp [unpackA]
+  have hdiff : |unpackA θ i - unpackA θ₀ i| ≤ r := heq ▸ hproj.trans hr
+  have h1 := abs_le.mp h₀
+  have h2 := abs_le.mp hdiff
+  rw [abs_le]
+  constructor <;> linarith
+
+/-- **Phase 6: fully probabilistic end-to-end kernel-freeze bound for the Gaussian-initialized
+two-layer network.** With probability `≥ 1 - 2δ` over the joint Gaussian initialization
+`(W, a)` of `netFromParams`, the following holds at `θ₀ := packParams W a`: for *any* gradient
+flow starting at `θ₀` with a base spectral-gap `lambda_min₀` there, and *any* choice of ball
+radius `r`, target bound `C`, Jacobian bound `M` and Lipschitz constant `L_J` satisfying the
+Gap 5/6 relations (`hCr`, `h_ball_gap`, `hC_ge`) and dominating the concrete Gap 3/4 formulas
+(`hM_ge`, `hL_J_ge`), the empirical NTK matrix never drifts from its value at `θ₀` by more than
+`(2 * M * L_J) * C`, for any `t ≥ 0`. No free `hlazy`/`hLip` hypotheses remain anywhere in this
+chain - both are derived from the Gaussian initialization, not assumed. -/
+theorem lazy_training_kernel_freeze_bound_of_gaussian_init
+    (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (C₀ C₁ C₂ : ℝ) (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁_bdd : ∀ z, |deriv φ z| ≤ C₁)
+    (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
+    (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
+    (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂)
+    (hφ : Differentiable ℝ φ) (hφ_meas : Measurable φ) (hderiv_meas : Measurable (deriv φ))
+    (hm : 0 < (m : ℝ))
+    {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
+    (initMeasure n d).real
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+        let θ₀ := packParams p.1 p.2
+        ∀ (θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)))
+          (lambda_min₀ r C M L_J : ℝ),
+          GFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ_traj →
+          (∀ t : ℝ, ∀ β : Fin m,
+            DifferentiableAt ℝ (fun θ' => netFromParams φ n d (X β) θ') (θ_traj t)) →
+          0 < lambda_min₀ → 0 ≤ r → C < r → 0 ≤ M → 0 ≤ L_J →
+          (∀ v : EuclideanSpace ℝ (Fin m), lambda_min₀ * ‖v‖ ^ 2 ≤
+            v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d) X θ₀) *ᵥ v.ofLp)) →
+          Real.sqrt ((m : ℝ) * C₀ ^ 2 +
+              (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ) + L_J * r ≤ M →
+          Real.sqrt (∑ α : Fin m,
+              (2 * (Real.sqrt (2 * Real.log (2 * n / δ)) + r) ^ 2 * C₂ ^ 2 *
+                (∑ j : Fin d, X α j ^ 2) ^ 2 +
+              3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2))) / Real.sqrt (n : ℝ) ≤ L_J →
+          2 * M * L_J * r ≤ lambda_min₀ / 2 →
+          M * ‖trainingResidual (netFromParams φ n d) X y θ₀‖ / (lambda_min₀ / 2) ≤ C →
+          ∀ t : ℝ, 0 ≤ t →
+            ‖empiricalNTKMatrix (netFromParams φ n d) X (θ_traj t) -
+              empiricalNTKMatrix (netFromParams φ n d) X θ₀‖ ≤ (2 * M * L_J) * C} ≥
+      1 - 2 * δ := by
+  have hE1 := outputJacobian_netFromParams_frobenius_norm_concentration φ n d m hn X C₀ C₁
+    hC₀ hC₁_bdd hφ hδ
+  have hE2 := initMeasure_forall_abs_readout_ge n d hn hδ hδ1
+  have hpi_meas : ∀ i : Fin n, ∀ j : Fin d,
+      Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.1 i j) := by
+    intro i j
+    exact (measurable_pi_apply j).comp ((measurable_pi_apply i).comp measurable_fst)
+  have hpre_meas : ∀ α : Fin m, ∀ i : Fin n,
+      Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.1 i ⊙ X α) := by
+    intro α i
+    unfold innerProduct
+    exact Finset.measurable_sum _ (fun j _ => (hpi_meas i j).mul measurable_const)
+  have hE1_meas : MeasurableSet {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
+        Real.sqrt ((m : ℝ) * C₀ ^ 2 +
+          (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ)} := by
+    have hmeas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+        ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ^ 2) := by
+      have heq : (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+          ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ^ 2) =
+          (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+            (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
+              (gradW φ n d (X α) (packParams p.1 p.2) i j) ^ 2) +
+            ∑ α : Fin m, ∑ i : Fin n, (gradA φ n d (X α) (packParams p.1 p.2) i) ^ 2) := by
+        funext p
+        exact outputJacobian_netFromParams_frobenius_norm_sq φ n d m X (packParams p.1 p.2)
+          (fun α i => hφ.differentiableAt)
+      rw [heq]
+      simp only [gradW, gradA, unpackW_packParams, unpackA_packParams]
+      refine Measurable.add ?_ ?_
+      · exact Finset.measurable_sum _ (fun α _ => Finset.measurable_sum _ (fun i _ =>
+          Finset.measurable_sum _ (fun j _ => ((((measurable_const.mul
+            ((measurable_pi_apply i).comp measurable_snd)).mul
+            (hderiv_meas.comp (hpre_meas α i))).mul measurable_const)).pow_const 2)))
+      · exact Finset.measurable_sum _ (fun α _ => Finset.measurable_sum _ (fun i _ =>
+          (measurable_const.mul (hφ_meas.comp (hpre_meas α i))).pow_const 2))
+    have hmeas' : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+        ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖) := by
+      have heq2 : (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+          ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖) =
+          fun p => Real.sqrt
+            (‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ^ 2) := by
+        funext p; rw [Real.sqrt_sq (norm_nonneg _)]
+      rw [heq2]
+      exact Real.continuous_sqrt.measurable.comp hmeas
+    exact measurableSet_le hmeas' measurable_const
+  have hE2_meas : MeasurableSet {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} := by
+    have hset : {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+        ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} =
+        ⋂ i : Fin n, {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+          |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} := by
+      ext p; simp
+    rw [hset]
+    exact MeasurableSet.iInter (fun i => measurableSet_le
+      (continuous_abs.measurable.comp ((measurable_pi_apply i).comp measurable_snd))
+      measurable_const)
+  have hcombined := measureReal_inter_ge_of_ge (initMeasure n d) hE1_meas hE2_meas hE1 hE2
+  have hδ2 : (1 : ℝ) - δ - δ = 1 - 2 * δ := by ring
+  rw [hδ2] at hcombined
+  refine hcombined.trans (MeasureTheory.measureReal_mono ?_)
+  intro p hp
+  obtain ⟨hp1, hp2⟩ := hp
+  intro θ_traj lambda_min₀ r C M L_J hflow hdiff hlam₀ hr_nonneg hCr hM hL_J h_rr₀
+    hM_ge hL_J_ge h_ball_gap hC_ge t ht
+  set θ₀ := packParams p.1 p.2 with hθ₀_def
+  set R₀ : ℝ := Real.sqrt (2 * Real.log (2 * n / δ)) with hR₀_def
+  set M₀ : ℝ := Real.sqrt ((m : ℝ) * C₀ ^ 2 +
+      (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ) with hM₀_def
+  have hR₀_i : ∀ i : Fin n, |unpackA θ₀ i| ≤ R₀ := by
+    intro i
+    have hival : unpackA θ₀ i = p.2 i := by
+      rw [hθ₀_def]; exact congrFun (unpackA_packParams p.1 p.2) i
+    rw [hival]; exact hp2 i
+  -- Gap 4, applied on the ball of radius `r`: the Jacobian is `L_J`-Lipschitz there, since
+  -- every `θ` with `‖θ - θ₀‖ ≤ r` has readout weights bounded by `R₀ + r` (deterministic
+  -- ball-propagation of the entrywise concentration bound, `abs_unpackA_le_of_displacement`).
+  have hJ_lip_ball : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian (netFromParams φ n d) X θ -
+        outputJacobian (netFromParams φ n d) X θ₀‖ ≤ L_J * ‖θ - θ₀‖ := by
+    intro θ hθ
+    have hRθ : ∀ i : Fin n, |unpackA θ i| ≤ R₀ + r :=
+      fun i => abs_unpackA_le_of_displacement θ θ₀ i R₀ r (hR₀_i i) hθ
+    have hKle := outputJacobian_netFromParams_frobenius_sub_le φ n d m hn X θ θ₀ C₁ C₂ (R₀ + r)
+      hC₁_nonneg hC₂_nonneg (by positivity) hφ_lip hC₁_bdd hderiv_lip
+      (fun _ _ => hφ.differentiableAt) (fun _ _ => hφ.differentiableAt) hRθ
+    dsimp only at hKle
+    exact hKle.trans (mul_le_mul_of_nonneg_right hL_J_ge (norm_nonneg _))
+  have hJ_bdd_ball : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian (netFromParams φ n d) X θ‖ ≤ M := by
+    intro θ hθ
+    have hstep : ‖outputJacobian (netFromParams φ n d) X θ‖ ≤
+        ‖outputJacobian (netFromParams φ n d) X θ₀‖ +
+        ‖outputJacobian (netFromParams φ n d) X θ - outputJacobian (netFromParams φ n d) X θ₀‖ :=
+      norm_le_insert' _ _
+    have h1 : ‖outputJacobian (netFromParams φ n d) X θ₀‖ ≤ M₀ := hp1
+    have h2 : ‖outputJacobian (netFromParams φ n d) X θ -
+        outputJacobian (netFromParams φ n d) X θ₀‖ ≤ L_J * r :=
+      (hJ_lip_ball θ hθ).trans (mul_le_mul_of_nonneg_left hθ hL_J)
+    calc
+      ‖outputJacobian (netFromParams φ n d) X θ‖ ≤ M₀ + L_J * r := hstep.trans (add_le_add h1 h2)
+      _ ≤ M := hM_ge
+  exact lazy_training_kernel_freeze_bound_of_ball_hypotheses (netFromParams φ n d) X y hflow
+    hdiff M L_J lambda_min₀ r C hM hL_J hm hlam₀ hr_nonneg hCr h_ball_gap hC_ge h_rr₀
+    hJ_bdd_ball hJ_lip_ball t ht
 
 end
 

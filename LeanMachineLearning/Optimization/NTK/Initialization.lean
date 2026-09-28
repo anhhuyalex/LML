@@ -762,6 +762,172 @@ lemma prob_gaussianReadout_sum_sq_le
       probReal_compl_eq_one_sub hbad_meas
     _ ≥ 1 - δ := sub_le_sub_left hbad 1
 
+/-! ### Entrywise (max) concentration for readout weights
+
+`prob_gaussianReadout_sum_sq_le` above bounds the readout *energy* `n⁻¹ ∑ᵢ aᵢ²` (an average),
+via Markov's inequality, giving a tail bound whose natural scale is `O(√(n/δ))`. Gap 4
+(`NetworkParam.lean`'s `outputJacobian_netFromParams_frobenius_sub_le`) instead needs a uniform
+bound on every *individual* `|aᵢ|`. Bounding this the same crude way (Markov on each `aᵢ²`
+plus a union bound) would give `R = O(√(n/δ))` too - and since Gap 4's `L_J` is linear in `R`,
+an `R` that grows like `√n` would make `L_J = Θ(1)`, silently breaking the "kernel freezes as
+`n → ∞`" conclusion the whole plan is aimed at (see `docs/NTK_lazy_training_gap_closure_plan.md`
+§3.1). The fix is to use the actual Gaussian tail (Chernoff/sub-Gaussian) instead of Markov,
+which gives the much better `R = O(√(log(n/δ)))` - logarithmic, not polynomial, in the width. -/
+
+/-- The standard Gaussian has a sub-Gaussian moment-generating function with parameter `1`. -/
+lemma hasSubgaussianMGF_id_gaussianReal_zero_one :
+    ProbabilityTheory.HasSubgaussianMGF id (1 : NNReal) (gaussianReal 0 1) where
+  integrable_exp_mul := integrable_exp_mul_gaussianReal
+  mgf_le t := by rw [mgf_id_gaussianReal]; simp
+
+/-- Negating a standard Gaussian is still sub-Gaussian with the same parameter (used for the
+two-sided/absolute-value tail bound below). -/
+lemma hasSubgaussianMGF_neg_id_gaussianReal_zero_one :
+    ProbabilityTheory.HasSubgaussianMGF (fun x => -x) (1 : NNReal) (gaussianReal 0 1) where
+  integrable_exp_mul t := by
+    have := integrable_exp_mul_gaussianReal (μ := (0:ℝ)) (v := (1:NNReal)) (-t)
+    simpa [mul_comm, mul_neg] using this
+  mgf_le t := by
+    have h := hasSubgaussianMGF_id_gaussianReal_zero_one.mgf_le (-t)
+    unfold mgf at *
+    simp only [id] at h ⊢
+    convert h using 2
+    · ext x; ring_nf
+    · ring
+
+/-- Two-sided Chernoff tail bound for a standard Gaussian: `P(|X| ≥ ε) ≤ 2 exp(-ε²/2)`. -/
+lemma prob_abs_gaussianReal_ge_le (ε : ℝ) (hε : 0 ≤ ε) :
+    (gaussianReal 0 1).real {x : ℝ | ε ≤ |x|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
+  have hset : {x : ℝ | ε ≤ |x|} = {x : ℝ | ε ≤ x} ∪ {x : ℝ | ε ≤ -x} := by
+    ext x
+    simp only [Set.mem_ofPred_eq, Set.mem_union, le_abs]
+  rw [hset]
+  have h1 := hasSubgaussianMGF_id_gaussianReal_zero_one.measure_ge_le hε
+  have h2 := hasSubgaussianMGF_neg_id_gaussianReal_zero_one.measure_ge_le hε
+  simp only [id] at h1
+  have hle := measureReal_union_le (μ := gaussianReal 0 1) {x : ℝ | ε ≤ x} {x : ℝ | ε ≤ -x}
+  have hcalc : Real.exp (-ε ^ 2 / (2 * (1:NNReal))) = Real.exp (-ε ^ 2 / 2) := by norm_num
+  rw [hcalc] at h1 h2
+  calc
+    (gaussianReal 0 1).real ({x : ℝ | ε ≤ x} ∪ {x : ℝ | ε ≤ -x}) ≤
+        (gaussianReal 0 1).real {x : ℝ | ε ≤ x} + (gaussianReal 0 1).real {x : ℝ | ε ≤ -x} := hle
+    _ ≤ Real.exp (-ε ^ 2 / 2) + Real.exp (-ε ^ 2 / 2) := add_le_add h1 h2
+    _ = 2 * Real.exp (-ε ^ 2 / 2) := by ring
+
+/-- Transport the two-sided tail bound to a single readout coordinate `a i`. -/
+lemma prob_abs_gaussianReadout_coord_ge_le (n : ℕ) (i : Fin n) (ε : ℝ) (hε : 0 ≤ ε) :
+    (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ε ≤ |a i|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
+  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) =
+      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
+  have hpre : {a : Fin n → ℝ | ε ≤ |a i|} =
+      (fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|} := rfl
+  have hms : MeasurableSet {x : ℝ | ε ≤ |x|} :=
+    measurableSet_le measurable_const continuous_abs.measurable
+  have hkey : (gaussianReadoutMeasure n).real
+      ((fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|}) =
+      (gaussianReal 0 1).real {x : ℝ | ε ≤ |x|} := by
+    unfold MeasureTheory.Measure.real
+    rw [← Measure.map_apply (measurable_pi_apply i) hms, hmap]
+  rw [hpre, hkey]
+  exact prob_abs_gaussianReal_ge_le ε hε
+
+/-- Union bound over all `n` readout coordinates: the probability that *some* coordinate exceeds
+`ε` in absolute value is at most `2n` times the single-coordinate tail bound. -/
+theorem prob_max_abs_gaussianReadout_ge_le (n : ℕ) (ε : ℝ) (hε : 0 ≤ ε) :
+    (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} ≤
+      2 * (n : ℝ) * Real.exp (-ε ^ 2 / 2) := by
+  have heq : {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} = ⋃ i : Fin n, {a : Fin n → ℝ | ε ≤ |a i|} := by
+    ext a; simp
+  rw [heq]
+  calc
+    (gaussianReadoutMeasure n).real (⋃ i : Fin n, {a : Fin n → ℝ | ε ≤ |a i|}) ≤
+        ∑ i : Fin n, (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ε ≤ |a i|} :=
+      measureReal_iUnion_fintype_le _
+    _ ≤ ∑ _i : Fin n, 2 * Real.exp (-ε ^ 2 / 2) :=
+      Finset.sum_le_sum (fun i _ => prob_abs_gaussianReadout_coord_ge_le n i ε hε)
+    _ = 2 * (n : ℝ) * Real.exp (-ε ^ 2 / 2) := by
+      rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+      ring
+
+/-- **Gap 4b deliverable.** With probability `≥ 1 - δ`, every readout weight `a i` has
+`|a i| ≤ √(2 log(2n/δ))` - a bound that grows only **logarithmically** in the width `n`. -/
+theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
+    (hδ1 : δ ≤ 1) :
+    (gaussianReadoutMeasure n).real
+      {a : Fin n → ℝ | ∀ i, |a i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} ≥ 1 - δ := by
+  set ε : ℝ := Real.sqrt (2 * Real.log (2 * n / δ)) with hε_def
+  have hnδ_pos : 0 < 2 * (n : ℝ) / δ := by positivity
+  have hε_nonneg : 0 ≤ ε := Real.sqrt_nonneg _
+  have hbad := prob_max_abs_gaussianReadout_ge_le n ε hε_nonneg
+  have hn1 : (1 : ℝ) ≤ (n : ℝ) := Nat.one_le_cast.mpr hn
+  have hlog_nonneg : 0 ≤ Real.log (2 * (n:ℝ) / δ) := by
+    apply Real.log_nonneg
+    rw [le_div_iff₀ hδ]
+    nlinarith
+  have hε_sq : ε ^ 2 = 2 * Real.log (2 * (n:ℝ) / δ) := by
+    rw [hε_def, Real.sq_sqrt (by positivity)]
+  have hexp : Real.exp (-ε ^ 2 / 2) = δ / (2 * n) := by
+    rw [hε_sq]
+    rw [show -(2 * Real.log (2 * (n:ℝ) / δ)) / 2 = -Real.log (2 * (n:ℝ) / δ) by ring]
+    rw [Real.exp_neg, Real.exp_log hnδ_pos]
+    rw [inv_div]
+  rw [hexp] at hbad
+  have hrhs : 2 * (n:ℝ) * (δ / (2 * (n:ℝ))) = δ := by field_simp
+  rw [hrhs] at hbad
+  have hcompl : {a : Fin n → ℝ | ∀ i, |a i| ≤ ε} = {a : Fin n → ℝ | ∃ i, ε < |a i|} ᶜ := by
+    ext a
+    simp [not_exists, not_lt]
+  rw [hcompl]
+  have hsub : {a : Fin n → ℝ | ∃ i, ε < |a i|} ⊆ {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} :=
+    fun a ⟨i, hi⟩ => ⟨i, hi.le⟩
+  have hle := measureReal_mono (μ := gaussianReadoutMeasure n) hsub
+  have hbad' : (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ∃ i, ε < |a i|} ≤ δ :=
+    hle.trans hbad
+  have hcompl_ge : (gaussianReadoutMeasure n).real ({a : Fin n → ℝ | ∃ i, ε < |a i|} ᶜ) ≥
+      1 - δ := by
+    have hUn : {a : Fin n → ℝ | ∃ i, ε < |a i|} = ⋃ i : Fin n, {a : Fin n → ℝ | ε < |a i|} := by
+      ext a; simp
+    have hmeas : MeasurableSet {a : Fin n → ℝ | ∃ i, ε < |a i|} := by
+      rw [hUn]
+      exact MeasurableSet.iUnion (fun i => measurableSet_lt measurable_const
+        (continuous_abs.measurable.comp (measurable_pi_apply i)))
+    have := probReal_compl_eq_one_sub (μ := gaussianReadoutMeasure n)
+      (s := {a : Fin n → ℝ | ∃ i, ε < |a i|}) hmeas
+    rw [ge_iff_le, this]
+    linarith
+  exact hcompl_ge
+
+/-- **Generic, reusable union-bound-for-complements.** Two events each of probability `≥ 1 - δ`
+on the same probability measure intersect in an event of probability `≥ 1 - δ₁ - δ₂`. Used by
+Phase 6 (`NetworkParam.lean`) to combine Gap 3's Jacobian-norm event with Gap 4b's
+entrywise-readout event, but stated with no reference to the NTK setup so it can be reused for
+any future combination of independent high-probability events. -/
+theorem measureReal_inter_ge_of_ge {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [IsProbabilityMeasure μ] {A B : Set α} (hA : MeasurableSet A) (hB : MeasurableSet B)
+    {δ₁ δ₂ : ℝ} (hA' : μ.real A ≥ 1 - δ₁) (hB' : μ.real B ≥ 1 - δ₂) :
+    μ.real (A ∩ B) ≥ 1 - δ₁ - δ₂ := by
+  have hcompl : (A ∩ B)ᶜ = Aᶜ ∪ Bᶜ := Set.compl_inter A B
+  have h1 : μ.real ((A ∩ B)ᶜ) = 1 - μ.real (A ∩ B) := probReal_compl_eq_one_sub (hA.inter hB)
+  have h2 : μ.real (Aᶜ ∪ Bᶜ) ≤ μ.real Aᶜ + μ.real Bᶜ := measureReal_union_le Aᶜ Bᶜ
+  have h3 : μ.real Aᶜ = 1 - μ.real A := probReal_compl_eq_one_sub hA
+  have h4 : μ.real Bᶜ = 1 - μ.real B := probReal_compl_eq_one_sub hB
+  rw [hcompl] at h1
+  linarith [h1, h2, h3, h4]
+
+/-- Lift Gap 4b's readout-only event to the full initialization product measure
+`initMeasure n d = (gaussianInit n d).prod (gaussianReadoutMeasure n)`. -/
+lemma initMeasure_forall_abs_readout_ge (n d : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
+    (hδ1 : δ ≤ 1) :
+    (initMeasure n d).real
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+        ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} ≥ 1 - δ := by
+  have hset : {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} =
+      Set.univ ×ˢ {a : Fin n → ℝ | ∀ i, |a i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} := by
+    ext p; simp
+  rw [hset, initMeasure, MeasureTheory.measureReal_prod_prod]
+  simpa using prob_forall_abs_gaussianReadout_le n hn hδ hδ1
+
 /-- Readout weights `a_i` are mutually independent across hidden units `i ∈ Fin n`. -/
 lemma iIndepFun_readoutWeights (n : ℕ) :
     iIndepFun (fun i : Fin n => fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) :=

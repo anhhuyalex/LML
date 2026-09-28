@@ -1508,11 +1508,14 @@ by continuity, means it can never actually reach the boundary `r` in the first p
 formalized as a proof by contradiction using the infimum of the (assumed nonempty) set of "escape
 times", ruling out escape entirely and discharging `hlazy` with the tight constant `C`. -/
 
-/-- **Gap 5 deliverable.** Given a base spectral-gap hypothesis `lambda_min₀` at `θ₀`, a global
-Jacobian bound `M` and Lipschitz constant `L_J`, and a radius `r` strictly larger than the target
-displacement bound `C` chosen so that `r` itself keeps the Rayleigh quotient above `lambda_min₀/2`
-(`h_ball_gap`) and `C` dominates the resulting displacement bound (`hC_ge`), gradient flow never
-moves more than `C` from `θ₀`, for any `t ≥ 0`. This discharges
+/-- **Gap 5 deliverable.** Given a base spectral-gap hypothesis `lambda_min₀` at `θ₀`, a Jacobian
+bound `M` and Lipschitz constant `L_J` that hold on the closed ball `‖θ - θ₀‖ ≤ r` (not globally -
+matching how `empiricalNTKMatrix_lipschitz_of_jacobian_bound`, Gap 2, is already stated over an
+arbitrary set `S`; concentration bounds like Gap 3/4's are inherently local to a neighborhood of
+`θ₀`, not uniform over the whole parameter space), and a radius `r` strictly larger than the
+target displacement bound `C` chosen so that `r` itself keeps the Rayleigh quotient above
+`lambda_min₀/2` (`h_ball_gap`) and `C` dominates the resulting displacement bound (`hC_ge`),
+gradient flow never moves more than `C` from `θ₀`, for any `t ≥ 0`. This discharges
 `lazy_training_kernel_freeze_bound`'s `hlazy` hypothesis with a **width-independent** `C` - see
 `docs/NTK_lazy_training_gap_closure_plan.md` §3.1 for why the `1/√n` decay belongs on `L_J`,
 not here. -/
@@ -1528,8 +1531,8 @@ theorem lazy_training_displacement_bound
     (hC_ge : M * ‖trainingResidual f X y θ₀‖ / (lambda_min₀ / 2) ≤ C)
     (h_rr₀ : ∀ v : EuclideanSpace ℝ (Fin m),
       lambda_min₀ * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ₀) *ᵥ v.ofLp))
-    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖outputJacobian f X θ‖ ≤ M)
-    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P),
+    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M)
+    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
       ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖) :
     ∀ T : ℝ, 0 ≤ T → ‖θ_traj T - θ₀‖ ≤ C := by
   set lambda_min : ℝ := lambda_min₀ / 2 with hlm_def
@@ -1541,7 +1544,7 @@ theorem lazy_training_displacement_bound
         lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v.ofLp) := by
     intro θ hθ v
     have hstep := rayleigh_quotient_lower_bound_of_displacement f X θ₀ θ M L_J lambda_min₀
-      (hJ_bdd θ₀) (hJ_bdd θ) (hJ_lip θ) h_rr₀ v
+      (hJ_bdd θ₀ (by simpa using hr_nonneg)) (hJ_bdd θ hθ) (hJ_lip θ hθ) h_rr₀ v
     have h2ML_J_nonneg : 0 ≤ 2 * M * L_J := by positivity
     have hCbound : 2 * M * L_J * ‖θ - θ₀‖ ≤ lambda_min₀ / 2 :=
       (mul_le_mul_of_nonneg_left hθ h2ML_J_nonneg).trans h_ball_gap
@@ -1556,7 +1559,7 @@ theorem lazy_training_displacement_bound
       ‖θ_traj S - θ₀‖ ≤ C := by
     intro S hS hballS
     have hJ_bdd' : ∀ t ∈ Set.Icc (0:ℝ) S, ‖outputJacobian f X (θ_traj t)‖ ≤ M :=
-      fun t _ => hJ_bdd (θ_traj t)
+      fun t ht => hJ_bdd (θ_traj t) (hballS t ht)
     have h_rr' : ∀ t ∈ Set.Icc (0:ℝ) S, ∀ v : EuclideanSpace ℝ (Fin m),
         lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ v.ofLp) :=
       fun t ht v => h_rr_ball (θ_traj t) (hballS t ht) v
@@ -1683,6 +1686,42 @@ theorem empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound
   have h_disp := hlazy t ht
   have h_bound := mul_le_mul_of_nonneg_left h_disp h2ML_nonneg
   exact hLip.trans h_bound
+
+/-- **Phase 6: end-to-end kernel-freeze bound from ball-restricted Jacobian hypotheses.**
+Wires Gap 5's bootstrap (`lazy_training_displacement_bound`) directly into
+`empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound`: given a Jacobian bound `M` and
+Lipschitz constant `L_J` on the ball `‖θ - θ₀‖ ≤ r` (exactly what a concentration argument like
+Gap 3/4 supplies - never a bound uniform over the whole parameter space), plus a base
+spectral-gap hypothesis `lambda_min₀` at `θ₀` and the radius/target-bound relations `hCr`,
+`h_ball_gap`, `hC_ge` from Gap 5, the empirical NTK matrix never drifts from its value at `θ₀`
+by more than `(2 * M * L_J) * C`. No free `hlazy`/`hLip` hypotheses remain - both are derived,
+not assumed. -/
+theorem lazy_training_kernel_freeze_bound_of_ball_hypotheses
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (M L_J lambda_min₀ r C : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ))
+    (hlam₀ : 0 < lambda_min₀) (hr_nonneg : 0 ≤ r)
+    (hCr : C < r)
+    (h_ball_gap : 2 * M * L_J * r ≤ lambda_min₀ / 2)
+    (hC_ge : M * ‖trainingResidual f X y θ₀‖ / (lambda_min₀ / 2) ≤ C)
+    (h_rr₀ : ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min₀ * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ₀) *ᵥ v.ofLp))
+    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M)
+    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖)
+    (t : ℝ) (ht : 0 ≤ t) :
+    ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C := by
+  have hdisp := lazy_training_displacement_bound f X y hflow hdiff M L_J lambda_min₀ r C
+    hM hL_J hm hlam₀ hr_nonneg hCr h_ball_gap hC_ge h_rr₀ hJ_bdd hJ_lip
+  have hJ_bdd_all : ∀ s ≥ 0, ‖outputJacobian f X (θ_traj s)‖ ≤ M :=
+    fun s hs => hJ_bdd (θ_traj s) ((hdisp s hs).trans hCr.le)
+  have hJ_lip_all : ∀ s ≥ 0, ‖outputJacobian f X (θ_traj s) - outputJacobian f X θ₀‖ ≤
+      L_J * ‖θ_traj s - θ₀‖ :=
+    fun s hs => hJ_lip (θ_traj s) ((hdisp s hs).trans hCr.le)
+  exact empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound f X θ_traj θ₀ C M L_J hL_J
+    hdisp hJ_bdd_all (hJ_bdd θ₀ (by simpa using hr_nonneg)) hJ_lip_all t ht
 
 /-- Property 2 (Asymptotic Freeze of Empirical NTK Bound in Infinite-Width Limit):
 As the network width `n → ∞`, the kernel displacement bound `L_K * C / √n` converges to `0`. -/
