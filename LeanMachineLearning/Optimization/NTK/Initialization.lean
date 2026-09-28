@@ -5565,6 +5565,78 @@ lemma integrable_fullNTK_summand_of_memLp {d : ℕ}
       (singleNeuronMeasure d) :=
   integrable_fullNTK_summand φ x x' (hφ.integrable_mul hφ') (hdφ.integrable_mul hdφ')
 
+/-- Square-integrability (`MemLp 2`) of the full single-neuron NTK summand under
+`MemLp 2` hypotheses on the activation product and derivative product.
+Uses the fourth-moment Gaussian readout bound `integrable_pow_four_gaussianReal`. -/
+lemma memLp_two_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (hdφ_meas : Measurable (deriv φ))
+    (x x' : Fin d → ℝ)
+    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    MemLp (fun p : (Fin d → ℝ) × ℝ =>
+      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      2 (singleNeuronMeasure d) := by
+  dsimp [singleNeuronMeasure]
+  have h1 : MemLp (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x')) 2
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    hφ_L2.comp_fst (gaussianReal 0 1)
+  have hd_scaled : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x')) 2
+      (gaussianRowMeasure d) :=
+    hdφ_L2.mul_const (x ⊙ x')
+  have hd_sq : Integrable (fun w => (deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x')) ^ 2)
+      (gaussianRowMeasure d) :=
+    (memLp_two_iff_integrable_sq hd_scaled.aestronglyMeasurable).1 hd_scaled
+  have ha4 : Integrable (fun a : ℝ => (a ^ 2) ^ 2) (gaussianReal 0 1) := by
+    have heq : (fun a : ℝ => (a ^ 2) ^ 2) = (fun a => a ^ 4) := by ext a; ring
+    rw [heq]
+    exact integrable_pow_four_gaussianReal
+  have h2_sq_prod : Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2 * (p.2 ^ 2) ^ 2)
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    hd_sq.mul_prod ha4
+  have h2_sq : Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      (p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2)
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) := by
+    refine h2_sq_prod.congr (ae_of_all _ (fun p => ?_))
+    dsimp
+    ring
+  have h_w : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1) := measurable_fst
+  have h_a : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2) := measurable_snd
+  have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x) :=
+    (measurable_innerProduct_left x).comp h_w
+  have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x') :=
+    (measurable_innerProduct_left x').comp h_w
+  have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x)) :=
+    hdφ_meas.comp h_wx
+  have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x')) :=
+    hdφ_meas.comp h_wx'
+  have h_a2 : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2 ^ 2) :=
+    (continuous_pow 2).measurable.comp h_a
+  have h2_meas : Measurable (fun p : (Fin d → ℝ) × ℝ =>
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) :=
+    ((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⊙ x')
+  have h2 : MemLp (fun p : (Fin d → ℝ) × ℝ =>
+      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) 2
+      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
+    (memLp_two_iff_integrable_sq h2_meas.aestronglyMeasurable).2 h2_sq
+  exact h1.add h2
+
+/-- Integrability of the squared full NTK summand under `singleNeuronMeasure d`,
+providing second-moment bounds needed for quantitative concentration and Chebyshev bounds. -/
+lemma integrable_sq_fullNTK_summand {d : ℕ}
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (x x' : Fin d → ℝ)
+    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    Integrable (fun p : (Fin d → ℝ) × ℝ =>
+      (φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2)
+      (singleNeuronMeasure d) := by
+  have h_mem := memLp_two_fullNTK_summand φ hdφ_meas x x' hφ_L2 hdφ_L2
+  have h_meas := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
+  exact (memLp_two_iff_integrable_sq h_meas.aestronglyMeasurable).1 h_mem
+
 /-- The expectation of the full single-neuron NTK summand under `singleNeuronMeasure d`
 equals the sum of the NNGP activation kernel entry and the derivative kernel entry
 scaled by the input inner product `x ⊙ x'`. -/
