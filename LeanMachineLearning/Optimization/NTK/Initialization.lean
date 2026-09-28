@@ -16,6 +16,7 @@ public import Mathlib.Probability.Distributions.Gaussian.CharFun
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.ProductMeasure
+public import Mathlib.MeasureTheory.Constructions.Pi
 public import Mathlib.Probability.StrongLaw
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.LinearAlgebra.Matrix.PosDef
@@ -700,12 +701,17 @@ lemma integral_sq_gaussianReal : ∫ x : ℝ, x ^ 2 ∂(gaussianReal 0 1) = 1 :=
 lemma integrable_pow_four_gaussianReal :
     Integrable (fun x : ℝ => x ^ 4) (gaussianReal 0 1) := by
   have h := memLp_id_gaussianReal (4 : NNReal) (μ := 0) (v := 1)
-  have hint := h.integrable_norm_rpow (q := 4) (by norm_num) (by norm_num)
+  have hint := h.integrable_norm_rpow (by norm_num) (by norm_num)
   have heq : (fun x : ℝ => ‖id x‖ ^ (4 : ℝ)) = (fun x : ℝ => x ^ 4) := by
     ext x
-    simp only [id]
-    rw [Real.norm_eq_abs, ← sq_abs, ← sq, ← pow_mul]
-    norm_num
+    simp only [id, Real.norm_eq_abs]
+    have h1 : (4 : ℝ) = ((4 : ℕ) : ℝ) := by norm_num
+    rw [h1, Real.rpow_natCast]
+    have h2 : |x| ^ 4 = (|x| ^ 2) ^ 2 := by ring
+    have h3 : x ^ 4 = (x ^ 2) ^ 2 := by ring
+    rw [h2, sq_abs, ← h3]
+  have h_exp : ((4 : NNReal) : ENNReal).toReal = 4 := by rfl
+  rw [h_exp] at hint
   rw [heq] at hint
   exact hint
 
@@ -5425,8 +5431,8 @@ instance instIsProbabilityMeasureSingleNeuronMeasure (d : ℕ) :
   dsimp [singleNeuronMeasure]
   infer_instance
 
-/-- Measure-preserving isomorphism between the finite restriction of an i.i.d. neuron sequence
-and the repository's joint initialization measure `initMeasure n d`. -/
+/-- Measure-preserving rearrangement between a finite array of neuron pairs
+and the repository's `(W, a)` initialization representation `initMeasure n d`. -/
 theorem measurePreserving_arrowProd_singleNeuronMeasure (n d : ℕ) :
     MeasurePreserving (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n))
       (Measure.pi fun _ : Fin n => singleNeuronMeasure d)
@@ -5441,6 +5447,55 @@ theorem measurePreserving_arrowProd_singleNeuronMeasure_symm (n d : ℕ) :
       (initMeasure n d)
       (Measure.pi fun _ : Fin n => singleNeuronMeasure d) :=
   (measurePreserving_arrowProd_singleNeuronMeasure n d).symm
+
+/-- Equivalence between `Fin n` and `{i : ℕ // i ∈ Finset.range n}`. -/
+def finEquivRange (n : ℕ) : Fin n ≃ ↑(Finset.range n) where
+  toFun i := ⟨i.val, Finset.mem_range.2 i.isLt⟩
+  invFun j := ⟨j.val, Finset.mem_range.1 j.2⟩
+  left_inv i := by ext; rfl
+  right_inv j := by ext; rfl
+
+/-- Restricting an infinite sequence under `Measure.infinitePi` to `Finset.range n` preserves
+measure with respect to the finite product measure on `↑(Finset.range n)`. -/
+theorem measurePreserving_restrict_range {α : Type*} [MeasurableSpace α]
+    (ν : Measure α) [IsProbabilityMeasure ν] (n : ℕ) :
+    MeasurePreserving (Finset.range n).restrict
+      (Measure.infinitePi fun _ : ℕ => ν)
+      (Measure.pi fun _ : ↑(Finset.range n) => ν) where
+  measurable := measurable_pi_iff.2 fun i => measurable_pi_apply i.1
+  map_eq := Measure.infinitePi_map_restrict (fun _ : ℕ => ν)
+
+/-- Restricting an infinite sequence under `Measure.infinitePi` to its first `n` elements
+indexed by `Fin n` is measure-preserving with respect to `Measure.pi (fun _ : Fin n => ν)`. -/
+theorem measurePreserving_prefixMap {α : Type*} [MeasurableSpace α]
+    (ν : Measure α) [IsProbabilityMeasure ν] (n : ℕ) :
+    MeasurePreserving (fun (seq : ℕ → α) (i : Fin n) => seq i.val)
+      (Measure.infinitePi fun _ : ℕ => ν)
+      (Measure.pi fun _ : Fin n => ν) := by
+  have h_restrict := measurePreserving_restrict_range ν n
+  have h_congr := (measurePreserving_piCongrLeft (fun _ : Fin n => ν) (finEquivRange n).symm)
+  have h_comp := h_congr.comp h_restrict
+  have heq : (MeasurableEquiv.piCongrLeft (fun _ => α) (finEquivRange n).symm ∘
+      (Finset.range n).restrict) =
+      (fun (seq : ℕ → α) (i : Fin n) => seq i.val) := by
+    ext seq i
+    rfl
+  rwa [heq] at h_comp
+
+/-- The measure-preserving map from the infinite sequence space
+`Measure.infinitePi (fun _ => singleNeuronMeasure d)` to the repository's finite-width
+initialization representation `initMeasure n d`.
+Composes the prefix restriction map with the finite array rearrangement
+`measurePreserving_arrowProd_singleNeuronMeasure`. -/
+theorem measurePreserving_infiniteSeq_to_init (n d : ℕ) :
+    MeasurePreserving
+      (fun (seq : ℕ → (Fin d → ℝ) × ℝ) =>
+        (fun (i : Fin n) => (seq i.val).1, fun (i : Fin n) => (seq i.val).2))
+      (Measure.infinitePi fun _ : ℕ => singleNeuronMeasure d)
+      (initMeasure n d) := by
+  have h_pref := measurePreserving_prefixMap (singleNeuronMeasure d) n
+  have h_rearr := measurePreserving_arrowProd_singleNeuronMeasure n d
+  exact h_rearr.comp h_pref
 
 /-! ### Full NTK Summand Measurability and Moments -/
 
@@ -5509,53 +5564,6 @@ lemma integrable_fullNTK_summand_of_memLp {d : ℕ}
         p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
       (singleNeuronMeasure d) :=
   integrable_fullNTK_summand φ x x' (hφ.integrable_mul hφ') (hdφ.integrable_mul hdφ')
-
-/-- Square-integrability (`MemLp 2`) of the full single-neuron NTK summand under
-`MemLp 2` hypotheses on the activation product and derivative product. -/
-theorem memLp_two_fullNTK_summand {d : ℕ}
-    (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
-    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
-    MemLp (fun p : (Fin d → ℝ) × ℝ =>
-      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
-      2 (singleNeuronMeasure d) := by
-  dsimp [singleNeuronMeasure]
-  have h1 : MemLp (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x')) 2
-      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
-    hφ_L2.comp_fst (gaussianReal 0 1)
-  have hd_scaled : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x')) 2
-      (gaussianRowMeasure d) :=
-    hdφ_L2.mul_const (x ⊙ x')
-  have h2_prod : MemLp (fun p : (Fin d → ℝ) × ℝ =>
-      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2) 2
-      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
-    MeasureTheory.MemLp.mul_prod hd_scaled memLp_sq_gaussianReal_two
-  have h2_eq : (fun p : (Fin d → ℝ) × ℝ =>
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) =ᵐ[(gaussianRowMeasure d).prod (gaussianReal 0 1)]
-      (fun p : (Fin d → ℝ) × ℝ =>
-      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2) := by
-    refine ae_of_all _ (fun p => by ring)
-  have h2 : MemLp (fun p : (Fin d → ℝ) × ℝ =>
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) 2
-      ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
-    h2_prod.congr_ae h2_eq.symm
-  exact h1.add h2
-
-/-- Integrability of the squared full NTK summand under `singleNeuronMeasure d`,
-providing second-moment bounds needed for quantitative concentration and Chebyshev bounds. -/
-theorem integrable_sq_fullNTK_summand {d : ℕ}
-    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
-    (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
-    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
-    Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2)
-      (singleNeuronMeasure d) := by
-  have h_mem := memLp_two_fullNTK_summand φ x x' hφ_L2 hdφ_L2
-  have h_meas := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
-  exact (memLp_two_iff_integrable_sq h_meas.aestronglyMeasurable).1 h_mem
 
 /-- The expectation of the full single-neuron NTK summand under `singleNeuronMeasure d`
 equals the sum of the NNGP activation kernel entry and the derivative kernel entry
@@ -5746,13 +5754,7 @@ theorem fullNTKMatrix_norm_sub_tendsto_zero {m d : ℕ}
       (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) * (X α ⊙ X β)
   have h := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas X hφ_int hdφ_int
   filter_upwards [h] with seq hseq
-  have h_sub : Filter.Tendsto
-      (fun n : ℕ => ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-        (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
-          (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
-            (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ) - L)
-      Filter.atTop (nhds (L - L)) :=
-    hseq.sub tendsto_const_nhds
+  have h_sub := hseq.sub (tendsto_const_nhds (x := L))
   rw [sub_self] at h_sub
   exact tendsto_zero_iff_norm_tendsto_zero.1 h_sub
 
@@ -5819,6 +5821,66 @@ theorem fullNTKMatrix_scaled_dataset_tendstoInMeasure {m d : ℕ} (hd : 0 < d)
     (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
   simp_rw [innerProduct_scaled_dataset d hd] at h_base
   exact h_base
+
+/-- The deterministic limiting full NTK Gram matrix on dataset `X` with input dimension `d`:
+  `Θ_∞ = limitingCovariance φ scaledX + (d⁻¹ • (X ⬝ Xᵀ)) ⊙ limitingCovariance (deriv φ) scaledX`. -/
+noncomputable def limitingFullNTKMatrix {m d : ℕ}
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) : Matrix (Fin m) (Fin m) ℝ :=
+  fun α β =>
+    limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β +
+      limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β *
+        ((d : ℝ)⁻¹ * (X α ⊙ X β))
+
+/-- Equation lemma for `limitingFullNTKMatrix`. -/
+lemma limitingFullNTKMatrix_apply {m d : ℕ}
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (α β : Fin m) :
+    limitingFullNTKMatrix φ X α β =
+      limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β +
+        limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β *
+          ((d : ℝ)⁻¹ * (X α ⊙ X β)) := rfl
+
+/-- The limiting full NTK Gram matrix is symmetric (Hermitian). -/
+lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) :
+    (limitingFullNTKMatrix φ X).IsHermitian := by
+  ext α β
+  simp only [limitingFullNTKMatrix_apply, conjTranspose_apply, star_trivial]
+  have h1 : limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) β α =
+      limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β := by
+    rw [limitingCovariance_apply, limitingCovariance_apply]
+    congr 1 with w
+    ring
+  have h2 : limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) β α =
+      limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β := by
+    rw [limitingCovariance_apply, limitingCovariance_apply]
+    congr 1 with w
+    ring
+  rw [h1, h2, innerProduct_comm]
+
+/-- Matrix almost-sure convergence of the empirical NTK neuron-average matrix to the
+deterministic `limitingFullNTKMatrix` on the paper's scaled dataset `(1 / √d) * X`. -/
+theorem fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+      Filter.Tendsto
+        (fun n : ℕ =>
+          ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+              (φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+                 φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+               (seq j).2 ^ 2 *
+                 deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+                 deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+                 ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ))
+        Filter.atTop
+        (nhds (limitingFullNTKMatrix φ X)) :=
+  fullNTKMatrix_scaled_dataset_tendsto_integral hd φ hφ_meas hdφ_meas X hφ_int hdφ_int
 
 end FullTwoLayerNTKInitialization
 
