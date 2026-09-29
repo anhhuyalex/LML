@@ -138,6 +138,10 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.deriv_norm_sq_le_of_rayleighRitz_timeVarying` : Step 2 Rayleigh-Ritz bound for `K(t)`.
 * `NTK.residual_norm_sq_exponential_decay_timeVarying` : Step 3 squared residual decay for `K(t)`.
 * `NTK.residual_norm_exponential_decay_timeVarying` : Step 3 residual norm decay for `K(t)`.
+* `NTK.norm_sub_le_of_linear_ode_perturbation` : **Phase 7** generic stability of `r' = -A(t) r`
+  against `s' = -B(t) s` for PSD `A`: `‖r - s‖ ≤ ‖r(0) - s(0)‖ + a t` if `‖A - B‖ ‖s‖ ≤ a`.
+* `NTK.residual_sub_frozen_residual_le` : Phase 7 specialization to the NTK residual dynamics with
+  coefficients `K(t) / m` and `K_∞ / m`.
 * `NTK.mse_loss_exponential_decay_timeVarying` : Step 4 MSE loss decay for `K(t)`.
 * `NTK.residual_norm_sq_exponential_decay_timeVarying_Icc` : Local interval squared residual decay.
 * `NTK.residual_norm_exponential_decay_timeVarying_Icc` : Local interval residual decay on `[0, T]`.
@@ -858,6 +862,13 @@ lemma gronwall_exponential_decay {E E' : ℝ → ℝ} {c : ℝ}
 
 /-! ### Step-by-Step Proof of Exponential Convergence of Training Loss -/
 
+/-- The Euclidean inner product `⟪v, A v⟫` equals the quadratic form `vᵀ A v`. -/
+lemma inner_toLp_mulVec_eq_dotProduct (A : Matrix (Fin m) (Fin m) ℝ)
+    (v : EuclideanSpace ℝ (Fin m)) :
+    ⟪v, (WithLp.toLp 2 (A *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫ = v.ofLp ⬝ᵥ (A *ᵥ v.ofLp) := by
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  simp [dotProduct_comm]
+
 /-- Step 1 (Time Derivative of Squared Residual Norm under Time-Varying Kernel):
 Along any trajectory satisfying `∂_t r(t) = - (1 / m) K(t) r(t)`, the rate of change of
 `‖r(t)‖²` is given by:
@@ -1332,13 +1343,7 @@ theorem abs_dotProduct_mulVec_sub_le (A B : Matrix (Fin m) (Fin m) ℝ)
       v.ofLp ⬝ᵥ ((A - B) *ᵥ v.ofLp) := by
     rw [Matrix.sub_mulVec, dotProduct_sub]
   rw [heq]
-  have h1 : v.ofLp ⬝ᵥ ((A - B) *ᵥ v.ofLp) =
-      ⟪v, (WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫ := by
-    rw [show v = WithLp.toLp 2 v.ofLp from rfl]
-    rw [EuclideanSpace.inner_toLp_toLp]
-    simp only [star_trivial]
-    rw [dotProduct_comm]
-  rw [h1]
+  rw [← inner_toLp_mulVec_eq_dotProduct]
   calc
     |⟪v, (WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫| ≤
         ‖v‖ * ‖(WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))‖ :=
@@ -1865,6 +1870,148 @@ theorem tendsto_empiricalNTK_chebyshev_bound (C ε : ℝ) :
   have h := ENNReal.tendsto_ofReal h_real
   rw [ENNReal.ofReal_zero] at h
   exact h
+
+/-! ### Stability of Linear ODEs under Coefficient Perturbation
+
+Generic, network-independent stability estimate used to compare the actual residual dynamics
+`r' = -(1 / m) K(t) r` with the frozen dynamics `s' = -(1 / m) K_∞ s`. -/
+
+section LinearODECoefficientPerturbation
+
+/-- Derivative of the squared norm of a differentiable vector-valued function. -/
+lemma hasDerivAt_norm_sq_of_hasDerivAt {e : ℝ → EuclideanSpace ℝ (Fin m)}
+    {e' : EuclideanSpace ℝ (Fin m)} {t : ℝ} (h : HasDerivAt e e' t) :
+    HasDerivAt (fun s => ‖e s‖ ^ 2) (2 * ⟪e t, e'⟫) t := by
+  have := h.norm_sq
+  simpa using this
+
+/-- One-point estimate behind coefficient-perturbation stability: if `A` is PSD then the error
+`e = r - s` between solutions of `r' = -A r` and `s' = -B s` satisfies
+`⟪e, e'⟫ ≤ ‖e‖ ‖A - B‖ ‖s‖`. -/
+lemma inner_sub_le_of_psd_coefficient (A B : Matrix (Fin m) (Fin m) ℝ)
+    (r s : EuclideanSpace ℝ (Fin m))
+    (hA : ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (A *ᵥ v.ofLp)) :
+    ⟪r - s, (WithLp.toLp 2 (-(A *ᵥ r.ofLp)) : EuclideanSpace ℝ (Fin m)) -
+        WithLp.toLp 2 (-(B *ᵥ s.ofLp))⟫ ≤ ‖r - s‖ * (‖A - B‖ * ‖s‖) := by
+  have hvec : (WithLp.toLp 2 (-(A *ᵥ r.ofLp)) : EuclideanSpace ℝ (Fin m)) -
+      WithLp.toLp 2 (-(B *ᵥ s.ofLp)) =
+      -(WithLp.toLp 2 (A *ᵥ (r - s).ofLp) : EuclideanSpace ℝ (Fin m)) -
+        WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) := by
+    ext i
+    simp [Matrix.mulVec_sub, Matrix.sub_mulVec]
+    ring
+  rw [hvec, inner_sub_right, inner_neg_right, inner_toLp_mulVec_eq_dotProduct]
+  have h1 := hA (r - s)
+  have h2 : -⟪r - s, (WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))⟫ ≤
+      ‖r - s‖ * (‖A - B‖ * ‖s‖) := by
+    calc -⟪r - s, (WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))⟫
+        ≤ |⟪r - s, (WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))⟫| := neg_le_abs _
+      _ ≤ ‖r - s‖ * ‖(WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))‖ :=
+          abs_real_inner_le_norm _ _
+      _ ≤ ‖r - s‖ * (‖A - B‖ * ‖s‖) :=
+          mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) s) (norm_nonneg _)
+  linarith
+
+/-- **Stability of linear ODEs under coefficient perturbation (PSD case).** Let `r' = -A(t) r` and
+`s' = -B(t) s` on `[0, T]` with `A(t)` positive semidefinite, and suppose
+`‖A(t) - B(t)‖ ‖s(t)‖ ≤ a` there. Then `‖r(t) - s(t)‖ ≤ ‖r(0) - s(0)‖ + a t` for `t ∈ [0, T]`.
+The PSD hypothesis on `A` removes any exponential Grönwall factor: the dissipative part
+`-⟪e, A e⟫` of the error equation is nonpositive and only the forcing `(A - B) s` remains.
+Independent of neural networks, initialization and width. -/
+theorem norm_sub_le_of_linear_ode_perturbation
+    (A B : ℝ → Matrix (Fin m) (Fin m) ℝ) (r s : ℝ → EuclideanSpace ℝ (Fin m)) {T a : ℝ}
+    (hT : 0 ≤ T)
+    (hr : ∀ t ∈ Set.Icc 0 T, HasDerivAt r (WithLp.toLp 2 (-(A t *ᵥ (r t).ofLp))) t)
+    (hs : ∀ t ∈ Set.Icc 0 T, HasDerivAt s (WithLp.toLp 2 (-(B t *ᵥ (s t).ofLp))) t)
+    (hA : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (A t *ᵥ v.ofLp))
+    (hab : ∀ t ∈ Set.Icc 0 T, ‖A t - B t‖ * ‖s t‖ ≤ a) :
+    ∀ t ∈ Set.Icc 0 T, ‖r t - s t‖ ≤ ‖r 0 - s 0‖ + a * t := by
+  have h0 : (0 : ℝ) ∈ Set.Icc 0 T := ⟨le_rfl, hT⟩
+  have ha : 0 ≤ a := (mul_nonneg (norm_nonneg _) (norm_nonneg _)).trans (hab 0 h0)
+  have he : ∀ t ∈ Set.Icc 0 T, HasDerivAt (fun τ => r τ - s τ)
+      ((WithLp.toLp 2 (-(A t *ᵥ (r t).ofLp)) : EuclideanSpace ℝ (Fin m)) -
+        WithLp.toLp 2 (-(B t *ᵥ (s t).ofLp))) t := fun t ht => (hr t ht).sub (hs t ht)
+  -- Regularized comparison: `√(‖e‖² + η²) - a t` is nonincreasing on `[0, T]`.
+  have key : ∀ η > 0, ∀ t ∈ Set.Icc 0 T,
+      Real.sqrt (‖r t - s t‖ ^ 2 + η ^ 2) ≤ Real.sqrt (‖r 0 - s 0‖ ^ 2 + η ^ 2) + a * t := by
+    intro η hη t ht
+    have hpos : ∀ τ, 0 < ‖r τ - s τ‖ ^ 2 + η ^ 2 := fun τ => by positivity
+    have hu : ∀ τ ∈ Set.Icc 0 T, HasDerivAt
+        (fun σ => Real.sqrt (‖r σ - s σ‖ ^ 2 + η ^ 2) - a * σ)
+        ((2 * ⟪r τ - s τ, (WithLp.toLp 2 (-(A τ *ᵥ (r τ).ofLp)) : EuclideanSpace ℝ (Fin m)) -
+            WithLp.toLp 2 (-(B τ *ᵥ (s τ).ofLp))⟫) /
+          (2 * Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2)) - a * 1) τ := by
+      intro τ hτ
+      have h1 := ((hasDerivAt_norm_sq_of_hasDerivAt (he τ hτ)).add_const (η ^ 2)).sqrt
+        (hpos τ).ne'
+      exact h1.sub ((hasDerivAt_id τ).const_mul a)
+    have hanti : AntitoneOn (fun σ => Real.sqrt (‖r σ - s σ‖ ^ 2 + η ^ 2) - a * σ)
+        (Set.Icc 0 T) := by
+      refine antitoneOn_of_deriv_nonpos (convex_Icc 0 T)
+        (fun τ hτ => (hu τ hτ).continuousAt.continuousWithinAt)
+        (fun τ hτ => (hu τ (interior_subset hτ)).differentiableAt.differentiableWithinAt)
+        (fun τ hτ => ?_)
+      have hτ' := interior_subset hτ
+      rw [(hu τ hτ').deriv]
+      have hS : 0 < Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2) := Real.sqrt_pos.2 (hpos τ)
+      have hle : ‖r τ - s τ‖ ≤ Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2) := by
+        calc ‖r τ - s τ‖ = Real.sqrt (‖r τ - s τ‖ ^ 2) := (Real.sqrt_sq (norm_nonneg _)).symm
+          _ ≤ _ := Real.sqrt_le_sqrt (by nlinarith [sq_nonneg η])
+      have hin := inner_sub_le_of_psd_coefficient (A τ) (B τ) (r τ) (s τ) (hA τ hτ')
+      have hin' : ⟪r τ - s τ, (WithLp.toLp 2 (-(A τ *ᵥ (r τ).ofLp)) : EuclideanSpace ℝ (Fin m)) -
+          WithLp.toLp 2 (-(B τ *ᵥ (s τ).ofLp))⟫ ≤
+          Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2) * a := by
+        refine hin.trans ?_
+        calc ‖r τ - s τ‖ * (‖A τ - B τ‖ * ‖s τ‖) ≤ ‖r τ - s τ‖ * a :=
+            mul_le_mul_of_nonneg_left (hab τ hτ') (norm_nonneg _)
+          _ ≤ _ := mul_le_mul_of_nonneg_right hle ha
+      rw [mul_one, sub_nonpos, mul_div_mul_left _ _ two_ne_zero, div_le_iff₀ hS]
+      linarith [hin']
+    have := hanti h0 ht ht.1
+    simp only [mul_zero, sub_zero] at this
+    linarith
+  intro t ht
+  refine le_of_forall_pos_le_add fun η hη => ?_
+  have h1 : ‖r t - s t‖ ≤ Real.sqrt (‖r t - s t‖ ^ 2 + η ^ 2) := by
+    calc ‖r t - s t‖ = Real.sqrt (‖r t - s t‖ ^ 2) := (Real.sqrt_sq (norm_nonneg _)).symm
+      _ ≤ _ := Real.sqrt_le_sqrt (by nlinarith [sq_nonneg η])
+  have h2 : Real.sqrt (‖r 0 - s 0‖ ^ 2 + η ^ 2) ≤ ‖r 0 - s 0‖ + η := by
+    rw [Real.sqrt_le_left (by positivity)]
+    nlinarith [norm_nonneg (r 0 - s 0)]
+  linarith [key η hη t ht]
+
+/-- **Residual vs. frozen-kernel residual.** Specialization of
+`norm_sub_le_of_linear_ode_perturbation` to `A t = (1 / m) K t` and `B t = (1 / m) K_inf`, i.e. to
+the NTK residual dynamics: if the kernel `K t` is positive semidefinite along `[0, T]` and
+`‖K t - K_inf‖ ‖s t‖ ≤ b`, then `‖r t - s t‖ ≤ ‖r 0 - s 0‖ + (1 / m) b t`. -/
+theorem residual_sub_frozen_residual_le
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (K_inf : Matrix (Fin m) (Fin m) ℝ)
+    (r s : ℝ → EuclideanSpace ℝ (Fin m)) {T b : ℝ} (hT : 0 ≤ T)
+    (hr : ∀ t ∈ Set.Icc 0 T,
+      HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hs : ∀ t ∈ Set.Icc 0 T,
+      HasDerivAt s (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ (s t).ofLp))) t)
+    (hK : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (hb : ∀ t ∈ Set.Icc 0 T, ‖K t - K_inf‖ * ‖s t‖ ≤ b) :
+    ∀ t ∈ Set.Icc 0 T, ‖r t - s t‖ ≤ ‖r 0 - s 0‖ + (m : ℝ)⁻¹ * b * t := by
+  have hcoeff : ∀ (M : Matrix (Fin m) (Fin m) ℝ) (v : EuclideanSpace ℝ (Fin m)),
+      (-(m : ℝ)⁻¹ • (M *ᵥ v.ofLp) : Fin m → ℝ) = -(((m : ℝ)⁻¹ • M) *ᵥ v.ofLp) := by
+    intro M v
+    rw [Matrix.smul_mulVec, neg_smul]
+  have h := norm_sub_le_of_linear_ode_perturbation (fun t => (m : ℝ)⁻¹ • K t)
+    (fun _ => (m : ℝ)⁻¹ • K_inf) r s (a := (m : ℝ)⁻¹ * b) hT
+    (fun t ht => by simpa only [hcoeff] using hr t ht)
+    (fun t ht => by simpa only [hcoeff] using hs t ht)
+    (fun t ht v => by
+      rw [Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+      exact mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg m)) (hK t ht v))
+    (fun t ht => by
+      rw [← smul_sub, norm_smul, Real.norm_eq_abs, abs_of_nonneg (inv_nonneg.2 (Nat.cast_nonneg m)),
+        mul_assoc]
+      exact mul_le_mul_of_nonneg_left (hb t ht) (inv_nonneg.2 (Nat.cast_nonneg m)))
+  exact h
+
+end LinearODECoefficientPerturbation
 
 end NTK
 

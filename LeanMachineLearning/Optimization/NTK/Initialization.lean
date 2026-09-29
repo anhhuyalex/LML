@@ -9,6 +9,7 @@ public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.NTK.ChoSaulPolar
+public import Mathlib.MeasureTheory.Measure.TightNormed
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Distributions.Gaussian.Basic
@@ -756,6 +757,42 @@ theorem TendstoInDistribution.sub_const
     (hXZ : TendstoInDistribution X l Z μ μ') :
     TendstoInDistribution (fun n ω => X n ω - c) l (fun ω => Z ω - c) μ μ' :=
   hXZ.continuous_comp (continuous_sub_right c)
+
+end MeasureTheory
+
+/-! ### Uniform Norm Radius from Tightness
+
+Generic `L²`-integrability and tightness-to-radius results with no NTK-specific assumptions. -/
+
+namespace MeasureTheory
+
+/-- Under a finite measure, a real function whose self-product lies in `L²` itself lies in `L²`
+(the fourth moment controls the second). -/
+theorem memLp_two_of_memLp_two_mul_self {α : Type*} {mα : MeasurableSpace α} {μ : Measure α}
+    [IsFiniteMeasure μ] {f : α → ℝ} (hf : AEStronglyMeasurable f μ)
+    (h : MemLp (fun x => f x * f x) 2 μ) : MemLp f 2 μ := by
+  rw [memLp_two_iff_integrable_sq hf]
+  simpa [sq] using h.integrable one_le_two
+
+/-- **Uniform radius from tightness.** If the laws `(μ i).map (X i)` all lie in a tight set `S`
+of measures on a normed space, then for every `ε > 0` a single deterministic radius `R` bounds
+the tail probabilities `μ i {‖X i‖ > R}` by `ε`, uniformly in `i`. -/
+theorem exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map
+    {ι E : Type*} {Ω : ι → Type*} {mΩ : ∀ i, MeasurableSpace (Ω i)} {mE : MeasurableSpace E}
+    [NormedAddCommGroup E] [OpensMeasurableSpace E]
+    {μ : (i : ι) → Measure (Ω i)} {X : (i : ι) → Ω i → E} (hX : ∀ i, AEMeasurable (X i) (μ i))
+    {S : Set (Measure E)} (hS : IsTightMeasureSet S) (hmem : ∀ i, (μ i).map (X i) ∈ S)
+    {ε : ℝ≥0∞} (hε : 0 < ε) :
+    ∃ R : ℝ, ∀ i, μ i {ω | R < ‖X i ω‖} ≤ ε := by
+  obtain ⟨R, hR⟩ :=
+    ((tendsto_measure_norm_gt_of_isTightMeasureSet hS).eventually (gt_mem_nhds hε)).exists
+  refine ⟨R, fun i => ?_⟩
+  have hopen : MeasurableSet {x : E | R < ‖x‖} :=
+    (isOpen_lt continuous_const continuous_norm).measurableSet
+  calc μ i {ω | R < ‖X i ω‖}
+      = (μ i).map (X i) {x : E | R < ‖x‖} :=
+        (Measure.map_apply_of_aemeasurable (hX i) hopen).symm
+    _ ≤ ε := (le_iSup₂ (f := fun ν (_ : ν ∈ S) => ν {x : E | R < ‖x‖}) _ (hmem i)).trans hR.le
 
 end MeasureTheory
 
