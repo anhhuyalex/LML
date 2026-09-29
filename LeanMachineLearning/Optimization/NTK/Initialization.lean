@@ -22,6 +22,7 @@ public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
+public import Mathlib.Topology.MetricSpace.Lipschitz
 public import Mathlib.MeasureTheory.Function.ConvergenceInMeasure
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
@@ -590,6 +591,172 @@ set_option linter.style.longLine false
 
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
+
+/-! ### Varying-Space Slutsky and Subtraction Theorems
+
+Mathlib's existing Slutsky theorems (`prodMk_of_tendstoInMeasure_const` and
+`continuous_comp_prodMk_of_tendstoInMeasure_const`) require a single fixed source
+probability measure. In parameter initialization and neural network limits, random
+variables live on width-dependent probability spaces `(Ω n, μ n)`.
+
+The theorems below generalize Mathlib's Slutsky API to varying source spaces `(Ω n, μ n)`
+under tail convergence in measure to a deterministic constant `c`, with no NTK-specific
+assumptions. -/
+
+namespace MeasureTheory
+
+open Filter ProbabilityTheory _root_.BoundedContinuousFunction Topology
+
+variable {ι E E' F Ω' : Type*} {Ω : ι → Type*} {m : ∀ i, MeasurableSpace (Ω i)}
+  {μ : (i : ι) → Measure (Ω i)} [∀ i, IsProbabilityMeasure (μ i)]
+  {m' : MeasurableSpace Ω'} {μ' : Measure Ω'} [IsProbabilityMeasure μ']
+  {mE : MeasurableSpace E} [SeminormedAddCommGroup E]
+  [SecondCountableTopology E] [BorelSpace E]
+  {l : Filter ι} [l.IsCountablyGenerated]
+
+set_option backward.isDefEq.respectTransparency.types false in
+/-- If `X n` converges in distribution to `Z` along `l`, `Y n - X n` converges in measure to 0
+under varying spaces `(Ω n, μ n)`, and `Y n` is almost everywhere measurable, then `Y n`
+converges in distribution to `Z`. -/
+lemma tendstoInDistribution_of_sub (X : (i : ι) → Ω i → E)
+    (Y : (i : ι) → Ω i → E) (Z : Ω' → E)
+    (hXZ : TendstoInDistribution X l Z μ μ')
+    (hXY : ∀ ε > 0, Filter.Tendsto (fun i => μ i {ω | ε ≤ ‖Y i ω - X i ω‖}) l (nhds 0))
+    (hY : ∀ i, AEMeasurable (Y i) (μ i)) :
+    TendstoInDistribution Y l Z μ μ' := by
+  have hZ : AEMeasurable Z μ' := hXZ.aemeasurable_limit
+  have hX : ∀ i, AEMeasurable (X i) (μ i) := hXZ.forall_aemeasurable
+  rcases isEmpty_or_nonempty E with hE | hE
+  · have := hE; simp
+  let x₀ : E := hE.some
+  refine ⟨hY, hZ, ?_⟩
+  suffices ∀ (F : E → ℝ) (hF_bounded : ∃ (C : ℝ), ∀ x y, dist (F x) (F y) ≤ C)
+      (hF_lip : ∃ L, LipschitzWith L F),
+      Tendsto (fun n ↦ ∫ ω, F ω ∂((μ n).map (Y n))) l (𝓝 (∫ ω, F ω ∂(μ'.map Z))) by
+    rwa [tendsto_iff_forall_lipschitz_integral_tendsto]
+  rintro F ⟨M, hF_bounded⟩ ⟨L, hF_lip⟩
+  have hF_cont : Continuous F := hF_lip.continuous
+  obtain rfl | hL := eq_zero_or_pos L
+  · simp only [LipschitzWith.zero_iff] at hF_lip
+    specialize hF_lip x₀
+    simp only [← hF_lip, integral_const, smul_eq_mul]
+    simpa using! tendsto_const_nhds
+  simp_rw [Metric.tendsto_nhds, Real.dist_eq]
+  suffices ∀ ε > 0, ∀ᶠ n in l, |∫ ω, F ω ∂((μ n).map (Y n)) - ∫ ω, F ω ∂(μ'.map Z)| < L * ε by
+    intro ε hε
+    convert! this (ε / L) (by positivity)
+    field_simp
+  intro ε hε
+  have h_le n : |∫ ω, F ω ∂((μ n).map (Y n)) - ∫ ω, F ω ∂(μ'.map Z)|
+      ≤ L * (ε / 2) + M * (μ n).real {ω | ε / 2 ≤ ‖Y n ω - X n ω‖}
+        + |∫ ω, F ω ∂((μ n).map (X n)) - ∫ ω, F ω ∂(μ'.map Z)| := by
+    refine (abs_sub_le (∫ ω, F ω ∂((μ n).map (Y n))) (∫ ω, F ω ∂((μ n).map (X n)))
+      (∫ ω, F ω ∂(μ'.map Z))).trans ?_
+    gcongr
+    have h_int_Y : Integrable (fun x ↦ F (Y n x)) (μ n) := by
+      refine Integrable.of_bound (by fun_prop) (‖F x₀‖ + M) (ae_of_all _ fun a ↦ ?_)
+      specialize hF_bounded (Y n a) x₀
+      rw [← sub_le_iff_le_add']
+      exact (abs_sub_abs_le_abs_sub (F (Y n a)) (F x₀)).trans hF_bounded
+    have h_int_X : Integrable (fun x ↦ F (X n x)) (μ n) := by
+      refine Integrable.of_bound (by fun_prop) (‖F x₀‖ + M) (ae_of_all _ fun a ↦ ?_)
+      specialize hF_bounded (X n a) x₀
+      rw [← sub_le_iff_le_add']
+      exact (abs_sub_abs_le_abs_sub (F (X n a)) (F x₀)).trans hF_bounded
+    have h_int_sub : Integrable (fun a ↦ ‖F (Y n a) - F (X n a)‖) (μ n) := by
+      rw [integrable_norm_iff (by fun_prop)]
+      exact h_int_Y.sub h_int_X
+    rw [integral_map (by fun_prop) (by fun_prop), integral_map (by fun_prop) (by fun_prop),
+      ← integral_sub h_int_Y h_int_X, ← Real.norm_eq_abs]
+    calc ‖∫ a, F (Y n a) - F (X n a) ∂(μ n)‖
+      _ ≤ ∫ a, ‖F (Y n a) - F (X n a)‖ ∂(μ n) := norm_integral_le_integral_norm _
+      _ = ∫ a in {x | ‖Y n x - X n x‖ < ε / 2}, ‖F (Y n a) - F (X n a)‖ ∂(μ n)
+          + ∫ a in {x | ε / 2 ≤ ‖Y n x - X n x‖}, ‖F (Y n a) - F (X n a)‖ ∂(μ n) := by
+        symm
+        simp_rw [← not_lt]
+        refine integral_add_compl₀ ?_ h_int_sub
+        exact nullMeasurableSet_lt (by fun_prop) (by fun_prop)
+      _ ≤ ∫ a in {x | ‖Y n x - X n x‖ < ε / 2}, L * (ε / 2) ∂(μ n)
+          + ∫ a in {x | ε / 2 ≤ ‖Y n x - X n x‖}, M ∂(μ n) := by
+        gcongr ?_ + ?_
+        · refine setIntegral_mono_on₀ h_int_sub.integrableOn integrableOn_const ?_ ?_
+          · exact nullMeasurableSet_lt (by fun_prop) (by fun_prop)
+          · exact fun x hx ↦ hF_lip.norm_sub_le_of_le hx.le
+        · refine setIntegral_mono h_int_sub.integrableOn integrableOn_const fun a ↦ ?_
+          rw [← dist_eq_norm]
+          convert! hF_bounded _ _
+      _ = L * (ε / 2) * (μ n).real {x | ‖Y n x - X n x‖ < ε / 2}
+          + M * (μ n).real {ω | ε / 2 ≤ ‖Y n ω - X n ω‖} := by
+        simp only [integral_const, MeasurableSet.univ, measureReal_restrict_apply, Set.univ_inter,
+          smul_eq_mul]
+        ring
+      _ ≤ L * (ε / 2) + M * (μ n).real {ω | ε / 2 ≤ ‖Y n ω - X n ω‖} := by
+        rw [mul_assoc]
+        gcongr
+        grw [measureReal_le_one, mul_one]
+  have h_tendsto :
+      Tendsto (fun n ↦ L * (ε / 2) + M * (μ n).real {ω | ε / 2 ≤ ‖Y n ω - X n ω‖}
+        + |∫ ω, F ω ∂((μ n).map (X n)) - ∫ ω, F ω ∂(μ'.map Z)|) l (𝓝 (L * ε / 2)) := by
+    suffices Tendsto (fun n ↦ L * (ε / 2) + M * (μ n).real {ω | ε / 2 ≤ ‖Y n ω - X n ω‖}
+        + |∫ ω, F ω ∂((μ n).map (X n)) - ∫ ω, F ω ∂(μ'.map Z)|) l (𝓝 (L * ε / 2 + M * 0 + 0)) by
+      simpa
+    refine (Tendsto.add ?_ (Tendsto.const_mul _ ?_)).add ?_
+    · rw [mul_div_assoc]
+      exact tendsto_const_nhds
+    · have h_toReal := (ENNReal.tendsto_toReal_zero_iff fun n => measure_ne_top (μ n) _).2
+        (hXY (ε / 2) (by positivity))
+      exact h_toReal
+    · replace hXZ := hXZ.tendsto
+      simp_rw [tendsto_iff_forall_lipschitz_integral_tendsto] at hXZ
+      simpa [tendsto_iff_dist_tendsto_zero] using! hXZ F ⟨M, hF_bounded⟩ ⟨L, hF_lip⟩
+  have h_lt : L * ε / 2 < L * ε := half_lt_self (by positivity)
+  filter_upwards [h_tendsto.eventually_lt_const h_lt] with n hn using (h_le n).trans_lt hn
+
+/-- **Varying-space Slutsky's theorem**: if `X n` converges in distribution to `Z` along `l`
+under `μ n`, and `Y n` converges in measure to a deterministic constant `c` under `μ n`, then
+the joint pair `(X n, Y n)` converges in distribution to `(Z, c)`. -/
+theorem TendstoInDistribution.prodMk_of_tendsto_nhds_zero
+    {mE' : MeasurableSpace E'} [SeminormedAddCommGroup E']
+    [SecondCountableTopology E'] [BorelSpace E']
+    (X : (i : ι) → Ω i → E) (Y : (i : ι) → Ω i → E') (Z : Ω' → E)
+    {c : E'} (hXZ : TendstoInDistribution X l Z μ μ')
+    (hY : ∀ ε > 0, Filter.Tendsto (fun i => μ i {ω | ε ≤ ‖Y i ω - c‖}) l (nhds 0))
+    (hY_meas : ∀ i, AEMeasurable (Y i) (μ i)) :
+    TendstoInDistribution (fun n ω => (X n ω, Y n ω)) l (fun ω => (Z ω, c)) μ μ' := by
+  have hX : ∀ i, AEMeasurable (X i) (μ i) := hXZ.forall_aemeasurable
+  refine tendstoInDistribution_of_sub (X := fun n ω => (X n ω, c))
+    (fun n ω => (X n ω, Y n ω)) (fun ω => (Z ω, c)) ?_ ?_ (fun i => (hX i).prodMk (hY_meas i))
+  · exact hXZ.continuous_comp (g := fun x => (x, c)) (by fun_prop)
+  · intro ε hε
+    have h_norm : ∀ i ω, ‖(X i ω, Y i ω) - (X i ω, c)‖ = ‖Y i ω - c‖ := by
+      intro i ω
+      simp only [Prod.sub_def, sub_self, Prod.norm_def, norm_zero, max_eq_right (norm_nonneg _)]
+    simp_rw [h_norm]
+    exact hY ε hε
+
+/-- **Varying-space Slutsky's theorem for continuous functions**: if `X n` converges in
+distribution to `Z` under `μ n`, `Y n` converges in measure to a constant `c` under `μ n`,
+and `g` is continuous, then `g (X n, Y n)` converges in distribution to `g (Z, c)`. -/
+theorem TendstoInDistribution.continuous_comp_prodMk_of_tendsto_nhds_zero
+    {mE' : MeasurableSpace E'} [SeminormedAddCommGroup E']
+    [SecondCountableTopology E'] [BorelSpace E']
+    [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F] {g : E × E' → F} (hg : Continuous g)
+    {X : (i : ι) → Ω i → E} {Y : (i : ι) → Ω i → E'} (Z : Ω' → E)
+    {c : E'} (hXZ : TendstoInDistribution X l Z μ μ')
+    (hY : ∀ ε > 0, Filter.Tendsto (fun i => μ i {ω | ε ≤ ‖Y i ω - c‖}) l (nhds 0))
+    (hY_meas : ∀ i, AEMeasurable (Y i) (μ i)) :
+    TendstoInDistribution (fun n ω => g (X n ω, Y n ω)) l (fun ω => g (Z ω, c)) μ μ' :=
+  (hXZ.prodMk_of_tendsto_nhds_zero X Y Z hY hY_meas).continuous_comp hg
+
+omit [SecondCountableTopology E] [l.IsCountablyGenerated] in
+/-- Subtraction of a deterministic constant preserves convergence in distribution. -/
+theorem TendstoInDistribution.sub_const
+    (X : (i : ι) → Ω i → E) (Z : Ω' → E) (c : E)
+    (hXZ : TendstoInDistribution X l Z μ μ') :
+    TendstoInDistribution (fun n ω => X n ω - c) l (fun ω => Z ω - c) μ μ' :=
+  hXZ.continuous_comp (continuous_sub_right c)
+
+end MeasureTheory
 
 namespace NTK
 
@@ -4384,6 +4551,44 @@ theorem tendstoInDistribution_evalVector
   tendsto := by
     convert! outputMeasure_tendsto_multivariateGaussian φ X hφ_meas hφ_L2
     exact Subtype.ext Measure.map_id
+
+/-- Convergence in distribution of the neural network output vector evaluated on the
+paper's scaled dataset `(1 / √d) * X` to the limiting Gaussian distribution
+`𝒩(0, Φ^{(∞)}(X / √d))`. -/
+theorem tendstoInDistribution_evalVector_scaled_dataset
+    {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+      (gaussianRowMeasure d)) :
+    TendstoInDistribution
+      (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+        evalVector φ p.1 p.2 (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))
+      Filter.atTop
+      id
+      (fun n => initMeasure n d)
+      (multivariateGaussian 0
+        (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) :=
+  tendstoInDistribution_evalVector φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) hφ_meas hφ_L2
+
+/-- Initial residual weak limit on the scaled dataset `(1 / √d) * X`:
+subtracting the target vector `y` preserves convergence in distribution,
+yielding `r_n(0) ⟹ G - y` where `G ~ 𝒩(0, Φ^{(∞)})`. -/
+theorem tendstoInDistribution_initialResidual_evalVector
+    {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (y : EuclideanSpace ℝ (Fin m))
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+      (gaussianRowMeasure d)) :
+    TendstoInDistribution
+      (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+        evalVector φ p.1 p.2 (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) - y)
+      Filter.atTop
+      (fun G => G - y)
+      (fun n => initMeasure n d)
+      (multivariateGaussian 0
+        (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
+  have h := tendstoInDistribution_evalVector_scaled_dataset φ X hφ_meas hφ_L2
+  exact TendstoInDistribution.sub_const _ _ y h
 
 /-- **Theorem (Weak Convergence of Linear Combinations)**:
 As width `n → ∞`, the pushforward law of the scalar linear combination converges weakly

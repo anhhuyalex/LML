@@ -67,7 +67,6 @@ derived via a geometric argument on the sphere.
 * `NTK.chebyshev_average_pi` : Chebyshev inequality for empirical averages of an `ℒ²`
   observable under an i.i.d. product probability measure.
 * `NTK.chebyshev_average_pi_le_second_moment` : Chebyshev bound via the uncentered second moment.
-* `NTK.chebyshev_gaussianRow_average` : Chebyshev bound for Gaussian row empirical averages.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
 * `NTK.trainingOutputs` : the vector `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions
@@ -715,14 +714,6 @@ theorem chebyshev_average_pi_le_second_moment {Ω : Type*} [MeasurableSpace Ω] 
   have h_var_le := variance_le_expectation_sq hY.aestronglyMeasurable (μ := ν)
   have hc2_pos : 0 < (n : ℝ) * c ^ 2 := mul_pos (Nat.cast_pos.2 hn) (sq_pos_of_ne_zero hc.ne')
   exact div_le_div_of_nonneg_right h_var_le hc2_pos.le
-
-/-- Chebyshev inequality for empirical averages of an `ℒ²` function of i.i.d. Gaussian rows. -/
-lemma chebyshev_gaussianRow_average {d n : ℕ} (hn : 0 < n) (g : (Fin d → ℝ) → ℝ)
-    (hg : MemLp g 2 (gaussianRowMeasure d)) {c : ℝ} (hc : 0 < c) :
-    (Measure.pi fun _ : Fin n => gaussianRowMeasure d)
-      {rows | c ≤ |(n : ℝ)⁻¹ * ∑ i : Fin n, g (rows i) - ∫ w, g w ∂(gaussianRowMeasure d)|} ≤
-      ENNReal.ofReal ((∫ w, g w ^ 2 ∂(gaussianRowMeasure d)) / ((n : ℝ) * c ^ 2)) :=
-  chebyshev_average_pi_le_second_moment (gaussianRowMeasure d) hn g hg hc
 
 end IIDAverageConcentration
 
