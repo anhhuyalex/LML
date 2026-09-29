@@ -91,6 +91,11 @@ attribute [local instance]
   Matrix.frobeniusNormedAddCommGroup
   Matrix.frobeniusNormedSpace
 
+instance (priority := 100) {m n : Type*} [Finite m] [Finite n] :
+    SecondCountableTopology (Matrix m n ℝ) :=
+  inferInstanceAs (SecondCountableTopology (m → n → ℝ))
+
+
 @[expose] public section
 
 /-- Total parameter count for a two-layer network with width `n` and input dimension `d`:
@@ -243,6 +248,22 @@ lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d 
     (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
     netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ x) :=
   evalSingle_eq_normalized_sum φ (unpackW θ) (unpackA θ) x
+
+@[simp]
+lemma trainingOutputs_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
+    trainingOutputs (netFromParams φ n d) X (packParams W a) = evalVector φ W a X := by
+  unfold trainingOutputs evalVector netFromParams
+  simp only [unpackW_packParams, unpackA_packParams]
+
+@[simp]
+lemma trainingResidual_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
+    trainingResidual (netFromParams φ n d) X y (packParams W a) =
+      evalVector φ W a X - y := by
+  simp only [trainingResidual, trainingOutputs_netFromParams_packParams]
+
 
 /-- Gradient block for input weights `W`:
 `∂f/∂W_{i, j} = n^{-1/2} a_i φ'(W_i ⊙ x) x_j`. -/
@@ -1616,6 +1637,129 @@ theorem tendsto_initMeasure_initial_spectral_gap_failure
       by_contra! h_lt
       exact hp (initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
         φ X n p lambda_inf hK_gap h_lt.le))
+
+/-- Measurability of the empirical NTK matrix evaluated on packed parameters
+`packParams p.1 p.2` under `initMeasure n d`. -/
+lemma measurable_empiricalNTKMatrix_netFromParams_packParams
+    {m d n : ℕ} (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ) :
+    Measurable (fun (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+      empiricalNTKMatrix (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) := by
+  change Measurable (fun (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) (α β : Fin m) =>
+    empiricalNTKMatrix (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) α β)
+  rw [measurable_pi_iff]
+  intro α
+  rw [measurable_pi_iff]
+  intro β
+  have h_eq : (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      empiricalNTKMatrix (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) α β) =
+      fun p => (n : ℝ)⁻¹ * ∑ i : Fin n,
+        (φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X α)) *
+         φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X β)) +
+         p.2 i ^ 2 *
+         deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X α)) *
+         deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X β)) *
+         ((d : ℝ)⁻¹ * (X α ⊙ X β))) := by
+    ext p
+    have h := empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X
+      (packParams p.1 p.2) (fun _ _ => hφ_diff.differentiableAt) α β
+    simp only [unpackW_packParams, unpackA_packParams] at h
+    exact h
+  rw [h_eq]
+  refine Measurable.const_mul ?_ _
+  refine Finset.measurable_sum Finset.univ fun i _ => ?_
+  have h_w : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.1 i) :=
+    (measurable_pi_apply i).comp measurable_fst
+  have h_a : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i) :=
+    (measurable_pi_apply i).comp measurable_snd
+  have h_wx (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      (Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X k)) :=
+    ((measurable_innerProduct_left (X k)).comp h_w).const_mul _
+  have h_φ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X k))) :=
+    hφ_diff.continuous.measurable.comp (h_wx k)
+  have h_dφ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X k))) :=
+    hdφ_meas.comp (h_wx k)
+  have h_a2 : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i ^ 2) :=
+    (continuous_pow 2).measurable.comp h_a
+  exact (h_φ α).mul (h_φ β) |>.add <|
+    ((h_a2.mul (h_dφ α)).mul (h_dφ β)).mul_const _
+
+
+
+/-- Initial training residual weak limit on the paper's scaled dataset `(1 / √d) * X`:
+the residual under initialization converges in distribution to `G - y`,
+where `G ~ 𝒩(0, Φ^{(∞)}(X / √d))`. -/
+theorem tendstoInDistribution_initial_trainingResidual
+    {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (y : EuclideanSpace ℝ (Fin m))
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+      (gaussianRowMeasure d)) :
+    TendstoInDistribution
+      (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+        trainingResidual (netFromParams φ n d)
+          (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2))
+      Filter.atTop
+      (fun G => G - y)
+      (fun n => initMeasure n d)
+      (multivariateGaussian 0
+        (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
+  simp_rw [trainingResidual_netFromParams_packParams]
+  exact tendstoInDistribution_initialResidual_evalVector φ X y hφ_meas hφ_L2
+
+/-- **Theorem (Joint Output and NTK Weak Convergence at Initialization)**:
+As width `n → ∞`, the joint law of the initial training residual
+`r_n(0) = trainingResidual (netFromParams φ n d) X_scaled y θ_0`
+and the full empirical NTK matrix
+`K_n(0) = empiricalNTKMatrix (netFromParams φ n d) X_scaled θ_0`
+converges in distribution to the joint pair `(G - y, limitingFullNTKMatrix φ X)`
+under `initMeasure n d`, where `G ~ 𝒩(0, Φ^{(∞)})` and `K_∞` is deterministic. -/
+theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (hφ_L2 : ∀ α β : Fin m,
+      MemLp (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : ∀ α β : Fin m,
+      MemLp (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+      (gaussianRowMeasure d)) :
+    TendstoInDistribution
+      (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+        (trainingResidual (netFromParams φ n d)
+           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2),
+         empiricalNTKMatrix (netFromParams φ n d)
+           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)))
+      Filter.atTop
+      (fun G => (G - y, limitingFullNTKMatrix φ X))
+      (fun n => initMeasure n d)
+      (multivariateGaussian 0
+        (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
+  have hX := tendstoInDistribution_initial_trainingResidual φ X y
+    hφ_diff.continuous.measurable hφ_out_L2
+  have hY : ∀ ε > 0, Filter.Tendsto
+      (fun n => (initMeasure n d)
+        {p | ε ≤
+          ‖empiricalNTKMatrix (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) -
+            limitingFullNTKMatrix φ X‖})
+      Filter.atTop (nhds 0) :=
+    fun ε hε => tendsto_initMeasure_empiricalNTKMatrix_ge_eps hm hd φ hφ_diff hdφ_meas X
+      hφ_L2 hdφ_L2 hε
+  have hY_meas : ∀ n, AEMeasurable (fun p => empiricalNTKMatrix (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) (initMeasure n d) :=
+    fun n => (measurable_empiricalNTKMatrix_netFromParams_packParams
+      hd φ hφ_diff hdφ_meas X).aemeasurable
+  exact TendstoInDistribution.prodMk_of_tendsto_nhds_zero _ _ _ hX hY hY_meas
 
 end FiniteWidthNTKConcentration
 

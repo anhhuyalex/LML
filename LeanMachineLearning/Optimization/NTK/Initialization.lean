@@ -21,6 +21,7 @@ public import Mathlib.Probability.StrongLaw
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.LevyConvergence
+public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.TaylorExpansion
 public import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
 public import Mathlib.Topology.MetricSpace.Lipschitz
 public import Mathlib.MeasureTheory.Function.ConvergenceInMeasure
@@ -4589,6 +4590,33 @@ theorem tendstoInDistribution_initialResidual_evalVector
         (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
   have h := tendstoInDistribution_evalVector_scaled_dataset φ X hφ_meas hφ_L2
   exact TendstoInDistribution.sub_const _ _ y h
+
+/-- Tightness of the sequence of output laws `outputMeasure n d φ X` as `n` varies:
+follows from pointwise convergence of characteristic functions to the multivariate Gaussian
+via Lévy continuity (`MeasureTheory.isTightMeasureSet_of_tendsto_charFun`). -/
+theorem isTightMeasureSet_range_outputMeasure
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    IsTightMeasureSet (Set.range (outputMeasure · d φ X)) := by
+  have : ∀ n, IsProbabilityMeasure (outputMeasure n d φ X) :=
+    fun n => isProbabilityMeasure_outputMeasure n d φ hφ_meas X
+  have hCont : ContinuousAt
+      (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (limitingCovariance φ X))) 0 :=
+    continuous_charFun.continuousAt
+  exact isTightMeasureSet_of_tendsto_charFun hCont
+    (fun t => tendsto_charFun_outputMeasure_eq_multivariateGaussian φ X hφ_meas hφ_L2 t)
+
+/-- Tightness of the sequence of output laws on the scaled dataset `(1 / √d) * X`. -/
+theorem isTightMeasureSet_range_outputMeasure_scaled_dataset
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_meas : Measurable φ)
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+      (gaussianRowMeasure d)) :
+    IsTightMeasureSet
+      (Set.range (outputMeasure · d φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) :=
+  isTightMeasureSet_range_outputMeasure φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+    hφ_meas hφ_L2
 
 /-- **Theorem (Weak Convergence of Linear Combinations)**:
 As width `n → ∞`, the pushforward law of the scalar linear combination converges weakly
