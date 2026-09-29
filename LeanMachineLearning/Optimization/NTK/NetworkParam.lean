@@ -80,20 +80,68 @@ no free `hlazy`/`hLip` hypotheses.
   failure concentration bound under `initMeasure n d`.
 - `tendsto_initMeasure_initial_spectral_gap_failure` : spectral-gap failure measure tends to zero
   as width `n → ∞`.
+- `measurable_empiricalNTKMatrix_netFromParams_packParams` : measurability of the empirical NTK
+  matrix on packed parameters under `initMeasure n d`.
+- `tendstoInDistribution_initial_trainingResidual` : canonical initial training residual weak limit
+  `r_n(0) ⟹ G - y` on the scaled dataset `(1 / √d) * X`.
+- `tendstoInDistribution_joint_initial_residual_empiricalNTK` : joint weak convergence of initial
+  training residual and empirical NTK matrix `(r_n(0), K_n(0)) ⟹ (G - y, K_∞)`.
 -/
 
 namespace NTK
 
-open ConvexOpt MeasureTheory
+open ConvexOpt MeasureTheory ProbabilityTheory
 open scoped BigOperators RealInnerProductSpace Matrix Matrix.Norms.Frobenius
 
 attribute [local instance]
   Matrix.frobeniusNormedAddCommGroup
   Matrix.frobeniusNormedSpace
 
-instance (priority := 100) {m n : Type*} [Finite m] [Finite n] :
-    SecondCountableTopology (Matrix m n ℝ) :=
-  inferInstanceAs (SecondCountableTopology (m → n → ℝ))
+/-- Under the Frobenius norm (`Matrix.frobeniusNormedAddCommGroup`), `Matrix ι κ ℝ`
+inherits a topology induced by `PiLp 2`. Because Mathlib's `PiLp` topology is
+homeomorphic to, but not definitionally equal to, the standard product topology on `ι → κ → ℝ`,
+Lean's default typeclass search cannot synthesize `SecondCountableTopology` for the
+Frobenius matrix space directly via `inferInstanceAs (SecondCountableTopology (ι → κ → ℝ))`.
+Furthermore, defining an instance with `[Fintype]` triggers Mathlib's `unusedFintypeInType` linter
+because `Matrix ι κ ℝ` as a type does not mention `Fintype` in its default typeclass tree.
+Conversely, using `[Finite]` alone fails because `inferInstanceAs` cannot match
+`Matrix.frobeniusNormedAddCommGroup`.
+
+To resolve this cleanly without linter warnings or global instance leaks, we locally establish
+`SecondCountableTopology` for any finite-dimensional real matrix space by constructing a continuous
+linear equivalence `Matrix ι κ ℝ ≃L[ℝ] Fin D → ℝ` (`ContinuousLinearEquiv.ofFinrankEq`)
+and transporting second-countability from `Fin D → ℝ`. -/
+local instance (priority := 2000) (ι κ : Type*) [Finite ι] [Finite κ] :
+    SecondCountableTopology (Matrix ι κ ℝ) := by
+  let D := Module.finrank ℝ (Matrix ι κ ℝ)
+  let e : Matrix ι κ ℝ ≃L[ℝ] Fin D → ℝ :=
+    ContinuousLinearEquiv.ofFinrankEq (Module.finrank_fin_fun ℝ).symm
+  exact e.toHomeomorph.secondCountableTopology
+
+/-- The instance above is stated for Mathlib's default topology on `Matrix`, whereas the lemmas
+below ask for `SecondCountableTopology` (and `BorelSpace`) with respect to the topology derived
+from the Frobenius norm. The two topologies are defeq only at default transparency, which typeclass
+search does not use, so we restate the instance with the Frobenius-derived topology pinned
+explicitly. -/
+local instance (priority := 2000) instSecondCountableTopologyMatrixFrobenius (m : ℕ) :
+    @SecondCountableTopology (Matrix (Fin m) (Fin m) ℝ)
+      (@UniformSpace.toTopologicalSpace _ (@PseudoMetricSpace.toUniformSpace _
+        (@SeminormedAddCommGroup.toPseudoMetricSpace _
+          (@NormedAddCommGroup.toSeminormedAddCommGroup _ Matrix.frobeniusNormedAddCommGroup)))) := by
+  letI : NormedAddCommGroup (Matrix (Fin m) (Fin m) ℝ) := Matrix.frobeniusNormedAddCommGroup
+  letI : NormedSpace ℝ (Matrix (Fin m) (Fin m) ℝ) := Matrix.frobeniusNormedSpace
+  exact @secondCountable_of_proper _ NormedAddCommGroup.toSeminormedAddCommGroup.toPseudoMetricSpace
+    (FiniteDimensional.proper_real (Matrix (Fin m) (Fin m) ℝ))
+
+/-- `BorelSpace` for the Frobenius-derived topology on `Matrix (Fin m) (Fin m) ℝ`; see
+`instSecondCountableTopologyMatrixFrobenius`. -/
+local instance (priority := 2000) instBorelSpaceMatrixFrobenius (m : ℕ) :
+    @BorelSpace (Matrix (Fin m) (Fin m) ℝ)
+      (@UniformSpace.toTopologicalSpace _ (@PseudoMetricSpace.toUniformSpace _
+        (@SeminormedAddCommGroup.toPseudoMetricSpace _
+          (@NormedAddCommGroup.toSeminormedAddCommGroup _ Matrix.frobeniusNormedAddCommGroup))))
+      Matrix.instMeasurableSpace := by
+  exact (inferInstance : BorelSpace (Matrix (Fin m) (Fin m) ℝ))
 
 
 @[expose] public section
@@ -1638,34 +1686,38 @@ theorem tendsto_initMeasure_initial_spectral_gap_failure
       exact hp (initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
         φ X n p lambda_inf hK_gap h_lt.le))
 
+end FiniteWidthNTKConcentration
+
+section JointOutputKernelInitialization
+
+local instance (priority := 2000) (m : ℕ) :
+    SecondCountableTopology (Matrix (Fin m) (Fin m) ℝ) := by
+  let D := Module.finrank ℝ (Matrix (Fin m) (Fin m) ℝ)
+  let e : Matrix (Fin m) (Fin m) ℝ ≃L[ℝ] Fin D → ℝ :=
+    ContinuousLinearEquiv.ofFinrankEq (Module.finrank_fin_fun ℝ).symm
+  exact e.toHomeomorph.secondCountableTopology
+
 /-- Measurability of the empirical NTK matrix evaluated on packed parameters
-`packParams p.1 p.2` under `initMeasure n d`. -/
+`packParams p.1 p.2` on an arbitrary dataset `X`. -/
 lemma measurable_empiricalNTKMatrix_netFromParams_packParams
-    {m d n : ℕ} (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    {m d n : ℕ} (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ) :
     Measurable (fun (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
-      empiricalNTKMatrix (netFromParams φ n d)
-        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) := by
+      empiricalNTKMatrix (netFromParams φ n d) X (packParams p.1 p.2)) := by
   change Measurable (fun (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) (α β : Fin m) =>
-    empiricalNTKMatrix (netFromParams φ n d)
-      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) α β)
+    empiricalNTKMatrix (netFromParams φ n d) X (packParams p.1 p.2) α β)
   rw [measurable_pi_iff]
   intro α
   rw [measurable_pi_iff]
   intro β
   have h_eq : (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      empiricalNTKMatrix (netFromParams φ n d)
-        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) α β) =
+      empiricalNTKMatrix (netFromParams φ n d) X (packParams p.1 p.2) α β) =
       fun p => (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X α)) *
-         φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X β)) +
-         p.2 i ^ 2 *
-         deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X α)) *
-         deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X β)) *
-         ((d : ℝ)⁻¹ * (X α ⊙ X β))) := by
+        (φ (p.1 i ⊙ X α) * φ (p.1 i ⊙ X β) +
+         p.2 i ^ 2 * deriv φ (p.1 i ⊙ X α) * deriv φ (p.1 i ⊙ X β) * (X α ⊙ X β)) := by
     ext p
-    have h := empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X
+    have h := empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m X
       (packParams p.1 p.2) (fun _ _ => hφ_diff.differentiableAt) α β
     simp only [unpackW_packParams, unpackA_packParams] at h
     exact h
@@ -1677,20 +1729,18 @@ lemma measurable_empiricalNTKMatrix_netFromParams_packParams
   have h_a : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i) :=
     (measurable_pi_apply i).comp measurable_snd
   have h_wx (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      (Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X k)) :=
-    ((measurable_innerProduct_left (X k)).comp h_w).const_mul _
+      p.1 i ⊙ X k) :=
+    (measurable_innerProduct_left (X k)).comp h_w
   have h_φ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X k))) :=
+      φ (p.1 i ⊙ X k)) :=
     hφ_diff.continuous.measurable.comp (h_wx k)
   have h_dφ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (p.1 i ⊙ X k))) :=
+      deriv φ (p.1 i ⊙ X k)) :=
     hdφ_meas.comp (h_wx k)
   have h_a2 : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i ^ 2) :=
     (continuous_pow 2).measurable.comp h_a
   exact (h_φ α).mul (h_φ β) |>.add <|
     ((h_a2.mul (h_dφ α)).mul (h_dφ β)).mul_const _
-
-
 
 /-- Initial training residual weak limit on the paper's scaled dataset `(1 / √d) * X`:
 the residual under initialization converges in distribution to `G - y`,
@@ -1757,11 +1807,12 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
       hφ_L2 hdφ_L2 hε
   have hY_meas : ∀ n, AEMeasurable (fun p => empiricalNTKMatrix (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) (initMeasure n d) :=
-    fun n => (measurable_empiricalNTKMatrix_netFromParams_packParams
-      hd φ hφ_diff hdφ_meas X).aemeasurable
-  exact TendstoInDistribution.prodMk_of_tendsto_nhds_zero _ _ _ hX hY hY_meas
+    fun n => (measurable_empiricalNTKMatrix_netFromParams_packParams φ hφ_diff hdφ_meas
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)).aemeasurable
+  exact TendstoInDistribution.prodMk_of_tendsto_measure_norm_sub_const (E' := Matrix (Fin m) (Fin m) ℝ) (c := limitingFullNTKMatrix φ X) hX hY hY_meas
 
-end FiniteWidthNTKConcentration
+end JointOutputKernelInitialization
+
 
 
 /-! ### Phase 6: End-to-End Kernel-Freeze Bound

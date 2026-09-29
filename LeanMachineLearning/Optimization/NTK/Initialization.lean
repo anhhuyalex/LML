@@ -619,7 +619,7 @@ set_option backward.isDefEq.respectTransparency.types false in
 /-- If `X n` converges in distribution to `Z` along `l`, `Y n - X n` converges in measure to 0
 under varying spaces `(Ω n, μ n)`, and `Y n` is almost everywhere measurable, then `Y n`
 converges in distribution to `Z`. -/
-lemma tendstoInDistribution_of_sub (X : (i : ι) → Ω i → E)
+lemma tendstoInDistribution_of_tendsto_measure_norm_sub (X : (i : ι) → Ω i → E)
     (Y : (i : ι) → Ω i → E) (Z : Ω' → E)
     (hXZ : TendstoInDistribution X l Z μ μ')
     (hXY : ∀ ε > 0, Filter.Tendsto (fun i => μ i {ω | ε ≤ ‖Y i ω - X i ω‖}) l (nhds 0))
@@ -636,7 +636,7 @@ lemma tendstoInDistribution_of_sub (X : (i : ι) → Ω i → E)
       Tendsto (fun n ↦ ∫ ω, F ω ∂((μ n).map (Y n))) l (𝓝 (∫ ω, F ω ∂(μ'.map Z))) by
     rwa [tendsto_iff_forall_lipschitz_integral_tendsto]
   rintro F ⟨M, hF_bounded⟩ ⟨L, hF_lip⟩
-  have hF_cont : Continuous F := hF_lip.continuous
+  have : Continuous F := hF_lip.continuous
   obtain rfl | hL := eq_zero_or_pos L
   · simp only [LipschitzWith.zero_iff] at hF_lip
     specialize hF_lip x₀
@@ -716,16 +716,16 @@ lemma tendstoInDistribution_of_sub (X : (i : ι) → Ω i → E)
 /-- **Varying-space Slutsky's theorem**: if `X n` converges in distribution to `Z` along `l`
 under `μ n`, and `Y n` converges in measure to a deterministic constant `c` under `μ n`, then
 the joint pair `(X n, Y n)` converges in distribution to `(Z, c)`. -/
-theorem TendstoInDistribution.prodMk_of_tendsto_nhds_zero
+theorem TendstoInDistribution.prodMk_of_tendsto_measure_norm_sub_const
     {mE' : MeasurableSpace E'} [SeminormedAddCommGroup E']
     [SecondCountableTopology E'] [BorelSpace E']
-    (X : (i : ι) → Ω i → E) (Y : (i : ι) → Ω i → E') (Z : Ω' → E)
+    {X : (i : ι) → Ω i → E} {Y : (i : ι) → Ω i → E'} {Z : Ω' → E}
     {c : E'} (hXZ : TendstoInDistribution X l Z μ μ')
     (hY : ∀ ε > 0, Filter.Tendsto (fun i => μ i {ω | ε ≤ ‖Y i ω - c‖}) l (nhds 0))
     (hY_meas : ∀ i, AEMeasurable (Y i) (μ i)) :
     TendstoInDistribution (fun n ω => (X n ω, Y n ω)) l (fun ω => (Z ω, c)) μ μ' := by
   have hX : ∀ i, AEMeasurable (X i) (μ i) := hXZ.forall_aemeasurable
-  refine tendstoInDistribution_of_sub (X := fun n ω => (X n ω, c))
+  refine tendstoInDistribution_of_tendsto_measure_norm_sub (X := fun n ω => (X n ω, c))
     (fun n ω => (X n ω, Y n ω)) (fun ω => (Z ω, c)) ?_ ?_ (fun i => (hX i).prodMk (hY_meas i))
   · exact hXZ.continuous_comp (g := fun x => (x, c)) (by fun_prop)
   · intro ε hε
@@ -738,7 +738,7 @@ theorem TendstoInDistribution.prodMk_of_tendsto_nhds_zero
 /-- **Varying-space Slutsky's theorem for continuous functions**: if `X n` converges in
 distribution to `Z` under `μ n`, `Y n` converges in measure to a constant `c` under `μ n`,
 and `g` is continuous, then `g (X n, Y n)` converges in distribution to `g (Z, c)`. -/
-theorem TendstoInDistribution.continuous_comp_prodMk_of_tendsto_nhds_zero
+theorem TendstoInDistribution.continuous_comp_prodMk_of_tendsto_measure_norm_sub_const
     {mE' : MeasurableSpace E'} [SeminormedAddCommGroup E']
     [SecondCountableTopology E'] [BorelSpace E']
     [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F] {g : E × E' → F} (hg : Continuous g)
@@ -747,7 +747,7 @@ theorem TendstoInDistribution.continuous_comp_prodMk_of_tendsto_nhds_zero
     (hY : ∀ ε > 0, Filter.Tendsto (fun i => μ i {ω | ε ≤ ‖Y i ω - c‖}) l (nhds 0))
     (hY_meas : ∀ i, AEMeasurable (Y i) (μ i)) :
     TendstoInDistribution (fun n ω => g (X n ω, Y n ω)) l (fun ω => g (Z ω, c)) μ μ' :=
-  (hXZ.prodMk_of_tendsto_nhds_zero X Y Z hY hY_meas).continuous_comp hg
+  (hXZ.prodMk_of_tendsto_measure_norm_sub_const hY hY_meas).continuous_comp hg
 
 omit [SecondCountableTopology E] [l.IsCountablyGenerated] in
 /-- Subtraction of a deterministic constant preserves convergence in distribution. -/
