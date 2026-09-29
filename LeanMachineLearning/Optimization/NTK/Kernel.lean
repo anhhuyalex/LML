@@ -62,6 +62,12 @@ derived via a geometric argument on the sphere.
   `abs_ntkSummand_le`, `integrable_ntkSummand`).
 * `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
   measurable integrable functions of iid Gaussian rows.
+* `NTK.variance_average_pi` : variance of an empirical average under an i.i.d. product
+  probability measure.
+* `NTK.chebyshev_average_pi` : Chebyshev inequality for empirical averages of an `ℒ²`
+  observable under an i.i.d. product probability measure.
+* `NTK.chebyshev_average_pi_le_second_moment` : Chebyshev bound via the uncentered second moment.
+* `NTK.chebyshev_gaussianRow_average` : Chebyshev bound for Gaussian row empirical averages.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
 * `NTK.trainingOutputs` : the vector `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions on the training dataset.
@@ -604,8 +610,11 @@ lemma gaussianRow_average_tendsto_integral
 
 /-! ### Generic Finite-Sample Concentration for i.i.d. Averages -/
 
+section IIDAverageConcentration
+
 /-- Integration of coordinate evaluation under a finite product probability measure. -/
-lemma integral_coord_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsProbabilityMeasure ν]
+private lemma integral_coord_pi {Ω : Type*} [MeasurableSpace Ω]
+    (ν : Measure Ω) [IsProbabilityMeasure ν]
     {n : ℕ} (Y : Ω → ℝ) (hY : MemLp Y 2 ν) (i : Fin n) :
     ∫ ω : Fin n → Ω, Y (ω i) ∂(Measure.pi fun _ : Fin n => ν) = ∫ x, Y x ∂ν := by
   have h_mp := measurePreserving_eval (fun _ : Fin n => ν) i
@@ -622,7 +631,8 @@ lemma integral_coord_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsP
   exact (integral_map h_meas h_aestrong).symm
 
 /-- An empirical average of coordinate functions is in `ℒ²` under a product probability measure. -/
-lemma memLp_two_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsProbabilityMeasure ν]
+private lemma memLp_two_average_pi {Ω : Type*} [MeasurableSpace Ω]
+    (ν : Measure Ω) [IsProbabilityMeasure ν]
     (n : ℕ) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
     MemLp (fun ω : Fin n → Ω => (n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) 2
       (Measure.pi fun _ : Fin n => ν) := by
@@ -635,7 +645,8 @@ lemma memLp_two_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [
   exact h_sum.const_mul (n : ℝ)⁻¹
 
 /-- Expectation of an empirical average under a finite product probability measure. -/
-lemma integral_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsProbabilityMeasure ν]
+private lemma integral_average_pi {Ω : Type*} [MeasurableSpace Ω]
+    (ν : Measure Ω) [IsProbabilityMeasure ν]
     {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
     ∫ ω : Fin n → Ω, ((n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) ∂(Measure.pi fun _ : Fin n => ν) =
       ∫ x, Y x ∂ν := by
@@ -711,6 +722,8 @@ lemma chebyshev_gaussianRow_average {d n : ℕ} (hn : 0 < n) (g : (Fin d → ℝ
       {rows | c ≤ |(n : ℝ)⁻¹ * ∑ i : Fin n, g (rows i) - ∫ w, g w ∂(gaussianRowMeasure d)|} ≤
       ENNReal.ofReal ((∫ w, g w ^ 2 ∂(gaussianRowMeasure d)) / ((n : ℝ) * c ^ 2)) :=
   chebyshev_average_pi_le_second_moment (gaussianRowMeasure d) hn g hg hc
+
+end IIDAverageConcentration
 
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
 For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid
