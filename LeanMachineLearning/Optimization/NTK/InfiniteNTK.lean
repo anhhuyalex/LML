@@ -165,8 +165,6 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
   a Rayleigh-quotient lower bound: `(K - λ • 1).PosSemidef ⟹ λ ‖v‖² ≤ vᵀ K v`.
 * `NTK.rayleigh_quotient_lower_bound_of_matrix_dist` : Rayleigh-quotient stability under a
   matrix distance bound `‖K - K₀‖ ≤ ε`.
-* `NTK.rayleigh_lower_bound_of_matrix_dist_posSemidef` : Rayleigh-quotient lower bound under
-  matrix perturbation of a shifted PSD matrix.
 * `NTK.rayleigh_quotient_lower_bound_of_displacement` : Gap 5 Step 2 deliverable - the
   spectral-gap hypothesis at `θ₀` propagates to any `θ` with degraded constant
   `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
@@ -1381,19 +1379,6 @@ theorem rayleigh_quotient_lower_bound_of_matrix_dist
   have h3 : ‖K - K₀‖ * ‖v‖ ^ 2 ≤ ε * ‖v‖ ^ 2 :=
     mul_le_mul_of_nonneg_right hK_dist (sq_nonneg _)
   nlinarith [h1, h2, h3]
-
-/-- A matrix within Frobenius distance `lambda_min / 2` of a shifted positive semidefinite matrix
-`K₀ - lambda_min • 1` maintains a Rayleigh lower bound with constant `lambda_min / 2`. -/
-theorem rayleigh_lower_bound_of_matrix_dist_posSemidef
-    {m : ℕ} (K K₀ : Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
-    (hK₀ : (K₀ - lambda_min • (1 : Matrix (Fin m) (Fin m) ℝ)).PosSemidef)
-    (hK_dist : ‖K - K₀‖ ≤ lambda_min / 2) (v : EuclideanSpace ℝ (Fin m)) :
-    (lambda_min / 2) * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K *ᵥ v.ofLp) := by
-  have h_rr₀ := rayleigh_lower_bound_of_sub_smul_posSemidef K₀ lambda_min hK₀
-  have h_bound := rayleigh_quotient_lower_bound_of_matrix_dist K K₀ lambda_min
-    (lambda_min / 2) h_rr₀ hK_dist v
-  have heq : lambda_min - lambda_min / 2 = lambda_min / 2 := by ring
-  rwa [heq] at h_bound
 
 /-- Rayleigh-quotient stability of the empirical NTK Gram matrix under parameter displacement:
 if `θ₀`'s empirical NTK matrix has Rayleigh quotient bounded below by `lambda_min₀`, and the
