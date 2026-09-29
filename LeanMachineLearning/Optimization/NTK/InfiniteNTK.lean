@@ -1349,22 +1349,22 @@ theorem abs_dotProduct_mulVec_sub_le (A B : Matrix (Fin m) (Fin m) ℝ)
       mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) v) (norm_nonneg _)
     _ = ‖A - B‖ * ‖v‖ ^ 2 := by ring
 
-/-- A shifted positive semidefinite matrix `K - λ • 1` satisfies the Rayleigh quotient lower
-bound `λ * ‖v‖² ≤ vᵀ K v` for all `v`. -/
+/-- A shifted positive semidefinite matrix `K - lambda_min • 1` satisfies the Rayleigh quotient
+lower bound `lambda_min * ‖v‖² ≤ vᵀ K v` for all `v`. -/
 theorem rayleigh_lower_bound_of_sub_smul_posSemidef
-    {m : ℕ} (K : Matrix (Fin m) (Fin m) ℝ) (λ_min : ℝ)
-    (hK : (K - λ_min • (1 : Matrix (Fin m) (Fin m) ℝ)).PosSemidef)
+    {m : ℕ} (K : Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
+    (hK : (K - lambda_min • (1 : Matrix (Fin m) (Fin m) ℝ)).PosSemidef)
     (v : EuclideanSpace ℝ (Fin m)) :
-    λ_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K *ᵥ v.ofLp) := by
+    lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K *ᵥ v.ofLp) := by
   have h_nonneg := Matrix.PosSemidef.dotProduct_mulVec_nonneg hK v.ofLp
   rw [star_trivial] at h_nonneg
-  have h_mul : (K - λ_min • (1 : Matrix (Fin m) (Fin m) ℝ)) *ᵥ v.ofLp =
-      K *ᵥ v.ofLp - λ_min • v.ofLp := by
+  have h_mul : (K - lambda_min • (1 : Matrix (Fin m) (Fin m) ℝ)) *ᵥ v.ofLp =
+      K *ᵥ v.ofLp - lambda_min • v.ofLp := by
     rw [Matrix.sub_mulVec, Matrix.smul_mulVec, Matrix.one_mulVec]
-  rw [h_mul, dotProduct_sub, dotProduct_smul] at h_nonneg
+  rw [h_mul, dotProduct_sub, dotProduct_smul, smul_eq_mul] at h_nonneg
   have h_norm : v.ofLp ⬝ᵥ v.ofLp = ‖v‖ ^ 2 := by
-    rw [EuclideanSpace.real_norm_sq_eq]
-    exact (dotProduct_self_eq_sum (v.ofLp)).symm
+    rw [dotProduct, EuclideanSpace.real_norm_sq_eq]
+    exact Finset.sum_congr rfl fun i _ => (sq (v.ofLp i)).symm
   rw [h_norm] at h_nonneg
   linarith
 
@@ -1382,16 +1382,17 @@ theorem rayleigh_quotient_lower_bound_of_matrix_dist
     mul_le_mul_of_nonneg_right hK_dist (sq_nonneg _)
   nlinarith [h1, h2, h3]
 
-/-- A matrix within Frobenius distance `λ_min / 2` of a shifted positive semidefinite matrix
-`K₀ - λ_min • 1` maintains a Rayleigh lower bound with constant `λ_min / 2`. -/
+/-- A matrix within Frobenius distance `lambda_min / 2` of a shifted positive semidefinite matrix
+`K₀ - lambda_min • 1` maintains a Rayleigh lower bound with constant `lambda_min / 2`. -/
 theorem rayleigh_lower_bound_of_matrix_dist_posSemidef
-    {m : ℕ} (K K₀ : Matrix (Fin m) (Fin m) ℝ) (λ_min : ℝ)
-    (hK₀ : (K₀ - λ_min • (1 : Matrix (Fin m) (Fin m) ℝ)).PosSemidef)
-    (hK_dist : ‖K - K₀‖ ≤ λ_min / 2) (v : EuclideanSpace ℝ (Fin m)) :
-    (λ_min / 2) * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K *ᵥ v.ofLp) := by
-  have h_rr₀ := rayleigh_lower_bound_of_sub_smul_posSemidef K₀ λ_min hK₀
-  have h_bound := rayleigh_quotient_lower_bound_of_matrix_dist K K₀ λ_min (λ_min / 2) h_rr₀ hK_dist v
-  have heq : λ_min - λ_min / 2 = λ_min / 2 := by ring
+    {m : ℕ} (K K₀ : Matrix (Fin m) (Fin m) ℝ) (lambda_min : ℝ)
+    (hK₀ : (K₀ - lambda_min • (1 : Matrix (Fin m) (Fin m) ℝ)).PosSemidef)
+    (hK_dist : ‖K - K₀‖ ≤ lambda_min / 2) (v : EuclideanSpace ℝ (Fin m)) :
+    (lambda_min / 2) * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K *ᵥ v.ofLp) := by
+  have h_rr₀ := rayleigh_lower_bound_of_sub_smul_posSemidef K₀ lambda_min hK₀
+  have h_bound := rayleigh_quotient_lower_bound_of_matrix_dist K K₀ lambda_min
+    (lambda_min / 2) h_rr₀ hK_dist v
+  have heq : lambda_min - lambda_min / 2 = lambda_min / 2 := by ring
   rwa [heq] at h_bound
 
 /-- Rayleigh-quotient stability of the empirical NTK Gram matrix under parameter displacement:

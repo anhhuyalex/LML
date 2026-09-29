@@ -76,8 +76,8 @@ no free `hlazy`/`hLip` hypotheses.
   the empirical NTK matrix in Frobenius norm under `initMeasure n d`.
 - `initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le` : Rayleigh lower bound
   transfer from `limitingFullNTKMatrix` under Frobenius distance `λ_min / 2`.
-- `chebyshev_matrix_empiricalNTKMatrix_spectral_gap` : finite-width initial spectral-gap concentration
-  bound under `initMeasure n d`.
+- `chebyshev_matrix_empiricalNTKMatrix_spectral_gap` : finite-width initial spectral-gap
+  concentration bound under `initMeasure n d`.
 - `tendsto_initMeasure_initial_spectral_gap` : asymptotic probability tending to 1 for initial
   empirical NTK spectral gap.
 -/
@@ -1347,7 +1347,7 @@ private lemma exists_entry_ge_of_frobenius_ge {m : ℕ} (hm : 0 < m)
         ring
       _ = ε ^ (2 : ℝ) := mul_div_cancel₀ _ hm_ne
   rw [heq] at h_sum_outer
-  rw [frobenius_norm_def] at hA
+  rw [Matrix.frobenius_norm_def] at hA
   have h_sum_nonneg : 0 ≤ ∑ i : Fin m, ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) :=
     Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => Real.rpow_nonneg (norm_nonneg _) _
   have h_norm_lt : (∑ i : Fin m, ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) ^ (1 / 2 : ℝ) <
@@ -1375,7 +1375,8 @@ theorem chebyshev_matrix_empiricalNTKMatrix
     (initMeasure n d)
       {p | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
         (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
-      ENNReal.ofReal (((m : ℝ) ^ 2 * ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
+      ENNReal.ofReal (((m : ℝ) ^ 2 *
+        ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
         ((n : ℝ) * ε ^ 2)) := by
   set E : Fin m × Fin m → Set (Matrix (Fin n) (Fin d) ℝ × (Fin n → ℝ)) := fun p =>
     {pt | ε / (m : ℝ) ≤
@@ -1427,7 +1428,9 @@ theorem chebyshev_matrix_empiricalNTKMatrix
   rw [h_sum_eq]
   have heq : (∑ p : Fin m × Fin m,
         fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) =
-      ((m : ℝ) ^ 2 * ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) / ((n : ℝ) * ε ^ 2) := by
+      ((m : ℝ) ^ 2 *
+        ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
+        ((n : ℝ) * ε ^ 2) := by
     rw [← Finset.sum_div]
     rw [div_pow]
     have hm_ne : (m : ℝ) ≠ 0 := hm_pos.ne'
@@ -1505,7 +1508,8 @@ theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
 
 
 /-- If the empirical NTK at initialization is within Frobenius distance `lambda_inf / 2` of
-`limitingFullNTKMatrix φ X`, it satisfies the Rayleigh quotient lower bound `(lambda_inf / 2) ‖v‖²`. -/
+`limitingFullNTKMatrix φ X`, it satisfies the Rayleigh quotient lower bound
+`(lambda_inf / 2) ‖v‖²`. -/
 theorem initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
     {m d : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (n : ℕ) (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ))
@@ -1522,7 +1526,8 @@ theorem initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
       (packParams p.1 p.2))
     (limitingFullNTKMatrix φ X) lambda_inf hK_gap h_dist v
 
-/-- Finite-width probability bound for initial empirical NTK spectral gap failure under `initMeasure n d`.
+/-- Finite-width probability bound for initial empirical NTK spectral gap failure under
+`initMeasure n d`.
 By Chebyshev's inequality and Rayleigh perturbation, the probability that the empirical NTK fails to
 satisfy the spectral lower bound `(lambda_inf / 2) ‖v‖²` decays as `O(1 / n)`. -/
 theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap
@@ -1539,31 +1544,32 @@ theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (n : ℕ) (hn : 0 < n) :
     (initMeasure n d)
-      {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
         (lambda_inf / 2) * ‖v‖ ^ 2 ≤
           v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} ≤
-      ENNReal.ofReal (((m : ℝ) ^ 2 * ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
+      ENNReal.ofReal (((m : ℝ) ^ 2 *
+        ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
         ((n : ℝ) * (lambda_inf / 2) ^ 2)) := by
-  have h_sub : {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+  have h_sub : {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
       (lambda_inf / 2) * ‖v‖ ^ 2 ≤
         v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} ⊆
-      {p | lambda_inf / 2 ≤
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | lambda_inf / 2 ≤
         ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
           (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} := by
     intro p hp
-    simp only [Set.mem_setOf_eq] at hp ⊢
+    simp only [Set.mem_ofPred_eq] at hp ⊢
     by_contra! h_lt
     exact hp (initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
       φ X n p lambda_inf hK_gap h_lt.le)
   have h_meas : (initMeasure n d)
-      {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+      {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
         (lambda_inf / 2) * ‖v‖ ^ 2 ≤
           v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} ≤
       (initMeasure n d)
-        {p | lambda_inf / 2 ≤
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | lambda_inf / 2 ≤
           ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} :=
     measure_mono h_sub
@@ -1588,7 +1594,7 @@ theorem tendsto_initMeasure_initial_spectral_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef) :
     Filter.Tendsto
       (fun n : ℕ => (initMeasure n d)
-        {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
           (lambda_inf / 2) * ‖v‖ ^ 2 ≤
             v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)})
@@ -1598,14 +1604,15 @@ theorem tendsto_initMeasure_initial_spectral_gap
   have h_eps_pos : 0 < lambda_inf / 2 := half_pos hlambda_inf
   have h_le : ∀ n : ℕ, 0 < n →
       (initMeasure n d)
-        {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
           (lambda_inf / 2) * ‖v‖ ^ 2 ≤
             v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} ≤
         ENNReal.ofReal (C / ((n : ℝ) * (lambda_inf / 2) ^ 2)) := fun n hn =>
     chebyshev_matrix_empiricalNTKMatrix_spectral_gap hm hd φ hφ_diff hdφ_meas X hφ_L2 hdφ_L2
       lambda_inf hlambda_inf hK_gap n hn
-  have h_real : Filter.Tendsto (fun n : ℕ => C / ((n : ℝ) * (lambda_inf / 2) ^ 2)) Filter.atTop (nhds 0) := by
+  have h_real :
+      Filter.Tendsto (fun n : ℕ => C / ((n : ℝ) * (lambda_inf / 2) ^ 2)) Filter.atTop (nhds 0) := by
     have h_const : (fun n : ℕ => C / ((n : ℝ) * (lambda_inf / 2) ^ 2)) =
         (fun n : ℕ => (C / (lambda_inf / 2) ^ 2) * (n : ℝ)⁻¹) := by
       ext n
@@ -1621,7 +1628,7 @@ theorem tendsto_initMeasure_initial_spectral_gap
     simpa using ENNReal.tendsto_ofReal h_real
   have h_le_eventually : ∀ᶠ n in Filter.atTop,
       (initMeasure n d)
-        {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
           (lambda_inf / 2) * ‖v‖ ^ 2 ≤
             v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} ≤
@@ -1630,7 +1637,7 @@ theorem tendsto_initMeasure_initial_spectral_gap
     exact h_le n (Nat.zero_lt_one.trans_le hn)
   have h_bot : ∀ᶠ n in Filter.atTop, 0 ≤
       (initMeasure n d)
-        {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
           (lambda_inf / 2) * ‖v‖ ^ 2 ≤
             v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} := by
