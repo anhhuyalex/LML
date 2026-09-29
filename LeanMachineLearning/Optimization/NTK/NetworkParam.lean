@@ -68,6 +68,12 @@ no free `hlazy`/`hLip` hypotheses.
   Gap 4 requires.
 - `lazy_training_kernel_freeze_bound_of_gaussian_init` : **Gap 6, the plan's final
   deliverable** - the fully probabilistic end-to-end kernel-freeze bound.
+- `chebyshev_entrywise_empiricalNTKMatrix` : finite-width entrywise Chebyshev concentration
+  under `initMeasure n d`.
+- `chebyshev_matrix_empiricalNTKMatrix` : finite-width matrix Frobenius norm Chebyshev
+  concentration under `initMeasure n d`.
+- `tendsto_initMeasure_empiricalNTKMatrix_gt_eps` : finite-width convergence in probability of
+  the empirical NTK matrix in Frobenius norm under `initMeasure n d`.
 -/
 
 namespace NTK
@@ -1197,6 +1203,251 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_tendsto_limitingFullNTKM
 
 end FullTwoLayerNTKFormula
 
+/-! ### Finite-Width NTK Concentration and Transport to `initMeasure` -/
+
+section FiniteWidthNTKConcentration
+
+/-- Evaluation of `empiricalNTKMatrix` on parameters unpacked from the product measure
+via `arrowProdEquivProdArrow` matches the single-neuron average summand. -/
+lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (X : Fin m → Fin d → ℝ) (n : ℕ)
+    (ω : Fin n → (Fin d → ℝ) × ℝ) (α β : Fin m) :
+    empiricalNTKMatrix (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+      (packParams (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1
+                  (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2) α β =
+      (n : ℝ)⁻¹ * ∑ i : Fin n,
+        (φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+           φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+         (ω i).2 ^ 2 *
+           deriv φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+           deriv φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+           ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙
+             (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) := by
+  have h := empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X
+    (packParams (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1
+                (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2)
+    (fun _ _ => hφ_diff.differentiableAt) α β
+  rw [h]
+  simp only [unpackW_packParams, unpackA_packParams]
+  have h_prod : (d : ℝ)⁻¹ * (X α ⊙ X β) =
+      (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) :=
+    (innerProduct_scaled_dataset d hd (X α) (X β)).symm
+  rw [h_prod]
+  have h_w (i : Fin n) :
+      (Real.sqrt (d : ℝ))⁻¹ *
+        ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⊙ X α) =
+      (ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) := by
+    rw [innerProduct_mul_right]
+    rfl
+  have h_w' (i : Fin n) :
+      (Real.sqrt (d : ℝ))⁻¹ *
+        ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⊙ X β) =
+      (ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) := by
+    rw [innerProduct_mul_right]
+    rfl
+  have h_a (i : Fin n) :
+      (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2 i =
+      (ω i).2 := rfl
+  simp_rw [h_w, h_w', h_a]
+
+/-- Finite-width entrywise Chebyshev concentration of the empirical NTK matrix under
+the joint initialization measure `initMeasure n d`. -/
+theorem chebyshev_entrywise_empiricalNTKMatrix
+    {m d : ℕ} (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
+      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
+      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (n : ℕ) (hn : 0 < n) (α β : Fin m) {c : ℝ} (hc : 0 < c) :
+    (initMeasure n d)
+      {p | c ≤ |empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams p.1 p.2) α β - limitingFullNTKMatrix φ X α β|} ≤
+      ENNReal.ofReal (fullNTKSummandSecondMoment d φ X α β / ((n : ℝ) * c ^ 2)) := by
+  have h_meas_eq : (initMeasure n d) =
+      (Measure.pi fun _ : Fin n => singleNeuronMeasure d).map
+        (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)) :=
+    (measurePreserving_arrowProd_singleNeuronMeasure n d).map_eq.symm
+  rw [h_meas_eq, MeasurableEquiv.map_apply]
+  set Y := fun u : (Fin d → ℝ) × ℝ =>
+    φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+     u.2 ^ 2 * deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+       ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))
+  have hY_L2 : MemLp Y 2 (singleNeuronMeasure d) :=
+    memLp_two_fullNTK_summand φ hdφ_meas
+      (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)
+      (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)
+      (hφ_L2 α β) (hdφ_L2 α β)
+  have h_cheb := chebyshev_average_pi_le_second_moment (singleNeuronMeasure d) hn Y hY_L2 hc
+  have h_int : ∫ x, Y x ∂(singleNeuronMeasure d) = limitingFullNTKMatrix φ X α β :=
+    integral_fullNTK_summand_scaled_dataset_eq_limiting hd φ X
+      (fun a b => (hφ_L2 a b).integrable (by norm_num))
+      (fun a b => (hdφ_L2 a b).integrable (by norm_num)) α β
+  rw [h_int] at h_cheb
+  have h_set_eq : (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)) ⁻¹'
+      {p | c ≤ |empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams p.1 p.2) α β - limitingFullNTKMatrix φ X α β|} =
+      {ω | c ≤ |(n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i) - limitingFullNTKMatrix φ X α β|} := by
+    ext ω
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq]
+    rw [empiricalNTKMatrix_packed_arrowProd_eq_summand hd φ hφ_diff X n ω α β]
+  rw [h_set_eq]
+  exact h_cheb
+
+/-- Finite-width matrix Chebyshev concentration of the empirical NTK in Frobenius norm
+under the joint initialization measure `initMeasure n d`. -/
+theorem chebyshev_matrix_empiricalNTKMatrix
+    {m d : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
+      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
+      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (n : ℕ) (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) :
+    (initMeasure n d)
+      {p | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
+      ENNReal.ofReal (((m : ℝ) ^ 2 * limitingFullNTKMatrixConcentrationConst d φ X) /
+        ((n : ℝ) * ε ^ 2)) := by
+  set E : Fin m × Fin m → Set (Matrix (Fin n) (Fin d) ℝ × (Fin n → ℝ)) := fun p =>
+    {pt | ε / (m : ℝ) ≤
+      |empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams pt.1 pt.2) p.1 p.2 - limitingFullNTKMatrix φ X p.1 p.2|}
+  have h_sub : {pt | ε ≤
+      ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams pt.1 pt.2) - limitingFullNTKMatrix φ X‖} ⊆
+      ⋃ p : Fin m × Fin m, E p := by
+    intro pt hpt
+    simp only [Set.mem_ofPred_eq] at hpt
+    have h_ex := exists_entry_ge_of_frobenius_ge hm
+      (empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams pt.1 pt.2) - limitingFullNTKMatrix φ X) hε hpt
+    rcases h_ex with ⟨p, hp⟩
+    simp only [Set.mem_iUnion]
+    exact ⟨p, hp⟩
+  have h_meas_union : (initMeasure n d)
+      {pt | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+        (packParams pt.1 pt.2) - limitingFullNTKMatrix φ X‖} ≤
+      (initMeasure n d) (⋃ p : Fin m × Fin m, E p) :=
+    measure_mono h_sub
+  have h_union_le : (initMeasure n d) (⋃ p : Fin m × Fin m, E p) ≤
+      ∑ p : Fin m × Fin m, (initMeasure n d) (E p) :=
+    measure_iUnion_fintype_le (initMeasure n d) _
+  have hm_pos : (0 : ℝ) < (m : ℝ) := Nat.cast_pos.2 hm
+  have h_eps_m_pos : 0 < ε / (m : ℝ) := div_pos hε hm_pos
+  have h_entry_le : ∀ p : Fin m × Fin m, (initMeasure n d) (E p) ≤
+      ENNReal.ofReal (fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) :=
+    fun p => chebyshev_entrywise_empiricalNTKMatrix hd φ hφ_diff hdφ_meas X hφ_L2 hdφ_L2 n hn
+      p.1 p.2 h_eps_m_pos
+  have h_sum_le : (∑ p : Fin m × Fin m, (initMeasure n d) (E p)) ≤
+      ∑ p : Fin m × Fin m,
+        ENNReal.ofReal (fullNTKSummandSecondMoment d φ X p.1 p.2 /
+          ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) :=
+    Finset.sum_le_sum fun p _ => h_entry_le p
+  refine h_meas_union.trans (h_union_le.trans (h_sum_le.trans ?_))
+  have hn_eps_pos : 0 < (n : ℝ) * (ε / (m : ℝ)) ^ 2 :=
+    mul_pos (Nat.cast_pos.2 hn) (sq_pos_of_ne_zero h_eps_m_pos.ne')
+  have h_nonneg : ∀ p : Fin m × Fin m,
+      0 ≤ fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2) :=
+    fun p => div_nonneg (fullNTKSummandSecondMoment_nonneg d φ X p.1 p.2) hn_eps_pos.le
+  have h_sum_eq :
+      (∑ p : Fin m × Fin m,
+        ENNReal.ofReal (fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2))) =
+      ENNReal.ofReal (∑ p : Fin m × Fin m,
+        fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) :=
+    (ENNReal.ofReal_sum_of_nonneg fun p _ => h_nonneg p).symm
+  rw [h_sum_eq]
+  have heq : (∑ p : Fin m × Fin m,
+        fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) =
+      ((m : ℝ) ^ 2 * limitingFullNTKMatrixConcentrationConst d φ X) / ((n : ℝ) * ε ^ 2) := by
+    dsimp [limitingFullNTKMatrixConcentrationConst]
+    rw [← Finset.sum_div]
+    rw [div_pow]
+    have hm_ne : (m : ℝ) ≠ 0 := hm_pos.ne'
+    calc (∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
+          ((n : ℝ) * (ε ^ 2 / (m : ℝ) ^ 2))
+      _ = (∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
+            (((n : ℝ) * ε ^ 2) / (m : ℝ) ^ 2) := by
+        congr 1
+        ring
+      _ = (m : ℝ) ^ 2 * (∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2) /
+            ((n : ℝ) * ε ^ 2) := by
+        rw [div_div_eq_mul_div]
+        ring
+  rw [heq]
+
+/-- Qualitative finite-width convergence in probability of the empirical NTK matrix to
+`limitingFullNTKMatrix` under the varying initialization measure `initMeasure n d`. -/
+theorem tendsto_initMeasure_empiricalNTKMatrix_gt_eps
+    {m d : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
+    (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ)
+    (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
+      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
+      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+    {ε : ℝ} (hε : 0 < ε) :
+    Filter.Tendsto
+      (fun n : ℕ => (initMeasure n d)
+        {p | ε ≤
+          ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+            (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖})
+      Filter.atTop
+      (nhds 0) := by
+  set C := (m : ℝ) ^ 2 * limitingFullNTKMatrixConcentrationConst d φ X
+  have h_le : ∀ n : ℕ, 0 < n →
+      (initMeasure n d)
+        {p | ε ≤
+          ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+            (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
+        ENNReal.ofReal (C / ((n : ℝ) * ε ^ 2)) := fun n hn =>
+    chebyshev_matrix_empiricalNTKMatrix hm hd φ hφ_diff hdφ_meas X hφ_L2 hdφ_L2 n hn hε
+  have h_real : Filter.Tendsto (fun n : ℕ => C / ((n : ℝ) * ε ^ 2)) Filter.atTop (nhds 0) := by
+    have h_const : (fun n : ℕ => C / ((n : ℝ) * ε ^ 2)) =
+        (fun n : ℕ => (C / ε ^ 2) * (n : ℝ)⁻¹) := by
+      ext n
+      ring
+    rw [h_const]
+    have h_inv : Filter.Tendsto (fun n : ℕ => (n : ℝ)⁻¹) Filter.atTop (nhds 0) :=
+      tendsto_inv_atTop_zero.comp tendsto_natCast_atTop_atTop
+    have h_mul := Filter.Tendsto.const_mul (C / ε ^ 2) h_inv
+    rw [mul_zero] at h_mul
+    exact h_mul
+  have h_lim : Filter.Tendsto (fun n : ℕ => ENNReal.ofReal (C / ((n : ℝ) * ε ^ 2))) Filter.atTop
+      (nhds 0) := by
+    simpa using ENNReal.tendsto_ofReal h_real
+  have h_le_eventually : ∀ᶠ n in Filter.atTop,
+      (initMeasure n d)
+        {p | ε ≤
+          ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+            (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
+        ENNReal.ofReal (C / ((n : ℝ) * ε ^ 2)) := by
+    filter_upwards [Filter.eventually_ge_atTop 1] with n hn
+    exact h_le n (Nat.zero_lt_one.trans_le hn)
+  have h_bot : ∀ᶠ n in Filter.atTop, 0 ≤
+      (initMeasure n d)
+        {p | ε ≤
+          ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
+            (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} := by
+    filter_upwards with n
+    exact bot_le
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h_lim h_bot h_le_eventually
+
+end FiniteWidthNTKConcentration
+
+
 /-! ### Phase 6: End-to-End Kernel-Freeze Bound
 
 Wires Gaps 1-5 together with the Gaussian-initialized two-layer network: Gap 3's Jacobian-norm
@@ -1518,7 +1769,7 @@ Then for any fixed confidence `δ ∈ (0, 1)`, there exist `N : ℕ` and `C > 0`
 `n ≥ N`, with probability at least `1 - δ` under `initMeasure n d`:
 1. **Uniform Spectral Gap**: For all `t ≥ 0`, `λ_min(K_n(t)) ≥ lambda_inf / 2`.
 2. **Uniform Kernel Freeze**: For all `t ≥ 0`:
-   `‖K_n(t) - K_n(0)‖ ≤ C * √(log n / n)`.
+   `‖K_n(t) - K_n(0)‖ ≤ C * √(log n / n)` in the Frobenius norm.
 3. **Exponential Residual Decay**: For all `t ≥ 0`:
    `‖r_n(t)‖ ≤ ‖r_n(0)‖ * exp(-(lambda_inf / (2 * m)) * t)`.
 4. **Exponential Loss Decay**: For all `t ≥ 0`:
@@ -1528,6 +1779,18 @@ Then for any fixed confidence `δ ∈ (0, 1)`, there exist `N : ℕ` and `C > 0`
 
 A polynomial rate `1 - O(n^{-c})` may be derived as a corollary after quantitative
 concentration estimates are established in Phase 3.5 or commit step 5.
+
+**Frobenius Matrix Norm**:
+The matrix norm `‖·‖` on `Matrix (Fin m) (Fin m) ℝ` throughout this target specification is the
+Frobenius norm (`Matrix.Norms.Frobenius`), which dominates entrywise differences via
+`|A i j| ≤ ‖A‖`.
+
+**Uniform-Time Event Measurability**:
+By path continuity of the gradient flow trajectory `t ↦ θ n p t` and continuity of the
+matrix operations, residual, and MSE loss, each uniform-over-time condition `∀ t ≥ 0, ...`
+is equivalent to the countable intersection over non-negative rationals `t ∈ ℚ, 0 ≤ t`.
+Because each fixed-time evaluation is measurable from trajectory measurability (`hθ_meas`),
+the uniform-time intersection event is measurable under `initMeasure n d`.
 
 **Commented Formal Lean Signature**:
 ```lean
@@ -1561,7 +1824,11 @@ theorem global_positive_gap_lazy_training_limit
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)‖ ≤
             ‖trainingResidual (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p 0)‖ *
-              Real.exp (- (lambda_inf / (2 * m)) * t))} ≥
+              Real.exp (- (lambda_inf / (2 * m)) * t)) ∧
+        (∀ t ≥ 0,
+          mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t) ≤
+            mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+              (θ n p 0) * Real.exp (- (lambda_inf / (m : ℝ)) * t))} ≥
         ENNReal.ofReal (1 - δ)
 -/
 ```
