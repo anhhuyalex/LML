@@ -30,6 +30,7 @@ public import Mathlib.Analysis.Matrix.Order
 public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Probability.Independence.CharacteristicFunction
+public import Mathlib.Analysis.Matrix.Normed
 
 /-!
 # NTK Initialization, Gaussian Processes, and Finite-Dimensional NNGP Limit
@@ -560,10 +561,15 @@ are declared in this module.
     `(1/2) J₀(arccos ρ)`, the order-0 arc-cosine kernel of Cho & Saul.
   * `NTK.expected_relu_mul_relu_bivariate_eq_arcCosineJ1` : the activation kernel as
     `(√(Φαα Φββ)/2) J₁(arccos ρ)`, the order-1 arc-cosine kernel of Cho & Saul.
-* **Full Two-Layer NTK Initialization and Strong Law**:
+* **Full Two-Layer NTK Initialization, Concentration, and Strong Law**:
   * `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
-  * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation between sequence
-    restrictions and `NTK.initMeasure`.
+  * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation of the finite
+    array rearrangement between `(Fin n → singleNeuronMeasure d)` and `initMeasure n d`.
+  * `NTK.measurePreserving_infiniteSeq_to_init` : measure preservation of the infinite sequence
+    prefix truncation to `initMeasure n d`.
+  * `NTK.fullNTKSummandSecondMoment` : uncentered second moment of the full NTK summand.
+  * `NTK.limitingFullNTKMatrixConcentrationConst` : full NTK concentration constant summing
+    uncentered second moments over all matrix entries.
   * `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
   * `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.
   * `NTK.memLp_two_fullNTK_summand` : square-integrability (`MemLp 2`) of full summand.
@@ -5995,6 +6001,115 @@ theorem fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix {m d : ℕ} (
 
 end FullTwoLayerNTKInitialization
 
+/-! ### Quantitative Concentration for the Full NTK Initializer -/
+
+section FullNTKConcentration
+
+open scoped Matrix.Norms.Frobenius
+
+/-- If a matrix has Frobenius norm at least `ε`, at least one entry has absolute value at
+least `ε / m`. -/
+lemma exists_entry_ge_of_frobenius_ge {m : ℕ} (hm : 0 < m)
+    (A : Matrix (Fin m) (Fin m) ℝ) {ε : ℝ} (hε : 0 < ε) (hA : ε ≤ ‖A‖) :
+    ∃ p : Fin m × Fin m, ε / (m : ℝ) ≤ |A p.1 p.2| := by
+  by_contra! h_all
+  have hm_pos : (0 : ℝ) < (m : ℝ) := Nat.cast_pos.2 hm
+  have h_ne : Nonempty (Fin m) := Fin.pos_iff_nonempty.1 hm
+  have h_entry : ∀ (i j : Fin m), ‖A i j‖ ^ (2 : ℝ) < (ε / (m : ℝ)) ^ (2 : ℝ) := by
+    intro i j
+    have := h_all (i, j)
+    rw [Real.norm_eq_abs]
+    have h1 : 0 ≤ |A i j| := abs_nonneg _
+    have h2 : 0 < ε / (m : ℝ) := div_pos hε hm_pos
+    exact Real.rpow_lt_rpow h1 this (by norm_num)
+  have h_sum_inner : ∀ (i : Fin m), ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) <
+      (m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ) := by
+    intro i
+    have h : ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) < ∑ _j : Fin m, (ε / (m : ℝ)) ^ (2 : ℝ) :=
+      Finset.sum_lt_sum_of_nonempty (Finset.univ_nonempty_iff.2 h_ne) (fun j _ => h_entry i j)
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at h
+    exact h
+  have h_sum_outer : ∑ i : Fin m, (∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) <
+      (m : ℝ) * ((m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ)) := by
+    have h : ∑ i : Fin m, (∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) <
+        ∑ _i : Fin m, ((m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ)) :=
+      Finset.sum_lt_sum_of_nonempty (Finset.univ_nonempty_iff.2 h_ne) (fun i _ => h_sum_inner i)
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at h
+    exact h
+  have heq : (m : ℝ) * ((m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ)) = ε ^ (2 : ℝ) := by
+    have hm_ne : ((m : ℝ) ^ (2 : ℝ)) ≠ 0 := (Real.rpow_pos_of_pos hm_pos 2).ne'
+    rw [Real.div_rpow hε.le hm_pos.le]
+    calc (m : ℝ) * ((m : ℝ) * (ε ^ (2 : ℝ) / (m : ℝ) ^ (2 : ℝ)))
+      _ = ((m : ℝ) * (m : ℝ)) * (ε ^ (2 : ℝ) / (m : ℝ) ^ (2 : ℝ)) := by ring
+      _ = ((m : ℝ) ^ (2 : ℝ)) * (ε ^ (2 : ℝ) / (m : ℝ) ^ (2 : ℝ)) := by
+        congr 1
+        rw [Real.rpow_two]
+        ring
+      _ = ε ^ (2 : ℝ) := mul_div_cancel₀ _ hm_ne
+  rw [heq] at h_sum_outer
+  rw [frobenius_norm_def] at hA
+  have h_sum_nonneg : 0 ≤ ∑ i : Fin m, ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) :=
+    Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => Real.rpow_nonneg (norm_nonneg _) _
+  have h_norm_lt : (∑ i : Fin m, ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) ^ (1 / 2 : ℝ) <
+      (ε ^ (2 : ℝ)) ^ (1 / 2 : ℝ) :=
+    Real.rpow_lt_rpow h_sum_nonneg h_sum_outer (by norm_num)
+  have heq2 : (ε ^ (2 : ℝ)) ^ (1 / 2 : ℝ) = ε := by
+    rw [← Real.rpow_mul hε.le]
+    norm_num
+  rw [heq2] at h_norm_lt
+  exact not_lt_of_ge hA h_norm_lt
+
+/-- Uncentered second moment of the full NTK summand under `singleNeuronMeasure d`. -/
+noncomputable def fullNTKSummandSecondMoment (d : ℕ) (φ : ℝ → ℝ)
+    {m : ℕ} (X : Fin m → Fin d → ℝ) (α β : Fin m) : ℝ :=
+  ∫ u : (Fin d → ℝ) × ℝ,
+    (φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+     u.2 ^ 2 * deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+       ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) ^ 2
+    ∂(singleNeuronMeasure d)
+
+lemma fullNTKSummandSecondMoment_nonneg (d : ℕ) (φ : ℝ → ℝ) {m : ℕ} (X : Fin m → Fin d → ℝ)
+    (α β : Fin m) : 0 ≤ fullNTKSummandSecondMoment d φ X α β :=
+  integral_nonneg fun _ => sq_nonneg _
+
+/-- Concentration constant for the full NTK matrix under `singleNeuronMeasure d`, obtained
+by summing the uncentered second moments over all entries `(α, β)`. -/
+noncomputable def limitingFullNTKMatrixConcentrationConst {m : ℕ} (d : ℕ) (φ : ℝ → ℝ)
+    (X : Fin m → Fin d → ℝ) : ℝ :=
+  ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2
+
+lemma limitingFullNTKMatrixConcentrationConst_nonneg {m : ℕ} (d : ℕ) (φ : ℝ → ℝ)
+    (X : Fin m → Fin d → ℝ) : 0 ≤ limitingFullNTKMatrixConcentrationConst d φ X :=
+  Finset.sum_nonneg fun p _ => fullNTKSummandSecondMoment_nonneg d φ X p.1 p.2
+
+/-- Expectation of the full NTK summand on the scaled dataset `(1 / √d) * X` equals
+the limiting full NTK matrix entry `limitingFullNTKMatrix φ X α β`. -/
+lemma integral_fullNTK_summand_scaled_dataset_eq_limiting {m d : ℕ} (hd : 0 < d)
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_int : ∀ α β : Fin m,
+      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+    (hdφ_int : ∀ α β : Fin m,
+      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+    (α β : Fin m) :
+    ∫ u : (Fin d → ℝ) × ℝ,
+      (φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+         φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+       u.2 ^ 2 * deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+         deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+         ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)))
+      ∂(singleNeuronMeasure d) =
+      limitingFullNTKMatrix φ X α β := by
+  have h := integral_fullNTK_summand φ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)
+    (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) (hφ_int α β) (hdφ_int α β)
+  rw [h]
+  rw [innerProduct_scaled_dataset d hd]
+  rw [limitingFullNTKMatrix_apply, limitingCovariance_apply, limitingCovariance_apply]
+
+end FullNTKConcentration
 
 end NTK
 

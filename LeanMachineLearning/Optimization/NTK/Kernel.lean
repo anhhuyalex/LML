@@ -70,7 +70,8 @@ derived via a geometric argument on the sphere.
 * `NTK.chebyshev_gaussianRow_average` : Chebyshev bound for Gaussian row empirical averages.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
-* `NTK.trainingOutputs` : the vector `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions on the training dataset.
+* `NTK.trainingOutputs` : the vector `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions
+  on the training dataset.
 * `NTK.trainingResidual` : the residual error vector `r(θ) = f(θ) - y`.
 * `NTK.mseLoss` : the empirical MSE loss objective `L(θ) = (1 / 2m) ‖r(θ)‖²`.
 * `NTK.tangentFeature` : the sensitivity vector `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`.
@@ -1137,7 +1138,8 @@ noncomputable def empiricalNTKMatrix (f : ι → EuclideanSpace ℝ (Fin P) → 
 lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (θ : EuclideanSpace ℝ (Fin P)) (α β : Fin m) :
     empiricalNTKMatrix f X θ α β = ⟪tangentFeature f (X α) θ, tangentFeature f (X β) θ⟫ := by
-  simp only [empiricalNTKMatrix, Matrix.mul_apply, Matrix.transpose_apply, outputJacobian, Matrix.of_apply]
+  simp only [empiricalNTKMatrix, Matrix.mul_apply, Matrix.transpose_apply,
+    outputJacobian, Matrix.of_apply]
   rw [show tangentFeature f (X α) θ = WithLp.toLp 2 (tangentFeature f (X α) θ).ofLp by rfl]
   rw [show tangentFeature f (X β) θ = WithLp.toLp 2 (tangentFeature f (X β) θ).ofLp by rfl]
   rw [EuclideanSpace.inner_toLp_toLp]
@@ -1145,7 +1147,8 @@ lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (
 
 /-! ### Positive Semidefiniteness and Gram Factorization -/
 
-/-- The empirical NTK Gram matrix is positive semidefinite (`PosSemidef`) for any parameter state. -/
+/-- The empirical NTK Gram matrix is positive semidefinite (`PosSemidef`) for any parameter
+state. -/
 theorem empiricalNTKMatrix_posSemidef (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (θ : EuclideanSpace ℝ (Fin P)) :
     (empiricalNTKMatrix f X θ).PosSemidef := by
@@ -1188,10 +1191,12 @@ theorem empiricalNTKWithOuter_dataset_posSemidef
     ext α β
     simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
     rw [Fintype.sum_prod_type]
-    exact (frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)).symm
+    exact (frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter
+      σ' outerCoeffs W₀ (X α) (X β)).symm
   rw [h_eq]
   have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
+  have h := h1.mul_mul_conjTranspose_same
+    (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
   simp only [Matrix.mul_one] at h
   rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
 
@@ -1205,7 +1210,8 @@ theorem empiricalNTK_dataset_posSemidef
       Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
     ext α β
     simp only [Matrix.of_apply]
-    exact (empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one σ' outerCoeffs W₀ (X α) (X β) houter).symm
+    exact (empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
+      σ' outerCoeffs W₀ (X α) (X β) houter).symm
   rw [h_eq]
   exact empiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
 
@@ -1214,7 +1220,8 @@ theorem empiricalNTK_dataset_posSemidef
 lemma hasFDerivAt_sq_diff (θ : EuclideanSpace ℝ (Fin P)) {g : EuclideanSpace ℝ (Fin P) → ℝ}
     (hg : DifferentiableAt ℝ g θ) (c : ℝ) :
     HasFDerivAt (fun θ' => (g θ' - c) ^ 2)
-      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P)) ((2 * (g θ - c)) • gradient g θ)) θ := by
+      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
+        ((2 * (g θ - c)) • gradient g θ)) θ := by
   have h1 : HasFDerivAt (fun θ' => g θ' - c) (fderiv ℝ g θ) θ := by
     have h := hg.hasFDerivAt.sub (hasFDerivAt_const c θ)
     rw [sub_zero] at h
@@ -1237,7 +1244,8 @@ lemma hasFDerivAt_sq_diff (θ : EuclideanSpace ℝ (Fin P)) {g : EuclideanSpace 
 theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
     (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    gradient (mseLoss f X y) θ = (m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ := by
+    gradient (mseLoss f X y) θ =
+      (m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ := by
   have h_term : ∀ α ∈ (Finset.univ : Finset (Fin m)),
       HasFDerivAt (fun θ' => (f (X α) θ' - y α) ^ 2)
         (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
@@ -1251,7 +1259,8 @@ theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fi
     simp only [Finset.sum_apply]
   rw [h_sum_eq] at h_sum
   have h_scaled := h_sum.const_smul (2 * (m : ℝ))⁻¹
-  have h_loss_eq : mseLoss f X y = fun θ' => (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ' - y α) ^ 2 := by
+  have h_loss_eq : mseLoss f X y =
+      fun θ' => (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ' - y α) ^ 2 := by
     ext θ'
     unfold mseLoss trainingResidual trainingOutputs
     rw [EuclideanSpace.real_norm_sq_eq]
@@ -1279,11 +1288,14 @@ theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fi
 lemma gradient_mseLoss_apply_j (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
     (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) (j : Fin P) :
-    gradient (mseLoss f X y) θ j = (m : ℝ)⁻¹ * ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) j := by
+    gradient (mseLoss f X y) θ j =
+      (m : ℝ)⁻¹ * ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) j := by
   rw [gradient_mseLoss f X y θ hdiff]
-  have h_eval : ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) j =
+  have h_eval :
+      ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) j =
       (m : ℝ)⁻¹ * ∑ α : Fin m, (trainingResidual f X y θ α) * tangentFeature f (X α) θ j := by
-    change (m : ℝ)⁻¹ * (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp j = _
+    change (m : ℝ)⁻¹ *
+      (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp j = _
     rw [show (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp =
         ∑ α : Fin m, ((trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp from
         map_sum (WithLp.linearEquiv 2 ℝ (Fin P → ℝ)) _ Finset.univ]
@@ -1303,7 +1315,8 @@ lemma gradient_mseLoss_apply_j (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (
 lemma gradient_mseLoss_eq_mulVec (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
     (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    (gradient (mseLoss f X y) θ).ofLp = (m : ℝ)⁻¹ • ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) := by
+    (gradient (mseLoss f X y) θ).ofLp =
+      (m : ℝ)⁻¹ • ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) := by
   ext j
   exact gradient_mseLoss_apply_j f X y θ hdiff j
 
@@ -1394,7 +1407,8 @@ lemma gdIterate_mseLoss_succ
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (η : ℝ) (θ₀ : EuclideanSpace ℝ (Fin P)) (k : ℕ) :
     gdIterate (mseLoss f X y) (fun _ => η) θ₀ (k + 1) =
-      gdIterate (mseLoss f X y) (fun _ => η) θ₀ k - η • gradient (mseLoss f X y) (gdIterate (mseLoss f X y) (fun _ => η) θ₀ k) := rfl
+      gdIterate (mseLoss f X y) (fun _ => η) θ₀ k -
+        η • gradient (mseLoss f X y) (gdIterate (mseLoss f X y) (fun _ => η) θ₀ k) := rfl
 
 end NTK
 
