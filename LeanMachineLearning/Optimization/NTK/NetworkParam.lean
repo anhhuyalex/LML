@@ -6173,11 +6173,11 @@ theorem exists_forwardGradientFlow (hact : SmoothActivation φ C₁ C₂) (n d m
       Continuous (fun q : EuclideanSpace ℝ (Fin (n * d + n)) × ℝ => Φ q.1 q.2) := by
   rcases Nat.eq_zero_or_pos n with rfl | hn
   · -- no parameters: the parameter space is a point
-    have hsub : ∀ u v : EuclideanSpace ℝ (Fin 0), u = v := fun u v => by
+    have hsub : ∀ u v : EuclideanSpace ℝ (Fin (0 * d + 0)), u = v := fun u v => by
       ext k
-      exact Fin.elim0 k
+      exact absurd k.2 (by simp)
     refine ⟨fun θ₀ _ => θ₀, fun θ₀ => ⟨rfl, continuousOn_const, fun t _ => ?_⟩, continuous_fst⟩
-    rw [show -gradient (mseLoss (netFromParams φ 0 d) X y) θ₀ = 0 from hsub _ _]
+    rw [hsub (-gradient (mseLoss (netFromParams φ 0 d) X y) θ₀) 0]
     exact hasDerivAt_const t θ₀
   · exact exists_forwardGradientFlow_of_pos hact hn X y
 

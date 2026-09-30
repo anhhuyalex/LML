@@ -57,9 +57,6 @@ derived via a geometric argument on the sphere.
 * `NTK.empiricalNTKWithOuter` : the empirical NTK with arbitrary fixed outer coefficients.
 * `NTK.empiricalNTK` : the simplified empirical NTK when `aⱼ² = 1`.
 * `NTK.limitingNTK` : the limiting NTK `k(x, x')`.
-* `NTK.ntkSummand` : the iid summand `σ'(wᵀx)σ'(wᵀx')` of the empirical average,
-  with measurability/boundedness/integrability API (`measurable_ntkSummand`,
-  `abs_ntkSummand_le`, `integrable_ntkSummand`).
 * `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
   measurable integrable functions of iid Gaussian rows.
 * `NTK.variance_average_pi` : variance of an empirical average under an i.i.d. product
@@ -504,33 +501,29 @@ lemma measurable_innerProduct_left (x : Fin d → ℝ) :
     Measurable fun w : Fin d → ℝ => w ⊙ x :=
   Finset.measurable_sum _ fun k _ => (measurable_pi_apply k).mul measurable_const
 
-/-- The iid summand appearing in the empirical NTK average:
-  `Y(w) = σ'(wᵀx) · σ'(wᵀx')`.
-The empirical NTK is `xᵀx'` times the empirical mean of `Y` over the rows, and the
-limiting NTK is `xᵀx'` times the expectation of `Y`. -/
-noncomputable def ntkSummand (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) (w : Fin d → ℝ) : ℝ :=
-  σ' (w ⊙ x) * σ' (w ⊙ x')
-
-/-- The NTK summand is measurable whenever `σ'` is. -/
+/-- The product `w ↦ σ'(wᵀx) · σ'(wᵀx')` is measurable whenever `σ'` is. -/
 lemma measurable_ntkSummand {σ' : ℝ → ℝ} (hσ' : Measurable σ') (x x' : Fin d → ℝ) :
-    Measurable (ntkSummand σ' x x') :=
+    Measurable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) :=
   (hσ'.comp (measurable_innerProduct_left x)).mul (hσ'.comp (measurable_innerProduct_left x'))
 
-/-- If `σ'` is bounded by `C`, the NTK summand is bounded by `C²`. -/
+/-- If `σ'` is bounded by `C`, then
+`|σ'(wᵀx) · σ'(wᵀx')| ≤ C²`. -/
 lemma abs_ntkSummand_le {σ' : ℝ → ℝ} {C : ℝ} (hC : ∀ z, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) (w : Fin d → ℝ) :
-    |ntkSummand σ' x x' w| ≤ C * C := by
+    |σ' (w ⊙ x) * σ' (w ⊙ x')| ≤ C * C := by
   have hC0 : 0 ≤ C := le_trans (abs_nonneg (σ' 0)) (hC 0)
-  rw [ntkSummand, abs_mul]
+  rw [abs_mul]
   exact mul_le_mul (hC _) (hC _) (abs_nonneg _) hC0
 
-/-- A bounded measurable NTK summand is integrable against the Gaussian row measure. -/
+/-- The product `w ↦ σ'(wᵀx) · σ'(wᵀx')` is integrable against the Gaussian
+row measure when `σ'` is measurable and bounded. -/
 lemma integrable_ntkSummand {σ' : ℝ → ℝ} (hσ'm : Measurable σ') {C : ℝ}
     (hC : ∀ z, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
-    Integrable (ntkSummand σ' x x') (gaussianRowMeasure d) :=
+    Integrable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) (gaussianRowMeasure d) :=
   Integrable.of_bound (measurable_ntkSummand hσ'm x x').aestronglyMeasurable (C * C)
     (Filter.Eventually.of_forall fun w => by
-      rw [Real.norm_eq_abs]; exact abs_ntkSummand_le hC x x' w)
+      rw [Real.norm_eq_abs]
+      exact abs_ntkSummand_le hC x x' w)
 
 /-! ### Almost sure convergence of the empirical NTK (Lemma 4.3) -/
 
@@ -745,10 +738,13 @@ theorem ntk_convergence
         Filter.atTop
         (nhds (limitingNTK σ' x x')) := by
   obtain ⟨C, hC⟩ := hσ'_bounded
-  have hg_meas : Measurable (ntkSummand σ' x x') := measurable_ntkSummand hσ'_meas x x'
-  have hg_int : Integrable (ntkSummand σ' x x') (gaussianRowMeasure d) :=
+  have hg_meas : Measurable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) :=
+    measurable_ntkSummand hσ'_meas x x'
+  have hg_int : Integrable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x'))
+      (gaussianRowMeasure d) :=
     integrable_ntkSummand hσ'_meas hC x x'
-  filter_upwards [gaussianRow_average_tendsto_integral (ntkSummand σ' x x') hg_meas hg_int]
+  filter_upwards [gaussianRow_average_tendsto_integral
+    (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) hg_meas hg_int]
     with rows hrows
   exact hrows.const_mul (x ⊙ x')
 
@@ -992,11 +988,6 @@ lemma map_pi_eval_two {d : ℕ} (hd : 2 ≤ d) {μ : Fin d → Measure ℝ}
     ((measurable_pi_apply (⟨0, by linarith⟩ : Fin d)).aemeasurable)
     ((measurable_pi_apply (⟨1, by linarith⟩ : Fin d)).aemeasurable) h01
   simpa only [Measure.pi_map_eval, measure_univ, Finset.prod_const_one, one_smul] using h_map
-
-/-- The angle between two unit vectors in ℝᵈ:
-  `angle x x' = arccos(xᵀx')` for `x ⊙ x = x' ⊙ x' = 1`. -/
-noncomputable def vectorAngle (x x' : Fin d → ℝ) : ℝ :=
-  Real.arccos (x ⊙ x')
 
 /--
 Informal proof:
