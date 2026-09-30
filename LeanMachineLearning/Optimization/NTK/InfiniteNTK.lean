@@ -142,6 +142,9 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.rayleigh_lower_bound_on_ball`, `NTK.lazy_training_global_bounds_of_ball_hypotheses` :
   Rayleigh bound on the bootstrap ball and the global consequences (displacement, uniform gap,
   kernel drift, exponential residual and loss decay) of the positive-gap bootstrap.
+* `NTK.hasDerivAt_trainingOutputs_line`, `NTK.norm_trainingOutputs_sub_linearization_le` :
+  derivative of the outputs along a line and the second-order Taylor bound `(L / 2) ‖θ - θ₀‖²`
+  under an `L`-Lipschitz output Jacobian (Phase 12).
 * `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
 * `NTK.exists_forward_flow`, `NTK.forwardFlow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` :
   Phase 10-11 generic forward-time flow of a field that is Lipschitz on balls and has a priori
@@ -1371,6 +1374,86 @@ theorem empiricalNTKMatrix_lipschitz_of_jacobian_bound
     ‖empiricalNTKMatrix f X θ - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * ‖θ - θ₀‖ :=
   empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X θ θ₀ M L_J
     (hJ_bdd θ hθ) (hJ_bdd θ₀ hθ₀) (hJ_lip θ hθ)
+
+/-! ### Second-Order Taylor Bound for the Training Outputs
+
+If the output Jacobian is Lipschitz near `θ₀`, the outputs are approximated by their
+linearization `f(θ₀) + J(θ₀) (θ - θ₀)` up to a quadratic remainder. This is the deterministic
+half of the "lazy training" statement that the *nonlinear* network stays close to its
+initialization linearization; it only needs a Lipschitz Jacobian, not twice differentiability. -/
+
+/-- Derivative of the training outputs along a line. -/
+lemma hasDerivAt_trainingOutputs_line
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (θ₀ Δ : EuclideanSpace ℝ (Fin P))
+    (s : ℝ) (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ₀ + s • Δ)) :
+    HasDerivAt (fun u : ℝ => trainingOutputs f X (θ₀ + u • Δ))
+      (WithLp.toLp 2 (outputJacobian f X (θ₀ + s • Δ) *ᵥ Δ.ofLp)) s := by
+  rw [hasDerivAt_euclideanSpace]
+  intro α
+  have hline : HasDerivAt (fun u : ℝ => θ₀ + u • Δ) Δ s := by
+    simpa using ((hasDerivAt_id s).smul_const Δ).const_add θ₀
+  have h := (hdiff α).hasGradientAt.hasFDerivAt.comp_hasDerivAt s hline
+  refine h.congr_deriv ?_ |>.congr_of_eventuallyEq (Filter.Eventually.of_forall fun u => rfl)
+  rw [InnerProductSpace.toDual_apply_apply]
+  simp only [outputJacobian, tangentFeature, Matrix.mulVec_apply, dotProduct,
+    PiLp.inner_apply]
+  simp [mul_comm]
+
+/-- **Second-order Taylor bound for the training outputs under a Lipschitz Jacobian.** If the output
+Jacobian is `L`-Lipschitz at `θ₀` on the closed ball of radius `r` around `θ₀`
+(`‖J θ - J θ₀‖ ≤ L ‖θ - θ₀‖`) and each output is differentiable there, then for `‖θ - θ₀‖ ≤ r`
+`‖f(θ) - f(θ₀) - J(θ₀) (θ - θ₀)‖ ≤ (L / 2) ‖θ - θ₀‖²`. -/
+theorem norm_trainingOutputs_sub_linearization_le
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (θ₀ : EuclideanSpace ℝ (Fin P)) (r L : ℝ)
+    (hdiff : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ∀ β : Fin m,
+      DifferentiableAt ℝ (fun θ' => f (X β) θ') θ)
+    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L * ‖θ - θ₀‖)
+    {θ : EuclideanSpace ℝ (Fin P)} (hθ : ‖θ - θ₀‖ ≤ r) :
+    ‖trainingOutputs f X θ - trainingOutputs f X θ₀ -
+        WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤ L / 2 * ‖θ - θ₀‖ ^ 2 := by
+  set Δ := θ - θ₀ with hΔ
+  have hseg : ∀ s ∈ Set.Icc (0 : ℝ) 1, ‖θ₀ + s • Δ - θ₀‖ ≤ r := fun s hs => by
+    rw [add_sub_cancel_left, norm_smul, Real.norm_of_nonneg hs.1]
+    exact (mul_le_of_le_one_left (norm_nonneg _) hs.2).trans hθ
+  set g : ℝ → EuclideanSpace ℝ (Fin m) := fun s =>
+    trainingOutputs f X (θ₀ + s • Δ) - trainingOutputs f X θ₀ -
+      s • WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ Δ.ofLp) with hg
+  have hgd : ∀ s ∈ Set.Icc (0 : ℝ) 1, HasDerivAt g (WithLp.toLp 2
+      ((outputJacobian f X (θ₀ + s • Δ) - outputJacobian f X θ₀) *ᵥ Δ.ofLp)) s := by
+    intro s hs
+    have h1 := hasDerivAt_trainingOutputs_line f X θ₀ Δ s
+      (fun β => hdiff _ (hseg s hs) β)
+    have h2 := (h1.sub_const (trainingOutputs f X θ₀)).sub
+      ((hasDerivAt_id s).smul_const (WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ Δ.ofLp)))
+    refine h2.congr_deriv ?_
+    ext α
+    simp [Matrix.sub_mulVec]
+  have hbound := image_norm_le_of_norm_deriv_right_le_deriv_boundary
+    (f := g) (a := 0) (b := 1) (B := fun s => L * ‖Δ‖ ^ 2 * s ^ 2 / 2)
+    (B' := fun s => L * ‖Δ‖ ^ 2 * s)
+    (fun s hs => (hgd s hs).continuousAt.continuousWithinAt)
+    (fun s hs => (hgd s ⟨hs.1, hs.2.le⟩).hasDerivWithinAt)
+    (by simp [hg])
+    (fun s => by
+      have := ((hasDerivAt_pow 2 s).const_mul (L * ‖Δ‖ ^ 2)).div_const 2
+      convert this using 1
+      push_cast
+      ring)
+    (fun s hs => by
+      have hs' : s ∈ Set.Icc (0 : ℝ) 1 := ⟨hs.1, hs.2.le⟩
+      calc ‖WithLp.toLp 2 ((outputJacobian f X (θ₀ + s • Δ) - outputJacobian f X θ₀) *ᵥ Δ.ofLp)‖
+          ≤ ‖outputJacobian f X (θ₀ + s • Δ) - outputJacobian f X θ₀‖ * ‖Δ‖ :=
+            mulVec_frobenius_norm_le _ _
+        _ ≤ (L * ‖s • Δ‖) * ‖Δ‖ := by
+            gcongr
+            simpa using hJ_lip _ (hseg s hs')
+        _ = L * ‖Δ‖ ^ 2 * s := by
+            rw [norm_smul, Real.norm_of_nonneg hs.1]; ring)
+    (x := 1) ⟨zero_le_one, le_rfl⟩
+  have hθΔ : θ₀ + Δ = θ := by rw [hΔ]; abel
+  simp only [hg, one_smul, hθΔ] at hbound
+  linarith
 
 /-! ### Reusable Analytic Tool: Quadratic Form Perturbation and Rayleigh-Quotient Stability
 

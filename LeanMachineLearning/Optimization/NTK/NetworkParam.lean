@@ -63,6 +63,8 @@ no free `hlazy`/`hLip` hypotheses.
   output Jacobian's Frobenius norm is `O(1)` (width-independent) with probability `≥ 1 - δ`.
 - `outputJacobian_netFromParams_frobenius_sub_le` : **Gap 4 deliverable** - the output Jacobian
   is `O(1/√n)`-Lipschitz, given a bound `R` on the readout weights.
+- `norm_trainingOutputs_netFromParams_sub_linearization_le` : **Phase 12.2** - second-order Taylor
+  bound `(K / (2 √n)) ‖θ - θ₀‖²` for the packed network (hidden and readout weights trained).
 - `lazy_training_kernel_freeze_bound_of_gaussian_init` : **Gap 6, the plan's final
   deliverable** - the fully probabilistic end-to-end kernel-freeze bound.
 - `chebyshev_entrywise_empiricalNTKMatrix` : finite-width entrywise Chebyshev concentration
@@ -118,6 +120,17 @@ no free `hlazy`/`hLip` hypotheses.
   theorem with kernel drift `O(n⁻¹ᐟ²)` (no logarithm): each neuron's displacement is controlled by
   its own initial scale, and the resulting degree-four neuron moment is averaged over neurons and
   bounded in probability by Markov's inequality, at the price of one extra failure probability `δ`.
+- `exists_measurableSet_finite_horizon_lazy_training_event`,
+  `tendsto_measure_exists_gt_of_good_events`, `tendsto_measure_jacobian_drift_finite_horizon`,
+  `tendsto_measure_jacobian_drift_global_positive_gap`,
+  `tendsto_measure_linearization_error_finite_horizon`,
+  `tendsto_measure_linearization_error_global_positive_gap`,
+  `tendsto_measure_test_linearization_error_finite_horizon`,
+  `tendsto_measure_test_linearization_error_global_positive_gap` : **Phase 12** - Jacobian
+  (tangent-feature) freezing, proved directly from the Jacobian Lipschitz bound and not from Gram
+  freezing, and convergence in probability of the nonlinear network to its initialization
+  linearization (training outputs and any test input), on `[0, T]` without a gap and on `[0, ∞)`
+  under a positive limiting gap; all four share one generic outer-measure lemma.
 - `exists_kernel_freeze_event_of_positive_gap` : **Phase 6.3** - under a positive limiting gap,
   a deterministic sequence `K n → 0` such that, with probability `≥ 1 - 2δ - 2ε` for all large `n`,
   every gradient flow keeps the empirical NTK within `K n` of its initial value for all `t ≥ 0`;
@@ -1114,6 +1127,64 @@ theorem outputJacobian_netFromParams_frobenius_sub_le
         ring
   rw [← mul_pow] at h_sum_le
   exact (sq_le_sq₀ (norm_nonneg _) (by positivity)).mp h_sum_le
+
+/-- **Second-order Taylor bound for the packed two-layer network.** The network `netFromParams`
+trains both the hidden weights and the readout weights, so its linearization at `θ₀` involves the
+mixed hidden/readout derivative; the remainder is nevertheless controlled by the Jacobian Lipschitz
+bound `outputJacobian_netFromParams_frobenius_sub_le`, which needs a bound `R` only on the readout
+weights of the *base point* `θ₀`, not of `θ`. For every `θ`,
+`‖f(θ) - f(θ₀) - J(θ₀) (θ - θ₀)‖ ≤ (K / (2 √n)) ‖θ - θ₀‖²`, where `f` and `J` are the training
+outputs and the output Jacobian on the dataset `X`, and `K` is the constant of the Jacobian bound.
+For a single test input use `m = 1`. -/
+theorem norm_trainingOutputs_netFromParams_sub_linearization_le
+    (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
+    (θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
+    (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
+    (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
+    (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
+    (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
+    ‖trainingOutputs (netFromParams φ n d) X θ - trainingOutputs (netFromParams φ n d) X θ₀ -
+        WithLp.toLp 2 (outputJacobian (netFromParams φ n d) X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤
+      (Real.sqrt (∑ α : Fin m, (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
+        3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2))) / Real.sqrt (n : ℝ)) / 2 * ‖θ - θ₀‖ ^ 2 :=
+  norm_trainingOutputs_sub_linearization_le (netFromParams φ n d) X θ₀ ‖θ - θ₀‖ _
+    (fun z _ β => (hasFDerivAt_netFromParams φ n d (X β) z
+      fun _ => hφ.differentiableAt).differentiableAt)
+    (fun z _ => by
+      rw [norm_sub_rev (outputJacobian _ X z), norm_sub_rev z θ₀]
+      exact outputJacobian_netFromParams_frobenius_sub_le φ n d m hn X θ₀ z C₁ C₂ R hC₁_nonneg
+        hC₂_nonneg hR_nonneg hφ_lip hderiv_bound hderiv_lip (fun _ _ => hφ.differentiableAt)
+        (fun _ _ => hφ.differentiableAt) ha)
+    le_rfl
+
+/-- **Second-order Taylor bound at a single input.** The scalar form of
+`norm_trainingOutputs_netFromParams_sub_linearization_le`, valid at any (training or test) input
+`x`: `|f(x; θ) - f(x; θ₀) - ⟪∇f(x; θ₀), θ - θ₀⟫| ≤ (K_x / (2 √n)) ‖θ - θ₀‖²`, where
+`K_x² = 2 R² C₂² ‖x‖⁴ + 3 C₁² ‖x‖²` and `R` bounds the readout weights of `θ₀`. -/
+theorem abs_netFromParams_sub_linearization_le
+    (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) (n d : ℕ) (hn : 0 < n) (x : Fin d → ℝ)
+    (θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
+    (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
+    (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
+    (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
+    (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
+    |netFromParams φ n d x θ - netFromParams φ n d x θ₀ -
+        ⟪gradParams φ n d x θ₀, θ - θ₀⟫| ≤
+      (Real.sqrt (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, x j ^ 2) ^ 2 +
+        3 * C₁ ^ 2 * (∑ j : Fin d, x j ^ 2)) / Real.sqrt (n : ℝ)) / 2 * ‖θ - θ₀‖ ^ 2 := by
+  have h := norm_trainingOutputs_netFromParams_sub_linearization_le φ hφ n d 1 hn (fun _ => x)
+    θ₀ θ C₁ C₂ R hC₁_nonneg hC₂_nonneg hR_nonneg hφ_lip hderiv_bound hderiv_lip ha
+  have hcoord : ∀ v : EuclideanSpace ℝ (Fin 1), ‖v‖ = |v 0| := fun v => by
+    simp [EuclideanSpace.norm_eq, Real.sqrt_sq_eq_abs]
+  rw [hcoord] at h
+  simp only [trainingOutputs, PiLp.sub_apply, Finset.univ_unique, Fin.default_eq_zero,
+    Finset.sum_singleton] at h
+  convert h using 2
+  simp only [outputJacobian, Matrix.mulVec_apply, dotProduct, tangentFeature, PiLp.inner_apply]
+  rw [gradient_netFromParams φ n d x θ₀ (fun _ => hφ _)]
+  simp [mul_comm]
 
 /-- The empirical NTK Gram matrix of `netFromParams` decomposes into the sum of the
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
@@ -3054,14 +3125,17 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
     (Extra : ∀ n : ℕ, Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)))
     (hExtra_meas : ∀ n, 0 < n → MeasurableSet (Extra n)) {κ : ℝ}
     (hExtra : ∀ n, 0 < n → (initMeasure n d).real (Extra n) ≥ 1 - κ) :
-    ∃ (freezeRate : ℕ → ℝ) (N : ℕ) (C M R : ℝ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
+    ∃ (freezeRate jacRate taylorRate : ℕ → ℝ) (N : ℕ) (C M R : ℝ),
+      Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
+      Filter.Tendsto jacRate Filter.atTop (nhds 0) ∧
+      Filter.Tendsto taylorRate Filter.atTop (nhds 0) ∧
       (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
       0 ≤ C ∧ 0 ≤ M ∧ 0 ≤ R ∧ ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
         (initMeasure n d).real E ≥ 1 - 2 * δ - 2 * ε - κ ∧ ∀ p ∈ E, p ∈ Extra n ∧
           ‖outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ M ∧
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          (∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ((∀ t : ℝ, 0 ≤ t →
@@ -3090,7 +3164,20 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
                 (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t)‖ ≤ M ∧
               ‖trainingResidual (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ_traj t)‖ ≤
-                R * Real.exp (-(lambda_inf / (4 * (m : ℝ))) * t) := by
+                R * Real.exp (-(lambda_inf / (4 * (m : ℝ))) * t) ∧
+              ‖outputJacobian (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
+                outputJacobian (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
+                jacRate n ∧
+              ‖trainingOutputs (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
+                trainingOutputs (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) -
+                WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ
+                    (θ_traj t - packParams p.1 p.2).ofLp)‖ ≤ taylorRate n) ∧
+          ∀ i : Fin n, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)) := by
   have hφ := hact.differentiable
   have hC₁_bdd := hact.deriv_bdd
   have hderiv_lip := hact.deriv_lip
@@ -3129,6 +3216,10 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
     tendsto_jacobianLipschitzScale Xs C₁ C₂ hδ r
   have hrate : Filter.Tendsto (fun n => 2 * M * ℓ n * C) Filter.atTop (nhds 0) := by
     simpa using (hℓ.const_mul (2 * M)).mul_const C
+  have hjac : Filter.Tendsto (fun n => ℓ n * C) Filter.atTop (nhds 0) := by
+    simpa using hℓ.mul_const C
+  have htay : Filter.Tendsto (fun n => ℓ n * C ^ 2 / 2) Filter.atTop (nhds 0) := by
+    simpa using (hℓ.mul_const (C ^ 2)).div_const 2
   have hc : 0 < min 1 (lambda_inf / (8 * M)) := lt_min one_pos (by positivity)
   have hsmall : ∀ᶠ n in Filter.atTop, ℓ n * r < min 1 (lambda_inf / (8 * M)) := by
     exact (hℓ.mul_const r).eventually (gt_mem_nhds (by rw [zero_mul]; exact hc))
@@ -3137,8 +3228,9 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
   obtain ⟨A, hA, hAev⟩ := jacobianLipschitzScale_le_sqrt_log_div Xs C₁ C₂ hδ r
   obtain ⟨N₂, hN₂⟩ := Filter.eventually_atTop.1 hAev
   have hC0 : 0 ≤ C := by rw [hC]; positivity
-  refine ⟨fun n => 2 * M * ℓ n * C, max N N₂, C, M, R, hrate,
-    ⟨2 * M * A * C, by positivity, fun n hn => ?_⟩, hC0, hM_pos.le, hR_nonneg, fun n hn => ?_⟩
+  refine ⟨fun n => 2 * M * ℓ n * C, fun n => ℓ n * C, fun n => ℓ n * C ^ 2 / 2, max N N₂, C, M, R,
+    hrate, hjac, htay, ⟨2 * M * A * C, by positivity, fun n hn => ?_⟩, hC0, hM_pos.le, hR_nonneg,
+    fun n hn => ?_⟩
   · calc 2 * M * ℓ n * C ≤ 2 * M * (A * Real.sqrt (Real.log n / n)) * C := by
           gcongr; exact hN₂ n ((le_max_right _ _).trans hn)
       _ = 2 * M * A * C * Real.sqrt (Real.log n / n) := by ring
@@ -3186,10 +3278,10 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
     not_lt.1 (show ¬ (R < _) from hpT)
   have hM_ge : M₀ + ℓ n * r ≤ M := by linarith [hsm.le.trans (min_le_left _ _)]
   have hr_nonneg : 0 ≤ r := by positivity
-  obtain ⟨hJ_bdd_ball, -⟩ := jacobian_ball_bounds_of_initial_bounds φ n d m hn0 Xs C₁ C₂ hC₁_bdd
-    hφ_lip hderiv_lip hC₁_nonneg hC₂_nonneg hφ M₀ p hp1 hp2 r (ℓ n) M hr_nonneg (hℓ_nonneg n)
-    hM_ge le_rfl
-  refine ⟨hpX, hJ_bdd_ball _ (by simpa using hr_nonneg), fun θ_traj hflow => ?_⟩
+  obtain ⟨hJ_bdd_ball, hJ_lip_ball⟩ := jacobian_ball_bounds_of_initial_bounds φ n d m hn0 Xs C₁ C₂
+    hC₁_bdd hφ_lip hderiv_lip hC₁_nonneg hC₂_nonneg hφ M₀ p hp1 hp2 r (ℓ n) M hr_nonneg
+    (hℓ_nonneg n) hM_ge le_rfl
+  refine ⟨hpX, hJ_bdd_ball _ (by simpa using hr_nonneg), fun θ_traj hflow => ?_, hp2⟩
   have hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ
       (fun θ' => netFromParams φ n d (Xs β) θ') (θ_traj t) := fun t β =>
     (hasFDerivAt_netFromParams φ n d (Xs β) (θ_traj t)
@@ -3223,9 +3315,16 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
     · rwa [show -(lambda_inf / 2 / 2 / (m : ℝ)) * t = -(lambda_inf / (4 * (m : ℝ))) * t by ring]
         at hres_d
   · obtain ⟨hdisp, -, -, hres_d, -⟩ := hg t ht
-    refine ⟨hdisp, hJ_bdd_ball _ (hdisp.trans (lt_add_one C).le), ?_⟩
-    rw [show -(lambda_inf / (4 * (m : ℝ))) * t = -(lambda_inf / 2 / 2 / (m : ℝ)) * t by ring]
-    exact hres_d.trans (mul_le_mul_of_nonneg_right hres (Real.exp_nonneg _))
+    have hball : ‖θ_traj t - packParams p.1 p.2‖ ≤ r := hdisp.trans (lt_add_one C).le
+    refine ⟨hdisp, hJ_bdd_ball _ hball, ?_,
+      (hJ_lip_ball _ hball).trans (mul_le_mul_of_nonneg_left hdisp (hℓ_nonneg n)),
+      (norm_trainingOutputs_sub_linearization_le (netFromParams φ n d) Xs (packParams p.1 p.2) r
+        (ℓ n) (fun z _ β => (hasFDerivAt_netFromParams φ n d (Xs β) z
+          fun i => hφ.differentiableAt).differentiableAt) hJ_lip_ball hball).trans ?_⟩
+    · rw [show -(lambda_inf / (4 * (m : ℝ))) * t = -(lambda_inf / 2 / 2 / (m : ℝ)) * t by ring]
+      exact hres_d.trans (mul_le_mul_of_nonneg_right hres (Real.exp_nonneg _))
+    · calc ℓ n / 2 * ‖θ_traj t - packParams p.1 p.2‖ ^ 2 ≤ ℓ n / 2 * C ^ 2 := by gcongr
+        _ = ℓ n * C ^ 2 / 2 := by ring
 
 /-- **Measurable good event for global positive-gap lazy training, with all bootstrap constants
 discharged.** Assume a
@@ -3287,13 +3386,13 @@ theorem exists_measurableSet_global_lazy_training_event
                   Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
             Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ_traj t)) Filter.atTop (nhds 0) := by
-  obtain ⟨freezeRate, N, C, M, R, hrate, hK₀, -, -, -, h⟩ :=
+  obtain ⟨freezeRate, _, _, N, C, M, R, hrate, -, -, hK₀, -, -, -, h⟩ :=
     exists_measurableSet_global_lazy_training_event_with_extra hm hd φ hact X y lambda_inf
       hlambda_inf hK_gap hδ hδ1 hε (fun _ => Set.univ) (fun _ _ => MeasurableSet.univ) (κ := 0)
       (fun n _ => by simp)
   refine ⟨freezeRate, N, hrate, hK₀, fun n hn => ?_⟩
   obtain ⟨E, hEm, hE, hEp⟩ := h n hn
-  exact ⟨E, hEm, by linarith, fun p hp θ_traj hflow => ((hEp p hp).2.2 θ_traj hflow).1⟩
+  exact ⟨E, hEm, by linarith, fun p hp θ_traj hflow => ((hEp p hp).2.2.1 θ_traj hflow).1⟩
 
 /-- **Global lazy training with kernel drift `O(n⁻¹ᐟ²)`.** Under the hypotheses of
 `exists_measurableSet_global_lazy_training_event`, with the same conclusions, the drift rate obeys
@@ -3345,7 +3444,7 @@ theorem exists_measurableSet_global_lazy_training_event_inv_sqrt_width
   set Xs : Fin m → Fin d → ℝ := fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j with hXs
   obtain ⟨τ, hτ, hτev⟩ := exists_neuronMoment_event hφ.continuous.measurable C₁ C₂ Xs
     (fun α => hL2 (Xs α)) hδ
-  obtain ⟨freezeRate, N, C, M, R, hrate, -, hC, hM, hR, h⟩ :=
+  obtain ⟨freezeRate, _, _, N, C, M, R, hrate, -, -, -, hC, hM, hR, h⟩ :=
     exists_measurableSet_global_lazy_training_event_with_extra hm hd φ hact X y lambda_inf
       hlambda_inf hK_gap hδ hδ1 hε
       (fun n => {p | (n : ℝ)⁻¹ * ∑ i : Fin n, neuronMoment φ C₁ C₂ Xs (p.1 i) (p.2 i) ≤ τ})
@@ -3360,7 +3459,7 @@ theorem exists_measurableSet_global_lazy_training_event_inv_sqrt_width
   obtain ⟨E, hEm, hE, hEp⟩ := h n ((le_max_left _ _).trans hn)
   have hn0 : 0 < n := lt_of_lt_of_le one_pos ((le_max_right _ _).trans hn)
   refine ⟨E, hEm, by linarith, fun p hp θ_traj hflow => ?_⟩
-  obtain ⟨hpX, hJ0, hall⟩ := hEp p hp
+  obtain ⟨hpX, hJ0, hall, -⟩ := hEp p hp
   obtain ⟨⟨horig, htend⟩, hcert⟩ := hall θ_traj hflow
   refine ⟨fun t ht => ?_, htend⟩
   obtain ⟨hray, hdrift, hres, hloss⟩ := horig t ht
@@ -3370,7 +3469,7 @@ theorem exists_measurableSet_global_lazy_training_event_inv_sqrt_width
     simpa [unpackW_packParams, unpackA_packParams] using hpX
   have hsharp := kernel_drift_le_of_neuron_moments φ hφ hC₁_nonneg hC₂_nonneg hφ_lip
     hact.deriv_bdd hact.deriv_lip hn0 hm Xs y hflow hν (fun t ht => (hcert t ht).1)
-    (fun t ht => (hcert t ht).2.2) (fun t ht => (hcert t ht).2.1) hJ0 hmom ht
+    (fun t ht => (hcert t ht).2.2.1) (fun t ht => (hcert t ht).2.1) hJ0 hmom ht
   refine hsharp.trans (le_of_eq ?_)
   rw [hK]; ring
 
@@ -3547,13 +3646,18 @@ theorem exists_kernel_freeze_event_of_positive_gap_of_confidence
     (by positivity) (by linarith) (by positivity)
   exact ⟨freezeRate, N, hrate, fun n hn => le_of_eq_of_le (by ring) (h n hn)⟩
 
-/-- **Measurable good event for the finite-horizon kernel freeze (no spectral gap).** Assume a
+/-- **Measurable good event for finite-horizon lazy training (no spectral gap).** Assume a
 `SmoothActivation` (no bound on the value of `φ`). For every horizon
 `T ≥ 0`, `δ ∈ (0, 1]` and `ε > 0` there are a radius `R ≥ 0`, a deterministic sequence
 `freezeRate n → 0` and a width `N` such that for `n ≥ N` there is a *measurable* event `E` of
 `initMeasure n d`-probability at least `1 - 2 * δ - ε` on which the initial residual has norm at
-most `R` and every gradient flow from `packParams W a` keeps the empirical NTK within
-`freezeRate n` of its initial value on `[0, T]`.
+most `R` and every gradient flow from `packParams W a`, for all `t ∈ [0, T]`,
+keeps the empirical NTK within `freezeRate n` of its initial value, keeps the output Jacobian within
+`jacRate n` of its initial value (*Jacobian* freezing, which is strictly stronger than kernel
+freezing since `K = J Jᵀ`), and stays within `taylorRate n` of its initialization linearization
+`f(θ₀) + J(θ₀) (θ(t) - θ₀)`. All three rates tend to `0`; they come from the single displacement
+bound `‖θ(t) - θ₀‖ ≤ C` and the Jacobian Lipschitz scale `ℓ n` (`jacRate n = ℓ n C`,
+`taylorRate n = ℓ n C² / 2` by `norm_trainingOutputs_sub_linearization_le`).
 
 Unlike the positive-gap event, no lower bound on the spectrum of the limiting kernel is assumed:
 positive semidefiniteness bounds the residual by its initial size
@@ -3562,18 +3666,21 @@ positive semidefiniteness bounds the residual by its initial size
 depends on `T`. Exposing a measurable event (rather than only its measure) lets later arguments
 intersect it with other events and take complements. This is an a priori estimate for any
 `GFTrajectory`; it does not assert that gradient flows exist. -/
-theorem exists_measurableSet_finite_horizon_kernel_freeze
+theorem exists_measurableSet_finite_horizon_lazy_training_event
     {d m : ℕ} (hm : 0 < m) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
-    ∃ (R : ℝ) (freezeRate : ℕ → ℝ) (N : ℕ), 0 ≤ R ∧
-      Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
+    ∃ (R C : ℝ) (freezeRate jacRate taylorRate : ℕ → ℝ) (N : ℕ), 0 ≤ R ∧
+      Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
+      Filter.Tendsto jacRate Filter.atTop (nhds 0) ∧
+      Filter.Tendsto taylorRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
         (initMeasure n d).real E ≥ 1 - 2 * δ - ε ∧
         ∀ p ∈ E,
           ‖trainingResidual (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ ≤ R ∧
+          (∀ i : Fin n, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))) ∧
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
@@ -3582,7 +3689,20 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
                 empiricalNTKMatrix (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
-                freezeRate n := by
+                freezeRate n ∧
+              ‖outputJacobian (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
+                outputJacobian (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
+                jacRate n ∧
+              ‖trainingOutputs (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
+                trainingOutputs (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) -
+                WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ
+                    (θ_traj t - packParams p.1 p.2).ofLp)‖ ≤ taylorRate n ∧
+              ‖θ_traj t - packParams p.1 p.2‖ ≤ C := by
   have hφ := hact.differentiable
   have hC₁_bdd := hact.deriv_bdd
   have hderiv_lip := hact.deriv_lip
@@ -3610,10 +3730,15 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
     tendsto_jacobianLipschitzScale Xs C₁ C₂ hδ r
   have hrate : Filter.Tendsto (fun n => 2 * M * ℓ n * C) Filter.atTop (nhds 0) := by
     simpa using (hℓ.const_mul (2 * M)).mul_const C
+  have hjac : Filter.Tendsto (fun n => ℓ n * C) Filter.atTop (nhds 0) := by
+    simpa using hℓ.mul_const C
+  have htay : Filter.Tendsto (fun n => ℓ n * C ^ 2 / 2) Filter.atTop (nhds 0) := by
+    simpa using (hℓ.mul_const (C ^ 2)).div_const 2
   have hsmall : ∀ᶠ n in Filter.atTop, ℓ n * r < 1 :=
     (hℓ.mul_const r).eventually (gt_mem_nhds (by rw [zero_mul]; exact one_pos))
   obtain ⟨N, hN⟩ := Filter.eventually_atTop.1 ((Filter.eventually_gt_atTop 0).and hsmall)
-  refine ⟨R, fun n => 2 * M * ℓ n * C, N, hR_nonneg, hrate, fun n hn => ?_⟩
+  refine ⟨R, C, fun n => 2 * M * ℓ n * C, fun n => ℓ n * C, fun n => ℓ n * C ^ 2 / 2, N, hR_nonneg,
+    hrate, hjac, htay, fun n hn => ?_⟩
   obtain ⟨hn0, hsm⟩ := hN n hn
   obtain ⟨E, hEm, hEμ, hEp⟩ := hM₀ n hn0
   set Tail : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) := {p | R <
@@ -3633,7 +3758,7 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
   obtain ⟨hp1, hp2⟩ := hEp p hpE
   have hres : ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ ≤ R :=
     not_lt.1 (show ¬ (R < _) from hpT)
-  refine ⟨hres, fun θ_traj hflow t ht => ?_⟩
+  refine ⟨hres, hp2, fun θ_traj hflow t ht => ?_⟩
   have hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ
       (fun θ' => netFromParams φ n d (Xs β) θ') (θ_traj t) := fun t β =>
     (hasFDerivAt_netFromParams φ n d (Xs β) (θ_traj t)
@@ -3641,10 +3766,51 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
   obtain ⟨hJ_bdd, hJ_lip⟩ := jacobian_ball_bounds_of_initial_bounds φ n d m hn0 Xs C₁ C₂
     hC₁_bdd hφ_lip hderiv_lip hC₁_nonneg hC₂_nonneg hφ M₀ p hp1 hp2 r (ℓ n) M hr_nonneg
     (hℓ_nonneg n) (by linarith) le_rfl
-  exact finite_horizon_kernel_freeze_bound (netFromParams φ n d) Xs y hflow hdiff T M (ℓ n) r C
+  have hdisp := finite_horizon_displacement_bound (netFromParams φ n d) Xs y hflow hdiff T M r C hT
+    hM_pos.le (Nat.cast_pos.2 hm) hr_nonneg (lt_add_one C) (by rw [hC]; gcongr) hJ_bdd t ht
+  have hball : ‖θ_traj t - packParams p.1 p.2‖ ≤ r := hdisp.trans (lt_add_one C).le
+  refine ⟨finite_horizon_kernel_freeze_bound (netFromParams φ n d) Xs y hflow hdiff T M (ℓ n) r C
     hT hM_pos.le (hℓ_nonneg n) (Nat.cast_pos.2 hm) hr_nonneg (lt_add_one C)
-    (by rw [hC]; gcongr) hJ_bdd hJ_lip t ht
+    (by rw [hC]; gcongr) hJ_bdd hJ_lip t ht,
+    (hJ_lip _ hball).trans (mul_le_mul_of_nonneg_left hdisp (hℓ_nonneg n)),
+    (norm_trainingOutputs_sub_linearization_le (netFromParams φ n d) Xs (packParams p.1 p.2) r
+      (ℓ n) (fun z _ β => (hasFDerivAt_netFromParams φ n d (Xs β) z
+        fun i => hφ.differentiableAt).differentiableAt) hJ_lip hball).trans ?_, hdisp⟩
+  calc ℓ n / 2 * ‖θ_traj t - packParams p.1 p.2‖ ^ 2 ≤ ℓ n / 2 * C ^ 2 := by
+        gcongr
+    _ = ℓ n * C ^ 2 / 2 := by ring
 
+/-- **Measurable good event for the finite-horizon kernel freeze (no spectral gap).** The kernel
+component of `exists_measurableSet_finite_horizon_lazy_training_event`: with probability at least
+`1 - 2 * δ - ε` the initial residual has norm at most `R` and every gradient flow keeps the
+empirical NTK within `freezeRate n → 0` of its initial value on `[0, T]`. -/
+theorem exists_measurableSet_finite_horizon_kernel_freeze
+    {d m : ℕ} (hm : 0 < m) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
+    {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
+    ∃ (R : ℝ) (freezeRate : ℕ → ℝ) (N : ℕ), 0 ≤ R ∧
+      Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
+      ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
+        (initMeasure n d).real E ≥ 1 - 2 * δ - ε ∧
+        ∀ p ∈ E,
+          ‖trainingResidual (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ ≤ R ∧
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+            ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
+            ∀ t ∈ Set.Icc (0 : ℝ) T,
+              ‖empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
+                empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
+                freezeRate n := by
+  obtain ⟨R, _, freezeRate, _, _, N, hR, hrate, -, -, h⟩ :=
+    exists_measurableSet_finite_horizon_lazy_training_event hm φ hact X y T hT hδ hδ1 hε
+  refine ⟨R, freezeRate, N, hR, hrate, fun n hn => ?_⟩
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  exact ⟨E, hEm, hE, fun p hp => ⟨(hEp p hp).1, fun θ_traj hflow t ht =>
+    ((hEp p hp).2.2 θ_traj hflow t ht).1⟩⟩
 
 /-- **Finite-horizon kernel freeze with no spectral gap.** Consequence of
 `exists_measurableSet_finite_horizon_kernel_freeze`: for every horizon `T ≥ 0`, `δ ∈ (0, 1]` and
@@ -3833,6 +3999,42 @@ private lemma measure_le_ofReal_of_measureReal_le {α : Type*} [MeasurableSpace 
     μ S ≤ ENNReal.ofReal c :=
   (ENNReal.ofReal_toReal (measure_ne_top μ S)).symm.le.trans (ENNReal.ofReal_le_ofReal h)
 
+/-- **Generic "supremum of a drift tends to zero in probability".** Let `μ n` be probability
+measures and `Good n p` a property holding almost surely (in applications, "the trajectory `θ n p`
+solves the gradient-flow ODE"). Suppose that for every confidence level `c > 0` there is a rate
+`ρ → 0` such that, eventually in `n`, a measurable event `E` of failure probability at most `c`
+forces `D n p t ≤ ρ n` for all `t ∈ S` (and `Good n p`). Then for every `ε₀ > 0` the probability
+that `D n p t` exceeds `ε₀` at some `t ∈ S` tends to zero. The bad set need not be measurable, so `μ n`
+evaluates it as an outer measure. This is the shared endgame of the kernel-, Jacobian- and
+linearization-drift theorems below. -/
+theorem tendsto_measure_exists_gt_of_good_events {Ω : ℕ → Type*} [∀ n, MeasurableSpace (Ω n)]
+    (μ : ∀ n, Measure (Ω n)) [∀ n, IsProbabilityMeasure (μ n)] (S : Set ℝ)
+    (Good : ∀ n, Ω n → Prop) (D : ∀ n, Ω n → ℝ → ℝ)
+    (hgood : ∀ n, ∀ᵐ p ∂(μ n), Good n p)
+    (hev : ∀ c : ℝ, 0 < c → ∃ ρ : ℕ → ℝ, Filter.Tendsto ρ Filter.atTop (nhds 0) ∧
+      ∀ᶠ n in Filter.atTop, ∃ E : Set (Ω n), MeasurableSet E ∧ (μ n).real Eᶜ ≤ c ∧
+        ∀ p ∈ E, Good n p → ∀ t ∈ S, D n p t ≤ ρ n)
+    {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto (fun n => μ n {p | ∃ t ∈ S, ε₀ < D n p t}) Filter.atTop (nhds 0) := by
+  rw [ENNReal.tendsto_nhds_zero]
+  intro κ hκ
+  obtain ⟨c, hc, hcκ⟩ := exists_pos_real_ofReal_le hκ
+  obtain ⟨ρ, hρ, hn⟩ := hev c hc
+  filter_upwards [hn, hρ.eventually (gt_mem_nhds hε₀)] with n hEn hlt
+  obtain ⟨E, hEm, hEc, hEp⟩ := hEn
+  have hnull : μ n {p | ¬ Good n p} = 0 := ae_iff.1 (hgood n)
+  calc μ n {p | ∃ t ∈ S, ε₀ < D n p t} ≤ μ n (Eᶜ ∪ {p | ¬ Good n p}) := by
+        refine measure_mono fun p hp => ?_
+        by_contra hcon
+        simp only [Set.mem_union, Set.mem_compl_iff, Set.mem_ofPred_eq, not_or, not_not] at hcon
+        obtain ⟨hpE, hg⟩ := hcon
+        obtain ⟨t, ht, hgt⟩ := hp
+        have := hEp p hpE hg t ht
+        linarith
+    _ ≤ μ n Eᶜ + 0 := by rw [← hnull]; exact measure_union_le _ _
+    _ ≤ ENNReal.ofReal c := by rw [add_zero]; exact measure_le_ofReal_of_measureReal_le _ hEc
+    _ ≤ κ := hcκ
+
 /-- **Kernel stationarity in probability on `[0, T]`.** If the trajectories `θ n p` solve the
 gradient-flow ODE for `initMeasure n d`-almost every initialization, then for every `ε₀ > 0` the
 probability that the empirical NTK drifts by more than `ε₀` somewhere on `[0, T]` tends to zero.
@@ -3856,41 +4058,348 @@ theorem tendsto_measure_kernel_drift_finite_horizon
           empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
       Filter.atTop (nhds 0) := by
-  rw [ENNReal.tendsto_nhds_zero]
-  intro κ hκ
-  obtain ⟨c, hc, hcκ⟩ := exists_pos_real_ofReal_le hκ
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Icc 0 T)
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => ‖empiricalNTKMatrix (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+      empiricalNTKMatrix (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖) hθ_flow (fun c hc => ?_) hε₀
   obtain ⟨R, freezeRate, N, -, hrate, h⟩ := exists_measurableSet_finite_horizon_kernel_freeze hm φ
     hact X y T hT (δ := min 1 (c / 8)) (ε := c / 2) (lt_min one_pos (by positivity))
     (min_le_left _ _) (by positivity)
-  filter_upwards [Filter.eventually_ge_atTop N, hrate.eventually (gt_mem_nhds hε₀)] with n hn hlt
+  refine ⟨freezeRate, hrate, (Filter.eventually_ge_atTop N).mono fun n hn => ?_⟩
   obtain ⟨E, hEm, hE, hEp⟩ := h n hn
-  have hEc : (initMeasure n d).real Eᶜ ≤ c := by
-    rw [probReal_compl_eq_one_sub hEm]
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
     have := min_le_right 1 (c / 8)
     linarith
-  have hnull : (initMeasure n d) {p | ¬ ForwardGFTrajectory (mseLoss (netFromParams φ n d)
-      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)} = 0 :=
-    ae_iff.1 (hθ_flow n)
-  calc (initMeasure n d) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
-        ε₀ < ‖empiricalNTKMatrix (netFromParams φ n d)
+  · have hb := (hEp p hp).2 (θ n p) hflow t ht
+    rwa [hflow.init]
+
+/-- **Jacobian stationarity in probability on `[0, T]`.** Under the hypotheses of
+`tendsto_measure_kernel_drift_finite_horizon`, for every `ε₀ > 0` the probability that the output
+Jacobian `J(θ(t))` moves by more than `ε₀` (in Frobenius norm) from `J(θ(0))` somewhere on `[0, T]`
+tends to zero. This is the tangent-feature freezing statement proper: it is not deduced from
+`tendsto_measure_kernel_drift_finite_horizon`, since `K = J Jᵀ` can stay put while `J` rotates. It
+comes from the same displacement bound and the Jacobian Lipschitz estimate
+(`exists_measurableSet_finite_horizon_lazy_training_event`). -/
+theorem tendsto_measure_jacobian_drift_finite_horizon
+    {d m : ℕ} (hm : 0 < m) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
+        ε₀ < ‖outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
-          empiricalNTKMatrix (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖}
-      ≤ (initMeasure n d) (Eᶜ ∪ {p | ¬ ForwardGFTrajectory (mseLoss (netFromParams φ n d)
-      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)}) := by
-        refine measure_mono fun p hp => ?_
-        by_contra hcon
-        simp only [Set.mem_union, Set.mem_compl_iff, Set.mem_ofPred_eq, not_or, not_not] at hcon
-        obtain ⟨hpE, hflow⟩ := hcon
-        obtain ⟨t, ht, hgt⟩ := hp
-        have hb := (hEp p hpE).2 (θ n p) hflow t ht
-        rw [hflow.init] at hgt
-        linarith
-    _ ≤ (initMeasure n d) Eᶜ + 0 := by
-        rw [← hnull]; exact measure_union_le _ _
-    _ ≤ ENNReal.ofReal c := by
-        rw [add_zero]; exact measure_le_ofReal_of_measureReal_le _ hEc
-    _ ≤ κ := hcκ
+          outputJacobian (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
+      Filter.atTop (nhds 0) := by
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Icc 0 T)
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => ‖outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+      outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖) hθ_flow (fun c hc => ?_) hε₀
+  obtain ⟨R, _, _, jacRate, _, N, -, -, hjac, -, h⟩ :=
+    exists_measurableSet_finite_horizon_lazy_training_event hm φ hact X y T hT
+      (δ := min 1 (c / 8)) (ε := c / 2) (lt_min one_pos (by positivity)) (min_le_left _ _)
+      (by positivity)
+  refine ⟨jacRate, hjac, (Filter.eventually_ge_atTop N).mono fun n hn => ?_⟩
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
+    have := min_le_right 1 (c / 8)
+    linarith
+  · have hb := ((hEp p hp).2.2 (θ n p) hflow t ht).2.1
+    rwa [hflow.init]
+
+/-- **The trained network stays close to its initialization linearization on `[0, T]`.** Under the
+hypotheses of `tendsto_measure_kernel_drift_finite_horizon`, for every `ε₀ > 0` the probability that
+`‖f(θ(t)) - f(θ(0)) - J(θ(0)) (θ(t) - θ(0))‖ > ε₀` somewhere on `[0, T]` tends to zero, where `f`
+is the vector of training outputs and `J` the output Jacobian. The remainder is bounded
+deterministically by `norm_trainingOutputs_sub_linearization_le` (Lipschitz Jacobian on the
+displacement ball). Test inputs are handled by
+`tendsto_measure_test_linearization_error_finite_horizon`. -/
+theorem tendsto_measure_linearization_error_finite_horizon
+    {d m : ℕ} (hm : 0 < m) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
+        ε₀ < ‖trainingOutputs (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+          trainingOutputs (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+          WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
+              (θ n p t - θ n p 0).ofLp)‖})
+      Filter.atTop (nhds 0) := by
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Icc 0 T)
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => ‖trainingOutputs (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+      trainingOutputs (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+      WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
+          (θ n p t - θ n p 0).ofLp)‖) hθ_flow (fun c hc => ?_) hε₀
+  obtain ⟨R, _, _, _, taylorRate, N, -, -, -, htay, h⟩ :=
+    exists_measurableSet_finite_horizon_lazy_training_event hm φ hact X y T hT
+      (δ := min 1 (c / 8)) (ε := c / 2) (lt_min one_pos (by positivity)) (min_le_left _ _)
+      (by positivity)
+  refine ⟨taylorRate, htay, (Filter.eventually_ge_atTop N).mono fun n hn => ?_⟩
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
+    have := min_le_right 1 (c / 8)
+    linarith
+  · have hb := ((hEp p hp).2.2 (θ n p) hflow t ht).2.2.1
+    rwa [hflow.init]
+
+/-- **Jacobian stationarity in probability on `[0, ∞)` from a positive limiting gap.** If the
+limiting kernel satisfies `K_∞ ≥ lambda_inf • 1` with `lambda_inf > 0` and the trajectories `θ n p`
+solve the gradient-flow ODE for almost every initialization, then for every `ε₀ > 0` the probability
+that the output Jacobian moves by more than `ε₀` from `J(θ(0))` at *some* time `t ≥ 0` tends to
+zero, i.e. `P(sup_{t ≥ 0} ‖J(θ(t)) - J(θ(0))‖ > ε₀) → 0`. The displacement bound is uniform in time
+because the positive gap makes the residual decay exponentially; the finite-horizon counterpart
+needs no gap (`tendsto_measure_jacobian_drift_finite_horizon`). Jacobian freezing is proved directly
+from the Jacobian Lipschitz bound, not inferred from kernel freezing. -/
+theorem tendsto_measure_jacobian_drift_global_positive_gap
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
+    (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Ici (0 : ℝ),
+        ε₀ < ‖outputJacobian (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+          outputJacobian (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
+      Filter.atTop (nhds 0) := by
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Ici 0)
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => ‖outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+      outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖) hθ_flow (fun c hc => ?_) hε₀
+  obtain ⟨_, jacRate, _, N, C, M, R, -, hjac, htay, -, -, -, -, h⟩ :=
+    exists_measurableSet_global_lazy_training_event_with_extra hm hd φ hact X y lambda_inf
+      hlambda_inf hK_gap (δ := min 1 (c / 8)) (ε := c / 4) (lt_min one_pos (by positivity))
+      (min_le_left _ _) (by positivity) (fun _ => Set.univ) (fun _ _ => MeasurableSet.univ)
+      (κ := 0) (fun n _ => by simp)
+  refine ⟨jacRate, hjac, (Filter.eventually_ge_atTop N).mono fun n hn => ?_⟩
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
+    have := min_le_right 1 (c / 8)
+    linarith
+  · have hb := (((hEp p hp).2.2.1 (θ n p) hflow).2 t ht).2.2.2.1
+    rwa [hflow.init]
+
+/-- **Linearization error in probability on `[0, ∞)` from a positive limiting gap.** Under the
+hypotheses of `tendsto_measure_jacobian_drift_global_positive_gap`, for every `ε₀ > 0` the
+probability that `‖f(θ(t)) - f(θ(0)) - J(θ(0)) (θ(t) - θ(0))‖ > ε₀` at some `t ≥ 0` tends to zero:
+the full nonlinear network stays within `o(1)` of its initialization linearization for all time at
+the training inputs. Test inputs are handled by
+`tendsto_measure_test_linearization_error_global_positive_gap`. -/
+theorem tendsto_measure_linearization_error_global_positive_gap
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
+    (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Ici (0 : ℝ),
+        ε₀ < ‖trainingOutputs (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+          trainingOutputs (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+          WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
+              (θ n p t - θ n p 0).ofLp)‖})
+      Filter.atTop (nhds 0) := by
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Ici 0)
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => ‖trainingOutputs (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+      trainingOutputs (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+      WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
+          (θ n p t - θ n p 0).ofLp)‖) hθ_flow (fun c hc => ?_) hε₀
+  obtain ⟨_, _, taylorRate, N, C, M, R, -, hjac, htay, -, -, -, -, h⟩ :=
+    exists_measurableSet_global_lazy_training_event_with_extra hm hd φ hact X y lambda_inf
+      hlambda_inf hK_gap (δ := min 1 (c / 8)) (ε := c / 4) (lt_min one_pos (by positivity))
+      (min_le_left _ _) (by positivity) (fun _ => Set.univ) (fun _ _ => MeasurableSet.univ)
+      (κ := 0) (fun n _ => by simp)
+  refine ⟨taylorRate, htay, (Filter.eventually_ge_atTop N).mono fun n hn => ?_⟩
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
+    have := min_le_right 1 (c / 8)
+    linarith
+  · have hb := (((hEp p hp).2.2.1 (θ n p) hflow).2 t ht).2.2.2.2
+    rwa [hflow.init]
+
+/-- Deterministic test-point linearization bound: at any input `x`, if the readout weights of `θ₀`
+are bounded by `R` and `‖θ - θ₀‖ ≤ C`, the network differs from its linearization at `θ₀` by at most
+`(K_x(R) / (2 √n)) C²`. Instantiates `abs_netFromParams_sub_linearization_le` for a
+`SmoothActivation`. -/
+private lemma abs_netFromParams_sub_linearization_le_of_disp {φ : ℝ → ℝ} {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂) {n d : ℕ} (hn : 0 < n) (x : Fin d → ℝ)
+    {θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d))} {R C : ℝ}
+    (hR : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ C) :
+    |netFromParams φ n d x θ - netFromParams φ n d x θ₀ - ⟪gradParams φ n d x θ₀, θ - θ₀⟫| ≤
+      (Real.sqrt (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, x j ^ 2) ^ 2 +
+        3 * C₁ ^ 2 * (∑ j : Fin d, x j ^ 2)) / Real.sqrt (n : ℝ)) / 2 * C ^ 2 := by
+  obtain ⟨hC₁, hC₂, hφ_lip, -⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
+    hact.deriv_lip hact.differentiable
+  refine (abs_netFromParams_sub_linearization_le φ hact.differentiable n d hn x θ₀ θ C₁ C₂ R hC₁
+    hC₂ ((abs_nonneg _).trans (hR ⟨0, hn⟩)) hφ_lip hact.deriv_bdd hact.deriv_lip hR).trans ?_
+  gcongr
+
+open Filter Topology in
+/-- The test-point remainder rate `(K_x(R₀(n)) / (2 √n)) C²` with `R₀(n) = √(2 log (2 n / δ))`
+(the high-probability bound on the readout weights) tends to `0`. -/
+private lemma tendsto_testLinearizationRate {d : ℕ} (x : Fin d → ℝ) (C₁ C₂ C : ℝ) {δ : ℝ}
+    (hδ : 0 < δ) :
+    Tendsto (fun n : ℕ => (Real.sqrt (2 * Real.sqrt (2 * Real.log (2 * n / δ)) ^ 2 * C₂ ^ 2 *
+        (∑ j : Fin d, x j ^ 2) ^ 2 + 3 * C₁ ^ 2 * (∑ j : Fin d, x j ^ 2)) /
+        Real.sqrt (n : ℝ)) / 2 * C ^ 2) atTop (𝓝 0) := by
+  have h := ((tendsto_jacobianLipschitzScale (fun _ : Fin 1 => x) C₁ C₂ hδ 0).div_const 2).mul_const
+    (C ^ 2)
+  simpa using h
+
+/-- **Linearization error at a test input, in probability on `[0, T]`.** For any test input `x`
+(scaled like the training inputs by `1 / √d`), the probability that the network output at `x`
+differs from its initialization linearization `f(x; θ(0)) + ⟪∇f(x; θ(0)), θ(t) - θ(0)⟫` by more than
+`ε₀` somewhere on `[0, T]` tends to zero. The flow is still trained on the training set; only the
+readout weights at initialization and the displacement radius enter the deterministic bound
+`abs_netFromParams_sub_linearization_le`. -/
+theorem tendsto_measure_test_linearization_error_finite_horizon
+    {d m : ℕ} (hm : 0 < m) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (x : Fin d → ℝ) {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
+        ε₀ < |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -
+            netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0) -
+          ⟪gradParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0), θ n p t - θ n p 0⟫|})
+      Filter.atTop (nhds 0) := by
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Icc (0 : ℝ) T)
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -
+        netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0) -
+      ⟪gradParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0),
+        θ n p t - θ n p 0⟫|) hθ_flow (fun c hc => ?_) hε₀
+  obtain ⟨R, C, _, _, _, N, -, -, -, -, h⟩ :=
+    exists_measurableSet_finite_horizon_lazy_training_event hm φ hact X y T hT
+      (δ := min 1 (c / 8)) (ε := c / 2) (lt_min one_pos (by positivity)) (min_le_left _ _)
+      (by positivity)
+  refine ⟨_, tendsto_testLinearizationRate (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) C₁ C₂ C
+    (lt_min one_pos (by positivity : 0 < c / 8)),
+    (Filter.eventually_ge_atTop (max N 1)).mono fun n hn' => ?_⟩
+  have hn : n ≥ N := (le_max_left _ _).trans hn'
+  have hn0 : 0 < n := lt_of_lt_of_le one_pos ((le_max_right _ _).trans hn')
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
+    have := min_le_right 1 (c / 8)
+    linarith
+  · obtain ⟨-, hp2, hall⟩ := hEp p hp
+    have hdisp := (hall (θ n p) hflow t ht).2.2.2
+    rw [hflow.init]
+    exact abs_netFromParams_sub_linearization_le_of_disp hact hn0
+      (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j)
+      (fun i => by simpa [unpackA_packParams] using hp2 i) hdisp
+
+/-- **Linearization error at a test input, in probability on `[0, ∞)` from a positive gap.**
+The test-point counterpart of `tendsto_measure_linearization_error_global_positive_gap`: for every
+test input `x` and `ε₀ > 0`,
+`P(sup_{t ≥ 0} |f(x; θ(t)) - f(x; θ(0)) - ⟪∇f(x; θ(0)), θ(t) - θ(0)⟫| > ε₀) → 0`. -/
+theorem tendsto_measure_test_linearization_error_global_positive_gap
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
+    (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
+    (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+      EuclideanSpace ℝ (Fin (paramDim n d)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+      ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (x : Fin d → ℝ) {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
+    Filter.Tendsto
+      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Ici (0 : ℝ),
+        ε₀ < |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -
+            netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0) -
+          ⟪gradParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0), θ n p t - θ n p 0⟫|})
+      Filter.atTop (nhds 0) := by
+  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Ici (0 : ℝ))
+    (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
+    (fun n p t => |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -
+        netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0) -
+      ⟪gradParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0),
+        θ n p t - θ n p 0⟫|) hθ_flow (fun c hc => ?_) hε₀
+  obtain ⟨_, _, _, N, C, M, R, -, -, -, -, -, -, -, h⟩ :=
+    exists_measurableSet_global_lazy_training_event_with_extra hm hd φ hact X y lambda_inf
+      hlambda_inf hK_gap (δ := min 1 (c / 8)) (ε := c / 4) (lt_min one_pos (by positivity))
+      (min_le_left _ _) (by positivity) (fun _ => Set.univ) (fun _ _ => MeasurableSet.univ)
+      (κ := 0) (fun n _ => by simp)
+  refine ⟨_, tendsto_testLinearizationRate (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) C₁ C₂ C
+    (lt_min one_pos (by positivity : 0 < c / 8)),
+    (Filter.eventually_ge_atTop (max N 1)).mono fun n hn' => ?_⟩
+  have hn : n ≥ N := (le_max_left _ _).trans hn'
+  have hn0 : 0 < n := lt_of_lt_of_le one_pos ((le_max_right _ _).trans hn')
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  refine ⟨E, hEm, ?_, fun p hp hflow t ht => ?_⟩
+  · rw [probReal_compl_eq_one_sub hEm]
+    have := min_le_right 1 (c / 8)
+    linarith
+  · obtain ⟨-, -, hall, hp2⟩ := hEp p hp
+    have hdisp := ((hall (θ n p) hflow).2 t ht).1
+    rw [hflow.init]
+    exact abs_netFromParams_sub_linearization_le_of_disp hact hn0
+      (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j)
+      (fun i => by simpa [unpackA_packParams] using hp2 i) hdisp
 
 /-- **Actual residual vs. frozen matrix-exponential residual, in probability.** If the trajectories
 `θ n p` solve the gradient-flow ODE for almost every initialization, then at each fixed time `t ≥ 0`
