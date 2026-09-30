@@ -6357,7 +6357,7 @@ theorem injective_of_ae_independent {m d : ℕ} (φ : ℝ → ℝ) (X : Fin m �
   have h := hind (Pi.single α 1 - Pi.single β 1) (Filter.Eventually.of_forall fun w => by
     simp [Pi.sub_apply, sub_mul, Finset.sum_sub_distrib, Pi.single_apply, ite_mul, hαβ])
   have := congrFun h α
-  simp [Pi.single_apply, hne] at this
+  simp [hne] at this
 
 /-- Matrix almost-sure convergence of the empirical NTK neuron-average matrix to the
 deterministic `limitingFullNTKMatrix` on the paper's scaled dataset `(1 / √d) * X`. -/

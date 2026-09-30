@@ -1136,6 +1136,25 @@ lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (
   rw [EuclideanSpace.inner_toLp_toLp]
   simp [dotProduct, mul_comm]
 
+/-- The last row of the empirical NTK of the extended dataset `(X, x)` at `θ`: the train-test
+cross-kernel `⟪∇f(x; θ), ∇f(X α; θ)⟫` and the test norm `‖∇f(x; θ)‖²`. -/
+lemma empiricalNTKMatrix_snoc_last {ι : Type*} {m P : ℕ}
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (x : ι)
+    (θ : EuclideanSpace ℝ (Fin P)) (α : Fin m) :
+    empiricalNTKMatrix f (Fin.snoc (α := fun _ => ι) X x : Fin (m + 1) → ι) θ (Fin.last m)
+        (Fin.castSucc α) = ⟪tangentFeature f x θ, tangentFeature f (X α) θ⟫ ∧
+      empiricalNTKMatrix f (Fin.snoc (α := fun _ => ι) X x : Fin (m + 1) → ι) θ (Fin.last m)
+        (Fin.last m) = ⟪tangentFeature f x θ, tangentFeature f x θ⟫ := by
+  simp [empiricalNTKMatrix_apply]
+
+/-- The cross-kernel vector is `J(θ) ∇f(x; θ)`. -/
+lemma outputJacobian_mulVec_tangentFeature {ι : Type*} {m P : ℕ}
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (x : ι)
+    (θ : EuclideanSpace ℝ (Fin P)) (α : Fin m) :
+    (outputJacobian f X θ *ᵥ (tangentFeature f x θ).ofLp) α =
+      ⟪tangentFeature f x θ, tangentFeature f (X α) θ⟫ := by
+  simp [outputJacobian, Matrix.mulVec, dotProduct, PiLp.inner_apply, mul_comm]
+
 /-! ### Positive Semidefiniteness and Gram Factorization -/
 
 /-- The empirical NTK Gram matrix is positive semidefinite (`PosSemidef`) for any parameter
@@ -1350,6 +1369,26 @@ lemma matrix_frobenius_norm_sq {a b : ℕ} (A : Matrix (Fin a) (Fin b) ℝ) :
         ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
     _ = _ := by simp [sq_abs]
 
+/-- A row of a matrix restricted to the first `n` columns has Euclidean norm at most the Frobenius
+norm of the matrix, and every entry is at most the Frobenius norm. -/
+lemma norm_row_castSucc_le {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ) (i : Fin (n + 1)) :
+    ‖(WithLp.toLp 2 (fun α : Fin n => A i (Fin.castSucc α)) : EuclideanSpace ℝ (Fin n))‖ ≤ ‖A‖ ∧
+      |A i (Fin.last n)| ≤ ‖A‖ := by
+  have hrow : ∑ j : Fin (n + 1), A i j ^ 2 ≤ ‖A‖ ^ 2 := by
+    rw [matrix_frobenius_norm_sq]
+    exact Finset.single_le_sum (f := fun i => ∑ j : Fin (n + 1), A i j ^ 2)
+      (fun i _ => Finset.sum_nonneg fun j _ => sq_nonneg _) (Finset.mem_univ i)
+  have hsplit : ∑ j : Fin (n + 1), A i j ^ 2 =
+      (∑ α : Fin n, A i (Fin.castSucc α) ^ 2) + A i (Fin.last n) ^ 2 := Fin.sum_univ_castSucc _
+  constructor
+  · refine (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).1 ?_
+    rw [EuclideanSpace.norm_sq_eq]
+    simp only [Real.norm_eq_abs, sq_abs]
+    nlinarith [sq_nonneg (A i (Fin.last n))]
+  · refine (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).1 ?_
+    rw [sq_abs]
+    nlinarith [Finset.sum_nonneg fun α (_ : α ∈ Finset.univ) => sq_nonneg (A i (Fin.castSucc α))]
+
 /-- Cauchy-Schwarz bound on a matrix-vector product: `‖M w‖ ≤ ‖M‖_F ‖w‖`. Unlike Mathlib's
 `Matrix.l2_opNorm_mulVec`, this is stated for the *Frobenius* norm, matching the norm instance
 used throughout the NTK Lipschitz-propagation machinery (Gap 2 in `InfiniteNTK.lean`). -/
@@ -1411,8 +1450,9 @@ there is `c > 0` with `A - c • 1` positive semidefinite (`c` is the smallest e
 the bridge from `Matrix.PosDef`, e.g. `Matrix.posDef_gram_iff_linearIndependent`, to the shifted-PSD
 form `(K - lambda • 1).PosSemidef` used by the global theorems; it holds for any finite index type,
 not only for an NTK. -/
-theorem exists_pos_sub_smul_one_posSemidef_of_posDef {n : Type*} [Fintype n] [DecidableEq n]
+theorem exists_pos_sub_smul_one_posSemidef_of_posDef {n : Type*} [Finite n] [DecidableEq n]
     {A : Matrix n n ℝ} (hA : A.PosDef) : ∃ c : ℝ, 0 < c ∧ (A - c • 1).PosSemidef := by
+  cases nonempty_fintype n
   have hH : A.IsHermitian := hA.isHermitian
   have hev : ∀ i, 0 < hH.eigenvalues i := hA.eigenvalues_pos
   rcases isEmpty_or_nonempty n with hn | hn
