@@ -1881,7 +1881,7 @@ section LinearODECoefficientPerturbation
 /-- One-point estimate behind coefficient-perturbation stability: if `A` is PSD then the error
 `e = r - s` between solutions of `r' = -A r` and `s' = -B s` satisfies
 `⟪e, e'⟫ ≤ ‖e‖ ‖A - B‖ ‖s‖`. -/
-lemma inner_sub_le_of_psd_coefficient (A B : Matrix (Fin m) (Fin m) ℝ)
+private lemma inner_sub_le_of_psd_coefficient (A B : Matrix (Fin m) (Fin m) ℝ)
     (r s : EuclideanSpace ℝ (Fin m))
     (hA : ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (A *ᵥ v.ofLp)) :
     ⟪r - s, (WithLp.toLp 2 (-(A *ᵥ r.ofLp)) : EuclideanSpace ℝ (Fin m)) -

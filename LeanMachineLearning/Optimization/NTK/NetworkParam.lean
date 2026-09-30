@@ -63,9 +63,6 @@ no free `hlazy`/`hLip` hypotheses.
   output Jacobian's Frobenius norm is `O(1)` (width-independent) with probability `≥ 1 - δ`.
 - `outputJacobian_netFromParams_frobenius_sub_le` : **Gap 4 deliverable** - the output Jacobian
   is `O(1/√n)`-Lipschitz, given a bound `R` on the readout weights.
-- `abs_unpackA_le_of_displacement` : deterministic ball-propagation of an entrywise
-  readout-weight bound, needed to turn Gap 4b's at-`θ₀`-only bound into the ball-wide bound
-  Gap 4 requires.
 - `lazy_training_kernel_freeze_bound_of_gaussian_init` : **Gap 6, the plan's final
   deliverable** - the fully probabilistic end-to-end kernel-freeze bound.
 - `chebyshev_entrywise_empiricalNTKMatrix` : finite-width entrywise Chebyshev concentration
@@ -106,33 +103,6 @@ open scoped BigOperators RealInnerProductSpace Matrix Matrix.Norms.Frobenius
 attribute [local instance]
   Matrix.frobeniusNormedAddCommGroup
   Matrix.frobeniusNormedSpace
-
-/-- Second countability of `Matrix (Fin m) (Fin m) ℝ` for the topology derived from the Frobenius
-norm, which is what lemmas quantified over `[SeminormedAddCommGroup E']` see once
-`Matrix.frobeniusNormedAddCommGroup` is a local instance. Mathlib's default (product) topology on
-`Matrix` is a different term, defeq to this one only at default transparency, so typeclass search
-does not accept an instance stated for the default topology; we therefore pin the topology
-explicitly. -/
-local instance (priority := 2000) instSecondCountableTopologyMatrixFrobenius (m : ℕ) :
-    @SecondCountableTopology (Matrix (Fin m) (Fin m) ℝ)
-      (@UniformSpace.toTopologicalSpace _ (@PseudoMetricSpace.toUniformSpace _
-        (@SeminormedAddCommGroup.toPseudoMetricSpace _
-          (@NormedAddCommGroup.toSeminormedAddCommGroup _ Matrix.frobeniusNormedAddCommGroup)))) := by
-  let : NormedAddCommGroup (Matrix (Fin m) (Fin m) ℝ) := Matrix.frobeniusNormedAddCommGroup
-  let : NormedSpace ℝ (Matrix (Fin m) (Fin m) ℝ) := Matrix.frobeniusNormedSpace
-  exact @secondCountable_of_proper _ NormedAddCommGroup.toSeminormedAddCommGroup.toPseudoMetricSpace
-    (FiniteDimensional.proper_real (Matrix (Fin m) (Fin m) ℝ))
-
-/-- `BorelSpace` for the Frobenius-derived topology on `Matrix (Fin m) (Fin m) ℝ`; see
-`instSecondCountableTopologyMatrixFrobenius`. -/
-local instance (priority := 2000) instBorelSpaceMatrixFrobenius (m : ℕ) :
-    @BorelSpace (Matrix (Fin m) (Fin m) ℝ)
-      (@UniformSpace.toTopologicalSpace _ (@PseudoMetricSpace.toUniformSpace _
-        (@SeminormedAddCommGroup.toPseudoMetricSpace _
-          (@NormedAddCommGroup.toSeminormedAddCommGroup _ Matrix.frobeniusNormedAddCommGroup))))
-      Matrix.instMeasurableSpace := by
-  exact (inferInstance : BorelSpace (Matrix (Fin m) (Fin m) ℝ))
-
 
 @[expose] public section
 
@@ -1680,6 +1650,33 @@ end FiniteWidthNTKConcentration
 
 section JointOutputKernelInitialization
 
+/-- Second countability of `Matrix (Fin m) (Fin m) ℝ` for the topology derived from the Frobenius
+norm, which is what lemmas quantified over `[SeminormedAddCommGroup E']` see once
+`Matrix.frobeniusNormedAddCommGroup` is a local instance. Mathlib's default (product) topology on
+`Matrix` is a different term, defeq to this one only at default transparency, so typeclass search
+does not accept an instance stated for the default topology; we therefore pin the topology
+explicitly. -/
+local instance (priority := 2000) instSecondCountableTopologyMatrixFrobenius (m : ℕ) :
+    @SecondCountableTopology (Matrix (Fin m) (Fin m) ℝ)
+      (@UniformSpace.toTopologicalSpace _ (@PseudoMetricSpace.toUniformSpace _
+        (@SeminormedAddCommGroup.toPseudoMetricSpace _
+          (@NormedAddCommGroup.toSeminormedAddCommGroup _
+            Matrix.frobeniusNormedAddCommGroup)))) := by
+  let : NormedAddCommGroup (Matrix (Fin m) (Fin m) ℝ) := Matrix.frobeniusNormedAddCommGroup
+  let : NormedSpace ℝ (Matrix (Fin m) (Fin m) ℝ) := Matrix.frobeniusNormedSpace
+  exact @secondCountable_of_proper _ NormedAddCommGroup.toSeminormedAddCommGroup.toPseudoMetricSpace
+    (FiniteDimensional.proper_real (Matrix (Fin m) (Fin m) ℝ))
+
+/-- `BorelSpace` for the Frobenius-derived topology on `Matrix (Fin m) (Fin m) ℝ`; see
+`instSecondCountableTopologyMatrixFrobenius`. -/
+local instance (priority := 2000) instBorelSpaceMatrixFrobenius (m : ℕ) :
+    @BorelSpace (Matrix (Fin m) (Fin m) ℝ)
+      (@UniformSpace.toTopologicalSpace _ (@PseudoMetricSpace.toUniformSpace _
+        (@SeminormedAddCommGroup.toPseudoMetricSpace _
+          (@NormedAddCommGroup.toSeminormedAddCommGroup _ Matrix.frobeniusNormedAddCommGroup))))
+      Matrix.instMeasurableSpace := by
+  exact (inferInstance : BorelSpace (Matrix (Fin m) (Fin m) ℝ))
+
 /-- Measurability of the empirical NTK matrix evaluated on packed parameters
 `packParams p.1 p.2` on an arbitrary dataset `X`. -/
 lemma measurable_empiricalNTKMatrix_netFromParams_packParams
@@ -1795,7 +1792,7 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
   exact hX.prodMk_of_tendsto_measure_norm_sub_const hY hY_meas
 
 /-- **Uniform residual radius at initialization.** For every failure level `ε > 0` there is a
-single deterministic radius `R`, valid for all widths `n`, such that the initial training
+single deterministic radius `R ≥ 0`, valid for all widths `n`, such that the initial training
 residual on the scaled dataset exceeds `R` in norm with `initMeasure n d`-probability at most `ε`.
 This is output-law tightness (from the characteristic-function limit) translated by `-y`. -/
 theorem exists_initial_residual_radius
@@ -1804,7 +1801,7 @@ theorem exists_initial_residual_radius
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (gaussianRowMeasure d))
     {ε : ENNReal} (hε : 0 < ε) :
-    ∃ R : ℝ, ∀ n, initMeasure n d
+    ∃ R : ℝ, 0 ≤ R ∧ ∀ n, initMeasure n d
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | R <
         ‖trainingResidual (netFromParams φ n d)
           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖} ≤ ε := by
@@ -1838,25 +1835,17 @@ in `InfiniteNTK.lean`); the result feeds directly into
 `lazy_training_kernel_freeze_bound_of_ball_hypotheses`.
 -/
 
-/-- A coordinate of a `EuclideanSpace` vector is bounded by its norm - the generic fact behind
-propagating an entrywise bound on one sub-block of parameters through a displacement bound on
-the whole packed vector. -/
-lemma abs_apply_le_norm {ι : Type*} [Fintype ι] (x : EuclideanSpace ℝ ι) (j : ι) :
-    |x.ofLp j| ≤ ‖x‖ := by
-  have hsq : (x.ofLp j) ^ 2 ≤ ‖x‖ ^ 2 := by
-    rw [EuclideanSpace.real_norm_sq_eq]
-    exact Finset.single_le_sum (fun k _ => sq_nonneg (x.ofLp k)) (Finset.mem_univ j)
-  exact abs_le.mpr (abs_le_of_sq_le_sq' hsq (norm_nonneg x))
-
 /-- Deterministic ball-propagation of an entrywise readout-weight bound: if `θ₀`'s readout
 weight `a i` is bounded by `R₀` and `θ` is within displacement `r` of `θ₀`, then `θ`'s readout
 weight `a i` is bounded by `R₀ + r`. This is what lets a concentration bound established only at
 the random initialization `θ₀` (Gap 4b) supply the uniform-over-a-ball bound Gap 4's Lipschitz
 theorem needs. -/
-lemma abs_unpackA_le_of_displacement {n d : ℕ} (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d)))
+private lemma abs_unpackA_le_of_displacement {n d : ℕ}
+    (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d)))
     (i : Fin n) (R₀ r : ℝ) (h₀ : |unpackA θ₀ i| ≤ R₀) (hr : ‖θ - θ₀‖ ≤ r) :
     |unpackA θ i| ≤ R₀ + r := by
-  have hproj : |(θ - θ₀).ofLp (idxA i)| ≤ ‖θ - θ₀‖ := abs_apply_le_norm (θ - θ₀) (idxA i)
+  have hproj : |(θ - θ₀).ofLp (idxA i)| ≤ ‖θ - θ₀‖ := by
+    simpa [Real.norm_eq_abs] using PiLp.norm_apply_le (θ - θ₀) (idxA i)
   have heq : unpackA θ i - unpackA θ₀ i = (θ - θ₀).ofLp (idxA i) := by dsimp [unpackA]
   have hdiff : |unpackA θ i - unpackA θ₀ i| ≤ r := heq ▸ hproj.trans hr
   have h1 := abs_le.mp h₀
@@ -2098,7 +2087,7 @@ The Gap 4 Jacobian-Lipschitz scale `L_J` evaluated at a *fixed* displacement rad
 This is what makes the bootstrap feasibility inequalities hold eventually in `n`. -/
 
 open Filter Topology in
-theorem tendsto_sq_sqrt_two_log_add_div_nat {δ : ℝ} (hδ : 0 < δ) (r : ℝ) :
+private theorem tendsto_sq_sqrt_two_log_add_div_nat {δ : ℝ} (hδ : 0 < δ) (r : ℝ) :
     Tendsto (fun n : ℕ => (Real.sqrt (2 * Real.log (2 * n / δ)) + r) ^ 2 / n) atTop (𝓝 0) := by
   have hx : Tendsto (fun n : ℕ => 2 * (n : ℝ) / δ) atTop atTop :=
     (tendsto_natCast_atTop_atTop.const_mul_atTop (by positivity : 0 < 2 / δ)).congr
@@ -2135,9 +2124,11 @@ theorem tendsto_sq_sqrt_two_log_add_div_nat {δ : ℝ} (hδ : 0 < δ) (r : ℝ) 
     _ = 4 * (Real.log (2 * n / δ) / n) + 2 * r ^ 2 * (1 / (n : ℝ)) := by field_simp
 
 open Filter Topology in
-theorem tendsto_sqrt_sum_sq_sqrt_two_log_add_div_sqrt_nat {ι : Type*} [Fintype ι] (a b : ι → ℝ)
+private theorem tendsto_sqrt_sum_sq_sqrt_two_log_add_div_sqrt_nat {ι : Type*} [Fintype ι]
+    (a b : ι → ℝ)
     {δ : ℝ} (hδ : 0 < δ) (r : ℝ) :
-    Tendsto (fun n : ℕ => Real.sqrt (∑ i, (a i * (Real.sqrt (2 * Real.log (2 * n / δ)) + r) ^ 2 + b i))
+    Tendsto (fun n : ℕ =>
+      Real.sqrt (∑ i, (a i * (Real.sqrt (2 * Real.log (2 * n / δ)) + r) ^ 2 + b i))
       / Real.sqrt n) atTop (𝓝 0) := by
   have hu := tendsto_sq_sqrt_two_log_add_div_nat hδ r
   have hinv : Tendsto (fun n : ℕ => 1 / (n : ℝ)) atTop (𝓝 0) :=
@@ -2174,30 +2165,37 @@ Jacobian-Lipschitz scale at a fixed radius vanishes with the width. -/
 theorem exists_kernel_freeze_event_of_positive_gap
     {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) (C₀ C₁ C₂ : ℝ)
     (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁_bdd : ∀ z, |deriv φ z| ≤ C₁)
-    (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂)
-    (hφ : Differentiable ℝ φ) (hderiv_meas : Measurable (deriv φ))
+    (hφ : Differentiable ℝ φ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
-    ∃ (K : ℕ → ℝ) (N : ℕ), Filter.Tendsto K Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
+    ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       (initMeasure n d).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
             GFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
-            (∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => netFromParams φ n d
-              (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j) θ') (θ_traj t)) →
             ∀ t : ℝ, 0 ≤ t →
               ‖empiricalNTKMatrix (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
                 empiricalNTKMatrix (netFromParams φ n d)
-                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ K n} ≥
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ freezeRate n} ≥
         1 - 2 * δ - 2 * ε := by
   set Xs : Fin m → Fin d → ℝ := fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j with hXs
   have hmeasφ : Measurable φ := hφ.continuous.measurable
+  -- Consequences of the global derivative bounds, so callers need not supply them.
+  have hC₁_nonneg : 0 ≤ C₁ := (abs_nonneg _).trans (hC₁_bdd 0)
+  have hC₂_nonneg : 0 ≤ C₂ := by
+    simpa using (abs_nonneg _).trans (hderiv_lip 1 0)
+  have hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v| := fun u v => by
+    simpa [Real.norm_eq_abs] using Convex.norm_image_sub_le_of_norm_deriv_le
+      (fun x _ => hφ x) (fun x _ => by simpa [Real.norm_eq_abs] using hC₁_bdd x) convex_univ
+      (Set.mem_univ v) (Set.mem_univ u)
+  have hderiv_meas : Measurable (deriv φ) :=
+    (LipschitzWith.of_dist_le' (K := C₂) fun x y => by
+      simpa [Real.dist_eq] using hderiv_lip x y).continuous.measurable
   have hw : ∀ α : Fin m, Measurable (fun w : Fin d → ℝ => w ⊙ Xs α) :=
     fun α => measurable_innerProduct_left _
   -- `L²` integrability of the activation-side observables follows from boundedness.
@@ -2220,17 +2218,16 @@ theorem exists_kernel_freeze_event_of_positive_gap
         exact mul_le_mul (hC₁_bdd _) (hC₁_bdd _) (abs_nonneg _)
           ((abs_nonneg _).trans (hC₁_bdd 0)))
   -- Initial residual radius and initial spectral-gap failure.
-  obtain ⟨R, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
+  obtain ⟨R, hR_nonneg, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
     (ε := ENNReal.ofReal ε) (ENNReal.ofReal_pos.2 hε)
   have hgap_ev := (tendsto_initMeasure_initial_spectral_gap_failure hm hd φ hφ hderiv_meas X
     hφ_L2 hdφ_L2 lambda_inf hlambda_inf hK_gap).eventually
     (gt_mem_nhds (ENNReal.ofReal_pos.2 hε))
   -- Deterministic bootstrap constants.
-  set R' : ℝ := max R 0 with hR'
   set M₀ : ℝ := Real.sqrt ((m : ℝ) * C₀ ^ 2 +
     (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, Xs α j ^ 2) / δ) with hM₀
   set M : ℝ := M₀ + 1 with hM
-  set C : ℝ := M * R' / (lambda_inf / 2 / 2) with hC
+  set C : ℝ := M * R / (lambda_inf / 2 / 2) with hC
   set r : ℝ := C + 1 with hr
   set ℓ : ℕ → ℝ := fun n => Real.sqrt (∑ α : Fin m,
         (2 * (Real.sqrt (2 * Real.log (2 * n / δ)) + r) ^ 2 * C₂ ^ 2 *
@@ -2246,14 +2243,14 @@ theorem exists_kernel_freeze_event_of_positive_gap
     congr 3
     ext α
     ring
-  have hK : Filter.Tendsto (fun n => 2 * M * ℓ n * C) Filter.atTop (nhds 0) := by
+  have hrate : Filter.Tendsto (fun n => 2 * M * ℓ n * C) Filter.atTop (nhds 0) := by
     simpa using (hℓ.const_mul (2 * M)).mul_const C
   have hc : 0 < min 1 (lambda_inf / (8 * M)) := lt_min one_pos (by positivity)
   have hsmall : ∀ᶠ n in Filter.atTop, ℓ n * r < min 1 (lambda_inf / (8 * M)) := by
     exact (hℓ.mul_const r).eventually (gt_mem_nhds (by rw [zero_mul]; exact hc))
   obtain ⟨N, hN⟩ := Filter.eventually_atTop.1
     ((Filter.eventually_gt_atTop 0).and (hsmall.and hgap_ev))
-  refine ⟨fun n => 2 * M * ℓ n * C, N, hK, fun n hn => ?_⟩
+  refine ⟨fun n => 2 * M * ℓ n * C, N, hrate, fun n hn => ?_⟩
   obtain ⟨hn0, hsm, hF⟩ := hN n hn
   obtain ⟨E, hEm, hEμ, hEp⟩ := exists_measurableSet_initial_jacobian_and_readout_bounds
     φ n d m hn0 Xs C₀ C₁ hC₀ hC₁_bdd hφ hmeasφ hderiv_meas hδ hδ1
@@ -2290,9 +2287,13 @@ theorem exists_kernel_freeze_event_of_positive_gap
   have hrr : ∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 2) * ‖v‖ ^ 2 ≤
       v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d) Xs (packParams p.1 p.2) *ᵥ v.ofLp) :=
     not_not.1 hpF
-  have hres : ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ ≤ R' :=
-    (not_lt.1 (show ¬ (R < _) from hpT)).trans (le_max_left _ _)
-  intro θ_traj hflow hdiff t ht
+  have hres : ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ ≤ R :=
+    not_lt.1 (show ¬ (R < _) from hpT)
+  intro θ_traj hflow t ht
+  have hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ
+      (fun θ' => netFromParams φ n d (Xs β) θ') (θ_traj t) := fun t β =>
+    (hasFDerivAt_netFromParams φ n d (Xs β) (θ_traj t)
+      fun i => hφ.differentiableAt).differentiableAt
   exact freeze_bound_of_initial_jacobian_and_readout_bounds φ n d m hn0 Xs y C₀ C₁ C₂ hC₁_bdd
     hφ_lip hderiv_lip hC₁_nonneg hC₂_nonneg hφ (Nat.cast_pos.2 hm) p hp1 hp2 θ_traj
     (lambda_inf / 2) r C M (ℓ n) hflow hdiff (half_pos hlambda_inf) (by positivity)
@@ -2305,9 +2306,43 @@ theorem exists_kernel_freeze_event_of_positive_gap
         _ = lambda_inf / 2 / 2 := by field_simp; ring)
     (by
       calc M * ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ /
-            (lambda_inf / 2 / 2) ≤ M * R' / (lambda_inf / 2 / 2) := by gcongr
+            (lambda_inf / 2 / 2) ≤ M * R / (lambda_inf / 2 / 2) := by gcongr
         _ = C := rfl)
     t ht
+
+/-- **Single-confidence form of `exists_kernel_freeze_event_of_positive_gap`.** For every
+confidence level `η ∈ (0, 1]` there are a deterministic drift rate `freezeRate n → 0` and a width
+`N` such that for `n ≥ N`, with `initMeasure n d`-probability at least `1 - η`, every gradient flow
+from `packParams W a` keeps the empirical NTK within `freezeRate n` of its initial value for all
+`t ≥ 0`. This is the main theorem with `δ = ε = η / 4`.
+
+This is an a priori estimate for any `GFTrajectory`; it does not assert that gradient flows
+exist. -/
+theorem exists_kernel_freeze_event_of_positive_gap_of_confidence
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) (C₀ C₁ C₂ : ℝ)
+    (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁_bdd : ∀ z, |deriv φ z| ≤ C₁)
+    (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
+    (hφ : Differentiable ℝ φ)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
+    (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
+    {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
+    ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
+      (initMeasure n d).real
+        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+            GFTrajectory (mseLoss (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
+            ∀ t : ℝ, 0 ≤ t →
+              ‖empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
+                empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
+                freezeRate n} ≥ 1 - η := by
+  obtain ⟨freezeRate, N, hrate, h⟩ := exists_kernel_freeze_event_of_positive_gap hm hd φ C₀ C₁ C₂
+    hC₀ hC₁_bdd hderiv_lip hφ X y lambda_inf hlambda_inf hK_gap (δ := η / 4) (ε := η / 4)
+    (by positivity) (by linarith) (by positivity)
+  exact ⟨freezeRate, N, hrate, fun n hn => le_of_eq_of_le (by ring) (h n hn)⟩
 
 end InitializationEvents
 
