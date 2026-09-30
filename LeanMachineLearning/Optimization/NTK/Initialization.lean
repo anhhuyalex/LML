@@ -1213,7 +1213,7 @@ theorem measureReal_inter_ge_of_ge {α : Type*} [MeasurableSpace α] (μ : Measu
 /-- The complement of an intersection has measure at most the sum of the complements' measures.
 No measurability is needed. -/
 theorem measureReal_compl_inter_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    [IsFiniteMeasure μ] (A B : Set α) :
+    (A B : Set α) :
     μ.real (A ∩ B)ᶜ ≤ μ.real Aᶜ + μ.real Bᶜ := by
   rw [Set.compl_inter]
   exact measureReal_union_le _ _

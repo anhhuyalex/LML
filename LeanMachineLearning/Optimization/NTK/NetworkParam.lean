@@ -99,7 +99,7 @@ no free `hlazy`/`hLip` hypotheses.
 - `exists_finite_horizon_kernel_freeze_event` : the no-gap counterpart on `[0, T]` with failure
   probability `≤ 2δ + ε`; positive semidefiniteness alone bounds the residual and the
   displacement radius `C = T M R / m` grows linearly in `T`.
-- `exists_gradientFlow`, `exists_gradientFlow_family`, `gradientFlow_unique`,
+- `exists_forwardGradientFlow`, `exists_forwardGradientFlow_family`, `forwardGradientFlow_unique`,
   `gradientFlow_finite_horizon_training_limit`,
   `gradientFlow_global_positive_gap_lazy_training_limit` : **Phases 10 and 11.1** - forward-time
   existence, uniqueness and continuous dependence of the gradient flow for every `SmoothActivation`
@@ -2962,8 +2962,8 @@ value of `φ` is assumed: a bounded derivative already gives linear growth
 `|φ z| ≤ |φ 0| + C₁ |z|` (`activation_growth`), which is all that Gaussian initialization needs.
 Every consequence used by the proofs (`C₁, C₂ ≥ 0`, Lipschitzness of `φ`, measurability of
 `deriv φ`, `L²` integrability against Gaussians) is derived from these three facts. Lower-level
-deterministic lemmas keep taking the unbundled hypotheses they use; the gradient-flow
-*construction* additionally assumes a bound on `φ` (see `exists_gradientFlow`). -/
+deterministic lemmas keep taking the unbundled hypotheses they use; the forward gradient-flow
+construction (`exists_forwardGradientFlow`) needs nothing beyond this structure. -/
 structure SmoothActivation (φ : ℝ → ℝ) (C₁ C₂ : ℝ) : Prop where
   differentiable : Differentiable ℝ φ
   deriv_bdd : ∀ z, |deriv φ z| ≤ C₁
@@ -4550,7 +4550,7 @@ private theorem forward_apriori_bound (hact : SmoothActivation φ C₁ C₂) (hn
   rw [sub_zero]
   gcongr
 
-private theorem exists_gradientFlow_of_pos (hact : SmoothActivation φ C₁ C₂)
+private theorem exists_forwardGradientFlow_of_pos (hact : SmoothActivation φ C₁ C₂)
     (hn : 0 < n) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
     ∃ Φ : EuclideanSpace ℝ (Fin (paramDim n d)) → ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
       (∀ θ₀, ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ (Φ θ₀)) ∧
@@ -4573,7 +4573,7 @@ private theorem exists_gradientFlow_of_pos (hact : SmoothActivation φ C₁ C₂
 the initial parameters and time. Existence uses the Picard-Lindelöf theorem on a truncated field and
 the a priori bound `forward_apriori_bound`; nothing is asserted for negative times, where
 solutions can blow up. -/
-theorem exists_gradientFlow (hact : SmoothActivation φ C₁ C₂) (n d m : ℕ)
+theorem exists_forwardGradientFlow (hact : SmoothActivation φ C₁ C₂) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
     ∃ Φ : EuclideanSpace ℝ (Fin (paramDim n d)) → ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
       (∀ θ₀, ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ (Φ θ₀)) ∧
@@ -4586,12 +4586,12 @@ theorem exists_gradientFlow (hact : SmoothActivation φ C₁ C₂) (n d m : ℕ)
     refine ⟨fun θ₀ _ => θ₀, fun θ₀ => ⟨rfl, continuousOn_const, fun t _ => ?_⟩, continuous_fst⟩
     rw [show -gradient (mseLoss (netFromParams φ 0 d) X y) θ₀ = 0 from hsub _ _]
     exact hasDerivAt_const t θ₀
-  · exact exists_gradientFlow_of_pos hact hn X y
+  · exact exists_forwardGradientFlow_of_pos hact hn X y
 
 /-- **Uniqueness of the gradient flow.** Two forward gradient-flow trajectories of the MSE loss of
 the two-layer network from the same initialization agree for all `t ≥ 0` (for a
 `SmoothActivation`). -/
-theorem gradientFlow_unique (hact : SmoothActivation φ C₁ C₂) (X : Fin m → Fin d → ℝ)
+theorem forwardGradientFlow_unique (hact : SmoothActivation φ C₁ C₂) (X : Fin m → Fin d → ℝ)
     (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))}
     {f g : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))}
     (hf : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ f)
@@ -4600,7 +4600,7 @@ theorem gradientFlow_unique (hact : SmoothActivation φ C₁ C₂) (X : Fin m �
   obtain ⟨hφL, hdφL⟩ := activation_locallyLipschitz hact
   have hLL := locallyLipschitz_neg_gradient_mseLoss_netFromParams (n := n) φ hact.differentiable
     hφL hdφL X y
-  exact flow_unique _ (lipschitz_on_ball_of_locallyLipschitz hLL) hf.continuousOn hf.ode
+  exact forwardFlow_unique _ (lipschitz_on_ball_of_locallyLipschitz hLL) hf.continuousOn hf.ode
     hg.continuousOn hg.ode (hf.init.trans hg.init.symm)
 
 /-- **A measurable family of gradient-flow trajectories over the initialization laws.** There is a
@@ -4609,14 +4609,14 @@ gradient flow of the MSE loss started at `packParams p.1 p.2`, and each fixed-ti
 continuous, hence measurable, in `p`. This discharges the hypotheses `hθ_flow` (in fact everywhere,
 not only almost everywhere) and `hθ_meas` of the finite-horizon and global theorems, under the
 source's activation assumptions only. -/
-theorem exists_gradientFlow_family (hact : SmoothActivation φ C₁ C₂) (d m : ℕ)
+theorem exists_forwardGradientFlow_family (hact : SmoothActivation φ C₁ C₂) (d m : ℕ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
     ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
         EuclideanSpace ℝ (Fin (paramDim n d)),
       (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) (packParams p.1 p.2)
         (θ n p)) ∧
       ∀ n t, Continuous (fun p => θ n p t) := by
-  choose Φ hΦ hΦc using fun n : ℕ => exists_gradientFlow hact n d m X y
+  choose Φ hΦ hΦc using fun n : ℕ => exists_forwardGradientFlow hact n d m X y
   exact ⟨fun n p => Φ n (packParams p.1 p.2), fun n p => hΦ n _,
     fun n t => (hΦc n).comp (continuous_packParams.prodMk continuous_const)⟩
 
@@ -4667,7 +4667,7 @@ theorem gradientFlow_finite_horizon_training_limit
         (fun n => initMeasure n d)
         (multivariateGaussian 0
           (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))) := by
-  obtain ⟨θ, hflow, hcont⟩ := exists_gradientFlow_family hact d m
+  obtain ⟨θ, hflow, hcont⟩ := exists_forwardGradientFlow_family hact d m
     (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
   have hae : ∀ n, ∀ᵐ p ∂(initMeasure n d), ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
@@ -4724,7 +4724,7 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit
                   Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
             Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0)) := by
-  obtain ⟨θ, hflow, hcont⟩ := exists_gradientFlow_family hact d m
+  obtain ⟨θ, hflow, hcont⟩ := exists_forwardGradientFlow_family hact d m
     (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
   have hae : ∀ n, ∀ᵐ p ∂(initMeasure n d), ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
@@ -4775,7 +4775,7 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width
                   Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
             Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0)) := by
-  obtain ⟨θ, hflow, hcont⟩ := exists_gradientFlow_family hact d m
+  obtain ⟨θ, hflow, hcont⟩ := exists_forwardGradientFlow_family hact d m
     (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
   have hae : ∀ n, ∀ᵐ p ∂(initMeasure n d), ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=

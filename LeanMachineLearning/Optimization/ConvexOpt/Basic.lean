@@ -156,9 +156,11 @@ noncomputable def gdIterate (f : E → ℝ) (η : ℕ → ℝ) (w₀ : E) : ℕ 
 
 /-! ### Gradient flow (Definition 6.2) -/
 
-/-- **Definition 6.2** (Telgarsky 2021, §7.1.1).
-A curve `w : ℝ≥0 → E` is a gradient flow trajectory for `f` starting at `w₀` if it
-satisfies the ODE `w_prime(t) = -∇f(w(t))` with initial condition `w(0) = w₀`. -/
+/-- **Definition 6.2** (Telgarsky 2021, §7.1.1), two-sided form.
+A curve `w : ℝ → E` is a gradient flow trajectory for `f` starting at `w₀` if it is `C¹` and
+satisfies the ODE `w'(t) = -∇f(w(t))` at *every* real time, with initial condition `w(0) = w₀`.
+This is the older, stronger predicate; for training only `t ≥ 0` matters, see
+`ForwardGFTrajectory`. -/
 structure GFTrajectory (f : E → ℝ) (w₀ : E) (w : ℝ → E) : Prop where
   /-- The curve starts at `w₀`. -/
   init : w 0 = w₀

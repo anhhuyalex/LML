@@ -143,7 +143,7 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
   Rayleigh bound on the bootstrap ball and the global consequences (displacement, uniform gap,
   kernel drift, exponential residual and loss decay) of the positive-gap bootstrap.
 * `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
-* `NTK.exists_forward_flow`, `NTK.flow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` :
+* `NTK.exists_forward_flow`, `NTK.forwardFlow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` :
   Phase 10-11 generic forward-time flow of a field that is Lipschitz on balls and has a priori
   bounds (Mathlib's Picard-Lindelöf on a cutoff field, the bootstrap `le_of_forall_bootstrap`,
   gluing by uniqueness),
@@ -2582,8 +2582,8 @@ omit [CompleteSpace E] in
 continuous on `[0, T]` and differentiable on `(0, T)`, with the same value at `0` coincide there,
 when `V` is Lipschitz on balls. Continuity makes both solutions bounded, so Mathlib's
 `ODE_solution_unique_of_mem_Icc` applies on a large ball. This is a thin adapter (it supplies the
-ball and constant) used only by `exists_forward_flow` and `flow_unique`, hence private. -/
-private theorem flow_unique_window (V : E → E)
+ball and constant) used only by `exists_forward_flow` and `forwardFlow_unique`, hence private. -/
+private theorem forwardFlow_unique_window (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
     {T : ℝ} (hT : 0 < T) {f g : ℝ → E}
     (hfc : ContinuousOn f (Icc 0 T)) (hf : ∀ t ∈ Ioo 0 T, HasDerivAt f (V (f t)) t)
@@ -2636,7 +2636,7 @@ private theorem flow_unique_window (V : E → E)
 
 omit [NormedSpace ℝ E] [CompleteSpace E] in
 /-- A locally Lipschitz map on a proper normed space is Lipschitz on every closed ball centered at
-`0`, in the elementary form used by `exists_global_flow`. -/
+`0`, in the elementary form used by `exists_forward_flow` and `forwardFlow_unique`. -/
 lemma lipschitz_on_ball_of_locallyLipschitz [ProperSpace E] {V : E → E} (hV : LocallyLipschitz V)
     (A : ℝ) : ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖ := by
   obtain ⟨K, hK⟩ := (hV.locallyLipschitzOn (s := closedBall (0 : E) A)
@@ -2649,12 +2649,12 @@ omit [CompleteSpace E] in
 /-- **Forward uniqueness of solutions.** If `V` is Lipschitz on balls, two solutions of `x' = V x`
 that are continuous on `[0, ∞)` and differentiable for `t > 0`, with the same value at `0`, agree on
 `[0, ∞)`. -/
-theorem flow_unique (V : E → E)
+theorem forwardFlow_unique (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
     {f g : ℝ → E} (hfc : ContinuousOn f (Ici 0)) (hf : ∀ t, 0 < t → HasDerivAt f (V (f t)) t)
     (hgc : ContinuousOn g (Ici 0)) (hg : ∀ t, 0 < t → HasDerivAt g (V (g t)) t)
     (h0 : f 0 = g 0) : EqOn f g (Ici 0) := fun t ht =>
-  flow_unique_window V hV_lip (T := t + 1) (by linarith [show (0 : ℝ) ≤ t from ht])
+  forwardFlow_unique_window V hV_lip (T := t + 1) (by linarith [show (0 : ℝ) ≤ t from ht])
     (hfc.mono Icc_subset_Ici_self) (fun s hs => hf s hs.1)
     (hgc.mono Icc_subset_Ici_self) (fun s hs => hg s hs.1) h0 ⟨ht, by linarith⟩
 
@@ -2662,8 +2662,8 @@ theorem flow_unique (V : E → E)
 on balls and solutions on `[0, S]` starting in a ball stay in a ball whose radius depends only on
 the horizon and the starting radius. Then there is a flow `Φ : E → ℝ → E` solving `x' = V x` for all
 positive times, with `Φ x 0 = x` and `(x, t) ↦ Φ x t` continuous (for negative times `Φ x t = x` by
-construction, which carries no meaning). Solutions are unique (`flow_unique`), so `Φ` is *the*
-forward flow. -/
+construction, which carries no meaning). Solutions are unique (`forwardFlow_unique`), so `Φ` is
+*the* forward flow. -/
 theorem exists_forward_flow (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
     (hprior : ∀ T r : ℝ, ∃ ρ : ℝ, ∀ (θ : ℝ → E) (S : ℝ), 0 ≤ S → S ≤ T →
@@ -2698,7 +2698,7 @@ theorem exists_forward_flow (V : E → E)
         ⟨fun s hs => (((hsol j x hxj).2 s (hsub j hj hs)).mono (hsub j hj)).continuousWithinAt,
           fun s hs => (((hsol j x hxj).2 s (hsub j hj (Ioo_subset_Icc_self hs))).mono
             (hsub j hj)).hasDerivAt (Icc_mem_nhds hs.1 hs.2)⟩
-    have hfun := flow_unique_window V hV_lip (T := (m : ℝ) + 1) (by positivity)
+    have hfun := forwardFlow_unique_window V hV_lip (T := (m : ℝ) + 1) (by positivity)
       (hwin k hmk hx).1 (hwin k hmk hx).2 (hwin k' hmk' hx').1 (hwin k' hmk' hx').2
       (by rw [(hsol k x hx).1, (hsol k' x hx').1])
     refine hfun ⟨ht0, ?_⟩
