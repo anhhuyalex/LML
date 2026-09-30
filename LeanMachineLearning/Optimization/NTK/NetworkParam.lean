@@ -99,7 +99,13 @@ no free `hlazy`/`hLip` hypotheses.
 - `exists_finite_horizon_kernel_freeze_event` : the no-gap counterpart on `[0, T]` with failure
   probability `≤ 2δ + ε`; positive semidefiniteness alone bounds the residual and the
   displacement radius `C = T M R / m` grows linearly in `T`.
-- `exists_global_lazy_training_event_of_positive_gap`, `global_positive_gap_lazy_training_limit` :
+- `exists_gradientFlow`, `exists_gradientFlow_family`, `gradientFlow_unique`,
+  `gradientFlow_finite_horizon_training_limit`,
+  `gradientFlow_global_positive_gap_lazy_training_limit` : **Phase 10** - existence, uniqueness and
+  continuous dependence of the two-sided gradient flow (Picard-Lindelöf on a truncated field, a priori
+  bounds by Grönwall), a measurable trajectory family for every width, and the Phase 8 and Phase 9
+  theorems with the trajectory hypotheses discharged.
+- `exists_measurableSet_global_lazy_training_event`, `global_positive_gap_lazy_training_limit` :
   **Phase 9** - under a positive limiting gap, uniform Rayleigh gap `λ_∞ / 4`, kernel drift
   `O(√(log n / n))`, exponential residual and loss decay and `mseLoss → 0`, with probability
   `≥ 1 - η`.
@@ -1834,6 +1840,18 @@ theorem exists_initial_residual_radius
   rw [outputMeasure_eq_map, Measure.map_map (measurable_sub_const y) (hmeas n)]
   rfl
 
+/-- The event that the initial empirical NTK on an arbitrary dataset is at least `ε` away, in
+Frobenius norm, from a fixed matrix is measurable. The Frobenius topology instances are local to
+this section, so this measurability fact is proved here for use by later event constructions. -/
+lemma measurableSet_empiricalNTKMatrix_dist_ge
+    {m d n : ℕ} (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ) (hdφ_meas : Measurable (deriv φ))
+    (X : Fin m → Fin d → ℝ) (K_inf : Matrix (Fin m) (Fin m) ℝ) (ε : ℝ) :
+    MeasurableSet {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) X (packParams p.1 p.2) - K_inf‖} :=
+  measurableSet_le measurable_const
+    ((measurable_empiricalNTKMatrix_netFromParams_packParams φ hφ_diff hdφ_meas X).sub_const
+      K_inf).norm
+
 end JointOutputKernelInitialization
 
 
@@ -2358,12 +2376,25 @@ structure BoundedSmoothActivation (φ : ℝ → ℝ) (C₀ C₁ C₂ : ℝ) : Pr
   deriv_bdd : ∀ z, |deriv φ z| ≤ C₁
   deriv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|
 
-/-- **Global positive-gap lazy training with all bootstrap constants discharged.** Assume a smooth
+/-- Under the global derivative bounds, `φ` and `deriv φ` are (locally) Lipschitz. -/
+private lemma activation_locallyLipschitz {φ : ℝ → ℝ} {C₀ C₁ C₂ : ℝ}
+    (hact : BoundedSmoothActivation φ C₀ C₁ C₂) :
+    LocallyLipschitz φ ∧ LocallyLipschitz (deriv φ) := by
+  obtain ⟨hφ, -, hC₁, hderiv_lip⟩ := hact
+  obtain ⟨-, -, hφlip, -⟩ := activation_regularity_of_bounds φ _ _ hC₁ hderiv_lip hφ
+  exact ⟨(LipschitzWith.of_dist_le' (K := C₁) fun x y => by
+      simpa [Real.dist_eq] using hφlip x y).locallyLipschitz,
+    (LipschitzWith.of_dist_le' (K := C₂) fun x y => by
+      simpa [Real.dist_eq] using hderiv_lip x y).locallyLipschitz⟩
+
+/-- **Measurable good event for global positive-gap lazy training, with all bootstrap constants
+discharged.** Assume a smooth
 activation with bounded value, bounded derivative and Lipschitz derivative, and that the limiting
 kernel satisfies `K_∞ ≥ lambda_inf • 1` with `lambda_inf > 0`. For every `δ ∈ (0, 1]` and `ε > 0`
 there are a deterministic sequence `freezeRate n → 0` and a width `N` such that for every `n ≥ N`,
-with `initMeasure n d`-probability at least `1 - 2 * δ - 2 * ε`, every gradient flow started at
-`θ₀ = packParams W a` satisfies, for all `t ≥ 0`:
+there is a *measurable* event `E` of `initMeasure n d`-probability at least `1 - 2 * δ - 2 * ε`
+such that from every initialization in `E`, every gradient flow started at `θ₀ = packParams W a`
+satisfies, for all `t ≥ 0`:
 
 * the empirical NTK has Rayleigh quotient at least `lambda_inf / 4`, i.e. a uniform spectral gap
   (the initial half-gap `lambda_inf / 2` is halved once more inside the bootstrap ball);
@@ -2379,7 +2410,7 @@ residual radius comes from output tightness (`exists_initial_residual_radius`), 
 feasibility inequalities of the deterministic bootstrap hold eventually in `n` because the
 Jacobian-Lipschitz scale at a fixed radius vanishes with the width. As for the other event
 theorems, this is an a priori estimate for any `GFTrajectory`. -/
-theorem exists_global_lazy_training_event_of_positive_gap
+theorem exists_measurableSet_global_lazy_training_event
     {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₀ C₁ C₂ : ℝ}
     (hact : BoundedSmoothActivation φ C₀ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
@@ -2387,9 +2418,10 @@ theorem exists_global_lazy_training_event_of_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
-      (∃ K₀ : ℝ, ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧ ∀ n ≥ N,
-      (initMeasure n d).real
-        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
+      ∀ n ≥ N,
+      ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
+        (initMeasure n d).real E ≥ 1 - 2 * δ - 2 * ε ∧ ∀ p ∈ E,
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
             GFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
@@ -2413,8 +2445,7 @@ theorem exists_global_lazy_training_event_of_positive_gap
                     (packParams p.1 p.2) *
                   Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
             Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
-              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ_traj t)) Filter.atTop (nhds 0)} ≥
-        1 - 2 * δ - 2 * ε := by
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ_traj t)) Filter.atTop (nhds 0) := by
   obtain ⟨hφ, hC₀, hC₁_bdd, hderiv_lip⟩ := hact
   set Xs : Fin m → Fin d → ℝ := fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j with hXs
   have hmeasφ : Measurable φ := hφ.continuous.measurable
@@ -2434,9 +2465,8 @@ theorem exists_global_lazy_training_event_of_positive_gap
   -- Initial residual radius and initial spectral-gap failure.
   obtain ⟨R, hR_nonneg, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
     (ε := ENNReal.ofReal ε) (ENNReal.ofReal_pos.2 hε)
-  have hgap_ev := (tendsto_initMeasure_initial_spectral_gap_failure hm hd φ hφ hderiv_meas X
-    hφ_L2 hdφ_L2 lambda_inf hlambda_inf hK_gap).eventually
-    (gt_mem_nhds (ENNReal.ofReal_pos.2 hε))
+  have hU_ev := (tendsto_initMeasure_empiricalNTKMatrix_ge_eps hm hd φ hφ hderiv_meas X
+    hφ_L2 hdφ_L2 (half_pos hlambda_inf)).eventually (gt_mem_nhds (ENNReal.ofReal_pos.2 hε))
   -- Deterministic bootstrap constants.
   set M₀ : ℝ := Real.sqrt ((m : ℝ) * C₀ ^ 2 +
     (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, Xs α j ^ 2) / δ) with hM₀
@@ -2457,43 +2487,50 @@ theorem exists_global_lazy_training_event_of_positive_gap
   have hsmall : ∀ᶠ n in Filter.atTop, ℓ n * r < min 1 (lambda_inf / (8 * M)) := by
     exact (hℓ.mul_const r).eventually (gt_mem_nhds (by rw [zero_mul]; exact hc))
   obtain ⟨N, hN⟩ := Filter.eventually_atTop.1
-    ((Filter.eventually_gt_atTop 0).and (hsmall.and hgap_ev))
+    ((Filter.eventually_gt_atTop 0).and (hsmall.and hU_ev))
   obtain ⟨A, hA, hAev⟩ := jacobianLipschitzScale_le_sqrt_log_div Xs C₁ C₂ hδ r
   obtain ⟨N₂, hN₂⟩ := Filter.eventually_atTop.1 hAev
-  refine ⟨fun n => 2 * M * ℓ n * C, max N N₂, hrate, ⟨2 * M * A * C, fun n hn => ?_⟩,
+  refine ⟨fun n => 2 * M * ℓ n * C, max N N₂, hrate, ⟨2 * M * A * C, by positivity, fun n hn => ?_⟩,
     fun n hn => ?_⟩
   · calc 2 * M * ℓ n * C ≤ 2 * M * (A * Real.sqrt (Real.log n / n)) * C := by
           gcongr; exact hN₂ n ((le_max_right _ _).trans hn)
       _ = 2 * M * A * C * Real.sqrt (Real.log n / n) := by ring
-  obtain ⟨hn0, hsm, hF⟩ := hN n ((le_max_left _ _).trans hn)
+  obtain ⟨hn0, hsm, hU⟩ := hN n ((le_max_left _ _).trans hn)
   obtain ⟨E, hEm, hEμ, hEp⟩ := exists_measurableSet_initial_jacobian_and_readout_bounds
     φ n d m hn0 Xs C₀ C₁ hC₀ hC₁_bdd hφ hmeasφ hderiv_meas hδ hδ1
-  set F : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) := {p | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
-    (lambda_inf / 2) * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d) Xs
-      (packParams p.1 p.2) *ᵥ v.ofLp)} with hFdef
+  set U : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) := {p | lambda_inf / 2 ≤
+    ‖empiricalNTKMatrix (netFromParams φ n d) Xs (packParams p.1 p.2) -
+      limitingFullNTKMatrix φ X‖} with hUdef
   set T : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) := {p | R <
     ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖} with hTdef
-  have hFr : (initMeasure n d).real F ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le hF.le
+  have hUm : MeasurableSet U :=
+    measurableSet_empiricalNTKMatrix_dist_ge φ hφ hderiv_meas Xs (limitingFullNTKMatrix φ X) _
+  have hres_meas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
+      trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)) := by
+    simp_rw [trainingResidual_netFromParams_packParams]
+    exact (evalVector_joint_measurable φ hmeasφ Xs).sub_const y
+  have hTm : MeasurableSet T := measurableSet_lt measurable_const hres_meas.norm
+  have hUr : (initMeasure n d).real U ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le hU.le
   have hTr : (initMeasure n d).real T ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le (hR n)
   have hEc : (initMeasure n d).real Eᶜ ≤ 2 * δ := by
     rw [probReal_compl_eq_one_sub hEm]; linarith
-  -- Union bound on the complement of `G = E ∩ Fᶜ ∩ Tᶜ` (no measurability of `F`, `T` needed).
-  have hGc : (initMeasure n d).real (E ∩ Fᶜ ∩ Tᶜ)ᶜ ≤ 2 * δ + ε + ε :=
-    calc (initMeasure n d).real (E ∩ Fᶜ ∩ Tᶜ)ᶜ
-        ≤ (initMeasure n d).real (E ∩ Fᶜ)ᶜ + (initMeasure n d).real Tᶜᶜ :=
+  -- Union bound on the complement of `G = E ∩ Uᶜ ∩ Tᶜ`.
+  have hGc : (initMeasure n d).real (E ∩ Uᶜ ∩ Tᶜ)ᶜ ≤ 2 * δ + ε + ε :=
+    calc (initMeasure n d).real (E ∩ Uᶜ ∩ Tᶜ)ᶜ
+        ≤ (initMeasure n d).real (E ∩ Uᶜ)ᶜ + (initMeasure n d).real Tᶜᶜ :=
           measureReal_compl_inter_le _ _ _
-      _ ≤ ((initMeasure n d).real Eᶜ + (initMeasure n d).real Fᶜᶜ) +
+      _ ≤ ((initMeasure n d).real Eᶜ + (initMeasure n d).real Uᶜᶜ) +
             (initMeasure n d).real Tᶜᶜ := by
           gcongr; exact measureReal_compl_inter_le _ _ _
       _ ≤ 2 * δ + ε + ε := by rw [compl_compl, compl_compl]; linarith
-  refine le_trans (b := (initMeasure n d).real (E ∩ Fᶜ ∩ Tᶜ))
-    (by linarith [one_sub_le_measureReal_of_measureReal_compl_le _ hGc]) (measureReal_mono ?_)
-  intro p hp
-  obtain ⟨⟨hpE, hpF⟩, hpT⟩ := hp
+  refine ⟨E ∩ Uᶜ ∩ Tᶜ, (hEm.inter hUm.compl).inter hTm.compl,
+    by linarith [one_sub_le_measureReal_of_measureReal_compl_le _ hGc], ?_⟩
+  rintro p ⟨⟨hpE, hpU⟩, hpT⟩
   obtain ⟨hp1, hp2⟩ := hEp p hpE
   have hrr : ∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 2) * ‖v‖ ^ 2 ≤
       v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d) Xs (packParams p.1 p.2) *ᵥ v.ofLp) :=
-    not_not.1 hpF
+    fun v => initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le φ X n p lambda_inf
+      hK_gap (not_le.1 (show ¬ (lambda_inf / 2 ≤ _) from hpU)).le v
   have hres : ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ ≤ R :=
     not_lt.1 (show ¬ (R < _) from hpT)
   intro θ_traj hflow
@@ -2530,7 +2567,7 @@ theorem exists_global_lazy_training_event_of_positive_gap
   · rwa [show -(lambda_inf / 2 / 2 / (m : ℝ)) * t = -(lambda_inf / (4 * (m : ℝ))) * t by ring]
       at hres_d
 /-- **Kernel freeze on `[0, ∞)` from a positive limiting gap.** The kernel-drift component of
-`exists_global_lazy_training_event_of_positive_gap`: with probability at least
+`exists_measurableSet_global_lazy_training_event`: with probability at least
 `1 - 2 * δ - 2 * ε` every gradient flow keeps the empirical NTK within `freezeRate n → 0` of its
 initial value for all `t ≥ 0`. -/
 theorem exists_kernel_freeze_event_of_positive_gap
@@ -2552,19 +2589,22 @@ theorem exists_kernel_freeze_event_of_positive_gap
                 empiricalNTKMatrix (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ freezeRate n} ≥
         1 - 2 * δ - 2 * ε := by
-  obtain ⟨freezeRate, N, hrate, -, h⟩ := exists_global_lazy_training_event_of_positive_gap hm hd φ
+  obtain ⟨freezeRate, N, hrate, -, h⟩ := exists_measurableSet_global_lazy_training_event hm hd φ
     hact X y lambda_inf hlambda_inf hK_gap hδ hδ1 hε
-  exact ⟨freezeRate, N, hrate, fun n hn => (h n hn).trans
-    (measureReal_mono fun p hp θ_traj hflow t ht => ((hp θ_traj hflow).1 t ht).2.1)⟩
+  refine ⟨freezeRate, N, hrate, fun n hn => ?_⟩
+  obtain ⟨E, -, hE, hEp⟩ := h n hn
+  exact hE.trans (measureReal_mono fun p hp θ_traj hflow t ht =>
+    ((hEp p hp θ_traj hflow).1 t ht).2.1)
 
 /-- **Global positive-gap lazy training limit (paper-facing form).** Let `θ n p` be trajectories
 that solve the gradient-flow ODE for `initMeasure n d`-almost every initialization, and assume the
 limiting kernel satisfies `K_∞ ≥ lambda_inf • 1`, `lambda_inf > 0`. For every confidence
 `η ∈ (0, 1]` there are a drift rate `freezeRate n → 0`, with
-`freezeRate n ≤ K₀ √(log n / n)`, and a width `N` such that for `n ≥ N`, with probability at least
-`1 - η`, for all `t ≥ 0`: the empirical NTK has Rayleigh quotient at least `lambda_inf / 4`, it
-stays within `freezeRate n` of `K_n(0)`, and the residual norm and MSE loss decay exponentially;
-moreover the loss tends to `0` as `t → ∞`.
+`freezeRate n ≤ K₀ √(log n / n)` (the logarithm comes from the maximum readout weight), and a width
+`N` such that for `n ≥ N` there is a *measurable* initialization event `E` of probability at least
+`1 - η` on which, for almost every initialization, and all `t ≥ 0`: the empirical NTK has Rayleigh
+quotient at least `lambda_inf / 4`, it stays within `freezeRate n` of `K_n(0)`, and the residual
+norm and MSE loss decay exponentially; moreover the loss tends to `0` as `t → ∞`.
 
 The exact limiting trajectory and the fixed-time weak limits are the separate theorems
 `tendstoInDistribution_trainingResidual_matrix_exp` and
@@ -2582,9 +2622,10 @@ theorem global_positive_gap_lazy_training_limit
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
-      (∃ K₀ : ℝ, ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧ ∀ n ≥ N,
-      (initMeasure n d).real
-        {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
+      ∀ n ≥ N,
+      ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
+        (initMeasure n d).real E ≥ 1 - η ∧ ∀ᵐ p ∂(initMeasure n d), p ∈ E →
           (∀ t : ℝ, 0 ≤ t →
             (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
               v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
@@ -2605,15 +2646,14 @@ theorem global_positive_gap_lazy_training_limit
                   (packParams p.1 p.2) *
                 Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
           Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0)} ≥
-        1 - η := by
-  obtain ⟨freezeRate, N, hrate, hK₀, h⟩ := exists_global_lazy_training_event_of_positive_gap hm hd
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0) := by
+  obtain ⟨freezeRate, N, hrate, hK₀, h⟩ := exists_measurableSet_global_lazy_training_event hm hd
     φ hact X y lambda_inf hlambda_inf hK_gap (δ := η / 4) (ε := η / 4) (by positivity)
     (by linarith) (by positivity)
-  refine ⟨freezeRate, N, hrate, hK₀, fun n hn => le_of_eq_of_le (by ring) ((h n hn).trans ?_)⟩
-  rw [measureReal_def, measureReal_def]
-  exact ENNReal.toReal_mono (measure_ne_top _ _) (measure_mono_ae
-    ((hθ_flow n).mono fun p hflow hpS => hpS (θ n p) hflow))
+  refine ⟨freezeRate, N, hrate, hK₀, fun n hn => ?_⟩
+  obtain ⟨E, hEm, hE, hEp⟩ := h n hn
+  exact ⟨E, hEm, le_of_eq_of_le (by ring) hE, (hθ_flow n).mono fun p hflow hpE =>
+    hEp p hpE (θ n p) hflow⟩
 
 /-- **Single-confidence form of `exists_kernel_freeze_event_of_positive_gap`.** For every
 confidence level `η ∈ (0, 1]` there are a deterministic drift rate `freezeRate n → 0` and a width
@@ -2935,7 +2975,9 @@ private lemma measure_le_ofReal_of_measureReal_le {α : Type*} [MeasurableSpace 
 /-- **Kernel stationarity in probability on `[0, T]`.** If the trajectories `θ n p` solve the
 gradient-flow ODE for `initMeasure n d`-almost every initialization, then for every `ε₀ > 0` the
 probability that the empirical NTK drifts by more than `ε₀` somewhere on `[0, T]` tends to zero.
-No spectral gap is assumed. -/
+The event is not shown measurable, so `initMeasure n d` evaluates it as an *outer* probability; the
+proof bounds it by the complement of the measurable good event of
+`exists_measurableSet_finite_horizon_kernel_freeze`. No spectral gap is assumed. -/
 theorem tendsto_measure_kernel_drift_finite_horizon
     {d m : ℕ} (hm : 0 < m) (φ : ℝ → ℝ) {C₀ C₁ C₂ : ℝ}
     (hact : BoundedSmoothActivation φ C₀ C₁ C₂)
@@ -2977,7 +3019,7 @@ theorem tendsto_measure_kernel_drift_finite_horizon
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)}) := by
         refine measure_mono fun p hp => ?_
         by_contra hcon
-        simp only [Set.mem_union, Set.mem_compl_iff, Set.mem_setOf_eq, not_or, not_not] at hcon
+        simp only [Set.mem_union, Set.mem_compl_iff, Set.mem_ofPred_eq, not_or, not_not] at hcon
         obtain ⟨hpE, hflow⟩ := hcon
         obtain ⟨t, ht, hgt⟩ := hp
         have hb := (hEp p hpE).2 (θ n p) hflow t ht
@@ -2992,8 +3034,9 @@ theorem tendsto_measure_kernel_drift_finite_horizon
 /-- **Actual residual vs. frozen matrix-exponential residual, in probability.** If the trajectories
 `θ n p` solve the gradient-flow ODE for almost every initialization, then at each fixed time `t ≥ 0`
 the trained residual `r_n(t)` and the frozen residual `exp(-(t / m) K_∞) r_n(0)` are asymptotically
-equal: for every `ε₀ > 0`, `initMeasure n d {ε₀ ≤ ‖r_n(t) - exp(-(t / m) K_∞) r_n(0)‖} → 0`.
-No spectral gap is assumed. -/
+equal: for every `ε₀ > 0`, `initMeasure n d {ε₀ ≤ ‖r_n(t) - exp(-(t / m) K_∞) r_n(0)‖} → 0`
+(outer probability, as for `tendsto_measure_kernel_drift_finite_horizon`). No spectral gap is
+assumed. -/
 theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
     {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₀ C₁ C₂ : ℝ}
     (hact : BoundedSmoothActivation φ C₀ C₁ C₂)
@@ -3067,7 +3110,7 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
             (θ n p)}) := by
         refine measure_mono fun p hp => ?_
         by_contra hcon
-        simp only [Set.mem_union, Set.mem_compl_iff, Set.mem_setOf_eq, not_or, not_not,
+        simp only [Set.mem_union, Set.mem_compl_iff, Set.mem_ofPred_eq, not_or, not_not,
           not_le] at hcon
         obtain ⟨⟨hpE, hpU⟩, hflow⟩ := hcon
         obtain ⟨hres0, hEK⟩ := hEp p hpE
@@ -3108,7 +3151,7 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
             field_simp]
           have : cst / (cst + 1) < 1 := (div_lt_one hpos).2 (by linarith)
           nlinarith
-        rw [Set.mem_setOf_eq] at hp
+        rw [Set.mem_ofPred_eq] at hp
         linarith [hp, happrox, hbound, hlt]
     _ ≤ (initMeasure n d) (Eᶜ ∪ {p | e ≤ ‖empiricalNTKMatrix (netFromParams φ n d) Xs
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖}) + 0 := by
@@ -3215,6 +3258,16 @@ section GlobalPositiveGapLimit
 /-!
 #### Target Theorem 2: Global Positive-Gap Lazy Training Limit (Phase 0 Target)
 
+**Status.** Proved as `global_positive_gap_lazy_training_limit` (any family solving the ODE almost
+everywhere) and `gradientFlow_global_positive_gap_lazy_training_limit` (the constructed family), with
+the following differences from the original target below: the uniform finite-width gap is
+`lambda_inf / 4` rather than `lambda_inf / 2` (initialization transfers a half-gap and the bootstrap
+halves it again; the quarter-gap suffices), the drift rate is `O(√(log n / n))` (the logarithm comes
+from the maximum readout weight; the source's `O(n⁻¹ᐟ²)` needs an average-moment argument), the
+residual and loss decay rates are `lambda_inf / (4 m)` and `lambda_inf / (2 m)`, and the event is a
+measurable initialization event of probability `≥ 1 - η`. The commented signature below is kept as
+the original target.
+
 **Statement**:
 Under the same hypotheses as Theorem 1, assume in addition that the limiting
 kernel `limitingFullNTKMatrix φ X`
@@ -3291,6 +3344,558 @@ theorem global_positive_gap_lazy_training_limit
 -/
 
 end GlobalPositiveGapLimit
+
+
+/-! ### Construction of the Gradient-Flow Family
+
+For a bounded smooth activation, the negative MSE gradient field of the two-layer network is locally
+Lipschitz (`locallyLipschitz_neg_gradient_mseLoss_netFromParams`) and its solutions obey a priori
+bounds in both time directions (a *linear* Grönwall bound for the readout weights, then a bound for
+the hidden weights). The generic theorem `exists_global_flow` therefore yields a two-sided global
+flow, continuous in the initial parameters, so every initialization has a `GFTrajectory` and
+fixed-time evaluation is continuous, hence measurable, in the initialization. -/
+
+section GradientFlowConstruction
+
+variable {m d n : ℕ}
+
+/-- Coordinates of the negative MSE gradient of the two-layer network in terms of the hidden and
+readout blocks. -/
+lemma gradient_mseLoss_netFromParams_apply (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (k : Fin (paramDim n d)) :
+    gradient (mseLoss (netFromParams φ n d) X y) θ k =
+      (m : ℝ)⁻¹ * ∑ α : Fin m, (netFromParams φ n d (X α) θ - y α) *
+        gradParams φ n d (X α) θ k := by
+  have hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => netFromParams φ n d (X α) θ') θ :=
+    fun α => (hasFDerivAt_netFromParams φ n d (X α) θ fun i => hφ.differentiableAt).differentiableAt
+  rw [gradient_mseLoss_apply_j _ X y θ hdiff k]
+  simp only [Matrix.mulVec, dotProduct, Matrix.transpose_apply]
+  congr 1
+  refine Finset.sum_congr rfl fun α _ => ?_
+  rw [outputJacobian, Matrix.of_apply, tangentFeature_netFromParams_of_differentiable φ hφ n d]
+  simp [trainingResidual, trainingOutputs]
+  ring
+
+private lemma locallyLipschitz_const_mul {α : Type*} [PseudoEMetricSpace α] (c : ℝ) {f : α → ℝ}
+    (hf : LocallyLipschitz f) : LocallyLipschitz (fun x => c * f x) :=
+  locallyLipschitz_mul_real (LipschitzWith.const c).locallyLipschitz hf
+
+private lemma locallyLipschitz_mul_const {α : Type*} [PseudoEMetricSpace α] (c : ℝ) {f : α → ℝ}
+    (hf : LocallyLipschitz f) : LocallyLipschitz (fun x => f x * c) :=
+  locallyLipschitz_mul_real hf (LipschitzWith.const c).locallyLipschitz
+
+/-- The negative MSE gradient field of the two-layer network is locally Lipschitz when `φ` and its
+derivative are locally Lipschitz. This is the hypothesis behind local existence and uniqueness of
+the gradient-flow ODE (Picard-Lindelöf). Proof: every coordinate of the field is a finite sum of
+products of locally Lipschitz functions of the packed parameters. -/
+theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ)
+    (hφL : LocallyLipschitz φ) (hdφL : LocallyLipschitz (deriv φ))
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
+    LocallyLipschitz (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+      -gradient (mseLoss (netFromParams φ n d) X y) θ) := by
+  have hproj : ∀ k : Fin (paramDim n d), LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => θ k) := fun k =>
+    (ContinuousLinearMap.contDiff (EuclideanSpace.proj k : EuclideanSpace ℝ (Fin (paramDim n d))
+      →L[ℝ] ℝ)).locallyLipschitz
+  have hpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => unpackW θ i ⊙ X α) := fun i α => by
+    unfold innerProduct
+    exact locallyLipschitz_finset_sum _ fun j _ => locallyLipschitz_mul_const _ (hproj _)
+  have hφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => φ (unpackW θ i ⊙ X α)) :=
+    fun i α => hφL.comp (hpre i α)
+  have hdφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => deriv φ (unpackW θ i ⊙ X α)) :=
+    fun i α => hdφL.comp (hpre i α)
+  have hnet : ∀ α : Fin m, LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => netFromParams φ n d (X α) θ) := fun α => by
+    simp only [netFromParams_eq_normalized_sum]
+    exact locallyLipschitz_const_mul _ (locallyLipschitz_finset_sum _ fun i _ =>
+      locallyLipschitz_mul_real (hproj _) (hφpre i α))
+  have hres : ∀ α : Fin m, LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => netFromParams φ n d (X α) θ - y α) :=
+    fun α => by
+      simpa only [sub_eq_add_neg] using (hnet α).add (LipschitzWith.const (-(y α))).locallyLipschitz
+  refine locallyLipschitz_euclidean_of_coord fun k => ?_
+  obtain ⟨p, rfl⟩ := (paramIndexEquiv n d).surjective k
+  have hform : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+      (-gradient (mseLoss (netFromParams φ n d) X y) θ) ((paramIndexEquiv n d) p) =
+        -((m : ℝ)⁻¹ * ∑ α : Fin m, (netFromParams φ n d (X α) θ - y α) *
+          gradParams φ n d (X α) θ ((paramIndexEquiv n d) p)) := fun θ => by
+    rw [PiLp.neg_apply, gradient_mseLoss_netFromParams_apply φ hφ]
+  simp only [hform]
+  have hg : ∀ α : Fin m, LocallyLipschitz (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+      gradParams φ n d (X α) θ ((paramIndexEquiv n d) p)) := fun α => by
+    rcases p with ⟨i, j⟩ | i
+    · have : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+          gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inl (i, j))) =
+            (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ X α) * X α j := fun θ =>
+        packParams_apply_idxW _ _ i j
+      simp only [this]
+      exact locallyLipschitz_mul_const _ (locallyLipschitz_mul_real
+        (locallyLipschitz_const_mul _ (hproj (idxA i))) (hdφpre i α))
+    · have : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+          gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inr i)) =
+            (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ X α) := fun θ => packParams_apply_idxA _ _ i
+      simp only [this]
+      exact locallyLipschitz_const_mul _ (hφpre i α)
+  exact (locallyLipschitz_const_mul _ (locallyLipschitz_finset_sum _ fun α _ =>
+    locallyLipschitz_mul_real (hres α) (hg α))).neg
+
+section APriori
+variable {φ : ℝ → ℝ} {C₀ C₁ : ℝ}
+
+private lemma flow_sqrt_inv_nat_mul_nat (hn : 0 < n) :
+    ((n : ℝ)⁻¹).sqrt * (n : ℝ) = Real.sqrt (n : ℝ) := by
+  have hn' : (0 : ℝ) < n := by exact_mod_cast hn
+  rw [Real.sqrt_inv]
+  field_simp
+  exact (Real.sq_sqrt hn'.le).symm
+
+private lemma flow_sqrt_inv_nat_le_one (hn : 0 < n) : ((n : ℝ)⁻¹).sqrt ≤ 1 := by
+  have hn' : (1 : ℝ) ≤ n := by exact_mod_cast hn
+  rw [Real.sqrt_le_one]
+  exact inv_le_one_of_one_le₀ hn'
+
+/-- A bounded-activation two-layer network output is bounded by `√n C₀ R` when all readout weights
+are bounded by `R`. -/
+private lemma abs_netFromParams_le (hC₀ : ∀ z, |φ z| ≤ C₀) (hn : 0 < n) (x : Fin d → ℝ)
+    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) {R : ℝ} (hR : ∀ i, |unpackA θ i| ≤ R) :
+    |netFromParams φ n d x θ| ≤ Real.sqrt (n : ℝ) * (C₀ * R) := by
+  rw [netFromParams_eq_normalized_sum, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+  have hsum : |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ x)| ≤ (n : ℝ) * (C₀ * R) := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    calc ∑ i : Fin n, |unpackA θ i * φ (unpackW θ i ⊙ x)| ≤ ∑ _i : Fin n, R * C₀ := by
+          refine Finset.sum_le_sum fun i _ => ?_
+          rw [abs_mul]
+          exact mul_le_mul (hR i) (hC₀ _) (abs_nonneg _) ((abs_nonneg _).trans (hR i))
+      _ = (n : ℝ) * (C₀ * R) := by simp [mul_comm]
+  calc ((n : ℝ)⁻¹).sqrt * |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ x)|
+      ≤ ((n : ℝ)⁻¹).sqrt * ((n : ℝ) * (C₀ * R)) :=
+        mul_le_mul_of_nonneg_left hsum (Real.sqrt_nonneg _)
+    _ = Real.sqrt (n : ℝ) * (C₀ * R) := by rw [← mul_assoc, flow_sqrt_inv_nat_mul_nat hn]
+
+private lemma flow_sqrt_nat_mul_sqrt_inv_nat (hn : 0 < n) :
+    Real.sqrt (n : ℝ) * ((n : ℝ)⁻¹).sqrt = 1 := by
+  have hn' : (0 : ℝ) < n := by exact_mod_cast hn
+  rw [Real.sqrt_inv]
+  exact mul_inv_cancel₀ (Real.sqrt_pos.2 hn').ne'
+
+/-- Readout coordinates of the MSE gradient grow at most linearly in the sup norm `R` of the readout
+weights, uniformly in the hidden weights. -/
+private lemma abs_gradient_mseLoss_idxA_le (hφ : Differentiable ℝ φ) (hC₀ : ∀ z, |φ z| ≤ C₀)
+    (hn : 0 < n)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) {R : ℝ} (hR0 : 0 ≤ R)
+    (hR : ∀ i, |unpackA θ i| ≤ R) (i : Fin n) :
+    |gradient (mseLoss (netFromParams φ n d) X y) θ (idxA i)| ≤
+      C₀ ^ 2 * R + C₀ * ((m : ℝ)⁻¹ * ∑ α : Fin m, |y α|) := by
+  have hC₀0 : 0 ≤ C₀ := (abs_nonneg _).trans (hC₀ 0)
+  set s : ℝ := ((n : ℝ)⁻¹).sqrt with hs
+  have hs1 : s ≤ 1 := flow_sqrt_inv_nat_le_one hn
+  have hs0 : 0 ≤ s := Real.sqrt_nonneg _
+  have hsn := flow_sqrt_nat_mul_sqrt_inv_nat hn
+  rw [gradient_mseLoss_netFromParams_apply φ hφ, abs_mul,
+    abs_of_nonneg (by positivity : (0 : ℝ) ≤ (m : ℝ)⁻¹)]
+  have hterm : ∀ α : Fin m, |(netFromParams φ n d (X α) θ - y α) *
+      gradParams φ n d (X α) θ (idxA i)| ≤ C₀ ^ 2 * R + C₀ * |y α| := by
+    intro α
+    have hg : gradParams φ n d (X α) θ (idxA i) = s * φ (unpackW θ i ⊙ X α) :=
+      packParams_apply_idxA _ _ i
+    rw [hg, abs_mul, abs_mul, abs_of_nonneg hs0]
+    have h1 : |netFromParams φ n d (X α) θ - y α| ≤ Real.sqrt (n : ℝ) * (C₀ * R) + |y α| :=
+      (abs_sub _ _).trans (add_le_add (abs_netFromParams_le hC₀ hn (X α) θ hR) le_rfl)
+    have h2 : s * |φ (unpackW θ i ⊙ X α)| ≤ s * C₀ := mul_le_mul_of_nonneg_left (hC₀ _) hs0
+    calc |netFromParams φ n d (X α) θ - y α| * (s * |φ (unpackW θ i ⊙ X α)|)
+        ≤ (Real.sqrt (n : ℝ) * (C₀ * R) + |y α|) * (s * C₀) :=
+          mul_le_mul h1 h2 (by positivity) (by positivity)
+      _ = C₀ ^ 2 * R * (Real.sqrt (n : ℝ) * s) + C₀ * (s * |y α|) := by ring
+      _ ≤ C₀ ^ 2 * R + C₀ * |y α| := by
+          rw [hsn, mul_one]
+          have : s * |y α| ≤ |y α| := mul_le_of_le_one_left (abs_nonneg _) hs1
+          nlinarith [mul_le_mul_of_nonneg_left this hC₀0]
+  calc (m : ℝ)⁻¹ * |∑ α : Fin m, (netFromParams φ n d (X α) θ - y α) *
+        gradParams φ n d (X α) θ (idxA i)|
+      ≤ (m : ℝ)⁻¹ * ∑ α : Fin m, (C₀ ^ 2 * R + C₀ * |y α|) :=
+        mul_le_mul_of_nonneg_left ((Finset.abs_sum_le_sum_abs _ _).trans
+          (Finset.sum_le_sum fun α _ => hterm α)) (by positivity)
+    _ = (m : ℝ)⁻¹ * (m : ℝ) * (C₀ ^ 2 * R) + C₀ * ((m : ℝ)⁻¹ * ∑ α : Fin m, |y α|) := by
+        simp only [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+          nsmul_eq_mul, ← Finset.mul_sum]
+        ring
+    _ ≤ C₀ ^ 2 * R + C₀ * ((m : ℝ)⁻¹ * ∑ α : Fin m, |y α|) := by
+        have : (m : ℝ)⁻¹ * (m : ℝ) ≤ 1 := by
+          rcases Nat.eq_zero_or_pos m with h | h
+          · simp [h]
+          · rw [inv_mul_cancel₀ (by exact_mod_cast h.ne')]
+        nlinarith [mul_nonneg (sq_nonneg C₀) hR0]
+
+/-- Hidden-weight coordinates of the MSE gradient grow at most quadratically in the sup norm `R` of
+the readout weights. -/
+private lemma abs_gradient_mseLoss_idxW_le (hφ : Differentiable ℝ φ) (hC₀ : ∀ z, |φ z| ≤ C₀)
+    (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hn : 0 < n)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) {R : ℝ} (hR0 : 0 ≤ R)
+    (hR : ∀ i, |unpackA θ i| ≤ R) (i : Fin n) (j : Fin d) :
+    |gradient (mseLoss (netFromParams φ n d) X y) θ (idxW i j)| ≤
+      (1 + R) ^ 2 * (C₁ * ((m : ℝ)⁻¹ * ∑ α : Fin m, |X α j| * (C₀ + |y α|))) := by
+  have hC₀0 : 0 ≤ C₀ := (abs_nonneg _).trans (hC₀ 0)
+  have hC₁0 : 0 ≤ C₁ := (abs_nonneg _).trans (hC₁ 0)
+  set s : ℝ := ((n : ℝ)⁻¹).sqrt with hs
+  have hs1 : s ≤ 1 := flow_sqrt_inv_nat_le_one hn
+  have hs0 : 0 ≤ s := Real.sqrt_nonneg _
+  have hsn := flow_sqrt_nat_mul_sqrt_inv_nat hn
+  rw [gradient_mseLoss_netFromParams_apply φ hφ, abs_mul,
+    abs_of_nonneg (by positivity : (0 : ℝ) ≤ (m : ℝ)⁻¹)]
+  have hterm : ∀ α : Fin m, |(netFromParams φ n d (X α) θ - y α) *
+      gradParams φ n d (X α) θ (idxW i j)| ≤
+        (1 + R) ^ 2 * (C₁ * (|X α j| * (C₀ + |y α|))) := by
+    intro α
+    have hg : gradParams φ n d (X α) θ (idxW i j) =
+        s * unpackA θ i * deriv φ (unpackW θ i ⊙ X α) * X α j := packParams_apply_idxW _ _ i j
+    rw [hg, abs_mul, abs_mul, abs_mul, abs_mul, abs_of_nonneg hs0]
+    have h1 : |netFromParams φ n d (X α) θ - y α| ≤ Real.sqrt (n : ℝ) * (C₀ * R) + |y α| :=
+      (abs_sub _ _).trans (add_le_add (abs_netFromParams_le hC₀ hn (X α) θ hR) le_rfl)
+    have h2 : s * |unpackA θ i| * |deriv φ (unpackW θ i ⊙ X α)| * |X α j| ≤
+        s * R * C₁ * |X α j| := by
+      have := mul_le_mul (mul_le_mul_of_nonneg_left (hR i) hs0) (hC₁ (unpackW θ i ⊙ X α))
+        (abs_nonneg _) (by positivity)
+      exact mul_le_mul_of_nonneg_right this (abs_nonneg _)
+    have hx0 := abs_nonneg (X α j)
+    have hy0 := abs_nonneg (y α)
+    calc |netFromParams φ n d (X α) θ - y α| *
+          (s * |unpackA θ i| * |deriv φ (unpackW θ i ⊙ X α)| * |X α j|)
+        ≤ (Real.sqrt (n : ℝ) * (C₀ * R) + |y α|) * (s * R * C₁ * |X α j|) :=
+          mul_le_mul h1 h2 (by positivity) (by positivity)
+      _ = R * C₁ * |X α j| * (C₀ * R + s * |y α|) := by
+          have : Real.sqrt (n : ℝ) * s = 1 := hsn
+          calc _ = R * C₁ * |X α j| * (C₀ * R * (Real.sqrt (n : ℝ) * s) + s * |y α|) := by ring
+            _ = _ := by rw [this, mul_one]
+      _ ≤ (1 + R) ^ 2 * (C₁ * (|X α j| * (C₀ + |y α|))) := by
+          have hsy : s * |y α| ≤ |y α| := mul_le_of_le_one_left hy0 hs1
+          have hc : C₀ * R + s * |y α| ≤ (1 + R) * (C₀ + |y α|) := by nlinarith
+          calc R * C₁ * |X α j| * (C₀ * R + s * |y α|)
+              ≤ R * C₁ * |X α j| * ((1 + R) * (C₀ + |y α|)) :=
+                mul_le_mul_of_nonneg_left hc (by positivity)
+            _ ≤ (1 + R) * C₁ * |X α j| * ((1 + R) * (C₀ + |y α|)) := by
+                gcongr; linarith
+            _ = _ := by ring
+  calc (m : ℝ)⁻¹ * |∑ α : Fin m, (netFromParams φ n d (X α) θ - y α) *
+        gradParams φ n d (X α) θ (idxW i j)|
+      ≤ (m : ℝ)⁻¹ * ∑ α : Fin m, (1 + R) ^ 2 * (C₁ * (|X α j| * (C₀ + |y α|))) :=
+        mul_le_mul_of_nonneg_left ((Finset.abs_sum_le_sum_abs _ _).trans
+          (Finset.sum_le_sum fun α _ => hterm α)) (by positivity)
+    _ = (1 + R) ^ 2 * (C₁ * ((m : ℝ)⁻¹ * ∑ α : Fin m, |X α j| * (C₀ + |y α|))) := by
+        simp only [← Finset.mul_sum]
+        ring
+
+open Set Metric in
+/-- **A priori bound for the gradient-flow ODE of the two-layer network (either time direction).**
+Any solution of `θ' = σ (-∇L)(θ)` (`|σ| = 1`) on `[0, S]`, `S ≤ T`, starting in the ball of radius
+`r`, stays in a ball whose radius depends only on `T`, `r` and the data. Proof: for a bounded
+activation the readout weights satisfy a *linear* differential inequality in their sup norm
+(`abs_gradient_mseLoss_idxA_le`), so Grönwall bounds them on `[0, T]`, and then the hidden-weight
+velocities are bounded by `abs_gradient_mseLoss_idxW_le`, hence hidden weights move by at most
+`D T`. -/
+private theorem apriori_bound_neg_gradient (hφ : Differentiable ℝ φ) (hC₀ : ∀ z, |φ z| ≤ C₀)
+    (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hn : 0 < n)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (σ : ℝ) (hσ : |σ| = 1) (T r : ℝ) :
+    ∃ ρ : ℝ, ∀ (θ : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))) (S : ℝ), 0 ≤ S → S ≤ T →
+      ‖θ 0‖ ≤ r → (∀ t ∈ Icc 0 S, HasDerivWithinAt θ
+        (σ • (-gradient (mseLoss (netFromParams φ n d) X y) (θ t))) (Icc 0 S) t) → ‖θ S‖ ≤ ρ := by
+  have hC₀0 : 0 ≤ C₀ := (abs_nonneg _).trans (hC₀ 0)
+  have hC₁0 : 0 ≤ C₁ := (abs_nonneg _).trans (hC₁ 0)
+  set Ka : ℝ := C₀ * ((m : ℝ)⁻¹ * ∑ α : Fin m, |y α|) with hKa
+  have hKa0 : 0 ≤ Ka := by positivity
+  set KW : ℝ := C₁ * ∑ j : Fin d, ((m : ℝ)⁻¹ * ∑ α : Fin m, |X α j| * (C₀ + |y α|)) with hKW
+  have hKW0 : 0 ≤ KW := by positivity
+  set T' : ℝ := max T 0 with hT'
+  set Ra : ℝ := gronwallBound (max r 0) (C₀ ^ 2) Ka T' with hRa
+  have hδ0 : 0 ≤ max r 0 := le_max_right _ _
+  have hRa0 : 0 ≤ Ra := by
+    have := gronwallBound_mono hδ0 hKa0 (sq_nonneg C₀) (le_max_right T 0 : (0 : ℝ) ≤ T')
+    have h0 : gronwallBound (max r 0) (C₀ ^ 2) Ka 0 = max r 0 := gronwallBound_x0 _ _ _
+    rw [hRa]; linarith
+  set D : ℝ := (1 + Ra) ^ 2 * KW with hD
+  have hD0 : 0 ≤ D := by positivity
+  set B : ℝ := max Ra (max r 0 + D * T') with hB
+  refine ⟨(paramDim n d : ℝ) * B, ?_⟩
+  intro θ S hS0 hST hr0 hsol
+  have hcoord : ∀ (k : Fin (paramDim n d)), ∀ t ∈ Icc (0 : ℝ) S, HasDerivWithinAt
+      (fun s => θ s k) (σ * (-(gradient (mseLoss (netFromParams φ n d) X y) (θ t)) k))
+      (Icc 0 S) t := fun k t ht => by
+    have := (EuclideanSpace.proj k : EuclideanSpace ℝ (Fin (paramDim n d)) →L[ℝ] ℝ).hasFDerivAt
+      |>.comp_hasDerivWithinAt t (hsol t ht)
+    exact this.congr_deriv (by simp)
+  set f : ℝ → (Fin n → ℝ) := fun t i => θ t (idxA i) with hf
+  set f' : ℝ → (Fin n → ℝ) := fun t i =>
+    σ * (-(gradient (mseLoss (netFromParams φ n d) X y) (θ t)) (idxA i)) with hf'
+  have hfd : ∀ t ∈ Icc (0 : ℝ) S, HasDerivWithinAt f (f' t) (Icc 0 S) t := fun t ht =>
+    hasDerivWithinAt_pi.2 fun i => hcoord _ t ht
+  have hfc : ContinuousOn f (Icc 0 S) := fun t ht => (hfd t ht).continuousWithinAt
+  have hfnorm : ∀ t, ∀ i, |unpackA (θ t) i| ≤ ‖f t‖ := fun t i => by
+    have := norm_le_pi_norm (f t) i
+    rw [Real.norm_eq_abs] at this
+    exact this
+  have hbound : ∀ t ∈ Ico (0 : ℝ) S, ‖f' t‖ ≤ C₀ ^ 2 * ‖f t‖ + Ka := fun t _ => by
+    refine (pi_norm_le_iff_of_nonneg (by positivity)).2 fun i => ?_
+    have := abs_gradient_mseLoss_idxA_le hφ hC₀ hn X y (θ t) (norm_nonneg (f t)) (hfnorm t) i
+    simpa [hf', Real.norm_eq_abs, abs_mul, hσ] using this
+  have hIco : ∀ t ∈ Ico (0 : ℝ) S, Icc (0 : ℝ) S ∈ nhdsWithin t (Ici t) := fun t ht =>
+    Filter.mem_of_superset (Icc_mem_nhdsGE ht.2) (Icc_subset_Icc ht.1 le_rfl)
+  have hf0 : ‖f 0‖ ≤ max r 0 := by
+    refine (pi_norm_le_iff_of_nonneg hδ0).2 fun i => ?_
+    have := PiLp.norm_apply_le (θ 0) (idxA i)
+    simp only [hf, Real.norm_eq_abs] at this ⊢
+    exact this.trans (hr0.trans (le_max_left _ _))
+  have hgron := norm_le_gronwallBound_of_norm_deriv_right_le (f := f) (f' := f')
+    (δ := max r 0) (K := C₀ ^ 2) (ε := Ka) (a := 0) (b := S) hfc
+    (fun t ht => (hfd t ⟨ht.1, ht.2.le⟩).mono_of_mem_nhdsWithin (hIco t ht)) hf0 hbound
+  have hfR : ∀ t ∈ Icc (0 : ℝ) S, ‖f t‖ ≤ Ra := fun t ht =>
+    (hgron t ht).trans (gronwallBound_mono hδ0 hKa0 (sq_nonneg C₀)
+      (by linarith [ht.2, le_max_left T 0] : t - 0 ≤ T'))
+  have hW : ∀ (i : Fin n) (j : Fin d), |θ S (idxW i j) - θ 0 (idxW i j)| ≤ D * S := by
+    intro i j
+    have hb : ∀ t ∈ Icc (0 : ℝ) S,
+        ‖σ * (-(gradient (mseLoss (netFromParams φ n d) X y) (θ t)) (idxW i j))‖ ≤ D := by
+      intro t ht
+      have h1 := abs_gradient_mseLoss_idxW_le hφ hC₀ hC₁ hn X y (θ t) (norm_nonneg (f t))
+        (hfnorm t) i j
+      have hRt := hfR t ht
+      have hj : (m : ℝ)⁻¹ * ∑ α : Fin m, |X α j| * (C₀ + |y α|) ≤
+          ∑ j' : Fin d, ((m : ℝ)⁻¹ * ∑ α : Fin m, |X α j'| * (C₀ + |y α|)) :=
+        Finset.single_le_sum (f := fun j' => (m : ℝ)⁻¹ * ∑ α : Fin m, |X α j'| * (C₀ + |y α|))
+          (fun j' _ => by positivity) (Finset.mem_univ j)
+      rw [norm_mul, Real.norm_eq_abs, hσ, one_mul, norm_neg, Real.norm_eq_abs]
+      refine h1.trans ?_
+      rw [hD, hKW]
+      have hsq : (1 + ‖f t‖) ^ 2 ≤ (1 + Ra) ^ 2 := by
+        have := norm_nonneg (f t); nlinarith
+      exact mul_le_mul hsq (mul_le_mul_of_nonneg_left hj hC₁0) (by positivity) (by positivity)
+    have := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le (f := fun s => θ s (idxW i j))
+      (f' := fun t => σ * (-(gradient (mseLoss (netFromParams φ n d) X y) (θ t)) (idxW i j)))
+      (s := Icc (0 : ℝ) S) (x := 0) (y := S) (fun t ht => hcoord _ t ht) hb (convex_Icc 0 S)
+      ⟨le_rfl, hS0⟩ ⟨hS0, le_rfl⟩
+    simpa [Real.norm_eq_abs, abs_of_nonneg hS0] using this
+  have hcoordS : ∀ k : Fin (paramDim n d), |θ S k| ≤ B := by
+    intro k
+    obtain ⟨p, rfl⟩ := (paramIndexEquiv n d).surjective k
+    rcases p with ⟨i, j⟩ | i
+    · have h1 := hW i j
+      have h0 : |θ 0 (idxW i j)| ≤ max r 0 := by
+        have := PiLp.norm_apply_le (θ 0) (idxW i j)
+        simp only [Real.norm_eq_abs] at this
+        exact this.trans (hr0.trans (le_max_left _ _))
+      have hDS : D * S ≤ D * T' := mul_le_mul_of_nonneg_left
+        (hST.trans (le_max_left T 0)) hD0
+      calc |θ S (paramIndexEquiv n d (Sum.inl (i, j)))|
+          ≤ |θ 0 (idxW i j)| + |θ S (idxW i j) - θ 0 (idxW i j)| := by
+            have := abs_sub_abs_le_abs_sub (θ S (idxW i j)) (θ 0 (idxW i j)); 
+            change |θ S (idxW i j)| ≤ _
+            linarith
+        _ ≤ B := (add_le_add h0 h1).trans (by rw [hB]; exact le_max_of_le_right (by linarith))
+    · have := hfR S ⟨hS0, le_rfl⟩
+      have h2 : |θ S (idxA i)| ≤ ‖f S‖ := by
+        have := norm_le_pi_norm (f S) i
+        simpa [hf, Real.norm_eq_abs] using this
+      exact (h2.trans this).trans (le_max_left _ _)
+  calc ‖θ S‖ ≤ ∑ k, |θ S k| := norm_euclidean_le_sum_abs _
+    _ ≤ ∑ _k : Fin (paramDim n d), B := Finset.sum_le_sum fun k _ => hcoordS k
+    _ = (paramDim n d : ℝ) * B := by simp
+
+end APriori
+
+lemma measurable_packParams {n d : ℕ} :
+    Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => packParams p.1 p.2) := by
+  refine (PiLp.continuous_toLp 2 _).measurable.comp (measurable_pi_iff.2 fun k => ?_)
+  rcases h : (paramIndexEquiv n d).symm k with ⟨i, j⟩ | i
+  · exact (measurable_pi_apply j).comp ((measurable_pi_apply i).comp measurable_fst)
+  · exact (measurable_pi_apply i).comp measurable_snd
+
+theorem exists_gradientFlow_of_pos (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) {C₀ C₁ C₂ : ℝ}
+    (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
+    (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
+    (hn : 0 < n) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
+    ∃ Φ : EuclideanSpace ℝ (Fin (paramDim n d)) → ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+      (∀ θ₀, GFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ (Φ θ₀)) ∧
+      ∀ t, Continuous (fun θ₀ => Φ θ₀ t) := by
+  obtain ⟨hφL, hdφL⟩ := activation_locallyLipschitz ⟨hφ, hC₀, hC₁, hderiv_lip⟩
+  have hLL := locallyLipschitz_neg_gradient_mseLoss_netFromParams (n := n) φ hφ hφL hdφL X y
+  obtain ⟨Φ, hΦ0, hΦd, hΦc⟩ := exists_global_flow
+    (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+      -gradient (mseLoss (netFromParams φ n d) X y) θ)
+    (lipschitz_on_ball_of_locallyLipschitz hLL)
+    (fun σ hσ T r => apriori_bound_neg_gradient hφ hC₀ hC₁ hn X y σ hσ T r)
+  refine ⟨Φ, fun θ₀ => ⟨hΦ0 θ₀, ?_, fun t => by simpa using hΦd θ₀ t⟩, hΦc⟩
+  rw [contDiff_one_iff_deriv]
+  refine ⟨fun t => (hΦd θ₀ t).differentiableAt, ?_⟩
+  have hd : deriv (Φ θ₀) = fun t => -gradient (mseLoss (netFromParams φ n d) X y) (Φ θ₀ t) :=
+    funext fun t => (hΦd θ₀ t).deriv
+  rw [hd]
+  exact hLL.continuous.comp (continuous_iff_continuousAt.2 fun t => (hΦd θ₀ t).continuousAt)
+
+/-- **Every initialization has a gradient flow, continuous in the initialization.** For a bounded
+smooth activation and any dataset there is a map `Φ` such that `Φ θ₀` is a `GFTrajectory` of the
+MSE loss started at `θ₀` (defined for all times), and `θ₀ ↦ Φ θ₀ t` is continuous for each `t`.
+Solutions are unique by `flow_unique_window`'s adapter inside `exists_global_flow`. -/
+theorem exists_gradientFlow {φ : ℝ → ℝ} {C₀ C₁ C₂ : ℝ}
+    (hact : BoundedSmoothActivation φ C₀ C₁ C₂) (n d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
+    ∃ Φ : EuclideanSpace ℝ (Fin (paramDim n d)) → ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+      (∀ θ₀, GFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ (Φ θ₀)) ∧
+      ∀ t, Continuous (fun θ₀ => Φ θ₀ t) := by
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · -- no parameters: the parameter space is a point
+    have hsub : ∀ u v : EuclideanSpace ℝ (Fin (paramDim 0 d)), u = v := fun u v => by
+      ext k
+      exact (Fin.elim0 (by simpa [paramDim] using k) : False).elim
+    refine ⟨fun θ₀ _ => θ₀, fun θ₀ => ⟨rfl, contDiff_const, fun t => ?_⟩, fun t => continuous_id⟩
+    rw [show -gradient (mseLoss (netFromParams φ 0 d) X y) θ₀ = 0 from hsub _ _]
+    exact hasDerivAt_const t θ₀
+  · exact exists_gradientFlow_of_pos φ hact.differentiable hact.bdd hact.deriv_bdd
+      hact.deriv_lip hn X y
+
+/-- **Uniqueness of the gradient flow.** Two gradient-flow trajectories of the MSE loss of the
+two-layer network from the same initialization coincide (for a bounded smooth activation). -/
+theorem gradientFlow_unique {φ : ℝ → ℝ} {C₀ C₁ C₂ : ℝ}
+    (hact : BoundedSmoothActivation φ C₀ C₁ C₂) (X : Fin m → Fin d → ℝ)
+    (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))}
+    {f g : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))}
+    (hf : GFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ f)
+    (hg : GFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ g) : f = g := by
+  obtain ⟨hφL, hdφL⟩ := activation_locallyLipschitz hact
+  have hLL := locallyLipschitz_neg_gradient_mseLoss_netFromParams (n := n) φ hact.differentiable
+    hφL hdφL X y
+  exact flow_unique _ (lipschitz_on_ball_of_locallyLipschitz hLL) (fun t => hf.ode t)
+    (fun t => hg.ode t) (hf.init.trans hg.init.symm)
+
+/-- **A measurable family of gradient-flow trajectories over the initialization laws.** There is a
+family `θ n p` such that for *every* width `n` and *every* initialization `p`, `θ n p` is a
+gradient flow of the MSE loss started at `packParams p.1 p.2`, and each fixed-time evaluation is
+measurable in `p`. This discharges the hypotheses `hθ_flow` (in fact everywhere, not only almost
+everywhere) and `hθ_meas` of the finite-horizon and global theorems. -/
+theorem exists_gradientFlow_family {φ : ℝ → ℝ} {C₀ C₁ C₂ : ℝ}
+    (hact : BoundedSmoothActivation φ C₀ C₁ C₂) (d m : ℕ)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
+    ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+        EuclideanSpace ℝ (Fin (paramDim n d)),
+      (∀ n p, GFTrajectory (mseLoss (netFromParams φ n d) X y) (packParams p.1 p.2) (θ n p)) ∧
+      ∀ n t, Measurable (fun p => θ n p t) := by
+  choose Φ hΦ hΦc using fun n : ℕ => exists_gradientFlow hact n d m X y
+  exact ⟨fun n p => Φ n (packParams p.1 p.2), fun n p => hΦ n _,
+    fun n t => (hΦc n t).measurable.comp measurable_packParams⟩
+
+/-- **Finite-horizon training limit for the constructed gradient flow (no spectral gap, no
+trajectory hypotheses).** For a bounded smooth activation, the constructed family of gradient-flow
+trajectories `θ n p` (defined for every width and every initialization, measurable in `p`) has:
+kernel stationarity in probability on every `[0, T]`, and, at every fixed time `t ≥ 0`, the
+trained residual and predictions converge in distribution to the frozen-kernel laws
+`exp(-(t / m) K_∞) (G - y)` and `y + exp(-(t / m) K_∞) (G - y)`, `G ~ 𝒩(0, Φ^{(∞)})`. -/
+theorem gradientFlow_finite_horizon_training_limit
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₀ C₁ C₂ : ℝ}
+    (hact : BoundedSmoothActivation φ C₀ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
+    ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+        EuclideanSpace ℝ (Fin (paramDim n d)),
+      (∀ n p, GFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
+      (∀ n t, Measurable (fun p => θ n p t)) ∧
+      (∀ T : ℝ, 0 ≤ T → ∀ ε₀ : ℝ, 0 < ε₀ → Filter.Tendsto
+        (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
+          ε₀ < ‖empiricalNTKMatrix (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+            empiricalNTKMatrix (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
+        Filter.atTop (nhds 0)) ∧
+      (∀ t : ℝ, 0 ≤ t → TendstoInDistribution
+        (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+          trainingResidual (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t))
+        Filter.atTop
+        (fun G : EuclideanSpace ℝ (Fin m) =>
+          (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
+            (G - y).ofLp) : EuclideanSpace ℝ (Fin m)))
+        (fun n => initMeasure n d)
+        (multivariateGaussian 0
+          (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))) ∧
+      (∀ t : ℝ, 0 ≤ t → TendstoInDistribution
+        (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
+          trainingOutputs (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t))
+        Filter.atTop
+        (fun G : EuclideanSpace ℝ (Fin m) =>
+          y + (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
+            (G - y).ofLp) : EuclideanSpace ℝ (Fin m)))
+        (fun n => initMeasure n d)
+        (multivariateGaussian 0
+          (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))) := by
+  obtain ⟨θ, hflow, hmeas⟩ := exists_gradientFlow_family hact d m
+    (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+  have hae : ∀ n, ∀ᵐ p ∂(initMeasure n d), GFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
+    fun n => Filter.Eventually.of_forall (hflow n)
+  exact ⟨θ, hflow, hmeas,
+    fun T hT ε₀ hε₀ => tendsto_measure_kernel_drift_finite_horizon hm φ hact X y T hT θ hae hε₀,
+    fun t ht => tendstoInDistribution_trainingResidual_matrix_exp hm hd φ hact X y t ht θ
+      (fun n t => (hmeas n t).aemeasurable) hae,
+    fun t ht => tendstoInDistribution_trainingOutputs_matrix_exp hm hd φ hact X y t ht θ
+      (fun n t => (hmeas n t).aemeasurable) hae⟩
+
+/-- **Global positive-gap lazy training limit for the constructed gradient flow.** Under a positive
+limiting gap, the constructed family of gradient-flow trajectories (defined for every width and
+every initialization, measurable in the initialization) satisfies the conclusion of
+`global_positive_gap_lazy_training_limit`: with a measurable initialization event of probability at
+least `1 - η`, the uniform quarter-gap, `O(√(log n / n))` kernel drift, exponential residual and
+loss decay, and `mseLoss → 0`. No trajectory hypothesis remains. -/
+theorem gradientFlow_global_positive_gap_lazy_training_limit
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₀ C₁ C₂ : ℝ}
+    (hact : BoundedSmoothActivation φ C₀ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
+    (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
+    {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
+    ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+        EuclideanSpace ℝ (Fin (paramDim n d)),
+      (∀ n p, GFTrajectory (mseLoss (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
+      (∀ n t, Measurable (fun p => θ n p t)) ∧
+      (
+      ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
+        (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
+        ∀ n ≥ N,
+        ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
+          (initMeasure n d).real E ≥ 1 - η ∧ ∀ᵐ p ∂(initMeasure n d), p ∈ E →
+            (∀ t : ℝ, 0 ≤ t →
+              (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
+                v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)) *ᵥ v.ofLp)) ∧
+              ‖empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+                empiricalNTKMatrix (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
+                freezeRate n ∧
+              ‖trainingResidual (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)‖ ≤
+                ‖trainingResidual (netFromParams φ n d)
+                    (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ *
+                  Real.exp (-(lambda_inf / (4 * (m : ℝ))) * t) ∧
+              mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+                  (θ n p t) ≤
+                mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+                    (packParams p.1 p.2) *
+                  Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
+            Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
+              (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0)) := by
+  obtain ⟨θ, hflow, hmeas⟩ := exists_gradientFlow_family hact d m
+    (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+  have hae : ∀ n, ∀ᵐ p ∂(initMeasure n d), GFTrajectory (mseLoss (netFromParams φ n d)
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
+    fun n => Filter.Eventually.of_forall (hflow n)
+  exact ⟨θ, hflow, hmeas, global_positive_gap_lazy_training_limit hm hd φ hact X y lambda_inf
+    hlambda_inf hK_gap θ hae hη hη1⟩
+
+end GradientFlowConstruction
 
 end FullTwoLayerTrainingLimit
 

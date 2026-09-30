@@ -1523,40 +1523,12 @@ lemma empiricalCovariance_nonneg
   rw [← sum_projectionCoeff_sq_eq_bilin]
   exact Finset.sum_nonneg (fun i _ => sq_nonneg (projectionCoeff n φ W X c i))
 
-/-- Finitely supported sum on a finite type coincides with universal sum when vanishing at zero. -/
-private lemma finsupp_sum_eq_sum_univ {α β γ : Type*} [Fintype α] [Zero β] [AddCommMonoid γ]
-    (x : α →₀ β) (f : α → β → γ) (hf : ∀ i, f i 0 = 0) :
-    x.sum f = ∑ i : α, f i (x i) := by
-  rw [Finsupp.sum, Finset.sum_subset (Finset.subset_univ x.support)]
-  · intro i _ hi
-    simp only [Finsupp.mem_support_iff, not_not] at hi
-    rw [hi, hf]
-
-/-- A real Hermitian matrix whose matrix quadratic form is nonnegative is positive semidefinite.
-This bridges the function-vector API used by covariance proofs and the Finsupp-based definition. -/
-private lemma posSemidef_of_bilin_nonneg
-    (M : Matrix (Fin m) (Fin m) ℝ)
-    (hM : M.IsHermitian)
-    (h_nonneg : ∀ c : Fin m → ℝ, 0 ≤ c ⬝ᵥ M *ᵥ c) :
-    M.PosSemidef := by
-  refine ⟨hM, fun x => ?_⟩
-  simp only [star_trivial]
-  rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
-  have h_inner (i : Fin m) : (x.sum fun j xj ↦ x i * M i j * xj) =
-      ∑ j : Fin m, x i * M i j * x j := by
-    rw [finsupp_sum_eq_sum_univ _ _ (fun _ => by simp)]
-  simp_rw [h_inner]
-  have h_dot : (∑ i : Fin m, ∑ j : Fin m, x i * M i j * x j) = x ⬝ᵥ M *ᵥ x := by
-    rw [Finset.sum_comm, ← Matrix.dot_mulVec_eq_sum_sum]
-  rw [h_dot]
-  exact h_nonneg x
-
 /-- The empirical covariance matrix `Φ^{(n)}` is positive semidefinite (`PosSemidef`). -/
 theorem empiricalCovariance_posSemidef
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
     (empiricalCovariance n φ W X).PosSemidef :=
-  posSemidef_of_bilin_nonneg _ (empiricalCovariance_isHermitian n φ W X)
-    (empiricalCovariance_nonneg n φ W X)
+  Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (empiricalCovariance_isHermitian n φ W X)
+    fun x => by simpa using empiricalCovariance_nonneg n φ W X x
 
 /-! ### Step 3, 4 & 5: Conditional Distribution and Theorem 1 -/
 
@@ -1867,8 +1839,8 @@ theorem limitingCovariance_posSemidef
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
     (limitingCovariance φ X).PosSemidef :=
-  posSemidef_of_bilin_nonneg _ (limitingCovariance_isHermitian φ X)
-    (limitingCovariance_nonneg φ X hφ_meas hφ_L2)
+  Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (limitingCovariance_isHermitian φ X)
+    fun x => by simpa using limitingCovariance_nonneg φ X hφ_meas hφ_L2 x
 
 lemma evalSingle_joint_measurable
     (φ : ℝ → ℝ) (hφ : Measurable φ) (x : Fin d → ℝ) :
@@ -2361,10 +2333,10 @@ lemma empirical_layer_covariance_posSemidef_multivariate (σw σb : ℝ) (n m : 
     (H : Fin n → Fin m → ℝ) :
     (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
       ∑ j : Fin n, H j α * H j β).PosSemidef := by
-  refine posSemidef_of_bilin_nonneg _
+  refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg
     (empirical_layer_covariance_isHermitian_multivariate σw σb n m H) ?_
   intro c
-  exact empirical_layer_covariance_nonneg_multivariate σw σb n m H (WithLp.toLp 2 c)
+  simpa using empirical_layer_covariance_nonneg_multivariate σw σb n m H (WithLp.toLp 2 c)
 
 /-- Strong law for scalar observables of i.i.d. multivariate Gaussian draws. -/
 lemma multivariateGaussian_average_tendsto_integral_multivariate
@@ -2636,8 +2608,9 @@ lemma limitingRecurrence_posSemidef_multivariate (σw σb : ℝ) (m : ℕ) (φ :
       (multivariateGaussian 0 K)) :
     (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
       ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)).PosSemidef :=
-  posSemidef_of_bilin_nonneg _ (limitingRecurrence_isHermitian_multivariate σw σb m φ K)
-    (limitingRecurrence_nonneg_multivariate σw σb m φ hφ_meas K hφ_L2)
+  Matrix.PosSemidef.of_dotProduct_mulVec_nonneg
+    (limitingRecurrence_isHermitian_multivariate σw σb m φ K)
+    fun x => by simpa using limitingRecurrence_nonneg_multivariate σw σb m φ hφ_meas K hφ_L2 x
 
 -- Measurability of the characteristic integrand for the per-layer empirical recurrence.
 private lemma measurable_exp_quadratic_layerRecurrence_multivariate
@@ -3979,10 +3952,10 @@ lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : reluIndicator (c * u) = r
 /-- Positive semidefiniteness of the standardized 2×2 correlation matrix `!![1, ρ; ρ, 1]` for `|ρ| ≤ 1`. -/
 lemma corrMatrix2x2_posSemidef {ρ : ℝ} (hρ : ρ ∈ Set.Icc (-1) 1) :
     (show Matrix (Fin 2) (Fin 2) ℝ from !![1, ρ; ρ, 1]).PosSemidef := by
-  apply posSemidef_of_bilin_nonneg
+  refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg ?_ fun x => ?_
   · ext i j
     fin_cases i <;> fin_cases j <;> simp
-  · intro x
+  · rw [star_trivial]
     have h : x ⬝ᵥ !![1, ρ; ρ, 1] *ᵥ x = (x 0) ^ 2 + 2 * ρ * (x 0) * (x 1) + (x 1) ^ 2 := by
       simp [dotProduct, mulVec, Fin.sum_univ_two]
       ring
