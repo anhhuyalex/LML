@@ -792,7 +792,7 @@ theorem exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map
     (isOpen_lt continuous_const continuous_norm).measurableSet
   calc μ i {ω | max R 0 < ‖X i ω‖}
       ≤ μ i {ω | R < ‖X i ω‖} :=
-        measure_mono (Set.setOf_subset_setOf.2 fun ω hω => lt_of_le_of_lt (le_max_left R 0) hω)
+        measure_mono (Set.ofPred_subset_ofPred.2 fun ω hω => lt_of_le_of_lt (le_max_left R 0) hω)
     _ = (μ i).map (X i) {x : E | R < ‖x‖} :=
         (Measure.map_apply_of_aemeasurable (hX i) hopen).symm
     _ ≤ ε := (le_iSup₂ (f := fun ν (_ : ν ∈ S) => ν {x : E | R < ‖x‖}) _ (hmem i)).trans hR.le
@@ -6236,6 +6236,30 @@ lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
     ring
   rw [h1, h2, innerProduct_comm]
 
+/-- The limiting full NTK is the NNGP covariance of `φ` plus the Schur product of the covariance of
+`φ'` with the input Gram matrix of the scaled dataset. -/
+lemma limitingFullNTKMatrix_eq_add_hadamard {m d : ℕ}
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) :
+    limitingFullNTKMatrix φ X =
+      (limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) +
+        (limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k)).hadamard
+          ((Matrix.of fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k : Matrix (Fin m) (Fin d) ℝ) *
+            (Matrix.of fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k :
+              Matrix (Fin m) (Fin d) ℝ).conjTranspose) := by
+  set scaledX : Matrix (Fin m) (Fin d) ℝ := fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k
+  ext α β
+  simp only [limitingFullNTKMatrix_apply, Matrix.add_apply, Matrix.hadamard_apply,
+    Matrix.mul_apply, Matrix.conjTranspose_apply, star_trivial]
+  dsimp [scaledX]
+  have hsqrt : (Real.sqrt (d : ℝ))⁻¹ * (Real.sqrt (d : ℝ))⁻¹ = (d : ℝ)⁻¹ := by
+    rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg d)]
+  have hterm (k : Fin d) :
+      ((Real.sqrt (d : ℝ))⁻¹ * X α k) * ((Real.sqrt (d : ℝ))⁻¹ * X β k) =
+        (d : ℝ)⁻¹ * (X α k * X β k) := by
+    rw [mul_mul_mul_comm, hsqrt]
+  simp_rw [hterm, ← Finset.mul_sum]
+  rfl
+
 /-- The deterministic limiting full NTK matrix is positive semidefinite (`PosSemidef`),
 established via Schur product theorem for the derivative covariance and input Gram matrix. -/
 theorem limitingFullNTKMatrix_posSemidef {m d : ℕ}
@@ -6263,24 +6287,77 @@ theorem limitingFullNTKMatrix_posSemidef {m d : ℕ}
       (limitingCovariance (deriv φ) scaledX).hadamard
         (scaledX * scaledX.conjTranspose)).PosSemidef :=
     h_cov1.add h_schur
-  have heq : limitingFullNTKMatrix φ X =
-      (limitingCovariance φ scaledX) +
-        (limitingCovariance (deriv φ) scaledX).hadamard
-          (scaledX * scaledX.conjTranspose) := by
-    ext α β
-    simp only [limitingFullNTKMatrix_apply, Matrix.add_apply, Matrix.hadamard_apply,
-      Matrix.mul_apply, Matrix.conjTranspose_apply, star_trivial]
-    dsimp [scaledX]
-    have hsqrt : (Real.sqrt (d : ℝ))⁻¹ * (Real.sqrt (d : ℝ))⁻¹ = (d : ℝ)⁻¹ := by
-      rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg d)]
-    have hterm (k : Fin d) :
-        ((Real.sqrt (d : ℝ))⁻¹ * X α k) * ((Real.sqrt (d : ℝ))⁻¹ * X β k) =
-          (d : ℝ)⁻¹ * (X α k * X β k) := by
-      rw [mul_mul_mul_comm, hsqrt]
-    simp_rw [hterm, ← Finset.mul_sum]
-    rfl
+  have heq := limitingFullNTKMatrix_eq_add_hadamard φ X
   rw [heq]
   exact h_sum
+
+/-- **Strict positive definiteness of the NNGP covariance from feature independence.** If the
+features `w ↦ φ(w ⊙ X α)` are linearly independent modulo Gaussian-null sets -- no nontrivial
+combination `∑ α, u α * φ (w ⊙ X α)` vanishes `gaussianRowMeasure d`-almost everywhere -- then
+`limitingCovariance φ X` is positive definite. The argument is the quadratic-form identity
+`u ⬝ᵥ Φ u = 𝔼[(∑ α, u α φ(w ⊙ X α))²]`, which is positive as soon as the square is not a.e. zero. -/
+theorem limitingCovariance_posDef_of_ae_independent {m d : ℕ}
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hind : ∀ u : Fin m → ℝ,
+      (∀ᵐ w ∂(gaussianRowMeasure d), ∑ α : Fin m, u α * φ (w ⊙ X α) = 0) → u = 0) :
+    (limitingCovariance φ X).PosDef := by
+  refine Matrix.posDef_iff_dotProduct_mulVec.2 ⟨limitingCovariance_isHermitian φ X, ?_⟩
+  intro c hc
+  have hq : star c ⬝ᵥ (limitingCovariance φ X) *ᵥ c =
+      ∫ w, (∑ α : Fin m, c α * φ (w ⊙ X α)) ^ 2 ∂(gaussianRowMeasure d) := by
+    rw [← sum_sum_mul_limitingCovariance_eq_integral_sq φ X hφ_L2 c]
+    simp only [star_trivial, dotProduct, Matrix.mulVec, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring
+  rw [hq]
+  have hg : MemLp (fun w => ∑ α : Fin m, c α * φ (w ⊙ X α)) 2 (gaussianRowMeasure d) :=
+    memLp_finsetSum _ fun α _ => (hφ_L2 α).const_mul (c α)
+  rw [integral_pos_iff_support_of_nonneg_ae (Filter.Eventually.of_forall fun w => sq_nonneg _)
+    hg.integrable_sq]
+  refine pos_iff_ne_zero.2 fun h0 => hc (hind c ?_)
+  filter_upwards [measure_eq_zero_iff_ae_notMem.1 h0] with w hw
+  by_contra hne
+  exact hw (pow_ne_zero 2 hne)
+
+/-- **The limiting full NTK is positive definite under feature independence.**
+`K_∞ = Φ_φ + Φ_{φ'} ⊙ (X Xᵀ / d)` with the second summand positive semidefinite (Schur product), so
+`K_∞` is positive definite as soon as `Φ_φ` is
+(`limitingCovariance_posDef_of_ae_independent`). Independence of the *values* `φ(w ⊙ X α)` is the
+relevant hypothesis; the derivative term only helps. -/
+theorem limitingFullNTKMatrix_posDef_of_ae_independent {m d : ℕ}
+    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (hdφ_meas : Measurable (deriv φ))
+    (hφ_L2 : ∀ α : Fin m,
+      MemLp (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+        2 (gaussianRowMeasure d))
+    (hdφ_L2 : ∀ α : Fin m,
+      MemLp (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+        2 (gaussianRowMeasure d))
+    (hind : ∀ u : Fin m → ℝ,
+      (∀ᵐ w ∂(gaussianRowMeasure d),
+        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
+    (limitingFullNTKMatrix φ X).PosDef := by
+  set scaledX : Matrix (Fin m) (Fin d) ℝ := fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k
+  rw [limitingFullNTKMatrix_eq_add_hadamard]
+  exact (limitingCovariance_posDef_of_ae_independent φ scaledX hφ_L2 hind).add_posSemidef
+    ((limitingCovariance_posSemidef (deriv φ) scaledX hdφ_meas hdφ_L2).hadamard
+      (Matrix.posSemidef_self_mul_conjTranspose scaledX))
+
+/-- **Feature independence forces distinct inputs.** If the scaled features are linearly independent
+modulo Gaussian-null sets, the inputs `X α` are pairwise distinct. This is the necessary half of the
+source's informal condition "distinct inputs and an expressive activation": the hypothesis of
+`limitingCovariance_posDef_of_ae_independent` cannot hold for a dataset with a repeated input, and
+the remaining (sufficiency) content is exactly the independence hypothesis. -/
+theorem injective_of_ae_independent {m d : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (hind : ∀ u : Fin m → ℝ,
+      (∀ᵐ w ∂(gaussianRowMeasure d),
+        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
+    Function.Injective X := by
+  intro α β hαβ
+  by_contra hne
+  have h := hind (Pi.single α 1 - Pi.single β 1) (Filter.Eventually.of_forall fun w => by
+    simp [Pi.sub_apply, sub_mul, Finset.sum_sub_distrib, Pi.single_apply, ite_mul, hαβ])
+  have := congrFun h α
+  simp [Pi.single_apply, hne] at this
 
 /-- Matrix almost-sure convergence of the empirical NTK neuron-average matrix to the
 deterministic `limitingFullNTKMatrix` on the paper's scaled dataset `(1 / √d) * X`. -/

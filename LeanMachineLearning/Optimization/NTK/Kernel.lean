@@ -1399,6 +1399,56 @@ theorem gradient_mseLoss_norm_le (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
     _ = ‖outputJacobian f X θ‖ * ‖trainingResidual f X y θ‖ := by
       rw [Matrix.frobenius_norm_transpose]
 
+/-! ### From Positive Definiteness to a Uniform Spectral Gap
+
+The global lazy-training theorems assume a *shifted* positive semidefiniteness
+`(K - lambda • 1).PosSemidef` with `lambda > 0`. For any positive definite matrix such a `lambda`
+exists (take the smallest eigenvalue), so strict positive definiteness of a limiting kernel
+-- for instance from linear independence of its features -- supplies the gap hypothesis. -/
+
+/-- **A positive definite real matrix has a positive spectral gap.** If `A` is positive definite,
+there is `c > 0` with `A - c • 1` positive semidefinite (`c` is the smallest eigenvalue). This is
+the bridge from `Matrix.PosDef`, e.g. `Matrix.posDef_gram_iff_linearIndependent`, to the shifted-PSD
+form `(K - lambda • 1).PosSemidef` used by the global theorems; it holds for any finite index type,
+not only for an NTK. -/
+theorem exists_pos_sub_smul_one_posSemidef_of_posDef {n : Type*} [Fintype n] [DecidableEq n]
+    {A : Matrix n n ℝ} (hA : A.PosDef) : ∃ c : ℝ, 0 < c ∧ (A - c • 1).PosSemidef := by
+  have hH : A.IsHermitian := hA.isHermitian
+  have hev : ∀ i, 0 < hH.eigenvalues i := hA.eigenvalues_pos
+  rcases isEmpty_or_nonempty n with hn | hn
+  · exact ⟨1, one_pos, by
+      refine Matrix.posSemidef_iff_dotProduct_mulVec.2
+        ⟨?_, fun x => by simp [Subsingleton.elim x 0]⟩
+      ext i
+      exact (IsEmpty.false i).elim⟩
+  obtain ⟨c, hc⟩ : ∃ c, 0 < c ∧ ∀ i, c ≤ hH.eigenvalues i := by
+    refine ⟨Finset.univ.inf' Finset.univ_nonempty hH.eigenvalues, ?_,
+      fun i => Finset.inf'_le _ (Finset.mem_univ i)⟩
+    rw [Finset.lt_inf'_iff]
+    exact fun i _ => hev i
+  refine ⟨c, hc.1, ?_⟩
+  have h1 : A = (hH.eigenvectorUnitary : Matrix n n ℝ) * Matrix.diagonal hH.eigenvalues *
+      star (hH.eigenvectorUnitary : Matrix n n ℝ) := by
+    simpa [Unitary.conjStarAlgAut_apply, Function.comp_def] using hH.spectral_theorem
+  have hU : (hH.eigenvectorUnitary : Matrix n n ℝ) * star (hH.eigenvectorUnitary : Matrix n n ℝ)
+      = 1 := by simp
+  have hD : Matrix.diagonal (fun i => hH.eigenvalues i - c) =
+      Matrix.diagonal hH.eigenvalues - c • (1 : Matrix n n ℝ) := by
+    ext i j
+    by_cases h : i = j
+    · subst h
+      simp
+    · simp [h]
+  have hshift : A - c • (1 : Matrix n n ℝ) =
+      (hH.eigenvectorUnitary : Matrix n n ℝ) * Matrix.diagonal (fun i => hH.eigenvalues i - c) *
+        star (hH.eigenvectorUnitary : Matrix n n ℝ) := by
+    conv_lhs => rw [h1]
+    rw [hD]
+    simp [Matrix.mul_sub, Matrix.sub_mul, hU]
+  rw [hshift]
+  exact (Matrix.posSemidef_diagonal_iff.2 fun i => sub_nonneg.2 (hc.2 i)).mul_mul_conjTranspose_same
+    _
+
 /-! ### Discrete Gradient Descent Dynamics -/
 
 /-- Discrete gradient descent step equation starting at `θ₀` with constant learning rate `η`

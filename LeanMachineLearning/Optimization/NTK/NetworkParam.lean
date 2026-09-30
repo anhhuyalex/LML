@@ -4004,9 +4004,9 @@ measures and `Good n p` a property holding almost surely (in applications, "the 
 solves the gradient-flow ODE"). Suppose that for every confidence level `c > 0` there is a rate
 `ρ → 0` such that, eventually in `n`, a measurable event `E` of failure probability at most `c`
 forces `D n p t ≤ ρ n` for all `t ∈ S` (and `Good n p`). Then for every `ε₀ > 0` the probability
-that `D n p t` exceeds `ε₀` at some `t ∈ S` tends to zero. The bad set need not be measurable, so `μ n`
-evaluates it as an outer measure. This is the shared endgame of the kernel-, Jacobian- and
-linearization-drift theorems below. -/
+that `D n p t` exceeds `ε₀` at some `t ∈ S` tends to zero. The bad set need not be measurable,
+so `μ n` evaluates it as an outer measure. This is the shared endgame of the kernel-,
+Jacobian- and linearization-drift theorems below. -/
 theorem tendsto_measure_exists_gt_of_good_events {Ω : ℕ → Type*} [∀ n, MeasurableSpace (Ω n)]
     (μ : ∀ n, Measure (Ω n)) [∀ n, IsProbabilityMeasure (μ n)] (S : Set ℝ)
     (Good : ∀ n, Ω n → Prop) (D : ∀ n, Ω n → ℝ → ℝ)
@@ -5241,6 +5241,76 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit
   exact ⟨θ, hflow, fun n t => (hcont n t).measurable,
     global_positive_gap_lazy_training_limit hm hd φ hact X y lambda_inf
     hlambda_inf hK_gap θ hae hη hη1⟩
+
+/-- **Positive limiting gap from feature independence (SmoothActivation).** If the features
+`w ↦ φ(w ⊙ (X α / √d))` are linearly independent modulo Gaussian-null sets -- no nontrivial
+combination vanishes almost everywhere -- then the limiting kernel is positive definite and there is
+`lambda_inf > 0` with `(K_∞ - lambda_inf • 1).PosSemidef`, the hypothesis `hK_gap` of the global
+lazy-training theorems. The activation enters only through `SmoothActivation`, which supplies
+measurability of `φ'` and the `L²` integrability of the features. -/
+theorem exists_positive_gap_of_feature_independence {φ : ℝ → ℝ} {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂) {d m : ℕ} (X : Fin m → Fin d → ℝ)
+    (hind : ∀ u : Fin m → ℝ,
+      (∀ᵐ w ∂(gaussianRowMeasure d),
+        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
+    ∃ lambda_inf : ℝ, 0 < lambda_inf ∧ (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef := by
+  obtain ⟨-, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
+    hact.deriv_lip hact.differentiable
+  obtain ⟨hL2, -, hdL2, -⟩ := activation_memLp_two hact (d := d)
+  exact exists_pos_sub_smul_one_posSemidef_of_posDef
+    (limitingFullNTKMatrix_posDef_of_ae_independent φ X hderiv_meas
+      (fun α => hL2 _) (fun α => hdL2 _) hind)
+
+/-- **Constructed global lazy training from feature independence alone.** For a `SmoothActivation`
+and a dataset whose scaled features are linearly independent modulo Gaussian-null sets, there is a
+positive limiting gap `lambda_inf` (`exists_positive_gap_of_feature_independence`), and for every
+confidence `η` the conclusion of `gradientFlow_global_positive_gap_lazy_training_limit` holds for
+the constructed gradient flows with that `lambda_inf`; no spectral-gap hypothesis is assumed. -/
+theorem gradientFlow_global_lazy_training_limit_of_feature_independence
+    {d m : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) {C₁ C₂ : ℝ}
+    (hact : SmoothActivation φ C₁ C₂)
+    (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
+    (hind : ∀ u : Fin m → ℝ,
+      (∀ᵐ w ∂(gaussianRowMeasure d),
+        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0)
+    {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
+    ∃ lambda_inf : ℝ, 0 < lambda_inf ∧
+        ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
+            EuclideanSpace ℝ (Fin (paramDim n d)),
+          (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
+          (∀ n t, Measurable (fun p => θ n p t)) ∧
+          (
+          ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
+            (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
+            ∀ n ≥ N,
+            ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
+              (initMeasure n d).real E ≥ 1 - η ∧ ∀ᵐ p ∂(initMeasure n d), p ∈ E →
+                (∀ t : ℝ, 0 ≤ t →
+                  (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
+                    v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
+                      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)) *ᵥ v.ofLp)) ∧
+                  ‖empiricalNTKMatrix (netFromParams φ n d)
+                      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
+                    empiricalNTKMatrix (netFromParams φ n d)
+                      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
+                    freezeRate n ∧
+                  ‖trainingResidual (netFromParams φ n d)
+                      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)‖ ≤
+                    ‖trainingResidual (netFromParams φ n d)
+                        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ *
+                      Real.exp (-(lambda_inf / (4 * (m : ℝ))) * t) ∧
+                  mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+                      (θ n p t) ≤
+                    mseLoss (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
+                        (packParams p.1 p.2) *
+                      Real.exp (-(lambda_inf / (2 * (m : ℝ))) * t)) ∧
+                Filter.Tendsto (fun t : ℝ => mseLoss (netFromParams φ n d)
+                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop
+                  (nhds 0)) := by
+  obtain ⟨lambda_inf, hlam, hgap⟩ := exists_positive_gap_of_feature_independence hact X hind
+  exact ⟨lambda_inf, hlam, gradientFlow_global_positive_gap_lazy_training_limit hm hd φ hact X y
+    lambda_inf hlam hgap hη hη1⟩
 
 /-- **Constructed gradient flows with kernel drift `O(n⁻¹ᐟ²)`.** The statement of
 `gradientFlow_global_positive_gap_lazy_training_limit` with the sharper drift rate of
