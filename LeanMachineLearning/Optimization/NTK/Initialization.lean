@@ -637,7 +637,8 @@ lemma tendstoInDistribution_of_tendsto_measure_norm_sub (X : (i : ι) → Ω i �
       Tendsto (fun n ↦ ∫ ω, F ω ∂((μ n).map (Y n))) l (𝓝 (∫ ω, F ω ∂(μ'.map Z))) by
     rwa [tendsto_iff_forall_lipschitz_integral_tendsto]
   rintro F ⟨M, hF_bounded⟩ ⟨L, hF_lip⟩
-  have : Continuous F := hF_lip.continuous
+  -- Needed as a local hypothesis by the `fun_prop` calls below.
+  have hF_cont : Continuous F := hF_lip.continuous
   obtain rfl | hL := eq_zero_or_pos L
   · simp only [LipschitzWith.zero_iff] at hF_lip
     specialize hF_lip x₀

@@ -2237,7 +2237,6 @@ theorem exists_kernel_freeze_event_of_positive_gap
           (∑ j : Fin d, Xs α j ^ 2) ^ 2 +
         3 * C₁ ^ 2 * (∑ j : Fin d, Xs α j ^ 2))) / Real.sqrt (n : ℝ) with hℓ_def
   have hM_pos : 0 < M := by positivity
-  have hC_nonneg : 0 ≤ C := by positivity
   have hℓ_nonneg : ∀ n, 0 ≤ ℓ n := fun n => div_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
   have hℓ : Filter.Tendsto ℓ Filter.atTop (nhds 0) := by
     refine (tendsto_sqrt_sum_sq_sqrt_two_log_add_div_sqrt_nat
@@ -2294,16 +2293,15 @@ theorem exists_kernel_freeze_event_of_positive_gap
   have hres : ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ ≤ R' :=
     (not_lt.1 (show ¬ (R < _) from hpT)).trans (le_max_left _ _)
   intro θ_traj hflow hdiff t ht
-  have hlt := lt_min_iff.1 hsm
-  have hL_r : ℓ n * r ≤ lambda_inf / (8 * M) := hsm.le.trans (min_le_right _ _)
-  have hL_1 : ℓ n * r ≤ 1 := hsm.le.trans (min_le_left _ _)
   exact freeze_bound_of_initial_jacobian_and_readout_bounds φ n d m hn0 Xs y C₀ C₁ C₂ hC₁_bdd
     hφ_lip hderiv_lip hC₁_nonneg hC₂_nonneg hφ (Nat.cast_pos.2 hm) p hp1 hp2 θ_traj
     (lambda_inf / 2) r C M (ℓ n) hflow hdiff (half_pos hlambda_inf) (by positivity)
-    (lt_add_one C) hM_pos.le (hℓ_nonneg n) hrr (by linarith) le_rfl
+    (lt_add_one C) hM_pos.le (hℓ_nonneg n) hrr
+    (by linarith [hsm.le.trans (min_le_left _ _)]) le_rfl
     (by
       calc 2 * M * ℓ n * r = 2 * M * (ℓ n * r) := by ring
-        _ ≤ 2 * M * (lambda_inf / (8 * M)) := by gcongr
+        _ ≤ 2 * M * (lambda_inf / (8 * M)) :=
+          mul_le_mul_of_nonneg_left (hsm.le.trans (min_le_right _ _)) (by positivity)
         _ = lambda_inf / 2 / 2 := by field_simp; ring)
     (by
       calc M * ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖ /

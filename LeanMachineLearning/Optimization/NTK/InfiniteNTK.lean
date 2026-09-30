@@ -1878,13 +1878,6 @@ Generic, network-independent stability estimate used to compare the actual resid
 
 section LinearODECoefficientPerturbation
 
-/-- Derivative of the squared norm of a differentiable vector-valued function. -/
-lemma hasDerivAt_norm_sq_of_hasDerivAt {e : ℝ → EuclideanSpace ℝ (Fin m)}
-    {e' : EuclideanSpace ℝ (Fin m)} {t : ℝ} (h : HasDerivAt e e' t) :
-    HasDerivAt (fun s => ‖e s‖ ^ 2) (2 * ⟪e t, e'⟫) t := by
-  have := h.norm_sq
-  simpa using this
-
 /-- One-point estimate behind coefficient-perturbation stability: if `A` is PSD then the error
 `e = r - s` between solutions of `r' = -A r` and `s' = -B s` satisfies
 `⟪e, e'⟫ ≤ ‖e‖ ‖A - B‖ ‖s‖`. -/
@@ -1942,7 +1935,7 @@ theorem norm_sub_le_of_linear_ode_perturbation
             WithLp.toLp 2 (-(B τ *ᵥ (s τ).ofLp))⟫) /
           (2 * Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2)) - a * 1) τ := by
       intro τ hτ
-      have h1 := ((hasDerivAt_norm_sq_of_hasDerivAt (he τ hτ)).add_const (η ^ 2)).sqrt
+      have h1 := ((he τ hτ).norm_sq.add_const (η ^ 2)).sqrt
         (hpos τ).ne'
       exact h1.sub ((hasDerivAt_id τ).const_mul a)
     have hanti : AntitoneOn (fun σ => Real.sqrt (‖r σ - s σ‖ ^ 2 + η ^ 2) - a * σ)
