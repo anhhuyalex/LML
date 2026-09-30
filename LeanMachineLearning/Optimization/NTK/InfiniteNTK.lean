@@ -138,6 +138,10 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.deriv_norm_sq_le_of_rayleighRitz_timeVarying` : Step 2 Rayleigh-Ritz bound for `K(t)`.
 * `NTK.residual_norm_sq_exponential_decay_timeVarying` : Step 3 squared residual decay for `K(t)`.
 * `NTK.residual_norm_exponential_decay_timeVarying` : Step 3 residual norm decay for `K(t)`.
+* `NTK.rayleigh_lower_bound_on_ball`, `NTK.lazy_training_global_bounds_of_ball_hypotheses` :
+  Rayleigh bound on the bootstrap ball and the global consequences (displacement, uniform gap,
+  kernel drift, exponential residual and loss decay) of the positive-gap bootstrap.
+* `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
 * `NTK.le_of_forall_bootstrap` : generic continuous-induction principle on `[0, T]` (via Mathlib's
   `IsClosed.Icc_subset_of_forall_mem_nhdsGT_of_Icc_subset`), shared by both displacement bootstraps.
 * `NTK.displacement_le_integral_of_rayleigh`, `NTK.displacement_bound_of_psd` : displacement
@@ -1591,6 +1595,30 @@ by continuity, means it can never actually reach the boundary `r` in the first p
 formalized as a proof by contradiction using the infimum of the (assumed nonempty) set of "escape
 times", ruling out escape entirely and discharging `hlazy` with the tight constant `C`. -/
 
+/-- **Rayleigh lower bound on a ball.** If the Jacobian is `M`-bounded and `L_J`-Lipschitz (relative
+to `θ₀`) on the closed ball of radius `r`, the initial Rayleigh quotient is at least `lambda_min₀`,
+and `2 * M * L_J * r ≤ lambda_min₀ / 2`, then every `θ` in the ball has Rayleigh quotient at least
+`lambda_min₀ / 2`. -/
+theorem rayleigh_lower_bound_on_ball
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    {θ₀ : EuclideanSpace ℝ (Fin P)} (M L_J lambda_min₀ r : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J)
+    (hr_nonneg : 0 ≤ r) (h_ball_gap : 2 * M * L_J * r ≤ lambda_min₀ / 2)
+    (h_rr₀ : ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min₀ * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ₀) *ᵥ v.ofLp))
+    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M)
+    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖) :
+    ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ∀ v : EuclideanSpace ℝ (Fin m),
+      (lambda_min₀ / 2) * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v.ofLp) := by
+  intro θ hθ v
+  have hstep := rayleigh_quotient_lower_bound_of_displacement f X θ₀ θ M L_J lambda_min₀
+    (hJ_bdd θ₀ (by simpa using hr_nonneg)) (hJ_bdd θ hθ) (hJ_lip θ hθ) h_rr₀ v
+  have h2ML_J_nonneg : 0 ≤ 2 * M * L_J := by positivity
+  have hCbound : 2 * M * L_J * ‖θ - θ₀‖ ≤ lambda_min₀ / 2 :=
+    (mul_le_mul_of_nonneg_left hθ h2ML_J_nonneg).trans h_ball_gap
+  have hge : lambda_min₀ - 2 * M * L_J * ‖θ - θ₀‖ ≥ lambda_min₀ / 2 := by linarith
+  nlinarith [hstep, mul_le_mul_of_nonneg_right hge (sq_nonneg ‖v‖)]
+
 /-- **Continuous-induction (bootstrap) principle on `[0, T]`.** Let `d` be continuous and
 `C < r`. Suppose that whenever `d ≤ r` holds on all of `[0, S]` (for `S ∈ [0, T]`), the sharper
 bound `d S ≤ C` holds. Then `d ≤ C` on all of `[0, T]`, i.e. `d` can never reach the threshold
@@ -1652,19 +1680,8 @@ theorem lazy_training_displacement_bound
     ∀ T : ℝ, 0 ≤ T → ‖θ_traj T - θ₀‖ ≤ C := by
   set lambda_min : ℝ := lambda_min₀ / 2 with hlm_def
   have hlambda_pos : 0 < lambda_min := by positivity
-  -- Rayleigh-quotient stability, packaged: staying within radius `r` of `θ₀` keeps the Rayleigh
-  -- quotient `≥ lambda_min`.
-  have h_rr_ball : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
-      ∀ v : EuclideanSpace ℝ (Fin m),
-        lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v.ofLp) := by
-    intro θ hθ v
-    have hstep := rayleigh_quotient_lower_bound_of_displacement f X θ₀ θ M L_J lambda_min₀
-      (hJ_bdd θ₀ (by simpa using hr_nonneg)) (hJ_bdd θ hθ) (hJ_lip θ hθ) h_rr₀ v
-    have h2ML_J_nonneg : 0 ≤ 2 * M * L_J := by positivity
-    have hCbound : 2 * M * L_J * ‖θ - θ₀‖ ≤ lambda_min₀ / 2 :=
-      (mul_le_mul_of_nonneg_left hθ h2ML_J_nonneg).trans h_ball_gap
-    have hge : lambda_min₀ - 2 * M * L_J * ‖θ - θ₀‖ ≥ lambda_min := by rw [hlm_def]; linarith
-    nlinarith [hstep, mul_le_mul_of_nonneg_right hge (sq_nonneg ‖v‖)]
+  have h_rr_ball := rayleigh_lower_bound_on_ball f X M L_J lambda_min₀ r hM hL_J hr_nonneg
+    h_ball_gap h_rr₀ hJ_bdd hJ_lip
   -- Core claim: if the trajectory has stayed in the closed ball `[0, S]` for some `S`, its
   -- displacement at `S` is in fact bounded by the tighter constant `C`.
   have hcore : ∀ S : ℝ, 0 ≤ S → (∀ t ∈ Set.Icc (0:ℝ) S, ‖θ_traj t - θ₀‖ ≤ r) →
@@ -1733,6 +1750,17 @@ theorem finite_horizon_kernel_freeze_bound
     (hJ_bdd _ hball) (hJ_bdd θ₀ (by simpa using hr)) (hJ_lip _ hball)).trans
     (mul_le_mul_of_nonneg_left hdisp (by positivity))
 
+/-- A nonnegative quantity bounded by `L₀ * exp (-c t)` with `c > 0` tends to `0`. Used to pass from
+exponential loss decay to convergence of the training loss. -/
+lemma tendsto_zero_of_le_mul_exp_neg {L : ℝ → ℝ} {L₀ c : ℝ} (hc : 0 < c)
+    (hnn : ∀ t, 0 ≤ t → 0 ≤ L t) (hL : ∀ t, 0 ≤ t → L t ≤ L₀ * Real.exp (-c * t)) :
+    Tendsto L atTop (𝓝 0) := by
+  have hexp : Tendsto (fun t : ℝ => L₀ * Real.exp (-c * t)) atTop (𝓝 0) := by
+    have h := (Real.tendsto_exp_atBot.comp
+      (tendsto_neg_atTop_atBot.comp (tendsto_id.const_mul_atTop hc))).const_mul L₀
+    simpa [Function.comp_def] using h
+  exact squeeze_zero' (eventually_atTop.2 ⟨0, hnn⟩) (eventually_atTop.2 ⟨0, hL⟩) hexp
+
 /-! ### Asymptotic Properties in the Infinite-Width Limit -/
 
 /-- Reusable Limit: Reciprocal square root sequence vanishes as `n → ∞`. -/
@@ -1792,6 +1820,72 @@ theorem empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound
   have h_bound := mul_le_mul_of_nonneg_left h_disp h2ML_nonneg
   exact hLip.trans h_bound
 
+/-- **Global consequences of the ball hypotheses (positive-gap bootstrap).** Under the hypotheses of
+Gap 5's bootstrap, for every `t ≥ 0` the gradient flow (i) stays within `C` of `θ₀`, (ii) keeps the
+Rayleigh quotient of the empirical NTK at least `lambda_min₀ / 2`, (iii) moves the empirical NTK by
+at most `(2 * M * L_J) * C`, and satisfies exponential decay (iv) of the residual norm and (v) of
+the MSE loss, both at the rates given by `lambda_min₀ / 2`. -/
+theorem lazy_training_global_bounds_of_ball_hypotheses
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (M L_J lambda_min₀ r C : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ))
+    (hlam₀ : 0 < lambda_min₀) (hr_nonneg : 0 ≤ r)
+    (hCr : C < r)
+    (h_ball_gap : 2 * M * L_J * r ≤ lambda_min₀ / 2)
+    (hC_ge : M * ‖trainingResidual f X y θ₀‖ / (lambda_min₀ / 2) ≤ C)
+    (h_rr₀ : ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min₀ * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X θ₀) *ᵥ v.ofLp))
+    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M)
+    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖) :
+    ∀ t : ℝ, 0 ≤ t →
+      ‖θ_traj t - θ₀‖ ≤ C ∧
+      (∀ v : EuclideanSpace ℝ (Fin m), (lambda_min₀ / 2) * ‖v‖ ^ 2 ≤
+        v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ v.ofLp)) ∧
+      ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C ∧
+      ‖trainingResidual f X y (θ_traj t)‖ ≤
+        ‖trainingResidual f X y θ₀‖ * Real.exp (-((lambda_min₀ / 2) / (m : ℝ)) * t) ∧
+      mseLoss f X y (θ_traj t) ≤
+        mseLoss f X y θ₀ * Real.exp (-(2 * (lambda_min₀ / 2) / (m : ℝ)) * t) := by
+  have hdisp := lazy_training_displacement_bound f X y hflow hdiff M L_J lambda_min₀ r C
+    hM hL_J hm hlam₀ hr_nonneg hCr h_ball_gap hC_ge h_rr₀ hJ_bdd hJ_lip
+  have hJ_bdd_all : ∀ s ≥ 0, ‖outputJacobian f X (θ_traj s)‖ ≤ M :=
+    fun s hs => hJ_bdd (θ_traj s) ((hdisp s hs).trans hCr.le)
+  have hJ_lip_all : ∀ s ≥ 0, ‖outputJacobian f X (θ_traj s) - outputJacobian f X θ₀‖ ≤
+      L_J * ‖θ_traj s - θ₀‖ :=
+    fun s hs => hJ_lip (θ_traj s) ((hdisp s hs).trans hCr.le)
+  have hray := rayleigh_lower_bound_on_ball f X M L_J lambda_min₀ r hM hL_J hr_nonneg h_ball_gap
+    h_rr₀ hJ_bdd hJ_lip
+  have hr_ode : ∀ t : ℝ, HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
+      (WithLp.toLp 2 (-(m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
+        (trainingResidual f X y (θ_traj t)).ofLp))) t :=
+    fun t => gradient_flow_residual_vector_ode f X y hflow t (hdiff t)
+  have h0 : trainingResidual f X y (θ_traj 0) = trainingResidual f X y θ₀ := by rw [hflow.init]
+  intro t ht
+  have hrr : ∀ s ∈ Set.Icc (0 : ℝ) t, ∀ v : EuclideanSpace ℝ (Fin m),
+      (lambda_min₀ / 2) * ‖v‖ ^ 2 ≤
+        v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X (θ_traj s)) *ᵥ v.ofLp) :=
+    fun s hs v => hray (θ_traj s) ((hdisp s hs.1).trans hCr.le) v
+  refine ⟨hdisp t ht, fun v => hray (θ_traj t) ((hdisp t ht).trans hCr.le) v,
+    empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound f X θ_traj θ₀ C M L_J hL_J hdisp
+      hJ_bdd_all (hJ_bdd θ₀ (by simpa using hr_nonneg)) hJ_lip_all t ht, ?_, ?_⟩
+  · have h := residual_norm_exponential_decay_timeVarying_Icc
+      (fun s => empiricalNTKMatrix f X (θ_traj s)) (lambda_min₀ / 2) t ht
+      (fun s => trainingResidual f X y (θ_traj s)) hrr hr_ode hm t ⟨ht, le_rfl⟩
+    rwa [h0] at h
+  · have h := residual_norm_sq_exponential_decay_timeVarying_Icc
+      (fun s => empiricalNTKMatrix f X (θ_traj s)) (lambda_min₀ / 2) t ht
+      (fun s => trainingResidual f X y (θ_traj s)) hrr hr_ode hm t ⟨ht, le_rfl⟩
+    rw [h0] at h
+    unfold mseLoss
+    calc (2 * (m : ℝ))⁻¹ * ‖trainingResidual f X y (θ_traj t)‖ ^ 2
+        ≤ (2 * (m : ℝ))⁻¹ * (‖trainingResidual f X y θ₀‖ ^ 2 *
+            Real.exp (-(2 * (lambda_min₀ / 2) / (m : ℝ)) * t)) :=
+          mul_le_mul_of_nonneg_left h (by positivity)
+      _ = _ := by ring
+
 /-- **Phase 6: end-to-end kernel-freeze bound from ball-restricted Jacobian hypotheses.**
 Wires Gap 5's bootstrap (`lazy_training_displacement_bound`) directly into
 `empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound`: given a Jacobian bound `M` and
@@ -1817,16 +1911,9 @@ theorem lazy_training_kernel_freeze_bound_of_ball_hypotheses
     (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
       ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖)
     (t : ℝ) (ht : 0 ≤ t) :
-    ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C := by
-  have hdisp := lazy_training_displacement_bound f X y hflow hdiff M L_J lambda_min₀ r C
-    hM hL_J hm hlam₀ hr_nonneg hCr h_ball_gap hC_ge h_rr₀ hJ_bdd hJ_lip
-  have hJ_bdd_all : ∀ s ≥ 0, ‖outputJacobian f X (θ_traj s)‖ ≤ M :=
-    fun s hs => hJ_bdd (θ_traj s) ((hdisp s hs).trans hCr.le)
-  have hJ_lip_all : ∀ s ≥ 0, ‖outputJacobian f X (θ_traj s) - outputJacobian f X θ₀‖ ≤
-      L_J * ‖θ_traj s - θ₀‖ :=
-    fun s hs => hJ_lip (θ_traj s) ((hdisp s hs).trans hCr.le)
-  exact empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound f X θ_traj θ₀ C M L_J hL_J
-    hdisp hJ_bdd_all (hJ_bdd θ₀ (by simpa using hr_nonneg)) hJ_lip_all t ht
+    ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C :=
+  (lazy_training_global_bounds_of_ball_hypotheses f X y hflow hdiff M L_J lambda_min₀ r C hM hL_J
+    hm hlam₀ hr_nonneg hCr h_ball_gap hC_ge h_rr₀ hJ_bdd hJ_lip t ht).2.2.1
 
 /-- Property 2 (Asymptotic Freeze of Empirical NTK Bound in Infinite-Width Limit):
 As the network width `n → ∞`, the kernel displacement bound `L_K * C / √n` converges to `0`. -/
