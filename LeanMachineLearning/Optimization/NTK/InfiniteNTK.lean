@@ -188,6 +188,10 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.rayleigh_quotient_lower_bound_of_displacement` : Gap 5 Step 2 deliverable - the
   spectral-gap hypothesis at `θ₀` propagates to any `θ` with degraded constant
   `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
+* `NTK.restrictCoords`, `NTK.norm_restrictCoords_gradient_mseLoss_le`,
+  `NTK.norm_map_sub_le_integral_of_gfTrajectory` : displacement of a *block of coordinates* (or any
+  continuous linear image) of a gradient flow is at most the integral of the speed of that block;
+  the block speed under MSE flow is `(1/m) ‖J_block‖ ‖r‖`.
 * `NTK.integral_exp_neg_le` : Reusable bound `∫₀ᵀ exp(-c t) dt ≤ 1/c` for `c > 0`.
 * `NTK.displacement_integral_bound` : Gap 5 Step 1 deliverable - a `T`-independent displacement
   cap `(M * ‖r₀‖) / lambda_min` given a uniform-in-time Rayleigh bound on `[0, T]`.
@@ -1455,6 +1459,92 @@ lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
       linarith [Real.exp_nonneg (-c * T)]
     _ = c⁻¹ := by ring
 
+section CoordinateBlocks
+
+variable {κ : Type*} [Fintype κ]
+
+/-- The coordinate restriction `v ↦ (v (k o))_{o : κ}` as a continuous linear map between
+Euclidean spaces. -/
+noncomputable def restrictCoords (k : κ → Fin P) :
+    EuclideanSpace ℝ (Fin P) →L[ℝ] EuclideanSpace ℝ κ :=
+  LinearMap.toContinuousLinearMap
+    { toFun := fun v => WithLp.toLp 2 fun o => v (k o)
+      map_add' := fun _ _ => rfl
+      map_smul' := fun _ _ => rfl }
+
+@[simp] lemma restrictCoords_apply (k : κ → Fin P) (v : EuclideanSpace ℝ (Fin P)) (o : κ) :
+    restrictCoords k v o = v (k o) := rfl
+
+lemma norm_sq_restrictCoords (k : κ → Fin P) (v : EuclideanSpace ℝ (Fin P)) :
+    ‖restrictCoords k v‖ ^ 2 = ∑ o : κ, v (k o) ^ 2 := by
+  rw [EuclideanSpace.real_norm_sq_eq]; rfl
+
+/-- Cauchy–Schwarz for a block of coordinates of `Jᵀ r`. -/
+lemma sum_sq_mulVec_transpose_le (r : Fin m → ℝ) (J : Fin m → κ → ℝ) :
+    ∑ o : κ, (∑ α : Fin m, r α * J α o) ^ 2 ≤
+      (∑ α : Fin m, r α ^ 2) * ∑ α : Fin m, ∑ o : κ, J α o ^ 2 := by
+  calc ∑ o : κ, (∑ α : Fin m, r α * J α o) ^ 2
+      ≤ ∑ o : κ, (∑ α : Fin m, r α ^ 2) * ∑ α : Fin m, J α o ^ 2 :=
+        Finset.sum_le_sum fun o _ => Finset.sum_mul_sq_le_sq_mul_sq _ _ _
+    _ = (∑ α : Fin m, r α ^ 2) * ∑ α : Fin m, ∑ o : κ, J α o ^ 2 := by
+        rw [← Finset.mul_sum, Finset.sum_comm]
+
+/-- **Speed of a block of coordinates under MSE gradient flow.** -/
+theorem norm_restrictCoords_gradient_mseLoss_le
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) (k : κ → Fin P) :
+    ‖restrictCoords k (gradient (mseLoss f X y) θ)‖ ≤
+      (m : ℝ)⁻¹ * Real.sqrt (∑ α : Fin m, ∑ o : κ, outputJacobian f X θ α (k o) ^ 2) *
+        ‖trainingResidual f X y θ‖ := by
+  have hcoord : ∀ o : κ, gradient (mseLoss f X y) θ (k o) =
+      (m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual f X y θ α * outputJacobian f X θ α (k o) := by
+    intro o
+    rw [gradient_mseLoss_apply_j f X y θ hdiff (k o), Matrix.mulVec_apply, dotProduct]
+    congr 1
+    exact Finset.sum_congr rfl fun α _ => mul_comm _ _
+  have hsq : ‖restrictCoords k (gradient (mseLoss f X y) θ)‖ ^ 2 ≤
+      ((m : ℝ)⁻¹ * Real.sqrt (∑ α : Fin m, ∑ o : κ, outputJacobian f X θ α (k o) ^ 2) *
+        ‖trainingResidual f X y θ‖) ^ 2 := by
+    rw [norm_sq_restrictCoords]
+    simp_rw [hcoord, mul_pow, ← Finset.mul_sum]
+    have hres : ‖trainingResidual f X y θ‖ ^ 2 = ∑ α : Fin m, trainingResidual f X y θ α ^ 2 :=
+      EuclideanSpace.real_norm_sq_eq _
+    have hJnn : 0 ≤ ∑ α : Fin m, ∑ o : κ, outputJacobian f X θ α (k o) ^ 2 :=
+      Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _
+    rw [Real.sq_sqrt hJnn, hres]
+    calc (m : ℝ)⁻¹ ^ 2 * ∑ o : κ, (∑ α : Fin m, trainingResidual f X y θ α *
+            outputJacobian f X θ α (k o)) ^ 2
+        ≤ (m : ℝ)⁻¹ ^ 2 * ((∑ α : Fin m, trainingResidual f X y θ α ^ 2) *
+            ∑ α : Fin m, ∑ o : κ, outputJacobian f X θ α (k o) ^ 2) :=
+          mul_le_mul_of_nonneg_left (sum_sq_mulVec_transpose_le _ _) (by positivity)
+      _ = _ := by ring
+  exact (sq_le_sq₀ (norm_nonneg _) (by positivity)).1 hsq
+
+end CoordinateBlocks
+
+section
+variable {E F : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
+  [NormedAddCommGroup F] [NormedSpace ℝ F]
+
+/-- **Displacement of a linear image of a gradient flow.** -/
+theorem norm_map_sub_le_integral_of_gfTrajectory {f : E → ℝ} {w₀ : E} {w : ℝ → E}
+    (hflow : GFTrajectory f w₀ w) (Lin : E →L[ℝ] F) {T : ℝ} (hT : 0 ≤ T) {B : ℝ → ℝ}
+    (hB : ∀ t ∈ Set.Icc 0 T, ‖Lin (gradient f (w t))‖ ≤ B t)
+    (hBi : IntervalIntegrable B volume 0 T) :
+    ‖Lin (w T - w₀)‖ ≤ ∫ t in (0 : ℝ)..T, B t := by
+  have hd : ∀ t : ℝ, HasDerivAt (fun s => Lin (w s)) (Lin (-gradient f (w t))) t := fun t =>
+    Lin.hasFDerivAt.comp_hasDerivAt t (hflow.ode t)
+  have hmain := norm_sub_le_integral_of_norm_deriv_le_of_le (f := fun s => Lin (w s)) hT
+    (Lin.continuous.comp hflow.cont_diff.continuous).continuousOn
+    (fun t _ => (hd t).differentiableAt.differentiableWithinAt)
+    (Filter.Eventually.of_forall fun t ht => by
+      rw [(hd t).deriv, map_neg, norm_neg]
+      exact hB t (Set.mem_Icc_of_Ioo ht)) hBi
+  simpa [hflow.init, map_sub] using hmain
+
+end
+
 /-- **Displacement is at most the integral of the speed bound.** If the Rayleigh quotient of the
 empirical NTK along the trajectory is bounded below by `lambda_min` (any real, in particular `0`
 under positive semidefiniteness) and the output Jacobian is `M`-bounded on `[0, T]`, then
@@ -1505,16 +1595,6 @@ theorem displacement_le_integral_of_rayleigh
             apply mul_le_mul hstep2 hstep1 (norm_nonneg _)
             positivity
           _ = (m : ℝ)⁻¹ * M * (r₀ * Real.exp (-(lambda_min / (m : ℝ)) * t)) := by ring
-  have hderiv_bound : ∀ t ∈ Set.Ioo (0:ℝ) T, ‖deriv θ_traj t‖ ≤
-      (m : ℝ)⁻¹ * M * (r₀ * Real.exp (-(lambda_min / (m : ℝ)) * t)) := by
-    intro t ht
-    have hderiv_eq : deriv θ_traj t = -gradient (mseLoss f X y) (θ_traj t) :=
-      (hflow.ode t).deriv
-    rw [hderiv_eq, norm_neg]
-    exact hspeed t (Set.mem_Icc_of_Ioo ht)
-  have hcont : ContinuousOn θ_traj (Set.Icc 0 T) := hflow.cont_diff.continuous.continuousOn
-  have hdiffOn : DifferentiableOn ℝ θ_traj (Set.Ioo 0 T) :=
-    fun t _ => (hflow.ode t).differentiableAt.differentiableWithinAt
   have hBcont : Continuous
       (fun t : ℝ => (m : ℝ)⁻¹ * M * (r₀ * Real.exp (-(lambda_min / (m : ℝ)) * t))) := by
     fun_prop
@@ -1522,10 +1602,8 @@ theorem displacement_le_integral_of_rayleigh
       (fun t : ℝ => (m : ℝ)⁻¹ * M * (r₀ * Real.exp (-(lambda_min / (m : ℝ)) * t)))
       MeasureTheory.volume 0 T :=
     hBcont.intervalIntegrable 0 T
-  have hmain := norm_sub_le_integral_of_norm_deriv_le_of_le hT hcont hdiffOn
-    (Filter.Eventually.of_forall hderiv_bound) hBi
-  rw [hflow.init] at hmain
-  exact hmain
+  simpa using norm_map_sub_le_integral_of_gfTrajectory hflow
+    (ContinuousLinearMap.id ℝ (EuclideanSpace ℝ (Fin P))) hT hspeed hBi
 
 /-- Gap 5 Step 1 deliverable: if the empirical NTK's Rayleigh quotient along the trajectory is
 bounded below by `lambda_min` throughout `[0, T]`, and the output Jacobian is `M`-bounded there
@@ -2362,7 +2440,8 @@ theorem exists_flow_window (V : E → E)
   set M : ℝ := ‖V 0‖ + K * (2 * A) with hM_def
   have hM : 0 ≤ M := by positivity
   have hVbdd : ∀ x : E, ‖x‖ ≤ 2 * A → ‖V x‖ ≤ M := fun x hx => by
-    have h := hKlip x 0 hx (by simp; positivity)
+    have h := hKlip x 0 hx
+      (by simp only [norm_zero, Nat.ofNat_pos, mul_nonneg_iff_of_pos_left]; positivity)
     rw [sub_zero] at h
     have h2 := norm_sub_norm_le (V x) (V 0)
     rw [hM_def]; nlinarith [norm_nonneg x]
@@ -2516,7 +2595,7 @@ theorem exists_global_flow (V : E → E)
     (hprior : ∀ σ : ℝ, |σ| = 1 → ∀ T r : ℝ, ∃ ρ : ℝ, ∀ (θ : ℝ → E) (S : ℝ), 0 ≤ S → S ≤ T →
       ‖θ 0‖ ≤ r → (∀ t ∈ Icc 0 S, HasDerivWithinAt θ (σ • V (θ t)) (Icc 0 S) t) → ‖θ S‖ ≤ ρ) :
     ∃ Φ : E → ℝ → E, (∀ x, Φ x 0 = x) ∧ (∀ x t, HasDerivAt (Φ x) (V (Φ x t)) t) ∧
-      ∀ t, Continuous (fun x => Φ x t) := by
+      Continuous (fun p : E × ℝ => Φ p.1 p.2) := by
   choose α hα using fun k : ℕ => exists_flow_window V hV_lip ((k + 1 : ℕ) : NNReal)
     ((k + 1 : ℕ) : NNReal) (fun σ hσ => hprior σ hσ _ _)
   -- the radius/window `k + 1` in real form
@@ -2560,9 +2639,9 @@ theorem exists_global_flow (V : E → E)
     have hk₀ : max ‖x‖ |t| ≤ (⌈max ‖x‖ |t|⌉₊ : ℝ) := Nat.le_ceil _
     exact hcons _ k x ((le_max_left _ _).trans hk₀ |>.trans (by linarith))
       hx t ((le_max_right _ _).trans hk₀ |>.trans (by linarith)) ht
-  refine ⟨Φ, fun x => ?_, fun x t => ?_, fun t => ?_⟩
+  refine ⟨Φ, fun x => ?_, fun x t => ?_, ?_⟩
   · have hk : ‖x‖ ≤ (⌈‖x‖⌉₊ : ℝ) + 1 := (Nat.le_ceil _).trans (by linarith)
-    rw [hΦ x 0 ⌈‖x‖⌉₊ hk (by simp; positivity), (hsol _ x hk).1]
+    rw [hΦ x 0 ⌈‖x‖⌉₊ hk (by simp only [abs_zero]; positivity), (hsol _ x hk).1]
   · set k : ℕ := ⌈max ‖x‖ (|t| + 1)⌉₊ with hk_def
     have hk₀ : max ‖x‖ (|t| + 1) ≤ (k : ℝ) := Nat.le_ceil _
     have hxk : ‖x‖ ≤ (k : ℝ) + 1 := (le_max_left _ _).trans hk₀ |>.trans (by linarith)
@@ -2581,27 +2660,27 @@ theorem exists_global_flow (V : E → E)
     rw [hΦ x t k hxk (by linarith [abs_nonneg t])]
     exact (hd.congr_of_eventuallyEq hev.symm)
   · rw [continuous_iff_continuousAt]
-    intro x₀
-    set k : ℕ := ⌈max (‖x₀‖ + 1) |t|⌉₊ with hk_def
-    have hk₀ : max (‖x₀‖ + 1) |t| ≤ (k : ℝ) := Nat.le_ceil _
+    rintro ⟨x₀, t₀⟩
+    set k : ℕ := ⌈max (‖x₀‖ + 1) (|t₀| + 1)⌉₊ with hk_def
+    have hk₀ : max (‖x₀‖ + 1) (|t₀| + 1) ≤ (k : ℝ) := Nat.le_ceil _
     have hx₀k : ‖x₀‖ + 1 ≤ (k : ℝ) := (le_max_left _ _).trans hk₀
-    have htk : |t| ≤ (k : ℝ) + 1 := (le_max_right _ _).trans hk₀ |>.trans (by linarith)
-    have hnb : ball (0 : E) (‖x₀‖ + 1) ∈ nhds x₀ :=
-      isOpen_ball.mem_nhds (by rw [mem_ball, dist_zero_right]; linarith)
-    have hsubset : ball (0 : E) (‖x₀‖ + 1) ⊆ closedBall (0 : E) ((k : ℝ) + 1) := fun x hx => by
-      rw [mem_closedBall, dist_zero_right]
-      have := mem_ball_zero_iff.1 hx
-      linarith
-    have htmem : t ∈ Icc (-((k : ℝ) + 1)) ((k : ℝ) + 1) := abs_le.1 htk
-    have hcomp : ContinuousOn (fun x : E => α k (x, t)) (closedBall (0 : E) ((k : ℝ) + 1)) :=
-      (hcont k).comp (continuous_id.prodMk continuous_const).continuousOn
-        (fun x hx => ⟨hx, htmem⟩)
-    have hat : ContinuousAt (fun x : E => α k (x, t)) x₀ :=
-      hcomp.continuousAt (Filter.mem_of_superset hnb hsubset)
+    have ht₀k : |t₀| + 1 ≤ (k : ℝ) := (le_max_right _ _).trans hk₀
+    have hnb : ball (0 : E) (‖x₀‖ + 1) ×ˢ Ioo (t₀ - 1) (t₀ + 1) ∈ nhds (x₀, t₀) :=
+      prod_mem_nhds (isOpen_ball.mem_nhds (by rw [mem_ball, dist_zero_right]; linarith))
+        (Ioo_mem_nhds (by linarith) (by linarith))
+    have hUsub : ∀ q ∈ ball (0 : E) (‖x₀‖ + 1) ×ˢ Ioo (t₀ - 1) (t₀ + 1),
+        ‖q.1‖ ≤ (k : ℝ) + 1 ∧ |q.2| ≤ (k : ℝ) + 1 := fun q hq => by
+      refine ⟨?_, ?_⟩
+      · have := mem_ball_zero_iff.1 hq.1
+        linarith
+      · rw [abs_le]
+        constructor <;> linarith [hq.2.1, hq.2.2, neg_abs_le t₀, le_abs_self t₀]
+    have hat : ContinuousAt (α k) (x₀, t₀) := (hcont k).continuousAt
+      (Filter.mem_of_superset hnb fun q hq =>
+        ⟨by rw [mem_closedBall, dist_zero_right]; exact (hUsub q hq).1, abs_le.1 (hUsub q hq).2⟩)
     refine hat.congr ?_
-    filter_upwards [hnb] with x hx
-    exact (hΦ x t k (by have := mem_ball_zero_iff.1 hx; linarith) htk).symm
-
+    filter_upwards [hnb] with q hq
+    exact (hΦ q.1 q.2 k (hUsub q hq).1 (hUsub q hq).2).symm
 
 /-- A finite sum of locally Lipschitz functions is locally Lipschitz. -/
 lemma locallyLipschitz_finset_sum {α ι β : Type*} [PseudoEMetricSpace α] [SeminormedAddCommGroup β]
@@ -2616,24 +2695,22 @@ lemma locallyLipschitz_finset_sum {α ι β : Type*} [PseudoEMetricSpace α] [Se
       (ih fun i hi => hf i (Finset.mem_insert_of_mem hi))
 
 /-- The product of two locally Lipschitz real functions is locally Lipschitz (multiplication on
-`ℝ × ℝ` is `C¹`, hence locally Lipschitz). -/
+`ℝ × ℝ` is `C¹`, hence locally Lipschitz). Mathlib's `LocallyLipschitz.mul` is the product in a
+seminormed commutative *group*, so it does not apply to multiplication in `ℝ`. -/
 lemma locallyLipschitz_mul_real {α : Type*} [PseudoEMetricSpace α] {f g : α → ℝ}
     (hf : LocallyLipschitz f) (hg : LocallyLipschitz g) : LocallyLipschitz (fun x => f x * g x) :=
   (contDiff_mul.locallyLipschitz (𝕂 := ℝ) (E' := ℝ × ℝ) (F' := ℝ)).comp (hf.prodMk hg)
 
 /-- The Euclidean norm is at most the `ℓ¹` norm of the coordinates. -/
-lemma norm_euclidean_le_sum_abs {ι : Type*} [Fintype ι] (v : EuclideanSpace ℝ ι) :
-    ‖v‖ ≤ ∑ k, |v k| := by
+lemma norm_euclidean_le_sum_norm {𝕜 ι : Type*} [RCLike 𝕜] [Fintype ι]
+    (v : EuclideanSpace 𝕜 ι) : ‖v‖ ≤ ∑ k, ‖v k‖ := by
   rw [EuclideanSpace.norm_eq]
-  refine Real.sqrt_le_iff.2 ⟨Finset.sum_nonneg fun k _ => abs_nonneg _, ?_⟩
-  simp only [Real.norm_eq_abs]
-  simpa only [sq_abs] using
-    Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ) (f := fun k => |v k|)
-      fun k _ => abs_nonneg (v k)
+  exact Real.sqrt_le_iff.2 ⟨Finset.sum_nonneg fun k _ => norm_nonneg _,
+    Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ) (f := fun k => ‖v k‖)
+      fun k _ => norm_nonneg (v k)⟩
 
-/-- A map into `EuclideanSpace ℝ ι` (`ι` finite) is locally Lipschitz iff each coordinate is
-(only the nontrivial direction is proved). Mathlib has `LocallyLipschitz.add` and `.comp` but no
-`Pi`/`PiLp` version. -/
+/-- A map into `EuclideanSpace ℝ ι` (`ι` finite) is locally Lipschitz if every coordinate is
+locally Lipschitz. Mathlib has no `Pi`/`PiLp` version of this. -/
 lemma locallyLipschitz_euclidean_of_coord {α ι : Type*} [PseudoMetricSpace α] [Fintype ι]
     {g : α → EuclideanSpace ℝ ι} (h : ∀ k, LocallyLipschitz (fun x => g x k)) :
     LocallyLipschitz g := by
@@ -2642,8 +2719,8 @@ lemma locallyLipschitz_euclidean_of_coord {α ι : Type*} [PseudoMetricSpace α]
   refine ⟨⟨∑ k, (K k : ℝ), Finset.sum_nonneg fun k _ => (K k).2⟩, ⋂ k, t k,
     Filter.iInter_mem.2 ht, LipschitzOnWith.of_dist_le_mul fun y hy z hz => ?_⟩
   rw [dist_eq_norm]
-  refine (norm_euclidean_le_sum_abs _).trans ?_
-  simp only [PiLp.sub_apply]
+  refine (norm_euclidean_le_sum_norm _).trans ?_
+  simp only [PiLp.sub_apply, Real.norm_eq_abs]
   calc ∑ k, |g y k - g z k| ≤ ∑ k, (K k : ℝ) * dist y z := by
         refine Finset.sum_le_sum fun k _ => ?_
         have := (hK k).dist_le_mul y (Set.mem_iInter.1 hy k) z (Set.mem_iInter.1 hz k)

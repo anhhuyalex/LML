@@ -797,6 +797,66 @@ theorem exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map
         (Measure.map_apply_of_aemeasurable (hX i) hopen).symm
     _ ≤ ε := (le_iSup₂ (f := fun ν (_ : ν ∈ S) => ν {x : E | R < ‖x‖}) _ (hmem i)).trans hR.le
 
+/-- Integral of a function composed with a measure-preserving map. Unlike
+`MeasurePreserving.integral_comp` this needs no measurable embedding, which coordinate projections
+are not. -/
+theorem MeasurePreserving.integral_comp_of_aestronglyMeasurable {α β E : Type*}
+    [MeasurableSpace α] [MeasurableSpace β] {μ : Measure α} {ν : Measure β}
+    [NormedAddCommGroup E] [NormedSpace ℝ E] {f : α → β} (hf : MeasurePreserving f μ ν)
+    {g : β → E} (hg : AEStronglyMeasurable g ν) : ∫ x, g (f x) ∂μ = ∫ y, g y ∂ν :=
+  calc ∫ x, g (f x) ∂μ = ∫ y, g y ∂(Measure.map f μ) :=
+        (integral_map hf.measurable.aemeasurable (by rwa [hf.map_eq])).symm
+    _ = ∫ y, g y ∂ν := by rw [hf.map_eq]
+
+/-- **Markov's inequality in high-probability form.** A nonnegative measurable integrable function
+whose integral is at most `τ * δ` is at most `τ` with probability at least `1 - δ`. -/
+theorem measureReal_fun_le_ge_one_sub_of_integral_le {α : Type*} [MeasurableSpace α]
+    (μ : Measure α) [IsProbabilityMeasure μ] {F : α → ℝ} (hF : Measurable F)
+    (hint : Integrable F μ) (hnn : ∀ x, 0 ≤ F x) {τ δ : ℝ} (hτ : 0 < τ)
+    (hv : ∫ x, F x ∂μ ≤ τ * δ) : μ.real {x | F x ≤ τ} ≥ 1 - δ := by
+  have hmarkov := mul_meas_ge_le_integral_of_nonneg (Filter.Eventually.of_forall hnn) hint τ
+  have hbad : μ.real {x | τ ≤ F x} ≤ δ := by
+    have h1 : τ * μ.real {x | τ ≤ F x} ≤ τ * δ := hmarkov.trans hv
+    exact le_of_mul_le_mul_left h1 hτ
+  have hbad_meas : MeasurableSet {x | τ ≤ F x} := measurableSet_le measurable_const hF
+  have hsub : {x | τ ≤ F x}ᶜ ⊆ {x | F x ≤ τ} := fun x hx => by
+    simp only [Set.mem_compl_iff, Set.mem_ofPred_eq, not_le] at hx
+    exact hx.le
+  calc μ.real {x | F x ≤ τ} ≥ μ.real {x | τ ≤ F x}ᶜ := measureReal_mono hsub
+    _ = 1 - μ.real {x | τ ≤ F x} := probReal_compl_eq_one_sub hbad_meas
+    _ ≥ 1 - δ := sub_le_sub_left hbad 1
+
+/-- **Markov bound for an i.i.d. empirical average.** For a nonnegative measurable observable `g`
+that is integrable under a probability law `μ`, the empirical average `n⁻¹ ∑ᵢ g (xᵢ)` over `n`
+independent samples is at most `τ` with probability at least `1 - δ`, as soon as `E g ≤ τ δ`. The
+threshold does not depend on `n`. -/
+theorem measureReal_pi_average_le_ge_one_sub {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    [IsProbabilityMeasure μ] {n : ℕ} (hn : 0 < n) {g : α → ℝ} (hg : Measurable g)
+    (hint : Integrable g μ) (hnn : ∀ x, 0 ≤ g x) {τ δ : ℝ} (hτ : 0 < τ)
+    (hv : ∫ x, g x ∂μ ≤ τ * δ) :
+    (Measure.pi fun _ : Fin n => μ).real {x | (n : ℝ)⁻¹ * ∑ i : Fin n, g (x i) ≤ τ} ≥ 1 - δ := by
+  have hmp : ∀ i : Fin n, MeasurePreserving (fun x : Fin n → α => x i)
+      (Measure.pi fun _ : Fin n => μ) μ := fun i => measurePreserving_eval (fun _ : Fin n => μ) i
+  have hterm : ∀ i : Fin n, Integrable (fun x : Fin n → α => g (x i))
+      (Measure.pi fun _ : Fin n => μ) := fun i =>
+    ((hmp i).integrable_comp hint.aestronglyMeasurable).2 hint
+  set F : (Fin n → α) → ℝ := fun x => (n : ℝ)⁻¹ * ∑ i : Fin n, g (x i) with hF
+  have hFm : Measurable F := Measurable.const_mul
+    (Finset.measurable_sum _ fun i _ => hg.comp (measurable_pi_apply i)) _
+  have hFint : Integrable F (Measure.pi fun _ : Fin n => μ) :=
+    Integrable.const_mul (integrable_finsetSum _ fun i _ => hterm i) _
+  have hFnn : ∀ x, 0 ≤ F x := fun x => by
+    have : 0 ≤ ∑ i : Fin n, g (x i) := Finset.sum_nonneg fun i _ => hnn _
+    positivity
+  have hFint_eq : ∫ x, F x ∂(Measure.pi fun _ : Fin n => μ) = ∫ x, g x ∂μ := by
+    rw [hF, integral_const_mul, integral_finsetSum _ fun i _ => hterm i]
+    simp only [(hmp _).integral_comp_of_aestronglyMeasurable hint.aestronglyMeasurable,
+      Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    have hn' : (n : ℝ) ≠ 0 := by exact_mod_cast hn.ne'
+    field_simp
+  exact measureReal_fun_le_ge_one_sub_of_integral_le _ hFm hFint hFnn hτ (hFint_eq ▸ hv)
+
+
 end MeasureTheory
 
 namespace NTK
@@ -937,95 +997,18 @@ lemma memLp_sq_gaussianReal_two :
   rw [heq]
   exact integrable_pow_four_gaussianReal
 
-/-- The squared value of every Gaussian readout coordinate is integrable. -/
-lemma integrable_gaussianReadout_coord_sq (i : Fin n) :
-    Integrable (fun a : Fin n → ℝ => a i ^ 2) (gaussianReadoutMeasure n) := by
-  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) =
-      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
-  have hmap_sq : Integrable (fun x : ℝ => x ^ 2)
-      (Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n)) := by
-    rw [hmap]
-    exact integrable_sq_gaussianReal
-  change Integrable ((fun x : ℝ => x ^ 2) ∘ fun a : Fin n → ℝ => a i)
-    (gaussianReadoutMeasure n)
-  exact hmap_sq.comp_measurable (measurable_pi_apply i)
-
 /-- The normalized squared Euclidean norm of a readout vector. -/
 noncomputable def gaussianReadoutEnergy (n : ℕ) (a : Fin n → ℝ) : ℝ :=
   (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2
-
-/-- The normalized Gaussian readout energy is integrable. -/
-lemma integrable_gaussianReadout_energy (n : ℕ) :
-    Integrable (gaussianReadoutEnergy n) (gaussianReadoutMeasure n) := by
-  unfold gaussianReadoutEnergy
-  apply Integrable.const_mul
-  exact integrable_finsetSum Finset.univ (fun i _ => integrable_gaussianReadout_coord_sq i)
-
-/-- Each Gaussian readout coordinate has unit second moment. -/
-lemma integral_gaussianReadout_coord_sq (i : Fin n) :
-    ∫ a : Fin n → ℝ, a i ^ 2 ∂(gaussianReadoutMeasure n) = 1 := by
-  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) =
-      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
-  calc
-    ∫ a : Fin n → ℝ, a i ^ 2 ∂(gaussianReadoutMeasure n) =
-        ∫ x : ℝ, x ^ 2 ∂Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) := by
-      rw [integral_map (measurable_pi_apply i).aemeasurable (by fun_prop)]
-    _ = ∫ x : ℝ, x ^ 2 ∂gaussianReal 0 1 := by rw [hmap]
-    _ = 1 := integral_sq_gaussianReal
-
-/-- The readout-energy average has expectation one under i.i.d. standard-Gaussian readout
-initialization. The positivity hypothesis is necessary: at width zero the average is identically
-zero because `Fin 0` is empty. -/
-lemma integral_gaussianReadout_sum_sq (n : ℕ) (hn : 0 < n) :
-    ∫ a, ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) ∂(gaussianReadoutMeasure n) = 1 := by
-  rw [integral_const_mul]
-  rw [integral_finsetSum Finset.univ (fun i _ => integrable_gaussianReadout_coord_sq i)]
-  simp_rw [integral_gaussianReadout_coord_sq]
-  simp [Finset.sum_const, Fintype.card_fin, hn.ne']
-
-/-- **Markov's inequality in high-probability form.** A nonnegative measurable integrable function
-whose integral is at most `τ * δ` is at most `τ` with probability at least `1 - δ`. -/
-theorem measureReal_le_of_integral_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    [IsProbabilityMeasure μ] {F : α → ℝ} (hF : Measurable F) (hint : Integrable F μ)
-    (hnn : ∀ x, 0 ≤ F x) {τ δ : ℝ} (hτ : 0 < τ) (hv : ∫ x, F x ∂μ ≤ τ * δ) :
-    μ.real {x | F x ≤ τ} ≥ 1 - δ := by
-  have hmarkov := mul_meas_ge_le_integral_of_nonneg (Filter.Eventually.of_forall hnn) hint τ
-  have hbad : μ.real {x | τ ≤ F x} ≤ δ := by
-    have h1 : τ * μ.real {x | τ ≤ F x} ≤ τ * δ := hmarkov.trans hv
-    exact le_of_mul_le_mul_left h1 hτ
-  have hbad_meas : MeasurableSet {x | τ ≤ F x} := measurableSet_le measurable_const hF
-  have hsub : {x | τ ≤ F x}ᶜ ⊆ {x | F x ≤ τ} := fun x hx => by
-    simp only [Set.mem_compl_iff, Set.mem_ofPred_eq, not_le] at hx
-    exact hx.le
-  calc μ.real {x | F x ≤ τ} ≥ μ.real {x | τ ≤ F x}ᶜ := measureReal_mono hsub
-    _ = 1 - μ.real {x | τ ≤ F x} := probReal_compl_eq_one_sub hbad_meas
-    _ ≥ 1 - δ := sub_le_sub_left hbad 1
 
 /-- Markov tail bound for the normalized squared readout energy. -/
 lemma prob_gaussianReadout_sum_sq_le
     (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ) :
     (gaussianReadoutMeasure n).real {a | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} ≥
-      1 - δ := by
-  have hF_meas : Measurable (gaussianReadoutEnergy n) := by
-    unfold gaussianReadoutEnergy
-    fun_prop
-  exact measureReal_le_of_integral_le (gaussianReadoutMeasure n) (F := gaussianReadoutEnergy n)
-    hF_meas (integrable_gaussianReadout_energy n) (fun a => by unfold gaussianReadoutEnergy; positivity)
-    (inv_pos.2 hδ) (by
-      rw [show (∫ a, gaussianReadoutEnergy n a ∂(gaussianReadoutMeasure n)) = 1 by
-        simpa [gaussianReadoutEnergy] using integral_gaussianReadout_sum_sq n hn]
-      rw [inv_mul_cancel₀ hδ.ne'])
-
-/-- Row `i` of an i.i.d. Gaussian weight matrix has the row law, at the level of integrals. -/
-lemma integral_comp_gaussianInit_row {n d : ℕ} (i : Fin n) {g : (Fin d → ℝ) → ℝ}
-    (hg : AEStronglyMeasurable g (gaussianRowMeasure d)) :
-    ∫ W, g (W i) ∂(gaussianInit n d) = ∫ w, g w ∂(gaussianRowMeasure d) := by
-  have hmp : MeasurePreserving (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d)
-      (gaussianRowMeasure d) := measurePreserving_eval (fun _ : Fin n => gaussianRowMeasure d) i
-  calc ∫ W, g (W i) ∂(gaussianInit n d)
-      = ∫ w, g w ∂(Measure.map (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d)) :=
-        (integral_map (measurable_pi_apply i).aemeasurable (by rwa [hmp.map_eq])).symm
-    _ = ∫ w, g w ∂(gaussianRowMeasure d) := by rw [hmp.map_eq]
+      1 - δ :=
+  measureReal_pi_average_le_ge_one_sub (μ := gaussianReal 0 1) hn (g := fun a : ℝ => a ^ 2)
+    (by fun_prop) integrable_sq_gaussianReal (fun _ => sq_nonneg _) (inv_pos.2 hδ)
+    (by rw [integral_sq_gaussianReal, inv_mul_cancel₀ hδ.ne'])
 
 /-- **Empirical activation energy concentration.** If `φ(w ⊙ x_α)` is square integrable under the
 Gaussian row law and `∑_α E φ(w ⊙ x_α)² ≤ τ δ`, then the width-normalized activation energy
@@ -1036,36 +1019,13 @@ lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (�
     {τ δ : ℝ} (hτ : 0 < τ)
     (hv : ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) ≤ τ * δ) :
     (gaussianInit n d).real {W | (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
-      φ (W i ⊙ X α) ^ 2 ≤ τ} ≥ 1 - δ := by
-  have hint_term : ∀ (i : Fin n) (α : Fin m),
-      Integrable (fun W : Fin n → Fin d → ℝ => φ (W i ⊙ X α) ^ 2) (gaussianInit n d) := by
-    intro i α
-    have hmp : MeasurePreserving (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d)
-        (gaussianRowMeasure d) := measurePreserving_eval (fun _ : Fin n => gaussianRowMeasure d) i
-    exact (hmp.integrable_comp (hL2 α).integrable_sq.aestronglyMeasurable).2 (hL2 α).integrable_sq
-  have hmeas_term : ∀ (i : Fin n) (α : Fin m),
-      Measurable (fun W : Fin n → Fin d → ℝ => φ (W i ⊙ X α) ^ 2) := fun i α =>
-    (hφ.comp ((measurable_innerProduct_left (X α)).comp (measurable_pi_apply i))).pow_const 2
-  set F : (Fin n → Fin d → ℝ) → ℝ := fun W => (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
-    φ (W i ⊙ X α) ^ 2 with hF
-  have hFm : Measurable F := Measurable.const_mul
-    (Finset.measurable_sum _ fun i _ => Finset.measurable_sum _ fun α _ => hmeas_term i α) _
-  have hFint : Integrable F (gaussianInit n d) := Integrable.const_mul
-    (integrable_finsetSum _ fun i _ => integrable_finsetSum _ fun α _ => hint_term i α) _
-  have hFnn : ∀ W, 0 ≤ F W := fun W => by positivity
-  have hFint_eq : ∫ W, F W ∂(gaussianInit n d) =
-      ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) := by
-    rw [hF, integral_const_mul, integral_finsetSum _ fun i _ =>
-      integrable_finsetSum _ fun α _ => hint_term i α]
-    have : ∀ i : Fin n, ∫ W, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 ∂(gaussianInit n d) =
-        ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) := fun i => by
-      rw [integral_finsetSum _ fun α _ => hint_term i α]
-      exact Finset.sum_congr rfl fun α _ => integral_comp_gaussianInit_row i
-        (g := fun w => φ (w ⊙ X α) ^ 2) (hL2 α).integrable_sq.aestronglyMeasurable
-    simp only [this, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-    have hn' : (n : ℝ) ≠ 0 := by exact_mod_cast hn.ne'
-    field_simp
-  exact measureReal_le_of_integral_le (gaussianInit n d) hFm hFint hFnn hτ (hFint_eq ▸ hv)
+      φ (W i ⊙ X α) ^ 2 ≤ τ} ≥ 1 - δ :=
+  measureReal_pi_average_le_ge_one_sub (μ := gaussianRowMeasure d) hn
+    (g := fun w => ∑ α : Fin m, φ (w ⊙ X α) ^ 2)
+    (Finset.measurable_sum _ fun α _ =>
+      (hφ.comp (measurable_innerProduct_left (X α))).pow_const 2)
+    (integrable_finsetSum _ fun α _ => (hL2 α).integrable_sq) (fun w => by positivity) hτ
+    (by rwa [integral_finsetSum _ fun α _ => (hL2 α).integrable_sq])
 
 /-- A measurable activation with at most linear growth has all Gaussian moments along a row. -/
 lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
@@ -1073,7 +1033,7 @@ lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurab
     (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x : Fin d → ℝ) (p : NNReal) :
     MemLp (fun w : Fin d → ℝ => φ (w ⊙ x)) p (gaussianRowMeasure d) := by
   have hlin : Measurable (fun w : Fin d → ℝ => w ⊙ x) := measurable_innerProduct_left x
-  show MemLp (φ ∘ fun w : Fin d → ℝ => w ⊙ x) p (gaussianRowMeasure d)
+  change MemLp (φ ∘ fun w : Fin d → ℝ => w ⊙ x) p (gaussianRowMeasure d)
   rw [← memLp_map_measure_iff (hφ.aestronglyMeasurable) hlin.aemeasurable,
     map_gaussianRowMeasure_innerProduct]
   have hid := memLp_id_gaussianReal (μ := 0) (v := Real.toNNReal (x ⊙ x)) p
@@ -5776,6 +5736,24 @@ theorem measurePreserving_arrowProd_singleNeuronMeasure (n d : ℕ) :
   dsimp [singleNeuronMeasure, initMeasure, gaussianInit, gaussianReadoutMeasure]
   exact measurePreserving_arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)
     (fun _ => gaussianRowMeasure d) (fun _ => gaussianReal 0 1)
+
+/-- **Markov bound for neuron averages.** For a nonnegative measurable single-neuron observable
+`g` that is integrable under `singleNeuronMeasure d`, the width-normalized empirical average
+`n⁻¹ ∑ᵢ g (Wᵢ, aᵢ)` is at most `τ` with `initMeasure n d`-probability at least `1 - δ`, as soon as
+`E g ≤ τ δ`. The threshold is independent of the width, in contrast with the maximum-readout bound
+whose threshold grows like `√(log n)`. -/
+theorem measureReal_initMeasure_neuronAverage_le {n d : ℕ} (hn : 0 < n)
+    {g : (Fin d → ℝ) × ℝ → ℝ} (hg : Measurable g) (hint : Integrable g (singleNeuronMeasure d))
+    (hnn : ∀ q, 0 ≤ g q) {τ δ : ℝ} (hτ : 0 < τ)
+    (hv : ∫ q, g q ∂(singleNeuronMeasure d) ≤ τ * δ) :
+    (initMeasure n d).real {p | (n : ℝ)⁻¹ * ∑ i : Fin n, g (p.1 i, p.2 i) ≤ τ} ≥ 1 - δ := by
+  have hpi := measureReal_pi_average_le_ge_one_sub (μ := singleNeuronMeasure d) (n := n) hn hg hint
+    hnn hτ hv
+  have hmp := measurePreserving_arrowProd_singleNeuronMeasure n d
+  have hpre := hmp.measure_preimage_equiv
+    {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | (n : ℝ)⁻¹ * ∑ i : Fin n, g (p.1 i, p.2 i) ≤ τ}
+  rw [Measure.real, ← hpre]
+  exact hpi
 
 /-- Equivalence between `Fin n` and `{i : ℕ // i ∈ Finset.range n}`. -/
 private def finEquivRange (n : ℕ) : Fin n ≃ ↑(Finset.range n) where
