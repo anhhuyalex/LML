@@ -146,6 +146,8 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
   `NTK.norm_trainingOutputs_sub_linearization_le` :
   `C^{1,1}` Taylor bound `(L / 2) ‖x - x₀‖²` for any map with an `L`-Lipschitz Fréchet derivative,
   and its instance for the training outputs under an `L`-Lipschitz output Jacobian (Phase 12).
+* `NTK.minNorm_pythagoras`, `NTK.matrixCLM_transpose_eq_adjoint` : minimum-norm Pythagoras for any
+  bounded linear map between real Hilbert spaces, and the adjoint identity for `matrixCLM`.
 * `NTK.matrixCLM`, `NTK.inner_matrixCLM_transpose`, `NTK.hasDerivAt_affineFlowSolution`,
   `NTK.affineFlow_eq_solution`, `NTK.affine_minNorm_pythagoras`, `NTK.norm_affine_limit_le`,
   `NTK.eq_affine_limit_of_norm_le`, `NTK.tendsto_affineFlowSolution`, `NTK.inner_affine_limit` :
@@ -1446,10 +1448,12 @@ theorem norm_sub_sub_fderiv_le_of_lipschitz_fderiv
   simp only [hg, one_smul, hθΔ] at hbound
   linarith
 
-/-- The matrix `M` as a continuous linear map between Euclidean spaces (`v ↦ M v`). -/
-noncomputable def matrixCLM {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) :
+/-- The matrix `M` as a continuous linear map between Euclidean spaces (`v ↦ M v`): an abbreviation
+for Mathlib's `Matrix.toEuclideanLin` made continuous (Mathlib bundles the continuous version,
+`Matrix.toEuclideanCLM`, only for square matrices). -/
+noncomputable abbrev matrixCLM {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) :
     EuclideanSpace ℝ (Fin b) →L[ℝ] EuclideanSpace ℝ (Fin a) :=
-  LinearMap.toContinuousLinearMap (Matrix.toLpLin 2 2 M)
+  LinearMap.toContinuousLinearMap (Matrix.toEuclideanLin M)
 
 lemma matrixCLM_apply {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) (v : EuclideanSpace ℝ (Fin b)) :
     matrixCLM M v = WithLp.toLp 2 (M *ᵥ v.ofLp) := by
@@ -2999,6 +3003,30 @@ lemma inner_matrixCLM_transpose {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
   refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
 
 
+/-- `matrixCLM Mᵀ` is the Hilbert-space adjoint of `matrixCLM M`. -/
+lemma matrixCLM_transpose_eq_adjoint {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) :
+    matrixCLM Mᵀ = ContinuousLinearMap.adjoint (matrixCLM M) :=
+  (ContinuousLinearMap.eq_adjoint_iff _ _).2 fun u v => (inner_matrixCLM_transpose M u v).symm ▸ rfl
+
+/-- **Minimum-norm Pythagoras for a bounded linear map between inner product spaces.** If
+`wInf = A† a` interpolates (`A wInf = b`) -- the normal-equation solution, with `a` solving
+`A A† a = b` -- then every `w'` with `A w' = b` satisfies `‖w'‖² = ‖wInf‖² + ‖w' - wInf‖²`; hence
+`wInf` is the unique minimum-norm interpolant. The matrix statement `affine_minNorm_pythagoras` is
+the case `A = matrixCLM J`. -/
+theorem minNorm_pythagoras {E F : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    [CompleteSpace E] [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
+    (A : E →L[ℝ] F) (b a : F) {wInf : E} (hw : wInf = ContinuousLinearMap.adjoint A a)
+    (hinterp : A wInf = b) {w' : E} (hw' : A w' = b) :
+    ‖w'‖ ^ 2 = ‖wInf‖ ^ 2 + ‖w' - wInf‖ ^ 2 := by
+  have hk : A (w' - wInf) = 0 := by rw [map_sub, hw', hinterp, sub_self]
+  have horth : ⟪wInf, w' - wInf⟫ = 0 := by
+    calc ⟪wInf, w' - wInf⟫ = ⟪ContinuousLinearMap.adjoint A a, w' - wInf⟫ := by rw [← hw]
+      _ = 0 := by rw [ContinuousLinearMap.adjoint_inner_left, hk, inner_zero_right]
+  have h : w' = wInf + (w' - wInf) := by abel
+  conv_lhs => rw [h]
+  rw [norm_add_sq_real, horth]
+  ring
+
 /-- **Minimum-norm characterization of the affine-flow limit.** Let `J` have invertible Gram matrix
 `J Jᵀ` and put `wInf = -Jᵀ (J Jᵀ)⁻¹ r₀`. Then `J wInf = -r₀`, and every `w'` with `J w' = -r₀`
 satisfies `‖w'‖² = ‖wInf‖² + ‖w' - wInf‖²`; hence `wInf` is the unique minimum-norm solution of the
@@ -3021,22 +3049,12 @@ theorem affine_minNorm_pythagoras (J : Matrix (Fin m) (Fin P) ℝ) (hG : IsUnit 
     rw [Matrix.mulVec_mulVec, Matrix.mul_neg, ← Matrix.mul_assoc, hGinv, Matrix.neg_mulVec,
       Matrix.one_mulVec]
   refine ⟨hJw, ?_⟩
-  set k := w' - wInf with hk
-  have hJk : J *ᵥ k.ofLp = 0 := by
-    change J *ᵥ (w'.ofLp - wInf.ofLp) = 0
-    rw [Matrix.mulVec_sub, hw', hJw, sub_self]
-  have hrange : wInf = matrixCLM Jᵀ (matrixCLM (-(J * Jᵀ)⁻¹) r₀) := by
-    rw [hwInf]
+  have hrange : wInf = ContinuousLinearMap.adjoint (matrixCLM J) (matrixCLM (-(J * Jᵀ)⁻¹) r₀) := by
+    rw [← matrixCLM_transpose_eq_adjoint, hwInf]
     ext i : 1
     simp [matrixCLM_apply, Matrix.mulVec_mulVec, Matrix.mul_neg]
-  have horth : ⟪wInf, k⟫ = 0 := by
-    rw [hrange, inner_matrixCLM_transpose]
-    have : matrixCLM J k = 0 := by rw [matrixCLM_apply]; simp [hJk]
-    rw [this, inner_zero_right]
-  have hw'eq : w' = wInf + k := by rw [hk]; abel
-  conv_lhs => rw [hw'eq]
-  rw [norm_add_sq_real, horth]
-  ring
+  exact minNorm_pythagoras (matrixCLM J) (-r₀) _ hrange
+    (by rw [matrixCLM_apply, hJw]; rfl) (by rw [matrixCLM_apply, hw']; rfl)
 
 /-- The affine-flow limit `wInf` has the least norm among all solutions of `J w = -r₀`. -/
 theorem norm_affine_limit_le (J : Matrix (Fin m) (Fin P) ℝ) (hG : IsUnit (J * Jᵀ))
