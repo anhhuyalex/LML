@@ -214,16 +214,16 @@ private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val
       rw [sq_sqrt_inv_cast_nat m, ← sq]
     _ = _ := by ring
 
-/-- The Frobenius inner product of gradient features is the empirical NTK with the
+/-- The entrywise product sum of gradient features is the empirical NTK with the
 outer-coefficient squares included. -/
-lemma frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter
+lemma sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
-    frobeniusInner
-      (gradientMatrix (σ' := σ') outerCoeffs x W₀)
-      (gradientMatrix (σ' := σ') outerCoeffs x' W₀) =
+    (∑ i : Fin m, ∑ j : Fin d,
+      gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
+        gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
     empiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
-  unfold frobeniusInner gradientMatrix empiricalNTKWithOuter innerProduct
+  unfold gradientMatrix empiricalNTKWithOuter innerProduct
   simp_rw [gradient_matrix_term_eq]
   rw [Finset.sum_comm]
   simp_rw [← Finset.mul_sum]
@@ -1201,7 +1201,7 @@ theorem empiricalNTKWithOuter_dataset_posSemidef
     ext α β
     simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
     rw [Fintype.sum_prod_type]
-    exact (frobeniusInner_gradientMatrix_eq_empiricalNTKWithOuter
+    exact (sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
       σ' outerCoeffs W₀ (X α) (X β)).symm
   rw [h_eq]
   have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one

@@ -13,6 +13,7 @@ public import Mathlib.Analysis.InnerProductSpace.Basic
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Analysis.MeanInequalities
 public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
 /-!
 # Core definitions for semi-classical convex optimization (Chapter 7)
@@ -31,6 +32,10 @@ as the canonical finite-dimensional instance.
 * `ConvexOpt.gd_descent_step` : one step of gradient descent decreases `f` (Lemma 7.2).
 * `ConvexOpt.gdIterate` : the gradient descent iterate sequence (Definition 6.1).
 * `ConvexOpt.GFTrajectory` : predicate for gradient flow solutions (Definition 6.2).
+* `ConvexOpt.hasDerivAt_comp_of_neg_gradient`,
+  `ConvexOpt.ForwardGFTrajectory.integral_norm_sq_gradient_eq_sub`,
+  `ConvexOpt.ForwardGFTrajectory.integral_norm_deriv_sq_eq_sub` : the energy identity
+  `(f ∘ w)' = -‖∇f(w)‖² = -‖w'‖²` along gradient flow and its integrated (kinetic energy) form.
 * `ConvexOpt.IsConvex f` : first-order characterization of convexity (Definition 7.3).
 * `ConvexOpt.IsStronglyConvex f c` : first-order characterization of strong convexity (Def. 7.5).
 * `ConvexOpt.approxGDIterate` : generalized GD with approximate gradients (Definition 7.7).
@@ -188,6 +193,91 @@ theorem GFTrajectory.forward {f : E → ℝ} {w₀ : E} {w : ℝ → E} (h : GFT
     ForwardGFTrajectory f w₀ w :=
   ⟨h.init, h.cont_diff.continuous.continuousOn, fun t _ => h.ode t⟩
 
+/-! ### Energy identity along gradient flow
+
+Along `w' = -∇f(w)` the value `f(w(t))` decreases at rate `‖∇f(w(t))‖² = ‖w'(t)‖²`. These are
+generic facts about gradient flows; the NTK files specialize them to the training risk. -/
+
+/-- **Chain rule along a gradient curve.** If `w' = -∇f(w)` at `t` within `s` and `f` is
+differentiable at `w t`, then `(f ∘ w)' = -‖∇f(w t)‖²` within `s` at `t`. -/
+theorem hasDerivWithinAt_comp_of_neg_gradient {f : E → ℝ} {w : ℝ → E} {s : Set ℝ} {t : ℝ}
+    (hf : DifferentiableAt ℝ f (w t)) (hw : HasDerivWithinAt w (-gradient f (w t)) s t) :
+    HasDerivWithinAt (fun u => f (w u)) (-‖gradient f (w t)‖ ^ 2) s t := by
+  have h := hf.hasGradientAt.hasFDerivAt.comp_hasDerivWithinAt t hw
+  rwa [InnerProductSpace.toDual_apply_apply, inner_neg_right, real_inner_self_eq_norm_sq] at h
+
+/-- Two-sided version of `hasDerivWithinAt_comp_of_neg_gradient`. -/
+theorem hasDerivAt_comp_of_neg_gradient {f : E → ℝ} {w : ℝ → E} {t : ℝ}
+    (hf : DifferentiableAt ℝ f (w t)) (hw : HasDerivAt w (-gradient f (w t)) t) :
+    HasDerivAt (fun u => f (w u)) (-‖gradient f (w t)‖ ^ 2) t := by
+  rw [← hasDerivWithinAt_univ] at hw ⊢
+  exact hasDerivWithinAt_comp_of_neg_gradient hf hw
+
+namespace ForwardGFTrajectory
+
+variable {f : E → ℝ} {w₀ : E} {w : ℝ → E}
+
+/-- Along a forward gradient flow, `(f ∘ w)'(t) = -‖∇f(w t)‖²` at every positive time. -/
+theorem hasDerivAt_comp (hw : ForwardGFTrajectory f w₀ w) {t : ℝ} (ht : 0 < t)
+    (hf : DifferentiableAt ℝ f (w t)) :
+    HasDerivAt (fun u => f (w u)) (-‖gradient f (w t)‖ ^ 2) t :=
+  hasDerivAt_comp_of_neg_gradient hf (hw.ode t ht)
+
+/-- The velocity of a forward gradient flow at a positive time is `-∇f(w t)`. -/
+theorem deriv_eq_neg_gradient (hw : ForwardGFTrajectory f w₀ w) {t : ℝ} (ht : 0 < t) :
+    deriv w t = -gradient f (w t) :=
+  (hw.ode t ht).deriv
+
+/-- **Kinetic energy.** The squared speed of a forward gradient flow is `‖∇f(w t)‖²`. -/
+theorem norm_deriv_sq (hw : ForwardGFTrajectory f w₀ w) {t : ℝ} (ht : 0 < t) :
+    ‖deriv w t‖ ^ 2 = ‖gradient f (w t)‖ ^ 2 := by
+  rw [hw.deriv_eq_neg_gradient ht, norm_neg]
+
+/-- The loss is continuous along a forward gradient flow on `[0, T]` wherever it is differentiable
+at the curve. -/
+theorem continuousOn_comp (hw : ForwardGFTrajectory f w₀ w) {T : ℝ}
+    (hf : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ f (w t)) :
+    ContinuousOn (fun u => f (w u)) (Set.Icc 0 T) := fun t ht =>
+  (hf t ht).continuousAt.comp_continuousWithinAt
+    ((hw.continuousOn t ht.1).mono Set.Icc_subset_Ici_self)
+
+/-- The dissipation rate `‖∇f(w t)‖²` of a forward gradient flow is interval integrable on
+`[0, T]`; no continuity of `∇f` is needed, only that `f ∘ w` is monotone. -/
+theorem intervalIntegrable_norm_sq_gradient (hw : ForwardGFTrajectory f w₀ w) {T : ℝ}
+    (hT : 0 ≤ T) (hf : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ f (w t)) :
+    IntervalIntegrable (fun t => ‖gradient f (w t)‖ ^ 2) volume 0 T := by
+  have hcont : ContinuousOn (fun u => -f (w u)) (Set.uIcc 0 T) := by
+    rw [Set.uIcc_of_le hT]
+    exact (hw.continuousOn_comp hf).neg
+  refine intervalIntegral.intervalIntegrable_deriv_of_nonneg hcont (fun t ht => ?_)
+    (fun t _ => sq_nonneg _)
+  rw [min_eq_left hT, max_eq_right hT] at ht
+  simpa using (hw.hasDerivAt_comp ht.1 (hf t ⟨ht.1.le, ht.2.le⟩)).fun_neg
+
+/-- **Integrated energy identity.** `f(w 0) - f(w T) = ∫₀ᵀ ‖∇f(w t)‖² dt` along a forward
+gradient flow, whenever `f` is differentiable at the curve on `[0, T]`. -/
+theorem integral_norm_sq_gradient_eq_sub (hw : ForwardGFTrajectory f w₀ w) {T : ℝ} (hT : 0 ≤ T)
+    (hf : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ f (w t)) :
+    ∫ t in (0 : ℝ)..T, ‖gradient f (w t)‖ ^ 2 = f (w 0) - f (w T) := by
+  have hcont : ContinuousOn (fun u => -f (w u)) (Set.Icc 0 T) := (hw.continuousOn_comp hf).neg
+  have h := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le hT hcont
+    (f' := fun t => ‖gradient f (w t)‖ ^ 2) (fun t ht => by
+      simpa using (hw.hasDerivAt_comp ht.1 (hf t ⟨ht.1.le, ht.2.le⟩)).fun_neg)
+    (hw.intervalIntegrable_norm_sq_gradient hT hf)
+  rw [h]
+  ring
+
+/-- The integrated energy identity in terms of the actual velocity:
+`∫₀ᵀ ‖w'(t)‖² dt = f(w 0) - f(w T)`. -/
+theorem integral_norm_deriv_sq_eq_sub (hw : ForwardGFTrajectory f w₀ w) {T : ℝ} (hT : 0 ≤ T)
+    (hf : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ f (w t)) :
+    ∫ t in (0 : ℝ)..T, ‖deriv w t‖ ^ 2 = f (w 0) - f (w T) := by
+  rw [← hw.integral_norm_sq_gradient_eq_sub hT hf, intervalIntegral.integral_of_le hT,
+    intervalIntegral.integral_of_le hT]
+  exact setIntegral_congr_fun measurableSet_Ioc fun t ht => hw.norm_deriv_sq ht.1
+
+end ForwardGFTrajectory
+
 /-- A curve `w : ℝ → E` is a trajectory for a time-dependent vector field `v : ℝ → E → E`
 starting at `w₀` if it satisfies the ODE `w_prime(t) = v t (w(t))` with initial condition
 `w(0) = w₀`.
@@ -212,18 +302,8 @@ def IsConvex (f : E → ℝ) : Prop :=
 Equivalently, `d/dt f(w(t)) = -‖∇f(w(t))‖² ≤ 0`. -/
 lemma gf_monotone_decrease {f : E → ℝ} {w₀ : E} {w : ℝ → E}
     (hf : Differentiable ℝ f) (hw : GFTrajectory f w₀ w) (t : ℝ) :
-    HasDerivAt (f ∘ w) (-‖gradient f (w t)‖ ^ 2) t := by
-  have hderiv : HasDerivAt w (-gradient f (w t)) t := hw.ode t
-  have hfderiv : HasFDerivAt f (fderiv ℝ f (w t)) (w t) := (hf (w t)).hasFDerivAt
-  have hgrad : ∀ x : E, fderiv ℝ f x = InnerProductSpace.toDual ℝ E (gradient f x) :=
-    fun x => (((hf x).hasGradientAt).hasFDerivAt.unique ((hf x).hasFDerivAt)).symm
-  rw [hgrad (w t)] at hfderiv
-  have hchain := hfderiv.comp_hasDerivAt t hderiv
-  have hcalc : (InnerProductSpace.toDual ℝ E (gradient f (w t))) (-gradient f (w t)) =
-      -‖gradient f (w t)‖ ^ 2 := by
-    rw [InnerProductSpace.toDual_apply_apply, inner_neg_right, real_inner_self_eq_norm_sq, pow_two]
-  rw [hcalc] at hchain
-  exact hchain
+    HasDerivAt (f ∘ w) (-‖gradient f (w t)‖ ^ 2) t :=
+  hasDerivAt_comp_of_neg_gradient (f := f) (w := w) (hf (w t)) (hw.ode t)
 
 /-! ### Strong convexity (Definition 7.5) -/
 

@@ -159,6 +159,19 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
   `NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay` : Phase 14.2 - deterministic
   test-point prediction error along a gradient flow, on a finite window and uniformly in time under
   exponential residual decay.
+* `NTK.norm_sq_gradient_generalizedRisk`, `NTK.norm_sq_gradient_mseLoss`,
+  `NTK.norm_deriv_sq_eq_quadratic_form_of_forwardGF`, `NTK.mseLoss_sub_eq_integral_quadratic_form` :
+  Phase 15 kinetic energy: `‖∇L‖² = (1/m²) rᵀ K r`, `‖θ'‖² = (1/m²) rᵀ K r` along the forward flow,
+  and `L(θ 0) - L(θ T) = ∫₀ᵀ (1/m²) rᵀ K r = ∫₀ᵀ ‖θ'‖²` (generic part in
+  `ConvexOpt.ForwardGFTrajectory`).
+* `NTK.hasDerivAt_coord_of_forwardGF` : Phase 15 coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
+  training flow (the `a_i` and `W_{ij}` equations are in `NetworkParam.lean`).
+* `NTK.matrix_exp_smul_mulVec_of_eigenvector`, `NTK.inner_matrix_exp_mulVec_of_eigenvector`,
+  `NTK.inner_eigenvectorBasis_matrix_exp_mulVec`, `NTK.matrix_exp_mulVec_eq_sum_eigenmodes`,
+  `NTK.norm_sq_matrix_exp_mulVec_eq_sum`, `NTK.abs_inner_eigenvector_residual_sub_mode_le` :
+  Phase 15 eigenmodes `⟪v_k, r(t)⟫ = exp(-λ_k t / m) ⟪v_k, r(0)⟫` of the frozen-kernel residual
+  (Mathlib's `Matrix.IsHermitian.eigenvectorBasis`), Parseval energy, and the lazy-training
+  comparison for the actual residual.
 * `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
 * `NTK.exists_forward_flow`, `NTK.forwardFlow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` :
   Phase 10-11 generic forward-time flow of a field that is Lipschitz on balls and has a priori
@@ -835,6 +848,113 @@ theorem risk_dissipation_le_of_rayleighRitz
   rw [h3] at h2
   linarith
 
+/-! ### Kinetic energy along gradient flow (Phase 15)
+
+For the flow `θ' = -∇L(θ)` the speed is `‖θ'‖ = ‖∇L(θ)‖`, and the chain rule gives
+`∂_t L(θ) = -‖θ'‖²`. Evaluating the gradient with `gradient_generalizedRisk` identifies the same
+quantity with the kernel quadratic form of Proposition 2.17:
+  `‖θ'(t)‖² = (1/m²) r(t)ᵀ K_t r(t)`.
+Integrating over `[0, T]` gives the kinetic-energy form of the risk drop. The generic part lives in
+`ConvexOpt.ForwardGFTrajectory`; here it is only tied to the empirical NTK. -/
+
+/-- The squared norm of a linear combination is the Gram quadratic form of its coefficients:
+`‖∑ c_α v_α‖² = cᵀ G c` with `G_{αβ} = ⟪v_α, v_β⟫`. -/
+lemma norm_sq_sum_smul_eq_dotProduct {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (c : Fin m → ℝ) (v : Fin m → E) :
+    ‖∑ α : Fin m, c α • v α‖ ^ 2 = c ⬝ᵥ (Matrix.of (fun α β => ⟪v α, v β⟫) *ᵥ c) := by
+  rw [← real_inner_self_eq_norm_sq, sum_inner, dotProduct]
+  refine Finset.sum_congr rfl fun α _ => ?_
+  rw [inner_sum, Matrix.mulVec_apply, dotProduct, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun β _ => ?_
+  simp only [inner_smul_left, inner_smul_right, Matrix.row_apply, Matrix.of_apply,
+    starRingEnd_apply, star_trivial]
+  ring
+
+/-- **Gradient energy as a kernel quadratic form.** For any differentiable pointwise loss,
+`‖∇_θ L(θ)‖² = (1/m²) r(θ)ᵀ K(θ) r(θ)`. Together with the chain rule `∂_t L = -‖θ'‖²` this
+re-derives `risk_dissipation_identity` without evaluating the output dynamics. -/
+theorem norm_sq_gradient_generalizedRisk (ℓ : ℝ → ℝ → ℝ)
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    (θ : EuclideanSpace ℝ (Fin P))
+    (hf : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ)
+    (hℓ : ∀ α : Fin m, HasDerivAt (fun f' => ℓ f' (y α))
+      (generalizedResidual ℓ f X y θ α) (f (X α) θ)) :
+    ‖gradient (generalizedEmpiricalRisk ℓ f X y) θ‖ ^ 2 =
+      ((m : ℝ) ^ 2)⁻¹ * ((generalizedResidual ℓ f X y θ).ofLp ⬝ᵥ
+        (empiricalNTKMatrix f X θ *ᵥ (generalizedResidual ℓ f X y θ).ofLp)) := by
+  rw [gradient_generalizedRisk ℓ f X y θ hf hℓ, norm_smul, mul_pow, Real.norm_eq_abs, sq_abs,
+    norm_sq_sum_smul_eq_dotProduct]
+  have hK : Matrix.of (fun α β => ⟪tangentFeature f (X α) θ, tangentFeature f (X β) θ⟫) =
+      empiricalNTKMatrix f X θ := by
+    ext α β
+    simp [empiricalNTKMatrix_apply]
+  rw [hK, inv_pow]
+
+/-- Squared-loss case: `‖∇_θ L(θ)‖² = (1/m²) r(θ)ᵀ K(θ) r(θ)`. -/
+theorem norm_sq_gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
+    ‖gradient (mseLoss f X y) θ‖ ^ 2 =
+      ((m : ℝ) ^ 2)⁻¹ * ((trainingResidual f X y θ).ofLp ⬝ᵥ
+        (empiricalNTKMatrix f X θ *ᵥ (trainingResidual f X y θ).ofLp)) := by
+  have h := norm_sq_gradient_generalizedRisk (fun f' y' => (1 / 2 : ℝ) * (f' - y') ^ 2) f X y θ
+    hdiff (fun β => hasDerivAt_squaredLoss_generalizedResidual f X y θ β)
+  rwa [generalizedEmpiricalRisk_squaredLoss_eq_mseLoss,
+    generalizedResidual_squaredLoss_eq_trainingResidual] at h
+
+/-- **Kinetic energy of the training flow.** Along a forward gradient flow of the MSE loss, at every
+positive time `‖θ'(t)‖² = (1/m²) r(t)ᵀ K_t r(t)`. -/
+theorem norm_deriv_sq_eq_quadratic_form_of_forwardGF
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj) {t : ℝ} (ht : 0 < t)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    ‖deriv θ_traj t‖ ^ 2 =
+      ((m : ℝ) ^ 2)⁻¹ * ((trainingResidual f X y (θ_traj t)).ofLp ⬝ᵥ
+        (empiricalNTKMatrix f X (θ_traj t) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp)) := by
+  rw [hflow.norm_deriv_sq ht, norm_sq_gradient_mseLoss f X y _ hdiff]
+
+/-- **Integrated kinetic energy.** Along a forward gradient flow of the MSE loss on `[0, T]`,
+  `L(θ(0)) - L(θ(T)) = ∫₀ᵀ (1/m²) r(t)ᵀ K_t r(t) dt = ∫₀ᵀ ‖θ'(t)‖² dt`. -/
+theorem mseLoss_sub_eq_integral_quadratic_form
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj) {T : ℝ} (hT : 0 ≤ T)
+    (hdiff : ∀ t ∈ Set.Icc 0 T, ∀ β : Fin m,
+      DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
+    mseLoss f X y (θ_traj 0) - mseLoss f X y (θ_traj T) =
+      ∫ t in (0 : ℝ)..T, ((m : ℝ) ^ 2)⁻¹ * ((trainingResidual f X y (θ_traj t)).ofLp ⬝ᵥ
+        (empiricalNTKMatrix f X (θ_traj t) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp)) ∧
+    mseLoss f X y (θ_traj 0) - mseLoss f X y (θ_traj T) =
+      ∫ t in (0 : ℝ)..T, ‖deriv θ_traj t‖ ^ 2 := by
+  have hL : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ (mseLoss f X y) (θ_traj t) := fun t ht =>
+    (hasGradientAt_mseLoss f X y (θ_traj t) (hdiff t ht)).differentiableAt
+  refine ⟨?_, (hflow.integral_norm_deriv_sq_eq_sub hT hL).symm⟩
+  rw [← hflow.integral_norm_sq_gradient_eq_sub hT hL]
+  refine intervalIntegral.integral_congr fun t ht => ?_
+  rw [Set.uIcc_of_le hT] at ht
+  exact norm_sq_gradient_mseLoss f X y _ (hdiff t ht)
+
+/-- **Coordinate form of the training flow.** Along a forward gradient flow of the MSE loss, every
+parameter coordinate moves by `∂_t θ_k = -(1/m) [J(θ)ᵀ r(θ)]_k = -(1/m) ∑_α r^α ∂_{θ_k} f^α`.
+Network-specific instances (the `a_i` and `W_{ij}` equations) follow by reading off the Jacobian
+entry. -/
+theorem hasDerivAt_coord_of_forwardGF
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj) {t : ℝ} (ht : 0 < t)
+    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) (k : Fin P) :
+    HasDerivAt (fun s => θ_traj s k)
+      (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual f X y (θ_traj t) α *
+        outputJacobian f X (θ_traj t) α k)) t := by
+  have h := (hasDerivAt_euclideanSpace _ _ _).1 (hflow.ode t ht) k
+  have hk := gradient_mseLoss_apply_j f X y (θ_traj t) hdiff k
+  rw [Matrix.mulVec_apply, dotProduct] at hk
+  simp only [PiLp.neg_apply, hk] at h
+  convert h using 2
+  refine congrArg _ (Finset.sum_congr rfl fun α _ => ?_)
+  simp [Matrix.transpose_apply, Matrix.row_apply, mul_comm]
+
 /-! ### Reusable Analytic Tool: Grönwall Differential Inequality -/
 
 /-- Interval-Restricted Grönwall Decay Lemma:
@@ -1295,6 +1415,100 @@ theorem matrix_exp_loss_decay
   rw [h0] at h_decay
   exact h_decay
 
+/-! ### Eigenmodes of the Fixed-Kernel Residual (Phase 15)
+
+For a symmetric kernel `K` the closed-form residual `exp(-(t/m) K) r₀` decouples in the orthonormal
+eigenbasis `v_k` of `K`: the coordinate `⟪v_k, r(t)⟫` decays as `exp(-λ_k t / m) ⟪v_k, r₀⟫`. The
+statements use Mathlib's `Matrix.IsHermitian.eigenvectorBasis`; nothing about the spectral theorem
+is reproved. -/
+
+/-- The matrix exponential acts on an eigenvector by the scalar exponential:
+`K v = λ v` implies `exp(s K) v = exp(s λ) v`. No symmetry is needed. -/
+theorem matrix_exp_smul_mulVec_of_eigenvector (K : Matrix (Fin m) (Fin m) ℝ) (s : ℝ)
+    {v : Fin m → ℝ} {lam : ℝ} (hv : K *ᵥ v = lam • v) :
+    NormedSpace.exp (s • K) *ᵥ v = Real.exp (s * lam) • v := by
+  have hpow : ∀ n : ℕ, (s • K) ^ n *ᵥ v = (s * lam) ^ n • v := by
+    intro n
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [pow_succ', ← Matrix.mulVec_mulVec, ih, Matrix.mulVec_smul, Matrix.smul_mulVec, hv,
+        smul_smul, smul_smul]
+      congr 1
+      ring
+  have hsum : HasSum (fun n : ℕ => ((n.factorial : ℝ)⁻¹) • (s • K) ^ n)
+      (NormedSpace.exp (s • K)) :=
+    @NormedSpace.exp_series_hasSum_exp' ℝ (Matrix (Fin m) (Fin m) ℝ) _ _ _ _ _
+      (instCompleteSpaceMatrix m) (s • K)
+  have hsum' := (toEuclideanVecCLM v).hasSum hsum
+  have hreal : HasSum (fun n : ℕ => ((n.factorial : ℝ)⁻¹ * (s * lam) ^ n) •
+      (WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m)))
+      (Real.exp (s * lam) • (WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m))) := by
+    have := (NormedSpace.exp_series_hasSum_exp' (𝕂 := ℝ) (s * lam))
+    have h2 := this.smul_const (WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m))
+    simpa [Real.exp_eq_exp_ℝ, smul_eq_mul, mul_smul] using h2
+  have hEq : (fun n : ℕ => (toEuclideanVecCLM v) ((n.factorial : ℝ)⁻¹ • (s • K) ^ n)) =
+      fun n : ℕ => ((n.factorial : ℝ)⁻¹ * (s * lam) ^ n) •
+        (WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m)) := by
+    funext n
+    simp only [toEuclideanVecCLM, ContinuousLinearMap.coe_mk', LinearMap.coe_mk, AddHom.coe_mk,
+      Matrix.smul_mulVec, hpow, smul_smul]
+    ext i
+    simp [mul_smul, mul_assoc]
+  rw [hEq] at hsum'
+  have h3 := congrArg WithLp.ofLp (hsum'.unique hreal)
+  simpa [toEuclideanVecCLM] using h3
+
+/-- For a symmetric matrix `K`, the exponential `exp(s K)` scales the coordinate of `r` along an
+eigenvector `v` (`K v = λ v`) by `exp(s λ)`. -/
+theorem inner_matrix_exp_mulVec_of_eigenvector {K : Matrix (Fin m) (Fin m) ℝ} (hK : Kᵀ = K)
+    (s : ℝ) {v : Fin m → ℝ} {lam : ℝ} (hv : K *ᵥ v = lam • v) (r : EuclideanSpace ℝ (Fin m)) :
+    ⟪(WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m)),
+        (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))⟫ =
+      Real.exp (s * lam) * ⟪(WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m)), r⟫ := by
+  have hsymm : (NormedSpace.exp (s • K))ᵀ = NormedSpace.exp (s • K) := by
+    apply Matrix.IsSymm.exp
+    simp [Matrix.IsSymm, Matrix.transpose_smul, hK]
+  have h1 := matrix_exp_smul_mulVec_of_eigenvector K s hv
+  simp only [EuclideanSpace.inner_eq_star_dotProduct, star_trivial]
+  rw [dotProduct_comm, Matrix.dotProduct_mulVec]
+  conv_lhs => rw [← hsymm, Matrix.vecMul_transpose, h1]
+  rw [smul_dotProduct, dotProduct_comm]
+  rfl
+
+/-- **Eigenmode coordinates of `exp(s K) r`.** For a Hermitian `K` with Mathlib's eigenbasis `v_k`
+and eigenvalues `λ_k`, `⟪v_k, exp(s K) r⟫ = exp(s λ_k) ⟪v_k, r⟫`. With `s = -t / m` this is the
+decoupled mode equation `r_k(t) = exp(-λ_k t / m) r_k(0)` of the frozen-kernel residual. -/
+theorem inner_eigenvectorBasis_matrix_exp_mulVec {K : Matrix (Fin m) (Fin m) ℝ}
+    (hK : K.IsHermitian) (s : ℝ) (r : EuclideanSpace ℝ (Fin m)) (k : Fin m) :
+    ⟪hK.eigenvectorBasis k,
+        (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))⟫ =
+      Real.exp (s * hK.eigenvalues k) * ⟪hK.eigenvectorBasis k, r⟫ := by
+  have hT : Kᵀ = K := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using hK.eq
+  exact inner_matrix_exp_mulVec_of_eigenvector hT s (hK.mulVec_eigenvectorBasis k) r
+
+/-- **Spectral expansion of the frozen-kernel residual:**
+`exp(s K) r = ∑_k exp(s λ_k) ⟪v_k, r⟫ v_k`. -/
+theorem matrix_exp_mulVec_eq_sum_eigenmodes {K : Matrix (Fin m) (Fin m) ℝ}
+    (hK : K.IsHermitian) (s : ℝ) (r : EuclideanSpace ℝ (Fin m)) :
+    (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m)) =
+      ∑ k, (Real.exp (s * hK.eigenvalues k) * ⟪hK.eigenvectorBasis k, r⟫) •
+        hK.eigenvectorBasis k := by
+  conv_lhs => rw [← hK.eigenvectorBasis.sum_repr
+    (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  rw [OrthonormalBasis.repr_apply_apply, inner_eigenvectorBasis_matrix_exp_mulVec hK s r k]
+
+/-- **Modal energy (Parseval):** `‖exp(s K) r‖² = ∑_k exp(s λ_k)² ⟪v_k, r⟫²`. -/
+theorem norm_sq_matrix_exp_mulVec_eq_sum {K : Matrix (Fin m) (Fin m) ℝ}
+    (hK : K.IsHermitian) (s : ℝ) (r : EuclideanSpace ℝ (Fin m)) :
+    ‖(WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))‖ ^ 2 =
+      ∑ k, Real.exp (s * hK.eigenvalues k) ^ 2 * ⟪hK.eigenvectorBasis k, r⟫ ^ 2 := by
+  rw [← hK.eigenvectorBasis.sum_sq_inner_right]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  rw [inner_eigenvectorBasis_matrix_exp_mulVec hK s r k, mul_pow]
+
 /-! ### Deterministic Lipschitz Propagation for Empirical NTK (Gap 2)
 
 Under parameter displacement `‖θ - θ₀‖`, the variation in the empirical NTK Gram matrix
@@ -1717,9 +1931,8 @@ lemma mseLoss_le_of_hasDerivWithinAt_neg_gradient (f : ι → EuclideanSpace ℝ
   have hd : ∀ t ∈ Set.Icc 0 S, HasDerivWithinAt (fun s => mseLoss f X y (θ s))
       (-‖gradient (mseLoss f X y) (θ t)‖ ^ 2) (Set.Icc 0 S) t := by
     intro t ht
-    have hg := (hasGradientAt_mseLoss f X y (θ t) (hdiff t ht)).differentiableAt.hasGradientAt
-    have h2 := hg.hasFDerivAt.comp_hasDerivWithinAt t (hθ t ht)
-    rwa [InnerProductSpace.toDual_apply_apply, inner_neg_right, real_inner_self_eq_norm_sq] at h2
+    exact hasDerivWithinAt_comp_of_neg_gradient
+      (hasGradientAt_mseLoss f X y (θ t) (hdiff t ht)).differentiableAt (hθ t ht)
   have hanti : AntitoneOn (fun s => mseLoss f X y (θ s)) (Set.Icc 0 S) := by
     refine antitoneOn_of_hasDerivWithinAt_nonpos (convex_Icc 0 S)
       (fun t ht => (hd t ht).continuousWithinAt)
@@ -2499,6 +2712,33 @@ theorem residual_sub_matrix_exp_le
   intro t ht
   have := h t ht
   simpa [hs0] using this
+
+/-- **Eigenmodes of the actual residual.** Under the hypotheses of `residual_sub_matrix_exp_le`,
+each eigenmode of the training residual follows the frozen-kernel decay up to the lazy-training
+error:
+`|⟪v_k, r(t)⟫ - exp(-(t/m) λ_k) ⟪v_k, r(0)⟫| ≤ (1/m) ε_K ‖r(0)‖ t`, where `(λ_k, v_k)` are the
+eigenpairs of the positive semidefinite limiting kernel `K_inf`. -/
+theorem abs_inner_eigenvector_residual_sub_mode_le
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) {K_inf : Matrix (Fin m) (Fin m) ℝ}
+    (hK_inf : K_inf.PosSemidef) (r : ℝ → EuclideanSpace ℝ (Fin m)) {T ε_K : ℝ} (hT : 0 ≤ T)
+    (hm : 0 < (m : ℝ)) (hrc : ContinuousOn r (Set.Icc 0 T))
+    (hr : ∀ t ∈ Set.Ioo 0 T,
+      HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hK : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (hb : ∀ t ∈ Set.Icc 0 T, ‖K t - K_inf‖ ≤ ε_K) (k : Fin m) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      |⟪hK_inf.isHermitian.eigenvectorBasis k, r t⟫ -
+          Real.exp (-(t / (m : ℝ)) * hK_inf.isHermitian.eigenvalues k) *
+            ⟪hK_inf.isHermitian.eigenvectorBasis k, r 0⟫| ≤
+        (m : ℝ)⁻¹ * (ε_K * ‖r 0‖) * t := by
+  intro t ht
+  have hmain := residual_sub_matrix_exp_le K K_inf r hT hm hrc hr hK
+    (fun v => by simpa using hK_inf.dotProduct_mulVec_nonneg v.ofLp) hb t ht
+  have hmode := inner_eigenvectorBasis_matrix_exp_mulVec hK_inf.isHermitian (-(t / (m : ℝ)))
+    (r 0) k
+  rw [← hmode, ← inner_sub_right]
+  exact (abs_real_inner_le_norm _ _).trans (by
+    rw [OrthonormalBasis.norm_eq_one, one_mul]; exact hmain)
 
 end LinearODECoefficientPerturbation
 

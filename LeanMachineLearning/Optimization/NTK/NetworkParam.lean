@@ -21,7 +21,7 @@ This module implements Gaps 1, 3, 4, and 6 of the NTK lazy training program
 
 Gap 1 bridges the curried `(W, a)` representation used by `evalSingle`/`evalVector`
 in `Initialization.lean` to the flat parameter vector
-`θ : EuclideanSpace ℝ (Fin (paramDim n d))` expected by `tangentFeature`,
+`θ : EuclideanSpace ℝ (Fin (n * d + n))` expected by `tangentFeature`,
 `outputJacobian`, and `empiricalNTKMatrix` in `Kernel.lean`. Gap 3 concentrates the output
 Jacobian's Frobenius norm at initialization; Gap 4 gives a local Lipschitz bound on the
 Jacobian. Gap 6 (`lazy_training_kernel_freeze_bound_of_gaussian_init`) wires all of this,
@@ -29,7 +29,6 @@ plus Gap 5's bootstrap in `InfiniteNTK.lean`, into a single fully probabilistic 
 no free `hlazy`/`hLip` hypotheses.
 
 ## Main Definitions
-- `paramDim n d`: Total parameter dimension `n * d + n` for width `n` and input dimension `d`.
 - `packParams W a`: Pack weights `W` and readout `a` into a flat parameter vector `θ`.
 - `unpackW θ`: Extract weight matrix `W : Fin n → Fin d → ℝ`.
 - `unpackA θ`: Extract readout vector `a : Fin n → ℝ`.
@@ -49,6 +48,8 @@ no free `hlazy`/`hLip` hypotheses.
 - `unpackW_tangentFeature`, `unpackA_tangentFeature`: Component-wise tangent feature equations.
 - `outputJacobian_netFromParams_apply_W`, `outputJacobian_netFromParams_apply_a`:
   Row evaluations of the output Jacobian delegating to `gradW` / `gradA`.
+- `forwardGF_readout_hasDerivAt`, `forwardGF_inputWeight_hasDerivAt`:
+  Phase 15 coordinate equations `∂_t a_i`, `∂_t W_{ij}` of the forward gradient flow.
 - `empiricalNTKMatrix_netFromParams_apply`:
   Two-block decomposition of the empirical NTK matrix.
 - `empiricalNTKMatrix_netFromParams_eq_neuron_sum`:
@@ -159,22 +160,18 @@ attribute [local instance]
 
 @[expose] public section
 
-/-- Total parameter count for a two-layer network with width `n` and input dimension `d`:
-`n * d` input weights in `W` and `n` readout weights in `a`. -/
-def paramDim (n d : ℕ) : ℕ := n * d + n
-
 /-- Canonical bijection between the disjoint union `(Fin n × Fin d) ⊕ Fin n` and the packed
-index type `Fin (paramDim n d)`. The left summand indexes `W_{i, j}` and the right summand
+index type `Fin (n * d + n)`. The left summand indexes `W_{i, j}` and the right summand
 indexes `a_i`. -/
-def paramIndexEquiv (n d : ℕ) : (Fin n × Fin d) ⊕ Fin n ≃ Fin (paramDim n d) :=
+def paramIndexEquiv (n d : ℕ) : (Fin n × Fin d) ⊕ Fin n ≃ Fin (n * d + n) :=
   (Equiv.sumCongr finProdFinEquiv (Equiv.refl (Fin n))).trans finSumFinEquiv
 
 /-- Index of the weight matrix entry `W_{i, j}` in the packed parameter vector. -/
-def idxW {n d : ℕ} (i : Fin n) (j : Fin d) : Fin (paramDim n d) :=
+def idxW {n d : ℕ} (i : Fin n) (j : Fin d) : Fin (n * d + n) :=
   paramIndexEquiv n d (Sum.inl (i, j))
 
 /-- Index of the readout weight `a_i` in the packed parameter vector. -/
-def idxA {n d : ℕ} (i : Fin n) : Fin (paramDim n d) :=
+def idxA {n d : ℕ} (i : Fin n) : Fin (n * d + n) :=
   paramIndexEquiv n d (Sum.inr i)
 
 @[simp]
@@ -188,20 +185,20 @@ lemma paramIndexEquiv_symm_idxA {n d : ℕ} (i : Fin n) :
   (paramIndexEquiv n d).symm_apply_apply (Sum.inr i)
 
 /-- Pack input weights `W` and readout weights `a` into a single flat vector in
-`EuclideanSpace ℝ (Fin (paramDim n d))`. -/
+`EuclideanSpace ℝ (Fin (n * d + n))`. -/
 noncomputable def packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
-    EuclideanSpace ℝ (Fin (paramDim n d)) :=
+    EuclideanSpace ℝ (Fin (n * d + n)) :=
   WithLp.toLp 2 (fun k => match (paramIndexEquiv n d).symm k with
     | Sum.inl (i, j) => W i j
     | Sum.inr i => a i)
 
 /-- Unpack the input weights `W : Fin n → Fin d → ℝ` from a flat parameter vector `θ`. -/
-noncomputable def unpackW {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+noncomputable def unpackW {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     Fin n → Fin d → ℝ :=
   fun i j => θ (idxW i j)
 
 /-- Unpack the readout weights `a : Fin n → ℝ` from a flat parameter vector `θ`. -/
-noncomputable def unpackA {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+noncomputable def unpackA {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     Fin n → ℝ :=
   fun i => θ (idxA i)
 
@@ -230,7 +227,7 @@ lemma unpackA_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n �
   exact packParams_apply_idxA W a i
 
 @[simp]
-lemma packParams_unpack {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+lemma packParams_unpack {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     packParams (unpackW θ) (unpackA θ) = θ := by
   ext k
   dsimp [packParams]
@@ -258,11 +255,11 @@ lemma continuous_packParams {n d : ℕ} :
 
 /-- The continuous linear map `θ ↦ unpackW θ i ⊙ x`. Internal helper. -/
 private noncomputable def dotW_CLM {n d : ℕ} (i : Fin n) (x : Fin d → ℝ) :
-    EuclideanSpace ℝ (Fin (paramDim n d)) →L[ℝ] ℝ :=
+    EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ :=
   ∑ j : Fin d, (x j) • EuclideanSpace.proj (idxW i j)
 
 private lemma dotW_CLM_apply {n d : ℕ} (i : Fin n) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     dotW_CLM i x θ = unpackW θ i ⊙ x := by
   simp only [dotW_CLM, sum_apply, smul_apply, PiLp.proj_apply, smul_eq_mul, innerProduct]
   apply Finset.sum_congr rfl
@@ -273,7 +270,7 @@ private lemma dotW_CLM_apply {n d : ℕ} (i : Fin n) (x : Fin d → ℝ)
 /-- The inner product `⟪packParams W a, v⟫` expressed as a sum over the
 two coordinate blocks. -/
 lemma inner_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
-    (v : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (v : EuclideanSpace ℝ (Fin (n * d + n))) :
     ⟪packParams W a, v⟫ =
       (∑ i : Fin n, ∑ j : Fin d, W i j * unpackW v i j) +
       ∑ i : Fin n, a i * unpackA v i := by
@@ -311,11 +308,11 @@ lemma inner_packParams_packParams {n d : ℕ}
 
 /-- Single-output evaluation of a two-layer network from a packed parameter vector `θ`. -/
 noncomputable def netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) : ℝ :=
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) : ℝ :=
   evalSingle φ (unpackW θ) (unpackA θ) x
 
 lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ x) :=
   evalSingle_eq_normalized_sum φ (unpackW θ) (unpackA θ) x
 
@@ -338,27 +335,27 @@ lemma trainingResidual_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
 /-- Gradient block for input weights `W`:
 `∂f/∂W_{i, j} = n^{-1/2} a_i φ'(W_i ⊙ x) x_j`. -/
 noncomputable def gradW (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) : Fin n → Fin d → ℝ :=
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) : Fin n → Fin d → ℝ :=
   fun i j => (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x) * x j
 
 /-- Gradient block for readout weights `a`:
 `∂f/∂a_i = n^{-1/2} φ(W_i ⊙ x)`. -/
 noncomputable def gradA (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) : Fin n → ℝ :=
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) : Fin n → ℝ :=
   fun i => (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ x)
 
-/-- The packed gradient vector in `EuclideanSpace ℝ (Fin (paramDim n d))`. -/
+/-- The packed gradient vector in `EuclideanSpace ℝ (Fin (n * d + n))`. -/
 noncomputable def gradParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
-    EuclideanSpace ℝ (Fin (paramDim n d)) :=
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    EuclideanSpace ℝ (Fin (n * d + n)) :=
   packParams (gradW φ n d x θ) (gradA φ n d x θ)
 
 /-- Fréchet derivative of `netFromParams` with respect to parameters `θ`. -/
 theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
     HasFDerivAt (netFromParams φ n d x)
-      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin (paramDim n d)))
+      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin (n * d + n)))
         (gradParams φ n d x θ)) θ := by
   have h_comp : ∀ i : Fin n, HasFDerivAt (fun θ => φ (unpackW θ i ⊙ x))
       (deriv φ (unpackW θ i ⊙ x) • dotW_CLM i x) θ := by
@@ -372,13 +369,13 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
       simp only [Function.comp_apply, dotW_CLM_apply]
     rwa [h_eq] at h
   have h_a : ∀ i : Fin n, HasFDerivAt (fun θ => unpackA θ i)
-      ((EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (paramDim n d)) →L[ℝ] ℝ)) θ := by
+      ((EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ)) θ := by
     intro i
-    exact (EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (paramDim n d)) →L[ℝ] ℝ).hasFDerivAt
+    exact (EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ).hasFDerivAt
   have h_mul : ∀ i : Fin n, HasFDerivAt (fun θ => unpackA θ i * φ (unpackW θ i ⊙ x))
       ((unpackA θ i) • (deriv φ (unpackW θ i ⊙ x) • dotW_CLM i x) +
        (φ (unpackW θ i ⊙ x)) •
-         (EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (paramDim n d)) →L[ℝ] ℝ)) θ := by
+         (EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ)) θ := by
     intro i
     exact (h_a i).mul (h_comp i)
   have h_sum := HasFDerivAt.sum (u := Finset.univ)
@@ -418,7 +415,7 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
 
 /-- Gradient of `netFromParams` with respect to parameters `θ`. -/
 theorem hasGradientAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
     HasGradientAt (netFromParams φ n d x) (gradParams φ n d x θ) θ := by
   rw [hasGradientAt_iff_hasFDerivAt]
@@ -426,7 +423,7 @@ theorem hasGradientAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
 
 /-- Gradient evaluation lemma for `netFromParams`. -/
 theorem gradient_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
     gradient (netFromParams φ n d x) θ = gradParams φ n d x θ :=
   (hasGradientAt_netFromParams φ n d x θ hφ).gradient
@@ -434,20 +431,20 @@ theorem gradient_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ
 /-- Equation lemma for `tangentFeature`:
 `tangentFeature (netFromParams φ n d) x θ = packParams (gradW ...) (gradA ...)`. -/
 theorem tangentFeature_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
     tangentFeature (netFromParams φ n d) x θ = gradParams φ n d x θ :=
   gradient_netFromParams φ n d x θ hφ
 
 /-- Equation lemma for `tangentFeature` when `φ` is globally differentiable. -/
 theorem tangentFeature_netFromParams_of_differentiable (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ)
-    (n d : ℕ) (x : Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (n d : ℕ) (x : Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     tangentFeature (netFromParams φ n d) x θ = gradParams φ n d x θ :=
   tangentFeature_netFromParams φ n d x θ (fun _ => hφ _)
 
 @[simp]
 lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
     unpackW (tangentFeature (netFromParams φ n d) x θ) = gradW φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
@@ -455,7 +452,7 @@ lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 
 @[simp]
 lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
     unpackA (tangentFeature (netFromParams φ n d) x θ) = gradA φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
@@ -463,7 +460,7 @@ lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 
 /-- Output Jacobian entry for `netFromParams` evaluated at `idxW i j`, delegating to `gradW`. -/
 lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
     (α : Fin m) (i : Fin n) (j : Fin d) :
     outputJacobian (netFromParams φ n d) X θ α (idxW i j) =
@@ -473,7 +470,7 @@ lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
 
 /-- Output Jacobian entry for `netFromParams` evaluated at `idxA i`, delegating to `gradA`. -/
 lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
     (α : Fin m) (i : Fin n) :
     outputJacobian (netFromParams φ n d) X θ α (idxA i) =
@@ -481,16 +478,51 @@ lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
   change unpackA (tangentFeature (netFromParams φ n d) (X α) θ) i = _
   rw [unpackA_tangentFeature φ n d (X α) θ (hφ α)]
 
+/-- **Readout-weight equation of the training flow.** Along a forward gradient flow of the MSE loss
+of a two-layer network, at every positive time
+  `∂_t a_i = -(1/m) ∑_α r^α ∂f^α/∂a_i = -(1/(m √n)) ∑_α r^α φ(W_i ⊙ x^α)`,
+where `∂f^α/∂a_i = gradA φ n d (x^α) θ i` (`unpackA_tangentFeature`). -/
+theorem forwardGF_readout_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m → Fin d → ℝ)
+    (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
+    {θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
+    (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ) {t : ℝ} (ht : 0 < t)
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⊙ X α)) (i : Fin n) :
+    HasDerivAt (fun s => unpackA (θ s) i)
+      (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual (netFromParams φ n d) X y (θ t) α *
+        gradA φ n d (X α) (θ t) i)) t := by
+  have h := hasDerivAt_coord_of_forwardGF (netFromParams φ n d) X y hflow ht
+    (fun β => (hasFDerivAt_netFromParams φ n d (X β) (θ t) (hφ β)).differentiableAt) (idxA i)
+  simp only [outputJacobian_netFromParams_apply_a φ n d m X (θ t) hφ] at h
+  exact h
+
+/-- **Input-weight equation of the training flow.** Under the hypotheses of
+`forwardGF_readout_hasDerivAt`, at every positive time
+  `∂_t W_{ij} = -(1/m) ∑_α r^α ∂f^α/∂W_{ij} = -(1/(m √n)) a_i ∑_α r^α φ'(W_i ⊙ x^α) x^α_j`,
+where `∂f^α/∂W_{ij} = gradW φ n d (x^α) θ i j` (`unpackW_tangentFeature`). -/
+theorem forwardGF_inputWeight_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m → Fin d → ℝ)
+    (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
+    {θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
+    (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ) {t : ℝ} (ht : 0 < t)
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⊙ X α))
+    (i : Fin n) (j : Fin d) :
+    HasDerivAt (fun s => unpackW (θ s) i j)
+      (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual (netFromParams φ n d) X y (θ t) α *
+        gradW φ n d (X α) (θ t) i j)) t := by
+  have h := hasDerivAt_coord_of_forwardGF (netFromParams φ n d) X y hflow ht
+    (fun β => (hasFDerivAt_netFromParams φ n d (X β) (θ t) (hφ β)).differentiableAt) (idxW i j)
+  simp only [outputJacobian_netFromParams_apply_W φ n d m X (θ t) hφ] at h
+  exact h
+
 /-- Squared Frobenius norm of an output Jacobian as its coordinate energy. -/
 lemma outputJacobian_frobenius_norm_sq_entries (n d m : ℕ) (φ : ℝ → ℝ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
-      ∑ α : Fin m, ∑ k : Fin (paramDim n d),
+      ∑ α : Fin m, ∑ k : Fin (n * d + n),
         (outputJacobian (netFromParams φ n d) X θ α k) ^ (2 : ℝ) := by
   rw [Matrix.frobenius_norm_def]
   simp only [Real.norm_eq_abs]
   rw [← Real.sqrt_eq_rpow]
-  have hnonneg : 0 ≤ ∑ α : Fin m, ∑ k : Fin (paramDim n d),
+  have hnonneg : 0 ≤ ∑ α : Fin m, ∑ k : Fin (n * d + n),
       |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ) := by
     apply Finset.sum_nonneg
     intro α hα
@@ -498,16 +530,16 @@ lemma outputJacobian_frobenius_norm_sq_entries (n d m : ℕ) (φ : ℝ → ℝ)
     intro k hk
     positivity
   calc
-    √(∑ α : Fin m, ∑ k : Fin (paramDim n d),
+    √(∑ α : Fin m, ∑ k : Fin (n * d + n),
         |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ)) ^ 2 =
-        ∑ α : Fin m, ∑ k : Fin (paramDim n d),
+        ∑ α : Fin m, ∑ k : Fin (n * d + n),
           |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
     _ = _ := by simp [sq_abs]
 
 /-- Closed-form decomposition of the squared Frobenius norm of the output Jacobian into the
 input-weight and readout blocks. -/
 lemma outputJacobian_netFromParams_frobenius_norm_sq_rpow (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
       DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
@@ -534,7 +566,7 @@ lemma outputJacobian_netFromParams_frobenius_norm_sq_rpow (φ : ℝ → ℝ) (n 
 
 /-- Natural-power form of `outputJacobian_netFromParams_frobenius_norm_sq_rpow`. -/
 lemma outputJacobian_netFromParams_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
       DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
@@ -826,7 +858,7 @@ lemma two_mul_add_two_mul_sq (u v : ℝ) :
   have : 0 ≤ (u - v) ^ 2 := sq_nonneg (u - v)
   linarith
 
-lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖θ₁ - θ₂‖ ^ 2 =
       (∑ i : Fin n, ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
       ∑ i : Fin n, (unpackA θ₁ i - unpackA θ₂ i) ^ 2 := by
@@ -856,7 +888,7 @@ lemma innerProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :
   exact Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => x j - y j) z
 
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⊙ X α))
     (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⊙ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ₁ -
@@ -889,7 +921,7 @@ lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₂ hφ₂ α i]
 
 lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n)
+    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n)
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
@@ -1033,7 +1065,7 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
 
 
 lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
@@ -1078,7 +1110,7 @@ For parameters `θ₁, θ₂` whose readout weights are bounded by `R`, the Frob
 The `1 / √n` scaling rate is explicit. -/
 theorem outputJacobian_netFromParams_frobenius_sub_le
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
-    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
@@ -1149,7 +1181,7 @@ outputs and the output Jacobian on the dataset `X`, and `K` is the constant of t
 For a single test input use `m = 1`. -/
 theorem norm_trainingOutputs_netFromParams_sub_linearization_le
     (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
-    (θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
@@ -1175,7 +1207,7 @@ theorem norm_trainingOutputs_netFromParams_sub_linearization_le
 `K_x² = 2 R² C₂² ‖x‖⁴ + 3 C₁² ‖x‖²` and `R` bounds the readout weights of `θ₀`. -/
 theorem abs_netFromParams_sub_linearization_le
     (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) (n d : ℕ) (hn : 0 < n) (x : Fin d → ℝ)
-    (θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
@@ -1203,7 +1235,7 @@ is `(K_x / √n)`-Lipschitz relative to a base point `θ₀` whose readout weigh
 the one-point dataset `{x}`, whose Jacobian is the row `∇f(x; θ)`. -/
 theorem norm_gradParams_sub_le
     (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) (n d : ℕ) (hn : 0 < n) (x : Fin d → ℝ)
-    (θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
@@ -1230,7 +1262,7 @@ theorem norm_gradParams_sub_le
 /-- The empirical NTK Gram matrix of `netFromParams` decomposes into the sum of the
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
 theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
@@ -1252,7 +1284,7 @@ activation and derivative-weight contributions.
 section FullTwoLayerNTKFormula
 
 private lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by
   dsimp [gradA]
@@ -1265,7 +1297,7 @@ private lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → �
     _ = (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by rw [h_sqrt]
 
 private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradW φ n d x θ i ⊙ gradW φ n d x' θ i =
       (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
         deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by
@@ -1293,7 +1325,7 @@ private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fi
   exact h_alg
 
 private lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradW φ n d x θ i ⊙ gradW φ n d x' θ i + gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ *
         (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x') +
@@ -1305,7 +1337,7 @@ private lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x
 /-- The full empirical NTK matrix of `netFromParams` evaluated at sample pair `(α, β)`
 expressed explicitly as an empirical average over the `n` hidden neurons. -/
 theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m : ℕ)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
@@ -1323,7 +1355,7 @@ theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m
 /-! ### Scaled-Dataset Network Evaluation and Gradients -/
 
 lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
       (n : ℝ)⁻¹.sqrt * ∑ i : Fin n,
         unpackA θ i * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ x)) := by
@@ -1334,7 +1366,7 @@ lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
   rw [innerProduct_scaled_input]
 
 lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
       (n : ℝ)⁻¹.sqrt * ∑ i : Fin n,
         unpackA θ i * φ ((unpackW θ i ⊙ x) / Real.sqrt (d : ℝ)) := by
@@ -1345,7 +1377,7 @@ lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
   rw [innerProduct_scaled_input_div]
 
 lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) (j : Fin d) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (j : Fin d) :
     gradW φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i j =
       ((n : ℝ)⁻¹.sqrt * (Real.sqrt (d : ℝ))⁻¹) *
         (unpackA θ i * deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ x)) * x j) := by
@@ -1354,7 +1386,7 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
   ring
 
 lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i =
       (n : ℝ)⁻¹.sqrt * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ x)) := by
   dsimp [gradA]
@@ -1367,7 +1399,7 @@ dataset `(1 / √d) * X`, yielding the canonical two-layer NTK neuron-sum formul
 both activation covariance and `(1 / d) * (X α ⊙ X β)` derivative covariance. -/
 theorem empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum
     (φ : ℝ → ℝ) (n d m : ℕ) (hd : 0 < d)
-    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
       DifferentiableAt ℝ φ (unpackW θ i ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
     (α β : Fin m) :
@@ -2111,7 +2143,7 @@ weight `a i` is bounded by `R₀ + r`. This is what lets a concentration bound e
 the random initialization `θ₀` (Gap 4b) supply the uniform-over-a-ball bound Gap 4's Lipschitz
 theorem needs. -/
 private lemma abs_unpackA_le_of_displacement {n d : ℕ}
-    (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n)))
     (i : Fin n) (R₀ r : ℝ) (h₀ : |unpackA θ₀ i| ≤ R₀) (hr : ‖θ - θ₀‖ ≤ r) :
     |unpackA θ i| ≤ R₀ + r := by
   have hproj : |(θ - θ₀).ofLp (idxA i)| ≤ ‖θ - θ₀‖ := by
@@ -2219,9 +2251,9 @@ lemma jacobian_ball_bounds_of_initial_bounds
         (2 * (Real.sqrt (2 * Real.log (2 * n / δ)) + r) ^ 2 * C₂ ^ 2 *
           (∑ j : Fin d, X α j ^ 2) ^ 2 +
         3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2))) / Real.sqrt (n : ℝ) ≤ L_J) :
-    (∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ - packParams p.1 p.2‖ ≤ r →
+    (∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ - packParams p.1 p.2‖ ≤ r →
       ‖outputJacobian (netFromParams φ n d) X θ‖ ≤ M) ∧
-    (∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ - packParams p.1 p.2‖ ≤ r →
+    (∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ - packParams p.1 p.2‖ ≤ r →
       ‖outputJacobian (netFromParams φ n d) X θ -
         outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
           L_J * ‖θ - packParams p.1 p.2‖) := by
@@ -2235,7 +2267,7 @@ lemma jacobian_ball_bounds_of_initial_bounds
   -- Gap 4, applied on the ball of radius `r`: the Jacobian is `L_J`-Lipschitz there, since
   -- every `θ` with `‖θ - θ₀‖ ≤ r` has readout weights bounded by `R₀ + r` (deterministic
   -- ball-propagation of the entrywise concentration bound, `abs_unpackA_le_of_displacement`).
-  have hJ_lip_ball : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ - θ₀‖ ≤ r →
+  have hJ_lip_ball : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ - θ₀‖ ≤ r →
       ‖outputJacobian (netFromParams φ n d) X θ -
         outputJacobian (netFromParams φ n d) X θ₀‖ ≤ L_J * ‖θ - θ₀‖ := by
     intro θ hθ
@@ -2246,7 +2278,7 @@ lemma jacobian_ball_bounds_of_initial_bounds
       (fun _ _ => hφ.differentiableAt) (fun _ _ => hφ.differentiableAt) hRθ
     dsimp only at hKle
     exact hKle.trans (mul_le_mul_of_nonneg_right hL_J_ge (norm_nonneg _))
-  have hJ_bdd_ball : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ - θ₀‖ ≤ r →
+  have hJ_bdd_ball : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ - θ₀‖ ≤ r →
       ‖outputJacobian (netFromParams φ n d) X θ‖ ≤ M := by
     intro θ hθ
     have hstep : ‖outputJacobian (netFromParams φ n d) X θ‖ ≤
@@ -2279,7 +2311,7 @@ lemma lazy_training_global_bounds_of_initial_jacobian_and_readout_bounds
     (hp1 : ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
       M₀)
     (hp2 : ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)))
-    (θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))) (lambda_min₀ r C M L_J : ℝ)
+    (θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n))) (lambda_min₀ r C M L_J : ℝ)
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) (packParams p.1 p.2) θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m,
       DifferentiableAt ℝ (fun θ' => netFromParams φ n d (X β) θ') (θ_traj t))
@@ -2330,7 +2362,7 @@ lemma freeze_bound_of_initial_jacobian_and_readout_bounds
     (hp1 : ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
       M₀)
     (hp2 : ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)))
-    (θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))) (lambda_min₀ r C M L_J : ℝ)
+    (θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n))) (lambda_min₀ r C M L_J : ℝ)
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) (packParams p.1 p.2) θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m,
       DifferentiableAt ℝ (fun θ' => netFromParams φ n d (X β) θ') (θ_traj t))
@@ -2373,7 +2405,7 @@ theorem lazy_training_kernel_freeze_bound_of_gaussian_init
     (initMeasure n d).real
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
         let θ₀ := packParams p.1 p.2
-        ∀ (θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)))
+        ∀ (θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)))
           (lambda_min₀ r C M L_J : ℝ),
           ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ_traj →
           (∀ t : ℝ, ∀ β : Fin m,
@@ -2421,12 +2453,12 @@ variable {n d m : ℕ}
 
 /-- Coordinates of neuron `i` in the packed parameter vector: the readout `idxA i` (`none`) and
 the hidden weights `idxW i j` (`some j`). -/
-def neuronCoords (n d : ℕ) (i : Fin n) : Option (Fin d) → Fin (paramDim n d)
+def neuronCoords (n d : ℕ) (i : Fin n) : Option (Fin d) → Fin (n * d + n)
   | none => idxA i
   | some j => idxW i j
 
 private lemma norm_sq_restrictCoords_neuronCoords (i : Fin n)
-    (v : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (v : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) v‖ ^ 2 =
       (∑ j : Fin d, v (idxW i j) ^ 2) + v (idxA i) ^ 2 := by
   rw [norm_sq_restrictCoords, Fintype.sum_option]
@@ -2434,7 +2466,7 @@ private lemma norm_sq_restrictCoords_neuronCoords (i : Fin n)
   ring
 
 private lemma norm_sq_restrictCoords_neuronCoords_sub (i : Fin n)
-    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) (θ₁ - θ₂)‖ ^ 2 =
       (∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
         (unpackA θ₁ i - unpackA θ₂ i) ^ 2 := by
@@ -2442,24 +2474,24 @@ private lemma norm_sq_restrictCoords_neuronCoords_sub (i : Fin n)
   rfl
 
 private lemma norm_restrictCoords_neuronCoords_le (i : Fin n)
-    (v : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (v : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) v‖ ≤ ‖v‖ := by
   refine (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).1 ?_
-  have h := norm_sq_sub_unpack n d v (0 : EuclideanSpace ℝ (Fin (paramDim n d)))
-  have h0 := norm_sq_restrictCoords_neuronCoords_sub i v (0 : EuclideanSpace ℝ (Fin (paramDim n d)))
+  have h := norm_sq_sub_unpack n d v (0 : EuclideanSpace ℝ (Fin (n * d + n)))
+  have h0 := norm_sq_restrictCoords_neuronCoords_sub i v (0 : EuclideanSpace ℝ (Fin (n * d + n)))
   rw [sub_zero] at h h0
   rw [h0, h]
   have h1 : (∑ j : Fin d,
-      (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (paramDim n d))) i j) ^ 2) ≤
+      (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2) ≤
       ∑ i : Fin n, ∑ j : Fin d,
-        (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (paramDim n d))) i j) ^ 2 :=
+        (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2 :=
     Finset.single_le_sum (f := fun i : Fin n => ∑ j : Fin d,
-      (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (paramDim n d))) i j) ^ 2)
+      (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2)
       (fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _) (Finset.mem_univ i)
-  have h2 : (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (paramDim n d))) i) ^ 2 ≤
-      ∑ i : Fin n, (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (paramDim n d))) i) ^ 2 :=
+  have h2 : (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 ≤
+      ∑ i : Fin n, (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 :=
     Finset.single_le_sum (f := fun i : Fin n =>
-      (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (paramDim n d))) i) ^ 2)
+      (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2)
       (fun _ _ => sq_nonneg _) (Finset.mem_univ i)
   linarith
 
@@ -2498,7 +2530,7 @@ lemma neuronMoment_nonneg (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m → Fi
 
 /-- The squared norm of neuron `i`'s Jacobian block is its gradient-coordinate energy. -/
 private lemma neuron_jacobian_block_sq (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d)))
+    (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) (i : Fin n) :
     ∑ α : Fin m, ∑ o : Option (Fin d),
         outputJacobian (netFromParams φ n d) X θ α (neuronCoords n d i o) ^ 2 =
@@ -2511,7 +2543,7 @@ private lemma neuron_jacobian_block_sq (φ : ℝ → ℝ) (X : Fin m → Fin d �
   ring
 
 private lemma neuron_block_energy_le (φ : ℝ → ℝ) {C₁ : ℝ} (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hn : 0 < n)
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) (x : Fin d → ℝ) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (x : Fin d → ℝ) :
     (∑ j : Fin d, gradW φ n d x θ i j ^ 2) + gradA φ n d x θ i ^ 2 ≤
       (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) ^ 2 + unpackA θ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2) := by
   have hroot : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := Real.sq_sqrt (by positivity)
@@ -2538,7 +2570,7 @@ private lemma neuron_block_energy_le (φ : ℝ → ℝ) {C₁ : ℝ} (hC₁ : �
 
 /-- The displacement of neuron `i`'s coordinates, in the two forms used in the Jacobian-Lipschitz
 estimates. -/
-private lemma neuron_displacement_eq (i : Fin n) (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+private lemma neuron_displacement_eq (i : Fin n) (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n))) :
     (∑ j : Fin d, (unpackW θ₀ i j - unpackW θ i j) ^ 2) + (unpackA θ₀ i - unpackA θ i) ^ 2 =
       ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 := by
   have hc : ∀ a b : ℝ, (a - b) ^ 2 = (b - a) ^ 2 := fun a b => by ring
@@ -2557,7 +2589,7 @@ private lemma neuron_jacobian_block_energy_le_of_displacement (φ : ℝ → ℝ)
     (hC₁0 : 0 ≤ C₁) (hC₂0 : 0 ≤ C₂)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|) (hn : 0 < n)
-    (X : Fin m → Fin d → ℝ) (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))) (i : Fin n) :
+    (X : Fin m → Fin d → ℝ) (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     ∑ α : Fin m, ((∑ j : Fin d, gradW φ n d (X α) θ i j ^ 2) + gradA φ n d (X α) θ i ^ 2) ≤
       2 * ((n : ℝ)⁻¹ * neuronJacobianScaleSq φ C₁ X (unpackW θ₀ i) (unpackA θ₀ i)) +
       2 * ((n : ℝ)⁻¹ * neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
@@ -2596,7 +2628,7 @@ lemma outputJacobian_sub_norm_sq_le_neuron_sum (φ : ℝ → ℝ) (hφ : Differe
     (hC₁0 : 0 ≤ C₁) (hC₂0 : 0 ≤ C₂)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (X : Fin m → Fin d → ℝ) (θ θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))) :
+    (X : Fin m → Fin d → ℝ) (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖outputJacobian (netFromParams φ n d) X θ - outputJacobian (netFromParams φ n d) X θ₀‖ ^ 2 ≤
       (n : ℝ)⁻¹ * ∑ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
         ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 := by
@@ -2627,8 +2659,8 @@ lemma neuron_displacement_le (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) {C
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|) (hn : 0 < n) (hm : 0 < m)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))}
-    {θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))}
+    {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ_traj)
     {C R ν : ℝ} (hν : 0 < ν)
     (hdisp : ∀ t : ℝ, 0 ≤ t → ‖θ_traj t - θ₀‖ ≤ C)
@@ -2709,8 +2741,8 @@ theorem kernel_drift_le_of_neuron_moments (φ : ℝ → ℝ) (hφ : Differentiab
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|) (hn : 0 < n) (hm : 0 < m)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))}
-    {θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))}
+    {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ_traj)
     {C R ν M τ : ℝ} (hν : 0 < ν)
     (hdisp : ∀ t : ℝ, 0 ≤ t → ‖θ_traj t - θ₀‖ ≤ C)
@@ -3176,7 +3208,7 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
         (initMeasure n d).real E ≥ 1 - 2 * δ - 2 * ε - κ ∧ ∀ p ∈ E, p ∈ Extra n ∧
           ‖outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ M ∧
-          (∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          (∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ((∀ t : ℝ, 0 ≤ t →
@@ -3403,7 +3435,7 @@ theorem exists_measurableSet_global_lazy_training_event
       ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
         (initMeasure n d).real E ≥ 1 - 2 * δ - 2 * ε ∧ ∀ p ∈ E,
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             (∀ t : ℝ, 0 ≤ t →
@@ -3454,7 +3486,7 @@ theorem exists_measurableSet_global_lazy_training_event_inv_sqrt_width
       ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
         (initMeasure n d).real E ≥ 1 - 3 * δ - 2 * ε ∧ ∀ p ∈ E,
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             (∀ t : ℝ, 0 ≤ t →
@@ -3528,7 +3560,7 @@ theorem exists_kernel_freeze_event_of_positive_gap
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       (initMeasure n d).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ∀ t : ℝ, 0 ≤ t →
@@ -3564,7 +3596,7 @@ theorem global_positive_gap_lazy_training_limit
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -3615,7 +3647,7 @@ theorem global_positive_gap_lazy_training_limit_inv_sqrt_width
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -3673,7 +3705,7 @@ theorem exists_kernel_freeze_event_of_positive_gap_of_confidence
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       (initMeasure n d).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ∀ t : ℝ, 0 ≤ t →
@@ -3724,7 +3756,7 @@ theorem exists_measurableSet_finite_horizon_lazy_training_event
           (∀ i : Fin n, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))) ∧
           ‖outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ M ∧
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ∀ t ∈ Set.Icc (0 : ℝ) T,
@@ -3839,7 +3871,7 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
         ∀ p ∈ E,
           ‖trainingResidual (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ ≤ R ∧
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ∀ t ∈ Set.Icc (0 : ℝ) T,
@@ -3870,7 +3902,7 @@ theorem exists_finite_horizon_kernel_freeze_event
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       (initMeasure n d).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ∀ t ∈ Set.Icc (0 : ℝ) T,
@@ -3895,7 +3927,7 @@ theorem exists_finite_horizon_kernel_freeze_event_of_confidence
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       (initMeasure n d).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
-          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+          ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
             ∀ t ∈ Set.Icc (0 : ℝ) T,
@@ -3928,7 +3960,7 @@ For each width `n : ℕ`:
   `μ n := initMeasure n d`.
 - Parameter packing: `θ₀ n (p : Ω n) := packParams p.1 p.2`.
 - Random trajectory family:
-  `θ : ∀ n : ℕ, Ω n → ℝ → EuclideanSpace ℝ (Fin (paramDim n d))`
+  `θ : ∀ n : ℕ, Ω n → ℝ → EuclideanSpace ℝ (Fin (n * d + n))`
   satisfying:
   - Initial condition and gradient flow ODE: for each `n`, for `initMeasure n d`-almost every `p`,
     `ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -3981,7 +4013,7 @@ theorem finite_horizon_ntk_training_limit
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -4104,7 +4136,7 @@ theorem tendsto_measure_kernel_drift_finite_horizon
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4147,7 +4179,7 @@ theorem tendsto_measure_jacobian_drift_finite_horizon
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4191,7 +4223,7 @@ theorem tendsto_measure_linearization_error_finite_horizon
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4244,7 +4276,7 @@ theorem tendsto_measure_jacobian_drift_global_positive_gap
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4290,7 +4322,7 @@ theorem tendsto_measure_linearization_error_global_positive_gap
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4335,7 +4367,7 @@ are bounded by `R` and `‖θ - θ₀‖ ≤ C`, the network differs from its li
 `SmoothActivation`. -/
 private lemma abs_netFromParams_sub_linearization_le_of_disp {φ : ℝ → ℝ} {C₁ C₂ : ℝ}
     (hact : SmoothActivation φ C₁ C₂) {n d : ℕ} (hn : 0 < n) (x : Fin d → ℝ)
-    {θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d))} {R C : ℝ}
+    {θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n))} {R C : ℝ}
     (hR : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ C) :
     |netFromParams φ n d x θ - netFromParams φ n d x θ₀ - ⟪gradParams φ n d x θ₀, θ - θ₀⟫| ≤
       (Real.sqrt (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, x j ^ 2) ^ 2 +
@@ -4369,7 +4401,7 @@ theorem tendsto_measure_test_linearization_error_finite_horizon
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4419,7 +4451,7 @@ theorem tendsto_measure_test_linearization_error_global_positive_gap
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4475,7 +4507,7 @@ bounded by `R`, `‖θ - θ₀‖ ≤ Cd`, `‖J(θ₀)‖ ≤ M`, `‖J(θ) - J
 Lipschitz scale of `norm_gradParams_sub_le`. -/
 private lemma norm_crossKernel_sub_le {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : SmoothActivation φ C₁ C₂)
     {n d m : ℕ} (hn : 0 < n) (Xs : Fin m → Fin d → ℝ) (xs : Fin d → ℝ)
-    {θ₀ θ : EuclideanSpace ℝ (Fin (paramDim n d))} {R Cd M jr G₀ : ℝ}
+    {θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n))} {R Cd M jr G₀ : ℝ}
     (hR : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ Cd)
     (hJ₀ : ‖outputJacobian (netFromParams φ n d) Xs θ₀‖ ≤ M)
     (hJ : ‖outputJacobian (netFromParams φ n d) Xs θ -
@@ -4586,7 +4618,7 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4711,7 +4743,7 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4832,7 +4864,7 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (t : ℝ) (ht : 0 ≤ t)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -4976,7 +5008,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hKinv : IsUnit (limitingFullNTKMatrix φ X)) (t : ℝ) (ht : 0 ≤ t) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -5105,7 +5137,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
       have hpU2 : ‖empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ)
           Xs xs : Fin (m + 1) → Fin d → ℝ) (packParams p.1 p.2) - L'‖ < e := not_le.1 hpU'
       set θ₀ := packParams p.1 p.2 with hθ₀
-      set g : EuclideanSpace ℝ (Fin (paramDim n d)) :=
+      set g : EuclideanSpace ℝ (Fin (n * d + n)) :=
         tangentFeature (netFromParams φ n d) xs θ₀ with hg
       simp only [ht'eq, hflow.init]
       have hdiff : ∀ u : ℝ, ∀ β : Fin m, DifferentiableAt ℝ
@@ -5216,7 +5248,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hKpd : (limitingFullNTKMatrix φ X).PosDef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -5360,7 +5392,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
       have hpU2 : ‖empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ)
           Xs xs : Fin (m + 1) → Fin d → ℝ) (packParams p.1 p.2) - L'‖ < e := not_le.1 hpU'
       set θ₀ := packParams p.1 p.2 with hθ₀
-      set g : EuclideanSpace ℝ (Fin (paramDim n d)) :=
+      set g : EuclideanSpace ℝ (Fin (n * d + n)) :=
         tangentFeature (netFromParams φ n d) xs θ₀ with hg
       simp only [hflow.init]
       have hdiff : ∀ u : ℝ, ∀ β : Fin m, DifferentiableAt ℝ
@@ -5486,7 +5518,7 @@ theorem test_prediction_kernel_interpolation_limit
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hKpd : (limitingFullNTKMatrix φ X).PosDef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
@@ -5593,9 +5625,9 @@ theorem test_prediction_kernel_interpolation_limit
 packed parameters. -/
 private lemma continuous_trainingResidual_netFromParams {m : ℕ} (φ : ℝ → ℝ)
     (hφ : Differentiable ℝ φ) (n d : ℕ) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
-    Continuous (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+    Continuous (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) =>
       trainingResidual (netFromParams φ n d) X y θ) := by
-  have hnet : ∀ x : Fin d → ℝ, Continuous (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+  have hnet : ∀ x : Fin d → ℝ, Continuous (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) =>
       netFromParams φ n d x θ) := fun x =>
     continuous_iff_continuousAt.2 fun θ =>
       (hasFDerivAt_netFromParams φ n d x θ fun i => hφ.differentiableAt).continuousAt
@@ -5614,7 +5646,7 @@ theorem tendstoInDistribution_trainingResidual_matrix_exp
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (t : ℝ) (ht : 0 ≤ t)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -5656,7 +5688,7 @@ theorem tendstoInDistribution_trainingOutputs_matrix_exp
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (t : ℝ) (ht : 0 ≤ t)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -5738,7 +5770,7 @@ theorem global_positive_gap_lazy_training_limit
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : Matrix.PosSemidef (limitingFullNTKMatrix φ X - lambda_inf • 1))
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-      EuclideanSpace ℝ (Fin (paramDim n d)))
+      EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
     (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -5792,7 +5824,7 @@ variable {m d n : ℕ}
 readout blocks. -/
 lemma gradient_mseLoss_netFromParams_apply (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
-    (θ : EuclideanSpace ℝ (Fin (paramDim n d))) (k : Fin (paramDim n d)) :
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) (k : Fin (n * d + n)) :
     gradient (mseLoss (netFromParams φ n d) X y) θ k =
       (m : ℝ)⁻¹ * ∑ α : Fin m, (netFromParams φ n d (X α) θ - y α) *
         gradParams φ n d (X α) θ k := by
@@ -5821,50 +5853,50 @@ products of locally Lipschitz functions of the packed parameters. -/
 theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ)
     (hφL : LocallyLipschitz φ) (hdφL : LocallyLipschitz (deriv φ))
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
-    LocallyLipschitz (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+    LocallyLipschitz (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) =>
       -gradient (mseLoss (netFromParams φ n d) X y) θ) := by
-  have hproj : ∀ k : Fin (paramDim n d), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => θ k) := fun k =>
-    (ContinuousLinearMap.contDiff (EuclideanSpace.proj k : EuclideanSpace ℝ (Fin (paramDim n d))
+  have hproj : ∀ k : Fin (n * d + n), LocallyLipschitz
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => θ k) := fun k =>
+    (ContinuousLinearMap.contDiff (EuclideanSpace.proj k : EuclideanSpace ℝ (Fin (n * d + n))
       →L[ℝ] ℝ)).locallyLipschitz
   have hpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => unpackW θ i ⊙ X α) := fun i α => by
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => unpackW θ i ⊙ X α) := fun i α => by
     unfold innerProduct
     exact locallyLipschitz_finset_sum _ fun j _ => locallyLipschitz_mul_const _ (hproj _)
   have hφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => φ (unpackW θ i ⊙ X α)) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => φ (unpackW θ i ⊙ X α)) :=
     fun i α => hφL.comp (hpre i α)
   have hdφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => deriv φ (unpackW θ i ⊙ X α)) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => deriv φ (unpackW θ i ⊙ X α)) :=
     fun i α => hdφL.comp (hpre i α)
   have hnet : ∀ α : Fin m, LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => netFromParams φ n d (X α) θ) := fun α => by
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => netFromParams φ n d (X α) θ) := fun α => by
     simp only [netFromParams_eq_normalized_sum]
     exact locallyLipschitz_const_mul _ (locallyLipschitz_finset_sum _ fun i _ =>
       locallyLipschitz_mul_real (hproj _) (hφpre i α))
   have hres : ∀ α : Fin m, LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) => netFromParams φ n d (X α) θ - y α) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => netFromParams φ n d (X α) θ - y α) :=
     fun α => by
       simpa only [sub_eq_add_neg] using (hnet α).add (LipschitzWith.const (-(y α))).locallyLipschitz
   refine locallyLipschitz_euclidean_of_coord fun k => ?_
   obtain ⟨p, rfl⟩ := (paramIndexEquiv n d).surjective k
-  have hform : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+  have hform : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
       (-gradient (mseLoss (netFromParams φ n d) X y) θ) ((paramIndexEquiv n d) p) =
         -((m : ℝ)⁻¹ * ∑ α : Fin m, (netFromParams φ n d (X α) θ - y α) *
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) p)) := fun θ => by
     rw [PiLp.neg_apply, gradient_mseLoss_netFromParams_apply φ hφ]
   simp only [hform]
-  have hg : ∀ α : Fin m, LocallyLipschitz (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+  have hg : ∀ α : Fin m, LocallyLipschitz (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) =>
       gradParams φ n d (X α) θ ((paramIndexEquiv n d) p)) := fun α => by
     rcases p with ⟨i, j⟩ | i
-    · have : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+    · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inl (i, j))) =
             (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ X α) * X α j := fun θ =>
         packParams_apply_idxW _ _ i j
       simp only [this]
       exact locallyLipschitz_mul_const _ (locallyLipschitz_mul_real
         (locallyLipschitz_const_mul _ (hproj (idxA i))) (hdφpre i α))
-    · have : ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+    · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inr i)) =
             (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ X α) := fun θ => packParams_apply_idxA _ _ i
       simp only [this]
@@ -5894,7 +5926,7 @@ depending on the data but not on `θ`. Each neuron block satisfies
 `‖w_i‖² + a_i² ≤ ‖θ‖²`, and `φ(w ⊙ x)² ≤ 2 φ(0)² + 2 C₁² ‖w‖² ‖x‖²`. -/
 private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂) (hn : 0 < n)
     (X : Fin m → Fin d → ℝ) :
-    ∃ c₀ c₁ : ℝ, 0 ≤ c₀ ∧ 0 ≤ c₁ ∧ ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)),
+    ∃ c₀ c₁ : ℝ, 0 ≤ c₀ ∧ 0 ≤ c₁ ∧ ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
       ‖outputJacobian (netFromParams φ n d) X θ‖ ≤ c₀ + c₁ * ‖θ‖ := by
   obtain ⟨hC₁0, -, hφ_lip, -⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
@@ -5980,7 +6012,7 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
 (linear growth) and fixed width, `‖r(θ)‖ ≤ B` whenever `‖θ‖ ≤ ρ`. -/
 private lemma exists_residual_bound (hact : SmoothActivation φ C₁ C₂) (hn : 0 < n)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (ρ : ℝ) :
-    ∃ B : ℝ, 0 ≤ B ∧ ∀ θ : EuclideanSpace ℝ (Fin (paramDim n d)), ‖θ‖ ≤ ρ →
+    ∃ B : ℝ, 0 ≤ B ∧ ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ‖ ≤ ρ →
       ‖trainingResidual (netFromParams φ n d) X y θ‖ ≤ B := by
   obtain ⟨hC₁0, -, hφ_lip, -⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
@@ -6054,7 +6086,7 @@ initial size `B`; then `‖θ'‖ ≤ (1/m) ‖J(θ)‖ B ≤ K ‖θ‖ + ε` b
 Grönwall's inequality applies. Only forward time is used, and no bound on `φ` itself. -/
 private theorem forward_apriori_bound (hact : SmoothActivation φ C₁ C₂) (hn : 0 < n)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T r : ℝ) :
-    ∃ ρ : ℝ, ∀ (θ : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))) (S : ℝ), 0 ≤ S → S ≤ T →
+    ∃ ρ : ℝ, ∀ (θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))) (S : ℝ), 0 ≤ S → S ≤ T →
       ‖θ 0‖ ≤ r → (∀ t ∈ Set.Icc 0 S,
         HasDerivWithinAt θ (-gradient (mseLoss (netFromParams φ n d) X y) (θ t))
           (Set.Icc 0 S) t) → ‖θ S‖ ≤ ρ := by
@@ -6113,14 +6145,14 @@ private theorem forward_apriori_bound (hact : SmoothActivation φ C₁ C₂) (hn
 
 private theorem exists_forwardGradientFlow_of_pos (hact : SmoothActivation φ C₁ C₂)
     (hn : 0 < n) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
-    ∃ Φ : EuclideanSpace ℝ (Fin (paramDim n d)) → ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+    ∃ Φ : EuclideanSpace ℝ (Fin (n * d + n)) → ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
       (∀ θ₀, ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ (Φ θ₀)) ∧
-      Continuous (fun q : EuclideanSpace ℝ (Fin (paramDim n d)) × ℝ => Φ q.1 q.2) := by
+      Continuous (fun q : EuclideanSpace ℝ (Fin (n * d + n)) × ℝ => Φ q.1 q.2) := by
   obtain ⟨hφL, hdφL⟩ := activation_locallyLipschitz hact
   have hLL := locallyLipschitz_neg_gradient_mseLoss_netFromParams (n := n) φ hact.differentiable
     hφL hdφL X y
   obtain ⟨Φ, hΦ0, hΦd, hΦc⟩ := exists_forward_flow
-    (fun θ : EuclideanSpace ℝ (Fin (paramDim n d)) =>
+    (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) =>
       -gradient (mseLoss (netFromParams φ n d) X y) θ)
     (lipschitz_on_ball_of_locallyLipschitz hLL)
     (fun T r => forward_apriori_bound hact hn X y T r)
@@ -6136,14 +6168,14 @@ the a priori bound `forward_apriori_bound`; nothing is asserted for negative tim
 solutions can blow up. -/
 theorem exists_forwardGradientFlow (hact : SmoothActivation φ C₁ C₂) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
-    ∃ Φ : EuclideanSpace ℝ (Fin (paramDim n d)) → ℝ → EuclideanSpace ℝ (Fin (paramDim n d)),
+    ∃ Φ : EuclideanSpace ℝ (Fin (n * d + n)) → ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
       (∀ θ₀, ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ (Φ θ₀)) ∧
-      Continuous (fun q : EuclideanSpace ℝ (Fin (paramDim n d)) × ℝ => Φ q.1 q.2) := by
+      Continuous (fun q : EuclideanSpace ℝ (Fin (n * d + n)) × ℝ => Φ q.1 q.2) := by
   rcases Nat.eq_zero_or_pos n with rfl | hn
   · -- no parameters: the parameter space is a point
-    have hsub : ∀ u v : EuclideanSpace ℝ (Fin (paramDim 0 d)), u = v := fun u v => by
+    have hsub : ∀ u v : EuclideanSpace ℝ (Fin 0), u = v := fun u v => by
       ext k
-      exact (Fin.elim0 (by simpa [paramDim] using k) : False).elim
+      exact Fin.elim0 k
     refine ⟨fun θ₀ _ => θ₀, fun θ₀ => ⟨rfl, continuousOn_const, fun t _ => ?_⟩, continuous_fst⟩
     rw [show -gradient (mseLoss (netFromParams φ 0 d) X y) θ₀ = 0 from hsub _ _]
     exact hasDerivAt_const t θ₀
@@ -6153,8 +6185,8 @@ theorem exists_forwardGradientFlow (hact : SmoothActivation φ C₁ C₂) (n d m
 the two-layer network from the same initialization agree for all `t ≥ 0` (for a
 `SmoothActivation`). -/
 theorem forwardGradientFlow_unique (hact : SmoothActivation φ C₁ C₂) (X : Fin m → Fin d → ℝ)
-    (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (paramDim n d))}
-    {f g : ℝ → EuclideanSpace ℝ (Fin (paramDim n d))}
+    (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
+    {f g : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hf : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ f)
     (hg : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ g) :
     Set.EqOn f g (Set.Ici 0) := by
@@ -6173,7 +6205,7 @@ source's activation assumptions only. -/
 theorem exists_forwardGradientFlow_family (hact : SmoothActivation φ C₁ C₂) (d m : ℕ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
     ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-        EuclideanSpace ℝ (Fin (paramDim n d)),
+        EuclideanSpace ℝ (Fin (n * d + n)),
       (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) (packParams p.1 p.2)
         (θ n p)) ∧
       ∀ n t, Continuous (fun p => θ n p t) := by
@@ -6195,7 +6227,7 @@ theorem gradientFlow_finite_horizon_training_limit
     (hact : SmoothActivation φ C₁ C₂)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) :
     ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-        EuclideanSpace ℝ (Fin (paramDim n d)),
+        EuclideanSpace ℝ (Fin (n * d + n)),
       (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
       (∀ n t, Measurable (fun p => θ n p t)) ∧
@@ -6254,7 +6286,7 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-        EuclideanSpace ℝ (Fin (paramDim n d)),
+        EuclideanSpace ℝ (Fin (n * d + n)),
       (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
       (∀ n t, Measurable (fun p => θ n p t)) ∧
@@ -6328,7 +6360,7 @@ theorem gradientFlow_global_lazy_training_limit_of_feature_independence
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ lambda_inf : ℝ, 0 < lambda_inf ∧
         ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-            EuclideanSpace ℝ (Fin (paramDim n d)),
+            EuclideanSpace ℝ (Fin (n * d + n)),
           (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
           (∀ n t, Measurable (fun p => θ n p t)) ∧
@@ -6375,7 +6407,7 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
-        EuclideanSpace ℝ (Fin (paramDim n d)),
+        EuclideanSpace ℝ (Fin (n * d + n)),
       (∀ n p, ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) ∧
       (∀ n t, Measurable (fun p => θ n p t)) ∧

@@ -32,8 +32,6 @@ making it much easier to analyze than `f` itself.
   input dimension `d`, and width `m`.
 * `NTK.ShallowNetwork.eval` : evaluate `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)`.
 * `NTK.gaussianInit` : the standard Gaussian initialization measure on `ℝ^{m×d}`.
-* `NTK.frobeniusNorm` : the Frobenius norm `‖W‖_F = √(∑ᵢⱼ Wᵢⱼ²)`.
-* `NTK.frobeniusInner` : the Frobenius inner product `⟨A, B⟩_F = tr(Aᵀ B)`.
 * `NTK.gradientMatrix` : `∇_W f(x; W₀)` — the gradient of `f` w.r.t. `W` at `W₀`.
 * `NTK.linearization` : the first-order Taylor linearization `f₀(x; W)`.
 
@@ -46,28 +44,6 @@ open Real MeasureTheory ProbabilityTheory
 namespace NTK
 
 variable {d m : ℕ}
-
-/-! ### Frobenius norm and inner product -/
-
-/-- The Frobenius inner product of two matrices `A, B : Fin m → Fin d → ℝ`:
-  `⟨A, B⟩_F = ∑ᵢⱼ Aᵢⱼ · Bᵢⱼ`. -/
-noncomputable def frobeniusInner (A B : Fin m → Fin d → ℝ) : ℝ :=
-  ∑ i : Fin m, ∑ j : Fin d, A i j * B i j
-
-/-- The Frobenius norm of a matrix `W : Fin m → Fin d → ℝ`:
-  `‖W‖_F = √(∑ᵢⱼ Wᵢⱼ²)`. -/
-noncomputable def frobeniusNorm (W : Fin m → Fin d → ℝ) : ℝ :=
-  Real.sqrt (∑ i : Fin m, ∑ j : Fin d, W i j ^ 2)
-
-lemma frobeniusNorm_nonneg (W : Fin m → Fin d → ℝ) : 0 ≤ frobeniusNorm W := by
-  apply Real.sqrt_nonneg
-
-lemma frobeniusInner_self_eq_sq (W : Fin m → Fin d → ℝ) :
-    frobeniusInner W W = frobeniusNorm W ^ 2 := by
-  have h_nonneg : 0 ≤ ∑ i : Fin m, ∑ j : Fin d, W i j ^ 2 :=
-    Finset.sum_nonneg (fun i _ ↦ Finset.sum_nonneg (fun j _ ↦ sq_nonneg (W i j)))
-  simp only [frobeniusInner, frobeniusNorm, Real.sq_sqrt h_nonneg]
-  congr 1; ext i; congr 1; ext j; ring
 
 /-! ### Scaled shallow network (Definition 4.1 / Section 4.1) -/
 

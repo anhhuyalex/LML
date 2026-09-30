@@ -202,7 +202,7 @@ theorem rkhs_approx_by_network
       (B : ℝ), 0 ≤ B ∧
       ∀ᵐ W₀ ∂(gaussianInit m d),
         ∃ W : Fin m → Fin d → ℝ,
-          frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B ∧
+          Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B ∧
           ∀ x ∈ ntkDomain d, |net.eval x W - h x| ≤ ε := by
   sorry
 

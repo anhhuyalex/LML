@@ -181,14 +181,6 @@ lemma BetaSmooth.taylor_bound
   have h_sq : 0 ≤ (r - s) ^ 2 := sq_nonneg (r - s)
   nlinarith
 
--- Frobenius norm square equals the double sum of squared coordinate differences
-private lemma frobeniusNorm_sq_eq_sum {d m : ℕ} (W V : Fin m → Fin d → ℝ) :
-    (frobeniusNorm (fun i j => W i j - V i j))^2 =
-      ∑ i : Fin m, ∑ j : Fin d, (W i j - V i j)^2 := by
-  unfold frobeniusNorm
-  apply Real.sq_sqrt
-  exact Finset.sum_nonneg (fun i _ => Finset.sum_nonneg (fun j _ => sq_nonneg _))
-
 /-! ### Smooth linearization bound (Proposition 4.1) -/
 
 /-- **Proposition 4.1** (Telgarsky 2021).
@@ -206,7 +198,7 @@ theorem smoothLinearizationBound
     (hx : x ⊙ x ≤ 1)
     (W V : Fin m → Fin d → ℝ) :
     |net.eval x W - linearization (σ := σ) (σ' := deriv σ) net.outerCoeffs x V W|
-    ≤ β / (2 * Real.sqrt m) * frobeniusNorm (fun i j => W i j - V i j) ^ 2 := by
+    ≤ β / (2 * Real.sqrt m) * Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
   dsimp [ShallowNetwork.eval, linearization]
   have h_pull :
     (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * σ (∑ k : Fin d, W j k * x k) -
@@ -280,13 +272,16 @@ theorem smoothLinearizationBound
     = (∑ j : Fin m, ∑ k, (W j k - V j k)^2) * (x ⊙ x) := by rw [← Finset.sum_mul]
   have h_frob_def :
       ∑ j : Fin m, ∑ k, (W j k - V j k)^2 =
-        frobeniusNorm (fun i j => W i j - V i j) ^ 2 := (frobeniusNorm_sq_eq_sum W V).symm
+        Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
+    symm
+    apply Real.sq_sqrt
+    exact Finset.sum_nonneg (fun i _ => Finset.sum_nonneg (fun j _ => sq_nonneg _))
   have h_m_pos : 0 ≤ (m : ℝ)⁻¹.sqrt := Real.sqrt_nonneg _
   have h_final :
       (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, net.outerCoeffs j *
         (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
           deriv σ (∑ k, V j k * x k) * ∑ k, (W j k - V j k) * x k)| ≤
-        β / (2 * Real.sqrt m) * frobeniusNorm (fun i j => W i j - V i j) ^ 2 := by
+        β / (2 * Real.sqrt m) * Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
     calc
       (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, net.outerCoeffs j *
           (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
@@ -309,13 +304,14 @@ theorem smoothLinearizationBound
           (mul_le_mul_of_nonneg_left h_cs_sum h_beta_div)
           h_m_pos
       _ = (m : ℝ)⁻¹.sqrt *
-          (β / 2 * ((frobeniusNorm (fun i j => W i j - V i j) ^ 2) * (x ⊙ x))) := by
+          (β / 2 * ((Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2) * (x ⊙ x))) := by
         congr 2
-        rw [h_x_bound, h_frob, h_frob_def]
+        rw [h_x_bound, h_frob]
+        exact congrArg (fun z => z * (x ⊙ x)) h_frob_def
       _ ≤ (m : ℝ)⁻¹.sqrt *
-          (β / 2 * ((frobeniusNorm (fun i j => W i j - V i j) ^ 2) * 1)) := by
+          (β / 2 * ((Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2) * 1)) := by
         have h_frob_nonneg :
-            0 ≤ frobeniusNorm (fun i j => W i j - V i j) ^ 2 :=
+            0 ≤ Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 :=
           sq_nonneg _
         have h_beta_div : 0 ≤ β / 2 := by
           have h_beta : 0 ≤ β := (abs_nonneg _).trans (hσ.hessian_bound 0)
@@ -325,7 +321,7 @@ theorem smoothLinearizationBound
             (mul_le_mul_of_nonneg_left hx h_frob_nonneg)
             h_beta_div)
           h_m_pos
-      _ = β / (2 * Real.sqrt m) * frobeniusNorm (fun i j => W i j - V i j) ^ 2 := by
+      _ = β / (2 * Real.sqrt m) * Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
         rw [Real.sqrt_inv]
         ring
   exact h_final
@@ -813,7 +809,7 @@ lemma relu_error_sum_le
 lemma relu_error_cs_bound
     {d m : ℕ} (x : Fin d → ℝ) (hx : x ⊙ x ≤ 1)
     (W W₀ : Fin m → Fin d → ℝ) (B : ℝ)
-    (h_frob : frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B)
+    (h_frob : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B)
     (S : Finset (Fin m)) :
     ∑ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (S.card : ℝ) * B := by
   have h_cs1 : ∀ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by
@@ -852,12 +848,11 @@ lemma relu_error_cs_bound
         · exact Finset.subset_univ _
         · intro i _ _
           exact Finset.sum_nonneg (fun k _ => sq_nonneg _)
-      _ = (frobeniusNorm (fun i k => W i k - W₀ i k))^2 := by
-        unfold frobeniusNorm
+      _ = (Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2))^2 := by
         apply (Real.sq_sqrt _).symm
         exact Finset.sum_nonneg (fun i _ => Finset.sum_nonneg (fun k _ => sq_nonneg _))
       _ ≤ B^2 := by
-        have h_frob_nonneg : 0 ≤ frobeniusNorm (fun i k => W i k - W₀ i k) := frobeniusNorm_nonneg _
+        have h_frob_nonneg : 0 ≤ Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) := Real.sqrt_nonneg _
         nlinarith
   have h_CS_bound : (∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2))^2 ≤ (Real.sqrt (S.card : ℝ) * B)^2 := by
     calc (∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2))^2
@@ -868,7 +863,7 @@ lemma relu_error_cs_bound
   have h_nonneg_sum : 0 ≤ ∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) :=
     Finset.sum_nonneg (fun j _ => Real.sqrt_nonneg _)
   have h_B_nonneg : 0 ≤ B := by
-    have := frobeniusNorm_nonneg (fun i k => W i k - W₀ i k)
+    have := Real.sqrt_nonneg (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2)
     exact this.trans h_frob
   have h_nonneg_RHS : 0 ≤ Real.sqrt (S.card : ℝ) * B := mul_nonneg (Real.sqrt_nonneg _) h_B_nonneg
   have h_sqrt_le : ∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) ≤ Real.sqrt (S.card : ℝ) * B := by
@@ -877,7 +872,7 @@ lemma relu_error_cs_bound
 
 lemma card_largePerturb_bound
     {d m : ℕ} (W W₀ : Fin m → Fin d → ℝ) (r B : ℝ) (hr : 0 < r)
-    (h_frob : frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B) :
+    (h_frob : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B) :
     (largePerturb r W W₀).card ≤ (B / r) ^ 2 := by
   have hr_pos : 0 < r^2 := sq_pos_of_pos hr
   have hr_sq_le : ∀ j ∈ largePerturb r W W₀, r^2 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := by
@@ -898,8 +893,7 @@ lemma card_largePerturb_bound
             apply Finset.sum_nonneg
             intro k _
             exact sq_nonneg _
-    _ = (frobeniusNorm (fun i k => W i k - W₀ i k))^2 := by
-      unfold frobeniusNorm
+    _ = (Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2))^2 := by
       apply (Real.sq_sqrt _).symm
       apply Finset.sum_nonneg
       intro i _
@@ -907,8 +901,7 @@ lemma card_largePerturb_bound
       intro k _
       exact sq_nonneg _
     _ ≤ B^2 := by
-      have h_frob_nonneg : 0 ≤ frobeniusNorm (fun i k => W i k - W₀ i k) := by
-        unfold frobeniusNorm
+      have h_frob_nonneg : 0 ≤ Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) := by
         exact Real.sqrt_nonneg _
       nlinarith [h_frob, h_frob_nonneg]
   have h_bound : ((largePerturb r W W₀).card : ℝ) * r^2 ≤ B^2 := h_sum_lower.trans h_sum_upper
@@ -1101,9 +1094,8 @@ lemma reluLinearization_algebraic_bound
 lemma innerProduct_eq_zero_iff_eq_zero {d : ℕ} (x : Fin d → ℝ) : x ⊙ x = 0 ↔ x = 0 := by
   rw [← norm_sq_eq_innerProduct (WithLp.toLp 2 x)]; simp
 
-lemma frobeniusNorm_eq_zero {d m : ℕ} (W : Fin m → Fin d → ℝ) :
-  frobeniusNorm W = 0 ↔ W = 0 := by
-  unfold frobeniusNorm
+lemma sqrt_sum_sq_eq_zero {d m : ℕ} (W : Fin m → Fin d → ℝ) :
+  Real.sqrt (∑ i : Fin m, ∑ j : Fin d, W i j ^ 2) = 0 ↔ W = 0 := by
   rw [Real.sqrt_eq_zero (Finset.sum_nonneg (fun i _ ↦ Finset.sum_nonneg (fun j _ ↦ sq_nonneg (W i j))))]
   constructor
   · intro h
@@ -1151,7 +1143,7 @@ theorem reluLinearizationBound
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     1 - δ ≤ (gaussianInit m d).real {W₀ |
       ∀ W : Fin m → Fin d → ℝ,
-        frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B →
+        Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
           |net.eval x W -
            linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
@@ -1188,9 +1180,9 @@ theorem reluLinearizationBound
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W hW
     have hW_eq : W = W₀ := by
-      have hnorm := frobeniusNorm_nonneg (fun i k => W i k - W₀ i k)
-      have hnorm_zero : frobeniusNorm (fun i k => W i k - W₀ i k) = 0 := le_antisymm hW hnorm
-      have hdiff := (frobeniusNorm_eq_zero (fun i k => W i k - W₀ i k)).mp hnorm_zero
+      have hnorm := Real.sqrt_nonneg (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2)
+      have hnorm_zero : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) = 0 := le_antisymm hW hnorm
+      have hdiff := (sqrt_sum_sq_eq_zero (fun i k => W i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
     have hlin : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W₀ = net.eval x W₀ := by
       simp [linearization, ShallowNetwork.eval, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
@@ -1258,9 +1250,9 @@ theorem reluLinearizationBound
   exact le_trans h_diff_S (le_trans h_bound h_alg)
 
 lemma frob_sub_le {d m : ℕ} (V W W₀ : Fin m → Fin d → ℝ) (B : ℝ) (hB : 0 ≤ B)
-    (hV : frobeniusNorm (fun i k => V i k - W₀ i k) ≤ B)
-    (hW : frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B) :
-    frobeniusNorm (fun i k => V i k - W i k) ≤ 2 * B := by
+    (hV : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) ≤ B)
+    (hW : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B) :
+    Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W i k) ^ 2) ≤ 2 * B := by
   have h_cs : ∀ i k, (V i k - W i k)^2 ≤ 2 * (V i k - W₀ i k)^2 + 2 * (W i k - W₀ i k)^2 := by
     intro i k
     have h1 : 0 ≤ ((V i k - W₀ i k) + (W i k - W₀ i k))^2 := sq_nonneg _
@@ -1276,19 +1268,16 @@ lemma frob_sub_le {d m : ℕ} (V W W₀ : Fin m → Fin d → ℝ) (B : ℝ) (hB
         simp_rw [Finset.sum_add_distrib, ← Finset.mul_sum]
   have hV_nonneg : 0 ≤ ∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k)^2 := Finset.sum_nonneg (fun i _ => Finset.sum_nonneg (fun k _ => sq_nonneg _))
   have hV_sq : ∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k)^2 ≤ B^2 := by
-    have h1 := mul_le_mul hV hV (frobeniusNorm_nonneg _) hB
+    have h1 := mul_le_mul hV hV (Real.sqrt_nonneg _) hB
     rw [← sq] at h1
-    unfold frobeniusNorm at h1
     rw [Real.sq_sqrt hV_nonneg] at h1
     rwa [sq]
   have hW_nonneg : 0 ≤ ∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k)^2 := Finset.sum_nonneg (fun i _ => Finset.sum_nonneg (fun k _ => sq_nonneg _))
   have hW_sq : ∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k)^2 ≤ B^2 := by
-    have h1 := mul_le_mul hW hW (frobeniusNorm_nonneg _) hB
+    have h1 := mul_le_mul hW hW (Real.sqrt_nonneg _) hB
     rw [← sq] at h1
-    unfold frobeniusNorm at h1
     rw [Real.sq_sqrt hW_nonneg] at h1
     rwa [sq]
-  unfold frobeniusNorm
   have h_bound : ∑ i : Fin m, ∑ k : Fin d, (V i k - W i k)^2 ≤ (2 * B)^2 := by
     calc ∑ i : Fin m, ∑ k : Fin d, (V i k - W i k)^2
       _ ≤ 2 * (∑ i, ∑ k, (V i k - W₀ i k)^2) + 2 * (∑ i, ∑ k, (W i k - W₀ i k)^2) := h_sum
@@ -1363,8 +1352,8 @@ theorem reluLinearizationBound_secondOrder
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     1 - δ ≤ (gaussianInit m d).real {W₀ |
       ∀ W V : Fin m → Fin d → ℝ,
-        frobeniusNorm (fun i k => W i k - W₀ i k) ≤ B →
-        frobeniusNorm (fun i k => V i k - W₀ i k) ≤ B →
+        Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
+        Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) ≤ B →
           |net.eval x V -
            (net.eval x W +
             linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V -
@@ -1405,14 +1394,14 @@ theorem reluLinearizationBound_secondOrder
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W V hW hV
     have hW_eq : W = W₀ := by
-      have hnorm := frobeniusNorm_nonneg (fun i k => W i k - W₀ i k)
-      have hnorm_zero : frobeniusNorm (fun i k => W i k - W₀ i k) = 0 := le_antisymm hW hnorm
-      have hdiff := (frobeniusNorm_eq_zero (fun i k => W i k - W₀ i k)).mp hnorm_zero
+      have hnorm := Real.sqrt_nonneg (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2)
+      have hnorm_zero : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) = 0 := le_antisymm hW hnorm
+      have hdiff := (sqrt_sum_sq_eq_zero (fun i k => W i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
     have hV_eq : V = W₀ := by
-      have hnorm := frobeniusNorm_nonneg (fun i k => V i k - W₀ i k)
-      have hnorm_zero : frobeniusNorm (fun i k => V i k - W₀ i k) = 0 := le_antisymm hV hnorm
-      have hdiff := (frobeniusNorm_eq_zero (fun i k => V i k - W₀ i k)).mp hnorm_zero
+      have hnorm := Real.sqrt_nonneg (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2)
+      have hnorm_zero : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) = 0 := le_antisymm hV hnorm
+      have hdiff := (sqrt_sum_sq_eq_zero (fun i k => V i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
     rw [hW_eq, hV_eq]
     have hlin : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W₀ = net.eval x W₀ := by
@@ -1450,7 +1439,7 @@ theorem reluLinearizationBound_secondOrder
     have h1 : S.card ≤ S1.card + S2.card + S3.card := card_union3_le S1 S2 S3
     have h2 : (S.card : ℝ) ≤ (S1.card : ℝ) + (S2.card : ℝ) + (S3.card : ℝ) := by exact_mod_cast h1
     linarith
-  have h_frob_VW : frobeniusNorm (fun i k => V i k - W i k) ≤ 2 * B := frob_sub_le V W W₀ B hB h_V h_W
+  have h_frob_VW : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W i k) ^ 2) ≤ 2 * B := frob_sub_le V W W₀ B hB h_V h_W
   have h_diff_S : |net.eval x V - (net.eval x W + linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V - net.eval x W)| ≤ (2 * B) / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
     have h_ring : net.eval x V - (net.eval x W + linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V - net.eval x W) =
         net.eval x V - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V := by ring
