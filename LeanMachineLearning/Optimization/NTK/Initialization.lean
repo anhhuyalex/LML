@@ -1181,6 +1181,23 @@ theorem measureReal_inter_ge_of_ge {α : Type*} [MeasurableSpace α] (μ : Measu
   rw [hcompl] at h1
   linarith [h1, h2, h3, h4]
 
+/-- The complement of an intersection has measure at most the sum of the complements' measures.
+No measurability is needed. -/
+theorem measureReal_compl_inter_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [IsFiniteMeasure μ] (A B : Set α) :
+    μ.real (A ∩ B)ᶜ ≤ μ.real Aᶜ + μ.real Bᶜ := by
+  rw [Set.compl_inter]
+  exact measureReal_union_le _ _
+
+/-- On a probability measure, `1 - μ Sᶜ ≤ μ S` for an arbitrary (possibly non-measurable) `S`. -/
+theorem one_sub_le_measureReal_of_measureReal_compl_le {α : Type*} [MeasurableSpace α]
+    (μ : Measure α) [IsProbabilityMeasure μ] {S : Set α} {c : ℝ} (h : μ.real Sᶜ ≤ c) :
+    1 - c ≤ μ.real S := by
+  have h1 := measureReal_union_le (μ := μ) S Sᶜ
+  rw [Set.union_compl_self] at h1
+  have h2 : μ.real Set.univ = 1 := by simp
+  linarith
+
 /-- Lift Gap 4b's readout-only event to the full initialization product measure
 `initMeasure n d = (gaussianInit n d).prod (gaussianReadoutMeasure n)`. -/
 lemma initMeasure_forall_abs_readout_ge (n d : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)

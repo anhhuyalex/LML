@@ -138,6 +138,13 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
 * `NTK.deriv_norm_sq_le_of_rayleighRitz_timeVarying` : Step 2 Rayleigh-Ritz bound for `K(t)`.
 * `NTK.residual_norm_sq_exponential_decay_timeVarying` : Step 3 squared residual decay for `K(t)`.
 * `NTK.residual_norm_exponential_decay_timeVarying` : Step 3 residual norm decay for `K(t)`.
+* `NTK.le_of_forall_bootstrap` : generic continuous-induction principle on `[0, T]` (via Mathlib's
+  `IsClosed.Icc_subset_of_forall_mem_nhdsGT_of_Icc_subset`), shared by both displacement bootstraps.
+* `NTK.displacement_le_integral_of_rayleigh`, `NTK.displacement_bound_of_psd` : displacement
+  bounded by the integral of the speed bound; the `lambda_min = 0` case gives the no-gap linear
+  bound.
+* `NTK.finite_horizon_displacement_bound`, `NTK.finite_horizon_kernel_freeze_bound` : finite-horizon
+  bootstrap and kernel freeze on `[0, T]` with no spectral gap.
 * `NTK.norm_sub_le_of_linear_ode_perturbation` : **Phase 7** generic stability of `r' = -A(t) r`
   against `s' = -B(t) s` for PSD `A`: `‖r - s‖ ≤ ‖r(0) - s(0)‖ + a t` if `‖A - B‖ ‖s‖ ≤ a`.
 * `NTK.residual_sub_frozen_residual_le` : Phase 7 specialization to the NTK residual dynamics with
@@ -862,6 +869,11 @@ lemma gronwall_exponential_decay {E E' : ℝ → ℝ} {c : ℝ}
 
 /-! ### Step-by-Step Proof of Exponential Convergence of Training Loss -/
 
+/-- A positive semidefinite real matrix has a nonnegative quadratic form on `EuclideanSpace`. -/
+lemma dotProduct_mulVec_nonneg_of_posSemidef {A : Matrix (Fin m) (Fin m) ℝ} (hA : A.PosSemidef)
+    (v : EuclideanSpace ℝ (Fin m)) : 0 ≤ v.ofLp ⬝ᵥ (A *ᵥ v.ofLp) := by
+  simpa using hA.dotProduct_mulVec_nonneg v.ofLp
+
 /-- The Euclidean inner product `⟪v, A v⟫` equals the quadratic form `vᵀ A v`. -/
 lemma inner_toLp_mulVec_eq_dotProduct (A : Matrix (Fin m) (Fin m) ℝ)
     (v : EuclideanSpace ℝ (Fin m)) :
@@ -1434,21 +1446,24 @@ lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
       linarith [Real.exp_nonneg (-c * T)]
     _ = c⁻¹ := by ring
 
-/-- Gap 5 Step 1 deliverable: if the empirical NTK's Rayleigh quotient along the trajectory is
-bounded below by `lambda_min` throughout `[0, T]`, and the output Jacobian is `M`-bounded there
-too, then gradient flow has moved by at most `(M * ‖r₀‖) / lambda_min` from `θ₀` by time `T` -
-a bound with **no explicit dependence on `T`**, since the residual's exponential decay makes the
-total distance traveled converge. -/
-theorem displacement_integral_bound
+/-- **Displacement is at most the integral of the speed bound.** If the Rayleigh quotient of the
+empirical NTK along the trajectory is bounded below by `lambda_min` (any real, in particular `0`
+under positive semidefiniteness) and the output Jacobian is `M`-bounded on `[0, T]`, then
+`‖θ(T) - θ₀‖ ≤ ∫₀ᵀ (M / m) ‖r₀‖ exp(-(lambda_min / m) t) dt`. Both the gap and the no-gap
+displacement bounds are corollaries. -/
+theorem displacement_le_integral_of_rayleigh
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
     (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (T : ℝ) (hT : 0 ≤ T) (M lambda_min : ℝ) (hm : 0 < (m : ℝ)) (hlam : 0 < lambda_min)
+    (T : ℝ) (hT : 0 ≤ T) (M lambda_min : ℝ)
+    (hm : 0 < (m : ℝ))
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hJ_bdd : ∀ t ∈ Set.Icc 0 T, ‖outputJacobian f X (θ_traj t)‖ ≤ M)
     (h_rr : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m),
       lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ v.ofLp)) :
-    ‖θ_traj T - θ₀‖ ≤ (M * ‖trainingResidual f X y θ₀‖) / lambda_min := by
+    ‖θ_traj T - θ₀‖ ≤ ∫ t in (0:ℝ)..T,
+      (m : ℝ)⁻¹ * M * (‖trainingResidual f X y θ₀‖ *
+        Real.exp (-(lambda_min / (m : ℝ)) * t)) := by
   set r₀ : ℝ := ‖trainingResidual f X y θ₀‖ with hr₀_def
   have hr_ode : ∀ t : ℝ, HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
       (WithLp.toLp 2 (-(m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
@@ -1501,6 +1516,26 @@ theorem displacement_integral_bound
   have hmain := norm_sub_le_integral_of_norm_deriv_le_of_le hT hcont hdiffOn
     (Filter.Eventually.of_forall hderiv_bound) hBi
   rw [hflow.init] at hmain
+  exact hmain
+
+/-- Gap 5 Step 1 deliverable: if the empirical NTK's Rayleigh quotient along the trajectory is
+bounded below by `lambda_min` throughout `[0, T]`, and the output Jacobian is `M`-bounded there
+too, then gradient flow has moved by at most `(M * ‖r₀‖) / lambda_min` from `θ₀` by time `T` -
+a bound with **no explicit dependence on `T`**, since the residual's exponential decay makes the
+total distance traveled converge. -/
+theorem displacement_integral_bound
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (T : ℝ) (hT : 0 ≤ T) (M lambda_min : ℝ) (hm : 0 < (m : ℝ)) (hlam : 0 < lambda_min)
+    (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (hJ_bdd : ∀ t ∈ Set.Icc 0 T, ‖outputJacobian f X (θ_traj t)‖ ≤ M)
+    (h_rr : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m),
+      lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ v.ofLp)) :
+    ‖θ_traj T - θ₀‖ ≤ (M * ‖trainingResidual f X y θ₀‖) / lambda_min := by
+  have hmain := displacement_le_integral_of_rayleigh f X y hflow T hT M lambda_min hm hdiff
+    hJ_bdd h_rr
+  set r₀ : ℝ := ‖trainingResidual f X y θ₀‖ with hr₀_def
   have hMnn : 0 ≤ M := (norm_nonneg _).trans (hJ_bdd 0 ⟨le_refl 0, hT⟩)
   have hr0nn : 0 ≤ r₀ := norm_nonneg _
   have hintbound : ∫ t in (0:ℝ)..T,
@@ -1524,6 +1559,28 @@ theorem displacement_integral_bound
         (m : ℝ)⁻¹ * M * (r₀ * Real.exp (-(lambda_min / (m : ℝ)) * t)) := hmain
     _ ≤ (M * r₀) / lambda_min := hintbound
 
+
+/-- **Displacement bound on a finite horizon, with no spectral gap.** Positive semidefiniteness of
+the empirical NTK alone makes the residual norm nonincreasing, so if the output Jacobian is
+`M`-bounded on `[0, T]` then `‖θ(T) - θ₀‖ ≤ T * M * ‖r₀‖ / m`. The bound grows linearly in `T`, as
+it must without a gap. -/
+theorem displacement_bound_of_psd
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (T : ℝ) (hT : 0 ≤ T) (M : ℝ) (hm : 0 < (m : ℝ))
+    (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (hJ_bdd : ∀ t ∈ Set.Icc 0 T, ‖outputJacobian f X (θ_traj t)‖ ≤ M) :
+    ‖θ_traj T - θ₀‖ ≤ T * M * ‖trainingResidual f X y θ₀‖ / m := by
+  have h := displacement_le_integral_of_rayleigh f X y hflow T hT M 0 hm hdiff hJ_bdd
+    fun t _ v => by
+      simpa using dotProduct_mulVec_nonneg_of_posSemidef
+        (empiricalNTKMatrix_posSemidef f X (θ_traj t)) v
+  simp only [zero_div, neg_zero, zero_mul, Real.exp_zero, mul_one,
+    intervalIntegral.integral_const, smul_eq_mul, sub_zero] at h
+  calc ‖θ_traj T - θ₀‖ ≤ T * ((m : ℝ)⁻¹ * M * ‖trainingResidual f X y θ₀‖) := h
+    _ = T * M * ‖trainingResidual f X y θ₀‖ / m := by ring
+
 /-! ### Gap 5, Step 2: The Continuous-Induction Bootstrap
 
 The Rayleigh-quotient lower bound used by `displacement_integral_bound` is only known to hold
@@ -1533,6 +1590,38 @@ of radius `r`, the trajectory in fact stays within the strictly smaller radius `
 by continuity, means it can never actually reach the boundary `r` in the first place. This is
 formalized as a proof by contradiction using the infimum of the (assumed nonempty) set of "escape
 times", ruling out escape entirely and discharging `hlazy` with the tight constant `C`. -/
+
+/-- **Continuous-induction (bootstrap) principle on `[0, T]`.** Let `d` be continuous and
+`C < r`. Suppose that whenever `d ≤ r` holds on all of `[0, S]` (for `S ∈ [0, T]`), the sharper
+bound `d S ≤ C` holds. Then `d ≤ C` on all of `[0, T]`, i.e. `d` can never reach the threshold
+`r`. Used for the displacement bootstraps: `d t = ‖θ(t) - θ₀‖` while the Jacobian estimates only
+hold inside a ball. -/
+theorem le_of_forall_bootstrap {d : ℝ → ℝ} (hd : Continuous d) {r C T : ℝ} (hCr : C < r)
+    (hT : 0 ≤ T) (h0 : d 0 ≤ r)
+    (hstep : ∀ S ∈ Set.Icc (0 : ℝ) T, (∀ t ∈ Set.Icc (0 : ℝ) S, d t ≤ r) → d S ≤ C) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, d t ≤ C := by
+  have hzero : d 0 ≤ C := hstep 0 ⟨le_rfl, hT⟩ fun t ht => by
+    obtain rfl : t = 0 := le_antisymm ht.2 ht.1
+    exact h0
+  have h := IsClosed.Icc_subset_of_forall_mem_nhdsGT_of_Icc_subset
+    (s := {t : ℝ | d t ≤ C}) (a := 0) (b := T)
+    ((isClosed_le hd continuous_const).inter isClosed_Icc) hzero (fun t ht hsub => ?_)
+  · exact fun t htT => h htT
+  have hdt : d t < r := (hsub ⟨ht.1, le_rfl⟩).trans_lt hCr
+  obtain ⟨δ, hδ, hball⟩ :=
+    Metric.eventually_nhds_iff.1 (hd.continuousAt.eventually_lt continuousAt_const hdt)
+  have hδ' : 0 < min δ (T - t) := lt_min hδ (by linarith [ht.2])
+  refine Filter.mem_of_superset (Ioo_mem_nhdsGT (show t < t + min δ (T - t) by linarith)) ?_
+  intro u hu
+  have huT : u ≤ T := by linarith [hu.2, min_le_right δ (T - t)]
+  refine hstep u ⟨by linarith [ht.1, hu.1], huT⟩ fun t' ht' => ?_
+  by_cases hle : t' ≤ t
+  · exact (hsub ⟨ht'.1, hle⟩).trans hCr.le
+  · have hlt : t < t' := not_le.1 hle
+    have : dist t' t < δ := by
+      rw [Real.dist_eq, abs_of_pos (by linarith)]
+      linarith [ht'.2, hu.2, min_le_left δ (T - t)]
+    exact (hball this).le
 
 /-- **Gap 5 deliverable.** Given a base spectral-gap hypothesis `lambda_min₀` at `θ₀`, a Jacobian
 bound `M` and Lipschitz constant `L_J` that hold on the closed ball `‖θ - θ₀‖ ≤ r` (not globally -
@@ -1576,9 +1665,6 @@ theorem lazy_training_displacement_bound
       (mul_le_mul_of_nonneg_left hθ h2ML_J_nonneg).trans h_ball_gap
     have hge : lambda_min₀ - 2 * M * L_J * ‖θ - θ₀‖ ≥ lambda_min := by rw [hlm_def]; linarith
     nlinarith [hstep, mul_le_mul_of_nonneg_right hge (sq_nonneg ‖v‖)]
-  -- The set of "bad" times where the trajectory has left the radius-`r` ball around `θ₀`.
-  set Bad : Set ℝ := {t : ℝ | 0 ≤ t ∧ r < ‖θ_traj t - θ₀‖} with hBad_def
-  have hBad_bddBelow : BddBelow Bad := ⟨0, fun t ht => ht.1⟩
   -- Core claim: if the trajectory has stayed in the closed ball `[0, S]` for some `S`, its
   -- displacement at `S` is in fact bounded by the tighter constant `C`.
   have hcore : ∀ S : ℝ, 0 ≤ S → (∀ t ∈ Set.Icc (0:ℝ) S, ‖θ_traj t - θ₀‖ ≤ r) →
@@ -1594,65 +1680,58 @@ theorem lazy_training_displacement_bound
     rw [hlm_def] at hfinal
     exact hfinal.trans hC_ge
   intro T hT
-  by_contra hcon
-  push Not at hcon
-  -- If the trajectory never left the ball on `[0, T]`, `hcore` directly contradicts `hcon`.
-  by_cases hcase : ∀ t ∈ Set.Icc (0:ℝ) T, ‖θ_traj t - θ₀‖ ≤ r
-  · exact absurd (hcore T hT hcase) (not_le.mpr hcon)
-  · push Not at hcase
-    obtain ⟨t₁, ht₁mem, ht₁gt⟩ := hcase
-    have hBad_nonempty : Bad.Nonempty := ⟨t₁, ht₁mem.1, ht₁gt⟩
-    set Tstar : ℝ := sInf Bad with hTstar_def
-    have hTstar_nonneg : 0 ≤ Tstar := le_csInf hBad_nonempty (fun t ht => ht.1)
-    have hTstar_le_T : Tstar ≤ T := csInf_le hBad_bddBelow ⟨ht₁mem.1, ht₁gt⟩ |>.trans ht₁mem.2
-    -- `Tstar`, the infimum of the escape-time set, is the first time (if any) the trajectory
-    -- would leave the ball; every earlier time is still inside it, by definition of infimum.
-    have hprefix : ∀ t : ℝ, 0 ≤ t → t < Tstar → ‖θ_traj t - θ₀‖ ≤ r := by
-      intro t ht0 htlt
-      by_contra hcon2
-      push Not at hcon2
-      exact absurd (csInf_le hBad_bddBelow ⟨ht0, hcon2⟩) (not_le.mpr htlt)
-    -- By continuity, `Tstar` itself is still (weakly) inside the ball.
-    have hTstar_le : ‖θ_traj Tstar - θ₀‖ ≤ r := by
-      rcases eq_or_lt_of_le hTstar_nonneg with hT0 | hT0
-      · rw [← hT0, hflow.init, sub_self, norm_zero]
-        exact hr_nonneg
-      · have hcont : ContinuousAt (fun t => ‖θ_traj t - θ₀‖) Tstar :=
-          ((hflow.cont_diff.continuous.sub continuous_const).norm).continuousAt
-        have htendsto : Tendsto (fun t => ‖θ_traj t - θ₀‖) (𝓝[<] Tstar) (𝓝 ‖θ_traj Tstar - θ₀‖) :=
-          hcont.continuousWithinAt.tendsto
-        apply le_of_tendsto htendsto
-        have h1 : Set.Ioi (Tstar / 2) ∈ 𝓝[<] Tstar :=
-          mem_nhdsWithin_of_mem_nhds (Ioi_mem_nhds (by linarith))
-        have hmem : Set.Iio Tstar ∩ Set.Ioi (Tstar / 2) ∈ 𝓝[<] Tstar :=
-          Filter.inter_mem self_mem_nhdsWithin h1
-        filter_upwards [hmem] with t ht
-        have ht1 : t < Tstar := ht.1
-        have ht2 : Tstar / 2 < t := ht.2
-        exact hprefix t (by linarith) ht1
-    have hprefix_closed : ∀ t ∈ Set.Icc (0:ℝ) Tstar, ‖θ_traj t - θ₀‖ ≤ r := by
-      intro t ht
-      rcases eq_or_lt_of_le ht.2 with heq | hlt
-      · rw [heq]; exact hTstar_le
-      · exact hprefix t ht.1 hlt
-    -- So `hcore` applies on `[0, Tstar]`, giving the *tight* bound `C`, strictly less than `r`.
-    have hCbound : ‖θ_traj Tstar - θ₀‖ ≤ C := hcore Tstar hTstar_nonneg hprefix_closed
-    -- Since `‖θ_traj Tstar - θ₀‖ ≤ C < r` strictly, continuity gives a neighborhood of `Tstar`
-    -- staying strictly inside the ball, contradicting that `Bad` has points arbitrarily close
-    -- to its infimum `Tstar` from above (`Real.lt_sInf_add_pos`) - so `Bad` cannot have been
-    -- nonempty after all.
-    have hcont : ContinuousAt (fun t => ‖θ_traj t - θ₀‖) Tstar :=
-      ((hflow.cont_diff.continuous.sub continuous_const).norm).continuousAt
-    have hlt_r : ‖θ_traj Tstar - θ₀‖ < r := hCbound.trans_lt hCr
-    have heventually : ∀ᶠ t in 𝓝 Tstar, ‖θ_traj t - θ₀‖ < r :=
-      hcont.eventually_lt continuousAt_const hlt_r
-    obtain ⟨δ, hδpos, hδ⟩ := Metric.eventually_nhds_iff.mp heventually
-    obtain ⟨b, hbBad, hblt⟩ := Real.lt_sInf_add_pos hBad_nonempty hδpos
-    have hb_ge : Tstar ≤ b := csInf_le hBad_bddBelow hbBad
-    have hb_dist : dist b Tstar < δ := by
-      rw [Real.dist_eq, abs_of_nonneg (by linarith)]
-      linarith [hTstar_def ▸ hblt]
-    exact absurd hbBad.2 (not_lt.mpr (le_of_lt (hδ hb_dist)))
+  exact le_of_forall_bootstrap (d := fun t => ‖θ_traj t - θ₀‖)
+    (hflow.cont_diff.continuous.sub continuous_const).norm hCr hT
+    (by simpa [hflow.init] using hr_nonneg) (fun S hS hb => hcore S hS.1 hb) T ⟨hT, le_rfl⟩
+
+/-! ### Finite-Horizon Bootstrap Without a Spectral Gap
+
+Positive semidefiniteness alone gives `‖r(t)‖ ≤ ‖r₀‖`, hence a displacement bound growing
+linearly in the horizon (`displacement_bound_of_psd`). Closing the same continuous-induction
+bootstrap as in the gap case then bounds the displacement, and thereby the kernel drift, on
+`[0, T]` with no lower bound on the spectrum of the kernel. -/
+
+/-- **Finite-horizon displacement bound without a spectral gap.** If the output Jacobian is
+`M`-bounded on the closed ball of radius `r` around `θ₀` and `T * M * ‖r₀‖ / m ≤ C < r`, then a
+gradient flow from `θ₀` stays within `C` of `θ₀` on `[0, T]`. -/
+theorem finite_horizon_displacement_bound
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (T M r C : ℝ) (hT : 0 ≤ T) (hM : 0 ≤ M) (hm : 0 < (m : ℝ)) (hr : 0 ≤ r) (hCr : C < r)
+    (hC_ge : T * M * ‖trainingResidual f X y θ₀‖ / m ≤ C)
+    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, ‖θ_traj t - θ₀‖ ≤ C :=
+  le_of_forall_bootstrap (d := fun t => ‖θ_traj t - θ₀‖)
+    (hflow.cont_diff.continuous.sub continuous_const).norm hCr hT
+    (by simpa [hflow.init] using hr) fun S hS hb =>
+      (displacement_bound_of_psd f X y hflow S hS.1 M hm hdiff
+        fun t ht => hJ_bdd _ (hb t ht)).trans
+        (le_trans (by gcongr; exact hS.2) hC_ge)
+
+/-- **Finite-horizon kernel freeze without a spectral gap.** Under the hypotheses of
+`finite_horizon_displacement_bound` and `L_J`-Lipschitzness of the output Jacobian on the ball,
+`‖K(θ(t)) - K(θ₀)‖ ≤ (2 * M * L_J) * C` for every `t ∈ [0, T]`. -/
+theorem finite_horizon_kernel_freeze_bound
+    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
+    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
+    (T M L_J r C : ℝ) (hT : 0 ≤ T) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ)) (hr : 0 ≤ r)
+    (hCr : C < r) (hC_ge : T * M * ‖trainingResidual f X y θ₀‖ / m ≤ C)
+    (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M)
+    (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
+      ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * C := by
+  intro t ht
+  have hdisp := finite_horizon_displacement_bound f X y hflow hdiff T M r C hT hM hm hr hCr hC_ge
+    hJ_bdd t ht
+  have hball : ‖θ_traj t - θ₀‖ ≤ r := hdisp.trans hCr.le
+  exact (empiricalNTKMatrix_sub_le_of_jacobian_lipschitz f X (θ_traj t) θ₀ M L_J
+    (hJ_bdd _ hball) (hJ_bdd θ₀ (by simpa using hr)) (hJ_lip _ hball)).trans
+    (mul_le_mul_of_nonneg_left hdisp (by positivity))
 
 /-! ### Asymptotic Properties in the Infinite-Width Limit -/
 
@@ -2003,6 +2082,36 @@ theorem residual_sub_frozen_residual_le
         mul_assoc]
       exact mul_le_mul_of_nonneg_left (hb t ht) (inv_nonneg.2 (Nat.cast_nonneg m)))
   exact h
+
+/-- **Actual residual vs. the frozen matrix-exponential residual.** If `r' = -(1 / m) K(t) r` on
+`[0, T]` with `K(t)` and `K_inf` positive semidefinite and `‖K(t) - K_inf‖ ≤ ε_K` there, then
+`‖r(t) - exp(-(t / m) K_inf) r(0)‖ ≤ (1 / m) ε_K ‖r(0)‖ t`. The frozen residual starts at the same
+initial condition and its norm never exceeds `‖r(0)‖` (positive semidefiniteness of `K_inf`), which
+is what makes the coefficient error `‖K - K_inf‖ ‖s‖` controlled by `ε_K ‖r(0)‖`. -/
+theorem residual_sub_matrix_exp_le
+    (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (K_inf : Matrix (Fin m) (Fin m) ℝ)
+    (r : ℝ → EuclideanSpace ℝ (Fin m)) {T ε_K : ℝ} (hT : 0 ≤ T) (hm : 0 < (m : ℝ))
+    (hr : ∀ t ∈ Set.Icc 0 T,
+      HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hK : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
+    (hK_inf : ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (K_inf *ᵥ v.ofLp))
+    (hb : ∀ t ∈ Set.Icc 0 T, ‖K t - K_inf‖ ≤ ε_K) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ‖r t - (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ (r 0).ofLp) :
+        EuclideanSpace ℝ (Fin m))‖ ≤ (m : ℝ)⁻¹ * (ε_K * ‖r 0‖) * t := by
+  have hε_K : 0 ≤ ε_K := (norm_nonneg _).trans (hb 0 ⟨le_rfl, hT⟩)
+  have hs0 : (WithLp.toLp 2 ((NormedSpace.exp (-(0 / (m : ℝ)) • K_inf)) *ᵥ (r 0).ofLp) :
+      EuclideanSpace ℝ (Fin m)) = r 0 := by simp
+  have h := residual_sub_frozen_residual_le K K_inf r
+    (fun t => (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ (r 0).ofLp) :
+      EuclideanSpace ℝ (Fin m))) (b := ε_K * ‖r 0‖) hT hr
+    (fun t _ => matrix_exp_residual_trajectory_hasDerivAt K_inf (r 0) t) hK
+    (fun t ht => mul_le_mul (hb t ht) (by
+      simpa using matrix_exp_residual_decay K_inf (r 0) 0
+        (fun v => by simpa using hK_inf v) hm t ht.1) (norm_nonneg _) hε_K)
+  intro t ht
+  have := h t ht
+  simpa [hs0] using this
 
 end LinearODECoefficientPerturbation
 
