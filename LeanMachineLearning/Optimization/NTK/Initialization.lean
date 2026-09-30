@@ -983,52 +983,121 @@ lemma integral_gaussianReadout_sum_sq (n : ℕ) (hn : 0 < n) :
   simp_rw [integral_gaussianReadout_coord_sq]
   simp [Finset.sum_const, Fintype.card_fin, hn.ne']
 
+/-- **Markov's inequality in high-probability form.** A nonnegative measurable integrable function
+whose integral is at most `τ * δ` is at most `τ` with probability at least `1 - δ`. -/
+theorem measureReal_le_of_integral_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [IsProbabilityMeasure μ] {F : α → ℝ} (hF : Measurable F) (hint : Integrable F μ)
+    (hnn : ∀ x, 0 ≤ F x) {τ δ : ℝ} (hτ : 0 < τ) (hv : ∫ x, F x ∂μ ≤ τ * δ) :
+    μ.real {x | F x ≤ τ} ≥ 1 - δ := by
+  have hmarkov := mul_meas_ge_le_integral_of_nonneg (Filter.Eventually.of_forall hnn) hint τ
+  have hbad : μ.real {x | τ ≤ F x} ≤ δ := by
+    have h1 : τ * μ.real {x | τ ≤ F x} ≤ τ * δ := hmarkov.trans hv
+    exact le_of_mul_le_mul_left h1 hτ
+  have hbad_meas : MeasurableSet {x | τ ≤ F x} := measurableSet_le measurable_const hF
+  have hsub : {x | τ ≤ F x}ᶜ ⊆ {x | F x ≤ τ} := fun x hx => by
+    simp only [Set.mem_compl_iff, Set.mem_ofPred_eq, not_le] at hx
+    exact hx.le
+  calc μ.real {x | F x ≤ τ} ≥ μ.real {x | τ ≤ F x}ᶜ := measureReal_mono hsub
+    _ = 1 - μ.real {x | τ ≤ F x} := probReal_compl_eq_one_sub hbad_meas
+    _ ≥ 1 - δ := sub_le_sub_left hbad 1
+
 /-- Markov tail bound for the normalized squared readout energy. -/
 lemma prob_gaussianReadout_sum_sq_le
     (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ) :
     (gaussianReadoutMeasure n).real {a | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} ≥
       1 - δ := by
-  let F : (Fin n → ℝ) → ℝ := gaussianReadoutEnergy n
-  have hF_int : Integrable F (gaussianReadoutMeasure n) := by
-    exact integrable_gaussianReadout_energy n
-  have hF_nonneg : 0 ≤ᵐ[gaussianReadoutMeasure n] F := by
-    filter_upwards [] with a
-    dsimp [F, gaussianReadoutEnergy]
-    positivity
-  have hmarkov := mul_meas_ge_le_integral_of_nonneg hF_nonneg hF_int δ⁻¹
-  have hbad : (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a} ≤ δ := by
-    have hmul : δ⁻¹ * (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a} ≤ 1 := by
-      rw [show (∫ a, F a ∂(gaussianReadoutMeasure n)) = 1 by
-        simpa [F, gaussianReadoutEnergy] using integral_gaussianReadout_sum_sq n hn] at hmarkov
-      exact hmarkov
-    calc
-      (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a} =
-          δ * (δ⁻¹ * (gaussianReadoutMeasure n).real {a | δ⁻¹ ≤ F a}) := by
-            field_simp [ne_of_gt hδ]
-      _ ≤ δ * 1 := mul_le_mul_of_nonneg_left hmul hδ.le
-      _ = δ := by ring
-  let bad : Set (Fin n → ℝ) := {a | δ⁻¹ ≤ F a}
-  have hF_meas : Measurable F := by
-    dsimp [F]
+  have hF_meas : Measurable (gaussianReadoutEnergy n) := by
     unfold gaussianReadoutEnergy
     fun_prop
-  have hbad_meas : MeasurableSet bad := by
-    change MeasurableSet (F ⁻¹' Set.Ici δ⁻¹)
-    exact measurableSet_Ici.preimage hF_meas
-  have hsubset : badᶜ ⊆ {a | F a ≤ δ⁻¹} := by
-    intro a ha
-    simp only [Set.mem_compl_iff, Set.mem_ofPred_eq] at ha ⊢
-    by_contra h
-    exact ha (not_le.mp h).le
-  change (gaussianReadoutMeasure n).real {a | F a ≤ δ⁻¹} ≥ 1 - δ
-  calc
-    (gaussianReadoutMeasure n).real {a | F a ≤ δ⁻¹} ≥
-        (gaussianReadoutMeasure n).real badᶜ :=
-      measureReal_mono hsubset
-    _ = 1 - (gaussianReadoutMeasure n).real bad :=
-      probReal_compl_eq_one_sub hbad_meas
-    _ ≥ 1 - δ := sub_le_sub_left hbad 1
+  exact measureReal_le_of_integral_le (gaussianReadoutMeasure n) (F := gaussianReadoutEnergy n)
+    hF_meas (integrable_gaussianReadout_energy n) (fun a => by unfold gaussianReadoutEnergy; positivity)
+    (inv_pos.2 hδ) (by
+      rw [show (∫ a, gaussianReadoutEnergy n a ∂(gaussianReadoutMeasure n)) = 1 by
+        simpa [gaussianReadoutEnergy] using integral_gaussianReadout_sum_sq n hn]
+      rw [inv_mul_cancel₀ hδ.ne'])
 
+/-- Row `i` of an i.i.d. Gaussian weight matrix has the row law, at the level of integrals. -/
+lemma integral_comp_gaussianInit_row {n d : ℕ} (i : Fin n) {g : (Fin d → ℝ) → ℝ}
+    (hg : AEStronglyMeasurable g (gaussianRowMeasure d)) :
+    ∫ W, g (W i) ∂(gaussianInit n d) = ∫ w, g w ∂(gaussianRowMeasure d) := by
+  have hmp : MeasurePreserving (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d)
+      (gaussianRowMeasure d) := measurePreserving_eval (fun _ : Fin n => gaussianRowMeasure d) i
+  calc ∫ W, g (W i) ∂(gaussianInit n d)
+      = ∫ w, g w ∂(Measure.map (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d)) :=
+        (integral_map (measurable_pi_apply i).aemeasurable (by rwa [hmp.map_eq])).symm
+    _ = ∫ w, g w ∂(gaussianRowMeasure d) := by rw [hmp.map_eq]
+
+/-- **Empirical activation energy concentration.** If `φ(w ⊙ x_α)` is square integrable under the
+Gaussian row law and `∑_α E φ(w ⊙ x_α)² ≤ τ δ`, then the width-normalized activation energy
+`n⁻¹ ∑_i ∑_α φ(W_i ⊙ x_α)²` of the hidden weights is at most `τ` with probability `≥ 1 - δ`. -/
+lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (φ : ℝ → ℝ)
+    (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    {τ δ : ℝ} (hτ : 0 < τ)
+    (hv : ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) ≤ τ * δ) :
+    (gaussianInit n d).real {W | (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
+      φ (W i ⊙ X α) ^ 2 ≤ τ} ≥ 1 - δ := by
+  have hint_term : ∀ (i : Fin n) (α : Fin m),
+      Integrable (fun W : Fin n → Fin d → ℝ => φ (W i ⊙ X α) ^ 2) (gaussianInit n d) := by
+    intro i α
+    have hmp : MeasurePreserving (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d)
+        (gaussianRowMeasure d) := measurePreserving_eval (fun _ : Fin n => gaussianRowMeasure d) i
+    exact (hmp.integrable_comp (hL2 α).integrable_sq.aestronglyMeasurable).2 (hL2 α).integrable_sq
+  have hmeas_term : ∀ (i : Fin n) (α : Fin m),
+      Measurable (fun W : Fin n → Fin d → ℝ => φ (W i ⊙ X α) ^ 2) := fun i α =>
+    (hφ.comp ((measurable_innerProduct_left (X α)).comp (measurable_pi_apply i))).pow_const 2
+  set F : (Fin n → Fin d → ℝ) → ℝ := fun W => (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
+    φ (W i ⊙ X α) ^ 2 with hF
+  have hFm : Measurable F := Measurable.const_mul
+    (Finset.measurable_sum _ fun i _ => Finset.measurable_sum _ fun α _ => hmeas_term i α) _
+  have hFint : Integrable F (gaussianInit n d) := Integrable.const_mul
+    (integrable_finsetSum _ fun i _ => integrable_finsetSum _ fun α _ => hint_term i α) _
+  have hFnn : ∀ W, 0 ≤ F W := fun W => by positivity
+  have hFint_eq : ∫ W, F W ∂(gaussianInit n d) =
+      ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) := by
+    rw [hF, integral_const_mul, integral_finsetSum _ fun i _ =>
+      integrable_finsetSum _ fun α _ => hint_term i α]
+    have : ∀ i : Fin n, ∫ W, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 ∂(gaussianInit n d) =
+        ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) := fun i => by
+      rw [integral_finsetSum _ fun α _ => hint_term i α]
+      exact Finset.sum_congr rfl fun α _ => integral_comp_gaussianInit_row i
+        (g := fun w => φ (w ⊙ X α) ^ 2) (hL2 α).integrable_sq.aestronglyMeasurable
+    simp only [this, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    have hn' : (n : ℝ) ≠ 0 := by exact_mod_cast hn.ne'
+    field_simp
+  exact measureReal_le_of_integral_le (gaussianInit n d) hFm hFint hFnn hτ (hFint_eq ▸ hv)
+
+/-- A measurable activation with at most linear growth has all Gaussian moments along a row. -/
+lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x : Fin d → ℝ) (p : NNReal) :
+    MemLp (fun w : Fin d → ℝ => φ (w ⊙ x)) p (gaussianRowMeasure d) := by
+  have hlin : Measurable (fun w : Fin d → ℝ => w ⊙ x) := measurable_innerProduct_left x
+  show MemLp (φ ∘ fun w : Fin d → ℝ => w ⊙ x) p (gaussianRowMeasure d)
+  rw [← memLp_map_measure_iff (hφ.aestronglyMeasurable) hlin.aemeasurable,
+    map_gaussianRowMeasure_innerProduct]
+  have hid := memLp_id_gaussianReal (μ := 0) (v := Real.toNNReal (x ⊙ x)) p
+  refine MemLp.of_le (g := fun z => A + B * ‖z‖) ?_ hφ.aestronglyMeasurable
+    (Filter.Eventually.of_forall fun z => ?_)
+  · exact (memLp_const A).add (hid.norm.const_mul B)
+  · rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg (by positivity : 0 ≤ A + B * ‖z‖)]
+    simpa [Real.norm_eq_abs] using hgrow z
+
+/-- Product of two such activations along rows is square integrable (Hölder with exponents
+`4, 4 → 2`). -/
+lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x x' : Fin d → ℝ) :
+    MemLp (fun w : Fin d → ℝ => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d) := by
+  have h4 : ∀ y : Fin d → ℝ, MemLp (fun w : Fin d → ℝ => φ (w ⊙ y)) (4 : ENNReal)
+      (gaussianRowMeasure d) := fun y => by
+    simpa using memLp_gaussianRow_comp_of_linear_growth φ hφ hA hB hgrow y (d := d) 4
+  have : ENNReal.HolderTriple 4 4 2 := ⟨by
+    rw [← two_mul]
+    have : (4 : ENNReal) = 2 * 2 := by norm_num
+    rw [this, ENNReal.mul_inv (Or.inl (by norm_num)) (Or.inl (by simp)), ← mul_assoc,
+      ENNReal.mul_inv_cancel (by norm_num) (by simp), one_mul]⟩
+  exact MemLp.mul (r := 2) (h4 x') (h4 x)
 /-! ### Entrywise (max) concentration for readout weights
 
 `prob_gaussianReadout_sum_sq_le` above bounds the readout *energy* `n⁻¹ ∑ᵢ aᵢ²` (an average),
@@ -3079,15 +3148,15 @@ lemma memLp_activation_product_of_polynomial_growth
     (α β : Fin m) :
     MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α) * φ (z.ofLp β)) 2
       (multivariateGaussian 0 K) := by
-  have hα : MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) (4 : ℝ≥0∞)
+  have hα : MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) (4 : ENNReal)
       (multivariateGaussian 0 K) :=
     memLp_activation_coordinate_of_polynomial_growth_of_nat m K φ hφ_meas C hC p 4 hp
       hφ_growth α
-  have hβ : MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) (4 : ℝ≥0∞)
+  have hβ : MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) (4 : ENNReal)
       (multivariateGaussian 0 K) :=
     memLp_activation_coordinate_of_polynomial_growth_of_nat m K φ hφ_meas C hC p 4 hp
       hφ_growth β
-  let _ : ENNReal.HolderTriple (4 : ℝ≥0∞) 4 2 := ⟨by
+  let _ : ENNReal.HolderTriple (4 : ENNReal) 4 2 := ⟨by
     apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
     rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
     norm_num [ENNReal.toReal_inv]⟩
