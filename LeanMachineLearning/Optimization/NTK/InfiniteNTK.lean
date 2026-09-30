@@ -143,10 +143,14 @@ linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al
   Rayleigh bound on the bootstrap ball and the global consequences (displacement, uniform gap,
   kernel drift, exponential residual and loss decay) of the positive-gap bootstrap.
 * `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
-* `NTK.exists_global_flow`, `NTK.flow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` : Phase 10
-  generic two-sided flow of a field that is Lipschitz on balls and has a priori bounds (Mathlib's
-  Picard-Lindelöf on a cutoff field, the bootstrap `le_of_forall_bootstrap`, gluing by uniqueness),
-  with global uniqueness; plus small `LocallyLipschitz` algebra helpers.
+* `NTK.exists_forward_flow`, `NTK.flow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` :
+  Phase 10-11 generic forward-time flow of a field that is Lipschitz on balls and has a priori
+  bounds (Mathlib's Picard-Lindelöf on a cutoff field, the bootstrap `le_of_forall_bootstrap`,
+  gluing by uniqueness),
+  with forward uniqueness; plus small `LocallyLipschitz` algebra helpers.
+* `NTK.mseLoss_le_of_hasDerivWithinAt_neg_gradient`, `NTK.gronwallBound_le_mul_exp`,
+  `NTK.continuousOn_trainingResidual_comp` : loss monotonicity along a local gradient-flow solution,
+  an explicit bound on Mathlib's Grönwall function, and continuity of the residual along a curve.
 * `NTK.le_of_forall_bootstrap` : generic continuous-induction principle on `[0, T]` (via Mathlib's
   `IsClosed.Icc_subset_of_forall_mem_nhdsGT_of_Icc_subset`), shared by both displacement bootstraps.
 * `NTK.displacement_le_integral_of_rayleigh`, `NTK.displacement_bound_of_psd` : displacement
@@ -467,15 +471,15 @@ Insert the continuous gradient flow parameter ODE `∂_t θ(t) = -∇_θ L(θ(t)
 theorem gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
-    (t : ℝ) (α : Fin m)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
+    (α : Fin m)
     (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t)) :
     HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
       (-⟪tangentFeature f (X α) (θ_traj t),
         gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)⟫) t := by
   have h := hasDerivAt_trainingOutputs_coord f X θ_traj
-    (fun s => -gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj s)) t α hdiff (hflow.ode t)
+    (fun s => -gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj s)) t α hdiff hflow
   rw [inner_neg_right] at h
   exact h
 
@@ -485,9 +489,9 @@ Substitute `∇_θ L(θ(t)) = (1/m) ∑_β r^β(t) ∇_θ f(x^β; θ(t))` into t
 theorem gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
-    (t : ℝ) (α : Fin m)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
+    (α : Fin m)
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun f' => ℓ f' (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
@@ -495,7 +499,7 @@ theorem gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner
       (- (m : ℝ)⁻¹ * ∑ β : Fin m,
         ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ *
           (generalizedResidual ℓ f X y (θ_traj t)) β) t := by
-  have h := gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad ℓ f X y hflow t α (hf α)
+  have h := gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad ℓ f X y t hflow α (hf α)
   rw [gradient_generalizedRisk ℓ f X y (θ_traj t) hf hℓ] at h
   have h_inner : -⟪tangentFeature f (X α) (θ_traj t),
       (m : ℝ)⁻¹ • ∑ β : Fin m,
@@ -520,16 +524,16 @@ Recognizing the empirical NTK matrix entries `K_t^{α β} = ⟨∇_θ f(x^α; θ
 theorem gradient_flow_generalizedOutput_coord_ode
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
-    (t : ℝ) (α : Fin m)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
+    (α : Fin m)
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun f' => ℓ f' (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
     HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
       (- (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β *
         (generalizedResidual ℓ f X y (θ_traj t)) β) t := by
-  have h := gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner ℓ f X y hflow t α hf hℓ
+  have h := gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner ℓ f X y t hflow α hf hℓ
   have h_ntk : ∀ β : Fin m,
       ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ =
       empiricalNTKMatrix f X (θ_traj t) α β := by
@@ -546,8 +550,8 @@ where `r(t)` is the generalized residual vector `r^α(t) = ∂_f ℓ(f^α(t), y^
 theorem gradient_flow_generalizedOutput_vector_ode
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj) (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun f' => ℓ f' (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
@@ -557,7 +561,7 @@ theorem gradient_flow_generalizedOutput_vector_ode
           (generalizedResidual ℓ f X y (θ_traj t)).ofLp))) t := by
   rw [hasDerivAt_euclideanSpace]
   intro α
-  have h_coord := gradient_flow_generalizedOutput_coord_ode ℓ f X y hflow t α hf hℓ
+  have h_coord := gradient_flow_generalizedOutput_coord_ode ℓ f X y t hflow α hf hℓ
   have h_eq : - (m : ℝ)⁻¹ *
       ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β *
         (generalizedResidual ℓ f X y (θ_traj t)) β =
@@ -580,14 +584,13 @@ Insert the continuous gradient flow parameter ODE `∂_t θ(t) = -∇_θ L(θ(t)
   `∂_t f^α(t) = - ⟨∇_θ f(x^α; θ(t)), ∇_θ L(θ(t))⟩`. -/
 theorem gradient_flow_output_coord_deriv_eq_inner_grad
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (t : ℝ) (α : Fin m)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t) (α : Fin m)
     (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t)) :
     HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
       (-⟪tangentFeature f (X α) (θ_traj t), gradient (mseLoss f X y) (θ_traj t)⟫) t := by
   rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow ⊢
-  exact gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad _ f X y hflow t α hdiff
+  exact gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad _ f X y t hflow α hdiff
 
 /-- Step 3 (Insertion of Loss Gradient):
 Substitute `∇_θ L(θ(t)) = (1 / m) ∑_β (f^β(t) - y^β) ∇_θ f(x^β; θ(t))` into the rate of change:
@@ -595,9 +598,8 @@ Substitute `∇_θ L(θ(t)) = (1 / m) ∑_β (f^β(t) - y^β) ∇_θ f(x^β; θ(
               `= - (1 / m) ∑_β ⟨∇_θ f^α(θ(t)), ∇_θ f^β(θ(t))⟩ (f^β(t) - y^β)`. -/
 theorem gradient_flow_output_coord_deriv_eq_sum_inner
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (t : ℝ) (α : Fin m)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t) (α : Fin m)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
       (- (m : ℝ)⁻¹ * ∑ β : Fin m,
@@ -605,7 +607,7 @@ theorem gradient_flow_output_coord_deriv_eq_sum_inner
           (trainingResidual f X y (θ_traj t)) β) t := by
   rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow
   have hℓ := fun β => hasDerivAt_squaredLoss_generalizedResidual f X y (θ_traj t) β
-  have h := gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner _ f X y hflow t α hdiff hℓ
+  have h := gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner _ f X y t hflow α hdiff hℓ
   rwa [generalizedResidual_squaredLoss_eq_trainingResidual] at h
 
 /-- Step 4 (Assembly with Empirical NTK):
@@ -613,9 +615,8 @@ Recognizing the empirical NTK matrix entries `K_t^{α β} = ⟨∇_θ f(x^α; θ
   `∂_t f^α(t) = - (1 / m) ∑_β K_t^{α β} (f^β(t) - y^β) = - (1 / m) ∑_β K_t^{α β} r^β(t)`. -/
 theorem gradient_flow_output_coord_ode
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (t : ℝ) (α : Fin m)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t) (α : Fin m)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
       (- (m : ℝ)⁻¹ *
@@ -623,7 +624,7 @@ theorem gradient_flow_output_coord_ode
           (trainingResidual f X y (θ_traj t)) β) t := by
   rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow
   have hℓ := fun β => hasDerivAt_squaredLoss_generalizedResidual f X y (θ_traj t) β
-  have h := gradient_flow_generalizedOutput_coord_ode _ f X y hflow t α hdiff hℓ
+  have h := gradient_flow_generalizedOutput_coord_ode _ f X y t hflow α hdiff hℓ
   rwa [generalizedResidual_squaredLoss_eq_trainingResidual] at h
 
 /-- Step 5 (Matrix-Vector Formulation for Output Vector):
@@ -631,16 +632,15 @@ Along continuous gradient flow, the training output vector satisfies:
   `∂_t f(t) = - (1 / m) K_t r(t)`. -/
 theorem gradient_flow_output_vector_ode
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ •
         ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
   rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow
   have hℓ := fun β => hasDerivAt_squaredLoss_generalizedResidual f X y (θ_traj t) β
-  have h := gradient_flow_generalizedOutput_vector_ode _ f X y hflow t hdiff hℓ
+  have h := gradient_flow_generalizedOutput_vector_ode _ f X y t hflow hdiff hℓ
   rwa [generalizedResidual_squaredLoss_eq_trainingResidual] at h
 
 /-- Step 5 (Matrix-Vector Formulation with Explicit `f(t) - y`):
@@ -648,28 +648,26 @@ Along continuous gradient flow, the training output vector satisfies:
   `∂_t f(t) = - (1 / m) K_t (f(t) - y)`. -/
 theorem gradient_flow_output_vector_ode_sub_y
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
         ((trainingOutputs f X (θ_traj t)) - y).ofLp))) t :=
-  gradient_flow_output_vector_ode f X y hflow t hdiff
+  gradient_flow_output_vector_ode f X y t hflow hdiff
 
 /-- Step 5 (Matrix-Vector Formulation for Residual Vector):
 Function-space residual ODE under gradient flow:
   `∂_t r(t) = - (1 / m) K_t r(t)`. -/
 theorem gradient_flow_residual_vector_ode
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
-    (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ •
         ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
-  have h_out := gradient_flow_output_vector_ode f X y hflow t hdiff
+  have h_out := gradient_flow_output_vector_ode f X y t hflow hdiff
   have h_sub := h_out.sub_const y
   convert h_sub using 1
   ext s
@@ -727,9 +725,8 @@ rate of risk dissipation satisfies:
 theorem risk_dissipation_identity
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
-    (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun v => ℓ v (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
@@ -743,7 +740,7 @@ theorem risk_dissipation_identity
   set f' : Fin m → ℝ := fun α => - (m : ℝ)⁻¹ * ∑ β : Fin m, K α β * r β with hf'_def
   have hf' : ∀ α : Fin m, HasDerivAt (fun s => trainingOutputs f X (θ_traj s) α) (f' α) t := by
     intro α
-    exact gradient_flow_generalizedOutput_coord_ode ℓ f X y hflow t α hf hℓ
+    exact gradient_flow_generalizedOutput_coord_ode ℓ f X y t hflow α hf hℓ
   have h_step1 := hasDerivAt_generalizedEmpiricalRisk_coord_sum ℓ f X y θ_traj t f' hf' hℓ
   have h_val : (m : ℝ)⁻¹ * (r.ofLp ⬝ᵥ f') =
       -(((m : ℝ) ^ 2)⁻¹) * (r.ofLp ⬝ᵥ (K *ᵥ r.ofLp)) := by
@@ -765,9 +762,8 @@ monotonically non-increasing along gradient flow: `∂_t L(θ(t)) ≤ 0`. -/
 theorem risk_dissipation_nonpos
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
-    (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun v => ℓ v (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
@@ -780,7 +776,7 @@ theorem risk_dissipation_nonpos
         ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ
           ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
             (generalizedResidual ℓ f X y (θ_traj t)).ofLp)) ≤ 0 := by
-  refine ⟨risk_dissipation_identity ℓ f X y hflow t hf hℓ, ?_⟩
+  refine ⟨risk_dissipation_identity ℓ f X y t hflow hf hℓ, ?_⟩
   have h_nonneg := empiricalNTKMatrix_quad_form_nonneg f X (θ_traj t)
     (generalizedResidual ℓ f X y (θ_traj t)).ofLp
   have h_sq_nonneg : (0 : ℝ) ≤ ((m : ℝ) ^ 2)⁻¹ := by positivity
@@ -795,9 +791,8 @@ from zero whenever `r(t) ≠ 0`:
 theorem risk_dissipation_le_of_rayleighRitz
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m))
-    {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (generalizedEmpiricalRisk ℓ f X y) θ₀ θ_traj)
-    (t : ℝ)
+    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun v => ℓ v (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t)))
@@ -814,7 +809,7 @@ theorem risk_dissipation_le_of_rayleighRitz
           ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
             (generalizedResidual ℓ f X y (θ_traj t)).ofLp)) ≤
       -(lambda_min / (m : ℝ) ^ 2) * ‖generalizedResidual ℓ f X y (θ_traj t)‖ ^ 2 := by
-  refine ⟨risk_dissipation_identity ℓ f X y hflow t hf hℓ, ?_⟩
+  refine ⟨risk_dissipation_identity ℓ f X y t hflow hf hℓ, ?_⟩
   have h1 := h_rr (generalizedResidual ℓ f X y (θ_traj t))
   have h_sq_nonneg : (0 : ℝ) ≤ ((m : ℝ) ^ 2)⁻¹ := by positivity
   have h2 := mul_le_mul_of_nonneg_left h1 h_sq_nonneg
@@ -826,18 +821,20 @@ theorem risk_dissipation_le_of_rayleighRitz
 /-! ### Reusable Analytic Tool: Grönwall Differential Inequality -/
 
 /-- Interval-Restricted Grönwall Decay Lemma:
-If a differentiable scalar quantity `E(t)` satisfies `E'(t) ≤ -c * E(t)` for all `t ∈ [0, T]`,
-then `E(t) ≤ E(0) * exp(-c * t)` for all `t ∈ [0, T]`.
-This localized variant enables continuous induction bootstrap arguments where the differential
-inequality only holds while the state remains inside a bootstrap region. -/
+If a scalar quantity `E(t)` is continuous on `[0, T]`, differentiable on `(0, T)`, and satisfies
+`E'(t) ≤ -c * E(t)` there, then `E(t) ≤ E(0) * exp(-c * t)` for all `t ∈ [0, T]`.
+Only interior differentiability is needed, so this applies to forward-time trajectories, and the
+localized form enables continuous induction bootstrap arguments where the differential inequality
+only holds while the state remains inside a bootstrap region. -/
 lemma gronwall_exponential_decay_Icc {E E' : ℝ → ℝ} {c T : ℝ} (hT : 0 ≤ T)
-    (hE : ∀ t, HasDerivAt E (E' t) t)
-    (hbound : ∀ t ∈ Set.Icc 0 T, E' t ≤ -c * E t) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
+    (hEc : ContinuousOn E (Set.Icc 0 T)) (hE : ∀ t ∈ Set.Ioo 0 T, HasDerivAt E (E' t) t)
+    (hbound : ∀ t ∈ Set.Ioo 0 T, E' t ≤ -c * E t) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
     E t ≤ E 0 * Real.exp (-c * t) := by
   let g : ℝ → ℝ := fun s => E s * Real.exp (c * s)
-  have hg_deriv : ∀ s, HasDerivAt g ((E' s + c * E s) * Real.exp (c * s)) s := by
-    intro s
-    have h1 := hE s
+  have hg_deriv : ∀ s ∈ Set.Ioo 0 T,
+      HasDerivAt g ((E' s + c * E s) * Real.exp (c * s)) s := by
+    intro s hs
+    have h1 := hE s hs
     have h2 : HasDerivAt (fun u => Real.exp (c * u)) (Real.exp (c * s) * c) s := by
       have hc : HasDerivAt (fun u => c * u) (c * 1) s := (hasDerivAt_id s).const_mul c
       rw [mul_one] at hc
@@ -845,15 +842,14 @@ lemma gronwall_exponential_decay_Icc {E E' : ℝ → ℝ} {c T : ℝ} (hT : 0 �
     have hprod := h1.mul h2
     convert hprod using 1
     ring
-  have hg_diff : Differentiable ℝ g := fun s => (hg_deriv s).differentiableAt
-  have hg_cont : ContinuousOn g (Set.Icc 0 T) := hg_diff.continuous.continuousOn
+  have hg_cont : ContinuousOn g (Set.Icc 0 T) := hEc.mul (by fun_prop)
   have hg_within : ∀ s ∈ interior (Set.Icc 0 T),
       HasDerivWithinAt g ((E' s + c * E s) * Real.exp (c * s)) (interior (Set.Icc 0 T)) s :=
-    fun s _ => (hg_deriv s).hasDerivWithinAt
+    fun s hs => (hg_deriv s (by rwa [interior_Icc] at hs)).hasDerivWithinAt
   have hg_nonpos : ∀ s ∈ interior (Set.Icc 0 T), (E' s + c * E s) * Real.exp (c * s) ≤ 0 := by
     intro s hs
-    have hs_icc : s ∈ Set.Icc 0 T := interior_subset hs
-    have hle : E' s + c * E s ≤ 0 := by linarith [hbound s hs_icc]
+    have hle : E' s + c * E s ≤ 0 := by
+      linarith [hbound s (by rwa [interior_Icc] at hs)]
     have hexp : 0 ≤ Real.exp (c * s) := (Real.exp_pos _).le
     exact mul_nonpos_of_nonpos_of_nonneg hle hexp
   have h_anti : AntitoneOn g (Set.Icc 0 T) :=
@@ -878,7 +874,26 @@ lemma gronwall_exponential_decay {E E' : ℝ → ℝ} {c : ℝ}
     (hE : ∀ t, HasDerivAt E (E' t) t)
     (hbound : ∀ t, E' t ≤ -c * E t) (t : ℝ) (ht : 0 ≤ t) :
     E t ≤ E 0 * Real.exp (-c * t) :=
-  gronwall_exponential_decay_Icc ht hE (fun s _ => hbound s) t ⟨ht, le_rfl⟩
+  gronwall_exponential_decay_Icc ht (fun s _ => (hE s).continuousAt.continuousWithinAt)
+    (fun s _ => hE s) (fun s _ => hbound s) t ⟨ht, le_rfl⟩
+
+/-- Mathlib's Grönwall bound is at most `(δ + ε x) e^{K x}` (for `K, ε ≥ 0`), an expression that is
+monotone in the time `x ≥ 0` and easy to use for a priori estimates. -/
+lemma gronwallBound_le_mul_exp {δ K ε x : ℝ} (hK : 0 ≤ K) (hε : 0 ≤ ε) :
+    gronwallBound δ K ε x ≤ (δ + ε * x) * Real.exp (K * x) := by
+  rcases hK.eq_or_lt with rfl | hKpos
+  · simp [gronwallBound_K0]
+  · rw [gronwallBound_of_K_ne_0 hKpos.ne']
+    have hexp : 0 < Real.exp (K * x) := Real.exp_pos _
+    have h1 : Real.exp (K * x) - 1 ≤ K * x * Real.exp (K * x) := by
+      have h2 := Real.one_sub_le_exp_neg (K * x)
+      have h3 : Real.exp (K * x) * Real.exp (-(K * x)) = 1 := by rw [← Real.exp_add]; simp
+      nlinarith
+    have h4 : ε / K * (Real.exp (K * x) - 1) ≤ ε * x * Real.exp (K * x) := by
+      calc ε / K * (Real.exp (K * x) - 1) ≤ ε / K * (K * x * Real.exp (K * x)) :=
+            mul_le_mul_of_nonneg_left h1 (by positivity)
+        _ = ε * x * Real.exp (K * x) := by field_simp
+    nlinarith
 
 /-! ### Step-by-Step Proof of Exponential Convergence of Training Loss -/
 
@@ -978,24 +993,28 @@ theorem deriv_norm_sq_le_of_rayleighRitz
 /-- Grönwall Integration for Squared Residual Norm on a Closed Interval `[0, T]`:
 Under a Rayleigh quotient lower bound on `K(s)` holding for all `s ∈ [0, T]`, the squared
 residual norm decays exponentially:
-  `‖r(t)‖² ≤ ‖r(0)‖² * exp(- (2 lambda_min / m) t)` for any `t ∈ [0, T]`. -/
+  `‖r(t)‖² ≤ ‖r(0)‖² * exp(- (2 lambda_min / m) t)` for any `t ∈ [0, T]`.
+The residual ODE is only needed on `(0, T)`, with continuity on `[0, T]`. -/
 theorem residual_norm_sq_exponential_decay_timeVarying_Icc
     (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (lambda_min T : ℝ) (hT : 0 ≤ T)
     (r : ℝ → EuclideanSpace ℝ (Fin m))
     (h_rr : ∀ s ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m),
       lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K s *ᵥ v.ofLp))
-    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hrc : ContinuousOn r (Set.Icc 0 T))
+    (hr : ∀ t ∈ Set.Ioo 0 T,
+      HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
     (hm : 0 < (m : ℝ)) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
     ‖r t‖ ^ 2 ≤ ‖r 0‖ ^ 2 * Real.exp (-(2 * lambda_min / (m : ℝ)) * t) := by
-  have hE : ∀ s, HasDerivAt (fun u => ‖r u‖ ^ 2)
+  have hE : ∀ s ∈ Set.Ioo 0 T, HasDerivAt (fun u => ‖r u‖ ^ 2)
       (-(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp))) s :=
-    fun s => deriv_norm_sq_timeVarying_ode K r s (hr s)
-  have hbound : ∀ s ∈ Set.Icc 0 T, -(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp)) ≤
-      -(2 * lambda_min / (m : ℝ)) * ‖r s‖ ^ 2 := by
+    fun s hs => deriv_norm_sq_timeVarying_ode K r s (hr s hs)
+  have hbound : ∀ s ∈ Set.Ioo 0 T,
+      -(2 / (m : ℝ)) * ((r s).ofLp ⬝ᵥ (K s *ᵥ (r s).ofLp)) ≤
+        -(2 * lambda_min / (m : ℝ)) * ‖r s‖ ^ 2 := by
     intro s hs
-    have h := deriv_norm_sq_le_of_rayleighRitz_timeVarying K lambda_min r s (h_rr s hs) (hr s) hm
-    exact h.2
-  exact gronwall_exponential_decay_Icc hT hE hbound t ht
+    exact (deriv_norm_sq_le_of_rayleighRitz_timeVarying K lambda_min r s
+      (h_rr s (Set.Ioo_subset_Icc_self hs)) (hr s hs) hm).2
+  exact gronwall_exponential_decay_Icc hT (hrc.norm.pow 2) hE hbound t ht
 
 /-- Exponential Decay of Residual Norm on a Closed Interval `[0, T]`:
   `‖r(t)‖ ≤ ‖r(0)‖ * exp(- (lambda_min / m) t)` for any `t ∈ [0, T]`. -/
@@ -1004,11 +1023,13 @@ theorem residual_norm_exponential_decay_timeVarying_Icc
     (r : ℝ → EuclideanSpace ℝ (Fin m))
     (h_rr : ∀ s ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m),
       lambda_min * ‖v‖ ^ 2 ≤ v.ofLp ⬝ᵥ (K s *ᵥ v.ofLp))
-    (hr : ∀ t, HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
+    (hrc : ContinuousOn r (Set.Icc 0 T))
+    (hr : ∀ t ∈ Set.Ioo 0 T,
+      HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
     (hm : 0 < (m : ℝ)) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
     ‖r t‖ ≤ ‖r 0‖ * Real.exp (-(lambda_min / (m : ℝ)) * t) := by
   have h_sq :=
-    residual_norm_sq_exponential_decay_timeVarying_Icc K lambda_min T hT r h_rr hr hm t ht
+    residual_norm_sq_exponential_decay_timeVarying_Icc K lambda_min T hT r h_rr hrc hr hm t ht
   have h_sqrt := Real.sqrt_le_sqrt h_sq
   rw [Real.sqrt_mul (sq_nonneg _)] at h_sqrt
   rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (norm_nonneg _)] at h_sqrt
@@ -1032,7 +1053,8 @@ theorem residual_norm_sq_exponential_decay_timeVarying
     (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
     ‖r t‖ ^ 2 ≤ ‖r 0‖ ^ 2 * Real.exp (-(2 * lambda_min / (m : ℝ)) * t) :=
   residual_norm_sq_exponential_decay_timeVarying_Icc K lambda_min t ht r
-    (fun s _ => h_rr s) hr hm t ⟨ht, le_rfl⟩
+    (fun s _ => h_rr s) (fun s _ => (hr s).continuousAt.continuousWithinAt) (fun s _ => hr s) hm t
+    ⟨ht, le_rfl⟩
 
 /-- Step 3 (Exponential Decay of Residual Norm under Time-Varying Kernel):
 Taking the square root yields:
@@ -1046,7 +1068,8 @@ theorem residual_norm_exponential_decay_timeVarying
     (hm : 0 < (m : ℝ)) (t : ℝ) (ht : 0 ≤ t) :
     ‖r t‖ ≤ ‖r 0‖ * Real.exp (-(lambda_min / (m : ℝ)) * t) :=
   residual_norm_exponential_decay_timeVarying_Icc K lambda_min t ht r
-    (fun s _ => h_rr s) hr hm t ⟨ht, le_rfl⟩
+    (fun s _ => h_rr s) (fun s _ => (hr s).continuousAt.continuousWithinAt) (fun s _ => hr s) hm t
+    ⟨ht, le_rfl⟩
 
 /-- Step 4 (Exponential Loss Decay under Time-Varying Kernel):
   `(1 / (2m)) ‖r(t)‖² ≤ ((1 / (2m)) ‖r(0)‖²) * exp(- (2 lambda_min / m) t)`. -/
@@ -1461,21 +1484,21 @@ lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
 
 section CoordinateBlocks
 
-variable {κ : Type*} [Fintype κ]
+variable {κ ι' : Type*} [Fintype κ] [Fintype ι']
 
-/-- The coordinate restriction `v ↦ (v (k o))_{o : κ}` as a continuous linear map between
-Euclidean spaces. -/
-noncomputable def restrictCoords (k : κ → Fin P) :
-    EuclideanSpace ℝ (Fin P) →L[ℝ] EuclideanSpace ℝ κ :=
+/-- The coordinate restriction `v ↦ (v (k o))_{o : κ}` along an enumeration `k : κ → ι'` of some
+coordinates, as a continuous linear map between Euclidean spaces. -/
+noncomputable def restrictCoords (k : κ → ι') :
+    EuclideanSpace ℝ ι' →L[ℝ] EuclideanSpace ℝ κ :=
   LinearMap.toContinuousLinearMap
     { toFun := fun v => WithLp.toLp 2 fun o => v (k o)
       map_add' := fun _ _ => rfl
       map_smul' := fun _ _ => rfl }
 
-@[simp] lemma restrictCoords_apply (k : κ → Fin P) (v : EuclideanSpace ℝ (Fin P)) (o : κ) :
+@[simp] lemma restrictCoords_apply (k : κ → ι') (v : EuclideanSpace ℝ ι') (o : κ) :
     restrictCoords k v o = v (k o) := rfl
 
-lemma norm_sq_restrictCoords (k : κ → Fin P) (v : EuclideanSpace ℝ (Fin P)) :
+lemma norm_sq_restrictCoords (k : κ → ι') (v : EuclideanSpace ℝ ι') :
     ‖restrictCoords k v‖ ^ 2 = ∑ o : κ, v (k o) ^ 2 := by
   rw [EuclideanSpace.real_norm_sq_eq]; rfl
 
@@ -1527,23 +1550,64 @@ section
 variable {E F : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
   [NormedAddCommGroup F] [NormedSpace ℝ F]
 
-/-- **Displacement of a linear image of a gradient flow.** -/
-theorem norm_map_sub_le_integral_of_gfTrajectory {f : E → ℝ} {w₀ : E} {w : ℝ → E}
-    (hflow : GFTrajectory f w₀ w) (Lin : E →L[ℝ] F) {T : ℝ} (hT : 0 ≤ T) {B : ℝ → ℝ}
+/-- **Displacement of a linear image of a forward gradient flow.** If the image under `Lin` of the
+gradient at time `t` has norm at most `B t` on `[0, T]`, then `Lin (w T - w₀)` has norm at most
+`∫₀ᵀ B`. Only the ODE for positive times and continuity on `[0, ∞)` are used. -/
+theorem norm_map_sub_le_integral_of_forwardGF {f : E → ℝ} {w₀ : E} {w : ℝ → E}
+    (hflow : ForwardGFTrajectory f w₀ w) (Lin : E →L[ℝ] F) {T : ℝ} (hT : 0 ≤ T) {B : ℝ → ℝ}
     (hB : ∀ t ∈ Set.Icc 0 T, ‖Lin (gradient f (w t))‖ ≤ B t)
     (hBi : IntervalIntegrable B volume 0 T) :
     ‖Lin (w T - w₀)‖ ≤ ∫ t in (0 : ℝ)..T, B t := by
-  have hd : ∀ t : ℝ, HasDerivAt (fun s => Lin (w s)) (Lin (-gradient f (w t))) t := fun t =>
-    Lin.hasFDerivAt.comp_hasDerivAt t (hflow.ode t)
+  have hd : ∀ t : ℝ, 0 < t →
+      HasDerivAt (fun s => Lin (w s)) (Lin (-gradient f (w t))) t := fun t ht =>
+    Lin.hasFDerivAt.comp_hasDerivAt t (hflow.ode t ht)
   have hmain := norm_sub_le_integral_of_norm_deriv_le_of_le (f := fun s => Lin (w s)) hT
-    (Lin.continuous.comp hflow.cont_diff.continuous).continuousOn
-    (fun t _ => (hd t).differentiableAt.differentiableWithinAt)
+    (Lin.continuous.comp_continuousOn (hflow.continuousOn.mono Set.Icc_subset_Ici_self))
+    (fun t ht => (hd t ht.1).differentiableAt.differentiableWithinAt)
     (Filter.Eventually.of_forall fun t ht => by
-      rw [(hd t).deriv, map_neg, norm_neg]
+      rw [(hd t ht.1).deriv, map_neg, norm_neg]
       exact hB t (Set.mem_Icc_of_Ioo ht)) hBi
   simpa [hflow.init, map_sub] using hmain
 
 end
+
+/-- **The MSE loss does not increase along a local gradient-flow solution.** If `θ` solves
+`θ' = -∇L(θ)` on `[0, S]` (one-sided at the endpoints), then `L(θ(t)) ≤ L(θ(0))` there. Unlike
+`ConvexOpt.gf_monotone_decrease` this needs neither a global trajectory nor differentiability of `L`
+away from the curve. -/
+lemma mseLoss_le_of_hasDerivWithinAt_neg_gradient (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
+    (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m)) {θ : ℝ → EuclideanSpace ℝ (Fin P)} {S : ℝ}
+    (hdiff : ∀ t ∈ Set.Icc 0 S, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ t))
+    (hθ : ∀ t ∈ Set.Icc 0 S,
+      HasDerivWithinAt θ (-gradient (mseLoss f X y) (θ t)) (Set.Icc 0 S) t) :
+    ∀ t ∈ Set.Icc 0 S, mseLoss f X y (θ t) ≤ mseLoss f X y (θ 0) := by
+  have hd : ∀ t ∈ Set.Icc 0 S, HasDerivWithinAt (fun s => mseLoss f X y (θ s))
+      (-‖gradient (mseLoss f X y) (θ t)‖ ^ 2) (Set.Icc 0 S) t := by
+    intro t ht
+    have hg := (hasGradientAt_mseLoss f X y (θ t) (hdiff t ht)).differentiableAt.hasGradientAt
+    have h2 := hg.hasFDerivAt.comp_hasDerivWithinAt t (hθ t ht)
+    rwa [InnerProductSpace.toDual_apply_apply, inner_neg_right, real_inner_self_eq_norm_sq] at h2
+  have hanti : AntitoneOn (fun s => mseLoss f X y (θ s)) (Set.Icc 0 S) := by
+    refine antitoneOn_of_hasDerivWithinAt_nonpos (convex_Icc 0 S)
+      (fun t ht => (hd t ht).continuousWithinAt)
+      (fun t ht => (hd t (interior_subset ht)).mono interior_subset) (fun t ht => ?_)
+    have := neg_nonpos.2 (sq_nonneg ‖gradient (mseLoss f X y) (θ t)‖)
+    exact this
+  intro t ht
+  exact hanti ⟨le_rfl, ht.1.trans ht.2⟩ ht ht.1
+
+/-- The training residual along a curve is continuous on any set where the curve is continuous and
+every output is differentiable at the curve. -/
+lemma continuousOn_trainingResidual_comp (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) {θ : ℝ → EuclideanSpace ℝ (Fin P)} {s : Set ℝ}
+    (hθ : ContinuousOn θ s)
+    (hdiff : ∀ t ∈ s, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ t)) :
+    ContinuousOn (fun t => trainingResidual f X y (θ t)) s := by
+  intro t ht
+  have hcoord : ∀ β : Fin m, ContinuousWithinAt (fun t => f (X β) (θ t) - y β) s t := fun β =>
+    ((hdiff t ht β).continuousAt.comp_continuousWithinAt (hθ t ht)).sub continuousWithinAt_const
+  exact (PiLp.continuous_toLp 2 (fun _ : Fin m => ℝ)).continuousAt.comp_continuousWithinAt
+    (continuousWithinAt_pi.2 hcoord)
 
 /-- **Displacement is at most the integral of the speed bound.** If the Rayleigh quotient of the
 empirical NTK along the trajectory is bounded below by `lambda_min` (any real, in particular `0`
@@ -1553,7 +1617,7 @@ displacement bounds are corollaries. -/
 theorem displacement_le_integral_of_rayleigh
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (T : ℝ) (hT : 0 ≤ T) (M lambda_min : ℝ)
     (hm : 0 < (m : ℝ))
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
@@ -1564,13 +1628,15 @@ theorem displacement_le_integral_of_rayleigh
       (m : ℝ)⁻¹ * M * (‖trainingResidual f X y θ₀‖ *
         Real.exp (-(lambda_min / (m : ℝ)) * t)) := by
   set r₀ : ℝ := ‖trainingResidual f X y θ₀‖ with hr₀_def
-  have hr_ode : ∀ t : ℝ, HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
+  have hr_ode : ∀ t ∈ Set.Ioo (0 : ℝ) T, HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
       (WithLp.toLp 2 (-(m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
         (trainingResidual f X y (θ_traj t)).ofLp))) t :=
-    fun t => gradient_flow_residual_vector_ode f X y hflow t (hdiff t)
+    fun t ht => gradient_flow_residual_vector_ode f X y t (hflow.ode t ht.1) (hdiff t)
+  have hrc := continuousOn_trainingResidual_comp f X y (s := Set.Icc 0 T)
+    (hflow.continuousOn.mono Set.Icc_subset_Ici_self) (fun t _ => hdiff t)
   have hres_decay := residual_norm_exponential_decay_timeVarying_Icc
     (fun t => empiricalNTKMatrix f X (θ_traj t)) lambda_min T hT
-    (fun s => trainingResidual f X y (θ_traj s)) h_rr hr_ode hm
+    (fun s => trainingResidual f X y (θ_traj s)) h_rr hrc hr_ode hm
   have h0 : trainingResidual f X y (θ_traj 0) = trainingResidual f X y θ₀ := by
     rw [hflow.init]
   have hspeed : ∀ t ∈ Set.Icc (0:ℝ) T,
@@ -1602,7 +1668,7 @@ theorem displacement_le_integral_of_rayleigh
       (fun t : ℝ => (m : ℝ)⁻¹ * M * (r₀ * Real.exp (-(lambda_min / (m : ℝ)) * t)))
       MeasureTheory.volume 0 T :=
     hBcont.intervalIntegrable 0 T
-  simpa using norm_map_sub_le_integral_of_gfTrajectory hflow
+  simpa using norm_map_sub_le_integral_of_forwardGF hflow
     (ContinuousLinearMap.id ℝ (EuclideanSpace ℝ (Fin P))) hT hspeed hBi
 
 /-- Gap 5 Step 1 deliverable: if the empirical NTK's Rayleigh quotient along the trajectory is
@@ -1613,7 +1679,7 @@ total distance traveled converge. -/
 theorem displacement_integral_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (T : ℝ) (hT : 0 ≤ T) (M lambda_min : ℝ) (hm : 0 < (m : ℝ)) (hlam : 0 < lambda_min)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hJ_bdd : ∀ t ∈ Set.Icc 0 T, ‖outputJacobian f X (θ_traj t)‖ ≤ M)
@@ -1654,7 +1720,7 @@ it must without a gap. -/
 theorem displacement_bound_of_psd
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (T : ℝ) (hT : 0 ≤ T) (M : ℝ) (hm : 0 < (m : ℝ))
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hJ_bdd : ∀ t ∈ Set.Icc 0 T, ‖outputJacobian f X (θ_traj t)‖ ≤ M) :
@@ -1754,7 +1820,7 @@ not here. -/
 theorem lazy_training_displacement_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (M L_J lambda_min₀ r C : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ))
     (hlam₀ : 0 < lambda_min₀) (hr_nonneg : 0 ≤ r)
@@ -1787,7 +1853,7 @@ theorem lazy_training_displacement_bound
     exact hfinal.trans hC_ge
   intro T hT
   exact le_of_forall_bootstrap (d := fun t => ‖θ_traj t - θ₀‖)
-    (hflow.cont_diff.continuous.sub continuous_const).norm.continuousOn hCr hT
+    ((hflow.continuousOn.sub continuousOn_const).norm.mono Set.Icc_subset_Ici_self) hCr hT
     (by simpa [hflow.init] using hr_nonneg) (fun S hS hb => hcore S hS.1 hb) T ⟨hT, le_rfl⟩
 
 /-! ### Finite-Horizon Bootstrap Without a Spectral Gap
@@ -1803,14 +1869,14 @@ gradient flow from `θ₀` stays within `C` of `θ₀` on `[0, T]`. -/
 theorem finite_horizon_displacement_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (T M r C : ℝ) (hT : 0 ≤ T) (hM : 0 ≤ M) (hm : 0 < (m : ℝ)) (hr : 0 ≤ r) (hCr : C < r)
     (hC_ge : T * M * ‖trainingResidual f X y θ₀‖ / m ≤ C)
     (hJ_bdd : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r → ‖outputJacobian f X θ‖ ≤ M) :
     ∀ t ∈ Set.Icc (0 : ℝ) T, ‖θ_traj t - θ₀‖ ≤ C :=
   le_of_forall_bootstrap (d := fun t => ‖θ_traj t - θ₀‖)
-    (hflow.cont_diff.continuous.sub continuous_const).norm.continuousOn hCr hT
+    ((hflow.continuousOn.sub continuousOn_const).norm.mono Set.Icc_subset_Ici_self) hCr hT
     (by simpa [hflow.init] using hr) fun S hS hb =>
       (displacement_bound_of_psd f X y hflow S hS.1 M hm hdiff
         fun t ht => hJ_bdd _ (hb t ht)).trans
@@ -1822,7 +1888,7 @@ theorem finite_horizon_displacement_bound
 theorem finite_horizon_kernel_freeze_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (T M L_J r C : ℝ) (hT : 0 ≤ T) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ)) (hr : 0 ≤ r)
     (hCr : C < r) (hC_ge : T * M * ‖trainingResidual f X y θ₀‖ / m ≤ C)
@@ -1917,7 +1983,7 @@ the MSE loss, both at the rates given by `lambda_min₀ / 2`. -/
 theorem lazy_training_global_bounds_of_ball_hypotheses
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (M L_J lambda_min₀ r C : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ))
     (hlam₀ : 0 < lambda_min₀) (hr_nonneg : 0 ≤ r)
@@ -1947,10 +2013,12 @@ theorem lazy_training_global_bounds_of_ball_hypotheses
     fun s hs => hJ_lip (θ_traj s) ((hdisp s hs).trans hCr.le)
   have hray := rayleigh_lower_bound_on_ball f X M L_J lambda_min₀ r hM hL_J hr_nonneg h_ball_gap
     h_rr₀ hJ_bdd hJ_lip
-  have hr_ode : ∀ t : ℝ, HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
+  have hr_ode : ∀ t : ℝ, 0 < t → HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
       (WithLp.toLp 2 (-(m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
         (trainingResidual f X y (θ_traj t)).ofLp))) t :=
-    fun t => gradient_flow_residual_vector_ode f X y hflow t (hdiff t)
+    fun t ht => gradient_flow_residual_vector_ode f X y t (hflow.ode t ht) (hdiff t)
+  have hrc := continuousOn_trainingResidual_comp f X y (s := Set.Ici 0) hflow.continuousOn
+    (fun t _ => hdiff t)
   have h0 : trainingResidual f X y (θ_traj 0) = trainingResidual f X y θ₀ := by rw [hflow.init]
   intro t ht
   have hrr : ∀ s ∈ Set.Icc (0 : ℝ) t, ∀ v : EuclideanSpace ℝ (Fin m),
@@ -1962,11 +2030,13 @@ theorem lazy_training_global_bounds_of_ball_hypotheses
       hJ_bdd_all (hJ_bdd θ₀ (by simpa using hr_nonneg)) hJ_lip_all t ht, ?_, ?_⟩
   · have h := residual_norm_exponential_decay_timeVarying_Icc
       (fun s => empiricalNTKMatrix f X (θ_traj s)) (lambda_min₀ / 2) t ht
-      (fun s => trainingResidual f X y (θ_traj s)) hrr hr_ode hm t ⟨ht, le_rfl⟩
+      (fun s => trainingResidual f X y (θ_traj s)) hrr (hrc.mono Set.Icc_subset_Ici_self)
+      (fun s hs => hr_ode s hs.1) hm t ⟨ht, le_rfl⟩
     rwa [h0] at h
   · have h := residual_norm_sq_exponential_decay_timeVarying_Icc
       (fun s => empiricalNTKMatrix f X (θ_traj s)) (lambda_min₀ / 2) t ht
-      (fun s => trainingResidual f X y (θ_traj s)) hrr hr_ode hm t ⟨ht, le_rfl⟩
+      (fun s => trainingResidual f X y (θ_traj s)) hrr (hrc.mono Set.Icc_subset_Ici_self)
+      (fun s hs => hr_ode s hs.1) hm t ⟨ht, le_rfl⟩
     rw [h0] at h
     unfold mseLoss
     calc (2 * (m : ℝ))⁻¹ * ‖trainingResidual f X y (θ_traj t)‖ ^ 2
@@ -1987,7 +2057,7 @@ not assumed. -/
 theorem lazy_training_kernel_freeze_bound_of_ball_hypotheses
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (hflow : GFTrajectory (mseLoss f X y) θ₀ θ_traj)
+    (hflow : ForwardGFTrajectory (mseLoss f X y) θ₀ θ_traj)
     (hdiff : ∀ t : ℝ, ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (M L_J lambda_min₀ r C : ℝ) (hM : 0 ≤ M) (hL_J : 0 ≤ L_J) (hm : 0 < (m : ℝ))
     (hlam₀ : 0 < lambda_min₀) (hr_nonneg : 0 ≤ r)
@@ -2163,28 +2233,32 @@ private lemma inner_sub_le_of_psd_coefficient (A B : Matrix (Fin m) (Fin m) ℝ)
 /-- **Stability of linear ODEs under coefficient perturbation (PSD case).** Let `r' = -A(t) r` and
 `s' = -B(t) s` on `[0, T]` with `A(t)` positive semidefinite, and suppose
 `‖A(t) - B(t)‖ ‖s(t)‖ ≤ a` there. Then `‖r(t) - s(t)‖ ≤ ‖r(0) - s(0)‖ + a t` for `t ∈ [0, T]`.
+The equation for `r` is only needed on `(0, T)`, with `r` continuous on `[0, T]`, so forward-time
+trajectories qualify.
 The PSD hypothesis on `A` removes any exponential Grönwall factor: the dissipative part
 `-⟪e, A e⟫` of the error equation is nonpositive and only the forcing `(A - B) s` remains.
 Independent of neural networks, initialization and width. -/
 theorem norm_sub_le_of_linear_ode_perturbation
     (A B : ℝ → Matrix (Fin m) (Fin m) ℝ) (r s : ℝ → EuclideanSpace ℝ (Fin m)) {T a : ℝ}
-    (hT : 0 ≤ T)
-    (hr : ∀ t ∈ Set.Icc 0 T, HasDerivAt r (WithLp.toLp 2 (-(A t *ᵥ (r t).ofLp))) t)
+    (hT : 0 ≤ T) (hrc : ContinuousOn r (Set.Icc 0 T))
+    (hr : ∀ t ∈ Set.Ioo 0 T, HasDerivAt r (WithLp.toLp 2 (-(A t *ᵥ (r t).ofLp))) t)
     (hs : ∀ t ∈ Set.Icc 0 T, HasDerivAt s (WithLp.toLp 2 (-(B t *ᵥ (s t).ofLp))) t)
     (hA : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (A t *ᵥ v.ofLp))
     (hab : ∀ t ∈ Set.Icc 0 T, ‖A t - B t‖ * ‖s t‖ ≤ a) :
     ∀ t ∈ Set.Icc 0 T, ‖r t - s t‖ ≤ ‖r 0 - s 0‖ + a * t := by
   have h0 : (0 : ℝ) ∈ Set.Icc 0 T := ⟨le_rfl, hT⟩
   have ha : 0 ≤ a := (mul_nonneg (norm_nonneg _) (norm_nonneg _)).trans (hab 0 h0)
-  have he : ∀ t ∈ Set.Icc 0 T, HasDerivAt (fun τ => r τ - s τ)
+  have he : ∀ t ∈ Set.Ioo 0 T, HasDerivAt (fun τ => r τ - s τ)
       ((WithLp.toLp 2 (-(A t *ᵥ (r t).ofLp)) : EuclideanSpace ℝ (Fin m)) -
-        WithLp.toLp 2 (-(B t *ᵥ (s t).ofLp))) t := fun t ht => (hr t ht).sub (hs t ht)
+        WithLp.toLp 2 (-(B t *ᵥ (s t).ofLp))) t := fun t ht =>
+    (hr t ht).sub (hs t (Set.Ioo_subset_Icc_self ht))
+  have hsc : ContinuousOn s (Set.Icc 0 T) := fun t ht => (hs t ht).continuousAt.continuousWithinAt
   -- Regularized comparison: `√(‖e‖² + η²) - a t` is nonincreasing on `[0, T]`.
   have key : ∀ η > 0, ∀ t ∈ Set.Icc 0 T,
       Real.sqrt (‖r t - s t‖ ^ 2 + η ^ 2) ≤ Real.sqrt (‖r 0 - s 0‖ ^ 2 + η ^ 2) + a * t := by
     intro η hη t ht
     have hpos : ∀ τ, 0 < ‖r τ - s τ‖ ^ 2 + η ^ 2 := fun τ => by positivity
-    have hu : ∀ τ ∈ Set.Icc 0 T, HasDerivAt
+    have hu : ∀ τ ∈ Set.Ioo 0 T, HasDerivAt
         (fun σ => Real.sqrt (‖r σ - s σ‖ ^ 2 + η ^ 2) - a * σ)
         ((2 * ⟪r τ - s τ, (WithLp.toLp 2 (-(A τ *ᵥ (r τ).ofLp)) : EuclideanSpace ℝ (Fin m)) -
             WithLp.toLp 2 (-(B τ *ᵥ (s τ).ofLp))⟫) /
@@ -2196,11 +2270,13 @@ theorem norm_sub_le_of_linear_ode_perturbation
     have hanti : AntitoneOn (fun σ => Real.sqrt (‖r σ - s σ‖ ^ 2 + η ^ 2) - a * σ)
         (Set.Icc 0 T) := by
       refine antitoneOn_of_deriv_nonpos (convex_Icc 0 T)
-        (fun τ hτ => (hu τ hτ).continuousAt.continuousWithinAt)
-        (fun τ hτ => (hu τ (interior_subset hτ)).differentiableAt.differentiableWithinAt)
+        ((((hrc.sub hsc).norm.pow 2).add continuousOn_const).sqrt.sub
+          (continuousOn_const.mul continuousOn_id))
+        (fun τ hτ => (hu τ (by rwa [interior_Icc] at hτ)).differentiableAt.differentiableWithinAt)
         (fun τ hτ => ?_)
-      have hτ' := interior_subset hτ
-      rw [(hu τ hτ').deriv]
+      have hτ'' : τ ∈ Set.Ioo 0 T := by rwa [interior_Icc] at hτ
+      have hτ' := Set.Ioo_subset_Icc_self hτ''
+      rw [(hu τ hτ'').deriv]
       have hS : 0 < Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2) := Real.sqrt_pos.2 (hpos τ)
       have hle : ‖r τ - s τ‖ ≤ Real.sqrt (‖r τ - s τ‖ ^ 2 + η ^ 2) := by
         calc ‖r τ - s τ‖ = Real.sqrt (‖r τ - s τ‖ ^ 2) := (Real.sqrt_sq (norm_nonneg _)).symm
@@ -2235,7 +2311,8 @@ the NTK residual dynamics: if the kernel `K t` is positive semidefinite along `[
 theorem residual_sub_frozen_residual_le
     (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (K_inf : Matrix (Fin m) (Fin m) ℝ)
     (r s : ℝ → EuclideanSpace ℝ (Fin m)) {T b : ℝ} (hT : 0 ≤ T)
-    (hr : ∀ t ∈ Set.Icc 0 T,
+    (hrc : ContinuousOn r (Set.Icc 0 T))
+    (hr : ∀ t ∈ Set.Ioo 0 T,
       HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
     (hs : ∀ t ∈ Set.Icc 0 T,
       HasDerivAt s (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K_inf *ᵥ (s t).ofLp))) t)
@@ -2247,7 +2324,7 @@ theorem residual_sub_frozen_residual_le
     intro M v
     rw [Matrix.smul_mulVec, neg_smul]
   have h := norm_sub_le_of_linear_ode_perturbation (fun t => (m : ℝ)⁻¹ • K t)
-    (fun _ => (m : ℝ)⁻¹ • K_inf) r s (a := (m : ℝ)⁻¹ * b) hT
+    (fun _ => (m : ℝ)⁻¹ • K_inf) r s (a := (m : ℝ)⁻¹ * b) hT hrc
     (fun t ht => by simpa only [hcoeff] using hr t ht)
     (fun t ht => by simpa only [hcoeff] using hs t ht)
     (fun t ht v => by
@@ -2267,7 +2344,8 @@ is what makes the coefficient error `‖K - K_inf‖ ‖s‖` controlled by `ε_
 theorem residual_sub_matrix_exp_le
     (K : ℝ → Matrix (Fin m) (Fin m) ℝ) (K_inf : Matrix (Fin m) (Fin m) ℝ)
     (r : ℝ → EuclideanSpace ℝ (Fin m)) {T ε_K : ℝ} (hT : 0 ≤ T) (hm : 0 < (m : ℝ))
-    (hr : ∀ t ∈ Set.Icc 0 T,
+    (hrc : ContinuousOn r (Set.Icc 0 T))
+    (hr : ∀ t ∈ Set.Ioo 0 T,
       HasDerivAt r (WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))) t)
     (hK : ∀ t ∈ Set.Icc 0 T, ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (K t *ᵥ v.ofLp))
     (hK_inf : ∀ v : EuclideanSpace ℝ (Fin m), 0 ≤ v.ofLp ⬝ᵥ (K_inf *ᵥ v.ofLp))
@@ -2280,7 +2358,7 @@ theorem residual_sub_matrix_exp_le
       EuclideanSpace ℝ (Fin m)) = r 0 := by simp
   have h := residual_sub_frozen_residual_le K K_inf r
     (fun t => (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • K_inf)) *ᵥ (r 0).ofLp) :
-      EuclideanSpace ℝ (Fin m))) (b := ε_K * ‖r 0‖) hT hr
+      EuclideanSpace ℝ (Fin m))) (b := ε_K * ‖r 0‖) hT hrc hr
     (fun t _ => matrix_exp_residual_trajectory_hasDerivAt K_inf (r 0) t) hK
     (fun t ht => mul_le_mul (hb t ht) (by
       simpa using matrix_exp_residual_decay K_inf (r 0) 0
@@ -2412,30 +2490,29 @@ lemma exists_flow_of_lipschitzWith_of_bound (Vg : E → E) {K M : NNReal} (hVlip
   exact hPL.exists_forall_mem_closedBall_eq_hasDerivWithinAt_continuousOn
 
 
-/-- **Finite-window flow with a priori bounds.** Suppose `V` is locally Lipschitz and every solution
-on `[0, S]` (`S ≤ T`), for either time direction, that starts in the ball of radius `r₀` stays in a
-ball of radius `ρ`. Then `V` has a flow on `[-T, T]`, jointly continuous in the initial point (in
-the ball of radius `r₀`) and time. Proof: truncate `V` outside a large ball, apply
+/-- **Finite-window flow with an a priori bound.** Suppose `V` is Lipschitz on balls and every
+solution on `[0, S]` (`S ≤ T`) that starts in the ball of radius `r` stays in a ball of some radius
+`ρ`. Then `V` has a forward flow on `[0, T]`, jointly continuous in the initial point (in the
+ball of radius `r`) and time. Proof: truncate `V` outside a large ball, apply
 `exists_flow_of_lipschitzWith_of_bound`, and use the continuous-induction bootstrap
 `le_of_forall_bootstrap` to show the truncated flow never leaves the region where it agrees with
-`V`. -/
+`V`. Only forward time is used, so nothing is required of the solution for negative times. -/
 theorem exists_flow_window (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
     (T r : NNReal)
-    (hprior : ∀ σ : ℝ, |σ| = 1 → ∃ ρ : ℝ, ∀ (θ : ℝ → E) (S : ℝ), 0 ≤ S → S ≤ T → ‖θ 0‖ ≤ r →
-      (∀ t ∈ Icc 0 S, HasDerivWithinAt θ (σ • V (θ t)) (Icc 0 S) t) → ‖θ S‖ ≤ ρ) :
+    (hprior : ∃ ρ : ℝ, ∀ (θ : ℝ → E) (S : ℝ), 0 ≤ S → S ≤ T → ‖θ 0‖ ≤ r →
+      (∀ t ∈ Icc 0 S, HasDerivWithinAt θ (V (θ t)) (Icc 0 S) t) → ‖θ S‖ ≤ ρ) :
     ∃ α : E × ℝ → E,
       (∀ x ∈ closedBall (0 : E) r, α (x, 0) = x ∧
-        ∀ t ∈ Icc (-(T : ℝ)) T, HasDerivWithinAt (fun s => α (x, s)) (V (α (x, t)))
-          (Icc (-(T : ℝ)) T) t) ∧
-      ContinuousOn α (closedBall (0 : E) r ×ˢ Icc (-(T : ℝ)) T) := by
-  obtain ⟨ρ₁, hρ₁⟩ := hprior 1 (by simp)
-  obtain ⟨ρ₂, hρ₂⟩ := hprior (-1) (by simp)
-  set A : ℝ := max (max ρ₁ ρ₂) r + 1 with hA_def
+        ∀ t ∈ Icc 0 (T : ℝ), HasDerivWithinAt (fun s => α (x, s)) (V (α (x, t)))
+          (Icc 0 (T : ℝ)) t) ∧
+      ContinuousOn α (closedBall (0 : E) r ×ˢ Icc 0 (T : ℝ)) := by
+  obtain ⟨ρ, hρ⟩ := hprior
+  set A : ℝ := max ρ r + 1 with hA_def
   have hA : 0 < A := by
-    have : (0 : ℝ) ≤ r := r.2
-    have := le_max_right (max ρ₁ ρ₂) (r : ℝ)
-    linarith [r.2]
+    have h0 : (0 : ℝ) ≤ r := r.2
+    have := le_max_right ρ (r : ℝ)
+    linarith
   obtain ⟨K, hK, hKlip⟩ := hV_lip (2 * A)
   set M : ℝ := ‖V 0‖ + K * (2 * A) with hM_def
   have hM : 0 ≤ M := by positivity
@@ -2465,100 +2542,97 @@ theorem exists_flow_window (V : E → E)
       rw [cutoff_eq_zero hA (not_le.1 hx).le, zero_smul, norm_zero]
       exact hM
   obtain ⟨α, hα, hαc⟩ := exists_flow_of_lipschitzWith_of_bound Vg hVg_lip hVg_bdd T r
-  refine ⟨α, fun x hx => ?_, hαc⟩
+  have hsub : Icc (0 : ℝ) T ⊆ Icc (-(T : ℝ)) T := Icc_subset_Icc (by linarith [T.coe_nonneg]) le_rfl
+  refine ⟨α, fun x hx => ?_, hαc.mono (prod_mono subset_rfl hsub)⟩
   obtain ⟨h0, hsol⟩ := hα x hx
   refine ⟨h0, ?_⟩
+  have hsolF : ∀ t ∈ Icc (0 : ℝ) T,
+      HasDerivWithinAt (fun s => α (x, s)) (Vg (α (x, t))) (Icc 0 (T : ℝ)) t :=
+    fun t ht => (hsol t (hsub ht)).mono hsub
   set θ : ℝ → E := fun s => α (x, s) with hθ
   have hxr : ‖x‖ ≤ r := by simpa using hx
-  have hθcont : ContinuousOn θ (Icc (-(T : ℝ)) T) := fun t ht => (hsol t ht).continuousWithinAt
+  have hθcont : ContinuousOn θ (Icc (0 : ℝ) T) := fun t ht => (hsolF t ht).continuousWithinAt
   have hθ0 : θ 0 = x := h0
-  have hρ_lt : max ρ₁ ρ₂ < A := by rw [hA_def]; linarith [le_max_left (max ρ₁ ρ₂) (r : ℝ)]
+  have hρ_lt : ρ < A := by rw [hA_def]; linarith [le_max_left ρ (r : ℝ)]
   have hr_le : (r : ℝ) ≤ A - 1 := by
-    have := le_max_right (max ρ₁ ρ₂) (r : ℝ); rw [hA_def]; linarith
+    have := le_max_right ρ (r : ℝ); rw [hA_def]; linarith
   -- forward bootstrap: `‖θ t‖ ≤ A - 1` for `t ∈ [0, T]`
   have hfwd : ∀ t ∈ Icc (0 : ℝ) T, ‖θ t‖ ≤ A - 1 := by
     refine le_of_forall_bootstrap (d := fun t => ‖θ t‖) (r := A) (C := A - 1)
-      (hθcont.norm.mono (fun t ht => ⟨by linarith [ht.1, T.coe_nonneg], ht.2⟩)) (by linarith)
-      T.coe_nonneg
-      (by rw [hθ0]; linarith) ?_
+      hθcont.norm (by linarith) T.coe_nonneg (by rw [hθ0]; linarith) ?_
     intro S hS hb
-    have hsolS : ∀ t ∈ Icc (0 : ℝ) S, HasDerivWithinAt θ ((1 : ℝ) • V (θ t)) (Icc 0 S) t := by
+    have hsolS : ∀ t ∈ Icc (0 : ℝ) S, HasDerivWithinAt θ (V (θ t)) (Icc 0 S) t := by
       intro t ht
-      have h1 := (hsol t ⟨by linarith [ht.1, T.coe_nonneg], ht.2.trans hS.2⟩).mono
-        (show Icc (0 : ℝ) S ⊆ Icc (-(T : ℝ)) T from fun u hu =>
-          ⟨by linarith [hu.1, T.coe_nonneg], hu.2.trans hS.2⟩)
-      rw [one_smul]
+      have h1 := (hsolF t ⟨ht.1, ht.2.trans hS.2⟩).mono
+        (show Icc (0 : ℝ) S ⊆ Icc 0 (T : ℝ) from Icc_subset_Icc le_rfl hS.2)
       convert h1 using 2
       simp only [hVg]
       rw [cutoff_eq_one hA (hb t ht), one_smul]
-    have := hρ₁ θ S hS.1 hS.2 (by rw [hθ0]; exact hxr) hsolS
+    have := hρ θ S hS.1 hS.2 (by rw [hθ0]; exact hxr) hsolS
     rw [hA_def]
-    linarith [le_max_left ρ₁ ρ₂, le_max_left (max ρ₁ ρ₂) (r : ℝ)]
-  -- backward bootstrap for `θ̃ t = θ (-t)`, which solves the reversed equation
-  have hbwd : ∀ t ∈ Icc (0 : ℝ) T, ‖θ (-t)‖ ≤ A - 1 := by
-    have hneg_mem : ∀ t ∈ Icc (0 : ℝ) T, -t ∈ Icc (-(T : ℝ)) T := fun t ht =>
-      ⟨by linarith [ht.2], by linarith [ht.1, T.coe_nonneg]⟩
-    refine le_of_forall_bootstrap (d := fun t => ‖θ (-t)‖) (r := A) (C := A - 1)
-      ((hθcont.norm.comp continuous_neg.continuousOn (fun t ht => hneg_mem t ht))) (by linarith)
-      T.coe_nonneg (by simp only [neg_zero]; rw [hθ0]; linarith) ?_
-    intro S hS hb
-    have hsolS : ∀ t ∈ Icc (0 : ℝ) S,
-        HasDerivWithinAt (fun s => θ (-s)) ((-1 : ℝ) • V (θ (-t))) (Icc 0 S) t := by
-      intro t ht
-      have hmem : -t ∈ Icc (-(T : ℝ)) T :=
-        ⟨by linarith [ht.2, hS.2], by linarith [ht.1, T.coe_nonneg]⟩
-      have hneg : HasDerivWithinAt (fun s : ℝ => -s) (-1 : ℝ) (Icc 0 S) t :=
-        (hasDerivWithinAt_id t _).neg
-      have hmaps : Set.MapsTo (fun s : ℝ => -s) (Icc 0 S) (Icc (-(T : ℝ)) T) := fun u hu =>
-        ⟨by linarith [hu.2, hS.2], by linarith [hu.1, T.coe_nonneg]⟩
-      have h1 := (hsol (-t) hmem).scomp t hneg hmaps
-      refine h1.congr_deriv ?_
-      simp only [hVg]
-      rw [cutoff_eq_one hA (hb t ht), one_smul]
-    have := hρ₂ (fun s => θ (-s)) S hS.1 hS.2 (by simp only [neg_zero]; rw [hθ0]; exact hxr) hsolS
-    rw [hA_def]
-    linarith [le_max_right ρ₁ ρ₂, le_max_left (max ρ₁ ρ₂) (r : ℝ)]
+    linarith [le_max_left ρ (r : ℝ)]
   intro t ht
-  have hbound : ‖θ t‖ ≤ A - 1 := by
-    rcases le_total 0 t with h | h
-    · exact hfwd t ⟨h, ht.2⟩
-    · have := hbwd (-t) ⟨by linarith, by linarith [ht.1]⟩
-      simpa using this
-  have h1 := hsol t ht
+  have h1 := hsolF t ht
   convert h1 using 2
   simp only [hVg]
-  rw [cutoff_eq_one hA (by linarith), one_smul]
+  rw [cutoff_eq_one hA (by linarith [hfwd t ht]), one_smul]
 
 omit [CompleteSpace E] in
-/-- **Uniqueness on a symmetric window.** Two solutions of `x' = V x` on `[-T, T]` (`T > 0`) with
-the same value at `0` coincide there, when `V` is Lipschitz on balls. Continuity makes both
-solutions bounded, so Mathlib's `ODE_solution_unique_of_mem_Icc` applies on a large ball. This is
-a thin adapter (it supplies the ball and constant and converts derivative forms) used only by
-`exists_global_flow` and `flow_unique`, hence private. -/
+/-- **Uniqueness on a forward window.** Two solutions of `x' = V x` on `[0, T]` (`T > 0`),
+continuous on `[0, T]` and differentiable on `(0, T)`, with the same value at `0` coincide there,
+when `V` is Lipschitz on balls. Continuity makes both solutions bounded, so Mathlib's
+`ODE_solution_unique_of_mem_Icc` applies on a large ball. This is a thin adapter (it supplies the
+ball and constant) used only by `exists_forward_flow` and `flow_unique`, hence private. -/
 private theorem flow_unique_window (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
     {T : ℝ} (hT : 0 < T) {f g : ℝ → E}
-    (hf : ∀ t ∈ Icc (-T) T, HasDerivWithinAt f (V (f t)) (Icc (-T) T) t)
-    (hg : ∀ t ∈ Icc (-T) T, HasDerivWithinAt g (V (g t)) (Icc (-T) T) t) (h0 : f 0 = g 0) :
-    EqOn f g (Icc (-T) T) := by
-  have hfc : ContinuousOn f (Icc (-T) T) := fun t ht => (hf t ht).continuousWithinAt
-  have hgc : ContinuousOn g (Icc (-T) T) := fun t ht => (hg t ht).continuousWithinAt
+    (hfc : ContinuousOn f (Icc 0 T)) (hf : ∀ t ∈ Ioo 0 T, HasDerivAt f (V (f t)) t)
+    (hgc : ContinuousOn g (Icc 0 T)) (hg : ∀ t ∈ Ioo 0 T, HasDerivAt g (V (g t)) t)
+    (h0 : f 0 = g 0) : EqOn f g (Icc 0 T) := by
+  -- a field that is Lipschitz on balls is continuous
+  have hVc : Continuous V := by
+    refine continuous_iff_continuousAt.2 fun x => ?_
+    obtain ⟨K, hK, hKlip⟩ := hV_lip (‖x‖ + 1)
+    rw [Metric.continuousAt_iff]
+    intro ε hε
+    refine ⟨min 1 (ε / (K + 1)), by positivity, fun y hy => ?_⟩
+    have hy1 : dist y x < 1 := lt_of_lt_of_le hy (min_le_left _ _)
+    have hy2 : dist y x < ε / (K + 1) := lt_of_lt_of_le hy (min_le_right _ _)
+    rw [dist_eq_norm] at hy1 hy2 ⊢
+    have hyn : ‖y‖ ≤ ‖x‖ + 1 := by linarith [norm_sub_norm_le y x]
+    have := hKlip y x hyn (by linarith [norm_nonneg x])
+    rw [lt_div_iff₀ (by positivity)] at hy2
+    nlinarith [norm_nonneg (y - x)]
+  -- solutions have a right derivative at the initial time as well (the derivative has a limit)
+  have hright : ∀ {h : ℝ → E}, ContinuousOn h (Icc 0 T) →
+      (∀ t ∈ Ioo 0 T, HasDerivAt h (V (h t)) t) → ∀ t ∈ Ico 0 T,
+        HasDerivWithinAt h (V (h t)) (Ici t) t := by
+    intro h hc hd t ht
+    rcases ht.1.eq_or_lt with rfl | hpos
+    · have hcw : ContinuousWithinAt h (Ioi 0) 0 :=
+        (hc 0 ⟨le_rfl, hT.le⟩).mono_of_mem_nhdsWithin
+          (Filter.mem_of_superset (Ioo_mem_nhdsGT hT) Ioo_subset_Icc_self)
+      have hlim : Filter.Tendsto (fun x => V (h x)) (nhdsWithin 0 (Ioi 0)) (nhds (V (h 0))) :=
+        (hVc.continuousAt.tendsto).comp hcw.tendsto
+      refine hasDerivWithinAt_Ici_of_tendsto_deriv (s := Ioo 0 T)
+        (fun x hx => (hd x hx).differentiableAt.differentiableWithinAt)
+        ((hc 0 ⟨le_rfl, hT.le⟩).mono Ioo_subset_Icc_self) (Ioo_mem_nhdsGT hT) ?_
+      exact hlim.congr' (Filter.eventually_of_mem (Ioo_mem_nhdsGT hT)
+        fun x hx => (hd x hx).deriv.symm)
+    · exact (hd t ⟨hpos, ht.2⟩).hasDerivWithinAt
   obtain ⟨Cf, hCf⟩ := isCompact_Icc.exists_bound_of_continuousOn hfc
   obtain ⟨Cg, hCg⟩ := isCompact_Icc.exists_bound_of_continuousOn hgc
   obtain ⟨K, hK, hKlip⟩ := hV_lip (max Cf Cg)
-  have hv : ∀ t ∈ Ioo (-T) T, LipschitzOnWith K.toNNReal ((fun _ : ℝ => V) t)
+  have hv : ∀ t ∈ Ico 0 T, LipschitzOnWith K.toNNReal ((fun _ : ℝ => V) t)
       ((fun _ : ℝ => closedBall (0 : E) (max Cf Cg)) t) := fun _ _ =>
     LipschitzOnWith.of_dist_le_mul fun x hx y hy => by
       simpa [dist_eq_norm, Real.coe_toNNReal K hK] using
         hKlip x y (by simpa using hx) (by simpa using hy)
-  have hint : ∀ t ∈ Ioo (-T) T, Icc (-T) T ∈ nhds t := fun t ht => Icc_mem_nhds ht.1 ht.2
-  exact ODE_solution_unique_of_mem_Icc (v := fun _ => V)
-    (s := fun _ => closedBall (0 : E) (max Cf Cg))
-    hv (t₀ := 0) ⟨by linarith, hT⟩ hfc
-    (fun t ht => (hf t (Ioo_subset_Icc_self ht)).hasDerivAt (hint t ht))
-    (fun t ht => by simpa using (hCf t (Ioo_subset_Icc_self ht)).trans (le_max_left _ _)) hgc
-    (fun t ht => (hg t (Ioo_subset_Icc_self ht)).hasDerivAt (hint t ht))
-    (fun t ht => by simpa using (hCg t (Ioo_subset_Icc_self ht)).trans (le_max_right _ _)) h0
+  exact ODE_solution_unique_of_mem_Icc_right (v := fun _ => V)
+    (s := fun _ => closedBall (0 : E) (max Cf Cg)) hv hfc (hright hfc hf)
+    (fun t ht => by simpa using (hCf t (Ico_subset_Icc_self ht)).trans (le_max_left _ _)) hgc
+    (hright hgc hg)
+    (fun t ht => by simpa using (hCg t (Ico_subset_Icc_self ht)).trans (le_max_right _ _)) h0
 
 omit [NormedSpace ℝ E] [CompleteSpace E] in
 /-- A locally Lipschitz map on a proper normed space is Lipschitz on every closed ball centered at
@@ -2572,115 +2646,135 @@ lemma lipschitz_on_ball_of_locallyLipschitz [ProperSpace E] {V : E → E} (hV : 
   simpa [dist_eq_norm] using this
 
 omit [CompleteSpace E] in
-/-- **Global uniqueness of solutions.** If `V` is Lipschitz on balls, two solutions of `x' = V x`
-defined on all of `ℝ` with the same value at `0` are equal. -/
+/-- **Forward uniqueness of solutions.** If `V` is Lipschitz on balls, two solutions of `x' = V x`
+that are continuous on `[0, ∞)` and differentiable for `t > 0`, with the same value at `0`, agree on
+`[0, ∞)`. -/
 theorem flow_unique (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
-    {f g : ℝ → E} (hf : ∀ t, HasDerivAt f (V (f t)) t) (hg : ∀ t, HasDerivAt g (V (g t)) t)
-    (h0 : f 0 = g 0) : f = g := by
-  funext t
-  have hT : 0 < |t| + 1 := by positivity
-  exact flow_unique_window V hV_lip hT (fun s _ => (hf s).hasDerivWithinAt)
-    (fun s _ => (hg s).hasDerivWithinAt) h0
-    ⟨by linarith [neg_abs_le t], by linarith [le_abs_self t]⟩
+    {f g : ℝ → E} (hfc : ContinuousOn f (Ici 0)) (hf : ∀ t, 0 < t → HasDerivAt f (V (f t)) t)
+    (hgc : ContinuousOn g (Ici 0)) (hg : ∀ t, 0 < t → HasDerivAt g (V (g t)) t)
+    (h0 : f 0 = g 0) : EqOn f g (Ici 0) := fun t ht =>
+  flow_unique_window V hV_lip (T := t + 1) (by linarith [show (0 : ℝ) ≤ t from ht])
+    (hfc.mono Icc_subset_Ici_self) (fun s hs => hf s hs.1)
+    (hgc.mono Icc_subset_Ici_self) (fun s hs => hg s hs.1) h0 ⟨ht, by linarith⟩
 
-/-- **Global flow from local Lipschitz continuity and a priori bounds.** Suppose `V` is Lipschitz on
-balls and, for either time direction, solutions on `[0, S]` starting in a ball stay in a ball whose
-radius depends only on the horizon and the starting radius. Then there is a global flow
-`Φ : E → ℝ → E` solving `x' = V x` for all times (in both directions), with `Φ x 0 = x` and
-`x ↦ Φ x t` continuous for every `t`. Solutions are unique (`flow_unique_window`), so `Φ` is *the*
-flow. -/
-theorem exists_global_flow (V : E → E)
+/-- **Forward flow from local Lipschitz continuity and a priori bounds.** Suppose `V` is Lipschitz
+on balls and solutions on `[0, S]` starting in a ball stay in a ball whose radius depends only on
+the horizon and the starting radius. Then there is a flow `Φ : E → ℝ → E` solving `x' = V x` for all
+positive times, with `Φ x 0 = x` and `(x, t) ↦ Φ x t` continuous (for negative times `Φ x t = x` by
+construction, which carries no meaning). Solutions are unique (`flow_unique`), so `Φ` is *the*
+forward flow. -/
+theorem exists_forward_flow (V : E → E)
     (hV_lip : ∀ A : ℝ, ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : E, ‖x‖ ≤ A → ‖y‖ ≤ A → ‖V x - V y‖ ≤ K * ‖x - y‖)
-    (hprior : ∀ σ : ℝ, |σ| = 1 → ∀ T r : ℝ, ∃ ρ : ℝ, ∀ (θ : ℝ → E) (S : ℝ), 0 ≤ S → S ≤ T →
-      ‖θ 0‖ ≤ r → (∀ t ∈ Icc 0 S, HasDerivWithinAt θ (σ • V (θ t)) (Icc 0 S) t) → ‖θ S‖ ≤ ρ) :
-    ∃ Φ : E → ℝ → E, (∀ x, Φ x 0 = x) ∧ (∀ x t, HasDerivAt (Φ x) (V (Φ x t)) t) ∧
+    (hprior : ∀ T r : ℝ, ∃ ρ : ℝ, ∀ (θ : ℝ → E) (S : ℝ), 0 ≤ S → S ≤ T →
+      ‖θ 0‖ ≤ r → (∀ t ∈ Icc 0 S, HasDerivWithinAt θ (V (θ t)) (Icc 0 S) t) → ‖θ S‖ ≤ ρ) :
+    ∃ Φ : E → ℝ → E, (∀ x, Φ x 0 = x) ∧ (∀ x t, 0 < t → HasDerivAt (Φ x) (V (Φ x t)) t) ∧
       Continuous (fun p : E × ℝ => Φ p.1 p.2) := by
   choose α hα using fun k : ℕ => exists_flow_window V hV_lip ((k + 1 : ℕ) : NNReal)
-    ((k + 1 : ℕ) : NNReal) (fun σ hσ => hprior σ hσ _ _)
+    ((k + 1 : ℕ) : NNReal) (hprior _ _)
   -- the radius/window `k + 1` in real form
   have hcast : ∀ k : ℕ, (((k + 1 : ℕ) : NNReal) : ℝ) = (k : ℝ) + 1 := fun k => by push_cast; ring
   have hsol : ∀ k : ℕ, ∀ x : E, ‖x‖ ≤ (k : ℝ) + 1 → α k (x, 0) = x ∧
-      ∀ t ∈ Icc (-((k : ℝ) + 1)) ((k : ℝ) + 1), HasDerivWithinAt (fun s => α k (x, s))
-        (V (α k (x, t))) (Icc (-((k : ℝ) + 1)) ((k : ℝ) + 1)) t := fun k x hx => by
+      ∀ t ∈ Icc 0 ((k : ℝ) + 1), HasDerivWithinAt (fun s => α k (x, s))
+        (V (α k (x, t))) (Icc 0 ((k : ℝ) + 1)) t := fun k x hx => by
     have := (hα k).1 x (by rw [mem_closedBall, dist_zero_right, hcast]; exact hx)
     simpa [hcast] using this
   have hcont : ∀ k : ℕ, ContinuousOn (α k)
-      (closedBall (0 : E) ((k : ℝ) + 1) ×ˢ Icc (-((k : ℝ) + 1)) ((k : ℝ) + 1)) := fun k => by
+      (closedBall (0 : E) ((k : ℝ) + 1) ×ˢ Icc 0 ((k : ℝ) + 1)) := fun k => by
     simpa [hcast] using (hα k).2
   -- consistency between different windows
   have hcons : ∀ k k' : ℕ, ∀ x : E, ‖x‖ ≤ (k : ℝ) + 1 → ‖x‖ ≤ (k' : ℝ) + 1 → ∀ t : ℝ,
-      |t| ≤ (k : ℝ) + 1 → |t| ≤ (k' : ℝ) + 1 → α k (x, t) = α k' (x, t) := by
-    intro k k' x hx hx' t ht ht'
-    have hle : ∀ m : ℕ, (min k k' : ℕ) + 1 ≤ (m : ℝ) + 1 → True := fun _ _ => trivial
+      0 ≤ t → t ≤ (k : ℝ) + 1 → t ≤ (k' : ℝ) + 1 → α k (x, t) = α k' (x, t) := by
+    intro k k' x hx hx' t ht0 ht ht'
     set m : ℕ := min k k' with hm
     have hmk : (m : ℝ) ≤ k := by exact_mod_cast min_le_left k k'
     have hmk' : (m : ℝ) ≤ k' := by exact_mod_cast min_le_right k k'
-    have hsub : ∀ j : ℕ, (m : ℝ) ≤ j → Icc (-((m : ℝ) + 1)) ((m : ℝ) + 1) ⊆
-        Icc (-((j : ℝ) + 1)) ((j : ℝ) + 1) := fun j hj u hu =>
-      ⟨by linarith [hu.1], by linarith [hu.2]⟩
+    have hsub : ∀ j : ℕ, (m : ℝ) ≤ j → Icc 0 ((m : ℝ) + 1) ⊆ Icc 0 ((j : ℝ) + 1) :=
+      fun j hj u hu => ⟨hu.1, by linarith [hu.2]⟩
+    have hwin : ∀ j : ℕ, (m : ℝ) ≤ j → ‖x‖ ≤ (j : ℝ) + 1 →
+        ContinuousOn (fun s => α j (x, s)) (Icc 0 ((m : ℝ) + 1)) ∧
+        ∀ s ∈ Ioo 0 ((m : ℝ) + 1), HasDerivAt (fun s => α j (x, s)) (V (α j (x, s))) s :=
+      fun j hj hxj =>
+        ⟨fun s hs => (((hsol j x hxj).2 s (hsub j hj hs)).mono (hsub j hj)).continuousWithinAt,
+          fun s hs => (((hsol j x hxj).2 s (hsub j hj (Ioo_subset_Icc_self hs))).mono
+            (hsub j hj)).hasDerivAt (Icc_mem_nhds hs.1 hs.2)⟩
     have hfun := flow_unique_window V hV_lip (T := (m : ℝ) + 1) (by positivity)
-      (f := fun s => α k (x, s)) (g := fun s => α k' (x, s))
-      (fun s hs => ((hsol k x hx).2 s (hsub k hmk hs)).mono (hsub k hmk))
-      (fun s hs => ((hsol k' x hx').2 s (hsub k' hmk' hs)).mono (hsub k' hmk'))
+      (hwin k hmk hx).1 (hwin k hmk hx).2 (hwin k' hmk' hx').1 (hwin k' hmk' hx').2
       (by rw [(hsol k x hx).1, (hsol k' x hx').1])
-    exact hfun ⟨by linarith [(abs_le.1 (show |t| ≤ (m : ℝ) + 1 by
-        rcases le_total k k' with h | h
-        · rw [hm, min_eq_left h]; exact ht
-        · rw [hm, min_eq_right h]; exact ht')).1], by
-        linarith [(abs_le.1 (show |t| ≤ (m : ℝ) + 1 by
-        rcases le_total k k' with h | h
-        · rw [hm, min_eq_left h]; exact ht
-        · rw [hm, min_eq_right h]; exact ht')).2]⟩
-  set Φ : E → ℝ → E := fun x t => α ⌈max ‖x‖ |t|⌉₊ (x, t) with hΦ_def
-  have hΦ : ∀ (x : E) (t : ℝ) (k : ℕ), ‖x‖ ≤ (k : ℝ) + 1 → |t| ≤ (k : ℝ) + 1 →
+    refine hfun ⟨ht0, ?_⟩
+    rcases le_total k k' with h | h
+    · rw [hm, min_eq_left h]; exact ht
+    · rw [hm, min_eq_right h]; exact ht'
+  set Φ : E → ℝ → E := fun x t => α ⌈max ‖x‖ t⌉₊ (x, t) with hΦ_def
+  have hΦ : ∀ (x : E) (t : ℝ) (k : ℕ), ‖x‖ ≤ (k : ℝ) + 1 → 0 ≤ t → t ≤ (k : ℝ) + 1 →
       Φ x t = α k (x, t) := by
-    intro x t k hx ht
-    have hk₀ : max ‖x‖ |t| ≤ (⌈max ‖x‖ |t|⌉₊ : ℝ) := Nat.le_ceil _
-    exact hcons _ k x ((le_max_left _ _).trans hk₀ |>.trans (by linarith))
-      hx t ((le_max_right _ _).trans hk₀ |>.trans (by linarith)) ht
-  refine ⟨Φ, fun x => ?_, fun x t => ?_, ?_⟩
-  · have hk : ‖x‖ ≤ (⌈‖x‖⌉₊ : ℝ) + 1 := (Nat.le_ceil _).trans (by linarith)
-    rw [hΦ x 0 ⌈‖x‖⌉₊ hk (by simp only [abs_zero]; positivity), (hsol _ x hk).1]
-  · set k : ℕ := ⌈max ‖x‖ (|t| + 1)⌉₊ with hk_def
-    have hk₀ : max ‖x‖ (|t| + 1) ≤ (k : ℝ) := Nat.le_ceil _
-    have hxk : ‖x‖ ≤ (k : ℝ) + 1 := (le_max_left _ _).trans hk₀ |>.trans (by linarith)
-    have ht1 : |t| + 1 ≤ (k : ℝ) := (le_max_right _ _).trans hk₀
-    have hmem : t ∈ Icc (-((k : ℝ) + 1)) ((k : ℝ) + 1) := by
-      have := abs_le.1 (show |t| ≤ (k : ℝ) + 1 by linarith [abs_nonneg t]); exact this
-    have hnhds : Icc (-((k : ℝ) + 1)) ((k : ℝ) + 1) ∈ nhds t :=
-      Icc_mem_nhds (by linarith [neg_abs_le t]) (by linarith [le_abs_self t])
-    have hd := ((hsol k x hxk).2 t hmem).hasDerivAt hnhds
-    have hev : (fun s => α k (x, s)) =ᶠ[nhds t] Φ x := by
-      have hnb : Ioo (t - 1) (t + 1) ∈ nhds t := Ioo_mem_nhds (by linarith) (by linarith)
-      filter_upwards [hnb] with s hs
-      have : |s| ≤ (k : ℝ) + 1 := by
-        rw [abs_le]; constructor <;> linarith [hs.1, hs.2, neg_abs_le t, le_abs_self t]
-      exact (hΦ x s k hxk this).symm
-    rw [hΦ x t k hxk (by linarith [abs_nonneg t])]
-    exact (hd.congr_of_eventuallyEq hev.symm)
-  · rw [continuous_iff_continuousAt]
-    rintro ⟨x₀, t₀⟩
-    set k : ℕ := ⌈max (‖x₀‖ + 1) (|t₀| + 1)⌉₊ with hk_def
-    have hk₀ : max (‖x₀‖ + 1) (|t₀| + 1) ≤ (k : ℝ) := Nat.le_ceil _
-    have hx₀k : ‖x₀‖ + 1 ≤ (k : ℝ) := (le_max_left _ _).trans hk₀
-    have ht₀k : |t₀| + 1 ≤ (k : ℝ) := (le_max_right _ _).trans hk₀
-    have hnb : ball (0 : E) (‖x₀‖ + 1) ×ˢ Ioo (t₀ - 1) (t₀ + 1) ∈ nhds (x₀, t₀) :=
-      prod_mem_nhds (isOpen_ball.mem_nhds (by rw [mem_ball, dist_zero_right]; linarith))
-        (Ioo_mem_nhds (by linarith) (by linarith))
-    have hUsub : ∀ q ∈ ball (0 : E) (‖x₀‖ + 1) ×ˢ Ioo (t₀ - 1) (t₀ + 1),
-        ‖q.1‖ ≤ (k : ℝ) + 1 ∧ |q.2| ≤ (k : ℝ) + 1 := fun q hq => by
-      refine ⟨?_, ?_⟩
-      · have := mem_ball_zero_iff.1 hq.1
-        linarith
-      · rw [abs_le]
-        constructor <;> linarith [hq.2.1, hq.2.2, neg_abs_le t₀, le_abs_self t₀]
-    have hat : ContinuousAt (α k) (x₀, t₀) := (hcont k).continuousAt
-      (Filter.mem_of_superset hnb fun q hq =>
-        ⟨by rw [mem_closedBall, dist_zero_right]; exact (hUsub q hq).1, abs_le.1 (hUsub q hq).2⟩)
-    refine hat.congr ?_
-    filter_upwards [hnb] with q hq
-    exact (hΦ q.1 q.2 k (hUsub q hq).1 (hUsub q hq).2).symm
+    intro x t k hx ht0 ht
+    have hk₀ : max ‖x‖ t ≤ (⌈max ‖x‖ t⌉₊ : ℝ) := Nat.le_ceil _
+    exact hcons _ k x ((le_max_left _ _).trans hk₀ |>.trans (by linarith)) hx t ht0
+      ((le_max_right _ _).trans hk₀ |>.trans (by linarith)) ht
+  have hmain : (∀ x, Φ x 0 = x) ∧ (∀ x t, 0 < t → HasDerivAt (Φ x) (V (Φ x t)) t) ∧
+      ContinuousOn (fun p : E × ℝ => Φ p.1 p.2) (univ ×ˢ Ici 0) := by
+    refine ⟨fun x => ?_, fun x t ht => ?_, fun p hp => ?_⟩
+    · have hk : ‖x‖ ≤ (⌈max ‖x‖ 0⌉₊ : ℝ) + 1 :=
+        ((le_max_left _ _).trans (Nat.le_ceil _)).trans (by linarith)
+      rw [hΦ x 0 ⌈‖x‖⌉₊ ((Nat.le_ceil _).trans (by linarith)) le_rfl (by positivity),
+        (hsol _ x ((Nat.le_ceil _).trans (by linarith))).1]
+    · set k : ℕ := ⌈max ‖x‖ (t + 1)⌉₊ with hk_def
+      have hk₀ : max ‖x‖ (t + 1) ≤ (k : ℝ) := Nat.le_ceil _
+      have hxk : ‖x‖ ≤ (k : ℝ) + 1 := (le_max_left _ _).trans hk₀ |>.trans (by linarith)
+      have ht1 : t + 1 ≤ (k : ℝ) := (le_max_right _ _).trans hk₀
+      have hmem : t ∈ Icc 0 ((k : ℝ) + 1) := ⟨ht.le, by linarith⟩
+      have hnhds : Icc 0 ((k : ℝ) + 1) ∈ nhds t := Icc_mem_nhds ht (by linarith)
+      have hd := ((hsol k x hxk).2 t hmem).hasDerivAt hnhds
+      have hev : (fun s => α k (x, s)) =ᶠ[nhds t] Φ x := by
+        have hnb : Ioo (t / 2) (t + 1) ∈ nhds t := Ioo_mem_nhds (by linarith) (by linarith)
+        filter_upwards [hnb] with s hs
+        exact (hΦ x s k hxk (by linarith [hs.1]) (by linarith [hs.2])).symm
+      rw [hΦ x t k hxk ht.le (by linarith)]
+      exact (hd.congr_of_eventuallyEq hev.symm)
+    · obtain ⟨x₀, t₀⟩ := p
+      have ht₀ : 0 ≤ t₀ := hp.2
+      set k : ℕ := ⌈max (‖x₀‖ + 1) (t₀ + 1)⌉₊ with hk_def
+      have hk₀ : max (‖x₀‖ + 1) (t₀ + 1) ≤ (k : ℝ) := Nat.le_ceil _
+      have hx₀k : ‖x₀‖ + 1 ≤ (k : ℝ) := (le_max_left _ _).trans hk₀
+      have ht₀k : t₀ + 1 ≤ (k : ℝ) := (le_max_right _ _).trans hk₀
+      have hnb : ball (0 : E) (‖x₀‖ + 1) ×ˢ Iio (t₀ + 1) ∈ nhds (x₀, t₀) :=
+        prod_mem_nhds (isOpen_ball.mem_nhds (by rw [mem_ball, dist_zero_right]; linarith))
+          (Iio_mem_nhds (by linarith))
+      have hUsub : ∀ q ∈ ball (0 : E) (‖x₀‖ + 1) ×ˢ Iio (t₀ + 1), 0 ≤ q.2 →
+          ‖q.1‖ ≤ (k : ℝ) + 1 ∧ q.2 ≤ (k : ℝ) + 1 := fun q hq _ => by
+        refine ⟨?_, ?_⟩
+        · have := mem_ball_zero_iff.1 hq.1
+          linarith
+        · linarith [mem_Iio.1 hq.2]
+      have hmem : (x₀, t₀) ∈ closedBall (0 : E) ((k : ℝ) + 1) ×ˢ Icc 0 ((k : ℝ) + 1) :=
+        ⟨by rw [mem_closedBall, dist_zero_right]; linarith, ht₀, by linarith⟩
+      have hat : ContinuousWithinAt (α k) (closedBall (0 : E) ((k : ℝ) + 1) ×ˢ Icc 0 ((k : ℝ) + 1))
+          (x₀, t₀) := (hcont k) (x₀, t₀) hmem
+      have hmemW : closedBall (0 : E) ((k : ℝ) + 1) ×ˢ Icc 0 ((k : ℝ) + 1) ∈
+          nhdsWithin (x₀, t₀) (univ ×ˢ Ici 0) := by
+        rw [mem_nhdsWithin]
+        refine ⟨ball (0 : E) (‖x₀‖ + 1) ×ˢ Iio (t₀ + 1), isOpen_ball.prod isOpen_Iio,
+          ⟨by rw [mem_ball, dist_zero_right]; linarith, by simp only [mem_Iio]; linarith⟩, ?_⟩
+        · rintro q ⟨hq, -, hq0⟩
+          obtain ⟨h1, h2⟩ := hUsub q hq hq0
+          exact ⟨by rw [mem_closedBall, dist_zero_right]; exact h1, hq0, h2⟩
+      refine (hat.mono_of_mem_nhdsWithin hmemW).congr_of_eventuallyEq ?_ ?_
+      · filter_upwards [hmemW, self_mem_nhdsWithin] with q hq _
+        exact hΦ q.1 q.2 k (by simpa [mem_closedBall, dist_zero_right] using hq.1) hq.2.1
+          hq.2.2
+      · exact hΦ x₀ t₀ k (by linarith) ht₀ (by linarith)
+  obtain ⟨h0, hd, hc⟩ := hmain
+  -- extend by the value at `0` for negative times, so that `Φ` is continuous everywhere
+  refine ⟨fun x t => Φ x (max t 0), fun x => by simpa using h0 x, fun x t ht => ?_,
+    hc.comp_continuous (continuous_fst.prodMk (continuous_snd.max continuous_const))
+      fun p => ⟨trivial, show (0 : ℝ) ≤ max p.2 0 from le_max_right _ _⟩⟩
+  have e : Φ x (max t 0) = Φ x t := by rw [max_eq_left ht.le]
+  change HasDerivAt (fun s => Φ x (max s 0)) (V (Φ x (max t 0))) t
+  rw [e]
+  exact (hd x t ht).congr_of_eventuallyEq (by
+    filter_upwards [Ioi_mem_nhds ht] with s hs
+    rw [max_eq_left (le_of_lt hs)])
 
 /-- A finite sum of locally Lipschitz functions is locally Lipschitz. -/
 lemma locallyLipschitz_finset_sum {α ι β : Type*} [PseudoEMetricSpace α] [SeminormedAddCommGroup β]

@@ -167,6 +167,25 @@ structure GFTrajectory (f : E → ℝ) (w₀ : E) (w : ℝ → E) : Prop where
   /-- The gradient flow ODE holds pointwise. -/
   ode : ∀ t : ℝ, HasDerivAt w (-gradient f (w t)) t
 
+/-- **Forward-time gradient flow.** A curve `w : ℝ → E` is a forward gradient-flow trajectory for
+`f` starting at `w₀` if `w 0 = w₀`, `w` is continuous on `[0, ∞)`, and `w' = -∇f(w)` for `t > 0`;
+values at negative times are irrelevant. This is the notion used for training: a solution on
+`[0, ∞)` need not extend backward (for an unbounded activation it can blow up in negative time), so
+`GFTrajectory`, which asks for the ODE at every real time, is strictly stronger
+(`GFTrajectory.forward`). -/
+structure ForwardGFTrajectory (f : E → ℝ) (w₀ : E) (w : ℝ → E) : Prop where
+  /-- The curve starts at `w₀`. -/
+  init : w 0 = w₀
+  /-- `w` is continuous on `[0, ∞)`. -/
+  continuousOn : ContinuousOn w (Set.Ici 0)
+  /-- The gradient flow ODE holds for positive times. -/
+  ode : ∀ t : ℝ, 0 < t → HasDerivAt w (-gradient f (w t)) t
+
+/-- Every (two-sided) gradient-flow trajectory restricts to a forward one. -/
+theorem GFTrajectory.forward {f : E → ℝ} {w₀ : E} {w : ℝ → E} (h : GFTrajectory f w₀ w) :
+    ForwardGFTrajectory f w₀ w :=
+  ⟨h.init, h.cont_diff.continuous.continuousOn, fun t _ => h.ode t⟩
+
 /-- A curve `w : ℝ → E` is a trajectory for a time-dependent vector field `v : ℝ → E → E`
 starting at `w₀` if it satisfies the ODE `w_prime(t) = v t (w(t))` with initial condition
 `w(0) = w₀`.

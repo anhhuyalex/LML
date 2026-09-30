@@ -1230,13 +1230,14 @@ lemma hasFDerivAt_sq_diff (θ : EuclideanSpace ℝ (Fin P)) {g : EuclideanSpace 
   simp only [InnerProductSpace.toDual_apply_apply, inner_smul_left, starRingEnd_apply, star_trivial]
   ring
 
-/-- The gradient of the empirical MSE loss with respect to parameters:
-  `∇_θ L(θ) = (1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`. -/
-theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+/-- The empirical MSE loss has gradient
+  `(1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`
+at `θ`, in the `HasGradientAt` form needed for chain rules along curves. -/
+theorem hasGradientAt_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
     (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    gradient (mseLoss f X y) θ =
-      (m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ := by
+    HasGradientAt (mseLoss f X y)
+      ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) θ := by
   have h_term : ∀ α ∈ (Finset.univ : Finset (Fin m)),
       HasFDerivAt (fun θ' => (f (X α) θ' - y α) ^ 2)
         (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
@@ -1272,7 +1273,16 @@ theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fi
     apply Finset.sum_congr rfl
     intro α _
     ring
-  exact h_grad.gradient
+  exact h_grad
+
+/-- The gradient of the empirical MSE loss with respect to parameters:
+  `∇_θ L(θ) = (1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`. -/
+theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
+    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
+    gradient (mseLoss f X y) θ =
+      (m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ :=
+  (hasGradientAt_mseLoss f X y θ hdiff).gradient
 
 /-- Coordinate-wise formulation matching the Jacobian-residual product:
   `[∇_θ L(θ)]_j = (1 / m) [J(θ)ᵀ r(θ)]_j = (1 / m) ∑_α (f(x^α; θ) - y^α) [∇_θ f(x^α; θ)]_j`. -/
