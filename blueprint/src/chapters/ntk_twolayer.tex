@@ -534,11 +534,11 @@ Apply Theorem~\ref{thm:ntktl:globalEvent} with $\delta=\varepsilon=\eta/4$.
   \leanok
 Let $\varphi$ be a smooth activation, $T\ge0$, $\delta\in(0,1]$ and $\varepsilon>0$. There are $R\ge0$, $C$, $M$, sequences $\mathrm{freezeRate},\mathrm{jacRate},\mathrm{taylorRate}\to0$ and $N$ such that for $n\ge N$ there is a measurable event $E$ of probability at least $1-2\delta-\varepsilon$ on which the initial residual satisfies $\|r(0)\|\le R$, all readout weights are at most
 $\sqrt{2\log(2n/\delta)}$, $\|J(\theta_0)\|\le M$, and every forward gradient flow from $\theta_0$ satisfies, for all $t\in[0,T]$,
-\[
-  \|K(\theta(t))-K(\theta_0)\|\le\mathrm{freezeRate}(n),\quad
-  \|J(\theta(t))-J(\theta_0)\|\le\mathrm{jacRate}(n),\quad
-  \|f(\theta(t))-f(\theta_0)-J(\theta_0)(\theta(t)-\theta_0)\|\le\mathrm{taylorRate}(n),
-\]
+\begin{align*}
+  \|K(\theta(t))-K(\theta_0)\|&\le\mathrm{freezeRate}(n),\\
+  \|J(\theta(t))-J(\theta_0)\|&\le\mathrm{jacRate}(n),\\
+  \|f(\theta(t))-f(\theta_0)-J(\theta_0)(\theta(t)-\theta_0)\|&\le\mathrm{taylorRate}(n),
+\end{align*}
 and $\|\theta(t)-\theta_0\|\le C$. No lower bound on the spectrum of $K_\infty$ is assumed. Single-confidence form ($\delta=\varepsilon=\eta/3$): probability at least $1-\eta$ for the kernel freeze on $[0,T]$.
 \end{theorem}
 
