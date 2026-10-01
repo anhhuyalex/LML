@@ -56,7 +56,7 @@ For an MLP of architectural depth `d`, input dimension `n₀`, hidden width `n`,
 @[expose]
 public section
 
-open scoped Matrix Real BigOperators
+open scoped Matrix Real BigOperators MatrixOrder
 
 namespace NTK
 
