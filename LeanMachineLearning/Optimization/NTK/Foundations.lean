@@ -15,5 +15,5 @@ public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 
 Network-independent tools used throughout the NTK development: matrix and Frobenius-norm facts
 (`matrixCLM`), i.i.d. averages with Chebyshev bounds, Slutsky/tightness/Markov lemmas, and ODE
-tools (`ODE`: Grönwall, the continuous-induction bootstrap, global flows of locally Lipschitz fields).
+tools (`ODE`: Grönwall, the bootstrap principle, global flows of locally Lipschitz fields).
 -/

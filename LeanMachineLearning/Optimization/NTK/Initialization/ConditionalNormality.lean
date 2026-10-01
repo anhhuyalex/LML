@@ -1,0 +1,326 @@
+/-
+Copyright (c) 2026 LML Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: LML Contributors
+-/
+module
+
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
+
+/-!
+# Theorem 1: exact finite-width conditional normality
+
+Conditional on the input weights, the network output is an exact centered multivariate Gaussian.
+
+See
+`LeanMachineLearning.Optimization.NTK.Initialization`
+for the overview of the whole development.
+-/
+
+@[expose] public section
+
+set_option linter.style.longLine false
+
+open Real MeasureTheory ProbabilityTheory Matrix Complex
+open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
+
+namespace NTK
+
+variable {d n m : ℕ}
+
+section Theorem1
+
+/-! ## Theorem 1: Exact Finite-Width Conditional Normality -/
+
+/-! ### Step 1 & Step 2: Linear Projections and Projection Coefficients -/
+
+/-- The $\mathcal{F}$-measurable projection coefficients `projectionCoeff` (mathematically `ψ_i`)
+for each hidden unit `i`:
+  `projectionCoeff n φ W X c i = (1/√n) ∑_α c_α φ(W i ⬝ᵥ X α)`. -/
+noncomputable def projectionCoeff
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
+    (c : Fin m → ℝ) (i : Fin n) : ℝ :=
+  (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)
+
+/-- The normalized-sum formula for a projection coefficient. This is the public
+equation lemma for `projectionCoeff`, so proofs need not unfold its implementation. -/
+lemma projectionCoeff_eq_normalized_sum
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
+    (c : Fin m → ℝ) (i : Fin n) :
+    projectionCoeff n φ W X c i = (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α) := rfl
+
+/-- For measurable `φ`, each projection coefficient is measurable as a function of the input
+weight matrix. This formalizes the `ℱ`-measurability assertion in Step 2. -/
+lemma projectionCoeff_measurable
+    (n : ℕ) (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
+    (c : Fin m → ℝ) (i : Fin n) :
+    Measurable (fun W : Fin n → Fin d → ℝ => projectionCoeff n φ W X c i) := by
+  simp_rw [projectionCoeff_eq_normalized_sum]
+  refine Measurable.const_mul (Finset.measurable_sum _ fun α _ => ?_) _
+  exact measurable_const.mul
+    (hφ.comp ((measurable_dotProduct_left (X α)).comp (measurable_pi_apply i)))
+
+/-- **Step 1 (Linear projection identity)**:
+For any linear combination vector `c : Fin m → ℝ`, the scalar linear projection of
+the network output satisfies:
+  `∑ α, c α * f(X α; W, a) = ∑ i, a i * projectionCoeff n φ W X c i`. -/
+lemma projection_eq_sum_projectionCoeff
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
+    (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) :
+    (∑ α : Fin m, c α * evalSingle φ W a (X α)) =
+      ∑ i : Fin n, a i * projectionCoeff n φ W X c i :=
+  calc
+    (∑ α : Fin m, c α * evalSingle φ W a (X α)) =
+        ∑ α : Fin m, c α * ((n : ℝ)⁻¹.sqrt *
+          ∑ i : Fin n, a i * φ (W i ⬝ᵥ X α)) := by
+      simp_rw [evalSingle_eq_normalized_sum]
+    _ = ∑ i : Fin n, a i * ((n : ℝ)⁻¹.sqrt *
+          ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)) := by
+      simp_rw [Finset.mul_sum]
+      rw [Finset.sum_comm]
+      exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun α _ => by ring
+    _ = ∑ i : Fin n, a i * projectionCoeff n φ W X c i := by
+      simp_rw [projectionCoeff_eq_normalized_sum]
+
+/-! ### Step 4: Variance and Positive Semidefiniteness -/
+
+/-- The square of a projection coefficient expanded as a double sum. -/
+lemma projectionCoeff_sq (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ)
+    (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) (i : Fin n) :
+    (projectionCoeff n φ W X c i) ^ 2 =
+      (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ β : Fin m,
+        c α * c β * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)) :=
+  calc
+    (projectionCoeff n φ W X c i) ^ 2 =
+        ((n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)) ^ 2 := by
+      rw [projectionCoeff_eq_normalized_sum]
+    _ = (n : ℝ)⁻¹ * (∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)) ^ 2 := by
+      rw [mul_pow, Real.sq_sqrt (by positivity)]
+    _ = (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ β : Fin m,
+        c α * c β * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)) := by
+      congr 1
+      rw [sq, Finset.sum_mul_sum]
+      exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring
+
+/-- **Step 4 (Variance identity)**:
+The sum of squared coefficients `∑ i, (projectionCoeff ... i)^2` equals the quadratic form
+`c ⬝ᵥ Φ^{(n)} *ᵥ c`:
+  `∑ i, (projectionCoeff n φ W X c i)^2 = c ⬝ᵥ Φ^{(n)} *ᵥ c`. -/
+lemma sum_projectionCoeff_sq_eq_bilin
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
+    (c : Fin m → ℝ) :
+    ∑ i : Fin n, (projectionCoeff n φ W X c i) ^ 2 =
+      c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c := by
+  simp_rw [projectionCoeff_sq]
+  simp only [dotProduct, mulVec, empiricalCovariance]
+  simp_rw [Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun α _ => ?_
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun β _ => ?_
+  calc
+    (∑ i : Fin n, (n : ℝ)⁻¹ *
+        (c α * c β * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)))) =
+        ∑ i : Fin n, c α * ((n : ℝ)⁻¹ * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β))) * c β :=
+      Finset.sum_congr rfl fun i _ => by ring
+    _ = c α * ((∑ i : Fin n, (n : ℝ)⁻¹ *
+        (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β))) * c β) := by
+      rw [Finset.sum_mul, Finset.mul_sum]
+      exact Finset.sum_congr rfl fun i _ => by ring
+
+/-- The empirical covariance matrix `Φ^{(n)}` is symmetric (Hermitian). -/
+lemma empiricalCovariance_isHermitian
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
+    (empiricalCovariance n φ W X).IsHermitian := by
+  ext α β
+  simp only [empiricalCovariance, conjTranspose_apply, star_trivial]
+  congr 1
+  exact Finset.sum_congr rfl fun i _ => by ring
+
+/-- The quadratic form with `Φ^{(n)}` is always nonnegative. -/
+lemma empiricalCovariance_nonneg
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
+    (c : Fin m → ℝ) :
+    0 ≤ c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c := by
+  rw [← sum_projectionCoeff_sq_eq_bilin]
+  exact Finset.sum_nonneg (fun i _ => sq_nonneg (projectionCoeff n φ W X c i))
+
+/-- The empirical covariance matrix `Φ^{(n)}` is positive semidefinite (`PosSemidef`). -/
+theorem empiricalCovariance_posSemidef
+    (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
+    (empiricalCovariance n φ W X).PosSemidef :=
+  Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (empiricalCovariance_isHermitian n φ W X)
+    fun x => by simpa using empiricalCovariance_nonneg n φ W X x
+
+/-! ### Step 3, 4 & 5: Conditional Distribution and Theorem 1 -/
+
+/-- Pushforward of the readout measure under standard inner product with a vector `v : Fin n → ℝ`
+is a 1D Gaussian with mean 0 and variance `∑ i, v i ^ 2`. -/
+lemma map_gaussianReadoutMeasure_inner (v : Fin n → ℝ) :
+    Measure.map (fun a : Fin n → ℝ => ∑ i : Fin n, a i * v i) (gaussianReadoutMeasure n) =
+      gaussianReal 0 (Real.toNNReal (∑ i : Fin n, v i ^ 2)) := by
+  have h_eq : (fun a : Fin n → ℝ => ∑ i : Fin n, a i * v i) =
+      (fun (u : EuclideanSpace ℝ (Fin n)) => innerSL ℝ (WithLp.toLp 2 v) u) ∘ (WithLp.toLp 2) := by
+    ext a
+    dsimp [innerSL_apply_apply]
+    rw [EuclideanSpace.inner_toLp_toLp]
+    simp [dotProduct, mul_comm]
+  rw [h_eq, ← Measure.map_map]
+  · have h_toLp : Measure.map (WithLp.toLp 2) (gaussianReadoutMeasure n) =
+        stdGaussian (EuclideanSpace ℝ (Fin n)) := map_pi_eq_stdGaussian
+    rw [h_toLp]
+    have h_map := IsGaussian.map_eq_gaussianReal
+      (μ := stdGaussian (EuclideanSpace ℝ (Fin n))) (innerSL ℝ (WithLp.toLp 2 v))
+    rw [h_map]
+    have h_mean : ∫ (u : EuclideanSpace ℝ (Fin n)),
+        (innerSL ℝ (WithLp.toLp 2 v)) u ∂stdGaussian (EuclideanSpace ℝ (Fin n)) = 0 := by
+      rw [(innerSL ℝ (WithLp.toLp 2 v)).integral_comp_id_comm IsGaussian.integrable_id,
+        integral_id_stdGaussian]
+      exact map_zero (innerSL ℝ (WithLp.toLp 2 v))
+    have h_var : Var[innerSL ℝ (WithLp.toLp 2 v); stdGaussian (EuclideanSpace ℝ (Fin n))] =
+        ∑ i : Fin n, v i ^ 2 := by
+      rw [variance_dual_stdGaussian, innerSL_apply_norm]
+      simp only [EuclideanSpace.real_norm_sq_eq]
+    rw [h_mean, h_var]
+  all_goals fun_prop
+
+/-- **Step 4 (Exact 1D Conditional Normality)**:
+Conditional on `W`, every scalar linear projection `∑ α, c α * f(X α; W, a)` is distributed
+as a univariate centered Gaussian with variance `c ⬝ᵥ Φ^{(n)} *ᵥ c`. -/
+theorem map_readout_projection_eq_gaussianReal
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) :
+    Measure.map (fun a => ∑ α : Fin m, c α * evalSingle φ W a (X α)) (gaussianReadoutMeasure n) =
+      gaussianReal 0 (Real.toNNReal (c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c)) := by
+  calc
+    Measure.map (fun a => ∑ α : Fin m, c α * evalSingle φ W a (X α))
+        (gaussianReadoutMeasure n) =
+        Measure.map (fun a => ∑ i : Fin n, a i * projectionCoeff n φ W X c i)
+          (gaussianReadoutMeasure n) := by
+      congr 1
+      funext a
+      exact projection_eq_sum_projectionCoeff φ W a X c
+    _ = gaussianReal 0 (Real.toNNReal (∑ i : Fin n, (projectionCoeff n φ W X c i) ^ 2)) :=
+      map_gaussianReadoutMeasure_inner (projectionCoeff n φ W X c)
+    _ = gaussianReal 0 (Real.toNNReal (c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c)) := by
+      rw [sum_projectionCoeff_sq_eq_bilin]
+
+/-- Pushforward under inner product with `t` yields a 1D Gaussian with variance
+`t.ofLp ⬝ᵥ Φ^{(n)} *ᵥ t.ofLp`. -/
+lemma map_readout_inner_evalVector
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
+    (t : EuclideanSpace ℝ (Fin m)) :
+    Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) =
+      gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp)) := by
+  calc
+    Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) =
+        Measure.map (fun a => ∑ α : Fin m, t.ofLp α * evalSingle φ W a (X α))
+          (gaussianReadoutMeasure n) := by
+      congr 1
+      funext a
+      exact evalVector_inner φ W X a t
+    _ = gaussianReal 0
+        (Real.toNNReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp)) :=
+      map_readout_projection_eq_gaussianReal φ W X t.ofLp
+
+/-- The characteristic function of `evalVector` under `gaussianReadoutMeasure n`. -/
+lemma charFun_readout_evalVector
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
+    (t : EuclideanSpace ℝ (Fin m)) :
+    charFun (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) t =
+      Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) := by
+  set μ := Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)
+  rw [charFun_apply]
+  rw [integral_map (evalVector_measurable φ W X).aemeasurable (by fun_prop)]
+  have h_exp : (fun a => Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)) =
+      (fun a => Complex.exp (⟪t, evalVector φ W a X⟫ * Complex.I)) := by
+    ext a
+    congr 1
+    rw [real_inner_comm]
+  rw [h_exp]
+  have h_meas_inner : Measurable (fun a => ⟪t, evalVector φ W a X⟫) :=
+    inner_evalVector_measurable φ W X t
+  have h_int_map : (∫ a, Complex.exp (⟪t, evalVector φ W a X⟫ * Complex.I) ∂gaussianReadoutMeasure n) =
+      ∫ y : ℝ, Complex.exp (y * Complex.I) ∂Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) := by
+    rw [integral_map h_meas_inner.aemeasurable (by fun_prop)]
+  rw [h_int_map, map_readout_inner_evalVector φ W X t]
+  have h_cf_1 : (∫ y : ℝ, Complex.exp (y * Complex.I) ∂(gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp)))) =
+      charFun (gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp))) 1 := by
+    rw [charFun_apply_real]
+    simp
+  rw [h_cf_1, charFun_gaussianReal]
+  simp only [Complex.ofReal_zero, mul_zero, zero_mul, Complex.ofReal_one, mul_one, one_pow, zero_sub]
+  have h_nonneg : 0 ≤ t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp :=
+    empiricalCovariance_nonneg n φ W X t.ofLp
+  rw [Real.coe_toNNReal _ h_nonneg]
+  congr 1
+  rw [neg_div]
+
+
+
+end Theorem1
+
+section Theorem1
+
+/-- **Step 5 / Theorem 1 (Exact Conditional Normality)**:
+Conditional on the input weights `W` (the sub-$\sigma$-algebra $\mathcal{F}$), the output
+vector `f_m(W, a)` under the readout distribution is an exact centered multivariate Gaussian:
+  `f_m | ℱ ~ 𝒩(0, Φ^{(n)})`.
+
+Informal proof:
+By the Cramér-Wold device (extensionality of characteristic functions in Mathlib),
+two finite measures are equal if their Fourier transforms (characteristic functions) coincide.
+For every projection vector `t ∈ EuclideanSpace ℝ (Fin m)`, the characteristic function of the
+pushforward measure is computed via the 1D projection theorem to be
+`exp(- (1/2) t ⬝ᵥ Φ^{(n)} *ᵥ t)`. This matches the characteristic function of Mathlib's
+`multivariateGaussian 0 Φ^{(n)}` exactly, proving Theorem 1. -/
+theorem exact_conditional_normality
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
+    Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n) =
+      multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (empiricalCovariance n φ W X) := by
+  have hPos : (empiricalCovariance n φ W X).PosSemidef :=
+    empiricalCovariance_posSemidef n φ W X
+  apply Measure.ext_of_charFun
+  ext t
+  rw [charFun_readout_evalVector, charFun_multivariateGaussian hPos]
+  congr 1
+  simp only [inner_zero_right, Complex.ofReal_zero, zero_mul, zero_sub, neg_div]
+
+/-- The conditional distribution of the output vector satisfies `IsGaussian`. -/
+instance isGaussian_conditional_output
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
+    IsGaussian (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) := by
+  rw [exact_conditional_normality]
+  infer_instance
+
+
+/-- **Definition 2.2 (Gaussian Process)**:
+Conditional on input weights `W`, the scalar random network output function
+`x ↦ evalSingle φ W a x` under the readout measure `gaussianReadoutMeasure n`
+is an exact Gaussian process in the sense of Mathlib's `ProbabilityTheory.IsGaussianProcess`. -/
+theorem isGaussianProcess_exact_conditional_output
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) :
+    ProbabilityTheory.IsGaussianProcess
+      (fun (x : Fin d → ℝ) (a : Fin n → ℝ) => evalSingle φ W a x)
+      (gaussianReadoutMeasure n) where
+  hasGaussianLaw I := by
+    let e := Fintype.equivFin I
+    let X : Fin (Fintype.card I) → Fin d → ℝ := fun α => (e.symm α).1
+    have h_gauss : HasGaussianLaw (fun a => evalVector φ W a X) (gaussianReadoutMeasure n) :=
+      ⟨(evalVector_measurable φ W X).aemeasurable, isGaussian_conditional_output φ W X⟩
+    let L : EuclideanSpace ℝ (Fin (Fintype.card I)) →L[ℝ] (I → ℝ) :=
+      { toFun := fun v i => v.ofLp (e i)
+        map_add' := fun u v => by ext i; simp
+        map_smul' := fun c v => by ext i; simp }
+    have h_eq : (fun a => I.restrict (fun x => evalSingle φ W a x)) =
+        (fun a => L (evalVector φ W a X)) := by
+      ext a i
+      simp [L, X, evalVector]
+    rw [h_eq]
+    exact h_gauss.map L
+
+
+end Theorem1
+
+end NTK
+
+end
