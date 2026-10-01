@@ -44,27 +44,6 @@ bound, `Kernel.lean`'s `gradient_mseLoss_norm_le`, combined with Step 1's time-v
 decay), and integrating this speed bound over `[0, T]` gives an explicit, `T`-independent cap on
 how far gradient flow can have moved from `θ₀` by time `T`. -/
 
-/-- Reusable bound: `∫₀ᵀ exp(-c t) dt ≤ 1/c` for `c > 0`, dropping the (nonnegative) `1 - exp(-cT)`
-factor from the exact closed form `(1 - exp(-cT))/c`. -/
-lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
-    ∫ t in (0:ℝ)..T, Real.exp (-c * t) ≤ c⁻¹ := by
-  have hc' : -c ≠ 0 := by linarith
-  rw [show (fun t : ℝ => Real.exp (-c * t)) = (fun t => Real.exp ((-c) * t)) from rfl]
-  rw [intervalIntegral.integral_comp_mul_left (fun x => Real.exp x) hc']
-  rw [integral_exp]
-  simp only [mul_zero, Real.exp_zero, smul_eq_mul]
-  have h1 : Real.exp (-c * T) - 1 ≤ 0 := by
-    have := Real.exp_le_one_iff.mpr (by nlinarith : -c * T ≤ 0)
-    linarith
-  rw [show (-c)⁻¹ * (Real.exp (-c * T) - 1) = c⁻¹ * (1 - Real.exp (-c * T)) by
-    field_simp; ring]
-  have h3 : 0 ≤ c⁻¹ := by positivity
-  calc
-    c⁻¹ * (1 - Real.exp (-c * T)) ≤ c⁻¹ * 1 := by
-      apply mul_le_mul_of_nonneg_left _ h3
-      linarith [Real.exp_nonneg (-c * T)]
-    _ = c⁻¹ := by ring
-
 section CoordinateBlocks
 
 variable {κ ι' : Type*} [Fintype κ] [Fintype ι']
@@ -349,44 +328,6 @@ theorem rayleigh_lower_bound_on_ball
     (mul_le_mul_of_nonneg_left hθ h2ML_J_nonneg).trans h_ball_gap
   have hge : lambda_min₀ - 2 * M * L_J * ‖θ - θ₀‖ ≥ lambda_min₀ / 2 := by linarith
   nlinarith [hstep, mul_le_mul_of_nonneg_right hge (sq_nonneg ‖v‖)]
-
-/-- **Continuous-induction (bootstrap) principle on `[0, T]`.** Let `d` be continuous and
-`C < r` (only continuity on `[0, T]` is needed). Suppose that whenever `d ≤ r` holds on all of
-`[0, S]` (for `S ∈ [0, T]`), the sharper
-bound `d S ≤ C` holds. Then `d ≤ C` on all of `[0, T]`, i.e. `d` can never reach the threshold
-`r`. Used for the displacement bootstraps: `d t = ‖θ(t) - θ₀‖` while the Jacobian estimates only
-hold inside a ball. -/
-theorem le_of_forall_bootstrap {d : ℝ → ℝ} {r C T : ℝ} (hd : ContinuousOn d (Set.Icc 0 T))
-    (hCr : C < r)
-    (hT : 0 ≤ T) (h0 : d 0 ≤ r)
-    (hstep : ∀ S ∈ Set.Icc (0 : ℝ) T, (∀ t ∈ Set.Icc (0 : ℝ) S, d t ≤ r) → d S ≤ C) :
-    ∀ t ∈ Set.Icc (0 : ℝ) T, d t ≤ C := by
-  have hzero : d 0 ≤ C := hstep 0 ⟨le_rfl, hT⟩ fun t ht => by
-    obtain rfl : t = 0 := le_antisymm ht.2 ht.1
-    exact h0
-  have hclosed : IsClosed ({t : ℝ | d t ≤ C} ∩ Set.Icc 0 T) := by
-    have := hd.preimage_isClosed_of_isClosed isClosed_Icc (isClosed_Iic (a := C))
-    rwa [Set.inter_comm] at this
-  have h := IsClosed.Icc_subset_of_forall_mem_nhdsGT_of_Icc_subset
-    (s := {t : ℝ | d t ≤ C}) (a := 0) (b := T) hclosed hzero (fun t ht hsub => ?_)
-  · exact fun t htT => h htT
-  have hdt : d t < r := (hsub ⟨ht.1, le_rfl⟩).trans_lt hCr
-  obtain ⟨δ, hδ, hball⟩ := Metric.continuousWithinAt_iff.1 (hd t ⟨ht.1, ht.2.le⟩) (r - d t)
-    (by linarith)
-  have hδ' : 0 < min δ (T - t) := lt_min hδ (by linarith [ht.2])
-  refine Filter.mem_of_superset (Ioo_mem_nhdsGT (show t < t + min δ (T - t) by linarith)) ?_
-  intro u hu
-  have huT : u ≤ T := by linarith [hu.2, min_le_right δ (T - t)]
-  refine hstep u ⟨by linarith [ht.1, hu.1], huT⟩ fun t' ht' => ?_
-  by_cases hle : t' ≤ t
-  · exact (hsub ⟨ht'.1, hle⟩).trans hCr.le
-  · have hlt : t < t' := not_le.1 hle
-    have hdist : dist t' t < δ := by
-      rw [Real.dist_eq, abs_of_pos (by linarith)]
-      linarith [ht'.2, hu.2, min_le_left δ (T - t)]
-    have hlt' := hball ⟨by linarith [ht'.1], by linarith [ht'.2, hu.2, huT]⟩ hdist
-    rw [Real.dist_eq] at hlt'
-    linarith [(abs_lt.1 hlt').2]
 
 /-- **Gap 5 deliverable.** Given a base spectral-gap hypothesis `lambda_min₀` at `θ₀`, a Jacobian
 bound `M` and Lipschitz constant `L_J` that hold on the closed ball `‖θ - θ₀‖ ≤ r` (not globally -

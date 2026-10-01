@@ -98,6 +98,16 @@ public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
 public import LeanMachineLearning.Optimization.NTK.Shallow.Universal
 public import LeanMachineLearning.Optimization.NTK.Training
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.AffineDynamics
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Bootstrap
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Convergence
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Dynamics
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.FlowConstruction
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.InfiniteWidth
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.KernelStability
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.LinearDynamics
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.ODEStability
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.TestPrediction
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.Concentration
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.CrossKernel
