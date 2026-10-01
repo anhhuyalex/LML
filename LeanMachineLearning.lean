@@ -86,7 +86,16 @@ public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Initialization
+public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalNormality
+public import LeanMachineLearning.Optimization.NTK.Initialization.CovariancePropagation
+public import LeanMachineLearning.Optimization.NTK.Initialization.DeepNNGPTheorems
+public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
+public import LeanMachineLearning.Optimization.NTK.Initialization.FullNTK
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
+public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP
+public import LeanMachineLearning.Optimization.NTK.Initialization.NNGPLimit
 public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
+public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 public import LeanMachineLearning.Optimization.NTK.ReLU
 public import LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine
 public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulAngular

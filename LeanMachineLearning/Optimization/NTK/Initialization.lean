@@ -37,6 +37,20 @@ The overview below describes the full initialization development.  In particular
 results in `Initialization.Peripheral`; all other named definitions and main results described here
 are declared in this module.
 
+## Structure
+
+The development is a chain of modules in `Initialization/`, each importing the previous one; this
+file re-exports all of them.
+
+* `Setup` : network evaluation, the initialization probability space, readout-weight concentration.
+* `GaussianAlgebra` : Gaussian vector algebra (Propositions 2.8-2.10).
+* `ConditionalNormality` : Theorem 1.
+* `NNGPLimit` : Theorems 2 and 3.
+* `MultilayerNNGP` : multilayer sequential NNGP.
+* `CovariancePropagation` : layer-by-layer Gaussian structure, covariance propagation.
+* `DeepRecursion`, `DeepNNGPTheorems` : Theorem 2.13, construction and main theorems.
+* `FullNTK` : full two-layer NTK initialization and infinite-width limit.
+
 ## Mathematical Formulation
 
 * **Variable Declarations and Type Signatures**:
