@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Kernel
+public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import Mathlib.Analysis.InnerProductSpace.Calculus
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue

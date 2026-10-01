@@ -5,7 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Initialization
+public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
+public import LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine
 
 /-!
 # The ReLU NTK in closed form

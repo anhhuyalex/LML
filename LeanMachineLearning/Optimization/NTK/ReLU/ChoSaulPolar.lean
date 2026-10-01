@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.ChoSaulAngular
+public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulAngular
 public import Mathlib.MeasureTheory.Integral.Gamma
 
 /-!

@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Linearization
+public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
 public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 
 /-!

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Kernel
-public import LeanMachineLearning.Optimization.NTK.Linearization
+public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
+public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
 public import LeanMachineLearning.Optimization.Approximation.Basic
 public import Mathlib.Topology.Algebra.Module.UniformConvergence
 public import Mathlib.Topology.ContinuousMap.Algebra

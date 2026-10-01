@@ -6,31 +6,34 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
-public import LeanMachineLearning.Optimization.NTK.Linearization
-public import LeanMachineLearning.Optimization.NTK.Kernel
-public import LeanMachineLearning.Optimization.NTK.ReluClosedForm
-public import LeanMachineLearning.Optimization.NTK.Universal
+public import LeanMachineLearning.Optimization.NTK.Foundations
+public import LeanMachineLearning.Optimization.NTK.Shallow
+public import LeanMachineLearning.Optimization.NTK.Initialization
+public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
+public import LeanMachineLearning.Optimization.NTK.ReLU
+public import LeanMachineLearning.Optimization.NTK.Training
 
 /-!
 # Neural tangent kernel and linearization near initialization
 
-Re-exports all NTK results corresponding to Chapter 4 of the deep learning theory notes
-(Telgarsky 2021).
+Umbrella module for the whole NTK development.  Chapter 4 of the deep learning theory notes
+(Telgarsky 2021) is `Basic` and `Shallow`; the random-initialization (NNGP) theory and the
+two-layer training limit follow it.
 
 ## Structure
 
 * `NTK.Basic` : scaled shallow networks, Gaussian initialization, Taylor linearization.
-* `NTK.Linearization` : linearization bounds for smooth activations (Proposition 4.1)
-  and for the ReLU via Gaussian concentration (Lemma 4.1 and Lemma 4.2).
-* `NTK.Kernel` : empirical NTK with and without explicit outer coefficients, limiting NTK, and
-  almost sure convergence along growing width (Lemma 4.3). It re-exports the three helper
-  modules `NTK.IIDAverage` (i.i.d. averages and Chebyshev bounds), `NTK.MatrixUtil` (matrix and
-  Frobenius-norm facts, `matrixCLM`) and `NTK.DatasetNTK` (the empirical NTK matrix on a finite
-  dataset and the MSE gradient).
-* `NTK.ReluClosedForm` : ReLU closed form (Proposition 4.2); it depends on the
-  two-dimensional Gaussian computation in `NTK.Initialization`.
-* `NTK.Universal` : NTK domain, RKHS predictor class, and universal approximation
-  (Theorem 4.1).
+* `NTK.Foundations` : network-independent tools: `MatrixUtil` (Frobenius-norm facts, `matrixCLM`),
+  `IIDAverage` (i.i.d. averages and Chebyshev bounds), `SlutskyTightness`.
+* `NTK.Shallow` : fixed outer layer. `Linearization` (Proposition 4.1, Lemmas 4.1 and 4.2),
+  `Kernel` (empirical and limiting NTK, almost sure convergence, Lemma 4.3), `DatasetNTK` (Gram
+  matrix on a finite dataset, MSE gradient), `Universal` (NTK RKHS, Theorem 4.1).
+* `NTK.ReLU` : Cho–Saul arc-cosine kernel (`ChoSaulAngular`, `ChoSaulPolar`, `ArcCosine`) and the
+  ReLU NTK closed form `ClosedForm` (Proposition 4.2). It sits below `NTK.Initialization`.
+* `NTK.Initialization` : random initialization of the two-layer network, NNGP limits and the
+  full-NTK convergence; `Initialization.Peripheral` holds secondary consequences.
+* `NTK.Training` : `GradientFlow` (gradient flow, lazy training bootstrap, prediction) and
+  `TwoLayer` (parameter packing, concentration, and the end-to-end kernel-freeze bound).
 
 ## Main results
 

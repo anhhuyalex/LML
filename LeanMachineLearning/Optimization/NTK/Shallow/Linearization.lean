@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Kernel
+public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 import LeanMachineLearning.Optimization.NTK.Basic
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Probability.Distributions.Gaussian.Fernique

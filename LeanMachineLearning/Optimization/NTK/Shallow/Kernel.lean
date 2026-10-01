@@ -6,9 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
-public import LeanMachineLearning.Optimization.NTK.IIDAverage
-public import LeanMachineLearning.Optimization.NTK.MatrixUtil
-public import LeanMachineLearning.Optimization.NTK.DatasetNTK
+public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
+public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
+public import LeanMachineLearning.Optimization.NTK.Shallow.DatasetNTK
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Probability.StrongLaw
@@ -79,7 +79,7 @@ needs the two-dimensional Gaussian computation from `NTK.Initialization`.
 
 The finite-width gradient-flow function-space dynamics (the residual ODE
 `∂_t r(t) = - (1/m) K_t r(t)` and its supporting step-by-step derivation) have moved to
-`LeanMachineLearning.Optimization.NTK.InfiniteNTK`, alongside the infinite-width specialization
+`LeanMachineLearning.Optimization.NTK.Training.GradientFlow`, alongside the infinite-width specialization
 and closed-form dynamics that build on it.
 
 -/

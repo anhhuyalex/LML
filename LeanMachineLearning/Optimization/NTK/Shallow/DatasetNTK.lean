@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
-public import LeanMachineLearning.Optimization.NTK.MatrixUtil
+public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Probability.StrongLaw
