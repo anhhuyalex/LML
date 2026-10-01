@@ -1,0 +1,340 @@
+\chapter{The ReLU kernels: Cho--Saul arc-cosine formulas and the ReLU NTK}\label{chap:ntkr}
+
+This chapter formalizes the Gaussian integrals that give the neural tangent kernel and the
+neural-network Gaussian-process (NNGP) kernel of the ReLU activation in closed form.
+The Lean files are \texttt{Optimization/NTK/ReLU/ChoSaul.lean} (angular and polar-coordinate
+integrals), \texttt{ReLU/ArcCosine.lean} (reduction of an arbitrary bivariate Gaussian to the
+standardized one, Proposition~2.5 below), and \texttt{ReLU/ClosedForm.lean} (the closed form of the
+limiting NTK from Chapter~\ref{chap:ntk}).
+
+The two basic quantities are, for a centred bivariate Gaussian $(h^\alpha,h^\beta)$ with covariance
+$\begin{psmallmatrix}\Phi_{\alpha\alpha}&\Phi_{\alpha\beta}\\ \Phi_{\alpha\beta}&\Phi_{\beta\beta}\end{psmallmatrix}$
+and correlation $\rho=\Phi_{\alpha\beta}/\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}$:
+\[
+  \mathbb E\bigl[\mathbf 1\{h^\alpha\ge0\}\mathbf 1\{h^\beta\ge0\}\bigr]
+  =\tfrac14+\tfrac{1}{2\pi}\arcsin\rho,\qquad
+  \mathbb E\bigl[\operatorname{relu}(h^\alpha)\operatorname{relu}(h^\beta)\bigr]
+  =\tfrac{\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}}{2\pi}\Bigl(\sqrt{1-\rho^2}+\rho\bigl(\tfrac\pi2+\arcsin\rho\bigr)\Bigr).
+\]
+The proof reduces by positive homogeneity to unit variances, by a Cholesky factor to independent
+standard Gaussian coordinates, and then evaluates the integral in polar coordinates; the radial and
+angular integrals separate.
+
+
+\section{The ReLU and its derivative}\label{sec:ntkr:relu}
+
+\begin{definition}[ReLU, its derivative, and the indicator]\label{def:ntkr:relu}
+  \lean{NTK.relu, NTK.reluDeriv, NTK.reluIndicator}
+  \leanok
+$\operatorname{relu}(z)=\max(z,0)$, and $\operatorname{reluDeriv}(z)=\operatorname{reluIndicator}(z)=\mathbf 1[z\ge0]$.
+The two derivative names are definitionally equal; the indicator is the derivative of $\operatorname{relu}$ away
+from $0$ (the ReLU is differentiable except at $0$, and the value at $0$ is a convention).
+\end{definition}
+
+\begin{lemma}[Elementary properties of the ReLU]\label{lem:ntkr:reluProps}
+  \uses{def:ntkr:relu}
+  \lean{NTK.relu_apply, NTK.reluDeriv_eq_reluIndicator, NTK.relu_pos_mul, NTK.continuous_relu,
+        NTK.reluIndicator_pos_mul, NTK.relu_eq_reluDeriv_mul, NTK.measurable_reluIndicator,
+        NTK.abs_reluIndicator_le}
+  \leanok
+\begin{enumerate}
+  \item $\operatorname{relu}$ is continuous, and $\operatorname{relu}(u)=\max(u,0)$.
+  \item (Positive homogeneity) For $c\ge0$, $\operatorname{relu}(cu)=c\operatorname{relu}(u)$. For $c>0$,
+        $\mathbf 1[cu\ge0]=\mathbf 1[u\ge0]$.
+  \item $\operatorname{relu}(z)=\operatorname{reluDeriv}(z)\,z$ for every $z$.
+  \item $\operatorname{reluIndicator}$ is measurable (the indicator of the closed set $[0,\infty)$) and
+        $|\operatorname{reluIndicator}|\le1$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+All five statements follow by considering the two cases $u\ge0$ and $u<0$.
+\end{proof}
+
+
+\section{Angular and polar-coordinate integrals}\label{sec:ntkr:polar}
+
+Let $\theta\in[0,\pi]$. We evaluate the two-dimensional integral
+$\mathbb E[\operatorname{relu}(Z_1)\operatorname{relu}(\cos\theta\,Z_1+\sin\theta\,Z_2)]$, where $Z_1,Z_2$ are independent
+standard Gaussians, i.e.\ the ReLU product of two unit Gaussian projections separated by the angle $\theta$.
+
+\begin{lemma}[Angular integrals]\label{lem:ntkr:angular}
+  \uses{lem:ntkr:reluProps}
+  \lean{NTK.angular_relu_integral, NTK.angular_indicator_integral}
+  \leanok
+For $\theta\in[0,\pi]$,
+\[
+  \int_{-\pi}^{\pi}\operatorname{relu}(\cos\varphi)\operatorname{relu}(\cos(\varphi-\theta))\,d\varphi
+  =\frac{\sin\theta+(\pi-\theta)\cos\theta}{2},\qquad
+  \int_{-\pi}^{\pi}\mathbf 1[\cos\varphi\ge0]\,\mathbf 1[\cos(\varphi-\theta)\ge0]\,d\varphi=\pi-\theta .
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+On $(-\pi,\pi)$, $\cos\varphi>0$ exactly for $|\varphi|<\pi/2$ and $\cos(\varphi-\theta)>0$ exactly for
+$|\varphi-\theta|<\pi/2$. The two positivity sets intersect in the common sector
+$\varphi\in(\theta-\pi/2,\pi/2]$, of length $\pi-\theta$; this already gives the indicator integral.
+On the sector the ReLU product equals $\cos\varphi\cos(\varphi-\theta)=\tfrac12[\cos(2\varphi-\theta)+\cos\theta]$, and
+\[
+  \int_{\theta-\pi/2}^{\pi/2}\tfrac12\bigl[\cos(2\varphi-\theta)+\cos\theta\bigr]d\varphi
+  =\tfrac12\Bigl[\tfrac12\sin(2\varphi-\theta)+\varphi\cos\theta\Bigr]_{\theta-\pi/2}^{\pi/2}
+  =\tfrac12\bigl[\sin\theta+(\pi-\theta)\cos\theta\bigr].
+\]
+\end{proof}
+
+\begin{lemma}[Pushing the Gaussian row measure to Euclidean space]\label{lem:ntkr:pushforward}
+  \lean{NTK.integral_gaussianRowMeasure_eq_integral_stdGaussian, NTK.map_pi_eval_two}
+  \leanok
+For every measurable $f:\mathbb R^d\to\mathbb R$, $\int f\,d(\mathcal N(0,I_d))$ computed with the
+row-wise Gaussian measure of Chapter~\ref{chap:ntk} equals the integral against the standard
+Gaussian measure of the Euclidean space $\mathbb R^d$. Moreover, under a product probability
+measure $\bigotimes_{i<d}\mu_i$ with $d\ge2$, the joint law of the first two coordinates is
+$\mu_0\otimes\mu_1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The standard Gaussian on Euclidean space is the product of one-dimensional standard Gaussians, as is
+the row measure; the two descriptions differ only by the identification $\mathbb R^d\cong\texttt{EuclideanSpace}$.
+The statement about two coordinates is the marginal of a product measure.
+\end{proof}
+
+\begin{lemma}[Polar form of the standard Gaussian density]\label{lem:ntkr:polarDensity}
+  \lean{NTK.integral_prod_stdGaussian_eq_density, NTK.integral_radial_gaussian_one,
+        NTK.integral_radial_gaussian_three, NTK.stdGaussian_density_polar}
+  \leanok
+Let $\phi(x)=(2\pi)^{-1/2}e^{-x^2/2}$ be the standard Gaussian density. For all $r,\varphi\in\mathbb R$,
+$\phi(r\cos\varphi)\,\phi(r\sin\varphi)=\frac1{2\pi}e^{-r^2/2}$. For a function $f$ on $\mathbb R^2$,
+$\int f\,d(\gamma\otimes\gamma)=\int\phi(p_1)\phi(p_2)f(p)\,dp$, and the radial moments are
+\[
+  \int_0^\infty re^{-r^2/2}\,dr=1,\qquad\int_0^\infty r^3e^{-r^2/2}\,dr=2 .
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$\phi(r\cos\varphi)\phi(r\sin\varphi)=\frac1{2\pi}\exp(-\frac{r^2}2(\cos^2\varphi+\sin^2\varphi))$. The first radial integral is
+$[-e^{-r^2/2}]_0^\infty=1$. For the second, integrate by parts: $\int_0^\infty r^3e^{-r^2/2}dr=\int_0^\infty2re^{-r^2/2}dr=2$.
+\end{proof}
+
+\begin{proposition}[ReLU integrals for two unit projections at angle $\theta$]\label{prop:ntkr:angleIntegrals}
+  \uses{lem:ntkr:angular, lem:ntkr:polarDensity, lem:ntkr:reluProps}
+  \lean{NTK.integral_prod_stdGaussian_relu, NTK.integral_prod_stdGaussian_reluIndicator,
+        NTK.integral_stdGaussian_relu_angle, NTK.integral_stdGaussian_reluIndicator_angle}
+  \leanok
+Let $\theta\in[0,\pi]$ and let $(Z_1,Z_2)$ be independent standard Gaussians (equivalently, a
+standard Gaussian on $\texttt{EuclideanSpace}\,\mathbb R^2$). Then
+\begin{align*}
+  \mathbb E\bigl[\operatorname{relu}(Z_1)\operatorname{relu}(\cos\theta\,Z_1+\sin\theta\,Z_2)\bigr]
+    &=\frac{\sin\theta+(\pi-\theta)\cos\theta}{2\pi},\\
+  \mathbb E\bigl[\mathbf 1[Z_1\ge0]\,\mathbf 1[\cos\theta\,Z_1+\sin\theta\,Z_2\ge0]\bigr]
+    &=\frac{\pi-\theta}{2\pi}.
+\end{align*}
+\end{proposition}
+
+\begin{proof}
+  \uses{lem:ntkr:angular, lem:ntkr:polarDensity, lem:ntkr:reluProps}
+  \leanok
+Write $(Z_1,Z_2)=(r\cos\varphi,r\sin\varphi)$; the Jacobian is $r$. Then
+$\cos\theta\,Z_1+\sin\theta\,Z_2=r\cos(\varphi-\theta)$, and by Lemma~\ref{lem:ntkr:polarDensity}
+the density is $\frac1{2\pi}e^{-r^2/2}$, independent of $\varphi$. By positive homogeneity
+(Lemma~\ref{lem:ntkr:reluProps}), the ReLU product equals $r^2\operatorname{relu}(\cos\varphi)\operatorname{relu}(\cos(\varphi-\theta))$ and the
+indicator product does not depend on $r>0$. The integrals separate into a radial and an angular factor:
+\begin{align*}
+  \mathbb E[\operatorname{relu}\cdot\operatorname{relu}]
+    &=\frac1{2\pi}\int_0^\infty r^3e^{-r^2/2}dr\cdot\int_{-\pi}^{\pi}\operatorname{relu}(\cos\varphi)\operatorname{relu}(\cos(\varphi-\theta))d\varphi
+     =\frac{2}{2\pi}\cdot\frac{\sin\theta+(\pi-\theta)\cos\theta}{2},\\
+  \mathbb E[\mathbf 1\cdot\mathbf 1]
+    &=\frac1{2\pi}\int_0^\infty re^{-r^2/2}dr\cdot(\pi-\theta)=\frac{\pi-\theta}{2\pi},
+\end{align*}
+using Lemma~\ref{lem:ntkr:angular} for the angular factors. The coordinate forms on
+$\texttt{EuclideanSpace}\,\mathbb R^2$ follow from Lemma~\ref{lem:ntkr:pushforward}.
+\end{proof}
+
+
+\section{Reduction of a bivariate Gaussian to the standardized case}\label{sec:ntkr:reduction}
+
+Let $R_\rho=\begin{psmallmatrix}1&\rho\\ \rho&1\end{psmallmatrix}$ be the standardized correlation matrix.
+
+\begin{lemma}[Correlation and covariance matrices]\label{lem:ntkr:corr}
+  \lean{NTK.corrMatrix2x2_posSemidef, NTK.pearsonRho_mem_Icc,
+        NTK.diagScale2x2_mul_corr_mul_diagScale, NTK.toEuclideanCLM_diagScale_apply,
+        NTK.toEuclideanCLM_adjoint, NTK.toEuclideanCLM_diagScale_adjoint,
+        NTK.cholesky2x2_mul_transpose}
+  \leanok
+\begin{enumerate}
+  \item $R_\rho$ is positive semidefinite for $|\rho|\le1$.
+  \item If $\Sigma=\begin{psmallmatrix}\Phi_{\alpha\alpha}&\Phi_{\alpha\beta}\\ \Phi_{\alpha\beta}&\Phi_{\beta\beta}\end{psmallmatrix}$
+        is positive semidefinite with $\Phi_{\alpha\alpha},\Phi_{\beta\beta}>0$, then
+        $\rho=\Phi_{\alpha\beta}/\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}\in[-1,1]$ (Pearson correlation).
+  \item With $D=\operatorname{diag}(\sqrt{\Phi_{\alpha\alpha}},\sqrt{\Phi_{\beta\beta}})$ one has $DR_\rho D=\Sigma$,
+        and $D$ acts on $\mathbb R^2$ by $z\mapsto(\sqrt{\Phi_{\alpha\alpha}}z_0,\sqrt{\Phi_{\beta\beta}}z_1)$ and is self-adjoint.
+  \item The Cholesky factor $L_\rho=\begin{psmallmatrix}1&0\\ \rho&\sqrt{1-\rho^2}\end{psmallmatrix}$ satisfies $L_\rho L_\rho^\top=R_\rho$.
+        The adjoint of the continuous linear map induced by a real $2\times2$ matrix is the map induced by its transpose.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) The determinant is $1-\rho^2\ge0$ and the diagonal is positive. (2) positive semidefiniteness of
+$\Sigma$ gives $\Phi_{\alpha\beta}^2\le\Phi_{\alpha\alpha}\Phi_{\beta\beta}$ (the determinant is
+nonnegative). (3) and (4) are direct matrix computations.
+\end{proof}
+
+\begin{lemma}[Gaussian pushforwards]\label{lem:ntkr:gaussPush}
+  \uses{lem:ntkr:corr}
+  \lean{NTK.map_cholesky2x2_stdGaussian, NTK.map_diagScale2x2_multivariateGaussian}
+  \leanok
+For $|\rho|\le1$ the pushforward of the standard Gaussian on $\mathbb R^2$ under $L_\rho$ is
+$\mathcal N(0,R_\rho)$. For $\Sigma$ as in Lemma~\ref{lem:ntkr:corr}, the pushforward of
+$\mathcal N(0,R_\rho)$ under $D$ is $\mathcal N(0,\Sigma)$.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkr:corr}
+  \leanok
+A linear image of a Gaussian is Gaussian, with covariance $ACA^\top$ when the source has covariance
+$C$ and the map is $A$. Thus the images have covariances $L_\rho L_\rho^\top=R_\rho$ and $DR_\rho D=\Sigma$
+respectively, and a centred Gaussian is determined by its covariance.
+\end{proof}
+
+\begin{lemma}[Reduction to standardized variables]\label{lem:ntkr:standardize}
+  \uses{lem:ntkr:reluProps, lem:ntkr:gaussPush}
+  \lean{NTK.relu_mul_relu_toEuclideanCLM_diagScale,
+        NTK.reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale,
+        NTK.expected_relu_mul_relu_eq_scale_mul_standardized,
+        NTK.expected_reluIndicator_mul_reluIndicator_eq_standardized}
+  \leanok
+Let $(h^\alpha,h^\beta)\sim\mathcal N(0,\Sigma)$ with $\Phi_{\alpha\alpha},\Phi_{\beta\beta}>0$ and
+correlation $\rho$. Then
+\begin{align*}
+  \mathbb E_{\mathcal N(0,\Sigma)}\bigl[\operatorname{relu}(z_0)\operatorname{relu}(z_1)\bigr]
+    &=\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}\;\mathbb E_{\mathcal N(0,R_\rho)}\bigl[\operatorname{relu}(z_0)\operatorname{relu}(z_1)\bigr],\\
+  \mathbb E_{\mathcal N(0,\Sigma)}\bigl[\mathbf 1[z_0\ge0]\mathbf 1[z_1\ge0]\bigr]
+    &=\mathbb E_{\mathcal N(0,R_\rho)}\bigl[\mathbf 1[z_0\ge0]\mathbf 1[z_1\ge0]\bigr].
+\end{align*}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkr:reluProps, lem:ntkr:gaussPush}
+  \leanok
+By Lemma~\ref{lem:ntkr:gaussPush}, $\mathcal N(0,\Sigma)$ is the image of $\mathcal N(0,R_\rho)$ under $D$.
+For $z\in\mathbb R^2$, positive homogeneity gives
+$\operatorname{relu}((Dz)_0)\operatorname{relu}((Dz)_1)=\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}\operatorname{relu}(z_0)\operatorname{relu}(z_1)$, and signs are invariant under
+positive scalings, so the indicator product is unchanged. Integrate both identities against $\mathcal N(0,R_\rho)$.
+\end{proof}
+
+\begin{proposition}[Standardized Cho--Saul formulas]\label{prop:ntkr:standardized}
+  \uses{prop:ntkr:angleIntegrals, lem:ntkr:gaussPush, lem:ntkr:corr}
+  \lean{NTK.div_two_pi_pi_sub_arccos_eq_arcsin,
+        NTK.expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector,
+        NTK.expected_reluIndicator_mul_reluIndicator_standardized,
+        NTK.expected_relu_mul_relu_standardized}
+  \leanok
+For $\rho\in[-1,1]$,
+\begin{align*}
+  \mathbb E_{\mathcal N(0,R_\rho)}\bigl[\mathbf 1[z_0\ge0]\mathbf 1[z_1\ge0]\bigr]
+    &=\frac{\pi-\arccos\rho}{2\pi}=\frac14+\frac{1}{2\pi}\arcsin\rho,\\
+  \mathbb E_{\mathcal N(0,R_\rho)}\bigl[\operatorname{relu}(z_0)\operatorname{relu}(z_1)\bigr]
+    &=\frac1{2\pi}\Bigl(\sqrt{1-\rho^2}+\rho\bigl(\tfrac\pi2+\arcsin\rho\bigr)\Bigr).
+\end{align*}
+In other words, the derivative kernel is the angular size of the intersection of two half-planes.
+\end{proposition}
+
+\begin{proof}
+  \uses{prop:ntkr:angleIntegrals, lem:ntkr:gaussPush, lem:ntkr:corr}
+  \leanok
+Put $\theta=\arccos\rho\in[0,\pi]$. Then $\cos\theta=\rho$ and $\sin\theta=\sqrt{1-\rho^2}$, so
+$L_\rho z=(z_0,\cos\theta\,z_0+\sin\theta\,z_1)$. By Lemma~\ref{lem:ntkr:gaussPush}, integrals against
+$\mathcal N(0,R_\rho)$ are integrals of the composite against the standard Gaussian on $\mathbb R^2$, and
+Proposition~\ref{prop:ntkr:angleIntegrals} applies, giving $(\pi-\theta)/(2\pi)$ and
+$(\sin\theta+(\pi-\theta)\cos\theta)/(2\pi)=\frac1{2\pi}(\sqrt{1-\rho^2}+\rho(\pi-\arccos\rho))$. Finally
+$\arccos\rho=\pi/2-\arcsin\rho$, which gives the arcsine forms.
+\end{proof}
+
+\begin{theorem}[Cho--Saul kernel for the ReLU, Proposition~2.5]\label{thm:ntkr:choSaul}
+  \uses{lem:ntkr:standardize, prop:ntkr:standardized, lem:ntkr:corr}
+  \lean{NTK.expected_reluIndicator_mul_reluIndicator_bivariate,
+        NTK.expected_reluDeriv_mul_reluDeriv_bivariate,
+        NTK.expected_relu_mul_relu_bivariate, NTK.limitingRecurrence_relu_bivariate}
+  \leanok
+Let $(h^\alpha,h^\beta)\sim\mathcal N(0,\Sigma)$, where $\Sigma\succeq0$, $\Phi_{\alpha\alpha},\Phi_{\beta\beta}>0$, and
+$\rho=\Phi_{\alpha\beta}/\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}$. Then
+\begin{align*}
+  \mathbb E\bigl[\mathbf 1[h^\alpha\ge0]\,\mathbf 1[h^\beta\ge0]\bigr]
+    &=\mathbb E\bigl[\operatorname{reluDeriv}(h^\alpha)\operatorname{reluDeriv}(h^\beta)\bigr]=\tfrac14+\tfrac1{2\pi}\arcsin\rho,\\
+  \mathbb E\bigl[\operatorname{relu}(h^\alpha)\operatorname{relu}(h^\beta)\bigr]
+    &=\frac{\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}}{2\pi}\Bigl(\sqrt{1-\rho^2}+\rho\bigl(\tfrac\pi2+\arcsin\rho\bigr)\Bigr).
+\end{align*}
+Consequently, for every $\sigma_w,\sigma_b\in\mathbb R$, the off-diagonal entry of the limiting NNGP recurrence for the ReLU is
+$\sigma_b^2+\sigma_w^2\,\mathbb E[\operatorname{relu}(h^\alpha)\operatorname{relu}(h^\beta)]$ with the closed form above.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkr:standardize, prop:ntkr:standardized, lem:ntkr:corr}
+  \leanok
+By Lemma~\ref{lem:ntkr:corr}(2) the correlation $\rho$ lies in $[-1,1]$. Reduce to $\mathcal N(0,R_\rho)$ using
+Lemma~\ref{lem:ntkr:standardize} (the factor $\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}$ appears only for the ReLU
+product) and then apply Proposition~\ref{prop:ntkr:standardized}.
+\end{proof}
+
+
+\section{The closed form of the ReLU NTK}\label{sec:ntkr:closedForm}
+
+Recall (Definition~\ref{def:ntk:limitingNTK}) that the limiting NTK for the activation derivative $\sigma'$ is
+$k(x,x')=(x\cdot x')\,\mathbb E_{w\sim\mathcal N(0,I_d)}[\sigma'(w\cdot x)\sigma'(w\cdot x')]$.
+
+\begin{lemma}[Gaussian pushforward along a matrix]\label{lem:ntkr:matrixPush}
+  \uses{def:ntkf:matrixCLM}
+  \lean{NTK.map_matrixCLM_stdGaussian}
+  \leanok
+For $A\in\mathbb R^{k\times d}$, the image of the standard Gaussian on $\mathbb R^d$ under
+$v\mapsto Av$ is the centred Gaussian on $\mathbb R^k$ with covariance $AA^\top$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The image is Gaussian since it is a linear image of a Gaussian, with mean $0$ and covariance
+$A\,I_d\,A^\top=AA^\top$.
+\end{proof}
+
+\begin{lemma}[Orthant probability for two half-spaces]\label{lem:ntkr:halfspaces}
+  \uses{lem:ntkr:matrixPush, prop:ntkr:standardized}
+  \lean{NTK.dotProduct_mem_Icc_of_unit, NTK.prob_halfspace_intersect}
+  \leanok
+If $x\cdot x=x'\cdot x'=1$ then $x\cdot x'\in[-1,1]$ (Cauchy--Schwarz) and
+\[
+  \Pr_{w\sim\mathcal N(0,I_d)}\bigl[w\cdot x\ge0,\ w\cdot x'\ge0\bigr]
+  =\int\mathbf 1[w\cdot x\ge0]\mathbf 1[w\cdot x'\ge0]\,d\mathcal N(0,I_d)
+  =\frac{\pi-\arccos(x\cdot x')}{2\pi}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkr:matrixPush, prop:ntkr:standardized}
+  \leanok
+Apply Lemma~\ref{lem:ntkr:matrixPush} to the $2\times d$ matrix $A$ with rows $x,x'$: the pair
+$(w\cdot x,w\cdot x')$ is a centred Gaussian with covariance $AA^\top=R_\rho$, $\rho=x\cdot x'$. The two-dimensional
+computation is Proposition~\ref{prop:ntkr:standardized}.
+\end{proof}
+
+\begin{theorem}[ReLU NTK in closed form]\label{thm:ntkr:reluNTK}
+  \uses{lem:ntkr:halfspaces, def:ntk:limitingNTK}
+  \lean{NTK.reluNTK_closedForm, NTK.reluNTK_nonneg_of_nonneg_inner, NTK.reluNTK_self}
+  \leanok
+For $x,x'\in\mathbb R^d$ with $x\cdot x=x'\cdot x'=1$, the limiting NTK of the ReLU network is
+\[
+  k(x,x')=(x\cdot x')\,\frac{\pi-\arccos(x\cdot x')}{2\pi}.
+\]
+In particular $k(x,x')\ge0$ whenever $x\cdot x'\ge0$, and $k(x,x)=\tfrac12$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkr:halfspaces, def:ntk:limitingNTK}
+  \leanok
+By definition $k(x,x')=(x\cdot x')\,\mathbb E[\operatorname{reluIndicator}(w\cdot x)\operatorname{reluIndicator}(w\cdot x')]$, and the expectation is
+$(\pi-\arccos(x\cdot x'))/(2\pi)$ by Lemma~\ref{lem:ntkr:halfspaces}. For $x\cdot x'\ge0$ both factors are
+nonnegative ($\arccos\le\pi$). For $x'=x$, $\arccos1=0$ and the closed form is $1\cdot\pi/(2\pi)=1/2$.
+\end{proof}

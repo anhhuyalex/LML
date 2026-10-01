@@ -304,6 +304,61 @@ theorem exists_pos_sub_smul_one_posSemidef_of_posDef {n : Type*} [Finite n] [Dec
   exact (Matrix.posSemidef_diagonal_iff.2 fun i => sub_nonneg.2 (hc.2 i)).mul_mul_conjTranspose_same
     _
 
+/-! ### General Gram Matrices and Positive Semidefiniteness -/
+
+/-- The unscaled Gram matrix `M * Mᵀ` formed by vector dot products is symmetric. -/
+theorem gram_transpose {m n R : Type*} [Fintype n] [CommSemiring R] (M : Matrix m n R) :
+    (Matrix.of fun α β => M α ⬝ᵥ M β)ᵀ = Matrix.of fun α β => M α ⬝ᵥ M β := by
+  ext α β
+  simp [Matrix.transpose_apply, dotProduct_comm]
+
+/-- A scaled Gram matrix `c • (M * Mᵀ)` is symmetric. -/
+theorem scaled_gram_transpose {m n R : Type*} [Fintype n] [CommSemiring R] (c : R)
+    (M : Matrix m n R) :
+    (Matrix.of fun α β => c * (M α ⬝ᵥ M β))ᵀ = Matrix.of fun α β => c * (M α ⬝ᵥ M β) := by
+  ext α β
+  simp [Matrix.transpose_apply, dotProduct_comm]
+
+/-- A constant matrix `c • 1` is symmetric. -/
+theorem const_matrix_transpose {m R : Type*} (c : R) :
+    (Matrix.of fun _ _ : m => c)ᵀ = Matrix.of fun _ _ : m => c := by
+  ext α β
+  rfl
+
+/-- The unscaled Gram matrix `M * Mᵀ` formed by vector dot products is positive semidefinite. -/
+theorem gram_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ) :
+    (Matrix.of fun α β => M α ⬝ᵥ M β).PosSemidef := by
+  classical
+  have h_eq : (Matrix.of fun α β => M α ⬝ᵥ M β) = M * Mᵀ := by
+    ext α β
+    simp [Matrix.mul_apply, dotProduct]
+  rw [h_eq]
+  have h1 : (1 : Matrix n n ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h := h1.mul_mul_conjTranspose_same M
+  simp only [Matrix.mul_one] at h
+  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
+
+/-- A non-negatively scaled Gram matrix `c • (M * Mᵀ)` is positive semidefinite. -/
+theorem scaled_gram_posSemidef {m n : Type*} [Finite m] [Fintype n]
+    (c : ℝ) (hc : 0 ≤ c) (M : Matrix m n ℝ) :
+    (Matrix.of fun α β => c * (M α ⬝ᵥ M β)).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => c * (M α ⬝ᵥ M β)) = c • (Matrix.of fun α β => M α ⬝ᵥ M β) := by
+    ext α β
+    simp [Matrix.smul_apply]
+  rw [h_eq]
+  exact (gram_posSemidef M).smul hc
+
+/-- The all-ones matrix `1_{m × m}` is positive semidefinite. -/
+theorem posSemidef_allOnes {m : Type*} [Finite m] :
+    (Matrix.of fun _ _ : m => (1 : ℝ)).PosSemidef := by
+  have h_eq : (Matrix.of fun _ _ : m => (1 : ℝ)) =
+      Matrix.of fun α β => (fun (_ : m) (_ : Unit) => (1 : ℝ)) α ⬝ᵥ
+                           (fun (_ : m) (_ : Unit) => (1 : ℝ)) β := by
+    ext α β
+    simp [dotProduct]
+  rw [h_eq]
+  exact gram_posSemidef (fun _ _ => 1)
+
 end NTK
 
 end

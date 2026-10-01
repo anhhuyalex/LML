@@ -1,0 +1,853 @@
+\chapter{Two-layer networks: finite-width gradient flow and the lazy-training limit}\label{chap:ntktl}
+
+This chapter records the finite-width theory of a two-layer network whose \emph{both} layers are trained, in the NTK
+(lazy-training) scaling, together with the weak limits of the trained network as the width tends to infinity.
+It specializes the model-independent theory of Chapter~\ref{chap:ntkgf} to the two-layer network, supplies the hypotheses
+that chapter leaves open (a bound $M$ and Lipschitz constant $L_J$ for the output Jacobian, a spectral gap of the initial kernel,
+a good initialization event), and constructs the gradient flow.
+The Lean files are in \texttt{Optimization/NTK/Training/TwoLayer/}: \texttt{Packing}, \texttt{JacobianBounds},
+\texttt{NeuronSum}, \texttt{Concentration}, \texttt{JointInit}, \texttt{KernelFreeze}, \texttt{KernelDrift},
+\texttt{InitializationEvents}, \texttt{FiniteHorizon}, \texttt{CrossKernel}, \texttt{PredictionLimits},
+\texttt{FlowConstruction}, with the initialization objects in \texttt{Optimization/NTK/Initialization/}
+(\texttt{Setup}, \texttt{FullNTK}).
+
+\medskip\noindent\textbf{Notation.}
+$d$ is the input dimension, $n$ the width, $m$ the number of training points, $P=nd+n$ the number of parameters.
+Inputs $x^1,\dots,x^m\in\mathbb R^d$ are collected in $X$, and we always train on the \emph{scaled dataset}
+$\tilde x^\alpha=x^\alpha/\sqrt d$. The activation is $\varphi:\mathbb R\to\mathbb R$. We write $\theta=(W,a)$ with hidden weights
+$W\in\mathbb R^{n\times d}$ (rows $w_i$) and readout weights $a\in\mathbb R^n$.
+
+
+\section{The model, its parameters and the initialization}\label{sec:ntktl:model}
+
+\begin{definition}[Two-layer network and output vector]\label{def:ntktl:network}
+  \lean{NTK.evalSingle, NTK.evalVector, NTK.empiricalCovariance}
+  \leanok
+For hidden weights $W$ and readout weights $a$ the network output at an input $x$ is
+\[
+  f(x;W,a)=\frac1{\sqrt n}\sum_{i=1}^na_i\,\varphi(w_i\cdot x),
+\]
+and $f_m(W,a)=(f(x^1;W,a),\dots,f(x^m;W,a))^\top\in\mathbb R^m$. The empirical covariance matrix is
+$\Phi^{(n)}_{\alpha\beta}=\frac1n\sum_{i=1}^n\varphi(w_i\cdot x^\alpha)\varphi(w_i\cdot x^\beta)$.
+\end{definition}
+
+\begin{definition}[Initialization measure]\label{def:ntktl:init}
+  \uses{def:ntk:gaussianInit}
+  \lean{NTK.gaussianReadoutMeasure, NTK.initMeasure, NTK.singleNeuronMeasure}
+  \leanok
+The \emph{initialization measure} on pairs $(W,a)$ is $\texttt{initMeasure}\;n\;d=\mathcal N(0,I_d)^{\otimes n}\otimes\mathcal N(0,1)^{\otimes n}$: the hidden rows
+$w_i\sim\mathcal N(0,I_d)$ and readout weights $a_i\sim\mathcal N(0,1)$ are all independent. The single-neuron law $\texttt{singleNeuronMeasure}\;d$ on $(w,a)\in\mathbb R^d\times\mathbb R$
+is $\mathcal N(0,I_d)\otimes\mathcal N(0,1)$.
+\end{definition}
+
+\begin{lemma}[Neurons as an i.i.d.\ sequence]\label{lem:ntktl:neuronSeq}
+  \uses{def:ntktl:init, thm:ntkf:slln}
+  \lean{NTK.measurePreserving_arrowProd_singleNeuronMeasure, NTK.measurePreserving_prefixMap,
+        NTK.measurePreserving_infiniteSeq_to_init, NTK.measureReal_initMeasure_neuronAverage_le}
+  \leanok
+(1) The rearrangement $\bigl((w_i,a_i)\bigr)_{i<n}\mapsto\bigl((w_i)_i,(a_i)_i\bigr)$ carries the product of $n$ copies of the single-neuron law onto $\texttt{initMeasure}\;n\;d$.
+(2) Restricting an infinite i.i.d.\ sequence to its first $n$ elements is measure preserving from $\nu^{\otimes\mathbb N}$ to $\nu^{\otimes n}$; hence the first $n$ neurons of an infinite i.i.d.\
+neuron sequence have law $\texttt{initMeasure}\;n\;d$.
+(3) (Markov for neuron averages) If $g\ge0$ is measurable, integrable for the single-neuron law and $\mathbb E\,g\le\tau\delta$, then the neuron average $\frac1n\sum_ig(w_i,a_i)$ is at most $\tau$ with
+$\texttt{initMeasure}$-probability at least $1-\delta$; the threshold does not depend on the width.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkf:markov}
+  \leanok
+(1) and (2) identify the product measures coordinate by coordinate. (3) is Lemma~\ref{lem:ntkf:markov} applied to the single-neuron law and transported by (1).
+\end{proof}
+
+\begin{definition}[Parameter packing]\label{def:ntktl:packing}
+  \lean{NTK.paramIndexEquiv, NTK.idxW, NTK.idxA, NTK.packParams, NTK.unpackW, NTK.unpackA,
+        NTK.netFromParams, NTK.gradW, NTK.gradA, NTK.gradParams}
+  \leanok
+The trainable parameters are the flat vector $\theta\in\mathbb R^{nd+n}$ obtained by concatenating the entries $W_{ij}$ with the readout weights $a_i$ through a canonical bijection
+$(\{1..n\}\times\{1..d\})\sqcup\{1..n\}\simeq\{1..nd+n\}$ (indices $\mathrm{idxW}(i,j)$ and $\mathrm{idxA}(i)$). $\operatorname{packParams}(W,a)$ is this flat vector and $\operatorname{unpackW},\operatorname{unpackA}$ extract the blocks.
+The network written in the flat parameter is $\operatorname{netFromParams}(x,\theta)=f(x;\operatorname{unpackW}\theta,\operatorname{unpackA}\theta)$. Its two gradient blocks are
+\[
+  \operatorname{gradW}(x,\theta)_{ij}=\frac1{\sqrt n}\,a_i\,\varphi'(w_i\cdot x)\,x_j,\qquad
+  \operatorname{gradA}(x,\theta)_i=\frac1{\sqrt n}\,\varphi(w_i\cdot x),
+\]
+and $\operatorname{gradParams}(x,\theta)=\operatorname{packParams}(\operatorname{gradW},\operatorname{gradA})$.
+\end{definition}
+
+\begin{lemma}[Packing is a coordinate rearrangement]\label{lem:ntktl:packingProps}
+  \uses{def:ntktl:packing}
+  \lean{NTK.paramIndexEquiv_symm_idxW, NTK.paramIndexEquiv_symm_idxA, NTK.packParams_apply_idxW,
+        NTK.packParams_apply_idxA, NTK.unpackW_packParams, NTK.unpackA_packParams,
+        NTK.packParams_unpack, NTK.continuous_packParams, NTK.inner_packParams,
+        NTK.inner_packParams_packParams, NTK.norm_sq_sub_unpack}
+  \leanok
+$\operatorname{unpackW}(\operatorname{packParams}(W,a))=W$, $\operatorname{unpackA}(\operatorname{packParams}(W,a))=a$, and $\operatorname{packParams}(\operatorname{unpackW}\theta,\operatorname{unpackA}\theta)=\theta$. The map $(W,a)\mapsto\operatorname{packParams}(W,a)$ is continuous. Inner products and norms decompose over the two blocks:
+\[
+  \langle\operatorname{packParams}(W_1,a_1),\operatorname{packParams}(W_2,a_2)\rangle=\sum_iw_{1,i}\cdot w_{2,i}+\sum_ia_{1,i}a_{2,i},\qquad
+  \|\theta_1-\theta_2\|^2=\sum_{i,j}(W_{1,ij}-W_{2,ij})^2+\sum_i(a_{1,i}-a_{2,i})^2.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Direct from the definition of the index bijection.
+\end{proof}
+
+\begin{lemma}[The network as a function of the flat parameter]\label{lem:ntktl:netProps}
+  \uses{def:ntktl:network, def:ntktl:packing, def:ntkgf:outputs}
+  \lean{NTK.netFromParams_eq_normalized_sum, NTK.trainingOutputs_netFromParams_packParams,
+        NTK.trainingResidual_netFromParams_packParams}
+  \leanok
+$\operatorname{netFromParams}(x,\theta)=n^{-1/2}\sum_i\operatorname{unpackA}(\theta)_i\,\varphi(\operatorname{unpackW}(\theta)_i\cdot x)$. The training outputs and the residual of $\operatorname{netFromParams}$ at $\operatorname{packParams}(W,a)$ equal
+$f_m(W,a)$ and $f_m(W,a)-y$.
+\end{lemma}
+
+
+\section{Gradients, the Jacobian and the coordinate flow equations}\label{sec:ntktl:gradients}
+
+\begin{theorem}[Gradient and Jacobian of the two-layer network]\label{thm:ntktl:gradient}
+  \uses{def:ntktl:packing, def:ntkgf:jacobian}
+  \lean{NTK.hasFDerivAt_netFromParams, NTK.hasGradientAt_netFromParams, NTK.gradient_netFromParams,
+        NTK.tangentFeature_netFromParams, NTK.tangentFeature_netFromParams_of_differentiable,
+        NTK.unpackW_tangentFeature, NTK.unpackA_tangentFeature,
+        NTK.outputJacobian_netFromParams_apply_W, NTK.outputJacobian_netFromParams_apply_a}
+  \leanok
+If $\varphi$ is differentiable at every $w_i\cdot x$, then $\operatorname{netFromParams}(x,\cdot)$ is Fr\'echet differentiable at $\theta$ with gradient $\operatorname{gradParams}(x,\theta)$; hence the tangent feature is
+$\nabla_\theta f(x;\theta)=\operatorname{packParams}(\operatorname{gradW},\operatorname{gradA})$, with block equations $\operatorname{unpackW}(\nabla f)=\operatorname{gradW}$ and $\operatorname{unpackA}(\nabla f)=\operatorname{gradA}$. The entries of the output Jacobian are
+$J(\theta)_{\alpha,\mathrm{idxW}(i,j)}=\operatorname{gradW}(x^\alpha,\theta)_{ij}$ and $J(\theta)_{\alpha,\mathrm{idxA}(i)}=\operatorname{gradA}(x^\alpha,\theta)_i$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Differentiate $f=n^{-1/2}\sum_ia_i\varphi(w_i\cdot x)$ term by term: $\partial_{a_i}f=n^{-1/2}\varphi(w_i\cdot x)$ and $\partial_{W_{ij}}f=n^{-1/2}a_i\varphi'(w_i\cdot x)x_j$.
+\end{proof}
+
+\begin{theorem}[Coordinate equations of the training flow]\label{thm:ntktl:coordinateFlow}
+  \uses{thm:ntktl:gradient, thm:ntkgf:kineticEnergy}
+  \lean{NTK.forwardGF_readout_hasDerivAt, NTK.forwardGF_inputWeight_hasDerivAt}
+  \leanok
+Along a forward gradient flow of the MSE loss of the two-layer network, at every positive time (with $\varphi$ differentiable at the pre-activations),
+\[
+  \partial_ta_i=-\frac1{m\sqrt n}\sum_\alpha r^\alpha\,\varphi(w_i\cdot x^\alpha),\qquad
+  \partial_tW_{ij}=-\frac{a_i}{m\sqrt n}\sum_\alpha r^\alpha\,\varphi'(w_i\cdot x^\alpha)\,x^\alpha_j .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntkgf:kineticEnergy}, $\partial_t\theta_k=-\frac1m\sum_\alpha r^\alpha\partial_{\theta_k}f^\alpha$; read off the Jacobian entries from Theorem~\ref{thm:ntktl:gradient}.
+\end{proof}
+
+\begin{lemma}[Squared norms of the Jacobian and its increments]\label{lem:ntktl:jacobianNorm}
+  \uses{thm:ntktl:gradient, lem:ntkf:rankOneNorm}
+  \lean{NTK.outputJacobian_frobenius_norm_sq_entries,
+        NTK.outputJacobian_netFromParams_frobenius_norm_sq_rpow,
+        NTK.outputJacobian_netFromParams_frobenius_norm_sq,
+        NTK.outputJacobian_sub_frobenius_norm_sq}
+  \leanok
+The squared Frobenius norm of the output Jacobian is the coordinate energy $\sum_{\alpha,k}J_{\alpha k}^2$ and splits over the hidden and readout blocks:
+$\|J(\theta)\|^2=\sum_{\alpha,i,j}\operatorname{gradW}(x^\alpha,\theta)_{ij}^2+\sum_{\alpha,i}\operatorname{gradA}(x^\alpha,\theta)_i^2$. Likewise
+$\|J(\theta_1)-J(\theta_2)\|^2$ is the sum of the squared differences of the two gradient blocks.
+\end{lemma}
+
+
+\section{The empirical NTK of the two-layer network}\label{sec:ntktl:ntk}
+
+\begin{theorem}[Neuron-sum formula for the empirical NTK]\label{thm:ntktl:neuronSum}
+  \uses{def:ntkgf:jacobian, thm:ntktl:gradient}
+  \lean{NTK.empiricalNTKMatrix_netFromParams_apply, NTK.empiricalNTKMatrix_netFromParams_eq_neuron_sum}
+  \leanok
+The empirical NTK matrix of $\operatorname{netFromParams}$ splits into an input-weight Gram matrix and a readout Gram matrix,
+\[
+  K_{\alpha\beta}(\theta)=\sum_i\operatorname{gradW}(x^\alpha,\theta)_i\cdot\operatorname{gradW}(x^\beta,\theta)_i+\sum_i\operatorname{gradA}(x^\alpha,\theta)_i\operatorname{gradA}(x^\beta,\theta)_i,
+\]
+and is an empirical average over the $n$ neurons:
+\[
+  K_{\alpha\beta}(\theta)=\frac1n\sum_{i=1}^n\Bigl[\varphi(w_i\cdot x^\alpha)\varphi(w_i\cdot x^\beta)+a_i^2\,\varphi'(w_i\cdot x^\alpha)\varphi'(w_i\cdot x^\beta)\,(x^\alpha\cdot x^\beta)\Bigr].
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Insert the gradient blocks of Theorem~\ref{thm:ntktl:gradient}: $\operatorname{gradW}(x^\alpha)_i\cdot\operatorname{gradW}(x^\beta)_i=\frac1na_i^2\varphi'(w_i\cdot x^\alpha)\varphi'(w_i\cdot x^\beta)\,(x^\alpha\cdot x^\beta)$ and
+$\operatorname{gradA}(x^\alpha)_i\operatorname{gradA}(x^\beta)_i=\frac1n\varphi(w_i\cdot x^\alpha)\varphi(w_i\cdot x^\beta)$.
+\end{proof}
+
+\begin{theorem}[The scaled dataset and sequence prefixes]\label{thm:ntktl:scaledDataset}
+  \uses{thm:ntktl:neuronSum, lem:ntktl:neuronSeq}
+  \lean{NTK.netFromParams_scaled_input, NTK.netFromParams_scaled_input_div, NTK.gradW_scaled_input,
+        NTK.gradA_scaled_input, NTK.empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum,
+        NTK.empiricalNTKMatrix_netFromParams_of_seq,
+        NTK.empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq,
+        NTK.empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix}
+  \leanok
+On the scaled input $x/\sqrt d$: $f(x/\sqrt d;\theta)=n^{-1/2}\sum_ia_i\varphi\bigl((w_i\cdot x)/\sqrt d\bigr)$, $\operatorname{gradW}(x/\sqrt d,\theta)_{ij}=n^{-1/2}d^{-1/2}a_i\varphi'(\cdot)x_j$ and $\operatorname{gradA}=n^{-1/2}\varphi(\cdot)$, and
+\[
+  K_{\alpha\beta}(\theta)=\frac1n\sum_i\Bigl[\varphi\bigl(\tfrac{w_i\cdot x^\alpha}{\sqrt d}\bigr)\varphi\bigl(\tfrac{w_i\cdot x^\beta}{\sqrt d}\bigr)+a_i^2\,\varphi'\bigl(\tfrac{w_i\cdot x^\alpha}{\sqrt d}\bigr)\varphi'\bigl(\tfrac{w_i\cdot x^\beta}{\sqrt d}\bigr)\tfrac{x^\alpha\cdot x^\beta}{d}\Bigr].
+\]
+The same formula holds at the parameters obtained by packing the first $n$ neurons $(w_i,a_i)_{i<n}$ of an infinite sequence, which identifies the empirical NTK matrix with an explicit $n$-neuron average of a fixed function of $(w_i,a_i)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Substitute $x\mapsto x/\sqrt d$ in Theorem~\ref{thm:ntktl:neuronSum}.
+\end{proof}
+
+\begin{definition}[Limiting covariance and limiting full NTK]\label{def:ntktl:limitingNTK}
+  \uses{def:ntktl:network}
+  \lean{NTK.limitingCovariance, NTK.limitingFullNTKMatrix}
+  \leanok
+For inputs $X$ and an activation $\varphi$, the limiting (NNGP) covariance is $\Phi_{\alpha\beta}(\varphi;X)=\mathbb E_{w\sim\mathcal N(0,I_d)}[\varphi(w\cdot x^\alpha)\varphi(w\cdot x^\beta)]$. With $\tilde X=X/\sqrt d$ the
+\emph{limiting full NTK matrix} of the two-layer network is
+\[
+  K_\infty:=\Phi(\varphi;\tilde X)+\Bigl(\tfrac1d\,XX^\top\Bigr)\odot\Phi(\varphi';\tilde X),
+\]
+where $\odot$ is the entrywise (Hadamard) product. Entrywise $K_{\infty,\alpha\beta}=\Phi_{\alpha\beta}(\varphi;\tilde X)+\Phi_{\alpha\beta}(\varphi';\tilde X)\frac{x^\alpha\cdot x^\beta}{d}$.
+\end{definition}
+
+\begin{theorem}[Structure of the limiting NTK]\label{thm:ntktl:limitingProps}
+  \uses{def:ntktl:limitingNTK, lem:ntkf:rankOneInner}
+  \lean{NTK.limitingFullNTKMatrix_apply, NTK.limitingFullNTKMatrix_isHermitian,
+        NTK.limitingFullNTKMatrix_eq_add_hadamard, NTK.limitingFullNTKMatrix_posSemidef}
+  \leanok
+$K_\infty$ is symmetric, equals $\Phi(\varphi;\tilde X)+\Phi(\varphi';\tilde X)\odot(\tilde X\tilde X^\top)$, and is positive semidefinite if $\varphi,\varphi'$ are measurable with Gaussian second moments along every row.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Each covariance matrix is a Gram matrix in $L^2(\mathcal N(0,I_d))$ and hence positive semidefinite. The Gram matrix $\tilde X\tilde X^\top$ is positive semidefinite, and the Schur product theorem says the Hadamard product of two positive semidefinite
+matrices is positive semidefinite.
+\end{proof}
+
+\begin{theorem}[Strict positivity from feature independence]\label{thm:ntktl:posDef}
+  \uses{thm:ntktl:limitingProps}
+  \lean{NTK.limitingCovariance_posDef_of_ae_independent,
+        NTK.limitingFullNTKMatrix_posDef_of_ae_independent, NTK.injective_of_ae_independent}
+  \leanok
+Call the features $w\mapsto\varphi(w\cdot\tilde x^\alpha)$ \emph{independent modulo Gaussian-null sets} if no nontrivial combination $\sum_\alpha u_\alpha\varphi(w\cdot\tilde x^\alpha)$ vanishes for almost every Gaussian $w$.
+Then $\Phi(\varphi;\tilde X)$ is positive definite, hence so is $K_\infty$, and the inputs $x^\alpha$ are pairwise distinct.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+$u^\top\Phi u=\mathbb E\bigl[(\sum_\alpha u_\alpha\varphi(w\cdot\tilde x^\alpha))^2\bigr]$, which is strictly positive unless the combination vanishes almost everywhere. Since the second summand of $K_\infty$ is positive semidefinite, $K_\infty\succ0$ as soon as
+$\Phi\succ0$. If two inputs were equal, $u=e_\alpha-e_\beta$ would be a nontrivial vanishing combination.
+\end{proof}
+
+\begin{theorem}[Strong law and convergence in probability of the empirical NTK]\label{thm:ntktl:ntkLLN}
+  \uses{thm:ntktl:scaledDataset, thm:ntkf:slln, def:ntktl:limitingNTK}
+  \lean{NTK.measurable_fullNTK_summand, NTK.integrable_fullNTK_summand,
+        NTK.integrable_fullNTK_summand_of_memLp, NTK.memLp_two_fullNTK_summand,
+        NTK.integrable_sq_fullNTK_summand, NTK.integral_fullNTK_summand,
+        NTK.fullNTKSummand_tendsto_integral, NTK.fullNTKMatrix_tendsto_integral,
+        NTK.fullNTKMatrix_scaled_dataset_tendsto_integral, NTK.fullNTKMatrix_norm_sub_tendsto_zero,
+        NTK.fullNTKMatrix_tendstoInMeasure, NTK.fullNTKMatrix_scaled_dataset_tendstoInMeasure,
+        NTK.fullNTKSummandSecondMoment, NTK.fullNTKSummandSecondMoment_nonneg,
+        NTK.integral_fullNTK_summand_scaled_dataset_eq_limiting,
+        NTK.fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix,
+        NTK.empiricalNTKMatrix_netFromParams_scaled_dataset_tendsto_limitingFullNTKMatrix}
+  \leanok
+Let $g_{\alpha\beta}(w,a)=\varphi(w\cdot x^\alpha)\varphi(w\cdot x^\beta)+a^2\varphi'(w\cdot x^\alpha)\varphi'(w\cdot x^\beta)(x^\alpha\cdot x^\beta)$ be the single-neuron NTK summand. If $\varphi,\varphi'$ are measurable with integrable products against the Gaussian
+(for instance if they are in $L^2$ along the rows), then $g_{\alpha\beta}$ is measurable, integrable and (given $L^2$ products) square integrable for the single-neuron law, with
+\[
+  \mathbb E[g_{\alpha\beta}]=\Phi_{\alpha\beta}(\varphi;X)+\Phi_{\alpha\beta}(\varphi';X)\,(x^\alpha\cdot x^\beta),
+\]
+using $\mathbb E[a^2]=1$. Hence, for an infinite i.i.d.\ neuron sequence, almost surely the $n$-neuron empirical NTK matrix converges entrywise and in Frobenius norm to the limiting matrix as $n\to\infty$, also in probability, both on
+$X$ and on the scaled dataset $X/\sqrt d$ (where the limit is $K_\infty$). In particular the empirical NTK of the two-layer network at the first $n$ neurons converges almost surely to $K_\infty$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:slln}
+  \leanok
+Measurability is clear. Integrability and square integrability follow from Cauchy--Schwarz in $L^2$, Fubini for the product measure $\mathcal N(0,I_d)\otimes\mathcal N(0,1)$, and the fourth-moment bound
+$\mathbb E[a^4]<\infty$ for the readout (Lemma~\ref{lem:ntkf:gaussMoments}); the expectation uses the independence of $w$ and $a$ and $\mathbb E[a^2]=1$.
+The strong law (Theorem~\ref{thm:ntkf:slln}) gives almost sure entrywise convergence for each of the finitely many pairs $(\alpha,\beta)$, which implies almost sure convergence in Frobenius norm; almost sure convergence implies convergence in probability.
+\end{proof}
+
+
+\section{Concentration of the output Jacobian and Lipschitz bounds}\label{sec:ntktl:jacobianBounds}
+
+\begin{lemma}[Pointwise bounds on the Jacobian norm]\label{lem:ntktl:jacobianPointwise}
+  \uses{lem:ntktl:jacobianNorm}
+  \lean{NTK.outputJacobian_netFromParams_norm_sq_le_readout_energy,
+        NTK.outputJacobian_netFromParams_norm_sq_le, NTK.outputJacobian_netFromParams_norm_sq_le_energies}
+  \leanok
+Suppose $|\varphi|\le C_0$ and $|\varphi'|\le C_1$. Then
+\[
+  \|J(\theta)\|^2\le mC_0^2+\Bigl(C_1^2\sum_{\alpha,j}x^\alpha_j{}^2\Bigr)\cdot\frac1n\sum_ia_i^2 .
+\]
+Without any bound on $\varphi$ itself (only $|\varphi'|\le C_1$), $\|J(\theta)\|^2\le\frac1n\sum_{i,\alpha}\varphi(w_i\cdot x^\alpha)^2+\bigl(C_1^2\sum_{\alpha,j}x^\alpha_j{}^2\bigr)\frac1n\sum_ia_i^2$. In either case the only random quantities are empirical energies of the readout weights and (without a bound on $\varphi$) of the activations.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:ntktl:jacobianNorm}, $\|J\|^2=\sum_{\alpha,i}\frac1n\bigl(\varphi(w_i\cdot x^\alpha)^2+a_i^2\varphi'(w_i\cdot x^\alpha)^2\|x^\alpha\|^2\bigr)$; bound $\varphi'^2\le C_1^2$ and, in the first case, $\varphi^2\le C_0^2$.
+\end{proof}
+
+\begin{theorem}[Jacobian norm concentration (Gap~3)]\label{thm:ntktl:jacobianConcentration}
+  \uses{lem:ntktl:jacobianPointwise, lem:ntkf:markov, def:ntktl:init}
+  \lean{NTK.outputJacobian_netFromParams_frobenius_norm_concentration,
+        NTK.outputJacobian_netFromParams_frobenius_norm_concentration_of_L2}
+  \leanok
+Let $\varphi$ be differentiable with $|\varphi'|\le C_1$, and let $\delta>0$. Under the Gaussian initialization, with probability at least $1-\delta$, uniformly in the width $n\ge1$:
+\begin{enumerate}
+  \item if $|\varphi|\le C_0$,
+        \[
+          \|J(\theta_0)\|\le\Bigl(mC_0^2+\tfrac1\delta\,C_1^2\textstyle\sum_{\alpha,j}x^\alpha_j{}^2\Bigr)^{1/2};
+        \]
+  \item without any bound on $\varphi$ itself, if $\varphi(w\cdot x^\alpha)\in L^2(\mathcal N(0,I_d))$ for every $\alpha$ (which follows from linear growth, itself a consequence of $|\varphi'|\le C_1$) and $\delta\le1$,
+        \[
+          \|J(\theta_0)\|\le\sqrt{\frac{2\Bigl(\sum_\alpha\mathbb E\,\varphi(w\cdot x^\alpha)^2+1+C_1^2\sum_{\alpha,j}x^\alpha_j{}^2\Bigr)}{\delta}} .
+        \]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntktl:jacobianPointwise, lem:ntkf:markov}
+  \leanok
+By Lemma~\ref{lem:ntktl:jacobianPointwise}, $\|J\|^2$ is bounded by a constant plus an empirical average of nonnegative neuron observables: the readout energy $\frac1n\sum_ia_i^2$ and, in case~(2), the activation energy $\frac1n\sum_{i,\alpha}\varphi(w_i\cdot x^\alpha)^2$.
+For (1), $\mathbb E[a^2]=1$, so by Markov's inequality (Lemma~\ref{lem:ntkf:markov}, with the threshold $1/\delta$ and the single-neuron law of Lemma~\ref{lem:ntktl:neuronSeq}) the readout energy is at most $1/\delta$ with probability at least $1-\delta$, which gives the stated bound.
+For (2) both energies have width-independent expectations (the second is $\sum_\alpha\mathbb E\varphi(w\cdot x^\alpha)^2$), and Markov's inequality again gives a width-independent threshold exceeded with probability at most $\delta$.
+The input-weight component of the product measure is irrelevant after the deterministic bound, since only energies of the activations and the readout weights remain.
+\end{proof}
+
+\begin{theorem}[Jacobian Lipschitz bound (Gap~4)]\label{thm:ntktl:jacobianLipschitz}
+  \uses{lem:ntktl:jacobianNorm, thm:ntkgf:taylor}
+  \lean{NTK.two_mul_add_two_mul_sq, NTK.dotProduct_sub_sq_le, NTK.grad_single_neuron_sub_le,
+        NTK.grad_sum_neurons_sub_le, NTK.outputJacobian_netFromParams_frobenius_sub_le,
+        NTK.norm_trainingOutputs_netFromParams_sub_linearization_le,
+        NTK.abs_netFromParams_sub_linearization_le, NTK.norm_gradParams_sub_le}
+  \leanok
+Let $\varphi$ be $C_1$-Lipschitz with $|\varphi'|\le C_1$ and $\varphi'$ $C_2$-Lipschitz, and let $R$ bound the readout weights of $\theta_1$. Then
+\[
+  \|J(\theta_1)-J(\theta_2)\|_{\mathrm F}\le\frac{K}{\sqrt n}\,\|\theta_1-\theta_2\|,\qquad
+  K^2=\sum_\alpha\bigl(2R^2C_2^2\|x^\alpha\|^4+3C_1^2\|x^\alpha\|^2\bigr),
+\]
+with $K$ independent of the width (the $1/\sqrt n$ rate is explicit). Consequently:
+\begin{itemize}
+  \item (second-order Taylor bound) $\|f(\theta)-f(\theta_0)-J(\theta_0)(\theta-\theta_0)\|\le\frac K{2\sqrt n}\|\theta-\theta_0\|^2$ for every $\theta$, where $R$ bounds only the readout weights at the base point $\theta_0$;
+  \item at a single (training or test) input $x$: $|f(x;\theta)-f(x;\theta_0)-\langle\nabla f(x;\theta_0),\theta-\theta_0\rangle|\le\frac{K_x}{2\sqrt n}\|\theta-\theta_0\|^2$ and $\|\nabla f(x;\theta)-\nabla f(x;\theta_0)\|\le\frac{K_x}{\sqrt n}\|\theta-\theta_0\|$, with
+        $K_x^2=2R^2C_2^2\|x\|^4+3C_1^2\|x\|^2$.
+\end{itemize}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntktl:jacobianNorm, thm:ntkgf:taylor}
+  \leanok
+By Lemma~\ref{lem:ntktl:jacobianNorm}, $\|J(\theta_1)-J(\theta_2)\|^2$ is a sum over neurons of squared differences of the two gradient blocks. For one neuron write
+$a_{1}\varphi'(w_1\cdot x)x_j-a_2\varphi'(w_2\cdot x)x_j=(a_1-a_2)\varphi'(w_1\cdot x)x_j+a_2(\varphi'(w_1\cdot x)-\varphi'(w_2\cdot x))x_j$ and use $|\varphi'|\le C_1$, the $C_2$-Lipschitz derivative and
+$(w_1\cdot x-w_2\cdot x)^2\le\|w_1-w_2\|^2\|x\|^2$, together with $(u+v)^2\le2u^2+2v^2$; similarly for the readout block $\varphi(w_1\cdot x)-\varphi(w_2\cdot x)$. Summing over neurons, the width appears only through the common factor $1/n$, which gives $K/\sqrt n$. The Taylor bound is
+Theorem~\ref{thm:ntkgf:taylor} with $L=K/\sqrt n$ (on the ball where the readout weights at the base point are bounded by $R$). The single-input statements are the case of a one-point dataset, whose Jacobian is the row $\nabla f(x;\theta)$.
+\end{proof}
+
+
+\section{Concentration of the empirical NTK at initialization}\label{sec:ntktl:ntkConcentration}
+
+In this section $\varphi$ is differentiable, $\varphi'$ is measurable, and the $L^2(\mathcal N(0,I_d))$ conditions required to make the neuron summands square integrable on the scaled dataset hold.
+
+\begin{theorem}[Chebyshev concentration of the empirical NTK]\label{thm:ntktl:ntkChebyshev}
+  \uses{thm:ntktl:ntkLLN, lem:ntkf:chebyshev, lem:ntktl:neuronSeq}
+  \lean{NTK.chebyshev_entrywise_empiricalNTKMatrix, NTK.chebyshev_matrix_empiricalNTKMatrix,
+        NTK.tendsto_initMeasure_empiricalNTKMatrix_ge_eps}
+  \leanok
+Let $K_n$ be the empirical NTK matrix on the scaled dataset at $\theta_0=\operatorname{packParams}(W,a)$ with $(W,a)\sim\texttt{initMeasure}\;n\;d$.
+\begin{enumerate}
+  \item For every entry and every $c>0$, $\Pr\bigl[|K_{n,\alpha\beta}-K_{\infty,\alpha\beta}|\ge c\bigr]\le\dfrac{\operatorname{Var}(g_{\alpha\beta})}{n\,c^2}\le\dfrac{\mathbb E[g_{\alpha\beta}^2]}{n\,c^2}$.
+  \item In Frobenius norm, for every $\varepsilon>0$: $\Pr\bigl[\|K_n-K_\infty\|\ge\varepsilon\bigr]\le\dfrac{m^2\sum_{\alpha,\beta}\mathbb E[g_{\alpha\beta}^2]}{n\,\varepsilon^2}=O(1/n)$.
+  \item $\Pr\bigl[\|K_n-K_\infty\|\ge\varepsilon\bigr]\to0$ as $n\to\infty$ (convergence in probability, under the varying measures $\texttt{initMeasure}\;n\;d$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkf:chebyshev, lem:ntktl:neuronSeq, thm:ntktl:scaledDataset}
+  \leanok
+By Theorem~\ref{thm:ntktl:scaledDataset} and Lemma~\ref{lem:ntktl:neuronSeq}(1), $K_{n,\alpha\beta}$ is the empirical average of $n$ i.i.d.\ copies of $g_{\alpha\beta}$ with mean $K_{\infty,\alpha\beta}$. Chebyshev's inequality for empirical averages (Lemma~\ref{lem:ntkf:chebyshev}) gives (1).
+For (2) note that $\|A\|_{\mathrm F}\ge\varepsilon$ forces some entry to be at least $\varepsilon/m$, and apply the union bound over the $m^2$ entries. (3) follows because the bound is $O(1/n)$.
+\end{proof}
+
+\begin{theorem}[Initial spectral gap]\label{thm:ntktl:spectralGapInit}
+  \uses{thm:ntktl:ntkChebyshev, thm:ntkgf:rayleighStability}
+  \lean{NTK.initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le,
+        NTK.chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure,
+        NTK.tendsto_initMeasure_initial_spectral_gap_failure}
+  \leanok
+Suppose $K_\infty-\lambda_\infty I\succeq0$ with $\lambda_\infty>0$. If $\|K_n-K_\infty\|\le\lambda_\infty/2$ then $K_n$ satisfies the Rayleigh--Ritz condition with parameter $\lambda_\infty/2$. Consequently the probability that the initial empirical NTK matrix fails the Rayleigh--Ritz bound with parameter
+$\lambda_\infty/2$ is $O(1/n)$ and tends to $0$ as $n\to\infty$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:ntkChebyshev, thm:ntkgf:rayleighStability}
+  \leanok
+$K_\infty$ satisfies the Rayleigh--Ritz condition with parameter $\lambda_\infty$ (Theorem~\ref{thm:ntkgf:rayleighStability}(2)), and Theorem~\ref{thm:ntkgf:rayleighStability}(3) with $\varepsilon=\lambda_\infty/2$ transfers it to $K_n$ with parameter $\lambda_\infty/2$. The failure event is contained in $\{\|K_n-K_\infty\|>\lambda_\infty/2\}$, which has probability $O(1/n)$ by Theorem~\ref{thm:ntktl:ntkChebyshev}.
+\end{proof}
+
+
+\section{The joint law of the initial residual and kernel}\label{sec:ntktl:jointInit}
+
+\begin{lemma}[Measurability]\label{lem:ntktl:measurability}
+  \lean{NTK.measurable_empiricalNTKMatrix_netFromParams_packParams,
+        NTK.measurableSet_empiricalNTKMatrix_dist_ge}
+  \leanok
+For differentiable $\varphi$ with measurable $\varphi'$, the empirical NTK matrix is a measurable function of the initialization $(W,a)$, and for every matrix $K$ and $\varepsilon$ the event $\{\|K_n-K\|\ge\varepsilon\}$ is measurable.
+\end{lemma}
+
+\begin{theorem}[Weak limit of the initial residual and the joint law]\label{thm:ntktl:initialWeakLimit}
+  \uses{thm:ntktl:ntkChebyshev, thm:ntkf:slutsky, thm:ntkdeep:nngpLimit}
+  \lean{NTK.tendstoInDistribution_initial_trainingResidual,
+        NTK.tendstoInDistribution_joint_initial_residual_empiricalNTK,
+        NTK.exists_initial_residual_radius}
+  \leanok
+On the scaled dataset, the initial training residual $r_n(0)=f_m(W,a)-y$ converges in distribution as $n\to\infty$ to $G-y$ with $G\sim\mathcal N\bigl(0,\Phi(\varphi;\tilde X)\bigr)$. The pair $(r_n(0),K_n(0))$ converges in distribution to $(G-y,K_\infty)$, where $K_\infty$ is deterministic.
+Moreover, for every $\varepsilon>0$ there is a single deterministic radius $R\ge0$, valid for all widths, with $\Pr\bigl[\|r_n(0)\|>R\bigr]\le\varepsilon$ for all $n$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:ntkChebyshev, thm:ntkf:slutsky, thm:ntkdeep:nngpLimit, lem:ntkf:tightRadius}
+  \leanok
+The first statement is the finite-dimensional NNGP limit of the output vector (Theorem~\ref{thm:ntkdeep:nngpLimit}) translated by $-y$. The joint statement follows from the varying-space Slutsky theorem (Theorem~\ref{thm:ntkf:slutsky}), because
+$K_n(0)\to K_\infty$ in probability (Theorem~\ref{thm:ntktl:ntkChebyshev}) and $K_\infty$ is a deterministic constant. The uniform radius is the tightness lemma (Lemma~\ref{lem:ntkf:tightRadius}) applied to the weakly convergent, hence tight, family of laws of $r_n(0)$.
+\end{proof}
+
+
+\section{The end-to-end kernel-freeze bound}\label{sec:ntktl:kernelFreeze}
+
+\begin{lemma}[Good initialization event (Gaps~3 and~4b)]\label{lem:ntktl:goodEvent}
+  \uses{thm:ntktl:jacobianConcentration, lem:ntkf:measureAlgebra, lem:ntkf:subGaussTail}
+  \lean{NTK.exists_measurableSet_initial_jacobian_and_readout_bounds}
+  \leanok
+Assume $\varphi$ is differentiable with $\varphi,\varphi'$ measurable, $\delta\in(0,1]$, $M_0$ is such that $\Pr[\|J(\theta_0)\|\le M_0]\ge1-\delta$. Then there is a measurable event $E$ of probability at least $1-2\delta$ on which both
+$\|J(\theta_0)\|\le M_0$ and every readout weight satisfies $|a_i|\le\sqrt{2\log(2n/\delta)}$.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkf:measureAlgebra, lem:ntkf:subGaussTail}
+  \leanok
+The sub-Gaussian tail (Lemma~\ref{lem:ntkf:subGaussTail}) gives $\Pr[|a_i|>s]\le2e^{-s^2/2}$; with $s=\sqrt{2\log(2n/\delta)}$ this is $\delta/n$, and a union bound over $n$ readout weights gives probability at least $1-\delta$ for the readout event.
+Intersect with the Jacobian event using Lemma~\ref{lem:ntkf:measureAlgebra}(1).
+\end{proof}
+
+\begin{theorem}[Jacobian bounds on a ball and deterministic freeze]\label{thm:ntktl:ballBounds}
+  \uses{lem:ntktl:goodEvent, thm:ntktl:jacobianLipschitz, thm:ntkgf:lazyGlobal}
+  \lean{NTK.jacobian_ball_bounds_of_initial_bounds,
+        NTK.lazy_training_global_bounds_of_initial_jacobian_and_readout_bounds,
+        NTK.freeze_bound_of_initial_jacobian_and_readout_bounds}
+  \leanok
+Suppose at $\theta_0=\operatorname{packParams}(W,a)$ the initial Jacobian norm is at most $M_0$ and all readout weights are at most $R_0=\sqrt{2\log(2n/\delta)}$. Then on the closed ball of radius $r$ around $\theta_0$, the output Jacobian is $M$-bounded and
+$L_J$-Lipschitz relative to $\theta_0$ for any $M\ge M_0+L_Jr$ and $L_J$ at least the Lipschitz constant of Theorem~\ref{thm:ntktl:jacobianLipschitz} with $R=R_0+r$. Consequently, for any forward gradient flow from $\theta_0$ and any constants satisfying the
+relations of Theorem~\ref{thm:ntkgf:lazyDisplacement}, for all $t\ge0$ the flow stays within $C$ of $\theta_0$, the kernel satisfies the Rayleigh--Ritz bound with parameter $\lambda_0/2$, drifts by at most $(2ML_J)C$, and the residual and loss decay exponentially;
+in particular $\|K(\theta(t))-K(\theta_0)\|\le2ML_JC$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:jacobianLipschitz, thm:ntkgf:lazyGlobal}
+  \leanok
+Inside the ball, $\|J(\theta)\|\le\|J(\theta_0)\|+\|J(\theta)-J(\theta_0)\|\le M_0+L_Jr\le M$, and the readout weights of $\theta_0$ (not of $\theta$) are bounded by $R_0$, so Theorem~\ref{thm:ntktl:jacobianLipschitz} (with the base point $\theta_0$) gives the Lipschitz estimate.
+Theorem~\ref{thm:ntkgf:lazyGlobal} then applies verbatim.
+\end{proof}
+
+\begin{theorem}[Kernel freeze for Gaussian initialization (Gap~6)]\label{thm:ntktl:kernelFreezeGaussian}
+  \uses{thm:ntktl:ballBounds, lem:ntktl:goodEvent}
+  \lean{NTK.lazy_training_kernel_freeze_bound_of_gaussian_init}
+  \leanok
+Let $\varphi$ be differentiable and bounded with bounded Lipschitz derivative, $\delta\in(0,1]$. With probability at least $1-2\delta$ over the Gaussian initialization $(W,a)$, the following holds at $\theta_0=\operatorname{packParams}(W,a)$: for any gradient flow from $\theta_0$ with initial gap $\lambda_0$, and any radius $r$, target $C<r$, Jacobian bound $M$ and
+Lipschitz constant $L_J$ satisfying the relations of Theorem~\ref{thm:ntkgf:lazyDisplacement} and dominating the concrete constants of Theorems~\ref{thm:ntktl:jacobianConcentration} and~\ref{thm:ntktl:jacobianLipschitz}, the empirical NTK matrix drifts by at most $(2ML_J)C$ for all $t\ge0$. No free hypothesis on the displacement or on a Lipschitz bound remains.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:ballBounds, lem:ntktl:goodEvent}
+  \leanok
+Take the event of Lemma~\ref{lem:ntktl:goodEvent}; on it apply Theorem~\ref{thm:ntktl:ballBounds}.
+\end{proof}
+
+
+\section{Smooth activations and the global lazy-training events}\label{sec:ntktl:events}
+
+\begin{definition}[Smooth activation]\label{def:ntktl:smoothActivation}
+  \lean{NTK.SmoothActivation}
+  \leanok
+An activation $\varphi$ is \emph{smooth with constants $C_1,C_2$} if it is differentiable, $|\varphi'|\le C_1$ and $\varphi'$ is $C_2$-Lipschitz. No bound on the value of $\varphi$ is assumed: a bounded derivative already gives linear growth $|\varphi(z)|\le|\varphi(0)|+C_1|z|$,
+which is all Gaussian initialization needs.
+\end{definition}
+
+\begin{lemma}[Consequences of smoothness]\label{lem:ntktl:smoothConsequences}
+  \uses{def:ntktl:smoothActivation}
+  \lean{NTK.activation_regularity_of_bounds, NTK.activation_memLp_two, NTK.activation_locallyLipschitz,
+        NTK.tendsto_jacobianLipschitzScale}
+  \leanok
+For a smooth activation: $C_1,C_2\ge0$, $\varphi$ is $C_1$-Lipschitz, $\varphi'$ is measurable, $\varphi(w\cdot x)$ and $\varphi'(w\cdot x)$ are in $L^2$ of the Gaussian for every $x$, and $\varphi,\varphi'$ are locally Lipschitz.
+Moreover, at a fixed displacement radius $r$ the Jacobian-Lipschitz scale of Theorem~\ref{thm:ntktl:jacobianLipschitz} (evaluated with the readout bound $\sqrt{2\log(2n/\delta)}+r$) tends to $0$ as $n\to\infty$.
+\end{lemma}
+
+\begin{proof}
+  \uses{def:ntktl:smoothActivation}
+  \leanok
+The mean value theorem gives Lipschitz continuity from the derivative bound, and a Lipschitz function is locally Lipschitz; a bounded derivative is measurable as a limit of difference quotients. The linear growth gives the Gaussian second moments. The scale is
+$\sqrt{c_1(\log n)+c_2}/\sqrt n\to0$ since $\log n=o(n)$.
+\end{proof}
+
+\begin{theorem}[Global positive-gap lazy training: the good event]\label{thm:ntktl:globalEvent}
+  \uses{def:ntktl:smoothActivation, thm:ntktl:spectralGapInit, thm:ntktl:initialWeakLimit, thm:ntktl:ballBounds, thm:ntkgf:lazyGlobal}
+  \lean{NTK.exists_measurableSet_global_lazy_training_event_with_extra,
+        NTK.exists_measurableSet_global_lazy_training_event,
+        NTK.exists_kernel_freeze_event_of_positive_gap}
+  \leanok
+Let $\varphi$ be a smooth activation, $m,d\ge1$, and suppose $K_\infty-\lambda_\infty I\succeq0$ with $\lambda_\infty>0$. For every $\delta\in(0,1]$ and $\varepsilon>0$ there are a deterministic sequence $\mathrm{freezeRate}(n)\to0$ with $\mathrm{freezeRate}(n)\le K_0\sqrt{\log n/n}$ and a width $N$
+such that for every $n\ge N$ there is a \emph{measurable} event $E$ of $\texttt{initMeasure}$-probability at least $1-2\delta-2\varepsilon$ such that from every initialization in $E$, every forward gradient flow $\theta$ of the MSE loss satisfies, for all $t\ge0$:
+\begin{itemize}
+  \item the empirical NTK has Rayleigh--Ritz parameter $\lambda_\infty/4$ (a uniform spectral gap);
+  \item the kernel drift is at most $\mathrm{freezeRate}(n)$: $\|K(\theta(t))-K(\theta_0)\|\le\mathrm{freezeRate}(n)$;
+  \item $\|r(t)\|\le\|r(0)\|e^{-\lambda_\infty t/(4m)}$ and $L(\theta(t))\le L(\theta_0)e^{-\lambda_\infty t/(2m)}$;
+\end{itemize}
+and $L(\theta(t))\to0$ as $t\to\infty$. The \emph{extra} version intersects $E$ with any further measurable good events and exposes the bootstrap constants (radius $C$, Jacobian bound $M$, residual bound $R$) used later. This is an a priori estimate for any forward gradient flow; it does not assert that flows exist
+(Section~\ref{sec:ntktl:flow}).
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:spectralGapInit, thm:ntktl:initialWeakLimit, thm:ntktl:ballBounds, thm:ntkgf:lazyGlobal, lem:ntktl:smoothConsequences}
+  \leanok
+Allocate the failure probabilities explicitly: Jacobian norm ($\delta$), maximum readout weight ($\delta$), initial spectral gap ($\varepsilon$, using Theorem~\ref{thm:ntktl:spectralGapInit} for $n$ large) and initial residual size ($\varepsilon$, using the uniform radius $R$ of
+Theorem~\ref{thm:ntktl:initialWeakLimit}). On the intersection (Lemma~\ref{lem:ntkf:measureAlgebra}) choose the bootstrap constants: $\lambda_0=\lambda_\infty/2$, $M=M_0+1$, $C=2M R/\lambda_0$ and $r=C+1$. The bootstrap feasibility inequality $2ML_Jr\le\lambda_0/2$ holds for all large $n$ because the Jacobian-Lipschitz scale at the fixed
+radius $r$ tends to $0$ (Lemma~\ref{lem:ntktl:smoothConsequences}), and the drift bound $(2ML_J)C$ then defines $\mathrm{freezeRate}(n)=O(\sqrt{\log n/n})$, the logarithm coming from the maximum readout weight. Theorem~\ref{thm:ntkgf:lazyGlobal} gives the stated consequences, with the Rayleigh--Ritz parameter
+$\lambda_0/2=\lambda_\infty/4$.
+\end{proof}
+
+\begin{theorem}[Global positive-gap lazy-training limit in probability]\label{thm:ntktl:globalLimit}
+  \uses{thm:ntktl:globalEvent}
+  \lean{NTK.global_positive_gap_lazy_training_limit,
+        NTK.exists_kernel_freeze_event_of_positive_gap_of_confidence}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntktl:globalEvent}, let $\theta_n(p)$ be forward gradient-flow trajectories for $\texttt{initMeasure}$-almost every initialization $p$. For every confidence $\eta\in(0,1]$ there are $\mathrm{freezeRate}(n)\to0$ with
+$\mathrm{freezeRate}(n)\le K_0\sqrt{\log n/n}$ and $N$ such that for $n\ge N$ there is a measurable event $E$ of probability at least $1-\eta$ on which, for almost every initialization, the conclusions of Theorem~\ref{thm:ntktl:globalEvent} hold for $\theta_n(p)$. In the single-confidence form, with probability at least $1-\eta$ every gradient flow keeps the empirical NTK within
+$\mathrm{freezeRate}(n)$ of its initial value for all $t\ge0$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:globalEvent}
+  \leanok
+Apply Theorem~\ref{thm:ntktl:globalEvent} with $\delta=\varepsilon=\eta/4$.
+\end{proof}
+
+\begin{theorem}[Finite horizon without a spectral gap: the good event]\label{thm:ntktl:finiteHorizonEvent}
+  \uses{def:ntktl:smoothActivation, thm:ntktl:ballBounds, thm:ntkgf:finiteHorizon, thm:ntktl:initialWeakLimit}
+  \lean{NTK.exists_measurableSet_finite_horizon_lazy_training_event,
+        NTK.exists_measurableSet_finite_horizon_kernel_freeze,
+        NTK.exists_finite_horizon_kernel_freeze_event,
+        NTK.exists_finite_horizon_kernel_freeze_event_of_confidence}
+  \leanok
+Let $\varphi$ be a smooth activation, $T\ge0$, $\delta\in(0,1]$ and $\varepsilon>0$. There are $R\ge0$, $C$, $M$, sequences $\mathrm{freezeRate},\mathrm{jacRate},\mathrm{taylorRate}\to0$ and $N$ such that for $n\ge N$ there is a measurable event $E$ of probability at least $1-2\delta-\varepsilon$ on which the initial residual satisfies $\|r(0)\|\le R$, all readout weights are at most
+$\sqrt{2\log(2n/\delta)}$, $\|J(\theta_0)\|\le M$, and every forward gradient flow from $\theta_0$ satisfies, for all $t\in[0,T]$,
+\[
+  \|K(\theta(t))-K(\theta_0)\|\le\mathrm{freezeRate}(n),\quad
+  \|J(\theta(t))-J(\theta_0)\|\le\mathrm{jacRate}(n),\quad
+  \|f(\theta(t))-f(\theta_0)-J(\theta_0)(\theta(t)-\theta_0)\|\le\mathrm{taylorRate}(n),
+\]
+and $\|\theta(t)-\theta_0\|\le C$. No lower bound on the spectrum of $K_\infty$ is assumed. Single-confidence form ($\delta=\varepsilon=\eta/3$): probability at least $1-\eta$ for the kernel freeze on $[0,T]$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:finiteHorizon, thm:ntktl:ballBounds, thm:ntktl:initialWeakLimit}
+  \leanok
+Positive semidefiniteness bounds the residual by its initial size $R$ (Lemma~\ref{lem:ntkgf:lossMonotone}), so the displacement radius $C=TMR/m$ grows linearly in $T$ (Theorem~\ref{thm:ntkgf:finiteHorizon}); take the ball radius $r=C+1$. Jacobian drift is $\mathrm{jacRate}(n)=\ell(n)\,C$ and the
+linearization error is $\mathrm{taylorRate}(n)=\ell(n)C^2/2$ by Theorem~\ref{thm:ntkgf:taylor}, where $\ell(n)$ is the Jacobian-Lipschitz scale, which tends to $0$ by Lemma~\ref{lem:ntktl:smoothConsequences}. The kernel drift is $2M\,\mathrm{jacRate}(n)$. Intersect the good events (Lemma~\ref{lem:ntkf:measureAlgebra}).
+\end{proof}
+
+
+\section{Kernel drift at rate $n^{-1/2}$}\label{sec:ntktl:drift}
+
+The $\sqrt{\log n}$ above comes from the \emph{maximum} readout weight. Replacing the maximum by an average of a per-neuron moment removes it.
+
+\begin{definition}[Per-neuron scales and moment]\label{def:ntktl:neuronMoment}
+  \lean{NTK.neuronLipschitzScaleSq, NTK.neuronJacobianScaleSq, NTK.neuronMoment}
+  \leanok
+For a single neuron $(w,a)$ define the squared per-neuron Jacobian-Lipschitz scale (the coefficient of the neuron's squared displacement in the squared Jacobian-block variation), the squared per-neuron activation scale (an upper bound for $n$ times the squared Frobenius norm of the neuron's Jacobian block),
+and the per-neuron observable $\operatorname{neuronMoment}(w,a)$ whose empirical average controls the drift. It is a polynomial of degree four in $(\varphi(w\cdot x),a)$, hence integrable under Gaussian initialization as soon as $\varphi(w\cdot x)$ is square integrable.
+\end{definition}
+
+\begin{lemma}[Properties of the neuron moment]\label{lem:ntktl:neuronMomentProps}
+  \uses{def:ntktl:neuronMoment}
+  \lean{NTK.neuronLipschitzScaleSq_nonneg, NTK.neuronJacobianScaleSq_nonneg, NTK.neuronMoment_nonneg,
+        NTK.measurable_neuronMoment, NTK.integrable_neuronMoment, NTK.exists_neuronMoment_event}
+  \leanok
+The scales and the moment are nonnegative, the moment is measurable and integrable for the single-neuron law, and for every $\delta>0$ there is a width-independent threshold $\tau$ such that the empirical average $\frac1n\sum_i\operatorname{neuronMoment}(w_i,a_i)$ is at most $\tau$ on a measurable initialization event of probability at least $1-\delta$, for every width.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntktl:neuronSeq}
+  \leanok
+Polynomials are measurable and integrable against Gaussians with finite moments; apply the neuron-average Markov bound, Lemma~\ref{lem:ntktl:neuronSeq}(3), with $\tau=\mathbb E[\operatorname{neuronMoment}]/\delta$.
+\end{proof}
+
+\begin{theorem}[Per-neuron displacement]\label{thm:ntktl:neuronDisplacement}
+  \uses{def:ntktl:neuronMoment, thm:ntkgf:displacementLinear, thm:ntkgf:expDecay}
+  \lean{NTK.norm_restrictCoords_neuronCoords_le, NTK.neuron_block_energy_le,
+        NTK.outputJacobian_sub_norm_sq_le_neuron_sum, NTK.neuron_displacement_le}
+  \leanok
+If the flow stays within $C$ of $\theta_0$ and the residual decays as $\|r(t)\|\le Re^{-\nu t}$, then neuron $i$ moves at most $b_iR/(m\nu)$, where $b_i^2=2n^{-1}(Q_i+C^2\Lambda_i^2)$ and $Q_i,\Lambda_i^2$ are the per-neuron scales at initialization. Moreover the squared Jacobian variation is a sum over neurons,
+$\|J(\theta)-J(\theta_0)\|^2\le\sum_i(\text{block variation of neuron }i)$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:displacementLinear, thm:ntkgf:expDecay}
+  \leanok
+The coordinates of neuron $i$ are a continuous linear image (a coordinate restriction) of the parameter, so Theorem~\ref{thm:ntkgf:displacementLinear} bounds its displacement by $\int_0^\infty$ of the speed of that block, namely $\frac1m\|J_{\text{block},i}(\theta(t))\|\,\|r(t)\|\le\frac1m\|J_{\text{block},i}(\theta(t))\|\,Re^{-\nu t}$.
+Since $\|\theta(t)-\theta_0\|\le C$, the block norm satisfies $\|J_{\text{block},i}(\theta(t))\|^2\le2\|J_{\text{block},i}(\theta_0)\|^2+2\|J_{\text{block},i}(\theta(t))-J_{\text{block},i}(\theta_0)\|^2\le2n^{-1}(Q_i+C^2\Lambda_i^2)=b_i^2$ by the definition of the per-neuron scales; integrating $\frac1mb_iRe^{-\nu t}$ over $[0,\infty)$ gives $b_iR/(m\nu)$.
+The sum formula for the squared Jacobian variation is a regrouping of the sum of squares of Lemma~\ref{lem:ntktl:jacobianNorm} by neuron.
+\end{proof}
+
+\begin{theorem}[Kernel drift at rate $n^{-1/2}$ from a neuron moment]\label{thm:ntktl:driftRate}
+  \uses{thm:ntktl:neuronDisplacement, thm:ntkgf:kernelLipschitz, lem:ntktl:neuronMomentProps}
+  \lean{NTK.kernel_drift_le_of_neuron_moments}
+  \leanok
+Let $\theta$ be a gradient flow from $\theta_0$ for the two-layer MSE loss, staying within $C$ of $\theta_0$ with residual decaying as $\|r(t)\|\le Re^{-\nu t}$ and output Jacobian bounded by $M$ along the flow and at $\theta_0$. If the empirical average of $\operatorname{neuronMoment}$ at initialization is at most $\tau$, then for all $t\ge0$
+\[
+  \|K(\theta(t))-K(\theta_0)\|\le\frac{2M\,(R/(m\nu))\sqrt{2(1+C^2)\tau}}{\sqrt n}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:neuronDisplacement, thm:ntkgf:kernelLipschitz}
+  \leanok
+By Theorem~\ref{thm:ntkgf:kernelLipschitz}, $\|K(\theta(t))-K(\theta_0)\|\le2M\|J(\theta(t))-J(\theta_0)\|$. By Theorem~\ref{thm:ntktl:neuronDisplacement} the squared Jacobian variation is a sum over neurons of a per-neuron Lipschitz scale times the squared displacement of that neuron, and the displacement of neuron $i$ is at most $b_iR/(m\nu)$ with $b_i^2=2n^{-1}(Q_i+C^2\Lambda_i^2)$.
+Inserting this, the sum is controlled by the \emph{empirical average over neurons} of the per-neuron scales, which is dominated by $(1+C^2)$ times the empirical average $\tau$ of $\operatorname{neuronMoment}$, rather than by a maximum over neurons; taking the square root gives $\|J(\theta(t))-J(\theta_0)\|\le(R/(m\nu))\sqrt{2(1+C^2)\tau}/\sqrt n$, and multiplying by $2M$ gives the stated bound.
+\end{proof}
+
+\begin{theorem}[Global lazy training with drift $O(n^{-1/2})$]\label{thm:ntktl:globalEventInvSqrt}
+  \uses{thm:ntktl:globalEvent, thm:ntktl:driftRate, lem:ntktl:neuronMomentProps}
+  \lean{NTK.exists_measurableSet_global_lazy_training_event_inv_sqrt_width,
+        NTK.global_positive_gap_lazy_training_limit_inv_sqrt_width}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntktl:globalEvent}, the same conclusions hold with $\mathrm{freezeRate}(n)\le K_0/\sqrt n$ (no logarithm) on a measurable event of probability at least $1-3\delta-2\varepsilon$; in the in-probability form with confidence $\eta\in(0,1]$, the same improvement at confidence $1-\eta$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:globalEvent, thm:ntktl:driftRate, lem:ntktl:neuronMomentProps}
+  \leanok
+Intersect the event of Theorem~\ref{thm:ntktl:globalEvent} (via its ``extra'' version, which exposes the bootstrap constants) with the neuron-moment event of Lemma~\ref{lem:ntktl:neuronMomentProps} at confidence $\delta$, and apply Theorem~\ref{thm:ntktl:driftRate} with $\nu=\lambda_\infty/(4m)$.
+The extra $\delta$ pays for the Markov bound on the empirical neuron moment.
+\end{proof}
+
+
+\section{Construction of the gradient flow}\label{sec:ntktl:flow}
+
+The theorems above are a priori estimates for any forward gradient flow. We now show that flows exist, are unique, and depend continuously on the initialization.
+
+\begin{lemma}[The gradient field is locally Lipschitz]\label{lem:ntktl:fieldLipschitz}
+  \uses{lem:ntkf:locLip, thm:ntktl:gradient}
+  \lean{NTK.gradient_mseLoss_netFromParams_apply, NTK.locallyLipschitz_neg_gradient_mseLoss_netFromParams}
+  \leanok
+The coordinates of $-\nabla L$ for the two-layer network are expressed through the hidden and readout blocks as finite sums of products of locally Lipschitz functions of the packed parameters (using $\varphi,\varphi'$ locally Lipschitz); hence the field $\theta\mapsto-\nabla L(\theta)$ is locally Lipschitz.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkf:locLip}
+  \leanok
+By Theorem~\ref{thm:ntktl:coordinateFlow}, each coordinate of $-\nabla L$ is $-\frac1{m\sqrt n}\sum_\alpha r^\alpha\,g_\alpha(\theta)$ with $r^\alpha$ and $g_\alpha$ built from $\varphi(w_i\cdot x)$, $\varphi'(w_i\cdot x)$ and the coordinates of $\theta$. Apply Lemma~\ref{lem:ntkf:locLip}.
+\end{proof}
+
+\begin{theorem}[Existence, uniqueness and continuous dependence of the flow]\label{thm:ntktl:flowExists}
+  \uses{def:ntktl:smoothActivation, lem:ntktl:fieldLipschitz, thm:ntkf:forwardFlow, thm:ntkf:uniqueness, lem:ntkgf:lossMonotone}
+  \lean{NTK.exists_forwardGradientFlow, NTK.forwardGradientFlow_unique,
+        NTK.exists_forwardGradientFlow_family}
+  \leanok
+Let $\varphi$ be a smooth activation and fix $n,d,m$ and a dataset. There is a map $\Phi$ such that $\Phi(\theta_0)$ is a forward gradient flow of the MSE loss from $\theta_0$, jointly continuous in $(\theta_0,t)$. Two forward gradient flows from the same initialization agree for all $t\ge0$. There is a family
+$\theta_n(p)$ such that for every width $n$ and every initialization $p$, $\theta_n(p)$ is a forward gradient flow started at $\operatorname{packParams}(p)$, and each fixed-time evaluation is continuous, hence measurable, in $p$. Nothing is asserted for negative times, where solutions can blow up.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntktl:fieldLipschitz, thm:ntkf:forwardFlow, thm:ntkf:uniqueness, lem:ntkgf:lossMonotone}
+  \leanok
+The field is locally Lipschitz (Lemma~\ref{lem:ntktl:fieldLipschitz}), so by Theorem~\ref{thm:ntkf:forwardFlow} it suffices to prove an a priori bound: every solution on $[0,S]$, $S\le T$, starting in a ball of radius $r$ stays in a ball of radius $\rho(T,r)$. Indeed the loss is nonincreasing along a solution (Lemma~\ref{lem:ntkgf:lossMonotone}), so the residual is bounded by its
+initial size $B$ (bounded on bounded parameter sets); the Jacobian grows at most linearly, $\|J(\theta)\|\le c_0+c_1\|\theta\|$ (each neuron block satisfies $\|w_i\|^2+a_i^2\le\|\theta\|^2$ and $\varphi(w\cdot x)^2\le2\varphi(0)^2+2C_1^2\|w\|^2\|x\|^2$), hence
+$\|\theta'\|\le\frac1m\|J\|\,B\le K\|\theta\|+\varepsilon$ and Gr\"onwall's inequality (Lemma~\ref{lem:ntkf:gronwallBound}) bounds $\|\theta(S)\|$ on finite horizons. Only forward time and no bound on $\varphi$ itself are used. Uniqueness is Theorem~\ref{thm:ntkf:uniqueness};
+continuity in the initial condition is part of Theorem~\ref{thm:ntkf:forwardFlow}; the family is obtained by applying $\Phi$ to $\operatorname{packParams}(p)$.
+\end{proof}
+
+\begin{theorem}[Positive gap from feature independence]\label{thm:ntktl:gapFromIndependence}
+  \uses{def:ntktl:smoothActivation, thm:ntktl:posDef, thm:ntkf:spectralGap}
+  \lean{NTK.exists_positive_gap_of_feature_independence}
+  \leanok
+For a smooth activation, if the scaled features are independent modulo Gaussian-null sets, then $K_\infty$ is positive definite and there is $\lambda_\infty>0$ with $K_\infty-\lambda_\infty I\succeq0$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:posDef, thm:ntkf:spectralGap}
+  \leanok
+Positive definiteness is Theorem~\ref{thm:ntktl:posDef} (the smoothness supplies the measurability of $\varphi'$ and the $L^2$ hypotheses), and the spectral gap is Theorem~\ref{thm:ntkf:spectralGap}.
+\end{proof}
+
+\begin{theorem}[Training limits for the constructed gradient flow]\label{thm:ntktl:constructedLimits}
+  \uses{thm:ntktl:flowExists, thm:ntktl:globalLimit, thm:ntktl:globalEventInvSqrt, thm:ntktl:gapFromIndependence, thm:ntktl:finiteHorizonLimits, thm:ntktl:residualLimit}
+  \lean{NTK.gradientFlow_finite_horizon_training_limit,
+        NTK.gradientFlow_global_positive_gap_lazy_training_limit,
+        NTK.gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width,
+        NTK.gradientFlow_global_lazy_training_limit_of_feature_independence}
+  \leanok
+For a smooth activation, the constructed family of trajectories (defined for every width and every initialization, measurable in the initialization) satisfies all the conclusions of the preceding sections with no trajectory hypothesis:
+\begin{enumerate}
+  \item (finite horizon, no gap) kernel stationarity in probability on every $[0,T]$, and at every fixed $t\ge0$ the trained residual and predictions converge in distribution to $\exp(-\tfrac tmK_\infty)(G-y)$ and $y+\exp(-\tfrac tmK_\infty)(G-y)$, $G\sim\mathcal N(0,\Phi(\varphi;\tilde X))$;
+  \item (positive gap) the conclusions of Theorem~\ref{thm:ntktl:globalLimit} for every confidence $\eta$, and with drift $O(n^{-1/2})$ (Theorem~\ref{thm:ntktl:globalEventInvSqrt});
+  \item if the scaled features are independent modulo Gaussian-null sets, the positive-gap conclusion holds with $\lambda_\infty$ from Theorem~\ref{thm:ntktl:gapFromIndependence}, with no spectral-gap hypothesis assumed.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:flowExists, thm:ntktl:globalLimit, thm:ntktl:globalEventInvSqrt, thm:ntktl:gapFromIndependence, thm:ntktl:finiteHorizonLimits, thm:ntktl:residualLimit}
+  \leanok
+Theorem~\ref{thm:ntktl:flowExists} supplies a family of trajectories that solve the gradient-flow ODE everywhere and are measurable in the initialization, which discharges the trajectory hypotheses of Theorems~\ref{thm:ntktl:globalLimit}, \ref{thm:ntktl:globalEventInvSqrt}, \ref{thm:ntktl:finiteHorizonLimits} and~\ref{thm:ntktl:residualLimit}; (3) additionally uses
+Theorem~\ref{thm:ntktl:gapFromIndependence}.
+\end{proof}
+
+
+\section{Finite-horizon limits and linearization in probability}\label{sec:ntktl:finiteHorizon}
+
+\begin{lemma}[Supremum of a drift tends to zero in probability]\label{lem:ntktl:genericOuter}
+  \uses{lem:ntkf:measureAlgebra}
+  \lean{NTK.exists_pos_real_ofReal_le, NTK.measure_le_ofReal_of_measureReal_le,
+        NTK.tendsto_measure_exists_gt_of_eventually_good_events,
+        NTK.tendsto_measure_exists_gt_of_good_events}
+  \leanok
+Let $\mu_n$ be probability measures, $\mathrm{Good}_n(p)$ a property holding almost surely, and $D_n(p,t)\ge0$. Fix $\varepsilon_0>0$. Suppose for every confidence $c>0$ and all large $n$ there is a measurable event $E$ with $\mu_n(E^c)\le c$ on which $D_n(p,t)\le\varepsilon_0$ for all $t\in S$ whenever $\mathrm{Good}_n(p)$.
+Then $\mu_n\{p:\exists t\in S,\ D_n(p,t)>\varepsilon_0\}\to0$ (outer measure; the bad set need not be measurable). The special case in which the good event forces $D_n(p,t)\le\rho(n)$ for a fixed sequence $\rho\to0$ is the shared endgame of the kernel, Jacobian and linearization drift theorems below.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The bad set is contained in $E^c$ up to a null set, whose measure is at most $c$; since $c>0$ is arbitrary the measures tend to $0$. Any positive extended real dominates $\mathrm{ofReal}(c)$ for some real $c>0$, and bounds on the real-valued measure transfer to the extended-real one.
+\end{proof}
+
+\begin{theorem}[Stationarity in probability on $[0,T]$ (no gap)]\label{thm:ntktl:finiteHorizonLimits}
+  \uses{lem:ntktl:genericOuter, thm:ntktl:finiteHorizonEvent}
+  \lean{NTK.tendsto_measure_kernel_drift_finite_horizon, NTK.tendsto_measure_jacobian_drift_finite_horizon,
+        NTK.tendsto_measure_linearization_error_finite_horizon}
+  \leanok
+Let $\theta_n(p)$ be forward gradient flows for almost every initialization, $T\ge0$ and $\varepsilon_0>0$. Then the probabilities that, somewhere on $[0,T]$,
+(i) the empirical NTK drifts from its initial value by more than $\varepsilon_0$,
+(ii) the output Jacobian $J(\theta(t))$ moves by more than $\varepsilon_0$ from $J(\theta(0))$ in Frobenius norm,
+(iii) $\|f(\theta(t))-f(\theta(0))-J(\theta(0))(\theta(t)-\theta(0))\|>\varepsilon_0$,
+all tend to $0$ as $n\to\infty$. Statement (ii) (tangent-feature freezing proper) is not deduced from (i): $K=JJ^\top$ can stay put while $J$ rotates; it comes from the same displacement bound and the Jacobian Lipschitz estimate.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntktl:genericOuter, thm:ntktl:finiteHorizonEvent}
+  \leanok
+Theorem~\ref{thm:ntktl:finiteHorizonEvent} gives, for every confidence, a measurable good event on which the three drifts are bounded by $\mathrm{freezeRate}(n)$, $\mathrm{jacRate}(n)$ and $\mathrm{taylorRate}(n)$, all tending to $0$. Apply Lemma~\ref{lem:ntktl:genericOuter} to each.
+\end{proof}
+
+\begin{theorem}[Stationarity in probability on $[0,\infty)$ (positive gap)]\label{thm:ntktl:globalDriftLimits}
+  \uses{lem:ntktl:genericOuter, thm:ntktl:globalEvent}
+  \lean{NTK.tendsto_measure_jacobian_drift_global_positive_gap,
+        NTK.tendsto_measure_linearization_error_global_positive_gap}
+  \leanok
+Suppose $K_\infty-\lambda_\infty I\succeq0$ with $\lambda_\infty>0$ and the trajectories are gradient flows for almost every initialization. For every $\varepsilon_0>0$, $\Pr\bigl[\sup_{t\ge0}\|J(\theta(t))-J(\theta(0))\|>\varepsilon_0\bigr]\to0$ and
+$\Pr\bigl[\sup_{t\ge0}\|f(\theta(t))-f(\theta(0))-J(\theta(0))(\theta(t)-\theta(0))\|>\varepsilon_0\bigr]\to0$: the nonlinear network stays within $o(1)$ of its initialization linearization for all time on the training inputs.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntktl:genericOuter, thm:ntktl:globalEvent}
+  \leanok
+The positive gap makes the residual decay exponentially, so the displacement bound is uniform in time (Theorem~\ref{thm:ntkgf:lazyDisplacement}) and Theorem~\ref{thm:ntktl:globalEvent} gives a good event on which the Jacobian drift and the Taylor remainder are small for all $t\ge0$; apply Lemma~\ref{lem:ntktl:genericOuter}.
+\end{proof}
+
+\begin{theorem}[Test-input linearization error in probability]\label{thm:ntktl:testLinearization}
+  \uses{lem:ntktl:genericOuter, thm:ntktl:jacobianLipschitz, thm:ntktl:finiteHorizonEvent, thm:ntktl:globalEvent}
+  \lean{NTK.abs_netFromParams_sub_linearization_le_of_disp, NTK.tendsto_testLinearizationRate,
+        NTK.tendsto_measure_test_linearization_error_finite_horizon,
+        NTK.tendsto_measure_test_linearization_error_global_positive_gap}
+  \leanok
+For a smooth activation and a test input $x$ (scaled by $1/\sqrt d$), if the readout weights of $\theta_0$ are bounded by $R$ and $\|\theta-\theta_0\|\le C$, then the network differs from its linearization at $\theta_0$ by at most $\frac{K_x(R)}{2\sqrt n}C^2$. With $R=R_0(n)=\sqrt{2\log(2n/\delta)}$ this rate tends to $0$. Hence for every $\varepsilon_0>0$
+\[
+  \Pr\Bigl[\exists t\in[0,T]:\ \bigl|f(x;\theta(t))-f(x;\theta(0))-\langle\nabla f(x;\theta(0)),\theta(t)-\theta(0)\rangle\bigr|>\varepsilon_0\Bigr]\to0,
+\]
+and under a positive gap the same holds with $[0,\infty)$ in place of $[0,T]$. The flow is trained on the training set only.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:jacobianLipschitz, lem:ntktl:genericOuter}
+  \leanok
+The deterministic bound is Theorem~\ref{thm:ntktl:jacobianLipschitz}; the rate is $\frac{\sqrt{c_1R_0(n)^2+c_2}}{2\sqrt n}C^2=O(\sqrt{\log n/n})\to0$. Combine with the displacement bounds of Theorems~\ref{thm:ntktl:finiteHorizonEvent} and~\ref{thm:ntktl:globalEvent} and Lemma~\ref{lem:ntktl:genericOuter}.
+\end{proof}
+
+
+\section{Residual and prediction limits}\label{sec:ntktl:prediction}
+
+\begin{theorem}[Trained residual versus the frozen matrix-exponential residual]\label{thm:ntktl:residualLimit}
+  \uses{thm:ntkgf:residualFrozen, thm:ntktl:finiteHorizonLimits}
+  \lean{NTK.tendsto_measure_residual_sub_matrix_exp_finite_horizon,
+        NTK.tendstoInDistribution_trainingResidual_matrix_exp,
+        NTK.tendstoInDistribution_trainingOutputs_matrix_exp}
+  \leanok
+Let $\theta_n(p)$ be gradient flows for almost every initialization, measurable in the initialization. At each fixed $t\ge0$ and for every $\varepsilon_0>0$,
+$\Pr\bigl[\|r_n(t)-\exp(-\tfrac tmK_\infty)r_n(0)\|\ge\varepsilon_0\bigr]\to0$ (no spectral gap), and the trained residual and predictions on the scaled dataset converge in distribution to
+\[
+  \exp\bigl(-\tfrac tmK_\infty\bigr)(G-y)\qquad\text{and}\qquad y+\exp\bigl(-\tfrac tmK_\infty\bigr)(G-y),\qquad G\sim\mathcal N\bigl(0,\Phi(\varphi;\tilde X)\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:residualFrozen, thm:ntktl:finiteHorizonLimits, thm:ntktl:initialWeakLimit, thm:ntkf:slutsky}
+  \leanok
+By Theorem~\ref{thm:ntkgf:residualFrozen}(2), $\|r_n(t)-\exp(-\frac tmK_n(0))r_n(0)\|$ is at most $\frac tm\,\varepsilon_K\,\|r_n(0)\|$ whenever the kernel stays within $\varepsilon_K$ of the frozen kernel on $[0,t]$; kernel stationarity (Theorem~\ref{thm:ntktl:finiteHorizonLimits}) and
+tightness of $\|r_n(0)\|$ (Theorem~\ref{thm:ntktl:initialWeakLimit}) make this tend to $0$ in probability, and replacing $K_n(0)$ by $K_\infty$ costs $\|K_n(0)-K_\infty\|\to0$ in probability. The weak limits follow from the joint weak limit of $(r_n(0),K_n(0))$ (Theorem~\ref{thm:ntktl:initialWeakLimit}), the continuous mapping theorem applied to
+$(G,K)\mapsto\exp(-\frac tmK)(G-y)$, and the perturbation Lemma~\ref{lem:ntkf:slutskyPerturb}.
+\end{proof}
+
+\begin{theorem}[Initial train--test cross-kernel]\label{thm:ntktl:crossKernelInit}
+  \uses{thm:ntktl:ntkChebyshev, lem:ntkgf:ntkPsd}
+  \lean{NTK.scaled_snoc, NTK.tendsto_initMeasure_crossKernel_ge_eps}
+  \leanok
+For a test input $x$ let $k_n(x)_\alpha=\langle\nabla f(x;\theta_0),\nabla f(x^\alpha;\theta_0)\rangle=(J(\theta_0)\nabla f(x;\theta_0))_\alpha$. Then $k_n(x)$ converges in probability to $k_\infty(x,X)_\alpha=K_\infty^{(X,x)}(\text{last},\alpha)$, the train--test entries of the limiting NTK of the extended dataset $(X,x)$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:ntkChebyshev, lem:ntkgf:ntkPsd}
+  \leanok
+The cross-kernel is a row of the empirical NTK matrix of the extended dataset (Lemma~\ref{lem:ntkgf:ntkPsd}(2)); scaling the extended dataset scales both parts, so Theorem~\ref{thm:ntktl:ntkChebyshev}(3) applies to the extended dataset.
+\end{proof}
+
+\begin{theorem}[Cross-kernel freezing]\label{thm:ntktl:crossKernelFreeze}
+  \uses{thm:ntktl:crossKernelInit, thm:ntktl:finiteHorizonLimits, thm:ntktl:globalDriftLimits, thm:ntktl:jacobianLipschitz}
+  \lean{NTK.tendsto_measure_crossKernel_drift_finite_horizon,
+        NTK.tendsto_measure_crossKernel_drift_global_positive_gap}
+  \leanok
+For a test input $x$, the cross-kernel vector $k_\theta(x)=J(\theta)\nabla_\theta f(x;\theta)$ stays within $\varepsilon_0$ of its initial value on $[0,T]$ with probability tending to $1$ (no spectral gap), and for all $t\ge0$ if $K_\infty\succeq\lambda_\infty I$ with $\lambda_\infty>0$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:finiteHorizonLimits, thm:ntktl:globalDriftLimits, thm:ntktl:jacobianLipschitz, thm:ntktl:crossKernelInit}
+  \leanok
+Split $k_{\theta(t)}-k_{\theta(0)}=(J(\theta(t))-J(\theta(0)))\nabla f(x;\theta(0))+J(\theta(t))\bigl(\nabla f(x;\theta(t))-\nabla f(x;\theta(0))\bigr)$. The first term is controlled by Jacobian drift (Theorem~\ref{thm:ntktl:finiteHorizonLimits}(ii) or~\ref{thm:ntktl:globalDriftLimits}) times
+$\|\nabla f(x;\theta(0))\|$, which concentrates by Theorem~\ref{thm:ntktl:crossKernelInit} (it is a diagonal entry of the extended-dataset kernel); the second term by the Lipschitz bound of the tangent feature (Theorem~\ref{thm:ntktl:jacobianLipschitz}) times the Jacobian bound.
+\end{proof}
+
+\begin{theorem}[Test-point prediction in probability]\label{thm:ntktl:testPrediction}
+  \uses{thm:ntkgf:predictionError, thm:ntkgf:predictionUniform, thm:ntktl:crossKernelFreeze, thm:ntktl:testLinearization, thm:ntktl:residualLimit}
+  \lean{NTK.tendsto_measure_test_prediction_finite_horizon,
+        NTK.tendsto_measure_test_prediction_global_positive_gap}
+  \leanok
+Let $\theta_n(p)$ be gradient flows for almost every initialization, let $K_\infty$ be invertible, $k_\infty=k_\infty(x,X)$ and $a=K_\infty^{-1}k_\infty$. For a test input $x$ let $f_t(x)$ be the trained output and $r_0=f_0(X)-y$ the initial residual. Then for every fixed $t\ge0$ and $\varepsilon_0>0$,
+\[
+  \Pr\Bigl[\bigl|f_t(x)-\bigl(f_0(x)-a^\top\bigl(r_0-\exp(-\tfrac tmK_\infty)r_0\bigr)\bigr)\bigr|\ge\varepsilon_0\Bigr]\to0.
+\]
+If $K_\infty$ is positive definite, the probability that the deviation exceeds $\varepsilon_0$ at \emph{some} $t\ge0$ also tends to $0$ (the horizon is removed).
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:predictionError, thm:ntkgf:predictionUniform, thm:ntktl:crossKernelFreeze, thm:ntktl:testLinearization, thm:ntktl:residualLimit}
+  \leanok
+Write $f_t(x)-f_0(x)=\langle\nabla f(x;\theta_0),\theta(t)-\theta_0\rangle+(\text{linearization error})$. The linearization error is $o(1)$ in probability (Theorem~\ref{thm:ntktl:testLinearization}). The displacement part is compared to the frozen prediction by the deterministic estimate Theorem~\ref{thm:ntkgf:predictionError} (finite horizon)
+or Theorem~\ref{thm:ntkgf:predictionUniform} (uniform in time), whose three error sources (Jacobian drift, cross-kernel error, residual versus frozen residual) all tend to $0$ in probability by Theorems~\ref{thm:ntktl:finiteHorizonLimits}, \ref{thm:ntktl:crossKernelFreeze} and~\ref{thm:ntktl:residualLimit}.
+\end{proof}
+
+\begin{theorem}[Kernel interpolation at a test point]\label{thm:ntktl:interpolation}
+  \uses{thm:ntktl:testPrediction}
+  \lean{NTK.test_prediction_kernel_interpolation_limit}
+  \leanok
+Under the hypotheses of the uniform part of Theorem~\ref{thm:ntktl:testPrediction}, the trained network converges, first as the width grows and then as time grows, to the ridgeless kernel-regression interpolant: for every $\varepsilon_0,c>0$ there is a time $T_0$ such that for all large $n$, with probability at least $1-c$,
+\[
+  \Bigl|f_t(x)-\bigl(f_0(x)+k_\infty(x,X)^\top K_\infty^{-1}\bigl(y-f_0(X)\bigr)\bigr)\Bigr|\le\varepsilon_0\qquad\text{simultaneously for all }t\ge T_0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntktl:testPrediction}
+  \leanok
+Since $a^\top r_0=-k_\infty^\top K_\infty^{-1}(y-f_0(X))$ and $K_\infty$ is positive definite, $\exp(-\frac tmK_\infty)r_0\to0$ as $t\to\infty$; choose $T_0$ so that the frozen part of the prediction is within $\varepsilon_0/2$ of its limit for $t\ge T_0$, and apply Theorem~\ref{thm:ntktl:testPrediction} with $\varepsilon_0/2$.
+\end{proof}

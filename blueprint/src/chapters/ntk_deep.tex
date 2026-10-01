@@ -1,0 +1,614 @@
+\chapter{Initialization: conditional Gaussianity, the NNGP limit and the deep recursion}\label{chap:ntkdeep}
+
+This chapter records the mathematics of a randomly initialized network as a function of its \emph{width}: exact conditional normality, the strong law for the covariance, and the convergence of the output to a Gaussian process (the neural-network Gaussian process, NNGP).
+It then treats multilayer networks: the layer-by-layer conditional Gaussian structure, the recursive kernel $\Phi_\ell$, and the deep NNGP recursion (Theorem~2.13 of the source).
+The Lean files are in \texttt{Optimization/NTK/Initialization/}: \texttt{Setup}, \texttt{GaussianAlgebra}, \texttt{ConditionalNormality}, \texttt{NNGPLimit}, \texttt{MultilayerNNGP}, \texttt{CovariancePropagation}, \texttt{DeepRecursion}, \texttt{DeepNNGPTheorems}, \texttt{Peripheral}.
+The ReLU closed forms used for the kernel recursion are in Chapter~\ref{chap:ntkr}; the NTK of the two-layer network (the full NTK summand and its limit) is in Chapter~\ref{chap:ntktl}.
+
+\medskip\noindent\textbf{Status.}
+Everything in this chapter is formalized and fully proved \emph{except} one statement:
+Part~1 of the deep recursion, the convergence in probability of the layerwise empirical covariance to the recursive kernel (Theorem~\ref{thm:ntkdeep:deepCovariance}), is stated in Lean but its proof is currently a \texttt{sorry}.
+Part~2 (convergence in distribution of the output) is proved \emph{from} that statement, and it is also proved as a standalone theorem under an explicit covariance-convergence hypothesis (Theorem~\ref{thm:ntkdeep:deepOutputStandalone}).
+The affected blueprint nodes carry no \texttt{\textbackslash leanok} on their proofs.
+
+\medskip\noindent\textbf{Notation.}
+$d$ is the input dimension, $n$ the (hidden) width, $m$ the number of evaluation points $x^1,\dots,x^m$ (collected in $X$), and $\varphi$ the activation. $\gamma=\mathcal N(0,1)$.
+For a positive semidefinite matrix $\Sigma$, $\mathcal N(0,\Sigma)$ is the centred Gaussian with covariance $\Sigma$ (\texttt{multivariateGaussian}).
+
+
+\section{Gaussian vector algebra}\label{sec:ntkdeep:gaussianAlgebra}
+
+\begin{theorem}[Linear images of Gaussian vectors, Proposition~2.8]\label{thm:ntkdeep:linearImage}
+  \lean{NTK.inner_eq_dotProduct_ofLp, NTK.gaussian_map_mulVec}
+  \leanok
+If $g\sim\mathcal N(\mu,S)$ with $S\succeq0$ and $A$ is a deterministic matrix, then $Ag\sim\mathcal N(A\mu,\,ASA^\top)$. The real inner product on a finite-dimensional Euclidean space is the dot product of the underlying coordinate vectors.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The characteristic function of $Ag$ at $t$ is that of $g$ at $A^\top t$, namely $\exp(i\langle t,A\mu\rangle-\tfrac12t^\top ASA^\top t)$, which is the characteristic function of $\mathcal N(A\mu,ASA^\top)$; a Gaussian is determined by its characteristic function.
+\end{proof}
+
+\begin{theorem}[Projections of a standard Gaussian vector, Propositions~2.9 and~2.9$'$]\label{thm:ntkdeep:projections}
+  \uses{thm:ntkdeep:linearImage}
+  \lean{NTK.stdGaussian_inner_pair, NTK.stdGaussian_inner_family}
+  \leanok
+For $g\sim\mathcal N(0,I_n)$ and fixed vectors $u,v\in\mathbb R^n$, the pair $(g\cdot u,g\cdot v)$ is a bivariate centred Gaussian with covariance $\begin{psmallmatrix}u\cdot u&u\cdot v\\u\cdot v&v\cdot v\end{psmallmatrix}$.
+More generally, for a fixed family $u^1,\dots,u^m\in\mathbb R^n$ the vector $(g\cdot u^\alpha)_{\alpha\le m}$ is $\mathcal N(0,\Gamma)$ with $\Gamma_{\alpha\beta}=u^\alpha\cdot u^\beta$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:linearImage}
+  \leanok
+The vector of projections is $Ug$ where $U$ has rows $u^\alpha$; apply Theorem~\ref{thm:ntkdeep:linearImage} with $S=I_n$, giving covariance $UU^\top=\Gamma$.
+\end{proof}
+
+\begin{theorem}[Gaussian matrices acting on a family, Propositions~2.10 and~2.10$'$]\label{thm:ntkdeep:gaussianMatrix}
+  \uses{thm:ntkdeep:projections}
+  \lean{NTK.gaussianMatrix_mulVec_pair, NTK.gaussianMatrix_mulVec_family}
+  \leanok
+Let $W\in\mathbb R^{r\times n}$ have i.i.d.\ standard Gaussian entries and let $u^1,\dots,u^m\in\mathbb R^n$ be fixed. The row-indexed family $i\mapsto(W_i\cdot u^\alpha)_{\alpha\le m}$ consists of $r$ i.i.d.\ copies of the $m$-variate centred Gaussian with covariance $(u^\alpha\cdot u^\beta)_{\alpha\beta}$; for $m=2$ and a pair $u,v$ this is
+the statement that $i\mapsto(W_i\cdot u,W_i\cdot v)$ consists of $n$ i.i.d.\ copies of the bivariate Gaussian of Theorem~\ref{thm:ntkdeep:projections}.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:projections}
+  \leanok
+The rows of $W$ are i.i.d.\ $\mathcal N(0,I_n)$, so the pushforward of the product measure along $W\mapsto(W_i\cdot u^\cdot)_i$ is the product of the pushforwards of each row, each given by Theorem~\ref{thm:ntkdeep:projections}.
+\end{proof}
+
+
+\section{The initialization space and readout weights}\label{sec:ntkdeep:setup}
+
+(The two-layer network, the output vector and the initialization measure are Definitions~\ref{def:ntktl:network} and~\ref{def:ntktl:init}.)
+
+\begin{lemma}[Independence and marginals]\label{lem:ntkdeep:independence}
+  \uses{def:ntktl:init}
+  \lean{NTK.map_gaussianReadoutMeasure_coord, NTK.iIndepFun_readoutWeights, NTK.map_gaussianInit_row,
+        NTK.iIndepFun_inputWeights, NTK.indepFun_input_readout}
+  \leanok
+Each readout coordinate $a_i$ has marginal $\gamma$ and the readout weights are mutually independent. Each input row $W_i$ has marginal $\mathcal N(0,I_d)$ and the rows are mutually independent. The family of input weights $W$ is independent of the readout weights $a$ under $\texttt{initMeasure}\;n\;d$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+These are the standard properties of a product measure: marginals of a product are the factors and the coordinate projections are independent.
+\end{proof}
+
+\begin{lemma}[Evaluation maps]\label{lem:ntkdeep:evalMaps}
+  \uses{def:ntktl:network}
+  \lean{NTK.evalSingle_eq_normalized_sum, NTK.evalVector_ofLp, NTK.evalVector_inner, NTK.evalVector_continuous,
+        NTK.evalVector_measurable, NTK.inner_evalVector_continuous, NTK.inner_evalVector_measurable,
+        NTK.evalSingle_joint_measurable, NTK.evalVector_joint_measurable}
+  \leanok
+The network output $f(x;W,a)=n^{-1/2}\sum_ia_i\varphi(W_i\cdot x)$ is linear, hence continuous and measurable, in the readout weights $a$ for fixed $W$, and the inner products $\langle t,f_m(W,a)\rangle=\sum_\alpha t_\alpha f(x^\alpha;W,a)$ are continuous in $a$; if $\varphi$ is measurable, $f$ and $f_m$ are jointly measurable in $(W,a)$.
+\end{lemma}
+
+\begin{lemma}[Readout energy and extremes]\label{lem:ntkdeep:readoutTails}
+  \uses{lem:ntkdeep:independence, lem:ntkf:subGaussTail, lem:ntkf:markov}
+  \lean{NTK.gaussianReadoutEnergy, NTK.prob_gaussianReadout_sum_sq_le, NTK.prob_abs_gaussianReadout_coord_ge_le,
+        NTK.prob_max_abs_gaussianReadout_ge_le, NTK.prob_forall_abs_gaussianReadout_le,
+        NTK.initMeasure_forall_abs_readout_ge}
+  \leanok
+Let $\mathcal E_n(a)=\frac1n\sum_ia_i^2$ be the normalized readout energy. Then for $\delta>0$ and $n\ge1$,
+$\Pr[\mathcal E_n\le1/\delta]\ge1-\delta$. For every $\varepsilon\ge0$ and coordinate $i$, $\Pr[|a_i|\ge\varepsilon]\le2e^{-\varepsilon^2/2}$, and
+$\Pr[\exists i:|a_i|\ge\varepsilon]\le2n\,e^{-\varepsilon^2/2}$. Consequently (Gap~4b), for $\delta\in(0,1]$, with probability at least $1-\delta$ every readout weight satisfies
+\[
+  |a_i|\le\sqrt{2\log(2n/\delta)},
+\]
+a bound growing only logarithmically in the width, also under the joint initialization measure.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkf:subGaussTail, lem:ntkf:markov}
+  \leanok
+$\mathbb E[a_i^2]=1$ so $\mathbb E[\mathcal E_n]=1$ and Markov's inequality (Lemma~\ref{lem:ntkf:markov}) gives the first claim. The one-coordinate tail is Lemma~\ref{lem:ntkf:subGaussTail}; the union bound over $n$ coordinates gives the maximum. Taking $\varepsilon=\sqrt{2\log(2n/\delta)}$ gives $2ne^{-\varepsilon^2/2}=2n\cdot\frac{\delta}{2n}=\delta$.
+The lift to $\texttt{initMeasure}$ holds because the event depends only on the second factor.
+\end{proof}
+
+\begin{lemma}[Activation moments and energy]\label{lem:ntkdeep:activationMoments}
+  \uses{lem:ntkdeep:independence, lem:ntkf:markov}
+  \lean{NTK.measureReal_gaussianInit_activationEnergy_le, NTK.memLp_gaussianRow_comp_of_linear_growth,
+        NTK.memLp_two_gaussianRow_mul_comp_of_linear_growth}
+  \leanok
+(1) A measurable activation with $|\varphi(z)|\le A+B|z|$ has all Gaussian moments along a row: $\varphi(w\cdot x)\in L^p(\mathcal N(0,I_d))$ for all $p$, and a product $\varphi(w\cdot x)\varphi(w\cdot x')$ is in $L^2$.
+(2) If $\varphi(w\cdot x^\alpha)\in L^2$ for all $\alpha$ and $\sum_\alpha\mathbb E\varphi(w\cdot x^\alpha)^2\le\tau\delta$, then the activation energy $\frac1n\sum_i\sum_\alpha\varphi(W_i\cdot x^\alpha)^2$ is at most $\tau$ with probability at least $1-\delta$.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkf:markov}
+  \leanok
+(1) $w\cdot x$ is Gaussian, so $|w\cdot x|^p$ is integrable; linear growth gives the moment bound for $\varphi$, and Hölder's inequality with exponents $(4,4)\to2$ gives the product. (2) Markov's inequality for the nonnegative neuron average (Lemma~\ref{lem:ntkf:markov}).
+\end{proof}
+
+
+\section{Exact finite-width conditional normality (Theorem~1)}\label{sec:ntkdeep:conditionalNormality}
+
+\begin{definition}[Projection coefficients]\label{def:ntkdeep:projectionCoeff}
+  \uses{def:ntktl:network}
+  \lean{NTK.projectionCoeff}
+  \leanok
+For $c\in\mathbb R^m$ and hidden unit $i$, $\psi_i:=\operatorname{projectionCoeff}\,n\,\varphi\,W\,X\,c\,i=\frac1{\sqrt n}\sum_\alpha c_\alpha\varphi(W_i\cdot x^\alpha)$.
+\end{definition}
+
+\begin{lemma}[Projection identity and variance identity]\label{lem:ntkdeep:projectionIdentities}
+  \uses{def:ntkdeep:projectionCoeff}
+  \lean{NTK.projectionCoeff_eq_normalized_sum, NTK.projectionCoeff_measurable, NTK.projection_eq_sum_projectionCoeff,
+        NTK.projectionCoeff_sq, NTK.sum_projectionCoeff_sq_eq_bilin, NTK.empiricalCovariance_isHermitian,
+        NTK.empiricalCovariance_nonneg, NTK.empiricalCovariance_posSemidef}
+  \leanok
+For every $c$: $\sum_\alpha c_\alpha f(x^\alpha;W,a)=\sum_ia_i\psi_i$ (Step~1); for measurable $\varphi$, $\psi_i$ is a measurable function of $W$ (Step~2: it is $\mathcal F$-measurable, $\mathcal F=\sigma(W)$); $\psi_i^2=\frac1n\sum_{\alpha,\beta}c_\alpha c_\beta\varphi(W_i\cdot x^\alpha)\varphi(W_i\cdot x^\beta)$; and (Step~4)
+\[
+  \sum_i\psi_i^2=c^\top\Phi^{(n)}c .
+\]
+The empirical covariance matrix $\Phi^{(n)}$ is symmetric and positive semidefinite: $c^\top\Phi^{(n)}c\ge0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Interchange the sums in $\sum_\alpha c_\alpha\frac1{\sqrt n}\sum_ia_i\varphi(W_i\cdot x^\alpha)$. Expanding $\psi_i^2$ and summing over $i$ gives $c^\top\Phi^{(n)}c$ by the definition of $\Phi^{(n)}_{\alpha\beta}=\frac1n\sum_i\varphi(W_i\cdot x^\alpha)\varphi(W_i\cdot x^\beta)$; since this equals $\sum_i\psi_i^2\ge0$, $\Phi^{(n)}$ is positive semidefinite. Symmetry is evident.
+\end{proof}
+
+\begin{theorem}[Exact conditional normality, Theorem~1]\label{thm:ntkdeep:conditionalNormality}
+  \uses{lem:ntkdeep:projectionIdentities, lem:ntkdeep:independence}
+  \lean{NTK.map_gaussianReadoutMeasure_inner, NTK.map_readout_projection_eq_gaussianReal,
+        NTK.map_readout_inner_evalVector, NTK.charFun_readout_evalVector, NTK.exact_conditional_normality,
+        NTK.isGaussian_conditional_output, NTK.isGaussianProcess_exact_conditional_output}
+  \leanok
+Conditional on the input weights $W$ (the $\sigma$-algebra $\mathcal F$), the output vector under the readout distribution is an exact centred multivariate Gaussian,
+\[
+  f_m(W,\cdot)\;\sim\;\mathcal N\bigl(0,\Phi^{(n)}\bigr).
+\]
+Equivalently, each scalar projection $\sum_\alpha c_\alpha f(x^\alpha;W,a)$ is $\mathcal N(0,c^\top\Phi^{(n)}c)$, the characteristic function is $t\mapsto\exp(-\tfrac12t^\top\Phi^{(n)}t)$, and the random function $x\mapsto f(x;W,a)$ is an exact Gaussian process (in the sense of \texttt{IsGaussianProcess}) under the readout measure.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdeep:projectionIdentities, lem:ntkdeep:independence}
+  \leanok
+\emph{Step 3.} The readout weights are independent standard Gaussians, so $\sum_ia_i\psi_i$ with deterministic coefficients $\psi_i$ is a linear combination of independent centred Gaussians, hence $\mathcal N(0,\sum_i\psi_i^2)$. \emph{Step 4.} By Lemma~\ref{lem:ntkdeep:projectionIdentities} its variance is $c^\top\Phi^{(n)}c$.
+\emph{Step 5.} Every one-dimensional marginal of $f_m(W,\cdot)$ is the marginal of $\mathcal N(0,\Phi^{(n)})$; by the Cram\'er--Wold device (a finite measure on $\mathbb R^m$ is determined by its one-dimensional projections, equivalently by its characteristic function) the laws coincide. The Gaussian-process statement is that all finite-dimensional marginals are Gaussian.
+\end{proof}
+
+\begin{lemma}[Conditional mean and covariance]\label{lem:ntkdeep:conditionalMoments}
+  \uses{thm:ntkdeep:conditionalNormality}
+  \lean{NTK.integral_conditional_output_eq_zero, NTK.cov_conditional_output_eq_covariance}
+  \leanok
+Under the conditional law of Theorem~\ref{thm:ntkdeep:conditionalNormality}, the mean of the output vector is $0$ and the covariance of $f(x^\alpha)$ and $f(x^\beta)$ is $\Phi^{(n)}_{\alpha\beta}$.
+\end{lemma}
+
+
+\section{The strong law for the covariance and the NNGP limit (Theorems~2 and~3)}\label{sec:ntkdeep:nngpLimit}
+
+\begin{definition}[Limiting NNGP covariance]\label{def:ntkdeep:limitingCov}
+  \uses{def:ntktl:limitingNTK}
+  \lean{NTK.limitingCovariance, NTK.limitingCovariance_apply}
+  \leanok
+$\Phi^{(\infty)}_{\alpha\beta}=\Phi_{\alpha\beta}(\varphi;X)=\int\varphi(w\cdot x^\alpha)\varphi(w\cdot x^\beta)\,d\mathcal N(0,I_d)(w)$ (Definition~\ref{def:ntktl:limitingNTK}).
+\end{definition}
+
+\begin{theorem}[Strong law for the empirical covariance, Theorem~2]\label{thm:ntkdeep:covarianceSLLN}
+  \uses{def:ntkdeep:limitingCov, thm:ntkf:slln}
+  \lean{NTK.measurable_cov_summand, NTK.integrable_cov_summand_of_memLp, NTK.empiricalCovariance_tendsto_integral,
+        NTK.empiricalCovariance_tendsto_matrix_integral, NTK.empiricalCovariance_tendsto_limitingCovariance}
+  \leanok
+Let $\varphi$ be measurable with $\varphi(w\cdot x^\alpha)\in L^2(\mathcal N(0,I_d))$ for every $\alpha$. For an infinite i.i.d.\ sequence of rows $w_0,w_1,\dots\sim\mathcal N(0,I_d)$, almost surely, as $n\to\infty$,
+\[
+  \Phi^{(n)}_{\alpha\beta}=\frac1n\sum_{i<n}\varphi(w_i\cdot x^\alpha)\varphi(w_i\cdot x^\beta)\longrightarrow\Phi^{(\infty)}_{\alpha\beta},
+\]
+entrywise and hence as matrices.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:slln}
+  \leanok
+\emph{Step 1.} $Y_i=\varphi(w_i\cdot x^\alpha)\varphi(w_i\cdot x^\beta)$ is a measurable function of the row $w_i$. \emph{Step 2.} Rows are i.i.d., so $(Y_i)$ is i.i.d. \emph{Step 3.} By Cauchy--Schwarz, $\mathbb E|Y_0|\le\sqrt{\mathbb E\varphi(w\cdot x^\alpha)^2\,\mathbb E\varphi(w\cdot x^\beta)^2}<\infty$.
+\emph{Step 4.} The strong law (Theorem~\ref{thm:ntkf:slln}) gives $\frac1n\sum_{i<n}Y_i\to\mathbb E Y_0=\Phi^{(\infty)}_{\alpha\beta}$ almost surely. Finitely many entries converge simultaneously almost surely.
+\end{proof}
+
+\begin{theorem}[Positive semidefiniteness of the limiting covariance]\label{thm:ntkdeep:limitingCovPsd}
+  \uses{def:ntkdeep:limitingCov}
+  \lean{NTK.limitingCovariance_isHermitian, NTK.continuous_matrix_quadratic,
+        NTK.sum_sum_mul_limitingCovariance_eq_integral_sq, NTK.sum_sum_mul_limitingCovariance_nonneg,
+        NTK.limitingCovariance_nonneg, NTK.limitingCovariance_posSemidef}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntkdeep:covarianceSLLN}, $\Phi^{(\infty)}$ is symmetric and positive semidefinite, with the expectation-of-square identity
+\[
+  \sum_{\alpha,\beta}u_\alpha u_\beta\,\Phi^{(\infty)}_{\alpha\beta}=\mathbb E_w\Bigl[\Bigl(\sum_\alpha u_\alpha\varphi(w\cdot x^\alpha)\Bigr)^2\Bigr]\ge0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Expand the square and integrate term by term (all terms are integrable by Cauchy--Schwarz); the right side is nonnegative.
+\end{proof}
+
+\begin{definition}[Output law]\label{def:ntkdeep:outputMeasure}
+  \uses{def:ntktl:init, def:ntktl:network}
+  \lean{NTK.outputMeasure, NTK.outputMeasure_eq_map, NTK.isProbabilityMeasure_outputMeasure}
+  \leanok
+For measurable $\varphi$, $\operatorname{outputMeasure}\;n\;d\;\varphi\;X$ is the law of $f_m(W,a)$ under $\texttt{initMeasure}\;n\;d$, a probability measure on $\mathbb R^m$.
+\end{definition}
+
+\begin{theorem}[Characteristic function of the output]\label{thm:ntkdeep:charFun}
+  \uses{def:ntkdeep:outputMeasure, thm:ntkdeep:conditionalNormality, thm:ntkdeep:covarianceSLLN, thm:ntkdeep:limitingCovPsd}
+  \lean{NTK.map_infinitePi_rows_eq_gaussianInit, NTK.integral_exp_inner_evalVector, NTK.charFun_outputMeasure,
+        NTK.measurable_exp_quadratic_empiricalCovariance, NTK.continuous_charFun_integrand,
+        NTK.integral_charFun_gaussianInit_eq_infinitePi, NTK.charFun_integrand_tendsto_ae,
+        NTK.norm_exp_neg_ofReal_div_two_le_one, NTK.norm_charFun_readout_le_one,
+        NTK.tendsto_integral_charFun_infinitePi, NTK.tendsto_charFun_outputMeasure,
+        NTK.tendsto_charFun_outputMeasure_eq_multivariateGaussian}
+  \leanok
+For every $t\in\mathbb R^m$ and width $n$,
+\[
+  \widehat{\operatorname{outputMeasure}}(t)=\mathbb E_W\bigl[\exp\bigl(-\tfrac12\,t^\top\Phi^{(n)}(W)\,t\bigr)\bigr],
+\]
+and, under the hypotheses of Theorem~\ref{thm:ntkdeep:covarianceSLLN}, as $n\to\infty$
+\[
+  \widehat{\operatorname{outputMeasure}}(t)\longrightarrow\exp\bigl(-\tfrac12\,t^\top\Phi^{(\infty)}t\bigr),
+\]
+the characteristic function of $\mathcal N(0,\Phi^{(\infty)})$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:conditionalNormality, thm:ntkdeep:covarianceSLLN, thm:ntkdeep:limitingCovPsd}
+  \leanok
+\emph{Step 1.} Integrating out the readout weights (Theorem~\ref{thm:ntkdeep:conditionalNormality}), the conditional characteristic function is $\exp(-\frac12t^\top\Phi^{(n)}t)$. \emph{Step 2.} By Fubini (the law of total expectation) the unconditional characteristic function is its expectation over $W$; the integrand is measurable in $W$.
+Using the measure-preserving identification of the first $n$ rows of an infinite sequence with $\texttt{gaussianInit}\;n\;d$, we may write the expectation over the infinite product measure.
+\emph{Step 3.} By Theorem~\ref{thm:ntkdeep:covarianceSLLN} and the continuity of $M\mapsto\exp(-\frac12t^\top Mt)$ the integrand converges almost surely to $\exp(-\frac12t^\top\Phi^{(\infty)}t)$.
+\emph{Step 4.} Since $\Phi^{(n)}\succeq0$ the exponent is nonpositive and the integrand has modulus at most $1$, so dominated convergence passes the limit under the expectation.
+\end{proof}
+
+\begin{theorem}[Finite-dimensional NNGP limit, Theorem~3]\label{thm:ntkdeep:nngpLimit}
+  \uses{thm:ntkdeep:charFun, def:ntkdeep:outputMeasure}
+  \lean{NTK.outputMeasure_tendsto_multivariateGaussian, NTK.tendstoInDistribution_evalVector,
+        NTK.tendstoInDistribution_evalVector_scaled_dataset, NTK.tendstoInDistribution_initialResidual_evalVector}
+  \leanok
+Let $\varphi$ be measurable with $\varphi(w\cdot x^\alpha)\in L^2(\mathcal N(0,I_d))$ for every $\alpha$. As the width $n\to\infty$, the output vector $f_m=(f(x^1;\theta),\dots,f(x^m;\theta))^\top$ under $\texttt{initMeasure}\;n\;d$ converges in distribution, equivalently the output laws converge weakly, to the centred Gaussian
+\[
+  f_m\xrightarrow{d}\mathcal N\bigl(0,\Phi^{(\infty)}\bigr)\qquad\text{in }\mathbb R^m .
+\]
+The same holds on the scaled dataset $X/\sqrt d$ with $\Phi^{(\infty)}=\Phi(\varphi;X/\sqrt d)$ (the hypothesis being imposed on $\varphi(w\cdot x^\alpha/\sqrt d)$), and subtracting a target vector $y$ preserves convergence: the initial residual satisfies $r_n(0)=f_m-y\xrightarrow{d}G-y$ with $G\sim\mathcal N(0,\Phi^{(\infty)})$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:charFun}
+  \leanok
+\emph{Step 5.} Pointwise convergence of the characteristic functions (Theorem~\ref{thm:ntkdeep:charFun}) implies weak convergence of the laws, by L\'evy's continuity theorem in Euclidean space. The scaled-dataset and residual versions are the same statement for the dataset $X/\sqrt d$ composed with the translation $v\mapsto v-y$ (continuous mapping).
+\end{proof}
+
+\begin{theorem}[Tightness of the output laws]\label{thm:ntkdeep:tightness}
+  \uses{thm:ntkdeep:charFun}
+  \lean{NTK.isTightMeasureSet_range_outputMeasure, NTK.isTightMeasureSet_range_outputMeasure_scaled_dataset}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntkdeep:nngpLimit}, the set $\{\operatorname{outputMeasure}\;n\;d\;\varphi\;X:n\in\mathbb N\}$ is tight, also on the scaled dataset.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:charFun}
+  \leanok
+Pointwise convergence of characteristic functions to a continuous limit implies tightness of the whole sequence (L\'evy continuity theorem in the form \texttt{isTightMeasureSet\_of\_tendsto\_charFun}).
+\end{proof}
+
+\begin{theorem}[Gaussianity of linear combinations]\label{thm:ntkdeep:projectionLimit}
+  \uses{thm:ntkdeep:charFun, thm:ntkdeep:nngpLimit}
+  \lean{NTK.dot_mulVec_smul, NTK.projection_joint_measurable, NTK.inner_smul_evalVector,
+        NTK.conditionalVariance_tendsto_limitingVariance_ae, NTK.charFun_map_projection_eq_outputMeasure,
+        NTK.charFun_map_projection, NTK.tendsto_charFun_map_projection,
+        NTK.tendsto_charFun_map_projection_eq_gaussianReal, NTK.isProbabilityMeasure_map_projection,
+        NTK.map_projection_tendsto_gaussianReal, NTK.tendstoInDistribution_projection}
+  \leanok
+For every fixed $u\in\mathbb R^m$, the scalar $S_n(u)=\sum_\alpha u_\alpha f(x^\alpha;\theta)$ converges in distribution to a centred univariate normal,
+\[
+  S_n(u)\xrightarrow{d}\mathcal N\bigl(0,\,u^\top\Phi^{(\infty)}u\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:charFun}
+  \leanok
+$S_n(u)=\langle u,f_m\rangle$ and the characteristic function at $t$ is that of $f_m$ at $tu$: $\mathbb E_W[\exp(-\frac{t^2}2u^\top\Phi^{(n)}u)]$. Almost surely $u^\top\Phi^{(n)}u\to u^\top\Phi^{(\infty)}u$ (Theorem~\ref{thm:ntkdeep:covarianceSLLN} and continuity of the quadratic form), and dominated convergence gives $\exp(-\frac{t^2}2u^\top\Phi^{(\infty)}u)$, the characteristic function of the univariate Gaussian;
+apply L\'evy's continuity theorem in one dimension.
+\end{proof}
+
+
+\section{Multilayer sequential NNGP}\label{sec:ntkdeep:multilayer}
+
+The following concerns one layer-to-layer transition with general weight and bias scales $\sigma_w,\sigma_b$. If $H\in\mathbb R^{n\times m}$ collects the previous-layer activations $H_{j\alpha}=\varphi(h^{(\ell)}_{j,\alpha})$, the next-layer preactivations at the $m$ inputs are
+\[
+  h^{(\ell+1)}_\alpha=\sigma_b\,b+\frac{\sigma_w}{\sqrt n}\sum_{j=1}^nw_j\,H_{j\alpha},\qquad w\sim\mathcal N(0,I_n),\ b\sim\gamma .
+\]
+
+\begin{definition}[Empirical and limiting layer covariance]\label{def:ntkdeep:layerCovariance}
+  \lean{NTK.layerCovarianceSeq}
+  \leanok
+Given $H$, the empirical layer covariance is $\Sigma^{(\ell+1),(n)}_{\alpha\beta}=\sigma_b^2+\frac{\sigma_w^2}n\sum_jH_{j\alpha}H_{j\beta}$. For a covariance $K$ the \emph{covariance operator} is
+\[
+  \mathcal C_\varphi(K)_{\alpha\beta}:=\sigma_b^2+\sigma_w^2\int\varphi(z_\alpha)\varphi(z_\beta)\,d\mathcal N(0,K)(z).
+\]
+The recursive limiting kernel started from a base kernel $\Phi_0$ is $\Phi_{\ell+1}=\mathcal C_\varphi(\Phi_\ell)$ (\texttt{layerCovarianceSeq}).
+\end{definition}
+
+\begin{theorem}[One-layer conditional normality and the SLLN recurrence]\label{thm:ntkdeep:sequential}
+  \uses{def:ntkdeep:layerCovariance, thm:ntkdeep:conditionalNormality, thm:ntkf:slln}
+  \lean{NTK.projection_layer_eq_multivariate, NTK.projection_layer_variance_eq_multivariate,
+        NTK.empirical_layer_covariance_nonneg_multivariate, NTK.empirical_layer_covariance_isHermitian_multivariate,
+        NTK.empirical_layer_covariance_posSemidef_multivariate, NTK.exact_conditional_normality_general_multivariate,
+        NTK.charFun_conditional_preactivation_multivariate, NTK.multivariateGaussian_average_tendsto_integral_multivariate,
+        NTK.empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate,
+        NTK.limitingRecurrence_isHermitian_multivariate, NTK.limitingRecurrence_nonneg_multivariate,
+        NTK.limitingRecurrence_posSemidef_multivariate}
+  \leanok
+(1) Conditional on $H$, the vector of next-layer preactivations is exactly $\mathcal N(0,\Sigma^{(\ell+1),(n)})$, and the empirical layer covariance is symmetric positive semidefinite.
+(2) If the previous-layer preactivation vectors $Z_j\sim\mathcal N(0,K)$ are i.i.d.\ and $\varphi$ is measurable with $\varphi(z_\alpha)\in L^2(\mathcal N(0,K))$, then almost surely, entrywise,
+\[
+  \sigma_b^2+\frac{\sigma_w^2}n\sum_{j<n}\varphi(Z_{j,\alpha})\varphi(Z_{j,\beta})\longrightarrow\mathcal C_\varphi(K)_{\alpha\beta},
+\]
+and $\mathcal C_\varphi(K)$ is symmetric positive semidefinite.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:conditionalNormality, thm:ntkf:slln}
+  \leanok
+(1) Rewriting the projection $\langle t,h^{(\ell+1)}\rangle=(\sigma_bt\cdot\mathbf 1)b+\sum_jw_j\bigl(\frac{\sigma_w}{\sqrt n}\sum_\alpha t_\alpha H_{j\alpha}\bigr)$ expresses it as a combination of independent Gaussians $(b,w_1,\dots,w_n)$ with deterministic coefficients; its variance is
+$(\sigma_bt\cdot\mathbf 1)^2+\sum_j(\frac{\sigma_w}{\sqrt n}\sum_\alpha t_\alpha H_{j\alpha})^2=t^\top\Sigma^{(\ell+1),(n)}t\ge0$. The characteristic function and Cram\'er--Wold give normality as in Theorem~\ref{thm:ntkdeep:conditionalNormality}.
+(2) is the strong law (Theorem~\ref{thm:ntkf:slln}) for the i.i.d.\ summands $\varphi(Z_{j,\alpha})\varphi(Z_{j,\beta})$ of integrable (by Cauchy--Schwarz) observables of the Gaussian vectors; positive semidefiniteness of $\mathcal C_\varphi(K)$ is the expectation-of-square identity as in Theorem~\ref{thm:ntkdeep:limitingCovPsd}.
+\end{proof}
+
+\begin{theorem}[Sequential NNGP limit]\label{thm:ntkdeep:sequentialLimit}
+  \uses{thm:ntkdeep:sequential}
+  \lean{NTK.tendsto_charFun_preactivation_dct_multivariate, NTK.measurable_sequential_preactivation,
+        NTK.charFun_map_sequential_preactivation_multivariate,
+        NTK.tendsto_charFun_sequential_preactivation_multivariate,
+        NTK.tendstoInDistribution_sequential_preactivation, NTK.tendstoInDistribution_sequential_bivariate}
+  \leanok
+Let $K\succeq0$, $\varphi$ measurable with $\varphi(z_\alpha)\in L^2(\mathcal N(0,K))$ for every $\alpha$. Let the previous layer be i.i.d.\ $\mathcal N(0,K)$ vectors $Z_j$, independent of $(w,b)$. Then the next-layer preactivation vector
+$\sigma_b\,b+\frac{\sigma_w}{\sqrt n}\sum_{j<n}w_j\,\varphi(Z_j)\in\mathbb R^m$ converges in distribution as $n\to\infty$ to $\mathcal N\bigl(0,\mathcal C_\varphi(K)\bigr)$; for $m=2$ this is the bivariate corollary.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:sequential}
+  \leanok
+Integrating out $(w,b)$ gives the conditional characteristic function $\exp(-\frac12t^\top\Sigma^{(\ell+1),(n)}t)$ (Theorem~\ref{thm:ntkdeep:sequential}(1)); its expectation over $(Z_j)$ is an integral against the infinite product measure. By Theorem~\ref{thm:ntkdeep:sequential}(2) and continuity the integrand converges almost surely to
+$\exp(-\frac12t^\top\mathcal C_\varphi(K)t)$, bounded by $1$ since $\Sigma^{(\ell+1),(n)}\succeq0$; dominated convergence and L\'evy's continuity theorem finish the proof.
+\end{proof}
+
+
+\section{Layer-by-layer structure and covariance propagation}\label{sec:ntkdeep:layers}
+
+\begin{lemma}[Recursive kernel is positive semidefinite]\label{lem:ntkdeep:layerKernelPsd}
+  \uses{def:ntkdeep:layerCovariance, thm:ntkdeep:sequential}
+  \lean{NTK.layerCovarianceSeq_posSemidef}
+  \leanok
+If the base kernel $\Phi_0$ is positive semidefinite and $\varphi$ is measurable and square integrable against $\mathcal N(0,\Phi_\ell)$ for each $\ell$, then every $\Phi_\ell$ is positive semidefinite.
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkdeep:sequential}
+  \leanok
+Induct on $\ell$ using that $\mathcal C_\varphi$ preserves positive semidefiniteness (Theorem~\ref{thm:ntkdeep:sequential}(2)).
+\end{proof}
+
+\begin{lemma}[Independence across depth]\label{lem:ntkdeep:independenceDepth}
+  \lean{NTK.indepFun_layer_history}
+  \leanok
+If the per-layer weight matrices $W_0,\dots,W_{L-1}$ are independent and identically initialized, then for every layer $\ell$ the matrix $W_\ell$ is independent of the history $(W_i)_{i<\ell}$ (the finite-width analogue of ``$W_\ell$ is independent of $\mathcal F_\ell$'').
+\end{lemma}
+
+\begin{proof}
+  \leanok
+A family of independent coordinates is independent of any sub-family of other coordinates.
+\end{proof}
+
+\begin{theorem}[Kronecker structure of a conditional layer]\label{thm:ntkdeep:kronecker}
+  \uses{thm:ntkdeep:gaussianMatrix}
+  \lean{NTK.multivariateGaussian_pi_eq_kronecker, NTK.exact_conditional_normality_layer,
+        NTK.conditional_preactivations_eq_pi, NTK.conditional_preactivation_covariance_posSemidef}
+  \leanok
+(1) Concatenating $n$ i.i.d.\ copies of an $m$-variate $\mathcal N(0,\Phi)$ (stacked $(\alpha,j)$) gives a Gaussian with Kronecker covariance $\Phi\otimes I_n$.
+(2) Conditional on the previous layer $H\in\mathbb R^{n\times m}$, the full width-$n'$ next-layer preactivation $\mathbf H_{\ell+1}\in\mathbb R^{mn'}$ with entries $\frac1{\sqrt n}\sum_kW_{jk}H_{k\alpha}$ is exactly $\mathcal N\bigl(0,\Phi^{(n)}_\ell\otimes I_{n'}\bigr)$, where $\Phi^{(n)}_{\ell,\alpha\beta}=\frac1n\sum_kH_{k\alpha}H_{k\beta}$.
+(3) Equivalently, conditionally on $H$ the new-neuron vectors $\bigl(\frac1{\sqrt n}\sum_kW_{jk}\varphi(H_k)\bigr)_{j\le n'}$ are i.i.d.\ centred Gaussians with common covariance $\frac1n\sum_k\varphi(H_k)\varphi(H_k)^\top$, which is positive semidefinite.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:gaussianMatrix}
+  \leanok
+By Theorem~\ref{thm:ntkdeep:gaussianMatrix} (with $u^\alpha=H_{\cdot\alpha}/\sqrt n$) the row-indexed family consists of $n'$ i.i.d.\ copies of $\mathcal N(0,\Phi^{(n)}_\ell)$; (1) turns the product of $n'$ i.i.d.\ Gaussians into one Gaussian with Kronecker covariance. Positive semidefiniteness of $\frac1n\sum_k\varphi(H_k)\varphi(H_k)^\top$ is that of a Gram matrix.
+\end{proof}
+
+\begin{lemma}[Moments of polynomially growing activations]\label{lem:ntkdeep:polyGrowth}
+  \lean{NTK.memLp_activation_coordinate_of_polynomial_growth,
+        NTK.memLp_activation_coordinate_of_polynomial_growth_of_nat,
+        NTK.memLp_activation_product_of_polynomial_growth,
+        NTK.memLp_activation_product_pi_of_polynomial_growth}
+  \leanok
+If $\varphi$ is measurable with $|\varphi(x)|\le C(1+|x|^p)$, then for every Gaussian $\mathcal N(0,K)$ and coordinate $\alpha$, $\varphi(z_\alpha)\in L^q$ for every finite $q$, and the product $\varphi(z_\alpha)\varphi(z_\beta)$ is in $L^2$, also after selecting a coordinate of a finite i.i.d.\ Gaussian layer.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Gaussian measures have moments of every finite order, so $|\varphi(z_\alpha)|^q\le C^q(1+|z_\alpha|^p)^q$ is integrable; Cauchy--Schwarz gives the product.
+\end{proof}
+
+\begin{theorem}[Conditional empirical covariance propagation]\label{thm:ntkdeep:covariancePropagation}
+  \uses{lem:ntkdeep:polyGrowth, thm:ntkf:slln, lem:ntkf:chebyshev, def:ntkdeep:layerCovariance}
+  \lean{NTK.empiricalCovariance_entry_chebyshev_of_polynomial_growth,
+        NTK.variance_empiricalCovariance_entry_le_of_polynomial_growth,
+        NTK.conditional_empiricalCovariance_tendstoInMeasure,
+        NTK.conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth,
+        NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq}
+  \leanok
+For an i.i.d.\ sequence of conditional preactivation vectors $Z_j\sim\mathcal N(0,K)$ and a continuous $\varphi$ of polynomial growth, the activated empirical covariance converges in probability to the Gaussian covariance update of $K$:
+\[
+  \frac1n\sum_{j<n}\varphi(Z_{j,\alpha})\varphi(Z_{j,\beta})\xrightarrow{\ \Pr\ }\int\varphi(z_\alpha)\varphi(z_\beta)\,d\mathcal N(0,K).
+\]
+The variance of each entry is $O(1/n)$, bounded by the single-neuron second moment. Taking $K=\Phi_\ell=\texttt{layerCovarianceSeq}\;1\;0\;\varphi\;m\;\Phi_0\;\ell$ (so $\sigma_w=1$, $\sigma_b=0$), the activated empirical covariance converges in probability to the next deterministic forward kernel $\Phi_{\ell+1}$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdeep:polyGrowth, thm:ntkf:slln, lem:ntkf:chebyshev}
+  \leanok
+By Lemma~\ref{lem:ntkdeep:polyGrowth} the summands are square integrable; the variance of the empirical average is $\operatorname{Var}(Y_0)/n\le\mathbb E[Y_0^2]/n$ and Chebyshev's inequality (Lemma~\ref{lem:ntkf:chebyshev}) gives convergence in probability (this is the form usable when the conditioning layer is random; the almost sure strong law of
+Theorem~\ref{thm:ntkf:slln} is stronger for a fixed conditioning realization). The recursion statement is the case $K=\Phi_\ell$ together with $\Phi_{\ell+1}=\mathcal C_\varphi(\Phi_\ell)$.
+\end{proof}
+
+
+\section{The deep NNGP recursion (Theorem~2.13)}\label{sec:ntkdeep:deep}
+
+\begin{definition}[Deep network from one weight population]\label{def:ntkdeep:deepPreactivation}
+  \lean{NTK.deepPreactivation, NTK.deepHistoryWeight}
+  \leanok
+Let $W:\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R$ be a single infinite population of i.i.d.\ standard Gaussian weights indexed by (layer, neuron, source neuron). The depth-$L$ preactivations $h_\ell(X^\alpha)_j$ are defined by
+\[
+  h_0(\alpha)_j=\frac1{\sqrt d}\sum_{k<d}W_{0,j,k}\,x^\alpha_k,\qquad
+  h_{\ell+1}(\alpha)_j=\frac1{\sqrt n}\sum_{k<n}W_{\ell+1,j,k}\,\varphi\bigl(h_\ell(\alpha)_k\bigr),
+\]
+and the output is $f_m(\theta)_\alpha=n^{-1/2}\sum_{j<n}a_j\,\varphi\bigl(h_{L-1}(\alpha)_j\bigr)$ with readout $a$ drawn from the same Gaussian. A preactivation at layer $\ell$ depends only on the weight populations of layers $\le\ell$
+(\texttt{deepPreactivation\_congr\_of\_eqOn}), and \texttt{deepHistoryWeight} reconstructs the total weight family from the populations strictly before a layer $r$.
+\end{definition}
+
+\begin{lemma}[Independence across depth for the deep population]\label{lem:ntkdeep:deepIndependence}
+  \uses{def:ntkdeep:deepPreactivation, lem:ntkdeep:independenceDepth}
+  \lean{NTK.map_infinitePi_input_preactivations, NTK.indepFun_deepLayer_history, NTK.map_deepLayer_history_eq_prod,
+        NTK.deepPreactivation_eq_deepHistoryWeight}
+  \leanok
+(1) The infinite input-weight population, evaluated at the fixed inputs and normalized by $1/\sqrt d$, is an i.i.d.\ family of centred Gaussians with the base Gram covariance $(\Phi_0)_{\alpha\beta}=\frac1d\,x^\alpha\cdot x^\beta$.
+(2) For the layer population $\Omega=(\mathbb R^{\mathbb N\times\mathbb N})^L$ with product Gaussian measure, the weights $w_\ell$ of layer $\ell$ are independent of the history $(w_i)_{i<\ell}$, and the law of $(w_\ell,\text{history})$ is the product of their laws.
+(3) A preactivation before layer $r$ equals the one computed from the reconstructed history weights.
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkdeep:independenceDepth}
+  \leanok
+(1) is the pushforward of an i.i.d.\ Gaussian family along the linear map $W_j\mapsto(\frac1{\sqrt d}W_j\cdot x^\alpha)_\alpha$ (Theorem~\ref{thm:ntkdeep:projections}). (2) is Lemma~\ref{lem:ntkdeep:independenceDepth} with the per-layer type $\mathbb R^{\mathbb N\times\mathbb N}$. (3) holds because $h_\ell$ reads only the layers $\le\ell$.
+\end{proof}
+
+\begin{lemma}[Convergence in probability: general tools]\label{lem:ntkdeep:probTools}
+  \lean{NTK.instPseudoEMetricSpaceMatrix, NTK.instPseudoMetricSpaceMatrix, NTK.tendstoInMeasure_comp_of_continuousAt,
+        NTK.tendstoInMeasure_comp_of_continuousWithinAt, NTK.tendstoInMeasure_trans,
+        NTK.tendsto_matrixTail_of_tendsto_entrywise, NTK.tendstoInMeasure_comp_measurePreserving,
+        NTK.tendsto_integral_of_tendstoInMeasure_of_bounded}
+  \leanok
+(1) (Continuous mapping to a constant) If $f_n\to y$ in probability and $g$ is continuous at $y$ (or continuous at $y$ relative to a set containing all the values of $f_n$), then $g\circ f_n\to g(y)$ in probability.
+(2) (Two-stage convergence) If $f_n$ is close in probability to $g_n$ ($\Pr[\mathrm{dist}(f_n,g_n)\ge\varepsilon]\to0$) and $g_n\to h$ in probability, then $f_n\to h$ in probability.
+(3) For matrix-valued sequences it suffices to prove the entrywise tail estimates.
+(4) Convergence in probability is preserved by precomposition with a measure-preserving map.
+(5) (Bounded convergence) If $f_n\to g$ in probability and $\|f_n\|\le C$ almost surely, then $\int f_n\to\int g$.
+Here \texttt{Matrix} receives its pseudo-(e)metric structure from the underlying Pi type (Mathlib registers none, to avoid a diamond with the operator and Frobenius norms).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) For $\varepsilon>0$ continuity at $y$ gives $\eta>0$ with $\mathrm{dist}(x,y)<\eta\Rightarrow\mathrm{dist}(g(x),g(y))<\varepsilon$, so $\Pr[\mathrm{dist}(g(f_n),g(y))\ge\varepsilon]\le\Pr[\mathrm{dist}(f_n,y)\ge\eta]\to0$. (2) is the triangle inequality and a union bound. (3) uses the sup metric on a finite Pi type and finite subadditivity of measure.
+(4) is the change of variables. (5) Given any subsequence, convergence in measure yields a further subsequence converging almost everywhere (\texttt{TendstoInMeasure.exists\_seq\_tendsto\_ae}) along which ordinary dominated convergence gives convergence of the integrals; a sequence all of whose subsequences have a convergent further subsequence with the same limit converges.
+\end{proof}
+
+\begin{theorem}[Continuity of the covariance-update map on the PSD cone]\label{thm:ntkdeep:covarianceContinuity}
+  \uses{def:ntkdeep:layerCovariance}
+  \lean{NTK.abs_toEuclideanCLM_ofLp_le, NTK.continuousWithinAt_covarianceMap, NTK.continuousWithinAt_activationProductSq}
+  \leanok
+Let $\varphi$ be continuous with $|\varphi(x)|\le C(1+|x|^p)$. The map $K\mapsto\mathcal C(K)_{\alpha\beta}=\int\varphi(z_\alpha)\varphi(z_\beta)\,d\mathcal N(0,K)$ is continuous \emph{within the positive semidefinite cone} at every positive semidefinite $K_0$, including singular (rank-deficient) $K_0$. The same holds for the second-moment matrix
+$K\mapsto\int(\varphi(z_\alpha)\varphi(z_\beta))^2\,d\mathcal N(0,K)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+For $K$ in the cone, a sample of $\mathcal N(0,K)$ can be written $K^{1/2}z$ with $z$ a standard Gaussian, so $\int\varphi(z_\alpha)\varphi(z_\beta)\,d\mathcal N(0,K)=\int\varphi((K^{1/2}z)_\alpha)\varphi((K^{1/2}z)_\beta)\,d\mathcal N(0,I)$. As $K\to K_0$ the square root $K^{1/2}\to K_0^{1/2}$ within the cone, so the integrand converges pointwise; it is dominated by a polynomial in $\|z\|$ times a constant depending on the operator norm of $K$, because
+every coordinate of $K^{1/2}z$ is bounded by $\|K^{1/2}\|\,\|z\|$. Dominated convergence gives continuity. The relative formulation is essential: Mathlib defines $\mathcal N(0,K)$ as a Dirac mass for non-positive-semidefinite $K$, so ambient continuity at a singular $K_0$ would be false.
+\end{proof}
+
+\begin{lemma}[Conditional law of the fresh layer and the base case]\label{lem:ntkdeep:freshLayer}
+  \uses{thm:ntkdeep:kronecker, def:ntkdeep:deepPreactivation, lem:ntkdeep:deepIndependence, thm:ntkdeep:covariancePropagation}
+  \lean{NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq,
+        NTK.input_empiricalCovariance_tendstoInMeasure, NTK.deepEmpiricalCovariance_zero_tendstoInMeasure,
+        NTK.conditional_preactivations_infinite_eq_pi, NTK.conditional_deepPreactivation_succ_infinite_eq_pi,
+        NTK.map_infinitePi_real_eq_gaussianReadoutMeasure, NTK.measurable_deepPreactivation}
+  \leanok
+(1) (Base case) The empirical covariance of the input layer, $\frac1n\sum_{j<n}\varphi(h_0(\alpha)_j)\varphi(h_0(\beta)_j)$, converges in probability to $\Phi_1=\mathcal C_\varphi(\Phi_0)$, with $\Phi_0=\frac1d\,XX^\top$; in particular the layer-zero case of the deep recursion holds for the layer population.
+(2) (Conditional law) With all preceding populations fixed, a fresh infinite population produces an i.i.d.\ Gaussian next preactivation layer: the pushforward of the infinite Gaussian population restricted to the first $n$ rows and columns is the finite conditional layer law
+$\bigotimes_{j<n}\mathcal N\bigl(0,\tfrac1n\sum_k\varphi(H_k)\varphi(H_k)^\top\bigr)$, in particular for $h_{\ell+1}$ given the weights of layers $\le\ell$.
+(3) The pushforward of the infinite real population restricted to $n$ coordinates is $\texttt{gaussianReadoutMeasure}\;n$, and $h_\ell(\alpha)_j$ is a measurable function of the layer population.
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkdeep:kronecker, lem:ntkdeep:deepIndependence, thm:ntkdeep:covariancePropagation}
+  \leanok
+(1) By Lemma~\ref{lem:ntkdeep:deepIndependence}(1) the input preactivations are i.i.d.\ $\mathcal N(0,\Phi_0)$, so Theorem~\ref{thm:ntkdeep:covariancePropagation} applies with $K=\Phi_0$. (2) is Theorem~\ref{thm:ntkdeep:kronecker}(3) for the raw population: restricting to $n\times n$ indices gives the finite layer, and independence of the fresh layer from the history is Lemma~\ref{lem:ntkdeep:deepIndependence}(2).
+(3) is a restriction of an infinite product measure to a finite coordinate set, and measurability follows from the recursive definition.
+\end{proof}
+
+\begin{theorem}[Deep covariance convergence in probability, Theorem~2.13 Part~1]\label{thm:ntkdeep:deepCovariance}
+  \uses{lem:ntkdeep:freshLayer, thm:ntkdeep:covarianceContinuity, lem:ntkdeep:probTools, thm:ntkdeep:covariancePropagation}
+  \lean{NTK.deepEmpiricalCovariance_tendstoInMeasure}
+  \leanok
+Let $\varphi$ be continuous with $|\varphi(x)|\le C(1+|x|^p)$. For every layer $\ell<L$, as the width $n\to\infty$, the empirical covariance of the layer-$\ell$ post-activations of the depth-$L$ network,
+$\Phi^{(n)}_\ell(\alpha,\beta)=\frac1n\sum_{j<n}\varphi(h_\ell(\alpha)_j)\varphi(h_\ell(\beta)_j)$, converges in probability to the deterministic recursive kernel $\Phi_{\ell+1}=\texttt{layerCovarianceSeq}\;1\;0\;\varphi\;m\;\Phi_0\;(\ell+1)$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdeep:freshLayer, thm:ntkdeep:covarianceContinuity, lem:ntkdeep:probTools, thm:ntkdeep:covariancePropagation}
+\textbf{(Formalization status: the statement is in Lean; this proof is not yet formalized, the declaration ends in \texttt{sorry}.)}
+The proof is an induction on $\ell$. The base case is Lemma~\ref{lem:ntkdeep:freshLayer}(1). For the step, assume $\Phi^{(n)}_{\ell-1}\to\Phi_\ell$ in probability. Condition on the weights of layers $<\ell$ (the history): by Lemma~\ref{lem:ntkdeep:freshLayer}(2) the layer-$\ell$ preactivation vectors are i.i.d.\ Gaussian with covariance equal to the \emph{random}
+empirical covariance $\Phi^{(n)}_{\ell-1}$, and by Theorem~\ref{thm:ntkdeep:covariancePropagation} their activated empirical covariance is, conditionally, within $O(n^{-1/2})$ in probability of $\mathcal C_\varphi(\Phi^{(n)}_{\ell-1})$, with the conditional variance localized (the single-neuron second moment is continuous on the cone, Theorem~\ref{thm:ntkdeep:covarianceContinuity}, and $\Phi^{(n)}_{\ell-1}$ is close to the deterministic limit).
+By the continuity of $\mathcal C_\varphi$ on the positive semidefinite cone (Theorem~\ref{thm:ntkdeep:covarianceContinuity}) and the continuous-mapping lemma (Lemma~\ref{lem:ntkdeep:probTools}(1)), $\mathcal C_\varphi(\Phi^{(n)}_{\ell-1})\to\mathcal C_\varphi(\Phi_\ell)=\Phi_{\ell+1}$ in probability, and the two-stage lemma (Lemma~\ref{lem:ntkdeep:probTools}(2)) combines the fresh-layer fluctuation with this deterministic update.
+The remaining formalization gap is the packaging of the conditional Gaussian product law for a layer whose preceding empirical covariance is random, combined with its conditional Chebyshev bound.
+\end{proof}
+
+\begin{theorem}[Deep NNGP limit, Part~2: standalone form]\label{thm:ntkdeep:deepOutputStandalone}
+  \uses{lem:ntkdeep:probTools, thm:ntkdeep:sequential}
+  \lean{NTK.measurable_deepEval, NTK.deepEval_covariance_posSemidef, NTK.map_deepEval_snd_eq_multivariateGaussian,
+        NTK.charFun_map_deepEval, NTK.norm_charFun_deepEval_le_one, NTK.aestronglyMeasurable_charFun_deepEval,
+        NTK.tendsto_charFun_map_deepEval_of_covariance_tendsto, NTK.tendstoInDistribution_deepEval_of_covariance_tendsto}
+  \leanok
+Let $\varphi$ be continuous with polynomial growth, and suppose that the empirical covariance of the final hidden layer converges in probability to the recursive kernel,
+$\frac1n\sum_{j<n}\varphi(h_{L-1}(\alpha)_j)\varphi(h_{L-1}(\beta)_j)\to\Phi_L$ (the conclusion of Theorem~\ref{thm:ntkdeep:deepCovariance} for $\ell=L-1$). Then the output vector converges in distribution as $n\to\infty$ to $\mathcal N(0,\Phi_L)$, $\Phi_L=\texttt{layerCovarianceSeq}\;1\;0\;\varphi\;m\;\Phi_0\;L$.
+This theorem is mathematically self-contained and depends on no unproved step.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdeep:probTools, thm:ntkdeep:sequential}
+  \leanok
+For a fixed realization $w$ of the hidden weights, the readout layer is a one-layer network on the activations of the final hidden layer, so by Theorem~\ref{thm:ntkdeep:sequential}(1) (with $\sigma_w=1$, $\sigma_b=0$) the output is exactly $\mathcal N(0,\Phi^{(n)}_L(w))$, where $\Phi^{(n)}_L(w)$ is the output covariance, which is positive semidefinite. (The ambient space carries one extra unused real coordinate so that the general formula with a bias slot can be invoked with $\sigma_b=0$.)
+By the law of total expectation (Fubini) the characteristic function of the output is $\mathbb E_w[\exp(-\frac12t^\top\Phi^{(n)}_L(w)t)]$, with a measurable integrand bounded by $1$. By the hypothesis and the continuous-mapping and bounded-convergence lemmas (Lemma~\ref{lem:ntkdeep:probTools}(1),(5)), this converges to $\exp(-\frac12t^\top\Phi_Lt)$, and L\'evy's continuity theorem gives convergence in distribution.
+\end{proof}
+
+\begin{theorem}[Deep NNGP limit, Part~2]\label{thm:ntkdeep:deepOutput}
+  \uses{thm:ntkdeep:deepOutputStandalone, thm:ntkdeep:deepCovariance}
+  \lean{NTK.tendsto_charFun_map_deepEval, NTK.tendstoInDistribution_deepEval}
+  \leanok
+For $L\ge1$, a continuous activation of polynomial growth, as the width $n\to\infty$ the output vector $f_m(\theta)_\alpha=n^{-1/2}\sum_ja_j\varphi(h_{L-1}(\alpha)_j)$ of the depth-$L$ network converges in distribution to the centred Gaussian $\mathcal N(0,\Phi_L)$, and its characteristic function converges pointwise.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdeep:deepOutputStandalone, thm:ntkdeep:deepCovariance}
+\textbf{(Formalization status: the statement is in Lean and the proof is complete modulo Theorem~\ref{thm:ntkdeep:deepCovariance}, whose Lean proof is a \texttt{sorry}; the node carries no \texttt{\textbackslash leanok} on its proof for that reason.)}
+Apply the standalone form, Theorem~\ref{thm:ntkdeep:deepOutputStandalone}, with the hypothesis supplied by Theorem~\ref{thm:ntkdeep:deepCovariance} for $\ell=L-1$.
+\end{proof}
+
+
+\section{Relation to the arc-cosine kernels}\label{sec:ntkdeep:arccos}
+
+\begin{theorem}[ReLU kernel recursion in arc-cosine form]\label{thm:ntkdeep:arccos}
+  \uses{thm:ntkr:choSaul}
+  \lean{NTK.expected_reluDeriv_mul_reluDeriv_bivariate_eq_arcCosineJ0,
+        NTK.expected_relu_mul_relu_bivariate_eq_arcCosineJ1}
+  \leanok
+Let $\theta=\arccos\rho\in[0,\pi]$ and define the order-$0$ and order-$1$ arc-cosine kernels $J_0(\theta)=\frac1\pi(\pi-\theta)$ and $J_1(\theta)=\frac1\pi\bigl(\sin\theta+(\pi-\theta)\cos\theta\bigr)$ of Cho and Saul. For a centred bivariate Gaussian $(h^\alpha,h^\beta)$ with covariance $\Sigma$ as in Theorem~\ref{thm:ntkr:choSaul},
+\[
+  \mathbb E\bigl[\varphi'(h^\alpha)\varphi'(h^\beta)\bigr]=\tfrac12J_0(\theta),\qquad
+  \mathbb E\bigl[\varphi(h^\alpha)\varphi(h^\beta)\bigr]=\tfrac{\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}}2\,J_1(\theta)
+\]
+for the ReLU $\varphi$. In particular the covariance operator $\mathcal C_\varphi$ for the ReLU is the arc-cosine map, and the layerwise kernel recursion $\Phi_{\ell+1}=\mathcal C_\varphi(\Phi_\ell)$ is an explicit trigonometric recursion in the correlation.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkr:choSaul}
+  \leanok
+These are trigonometric rewrites of Theorem~\ref{thm:ntkr:choSaul}: $\frac14+\frac1{2\pi}\arcsin\rho=\frac{\pi-\arccos\rho}{2\pi}$ and $\sqrt{1-\rho^2}+\rho(\frac\pi2+\arcsin\rho)=\sin\theta+(\pi-\theta)\cos\theta$ with $\theta=\arccos\rho$ ($\sin\theta=\sqrt{1-\rho^2}$, $\cos\theta=\rho$, $\pi-\theta=\frac\pi2+\arcsin\rho$); no new probabilistic content.
+\end{proof}
+
+\begin{lemma}[Conditional mean and covariance for the deep network]\label{lem:ntkdeep:deepConditionalMoments}
+  \uses{def:ntkdeep:deepPreactivation, thm:ntkdeep:conditionalNormality}
+  \lean{NTK.integral_conditional_deepOutput_eq_zero, NTK.cov_conditional_deepOutput_eq_covariance}
+  \leanok
+Conditional on the hidden weights, the mean of the depth-$L$ output vector is $0$ and the covariance of the outputs at $x^\alpha,x^\beta$ is $\Phi^{(n)}_{L,\alpha\beta}=\frac1n\sum_j\varphi(h_{L-1}(\alpha)_j)\varphi(h_{L-1}(\beta)_j)$.
+\end{lemma}

@@ -1,4 +1,4 @@
-\chapter{Neural tangent kernel and linearization near initialization}
+\chapter{Neural tangent kernel and linearization near initialization}\label{chap:ntk}
 
 \section{Introduction}
 
@@ -37,6 +37,7 @@ matrix $W \in \mathbb{R}^{m \times d}$.
 
 \begin{definition}[Scaled shallow network]\label{def:ntk:shallowNetwork}
   \lean{NTK.ShallowNetwork}
+  \leanok
 Let $\sigma : \mathbb{R} \to \mathbb{R}$ be an activation function, $d, m \in \mathbb{N}$,
 and fix $a \in \mathbb{R}^m$ with $|a_j| \le 1$ for all $j \in [m]$.
 The \emph{scaled shallow network} is the function
@@ -56,6 +57,7 @@ non-convex but tractable training problem.
 
 \begin{definition}[Gaussian random initialization]\label{def:ntk:gaussianInit}
   \lean{NTK.gaussianInit}
+  \leanok
 The \emph{standard Gaussian initialization} is the product probability measure on
 $\mathbb{R}^{m \times d}$ under which the rows $w_1, \ldots, w_m \in \mathbb{R}^d$ are
 drawn i.i.d.\ from $\mathcal{N}(0, I_d)$.
@@ -65,6 +67,7 @@ We write $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ for a draw from this initial
 \begin{definition}[First-order Taylor linearization]\label{def:ntk:linearization}
   \uses{def:ntk:shallowNetwork}
   \lean{NTK.linearization}
+  \leanok
 Let $W_0 \in \mathbb{R}^{m \times d}$ be a fixed initialization.
 The \emph{first-order Taylor linearization} of $f(\cdot\,; \cdot)$ at $W_0$ is
 \[
@@ -104,6 +107,7 @@ and requires no probabilistic argument.
 
 \begin{definition}[$\beta$-smooth activation]\label{def:ntk:betaSmooth}
   \lean{NTK.BetaSmooth}
+  \leanok
 An activation $\sigma : \mathbb{R} \to \mathbb{R}$ is \emph{$\beta$-smooth} if $\sigma$ is
 twice differentiable everywhere and $|\sigma''(z)| \le \beta$ for all $z \in \mathbb{R}$.
 \end{definition}
@@ -111,6 +115,7 @@ twice differentiable everywhere and $|\sigma''(z)| \le \beta$ for all $z \in \ma
 \begin{proposition}[Smooth linearization bound]\label{prop:ntk:smoothLinearization}
   \uses{def:ntk:shallowNetwork, def:ntk:linearization, def:ntk:betaSmooth}
   \lean{NTK.smoothLinearizationBound}
+  \leanok
 Suppose $\sigma$ is $\beta$-smooth and $|a_j| \le 1$ for all $j \in [m]$.
 Let $W_0 \in \mathbb{R}^{m \times d}$ be a fixed initialization.
 For any $x \in \mathbb{R}^d$ with $\|x\| \le 1$ and any $W \in \mathbb{R}^{m \times d}$,
@@ -121,6 +126,7 @@ For any $x \in \mathbb{R}^d$ with $\|x\| \le 1$ and any $W \in \mathbb{R}^{m \ti
 
 \begin{proof}
   \uses{def:ntk:betaSmooth, def:ntk:shallowNetwork, def:ntk:linearization}
+  \leanok
 By Taylor's theorem applied to $\sigma$ with remainder,
 \[
   |\sigma(r) - \sigma(s) - \sigma'(s)(r-s)| \le \frac{\beta(r-s)^2}{2}.
@@ -154,6 +160,7 @@ To make this precise, we first bound the probability that a single neuron's pre-
 
 \begin{lemma}[Gaussian pre-activation probability bound]\label{lem:ntk:probSignAmbiguous}
   \lean{NTK.prob_signAmbiguous_le_tau}
+  \leanok
 For $x \in \mathbb{R}^d$ with $\|x\| > 0$ and $\tau > 0$,
 \[
   \Pr_{w \sim \mathcal{N}(0, I_d)}\!\bigl[ |w^\top x| \le \tau\|x\| \bigr] \le \tau.
@@ -164,6 +171,7 @@ We then use a standard Hoeffding bound for sums of independent indicator variabl
 
 \begin{lemma}[Hoeffding bound for indicators]\label{lem:ntk:hoeffding}
   \lean{NTK.hoeffding_indicators_pi}
+  \leanok
 Let $P_1, \ldots, P_m$ be independent indicator variables with $\mathbb{E}[P_j] \le p$.
 With probability at least $1-\delta$, $\sum_{j=1}^m P_j \le mp + \sqrt{\frac{m}{2}\ln\frac{1}{\delta}}$.
 \end{lemma}
@@ -173,6 +181,7 @@ Combining these gives the sign concentration lemma for the entire network:
 \begin{lemma}[Sign concentration under Gaussian initialization]\label{lem:ntk:signConcentration}
   \uses{def:ntk:gaussianInit, lem:ntk:probSignAmbiguous, lem:ntk:hoeffding}
   \lean{NTK.reluSignConcentration}
+  \leanok
 Let $x \in \mathbb{R}^d$ with $\|x\| > 0$ and let $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$.
 For any $\tau > 0$ and $\delta \in (0, 1)$, with probability at least $1 - \delta$ over $W_0$,
 \[
@@ -183,6 +192,7 @@ For any $\tau > 0$ and $\delta \in (0, 1)$, with probability at least $1 - \delt
 
 \begin{proof}
   \uses{def:ntk:gaussianInit}
+  \leanok
 For each $j \in [m]$, define the indicator $P_j := \mathbf{1}[|w_{0,j}^\top x| \le \tau\|x\|]$.
 By rotational invariance of $\mathcal{N}(0,I_d)$, we may assume $\|x\| = 1$ and
 $w_{0,j}^\top x \sim \mathcal{N}(0,1)$, so
@@ -199,6 +209,7 @@ We also need to bound the number of neurons that move significantly from their i
 
 \begin{lemma}[Large perturbation bound]\label{lem:ntk:cardLargePerturb}
   \lean{NTK.card_largePerturb_bound}
+  \leanok
 Let $W_0, W \in \mathbb{R}^{m \times d}$ and $r > 0$. The number of neurons $j$ for which $\|w_j - w_{0,j}\| \ge r$ is bounded by $\|W - W_0\|_{\mathrm{F}}^2 / r^2$.
 \end{lemma}
 
@@ -206,6 +217,7 @@ Let $S$ be the union of the set of neurons with ambiguous signs at initializatio
 
 \begin{lemma}[Sign preservation outside bad set]\label{lem:ntk:signPreserved}
   \lean{NTK.sign_preserved_outside_badSet, NTK.relu_error_eq_zero_outside_badSet}
+  \leanok
 If $|w_{0,j}^\top x| > r\|x\|$ and $\|w_j - w_{0,j}\| < r$, then $\operatorname{sgn}(w_j^\top x) = \operatorname{sgn}(w_{0,j}^\top x)$. Consequently, the Taylor expansion of the ReLU activation is exact, and the linearization error for this neuron is exactly zero.
 \end{lemma}
 
@@ -213,6 +225,7 @@ Thus, the total linearization error sums only over the "bad" set $S$, which we c
 
 \begin{lemma}[Cauchy-Schwarz bound over bad set]\label{lem:ntk:csBound}
   \lean{NTK.relu_error_cs_bound}
+  \leanok
 For any index set $S \subseteq [m]$, the error is bounded by:
 \[
   \frac{1}{\sqrt{m}} \sum_{j \in S} \left| \sigma(w_j^\top x) - \sigma(w_{0,j}^\top x) - \sigma'(w_{0,j}^\top x)(w_j - w_{0,j})^\top x \right| \le \frac{\|W - W_0\|_{\mathrm{F}}}{\sqrt{m}} \sqrt{|S|}.
@@ -226,6 +239,7 @@ These ingredients combine into the main ReLU linearization bound.
         lem:ntk:signConcentration, lem:ntk:cardLargePerturb, lem:ntk:signPreserved, lem:ntk:csBound}
   \lean{NTK.reluLinearizationBound}
   \lean{NTK.reluLinearizationBound_secondOrder}
+  \leanok
 Let $\sigma = \sigma_{\mathrm{ReLU}}$, let $W_0 \sim \mathcal{N}(0,I_d)^{\otimes m}$,
 and fix $B \ge 0$ and $x \in \mathbb{R}^d$ with $\|x\| \le 1$.
 With probability at least $1 - \delta$ over $W_0$, uniformly over all
@@ -242,6 +256,7 @@ Moreover, for every $V \in \mathbb{R}^{m \times d}$ with $\|V - W_0\|_{\mathrm{F
 
 \begin{proof}
   \uses{lem:ntk:signConcentration, def:ntk:gaussianInit, def:ntk:shallowNetwork}
+  \leanok
 Set $r := B^{2/3}/m^{1/3}$ and define the ``bad'' index sets
 \begin{align*}
   S_1 &:= \bigl\{j \in [m] : |w_{0,j}^\top x| \le r\|x\|\bigr\}, \\
@@ -280,6 +295,7 @@ The empirical NTK is defined as the Gram matrix of the gradient features.
 \begin{lemma}[Frobenius inner product of gradients]\label{lem:ntk:frobInnerGradient}
   \uses{def:ntk:linearization}
   \lean{NTK.sum_gradientMatrix_mul_eq_empiricalNTKWithOuter}
+  \leanok
 The empirical NTK is exactly the Frobenius inner product of the network gradients:
 \[
   k_m(x, x') = \langle \nabla_W f(x; W_0),\, \nabla_W f(x'; W_0) \rangle_{\mathrm{F}}.
@@ -289,6 +305,7 @@ This factorization implies that $k_m$ is symmetric and positive semidefinite:
 
 \begin{lemma}[Empirical NTK is positive semidefinite]\label{lem:ntk:empiricalNTKPSD}
   \lean{NTK.empiricalNTK_posSemidef}
+  \leanok
 For any finite set of points $x_1, \ldots, x_n \in \mathbb{R}^d$ and coefficients $\alpha_1, \ldots, \alpha_n \in \mathbb{R}$,
 \[
   \sum_{i=1}^n \sum_{j=1}^n \alpha_i \alpha_j k_m(x_i, x_j) \ge 0.
@@ -298,6 +315,7 @@ For any finite set of points $x_1, \ldots, x_n \in \mathbb{R}^d$ and coefficient
 \begin{definition}[Empirical NTK]\label{def:ntk:empiricalNTK}
   \uses{def:ntk:shallowNetwork, def:ntk:gaussianInit, lem:ntk:frobInnerGradient}
   \lean{NTK.empiricalNTK}
+  \leanok
 Let $W_0 \in \mathbb{R}^{m \times d}$ and $a \in \{-1,+1\}^m$.
 The \emph{empirical neural tangent kernel} at initialization $W_0$ is
 \[
@@ -309,6 +327,7 @@ where we have used $a_j^2 = 1$ and $\|x\|, \|x'\| \le 1$.
 
 \begin{definition}[Limiting NTK]\label{def:ntk:limitingNTK}
   \lean{NTK.limitingNTK}
+  \leanok
 The \emph{limiting neural tangent kernel} for activation $\sigma$ is
 \[
   k(x, x') :=
@@ -320,6 +339,7 @@ The \emph{limiting neural tangent kernel} for activation $\sigma$ is
 \begin{lemma}[Almost sure convergence of the empirical NTK]\label{lem:ntk:ntkConverges}
   \uses{def:ntk:empiricalNTK, def:ntk:limitingNTK, def:ntk:gaussianInit}
   \lean{NTK.ntk_convergence}
+  \leanok
 For fixed $x, x' \in \mathbb{R}^d$, almost surely over
 $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ (in $m$),
 \[
@@ -329,10 +349,12 @@ $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ (in $m$),
 
 \begin{proof}
   \uses{def:ntk:gaussianInit, def:ntk:empiricalNTK, def:ntk:limitingNTK}
+  \leanok
 The rows $(w_{0,j})_{j=1}^m$ are i.i.d.\ from $\mathcal{N}(0, I_d)$, so the summands
 $\sigma'(w_{0,j}^\top x)\,\sigma'(w_{0,j}^\top x')$ are i.i.d. To apply the strong law of large numbers, we must ensure the summands are integrable.
 \begin{lemma}[Integrability of the NTK summand]\label{lem:ntk:integrableSummand}
   \lean{NTK.integrable_ntkSummand}
+  \leanok
 If $\sigma'$ is measurable and bounded, the summand $w \mapsto \sigma'(w^\top x)\sigma'(w^\top x')$ is integrable with respect to the Gaussian row measure.
 \end{lemma}
 Because the ReLU derivative is bounded by 1, this integrability condition holds. 
@@ -343,6 +365,7 @@ average to the expectation $\mathbb{E}[\sigma'(w^\top x)\sigma'(w^\top x')]$.
 \begin{proposition}[ReLU NTK closed form]\label{prop:ntk:reluNTK}
   \uses{def:ntk:limitingNTK}
   \lean{NTK.reluNTK_closedForm}
+  \leanok
 For $\sigma = \sigma_{\mathrm{ReLU}}$ and $x, x' \in \mathbb{R}^d$ with $\|x\| = \|x'\| = 1$,
 \[
   k(x, x') = x^\top x' \cdot \frac{\pi - \arccos(x^\top x')}{2\pi}.
@@ -351,6 +374,7 @@ For $\sigma = \sigma_{\mathrm{ReLU}}$ and $x, x' \in \mathbb{R}^d$ with $\|x\| =
 
 \begin{proof}
   \uses{def:ntk:limitingNTK}
+  \leanok
 Since $\sigma_{\mathrm{ReLU}}'(z) = \mathbf{1}[z \ge 0]$ a.e., we must compute
 \[
   \mathbb{E}_{w \sim \mathcal{N}(0,I_d)}\!
@@ -369,6 +393,7 @@ Multiplying by $x^\top x'$ gives the result.
 
 \begin{definition}[NTK domain]\label{def:ntk:domain}
   \lean{NTK.ntkDomain}
+  \leanok
 The \emph{NTK domain} is the set
 \[
   \mathcal{X} := \bigl\{x \in \mathbb{R}^d : \|x\| = 1,\; x_d = 1/\sqrt{2}\bigr\}.
@@ -381,6 +406,7 @@ To prove universality on this domain, we map the problem to a solid ball in $\ma
 \begin{lemma}[Reduced domain bijection]\label{lem:ntk:reducedDomain}
   \uses{def:ntk:domain, def:ntk:limitingNTK}
   \lean{NTK.ntkDomain_subset_sphere, NTK.isCompact_ntkDomain, NTK.reducedKernel_eq_reluNTK}
+  \leanok
 The NTK domain $\mathcal{X}$ is a compact subset of the sphere. By dropping the $d$-th coordinate (which is fixed to $1/\sqrt{2}$), $\mathcal{X}$ is in bijection with the reduced domain $U = \{u \in \mathbb{R}^{d-1} : \|u\|^2 \le 1/2\}$. The ReLU NTK on $\mathcal{X}$ equals the dot-product kernel $\tilde{k}(u, u') = \tilde{f}(u^\top u')$ on $U$, where
 \[
   \tilde{f}(z) = \frac{z + 1/2}{2} - \frac{(z+1/2)\,\arccos(z+1/2)}{2\pi}.
@@ -389,12 +415,14 @@ The NTK domain $\mathcal{X}$ is a compact subset of the sphere. By dropping the 
 
 \begin{lemma}[Strictly positive Maclaurin coefficients]\label{lem:ntk:reducedKernelCoeff}
   \lean{NTK.reducedKernelCoeff_pos}
+  \leanok
 All Maclaurin series coefficients of $\tilde{f}(z)$ are strictly positive.
 \end{lemma}
 
 \begin{definition}[NTK RKHS predictor class]\label{def:ntk:rkhs}
   \uses{def:ntk:limitingNTK, def:ntk:domain}
   \lean{NTK.RKHSClass, NTK.zero_mem_RKHSClass, NTK.RKHSClass_smul, NTK.RKHSClass_add}
+  \leanok
 The \emph{NTK RKHS predictor class} (associated to the ReLU limiting NTK $k$) is the set
 \[
   \mathcal{H} := \left\{
@@ -408,6 +436,7 @@ The \emph{NTK RKHS predictor class} (associated to the ReLU limiting NTK $k$) is
 \begin{theorem}[Universal approximation via the NTK RKHS]\label{thm:ntk:universal}
   \uses{def:ntk:rkhs, def:ntk:domain, prop:ntk:reluNTK}
   \lean{NTK.isUniversal}
+  \leanok
 For $\sigma = \sigma_{\mathrm{ReLU}}$, the class $\mathcal{H}$ is a universal approximator
 over $\mathcal{X}$: for every continuous $g : \mathcal{X} \to \mathbb{R}$ and every
 $\epsilon > 0$, there exists $h \in \mathcal{H}$ such that
@@ -432,6 +461,7 @@ Finally, by combining the universal approximation of the RKHS class with the ReL
 \begin{theorem}[Network approximation near initialization]\label{thm:ntk:networkApprox}
   \uses{def:ntk:rkhs, lem:ntk:reluLinearization}
   \lean{NTK.rkhs_approx_by_network}
+  \leanok
 For every RKHS function $h \in \mathcal{H}$, target accuracy $\epsilon > 0$, and failure probability $\delta \in (0, 1)$, there exists a large enough width $m$, a radius $B \ge 0$, and an outer layer $a \in \mathbb{R}^m$ such that with probability at least $1-\delta$ over Gaussian initialization $W_0$, there exists an inner weight matrix $W$ with $\|W-W_0\|_{\mathrm{F}} \le B$ satisfying:
 \[
   \sup_{x \in \mathcal{X}} |f(x; W) - h(x)| \le \epsilon.

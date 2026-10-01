@@ -1,0 +1,773 @@
+\chapter{Gradient flow of the empirical risk: function-space dynamics and lazy training}\label{chap:ntkgf}
+
+This chapter records the model-independent theory of gradient flow near a random initialization, following
+Jacot et al.\ (2018) and Lee et al.\ (2019). Everything is stated for an arbitrary parametrized model
+$f(x;\theta)$ with $\theta\in\mathbb R^P$, trained on a finite dataset by gradient flow on an empirical risk.
+The shallow and two-layer networks of the other chapters enter only through hypotheses on the output
+Jacobian (a bound $M$ and a Lipschitz constant $L_J$) and on the initial kernel (a spectral gap).
+The Lean files are in \texttt{Optimization/NTK/Shallow/DatasetNTK.lean} and
+\texttt{Optimization/NTK/Training/GradientFlow/} (modules \texttt{Dynamics}, \texttt{Convergence},
+\texttt{LinearDynamics}, \texttt{KernelStability}, \texttt{Bootstrap}, \texttt{InfiniteWidth},
+\texttt{ODEStability}, \texttt{AffineDynamics}, \texttt{TestPrediction}).
+
+\medskip\noindent\textbf{Notation.}
+In this chapter $m$ is the \emph{number of training points} and $P$ the number of parameters (the network
+width, written $n$ in the two-layer chapters, enters only through the constants $M,L_J,C$).
+The training inputs are $x^1,\dots,x^m$ and the labels form $y\in\mathbb R^m$. Vectors in $\mathbb R^m$ and
+$\mathbb R^P$ carry the Euclidean norm, and matrices the Frobenius norm. The ODE tools of
+Chapter~\ref{chap:ntkf} (Gr\"onwall, bootstrap, existence of forward flows) are used throughout.
+
+
+\section{The dataset-level objects}\label{sec:ntkgf:setting}
+
+\begin{definition}[Training outputs, residual, loss]\label{def:ntkgf:outputs}
+  \lean{NTK.trainingOutputs, NTK.trainingResidual, NTK.mseLoss}
+  \leanok
+For a model $f:\mathcal X\times\mathbb R^P\to\mathbb R$ and a dataset $x^1,\dots,x^m$ define
+\[
+  f(\theta):=\bigl(f(x^\alpha;\theta)\bigr)_{\alpha\le m}\in\mathbb R^m,\qquad
+  r(\theta):=f(\theta)-y,\qquad
+  L(\theta):=\frac1{2m}\|r(\theta)\|^2=\frac1{2m}\sum_\alpha\bigl(f(x^\alpha;\theta)-y^\alpha\bigr)^2 .
+\]
+\end{definition}
+
+\begin{definition}[Tangent features, output Jacobian, empirical NTK matrix]\label{def:ntkgf:jacobian}
+  \uses{def:ntkgf:outputs}
+  \lean{NTK.tangentFeature, NTK.outputJacobian, NTK.empiricalNTKMatrix}
+  \leanok
+The \emph{tangent feature} of an input $x$ is $\nabla_\theta f(x;\theta)\in\mathbb R^P$. The \emph{output
+Jacobian} $J(\theta)\in\mathbb R^{m\times P}$ has $\alpha$-th row $\nabla_\theta f(x^\alpha;\theta)^\top$. The
+\emph{empirical NTK matrix} is the Gram matrix of the tangent features,
+\[
+  K(\theta):=J(\theta)J(\theta)^\top\in\mathbb R^{m\times m},\qquad
+  K^{\alpha\beta}(\theta)=\bigl\langle\nabla_\theta f(x^\alpha;\theta),\nabla_\theta f(x^\beta;\theta)\bigr\rangle .
+\]
+\end{definition}
+
+\begin{lemma}[Basic properties of the empirical NTK matrix]\label{lem:ntkgf:ntkPsd}
+  \uses{def:ntkgf:jacobian}
+  \lean{NTK.empiricalNTKMatrix_apply, NTK.empiricalNTKMatrix_snoc_last,
+        NTK.outputJacobian_mulVec_tangentFeature, NTK.empiricalNTKMatrix_posSemidef,
+        NTK.empiricalNTKMatrix_quad_form, NTK.empiricalNTKMatrix_quad_form_nonneg}
+  \leanok
+\begin{enumerate}
+  \item $K^{\alpha\beta}(\theta)=\langle\nabla f(x^\alpha;\theta),\nabla f(x^\beta;\theta)\rangle$.
+  \item For the extended dataset $(x^1,\dots,x^m,x)$ the last row of the empirical NTK matrix is the
+        train--test cross-kernel $\langle\nabla f(x;\theta),\nabla f(x^\alpha;\theta)\rangle$ together with the test norm
+        $\|\nabla f(x;\theta)\|^2$; the cross-kernel vector equals $J(\theta)\nabla f(x;\theta)$.
+  \item $K(\theta)$ is positive semidefinite, and $v^\top K(\theta)v=\|J(\theta)^\top v\|^2\ge0$ for every $v$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is the definition of the product $JJ^\top$ in terms of the rows. (2) is (1) applied to the extended dataset,
+and the $\alpha$-th entry of $J\nabla f(x;\theta)$ is the inner product of row $\alpha$ with $\nabla f(x;\theta)$. For (3),
+$v^\top JJ^\top v=\|J^\top v\|^2$.
+\end{proof}
+
+\begin{theorem}[Gradient of the MSE loss]\label{thm:ntkgf:mseGradient}
+  \uses{def:ntkgf:outputs, def:ntkgf:jacobian}
+  \lean{NTK.hasFDerivAt_generalizedLoss_term, NTK.hasFDerivAt_sq_diff, NTK.mseLoss_eq_sum,
+        NTK.hasGradientAt_mseLoss, NTK.gradient_mseLoss, NTK.gradient_mseLoss_apply_j,
+        NTK.gradient_mseLoss_eq_mulVec, NTK.gdIterate_mseLoss_succ, NTK.gradient_mseLoss_norm_le}
+  \leanok
+If every $\theta'\mapsto f(x^\alpha;\theta')$ is differentiable at $\theta$, then
+\[
+  \nabla_\theta L(\theta)=\frac1m\sum_{\alpha=1}^mr^\alpha(\theta)\,\nabla_\theta f(x^\alpha;\theta)=\frac1mJ(\theta)^\top r(\theta),
+\]
+coordinatewise $[\nabla L(\theta)]_j=\frac1m[J(\theta)^\top r(\theta)]_j$. The gradient-descent iteration with step size $\eta$
+reads $\theta_{k+1}=\theta_k-\eta\nabla L(\theta_k)$, and the speed is bounded by
+\[
+  \|\nabla_\theta L(\theta)\|\le\frac1m\,\|J(\theta)\|_{\mathrm F}\,\|r(\theta)\| .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By the chain rule, the map $\theta\mapsto\ell(g(\theta))$ has gradient $\ell'(g(\theta))\nabla g(\theta)$; for
+$\ell(u)=(u-c)^2$ this is $2(g(\theta)-c)\nabla g(\theta)$. Summing over $\alpha$ with the weight $1/(2m)$ gives
+the formula. The speed bound is Lemma~\ref{lem:ntkf:mulVec}: $\|J^\top r\|\le\|J\|_{\mathrm F}\|r\|$.
+\end{proof}
+
+\begin{definition}[Forward gradient-flow trajectory]\label{def:ntkgf:forwardGF}
+  \lean{ConvexOpt.ForwardGFTrajectory}
+  \leanok
+A curve $\theta:\mathbb R\to\mathbb R^P$ is a \emph{forward gradient flow} of a loss $L$ started at $\theta_0$ if
+$\theta(0)=\theta_0$, $\theta$ is continuous on $[0,\infty)$, and
+$\theta'(t)=-\nabla L(\theta(t))$ for every $t>0$. Only forward time is used: for an unbounded activation a
+solution on $[0,\infty)$ need not extend backward.
+\end{definition}
+
+
+\section{Function-space dynamics under gradient flow}\label{sec:ntkgf:dynamics}
+
+\begin{theorem}[Output and residual ODE, Proposition~2.15]\label{thm:ntkgf:outputODE}
+  \uses{def:ntkgf:jacobian, thm:ntkgf:mseGradient}
+  \lean{NTK.euclideanSpace_inner_eq_sum, NTK.hasDerivAt_trainingOutputs_coord,
+        NTK.hasDerivAt_trainingOutputs_coord_sum, NTK.hasDerivAt_euclideanSpace,
+        NTK.gradient_flow_output_coord_deriv_eq_inner_grad,
+        NTK.gradient_flow_output_coord_deriv_eq_sum_inner, NTK.gradient_flow_output_coord_ode,
+        NTK.gradient_flow_output_vector_ode, NTK.gradient_flow_output_vector_ode_sub_y,
+        NTK.gradient_flow_residual_vector_ode}
+  \leanok
+Let $\theta$ be differentiable at $t$ with $\theta'(t)=-\nabla L(\theta(t))$ and suppose each output is differentiable in
+$\theta$ at $\theta(t)$. Then the training outputs and residual are differentiable at $t$ with
+\[
+  \partial_tf(t)=-\frac1mK_t\,r(t)=-\frac1mK_t\bigl(f(t)-y\bigr),\qquad
+  \partial_tr(t)=-\frac1mK_t\,r(t),\qquad K_t:=K(\theta(t)),
+\]
+that is, coordinatewise $\partial_tf^\alpha(t)=-\frac1m\sum_\beta K_t^{\alpha\beta}r^\beta(t)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The proof is a five-step chain-rule computation.
+\emph{Step 1.} By the multivariate chain rule,
+$\partial_tf^\alpha(t)=\sum_{j}\partial_{\theta_j}f(x^\alpha;\theta(t))\,\partial_t\theta_j(t)=\langle\nabla f^\alpha,\partial_t\theta\rangle$.
+\emph{Step 2.} Insert the flow law $\partial_t\theta=-\nabla L(\theta)$.
+\emph{Step 3.} Insert $\nabla L=\frac1m\sum_\beta r^\beta\nabla f^\beta$ (Theorem~\ref{thm:ntkgf:mseGradient}), giving
+$-\frac1m\sum_\beta\langle\nabla f^\alpha,\nabla f^\beta\rangle r^\beta$.
+\emph{Step 4.} Recognise the entries $K_t^{\alpha\beta}$ of the empirical NTK matrix.
+\emph{Step 5.} Assemble the coordinates into the vector identity, using that a curve in $\mathbb R^m$ is differentiable iff each coordinate is.
+The residual differs from the output by the constant $y$.
+\end{proof}
+
+\begin{definition}[Generalized empirical risk]\label{def:ntkgf:generalizedRisk}
+  \uses{def:ntkgf:outputs}
+  \lean{NTK.generalizedEmpiricalRisk, NTK.generalizedResidual}
+  \leanok
+For a pointwise loss $\ell:\mathbb R\times\mathbb R\to\mathbb R$ differentiable in its first argument, define
+$L_\ell(\theta)=\frac1m\sum_\alpha\ell(f(x^\alpha;\theta),y^\alpha)$ and the generalized residual
+$r^\alpha(\theta)=\partial_f\ell(f(x^\alpha;\theta),y^\alpha)$. Examples:
+\begin{center}
+\begin{tabular}{lll}
+  squared loss & $\ell(f,y)=\tfrac12(f-y)^2$ & $r^\alpha=f^\alpha-y^\alpha$,\\
+  logistic loss & $\ell(f,y)=\log(1+e^{-yf})$ & $r^\alpha=-y^\alpha\,\operatorname{sigmoid}(-y^\alpha f^\alpha)$,\\
+  exponential loss & $\ell(f,y)=e^{-yf}$ & $r^\alpha=-y^\alpha e^{-y^\alpha f^\alpha}$.
+\end{tabular}
+\end{center}
+\end{definition}
+
+\begin{lemma}[Residuals of the standard losses]\label{lem:ntkgf:exampleLosses}
+  \uses{def:ntkgf:generalizedRisk}
+  \lean{NTK.hasDerivAt_squaredLoss, NTK.hasDerivAt_logisticLoss, NTK.hasDerivAt_exponentialLoss}
+  \leanok
+For all real $f,y$: $\frac{d}{df}\tfrac12(f-y)^2=f-y$; $\frac{d}{df}\log(1+e^{-yf})=-y\,\operatorname{sigmoid}(-yf)$;
+$\frac{d}{df}e^{-yf}=-ye^{-yf}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Direct differentiation; for the logistic loss, $\frac{d}{df}\log(1+e^{-yf})=\frac{-ye^{-yf}}{1+e^{-yf}}=-y\,\operatorname{sigmoid}(-yf)$.
+\end{proof}
+
+\begin{theorem}[Output dynamics for a general loss]\label{thm:ntkgf:generalOutputODE}
+  \uses{def:ntkgf:generalizedRisk, thm:ntkgf:outputODE}
+  \lean{NTK.gradient_generalizedRisk, NTK.gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad,
+        NTK.gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner,
+        NTK.gradient_flow_generalizedOutput_coord_ode, NTK.gradient_flow_generalizedOutput_vector_ode}
+  \leanok
+Under the differentiability hypotheses on $f$ and $\ell$, $\nabla L_\ell(\theta)=\frac1m\sum_\alpha r^\alpha(\theta)\nabla f(x^\alpha;\theta)$, and
+along a gradient flow of $L_\ell$,
+\[
+  \partial_tf(t)=-\frac1mK_t\,r(t),\qquad r^\alpha(t)=\partial_f\ell\bigl(f^\alpha(t),y^\alpha\bigr).
+\]
+Proposition~2.15 (squared loss) is the special case $\ell=\frac12(f-y)^2$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The proof of Theorem~\ref{thm:ntkgf:outputODE} goes through verbatim with $r^\alpha=f^\alpha-y^\alpha$ replaced by the
+generalized residual; the gradient formula is the chain rule applied to each term $\ell(f(x^\alpha;\theta),y^\alpha)$.
+\end{proof}
+
+\begin{theorem}[Risk dissipation identity, Proposition~2.17]\label{thm:ntkgf:riskDissipation}
+  \uses{thm:ntkgf:generalOutputODE, lem:ntkgf:ntkPsd}
+  \lean{NTK.hasDerivAt_generalizedEmpiricalRisk_coord_sum, NTK.risk_dissipation_identity,
+        NTK.risk_dissipation_nonpos, NTK.risk_dissipation_le_of_rayleighRitz}
+  \leanok
+Along a gradient flow of $L_\ell$,
+\[
+  \partial_tL_\ell(\theta(t))=\frac1m\,r(t)^\top\partial_tf(t)=-\frac1{m^2}\,r(t)^\top K_t\,r(t)\;\le\;0 .
+\]
+If moreover $\lambda\|v\|^2\le v^\top K_tv$ for all $v$ (a Rayleigh--Ritz bound), then
+$\partial_tL_\ell(\theta(t))\le-\frac{\lambda}{m^2}\|r(t)\|^2$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\emph{Step 1.} By the chain rule $\partial_tL_\ell=\frac1m\sum_\alpha r^\alpha\partial_tf^\alpha=\frac1mr^\top\partial_tf$.
+\emph{Step 2.} Insert $\partial_tf=-\frac1mK_tr$ (Theorem~\ref{thm:ntkgf:generalOutputODE}). Nonpositivity follows since $K_t\succeq0$
+(Lemma~\ref{lem:ntkgf:ntkPsd}); the last bound is the Rayleigh--Ritz assumption applied to $v=r(t)$.
+\end{proof}
+
+\begin{theorem}[Kinetic energy of the flow]\label{thm:ntkgf:kineticEnergy}
+  \uses{def:ntkgf:forwardGF, thm:ntkgf:riskDissipation}
+  \lean{NTK.norm_sq_sum_smul_eq_dotProduct, NTK.norm_sq_gradient_generalizedRisk,
+        NTK.norm_sq_gradient_mseLoss, NTK.norm_deriv_sq_eq_quadratic_form_of_forwardGF,
+        NTK.mseLoss_sub_eq_integral_quadratic_form, NTK.hasDerivAt_coord_of_forwardGF}
+  \leanok
+For every $\theta$, $\|\nabla L(\theta)\|^2=\frac1{m^2}r(\theta)^\top K(\theta)r(\theta)$ (for $L_\ell$ and in particular for the MSE loss). Along a
+forward gradient flow of the MSE loss, for $t>0$,
+\[
+  \|\theta'(t)\|^2=\frac1{m^2}\,r(t)^\top K_tr(t),\qquad
+  L(\theta(0))-L(\theta(T))=\int_0^T\frac1{m^2}r(t)^\top K_tr(t)\,dt=\int_0^T\|\theta'(t)\|^2\,dt,
+\]
+and every parameter coordinate moves as $\partial_t\theta_k=-\frac1m[J^\top r]_k=-\frac1m\sum_\alpha r^\alpha\partial_{\theta_k}f^\alpha$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The squared norm of a linear combination $\|\sum_\alpha c_\alpha v_\alpha\|^2$ equals $c^\top Gc$, where $G$ is the Gram matrix of the vectors
+$v_\alpha$; apply this to $\nabla L=\frac1m\sum r^\alpha\nabla f^\alpha$. Along the flow $\theta'=-\nabla L$, so $\|\theta'\|^2=\|\nabla L\|^2$.
+By the chain rule $\partial_tL(\theta(t))=-\|\nabla L(\theta(t))\|^2=-\|\theta'(t)\|^2$ (equivalently, Theorem~\ref{thm:ntkgf:riskDissipation}), and
+integrating over $[0,T]$ gives the energy identity. The coordinate equation reads off the Jacobian entries in $\theta'=-\frac1mJ^\top r$.
+\end{proof}
+
+
+\section{Exponential convergence under a spectral gap}\label{sec:ntkgf:convergence}
+
+Throughout this section assume $m\ge1$, and say that $K$ satisfies the \emph{Rayleigh--Ritz condition with parameter $\lambda$} if
+$\lambda\|v\|^2\le v^\top Kv$ for all $v\in\mathbb R^m$.
+
+\begin{theorem}[Exponential decay of the residual and the loss]\label{thm:ntkgf:expDecay}
+  \uses{lem:ntkf:gronwallDecay, thm:ntkgf:outputODE}
+  \lean{NTK.dotProduct_mulVec_nonneg_of_posSemidef, NTK.inner_toLp_mulVec_eq_dotProduct,
+        NTK.deriv_norm_sq_timeVarying_ode, NTK.deriv_norm_sq_linear_ode,
+        NTK.deriv_norm_sq_le_of_rayleighRitz_timeVarying, NTK.deriv_norm_sq_le_of_rayleighRitz,
+        NTK.residual_norm_sq_exponential_decay_timeVarying,
+        NTK.residual_norm_exponential_decay_timeVarying,
+        NTK.mse_loss_exponential_decay_timeVarying,
+        NTK.residual_norm_sq_exponential_decay, NTK.residual_norm_exponential_decay,
+        NTK.mse_loss_exponential_decay}
+  \leanok
+Let $r:\mathbb R\to\mathbb R^m$ satisfy $\partial_tr(t)=-\frac1mK(t)r(t)$ for all $t$, where each $K(t)$ satisfies the Rayleigh--Ritz condition
+with parameter $\lambda$ (time-varying kernel), or $K(t)\equiv K_\infty$ (autonomous). Then for all $t\ge0$
+\[
+  \|r(t)\|\le\|r(0)\|\,e^{-\lambda t/m},\qquad
+  \tfrac1{2m}\|r(t)\|^2\le\tfrac1{2m}\|r(0)\|^2\,e^{-2\lambda t/m}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\emph{Step 1.} $\frac{d}{dt}\|r(t)\|^2=2r^\top\partial_tr=-\frac2m\,r(t)^\top K(t)r(t)$.
+\emph{Step 2.} By the Rayleigh--Ritz condition this is at most $-\frac{2\lambda}{m}\|r(t)\|^2$.
+\emph{Step 3.} Gr\"onwall's inequality (Lemma~\ref{lem:ntkf:gronwallDecay}) gives $\|r(t)\|^2\le\|r(0)\|^2e^{-2\lambda t/m}$, and taking square roots gives the first bound.
+\emph{Step 4.} Multiplying by $\frac1{2m}$ gives the loss bound.
+\end{proof}
+
+\begin{theorem}[Local-in-time version]\label{thm:ntkgf:expDecayIcc}
+  \uses{thm:ntkgf:expDecay, lem:ntkf:gronwallDecay}
+  \lean{NTK.residual_norm_sq_exponential_decay_timeVarying_Icc,
+        NTK.residual_norm_exponential_decay_timeVarying_Icc}
+  \leanok
+Let $T\ge0$, let $r$ be continuous on $[0,T]$ with $\partial_tr(t)=-\frac1mK(t)r(t)$ for $t\in(0,T)$ only, and suppose $K(s)$ satisfies the
+Rayleigh--Ritz condition with parameter $\lambda$ for all $s\in[0,T]$. Then for $t\in[0,T]$,
+$\|r(t)\|^2\le\|r(0)\|^2e^{-2\lambda t/m}$ and $\|r(t)\|\le\|r(0)\|e^{-\lambda t/m}$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkf:gronwallDecay}
+  \leanok
+Same computation as above, using the interval version of Gr\"onwall's inequality that needs differentiability only on $(0,T)$; this is what allows
+the estimate to be used inside a bootstrap, where the spectral gap is known only while the trajectory remains in a ball.
+\end{proof}
+
+\begin{lemma}[Loss decay implies convergence]\label{lem:ntkgf:tendstoZero}
+  \lean{NTK.tendsto_zero_of_le_mul_exp_neg}
+  \leanok
+If $0\le L(t)\le L_0e^{-ct}$ for $t\ge0$ and $c>0$, then $L(t)\to0$ as $t\to\infty$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$e^{-ct}\to0$ and squeeze.
+\end{proof}
+
+
+\section{Closed-form linear dynamics}\label{sec:ntkgf:linear}
+
+In the infinite-width limit the kernel is constant, $K_t\equiv K_\infty$, and the residual obeys the linear ODE $\partial_tr=-\frac1mK_\infty r$.
+
+\begin{theorem}[Matrix-exponential solution]\label{thm:ntkgf:matrixExp}
+  \uses{thm:ntkgf:expDecay}
+  \lean{NTK.matrix_exp_residual_trajectory_zero, NTK.matrix_exp_output_trajectory_zero,
+        NTK.matrix_exp_residual_eq_output_sub_y, NTK.hasDerivAt_clm_apply_const,
+        NTK.toEuclideanVecCLM, NTK.matrix_exp_residual_trajectory_hasDerivAt,
+        NTK.matrix_exp_output_trajectory_hasDerivAt, NTK.matrix_exp_residual_decay,
+        NTK.matrix_exp_loss_decay}
+  \leanok
+For a matrix $K_\infty\in\mathbb R^{m\times m}$ and $r_0,f_0,y\in\mathbb R^m$ define
+\[
+  r(t)=\exp\!\bigl(-\tfrac tmK_\infty\bigr)r_0,\qquad f(t)=y+\exp\!\bigl(-\tfrac tmK_\infty\bigr)(f_0-y).
+\]
+Then $r(0)=r_0$, $f(0)=f_0$, $f(t)-y=r(t)$, and $\partial_tr=-\frac1mK_\infty r$, $\partial_tf=-\frac1mK_\infty(f-y)$. If $K_\infty$ satisfies the
+Rayleigh--Ritz condition with parameter $\lambda$, then for $t\ge0$,
+$\|r(t)\|\le\|r_0\|e^{-\lambda t/m}$ and $\frac1{2m}\|r(t)\|^2\le\frac1{2m}\|r_0\|^2e^{-2\lambda t/m}$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The matrix exponential satisfies $\frac{d}{ds}\exp(sA)=A\exp(sA)$, so with $A=-K_\infty/m$ the curve $t\mapsto\exp(tA)r_0$ solves the ODE; evaluation at a fixed
+vector is a continuous linear map and therefore commutes with differentiation. The decay estimates follow from Theorem~\ref{thm:ntkgf:expDecay}
+applied to this solution.
+\end{proof}
+
+\begin{theorem}[Eigenmode decomposition of the frozen residual]\label{thm:ntkgf:eigenmodes}
+  \uses{thm:ntkgf:matrixExp}
+  \lean{NTK.matrix_exp_smul_mulVec_of_eigenvector, NTK.inner_matrix_exp_mulVec_of_eigenvector,
+        NTK.inner_eigenvectorBasis_matrix_exp_mulVec, NTK.matrix_exp_mulVec_eq_sum_eigenmodes,
+        NTK.norm_sq_matrix_exp_mulVec_eq_sum}
+  \leanok
+If $Kv=\lambda v$ then $\exp(sK)v=e^{s\lambda}v$ (no symmetry needed). If $K$ is symmetric, then $\langle v,\exp(sK)r\rangle=e^{s\lambda}\langle v,r\rangle$.
+For a Hermitian $K$ with orthonormal eigenbasis $(v_k)$ and eigenvalues $(\lambda_k)$ (Mathlib's \texttt{eigenvectorBasis}),
+\[
+  \langle v_k,\exp(sK)r\rangle=e^{s\lambda_k}\langle v_k,r\rangle,\quad
+  \exp(sK)r=\sum_ke^{s\lambda_k}\langle v_k,r\rangle\,v_k,\quad
+  \|\exp(sK)r\|^2=\sum_ke^{2s\lambda_k}\langle v_k,r\rangle^2 .
+\]
+With $s=-t/m$ this is the decoupled mode equation $r_k(t)=e^{-\lambda_kt/m}r_k(0)$ of the frozen-kernel residual, and Parseval for its energy.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+$\exp(sK)v=\sum_n\frac{s^n}{n!}K^nv=\sum_n\frac{(s\lambda)^n}{n!}v=e^{s\lambda}v$. For symmetric $K$, $\exp(sK)^\top=\exp(sK)$, so
+$\langle v,\exp(sK)r\rangle=\langle\exp(sK)v,r\rangle$. The expansion in the eigenbasis is the orthonormal-basis expansion
+$w=\sum_k\langle v_k,w\rangle v_k$ with $w=\exp(sK)r$, and Parseval gives the energy.
+\end{proof}
+
+
+\section{Stability of linear ODEs under coefficient perturbation}\label{sec:ntkgf:odeStability}
+
+\begin{theorem}[Perturbation of a dissipative linear ODE]\label{thm:ntkgf:odePerturbation}
+  \lean{NTK.norm_sub_le_of_linear_ode_perturbation}
+  \leanok
+Let $A,B:\mathbb R\to\mathbb R^{m\times m}$, let $r$ be continuous on $[0,T]$ with $r'=-A(t)r$ on $(0,T)$, let $s'=-B(t)s$ on $[0,T]$, and assume
+$A(t)\succeq0$ for $t\in[0,T]$ and $\|A(t)-B(t)\|\,\|s(t)\|\le a$ on $[0,T]$. Then
+\[
+  \|r(t)-s(t)\|\le\|r(0)-s(0)\|+a\,t,\qquad t\in[0,T].
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Let $e=r-s$. Then $e'=-A(t)e-(A(t)-B(t))s$. Hence $\frac{d}{dt}\tfrac12\|e\|^2=-\langle e,A(t)e\rangle-\langle e,(A-B)s\rangle\le\|e\|\,a$, because $A(t)\succeq0$ makes the
+dissipative term nonpositive. Dividing by $\|e\|$ (or arguing with $\sqrt{\|e\|^2+\varepsilon}$) gives $\frac d{dt}\|e\|\le a$ and integration gives the claim. The
+positive semidefiniteness of $A$ is what removes any exponential Gr\"onwall factor.
+\end{proof}
+
+\begin{theorem}[Residual versus frozen-kernel residual]\label{thm:ntkgf:residualFrozen}
+  \uses{thm:ntkgf:odePerturbation, thm:ntkgf:matrixExp, thm:ntkgf:eigenmodes}
+  \lean{NTK.residual_sub_frozen_residual_le, NTK.residual_sub_matrix_exp_le,
+        NTK.abs_inner_eigenvector_residual_sub_mode_le}
+  \leanok
+Let $r$ be continuous on $[0,T]$ with $\partial_tr=-\frac1mK(t)r$ on $(0,T)$, where $K(t)\succeq0$ and $K_\infty\succeq0$.
+\begin{enumerate}
+  \item If $s'=-\frac1mK_\infty s$ and $\|K(t)-K_\infty\|\,\|s(t)\|\le b$ on $[0,T]$, then $\|r(t)-s(t)\|\le\|r(0)-s(0)\|+\frac1mbt$.
+  \item If $\|K(t)-K_\infty\|\le\varepsilon_K$ on $[0,T]$, then for $t\in[0,T]$
+        $\bigl\|r(t)-\exp(-\tfrac tmK_\infty)r(0)\bigr\|\le\frac1m\,\varepsilon_K\,\|r(0)\|\,t.$
+  \item Under the hypotheses of (2), for every eigenpair $(\lambda_k,v_k)$ of $K_\infty$ (with orthonormal $v_k$),
+        $\bigl|\langle v_k,r(t)\rangle-e^{-\lambda_kt/m}\langle v_k,r(0)\rangle\bigr|\le\frac1m\varepsilon_K\|r(0)\|\,t$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:odePerturbation, thm:ntkgf:matrixExp, thm:ntkgf:eigenmodes}
+  \leanok
+(1) is Theorem~\ref{thm:ntkgf:odePerturbation} with $A=K/m$, $B=K_\infty/m$ and $a=b/m$. For (2) take $s(t)=\exp(-\frac tmK_\infty)r(0)$, which starts at $r(0)$, and note
+$\|s(t)\|\le\|r(0)\|$ because $K_\infty\succeq0$; thus $\|K-K_\infty\|\|s\|\le\varepsilon_K\|r(0)\|$. For (3), $|\langle v_k,r-s\rangle|\le\|r-s\|$ and
+$\langle v_k,s(t)\rangle=e^{-\lambda_kt/m}\langle v_k,r(0)\rangle$ by Theorem~\ref{thm:ntkgf:eigenmodes}.
+\end{proof}
+
+
+\section{Kernel stability: Lipschitz propagation and Rayleigh quotients}\label{sec:ntkgf:kernelStability}
+
+\begin{theorem}[Lipschitz propagation from the Jacobian to the kernel]\label{thm:ntkgf:kernelLipschitz}
+  \uses{def:ntkgf:jacobian, lem:ntkf:mulVec}
+  \lean{NTK.matrix_mul_transpose_sub_mul_transpose, NTK.norm_mul_transpose_sub_mul_transpose_le,
+        NTK.empiricalNTKMatrix_sub_empiricalNTKMatrix, NTK.empiricalNTKMatrix_sub_le_of_jacobian_bound,
+        NTK.empiricalNTKMatrix_sub_le_of_jacobian_lipschitz,
+        NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound}
+  \leanok
+For matrices $A,B\in\mathbb R^{m\times P}$, $AA^\top-BB^\top=(A-B)A^\top+B(A-B)^\top$, hence if $\|A\|,\|B\|\le M$ then
+$\|AA^\top-BB^\top\|_{\mathrm F}\le2M\|A-B\|_{\mathrm F}$. Consequently, if $\|J(\theta_1)\|,\|J(\theta_2)\|\le M$,
+\[
+  \|K(\theta_1)-K(\theta_2)\|\le2M\|J(\theta_1)-J(\theta_2)\|,
+\]
+and if moreover $\|J(\theta_1)-J(\theta_2)\|\le L_J\|\theta_1-\theta_2\|$, then $\|K(\theta_1)-K(\theta_2)\|\le2ML_J\|\theta_1-\theta_2\|$.
+In particular, on any set $S\ni\theta_0$ on which $\|J(\theta)\|\le M$ and $\|J(\theta)-J(\theta_0)\|\le L_J\|\theta-\theta_0\|$,
+\[
+  \|K(\theta)-K(\theta_0)\|\le(2ML_J)\,\|\theta-\theta_0\|\qquad(\theta\in S).
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The algebraic decomposition is a direct expansion. Apply the triangle inequality and $\|XY\|_{\mathrm F}\le\|X\|_{\mathrm F}\|Y\|_{\mathrm F}$, using $\|A^\top\|=\|A\|$.
+\end{proof}
+
+\begin{theorem}[$C^{1,1}$ Taylor bound]\label{thm:ntkgf:taylor}
+  \lean{NTK.norm_sub_sub_fderiv_le_of_lipschitz_fderiv, NTK.norm_trainingOutputs_sub_linearization_le}
+  \leanok
+Let $G:E\to F$ be Fr\'echet differentiable on the closed ball of radius $r$ about $x_0$ with derivative $G'(z)$, and suppose
+$\|G'(z)-G'(x_0)\|\le L\|z-x_0\|$ there. Then for $\|x-x_0\|\le r$,
+\[
+  \|G(x)-G(x_0)-G'(x_0)(x-x_0)\|\le\frac L2\|x-x_0\|^2 .
+\]
+For the training outputs: if the output Jacobian satisfies $\|J(\theta)-J(\theta_0)\|\le L\|\theta-\theta_0\|$ on that ball and each output is differentiable, then
+$\|f(\theta)-f(\theta_0)-J(\theta_0)(\theta-\theta_0)\|\le\frac L2\|\theta-\theta_0\|^2$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Let $\phi(s)=G(x_0+s(x-x_0))-G(x_0)-sG'(x_0)(x-x_0)$ for $s\in[0,1]$. Then $\phi'(s)=(G'(x_0+s(x-x_0))-G'(x_0))(x-x_0)$ has norm at most $Ls\|x-x_0\|^2$. The mean-value
+inequality along $[0,1]$ gives $\|\phi(1)\|\le\int_0^1Ls\|x-x_0\|^2ds=\frac L2\|x-x_0\|^2$; this only needs a Lipschitz derivative, unlike Mathlib's Taylor theorems,
+and keeps the sharp constant $1/2$. For the training outputs take $G=f(\cdot)$ and $G'(z)v=J(z)v$, whose operator norm is at most $\|J(z)\|_{\mathrm F}$.
+\end{proof}
+
+\begin{theorem}[Rayleigh quotient stability]\label{thm:ntkgf:rayleighStability}
+  \uses{thm:ntkgf:kernelLipschitz}
+  \lean{NTK.abs_dotProduct_mulVec_sub_le, NTK.rayleigh_lower_bound_of_sub_smul_posSemidef,
+        NTK.rayleigh_quotient_lower_bound_of_matrix_dist,
+        NTK.rayleigh_quotient_lower_bound_of_displacement}
+  \leanok
+\begin{enumerate}
+  \item For matrices $A,B$ and vectors $v$, $|v^\top Av-v^\top Bv|\le\|A-B\|\,\|v\|^2$.
+  \item If $K-\lambda I\succeq0$ then $\lambda\|v\|^2\le v^\top Kv$ for all $v$.
+  \item If $\lambda_0\|v\|^2\le v^\top K_0v$ and $\|K-K_0\|\le\varepsilon$, then $(\lambda_0-\varepsilon)\|v\|^2\le v^\top Kv$.
+  \item If the empirical NTK matrix at $\theta_0$ satisfies the Rayleigh--Ritz condition with parameter $\lambda_0$, the output Jacobian is $M$-bounded at $\theta$ and $\theta_0$ and
+        $\|J(\theta)-J(\theta_0)\|\le L_J\|\theta-\theta_0\|$, then the empirical NTK matrix at $\theta$ satisfies it with parameter
+        $\lambda_0-2ML_J\|\theta-\theta_0\|$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) $|v^\top(A-B)v|\le\|(A-B)v\|\|v\|\le\|A-B\|\|v\|^2$ (Lemma~\ref{lem:ntkf:mulVec}). (2) $v^\top Kv=v^\top(K-\lambda I)v+\lambda\|v\|^2\ge\lambda\|v\|^2$. (3) follows from (1).
+(4) is (3) with $\varepsilon=2ML_J\|\theta-\theta_0\|$ from Theorem~\ref{thm:ntkgf:kernelLipschitz}.
+\end{proof}
+
+
+\section{Lazy training: displacement bound and the bootstrap}\label{sec:ntkgf:bootstrap}
+
+The central point is a circularity: the Jacobian estimates hold only in a ball around $\theta_0$, but one needs to know the trajectory stays in the ball to use them.
+The bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) resolves this. Below, $\theta$ is a forward gradient flow of the MSE loss
+(Definition~\ref{def:ntkgf:forwardGF}) and every output is differentiable along it.
+
+\begin{theorem}[Displacement of a linear image of a gradient flow]\label{thm:ntkgf:displacementLinear}
+  \uses{def:ntkgf:forwardGF}
+  \lean{NTK.restrictCoords, NTK.restrictCoords_apply, NTK.norm_sq_restrictCoords,
+        NTK.sum_sq_mulVec_transpose_le, NTK.norm_restrictCoords_gradient_mseLoss_le,
+        NTK.norm_map_sub_le_integral_of_forwardGF}
+  \leanok
+Let $\mathrm{Lin}$ be a continuous linear map and suppose $\|\mathrm{Lin}(\nabla L(\theta(t)))\|\le B(t)$ on $[0,T]$ with $B$ interval integrable. Then
+$\|\mathrm{Lin}(\theta(T)-\theta_0)\|\le\int_0^TB(t)\,dt$. For the restriction to a block of coordinates $k:\kappa\to\{1,\dots,P\}$, the speed of the block under the MSE flow is
+\[
+  \bigl\|(\nabla L(\theta))_{\text{block}}\bigr\|\le\frac1m\Bigl(\sum_{\alpha}\sum_{o\in\kappa}J_{\alpha,k(o)}(\theta)^2\Bigr)^{1/2}\|r(\theta)\| .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Since $\theta'=-\nabla L(\theta)$ and $\mathrm{Lin}$ is linear and continuous, $\mathrm{Lin}(\theta(T)-\theta_0)=-\int_0^T\mathrm{Lin}(\nabla L(\theta(t)))dt$, whose norm is at most $\int_0^TB$. Only the ODE for $t>0$ and continuity on
+$[0,\infty)$ are used. For the block bound, $\nabla L=\frac1mJ^\top r$ and Cauchy--Schwarz gives $\sum_o(\sum_\alpha r^\alpha J_{\alpha o})^2\le\|r\|^2\sum_{\alpha,o}J_{\alpha o}^2$.
+\end{proof}
+
+\begin{lemma}[Loss monotonicity and continuity of the residual]\label{lem:ntkgf:lossMonotone}
+  \lean{NTK.mseLoss_le_of_hasDerivWithinAt_neg_gradient, NTK.continuousOn_trainingResidual_comp}
+  \leanok
+If $\theta$ solves $\theta'=-\nabla L(\theta)$ on $[0,S]$ (one-sided at the endpoints) with differentiable outputs, then $L(\theta(t))\le L(\theta(0))$ for $t\in[0,S]$.
+The residual along a curve is continuous on any set where the curve is continuous and every output is differentiable at the curve.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$\frac d{dt}L(\theta(t))=-\|\nabla L(\theta(t))\|^2\le0$; this needs neither a global trajectory nor differentiability of $L$ off the curve. Continuity of the residual is the continuity of a differentiable composition.
+\end{proof}
+
+\begin{theorem}[Displacement bounds along the flow]\label{thm:ntkgf:displacementBound}
+  \uses{thm:ntkgf:displacementLinear, thm:ntkgf:expDecayIcc, thm:ntkgf:mseGradient}
+  \lean{NTK.displacement_le_integral_of_rayleigh, NTK.displacement_integral_bound,
+        NTK.displacement_bound_of_psd}
+  \leanok
+Let $\theta$ be a forward gradient flow of the MSE loss with $\|J(\theta(t))\|\le M$ for $t\in[0,T]$.
+\begin{enumerate}
+  \item If the empirical NTK satisfies the Rayleigh--Ritz condition with parameter $\lambda$ (any real, e.g.\ $0$) at every $\theta(t)$, $t\in[0,T]$, then
+        $\|\theta(T)-\theta_0\|\le\int_0^T\frac Mm\|r_0\|e^{-\lambda t/m}dt$, where $r_0=r(\theta_0)$.
+  \item If $\lambda>0$, then $\|\theta(T)-\theta_0\|\le M\|r_0\|/\lambda$, a bound with no dependence on $T$.
+  \item Without any gap, $\|\theta(T)-\theta_0\|\le TM\|r_0\|/m$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:displacementLinear, thm:ntkgf:expDecayIcc, lem:ntkf:gronwallBound}
+  \leanok
+By Theorem~\ref{thm:ntkgf:mseGradient}, $\|\theta'(t)\|=\|\nabla L(\theta(t))\|\le\frac1m\|J\|\|r(t)\|\le\frac Mm\|r(t)\|$, and Theorem~\ref{thm:ntkgf:expDecayIcc} gives $\|r(t)\|\le\|r_0\|e^{-\lambda t/m}$.
+Theorem~\ref{thm:ntkgf:displacementLinear} with $\mathrm{Lin}=\mathrm{id}$ proves (1). For (2), $\int_0^Te^{-\lambda t/m}dt\le m/\lambda$ (Lemma~\ref{lem:ntkf:gronwallBound}), so the total distance traveled converges.
+For (3), positive semidefiniteness alone makes $\|r(t)\|$ nonincreasing, so the speed is at most $\frac Mm\|r_0\|$, and the bound grows linearly in $T$ as it must.
+\end{proof}
+
+\begin{theorem}[Rayleigh bound on a ball]\label{thm:ntkgf:rayleighBall}
+  \uses{thm:ntkgf:rayleighStability}
+  \lean{NTK.rayleigh_lower_bound_on_ball}
+  \leanok
+Suppose on the closed ball $\{\|\theta-\theta_0\|\le r\}$ the Jacobian satisfies $\|J(\theta)\|\le M$ and $\|J(\theta)-J(\theta_0)\|\le L_J\|\theta-\theta_0\|$, the initial kernel satisfies
+the Rayleigh--Ritz condition with parameter $\lambda_0$, and $2ML_Jr\le\lambda_0/2$. Then every $\theta$ in the ball satisfies the Rayleigh--Ritz condition with parameter $\lambda_0/2$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntkgf:rayleighStability}(4) the parameter is at least $\lambda_0-2ML_J\|\theta-\theta_0\|\ge\lambda_0-2ML_Jr\ge\lambda_0/2$.
+\end{proof}
+
+\begin{theorem}[Lazy-training displacement bound (the bootstrap)]\label{thm:ntkgf:lazyDisplacement}
+  \uses{thm:ntkf:bootstrap, thm:ntkgf:rayleighBall, thm:ntkgf:displacementBound}
+  \lean{NTK.lazy_training_displacement_bound}
+  \leanok
+Let $\theta$ be a forward gradient flow of the MSE loss from $\theta_0$ with differentiable outputs. Let $M,L_J\ge0$, $\lambda_0>0$, $0\le r$ and $C<r$ satisfy
+\begin{itemize}
+  \item $2ML_Jr\le\lambda_0/2$,\qquad $M\|r_0\|/(\lambda_0/2)\le C$,
+  \item the initial kernel $K(\theta_0)$ satisfies the Rayleigh--Ritz condition with parameter $\lambda_0$,
+  \item on the ball $\{\|\theta-\theta_0\|\le r\}$: $\|J(\theta)\|\le M$ and $\|J(\theta)-J(\theta_0)\|\le L_J\|\theta-\theta_0\|$.
+\end{itemize}
+Then $\|\theta(T)-\theta_0\|\le C$ for every $T\ge0$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:bootstrap, thm:ntkgf:rayleighBall, thm:ntkgf:displacementBound}
+  \leanok
+Apply the bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) to $d(t)=\|\theta(t)-\theta_0\|$, which is continuous with $d(0)=0\le r$. The core claim is: if $d\le r$ on $[0,S]$, then
+$d(S)\le C$. Indeed, inside the ball Theorem~\ref{thm:ntkgf:rayleighBall} gives the Rayleigh--Ritz parameter $\lambda_0/2$ along $[0,S]$ and the Jacobian is $M$-bounded, so
+Theorem~\ref{thm:ntkgf:displacementBound}(2) gives $d(S)\le M\|r_0\|/(\lambda_0/2)\le C$. Since $C<r$, the bootstrap concludes $d\le C$ for all times, in particular the trajectory
+never leaves the ball.
+\end{proof}
+
+\begin{theorem}[Global consequences of the ball hypotheses]\label{thm:ntkgf:lazyGlobal}
+  \uses{thm:ntkgf:lazyDisplacement, thm:ntkgf:expDecayIcc, thm:ntkgf:kernelLipschitz}
+  \lean{NTK.lazy_training_global_bounds_of_ball_hypotheses,
+        NTK.lazy_training_kernel_freeze_bound_of_ball_hypotheses}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntkgf:lazyDisplacement}, for every $t\ge0$:
+(i) $\|\theta(t)-\theta_0\|\le C$;
+(ii) $K(\theta(t))$ satisfies the Rayleigh--Ritz condition with parameter $\lambda_0/2$;
+(iii) $\|K(\theta(t))-K(\theta_0)\|\le(2ML_J)\,C$;
+(iv) $\|r(t)\|\le\|r_0\|\,e^{-\lambda_0t/(2m)}$;
+(v) $L(\theta(t))\le L(\theta_0)\,e^{-\lambda_0t/m}$.
+In particular no free hypotheses on the displacement or the kernel Lipschitz bound remain: both are derived.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:lazyDisplacement, thm:ntkgf:expDecayIcc, thm:ntkgf:kernelLipschitz}
+  \leanok
+(i) is Theorem~\ref{thm:ntkgf:lazyDisplacement}; (ii) follows from (i) and Theorem~\ref{thm:ntkgf:rayleighBall}; (iii) from (i) and Theorem~\ref{thm:ntkgf:kernelLipschitz}. For (iv) and (v)
+the residual satisfies $\partial_tr=-\frac1mK(\theta(t))r$ (Theorem~\ref{thm:ntkgf:outputODE}) and the kernel satisfies the Rayleigh--Ritz condition with parameter $\lambda_0/2$ on $[0,t]$ by (ii), so
+Theorem~\ref{thm:ntkgf:expDecayIcc} applies on $[0,t]$ for every $t$.
+\end{proof}
+
+\begin{theorem}[Finite horizon without a spectral gap]\label{thm:ntkgf:finiteHorizon}
+  \uses{thm:ntkf:bootstrap, thm:ntkgf:displacementBound, thm:ntkgf:kernelLipschitz}
+  \lean{NTK.finite_horizon_displacement_bound, NTK.finite_horizon_kernel_freeze_bound}
+  \leanok
+Let $\theta$ be a forward gradient flow of the MSE loss from $\theta_0$, $T,M\ge0$, $0\le r$, and $C<r$ with $TM\|r_0\|/m\le C$. If $\|J(\theta)\|\le M$ on the ball of radius $r$ about $\theta_0$, then
+$\|\theta(t)-\theta_0\|\le C$ for all $t\in[0,T]$. If in addition $\|J(\theta)-J(\theta_0)\|\le L_J\|\theta-\theta_0\|$ on the ball, then $\|K(\theta(t))-K(\theta_0)\|\le(2ML_J)C$ for $t\in[0,T]$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:bootstrap, thm:ntkgf:displacementBound, thm:ntkgf:kernelLipschitz}
+  \leanok
+Same bootstrap as Theorem~\ref{thm:ntkgf:lazyDisplacement}, with the core claim supplied by the no-gap bound Theorem~\ref{thm:ntkgf:displacementBound}(3): inside the ball on $[0,S]$,
+$d(S)\le SM\|r_0\|/m\le C$. The kernel statement is Theorem~\ref{thm:ntkgf:kernelLipschitz}.
+\end{proof}
+
+
+\section{Infinite-width asymptotics}\label{sec:ntkgf:infiniteWidth}
+
+\begin{lemma}[Elementary limits]\label{lem:ntkgf:limits}
+  \lean{NTK.tendsto_const_div_sqrt_nat_atTop, NTK.tendsto_chebyshev_bound_atTop,
+        NTK.tendsto_lazy_training_kernel_freeze, NTK.tendsto_empiricalNTK_chebyshev_bound}
+  \leanok
+For constants $c,C,\varepsilon$: $c/\sqrt n\to0$ and $C/(\varepsilon^2n)\to0$ as $n\to\infty$; consequently $L_KC/\sqrt n\to0$ and $\mathrm{ofReal}(C/(\varepsilon^2n))\to0$ in $[0,\infty]$.
+\end{lemma}
+
+\begin{theorem}[Kernel constancy (lazy training)]\label{thm:ntkgf:kernelFreeze}
+  \uses{thm:ntkgf:kernelLipschitz, lem:ntkgf:limits}
+  \lean{NTK.lazy_training_kernel_freeze_bound,
+        NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound,
+        NTK.tendsto_lazy_training_kernel_freeze_matrix}
+  \leanok
+\begin{enumerate}
+  \item If $\|\theta(t)-\theta_0\|\le C/\sqrt n$ for all $t\ge0$ and the empirical NTK matrix is $L_K$-Lipschitz along the trajectory, then
+        $\|K(\theta(t))-K(\theta_0)\|\le L_KC/\sqrt n$ for all $t\ge0$.
+  \item If $\|\theta(t)-\theta_0\|\le C$, $\|J(\theta(t))\|\le M$, $\|J(\theta_0)\|\le M$ and $J$ is $L_J$-Lipschitz along the trajectory, then
+        $\|K(\theta(t))-K(\theta_0)\|\le2ML_JC$. (The width decay $n^{-1/2}$ belongs on $L_J$, coming from the $n^{-1/2}$ in the parametrization, not on the displacement.)
+  \item For a family of models $f^{(n)}$ with $\|\theta^{(n)}(t)-\theta^{(n)}_0\|\le C/\sqrt n$ and $L_K$-Lipschitz kernel,
+        $\|K^{(n)}(\theta^{(n)}(t))-K^{(n)}(\theta^{(n)}_0)\|\to0$ as $n\to\infty$, for each fixed $t\ge0$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) is the Lipschitz bound composed with the displacement bound; (2) is Theorem~\ref{thm:ntkgf:kernelLipschitz}; (3) follows from (1) and Lemma~\ref{lem:ntkgf:limits}.
+\end{proof}
+
+\begin{theorem}[Deterministic initialization]\label{thm:ntkgf:deterministicInit}
+  \uses{def:ntk:limitingNTK, lem:ntk:ntkConverges, thm:ntkf:slln, lem:ntkf:chebyshev}
+  \lean{NTK.deterministic_initialization_empiricalNTK_tendsto_ae,
+        NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae,
+        NTK.deterministic_initialization_chebyshev_bound}
+  \leanok
+Let $\sigma'$ be measurable and bounded, and rows $w_0,w_1,\dots$ i.i.d.\ $\mathcal N(0,I_d)$. Almost surely the empirical kernel built from the first $n$ rows converges to the limiting NTK entrywise,
+$k_n(x,x')\to k_\infty(x,x')$, and for a finite dataset the empirical Gram matrix converges entrywise to $\bigl(k_\infty(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$.
+Quantitatively, if $k_n(x,x')\in L^2$ and $\operatorname{Var}(k_n(x,x'))\le C/n$, then for every $\varepsilon>0$
+\[
+  \Pr\bigl[\,|k_n(x,x')-\mathbb E k_n(x,x')|\ge\varepsilon\,\bigr]\le\frac{C}{\varepsilon^2n}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntk:ntkConverges, lem:ntkf:chebyshev}
+  \leanok
+The almost sure statements are Lemma~\ref{lem:ntk:ntkConverges} applied entrywise (finitely many entries, so ``almost surely for each'' implies ``almost surely for all''). The tail bound is Chebyshev's inequality
+(Lemma~\ref{lem:ntkf:chebyshev}) with the assumed variance bound.
+\end{proof}
+
+
+\section{Fixed-feature (affine) dynamics and the minimum-norm interpolant}\label{sec:ntkgf:affine}
+
+Consider the affine model $\theta\mapsto f_0+Jw$ with fixed Jacobian $J\in\mathbb R^{m\times P}$ and residual $r_0+Jw$ (here $r_0=f_0-y$), trained by gradient flow from $w(0)=0$:
+\begin{equation}\label{eq:ntkgf:affineFlow}
+  w'(t)=-\frac1m\,J^\top\bigl(r_0+Jw(t)\bigr).
+\end{equation}
+
+\begin{theorem}[Closed form of the affine flow]\label{thm:ntkgf:affineFlow}
+  \uses{thm:ntkf:uniqueness, thm:ntkgf:matrixExp}
+  \lean{NTK.hasDerivAt_affineFlowSolution, NTK.affineFlow_eq_solution}
+  \leanok
+Assume the Gram matrix $JJ^\top$ is invertible. The curve
+\[
+  w(t)=-J^\top(JJ^\top)^{-1}\Bigl(r_0-\exp\!\bigl(-\tfrac tmJJ^\top\bigr)r_0\Bigr)
+\]
+solves~\eqref{eq:ntkgf:affineFlow} with $w(0)=0$. Any forward solution of~\eqref{eq:ntkgf:affineFlow} continuous on $[0,\infty)$ with $w(0)=0$ equals this curve for $t\ge0$; in particular $w(t)$ lies in the range of $J^\top$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:uniqueness, thm:ntkgf:matrixExp}
+  \leanok
+Differentiate: $w'(t)=-J^\top(JJ^\top)^{-1}\cdot\frac1mJJ^\top\exp(-\frac tmJJ^\top)r_0=-\frac1mJ^\top\exp(-\frac tmJJ^\top)r_0$, while $r_0+Jw(t)=\exp(-\frac tmJJ^\top)r_0$ since $J w(t)=-(r_0-\exp(\cdots)r_0)$ ---
+so both sides of~\eqref{eq:ntkgf:affineFlow} agree. Uniqueness is Theorem~\ref{thm:ntkf:uniqueness}, because the vector field $w\mapsto-\frac1mJ^\top(r_0+Jw)$ is affine, hence Lipschitz.
+\end{proof}
+
+\begin{theorem}[Minimum-norm characterization]\label{thm:ntkgf:minNorm}
+  \uses{lem:ntkf:matrixCLM}
+  \lean{NTK.minNorm_pythagoras, NTK.affine_minNorm_pythagoras, NTK.norm_affine_limit_le,
+        NTK.eq_affine_limit_of_norm_le}
+  \leanok
+Let $A:E\to F$ be a bounded linear map between real Hilbert spaces and suppose $w_\infty=A^\dagger a$ interpolates, $Aw_\infty=b$. Then every $w'$ with $Aw'=b$ satisfies the Pythagoras identity
+$\|w'\|^2=\|w_\infty\|^2+\|w'-w_\infty\|^2$; hence $w_\infty$ is the unique minimum-norm interpolant.
+In particular, for $J$ with invertible Gram matrix and $w_\infty=-J^\top(JJ^\top)^{-1}r_0$: $Jw_\infty=-r_0$, every $w'$ with $Jw'=-r_0$ satisfies
+$\|w'\|^2=\|w_\infty\|^2+\|w'-w_\infty\|^2$, so $\|w_\infty\|\le\|w'\|$ and equality of norms forces $w'=w_\infty$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkf:matrixCLM}
+  \leanok
+$\|w'\|^2=\|w_\infty+(w'-w_\infty)\|^2=\|w_\infty\|^2+2\langle w_\infty,w'-w_\infty\rangle+\|w'-w_\infty\|^2$, and $\langle A^\dagger a,w'-w_\infty\rangle=\langle a,A(w'-w_\infty)\rangle=0$ since both interpolate. For the matrix case take
+$A=\operatorname{matrixCLM}(J)$, whose adjoint is $\operatorname{matrixCLM}(J^\top)$ (Lemma~\ref{lem:ntkf:matrixCLM}), and $a=-(JJ^\top)^{-1}r_0$.
+\end{proof}
+
+\begin{theorem}[Convergence to the interpolant and kernel regression]\label{thm:ntkgf:affineLimit}
+  \uses{thm:ntkgf:affineFlow, thm:ntkgf:minNorm, thm:ntkf:spectralGap}
+  \lean{NTK.tendsto_affineFlowSolution, NTK.inner_affine_limit}
+  \leanok
+If $JJ^\top$ is positive definite, the affine flow converges, $w(t)\to w_\infty=-J^\top(JJ^\top)^{-1}r_0$, at the exponential rate $\lambda_{\min}(JJ^\top)/m$; the limit interpolates and has least norm. For any feature vector $g$,
+\[
+  \langle g,w_\infty\rangle=-(Jg)^\top(JJ^\top)^{-1}r_0 .
+\]
+With $J=J(\theta_0)$, $g=\nabla f(x;\theta_0)$ and $r_0=f_0(X)-y$ this equals $k_0(x,X)^\top K_0^{-1}\bigl(y-f_0(X)\bigr)$: the frozen-feature minimum-norm predictor is the kernel-regression formula with the empirical kernels.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:affineFlow, thm:ntkgf:minNorm, thm:ntkf:spectralGap}
+  \leanok
+By Theorem~\ref{thm:ntkf:spectralGap}, $JJ^\top\succeq cI$ for some $c>0$, so $\exp(-\frac tmJJ^\top)r_0\to0$ at rate $c/m$ and the closed form of Theorem~\ref{thm:ntkgf:affineFlow} converges to $-J^\top(JJ^\top)^{-1}r_0$.
+For the last identity, $\langle g,J^\top v\rangle=\langle Jg,v\rangle$.
+\end{proof}
+
+
+\section{Test-point prediction along a gradient flow}\label{sec:ntkgf:testPrediction}
+
+Let $g=\nabla_\theta f(x;\theta_0)$ be the tangent feature at a test input $x$, $r_0=r(\theta_0)$, and let $K_\infty$ be symmetric positive semidefinite with a vector $a$ such that $K_\infty a=k_\infty$ (so that
+$k_\infty$ plays the role of the limiting cross-kernel and $a$ the kernel-regression weights). The \emph{prediction error} at time $t$ compares the actual displacement in the test direction with the frozen-kernel prediction:
+\[
+  e(t):=\langle g,\theta(t)-\theta_0\rangle+a^\top\Bigl(r_0-\exp\!\bigl(-\tfrac tmK_\infty\bigr)r_0\Bigr).
+\]
+
+\begin{lemma}[Derivative of the prediction error]\label{lem:ntkgf:predictionDerivative}
+  \uses{thm:ntkgf:outputODE, thm:ntkgf:eigenmodes}
+  \lean{NTK.hasDerivAt_inner_tangentFeature_displacement, NTK.hasDerivAt_frozenPrediction,
+        NTK.abs_dotProduct_le_norm_mul_norm, NTK.hasDerivAt_predictionError_abs_le}
+  \leanok
+Along a gradient flow, $\frac d{dt}\langle g,\theta(t)-\theta_0\rangle=-\frac1m\sum_\alpha r^\alpha\langle g,\nabla f(x^\alpha;\theta(t))\rangle$ and
+$\frac{d}{dt}\bigl[-a^\top(r_0-\exp(-\tfrac tmK_\infty)r_0)\bigr]=-\frac1mk_\infty^\top\exp(-\tfrac tmK_\infty)r_0$. Consequently $e$ is differentiable at every time $c$ at which the flow equation holds, with
+\[
+  |e'(c)|\le\frac1m\Bigl(\|r(c)\|\bigl(\|g\|\,\|J(\theta(c))-J(\theta_0)\|+\varepsilon_k\bigr)+\|k_\infty\|\,\bigl\|r(c)-\exp(-\tfrac cmK_\infty)r_0\bigr\|\Bigr),
+\]
+where $\varepsilon_k\ge\|J(\theta_0)g-k_\infty\|$. The three terms are the Jacobian drift, the cross-kernel error, and the residual-versus-frozen-exponential error.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$\frac{d}{dt}\langle g,\theta(t)\rangle=\langle g,\theta'\rangle=-\frac1m\langle g,J^\top r\rangle=-\frac1m(Jg)^\top r$ and, using $K_\infty a=k_\infty$, the frozen part has derivative $-\frac1m k_\infty^\top\exp(\cdots)r_0$.
+Adding: $e'=-\frac1m\bigl[(J(\theta(c))g)^\top r(c)-k_\infty^\top\exp(-\tfrac cmK_\infty)r_0\bigr]$. Write
+$(J(\theta(c))g)^\top r(c)-k_\infty^\top s(c)=\bigl((J(\theta(c))-J(\theta_0))g\bigr)^\top r(c)+(J(\theta_0)g-k_\infty)^\top r(c)+k_\infty^\top(r(c)-s(c))$ with $s(c)=\exp(-\tfrac cmK_\infty)r_0$ and apply Cauchy--Schwarz to each term.
+\end{proof}
+
+\begin{theorem}[Deterministic test-point prediction error]\label{thm:ntkgf:predictionError}
+  \uses{lem:ntkgf:predictionDerivative, thm:ntkgf:residualFrozen}
+  \lean{NTK.abs_inner_displacement_add_frozenPrediction_le}
+  \leanok
+Let $\theta$ be a forward gradient flow of the MSE loss from $\theta_0$ and suppose on $[0,T]$: $\|J(\theta(s))-J(\theta_0)\|\le\varepsilon_J$ and $\|K(\theta(s))-K_\infty\|\le\varepsilon_K$, and also
+$\|J(\theta_0)g-k_\infty\|\le\varepsilon_k$. Then for $t\in[0,T]$,
+\[
+  |e(t)|\le t\cdot\frac1m\Bigl(\|g\|\,\varepsilon_J\,\|r_0\|+\varepsilon_k\,\|r_0\|+\|k_\infty\|\cdot\tfrac1m\varepsilon_K\|r_0\|\,T\Bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkgf:predictionDerivative, thm:ntkgf:residualFrozen}
+  \leanok
+Since $e(0)=0$, it suffices to integrate the bound of Lemma~\ref{lem:ntkgf:predictionDerivative}. On $[0,T]$ one has $\|r(s)\|\le\|r_0\|$ (the loss is nonincreasing), and Theorem~\ref{thm:ntkgf:residualFrozen}(2) gives
+$\|r(s)-\exp(-\tfrac smK_\infty)r_0\|\le\frac1m\varepsilon_K\|r_0\|s\le\frac1m\varepsilon_K\|r_0\|T$.
+\end{proof}
+
+\begin{lemma}[Exponentially decaying derivative gives a small tail]\label{lem:ntkgf:expTail}
+  \lean{NTK.abs_sub_le_of_abs_deriv_le_exp}
+  \leanok
+If $e$ is continuous on $[S,\infty)$, differentiable on $(S,\infty)$ with $|e'(s)|\le B e^{-\nu s}$, $\nu>0$, then for every $t\ge S$, $|e(t)-e(S)|\le\frac B\nu e^{-\nu S}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$|e(t)-e(S)|\le\int_S^t|e'|\le B\int_S^\infty e^{-\nu s}ds=\frac B\nu e^{-\nu S}$.
+\end{proof}
+
+\begin{theorem}[Uniform-in-time prediction error]\label{thm:ntkgf:predictionUniform}
+  \uses{thm:ntkgf:predictionError, lem:ntkgf:expTail}
+  \lean{NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay}
+  \leanok
+In addition to the hypotheses of Theorem~\ref{thm:ntkgf:predictionError} on a window $[0,S]$, assume: the Jacobian drift is at most $\varepsilon_J$ for \emph{all} times; the residual decays as $\|r(s)\|\le\|r_0\|e^{-\nu s}$ with $\nu>0$;
+and $K_\infty$ has spectral gap $\lambda$ with $\nu\le\lambda/m$. Then for every $t\ge0$,
+\begin{multline*}
+  |e(t)|\le S\cdot\frac1m\Bigl(\|g\|\varepsilon_J\|r_0\|+\varepsilon_k\|r_0\|+\|k_\infty\|\tfrac1m\varepsilon_K\|r_0\|S\Bigr)\\
+  \qquad+\frac{\tfrac1m\|r_0\|\bigl(\|g\|\varepsilon_J+\varepsilon_k+2\|k_\infty\|\bigr)}{\nu}\,e^{-\nu S}.
+\end{multline*}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkgf:predictionError, lem:ntkgf:expTail}
+  \leanok
+On $[0,S]$ use Theorem~\ref{thm:ntkgf:predictionError}. For $s>S$, both the actual residual and the frozen residual decay exponentially (the latter because $\nu\le\lambda/m$), so the three terms of
+Lemma~\ref{lem:ntkgf:predictionDerivative} give $|e'(s)|\le\frac1m\|r_0\|(\|g\|\varepsilon_J+\varepsilon_k+2\|k_\infty\|)e^{-\nu s}$; Lemma~\ref{lem:ntkgf:expTail} bounds the tail.
+\end{proof}

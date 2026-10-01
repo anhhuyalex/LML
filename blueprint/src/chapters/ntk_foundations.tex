@@ -1,0 +1,523 @@
+\chapter{Analytic and probabilistic foundations for the NTK development}\label{chap:ntkf}
+
+This chapter records the network-independent facts used by every later NTK chapter.
+Nothing here mentions a neural network; the results are linear algebra for matrices of
+bounded size, elementary Gaussian and measure-theoretic estimates, empirical averages of
+i.i.d.\ samples, a Slutsky theorem on width-dependent probability spaces, and the ODE tools
+(Gr\"onwall, the bootstrap principle, existence and uniqueness of forward flows) that the
+gradient-flow analysis needs.
+In the Lean development they live in
+\texttt{Optimization/NTK/Foundations/} (files \texttt{MatrixUtil}, \texttt{Concentration},
+\texttt{IIDAverage}, \texttt{SlutskyTightness}, \texttt{ODE}).
+
+Conventions.
+For a real matrix $A$ we write $\|A\|_{\mathrm F}=\bigl(\sum_{i,j}A_{ij}^2\bigr)^{1/2}$ for the
+Frobenius norm; this is the norm instance used on matrices throughout the NTK development.
+For vectors $u,v$ we write $u\cdot v=\sum_k u_kv_k$, and $\|v\|$ for the Euclidean norm.
+For vectors $u\in\mathbb R^m$, $v\in\mathbb R^n$ the matrix $uv^\top\in\mathbb R^{m\times n}$
+has entries $u_iv_j$ (``rank-one matrix''; \texttt{Matrix.vecMulVec} in Lean).
+
+
+\section{Matrix utilities}\label{sec:ntkf:matrix}
+
+\begin{lemma}[Quadratic form of a positive semidefinite matrix]\label{lem:ntkf:psdSum}
+  \lean{NTK.posSemidef_sum_nonneg}
+  \leanok
+Let $M\in\mathbb R^{n\times n}$ be positive semidefinite. Then for all $\alpha\in\mathbb R^n$,
+\[
+  \sum_{i=1}^n\sum_{j=1}^n\alpha_i\alpha_jM_{ij}\;\ge\;0 .
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The double sum is the quadratic form $\alpha^\top M\alpha$, which is nonnegative by definition
+of positive semidefiniteness.
+\end{proof}
+
+\begin{lemma}[Frobenius inner products of rank-one matrices]\label{lem:ntkf:rankOneInner}
+  \lean{NTK.dotProduct_self_eq_sum_sq, NTK.trace_vecMulVec_mul_transpose_vecMulVec,
+        NTK.trace_transpose_vecMulVec_mul_vecMulVec, NTK.sum_hadamard_vecMulVec}
+  \leanok
+For vectors $u,p\in\mathbb R^m$ and $v,q\in\mathbb R^n$ (over any commutative semiring),
+\[
+  \operatorname{Tr}\bigl((uv^\top)(pq^\top)^\top\bigr)
+  =\operatorname{Tr}\bigl((uv^\top)^\top(pq^\top)\bigr)
+  =\sum_{i,j}(uv^\top)_{ij}(pq^\top)_{ij}
+  =(u\cdot p)\,(v\cdot q).
+\]
+Moreover $x\cdot x=\sum_kx_k^2$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Expand the trace and use $(uv^\top)_{ij}(pq^\top)_{ij}=u_ip_i\,v_jq_j$. The double sum then
+factors as $\bigl(\sum_iu_ip_i\bigr)\bigl(\sum_jv_jq_j\bigr)$.
+\end{proof}
+
+\begin{lemma}[Frobenius norms of rank-one matrices]\label{lem:ntkf:rankOneNorm}
+  \uses{lem:ntkf:rankOneInner}
+  \lean{NTK.matrix_frobenius_norm_sq, NTK.vecMulVec_frobenius_norm_sq,
+        NTK.vecMulVec_frobenius_norm, NTK.abs_dotProduct_le_vecMulVec_frobenius_norm}
+  \leanok
+For every real matrix $A$, $\|A\|_{\mathrm F}^2=\sum_{i,j}A_{ij}^2$. For real vectors $u,v$,
+\[
+  \|uv^\top\|_{\mathrm F}^2=(u\cdot u)(v\cdot v),\qquad
+  \|uv^\top\|_{\mathrm F}=\sqrt{u\cdot u}\,\sqrt{v\cdot v},\qquad
+  |u\cdot v|\le\|uv^\top\|_{\mathrm F}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The first identity is the definition of the Frobenius norm. The second is
+Lemma~\ref{lem:ntkf:rankOneInner} with $(p,q)=(u,v)$. The third follows by taking square roots.
+The last is the Cauchy--Schwarz inequality $|u\cdot v|\le\sqrt{u\cdot u}\sqrt{v\cdot v}$
+combined with the third identity.
+\end{proof}
+
+\begin{lemma}[Rows of a square matrix]\label{lem:ntkf:rowBound}
+  \lean{NTK.norm_row_castSucc_le}
+  \leanok
+Let $A\in\mathbb R^{(n+1)\times(n+1)}$ and let $i\in\{0,\dots,n\}$. The Euclidean norm of the
+first $n$ entries of row $i$ is at most $\|A\|_{\mathrm F}$, and the last entry satisfies
+$|A_{i,n}|\le\|A\|_{\mathrm F}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Both quantities are bounded by the Euclidean norm of the whole row $i$, which is bounded by
+the Frobenius norm because $\|A\|_{\mathrm F}^2$ is the sum of the squared row norms.
+\end{proof}
+
+\begin{lemma}[Matrix--vector products]\label{lem:ntkf:mulVec}
+  \lean{NTK.mulVec_frobenius_norm_le, NTK.real_inner_eq_dotProduct}
+  \leanok
+For $M\in\mathbb R^{a\times b}$ and $w\in\mathbb R^b$ (with the Euclidean norm),
+\[
+  \|Mw\|\le\|M\|_{\mathrm F}\,\|w\| .
+\]
+Moreover the inner product on $\mathbb R^n$ with the Euclidean structure is the dot product of
+the underlying coordinate vectors.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Row $i$ of $Mw$ is $M_{i\cdot}\cdot w$, which is at most $\|M_{i\cdot}\|\|w\|$ by
+Cauchy--Schwarz. Squaring and summing over $i$ gives $\|Mw\|^2\le\|M\|_{\mathrm F}^2\|w\|^2$.
+\end{proof}
+
+\begin{definition}[A matrix as a continuous linear map]\label{def:ntkf:matrixCLM}
+  \lean{NTK.matrixCLM, NTK.matrixCLM_apply}
+  \leanok
+For $M\in\mathbb R^{a\times b}$ the map $\operatorname{matrixCLM}(M):\mathbb R^b\to\mathbb R^a$,
+$v\mapsto Mv$ (Euclidean spaces, continuous linear). It is Mathlib's
+\texttt{Matrix.toEuclideanLin} bundled as a continuous map, since Mathlib provides the
+continuous version only for square matrices. By definition
+$\operatorname{matrixCLM}(M)\,v=Mv$.
+\end{definition}
+
+\begin{lemma}[Algebra of $\operatorname{matrixCLM}$]\label{lem:ntkf:matrixCLM}
+  \uses{def:ntkf:matrixCLM, lem:ntkf:mulVec}
+  \lean{NTK.matrixCLM_sub, NTK.norm_matrixCLM_le, NTK.inner_matrixCLM_transpose,
+        NTK.matrixCLM_transpose_eq_adjoint}
+  \leanok
+For $M,N\in\mathbb R^{a\times b}$:
+$\operatorname{matrixCLM}(M)-\operatorname{matrixCLM}(N)=\operatorname{matrixCLM}(M-N)$;
+the operator norm satisfies $\|\operatorname{matrixCLM}(M)\|\le\|M\|_{\mathrm F}$; and
+$\operatorname{matrixCLM}(M^\top)$ is the Hilbert-space adjoint of $\operatorname{matrixCLM}(M)$, i.e.\
+$\langle M^\top u,v\rangle=\langle u,Mv\rangle$ for $u\in\mathbb R^a$, $v\in\mathbb R^b$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Linearity of $M\mapsto\operatorname{matrixCLM}(M)$ gives the first identity. The operator-norm
+bound is Lemma~\ref{lem:ntkf:mulVec}. For the adjoint, expand both inner products as dot products
+and use $u\cdot(Mv)=(M^\top u)\cdot v$.
+\end{proof}
+
+\begin{theorem}[Spectral gap of a positive definite matrix]\label{thm:ntkf:spectralGap}
+  \lean{NTK.exists_pos_sub_smul_one_posSemidef_of_posDef}
+  \leanok
+Let $A$ be a real positive definite matrix indexed by a finite type. Then there is $c>0$ such that
+$A-c\,I$ is positive semidefinite (one may take $c$ to be the smallest eigenvalue).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By the spectral theorem the eigenvalues of $A$ are real and strictly positive; let $c$ be the
+smallest one. Then $v^\top Av\ge c\|v\|^2$ for all $v$, which is the statement that
+$A-cI\succeq 0$. This is the bridge from \texttt{Matrix.PosDef} (for instance from
+linear independence of the rows of a Gram matrix) to the shifted form
+$(K-\lambda I)\succeq 0$ used by the global convergence theorems of
+Chapter~\ref{chap:ntkgf}.
+\end{proof}
+
+
+\section{Gaussian moments, tails and union bounds}\label{sec:ntkf:gaussian}
+
+Let $\gamma=\mathcal N(0,1)$ denote the standard real Gaussian.
+
+\begin{lemma}[Moments of the standard Gaussian]\label{lem:ntkf:gaussMoments}
+  \lean{NTK.integrable_sq_gaussianReal, NTK.integral_sq_gaussianReal,
+        NTK.integrable_pow_four_gaussianReal, NTK.memLp_sq_gaussianReal_two}
+  \leanok
+Under $\gamma$ the functions $x\mapsto x^2$ and $x\mapsto x^4$ are integrable, $x\mapsto x^2$ lies
+in $L^2(\gamma)$, and $\mathbb E[X^2]=1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The standard Gaussian has a finite moment generating function, hence moments of all orders, and
+variance $1$ with mean $0$.
+\end{proof}
+
+\begin{lemma}[Sub-Gaussian tail of the standard Gaussian]\label{lem:ntkf:subGaussTail}
+  \lean{NTK.hasSubgaussianMGF_id_gaussianReal_zero_one,
+        NTK.hasSubgaussianMGF_neg_id_gaussianReal_zero_one, NTK.prob_abs_gaussianReal_ge_le}
+  \leanok
+Both $X$ and $-X$ have a sub-Gaussian moment generating function with parameter $1$ under
+$\gamma$, i.e.\ $\mathbb E[e^{tX}]\le e^{t^2/2}$ for all $t$. Consequently, for every
+$\varepsilon\ge0$,
+\[
+  \Pr\bigl[\,|X|\ge\varepsilon\,\bigr]\;\le\;2\,e^{-\varepsilon^2/2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The first claim is the identity $\mathbb E[e^{tX}]=e^{t^2/2}$ for a standard Gaussian. The
+Chernoff bound gives the one-sided tails $\Pr[X\ge\varepsilon]\le e^{-\varepsilon^2/2}$ and
+$\Pr[-X\ge\varepsilon]\le e^{-\varepsilon^2/2}$; the union bound gives the two-sided tail.
+\end{proof}
+
+\begin{lemma}[Measure algebra for high-probability events]\label{lem:ntkf:measureAlgebra}
+  \lean{NTK.measureReal_inter_ge_of_ge, NTK.measureReal_compl_inter_le,
+        NTK.one_sub_le_measureReal_of_measureReal_compl_le}
+  \leanok
+Let $\mu$ be a probability measure.
+\begin{enumerate}
+  \item If $A,B$ are measurable events with $\mu(A)\ge1-\delta_1$ and $\mu(B)\ge1-\delta_2$,
+        then $\mu(A\cap B)\ge1-\delta_1-\delta_2$.
+  \item For arbitrary sets $A,B$, $\mu\bigl((A\cap B)^c\bigr)\le\mu(A^c)+\mu(B^c)$ (no measurability needed).
+  \item For an arbitrary set $S$, if $\mu(S^c)\le c$ then $1-c\le\mu(S)$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$(A\cap B)^c=A^c\cup B^c$ and subadditivity give (2); (1) follows from (2) and
+$\mu(A\cap B)=1-\mu((A\cap B)^c)$ for measurable sets; (3) uses $\mu(S)+\mu(S^c)\ge1$, which holds
+for arbitrary $S$ through outer measure.
+\end{proof}
+
+
+\section{Averages of i.i.d.\ samples}\label{sec:ntkf:iid}
+
+\begin{theorem}[Strong law for an i.i.d.\ sequence]\label{thm:ntkf:slln}
+  \lean{NTK.iid_average_tendsto_integral}
+  \leanok
+Let $\nu$ be a probability measure on $\Omega$ and $g:\Omega\to\mathbb R$ measurable and
+$\nu$-integrable. Under the infinite product measure $\nu^{\otimes\mathbb N}$, almost surely,
+\[
+  \frac1n\sum_{j=0}^{n-1}g(\omega_j)\;\longrightarrow\;\int g\,d\nu\qquad(n\to\infty).
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The coordinates $g(\omega_j)$ are pairwise independent and identically distributed with
+expectation $\int g\,d\nu$ (the pushforward of $\nu^{\otimes\mathbb N}$ along each coordinate is
+$\nu$). Apply Etemadi's strong law of large numbers, then convert between $\texttt{Finset.range}$
+and $\texttt{Fin}$ indexing.
+\end{proof}
+
+\begin{lemma}[Variance and Chebyshev for empirical averages]\label{lem:ntkf:chebyshev}
+  \lean{NTK.variance_average_pi, NTK.chebyshev_average_pi,
+        NTK.chebyshev_average_pi_le_second_moment}
+  \leanok
+Let $\nu$ be a probability measure, $n\ge1$, $Y\in L^2(\nu)$, and $\bar Y_n(\omega)=\frac1n\sum_{i<n}Y(\omega_i)$ on
+$(\Omega^n,\nu^{\otimes n})$. Then $\operatorname{Var}(\bar Y_n)=\operatorname{Var}_\nu(Y)/n$, and for all $c>0$,
+\[
+  \nu^{\otimes n}\Bigl\{\bigl|\bar Y_n-\mathbb E_\nu Y\bigr|\ge c\Bigr\}
+  \;\le\;\frac{\operatorname{Var}_\nu(Y)}{n\,c^2}\;\le\;\frac{\mathbb E_\nu[Y^2]}{n\,c^2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The variance of a sum of independent summands is the sum of the variances, so
+$\operatorname{Var}(\bar Y_n)=n\cdot n^{-2}\operatorname{Var}_\nu(Y)$. Chebyshev's inequality gives the first bound and
+$\operatorname{Var}_\nu(Y)\le\mathbb E_\nu[Y^2]$ the second.
+\end{proof}
+
+\begin{lemma}[Markov in high-probability form]\label{lem:ntkf:markov}
+  \lean{MeasureTheory.measureReal_fun_le_ge_one_sub_of_integral_le,
+        MeasureTheory.measureReal_pi_average_le_ge_one_sub}
+  \leanok
+Let $\mu$ be a probability measure and $F\ge0$ a measurable integrable function with
+$\int F\,d\mu\le\tau\delta$ ($\tau>0$). Then $\mu\{F\le\tau\}\ge1-\delta$. Consequently, for
+a nonnegative measurable $\mu$-integrable $g$ with $\mathbb E_\mu g\le\tau\delta$ and any
+$n\ge1$, the empirical average $\frac1n\sum_{i<n}g(x_i)$ over $n$ i.i.d.\ samples is at most
+$\tau$ with probability at least $1-\delta$; the threshold does not depend on $n$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+By Markov's inequality, $\mu\{F>\tau\}\le\tau^{-1}\int F\,d\mu\le\delta$. For the average,
+apply this to $F(x)=\frac1n\sum_ig(x_i)$ under the product measure, whose integral is $\mathbb E_\mu g$.
+\end{proof}
+
+
+\section{Slutsky and tightness on varying probability spaces}\label{sec:ntkf:slutsky}
+
+Convergence in distribution along a filter $l$ of random variables defined on probability spaces
+$(\Omega_i,\mu_i)$ that change with the index (for example the width of a network).
+
+\begin{lemma}[Perturbation by a vanishing term]\label{lem:ntkf:slutskyPerturb}
+  \lean{MeasureTheory.tendstoInDistribution_of_tendsto_measure_norm_sub}
+  \leanok
+Suppose $X_i\to Z$ in distribution along $l$, and $Y_i-X_i\to0$ in measure, i.e.\
+$\mu_i\{\|Y_i-X_i\|\ge\varepsilon\}\to0$ for every $\varepsilon>0$, and each $Y_i$ is a.e.\ measurable.
+Then $Y_i\to Z$ in distribution.
+\end{lemma}
+
+\begin{theorem}[Varying-space Slutsky theorem]\label{thm:ntkf:slutsky}
+  \uses{lem:ntkf:slutskyPerturb}
+  \lean{MeasureTheory.TendstoInDistribution.prodMk_of_tendsto_measure_norm_sub_const,
+        MeasureTheory.TendstoInDistribution.continuous_comp_prodMk_of_tendsto_measure_norm_sub_const,
+        MeasureTheory.TendstoInDistribution.sub_const}
+  \leanok
+Suppose $X_i\to Z$ in distribution along $l$ and $Y_i\to c$ in measure for a deterministic
+constant $c$ (with $Y_i$ a.e.\ measurable). Then $(X_i,Y_i)\to(Z,c)$ in distribution; for every
+continuous $g$, $g(X_i,Y_i)\to g(Z,c)$ in distribution; and $X_i-c\to Z-c$ in distribution.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkf:slutskyPerturb}
+  \leanok
+The pair $(X_i,c)$ converges in distribution to $(Z,c)$ because the second coordinate is constant.
+The difference $(X_i,Y_i)-(X_i,c)=(0,Y_i-c)$ tends to $0$ in measure, so
+Lemma~\ref{lem:ntkf:slutskyPerturb} gives the first claim. The continuous mapping theorem gives the
+second. The third is the continuous mapping theorem for the translation $x\mapsto x-c$.
+\end{proof}
+
+\begin{lemma}[Uniform radius from tightness]\label{lem:ntkf:tightRadius}
+  \lean{MeasureTheory.exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map}
+  \leanok
+Let $X_i:\Omega_i\to E$ be a.e.\ measurable into a normed space, and suppose the laws
+$(\mu_i)_*X_i$ all lie in a tight set $S$ of measures. For every $\varepsilon>0$ there is a single
+$R\ge0$ with $\mu_i\{\|X_i\|>R\}\le\varepsilon$ for all $i$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Tightness gives a compact set $K$ with $\nu(K^c)\le\varepsilon$ for all $\nu\in S$; compact sets
+are bounded, so $K\subset\{\|x\|\le R\}$ for some $R$.
+\end{proof}
+
+\begin{lemma}[Two integration facts]\label{lem:ntkf:integrationFacts}
+  \lean{MeasureTheory.memLp_two_of_memLp_two_mul_self,
+        MeasureTheory.MeasurePreserving.integral_comp_of_aestronglyMeasurable}
+  \leanok
+(i) On a finite measure space, if $f\cdot f\in L^2$ then $f\in L^2$ (the fourth moment controls
+the second). (ii) If $f$ is measure preserving from $\mu$ to $\nu$ and $g$ is a.e.\ strongly
+measurable, then $\int g(f(x))\,d\mu=\int g\,d\nu$; no measurable-embedding hypothesis is needed,
+which matters for coordinate projections.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(i) $|f|^2\le1+|f|^4$ and a finite measure. (ii) The integral against the pushforward measure
+$\nu=f_*\mu$ is the integral of $g\circ f$ against $\mu$ (change of variables).
+\end{proof}
+
+
+\section{ODE tools: Gr\"onwall, bootstrap and global flows}\label{sec:ntkf:ode}
+
+\subsection{Gr\"onwall-type estimates}
+
+\begin{lemma}[Exponential decay from a differential inequality]\label{lem:ntkf:gronwallDecay}
+  \lean{NTK.gronwall_exponential_decay_Icc, NTK.gronwall_exponential_decay}
+  \leanok
+Let $E$ be continuous on $[0,T]$ and differentiable on $(0,T)$ with $E'(t)\le-c\,E(t)$ there.
+Then $E(t)\le E(0)\,e^{-ct}$ for every $t\in[0,T]$. In particular, if $E$ is differentiable on all of
+$\mathbb R$ and $E'\le-cE$ everywhere, then $E(t)\le E(0)e^{-ct}$ for all $t\ge0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The function $t\mapsto E(t)e^{ct}$ is continuous on $[0,T]$ and has nonpositive derivative on
+$(0,T)$, hence is nonincreasing. Only interior differentiability is needed, which makes the lemma
+applicable to forward-time trajectories and to differential inequalities that hold only while a bootstrap
+hypothesis is in force.
+\end{proof}
+
+\begin{lemma}[Mathlib's Gr\"onwall bound and an exponential integral]\label{lem:ntkf:gronwallBound}
+  \lean{NTK.gronwallBound_le_mul_exp, NTK.integral_exp_neg_le}
+  \leanok
+For $K,\varepsilon\ge0$ and $x\ge0$, Mathlib's Gr\"onwall bound satisfies
+$\operatorname{gronwallBound}(\delta,K,\varepsilon,x)\le(\delta+\varepsilon x)e^{Kx}$, a bound that is
+monotone in $x$. For $c>0$ and $T\ge0$, $\int_0^Te^{-ct}\,dt\le1/c$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+If $K=0$ the bound is $\delta+\varepsilon x$, and otherwise
+$\operatorname{gronwallBound}=\delta e^{Kx}+\varepsilon(e^{Kx}-1)/K\le(\delta+\varepsilon x)e^{Kx}$
+because $e^{y}-1\le ye^{y}$. The exact integral is $(1-e^{-cT})/c\le1/c$.
+\end{proof}
+
+\subsection{The bootstrap principle}
+
+\begin{theorem}[Continuous induction / bootstrap]\label{thm:ntkf:bootstrap}
+  \lean{NTK.le_of_forall_bootstrap}
+  \leanok
+Let $d:[0,T]\to\mathbb R$ be continuous and $C<r$ with $d(0)\le r$. Suppose that for every
+$S\in[0,T]$,
+\[
+  \bigl(\,d(t)\le r\ \ \text{for all }t\in[0,S]\,\bigr)\ \Longrightarrow\ d(S)\le C .
+\]
+Then $d(t)\le C$ for all $t\in[0,T]$; in particular $d$ never reaches the threshold $r$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Let $t^\ast=\sup\{S\in[0,T]: d\le r\text{ on }[0,S]\}$. By continuity $d\le r$ on $[0,t^\ast]$,
+so $d(t^\ast)\le C<r$. If $t^\ast<T$, continuity would give $d<r$ slightly beyond $t^\ast$,
+contradicting maximality; hence $t^\ast=T$ and the hypothesis gives $d\le C$ on $[0,T]$.
+\end{proof}
+
+\begin{remark}
+The bootstrap is used with $d(t)=\|\theta(t)-\theta_0\|$: the Jacobian estimates that control the
+dynamics hold only inside the ball $\{\|\theta-\theta_0\|\le r\}$, and the theorem shows that the
+trajectory never leaves it (Chapter~\ref{chap:ntkgf}, Section on the bootstrap).
+\end{remark}
+
+\subsection{Cutoff of locally Lipschitz fields and existence of flows}
+
+For $A>0$ let $\chi_A(x)=\max\bigl(0,\min(1,2-\|x\|/A)\bigr)$; then $\chi_A=1$ on $\{\|x\|\le A\}$
+and $\chi_A=0$ on $\{\|x\|\ge2A\}$.
+
+\begin{lemma}[Radial cutoff]\label{lem:ntkf:cutoff}
+  \lean{NTK.abs_cutoff_sub_le, NTK.cutoff_eq_zero, NTK.cutoff_eq_one,
+        NTK.norm_cutoff_smul_sub_le}
+  \leanok
+The cutoff $\chi_A$ is $1/A$-Lipschitz: $|\chi_A(x)-\chi_A(y)|\le\|x-y\|/A$. It equals $0$ when
+$\|x\|\ge2A$ and $1$ when $\|x\|\le A$. If a vector field $V$ satisfies $\|V\|\le M$ and is
+$K$-Lipschitz on the ball of radius $2A$, then $x\mapsto\chi_A(x)V(x)$ is
+$(K+M/A)$-Lipschitz on all of the space.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The map $x\mapsto2-\|x\|/A$ is $1/A$-Lipschitz and clamping to $[0,1]$ preserves this. If both points
+lie in the ball of radius $2A$, write
+$\chi(x)V(x)-\chi(y)V(y)=\chi(x)\,(V(x)-V(y))+(\chi(x)-\chi(y))\,V(y)$ and bound the terms by $K\|x-y\|$ and
+$(M/A)\|x-y\|$. If one point lies outside the ball, its cutoff is zero and the other term is bounded
+by $|\chi(x)-\chi(y)|\,\|V(x)\|\le(M/A)\|x-y\|$. If both lie outside, the difference is zero.
+\end{proof}
+
+\begin{lemma}[Flow of a bounded globally Lipschitz field]\label{lem:ntkf:flowLipschitz}
+  \lean{NTK.exists_flow_of_lipschitzWith_of_bound}
+  \leanok
+Let $E$ be a complete normed space and $V_g:E\to E$ bounded by $M$ and $K$-Lipschitz. For every
+$T,r\ge0$ there is a map $\alpha:E\times\mathbb R\to E$, continuous on
+$\overline B(0,r)\times[-T,T]$, such that $\alpha(x,0)=x$ and
+$\partial_t\alpha(x,t)=V_g(\alpha(x,t))$ on $[-T,T]$ for every $x\in\overline B(0,r)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Apply Mathlib's Picard--Lindel\"of theorem with centre $x_0=0$ and radius $a=r+MT$; since $V_g$ is
+bounded by $M$, trajectories started in $\overline B(0,r)$ stay in $\overline B(0,a)$ on $[-T,T]$,
+so the ball hypothesis of Picard--Lindel\"of is automatic. Joint continuity in the initial point
+follows from the Lipschitz dependence on initial data.
+\end{proof}
+
+\begin{theorem}[Finite-window flow with an a priori bound]\label{thm:ntkf:flowWindow}
+  \uses{thm:ntkf:bootstrap, lem:ntkf:cutoff, lem:ntkf:flowLipschitz}
+  \lean{NTK.exists_flow_window}
+  \leanok
+Let $V:E\to E$ be Lipschitz on every ball. Suppose there is $\rho$ such that every solution
+$\theta$ of $\theta'=V(\theta)$ on $[0,S]$ with $S\le T$ and $\|\theta(0)\|\le r$ satisfies
+$\|\theta(S)\|\le\rho$. Then there is a forward flow $\alpha$ on $[0,T]$, jointly continuous in
+the initial point $x\in\overline B(0,r)$ and the time, with $\alpha(x,0)=x$ and
+$\partial_t\alpha(x,t)=V(\alpha(x,t))$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:bootstrap, lem:ntkf:cutoff, lem:ntkf:flowLipschitz}
+  \leanok
+Choose $A$ larger than $\rho$ and $r$ and replace $V$ by the truncation $\chi_AV$, which is bounded and
+globally Lipschitz by Lemma~\ref{lem:ntkf:cutoff}. Lemma~\ref{lem:ntkf:flowLipschitz} gives a
+flow $\alpha$ of the truncated field. By the a priori hypothesis and the bootstrap principle
+(Theorem~\ref{thm:ntkf:bootstrap}) applied to $d(t)=\|\alpha(x,t)\|$ with threshold $A$ and bound $\rho$, the
+truncated flow never leaves $\overline B(0,\rho)$, where $\chi_AV=V$; hence $\alpha$ solves the
+original equation. Only forward time is used.
+\end{proof}
+
+\begin{lemma}[Locally Lipschitz implies Lipschitz on balls]\label{lem:ntkf:lipBall}
+  \lean{NTK.lipschitz_on_ball_of_locallyLipschitz}
+  \leanok
+On a proper normed space, a locally Lipschitz map $V$ is Lipschitz on every closed ball centred at
+$0$: for each $A$ there is $K\ge0$ with $\|V(x)-V(y)\|\le K\|x-y\|$ whenever $\|x\|,\|y\|\le A$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The closed ball is compact. Cover it by finitely many balls on which $V$ is Lipschitz; a Lebesgue-number
+argument and boundedness of $V$ on the compact ball combine the local constants into a global one.
+\end{proof}
+
+\begin{theorem}[Forward uniqueness]\label{thm:ntkf:uniqueness}
+  \lean{NTK.forwardFlow_unique}
+  \leanok
+Let $V$ be Lipschitz on balls, and let $f,g:\mathbb R\to E$ be continuous on $[0,\infty)$,
+differentiable for $t>0$ with $f'=V(f)$ and $g'=V(g)$ there, and $f(0)=g(0)$. Then $f=g$ on
+$[0,\infty)$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkf:gronwallBound}
+  \leanok
+On $[0,T]$ both trajectories lie in a ball; there $\|f(t)-g(t)\|\le K\int_0^t\|f-g\|$, and Gr\"onwall's
+inequality with $\delta=\varepsilon=0$ forces $f=g$.
+\end{proof}
+
+\begin{theorem}[Forward flow from local Lipschitz continuity and a priori bounds]\label{thm:ntkf:forwardFlow}
+  \uses{thm:ntkf:flowWindow, thm:ntkf:uniqueness}
+  \lean{NTK.exists_forward_flow}
+  \leanok
+Let $V$ be Lipschitz on balls, and suppose that for every $T,r$ there is $\rho$ such that every
+solution on $[0,S]$, $S\le T$, starting in $\overline B(0,r)$ stays in $\overline B(0,\rho)$.
+Then there is $\Phi:E\to\mathbb R\to E$ with $\Phi(x,0)=x$, $\partial_t\Phi(x,t)=V(\Phi(x,t))$ for
+$t>0$, and $(x,t)\mapsto\Phi(x,t)$ continuous. By Theorem~\ref{thm:ntkf:uniqueness} it is the
+forward flow.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkf:flowWindow, thm:ntkf:uniqueness}
+  \leanok
+For each window $[0,N]$, $\overline B(0,N)$ gives a flow by Theorem~\ref{thm:ntkf:flowWindow}.
+Uniqueness lets us glue the flows for increasing $N$ into a single flow on $[0,\infty)$; for negative
+time set $\Phi(x,t)=x$, which carries no meaning.
+\end{proof}
+
+\subsection{Local Lipschitz calculus}
+
+\begin{lemma}[Closure properties of local Lipschitz continuity]\label{lem:ntkf:locLip}
+  \lean{NTK.locallyLipschitz_finset_sum, NTK.locallyLipschitz_mul_real,
+        NTK.norm_euclidean_le_sum_norm, NTK.locallyLipschitz_euclidean_of_coord}
+  \leanok
+Finite sums of locally Lipschitz maps are locally Lipschitz. The product of two locally Lipschitz
+real functions is locally Lipschitz (multiplication on $\mathbb R^2$ is $C^1$; Mathlib's
+\texttt{LocallyLipschitz.mul} only treats products in a commutative group). A map into a finite
+Euclidean space is locally Lipschitz as soon as every coordinate is, because $\|v\|\le\sum_k|v_k|$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The sum and coordinate statements follow from the triangle inequality. For the product, use
+$|f(x)g(x)-f(y)g(y)|\le|f(x)||g(x)-g(y)|+|g(y)||f(x)-f(y)|$ with the local bounds on $f,g$.
+\end{proof}
