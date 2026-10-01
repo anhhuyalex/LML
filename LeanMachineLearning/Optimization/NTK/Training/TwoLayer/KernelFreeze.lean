@@ -14,6 +14,15 @@ Phase 6: Gap 3 and Gap 4b combine through a union bound into a high-probability 
 Gap 4 propagates the Jacobian and readout bounds through the displacement ball, giving
 `lazy_training_kernel_freeze_bound_of_gaussian_init`.
 
+## Main results and proof outline
+
+- `lazy_training_kernel_freeze_bound_of_gaussian_init` : **Gap 6, the plan's final
+  deliverable** - the fully probabilistic end-to-end kernel-freeze bound.
+- `exists_measurableSet_initial_jacobian_and_readout_bounds` and
+  `freeze_bound_of_initial_jacobian_and_readout_bounds` : the probabilistic and deterministic
+  halves of `lazy_training_kernel_freeze_bound_of_gaussian_init`, split so that later theorems can
+  reuse the measurable good event.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

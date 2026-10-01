@@ -14,6 +14,15 @@ Gap 4: the output Jacobian of the packed network is `O(1/√n)`-Lipschitz given 
 readout weights (`outputJacobian_netFromParams_frobenius_sub_le`), and the second-order Taylor
 bound for the training outputs (Phase 12.2).
 
+## Main results and proof outline
+
+- `empiricalNTKMatrix_netFromParams_apply`:
+  Two-block decomposition of the empirical NTK matrix.
+- `outputJacobian_netFromParams_frobenius_sub_le` : **Gap 4 deliverable** - the output Jacobian
+  is `O(1/√n)`-Lipschitz, given a bound `R` on the readout weights.
+- `norm_trainingOutputs_netFromParams_sub_linearization_le` : **Phase 12.2** - second-order Taylor
+  bound `(K / (2 √n)) ‖θ - θ₀‖²` for the packed network (hidden and readout weights trained).
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

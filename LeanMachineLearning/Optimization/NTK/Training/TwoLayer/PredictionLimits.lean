@@ -15,6 +15,14 @@ matrix-exponential predictors in probability, at fixed times and uniformly in ti
 converge to the ridgeless kernel-regression interpolant; plus the fixed-time weak limits of the
 trained residual and outputs.
 
+## Main results and proof outline
+
+- `tendsto_measure_kernel_drift_finite_horizon`,
+  `tendstoInDistribution_trainingResidual_matrix_exp`,
+  `tendstoInDistribution_trainingOutputs_matrix_exp` : **Phase 8** - finite-horizon kernel
+  stationarity in probability and fixed-time weak limits of the trained residual and predictions
+  (`exp(-(t / m) K_∞) (G - y)` and `y + exp(-(t / m) K_∞) (G - y)`), with no spectral gap.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

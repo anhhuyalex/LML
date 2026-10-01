@@ -15,6 +15,23 @@ weights `W` and readout weights `a`. This file contains `SmoothActivation`, the 
 feasibility of the bootstrap constants, and the good events at initialization for the finite-horizon
 and the global positive-gap theorems (Phases 6.3, 8, 9).
 
+## Main results and proof outline
+
+* `InitializationEvents` : `SmoothActivation`, bootstrap constants, good events (Phases 6.3, 8, 9).
+- `SmoothActivation` : bundled activation hypotheses (differentiable, bounded derivative,
+  Lipschitz derivative; no bound on the value of `φ`) shared by the paper-facing theorems below.
+- `exists_finite_horizon_kernel_freeze_event` : the no-gap counterpart on `[0, T]` with failure
+  probability `≤ 2δ + ε`; positive semidefiniteness alone bounds the residual and the
+  displacement radius `C = T M R / m` grows linearly in `T`.
+- `exists_measurableSet_global_lazy_training_event`, `global_positive_gap_lazy_training_limit` :
+  **Phase 9** - under a positive limiting gap, uniform Rayleigh gap `λ_∞ / 4`, kernel drift
+  `O(√(log n / n))`, exponential residual and loss decay and `mseLoss → 0`, with probability
+  `≥ 1 - η`.
+- `exists_kernel_freeze_event_of_positive_gap` : **Phase 6.3** - under a positive limiting gap,
+  a deterministic sequence `K n → 0` such that, with probability `≥ 1 - 2δ - 2ε` for all large `n`,
+  every gradient flow keeps the empirical NTK within `K n` of its initial value for all `t ≥ 0`;
+  all bootstrap constants are chosen explicitly.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

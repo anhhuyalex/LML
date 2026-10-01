@@ -13,6 +13,17 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.Concentrati
 Measurability of the empirical NTK matrix on packed parameters and the joint weak convergence
 `(r_n(0), K_n(0)) ⟹ (G - y, K_∞)` of the initial training residual and empirical NTK.
 
+## Main results and proof outline
+
+- `measurable_empiricalNTKMatrix_netFromParams_packParams` : measurability of the empirical NTK
+  matrix on packed parameters under `initMeasure n d`.
+- `tendstoInDistribution_initial_trainingResidual` : canonical initial training residual weak limit
+  `r_n(0) ⟹ G - y` on the scaled dataset `(1 / √d) * X`.
+- `tendstoInDistribution_joint_initial_residual_empiricalNTK` : joint weak convergence of initial
+  training residual and empirical NTK matrix `(r_n(0), K_n(0)) ⟹ (G - y, K_∞)`.
+- `exists_initial_residual_radius` : a single deterministic radius `R`, uniform in the width `n`,
+  bounding the tail probability of the initial training residual norm by any `ε > 0`.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

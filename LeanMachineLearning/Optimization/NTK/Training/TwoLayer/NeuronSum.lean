@@ -13,6 +13,17 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.JacobianBou
 The empirical NTK matrix of the packed network as an explicit sum over neurons, its evaluation on
 the scaled dataset `X / √d`, and the bridge between sequence prefixes and `initMeasure`.
 
+## Main results and proof outline
+
+- `empiricalNTKMatrix_netFromParams_eq_neuron_sum`:
+  Explicit empirical-NTK neuron-sum formula.
+- `netFromParams_scaled_input`, `netFromParams_scaled_input_div`:
+  Evaluation on scaled inputs `x / √d`.
+- `gradW_scaled_input`, `gradA_scaled_input`:
+  Gradients on scaled inputs factoring out `1 / √d` and `1 / √n`.
+- `empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum`:
+  Full empirical NTK on the scaled dataset `X / √d`.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

@@ -13,6 +13,20 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.FiniteHoriz
 Phase 14: the cross-kernel `J(θ) ∇f(x; θ)` between the training set and a test input concentrates
 at initialization and freezes along gradient flow.
 
+## Main results and proof outline
+
+- `tendsto_initMeasure_crossKernel_ge_eps`, `tendsto_measure_crossKernel_drift_finite_horizon`,
+  `tendsto_measure_crossKernel_drift_global_positive_gap`,
+  `tendsto_measure_test_prediction_finite_horizon`,
+  `tendsto_measure_test_prediction_global_positive_gap`,
+  `test_prediction_kernel_interpolation_limit` : **Phase 14** - the train-test cross-kernel
+  `J(θ) ∇f(x; θ)` (a row of the extended-dataset NTK Gram matrix) concentrates at initialization and
+  freezes; the trained output at a test input `x` follows the closed-form predictor
+  `f₀(x) - a ⬝ᵥ (r₀ - exp(-(t/m) K_∞) r₀)`, `a = K_∞⁻¹ k_∞(x, X)`, at fixed times (no gap) and
+  uniformly in time (positive gap), and converges to the ridgeless kernel-regression interpolant
+  as `n → ∞` and then `t → ∞`. The deterministic core is
+  `abs_inner_displacement_add_frozenPrediction_le(_of_exp_decay)` in `Training.GradientFlow`.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

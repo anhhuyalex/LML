@@ -14,6 +14,17 @@ Phase 11.2: each neuron's displacement is controlled by its own initial scale, s
 drift is bounded through the degree-four neuron moment averaged over neurons. This gives the
 `O(n⁻¹ᐟ²)` rate without a logarithm.
 
+## Main results and proof outline
+
+- `neuron_displacement_le`, `kernel_drift_le_of_neuron_moments`, `exists_neuronMoment_event`,
+  `exists_measurableSet_global_lazy_training_event_inv_sqrt_width`,
+  `global_positive_gap_lazy_training_limit_inv_sqrt_width`,
+  `gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width` : **Phase 11.2** - the
+  same global
+  theorem with kernel drift `O(n⁻¹ᐟ²)` (no logarithm): each neuron's displacement is controlled by
+  its own initial scale, and the resulting degree-four neuron moment is averaged over neurons and
+  bounded in probability by Markov's inequality, at the price of one extra failure probability `δ`.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

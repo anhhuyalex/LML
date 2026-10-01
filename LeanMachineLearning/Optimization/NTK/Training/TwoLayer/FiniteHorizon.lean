@@ -14,6 +14,20 @@ The finite-horizon lazy-training specification on `[0, T]` (no spectral gap), an
 consequences: kernel, Jacobian and linearization-error drift in probability on a finite horizon and
 under a positive gap (Phase 12), including the test-input linearization error.
 
+## Main results and proof outline
+
+- `exists_measurableSet_finite_horizon_lazy_training_event`,
+  `tendsto_measure_exists_gt_of_good_events`, `tendsto_measure_jacobian_drift_finite_horizon`,
+  `tendsto_measure_jacobian_drift_global_positive_gap`,
+  `tendsto_measure_linearization_error_finite_horizon`,
+  `tendsto_measure_linearization_error_global_positive_gap`,
+  `tendsto_measure_test_linearization_error_finite_horizon`,
+  `tendsto_measure_test_linearization_error_global_positive_gap` : **Phase 12** - Jacobian
+  (tangent-feature) freezing, proved directly from the Jacobian Lipschitz bound and not from Gram
+  freezing, and convergence in probability of the nonlinear network to its initialization
+  linearization (training outputs and any test input), on `[0, T]` without a gap and on `[0, ∞)`
+  under a positive limiting gap; all four share one generic outer-measure lemma.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

@@ -14,6 +14,21 @@ Chebyshev concentration of the empirical NTK matrix under `initMeasure n d`, con
 probability in Frobenius norm, the Rayleigh lower bound transferred from the limiting matrix, and
 the initial spectral-gap failure bound.
 
+## Main results and proof outline
+
+- `chebyshev_entrywise_empiricalNTKMatrix` : finite-width entrywise Chebyshev concentration
+  under `initMeasure n d`.
+- `chebyshev_matrix_empiricalNTKMatrix` : finite-width matrix Frobenius norm Chebyshev
+  concentration under `initMeasure n d`.
+- `tendsto_initMeasure_empiricalNTKMatrix_ge_eps` : finite-width convergence in probability of
+  the empirical NTK matrix in Frobenius norm under `initMeasure n d`.
+- `initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le` : Rayleigh lower bound
+  transfer from `limitingFullNTKMatrix` under Frobenius distance `λ_min / 2`.
+- `chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure` : finite-width initial spectral-gap
+  failure concentration bound under `initMeasure n d`.
+- `tendsto_initMeasure_initial_spectral_gap_failure` : spectral-gap failure measure tends to zero
+  as width `n → ∞`.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/

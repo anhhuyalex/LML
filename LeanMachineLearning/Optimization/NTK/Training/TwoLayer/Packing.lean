@@ -22,6 +22,32 @@ Bridges the curried `(W, a)` representation to the flat parameter vector `θ` ex
 coordinate equations, and the Frobenius-norm concentration of the output Jacobian at initialization
 (Gap 3).
 
+## Main results and proof outline
+
+* `Packing` : `packParams`, `netFromParams`, gradients, coordinate equations, Jacobian norm
+  concentration (Gap 3).
+- `packParams W a`: Pack weights `W` and readout `a` into a flat parameter vector `θ`.
+- `unpackW θ`: Extract weight matrix `W : Fin n → Fin d → ℝ`.
+- `unpackA θ`: Extract readout vector `a : Fin n → ℝ`.
+- `netFromParams φ n d x θ`: Single-output network evaluation from flat parameter `θ`.
+- `gradW φ n d x θ`: Gradient block for `W`, evaluated at `(x, θ)`.
+- `gradA φ n d x θ`: Gradient block for `a`, evaluated at `(x, θ)`.
+- `gradParams φ n d x θ`: Packed gradient vector of `netFromParams`.
+- `unpackW_packParams`, `unpackA_packParams`: Left inverse equations.
+- `packParams_unpack`: Right inverse equation (`packParams (unpackW θ) (unpackA θ) = θ`).
+- `inner_packParams`: Inner product `⟪packParams W a, v⟫` in terms of components.
+- `inner_packParams_packParams`: Inner product `⟪packParams W₁ a₁, packParams W₂ a₂⟫`.
+- `hasFDerivAt_netFromParams`: Fréchet derivative of `netFromParams` with respect to `θ`.
+- `hasGradientAt_netFromParams`: Gradient of `netFromParams`.
+- `tangentFeature_netFromParams`: Closed form for `tangentFeature (netFromParams φ n d) x θ`.
+- `unpackW_tangentFeature`, `unpackA_tangentFeature`: Component-wise tangent feature equations.
+- `outputJacobian_netFromParams_apply_W`, `outputJacobian_netFromParams_apply_a`:
+  Row evaluations of the output Jacobian delegating to `gradW` / `gradA`.
+- `forwardGF_readout_hasDerivAt`, `forwardGF_inputWeight_hasDerivAt`:
+  Phase 15 coordinate equations `∂_t a_i`, `∂_t W_{ij}` of the forward gradient flow.
+- `outputJacobian_netFromParams_frobenius_norm_concentration` : **Gap 3 deliverable** - the
+  output Jacobian's Frobenius norm is `O(1)` (width-independent) with probability `≥ 1 - δ`.
+
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.
 -/
