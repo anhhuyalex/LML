@@ -91,8 +91,8 @@ private lemma norm_crossKernel_sub_le {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact
     simp [Matrix.sub_mulVec, Matrix.mulVec_sub]
   rw [hsplit]
   refine (norm_add_le _ _).trans (add_le_add ?_ ?_)
-  · exact (mulVec_frobenius_norm_le _ _).trans (mul_le_mul hJ hg₀ (norm_nonneg _) hjr0)
-  · refine (mulVec_frobenius_norm_le _ _).trans ?_
+  · exact (norm_matrixCLM_apply_le _ _).trans (mul_le_mul hJ hg₀ (norm_nonneg _) hjr0)
+  · refine (norm_matrixCLM_apply_le _ _).trans ?_
     have hJθ : ‖outputJacobian (netFromParams φ n d) Xs θ‖ ≤ M + jr := by
       have := norm_sub_le_norm_sub_add_norm_sub (outputJacobian (netFromParams φ n d) Xs θ)
         (outputJacobian (netFromParams φ n d) Xs θ₀) 0

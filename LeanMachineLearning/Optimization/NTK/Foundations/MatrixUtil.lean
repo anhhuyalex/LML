@@ -147,6 +147,10 @@ lemma matrixCLM_apply {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) (v : Euclidea
     matrixCLM M v = WithLp.toLp 2 (M *ᵥ v.ofLp) := by
   simp [matrixCLM, Matrix.toLpLin_apply]
 
+lemma norm_matrixCLM_apply_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
+    (w : EuclideanSpace ℝ (Fin b)) : ‖matrixCLM M w‖ ≤ ‖M‖ * ‖w‖ := by
+  rw [matrixCLM_apply]; exact mulVec_frobenius_norm_le M w
+
 lemma matrixCLM_sub {a b : ℕ} (M N : Matrix (Fin a) (Fin b) ℝ) :
     matrixCLM M - matrixCLM N = matrixCLM (M - N) := by
   ext v : 1

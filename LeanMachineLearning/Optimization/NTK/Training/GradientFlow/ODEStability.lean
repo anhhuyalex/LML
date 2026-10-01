@@ -73,7 +73,7 @@ private lemma inner_sub_le_of_psd_coefficient (A B : Matrix (Fin m) (Fin m) ℝ)
       _ ≤ ‖r - s‖ * ‖(matrixCLM (A - B) s)‖ :=
           abs_real_inner_le_norm _ _
       _ ≤ ‖r - s‖ * (‖A - B‖ * ‖s‖) :=
-          mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) s) (norm_nonneg _)
+          mul_le_mul_of_nonneg_left (norm_matrixCLM_apply_le (A - B) s) (norm_nonneg _)
   linarith
 
 /-- **Stability of linear ODEs under coefficient perturbation (PSD case).** Let `r' = -A(t) r` and

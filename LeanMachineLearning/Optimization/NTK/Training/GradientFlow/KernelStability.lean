@@ -272,7 +272,7 @@ theorem abs_dotProduct_mulVec_sub_le (A B : Matrix (Fin m) (Fin m) ℝ)
         ‖v‖ * ‖(matrixCLM (A - B) v)‖ :=
       abs_real_inner_le_norm _ _
     _ ≤ ‖v‖ * (‖A - B‖ * ‖v‖) :=
-      mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) v) (norm_nonneg _)
+      mul_le_mul_of_nonneg_left (norm_matrixCLM_apply_le (A - B) v) (norm_nonneg _)
     _ = ‖A - B‖ * ‖v‖ ^ 2 := by ring
 
 /-- A shifted positive semidefinite matrix `K - lambda_min • 1` satisfies the Rayleigh quotient

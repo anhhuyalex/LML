@@ -159,7 +159,7 @@ lemma hasDerivAt_predictionError_abs_le
     refine (abs_dotProduct_le_norm_mul_norm _ _).trans ?_
     rw [hrcv]
     refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
-    exact (mulVec_frobenius_norm_le (Jc - J₀) g).trans (le_of_eq (mul_comm _ _))
+    exact (norm_matrixCLM_apply_le (Jc - J₀) g).trans (le_of_eq (mul_comm _ _))
   have b2 : |rc.ofLp ⬝ᵥ (J₀ *ᵥ g.ofLp - k_inf)| ≤ ‖rc‖ * ε_k := by
     refine (abs_dotProduct_le_norm_mul_norm _ _).trans ?_
     rw [hrcv]

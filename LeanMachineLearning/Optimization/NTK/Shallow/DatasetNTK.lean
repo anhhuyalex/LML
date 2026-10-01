@@ -311,7 +311,7 @@ theorem gradient_mseLoss_norm_le (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
       (m : ℝ)⁻¹ • (matrixCLM ((outputJacobian f X θ)ᵀ) (trainingResidual f X y θ)) := by
     rw [show gradient (mseLoss f X y) θ =
         WithLp.toLp 2 (gradient (mseLoss f X y) θ).ofLp from rfl]
-    rw [gradient_mseLoss_eq_mulVec f X y θ hdiff]
+    rw [gradient_mseLoss_eq_mulVec f X y θ hdiff, matrixCLM_apply]
     rfl
   rw [heq, norm_smul, Real.norm_eq_abs, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (m : ℝ)⁻¹),
     mul_assoc]
@@ -319,7 +319,7 @@ theorem gradient_mseLoss_norm_le (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
   calc
     ‖(matrixCLM ((outputJacobian f X θ)ᵀ) (trainingResidual f X y θ))‖ ≤
         ‖(outputJacobian f X θ)ᵀ‖ * ‖trainingResidual f X y θ‖ :=
-      mulVec_frobenius_norm_le _ _
+      norm_matrixCLM_apply_le _ _
     _ = ‖outputJacobian f X θ‖ * ‖trainingResidual f X y θ‖ := by
       rw [Matrix.frobenius_norm_transpose]
 
