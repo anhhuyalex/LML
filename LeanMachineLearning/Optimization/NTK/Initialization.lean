@@ -871,16 +871,16 @@ section Preliminaries
 
 /-- Single-output evaluation of a two-layer neural network with width `n`, activation `φ`,
 input weights `W`, and readout weights `a`:
-  `f(x; W, a) = (1/√n) ∑ i, a i * φ (W i ⊙ x)`. -/
+  `f(x; W, a) = (1/√n) ∑ i, a i * φ (W i ⬝ᵥ x)`. -/
 noncomputable def evalSingle
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (x : Fin d → ℝ) : ℝ :=
-  (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⊙ x)
+  (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⬝ᵥ x)
 
 /-- The normalized-sum formula for a scalar network evaluation. This is the public
 equation lemma for `evalSingle`, so proofs need not unfold its implementation. -/
 lemma evalSingle_eq_normalized_sum
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (x : Fin d → ℝ) :
-    evalSingle φ W a x = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⊙ x) := rfl
+    evalSingle φ W a x = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⬝ᵥ x) := rfl
 
 /-- The output vector `f_m(W, a) ∈ ℝᵐ` evaluated at `m` input points `X 0, …, X (m - 1)`:
   `f_m(W, a)_α = f(X α; W, a)`. -/
@@ -890,11 +890,11 @@ noncomputable def evalVector
   WithLp.toLp 2 (fun α => evalSingle φ W a (X α))
 
 /-- The empirical covariance matrix `Φ^{(n)} ∈ ℝ^{m × m}`:
-  `Φ^{(n), α β} = (1/n) ∑ i, φ (W i ⊙ X α) * φ (W i ⊙ X β)`. -/
+  `Φ^{(n), α β} = (1/n) ∑ i, φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)`. -/
 noncomputable def empiricalCovariance
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
     Matrix (Fin m) (Fin m) ℝ :=
-  fun α β => (n : ℝ)⁻¹ * ∑ i : Fin n, φ (W i ⊙ X α) * φ (W i ⊙ X β)
+  fun α β => (n : ℝ)⁻¹ * ∑ i : Fin n, φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)
 
 /-! ### API for Network Evaluation -/
 
@@ -1010,18 +1010,18 @@ lemma prob_gaussianReadout_sum_sq_le
     (by fun_prop) integrable_sq_gaussianReal (fun _ => sq_nonneg _) (inv_pos.2 hδ)
     (by rw [integral_sq_gaussianReal, inv_mul_cancel₀ hδ.ne'])
 
-/-- **Empirical activation energy concentration.** If `φ(w ⊙ x_α)` is square integrable under the
-Gaussian row law and `∑_α E φ(w ⊙ x_α)² ≤ τ δ`, then the width-normalized activation energy
-`n⁻¹ ∑_i ∑_α φ(W_i ⊙ x_α)²` of the hidden weights is at most `τ` with probability `≥ 1 - δ`. -/
+/-- **Empirical activation energy concentration.** If `φ(w ⬝ᵥ x_α)` is square integrable under the
+Gaussian row law and `∑_α E φ(w ⬝ᵥ x_α)² ≤ τ δ`, then the width-normalized activation energy
+`n⁻¹ ∑_i ∑_α φ(W_i ⬝ᵥ x_α)²` of the hidden weights is at most `τ` with probability `≥ 1 - δ`. -/
 lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (φ : ℝ → ℝ)
     (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     {τ δ : ℝ} (hτ : 0 < τ)
-    (hv : ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) ≤ τ * δ) :
+    (hv : ∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(gaussianRowMeasure d) ≤ τ * δ) :
     (gaussianInit n d).real {W | (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
-      φ (W i ⊙ X α) ^ 2 ≤ τ} ≥ 1 - δ :=
+      φ (W i ⬝ᵥ X α) ^ 2 ≤ τ} ≥ 1 - δ :=
   measureReal_pi_average_le_ge_one_sub (μ := gaussianRowMeasure d) hn
-    (g := fun w => ∑ α : Fin m, φ (w ⊙ X α) ^ 2)
+    (g := fun w => ∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2)
     (Finset.measurable_sum _ fun α _ =>
       (hφ.comp (measurable_innerProduct_left (X α))).pow_const 2)
     (integrable_finsetSum _ fun α _ => (hL2 α).integrable_sq) (fun w => by positivity) hτ
@@ -1031,12 +1031,12 @@ lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (�
 lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
     (hA : 0 ≤ A) (hB : 0 ≤ B)
     (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x : Fin d → ℝ) (p : NNReal) :
-    MemLp (fun w : Fin d → ℝ => φ (w ⊙ x)) p (gaussianRowMeasure d) := by
-  have hlin : Measurable (fun w : Fin d → ℝ => w ⊙ x) := measurable_innerProduct_left x
-  change MemLp (φ ∘ fun w : Fin d → ℝ => w ⊙ x) p (gaussianRowMeasure d)
+    MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x)) p (gaussianRowMeasure d) := by
+  have hlin : Measurable (fun w : Fin d → ℝ => w ⬝ᵥ x) := measurable_innerProduct_left x
+  change MemLp (φ ∘ fun w : Fin d → ℝ => w ⬝ᵥ x) p (gaussianRowMeasure d)
   rw [← memLp_map_measure_iff (hφ.aestronglyMeasurable) hlin.aemeasurable,
     map_gaussianRowMeasure_innerProduct]
-  have hid := memLp_id_gaussianReal (μ := 0) (v := Real.toNNReal (x ⊙ x)) p
+  have hid := memLp_id_gaussianReal (μ := 0) (v := Real.toNNReal (x ⬝ᵥ x)) p
   refine MemLp.of_le (g := fun z => A + B * ‖z‖) ?_ hφ.aestronglyMeasurable
     (Filter.Eventually.of_forall fun z => ?_)
   · exact (memLp_const A).add (hid.norm.const_mul B)
@@ -1048,8 +1048,8 @@ lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurab
 lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
     (hA : 0 ≤ A) (hB : 0 ≤ B)
     (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x x' : Fin d → ℝ) :
-    MemLp (fun w : Fin d → ℝ => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d) := by
-  have h4 : ∀ y : Fin d → ℝ, MemLp (fun w : Fin d → ℝ => φ (w ⊙ y)) (4 : ENNReal)
+    MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d) := by
+  have h4 : ∀ y : Fin d → ℝ, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ y)) (4 : ENNReal)
       (gaussianRowMeasure d) := fun y => by
     simpa using memLp_gaussianRow_comp_of_linear_growth φ hφ hA hB hgrow y (d := d) 4
   have : ENNReal.HolderTriple 4 4 2 := ⟨by
@@ -1443,18 +1443,18 @@ section Theorem1
 
 /-- The $\mathcal{F}$-measurable projection coefficients `projectionCoeff` (mathematically `ψ_i`)
 for each hidden unit `i`:
-  `projectionCoeff n φ W X c i = (1/√n) ∑_α c_α φ(W i ⊙ X α)`. -/
+  `projectionCoeff n φ W X c i = (1/√n) ∑_α c_α φ(W i ⬝ᵥ X α)`. -/
 noncomputable def projectionCoeff
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) (i : Fin n) : ℝ :=
-  (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α)
+  (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)
 
 /-- The normalized-sum formula for a projection coefficient. This is the public
 equation lemma for `projectionCoeff`, so proofs need not unfold its implementation. -/
 lemma projectionCoeff_eq_normalized_sum
     (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (c : Fin m → ℝ) (i : Fin n) :
-    projectionCoeff n φ W X c i = (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α) := rfl
+    projectionCoeff n φ W X c i = (n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α) := rfl
 
 /-- For measurable `φ`, each projection coefficient is measurable as a function of the input
 weight matrix. This formalizes the `ℱ`-measurability assertion in Step 2. -/
@@ -1479,10 +1479,10 @@ lemma projection_eq_sum_projectionCoeff
   calc
     (∑ α : Fin m, c α * evalSingle φ W a (X α)) =
         ∑ α : Fin m, c α * ((n : ℝ)⁻¹.sqrt *
-          ∑ i : Fin n, a i * φ (W i ⊙ X α)) := by
+          ∑ i : Fin n, a i * φ (W i ⬝ᵥ X α)) := by
       simp_rw [evalSingle_eq_normalized_sum]
     _ = ∑ i : Fin n, a i * ((n : ℝ)⁻¹.sqrt *
-          ∑ α : Fin m, c α * φ (W i ⊙ X α)) := by
+          ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)) := by
       simp_rw [Finset.mul_sum]
       rw [Finset.sum_comm]
       exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun α _ => by ring
@@ -1496,15 +1496,15 @@ lemma projectionCoeff_sq (n : ℕ) (φ : ℝ → ℝ) (W : Fin n → Fin d → �
     (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) (i : Fin n) :
     (projectionCoeff n φ W X c i) ^ 2 =
       (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ β : Fin m,
-        c α * c β * (φ (W i ⊙ X α) * φ (W i ⊙ X β)) :=
+        c α * c β * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)) :=
   calc
     (projectionCoeff n φ W X c i) ^ 2 =
-        ((n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⊙ X α)) ^ 2 := by
+        ((n : ℝ)⁻¹.sqrt * ∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)) ^ 2 := by
       rw [projectionCoeff_eq_normalized_sum]
-    _ = (n : ℝ)⁻¹ * (∑ α : Fin m, c α * φ (W i ⊙ X α)) ^ 2 := by
+    _ = (n : ℝ)⁻¹ * (∑ α : Fin m, c α * φ (W i ⬝ᵥ X α)) ^ 2 := by
       rw [mul_pow, Real.sq_sqrt (by positivity)]
     _ = (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ β : Fin m,
-        c α * c β * (φ (W i ⊙ X α) * φ (W i ⊙ X β)) := by
+        c α * c β * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)) := by
       congr 1
       rw [sq, Finset.sum_mul_sum]
       exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring
@@ -1527,11 +1527,11 @@ lemma sum_projectionCoeff_sq_eq_bilin
   refine Finset.sum_congr rfl fun β _ => ?_
   calc
     (∑ i : Fin n, (n : ℝ)⁻¹ *
-        (c α * c β * (φ (W i ⊙ X α) * φ (W i ⊙ X β)))) =
-        ∑ i : Fin n, c α * ((n : ℝ)⁻¹ * (φ (W i ⊙ X α) * φ (W i ⊙ X β))) * c β :=
+        (c α * c β * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β)))) =
+        ∑ i : Fin n, c α * ((n : ℝ)⁻¹ * (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β))) * c β :=
       Finset.sum_congr rfl fun i _ => by ring
     _ = c α * ((∑ i : Fin n, (n : ℝ)⁻¹ *
-        (φ (W i ⊙ X α) * φ (W i ⊙ X β))) * c β) := by
+        (φ (W i ⬝ᵥ X α) * φ (W i ⬝ᵥ X β))) * c β) := by
       rw [Finset.sum_mul, Finset.mul_sum]
       exact Finset.sum_congr rfl fun i _ => by ring
 
@@ -1672,20 +1672,20 @@ section Theorem2
 
 /-! ### Step 1: Summand Measurability -/
 
-/-- Step 1 (Measurability): For measurable `φ`, the product `w ↦ φ(w ⊙ x) * φ(w ⊙ x')` is measurable. -/
+/-- Step 1 (Measurability): For measurable `φ`, the product `w ↦ φ(w ⬝ᵥ x) * φ(w ⬝ᵥ x')` is measurable. -/
 lemma measurable_cov_summand (φ : ℝ → ℝ) (hφ : Measurable φ) (x x' : Fin d → ℝ) :
-    Measurable (fun w : Fin d → ℝ => φ (w ⊙ x) * φ (w ⊙ x')) :=
+    Measurable (fun w : Fin d → ℝ => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) :=
   (hφ.comp (measurable_innerProduct_left x)).mul (hφ.comp (measurable_innerProduct_left x'))
 
 /-! ### Step 3: Integrability via Cauchy-Schwarz -/
 
-/-- Step 3 (Integrability via Cauchy-Schwarz): If `φ(· ⊙ x)` and `φ(· ⊙ x')` are square-integrable
+/-- Step 3 (Integrability via Cauchy-Schwarz): If `φ(· ⬝ᵥ x)` and `φ(· ⬝ᵥ x')` are square-integrable
 under the Gaussian row measure, their product is integrable. -/
 lemma integrable_cov_summand_of_memLp
     (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hx : MemLp (fun w => φ (w ⊙ x)) 2 (gaussianRowMeasure d))
-    (hx' : MemLp (fun w => φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
-    Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d) :=
+    (hx : MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d))
+    (hx' : MemLp (fun w => φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) :
+    Integrable (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) (gaussianRowMeasure d) :=
   hx.integrable_mul hx'
 
 /-! ### Step 2 & Step 4: SLLN Convergence (Entrywise and Full Matrix) -/
@@ -1693,24 +1693,24 @@ lemma integrable_cov_summand_of_memLp
 /-- **Theorem 2 (Entrywise SLLN for the Covariance Tensor)**:
 As width `n → ∞`, each entry of the empirical covariance matrix converges almost surely to the
 deterministic limiting NNGP expectation:
-  `Φ^{(n), α β} →_as 𝔼_{w ~ 𝒩(0, I_d)}[φ(w ⊙ X α) φ(w ⊙ X β)]`.
+  `Φ^{(n), α β} →_as 𝔼_{w ~ 𝒩(0, I_d)}[φ(w ⬝ᵥ X α) φ(w ⬝ᵥ X β)]`.
 
 **Proof (4 Steps)**:
-* Step 1: For fixed inputs `X α, X β`, define the summands `Y_i(rows) := φ(rows i ⊙ X α) φ(rows i ⊙ X β)`.
+* Step 1: For fixed inputs `X α, X β`, define the summands `Y_i(rows) := φ(rows i ⬝ᵥ X α) φ(rows i ⬝ᵥ X β)`.
 * Step 2: Because `rows` are i.i.d. under the infinite product measure `μ`, `{Y_i}` is i.i.d.
 * Step 3: By square-integrability of `φ` and Cauchy-Schwarz (`MemLp.integrable_mul`), `Y_0` is integrable.
 * Step 4: By Kolmogorov/Etemadi's SLLN (`strong_law_ae`), `(1/n) ∑_{i=1}^n Y_i →_as 𝔼[Y_0]`. -/
 theorem empiricalCovariance_tendsto_integral
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (α β : Fin m) :
     ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
       Filter.atTop
-      (nhds (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d))) := by
-  set g := fun w : Fin d → ℝ => φ (w ⊙ X α) * φ (w ⊙ X β)
+      (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) := by
+  set g := fun w : Fin d → ℝ => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)
   have hg_meas : Measurable g := measurable_cov_summand φ hφ_meas (X α) (X β)
   have hg_int : Integrable g (gaussianRowMeasure d) :=
     integrable_cov_summand_of_memLp φ (X α) (X β) (hφ_L2 α) (hφ_L2 β)
@@ -1727,16 +1727,16 @@ section Theorem3
 /-! ### Limiting NNGP Covariance Matrix and Output Distribution -/
 
 /-- The limiting NNGP covariance matrix `Φ^{(∞)} ∈ ℝ^{m × m}`:
-  `Φ^{(∞), α β} = ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)`. -/
+  `Φ^{(∞), α β} = ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)`. -/
 noncomputable def limitingCovariance
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) : Matrix (Fin m) (Fin m) ℝ :=
-  fun α β => ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)
+  fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)
 
 /-- Equation lemma for `limitingCovariance`. -/
 lemma limitingCovariance_apply
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (α β : Fin m) :
     limitingCovariance φ X α β =
-      ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d) := rfl
+      ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d) := rfl
 
 /-- The limiting NNGP covariance matrix is symmetric (Hermitian). -/
 lemma limitingCovariance_isHermitian
@@ -1751,7 +1751,7 @@ lemma limitingCovariance_isHermitian
 lemma empiricalCovariance_tendsto_limitingCovariance
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
@@ -1763,7 +1763,7 @@ by
         Filter.Tendsto
           (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
           Filter.atTop
-          (nhds (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d))) :=
+          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) :=
     fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
   have h_all :
       ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
@@ -1771,14 +1771,14 @@ by
           Filter.Tendsto
             (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
             Filter.atTop
-            (nhds (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d))) := by
+            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
   change Filter.Tendsto
     (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
     Filter.atTop
-    (nhds ((fun α β => ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β)
+    (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)
       ∂(gaussianRowMeasure d)) : Matrix (Fin m) (Fin m) ℝ))
   exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hrows α β
 
@@ -1798,36 +1798,36 @@ lemma continuous_matrix_quadratic (c : Fin m → ℝ) :
 /-- **Theorem 2.3 Step 4 (Expectation-of-Square Identity for Limiting Kernel)**:
 The quadratic form with the limiting covariance kernel equals the expectation of the
 squared projected activation:
-  `∑ α, ∑ β, u α * u β * Φ(X α, X β) = 𝔼_w [(∑ α, u α * φ(w ⊙ X α))²]`.
+  `∑ α, ∑ β, u α * u β * Φ(X α, X β) = 𝔼_w [(∑ α, u α * φ(w ⬝ᵥ X α))²]`.
 This directly verifies condition (i) of Definition 2.2, confirming `Φ` is positive semidefinite. -/
 lemma sum_sum_mul_limitingCovariance_eq_integral_sq
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) :
     (∑ α : Fin m, ∑ β : Fin m, u α * u β * limitingCovariance φ X α β) =
-      ∫ w, (∑ α : Fin m, u α * φ (w ⊙ X α)) ^ 2 ∂(gaussianRowMeasure d) := by
+      ∫ w, (∑ α : Fin m, u α * φ (w ⬝ᵥ X α)) ^ 2 ∂(gaussianRowMeasure d) := by
   have hint (α β : Fin m) :
-      Integrable (fun w => (u α * u β) * (φ (w ⊙ X α) * φ (w ⊙ X β))) (gaussianRowMeasure d) :=
+      Integrable (fun w => (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (gaussianRowMeasure d) :=
     (integrable_cov_summand_of_memLp φ (X α) (X β) (hφ_L2 α) (hφ_L2 β)).const_mul (u α * u β)
   simp_rw [limitingCovariance_apply]
   have h1 (α : Fin m) :
-      (∑ β : Fin m, u α * u β * ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) =
-      ∫ w, ∑ β : Fin m, u α * u β * (φ (w ⊙ X α) * φ (w ⊙ X β)) ∂(gaussianRowMeasure d) := by
+      (∑ β : Fin m, u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) =
+      ∫ w, ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(gaussianRowMeasure d) := by
     have h_in (β : Fin m) :
-        u α * u β * ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d) =
-        ∫ w, (u α * u β) * (φ (w ⊙ X α) * φ (w ⊙ X β)) ∂(gaussianRowMeasure d) :=
-      (integral_const_mul (u α * u β) (fun w => φ (w ⊙ X α) * φ (w ⊙ X β))).symm
+        u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d) =
+        ∫ w, (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(gaussianRowMeasure d) :=
+      (integral_const_mul (u α * u β) (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))).symm
     simp_rw [h_in]
     exact (integral_finsetSum _ fun β _ => hint α β).symm
   simp_rw [h1]
   have hint_sum (α : Fin m) :
-      Integrable (fun w => ∑ β : Fin m, u α * u β * (φ (w ⊙ X α) * φ (w ⊙ X β))) (gaussianRowMeasure d) :=
+      Integrable (fun w => ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (gaussianRowMeasure d) :=
     integrable_finsetSum _ fun β _ => hint α β
   rw [← integral_finsetSum _ fun α _ => hint_sum α]
   congr 1 with w
   simp only [pow_two]
-  have h_alg : (∑ α : Fin m, ∑ β : Fin m, u α * u β * (φ (w ⊙ X α) * φ (w ⊙ X β))) =
-      (∑ α : Fin m, u α * φ (w ⊙ X α)) * (∑ β : Fin m, u β * φ (w ⊙ X β)) := by
+  have h_alg : (∑ α : Fin m, ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) =
+      (∑ α : Fin m, u α * φ (w ⬝ᵥ X α)) * (∑ β : Fin m, u β * φ (w ⬝ᵥ X β)) := by
     rw [Finset.sum_mul]
     refine Finset.sum_congr rfl fun α _ => ?_
     rw [Finset.mul_sum]
@@ -1838,7 +1838,7 @@ lemma sum_sum_mul_limitingCovariance_eq_integral_sq
 expectation-of-square identity. -/
 lemma sum_sum_mul_limitingCovariance_nonneg
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) :
     0 ≤ ∑ α : Fin m, ∑ β : Fin m, u α * u β * limitingCovariance φ X α β := by
   rw [sum_sum_mul_limitingCovariance_eq_integral_sq φ X hφ_L2 u]
@@ -1848,7 +1848,7 @@ lemma sum_sum_mul_limitingCovariance_nonneg
 lemma limitingCovariance_nonneg
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (c : Fin m → ℝ) :
     0 ≤ c ⬝ᵥ (limitingCovariance φ X) *ᵥ c := by
   have h_ae := empiricalCovariance_tendsto_limitingCovariance φ X hφ_meas hφ_L2
@@ -1866,7 +1866,7 @@ lemma limitingCovariance_nonneg
 theorem limitingCovariance_posSemidef
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     (limitingCovariance φ X).PosSemidef :=
   Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (limitingCovariance_isHermitian φ X)
     fun x => by simpa using limitingCovariance_nonneg φ X hφ_meas hφ_L2 x
@@ -1879,7 +1879,7 @@ lemma evalSingle_joint_measurable
   refine Finset.measurable_sum _ fun i _ => ?_
   have h_ai : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i) :=
     (measurable_pi_apply i).comp measurable_snd
-  have h_Wi : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => φ (p.1 i ⊙ x)) :=
+  have h_Wi : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => φ (p.1 i ⬝ᵥ x)) :=
     hφ.comp ((measurable_innerProduct_left x).comp ((measurable_pi_apply i).comp measurable_fst))
   exact h_ai.mul h_Wi
 
@@ -1995,7 +1995,7 @@ lemma measurable_exp_quadratic_empiricalCovariance
       simp only [empiricalCovariance]
       refine Measurable.const_mul ?_ _
       refine Finset.measurable_sum _ fun i _ => ?_
-      have h_summand : Measurable (fun w : Fin d → ℝ => φ (w ⊙ X α) * φ (w ⊙ X β)) :=
+      have h_summand : Measurable (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) :=
         measurable_cov_summand φ hφ (X α) (X β)
       exact h_summand.comp (measurable_pi_apply i)
     exact (measurable_const.mul h_cov).mul measurable_const
@@ -2033,7 +2033,7 @@ characteristic integrand converges almost surely. -/
 lemma charFun_integrand_tendsto_ae
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (t : EuclideanSpace ℝ (Fin m)) :
     ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
       Filter.Tendsto
@@ -2062,7 +2062,7 @@ converges to `exp(- (1/2) t ⬝ᵥ Φ^{(∞)} *ᵥ t)`. -/
 lemma tendsto_integral_charFun_infinitePi
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
       (fun n : ℕ =>
@@ -2093,7 +2093,7 @@ function:
 lemma tendsto_charFun_outputMeasure
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
       (fun n : ℕ => charFun (outputMeasure n d φ X) t)
@@ -2114,7 +2114,7 @@ multivariate Gaussian `𝒩(0, Φ^{(∞)})`. -/
 lemma tendsto_charFun_outputMeasure_eq_multivariateGaussian
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
       (fun n : ℕ => charFun (outputMeasure n d φ X) t)
@@ -2166,7 +2166,7 @@ converges almost surely:
 lemma conditionalVariance_tendsto_limitingVariance_ae
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
       Filter.Tendsto
@@ -2220,7 +2220,7 @@ the limit of the scalar characteristic function without repeating the DCT proof:
 lemma tendsto_charFun_map_projection
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) (t : ℝ) :
     Filter.Tendsto
       (fun n : ℕ => charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
@@ -2244,7 +2244,7 @@ of the univariate Gaussian `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
 lemma tendsto_charFun_map_projection_eq_gaussianReal
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) (t : ℝ) :
     Filter.Tendsto
       (fun n : ℕ => charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
@@ -3339,7 +3339,7 @@ own `0`-indexed recursion, the empirical covariance of `deepPreactivation … �
 converges to `layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)`. -/
 noncomputable def deepPreactivation (d m n : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (W : ℕ → ℕ → ℕ → ℝ) : ℕ → Fin m → Fin n → ℝ
-  | 0 => fun α j => (d : ℝ)⁻¹.sqrt * ((fun k : Fin d => W 0 j.val k.val) ⊙ X α)
+  | 0 => fun α j => (d : ℝ)⁻¹.sqrt * ((fun k : Fin d => W 0 j.val k.val) ⬝ᵥ X α)
   | ℓ + 1 => fun α j => (n : ℝ)⁻¹.sqrt * ∑ k : Fin n,
       W (ℓ + 1) j.val k.val * φ (deepPreactivation d m n φ X W ℓ α k)
 
@@ -3378,7 +3378,7 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
       Measure.infinitePi fun _ : ℕ =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) := by
+          (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := by
   let restrictRows : (ℕ → ℕ → ℝ) → (ℕ → Fin d → ℝ) :=
     fun W j k => W j k.val
   have hrestrictRows_meas : Measurable restrictRows := by
@@ -3418,7 +3418,7 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
       Measure.map projectRows (Measure.infinitePi fun _ : ℕ => gaussianReadoutMeasure d) =
       Measure.infinitePi fun _ : ℕ =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) := by
+          (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := by
     calc
       Measure.map projectRows (Measure.infinitePi fun _ : ℕ => gaussianReadoutMeasure d) =
         Measure.infinitePi fun _ : ℕ => Measure.map
@@ -3432,11 +3432,11 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
                 (continuous_pi fun α => by fun_prop).measurable))
       _ = Measure.infinitePi fun _ : ℕ =>
           multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-            (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) := by
+            (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := by
         apply congrArg Measure.infinitePi
         funext j
         have hcov : (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β) =
-            (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) := by
+            (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := by
           ext α β
           change (∑ k : Fin d, (d : ℝ)⁻¹.sqrt * X α k *
             ((d : ℝ)⁻¹.sqrt * X β k)) = (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k
@@ -4528,22 +4528,22 @@ section Theorem2
 /-- **Theorem 2 (Full Matrix Strong Law of Large Numbers for the Covariance Tensor)**:
 As width `n → ∞`, the empirical covariance matrix converges almost surely to the deterministic
 limiting NNGP Gram matrix in `Matrix (Fin m) (Fin m) ℝ`:
-  `Φ^{(n)} →_as (fun α β => 𝔼_{w ~ 𝒩(0, I_d)}[φ(w ⊙ X α) φ(w ⊙ X β)])`. -/
+  `Φ^{(n)} →_as (fun α β => 𝔼_{w ~ 𝒩(0, I_d)}[φ(w ⬝ᵥ X α) φ(w ⬝ᵥ X β)])`. -/
 theorem empiricalCovariance_tendsto_matrix_integral
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
         Filter.atTop
-        (nhds ((fun α β => ∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) : Matrix (Fin m) (Fin m) ℝ)) := by
+        (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_entry : ∀ α β : Fin m,
       ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
         Filter.Tendsto
           (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
           Filter.atTop
-          (nhds (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d))) :=
+          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) :=
     fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
   have h_all :
       ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
@@ -4551,7 +4551,7 @@ theorem empiricalCovariance_tendsto_matrix_integral
           Filter.Tendsto
             (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
             Filter.atTop
-            (nhds (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d))) := by
+            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
@@ -4568,7 +4568,7 @@ converges weakly to the multivariate Gaussian distribution `𝒩(0, Φ^{(∞)})`
 theorem outputMeasure_tendsto_multivariateGaussian
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
       (fun n : ℕ => ⟨outputMeasure n d φ X,
         isProbabilityMeasure_outputMeasure n d φ hφ_meas X⟩)
@@ -4599,7 +4599,7 @@ measure converges in distribution to the centered multivariate Gaussian `𝒩(0,
 theorem tendstoInDistribution_evalVector
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) => evalVector φ p.1 p.2 X)
       Filter.atTop
@@ -4618,7 +4618,7 @@ paper's scaled dataset `(1 / √d) * X` to the limiting Gaussian distribution
 theorem tendstoInDistribution_evalVector_scaled_dataset
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (gaussianRowMeasure d)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
@@ -4637,7 +4637,7 @@ theorem tendstoInDistribution_initialResidual_evalVector
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (y : EuclideanSpace ℝ (Fin m))
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (gaussianRowMeasure d)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
@@ -4656,7 +4656,7 @@ via Lévy continuity (`MeasureTheory.isTightMeasureSet_of_tendsto_charFun`). -/
 theorem isTightMeasureSet_range_outputMeasure
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     IsTightMeasureSet (Set.range (outputMeasure · d φ X)) := by
   have : ∀ n, IsProbabilityMeasure (outputMeasure n d φ X) :=
     fun n => isProbabilityMeasure_outputMeasure n d φ hφ_meas X
@@ -4670,7 +4670,7 @@ theorem isTightMeasureSet_range_outputMeasure
 theorem isTightMeasureSet_range_outputMeasure_scaled_dataset
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (gaussianRowMeasure d)) :
     IsTightMeasureSet
       (Set.range (outputMeasure · d φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) :=
@@ -4683,7 +4683,7 @@ to the centered univariate Gaussian `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
 theorem map_projection_tendsto_gaussianReal
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) :
     Filter.Tendsto (β := ProbabilityMeasure ℝ)
       (fun n : ℕ => ⟨Measure.map (fun p => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d),
@@ -4716,7 +4716,7 @@ distribution `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`:
 theorem tendstoInDistribution_projection
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (u : Fin m → ℝ) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α))
@@ -4916,7 +4916,7 @@ lemma input_empiricalCovariance_tendstoInMeasure
         φ ((d : ℝ)⁻¹.sqrt * ∑ k : Fin d, W j.val k.val * X β k))
       Filter.atTop
       (fun _ => layerCovarianceSeq 1 0 φ m
-        (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) 1) := by
+        (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) 1) := by
   let Z : (ℕ → ℕ → ℝ) → ℕ → EuclideanSpace ℝ (Fin m) :=
     fun W j => WithLp.toLp 2 fun α =>
       (d : ℝ)⁻¹.sqrt * ∑ k : Fin d, W j k.val * X α k
@@ -4930,14 +4930,14 @@ lemma input_empiricalCovariance_tendstoInMeasure
       (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
       Measure.infinitePi fun _ : ℕ =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) := by
+          (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := by
     simpa [Z] using map_infinitePi_input_preactivations d m X
   let f : ℕ → (ℕ → EuclideanSpace ℝ (Fin m)) → Matrix (Fin m) (Fin m) ℝ :=
     fun n z α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
       φ ((z j.val).ofLp α) * φ ((z j.val).ofLp β)
   let g : (ℕ → EuclideanSpace ℝ (Fin m)) → Matrix (Fin m) (Fin m) ℝ :=
     fun _ => layerCovarianceSeq 1 0 φ m
-      (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) 1
+      (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) 1
   have hf_meas : ∀ n, Measurable (f n) := by
     intro n
     refine measurable_pi_iff.2 fun α => measurable_pi_iff.2 fun β => ?_
@@ -4951,13 +4951,13 @@ lemma input_empiricalCovariance_tendstoInMeasure
           (measurable_pi_apply j.val)))
   have hbase := conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq
     m 0 φ hφ_cont C hC p hp hφ_growth
-      (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β))
+      (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β))
   have htransport := tendstoInMeasure_comp_measurePreserving
     (E := Fin m → Fin m → ℝ) hbase
     ({ measurable := hZ_meas, map_eq := hZ_map } : MeasurePreserving Z
       (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
       (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0
-        (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)))) hf_meas
+        (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)))) hf_meas
       (measurable_const : Measurable g)
   simpa [f, g, Z] using htransport
 
@@ -4977,7 +4977,7 @@ lemma deepEmpiricalCovariance_zero_tendstoInMeasure
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) 0 β j))
       Filter.atTop
       (fun _ => layerCovarianceSeq 1 0 φ m
-        (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) 1) := by
+        (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) 1) := by
   let T : (Fin L → ℕ → ℕ → ℝ) → ℕ → ℕ → ℝ := fun w => w ⟨0, hL⟩
   have hT : MeasurePreserving T
       (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
@@ -5004,8 +5004,8 @@ lemma deepEmpiricalCovariance_zero_tendstoInMeasure
   have htransport := tendstoInMeasure_comp_measurePreserving
     (E := Fin m → Fin m → ℝ) hbase hT hf
       (measurable_const : Measurable fun _ : ℕ → ℕ → ℝ =>
-        layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) 1)
-  simpa [T, deepPreactivation, hL, innerProduct, dotProduct] using htransport
+        layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) 1)
+  simpa [T, deepPreactivation, hL, dotProduct] using htransport
 
 /-- Restricting an infinite independent Gaussian weight population to its first `n` rows and
 columns gives the finite conditional Gaussian layer law.  This is the raw-population counterpart
@@ -5146,12 +5146,12 @@ a readout population. `deepPreactivation`'s `W : ℕ → ℕ → ℕ → ℝ` ar
 (`fun k => if h : k < L then q.1 ⟨k, h⟩ else 0`), written out at each site below rather than named,
 per the same "no extra top-level definitions" preference as the network construction above. -/
 
--- The base Gram matrix `(d)⁻¹ * (X α ⊙ X β)` built from the evaluation points is positive
+-- The base Gram matrix `(d)⁻¹ * (X α ⬝ᵥ X β)` built from the evaluation points is positive
 -- semidefinite: the `σw = 1, σb = 0` case of `empirical_layer_covariance_posSemidef_multivariate`,
 -- applied to the input rows themselves rather than to activated preactivations.
 private lemma inputGramMatrix_posSemidef (d m : ℕ) (X : Fin m → Fin d → ℝ) :
-    (show Matrix (Fin m) (Fin m) ℝ from fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)).PosSemidef := by
-  simpa [innerProduct] using
+    (show Matrix (Fin m) (Fin m) ℝ from fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)).PosSemidef := by
+  simpa [dotProduct] using
     empirical_layer_covariance_posSemidef_multivariate 1 0 d m (fun k α => X α k)
 
 /-- Given that the seed matrix `Φ0` is positive semidefinite, every term of the recursive
@@ -5177,7 +5177,7 @@ private lemma memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
 /-- **Theorem 2.13, Part 1 (Covariance Convergence in Probability).** As width `n → ∞`, the
 empirical covariance of the depth-`L` network's layer-`(ℓ+1)` post-activations converges in
 probability to the deterministic recursive kernel `layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)`, where
-`Φ0 α β := (d:ℝ)⁻¹ * (X α ⊙ X β)` is the base Gram matrix.
+`Φ0 α β := (d:ℝ)⁻¹ * (X α ⬝ᵥ X β)` is the base Gram matrix.
 
 The base-layer transport is `input_empiricalCovariance_tendstoInMeasure`.  The remaining proof
 must package the conditional Gaussian product law for a layer whose preceding empirical covariance
@@ -5195,7 +5195,7 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))
       Filter.atTop
-      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (ℓ + 1)) := by
+      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1)) := by
   induction ℓ with
   | zero =>
       exact deepEmpiricalCovariance_zero_tendstoInMeasure d m L φ hφ_cont C hC p hp
@@ -5205,7 +5205,7 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
       have hprevious := ih hℓ'
       obtain ⟨hφ_L2, hlimit_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
         m φ hφ_cont C hC p hp hφ_growth
-        (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (inputGramMatrix_posSemidef d m X)
+        (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (inputGramMatrix_posSemidef d m X)
       have hempirical_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
           (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
             φ (deepPreactivation d m n φ X
@@ -5234,8 +5234,8 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
                   (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)))
           Filter.atTop
           (fun _ => layerCovarianceSeq 1 0 φ m
-            (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (ℓ + 1 + 1)) := by
-        simpa [layerCovarianceSeq, innerProduct, dotProduct] using hmapped
+            (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1 + 1)) := by
+        simpa [layerCovarianceSeq, dotProduct] using hmapped
       apply tendstoInMeasure_trans ?_ hmean
       intro ε hε
       refine tendsto_matrixTail_of_tendsto_entrywise m ?_ ε hε
@@ -5264,7 +5264,7 @@ lemma measurable_deepPreactivation (d m n L : ℕ) (φ : ℝ → ℝ) (hφ_meas 
   induction ℓ generalizing α j with
   | zero =>
     simp only [deepPreactivation]
-    unfold innerProduct
+    unfold dotProduct
     refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
     exact ((measurable_pi_apply k.val).comp
       ((measurable_pi_apply j.val).comp (h_coord 0))).mul_const _
@@ -5487,7 +5487,7 @@ lemma tendsto_charFun_map_deepEval_of_covariance_tendsto
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j))
       Filter.atTop
-      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) :
+      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L)) :
     Filter.Tendsto (fun (n : ℕ) => charFun (Measure.map
         (fun (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) => WithLp.toLp 2 fun α : Fin m =>
           (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val * φ (deepPreactivation d m n φ X
@@ -5497,10 +5497,10 @@ lemma tendsto_charFun_map_deepEval_of_covariance_tendsto
           ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))) t)
       Filter.atTop
       (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) t)) := by
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L)) t)) := by
   obtain ⟨_, hΦr_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
     m φ hφ_cont C hC p hp hφ_growth
-    (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) (inputGramMatrix_posSemidef d m X)
+    (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (inputGramMatrix_posSemidef d m X)
   simp_rw [charFun_map_deepEval d m L φ hφ_cont.measurable X _ t]
   have h_comp := tendstoInMeasure_comp_of_continuousAt hP
     (continuous_charFun_integrand t).continuousAt
@@ -5529,7 +5529,7 @@ lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ)
           ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))) t)
       Filter.atTop
       (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) t)) := by
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L)) t)) := by
   have hL1 : L - 1 + 1 = L := by omega
   have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
     (L - 1) (by omega)
@@ -5553,7 +5553,7 @@ theorem tendstoInDistribution_deepEval_of_covariance_tendsto
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j))
       Filter.atTop
-      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) :
+      (fun _ => layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L)) :
     TendstoInDistribution
       (fun (n : ℕ) (q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ)) =>
         WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, q.2.1 j.val *
@@ -5564,7 +5564,7 @@ theorem tendstoInDistribution_deepEval_of_covariance_tendsto
           Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
         ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))
       (multivariateGaussian 0
-        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) where
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L)) where
   forall_aemeasurable n := (measurable_deepEval d m L φ hφ_cont.measurable X n).aemeasurable
   aemeasurable_limit := measurable_id.aemeasurable
   tendsto := by
@@ -5580,7 +5580,8 @@ theorem tendstoInDistribution_deepEval_of_covariance_tendsto
             (measurable_deepEval d m L φ hφ_cont.measurable X n).aemeasurable).mpr inferInstance⟩)
         Filter.atTop
         (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-          (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L), inferInstance⟩) := by
+          (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L),
+          inferInstance⟩) := by
       apply ProbabilityMeasure.tendsto_of_tendsto_charFun
       intro t
       exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X t hP
@@ -5632,7 +5633,7 @@ theorem tendstoInDistribution_deepEval
           Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
         ((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1)))
       (multivariateGaussian 0
-        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⊙ X β)) L)) := by
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) L)) := by
   have hL1 : L - 1 + 1 = L := by omega
   have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
     (L - 1) (by omega)
@@ -5813,47 +5814,47 @@ lemma measurable_fullNTK_summand {d : ℕ}
     (hderiv_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ) :
     Measurable (fun p : (Fin d → ℝ) × ℝ =>
-      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) := by
+      φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) := by
   have h_w : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1) := measurable_fst
   have h_a : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2) := measurable_snd
-  have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x) :=
+  have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x) :=
     (measurable_innerProduct_left x).comp h_w
-  have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x') :=
+  have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x') :=
     (measurable_innerProduct_left x').comp h_w
-  have h_φx : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x)) :=
+  have h_φx : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x)) :=
     hφ_meas.comp h_wx
-  have h_φx' : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x')) :=
+  have h_φx' : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x')) :=
     hφ_meas.comp h_wx'
-  have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x)) :=
+  have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⬝ᵥ x)) :=
     hderiv_meas.comp h_wx
-  have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x')) :=
+  have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⬝ᵥ x')) :=
     hderiv_meas.comp h_wx'
   have h_a2 : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2 ^ 2) :=
     (continuous_pow 2).measurable.comp h_a
-  exact (h_φx.mul h_φx').add (((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⊙ x'))
+  exact (h_φx.mul h_φx').add (((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⬝ᵥ x'))
 
 /-- Integrability of the full activation-plus-derivative single-neuron NTK summand
 under `singleNeuronMeasure d`. Follows from product-measure Fubini and independence of
 weights and readouts. -/
 lemma integrable_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hφ_int : Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d))
-    (hdφ_int : Integrable (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) (gaussianRowMeasure d)) :
+    (hφ_int : Integrable (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) (gaussianRowMeasure d))
+    (hdφ_int : Integrable (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) (gaussianRowMeasure d)) :
     Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       (singleNeuronMeasure d) := by
   dsimp [singleNeuronMeasure]
-  have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x'))
+  have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x'))
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
     hφ_int.comp_fst (gaussianReal 0 1)
   have h2_prod : Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2)
+      (deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) * p.2 ^ 2)
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
-    (hdφ_int.mul_const (x ⊙ x')).mul_prod integrable_sq_gaussianReal
+    (hdφ_int.mul_const (x ⬝ᵥ x')).mul_prod integrable_sq_gaussianReal
   have h2 : Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) := by
     refine h2_prod.congr (ae_of_all _ (fun p => ?_))
     ring
@@ -5862,13 +5863,13 @@ lemma integrable_fullNTK_summand {d : ℕ}
 /-- Integrability of the full NTK summand under `MemLp 2` hypotheses on `φ` and `deriv φ`. -/
 lemma integrable_fullNTK_summand_of_memLp {d : ℕ}
     (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hφ : MemLp (fun w => φ (w ⊙ x)) 2 (gaussianRowMeasure d))
-    (hφ' : MemLp (fun w => φ (w ⊙ x')) 2 (gaussianRowMeasure d))
-    (hdφ : MemLp (fun w => deriv φ (w ⊙ x)) 2 (gaussianRowMeasure d))
-    (hdφ' : MemLp (fun w => deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    (hφ : MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d))
+    (hφ' : MemLp (fun w => φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d))
+    (hdφ : MemLp (fun w => deriv φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d))
+    (hdφ' : MemLp (fun w => deriv φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) :
     Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       (singleNeuronMeasure d) :=
   integrable_fullNTK_summand φ x x' (hφ.integrable_mul hφ') (hdφ.integrable_mul hdφ')
 
@@ -5878,20 +5879,20 @@ Uses the fourth-moment Gaussian readout bound `integrable_pow_four_gaussianReal`
 lemma memLp_two_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (hdφ_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
-    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) :
     MemLp (fun p : (Fin d → ℝ) × ℝ =>
-      φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       2 (singleNeuronMeasure d) := by
   dsimp [singleNeuronMeasure]
-  have h1 : MemLp (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x')) 2
+  have h1 : MemLp (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x')) 2
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
     hφ_L2.comp_fst (gaussianReal 0 1)
-  have hd_scaled : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x')) 2
+  have hd_scaled : MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') * (x ⬝ᵥ x')) 2
       (gaussianRowMeasure d) :=
-    hdφ_L2.mul_const (x ⊙ x')
-  have hd_sq : Integrable (fun w => (deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x')) ^ 2)
+    hdφ_L2.mul_const (x ⬝ᵥ x')
+  have hd_sq : Integrable (fun w => (deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') * (x ⬝ᵥ x')) ^ 2)
       (gaussianRowMeasure d) :=
     (memLp_two_iff_integrable_sq hd_scaled.aestronglyMeasurable).1 hd_scaled
   have ha4 : Integrable (fun a : ℝ => (a ^ 2) ^ 2) (gaussianReal 0 1) := by
@@ -5899,32 +5900,32 @@ lemma memLp_two_fullNTK_summand {d : ℕ}
     rw [heq]
     exact integrable_pow_four_gaussianReal
   have h2_sq_prod : Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2 * (p.2 ^ 2) ^ 2)
+      (deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) ^ 2 * (p.2 ^ 2) ^ 2)
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
     hd_sq.mul_prod ha4
   have h2_sq : Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2)
+      (p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) ^ 2)
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) := by
     refine h2_sq_prod.congr (ae_of_all _ (fun p => ?_))
     dsimp
     ring
   have h_w : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1) := measurable_fst
   have h_a : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2) := measurable_snd
-  have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x) :=
+  have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x) :=
     (measurable_innerProduct_left x).comp h_w
-  have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⊙ x') :=
+  have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x') :=
     (measurable_innerProduct_left x').comp h_w
-  have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x)) :=
+  have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⬝ᵥ x)) :=
     hdφ_meas.comp h_wx
-  have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⊙ x')) :=
+  have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⬝ᵥ x')) :=
     hdφ_meas.comp h_wx'
   have h_a2 : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2 ^ 2) :=
     (continuous_pow 2).measurable.comp h_a
   have h2_meas : Measurable (fun p : (Fin d → ℝ) × ℝ =>
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) :=
-    ((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⊙ x')
+      p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) :=
+    ((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⬝ᵥ x')
   have h2 : MemLp (fun p : (Fin d → ℝ) × ℝ =>
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) 2
+      p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) 2
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
     (memLp_two_iff_integrable_sq h2_meas.aestronglyMeasurable).2 h2_sq
   exact h1.add h2
@@ -5934,11 +5935,11 @@ providing second-moment bounds needed for quantitative concentration and Chebysh
 lemma integrable_sq_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d))
-    (hdφ_L2 : MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d))
+    (hdφ_L2 : MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) :
     Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) ^ 2)
+      (φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) ^ 2)
       (singleNeuronMeasure d) := by
   have h_mem := memLp_two_fullNTK_summand φ hdφ_meas x x' hφ_L2 hdφ_L2
   have h_meas := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
@@ -5946,53 +5947,53 @@ lemma integrable_sq_fullNTK_summand {d : ℕ}
 
 /-- The expectation of the full single-neuron NTK summand under `singleNeuronMeasure d`
 equals the sum of the NNGP activation kernel entry and the derivative kernel entry
-scaled by the input inner product `x ⊙ x'`. -/
+scaled by the input inner product `x ⬝ᵥ x'`. -/
 lemma integral_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hφ_int : Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d))
-    (hdφ_int : Integrable (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) (gaussianRowMeasure d)) :
+    (hφ_int : Integrable (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) (gaussianRowMeasure d))
+    (hdφ_int : Integrable (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) (gaussianRowMeasure d)) :
     ∫ p : (Fin d → ℝ) × ℝ,
-      (φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      (φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       ∂(singleNeuronMeasure d) =
-      (∫ w, φ (w ⊙ x) * φ (w ⊙ x') ∂(gaussianRowMeasure d)) +
-        (∫ w, deriv φ (w ⊙ x) * deriv φ (w ⊙ x') ∂(gaussianRowMeasure d)) * (x ⊙ x') := by
+      (∫ w, φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x') ∂(gaussianRowMeasure d)) +
+        (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(gaussianRowMeasure d)) * (x ⬝ᵥ x') := by
   dsimp [singleNeuronMeasure]
-  have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⊙ x) * φ (p.1 ⊙ x'))
+  have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x'))
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
     hφ_int.comp_fst (gaussianReal 0 1)
   have h2_prod : Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2)
+      (deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) * p.2 ^ 2)
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) :=
-    (hdφ_int.mul_const (x ⊙ x')).mul_prod integrable_sq_gaussianReal
+    (hdφ_int.mul_const (x ⬝ᵥ x')).mul_prod integrable_sq_gaussianReal
   have h2 : Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x'))
+      p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       ((gaussianRowMeasure d).prod (gaussianReal 0 1)) := by
     refine h2_prod.congr (ae_of_all _ (fun p => ?_))
     ring
   rw [integral_add h1 h2]
-  have h_int1 : ∫ p : (Fin d → ℝ) × ℝ, φ (p.1 ⊙ x) * φ (p.1 ⊙ x')
+  have h_int1 : ∫ p : (Fin d → ℝ) × ℝ, φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x')
       ∂((gaussianRowMeasure d).prod (gaussianReal 0 1)) =
-      ∫ w, φ (w ⊙ x) * φ (w ⊙ x') ∂(gaussianRowMeasure d) := by
-    have hfst := integral_fun_fst (fun w => φ (w ⊙ x) * φ (w ⊙ x'))
+      ∫ w, φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x') ∂(gaussianRowMeasure d) := by
+    have hfst := integral_fun_fst (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x'))
       (μ := gaussianRowMeasure d) (ν := gaussianReal 0 1)
     rw [hfst]
     simp
   have h_int2 : ∫ p : (Fin d → ℝ) × ℝ,
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')
+      p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')
       ∂((gaussianRowMeasure d).prod (gaussianReal 0 1)) =
-      (∫ w, deriv φ (w ⊙ x) * deriv φ (w ⊙ x') ∂(gaussianRowMeasure d)) * (x ⊙ x') := by
+      (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(gaussianRowMeasure d)) * (x ⬝ᵥ x') := by
     have h_eq : (fun p : (Fin d → ℝ) × ℝ =>
-        p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) =
+        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) =
         (fun p : (Fin d → ℝ) × ℝ =>
-        (deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')) * p.2 ^ 2) := by
+        (deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) * p.2 ^ 2) := by
       ext p; ring
     rw [h_eq]
-    rw [integral_prod_mul (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x') * (x ⊙ x'))
+    rw [integral_prod_mul (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') * (x ⬝ᵥ x'))
       (fun a => a ^ 2)]
     rw [integral_sq_gaussianReal]
     rw [mul_one]
-    exact integral_mul_const (x ⊙ x') (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x'))
+    exact integral_mul_const (x ⬝ᵥ x') (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x'))
   rw [h_int1, h_int2]
 
 /-! ### Strong Law of Large Numbers for the Full NTK -/
@@ -6003,19 +6004,19 @@ Reuses the generalized `iid_average_tendsto_integral` from `Kernel.lean`. -/
 theorem fullNTKSummand_tendsto_integral {d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ)
-    (hφ_int : Integrable (fun w => φ (w ⊙ x) * φ (w ⊙ x')) (gaussianRowMeasure d))
-    (hdφ_int : Integrable (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) (gaussianRowMeasure d)) :
+    (hφ_int : Integrable (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) (gaussianRowMeasure d))
+    (hdφ_int : Integrable (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) (gaussianRowMeasure d)) :
     ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
       Filter.Tendsto
         (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
-          (φ ((seq j).1 ⊙ x) * φ ((seq j).1 ⊙ x') +
-            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ x) * deriv φ ((seq j).1 ⊙ x') * (x ⊙ x')))
+          (φ ((seq j).1 ⬝ᵥ x) * φ ((seq j).1 ⬝ᵥ x') +
+            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ x) * deriv φ ((seq j).1 ⬝ᵥ x') * (x ⬝ᵥ x')))
         Filter.atTop
-        (nhds ((∫ w, φ (w ⊙ x) * φ (w ⊙ x') ∂(gaussianRowMeasure d)) +
-          (∫ w, deriv φ (w ⊙ x) * deriv φ (w ⊙ x') ∂(gaussianRowMeasure d)) * (x ⊙ x'))) := by
+        (nhds ((∫ w, φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x') ∂(gaussianRowMeasure d)) +
+          (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(gaussianRowMeasure d)) * (x ⬝ᵥ x'))) := by
   set g := fun p : (Fin d → ℝ) × ℝ =>
-    φ (p.1 ⊙ x) * φ (p.1 ⊙ x') +
-      p.2 ^ 2 * deriv φ (p.1 ⊙ x) * deriv φ (p.1 ⊙ x') * (x ⊙ x')
+    φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
+      p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')
   have hg_meas : Measurable g := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
   have hg_int : Integrable g (singleNeuronMeasure d) :=
     integrable_fullNTK_summand φ x x' hφ_int hdφ_int
@@ -6030,31 +6031,31 @@ theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ X α) * φ (w ⊙ X β)) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β)) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β)) (gaussianRowMeasure d)) :
     ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
       Filter.Tendsto
         (fun n : ℕ => ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-          (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
-            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
-              (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ))
+          (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
+            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
+              (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ))
         Filter.atTop
         (nhds ((fun α β =>
-          (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
-            (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
-              (X α ⊙ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
+          (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) +
+            (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) *
+              (X α ⬝ᵥ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_entry : ∀ α β : Fin m,
       ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
         Filter.Tendsto
           (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
-            (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
-              (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
-                (X α ⊙ X β)))
+            (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
+              (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
+                (X α ⬝ᵥ X β)))
           Filter.atTop
-          (nhds ((∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
-            (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
-              (X α ⊙ X β))) :=
+          (nhds ((∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) +
+            (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) *
+              (X α ⬝ᵥ X β))) :=
     fun α β => fullNTKSummand_tendsto_integral φ hφ_meas hdφ_meas (X α) (X β)
       (hφ_int α β) (hdφ_int α β)
   have h_all :
@@ -6062,13 +6063,13 @@ theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
         ∀ α β : Fin m,
           Filter.Tendsto
             (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
-              (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
-                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
-                  (X α ⊙ X β)))
+              (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
+                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
+                  (X α ⬝ᵥ X β)))
             Filter.atTop
-            (nhds ((∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
-              (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
-                (X α ⊙ X β))) := by
+            (nhds ((∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) +
+              (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) *
+                (X α ⬝ᵥ X β))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with seq hseq
@@ -6080,27 +6081,27 @@ theorem fullNTKMatrix_scaled_dataset_tendsto_integral {m d : ℕ} (hd : 0 < d)
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
     ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
       Filter.Tendsto
         (fun n : ℕ => ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-          (φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-             φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+          (φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+             φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
             (seq j).2 ^ 2 *
-              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-              ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ))
+              deriv φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+              deriv φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+              ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)))) : Matrix (Fin m) (Fin m) ℝ))
         Filter.atTop
         (nhds ((fun α β =>
-          (∫ w, φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-            φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) +
-            (∫ w, deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-              deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) *
-                ((d : ℝ)⁻¹ * (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
+          (∫ w, φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+            φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) +
+            (∫ w, deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+              deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) *
+                ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_base := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas
     (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
   simp_rw [innerProduct_scaled_dataset d hd] at h_base
@@ -6112,25 +6113,25 @@ theorem fullNTKMatrix_norm_sub_tendsto_zero {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ X α) * φ (w ⊙ X β)) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β)) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β)) (gaussianRowMeasure d)) :
     ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
       Filter.Tendsto
         (fun n : ℕ =>
           ‖((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-              (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
-                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
-                  (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ) -
+              (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
+                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
+                  (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ) -
             ((fun α β =>
-              (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
-                (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
-                  (X α ⊙ X β)) : Matrix (Fin m) (Fin m) ℝ)‖)
+              (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) +
+                (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) *
+                  (X α ⬝ᵥ X β)) : Matrix (Fin m) (Fin m) ℝ)‖)
         Filter.atTop
         (nhds 0) := by
   set L : Matrix (Fin m) (Fin m) ℝ := fun α β =>
-    (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
-      (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) * (X α ⊙ X β)
+    (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) +
+      (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) * (X α ⬝ᵥ X β)
   have h := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas X hφ_int hdφ_int
   filter_upwards [h] with seq hseq
   have h_sub := hseq.sub (tendsto_const_nhds (x := L))
@@ -6143,21 +6144,21 @@ theorem fullNTKMatrix_tendstoInMeasure {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ X α) * φ (w ⊙ X β)) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β)) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β)) (gaussianRowMeasure d)) :
     TendstoInMeasure
       (Measure.infinitePi fun _ : ℕ => singleNeuronMeasure d)
       (fun n : ℕ => fun seq : ℕ → (Fin d → ℝ) × ℝ =>
         ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-          (φ ((seq j).1 ⊙ X α) * φ ((seq j).1 ⊙ X β) +
-            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⊙ X α) * deriv φ ((seq j).1 ⊙ X β) *
-              (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ))
+          (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
+            (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
+              (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ))
       Filter.atTop
       (fun _ => ((fun α β =>
-        (∫ w, φ (w ⊙ X α) * φ (w ⊙ X β) ∂(gaussianRowMeasure d)) +
-          (∫ w, deriv φ (w ⊙ X α) * deriv φ (w ⊙ X β) ∂(gaussianRowMeasure d)) *
-            (X α ⊙ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
+        (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) +
+          (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) *
+            (X α ⬝ᵥ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
   apply tendstoInMeasure_of_tendsto_ae
   · intro n
     refine (measurable_pi_iff.2 fun α => measurable_pi_iff.2 fun β => ?_).aestronglyMeasurable
@@ -6174,41 +6175,42 @@ theorem fullNTKMatrix_scaled_dataset_tendstoInMeasure {m d : ℕ} (hd : 0 < d)
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
     TendstoInMeasure
       (Measure.infinitePi fun _ : ℕ => singleNeuronMeasure d)
       (fun n : ℕ => fun seq : ℕ → (Fin d → ℝ) × ℝ =>
         ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-          (φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-             φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+          (φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+             φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
             (seq j).2 ^ 2 *
-              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-              deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-              ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ))
+              deriv φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+              deriv φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+              ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)))) : Matrix (Fin m) (Fin m) ℝ))
       Filter.atTop
       (fun _ => ((fun α β =>
-        (∫ w, φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-          φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) +
-          (∫ w, deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-            deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) *
-              ((d : ℝ)⁻¹ * (X α ⊙ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
+        (∫ w, φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+          φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) +
+          (∫ w, deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+            deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) ∂(gaussianRowMeasure d)) *
+              ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_base := fullNTKMatrix_tendstoInMeasure φ hφ_meas hdφ_meas
     (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
   simp_rw [innerProduct_scaled_dataset d hd] at h_base
   exact h_base
 
 /-- The deterministic limiting full NTK Gram matrix on dataset `X` with input dimension `d`:
-  `Θ_∞ = limitingCovariance φ scaledX + (d⁻¹ • (X ⬝ Xᵀ)) ⊙ limitingCovariance (deriv φ) scaledX`. -/
+  `Θ_∞ = limitingCovariance φ scaledX + (d⁻¹ • (X Xᵀ)) ∘ limitingCovariance (deriv φ) scaledX`,
+  where `∘` is the entrywise (Hadamard) product. -/
 noncomputable def limitingFullNTKMatrix {m d : ℕ}
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) : Matrix (Fin m) (Fin m) ℝ :=
   fun α β =>
     limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β +
       limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β *
-        ((d : ℝ)⁻¹ * (X α ⊙ X β))
+        ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))
 
 /-- Equation lemma for `limitingFullNTKMatrix`. -/
 lemma limitingFullNTKMatrix_apply {m d : ℕ}
@@ -6216,7 +6218,7 @@ lemma limitingFullNTKMatrix_apply {m d : ℕ}
     limitingFullNTKMatrix φ X α β =
       limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β +
         limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β *
-          ((d : ℝ)⁻¹ * (X α ⊙ X β)) := rfl
+          ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := rfl
 
 /-- The limiting full NTK Gram matrix is symmetric (Hermitian). -/
 lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
@@ -6267,10 +6269,10 @@ theorem limitingFullNTKMatrix_posSemidef {m d : ℕ}
     (hφ_meas : Measurable φ)
     (hdφ_meas : Measurable (deriv φ))
     (hφ_L2 : ∀ α : Fin m,
-      MemLp (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+      MemLp (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
         2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α : Fin m,
-      MemLp (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+      MemLp (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
         2 (gaussianRowMeasure d)) :
     (limitingFullNTKMatrix φ X).PosSemidef := by
   set scaledX : Matrix (Fin m) (Fin d) ℝ := fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k
@@ -6292,25 +6294,26 @@ theorem limitingFullNTKMatrix_posSemidef {m d : ℕ}
   exact h_sum
 
 /-- **Strict positive definiteness of the NNGP covariance from feature independence.** If the
-features `w ↦ φ(w ⊙ X α)` are linearly independent modulo Gaussian-null sets -- no nontrivial
-combination `∑ α, u α * φ (w ⊙ X α)` vanishes `gaussianRowMeasure d`-almost everywhere -- then
+features `w ↦ φ(w ⬝ᵥ X α)` are linearly independent modulo Gaussian-null sets -- no nontrivial
+combination `∑ α, u α * φ (w ⬝ᵥ X α)` vanishes `gaussianRowMeasure d`-almost everywhere -- then
 `limitingCovariance φ X` is positive definite. The argument is the quadratic-form identity
-`u ⬝ᵥ Φ u = 𝔼[(∑ α, u α φ(w ⊙ X α))²]`, which is positive as soon as the square is not a.e. zero. -/
+`u ⬝ᵥ Φ u = 𝔼[(∑ α, u α φ(w ⬝ᵥ X α))²]`, which is positive as soon as the square is not
+a.e. zero. -/
 theorem limitingCovariance_posDef_of_ae_independent {m d : ℕ}
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     (hind : ∀ u : Fin m → ℝ,
-      (∀ᵐ w ∂(gaussianRowMeasure d), ∑ α : Fin m, u α * φ (w ⊙ X α) = 0) → u = 0) :
+      (∀ᵐ w ∂(gaussianRowMeasure d), ∑ α : Fin m, u α * φ (w ⬝ᵥ X α) = 0) → u = 0) :
     (limitingCovariance φ X).PosDef := by
   refine Matrix.posDef_iff_dotProduct_mulVec.2 ⟨limitingCovariance_isHermitian φ X, ?_⟩
   intro c hc
   have hq : star c ⬝ᵥ (limitingCovariance φ X) *ᵥ c =
-      ∫ w, (∑ α : Fin m, c α * φ (w ⊙ X α)) ^ 2 ∂(gaussianRowMeasure d) := by
+      ∫ w, (∑ α : Fin m, c α * φ (w ⬝ᵥ X α)) ^ 2 ∂(gaussianRowMeasure d) := by
     rw [← sum_sum_mul_limitingCovariance_eq_integral_sq φ X hφ_L2 c]
     simp only [star_trivial, dotProduct, Matrix.mulVec, Finset.mul_sum]
     exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring
   rw [hq]
-  have hg : MemLp (fun w => ∑ α : Fin m, c α * φ (w ⊙ X α)) 2 (gaussianRowMeasure d) :=
+  have hg : MemLp (fun w => ∑ α : Fin m, c α * φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d) :=
     memLp_finsetSum _ fun α _ => (hφ_L2 α).const_mul (c α)
   rw [integral_pos_iff_support_of_nonneg_ae (Filter.Eventually.of_forall fun w => sq_nonneg _)
     hg.integrable_sq]
@@ -6320,21 +6323,21 @@ theorem limitingCovariance_posDef_of_ae_independent {m d : ℕ}
   exact hw (pow_ne_zero 2 hne)
 
 /-- **The limiting full NTK is positive definite under feature independence.**
-`K_∞ = Φ_φ + Φ_{φ'} ⊙ (X Xᵀ / d)` with the second summand positive semidefinite (Schur product), so
+`K_∞ = Φ_φ + Φ_{φ'} ⬝ᵥ (X Xᵀ / d)` with the second summand positive semidefinite (Schur product), so
 `K_∞` is positive definite as soon as `Φ_φ` is
-(`limitingCovariance_posDef_of_ae_independent`). Independence of the *values* `φ(w ⊙ X α)` is the
+(`limitingCovariance_posDef_of_ae_independent`). Independence of the *values* `φ(w ⬝ᵥ X α)` is the
 relevant hypothesis; the derivative term only helps. -/
 theorem limitingFullNTKMatrix_posDef_of_ae_independent {m d : ℕ}
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (hdφ_meas : Measurable (deriv φ))
     (hφ_L2 : ∀ α : Fin m,
-      MemLp (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+      MemLp (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
         2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α : Fin m,
-      MemLp (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
+      MemLp (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))
         2 (gaussianRowMeasure d))
     (hind : ∀ u : Fin m → ℝ,
       (∀ᵐ w ∂(gaussianRowMeasure d),
-        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
+        ∑ α : Fin m, u α * φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
     (limitingFullNTKMatrix φ X).PosDef := by
   set scaledX : Matrix (Fin m) (Fin d) ℝ := fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k
   rw [limitingFullNTKMatrix_eq_add_hadamard]
@@ -6350,7 +6353,7 @@ the remaining (sufficiency) content is exactly the independence hypothesis. -/
 theorem injective_of_ae_independent {m d : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hind : ∀ u : Fin m → ℝ,
       (∀ᵐ w ∂(gaussianRowMeasure d),
-        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
+        ∑ α : Fin m, u α * φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
     Function.Injective X := by
   intro α β hαβ
   by_contra hne
@@ -6365,21 +6368,21 @@ theorem fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix {m d : ℕ} (
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
     ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
       Filter.Tendsto
         (fun n : ℕ =>
           ((fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-              (φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-                 φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+              (φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+                 φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
                (seq j).2 ^ 2 *
-                 deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-                 deriv φ ((seq j).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-                 ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ))
+                 deriv φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+                 deriv φ ((seq j).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+                 ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)))) : Matrix (Fin m) (Fin m) ℝ))
         Filter.atTop
         (nhds (limitingFullNTKMatrix φ X)) :=
   fullNTKMatrix_scaled_dataset_tendsto_integral hd φ hφ_meas hdφ_meas X hφ_int hdφ_int
@@ -6399,11 +6402,11 @@ This moment is the core quantitative constant in:
 noncomputable def fullNTKSummandSecondMoment (d : ℕ) (φ : ℝ → ℝ)
     {m : ℕ} (X : Fin m → Fin d → ℝ) (α β : Fin m) : ℝ :=
   ∫ u : (Fin d → ℝ) × ℝ,
-    (φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-       φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
-     u.2 ^ 2 * deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-       deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-       ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) ^ 2
+    (φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+     u.2 ^ 2 * deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+       ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) ^ 2
     ∂(singleNeuronMeasure d)
 
 lemma fullNTKSummandSecondMoment_nonneg (d : ℕ) (φ : ℝ → ℝ) {m : ℕ} (X : Fin m → Fin d → ℝ)
@@ -6415,18 +6418,18 @@ the limiting full NTK matrix entry `limitingFullNTKMatrix φ X α β`. -/
 lemma integral_fullNTK_summand_scaled_dataset_eq_limiting {m d : ℕ} (hd : 0 < d)
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+      Integrable (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
     (α β : Fin m) :
     ∫ u : (Fin d → ℝ) × ℝ,
-      (φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-         φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
-       u.2 ^ 2 * deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-         deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-         ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)))
+      (φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+         φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+       u.2 ^ 2 * deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+         deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+         ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)))
       ∂(singleNeuronMeasure d) =
       limitingFullNTKMatrix φ X α β := by
   have h := integral_fullNTK_summand φ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)

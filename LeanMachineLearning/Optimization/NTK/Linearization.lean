@@ -49,6 +49,7 @@ Two regimes are handled separately:
 @[expose] public section
 
 open Real MeasureTheory ProbabilityTheory NNReal Filter
+open scoped Matrix
 
 set_option linter.style.longLine false
 
@@ -195,7 +196,7 @@ theorem smoothLinearizationBound
     (hσ : BetaSmooth σ β)
     (net : ShallowNetwork σ d m)
     (x : Fin d → ℝ)
-    (hx : x ⊙ x ≤ 1)
+    (hx : x ⬝ᵥ x ≤ 1)
     (W V : Fin m → Fin d → ℝ) :
     |net.eval x W - linearization (σ := σ) (σ' := deriv σ) net.outerCoeffs x V W|
     ≤ β / (2 * Real.sqrt m) * Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
@@ -267,9 +268,9 @@ theorem smoothLinearizationBound
     Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun k => W j k - V j k) x
   have h_cs_sum : ∑ j : Fin m, (∑ k, (W j k - V j k) * x k)^2 ≤
     ∑ j : Fin m, ((∑ k, (W j k - V j k)^2) * (∑ k, (x k)^2)) := Finset.sum_le_sum fun j _ => h_cs j
-  have h_x_bound : ∑ k : Fin d, (x k)^2 = x ⊙ x := (innerProduct_self_eq_sum_sq x).symm
-  have h_frob : ∑ j : Fin m, (∑ k, (W j k - V j k)^2) * (x ⊙ x)
-    = (∑ j : Fin m, ∑ k, (W j k - V j k)^2) * (x ⊙ x) := by rw [← Finset.sum_mul]
+  have h_x_bound : ∑ k : Fin d, (x k)^2 = x ⬝ᵥ x := (innerProduct_self_eq_sum_sq x).symm
+  have h_frob : ∑ j : Fin m, (∑ k, (W j k - V j k)^2) * (x ⬝ᵥ x)
+    = (∑ j : Fin m, ∑ k, (W j k - V j k)^2) * (x ⬝ᵥ x) := by rw [← Finset.sum_mul]
   have h_frob_def :
       ∑ j : Fin m, ∑ k, (W j k - V j k)^2 =
         Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
@@ -304,10 +305,10 @@ theorem smoothLinearizationBound
           (mul_le_mul_of_nonneg_left h_cs_sum h_beta_div)
           h_m_pos
       _ = (m : ℝ)⁻¹.sqrt *
-          (β / 2 * ((Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2) * (x ⊙ x))) := by
+          (β / 2 * ((Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2) * (x ⬝ᵥ x))) := by
         congr 2
         rw [h_x_bound, h_frob]
-        exact congrArg (fun z => z * (x ⊙ x)) h_frob_def
+        exact congrArg (fun z => z * (x ⬝ᵥ x)) h_frob_def
       _ ≤ (m : ℝ)⁻¹.sqrt *
           (β / 2 * ((Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2) * 1)) := by
         have h_frob_nonneg :
@@ -332,7 +333,7 @@ theorem smoothLinearizationBound
   `signAmbiguous τ x W₀ = {j : |wⱼ₀ᵀx| ≤ τ‖x‖}`. -/
 noncomputable def signAmbiguous (τ : ℝ) (x : Fin d → ℝ) (W₀ : Fin m → Fin d → ℝ) : Finset (Fin m) :=
   Finset.univ.filter (fun j =>
-    |∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⊙ x))
+    |∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x))
 
 /-- The linear map sending a row vector `w` to the dot product `∑ k, w k * x k`. -/
 noncomputable def dotMap {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →ₗ[ℝ] ℝ where
@@ -351,7 +352,7 @@ under a linear map $w \mapsto w^\top x$ is a 1D Gaussian with mean 0 and varianc
 (Source: Vershynin, R. "High-Dimensional Probability", Theorem 3.3.6). -/
 lemma map_gaussianRowMeasure_dot {d : ℕ} (x : Fin d → ℝ) :
     Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d) =
-      gaussianReal 0 (Real.toNNReal (x ⊙ x)) := by
+      gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := by
   have h_eq : (fun w : Fin d → ℝ => ∑ k, w k * x k) =
       (fun (v : EuclideanSpace ℝ (Fin d)) => innerSL ℝ (WithLp.toLp 2 x) v) ∘ (WithLp.toLp 2) := by
     ext w
@@ -367,7 +368,7 @@ lemma map_gaussianRowMeasure_dot {d : ℕ} (x : Fin d → ℝ) :
       rw [(innerSL ℝ (WithLp.toLp 2 x)).integral_comp_id_comm IsGaussian.integrable_id]
       rw [integral_id_stdGaussian]
       exact map_zero (innerSL ℝ (WithLp.toLp 2 x))
-    have h_var : Var[innerSL ℝ (WithLp.toLp 2 x); stdGaussian (EuclideanSpace ℝ (Fin d))] = x ⊙ x := by
+    have h_var : Var[innerSL ℝ (WithLp.toLp 2 x); stdGaussian (EuclideanSpace ℝ (Fin d))] = x ⬝ᵥ x := by
       rw [variance_dual_stdGaussian]
       rw [innerSL_apply_norm]
       rw [norm_sq_eq_innerProduct (WithLp.toLp 2 x)]
@@ -428,35 +429,35 @@ lemma gaussianReal_Icc_bound (v : ℝ≥0) (hv : 0 < v) (a : ℝ) (ha : 0 ≤ a)
   exact h2.trans_eq h3
 
 
-lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⊙ x) (τ : ℝ) (hτ : 0 < τ) :
-    (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} ≤ τ := by
+lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ x) (τ : ℝ) (hτ : 0 < τ) :
+    (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} ≤ τ := by
   have h_map := map_gaussianRowMeasure_dot x
-  have h_prob_eq : (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} =
-      (gaussianReal 0 (Real.toNNReal (x ⊙ x))).real {z | |z| ≤ τ * Real.sqrt (x ⊙ x)} := by
-    have h_set : {z : ℝ | |z| ≤ τ * Real.sqrt (x ⊙ x)} = Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x)) := by ext z; simp [abs_le]
+  have h_prob_eq : (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
+      (gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x))).real {z | |z| ≤ τ * Real.sqrt (x ⬝ᵥ x)} := by
+    have h_set : {z : ℝ | |z| ≤ τ * Real.sqrt (x ⬝ᵥ x)} = Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x)) := by ext z; simp [abs_le]
     have h_meas : Measurable (fun w : Fin d → ℝ => ∑ k, w k * x k) := (dotCLM x).continuous.measurable
-    have h_preimage : {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} =
-      (fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))) := by ext w; simp [abs_le]
+    have h_preimage : {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
+      (fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by ext w; simp [abs_le]
     rw [h_preimage]
-    have h_map_apply : (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)) (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))) =
-      (gaussianRowMeasure d) ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x)))) :=
+    have h_map_apply : (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)) (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) =
+      (gaussianRowMeasure d) ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x)))) :=
         Measure.map_apply h_meas measurableSet_Icc
-    have h_real_eq : ((gaussianRowMeasure d).real ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))))) =
-      (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)).real (Set.Icc (- (τ * Real.sqrt (x ⊙ x))) (τ * Real.sqrt (x ⊙ x))) := by
+    have h_real_eq : ((gaussianRowMeasure d).real ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))))) =
+      (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)).real (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by
       exact congr_arg ENNReal.toReal h_map_apply.symm
     rw [h_real_eq, h_map, ← h_set]
-  have h_bound := gaussianReal_Icc_bound (Real.toNNReal (x ⊙ x)) (Real.toNNReal_pos.mpr hx)
-    (τ * Real.sqrt (x ⊙ x)) (mul_nonneg hτ.le (Real.sqrt_nonneg _))
-  have h_simp : 2 * (τ * Real.sqrt (x ⊙ x)) / Real.sqrt (2 * Real.pi * Real.toNNReal (x ⊙ x)) = τ * Real.sqrt (2 / Real.pi) := by
-    have h_toNNReal : (Real.toNNReal (x ⊙ x) : ℝ) = x ⊙ x := Real.coe_toNNReal _ hx.le
+  have h_bound := gaussianReal_Icc_bound (Real.toNNReal (x ⬝ᵥ x)) (Real.toNNReal_pos.mpr hx)
+    (τ * Real.sqrt (x ⬝ᵥ x)) (mul_nonneg hτ.le (Real.sqrt_nonneg _))
+  have h_simp : 2 * (τ * Real.sqrt (x ⬝ᵥ x)) / Real.sqrt (2 * Real.pi * Real.toNNReal (x ⬝ᵥ x)) = τ * Real.sqrt (2 / Real.pi) := by
+    have h_toNNReal : (Real.toNNReal (x ⬝ᵥ x) : ℝ) = x ⬝ᵥ x := Real.coe_toNNReal _ hx.le
     rw [h_toNNReal]
-    have h_sqrt_mul : Real.sqrt (2 * Real.pi * (x ⊙ x)) = Real.sqrt (2 * Real.pi) * Real.sqrt (x ⊙ x) :=
-      Real.sqrt_mul (by positivity) (x ⊙ x)
+    have h_sqrt_mul : Real.sqrt (2 * Real.pi * (x ⬝ᵥ x)) = Real.sqrt (2 * Real.pi) * Real.sqrt (x ⬝ᵥ x) :=
+      Real.sqrt_mul (by positivity) (x ⬝ᵥ x)
     rw [h_sqrt_mul]
-    have h1 : 2 * (τ * Real.sqrt (x ⊙ x)) / (Real.sqrt (2 * Real.pi) * Real.sqrt (x ⊙ x)) =
-              (τ * (2 / Real.sqrt (2 * Real.pi))) * (Real.sqrt (x ⊙ x) / Real.sqrt (x ⊙ x)) := by ring
+    have h1 : 2 * (τ * Real.sqrt (x ⬝ᵥ x)) / (Real.sqrt (2 * Real.pi) * Real.sqrt (x ⬝ᵥ x)) =
+              (τ * (2 / Real.sqrt (2 * Real.pi))) * (Real.sqrt (x ⬝ᵥ x) / Real.sqrt (x ⬝ᵥ x)) := by ring
     rw [h1]
-    have h_sqrt_pos : 0 < Real.sqrt (x ⊙ x) := Real.sqrt_pos.mpr hx
+    have h_sqrt_pos : 0 < Real.sqrt (x ⬝ᵥ x) := Real.sqrt_pos.mpr hx
     rw [div_self h_sqrt_pos.ne', mul_one]
     have h2 : 2 / Real.sqrt (2 * Real.pi) = Real.sqrt (2 / Real.pi) := by
       have h_two : (2 : ℝ) = Real.sqrt 2 * Real.sqrt 2 := (Real.mul_self_sqrt (by positivity)).symm
@@ -569,7 +570,7 @@ For any `τ > 0` and `δ ∈ (0,1)`, with probability at least `1 − δ` over `
 **Proof:** Each indicator is Bernoulli with mean `≤ τ` (Gaussian density bound);
 apply Hoeffding's inequality to the i.i.d. sum. -/
 theorem reluSignConcentration
-    (x : Fin d → ℝ) (hx : 0 < x ⊙ x)
+    (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ x)
     (τ : ℝ) (hτ : 0 < τ)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     (gaussianInit m d).real {W₀ |
@@ -592,12 +593,12 @@ theorem reluSignConcentration
   have : IsProbabilityMeasure (gaussianRowMeasure d) := by
     dsimp [gaussianRowMeasure]
     infer_instance
-  have hS_meas : MeasurableSet {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} := by
+  have hS_meas : MeasurableSet {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} := by
     apply measurableSet_le
     · exact (Measurable.norm (dotCLM x).continuous.measurable)
     · exact measurable_const
   have h_hoeffding := hoeffding_indicators_pi m (gaussianRowMeasure d)
-    {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⊙ x)} hS_meas τ h_prob
+    {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} hS_meas τ h_prob
     (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) h_t_nonneg
   have h_one_lt_div : 1 ≤ 1 / δ := (le_div_iff₀ hδ).mpr (by linarith)
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg h_one_lt_div
@@ -647,27 +648,27 @@ lemma sign_preserved_outside_badSet
   have hA := hj_ambig (Finset.mem_univ j)
   rw [largePerturb, Finset.mem_filter, not_and, not_le] at hj_perturb
   have hB := hj_perturb (Finset.mem_univ j)
-  have h_CS_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⊙ x) := by
+  have h_CS_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⬝ᵥ x) := by
     have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun k => W j k - W₀ j k) x
-    have h_dot : ∑ k : Fin d, x k ^ 2 = x ⊙ x := by
+    have h_dot : ∑ k : Fin d, x k ^ 2 = x ⬝ᵥ x := by
       apply Finset.sum_congr rfl
       intro k _
       ring
     rwa [h_dot] at this
-  have h_CS : |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⊙ x) := by
+  have h_CS : |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⬝ᵥ x) := by
     have h_nonneg_1 : 0 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := Finset.sum_nonneg (fun k _ => sq_nonneg _)
     rw [← Real.sqrt_mul h_nonneg_1]
     have h_sqrt := Real.sqrt_le_sqrt h_CS_sq
     rw [Real.sqrt_sq_eq_abs] at h_sqrt
     exact h_sqrt
-  have h_diff_bound : |∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⊙ x) := by
+  have h_diff_bound : |∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x) := by
     have h_eq : ∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k = ∑ k : Fin d, (W j k - W₀ j k) * x k := by
       rw [← Finset.sum_sub_distrib]
       apply Finset.sum_congr rfl
       intro k _
       ring
     rw [h_eq]
-    have h_le : Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⊙ x) ≤ τ * Real.sqrt (x ⊙ x) := by
+    have h_le : Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⬝ᵥ x) ≤ τ * Real.sqrt (x ⬝ᵥ x) := by
       exact mul_le_mul_of_nonneg_right hB.le (Real.sqrt_nonneg _)
     exact h_CS.trans h_le
   have h_abs_diff : |∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k| < |∑ k : Fin d, W₀ j k * x k| :=
@@ -807,28 +808,28 @@ lemma relu_error_sum_le
       nlinarith [abs_nonneg (relu (∑ k, W j k * x k) - reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)]
 
 lemma relu_error_cs_bound
-    {d m : ℕ} (x : Fin d → ℝ) (hx : x ⊙ x ≤ 1)
+    {d m : ℕ} (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (W W₀ : Fin m → Fin d → ℝ) (B : ℝ)
     (h_frob : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B)
     (S : Finset (Fin m)) :
     ∑ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (S.card : ℝ) * B := by
   have h_cs1 : ∀ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by
     intro j _
-    have h_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⊙ x) := by
+    have h_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⬝ᵥ x) := by
       have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun k => W j k - W₀ j k) x
-      have h_dot : ∑ k : Fin d, x k ^ 2 = x ⊙ x := by
+      have h_dot : ∑ k : Fin d, x k ^ 2 = x ⬝ᵥ x := by
         apply Finset.sum_congr rfl
         intro k _
         ring
       rwa [h_dot] at this
     have h_nonneg1 : 0 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := Finset.sum_nonneg (fun k _ => sq_nonneg _)
-    have h_nonneg2 : 0 ≤ x ⊙ x := Finset.sum_nonneg (fun k _ => mul_self_nonneg (x k))
+    have h_nonneg2 : 0 ≤ x ⬝ᵥ x := Finset.sum_nonneg (fun k _ => mul_self_nonneg (x k))
     have h_sqrt := Real.sqrt_le_sqrt h_sq
     rw [Real.sqrt_sq_eq_abs, Real.sqrt_mul h_nonneg1] at h_sqrt
-    have h_x1 : Real.sqrt (x ⊙ x) ≤ 1 := by
-      have : Real.sqrt (x ⊙ x) ≤ Real.sqrt 1 := Real.sqrt_le_sqrt hx
+    have h_x1 : Real.sqrt (x ⬝ᵥ x) ≤ 1 := by
+      have : Real.sqrt (x ⬝ᵥ x) ≤ Real.sqrt 1 := Real.sqrt_le_sqrt hx
       rwa [Real.sqrt_one] at this
-    nlinarith [Real.sqrt_nonneg (∑ k : Fin d, (W j k - W₀ j k) ^ 2), Real.sqrt_nonneg (x ⊙ x)]
+    nlinarith [Real.sqrt_nonneg (∑ k : Fin d, (W j k - W₀ j k) ^ 2), Real.sqrt_nonneg (x ⬝ᵥ x)]
   have h_sum_le : ∑ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ ∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) :=
     Finset.sum_le_sum h_cs1
   have h_cs2 : (∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2))^2 ≤ (S.card : ℝ) * (∑ j ∈ S, ∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by
@@ -1091,7 +1092,7 @@ lemma reluLinearization_algebraic_bound
       rw [h1]
       ring
 
-lemma innerProduct_eq_zero_iff_eq_zero {d : ℕ} (x : Fin d → ℝ) : x ⊙ x = 0 ↔ x = 0 := by
+lemma innerProduct_eq_zero_iff_eq_zero {d : ℕ} (x : Fin d → ℝ) : x ⬝ᵥ x = 0 ↔ x = 0 := by
   rw [← norm_sq_eq_innerProduct (WithLp.toLp 2 x)]; simp
 
 lemma sqrt_sum_sq_eq_zero {d m : ℕ} (W : Fin m → Fin d → ℝ) :
@@ -1138,7 +1139,7 @@ With probability at least `1 − δ` over `W₀`, for every `W` with `‖W − W
    Cauchy-Schwarz gives the stated bound. -/
 theorem reluLinearizationBound
     (net : ReLUNetwork d m)
-    (x : Fin d → ℝ) (hx : x ⊙ x ≤ 1)
+    (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     1 - δ ≤ (gaussianInit m d).real {W₀ |
@@ -1151,10 +1152,10 @@ theorem reluLinearizationBound
   have : IsProbabilityMeasure (gaussianRowMeasure d) := by unfold gaussianRowMeasure; infer_instance
   have : IsProbabilityMeasure (gaussianInit m d) := by unfold gaussianInit; infer_instance
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
-  by_cases hx_pos : 0 < x ⊙ x
+  by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
   · -- x = 0 case
-    have hx_zero_norm : x ⊙ x = 0 := le_antisymm (not_lt.mp hx_pos) (innerProduct_self_nonneg x)
+    have hx_zero_norm : x ⬝ᵥ x = 0 := le_antisymm (not_lt.mp hx_pos) (innerProduct_self_nonneg x)
     have hx_zero : x = 0 := (innerProduct_eq_zero_iff_eq_zero x).mp hx_zero_norm
     subst hx_zero
     apply measure_ge_one_sub_delta_of_univ hδ
@@ -1347,7 +1348,7 @@ private lemma relu_secondOrder_scaling_bound
   `|f(x; V) − (f(x; W) + ⟨∇_W f(x; W), V − W⟩_F)| ≤ (6B^{4/3} + 3B·(ln(1/δ))^{1/4}) / m^{1/6}`. -/
 theorem reluLinearizationBound_secondOrder
     (net : ReLUNetwork d m)
-    (x : Fin d → ℝ) (hx : x ⊙ x ≤ 1)
+    (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     1 - δ ≤ (gaussianInit m d).real {W₀ |
@@ -1363,10 +1364,10 @@ theorem reluLinearizationBound_secondOrder
   have : IsProbabilityMeasure (gaussianRowMeasure d) := by unfold gaussianRowMeasure; infer_instance
   have : IsProbabilityMeasure (gaussianInit m d) := by unfold gaussianInit; infer_instance
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
-  by_cases hx_pos : 0 < x ⊙ x
+  by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
   · -- x = 0 case
-    have hx_zero_norm : x ⊙ x = 0 := le_antisymm (not_lt.mp hx_pos) (innerProduct_self_nonneg x)
+    have hx_zero_norm : x ⬝ᵥ x = 0 := le_antisymm (not_lt.mp hx_pos) (innerProduct_self_nonneg x)
     have hx_zero : x = 0 := (innerProduct_eq_zero_iff_eq_zero x).mp hx_zero_norm
     subst hx_zero
     apply measure_ge_one_sub_delta_of_univ hδ

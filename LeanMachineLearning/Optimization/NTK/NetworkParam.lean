@@ -253,15 +253,15 @@ lemma continuous_packParams {n d : ℕ} :
   · exact (continuous_apply j).comp ((continuous_apply i).comp continuous_fst)
   · exact (continuous_apply i).comp continuous_snd
 
-/-- The continuous linear map `θ ↦ unpackW θ i ⊙ x`. Internal helper. -/
+/-- The continuous linear map `θ ↦ unpackW θ i ⬝ᵥ x`. Internal helper. -/
 private noncomputable def dotW_CLM {n d : ℕ} (i : Fin n) (x : Fin d → ℝ) :
     EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ :=
   ∑ j : Fin d, (x j) • EuclideanSpace.proj (idxW i j)
 
 private lemma dotW_CLM_apply {n d : ℕ} (i : Fin n) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    dotW_CLM i x θ = unpackW θ i ⊙ x := by
-  simp only [dotW_CLM, sum_apply, smul_apply, PiLp.proj_apply, smul_eq_mul, innerProduct]
+    dotW_CLM i x θ = unpackW θ i ⬝ᵥ x := by
+  simp only [dotW_CLM, sum_apply, smul_apply, PiLp.proj_apply, smul_eq_mul, dotProduct]
   apply Finset.sum_congr rfl
   intro j _
   dsimp [unpackW]
@@ -301,7 +301,7 @@ inner products plus readout-vector inner product. -/
 lemma inner_packParams_packParams {n d : ℕ}
     (W₁ W₂ : Fin n → Fin d → ℝ) (a₁ a₂ : Fin n → ℝ) :
     ⟪packParams W₁ a₁, packParams W₂ a₂⟫ =
-      (∑ i : Fin n, W₁ i ⊙ W₂ i) + ∑ i : Fin n, a₁ i * a₂ i := by
+      (∑ i : Fin n, W₁ i ⬝ᵥ W₂ i) + ∑ i : Fin n, a₁ i * a₂ i := by
   rw [inner_packParams]
   simp only [unpackW_packParams, unpackA_packParams]
   rfl
@@ -313,7 +313,7 @@ noncomputable def netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
 
 lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ x) :=
+    netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ x) :=
   evalSingle_eq_normalized_sum φ (unpackW θ) (unpackA θ) x
 
 @[simp]
@@ -333,16 +333,16 @@ lemma trainingResidual_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
 
 
 /-- Gradient block for input weights `W`:
-`∂f/∂W_{i, j} = n^{-1/2} a_i φ'(W_i ⊙ x) x_j`. -/
+`∂f/∂W_{i, j} = n^{-1/2} a_i φ'(W_i ⬝ᵥ x) x_j`. -/
 noncomputable def gradW (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) : Fin n → Fin d → ℝ :=
-  fun i j => (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x) * x j
+  fun i j => (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x) * x j
 
 /-- Gradient block for readout weights `a`:
-`∂f/∂a_i = n^{-1/2} φ(W_i ⊙ x)`. -/
+`∂f/∂a_i = n^{-1/2} φ(W_i ⬝ᵥ x)`. -/
 noncomputable def gradA (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) : Fin n → ℝ :=
-  fun i => (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ x)
+  fun i => (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⬝ᵥ x)
 
 /-- The packed gradient vector in `EuclideanSpace ℝ (Fin (n * d + n))`. -/
 noncomputable def gradParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
@@ -353,18 +353,18 @@ noncomputable def gradParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 /-- Fréchet derivative of `netFromParams` with respect to parameters `θ`. -/
 theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ x)) :
     HasFDerivAt (netFromParams φ n d x)
       (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin (n * d + n)))
         (gradParams φ n d x θ)) θ := by
-  have h_comp : ∀ i : Fin n, HasFDerivAt (fun θ => φ (unpackW θ i ⊙ x))
-      (deriv φ (unpackW θ i ⊙ x) • dotW_CLM i x) θ := by
+  have h_comp : ∀ i : Fin n, HasFDerivAt (fun θ => φ (unpackW θ i ⬝ᵥ x))
+      (deriv φ (unpackW θ i ⬝ᵥ x) • dotW_CLM i x) θ := by
     intro i
-    have h_deriv : HasDerivAt φ (deriv φ (unpackW θ i ⊙ x)) (dotW_CLM i x θ) := by
+    have h_deriv : HasDerivAt φ (deriv φ (unpackW θ i ⬝ᵥ x)) (dotW_CLM i x θ) := by
       rw [dotW_CLM_apply]
       exact (hφ i).hasDerivAt
     have h := HasDerivAt.comp_hasFDerivAt θ h_deriv (dotW_CLM i x).hasFDerivAt
-    have h_eq : (φ ∘ (dotW_CLM i x)) = (fun θ => φ (unpackW θ i ⊙ x)) := by
+    have h_eq : (φ ∘ (dotW_CLM i x)) = (fun θ => φ (unpackW θ i ⬝ᵥ x)) := by
       ext θ'
       simp only [Function.comp_apply, dotW_CLM_apply]
     rwa [h_eq] at h
@@ -372,24 +372,24 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
       ((EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ)) θ := by
     intro i
     exact (EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ).hasFDerivAt
-  have h_mul : ∀ i : Fin n, HasFDerivAt (fun θ => unpackA θ i * φ (unpackW θ i ⊙ x))
-      ((unpackA θ i) • (deriv φ (unpackW θ i ⊙ x) • dotW_CLM i x) +
-       (φ (unpackW θ i ⊙ x)) •
+  have h_mul : ∀ i : Fin n, HasFDerivAt (fun θ => unpackA θ i * φ (unpackW θ i ⬝ᵥ x))
+      ((unpackA θ i) • (deriv φ (unpackW θ i ⬝ᵥ x) • dotW_CLM i x) +
+       (φ (unpackW θ i ⬝ᵥ x)) •
          (EuclideanSpace.proj (idxA i) : EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ)) θ := by
     intro i
     exact (h_a i).mul (h_comp i)
   have h_sum := HasFDerivAt.sum (u := Finset.univ)
-    (A := fun i θ => unpackA θ i * φ (unpackW θ i ⊙ x)) (fun i _ => h_mul i)
+    (A := fun i θ => unpackA θ i * φ (unpackW θ i ⬝ᵥ x)) (fun i _ => h_mul i)
   have h_sum_fun :
       (∑ i ∈ (Finset.univ : Finset (Fin n)),
-        fun θ' => unpackA θ' i * φ (unpackW θ' i ⊙ x)) =
-      (fun θ' => ∑ i : Fin n, unpackA θ' i * φ (unpackW θ' i ⊙ x)) := by
+        fun θ' => unpackA θ' i * φ (unpackW θ' i ⬝ᵥ x)) =
+      (fun θ' => ∑ i : Fin n, unpackA θ' i * φ (unpackW θ' i ⬝ᵥ x)) := by
     ext θ'
     simp only [Finset.sum_apply]
   rw [h_sum_fun] at h_sum
   have h_scaled := h_sum.const_smul (n : ℝ)⁻¹.sqrt
   have h_net_eq :
-      (n : ℝ)⁻¹.sqrt • (fun θ' => ∑ i : Fin n, unpackA θ' i * φ (unpackW θ' i ⊙ x)) =
+      (n : ℝ)⁻¹.sqrt • (fun θ' => ∑ i : Fin n, unpackA θ' i * φ (unpackW θ' i ⬝ᵥ x)) =
       netFromParams φ n d x := by
     ext θ'
     simp only [Pi.smul_apply, smul_eq_mul]
@@ -401,7 +401,7 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
     PiLp.proj_apply, InnerProductSpace.toDual_apply_apply]
   dsimp [gradParams, unpackA]
   rw [inner_packParams]
-  dsimp [gradW, gradA, innerProduct, unpackA]
+  dsimp [gradW, gradA, dotProduct, unpackA]
   simp only [Finset.mul_sum]
   rw [← Finset.sum_add_distrib]
   apply Finset.sum_congr rfl
@@ -416,7 +416,7 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
 /-- Gradient of `netFromParams` with respect to parameters `θ`. -/
 theorem hasGradientAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ x)) :
     HasGradientAt (netFromParams φ n d x) (gradParams φ n d x θ) θ := by
   rw [hasGradientAt_iff_hasFDerivAt]
   exact hasFDerivAt_netFromParams φ n d x θ hφ
@@ -424,7 +424,7 @@ theorem hasGradientAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
 /-- Gradient evaluation lemma for `netFromParams`. -/
 theorem gradient_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ x)) :
     gradient (netFromParams φ n d x) θ = gradParams φ n d x θ :=
   (hasGradientAt_netFromParams φ n d x θ hφ).gradient
 
@@ -432,7 +432,7 @@ theorem gradient_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ
 `tangentFeature (netFromParams φ n d) x θ = packParams (gradW ...) (gradA ...)`. -/
 theorem tangentFeature_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ x)) :
     tangentFeature (netFromParams φ n d) x θ = gradParams φ n d x θ :=
   gradient_netFromParams φ n d x θ hφ
 
@@ -445,7 +445,7 @@ theorem tangentFeature_netFromParams_of_differentiable (φ : ℝ → ℝ) (hφ :
 @[simp]
 lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ x)) :
     unpackW (tangentFeature (netFromParams φ n d) x θ) = gradW φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
   exact unpackW_packParams _ _
@@ -453,7 +453,7 @@ lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 @[simp]
 lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ x)) :
     unpackA (tangentFeature (netFromParams φ n d) x θ) = gradA φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
   exact unpackA_packParams _ _
@@ -461,7 +461,7 @@ lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 /-- Output Jacobian entry for `netFromParams` evaluated at `idxW i j`, delegating to `gradW`. -/
 lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α))
     (α : Fin m) (i : Fin n) (j : Fin d) :
     outputJacobian (netFromParams φ n d) X θ α (idxW i j) =
       gradW φ n d (X α) θ i j := by
@@ -471,7 +471,7 @@ lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
 /-- Output Jacobian entry for `netFromParams` evaluated at `idxA i`, delegating to `gradA`. -/
 lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α))
     (α : Fin m) (i : Fin n) :
     outputJacobian (netFromParams φ n d) X θ α (idxA i) =
       gradA φ n d (X α) θ i := by
@@ -480,13 +480,13 @@ lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
 
 /-- **Readout-weight equation of the training flow.** Along a forward gradient flow of the MSE loss
 of a two-layer network, at every positive time
-  `∂_t a_i = -(1/m) ∑_α r^α ∂f^α/∂a_i = -(1/(m √n)) ∑_α r^α φ(W_i ⊙ x^α)`,
+  `∂_t a_i = -(1/m) ∑_α r^α ∂f^α/∂a_i = -(1/(m √n)) ∑_α r^α φ(W_i ⬝ᵥ x^α)`,
 where `∂f^α/∂a_i = gradA φ n d (x^α) θ i` (`unpackA_tangentFeature`). -/
 theorem forwardGF_readout_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m → Fin d → ℝ)
     (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
     {θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ) {t : ℝ} (ht : 0 < t)
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⊙ X α)) (i : Fin n) :
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⬝ᵥ X α)) (i : Fin n) :
     HasDerivAt (fun s => unpackA (θ s) i)
       (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual (netFromParams φ n d) X y (θ t) α *
         gradA φ n d (X α) (θ t) i)) t := by
@@ -497,13 +497,13 @@ theorem forwardGF_readout_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m
 
 /-- **Input-weight equation of the training flow.** Under the hypotheses of
 `forwardGF_readout_hasDerivAt`, at every positive time
-  `∂_t W_{ij} = -(1/m) ∑_α r^α ∂f^α/∂W_{ij} = -(1/(m √n)) a_i ∑_α r^α φ'(W_i ⊙ x^α) x^α_j`,
+  `∂_t W_{ij} = -(1/m) ∑_α r^α ∂f^α/∂W_{ij} = -(1/(m √n)) a_i ∑_α r^α φ'(W_i ⬝ᵥ x^α) x^α_j`,
 where `∂f^α/∂W_{ij} = gradW φ n d (x^α) θ i j` (`unpackW_tangentFeature`). -/
 theorem forwardGF_inputWeight_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m → Fin d → ℝ)
     (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
     {θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ) {t : ℝ} (ht : 0 < t)
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⊙ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⬝ᵥ X α))
     (i : Fin n) (j : Fin d) :
     HasDerivAt (fun s => unpackW (θ s) i j)
       (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual (netFromParams φ n d) X y (θ t) α *
@@ -541,7 +541,7 @@ input-weight and readout blocks. -/
 lemma outputJacobian_netFromParams_frobenius_norm_sq_rpow (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
-      DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) :
+      DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
       (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
         (gradW φ n d (X α) θ i j) ^ (2 : ℝ)) +
@@ -568,7 +568,7 @@ lemma outputJacobian_netFromParams_frobenius_norm_sq_rpow (φ : ℝ → ℝ) (n 
 lemma outputJacobian_netFromParams_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
-      DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) :
+      DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
       (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
         (gradW φ n d (X α) θ i j) ^ 2) +
@@ -583,7 +583,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
     (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m → Fin d → ℝ)
     (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (C₀ C₁ : ℝ)
     (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
-    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⊙ X α)) :
+    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2 ≤
       (n : ℝ)⁻¹ * ∑ α : Fin m, ∑ i : Fin n,
         (C₀ ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
@@ -600,12 +600,12 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
   rw [Finset.mul_sum, ← Finset.sum_add_distrib]
   apply Finset.sum_le_sum
   intro i hi
-  have hderiv_sq : deriv φ (W i ⊙ X α) ^ 2 ≤ C₁ ^ 2 := by
+  have hderiv_sq : deriv φ (W i ⬝ᵥ X α) ^ 2 ≤ C₁ ^ 2 := by
     rw [← sq_abs]
-    exact (sq_le_sq₀ (abs_nonneg _) hC₁_nonneg).2 (hC₁ (W i ⊙ X α))
-  have hφ_sq : φ (W i ⊙ X α) ^ 2 ≤ C₀ ^ 2 := by
+    exact (sq_le_sq₀ (abs_nonneg _) hC₁_nonneg).2 (hC₁ (W i ⬝ᵥ X α))
+  have hφ_sq : φ (W i ⬝ᵥ X α) ^ 2 ≤ C₀ ^ 2 := by
     rw [← sq_abs]
-    exact (sq_le_sq₀ (abs_nonneg _) hC₀_nonneg).2 (hC₀ (W i ⊙ X α))
+    exact (sq_le_sq₀ (abs_nonneg _) hC₀_nonneg).2 (hC₀ (W i ⬝ᵥ X α))
   have hW : ∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2 ≤
       (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
     calc
@@ -641,7 +641,7 @@ lemma outputJacobian_netFromParams_norm_sq_le
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
     (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (C₀ C₁ : ℝ)
     (hC₀ : ∀ z, |φ z| ≤ C₀) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
-    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⊙ X α)) :
+    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2 ≤
       (m : ℝ) * C₀ ^ 2 + (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
         ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
@@ -686,13 +686,13 @@ lemma outputJacobian_netFromParams_norm_sq_le
       rw [mul_add, hconst, hvar]
 
 /-- Pointwise Jacobian bound without any bound on `φ`: only the bounded derivative is used, and the
-activation enters through its empirical energy `n⁻¹ ∑_{i,α} φ(W_i ⊙ x_α)²`. -/
+activation enters through its empirical energy `n⁻¹ ∑_{i,α} φ(W_i ⬝ᵥ x_α)²`. -/
 lemma outputJacobian_netFromParams_norm_sq_le_energies
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
     (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (C₁ : ℝ) (hC₁ : ∀ z, |deriv φ z| ≤ C₁)
-    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⊙ X α)) :
+    (hφ : ∀ α i, DifferentiableAt ℝ φ (W i ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2 ≤
-      (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 +
+      (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⬝ᵥ X α) ^ 2 +
         (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
           ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
   have hC₁_nonneg : 0 ≤ C₁ := (abs_nonneg (deriv φ 0)).trans (hC₁ 0)
@@ -703,9 +703,9 @@ lemma outputJacobian_netFromParams_norm_sq_le_energies
   have hterm : ∀ α : Fin m, ∀ i : Fin n,
       (∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2) +
         gradA φ n d (X α) (packParams W a) i ^ 2 ≤
-      (n : ℝ)⁻¹ * (φ (W i ⊙ X α) ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
+      (n : ℝ)⁻¹ * (φ (W i ⬝ᵥ X α) ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
     intro α i
-    have hderiv_sq : deriv φ (W i ⊙ X α) ^ 2 ≤ C₁ ^ 2 := by
+    have hderiv_sq : deriv φ (W i ⬝ᵥ X α) ^ 2 ≤ C₁ ^ 2 := by
       rw [← sq_abs]; exact (sq_le_sq₀ (abs_nonneg _) hC₁_nonneg).2 (hC₁ _)
     have hW : ∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2 ≤
         (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
@@ -719,7 +719,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_energies
             nlinarith
         _ = (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
             simp only [← Finset.mul_sum]
-    have hA : gradA φ n d (X α) (packParams W a) i ^ 2 = (n : ℝ)⁻¹ * φ (W i ⊙ X α) ^ 2 := by
+    have hA : gradA φ n d (X α) (packParams W a) i ^ 2 = (n : ℝ)⁻¹ * φ (W i ⬝ᵥ X α) ^ 2 := by
       dsimp [gradA]
       simp only [unpackW_packParams]
       rw [mul_pow, hroot_sq]
@@ -731,14 +731,14 @@ lemma outputJacobian_netFromParams_norm_sq_le_energies
           gradA φ n d (X α) (packParams W a) i ^ 2) := by
         simp only [Finset.sum_add_distrib]
     _ ≤ ∑ α : Fin m, ∑ i : Fin n,
-          (n : ℝ)⁻¹ * (φ (W i ⊙ X α) ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) :=
+          (n : ℝ)⁻¹ * (φ (W i ⬝ᵥ X α) ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) :=
         Finset.sum_le_sum fun α _ => Finset.sum_le_sum fun i _ => hterm α i
-    _ = (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 +
+    _ = (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⬝ᵥ X α) ^ 2 +
         (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) *
           ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := by
         simp only [← Finset.mul_sum, mul_add, Finset.sum_add_distrib]
-        have h1 : ∑ α : Fin m, ∑ i : Fin n, φ (W i ⊙ X α) ^ 2 =
-            ∑ i : Fin n, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 := Finset.sum_comm
+        have h1 : ∑ α : Fin m, ∑ i : Fin n, φ (W i ⬝ᵥ X α) ^ 2 =
+            ∑ i : Fin n, ∑ α : Fin m, φ (W i ⬝ᵥ X α) ^ 2 := Finset.sum_comm
         have h2 : ∑ α : Fin m, ∑ i : Fin n, a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2 =
             (∑ i : Fin n, a i ^ 2) * (C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) := by
           simp only [Finset.mul_sum, Finset.sum_mul]
@@ -809,19 +809,19 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration
   exact hprod_tail.trans (MeasureTheory.measureReal_mono (μ := initMeasure n d) hsubset)
 
 /-- **Gap 3 without a bound on `φ`.** Only a bounded derivative, differentiability and Gaussian
-square integrability of `φ(w ⊙ x_α)` are used (the latter follows from linear growth, which is
+square integrability of `φ(w ⬝ᵥ x_α)` are used (the latter follows from linear growth, which is
 implied by a bounded derivative, see `memLp_gaussianRow_comp_of_linear_growth`). With probability
 `≥ 1 - δ` the output Jacobian has Frobenius norm at most
-`√(2 (∑_α E φ(w ⊙ x_α)² + 1 + C₁² ∑ ‖x_α‖²) / δ)`, uniformly in the width. -/
+`√(2 (∑_α E φ(w ⬝ᵥ x_α)² + 1 + C₁² ∑ ‖x_α‖²) / δ)`, uniformly in the width. -/
 theorem outputJacobian_netFromParams_frobenius_norm_concentration_of_L2
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ) (C₁ : ℝ)
     (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hφ : Differentiable ℝ φ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     (initMeasure n d).real {p | ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
-      Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d)) + 1 +
+      Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(gaussianRowMeasure d)) + 1 +
         C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ)} ≥ 1 - δ := by
-  set v : ℝ := ∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d) with hv
+  set v : ℝ := ∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(gaussianRowMeasure d) with hv
   set K : ℝ := C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2 with hK
   have hv0 : 0 ≤ v := Finset.sum_nonneg fun α _ => integral_nonneg fun w => sq_nonneg _
   have hK0 : 0 ≤ K := by positivity
@@ -832,7 +832,7 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration_of_L2
       rw [hτ]; field_simp; linarith [hv0])
   have hB := prob_gaussianReadout_sum_sq_le n hn (δ := δ / 2) (by positivity)
   have hprod : (initMeasure n d).real
-      ({W : Fin n → Fin d → ℝ | (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 ≤ τ} ×ˢ
+      ({W : Fin n → Fin d → ℝ | (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⬝ᵥ X α) ^ 2 ≤ τ} ×ˢ
         {a : Fin n → ℝ | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ (δ / 2)⁻¹}) ≥ 1 - δ := by
     rw [measureReal_prod_prod]
     have h0 : 0 ≤ 1 - δ / 2 := by linarith
@@ -846,7 +846,7 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration_of_L2
     (fun _ _ => hφ.differentiableAt)
   refine Real.le_sqrt_of_sq_le ?_
   calc ‖outputJacobian (netFromParams φ n d) X (packParams W a)‖ ^ 2
-      ≤ (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⊙ X α) ^ 2 +
+      ≤ (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m, φ (W i ⬝ᵥ X α) ^ 2 +
         K * ((n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2) := hnorm
     _ ≤ τ + K * (δ / 2)⁻¹ := add_le_add hW (mul_le_mul_of_nonneg_left ha hK0)
     _ = 2 * (v + 1 + K) / δ := by rw [hτ]; field_simp
@@ -878,19 +878,19 @@ lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n *
     simp only [PiLp.sub_apply, unpackA]
 
 lemma innerProduct_sub (d : ℕ) (x y z : Fin d → ℝ) :
-    (x - y) ⊙ z = x ⊙ z - y ⊙ z :=
+    (x - y) ⬝ᵥ z = x ⬝ᵥ z - y ⬝ᵥ z :=
   innerProduct_sub_left x y z
 
 lemma innerProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :
-    (x ⊙ z - y ⊙ z) ^ 2 ≤ (∑ j : Fin d, (x j - y j) ^ 2) * (∑ j : Fin d, z j ^ 2) := by
+    (x ⬝ᵥ z - y ⬝ᵥ z) ^ 2 ≤ (∑ j : Fin d, (x j - y j) ^ 2) * (∑ j : Fin d, z j ^ 2) := by
   rw [← innerProduct_sub]
-  dsimp [innerProduct]
+  dsimp [dotProduct]
   exact Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => x j - y j) z
 
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⊙ X α))
-    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⊙ X α)) :
+    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⬝ᵥ X α))
+    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ₁ -
         outputJacobian (netFromParams φ n d) X θ₂‖ ^ 2 =
       (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
@@ -943,8 +943,8 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
   have hroot_sq : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := by
     rw [Real.sq_sqrt]
     positivity
-  let u₁ := unpackW θ₁ i ⊙ x
-  let u₂ := unpackW θ₂ i ⊙ x
+  let u₁ := unpackW θ₁ i ⬝ᵥ x
+  let u₂ := unpackW θ₂ i ⬝ᵥ x
   have hu_diff_sq : (u₁ - u₂) ^ 2 ≤ Wdiff * Sx := by
     dsimp [u₁, u₂, Wdiff, Sx]
     exact innerProduct_sub_sq_le d (unpackW θ₁ i) (unpackW θ₂ i) x
@@ -974,11 +974,11 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
       (n : ℝ)⁻¹ * (C₁ ^ 2 * Sx * Wdiff) := by
     dsimp [gradA, u₁, u₂]
     rw [← mul_sub, mul_pow, hroot_sq]
-    have h_sub : (φ (unpackW θ₁ i ⊙ x) - φ (unpackW θ₂ i ⊙ x)) ^ 2 ≤
+    have h_sub : (φ (unpackW θ₁ i ⬝ᵥ x) - φ (unpackW θ₂ i ⬝ᵥ x)) ^ 2 ≤
         C₁ ^ 2 * (Sx * Wdiff) := hφ_sub_sq
     have h_prod := mul_le_mul_of_nonneg_left h_sub (by positivity : 0 ≤ (n : ℝ)⁻¹)
     calc
-      (n : ℝ)⁻¹ * (φ (unpackW θ₁ i ⊙ x) - φ (unpackW θ₂ i ⊙ x)) ^ 2
+      (n : ℝ)⁻¹ * (φ (unpackW θ₁ i ⬝ᵥ x) - φ (unpackW θ₂ i ⬝ᵥ x)) ^ 2
         ≤ (n : ℝ)⁻¹ * (C₁ ^ 2 * (Sx * Wdiff)) := h_prod
       _ = (n : ℝ)⁻¹ * (C₁ ^ 2 * Sx * Wdiff) := by ring
   have hD_sq : (unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂) ^ 2 ≤
@@ -1021,11 +1021,11 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
         (n : ℝ)⁻¹ * (unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂) ^ 2 * x j ^ 2 := by
       intro j
       dsimp [gradW, u₁, u₂]
-      have : (n : ℝ)⁻¹.sqrt * unpackA θ₁ i * deriv φ (unpackW θ₁ i ⊙ x) * x j -
-             (n : ℝ)⁻¹.sqrt * unpackA θ₂ i * deriv φ (unpackW θ₂ i ⊙ x) * x j =
+      have : (n : ℝ)⁻¹.sqrt * unpackA θ₁ i * deriv φ (unpackW θ₁ i ⬝ᵥ x) * x j -
+             (n : ℝ)⁻¹.sqrt * unpackA θ₂ i * deriv φ (unpackW θ₂ i ⬝ᵥ x) * x j =
              (n : ℝ)⁻¹.sqrt *
-              (unpackA θ₁ i * deriv φ (unpackW θ₁ i ⊙ x) -
-               unpackA θ₂ i * deriv φ (unpackW θ₂ i ⊙ x)) * x j := by ring
+              (unpackA θ₁ i * deriv φ (unpackW θ₁ i ⬝ᵥ x) -
+               unpackA θ₂ i * deriv φ (unpackW θ₂ i ⬝ᵥ x)) * x j := by ring
       rw [this, mul_pow, mul_pow, hroot_sq]
     simp_rw [hj]
     rw [← Finset.mul_sum]
@@ -1115,8 +1115,8 @@ theorem outputJacobian_netFromParams_frobenius_sub_le
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⊙ X α))
-    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⊙ X α))
+    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⬝ᵥ X α))
+    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⬝ᵥ X α))
     (ha₁ : ∀ i : Fin n, |unpackA θ₁ i| ≤ R) :
     let K := Real.sqrt (∑ α : Fin m, (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
       3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2)))
@@ -1263,10 +1263,10 @@ theorem norm_gradParams_sub_le
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
 theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
-      (∑ i : Fin n, gradW φ n d (X α) θ i ⊙ gradW φ n d (X β) θ i) +
+      (∑ i : Fin n, gradW φ n d (X α) θ i ⬝ᵥ gradW φ n d (X β) θ i) +
       ∑ i : Fin n, gradA φ n d (X α) θ i * gradA φ n d (X β) θ i := by
   rw [empiricalNTKMatrix_apply]
   rw [tangentFeature_netFromParams φ n d (X α) θ (hφ α)]
@@ -1286,51 +1286,51 @@ section FullTwoLayerNTKFormula
 private lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d x θ i * gradA φ n d x' θ i =
-      (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by
+      (n : ℝ)⁻¹ * (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x')) := by
   dsimp [gradA]
   have h_sqrt : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
     Real.mul_self_sqrt (by positivity)
   calc
-    ((n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ x)) * ((n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ x')) =
+    ((n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⬝ᵥ x)) * ((n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⬝ᵥ x')) =
       ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
-        (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by ring
-    _ = (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x')) := by rw [h_sqrt]
+        (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x')) := by ring
+    _ = (n : ℝ)⁻¹ * (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x')) := by rw [h_sqrt]
 
 private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
-    gradW φ n d x θ i ⊙ gradW φ n d x' θ i =
-      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
-        deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by
+    gradW φ n d x θ i ⬝ᵥ gradW φ n d x' θ i =
+      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
+        deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by
   have hW1 : gradW φ n d x θ i =
-      fun j => ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x)) * x j := by
+      fun j => ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x)) * x j := by
     ext j; rfl
   have hW2 : gradW φ n d x' θ i =
-      fun j => ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x')) * x' j := by
+      fun j => ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x')) * x' j := by
     ext j; rfl
   rw [hW1, hW2, innerProduct_mul_mul]
   have h_sqrt : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
     Real.mul_self_sqrt (by positivity)
-  have h_alg : (((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x)) *
-      ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x'))) * (x ⊙ x') =
-      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
-        deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by
+  have h_alg : (((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x)) *
+      ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x'))) * (x ⬝ᵥ x') =
+      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
+        deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by
     calc
-      (((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x)) *
-        ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x'))) * (x ⊙ x') =
+      (((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x)) *
+        ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x'))) * (x ⬝ᵥ x') =
         ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
-          (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
-            deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by ring
-      _ = (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
-            deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by rw [h_sqrt]
+          (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
+            deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by ring
+      _ = (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
+            deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by rw [h_sqrt]
   exact h_alg
 
 private lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
-    gradW φ n d x θ i ⊙ gradW φ n d x' θ i + gradA φ n d x θ i * gradA φ n d x' θ i =
+    gradW φ n d x θ i ⬝ᵥ gradW φ n d x' θ i + gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ *
-        (φ (unpackW θ i ⊙ x) * φ (unpackW θ i ⊙ x') +
-         unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) *
-           deriv φ (unpackW θ i ⊙ x') * (x ⊙ x')) := by
+        (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x') +
+         unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
+           deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by
   rw [gradW_innerProduct_gradW, gradA_mul_gradA]
   ring
 
@@ -1338,15 +1338,15 @@ private lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x
 expressed explicitly as an empirical average over the `n` hidden neurons. -/
 theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ (unpackW θ i ⊙ X α) * φ (unpackW θ i ⊙ X β) +
+        (φ (unpackW θ i ⬝ᵥ X α) * φ (unpackW θ i ⬝ᵥ X β) +
          unpackA θ i ^ 2 *
-           deriv φ (unpackW θ i ⊙ X α) *
-           deriv φ (unpackW θ i ⊙ X β) *
-           (X α ⊙ X β)) := by
+           deriv φ (unpackW θ i ⬝ᵥ X α) *
+           deriv φ (unpackW θ i ⬝ᵥ X β) *
+           (X α ⬝ᵥ X β)) := by
   rw [empiricalNTKMatrix_netFromParams_apply φ n d m X θ hφ α β]
   rw [← Finset.sum_add_distrib]
   simp_rw [gradW_innerProduct_add_gradA_mul]
@@ -1358,7 +1358,7 @@ lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
       (n : ℝ)⁻¹.sqrt * ∑ i : Fin n,
-        unpackA θ i * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ x)) := by
+        unpackA θ i * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ x)) := by
   rw [netFromParams_eq_normalized_sum]
   congr 1
   apply Finset.sum_congr rfl
@@ -1369,7 +1369,7 @@ lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
       (n : ℝ)⁻¹.sqrt * ∑ i : Fin n,
-        unpackA θ i * φ ((unpackW θ i ⊙ x) / Real.sqrt (d : ℝ)) := by
+        unpackA θ i * φ ((unpackW θ i ⬝ᵥ x) / Real.sqrt (d : ℝ)) := by
   rw [netFromParams_eq_normalized_sum]
   congr 1
   apply Finset.sum_congr rfl
@@ -1380,7 +1380,7 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (j : Fin d) :
     gradW φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i j =
       ((n : ℝ)⁻¹.sqrt * (Real.sqrt (d : ℝ))⁻¹) *
-        (unpackA θ i * deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ x)) * x j) := by
+        (unpackA θ i * deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ x)) * x j) := by
   dsimp [gradW]
   rw [innerProduct_scaled_input]
   ring
@@ -1388,7 +1388,7 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i =
-      (n : ℝ)⁻¹.sqrt * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ x)) := by
+      (n : ℝ)⁻¹.sqrt * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ x)) := by
   dsimp [gradA]
   rw [innerProduct_scaled_input]
 
@@ -1396,21 +1396,21 @@ lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 
 /-- The full empirical NTK matrix of `netFromParams` evaluated on the paper's scaled
 dataset `(1 / √d) * X`, yielding the canonical two-layer NTK neuron-sum formula with
-both activation covariance and `(1 / d) * (X α ⊙ X β)` derivative covariance. -/
+both activation covariance and `(1 / d) * (X α ⬝ᵥ X β)` derivative covariance. -/
 theorem empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum
     (φ : ℝ → ℝ) (n d m : ℕ) (hd : 0 < d)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
-      DifferentiableAt ℝ φ (unpackW θ i ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
+      DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) θ α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ X α)) *
-           φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ X β)) +
+        (φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ X α)) *
+           φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ X β)) +
          unpackA θ i ^ 2 *
-           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ X α)) *
-           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⊙ X β)) *
-           ((d : ℝ)⁻¹ * (X α ⊙ X β))) := by
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ X α)) *
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ X β)) *
+           ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) := by
   rw [empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m _ θ hφ α β]
   congr 1
   apply Finset.sum_congr rfl
@@ -1427,39 +1427,39 @@ expression is written explicitly to avoid introducing a thin sequence-parameter 
 lemma empiricalNTKMatrix_netFromParams_of_seq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (seq : ℕ → (Fin d → ℝ) × ℝ)
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
-      DifferentiableAt ℝ φ ((seq i.val).1 ⊙ X α))
+      DifferentiableAt ℝ φ ((seq i.val).1 ⬝ᵥ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X
       (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((seq i.val).1 ⊙ X α) * φ ((seq i.val).1 ⊙ X β) +
+        (φ ((seq i.val).1 ⬝ᵥ X α) * φ ((seq i.val).1 ⬝ᵥ X β) +
           (seq i.val).2 ^ 2 *
-            deriv φ ((seq i.val).1 ⊙ X α) * deriv φ ((seq i.val).1 ⊙ X β) *
-              (X α ⊙ X β)) := by
+            deriv φ ((seq i.val).1 ⬝ᵥ X α) * deriv φ ((seq i.val).1 ⬝ᵥ X β) *
+              (X α ⬝ᵥ X β)) := by
   have h := empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m X
     (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2))
     (by intro α i; simp only [unpackW_packParams]; exact hφ α i) α β
   simpa only [unpackW_packParams, unpackA_packParams] using h
 
 /-- Scaled-dataset version of `empiricalNTKMatrix_netFromParams_of_seq`, with the input
-Gram factor written as `(X α ⊙ X β) / d`. -/
+Gram factor written as `(X α ⬝ᵥ X β) / d`. -/
 lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq
     (φ : ℝ → ℝ) (n d m : ℕ) (hd : 0 < d)
     (X : Fin m → Fin d → ℝ) (seq : ℕ → (Fin d → ℝ) × ℝ)
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
       DifferentiableAt ℝ φ
-        ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
+        ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
       (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X α)) *
-           φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X β)) +
+        (φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⬝ᵥ X α)) *
+           φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⬝ᵥ X β)) +
          (seq i.val).2 ^ 2 *
-           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X α)) *
-           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⊙ X β)) *
-           ((d : ℝ)⁻¹ * (X α ⊙ X β))) := by
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⬝ᵥ X α)) *
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((seq i.val).1 ⬝ᵥ X β)) *
+           ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) := by
   have h := empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X
     (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2))
     (by intro α i; simp only [unpackW_packParams]; exact hφ α i) α β
@@ -1475,12 +1475,12 @@ lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
       (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) =
     ((fun α β => (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
-           φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) +
+        (φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+           φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) +
          (seq i.val).2 ^ 2 *
-           deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
-           deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) *
-           ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ) := by
+           deriv φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+           deriv φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) *
+           ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)))) : Matrix (Fin m) (Fin m) ℝ) := by
   ext α β
   have h_entry := empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq φ n d m hd X seq
     (fun α i => hφ_diff.differentiableAt) α β
@@ -1495,11 +1495,11 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_tendsto_limitingFullNTKM
     (hφ_diff : Differentiable ℝ φ)
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+      Integrable (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
     (hdφ_int : ∀ α β : Fin m,
-      Integrable (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
+      Integrable (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
     ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
       Filter.Tendsto
         (fun n : ℕ =>
@@ -1516,12 +1516,12 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_tendsto_limitingFullNTKM
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
         (packParams (fun i : Fin n => (seq i.val).1) (fun i : Fin n => (seq i.val).2)) =
       ((fun α β => (n : ℝ)⁻¹ * ∑ i : Fin n,
-          (φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
-             φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) +
+          (φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+             φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) +
            (seq i.val).2 ^ 2 *
-             deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
-             deriv φ ((seq i.val).1 ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) *
-             ((d : ℝ)⁻¹ * (X α ⊙ X β)))) : Matrix (Fin m) (Fin m) ℝ) :=
+             deriv φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)) *
+             deriv φ ((seq i.val).1 ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X β j)) *
+             ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)))) : Matrix (Fin m) (Fin m) ℝ) :=
     empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix hd φ hφ_diff X seq n
   simp_rw [heq]
   exact hseq
@@ -1543,12 +1543,12 @@ private lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0
       (packParams (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1
                   (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2) α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-           φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+        (φ ((ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+           φ ((ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
          (ω i).2 ^ 2 *
-           deriv φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-           deriv φ ((ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-           ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙
+           deriv φ ((ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+           deriv φ ((ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+           ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ
              (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) := by
   have h := empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X
     (packParams (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1
@@ -1556,20 +1556,20 @@ private lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0
     (fun _ _ => hφ_diff.differentiableAt) α β
   rw [h]
   simp only [unpackW_packParams, unpackA_packParams]
-  have h_prod : (d : ℝ)⁻¹ * (X α ⊙ X β) =
-      (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) :=
+  have h_prod : (d : ℝ)⁻¹ * (X α ⬝ᵥ X β) =
+      (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) :=
     (innerProduct_scaled_dataset d hd (X α) (X β)).symm
   rw [h_prod]
   have h_w (i : Fin n) :
       (Real.sqrt (d : ℝ))⁻¹ *
-        ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⊙ X α) =
-      (ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) := by
+        ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⬝ᵥ X α) =
+      (ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) := by
     rw [innerProduct_mul_right]
     rfl
   have h_w' (i : Fin n) :
       (Real.sqrt (d : ℝ))⁻¹ *
-        ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⊙ X β) =
-      (ω i).1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) := by
+        ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⬝ᵥ X β) =
+      (ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) := by
     rw [innerProduct_mul_right]
     rfl
   have h_a (i : Fin n) :
@@ -1584,11 +1584,11 @@ theorem chebyshev_entrywise_empiricalNTKMatrix
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (n : ℕ) (hn : 0 < n) (α β : Fin m) {c : ℝ} (hc : 0 < c) :
     (initMeasure n d)
       {p | c ≤ |empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
@@ -1600,11 +1600,11 @@ theorem chebyshev_entrywise_empiricalNTKMatrix
     (measurePreserving_arrowProd_singleNeuronMeasure n d).map_eq.symm
   rw [h_meas_eq, MeasurableEquiv.map_apply]
   set Y := fun u : (Fin d → ℝ) × ℝ =>
-    φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-       φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
-     u.2 ^ 2 * deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-       deriv φ (u.1 ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
-       ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))
+    φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) +
+     u.2 ^ 2 * deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+       deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
+       ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))
   have hY_L2 : MemLp Y 2 (singleNeuronMeasure d) :=
     memLp_two_fullNTK_summand φ hdφ_meas
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)
@@ -1685,11 +1685,11 @@ theorem chebyshev_matrix_empiricalNTKMatrix
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (n : ℕ) (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) :
     (initMeasure n d)
       {p | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
@@ -1772,11 +1772,11 @@ theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     {ε : ℝ} (hε : 0 < ε) :
     Filter.Tendsto
       (fun n : ℕ => (initMeasure n d)
@@ -1858,11 +1858,11 @@ theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (n : ℕ) (hn : 0 < n) :
@@ -1908,11 +1908,11 @@ theorem tendsto_initMeasure_initial_spectral_gap_failure
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
-      deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef) :
     Filter.Tendsto
@@ -1984,8 +1984,8 @@ lemma measurable_empiricalNTKMatrix_netFromParams_packParams
   have h_eq : (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
       empiricalNTKMatrix (netFromParams φ n d) X (packParams p.1 p.2) α β) =
       fun p => (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ (p.1 i ⊙ X α) * φ (p.1 i ⊙ X β) +
-         p.2 i ^ 2 * deriv φ (p.1 i ⊙ X α) * deriv φ (p.1 i ⊙ X β) * (X α ⊙ X β)) := by
+        (φ (p.1 i ⬝ᵥ X α) * φ (p.1 i ⬝ᵥ X β) +
+         p.2 i ^ 2 * deriv φ (p.1 i ⬝ᵥ X α) * deriv φ (p.1 i ⬝ᵥ X β) * (X α ⬝ᵥ X β)) := by
     ext p
     have h := empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m X
       (packParams p.1 p.2) (fun _ _ => hφ_diff.differentiableAt) α β
@@ -1999,13 +1999,13 @@ lemma measurable_empiricalNTKMatrix_netFromParams_packParams
   have h_a : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i) :=
     (measurable_pi_apply i).comp measurable_snd
   have h_wx (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      p.1 i ⊙ X k) :=
+      p.1 i ⬝ᵥ X k) :=
     (measurable_innerProduct_left (X k)).comp h_w
   have h_φ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      φ (p.1 i ⊙ X k)) :=
+      φ (p.1 i ⬝ᵥ X k)) :=
     hφ_diff.continuous.measurable.comp (h_wx k)
   have h_dφ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      deriv φ (p.1 i ⊙ X k)) :=
+      deriv φ (p.1 i ⬝ᵥ X k)) :=
     hdφ_meas.comp (h_wx k)
   have h_a2 : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i ^ 2) :=
     (continuous_pow 2).measurable.comp h_a
@@ -2019,7 +2019,7 @@ theorem tendstoInDistribution_initial_trainingResidual
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (y : EuclideanSpace ℝ (Fin m))
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (gaussianRowMeasure d)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
@@ -2046,11 +2046,11 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
     (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+      MemLp (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
     (hdφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d)) :
+      MemLp (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
         (trainingResidual (netFromParams φ n d)
@@ -2088,7 +2088,7 @@ This is output-law tightness (from the characteristic-function limit) translated
 theorem exists_initial_residual_radius
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⊙ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (gaussianRowMeasure d))
     {ε : ENNReal} (hε : 0 < ε) :
     ∃ R : ℝ, 0 ≤ R ∧ ∀ n, initMeasure n d
@@ -2178,9 +2178,9 @@ lemma exists_measurableSet_initial_jacobian_and_readout_bounds
     intro i j
     exact (measurable_pi_apply j).comp ((measurable_pi_apply i).comp measurable_fst)
   have hpre_meas : ∀ α : Fin m, ∀ i : Fin n,
-      Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.1 i ⊙ X α) := by
+      Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.1 i ⬝ᵥ X α) := by
     intro α i
-    unfold innerProduct
+    unfold dotProduct
     exact Finset.measurable_sum _ (fun j _ => (hpi_meas i j).mul measurable_const)
   have hE1_meas : MeasurableSet {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
       ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
@@ -2505,11 +2505,11 @@ def neuronLipschitzScaleSq (C₁ C₂ : ℝ) (X : Fin m → Fin d → ℝ) (a : 
 neuron's Jacobian block (hidden weights `w`, readout weight `a`). -/
 noncomputable def neuronJacobianScaleSq (φ : ℝ → ℝ) (C₁ : ℝ) (X : Fin m → Fin d → ℝ)
     (w : Fin d → ℝ) (a : ℝ) : ℝ :=
-  ∑ α : Fin m, (φ (w ⊙ X α) ^ 2 + a ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)
+  ∑ α : Fin m, (φ (w ⬝ᵥ X α) ^ 2 + a ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)
 
 /-- The single-neuron observable whose empirical average controls the kernel drift at rate
-`n⁻¹ᐟ²`. It is a polynomial of degree four in `(φ (w ⊙ x), a)`, so it is integrable under Gaussian
-initialization as soon as `φ (w ⊙ x)` is square integrable. -/
+`n⁻¹ᐟ²`. It is a polynomial of degree four in `(φ (w ⬝ᵥ x), a)`, so it is integrable under Gaussian
+initialization as soon as `φ (w ⬝ᵥ x)` is square integrable. -/
 noncomputable def neuronMoment (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m → Fin d → ℝ)
     (w : Fin d → ℝ) (a : ℝ) : ℝ :=
   neuronLipschitzScaleSq C₁ C₂ X a *
@@ -2531,7 +2531,7 @@ lemma neuronMoment_nonneg (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m → Fi
 /-- The squared norm of neuron `i`'s Jacobian block is its gradient-coordinate energy. -/
 private lemma neuron_jacobian_block_sq (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⊙ X α)) (i : Fin n) :
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α)) (i : Fin n) :
     ∑ α : Fin m, ∑ o : Option (Fin d),
         outputJacobian (netFromParams φ n d) X θ α (neuronCoords n d i o) ^ 2 =
       ∑ α : Fin m, ((∑ j : Fin d, gradW φ n d (X α) θ i j ^ 2) +
@@ -2545,24 +2545,24 @@ private lemma neuron_jacobian_block_sq (φ : ℝ → ℝ) (X : Fin m → Fin d �
 private lemma neuron_block_energy_le (φ : ℝ → ℝ) {C₁ : ℝ} (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hn : 0 < n)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (x : Fin d → ℝ) :
     (∑ j : Fin d, gradW φ n d x θ i j ^ 2) + gradA φ n d x θ i ^ 2 ≤
-      (n : ℝ)⁻¹ * (φ (unpackW θ i ⊙ x) ^ 2 + unpackA θ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2) := by
+      (n : ℝ)⁻¹ * (φ (unpackW θ i ⬝ᵥ x) ^ 2 + unpackA θ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2) := by
   have hroot : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := Real.sq_sqrt (by positivity)
-  have hd_sq : deriv φ (unpackW θ i ⊙ x) ^ 2 ≤ C₁ ^ 2 := by
+  have hd_sq : deriv φ (unpackW θ i ⬝ᵥ x) ^ 2 ≤ C₁ ^ 2 := by
     rw [← sq_abs]
     exact (sq_le_sq₀ (abs_nonneg _) ((abs_nonneg _).trans (hC₁ 0))).2 (hC₁ _)
   have hW : (∑ j : Fin d, gradW φ n d x θ i j ^ 2) =
-      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) ^ 2 * ∑ j : Fin d, x j ^ 2) := by
+      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) ^ 2 * ∑ j : Fin d, x j ^ 2) := by
     rw [Finset.mul_sum, Finset.mul_sum]
     refine Finset.sum_congr rfl fun j _ => ?_
     simp only [gradW]
-    rw [show (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ x) * x j =
-        (n : ℝ)⁻¹.sqrt * (unpackA θ i * deriv φ (unpackW θ i ⊙ x) * x j) by ring, mul_pow, hroot]
+    rw [show (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x) * x j =
+        (n : ℝ)⁻¹.sqrt * (unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x) * x j) by ring, mul_pow, hroot]
     ring
-  have hA : gradA φ n d x θ i ^ 2 = (n : ℝ)⁻¹ * φ (unpackW θ i ⊙ x) ^ 2 := by
+  have hA : gradA φ n d x θ i ^ 2 = (n : ℝ)⁻¹ * φ (unpackW θ i ⬝ᵥ x) ^ 2 := by
     simp only [gradA]; rw [mul_pow, hroot]
   rw [hW, hA]
   have hSx : 0 ≤ ∑ j : Fin d, x j ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
-  have : unpackA θ i ^ 2 * deriv φ (unpackW θ i ⊙ x) ^ 2 * ∑ j : Fin d, x j ^ 2 ≤
+  have : unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) ^ 2 * ∑ j : Fin d, x j ^ 2 ≤
       unpackA θ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2 := by gcongr
   have hn' : 0 ≤ (n : ℝ)⁻¹ := by positivity
   nlinarith [mul_le_mul_of_nonneg_left this hn']
@@ -2597,7 +2597,7 @@ private lemma neuron_jacobian_block_energy_le_of_displacement (φ : ℝ → ℝ)
   set D := ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 with hD
   have hα : ∀ α : Fin m,
       (∑ j : Fin d, gradW φ n d (X α) θ i j ^ 2) + gradA φ n d (X α) θ i ^ 2 ≤
-        2 * ((n : ℝ)⁻¹ * (φ (unpackW θ₀ i ⊙ X α) ^ 2 +
+        2 * ((n : ℝ)⁻¹ * (φ (unpackW θ₀ i ⬝ᵥ X α) ^ 2 +
           unpackA θ₀ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)) +
         2 * ((n : ℝ)⁻¹ * (2 * unpackA θ₀ i ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
           3 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) * D) := by
@@ -2615,7 +2615,7 @@ private lemma neuron_jacobian_block_energy_le_of_displacement (φ : ℝ → ℝ)
     have hA := sq_le_two_mul_sq_add_two_mul_sq_sub (gradA φ n d (X α) θ₀ i)
       (gradA φ n d (X α) θ i)
     nlinarith
-  calc _ ≤ ∑ α : Fin m, (2 * ((n : ℝ)⁻¹ * (φ (unpackW θ₀ i ⊙ X α) ^ 2 +
+  calc _ ≤ ∑ α : Fin m, (2 * ((n : ℝ)⁻¹ * (φ (unpackW θ₀ i ⬝ᵥ X α) ^ 2 +
           unpackA θ₀ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)) +
         2 * ((n : ℝ)⁻¹ * (2 * unpackA θ₀ i ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
           3 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) * D)) := Finset.sum_le_sum fun α _ => hα α
@@ -2824,11 +2824,12 @@ theorem kernel_drift_le_of_neuron_moments (φ : ℝ → ℝ) (hφ : Differentiab
     (mul_le_mul_of_nonneg_left hJdiff (by positivity))
 
 
-/-- `neuronMoment` is an explicit polynomial in `a` and the activation energy `∑_α φ (w ⊙ x_α)²`. -/
+/-- `neuronMoment` is an explicit polynomial in `a` and the activation energy
+`∑_α φ (w ⬝ᵥ x_α)²`. -/
 private lemma neuronMoment_eq_poly (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m → Fin d → ℝ) :
     ∃ c₂ c₃ c₄ : ℝ, ∀ (w : Fin d → ℝ) (a : ℝ),
       neuronMoment φ C₁ C₂ X w a = (c₂ * a ^ 2 + c₃) *
-        ((∑ α : Fin m, φ (w ⊙ X α) ^ 2) + c₄ * a ^ 2 + (c₂ * a ^ 2 + c₃)) := by
+        ((∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2) + c₄ * a ^ 2 + (c₂ * a ^ 2 + c₃)) := by
   refine ⟨∑ α : Fin m, 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2,
     ∑ α : Fin m, 3 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2,
     ∑ α : Fin m, C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2, fun w a => ?_⟩
@@ -2838,7 +2839,7 @@ private lemma neuronMoment_eq_poly (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin
     simp only [neuronLipschitzScaleSq, Finset.sum_add_distrib, Finset.sum_mul]
     congr 1
     exact Finset.sum_congr rfl fun α _ => by ring
-  have hQ : neuronJacobianScaleSq φ C₁ X w a = (∑ α : Fin m, φ (w ⊙ X α) ^ 2) +
+  have hQ : neuronJacobianScaleSq φ C₁ X w a = (∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2) +
       (∑ α : Fin m, C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) * a ^ 2 := by
     simp only [neuronJacobianScaleSq, Finset.sum_add_distrib, Finset.sum_mul]
     congr 1
@@ -2850,7 +2851,7 @@ lemma measurable_neuronMoment {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C�
     Measurable (fun q : (Fin d → ℝ) × ℝ => neuronMoment φ C₁ C₂ X q.1 q.2) := by
   obtain ⟨c₂, c₃, c₄, h⟩ := neuronMoment_eq_poly φ C₁ C₂ X (m := m) (d := d)
   simp_rw [h]
-  have hG : Measurable (fun q : (Fin d → ℝ) × ℝ => ∑ α : Fin m, φ (q.1 ⊙ X α) ^ 2) :=
+  have hG : Measurable (fun q : (Fin d → ℝ) × ℝ => ∑ α : Fin m, φ (q.1 ⬝ᵥ X α) ^ 2) :=
     Finset.measurable_sum _ fun α _ =>
       (hφ.comp ((measurable_innerProduct_left (X α)).comp measurable_fst)).pow_const 2
   have ha : Measurable (fun q : (Fin d → ℝ) × ℝ => q.2) := measurable_snd
@@ -2859,11 +2860,11 @@ lemma measurable_neuronMoment {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C�
 /-- The single-neuron moment is integrable under the Gaussian single-neuron law. -/
 lemma integrable_neuronMoment {φ : ℝ → ℝ} (C₁ C₂ : ℝ)
     (X : Fin m → Fin d → ℝ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⊙ X α)) 2 (gaussianRowMeasure d)) :
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
     Integrable (fun q : (Fin d → ℝ) × ℝ => neuronMoment φ C₁ C₂ X q.1 q.2)
       (singleNeuronMeasure d) := by
   obtain ⟨c₂, c₃, c₄, h⟩ := neuronMoment_eq_poly φ C₁ C₂ X (m := m) (d := d)
-  have hG : Integrable (fun w : Fin d → ℝ => ∑ α : Fin m, φ (w ⊙ X α) ^ 2)
+  have hG : Integrable (fun w : Fin d → ℝ => ∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2)
       (gaussianRowMeasure d) := integrable_finsetSum _ fun α _ => (hL2 α).integrable_sq
   have h2 := integrable_sq_gaussianReal
   have h4 := integrable_pow_four_gaussianReal
@@ -2889,7 +2890,7 @@ width-independent threshold `τ` such that the empirical average `n⁻¹ ∑ᵢ 
 most `τ` on a measurable initialization event of probability at least `1 - δ`, for every width. -/
 theorem exists_neuronMoment_event {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C₂ : ℝ)
     (X : Fin m → Fin d → ℝ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⊙ X α)) 2 (gaussianRowMeasure d))
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
     {δ : ℝ} (hδ : 0 < δ) :
     ∃ τ : ℝ, 0 < τ ∧ ∀ n : ℕ, 0 < n →
       MeasurableSet {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
@@ -3016,14 +3017,14 @@ private lemma activation_regularity_of_bounds (φ : ℝ → ℝ) (C₁ C₂ : �
 /-- A bounded measurable function of a Gaussian-row preactivation is in `L²`. -/
 private lemma memLp_two_gaussianRow_comp_of_bounded {d : ℕ} (g : ℝ → ℝ) (hg : Measurable g)
     {B : ℝ} (hB : ∀ z, |g z| ≤ B) (x : Fin d → ℝ) :
-    MemLp (fun w => g (w ⊙ x)) 2 (gaussianRowMeasure d) :=
+    MemLp (fun w => g (w ⬝ᵥ x)) 2 (gaussianRowMeasure d) :=
   MemLp.of_bound (hg.comp (measurable_innerProduct_left x)).aestronglyMeasurable B
     (Filter.Eventually.of_forall fun w => by simpa [Real.norm_eq_abs] using hB _)
 
 /-- A product of two bounded measurable functions of Gaussian-row preactivations is in `L²`. -/
 private lemma memLp_two_gaussianRow_mul_comp_of_bounded {d : ℕ} (g : ℝ → ℝ) (hg : Measurable g)
     {B : ℝ} (hB : ∀ z, |g z| ≤ B) (x x' : Fin d → ℝ) :
-    MemLp (fun w => g (w ⊙ x) * g (w ⊙ x')) 2 (gaussianRowMeasure d) :=
+    MemLp (fun w => g (w ⬝ᵥ x) * g (w ⬝ᵥ x')) 2 (gaussianRowMeasure d) :=
   MemLp.of_bound ((hg.comp (measurable_innerProduct_left x)).mul
     (hg.comp (measurable_innerProduct_left x'))).aestronglyMeasurable (B * B)
     (Filter.Eventually.of_forall fun w => by
@@ -3128,17 +3129,17 @@ private lemma activation_growth {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : Smo
 bounded derivative alone: `φ` has linear growth and `deriv φ` is bounded. -/
 private lemma activation_memLp_two {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : SmoothActivation φ C₁ C₂)
     {d : ℕ} :
-    (∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⊙ x)) 2 (gaussianRowMeasure d)) ∧
+    (∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d)) ∧
     (∀ x x' : Fin d → ℝ,
-      MemLp (fun w => φ (w ⊙ x) * φ (w ⊙ x')) 2 (gaussianRowMeasure d)) ∧
-    (∀ x : Fin d → ℝ, MemLp (fun w => deriv φ (w ⊙ x)) 2 (gaussianRowMeasure d)) ∧
+      MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) ∧
+    (∀ x : Fin d → ℝ, MemLp (fun w => deriv φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d)) ∧
     (∀ x x' : Fin d → ℝ,
-      MemLp (fun w => deriv φ (w ⊙ x) * deriv φ (w ⊙ x')) 2 (gaussianRowMeasure d)) := by
+      MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) := by
   obtain ⟨hC₁0, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
   have hmeas : Measurable φ := hact.differentiable.continuous.measurable
   have hA : 0 ≤ |φ 0| := abs_nonneg _
-  have h1 : ∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⊙ x)) 2 (gaussianRowMeasure d) := fun x => by
+  have h1 : ∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d) := fun x => by
     simpa using memLp_gaussianRow_comp_of_linear_growth φ hmeas hA hC₁0
       (activation_growth hact) x 2
   exact ⟨h1, fun x x' => memLp_two_gaussianRow_mul_comp_of_linear_growth φ hmeas hA hC₁0
@@ -3175,7 +3176,7 @@ private lemma exists_jacobian_bound_and_good_events {φ : ℝ → ℝ} {C₁ C�
   obtain ⟨-, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
   have hL2 := (activation_memLp_two hact (d := d)).1
-  refine ⟨Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⊙ X α) ^ 2 ∂(gaussianRowMeasure d)) + 1 +
+  refine ⟨Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(gaussianRowMeasure d)) + 1 +
       C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ), Real.sqrt_nonneg _, fun n hn => ?_⟩
   exact exists_measurableSet_initial_jacobian_and_readout_bounds φ n d m hn X hact.differentiable
     hact.differentiable.continuous.measurable hderiv_meas hδ hδ1 _
@@ -3261,13 +3262,13 @@ private theorem exists_measurableSet_global_lazy_training_event_with_extra
     activation_regularity_of_bounds φ C₁ C₂ hC₁_bdd hderiv_lip hφ
   -- `L²` integrability of the activation-side observables (from linear growth).
   obtain ⟨hL2, hL2mul, -, hdL2mul⟩ := activation_memLp_two hact (d := d)
-  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⊙ Xs α)) 2 (gaussianRowMeasure d) :=
+  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (gaussianRowMeasure d) :=
     fun α => hL2 (Xs α)
   have hφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => φ (w ⊙ Xs α) * φ (w ⊙ Xs β)) 2 (gaussianRowMeasure d) :=
+      MemLp (fun w => φ (w ⬝ᵥ Xs α) * φ (w ⬝ᵥ Xs β)) 2 (gaussianRowMeasure d) :=
     fun α β => hL2mul (Xs α) (Xs β)
   have hdφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => deriv φ (w ⊙ Xs α) * deriv φ (w ⊙ Xs β)) 2 (gaussianRowMeasure d) :=
+      MemLp (fun w => deriv φ (w ⬝ᵥ Xs α) * deriv φ (w ⬝ᵥ Xs β)) 2 (gaussianRowMeasure d) :=
     fun α β => hdL2mul (Xs α) (Xs β)
   -- Initial residual radius and initial spectral-gap failure.
   obtain ⟨R, hR_nonneg, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
@@ -3785,7 +3786,7 @@ theorem exists_measurableSet_finite_horizon_lazy_training_event
   have hmeasφ : Measurable φ := hφ.continuous.measurable
   obtain ⟨hC₁_nonneg, hC₂_nonneg, hφ_lip, hderiv_meas⟩ :=
     activation_regularity_of_bounds φ C₁ C₂ hC₁_bdd hderiv_lip hφ
-  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⊙ Xs α)) 2 (gaussianRowMeasure d) := fun α =>
+  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (gaussianRowMeasure d) := fun α =>
     (activation_memLp_two hact (d := d)).1 (Xs α)
   obtain ⟨R, hR_nonneg, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
     (ε := ENNReal.ofReal ε) (ENNReal.ofReal_pos.2 hε)
@@ -4889,15 +4890,15 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
   have hmeasφ : Measurable φ := hφ.continuous.measurable
   obtain ⟨-, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hC₁_bdd hderiv_lip hφ
   obtain ⟨hL2, hL2mul, hdL2, hdL2mul⟩ := activation_memLp_two hact (d := d)
-  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⊙ Xs α)) 2 (gaussianRowMeasure d) :=
+  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (gaussianRowMeasure d) :=
     fun α => hL2 (Xs α)
-  have hdφ_out_L2 : ∀ α, MemLp (fun w => deriv φ (w ⊙ Xs α)) 2 (gaussianRowMeasure d) :=
+  have hdφ_out_L2 : ∀ α, MemLp (fun w => deriv φ (w ⬝ᵥ Xs α)) 2 (gaussianRowMeasure d) :=
     fun α => hdL2 (Xs α)
   have hφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => φ (w ⊙ Xs α) * φ (w ⊙ Xs β)) 2 (gaussianRowMeasure d) :=
+      MemLp (fun w => φ (w ⬝ᵥ Xs α) * φ (w ⬝ᵥ Xs β)) 2 (gaussianRowMeasure d) :=
     fun α β => hL2mul (Xs α) (Xs β)
   have hdφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => deriv φ (w ⊙ Xs α) * deriv φ (w ⊙ Xs β)) 2 (gaussianRowMeasure d) :=
+      MemLp (fun w => deriv φ (w ⬝ᵥ Xs α) * deriv φ (w ⬝ᵥ Xs β)) 2 (gaussianRowMeasure d) :=
     fun α β => hdL2mul (Xs α) (Xs β)
   have hK_inf : ∀ v : EuclideanSpace ℝ (Fin m),
       0 ≤ v.ofLp ⬝ᵥ (limitingFullNTKMatrix φ X *ᵥ v.ofLp) :=
@@ -5860,14 +5861,14 @@ theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (
     (ContinuousLinearMap.contDiff (EuclideanSpace.proj k : EuclideanSpace ℝ (Fin (n * d + n))
       →L[ℝ] ℝ)).locallyLipschitz
   have hpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => unpackW θ i ⊙ X α) := fun i α => by
-    unfold innerProduct
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => unpackW θ i ⬝ᵥ X α) := fun i α => by
+    unfold dotProduct
     exact locallyLipschitz_finset_sum _ fun j _ => locallyLipschitz_mul_const _ (hproj _)
   have hφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => φ (unpackW θ i ⊙ X α)) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => φ (unpackW θ i ⬝ᵥ X α)) :=
     fun i α => hφL.comp (hpre i α)
   have hdφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => deriv φ (unpackW θ i ⊙ X α)) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => deriv φ (unpackW θ i ⬝ᵥ X α)) :=
     fun i α => hdφL.comp (hpre i α)
   have hnet : ∀ α : Fin m, LocallyLipschitz
       (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => netFromParams φ n d (X α) θ) := fun α => by
@@ -5891,14 +5892,14 @@ theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (
     rcases p with ⟨i, j⟩ | i
     · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inl (i, j))) =
-            (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⊙ X α) * X α j := fun θ =>
+            (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ X α) * X α j := fun θ =>
         packParams_apply_idxW _ _ i j
       simp only [this]
       exact locallyLipschitz_mul_const _ (locallyLipschitz_mul_real
         (locallyLipschitz_const_mul _ (hproj (idxA i))) (hdφpre i α))
     · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inr i)) =
-            (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⊙ X α) := fun θ => packParams_apply_idxA _ _ i
+            (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⬝ᵥ X α) := fun θ => packParams_apply_idxA _ _ i
       simp only [this]
       exact locallyLipschitz_const_mul _ (hφpre i α)
   exact (locallyLipschitz_const_mul _ (locallyLipschitz_finset_sum _ fun α _ =>
@@ -5916,14 +5917,14 @@ private lemma flow_sqrt_inv_nat_mul_nat (hn : 0 < n) :
 
 /-- Cauchy-Schwarz for the input-weight preactivation. -/
 private lemma sq_innerProduct_le (w x : Fin d → ℝ) :
-    (w ⊙ x) ^ 2 ≤ (∑ j : Fin d, w j ^ 2) * ∑ j : Fin d, x j ^ 2 := by
-  unfold innerProduct
+    (w ⬝ᵥ x) ^ 2 ≤ (∑ j : Fin d, w j ^ 2) * ∑ j : Fin d, x j ^ 2 := by
+  unfold dotProduct
   exact Finset.sum_mul_sq_le_sq_mul_sq _ _ _
 
 /-- **Linear growth of the output Jacobian.** For a smooth activation the Frobenius norm of the
 output Jacobian grows at most linearly in the parameter norm: `‖J(θ)‖ ≤ c₀ + c₁ ‖θ‖`, with constants
 depending on the data but not on `θ`. Each neuron block satisfies
-`‖w_i‖² + a_i² ≤ ‖θ‖²`, and `φ(w ⊙ x)² ≤ 2 φ(0)² + 2 C₁² ‖w‖² ‖x‖²`. -/
+`‖w_i‖² + a_i² ≤ ‖θ‖²`, and `φ(w ⬝ᵥ x)² ≤ 2 φ(0)² + 2 C₁² ‖w‖² ‖x‖²`. -/
 private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂) (hn : 0 < n)
     (X : Fin m → Fin d → ℝ) :
     ∃ c₀ c₁ : ℝ, 0 ≤ c₀ ∧ 0 ≤ c₁ ∧ ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
@@ -5946,7 +5947,7 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
     intro α i
     refine (neuron_block_energy_le φ hact.deriv_bdd hn θ i (X α)).trans ?_
     refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-    set u := unpackW θ i ⊙ X α with hu
+    set u := unpackW θ i ⬝ᵥ X α with hu
     have hφu : φ u ^ 2 ≤ 2 * φ 0 ^ 2 + 2 * (C₁ ^ 2 * u ^ 2) := by
       have h1 : |φ u| ≤ |φ 0| + C₁ * |u| := by
         have := hφ_lip u 0
@@ -6031,7 +6032,7 @@ private lemma exists_residual_bound (hact : SmoothActivation φ C₁ C₂) (hn :
   refine (abs_sub _ _).trans ?_
   refine add_le_add ?_ le_rfl
   rw [netFromParams_eq_normalized_sum, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-  have hterm : ∀ i : Fin n, |unpackA θ i * φ (unpackW θ i ⊙ X α)| ≤
+  have hterm : ∀ i : Fin n, |unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)| ≤
       ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))) := by
     intro i
     have hblock : (∑ j : Fin d, θ (idxW i j) ^ 2) + θ (idxA i) ^ 2 ≤ ‖θ‖ ^ 2 := by
@@ -6044,35 +6045,35 @@ private lemma exists_residual_bound (hact : SmoothActivation φ C₁ C₂) (hn :
         nlinarith [Finset.sum_nonneg fun j (_ : j ∈ Finset.univ) => sq_nonneg (θ (idxW i j)),
           pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
       exact (sq_le_sq₀ (abs_nonneg _) hρ0).1 (by rwa [sq_abs])
-    have hu : |unpackW θ i ⊙ X α| ≤ ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2) := by
+    have hu : |unpackW θ i ⬝ᵥ X α| ≤ ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2) := by
       have hw : (∑ j : Fin d, θ (idxW i j) ^ 2) ≤ ρp ^ 2 := by
         have := hblock
         nlinarith [sq_nonneg (θ (idxA i)), pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
-      have hu2 : |unpackW θ i ⊙ X α| ^ 2 ≤
+      have hu2 : |unpackW θ i ⬝ᵥ X α| ^ 2 ≤
           (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) ^ 2 := by
         rw [sq_abs, mul_pow, Real.sq_sqrt (Finset.sum_nonneg fun _ _ => sq_nonneg _)]
         exact (sq_innerProduct_le (unpackW θ i) (X α)).trans
           (mul_le_mul_of_nonneg_right hw (Finset.sum_nonneg fun _ _ => sq_nonneg _))
       exact (sq_le_sq₀ (abs_nonneg _) (by positivity)).1 hu2
-    have hφu : |φ (unpackW θ i ⊙ X α)| ≤
+    have hφu : |φ (unpackW θ i ⬝ᵥ X α)| ≤
         |φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) := by
-      have := hφ_lip (unpackW θ i ⊙ X α) 0
+      have := hφ_lip (unpackW θ i ⬝ᵥ X α) 0
       rw [sub_zero] at this
-      have h1 : |φ (unpackW θ i ⊙ X α)| ≤ |φ 0| + |φ (unpackW θ i ⊙ X α) - φ 0| := by
-        have := abs_sub_abs_le_abs_sub (φ (unpackW θ i ⊙ X α)) (φ 0)
-        linarith [abs_sub_comm (φ (unpackW θ i ⊙ X α)) (φ 0)]
-      have h2 : C₁ * |unpackW θ i ⊙ X α| ≤ C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) :=
+      have h1 : |φ (unpackW θ i ⬝ᵥ X α)| ≤ |φ 0| + |φ (unpackW θ i ⬝ᵥ X α) - φ 0| := by
+        have := abs_sub_abs_le_abs_sub (φ (unpackW θ i ⬝ᵥ X α)) (φ 0)
+        linarith [abs_sub_comm (φ (unpackW θ i ⬝ᵥ X α)) (φ 0)]
+      have h2 : C₁ * |unpackW θ i ⬝ᵥ X α| ≤ C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) :=
         mul_le_mul_of_nonneg_left hu hC₁0
       linarith
     rw [abs_mul]
     exact mul_le_mul ha hφu (abs_nonneg _) hρ0
-  have hsum : |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ X α)| ≤
+  have hsum : |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)| ≤
       (n : ℝ) * (ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)))) := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
     calc _ ≤ ∑ _i : Fin n, ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))) :=
           Finset.sum_le_sum fun i _ => hterm i
       _ = _ := by simp
-  calc ((n : ℝ)⁻¹).sqrt * |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⊙ X α)|
+  calc ((n : ℝ)⁻¹).sqrt * |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)|
       ≤ ((n : ℝ)⁻¹).sqrt * ((n : ℝ) *
           (ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))))) :=
         mul_le_mul_of_nonneg_left hsum (Real.sqrt_nonneg _)
@@ -6327,7 +6328,7 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit
     hlambda_inf hK_gap θ hae hη hη1⟩
 
 /-- **Positive limiting gap from feature independence (SmoothActivation).** If the features
-`w ↦ φ(w ⊙ (X α / √d))` are linearly independent modulo Gaussian-null sets -- no nontrivial
+`w ↦ φ(w ⬝ᵥ (X α / √d))` are linearly independent modulo Gaussian-null sets -- no nontrivial
 combination vanishes almost everywhere -- then the limiting kernel is positive definite and there is
 `lambda_inf > 0` with `(K_∞ - lambda_inf • 1).PosSemidef`, the hypothesis `hK_gap` of the global
 lazy-training theorems. The activation enters only through `SmoothActivation`, which supplies
@@ -6336,7 +6337,7 @@ theorem exists_positive_gap_of_feature_independence {φ : ℝ → ℝ} {C₁ C�
     (hact : SmoothActivation φ C₁ C₂) {d m : ℕ} (X : Fin m → Fin d → ℝ)
     (hind : ∀ u : Fin m → ℝ,
       (∀ᵐ w ∂(gaussianRowMeasure d),
-        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
+        ∑ α : Fin m, u α * φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
     ∃ lambda_inf : ℝ, 0 < lambda_inf ∧ (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef := by
   obtain ⟨-, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
@@ -6356,7 +6357,7 @@ theorem gradientFlow_global_lazy_training_limit_of_feature_independence
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hind : ∀ u : Fin m → ℝ,
       (∀ᵐ w ∂(gaussianRowMeasure d),
-        ∑ α : Fin m, u α * φ (w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0)
+        ∑ α : Fin m, u α * φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0)
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ lambda_inf : ℝ, 0 < lambda_inf ∧
         ∃ θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →

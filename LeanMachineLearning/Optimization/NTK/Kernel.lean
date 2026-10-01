@@ -92,65 +92,58 @@ variable {d m : ℕ}
 
 /-! ### Inner product and norm helpers -/
 
-/-- The standard inner product on `Fin d → ℝ`. -/
-noncomputable def innerProduct (x y : Fin d → ℝ) : ℝ :=
-  ∑ k : Fin d, x k * y k
+lemma innerProduct_comm (x y : Fin d → ℝ) : x ⬝ᵥ y = y ⬝ᵥ x := by
+  simp [dotProduct, mul_comm]
 
-/-- Notation `x ⊙ y` for the standard inner product `innerProduct x y`. -/
-infixl:73 " ⊙ " => innerProduct
-
-lemma innerProduct_comm (x y : Fin d → ℝ) : x ⊙ y = y ⊙ x := by
-  simp [innerProduct, mul_comm]
-
-lemma innerProduct_self_nonneg (x : Fin d → ℝ) : 0 ≤ x ⊙ x :=
+lemma innerProduct_self_nonneg (x : Fin d → ℝ) : 0 ≤ x ⬝ᵥ x :=
   Finset.sum_nonneg (fun i _ => mul_self_nonneg (x i))
 
-/-- `x ⊙ x` is the sum of the coordinate squares. -/
-lemma innerProduct_self_eq_sum_sq (x : Fin d → ℝ) : x ⊙ x = ∑ k : Fin d, x k ^ 2 := by
-  simp [innerProduct, pow_two]
+/-- `x ⬝ᵥ x` is the sum of the coordinate squares. -/
+lemma innerProduct_self_eq_sum_sq (x : Fin d → ℝ) : x ⬝ᵥ x = ∑ k : Fin d, x k ^ 2 := by
+  simp [dotProduct, pow_two]
 
-/-- For the Euclidean `L²` norm on `EuclideanSpace ℝ (Fin d)`, `‖x‖² = x ⊙ x`.
+/-- For the Euclidean `L²` norm on `EuclideanSpace ℝ (Fin d)`, `‖x‖² = x ⬝ᵥ x`.
 
 The default norm on `Fin d → ℝ` is the sup norm, so the analogous statement is false for the raw
 Pi type. -/
 lemma norm_sq_eq_innerProduct (x : EuclideanSpace ℝ (Fin d)) :
-    ‖x‖ ^ 2 = x.ofLp ⊙ x.ofLp := by
+    ‖x‖ ^ 2 = x.ofLp ⬝ᵥ x.ofLp := by
   rw [EuclideanSpace.real_norm_sq_eq]
   simpa using (innerProduct_self_eq_sum_sq x.ofLp).symm
 
 lemma innerProduct_mul_left (c : ℝ) (x y : Fin d → ℝ) :
-    (fun k => c * x k) ⊙ y = c * (x ⊙ y) := by
-  simp only [innerProduct, mul_assoc]
+    (fun k => c * x k) ⬝ᵥ y = c * (x ⬝ᵥ y) := by
+  simp only [dotProduct, mul_assoc]
   rw [← Finset.mul_sum]
 
 lemma innerProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
-    x ⊙ (fun k => c * y k) = c * (x ⊙ y) := by
+    x ⬝ᵥ (fun k => c * y k) = c * (x ⬝ᵥ y) := by
   rw [innerProduct_comm, innerProduct_mul_left, innerProduct_comm y x]
 
 lemma innerProduct_sub_left (x y z : Fin d → ℝ) :
-    (x - y) ⊙ z = x ⊙ z - y ⊙ z := by
-  simp only [innerProduct, Pi.sub_apply, sub_mul]
+    (x - y) ⬝ᵥ z = x ⬝ᵥ z - y ⬝ᵥ z := by
+  simp only [dotProduct, Pi.sub_apply, sub_mul]
   rw [← Finset.sum_sub_distrib]
 
 lemma innerProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
-    (fun k => c₁ * x k) ⊙ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⊙ y) := by
+    (fun k => c₁ * x k) ⬝ᵥ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⬝ᵥ y) := by
   rw [innerProduct_mul_left, innerProduct_mul_right, mul_assoc]
 
 /-- The dot product of a weight vector with a scaled input `(1 / √d) * x` has the scaling
 factor `1 / √d` factored out. -/
 lemma innerProduct_scaled_input (d : ℕ) (w x : Fin d → ℝ) :
-    w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (Real.sqrt (d : ℝ))⁻¹ * (w ⊙ x) :=
+    w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (Real.sqrt (d : ℝ))⁻¹ * (w ⬝ᵥ x) :=
   innerProduct_mul_right _ _ _
 
-/-- Preactivation form: `w ⊙ (x / √d) = (w ⊙ x) / √d`. -/
+/-- Preactivation form: `w ⬝ᵥ (x / √d) = (w ⬝ᵥ x) / √d`. -/
 lemma innerProduct_scaled_input_div (d : ℕ) (w x : Fin d → ℝ) :
-    w ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (w ⊙ x) / Real.sqrt (d : ℝ) := by
+    w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (w ⬝ᵥ x) / Real.sqrt (d : ℝ) := by
   rw [innerProduct_scaled_input, div_eq_inv_mul]
 
 /-- Inner product of two scaled inputs factors out `(1 / √d)² = 1 / d`. -/
 lemma innerProduct_scaled_dataset (d : ℕ) (hd : 0 < d) (x y : Fin d → ℝ) :
-    (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) ⊙ (fun k => (Real.sqrt (d : ℝ))⁻¹ * y k) =
-      (d : ℝ)⁻¹ * (x ⊙ y) := by
+    (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * y k) =
+      (d : ℝ)⁻¹ * (x ⬝ᵥ y) := by
   rw [innerProduct_mul_mul]
   have h_sqrt : (Real.sqrt (d : ℝ))⁻¹ * (Real.sqrt (d : ℝ))⁻¹ = (d : ℝ)⁻¹ := by
     rw [← mul_inv, Real.mul_self_sqrt (by positivity)]
@@ -168,7 +161,7 @@ noncomputable def empiricalNTKWithOuter
     (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ)
     (x x' : Fin d → ℝ) : ℝ :=
-  (x ⊙ x') *
+  (x ⬝ᵥ x') *
     ((m : ℝ)⁻¹ * ∑ j : Fin m,
       outerCoeffs j ^ 2 *
       σ' (∑ k : Fin d, W₀ j k * x k) *
@@ -186,7 +179,7 @@ noncomputable def empiricalNTK
     (σ' : ℝ → ℝ)
     (W₀ : Fin m → Fin d → ℝ)
     (x x' : Fin d → ℝ) : ℝ :=
-  (x ⊙ x') *
+  (x ⬝ᵥ x') *
     ((m : ℝ)⁻¹ * ∑ j : Fin m,
       σ' (∑ k : Fin d, W₀ j k * x k) *
       σ' (∑ k : Fin d, W₀ j k * x' k))
@@ -220,7 +213,7 @@ lemma sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
       gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
         gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
     empiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
-  unfold gradientMatrix empiricalNTKWithOuter innerProduct
+  unfold gradientMatrix empiricalNTKWithOuter dotProduct
   simp_rw [gradient_matrix_term_eq]
   rw [Finset.sum_comm]
   simp_rw [← Finset.mul_sum]
@@ -286,7 +279,7 @@ private lemma empiricalNTK_term_expand
           (α i * α i' * (pts i k * pts i' k) *
             (σ' (∑ l : Fin d, W₀ j l * pts i l) *
               σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
-  unfold empiricalNTK innerProduct
+  unfold empiricalNTK dotProduct
   calc
     α i * α i' *
         ((∑ k : Fin d, pts i k * pts i' k) *
@@ -480,9 +473,9 @@ as `m → ∞`:
 This is positive semidefinite and symmetric. For the ReLU, it has the closed form
 given in `reluNTK_closedForm`. -/
 noncomputable def limitingNTK (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) : ℝ :=
-  (x ⊙ x') *
+  (x ⬝ᵥ x') *
     ∫ w : Fin d → ℝ,
-      σ' (w ⊙ x) * σ' (w ⊙ x') ∂(gaussianRowMeasure d)
+      σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x') ∂(gaussianRowMeasure d)
 
 /-- The limiting NTK is symmetric. -/
 lemma limitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
@@ -498,19 +491,19 @@ instance : IsProbabilityMeasure (gaussianRowMeasure d) := by
 
 /-- The dot product `w ↦ wᵀx` with a fixed vector is measurable. -/
 lemma measurable_innerProduct_left (x : Fin d → ℝ) :
-    Measurable fun w : Fin d → ℝ => w ⊙ x :=
+    Measurable fun w : Fin d → ℝ => w ⬝ᵥ x :=
   Finset.measurable_sum _ fun k _ => (measurable_pi_apply k).mul measurable_const
 
 /-- The product `w ↦ σ'(wᵀx) · σ'(wᵀx')` is measurable whenever `σ'` is. -/
 lemma measurable_ntkSummand {σ' : ℝ → ℝ} (hσ' : Measurable σ') (x x' : Fin d → ℝ) :
-    Measurable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) :=
+    Measurable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) :=
   (hσ'.comp (measurable_innerProduct_left x)).mul (hσ'.comp (measurable_innerProduct_left x'))
 
 /-- If `σ'` is bounded by `C`, then
 `|σ'(wᵀx) · σ'(wᵀx')| ≤ C²`. -/
 lemma abs_ntkSummand_le {σ' : ℝ → ℝ} {C : ℝ} (hC : ∀ z, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) (w : Fin d → ℝ) :
-    |σ' (w ⊙ x) * σ' (w ⊙ x')| ≤ C * C := by
+    |σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')| ≤ C * C := by
   have hC0 : 0 ≤ C := le_trans (abs_nonneg (σ' 0)) (hC 0)
   rw [abs_mul]
   exact mul_le_mul (hC _) (hC _) (abs_nonneg _) hC0
@@ -519,7 +512,7 @@ lemma abs_ntkSummand_le {σ' : ℝ → ℝ} {C : ℝ} (hC : ∀ z, |σ' z| ≤ C
 row measure when `σ'` is measurable and bounded. -/
 lemma integrable_ntkSummand {σ' : ℝ → ℝ} (hσ'm : Measurable σ') {C : ℝ}
     (hC : ∀ z, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
-    Integrable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) (gaussianRowMeasure d) :=
+    Integrable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) (gaussianRowMeasure d) :=
   Integrable.of_bound (measurable_ntkSummand hσ'm x x').aestronglyMeasurable (C * C)
     (Filter.Eventually.of_forall fun w => by
       rw [Real.norm_eq_abs]
@@ -534,9 +527,9 @@ noncomputable def empiricalNTKFromRows
     (rows : ℕ → Fin d → ℝ)
     (width : ℕ)
     (x x' : Fin d → ℝ) : ℝ :=
-  (x ⊙ x') *
+  (x ⬝ᵥ x') *
     ((width : ℝ)⁻¹ * ∑ j : Fin width,
-      σ' (rows j.val ⊙ x) * σ' (rows j.val ⊙ x'))
+      σ' (rows j.val ⬝ᵥ x) * σ' (rows j.val ⬝ᵥ x'))
 
 /-- The strong law for empirical averages of a measurable integrable observable
 over an i.i.d. sequence drawn from an arbitrary probability measure `ν`. This packages
@@ -738,15 +731,15 @@ theorem ntk_convergence
         Filter.atTop
         (nhds (limitingNTK σ' x x')) := by
   obtain ⟨C, hC⟩ := hσ'_bounded
-  have hg_meas : Measurable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) :=
+  have hg_meas : Measurable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) :=
     measurable_ntkSummand hσ'_meas x x'
-  have hg_int : Integrable (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x'))
+  have hg_int : Integrable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x'))
       (gaussianRowMeasure d) :=
     integrable_ntkSummand hσ'_meas hC x x'
   filter_upwards [gaussianRow_average_tendsto_integral
-    (fun w : Fin d → ℝ => σ' (w ⊙ x) * σ' (w ⊙ x')) hg_meas hg_int]
+    (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) hg_meas hg_int]
     with rows hrows
-  exact hrows.const_mul (x ⊙ x')
+  exact hrows.const_mul (x ⬝ᵥ x')
 
 /-! ### ReLU NTK closed form (Proposition 4.2) -/
 
@@ -772,16 +765,16 @@ lemma abs_reluIndicator_le (z : ℝ) : |reluIndicator z| ≤ 1 := by
 
 /-- The row inner product agrees with the Euclidean inner product of the `L²` lifts. -/
 lemma innerProduct_eq_inner_toLp (x y : Fin d → ℝ) :
-    x ⊙ y = ⟪WithLp.toLp 2 y, WithLp.toLp 2 x⟫ := by
+    x ⬝ᵥ y = ⟪WithLp.toLp 2 y, WithLp.toLp 2 x⟫ := by
   rw [EuclideanSpace.inner_toLp_toLp]
-  simp [innerProduct, dotProduct]
+  simp [dotProduct]
 
 /-- Pushforward of `gaussianRowMeasure` by the linear functional `w ↦ wᵀx` is a 1D Gaussian
 with mean `0` and variance `xᵀx`. -/
 lemma map_gaussianRowMeasure_innerProduct (x : Fin d → ℝ) :
-    Measure.map (fun w => w ⊙ x) (gaussianRowMeasure d) =
-      gaussianReal 0 (Real.toNNReal (x ⊙ x)) := by
-  have h_eq : (fun w : Fin d → ℝ => w ⊙ x) =
+    Measure.map (fun w => w ⬝ᵥ x) (gaussianRowMeasure d) =
+      gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := by
+  have h_eq : (fun w : Fin d → ℝ => w ⬝ᵥ x) =
       (fun (v : EuclideanSpace ℝ (Fin d)) => innerSL ℝ (WithLp.toLp 2 x) v) ∘ (WithLp.toLp 2) := by
     ext w
     dsimp
@@ -799,7 +792,7 @@ lemma map_gaussianRowMeasure_innerProduct (x : Fin d → ℝ) :
       rw [integral_id_stdGaussian]
       exact map_zero (innerSL ℝ (WithLp.toLp 2 x))
     have h_var : Var[innerSL ℝ (WithLp.toLp 2 x); stdGaussian (EuclideanSpace ℝ (Fin d))] =
-        x ⊙ x := by
+        x ⬝ᵥ x := by
       rw [variance_dual_stdGaussian]
       rw [innerSL_apply_norm]
       rw [norm_sq_eq_innerProduct (WithLp.toLp 2 x)]
@@ -852,26 +845,26 @@ lemma gaussianReal_Ici_one_half : (gaussianReal 0 1).real (Set.Ici 0) = 1 / 2 :=
   linarith [h_symm, h_add]
 
 /-- For unit vectors, inner product `1` forces equality. -/
-lemma innerProduct_eq_one_iff_eq (x x' : Fin d → ℝ) (hx : x ⊙ x = 1) (hx' : x' ⊙ x' = 1) :
-    x ⊙ x' = 1 ↔ x = x' := by
+lemma innerProduct_eq_one_iff_eq (x x' : Fin d → ℝ) (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1) :
+    x ⬝ᵥ x' = 1 ↔ x = x' := by
   constructor
   · intro h
     funext i
-    have hsum_eq : (x - x') ⊙ (x - x') = (x ⊙ x) - 2 * (x ⊙ x') + (x' ⊙ x') := by
-      unfold innerProduct
+    have hsum_eq : (x - x') ⬝ᵥ (x - x') = (x ⬝ᵥ x) - 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := by
+      unfold dotProduct
       simp only [Pi.sub_apply]
       have step1 : (fun (i : Fin d) => (x i - x' i) * (x i - x' i)) =
                    fun (i : Fin d) => x i * x i - 2 * (x i * x' i) + x' i * x' i := by
         funext j; ring
       rw [step1]
       simp only [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
-    have hzero : (x - x') ⊙ (x - x') = 0 := by
-      calc (x - x') ⊙ (x - x') = (x ⊙ x) - 2 * (x ⊙ x') + (x' ⊙ x') := hsum_eq
+    have hzero : (x - x') ⬝ᵥ (x - x') = 0 := by
+      calc (x - x') ⬝ᵥ (x - x') = (x ⬝ᵥ x) - 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := hsum_eq
         _ = 1 - 2 * 1 + 1 := by rw [hx, hx', h]
         _ = 0 := by ring
     have h_i : (x i - x' i) ^ 2 = 0 := by
-      have hsum_sq : (x - x') ⊙ (x - x') = ∑ k : Fin d, (x k - x' k) ^ 2 := by
-        unfold innerProduct
+      have hsum_sq : (x - x') ⬝ᵥ (x - x') = ∑ k : Fin d, (x k - x' k) ^ 2 := by
+        unfold dotProduct
         simp only [Pi.sub_apply]
         have : (fun (j : Fin d) => (x j - x' j) * (x j - x' j)) = fun j => (x j - x' j) ^ 2 := by
           funext j; ring
@@ -887,26 +880,26 @@ lemma innerProduct_eq_one_iff_eq (x x' : Fin d → ℝ) (hx : x ⊙ x = 1) (hx' 
 
 /-- For unit vectors, inner product `-1` forces `x' = -x`. -/
 lemma innerProduct_eq_neg_one_iff_eq_neg (x x' : Fin d → ℝ)
-    (hx : x ⊙ x = 1) (hx' : x' ⊙ x' = 1) :
-    x ⊙ x' = -1 ↔ x' = -x := by
+    (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1) :
+    x ⬝ᵥ x' = -1 ↔ x' = -x := by
   constructor
   · intro h
     funext i
-    have hsum_eq : (x + x') ⊙ (x + x') = (x ⊙ x) + 2 * (x ⊙ x') + (x' ⊙ x') := by
-      unfold innerProduct
+    have hsum_eq : (x + x') ⬝ᵥ (x + x') = (x ⬝ᵥ x) + 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := by
+      unfold dotProduct
       simp only [Pi.add_apply]
       have step1 : (fun (i : Fin d) => (x i + x' i) * (x i + x' i)) =
                    fun (i : Fin d) => x i * x i + 2 * (x i * x' i) + x' i * x' i := by
         funext j; ring
       rw [step1]
       simp only [Finset.sum_add_distrib, ← Finset.mul_sum]
-    have hzero : (x + x') ⊙ (x + x') = 0 := by
-      calc (x + x') ⊙ (x + x') = (x ⊙ x) + 2 * (x ⊙ x') + (x' ⊙ x') := hsum_eq
+    have hzero : (x + x') ⬝ᵥ (x + x') = 0 := by
+      calc (x + x') ⬝ᵥ (x + x') = (x ⬝ᵥ x) + 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := hsum_eq
         _ = 1 + 2 * (-1) + 1 := by rw [hx, hx', h]
         _ = 0 := by ring
     have h_i : (x i + x' i) ^ 2 = 0 := by
-      have hsum_sq : (x + x') ⊙ (x + x') = ∑ k : Fin d, (x k + x' k) ^ 2 := by
-        unfold innerProduct
+      have hsum_sq : (x + x') ⬝ᵥ (x + x') = ∑ k : Fin d, (x k + x' k) ^ 2 := by
+        unfold dotProduct
         simp only [Pi.add_apply]
         have : (fun (j : Fin d) => (x j + x' j) * (x j + x' j)) = fun j => (x j + x' j) ^ 2 := by
           funext j; ring
@@ -919,20 +912,20 @@ lemma innerProduct_eq_neg_one_iff_eq_neg (x x' : Fin d → ℝ)
     rw [Pi.neg_apply]
     linarith
   · intro h
-    unfold innerProduct
+    unfold dotProduct
     simp only [h, Pi.neg_apply, mul_neg, Finset.sum_neg_distrib]
-    have : ∑ i : Fin d, x i * x i = x ⊙ x := rfl
+    have : ∑ i : Fin d, x i * x i = x ⬝ᵥ x := rfl
     rw [this, hx]
 
 open scoped RealInnerProductSpace
 
-/-- The row inner product `y.ofLp ⊙ x` agrees with the `EuclideanSpace` inner product
+/-- The row inner product `y.ofLp ⬝ᵥ x` agrees with the `EuclideanSpace` inner product
 `⟪y, WithLp.toLp 2 x⟫` for `y` already in `EuclideanSpace` form. -/
 lemma ofLp_innerProduct_eq_inner (x : Fin d → ℝ) (y : EuclideanSpace ℝ (Fin d)) :
-    y.ofLp ⊙ x = ⟪y, WithLp.toLp 2 x⟫ := by
+    y.ofLp ⬝ᵥ x = ⟪y, WithLp.toLp 2 x⟫ := by
   rw [show y = WithLp.toLp 2 (y.ofLp) by rfl]
   rw [EuclideanSpace.inner_toLp_toLp]
-  simp only [innerProduct, dotProduct, star_trivial]
+  simp only [dotProduct, star_trivial]
   simp_rw [mul_comm]
 
 /-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
@@ -947,22 +940,22 @@ lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
   rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
   simp [WithLp.ofLp_toLp, gaussianRowMeasure]
 
-/-- `reluIndicator (w ⊙ x)` is the indicator of the closed halfspace `{w | w ⊙ x ≥ 0}`. -/
+/-- `reluIndicator (w ⬝ᵥ x)` is the indicator of the closed halfspace `{w | w ⬝ᵥ x ≥ 0}`. -/
 lemma reluIndicator_eq_indicator_Ici (x : Fin d → ℝ) :
-    (fun w => reluIndicator (w ⊙ x)) = Set.indicator {w | w ⊙ x ≥ 0} (fun _ => 1) := by
+    (fun w => reluIndicator (w ⬝ᵥ x)) = Set.indicator {w | w ⬝ᵥ x ≥ 0} (fun _ => 1) := by
   ext w
   simp [reluIndicator, Set.indicator]
 
 /-- The product of two `reluIndicator`s is the indicator of the intersection of halfspaces. -/
 lemma integral_reluIndicator_mul_eq_measure (x x' : Fin d → ℝ) :
-    ∫ w, reluIndicator (w ⊙ x) * reluIndicator (w ⊙ x') ∂(gaussianRowMeasure d) =
-      (gaussianRowMeasure d).real ({w | w ⊙ x ≥ 0} ∩ {w | w ⊙ x' ≥ 0}) := by
-  have h_eq : (fun w => reluIndicator (w ⊙ x) * reluIndicator (w ⊙ x')) =
-      Set.indicator ({w | w ⊙ x ≥ 0} ∩ {w | w ⊙ x' ≥ 0}) (fun _ => 1) := by
+    ∫ w, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(gaussianRowMeasure d) =
+      (gaussianRowMeasure d).real ({w | w ⬝ᵥ x ≥ 0} ∩ {w | w ⬝ᵥ x' ≥ 0}) := by
+  have h_eq : (fun w => reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x')) =
+      Set.indicator ({w | w ⬝ᵥ x ≥ 0} ∩ {w | w ⬝ᵥ x' ≥ 0}) (fun _ => 1) := by
     ext w
     simp [reluIndicator, Set.indicator]
     split_ifs <;> tauto
-  have h_meas : MeasurableSet ({w | w ⊙ x ≥ 0} ∩ {w | w ⊙ x' ≥ 0}) := by
+  have h_meas : MeasurableSet ({w | w ⬝ᵥ x ≥ 0} ∩ {w | w ⬝ᵥ x' ≥ 0}) := by
     apply MeasurableSet.inter
     · exact measurableSet_Ici.preimage (measurable_innerProduct_left x)
     · exact measurableSet_Ici.preimage (measurable_innerProduct_left x')
@@ -1014,15 +1007,15 @@ for this standard geometric argument.
 -/
 lemma prob_halfspace_intersect
     (x x' : Fin d → ℝ)
-    (hx : x ⊙ x = 1)
-    (hx' : x' ⊙ x' = 1) :
-    ∫ w : Fin d → ℝ, reluIndicator (w ⊙ x) * reluIndicator (w ⊙ x') ∂(gaussianRowMeasure d) =
-      (Real.pi - Real.arccos (x ⊙ x')) / (2 * Real.pi) := by
+    (hx : x ⬝ᵥ x = 1)
+    (hx' : x' ⬝ᵥ x' = 1) :
+    ∫ w : Fin d → ℝ, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(gaussianRowMeasure d) =
+      (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
   sorry
 
 /-- **Proposition 4.2** (ReLU NTK closed form, Telgarsky 2021).
 For `σ' = 1[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
-`x ⊙ x = x' ⊙ x' = 1`:
+`x ⬝ᵥ x = x' ⬝ᵥ x' = 1`:
   `k(x, x') = (xᵀx') · (π − arccos(xᵀx')) / (2π)`.
 
 **Proof sketch:**
@@ -1033,10 +1026,10 @@ For `σ' = 1[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
 - Multiplying by `xᵀx'` gives the result. -/
 theorem reluNTK_closedForm
     (x x' : Fin d → ℝ)
-    (hx : x ⊙ x = 1)
-    (hx' : x' ⊙ x' = 1) :
+    (hx : x ⬝ᵥ x = 1)
+    (hx' : x' ⬝ᵥ x' = 1) :
     limitingNTK reluIndicator x x' =
-      (x ⊙ x') * (Real.pi - Real.arccos (x ⊙ x')) / (2 * Real.pi) := by
+      (x ⬝ᵥ x') * (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
   unfold limitingNTK
   rw [prob_halfspace_intersect x x' hx hx']
   ring
@@ -1044,18 +1037,18 @@ theorem reluNTK_closedForm
 /-- The ReLU NTK is nonneg when `xᵀx' ≥ 0`. -/
 lemma reluNTK_nonneg_of_nonneg_inner
     (x x' : Fin d → ℝ)
-    (hx : x ⊙ x = 1) (hx' : x' ⊙ x' = 1)
-    (hinn : 0 ≤ x ⊙ x') :
+    (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1)
+    (hinn : 0 ≤ x ⬝ᵥ x') :
     0 ≤ limitingNTK reluIndicator x x' := by
   rw [reluNTK_closedForm x x' hx hx']
   apply div_nonneg
   · apply mul_nonneg hinn
-    linarith [Real.arccos_le_pi (x ⊙ x'), Real.pi_pos]
+    linarith [Real.arccos_le_pi (x ⬝ᵥ x'), Real.pi_pos]
   · linarith [Real.pi_pos]
 
 /-- The ReLU NTK at equal inputs normalized by the local inner product. -/
 lemma reluNTK_self
-    (x : Fin d → ℝ) (hx : x ⊙ x = 1) :
+    (x : Fin d → ℝ) (hx : x ⬝ᵥ x = 1) :
     limitingNTK reluIndicator x x = 1 / 2 := by
   rw [reluNTK_closedForm x x hx hx]
   rw [hx]

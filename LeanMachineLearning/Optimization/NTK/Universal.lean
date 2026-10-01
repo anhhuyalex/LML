@@ -53,6 +53,7 @@ The argument proceeds in three steps:
 @[expose] public section
 
 open Real MeasureTheory Set
+open scoped Matrix
 
 namespace NTK
 
@@ -69,15 +70,15 @@ Fixing the last coordinate plays the role of an implicit bias: it ensures that
 the ReLU NTK `k(x,x') = (xᵀx')(π − arccos(xᵀx'))/(2π)` restricted to `𝒳`
 has all-positive Maclaurin coefficients, making it a universal kernel.
 
-The Euclidean norm is encoded as `x ⊙ x = 1` rather than Lean's default norm on
+The Euclidean norm is encoded as `x ⬝ᵥ x = 1` rather than Lean's default norm on
 the raw function type `Fin d → ℝ`. -/
 def ntkDomain (d : ℕ) : Set (Fin d → ℝ) :=
-  {x | x ⊙ x = 1 ∧
+  {x | x ⬝ᵥ x = 1 ∧
     (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}
 
 /-- The NTK domain is a subset of the Euclidean unit sphere. -/
 lemma ntkDomain_subset_sphere (d : ℕ) :
-    ntkDomain d ⊆ {x : Fin d → ℝ | x ⊙ x = 1} :=
+    ntkDomain d ⊆ {x : Fin d → ℝ | x ⬝ᵥ x = 1} :=
   fun _ hx => hx.1
 
 /-- The NTK domain is compact (closed subset of the unit sphere in ℝᵈ). -/
@@ -89,13 +90,13 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
 /-- The reduced domain: `U = {u ∈ ℝᵈ⁻¹ : ‖u‖² ≤ 1/2}`.
   The NTK domain `𝒳 ⊆ ℝᵈ` is in bijection with `U` by dropping the last coordinate. -/
 def reducedDomain (d : ℕ) : Set (Fin d → ℝ) :=
-  {u | u ⊙ u ≤ 1 / 2}
+  {u | u ⬝ᵥ u ≤ 1 / 2}
 
 /-- The kernel on the reduced domain: `k_tilde(u, u') = f_tilde(u·u')` where
   `f_tilde(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)`.
   This is the ReLU NTK in coordinates on `U`. -/
 noncomputable def reducedKernel (u u' : Fin d → ℝ) : ℝ :=
-  let z := innerProduct u u'
+  let z := dotProduct u u'
   (z + 1 / 2) / 2 - (z + 1 / 2) * Real.arccos (z + 1 / 2) / (2 * Real.pi)
 
 /-- The reduced kernel is equal to the ReLU NTK on the NTK domain. -/
