@@ -36,7 +36,7 @@ concentration and Gap 4b's entrywise readout-weight concentration (both at `Î¸â‚
 union bound into one high-probability event; on that event, Gap 4's Lipschitz bound propagates
 both the Jacobian norm and the readout-weight bound through the displacement ball (the same
 "ball propagation" pattern `rayleigh_quotient_lower_bound_of_displacement`/`h_rr_ball` already use
-in `InfiniteNTK.lean`); the result feeds directly into
+in `NTK.Training.GradientFlow.Bootstrap`); the result feeds directly into
 `lazy_training_kernel_freeze_bound_of_ball_hypotheses`.
 -/
 

@@ -12,7 +12,7 @@ public import Mathlib.MeasureTheory.Integral.Gamma
 # Polar-Coordinate Evaluation of the Cho-Saul Kernel
 
 This file separates the two-dimensional standard Gaussian integrals into radial and angular
-factors. The angular factors are supplied by `ChoSaulAngular`; the exported lemmas give the
+factors. The angular factors are supplied by `NTK.ReLU.ChoSaulAngular`; the exported lemmas give the
 ReLU and ReLU-indicator formulas for directions separated by an angle `theta`.
 -/
 @[expose] public section

@@ -62,7 +62,7 @@ variable {d n m : ℕ}
 
 /-! ## Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5) -/
 
-/-- Equation lemma for `relu` (imported from `NTK.Linearization`). -/
+/-- Equation lemma for `relu` (imported from `NTK.Shallow.Linearization`). -/
 @[simp] lemma relu_apply (u : ℝ) : relu u = max u 0 := rfl
 
 /-- Equivalence between `reluDeriv` and `reluIndicator` (which are definitionally equal). -/

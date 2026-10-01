@@ -13,6 +13,21 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Bootstr
 Kernel freeze as `n → ∞`, deterministic initialization limits and the
 corresponding Chebyshev bounds.
 
+## Main results and proof outline
+
+* `NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound` : Kernel freeze bound
+  `‖K(θ(t)) - K(θ₀)‖ ≤ (2 * M * L_J) * C` instantiated with Jacobian bounds
+  (the `1/√n` decay lives in `L_J`, not in the displacement bound `C` - see
+  `NTK.Shallow.DatasetNTK`'s `gradient_mseLoss_norm_le` and this file's Rayleigh-quotient stability
+  theorems below).
+* `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
+* `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.
+* `NTK.tendsto_lazy_training_kernel_freeze_matrix` : Empirical NTK matrix freeze as `n → ∞`.
+* `NTK.deterministic_initialization_empiricalNTK_tendsto_ae` : Property 1 a.s. initialization limit.
+* `NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae` : Gram matrix a.s. limit.
+* `NTK.deterministic_initialization_chebyshev_bound` : Property 1 entrywise Chebyshev bound.
+* `NTK.tendsto_empiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.
@@ -234,7 +249,7 @@ theorem tendsto_lazy_training_kernel_freeze_matrix
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le hg hh hgf hfh
 
 /-- Property 1 (Deterministic NTK Initialization):
-By `ntk_convergence` from `Kernel.lean`, the empirical kernel `empiricalNTKFromRows`
+By `ntk_convergence` from `NTK.Shallow.Kernel`, the empirical kernel `empiricalNTKFromRows`
 built from `n` Gaussian hidden rows converges almost surely to the deterministic
 limiting kernel `limitingNTK` as width `n → ∞`:
   `k_n(x, x') → k_∞(x, x')` a.s. -/

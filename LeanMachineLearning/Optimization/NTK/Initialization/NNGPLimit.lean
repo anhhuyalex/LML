@@ -13,6 +13,125 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalNor
 Strong-law convergence of the empirical covariance (Theorem 2) and convergence in distribution
 of the output to the NNGP at initialization (Theorem 3).
 
+## Main results and proof outline
+
+* Limiting NNGP covariance matrix $\boldsymbol{\Phi} \in \mathbb{R}^{m \times m}$:
+  $\Phi^{\alpha \beta} :=
+    \int \varphi(\mathbf{w}^\top \mathbf{x}^\alpha) \varphi(\mathbf{w}^\top \mathbf{x}^\beta)
+    d\mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})$
+  (`limitingCovariance φ X`).
+* As width $n \to \infty$, the empirical covariance matrix converges almost surely to the
+  deterministic NNGP Gram matrix:
+  $$\Phi^{(n), \alpha \beta} \xrightarrow{\text{a.s.}}
+    \int \varphi(\mathbf{w}^\top \mathbf{x}^\alpha) \varphi(\mathbf{w}^\top \mathbf{x}^\beta)
+    d\mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})$$
+  formalized entrywise by `NTK.empiricalCovariance_tendsto_integral`.
+* Full matrix convergence in $\mathbb{R}^{m \times m}$ almost surely:
+  $\boldsymbol{\Phi}^{(n)} \xrightarrow{\text{a.s.}} \boldsymbol{\Phi}$
+  formalized by `NTK.empiricalCovariance_tendsto_matrix_integral`.
+* The limiting Gram matrix $\boldsymbol{\Phi}$ is symmetric positive semidefinite:
+  `NTK.limitingCovariance_posSemidef` via `NTK.sum_sum_mul_limitingCovariance_eq_integral_sq`
+  and `NTK.sum_sum_mul_limitingCovariance_nonneg`.
+* Step 1: For fixed inputs $\mathbf{x}^\alpha, \mathbf{x}^\beta$,
+  define the scalar random variables
+  $$Y_i := \varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)
+    \varphi(\mathbf{w}_i^\top \mathbf{x}^\beta)$$
+  for $i \in \{1, \dots, n\}$ (`NTK.measurable_cov_summand`).
+* Step 3: Under square-integrability of $\varphi$, the expectation exists and is finite by
+  Cauchy-Schwarz:
+  $$\mathbb{E}_{\mathbf{w}_i}\left[ |Y_i| \right] \le
+    \sqrt{\mathbb{E}_{\mathbf{w}_i}[\varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)^2]
+    \mathbb{E}_{\mathbf{w}_i}[\varphi(\mathbf{w}_i^\top \mathbf{x}^\beta)^2]} < \infty$$
+  (`NTK.integrable_cov_summand_of_memLp`).
+* As width $n \to \infty$, the output vector $\mathbf{f}_m$ converges in distribution under the
+  joint initialization measure `initMeasure n d` to the centered multivariate Gaussian
+  distribution with covariance $\boldsymbol{\Phi}$:
+  $$\mathbf{f}_m \xrightarrow{d} \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Phi}\right)
+    \quad \text{in } \mathbb{R}^m$$
+  formalized by `NTK.tendstoInDistribution_evalVector`.
+* The unconditional pushforward measures
+  $\mu_{\mathbf{f}_m}^{(n)} = \text{outputMeasure } n\ d\ \varphi\ X$
+  converge weakly (narrowly) to the multivariate Gaussian measure:
+  $$\mu_{\mathbf{f}_m}^{(n)} \rightharpoonup
+    \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Phi}\right)$$
+  formalized by `NTK.outputMeasure_tendsto_multivariateGaussian`.
+* Step 1: Conditioning on input weights $\mathbf{W}$ and integrating out readout weights $a$
+  yields the unconditional characteristic function via iterated expectation:
+  $$\psi_n(\mathbf{t}) =
+    \mathbb{E}_{\mathbf{W}, a}\left[\exp(i \langle \mathbf{t}, \mathbf{f}_m \rangle)\right] =$$
+  $$\mathbb{E}_{\mathbf{W}}\left[\exp\left(-\frac{1}{2}
+    \mathbf{t}^\top \boldsymbol{\Phi}^{(n)} \mathbf{t}\right)\right]$$
+  (`NTK.charFun_outputMeasure`).
+* Step 2: By Theorem 2 (almost sure matrix convergence), the quadratic form converges
+  almost surely:
+  $\mathbf{t}^\top \boldsymbol{\Phi}^{(n)} \mathbf{t} \xrightarrow{\text{a.s.}}
+    \mathbf{t}^\top \boldsymbol{\Phi} \mathbf{t}$,
+  hence the characteristic integrand converges almost surely:
+  $\exp(-\frac{1}{2} \mathbf{t}^\top \boldsymbol{\Phi}^{(n)} \mathbf{t}) \xrightarrow{\text{a.s.}}
+    \exp(-\frac{1}{2} \mathbf{t}^\top \boldsymbol{\Phi} \mathbf{t})$
+  (`NTK.charFun_integrand_tendsto_ae`).
+* Step 3: By positive semidefiniteness of $\boldsymbol{\Phi}^{(n)}$, the exponent is nonpositive,
+  so the integrand is uniformly bounded by $1$ (`NTK.norm_exp_neg_ofReal_div_two_le_one`).
+* Step 4: Applying Lebesgue's Dominated Convergence Theorem passes the limit under expectation:
+  $$\lim_{n \to \infty} \psi_n(\mathbf{t}) =
+    \exp\left(-\frac{1}{2} \mathbf{t}^\top \boldsymbol{\Phi} \mathbf{t}\right)$$
+  which matches the characteristic function of $\mathcal{N}(\mathbf{0}, \boldsymbol{\Phi})$
+  (`NTK.tendsto_charFun_outputMeasure_eq_multivariateGaussian`).
+* Step 5: By Lévy's Continuity Theorem in Euclidean space
+  (`ProbabilityMeasure.tendsto_of_tendsto_charFun`), pointwise convergence of characteristic
+  functions implies weak convergence of measures
+  (`NTK.outputMeasure_tendsto_multivariateGaussian`) and convergence in distribution
+  (`NTK.tendstoInDistribution_evalVector`).
+* For every fixed projection vector $\mathbf{u} \in \mathbb{R}^m$, the scalar linear combination
+  converges in distribution to a zero-mean univariate normal random variable:
+  $$S_n(\mathbf{u}) = \sum_{\alpha=1}^m u_\alpha f(\mathbf{x}^\alpha; \boldsymbol{\theta})
+    \xrightarrow{d} \mathcal{N}\left( 0, \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u} \right)$$
+  formalized by `NTK.map_projection_tendsto_gaussianReal` and
+  `NTK.tendstoInDistribution_projection`.
+* Step 3: Almost sure convergence of conditional variance:
+  $\mathbf{u}^\top \boldsymbol{\Phi}^{(n)} \mathbf{u} \xrightarrow{\text{a.s.}}
+    \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u}$
+  (`NTK.conditionalVariance_tendsto_limitingVariance_ae`).
+* Step 4: Unconditional characteristic function:
+  $\psi_n(t) =
+    \mathbb{E}_{\mathbf{W}}[\exp(-\frac{t^2}{2}
+      \mathbf{u}^\top \boldsymbol{\Phi}^{(n)} \mathbf{u})]$
+  (`NTK.charFun_map_projection`).
+* Step 5: Passing the limit via Dominated Convergence Theorem:
+  $\lim_{n \to \infty} \psi_n(t) =
+    \exp(-\frac{t^2}{2} \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u})$
+  (`NTK.tendsto_charFun_map_projection`, `NTK.tendsto_charFun_map_projection_eq_gaussianReal`).
+* `NTK.limitingCovariance` : deterministic limiting covariance matrix
+  $\boldsymbol{\Phi} \in \mathbb{R}^{m \times m}$.
+* `NTK.empiricalCovariance_tendsto_integral` : Theorem 2 entrywise almost sure convergence
+  $\Phi^{(n), \alpha \beta} \xrightarrow{\text{a.s.}} \Phi^{\alpha \beta}$.
+* `NTK.empiricalCovariance_tendsto_matrix_integral` : Theorem 2 full matrix almost sure
+  convergence $\boldsymbol{\Phi}^{(n)} \xrightarrow{\text{a.s.}} \boldsymbol{\Phi}$.
+* `NTK.sum_sum_mul_limitingCovariance_eq_integral_sq` : expectation-of-square identity for the
+  limiting quadratic form.
+* `NTK.sum_sum_mul_limitingCovariance_nonneg` : nonnegativity of the limiting kernel
+  quadratic form.
+* `NTK.limitingCovariance_posSemidef` : positive semidefiniteness of the limiting covariance
+  matrix $\boldsymbol{\Phi}$.
+* `NTK.outputMeasure`, `NTK.outputMeasure_eq_map` : unconditional output law and its
+  pushforward API.
+* `NTK.charFun_outputMeasure` : total-expectation formula for the unconditional characteristic
+  function.
+* `NTK.outputMeasure_tendsto_multivariateGaussian` : Theorem 3 multivariate weak convergence of
+  output laws
+  $\mu_{\mathbf{f}_m}^{(n)} \rightharpoonup \mathcal{N}(\mathbf{0}, \boldsymbol{\Phi})$.
+* `NTK.tendstoInDistribution_evalVector` : Theorem 2.3 / Theorem 3 convergence in distribution
+  $\mathbf{f}_m \xrightarrow{d} \mathcal{N}(\mathbf{0}, \boldsymbol{\Phi})$.
+* `NTK.conditionalVariance_tendsto_limitingVariance_ae` : Step 3 almost sure convergence of
+  conditional variance
+  $\mathbf{u}^\top \boldsymbol{\Phi}^{(n)} \mathbf{u} \xrightarrow{\text{a.s.}}
+    \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u}$.
+* `NTK.charFun_map_projection` : Step 4 unconditional characteristic function of 1D projections.
+* `NTK.tendsto_charFun_map_projection` : Step 5 DCT limit of projection characteristic function.
+* `NTK.map_projection_tendsto_gaussianReal` : Step 6 weak convergence of linear combinations.
+* `NTK.tendstoInDistribution_projection` : Theorem (Gaussianity of Linear Combinations
+  $S_n(\mathbf{u}) \xrightarrow{d} \mathcal{N}(0, \mathbf{u}^\top \boldsymbol{\Phi} \mathbf{u})$).
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.

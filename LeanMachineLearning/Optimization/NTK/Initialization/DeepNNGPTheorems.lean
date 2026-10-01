@@ -12,6 +12,24 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
 
 Asymptotic propagation of the empirical covariance and the deep NNGP recursion theorems.
 
+## Main results and proof outline
+
+* `NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` : the corresponding
+  recursive forward-kernel statement for continuous polynomial-growth activations.
+* `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in
+  probability $\Phi_\ell^{(n)} \xrightarrow{\mathbb{P}} \Phi_\ell$. **Currently `sorry`d** — see
+  its docstring for the remaining random-conditional-layer fluctuation argument.
+* `NTK.measurable_deepEval`, `NTK.deepEval_covariance_posSemidef`,
+  `NTK.map_deepEval_snd_eq_multivariateGaussian`, `NTK.charFun_map_deepEval`,
+  `NTK.norm_charFun_deepEval_le_one`, `NTK.aestronglyMeasurable_charFun_deepEval`,
+  `NTK.tendsto_charFun_map_deepEval` : supporting measurability, positive-semidefiniteness, exact
+  conditional normality, and characteristic-function lemmas for the depth-$L$ network's output,
+  assembled into Part 2 below.
+* `NTK.tendstoInDistribution_deepEval` : Part 2, output convergence in distribution
+  $\mathbf{f}_m(\boldsymbol{\theta}) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \Phi_L)$. Fully
+  proved (reuses `NTK.exact_conditional_normality_general_multivariate` verbatim for the exact
+  conditional normality step; depends on Part 1's statement, which is still `sorry`d above).
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.

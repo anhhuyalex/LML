@@ -12,6 +12,50 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.NNGPLimit
 
 Conditional normality and recurrence convergence for sequentially built multilayer networks.
 
+## Main results and proof outline
+
+* Exact Conditional Normality across layers
+  (`NTK.exact_conditional_normality_general_multivariate`):
+  Conditional on previous layer activations $\mathbf{H} \in \mathbb{R}^{n \times m}$, the
+  preactivations vector is exact centered multivariate Gaussian:
+  $$h^{(\ell+1)} \mid \mathbf{H} \sim
+    \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Sigma}^{(\ell+1), (n)}\right)$$
+  with empirical layer covariance matrix:
+  $$\Sigma^{(\ell+1), (n)}_{\alpha \beta} :=
+    \sigma_b^2 + \frac{\sigma_w^2}{n} \sum_{j=1}^n
+      \varphi(h_{j,\alpha}^{(\ell)}) \varphi(h_{j,\beta}^{(\ell)})$$
+  which is symmetric positive semidefinite
+  (`NTK.empirical_layer_covariance_posSemidef_multivariate`).
+* Strong Law of Large Numbers for the Covariance Recurrence
+  (`NTK.empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate`):
+  When previous-layer preactivation draws are i.i.d. from $\mathcal{N}(\mathbf{0}, \mathbf{K})$,
+  the empirical layer covariance converges entrywise almost surely:
+  $$\Sigma^{(\ell+1), (n)}_{\alpha \beta} \xrightarrow{\text{a.s.}}
+    \Sigma^{(\ell+1)}_{\alpha \beta} := \sigma_b^2 + \sigma_w^2
+      \int \varphi(z_\alpha) \varphi(z_\beta) d\mathcal{N}(\mathbf{0}, \mathbf{K})$$
+  and the limiting recurrence matrix is symmetric positive semidefinite
+  (`NTK.limitingRecurrence_posSemidef_multivariate`).
+* Pointwise characteristic function convergence via Dominated Convergence:
+  `NTK.tendsto_charFun_sequential_preactivation_multivariate`.
+* Master Theorem (Multivariate Sequential Convergence in Distribution):
+  Preactivations converge in distribution to
+  $\mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma}^{(\ell+1)})$ for arbitrary $m$:
+  `NTK.tendstoInDistribution_sequential_preactivation`.
+* Public Bivariate Corollary ($m = 2$):
+  `NTK.tendstoInDistribution_sequential_bivariate`.
+* `NTK.empirical_layer_covariance_posSemidef_multivariate` : positive semidefiniteness of the
+  empirical layer covariance matrix.
+* `NTK.exact_conditional_normality_general_multivariate` : exact multivariate conditional
+  normality across layers.
+* `NTK.empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate` : entrywise SLLN
+  convergence of the sequential empirical covariance recurrence.
+* `NTK.limitingRecurrence_posSemidef_multivariate` : positive semidefiniteness of the limiting
+  recurrence matrix.
+* `NTK.tendsto_charFun_sequential_preactivation_multivariate` : pointwise DCT convergence of the
+  multivariate preactivation characteristic functions.
+* `NTK.tendstoInDistribution_sequential_preactivation` : master theorem for arbitrary `Fin m`.
+* `NTK.tendstoInDistribution_sequential_bivariate` : public `m = 2` bivariate corollary.
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.

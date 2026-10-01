@@ -128,8 +128,8 @@ theorem chebyshev_entrywise_empiricalNTKMatrix
   exact h_cheb
 
 /-- If a matrix has Frobenius norm at least `ε`, at least one entry has absolute value at
-least `ε / m`. Kept private to `NetworkParam.lean` until a second caller appears. -/
-private lemma exists_entry_ge_of_frobenius_ge {m : ℕ} (hm : 0 < m)
+least `ε / m`. Kept private to `NTK.Training.TwoLayer.Concentration` until a second caller appears.
+-/ private lemma exists_entry_ge_of_frobenius_ge {m : ℕ} (hm : 0 < m)
     (A : Matrix (Fin m) (Fin m) ℝ) {ε : ℝ} (hε : 0 < ε) (hA : ε ≤ ‖A‖) :
     ∃ p : Fin m × Fin m, ε / (m : ℝ) ≤ |A p.1 p.2| := by
   by_contra! h_all

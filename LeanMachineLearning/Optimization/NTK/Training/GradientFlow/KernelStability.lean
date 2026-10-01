@@ -13,6 +13,28 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.LinearD
 Deterministic Lipschitz propagation for the empirical NTK (Gap 2), the second-order Taylor bound
 for the training outputs, and quadratic-form and Rayleigh-quotient perturbation.
 
+## Main results and proof outline
+
+* `NTK.norm_sub_sub_fderiv_le_of_lipschitz_fderiv`,
+  `NTK.norm_trainingOutputs_sub_linearization_le` :
+  `C^{1,1}` Taylor bound `(L / 2) ‖x - x₀‖²` for any map with an `L`-Lipschitz Fréchet derivative,
+  and its instance for the training outputs under an `L`-Lipschitz output Jacobian (Phase 12).
+* `NTK.empiricalNTKMatrix_sub_le_of_jacobian_bound` : Frobenius norm bound
+  `‖K(θ₁) - K(θ₂)‖ ≤ 2 * M * ‖J(θ₁) - J(θ₂)‖`.
+* `NTK.empiricalNTKMatrix_sub_le_of_jacobian_lipschitz` : Pointwise Lipschitz propagation
+  `‖K(θ₁) - K(θ₂)‖ ≤ (2 * M * L_J) * ‖θ₁ - θ₂‖`.
+* `NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound` : Gap 2 deliverable, deterministic
+  Lipschitz propagation on any set `S` around `θ₀`.
+* `NTK.abs_dotProduct_mulVec_sub_le` : Quadratic forms of nearby matrices are close:
+  `|vᵀ A v - vᵀ B v| ≤ ‖A - B‖ ‖v‖²`.
+* `NTK.rayleigh_lower_bound_of_sub_smul_posSemidef` : Shifted positive semidefiniteness implies
+  a Rayleigh-quotient lower bound: `(K - λ • 1).PosSemidef ⟹ λ ‖v‖² ≤ vᵀ K v`.
+* `NTK.rayleigh_quotient_lower_bound_of_matrix_dist` : Rayleigh-quotient stability under a
+  matrix distance bound `‖K - K₀‖ ≤ ε`.
+* `NTK.rayleigh_quotient_lower_bound_of_displacement` : Gap 5 Step 2 deliverable - the
+  spectral-gap hypothesis at `θ₀` propagates to any `θ` with degraded constant
+  `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.

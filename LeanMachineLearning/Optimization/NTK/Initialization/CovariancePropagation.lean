@@ -13,6 +13,43 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP
 Independence across depth, the recursive limiting kernel `Φ_ℓ`, and the asymptotic propagation of
 the empirical covariance matrix.
 
+## Main results and proof outline
+
+* The depth-$d$ recursive network notation ($h_1^\alpha, h_{\ell+1}^\alpha$, the limiting
+  recursion $\boldsymbol{\Phi}_\ell$ via the covariance operator $\mathcal{C}_\varphi$, and
+  independence across the per-layer weight matrices $\mathbf{W}_0, \dots, \mathbf{W}_d$ in place
+  of an explicit filtration $\mathcal{F}_\ell$) is formalized in
+  `section LayerByLayerConditionalGaussian`: see `layerCovarianceSeq`,
+  `indepFun_layer_history`, and `exact_conditional_normality_layer` below.
+* The recursively-defined deterministic limiting forward covariance kernel
+  $\boldsymbol{\Phi}_0, \boldsymbol{\Phi}_{\ell+1} := \mathcal{C}_\varphi(\boldsymbol{\Phi}_\ell)$
+  is formalized by `NTK.layerCovarianceSeq`, with positive semidefiniteness at every layer
+  `NTK.layerCovarianceSeq_posSemidef` (reusing `NTK.limitingRecurrence_posSemidef_multivariate`
+  at each step).
+  * The Kronecker concatenation of $n'$ i.i.d. Gaussian vectors into one Gaussian vector with
+    covariance $\boldsymbol{\Phi}_\ell^{(n)} \otimes \mathbf{I}_{n'}$
+    (`NTK.multivariateGaussian_pi_eq_kronecker`).
+* `NTK.conditional_preactivations_eq_pi` makes the coordinate-decoupling consequence explicit:
+  conditionally on a fixed preceding layer, new-neuron preactivation vectors have a product law
+  of identical centered multivariate Gaussians with the activated empirical covariance.
+* For continuous activations of polynomial growth,
+  `NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` proves that the
+  activated empirical covariance of this conditional i.i.d. Gaussian layer converges in
+  probability to the next deterministic forward kernel.  The reusable fixed-covariance form is
+  `NTK.conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth`.
+* `NTK.multivariateGaussian_pi_eq_kronecker` : Kronecker-product concatenation of `n` i.i.d.
+  Gaussian vectors (built on the `Fin m`-family Propositions 2.9'-2.10' above).
+* `NTK.layerCovarianceSeq`, `NTK.layerCovarianceSeq_posSemidef` : the recursive limiting kernel
+  $\Phi_\ell$ and its positive semidefiniteness at every layer.
+* `NTK.exact_conditional_normality_layer` : Theorem (Conditional Pre-Activation Distribution),
+  $\mathbf{H}_{\ell+1} \mid \mathbf{H} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Phi}_\ell^{(n)}
+    \otimes \mathbf{I}_{n'})$.
+* `NTK.conditional_preactivations_eq_pi` : conditional i.i.d. neuron-vector product law.
+* `NTK.memLp_activation_coordinate_of_polynomial_growth` : polynomial growth implies the
+  coordinatewise Gaussian $L^2$ condition.
+* `NTK.conditional_empiricalCovariance_tendstoInMeasure` : conditional empirical covariance
+  convergence in probability under a direct $L^2$ hypothesis.
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.

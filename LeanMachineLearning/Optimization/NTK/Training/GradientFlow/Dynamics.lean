@@ -27,6 +27,45 @@ The residual ODE `∂_t r(t) = -(1/m) K_t r(t)` (Proposition 2.15), the generali
 differentiable losses, the risk dissipation identity (Proposition 2.17) and the kinetic energy along
 gradient flow.
 
+## Main results and proof outline
+
+* `NTK.hasDerivAt_trainingOutputs_coord` : Step 1 chain rule `∂_t f^α(t) = ⟨∇_θ f^α, ∂_t θ⟩`.
+* `NTK.hasDerivAt_trainingOutputs_coord_sum` : Step 1 coordinate-sum chain rule.
+* `NTK.hasDerivAt_euclideanSpace` : Helper relating vector- and coordinate-wise `HasDerivAt`.
+* `NTK.generalizedEmpiricalRisk` : General empirical risk `L(θ) = (1/m) ∑_α ℓ(f^α(θ), y^α)`.
+* `NTK.generalizedResidual` : General residual `r^α := ∂_f ℓ(f^α(θ), y^α)`.
+* `NTK.hasDerivAt_squaredLoss` : Concrete example, squared loss residual `r^α = f^α - y^α`.
+* `NTK.hasDerivAt_logisticLoss` : Concrete example, logistic loss residual `r^α = -y^α σ(-y^α f^α)`.
+* `NTK.hasDerivAt_exponentialLoss` : Concrete example, exponential loss residual.
+* `NTK.gradient_generalizedRisk` : Gradient of the generalized empirical risk.
+* `NTK.gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad` : Step 2, generalized loss.
+* `NTK.gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner` : Step 3, generalized loss.
+* `NTK.gradient_flow_generalizedOutput_coord_ode` : Step 4, generalized loss.
+* `NTK.gradient_flow_generalizedOutput_vector_ode` : Step 5, generalized output evolution
+  `∂_t f(t) = - (1/m) K_t r(t)`.
+* `NTK.gradient_flow_output_coord_deriv_eq_inner_grad` : Step 2 (squared loss), corollary.
+* `NTK.gradient_flow_output_coord_deriv_eq_sum_inner` : Step 3 (squared loss), corollary.
+* `NTK.gradient_flow_output_coord_ode` : Step 4 (squared loss), corollary.
+* `NTK.gradient_flow_output_vector_ode` : Step 5 output ODE
+  `∂_t f(t) = - (1/m) K_t r(t)`, corollary.
+* `NTK.gradient_flow_output_vector_ode_sub_y` : Step 5 output ODE
+  `∂_t f(t) = - (1/m) K_t (f(t) - y)`.
+* `NTK.gradient_flow_residual_vector_ode` : Step 5 residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
+* `NTK.hasDerivAt_generalizedEmpiricalRisk_coord_sum` : Prop 2.17 Step 1, chain rule
+  `∂_t L(θ(t)) = (1/m) r(t)ᵀ ∂_t f(t)`.
+* `NTK.risk_dissipation_identity` : **Proposition 2.17**, risk dissipation identity
+  `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`.
+* `NTK.risk_dissipation_nonpos` : Monotone risk dissipation `∂_t L(θ(t)) ≤ 0` via PSD `K_t`.
+* `NTK.risk_dissipation_le_of_rayleighRitz` : Strict dissipation bound
+  `∂_t L(θ(t)) ≤ - (lambda_min / m²) ‖r(t)‖²` under a Rayleigh-Ritz condition on `K_t`.
+* `NTK.norm_sq_gradient_generalizedRisk`, `NTK.norm_sq_gradient_mseLoss`,
+  `NTK.norm_deriv_sq_eq_quadratic_form_of_forwardGF`, `NTK.mseLoss_sub_eq_integral_quadratic_form` :
+  Phase 15 kinetic energy: `‖∇L‖² = (1/m²) rᵀ K r`, `‖θ'‖² = (1/m²) rᵀ K r` along the forward flow,
+  and `L(θ 0) - L(θ T) = ∫₀ᵀ (1/m²) rᵀ K r = ∫₀ᵀ ‖θ'‖²` (generic part in
+  `ConvexOpt.ForwardGFTrajectory`).
+* `NTK.hasDerivAt_coord_of_forwardGF` : Phase 15 coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
+  training flow (the `a_i` and `W_{ij}` equations are in `NTK.Training.TwoLayer.Packing`).
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.
@@ -480,10 +519,10 @@ Along continuous gradient flow for the generalized empirical risk `L(θ) = (1/m)
 the instantaneous rate of risk dissipation is governed entirely by the empirical NTK Gram matrix
 acting on the residual vector:
   `∂_t L(θ(t)) = - (1/m²) r(t)ᵀ K_t r(t)`.
-Since `K_t` is positive semidefinite (`empiricalNTKMatrix_quad_form_nonneg` in `Kernel.lean`), the
-empirical risk is monotonically non-increasing along gradient flow. If the smallest Rayleigh
-quotient of `K_t` is bounded below by `lambda_min > 0`, the dissipation rate is in addition bounded
-strictly away from zero whenever `r(t) ≠ 0`.
+Since `K_t` is positive semidefinite (`empiricalNTKMatrix_quad_form_nonneg` in
+`NTK.Shallow.DatasetNTK`), the empirical risk is monotonically non-increasing along gradient flow.
+If the smallest Rayleigh quotient of `K_t` is bounded below by `lambda_min > 0`, the dissipation
+rate is in addition bounded strictly away from zero whenever `r(t) ≠ 0`.
 -/
 
 /-- Step 1 (Chain Rule on Empirical Risk):
@@ -558,7 +597,8 @@ theorem risk_dissipation_identity
 
 /-- **Geometric and Stability Implications.**
 Since `K_t` is positive semidefinite for any parameter state (`empiricalNTKMatrix_quad_form_nonneg`,
-`Kernel.lean`), the quadratic form `r(t)ᵀ K_t r(t)` is non-negative, so the empirical risk is
+`NTK.Shallow.DatasetNTK`), the quadratic form `r(t)ᵀ K_t r(t)` is non-negative, so the empirical
+risk is
 monotonically non-increasing along gradient flow: `∂_t L(θ(t)) ≤ 0`. -/
 theorem risk_dissipation_nonpos
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)

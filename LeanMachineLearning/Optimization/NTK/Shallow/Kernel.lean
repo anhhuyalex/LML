@@ -53,8 +53,8 @@ almost surely to the **limiting NTK**:
 
 For the ReLU, this expectation has the elegant closed form
   `k(x, x') = xᵀx' · (π − arccos(xᵀx')) / (2π)`
-derived via a geometric argument on the sphere; it is proved in `NTK.ReluClosedForm`, which
-needs the two-dimensional Gaussian computation from `NTK.Initialization`.
+derived via a geometric argument on the sphere; it is proved in `NTK.ReLU.ClosedForm`, which
+needs the two-dimensional Gaussian computation from `NTK.ReLU.ArcCosine`.
 
 ## Main definitions
 
@@ -64,12 +64,12 @@ needs the two-dimensional Gaussian computation from `NTK.Initialization`.
 * `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
   measurable integrable functions of iid Gaussian rows.
 * `NTK.variance_average_pi`, `NTK.chebyshev_average_pi`,
-  `NTK.chebyshev_average_pi_le_second_moment` (in `NTK.IIDAverage`) : variance and Chebyshev
-  bounds for empirical averages of an `ℒ²` observable under an i.i.d. product measure.
+  `NTK.chebyshev_average_pi_le_second_moment` (in `NTK.Foundations.IIDAverage`) : variance and
+  Chebyshev bounds for empirical averages of an `ℒ²` observable under an i.i.d. product measure.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
-* `NTK.reluNTK_closedForm` (in `NTK.ReluClosedForm`) : closed form
+* `NTK.reluNTK_closedForm` (in `NTK.ReLU.ClosedForm`) : closed form
   `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
-* `NTK.trainingOutputs` (and the rest of this list, in `NTK.DatasetNTK`) : the vector
+* `NTK.trainingOutputs` (and the rest of this list, in `NTK.Shallow.DatasetNTK`) : the vector
   `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions on the training dataset.
 * `NTK.trainingResidual` : the residual error vector `r(θ) = f(θ) - y`.
 * `NTK.mseLoss` : the empirical MSE loss objective `L(θ) = (1 / 2m) ‖r(θ)‖²`.

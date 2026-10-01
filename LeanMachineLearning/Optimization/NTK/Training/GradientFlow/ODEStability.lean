@@ -13,6 +13,13 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Infinit
 Generic, network-independent estimate comparing `r' = -(1/m) K(t) r` with the frozen dynamics
 `s' = -(1/m) K_∞ s`.
 
+## Main results and proof outline
+
+* `NTK.norm_sub_le_of_linear_ode_perturbation` : **Phase 7** generic stability of `r' = -A(t) r`
+  against `s' = -B(t) s` for PSD `A`: `‖r - s‖ ≤ ‖r(0) - s(0)‖ + a t` if `‖A - B‖ ‖s‖ ≤ a`.
+* `NTK.residual_sub_frozen_residual_le` : Phase 7 specialization to the NTK residual dynamics with
+  coefficients `K(t) / m` and `K_∞ / m`.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.

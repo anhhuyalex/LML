@@ -42,6 +42,40 @@ public import Mathlib.Analysis.Matrix.Normed
 Network evaluation and the empirical covariance, the initialization probability space and its
 independence structure, and entrywise (max) concentration for the readout weights.
 
+## Main results and proof outline
+
+* Readout weights: $a_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(0, 1) \quad \forall i$
+  (`gaussianReadoutMeasure n`).
+* Parameter space $\boldsymbol{\theta} = \{(a_i, \mathbf{w}_i)\}_{i=1}^n$ with joint measure
+  `initMeasure n d`.
+* Mutual Independence: $\{a_i\}_{i=1}^n$ is mutually independent of $\{\mathbf{w}_i\}_{i=1}^n$
+  (`indepFun_input_readout`).
+* Scalar network output:
+  $f(\mathbf{x}; \boldsymbol{\theta}) =
+    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$
+  (`evalSingle φ W a x`).
+* Output vector $\mathbf{f}_m = (f(\mathbf{x}^1), \dots, f(\mathbf{x}^m))^\top$
+  (`evalVector φ W a X`).
+* Empirical covariance matrix $\boldsymbol{\Phi}^{(n)} \in \mathbb{R}^{m \times m}$:
+  $\Phi^{(n), \alpha \beta} :=
+    \frac{1}{n} \sum_{i=1}^n \varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)
+    \varphi(\mathbf{w}_i^\top \mathbf{x}^\beta)$
+  (`empiricalCovariance n φ W X`).
+* `NTK.evalSingle` : scalar network output
+  $f(\mathbf{x}; \mathbf{W}, a) =
+    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$.
+* `NTK.evalSingle_eq_normalized_sum` : equation lemma for scalar network evaluation.
+* `NTK.evalVector` : output vector $\mathbf{f}_m(\mathbf{W}, a) \in \mathbb{R}^m$.
+* `NTK.empiricalCovariance` : empirical covariance matrix
+  $\boldsymbol{\Phi}^{(n)} \in \mathbb{R}^{m \times m}$.
+* `NTK.gaussianReadoutMeasure` : transparent product measure
+  $\bigotimes_{i=1}^n \mathcal{N}(0, 1)$.
+* `NTK.initMeasure` : joint parameter initialization measure
+  $(\bigotimes_{i=1}^n \mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})) \otimes
+    (\bigotimes_{i=1}^n \mathcal{N}(0, 1))$.
+* `NTK.indepFun_input_readout` : mutual independence of input weights $\mathbf{W}$ and
+  readout weights $a$.
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.
@@ -135,14 +169,14 @@ lemma inner_evalVector_measurable
 noncomputable abbrev gaussianReadoutMeasure (n : ℕ) : Measure (Fin n → ℝ) :=
   Measure.pi (fun _ : Fin n => gaussianReal 0 1)
 
-/-- Instance: `gaussianInit n d` from `Basic.lean` is a probability measure. -/
+/-- Instance: `gaussianInit n d` from `NTK.Basic` is a probability measure. -/
 instance instIsProbabilityMeasureGaussianInit (n d : ℕ) :
     IsProbabilityMeasure (gaussianInit n d) := by
   dsimp [gaussianInit]
   infer_instance
 
 /-- Transparent joint initialization measure on `(Fin n → Fin d → ℝ) × (Fin n → ℝ)`
-using the existing `NTK.gaussianInit` from `Basic.lean`. -/
+using the existing `NTK.gaussianInit` from `NTK.Basic`. -/
 noncomputable abbrev initMeasure (n d : ℕ) : Measure ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) :=
   (gaussianInit n d).prod (gaussianReadoutMeasure n)
 
@@ -257,7 +291,8 @@ lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : 
 
 `prob_gaussianReadout_sum_sq_le` above bounds the readout *energy* `n⁻¹ ∑ᵢ aᵢ²` (an average),
 via Markov's inequality, giving a tail bound whose natural scale is `O(√(n/δ))`. Gap 4
-(`NetworkParam.lean`'s `outputJacobian_netFromParams_frobenius_sub_le`) instead needs a uniform
+(`NTK.Training.TwoLayer.JacobianBounds`'s
+`outputJacobian_netFromParams_frobenius_sub_le`) instead needs a uniform
 bound on every *individual* `|aᵢ|`. Bounding this the same crude way (Markov on each `aᵢ²`
 plus a union bound) would give `R = O(√(n/δ))` too - and since Gap 4's `L_J` is linear in `R`,
 an `R` that grows like `√n` would make `L_J = Θ(1)`, silently breaking the "kernel freezes as
@@ -390,7 +425,7 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
 
 /-- **Generic, reusable union-bound-for-complements.** Two events each of probability `≥ 1 - δ`
 on the same probability measure intersect in an event of probability `≥ 1 - δ₁ - δ₂`. Used by
-Phase 6 (`NetworkParam.lean`) to combine Gap 3's Jacobian-norm event with Gap 4b's
+Phase 6 (`NTK.Training.TwoLayer.KernelFreeze`) to combine Gap 3's Jacobian-norm event with Gap 4b's
 entrywise-readout event, but stated with no reference to the NTK setup so it can be reused for
 any future combination of independent high-probability events. -/
 theorem measureReal_inter_ge_of_ge {α : Type*} [MeasurableSpace α] (μ : Measure α)

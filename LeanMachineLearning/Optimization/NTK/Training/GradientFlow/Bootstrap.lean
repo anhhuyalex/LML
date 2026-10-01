@@ -14,6 +14,29 @@ Gap 5: the displacement-integral bound, the continuous-induction bootstrap that 
 circularity between kernel stability and displacement, and the finite-horizon bootstrap that
 needs no spectral gap.
 
+## Main results and proof outline
+
+* `NTK.rayleigh_lower_bound_on_ball`, `NTK.lazy_training_global_bounds_of_ball_hypotheses` :
+  Rayleigh bound on the bootstrap ball and the global consequences (displacement, uniform gap,
+  kernel drift, exponential residual and loss decay) of the positive-gap bootstrap.
+* `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
+* `NTK.mseLoss_le_of_hasDerivWithinAt_neg_gradient`, `NTK.gronwallBound_le_mul_exp`,
+  `NTK.continuousOn_trainingResidual_comp` : loss monotonicity along a local gradient-flow solution,
+  an explicit bound on Mathlib's Grönwall function, and continuity of the residual along a curve.
+* `NTK.displacement_le_integral_of_rayleigh`, `NTK.displacement_bound_of_psd` : displacement
+  bounded by the integral of the speed bound; the `lambda_min = 0` case gives the no-gap linear
+  bound.
+* `NTK.finite_horizon_displacement_bound`, `NTK.finite_horizon_kernel_freeze_bound` : finite-horizon
+  bootstrap and kernel freeze on `[0, T]` with no spectral gap.
+* `NTK.restrictCoords`, `NTK.norm_restrictCoords_gradient_mseLoss_le`,
+  `NTK.norm_map_sub_le_integral_of_gfTrajectory` : displacement of a *block of coordinates* (or any
+  continuous linear image) of a gradient flow is at most the integral of the speed of that block;
+  the block speed under MSE flow is `(1/m) ‖J_block‖ ‖r‖`.
+* `NTK.displacement_integral_bound` : Gap 5 Step 1 deliverable - a `T`-independent displacement
+  cap `(M * ‖r₀‖) / lambda_min` given a uniform-in-time Rayleigh bound on `[0, T]`.
+* `NTK.lazy_training_displacement_bound` : **Gap 5 deliverable** - the continuous-induction
+  bootstrap discharging `hlazy` with a width-independent constant `C`.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.
@@ -40,8 +63,9 @@ attribute [local instance 2000] instCompleteSpaceMatrix
 
 Given that a uniform-in-time Rayleigh-quotient lower bound holds on `[0, T]`, gradient flow's
 instantaneous speed `‖∂_t θ(t)‖ = ‖∇_θ L(θ(t))‖` decays exponentially (Step 1's gradient-speed
-bound, `Kernel.lean`'s `gradient_mseLoss_norm_le`, combined with Step 1's time-varying residual
-decay), and integrating this speed bound over `[0, T]` gives an explicit, `T`-independent cap on
+bound, `NTK.Shallow.DatasetNTK`'s `gradient_mseLoss_norm_le`, combined with Step 1's time-varying
+residual decay), and integrating this speed bound over `[0, T]` gives an explicit, `T`-independent
+cap on
 how far gradient flow can have moved from `θ₀` by time `T`. -/
 
 section CoordinateBlocks

@@ -13,6 +13,23 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Converg
 The closed-form output dynamics via the matrix exponential and the eigenmodes of the fixed-kernel
 residual.
 
+## Main results and proof outline
+
+* `NTK.matrix_exp_smul_mulVec_of_eigenvector`, `NTK.inner_matrix_exp_mulVec_of_eigenvector`,
+  `NTK.inner_eigenvectorBasis_matrix_exp_mulVec`, `NTK.matrix_exp_mulVec_eq_sum_eigenmodes`,
+  `NTK.norm_sq_matrix_exp_mulVec_eq_sum`, `NTK.abs_inner_eigenvector_residual_sub_mode_le` :
+  Phase 15 eigenmodes `⟪v_k, r(t)⟫ = exp(-λ_k t / m) ⟪v_k, r(0)⟫` of the frozen-kernel residual
+  (Mathlib's `Matrix.IsHermitian.eigenvectorBasis`), Parseval energy, and the lazy-training
+  comparison for the actual residual.
+* `NTK.matrix_exp_residual_trajectory_zero` : Initial condition `r(0) = r₀`.
+* `NTK.matrix_exp_output_trajectory_zero` : Initial condition `f(0) = f₀`.
+* `NTK.matrix_exp_residual_eq_output_sub_y` : Residual relation `f(t) - y = r(t)`.
+* `NTK.matrix_exp_residual_trajectory_hasDerivAt` : Residual ODE satisfaction
+  via matrix exponential.
+* `NTK.matrix_exp_output_trajectory_hasDerivAt` : Output ODE satisfaction via matrix exponential.
+* `NTK.matrix_exp_residual_decay` : Exponential decay for explicit matrix exponential trajectory.
+* `NTK.matrix_exp_loss_decay` : Exponential loss decay for explicit matrix exponential trajectory.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.

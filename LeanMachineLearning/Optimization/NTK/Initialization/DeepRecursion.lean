@@ -13,6 +13,22 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.CovarianceProp
 The depth-`L` network construction, general convergence-in-probability lemmas, and the
 continuity of the covariance-update map.
 
+## Main results and proof outline
+
+* `NTK.deepPreactivation` : the recursive pre-activation family $h_1, \dots, h_L$ of a depth-$L$
+  MLP, built from a single infinite population of i.i.d. standard Gaussian weights.
+* `NTK.indepFun_deepLayer_history` : Independence Across Depth for this population (the
+  infinite-population analogue of `NTK.indepFun_layer_history`).
+* `NTK.instPseudoEMetricSpaceMatrix` : the missing `PseudoEMetricSpace (Matrix (Fin m) (Fin m) ℝ)`
+  glue instance (Mathlib deliberately does not register one directly, to avoid a diamond with
+  other matrix norms), needed for the lemma below.
+* `NTK.tendstoInMeasure_comp_of_continuousAt`,
+  `NTK.tendsto_integral_of_tendstoInMeasure_of_bounded` : general-purpose
+  convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence)
+  missing from Mathlib's `ConvergenceInMeasure` API, needed by the theorems below.
+* `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
+  $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.
@@ -201,7 +217,7 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
 
 /-- **Independence Across Depth**, for the uniform `Fin L → ℕ → ℕ → ℝ` layer population feeding
 `deepPreactivation`.  This is the infinite-population analogue of `indepFun_layer_history`
-(`InitializationHelpers.lean`); the proof is identical (`iIndepFun_pi` is generic in the per-index
+(`NTK.Initialization.Peripheral`); the proof is identical (`iIndepFun_pi` is generic in the per-index
 measurable space and measure), only the per-layer type changes from the finite-width
 `Fin n → Fin d → ℝ` to the infinite-population `ℕ → ℕ → ℝ`. -/
 theorem indepFun_deepLayer_history (L : ℕ) (ℓ : Fin L) :

@@ -13,6 +13,17 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.ODEStab
 Training with fixed features: the affine flow, its minimum-norm limit and the kernel-regression
 interpolant.
 
+## Main results and proof outline
+
+* `NTK.minNorm_pythagoras`, `NTK.matrixCLM_transpose_eq_adjoint` : minimum-norm Pythagoras for any
+  bounded linear map between real Hilbert spaces, and the adjoint identity for `matrixCLM`.
+* `NTK.matrixCLM`, `NTK.inner_matrixCLM_transpose`, `NTK.hasDerivAt_affineFlowSolution`,
+  `NTK.affineFlow_eq_solution`, `NTK.affine_minNorm_pythagoras`, `NTK.norm_affine_limit_le`,
+  `NTK.eq_affine_limit_of_norm_le`, `NTK.tendsto_affineFlowSolution`, `NTK.inner_affine_limit` :
+  Phase 14.1 - for an arbitrary matrix `J` with invertible Gram matrix `J Jᵀ`, the closed form of
+  the affine gradient flow, its convergence to the minimum-norm interpolant `-Jᵀ (J Jᵀ)⁻¹ r₀`,
+  the Pythagoras identity proving minimality, and the kernel-regression form of its prediction.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.

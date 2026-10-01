@@ -12,6 +12,37 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 
 Algebraic facts about jointly Gaussian vectors used by the conditional-normality argument.
 
+## Main results and proof outline
+
+  * The `Fin m`-family generalizations of Propositions 2.9-2.10 from a fixed pair of vectors to
+    a fixed family (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), giving
+    the row-indexed (neuron-indexed) family of $n'$ i.i.d. copies of the single-neuron
+    $m$-variate Gaussian $\mathcal{N}(\mathbf{0}, \boldsymbol{\Phi}_\ell^{(n)})$.
+* Proposition 2.8: a linear image `A g` of a Gaussian vector `g ~ 𝒩(μ, S)` is again Gaussian,
+  `A g ~ 𝒩(A μ, A S Aᵀ)` (`NTK.gaussian_map_mulVec`).
+* Proposition 2.9: for `g ~ 𝒩(0, I_n)` and fixed `u, v : Fin n → ℝ`, the joint law of
+  `(⟪g,u⟫, ⟪g,v⟫)` is the bivariate Gaussian with covariance
+  `!![u⬝ᵥu, u⬝ᵥv; u⬝ᵥv, v⬝ᵥv]` (`NTK.stdGaussian_inner_pair`), proved as a corollary of
+  Proposition 2.8.
+* Proposition 2.10: for a matrix `W` with i.i.d. standard Gaussian entries, the row-indexed
+  family `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v)` consists of `n` i.i.d. copies of Proposition 2.9's
+  bivariate Gaussian (`NTK.gaussianMatrix_mulVec_pair`), proved by pushing the row-product
+  measure `gaussianInit n n` forward row-by-row via `Measure.pi_map_pi`.
+* Propositions 2.9' and 2.10': the direct `Fin m`-indexed generalizations of Propositions 2.9
+  and 2.10 from a fixed pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`
+  (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), proved by the same
+  techniques; used by the Layer-by-Layer Conditional Gaussian Structure below.
+* `NTK.inner_eq_dotProduct_ofLp` : the real `EuclideanSpace` inner product is the `dotProduct`
+  of the underlying coordinate functions.
+* `NTK.gaussian_map_mulVec` : Proposition 2.8, `A g ~ 𝒩(A μ, A S Aᵀ)` for a linear image of a
+  Gaussian vector.
+* `NTK.stdGaussian_inner_pair` : Proposition 2.9, the joint law of `(⟪g,u⟫, ⟪g,v⟫)` for
+  `g ~ 𝒩(0, I_n)`.
+* `NTK.gaussianMatrix_mulVec_pair` : Proposition 2.10, the row-indexed joint law of
+  `(W ⬝ᵥ u, W ⬝ᵥ v)` for an i.i.d. Gaussian matrix `W`.
+* `NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family` : the `Fin m`-family
+  generalizations of Propositions 2.9-2.10.
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.

@@ -23,8 +23,8 @@ two-layer training limit follow it.
 ## Structure
 
 * `NTK.Basic` : scaled shallow networks, Gaussian initialization, Taylor linearization.
-* `NTK.Foundations` : network-independent tools: `MatrixUtil` (Frobenius-norm facts, `matrixCLM`),
-  `IIDAverage` (i.i.d. averages and Chebyshev bounds), `SlutskyTightness`.
+* `NTK.Foundations` : network-independent tools: `Foundations.MatrixUtil` (Frobenius-norm facts,
+  `matrixCLM`), `IIDAverage` (i.i.d. averages and Chebyshev bounds), `SlutskyTightness`.
 * `NTK.Shallow` : fixed outer layer. `Linearization` (Proposition 4.1, Lemmas 4.1 and 4.2),
   `Kernel` (empirical and limiting NTK, almost sure convergence, Lemma 4.3), `DatasetNTK` (Gram
   matrix on a finite dataset, MSE gradient), `Universal` (NTK RKHS, Theorem 4.1).

@@ -13,6 +13,21 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Dynamic
 The Grönwall differential inequality and the step-by-step proof of exponential convergence of the
 training loss under a positive kernel gap.
 
+## Main results and proof outline
+
+* `NTK.deriv_norm_sq_linear_ode` : Step 1 derivative `(d/dt) ‖r(t)‖² = - (2/m) r(t)ᵀ K_∞ r(t)`.
+* `NTK.deriv_norm_sq_le_of_rayleighRitz` : Step 2 bound `(d/dt) ‖r(t)‖² ≤ - (2 λ / m) ‖r(t)‖²`.
+* `NTK.residual_norm_sq_exponential_decay` : Step 3 squared residual norm decay.
+* `NTK.residual_norm_exponential_decay` : Step 3 residual norm decay.
+* `NTK.mse_loss_exponential_decay` : Step 4 empirical MSE loss decay.
+* `NTK.deriv_norm_sq_timeVarying_ode` : Step 1 derivative for time-varying NTK `K(t)`.
+* `NTK.deriv_norm_sq_le_of_rayleighRitz_timeVarying` : Step 2 Rayleigh-Ritz bound for `K(t)`.
+* `NTK.residual_norm_sq_exponential_decay_timeVarying` : Step 3 squared residual decay for `K(t)`.
+* `NTK.residual_norm_exponential_decay_timeVarying` : Step 3 residual norm decay for `K(t)`.
+* `NTK.mse_loss_exponential_decay_timeVarying` : Step 4 MSE loss decay for `K(t)`.
+* `NTK.residual_norm_sq_exponential_decay_timeVarying_Icc` : Local interval squared residual decay.
+* `NTK.residual_norm_exponential_decay_timeVarying_Icc` : Local interval residual decay on `[0, T]`.
+
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
 for the overview of the whole development.

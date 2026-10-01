@@ -58,7 +58,8 @@ theorem posSemidef_sum_nonneg {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hM : M
 /-! ### Frobenius Norm Utilities and the Gradient Speed Bound
 
 Reusable Cauchy-Schwarz-type norm bounds for the Frobenius norm on matrices, used to bound how
-fast gradient flow can move (Step 1 of the Gap 5 lazy-training bootstrap in `InfiniteNTK.lean`).
+fast gradient flow can move (Step 1 of the Gap 5 lazy-training bootstrap in
+`NTK.Training.GradientFlow.Bootstrap`).
 -/
 
 open scoped Matrix.Norms.Frobenius
@@ -106,7 +107,8 @@ lemma norm_row_castSucc_le {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ
 
 /-- Cauchy-Schwarz bound on a matrix-vector product: `‖M w‖ ≤ ‖M‖_F ‖w‖`. Unlike Mathlib's
 `Matrix.l2_opNorm_mulVec`, this is stated for the *Frobenius* norm, matching the norm instance
-used throughout the NTK Lipschitz-propagation machinery (Gap 2 in `InfiniteNTK.lean`). -/
+used throughout the NTK Lipschitz-propagation machinery (Gap 2 in
+`NTK.Training.GradientFlow.KernelStability`). -/
 theorem mulVec_frobenius_norm_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
     (w : EuclideanSpace ℝ (Fin b)) :
     ‖(WithLp.toLp 2 (M *ᵥ w.ofLp) : EuclideanSpace ℝ (Fin a))‖ ≤ ‖M‖ * ‖w‖ := by

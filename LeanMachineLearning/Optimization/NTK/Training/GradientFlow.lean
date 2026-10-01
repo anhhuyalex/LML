@@ -177,7 +177,7 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
   and `L(θ 0) - L(θ T) = ∫₀ᵀ (1/m²) rᵀ K r = ∫₀ᵀ ‖θ'‖²` (generic part in
   `ConvexOpt.ForwardGFTrajectory`).
 * `NTK.hasDerivAt_coord_of_forwardGF` : Phase 15 coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
-  training flow (the `a_i` and `W_{ij}` equations are in `NetworkParam.lean`).
+  training flow (the `a_i` and `W_{ij}` equations are in `NTK.Training.TwoLayer.Packing`).
 * `NTK.matrix_exp_smul_mulVec_of_eigenvector`, `NTK.inner_matrix_exp_mulVec_of_eigenvector`,
   `NTK.inner_eigenvectorBasis_matrix_exp_mulVec`, `NTK.matrix_exp_mulVec_eq_sum_eigenmodes`,
   `NTK.norm_sq_matrix_exp_mulVec_eq_sum`, `NTK.abs_inner_eigenvector_residual_sub_mode_le` :
@@ -223,8 +223,9 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
   Lipschitz propagation on any set `S` around `θ₀`.
 * `NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound` : Kernel freeze bound
   `‖K(θ(t)) - K(θ₀)‖ ≤ (2 * M * L_J) * C` instantiated with Jacobian bounds
-  (the `1/√n` decay lives in `L_J`, not in the displacement bound `C` - see `Kernel.lean`'s
-  `gradient_mseLoss_norm_le` and this file's Rayleigh-quotient stability theorems below).
+  (the `1/√n` decay lives in `L_J`, not in the displacement bound `C` - see
+  `NTK.Shallow.DatasetNTK`'s `gradient_mseLoss_norm_le` and this file's Rayleigh-quotient stability
+  theorems below).
 * `NTK.abs_dotProduct_mulVec_sub_le` : Quadratic forms of nearby matrices are close:
   `|vᵀ A v - vᵀ B v| ≤ ‖A - B‖ ‖v‖²`.
 * `NTK.rayleigh_lower_bound_of_sub_smul_posSemidef` : Shifted positive semidefiniteness implies

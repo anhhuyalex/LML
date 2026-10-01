@@ -13,6 +13,29 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.DeepNNGPTheore
 The joint neuron law, the full NTK summand (measurability and moments), the strong law of large
 numbers for the full NTK and its quantitative concentration.
 
+## Main results and proof outline
+
+* `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
+* `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation of the finite
+  array rearrangement between `(Fin n → singleNeuronMeasure d)` and `initMeasure n d`.
+* `NTK.measurePreserving_infiniteSeq_to_init` : measure preservation of the infinite sequence
+  prefix truncation to `initMeasure n d`.
+* `NTK.fullNTKSummandSecondMoment` : uncentered second moment of the full NTK summand.
+* `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
+* `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.
+* `NTK.memLp_two_fullNTK_summand` : square-integrability (`MemLp 2`) of full summand.
+* `NTK.integrable_sq_fullNTK_summand` : second-moment bound for quantitative concentration.
+* `NTK.integral_fullNTK_summand` : expectation identity decomposing into NNGP plus
+  derivative kernel.
+* `NTK.fullNTKSummand_tendsto_integral` : entrywise almost-sure convergence of empirical sums.
+* `NTK.fullNTKMatrix_tendsto_integral` : almost-sure matrix convergence on dataset `X`.
+* `NTK.fullNTKMatrix_norm_sub_tendsto_zero` : matrix norm almost-sure convergence.
+* `NTK.fullNTKMatrix_tendstoInMeasure` : matrix convergence in probability (`TendstoInMeasure`).
+* `NTK.fullNTKMatrix_scaled_dataset_tendsto_integral` : almost-sure matrix convergence on
+  the paper's scaled dataset `(1 / √d) * X`.
+* `NTK.fullNTKMatrix_scaled_dataset_tendstoInMeasure` : convergence in probability on the
+  paper's scaled dataset `(1 / √d) * X`.
+
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
 for the overview of the whole development.
@@ -321,7 +344,7 @@ lemma integral_fullNTK_summand {d : ℕ}
 
 /-- Strong law of large numbers for empirical averages of the full NTK summand
 over an i.i.d. neuron sequence drawn from `singleNeuronMeasure d`.
-Reuses the generalized `iid_average_tendsto_integral` from `Kernel.lean`. -/
+Reuses the generalized `iid_average_tendsto_integral` from `NTK.Foundations.IIDAverage`. -/
 theorem fullNTKSummand_tendsto_integral {d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ)
