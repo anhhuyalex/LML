@@ -59,18 +59,18 @@ private lemma inner_sub_le_of_psd_coefficient (A B : Matrix (Fin m) (Fin m) ℝ)
         WithLp.toLp 2 (-(B *ᵥ s.ofLp))⟫ ≤ ‖r - s‖ * (‖A - B‖ * ‖s‖) := by
   have hvec : (WithLp.toLp 2 (-(A *ᵥ r.ofLp)) : EuclideanSpace ℝ (Fin m)) -
       WithLp.toLp 2 (-(B *ᵥ s.ofLp)) =
-      -(WithLp.toLp 2 (A *ᵥ (r - s).ofLp) : EuclideanSpace ℝ (Fin m)) -
-        WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) := by
+      -(matrixCLM A (r - s)) -
+        (matrixCLM (A - B) s) := by
     ext i
     simp [Matrix.mulVec_sub, Matrix.sub_mulVec]
     ring
   rw [hvec, inner_sub_right, inner_neg_right, inner_toLp_mulVec_eq_dotProduct]
   have h1 := hA (r - s)
-  have h2 : -⟪r - s, (WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))⟫ ≤
+  have h2 : -⟪r - s, (matrixCLM (A - B) s)⟫ ≤
       ‖r - s‖ * (‖A - B‖ * ‖s‖) := by
-    calc -⟪r - s, (WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))⟫
-        ≤ |⟪r - s, (WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))⟫| := neg_le_abs _
-      _ ≤ ‖r - s‖ * ‖(WithLp.toLp 2 ((A - B) *ᵥ s.ofLp) : EuclideanSpace ℝ (Fin m))‖ :=
+    calc -⟪r - s, (matrixCLM (A - B) s)⟫
+        ≤ |⟪r - s, (matrixCLM (A - B) s)⟫| := neg_le_abs _
+      _ ≤ ‖r - s‖ * ‖(matrixCLM (A - B) s)‖ :=
           abs_real_inner_le_norm _ _
       _ ≤ ‖r - s‖ * (‖A - B‖ * ‖s‖) :=
           mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) s) (norm_nonneg _)

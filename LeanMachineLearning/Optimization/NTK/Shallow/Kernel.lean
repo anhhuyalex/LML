@@ -114,8 +114,8 @@ lemma dotProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
 
 lemma dotProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
     (fun k => c₁ * x k) ⬝ᵥ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⬝ᵥ y) := by
-  rw [show (fun k => c₁ * x k) = c₁ • x from rfl, smul_dotProduct, dotProduct_mul_right,
-    smul_eq_mul, mul_assoc]
+  simp only [dotProduct, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun k _ => by ring
 
 /-- Cauchy–Schwarz for the dot product, in sum-of-squares form. -/
 lemma sq_dotProduct_le (w x : Fin d → ℝ) :

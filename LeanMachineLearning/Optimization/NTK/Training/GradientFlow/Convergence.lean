@@ -60,7 +60,7 @@ lemma dotProduct_mulVec_nonneg_of_posSemidef {A : Matrix (Fin m) (Fin m) ℝ} (h
 /-- The Euclidean inner product `⟪v, A v⟫` equals the quadratic form `vᵀ A v`. -/
 lemma inner_toLp_mulVec_eq_dotProduct (A : Matrix (Fin m) (Fin m) ℝ)
     (v : EuclideanSpace ℝ (Fin m)) :
-    ⟪v, (WithLp.toLp 2 (A *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫ = v.ofLp ⬝ᵥ (A *ᵥ v.ofLp) := by
+    ⟪v, (matrixCLM A v)⟫ = v.ofLp ⬝ᵥ (A *ᵥ v.ofLp) := by
   rw [EuclideanSpace.inner_eq_star_dotProduct]
   simp [dotProduct_comm]
 

@@ -81,6 +81,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Foundations
+public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE

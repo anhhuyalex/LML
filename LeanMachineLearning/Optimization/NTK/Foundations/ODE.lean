@@ -121,7 +121,6 @@ factor from the exact closed form `(1 - exp(-cT))/c`. -/
 lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
     ∫ t in (0:ℝ)..T, Real.exp (-c * t) ≤ c⁻¹ := by
   have hc' : -c ≠ 0 := by linarith
-  rw [show (fun t : ℝ => Real.exp (-c * t)) = (fun t => Real.exp ((-c) * t)) from rfl]
   rw [intervalIntegral.integral_comp_mul_left (fun x => Real.exp x) hc']
   rw [integral_exp]
   simp only [mul_zero, Real.exp_zero, smul_eq_mul]

@@ -370,7 +370,7 @@ theorem norm_trainingOutputs_netFromParams_sub_linearization_le
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
     (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
     ‖trainingOutputs (netFromParams φ n d) X θ - trainingOutputs (netFromParams φ n d) X θ₀ -
-        WithLp.toLp 2 (outputJacobian (netFromParams φ n d) X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤
+        (matrixCLM (outputJacobian (netFromParams φ n d) X θ₀) (θ - θ₀))‖ ≤
       (Real.sqrt (∑ α : Fin m, (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
         3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2))) / Real.sqrt (n : ℝ)) / 2 * ‖θ - θ₀‖ ^ 2 :=
   norm_trainingOutputs_sub_linearization_le (netFromParams φ n d) X θ₀ ‖θ - θ₀‖ _

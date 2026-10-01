@@ -252,7 +252,7 @@ eigenvector `v` (`K v = λ v`) by `exp(s λ)`. -/
 theorem inner_matrix_exp_mulVec_of_eigenvector {K : Matrix (Fin m) (Fin m) ℝ} (hK : Kᵀ = K)
     (s : ℝ) {v : Fin m → ℝ} {lam : ℝ} (hv : K *ᵥ v = lam • v) (r : EuclideanSpace ℝ (Fin m)) :
     ⟪(WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m)),
-        (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))⟫ =
+        (matrixCLM (NormedSpace.exp (s • K)) r)⟫ =
       Real.exp (s * lam) * ⟪(WithLp.toLp 2 v : EuclideanSpace ℝ (Fin m)), r⟫ := by
   have hsymm : (NormedSpace.exp (s • K))ᵀ = NormedSpace.exp (s • K) := by
     apply Matrix.IsSymm.exp
@@ -270,7 +270,7 @@ decoupled mode equation `r_k(t) = exp(-λ_k t / m) r_k(0)` of the frozen-kernel 
 theorem inner_eigenvectorBasis_matrix_exp_mulVec {K : Matrix (Fin m) (Fin m) ℝ}
     (hK : K.IsHermitian) (s : ℝ) (r : EuclideanSpace ℝ (Fin m)) (k : Fin m) :
     ⟪hK.eigenvectorBasis k,
-        (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))⟫ =
+        (matrixCLM (NormedSpace.exp (s • K)) r)⟫ =
       Real.exp (s * hK.eigenvalues k) * ⟪hK.eigenvectorBasis k, r⟫ := by
   have hT : Kᵀ = K := by
     simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using hK.eq
@@ -280,18 +280,18 @@ theorem inner_eigenvectorBasis_matrix_exp_mulVec {K : Matrix (Fin m) (Fin m) ℝ
 `exp(s K) r = ∑_k exp(s λ_k) ⟪v_k, r⟫ v_k`. -/
 theorem matrix_exp_mulVec_eq_sum_eigenmodes {K : Matrix (Fin m) (Fin m) ℝ}
     (hK : K.IsHermitian) (s : ℝ) (r : EuclideanSpace ℝ (Fin m)) :
-    (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m)) =
+    (matrixCLM (NormedSpace.exp (s • K)) r) =
       ∑ k, (Real.exp (s * hK.eigenvalues k) * ⟪hK.eigenvectorBasis k, r⟫) •
         hK.eigenvectorBasis k := by
   conv_lhs => rw [← hK.eigenvectorBasis.sum_repr
-    (WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))]
+    (matrixCLM (NormedSpace.exp (s • K)) r)]
   refine Finset.sum_congr rfl fun k _ => ?_
   rw [OrthonormalBasis.repr_apply_apply, inner_eigenvectorBasis_matrix_exp_mulVec hK s r k]
 
 /-- **Modal energy (Parseval):** `‖exp(s K) r‖² = ∑_k exp(s λ_k)² ⟪v_k, r⟫²`. -/
 theorem norm_sq_matrix_exp_mulVec_eq_sum {K : Matrix (Fin m) (Fin m) ℝ}
     (hK : K.IsHermitian) (s : ℝ) (r : EuclideanSpace ℝ (Fin m)) :
-    ‖(WithLp.toLp 2 (NormedSpace.exp (s • K) *ᵥ r.ofLp) : EuclideanSpace ℝ (Fin m))‖ ^ 2 =
+    ‖(matrixCLM (NormedSpace.exp (s • K)) r)‖ ^ 2 =
       ∑ k, Real.exp (s * hK.eigenvalues k) ^ 2 * ⟪hK.eigenvectorBasis k, r⟫ ^ 2 := by
   rw [← hK.eigenvectorBasis.sum_sq_inner_right]
   refine Finset.sum_congr rfl fun k _ => ?_

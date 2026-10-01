@@ -342,8 +342,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
       have hrow := norm_row_castSucc_le
         (empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs :
           Fin (m + 1) → Fin d → ℝ) θ₀ - L') (Fin.last m)
-      have hk : ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d) Xs θ₀ *ᵥ g.ofLp) :
-          EuclideanSpace ℝ (Fin m)) - WithLp.toLp 2 kv‖ ≤ e := by
+      have hk : ‖(matrixCLM (outputJacobian (netFromParams φ n d) Xs θ₀) g) - WithLp.toLp 2 kv‖ ≤ e := by
         refine le_of_eq_of_le ?_ (hrow.1.trans hpU2.le)
         congr 1
         ext α
@@ -597,8 +596,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
       have hrow := norm_row_castSucc_le
         (empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs :
           Fin (m + 1) → Fin d → ℝ) θ₀ - L') (Fin.last m)
-      have hk : ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d) Xs θ₀ *ᵥ g.ofLp) :
-          EuclideanSpace ℝ (Fin m)) - WithLp.toLp 2 kv‖ ≤ e := by
+      have hk : ‖(matrixCLM (outputJacobian (netFromParams φ n d) Xs θ₀) g) - WithLp.toLp 2 kv‖ ≤ e := by
         refine le_of_eq_of_le ?_ (hrow.1.trans hpU2.le)
         congr 1
         ext α
