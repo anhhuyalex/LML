@@ -80,10 +80,10 @@ and $\operatorname{gradParams}(x,\theta)=\operatorname{packParams}(\operatorname
         NTK.inner_packParams_packParams, NTK.norm_sq_sub_unpack}
   \leanok
 $\operatorname{unpackW}(\operatorname{packParams}(W,a))=W$, $\operatorname{unpackA}(\operatorname{packParams}(W,a))=a$, and $\operatorname{packParams}(\operatorname{unpackW}\theta,\operatorname{unpackA}\theta)=\theta$. The map $(W,a)\mapsto\operatorname{packParams}(W,a)$ is continuous. Inner products and norms decompose over the two blocks:
-\[
-  \langle\operatorname{packParams}(W_1,a_1),\operatorname{packParams}(W_2,a_2)\rangle=\sum_iw_{1,i}\cdot w_{2,i}+\sum_ia_{1,i}a_{2,i},\qquad
-  \|\theta_1-\theta_2\|^2=\sum_{i,j}(W_{1,ij}-W_{2,ij})^2+\sum_i(a_{1,i}-a_{2,i})^2.
-\]
+\begin{align*}
+  \langle\operatorname{packParams}(W_1,a_1),\operatorname{packParams}(W_2,a_2)\rangle&=\sum_iw_{1,i}\cdot w_{2,i}+\sum_ia_{1,i}a_{2,i},\\
+  \|\theta_1-\theta_2\|^2&=\sum_{i,j}(W_{1,ij}-W_{2,ij})^2+\sum_i(a_{1,i}-a_{2,i})^2.
+\end{align*}
 \end{lemma}
 
 \begin{proof}

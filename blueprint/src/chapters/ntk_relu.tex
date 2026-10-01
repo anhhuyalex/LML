@@ -10,12 +10,12 @@ limiting NTK from Chapter~\ref{chap:ntk}).
 The two basic quantities are, for a centred bivariate Gaussian $(h^\alpha,h^\beta)$ with covariance
 $\begin{psmallmatrix}\Phi_{\alpha\alpha}&\Phi_{\alpha\beta}\\ \Phi_{\alpha\beta}&\Phi_{\beta\beta}\end{psmallmatrix}$
 and correlation $\rho=\Phi_{\alpha\beta}/\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}$:
-\[
+\begin{align*}
   \mathbb E\bigl[\mathbf 1\{h^\alpha\ge0\}\mathbf 1\{h^\beta\ge0\}\bigr]
-  =\tfrac14+\tfrac{1}{2\pi}\arcsin\rho,\qquad
+  &=\tfrac14+\tfrac{1}{2\pi}\arcsin\rho,\\
   \mathbb E\bigl[\operatorname{relu}(h^\alpha)\operatorname{relu}(h^\beta)\bigr]
-  =\tfrac{\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}}{2\pi}\Bigl(\sqrt{1-\rho^2}+\rho\bigl(\tfrac\pi2+\arcsin\rho\bigr)\Bigr).
-\]
+  &=\tfrac{\sqrt{\Phi_{\alpha\alpha}\Phi_{\beta\beta}}}{2\pi}\Bigl(\sqrt{1-\rho^2}+\rho\bigl(\tfrac\pi2+\arcsin\rho\bigr)\Bigr).
+\end{align*}
 The proof reduces by positive homogeneity to unit variances, by a Cholesky factor to independent
 standard Gaussian coordinates, and then evaluates the integral in polar coordinates; the radial and
 angular integrals separate.
@@ -64,11 +64,11 @@ standard Gaussians, i.e.\ the ReLU product of two unit Gaussian projections sepa
   \lean{NTK.angular_relu_integral, NTK.angular_indicator_integral}
   \leanok
 For $\theta\in[0,\pi]$,
-\[
+\begin{align*}
   \int_{-\pi}^{\pi}\operatorname{relu}(\cos\varphi)\operatorname{relu}(\cos(\varphi-\theta))\,d\varphi
-  =\frac{\sin\theta+(\pi-\theta)\cos\theta}{2},\qquad
-  \int_{-\pi}^{\pi}\mathbf 1[\cos\varphi\ge0]\,\mathbf 1[\cos(\varphi-\theta)\ge0]\,d\varphi=\pi-\theta .
-\]
+  &=\frac{\sin\theta+(\pi-\theta)\cos\theta}{2},\\
+  \int_{-\pi}^{\pi}\mathbf 1[\cos\varphi\ge0]\,\mathbf 1[\cos(\varphi-\theta)\ge0]\,d\varphi&=\pi-\theta .
+\end{align*}
 \end{lemma}
 
 \begin{proof}
