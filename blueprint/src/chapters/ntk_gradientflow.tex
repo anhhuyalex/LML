@@ -450,6 +450,9 @@ $\langle v_k,s(t)\rangle=e^{-\lambda_kt/m}\langle v_k,r(0)\rangle$ by Theorem~\r
 
 \section{Kernel stability: Lipschitz propagation and Rayleigh quotients}\label{sec:ntkgf:kernelStability}
 
+Recall (Definition~\ref{def:ntkgf:jacobian}) that $J(\theta)\in\mathbb R^{m\times P}$ is the output Jacobian, whose $\alpha$-th row is the gradient $\nabla_\theta f(x^\alpha;\theta)^\top$ of the output at training point $\alpha$ with respect to the $P$ parameters, and that $K(\theta)=J(\theta)J(\theta)^\top\in\mathbb R^{m\times m}$ is the empirical NTK matrix, the Gram matrix of those gradients.
+So $K$ is a quadratic function of $J$, and the theorem says that a bound on $J$ and on how fast $J$ changes with $\theta$ controls how fast the kernel $K$ changes. Norms of matrices are Frobenius norms.
+
 \begin{theorem}[Lipschitz propagation from the Jacobian to the kernel]\label{thm:ntkgf:kernelLipschitz}
   \uses{def:ntkgf:jacobian, lem:ntkf:mulVec}
   \lean{NTK.matrix_mul_transpose_sub_mul_transpose, NTK.norm_mul_transpose_sub_mul_transpose_le,
@@ -457,6 +460,7 @@ $\langle v_k,s(t)\rangle=e^{-\lambda_kt/m}\langle v_k,r(0)\rangle$ by Theorem~\r
         NTK.empiricalNTKMatrix_sub_le_of_jacobian_lipschitz,
         NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound}
   \leanok
+
 For matrices $A,B\in\mathbb R^{m\times P}$, $AA^\top-BB^\top=(A-B)A^\top+B(A-B)^\top$, hence if $\|A\|,\|B\|\le M$ then
 $\|AA^\top-BB^\top\|_{\mathrm F}\le2M\|A-B\|_{\mathrm F}$. Consequently, if $\|J(\theta_1)\|,\|J(\theta_2)\|\le M$,
 \[
