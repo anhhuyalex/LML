@@ -713,7 +713,7 @@ Then $\mu_n\{p:\exists t\in S,\ D_n(p,t)>\varepsilon_0\}\to0$ (outer measure; th
 The bad set is contained in $E^c$ up to a null set, whose measure is at most $c$; since $c>0$ is arbitrary the measures tend to $0$. Any positive extended real dominates $\mathrm{ofReal}(c)$ for some real $c>0$, and bounds on the real-valued measure transfer to the extended-real one.
 \end{proof}
 
-\begin{theorem}[Stationarity in probability on $[0,T]$ (no gap)]\label{thm:ntktl:finiteHorizonLimits}
+\begin{theorem}[Stationarity in probability on a finite horizon (no gap)]\label{thm:ntktl:finiteHorizonLimits}
   \uses{lem:ntktl:genericOuter, thm:ntktl:finiteHorizonEvent}
   \lean{NTK.tendsto_measure_kernel_drift_finite_horizon, NTK.tendsto_measure_jacobian_drift_finite_horizon,
         NTK.tendsto_measure_linearization_error_finite_horizon}
@@ -731,7 +731,7 @@ all tend to $0$ as $n\to\infty$. Statement (ii) (tangent-feature freezing proper
 Theorem~\ref{thm:ntktl:finiteHorizonEvent} gives, for every confidence, a measurable good event on which the three drifts are bounded by $\mathrm{freezeRate}(n)$, $\mathrm{jacRate}(n)$ and $\mathrm{taylorRate}(n)$, all tending to $0$. Apply Lemma~\ref{lem:ntktl:genericOuter} to each.
 \end{proof}
 
-\begin{theorem}[Stationarity in probability on $[0,\infty)$ (positive gap)]\label{thm:ntktl:globalDriftLimits}
+\begin{theorem}[Stationarity in probability for all time (positive gap)]\label{thm:ntktl:globalDriftLimits}
   \uses{lem:ntktl:genericOuter, thm:ntktl:globalEvent}
   \lean{NTK.tendsto_measure_jacobian_drift_global_positive_gap,
         NTK.tendsto_measure_linearization_error_global_positive_gap}
