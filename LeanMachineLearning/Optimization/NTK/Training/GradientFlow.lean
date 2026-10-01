@@ -232,9 +232,10 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
   a Rayleigh-quotient lower bound: `(K - λ • 1).PosSemidef ⟹ λ ‖v‖² ≤ vᵀ K v`.
 * `NTK.rayleigh_quotient_lower_bound_of_matrix_dist` : Rayleigh-quotient stability under a
   matrix distance bound `‖K - K₀‖ ≤ ε`.
-* `NTK.rayleigh_quotient_lower_bound_of_displacement` : Gap 5 Step 2 deliverable - the
-  spectral-gap hypothesis at `θ₀` propagates to any `θ` with degraded constant
-  `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
+* `NTK.rayleigh_quotient_lower_bound_of_displacement` : a spectral gap `lambda_min₀` of the kernel
+  at `θ₀` gives a gap `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖` at any `θ`, when the Jacobian has
+  Frobenius norm at most `M` at `θ₀` and `θ` and changes by at most `L_J * ‖θ - θ₀‖` between them.
+  This is the input the lazy-training bootstrap needs at every `θ` near `θ₀`.
 * `NTK.restrictCoords`, `NTK.norm_restrictCoords_gradient_mseLoss_le`,
   `NTK.norm_map_sub_le_integral_of_gfTrajectory` : displacement of a *block of coordinates* (or any
   continuous linear image) of a gradient flow is at most the integral of the speed of that block;

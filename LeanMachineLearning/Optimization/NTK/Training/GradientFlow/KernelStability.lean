@@ -31,9 +31,10 @@ for the training outputs, and quadratic-form and Rayleigh-quotient perturbation.
   a Rayleigh-quotient lower bound: `(K - λ • 1).PosSemidef ⟹ λ ‖v‖² ≤ vᵀ K v`.
 * `NTK.rayleigh_quotient_lower_bound_of_matrix_dist` : Rayleigh-quotient stability under a
   matrix distance bound `‖K - K₀‖ ≤ ε`.
-* `NTK.rayleigh_quotient_lower_bound_of_displacement` : Gap 5 Step 2 deliverable - the
-  spectral-gap hypothesis at `θ₀` propagates to any `θ` with degraded constant
-  `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
+* `NTK.rayleigh_quotient_lower_bound_of_displacement` : a spectral gap `lambda_min₀` of the kernel
+  at `θ₀` gives a gap `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖` at any `θ`, when the Jacobian has
+  Frobenius norm at most `M` at `θ₀` and `θ` and changes by at most `L_J * ‖θ - θ₀‖` between them.
+  This is the input the lazy-training bootstrap needs at every `θ` near `θ₀`.
 
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
@@ -251,10 +252,12 @@ theorem norm_trainingOutputs_sub_linearization_le
 
 If two matrices are close in Frobenius norm, their quadratic forms are close, and consequently a
 Rayleigh-quotient lower bound established at one matrix propagates - with a correspondingly
-weaker constant - to any matrix within that Frobenius distance. This is Gap 5's Step 2: it shows
-the spectral-gap hypothesis assumed at initialization `θ₀` continues to hold, with a degraded but
-still positive constant, at any `θ` close enough to `θ₀` in parameter space - exactly what the
-Gap 5 bootstrap needs to keep re-deriving a uniform-in-time Rayleigh bound along the trajectory.
+weaker constant - to any matrix within that Frobenius distance. Applied to the empirical NTK
+matrix, this shows that the spectral gap known at the initialization `θ₀` continues to hold, with a
+smaller but still positive constant, at every `θ` close enough to `θ₀` in parameter space. This is
+what the lazy-training bootstrap (`Bootstrap.lean`) needs: while the trajectory is still inside a
+ball around `θ₀`, the kernel along it keeps a spectral gap, which gives the exponential decay of
+the residual, which in turn shows that the trajectory never leaves the ball.
 -/
 
 /-- The quadratic forms of two matrices differ by at most their Frobenius distance times `‖v‖²`:
@@ -308,12 +311,44 @@ theorem rayleigh_quotient_lower_bound_of_matrix_dist
     mul_le_mul_of_nonneg_right hK_dist (sq_nonneg _)
   nlinarith [h1, h2, h3]
 
-/-- Rayleigh-quotient stability of the empirical NTK Gram matrix under parameter displacement:
-if `θ₀`'s empirical NTK matrix has Rayleigh quotient bounded below by `lambda_min₀`, and the
-output Jacobian is `M`-bounded at both `θ` and `θ₀` and `L_J`-Lipschitz between them, then `θ`'s
-empirical NTK matrix has Rayleigh quotient bounded below by
-`lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`. This is Gap 5's Step 2, connecting Gap 2's Lipschitz
-propagation directly to the spectral-gap hypothesis the Gap 5 bootstrap needs at each `θ`. -/
+/-- **A spectral gap at the initialization `θ₀` survives at every nearby parameter `θ`, with a
+smaller constant that shrinks linearly in the distance `‖θ - θ₀‖`.**
+
+Notation. `J(θ) = outputJacobian f X θ` is the `m × P` matrix whose `α`-th row is the gradient of
+the network output at training point `α` with respect to the `P` parameters, and
+`K(θ) = empiricalNTKMatrix f X θ = J(θ) J(θ)ᵀ` is the `m × m` empirical NTK matrix (the Gram matrix
+of those gradients). A *Rayleigh-quotient lower bound* `λ` for `K` means
+`λ * ‖v‖² ≤ vᵀ K v` for every vector `v`; for a positive semidefinite matrix this says that the
+smallest eigenvalue of `K` is at least `λ` (a *spectral gap* when `λ > 0`).
+
+Hypotheses, in plain words.
+* `h_rr₀` : at the initialization `θ₀` the kernel has a spectral gap `lambda_min₀`.
+* `hJ₀`, `hJ` : the Jacobian is not large at either of the two points, `θ₀` and `θ`: its Frobenius
+  norm (the square root of the sum of squares of all entries, i.e. the combined size of all `m`
+  output gradients) is at most `M` at both.
+* `hJ_lip` : the Jacobian changes slowly between the two points,
+  `‖J(θ) - J(θ₀)‖ ≤ L_J * ‖θ - θ₀‖`, i.e. moving the parameters by a distance `d` changes the
+  Jacobian by at most `L_J * d`. This is only required between `θ` and `θ₀`, not between all pairs
+  of parameters.
+
+Conclusion. `K(θ)` has the Rayleigh-quotient lower bound `lambda_min₀ - (2 * M * L_J) * ‖θ - θ₀‖`.
+It is useful as long as `(2 * M * L_J) * ‖θ - θ₀‖ < lambda_min₀`, in which case `K(θ)` still has a
+positive gap.
+
+Proof idea. Since `K = J Jᵀ`, a bound on `J` and on its change controls the change of the kernel:
+`‖K(θ) - K(θ₀)‖ ≤ 2 * M * L_J * ‖θ - θ₀‖` (`empiricalNTKMatrix_sub_le_of_jacobian_lipschitz`).
+Matrices that are close in Frobenius norm have close quadratic forms
+(`abs_dotProduct_mulVec_sub_le`), so the lower bound at `θ₀` can only drop by the distance
+(`rayleigh_quotient_lower_bound_of_matrix_dist`).
+
+Why it is needed. The convergence proof for gradient flow shows that the residual decays
+exponentially, and that argument needs a spectral gap for the kernel at *every* parameter `θ(t)`
+that the flow visits, not just at `θ₀`. The gap is only known at `θ₀` (it comes from the
+concentration of the initial kernel around its limit). So this lemma converts "the gap holds at
+`θ₀`" into "the gap holds at any `θ` within a given distance of `θ₀`". It is applied on the whole
+ball around `θ₀` in `rayleigh_lower_bound_on_ball`, and that is what the continuous-induction
+bootstrap `lazy_training_displacement_bound` uses to break the circularity "the flow stays near
+`θ₀` because the residual decays, and the residual decays because the flow stays near `θ₀`". -/
 theorem rayleigh_quotient_lower_bound_of_displacement
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (θ₀ θ : EuclideanSpace ℝ (Fin P)) (M L_J lambda_min₀ : ℝ)

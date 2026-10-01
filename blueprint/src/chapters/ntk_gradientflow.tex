@@ -493,8 +493,12 @@ $\|f(\theta)-f(\theta_0)-J(\theta_0)(\theta-\theta_0)\|\le\frac L2\|\theta-\thet
 \begin{proof}
   \leanok
 Let $\phi(s)=G(x_0+s(x-x_0))-G(x_0)-sG'(x_0)(x-x_0)$ for $s\in[0,1]$. Then $\phi'(s)=(G'(x_0+s(x-x_0))-G'(x_0))(x-x_0)$ has norm at most $Ls\|x-x_0\|^2$. The mean-value
-inequality along $[0,1]$ gives $\|\phi(1)\|\le\int_0^1Ls\|x-x_0\|^2ds=\frac L2\|x-x_0\|^2$; this only needs a Lipschitz derivative, unlike Mathlib's Taylor theorems,
-and keeps the sharp constant $1/2$. For the training outputs take $G=f(\cdot)$ and $G'(z)v=J(z)v$, whose operator norm is at most $\|J(z)\|_{\mathrm F}$.
+inequality along $[0,1]$ gives $\|\phi(1)\|\le\int_0^1Ls\|x-x_0\|^2ds=\frac L2\|x-x_0\|^2$.
+
+\emph{Comparison with Mathlib's Taylor theorems.} The first-order remainder estimate in Mathlib (\texttt{taylor\_mean\_remainder\_bound} with $n=1$) assumes that the function is $C^2$ on the interval, i.e.\ twice continuously differentiable, together with a bound $C'$ on the norm of its second derivative; it then gives $\|f(x)-f(a)-f'(a)(x-a)\|\le C'(x-a)^2$, which is off by a factor $2$ from the sharp constant $\tfrac12$.
+The Lagrange form (\texttt{taylor\_mean\_remainder\_lagrange}) has the sharp constant, but only for real-valued functions, and it expresses the remainder through the second derivative at an unspecified intermediate point, so it also needs that derivative to exist. Both are statements about functions of one real variable, so applying them here would also require restricting to the segment from $x_0$ to $x$, as above.
+Our hypothesis is weaker: it only asks that $G'$ is $L$-Lipschitz, and $G$ need not be twice differentiable (for example $G'(s)=|s|$ is Lipschitz but not differentiable at $0$). If $G''$ exists with $\|G''\|\le L$ then $G'$ is $L$-Lipschitz, so this is the more general condition; it also covers maps between normed spaces and keeps the sharp constant $\tfrac L2$.
+For the training outputs take $G=f(\cdot)$ and $G'(z)v=J(z)v$, whose operator norm is at most $\|J(z)\|_{\mathrm F}$.
 \end{proof}
 
 \begin{theorem}[Rayleigh quotient stability]\label{thm:ntkgf:rayleighStability}
@@ -518,6 +522,13 @@ and keeps the sharp constant $1/2$. For the training outputs take $G=f(\cdot)$ a
 (1) $|v^\top(A-B)v|\le\|(A-B)v\|\|v\|\le\|A-B\|\|v\|^2$ (Lemma~\ref{lem:ntkf:mulVec}). (2) $v^\top Kv=v^\top(K-\lambda I)v+\lambda\|v\|^2\ge\lambda\|v\|^2$. (3) follows from (1).
 (4) is (3) with $\varepsilon=2ML_J\|\theta-\theta_0\|$ from Theorem~\ref{thm:ntkgf:kernelLipschitz}.
 \end{proof}
+
+\begin{remark}[Why Rayleigh quotient stability matters]\label{rmk:ntkgf:rayleighSignificance}
+  \uses{thm:ntkgf:rayleighStability, thm:ntkgf:expDecayIcc, thm:ntkgf:rayleighBall}
+The exponential convergence of the loss (Theorems~\ref{thm:ntkgf:expDecay} and~\ref{thm:ntkgf:expDecayIcc}) needs a spectral gap of the empirical NTK matrix $K(\theta(t))$ at \emph{every} parameter $\theta(t)$ that the flow visits. A gap is only known at the initialization $\theta_0$, where the initial kernel concentrates around its limit.
+Part~(4) of the theorem bridges this: if the kernel has gap $\lambda_0$ at $\theta_0$, then at any $\theta$ with $2ML_J\|\theta-\theta_0\|<\lambda_0$ it still has the positive gap $\lambda_0-2ML_J\|\theta-\theta_0\|$. In other words, a spectral gap is robust: it survives, with a smaller constant, as long as the parameters stay close enough to $\theta_0$.
+This is the ingredient that makes the lazy-training bootstrap work (Theorems~\ref{thm:ntkgf:rayleighBall} and~\ref{thm:ntkgf:lazyDisplacement}): the parameters stay near $\theta_0$ because the residual decays, and the residual decays because the kernel keeps a gap near $\theta_0$; the stability estimate is what lets this circular argument be closed by continuous induction.
+\end{remark}
 
 
 \section{Lazy training: displacement bound and the bootstrap}\label{sec:ntkgf:bootstrap}
