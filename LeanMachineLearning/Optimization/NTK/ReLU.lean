@@ -5,8 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulAngular
-public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulPolar
+public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaul
 public import LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine
 public import LeanMachineLearning.Optimization.NTK.ReLU.ClosedForm
 
@@ -15,4 +14,10 @@ public import LeanMachineLearning.Optimization.NTK.ReLU.ClosedForm
 
 The Cho–Saul arc-cosine kernel for ReLU and the closed form of the ReLU NTK
 (Proposition 4.2).
+
+## Structure
+
+* `ReLU.ChoSaul` : angular and polar-coordinate Gaussian integrals for the Cho–Saul kernel.
+* `ReLU.ArcCosine` : the bivariate ReLU and ReLU-indicator expectations (arc-cosine kernel).
+* `ReLU.ClosedForm` : the closed form of the ReLU NTK (Proposition 4.2).
 -/

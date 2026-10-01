@@ -99,8 +99,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 public import LeanMachineLearning.Optimization.NTK.ReLU
 public import LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine
-public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulAngular
-public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulPolar
+public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaul
 public import LeanMachineLearning.Optimization.NTK.ReLU.ClosedForm
 public import LeanMachineLearning.Optimization.NTK.Shallow
 public import LeanMachineLearning.Optimization.NTK.Shallow.DatasetNTK

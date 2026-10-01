@@ -28,7 +28,7 @@ two-layer training limit follow it.
 * `NTK.Shallow` : fixed outer layer. `Linearization` (Proposition 4.1, Lemmas 4.1 and 4.2),
   `Kernel` (empirical and limiting NTK, almost sure convergence, Lemma 4.3), `DatasetNTK` (Gram
   matrix on a finite dataset, MSE gradient), `Universal` (NTK RKHS, Theorem 4.1).
-* `NTK.ReLU` : Cho–Saul arc-cosine kernel (`ChoSaulAngular`, `ChoSaulPolar`, `ArcCosine`) and the
+* `NTK.ReLU` : Cho–Saul arc-cosine kernel (`ChoSaul`, `ArcCosine`) and the
   ReLU NTK closed form `ClosedForm` (Proposition 4.2). It sits below `NTK.Initialization`.
 * `NTK.Initialization` : random initialization of the two-layer network, NNGP limits and the
   full-NTK convergence; `Initialization.Peripheral` holds secondary consequences.

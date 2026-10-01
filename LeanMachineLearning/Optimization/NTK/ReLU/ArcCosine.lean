@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaulPolar
+public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaul
 public import Mathlib.MeasureTheory.Measure.TightNormed
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real
@@ -46,7 +46,7 @@ Gaussian `(h^α, h^β)` with covariance `[[Φαα, Φαβ], [Φαβ, Φββ]]` a
   in terms of the inner product of two unit vectors, used by `NTK.ReLU.ClosedForm`.
 
 The reduction proceeds by positive homogeneity to standardized variables, a Cholesky reduction,
-and polar-coordinate evaluation (`NTK.ReLU.ChoSaulPolar`).
+and polar-coordinate evaluation (`NTK.ReLU.ChoSaul`).
 -/
 
 @[expose] public section

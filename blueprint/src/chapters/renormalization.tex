@@ -4042,7 +4042,7 @@ Theorem~\ref{thm:renorm:gaussianLayerLaw} applies directly with no fluctuation.
 \begin{lemma}[The fluctuation is centered]
 \label{lem:ngp:fluctuationMeanZero}
 \uses{def:ngp:stochasticMetric}
-\lean{RGFlow.integral\_metricFluctuation\_eq\_zero}
+\lean{RGFlow.integral_metricFluctuation_eq_zero}
 $\mathbb E[\Delta G^{(\ell+1)}]=0$ entrywise, by linearity of the Bochner integral.
 
 \paragraph{Source in \texttt{Renormalization.md}.}
@@ -4052,8 +4052,8 @@ The sentence immediately following \texttt{eq:metric-fluctuation-general-layer}.
 \begin{theorem}[Conditional law and even moments at an arbitrary layer]
 \label{thm:ngp:generalEvenMoment}
 \uses{def:ngp:stochasticMetric, thm:renorm:gaussianLayerLaw, thm:renorm:wick}
-\lean{RGFlow.map\_batchPreactivation\_eq\_pi\_multivariateGaussian\_stochasticMetric,
-RGFlow.integral\_coordinateProduct\_eq\_wick\_stochasticMetric}
+\lean{RGFlow.map_batchPreactivation_eq_pi_multivariateGaussian_stochasticMetric,
+RGFlow.integral_coordinateProduct_eq_wick_stochasticMetric}
 Conditionally on $z^{(\ell)}$, the law of $z^{(\ell+1)}$ is
 $\bigotimes_{j}\texttt{multivariateGaussian}(0,\widehat G^{(\ell+1)})$ — an immediate instance of
 Theorem~\ref{thm:renorm:gaussianLayerLaw} with $s=\sigma^{(\ell)}$ (a random, rather than fixed,
@@ -4113,8 +4113,8 @@ $V^{(2)}_{(\alpha_1\alpha_2)(\alpha_3\alpha_4)}$.
 \label{thm:ngp:fourPointVertexMatch}
 \uses{def:ngp:fourPointVertex, thm:ngp:generalEvenMoment, def:renorm:evenAction,
 thm:renorm:quarticTwoPoint, thm:renorm:quarticFourPoint}
-\lean{RGFlow.QuarticCouplingOfLayer, RGFlow.EvenActionOfLayer, RGFlow.twoPoint\_ofLayer\_isBigO,
-RGFlow.fourthCumulant\_ofLayer\_isBigO, RGFlow.fourPointVertex\_perm}
+\lean{RGFlow.QuarticCouplingOfLayer, RGFlow.EvenActionOfLayer, RGFlow.twoPoint_ofLayer_isBigO,
+RGFlow.fourthCumulant_ofLayer_isBigO, RGFlow.fourPointVertex_perm}
 Let $A:=\texttt{EvenAction.ofQuartic}\ G^{(\ell+1)}\ (\texttt{QuarticCoupling.ofVertex}\
 V^{(\ell+1)})$, an \texttt{EvenAction} on $A$ (the sample type) with precision $G^{(\ell+1)}$ and
 quartic coupling $V^{(\ell+1)}/n_\ell$. Then, as $n_\ell\to\infty$ along any sequence realizing the
@@ -4171,8 +4171,8 @@ The inductive assumption stated at \texttt{eq:wide-regime} and the paragraph imm
 \begin{theorem}[Kernel and leading vertex recursion]
 \label{thm:ngp:depthRecursion}
 \uses{def:ngp:orderOneLayer, thm:ngp:generalEvenMoment, thm:renorm:connectedCorrelatorHierarchy}
-\lean{RGFlow.OrderOneLayer, RGFlow.hierarchicallyNearlyGaussian\_of\_orderOneLayer,
-RGFlow.meanMetric\_eq\_gaussianExpectation\_add, RGFlow.fourPointVertex\_eq\_gaussianExpectation\_add}
+\lean{RGFlow.OrderOneLayer, RGFlow.hierarchicallyNearlyGaussian_of_orderOneLayer,
+RGFlow.meanMetric_eq_gaussianExpectation_add, RGFlow.fourPointVertex_eq_gaussianExpectation_add}
 If layer $\ell$ has order-one statistics, then layer $\ell+1$ does too, and
 \[
   G^{(\ell+1)}_{\alpha_1\alpha_2}=C_b+C_W\,
@@ -4216,7 +4216,7 @@ that section's proofs do.
 \begin{corollary}[Order-one statistics for every finite depth]
 \label{cor:ngp:everyLayerOrderOne}
 \uses{thm:ngp:depthRecursion}
-\lean{RGFlow.orderOneLayer\_of\_le}
+\lean{RGFlow.orderOneLayer_of_le}
 If layer $1$ has order-one statistics (true unconditionally, since $V^{(1)}=0$ and $G^{(1)}$ is the
 fixed-dataset covariance), then every layer $\ell\leq L$ does, by finite induction on $\ell$ using
 Theorem~\ref{thm:ngp:depthRecursion}.
@@ -4232,7 +4232,7 @@ The inductive proof described in the paragraph following \texttt{eq:wide-regime}
 \begin{theorem}[Restriction to a subsample and a subset of neurons]
 \label{thm:ngp:marginalizationRule}
 \uses{thm:renorm:deepKernelLaw}
-\lean{RGFlow.map\_restrict\_eq\_outputLaw\_restrict}
+\lean{RGFlow.map_restrict_eq_outputLaw_restrict}
 Let $B\subseteq A$ and $I\subseteq\{1,\ldots,n_\ell\}$ be finite subsets. The pushforward of layer
 $\ell$'s marginal law under the coordinate-restriction map
 $z_{\mathcal N;A}\mapsto z_{I;B}$ equals the marginal law of layer $\ell$ computed with the
@@ -4303,7 +4303,7 @@ $K^{(\ell+1)}_{\alpha_1\alpha_2}:=C_b+C_W\langle\sigma_{\alpha_1}\sigma_{\alpha_
 \begin{theorem}[NLO metric recursion]
 \label{thm:ngp:nloMetricRecursion}
 \uses{def:ngp:kernel, thm:ngp:fourPointVertexMatch, thm:ngp:depthRecursion}
-\lean{RGFlow.NloMetric, RGFlow.nloMetric\_succ\_eq}
+\lean{RGFlow.NloMetric, RGFlow.nloMetric_succ_eq}
 Writing $G^{(\ell)}=K^{(\ell)}+\tfrac1{n_{\ell-1}}\Sigma^{(\ell)}+O(1/n_{\ell-1}^2)$, the NLO metric
 $\Sigma^{(\ell)}$ satisfies the recursion displayed at \texttt{eq:NLO-metric-recursion}, expressing
 $\Sigma^{(\ell+1)}/n_\ell$ as an explicit bilinear expression in $\Sigma^{(\ell)}$, $V^{(\ell)}$,
