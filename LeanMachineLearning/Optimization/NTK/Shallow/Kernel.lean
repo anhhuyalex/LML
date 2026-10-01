@@ -9,31 +9,6 @@ public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Shallow.DatasetNTK
-public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-public import Mathlib.Probability.StrongLaw
-public import Mathlib.Probability.Moments.Variance
-public import Mathlib.MeasureTheory.Function.L2Space
-public import Mathlib.Analysis.InnerProductSpace.PiL2
-public import Mathlib.Probability.ProductMeasure
-public import Mathlib.Probability.Independence.InfinitePi
-public import Mathlib.Probability.Distributions.Gaussian.Multivariate
-public import Mathlib.Probability.Distributions.Gaussian.Fernique
-public import Mathlib.Analysis.SpecialFunctions.PolarCoord
-public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-public import Mathlib.MeasureTheory.Integral.Prod
-public import Mathlib.MeasureTheory.Measure.Real
-public import LeanMachineLearning.Optimization.ConvexOpt.Basic
-public import Mathlib.LinearAlgebra.Matrix.PosDef
-public import Mathlib.Analysis.Matrix.Order
-public import Mathlib.Analysis.Calculus.Deriv.Basic
-public import Mathlib.Analysis.Calculus.Deriv.Comp
-public import Mathlib.Analysis.Calculus.Deriv.Prod
-public import Mathlib.Analysis.Calculus.Deriv.Pi
-public import Mathlib.Analysis.Calculus.FDeriv.Linear
-public import Mathlib.Analysis.Calculus.FDeriv.Add
-public import Mathlib.Analysis.Calculus.FDeriv.Mul
-public import Mathlib.Analysis.Calculus.Gradient.Basic
 
 /-!
 # The neural tangent kernel (NTK)
@@ -94,10 +69,6 @@ namespace NTK
 variable {d m : ℕ}
 
 /-! ### Dot product and norm helpers -/
-
-/-- `x ⬝ᵥ x` is the sum of the coordinate squares. -/
-lemma dotProduct_self_eq_sum_sq (x : Fin d → ℝ) : x ⬝ᵥ x = ∑ k : Fin d, x k ^ 2 := by
-  simp [dotProduct, pow_two]
 
 /-- For the Euclidean `L²` norm on `EuclideanSpace ℝ (Fin d)`, `‖x‖² = x ⬝ᵥ x`.
 

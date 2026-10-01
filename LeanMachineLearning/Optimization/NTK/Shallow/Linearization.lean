@@ -623,15 +623,11 @@ lemma sign_preserved_outside_badSet
   have hA := hj_ambig (Finset.mem_univ j)
   rw [largePerturb, Finset.mem_filter, not_and, not_le] at hj_perturb
   have hB := hj_perturb (Finset.mem_univ j)
-  have h_CS_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⬝ᵥ x) := by
-    rw [dotProduct_self_eq_sum_sq x]
-    exact sq_dotProduct_le (fun k => W j k - W₀ j k) x
-  have h_CS : |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⬝ᵥ x) := by
-    have h_nonneg_1 : 0 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := Finset.sum_nonneg (fun k _ => sq_nonneg _)
-    rw [← Real.sqrt_mul h_nonneg_1]
-    have h_sqrt := Real.sqrt_le_sqrt h_CS_sq
-    rw [Real.sqrt_sq_eq_abs] at h_sqrt
-    exact h_sqrt
+  have h_CS : |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤
+      Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⬝ᵥ x) := by
+    have h := abs_dotProduct_le_vecMulVec_frobenius_norm (fun k => W j k - W₀ j k) x
+    rw [vecMulVec_frobenius_norm, dotProduct_self_eq_sum_sq (fun k => W j k - W₀ j k)] at h
+    exact h
   have h_diff_bound : |∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x) := by
     have h_eq : ∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k = ∑ k : Fin d, (W j k - W₀ j k) * x k := by
       rw [← Finset.sum_sub_distrib]
@@ -786,17 +782,15 @@ lemma relu_error_cs_bound
     ∑ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (S.card : ℝ) * B := by
   have h_cs1 : ∀ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by
     intro j _
-    have h_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⬝ᵥ x) := by
-      rw [dotProduct_self_eq_sum_sq x]
-      exact sq_dotProduct_le (fun k => W j k - W₀ j k) x
-    have h_nonneg1 : 0 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := Finset.sum_nonneg (fun k _ => sq_nonneg _)
-    have h_nonneg2 : 0 ≤ x ⬝ᵥ x := Finset.sum_nonneg (fun k _ => mul_self_nonneg (x k))
-    have h_sqrt := Real.sqrt_le_sqrt h_sq
-    rw [Real.sqrt_sq_eq_abs, Real.sqrt_mul h_nonneg1] at h_sqrt
+    have h := abs_dotProduct_le_vecMulVec_frobenius_norm (fun k => W j k - W₀ j k) x
+    rw [vecMulVec_frobenius_norm, dotProduct_self_eq_sum_sq (fun k => W j k - W₀ j k)] at h
     have h_x1 : Real.sqrt (x ⬝ᵥ x) ≤ 1 := by
       have : Real.sqrt (x ⬝ᵥ x) ≤ Real.sqrt 1 := Real.sqrt_le_sqrt hx
       rwa [Real.sqrt_one] at this
-    nlinarith [Real.sqrt_nonneg (∑ k : Fin d, (W j k - W₀ j k) ^ 2), Real.sqrt_nonneg (x ⬝ᵥ x)]
+    have h_le : Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⬝ᵥ x) ≤
+        Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by
+      simpa using mul_le_mul_of_nonneg_left h_x1 (Real.sqrt_nonneg _)
+    exact h.trans h_le
   have h_sum_le : ∑ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ ∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) :=
     Finset.sum_le_sum h_cs1
   have h_cs2 : (∑ j ∈ S, Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2))^2 ≤ (S.card : ℝ) * (∑ j ∈ S, ∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by

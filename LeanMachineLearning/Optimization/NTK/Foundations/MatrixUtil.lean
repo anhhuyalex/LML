@@ -58,6 +58,11 @@ theorem posSemidef_sum_nonneg {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hM : M
   refine le_of_le_of_eq h (Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_)
   ring
 
+/-- `x ⬝ᵥ x` is the sum of the coordinate squares for any vector over a commutative semiring. -/
+theorem dotProduct_self_eq_sum_sq {ι : Type*} {R : Type*} [Fintype ι] [CommSemiring R]
+    (x : ι → R) : x ⬝ᵥ x = ∑ k : ι, x k ^ 2 := by
+  simp [dotProduct, pow_two]
+
 /-! ### Rank-One Matrices, Trace, and Frobenius Inner Product
 
 Generalized algebraic identities for rank-one outer products `vecMulVec u v`, their traces,
@@ -109,25 +114,26 @@ attribute [local instance]
   Matrix.frobeniusNormedSpace
 
 /-- The squared Frobenius norm of a matrix is the sum of the squares of its entries. -/
-lemma matrix_frobenius_norm_sq {a b : ℕ} (A : Matrix (Fin a) (Fin b) ℝ) :
-    ‖A‖ ^ 2 = ∑ i : Fin a, ∑ j : Fin b, (A i j) ^ 2 := by
+lemma matrix_frobenius_norm_sq {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℝ) :
+    ‖A‖ ^ 2 = ∑ i, ∑ j, (A i j) ^ 2 := by
   rw [Matrix.frobenius_norm_def]
   simp only [Real.norm_eq_abs]
   rw [← Real.sqrt_eq_rpow]
-  have hnonneg : 0 ≤ ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := by
+  have hnonneg : 0 ≤ ∑ i, ∑ j, |A i j| ^ (2 : ℝ) := by
     apply Finset.sum_nonneg
     intro i _
     apply Finset.sum_nonneg
     intro j _
     positivity
   calc
-    √(∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ)) ^ 2 =
-        ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
+    √(∑ i, ∑ j, |A i j| ^ (2 : ℝ)) ^ 2 =
+        ∑ i, ∑ j, |A i j| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
     _ = _ := by simp [sq_abs]
 
 /-- The squared Frobenius norm of a real rank-one matrix `vecMulVec u v` factors into
 the product of the squared Euclidean lengths: `‖vecMulVec u v‖^2 = (u ⬝ᵥ u) * (v ⬝ᵥ v)`. -/
-theorem vecMulVec_frobenius_norm_sq {a b : ℕ} (u : Fin a → ℝ) (v : Fin b → ℝ) :
+theorem vecMulVec_frobenius_norm_sq {m n : Type*} [Fintype m] [Fintype n]
+    (u : m → ℝ) (v : n → ℝ) :
     ‖Matrix.vecMulVec u v‖ ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
   rw [matrix_frobenius_norm_sq]
   simp only [Matrix.vecMulVec_apply, mul_pow]
@@ -137,7 +143,8 @@ theorem vecMulVec_frobenius_norm_sq {a b : ℕ} (u : Fin a → ℝ) (v : Fin b �
 
 /-- The Frobenius norm of a real rank-one matrix `vecMulVec u v` factors into
 the product of Euclidean lengths: `‖vecMulVec u v‖ = √(u ⬝ᵥ u) * √(v ⬝ᵥ v)`. -/
-theorem vecMulVec_frobenius_norm {a b : ℕ} (u : Fin a → ℝ) (v : Fin b → ℝ) :
+theorem vecMulVec_frobenius_norm {m n : Type*} [Fintype m] [Fintype n]
+    (u : m → ℝ) (v : n → ℝ) :
     ‖Matrix.vecMulVec u v‖ = Real.sqrt (u ⬝ᵥ u) * Real.sqrt (v ⬝ᵥ v) := by
   have hsq := vecMulVec_frobenius_norm_sq u v
   have hu_nonneg : 0 ≤ u ⬝ᵥ u := by
@@ -146,6 +153,19 @@ theorem vecMulVec_frobenius_norm {a b : ℕ} (u : Fin a → ℝ) (v : Fin b → 
   have h := congr_arg Real.sqrt hsq
   rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul hu_nonneg] at h
   exact h
+
+/-- Cauchy-Schwarz bound for the dot product of two vectors in terms of the Frobenius norm
+of their rank-one outer product: `|(u ⬝ᵥ v)| ≤ ‖vecMulVec u v‖ = √(u ⬝ᵥ u) * √(v ⬝ᵥ v)`. -/
+theorem abs_dotProduct_le_vecMulVec_frobenius_norm {ι : Type*} [Fintype ι] (u v : ι → ℝ) :
+    |u ⬝ᵥ v| ≤ ‖Matrix.vecMulVec u v‖ := by
+  rw [vecMulVec_frobenius_norm]
+  rw [dotProduct_self_eq_sum_sq u, dotProduct_self_eq_sum_sq v]
+  have h_sq : (u ⬝ᵥ v) ^ 2 ≤ (∑ i, u i ^ 2) * (∑ i, v i ^ 2) :=
+    Finset.sum_mul_sq_le_sq_mul_sq Finset.univ u v
+  have h_nonneg_u : 0 ≤ ∑ i, u i ^ 2 := Finset.sum_nonneg fun i _ => sq_nonneg (u i)
+  rw [← Real.sqrt_mul h_nonneg_u]
+  have h_sqrt := Real.sqrt_le_sqrt h_sq
+  rwa [Real.sqrt_sq_eq_abs] at h_sqrt
 
 /-- A row of a matrix restricted to the first `n` columns has Euclidean norm at most the Frobenius
 norm of the matrix, and every entry is at most the Frobenius norm. -/
