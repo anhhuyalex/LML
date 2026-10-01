@@ -22,6 +22,8 @@ public import Mathlib.MeasureTheory.Integral.Prod
 public import Mathlib.MeasureTheory.Measure.Real
 public import LeanMachineLearning.Optimization.ConvexOpt.Basic
 public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
 public import Mathlib.Analysis.Matrix.Order
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Comp
@@ -36,7 +38,8 @@ public import Mathlib.Analysis.Calculus.Gradient.Basic
 # Matrix utilities for the NTK development
 
 Linear-algebra facts with no neural-network content: a double-sum form of positive
-semidefiniteness, Frobenius-norm bounds (used to bound how fast gradient flow can move), and the
+semidefiniteness, Frobenius-norm bounds (used to bound how fast gradient flow can move),
+Frobenius inner product and trace factorizations for rank-one matrices, and the
 passage from positive definiteness to a uniform spectral gap.
 -/
 @[expose] public section
@@ -54,6 +57,43 @@ theorem posSemidef_sum_nonneg {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hM : M
   simp only [star_trivial, dotProduct, Matrix.mulVec, Finset.mul_sum] at h
   refine le_of_le_of_eq h (Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_)
   ring
+
+/-! ### Rank-One Matrices, Trace, and Frobenius Inner Product
+
+Generalized algebraic identities for rank-one outer products `vecMulVec u v`, their traces,
+Frobenius inner products, and Hadamard products. These identities hold over general
+commutative semirings and are used throughout the multilayer Neural Tangent Kernel (NTK)
+decomposition across layers (Proposition 2.25).
+-/
+
+/-- Frobenius inner product of two rank-one matrices in transpose-second orientation:
+`Tr((u vᵀ) (p qᵀ)ᵀ) = (u ⬝ᵥ p) * (v ⬝ᵥ q)`.
+Holds over any commutative semiring and arbitrary finite index types `m` and `n`. -/
+theorem trace_vecMulVec_mul_transpose_vecMulVec {m n : Type*} {R : Type*} [Fintype m] [Fintype n]
+    [CommSemiring R]
+    (u p : m → R) (v q : n → R) :
+    Matrix.trace (Matrix.vecMulVec u v * (Matrix.vecMulVec p q)ᵀ) = (u ⬝ᵥ p) * (v ⬝ᵥ q) := by
+  rw [Matrix.transpose_vecMulVec, Matrix.vecMulVec_mul_vecMulVec, Matrix.trace_vecMulVec]
+  rw [dotProduct_smul, smul_eq_mul, mul_comm]
+
+/-- Frobenius inner product of two rank-one matrices in transpose-first orientation:
+`Tr((u vᵀ)ᵀ (p qᵀ)) = (u ⬝ᵥ p) * (v ⬝ᵥ q)`.
+Holds over any commutative semiring and arbitrary finite index types `m` and `n`. -/
+theorem trace_transpose_vecMulVec_mul_vecMulVec {m n : Type*} {R : Type*} [Fintype m] [Fintype n]
+    [CommSemiring R]
+    (u p : m → R) (v q : n → R) :
+    Matrix.trace ((Matrix.vecMulVec u v)ᵀ * Matrix.vecMulVec p q) = (u ⬝ᵥ p) * (v ⬝ᵥ q) := by
+  rw [Matrix.transpose_vecMulVec]
+  have h := trace_vecMulVec_mul_transpose_vecMulVec (R := R) v q u p
+  rw [Matrix.transpose_vecMulVec] at h
+  rw [h, mul_comm]
+
+/-- Sum of all entries of the Hadamard product of two rank-one matrices:
+`∑ i, ∑ j, (u vᵀ ⊙ p qᵀ) i j = (u ⬝ᵥ p) * (v ⬝ᵥ q)`. -/
+theorem sum_hadamard_vecMulVec {m n : Type*} {R : Type*} [Fintype m] [Fintype n] [CommSemiring R]
+    (u p : m → R) (v q : n → R) :
+    (∑ i, ∑ j, (Matrix.vecMulVec u v ⊙ Matrix.vecMulVec p q) i j) = (u ⬝ᵥ p) * (v ⬝ᵥ q) := by
+  rw [Matrix.sum_hadamard_eq, trace_vecMulVec_mul_transpose_vecMulVec]
 
 /-! ### Frobenius Norm Utilities and the Gradient Speed Bound
 
@@ -84,6 +124,28 @@ lemma matrix_frobenius_norm_sq {a b : ℕ} (A : Matrix (Fin a) (Fin b) ℝ) :
     √(∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ)) ^ 2 =
         ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
     _ = _ := by simp [sq_abs]
+
+/-- The squared Frobenius norm of a real rank-one matrix `vecMulVec u v` factors into
+the product of the squared Euclidean lengths: `‖vecMulVec u v‖^2 = (u ⬝ᵥ u) * (v ⬝ᵥ v)`. -/
+theorem vecMulVec_frobenius_norm_sq {a b : ℕ} (u : Fin a → ℝ) (v : Fin b → ℝ) :
+    ‖Matrix.vecMulVec u v‖ ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
+  rw [matrix_frobenius_norm_sq]
+  simp only [Matrix.vecMulVec_apply, mul_pow]
+  simp_rw [← Finset.mul_sum]
+  rw [← Finset.sum_mul]
+  simp only [dotProduct, sq]
+
+/-- The Frobenius norm of a real rank-one matrix `vecMulVec u v` factors into
+the product of Euclidean lengths: `‖vecMulVec u v‖ = √(u ⬝ᵥ u) * √(v ⬝ᵥ v)`. -/
+theorem vecMulVec_frobenius_norm {a b : ℕ} (u : Fin a → ℝ) (v : Fin b → ℝ) :
+    ‖Matrix.vecMulVec u v‖ = Real.sqrt (u ⬝ᵥ u) * Real.sqrt (v ⬝ᵥ v) := by
+  have hsq := vecMulVec_frobenius_norm_sq u v
+  have hu_nonneg : 0 ≤ u ⬝ᵥ u := by
+    simp only [dotProduct, ← sq]
+    exact Finset.sum_nonneg fun i _ => sq_nonneg (u i)
+  have h := congr_arg Real.sqrt hsq
+  rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul hu_nonneg] at h
+  exact h
 
 /-- A row of a matrix restricted to the first `n` columns has Euclidean norm at most the Frobenius
 norm of the matrix, and every entry is at most the Frobenius norm. -/
