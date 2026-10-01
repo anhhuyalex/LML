@@ -49,7 +49,6 @@ By definition of the algorithm.
 \begin{lemma}\label{lem:gap_arm_le_two_mul_ucbWidth}
   \uses{def:pullCount,def:gap,def:empMean,def:pullCount,def:gap,def:empMean}
   \leanok
-  \lean{Bandits.UCB.gap_arm_le_two_mul_ucbWidth, Bandits.UCB.pullCount_arm_le}
 Suppose that we have the 3 following conditions:
 \begin{enumerate}
   \item $\mu^* \le \hat{\mu}_{t, a^*} + \sqrt{\frac{2 c \log(t + 1)}{N_{t,a^*}}}$,
@@ -80,7 +79,7 @@ Note that the third condition is always satisfied for UCB by Lemma~\ref{lem:ucbI
 \begin{lemma}\label{lem:prob_ucbIndex_le}
   \uses{def:stationaryEnv,def:IsAlgEnvSeq,def:subGaussian,def:ucbAlgorithm,def:pullCount,def:empMean}
   \leanok
-  \lean{Bandits.UCB.prob_ucbIndex_le, Bandits.UCB.prob_ucbIndex_ge}
+  \lean{Bandits.UCB.prob_ucbIndex_le}
 Suppose that $\nu(a)$ is $\sigma^2$-sub-Gaussian for all arms $a \in [K]$.
 Let $c \ge 0$ be a real number.
 Then for any time $n \in \mathbb{N}$ and any arm $a \in [K]$, we have
@@ -135,7 +134,6 @@ For $C$ a natural number, for any time $n \in \mathbb{N}$ and any arm $a \in [K]
 \begin{lemma}\label{lem:some_sum_eq_zero}
   \uses{def:stationaryEnv,def:IsAlgEnvSeq,def:ucbAlgorithm,def:pullCount,def:gap,def:empMean}
   \leanok
-  \lean{Bandits.UCB.some_sum_eq_zero}
 For the UCB algorithm with parameter $c \sigma^2 \ge 0$, for any time $n \in \mathbb{N}$ and any arm $a \in [K]$ with positive gap, the first sum in Lemma~\ref{lem:pullCount_le_add_three} is equal to zero for positive $C$ such that $C \ge \frac{8 c \sigma^2 \log(n + 1)}{\Delta_a^2}$.
 \end{lemma}
 

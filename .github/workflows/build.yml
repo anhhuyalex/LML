@@ -84,11 +84,15 @@ jobs:
         run: |
           ./scripts/build_docs.sh
 
-      - name: Build API documentation
+      # `blueprint: true` runs `leanblueprint pdf`, `leanblueprint web` and then
+      # `lake exe checkdecls blueprint/lean_decls`. That last step imports the root module of every
+      # `lean_lib`, which is why `LMLTutorial` is built by `scripts/build_docs.sh` above, and it needs
+      # the `checkdecls` entry in `lakefile.toml`.
+      - name: Build API documentation and blueprint
         uses: leanprover-community/docgen-action@7b5b9a1822650bd45aaeb4182d94bceba2030f89 # 2026-04-14
         with:
           homepage: home_page
-          blueprint: false
+          blueprint: true
           build-page: false
           deploy: false
 
