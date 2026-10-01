@@ -12,6 +12,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
 public import LeanMachineLearning.Optimization.NTK.ReLU
 public import LeanMachineLearning.Optimization.NTK.Training
+public import LeanMachineLearning.Optimization.NTK.Deep
 
 /-!
 # Neural tangent kernel and linearization near initialization
@@ -34,6 +35,9 @@ two-layer training limit follow it.
   full-NTK convergence; `Initialization.Peripheral` holds secondary consequences.
 * `NTK.Training` : `GradientFlow` (gradient flow, lazy training bootstrap, prediction) and
   `TwoLayer` (parameter packing, concentration, and the end-to-end kernel-freeze bound).
+* `NTK.Deep` : multilayer MLP parameters, exact layerwise NTK decomposition (Proposition 2.25),
+  recursive limiting NTK kernel (Proposition 2.27), and one-sided Gaussian
+  conditioning (Lemma 2.26).
 
 ## Main results
 
