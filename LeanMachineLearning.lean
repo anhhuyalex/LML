@@ -92,6 +92,7 @@ public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.NTK.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.NetworkParam
 public import LeanMachineLearning.Optimization.NTK.ReluClosedForm
+public import LeanMachineLearning.Optimization.NTK.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Universal
 public import LeanMachineLearning.Optimization.Renormalization
 public import LeanMachineLearning.Optimization.Renormalization.Action

@@ -440,24 +440,6 @@ theorem hasDerivAt_exponentialLoss (f y : ℝ) :
   convert h2 using 1
   ring
 
-/-- Generalizes `hasFDerivAt_sq_diff` (Kernel.lean) to an arbitrary differentiable pointwise loss,
-via the scalar-outer/vector-inner chain rule. -/
-lemma hasFDerivAt_generalizedLoss_term (θ : EuclideanSpace ℝ (Fin P))
-    {g : EuclideanSpace ℝ (Fin P) → ℝ} (hg : DifferentiableAt ℝ g θ)
-    {ℓ' : ℝ → ℝ} {r : ℝ} (hℓ : HasDerivAt ℓ' r (g θ)) :
-    HasFDerivAt (fun θ' => ℓ' (g θ'))
-      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P)) (r • gradient g θ)) θ := by
-  have h := hℓ.comp_hasFDerivAt θ hg.hasFDerivAt
-  have h_eq : InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P)) (r • gradient g θ) =
-      r • fderiv ℝ g θ := by
-    apply ContinuousLinearMap.ext
-    intro v
-    rw [InnerProductSpace.toDual_apply_apply, smul_apply, smul_eq_mul,
-      ← toDual_gradient, InnerProductSpace.toDual_apply_apply, inner_smul_left,
-      starRingEnd_apply, star_trivial]
-  rw [h_eq]
-  exact h
-
 /-- The gradient of the generalized empirical risk with respect to parameters:
   `∇_θ L(θ) = (1 / m) ∑_α r^α(θ) ∇_θ f(x^α; θ)`. -/
 theorem gradient_generalizedRisk (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)

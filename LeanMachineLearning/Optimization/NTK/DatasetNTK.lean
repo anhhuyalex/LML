@@ -160,27 +160,35 @@ theorem empiricalNTKMatrix_quad_form_nonneg (f : ι → EuclideanSpace ℝ (Fin 
 
 /-! ### Gradient of the MSE Loss -/
 
+/-- Chain rule for a differentiable scalar function of a differentiable scalar-valued map: the
+map `θ ↦ ℓ' (g θ)` has gradient `r • ∇g` when `ℓ'` has derivative `r` at `g θ`. This is the basic
+step for any pointwise loss; `hasFDerivAt_sq_diff` is the squared-loss case. -/
+lemma hasFDerivAt_generalizedLoss_term (θ : EuclideanSpace ℝ (Fin P))
+    {g : EuclideanSpace ℝ (Fin P) → ℝ} (hg : DifferentiableAt ℝ g θ)
+    {ℓ' : ℝ → ℝ} {r : ℝ} (hℓ : HasDerivAt ℓ' r (g θ)) :
+    HasFDerivAt (fun θ' => ℓ' (g θ'))
+      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P)) (r • gradient g θ)) θ := by
+  have h := hℓ.comp_hasFDerivAt θ hg.hasFDerivAt
+  have h_eq : InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P)) (r • gradient g θ) =
+      r • fderiv ℝ g θ := by
+    apply ContinuousLinearMap.ext
+    intro v
+    rw [InnerProductSpace.toDual_apply_apply, smul_apply, smul_eq_mul,
+      ← toDual_gradient, InnerProductSpace.toDual_apply_apply, inner_smul_left,
+      starRingEnd_apply, star_trivial]
+  rw [h_eq]
+  exact h
+
+/-- The squared-loss case of `hasFDerivAt_generalizedLoss_term`. -/
 lemma hasFDerivAt_sq_diff (θ : EuclideanSpace ℝ (Fin P)) {g : EuclideanSpace ℝ (Fin P) → ℝ}
     (hg : DifferentiableAt ℝ g θ) (c : ℝ) :
     HasFDerivAt (fun θ' => (g θ' - c) ^ 2)
       (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
         ((2 * (g θ - c)) • gradient g θ)) θ := by
-  have h1 : HasFDerivAt (fun θ' => g θ' - c) (fderiv ℝ g θ) θ := by
-    have h := hg.hasFDerivAt.sub (hasFDerivAt_const c θ)
-    rw [sub_zero] at h
-    exact h
-  have h2 := h1.mul h1
-  have h_eq : (fun θ' => (g θ' - c) ^ 2) = (fun θ' => (g θ' - c) * (g θ' - c)) := by
-    ext; ring
-  rw [h_eq]
-  convert h2 using 1
-  ext v
-  have h_grad : fderiv ℝ g θ v = ⟪gradient g θ, v⟫ := by
-    rw [← toDual_gradient, InnerProductSpace.toDual_apply_apply]
-  simp only [add_apply, smul_apply, smul_eq_mul]
-  rw [h_grad]
-  simp only [InnerProductSpace.toDual_apply_apply, inner_smul_left, starRingEnd_apply, star_trivial]
-  ring
+  have hℓ : HasDerivAt (fun u : ℝ => (u - c) ^ 2) (2 * (g θ - c)) (g θ) := by
+    have h := (hasDerivAt_pow 2 (g θ - c)).comp (g θ) ((hasDerivAt_id (g θ)).sub_const c)
+    simpa [Function.comp_def] using h
+  exact hasFDerivAt_generalizedLoss_term θ hg hℓ
 
 /-- The empirical MSE loss has gradient
   `(1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`

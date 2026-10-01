@@ -624,12 +624,8 @@ lemma sign_preserved_outside_badSet
   rw [largePerturb, Finset.mem_filter, not_and, not_le] at hj_perturb
   have hB := hj_perturb (Finset.mem_univ j)
   have h_CS_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⬝ᵥ x) := by
-    have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun k => W j k - W₀ j k) x
-    have h_dot : ∑ k : Fin d, x k ^ 2 = x ⬝ᵥ x := by
-      apply Finset.sum_congr rfl
-      intro k _
-      ring
-    rwa [h_dot] at this
+    rw [dotProduct_self_eq_sum_sq x]
+    exact sq_dotProduct_le (fun k => W j k - W₀ j k) x
   have h_CS : |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * Real.sqrt (x ⬝ᵥ x) := by
     have h_nonneg_1 : 0 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := Finset.sum_nonneg (fun k _ => sq_nonneg _)
     rw [← Real.sqrt_mul h_nonneg_1]
@@ -791,12 +787,8 @@ lemma relu_error_cs_bound
   have h_cs1 : ∀ j ∈ S, |∑ k : Fin d, (W j k - W₀ j k) * x k| ≤ Real.sqrt (∑ k : Fin d, (W j k - W₀ j k) ^ 2) := by
     intro j _
     have h_sq : (∑ k : Fin d, (W j k - W₀ j k) * x k) ^ 2 ≤ (∑ k : Fin d, (W j k - W₀ j k) ^ 2) * (x ⬝ᵥ x) := by
-      have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun k => W j k - W₀ j k) x
-      have h_dot : ∑ k : Fin d, x k ^ 2 = x ⬝ᵥ x := by
-        apply Finset.sum_congr rfl
-        intro k _
-        ring
-      rwa [h_dot] at this
+      rw [dotProduct_self_eq_sum_sq x]
+      exact sq_dotProduct_le (fun k => W j k - W₀ j k) x
     have h_nonneg1 : 0 ≤ ∑ k : Fin d, (W j k - W₀ j k) ^ 2 := Finset.sum_nonneg (fun k _ => sq_nonneg _)
     have h_nonneg2 : 0 ≤ x ⬝ᵥ x := Finset.sum_nonneg (fun k _ => mul_self_nonneg (x k))
     have h_sqrt := Real.sqrt_le_sqrt h_sq
