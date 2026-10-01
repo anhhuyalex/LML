@@ -47,6 +47,29 @@ activation `φ : ℝ → ℝ`, and derivative `φ' : ℝ → ℝ`:
      - `G_{d+1}^{(n)} = 1_{m × m}` (terminal condition)
    - Derivative feature Gram matrix `Φ'_{k+1}^{(n)}` (`empiricalDerivCov`):
      - `Φ'_{k+1}^{(n), αβ} = (1/n) ⟨φ'(h_k^α), φ'(h_k^β)⟩`
+
+## Disambiguation and Relationship to Other Declarations
+
+This codebase formalizes deep neural networks across multiple domains with distinct needs:
+
+1. **`deepMLPPreactivation` vs `NTK.deepPreactivation`**:
+   - `deepMLPPreactivation` (this file): Evaluates a concrete, finite parameter record
+     `θ : DeepMLPParams d n0 n` of depth `d`, with layer indices bounded by `Fin d`.
+     Designed for parameter gradients `∇_θ f`, backward sensitivities, and empirical NTK Gram
+     matrices.
+   - `NTK.deepPreactivation` (`Initialization/DeepRecursion.lean`): Evaluates an infinite weight
+     tensor `W : ℕ → ℕ → ℕ → ℝ` representing an i.i.d. Gaussian population across unbounded layer
+     indices `ℓ : ℕ`. Designed for infinite-width measure-theoretic asymptotic limits ($n → ∞$).
+   - In this file, `d` denotes *depth* and `n0` denotes *input dimension*, whereas in
+     `DeepRecursion.lean`, `d` historically denoted the *input dimension*.
+   - Bridge theorem `deepMLPPreactivation_ofTensor_eq_deepPreactivation` proves that evaluating
+     `deepMLPPreactivation` on `DeepMLPParams.ofTensor` coincides with `NTK.deepPreactivation`.
+
+2. **`deepMLPPreactivation` vs `NeuralNetwork.DenseLayer.preactivation`**:
+   - `DenseLayer.preactivation` (`Renormalization/Network.lean`): Single-layer affine map with
+     explicit bias `b + W x`.
+   - `deepMLPPreactivation`: Multilayer perceptron without bias, adhering to the NTK normalization
+     factors `(n0 : ℝ)⁻¹/²` and `(n : ℝ)⁻¹/²`.
 -/
 
 @[expose]
@@ -79,10 +102,19 @@ def DeepMLPParams.ofTensor (d n0 n : ℕ) (W : ℕ → ℕ → ℕ → ℝ) (w_o
   Wh := fun ⟨ℓ, _⟩ => Matrix.of fun j k => W (ℓ + 1) j.val k.val
   Wd := fun j => w_out j.val
 
-/-- Pre-activations `h_ℓ^α ∈ ℝ^n` at each hidden layer `ℓ ∈ Fin d` for evaluation inputs `X`.
-The normalization factors match `NTK.deepPreactivation`:
+/-- Pre-activations `h_ℓ^α ∈ ℝ^n` at each hidden layer `ℓ ∈ Fin d` for evaluation inputs `X`
+under finite parameters `θ : DeepMLPParams d n0 n`.
+
+### Normalization Factors:
 - Input layer `ℓ = 0`: `(n0 : ℝ)⁻¹.sqrt • (W0 ⬝ᵥ X α)`
-- Hidden layers `ℓ + 1`: `(n : ℝ)⁻¹.sqrt • (Wh ℓ * φ(h_ℓ^α))` -/
+- Hidden layers `ℓ + 1`: `(n : ℝ)⁻¹.sqrt • (Wh ℓ * φ(h_ℓ^α))`
+
+### Disambiguation:
+- `deepMLPPreactivation` (this definition): parameterized finite-width forward pass indexed by
+  `Fin d`.
+- `NTK.deepPreactivation` (`Initialization/DeepRecursion.lean`): infinite-population Gaussian
+  recurrence indexed by unbounded `ℕ` for NNGP measure-theoretic limits.
+- Bridge theorem `deepMLPPreactivation_ofTensor_eq_deepPreactivation` connects the two. -/
 noncomputable def deepMLPPreactivation (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) : Fin d → Fin m → Fin n → ℝ
   | ⟨0, _⟩ => fun α j => Real.sqrt ((n0 : ℝ)⁻¹) * (θ.W0 j ⬝ᵥ X α)
@@ -126,7 +158,11 @@ lemma deepMLPPreactivation_ofTensor_eq_deepPreactivation (d n0 n m : ℕ) (φ : 
       congr 2
       exact congr_fun (congr_fun hih α) k
 
-/-- Scalar network output `f^α = (n : ℝ)⁻¹/² (Wd ⬝ᵥ φ(h_{d-1}^α))` for sample `α`. -/
+/-- Scalar network output `f^α = (n : ℝ)⁻¹/² (Wd ⬝ᵥ φ(h_{d-1}^α))` for sample `α`.
+
+Disambiguation: Computes the prediction of a finite-parameter network `θ : DeepMLPParams`.
+In NNGP asymptotics (`Initialization/DeepNNGPTheorems.lean`), network outputs are instead
+evaluated conditionally under the infinite product Gaussian measure. -/
 noncomputable def deepMLPOutput (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (hd : 0 < d) : Fin m → ℝ :=
   fun α => Real.sqrt ((n : ℝ)⁻¹) * (θ.Wd ⬝ᵥ fun j =>
