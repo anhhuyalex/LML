@@ -790,16 +790,16 @@ $(G,K)\mapsto\exp(-\frac tmK)(G-y)$, and the perturbation Lemma~\ref{lem:ntkf:sl
 \end{proof}
 
 \begin{theorem}[Initial train--test cross-kernel]\label{thm:ntktl:crossKernelInit}
-  \uses{thm:ntktl:ntkChebyshev, lem:ntkgf:ntkPsd}
+  \uses{thm:ntktl:ntkChebyshev, def:ntkgf:crossKernel, lem:ntkgf:crossKernelFormulas}
   \lean{NTK.scaled_snoc, NTK.tendsto_initMeasure_crossKernel_ge_eps}
   \leanok
-For a test input $x$ let $k_n(x)_\alpha=\langle\nabla f(x;\theta_0),\nabla f(x^\alpha;\theta_0)\rangle=(J(\theta_0)\nabla f(x;\theta_0))_\alpha$. Then $k_n(x)$ converges in probability to $k_\infty(x,X)_\alpha=K_\infty^{(X,x)}(\text{last},\alpha)$, the train--test entries of the limiting NTK of the extended dataset $(X,x)$.
+For a test input $x$ let $k_n(x)=k_{\theta_0}(x)$ be the initial cross-kernel vector of Definition~\ref{def:ntkgf:crossKernel}, $k_n(x)_\alpha=\langle\nabla f(x;\theta_0),\nabla f(x^\alpha;\theta_0)\rangle=(J(\theta_0)\nabla f(x;\theta_0))_\alpha$. Then $k_n(x)$ converges in probability to $k_\infty(x,X)_\alpha=K_\infty^{(X,x)}(\text{last},\alpha)$, the train--test entries of the limiting NTK of the extended dataset $(X,x)$.
 \end{theorem}
 
 \begin{proof}
-  \uses{thm:ntktl:ntkChebyshev, lem:ntkgf:ntkPsd}
+  \uses{thm:ntktl:ntkChebyshev, def:ntkgf:crossKernel, lem:ntkgf:crossKernelFormulas}
   \leanok
-The cross-kernel is a row of the empirical NTK matrix of the extended dataset (Lemma~\ref{lem:ntkgf:ntkPsd}(2)); scaling the extended dataset scales both parts, so Theorem~\ref{thm:ntktl:ntkChebyshev}(3) applies to the extended dataset.
+The cross-kernel is a row of the empirical NTK matrix of the extended dataset (Lemma~\ref{lem:ntkgf:crossKernelFormulas}(1), see also Definition~\ref{def:ntkgf:crossKernel}); scaling the extended dataset scales both parts, so Theorem~\ref{thm:ntktl:ntkChebyshev}(3) applies to the extended dataset.
 \end{proof}
 
 \begin{theorem}[Cross-kernel freezing]\label{thm:ntktl:crossKernelFreeze}

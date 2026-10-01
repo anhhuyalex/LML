@@ -46,25 +46,67 @@ Jacobian} $J(\theta)\in\mathbb R^{m\times P}$ has $\alpha$-th row $\nabla_\theta
 
 \begin{lemma}[Basic properties of the empirical NTK matrix]\label{lem:ntkgf:ntkPsd}
   \uses{def:ntkgf:jacobian}
-  \lean{NTK.empiricalNTKMatrix_apply, NTK.empiricalNTKMatrix_snoc_last,
-        NTK.outputJacobian_mulVec_tangentFeature, NTK.empiricalNTKMatrix_posSemidef,
+  \lean{NTK.empiricalNTKMatrix_apply, NTK.empiricalNTKMatrix_posSemidef,
         NTK.empiricalNTKMatrix_quad_form, NTK.empiricalNTKMatrix_quad_form_nonneg}
   \leanok
 \begin{enumerate}
   \item $K^{\alpha\beta}(\theta)=\langle\nabla f(x^\alpha;\theta),\nabla f(x^\beta;\theta)\rangle$.
-  \item For the extended dataset $(x^1,\dots,x^m,x)$ the last row of the empirical NTK matrix is the
-        train--test cross-kernel $\langle\nabla f(x;\theta),\nabla f(x^\alpha;\theta)\rangle$ together with the test norm
-        $\|\nabla f(x;\theta)\|^2$; the cross-kernel vector equals $J(\theta)\nabla f(x;\theta)$.
   \item $K(\theta)$ is positive semidefinite, and $v^\top K(\theta)v=\|J(\theta)^\top v\|^2\ge0$ for every $v$.
 \end{enumerate}
+(The row of this matrix belonging to a \emph{test} input is the cross-kernel of Definition~\ref{def:ntkgf:crossKernel} below.)
 \end{lemma}
 
 \begin{proof}
   \leanok
-(1) is the definition of the product $JJ^\top$ in terms of the rows. (2) is (1) applied to the extended dataset,
-and the $\alpha$-th entry of $J\nabla f(x;\theta)$ is the inner product of row $\alpha$ with $\nabla f(x;\theta)$. For (3),
-$v^\top JJ^\top v=\|J^\top v\|^2$.
+(1) is the definition of the product $JJ^\top$ in terms of the rows. For (2), $v^\top JJ^\top v=\|J^\top v\|^2$.
 \end{proof}
+
+\subsection{The train--test cross-kernel}\label{sec:ntkgf:crossKernel}
+
+The empirical NTK matrix $K(\theta)$ only compares \emph{training} inputs with each other. To say how a gradient step on the training loss changes the network's output at an input $x$ that is \emph{not} in the training set (a \emph{test} input), one needs the kernel between $x$ and each training point.
+That object is the cross-kernel.
+
+\begin{definition}[Train--test cross-kernel]\label{def:ntkgf:crossKernel}
+  \uses{def:ntkgf:jacobian}
+Fix a test input $x$ and write $g_\theta(x):=\nabla_\theta f(x;\theta)\in\mathbb R^P$ for its tangent feature (Definition~\ref{def:ntkgf:jacobian}). The \emph{cross-kernel vector} of $x$ at the parameter $\theta$ is the vector $k_\theta(x)\in\mathbb R^m$ with entries
+\[
+  k_\theta(x)_\alpha\;:=\;\bigl\langle\nabla_\theta f(x;\theta),\,\nabla_\theta f(x^\alpha;\theta)\bigr\rangle ,\qquad\alpha=1,\dots,m,
+\]
+that is, the inner product of the test point's tangent feature with each training point's tangent feature. It is the NTK evaluated on the pairs $(x,x^\alpha)$.
+Collecting it with the \emph{test norm} $\kappa_\theta(x):=\|g_\theta(x)\|^2=\langle g_\theta(x),g_\theta(x)\rangle$, the empirical NTK matrix of the \emph{extended dataset} $(x^1,\dots,x^m,x)$ has the block form
+\[
+  K^{\mathrm{ext}}(\theta)=\begin{pmatrix}K(\theta)&k_\theta(x)\\ k_\theta(x)^\top&\kappa_\theta(x)\end{pmatrix}.
+\]
+In Lean there is no separate definition: the cross-kernel is always written out as $\langle\texttt{tangentFeature}\,f\,x\,\theta,\texttt{tangentFeature}\,f\,(X\,\alpha)\,\theta\rangle$, or as the vector $J(\theta)\,\nabla f(x;\theta)$, and the two lemmas below identify these descriptions.
+\end{definition}
+
+\begin{lemma}[Three descriptions of the cross-kernel]\label{lem:ntkgf:crossKernelFormulas}
+  \uses{def:ntkgf:crossKernel, lem:ntkgf:ntkPsd}
+  \lean{NTK.empiricalNTKMatrix_snoc_last, NTK.outputJacobian_mulVec_tangentFeature}
+  \leanok
+For a test input $x$, every $\theta$ and every training index $\alpha$:
+\begin{enumerate}
+  \item (last row of an extended NTK) In the empirical NTK matrix of the extended dataset $(x^1,\dots,x^m,x)$, the entry in the last row and column $\alpha$ is $\langle\nabla f(x;\theta),\nabla f(x^\alpha;\theta)\rangle=k_\theta(x)_\alpha$, and the last diagonal entry is $\|\nabla f(x;\theta)\|^2=\kappa_\theta(x)$.
+  \item (matrix--vector form) $k_\theta(x)=J(\theta)\,\nabla_\theta f(x;\theta)$, where $J(\theta)$ is the output Jacobian of the \emph{training} dataset.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkgf:ntkPsd}
+  \leanok
+(1) is Lemma~\ref{lem:ntkgf:ntkPsd}(1) applied to the extended dataset, whose last point is $x$ (and the first $m$ points are the training points). (2) The $\alpha$-th entry of $J(\theta)g$ is the inner product of the $\alpha$-th row of $J(\theta)$, namely $\nabla f(x^\alpha;\theta)^\top$, with $g=\nabla f(x;\theta)$.
+\end{proof}
+
+\begin{remark}[What the cross-kernel measures]\label{rmk:ntkgf:crossKernelMeaning}
+  \uses{def:ntkgf:crossKernel, thm:ntkgf:outputODE, thm:ntkgf:mseGradient}
+Gradient flow moves the parameter along $\theta'=-\nabla L(\theta)=-\frac1m\sum_\beta r^\beta(\theta)\,\nabla f(x^\beta;\theta)$. The output at the test input therefore changes at the rate
+\[
+  \partial_t f(x;\theta(t))=\bigl\langle\nabla f(x;\theta),\theta'\bigr\rangle=-\frac1m\sum_{\beta=1}^m\bigl\langle\nabla f(x;\theta),\nabla f(x^\beta;\theta)\bigr\rangle\,r^\beta=-\frac1m\,k_\theta(x)^\top r(t),
+\]
+which is the exact analogue, for a test point, of the training-output equation $\partial_tf(t)=-\frac1mK_tr(t)$ of Theorem~\ref{thm:ntkgf:outputODE}. Entry $\alpha$ of $k_\theta(x)$ says how strongly the residual on training point $\alpha$ pushes the output at $x$; if $x=x^\alpha$ is itself a training input the vector becomes row $\alpha$ of $K(\theta)$.
+This is the same chain-rule computation as Steps~1--3 of Theorem~\ref{thm:ntkgf:outputODE}; the Lean development states Step~1 for an arbitrary dataset (so a one-point dataset $\{x\}$ gives the test-output derivative, \texttt{NTK.hasDerivAt\_trainingOutputs\_coord}), and works with the \emph{frozen} feature $g=\nabla f(x;\theta_0)$ in
+Lemma~\ref{lem:ntkgf:predictionDerivative} below rather than stating the test-point equation separately.
+\end{remark}
 
 \begin{theorem}[Gradient of the MSE loss]\label{thm:ntkgf:mseGradient}
   \uses{def:ntkgf:outputs, def:ntkgf:jacobian}
@@ -123,12 +165,17 @@ that is, coordinatewise $\partial_tf^\alpha(t)=-\frac1m\sum_\beta K_t^{\alpha\be
 \begin{proof}
   \leanok
 The proof is a five-step chain-rule computation.
+
 \emph{Step 1.} By the multivariate chain rule,
 $\partial_tf^\alpha(t)=\sum_{j}\partial_{\theta_j}f(x^\alpha;\theta(t))\,\partial_t\theta_j(t)=\langle\nabla f^\alpha,\partial_t\theta\rangle$.
+
 \emph{Step 2.} Insert the flow law $\partial_t\theta=-\nabla L(\theta)$.
+
 \emph{Step 3.} Insert $\nabla L=\frac1m\sum_\beta r^\beta\nabla f^\beta$ (Theorem~\ref{thm:ntkgf:mseGradient}), giving
 $-\frac1m\sum_\beta\langle\nabla f^\alpha,\nabla f^\beta\rangle r^\beta$.
+
 \emph{Step 4.} Recognise the entries $K_t^{\alpha\beta}$ of the empirical NTK matrix.
+
 \emph{Step 5.} Assemble the coordinates into the vector identity, using that a curve in $\mathbb R^m$ is differentiable iff each coordinate is.
 The residual differs from the output by the constant $y$.
 \end{proof}
@@ -253,8 +300,11 @@ with parameter $\lambda$ (time-varying kernel), or $K(t)\equiv K_\infty$ (autono
 \begin{proof}
   \leanok
 \emph{Step 1.} $\frac{d}{dt}\|r(t)\|^2=2r^\top\partial_tr=-\frac2m\,r(t)^\top K(t)r(t)$.
+
 \emph{Step 2.} By the Rayleigh--Ritz condition this is at most $-\frac{2\lambda}{m}\|r(t)\|^2$.
+
 \emph{Step 3.} Gr\"onwall's inequality (Lemma~\ref{lem:ntkf:gronwallDecay}) gives $\|r(t)\|^2\le\|r(0)\|^2e^{-2\lambda t/m}$, and taking square roots gives the first bound.
+
 \emph{Step 4.} Multiplying by $\frac1{2m}$ gives the loss bound.
 \end{proof}
 
@@ -303,7 +353,9 @@ For a matrix $K_\infty\in\mathbb R^{m\times m}$ and $r_0,f_0,y\in\mathbb R^m$ de
 \[
   r(t)=\exp\!\bigl(-\tfrac tmK_\infty\bigr)r_0,\qquad f(t)=y+\exp\!\bigl(-\tfrac tmK_\infty\bigr)(f_0-y).
 \]
-Then $r(0)=r_0$, $f(0)=f_0$, $f(t)-y=r(t)$, and $\partial_tr=-\frac1mK_\infty r$, $\partial_tf=-\frac1mK_\infty(f-y)$. If $K_\infty$ satisfies the
+Then $r(0)=r_0$, $f(0)=f_0$, $f(t)-y=r(t)$, and $\partial_tr=-\frac1mK_\infty r$, $\partial_tf=-\frac1mK_\infty(f-y)$. 
+
+If $K_\infty$ satisfies the
 Rayleigh--Ritz condition with parameter $\lambda$, then for $t\ge0$,
 $\|r(t)\|\le\|r_0\|e^{-\lambda t/m}$ and $\frac1{2m}\|r(t)\|^2\le\frac1{2m}\|r_0\|^2e^{-2\lambda t/m}$.
 \end{theorem}
@@ -321,7 +373,10 @@ applied to this solution.
         NTK.inner_eigenvectorBasis_matrix_exp_mulVec, NTK.matrix_exp_mulVec_eq_sum_eigenmodes,
         NTK.norm_sq_matrix_exp_mulVec_eq_sum}
   \leanok
-If $Kv=\lambda v$ then $\exp(sK)v=e^{s\lambda}v$ (no symmetry needed). If $K$ is symmetric, then $\langle v,\exp(sK)r\rangle=e^{s\lambda}\langle v,r\rangle$.
+If $Kv=\lambda v$ then $\exp(sK)v=e^{s\lambda}v$ (no symmetry needed). 
+
+If $K$ is symmetric, then $\langle v,\exp(sK)r\rangle=e^{s\lambda}\langle v,r\rangle$.
+
 For a Hermitian $K$ with orthonormal eigenbasis $(v_k)$ and eigenvalues $(\lambda_k)$ (Mathlib's \texttt{eigenvectorBasis}),
 \[
   \langle v_k,\exp(sK)r\rangle=e^{s\lambda_k}\langle v_k,r\rangle,\quad
@@ -337,6 +392,17 @@ $\exp(sK)v=\sum_n\frac{s^n}{n!}K^nv=\sum_n\frac{(s\lambda)^n}{n!}v=e^{s\lambda}v
 $\langle v,\exp(sK)r\rangle=\langle\exp(sK)v,r\rangle$. The expansion in the eigenbasis is the orthonormal-basis expansion
 $w=\sum_k\langle v_k,w\rangle v_k$ with $w=\exp(sK)r$, and Parseval gives the energy.
 \end{proof}
+
+\begin{remark}[Why the eigenmode decomposition is useful]\label{rmk:ntkgf:eigenmodesUse}
+  \uses{thm:ntkgf:eigenmodes, thm:ntkgf:matrixExp}
+The frozen-kernel residual $r(t)=\exp(-\tfrac tmK_\infty)r_0$ solves a system of $m$ \emph{coupled} equations, one for each training point. Writing it in the eigenbasis of $K_\infty$ decouples the system into $m$ independent scalar equations:
+the component of the residual along the eigenvector $v_k$ is $r_k(t)=e^{-\lambda_kt/m}\,r_k(0)$ and simply decays at its own rate $\lambda_k/m$. This makes the training dynamics easy to read off.
+\begin{itemize}
+  \item \emph{Which directions are learned fast or slowly.} Components of the initial residual along eigenvectors with a large eigenvalue $\lambda_k$ are fitted quickly; those with a small eigenvalue are fitted slowly, and components along an eigenvalue $0$ are never fitted. The slowest rate $\lambda_{\min}/m$ is the bottleneck, which is exactly the rate in the exponential decay bound of Theorem~\ref{thm:ntkgf:expDecay}; the eigenmode formula shows that this bound is attained when the initial residual lies in the slowest mode.
+  \item \emph{The loss is an explicit sum.} By Parseval, $L(t)=\tfrac1{2m}\|r(t)\|^2=\tfrac1{2m}\sum_ke^{-2\lambda_kt/m}\langle v_k,r_0\rangle^2$, so one sees exactly how much of the initial error remains at time $t$ and in which modes.
+  \item \emph{It is the reference curve for the real, non-frozen dynamics.} The actual residual is compared with these modes in Theorem~\ref{thm:ntkgf:residualFrozen}(3): each mode of the true residual stays within $\tfrac1m\varepsilon_K\|r_0\|\,t$ of its frozen curve, which is how the lazy-training results of the later chapters turn ``the kernel barely moves'' into ``the network follows the frozen-kernel dynamics''.
+\end{itemize}
+\end{remark}
 
 
 \section{Stability of linear ODEs under coefficient perturbation}\label{sec:ntkgf:odeStability}
@@ -678,14 +744,14 @@ $A=\operatorname{matrixCLM}(J)$, whose adjoint is $\operatorname{matrixCLM}(J^\t
 \end{proof}
 
 \begin{theorem}[Convergence to the interpolant and kernel regression]\label{thm:ntkgf:affineLimit}
-  \uses{thm:ntkgf:affineFlow, thm:ntkgf:minNorm, thm:ntkf:spectralGap}
+  \uses{thm:ntkgf:affineFlow, thm:ntkgf:minNorm, thm:ntkf:spectralGap, def:ntkgf:crossKernel}
   \lean{NTK.tendsto_affineFlowSolution, NTK.inner_affine_limit}
   \leanok
 If $JJ^\top$ is positive definite, the affine flow converges, $w(t)\to w_\infty=-J^\top(JJ^\top)^{-1}r_0$, at the exponential rate $\lambda_{\min}(JJ^\top)/m$; the limit interpolates and has least norm. For any feature vector $g$,
 \[
   \langle g,w_\infty\rangle=-(Jg)^\top(JJ^\top)^{-1}r_0 .
 \]
-With $J=J(\theta_0)$, $g=\nabla f(x;\theta_0)$ and $r_0=f_0(X)-y$ this equals $k_0(x,X)^\top K_0^{-1}\bigl(y-f_0(X)\bigr)$: the frozen-feature minimum-norm predictor is the kernel-regression formula with the empirical kernels.
+With $J=J(\theta_0)$, $g=\nabla f(x;\theta_0)$ and $r_0=f_0(X)-y$ this equals $k_0(x,X)^\top K_0^{-1}\bigl(y-f_0(X)\bigr)$, where $k_0(x,X)=J(\theta_0)g=k_{\theta_0}(x)$ is the initial train--test cross-kernel (Definition~\ref{def:ntkgf:crossKernel}, Lemma~\ref{lem:ntkgf:crossKernelFormulas}) and $K_0=K(\theta_0)$: the frozen-feature minimum-norm predictor is the kernel-regression formula with the empirical kernels.
 \end{theorem}
 
 \begin{proof}
@@ -698,14 +764,22 @@ For the last identity, $\langle g,J^\top v\rangle=\langle Jg,v\rangle$.
 
 \section{Test-point prediction along a gradient flow}\label{sec:ntkgf:testPrediction}
 
-Let $g=\nabla_\theta f(x;\theta_0)$ be the tangent feature at a test input $x$, $r_0=r(\theta_0)$, and let $K_\infty$ be symmetric positive semidefinite with a vector $a$ such that $K_\infty a=k_\infty$ (so that
-$k_\infty$ plays the role of the limiting cross-kernel and $a$ the kernel-regression weights). The \emph{prediction error} at time $t$ compares the actual displacement in the test direction with the frozen-kernel prediction:
+This section asks how the trained network behaves at a \emph{test} input $x$. The ingredients are:
+\begin{itemize}
+  \item the \emph{frozen tangent feature} $g:=\nabla_\theta f(x;\theta_0)$ of the test input at the initialization, and the initial residual $r_0=r(\theta_0)$;
+  \item the empirical cross-kernel at initialization, $k_{\theta_0}(x)=J(\theta_0)\,g$ (Definition~\ref{def:ntkgf:crossKernel} and Lemma~\ref{lem:ntkgf:crossKernelFormulas}), and the cross-kernel $k_\theta(x)=J(\theta)\,\nabla f(x;\theta)$ along the flow, which is what actually drives the test output (Remark~\ref{rmk:ntkgf:crossKernelMeaning});
+  \item a \emph{limiting} kernel matrix $K_\infty\in\mathbb R^{m\times m}$ (symmetric positive semidefinite) and a \emph{limiting cross-kernel} vector $k_\infty\in\mathbb R^m$, the deterministic counterpart of the empirical cross-kernel $k_\theta(x)$ of Definition~\ref{def:ntkgf:crossKernel}. In the infinite-width limit these are the NTK of the training points and the NTK between the test input and the training points, respectively; here they are just given deterministic objects, and the hypotheses below say how close the empirical quantities are to them;
+  \item a vector $a$ with $K_\infty a=k_\infty$, the \emph{kernel-regression weights} ($a=K_\infty^{-1}k_\infty$ when $K_\infty$ is invertible; no invertibility is required here).
+\end{itemize}
+If the kernels were exactly frozen at $K_\infty$ and $k_\infty$, the linearized test output would move by $-a^\top\bigl(r_0-\exp(-\frac tmK_\infty)r_0\bigr)$ (compare Theorem~\ref{thm:ntkgf:affineLimit}, whose limit is the kernel-regression formula, and Theorem~\ref{thm:ntkgf:matrixExp} for the residual $\exp(-\frac tmK_\infty)r_0$). The \emph{prediction error} at time $t$ compares the actual displacement of the parameter in the test direction $g$ with this frozen-kernel prediction:
 \[
   e(t):=\langle g,\theta(t)-\theta_0\rangle+a^\top\Bigl(r_0-\exp\!\bigl(-\tfrac tmK_\infty\bigr)r_0\Bigr).
 \]
+It starts at $e(0)=0$. The deterministic estimates below bound $|e(t)|$ in terms of three quantities that the probabilistic chapters then show to be small: the Jacobian drift $\|J(\theta(s))-J(\theta_0)\|\le\varepsilon_J$, the kernel drift $\|K(\theta(s))-K_\infty\|\le\varepsilon_K$, and the initial cross-kernel error $\|J(\theta_0)g-k_\infty\|=\|k_{\theta_0}(x)-k_\infty\|\le\varepsilon_k$ (Definition~\ref{def:ntkgf:crossKernel}, Lemma~\ref{lem:ntkgf:crossKernelFormulas}(2)).
+For the two-layer network, convergence of the initial cross-kernel (Definition~\ref{def:ntkgf:crossKernel}) to $k_\infty$ is Theorem~\ref{thm:ntktl:crossKernelInit}, its freezing along the flow is Theorem~\ref{thm:ntktl:crossKernelFreeze}, and the resulting test-prediction limit is Theorem~\ref{thm:ntktl:testPrediction}.
 
 \begin{lemma}[Derivative of the prediction error]\label{lem:ntkgf:predictionDerivative}
-  \uses{thm:ntkgf:outputODE, thm:ntkgf:eigenmodes}
+  \uses{thm:ntkgf:outputODE, thm:ntkgf:eigenmodes, def:ntkgf:crossKernel, lem:ntkgf:crossKernelFormulas}
   \lean{NTK.hasDerivAt_inner_tangentFeature_displacement, NTK.hasDerivAt_frozenPrediction,
         NTK.abs_dotProduct_le_norm_mul_norm, NTK.hasDerivAt_predictionError_abs_le}
   \leanok
@@ -714,7 +788,7 @@ $\frac{d}{dt}\bigl[-a^\top(r_0-\exp(-\tfrac tmK_\infty)r_0)\bigr]=-\frac1mk_\inf
 \[
   |e'(c)|\le\frac1m\Bigl(\|r(c)\|\bigl(\|g\|\,\|J(\theta(c))-J(\theta_0)\|+\varepsilon_k\bigr)+\|k_\infty\|\,\bigl\|r(c)-\exp(-\tfrac cmK_\infty)r_0\bigr\|\Bigr),
 \]
-where $\varepsilon_k\ge\|J(\theta_0)g-k_\infty\|$. The three terms are the Jacobian drift, the cross-kernel error, and the residual-versus-frozen-exponential error.
+where $\varepsilon_k\ge\|J(\theta_0)g-k_\infty\|$. The three terms are the Jacobian drift, the cross-kernel error (how far the empirical initial cross-kernel $k_{\theta_0}(x)=J(\theta_0)g$ of Definition~\ref{def:ntkgf:crossKernel} is from the limiting cross-kernel $k_\infty$), and the residual-versus-frozen-exponential error.
 \end{lemma}
 
 \begin{proof}
@@ -725,18 +799,18 @@ $(J(\theta(c))g)^\top r(c)-k_\infty^\top s(c)=\bigl((J(\theta(c))-J(\theta_0))g\
 \end{proof}
 
 \begin{theorem}[Deterministic test-point prediction error]\label{thm:ntkgf:predictionError}
-  \uses{lem:ntkgf:predictionDerivative, thm:ntkgf:residualFrozen}
+  \uses{lem:ntkgf:predictionDerivative, thm:ntkgf:residualFrozen, def:ntkgf:crossKernel, lem:ntkgf:crossKernelFormulas}
   \lean{NTK.abs_inner_displacement_add_frozenPrediction_le}
   \leanok
 Let $\theta$ be a forward gradient flow of the MSE loss from $\theta_0$ and suppose on $[0,T]$: $\|J(\theta(s))-J(\theta_0)\|\le\varepsilon_J$ and $\|K(\theta(s))-K_\infty\|\le\varepsilon_K$, and also
-$\|J(\theta_0)g-k_\infty\|\le\varepsilon_k$. Then for $t\in[0,T]$,
+$\|J(\theta_0)g-k_\infty\|\le\varepsilon_k$, i.e.\ the empirical initial cross-kernel $k_{\theta_0}(x)=J(\theta_0)g$ (Definition~\ref{def:ntkgf:crossKernel}) is within $\varepsilon_k$ of the limiting cross-kernel $k_\infty$. Then for $t\in[0,T]$,
 \[
   |e(t)|\le t\cdot\frac1m\Bigl(\|g\|\,\varepsilon_J\,\|r_0\|+\varepsilon_k\,\|r_0\|+\|k_\infty\|\cdot\tfrac1m\varepsilon_K\|r_0\|\,T\Bigr).
 \]
 \end{theorem}
 
 \begin{proof}
-  \uses{lem:ntkgf:predictionDerivative, thm:ntkgf:residualFrozen}
+  \uses{lem:ntkgf:predictionDerivative, thm:ntkgf:residualFrozen, def:ntkgf:crossKernel}
   \leanok
 Since $e(0)=0$, it suffices to integrate the bound of Lemma~\ref{lem:ntkgf:predictionDerivative}. On $[0,T]$ one has $\|r(s)\|\le\|r_0\|$ (the loss is nonincreasing), and Theorem~\ref{thm:ntkgf:residualFrozen}(2) gives
 $\|r(s)-\exp(-\tfrac smK_\infty)r_0\|\le\frac1m\varepsilon_K\|r_0\|s\le\frac1m\varepsilon_K\|r_0\|T$.
@@ -754,10 +828,10 @@ $|e(t)-e(S)|\le\int_S^t|e'|\le B\int_S^\infty e^{-\nu s}ds=\frac B\nu e^{-\nu S}
 \end{proof}
 
 \begin{theorem}[Uniform-in-time prediction error]\label{thm:ntkgf:predictionUniform}
-  \uses{thm:ntkgf:predictionError, lem:ntkgf:expTail}
+  \uses{thm:ntkgf:predictionError, lem:ntkgf:expTail, def:ntkgf:crossKernel}
   \lean{NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay}
   \leanok
-In addition to the hypotheses of Theorem~\ref{thm:ntkgf:predictionError} on a window $[0,S]$, assume: the Jacobian drift is at most $\varepsilon_J$ for \emph{all} times; the residual decays as $\|r(s)\|\le\|r_0\|e^{-\nu s}$ with $\nu>0$;
+In addition to the hypotheses of Theorem~\ref{thm:ntkgf:predictionError} on a window $[0,S]$ (including the bound $\varepsilon_k$ on the initial cross-kernel error of Definition~\ref{def:ntkgf:crossKernel}), assume: the Jacobian drift is at most $\varepsilon_J$ for \emph{all} times; the residual decays as $\|r(s)\|\le\|r_0\|e^{-\nu s}$ with $\nu>0$;
 and $K_\infty$ has spectral gap $\lambda$ with $\nu\le\lambda/m$. Then for every $t\ge0$,
 \begin{multline*}
   |e(t)|\le S\cdot\frac1m\Bigl(\|g\|\varepsilon_J\|r_0\|+\varepsilon_k\|r_0\|+\|k_\infty\|\tfrac1m\varepsilon_K\|r_0\|S\Bigr)\\
