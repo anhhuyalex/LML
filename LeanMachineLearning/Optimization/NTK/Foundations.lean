@@ -8,10 +8,12 @@ module
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
+public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 
 /-!
 # NTK foundations
 
 Network-independent tools used throughout the NTK development: matrix and Frobenius-norm facts
-(`matrixCLM`), i.i.d. averages with Chebyshev bounds, and Slutsky/tightness/Markov lemmas.
+(`matrixCLM`), i.i.d. averages with Chebyshev bounds, Slutsky/tightness/Markov lemmas, and ODE
+tools (`ODE`: Grönwall, the continuous-induction bootstrap, global flows of locally Lipschitz fields).
 -/

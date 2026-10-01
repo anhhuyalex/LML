@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.FlowConstruction
+public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.ODEStability
 
 /-!
 # Gradient flow: fixed-feature (affine) dynamics and minimum norm

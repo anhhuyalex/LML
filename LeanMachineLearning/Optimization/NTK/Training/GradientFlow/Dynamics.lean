@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 public import LeanMachineLearning.Optimization.NTK.Initialization
+public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 public import Mathlib.Analysis.InnerProductSpace.Calculus
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.Calculus.Deriv.Mul

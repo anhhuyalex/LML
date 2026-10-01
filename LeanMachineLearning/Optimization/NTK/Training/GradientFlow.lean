@@ -12,7 +12,6 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.KernelS
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Bootstrap
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.InfiniteWidth
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.ODEStability
-public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.FlowConstruction
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.AffineDynamics
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.TestPrediction
 
@@ -21,6 +20,22 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.TestPre
 
 This file formalizes the infinite-width Neural Tangent Kernel (NTK) regime and its exact
 linearized training dynamics, corresponding to Jacot et al. (2018) and Lee et al. (2019).
+
+## Structure
+
+The development is a chain of modules in `GradientFlow/`, each importing the previous one; this
+file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bootstrap`,
+`exists_global_flow`) are in `NTK.Foundations.ODE`.
+
+* `Dynamics` : residual ODE, general losses, risk dissipation, kinetic energy.
+* `Convergence` : exponential convergence of the training loss.
+* `LinearDynamics` : closed-form dynamics via the matrix exponential, eigenmodes.
+* `KernelStability` : Lipschitz propagation for the empirical NTK, Taylor bound, Rayleigh stability.
+* `Bootstrap` : displacement-integral bound and the continuous-induction bootstrap (Gap 5).
+* `InfiniteWidth` : asymptotic properties in the infinite-width limit.
+* `ODEStability` : stability of linear ODEs under coefficient perturbation.
+* `AffineDynamics` : fixed-feature (affine) dynamics and minimum norm.
+* `TestPrediction` : test-point prediction along a gradient flow.
 
 ## Mathematical Formulation
 

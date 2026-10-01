@@ -83,6 +83,7 @@ public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
+public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
@@ -102,7 +103,6 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.AffineD
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Bootstrap
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Convergence
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.Dynamics
-public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.FlowConstruction
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.InfiniteWidth
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.KernelStability
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.LinearDynamics

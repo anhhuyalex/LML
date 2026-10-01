@@ -5,36 +5,174 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.ODEStability
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.ODE.ExistUnique
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Topology.Algebra.Order.Field
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
 
 /-!
-# Global flow of a locally Lipschitz field with a priori bounds
+# ODE tools: Grönwall, bootstrap, linear-ODE stability, and global flows
 
-Generic construction, independent of neural networks, of the flow of an autonomous field that is
-Lipschitz on balls and has a priori bounds on solutions (Picard-Lindelöf on a truncation, the
-bootstrap, and gluing of finite windows).
+Network-independent analytic tools used by the gradient-flow development:
 
-See
-`LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
-for the overview of the whole development.
+* `NTK.gronwall_exponential_decay_Icc`, `NTK.gronwall_exponential_decay`,
+  `NTK.gronwallBound_le_mul_exp` : Grönwall-type decay.
+* `NTK.integral_exp_neg_le` : `∫₀ᵀ exp(-c t) dt ≤ 1/c`.
+* `NTK.le_of_forall_bootstrap` : the continuous-induction (bootstrap) principle on `[0, T]`.
+* Global flow of a locally Lipschitz field with a priori bounds (Picard-Lindelöf on a truncation,
+  the bootstrap, and gluing of finite windows).
 -/
 
 @[expose] public section
 
-open Real MeasureTheory ProbabilityTheory Filter ConvexOpt
+open Real MeasureTheory ProbabilityTheory Filter
 open scoped RealInnerProductSpace Matrix Matrix.Norms.Frobenius Topology
 
 namespace NTK
 
 variable {ι : Type*} {d m P : ℕ}
 
-attribute [local instance]
-  Matrix.frobeniusNormedAddCommGroup
-  Matrix.frobeniusNormedSpace
-  Matrix.frobeniusNormedRing
-  Matrix.frobeniusNormedAlgebra
+/-! ### Reusable Analytic Tool: Grönwall Differential Inequality -/
 
-attribute [local instance 2000] instCompleteSpaceMatrix
+/-- Interval-Restricted Grönwall Decay Lemma:
+If a scalar quantity `E(t)` is continuous on `[0, T]`, differentiable on `(0, T)`, and satisfies
+`E'(t) ≤ -c * E(t)` there, then `E(t) ≤ E(0) * exp(-c * t)` for all `t ∈ [0, T]`.
+Only interior differentiability is needed, so this applies to forward-time trajectories, and the
+localized form enables continuous induction bootstrap arguments where the differential inequality
+only holds while the state remains inside a bootstrap region. -/
+lemma gronwall_exponential_decay_Icc {E E' : ℝ → ℝ} {c T : ℝ} (hT : 0 ≤ T)
+    (hEc : ContinuousOn E (Set.Icc 0 T)) (hE : ∀ t ∈ Set.Ioo 0 T, HasDerivAt E (E' t) t)
+    (hbound : ∀ t ∈ Set.Ioo 0 T, E' t ≤ -c * E t) (t : ℝ) (ht : t ∈ Set.Icc 0 T) :
+    E t ≤ E 0 * Real.exp (-c * t) := by
+  let g : ℝ → ℝ := fun s => E s * Real.exp (c * s)
+  have hg_deriv : ∀ s ∈ Set.Ioo 0 T,
+      HasDerivAt g ((E' s + c * E s) * Real.exp (c * s)) s := by
+    intro s hs
+    have h1 := hE s hs
+    have h2 : HasDerivAt (fun u => Real.exp (c * u)) (Real.exp (c * s) * c) s := by
+      have hc : HasDerivAt (fun u => c * u) (c * 1) s := (hasDerivAt_id s).const_mul c
+      rw [mul_one] at hc
+      exact hc.exp
+    have hprod := h1.mul h2
+    convert hprod using 1
+    ring
+  have hg_cont : ContinuousOn g (Set.Icc 0 T) := hEc.mul (by fun_prop)
+  have hg_within : ∀ s ∈ interior (Set.Icc 0 T),
+      HasDerivWithinAt g ((E' s + c * E s) * Real.exp (c * s)) (interior (Set.Icc 0 T)) s :=
+    fun s hs => (hg_deriv s (by rwa [interior_Icc] at hs)).hasDerivWithinAt
+  have hg_nonpos : ∀ s ∈ interior (Set.Icc 0 T), (E' s + c * E s) * Real.exp (c * s) ≤ 0 := by
+    intro s hs
+    have hle : E' s + c * E s ≤ 0 := by
+      linarith [hbound s (by rwa [interior_Icc] at hs)]
+    have hexp : 0 ≤ Real.exp (c * s) := (Real.exp_pos _).le
+    exact mul_nonpos_of_nonpos_of_nonneg hle hexp
+  have h_anti : AntitoneOn g (Set.Icc 0 T) :=
+    antitoneOn_of_hasDerivWithinAt_nonpos (convex_Icc 0 T) hg_cont hg_within hg_nonpos
+  have h0_mem : (0 : ℝ) ∈ Set.Icc 0 T := ⟨le_rfl, hT⟩
+  have h_le := h_anti h0_mem ht ht.1
+  dsimp [g] at h_le
+  rw [mul_zero, Real.exp_zero, mul_one] at h_le
+  have h_mul := mul_le_mul_of_nonneg_right h_le (Real.exp_pos (-c * t)).le
+  have h_exp_cancel : E t * Real.exp (c * t) * Real.exp (-c * t) = E t := by
+    rw [mul_assoc, ← Real.exp_add]
+    ring_nf
+    rw [Real.exp_zero, mul_one]
+  rw [h_exp_cancel] at h_mul
+  exact h_mul
+
+/-- Grönwall Differential Inequality for Exponential Decay:
+If a differentiable scalar quantity `E(t)` satisfies `E'(t) ≤ -c * E(t)` with `c > 0`,
+then `E(t) ≤ E(0) * exp(-c * t)` for all `t ≥ 0`.
+Specialization of `gronwall_exponential_decay_Icc` to the interval `[0, t]`. -/
+lemma gronwall_exponential_decay {E E' : ℝ → ℝ} {c : ℝ}
+    (hE : ∀ t, HasDerivAt E (E' t) t)
+    (hbound : ∀ t, E' t ≤ -c * E t) (t : ℝ) (ht : 0 ≤ t) :
+    E t ≤ E 0 * Real.exp (-c * t) :=
+  gronwall_exponential_decay_Icc ht (fun s _ => (hE s).continuousAt.continuousWithinAt)
+    (fun s _ => hE s) (fun s _ => hbound s) t ⟨ht, le_rfl⟩
+
+/-- Mathlib's Grönwall bound is at most `(δ + ε x) e^{K x}` (for `K, ε ≥ 0`), an expression that is
+monotone in the time `x ≥ 0` and easy to use for a priori estimates. -/
+lemma gronwallBound_le_mul_exp {δ K ε x : ℝ} (hK : 0 ≤ K) (hε : 0 ≤ ε) :
+    gronwallBound δ K ε x ≤ (δ + ε * x) * Real.exp (K * x) := by
+  rcases hK.eq_or_lt with rfl | hKpos
+  · simp [gronwallBound_K0]
+  · rw [gronwallBound_of_K_ne_0 hKpos.ne']
+    have hexp : 0 < Real.exp (K * x) := Real.exp_pos _
+    have h1 : Real.exp (K * x) - 1 ≤ K * x * Real.exp (K * x) := by
+      have h2 := Real.one_sub_le_exp_neg (K * x)
+      have h3 : Real.exp (K * x) * Real.exp (-(K * x)) = 1 := by rw [← Real.exp_add]; simp
+      nlinarith
+    have h4 : ε / K * (Real.exp (K * x) - 1) ≤ ε * x * Real.exp (K * x) := by
+      calc ε / K * (Real.exp (K * x) - 1) ≤ ε / K * (K * x * Real.exp (K * x)) :=
+            mul_le_mul_of_nonneg_left h1 (by positivity)
+        _ = ε * x * Real.exp (K * x) := by field_simp
+    nlinarith
+
+/-- Reusable bound: `∫₀ᵀ exp(-c t) dt ≤ 1/c` for `c > 0`, dropping the (nonnegative) `1 - exp(-cT)`
+factor from the exact closed form `(1 - exp(-cT))/c`. -/
+lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
+    ∫ t in (0:ℝ)..T, Real.exp (-c * t) ≤ c⁻¹ := by
+  have hc' : -c ≠ 0 := by linarith
+  rw [show (fun t : ℝ => Real.exp (-c * t)) = (fun t => Real.exp ((-c) * t)) from rfl]
+  rw [intervalIntegral.integral_comp_mul_left (fun x => Real.exp x) hc']
+  rw [integral_exp]
+  simp only [mul_zero, Real.exp_zero, smul_eq_mul]
+  have h1 : Real.exp (-c * T) - 1 ≤ 0 := by
+    have := Real.exp_le_one_iff.mpr (by nlinarith : -c * T ≤ 0)
+    linarith
+  rw [show (-c)⁻¹ * (Real.exp (-c * T) - 1) = c⁻¹ * (1 - Real.exp (-c * T)) by
+    field_simp; ring]
+  have h3 : 0 ≤ c⁻¹ := by positivity
+  calc
+    c⁻¹ * (1 - Real.exp (-c * T)) ≤ c⁻¹ * 1 := by
+      apply mul_le_mul_of_nonneg_left _ h3
+      linarith [Real.exp_nonneg (-c * T)]
+    _ = c⁻¹ := by ring
+/-- **Continuous-induction (bootstrap) principle on `[0, T]`.** Let `d` be continuous and
+`C < r` (only continuity on `[0, T]` is needed). Suppose that whenever `d ≤ r` holds on all of
+`[0, S]` (for `S ∈ [0, T]`), the sharper
+bound `d S ≤ C` holds. Then `d ≤ C` on all of `[0, T]`, i.e. `d` can never reach the threshold
+`r`. Used for the displacement bootstraps: `d t = ‖θ(t) - θ₀‖` while the Jacobian estimates only
+hold inside a ball. -/
+theorem le_of_forall_bootstrap {d : ℝ → ℝ} {r C T : ℝ} (hd : ContinuousOn d (Set.Icc 0 T))
+    (hCr : C < r)
+    (hT : 0 ≤ T) (h0 : d 0 ≤ r)
+    (hstep : ∀ S ∈ Set.Icc (0 : ℝ) T, (∀ t ∈ Set.Icc (0 : ℝ) S, d t ≤ r) → d S ≤ C) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, d t ≤ C := by
+  have hzero : d 0 ≤ C := hstep 0 ⟨le_rfl, hT⟩ fun t ht => by
+    obtain rfl : t = 0 := le_antisymm ht.2 ht.1
+    exact h0
+  have hclosed : IsClosed ({t : ℝ | d t ≤ C} ∩ Set.Icc 0 T) := by
+    have := hd.preimage_isClosed_of_isClosed isClosed_Icc (isClosed_Iic (a := C))
+    rwa [Set.inter_comm] at this
+  have h := IsClosed.Icc_subset_of_forall_mem_nhdsGT_of_Icc_subset
+    (s := {t : ℝ | d t ≤ C}) (a := 0) (b := T) hclosed hzero (fun t ht hsub => ?_)
+  · exact fun t htT => h htT
+  have hdt : d t < r := (hsub ⟨ht.1, le_rfl⟩).trans_lt hCr
+  obtain ⟨δ, hδ, hball⟩ := Metric.continuousWithinAt_iff.1 (hd t ⟨ht.1, ht.2.le⟩) (r - d t)
+    (by linarith)
+  have hδ' : 0 < min δ (T - t) := lt_min hδ (by linarith [ht.2])
+  refine Filter.mem_of_superset (Ioo_mem_nhdsGT (show t < t + min δ (T - t) by linarith)) ?_
+  intro u hu
+  have huT : u ≤ T := by linarith [hu.2, min_le_right δ (T - t)]
+  refine hstep u ⟨by linarith [ht.1, hu.1], huT⟩ fun t' ht' => ?_
+  by_cases hle : t' ≤ t
+  · exact (hsub ⟨ht'.1, hle⟩).trans hCr.le
+  · have hlt : t < t' := not_le.1 hle
+    have hdist : dist t' t < δ := by
+      rw [Real.dist_eq, abs_of_pos (by linarith)]
+      linarith [ht'.2, hu.2, min_le_left δ (T - t)]
+    have hlt' := hball ⟨by linarith [ht'.1], by linarith [ht'.2, hu.2, huT]⟩ hdist
+    rw [Real.dist_eq] at hlt'
+    linarith [(abs_lt.1 hlt').2]
 
 /-! ### Global Flow of a Locally Lipschitz Field with A Priori Bounds
 
