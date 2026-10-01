@@ -79,8 +79,8 @@ needs the two-dimensional Gaussian computation from `NTK.Initialization`.
 
 The finite-width gradient-flow function-space dynamics (the residual ODE
 `∂_t r(t) = - (1/m) K_t r(t)` and its supporting step-by-step derivation) have moved to
-`LeanMachineLearning.Optimization.NTK.Training.GradientFlow`, alongside the infinite-width specialization
-and closed-form dynamics that build on it.
+`LeanMachineLearning.Optimization.NTK.Training.GradientFlow`, alongside the infinite-width
+specialization and closed-form dynamics that build on it.
 
 -/
 

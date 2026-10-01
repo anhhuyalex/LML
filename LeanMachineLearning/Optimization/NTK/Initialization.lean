@@ -45,7 +45,8 @@ Theorem 2 / Step 2 (Strong Law of Large Numbers for the Covariance Tensor), Theo
 Theorem 3 (Finite-Dimensional NNGP Limit at Initialization), Multilayer Sequential NNGP
 recurrence convergence, the Layer-by-Layer Conditional Gaussian Structure (independence across
 depth and the depth-$d$ recursive kernel $\Phi_\ell$).  Proposition 2.5 (Cho-Saul / Arc-Cosine
-Kernel for ReLU) is in `LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine`, which this module imports.
+Kernel for ReLU) is in `LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine`, which this module
+imports.
 
 Peripheral API and optional corollaries are in
 `LeanMachineLearning.Optimization.NTK.Initialization.Peripheral`; this module keeps the definitions,
