@@ -1023,7 +1023,7 @@ lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (�
   measureReal_pi_average_le_ge_one_sub (μ := gaussianRowMeasure d) hn
     (g := fun w => ∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2)
     (Finset.measurable_sum _ fun α _ =>
-      (hφ.comp (measurable_innerProduct_left (X α))).pow_const 2)
+      (hφ.comp (measurable_dotProduct_left (X α))).pow_const 2)
     (integrable_finsetSum _ fun α _ => (hL2 α).integrable_sq) (fun w => by positivity) hτ
     (by rwa [integral_finsetSum _ fun α _ => (hL2 α).integrable_sq])
 
@@ -1032,10 +1032,10 @@ lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurab
     (hA : 0 ≤ A) (hB : 0 ≤ B)
     (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x : Fin d → ℝ) (p : NNReal) :
     MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x)) p (gaussianRowMeasure d) := by
-  have hlin : Measurable (fun w : Fin d → ℝ => w ⬝ᵥ x) := measurable_innerProduct_left x
+  have hlin : Measurable (fun w : Fin d → ℝ => w ⬝ᵥ x) := measurable_dotProduct_left x
   change MemLp (φ ∘ fun w : Fin d → ℝ => w ⬝ᵥ x) p (gaussianRowMeasure d)
   rw [← memLp_map_measure_iff (hφ.aestronglyMeasurable) hlin.aemeasurable,
-    map_gaussianRowMeasure_innerProduct]
+    map_gaussianRowMeasure_dotProduct]
   have hid := memLp_id_gaussianReal (μ := 0) (v := Real.toNNReal (x ⬝ᵥ x)) p
   refine MemLp.of_le (g := fun z => A + B * ‖z‖) ?_ hφ.aestronglyMeasurable
     (Filter.Eventually.of_forall fun z => ?_)
@@ -1465,7 +1465,7 @@ lemma projectionCoeff_measurable
   simp_rw [projectionCoeff_eq_normalized_sum]
   refine Measurable.const_mul (Finset.measurable_sum _ fun α _ => ?_) _
   exact measurable_const.mul
-    (hφ.comp ((measurable_innerProduct_left (X α)).comp (measurable_pi_apply i)))
+    (hφ.comp ((measurable_dotProduct_left (X α)).comp (measurable_pi_apply i)))
 
 /-- **Step 1 (Linear projection identity)**:
 For any linear combination vector `c : Fin m → ℝ`, the scalar linear projection of
@@ -1675,7 +1675,7 @@ section Theorem2
 /-- Step 1 (Measurability): For measurable `φ`, the product `w ↦ φ(w ⬝ᵥ x) * φ(w ⬝ᵥ x')` is measurable. -/
 lemma measurable_cov_summand (φ : ℝ → ℝ) (hφ : Measurable φ) (x x' : Fin d → ℝ) :
     Measurable (fun w : Fin d → ℝ => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) :=
-  (hφ.comp (measurable_innerProduct_left x)).mul (hφ.comp (measurable_innerProduct_left x'))
+  (hφ.comp (measurable_dotProduct_left x)).mul (hφ.comp (measurable_dotProduct_left x'))
 
 /-! ### Step 3: Integrability via Cauchy-Schwarz -/
 
@@ -1880,7 +1880,7 @@ lemma evalSingle_joint_measurable
   have h_ai : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2 i) :=
     (measurable_pi_apply i).comp measurable_snd
   have h_Wi : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => φ (p.1 i ⬝ᵥ x)) :=
-    hφ.comp ((measurable_innerProduct_left x).comp ((measurable_pi_apply i).comp measurable_fst))
+    hφ.comp ((measurable_dotProduct_left x).comp ((measurable_pi_apply i).comp measurable_fst))
   exact h_ai.mul h_Wi
 
 lemma evalVector_joint_measurable
@@ -2211,7 +2211,7 @@ lemma charFun_map_projection
     charFun_outputMeasure n φ hφ_meas X (WithLp.toLp 2 (t • u))]
   congr 1 with W
   congr 2
-  rw [show (WithLp.toLp 2 (t • u)).ofLp = t • u from rfl, dot_mulVec_smul]
+  rw [WithLp.ofLp_toLp, dot_mulVec_smul]
 
 /-- **Step 5 (Passing the Limit via Dominated Convergence)**:
 Specializing `tendsto_charFun_outputMeasure` at `WithLp.toLp 2 (t • u)` directly yields
@@ -2236,7 +2236,7 @@ lemma tendsto_charFun_map_projection
   have h_lim := tendsto_charFun_outputMeasure φ X hφ_meas hφ_L2 (WithLp.toLp 2 (t • u))
   have h_quad : (WithLp.toLp 2 (t • u)).ofLp ⬝ᵥ (limitingCovariance φ X) *ᵥ (WithLp.toLp 2 (t • u)).ofLp =
       t ^ 2 * (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u) := by
-    rw [show (WithLp.toLp 2 (t • u)).ofLp = t • u from rfl, dot_mulVec_smul]
+    rw [WithLp.ofLp_toLp, dot_mulVec_smul]
   rwa [h_quad] at h_lim
 
 /-- Pointwise convergence of scalar characteristic functions to the characteristic function
@@ -5819,9 +5819,9 @@ lemma measurable_fullNTK_summand {d : ℕ}
   have h_w : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1) := measurable_fst
   have h_a : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2) := measurable_snd
   have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x) :=
-    (measurable_innerProduct_left x).comp h_w
+    (measurable_dotProduct_left x).comp h_w
   have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x') :=
-    (measurable_innerProduct_left x').comp h_w
+    (measurable_dotProduct_left x').comp h_w
   have h_φx : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x)) :=
     hφ_meas.comp h_wx
   have h_φx' : Measurable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x')) :=
@@ -5912,9 +5912,9 @@ lemma memLp_two_fullNTK_summand {d : ℕ}
   have h_w : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1) := measurable_fst
   have h_a : Measurable (fun p : (Fin d → ℝ) × ℝ => p.2) := measurable_snd
   have h_wx : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x) :=
-    (measurable_innerProduct_left x).comp h_w
+    (measurable_dotProduct_left x).comp h_w
   have h_wx' : Measurable (fun p : (Fin d → ℝ) × ℝ => p.1 ⬝ᵥ x') :=
-    (measurable_innerProduct_left x').comp h_w
+    (measurable_dotProduct_left x').comp h_w
   have h_dφx : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⬝ᵥ x)) :=
     hdφ_meas.comp h_wx
   have h_dφx' : Measurable (fun p : (Fin d → ℝ) × ℝ => deriv φ (p.1 ⬝ᵥ x')) :=
@@ -6104,7 +6104,7 @@ theorem fullNTKMatrix_scaled_dataset_tendsto_integral {m d : ℕ} (hd : 0 < d)
                 ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_base := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas
     (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
-  simp_rw [innerProduct_scaled_dataset d hd] at h_base
+  simp_rw [dotProduct_scaled_dataset d hd] at h_base
   exact h_base
 
 /-- Matrix norm almost-sure convergence of the empirical NTK Gram matrix on dataset `X`
@@ -6199,7 +6199,7 @@ theorem fullNTKMatrix_scaled_dataset_tendstoInMeasure {m d : ℕ} (hd : 0 < d)
               ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_base := fullNTKMatrix_tendstoInMeasure φ hφ_meas hdφ_meas
     (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) hφ_int hdφ_int
-  simp_rw [innerProduct_scaled_dataset d hd] at h_base
+  simp_rw [dotProduct_scaled_dataset d hd] at h_base
   exact h_base
 
 /-- The deterministic limiting full NTK Gram matrix on dataset `X` with input dimension `d`:
@@ -6236,7 +6236,7 @@ lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
     rw [limitingCovariance_apply, limitingCovariance_apply]
     congr 1 with w
     ring
-  rw [h1, h2, innerProduct_comm]
+  rw [h1, h2, dotProduct_comm]
 
 /-- The limiting full NTK is the NNGP covariance of `φ` plus the Schur product of the covariance of
 `φ'` with the input Gram matrix of the scaled dataset. -/
@@ -6435,7 +6435,7 @@ lemma integral_fullNTK_summand_scaled_dataset_eq_limiting {m d : ℕ} (hd : 0 < 
   have h := integral_fullNTK_summand φ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)
     (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) (hφ_int α β) (hdφ_int α β)
   rw [h]
-  rw [innerProduct_scaled_dataset d hd]
+  rw [dotProduct_scaled_dataset d hd]
   rw [limitingFullNTKMatrix_apply, limitingCovariance_apply, limitingCovariance_apply]
 
 end FullNTKConcentration

@@ -268,7 +268,7 @@ theorem smoothLinearizationBound
     Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun k => W j k - V j k) x
   have h_cs_sum : ∑ j : Fin m, (∑ k, (W j k - V j k) * x k)^2 ≤
     ∑ j : Fin m, ((∑ k, (W j k - V j k)^2) * (∑ k, (x k)^2)) := Finset.sum_le_sum fun j _ => h_cs j
-  have h_x_bound : ∑ k : Fin d, (x k)^2 = x ⬝ᵥ x := (innerProduct_self_eq_sum_sq x).symm
+  have h_x_bound : ∑ k : Fin d, (x k)^2 = x ⬝ᵥ x := (dotProduct_self_eq_sum_sq x).symm
   have h_frob : ∑ j : Fin m, (∑ k, (W j k - V j k)^2) * (x ⬝ᵥ x)
     = (∑ j : Fin m, ∑ k, (W j k - V j k)^2) * (x ⬝ᵥ x) := by rw [← Finset.sum_mul]
   have h_frob_def :
@@ -345,36 +345,11 @@ noncomputable def dotMap {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →ₗ[
 noncomputable def dotCLM {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →L[ℝ] ℝ :=
   LinearMap.toContinuousLinearMap (dotMap x)
 
-/-- Informal proof: The measure `gaussianRowMeasure d` is the standard multivariate Gaussian
-distribution $\mathcal{N}(0, I_d)$. The map $w \mapsto w^\top x$ is a linear functional.
-By standard properties of multivariate Gaussians, the pushforward of a standard Gaussian
-under a linear map $w \mapsto w^\top x$ is a 1D Gaussian with mean 0 and variance $\|x\|^2$.
-(Source: Vershynin, R. "High-Dimensional Probability", Theorem 3.3.6). -/
+/-- The pushforward of `gaussianRowMeasure d` by `w ↦ ∑ k, w k * x k` is a centred 1D Gaussian with
+variance `x ⬝ᵥ x`. This is `map_gaussianRowMeasure_dotProduct` with the dot product written out. -/
 lemma map_gaussianRowMeasure_dot {d : ℕ} (x : Fin d → ℝ) :
     Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d) =
-      gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := by
-  have h_eq : (fun w : Fin d → ℝ => ∑ k, w k * x k) =
-      (fun (v : EuclideanSpace ℝ (Fin d)) => innerSL ℝ (WithLp.toLp 2 x) v) ∘ (WithLp.toLp 2) := by
-    ext w
-    dsimp
-    exact (EuclideanSpace.inner_eq_star_dotProduct (WithLp.toLp 2 x) (WithLp.toLp 2 w))
-  rw [h_eq, ← Measure.map_map]
-  · have h_toLp : Measure.map (WithLp.toLp 2) (gaussianRowMeasure d) = stdGaussian (EuclideanSpace ℝ (Fin d)) :=
-      map_pi_eq_stdGaussian
-    rw [h_toLp]
-    have h_map := IsGaussian.map_eq_gaussianReal (μ := stdGaussian (EuclideanSpace ℝ (Fin d))) (innerSL ℝ (WithLp.toLp 2 x))
-    rw [h_map]
-    have h_mean : ∫ (v : EuclideanSpace ℝ (Fin d)), (innerSL ℝ (WithLp.toLp 2 x)) v ∂stdGaussian (EuclideanSpace ℝ (Fin d)) = 0 := by
-      rw [(innerSL ℝ (WithLp.toLp 2 x)).integral_comp_id_comm IsGaussian.integrable_id]
-      rw [integral_id_stdGaussian]
-      exact map_zero (innerSL ℝ (WithLp.toLp 2 x))
-    have h_var : Var[innerSL ℝ (WithLp.toLp 2 x); stdGaussian (EuclideanSpace ℝ (Fin d))] = x ⬝ᵥ x := by
-      rw [variance_dual_stdGaussian]
-      rw [innerSL_apply_norm]
-      rw [norm_sq_eq_innerProduct (WithLp.toLp 2 x)]
-    rw [h_mean, h_var]
-  · fun_prop
-  · fun_prop
+      gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := map_gaussianRowMeasure_dotProduct x
 
 /-- Informal proof: The density of a 1D Gaussian $Z \sim \mathcal{N}(0, v)$ is
 $f(z) = \frac{1}{\sqrt{2\pi v}} e^{-z^2/(2v)}$.
@@ -1092,9 +1067,6 @@ lemma reluLinearization_algebraic_bound
       rw [h1]
       ring
 
-lemma innerProduct_eq_zero_iff_eq_zero {d : ℕ} (x : Fin d → ℝ) : x ⬝ᵥ x = 0 ↔ x = 0 := by
-  rw [← norm_sq_eq_innerProduct (WithLp.toLp 2 x)]; simp
-
 lemma sqrt_sum_sq_eq_zero {d m : ℕ} (W : Fin m → Fin d → ℝ) :
   Real.sqrt (∑ i : Fin m, ∑ j : Fin d, W i j ^ 2) = 0 ↔ W = 0 := by
   rw [Real.sqrt_eq_zero (Finset.sum_nonneg (fun i _ ↦ Finset.sum_nonneg (fun j _ ↦ sq_nonneg (W i j))))]
@@ -1155,8 +1127,8 @@ theorem reluLinearizationBound
   by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
   · -- x = 0 case
-    have hx_zero_norm : x ⬝ᵥ x = 0 := le_antisymm (not_lt.mp hx_pos) (innerProduct_self_nonneg x)
-    have hx_zero : x = 0 := (innerProduct_eq_zero_iff_eq_zero x).mp hx_zero_norm
+    have hx_zero_norm : x ⬝ᵥ x = 0 := le_antisymm (not_lt.mp hx_pos) (dotProduct_self_star_nonneg x)
+    have hx_zero : x = 0 := dotProduct_self_eq_zero.mp hx_zero_norm
     subst hx_zero
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W _
@@ -1367,8 +1339,8 @@ theorem reluLinearizationBound_secondOrder
   by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
   · -- x = 0 case
-    have hx_zero_norm : x ⬝ᵥ x = 0 := le_antisymm (not_lt.mp hx_pos) (innerProduct_self_nonneg x)
-    have hx_zero : x = 0 := (innerProduct_eq_zero_iff_eq_zero x).mp hx_zero_norm
+    have hx_zero_norm : x ⬝ᵥ x = 0 := le_antisymm (not_lt.mp hx_pos) (dotProduct_self_star_nonneg x)
+    have hx_zero : x = 0 := dotProduct_self_eq_zero.mp hx_zero_norm
     subst hx_zero
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W V _ _

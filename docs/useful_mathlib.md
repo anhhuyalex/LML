@@ -52,7 +52,7 @@ Lemmas relating to the Fourier transform, measure theory, and the calculus of in
 | `MeasureTheory.measureReal_union_add_inter` | `μ.real (s ∪ t) + μ.real (s ∩ t) = μ.real s + μ.real t` | Splitting real-valued measures over sets (avoids dealing with `ENNReal` infinities) | `Mathlib/MeasureTheory/Measure/MeasureSpaceDef.lean` |
 | `variance_dual_stdGaussian` | `∫ x, ⟪x, w⟫^2 ∂stdGaussian ℝ E = ‖w‖^2` | Instantly computes the variance of a linear functional acting on a standard Gaussian vector, bypassing manual integration | `Project API` |
 | `map_pi_eq_stdGaussian` | `Measure.map (EuclideanSpace.equiv ...) (Measure.pi ...) = stdGaussian ℝ E` | Converts a product of 1D independent Gaussians into the canonical `stdGaussian` on `EuclideanSpace` | `Project API` |
-| `innerProduct_eq_inner_toLp` | `w ⊙ x = ⟪WithLp.toLp 2 x, WithLp.toLp 2 w⟫` | The critical bridge proving a custom `Finset.sum` inner product is equivalent to Mathlib's `Lp` inner product | `Project API` |
+| `dotProduct_eq_inner_toLp` | `w ⬝ᵥ x = ⟪WithLp.toLp 2 x, WithLp.toLp 2 w⟫` | The critical bridge proving that Mathlib's `dotProduct` on raw functions `Fin d → ℝ` is equivalent to Mathlib's `Lp` inner product | `Project API` |
 | `ProbabilityTheory.hasSubgaussianMGF_of_mem_Icc` | `hasSubgaussianMGF_of_mem_Icc h` | Obtaining Hoeffding (sub-Gaussian) bounds for variables bounded in an interval | `Mathlib/Probability/Moments/SubGaussian.lean` |
 | `MeasureTheory.measureReal_mono` | `s ⊆ t → μ t ≠ ∞ → μ.real s ≤ μ.real t` | Monotonicity of real-valued measures (unlike `ENNReal`, strictly requires a finiteness proof) | `Mathlib/MeasureTheory/Measure/MeasureSpace.lean` |
 | `integrableAtFilter_rpow_atTop_iff` | `{s : ℝ} : IntegrableAtFilter (fun x : ℝ ↦ x ^ s) atTop ↔ s < -1` | Characterizing integrability of power functions at infinity | `Mathlib/Analysis/SpecialFunctions/ImproperIntegrals.lean` |
@@ -365,7 +365,7 @@ Core order lemmas and special function identities.
 | `Matrix.fromBlocks` | `Matrix.fromBlocks A B C D` | Cleanly constructing a $2d$ block matrix $\begin{bmatrix} A & B \\ C & D \end{bmatrix}$. | `Mathlib/Data/Matrix/Block.lean` |
 | `Matrix.dotProduct` | `Matrix.dotProduct v w = ∑ i, v i * w i` | Definition of the algebraic dot product of vectors. | `Mathlib/Data/Matrix/Basic.lean` | w i` | Computes the dot product on standard functions `ι → ℝ` purely algebraically, without requiring an `InnerProductSpace` topology. | `Mathlib/Data/Matrix/Basic.lean` |
 | `div_le_div_of_nonneg_right` | `a ≤ b → 0 ≤ c → a / c ≤ b / c` | Dividing inequalities by a non-negative denominator. | `Mathlib/Algebra/Order/Field/Basic.lean` |
-| `innerProduct_self_eq_sum_sq` | `inner x x = ∑ i, x i ^ 2` | Linking Euclidean `x ⊙ x` to its component sum. | `Mathlib/Analysis/InnerProductSpace/PiL2.lean` |
+| `dotProduct_self_eq_sum_sq` | `inner x x = ∑ i, x i ^ 2` | Linking Euclidean `x ⬝ᵥ x` to its component sum. | `Mathlib/Analysis/InnerProductSpace/PiL2.lean` |
 
 
 ---

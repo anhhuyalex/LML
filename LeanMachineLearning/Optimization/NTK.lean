@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Linearization
 public import LeanMachineLearning.Optimization.NTK.Kernel
+public import LeanMachineLearning.Optimization.NTK.ReluClosedForm
 public import LeanMachineLearning.Optimization.NTK.Universal
 
 /-!
@@ -21,9 +22,13 @@ Re-exports all NTK results corresponding to Chapter 4 of the deep learning theor
 * `NTK.Basic` : scaled shallow networks, Gaussian initialization, Taylor linearization.
 * `NTK.Linearization` : linearization bounds for smooth activations (Proposition 4.1)
   and for the ReLU via Gaussian concentration (Lemma 4.1 and Lemma 4.2).
-* `NTK.Kernel` : empirical NTK with and without explicit outer coefficients, limiting NTK,
-  almost sure convergence along growing width (Lemma 4.3), and ReLU closed form
-  (Proposition 4.2).
+* `NTK.Kernel` : empirical NTK with and without explicit outer coefficients, limiting NTK, and
+  almost sure convergence along growing width (Lemma 4.3). It re-exports the three helper
+  modules `NTK.IIDAverage` (i.i.d. averages and Chebyshev bounds), `NTK.MatrixUtil` (matrix and
+  Frobenius-norm facts, `matrixCLM`) and `NTK.DatasetNTK` (the empirical NTK matrix on a finite
+  dataset and the MSE gradient).
+* `NTK.ReluClosedForm` : ReLU closed form (Proposition 4.2); it depends on the
+  two-dimensional Gaussian computation in `NTK.Initialization`.
 * `NTK.Universal` : NTK domain, RKHS predictor class, and universal approximation
   (Theorem 4.1).
 

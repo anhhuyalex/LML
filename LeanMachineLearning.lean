@@ -82,12 +82,16 @@ public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.ChoSaulAngular
 public import LeanMachineLearning.Optimization.NTK.ChoSaulPolar
+public import LeanMachineLearning.Optimization.NTK.DatasetNTK
+public import LeanMachineLearning.Optimization.NTK.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.InfiniteNTK
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.InitializationHelpers
 public import LeanMachineLearning.Optimization.NTK.Kernel
 public import LeanMachineLearning.Optimization.NTK.Linearization
+public import LeanMachineLearning.Optimization.NTK.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.NetworkParam
+public import LeanMachineLearning.Optimization.NTK.ReluClosedForm
 public import LeanMachineLearning.Optimization.NTK.Universal
 public import LeanMachineLearning.Optimization.Renormalization
 public import LeanMachineLearning.Optimization.Renormalization.Action

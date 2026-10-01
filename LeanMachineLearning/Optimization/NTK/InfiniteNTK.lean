@@ -277,10 +277,8 @@ empirical kernel matrix `K_t^{(n)}`.
 
 /-- Helper: The inner product on `EuclideanSpace ℝ (Fin P)` equals the sum of entrywise products. -/
 lemma euclideanSpace_inner_eq_sum (u v : EuclideanSpace ℝ (Fin P)) :
-    ⟪u, v⟫ = ∑ j : Fin P, u j * v j := by
-  rw [show u = WithLp.toLp 2 u.ofLp by rfl, show v = WithLp.toLp 2 v.ofLp by rfl]
-  rw [EuclideanSpace.inner_toLp_toLp]
-  simp [dotProduct, mul_comm]
+    ⟪u, v⟫ = ∑ j : Fin P, u j * v j :=
+  real_inner_eq_dotProduct u v
 
 /-- Step 1 (Multivariate Chain Rule - Inner Product Formulation):
 Evaluate the time derivative of component output `f^α(t) ≡ f(x^α; θ(t))`:
@@ -1065,11 +1063,7 @@ theorem deriv_norm_sq_timeVarying_ode
   rw [h_symm, ← two_mul] at h_inner
   have h_dot : ⟪r t, WithLp.toLp 2 (-(m : ℝ)⁻¹ • (K t *ᵥ (r t).ofLp))⟫ =
       -(m : ℝ)⁻¹ * ((r t).ofLp ⬝ᵥ (K t *ᵥ (r t).ofLp)) := by
-    rw [show r t = WithLp.toLp 2 (r t).ofLp by rfl]
-    rw [EuclideanSpace.inner_toLp_toLp]
-    simp only [star_trivial]
-    rw [smul_dotProduct, dotProduct_comm]
-    ring
+    rw [real_inner_eq_dotProduct, WithLp.ofLp_toLp, dotProduct_smul, smul_eq_mul]
   rw [h_dot] at h_inner
   have h_norm_sq : (fun s => ‖r s‖ ^ 2) = (fun s => ⟪r s, r s⟫) := by
     ext s
@@ -1661,26 +1655,6 @@ theorem norm_sub_sub_fderiv_le_of_lipschitz_fderiv
   have hθΔ : x₀ + Δ = x := by rw [hΔ]; abel
   simp only [hg, one_smul, hθΔ] at hbound
   linarith
-
-/-- The matrix `M` as a continuous linear map between Euclidean spaces (`v ↦ M v`): an abbreviation
-for Mathlib's `Matrix.toEuclideanLin` made continuous (Mathlib bundles the continuous version,
-`Matrix.toEuclideanCLM`, only for square matrices). -/
-noncomputable abbrev matrixCLM {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) :
-    EuclideanSpace ℝ (Fin b) →L[ℝ] EuclideanSpace ℝ (Fin a) :=
-  LinearMap.toContinuousLinearMap (Matrix.toEuclideanLin M)
-
-lemma matrixCLM_apply {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) (v : EuclideanSpace ℝ (Fin b)) :
-    matrixCLM M v = WithLp.toLp 2 (M *ᵥ v.ofLp) := by
-  simp [matrixCLM, Matrix.toLpLin_apply]
-
-lemma matrixCLM_sub {a b : ℕ} (M N : Matrix (Fin a) (Fin b) ℝ) :
-    matrixCLM M - matrixCLM N = matrixCLM (M - N) := by
-  ext v : 1
-  simp [matrixCLM_apply, Matrix.sub_mulVec]
-
-lemma norm_matrixCLM_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) : ‖matrixCLM M‖ ≤ ‖M‖ :=
-  ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg _) fun v => by
-    rw [matrixCLM_apply]; exact mulVec_frobenius_norm_le M v
 
 /-- **Second-order Taylor bound for the training outputs under a Lipschitz Jacobian.** If the output
 Jacobian is `L`-Lipschitz at `θ₀` on the closed ball of radius `r` around `θ₀`
@@ -3232,21 +3206,6 @@ theorem hasDerivAt_affineFlowSolution (J : Matrix (Fin m) (Fin P) ℝ) (hG : IsU
     rw [Matrix.neg_mulVec, Matrix.mulVec_neg, neg_neg, Matrix.mulVec_smul, Matrix.mulVec_mulVec,
       Matrix.mul_assoc, hGinv', Matrix.mul_one]
   simpa [hres] using hJT (NormedSpace.exp (-(t / (m : ℝ)) • (J * Jᵀ)) *ᵥ r₀.ofLp)
-
-/-- `matrixCLM Mᵀ` is the adjoint of `matrixCLM M`. -/
-lemma inner_matrixCLM_transpose {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
-    (u : EuclideanSpace ℝ (Fin a)) (v : EuclideanSpace ℝ (Fin b)) :
-    ⟪matrixCLM Mᵀ u, v⟫ = ⟪u, matrixCLM M v⟫ := by
-  simp only [matrixCLM_apply, PiLp.inner_apply, Matrix.mulVec, dotProduct, Matrix.transpose_apply,
-    RCLike.inner_apply, conj_trivial, Finset.mul_sum, Finset.sum_mul]
-  rw [Finset.sum_comm]
-  refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
-
-
-/-- `matrixCLM Mᵀ` is the Hilbert-space adjoint of `matrixCLM M`. -/
-lemma matrixCLM_transpose_eq_adjoint {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) :
-    matrixCLM Mᵀ = ContinuousLinearMap.adjoint (matrixCLM M) :=
-  (ContinuousLinearMap.eq_adjoint_iff _ _).2 fun u v => (inner_matrixCLM_transpose M u v).symm ▸ rfl
 
 /-- **Minimum-norm Pythagoras for a bounded linear map between inner product spaces.** If
 `wInf = A† a` interpolates (`A wInf = b`) -- the normal-equation solution, with `a` solving

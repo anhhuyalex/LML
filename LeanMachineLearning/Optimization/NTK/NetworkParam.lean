@@ -281,7 +281,7 @@ lemma inner_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → 
   rw [show packParams W a = WithLp.toLp 2 (fun k => match (paramIndexEquiv n d).symm k with
     | Sum.inl (i, j) => W i j
     | Sum.inr i => a i) from rfl]
-  rw [show v = WithLp.toLp 2 v.ofLp from rfl]
+  rw [← WithLp.toLp_ofLp (p := 2) v]
   rw [h_inner]
   simp only [dotProduct, star_trivial]
   rw [← Equiv.sum_comp (paramIndexEquiv n d)]
@@ -877,15 +877,10 @@ lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n *
     change ((θ₁ - θ₂) (idxA i)) ^ 2 = _
     simp only [PiLp.sub_apply, unpackA]
 
-lemma innerProduct_sub (d : ℕ) (x y z : Fin d → ℝ) :
-    (x - y) ⬝ᵥ z = x ⬝ᵥ z - y ⬝ᵥ z :=
-  innerProduct_sub_left x y z
-
-lemma innerProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :
+lemma dotProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :
     (x ⬝ᵥ z - y ⬝ᵥ z) ^ 2 ≤ (∑ j : Fin d, (x j - y j) ^ 2) * (∑ j : Fin d, z j ^ 2) := by
-  rw [← innerProduct_sub]
-  dsimp [dotProduct]
-  exact Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => x j - y j) z
+  rw [← sub_dotProduct]
+  exact sq_dotProduct_le (x - y) z
 
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
@@ -947,7 +942,7 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
   let u₂ := unpackW θ₂ i ⬝ᵥ x
   have hu_diff_sq : (u₁ - u₂) ^ 2 ≤ Wdiff * Sx := by
     dsimp [u₁, u₂, Wdiff, Sx]
-    exact innerProduct_sub_sq_le d (unpackW θ₁ i) (unpackW θ₂ i) x
+    exact dotProduct_sub_sq_le d (unpackW θ₁ i) (unpackW θ₂ i) x
   have hφ_sub_sq : (φ u₁ - φ u₂) ^ 2 ≤ C₁ ^ 2 * (Sx * Wdiff) := by
     have h1 : |φ u₁ - φ u₂| ≤ C₁ * |u₁ - u₂| := hφ_lip u₁ u₂
     have h2 : |φ u₁ - φ u₂| ^ 2 ≤ (C₁ * |u₁ - u₂|) ^ 2 := by
@@ -1296,7 +1291,7 @@ private lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → �
         (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x')) := by ring
     _ = (n : ℝ)⁻¹ * (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x')) := by rw [h_sqrt]
 
-private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
+private lemma gradW_dotProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradW φ n d x θ i ⬝ᵥ gradW φ n d x' θ i =
       (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
@@ -1307,7 +1302,7 @@ private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fi
   have hW2 : gradW φ n d x' θ i =
       fun j => ((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x')) * x' j := by
     ext j; rfl
-  rw [hW1, hW2, innerProduct_mul_mul]
+  rw [hW1, hW2, dotProduct_mul_mul]
   have h_sqrt : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
     Real.mul_self_sqrt (by positivity)
   have h_alg : (((n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x)) *
@@ -1324,14 +1319,14 @@ private lemma gradW_innerProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fi
             deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by rw [h_sqrt]
   exact h_alg
 
-private lemma gradW_innerProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
+private lemma gradW_dotProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradW φ n d x θ i ⬝ᵥ gradW φ n d x' θ i + gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ *
         (φ (unpackW θ i ⬝ᵥ x) * φ (unpackW θ i ⬝ᵥ x') +
          unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) *
            deriv φ (unpackW θ i ⬝ᵥ x') * (x ⬝ᵥ x')) := by
-  rw [gradW_innerProduct_gradW, gradA_mul_gradA]
+  rw [gradW_dotProduct_gradW, gradA_mul_gradA]
   ring
 
 /-- The full empirical NTK matrix of `netFromParams` evaluated at sample pair `(α, β)`
@@ -1349,7 +1344,7 @@ theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m
            (X α ⬝ᵥ X β)) := by
   rw [empiricalNTKMatrix_netFromParams_apply φ n d m X θ hφ α β]
   rw [← Finset.sum_add_distrib]
-  simp_rw [gradW_innerProduct_add_gradA_mul]
+  simp_rw [gradW_dotProduct_add_gradA_mul]
   rw [← Finset.mul_sum]
 
 /-! ### Scaled-Dataset Network Evaluation and Gradients -/
@@ -1363,7 +1358,7 @@ lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
   congr 1
   apply Finset.sum_congr rfl
   intro i _
-  rw [innerProduct_scaled_input]
+  rw [dotProduct_scaled_input]
 
 lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
@@ -1374,7 +1369,7 @@ lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
   congr 1
   apply Finset.sum_congr rfl
   intro i _
-  rw [innerProduct_scaled_input_div]
+  rw [dotProduct_scaled_input_div]
 
 lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (j : Fin d) :
@@ -1382,7 +1377,7 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
       ((n : ℝ)⁻¹.sqrt * (Real.sqrt (d : ℝ))⁻¹) *
         (unpackA θ i * deriv φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ x)) * x j) := by
   dsimp [gradW]
-  rw [innerProduct_scaled_input]
+  rw [dotProduct_scaled_input]
   ring
 
 lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
@@ -1390,7 +1385,7 @@ lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     gradA φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i =
       (n : ℝ)⁻¹.sqrt * φ ((Real.sqrt (d : ℝ))⁻¹ * (unpackW θ i ⬝ᵥ x)) := by
   dsimp [gradA]
-  rw [innerProduct_scaled_input]
+  rw [dotProduct_scaled_input]
 
 /-! ### Scaled-Dataset Corollaries -/
 
@@ -1415,9 +1410,9 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum
   congr 1
   apply Finset.sum_congr rfl
   intro i _
-  rw [innerProduct_scaled_input d (unpackW θ i) (X α)]
-  rw [innerProduct_scaled_input d (unpackW θ i) (X β)]
-  rw [innerProduct_scaled_dataset d hd (X α) (X β)]
+  rw [dotProduct_scaled_input d (unpackW θ i) (X α)]
+  rw [dotProduct_scaled_input d (unpackW θ i) (X β)]
+  rw [dotProduct_scaled_dataset d hd (X α) (X β)]
 
 /-! ### Sequence-Prefix Bridge -/
 
@@ -1485,7 +1480,7 @@ lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix
   have h_entry := empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq φ n d m hd X seq
     (fun α i => hφ_diff.differentiableAt) α β
   rw [h_entry]
-  simp_rw [innerProduct_mul_right]
+  simp_rw [dotProduct_mul_right]
 
 /-- Almost-sure convergence of the canonical empirical NTK matrix at the explicitly packed
 sequence-prefix initialization parameters to `limitingFullNTKMatrix`. -/
@@ -1558,19 +1553,19 @@ private lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0
   simp only [unpackW_packParams, unpackA_packParams]
   have h_prod : (d : ℝ)⁻¹ * (X α ⬝ᵥ X β) =
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) :=
-    (innerProduct_scaled_dataset d hd (X α) (X β)).symm
+    (dotProduct_scaled_dataset d hd (X α) (X β)).symm
   rw [h_prod]
   have h_w (i : Fin n) :
       (Real.sqrt (d : ℝ))⁻¹ *
         ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⬝ᵥ X α) =
       (ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) := by
-    rw [innerProduct_mul_right]
+    rw [dotProduct_mul_right]
     rfl
   have h_w' (i : Fin n) :
       (Real.sqrt (d : ℝ))⁻¹ *
         ((MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1 i ⬝ᵥ X β) =
       (ω i).1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) := by
-    rw [innerProduct_mul_right]
+    rw [dotProduct_mul_right]
     rfl
   have h_a (i : Fin n) :
       (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2 i =
@@ -2000,7 +1995,7 @@ lemma measurable_empiricalNTKMatrix_netFromParams_packParams
     (measurable_pi_apply i).comp measurable_snd
   have h_wx (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
       p.1 i ⬝ᵥ X k) :=
-    (measurable_innerProduct_left (X k)).comp h_w
+    (measurable_dotProduct_left (X k)).comp h_w
   have h_φ (k : Fin m) : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
       φ (p.1 i ⬝ᵥ X k)) :=
     hφ_diff.continuous.measurable.comp (h_wx k)
@@ -2065,7 +2060,7 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
   have hX := tendstoInDistribution_initial_trainingResidual φ X y
     hφ_diff.continuous.measurable fun α => memLp_two_of_memLp_two_mul_self
       ((hφ_diff.continuous.measurable.comp
-        (measurable_innerProduct_left _)).aestronglyMeasurable) (hφ_L2 α α)
+        (measurable_dotProduct_left _)).aestronglyMeasurable) (hφ_L2 α α)
   have hY : ∀ ε > 0, Filter.Tendsto
       (fun n => (initMeasure n d)
         {p | ε ≤
@@ -2853,7 +2848,7 @@ lemma measurable_neuronMoment {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C�
   simp_rw [h]
   have hG : Measurable (fun q : (Fin d → ℝ) × ℝ => ∑ α : Fin m, φ (q.1 ⬝ᵥ X α) ^ 2) :=
     Finset.measurable_sum _ fun α _ =>
-      (hφ.comp ((measurable_innerProduct_left (X α)).comp measurable_fst)).pow_const 2
+      (hφ.comp ((measurable_dotProduct_left (X α)).comp measurable_fst)).pow_const 2
   have ha : Measurable (fun q : (Fin d → ℝ) × ℝ => q.2) := measurable_snd
   fun_prop
 
@@ -3018,15 +3013,15 @@ private lemma activation_regularity_of_bounds (φ : ℝ → ℝ) (C₁ C₂ : �
 private lemma memLp_two_gaussianRow_comp_of_bounded {d : ℕ} (g : ℝ → ℝ) (hg : Measurable g)
     {B : ℝ} (hB : ∀ z, |g z| ≤ B) (x : Fin d → ℝ) :
     MemLp (fun w => g (w ⬝ᵥ x)) 2 (gaussianRowMeasure d) :=
-  MemLp.of_bound (hg.comp (measurable_innerProduct_left x)).aestronglyMeasurable B
+  MemLp.of_bound (hg.comp (measurable_dotProduct_left x)).aestronglyMeasurable B
     (Filter.Eventually.of_forall fun w => by simpa [Real.norm_eq_abs] using hB _)
 
 /-- A product of two bounded measurable functions of Gaussian-row preactivations is in `L²`. -/
 private lemma memLp_two_gaussianRow_mul_comp_of_bounded {d : ℕ} (g : ℝ → ℝ) (hg : Measurable g)
     {B : ℝ} (hB : ∀ z, |g z| ≤ B) (x x' : Fin d → ℝ) :
     MemLp (fun w => g (w ⬝ᵥ x) * g (w ⬝ᵥ x')) 2 (gaussianRowMeasure d) :=
-  MemLp.of_bound ((hg.comp (measurable_innerProduct_left x)).mul
-    (hg.comp (measurable_innerProduct_left x'))).aestronglyMeasurable (B * B)
+  MemLp.of_bound ((hg.comp (measurable_dotProduct_left x)).mul
+    (hg.comp (measurable_dotProduct_left x'))).aestronglyMeasurable (B * B)
     (Filter.Eventually.of_forall fun w => by
       rw [Real.norm_eq_abs, abs_mul]
       exact mul_le_mul (hB _) (hB _) (abs_nonneg _) ((abs_nonneg _).trans (hB 0)))
@@ -5915,12 +5910,6 @@ private lemma flow_sqrt_inv_nat_mul_nat (hn : 0 < n) :
   field_simp
   exact (Real.sq_sqrt hn'.le).symm
 
-/-- Cauchy-Schwarz for the input-weight preactivation. -/
-private lemma sq_innerProduct_le (w x : Fin d → ℝ) :
-    (w ⬝ᵥ x) ^ 2 ≤ (∑ j : Fin d, w j ^ 2) * ∑ j : Fin d, x j ^ 2 := by
-  unfold dotProduct
-  exact Finset.sum_mul_sq_le_sq_mul_sq _ _ _
-
 /-- **Linear growth of the output Jacobian.** For a smooth activation the Frobenius norm of the
 output Jacobian grows at most linearly in the parameter norm: `‖J(θ)‖ ≤ c₀ + c₁ ‖θ‖`, with constants
 depending on the data but not on `θ`. Each neuron block satisfies
@@ -5961,7 +5950,7 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
         _ ≤ (|φ 0| + C₁ * |u|) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) h1 2
         _ ≤ 2 * (|φ 0| ^ 2 + (C₁ * |u|) ^ 2) := h2
         _ = _ := by rw [sq_abs, mul_pow, sq_abs]; ring
-    have hucs : u ^ 2 ≤ (∑ j : Fin d, θ (idxW i j) ^ 2) * S α := sq_innerProduct_le _ _
+    have hucs : u ^ 2 ≤ (∑ j : Fin d, θ (idxW i j) ^ 2) * S α := sq_dotProduct_le _ _
     have hw : (∑ j : Fin d, θ (idxW i j) ^ 2) ≤ ‖θ‖ ^ 2 := by
       have := hblock i
       nlinarith [sq_nonneg (θ (idxA i))]
@@ -6052,7 +6041,7 @@ private lemma exists_residual_bound (hact : SmoothActivation φ C₁ C₂) (hn :
       have hu2 : |unpackW θ i ⬝ᵥ X α| ^ 2 ≤
           (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) ^ 2 := by
         rw [sq_abs, mul_pow, Real.sq_sqrt (Finset.sum_nonneg fun _ _ => sq_nonneg _)]
-        exact (sq_innerProduct_le (unpackW θ i) (X α)).trans
+        exact (sq_dotProduct_le (unpackW θ i) (X α)).trans
           (mul_le_mul_of_nonneg_right hw (Finset.sum_nonneg fun _ _ => sq_nonneg _))
       exact (sq_le_sq₀ (abs_nonneg _) (by positivity)).1 hu2
     have hφu : |φ (unpackW θ i ⬝ᵥ X α)| ≤

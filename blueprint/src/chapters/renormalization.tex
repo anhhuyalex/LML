@@ -2654,7 +2654,8 @@ proved and its downstream users compile:
     \texttt{Finset.sum} inner products and the associated \texttt{WithLp} bridge lemmas.
 \end{enumerate}
 
-The existing \texttt{NTK.innerProduct} API should not be imported into the new library.  It uses
+The existing NTK dot-product API (\texttt{dotProduct} on raw rows, together with the \texttt{NTK.dotProduct\_*}
+helper lemmas) should not be imported into the new library.  It uses
 the raw function type $\operatorname{Fin}(d)\to\mathbb R$, whose default norm is the supremum norm;
 Mathlib's Gaussian and covariance APIs naturally use \texttt{EuclideanSpace}.
 

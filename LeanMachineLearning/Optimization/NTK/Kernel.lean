@@ -6,6 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
+public import LeanMachineLearning.Optimization.NTK.IIDAverage
+public import LeanMachineLearning.Optimization.NTK.MatrixUtil
+public import LeanMachineLearning.Optimization.NTK.DatasetNTK
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Probability.StrongLaw
@@ -50,7 +53,8 @@ almost surely to the **limiting NTK**:
 
 For the ReLU, this expectation has the elegant closed form
   `k(x, x') = xᵀx' · (π − arccos(xᵀx')) / (2π)`
-derived via a geometric argument on the sphere.
+derived via a geometric argument on the sphere; it is proved in `NTK.ReluClosedForm`, which
+needs the two-dimensional Gaussian computation from `NTK.Initialization`.
 
 ## Main definitions
 
@@ -59,15 +63,14 @@ derived via a geometric argument on the sphere.
 * `NTK.limitingNTK` : the limiting NTK `k(x, x')`.
 * `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
   measurable integrable functions of iid Gaussian rows.
-* `NTK.variance_average_pi` : variance of an empirical average under an i.i.d. product
-  probability measure.
-* `NTK.chebyshev_average_pi` : Chebyshev inequality for empirical averages of an `ℒ²`
-  observable under an i.i.d. product probability measure.
-* `NTK.chebyshev_average_pi_le_second_moment` : Chebyshev bound via the uncentered second moment.
+* `NTK.variance_average_pi`, `NTK.chebyshev_average_pi`,
+  `NTK.chebyshev_average_pi_le_second_moment` (in `NTK.IIDAverage`) : variance and Chebyshev
+  bounds for empirical averages of an `ℒ²` observable under an i.i.d. product measure.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
-* `NTK.reluNTK_closedForm` : closed form `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
-* `NTK.trainingOutputs` : the vector `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions
-  on the training dataset.
+* `NTK.reluNTK_closedForm` (in `NTK.ReluClosedForm`) : closed form
+  `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
+* `NTK.trainingOutputs` (and the rest of this list, in `NTK.DatasetNTK`) : the vector
+  `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions on the training dataset.
 * `NTK.trainingResidual` : the residual error vector `r(θ) = f(θ) - y`.
 * `NTK.mseLoss` : the empirical MSE loss objective `L(θ) = (1 / 2m) ‖r(θ)‖²`.
 * `NTK.tangentFeature` : the sensitivity vector `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`.
@@ -90,61 +93,52 @@ namespace NTK
 
 variable {d m : ℕ}
 
-/-! ### Inner product and norm helpers -/
-
-lemma innerProduct_comm (x y : Fin d → ℝ) : x ⬝ᵥ y = y ⬝ᵥ x := by
-  simp [dotProduct, mul_comm]
-
-lemma innerProduct_self_nonneg (x : Fin d → ℝ) : 0 ≤ x ⬝ᵥ x :=
-  Finset.sum_nonneg (fun i _ => mul_self_nonneg (x i))
+/-! ### Dot product and norm helpers -/
 
 /-- `x ⬝ᵥ x` is the sum of the coordinate squares. -/
-lemma innerProduct_self_eq_sum_sq (x : Fin d → ℝ) : x ⬝ᵥ x = ∑ k : Fin d, x k ^ 2 := by
+lemma dotProduct_self_eq_sum_sq (x : Fin d → ℝ) : x ⬝ᵥ x = ∑ k : Fin d, x k ^ 2 := by
   simp [dotProduct, pow_two]
 
 /-- For the Euclidean `L²` norm on `EuclideanSpace ℝ (Fin d)`, `‖x‖² = x ⬝ᵥ x`.
 
 The default norm on `Fin d → ℝ` is the sup norm, so the analogous statement is false for the raw
 Pi type. -/
-lemma norm_sq_eq_innerProduct (x : EuclideanSpace ℝ (Fin d)) :
+lemma norm_sq_eq_dotProduct (x : EuclideanSpace ℝ (Fin d)) :
     ‖x‖ ^ 2 = x.ofLp ⬝ᵥ x.ofLp := by
   rw [EuclideanSpace.real_norm_sq_eq]
-  simpa using (innerProduct_self_eq_sum_sq x.ofLp).symm
+  simpa using (dotProduct_self_eq_sum_sq x.ofLp).symm
 
-lemma innerProduct_mul_left (c : ℝ) (x y : Fin d → ℝ) :
-    (fun k => c * x k) ⬝ᵥ y = c * (x ⬝ᵥ y) := by
-  simp only [dotProduct, mul_assoc]
-  rw [← Finset.mul_sum]
+lemma dotProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
+    x ⬝ᵥ (fun k => c * y k) = c * (x ⬝ᵥ y) :=
+  dotProduct_smul c x y
 
-lemma innerProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
-    x ⬝ᵥ (fun k => c * y k) = c * (x ⬝ᵥ y) := by
-  rw [innerProduct_comm, innerProduct_mul_left, innerProduct_comm y x]
-
-lemma innerProduct_sub_left (x y z : Fin d → ℝ) :
-    (x - y) ⬝ᵥ z = x ⬝ᵥ z - y ⬝ᵥ z := by
-  simp only [dotProduct, Pi.sub_apply, sub_mul]
-  rw [← Finset.sum_sub_distrib]
-
-lemma innerProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
+lemma dotProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
     (fun k => c₁ * x k) ⬝ᵥ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⬝ᵥ y) := by
-  rw [innerProduct_mul_left, innerProduct_mul_right, mul_assoc]
+  rw [show (fun k => c₁ * x k) = c₁ • x from rfl, smul_dotProduct, dotProduct_mul_right,
+    smul_eq_mul, mul_assoc]
+
+/-- Cauchy–Schwarz for the dot product, in sum-of-squares form. -/
+lemma sq_dotProduct_le (w x : Fin d → ℝ) :
+    (w ⬝ᵥ x) ^ 2 ≤ (∑ j : Fin d, w j ^ 2) * ∑ j : Fin d, x j ^ 2 := by
+  unfold dotProduct
+  exact Finset.sum_mul_sq_le_sq_mul_sq _ _ _
 
 /-- The dot product of a weight vector with a scaled input `(1 / √d) * x` has the scaling
 factor `1 / √d` factored out. -/
-lemma innerProduct_scaled_input (d : ℕ) (w x : Fin d → ℝ) :
+lemma dotProduct_scaled_input (d : ℕ) (w x : Fin d → ℝ) :
     w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (Real.sqrt (d : ℝ))⁻¹ * (w ⬝ᵥ x) :=
-  innerProduct_mul_right _ _ _
+  dotProduct_mul_right _ _ _
 
 /-- Preactivation form: `w ⬝ᵥ (x / √d) = (w ⬝ᵥ x) / √d`. -/
-lemma innerProduct_scaled_input_div (d : ℕ) (w x : Fin d → ℝ) :
+lemma dotProduct_scaled_input_div (d : ℕ) (w x : Fin d → ℝ) :
     w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) = (w ⬝ᵥ x) / Real.sqrt (d : ℝ) := by
-  rw [innerProduct_scaled_input, div_eq_inv_mul]
+  rw [dotProduct_scaled_input, div_eq_inv_mul]
 
 /-- Inner product of two scaled inputs factors out `(1 / √d)² = 1 / d`. -/
-lemma innerProduct_scaled_dataset (d : ℕ) (hd : 0 < d) (x y : Fin d → ℝ) :
+lemma dotProduct_scaled_dataset (d : ℕ) (hd : 0 < d) (x y : Fin d → ℝ) :
     (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * y k) =
       (d : ℝ)⁻¹ * (x ⬝ᵥ y) := by
-  rw [innerProduct_mul_mul]
+  rw [dotProduct_mul_mul]
   have h_sqrt : (Real.sqrt (d : ℝ))⁻¹ * (Real.sqrt (d : ℝ))⁻¹ = (d : ℝ)⁻¹ := by
     rw [← mul_inv, Real.mul_self_sqrt (by positivity)]
   rw [h_sqrt]
@@ -184,12 +178,6 @@ noncomputable def empiricalNTK
       σ' (∑ k : Fin d, W₀ j k * x k) *
       σ' (∑ k : Fin d, W₀ j k * x' k))
 
--- The square of the square root of the inverse of m (cast to real) is the inverse of m.
-private lemma sq_sqrt_inv_cast_nat (m : ℕ) :
-    ((m : ℝ)⁻¹.sqrt) * ((m : ℝ)⁻¹.sqrt) = (m : ℝ)⁻¹ := by
-  rw [← sq, Real.sq_sqrt]
-  exact inv_nonneg.mpr (Nat.cast_nonneg m)
-
 -- Term-level algebraic identity for the Frobenius inner product of gradients.
 private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val_x' : ℝ)
     (x_k x'_k : ℝ) :
@@ -201,7 +189,7 @@ private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val
           (outerCoeffs_j * outerCoeffs_j) * val_x * val_x' * (x_k * x'_k) := by
       ring
     _ = (m : ℝ)⁻¹ * outerCoeffs_j ^ 2 * val_x * val_x' * (x_k * x'_k) := by
-      rw [sq_sqrt_inv_cast_nat m, ← sq]
+      rw [Real.mul_self_sqrt (inv_nonneg.2 (Nat.cast_nonneg m)), ← sq]
     _ = _ := by ring
 
 /-- The entrywise product sum of gradient features is the empirical NTK with the
@@ -237,151 +225,42 @@ lemma empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
 lemma empiricalNTK_symm
     (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
     empiricalNTK σ' W₀ x x' = empiricalNTK σ' W₀ x' x := by
-  simp only [empiricalNTK, innerProduct_comm x x', mul_comm (σ' _) (σ' _)]
+  simp only [empiricalNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
 
--- Helper 1: Reorder
-private lemma quadruple_sum_comm {α β γ δ : Type*} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
-    (f : α → β → γ → δ → ℝ) :
-    ∑ i : α, ∑ i' : β, ∑ j : γ, ∑ k : δ, f i i' j k =
-      ∑ j : γ, ∑ k : δ, ∑ i : α, ∑ i' : β, f i i' j k := by
-  calc
-    ∑ i : α, ∑ i' : β, ∑ j : γ, ∑ k : δ, f i i' j k
-        = ∑ x : α × β, ∑ j : γ, ∑ k : δ, f x.1 x.2 j k := by
-            rw [← Fintype.sum_prod_type']
-    _ = ∑ x : α × β, ∑ y : γ × δ, f x.1 x.2 y.1 y.2 := by
-          congr 1
-          ext x
-          rw [← Fintype.sum_prod_type']
-    _ = ∑ z : (α × β) × (γ × δ), f z.1.1 z.1.2 z.2.1 z.2.2 := by
-          rw [← Fintype.sum_prod_type']
-    _ = ∑ y : γ × δ, ∑ x : α × β, f x.1 x.2 y.1 y.2 := by
-          simpa using
-            (Fintype.sum_prod_type_right'
-              (f := fun (x : α × β) (y : γ × δ) =>
-                f x.1 x.2 y.1 y.2))
-    _ = ∑ j : γ, ∑ k : δ, ∑ x : α × β, f x.1 x.2 j k := by
-          simpa using
-            (Fintype.sum_prod_type' (f := fun j k => ∑ x : α × β, f x.1 x.2 j k))
-    _ = ∑ j : γ, ∑ k : δ, ∑ i : α, ∑ i' : β, f i i' j k := by
-          congr 1
-          ext j
-          congr 1
-          ext k
-          simpa using (Fintype.sum_prod_type' (f := fun i i' => f i i' j k))
+/-- The dataset empirical NTK matrix with arbitrary outer coefficients is positive semidefinite. -/
+theorem empiricalNTKWithOuter_dataset_posSemidef
+    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ) :
+    (Matrix.of (fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β))).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)) =
+      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
+      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
+    ext α β
+    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
+    rw [Fintype.sum_prod_type]
+    exact (sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
+      σ' outerCoeffs W₀ (X α) (X β)).symm
+  rw [h_eq]
+  have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h := h1.mul_mul_conjTranspose_same
+    (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
+  simp only [Matrix.mul_one] at h
+  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
 
--- Helper 2: Expand
-private lemma empiricalNTK_term_expand
-    (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ)
-    (i i' : Fin n) :
-    α i * α i' * empiricalNTK σ' W₀ (pts i) (pts i') =
-      ∑ j : Fin m, ∑ k : Fin d,
-        (m : ℝ)⁻¹ *
-          (α i * α i' * (pts i k * pts i' k) *
-            (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-              σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
-  unfold empiricalNTK dotProduct
-  calc
-    α i * α i' *
-        ((∑ k : Fin d, pts i k * pts i' k) *
-          ((m : ℝ)⁻¹ *
-            ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k)))
-        =
-          (α i * α i' * ∑ k : Fin d, pts i k * pts i' k) * (m : ℝ)⁻¹ *
-            ∑ j : Fin m,
-              σ' (∑ k : Fin d, W₀ j k * pts i k) *
-                σ' (∑ k : Fin d, W₀ j k * pts i' k) := by
-            ring
-    _ =
-      (α i * α i' * ∑ k : Fin d, pts i k * pts i' k) * (m : ℝ)⁻¹ *
-        ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) * σ' (∑ k : Fin d, W₀ j k * pts i' k)
-        := by rfl
-    _ =
-        ((m : ℝ)⁻¹ * α i * α i') *
-            ((∑ k : Fin d, pts i k * pts i' k) *
-              ∑ j : Fin m, σ' (∑ k : Fin d, W₀ j k * pts i k) *
-                σ' (∑ k : Fin d, W₀ j k * pts i' k)) := by
-            ring
-    _ =
-        ((m : ℝ)⁻¹ * α i * α i') *
-          ∑ k : Fin d,
-            ∑ j : Fin m,
-              (pts i k * pts i' k) *
-                (σ' (∑ k : Fin d, W₀ j k * pts i k) *
-                  σ' (∑ k : Fin d, W₀ j k * pts i' k)) := by
-            rw [Fintype.sum_mul_sum]
-    _ =
-        ((m : ℝ)⁻¹ * α i * α i') *
-          ∑ j : Fin m,
-            ∑ k : Fin d,
-              (pts i k * pts i' k) *
-                (σ' (∑ k : Fin d, W₀ j k * pts i k) *
-                  σ' (∑ k : Fin d, W₀ j k * pts i' k)) := by
-            rw [Finset.sum_comm]
-    _ = ∑ j : Fin m, ∑ k : Fin d,
-          (m : ℝ)⁻¹ *
-            (α i * α i' * (pts i k * pts i' k) *
-              (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-                σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
-            rw [Finset.mul_sum]
-            apply Finset.sum_congr rfl
-            intro j _
-            rw [Finset.mul_sum]
-            apply Finset.sum_congr rfl
-            intro k _
-            ring
-
--- Helper 3: Square
-private lemma empiricalNTK_term_square
-    (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ)
-    (j : Fin m) (k : Fin d) :
-    ∑ i : Fin n, ∑ i' : Fin n,
-      (m : ℝ)⁻¹ *
-        (α i * α i' * (pts i k * pts i' k) *
-          (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-            σ' (∑ l : Fin d, W₀ j l * pts i' l))) =
-      (m : ℝ)⁻¹ *
-        (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-  calc
-    ∑ i : Fin n, ∑ i' : Fin n,
-      (m : ℝ)⁻¹ *
-        (α i * α i' * (pts i k * pts i' k) *
-          (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-            σ' (∑ l : Fin d, W₀ j l * pts i' l)))
-        = ∑ i : Fin n, ∑ i' : Fin n,
-            (m : ℝ)⁻¹ *
-              ((α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
-                (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
-            apply Finset.sum_congr rfl
-            intro i _
-            apply Finset.sum_congr rfl
-            intro i' _
-            ring
-    _ = (m : ℝ)⁻¹ *
-          ∑ i : Fin n, ∑ i' : Fin n,
-            (α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
-              (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)) := by
-            calc
-              ∑ i : Fin n, ∑ i' : Fin n,
-                  (m : ℝ)⁻¹ *
-                    ((α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
-                      (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)))
-                  =
-                    ∑ i : Fin n,
-                      (m : ℝ)⁻¹ *
-                        ∑ i' : Fin n,
-                          (α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
-                            (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)) := by
-                      apply Finset.sum_congr rfl
-                      intro i _
-                      rw [← Finset.mul_sum]
-              _ = (m : ℝ)⁻¹ *
-                    ∑ i : Fin n, ∑ i' : Fin n,
-                      (α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) *
-                        (α i' * pts i' k * σ' (∑ l : Fin d, W₀ j l * pts i' l)) := by
-                      rw [← Finset.mul_sum]
-    _ = (m : ℝ)⁻¹ *
-          (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-            rw [pow_two, Fintype.sum_mul_sum]
+/-- The dataset empirical NTK matrix (`aⱼ² = 1` case) is positive semidefinite. -/
+theorem empiricalNTK_dataset_posSemidef
+    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
+    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ)
+    (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
+    (Matrix.of (fun α β => empiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => empiricalNTK σ' W₀ (X α) (X β)) =
+      Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
+    ext α β
+    simp only [Matrix.of_apply]
+    exact (empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
+      σ' outerCoeffs W₀ (X α) (X β) houter).symm
+  rw [h_eq]
+  exact empiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
 
 /-- The empirical NTK is positive semidefinite: for any finite set of points
 and coefficients `(αᵢ, xᵢ)`, `∑ᵢⱼ αᵢαⱼ kₘ(xᵢ, xⱼ) ≥ 0`.
@@ -390,78 +269,10 @@ lemma empiricalNTK_posSemidef
     (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ)
     {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ) :
     0 ≤ ∑ i : Fin n, ∑ j : Fin n,
-      α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) := by
-  have h_eq : ∑ i : Fin n, ∑ j : Fin n, α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) =
-      (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
-        (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-    calc
-      ∑ i : Fin n, ∑ j : Fin n, α i * α j * empiricalNTK σ' W₀ (pts i) (pts j)
-          = ∑ i : Fin n, ∑ i' : Fin n, ∑ j : Fin m, ∑ k : Fin d,
-              (m : ℝ)⁻¹ *
-                (α i * α i' * (pts i k * pts i' k) *
-                  (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-                    σ' (∑ l : Fin d, W₀ j l * pts i' l))) := by
-              -- Step 1: Expand the kernel into a quadruple sum.
-              apply Finset.sum_congr rfl
-              intro i _
-              apply Finset.sum_congr rfl
-              intro i' _
-              exact empiricalNTK_term_expand σ' W₀ α pts i i'
-      _ = ∑ j : Fin m, ∑ k : Fin d, ∑ i : Fin n, ∑ i' : Fin n,
-            (m : ℝ)⁻¹ *
-              (α i * α i' * (pts i k * pts i' k) *
-                (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-                  σ' (∑ l : Fin d, W₀ j l * pts i' l))) := quadruple_sum_comm _
-      _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
-            (∑ i : Fin n,
-              α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-              -- Step 2: Repackage the quadruple sum as a sum of squares.
-              calc
-                ∑ j : Fin m, ∑ k : Fin d, ∑ i : Fin n, ∑ i' : Fin n,
-                    (m : ℝ)⁻¹ *
-                      (α i * α i' * (pts i k * pts i' k) *
-                        (σ' (∑ l : Fin d, W₀ j l * pts i l) *
-                          σ' (∑ l : Fin d, W₀ j l * pts i' l)))
-                    = ∑ j : Fin m, ∑ k : Fin d,
-                        (m : ℝ)⁻¹ *
-                          (∑ i : Fin n,
-                            α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-                            apply Finset.sum_congr rfl
-                            intro j _
-                            apply Finset.sum_congr rfl
-                            intro k _
-                            exact empiricalNTK_term_square σ' W₀ α pts j k
-                _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
-                      (∑ i : Fin n, α i * pts i k * σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-                            calc
-                              ∑ j : Fin m, ∑ k : Fin d,
-                                  (m : ℝ)⁻¹ *
-                                    (∑ i : Fin n,
-                                      α i * pts i k *
-                                        σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2
-                                  =
-                                    ∑ j : Fin m,
-                                      (m : ℝ)⁻¹ *
-                                        ∑ k : Fin d,
-                                          (∑ i : Fin n,
-                                            α i * pts i k *
-                                              σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-                                      apply Finset.sum_congr rfl
-                                      intro j _
-                                      rw [← Finset.mul_sum]
-                              _ = (m : ℝ)⁻¹ * ∑ j : Fin m, ∑ k : Fin d,
-                                    (∑ i : Fin n,
-                                      α i * pts i k *
-                                        σ' (∑ l : Fin d, W₀ j l * pts i l)) ^ 2 := by
-                                      rw [← Finset.mul_sum]
-  rw [h_eq]
-  apply mul_nonneg
-  · exact inv_nonneg.mpr (Nat.cast_nonneg m)
-  · apply Finset.sum_nonneg
-    intro j _
-    apply Finset.sum_nonneg
-    intro k _
-    exact sq_nonneg _
+      α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) :=
+  posSemidef_sum_nonneg
+    (M := Matrix.of fun a b => empiricalNTK σ' W₀ (pts a) (pts b))
+    (empiricalNTK_dataset_posSemidef σ' (fun _ => 1) W₀ pts (fun _ => one_pow 2)) α
 
 /-! ### Limiting NTK (Definition 4.6) -/
 
@@ -480,7 +291,7 @@ noncomputable def limitingNTK (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) : ℝ :
 /-- The limiting NTK is symmetric. -/
 lemma limitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
     limitingNTK σ' x x' = limitingNTK σ' x' x := by
-  simp only [limitingNTK, innerProduct_comm x x', mul_comm (σ' _) (σ' _)]
+  simp only [limitingNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
 
 /-! ### Measurability and integrability of the NTK summand -/
 
@@ -490,14 +301,14 @@ instance : IsProbabilityMeasure (gaussianRowMeasure d) := by
   infer_instance
 
 /-- The dot product `w ↦ wᵀx` with a fixed vector is measurable. -/
-lemma measurable_innerProduct_left (x : Fin d → ℝ) :
+lemma measurable_dotProduct_left (x : Fin d → ℝ) :
     Measurable fun w : Fin d → ℝ => w ⬝ᵥ x :=
   Finset.measurable_sum _ fun k _ => (measurable_pi_apply k).mul measurable_const
 
 /-- The product `w ↦ σ'(wᵀx) · σ'(wᵀx')` is measurable whenever `σ'` is. -/
 lemma measurable_ntkSummand {σ' : ℝ → ℝ} (hσ' : Measurable σ') (x x' : Fin d → ℝ) :
     Measurable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) :=
-  (hσ'.comp (measurable_innerProduct_left x)).mul (hσ'.comp (measurable_innerProduct_left x'))
+  (hσ'.comp (measurable_dotProduct_left x)).mul (hσ'.comp (measurable_dotProduct_left x'))
 
 /-- If `σ'` is bounded by `C`, then
 `|σ'(wᵀx) · σ'(wᵀx')| ≤ C²`. -/
@@ -531,55 +342,6 @@ noncomputable def empiricalNTKFromRows
     ((width : ℝ)⁻¹ * ∑ j : Fin width,
       σ' (rows j.val ⬝ᵥ x) * σ' (rows j.val ⬝ᵥ x'))
 
-/-- The strong law for empirical averages of a measurable integrable observable
-over an i.i.d. sequence drawn from an arbitrary probability measure `ν`. This packages
-product-measure independence, identical distribution, expectation transport,
-and `Finset.range`/`Fin` conversion. -/
-lemma iid_average_tendsto_integral {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    (g : Ω → ℝ)
-    (hg_meas : Measurable g)
-    (hg_int : Integrable g ν) :
-    ∀ᵐ seq : ℕ → Ω ∂(Measure.infinitePi fun _ : ℕ => ν),
-      Filter.Tendsto
-        (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n, g (seq j))
-        Filter.atTop
-        (nhds (∫ ω, g ω ∂ν)) := by
-  set μ := Measure.infinitePi (fun _ : ℕ => ν)
-  have hmap_eval : ∀ i : ℕ, μ.map (fun seq => seq i) = ν :=
-    fun i => Measure.infinitePi_map_eval _ i
-  have hmp : MeasurePreserving (fun seq : ℕ → Ω => seq 0) μ ν :=
-    measurePreserving_eval_infinitePi (fun _ : ℕ => ν) 0
-  have hint : Integrable (fun seq : ℕ → Ω => g (seq 0)) μ :=
-    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
-  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j seq => g (seq j)) := by
-    have h := iIndepFun_infinitePi (P := fun _ : ℕ => ν)
-      (X := fun _ : ℕ => g) (fun _ => hg_meas)
-    intro i j hij
-    exact h.indepFun hij
-  have hident : ∀ i : ℕ,
-      IdentDistrib (fun seq : ℕ → Ω => g (seq i))
-        (fun seq : ℕ → Ω => g (seq 0)) μ μ := by
-    intro i
-    have hcoord : IdentDistrib (fun seq : ℕ → Ω => seq i)
-        (fun seq : ℕ → Ω => seq 0) μ μ := by
-      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
-      rw [hmap_eval i, hmap_eval 0]
-    exact hcoord.comp hg_meas
-  have hslln : ∀ᵐ seq ∂μ, Filter.Tendsto
-      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (seq i))
-      Filter.atTop (nhds (∫ seq, g (seq 0) ∂μ)) :=
-    strong_law_ae _ hint hindep hident
-  have hexp : ∫ seq, g (seq 0) ∂μ = ∫ ω, g ω ∂ν := by
-    rw [← hmap_eval 0]
-    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
-      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
-  filter_upwards [hslln] with seq hseq
-  rw [← hexp]
-  convert hseq using 1
-  ext width
-  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
-
 /-- The strong law for empirical averages of a measurable integrable function of
 i.i.d. Gaussian rows. Specializes `iid_average_tendsto_integral` to Gaussian row measures. -/
 lemma gaussianRow_average_tendsto_integral
@@ -593,115 +355,6 @@ lemma gaussianRow_average_tendsto_integral
         Filter.atTop
         (nhds (∫ w, g w ∂(gaussianRowMeasure d))) :=
   iid_average_tendsto_integral (gaussianRowMeasure d) g hg_meas hg_int
-
-/-! ### Generic Finite-Sample Concentration for i.i.d. Averages -/
-
-section IIDAverageConcentration
-
-/-- Integration of coordinate evaluation under a finite product probability measure. -/
-private lemma integral_coord_pi {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    {n : ℕ} (Y : Ω → ℝ) (hY : MemLp Y 2 ν) (i : Fin n) :
-    ∫ ω : Fin n → Ω, Y (ω i) ∂(Measure.pi fun _ : Fin n => ν) = ∫ x, Y x ∂ν := by
-  have h_mp := measurePreserving_eval (fun _ : Fin n => ν) i
-  have h_meas : AEMeasurable (Function.eval i) (Measure.pi fun _ : Fin n => ν) :=
-    (measurable_pi_apply i).aemeasurable
-  have h_aestrong :
-      AEStronglyMeasurable Y (Measure.map (Function.eval i) (Measure.pi fun _ : Fin n => ν)) := by
-    rw [h_mp.map_eq]
-    exact hY.aestronglyMeasurable
-  have h_eq : (∫ x, Y x ∂ν) =
-      ∫ x, Y x ∂(Measure.map (Function.eval i) (Measure.pi fun _ : Fin n => ν)) := by
-    rw [h_mp.map_eq]
-  rw [h_eq]
-  exact (integral_map h_meas h_aestrong).symm
-
-/-- An empirical average of coordinate functions is in `ℒ²` under a product probability measure. -/
-private lemma memLp_two_average_pi {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    (n : ℕ) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
-    MemLp (fun ω : Fin n → Ω => (n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) 2
-      (Measure.pi fun _ : Fin n => ν) := by
-  have h_coord : ∀ i : Fin n, MemLp (fun ω : Fin n → Ω => Y (ω i)) 2
-      (Measure.pi fun _ : Fin n => ν) := fun i =>
-    hY.comp_measurePreserving (measurePreserving_eval (fun _ : Fin n => ν) i)
-  have h_sum : MemLp (fun ω : Fin n → Ω => ∑ i : Fin n, Y (ω i)) 2
-      (Measure.pi fun _ : Fin n => ν) :=
-    memLp_finsetSum (Finset.univ : Finset (Fin n)) (fun i _ => h_coord i)
-  exact h_sum.const_mul (n : ℝ)⁻¹
-
-/-- Expectation of an empirical average under a finite product probability measure. -/
-private lemma integral_average_pi {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
-    ∫ ω : Fin n → Ω, ((n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) ∂(Measure.pi fun _ : Fin n => ν) =
-      ∫ x, Y x ∂ν := by
-  have h_coord_int : ∀ i : Fin n,
-      Integrable (fun ω : Fin n → Ω => Y (ω i)) (Measure.pi fun _ : Fin n => ν) := fun i =>
-    (hY.comp_measurePreserving (measurePreserving_eval (fun _ : Fin n => ν) i)).integrable
-      (by norm_num)
-  have h_sum_int : ∫ ω : Fin n → Ω, (∑ i : Fin n, Y (ω i)) ∂(Measure.pi fun _ : Fin n => ν) =
-      (n : ℝ) * ∫ x, Y x ∂ν := by
-    rw [integral_finsetSum Finset.univ (fun i _ => h_coord_int i)]
-    simp_rw [integral_coord_pi ν Y hY, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-      nsmul_eq_mul]
-  rw [integral_const_mul, h_sum_int]
-  have hn_ne : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (ne_of_gt hn)
-  rw [← mul_assoc, inv_mul_cancel₀ hn_ne, one_mul]
-
-/-- Variance of an empirical average under an i.i.d. finite product probability measure. -/
-lemma variance_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsProbabilityMeasure ν]
-    {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
-    Var[fun ω : Fin n → Ω => (n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i); Measure.pi fun _ : Fin n => ν] =
-      (n : ℝ)⁻¹ * Var[Y; ν] := by
-  have h_sum : Var[∑ i : Fin n, fun ω : Fin n → Ω => Y (ω i); Measure.pi fun _ : Fin n => ν] =
-      (n : ℝ) * Var[Y; ν] := by
-    have h := @variance_sum_pi (Fin n) _ (fun _ => Ω) (fun _ => inferInstance)
-      (fun _ => ν) (fun _ => inferInstance) (fun _ => Y) (fun _ => hY)
-    rw [h]
-    simp [Finset.sum_const]
-  have heq : (∑ i : Fin n, fun ω : Fin n → Ω => Y (ω i)) = (fun ω => ∑ i : Fin n, Y (ω i)) := by
-    ext ω
-    simp only [Finset.sum_apply]
-  rw [heq] at h_sum
-  have h_scale : (fun ω : Fin n → Ω => (n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) =
-      (n : ℝ)⁻¹ • (fun ω => ∑ i : Fin n, Y (ω i)) := by
-    ext ω
-    rfl
-  rw [h_scale, variance_smul, h_sum, sq, mul_assoc]
-  have hn_ne : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (ne_of_gt hn)
-  congr 1
-  rw [← mul_assoc, inv_mul_cancel₀ hn_ne, one_mul]
-
-/-- Chebyshev inequality for empirical averages of an `ℒ²` observable under an i.i.d.
-finite product probability measure. -/
-theorem chebyshev_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω)
-    [IsProbabilityMeasure ν] {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν)
-    {c : ℝ} (hc : 0 < c) :
-    (Measure.pi fun _ : Fin n => ν)
-      {ω | c ≤ |(n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i) - ∫ x, Y x ∂ν|} ≤
-      ENNReal.ofReal (Var[Y; ν] / ((n : ℝ) * c ^ 2)) := by
-  have h_cheb := meas_ge_le_variance_div_sq (memLp_two_average_pi ν n Y hY) hc
-  rw [integral_average_pi ν hn Y hY, variance_average_pi ν hn Y hY] at h_cheb
-  have heq : ((n : ℝ)⁻¹ * Var[Y; ν]) / c ^ 2 = Var[Y; ν] / ((n : ℝ) * c ^ 2) := by
-    ring
-  rwa [heq] at h_cheb
-
-/-- Chebyshev inequality for empirical averages bounded by the uncentered second moment
-`∫ x, (Y x)^2 ∂ν`. -/
-theorem chebyshev_average_pi_le_second_moment {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω)
-    [IsProbabilityMeasure ν] {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν)
-    {c : ℝ} (hc : 0 < c) :
-    (Measure.pi fun _ : Fin n => ν)
-      {ω | c ≤ |(n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i) - ∫ x, Y x ∂ν|} ≤
-      ENNReal.ofReal ((∫ x, Y x ^ 2 ∂ν) / ((n : ℝ) * c ^ 2)) := by
-  refine (chebyshev_average_pi ν hn Y hY hc).trans ?_
-  refine ENNReal.ofReal_le_ofReal ?_
-  have h_var_le := variance_le_expectation_sq hY.aestronglyMeasurable (μ := ν)
-  have hc2_pos : 0 < (n : ℝ) * c ^ 2 := mul_pos (Nat.cast_pos.2 hn) (sq_pos_of_ne_zero hc.ne')
-  exact div_le_div_of_nonneg_right h_var_le hc2_pos.le
-
-end IIDAverageConcentration
 
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
 For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid
@@ -764,21 +417,21 @@ lemma abs_reluIndicator_le (z : ℝ) : |reluIndicator z| ≤ 1 := by
 /-! ### Auxiliary lemmas for the ReLU NTK closed form -/
 
 /-- The row inner product agrees with the Euclidean inner product of the `L²` lifts. -/
-lemma innerProduct_eq_inner_toLp (x y : Fin d → ℝ) :
+lemma dotProduct_eq_inner_toLp (x y : Fin d → ℝ) :
     x ⬝ᵥ y = ⟪WithLp.toLp 2 y, WithLp.toLp 2 x⟫ := by
   rw [EuclideanSpace.inner_toLp_toLp]
   simp [dotProduct]
 
 /-- Pushforward of `gaussianRowMeasure` by the linear functional `w ↦ wᵀx` is a 1D Gaussian
 with mean `0` and variance `xᵀx`. -/
-lemma map_gaussianRowMeasure_innerProduct (x : Fin d → ℝ) :
+lemma map_gaussianRowMeasure_dotProduct (x : Fin d → ℝ) :
     Measure.map (fun w => w ⬝ᵥ x) (gaussianRowMeasure d) =
       gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := by
   have h_eq : (fun w : Fin d → ℝ => w ⬝ᵥ x) =
       (fun (v : EuclideanSpace ℝ (Fin d)) => innerSL ℝ (WithLp.toLp 2 x) v) ∘ (WithLp.toLp 2) := by
     ext w
     dsimp
-    rw [← innerProduct_eq_inner_toLp w x]
+    rw [← dotProduct_eq_inner_toLp w x]
   rw [h_eq, ← Measure.map_map]
   · have h_toLp : Measure.map (WithLp.toLp 2) (gaussianRowMeasure d) =
         stdGaussian (EuclideanSpace ℝ (Fin d)) := map_pi_eq_stdGaussian
@@ -795,695 +448,9 @@ lemma map_gaussianRowMeasure_innerProduct (x : Fin d → ℝ) :
         x ⬝ᵥ x := by
       rw [variance_dual_stdGaussian]
       rw [innerSL_apply_norm]
-      rw [norm_sq_eq_innerProduct (WithLp.toLp 2 x)]
+      rw [norm_sq_eq_dotProduct (WithLp.toLp 2 x)]
     rw [h_mean, h_var]
   all_goals fun_prop
-
-/--
-Informal proof:
-The standard Gaussian measure on ℝ is absolutely continuous with respect to Lebesgue measure.
-Since the Lebesgue measure of any singleton is zero and the Gaussian measure is the integral of a
-density with respect to Lebesgue measure, the Gaussian measure of every singleton is also zero.
-Specifically, `gaussianReal 0 1 {x} = ∫_ {x} p(x) dλ = 0`.
-See Kallenberg, *Foundations of Modern Probability*:
-<https://link.springer.com/book/10.1007/978-1-4757-4015-8>.
--/
-lemma gaussianReal_singleton_eq_zero (x : ℝ) : (gaussianReal 0 1).real {x} = 0 := by
-  have h_ac : gaussianReal 0 1 ≪ volume := gaussianReal_absolutelyContinuous 0 (by norm_num)
-  have h_vol : volume {x} = 0 := by simp
-  have h : (gaussianReal 0 1) {x} = 0 := h_ac h_vol
-  simp [measureReal_def, h]
-
-/-- The standard Gaussian gives mass `1/2` to `[0, ∞)`. -/
-lemma gaussianReal_Ici_one_half : (gaussianReal 0 1).real (Set.Ici 0) = 1 / 2 := by
-  have hneg : (gaussianReal 0 1).map (fun y => -y) = gaussianReal 0 1 := by
-    rw [gaussianReal_map_neg]
-    simp
-  have h_symm : (gaussianReal 0 1).real (Set.Ici 0) = (gaussianReal 0 1).real (Set.Iic 0) := by
-    have hpre : (fun y : ℝ => -y) ⁻¹' Set.Ici 0 = Set.Iic 0 := by ext y; simp
-    have h1 : ((gaussianReal 0 1).map (fun y => -y)).real (Set.Ici 0) =
-        (gaussianReal 0 1).real (Set.Iic 0) := by
-      rw [measureReal_def, Measure.map_apply (by fun_prop) measurableSet_Ici, hpre]
-      rfl
-    rw [hneg] at h1
-    exact h1
-  have h_add : (gaussianReal 0 1).real (Set.Ici 0) + (gaussianReal 0 1).real (Set.Iic 0) = 1 := by
-    have h := measureReal_union_add_inter (μ := gaussianReal 0 1) (s := Set.Ici 0)
-      (t := Set.Iic 0) measurableSet_Iic (measure_ne_top _ _) (measure_ne_top _ _)
-    have h_union : (Set.Ici 0 : Set ℝ) ∪ Set.Iic 0 = Set.univ := by ext y; simp
-    have h_inter : (Set.Ici 0 : Set ℝ) ∩ Set.Iic 0 = {0} := by
-      ext y
-      have h_iff : 0 ≤ y ∧ y ≤ 0 ↔ y = 0 := by
-        constructor
-        · intro h_le; exact le_antisymm h_le.2 h_le.1
-        · intro h_eq; rw [h_eq]; exact ⟨le_refl 0, le_refl 0⟩
-      exact h_iff
-    have h_univ : (gaussianReal 0 1).real Set.univ = 1 := by simp [measureReal_def]
-    rw [h_union, h_inter, h_univ] at h
-    have h_zero : (gaussianReal 0 1).real {0} = 0 := gaussianReal_singleton_eq_zero 0
-    linarith
-  linarith [h_symm, h_add]
-
-/-- For unit vectors, inner product `1` forces equality. -/
-lemma innerProduct_eq_one_iff_eq (x x' : Fin d → ℝ) (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1) :
-    x ⬝ᵥ x' = 1 ↔ x = x' := by
-  constructor
-  · intro h
-    funext i
-    have hsum_eq : (x - x') ⬝ᵥ (x - x') = (x ⬝ᵥ x) - 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := by
-      unfold dotProduct
-      simp only [Pi.sub_apply]
-      have step1 : (fun (i : Fin d) => (x i - x' i) * (x i - x' i)) =
-                   fun (i : Fin d) => x i * x i - 2 * (x i * x' i) + x' i * x' i := by
-        funext j; ring
-      rw [step1]
-      simp only [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
-    have hzero : (x - x') ⬝ᵥ (x - x') = 0 := by
-      calc (x - x') ⬝ᵥ (x - x') = (x ⬝ᵥ x) - 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := hsum_eq
-        _ = 1 - 2 * 1 + 1 := by rw [hx, hx', h]
-        _ = 0 := by ring
-    have h_i : (x i - x' i) ^ 2 = 0 := by
-      have hsum_sq : (x - x') ⬝ᵥ (x - x') = ∑ k : Fin d, (x k - x' k) ^ 2 := by
-        unfold dotProduct
-        simp only [Pi.sub_apply]
-        have : (fun (j : Fin d) => (x j - x' j) * (x j - x' j)) = fun j => (x j - x' j) ^ 2 := by
-          funext j; ring
-        rw [this]
-      rw [hsum_sq] at hzero
-      have := Finset.sum_eq_zero_iff_of_nonneg
-        (fun (k : Fin d) _ => sq_nonneg (x k - x' k)) |>.mp hzero i (Finset.mem_univ _)
-      exact this
-    have : x i - x' i = 0 := by simpa using h_i
-    linarith
-  · rintro rfl
-    exact hx
-
-/-- For unit vectors, inner product `-1` forces `x' = -x`. -/
-lemma innerProduct_eq_neg_one_iff_eq_neg (x x' : Fin d → ℝ)
-    (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1) :
-    x ⬝ᵥ x' = -1 ↔ x' = -x := by
-  constructor
-  · intro h
-    funext i
-    have hsum_eq : (x + x') ⬝ᵥ (x + x') = (x ⬝ᵥ x) + 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := by
-      unfold dotProduct
-      simp only [Pi.add_apply]
-      have step1 : (fun (i : Fin d) => (x i + x' i) * (x i + x' i)) =
-                   fun (i : Fin d) => x i * x i + 2 * (x i * x' i) + x' i * x' i := by
-        funext j; ring
-      rw [step1]
-      simp only [Finset.sum_add_distrib, ← Finset.mul_sum]
-    have hzero : (x + x') ⬝ᵥ (x + x') = 0 := by
-      calc (x + x') ⬝ᵥ (x + x') = (x ⬝ᵥ x) + 2 * (x ⬝ᵥ x') + (x' ⬝ᵥ x') := hsum_eq
-        _ = 1 + 2 * (-1) + 1 := by rw [hx, hx', h]
-        _ = 0 := by ring
-    have h_i : (x i + x' i) ^ 2 = 0 := by
-      have hsum_sq : (x + x') ⬝ᵥ (x + x') = ∑ k : Fin d, (x k + x' k) ^ 2 := by
-        unfold dotProduct
-        simp only [Pi.add_apply]
-        have : (fun (j : Fin d) => (x j + x' j) * (x j + x' j)) = fun j => (x j + x' j) ^ 2 := by
-          funext j; ring
-        rw [this]
-      rw [hsum_sq] at hzero
-      have := Finset.sum_eq_zero_iff_of_nonneg
-        (fun (k : Fin d) _ => sq_nonneg (x k + x' k)) |>.mp hzero i (Finset.mem_univ _)
-      exact this
-    have : x i + x' i = 0 := by simpa using h_i
-    rw [Pi.neg_apply]
-    linarith
-  · intro h
-    unfold dotProduct
-    simp only [h, Pi.neg_apply, mul_neg, Finset.sum_neg_distrib]
-    have : ∑ i : Fin d, x i * x i = x ⬝ᵥ x := rfl
-    rw [this, hx]
-
-open scoped RealInnerProductSpace
-
-/-- The row inner product `y.ofLp ⬝ᵥ x` agrees with the `EuclideanSpace` inner product
-`⟪y, WithLp.toLp 2 x⟫` for `y` already in `EuclideanSpace` form. -/
-lemma ofLp_innerProduct_eq_inner (x : Fin d → ℝ) (y : EuclideanSpace ℝ (Fin d)) :
-    y.ofLp ⬝ᵥ x = ⟪y, WithLp.toLp 2 x⟫ := by
-  rw [show y = WithLp.toLp 2 (y.ofLp) by rfl]
-  rw [EuclideanSpace.inner_toLp_toLp]
-  simp only [dotProduct, star_trivial]
-  simp_rw [mul_comm]
-
-/-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
-lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
-    {d : ℕ} (f : (Fin d → ℝ) → ℝ) :
-    ∫ w, f w ∂(gaussianRowMeasure d) =
-    ∫ y, f y.ofLp ∂(stdGaussian (EuclideanSpace ℝ (Fin d))) := by
-  rw [← map_pi_eq_stdGaussian (ι := Fin d)]
-  rw [show Measure.map (WithLp.toLp 2) (Measure.pi fun x => gaussianReal 0 1) =
-        Measure.map ⇑(MeasurableEquiv.toLp 2 (Fin d → ℝ)) (Measure.pi fun x => gaussianReal 0 1)
-      by rw [MeasurableEquiv.coe_toLp]]
-  rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
-  simp [WithLp.ofLp_toLp, gaussianRowMeasure]
-
-/-- `reluIndicator (w ⬝ᵥ x)` is the indicator of the closed halfspace `{w | w ⬝ᵥ x ≥ 0}`. -/
-lemma reluIndicator_eq_indicator_Ici (x : Fin d → ℝ) :
-    (fun w => reluIndicator (w ⬝ᵥ x)) = Set.indicator {w | w ⬝ᵥ x ≥ 0} (fun _ => 1) := by
-  ext w
-  simp [reluIndicator, Set.indicator]
-
-/-- The product of two `reluIndicator`s is the indicator of the intersection of halfspaces. -/
-lemma integral_reluIndicator_mul_eq_measure (x x' : Fin d → ℝ) :
-    ∫ w, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(gaussianRowMeasure d) =
-      (gaussianRowMeasure d).real ({w | w ⬝ᵥ x ≥ 0} ∩ {w | w ⬝ᵥ x' ≥ 0}) := by
-  have h_eq : (fun w => reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x')) =
-      Set.indicator ({w | w ⬝ᵥ x ≥ 0} ∩ {w | w ⬝ᵥ x' ≥ 0}) (fun _ => 1) := by
-    ext w
-    simp [reluIndicator, Set.indicator]
-    split_ifs <;> tauto
-  have h_meas : MeasurableSet ({w | w ⬝ᵥ x ≥ 0} ∩ {w | w ⬝ᵥ x' ≥ 0}) := by
-    apply MeasurableSet.inter
-    · exact measurableSet_Ici.preimage (measurable_innerProduct_left x)
-    · exact measurableSet_Ici.preimage (measurable_innerProduct_left x')
-  rw [h_eq]
-  rw [integral_indicator h_meas]
-  simp [measureReal_def]
-
-/-- The joint law of the first two coordinate projections under a product probability measure
-is the product of the first two marginals. -/
-lemma map_pi_eval_two {d : ℕ} (hd : 2 ≤ d) {μ : Fin d → Measure ℝ}
-    [∀ i, IsProbabilityMeasure (μ i)] :
-    Measure.map (fun t : Fin d → ℝ => (t ⟨0, by linarith⟩, t ⟨1, by linarith⟩)) (Measure.pi μ) =
-      (μ ⟨0, by linarith⟩).prod (μ ⟨1, by linarith⟩) := by
-  have h_indep : iIndepFun (fun i (t : Fin d → ℝ) => t i) (Measure.pi μ) :=
-    iIndepFun_pi (fun _ => aemeasurable_id)
-  have h01 : (fun (t : Fin d → ℝ) => t ⟨0, by linarith⟩) ⟂ᵢ[Measure.pi μ]
-      (fun t => t ⟨1, by linarith⟩) := by
-    refine h_indep.indepFun ?_
-    intro h_eq
-    have h_val : (⟨0, by linarith⟩ : Fin d).val = (⟨1, by linarith⟩ : Fin d).val := by rw [h_eq]
-    simp at h_val
-  have h_map := IndepFun.map_prod_eq_prod_map_map
-    ((measurable_pi_apply (⟨0, by linarith⟩ : Fin d)).aemeasurable)
-    ((measurable_pi_apply (⟨1, by linarith⟩ : Fin d)).aemeasurable) h01
-  simpa only [Measure.pi_map_eval, measure_univ, Finset.prod_const_one, one_smul] using h_map
-
-/--
-Informal proof:
-Let $x$ and $x'$ be unit vectors in $\mathbb{R}^d$.
-The integral $\int \mathbf{1}[w^\top x \ge 0] \mathbf{1}[w^\top x' \ge 0] d\mu(w)$
-where $\mu$ is the standard normal distribution
-is the probability that a standard normal vector $w$ has non-negative inner products
-with both $x$ and $x'$.
-Because the standard normal distribution is rotationally symmetric, we can project
-$w$ onto the 2D subspace spanned by $x$ and $x'$.
-The projection is a standard 2D normal vector.
-In 2D, the region $w^\top x \ge 0$ and $w^\top x' \ge 0$ is a sector.
-The angle between $x$ and $x'$ is $\theta = \arccos(x^\top x')$.
-The boundary of the region $w^\top x \ge 0$ is orthogonal to $x$.
-Thus, the angle of the sector where both are non-negative is $\pi - \theta$.
-Since the 2D standard normal distribution is rotationally symmetric, the probability
-of falling in this sector is the angle divided by $2\pi$,
-which is $(\pi - \theta) / (2\pi)$.
-See Section 4.3 (Proposition 4.2) of Telgarsky's Deep Learning Theory lecture notes
-(https://mjt.cs.illinois.edu/dlt/two.pdf) or Cho & Saul (2009)
-"Kernel Methods for Deep Learning"
-(https://papers.nips.cc/paper_files/paper/2009/file/5751ec3e9a4feab575962e78e006250d-Paper.pdf)
-for this standard geometric argument.
--/
-lemma prob_halfspace_intersect
-    (x x' : Fin d → ℝ)
-    (hx : x ⬝ᵥ x = 1)
-    (hx' : x' ⬝ᵥ x' = 1) :
-    ∫ w : Fin d → ℝ, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(gaussianRowMeasure d) =
-      (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
-  sorry
-
-/-- **Proposition 4.2** (ReLU NTK closed form, Telgarsky 2021).
-For `σ' = 1[· ≥ 0]` (the ReLU derivative) and `x, x' ∈ ℝᵈ` with
-`x ⬝ᵥ x = x' ⬝ᵥ x' = 1`:
-  `k(x, x') = (xᵀx') · (π − arccos(xᵀx')) / (2π)`.
-
-**Proof sketch:**
-- By rotational invariance of `𝒩(0, Iᵈ)`, we may project `w` onto `span(x, x')`.
-- In the 2D plane, `w` is effectively uniform on the unit circle.
-- The event `{wᵀx ≥ 0} ∩ {wᵀx' ≥ 0}` is a sector of angle `π − θ` where `θ = arccos(xᵀx')`.
-- The probability of this sector is `(π − θ)/(2π)`.
-- Multiplying by `xᵀx'` gives the result. -/
-theorem reluNTK_closedForm
-    (x x' : Fin d → ℝ)
-    (hx : x ⬝ᵥ x = 1)
-    (hx' : x' ⬝ᵥ x' = 1) :
-    limitingNTK reluIndicator x x' =
-      (x ⬝ᵥ x') * (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
-  unfold limitingNTK
-  rw [prob_halfspace_intersect x x' hx hx']
-  ring
-
-/-- The ReLU NTK is nonneg when `xᵀx' ≥ 0`. -/
-lemma reluNTK_nonneg_of_nonneg_inner
-    (x x' : Fin d → ℝ)
-    (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1)
-    (hinn : 0 ≤ x ⬝ᵥ x') :
-    0 ≤ limitingNTK reluIndicator x x' := by
-  rw [reluNTK_closedForm x x' hx hx']
-  apply div_nonneg
-  · apply mul_nonneg hinn
-    linarith [Real.arccos_le_pi (x ⬝ᵥ x'), Real.pi_pos]
-  · linarith [Real.pi_pos]
-
-/-- The ReLU NTK at equal inputs normalized by the local inner product. -/
-lemma reluNTK_self
-    (x : Fin d → ℝ) (hx : x ⬝ᵥ x = 1) :
-    limitingNTK reluIndicator x x = 1 / 2 := by
-  rw [reluNTK_closedForm x x hx hx]
-  rw [hx]
-  simp [Real.arccos_one]
-  ring_nf
-  simp [Real.pi_pos.ne']
-
-/-! ### Finite-Dataset Empirical NTK, Optimization, and Function-Space Dynamics
-
-This section formalizes the empirical Neural Tangent Kernel (NTK) on finite datasets,
-the discrete gradient descent and continuous gradient flow optimization regimes,
-the Gram factorization and positive semidefiniteness of the empirical NTK matrix,
-and the exact induced function-space training dynamics.
--/
-
-variable {ι : Type*} {P : ℕ}
-
-/-- The vector of network outputs on the training dataset:
-  `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ ∈ ℝᵐ`. -/
-noncomputable def trainingOutputs (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
-  WithLp.toLp 2 (fun α => f (X α) θ)
-
-/-- The residual error vector function:
-  `r(θ) = f(θ) - y ∈ ℝᵐ`. -/
-noncomputable def trainingResidual (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
-  trainingOutputs f X θ - y
-
-/-- The empirical Mean-Squared Error (MSE) loss objective:
-  `L(θ) = (1 / 2m) ∑_α (f(x^α; θ) - y^α)² = (1 / 2m) ‖f(θ) - y‖² = (1 / 2m) ‖r(θ)‖²`. -/
-noncomputable def mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : ℝ :=
-  (2 * (m : ℝ))⁻¹ * ‖trainingResidual f X y θ‖ ^ 2
-
-lemma mseLoss_eq_sum (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) :
-    mseLoss f X y θ = (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ - y α) ^ 2 := by
-  unfold mseLoss
-  rw [EuclideanSpace.real_norm_sq_eq]
-  rfl
-
-/-- The tangent feature map `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`, representing the sensitivity
-of the scalar output with respect to parameters. -/
-noncomputable def tangentFeature (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (x : ι)
-    (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin P) :=
-  gradient (fun θ' => f x θ') θ
-
-/-- The network output Jacobian matrix evaluated on the training dataset `J(θ) ∈ ℝ^{m × P}`,
-whose `α`-th row is the transposed tangent feature vector `∇_θ f(x^α; θ)ᵀ`. -/
-noncomputable def outputJacobian (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) : Matrix (Fin m) (Fin P) ℝ :=
-  Matrix.of fun α j => tangentFeature f (X α) θ j
-
-/-- The empirical Neural Tangent Kernel (NTK) Gram matrix `K_t = J(θ) J(θ)ᵀ ∈ ℝ^{m × m}`. -/
-noncomputable def empiricalNTKMatrix (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) : Matrix (Fin m) (Fin m) ℝ :=
-  outputJacobian f X θ * (outputJacobian f X θ)ᵀ
-
-/-- The entries of the empirical NTK matrix are the inner products of tangent features:
-  `K_t^{α β} = ⟨∇_θ f(x^α; θ(t)), ∇_θ f(x^β; θ(t))⟩`. -/
-lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) (α β : Fin m) :
-    empiricalNTKMatrix f X θ α β = ⟪tangentFeature f (X α) θ, tangentFeature f (X β) θ⟫ := by
-  simp only [empiricalNTKMatrix, Matrix.mul_apply, Matrix.transpose_apply,
-    outputJacobian, Matrix.of_apply]
-  rw [show tangentFeature f (X α) θ = WithLp.toLp 2 (tangentFeature f (X α) θ).ofLp by rfl]
-  rw [show tangentFeature f (X β) θ = WithLp.toLp 2 (tangentFeature f (X β) θ).ofLp by rfl]
-  rw [EuclideanSpace.inner_toLp_toLp]
-  simp [dotProduct, mul_comm]
-
-/-- The last row of the empirical NTK of the extended dataset `(X, x)` at `θ`: the train-test
-cross-kernel `⟪∇f(x; θ), ∇f(X α; θ)⟫` and the test norm `‖∇f(x; θ)‖²`. -/
-lemma empiricalNTKMatrix_snoc_last {ι : Type*} {m P : ℕ}
-    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (x : ι)
-    (θ : EuclideanSpace ℝ (Fin P)) (α : Fin m) :
-    empiricalNTKMatrix f (Fin.snoc (α := fun _ => ι) X x : Fin (m + 1) → ι) θ (Fin.last m)
-        (Fin.castSucc α) = ⟪tangentFeature f x θ, tangentFeature f (X α) θ⟫ ∧
-      empiricalNTKMatrix f (Fin.snoc (α := fun _ => ι) X x : Fin (m + 1) → ι) θ (Fin.last m)
-        (Fin.last m) = ⟪tangentFeature f x θ, tangentFeature f x θ⟫ := by
-  simp [empiricalNTKMatrix_apply]
-
-/-- The cross-kernel vector is `J(θ) ∇f(x; θ)`. -/
-lemma outputJacobian_mulVec_tangentFeature {ι : Type*} {m P : ℕ}
-    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (x : ι)
-    (θ : EuclideanSpace ℝ (Fin P)) (α : Fin m) :
-    (outputJacobian f X θ *ᵥ (tangentFeature f x θ).ofLp) α =
-      ⟪tangentFeature f x θ, tangentFeature f (X α) θ⟫ := by
-  simp [outputJacobian, Matrix.mulVec, dotProduct, PiLp.inner_apply, mul_comm]
-
-/-! ### Positive Semidefiniteness and Gram Factorization -/
-
-/-- The empirical NTK Gram matrix is positive semidefinite (`PosSemidef`) for any parameter
-state. -/
-theorem empiricalNTKMatrix_posSemidef (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) :
-    (empiricalNTKMatrix f X θ).PosSemidef := by
-  have h1 : (1 : Matrix (Fin P) (Fin P) ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same (outputJacobian f X θ)
-  simp only [Matrix.mul_one] at h
-  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
-
-/-- Quadratic form evaluation: `vᵀ K v = ‖Jᵀ v‖²`. -/
-theorem empiricalNTKMatrix_quad_form (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) (v : Fin m → ℝ) :
-    v ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v) =
-      ‖(WithLp.toLp 2 ((outputJacobian f X θ)ᵀ *ᵥ v) : EuclideanSpace ℝ (Fin P))‖ ^ 2 := by
-  have h_eq : v ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v) =
-      ((outputJacobian f X θ)ᵀ *ᵥ v) ⬝ᵥ ((outputJacobian f X θ)ᵀ *ᵥ v) := by
-    dsimp [empiricalNTKMatrix]
-    rw [← Matrix.mulVec_mulVec v (outputJacobian f X θ) (outputJacobian f X θ)ᵀ]
-    rw [Matrix.dotProduct_mulVec]
-    rw [← Matrix.mulVec_transpose]
-  rw [h_eq, EuclideanSpace.real_norm_sq_eq]
-  simp [dotProduct, pow_two]
-
-/-- The quadratic form of the empirical NTK matrix is non-negative: `vᵀ K v ≥ 0`. -/
-theorem empiricalNTKMatrix_quad_form_nonneg (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) (v : Fin m → ℝ) :
-    0 ≤ v ⬝ᵥ ((empiricalNTKMatrix f X θ) *ᵥ v) := by
-  rw [empiricalNTKMatrix_quad_form]
-  exact sq_nonneg _
-
-/-! ### Compatibility with Existing Shallow Network and Gradient Matrices -/
-
-/-- The dataset empirical NTK matrix with arbitrary outer coefficients is positive semidefinite. -/
-theorem empiricalNTKWithOuter_dataset_posSemidef
-    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
-    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ) :
-    (Matrix.of (fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β))).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)) =
-      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
-      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
-    ext α β
-    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
-    rw [Fintype.sum_prod_type]
-    exact (sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
-      σ' outerCoeffs W₀ (X α) (X β)).symm
-  rw [h_eq]
-  have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same
-    (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
-  simp only [Matrix.mul_one] at h
-  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
-
-/-- The dataset empirical NTK matrix (`aⱼ² = 1` case) is positive semidefinite. -/
-theorem empiricalNTK_dataset_posSemidef
-    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
-    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ)
-    (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
-    (Matrix.of (fun α β => empiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => empiricalNTK σ' W₀ (X α) (X β)) =
-      Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
-    ext α β
-    simp only [Matrix.of_apply]
-    exact (empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
-      σ' outerCoeffs W₀ (X α) (X β) houter).symm
-  rw [h_eq]
-  exact empiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
-
-/-! ### Gradient of the MSE Loss -/
-
-lemma hasFDerivAt_sq_diff (θ : EuclideanSpace ℝ (Fin P)) {g : EuclideanSpace ℝ (Fin P) → ℝ}
-    (hg : DifferentiableAt ℝ g θ) (c : ℝ) :
-    HasFDerivAt (fun θ' => (g θ' - c) ^ 2)
-      (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
-        ((2 * (g θ - c)) • gradient g θ)) θ := by
-  have h1 : HasFDerivAt (fun θ' => g θ' - c) (fderiv ℝ g θ) θ := by
-    have h := hg.hasFDerivAt.sub (hasFDerivAt_const c θ)
-    rw [sub_zero] at h
-    exact h
-  have h2 := h1.mul h1
-  have h_eq : (fun θ' => (g θ' - c) ^ 2) = (fun θ' => (g θ' - c) * (g θ' - c)) := by
-    ext; ring
-  rw [h_eq]
-  convert h2 using 1
-  ext v
-  have h_grad : fderiv ℝ g θ v = ⟪gradient g θ, v⟫ := by
-    rw [← toDual_gradient, InnerProductSpace.toDual_apply_apply]
-  simp only [add_apply, smul_apply, smul_eq_mul]
-  rw [h_grad]
-  simp only [InnerProductSpace.toDual_apply_apply, inner_smul_left, starRingEnd_apply, star_trivial]
-  ring
-
-/-- The empirical MSE loss has gradient
-  `(1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`
-at `θ`, in the `HasGradientAt` form needed for chain rules along curves. -/
-theorem hasGradientAt_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
-    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    HasGradientAt (mseLoss f X y)
-      ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) θ := by
-  have h_term : ∀ α ∈ (Finset.univ : Finset (Fin m)),
-      HasFDerivAt (fun θ' => (f (X α) θ' - y α) ^ 2)
-        (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin P))
-          ((2 * (trainingResidual f X y θ α)) • tangentFeature f (X α) θ)) θ := by
-    intro α _
-    exact hasFDerivAt_sq_diff θ (hdiff α) (y α)
-  have h_sum := HasFDerivAt.sum (u := Finset.univ) (A := fun α θ' => (f (X α) θ' - y α) ^ 2) h_term
-  have h_sum_eq : (∑ α ∈ (Finset.univ : Finset (Fin m)), fun θ' => (f (X α) θ' - y α) ^ 2) =
-      (fun θ' => ∑ α : Fin m, (f (X α) θ' - y α) ^ 2) := by
-    ext θ'
-    simp only [Finset.sum_apply]
-  rw [h_sum_eq] at h_sum
-  have h_scaled := h_sum.const_smul (2 * (m : ℝ))⁻¹
-  have h_loss_eq : mseLoss f X y =
-      fun θ' => (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ' - y α) ^ 2 := by
-    ext θ'
-    unfold mseLoss trainingResidual trainingOutputs
-    rw [EuclideanSpace.real_norm_sq_eq]
-    rfl
-  rw [h_loss_eq]
-  have h_grad : HasGradientAt (fun θ' => (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ' - y α) ^ 2)
-      ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) θ := by
-    rw [hasGradientAt_iff_hasFDerivAt]
-    convert h_scaled using 1
-    ext v
-    simp only [smul_apply, sum_apply,
-      InnerProductSpace.toDual_apply_apply, smul_eq_mul]
-    rw [inner_smul_left]
-    simp only [starRingEnd_apply, star_trivial]
-    rw [sum_inner]
-    simp only [inner_smul_left, starRingEnd_apply, star_trivial]
-    rw [Finset.mul_sum, Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro α _
-    ring
-  exact h_grad
-
-/-- The gradient of the empirical MSE loss with respect to parameters:
-  `∇_θ L(θ) = (1 / m) ∑_α (f(x^α; θ) - y^α) ∇_θ f(x^α; θ)`. -/
-theorem gradient_mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
-    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    gradient (mseLoss f X y) θ =
-      (m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ :=
-  (hasGradientAt_mseLoss f X y θ hdiff).gradient
-
-/-- Coordinate-wise formulation matching the Jacobian-residual product:
-  `[∇_θ L(θ)]_j = (1 / m) [J(θ)ᵀ r(θ)]_j = (1 / m) ∑_α (f(x^α; θ) - y^α) [∇_θ f(x^α; θ)]_j`. -/
-lemma gradient_mseLoss_apply_j (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
-    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) (j : Fin P) :
-    gradient (mseLoss f X y) θ j =
-      (m : ℝ)⁻¹ * ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) j := by
-  rw [gradient_mseLoss f X y θ hdiff]
-  have h_eval :
-      ((m : ℝ)⁻¹ • ∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ) j =
-      (m : ℝ)⁻¹ * ∑ α : Fin m, (trainingResidual f X y θ α) * tangentFeature f (X α) θ j := by
-    change (m : ℝ)⁻¹ *
-      (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp j = _
-    rw [show (∑ α : Fin m, (trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp =
-        ∑ α : Fin m, ((trainingResidual f X y θ α) • tangentFeature f (X α) θ).ofLp from
-        map_sum (WithLp.linearEquiv 2 ℝ (Fin P → ℝ)) _ Finset.univ]
-    rw [Finset.sum_apply]
-    rfl
-  rw [h_eval]
-  congr 1
-  rw [Matrix.mulVec_apply]
-  rw [dotProduct]
-  simp only [Matrix.row_apply, Matrix.transpose_apply, outputJacobian, Matrix.of_apply]
-  apply Finset.sum_congr rfl
-  intro α _
-  ring
-
-/-- Vectorized formulation of the MSE gradient:
-  `∇_θ L(θ) = (1 / m) J(θ)ᵀ r(θ)`. -/
-lemma gradient_mseLoss_eq_mulVec (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
-    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    (gradient (mseLoss f X y) θ).ofLp =
-      (m : ℝ)⁻¹ • ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) := by
-  ext j
-  exact gradient_mseLoss_apply_j f X y θ hdiff j
-
-/-! ### Frobenius Norm Utilities and the Gradient Speed Bound
-
-Reusable Cauchy-Schwarz-type norm bounds for the Frobenius norm on matrices, used to bound how
-fast gradient flow can move (Step 1 of the Gap 5 lazy-training bootstrap in `InfiniteNTK.lean`).
--/
-
-open scoped Matrix.Norms.Frobenius
-
-attribute [local instance]
-  Matrix.frobeniusNormedAddCommGroup
-  Matrix.frobeniusNormedSpace
-
-/-- The squared Frobenius norm of a matrix is the sum of the squares of its entries. -/
-lemma matrix_frobenius_norm_sq {a b : ℕ} (A : Matrix (Fin a) (Fin b) ℝ) :
-    ‖A‖ ^ 2 = ∑ i : Fin a, ∑ j : Fin b, (A i j) ^ 2 := by
-  rw [Matrix.frobenius_norm_def]
-  simp only [Real.norm_eq_abs]
-  rw [← Real.sqrt_eq_rpow]
-  have hnonneg : 0 ≤ ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := by
-    apply Finset.sum_nonneg
-    intro i _
-    apply Finset.sum_nonneg
-    intro j _
-    positivity
-  calc
-    √(∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ)) ^ 2 =
-        ∑ i : Fin a, ∑ j : Fin b, |A i j| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
-    _ = _ := by simp [sq_abs]
-
-/-- A row of a matrix restricted to the first `n` columns has Euclidean norm at most the Frobenius
-norm of the matrix, and every entry is at most the Frobenius norm. -/
-lemma norm_row_castSucc_le {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ) (i : Fin (n + 1)) :
-    ‖(WithLp.toLp 2 (fun α : Fin n => A i (Fin.castSucc α)) : EuclideanSpace ℝ (Fin n))‖ ≤ ‖A‖ ∧
-      |A i (Fin.last n)| ≤ ‖A‖ := by
-  have hrow : ∑ j : Fin (n + 1), A i j ^ 2 ≤ ‖A‖ ^ 2 := by
-    rw [matrix_frobenius_norm_sq]
-    exact Finset.single_le_sum (f := fun i => ∑ j : Fin (n + 1), A i j ^ 2)
-      (fun i _ => Finset.sum_nonneg fun j _ => sq_nonneg _) (Finset.mem_univ i)
-  have hsplit : ∑ j : Fin (n + 1), A i j ^ 2 =
-      (∑ α : Fin n, A i (Fin.castSucc α) ^ 2) + A i (Fin.last n) ^ 2 := Fin.sum_univ_castSucc _
-  constructor
-  · refine (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).1 ?_
-    rw [EuclideanSpace.norm_sq_eq]
-    simp only [Real.norm_eq_abs, sq_abs]
-    nlinarith [sq_nonneg (A i (Fin.last n))]
-  · refine (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).1 ?_
-    rw [sq_abs]
-    nlinarith [Finset.sum_nonneg fun α (_ : α ∈ Finset.univ) => sq_nonneg (A i (Fin.castSucc α))]
-
-/-- Cauchy-Schwarz bound on a matrix-vector product: `‖M w‖ ≤ ‖M‖_F ‖w‖`. Unlike Mathlib's
-`Matrix.l2_opNorm_mulVec`, this is stated for the *Frobenius* norm, matching the norm instance
-used throughout the NTK Lipschitz-propagation machinery (Gap 2 in `InfiniteNTK.lean`). -/
-theorem mulVec_frobenius_norm_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
-    (w : EuclideanSpace ℝ (Fin b)) :
-    ‖(WithLp.toLp 2 (M *ᵥ w.ofLp) : EuclideanSpace ℝ (Fin a))‖ ≤ ‖M‖ * ‖w‖ := by
-  apply (sq_le_sq₀ (norm_nonneg _) (mul_nonneg (norm_nonneg _) (norm_nonneg _))).mp
-  rw [mul_pow]
-  rw [show ‖(WithLp.toLp 2 (M *ᵥ w.ofLp) : EuclideanSpace ℝ (Fin a))‖ ^ 2 =
-      ∑ i : Fin a, ((M *ᵥ w.ofLp) i) ^ 2 from EuclideanSpace.real_norm_sq_eq _]
-  rw [matrix_frobenius_norm_sq]
-  have hw_sq : ‖w‖ ^ 2 = ∑ j : Fin b, (w.ofLp j) ^ 2 := EuclideanSpace.real_norm_sq_eq _
-  rw [Finset.sum_mul]
-  apply Finset.sum_le_sum
-  intro i _
-  rw [Matrix.mulVec_apply, dotProduct]
-  calc
-    (∑ j : Fin b, M i j * w.ofLp j) ^ 2 ≤
-        (∑ j : Fin b, (M i j) ^ 2) * (∑ j : Fin b, (w.ofLp j) ^ 2) :=
-      Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => M i j) (fun j => w.ofLp j)
-    _ = (∑ j : Fin b, (M i j) ^ 2) * ‖w‖ ^ 2 := by rw [hw_sq]
-
-/-- Gradient speed bound: the norm of the MSE gradient is controlled by the output Jacobian's
-Frobenius norm and the residual norm: `‖∇_θ L(θ)‖ ≤ (1/m) ‖J(θ)‖_F ‖r(θ)‖`. This is Step 1 of
-the Gap 5 displacement-integral bound (`InfiniteNTK.lean`): it bounds the instantaneous "speed"
-`‖∂_t θ(t)‖ = ‖∇_θ L(θ(t))‖` of gradient flow. -/
-theorem gradient_mseLoss_norm_le (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P))
-    (hdiff : ∀ α : Fin m, DifferentiableAt ℝ (fun θ' => f (X α) θ') θ) :
-    ‖gradient (mseLoss f X y) θ‖ ≤
-      (m : ℝ)⁻¹ * ‖outputJacobian f X θ‖ * ‖trainingResidual f X y θ‖ := by
-  have heq : gradient (mseLoss f X y) θ =
-      (m : ℝ)⁻¹ • (WithLp.toLp 2 ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) :
-        EuclideanSpace ℝ (Fin P)) := by
-    rw [show gradient (mseLoss f X y) θ =
-        WithLp.toLp 2 (gradient (mseLoss f X y) θ).ofLp from rfl]
-    rw [gradient_mseLoss_eq_mulVec f X y θ hdiff]
-    rfl
-  rw [heq, norm_smul, Real.norm_eq_abs, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (m : ℝ)⁻¹),
-    mul_assoc]
-  apply mul_le_mul_of_nonneg_left _ (by positivity)
-  calc
-    ‖(WithLp.toLp 2 ((outputJacobian f X θ)ᵀ *ᵥ (trainingResidual f X y θ).ofLp) :
-        EuclideanSpace ℝ (Fin P))‖ ≤
-        ‖(outputJacobian f X θ)ᵀ‖ * ‖trainingResidual f X y θ‖ :=
-      mulVec_frobenius_norm_le _ _
-    _ = ‖outputJacobian f X θ‖ * ‖trainingResidual f X y θ‖ := by
-      rw [Matrix.frobenius_norm_transpose]
-
-/-! ### From Positive Definiteness to a Uniform Spectral Gap
-
-The global lazy-training theorems assume a *shifted* positive semidefiniteness
-`(K - lambda • 1).PosSemidef` with `lambda > 0`. For any positive definite matrix such a `lambda`
-exists (take the smallest eigenvalue), so strict positive definiteness of a limiting kernel
--- for instance from linear independence of its features -- supplies the gap hypothesis. -/
-
-/-- **A positive definite real matrix has a positive spectral gap.** If `A` is positive definite,
-there is `c > 0` with `A - c • 1` positive semidefinite (`c` is the smallest eigenvalue). This is
-the bridge from `Matrix.PosDef`, e.g. `Matrix.posDef_gram_iff_linearIndependent`, to the shifted-PSD
-form `(K - lambda • 1).PosSemidef` used by the global theorems; it holds for any finite index type,
-not only for an NTK. -/
-theorem exists_pos_sub_smul_one_posSemidef_of_posDef {n : Type*} [Finite n] [DecidableEq n]
-    {A : Matrix n n ℝ} (hA : A.PosDef) : ∃ c : ℝ, 0 < c ∧ (A - c • 1).PosSemidef := by
-  cases nonempty_fintype n
-  have hH : A.IsHermitian := hA.isHermitian
-  have hev : ∀ i, 0 < hH.eigenvalues i := hA.eigenvalues_pos
-  rcases isEmpty_or_nonempty n with hn | hn
-  · exact ⟨1, one_pos, by
-      refine Matrix.posSemidef_iff_dotProduct_mulVec.2
-        ⟨?_, fun x => by simp [Subsingleton.elim x 0]⟩
-      ext i
-      exact (IsEmpty.false i).elim⟩
-  obtain ⟨c, hc⟩ : ∃ c, 0 < c ∧ ∀ i, c ≤ hH.eigenvalues i := by
-    refine ⟨Finset.univ.inf' Finset.univ_nonempty hH.eigenvalues, ?_,
-      fun i => Finset.inf'_le _ (Finset.mem_univ i)⟩
-    rw [Finset.lt_inf'_iff]
-    exact fun i _ => hev i
-  refine ⟨c, hc.1, ?_⟩
-  have h1 : A = (hH.eigenvectorUnitary : Matrix n n ℝ) * Matrix.diagonal hH.eigenvalues *
-      star (hH.eigenvectorUnitary : Matrix n n ℝ) := by
-    simpa [Unitary.conjStarAlgAut_apply, Function.comp_def] using hH.spectral_theorem
-  have hU : (hH.eigenvectorUnitary : Matrix n n ℝ) * star (hH.eigenvectorUnitary : Matrix n n ℝ)
-      = 1 := by simp
-  have hD : Matrix.diagonal (fun i => hH.eigenvalues i - c) =
-      Matrix.diagonal hH.eigenvalues - c • (1 : Matrix n n ℝ) := by
-    ext i j
-    by_cases h : i = j
-    · subst h
-      simp
-    · simp [h]
-  have hshift : A - c • (1 : Matrix n n ℝ) =
-      (hH.eigenvectorUnitary : Matrix n n ℝ) * Matrix.diagonal (fun i => hH.eigenvalues i - c) *
-        star (hH.eigenvectorUnitary : Matrix n n ℝ) := by
-    conv_lhs => rw [h1]
-    rw [hD]
-    simp [Matrix.mul_sub, Matrix.sub_mul, hU]
-  rw [hshift]
-  exact (Matrix.posSemidef_diagonal_iff.2 fun i => sub_nonneg.2 (hc.2 i)).mul_mul_conjTranspose_same
-    _
-
-/-! ### Discrete Gradient Descent Dynamics -/
-
-/-- Discrete gradient descent step equation starting at `θ₀` with constant learning rate `η`
-for the empirical MSE loss:
-  `θ_{k+1} = θ_k - η ∇_θ L(θ_k)`. -/
-lemma gdIterate_mseLoss_succ
-    (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (η : ℝ) (θ₀ : EuclideanSpace ℝ (Fin P)) (k : ℕ) :
-    gdIterate (mseLoss f X y) (fun _ => η) θ₀ (k + 1) =
-      gdIterate (mseLoss f X y) (fun _ => η) θ₀ k -
-        η • gradient (mseLoss f X y) (gdIterate (mseLoss f X y) (fun _ => η) θ₀ k) := rfl
 
 end NTK
 

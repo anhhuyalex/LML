@@ -21,6 +21,37 @@ open Real MeasureTheory MeasureTheory.Measure ProbabilityTheory Set
 
 namespace NTK
 
+/-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
+lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
+    {d : ℕ} (f : (Fin d → ℝ) → ℝ) :
+    ∫ w, f w ∂(gaussianRowMeasure d) =
+    ∫ y, f y.ofLp ∂(stdGaussian (EuclideanSpace ℝ (Fin d))) := by
+  rw [← map_pi_eq_stdGaussian (ι := Fin d)]
+  rw [show Measure.map (WithLp.toLp 2) (Measure.pi fun x => gaussianReal 0 1) =
+        Measure.map ⇑(MeasurableEquiv.toLp 2 (Fin d → ℝ)) (Measure.pi fun x => gaussianReal 0 1)
+      by rw [MeasurableEquiv.coe_toLp]]
+  rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
+  simp [WithLp.ofLp_toLp, gaussianRowMeasure]
+
+/-- The joint law of the first two coordinate projections under a product probability measure
+is the product of the first two marginals. -/
+lemma map_pi_eval_two {d : ℕ} (hd : 2 ≤ d) {μ : Fin d → Measure ℝ}
+    [∀ i, IsProbabilityMeasure (μ i)] :
+    Measure.map (fun t : Fin d → ℝ => (t ⟨0, by linarith⟩, t ⟨1, by linarith⟩)) (Measure.pi μ) =
+      (μ ⟨0, by linarith⟩).prod (μ ⟨1, by linarith⟩) := by
+  have h_indep : iIndepFun (fun i (t : Fin d → ℝ) => t i) (Measure.pi μ) :=
+    iIndepFun_pi (fun _ => aemeasurable_id)
+  have h01 : (fun (t : Fin d → ℝ) => t ⟨0, by linarith⟩) ⟂ᵢ[Measure.pi μ]
+      (fun t => t ⟨1, by linarith⟩) := by
+    refine h_indep.indepFun ?_
+    intro h_eq
+    have h_val : (⟨0, by linarith⟩ : Fin d).val = (⟨1, by linarith⟩ : Fin d).val := by rw [h_eq]
+    simp at h_val
+  have h_map := IndepFun.map_prod_eq_prod_map_map
+    ((measurable_pi_apply (⟨0, by linarith⟩ : Fin d)).aemeasurable)
+    ((measurable_pi_apply (⟨1, by linarith⟩ : Fin d)).aemeasurable) h01
+  simpa only [Measure.pi_map_eval, measure_univ, Finset.prod_const_one, one_smul] using h_map
+
 lemma integral_prod_stdGaussian_eq_density (f : ℝ × ℝ → ℝ) :
     ∫ p, f p ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) =
       ∫ p, gaussianPDFReal 0 1 p.1 * gaussianPDFReal 0 1 p.2 * f p := by
