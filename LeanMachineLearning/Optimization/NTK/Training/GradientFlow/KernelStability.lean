@@ -225,7 +225,7 @@ theorem norm_trainingOutputs_sub_linearization_le
       ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L * ‖θ - θ₀‖)
     {θ : EuclideanSpace ℝ (Fin P)} (hθ : ‖θ - θ₀‖ ≤ r) :
     ‖trainingOutputs f X θ - trainingOutputs f X θ₀ -
-        (matrixCLM (outputJacobian f X θ₀) (θ - θ₀))‖ ≤ L / 2 * ‖θ - θ₀‖ ^ 2 := by
+        WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤ L / 2 * ‖θ - θ₀‖ ^ 2 := by
   have h := norm_sub_sub_fderiv_le_of_lipschitz_fderiv (G := trainingOutputs f X)
     (G' := fun z => matrixCLM (outputJacobian f X z)) (x₀ := θ₀) (x := θ) (r := r) (L := L)
     (fun z hz => by
@@ -268,11 +268,11 @@ theorem abs_dotProduct_mulVec_sub_le (A B : Matrix (Fin m) (Fin m) ℝ)
   rw [heq]
   rw [← inner_toLp_mulVec_eq_dotProduct]
   calc
-    |⟪v, (matrixCLM (A - B) v)⟫| ≤
-        ‖v‖ * ‖(matrixCLM (A - B) v)‖ :=
+    |⟪v, (WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))⟫| ≤
+        ‖v‖ * ‖(WithLp.toLp 2 ((A - B) *ᵥ v.ofLp) : EuclideanSpace ℝ (Fin m))‖ :=
       abs_real_inner_le_norm _ _
     _ ≤ ‖v‖ * (‖A - B‖ * ‖v‖) :=
-      mul_le_mul_of_nonneg_left (norm_matrixCLM_apply_le (A - B) v) (norm_nonneg _)
+      mul_le_mul_of_nonneg_left (mulVec_frobenius_norm_le (A - B) v) (norm_nonneg _)
     _ = ‖A - B‖ * ‖v‖ ^ 2 := by ring
 
 /-- A shifted positive semidefinite matrix `K - lambda_min • 1` satisfies the Rayleigh quotient

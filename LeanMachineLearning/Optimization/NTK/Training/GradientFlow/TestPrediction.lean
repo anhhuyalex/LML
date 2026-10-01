@@ -119,7 +119,7 @@ lemma hasDerivAt_predictionError_abs_le
     (a k_inf : Fin m → ℝ) (hKa : K_inf *ᵥ a = k_inf) (r₀ : EuclideanSpace ℝ (Fin m)) {c : ℝ}
     (hcflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj c)) c)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj c)) {ε_k : ℝ}
-    (hk : ‖(matrixCLM (outputJacobian f X θ₀) g) -
+    (hk : ‖(WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ g.ofLp) : EuclideanSpace ℝ (Fin m)) -
       WithLp.toLp 2 k_inf‖ ≤ ε_k) :
     ∃ e' : ℝ, HasDerivAt (fun s => ⟪g, θ_traj s - θ₀⟫ + a ⬝ᵥ (r₀.ofLp -
         NormedSpace.exp (-(s / (m : ℝ)) • K_inf) *ᵥ r₀.ofLp)) e' c ∧
@@ -159,7 +159,7 @@ lemma hasDerivAt_predictionError_abs_le
     refine (abs_dotProduct_le_norm_mul_norm _ _).trans ?_
     rw [hrcv]
     refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
-    exact (norm_matrixCLM_apply_le (Jc - J₀) g).trans (le_of_eq (mul_comm _ _))
+    exact (mulVec_frobenius_norm_le (Jc - J₀) g).trans (le_of_eq (mul_comm _ _))
   have b2 : |rc.ofLp ⬝ᵥ (J₀ *ᵥ g.ofLp - k_inf)| ≤ ‖rc‖ * ε_k := by
     refine (abs_dotProduct_le_norm_mul_norm _ _).trans ?_
     rw [hrcv]
@@ -204,7 +204,7 @@ theorem abs_inner_displacement_add_frozenPrediction_le
     (a k_inf : Fin m → ℝ) (hKa : K_inf *ᵥ a = k_inf) {ε_J ε_K ε_k : ℝ}
     (hJ : ∀ s ∈ Set.Icc 0 T, ‖outputJacobian f X (θ_traj s) - outputJacobian f X θ₀‖ ≤ ε_J)
     (hK : ∀ s ∈ Set.Icc 0 T, ‖empiricalNTKMatrix f X (θ_traj s) - K_inf‖ ≤ ε_K)
-    (hk : ‖(matrixCLM (outputJacobian f X θ₀) g) -
+    (hk : ‖(WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ g.ofLp) : EuclideanSpace ℝ (Fin m)) -
       WithLp.toLp 2 k_inf‖ ≤ ε_k) :
     ∀ t ∈ Set.Icc (0 : ℝ) T,
       |⟪g, θ_traj t - θ₀⟫ + a ⬝ᵥ ((trainingResidual f X y θ₀).ofLp -
@@ -369,7 +369,7 @@ theorem abs_inner_displacement_add_frozenPrediction_le_of_exp_decay
     (hνlam : ν ≤ lam / m)
     (hJ : ∀ s : ℝ, 0 ≤ s → ‖outputJacobian f X (θ_traj s) - outputJacobian f X θ₀‖ ≤ ε_J)
     (hK : ∀ s ∈ Set.Icc 0 S, ‖empiricalNTKMatrix f X (θ_traj s) - K_inf‖ ≤ ε_K)
-    (hk : ‖(matrixCLM (outputJacobian f X θ₀) g) -
+    (hk : ‖(WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ g.ofLp) : EuclideanSpace ℝ (Fin m)) -
       WithLp.toLp 2 k_inf‖ ≤ ε_k)
     (hr : ∀ s : ℝ, 0 ≤ s → ‖trainingResidual f X y (θ_traj s)‖ ≤
       ‖trainingResidual f X y θ₀‖ * Real.exp (-ν * s)) :
