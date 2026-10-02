@@ -246,6 +246,10 @@ theorem tendsto_measure_conditional_activationProduct
 noncomputable def gaussianSqCenteredVariance : ℝ :=
   Var[fun x : ℝ => x ^ 2 - 1; gaussianReal 0 1]
 
+@[simp]
+lemma gaussianSqCenteredVariance_nonneg : 0 ≤ gaussianSqCenteredVariance :=
+  variance_nonneg _ _
+
 lemma memLp_sq_sub_one_mul_gaussianReal (y : ℝ) :
     MemLp (fun x : ℝ => (x ^ 2 - 1) * y) 2 (gaussianReal 0 1) :=
   (memLp_sq_gaussianReal_two.sub (memLp_const 1)).mul_const y

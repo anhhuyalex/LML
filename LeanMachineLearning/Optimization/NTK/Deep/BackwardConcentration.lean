@@ -25,6 +25,10 @@ convergence of the deep empirical NTK (Theorem 2.27).
 * `NTK.deepSensitivityGram_entry_tendstoInMeasure`: the downward induction, proved from the two
   above.
 * `NTK.deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK`: Theorem 2.27.
+
+**Standing extra hypothesis.** The decoupling approximation, hence the induction and Theorem 2.27,
+assume `NTK.DeepForwardNondegenerate` (positive-definite limiting forward kernels `Σ^ℓ`,
+`1 ≤ ℓ < d`). This is stronger than the informal theorem and is documented at each statement.
 -/
 
 @[expose]
@@ -34,25 +38,6 @@ open MeasureTheory ProbabilityTheory Filter Matrix
 open scoped Matrix ENNReal
 
 namespace NTK
-
-/-- Transport with the readout kept: `(W, w_out) ↦ ((W 0, …, W (d-1)), w_out)`. -/
-theorem tendstoInMeasure_prod_of_prefix_prod (d : ℕ)
-    (F : ℕ → (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) → ℝ) (c : ℝ) (hF : ∀ n, Measurable (F n))
-    (h : TendstoInMeasure
-      ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
-        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
-      F Filter.atTop (fun _ => c)) :
-    TendstoInMeasure
-      ((Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
-          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
-        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
-      (fun n (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => F n (fun i : Fin d => q.1 i.val, q.2))
-      Filter.atTop (fun _ => c) :=
-  tendstoInMeasure_comp_measurePreserving h
-    ((measurePreserving_prefixMap (Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) d).prod (MeasurePreserving.id _))
-    hF measurable_const
 
 /-- **Readout-layer backward concentration (sub-lemma 1.2).** At the top hidden layer
 `g_{d-1}^α = W_d ⊙ φ'(h_{d-1}^α)`, so `G_{d-1}^{αβ} = n⁻¹ ∑ⱼ W_{d,j}² φ'(h^α_j) φ'(h^β_j)`. The
@@ -121,10 +106,7 @@ theorem deepSensitivityGram_readout_entry_tendstoInMeasure
   have hT := tendstoInMeasure_prod_of_prefix_prod d _ _ hF_meas hW
   convert hT using 3
   · rename_i n q
-    have hcongr : deepPreactivation n0 m n φ X q.1 (d - 1) =
-        deepPreactivation n0 m n φ X (fun k' => if h : k' < d then q.1 k' else 0) (d - 1) :=
-      deepPreactivation_congr_of_eqOn n0 m n φ X _ _ (d - 1) fun r hr => by
-        simp [show r < d by omega]
+    have hcongr := deepPreactivation_eq_prefix n0 m n d φ X q.1 (d - 1) (by omega)
     rw [deepSensitivityGram_hidden d n0 n m φ φ' X _ (d - 1) hd1, Matrix.of_apply]
     simp only [dotProduct, backwardSensitivity_top d n0 n m φ φ' X _ hd,
       deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 (d - 1) hd1, hcongr]
@@ -134,33 +116,65 @@ theorem deepSensitivityGram_readout_entry_tendstoInMeasure
     ring
   · rfl
 
+/-- **Nondegeneracy hypothesis of the deep NTK convergence theorem.** For every hidden layer
+`1 ≤ ℓ < d` the limiting forward kernel `Σ^ℓ = layerCovarianceSeq 1 0 φ m Φ0 ℓ` (the limit of the
+activation Gram `n⁻¹ ⟨φ(h_{ℓ-1}^α), φ(h_{ℓ-1}^β)⟩`, `Φ0 = X Xᵀ / n0`) is **positive definite**.
+
+This is an *extra assumption* that the decoupling approximation
+(`deepSensitivityGram_sub_mul_tendstoInMeasure`) needs and that Theorem 2.27 therefore inherits:
+the orthogonal projector onto the span of the `m` forward features is controlled through the
+pseudo-inverse `Σ̂⁺` of the empirical Gram, which is only uniformly bounded when the limiting Gram
+is invertible. It is expected to hold for generic inputs and a non-polynomial activation (not proved here), but
+it fails for linear `φ` once `m > n0`, and for repeated or collinear inputs. The input layer `ℓ = 0` is
+not constrained. -/
+def DeepForwardNondegenerate (d n0 m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ) : Prop :=
+  ∀ ℓ : ℕ, 1 ≤ ℓ → ℓ < d →
+    (layerCovarianceSeq 1 0 φ m (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ℓ).PosDef
+
 /-- **Decoupling approximation (sub-lemma 1.3, the hard core of the backward induction).** For a
 hidden layer `k` with `k + 1 < d`, the backward Gram entry at layer `k` is asymptotically the
 product of
 the backward Gram entry at layer `k + 1` and the derivative Gram entry at layer `k`:
 `G_k^{(n),αβ} - G_{k+1}^{(n),αβ} · Φ'^{(n),αβ}_k → 0` in measure.
 
-Informal proof: with `D = diag(φ'(h_k^α) φ'(h_k^β))` (it depends only on layers `≤ k`),
-`G_k^{αβ} = n⁻² (g_{k+1}^α)ᵀ W_k D Wₖᵀ g_{k+1}^β`. Let `P` be the orthogonal projector onto the
-span of
-the `m` forward features `φ(h_k^α)`. Then `W_k = W_k P + W_k Pᗮ` (`orthogonalDecomposition`). The
-forward pass, hence `g_{k+1}`, sees `W_k` only through `W_k P` (`orthogonalDecomposition_mul`),
-while
-`W_k Pᗮ` is independent of `(W_k P, later layers)` (`indepFun_conditioned_weight_history`). The
-terms
-containing `W_k P` have rank `≤ m ≪ n` and are `O(m/n)`. For the `W_k Pᗮ`–`W_k Pᗮ` term the
-quadratic form
-has conditional mean `n⁻² (g_{k+1}^α ⬝ g_{k+1}^β) tr(D Pᗮ) = G_{k+1}^{αβ} · Φ'^{αβ}_k - O(m/n)`
-(`integral_gaussianMatrix_quadForm`, `backward_empirical_quadForm_asymptotic_limit`) and conditional
-variance `O(n⁻¹)` (a fourth-moment computation for the Gaussian quadratic form), so Chebyshev
-closes the
-estimate. -/
+**Assumes `DeepForwardNondegenerate`** (positive-definite limiting forward kernels `Σ^ℓ`,
+`1 ≤ ℓ < d`); this hypothesis is *not* needed for the forward results and is the only reason
+Theorem 2.27 below carries it.
+
+Informal proof (corrected; the naive "rank-`m` part is `O(m/n)`" bound is **false** here). With
+`D = diag(φ'(h_k^α) φ'(h_k^β))` (it depends only on layers `≤ k`) and `u^γ = g_{k+1}^γ`,
+`G_k^{αβ} = n⁻² (u^α)ᵀ W_{k+1} D W_{k+1}ᵀ u^β`. Let `Φ = [φ(h_k^1) … φ(h_k^m)]` and `P` the
+orthogonal projector onto its span; `W_{k+1} = W_{k+1} P + W_{k+1} Pᗮ`
+(`orthogonalDecomposition`). The forward pass, hence `u`, sees `W_{k+1}` only through `W_{k+1} P`
+(`orthogonalDecomposition_mul`), while `W_{k+1} Pᗮ` is independent of `(W_{k+1} P, later layers)`
+(`indepFun_conditioned_weight_history`). So `n^{-1/2} W_{k+1}ᵀ u = Pᗮ-part + P-part`:
+
+* **Pᗮ-part** `n^{-1/2} Pᗮ W̃ᵀ u` (`W̃` an independent Gaussian copy): conditionally on the
+  sigma-algebra `F` generated by everything else, the quadratic form has mean
+  `n⁻² (u^α ⬝ u^β) tr(D Pᗮ) = G_{k+1}^{αβ} Φ'^{αβ}_k - O(m/n)`
+  (`integral_gaussianMatrix_quadForm`, `backward_empirical_quadForm_asymptotic_limit`) and variance
+  `O(n⁻¹)` (Gaussian fourth moments), so Chebyshev closes it
+  (`tendsto_of_lintegral_section_bound`).
+* **P-part** `n^{-1/2} P W_{k+1}ᵀ u = Φ c` with `c = Σ̂⁺ (z^a ⬝ u^γ)/n`, `Σ̂ = n⁻¹ΦᵀΦ`,
+  `z = h_{k+1}`. This is *not* negligible by rank alone: `u` depends on `W_{k+1} P` through `z`, so
+  its size is exactly `(z ⬝ u / n)ᵀ Σ̂⁺ (z ⬝ u / n)`. It vanishes only thanks to the
+  **gradient-independence invariant** `I(ℓ)`: `n⁻¹ ⟨h_ℓ^a, g_ℓ^γ⟩ → 0` in measure.
+  `I(d-1)` is a plain Chebyshev bound (`g_{d-1} = w_out ⊙ φ'(h_{d-1})` with `w_out` an independent
+  centred Gaussian), and
+  `I(ℓ)` follows from `I(ℓ+1)` and the same `Pᗮ`/`P` split. The decoupling lemma and `I` therefore
+  have to be proved in one joint downward induction on `ℓ`.
+
+Further obstacles for a Lean proof: `D` has polynomial (unbounded) entries, so the `P`-part must be
+bounded by empirical moments (`tendstoInMeasure_sum_mul`) rather than operator norms; and `Σ̂⁺`
+needs the limiting Gram `Σ^k` to be nondegenerate (or a reduction to a linearly independent
+subfamily of inputs). -/
 theorem deepSensitivityGram_sub_mul_tendstoInMeasure
     (d n0 m : ℕ) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
     (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C * (1 + |x| ^ p))
-    (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k + 1 < d) (α β : Fin m) {ε : ℝ} (hε : 0 < ε) :
+    (X : Fin m → Fin n0 → ℝ) (hnd : DeepForwardNondegenerate d n0 m φ X)
+    (k : ℕ) (hk : k + 1 < d) (α β : Fin m) {ε : ℝ} (hε : 0 < ε) :
     Filter.Tendsto (fun n : ℕ =>
       (Measure.prod
         (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
@@ -186,13 +200,17 @@ Downward induction on `k`. The top hidden layer is
 (`deepSensitivityGram_sub_mul_tendstoInMeasure`), the induction hypothesis gives
 `G_{k+1} → Π^{k+1}`,
 the derivative Gram converges to `Σ̇^k` (`deepDerivativeGram_entry_tendstoInMeasure`), and
-`tendstoInMeasure_sum_mul` combines them into `Σ̇^k · Π^{k+1} = Π^k`. -/
+`tendstoInMeasure_sum_mul` combines them into `Σ̇^k · Π^{k+1} = Π^k`.
+
+**Assumes `DeepForwardNondegenerate`**, because the induction step uses the decoupling
+approximation (the readout base case `k = d - 1` does not). -/
 theorem deepSensitivityGram_entry_tendstoInMeasure
     (d n0 m : ℕ) (hd : 0 < d) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
     (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C * (1 + |x| ^ p))
-    (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (α β : Fin m) :
+    (X : Fin m → Fin n0 → ℝ) (hnd : DeepForwardNondegenerate d n0 m φ X)
+    (k : ℕ) (hk : k < d) (α β : Fin m) :
     TendstoInMeasure
       (Measure.prod
         (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
@@ -227,7 +245,7 @@ theorem deepSensitivityGram_entry_tendstoInMeasure
           (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ⟨d - 1 + 1, by omega⟩ =
           Matrix.of fun _ _ => 1 := by
         have : (⟨d - 1 + 1, by omega⟩ : Fin (d + 1)) = ⟨d, by omega⟩ :=
-          Fin.ext (by show d - 1 + 1 = d; omega)
+          Fin.ext (Nat.sub_add_cancel (by omega))
         rw [this]
         exact deepLimitingSensitivityKernel_terminal d m φ φ' _
       have hlim := congrFun (congrFun
@@ -251,20 +269,27 @@ theorem deepSensitivityGram_entry_tendstoInMeasure
       rw [hlim, mul_comm]
       exact tendstoInMeasure_trans
         (fun ε hε => deepSensitivityGram_sub_mul_tendstoInMeasure d n0 m φ φ' hφ_cont hφ'_cont C hC
-          p hp hφ_growth hφ'_growth X k hk1 α β hε) hprod
+          p hp hφ_growth hφ'_growth X hnd k hk1 α β hε) hprod
   exact key (d - 1 - k) k hk (by omega)
 
 /-- **Theorem 2.27 (Infinite-Width Convergence of the Deep Empirical NTK to the Limiting NTK)**:
 For any depth `d ≥ 1`, input dimension `n0`, sample size `m`, continuous activation `φ` and its
 derivative `φ'` with bounded polynomial growth, and input dataset `X`, the empirical Neural Tangent
 Kernel Gram matrix `deepEmpiricalNTK` converges entrywise in probability / in measure to the
-deterministic recursive limiting NTK `deepLimitingNTK` as network width `n → ∞`. -/
+deterministic recursive limiting NTK `deepLimitingNTK` as network width `n → ∞`.
+
+**Extra hypothesis (not in the informal statement):** `hnd : DeepForwardNondegenerate d n0 m φ X`,
+i.e. the limiting forward kernels `Σ^ℓ`, `1 ≤ ℓ < d`, are positive definite. It is needed only by
+the decoupling approximation `deepSensitivityGram_sub_mul_tendstoInMeasure` (control of the
+pseudo-inverse of the empirical activation Gram). It fails e.g. for linear `φ` with `m > n0`, or for
+repeated inputs; removing it (reducing to a linearly independent subfamily of inputs) is future
+work. -/
 theorem deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK
     (d n0 m : ℕ) (hd : 0 < d) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
     (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C * (1 + |x| ^ p))
-    (X : Fin m → Fin n0 → ℝ) (α β : Fin m) :
+    (X : Fin m → Fin n0 → ℝ) (hnd : DeepForwardNondegenerate d n0 m φ X) (α β : Fin m) :
     TendstoInMeasure
       (Measure.prod
         (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
@@ -281,7 +306,7 @@ theorem deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK
     (fun k hk => deepActivationGram_entry_tendstoInMeasure d n0 m φ hφ_cont C hC p hp
       hφ_growth X k hk α β)
     (fun k hk => deepSensitivityGram_entry_tendstoInMeasure d n0 m hd φ φ' hφ_cont hφ'_cont
-      C hC p hp hφ_growth hφ'_growth X k hk α β)
+      C hC p hp hφ_growth hφ'_growth X hnd k hk α β)
 
 end NTK
 

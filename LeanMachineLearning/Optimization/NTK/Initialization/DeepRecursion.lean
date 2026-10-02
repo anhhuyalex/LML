@@ -124,6 +124,16 @@ lemma deepPreactivation_congr_of_eqOn (d m n : ℕ) (φ : ℝ → ℝ) (X : Fin 
       intro k
       exact congrFun (congrFun (ih fun r hr => hW r (Nat.le_succ_of_le hr)) α) k
 
+/-- Truncating the weight population to its first `D` layers (zero afterwards) does not change the
+preactivations at layers `ℓ < D`. This is the bridge from the `ℕ`-indexed tensor of
+`DeepMLPParams.ofTensor` to the `Fin D`-indexed population. -/
+lemma deepPreactivation_eq_prefix (d m n D : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
+    (W : ℕ → ℕ → ℕ → ℝ) (ℓ : ℕ) (hℓ : ℓ < D) :
+    deepPreactivation d m n φ X W ℓ =
+      deepPreactivation d m n φ X (fun k => if _h : k < D then W k else 0) ℓ :=
+  deepPreactivation_congr_of_eqOn d m n φ X _ _ ℓ fun r hr => by
+    simp [show r < D by omega]
+
 /-- The infinite input-weight population, evaluated at the fixed inputs and normalized by the
 input dimension, is an i.i.d. family of centered Gaussians with the base Gram covariance. This
 is the distributional bridge needed for the base case of the deep covariance induction. -/

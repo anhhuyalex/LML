@@ -32,11 +32,13 @@ Lemma 2.26 `W P ⟂ W Pᗮ`) live in `Initialization/GaussianMatrixAlgebra.lean`
 2. **Forward transport** (`deepActivationGram_entry_tendstoInMeasure`): moves
    `deepEmpiricalCovariance_tendstoInMeasure` to the `(W, w_out)` product measure used by
    `DeepMLPParams.ofTensor`.
-3. **Backward concentration** (`deepSensitivityGram_entry_tendstoInMeasure`, currently `sorry`):
+3. **Backward concentration** (`deepSensitivityGram_entry_tendstoInMeasure`, in
+   `Deep/BackwardConcentration.lean`; assumes `DeepForwardNondegenerate`):
    applied to `u = g_{ℓ+1}^α`, `v = g_{ℓ+1}^β` and `A = diag(φ'(h^α) φ'(h^β))`, the quadratic form
    yields the transition factor `G_{ℓ+1}^{(n), αβ} · Φ'^{(n)}_{ℓ, αβ}`.
-4. **Theorem 2.27** (`deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK`): convergence in measure of
-   `deepEmpiricalNTK` to `deepLimitingNTK`, from 1–3.
+4. **Theorem 2.27** (`deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK`, also in
+   `Deep/BackwardConcentration.lean`): convergence in measure of `deepEmpiricalNTK` to
+   `deepLimitingNTK`, from 1–3, under the same nondegeneracy assumption.
 -/
 
 @[expose]
@@ -110,12 +112,29 @@ theorem deepEmpiricalNTK_entry_tendstoInMeasure_of_layerwise
   simpa [deepEmpiricalNTK, deepLimitingNTK, Matrix.sum_apply, Matrix.hadamard_apply] using this
 
 
-/-- **Transport from the `Fin d`-indexed weight population to the `(W, w_out)` product measure.**
-The restriction `(W, w_out) ↦ (W 0, …, W (d - 1))` is measure preserving, so convergence in measure
-of
-a measurable scalar family of the first `d` weight populations transfers to the product measure
-used by
-`DeepMLPParams.ofTensor`. -/
+/-- **Transport from the `Fin d`-indexed weight population to the `(W, w_out)` product measure,
+readout kept.** The map `(W, w_out) ↦ ((W 0, …, W (d - 1)), w_out)` is measure preserving, so
+convergence in measure of a measurable scalar family of the first `d` weight populations and the
+readout transfers to the product measure used by `DeepMLPParams.ofTensor`. -/
+theorem tendstoInMeasure_prod_of_prefix_prod (d : ℕ)
+    (F : ℕ → (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) → ℝ) (c : ℝ) (hF : ∀ n, Measurable (F n))
+    (h : TendstoInMeasure
+      ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      F Filter.atTop (fun _ => c)) :
+    TendstoInMeasure
+      ((Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
+          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      (fun n (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => F n (fun i : Fin d => q.1 i.val, q.2))
+      Filter.atTop (fun _ => c) :=
+  tendstoInMeasure_comp_measurePreserving h
+    ((measurePreserving_prefixMap (Measure.infinitePi fun _ : ℕ =>
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) d).prod (MeasurePreserving.id _))
+    hF measurable_const
+
+/-- Special case of `tendstoInMeasure_prod_of_prefix_prod` for families that ignore the readout. -/
 theorem tendstoInMeasure_prod_of_prefix (d : ℕ) (F : ℕ → (Fin d → ℕ → ℕ → ℝ) → ℝ) (c : ℝ)
     (hF : ∀ n, Measurable (F n))
     (h : TendstoInMeasure
@@ -129,10 +148,9 @@ theorem tendstoInMeasure_prod_of_prefix (d : ℕ) (F : ℕ → (Fin d → ℕ �
         (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun n (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => F n (fun i : Fin d => q.1 i.val))
       Filter.atTop (fun _ => c) :=
-  tendstoInMeasure_comp_measurePreserving h
-    ((measurePreserving_prefixMap (Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) d).comp measurePreserving_fst)
-    hF measurable_const
+  tendstoInMeasure_prod_of_prefix_prod d (fun n w => F n w.1) c
+    (fun n => (hF n).comp measurable_fst)
+    (tendstoInMeasure_comp_measurePreserving h measurePreserving_fst hF measurable_const)
 
 /-- **Forward covariance concentration for the finite-parameter network (entrywise).** Transport of
 `deepEmpiricalCovariance_tendstoInMeasure` (stated over the `Fin d`-indexed weight population and
@@ -171,10 +189,7 @@ theorem deepActivationGram_entry_tendstoInMeasure
   have hcomp := tendstoInMeasure_prod_of_prefix d _ _ hmeas hentry
   convert hcomp using 3
   · rename_i n q
-    have hcongr : deepPreactivation n0 m n φ X q.1 k =
-        deepPreactivation n0 m n φ X (fun k' => if h : k' < d then q.1 k' else 0) k :=
-      deepPreactivation_congr_of_eqOn n0 m n φ X _ _ k fun r hr => by
-        simp [show r < d by omega]
+    have hcongr := deepPreactivation_eq_prefix n0 m n d φ X q.1 k (by omega)
     rw [deepActivationGram_succ d n0 n m φ X _ k hk, Matrix.of_apply]
     simp only [dotProduct]
     rw [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 k hk, hcongr]
@@ -225,10 +240,7 @@ theorem deepDerivativeGram_entry_tendstoInMeasure
   have hcomp := tendstoInMeasure_prod_of_prefix d _ _ hmeas hentry
   convert hcomp using 3
   · rename_i n q
-    have hcongr : deepPreactivation n0 m n φ X q.1 k =
-        deepPreactivation n0 m n φ X (fun k' => if h : k' < d then q.1 k' else 0) k :=
-      deepPreactivation_congr_of_eqOn n0 m n φ X _ _ k fun r hr => by
-        simp [show r < d by omega]
+    have hcongr := deepPreactivation_eq_prefix n0 m n d φ X q.1 k (by omega)
     simp only [deepDerivativeGram, Matrix.of_apply, dotProduct]
     rw [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 k hk, hcongr]
   · rfl

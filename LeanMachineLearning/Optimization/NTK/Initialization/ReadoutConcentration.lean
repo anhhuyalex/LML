@@ -45,7 +45,6 @@ theorem tendstoInMeasure_gaussianSq_weighted_average
     TendstoInMeasure (νH.prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (q : Ω × (ℕ → ℝ)) => (n : ℝ)⁻¹ * ∑ j : Fin n, q.2 j.val ^ 2 * y n q.1 j)
       atTop (fun _ => c₁) := by
-  classical
   have hmp : MeasurePreserving Prod.fst (νH.prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       νH := measurePreserving_fst
   have hmeasD : ∀ n : ℕ, Measurable (fun w : Ω => (n : ℝ)⁻¹ * ∑ j : Fin n, y n w j) :=
@@ -142,7 +141,7 @@ theorem tendstoInMeasure_gaussianSq_weighted_average
           have hn0 : (n : ℝ) ≠ 0 := by positivity
           field_simp
         rw [hsum]
-        have hV : 0 ≤ gaussianSqCenteredVariance := variance_nonneg _ _
+        have hV := gaussianSqCenteredVariance_nonneg
         have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
         calc gaussianSqCenteredVariance * (n * Mn n w) / ((n : ℝ) ^ 2 * ε ^ 2)
             = gaussianSqCenteredVariance * Mn n w / ((n : ℝ) * ε ^ 2) := by
