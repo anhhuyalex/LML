@@ -533,8 +533,13 @@ This is the ingredient that makes the lazy-training bootstrap work (Theorems~\re
 
 \section{Lazy training: displacement bound and the bootstrap}\label{sec:ntkgf:bootstrap}
 
-The central point is a circularity: the Jacobian estimates hold only in a ball around $\theta_0$, but one needs to know the trajectory stays in the ball to use them.
-The bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) resolves this. Below, $\theta$ is a forward gradient flow of the MSE loss
+The central point is a circularity. By \emph{Jacobian estimates} we mean two quantitative assumptions on the output Jacobian $J(\theta)$ (Definition~\ref{def:ntkgf:jacobian}), the matrix of derivatives of the training outputs with respect to the parameters:
+\begin{itemize}
+  \item \emph{boundedness}: $\|J(\theta)\|\le M$, so the outputs cannot change faster than a fixed rate $M$ when the parameters move;
+  \item \emph{Lipschitz continuity at $\theta_0$}: $\|J(\theta)-J(\theta_0)\|\le L_J\|\theta-\theta_0\|$, so the Jacobian, and with it the kernel $K=JJ^\top$ (Theorem~\ref{thm:ntkgf:kernelLipschitz}), stays close to its initial value.
+\end{itemize}
+Together they give the spectral gap of $K(\theta)$ needed for exponential decay of the residual (Theorem~\ref{thm:ntkgf:rayleighStability}). For a wide network one can verify them at initialization only on a ball $\{\|\theta-\theta_0\|\le r\}$, with $r$ small enough that $2ML_Jr\le\lambda_0/2$. But the conclusion we want is that the parameters never leave this ball (small displacement), and to use the estimates at time $t$ we must already know $\theta(t)$ is inside the ball.
+The bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) resolves this by continuous induction on the time $S$ up to which the trajectory is known to stay in the ball. Below, $\theta$ is a forward gradient flow of the MSE loss
 (Definition~\ref{def:ntkgf:forwardGF}) and every output is differentiable along it.
 
 \begin{theorem}[Displacement of a linear image of a gradient flow]\label{thm:ntkgf:displacementLinear}
@@ -543,15 +548,15 @@ The bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) resolves this. Below,
         NTK.sum_sq_mulVec_transpose_le, NTK.norm_restrictCoords_gradient_mseLoss_le,
         NTK.norm_map_sub_le_integral_of_forwardGF}
   \leanok
-Let $\theta$ be a forward gradient flow (Definition~\ref{def:ntkgf:forwardGF}) of a loss $L$ on the parameter space $\mathbb R^P$ (more generally, on a real Hilbert space $E$). Let $F$ be any normed space and $\mathrm{Lin}:\mathbb R^P\to F$ a continuous linear map from the parameter space into $F$: it extracts or summarizes some feature of the parameter vector.
-Two cases are used below: $F=\mathbb R^P$ with $\mathrm{Lin}=\mathrm{id}$, which gives the displacement of the whole parameter vector, and $F=\mathbb R^\kappa$ with $\mathrm{Lin}$ a coordinate restriction (defined next), which gives the displacement of a subset of the parameters, for example the weights of a single neuron.
-Suppose $\|\mathrm{Lin}(\nabla L(\theta(t)))\|_F\le B(t)$ on $[0,T]$ with $B$ interval integrable. Then
-$\|\mathrm{Lin}(\theta(T)-\theta_0)\|_F\le\int_0^TB(t)\,dt$. A \emph{block of coordinates} is a chosen subset of the $P$ parameters, regarded as one group: the sub-vector of $\theta$ made of those entries only. For the two-layer network, a natural block is all the parameters belonging to one hidden neuron $i$, namely its input weights $W_{i1},\dots,W_{id}$ and its readout weight $a_i$ (so $d+1$ of the $nd+n$ coordinates; the parametrization of the two-layer network by a flat parameter vector is Definition~\ref{def:ntktl:packing}).
-The \emph{speed of the block} is how fast those parameters move, namely the norm of the corresponding entries of $\theta'=-\nabla L(\theta)$. The theorem bounds how far a block can travel in time $T$ by integrating its speed, which is smaller than the speed of the whole parameter vector; this is what allows the displacement of each neuron to be controlled by its own size, as used in Theorem~\ref{thm:ntktl:neuronDisplacement}.
-For the restriction to a block of coordinates, i.e.\ the map $\mathrm{Lin}=\texttt{restrictCoords}\,k:\mathbb R^P\to\mathbb R^\kappa$, $v\mapsto(v_{k(o)})_{o\in\kappa}$, where $\kappa$ is a finite index set (a finite type; the labels of the chosen coordinates) and $k:\kappa\to\{1,\dots,P\}$ is a function sending each label $o\in\kappa$ to the number of the parameter coordinate it selects (an enumeration of the chosen coordinates; in Lean $k$ is an arbitrary function, and it is injective in the intended use, where each coordinate is selected once), the speed of the block under the MSE flow (loss $L$ and residual $r$ of Definition~\ref{def:ntkgf:outputs}, output Jacobian $J$ of Definition~\ref{def:ntkgf:jacobian}) is
-\[
-  \bigl\|(\nabla L(\theta))_{\text{block}}\bigr\|\le\frac1m\Bigl(\sum_{\alpha}\sum_{o\in\kappa}J_{\alpha,k(o)}(\theta)^2\Bigr)^{1/2}\|r(\theta)\| .
-\]
+Let $\theta$ be a forward gradient flow (Definition~\ref{def:ntkgf:forwardGF}) of a loss $L$ on $\mathbb R^P$, let $F$ be a normed space and $\mathrm{Lin}:\mathbb R^P\to F$ a continuous linear map.
+\begin{enumerate}
+  \item If $\|\mathrm{Lin}(\nabla L(\theta(t)))\|_F\le B(t)$ on $[0,T]$ with $B$ interval integrable, then
+        $\|\mathrm{Lin}(\theta(T)-\theta_0)\|_F\le\int_0^TB(t)\,dt$.
+  \item Let $\kappa$ be a finite index set, $k:\kappa\to\{1,\dots,P\}$, and $\mathrm{restrictCoords}\,k:\mathbb R^P\to\mathbb R^\kappa$, $v\mapsto(v_{k(o)})_{o\in\kappa}$. For the MSE loss $L$ with residual $r$ (Definition~\ref{def:ntkgf:outputs}) and output Jacobian $J$ (Definition~\ref{def:ntkgf:jacobian}),
+        \[
+          \bigl\|\mathrm{restrictCoords}\,k\,(\nabla L(\theta))\bigr\|\le\frac1m\Bigl(\sum_{\alpha}\sum_{o\in\kappa}J_{\alpha,k(o)}(\theta)^2\Bigr)^{1/2}\|r(\theta)\| .
+        \]
+\end{enumerate}
 \end{theorem}
 
 \begin{proof}
@@ -560,6 +565,16 @@ For the restriction to a block of coordinates, i.e.\ the map $\mathrm{Lin}=\text
 Since $\theta'=-\nabla L(\theta)$ (Definition~\ref{def:ntkgf:forwardGF}) and $\mathrm{Lin}$ is linear and continuous, $\mathrm{Lin}(\theta(T)-\theta_0)=-\int_0^T\mathrm{Lin}(\nabla L(\theta(t)))dt$, whose norm is at most $\int_0^TB$. Only the ODE for $t>0$ and continuity on
 $[0,\infty)$ are used. For the block bound, $\nabla L=\frac1mJ^\top r$ (Theorem~\ref{thm:ntkgf:mseGradient}) and Cauchy--Schwarz gives $\sum_o(\sum_\alpha r^\alpha J_{\alpha o})^2\le\|r\|^2\sum_{\alpha,o}J_{\alpha o}^2$.
 \end{proof}
+
+\begin{remark}[Reading the statement: $\mathrm{Lin}$, blocks of coordinates, and the speed of a block]\label{rmk:ntkgf:displacementLinearReading}
+  \uses{thm:ntkgf:displacementLinear}
+The loss may more generally live on a real Hilbert space $E$ in place of $\mathbb R^P$. The map $\mathrm{Lin}$ extracts or summarizes some feature of the parameter vector. Two cases are used: $F=\mathbb R^P$ with $\mathrm{Lin}=\mathrm{id}$, which gives the displacement of the whole parameter vector, and $F=\mathbb R^\kappa$ with $\mathrm{Lin}=\mathrm{restrictCoords}\,k$, which gives the displacement of a subset of the parameters, for example the weights of a single neuron.
+
+A \emph{block of coordinates} is a chosen subset of the $P$ parameters, regarded as one group: the sub-vector of $\theta$ made of those entries only. For the two-layer network, a natural block is all the parameters belonging to one hidden neuron $i$, namely its input weights $W_{i1},\dots,W_{id}$ and its readout weight $a_i$, so $d+1$ of the $nd+n$ coordinates (the parametrization by a flat parameter vector is Definition~\ref{def:ntktl:packing}).
+In part~(2), $\kappa$ is the finite set of labels of the chosen coordinates, and $k$ sends each label $o\in\kappa$ to the number of the parameter coordinate it selects. In Lean $k$ is an arbitrary function; in the intended use it is injective, so each coordinate is selected once.
+
+The \emph{speed of the block} is how fast those parameters move, namely the norm of the corresponding entries of $\theta'=-\nabla L(\theta)$; part~(2) bounds it. Part~(1) then bounds how far the block travels in time $T$ by integrating its speed. Since this speed is smaller than that of the whole parameter vector, the displacement of each neuron can be controlled by its own size, as used in Theorem~\ref{thm:ntktl:neuronDisplacement}.
+\end{remark}
 
 \begin{lemma}[Loss monotonicity and continuity of the residual]\label{lem:ntkgf:lossMonotone}
   \lean{NTK.mseLoss_le_of_hasDerivWithinAt_neg_gradient, NTK.continuousOn_trainingResidual_comp}
@@ -572,6 +587,15 @@ The residual along a curve is continuous on any set where the curve is continuou
   \leanok
 $\frac d{dt}L(\theta(t))=-\|\nabla L(\theta(t))\|^2\le0$; this needs neither a global trajectory nor differentiability of $L$ off the curve. Continuity of the residual is the continuity of a differentiable composition.
 \end{proof}
+
+\begin{remark}[The residual along a curve]\label{rmk:ntkgf:residualAlongCurve}
+  \uses{lem:ntkgf:lossMonotone, def:ntkgf:outputs}
+Recall from Definition~\ref{def:ntkgf:outputs} that the residual at a parameter $\theta\in\mathbb R^P$ is the vector of prediction errors on the training set,
+$r(\theta)=f(\theta)-y\in\mathbb R^m$, with entries $r^\alpha(\theta)=f(x^\alpha;\theta)-y^\alpha$.
+Given a curve $t\mapsto\theta(t)$ in parameter space, such as a gradient flow, the \emph{residual along the curve} is the function of time $t\mapsto r(\theta(t))\in\mathbb R^m$, i.e.\ the training errors of the network as it is being trained.
+The second statement of the lemma says this function is continuous at those times $t$ where the curve $\theta$ is continuous and each of the $m$ outputs $\theta\mapsto f(x^\alpha;\theta)$ is differentiable at $\theta(t)$ (differentiability implies continuity there, so each entry $r^\alpha(\theta(t))$ is a composition of continuous maps).
+Continuity of $t\mapsto r(\theta(t))$, hence of $\|r(\theta(t))\|$, is what allows the residual and the loss to be handled as ordinary continuous functions of time in the bootstrap arguments below and in the two-layer chapter.
+\end{remark}
 
 \begin{theorem}[Displacement bounds along the flow]\label{thm:ntkgf:displacementBound}
   \uses{thm:ntkgf:displacementLinear, thm:ntkgf:expDecayIcc, thm:ntkgf:mseGradient}
