@@ -404,6 +404,24 @@ the component of the residual along the eigenvector $v_k$ is $r_k(t)=e^{-\lambda
 \end{itemize}
 \end{remark}
 
+\begin{remark}[Role of this section in the NTK development]\label{rmk:ntkgf:linearRole}
+  \uses{thm:ntkgf:matrixExp, thm:ntkgf:eigenmodes, thm:ntkgf:outputODE, thm:ntkgf:expDecay}
+\emph{Main result.} If the kernel is frozen at a fixed matrix $K_\infty$, the training dynamics can be solved exactly. The residual is $r(t)=\exp(-\tfrac tmK_\infty)r_0$ and the outputs are $f(t)=y+\exp(-\tfrac tmK_\infty)(f_0-y)$ (Theorem~\ref{thm:ntkgf:matrixExp})
+
+In the eigenbasis of $K_\infty$ each mode decays independently at the rate $\lambda_k/m$ (Theorem~\ref{thm:ntkgf:eigenmodes}). This is the \emph{linear} (frozen-kernel) model of training, and the NTK picture says that a very wide network behaves like it.
+
+\emph{What it builds on.} The equation solved here, $\partial_tr=-\frac1mK_\infty r$, is the residual ODE of Theorem~\ref{thm:ntkgf:outputODE} with the time-dependent kernel $K(\theta(t))$ replaced by a constant. The exponential decay estimate of Theorem~\ref{thm:ntkgf:expDecay}, which holds for any time-varying kernel with a spectral gap, is only an \emph{inequality}; for a constant kernel the matrix exponential gives the exact trajectory, and the decay bound is recovered as a corollary (the last statement of Theorem~\ref{thm:ntkgf:matrixExp}).
+
+\emph{What it is used for.} The section itself makes no claim about a real network, since for a finite network the kernel is never exactly constant. Its role is to be the reference curve against which the true dynamics are compared.
+\begin{itemize}
+  \item The next section (Theorem~\ref{thm:ntkgf:residualFrozen}) bounds the distance between the true residual and $\exp(-\frac tmK_\infty)r_0$, and between their eigenmode components, by $\frac1m\varepsilon_K\|r_0\|t$, where $\varepsilon_K$ bounds how far the kernel moves.
+  \item Kernel stability and lazy training (Sections~\ref{sec:ntkgf:kernelStability} and~\ref{sec:ntkgf:bootstrap}) are what supply a small $\varepsilon_K$, by keeping the parameters near $\theta_0$.
+  \item The affine flow (Theorem~\ref{thm:ntkgf:affineFlow}) is solved with the same matrix exponential, now with $K_\infty=JJ^\top$ for a fixed Jacobian $J$, and its limit is kernel regression (Theorem~\ref{thm:ntkgf:affineLimit}).
+  \item For test points, the frozen-kernel prediction $-a^\top\bigl(r_0-\exp(-\frac tmK_\infty)r_0\bigr)$ is compared with the actual prediction in Theorems~\ref{thm:ntkgf:predictionError} and~\ref{thm:ntkgf:predictionUniform}.
+  \item In the two-layer chapter, the random initial residual $r_n(0)$ converges in distribution to a Gaussian $G-y$ and $K_n(0)\to K_\infty$, so the trained residual converges to $\exp(-\frac tmK_\infty)(G-y)$ (Theorem~\ref{thm:ntktl:residualLimit}).
+\end{itemize}
+\end{remark}
+
 
 \section{Stability of linear ODEs under coefficient perturbation}\label{sec:ntkgf:odeStability}
 
@@ -526,7 +544,9 @@ For the training outputs take $G=f(\cdot)$ and $G'(z)v=J(z)v$, whose operator no
 \begin{remark}[Why Rayleigh quotient stability matters]\label{rmk:ntkgf:rayleighSignificance}
   \uses{thm:ntkgf:rayleighStability, thm:ntkgf:expDecayIcc, thm:ntkgf:rayleighBall}
 The exponential convergence of the loss (Theorems~\ref{thm:ntkgf:expDecay} and~\ref{thm:ntkgf:expDecayIcc}) needs a spectral gap of the empirical NTK matrix $K(\theta(t))$ at \emph{every} parameter $\theta(t)$ that the flow visits. A gap is only known at the initialization $\theta_0$, where the initial kernel concentrates around its limit.
+
 Part~(4) of the theorem bridges this: if the kernel has gap $\lambda_0$ at $\theta_0$, then at any $\theta$ with $2ML_J\|\theta-\theta_0\|<\lambda_0$ it still has the positive gap $\lambda_0-2ML_J\|\theta-\theta_0\|$. In other words, a spectral gap is robust: it survives, with a smaller constant, as long as the parameters stay close enough to $\theta_0$.
+
 This is the ingredient that makes the lazy-training bootstrap work (Theorems~\ref{thm:ntkgf:rayleighBall} and~\ref{thm:ntkgf:lazyDisplacement}): the parameters stay near $\theta_0$ because the residual decays, and the residual decays because the kernel keeps a gap near $\theta_0$; the stability estimate is what lets this circular argument be closed by continuous induction.
 \end{remark}
 
