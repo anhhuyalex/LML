@@ -359,6 +359,85 @@ theorem posSemidef_allOnes {m : Type*} [Finite m] :
   rw [h_eq]
   exact gram_posSemidef (fun _ _ => 1)
 
+
+/-! ### Orthogonal Projection Algebra -/
+
+/-- A square real matrix `P` is an orthogonal projection matrix if it is symmetric (`Pᵀ = P`)
+and idempotent (`P * P = P`). -/
+def isOrthogonalProjection {p : Type*} [Fintype p] [DecidableEq p]
+    (P : Matrix p p ℝ) : Prop :=
+  Pᵀ = P ∧ P * P = P
+
+/-- The complementary orthogonal projector `Pᗮ = I - P`. -/
+def orthogonalComplement {p : Type*} [DecidableEq p]
+    (P : Matrix p p ℝ) : Matrix p p ℝ :=
+  1 - P
+
+/-- The transpose of the complementary projector is itself. -/
+theorem transpose_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
+    (P : Matrix p p ℝ) (hP : isOrthogonalProjection P) :
+    (orthogonalComplement P)ᵀ = orthogonalComplement P := by
+  dsimp [orthogonalComplement]
+  rw [Matrix.transpose_sub, Matrix.transpose_one, hP.1]
+
+/-- The complementary projector is idempotent: `(I - P)² = I - P`. -/
+theorem orthogonalComplement_idem {p : Type*} [Fintype p] [DecidableEq p]
+    (P : Matrix p p ℝ) (hP : isOrthogonalProjection P) :
+    orthogonalComplement P * orthogonalComplement P = orthogonalComplement P := by
+  dsimp [orthogonalComplement]
+  calc (1 - P) * (1 - P)
+      = 1 * (1 - P) - P * (1 - P) := by rw [Matrix.sub_mul]
+    _ = (1 - P) - (P * 1 - P * P) := by rw [Matrix.one_mul, Matrix.mul_sub]
+    _ = 1 - P - (P - P) := by rw [Matrix.mul_one, hP.2]
+    _ = 1 - P := by simp
+
+/-- The complement of an orthogonal projection is an orthogonal projection. -/
+theorem orthogonalComplement_isOrthogonalProjection {p : Type*} [Fintype p] [DecidableEq p]
+    (P : Matrix p p ℝ) (hP : isOrthogonalProjection P) :
+    isOrthogonalProjection (orthogonalComplement P) :=
+  ⟨transpose_orthogonalComplement P hP, orthogonalComplement_idem P hP⟩
+
+/-- Orthogonal complement annihilates `P` from the left: `Pᗮ * P = 0`. -/
+theorem mul_orthogonalComplement_self {p : Type*} [Fintype p] [DecidableEq p]
+    (P : Matrix p p ℝ) (hP : isOrthogonalProjection P) :
+    orthogonalComplement P * P = 0 := by
+  dsimp [orthogonalComplement]
+  rw [Matrix.sub_mul, Matrix.one_mul, hP.2, sub_self]
+
+/-- Orthogonal complement annihilates `P` from the right: `P * Pᗮ = 0`. -/
+theorem mul_self_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
+    (P : Matrix p p ℝ) (hP : isOrthogonalProjection P) :
+    P * orthogonalComplement P = 0 := by
+  dsimp [orthogonalComplement]
+  rw [Matrix.mul_sub, Matrix.mul_one, hP.2, sub_self]
+
+/-- Exact algebraic decomposition of any weight matrix into projected and complementary
+components: `W = W P + W Pᗮ`. -/
+theorem orthogonalDecomposition {n p : Type*} [Fintype p] [DecidableEq p]
+    (W : Matrix n p ℝ) (P : Matrix p p ℝ) :
+    W = W * P + W * orthogonalComplement P := by
+  dsimp [orthogonalComplement]
+  rw [Matrix.mul_sub, Matrix.mul_one, add_sub_cancel]
+
+/-- If `P` projects onto the subspace containing the columns of `X` (`P * X = X`), then the
+complementary residual `W * Pᗮ` annihilates `X`: `(W * Pᗮ) * X = 0`. -/
+theorem residual_annihilates {n p q : Type*} [Fintype p] [DecidableEq p]
+    (W : Matrix n p ℝ) (P : Matrix p p ℝ) (X : Matrix p q ℝ) (hX : P * X = X) :
+    (W * orthogonalComplement P) * X = 0 := by
+  have h_comp : orthogonalComplement P * X = 0 := by
+    dsimp [orthogonalComplement]
+    rw [Matrix.sub_mul, Matrix.one_mul, hX, sub_self]
+  rw [Matrix.mul_assoc, h_comp, Matrix.mul_zero]
+
+/-- Forward propagation through layer weights `W` acting on features `X` depends purely on the
+projected component `W * P`: `W * X = (W * P) * X`. -/
+theorem orthogonalDecomposition_mul {n p q : Type*} [Fintype p]
+    (W : Matrix n p ℝ) (P : Matrix p p ℝ) (X : Matrix p q ℝ) (hX : P * X = X) :
+    W * X = (W * P) * X := by
+  classical
+  conv_lhs => rw [orthogonalDecomposition W P]
+  rw [Matrix.add_mul, residual_annihilates W P X hX, add_zero]
+
 end NTK
 
 end
