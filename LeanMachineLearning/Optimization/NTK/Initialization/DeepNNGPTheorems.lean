@@ -610,7 +610,8 @@ theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
     (d m L : ℕ) (φ ψ : ℝ → ℝ) (hφ_cont : Continuous φ) (hψ_cont : Continuous ψ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (hψ_growth : ∀ x : ℝ, |ψ x| ≤ C * (1 + |x| ^ p))
+    (Cψ : ℝ) (hCψ : 0 ≤ Cψ) (pψ : ℕ) (hpψ : 0 < pψ)
+    (hψ_growth : ∀ x : ℝ, |ψ x| ≤ Cψ * (1 + |x| ^ pψ))
     (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (hℓ : ℓ < L) :
     TendstoInMeasure
       (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
@@ -626,12 +627,12 @@ theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
   cases ℓ with
   | zero =>
       simpa [deepPreactivation, layerCovarianceSeq] using
-        deepEmpiricalCovariance_zero_tendstoInMeasure d m L ψ hψ_cont C hC p hp hψ_growth X hℓ
+        deepEmpiricalCovariance_zero_tendstoInMeasure d m L ψ hψ_cont Cψ hCψ pψ hpψ hψ_growth X hℓ
   | succ ℓ =>
       obtain ⟨hφ_L2, hlimit_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
         m φ hφ_cont C hC p hp hφ_growth
         (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (inputGramMatrix_posSemidef d m X)
-      exact deepFeatureCovariance_succ_tendstoInMeasure d m L φ ψ hφ_cont hψ_cont C hC p hp
+      exact deepFeatureCovariance_succ_tendstoInMeasure d m L φ ψ hφ_cont hψ_cont Cψ hCψ pψ hpψ
         hψ_growth X ℓ hℓ
         (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1))
         (hlimit_pos (ℓ + 1))

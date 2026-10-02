@@ -707,19 +707,11 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
           hlinear (Set.mapsTo_univ _ _)) (Set.mapsTo_univ _ _)
     exact hα.mul hβ
 
-/-- The conditional second-moment matrix of activated Gaussian coordinates is continuous on the
-positive-semidefinite cone.  This is `continuousWithinAt_covarianceMap` applied to `φ²`, with the
-entries normalized back to the form used by the conditional Chebyshev estimate. -/
-theorem continuousWithinAt_activationProductSq
-    (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
-    (C : ℝ) (_hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
-    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (m : ℕ) (K0 : Matrix (Fin m) (Fin m) ℝ) (hK0 : K0.PosSemidef) :
-    ContinuousWithinAt (fun K : Matrix (Fin m) (Fin m) ℝ => fun α β : Fin m =>
-      ∫ z : EuclideanSpace ℝ (Fin m),
-        (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K)
-      {K | K.PosSemidef} K0 := by
-  have hφsq_growth : ∀ x : ℝ, |φ x ^ 2| ≤ (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by
+/-- Polynomial growth is preserved by squaring: if `|φ x| ≤ C (1 + |x|^p)` then
+`|φ x ^ 2| ≤ 2 C² (1 + |x|^(2p))`. -/
+lemma polynomial_growth_sq (φ : ℝ → ℝ) (C : ℝ) (hC : 0 ≤ C) (p : ℕ)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p)) :
+    ∀ x : ℝ, |φ x ^ 2| ≤ (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by
     intro x
     have hpow : |x| ^ (2 * p) = (|x| ^ p) ^ 2 := by
       rw [← pow_mul]
@@ -732,11 +724,25 @@ theorem continuousWithinAt_activationProductSq
       |φ x ^ 2| = |φ x| ^ 2 := by rw [abs_pow]
       _ ≤ (C * (1 + |x| ^ p)) ^ 2 := by
         nlinarith [hφ_growth x, abs_nonneg (φ x),
-          mul_nonneg _hC (by positivity)]
+          mul_nonneg hC (by positivity)]
       _ = C ^ 2 * (1 + |x| ^ p) ^ 2 := by ring
       _ ≤ C ^ 2 * (2 * (1 + |x| ^ (2 * p))) :=
         mul_le_mul_of_nonneg_left hsq (sq_nonneg C)
       _ = (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by ring
+
+/-- The conditional second-moment matrix of activated Gaussian coordinates is continuous on the
+positive-semidefinite cone.  This is `continuousWithinAt_covarianceMap` applied to `φ²`, with the
+entries normalized back to the form used by the conditional Chebyshev estimate. -/
+theorem continuousWithinAt_activationProductSq
+    (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
+    (C : ℝ) (_hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (m : ℕ) (K0 : Matrix (Fin m) (Fin m) ℝ) (hK0 : K0.PosSemidef) :
+    ContinuousWithinAt (fun K : Matrix (Fin m) (Fin m) ℝ => fun α β : Fin m =>
+      ∫ z : EuclideanSpace ℝ (Fin m),
+        (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K)
+      {K | K.PosSemidef} K0 := by
+  have hφsq_growth := polynomial_growth_sq φ C _hC p hφ_growth
   have hcont := continuousWithinAt_covarianceMap (fun x : ℝ => φ x ^ 2)
     (hφ_cont.pow 2) (2 * C ^ 2) (by positivity) (2 * p) (by omega) hφsq_growth m K0 hK0
   simpa only [pow_two, mul_mul_mul_comm] using hcont

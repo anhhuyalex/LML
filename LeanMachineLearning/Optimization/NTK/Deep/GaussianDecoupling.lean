@@ -187,7 +187,8 @@ theorem deepDerivativeGram_entry_tendstoInMeasure
     (d n0 m : ℕ) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C * (1 + |x| ^ p))
+    (C' : ℝ) (hC' : 0 ≤ C') (p' : ℕ) (hp' : 0 < p')
+    (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C' * (1 + |x| ^ p'))
     (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (α β : Fin m) :
     TendstoInMeasure
       (Measure.prod
@@ -201,7 +202,7 @@ theorem deepDerivativeGram_entry_tendstoInMeasure
       (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂multivariateGaussian 0
         (layerCovarianceSeq 1 0 φ m (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) k)) := by
   have hν := deepEmpiricalFeatureCovariance_tendstoInMeasure n0 m d φ φ' hφ_cont hφ'_cont C hC p hp
-    hφ_growth hφ'_growth X k hk
+    hφ_growth C' hC' p' hp' hφ'_growth X k hk
   have hentry := tendstoInMeasure_comp_of_continuousAt
     (g := fun M : Fin m → Fin m → ℝ => M α β)
     hν (by exact ((continuous_apply β).comp (continuous_apply α)).continuousAt)

@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
+public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 
 /-!
 # Conditional Chebyshev Concentration with a Random Conditioning Covariance
@@ -18,6 +19,10 @@ of the previous layer). This file proves the architecture-free probabilistic ste
 * `NTK.chebyshev_activationProduct_pi`: for a *fixed* covariance `K`, the empirical activated
   covariance entry of an i.i.d. `𝒩(0, K)` layer deviates from `∫ φ φ d𝒩(0, K)` by `≥ δ` with
   probability at most `M(K) / (n δ²)`, where `M(K)` is the single-neuron second moment.
+* `NTK.chebyshev_centeredSquare_weighted`: Chebyshev for `n⁻¹ ∑ⱼ (aⱼ² − 1) yⱼ` with `a ~ 𝒩(0, Iₙ)` and
+  fixed weights `y` (used for the readout layer, where `g_{d-1} = W_d ⊙ φ'(h_{d-1})`).
+* `NTK.tendsto_of_lintegral_section_bound`: the Fubini/localization squeeze shared by the conditional
+  estimates.
 * `NTK.continuousOn_covarianceEntry`, `NTK.measurable_comp_of_continuousOn_psd`: the entry map is
   continuous on the positive-semidefinite cone, hence measurable along measurable PSD-valued maps.
 * `NTK.tendsto_measure_conditional_activationProduct`: with `q = (a, b)` (fresh layer `a`, past
@@ -29,10 +34,34 @@ of the previous layer). This file proves the architecture-free probabilistic ste
 @[expose]
 public section
 
-open MeasureTheory ProbabilityTheory Matrix
+open MeasureTheory ProbabilityTheory Matrix Filter
 open scoped Matrix ENNReal
 
 namespace NTK
+
+/-- **Section-bound squeeze.** Suppose `P n = ∫⁻ b, σ n b ∂μ₁` (a Fubini decomposition of a probability
+into conditional probabilities `σ n b` given the past `b`), and that for large `n` every conditional
+probability is at most `1_{E n}(b) + c n`, where the exceptional set `E n` has probability at most
+`u n → 0` and `c n → 0`. Then `P n → 0`. -/
+theorem tendsto_of_lintegral_section_bound {Ω₁ : Type*} [MeasurableSpace Ω₁]
+    (μ₁ : Measure Ω₁) [IsProbabilityMeasure μ₁]
+    (P : ℕ → ℝ≥0∞) (σ : ℕ → Ω₁ → ℝ≥0∞) (E : ℕ → Set Ω₁) (u c : ℕ → ℝ≥0∞)
+    (hP : ∀ n, P n = ∫⁻ b, σ n b ∂μ₁)
+    (hσ : ∀ᶠ n in atTop, ∀ b, σ n b ≤ (E n).indicator (1 : Ω₁ → ℝ≥0∞) b + c n)
+    (hE : ∀ n, μ₁ (E n) ≤ u n)
+    (hu : Tendsto u atTop (nhds 0)) (hc : Tendsto c atTop (nhds 0)) :
+    Tendsto P atTop (nhds 0) := by
+  have hsum : Tendsto (fun n => u n + c n) atTop (nhds 0) := by simpa using hu.add hc
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hsum
+    (Eventually.of_forall fun n => zero_le) ?_
+  filter_upwards [hσ] with n hn
+  rw [hP n]
+  calc ∫⁻ b, σ n b ∂μ₁
+      ≤ ∫⁻ b, ((E n).indicator (1 : Ω₁ → ℝ≥0∞) b + c n) ∂μ₁ := lintegral_mono hn
+    _ = ∫⁻ b, (E n).indicator (1 : Ω₁ → ℝ≥0∞) b ∂μ₁ + c n := by
+        rw [lintegral_add_right _ measurable_const, lintegral_const, measure_univ, mul_one]
+    _ ≤ μ₁ (E n) + c n := by gcongr; exact lintegral_indicator_one_le _
+    _ ≤ u n + c n := by gcongr; exact hE n
 
 /-- **Chebyshev for one fixed Gaussian layer, bounded by the second moment.** -/
 theorem chebyshev_activationProduct_pi
@@ -207,21 +236,81 @@ theorem tendsto_measure_conditional_activationProduct
     · have : (n : ℝ) ≠ 0 := by positivity
       field_simp
   -- assemble
-  have hsum : Filter.Tendsto (fun n => u n + c n) Filter.atTop (nhds 0) := by
-    simpa using hu.add hc
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hsum
-    (Filter.Eventually.of_forall fun n => zero_le) ?_
-  filter_upwards [Filter.eventually_gt_atTop 0] with n hn
-  rw [hprod n]
-  calc ∫⁻ b, ν ((fun a => (a, b)) ⁻¹' S n) ∂μ₁
-      ≤ ∫⁻ b, ((Esec n).indicator (1 : Ω₁ → ENNReal) b + c n) ∂μ₁ :=
-        lintegral_mono fun b => hsec n hn b
-    _ = ∫⁻ b, (Esec n).indicator (1 : Ω₁ → ENNReal) b ∂μ₁ + c n := by
-        rw [lintegral_add_right _ measurable_const, lintegral_const, measure_univ, mul_one]
-    _ ≤ μ₁ (Esec n) + c n := by
-        gcongr
-        exact lintegral_indicator_one_le _
-    _ ≤ u n + c n := by gcongr; exact hE n
+  exact tendsto_of_lintegral_section_bound μ₁ (fun n => (ν.prod μ₁) (S n))
+    (fun n b => ν ((fun a => (a, b)) ⁻¹' S n)) Esec u c hprod
+    (by filter_upwards [Filter.eventually_gt_atTop 0] with n hn b using hsec n hn b) hE hu hc
+/-- Variance of `x ↦ x² - 1` under the standard Gaussian (a finite constant, `= 2`). -/
+noncomputable def gaussianSqCenteredVariance : ℝ :=
+  Var[fun x : ℝ => x ^ 2 - 1; gaussianReal 0 1]
+
+lemma memLp_sq_sub_one_mul_gaussianReal (y : ℝ) :
+    MemLp (fun x : ℝ => (x ^ 2 - 1) * y) 2 (gaussianReal 0 1) :=
+  (memLp_sq_gaussianReal_two.sub (memLp_const 1)).mul_const y
+
+/-- **Chebyshev for a weighted centered-square sum.** For fixed weights `y` and `a ~ 𝒩(0, Iₙ)`,
+`P(|n⁻¹ ∑ⱼ (aⱼ² - 1) yⱼ| ≥ ε) ≤ Var(a₁² - 1) · (∑ⱼ yⱼ²) / (n² ε²)`. -/
+theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → ℝ)
+    {ε : ℝ} (hε : 0 < ε) :
+    (Measure.pi fun _ : Fin n => gaussianReal 0 1)
+      {a | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, (a j ^ 2 - 1) * y j|} ≤
+      ENNReal.ofReal (gaussianSqCenteredVariance * (∑ j, y j ^ 2) / ((n : ℝ) ^ 2 * ε ^ 2)) := by
+  classical
+  let μ : Measure (Fin n → ℝ) := Measure.pi fun _ : Fin n => gaussianReal 0 1
+  let g : Fin n → ℝ → ℝ := fun j x => (x ^ 2 - 1) * y j
+  have hg : ∀ j, MemLp (g j) 2 (gaussianReal 0 1) := fun j => memLp_sq_sub_one_mul_gaussianReal (y j)
+  let S : (Fin n → ℝ) → ℝ := ∑ j, fun a => g j (a j)
+  have hS_eq : ∀ a, S a = ∑ j : Fin n, (a j ^ 2 - 1) * y j := by
+    intro a; simp [S, g, Finset.sum_apply]
+  have hS_mem : MemLp S 2 μ := by
+    refine memLp_finsetSum' _ fun j _ => ?_
+    exact (hg j).comp_measurePreserving (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)
+  have hX_mem : MemLp (fun a => (n : ℝ)⁻¹ * S a) 2 μ := hS_mem.const_mul _
+  have hS_fun : S = fun a => ∑ j : Fin n, g j (a j) := by
+    funext a; simp [S, Finset.sum_apply]
+  have hmean_S : μ[S] = 0 := by
+    have hj : ∀ j : Fin n, ∫ a, g j (a j) ∂μ = 0 := by
+      intro j
+      have hmp := measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j
+      have hgm : AEStronglyMeasurable (g j) (Measure.map (Function.eval j) μ) :=
+        (by fun_prop : Measurable (g j)).aestronglyMeasurable
+      calc ∫ a, g j (a j) ∂μ
+          = ∫ x, g j x ∂(Measure.map (Function.eval j) μ) :=
+            (integral_map hmp.measurable.aemeasurable hgm).symm
+        _ = ∫ x, g j x ∂(gaussianReal 0 1) := by rw [hmp.map_eq]
+        _ = 0 := by
+          simp only [g]
+          rw [integral_mul_const, integral_sub (memLp_sq_gaussianReal_two.integrable (by norm_num))
+            (integrable_const _), integral_sq_gaussianReal]
+          simp
+    rw [hS_fun]
+    rw [integral_finsetSum (f := fun (j : Fin n) (a : Fin n → ℝ) => g j (a j)) _ (fun j _ => ((hg j).comp_measurePreserving
+      (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)).integrable (by norm_num))]
+    exact Finset.sum_eq_zero fun j _ => hj j
+  have hmean : μ[fun a => (n : ℝ)⁻¹ * S a] = 0 := by
+    rw [integral_const_mul, hmean_S, mul_zero]
+  have hvarS : Var[S; μ] = gaussianSqCenteredVariance * ∑ j, y j ^ 2 := by
+    have h := variance_sum_pi (μ := fun _ : Fin n => gaussianReal 0 1) hg
+    simp only [S]
+    rw [h]
+    have hvj : ∀ j, Var[g j; gaussianReal 0 1] = y j ^ 2 * gaussianSqCenteredVariance := by
+      intro j
+      have : g j = fun x => y j * (x ^ 2 - 1) := by funext x; simp [g, mul_comm]
+      rw [this, variance_const_mul]
+      rfl
+    simp_rw [hvj, ← Finset.sum_mul, mul_comm]
+  have hvar : Var[fun a => (n : ℝ)⁻¹ * S a; μ] =
+      (n : ℝ)⁻¹ ^ 2 * (gaussianSqCenteredVariance * ∑ j, y j ^ 2) := by
+    rw [variance_const_mul, hvarS]
+  have hcheb := meas_ge_le_variance_div_sq hX_mem hε
+  rw [hmean, hvar] at hcheb
+  have hset : {a : Fin n → ℝ | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, (a j ^ 2 - 1) * y j|} =
+      {a | ε ≤ |(n : ℝ)⁻¹ * S a - 0|} := by
+    ext a; simp [hS_eq]
+  rw [hset]
+  refine hcheb.trans (le_of_eq ?_)
+  congr 1
+  have hn0 : (n : ℝ) ≠ 0 := by positivity
+  field_simp
 
 end NTK
 
