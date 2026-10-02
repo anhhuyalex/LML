@@ -325,6 +325,34 @@ theorem const_matrix_transpose {m R : Type*} (c : R) :
   ext α β
   rfl
 
+/-- The outer product `M * Mᵀ` of a real matrix is positive semidefinite. This is Mathlib's
+`Matrix.posSemidef_self_mul_conjTranspose` in the real (`Mᴴ = Mᵀ`) form used throughout `NTK`. -/
+theorem mul_transpose_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ) :
+    (M * Mᵀ).PosSemidef := by
+  simpa using Matrix.posSemidef_self_mul_conjTranspose M
+
+/-- Quadratic form of a conjugated matrix: `uᵀ (W A Wᵀ) v = (Wᵀ u)ᵀ A (Wᵀ v)`. -/
+theorem quadForm_mul_mul_transpose {m n R : Type*} [Fintype m] [Fintype n] [CommSemiring R]
+    (W : Matrix m n R) (A : Matrix n n R) (u v : m → R) :
+    u ⬝ᵥ ((W * A * Wᵀ) *ᵥ v) = (Wᵀ *ᵥ u) ⬝ᵥ (A *ᵥ (Wᵀ *ᵥ v)) := by
+  have h1 : (W * A * Wᵀ) *ᵥ v = W *ᵥ (A *ᵥ (Wᵀ *ᵥ v)) := by
+    rw [Matrix.mul_assoc, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
+  rw [h1, Matrix.dotProduct_mulVec, ← Matrix.mulVec_transpose W u]
+
+/-- The all-ones matrix is a right identity for the entrywise (Hadamard) product. Mathlib's
+`Matrix.hadamard_of_one` is stated for `Matrix.of 1`, which `simp` does not match against the
+`Matrix.of fun _ _ => 1` spelling used for terminal layers, so this is the simp-normal form here. -/
+@[simp]
+theorem hadamard_allOnes {m n α : Type*} [MulOneClass α] (A : Matrix m n α) :
+    A ⊙ Matrix.of (fun _ _ => 1) = A :=
+  Matrix.hadamard_of_one A
+
+/-- The all-ones matrix is a left identity for the entrywise (Hadamard) product. -/
+@[simp]
+theorem allOnes_hadamard {m n α : Type*} [MulOneClass α] (A : Matrix m n α) :
+    Matrix.of (fun _ _ => 1) ⊙ A = A :=
+  Matrix.of_one_hadamard A
+
 /-- The unscaled Gram matrix `M * Mᵀ` formed by vector dot products is positive semidefinite. -/
 theorem gram_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ) :
     (Matrix.of fun α β => M α ⬝ᵥ M β).PosSemidef := by
@@ -333,10 +361,7 @@ theorem gram_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ
     ext α β
     simp [Matrix.mul_apply, dotProduct]
   rw [h_eq]
-  have h1 : (1 : Matrix n n ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same M
-  simp only [Matrix.mul_one] at h
-  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
+  exact mul_transpose_posSemidef M
 
 /-- A non-negatively scaled Gram matrix `c • (M * Mᵀ)` is positive semidefinite. -/
 theorem scaled_gram_posSemidef {m n : Type*} [Finite m] [Fintype n]

@@ -63,12 +63,6 @@ open MeasureTheory ProbabilityTheory
 
 namespace NTK
 
-/-- Entrywise Hadamard product with the all-ones matrix on the right is the identity. -/
-theorem hadamard_const_one_right {m : Type*} (A : Matrix m m ℝ) :
-    A ⊙ (Matrix.of fun _ _ : m => (1 : ℝ)) = A := by
-  ext α β
-  simp [Matrix.hadamard_apply]
-
 /-- Deterministic limiting backward sensitivity covariance tensor `Π^ℓ ∈ ℝ^{m × m}`
 for `ℓ ∈ Fin (d + 1)` (Proposition 2.27):
 - Terminal condition `ℓ = d`: `Π^d = 1_{m × m}`
@@ -266,7 +260,7 @@ theorem deepLimitingNTK_ge_nngp (d m : ℕ) (φ φ' : ℝ → ℝ)
           Matrix.of fun _ _ => 1 := by
         have : (Fin.last d) = ⟨d, by omega⟩ := rfl
         rw [this, hterm]
-      rw [hd, hlast_eq, hadamard_const_one]
+      rw [hd, hlast_eq, allOnes_hadamard]
     exact hlast
   rw [hsplit, add_sub_cancel_right]
   apply Matrix.posSemidef_sum
@@ -294,7 +288,7 @@ theorem deepLimitingNTK_twoLayer_eq_add_hadamard (m : ℕ) (φ φ' : ℝ → ℝ
       have : (⟨(0 : Fin 2).val + 1, by omega⟩ : Fin 2) = ⟨1, by omega⟩ := rfl
       rw [this]
       exact deepLimitingSensitivityKernel_terminal 1 m φ φ' Φ0
-    rw [hterm, hadamard_const_one_right]
+    rw [hterm, hadamard_allOnes]
     rfl
   have h1 : deepLimitingSensitivityKernel 1 m φ φ' Φ0 1 =
       Matrix.of fun _ _ => 1 := by
@@ -304,7 +298,7 @@ theorem deepLimitingNTK_twoLayer_eq_add_hadamard (m : ℕ) (φ φ' : ℝ → ℝ
   have hcov0 : layerCovarianceSeq 1 0 φ m Φ0 (0 : Fin 2).val = Φ0 := rfl
   have hcov1 : layerCovarianceSeq 1 0 φ m Φ0 (1 : Fin 2).val =
       layerCovarianceSeq 1 0 φ m Φ0 1 := rfl
-  rw [h0, h1, hcov0, hcov1, hadamard_const_one, add_comm]
+  rw [h0, h1, hcov0, hcov1, allOnes_hadamard, add_comm]
 
 end NTK
 

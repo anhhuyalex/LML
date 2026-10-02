@@ -94,12 +94,6 @@ theorem deepEmpiricalNTK_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
   exact (deepSensitivityGram_posSemidef d n0 n m φ φ' X θ ℓ).hadamard
     (deepActivationGram_posSemidef d n0 n m φ X θ ℓ)
 
-/-- Entrywise Hadamard product with the all-ones matrix is the identity. -/
-theorem hadamard_const_one {m : Type*} (A : Matrix m m ℝ) :
-    (Matrix.of fun _ _ : m => (1 : ℝ)) ⊙ A = A := by
-  ext α β
-  simp [Matrix.hadamard_apply]
-
 /-- Loewner order dominance of the empirical NTK over the top-layer forward feature
 covariance (NNGP kernel): `Φ_d^{(n)} ≤ Θ^{emp, (d)}`.
 The difference `Θ^{emp, (d)} - Φ_d^{(n)} = ∑_{ℓ < d} G_{ℓ+1}^{(n)} ⊙ Φ_ℓ^{(n)}` is positive
@@ -120,7 +114,7 @@ theorem deepEmpiricalNTK_ge_nngp (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fi
       have hterm : deepSensitivityGram d n0 n m φ φ' X θ (Fin.last d) =
           Matrix.of fun _ _ => 1 := by
         apply deepSensitivityGram_terminal
-      rw [hterm, hadamard_const_one]
+      rw [hterm, allOnes_hadamard]
       rfl
     rw [hlast]
   rw [hsplit, add_sub_cancel_right]
@@ -142,7 +136,7 @@ theorem deepEmpiricalNTK_twoLayer_eq_add_hadamard (n0 n m : ℕ) (φ φ' : ℝ �
   rw [deepEmpiricalNTK, Fin.sum_univ_two]
   have hterm : deepSensitivityGram 1 n0 n m φ φ' X θ 1 = Matrix.of fun _ _ => 1 := by
     apply deepSensitivityGram_terminal
-  rw [hterm, hadamard_const_one]
+  rw [hterm, allOnes_hadamard]
   rw [add_comm]
 
 end NTK

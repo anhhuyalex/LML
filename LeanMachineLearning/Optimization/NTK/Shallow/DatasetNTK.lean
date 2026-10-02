@@ -132,10 +132,7 @@ state. -/
 theorem empiricalNTKMatrix_posSemidef (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (θ : EuclideanSpace ℝ (Fin P)) :
     (empiricalNTKMatrix f X θ).PosSemidef := by
-  have h1 : (1 : Matrix (Fin P) (Fin P) ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same (outputJacobian f X θ)
-  simp only [Matrix.mul_one] at h
-  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
+  exact mul_transpose_posSemidef _
 
 /-- Quadratic form evaluation: `vᵀ K v = ‖Jᵀ v‖²`. -/
 theorem empiricalNTKMatrix_quad_form (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)

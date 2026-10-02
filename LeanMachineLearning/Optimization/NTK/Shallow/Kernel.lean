@@ -204,11 +204,7 @@ theorem shallowEmpiricalNTK_dataset_posSemidef
     exact (sum_gradientMatrix_mul_eq_shallowEmpiricalNTK_of_sq_one
       σ' outerCoeffs W₀ (X α) (X β) houter).symm
   rw [h_eq]
-  have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same
-    (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
-  simp only [Matrix.mul_one] at h
-  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
+  exact mul_transpose_posSemidef _
 
 /-- The empirical NTK is positive semidefinite: for any finite set of points
 and coefficients `(αᵢ, xᵢ)`, `∑ᵢⱼ αᵢαⱼ kₘ(xᵢ, xⱼ) ≥ 0`.

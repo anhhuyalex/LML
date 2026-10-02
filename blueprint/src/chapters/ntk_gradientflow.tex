@@ -465,6 +465,30 @@ $\|s(t)\|\le\|r(0)\|$ because $K_\infty\succeq0$; thus $\|K-K_\infty\|\|s\|\le\v
 $\langle v_k,s(t)\rangle=e^{-\lambda_kt/m}\langle v_k,r(0)\rangle$ by Theorem~\ref{thm:ntkgf:eigenmodes}.
 \end{proof}
 
+\begin{remark}[Role of this section in the NTK development]\label{rmk:ntkgf:odeStabilityRole}
+  \uses{thm:ntkgf:odePerturbation, thm:ntkgf:residualFrozen, thm:ntkgf:matrixExp, thm:ntkgf:eigenmodes, thm:ntkgf:outputODE}
+\emph{Main result.} The true residual obeys $\partial_tr=-\frac1mK(\theta(t))\,r$ with a kernel that moves, whereas the previous section solved the same equation exactly for a constant kernel $K_\infty$. This section shows that the two solutions stay close when the kernel is nearly constant. Theorem~\ref{thm:ntkgf:odePerturbation} is the abstract statement: two linear ODEs whose coefficient matrices differ by a bounded amount produce solutions that differ by at most the initial gap plus $a\,t$, \emph{provided the true coefficient is positive semidefinite}. Theorem~\ref{thm:ntkgf:residualFrozen} specializes it to $A=K/m$, $B=K_\infty/m$. If $\|K(t)-K_\infty\|\le\varepsilon_K$ on $[0,T]$, then
+\[
+  \bigl\|r(t)-\exp(-\tfrac tmK_\infty)r(0)\bigr\|\le\tfrac1m\,\varepsilon_K\,\|r(0)\|\,t,
+\]
+and every eigenmode of the true residual stays within the same distance of its frozen curve.
+
+\emph{What it builds on.}
+\begin{itemize}
+  \item The equation being perturbed is the residual ODE of Theorem~\ref{thm:ntkgf:outputODE}, and the positive semidefiniteness of $K$ that makes the estimate free of an exponential factor is Lemma~\ref{lem:ntkgf:ntkPsd}.
+  \item The reference solution $\exp(-\frac tmK_\infty)r(0)$ and its eigenmode components are those of Theorems~\ref{thm:ntkgf:matrixExp} and~\ref{thm:ntkgf:eigenmodes}. The bound $\|s(t)\|\le\|r(0)\|$ used in part~(2) of Theorem~\ref{thm:ntkgf:residualFrozen} is the decay already established there.
+\end{itemize}
+
+\emph{Why no Gr\"onwall factor matters.} A general perturbation estimate for linear ODEs would grow like $e^{\|A\|t}$, which is useless on the time scales of interest because $\|K\|/m$ is not small. Dissipativity replaces that factor by the linear bound $a\,t$, so the error is small as soon as $\varepsilon_K\,t/m$ is small. This is why the kernel only has to be nearly constant on a time interval of fixed length, and no smallness relative to $\|K\|$ is needed.
+
+\emph{What it is used for.} The theorem takes $\varepsilon_K$ as a hypothesis and says nothing about why the kernel should be nearly constant. That input comes later.
+\begin{itemize}
+  \item Kernel stability and lazy training (Sections~\ref{sec:ntkgf:kernelStability} and~\ref{sec:ntkgf:bootstrap}) show that $\|K(\theta)-K(\theta_0)\|$ is small whenever $\theta$ stays near $\theta_0$, which supplies $\varepsilon_K$ with $K_\infty=K(\theta_0)$ or its limit.
+  \item The test-point prediction error (Theorems~\ref{thm:ntkgf:predictionError} and~\ref{thm:ntkgf:predictionUniform}) integrates the bound of part~(2) to compare the true prediction at a new input with the frozen-kernel prediction.
+  \item In the two-layer chapter, Theorem~\ref{thm:ntktl:residualLimit} combines the bound with kernel stationarity as the width tends to infinity, to show that the trained residual is asymptotically $\exp(-\frac tmK_\infty)(G-y)$.
+\end{itemize}
+\end{remark}
+
 
 \section{Kernel stability: Lipschitz propagation and Rayleigh quotients}\label{sec:ntkgf:kernelStability}
 
