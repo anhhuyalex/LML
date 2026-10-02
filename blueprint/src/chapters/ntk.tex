@@ -294,7 +294,7 @@ The empirical NTK is defined as the Gram matrix of the gradient features.
 
 \begin{lemma}[Frobenius inner product of gradients]\label{lem:ntk:frobInnerGradient}
   \uses{def:ntk:linearization}
-  \lean{NTK.sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter}
+  \lean{NTK.sum_gradientMatrix_mul_eq_shallowEmpiricalNTK_of_sq_one}
   \leanok
 The empirical NTK is exactly the Frobenius inner product of the network gradients:
 \[

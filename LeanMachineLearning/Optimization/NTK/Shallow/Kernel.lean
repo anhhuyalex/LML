@@ -33,7 +33,6 @@ needs the two-dimensional Gaussian computation from `NTK.ReLU.ArcCosine`.
 
 ## Main definitions
 
-* `NTK.shallowEmpiricalNTKWithOuter` : the empirical NTK with arbitrary fixed outer coefficients.
 * `NTK.shallowEmpiricalNTK` : the simplified empirical NTK when `aⱼ² = 1`.
 * `NTK.shallowLimitingNTK` : the limiting NTK `k(x, x')`.
 * `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
@@ -116,22 +115,6 @@ lemma dotProduct_scaled_dataset (d : ℕ) (hd : 0 < d) (x y : Fin d → ℝ) :
 
 /-! ### Empirical NTK (Definition 4.5) -/
 
-/-- The empirical NTK with arbitrary fixed outer coefficients:
-  `kₘ,a(x,x') = (xᵀx') · (1/m)∑ⱼ aⱼ² σ'(wⱼ₀ᵀx)σ'(wⱼ₀ᵀx')`.
-
-The lecture notes immediately simplify this expression using `aⱼ ∈ {±1}`. Keeping this
-general form around makes the connection to `gradientMatrix` explicit. -/
-noncomputable def shallowEmpiricalNTKWithOuter
-    (σ' : ℝ → ℝ)
-    (outerCoeffs : Fin m → ℝ)
-    (W₀ : Fin m → Fin d → ℝ)
-    (x x' : Fin d → ℝ) : ℝ :=
-  (x ⬝ᵥ x') *
-    ((m : ℝ)⁻¹ * ∑ j : Fin m,
-      outerCoeffs j ^ 2 *
-      σ' (∑ k : Fin d, W₀ j k * x k) *
-      σ' (∑ k : Fin d, W₀ j k * x' k))
-
 /-- **Definition 4.5** (Empirical neural tangent kernel, `aⱼ² = 1` case).
 Given initialization `W₀ : Fin m → Fin d → ℝ` and outer coefficients satisfying
 `aⱼ² = 1`, the empirical NTK is the kernel obtained as the Frobenius inner product
@@ -163,16 +146,21 @@ private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val
       rw [Real.mul_self_sqrt (inv_nonneg.2 (Nat.cast_nonneg m)), ← sq]
     _ = _ := by ring
 
-/-- The entrywise product sum of gradient features is the empirical NTK with the
-outer-coefficient squares included. -/
-lemma sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter
+/-- Frobenius inner product of the weight gradients of the two-layer network with arbitrary fixed
+outer coefficients `aⱼ`:
+`⟨∇_W f(x), ∇_W f(x')⟩_F = (xᵀx') · (1/m) ∑ⱼ aⱼ² σ'(wⱼ₀ᵀx) σ'(wⱼ₀ᵀx')`. -/
+lemma sum_gradientMatrix_mul_eq
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
     (∑ i : Fin m, ∑ j : Fin d,
       gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
         gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
-    shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
-  unfold gradientMatrix shallowEmpiricalNTKWithOuter dotProduct
+    (x ⬝ᵥ x') *
+      ((m : ℝ)⁻¹ * ∑ j : Fin m,
+        outerCoeffs j ^ 2 *
+        σ' (∑ k : Fin d, W₀ j k * x k) *
+        σ' (∑ k : Fin d, W₀ j k * x' k)) := by
+  unfold gradientMatrix dotProduct
   simp_rw [gradient_matrix_term_eq]
   rw [Finset.sum_comm]
   simp_rw [← Finset.mul_sum]
@@ -182,41 +170,24 @@ lemma sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter
   congr 1; ext i
   ring
 
-/-- If all fixed outer coefficients satisfy `aⱼ² = 1`, the general empirical NTK
-reduces to the simplified expression used in the notes. -/
-lemma shallowEmpiricalNTKWithOuter_eq_shallowEmpiricalNTK_of_sq_one
+/-- If all fixed outer coefficients satisfy `aⱼ² = 1`, the Frobenius inner product of the weight
+gradients is exactly `shallowEmpiricalNTK` (the simplified expression used in the notes). -/
+lemma sum_gradientMatrix_mul_eq_shallowEmpiricalNTK_of_sq_one
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ)
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
-    shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ x x' =
+    (∑ i : Fin m, ∑ j : Fin d,
+      gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
+        gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
     shallowEmpiricalNTK σ' W₀ x x' := by
-  simp [shallowEmpiricalNTKWithOuter, shallowEmpiricalNTK, houter]
+  rw [sum_gradientMatrix_mul_eq]
+  simp [shallowEmpiricalNTK, houter]
 
 /-- The empirical NTK is symmetric: `kₘ(x, x') = kₘ(x', x)`. -/
 lemma shallowEmpiricalNTK_symm
     (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
     shallowEmpiricalNTK σ' W₀ x x' = shallowEmpiricalNTK σ' W₀ x' x := by
   simp only [shallowEmpiricalNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
-
-/-- The dataset empirical NTK matrix with arbitrary outer coefficients is positive semidefinite. -/
-theorem shallowEmpiricalNTKWithOuter_dataset_posSemidef
-    (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
-    (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ) :
-    (Matrix.of (fun α β => shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β))).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)) =
-      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
-      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
-    ext α β
-    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
-    rw [Fintype.sum_prod_type]
-    exact (sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter
-      σ' outerCoeffs W₀ (X α) (X β)).symm
-  rw [h_eq]
-  have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
-  have h := h1.mul_mul_conjTranspose_same
-    (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
-  simp only [Matrix.mul_one] at h
-  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
 
 /-- The dataset empirical NTK matrix (`aⱼ² = 1` case) is positive semidefinite. -/
 theorem shallowEmpiricalNTK_dataset_posSemidef
@@ -225,13 +196,19 @@ theorem shallowEmpiricalNTK_dataset_posSemidef
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
     (Matrix.of (fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
   have h_eq : (Matrix.of fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β)) =
-      Matrix.of fun α β => shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
+      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
+      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
     ext α β
-    simp only [Matrix.of_apply]
-    exact (shallowEmpiricalNTKWithOuter_eq_shallowEmpiricalNTK_of_sq_one
+    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
+    rw [Fintype.sum_prod_type]
+    exact (sum_gradientMatrix_mul_eq_shallowEmpiricalNTK_of_sq_one
       σ' outerCoeffs W₀ (X α) (X β) houter).symm
   rw [h_eq]
-  exact shallowEmpiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
+  have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
+  have h := h1.mul_mul_conjTranspose_same
+    (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)
+  simp only [Matrix.mul_one] at h
+  rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
 
 /-- The empirical NTK is positive semidefinite: for any finite set of points
 and coefficients `(αᵢ, xᵢ)`, `∑ᵢⱼ αᵢαⱼ kₘ(xᵢ, xⱼ) ≥ 0`.
