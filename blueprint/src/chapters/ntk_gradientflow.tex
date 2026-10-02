@@ -73,9 +73,9 @@ Fix a test input $x$ and write $g_\theta(x):=\nabla_\theta f(x;\theta)\in\mathbb
   k_\theta(x)_\alpha\;:=\;\bigl\langle\nabla_\theta f(x;\theta),\,\nabla_\theta f(x^\alpha;\theta)\bigr\rangle ,\qquad\alpha=1,\dots,m,
 \]
 that is, the inner product of the test point's tangent feature with each training point's tangent feature. It is the NTK evaluated on the pairs $(x,x^\alpha)$.
-Collecting it with the \emph{test norm} $\kappa_\theta(x):=\|g_\theta(x)\|^2=\langle g_\theta(x),g_\theta(x)\rangle$, the empirical NTK matrix of the \emph{extended dataset} $(x^1,\dots,x^m,x)$ has the block form
+Collecting it with the \emph{test norm} $q_\theta(x):=\|g_\theta(x)\|^2=\langle g_\theta(x),g_\theta(x)\rangle$, the empirical NTK matrix of the \emph{extended dataset} $(x^1,\dots,x^m,x)$ has the block form
 \[
-  K^{\mathrm{ext}}(\theta)=\begin{pmatrix}K(\theta)&k_\theta(x)\\ k_\theta(x)^\top&\kappa_\theta(x)\end{pmatrix}.
+  K^{\mathrm{ext}}(\theta)=\begin{pmatrix}K(\theta)&k_\theta(x)\\ k_\theta(x)^\top&q_\theta(x)\end{pmatrix}.
 \]
 In Lean there is no separate definition: the cross-kernel is always written out as $\langle\texttt{tangentFeature}\,f\,x\,\theta,\texttt{tangentFeature}\,f\,(X\,\alpha)\,\theta\rangle$, or as the vector $J(\theta)\,\nabla f(x;\theta)$, and the two lemmas below identify these descriptions.
 \end{definition}
@@ -86,7 +86,7 @@ In Lean there is no separate definition: the cross-kernel is always written out 
   \leanok
 For a test input $x$, every $\theta$ and every training index $\alpha$:
 \begin{enumerate}
-  \item (last row of an extended NTK) In the empirical NTK matrix of the extended dataset $(x^1,\dots,x^m,x)$, the entry in the last row and column $\alpha$ is $\langle\nabla f(x;\theta),\nabla f(x^\alpha;\theta)\rangle=k_\theta(x)_\alpha$, and the last diagonal entry is $\|\nabla f(x;\theta)\|^2=\kappa_\theta(x)$.
+  \item (last row of an extended NTK) In the empirical NTK matrix of the extended dataset $(x^1,\dots,x^m,x)$, the entry in the last row and column $\alpha$ is $\langle\nabla f(x;\theta),\nabla f(x^\alpha;\theta)\rangle=k_\theta(x)_\alpha$, and the last diagonal entry is $\|\nabla f(x;\theta)\|^2=q_\theta(x)$.
   \item (matrix--vector form) $k_\theta(x)=J(\theta)\,\nabla_\theta f(x;\theta)$, where $J(\theta)$ is the output Jacobian of the \emph{training} dataset.
 \end{enumerate}
 \end{lemma}
@@ -538,22 +538,27 @@ The bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) resolves this. Below,
 (Definition~\ref{def:ntkgf:forwardGF}) and every output is differentiable along it.
 
 \begin{theorem}[Displacement of a linear image of a gradient flow]\label{thm:ntkgf:displacementLinear}
-  \uses{def:ntkgf:forwardGF}
+  \uses{def:ntkgf:forwardGF, def:ntkgf:outputs, def:ntkgf:jacobian, thm:ntkgf:mseGradient}
   \lean{NTK.restrictCoords, NTK.restrictCoords_apply, NTK.norm_sq_restrictCoords,
         NTK.sum_sq_mulVec_transpose_le, NTK.norm_restrictCoords_gradient_mseLoss_le,
         NTK.norm_map_sub_le_integral_of_forwardGF}
   \leanok
-Let $\mathrm{Lin}$ be a continuous linear map and suppose $\|\mathrm{Lin}(\nabla L(\theta(t)))\|\le B(t)$ on $[0,T]$ with $B$ interval integrable. Then
-$\|\mathrm{Lin}(\theta(T)-\theta_0)\|\le\int_0^TB(t)\,dt$. For the restriction to a block of coordinates $k:\kappa\to\{1,\dots,P\}$, the speed of the block under the MSE flow is
+Let $\theta$ be a forward gradient flow (Definition~\ref{def:ntkgf:forwardGF}) of a loss $L$ on the parameter space $\mathbb R^P$ (more generally, on a real Hilbert space $E$). Let $F$ be any normed space and $\mathrm{Lin}:\mathbb R^P\to F$ a continuous linear map from the parameter space into $F$: it extracts or summarizes some feature of the parameter vector.
+Two cases are used below: $F=\mathbb R^P$ with $\mathrm{Lin}=\mathrm{id}$, which gives the displacement of the whole parameter vector, and $F=\mathbb R^\kappa$ with $\mathrm{Lin}$ a coordinate restriction (defined next), which gives the displacement of a subset of the parameters, for example the weights of a single neuron.
+Suppose $\|\mathrm{Lin}(\nabla L(\theta(t)))\|_F\le B(t)$ on $[0,T]$ with $B$ interval integrable. Then
+$\|\mathrm{Lin}(\theta(T)-\theta_0)\|_F\le\int_0^TB(t)\,dt$. A \emph{block of coordinates} is a chosen subset of the $P$ parameters, regarded as one group: the sub-vector of $\theta$ made of those entries only. For the two-layer network, a natural block is all the parameters belonging to one hidden neuron $i$, namely its input weights $W_{i1},\dots,W_{id}$ and its readout weight $a_i$ (so $d+1$ of the $nd+n$ coordinates; the parametrization of the two-layer network by a flat parameter vector is Definition~\ref{def:ntktl:packing}).
+The \emph{speed of the block} is how fast those parameters move, namely the norm of the corresponding entries of $\theta'=-\nabla L(\theta)$. The theorem bounds how far a block can travel in time $T$ by integrating its speed, which is smaller than the speed of the whole parameter vector; this is what allows the displacement of each neuron to be controlled by its own size, as used in Theorem~\ref{thm:ntktl:neuronDisplacement}.
+For the restriction to a block of coordinates, i.e.\ the map $\mathrm{Lin}=\texttt{restrictCoords}\,k:\mathbb R^P\to\mathbb R^\kappa$, $v\mapsto(v_{k(o)})_{o\in\kappa}$, where $\kappa$ is a finite index set (a finite type; the labels of the chosen coordinates) and $k:\kappa\to\{1,\dots,P\}$ is a function sending each label $o\in\kappa$ to the number of the parameter coordinate it selects (an enumeration of the chosen coordinates; in Lean $k$ is an arbitrary function, and it is injective in the intended use, where each coordinate is selected once), the speed of the block under the MSE flow (loss $L$ and residual $r$ of Definition~\ref{def:ntkgf:outputs}, output Jacobian $J$ of Definition~\ref{def:ntkgf:jacobian}) is
 \[
   \bigl\|(\nabla L(\theta))_{\text{block}}\bigr\|\le\frac1m\Bigl(\sum_{\alpha}\sum_{o\in\kappa}J_{\alpha,k(o)}(\theta)^2\Bigr)^{1/2}\|r(\theta)\| .
 \]
 \end{theorem}
 
 \begin{proof}
+  \uses{def:ntkgf:forwardGF, thm:ntkgf:mseGradient}
   \leanok
-Since $\theta'=-\nabla L(\theta)$ and $\mathrm{Lin}$ is linear and continuous, $\mathrm{Lin}(\theta(T)-\theta_0)=-\int_0^T\mathrm{Lin}(\nabla L(\theta(t)))dt$, whose norm is at most $\int_0^TB$. Only the ODE for $t>0$ and continuity on
-$[0,\infty)$ are used. For the block bound, $\nabla L=\frac1mJ^\top r$ and Cauchy--Schwarz gives $\sum_o(\sum_\alpha r^\alpha J_{\alpha o})^2\le\|r\|^2\sum_{\alpha,o}J_{\alpha o}^2$.
+Since $\theta'=-\nabla L(\theta)$ (Definition~\ref{def:ntkgf:forwardGF}) and $\mathrm{Lin}$ is linear and continuous, $\mathrm{Lin}(\theta(T)-\theta_0)=-\int_0^T\mathrm{Lin}(\nabla L(\theta(t)))dt$, whose norm is at most $\int_0^TB$. Only the ODE for $t>0$ and continuity on
+$[0,\infty)$ are used. For the block bound, $\nabla L=\frac1mJ^\top r$ (Theorem~\ref{thm:ntkgf:mseGradient}) and Cauchy--Schwarz gives $\sum_o(\sum_\alpha r^\alpha J_{\alpha o})^2\le\|r\|^2\sum_{\alpha,o}J_{\alpha o}^2$.
 \end{proof}
 
 \begin{lemma}[Loss monotonicity and continuity of the residual]\label{lem:ntkgf:lossMonotone}
