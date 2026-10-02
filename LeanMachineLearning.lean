@@ -92,6 +92,7 @@ public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Initialization
+public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalConcentration
 public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalNormality
 public import LeanMachineLearning.Optimization.NTK.Initialization.CovariancePropagation
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepNNGPTheorems

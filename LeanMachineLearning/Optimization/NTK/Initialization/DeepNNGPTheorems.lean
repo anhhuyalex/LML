@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
+public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalConcentration
 
 /-!
 # Theorem 2.13 (deep NNGP recursion): main theorems
@@ -17,8 +18,9 @@ Asymptotic propagation of the empirical covariance and the deep NNGP recursion t
 * `NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq` : the corresponding
   recursive forward-kernel statement for continuous polynomial-growth activations.
 * `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in
-  probability $\Phi_\ell^{(n)} \xrightarrow{\mathbb{P}} \Phi_\ell$. **Currently `sorry`d** — see
-  its docstring for the remaining random-conditional-layer fluctuation argument.
+  probability $\Phi_\ell^{(n)} \xrightarrow{\mathbb{P}} \Phi_\ell$. The successor step is
+  `deepPreactivation_succ_deviation_tendsto` (conditional Chebyshev with a random covariance, from
+  `Initialization/ConditionalConcentration.lean`).
 * `NTK.measurable_deepEval`, `NTK.deepEval_covariance_posSemidef`,
   `NTK.map_deepEval_snd_eq_multivariateGaussian`, `NTK.charFun_map_deepEval`,
   `NTK.norm_charFun_deepEval_le_one`, `NTK.aestronglyMeasurable_charFun_deepEval`,
@@ -28,7 +30,7 @@ Asymptotic propagation of the empirical covariance and the deep NNGP recursion t
 * `NTK.tendstoInDistribution_deepEval` : Part 2, output convergence in distribution
   $\mathbf{f}_m(\boldsymbol{\theta}) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \Phi_L)$. Fully
   proved (reuses `NTK.exact_conditional_normality_general_multivariate` verbatim for the exact
-  conditional normality step; depends on Part 1's statement, which is still `sorry`d above).
+  conditional normality step, and Part 1 above).
 
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
@@ -301,6 +303,171 @@ lemma conditional_deepPreactivation_succ_infinite_eq_pi
 
 end AsymptoticEmpiricalCovariancePropagation
 
+/-- Measurability of `deepPreactivation` as a function of the layer-weight population, for fixed
+width `n` and layer `ℓ`. -/
+lemma measurable_deepPreactivation (d m n L : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (α : Fin m) (j : Fin n) :
+    Measurable (fun w : Fin L → ℕ → ℕ → ℝ =>
+      deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) := by
+  have h_coord : ∀ ℓ0 : ℕ, Measurable
+      (fun w : Fin L → ℕ → ℕ → ℝ => (if h : ℓ0 < L then w ⟨ℓ0, h⟩ else 0)) := by
+    intro ℓ0
+    by_cases hℓ0 : ℓ0 < L
+    · simpa [hℓ0] using measurable_pi_apply (⟨ℓ0, hℓ0⟩ : Fin L)
+    · simp [hℓ0]
+  induction ℓ generalizing α j with
+  | zero =>
+    simp only [deepPreactivation]
+    unfold dotProduct
+    refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
+    exact ((measurable_pi_apply k.val).comp
+      ((measurable_pi_apply j.val).comp (h_coord 0))).mul_const _
+  | succ ℓ ih =>
+    simp only [deepPreactivation]
+    refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
+    exact (((measurable_pi_apply k.val).comp
+      ((measurable_pi_apply j.val).comp (h_coord (ℓ + 1)))).mul (hφ_meas.comp (ih α k)))
+
+/-- **Successor-layer deviation for the deep covariance recursion.** Conditionally on the first
+`ℓ + 1` layer populations, layer `ℓ + 1` is i.i.d. `𝒩(0, Φ̂_ℓ^{(n)})` with the *random* empirical
+covariance `Φ̂_ℓ^{(n)}` of layer `ℓ` (built from the activation `φ`). If `Φ̂_ℓ^{(n)} → Klim` in
+measure, then for *any* continuous polynomial-growth `ψ` the empirical entry
+`n⁻¹ ∑_j ψ(h_j^α) ψ(h_j^β)` of layer `ℓ + 1` is within `δ` of its conditional mean
+`∫ ψ ψ d𝒩(0, Φ̂_ℓ^{(n)})` with probability tending to `1`. Taking `ψ = φ` gives the forward
+covariance; `ψ = φ'` gives the derivative Gram matrix.
+
+Proof: split the `Fin L`-indexed product at coordinate `ℓ + 1` (`measurePreserving_piFinSuccAbove`);
+`Φ̂_ℓ^{(n)}` ignores that coordinate (`deepPreactivation_congr_of_eqOn`), the conditional-law bridge
+`conditional_deepPreactivation_succ_infinite_eq_pi` identifies the fresh layer, and
+`tendsto_measure_conditional_activationProduct` is the conditional Chebyshev estimate. -/
+theorem deepPreactivation_succ_deviation_tendsto
+    (d m L : ℕ) (φ ψ : ℝ → ℝ) (hφ_cont : Continuous φ) (hψ_cont : Continuous ψ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hψ_growth : ∀ x : ℝ, |ψ x| ≤ C * (1 + |x| ^ p))
+    (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (hℓ : ℓ + 1 < L)
+    (Klim : Matrix (Fin m) (Fin m) ℝ) (hKlim : Klim.PosSemidef)
+    (hprev : TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => fun α β : Fin m =>
+        (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))
+      Filter.atTop (fun _ => Klim))
+    (α β : Fin m) {δ : ℝ} (hδ : 0 < δ) :
+    Filter.Tendsto (fun n : ℕ =>
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      {w | δ ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n,
+          ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (ℓ + 1) α j) *
+          ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (ℓ + 1) β j) -
+        ∫ z : EuclideanSpace ℝ (Fin m), ψ (z.ofLp α) * ψ (z.ofLp β) ∂multivariateGaussian 0
+          (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
+            φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+            φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))|})
+      Filter.atTop (nhds 0) := by
+  classical
+  obtain ⟨L', rfl⟩ : ∃ L', L = L' + 1 := ⟨L - 1, by omega⟩
+  set ν₀ : Measure (ℕ → ℕ → ℝ) := Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
+    gaussianReal 0 1 with hν₀
+  let i : Fin (L' + 1) := ⟨ℓ + 1, hℓ⟩
+  let e := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (L' + 1) => ℕ → ℕ → ℝ) i
+  have he : MeasurePreserving e (Measure.pi fun _ : Fin (L' + 1) => ν₀)
+      (ν₀.prod (Measure.pi fun _ : Fin L' => ν₀)) :=
+    measurePreserving_piFinSuccAbove (fun _ => ν₀) i
+  have hes : MeasurePreserving e.symm (ν₀.prod (Measure.pi fun _ : Fin L' => ν₀))
+      (Measure.pi fun _ : Fin (L' + 1) => ν₀) := he.symm e
+  let tr : (Fin (L' + 1) → ℕ → ℕ → ℝ) → ℕ → ℕ → ℕ → ℝ :=
+    fun w k => if h : k < L' + 1 then w ⟨k, h⟩ else 0
+  have hcongr : ∀ (a a' : ℕ → ℕ → ℝ) (b : Fin L' → ℕ → ℕ → ℝ) (k : ℕ), k ≤ ℓ →
+      tr (e.symm (a, b)) k = tr (e.symm (a', b)) k := by
+    intro a a' b k hk
+    have hk' : k < L' + 1 := by omega
+    have hne : (⟨k, hk'⟩ : Fin (L' + 1)) ≠ i := by
+      intro h; have := congrArg Fin.val h; simp [i] at this; omega
+    obtain ⟨z, hz⟩ := Fin.exists_succAbove_eq hne
+    simp only [tr, hk', dite_true, e, MeasurableEquiv.piFinSuccAbove_symm_apply]
+    rw [← hz]
+    simp [Fin.insertNth_apply_succAbove]
+  have hnew : ∀ (a : ℕ → ℕ → ℝ) (b : Fin L' → ℕ → ℕ → ℝ), tr (e.symm (a, b)) (ℓ + 1) = a := by
+    intro a b
+    simp only [tr, hℓ, dite_true, e, MeasurableEquiv.piFinSuccAbove_symm_apply]
+    exact Fin.insertNth_apply_same (α := fun _ => ℕ → ℕ → ℝ) i a b
+  -- conditional covariance (random, depends only on the past)
+  let Kfull : ∀ n : ℕ, (Fin (L' + 1) → ℕ → ℕ → ℝ) → Matrix (Fin m) (Fin m) ℝ :=
+    fun n w α β => (n : ℝ)⁻¹ * ∑ k : Fin n,
+      φ (deepPreactivation d m n φ X (tr w) ℓ α k) * φ (deepPreactivation d m n φ X (tr w) ℓ β k)
+  have hKfull_meas : ∀ n, Measurable (Kfull n) := by
+    intro n
+    refine measurable_pi_iff.2 fun α' => measurable_pi_iff.2 fun β' => ?_
+    refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
+    exact (hφ_cont.measurable.comp
+        (measurable_deepPreactivation d m n (L' + 1) φ hφ_cont.measurable X ℓ α' k)).mul
+      (hφ_cont.measurable.comp
+        (measurable_deepPreactivation d m n (L' + 1) φ hφ_cont.measurable X ℓ β' k))
+  have hKfull_psd : ∀ n w, (Kfull n w).PosSemidef := by
+    intro n w
+    simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
+      (fun j α => φ (deepPreactivation d m n φ X (tr w) ℓ α j))
+  have hKfull_tendsto : TendstoInMeasure (Measure.pi fun _ : Fin (L' + 1) => ν₀) Kfull
+      Filter.atTop (fun _ => Klim) := hprev
+  have hK_tendsto : TendstoInMeasure (ν₀.prod (Measure.pi fun _ : Fin L' => ν₀))
+      (fun n q => Kfull n (e.symm q)) Filter.atTop (fun _ => Klim) := by
+    have := tendstoInMeasure_comp_measurePreserving (E := Fin m → Fin m → ℝ)
+      hKfull_tendsto hes (fun n => hKfull_meas n) (measurable_const : Measurable fun _ => Klim)
+    exact this
+  have hK_const : ∀ n a a' b, Kfull n (e.symm (a, b)) = Kfull n (e.symm (a', b)) := by
+    intro n a a' b
+    have h := deepPreactivation_congr_of_eqOn d m n φ X (tr (e.symm (a, b)))
+      (tr (e.symm (a', b))) ℓ fun k hk => hcongr a a' b k hk
+    simp only [Kfull, h]
+    rfl
+  let Z : ∀ n : ℕ, (ℕ → ℕ → ℝ) × (Fin L' → ℕ → ℕ → ℝ) → (Fin n → EuclideanSpace ℝ (Fin m)) :=
+    fun n q j => WithLp.toLp 2 fun α' =>
+      deepPreactivation d m n φ X (tr (e.symm q)) (ℓ + 1) α' j
+  have hZ_meas : ∀ n, Measurable (Z n) := by
+    intro n
+    refine measurable_pi_iff.2 fun j => ?_
+    apply (PiLp.continuous_toLp 2 _).measurable.comp
+    refine measurable_pi_iff.2 fun α' => ?_
+    exact (measurable_deepPreactivation d m n (L' + 1) φ hφ_cont.measurable X (ℓ + 1) α' j).comp
+      e.symm.measurable
+  have hZ_law : ∀ n a b, Measure.map (fun a' => Z n (a', b)) ν₀ =
+      Measure.pi fun _ : Fin n => multivariateGaussian 0 (Kfull n (e.symm (a, b))) := by
+    intro n a b
+    have hfun : (fun a' => Z n (a', b)) =
+        (fun V : ℕ → ℕ → ℝ => fun j : Fin n => WithLp.toLp 2 fun α' : Fin m =>
+          deepPreactivation d m n φ X
+            (fun k => if _ : k ≤ ℓ then tr (e.symm (a, b)) k else if k = ℓ + 1 then V else 0)
+            (ℓ + 1) α' j) := by
+      funext a' j
+      simp only [Z]
+      congr 1
+      funext α'
+      have := deepPreactivation_congr_of_eqOn d m n φ X (tr (e.symm (a', b)))
+        (fun k => if _ : k ≤ ℓ then tr (e.symm (a, b)) k else if k = ℓ + 1 then a' else 0)
+        (ℓ + 1) (by
+          intro k hk
+          by_cases hk1 : k ≤ ℓ
+          · simp [hk1, hcongr a' a b k hk1]
+          · have : k = ℓ + 1 := by omega
+            subst this
+            simp [hnew])
+      rw [this]
+    rw [hfun]
+    exact conditional_deepPreactivation_succ_infinite_eq_pi d m n φ X (tr (e.symm (a, b))) ℓ
+  have hmain := tendsto_measure_conditional_activationProduct
+    (Measure.pi fun _ : Fin L' => ν₀) ν₀ m ψ hψ_cont C hC p hp hψ_growth
+    (fun n q => Kfull n (e.symm q)) Klim hKlim
+    (fun n => (hKfull_meas n).comp e.symm.measurable) (fun n q => hKfull_psd n _)
+    (fun n a a' b => hK_const n a a' b) hK_tendsto Z hZ_meas hZ_law α β hδ
+  refine hmain.congr fun n => ?_
+  rw [← he.measure_preimage_equiv]
+  congr 1
+  ext w
+  simp only [Set.mem_preimage, Set.mem_ofPred_eq, Z, Kfull, MeasurableEquiv.symm_apply_apply]
+  rfl
+
 section DeepNNGPRecursion
 
 /-! ## Theorem 2.13 (Deep NNGP Recursion): Main Theorems
@@ -347,10 +514,10 @@ empirical covariance of the depth-`L` network's layer-`(ℓ+1)` post-activations
 probability to the deterministic recursive kernel `layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)`, where
 `Φ0 α β := (d:ℝ)⁻¹ * (X α ⬝ᵥ X β)` is the base Gram matrix.
 
-The base-layer transport is `input_empiricalCovariance_tendstoInMeasure`.  The remaining proof
-must package the conditional Gaussian product law for a layer whose preceding empirical covariance
-is random, then combine its conditional Chebyshev bound with the relative continuous-mapping
-theorem. -/
+The base-layer transport is `input_empiricalCovariance_tendstoInMeasure`.  In the successor step
+the conditional Gaussian product law of the fresh layer (random empirical covariance of the previous
+layer) is combined with its conditional Chebyshev bound
+(`deepPreactivation_succ_deviation_tendsto`) and the relative continuous-mapping theorem. -/
 theorem deepEmpiricalCovariance_tendstoInMeasure
     (d m L : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
@@ -408,7 +575,11 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
       intro ε hε
       refine tendsto_matrixTail_of_tendsto_entrywise m ?_ ε hε
       intro α β δ hδ
-      sorry
+      simpa only [Real.dist_eq] using
+        deepPreactivation_succ_deviation_tendsto d m L φ φ hφ_cont hφ_cont C hC p hp hφ_growth
+          X ℓ hℓ
+          (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1))
+          (hlimit_pos (ℓ + 1)) hprevious α β hδ
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
 `gaussianReadoutMeasure n`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/
@@ -416,31 +587,6 @@ lemma map_infinitePi_real_eq_gaussianReadoutMeasure (n : ℕ) :
     Measure.map (fun (rows : ℕ → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) = gaussianReadoutMeasure n := by
   rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
-
-/-- Measurability of `deepPreactivation` as a function of the layer-weight population, for fixed
-width `n` and layer `ℓ`. -/
-lemma measurable_deepPreactivation (d m n L : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (α : Fin m) (j : Fin n) :
-    Measurable (fun w : Fin L → ℕ → ℕ → ℝ =>
-      deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) := by
-  have h_coord : ∀ ℓ0 : ℕ, Measurable
-      (fun w : Fin L → ℕ → ℕ → ℝ => (if h : ℓ0 < L then w ⟨ℓ0, h⟩ else 0)) := by
-    intro ℓ0
-    by_cases hℓ0 : ℓ0 < L
-    · simpa [hℓ0] using measurable_pi_apply (⟨ℓ0, hℓ0⟩ : Fin L)
-    · simp [hℓ0]
-  induction ℓ generalizing α j with
-  | zero =>
-    simp only [deepPreactivation]
-    unfold dotProduct
-    refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
-    exact ((measurable_pi_apply k.val).comp
-      ((measurable_pi_apply j.val).comp (h_coord 0))).mul_const _
-  | succ ℓ ih =>
-    simp only [deepPreactivation]
-    refine measurable_const.mul (Finset.measurable_sum _ fun k _ => ?_)
-    exact (((measurable_pi_apply k.val).comp
-      ((measurable_pi_apply j.val).comp (h_coord (ℓ + 1)))).mul (hφ_meas.comp (ih α k)))
 
 /-- Measurability of the depth-`L` network's width-`n` output map (readout weights times the
 final hidden layer's activations, summed and scaled), jointly in the hidden and readout weight

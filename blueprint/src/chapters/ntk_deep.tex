@@ -546,11 +546,11 @@ $\Phi^{(n)}_\ell(\alpha,\beta)=\frac1n\sum_{j<n}\varphi(h_\ell(\alpha)_j)\varphi
 
 \begin{proof}
   \uses{lem:ntkdeep:freshLayer, thm:ntkdeep:covarianceContinuity, lem:ntkdeep:probTools, thm:ntkdeep:covariancePropagation}
-\textbf{(Formalization status: the statement is in Lean; this proof is not yet formalized, the declaration ends in \texttt{sorry}.)}
+  \leanok
 The proof is an induction on $\ell$. The base case is Lemma~\ref{lem:ntkdeep:freshLayer}(1). For the step, assume $\Phi^{(n)}_{\ell-1}\to\Phi_\ell$ in probability. Condition on the weights of layers $<\ell$ (the history): by Lemma~\ref{lem:ntkdeep:freshLayer}(2) the layer-$\ell$ preactivation vectors are i.i.d.\ Gaussian with covariance equal to the \emph{random}
 empirical covariance $\Phi^{(n)}_{\ell-1}$, and by Theorem~\ref{thm:ntkdeep:covariancePropagation} their activated empirical covariance is, conditionally, within $O(n^{-1/2})$ in probability of $\mathcal C_\varphi(\Phi^{(n)}_{\ell-1})$, with the conditional variance localized (the single-neuron second moment is continuous on the cone, Theorem~\ref{thm:ntkdeep:covarianceContinuity}, and $\Phi^{(n)}_{\ell-1}$ is close to the deterministic limit).
 By the continuity of $\mathcal C_\varphi$ on the positive semidefinite cone (Theorem~\ref{thm:ntkdeep:covarianceContinuity}) and the continuous-mapping lemma (Lemma~\ref{lem:ntkdeep:probTools}(1)), $\mathcal C_\varphi(\Phi^{(n)}_{\ell-1})\to\mathcal C_\varphi(\Phi_\ell)=\Phi_{\ell+1}$ in probability, and the two-stage lemma (Lemma~\ref{lem:ntkdeep:probTools}(2)) combines the fresh-layer fluctuation with this deterministic update.
-The remaining formalization gap is the packaging of the conditional Gaussian product law for a layer whose preceding empirical covariance is random, combined with its conditional Chebyshev bound.
+Formally, the conditional step is \texttt{tendsto\_measure\_conditional\_activationProduct}: Fubini over the fresh layer, the fixed-covariance Chebyshev bound with the single-neuron second moment, and localization of that moment near its limit by the continuity statement above. The $Fin\,L$-indexed product is split at the new layer with \texttt{measurePreserving\_piFinSuccAbove} (\texttt{deepPreactivation\_succ\_deviation\_tendsto}).
 \end{proof}
 
 \begin{theorem}[Deep NNGP limit, Part~2: standalone form]\label{thm:ntkdeep:deepOutputStandalone}
