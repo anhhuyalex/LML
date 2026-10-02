@@ -111,8 +111,10 @@ theorem deepEmpiricalNTK_entry_tendstoInMeasure_of_layerwise
 
 
 /-- **Transport from the `Fin d`-indexed weight population to the `(W, w_out)` product measure.**
-The restriction `(W, w_out) ↦ (W 0, …, W (d - 1))` is measure preserving, so convergence in measure of
-a measurable scalar family of the first `d` weight populations transfers to the product measure used by
+The restriction `(W, w_out) ↦ (W 0, …, W (d - 1))` is measure preserving, so convergence in measure
+of
+a measurable scalar family of the first `d` weight populations transfers to the product measure
+used by
 `DeepMLPParams.ofTensor`. -/
 theorem tendstoInMeasure_prod_of_prefix (d : ℕ) (F : ℕ → (Fin d → ℕ → ℕ → ℝ) → ℝ) (c : ℝ)
     (hF : ∀ n, Measurable (F n))
@@ -178,10 +180,13 @@ theorem deepActivationGram_entry_tendstoInMeasure
     rw [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 k hk, hcongr]
   · rfl
 
-/-- **Derivative Gram concentration (sub-lemma 1.1 of the backward step).** For `k < d` the empirical
+/-- **Derivative Gram concentration (sub-lemma 1.1 of the backward step).** For `k < d` the
+empirical
 derivative Gram entry `Φ'^{(n), αβ}_k = n⁻¹ ∑_j φ'(h_{k,j}^α) φ'(h_{k,j}^β)` converges in measure to
-`∫ φ' φ' d𝒩(0, Σ^k)` with `Σ^k = layerCovarianceSeq 1 0 φ m Φ0 k`, i.e. the factor `Σ̇^k` appearing in
-`deepLimitingSensitivityKernel`. Note that the covariance is built from `φ` while the averaged feature is
+`∫ φ' φ' d𝒩(0, Σ^k)` with `Σ^k = layerCovarianceSeq 1 0 φ m Φ0 k`, i.e. the factor `Σ̇^k` appearing
+in
+`deepLimitingSensitivityKernel`. Note that the covariance is built from `φ` while the averaged
+feature is
 `φ'`; this is `deepEmpiricalFeatureCovariance_tendstoInMeasure` with `ψ = φ'`. -/
 theorem deepDerivativeGram_entry_tendstoInMeasure
     (d n0 m : ℕ) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
@@ -199,7 +204,8 @@ theorem deepDerivativeGram_entry_tendstoInMeasure
         deepDerivativeGram d n0 n m φ φ' X (DeepMLPParams.ofTensor d n0 n q.1 q.2)
           ⟨k, hk⟩ α β)
       Filter.atTop
-      (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂multivariateGaussian 0
+      (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β)
+        ∂multivariateGaussian 0
         (layerCovarianceSeq 1 0 φ m (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) k)) := by
   have hν := deepEmpiricalFeatureCovariance_tendstoInMeasure n0 m d φ φ' hφ_cont hφ'_cont C hC p hp
     hφ_growth C' hC' p' hp' hφ'_growth X k hk
@@ -226,78 +232,6 @@ theorem deepDerivativeGram_entry_tendstoInMeasure
     simp only [deepDerivativeGram, Matrix.of_apply, dotProduct]
     rw [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 k hk, hcongr]
   · rfl
-
-/-- **Backward covariance concentration (the core of Theorem 2.27).** For `k < d` the empirical
-backward Gram entry `G_k^{(n), αβ} = n⁻¹ ⟨g_k^α, g_k^β⟩` (`deepSensitivityGram`) converges in
-measure to the limiting backward covariance `Π^k_{αβ}` (`deepLimitingSensitivityKernel`).
-
-Informal proof (downward induction on `k`; source: the Deep NTK source text, "Layerwise Structural
-Decomposition", and Lemma 2.26 of the plan):
-* `k = d - 1`: `g_{d-1}^α = W_d ⊙ φ'(h_{d-1}^α)`, so
-  `G_{d-1}^{αβ} = n⁻¹ ∑_j W_{d,j}² φ'(h^α_j) φ'(h^β_j)`.
-  The readout `W_d` is independent of the hidden layers and standard Gaussian, so conditionally on
-  the hidden layers this is an i.i.d. average whose mean is `Φ'^{(n)}_{d-1,αβ}` (the empirical
-  derivative Gram `deepDerivativeGram`), with conditional variance `O(1/n)`. By the forward
-  concentration of `h_{d-1}` and continuity of the derivative-kernel map this tends to
-  `Σ̇^{d-1}_{αβ} = Π^{d-1}_{αβ}`.
-* `k < d - 1`: `G_k^{αβ} = n⁻² (g_{k+1}^α)ᵀ W_k D^αD^β W_kᵀ g_{k+1}^β` with `D^αD^β =
-  diag(φ'(h_k^α) φ'(h_k^β))`. Decompose `W_k = W_k P + W_k Pᗮ` where `P` projects onto the span
-  of the `m` forward features `φ(h_k^α)` (`orthogonalDecomposition`). The forward pass uses only
-  `W_k P` (`orthogonalDecomposition_mul`), while `W_k Pᗮ` is independent of it
-  (`indepFun_conditioned_weight_history`). Replacing `W_k` by an independent copy in the residual
-  part costs `O(m/n)` since `rank P ≤ m`. For the independent part the quadratic form has mean
-  `(u ⬝ᵥ v) tr A` (`integral_gaussianMatrix_quadForm`, normalized in
-  `backward_empirical_quadForm_asymptotic_limit`) and `O(1/n)` variance, giving the product
-  `G_{k+1}^{αβ} · Φ'^{(n)}_{k,αβ}`. The induction hypothesis (`G_{k+1}^{(n)} → Π^{k+1}`), the
-  forward concentration (`Φ'^{(n)}_k → Σ̇^k`) and `tendstoInMeasure_sum_mul` then yield
-  `G_k^{αβ} → Σ̇^k_{αβ} Π^{k+1}_{αβ} = Π^k_{αβ}`. -/
-theorem deepSensitivityGram_entry_tendstoInMeasure
-    (d n0 m : ℕ) (hd : 0 < d) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
-    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
-    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C * (1 + |x| ^ p))
-    (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (α β : Fin m) :
-    TendstoInMeasure
-      (Measure.prod
-        (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
-          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
-      (fun n : ℕ => fun (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
-        deepSensitivityGram d n0 n m φ φ' X (DeepMLPParams.ofTensor d n0 n q.1 q.2)
-          ⟨k, by omega⟩ α β)
-      Filter.atTop
-      (fun _ => deepLimitingSensitivityKernel d m φ φ'
-        (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ⟨k, by omega⟩ α β) := by
-  sorry
-
-/-- **Theorem 2.27 (Infinite-Width Convergence of the Deep Empirical NTK to the Limiting NTK)**:
-For any depth `d ≥ 1`, input dimension `n0`, sample size `m`, continuous activation `φ` and its
-derivative `φ'` with bounded polynomial growth, and input dataset `X`, the empirical Neural Tangent
-Kernel Gram matrix `deepEmpiricalNTK` converges entrywise in probability / in measure to the
-deterministic recursive limiting NTK `deepLimitingNTK` as network width `n → ∞`. -/
-theorem deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK
-    (d n0 m : ℕ) (hd : 0 < d) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
-    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
-    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C * (1 + |x| ^ p))
-    (X : Fin m → Fin n0 → ℝ) (α β : Fin m) :
-    TendstoInMeasure
-      (Measure.prod
-        (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
-          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
-      (fun n : ℕ => fun (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
-        deepEmpiricalNTK d n0 n m φ φ' X (DeepMLPParams.ofTensor d n0 n q.1 q.2) α β)
-      Filter.atTop
-      (fun _ =>
-        deepLimitingNTK d m φ φ'
-          (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) α β) := by
-  exact deepEmpiricalNTK_entry_tendstoInMeasure_of_layerwise d n0 m φ φ' X
-    (fun n (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => DeepMLPParams.ofTensor d n0 n q.1 q.2) α β
-    (fun k hk => deepActivationGram_entry_tendstoInMeasure d n0 m φ hφ_cont C hC p hp
-      hφ_growth X k hk α β)
-    (fun k hk => deepSensitivityGram_entry_tendstoInMeasure d n0 m hd φ φ' hφ_cont hφ'_cont
-      C hC p hp hφ_growth hφ'_growth X k hk α β)
 
 end NTK
 

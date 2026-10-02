@@ -82,6 +82,7 @@ public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.Optimization.NTK.Deep
 public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
+public import LeanMachineLearning.Optimization.NTK.Deep.BackwardConcentration
 public import LeanMachineLearning.Optimization.NTK.Deep.GaussianDecoupling
 public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
@@ -103,6 +104,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrix
 public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP
 public import LeanMachineLearning.Optimization.NTK.Initialization.NNGPLimit
 public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
+public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutConcentration
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 public import LeanMachineLearning.Optimization.NTK.ReLU
 public import LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine

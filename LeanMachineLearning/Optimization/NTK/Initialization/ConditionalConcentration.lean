@@ -19,9 +19,11 @@ of the previous layer). This file proves the architecture-free probabilistic ste
 * `NTK.chebyshev_activationProduct_pi`: for a *fixed* covariance `K`, the empirical activated
   covariance entry of an i.i.d. `𝒩(0, K)` layer deviates from `∫ φ φ d𝒩(0, K)` by `≥ δ` with
   probability at most `M(K) / (n δ²)`, where `M(K)` is the single-neuron second moment.
-* `NTK.chebyshev_centeredSquare_weighted`: Chebyshev for `n⁻¹ ∑ⱼ (aⱼ² − 1) yⱼ` with `a ~ 𝒩(0, Iₙ)` and
+* `NTK.chebyshev_centeredSquare_weighted`: Chebyshev for `n⁻¹ ∑ⱼ (aⱼ² − 1) yⱼ` with `a ~ 𝒩(0, Iₙ)`
+  and
   fixed weights `y` (used for the readout layer, where `g_{d-1} = W_d ⊙ φ'(h_{d-1})`).
-* `NTK.tendsto_of_lintegral_section_bound`: the Fubini/localization squeeze shared by the conditional
+* `NTK.tendsto_of_lintegral_section_bound`: the Fubini/localization squeeze shared by the
+  conditional
   estimates.
 * `NTK.continuousOn_covarianceEntry`, `NTK.measurable_comp_of_continuousOn_psd`: the entry map is
   continuous on the positive-semidefinite cone, hence measurable along measurable PSD-valued maps.
@@ -39,7 +41,8 @@ open scoped Matrix ENNReal
 
 namespace NTK
 
-/-- **Section-bound squeeze.** Suppose `P n = ∫⁻ b, σ n b ∂μ₁` (a Fubini decomposition of a probability
+/-- **Section-bound squeeze.** Suppose `P n = ∫⁻ b, σ n b ∂μ₁` (a Fubini decomposition of a
+probability
 into conditional probabilities `σ n b` given the past `b`), and that for large `n` every conditional
 probability is at most `1_{E n}(b) + c n`, where the exceptional set `E n` has probability at most
 `u n → 0` and `c n → 0`. Then `P n → 0`. -/
@@ -257,13 +260,15 @@ theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → 
   classical
   let μ : Measure (Fin n → ℝ) := Measure.pi fun _ : Fin n => gaussianReal 0 1
   let g : Fin n → ℝ → ℝ := fun j x => (x ^ 2 - 1) * y j
-  have hg : ∀ j, MemLp (g j) 2 (gaussianReal 0 1) := fun j => memLp_sq_sub_one_mul_gaussianReal (y j)
+  have hg : ∀ j, MemLp (g j) 2 (gaussianReal 0 1) := fun j =>
+    memLp_sq_sub_one_mul_gaussianReal (y j)
   let S : (Fin n → ℝ) → ℝ := ∑ j, fun a => g j (a j)
   have hS_eq : ∀ a, S a = ∑ j : Fin n, (a j ^ 2 - 1) * y j := by
     intro a; simp [S, g, Finset.sum_apply]
   have hS_mem : MemLp S 2 μ := by
     refine memLp_finsetSum' _ fun j _ => ?_
-    exact (hg j).comp_measurePreserving (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)
+    exact (hg j).comp_measurePreserving
+      (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)
   have hX_mem : MemLp (fun a => (n : ℝ)⁻¹ * S a) 2 μ := hS_mem.const_mul _
   have hS_fun : S = fun a => ∑ j : Fin n, g j (a j) := by
     funext a; simp [S, Finset.sum_apply]
@@ -283,8 +288,10 @@ theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → 
             (integrable_const _), integral_sq_gaussianReal]
           simp
     rw [hS_fun]
-    rw [integral_finsetSum (f := fun (j : Fin n) (a : Fin n → ℝ) => g j (a j)) _ (fun j _ => ((hg j).comp_measurePreserving
-      (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)).integrable (by norm_num))]
+    rw [integral_finsetSum (f := fun (j : Fin n) (a : Fin n → ℝ) => g j (a j)) _
+      (fun j _ => ((hg j).comp_measurePreserving
+        (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)).integrable
+          (by norm_num))]
     exact Finset.sum_eq_zero fun j _ => hj j
   have hmean : μ[fun a => (n : ℝ)⁻¹ * S a] = 0 := by
     rw [integral_const_mul, hmean_S, mul_zero]

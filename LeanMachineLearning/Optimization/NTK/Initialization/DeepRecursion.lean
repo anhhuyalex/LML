@@ -434,6 +434,16 @@ theorem tendstoInMeasure_sum_mul {Ω ι : Type*} [Fintype ι] {mΩ : MeasurableS
   have hcont : Continuous (fun v : ι ⊕ ι → ℝ => ∑ i, v (Sum.inl i) * v (Sum.inr i)) := by
     fun_prop
   simpa using tendstoInMeasure_comp_of_continuousAt hpair hcont.continuousAt
+/-- **Products of convergent sequences.** If `a n → a'` and `b n → b'` in measure then
+`a n * b n → a' * b'` in measure (the one-term case of `tendstoInMeasure_sum_mul`). -/
+theorem tendstoInMeasure_mul {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    {a b : ℕ → Ω → ℝ} {a' b' : ℝ}
+    (ha : TendstoInMeasure μ a Filter.atTop (fun _ => a'))
+    (hb : TendstoInMeasure μ b Filter.atTop (fun _ => b')) :
+    TendstoInMeasure μ (fun n ω => a n ω * b n ω) Filter.atTop (fun _ => a' * b') := by
+  simpa using tendstoInMeasure_sum_mul (ι := Unit) (a := fun _ => a) (b := fun _ => b)
+    (a' := fun _ => a') (b' := fun _ => b') (fun _ => ha) (fun _ => hb)
+
 /-- To prove convergence in measure of a finite matrix-valued family, it suffices to prove the
 corresponding tail estimate for every entry.  The proof uses the sup metric on Pi types and finite
 subadditivity of measure.  This is the matrix reduction used by the conditional covariance
@@ -709,26 +719,24 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
 
 /-- Polynomial growth is preserved by squaring: if `|φ x| ≤ C (1 + |x|^p)` then
 `|φ x ^ 2| ≤ 2 C² (1 + |x|^(2p))`. -/
-lemma polynomial_growth_sq (φ : ℝ → ℝ) (C : ℝ) (hC : 0 ≤ C) (p : ℕ)
+lemma polynomial_growth_sq (φ : ℝ → ℝ) (C : ℝ) (p : ℕ)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p)) :
     ∀ x : ℝ, |φ x ^ 2| ≤ (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by
-    intro x
-    have hpow : |x| ^ (2 * p) = (|x| ^ p) ^ 2 := by
-      rw [← pow_mul]
-      congr 1
-      omega
-    have hsq : (1 + |x| ^ p) ^ 2 ≤ 2 * (1 + |x| ^ (2 * p)) := by
-      rw [hpow]
-      nlinarith [sq_nonneg (|x| ^ p - 1)]
-    calc
-      |φ x ^ 2| = |φ x| ^ 2 := by rw [abs_pow]
-      _ ≤ (C * (1 + |x| ^ p)) ^ 2 := by
-        nlinarith [hφ_growth x, abs_nonneg (φ x),
-          mul_nonneg hC (by positivity)]
-      _ = C ^ 2 * (1 + |x| ^ p) ^ 2 := by ring
-      _ ≤ C ^ 2 * (2 * (1 + |x| ^ (2 * p))) :=
-        mul_le_mul_of_nonneg_left hsq (sq_nonneg C)
-      _ = (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by ring
+  intro x
+  have hpow : |x| ^ (2 * p) = (|x| ^ p) ^ 2 := by
+    rw [← pow_mul]
+    congr 1
+    omega
+  have hsq : (1 + |x| ^ p) ^ 2 ≤ 2 * (1 + |x| ^ (2 * p)) := by
+    rw [hpow]
+    nlinarith [sq_nonneg (|x| ^ p - 1)]
+  calc
+    |φ x ^ 2| = |φ x| ^ 2 := by rw [abs_pow]
+    _ ≤ (C * (1 + |x| ^ p)) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hφ_growth x) 2
+    _ = C ^ 2 * (1 + |x| ^ p) ^ 2 := by ring
+    _ ≤ C ^ 2 * (2 * (1 + |x| ^ (2 * p))) :=
+      mul_le_mul_of_nonneg_left hsq (sq_nonneg C)
+    _ = (2 * C ^ 2) * (1 + |x| ^ (2 * p)) := by ring
 
 /-- The conditional second-moment matrix of activated Gaussian coordinates is continuous on the
 positive-semidefinite cone.  This is `continuousWithinAt_covarianceMap` applied to `φ²`, with the
@@ -742,7 +750,7 @@ theorem continuousWithinAt_activationProductSq
       ∫ z : EuclideanSpace ℝ (Fin m),
         (φ (z.ofLp α) * φ (z.ofLp β)) ^ 2 ∂multivariateGaussian 0 K)
       {K | K.PosSemidef} K0 := by
-  have hφsq_growth := polynomial_growth_sq φ C _hC p hφ_growth
+  have hφsq_growth := polynomial_growth_sq φ C p hφ_growth
   have hcont := continuousWithinAt_covarianceMap (fun x : ℝ => φ x ^ 2)
     (hφ_cont.pow 2) (2 * C ^ 2) (by positivity) (2 * p) (by omega) hφsq_growth m K0 hK0
   simpa only [pow_two, mul_mul_mul_comm] using hcont

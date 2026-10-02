@@ -9,6 +9,7 @@ public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
 public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.GaussianDecoupling
+public import LeanMachineLearning.Optimization.NTK.Deep.BackwardConcentration
 
 /-!
 # Deep Neural Tangent Kernel (Deep NTK) Curriculum
@@ -27,7 +28,12 @@ Tangent Kernel (depth `d ≥ 1`), structured as follows:
 * `NTK.Deep.LimitingNTK`: Deterministic backward covariance tensor `deepLimitingSensitivityKernel`
   and recursive limiting NTK matrix `deepLimitingNTK` (Proposition 2.27), positive
   semidefiniteness, Loewner dominance, and two-layer consistency with `limitingFullNTKMatrix`.
-* `NTK.Deep.GaussianDecoupling`: One-sided Gaussian conditioning onto low-rank forward
-  subspaces (Lemma 2.26), quadratic form evaluation under Gaussian matrix laws, and
-  asymptotic convergence in probability of `deepEmpiricalNTK` to `deepLimitingNTK` (Theorem 2.27).
+* `NTK.Deep.GaussianDecoupling`: the deterministic layerwise assembly for Theorem 2.27 and the
+  transport of forward activation and derivative Gram concentration to the `(W, w_out)` product
+  measure.
+  (The Gaussian matrix algebra, including Lemma 2.26, lives in
+  `Initialization/GaussianMatrixAlgebra.lean`.)
+* `NTK.Deep.BackwardConcentration`: backward sensitivity Gram concentration (readout layer and the
+  downward induction) and the convergence in probability of `deepEmpiricalNTK` to `deepLimitingNTK`
+  (Theorem 2.27).
 -/
