@@ -364,7 +364,7 @@ theorem posSemidef_allOnes {m : Type*} [Finite m] :
 
 /-- A square real matrix `P` is an orthogonal projection matrix if it is symmetric (`Pᵀ = P`)
 and idempotent (`P * P = P`). -/
-def isOrthogonalProjection {p : Type*} [Fintype p] [DecidableEq p]
+def isOrthogonalProjection {p : Type*} [Fintype p]
     (P : Matrix p p ℝ) : Prop :=
   Pᵀ = P ∧ P * P = P
 
