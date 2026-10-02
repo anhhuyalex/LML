@@ -155,17 +155,28 @@ orthogonal projector onto its span; `W_{k+1} = W_{k+1} P + W_{k+1} Pᗮ`
   `I(ℓ)` follows from `I(ℓ+1)` and the same `Pᗮ`/`P` split. The decoupling lemma and `I` therefore
   have to be proved in one joint downward induction on `ℓ`.
 
-Available tools (all sorry-free): the variance of the Pᗮ-part is
-`gaussianInit_quadForm_chebyshev` (`Initialization/GaussianQuadraticVariance.lean`, from the
-Isserlis formula `integral_coordinateProduct_four`), applied with `A = Pᗮ D Pᗮ`, for which
-`‖A‖_F² ≤ ‖D‖_F²`; the rank bound is `trace_orthogonalProjectionOfGram` (`tr P = m`); and, under
-`hnd`, `tendstoInMeasure_matrix_inv_of_posDef` gives `Σ̂⁻¹ → (Σ^{k+1})⁻¹`, so `Σ̂⁺ = Σ̂⁻¹` is
-`O_ℙ(1)` and no pseudo-inverse theory is needed.
+Available tools (all sorry-free): the exact decomposition `Vᵀ u = Φ c + (V Pᗮ)ᵀ u`
+(`transpose_mulVec_eq_gramProjector_add`, `Foundations/GramProjector.lean`); the conditioning on
+the projected part and the future, `conditional_quadForm_chebyshev` and
+`conditional_linearForm_chebyshev` (`Initialization/GaussianConditioning.lean`, built on Lemma 2.26
+and `gaussianInit_quadForm_chebyshev`), applied with `A = D`, whose bound is
+`2 ‖u‖² ‖v‖² ‖D‖_F² / ε²` since `‖Pᗮ D Pᗮ‖_F ≤ ‖D‖_F` (`frobSq_compress_le`); the rank bound
+`trace_orthogonalProjectionOfGram` (`tr P = m`); and, under `hnd`,
+`tendstoInMeasure_matrix_inv_of_posDef`, giving `Σ̂⁻¹ → (Σ^{k+1})⁻¹`, so `Σ̂⁺ = Σ̂⁻¹` is `O_ℙ(1)`.
 
-Remaining obstacles for a Lean proof: `D` has polynomial (unbounded) entries, so `tr(D P) =
-tr(Σ̂⁻¹ · n⁻¹ Φᵀ D Φ)` and the `P`-part must be bounded by empirical moments
-(`tendstoInMeasure_sum_mul`) rather than operator norms or `tr P = m` alone; and the joint downward
-induction with the gradient-independence invariant `I(ℓ)` must be set up. -/
+Remaining plan (deterministic part first, all quantities normalised by `n`): with `f = φ'(h^α)`,
+`g = φ'(h^β)`, `s = n^{-1/2} Vᵀ u^α = x + y` (`x = Φ (Σ̂⁻¹ ζ)`, `ζ = n⁻¹ ⟨h_{k+1}, u^α⟩`) and
+`N_f(a) = n⁻¹ ∑ⱼ fⱼ² aⱼ²`, Cauchy–Schwarz gives
+`|G_k − G_⊥|² ≤ 3 [N_f(x) N_g(x') + N_f(x) N_g(y') + N_f(y) N_g(x')]`, where `G_⊥` is the `Pᗮ`
+quadratic form. Then: (1) `G_⊥ − G_{k+1} Φ'_k → 0` by `conditional_quadForm_chebyshev`, the squeeze
+`tendsto_of_lintegral_section_bound`, and `tr(D P) = tr(Σ̂⁻¹ M̂) = O_ℙ(1)`; (2) `N_f(x) → 0` from
+`ζ → 0` (`I(k+1)`), `Σ̂⁻¹ → (Σ^{k+1})⁻¹` and tightness of `M̂` (dominated by pairwise averages of
+`φ²`, `φ'²` already covered by `deepEmpiricalFeatureCovariance_tendstoInMeasure`); (3) `N_f(y)`
+is tight by the same conditional Chebyshev; (4) `I(ℓ)` by its own downward induction using
+`conditional_linearForm_chebyshev`. Network-side prerequisites: `g_{k+1}` depends on `V = W_{k+1}`
+only through `V Φ` (a congruence lemma like `deepPreactivation_congr_of_eqOn` for the backward
+pass), and a measure-preserving splitting of the layer `W_{k+1}` from the other layers and the
+readout (`measurePreserving_piFinSuccAbove`). -/
 theorem deepSensitivityGram_sub_mul_tendstoInMeasure
     (d n0 m : ℕ) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)

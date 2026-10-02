@@ -88,6 +88,7 @@ public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
+public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
@@ -100,6 +101,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.DeepNNGPTheore
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
 public import LeanMachineLearning.Optimization.NTK.Initialization.FullNTK
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianConditioning
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianQuadraticVariance
 public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP

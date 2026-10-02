@@ -471,6 +471,58 @@ theorem trace_orthogonalProjectionOfGram {n m : Type*} [Fintype n] [Fintype m] [
     (X * ⅟(Xᵀ * X) * Xᵀ).trace = Fintype.card m := by
   rw [Matrix.trace_mul_cycle, mul_invOf_self, Matrix.trace_one]
 
+/-- For an orthogonal projection `Q`, `‖Q x‖² = x ⬝ᵥ Q x`. -/
+lemma mulVec_dot_self_eq {p : Type*} [Fintype p]
+    (Q : Matrix p p ℝ) (hQ : isOrthogonalProjection Q) (x : p → ℝ) :
+    (Q *ᵥ x) ⬝ᵥ (Q *ᵥ x) = x ⬝ᵥ (Q *ᵥ x) := by
+  rw [Matrix.dotProduct_mulVec, ← Matrix.mulVec_transpose, hQ.1, Matrix.mulVec_mulVec, hQ.2,
+    dotProduct_comm]
+
+/-- An orthogonal projection does not increase the Euclidean norm. -/
+lemma mulVec_dot_self_le {p : Type*} [Fintype p]
+    (Q : Matrix p p ℝ) (hQ : isOrthogonalProjection Q) (b : p → ℝ) :
+    (Q *ᵥ b) ⬝ᵥ (Q *ᵥ b) ≤ b ⬝ᵥ b := by
+  classical
+  have h1 := mulVec_dot_self_eq Q hQ b
+  have h2 := mulVec_dot_self_eq (orthogonalComplement Q)
+    (orthogonalComplement_isOrthogonalProjection Q hQ) b
+  have h3 : (orthogonalComplement Q *ᵥ b) = b - Q *ᵥ b := by
+    simp [orthogonalComplement, Matrix.sub_mulVec]
+  have h4 : 0 ≤ (orthogonalComplement Q *ᵥ b) ⬝ᵥ (orthogonalComplement Q *ᵥ b) :=
+    Finset.sum_nonneg fun i _ => mul_self_nonneg _
+  rw [h2, h3] at h4
+  simp only [dotProduct_sub] at h4
+  linarith
+
+/-- Left multiplication by an orthogonal projection does not increase the Frobenius norm. -/
+lemma frobSq_projector_mul_le {p q : Type*} [Fintype p] [Fintype q]
+    (Q : Matrix p p ℝ) (hQ : isOrthogonalProjection Q) (B : Matrix p q ℝ) :
+    ∑ k, ∑ l, (Q * B) k l ^ 2 ≤ ∑ k, ∑ l, B k l ^ 2 := by
+  rw [Finset.sum_comm (f := fun k l => (Q * B) k l ^ 2),
+    Finset.sum_comm (f := fun k l => B k l ^ 2)]
+  refine Finset.sum_le_sum fun l _ => ?_
+  have := mulVec_dot_self_le Q hQ (fun i => B i l)
+  simpa [dotProduct, Matrix.mulVec, Matrix.mul_apply, sq] using this
+
+/-- Right multiplication by an orthogonal projection does not increase the Frobenius norm. -/
+lemma frobSq_mul_projector_le {p q : Type*} [Fintype p] [Fintype q]
+    (Q : Matrix p p ℝ) (hQ : isOrthogonalProjection Q) (B : Matrix q p ℝ) :
+    ∑ k, ∑ l, (B * Q) k l ^ 2 ≤ ∑ k, ∑ l, B k l ^ 2 := by
+  have h := frobSq_projector_mul_le Q hQ Bᵀ
+  rw [Finset.sum_comm (f := fun k l => (B * Q) k l ^ 2),
+    Finset.sum_comm (f := fun k l => B k l ^ 2)]
+  have hT : (Q * Bᵀ) = (B * Q)ᵀ := by rw [Matrix.transpose_mul, hQ.1]
+  rw [hT] at h
+  simpa using h
+
+/-- Compression by an orthogonal projector does not increase the Frobenius norm:
+`‖Q A Q‖_F ≤ ‖A‖_F`. -/
+lemma frobSq_compress_le {p : Type*} [Fintype p]
+    (Q : Matrix p p ℝ) (hQ : isOrthogonalProjection Q) (A : Matrix p p ℝ) :
+    ∑ k, ∑ l, (Q * A * Q) k l ^ 2 ≤ ∑ k, ∑ l, A k l ^ 2 := by
+  rw [Matrix.mul_assoc]
+  exact (frobSq_projector_mul_le Q hQ (A * Q)).trans (frobSq_mul_projector_le Q hQ A)
+
 end NTK
 
 end
