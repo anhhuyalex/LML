@@ -509,6 +509,59 @@ private lemma memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
       hφ_cont.measurable C hC p hp hφ_growth α
   exact ⟨hφ_L2, layerCovarianceSeq_posSemidef 1 0 φ hφ_cont.measurable m Φ0 hΦ0 hφ_L2⟩
 
+/-- **Successor step for feature covariances of layer `ℓ + 1`.** If the empirical activation
+covariance of layer `ℓ` converges in measure to a PSD limit `Klim`, then for any continuous
+polynomial-growth feature map `ψ` the empirical feature covariance
+`n⁻¹ ∑_j ψ(h_{ℓ+1,j}^α) ψ(h_{ℓ+1,j}^β)` of layer `ℓ + 1` converges in measure to the Gaussian
+covariance update `∫ ψ ψ d𝒩(0, Klim)`.
+
+This is the conditional-Chebyshev fluctuation bound (`deepPreactivation_succ_deviation_tendsto`)
+combined with continuity of the covariance-update map on the PSD cone. With `ψ = φ` it is the induction
+step of `deepEmpiricalCovariance_tendstoInMeasure`; with `ψ = φ'` it gives the derivative Gram matrix. -/
+theorem deepFeatureCovariance_succ_tendstoInMeasure
+    (d m L : ℕ) (φ ψ : ℝ → ℝ) (hφ_cont : Continuous φ) (hψ_cont : Continuous ψ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hψ_growth : ∀ x : ℝ, |ψ x| ≤ C * (1 + |x| ^ p))
+    (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (hℓ : ℓ + 1 < L)
+    (Klim : Matrix (Fin m) (Fin m) ℝ) (hKlim : Klim.PosSemidef)
+    (hprev : TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => fun α β : Fin m =>
+        (n : ℝ)⁻¹ * ∑ j : Fin n,
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))
+      Filter.atTop (fun _ => Klim)) :
+    TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => fun α β : Fin m =>
+        (n : ℝ)⁻¹ * ∑ j : Fin n,
+          ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (ℓ + 1) α j) *
+          ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (ℓ + 1) β j))
+      Filter.atTop
+      (fun _ => fun α β : Fin m =>
+        ∫ z : EuclideanSpace ℝ (Fin m), ψ (z.ofLp α) * ψ (z.ofLp β) ∂multivariateGaussian 0 Klim) := by
+  have hempirical_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
+      (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
+        φ (deepPreactivation d m n φ X
+          (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+        φ (deepPreactivation d m n φ X
+          (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)).PosSemidef := by
+    intro n w
+    simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
+      (fun j α => φ (deepPreactivation d m n φ X
+        (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j))
+  have hmean := tendstoInMeasure_comp_of_continuousWithinAt hprev hempirical_pos
+    (continuousWithinAt_covarianceMap ψ hψ_cont C hC p hp hψ_growth m Klim hKlim)
+  apply tendstoInMeasure_trans ?_ hmean
+  intro ε hε
+  refine tendsto_matrixTail_of_tendsto_entrywise m ?_ ε hε
+  intro α β δ hδ
+  simpa only [Real.dist_eq] using
+    deepPreactivation_succ_deviation_tendsto d m L φ ψ hφ_cont hψ_cont C hC p hp hψ_growth
+      X ℓ hℓ Klim hKlim hprev α β hδ
+
 /-- **Theorem 2.13, Part 1 (Covariance Convergence in Probability).** As width `n → ∞`, the
 empirical covariance of the depth-`L` network's layer-`(ℓ+1)` post-activations converges in
 probability to the deterministic recursive kernel `layerCovarianceSeq 1 0 φ m Φ0 (ℓ + 1)`, where
@@ -537,49 +590,53 @@ theorem deepEmpiricalCovariance_tendstoInMeasure
         hφ_growth X (Nat.zero_lt_of_lt hℓ)
   | succ ℓ ih =>
       have hℓ' : ℓ < L := by omega
-      have hprevious := ih hℓ'
       obtain ⟨hφ_L2, hlimit_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
         m φ hφ_cont C hC p hp hφ_growth
         (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (inputGramMatrix_posSemidef d m X)
-      have hempirical_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
-          (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-            φ (deepPreactivation d m n φ X
-              (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
-            φ (deepPreactivation d m n φ X
-              (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)).PosSemidef := by
-        intro n w
-        simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
-          (fun j α => φ (deepPreactivation d m n φ X
-            (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j))
-      have hmapped := tendstoInMeasure_comp_of_continuousWithinAt hprevious hempirical_pos
-        (continuousWithinAt_covarianceMap φ hφ_cont C hC p hp hφ_growth m
-          (layerCovarianceSeq 1 0 φ m
-            (show Matrix (Fin m) (Fin m) ℝ from
-              fun α β => (d : ℝ)⁻¹ * ∑ k : Fin d, X α k * X β k) (ℓ + 1))
-          (hlimit_pos (ℓ + 1)))
-      have hmean : TendstoInMeasure
-          (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
-            Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-          (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ => fun α β : Fin m =>
-            ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂
-              multivariateGaussian 0 (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
-                φ (deepPreactivation d m n φ X
-                  (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
-                φ (deepPreactivation d m n φ X
-                  (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)))
-          Filter.atTop
-          (fun _ => layerCovarianceSeq 1 0 φ m
-            (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1 + 1)) := by
-        simpa [layerCovarianceSeq, dotProduct] using hmapped
-      apply tendstoInMeasure_trans ?_ hmean
-      intro ε hε
-      refine tendsto_matrixTail_of_tendsto_entrywise m ?_ ε hε
-      intro α β δ hδ
-      simpa only [Real.dist_eq] using
-        deepPreactivation_succ_deviation_tendsto d m L φ φ hφ_cont hφ_cont C hC p hp hφ_growth
-          X ℓ hℓ
+      simpa [layerCovarianceSeq, dotProduct] using
+        deepFeatureCovariance_succ_tendstoInMeasure d m L φ φ hφ_cont hφ_cont C hC p hp
+          hφ_growth X ℓ hℓ
           (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1))
-          (hlimit_pos (ℓ + 1)) hprevious α β hδ
+          (hlimit_pos (ℓ + 1)) (ih hℓ')
+
+/-- **Feature-covariance convergence for an arbitrary feature map.** For the depth-`L` network built
+from the activation `φ`, the empirical covariance of the features `ψ(h_ℓ)` of layer `ℓ` converges in
+measure to the Gaussian expectation `∫ ψ ψ d𝒩(0, Σ^ℓ)` against the deterministic forward kernel
+`Σ^ℓ = layerCovarianceSeq 1 0 φ m Φ0 ℓ`.
+
+With `ψ = φ` this is `deepEmpiricalCovariance_tendstoInMeasure`; with `ψ = φ'` it is the convergence
+of the derivative Gram matrix `Φ'^{(n)}_ℓ → Σ̇^ℓ` needed for the backward sensitivities. -/
+theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
+    (d m L : ℕ) (φ ψ : ℝ → ℝ) (hφ_cont : Continuous φ) (hψ_cont : Continuous ψ)
+    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
+    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
+    (hψ_growth : ∀ x : ℝ, |ψ x| ≤ C * (1 + |x| ^ p))
+    (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (hℓ : ℓ < L) :
+    TendstoInMeasure
+      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
+      (fun n : ℕ => fun w : Fin L → ℕ → ℕ → ℝ =>
+        fun α β : Fin m => (n : ℝ)⁻¹ * ∑ j : Fin n,
+          ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+          ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))
+      Filter.atTop
+      (fun _ => fun α β : Fin m =>
+        ∫ z : EuclideanSpace ℝ (Fin m), ψ (z.ofLp α) * ψ (z.ofLp β) ∂multivariateGaussian 0
+          (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) ℓ)) := by
+  cases ℓ with
+  | zero =>
+      simpa [deepPreactivation, layerCovarianceSeq] using
+        deepEmpiricalCovariance_zero_tendstoInMeasure d m L ψ hψ_cont C hC p hp hψ_growth X hℓ
+  | succ ℓ =>
+      obtain ⟨hφ_L2, hlimit_pos⟩ := memLp_and_posSemidef_layerCovarianceSeq_of_polynomial_growth
+        m φ hφ_cont C hC p hp hφ_growth
+        (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (inputGramMatrix_posSemidef d m X)
+      exact deepFeatureCovariance_succ_tendstoInMeasure d m L φ ψ hφ_cont hψ_cont C hC p hp
+        hψ_growth X ℓ hℓ
+        (layerCovarianceSeq 1 0 φ m (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) (ℓ + 1))
+        (hlimit_pos (ℓ + 1))
+        (deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X ℓ
+          (by omega))
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
 `gaussianReadoutMeasure n`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/

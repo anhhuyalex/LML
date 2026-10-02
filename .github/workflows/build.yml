@@ -96,6 +96,33 @@ jobs:
           build-page: false
           deploy: false
 
+      # Force the project's own API pages to be rendered on every push.
+      #
+      # The docgen action restores a `Docs-<hash of lake-manifest.json>` cache of Mathlib's rendered
+      # pages and doc-gen4's bookkeeping. That key only changes with the manifest, and a cache that
+      # was hit is never saved again, so the restored state is whatever the first run after the last
+      # manifest change left behind. It includes the marker file
+      # `doc-data/LeanMachineLearning--library.docs_built` (with its `.trace`), which is what lets
+      # Lake report `Replayed LeanMachineLearning:docs` and skip the HTML generation. The per-module
+      # `docInfo` jobs still rebuild into the database, but no page for this project is ever written,
+      # so every `docs/LeanMachineLearning/...` URL returns 404 and the search index goes stale.
+      #
+      # Deleting the marker makes Lake run the generation step again for this library only; Mathlib's
+      # pages stay cached. The action has already built `docbuild/` by now, so this is a quick re-run
+      # against warm build outputs. Push only, like the action's own docs step.
+      - name: Regenerate the project's API documentation pages
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          marker=docbuild/.lake/build/doc-data/LeanMachineLearning--library.docs_built
+          ls -l "$marker"* 2>/dev/null || echo "No docs_built marker found; the pages should already have been generated."
+          rm -f "$marker" "$marker.trace" "$marker.hash"
+          cd docbuild
+          ~/.elan/bin/lake build LeanMachineLearning:docs
+          cd ..
+          test -f docbuild/.lake/build/doc/LeanMachineLearning/Optimization/NTK/Shallow/DatasetNTK.html || { echo "::error::LeanMachineLearning API pages were not generated"; exit 1; }
+          cp -r docbuild/.lake/build/doc/. home_page/docs/
+
       # After the docs step, which writes into the same folder alongside `tutorial/` from
       # `build_docs.sh`. Those steps only ever add, so the order is not load-bearing — but copying
       # last keeps the referee output out of reach of anything else that writes there.
