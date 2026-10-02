@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianQuadraticVariance
 
 /-!
@@ -21,11 +22,12 @@ bounded variance.
   `Pᗮ`-section probability, for every value `x` of `V P`, bounds the joint probability by
   `∫ B (V P)`.
 * `conditional_quadForm_chebyshev`: for vectors `u = u(V P, a)`, `v = v(V P, a)` and a weight matrix
-  `A(a)`, `P(|uᵀ (V Pᗮ) A (V Pᗮ)ᵀ v − (u ⬝ᵥ v) tr(Pᗮ A Pᗮ)| ≥ ε) ≤ ∫ 2 ‖u‖² ‖v‖² ‖A‖_F² / ε²`.
-* `conditional_linearForm_chebyshev`: `P(|u ⬝ᵥ ((V Pᗮ) b)| ≥ ε) ≤ ∫ ‖u‖² ‖b‖² / ε²`.
+  `A(a)`,
+  `P(|uᵀ (V Pᗮ) A (V Pᗮ)ᵀ v − (u ⬝ᵥ v) tr(Pᗮ A Pᗮ)| ≥ ε) ≤ ∫ min 1 (2 ‖u‖² ‖v‖² ‖A‖_F² / ε²)`
+  (the `min 1` makes the bound usable with convergence in measure of the integrand).
+* `conditional_linearForm_chebyshev`: `P(|u ⬝ᵥ ((V Pᗮ) b)| ≥ ε) ≤ ∫ min 1 (‖u‖² ‖b‖² / ε²)`.
 * `gaussianInit_linearForm_chebyshev`, `integral_linearForm_sq_gaussianInit`: the unconditional
   linear-form analogue of `gaussianInit_quadForm_chebyshev`.
-* Measurability helpers for matrix expressions (`measurable_matrix_mul` etc.).
 
 These are the probabilistic core of the decoupling approximation `G_k ≈ G_{k+1} · Φ'_k` and of the
 gradient-independence invariant in `Deep/BackwardConcentration.lean`.
@@ -38,44 +40,6 @@ open MeasureTheory ProbabilityTheory Matrix
 open scoped ENNReal
 
 namespace NTK
-
-section measurability
-variable {Z : Type*} [MeasurableSpace Z] {n p q : Type*}
-
-/-- Entry `(i, j)` of a measurable matrix-valued map is measurable. -/
-lemma measurable_matrix_entry {A : Z → Matrix n p ℝ} (hA : Measurable A) (i : n) (j : p) :
-    Measurable fun z => A z i j :=
-  (measurable_pi_apply j).comp ((measurable_pi_apply i).comp hA)
-
-lemma measurable_vec_entry {v : Z → n → ℝ} (hv : Measurable v) (i : n) :
-    Measurable fun z => v z i := (measurable_pi_apply i).comp hv
-
-lemma measurable_matrix_mul [Fintype p] {A : Z → Matrix n p ℝ} {B : Z → Matrix p q ℝ}
-    (hA : Measurable A) (hB : Measurable B) : Measurable fun z => A z * B z := by
-  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
-  simp only [Matrix.mul_apply]
-  exact Finset.measurable_sum _ fun k _ =>
-    (measurable_matrix_entry hA i k).mul (measurable_matrix_entry hB k j)
-
-lemma measurable_matrix_transpose {A : Z → Matrix n p ℝ} (hA : Measurable A) :
-    Measurable fun z => (A z)ᵀ := by
-  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
-  exact measurable_matrix_entry hA j i
-
-lemma measurable_mulVec [Fintype p] {A : Z → Matrix n p ℝ} {v : Z → p → ℝ}
-    (hA : Measurable A) (hv : Measurable v) : Measurable fun z => A z *ᵥ v z := by
-  refine Measurable.of_eval fun i => ?_
-  simp only [Matrix.mulVec, dotProduct]
-  exact Finset.measurable_sum _ fun k _ =>
-    (measurable_matrix_entry hA i k).mul (measurable_vec_entry hv k)
-
-lemma measurable_dotProduct [Fintype n] {u v : Z → n → ℝ} (hu : Measurable u)
-    (hv : Measurable v) : Measurable fun z => u z ⬝ᵥ v z := by
-  simp only [dotProduct]
-  exact Finset.measurable_sum _ fun k _ =>
-    (measurable_vec_entry hu k).mul (measurable_vec_entry hv k)
-
-end measurability
 
 theorem gaussianInit_measure_le_lintegral_of_section
     (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ) (hP : isOrthogonalProjection P)
@@ -223,12 +187,6 @@ section conditional
 
 variable {Ω : Type*} [MeasurableSpace Ω]
 
-lemma measurable_orthogonalComplement {p : ℕ} {P : Ω → Matrix (Fin p) (Fin p) ℝ}
-    (hP : Measurable P) : Measurable fun a => orthogonalComplement (P a) := by
-  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
-  simp only [orthogonalComplement, Matrix.sub_apply]
-  exact measurable_const.sub (measurable_matrix_entry hP i j)
-
 /-- Section bound for the quadratic form: for fixed vectors `u₀, v₀` and a projector `Q = Pᗮ`,
 the `Pᗮ`-quadratic form concentrates. -/
 lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
@@ -265,9 +223,10 @@ theorem conditional_quadForm_chebyshev
             (Matrix.of q.2 * orthogonalComplement (P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1)) -
         (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
           (orthogonalComplement (P q.1) * A q.1 * orthogonalComplement (P q.1)).trace|} ≤
-    ∫⁻ q, ENNReal.ofReal (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
+    ∫⁻ q, min 1 (ENNReal.ofReal
+      (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
       (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
-      (∑ k, ∑ l, A q.1 k l ^ 2) / ε ^ 2) ∂(μ.prod (gaussianInit n p)) := by
+      (∑ k, ∑ l, A q.1 k l ^ 2) / ε ^ 2)) ∂(μ.prod (gaussianInit n p)) := by
   classical
   have hγ : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
   have hOf : Measurable
@@ -310,10 +269,11 @@ theorem conditional_quadForm_chebyshev
     measurableSet_le measurable_const (continuous_abs.measurable.comp hexpr)
   refine le_of_eq_of_le (Measure.prod_apply hs) ?_
   have hB : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
-      ENNReal.ofReal (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
+      min 1 (ENNReal.ofReal
+      (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
       (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
-      (∑ k, ∑ l, A q.1 k l ^ 2) / ε ^ 2)) := by
-    refine ENNReal.measurable_ofReal.comp ?_
+      (∑ k, ∑ l, A q.1 k l ^ 2) / ε ^ 2))) := by
+    refine measurable_const.min (ENNReal.measurable_ofReal.comp ?_)
     refine Measurable.div_const (((measurable_const.mul (measurable_dotProduct hu' hu')).mul
       (measurable_dotProduct hv' hv')).mul ?_) _
     exact Finset.measurable_sum _ fun k _ => Finset.measurable_sum _ fun l _ =>
@@ -340,15 +300,59 @@ theorem conditional_quadForm_chebyshev
       ((measurable_dotProduct h1 (measurable_mulVec hMa h2)).sub
         ((measurable_dotProduct h1 h2).mul measurable_const)))
   have hBa : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ =>
-      ENNReal.ofReal (2 * (u (x, a) ⬝ᵥ u (x, a)) * (v (x, a) ⬝ᵥ v (x, a)) *
-        (∑ k, ∑ l, A a k l ^ 2) / ε ^ 2)) := by
-    refine ENNReal.measurable_ofReal.comp ?_
+      min 1 (ENNReal.ofReal (2 * (u (x, a) ⬝ᵥ u (x, a)) * (v (x, a) ⬝ᵥ v (x, a)) *
+        (∑ k, ∑ l, A a k l ^ 2) / ε ^ 2))) := by
+    refine measurable_const.min (ENNReal.measurable_ofReal.comp ?_)
     exact Measurable.div_const (((measurable_const.mul (measurable_dotProduct hua hua)).mul
       (measurable_dotProduct hva hva)).mul measurable_const) _
   exact gaussianInit_measure_le_lintegral_of_section n p (P a) (hP a) _ hEa _ hBa
-    fun x => quadForm_section_le n p (orthogonalComplement (P a)) (A a)
-      (orthogonalComplement_isOrthogonalProjection _ (hP a)) (u (x, a)) (v (x, a)) hε
+    fun x => le_min prob_le_one (quadForm_section_le n p (orthogonalComplement (P a)) (A a)
+      (orthogonalComplement_isOrthogonalProjection _ (hP a)) (u (x, a)) (v (x, a)) hε)
 
+
+/-- **Normalized conditional quadratic-form bound.** The same statement as
+`conditional_quadForm_chebyshev` in the `n⁻²` normalization of the backward Gram matrices: with
+`ũ = n⁻¹ ‖u‖²`, `ṽ = n⁻¹ ‖v‖²`, `Ã = n⁻¹ ‖A‖_F²` the right-hand side is
+`min 1 (2 ũ ṽ Ã / (n ε²))`, so the `O(1/n)` decay is explicit. -/
+theorem conditional_quadForm_chebyshev_normalized
+    (μ : Measure Ω) (n p : ℕ) (hn : 0 < n)
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, isOrthogonalProjection (P a))
+    (hPm : Measurable P) (A : Ω → Matrix (Fin p) (Fin p) ℝ) (hAm : Measurable A)
+    (u v : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u) (hvm : Measurable v)
+    {ε : ℝ} (hε : 0 < ε) :
+    (μ.prod (gaussianInit n p))
+      {q | ε ≤ |((n : ℝ) ^ 2)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+          ((Matrix.of q.2 * orthogonalComplement (P q.1) * A q.1 *
+            (Matrix.of q.2 * orthogonalComplement (P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1))) -
+        ((n : ℝ) ^ 2)⁻¹ * ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
+          (orthogonalComplement (P q.1) * A q.1 * orthogonalComplement (P q.1)).trace)|} ≤
+    ∫⁻ q, min 1 (ENNReal.ofReal
+      (2 * ((n : ℝ)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1))) *
+      ((n : ℝ)⁻¹ * (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1))) *
+      ((n : ℝ)⁻¹ * ∑ k, ∑ l, A q.1 k l ^ 2) / ((n : ℝ) * ε ^ 2)))
+      ∂(μ.prod (gaussianInit n p)) := by
+  have hn' : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+  have hc : (0 : ℝ) < ((n : ℝ) ^ 2)⁻¹ := by positivity
+  have hε' : 0 < (n : ℝ) ^ 2 * ε := by positivity
+  have h := conditional_quadForm_chebyshev μ n p P hP hPm A hAm u v hum hvm hε'
+  have hset : ∀ q : Ω × (Fin n → Fin p → ℝ),
+      ε ≤ |((n : ℝ) ^ 2)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+          ((Matrix.of q.2 * orthogonalComplement (P q.1) * A q.1 *
+            (Matrix.of q.2 * orthogonalComplement (P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1))) -
+        ((n : ℝ) ^ 2)⁻¹ * ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
+          (orthogonalComplement (P q.1) * A q.1 * orthogonalComplement (P q.1)).trace)| ↔
+      (n : ℝ) ^ 2 * ε ≤ |u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+          ((Matrix.of q.2 * orthogonalComplement (P q.1) * A q.1 *
+            (Matrix.of q.2 * orthogonalComplement (P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1)) -
+        (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
+          (orthogonalComplement (P q.1) * A q.1 * orthogonalComplement (P q.1)).trace| := by
+    intro q
+    rw [← mul_sub, abs_mul, abs_of_pos hc, ← div_eq_inv_mul, le_div_iff₀ (by positivity),
+      mul_comm]
+  simp_rw [hset]
+  refine h.trans (le_of_eq (lintegral_congr fun q => ?_))
+  congr 2
+  field_simp
 
 lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
     (hQ : isOrthogonalProjection Q) (u₀ : Fin n → ℝ) (b : Fin p → ℝ) {ε : ℝ} (hε : 0 < ε) :
@@ -371,8 +375,9 @@ theorem conditional_linearForm_chebyshev
     (μ.prod (gaussianInit n p))
       {q | ε ≤ |u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
           ((Matrix.of q.2 * orthogonalComplement (P q.1)) *ᵥ b q.1)|} ≤
-    ∫⁻ q, ENNReal.ofReal ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
-      (b q.1 ⬝ᵥ b q.1) / ε ^ 2) ∂(μ.prod (gaussianInit n p)) := by
+    ∫⁻ q, min 1 (ENNReal.ofReal
+      ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
+      (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (gaussianInit n p)) := by
   classical
   have hγ : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
   have hOf : Measurable
@@ -397,10 +402,10 @@ theorem conditional_linearForm_chebyshev
       (measurable_dotProduct hu' (measurable_mulVec hY hbq)))
   refine le_of_eq_of_le (Measure.prod_apply hs) ?_
   have hB : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
-      ENNReal.ofReal ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
-      (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) :=
-    ENNReal.measurable_ofReal.comp (Measurable.div_const
-      ((measurable_dotProduct hu' hu').mul (measurable_dotProduct hbq hbq)) _)
+      min 1 (ENNReal.ofReal ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
+      (b q.1 ⬝ᵥ b q.1) / ε ^ 2))) :=
+    measurable_const.min (ENNReal.measurable_ofReal.comp (Measurable.div_const
+      ((measurable_dotProduct hu' hu').mul (measurable_dotProduct hbq hbq)) _))
   rw [lintegral_prod _ hB.aemeasurable]
   refine lintegral_mono fun a => ?_
   have hua : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ => u (x, a)) :=
@@ -411,12 +416,47 @@ theorem conditional_linearForm_chebyshev
       (measurable_dotProduct (hua.comp measurable_fst)
         (measurable_mulVec measurable_snd measurable_const)))
   have hBa : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ =>
-      ENNReal.ofReal ((u (x, a) ⬝ᵥ u (x, a)) * (b a ⬝ᵥ b a) / ε ^ 2)) :=
-    ENNReal.measurable_ofReal.comp (Measurable.div_const
-      ((measurable_dotProduct hua hua).mul measurable_const) _)
+      min 1 (ENNReal.ofReal ((u (x, a) ⬝ᵥ u (x, a)) * (b a ⬝ᵥ b a) / ε ^ 2))) :=
+    measurable_const.min (ENNReal.measurable_ofReal.comp (Measurable.div_const
+      ((measurable_dotProduct hua hua).mul measurable_const) _))
   exact gaussianInit_measure_le_lintegral_of_section n p (P a) (hP a) _ hEa _ hBa
-    fun x => linearForm_section_le n p (orthogonalComplement (P a))
-      (orthogonalComplement_isOrthogonalProjection _ (hP a)) (u (x, a)) (b a) hε
+    fun x => le_min prob_le_one (linearForm_section_le n p (orthogonalComplement (P a))
+      (orthogonalComplement_isOrthogonalProjection _ (hP a)) (u (x, a)) (b a) hε)
+
+/-- **Normalized conditional linear-form bound.** With `ũ = n⁻¹ ‖u‖²` and `b̃ = n⁻¹ ‖b‖²`:
+`P(|n⁻¹ √(n⁻¹) u ⬝ᵥ ((V Pᗮ) b)| ≥ ε) ≤ ∫ min 1 (ũ b̃ / (n ε²))`. This is the size of
+`n⁻¹ ⟨b, y⟩` for the residual `y = n^{-1/2} (V Pᗮ)ᵀ u`. -/
+theorem conditional_linearForm_chebyshev_normalized
+    (μ : Measure Ω) (n p : ℕ) (hn : 0 < n)
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, isOrthogonalProjection (P a))
+    (hPm : Measurable P) (b : Ω → Fin p → ℝ) (hbm : Measurable b)
+    (u : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u)
+    {ε : ℝ} (hε : 0 < ε) :
+    (μ.prod (gaussianInit n p))
+      {q | ε ≤ |((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+          ((Matrix.of q.2 * orthogonalComplement (P q.1)) *ᵥ b q.1))|} ≤
+    ∫⁻ q, min 1 (ENNReal.ofReal
+      (((n : ℝ)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1))) *
+      ((n : ℝ)⁻¹ * (b q.1 ⬝ᵥ b q.1)) / ((n : ℝ) * ε ^ 2)))
+      ∂(μ.prod (gaussianInit n p)) := by
+  have hn' : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+  have hs : 0 < Real.sqrt ((n : ℝ)⁻¹) := Real.sqrt_pos.2 (by positivity)
+  have hc : 0 < (n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹) := by positivity
+  have hε' : 0 < ε / ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) := by positivity
+  have h := conditional_linearForm_chebyshev μ n p P hP hPm b hbm u hum hε'
+  have hset : ∀ q : Ω × (Fin n → Fin p → ℝ),
+      ε ≤ |((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+          ((Matrix.of q.2 * orthogonalComplement (P q.1)) *ᵥ b q.1))| ↔
+      ε / ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) ≤ |u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+          ((Matrix.of q.2 * orthogonalComplement (P q.1)) *ᵥ b q.1)| := by
+    intro q
+    rw [abs_mul, abs_of_pos hc, div_le_iff₀ hc, mul_comm]
+  simp_rw [hset]
+  refine h.trans (le_of_eq (lintegral_congr fun q => ?_))
+  congr 2
+  have hsq : Real.sqrt ((n : ℝ)⁻¹) ^ 2 = (n : ℝ)⁻¹ := Real.sq_sqrt (by positivity)
+  rw [div_pow, mul_pow, hsq]
+  field_simp
 
 end conditional
 

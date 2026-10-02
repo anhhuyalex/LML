@@ -90,8 +90,7 @@ lemma dotProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
 /-- Cauchy–Schwarz for the dot product, in sum-of-squares form. -/
 lemma sq_dotProduct_le (w x : Fin d → ℝ) :
     (w ⬝ᵥ x) ^ 2 ≤ (∑ j : Fin d, w j ^ 2) * ∑ j : Fin d, x j ^ 2 := by
-  unfold dotProduct
-  exact Finset.sum_mul_sq_le_sq_mul_sq _ _ _
+  simpa [dotProduct, sq] using dotProduct_sq_le_mul_self w x
 
 /-- The dot product of a weight vector with a scaled input `(1 / √d) * x` has the scaling
 factor `1 / √d` factored out. -/

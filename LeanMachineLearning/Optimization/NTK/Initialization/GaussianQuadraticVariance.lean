@@ -220,36 +220,22 @@ theorem integral_quadForm_sq_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
       Finset.sum_mul, Finset.mul_sum]
     rw [Finset.sum_comm]
   have hF : ∑ a, ∑ b, C a b ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) * ∑ k, ∑ l, A k l ^ 2 := by
-    simp only [hC, Matrix.of_apply, Fintype.sum_prod_type, dotProduct, Finset.sum_mul,
-      Finset.mul_sum]
-    rw [Finset.sum_comm]
-    conv_lhs =>
-      enter [2, k, 2, i]
-      rw [Finset.sum_comm]
-    conv_lhs =>
-      enter [2, k]
-      rw [Finset.sum_comm]
-    conv_lhs =>
-      enter [2, k, 2, l]
-      rw [Finset.sum_comm]
-    refine Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun l _ =>
-      Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun i _ => ?_
-    ring
+    have h1 := sum_prod_prod_mul (fun i j : Fin n => u i ^ 2 * v j ^ 2)
+      (fun k l : Fin p => A k l ^ 2)
+    have h2 : ∑ i, ∑ j, u i ^ 2 * v j ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
+      simp only [dotProduct, Finset.sum_mul_sum, sq]
+    simp only [hC, Matrix.of_apply, mul_pow]
+    rw [← h2]
+    exact h1
   have hS : ∑ a, ∑ b, C a b * C b a = (u ⬝ᵥ v) ^ 2 * ∑ k, ∑ l, A k l * A l k := by
-    simp only [hC, Matrix.of_apply, Fintype.sum_prod_type, dotProduct, sq, Finset.sum_mul,
-      Finset.mul_sum]
-    rw [Finset.sum_comm]
-    conv_lhs =>
-      enter [2, k, 2, i]
-      rw [Finset.sum_comm]
-    conv_lhs =>
-      enter [2, k]
-      rw [Finset.sum_comm]
-    conv_lhs =>
-      enter [2, k, 2, l]
-      rw [Finset.sum_comm]
-    refine Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun l _ =>
-      Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun i _ => ?_
+    have h1 := sum_prod_prod_mul (fun i j : Fin n => (u i * v i) * (u j * v j))
+      (fun k l : Fin p => A k l * A l k)
+    have h2 : ∑ i, ∑ j, (u i * v i) * (u j * v j) = (u ⬝ᵥ v) ^ 2 := by
+      simp only [dotProduct, Finset.sum_mul_sum, sq]
+    rw [← h2]
+    refine Eq.trans ?_ h1
+    refine Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => ?_
+    simp only [hC, Matrix.of_apply]
     ring
   rw [htr, hF, hS]
 
@@ -293,20 +279,8 @@ theorem gaussianInit_quadForm_chebyshev (n p : ℕ) (u v : Fin n → ℝ)
   rw [integral_quadForm_sq_gaussianInit, hmean]
   have hF : 0 ≤ ∑ k, ∑ l, A k l ^ 2 :=
     Finset.sum_nonneg fun k _ => Finset.sum_nonneg fun l _ => sq_nonneg _
-  have hS : ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, A k l ^ 2 := by
-    have h1 : ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 :=
-      Finset.sum_le_sum fun k _ => Finset.sum_le_sum fun l _ => by
-        nlinarith [sq_nonneg (A k l - A l k)]
-    have e : ∑ k, ∑ l, A l k ^ 2 = ∑ k, ∑ l, A k l ^ 2 := Finset.sum_comm
-    have h2 : ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 = ∑ k, ∑ l, A k l ^ 2 := by
-      have : ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 =
-          (∑ k, ∑ l, A k l ^ 2 + ∑ k, ∑ l, A l k ^ 2) / 2 := by
-        simp only [Finset.sum_div, ← Finset.sum_add_distrib, add_div]
-      rw [this, e]; ring
-    exact h1.trans h2.le
-  have hCS : (u ⬝ᵥ v) ^ 2 ≤ (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
-    have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ u v
-    simpa [dotProduct, sq] using this
+  have hS := sum_mul_transpose_le_frobSq A
+  have hCS := dotProduct_sq_le_mul_self u v
   nlinarith [mul_le_mul_of_nonneg_right hS (sq_nonneg (u ⬝ᵥ v)),
     mul_le_mul_of_nonneg_right hCS hF, sq_nonneg (u ⬝ᵥ v)]
 

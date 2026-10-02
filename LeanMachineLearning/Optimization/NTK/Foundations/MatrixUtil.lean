@@ -523,6 +523,45 @@ lemma frobSq_compress_le {p : Type*} [Fintype p]
   rw [Matrix.mul_assoc]
   exact (frobSq_projector_mul_le Q hQ (A * Q)).trans (frobSq_mul_projector_le Q hQ A)
 
+/-- Trace of a matrix compressed by an orthogonal projector: `tr(Q A Q) = tr(A Q)`. -/
+lemma trace_compress_projector {p : Type*} [Fintype p] (Q A : Matrix p p ℝ)
+    (hQ : isOrthogonalProjection Q) : (Q * A * Q).trace = (A * Q).trace := by
+  rw [Matrix.trace_mul_cycle, hQ.2, Matrix.trace_mul_comm]
+
+/-- `tr(Pᗮ A Pᗮ) = tr A - tr(A P)`: the mean of the residual Gaussian quadratic form. -/
+lemma trace_compress_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
+    (P A : Matrix p p ℝ) (hP : isOrthogonalProjection P) :
+    (orthogonalComplement P * A * orthogonalComplement P).trace = A.trace - (A * P).trace := by
+  rw [trace_compress_projector _ _ (orthogonalComplement_isOrthogonalProjection P hP)]
+  simp only [orthogonalComplement, Matrix.mul_sub, Matrix.mul_one, Matrix.trace_sub]
+
+/-- **Kronecker factorization** of a double sum over a product index set whose summand splits as
+`f x.1 y.1 * g x.2 y.2`. -/
+lemma sum_prod_prod_mul {ι κ : Type*} [Fintype ι] [Fintype κ] (f : ι → ι → ℝ) (g : κ → κ → ℝ) :
+    ∑ x : ι × κ, ∑ y : ι × κ, f x.1 y.1 * g x.2 y.2 =
+      (∑ i, ∑ j, f i j) * ∑ k, ∑ l, g k l := by
+  simp only [Fintype.sum_prod_type, Finset.sum_mul_sum]
+
+/-- Cauchy–Schwarz for the dot product over any finite index type. -/
+lemma dotProduct_sq_le_mul_self {p : Type*} [Fintype p] (u v : p → ℝ) :
+    (u ⬝ᵥ v) ^ 2 ≤ (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
+  have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ u v
+  simpa [dotProduct, sq] using this
+
+/-- `tr(A²) ≤ ‖A‖_F²` for a real square matrix. -/
+lemma sum_mul_transpose_le_frobSq {p : Type*} [Fintype p] (A : Matrix p p ℝ) :
+    ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, A k l ^ 2 := by
+  have h1 : ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 :=
+    Finset.sum_le_sum fun k _ => Finset.sum_le_sum fun l _ => by
+      nlinarith [sq_nonneg (A k l - A l k)]
+  have e : ∑ k, ∑ l, A l k ^ 2 = ∑ k, ∑ l, A k l ^ 2 := Finset.sum_comm
+  have h2 : ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 = ∑ k, ∑ l, A k l ^ 2 := by
+    have : ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 =
+        (∑ k, ∑ l, A k l ^ 2 + ∑ k, ∑ l, A l k ^ 2) / 2 := by
+      simp only [Finset.sum_div, ← Finset.sum_add_distrib, add_div]
+    rw [this, e]; ring
+  exact h1.trans h2.le
+
 end NTK
 
 end

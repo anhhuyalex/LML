@@ -58,11 +58,47 @@ theorem gramProjector_mul_self {n m : Type*} [Fintype n] [Fintype m]
         simp only [Matrix.mul_assoc]
     _ = Φ := by rw [hinv, Matrix.mul_one]
 
-/-- **Decomposition of a back-propagated vector.** For `P = Φ (Φᵀ Φ)⁻¹ Φᵀ` and any weight matrix
-`V` and vector `u`, `Vᵀ u = Φ c + (V Pᗮ)ᵀ u` with `c = (Φᵀ Φ)⁻¹ (V Φ)ᵀ u`: the projected part
-depends on `V` only through `V Φ`. -/
-theorem transpose_mulVec_eq_gramProjector_add {n m : Type*} [Fintype n] [Fintype m]
-    [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (V : Matrix n n ℝ) (u : n → ℝ) :
+/-- `gramProjector Φ` is an orthogonal projector for *every* `Φ`: when `Φᵀ Φ` is singular the
+matrix inverse is `0` and `gramProjector Φ = 0`. This is what lets the projector be used as a
+measurable function of the past without a case split on invertibility. -/
+theorem isOrthogonalProjection_gramProjector_all {n m : Type*} [Fintype n] [Fintype m]
+    [DecidableEq m] (Φ : Matrix n m ℝ) : isOrthogonalProjection (gramProjector Φ) := by
+  by_cases h : IsUnit (Φᵀ * Φ).det
+  · exact isOrthogonalProjection_gramProjector Φ h
+  · have hz : gramProjector Φ = 0 := by
+      unfold gramProjector
+      rw [Matrix.nonsing_inv_apply_not_isUnit _ h]
+      simp
+    rw [hz]
+    exact ⟨Matrix.transpose_zero, Matrix.zero_mul _⟩
+
+/-- The projector onto the column span of `Φ` has trace equal to the number of columns. -/
+theorem trace_gramProjector {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m]
+    (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
+    (gramProjector Φ).trace = Fintype.card m := by
+  unfold gramProjector
+  rw [Matrix.trace_mul_cycle, Matrix.mul_nonsing_inv _ h, Matrix.trace_one]
+
+/-- The residual projector `Pᗮ` annihilates the features: `Pᗮ Φ = 0`. -/
+theorem orthogonalComplement_gramProjector_mul {n m : Type*} [Fintype n] [Fintype m]
+    [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
+    orthogonalComplement (gramProjector Φ) * Φ = 0 := by
+  simp [orthogonalComplement, Matrix.sub_mul, gramProjector_mul_self Φ h]
+
+/-- For invertible `Φᵀ Φ`, a weight matrix acts on the features only through its projected part:
+`V Φ = (V P) Φ`. -/
+theorem mul_eq_mul_gramProjector_mul {n m : Type*} [Fintype n] [Fintype m]
+    [DecidableEq m] {k : Type*} (V : Matrix k n ℝ) (Φ : Matrix n m ℝ)
+    (h : IsUnit (Φᵀ * Φ).det) : V * Φ = (V * gramProjector Φ) * Φ := by
+  rw [Matrix.mul_assoc, gramProjector_mul_self Φ h]
+
+/-- **Decomposition of a back-propagated vector.** For `P = Φ (Φᵀ Φ)⁻¹ Φᵀ`, any weight matrix
+`V : Matrix k n ℝ` (the layer widths need not agree) and vector `u : k → ℝ`,
+`Vᵀ u = Φ c + (V Pᗮ)ᵀ u` with `c = (Φᵀ Φ)⁻¹ (V Φ)ᵀ u`: the projected part depends on `V` only
+through `V Φ`. -/
+theorem transpose_mulVec_eq_gramProjector_add {k n m : Type*} [Fintype k] [Fintype n]
+    [Fintype m] [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (V : Matrix k n ℝ)
+    (u : k → ℝ) :
     Vᵀ *ᵥ u = Φ *ᵥ ((Φᵀ * Φ)⁻¹ *ᵥ ((V * Φ)ᵀ *ᵥ u)) +
       (V * orthogonalComplement (gramProjector Φ))ᵀ *ᵥ u := by
   have hP := gramProjector_transpose Φ

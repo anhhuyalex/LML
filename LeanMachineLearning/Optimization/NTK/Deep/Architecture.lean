@@ -290,6 +290,47 @@ lemma backwardSensitivity_step (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin 
   have htop : ¬ ℓ.val = d - 1 := by omega
   simp [htop]
 
+/-- **Suffix congruence for the backward pass.** The sensitivity `g_ℓ` reads only the readout `Wd`,
+the hidden weights `Wh k` and the preactivations `h_k` with `k ≥ ℓ` (the mirror image of
+`deepPreactivation_congr_of_eqOn`, where `h_ℓ` reads only the weights up to `ℓ`). In particular
+`g_{k+1}` sees `W_{k+1} = Wh k` only through `h_{k+1} = n^{-1/2} Wh k φ(h_k)`, i.e. through
+`Wh k Φ`. -/
+lemma backwardSensitivity_congr_of_eqOn (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
+    (X : Fin m → Fin n0 → ℝ) (θ θ' : DeepMLPParams d n0 n) (ℓ : Fin d)
+    (hWd : θ.Wd = θ'.Wd)
+    (hWh : ∀ k : Fin (d - 1), ℓ.val ≤ k.val → θ.Wh k = θ'.Wh k)
+    (hh : ∀ k : Fin d, ℓ.val ≤ k.val →
+      deepMLPPreactivation d n0 n m φ X θ k = deepMLPPreactivation d n0 n m φ X θ' k) :
+    backwardSensitivity d n0 n m φ φ' X θ ℓ = backwardSensitivity d n0 n m φ φ' X θ' ℓ := by
+  suffices H : ∀ j : ℕ, ∀ ℓ : Fin d, d - 1 - ℓ.val = j →
+      (∀ k : Fin (d - 1), ℓ.val ≤ k.val → θ.Wh k = θ'.Wh k) →
+      (∀ k : Fin d, ℓ.val ≤ k.val →
+        deepMLPPreactivation d n0 n m φ X θ k = deepMLPPreactivation d n0 n m φ X θ' k) →
+      backwardSensitivity d n0 n m φ φ' X θ ℓ = backwardSensitivity d n0 n m φ φ' X θ' ℓ from
+    H _ ℓ rfl hWh hh
+  intro j
+  induction j with
+  | zero =>
+    intro ℓ hj hWh hh
+    have hd : 0 < d := by have := ℓ.2; omega
+    have heq : ℓ = ⟨d - 1, by omega⟩ := Fin.ext (by have := ℓ.2; simp only; omega)
+    have hh' := hh ℓ le_rfl
+    rw [heq] at hh' ⊢
+    funext α i
+    rw [backwardSensitivity_top d n0 n m φ φ' X θ hd, backwardSensitivity_top d n0 n m φ φ' X θ' hd,
+      hWd, hh']
+  | succ j ih =>
+    intro ℓ hj hWh hh
+    have hne : ℓ.val < d - 1 := by omega
+    funext α i
+    rw [backwardSensitivity_step d n0 n m φ φ' X θ ℓ hne,
+      backwardSensitivity_step d n0 n m φ φ' X θ' ℓ hne]
+    have hrec := ih ⟨ℓ.val + 1, by omega⟩ (by simp only; omega)
+      (fun k hk => hWh k (by simp only at hk; omega))
+      (fun k hk => hh k (by simp only at hk; omega))
+    rw [hh ℓ le_rfl, hWh ⟨ℓ.val, by omega⟩ le_rfl]
+    simp only [hrec]
+
 /-- Empirical backward Gram matrix `G_{ℓ+1}^{(n)} ∈ ℝ^{m × m}` for `ℓ ∈ Fin (d + 1)`:
 - `ℓ = 0, ..., d - 1`: hidden sensitivity covariance `(n : ℝ)⁻¹ • (g_ℓ^α ⬝ᵥ g_ℓ^β)`
 - `ℓ = d`: terminal condition `G_{d+1}^{(n)} = 1_{m × m}` -/
