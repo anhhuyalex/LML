@@ -463,6 +463,14 @@ theorem orthogonalDecomposition_mul {n p q : Type*} [Fintype p]
   conv_lhs => rw [orthogonalDecomposition W P]
   rw [Matrix.add_mul, residual_annihilates W P X hX, add_zero]
 
+/-- The trace of the orthogonal projector `X (Xᵀ X)⁻¹ Xᵀ` onto the column span of `X` is the
+number of columns `m`, independently of the number of rows `n`. In the deep NTK this gives
+`n⁻¹ tr P = m / n → 0` for the projector onto the `m` forward features. -/
+theorem trace_orthogonalProjectionOfGram {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m]
+    (X : Matrix n m ℝ) [Invertible (Xᵀ * X)] :
+    (X * ⅟(Xᵀ * X) * Xᵀ).trace = Fintype.card m := by
+  rw [Matrix.trace_mul_cycle, mul_invOf_self, Matrix.trace_one]
+
 end NTK
 
 end

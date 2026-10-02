@@ -337,6 +337,28 @@ theorem tendstoInMeasure_comp_of_continuousAt
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (hfg δ hδ)
     (fun _ => zero_le) hmono
 
+/-- **Inverse of a convergent matrix sequence.** If `f n → M` in probability and `M` is invertible,
+then `(f n)⁻¹ → M⁻¹` in probability: inversion is `det⁻¹ • adjugate`, continuous where `det ≠ 0`.
+With the positive-definite limiting kernels of the deep NTK this yields
+`‖Σ̂ₙ⁻¹‖ = O_ℙ(1)` for the empirical activation Gram. -/
+theorem tendstoInMeasure_matrix_inv {α : Type*} {mα : MeasurableSpace α} {μ : Measure α} {m : ℕ}
+    {f : ℕ → α → Matrix (Fin m) (Fin m) ℝ} {M : Matrix (Fin m) (Fin m) ℝ}
+    (hf : TendstoInMeasure μ f Filter.atTop (fun _ => M)) (hM : IsUnit M.det) :
+    TendstoInMeasure μ (fun n a => (f n a)⁻¹) Filter.atTop (fun _ => M⁻¹) := by
+  refine tendstoInMeasure_comp_of_continuousAt
+    (g := fun A : Matrix (Fin m) (Fin m) ℝ => A⁻¹) hf ?_
+  refine continuousAt_matrix_inv M ?_
+  simp only [Ring.inverse_eq_inv']
+  exact continuousAt_inv₀ hM.ne_zero
+
+/-- Positive-definite version of `tendstoInMeasure_matrix_inv`. -/
+theorem tendstoInMeasure_matrix_inv_of_posDef {α : Type*} {mα : MeasurableSpace α}
+    {μ : Measure α} {m : ℕ} {f : ℕ → α → Matrix (Fin m) (Fin m) ℝ}
+    {M : Matrix (Fin m) (Fin m) ℝ}
+    (hf : TendstoInMeasure μ f Filter.atTop (fun _ => M)) (hM : M.PosDef) :
+    TendstoInMeasure μ (fun n a => (f n a)⁻¹) Filter.atTop (fun _ => M⁻¹) :=
+  tendstoInMeasure_matrix_inv hf (isUnit_iff_ne_zero.mpr hM.det_pos.ne')
+
 /-- **Continuous mapping on an invariant set.** If `f n → y` in probability, all values of `f`
 lie in `s`, and `g` is continuous at `y` relative to `s`, then `g ∘ f n → g y` in probability.
 This is the form needed for covariance matrices: `multivariateGaussian` is naturally continuous in

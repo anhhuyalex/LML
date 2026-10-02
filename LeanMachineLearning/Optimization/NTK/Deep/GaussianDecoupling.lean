@@ -33,7 +33,7 @@ Lemma 2.26 `W P ⟂ W Pᗮ`) live in `Initialization/GaussianMatrixAlgebra.lean`
    `deepEmpiricalCovariance_tendstoInMeasure` to the `(W, w_out)` product measure used by
    `DeepMLPParams.ofTensor`.
 3. **Backward concentration** (`deepSensitivityGram_entry_tendstoInMeasure`, in
-   `Deep/BackwardConcentration.lean`; assumes `DeepForwardNondegenerate`):
+   `Deep/BackwardConcentration.lean`; assumes positive-definite limiting kernels `hnd`):
    applied to `u = g_{ℓ+1}^α`, `v = g_{ℓ+1}^β` and `A = diag(φ'(h^α) φ'(h^β))`, the quadratic form
    yields the transition factor `G_{ℓ+1}^{(n), αβ} · Φ'^{(n)}_{ℓ, αβ}`.
 4. **Theorem 2.27** (`deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK`, also in

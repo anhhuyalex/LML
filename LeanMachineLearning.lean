@@ -101,6 +101,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
 public import LeanMachineLearning.Optimization.NTK.Initialization.FullNTK
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianQuadraticVariance
 public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP
 public import LeanMachineLearning.Optimization.NTK.Initialization.NNGPLimit
 public import LeanMachineLearning.Optimization.NTK.Initialization.Peripheral
