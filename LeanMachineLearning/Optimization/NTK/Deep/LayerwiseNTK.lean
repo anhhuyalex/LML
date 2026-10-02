@@ -30,9 +30,9 @@ For an MLP of architectural depth `d`, input dimension `n₀`, hidden width `n`,
      \sum_{\ell=0}^d \mathbf{G}_{\ell+1}^{(n)} \odot \boldsymbol{\Phi}_\ell^{(n)}$$
    where:
    - `Φ_ℓ^{(n)} ∈ ℝ^{m × m}` is the empirical forward feature covariance at layer `ℓ`
-     (`empiricalForwardCov`).
+     (`deepActivationGram`).
    - `G_{ℓ+1}^{(n)} ∈ ℝ^{m × m}` is the empirical backward error sensitivity covariance
-     (`empiricalBackwardCov`).
+     (`deepSensitivityGram`).
 
 2. **Properties**:
    - **Exact Decomposition** (`deepEmpiricalNTK_eq_sum_hadamard`): Holds definitionally.
@@ -66,15 +66,15 @@ defined via the exact layerwise Hadamard decomposition (Proposition 2.25):
 noncomputable def deepEmpiricalNTK (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) : Matrix (Fin m) (Fin m) ℝ :=
   ∑ ℓ : Fin (d + 1),
-    empiricalBackwardCov d n0 n m φ φ' X θ ℓ ⊙ empiricalForwardCov d n0 n m φ X θ ℓ
+    deepSensitivityGram d n0 n m φ φ' X θ ℓ ⊙ deepActivationGram d n0 n m φ X θ ℓ
 
 /-- Exact layerwise Hadamard decomposition of the empirical NTK (Proposition 2.25). -/
 theorem deepEmpiricalNTK_eq_sum_hadamard (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
     (X : Fin m → Fin n0 → ℝ) (θ : DeepMLPParams d n0 n) :
     deepEmpiricalNTK d n0 n m φ φ' X θ =
       ∑ ℓ : Fin (d + 1),
-        empiricalBackwardCov d n0 n m φ φ' X θ ℓ ⊙
-        empiricalForwardCov d n0 n m φ X θ ℓ :=
+        deepSensitivityGram d n0 n m φ φ' X θ ℓ ⊙
+        deepActivationGram d n0 n m φ X θ ℓ :=
   rfl
 
 /-- The finite-width empirical NTK matrix is symmetric. -/
@@ -82,7 +82,7 @@ theorem deepEmpiricalNTK_transpose (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
     (X : Fin m → Fin n0 → ℝ) (θ : DeepMLPParams d n0 n) :
     (deepEmpiricalNTK d n0 n m φ φ' X θ)ᵀ = deepEmpiricalNTK d n0 n m φ φ' X θ := by
   simp only [deepEmpiricalNTK, Matrix.transpose_sum, Matrix.transpose_hadamard,
-    empiricalBackwardCov_transpose, empiricalForwardCov_transpose]
+    deepSensitivityGram_transpose, deepActivationGram_transpose]
 
 /-- The finite-width empirical NTK matrix is positive semidefinite. -/
 theorem deepEmpiricalNTK_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
@@ -91,8 +91,8 @@ theorem deepEmpiricalNTK_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
   rw [deepEmpiricalNTK]
   apply Matrix.posSemidef_sum
   intro ℓ _
-  exact (empiricalBackwardCov_posSemidef d n0 n m φ φ' X θ ℓ).hadamard
-    (empiricalForwardCov_posSemidef d n0 n m φ X θ ℓ)
+  exact (deepSensitivityGram_posSemidef d n0 n m φ φ' X θ ℓ).hadamard
+    (deepActivationGram_posSemidef d n0 n m φ X θ ℓ)
 
 /-- Entrywise Hadamard product with the all-ones matrix is the identity. -/
 theorem hadamard_const_one {m : Type*} (A : Matrix m m ℝ) :
@@ -106,28 +106,28 @@ The difference `Θ^{emp, (d)} - Φ_d^{(n)} = ∑_{ℓ < d} G_{ℓ+1}^{(n)} ⊙ �
 semidefinite. -/
 theorem deepEmpiricalNTK_ge_nngp (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) :
-    empiricalForwardCov d n0 n m φ X θ ⟨d, by omega⟩ ≤ deepEmpiricalNTK d n0 n m φ φ' X θ := by
+    deepActivationGram d n0 n m φ X θ ⟨d, by omega⟩ ≤ deepEmpiricalNTK d n0 n m φ φ' X θ := by
   rw [Matrix.le_iff]
   have hsplit : deepEmpiricalNTK d n0 n m φ φ' X θ =
       (∑ ℓ : Fin d,
-        empiricalBackwardCov d n0 n m φ φ' X θ ℓ.castSucc ⊙
-        empiricalForwardCov d n0 n m φ X θ ℓ.castSucc) +
-      empiricalForwardCov d n0 n m φ X θ ⟨d, by omega⟩ := by
+        deepSensitivityGram d n0 n m φ φ' X θ ℓ.castSucc ⊙
+        deepActivationGram d n0 n m φ X θ ℓ.castSucc) +
+      deepActivationGram d n0 n m φ X θ ⟨d, by omega⟩ := by
     rw [deepEmpiricalNTK, Fin.sum_univ_castSucc]
-    have hlast : empiricalBackwardCov d n0 n m φ φ' X θ (Fin.last d) ⊙
-        empiricalForwardCov d n0 n m φ X θ (Fin.last d) =
-        empiricalForwardCov d n0 n m φ X θ ⟨d, by omega⟩ := by
-      have hterm : empiricalBackwardCov d n0 n m φ φ' X θ (Fin.last d) =
+    have hlast : deepSensitivityGram d n0 n m φ φ' X θ (Fin.last d) ⊙
+        deepActivationGram d n0 n m φ X θ (Fin.last d) =
+        deepActivationGram d n0 n m φ X θ ⟨d, by omega⟩ := by
+      have hterm : deepSensitivityGram d n0 n m φ φ' X θ (Fin.last d) =
           Matrix.of fun _ _ => 1 := by
-        apply empiricalBackwardCov_terminal
+        apply deepSensitivityGram_terminal
       rw [hterm, hadamard_const_one]
       rfl
     rw [hlast]
   rw [hsplit, add_sub_cancel_right]
   apply Matrix.posSemidef_sum
   intro ℓ _
-  exact (empiricalBackwardCov_posSemidef d n0 n m φ φ' X θ ℓ.castSucc).hadamard
-    (empiricalForwardCov_posSemidef d n0 n m φ X θ ℓ.castSucc)
+  exact (deepSensitivityGram_posSemidef d n0 n m φ φ' X θ ℓ.castSucc).hadamard
+    (deepActivationGram_posSemidef d n0 n m φ X θ ℓ.castSucc)
 
 /-- Finite-width two-layer specialization: at architectural depth `d = 1`, the empirical NTK
 matrix splits into the readout forward feature Gram matrix plus the input-layer Hadamard
@@ -136,12 +136,12 @@ product summand:
 theorem deepEmpiricalNTK_twoLayer_eq_add_hadamard (n0 n m : ℕ) (φ φ' : ℝ → ℝ)
     (X : Fin m → Fin n0 → ℝ) (θ : DeepMLPParams 1 n0 n) :
     deepEmpiricalNTK 1 n0 n m φ φ' X θ =
-      empiricalForwardCov 1 n0 n m φ X θ 1 +
-        empiricalBackwardCov 1 n0 n m φ φ' X θ 0 ⊙
-          empiricalForwardCov 1 n0 n m φ X θ 0 := by
+      deepActivationGram 1 n0 n m φ X θ 1 +
+        deepSensitivityGram 1 n0 n m φ φ' X θ 0 ⊙
+          deepActivationGram 1 n0 n m φ X θ 0 := by
   rw [deepEmpiricalNTK, Fin.sum_univ_two]
-  have hterm : empiricalBackwardCov 1 n0 n m φ φ' X θ 1 = Matrix.of fun _ _ => 1 := by
-    apply empiricalBackwardCov_terminal
+  have hterm : deepSensitivityGram 1 n0 n m φ φ' X θ 1 = Matrix.of fun _ _ => 1 := by
+    apply deepSensitivityGram_terminal
   rw [hterm, hadamard_const_one]
   rw [add_comm]
 

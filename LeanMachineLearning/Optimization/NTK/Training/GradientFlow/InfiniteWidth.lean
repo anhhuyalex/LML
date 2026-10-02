@@ -23,10 +23,10 @@ corresponding Chebyshev bounds.
 * `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
 * `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.
 * `NTK.tendsto_lazy_training_kernel_freeze_matrix` : Empirical NTK matrix freeze as `n → ∞`.
-* `NTK.deterministic_initialization_empiricalNTK_tendsto_ae` : Property 1 a.s. initialization limit.
+* `NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae` : Property 1 a.s. initialization limit.
 * `NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae` : Gram matrix a.s. limit.
 * `NTK.deterministic_initialization_chebyshev_bound` : Property 1 entrywise Chebyshev bound.
-* `NTK.tendsto_empiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
+* `NTK.tendsto_shallowEmpiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
 
 See
 `LeanMachineLearning.Optimization.NTK.Training.GradientFlow`
@@ -249,23 +249,24 @@ theorem tendsto_lazy_training_kernel_freeze_matrix
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le hg hh hgf hfh
 
 /-- Property 1 (Deterministic NTK Initialization):
-By `ntk_convergence` from `NTK.Shallow.Kernel`, the empirical kernel `empiricalNTKFromRows`
+By `ntk_convergence` from `NTK.Shallow.Kernel`, the empirical kernel `shallowEmpiricalNTK`
 built from `n` Gaussian hidden rows converges almost surely to the deterministic
-limiting kernel `limitingNTK` as width `n → ∞`:
+limiting kernel `shallowLimitingNTK` as width `n → ∞`:
   `k_n(x, x') → k_∞(x, x')` a.s. -/
-theorem deterministic_initialization_empiricalNTK_tendsto_ae
+theorem deterministic_initialization_shallowEmpiricalNTK_tendsto_ae
     (σ' : ℝ → ℝ) (hσ'_meas : Measurable σ')
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
       ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)),
-      Filter.Tendsto (fun n => empiricalNTKFromRows σ' rows n x x')
-        Filter.atTop (𝓝 (limitingNTK σ' x x')) :=
+      Filter.Tendsto (fun n => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x')
+        Filter.atTop (𝓝 (shallowLimitingNTK σ' x x')) :=
   ntk_convergence σ' hσ'_meas hσ'_bounded x x'
 
 /-- Property 1 (Deterministic NTK Gram Matrix Initialization Limit):
 For any finite dataset `X : Fin m → Fin d → ℝ`, the empirical NTK Gram matrix
-`fun α β => empiricalNTKFromRows σ' rows n (X α) (X β)` converges entrywise almost surely
-to the deterministic limiting NTK Gram matrix `fun α β => limitingNTK σ' (X α) (X β)`
+`fun α β => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) (X α) (X β)` converges
+entrywise almost surely
+to the deterministic limiting NTK Gram matrix `fun α β => shallowLimitingNTK σ' (X α) (X β)`
 as width `n → ∞`. -/
 theorem deterministic_initialization_empiricalNTKMatrix_tendsto_ae
     (σ' : ℝ → ℝ) (hσ'_meas : Measurable σ')
@@ -273,8 +274,8 @@ theorem deterministic_initialization_empiricalNTKMatrix_tendsto_ae
     ∀ᵐ rows : ℕ → Fin d → ℝ
       ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)),
       ∀ α β : Fin m,
-        Filter.Tendsto (fun n => empiricalNTKFromRows σ' rows n (X α) (X β))
-          Filter.atTop (𝓝 (limitingNTK σ' (X α) (X β))) := by
+        Filter.Tendsto (fun n => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) (X α) (X β))
+          Filter.atTop (𝓝 (shallowLimitingNTK σ' (X α) (X β))) := by
   rw [eventually_all]
   intro α
   rw [eventually_all]
@@ -294,18 +295,20 @@ lemma tendsto_chebyshev_bound_atTop (C ε : ℝ) :
 /-- Property 1 (Empirical NTK Entrywise Chebyshev Concentration Bound):
 For any tolerance `ε > 0`, the probability under the initialization measure
 `Measure.infinitePi (fun _ => gaussianRowMeasure d)` that the empirical NTK
-`empiricalNTKFromRows σ' rows n x x'` deviates from its expectation by `≥ ε`
-is bounded by `variance (empiricalNTKFromRows σ' · n x x') μ / ε²`.
+`shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x'` deviates from its expectation by `≥ ε`
+is bounded by
+`variance (fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x') μ / ε²`.
 When the estimator's variance decays as `≤ C / n`, this probability is bounded
 by `C / (ε² * n)`. -/
 theorem deterministic_initialization_chebyshev_bound
     (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) (n : ℕ) (C : ℝ) {ε : ℝ} (hε : 0 < ε)
-    (hL2 : MemLp (fun rows => empiricalNTKFromRows σ' rows n x x') 2
+    (hL2 : MemLp (fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x') 2
       (MeasureTheory.Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d))
-    (hvar : ProbabilityTheory.variance (fun rows => empiricalNTKFromRows σ' rows n x x')
+    (hvar : ProbabilityTheory.variance
+      (fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x')
       (MeasureTheory.Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d) ≤ C / (n : ℝ)) :
     let μ := MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)
-    let k_n := fun rows => empiricalNTKFromRows σ' rows n x x'
+    let k_n := fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x'
     μ {rows | ε ≤ |k_n rows - ∫ r, k_n r ∂μ|} ≤
       ENNReal.ofReal (C / (ε ^ 2 * (n : ℝ))) := by
   intro μ k_n
@@ -321,8 +324,8 @@ theorem deterministic_initialization_chebyshev_bound
 
 /-- Property 1 (Asymptotic Concentration of Empirical NTK Deviation in Probability):
 As network width `n → ∞`, the Chebyshev upper bound `ENNReal.ofReal (C / (ε² * n))`
-on the probability that `empiricalNTKFromRows` deviates by `≥ ε` converges to `0`. -/
-theorem tendsto_empiricalNTK_chebyshev_bound (C ε : ℝ) :
+on the probability that `shallowEmpiricalNTK` deviates by `≥ ε` converges to `0`. -/
+theorem tendsto_shallowEmpiricalNTK_chebyshev_bound (C ε : ℝ) :
     Tendsto (fun n : ℕ => ENNReal.ofReal (C / (ε ^ 2 * (n : ℝ)))) atTop (𝓝 0) := by
   have h_real : Tendsto (fun n : ℕ => C / (ε ^ 2 * (n : ℝ))) atTop (𝓝 0) :=
     tendsto_chebyshev_bound_atTop C ε

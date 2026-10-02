@@ -39,13 +39,13 @@ activation `φ : ℝ → ℝ`, and derivative `φ' : ℝ → ℝ`:
    - Lower layers `g_ℓ^α = (1/√n) diag(φ'(h_ℓ^α)) W_ℓᵀ g_{ℓ+1}^α`
 
 5. **Empirical Gram Matrices**:
-   - Forward feature Gram matrix `Φ_ℓ^{(n)}` (`empiricalForwardCov`):
+   - Forward feature Gram matrix `Φ_ℓ^{(n)}` (`deepActivationGram`):
      - `Φ₀ = (1/n₀) X Xᵀ`
      - `Φ_{k+1}^{(n), αβ} = (1/n) ⟨φ(h_k^α), φ(h_k^β)⟩`
-   - Backward sensitivity Gram matrix `G_{ℓ+1}^{(n)}` (`empiricalBackwardCov`):
+   - Backward sensitivity Gram matrix `G_{ℓ+1}^{(n)}` (`deepSensitivityGram`):
      - `G_{k+1}^{(n), αβ} = (1/n) ⟨g_k^α, g_k^β⟩` for `k ∈ {0, ..., d - 1}`
      - `G_{d+1}^{(n)} = 1_{m × m}` (terminal condition)
-   - Derivative feature Gram matrix `Φ'_{k+1}^{(n)}` (`empiricalDerivCov`):
+   - Derivative feature Gram matrix `Φ'_{k+1}^{(n)}` (`deepDerivativeGram`):
      - `Φ'_{k+1}^{(n), αβ} = (1/n) ⟨φ'(h_k^α), φ'(h_k^β)⟩`
 
 ## Disambiguation and Relationship to Other Declarations
@@ -70,6 +70,19 @@ This codebase formalizes deep neural networks across multiple domains with disti
      explicit bias `b + W x`.
    - `deepMLPPreactivation`: Multilayer perceptron without bias, adhering to the NTK normalization
      factors `(n0 : ℝ)⁻¹/²` and `(n : ℝ)⁻¹/²`.
+
+3. **Naming convention for kernels and Gram matrices** (feature Gram vs. tangent kernel):
+   - `…Gram` = a finite-width, random `m × m` matrix `(1/n) · Gram` of explicit feature vectors:
+     `deepActivationGram` (activation features `φ(h)`, `Φ_ℓ`), `deepDerivativeGram` (derivative
+     features `φ'(h)`, `Φ'_ℓ`), `deepSensitivityGram` (backward sensitivities `g`, `G_ℓ`).
+   - `…Kernel` = a deterministic infinite-width limit (`deepLimitingSensitivityKernel`, `Π^ℓ`);
+     the forward limits are `layerCovarianceSeq`.
+   - `…NTK` = a tangent kernel, i.e. a Gram matrix of parameter gradients: `deepEmpiricalNTK` /
+     `deepLimitingNTK` for the deep network, `shallowEmpiricalNTK` / `shallowLimitingNTK` for the
+     frozen-readout two-layer weight block (`Shallow/Kernel.lean`), and `empiricalNTKMatrix` for
+     the generic full-Jacobian Gram `J Jᵀ`.
+   The `deep…Gram` matrices are the *ingredients* of `deepEmpiricalNTK`; they are not themselves
+   tangent kernels.
 -/
 
 @[expose]
@@ -171,7 +184,7 @@ noncomputable def deepMLPOutput (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m �
 /-- Empirical forward Gram matrix `Φ_ℓ^{(n)} ∈ ℝ^{m × m}` for `ℓ ∈ Fin (d + 1)`:
 - `ℓ = 0`: base input Gram matrix `(n0 : ℝ)⁻¹ • (X α ⬝ᵥ X β)`
 - `ℓ = k + 1`: feature Gram matrix `(n : ℝ)⁻¹ • (φ(h_k^α) ⬝ᵥ φ(h_k^β))` -/
-noncomputable def empiricalForwardCov (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+noncomputable def deepActivationGram (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin (d + 1)) : Matrix (Fin m) (Fin m) ℝ :=
   if h0 : ℓ.val = 0 then
     Matrix.of fun α β => (n0 : ℝ)⁻¹ * (X α ⬝ᵥ X β)
@@ -181,21 +194,21 @@ noncomputable def empiricalForwardCov (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : F
       (n : ℝ)⁻¹ * ((fun j => φ (deepMLPPreactivation d n0 n m φ X θ ⟨ℓ.val - 1, hpred⟩ α j)) ⬝ᵥ
                    (fun j => φ (deepMLPPreactivation d n0 n m φ X θ ⟨ℓ.val - 1, hpred⟩ β j)))
 
-lemma empiricalForwardCov_zero (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+lemma deepActivationGram_zero (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (h0 : 0 < d + 1) :
-    empiricalForwardCov d n0 n m φ X θ ⟨0, h0⟩ =
+    deepActivationGram d n0 n m φ X θ ⟨0, h0⟩ =
       Matrix.of fun α β => (n0 : ℝ)⁻¹ * (X α ⬝ᵥ X β) := by
   ext α β
-  simp [empiricalForwardCov]
+  simp [deepActivationGram]
 
-lemma empiricalForwardCov_succ (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+lemma deepActivationGram_succ (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k < d) :
-    empiricalForwardCov d n0 n m φ X θ ⟨k + 1, by omega⟩ =
+    deepActivationGram d n0 n m φ X θ ⟨k + 1, by omega⟩ =
       Matrix.of fun α β =>
         (n : ℝ)⁻¹ * ((fun j => φ (deepMLPPreactivation d n0 n m φ X θ ⟨k, hk⟩ α j)) ⬝ᵥ
                      (fun j => φ (deepMLPPreactivation d n0 n m φ X θ ⟨k, hk⟩ β j))) := by
   ext α β
-  rw [empiricalForwardCov]
+  rw [deepActivationGram]
   have h0 : ¬ (⟨k + 1, by omega⟩ : Fin (d + 1)).val = 0 := by simp
   simp only [h0, ↓reduceDIte, Matrix.of_apply]
   have heq : (⟨(⟨k + 1, by omega⟩ : Fin (d + 1)).val - 1, by omega⟩ : Fin d) = ⟨k, hk⟩ :=
@@ -203,41 +216,41 @@ lemma empiricalForwardCov_succ (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m �
   rw [heq]
 
 /-- The empirical forward Gram matrix `Φ_ℓ^{(n)}` is symmetric. -/
-theorem empiricalForwardCov_transpose (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+theorem deepActivationGram_transpose (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin (d + 1)) :
-    (empiricalForwardCov d n0 n m φ X θ ℓ)ᵀ = empiricalForwardCov d n0 n m φ X θ ℓ := by
-  simp only [empiricalForwardCov]
+    (deepActivationGram d n0 n m φ X θ ℓ)ᵀ = deepActivationGram d n0 n m φ X θ ℓ := by
+  simp only [deepActivationGram]
   split_ifs
   · exact scaled_gram_transpose (n0 : ℝ)⁻¹ X
   · exact scaled_gram_transpose (n : ℝ)⁻¹ _
 
 /-- The empirical forward Gram matrix `Φ_ℓ^{(n)}` is positive semidefinite. -/
-theorem empiricalForwardCov_posSemidef (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+theorem deepActivationGram_posSemidef (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin (d + 1)) :
-    (empiricalForwardCov d n0 n m φ X θ ℓ).PosSemidef := by
-  simp only [empiricalForwardCov]
+    (deepActivationGram d n0 n m φ X θ ℓ).PosSemidef := by
+  simp only [deepActivationGram]
   split_ifs
   · exact scaled_gram_posSemidef (n0 : ℝ)⁻¹ (by positivity) X
   · exact scaled_gram_posSemidef (n : ℝ)⁻¹ (by positivity) _
 
 /-- Empirical derivative covariance matrix `Φ'_{k+1}^{(n)} ∈ ℝ^{m × m}` for hidden layer
 `k ∈ Fin d`: `Φ'_{k+1}^{(n), αβ} = (n : ℝ)⁻¹ • (φ'(h_k^α) ⬝ᵥ φ'(h_k^β))`. -/
-noncomputable def empiricalDerivCov (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+noncomputable def deepDerivativeGram (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : Fin d) : Matrix (Fin m) (Fin m) ℝ :=
   Matrix.of fun α β =>
     (n : ℝ)⁻¹ * ((fun j => φ' (deepMLPPreactivation d n0 n m φ X θ k α j)) ⬝ᵥ
                  (fun j => φ' (deepMLPPreactivation d n0 n m φ X θ k β j)))
 
 /-- The empirical derivative Gram matrix `Φ'_{k+1}^{(n)}` is symmetric. -/
-theorem empiricalDerivCov_transpose (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+theorem deepDerivativeGram_transpose (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : Fin d) :
-    (empiricalDerivCov d n0 n m φ φ' X θ k)ᵀ = empiricalDerivCov d n0 n m φ φ' X θ k :=
+    (deepDerivativeGram d n0 n m φ φ' X θ k)ᵀ = deepDerivativeGram d n0 n m φ φ' X θ k :=
   scaled_gram_transpose (n : ℝ)⁻¹ _
 
 /-- The empirical derivative Gram matrix `Φ'_{k+1}^{(n)}` is positive semidefinite. -/
-theorem empiricalDerivCov_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+theorem deepDerivativeGram_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : Fin d) :
-    (empiricalDerivCov d n0 n m φ φ' X θ k).PosSemidef :=
+    (deepDerivativeGram d n0 n m φ φ' X θ k).PosSemidef :=
   scaled_gram_posSemidef (n : ℝ)⁻¹ (by positivity) _
 
 /-- Normalized backward sensitivity vectors `g_ℓ^α = √n ∇_{h_ℓ^α} f^α ∈ ℝ^n` for `ℓ ∈ Fin d`.
@@ -280,7 +293,7 @@ lemma backwardSensitivity_step (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin 
 /-- Empirical backward Gram matrix `G_{ℓ+1}^{(n)} ∈ ℝ^{m × m}` for `ℓ ∈ Fin (d + 1)`:
 - `ℓ = 0, ..., d - 1`: hidden sensitivity covariance `(n : ℝ)⁻¹ • (g_ℓ^α ⬝ᵥ g_ℓ^β)`
 - `ℓ = d`: terminal condition `G_{d+1}^{(n)} = 1_{m × m}` -/
-noncomputable def empiricalBackwardCov (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+noncomputable def deepSensitivityGram (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin (d + 1)) : Matrix (Fin m) (Fin m) ℝ :=
   if htop : ℓ.val = d then
     Matrix.of fun _ _ => 1
@@ -290,21 +303,21 @@ noncomputable def empiricalBackwardCov (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (
       (n : ℝ)⁻¹ * (backwardSensitivity d n0 n m φ φ' X θ ⟨ℓ.val, hℓ⟩ α ⬝ᵥ
                    backwardSensitivity d n0 n m φ φ' X θ ⟨ℓ.val, hℓ⟩ β)
 
-lemma empiricalBackwardCov_terminal (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+lemma deepSensitivityGram_terminal (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) :
-    empiricalBackwardCov d n0 n m φ φ' X θ ⟨d, by omega⟩ =
+    deepSensitivityGram d n0 n m φ φ' X θ ⟨d, by omega⟩ =
       Matrix.of fun _ _ => 1 := by
   ext α β
-  simp [empiricalBackwardCov]
+  simp [deepSensitivityGram]
 
-lemma empiricalBackwardCov_hidden (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+lemma deepSensitivityGram_hidden (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k < d) :
-    empiricalBackwardCov d n0 n m φ φ' X θ ⟨k, by omega⟩ =
+    deepSensitivityGram d n0 n m φ φ' X θ ⟨k, by omega⟩ =
       Matrix.of fun α β =>
         (n : ℝ)⁻¹ * (backwardSensitivity d n0 n m φ φ' X θ ⟨k, hk⟩ α ⬝ᵥ
                      backwardSensitivity d n0 n m φ φ' X θ ⟨k, hk⟩ β) := by
   ext α β
-  rw [empiricalBackwardCov]
+  rw [deepSensitivityGram]
   have htop : ¬ (⟨k, by omega⟩ : Fin (d + 1)).val = d := by
     intro h
     have : (⟨k, by omega⟩ : Fin (d + 1)).val = k := rfl
@@ -312,19 +325,19 @@ lemma empiricalBackwardCov_hidden (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : F
   simp only [htop, ↓reduceDIte, Matrix.of_apply]
 
 /-- The empirical backward Gram matrix `G_{ℓ+1}^{(n)}` is symmetric. -/
-theorem empiricalBackwardCov_transpose (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+theorem deepSensitivityGram_transpose (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin (d + 1)) :
-    (empiricalBackwardCov d n0 n m φ φ' X θ ℓ)ᵀ = empiricalBackwardCov d n0 n m φ φ' X θ ℓ := by
-  simp only [empiricalBackwardCov]
+    (deepSensitivityGram d n0 n m φ φ' X θ ℓ)ᵀ = deepSensitivityGram d n0 n m φ φ' X θ ℓ := by
+  simp only [deepSensitivityGram]
   split_ifs
   · exact const_matrix_transpose 1
   · exact scaled_gram_transpose (n : ℝ)⁻¹ _
 
 /-- The empirical backward Gram matrix `G_{ℓ+1}^{(n)}` is positive semidefinite. -/
-theorem empiricalBackwardCov_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
+theorem deepSensitivityGram_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin (d + 1)) :
-    (empiricalBackwardCov d n0 n m φ φ' X θ ℓ).PosSemidef := by
-  simp only [empiricalBackwardCov]
+    (deepSensitivityGram d n0 n m φ φ' X θ ℓ).PosSemidef := by
+  simp only [deepSensitivityGram]
   split_ifs
   · exact posSemidef_allOnes
   · exact scaled_gram_posSemidef (n : ℝ)⁻¹ (by positivity) _

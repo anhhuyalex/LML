@@ -73,7 +73,8 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
 * **Asymptotic Properties in the Infinite-Width Limit ($n \to \infty$)**:
   * **Property 1 (Deterministic Initialization)**: As width $n \to \infty$, the initial empirical
     kernel concentrates entrywise around a deterministic limit:
-    `empiricalNTKFromRows σ' rows n x x' → limitingNTK σ' x x'` almost surely and in probability.
+    `shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x' → shallowLimitingNTK σ' x x'`
+    almost surely and in probability.
   * **Property 2 (Kernel Constancy / Lazy Training)**: Throughout gradient flow, parameter
     displacement satisfies `‖θ(t) - θ₀‖₂ ≤ C / √n`, freezing the empirical kernel in time:
     `‖empiricalNTKMatrix f X (θ_traj t) - empiricalNTKMatrix f X θ₀‖ ≤ L_K * C / √n`.
@@ -248,9 +249,9 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
 * `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
 * `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.
 * `NTK.tendsto_lazy_training_kernel_freeze_matrix` : Empirical NTK matrix freeze as `n → ∞`.
-* `NTK.deterministic_initialization_empiricalNTK_tendsto_ae` : Property 1 a.s. initialization limit.
+* `NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae` : Property 1 a.s. initialization limit.
 * `NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae` : Gram matrix a.s. limit.
 * `NTK.deterministic_initialization_chebyshev_bound` : Property 1 entrywise Chebyshev bound.
-* `NTK.tendsto_empiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
+* `NTK.tendsto_shallowEmpiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
 
 -/

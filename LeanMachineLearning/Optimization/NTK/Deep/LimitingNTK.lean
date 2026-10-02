@@ -35,14 +35,14 @@ weak derivative `φ' : ℝ → ℝ`, and base input Gram matrix `Φ₀ ∈ ℝ^{
    - `Σ⁰ = Φ₀`
    - `Σ^{ℓ+1} = 𝒞_φ(Σ^ℓ)`
 
-2. **Limiting Backward Covariance Tensor** (`deepLimitingBackwardCov`):
+2. **Limiting Backward Covariance Tensor** (`deepLimitingSensitivityKernel`):
    Defined via the backward recurrence:
    - Terminal condition `ℓ = d`: `Π^d = 1_{m × m}`
    - Recurrence `ℓ < d`: `Π^ℓ = 𝒞_{φ'}(Σ^ℓ) ⊙ Π^{ℓ+1} = ⨀_{k=ℓ}^{d-1} 𝒞_{φ'}(Σ^k)`
 
 3. **Limiting Deep NTK Matrix** (`deepLimitingNTK`):
    $$\mathbf{\Theta}^{(d)} := \sum_{\ell=0}^d \mathbf{\Pi}^{\ell+1} \odot \mathbf{\Sigma}^\ell$$
-   where `Π^{ℓ+1}` is `deepLimitingBackwardCov d m φ φ' Φ0 ℓ`.
+   where `Π^{ℓ+1}` is `deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ`.
 
 4. **Properties**:
    - **Positive Semidefiniteness** (`deepLimitingNTK_posSemidef`):
@@ -74,7 +74,7 @@ for `ℓ ∈ Fin (d + 1)` (Proposition 2.27):
 - Terminal condition `ℓ = d`: `Π^d = 1_{m × m}`
 - Backward recurrence `ℓ < d`: `Π^ℓ = 𝒞_{φ'}(Σ^ℓ) ⊙ Π^{ℓ+1}` where `Σ^ℓ` is the forward
   limiting covariance at layer `ℓ`, given by `layerCovarianceSeq 1 0 φ m Φ0 ℓ`. -/
-noncomputable def deepLimitingBackwardCov (d m : ℕ) (φ φ' : ℝ → ℝ)
+noncomputable def deepLimitingSensitivityKernel (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) : Fin (d + 1) → Matrix (Fin m) (Fin m) ℝ
   | ⟨ℓ, hℓ⟩ =>
       if htop : ℓ = d then
@@ -85,39 +85,41 @@ noncomputable def deepLimitingBackwardCov (d m : ℕ) (φ φ' : ℝ → ℝ)
           Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
             φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0
               (layerCovarianceSeq 1 0 φ m Φ0 ℓ))
-        dotSigma ⊙ deepLimitingBackwardCov d m φ φ' Φ0 ⟨ℓ + 1, hsucc⟩
+        dotSigma ⊙ deepLimitingSensitivityKernel d m φ φ' Φ0 ⟨ℓ + 1, hsucc⟩
 termination_by ℓ => d - ℓ.val
 decreasing_by omega
 
-lemma deepLimitingBackwardCov_terminal (d m : ℕ) (φ φ' : ℝ → ℝ)
+lemma deepLimitingSensitivityKernel_terminal (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) :
-    deepLimitingBackwardCov d m φ φ' Φ0 ⟨d, by omega⟩ =
+    deepLimitingSensitivityKernel d m φ φ' Φ0 ⟨d, by omega⟩ =
       Matrix.of fun _ _ => 1 := by
   ext α β
-  simp [deepLimitingBackwardCov]
+  simp [deepLimitingSensitivityKernel]
 
-lemma deepLimitingBackwardCov_step (d m : ℕ) (φ φ' : ℝ → ℝ)
+lemma deepLimitingSensitivityKernel_step (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) (ℓ : Fin (d + 1)) (hne : ℓ.val < d) :
-    deepLimitingBackwardCov d m φ φ' Φ0 ℓ =
+    deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ =
       (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
         φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0
           (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) ⊙
-      deepLimitingBackwardCov d m φ φ' Φ0 ⟨ℓ.val + 1, by omega⟩ := by
-  rw [deepLimitingBackwardCov]
+      deepLimitingSensitivityKernel d m φ φ' Φ0 ⟨ℓ.val + 1, by omega⟩ := by
+  rw [deepLimitingSensitivityKernel]
   have htop : ¬ ℓ.val = d := by omega
   simp [htop]
 
 /-- The limiting backward covariance tensor is symmetric at every layer `ℓ`. -/
-theorem deepLimitingBackwardCov_transpose (d m : ℕ) (φ φ' : ℝ → ℝ)
+theorem deepLimitingSensitivityKernel_transpose (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) (ℓ : Fin (d + 1)) :
-    (deepLimitingBackwardCov d m φ φ' Φ0 ℓ)ᵀ = deepLimitingBackwardCov d m φ φ' Φ0 ℓ := by
+    (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ)ᵀ =
+      deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ := by
   have H : ∀ k, ∀ (ℓ : Fin (d + 1)), d - ℓ.val = k →
-      (deepLimitingBackwardCov d m φ φ' Φ0 ℓ)ᵀ = deepLimitingBackwardCov d m φ φ' Φ0 ℓ := by
+      (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ)ᵀ =
+        deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ := by
     intro k
     induction k using Nat.strong_induction_on with
     | h k ih =>
       intro ℓ hk
-      rw [deepLimitingBackwardCov]
+      rw [deepLimitingSensitivityKernel]
       split_ifs with htop
       · exact const_matrix_transpose 1
       · have hsucc : ℓ.val + 1 < d + 1 := by omega
@@ -138,7 +140,7 @@ theorem deepLimitingBackwardCov_transpose (d m : ℕ) (φ φ' : ℝ → ℝ)
 
 /-- The limiting backward covariance matrix is positive semidefinite at every layer `ℓ`,
 assuming `φ'` is measurable and has finite $L^2$ moments under the forward Gaussian layers. -/
-theorem deepLimitingBackwardCov_posSemidef (d m : ℕ) (φ φ' : ℝ → ℝ)
+theorem deepLimitingSensitivityKernel_posSemidef (d m : ℕ) (φ φ' : ℝ → ℝ)
     (hφ'_meas : Measurable φ') (Φ0 : Matrix (Fin m) (Fin m) ℝ)
     (hφ'_L2 : ∀ (k : ℕ) (α : Fin m),
       MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ' (z.ofLp α)) 2
@@ -146,14 +148,14 @@ theorem deepLimitingBackwardCov_posSemidef (d m : ℕ) (φ φ' : ℝ → ℝ)
     (h_gauss : ∀ (k : ℕ),
       IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (layerCovarianceSeq 1 0 φ m Φ0 k))) (ℓ : Fin (d + 1)) :
-    (deepLimitingBackwardCov d m φ φ' Φ0 ℓ).PosSemidef := by
+    (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ).PosSemidef := by
   have H : ∀ k, ∀ (ℓ : Fin (d + 1)), d - ℓ.val = k →
-      (deepLimitingBackwardCov d m φ φ' Φ0 ℓ).PosSemidef := by
+      (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ).PosSemidef := by
     intro k
     induction k using Nat.strong_induction_on with
     | h k ih =>
       intro ℓ hk
-      rw [deepLimitingBackwardCov]
+      rw [deepLimitingSensitivityKernel]
       split_ifs with htop
       · exact posSemidef_allOnes (m := Fin m)
       · have hsucc : ℓ.val + 1 < d + 1 := by omega
@@ -180,18 +182,19 @@ theorem deepLimitingBackwardCov_posSemidef (d m : ℕ) (φ φ' : ℝ → ℝ)
 /-- Deterministic limiting Neural Tangent Kernel (NTK) Gram matrix `Θ^{(d)} ∈ ℝ^{m × m}`
 (Proposition 2.27):
 `Θ^{(d)} = ∑_{ℓ=0}^d Π^{ℓ+1} ⊙ Σ^ℓ`.
-Here `Σ^ℓ` is `layerCovarianceSeq 1 0 φ m Φ0 ℓ` and `Π^{ℓ+1}` is `deepLimitingBackwardCov ... ℓ`. -/
+Here `Σ^ℓ` is `layerCovarianceSeq 1 0 φ m Φ0 ℓ` and `Π^{ℓ+1}` is
+`deepLimitingSensitivityKernel ... ℓ`. -/
 noncomputable def deepLimitingNTK (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) : Matrix (Fin m) (Fin m) ℝ :=
   ∑ ℓ : Fin (d + 1),
-    deepLimitingBackwardCov d m φ φ' Φ0 ℓ ⊙ layerCovarianceSeq 1 0 φ m Φ0 ℓ.val
+    deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ ⊙ layerCovarianceSeq 1 0 φ m Φ0 ℓ.val
 
 /-- Equation lemma for the limiting deep NTK decomposition (Proposition 2.27). -/
 theorem deepLimitingNTK_eq_sum_hadamard (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) :
     deepLimitingNTK d m φ φ' Φ0 =
       ∑ ℓ : Fin (d + 1),
-        deepLimitingBackwardCov d m φ φ' Φ0 ℓ ⊙ layerCovarianceSeq 1 0 φ m Φ0 ℓ.val :=
+        deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ ⊙ layerCovarianceSeq 1 0 φ m Φ0 ℓ.val :=
   rfl
 
 /-- The limiting deep NTK matrix is symmetric. -/
@@ -202,7 +205,7 @@ theorem deepLimitingNTK_transpose (d m : ℕ) (φ φ' : ℝ → ℝ)
     (deepLimitingNTK d m φ φ' Φ0)ᵀ = deepLimitingNTK d m φ φ' Φ0 := by
   simp only [deepLimitingNTK, Matrix.transpose_sum, Matrix.transpose_hadamard]
   congr 1 with ℓ
-  rw [deepLimitingBackwardCov_transpose, h_cov_symm ℓ.val]
+  rw [deepLimitingSensitivityKernel_transpose, h_cov_symm ℓ.val]
 
 /-- Global positive semidefiniteness guarantee for the limiting deep NTK matrix
 (Proposition 2.27). -/
@@ -222,7 +225,7 @@ theorem deepLimitingNTK_posSemidef (d m : ℕ) (φ φ' : ℝ → ℝ)
   rw [deepLimitingNTK]
   apply Matrix.posSemidef_sum
   intro ℓ _
-  have hB := deepLimitingBackwardCov_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 h_gauss ℓ
+  have hB := deepLimitingSensitivityKernel_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 h_gauss ℓ
   have hF := layerCovarianceSeq_posSemidef 1 0 φ hφ_meas m Φ0 hΦ0 hφ_L2 ℓ.val
   exact Matrix.PosSemidef.hadamard hB hF
 
@@ -245,21 +248,21 @@ theorem deepLimitingNTK_ge_nngp (d m : ℕ) (φ φ' : ℝ → ℝ)
   rw [Matrix.le_iff]
   have hsplit : deepLimitingNTK d m φ φ' Φ0 =
       (∑ ℓ : Fin d,
-        deepLimitingBackwardCov d m φ φ' Φ0 ℓ.castSucc ⊙
+        deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ.castSucc ⊙
         layerCovarianceSeq 1 0 φ m Φ0 ℓ.castSucc.val) +
       layerCovarianceSeq 1 0 φ m Φ0 d := by
     rw [deepLimitingNTK]
     have h_sum := Fin.sum_univ_castSucc
-      (fun ℓ : Fin (d + 1) => deepLimitingBackwardCov d m φ φ' Φ0 ℓ ⊙
+      (fun ℓ : Fin (d + 1) => deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ ⊙
         layerCovarianceSeq 1 0 φ m Φ0 ℓ.val)
     rw [h_sum]
     congr 1
-    have hterm := deepLimitingBackwardCov_terminal d m φ φ' Φ0
+    have hterm := deepLimitingSensitivityKernel_terminal d m φ φ' Φ0
     have hd : (Fin.last d).val = d := rfl
-    have hlast : deepLimitingBackwardCov d m φ φ' Φ0 (Fin.last d) ⊙
+    have hlast : deepLimitingSensitivityKernel d m φ φ' Φ0 (Fin.last d) ⊙
         layerCovarianceSeq 1 0 φ m Φ0 (Fin.last d).val =
         layerCovarianceSeq 1 0 φ m Φ0 d := by
-      have hlast_eq : deepLimitingBackwardCov d m φ φ' Φ0 (Fin.last d) =
+      have hlast_eq : deepLimitingSensitivityKernel d m φ φ' Φ0 (Fin.last d) =
           Matrix.of fun _ _ => 1 := by
         have : (Fin.last d) = ⟨d, by omega⟩ := rfl
         rw [this, hterm]
@@ -268,7 +271,7 @@ theorem deepLimitingNTK_ge_nngp (d m : ℕ) (φ φ' : ℝ → ℝ)
   rw [hsplit, add_sub_cancel_right]
   apply Matrix.posSemidef_sum
   intro ℓ _
-  have hB := deepLimitingBackwardCov_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 h_gauss ℓ.castSucc
+  have hB := deepLimitingSensitivityKernel_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 h_gauss ℓ.castSucc
   have hF := layerCovarianceSeq_posSemidef 1 0 φ hφ_meas m Φ0 hΦ0 hφ_L2 ℓ.castSucc.val
   exact Matrix.PosSemidef.hadamard hB hF
 
@@ -281,23 +284,23 @@ theorem deepLimitingNTK_twoLayer_eq_add_hadamard (m : ℕ) (φ φ' : ℝ → ℝ
         (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
           φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0 Φ0)) ⊙ Φ0 := by
   rw [deepLimitingNTK, Fin.sum_univ_two]
-  have h0 : deepLimitingBackwardCov 1 m φ φ' Φ0 0 =
+  have h0 : deepLimitingSensitivityKernel 1 m φ φ' Φ0 0 =
       (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
         φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0 Φ0)) := by
-    have hstep := deepLimitingBackwardCov_step 1 m φ φ' Φ0 0 (by decide)
+    have hstep := deepLimitingSensitivityKernel_step 1 m φ φ' Φ0 0 (by decide)
     rw [hstep]
-    have hterm : deepLimitingBackwardCov 1 m φ φ' Φ0 ⟨(0 : Fin 2).val + 1, by omega⟩ =
+    have hterm : deepLimitingSensitivityKernel 1 m φ φ' Φ0 ⟨(0 : Fin 2).val + 1, by omega⟩ =
         Matrix.of fun _ _ => 1 := by
       have : (⟨(0 : Fin 2).val + 1, by omega⟩ : Fin 2) = ⟨1, by omega⟩ := rfl
       rw [this]
-      exact deepLimitingBackwardCov_terminal 1 m φ φ' Φ0
+      exact deepLimitingSensitivityKernel_terminal 1 m φ φ' Φ0
     rw [hterm, hadamard_const_one_right]
     rfl
-  have h1 : deepLimitingBackwardCov 1 m φ φ' Φ0 1 =
+  have h1 : deepLimitingSensitivityKernel 1 m φ φ' Φ0 1 =
       Matrix.of fun _ _ => 1 := by
     have : (1 : Fin 2) = ⟨1, by omega⟩ := rfl
     rw [this]
-    exact deepLimitingBackwardCov_terminal 1 m φ φ' Φ0
+    exact deepLimitingSensitivityKernel_terminal 1 m φ φ' Φ0
   have hcov0 : layerCovarianceSeq 1 0 φ m Φ0 (0 : Fin 2).val = Φ0 := rfl
   have hcov1 : layerCovarianceSeq 1 0 φ m Φ0 (1 : Fin 2).val =
       layerCovarianceSeq 1 0 φ m Φ0 1 := rfl

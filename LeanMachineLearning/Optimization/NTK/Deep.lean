@@ -18,13 +18,13 @@ Tangent Kernel (depth `d ≥ 1`), structured as follows:
 
 * `NTK.Deep.Architecture`: Multilayer MLP parameters (`DeepMLPParams`), forward propagation
   of pre-activations (`deepMLPPreactivation`), backward sensitivities, forward feature Gram
-  matrices (`empiricalForwardCov`), derivative feature Gram matrices (`empiricalDerivCov`),
-  and backward sensitivity covariance matrices (`empiricalBackwardCov`). Formally unified with
+  matrices (`deepActivationGram`), derivative feature Gram matrices (`deepDerivativeGram`),
+  and backward sensitivity covariance matrices (`deepSensitivityGram`). Formally unified with
   infinite-width tensors via `deepMLPPreactivation_ofTensor_eq_deepPreactivation`.
 * `NTK.Deep.LayerwiseNTK`: Exact algebraic layerwise decomposition of the empirical NTK
   `deepEmpiricalNTK` across parameter blocks (Proposition 2.25) and global positive
   semidefiniteness / Loewner dominance over the NNGP kernel (`deepEmpiricalNTK_ge_nngp`).
-* `NTK.Deep.LimitingNTK`: Deterministic backward covariance tensor `deepLimitingBackwardCov`
+* `NTK.Deep.LimitingNTK`: Deterministic backward covariance tensor `deepLimitingSensitivityKernel`
   and recursive limiting NTK matrix `deepLimitingNTK` (Proposition 2.27), positive
   semidefiniteness, Loewner dominance, and two-layer consistency with `limitingFullNTKMatrix`.
 * `NTK.Deep.GaussianDecoupling`: One-sided Gaussian conditioning onto low-rank forward

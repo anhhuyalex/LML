@@ -393,6 +393,47 @@ theorem tendstoInMeasure_trans
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (by simpa using hsum)
     (fun _ => zero_le) hmono
 
+/-- **Coordinatewise convergence in measure implies joint convergence** for a finite family. -/
+theorem tendstoInMeasure_pi {Ω ι : Type*} [Fintype ι] {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    {E : ι → Type*} [∀ i, PseudoMetricSpace (E i)] {f : ℕ → Ω → ∀ i, E i} {c : ∀ i, E i}
+    (h : ∀ i, TendstoInMeasure μ (fun n a => f n a i) Filter.atTop (fun _ => c i)) :
+    TendstoInMeasure μ f Filter.atTop (fun _ => c) := by
+  simp_rw [tendstoInMeasure_iff_dist] at h
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  have hsum : Filter.Tendsto (fun n => ∑ i, μ {a | ε ≤ dist (f n a i) (c i)}) Filter.atTop (nhds 0) := by
+    simpa using tendsto_finsetSum (s := Finset.univ)
+      (f := fun i n => μ {a | ε ≤ dist (f n a i) (c i)}) (a := fun _ => 0) fun i _ => h i ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum (fun _ => zero_le) ?_
+  intro n
+  calc μ {a | ε ≤ dist (f n a) c}
+      ≤ μ (⋃ i, {a | ε ≤ dist (f n a i) (c i)}) := by
+        apply measure_mono
+        intro a ha
+        simp only [Set.mem_ofPred_eq] at ha
+        by_contra hne
+        simp only [Set.mem_iUnion, Set.mem_ofPred_eq] at hne
+        push Not at hne
+        exact (not_lt_of_ge ha) ((dist_pi_lt_iff hε).2 hne)
+    _ ≤ ∑ i, μ {a | ε ≤ dist (f n a i) (c i)} := measure_iUnion_fintype_le _ _
+
+/-- **Sums of products of convergent families.** If `a i n → a∞ i` and `b i n → b∞ i` in measure
+for each index `i` of a finite set, then `∑ i, a i n * b i n → ∑ i, a∞ i * b∞ i` in measure. -/
+theorem tendstoInMeasure_sum_mul {Ω ι : Type*} [Fintype ι] {mΩ : MeasurableSpace Ω}
+    {μ : Measure Ω} {a b : ι → ℕ → Ω → ℝ} {a' b' : ι → ℝ}
+    (ha : ∀ i, TendstoInMeasure μ (a i) Filter.atTop (fun _ => a' i))
+    (hb : ∀ i, TendstoInMeasure μ (b i) Filter.atTop (fun _ => b' i)) :
+    TendstoInMeasure μ (fun n ω => ∑ i, a i n ω * b i n ω) Filter.atTop
+      (fun _ => ∑ i, a' i * b' i) := by
+  have hpair : TendstoInMeasure μ (fun n ω => (Sum.elim (fun i => a i n ω) (fun i => b i n ω) :
+      ι ⊕ ι → ℝ)) Filter.atTop (fun _ => Sum.elim a' b') := by
+    refine tendstoInMeasure_pi fun i => ?_
+    cases i with
+    | inl i => exact ha i
+    | inr i => exact hb i
+  have hcont : Continuous (fun v : ι ⊕ ι → ℝ => ∑ i, v (Sum.inl i) * v (Sum.inr i)) := by
+    fun_prop
+  simpa using tendstoInMeasure_comp_of_continuousAt hpair hcont.continuousAt
 /-- To prove convergence in measure of a finite matrix-valued family, it suffices to prove the
 corresponding tail estimate for every entry.  The proof uses the sup metric on Pi types and finite
 subadditivity of measure.  This is the matrix reduction used by the conditional covariance

@@ -191,7 +191,7 @@ The same formula holds at the parameters obtained by packing the first $n$ neuro
 Substitute $x\mapsto x/\sqrt d$ in Theorem~\ref{thm:ntktl:neuronSum}.
 \end{proof}
 
-\begin{definition}[Limiting covariance and limiting full NTK]\label{def:ntktl:limitingNTK}
+\begin{definition}[Limiting covariance and limiting full NTK]\label{def:ntktl:shallowLimitingNTK}
   \uses{def:ntktl:network}
   \lean{NTK.limitingCovariance, NTK.limitingFullNTKMatrix}
   \leanok
@@ -204,7 +204,7 @@ where $\odot$ is the entrywise (Hadamard) product. Entrywise $K_{\infty,\alpha\b
 \end{definition}
 
 \begin{theorem}[Structure of the limiting NTK]\label{thm:ntktl:limitingProps}
-  \uses{def:ntktl:limitingNTK, lem:ntkf:rankOneInner}
+  \uses{def:ntktl:shallowLimitingNTK, lem:ntkf:rankOneInner}
   \lean{NTK.limitingFullNTKMatrix_apply, NTK.limitingFullNTKMatrix_isHermitian,
         NTK.limitingFullNTKMatrix_eq_add_hadamard, NTK.limitingFullNTKMatrix_posSemidef}
   \leanok
@@ -233,7 +233,7 @@ $\Phi\succ0$. If two inputs were equal, $u=e_\alpha-e_\beta$ would be a nontrivi
 \end{proof}
 
 \begin{theorem}[Strong law and convergence in probability of the empirical NTK]\label{thm:ntktl:ntkLLN}
-  \uses{thm:ntktl:scaledDataset, thm:ntkf:slln, def:ntktl:limitingNTK}
+  \uses{thm:ntktl:scaledDataset, thm:ntkf:slln, def:ntktl:shallowLimitingNTK}
   \lean{NTK.measurable_fullNTK_summand, NTK.integrable_fullNTK_summand,
         NTK.integrable_fullNTK_summand_of_memLp, NTK.memLp_two_fullNTK_summand,
         NTK.integrable_sq_fullNTK_summand, NTK.integral_fullNTK_summand,

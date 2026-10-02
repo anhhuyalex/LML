@@ -283,7 +283,7 @@ product) and then apply Proposition~\ref{prop:ntkr:standardized}.
 
 \section{The closed form of the ReLU NTK}\label{sec:ntkr:closedForm}
 
-Recall (Definition~\ref{def:ntk:limitingNTK}) that the limiting NTK for the activation derivative $\sigma'$ is
+Recall (Definition~\ref{def:ntk:shallowLimitingNTK}) that the limiting NTK for the activation derivative $\sigma'$ is
 $k(x,x')=(x\cdot x')\,\mathbb E_{w\sim\mathcal N(0,I_d)}[\sigma'(w\cdot x)\sigma'(w\cdot x')]$.
 
 \begin{lemma}[Gaussian pushforward along a matrix]\label{lem:ntkr:matrixPush}
@@ -321,7 +321,7 @@ computation is Proposition~\ref{prop:ntkr:standardized}.
 \end{proof}
 
 \begin{theorem}[ReLU NTK in closed form]\label{thm:ntkr:reluNTK}
-  \uses{lem:ntkr:halfspaces, def:ntk:limitingNTK}
+  \uses{lem:ntkr:halfspaces, def:ntk:shallowLimitingNTK}
   \lean{NTK.reluNTK_closedForm, NTK.reluNTK_nonneg_of_nonneg_inner, NTK.reluNTK_self}
   \leanok
 For $x,x'\in\mathbb R^d$ with $x\cdot x=x'\cdot x'=1$, the limiting NTK of the ReLU network is
@@ -332,7 +332,7 @@ In particular $k(x,x')\ge0$ whenever $x\cdot x'\ge0$, and $k(x,x)=\tfrac12$.
 \end{theorem}
 
 \begin{proof}
-  \uses{lem:ntkr:halfspaces, def:ntk:limitingNTK}
+  \uses{lem:ntkr:halfspaces, def:ntk:shallowLimitingNTK}
   \leanok
 By definition $k(x,x')=(x\cdot x')\,\mathbb E[\operatorname{reluIndicator}(w\cdot x)\operatorname{reluIndicator}(w\cdot x')]$, and the expectation is
 $(\pi-\arccos(x\cdot x'))/(2\pi)$ by Lemma~\ref{lem:ntkr:halfspaces}. For $x\cdot x'\ge0$ both factors are

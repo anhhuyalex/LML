@@ -116,9 +116,9 @@ theorem reluNTK_closedForm
     (x x' : Fin d → ℝ)
     (hx : x ⬝ᵥ x = 1)
     (hx' : x' ⬝ᵥ x' = 1) :
-    limitingNTK reluIndicator x x' =
+    shallowLimitingNTK reluIndicator x x' =
       (x ⬝ᵥ x') * (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
-  unfold limitingNTK
+  unfold shallowLimitingNTK
   rw [prob_halfspace_intersect x x' hx hx']
   ring
 
@@ -127,7 +127,7 @@ lemma reluNTK_nonneg_of_nonneg_inner
     (x x' : Fin d → ℝ)
     (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1)
     (hinn : 0 ≤ x ⬝ᵥ x') :
-    0 ≤ limitingNTK reluIndicator x x' := by
+    0 ≤ shallowLimitingNTK reluIndicator x x' := by
   rw [reluNTK_closedForm x x' hx hx']
   apply div_nonneg
   · apply mul_nonneg hinn
@@ -137,7 +137,7 @@ lemma reluNTK_nonneg_of_nonneg_inner
 /-- The ReLU NTK at equal inputs normalized by the local inner product. -/
 lemma reluNTK_self
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x = 1) :
-    limitingNTK reluIndicator x x = 1 / 2 := by
+    shallowLimitingNTK reluIndicator x x = 1 / 2 := by
   rw [reluNTK_closedForm x x hx hx]
   rw [hx]
   simp [Real.arccos_one]

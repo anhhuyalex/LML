@@ -716,7 +716,7 @@ $d(S)\le SM\|r_0\|/m\le C$. The kernel statement is Theorem~\ref{thm:ntkgf:kerne
 
 \begin{lemma}[Elementary limits]\label{lem:ntkgf:limits}
   \lean{NTK.tendsto_const_div_sqrt_nat_atTop, NTK.tendsto_chebyshev_bound_atTop,
-        NTK.tendsto_lazy_training_kernel_freeze, NTK.tendsto_empiricalNTK_chebyshev_bound}
+        NTK.tendsto_lazy_training_kernel_freeze, NTK.tendsto_shallowEmpiricalNTK_chebyshev_bound}
   \leanok
 For constants $c,C,\varepsilon$: $c/\sqrt n\to0$ and $C/(\varepsilon^2n)\to0$ as $n\to\infty$; consequently $L_KC/\sqrt n\to0$ and $\mathrm{ofReal}(C/(\varepsilon^2n))\to0$ in $[0,\infty]$.
 \end{lemma}
@@ -743,8 +743,8 @@ For constants $c,C,\varepsilon$: $c/\sqrt n\to0$ and $C/(\varepsilon^2n)\to0$ as
 \end{proof}
 
 \begin{theorem}[Deterministic initialization]\label{thm:ntkgf:deterministicInit}
-  \uses{def:ntk:limitingNTK, lem:ntk:ntkConverges, thm:ntkf:slln, lem:ntkf:chebyshev}
-  \lean{NTK.deterministic_initialization_empiricalNTK_tendsto_ae,
+  \uses{def:ntk:shallowLimitingNTK, lem:ntk:ntkConverges, thm:ntkf:slln, lem:ntkf:chebyshev}
+  \lean{NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae,
         NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae,
         NTK.deterministic_initialization_chebyshev_bound}
   \leanok

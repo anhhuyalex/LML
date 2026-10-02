@@ -294,7 +294,7 @@ The empirical NTK is defined as the Gram matrix of the gradient features.
 
 \begin{lemma}[Frobenius inner product of gradients]\label{lem:ntk:frobInnerGradient}
   \uses{def:ntk:linearization}
-  \lean{NTK.sum_gradientMatrix_mul_eq_empiricalNTKWithOuter}
+  \lean{NTK.sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter}
   \leanok
 The empirical NTK is exactly the Frobenius inner product of the network gradients:
 \[
@@ -304,7 +304,7 @@ This factorization implies that $k_m$ is symmetric and positive semidefinite:
 \end{lemma}
 
 \begin{lemma}[Empirical NTK is positive semidefinite]\label{lem:ntk:empiricalNTKPSD}
-  \lean{NTK.empiricalNTK_posSemidef}
+  \lean{NTK.shallowEmpiricalNTK_posSemidef}
   \leanok
 For any finite set of points $x_1, \ldots, x_n \in \mathbb{R}^d$ and coefficients $\alpha_1, \ldots, \alpha_n \in \mathbb{R}$,
 \[
@@ -312,9 +312,9 @@ For any finite set of points $x_1, \ldots, x_n \in \mathbb{R}^d$ and coefficient
 \]
 \end{lemma}
 
-\begin{definition}[Empirical NTK]\label{def:ntk:empiricalNTK}
+\begin{definition}[Empirical NTK]\label{def:ntk:shallowEmpiricalNTK}
   \uses{def:ntk:shallowNetwork, def:ntk:gaussianInit, lem:ntk:frobInnerGradient}
-  \lean{NTK.empiricalNTK}
+  \lean{NTK.shallowEmpiricalNTK}
   \leanok
 Let $W_0 \in \mathbb{R}^{m \times d}$ and $a \in \{-1,+1\}^m$.
 The \emph{empirical neural tangent kernel} at initialization $W_0$ is
@@ -325,8 +325,8 @@ The \emph{empirical neural tangent kernel} at initialization $W_0$ is
 where we have used $a_j^2 = 1$ and $\|x\|, \|x'\| \le 1$.
 \end{definition}
 
-\begin{definition}[Limiting NTK]\label{def:ntk:limitingNTK}
-  \lean{NTK.limitingNTK}
+\begin{definition}[Limiting NTK]\label{def:ntk:shallowLimitingNTK}
+  \lean{NTK.shallowLimitingNTK}
   \leanok
 The \emph{limiting neural tangent kernel} for activation $\sigma$ is
 \[
@@ -337,7 +337,7 @@ The \emph{limiting neural tangent kernel} for activation $\sigma$ is
 \end{definition}
 
 \begin{lemma}[Almost sure convergence of the empirical NTK]\label{lem:ntk:ntkConverges}
-  \uses{def:ntk:empiricalNTK, def:ntk:limitingNTK, def:ntk:gaussianInit}
+  \uses{def:ntk:shallowEmpiricalNTK, def:ntk:shallowLimitingNTK, def:ntk:gaussianInit}
   \lean{NTK.ntk_convergence}
   \leanok
 For fixed $x, x' \in \mathbb{R}^d$, almost surely over
@@ -348,7 +348,7 @@ $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ (in $m$),
 \end{lemma}
 
 \begin{proof}
-  \uses{def:ntk:gaussianInit, def:ntk:empiricalNTK, def:ntk:limitingNTK}
+  \uses{def:ntk:gaussianInit, def:ntk:shallowEmpiricalNTK, def:ntk:shallowLimitingNTK}
   \leanok
 The rows $(w_{0,j})_{j=1}^m$ are i.i.d.\ from $\mathcal{N}(0, I_d)$, so the summands
 $\sigma'(w_{0,j}^\top x)\,\sigma'(w_{0,j}^\top x')$ are i.i.d. To apply the strong law of large numbers, we must ensure the summands are integrable.
@@ -363,7 +363,7 @@ average to the expectation $\mathbb{E}[\sigma'(w^\top x)\sigma'(w^\top x')]$.
 \end{proof}
 
 \begin{proposition}[ReLU NTK closed form]\label{prop:ntk:reluNTK}
-  \uses{def:ntk:limitingNTK}
+  \uses{def:ntk:shallowLimitingNTK}
   \lean{NTK.reluNTK_closedForm}
   \leanok
 For $\sigma = \sigma_{\mathrm{ReLU}}$ and $x, x' \in \mathbb{R}^d$ with $\|x\| = \|x'\| = 1$,
@@ -373,7 +373,7 @@ For $\sigma = \sigma_{\mathrm{ReLU}}$ and $x, x' \in \mathbb{R}^d$ with $\|x\| =
 \end{proposition}
 
 \begin{proof}
-  \uses{def:ntk:limitingNTK}
+  \uses{def:ntk:shallowLimitingNTK}
   \leanok
 Since $\sigma_{\mathrm{ReLU}}'(z) = \mathbf{1}[z \ge 0]$ a.e., we must compute
 \[
@@ -404,8 +404,8 @@ The last coordinate is fixed to $1/\sqrt{2}$ to serve as an implicit bias.
 To prove universality on this domain, we map the problem to a solid ball in $\mathbb{R}^{d-1}$.
 
 \begin{lemma}[Reduced domain bijection]\label{lem:ntk:reducedDomain}
-  \uses{def:ntk:domain, def:ntk:limitingNTK}
-  \lean{NTK.ntkDomain_subset_sphere, NTK.isCompact_ntkDomain, NTK.reducedKernel_eq_reluNTK}
+  \uses{def:ntk:domain, def:ntk:shallowLimitingNTK}
+  \lean{NTK.ntkDomain_subset_sphere, NTK.isCompact_ntkDomain, NTK.reducedReluFormula_eq_shallowLimitingNTK}
   \leanok
 The NTK domain $\mathcal{X}$ is a compact subset of the sphere. By dropping the $d$-th coordinate (which is fixed to $1/\sqrt{2}$), $\mathcal{X}$ is in bijection with the reduced domain $U = \{u \in \mathbb{R}^{d-1} : \|u\|^2 \le 1/2\}$. The ReLU NTK on $\mathcal{X}$ equals the dot-product kernel $\tilde{k}(u, u') = \tilde{f}(u^\top u')$ on $U$, where
 \[
@@ -420,7 +420,7 @@ All Maclaurin series coefficients of $\tilde{f}(z)$ are strictly positive.
 \end{lemma}
 
 \begin{definition}[NTK RKHS predictor class]\label{def:ntk:rkhs}
-  \uses{def:ntk:limitingNTK, def:ntk:domain}
+  \uses{def:ntk:shallowLimitingNTK, def:ntk:domain}
   \lean{NTK.RKHSClass, NTK.zero_mem_RKHSClass, NTK.RKHSClass_smul, NTK.RKHSClass_add}
   \leanok
 The \emph{NTK RKHS predictor class} (associated to the ReLU limiting NTK $k$) is the set
@@ -446,7 +446,7 @@ $\epsilon > 0$, there exists $h \in \mathcal{H}$ such that
 \end{theorem}
 
 \begin{proof}
-  \uses{def:ntk:rkhs, def:ntk:limitingNTK, prop:ntk:reluNTK, lem:ntk:reducedDomain, lem:ntk:reducedKernelCoeff}
+  \uses{def:ntk:rkhs, def:ntk:shallowLimitingNTK, prop:ntk:reluNTK, lem:ntk:reducedDomain, lem:ntk:reducedKernelCoeff}
 Consider the bijection $\phi : \mathcal{X} \to U := \{u \in \mathbb{R}^{d-1} : \|u\|^2 \le 1/2\}$
 that drops the $d$-th coordinate (Lemma~\ref{lem:ntk:reducedDomain}).
 By the kernel universality criterion \cite{steinwart2008support} (Corollary~4.57),

@@ -180,10 +180,10 @@ Under the conditional law of Theorem~\ref{thm:ntkdeep:conditionalNormality}, the
 \section{The strong law for the covariance and the NNGP limit (Theorems~2 and~3)}\label{sec:ntkdeep:nngpLimit}
 
 \begin{definition}[Limiting NNGP covariance]\label{def:ntkdeep:limitingCov}
-  \uses{def:ntktl:limitingNTK}
+  \uses{def:ntktl:shallowLimitingNTK}
   \lean{NTK.limitingCovariance, NTK.limitingCovariance_apply}
   \leanok
-$\Phi^{(\infty)}_{\alpha\beta}=\Phi_{\alpha\beta}(\varphi;X)=\int\varphi(w\cdot x^\alpha)\varphi(w\cdot x^\beta)\,d\mathcal N(0,I_d)(w)$ (Definition~\ref{def:ntktl:limitingNTK}).
+$\Phi^{(\infty)}_{\alpha\beta}=\Phi_{\alpha\beta}(\varphi;X)=\int\varphi(w\cdot x^\alpha)\varphi(w\cdot x^\beta)\,d\mathcal N(0,I_d)(w)$ (Definition~\ref{def:ntktl:shallowLimitingNTK}).
 \end{definition}
 
 \begin{theorem}[Strong law for the empirical covariance, Theorem~2]\label{thm:ntkdeep:covarianceSLLN}

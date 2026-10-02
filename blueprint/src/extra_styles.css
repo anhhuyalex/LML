@@ -23,3 +23,20 @@ div.corollary_thmcontent {
 div.proof_content {
 	border-left: .08rem solid grey;
 }
+
+
+/* Collapsible remarks (see collapsible_remarks.js) */
+div.collapsible-remark-heading {
+	cursor: pointer;
+}
+
+span.expand-remark {
+	display: inline-block;
+	width: 1.2em;
+	font-size: 0.8em;
+	color: grey;
+}
+
+div.remark_thmcontent {
+	border-left: .08rem solid grey;
+}

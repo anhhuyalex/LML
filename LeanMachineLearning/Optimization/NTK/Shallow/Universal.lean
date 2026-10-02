@@ -92,20 +92,20 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
 def reducedDomain (d : ℕ) : Set (Fin d → ℝ) :=
   {u | u ⬝ᵥ u ≤ 1 / 2}
 
-/-- The kernel on the reduced domain: `k_tilde(u, u') = f_tilde(u·u')` where
-  `f_tilde(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)`.
-  This is the ReLU NTK in coordinates on `U`. -/
-noncomputable def reducedKernel (u u' : Fin d → ℝ) : ℝ :=
-  let z := dotProduct u u'
-  (z + 1 / 2) / 2 - (z + 1 / 2) * Real.arccos (z + 1 / 2) / (2 * Real.pi)
-
-/-- The reduced kernel is equal to the ReLU NTK on the NTK domain. -/
-lemma reducedKernel_eq_reluNTK
+/-- The ReLU NTK in coordinates on the reduced domain `U`. For `x, x'` in the NTK domain, let
+`z = u ⬝ᵥ u'` where `u, u'` are `x, x'` with the last coordinate dropped. Then
+`f_tilde(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)` equals
+`shallowLimitingNTK reluIndicator x x'`. -/
+lemma reducedReluFormula_eq_shallowLimitingNTK
     (d : ℕ) (x x' : Fin (d + 1) → ℝ)
     (hx : x ∈ ntkDomain (d + 1))
     (hx' : x' ∈ ntkDomain (d + 1)) :
-    reducedKernel (fun k => x k.castSucc) (fun k => x' k.castSucc) =
-    limitingNTK reluIndicator x x' := by
+    ((fun k : Fin d => x k.castSucc) ⬝ᵥ (fun k : Fin d => x' k.castSucc) + 1 / 2) / 2 -
+      ((fun k : Fin d => x k.castSucc) ⬝ᵥ (fun k : Fin d => x' k.castSucc) + 1 / 2) *
+        Real.arccos
+          ((fun k : Fin d => x k.castSucc) ⬝ᵥ (fun k : Fin d => x' k.castSucc) + 1 / 2) /
+          (2 * Real.pi) =
+    shallowLimitingNTK reluIndicator x x' := by
   sorry
 
 /-! ### NTK RKHS predictor class (Definition 4.8) -/
@@ -116,7 +116,7 @@ where `k` is the ReLU limiting NTK. -/
 def RKHSClass (d : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
   { h | ∃ (n : ℕ) (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ),
           (∀ j, pts j ∈ ntkDomain d) ∧
-          h = fun x => ∑ j : Fin n, α j * limitingNTK reluIndicator x (pts j) }
+          h = fun x => ∑ j : Fin n, α j * shallowLimitingNTK reluIndicator x (pts j) }
 
 /-- The zero function belongs to `ℋ` (via the empty sum). -/
 lemma zero_mem_RKHSClass (d : ℕ) : (fun _ => (0 : ℝ)) ∈ RKHSClass d := by

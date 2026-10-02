@@ -33,9 +33,9 @@ needs the two-dimensional Gaussian computation from `NTK.ReLU.ArcCosine`.
 
 ## Main definitions
 
-* `NTK.empiricalNTKWithOuter` : the empirical NTK with arbitrary fixed outer coefficients.
-* `NTK.empiricalNTK` : the simplified empirical NTK when `aⱼ² = 1`.
-* `NTK.limitingNTK` : the limiting NTK `k(x, x')`.
+* `NTK.shallowEmpiricalNTKWithOuter` : the empirical NTK with arbitrary fixed outer coefficients.
+* `NTK.shallowEmpiricalNTK` : the simplified empirical NTK when `aⱼ² = 1`.
+* `NTK.shallowLimitingNTK` : the limiting NTK `k(x, x')`.
 * `NTK.gaussianRow_average_tendsto_integral` : reusable SLLN for empirical averages of
   measurable integrable functions of iid Gaussian rows.
 * `NTK.variance_average_pi`, `NTK.chebyshev_average_pi`,
@@ -121,7 +121,7 @@ lemma dotProduct_scaled_dataset (d : ℕ) (hd : 0 < d) (x y : Fin d → ℝ) :
 
 The lecture notes immediately simplify this expression using `aⱼ ∈ {±1}`. Keeping this
 general form around makes the connection to `gradientMatrix` explicit. -/
-noncomputable def empiricalNTKWithOuter
+noncomputable def shallowEmpiricalNTKWithOuter
     (σ' : ℝ → ℝ)
     (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ)
@@ -140,7 +140,7 @@ of gradients:
               = (xᵀx') · (1/m) ∑ⱼ σ'(wⱼ₀ᵀx) σ'(wⱼ₀ᵀx')`.
 
 The second equality uses `aⱼ² = 1` and `⟨xσ'(·), x'σ'(·)⟩ = (xᵀx')σ'(·)σ'(·)`. -/
-noncomputable def empiricalNTK
+noncomputable def shallowEmpiricalNTK
     (σ' : ℝ → ℝ)
     (W₀ : Fin m → Fin d → ℝ)
     (x x' : Fin d → ℝ) : ℝ :=
@@ -165,14 +165,14 @@ private lemma gradient_matrix_term_eq (m : ℕ) (outerCoeffs_j : ℝ) (val_x val
 
 /-- The entrywise product sum of gradient features is the empirical NTK with the
 outer-coefficient squares included. -/
-lemma sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
+lemma sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
     (∑ i : Fin m, ∑ j : Fin d,
       gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
         gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
-    empiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
-  unfold gradientMatrix empiricalNTKWithOuter dotProduct
+    shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ x x' := by
+  unfold gradientMatrix shallowEmpiricalNTKWithOuter dotProduct
   simp_rw [gradient_matrix_term_eq]
   rw [Finset.sum_comm]
   simp_rw [← Finset.mul_sum]
@@ -184,32 +184,32 @@ lemma sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
 
 /-- If all fixed outer coefficients satisfy `aⱼ² = 1`, the general empirical NTK
 reduces to the simplified expression used in the notes. -/
-lemma empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
+lemma shallowEmpiricalNTKWithOuter_eq_shallowEmpiricalNTK_of_sq_one
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ)
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
-    empiricalNTKWithOuter σ' outerCoeffs W₀ x x' =
-    empiricalNTK σ' W₀ x x' := by
-  simp [empiricalNTKWithOuter, empiricalNTK, houter]
+    shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ x x' =
+    shallowEmpiricalNTK σ' W₀ x x' := by
+  simp [shallowEmpiricalNTKWithOuter, shallowEmpiricalNTK, houter]
 
 /-- The empirical NTK is symmetric: `kₘ(x, x') = kₘ(x', x)`. -/
-lemma empiricalNTK_symm
+lemma shallowEmpiricalNTK_symm
     (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
-    empiricalNTK σ' W₀ x x' = empiricalNTK σ' W₀ x' x := by
-  simp only [empiricalNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
+    shallowEmpiricalNTK σ' W₀ x x' = shallowEmpiricalNTK σ' W₀ x' x := by
+  simp only [shallowEmpiricalNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
 
 /-- The dataset empirical NTK matrix with arbitrary outer coefficients is positive semidefinite. -/
-theorem empiricalNTKWithOuter_dataset_posSemidef
+theorem shallowEmpiricalNTKWithOuter_dataset_posSemidef
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ) :
-    (Matrix.of (fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β))).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)) =
+    (Matrix.of (fun α β => shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β))).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β)) =
       (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
       (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
     ext α β
     simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
     rw [Fintype.sum_prod_type]
-    exact (sum_gradientMatrix_mul_eq_empiricalNTKWithOuter
+    exact (sum_gradientMatrix_mul_eq_shallowEmpiricalNTKWithOuter
       σ' outerCoeffs W₀ (X α) (X β)).symm
   rw [h_eq]
   have h1 : (1 : Matrix (Fin m × Fin d) (Fin m × Fin d) ℝ).PosSemidef := Matrix.PosSemidef.one
@@ -219,31 +219,31 @@ theorem empiricalNTKWithOuter_dataset_posSemidef
   rwa [Matrix.conjTranspose_eq_transpose_of_trivial] at h
 
 /-- The dataset empirical NTK matrix (`aⱼ² = 1` case) is positive semidefinite. -/
-theorem empiricalNTK_dataset_posSemidef
+theorem shallowEmpiricalNTK_dataset_posSemidef
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) {N : ℕ} (X : Fin N → Fin d → ℝ)
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
-    (Matrix.of (fun α β => empiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => empiricalNTK σ' W₀ (X α) (X β)) =
-      Matrix.of fun α β => empiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
+    (Matrix.of (fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
+  have h_eq : (Matrix.of fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β)) =
+      Matrix.of fun α β => shallowEmpiricalNTKWithOuter σ' outerCoeffs W₀ (X α) (X β) := by
     ext α β
     simp only [Matrix.of_apply]
-    exact (empiricalNTKWithOuter_eq_empiricalNTK_of_sq_one
+    exact (shallowEmpiricalNTKWithOuter_eq_shallowEmpiricalNTK_of_sq_one
       σ' outerCoeffs W₀ (X α) (X β) houter).symm
   rw [h_eq]
-  exact empiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
+  exact shallowEmpiricalNTKWithOuter_dataset_posSemidef σ' outerCoeffs W₀ X
 
 /-- The empirical NTK is positive semidefinite: for any finite set of points
 and coefficients `(αᵢ, xᵢ)`, `∑ᵢⱼ αᵢαⱼ kₘ(xᵢ, xⱼ) ≥ 0`.
 This follows from being the Gram matrix of the gradient features. -/
-lemma empiricalNTK_posSemidef
+lemma shallowEmpiricalNTK_posSemidef
     (σ' : ℝ → ℝ) (W₀ : Fin m → Fin d → ℝ)
     {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ) :
     0 ≤ ∑ i : Fin n, ∑ j : Fin n,
-      α i * α j * empiricalNTK σ' W₀ (pts i) (pts j) :=
+      α i * α j * shallowEmpiricalNTK σ' W₀ (pts i) (pts j) :=
   posSemidef_sum_nonneg
-    (M := Matrix.of fun a b => empiricalNTK σ' W₀ (pts a) (pts b))
-    (empiricalNTK_dataset_posSemidef σ' (fun _ => 1) W₀ pts (fun _ => one_pow 2)) α
+    (M := Matrix.of fun a b => shallowEmpiricalNTK σ' W₀ (pts a) (pts b))
+    (shallowEmpiricalNTK_dataset_posSemidef σ' (fun _ => 1) W₀ pts (fun _ => one_pow 2)) α
 
 /-! ### Limiting NTK (Definition 4.6) -/
 
@@ -254,15 +254,15 @@ as `m → ∞`:
 
 This is positive semidefinite and symmetric. For the ReLU, it has the closed form
 given in `reluNTK_closedForm`. -/
-noncomputable def limitingNTK (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) : ℝ :=
+noncomputable def shallowLimitingNTK (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) : ℝ :=
   (x ⬝ᵥ x') *
     ∫ w : Fin d → ℝ,
       σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x') ∂(gaussianRowMeasure d)
 
 /-- The limiting NTK is symmetric. -/
-lemma limitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
-    limitingNTK σ' x x' = limitingNTK σ' x' x := by
-  simp only [limitingNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
+lemma shallowLimitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
+    shallowLimitingNTK σ' x x' = shallowLimitingNTK σ' x' x := by
+  simp only [shallowLimitingNTK, dotProduct_comm x x', mul_comm (σ' _) (σ' _)]
 
 /-! ### Measurability and integrability of the NTK summand -/
 
@@ -302,17 +302,6 @@ lemma integrable_ntkSummand {σ' : ℝ → ℝ} (hσ'm : Measurable σ') {C : �
 
 /-! ### Almost sure convergence of the empirical NTK (Lemma 4.3) -/
 
-/-- The width-`m` empirical NTK built from the first `m` rows of an infinite iid
-initialization. This is the right object for the notes' `m → ∞` limit. -/
-noncomputable def empiricalNTKFromRows
-    (σ' : ℝ → ℝ)
-    (rows : ℕ → Fin d → ℝ)
-    (width : ℕ)
-    (x x' : Fin d → ℝ) : ℝ :=
-  (x ⬝ᵥ x') *
-    ((width : ℝ)⁻¹ * ∑ j : Fin width,
-      σ' (rows j.val ⬝ᵥ x) * σ' (rows j.val ⬝ᵥ x'))
-
 /-- The strong law for empirical averages of a measurable integrable function of
 i.i.d. Gaussian rows. Specializes `iid_average_tendsto_integral` to Gaussian row measures. -/
 lemma gaussianRow_average_tendsto_integral
@@ -330,7 +319,8 @@ lemma gaussianRow_average_tendsto_integral
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
 For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid
 rows `w₀, w₁, ... ~ 𝒩(0,Iᵈ)`:
-  `kₘ(x, x') →_as k(x, x')  as  m → ∞`.
+  `kₘ(x, x') →_as k(x, x')  as  m → ∞`,
+where `kₘ` is `shallowEmpiricalNTK` evaluated on the first `m` rows `fun j : Fin m => rows j.val`.
 
 **Proof:** The summands `Yⱼ = σ'(wⱼ₀ᵀx)σ'(wⱼ₀ᵀx')` are measurable functions of the
 independent rows `wⱼ₀`, hence pairwise independent; they are identically distributed
@@ -351,9 +341,9 @@ theorem ntk_convergence
     ∀ᵐ rows : ℕ → Fin d → ℝ
       ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)),
       Filter.Tendsto
-        (fun width => empiricalNTKFromRows σ' rows width x x')
+        (fun width => shallowEmpiricalNTK σ' (fun j : Fin width => rows j.val) x x')
         Filter.atTop
-        (nhds (limitingNTK σ' x x')) := by
+        (nhds (shallowLimitingNTK σ' x x')) := by
   obtain ⟨C, hC⟩ := hσ'_bounded
   have hg_meas : Measurable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) :=
     measurable_ntkSummand hσ'_meas x x'
