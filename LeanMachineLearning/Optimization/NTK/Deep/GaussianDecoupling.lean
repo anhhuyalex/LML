@@ -177,15 +177,8 @@ theorem deepActivationGram_entry_tendstoInMeasure
   have hentry := tendstoInMeasure_comp_of_continuousAt
     (g := fun M : Matrix (Fin m) (Fin m) ℝ => M α β)
     hν (by exact ((continuous_apply β).comp (continuous_apply α)).continuousAt)
-  have hmeas : ∀ n : ℕ, Measurable (fun w : Fin d → ℕ → ℕ → ℝ =>
-      (n : ℝ)⁻¹ * ∑ j : Fin n,
-        φ (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) k α j) *
-        φ (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) k β j)) := by
-    intro n
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact (hφ_cont.measurable.comp
-      (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X k α j)).mul
-      (hφ_cont.measurable.comp (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X k β j))
+  have hmeas := fun n : ℕ => measurable_deepFeatureAverage n0 m n d φ φ hφ_cont.measurable
+    hφ_cont.measurable X k α β
   have hcomp := tendstoInMeasure_prod_of_prefix d _ _ hmeas hentry
   convert hcomp using 3
   · rename_i n q
@@ -227,16 +220,8 @@ theorem deepDerivativeGram_entry_tendstoInMeasure
   have hentry := tendstoInMeasure_comp_of_continuousAt
     (g := fun M : Fin m → Fin m → ℝ => M α β)
     hν (by exact ((continuous_apply β).comp (continuous_apply α)).continuousAt)
-  have hmeas : ∀ n : ℕ, Measurable (fun w : Fin d → ℕ → ℕ → ℝ =>
-      (n : ℝ)⁻¹ * ∑ j : Fin n,
-        φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) k α j) *
-        φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) k β j)) := by
-    intro n
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact (hφ'_cont.measurable.comp
-      (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X k α j)).mul
-      (hφ'_cont.measurable.comp
-        (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X k β j))
+  have hmeas := fun n : ℕ => measurable_deepFeatureAverage n0 m n d φ φ' hφ_cont.measurable
+    hφ'_cont.measurable X k α β
   have hcomp := tendstoInMeasure_prod_of_prefix d _ _ hmeas hentry
   convert hcomp using 3
   · rename_i n q

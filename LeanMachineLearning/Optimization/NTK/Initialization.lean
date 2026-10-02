@@ -515,13 +515,14 @@ file re-exports all of them.
     MLP, built from a single infinite population of i.i.d. standard Gaussian weights.
   * `NTK.indepFun_deepLayer_history` : Independence Across Depth for this population (the
     infinite-population analogue of `NTK.indepFun_layer_history`).
-  * `NTK.instPseudoEMetricSpaceMatrix` : the missing `PseudoEMetricSpace (Matrix (Fin m) (Fin m) ℝ)`
+  * `NTK.instPseudoEMetricSpaceMatrix` : the missing `PseudoEMetricSpace (Matrix ι κ ℝ)`
     glue instance (Mathlib deliberately does not register one directly, to avoid a diamond with
     other matrix norms), needed for the lemma below.
   * `NTK.tendstoInMeasure_comp_of_continuousAt`,
     `NTK.tendsto_integral_of_tendstoInMeasure_of_bounded` : general-purpose
-    convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence)
-    missing from Mathlib's `ConvergenceInMeasure` API, needed by the theorems below.
+    convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence;
+    matrix inverse; now in `Foundations/TendstoInMeasureUtil.lean`) missing from Mathlib's
+    `ConvergenceInMeasure` API, needed by the theorems below.
   * `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
     $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
   * `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in

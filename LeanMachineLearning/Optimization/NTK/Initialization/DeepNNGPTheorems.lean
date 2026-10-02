@@ -328,6 +328,18 @@ lemma measurable_deepPreactivation (d m n L : ℕ) (φ : ℝ → ℝ) (hφ_meas 
     exact (((measurable_pi_apply k.val).comp
       ((measurable_pi_apply j.val).comp (h_coord (ℓ + 1)))).mul (hφ_meas.comp (ih α k)))
 
+/-- Measurability of the empirical feature average `n⁻¹ ∑ⱼ ψ(h_ℓ^α,ⱼ) ψ(h_ℓ^β,ⱼ)` as a function of
+the layer-weight population (for a measurable feature map `ψ`; `ψ = φ` gives the activation Gram,
+`ψ = φ'` the derivative Gram). -/
+lemma measurable_deepFeatureAverage (d m n L : ℕ) (φ ψ : ℝ → ℝ) (hφ_meas : Measurable φ)
+    (hψ_meas : Measurable ψ) (X : Fin m → Fin d → ℝ) (ℓ : ℕ) (α β : Fin m) :
+    Measurable (fun w : Fin L → ℕ → ℕ → ℝ => (n : ℝ)⁻¹ * ∑ j : Fin n,
+      ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
+      ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j)) :=
+  measurable_const.mul (Finset.measurable_sum _ fun j _ =>
+    (hψ_meas.comp (measurable_deepPreactivation d m n L φ hφ_meas X ℓ α j)).mul
+      (hψ_meas.comp (measurable_deepPreactivation d m n L φ hφ_meas X ℓ β j)))
+
 /-- **Successor-layer deviation for the deep covariance recursion.** Conditionally on the first
 `ℓ + 1` layer populations, layer `ℓ + 1` is i.i.d. `𝒩(0, Φ̂_ℓ^{(n)})` with the *random* empirical
 covariance `Φ̂_ℓ^{(n)}` of layer `ℓ` (built from the activation `φ`). If `Φ̂_ℓ^{(n)} → Klim` in
@@ -832,14 +844,8 @@ lemma aestronglyMeasurable_charFun_deepEval (d m n L : ℕ) (φ : ℝ → ℝ) (
       rw [Matrix.dot_mulVec_eq_sum_sum, Finset.sum_comm]
     rw [h_eq]
     refine Finset.measurable_sum _ fun α _ => Finset.measurable_sum _ fun β _ => ?_
-    have h_cov : Measurable (fun w : Fin L → ℕ → ℕ → ℝ => (n : ℝ)⁻¹ * ∑ j : Fin n,
-        φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
-        φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j)) := by
-      refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-      exact (hφ_cont.measurable.comp
-          (measurable_deepPreactivation d m n L φ hφ_cont.measurable X (L - 1) α j)).mul
-        (hφ_cont.measurable.comp
-          (measurable_deepPreactivation d m n L φ hφ_cont.measurable X (L - 1) β j))
+    have h_cov := measurable_deepFeatureAverage d m n L φ φ hφ_cont.measurable
+      hφ_cont.measurable X (L - 1) α β
     exact (measurable_const.mul h_cov).mul measurable_const
   exact (Complex.measurable_exp.comp
     (((Complex.measurable_ofReal.comp h_quad).neg).div_const 2)).aestronglyMeasurable

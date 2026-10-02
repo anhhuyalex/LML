@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.Optimization.NTK.Foundations.TendstoInMeasureUtil
 public import LeanMachineLearning.Optimization.NTK.Initialization.CovariancePropagation
 
 /-!
@@ -19,13 +20,14 @@ continuity of the covariance-update map.
   MLP, built from a single infinite population of i.i.d. standard Gaussian weights.
 * `NTK.indepFun_deepLayer_history` : Independence Across Depth for this population (the
   infinite-population analogue of `NTK.indepFun_layer_history`).
-* `NTK.instPseudoEMetricSpaceMatrix` : the missing `PseudoEMetricSpace (Matrix (Fin m) (Fin m) ℝ)`
+* `NTK.instPseudoEMetricSpaceMatrix` : the missing `PseudoEMetricSpace (Matrix ι κ ℝ)`
   glue instance (Mathlib deliberately does not register one directly, to avoid a diamond with
   other matrix norms), needed for the lemma below.
 * `NTK.tendstoInMeasure_comp_of_continuousAt`,
   `NTK.tendsto_integral_of_tendstoInMeasure_of_bounded` : general-purpose
-  convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence)
-  missing from Mathlib's `ConvergenceInMeasure` API, needed by the theorems below.
+  convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence;
+  matrix inverse; now in `Foundations/TendstoInMeasureUtil.lean`) missing from Mathlib's
+  `ConvergenceInMeasure` API, needed by the theorems below.
 * `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
   $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
 
@@ -291,190 +293,10 @@ lemma deepPreactivation_eq_deepHistoryWeight
   have hkr : k < r.val := lt_of_le_of_lt hk hℓ
   simp [deepHistoryWeight, hkr, lt_trans hkr r.isLt]
 
-/-! ### General-Purpose Convergence-in-Probability Lemmas
+/-! ### Matrix Convergence Reduction
 
-The two lemmas below are genuinely general (not NTK-specific): they are missing pieces of
-`Mathlib.MeasureTheory.Function.ConvergenceInMeasure`'s API that the induction and the final
-characteristic-function argument in the second `DeepNNGPRecursion` section both need. Neither is
-hard to prove — they are direct consequences of tools already in this Mathlib checkout
-(`EMetric.continuousAt_iff`, `TendstoInMeasure.exists_seq_tendsto_ae`,
-`tendsto_of_subseq_tendsto`) — but Mathlib itself does not compose `TendstoInMeasure` with a
-continuous map of the codomain, nor with dominated convergence of integrals, so both are proved
-from scratch here.
--/
-
-/-- `Matrix` inherits its `PseudoEMetricSpace` structure from the underlying Pi type. Mathlib does
-not register this instance directly for `Matrix` (to avoid a diamond with other norms such as the
-operator or Frobenius norm — `Matrix` is a `def`, not `abbrev`, over `m → n → α`, so instance
-search does not unfold it automatically), so it is registered here. Needed so
-`tendstoInMeasure_comp_of_continuousAt` below applies to the `Matrix`-valued sequences in Part 1
-and Part 2. -/
-instance instPseudoEMetricSpaceMatrix (m : ℕ) : PseudoEMetricSpace (Matrix (Fin m) (Fin m) ℝ) := by
-  unfold Matrix; infer_instance
-
-/-- The matching pseudo-metric instance is needed for the real-valued `dist` tail events used in
-convergence-in-measure statements.  As above, it is inherited from the underlying finite Pi type. -/
-instance instPseudoMetricSpaceMatrix (m : ℕ) : PseudoMetricSpace (Matrix (Fin m) (Fin m) ℝ) := by
-  unfold Matrix; infer_instance
-
-/-- **Continuous mapping theorem for convergence in probability to a constant.** If `f n → y` in
-probability and `g` is continuous at `y`, then `g ∘ f n → g y` in probability. Used below to turn
-the inductive hypothesis `Φ_ℓ^{(n)} → Φ_ℓ` into `𝒞_φ(Φ_ℓ^{(n)}) → 𝒞_φ(Φ_ℓ)`. -/
-theorem tendstoInMeasure_comp_of_continuousAt
-    {α E F : Type*} {mα : MeasurableSpace α} {μ : Measure α}
-    [PseudoEMetricSpace E] [PseudoEMetricSpace F] {f : ℕ → α → E} {y : E} {g : E → F}
-    (hfg : TendstoInMeasure μ f Filter.atTop (fun _ => y)) (hg : ContinuousAt g y) :
-    TendstoInMeasure μ (fun n a => g (f n a)) Filter.atTop (fun _ => g y) := by
-  intro ε hε
-  obtain ⟨δ, hδ, hδg⟩ := EMetric.continuousAt_iff.mp hg ε hε
-  have hmono : ∀ n, μ {a | ε ≤ edist (g (f n a)) (g y)} ≤ μ {a | δ ≤ edist (f n a) y} := by
-    intro n
-    refine measure_mono fun a ha => ?_
-    simp only [Set.mem_ofPred_eq] at ha ⊢
-    by_contra hlt
-    push Not at hlt
-    exact absurd (hδg hlt) (not_lt.mpr ha)
-  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (hfg δ hδ)
-    (fun _ => zero_le) hmono
-
-/-- **Inverse of a convergent matrix sequence.** If `f n → M` in probability and `M` is invertible,
-then `(f n)⁻¹ → M⁻¹` in probability: inversion is `det⁻¹ • adjugate`, continuous where `det ≠ 0`.
-With the positive-definite limiting kernels of the deep NTK this yields
-`‖Σ̂ₙ⁻¹‖ = O_ℙ(1)` for the empirical activation Gram. -/
-theorem tendstoInMeasure_matrix_inv {α : Type*} {mα : MeasurableSpace α} {μ : Measure α} {m : ℕ}
-    {f : ℕ → α → Matrix (Fin m) (Fin m) ℝ} {M : Matrix (Fin m) (Fin m) ℝ}
-    (hf : TendstoInMeasure μ f Filter.atTop (fun _ => M)) (hM : IsUnit M.det) :
-    TendstoInMeasure μ (fun n a => (f n a)⁻¹) Filter.atTop (fun _ => M⁻¹) := by
-  refine tendstoInMeasure_comp_of_continuousAt
-    (g := fun A : Matrix (Fin m) (Fin m) ℝ => A⁻¹) hf ?_
-  refine continuousAt_matrix_inv M ?_
-  simp only [Ring.inverse_eq_inv']
-  exact continuousAt_inv₀ hM.ne_zero
-
-/-- Positive-definite version of `tendstoInMeasure_matrix_inv`. -/
-theorem tendstoInMeasure_matrix_inv_of_posDef {α : Type*} {mα : MeasurableSpace α}
-    {μ : Measure α} {m : ℕ} {f : ℕ → α → Matrix (Fin m) (Fin m) ℝ}
-    {M : Matrix (Fin m) (Fin m) ℝ}
-    (hf : TendstoInMeasure μ f Filter.atTop (fun _ => M)) (hM : M.PosDef) :
-    TendstoInMeasure μ (fun n a => (f n a)⁻¹) Filter.atTop (fun _ => M⁻¹) :=
-  tendstoInMeasure_matrix_inv hf (isUnit_iff_ne_zero.mpr hM.det_pos.ne')
-
-/-- **Continuous mapping on an invariant set.** If `f n → y` in probability, all values of `f`
-lie in `s`, and `g` is continuous at `y` relative to `s`, then `g ∘ f n → g y` in probability.
-This is the form needed for covariance matrices: `multivariateGaussian` is naturally continuous in
-its covariance only on the positive-semidefinite cone. -/
-theorem tendstoInMeasure_comp_of_continuousWithinAt
-    {α E F : Type*} {mα : MeasurableSpace α} {μ : Measure α}
-    [PseudoEMetricSpace E] [PseudoEMetricSpace F] {f : ℕ → α → E} {y : E} {g : E → F}
-    {s : Set E} (hfg : TendstoInMeasure μ f Filter.atTop (fun _ => y))
-    (hf : ∀ n a, f n a ∈ s) (hg : ContinuousWithinAt g s y) :
-    TendstoInMeasure μ (fun n a => g (f n a)) Filter.atTop (fun _ => g y) := by
-  intro ε hε
-  obtain ⟨δ, hδ, hδg⟩ := EMetric.continuousWithinAt_iff.mp hg ε hε
-  have hmono : ∀ n, μ {a | ε ≤ edist (g (f n a)) (g y)} ≤ μ {a | δ ≤ edist (f n a) y} := by
-    intro n
-    refine measure_mono fun a ha => ?_
-    simp only [Set.mem_ofPred_eq] at ha ⊢
-    by_contra hlt
-    push Not at hlt
-    exact absurd (hδg (hf n a) hlt) (not_lt.mpr ha)
-  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (hfg δ hδ)
-    (fun _ => zero_le) hmono
-
-/-- A two-stage convergence-in-probability argument.  If `f n` is close in probability to a
-possibly `n`-dependent intermediate approximation `g n`, and `g n` converges in probability to
-`h`, then `f n` converges in probability to `h`.  The deep covariance induction uses this after
-separating the fresh-layer empirical fluctuation from the deterministic covariance update. -/
-theorem tendstoInMeasure_trans
-    {α E : Type*} {mα : MeasurableSpace α} {μ : Measure α}
-    [PseudoMetricSpace E] {f g : ℕ → α → E} {h : α → E}
-    (hfg : ∀ ε : ℝ, 0 < ε →
-      Filter.Tendsto (fun n => μ {a | ε ≤ dist (f n a) (g n a)}) Filter.atTop (nhds 0))
-    (hgh : TendstoInMeasure μ g Filter.atTop h) :
-    TendstoInMeasure μ f Filter.atTop h := by
-  rw [tendstoInMeasure_iff_dist] at hgh ⊢
-  intro ε hε
-  have hhalf : 0 < ε / 2 := by linarith
-  have hsum := (hfg (ε / 2) hhalf).add (hgh (ε / 2) hhalf)
-  have hmono : ∀ n, μ {a | ε ≤ dist (f n a) (h a)} ≤
-      μ {a | ε / 2 ≤ dist (f n a) (g n a)} +
-        μ {a | ε / 2 ≤ dist (g n a) (h a)} := by
-    intro n
-    calc
-      μ {a | ε ≤ dist (f n a) (h a)} ≤
-          μ ({a | ε / 2 ≤ dist (f n a) (g n a)} ∪
-            {a | ε / 2 ≤ dist (g n a) (h a)}) := by
-        apply measure_mono
-        intro a ha
-        simp only [Set.mem_ofPred_eq] at ha ⊢
-        by_cases hfg' : ε / 2 ≤ dist (f n a) (g n a)
-        · exact Or.inl hfg'
-        · right
-          by_contra hgh'
-          have hfg_lt : dist (f n a) (g n a) < ε / 2 := lt_of_not_ge hfg'
-          have hgh_lt : dist (g n a) (h a) < ε / 2 := lt_of_not_ge hgh'
-          have hlt : dist (f n a) (h a) < ε := by
-            calc
-              dist (f n a) (h a) ≤ dist (f n a) (g n a) + dist (g n a) (h a) :=
-                dist_triangle _ _ _
-              _ < ε / 2 + ε / 2 := add_lt_add hfg_lt hgh_lt
-              _ = ε := by ring
-          exact (not_lt_of_ge ha) hlt
-      _ ≤ μ {a | ε / 2 ≤ dist (f n a) (g n a)} +
-          μ {a | ε / 2 ≤ dist (g n a) (h a)} := measure_union_le _ _
-  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds (by simpa using hsum)
-    (fun _ => zero_le) hmono
-
-/-- **Coordinatewise convergence in measure implies joint convergence** for a finite family. -/
-theorem tendstoInMeasure_pi {Ω ι : Type*} [Fintype ι] {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
-    {E : ι → Type*} [∀ i, PseudoMetricSpace (E i)] {f : ℕ → Ω → ∀ i, E i} {c : ∀ i, E i}
-    (h : ∀ i, TendstoInMeasure μ (fun n a => f n a i) Filter.atTop (fun _ => c i)) :
-    TendstoInMeasure μ f Filter.atTop (fun _ => c) := by
-  simp_rw [tendstoInMeasure_iff_dist] at h
-  rw [tendstoInMeasure_iff_dist]
-  intro ε hε
-  have hsum : Filter.Tendsto (fun n => ∑ i, μ {a | ε ≤ dist (f n a i) (c i)}) Filter.atTop (nhds 0) := by
-    simpa using tendsto_finsetSum (s := Finset.univ)
-      (f := fun i n => μ {a | ε ≤ dist (f n a i) (c i)}) (a := fun _ => 0) fun i _ => h i ε hε
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum (fun _ => zero_le) ?_
-  intro n
-  calc μ {a | ε ≤ dist (f n a) c}
-      ≤ μ (⋃ i, {a | ε ≤ dist (f n a i) (c i)}) := by
-        apply measure_mono
-        intro a ha
-        simp only [Set.mem_ofPred_eq] at ha
-        by_contra hne
-        simp only [Set.mem_iUnion, Set.mem_ofPred_eq] at hne
-        push Not at hne
-        exact (not_lt_of_ge ha) ((dist_pi_lt_iff hε).2 hne)
-    _ ≤ ∑ i, μ {a | ε ≤ dist (f n a i) (c i)} := measure_iUnion_fintype_le _ _
-
-/-- **Sums of products of convergent families.** If `a i n → a∞ i` and `b i n → b∞ i` in measure
-for each index `i` of a finite set, then `∑ i, a i n * b i n → ∑ i, a∞ i * b∞ i` in measure. -/
-theorem tendstoInMeasure_sum_mul {Ω ι : Type*} [Fintype ι] {mΩ : MeasurableSpace Ω}
-    {μ : Measure Ω} {a b : ι → ℕ → Ω → ℝ} {a' b' : ι → ℝ}
-    (ha : ∀ i, TendstoInMeasure μ (a i) Filter.atTop (fun _ => a' i))
-    (hb : ∀ i, TendstoInMeasure μ (b i) Filter.atTop (fun _ => b' i)) :
-    TendstoInMeasure μ (fun n ω => ∑ i, a i n ω * b i n ω) Filter.atTop
-      (fun _ => ∑ i, a' i * b' i) := by
-  have hpair : TendstoInMeasure μ (fun n ω => (Sum.elim (fun i => a i n ω) (fun i => b i n ω) :
-      ι ⊕ ι → ℝ)) Filter.atTop (fun _ => Sum.elim a' b') := by
-    refine tendstoInMeasure_pi fun i => ?_
-    cases i with
-    | inl i => exact ha i
-    | inr i => exact hb i
-  have hcont : Continuous (fun v : ι ⊕ ι → ℝ => ∑ i, v (Sum.inl i) * v (Sum.inr i)) := by
-    fun_prop
-  simpa using tendstoInMeasure_comp_of_continuousAt hpair hcont.continuousAt
-/-- **Products of convergent sequences.** If `a n → a'` and `b n → b'` in measure then
-`a n * b n → a' * b'` in measure (the one-term case of `tendstoInMeasure_sum_mul`). -/
-theorem tendstoInMeasure_mul {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
-    {a b : ℕ → Ω → ℝ} {a' b' : ℝ}
-    (ha : TendstoInMeasure μ a Filter.atTop (fun _ => a'))
-    (hb : TendstoInMeasure μ b Filter.atTop (fun _ => b')) :
-    TendstoInMeasure μ (fun n ω => a n ω * b n ω) Filter.atTop (fun _ => a' * b') := by
-  simpa using tendstoInMeasure_sum_mul (ι := Unit) (a := fun _ => a) (b := fun _ => b)
-    (a' := fun _ => a') (b' := fun _ => b') (fun _ => ha) (fun _ => hb)
+The general convergence-in-probability calculus (continuous mapping, products, matrix inverse,
+bounded convergence) lives in `Foundations/TendstoInMeasureUtil.lean`. -/
 
 /-- To prove convergence in measure of a finite matrix-valued family, it suffices to prove the
 corresponding tail estimate for every entry.  The proof uses the sup metric on Pi types and finite
@@ -519,50 +341,6 @@ theorem tendsto_matrixTail_of_tendsto_entrywise
         measure_iUnion_fintype_le _ _
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
     (fun _ => zero_le) hbound
-
-/-- Convergence in probability is preserved by precomposition with a measure-preserving map.
-The explicit measurability hypotheses make the result applicable to the finite-dimensional
-covariance maps used below without relying on an implicit completion of the source measure. -/
-theorem tendstoInMeasure_comp_measurePreserving
-    {α β E : Type*} {mα : MeasurableSpace α} {mβ : MeasurableSpace β}
-    {μ : Measure α} {ν : Measure β} [PseudoEMetricSpace E] [MeasurableSpace E]
-    [BorelSpace E] [SecondCountableTopology E] {T : α → β} {f : ℕ → β → E} {g : β → E}
-    (hfg : TendstoInMeasure ν f Filter.atTop g) (hT : MeasurePreserving T μ ν)
-    (hf : ∀ n, Measurable (f n)) (hg : Measurable g) :
-    TendstoInMeasure μ (fun n a => f n (T a)) Filter.atTop (fun a => g (T a)) := by
-  intro ε hε
-  have hset : ∀ n, MeasurableSet {b | ε ≤ edist (f n b) (g b)} := fun n =>
-    ((hf n).edist hg) measurableSet_Ici
-  have heq : (fun n => μ {a | ε ≤ edist (f n (T a)) (g (T a))}) =
-      fun n => ν {b | ε ≤ edist (f n b) (g b)} := by
-    funext n
-    change μ (T ⁻¹' {b | ε ≤ edist (f n b) (g b)}) = _
-    rw [← hT.map_eq, Measure.map_apply hT.measurable (hset n)]
-  rw [heq]
-  exact hfg ε hε
-
-/-- **Bounded convergence for convergence in probability.** If `f n → g` in probability and the
-`f n` are uniformly bounded in norm by a constant, then `∫ f n → ∫ g`. Proof: given any
-subsequence, `TendstoInMeasure.exists_seq_tendsto_ae` extracts a further a.e.-convergent
-subsequence, along which the ordinary dominated convergence theorem gives convergence of the
-integrals; since every subsequence has such a further convergent subsequence,
-`tendsto_of_subseq_tendsto` closes the full sequence. Used below in place of Theorem 3's dominated
-convergence step (`tendsto_charFun_outputMeasure`), since Part 1 below only supplies convergence in
-probability, not the almost-sure convergence Theorem 3 had from Kolmogorov's SLLN. -/
-theorem tendsto_integral_of_tendstoInMeasure_of_bounded
-    {α E : Type*} {mα : MeasurableSpace α} {μ : Measure α} [NormedAddCommGroup E]
-    [NormedSpace ℝ E] {f : ℕ → α → E} {g : α → E}
-    (hfg : TendstoInMeasure μ f Filter.atTop g)
-    (hf_meas : ∀ n, AEStronglyMeasurable (f n) μ) (C : ℝ)
-    (hf_bound : ∀ n, ∀ᵐ a ∂μ, ‖f n a‖ ≤ C) [IsFiniteMeasure μ] :
-    Filter.Tendsto (fun n => ∫ a, f n a ∂μ) Filter.atTop (nhds (∫ a, g a ∂μ)) := by
-  apply Filter.tendsto_of_subseq_tendsto
-  intro ns hns
-  obtain ⟨ms, -, hms_ae⟩ := (hfg.comp hns).exists_seq_tendsto_ae
-  refine ⟨ms, ?_⟩
-  simpa using tendsto_integral_of_dominated_convergence (bound := fun _ => C)
-    (fun k => hf_meas (ns (ms k))) (integrable_const C)
-    (fun k => hf_bound (ns (ms k))) hms_ae
 
 /-! ### Continuity of the Covariance-Update Map -/
 
@@ -748,6 +526,23 @@ theorem continuousWithinAt_covarianceMap (φ : ℝ → ℝ) (hφ_cont : Continuo
         ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) β).continuousAt.continuousWithinAt.comp
           hlinear (Set.mapsTo_univ _ _)) (Set.mapsTo_univ _ _)
     exact hα.mul hβ
+
+/-- Polynomial growth bounds can be weakened to a larger exponent and a larger constant: if
+`|φ x| ≤ C (1 + |x|^p)` with `p ≤ p'` and `2 C ≤ C'` then `|φ x| ≤ C' (1 + |x|^p')`. (The factor `2`
+is needed because `|x|^p ≤ |x|^p'` fails for `|x| < 1`; instead `|x|^p ≤ 1 + |x|^p'`.) -/
+lemma polynomial_growth_mono (φ : ℝ → ℝ) {C C' : ℝ} (hC : 0 ≤ C) (hCC : 2 * C ≤ C') {p p' : ℕ}
+    (hp : p ≤ p') (h : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p)) :
+    ∀ x : ℝ, |φ x| ≤ C' * (1 + |x| ^ p') := by
+  intro x
+  have hx : |x| ^ p ≤ 1 + |x| ^ p' := by
+    rcases le_total |x| 1 with h1 | h1
+    · linarith [pow_le_one₀ (abs_nonneg x) h1 (n := p), pow_nonneg (abs_nonneg x) p']
+    · linarith [pow_le_pow_right₀ h1 hp]
+  have hpos : 0 ≤ 1 + |x| ^ p' := by positivity
+  calc |φ x| ≤ C * (1 + |x| ^ p) := h x
+    _ ≤ C * (2 * (1 + |x| ^ p')) := mul_le_mul_of_nonneg_left (by linarith [pow_nonneg (abs_nonneg x) p']) hC
+    _ = (2 * C) * (1 + |x| ^ p') := by ring
+    _ ≤ C' * (1 + |x| ^ p') := mul_le_mul_of_nonneg_right hCC hpos
 
 /-- Polynomial growth is preserved by squaring: if `|φ x| ≤ C (1 + |x|^p)` then
 `|φ x ^ 2| ≤ 2 C² (1 + |x|^(2p))`. -/

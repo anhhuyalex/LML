@@ -64,16 +64,8 @@ theorem deepSpace_featureCov_tendsto (φ ψ : ℝ → ℝ) (hφ_cont : Continuou
   have hentry := tendstoInMeasure_comp_of_continuousAt
     (g := fun M : Fin m → Fin m → ℝ => M a b)
     hν (by exact ((continuous_apply b).comp (continuous_apply a)).continuousAt)
-  have hmeas : ∀ n : ℕ, Measurable (fun w : Fin d → ℕ → ℕ → ℝ =>
-      (n : ℝ)⁻¹ * ∑ j : Fin n,
-        ψ (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) ℓ a j) *
-        ψ (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) ℓ b j)) := by
-    intro n
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact (hψ_cont.measurable.comp
-      (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X ℓ a j)).mul
-      (hψ_cont.measurable.comp
-        (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X ℓ b j))
+  have hmeas := fun n : ℕ => measurable_deepFeatureAverage n0 m n d φ ψ hφ_cont.measurable
+    hψ_cont.measurable X ℓ a b
   have hcomp := tendstoInMeasure_deepSpace_of_prefix d _ _ hmeas hentry
   convert hcomp using 3
   · rename_i n ω
@@ -97,16 +89,8 @@ theorem deepSpace_activationGram_tendsto (φ : ℝ → ℝ) (hφ_cont : Continuo
   have hentry := tendstoInMeasure_comp_of_continuousAt
     (g := fun M : Matrix (Fin m) (Fin m) ℝ => M a b)
     hν (by exact ((continuous_apply b).comp (continuous_apply a)).continuousAt)
-  have hmeas : ∀ n : ℕ, Measurable (fun w : Fin d → ℕ → ℕ → ℝ =>
-      (n : ℝ)⁻¹ * ∑ j : Fin n,
-        φ (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) ℓ a j) *
-        φ (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) ℓ b j)) := by
-    intro n
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact (hφ_cont.measurable.comp
-      (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X ℓ a j)).mul
-      (hφ_cont.measurable.comp
-        (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X ℓ b j))
+  have hmeas := fun n : ℕ => measurable_deepFeatureAverage n0 m n d φ φ hφ_cont.measurable
+    hφ_cont.measurable X ℓ a b
   have hcomp := tendstoInMeasure_deepSpace_of_prefix d _ _ hmeas hentry
   convert hcomp using 3
   · rename_i n ω

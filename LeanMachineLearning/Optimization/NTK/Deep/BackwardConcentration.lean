@@ -18,9 +18,8 @@ kernels `deepLimitingSensitivityKernel`, by downward induction on the layer, and
 convergence of the deep empirical NTK (Theorem 2.27).
 
 * `NTK.deepSensitivityGram_readout_entry_tendstoInMeasure` (top hidden layer,
-  `g_{d-1} = W_d ⊙ φ'(h_{d-1})`):
-  from the derivative-Gram concentration and the Gaussian-weighted average lemma
-  `tendstoInMeasure_gaussianSq_weighted_average`.
+  `g_{d-1} = W_d ⊙ φ'(h_{d-1})`): the transport to the product space of
+  `sensitivityGram_top_tendsto` (`Deep/BackwardTop.lean`), with separate growth constants.
 * `NTK.deepSensitivityGram_sub_mul_tendstoInMeasure` (decoupling approximation
   `G_k - G_{k+1} · Φ'_k → 0`): the hard core. Its proof (Gaussian conditioning on the projected
   part, Isserlis variance bound, gradient-independence invariant) lives on `DeepSpace`
@@ -47,12 +46,13 @@ namespace NTK
 `g_{d-1}^α = W_d ⊙ φ'(h_{d-1}^α)`, so `G_{d-1}^{αβ} = n⁻¹ ∑ⱼ W_{d,j}² φ'(h^α_j) φ'(h^β_j)`. The
 readout is an independent standard Gaussian, so this has the same limit as the derivative Gram
 matrix,
-`∫ φ' φ' d𝒩(0, Σ^{d-1})`. -/
+`∫ φ' φ' d𝒩(0, Σ^{d-1})`. Separate growth constants for `φ` and `φ'` are accepted and merged
+(`polynomial_growth_mono`) to feed the `DeepSpace` statement `sensitivityGram_top_tendsto`. -/
 theorem deepSensitivityGram_readout_entry_tendstoInMeasure
     (d n0 m : ℕ) (hd : 0 < d) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (C' : ℝ) (hC' : 0 ≤ C') (p' : ℕ) (hp' : 0 < p')
+    (C' : ℝ) (hC' : 0 ≤ C') (p' : ℕ)
     (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C' * (1 + |x| ^ p'))
     (X : Fin m → Fin n0 → ℝ) (α β : Fin m) :
     TendstoInMeasure
@@ -67,58 +67,19 @@ theorem deepSensitivityGram_readout_entry_tendstoInMeasure
       (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β)
         ∂multivariateGaussian 0
         (layerCovarianceSeq 1 0 φ m (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (d - 1))) := by
-  have hd1 : d - 1 < d := by omega
-  -- convergence of the derivative Gram and of the average of its squares, on the prefix space
-  have hν := deepEmpiricalFeatureCovariance_tendstoInMeasure n0 m d φ φ' hφ_cont hφ'_cont C hC p hp
-    hφ_growth C' hC' p' hp' hφ'_growth X (d - 1) hd1
-  have hD0 := tendstoInMeasure_comp_of_continuousAt
-    (g := fun M : Fin m → Fin m → ℝ => M α β) hν
-    (by exact ((continuous_apply β).comp (continuous_apply α)).continuousAt)
-  have hν2 := deepEmpiricalFeatureCovariance_tendstoInMeasure n0 m d φ (fun x => φ' x ^ 2)
-    hφ_cont (hφ'_cont.pow 2) C hC p hp hφ_growth (2 * C' ^ 2) (by positivity) (2 * p') (by omega)
-    (polynomial_growth_sq φ' C' p' hφ'_growth) X (d - 1) hd1
-  have hM0 := tendstoInMeasure_comp_of_continuousAt
-    (g := fun M : Fin m → Fin m → ℝ => M α β) hν2
-    (by exact ((continuous_apply β).comp (continuous_apply α)).continuousAt)
-  have hy_meas : ∀ (n : ℕ) (j : Fin n), Measurable (fun w : Fin d → ℕ → ℕ → ℝ =>
-      φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) (d - 1) α j) *
-      φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) (d - 1) β j)) :=
-    fun n j => (hφ'_cont.measurable.comp
-        (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X (d - 1) α j)).mul
-      (hφ'_cont.measurable.comp (measurable_deepPreactivation n0 m n d φ hφ_cont.measurable X
-        (d - 1) β j))
-  have hW := tendstoInMeasure_gaussianSq_weighted_average
-    (Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-    (fun (n : ℕ) (w : Fin d → ℕ → ℕ → ℝ) (j : Fin n) =>
-      φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) (d - 1) α j) *
-      φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then w ⟨k, h⟩ else 0) (d - 1) β j))
-    hy_meas _ _ hD0
-    (by
-      refine hM0.congr' (Eventually.of_forall fun n => ae_of_all _ fun w => ?_) EventuallyEq.rfl
-      simp only [mul_pow])
-  have hF_meas : ∀ n : ℕ, Measurable (fun q : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
-      (n : ℝ)⁻¹ * ∑ j : Fin n, q.2 j.val ^ 2 *
-        (φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then q.1 ⟨k, h⟩ else 0)
-          (d - 1) α j) *
-        φ' (deepPreactivation n0 m n φ X (fun k => if h : k < d then q.1 ⟨k, h⟩ else 0)
-          (d - 1) β j))) := by
-    intro n
-    refine measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_)
-    exact (((measurable_pi_apply j.val).comp measurable_snd).pow_const 2).mul
-      ((hy_meas n j).comp measurable_fst)
-  have hT := tendstoInMeasure_prod_of_prefix_prod d _ _ hF_meas hW
-  convert hT using 3
-  · rename_i n q
-    have hcongr := deepPreactivation_eq_prefix n0 m n d φ X q.1 (d - 1) (by omega)
-    rw [deepSensitivityGram_hidden d n0 n m φ φ' X _ (d - 1) hd1, Matrix.of_apply]
-    simp only [dotProduct, backwardSensitivity_top d n0 n m φ φ' X _ hd,
-      deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 (d - 1) hd1, hcongr]
-    congr 1
-    refine Finset.sum_congr rfl fun j _ => ?_
-    simp only [DeepMLPParams.ofTensor]
-    ring
-  · rfl
+  have hC₀ : 0 ≤ 2 * max C C' := by positivity
+  have hp₀ : 0 < max p p' := lt_max_of_lt_left hp
+  let A : ActivationData φ φ' :=
+    ⟨hφ_cont, hφ'_cont, 2 * max C C', hC₀, max p p', hp₀,
+      polynomial_growth_mono φ hC (by linarith [le_max_left C C']) (le_max_left p p') hφ_growth,
+      polynomial_growth_mono φ' hC' (by linarith [le_max_right C C']) (le_max_right p p')
+        hφ'_growth⟩
+  have h := sensitivityGram_top_tendsto A X hd α β
+  have hT := tendstoInMeasure_prod_of_prefix_prod d _ _
+    (fun n => measurable_sensitivityGram_entry (n0 := n0) X hφ_cont.measurable
+      hφ'_cont.measurable n (d - 1) (by omega) α β) h
+  refine hT.congr_left fun n => Eventually.of_forall fun q => ?_
+  simp only [deepParams_prefix hd]
 
 /-- **Decoupling approximation (sub-lemma 1.3, the hard core of the backward induction).** For a
 hidden layer `k` with `k + 1 < d`, the backward Gram entry at layer `k` is asymptotically the
