@@ -129,6 +129,22 @@ theorem deepEmpiricalNTK_ge_nngp (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fi
   exact (empiricalBackwardCov_posSemidef d n0 n m φ φ' X θ ℓ.castSucc).hadamard
     (empiricalForwardCov_posSemidef d n0 n m φ X θ ℓ.castSucc)
 
+/-- Finite-width two-layer specialization: at architectural depth `d = 1`, the empirical NTK
+matrix splits into the readout forward feature Gram matrix plus the input-layer Hadamard
+product summand:
+`Θ^{emp, (1)} = Φ_1^{(n)} + G_1^{(n)} ⊙ Φ_0^{(n)}`. -/
+theorem deepEmpiricalNTK_twoLayer_eq_add_hadamard (n0 n m : ℕ) (φ φ' : ℝ → ℝ)
+    (X : Fin m → Fin n0 → ℝ) (θ : DeepMLPParams 1 n0 n) :
+    deepEmpiricalNTK 1 n0 n m φ φ' X θ =
+      empiricalForwardCov 1 n0 n m φ X θ 1 +
+        empiricalBackwardCov 1 n0 n m φ φ' X θ 0 ⊙
+          empiricalForwardCov 1 n0 n m φ X θ 0 := by
+  rw [deepEmpiricalNTK, Fin.sum_univ_two]
+  have hterm : empiricalBackwardCov 1 n0 n m φ φ' X θ 1 = Matrix.of fun _ _ => 1 := by
+    apply empiricalBackwardCov_terminal
+  rw [hterm, hadamard_const_one]
+  rw [add_comm]
+
 end NTK
 
 end
