@@ -60,10 +60,10 @@ gradient flow.
   `∂_t L(θ(t)) ≤ - (lambda_min / m²) ‖r(t)‖²` under a Rayleigh-Ritz condition on `K_t`.
 * `NTK.norm_sq_gradient_generalizedRisk`, `NTK.norm_sq_gradient_mseLoss`,
   `NTK.norm_deriv_sq_eq_quadratic_form_of_forwardGF`, `NTK.mseLoss_sub_eq_integral_quadratic_form` :
-  Phase 15 kinetic energy: `‖∇L‖² = (1/m²) rᵀ K r`, `‖θ'‖² = (1/m²) rᵀ K r` along the forward flow,
+  Kinetic energy: `‖∇L‖² = (1/m²) rᵀ K r`, `‖θ'‖² = (1/m²) rᵀ K r` along the forward flow,
   and `L(θ 0) - L(θ T) = ∫₀ᵀ (1/m²) rᵀ K r = ∫₀ᵀ ‖θ'‖²` (generic part in
   `ConvexOpt.ForwardGFTrajectory`).
-* `NTK.hasDerivAt_coord_of_forwardGF` : Phase 15 coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
+* `NTK.hasDerivAt_coord_of_forwardGF` : Coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
   training flow (the `a_i` and `W_{ij}` equations are in `NTK.Training.TwoLayer.Packing`).
 
 See
@@ -659,7 +659,7 @@ theorem risk_dissipation_le_of_rayleighRitz
   rw [h3] at h2
   linarith
 
-/-! ### Kinetic energy along gradient flow (Phase 15)
+/-! ### Kinetic energy along gradient flow
 
 For the flow `θ' = -∇L(θ)` the speed is `‖θ'‖ = ‖∇L(θ)‖`, and the chain rule gives
 `∂_t L(θ) = -‖θ'‖²`. Evaluating the gradient with `gradient_generalizedRisk` identifies the same

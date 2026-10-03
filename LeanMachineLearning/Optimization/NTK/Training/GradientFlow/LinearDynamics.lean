@@ -18,7 +18,7 @@ residual.
 * `NTK.matrix_exp_smul_mulVec_of_eigenvector`, `NTK.inner_matrix_exp_mulVec_of_eigenvector`,
   `NTK.inner_eigenvectorBasis_matrix_exp_mulVec`, `NTK.matrix_exp_mulVec_eq_sum_eigenmodes`,
   `NTK.norm_sq_matrix_exp_mulVec_eq_sum`, `NTK.abs_inner_eigenvector_residual_sub_mode_le` :
-  Phase 15 eigenmodes `⟪v_k, r(t)⟫ = exp(-λ_k t / m) ⟪v_k, r(0)⟫` of the frozen-kernel residual
+  Eigenmodes `⟪v_k, r(t)⟫ = exp(-λ_k t / m) ⟪v_k, r(0)⟫` of the frozen-kernel residual
   (Mathlib's `Matrix.IsHermitian.eigenvectorBasis`), Parseval energy, and the lazy-training
   comparison for the actual residual.
 * `NTK.matrix_exp_residual_trajectory_zero` : Initial condition `r(0) = r₀`.
@@ -203,7 +203,7 @@ theorem matrix_exp_loss_decay
   rw [h0] at h_decay
   exact h_decay
 
-/-! ### Eigenmodes of the Fixed-Kernel Residual (Phase 15)
+/-! ### Eigenmodes of the Fixed-Kernel Residual
 
 For a symmetric kernel `K` the closed-form residual `exp(-(t/m) K) r₀` decouples in the orthonormal
 eigenbasis `v_k` of `K`: the coordinate `⟪v_k, r(t)⟫` decays as `exp(-λ_k t / m) ⟪v_k, r₀⟫`. The

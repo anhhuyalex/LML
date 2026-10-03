@@ -10,7 +10,8 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.KernelS
 /-!
 # Gradient flow: displacement-integral bound and continuous-induction bootstrap
 
-Gap 5: the displacement-integral bound, the continuous-induction bootstrap that closes the
+lazy-training bootstrap: the displacement-integral bound, the continuous-induction bootstrap that
+closes the
 circularity between kernel stability and displacement, and the finite-horizon bootstrap that
 needs no spectral gap.
 
@@ -32,9 +33,9 @@ needs no spectral gap.
   `NTK.norm_map_sub_le_integral_of_gfTrajectory` : displacement of a *block of coordinates* (or any
   continuous linear image) of a gradient flow is at most the integral of the speed of that block;
   the block speed under MSE flow is `(1/m) ‖J_block‖ ‖r‖`.
-* `NTK.displacement_integral_bound` : Gap 5 Step 1 deliverable - a `T`-independent displacement
+* `NTK.displacement_integral_bound` : A `T`-independent displacement
   cap `(M * ‖r₀‖) / lambda_min` given a uniform-in-time Rayleigh bound on `[0, T]`.
-* `NTK.lazy_training_displacement_bound` : **Gap 5 deliverable** - the continuous-induction
+* `NTK.lazy_training_displacement_bound` : The continuous-induction
   bootstrap discharging `hlazy` with a width-independent constant `C`.
 
 See
@@ -59,7 +60,7 @@ attribute [local instance]
 
 attribute [local instance 2000] instCompleteSpaceMatrix
 
-/-! ### Gap 5, Step 1: The Displacement-Integral Bound
+/-! ### Step 1: The Displacement-Integral Bound
 
 Given that a uniform-in-time Rayleigh-quotient lower bound holds on `[0, T]`, gradient flow's
 instantaneous speed `‖∂_t θ(t)‖ = ‖∇_θ L(θ(t))‖` decays exponentially (Step 1's gradient-speed
@@ -256,7 +257,7 @@ theorem displacement_le_integral_of_rayleigh
   simpa using norm_map_sub_le_integral_of_forwardGF hflow
     (ContinuousLinearMap.id ℝ (EuclideanSpace ℝ (Fin P))) hT hspeed hBi
 
-/-- Gap 5 Step 1 deliverable: if the empirical NTK's Rayleigh quotient along the trajectory is
+/-- Displacement-integral bound: if the empirical NTK's Rayleigh quotient along the trajectory is
 bounded below by `lambda_min` throughout `[0, T]`, and the output Jacobian is `M`-bounded there
 too, then gradient flow has moved by at most `(M * ‖r₀‖) / lambda_min` from `θ₀` by time `T` -
 a bound with **no explicit dependence on `T`**, since the residual's exponential decay makes the
@@ -319,7 +320,7 @@ theorem displacement_bound_of_psd
   calc ‖θ_traj T - θ₀‖ ≤ T * ((m : ℝ)⁻¹ * M * ‖trainingResidual f X y θ₀‖) := h
     _ = T * M * ‖trainingResidual f X y θ₀‖ / m := by ring
 
-/-! ### Gap 5, Step 2: The Continuous-Induction Bootstrap
+/-! ### Step 2: The Continuous-Induction Bootstrap
 
 The Rayleigh-quotient lower bound used by `displacement_integral_bound` is only known to hold
 while gradient flow stays within a ball around `θ₀` (Rayleigh-quotient stability, above). This
@@ -353,17 +354,19 @@ theorem rayleigh_lower_bound_on_ball
   have hge : lambda_min₀ - 2 * M * L_J * ‖θ - θ₀‖ ≥ lambda_min₀ / 2 := by linarith
   nlinarith [hstep, mul_le_mul_of_nonneg_right hge (sq_nonneg ‖v‖)]
 
-/-- **Gap 5 deliverable.** Given a base spectral-gap hypothesis `lambda_min₀` at `θ₀`, a Jacobian
+/-- **Lazy-training bootstrap.** Given a base spectral-gap hypothesis `lambda_min₀` at `θ₀`, a
+Jacobian
 bound `M` and Lipschitz constant `L_J` that hold on the closed ball `‖θ - θ₀‖ ≤ r` (not globally -
-matching how `empiricalNTKMatrix_lipschitz_of_jacobian_bound`, Gap 2, is already stated over an
-arbitrary set `S`; concentration bounds like Gap 3/4's are inherently local to a neighborhood of
+matching how `empiricalNTKMatrix_lipschitz_of_jacobian_bound`, kernel Lipschitz propagation, is
+already stated over an
+arbitrary set `S`; concentration bounds like the Jacobian-norm and Jacobian-Lipschitz are
+inherently local to a neighborhood of
 `θ₀`, not uniform over the whole parameter space), and a radius `r` strictly larger than the
 target displacement bound `C` chosen so that `r` itself keeps the Rayleigh quotient above
 `lambda_min₀/2` (`h_ball_gap`) and `C` dominates the resulting displacement bound (`hC_ge`),
 gradient flow never moves more than `C` from `θ₀`, for any `t ≥ 0`. This discharges
-`lazy_training_kernel_freeze_bound`'s `hlazy` hypothesis with a **width-independent** `C` - see
-`docs/NTK_lazy_training_gap_closure_plan.md` §3.1 for why the `1/√n` decay belongs on `L_J`,
-not here. -/
+`lazy_training_kernel_freeze_bound`'s `hlazy` hypothesis with a **width-independent** `C`: the
+`1/√n` decay belongs on `L_J`, not here. -/
 theorem lazy_training_displacement_bound
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
     {θ₀ : EuclideanSpace ℝ (Fin P)} {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}

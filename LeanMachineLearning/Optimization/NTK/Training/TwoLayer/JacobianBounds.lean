@@ -10,17 +10,18 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.Packing
 /-!
 # Two-layer network: Lipschitz bounds on the output Jacobian
 
-Gap 4: the output Jacobian of the packed network is `O(1/√n)`-Lipschitz given a bound `R` on the
+Jacobian Lipschitz bound: the output Jacobian of the packed network is `O(1/√n)`-Lipschitz given a
+bound `R` on the
 readout weights (`outputJacobian_netFromParams_frobenius_sub_le`), and the second-order Taylor
-bound for the training outputs (Phase 12.2).
+bound for the training outputs (second-order Taylor bound).
 
 ## Main results and proof outline
 
 - `empiricalNTKMatrix_netFromParams_apply`:
   Two-block decomposition of the empirical NTK matrix.
-- `outputJacobian_netFromParams_frobenius_sub_le` : **Gap 4 deliverable** - the output Jacobian
+- `outputJacobian_netFromParams_frobenius_sub_le` : The output Jacobian
   is `O(1/√n)`-Lipschitz, given a bound `R` on the readout weights.
-- `norm_trainingOutputs_netFromParams_sub_linearization_le` : **Phase 12.2** - second-order Taylor
+- `norm_trainingOutputs_netFromParams_sub_linearization_le` : Second-order Taylor
   bound `(K / (2 √n)) ‖θ - θ₀‖²` for the packed network (hidden and readout weights trained).
 
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
@@ -38,7 +39,7 @@ attribute [local instance]
 
 @[expose] public section
 
-/-! ### Phase 4: Local Lipschitz Bound on the Output Jacobian -/
+/-! ### Local Lipschitz Bound on the Output Jacobian -/
 
 lemma two_mul_add_two_mul_sq (u v : ℝ) :
     (u + v) ^ 2 ≤ 2 * u ^ 2 + 2 * v ^ 2 := by

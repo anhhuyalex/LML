@@ -10,14 +10,14 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.JointInit
 /-!
 # Two-layer network: end-to-end kernel-freeze bound
 
-Phase 6: Gap 3 and Gap 4b combine through a union bound into a high-probability event, on which
-Gap 4 propagates the Jacobian and readout bounds through the displacement ball, giving
-`lazy_training_kernel_freeze_bound_of_gaussian_init`.
+The Jacobian-norm and readout-weight concentrations combine through a union bound into a
+high-probability event, on which the Jacobian Lipschitz bound propagates the Jacobian and readout
+bounds through the displacement ball, giving `lazy_training_kernel_freeze_bound_of_gaussian_init`.
 
 ## Main results and proof outline
 
-- `lazy_training_kernel_freeze_bound_of_gaussian_init` : **Gap 6, the plan's final
-  deliverable** - the fully probabilistic end-to-end kernel-freeze bound.
+- `lazy_training_kernel_freeze_bound_of_gaussian_init` : the final, fully probabilistic end-to-end
+kernel-freeze bound.
 - `exists_measurableSet_initial_jacobian_and_readout_bounds` and
   `freeze_bound_of_initial_jacobian_and_readout_bounds` : the probabilistic and deterministic
   halves of `lazy_training_kernel_freeze_bound_of_gaussian_init`, split so that later theorems can
@@ -38,11 +38,13 @@ attribute [local instance]
 
 @[expose] public section
 
-/-! ### Phase 6: End-to-End Kernel-Freeze Bound
+/-! ### End-to-End Kernel-Freeze Bound
 
-Wires Gaps 1-5 together with the Gaussian-initialized two-layer network: Gap 3's Jacobian-norm
-concentration and Gap 4b's entrywise readout-weight concentration (both at `θ₀`) combine via a
-union bound into one high-probability event; on that event, Gap 4's Lipschitz bound propagates
+Wires the packing bridge, the kernel Lipschitz propagation, the Jacobian concentration and Lipschitz
+bounds and the lazy-training bootstrap together with the Gaussian-initialized two-layer network:
+the Jacobian-norm concentration and the entrywise readout-weight concentration (both at `θ₀`)
+combine via a union bound into one high-probability event; on that event, the Jacobian Lipschitz
+bound propagates
 both the Jacobian norm and the readout-weight bound through the displacement ball (the same
 "ball propagation" pattern `rayleigh_quotient_lower_bound_of_displacement`/`h_rr_ball` already use
 in `NTK.Training.GradientFlow.Bootstrap`); the result feeds directly into
@@ -52,7 +54,8 @@ in `NTK.Training.GradientFlow.Bootstrap`); the result feeds directly into
 /-- Deterministic ball-propagation of an entrywise readout-weight bound: if `θ₀`'s readout
 weight `a i` is bounded by `R₀` and `θ` is within displacement `r` of `θ₀`, then `θ`'s readout
 weight `a i` is bounded by `R₀ + r`. This is what lets a concentration bound established only at
-the random initialization `θ₀` (Gap 4b) supply the uniform-over-a-ball bound Gap 4's Lipschitz
+the random initialization `θ₀` (readout-weight concentration) supply the uniform-over-a-ball bound
+that the Jacobian Lipschitz
 theorem needs. -/
 private lemma abs_unpackA_le_of_displacement {n d : ℕ}
     (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n)))
@@ -70,7 +73,8 @@ private lemma abs_unpackA_le_of_displacement {n d : ℕ}
 /-- **Gaussian-initialization good event for the kernel-freeze bound.** There is a measurable event
 `E` of `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability `≥ 1 - 2δ` on which both the initial Jacobian norm
 and every
-readout weight are controlled (Gap 3's Jacobian-norm concentration and Gap 4b's entrywise
+readout weight are controlled (the Jacobian-norm concentration and the readout-weight
+concentration's entrywise
 readout-weight concentration, combined by a union bound). Deterministic consequences of membership
 in `E` are in `freeze_bound_of_initial_jacobian_and_readout_bounds`. -/
 lemma exists_measurableSet_initial_jacobian_and_readout_bounds
@@ -151,7 +155,8 @@ lemma exists_measurableSet_initial_jacobian_and_readout_bounds
   exact ⟨_, hE1_meas.inter hE2_meas, hcombined, fun p hp => hp⟩
 
 /-- **Jacobian bounds on a ball around a good initialization.** If at `θ₀ = packParams W a` the
-Jacobian norm and all readout weights satisfy the Gap 3/4b bounds, then on the closed ball of
+Jacobian norm and all readout weights satisfy the Jacobian-norm and readout-weight concentration
+bounds, then on the closed ball of
 radius `r` around `θ₀` the output Jacobian is `M`-bounded and `L_J`-Lipschitz (relative to `θ₀`),
 for any `M`, `L_J` dominating the concrete formulas. Shared by the gap and no-gap bootstraps. -/
 lemma jacobian_ball_bounds_of_initial_bounds
@@ -183,7 +188,8 @@ lemma jacobian_ball_bounds_of_initial_bounds
     have hival : unpackA θ₀ i = p.2 i := by
       rw [hθ₀_def]; exact congrFun (unpackA_packParams p.1 p.2) i
     rw [hival]; exact hp2 i
-  -- Gap 4, applied on the ball of radius `r`: the Jacobian is `L_J`-Lipschitz there, since
+  -- the Jacobian Lipschitz bound, applied on the ball of radius `r`: the Jacobian is
+`L_J`-Lipschitz there, since
   -- every `θ` with `‖θ - θ₀‖ ≤ r` has readout weights bounded by `R₀ + r` (deterministic
   -- ball-propagation of the entrywise concentration bound, `abs_unpackA_le_of_displacement`).
   have hJ_lip_ball : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ - θ₀‖ ≤ r →
@@ -214,8 +220,10 @@ lemma jacobian_ball_bounds_of_initial_bounds
   exact ⟨hJ_bdd_ball, hJ_lip_ball⟩
 
 /-- **Deterministic half of the lazy-training bounds.** If the initial Jacobian norm and all
-readout weights at `θ₀ = packParams W a` satisfy the Gap 3/4b bounds, then for any gradient flow
-from `θ₀` and any radius/constant choice obeying the Gap 5/6 relations, for all `t ≥ 0`: the flow
+readout weights at `θ₀ = packParams W a` satisfy the Jacobian-norm and readout-weight concentration
+bounds, then for any gradient flow
+from `θ₀` and any radius/constant choice obeying the bootstrap and kernel-freeze relations, for all
+`t ≥ 0`: the flow
 stays within `C` of `θ₀`, the Rayleigh quotient stays above `lambda_min₀ / 2`, the empirical NTK
 drifts by at most `(2 * M * L_J) * C`, and the residual norm and MSE loss decay exponentially.
 `freeze_bound_of_initial_jacobian_and_readout_bounds` is the drift component. -/
@@ -266,9 +274,11 @@ lemma lazy_training_global_bounds_of_initial_jacobian_and_readout_bounds
     hJ_bdd_ball hJ_lip_ball
 
 /-- **Deterministic half of the kernel-freeze bound.** If the initial Jacobian norm and all
-readout weights at `θ₀ = packParams W a` satisfy the Gap 3/4b bounds (as they do on the event of
+readout weights at `θ₀ = packParams W a` satisfy the Jacobian-norm and readout-weight concentration
+bounds (as they do on the event of
 `exists_measurableSet_initial_jacobian_and_readout_bounds`), then for any gradient flow from `θ₀`
-and any radius/constant choice obeying the Gap 5/6 relations, the empirical NTK stays within
+and any radius/constant choice obeying the bootstrap and kernel-freeze relations, the empirical NTK
+stays within
 `(2 * M * L_J) * C` of its initial value for all `t ≥ 0`. -/
 lemma freeze_bound_of_initial_jacobian_and_readout_bounds
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
@@ -303,12 +313,13 @@ lemma freeze_bound_of_initial_jacobian_and_readout_bounds
     hC₁_bdd hφ_lip hderiv_lip hC₁_nonneg hC₂_nonneg hφ hm M₀ p hp1 hp2 θ_traj lambda_min₀ r C M L_J
     hflow hdiff hlam₀ hr_nonneg hCr hM hL_J h_rr₀ hM_ge hL_J_ge h_ball_gap hC_ge t ht).2.2.1
 
-/-- **Phase 6: fully probabilistic end-to-end kernel-freeze bound for the Gaussian-initialized
+/-- **Fully probabilistic end-to-end kernel-freeze bound for the Gaussian-initialized
 two-layer network.** With probability `≥ 1 - 2δ` over the joint Gaussian initialization
 `(W, a)` of `netFromParams`, the following holds at `θ₀ := packParams W a`: for *any* gradient
 flow starting at `θ₀` with a base spectral-gap `lambda_min₀` there, and *any* choice of ball
 radius `r`, target bound `C`, Jacobian bound `M` and Lipschitz constant `L_J` satisfying the
-Gap 5/6 relations (`hCr`, `h_ball_gap`, `hC_ge`) and dominating the concrete Gap 3/4 formulas
+bootstrap and kernel-freeze relations (`hCr`, `h_ball_gap`, `hC_ge`) and dominating the concrete
+Jacobian-norm and Jacobian-Lipschitz formulas
 (`hM_ge`, `hL_J_ge`), the empirical NTK matrix never drifts from its value at `θ₀` by more than
 `(2 * M * L_J) * C`, for any `t ≥ 0`. No free `hlazy`/`hLip` hypotheses remain anywhere in this
 chain - both are derived from the Gaussian initialization, not assumed. -/

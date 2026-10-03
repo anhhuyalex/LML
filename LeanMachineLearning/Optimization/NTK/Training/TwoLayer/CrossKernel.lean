@@ -10,7 +10,8 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.FiniteHoriz
 /-!
 # Training limits of the two-layer network: the train-test cross-kernel
 
-Phase 14: the cross-kernel `J(θ) ∇f(x; θ)` between the training set and a test input concentrates
+train-test cross-kernel: the cross-kernel `J(θ) ∇f(x; θ)` between the training set and a test input
+concentrates
 at initialization and freezes along gradient flow.
 
 ## Main results and proof outline
@@ -19,7 +20,7 @@ at initialization and freezes along gradient flow.
   `tendsto_measure_crossKernel_drift_global_positive_gap`,
   `tendsto_measure_test_prediction_finite_horizon`,
   `tendsto_measure_test_prediction_global_positive_gap`,
-  `test_prediction_kernel_interpolation_limit` : **Phase 14** - the train-test cross-kernel
+  `test_prediction_kernel_interpolation_limit` : The train-test cross-kernel
   `J(θ) ∇f(x; θ)` (a row of the extended-dataset NTK Gram matrix) concentrates at initialization and
   freezes; the trained output at a test input `x` follows the closed-form predictor
   `f₀(x) - a ⬝ᵥ (r₀ - exp(-(t/m) K_∞) r₀)`, `a = K_∞⁻¹ k_∞(x, X)`, at fixed times (no gap) and

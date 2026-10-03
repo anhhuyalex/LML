@@ -10,7 +10,7 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.KernelFreez
 /-!
 # Two-layer network: sharp kernel drift from average neuron moments
 
-Phase 11.2: each neuron's displacement is controlled by its own initial scale, so the kernel
+kernel-drift rate: each neuron's displacement is controlled by its own initial scale, so the kernel
 drift is bounded through the degree-four neuron moment averaged over neurons. This gives the
 `O(n⁻¹ᐟ²)` rate without a logarithm.
 
@@ -19,7 +19,7 @@ drift is bounded through the degree-four neuron moment averaged over neurons. Th
 - `neuron_displacement_le`, `kernel_drift_le_of_neuron_moments`, `exists_neuronMoment_event`,
   `exists_measurableSet_global_lazy_training_event_inv_sqrt_width`,
   `global_positive_gap_lazy_training_limit_inv_sqrt_width`,
-  `gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width` : **Phase 11.2** - the
+  `gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width` : The
   same global
   theorem with kernel drift `O(n⁻¹ᐟ²)` (no logarithm): each neuron's displacement is controlled by
   its own initial scale, and the resulting degree-four neuron moment is averaged over neurons and

@@ -31,7 +31,7 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
 * `Convergence` : exponential convergence of the training loss.
 * `LinearDynamics` : closed-form dynamics via the matrix exponential, eigenmodes.
 * `KernelStability` : Lipschitz propagation for the empirical NTK, Taylor bound, Rayleigh stability.
-* `Bootstrap` : displacement-integral bound and the continuous-induction bootstrap (Gap 5).
+* `Bootstrap` : displacement-integral bound and the continuous-induction bootstrap.
 * `InfiniteWidth` : asymptotic properties in the infinite-width limit.
 * `ODEStability` : stability of linear ODEs under coefficient perturbation.
 * `AffineDynamics` : fixed-feature (affine) dynamics and minimum norm.
@@ -158,36 +158,37 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
 * `NTK.norm_sub_sub_fderiv_le_of_lipschitz_fderiv`,
   `NTK.norm_trainingOutputs_sub_linearization_le` :
   `C^{1,1}` Taylor bound `(L / 2) ‖x - x₀‖²` for any map with an `L`-Lipschitz Fréchet derivative,
-  and its instance for the training outputs under an `L`-Lipschitz output Jacobian (Phase 12).
+  and its instance for the training outputs under an `L`-Lipschitz output Jacobian (test-input
+linearization error).
 * `NTK.minNorm_pythagoras`, `NTK.matrixCLM_transpose_eq_adjoint` : minimum-norm Pythagoras for any
   bounded linear map between real Hilbert spaces, and the adjoint identity for `matrixCLM`.
 * `NTK.matrixCLM`, `NTK.inner_matrixCLM_transpose`, `NTK.hasDerivAt_affineFlowSolution`,
   `NTK.affineFlow_eq_solution`, `NTK.affine_minNorm_pythagoras`, `NTK.norm_affine_limit_le`,
   `NTK.eq_affine_limit_of_norm_le`, `NTK.tendsto_affineFlowSolution`, `NTK.inner_affine_limit` :
-  Phase 14.1 - for an arbitrary matrix `J` with invertible Gram matrix `J Jᵀ`, the closed form of
+  For an arbitrary matrix `J` with invertible Gram matrix `J Jᵀ`, the closed form of
   the affine gradient flow, its convergence to the minimum-norm interpolant `-Jᵀ (J Jᵀ)⁻¹ r₀`,
   the Pythagoras identity proving minimality, and the kernel-regression form of its prediction.
 * `NTK.hasDerivAt_predictionError_abs_le`, `NTK.abs_inner_displacement_add_frozenPrediction_le`,
   `NTK.abs_sub_le_of_abs_deriv_le_exp`,
-  `NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay` : Phase 14.2 - deterministic
+  `NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay` : Deterministic
   test-point prediction error along a gradient flow, on a finite window and uniformly in time under
   exponential residual decay.
 * `NTK.norm_sq_gradient_generalizedRisk`, `NTK.norm_sq_gradient_mseLoss`,
   `NTK.norm_deriv_sq_eq_quadratic_form_of_forwardGF`, `NTK.mseLoss_sub_eq_integral_quadratic_form` :
-  Phase 15 kinetic energy: `‖∇L‖² = (1/m²) rᵀ K r`, `‖θ'‖² = (1/m²) rᵀ K r` along the forward flow,
+  Kinetic energy: `‖∇L‖² = (1/m²) rᵀ K r`, `‖θ'‖² = (1/m²) rᵀ K r` along the forward flow,
   and `L(θ 0) - L(θ T) = ∫₀ᵀ (1/m²) rᵀ K r = ∫₀ᵀ ‖θ'‖²` (generic part in
   `ConvexOpt.ForwardGFTrajectory`).
-* `NTK.hasDerivAt_coord_of_forwardGF` : Phase 15 coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
+* `NTK.hasDerivAt_coord_of_forwardGF` : Coordinate form `∂_t θ_k = -(1/m) [Jᵀ r]_k` of the
   training flow (the `a_i` and `W_{ij}` equations are in `NTK.Training.TwoLayer.Packing`).
 * `NTK.matrix_exp_smul_mulVec_of_eigenvector`, `NTK.inner_matrix_exp_mulVec_of_eigenvector`,
   `NTK.inner_eigenvectorBasis_matrix_exp_mulVec`, `NTK.matrix_exp_mulVec_eq_sum_eigenmodes`,
   `NTK.norm_sq_matrix_exp_mulVec_eq_sum`, `NTK.abs_inner_eigenvector_residual_sub_mode_le` :
-  Phase 15 eigenmodes `⟪v_k, r(t)⟫ = exp(-λ_k t / m) ⟪v_k, r(0)⟫` of the frozen-kernel residual
+  Eigenmodes `⟪v_k, r(t)⟫ = exp(-λ_k t / m) ⟪v_k, r(0)⟫` of the frozen-kernel residual
   (Mathlib's `Matrix.IsHermitian.eigenvectorBasis`), Parseval energy, and the lazy-training
   comparison for the actual residual.
 * `NTK.tendsto_zero_of_le_mul_exp_neg` : exponential bound implies convergence to zero.
 * `NTK.exists_forward_flow`, `NTK.forwardFlow_unique`, `NTK.lipschitz_on_ball_of_locallyLipschitz` :
-  Phase 10-11 generic forward-time flow of a field that is Lipschitz on balls and has a priori
+  Generic forward-time flow of a field that is Lipschitz on balls and has a priori
   bounds (Mathlib's Picard-Lindelöf on a cutoff field, the bootstrap `le_of_forall_bootstrap`,
   gluing by uniqueness),
   with forward uniqueness; plus small `LocallyLipschitz` algebra helpers.
@@ -201,9 +202,9 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
   bound.
 * `NTK.finite_horizon_displacement_bound`, `NTK.finite_horizon_kernel_freeze_bound` : finite-horizon
   bootstrap and kernel freeze on `[0, T]` with no spectral gap.
-* `NTK.norm_sub_le_of_linear_ode_perturbation` : **Phase 7** generic stability of `r' = -A(t) r`
+* `NTK.norm_sub_le_of_linear_ode_perturbation` : **Generic** stability of `r' = -A(t) r`
   against `s' = -B(t) s` for PSD `A`: `‖r - s‖ ≤ ‖r(0) - s(0)‖ + a t` if `‖A - B‖ ‖s‖ ≤ a`.
-* `NTK.residual_sub_frozen_residual_le` : Phase 7 specialization to the NTK residual dynamics with
+* `NTK.residual_sub_frozen_residual_le` : Specialization to the NTK residual dynamics with
   coefficients `K(t) / m` and `K_∞ / m`.
 * `NTK.mse_loss_exponential_decay_timeVarying` : Step 4 MSE loss decay for `K(t)`.
 * `NTK.residual_norm_sq_exponential_decay_timeVarying_Icc` : Local interval squared residual decay.
@@ -220,7 +221,7 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
   `‖K(θ₁) - K(θ₂)‖ ≤ 2 * M * ‖J(θ₁) - J(θ₂)‖`.
 * `NTK.empiricalNTKMatrix_sub_le_of_jacobian_lipschitz` : Pointwise Lipschitz propagation
   `‖K(θ₁) - K(θ₂)‖ ≤ (2 * M * L_J) * ‖θ₁ - θ₂‖`.
-* `NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound` : Gap 2 deliverable, deterministic
+* `NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound` : Deterministic
   Lipschitz propagation on any set `S` around `θ₀`.
 * `NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound` : Kernel freeze bound
   `‖K(θ(t)) - K(θ₀)‖ ≤ (2 * M * L_J) * C` instantiated with Jacobian bounds
@@ -242,9 +243,9 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
   continuous linear image) of a gradient flow is at most the integral of the speed of that block;
   the block speed under MSE flow is `(1/m) ‖J_block‖ ‖r‖`.
 * `NTK.integral_exp_neg_le` : Reusable bound `∫₀ᵀ exp(-c t) dt ≤ 1/c` for `c > 0`.
-* `NTK.displacement_integral_bound` : Gap 5 Step 1 deliverable - a `T`-independent displacement
+* `NTK.displacement_integral_bound` : A `T`-independent displacement
   cap `(M * ‖r₀‖) / lambda_min` given a uniform-in-time Rayleigh bound on `[0, T]`.
-* `NTK.lazy_training_displacement_bound` : **Gap 5 deliverable** - the continuous-induction
+* `NTK.lazy_training_displacement_bound` : The continuous-induction
   bootstrap discharging `hlazy` with a width-independent constant `C`.
 * `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
 * `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.

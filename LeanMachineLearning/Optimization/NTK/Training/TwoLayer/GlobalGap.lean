@@ -31,7 +31,7 @@ attribute [local instance]
 section GlobalPositiveGapLimit
 
 /-!
-#### Target Theorem 2: Global Positive-Gap Lazy Training Limit (Phase 0 Target)
+#### Target Theorem 2: Global Positive-Gap Lazy Training Limit 
 
 **Status.** Proved as `global_positive_gap_lazy_training_limit` (any family solving the ODE almost
 everywhere) and `gradientFlow_global_positive_gap_lazy_training_limit` (the constructed family),
@@ -64,7 +64,7 @@ Then for any fixed confidence `δ ∈ (0, 1)`, there exist `N : ℕ` and `C > 0`
    `lim_{t → ∞} mseLoss f_n X y (θ_traj t) = 0`.
 
 A polynomial rate `1 - O(n^{-c})` may be derived as a corollary after quantitative
-concentration estimates are established in Phase 3.5 or commit step 5.
+concentration estimates are established in a later step.
 
 **Frobenius Matrix Norm**:
 The matrix norm `‖·‖` on `Matrix (Fin m) (Fin m) ℝ` throughout this target specification is the

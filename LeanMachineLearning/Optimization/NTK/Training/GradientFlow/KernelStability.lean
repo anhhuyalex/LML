@@ -10,7 +10,8 @@ public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.LinearD
 /-!
 # Gradient flow: Lipschitz propagation and Rayleigh-quotient stability
 
-Deterministic Lipschitz propagation for the empirical NTK (Gap 2), the second-order Taylor bound
+Deterministic Lipschitz propagation for the empirical NTK (kernel Lipschitz propagation), the
+second-order Taylor bound
 for the training outputs, and quadratic-form and Rayleigh-quotient perturbation.
 
 ## Main results and proof outline
@@ -18,12 +19,13 @@ for the training outputs, and quadratic-form and Rayleigh-quotient perturbation.
 * `NTK.norm_sub_sub_fderiv_le_of_lipschitz_fderiv`,
   `NTK.norm_trainingOutputs_sub_linearization_le` :
   `C^{1,1}` Taylor bound `(L / 2) ‖x - x₀‖²` for any map with an `L`-Lipschitz Fréchet derivative,
-  and its instance for the training outputs under an `L`-Lipschitz output Jacobian (Phase 12).
+  and its instance for the training outputs under an `L`-Lipschitz output Jacobian (test-input
+linearization error).
 * `NTK.empiricalNTKMatrix_sub_le_of_jacobian_bound` : Frobenius norm bound
   `‖K(θ₁) - K(θ₂)‖ ≤ 2 * M * ‖J(θ₁) - J(θ₂)‖`.
 * `NTK.empiricalNTKMatrix_sub_le_of_jacobian_lipschitz` : Pointwise Lipschitz propagation
   `‖K(θ₁) - K(θ₂)‖ ≤ (2 * M * L_J) * ‖θ₁ - θ₂‖`.
-* `NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound` : Gap 2 deliverable, deterministic
+* `NTK.empiricalNTKMatrix_lipschitz_of_jacobian_bound` : Deterministic
   Lipschitz propagation on any set `S` around `θ₀`.
 * `NTK.abs_dotProduct_mulVec_sub_le` : Quadratic forms of nearby matrices are close:
   `|vᵀ A v - vᵀ B v| ≤ ‖A - B‖ ‖v‖²`.
@@ -58,7 +60,7 @@ attribute [local instance]
 
 attribute [local instance 2000] instCompleteSpaceMatrix
 
-/-! ### Deterministic Lipschitz Propagation for Empirical NTK (Gap 2)
+/-! ### Deterministic Lipschitz Propagation for Empirical NTK (kernel Lipschitz propagation)
 
 Under parameter displacement `‖θ - θ₀‖`, the variation in the empirical NTK Gram matrix
 `K(θ) = J(θ) J(θ)ᵀ` is controlled by the Jacobian operator/Frobenius norm bound `M`
@@ -137,7 +139,7 @@ theorem empiricalNTKMatrix_sub_le_of_jacobian_lipschitz
   rw [h3] at h2
   exact h1.trans h2
 
-/-- Deterministic Lipschitz propagation (Gap 2 deliverable):
+/-- Deterministic Lipschitz propagation (Deterministic kernel Lipschitz propagation):
 On any set `S` containing `θ₀`, if `‖outputJacobian f X θ‖ ≤ M` and
 `‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L_J * ‖θ - θ₀‖` for all `θ ∈ S`,
 then `‖empiricalNTKMatrix f X θ - empiricalNTKMatrix f X θ₀‖ ≤ (2 * M * L_J) * ‖θ - θ₀‖`. -/

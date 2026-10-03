@@ -12,7 +12,7 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.Initializat
 
 The finite-horizon lazy-training specification on `[0, T]` (no spectral gap), and the proved
 consequences: kernel, Jacobian and linearization-error drift in probability on a finite horizon and
-under a positive gap (Phase 12), including the test-input linearization error.
+under a positive gap (test-input linearization error), including the test-input linearization error.
 
 ## Main results and proof outline
 
@@ -22,7 +22,7 @@ under a positive gap (Phase 12), including the test-input linearization error.
   `tendsto_measure_linearization_error_finite_horizon`,
   `tendsto_measure_linearization_error_global_positive_gap`,
   `tendsto_measure_test_linearization_error_finite_horizon`,
-  `tendsto_measure_test_linearization_error_global_positive_gap` : **Phase 12** - Jacobian
+  `tendsto_measure_test_linearization_error_global_positive_gap` : Jacobian
   (tangent-feature) freezing, proved directly from the Jacobian Lipschitz bound and not from Gram
   freezing, and convergence in probability of the nonlinear network to its initialization
   linearization (training outputs and any test input), on `[0, T]` without a gap and on `[0, ∞)`
@@ -44,7 +44,7 @@ attribute [local instance]
 @[expose] public section
 
 /-!
-#### Target Theorem 1: Finite-Horizon NTK Training Limit (Phase 0 Target)
+#### Target Theorem 1: Finite-Horizon NTK Training Limit 
 
 **Status.** Proved, with bundled activation hypotheses `SmoothActivation` in place of
 `hderiv_lip` alone: conclusion 1 is `tendsto_measure_kernel_drift_finite_horizon`, conclusion 2 is

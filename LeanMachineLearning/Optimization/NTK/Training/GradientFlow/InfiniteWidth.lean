@@ -111,7 +111,8 @@ theorem empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound
   exact hLip.trans h_bound
 
 /-- **Global consequences of the ball hypotheses (positive-gap bootstrap).** Under the hypotheses of
-Gap 5's bootstrap, for every `t ≥ 0` the gradient flow (i) stays within `C` of `θ₀`, (ii) keeps the
+the lazy-training bootstrap, for every `t ≥ 0` the gradient flow (i) stays within `C` of `θ₀`, (ii)
+keeps the
 Rayleigh quotient of the empirical NTK at least `lambda_min₀ / 2`, (iii) moves the empirical NTK by
 at most `(2 * M * L_J) * C`, and satisfies exponential decay (iv) of the residual norm and (v) of
 the MSE loss, both at the rates given by `lambda_min₀ / 2`. -/
@@ -180,13 +181,15 @@ theorem lazy_training_global_bounds_of_ball_hypotheses
           mul_le_mul_of_nonneg_left h (by positivity)
       _ = _ := by ring
 
-/-- **Phase 6: end-to-end kernel-freeze bound from ball-restricted Jacobian hypotheses.**
-Wires Gap 5's bootstrap (`lazy_training_displacement_bound`) directly into
+/-- **End-to-end kernel-freeze bound from ball-restricted Jacobian hypotheses.**
+Wires the lazy-training bootstrap (`lazy_training_displacement_bound`) directly into
 `empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound`: given a Jacobian bound `M` and
 Lipschitz constant `L_J` on the ball `‖θ - θ₀‖ ≤ r` (exactly what a concentration argument like
-Gap 3/4 supplies - never a bound uniform over the whole parameter space), plus a base
+the Jacobian-norm and Jacobian-Lipschitz bounds supply - never a bound uniform over the whole
+parameter space), plus a base
 spectral-gap hypothesis `lambda_min₀` at `θ₀` and the radius/target-bound relations `hCr`,
-`h_ball_gap`, `hC_ge` from Gap 5, the empirical NTK matrix never drifts from its value at `θ₀`
+`h_ball_gap`, `hC_ge` from lazy-training bootstrap, the empirical NTK matrix never drifts from its
+value at `θ₀`
 by more than `(2 * M * L_J) * C`. No free `hlazy`/`hLip` hypotheses remain - both are derived,
 not assumed. -/
 theorem lazy_training_kernel_freeze_bound_of_ball_hypotheses

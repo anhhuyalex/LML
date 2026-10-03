@@ -113,7 +113,7 @@ lemma prob_abs_gaussianReal_ge_le (ε : ℝ) (hε : 0 ≤ ε) :
 
 /-- **Generic, reusable union-bound-for-complements.** Two events each of probability `≥ 1 - δ`
 on the same probability measure intersect in an event of probability `≥ 1 - δ₁ - δ₂`. Used by
-Phase 6 (`NTK.Training.TwoLayer.KernelFreeze`) to combine Gap 3's Jacobian-norm event with Gap 4b's
+kernel-freeze (`NTK.Training.TwoLayer.KernelFreeze`) to combine the Jacobian-norm event with the
 entrywise-readout event, but stated with no reference to the NTK setup so it can be reused for
 any future combination of independent high-probability events. -/
 theorem measureReal_inter_ge_of_ge {α : Type*} [MeasurableSpace α] (μ : Measure α)

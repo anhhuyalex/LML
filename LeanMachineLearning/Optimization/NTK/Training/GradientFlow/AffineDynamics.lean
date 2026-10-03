@@ -20,7 +20,7 @@ interpolant.
 * `NTK.matrixCLM`, `NTK.inner_matrixCLM_transpose`, `NTK.hasDerivAt_affineFlowSolution`,
   `NTK.affineFlow_eq_solution`, `NTK.affine_minNorm_pythagoras`, `NTK.norm_affine_limit_le`,
   `NTK.eq_affine_limit_of_norm_le`, `NTK.tendsto_affineFlowSolution`, `NTK.inner_affine_limit` :
-  Phase 14.1 - for an arbitrary matrix `J` with invertible Gram matrix `J Jᵀ`, the closed form of
+  For an arbitrary matrix `J` with invertible Gram matrix `J Jᵀ`, the closed form of
   the affine gradient flow, its convergence to the minimum-norm interpolant `-Jᵀ (J Jᵀ)⁻¹ r₀`,
   the Pythagoras identity proving minimality, and the kernel-regression form of its prediction.
 

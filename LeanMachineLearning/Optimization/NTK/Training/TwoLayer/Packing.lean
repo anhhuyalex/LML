@@ -19,13 +19,12 @@ public import Mathlib.Analysis.Calculus.Gradient.Basic
 Bridges the curried `(W, a)` representation to the flat parameter vector `θ` expected by
 `tangentFeature`, `outputJacobian` and `empiricalNTKMatrix`: `packParams`, `netFromParams`, `gradW`,
 `gradA`, the Fréchet derivative and gradient of the packed network, the forward-gradient-flow
-coordinate equations, and the Frobenius-norm concentration of the output Jacobian at initialization
-(Gap 3).
+coordinate equations, and the Frobenius-norm concentration of the output Jacobian at initialization.
 
 ## Main results and proof outline
 
 * `Packing` : `packParams`, `netFromParams`, gradients, coordinate equations, Jacobian norm
-  concentration (Gap 3).
+  concentration.
 - `packParams W a`: Pack weights `W` and readout `a` into a flat parameter vector `θ`.
 - `unpackW θ`: Extract weight matrix `W : Fin n → Fin d → ℝ`.
 - `unpackA θ`: Extract readout vector `a : Fin n → ℝ`.
@@ -44,8 +43,8 @@ coordinate equations, and the Frobenius-norm concentration of the output Jacobia
 - `outputJacobian_netFromParams_apply_W`, `outputJacobian_netFromParams_apply_a`:
   Row evaluations of the output Jacobian delegating to `gradW` / `gradA`.
 - `forwardGF_readout_hasDerivAt`, `forwardGF_inputWeight_hasDerivAt`:
-  Phase 15 coordinate equations `∂_t a_i`, `∂_t W_{ij}` of the forward gradient flow.
-- `outputJacobian_netFromParams_frobenius_norm_concentration` : **Gap 3 deliverable** - the
+  Coordinate equations `∂_t a_i`, `∂_t W_{ij}` of the forward gradient flow.
+- `outputJacobian_netFromParams_frobenius_norm_concentration` : The
   output Jacobian's Frobenius norm is `O(1)` (width-independent) with probability `≥ 1 - δ`.
 
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
@@ -538,7 +537,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
     _ = (n : ℝ)⁻¹ * (C₀ ^ 2 + a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by ring
 
 /-- Regrouping the pointwise Jacobian bound isolates the empirical readout energy
-`n⁻¹ ∑ i, a i²`. This is the deterministic Phase 3a form used by the readout concentration
+`n⁻¹ ∑ i, a i²`. This is the deterministic form used by the readout concentration
 argument. -/
 lemma outputJacobian_netFromParams_norm_sq_le
     (φ : ℝ → ℝ) (n d m : ℕ) (hn : 0 < n) (X : Fin m → Fin d → ℝ)
@@ -717,7 +716,8 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration
       Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
           gaussianReal 0 1))) hsubset)
 
-/-- **Gap 3 without a bound on `φ`.** Only a bounded derivative, differentiability and Gaussian
+/-- **Jacobian-norm concentration without a bound on `φ`.** Only a bounded derivative,
+differentiability and Gaussian
 square integrability of `φ(w ⬝ᵥ x_α)` are used (the latter follows from linear growth, which is
 implied by a bounded derivative, see `memLp_gaussianRow_comp_of_linear_growth`). With probability
 `≥ 1 - δ` the output Jacobian has Frobenius norm at most

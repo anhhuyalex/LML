@@ -17,7 +17,7 @@ Prediction at a test point along a gradient flow, with the deterministic core
 
 * `NTK.hasDerivAt_predictionError_abs_le`, `NTK.abs_inner_displacement_add_frozenPrediction_le`,
   `NTK.abs_sub_le_of_abs_deriv_le_exp`,
-  `NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay` : Phase 14.2 - deterministic
+  `NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay` : Deterministic
   test-point prediction error along a gradient flow, on a finite window and uniformly in time under
   exponential residual decay.
 

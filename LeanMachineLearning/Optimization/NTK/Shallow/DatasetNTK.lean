@@ -296,7 +296,7 @@ attribute [local instance]
 
 /-- Gradient speed bound: the norm of the MSE gradient is controlled by the output Jacobian's
 Frobenius norm and the residual norm: `‖∇_θ L(θ)‖ ≤ (1/m) ‖J(θ)‖_F ‖r(θ)‖`. This is Step 1 of
-the Gap 5 displacement-integral bound (`NTK.Training.GradientFlow.Bootstrap`): it bounds the
+the displacement-integral bound (`NTK.Training.GradientFlow.Bootstrap`): it bounds the
 instantaneous "speed"
 `‖∂_t θ(t)‖ = ‖∇_θ L(θ(t))‖` of gradient flow. -/
 theorem gradient_mseLoss_norm_le (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)

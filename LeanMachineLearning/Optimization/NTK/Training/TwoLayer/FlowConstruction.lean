@@ -11,18 +11,20 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.GlobalGap
 # Two-layer network: construction of the gradient-flow family
 
 Forward-time existence, uniqueness and measurable dependence on the initialization of the gradient
-flow for every `SmoothActivation` (Phases 10 and 11.1), and the Phase 8 and Phase 9 theorems with
+flow for every `SmoothActivation` (forward-time flow construction), and the finite-horizon and
+global positive-gap theorems with
 the trajectory hypotheses discharged.
 
 ## Main results and proof outline
 
 - `exists_forwardGradientFlow`, `exists_forwardGradientFlow_family`, `forwardGradientFlow_unique`,
   `gradientFlow_finite_horizon_training_limit`,
-  `gradientFlow_global_positive_gap_lazy_training_limit` : **Phases 10 and 11.1** - forward-time
+  `gradientFlow_global_positive_gap_lazy_training_limit` : **forward-time flow construction** -
+forward-time
   existence, uniqueness and continuous dependence of the gradient flow for every `SmoothActivation`
   (Picard-Lindelöf on a truncated field, an a priori bound from loss monotonicity, the linear growth
-  of the Jacobian and Grönwall), a measurable trajectory family for every width, and the Phase 8 and
-  Phase 9 theorems with the trajectory hypotheses discharged.
+  of the Jacobian and Grönwall), a measurable trajectory family for every width, and the
+finite-horizon and global positive-gap theorems with the trajectory hypotheses discharged.
 
 See `LeanMachineLearning.Optimization.NTK.Training.TwoLayer` for the overview of the whole
 development.

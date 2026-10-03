@@ -10,7 +10,8 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.CrossKernel
 /-!
 # Training limits of the two-layer network: predictions and weak limits
 
-Phase 14 and Phase 8: the trained residual and the test prediction follow their closed-form
+train-test cross-kernel and finite-horizon: the trained residual and the test prediction follow
+their closed-form
 matrix-exponential predictors in probability, at fixed times and uniformly in time under a gap, and
 converge to the ridgeless kernel-regression interpolant; plus the fixed-time weak limits of the
 trained residual and outputs.
@@ -19,7 +20,7 @@ trained residual and outputs.
 
 - `tendsto_measure_kernel_drift_finite_horizon`,
   `tendstoInDistribution_trainingResidual_matrix_exp`,
-  `tendstoInDistribution_trainingOutputs_matrix_exp` : **Phase 8** - finite-horizon kernel
+  `tendstoInDistribution_trainingOutputs_matrix_exp` : Finite-horizon kernel
   stationarity in probability and fixed-time weak limits of the trained residual and predictions
   (`exp(-(t / m) K_∞) (G - y)` and `y + exp(-(t / m) K_∞) (G - y)`), with no spectral gap.
 

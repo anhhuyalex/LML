@@ -238,14 +238,16 @@ lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : 
 /-! ### Entrywise (max) concentration for readout weights
 
 `prob_gaussianReadout_sum_sq_le` above bounds the readout *energy* `n⁻¹ ∑ᵢ aᵢ²` (an average),
-via Markov's inequality, giving a tail bound whose natural scale is `O(√(n/δ))`. Gap 4
+via Markov's inequality, giving a tail bound whose natural scale is `O(√(n/δ))`. The Jacobian
+Lipschitz bound
 (`NTK.Training.TwoLayer.JacobianBounds`'s
 `outputJacobian_netFromParams_frobenius_sub_le`) instead needs a uniform
 bound on every *individual* `|aᵢ|`. Bounding this the same crude way (Markov on each `aᵢ²`
-plus a union bound) would give `R = O(√(n/δ))` too - and since Gap 4's `L_J` is linear in `R`,
+plus a union bound) would give `R = O(√(n/δ))` too - and since the Jacobian-Lipschitz constant
+`L_J` is linear in `R`,
 an `R` that grows like `√n` would make `L_J = Θ(1)`, silently breaking the "kernel freezes as
-`n → ∞`" conclusion the whole plan is aimed at (see `docs/NTK_lazy_training_gap_closure_plan.md`
-§3.1). The fix is to use the actual Gaussian tail (Chernoff/sub-Gaussian) instead of Markov,
+`n → ∞`" conclusion. The fix is to use the actual Gaussian tail (Chernoff/sub-Gaussian) instead of
+Markov,
 which gives the much better `R = O(√(log(n/δ)))` - logarithmic, not polynomial, in the width. -/
 
 /-- Transport the two-sided tail bound to a single readout coordinate `a i`. -/
@@ -286,7 +288,7 @@ theorem prob_max_abs_gaussianReadout_ge_le (n : ℕ) (ε : ℝ) (hε : 0 ≤ ε)
       rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
       ring
 
-/-- **Gap 4b deliverable.** With probability `≥ 1 - δ`, every readout weight `a i` has
+/-- **Readout-weight concentration.** With probability `≥ 1 - δ`, every readout weight `a i` has
 `|a i| ≤ √(2 log(2n/δ))` - a bound that grows only **logarithmically** in the width `n`. -/
 theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
     (hδ1 : δ ≤ 1) :
@@ -336,7 +338,8 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
     linarith
   exact hcompl_ge
 
-/-- Lift Gap 4b's readout-only event to the full initialization product measure
+/-- Lift the readout-weight concentration's readout-only event to the full initialization product
+measure
 the product `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)` of the input-weight and readout laws. -/
 lemma initMeasure_forall_abs_readout_ge (n d : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
     (hδ1 : δ ≤ 1) :

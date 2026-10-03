@@ -24,10 +24,10 @@ and the global positive-gap theorems (Phases 6.3, 8, 9).
   probability `≤ 2δ + ε`; positive semidefiniteness alone bounds the residual and the
   displacement radius `C = T M R / m` grows linearly in `T`.
 - `exists_measurableSet_global_lazy_training_event`, `global_positive_gap_lazy_training_limit` :
-  **Phase 9** - under a positive limiting gap, uniform Rayleigh gap `λ_∞ / 4`, kernel drift
+  Under a positive limiting gap, uniform Rayleigh gap `λ_∞ / 4`, kernel drift
   `O(√(log n / n))`, exponential residual and loss decay and `mseLoss → 0`, with probability
   `≥ 1 - η`.
-- `exists_kernel_freeze_event_of_positive_gap` : **Phase 6.3** - under a positive limiting gap,
+- `exists_kernel_freeze_event_of_positive_gap` : Under a positive limiting gap,
   a deterministic sequence `K n → 0` such that, with probability `≥ 1 - 2δ - 2ε` for all large `n`,
   every gradient flow keeps the empirical NTK within `K n` of its initial value for all `t ≥ 0`;
   all bootstrap constants are chosen explicitly.
@@ -67,7 +67,7 @@ section InitializationEvents
 
 /-! #### Deterministic feasibility of the bootstrap constants
 
-The Gap 4 Jacobian-Lipschitz scale `L_J` evaluated at a *fixed* displacement radius `r` is
+The Jacobian-Lipschitz scale `L_J` evaluated at a *fixed* displacement radius `r` is
 `sqrt (∑ α, (a α * (√(2 log (2n / δ)) + r) ^ 2 + b α)) / √n`, which vanishes as the width `n → ∞`.
 This is what makes the bootstrap feasibility inequalities hold eventually in `n`. -/
 
@@ -165,7 +165,7 @@ private lemma memLp_two_gaussianRow_mul_comp_of_bounded {d : ℕ} (g : ℝ → �
       exact mul_le_mul (hB _) (hB _) (abs_nonneg _) ((abs_nonneg _).trans (hB 0)))
 
 open Filter Topology in
-/-- The Gap 4 Jacobian-Lipschitz scale at a *fixed* displacement radius `r` vanishes as the width
+/-- The Jacobian-Lipschitz scale at a *fixed* displacement radius `r` vanishes as the width
 `n → ∞`. This makes the bootstrap feasibility inequalities hold eventually in `n`. -/
 lemma tendsto_jacobianLipschitzScale {d m : ℕ} (X : Fin m → Fin d → ℝ) (C₁ C₂ : ℝ)
     {δ : ℝ} (hδ : 0 < δ) (r : ℝ) :
@@ -181,7 +181,7 @@ lemma tendsto_jacobianLipschitzScale {d m : ℕ} (X : Fin m → Fin d → ℝ) (
   ring
 
 open Filter Topology in
-/-- The Gap 4 Jacobian-Lipschitz scale at a fixed radius is `O(√(log n / n))`: this is the rate at
+/-- The Jacobian-Lipschitz scale at a fixed radius is `O(√(log n / n))`: this is the rate at
 which the bootstrap kernel drift vanishes. -/
 private lemma jacobianLipschitzScale_le_sqrt_log_div {d m : ℕ} (X : Fin m → Fin d → ℝ)
     (C₁ C₂ : ℝ) {δ : ℝ} (hδ : 0 < δ) (r : ℝ) :
