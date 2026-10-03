@@ -242,7 +242,8 @@ theorem tendsto_measure_conditional_activationProduct
   exact tendsto_of_lintegral_section_bound μ₁ (fun n => (ν.prod μ₁) (S n))
     (fun n b => ν ((fun a => (a, b)) ⁻¹' S n)) Esec u c hprod
     (by filter_upwards [Filter.eventually_gt_atTop 0] with n hn b using hsec n hn b) hE hu hc
-@[simp]
+
+/-- The variance of `x ↦ x² - 1` under the standard Gaussian is nonnegative. -/
 lemma gaussianSqCenteredVariance_nonneg : 0 ≤ (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1)
     (gaussianReal 0 1)) :=
   variance_nonneg _ _
