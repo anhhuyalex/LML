@@ -7,6 +7,13 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianQuadraticVariance
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianConditioning
+public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalConcentration
+public import LeanMachineLearning.Optimization.NTK.Initialization.ResidualConcentration
+public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutConcentration
+public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutLinearConcentration
 public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalNormality
 public import LeanMachineLearning.Optimization.NTK.Initialization.NNGPLimit
 public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP
@@ -27,29 +34,38 @@ depth and the depth-$d$ recursive kernel $\Phi_\ell$).  Proposition 2.5 (Cho-Sau
 Kernel for ReLU) is in `LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine`, which this module
 imports.
 
-Peripheral API and optional corollaries are in
-`LeanMachineLearning.Optimization.NTK.Initialization.Peripheral`; this module keeps the definitions,
-core arguments, main theorem statements, proofs, and their proof narratives.
+This umbrella module only re-exports the files in `Initialization/` and documents the whole
+development; the declarations themselves live in those files (see **Structure**).  Peripheral API
+and optional corollaries (for instance `integral_conditional_output_eq_zero`,
+`cov_conditional_output_eq_covariance`, `indepFun_layer_history`, and the two arc-cosine
+representation corollaries) are in `LeanMachineLearning.Optimization.NTK.Initialization.Peripheral`,
+which imports this module and is therefore not re-exported here.
 
-The overview below describes the full initialization development.  In particular,
-`integral_conditional_output_eq_zero`, `cov_conditional_output_eq_covariance`,
-`indepFun_layer_history`, and the two arc-cosine representation corollaries are peripheral
-results in `Initialization.Peripheral`; all other named definitions and main results described here
-are declared in this module.
+The initialization measures are not named definitions: the readout law is written out as
+`Measure.pi fun _ : Fin n => gaussianReal 0 1`, the input-weight law as
+`Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1`, and the joint law as
+their `.prod`.
 
 ## Structure
 
-The development is a chain of modules in `Initialization/`, each importing the previous one; this
-file re-exports all of them.
+The files in `Initialization/` form a dependency graph (not a linear chain); every file is
+re-exported by this module.
 
 * `Setup` : network evaluation, the initialization probability space, readout-weight concentration.
 * `GaussianAlgebra` : Gaussian vector algebra (Propositions 2.8-2.10).
+* `GaussianMatrixAlgebra`, `GaussianQuadraticVariance`, `GaussianConditioning` : moments and
+  quadratic/linear forms of an i.i.d. Gaussian matrix, and their behaviour conditionally on a
+  projection of the matrix.
+* `ConditionalConcentration`, `ResidualConcentration`, `ReadoutConcentration`,
+  `ReadoutLinearConcentration` : conditional Chebyshev-type concentration used by the deep
+  (backward) analysis.
 * `ConditionalNormality` : Theorem 1.
 * `NNGPLimit` : Theorems 2 and 3.
 * `MultilayerNNGP` : multilayer sequential NNGP.
 * `CovariancePropagation` : layer-by-layer Gaussian structure, covariance propagation.
 * `DeepRecursion`, `DeepNNGPTheorems` : Theorem 2.13, construction and main theorems.
 * `FullNTK` : full two-layer NTK initialization and infinite-width limit.
+* `Peripheral` (not re-exported) : optional corollaries.
 
 ## Mathematical Formulation
 
@@ -374,24 +390,6 @@ file re-exports all of them.
   Both are proved as trigonometric rewrites of the already-established $\rho$-form of
   Proposition 2.5, with no new probabilistic content.
 
-* **Propositions 2.8-2.10 (Gaussian Vector Algebra)**:
-  General, non-NTK-specific facts about Gaussian vectors under linear maps, underlying the
-  conditional-normality arguments used throughout Theorem 1 and `MultilayerSequentialNNGP`:
-  * Proposition 2.8: a linear image `A g` of a Gaussian vector `g ~ 𝒩(μ, S)` is again Gaussian,
-    `A g ~ 𝒩(A μ, A S Aᵀ)` (`NTK.gaussian_map_mulVec`).
-  * Proposition 2.9: for `g ~ 𝒩(0, I_n)` and fixed `u, v : Fin n → ℝ`, the joint law of
-    `(⟪g,u⟫, ⟪g,v⟫)` is the bivariate Gaussian with covariance
-    `!![u⬝ᵥu, u⬝ᵥv; u⬝ᵥv, v⬝ᵥv]` (`NTK.stdGaussian_inner_pair`), proved as a corollary of
-    Proposition 2.8.
-  * Proposition 2.10: for a matrix `W` with i.i.d. standard Gaussian entries, the row-indexed
-    family `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v)` consists of `n` i.i.d. copies of Proposition 2.9's
-    bivariate Gaussian (`NTK.gaussianMatrix_mulVec_pair`), proved by pushing the row-product
-    measure `𝒩(0,1)^{n×n}` forward row-by-row via `Measure.pi_map_pi`.
-  * Propositions 2.9' and 2.10': the direct `Fin m`-indexed generalizations of Propositions 2.9
-    and 2.10 from a fixed pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`
-    (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), proved by the same
-    techniques; used by the Layer-by-Layer Conditional Gaussian Structure below.
-
 ## Main definitions and theorems
 
 * **Preliminaries and Initialization Probability Space**:
@@ -402,25 +400,19 @@ file re-exports all of them.
   * `NTK.evalVector` : output vector $\mathbf{f}_m(\mathbf{W}, a) \in \mathbb{R}^m$.
   * `NTK.empiricalCovariance` : empirical covariance matrix
     $\boldsymbol{\Phi}^{(n)} \in \mathbb{R}^{m \times m}$.
-  * `NTK.gaussianReadoutMeasure` : transparent product measure
-    $\bigotimes_{i=1}^n \mathcal{N}(0, 1)$.
-  * `NTK.initMeasure` : joint parameter initialization measure
-    $(\bigotimes_{i=1}^n \mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})) \otimes
-      (\bigotimes_{i=1}^n \mathcal{N}(0, 1))$.
   * `NTK.indepFun_input_readout` : mutual independence of input weights $\mathbf{W}$ and
     readout weights $a$.
 
 * **Gaussian Vector Algebra (Propositions 2.8-2.10)**:
-  * `NTK.inner_eq_dotProduct_ofLp` : the real `EuclideanSpace` inner product is the `dotProduct`
+  * `NTK.real_inner_eq_dotProduct` : the real `EuclideanSpace` inner product is the `dotProduct`
     of the underlying coordinate functions.
   * `NTK.gaussian_map_mulVec` : Proposition 2.8, `A g ~ 𝒩(A μ, A S Aᵀ)` for a linear image of a
     Gaussian vector.
-  * `NTK.stdGaussian_inner_pair` : Proposition 2.9, the joint law of `(⟪g,u⟫, ⟪g,v⟫)` for
-    `g ~ 𝒩(0, I_n)`.
-  * `NTK.gaussianMatrix_mulVec_pair` : Proposition 2.10, the row-indexed joint law of
-    `(W ⬝ᵥ u, W ⬝ᵥ v)` for an i.i.d. Gaussian matrix `W`.
-  * `NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family` : the `Fin m`-family
-    generalizations of Propositions 2.9-2.10.
+  * `NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family` : Propositions 2.9'-2.10',
+    the joint law of `α ↦ ⟪g, u α⟫` for `g ~ 𝒩(0, I_n)` and a fixed family `u : Fin m → Fin n → ℝ`,
+    and the row-indexed version for an i.i.d. Gaussian matrix (via `NTK.map_pi_rows_eq_pi`).
+  * `NTK.stdGaussian_inner_pair`, `NTK.gaussianMatrix_mulVec_pair` : Propositions 2.9-2.10, the
+    `m = 2` special cases for a pair `(u, v)`.
 
 * **Theorem 1: Exact Finite-Width Conditional Normality**:
   * `NTK.projectionCoeff` : projection coefficients
@@ -515,14 +507,12 @@ file re-exports all of them.
     MLP, built from a single infinite population of i.i.d. standard Gaussian weights.
   * `NTK.indepFun_deepLayer_history` : Independence Across Depth for this population (the
     infinite-population analogue of `NTK.indepFun_layer_history`).
-  * `NTK.instPseudoEMetricSpaceMatrix` : the missing `PseudoEMetricSpace (Matrix ι κ ℝ)`
-    glue instance (Mathlib deliberately does not register one directly, to avoid a diamond with
-    other matrix norms), needed for the lemma below.
   * `NTK.tendstoInMeasure_comp_of_continuousAt`,
     `NTK.tendsto_integral_of_tendstoInMeasure_of_bounded` : general-purpose
-    convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence;
-    matrix inverse; now in `Foundations/TendstoInMeasureUtil.lean`) missing from Mathlib's
-    `ConvergenceInMeasure` API, needed by the theorems below.
+    convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence)
+    in `Foundations/TendstoInMeasureUtil.lean`, which also registers the
+    `PseudoEMetricSpace`/`PseudoMetricSpace (Matrix ι κ ℝ)` instances (`NTK.instPseudoEMetricSpaceMatrix`)
+    that they need on matrices.
   * `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
     $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
   * `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in
@@ -561,9 +551,10 @@ file re-exports all of them.
   * `NTK.expected_relu_mul_relu_bivariate_eq_arcCosineJ1` : the activation kernel as
     `(√(Φαα Φββ)/2) J₁(arccos ρ)`, the order-1 arc-cosine kernel of Cho & Saul.
 * **Full Two-Layer NTK Initialization, Concentration, and Strong Law**:
-  * `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
   * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation of the finite
-    array rearrangement between `(Fin n → 𝒩(0, I_d) ⊗ 𝒩(0,1))` and `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
+    array rearrangement between the per-neuron product `Measure.pi fun _ : Fin n =>
+    (Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)` and
+    `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
   * `NTK.measurePreserving_infiniteSeq_to_init` : measure preservation of the infinite sequence
     prefix truncation to `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
   * `NTK.fullNTKSummandSecondMoment` : uncentered second moment of the full NTK summand.

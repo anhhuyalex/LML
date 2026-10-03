@@ -17,7 +17,7 @@ For a positive semidefinite matrix $\Sigma$, $\mathcal N(0,\Sigma)$ is the centr
 \section{Gaussian vector algebra}\label{sec:ntkdeep:gaussianAlgebra}
 
 \begin{theorem}[Linear images of Gaussian vectors, Proposition~2.8]\label{thm:ntkdeep:linearImage}
-  \lean{NTK.inner_eq_dotProduct_ofLp, NTK.gaussian_map_mulVec}
+  \lean{NTK.real_inner_eq_dotProduct, NTK.gaussian_map_mulVec}
   \leanok
 If $g\sim\mathcal N(\mu,S)$ with $S\succeq0$ and $A$ is a deterministic matrix, then $Ag\sim\mathcal N(A\mu,\,ASA^\top)$. The real inner product on a finite-dimensional Euclidean space is the dot product of the underlying coordinate vectors.
 \end{theorem}
@@ -43,7 +43,7 @@ The vector of projections is $Ug$ where $U$ has rows $u^\alpha$; apply Theorem~\
 
 \begin{theorem}[Gaussian matrices acting on a family, Propositions~2.10 and~2.10$'$]\label{thm:ntkdeep:gaussianMatrix}
   \uses{thm:ntkdeep:projections}
-  \lean{NTK.gaussianMatrix_mulVec_pair, NTK.gaussianMatrix_mulVec_family}
+  \lean{NTK.gaussianMatrix_mulVec_pair, NTK.gaussianMatrix_mulVec_family, NTK.map_pi_rows_eq_pi}
   \leanok
 Let $W\in\mathbb R^{r\times n}$ have i.i.d.\ standard Gaussian entries and let $u^1,\dots,u^m\in\mathbb R^n$ be fixed. The row-indexed family $i\mapsto(W_i\cdot u^\alpha)_{\alpha\le m}$ consists of $r$ i.i.d.\ copies of the $m$-variate centred Gaussian with covariance $(u^\alpha\cdot u^\beta)_{\alpha\beta}$; for $m=2$ and a pair $u,v$ this is
 the statement that $i\mapsto(W_i\cdot u,W_i\cdot v)$ consists of $n$ i.i.d.\ copies of the bivariate Gaussian of Theorem~\ref{thm:ntkdeep:projections}.

@@ -211,11 +211,12 @@ theorem mulVec_frobenius_norm_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
       Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => M i j) (fun j => w.ofLp j)
     _ = (∑ j : Fin b, (M i j) ^ 2) * ‖w‖ ^ 2 := by rw [hw_sq]
 
-/-- The inner product on `EuclideanSpace ℝ (Fin n)` is the dot product of the underlying functions.
+/-- The real inner product on `EuclideanSpace ℝ ι` is the dot product of the underlying functions.
 Not a simp lemma: it would rewrite every real inner product on `EuclideanSpace`. -/
-lemma real_inner_eq_dotProduct {n : ℕ} (u v : EuclideanSpace ℝ (Fin n)) :
+lemma real_inner_eq_dotProduct {ι : Type*} [Fintype ι] (u v : EuclideanSpace ℝ ι) :
     ⟪u, v⟫ = u.ofLp ⬝ᵥ v.ofLp := by
-  simp [PiLp.inner_apply, dotProduct, mul_comm]
+  rw [EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm]
+  simp
 
 /-! ### Matrices as continuous linear maps between Euclidean spaces -/
 
