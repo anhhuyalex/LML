@@ -64,8 +64,6 @@ theorem gaussianInit_measure_le_lintegral_of_section
     exact Finset.measurable_sum _ fun k _ =>
       ((measurable_pi_apply k).comp (measurable_pi_apply i)).mul_const _
   have hind := indepFun_gaussian_orthogonal_projection n p P hP
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
-      0 1) := by infer_instance
   rw [indepFun_iff_map_prod_eq_prod_map_map hX.aemeasurable hY.aemeasurable] at hind
   have hpair : Measurable (fun V : Fin n → Fin p → ℝ =>
       (Matrix.of V * P, Matrix.of V * (1 - P))) := hX.prodMk hY
@@ -187,8 +185,6 @@ theorem gaussianInit_linearForm_chebyshev (n p : ℕ) (u : Fin n → ℝ) (c : F
         gaussianReal 0 1) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
       ENNReal.ofReal ((u ⬝ᵥ u) * (c ⬝ᵥ c) / ε ^ 2) := by
   classical
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
-      0 1) := by infer_instance
   have hmem := memLp_linearForm_gaussianInit n p u c
   have h := meas_ge_le_variance_div_sq hmem hε
   have hmean : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)[fun W :
@@ -251,8 +247,6 @@ theorem conditional_quadForm_chebyshev
           2) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
               gaussianReal 0 1)) := by
   classical
-  have hγ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) := by infer_instance
   have hOf : Measurable
       (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
     measurable_snd
@@ -405,8 +399,6 @@ theorem conditional_linearForm_chebyshev
       (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
           gaussianReal 0 1)) := by
   classical
-  have hγ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) := by infer_instance
   have hOf : Measurable
       (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
     measurable_snd

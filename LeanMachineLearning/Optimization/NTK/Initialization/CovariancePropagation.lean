@@ -424,10 +424,6 @@ lemma memLp_activation_product_of_polynomial_growth
       (multivariateGaussian 0 K) :=
     memLp_activation_coordinate_of_polynomial_growth_of_nat m K φ hφ_meas C hC p 4 hp
       hφ_growth β
-  let _ : ENNReal.HolderTriple (4 : ENNReal) 4 2 := ⟨by
-    apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
-    rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-    norm_num [ENNReal.toReal_inv]⟩
   change MemLp ((fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) *
     fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) 2 (multivariateGaussian 0 K)
   exact hβ.mul (r := (2 : ℝ≥0∞)) hα
@@ -544,7 +540,6 @@ fixed conditioning realization. -/
 theorem conditional_empiricalCovariance_tendstoInMeasure
     (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (hφ_L2 : ∀ α : Fin m,
       MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
         (multivariateGaussian 0 K)) :

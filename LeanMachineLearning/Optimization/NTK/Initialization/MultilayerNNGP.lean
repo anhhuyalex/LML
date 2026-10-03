@@ -166,7 +166,6 @@ lemma empirical_layer_covariance_posSemidef_multivariate (σw σb : ℝ) (n m : 
 /-- Strong law for scalar observables of i.i.d. multivariate Gaussian draws. -/
 lemma multivariateGaussian_average_tendsto_integral_multivariate
     (m : ℕ) (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (g : EuclideanSpace ℝ (Fin m) → ℝ) (hg_meas : Measurable g)
     (hg_int : Integrable g (multivariateGaussian 0 K)) :
     ∀ᵐ seq : ℕ → EuclideanSpace ℝ (Fin m)
@@ -214,7 +213,6 @@ lemma multivariateGaussian_average_tendsto_integral_multivariate
 theorem empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) :
     ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin m) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
@@ -329,9 +327,6 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
   have hPos : (show Matrix (Fin m) (Fin m) ℝ from fun α β : Fin m => σb ^ 2 +
       (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β).PosSemidef :=
     empirical_layer_covariance_posSemidef_multivariate σw σb n m H
-  have : IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-      (show Matrix (Fin m) (Fin m) ℝ from fun α β : Fin m => σb ^ 2 +
-        (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β)) := by infer_instance
   apply Measure.ext_of_charFun
   ext t
   set F := fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
@@ -409,7 +404,6 @@ lemma limitingRecurrence_isHermitian_multivariate (σw σb : ℝ) (m : ℕ) (φ 
 
 lemma limitingRecurrence_nonneg_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ)
     (hφ_meas : Measurable φ) (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) (c : Fin m → ℝ) :
     0 ≤ c ⬝ᵥ (fun α β => σb ^ 2 + σw ^ 2 *
@@ -429,7 +423,6 @@ lemma limitingRecurrence_nonneg_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ
 
 lemma limitingRecurrence_posSemidef_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ)
     (hφ_meas : Measurable φ) (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) :
     (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
@@ -461,7 +454,6 @@ private lemma measurable_exp_quadratic_layerRecurrence_multivariate
 lemma tendsto_charFun_preactivation_dct_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (_hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) (t : EuclideanSpace ℝ (Fin m)) :
@@ -525,7 +517,6 @@ lemma measurable_sequential_preactivation (σw σb : ℝ) (n m : ℕ) (φ : ℝ 
 lemma charFun_map_sequential_preactivation_multivariate
     (σw σb : ℝ) (n m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (t : EuclideanSpace ℝ (Fin m)) :
     charFun (Measure.map
       (fun (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
@@ -577,7 +568,6 @@ lemma charFun_map_sequential_preactivation_multivariate
 lemma tendsto_charFun_sequential_preactivation_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) (t : EuclideanSpace ℝ (Fin m)) :
@@ -632,7 +622,6 @@ set_option backward.isDefEq.respectTransparency.types false in
 theorem tendstoInDistribution_sequential_preactivation
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)]
     (hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) :
@@ -683,7 +672,6 @@ recurrence `fun α β => σb ^ 2 + σw ^ 2 * ∫ z, φ (z.ofLp α) * φ (z.ofLp 
 theorem tendstoInDistribution_sequential_bivariate
     (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin 2) (Fin 2) ℝ)
-    [IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2)) K)]
     (hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) :

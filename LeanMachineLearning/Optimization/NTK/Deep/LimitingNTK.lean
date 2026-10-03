@@ -138,10 +138,7 @@ theorem deepLimitingSensitivityKernel_posSemidef (d m : ℕ) (φ φ' : ℝ → �
     (hφ'_meas : Measurable φ') (Φ0 : Matrix (Fin m) (Fin m) ℝ)
     (hφ'_L2 : ∀ (k : ℕ) (α : Fin m),
       MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ' (z.ofLp α)) 2
-        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k)))
-    (h_gauss : ∀ (k : ℕ),
-      IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-        (layerCovarianceSeq 1 0 φ m Φ0 k))) (ℓ : Fin (d + 1)) :
+        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k))) (ℓ : Fin (d + 1)) :
     (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ).PosSemidef := by
   have H : ∀ k, ∀ (ℓ : Fin (d + 1)), d - ℓ.val = k →
       (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ).PosSemidef := by
@@ -153,7 +150,6 @@ theorem deepLimitingSensitivityKernel_posSemidef (d m : ℕ) (φ φ' : ℝ → �
       split_ifs with htop
       · exact posSemidef_allOnes (m := Fin m)
       · have hsucc : ℓ.val + 1 < d + 1 := by omega
-        have := h_gauss ℓ.val
         have h_rec := limitingRecurrence_posSemidef_multivariate 1 0 m φ' hφ'_meas
           (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val) (hφ'_L2 ℓ.val)
         have h_dot_psd : (Matrix.of fun α β =>
@@ -211,15 +207,12 @@ theorem deepLimitingNTK_posSemidef (d m : ℕ) (φ φ' : ℝ → ℝ)
         (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k)))
     (hφ'_L2 : ∀ (k : ℕ) (α : Fin m),
       MemLp (fun z => φ' (z.ofLp α)) 2
-        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k)))
-    (h_gauss : ∀ (k : ℕ),
-      IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-        (layerCovarianceSeq 1 0 φ m Φ0 k))) :
+        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k))) :
     (deepLimitingNTK d m φ φ' Φ0).PosSemidef := by
   rw [deepLimitingNTK]
   apply Matrix.posSemidef_sum
   intro ℓ _
-  have hB := deepLimitingSensitivityKernel_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 h_gauss ℓ
+  have hB := deepLimitingSensitivityKernel_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 ℓ
   have hF := layerCovarianceSeq_posSemidef 1 0 φ hφ_meas m Φ0 hΦ0 hφ_L2 ℓ.val
   exact Matrix.PosSemidef.hadamard hB hF
 
@@ -234,10 +227,7 @@ theorem deepLimitingNTK_ge_nngp (d m : ℕ) (φ φ' : ℝ → ℝ)
         (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k)))
     (hφ'_L2 : ∀ (k : ℕ) (α : Fin m),
       MemLp (fun z => φ' (z.ofLp α)) 2
-        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k)))
-    (h_gauss : ∀ (k : ℕ),
-      IsProbabilityMeasure (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
-        (layerCovarianceSeq 1 0 φ m Φ0 k))) :
+        (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k))) :
     layerCovarianceSeq 1 0 φ m Φ0 d ≤ deepLimitingNTK d m φ φ' Φ0 := by
   rw [Matrix.le_iff]
   have hsplit : deepLimitingNTK d m φ φ' Φ0 =
@@ -265,7 +255,7 @@ theorem deepLimitingNTK_ge_nngp (d m : ℕ) (φ φ' : ℝ → ℝ)
   rw [hsplit, add_sub_cancel_right]
   apply Matrix.posSemidef_sum
   intro ℓ _
-  have hB := deepLimitingSensitivityKernel_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 h_gauss ℓ.castSucc
+  have hB := deepLimitingSensitivityKernel_posSemidef d m φ φ' hφ'_meas Φ0 hφ'_L2 ℓ.castSucc
   have hF := layerCovarianceSeq_posSemidef 1 0 φ hφ_meas m Φ0 hΦ0 hφ_L2 ℓ.castSucc.val
   exact Matrix.PosSemidef.hadamard hB hF
 

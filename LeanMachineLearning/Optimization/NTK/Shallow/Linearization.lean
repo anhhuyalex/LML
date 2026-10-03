@@ -539,9 +539,6 @@ private lemma measure_ge_one_sub_delta_of_univ
         gaussianReal 0 1).real {W₀ | P W₀} := by
   have h_univ : {W₀ | P W₀} = Set.univ := Set.ext fun W₀ => iff_true_intro (hP W₀)
   rw [h_univ]
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
-      0 1) := by infer_instance
   have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
       gaussianReal 0 1).real Set.univ = 1 := by simp
   rw [h_prob_univ]
@@ -575,8 +572,6 @@ theorem reluSignConcentration
   have h_m_pos : 0 < (m : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hm)
   have h_prob := prob_signAmbiguous_le_tau x hx τ hτ
   have h_t_nonneg : 0 ≤ Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) := Real.sqrt_nonneg _
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
-    infer_instance
   have hS_meas : MeasurableSet {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} := by
     apply measurableSet_le
     · exact (Measurable.norm (dotCLM x).continuous.measurable)
@@ -1115,9 +1110,6 @@ theorem reluLinearizationBound
            linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
-      0 1) := by infer_instance
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
   by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
@@ -1331,9 +1323,6 @@ theorem reluLinearizationBound_secondOrder
             net.eval x W)|
           ≤ (6 * B ^ (4 / 3 : ℝ) + 3 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
-      0 1) := by infer_instance
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
   by_cases hx_pos : 0 < x ⬝ᵥ x
   swap

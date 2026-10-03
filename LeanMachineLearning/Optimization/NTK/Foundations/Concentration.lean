@@ -31,6 +31,13 @@ open Real MeasureTheory ProbabilityTheory
 
 namespace NTK
 
+/-- Hölder exponents `1/4 + 1/4 = 1/2`: bounds the `L²` norm of a product of two `L⁴` functions. -/
+instance instHolderTripleFourFourTwo : ENNReal.HolderTriple 4 4 2 := ⟨by
+  rw [← ENNReal.ofReal_ofNat 4, ← ENNReal.ofReal_ofNat 2,
+    ← ENNReal.ofReal_inv_of_pos (by norm_num), ← ENNReal.ofReal_inv_of_pos (by norm_num),
+    ← ENNReal.ofReal_add (by norm_num) (by norm_num)]
+  norm_num⟩
+
 /-- The square function is integrable with respect to the standard real Gaussian measure. -/
 lemma integrable_sq_gaussianReal : Integrable (fun x : ℝ => x ^ 2) (gaussianReal 0 1) := by
   apply (memLp_two_iff_integrable_sq
@@ -80,17 +87,8 @@ lemma hasSubgaussianMGF_id_gaussianReal_zero_one :
 /-- Negating a standard Gaussian is still sub-Gaussian with the same parameter (used for the
 two-sided/absolute-value tail bound below). -/
 lemma hasSubgaussianMGF_neg_id_gaussianReal_zero_one :
-    ProbabilityTheory.HasSubgaussianMGF (fun x => -x) (1 : NNReal) (gaussianReal 0 1) where
-  integrable_exp_mul t := by
-    have := integrable_exp_mul_gaussianReal (μ := (0:ℝ)) (v := (1:NNReal)) (-t)
-    simpa [mul_comm, mul_neg] using this
-  mgf_le t := by
-    have h := hasSubgaussianMGF_id_gaussianReal_zero_one.mgf_le (-t)
-    unfold mgf at *
-    simp only [id] at h ⊢
-    convert h using 2
-    · ext x; ring_nf
-    · ring
+    ProbabilityTheory.HasSubgaussianMGF (fun x => -x) (1 : NNReal) (gaussianReal 0 1) :=
+  hasSubgaussianMGF_id_gaussianReal_zero_one.neg
 
 /-- Two-sided Chernoff tail bound for a standard Gaussian: `P(|X| ≥ ε) ≤ 2 exp(-ε²/2)`. -/
 lemma prob_abs_gaussianReal_ge_le (ε : ℝ) (hε : 0 ≤ ε) :

@@ -878,7 +878,7 @@ NTK.measurable_toLp_uncurry
 NTK.map_gaussianInit_pairIndex
 NTK.map_gaussianInit_toLp_uncurry
 NTK.memLp_coord_stdGaussian
-NTK.holderTriple_four_four_two
+NTK.instHolderTripleFourFourTwo
 NTK.memLp_coord_mul_stdGaussian
 NTK.integrable_coord_four
 NTK.integral_coord_four

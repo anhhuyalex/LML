@@ -238,10 +238,6 @@ lemma shallowLimitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
 
 /-! ### Measurability and integrability of the NTK summand -/
 
-/-- The standard Gaussian row measure `𝒩(0, Iᵈ)` is a probability measure. -/
-instance : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
-  infer_instance
-
 /-- The dot product `w ↦ wᵀx` with a fixed vector is measurable. -/
 lemma measurable_dotProduct_left (x : Fin d → ℝ) :
     Measurable fun w : Fin d → ℝ => w ⬝ᵥ x :=

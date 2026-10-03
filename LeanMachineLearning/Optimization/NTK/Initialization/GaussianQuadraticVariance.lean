@@ -81,17 +81,10 @@ lemma memLp_coord_stdGaussian (a : ι) (p : ℝ≥0∞) (hp : p ≠ ⊤) :
     MemLp (fun z : EuclideanSpace ℝ ι => z a) p (stdGaussian (EuclideanSpace ℝ ι)) :=
   IsGaussian.memLp_dual _ (EuclideanSpace.proj a) p hp
 
-lemma holderTriple_four_four_two : ENNReal.HolderTriple 4 4 2 := ⟨by
-  rw [← ENNReal.ofReal_ofNat 4, ← ENNReal.ofReal_ofNat 2,
-    ← ENNReal.ofReal_inv_of_pos (by norm_num), ← ENNReal.ofReal_inv_of_pos (by norm_num),
-    ← ENNReal.ofReal_add (by norm_num) (by norm_num)]
-  norm_num⟩
-
 omit [DecidableEq ι] in
 /-- A product of two Gaussian coordinates is square integrable. -/
 lemma memLp_coord_mul_stdGaussian (a b : ι) :
     MemLp (fun z : EuclideanSpace ℝ ι => z a * z b) 2 (stdGaussian (EuclideanSpace ℝ ι)) := by
-  have := holderTriple_four_four_two
   have h4 : ∀ x : ι, MemLp (fun z : EuclideanSpace ℝ ι => z x) 4
       (stdGaussian (EuclideanSpace ℝ ι)) := fun x => memLp_coord_stdGaussian x 4 (by simp)
   have := MemLp.mul (r := 2) (h4 b) (h4 a)
@@ -269,8 +262,6 @@ theorem gaussianInit_quadForm_chebyshev (n p : ℕ) (u v : Fin n → ℝ)
       {W | ε ≤ |u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) - (u ⬝ᵥ v) * A.trace|} ≤
       ENNReal.ofReal (2 * (u ⬝ᵥ u) * (v ⬝ᵥ v) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
   classical
-  have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
-      0 1) := by infer_instance
   have hmem := memLp_quadForm_gaussianInit n p u v A
   have hmean := integral_gaussianMatrix_quadForm n p u v A
   have h := meas_ge_le_variance_div_sq hmem hε
