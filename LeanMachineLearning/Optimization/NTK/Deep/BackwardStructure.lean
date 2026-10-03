@@ -245,15 +245,16 @@ lemma paramsMeasurable_updateWh (k : Fin (d - 1)) :
 
 variable {d n0 n}
 
-/-- **The parameters of `ω` are the substitution of its `Wh k` block into those of `zeroLayer`.**
+/-- **The parameters of `ω` are the substitution of its `Wh k` block into those of the network
+with that population zeroed.**
 With `i₀ = k + 1` the weight population feeding `Wh k`: the network at `ω` is the network at
-`zeroLayer i₀ ω` with `Wh k` replaced by the `n × n` block of `ω.1 i₀`. -/
+`(Function.update ω.1 i₀ 0, ω.2)` with `Wh k` replaced by the `n × n` block of `ω.1 i₀`. -/
 lemma deepParams_eq_updateWh (k : Fin (d - 1)) (ω : DeepSpace d) :
     deepParams d n0 n ω =
-      (deepParams d n0 n (zeroLayer (⟨k.val + 1, by omega⟩ : Fin d) ω)).updateWh k
+      (deepParams d n0 n (Function.update ω.1 (⟨k.val + 1, by omega⟩ : Fin d) 0, ω.2)).updateWh k
         (Matrix.of (layerBlock n (ω.1 ⟨k.val + 1, by omega⟩))) := by
   have hk := k.2
-  simp only [deepParams, DeepMLPParams.ofTensor, DeepMLPParams.updateWh, zeroLayer,
+  simp only [deepParams, DeepMLPParams.ofTensor, DeepMLPParams.updateWh,
     DeepMLPParams.mk.injEq]
   refine ⟨?_, ?_, trivial⟩
   · have h0 : 0 < d := by omega

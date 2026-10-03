@@ -226,19 +226,22 @@ noncomputable def nextSens (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a : Fin m) :
 /-- Zeroing the layer `k + 1` does not change the forward pass up to layer `k`. -/
 lemma preactivation_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) (ℓ : Fin d)
     (hℓ : ℓ.val ≤ k) (a : Fin m) :
-    deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω)) ℓ a =
+    deepMLPPreactivation d n0 n m φ X
+        (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)) ℓ a =
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ℓ a := by
   conv_rhs => rw [deepParams_eq_updateWh (n0 := n0) (n := n) ⟨k, by omega⟩ ω]
   rw [deepMLPPreactivation_updateWh_of_le φ X _ ⟨k, by omega⟩ _ ℓ hℓ]
 
 lemma pastFeat_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) :
-    pastFeat φ X n k hk (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω) = pastFeat φ X n k hk ω := by
+    pastFeat φ X n k hk (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2) =
+      pastFeat φ X n k hk ω := by
   ext j a
   simp only [pastFeat, netFeat, Matrix.of_apply]
   rw [preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl]
 
 lemma netGram_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) :
-    netGram φ X (deepParams d n0 n (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω)) ⟨k, by omega⟩ =
+    netGram φ X (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2))
+        ⟨k, by omega⟩ =
       netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩ := by
   have := pastFeat_zeroLayer (n0 := n0) φ X n k hk ω
   simp only [netGram]
@@ -246,7 +249,8 @@ lemma netGram_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) 
   rw [this]
 
 lemma netDeriv_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) (c : Fin m) :
-    netDeriv φ φ' X (deepParams d n0 n (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω)) ⟨k, by omega⟩ c =
+    netDeriv φ φ' X (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2))
+        ⟨k, by omega⟩ c =
       netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ c := by
   funext j
   simp only [netDeriv]
@@ -263,9 +267,9 @@ conditional Chebyshev bounds apply. -/
 lemma atProj_nextSens_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d)
     (a : Fin m) (hS : IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩).det) :
     atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a)
-      (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω, layerBlock n (ω.1 ⟨k + 1, hk⟩)) =
+      ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), layerBlock n (ω.1 ⟨k + 1, hk⟩)) =
       backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a := by
-  set z := zeroLayer (⟨k + 1, hk⟩ : Fin d) ω with hz
+  set z := (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2) with hz
   set Y : Matrix (Fin n) (Fin n) ℝ := Matrix.of (layerBlock n (ω.1 ⟨k + 1, hk⟩)) with hY
   have hΦ : pastFeat φ X n k hk z = pastFeat φ X n k hk ω := pastFeat_zeroLayer φ X n k hk ω
   have hS' : IsUnit ((n : ℝ)⁻¹ • ((pastFeat φ X n k hk z)ᵀ * pastFeat φ X n k hk z)).det := by
@@ -518,11 +522,11 @@ section bridge
 
 variable {d n0 m : ℕ} (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
 
-/-- The layer split of `DeepSpace` at the population of `Wh k`: past `zeroLayer` and the Gaussian
-block. -/
+/-- The layer split of `DeepSpace` at the population of `Wh k`: past (the population zeroed) and
+the Gaussian block. -/
 noncomputable def splitPt (n k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) :
     DeepSpace d × (Fin n → Fin n → ℝ) :=
-  (zeroLayer ((⟨k + 1, hk⟩ : Fin d)) ω, layerBlock n (ω.1 ((⟨k + 1, hk⟩ : Fin d))))
+  ((Function.update ω.1 ((⟨k + 1, hk⟩ : Fin d)) 0, ω.2), layerBlock n (ω.1 ((⟨k + 1, hk⟩ : Fin d))))
 
 /-- The expression whose concentration is given by `tendsto_residualQuadForm`, at the split
 point of `ω`. -/
@@ -559,9 +563,10 @@ lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : DeepS
           (1 - gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩))).trace) := by
   have hua := atProj_nextSens_eq φ φ' X n k hk ω a hS
   have hub := atProj_nextSens_eq φ φ' X n k hk ω b hS
-  have hΦ : pastFeat φ X n k hk (zeroLayer ((⟨k + 1, hk⟩ : Fin d)) ω) =
+  have hΦ : pastFeat φ X n k hk (Function.update ω.1 ((⟨k + 1, hk⟩ : Fin d)) 0, ω.2) =
       netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩ := pastFeat_zeroLayer φ X n k hk ω
-  have hD : ∀ c : Fin m, netDeriv φ φ' X (deepParams d n0 n (zeroLayer ((⟨k + 1, hk⟩ : Fin d)) ω))
+  have hD : ∀ c : Fin m, netDeriv φ φ' X
+      (deepParams d n0 n (Function.update ω.1 ((⟨k + 1, hk⟩ : Fin d)) 0, ω.2))
       ⟨k, by omega⟩ c = netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ c := by
     intro c
     funext j
@@ -599,7 +604,7 @@ lemma linAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : DeepSpa
             fun j => deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c j *
               netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a j)) := by
   have hua := atProj_nextSens_eq φ φ' X n k hk ω a hS
-  have hΦ : pastFeat φ X n k hk (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω) =
+  have hΦ : pastFeat φ X n k hk (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2) =
       netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩ := pastFeat_zeroLayer φ X n k hk ω
   have hV : (deepParams d n0 n ω).Wh ⟨k, by omega⟩ =
       Matrix.of (layerBlock n (ω.1 (⟨k + 1, hk⟩ : Fin d))) := by
@@ -607,7 +612,7 @@ lemma linAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : DeepSpa
     rw [this]
     simp
   have hh : deepMLPPreactivation d n0 n m φ X
-      (deepParams d n0 n (zeroLayer (⟨k + 1, hk⟩ : Fin d) ω)) ⟨k, by omega⟩ c =
+      (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)) ⟨k, by omega⟩ c =
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c :=
     preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl c
   rw [hV, ← hΦ]
@@ -700,7 +705,8 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
   have h := tendsto_residualQuadForm (deepMeasure d)
-    ((deepMeasure d).map (zeroLayer (⟨k + 1, hk⟩ : Fin d)))
+    ((deepMeasure d).map
+      (fun ω : DeepSpace d => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
     (fun n ω => splitPt n k hk ω)
     (fun n => measurePreserving_layerSplit (⟨k + 1, hk⟩ : Fin d) n)
     (fun n => pastFeat φ X n k hk) (fun n => measurable_pastFeat hφm X n k hk)
@@ -823,7 +829,8 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
   have h := tendsto_residualLinearForm (deepMeasure d)
-    ((deepMeasure d).map (zeroLayer (⟨k + 1, hk⟩ : Fin d)))
+    ((deepMeasure d).map
+      (fun ω : DeepSpace d => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
     (fun n ω => splitPt n k hk ω)
     (fun n => measurePreserving_layerSplit (⟨k + 1, hk⟩ : Fin d) n)
     (fun n => pastFeat φ X n k hk) (fun n => measurable_pastFeat hφm X n k hk)

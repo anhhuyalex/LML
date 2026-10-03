@@ -880,10 +880,9 @@ NTK.integral_mul_entry_mul_mul_entry
 NTK.indepFun_gaussianInit_mul_of_transpose_mul_eq_zero
 NTK.indepFun_gaussian_orthogonal_projection
 NTK.indepFun_conditioned_weight_history
-NTK.coordVec
-NTK.measurable_coordVec
+NTK.measurable_toLp_uncurry
 NTK.map_gaussianInit_pairIndex
-NTK.map_gaussianInit_coordVec
+NTK.map_gaussianInit_toLp_uncurry
 NTK.memLp_coord_stdGaussian
 NTK.holderTriple_four_four_two
 NTK.memLp_coord_mul_stdGaussian
@@ -981,7 +980,6 @@ NTK.deepParams_prefix
 NTK.tendstoInMeasure_prod_of_prefix_prod
 NTK.tendstoInMeasure_prod_of_prefix
 NTK.tendstoInMeasure_deepSpace_of_prefix
-NTK.zeroLayer
 NTK.layerBlock
 NTK.measurable_zeroLayer
 NTK.measurable_layerBlock

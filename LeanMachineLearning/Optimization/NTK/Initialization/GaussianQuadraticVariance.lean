@@ -16,8 +16,8 @@ Variance of the bilinear Gaussian quadratic form `u ⬝ᵥ (W A Wᵀ) v` under `
 which is the fluctuation estimate behind the backward-concentration step of the deep NTK
 (`G_k ≈ G_{k+1} · Φ'_k`).
 
-1. **Transport** (`map_gaussianInit_coordVec`): the entries of `W ~ gaussianInit n p`, viewed as a
-   vector indexed by `Fin n × Fin p`, are a standard Gaussian vector (`stdGaussian`).
+1. **Transport** (`map_gaussianInit_toLp_uncurry`): the entries of `W ~ gaussianInit n p`, viewed
+   as a vector indexed by `Fin n × Fin p`, are a standard Gaussian vector (`stdGaussian`).
 2. **Isserlis for quadratic forms** (`integral_quadForm_sq_stdGaussian`): for `z ~ 𝒩(0, I)` and
    any matrix `C`, `E[(zᵀ C z)²] = (tr C)² + tr(C²) + ‖C‖_F²`. It is proved from the already
    formalized four-coordinate Isserlis formula `integral_coordinateProduct_four`
@@ -38,23 +38,21 @@ namespace NTK
 
 /-! ### Transport of `gaussianInit` to a standard Gaussian vector -/
 
-/-- The entries of a matrix, as a vector indexed by pairs `(i, k)`. -/
-def coordVec (n p : ℕ) (W : Fin n → Fin p → ℝ) : EuclideanSpace ℝ (Fin n × Fin p) :=
-  WithLp.toLp 2 fun ik => W ik.1 ik.2
-
-lemma measurable_coordVec (n p : ℕ) : Measurable (coordVec n p) := by
-  unfold coordVec
-  fun_prop
+/-- The entries of a matrix `W`, viewed as a Euclidean vector indexed by pairs `(i, k)`, are
+`WithLp.toLp 2 (Function.uncurry W)`; this map is measurable. -/
+lemma measurable_toLp_uncurry (n p : ℕ) :
+    Measurable (fun W : Fin n → Fin p → ℝ =>
+      (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p))) :=
+  (PiLp.continuous_toLp 2 _).measurable.comp measurable_uncurry
 
 lemma map_gaussianInit_pairIndex (n p : ℕ) :
-    (gaussianInit n p).map (fun W : Fin n → Fin p → ℝ => fun ik : Fin n × Fin p => W ik.1 ik.2) =
+    (gaussianInit n p).map (fun W : Fin n → Fin p → ℝ => Function.uncurry W) =
       Measure.pi (fun _ : Fin n × Fin p => gaussianReal 0 1) := by
   symm
   refine Measure.pi_eq fun s hs => ?_
-  have hg : Measurable (fun W : Fin n → Fin p → ℝ => fun ik : Fin n × Fin p => W ik.1 ik.2) := by
-    fun_prop
+  have hg : Measurable (fun W : Fin n → Fin p → ℝ => Function.uncurry W) := measurable_uncurry
   rw [Measure.map_apply hg (MeasurableSet.univ_pi hs)]
-  have hpre : (fun W : Fin n → Fin p → ℝ => fun ik : Fin n × Fin p => W ik.1 ik.2) ⁻¹'
+  have hpre : (fun W : Fin n → Fin p → ℝ => Function.uncurry W) ⁻¹'
       (Set.univ.pi s) = Set.univ.pi (fun i : Fin n => Set.univ.pi fun k : Fin p => s (i, k)) := by
     ext W; simp [Set.mem_pi]
   rw [hpre, gaussianInit, Measure.pi_pi]
@@ -62,8 +60,10 @@ lemma map_gaussianInit_pairIndex (n p : ℕ) :
   rw [Fintype.prod_prod_type]
 
 /-- The entries of `W ~ gaussianInit n p` form a standard Gaussian vector on `ℝ^{n × p}`. -/
-lemma map_gaussianInit_coordVec (n p : ℕ) :
-    (gaussianInit n p).map (coordVec n p) = stdGaussian (EuclideanSpace ℝ (Fin n × Fin p)) := by
+lemma map_gaussianInit_toLp_uncurry (n p : ℕ) :
+    (gaussianInit n p).map (fun W : Fin n → Fin p → ℝ =>
+      (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p))) =
+      stdGaussian (EuclideanSpace ℝ (Fin n × Fin p)) := by
   rw [← map_pi_eq_stdGaussian, ← map_gaussianInit_pairIndex, Measure.map_map (by fun_prop)
     (by fun_prop)]
   rfl
@@ -174,9 +174,9 @@ lemma quadForm_eq_sum_coord (n p : ℕ) (u v : Fin n → ℝ) (A : Matrix (Fin p
     (W : Fin n → Fin p → ℝ) :
     u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) =
       ∑ x : Fin n × Fin p, ∑ y : Fin n × Fin p,
-        (u x.1 * v y.1 * A x.2 y.2) * (coordVec n p W x * coordVec n p W y) := by
+        (u x.1 * v y.1 * A x.2 y.2) * (Function.uncurry W x * Function.uncurry W y) := by
   rw [quadForm_mul_mul_transpose]
-  simp only [coordVec, Fintype.sum_prod_type, mulVec, dotProduct, Matrix.transpose_apply,
+  simp only [Function.uncurry, Fintype.sum_prod_type, mulVec, dotProduct, Matrix.transpose_apply,
     Matrix.of_apply]
   simp only [Finset.sum_mul, Finset.mul_sum]
   conv_lhs =>
@@ -206,15 +206,15 @@ theorem integral_quadForm_sq_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
     Matrix.of fun x y => u x.1 * v y.1 * A x.2 y.2 with hC
   have hq : ∀ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) ^ 2 =
       (fun z : EuclideanSpace ℝ (Fin n × Fin p) => (∑ a, ∑ b, C a b * (z a * z b)) ^ 2)
-        (coordVec n p W) := by
+        (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p)) := by
     intro W
     rw [quadForm_eq_sum_coord]
     simp [hC]
   simp_rw [hq]
-  rw [← integral_map (measurable_coordVec n p).aemeasurable
+  rw [← integral_map (measurable_toLp_uncurry n p).aemeasurable
     (by fun_prop : Measurable fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
       (∑ a, ∑ b, C a b * (z a * z b)) ^ 2).aestronglyMeasurable,
-    map_gaussianInit_coordVec, integral_quadForm_sq_stdGaussian]
+    map_gaussianInit_toLp_uncurry, integral_quadForm_sq_stdGaussian]
   have htr : C.trace = (u ⬝ᵥ v) * A.trace := by
     simp only [hC, Matrix.trace, Matrix.diag, Matrix.of_apply, Fintype.sum_prod_type, dotProduct,
       Finset.sum_mul, Finset.mul_sum]
@@ -251,8 +251,8 @@ theorem memLp_quadForm_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
       (stdGaussian (EuclideanSpace ℝ (Fin n × Fin p))) := by
     refine memLp_finsetSum _ fun x _ => memLp_finsetSum _ fun y _ => ?_
     exact (memLp_coord_mul_stdGaussian x y).const_mul _
-  rw [← map_gaussianInit_coordVec] at hz
-  have := hz.comp_of_map (measurable_coordVec n p).aemeasurable
+  rw [← map_gaussianInit_toLp_uncurry] at hz
+  have := hz.comp_of_map (measurable_toLp_uncurry n p).aemeasurable
   convert this using 1
   funext W
   exact quadForm_eq_sum_coord n p u v A W

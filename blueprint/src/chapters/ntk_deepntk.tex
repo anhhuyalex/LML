@@ -228,15 +228,15 @@ $\texttt{DeepSpace}\;d$ is the product of $d$ copies of the space $\mathbb R^{\m
 
 \begin{theorem}[Layer splitting]\label{thm:ntkdn:layerSplit}
   \uses{def:ntkdn:deepSpace, thm:ntkcond:lemma226}
-  \lean{NTK.zeroLayer, NTK.layerBlock, NTK.measurable_zeroLayer, NTK.measurable_layerBlock,
+  \lean{NTK.layerBlock, NTK.measurable_zeroLayer, NTK.measurable_layerBlock,
         NTK.map_layerBlock_infinitePi, NTK.indepFun_prod_of_indepFun_fst,
         NTK.indepFun_layer_zeroLayer, NTK.measurePreserving_layerSplit}
   \leanok
-For $i_0<d$ let $\texttt{zeroLayer}_{i_0}(\omega)$ be $\omega$ with the $i_0$-th weight population replaced by $0$, and $\texttt{layerBlock}_n(L)=(L_{ji})_{j,i<n}$ the top-left $n\times n$ block of a population. Under $\texttt{deepMeasure}\;d$:
+For $i_0<d$ let $\mathrm{zero}_{i_0}(\omega)$ be $\omega$ with the $i_0$-th weight population replaced by $0$ (in Lean, \texttt{(Function.update ω.1 i₀ 0, ω.2)}), and $\texttt{layerBlock}_n(L)=(L_{ji})_{j,i<n}$ the top-left $n\times n$ block of a population. Under $\texttt{deepMeasure}\;d$:
 \begin{enumerate}
-  \item the $i_0$-th population is independent of $\texttt{zeroLayer}_{i_0}$, i.e.\ of all other populations and the readout;
+  \item the $i_0$-th population is independent of $\mathrm{zero}_{i_0}$, i.e.\ of all other populations and the readout;
   \item the block $\texttt{layerBlock}_n(\omega_{i_0})$ of a standard Gaussian population is a standard Gaussian matrix, $\mathcal L(\texttt{layerBlock}_n)=\texttt{gaussianInit}\;n\;n$;
-  \item $\omega\mapsto\bigl(\texttt{zeroLayer}_{i_0}(\omega),\texttt{layerBlock}_n(\omega_{i_0})\bigr)$ is measure preserving from $\texttt{deepMeasure}\;d$ onto $\mathcal L(\texttt{zeroLayer}_{i_0})\otimes\texttt{gaussianInit}\;n\;n$.
+  \item $\omega\mapsto\bigl(\mathrm{zero}_{i_0}(\omega),\texttt{layerBlock}_n(\omega_{i_0})\bigr)$ is measure preserving from $\texttt{deepMeasure}\;d$ onto $\mathcal L(\mathrm{zero}_{i_0})\otimes\texttt{gaussianInit}\;n\;n$.
 \end{enumerate}
 \end{theorem}
 
@@ -365,7 +365,7 @@ By induction on the layer using that sums, products and compositions of measurab
   \leanok
 For $k<d-1$ and $\omega\in\texttt{DeepSpace}\;d$, with $i_0=k+1$,
 \[
-  \texttt{deepParams}(\omega)=\texttt{deepParams}\bigl(\texttt{zeroLayer}_{i_0}\omega\bigr)\bigl[W_{k+1}\leftarrow\texttt{layerBlock}_n(\omega_{i_0})\bigr].
+  \texttt{deepParams}(\omega)=\texttt{deepParams}\bigl(\mathrm{zero}_{i_0}\omega\bigr)\bigl[W_{k+1}\leftarrow\texttt{layerBlock}_n(\omega_{i_0})\bigr].
 \]
 \end{lemma}
 
@@ -607,7 +607,7 @@ Let $k+1<d$, assume $\Sigma^{k+1}\succ0$, and assume that for all $c,c'\in[m]$ t
 \begin{proof}
   \uses{thm:ntkcond:residualQuad, lem:ntkdn:hiddenDecomp, lem:ntkdn:congruence, thm:ntkdn:layerSplit, lem:ntkdn:layerSubstitution, lem:ntkdn:tightness, lem:ntkdn:singular, thm:ntkdn:projectedVanishes}
   \leanok
-Put $i_0=k+1$ and use the layer split of Theorem~\ref{thm:ntkdn:layerSplit}: $\omega\mapsto(z,V)=(\texttt{zeroLayer}_{i_0}\omega,\texttt{layerBlock}_n(\omega_{i_0}))$ is measure preserving onto $\mathcal L(z)\otimes\texttt{gaussianInit}\;n\;n$ (the ``splitPt'').
+Put $i_0=k+1$ and use the layer split of Theorem~\ref{thm:ntkdn:layerSplit}: $\omega\mapsto(z,V)=(\mathrm{zero}_{i_0}\omega,\texttt{layerBlock}_n(\omega_{i_0}))$ is measure preserving onto $\mathcal L(z)\otimes\texttt{gaussianInit}\;n\;n$ (the ``splitPt'').
 The past data $\Phi_k$, $\hat\Sigma_k$, $f_k^a$ are unchanged by zeroing layer $k+1$ (Lemma~\ref{lem:ntkdn:congruence}(1); \texttt{pastFeat\_zeroLayer}, \texttt{netGram\_zeroLayer}, \texttt{netDeriv\_zeroLayer}), so they are measurable functions of the past $z$ alone. By Lemma~\ref{lem:ntkdn:layerSubstitution} the network at $\omega$ is the network at $z$ with $W_{k+1}=V$ inserted. By Lemma~\ref{lem:ntkdn:congruence}(4) and Lemma~\ref{lem:ntkcond:gramProjectorProps}(3), on the event that $\hat\Sigma_k$ is invertible the vector $g_{k+1}$ at $\omega$ equals $g_{k+1}$ evaluated with $W_{k+1}$ replaced by $VP_{\Phi_k}$, i.e.\ $\texttt{atProj}\;\Phi_k\;(\texttt{nextSens}^a)$ at the split point (\texttt{atProj\_nextSens\_eq}): the vector $u^a$ in Lemma~\ref{lem:ntkdn:hiddenDecomp} is of the form required by Theorem~\ref{thm:ntkcond:residualQuad}.
 The tightness hypotheses of that theorem hold: $n^{-1}\|u^a\|^2=G_{k+1}^{(n),aa}$ converges by assumption (on the good event, where $\texttt{atProj}$ agrees with the network quantity: \texttt{atProj\_sq\_bddByConv}), and $n^{-1}\|D^{ab}\|_F^2=\frac1n\sum_j(f_j^af_j^b)^2$ converges by Lemma~\ref{lem:ntkdn:tightness}(2). Theorem~\ref{thm:ntkcond:residualQuad}, with $A_n=D^{ab}$, shows that the residual form $\mathrm{wcov}(f^a,f^b;y^a,y^b)$ of Lemma~\ref{lem:ntkdn:hiddenDecomp}(3) minus its conditional mean (\texttt{residAbs}) tends to $0$ in measure, the discrepancy between the two on the bad event being negligible by Lemma~\ref{lem:ntkdn:singular}. The conditional mean is, by Lemma~\ref{lem:ntkdn:hiddenDecomp}(4), $G_{k+1}\Phi'_k-G_{k+1}\cdot n^{-1}\sum(\hat\Sigma^{-1})_{a'b'}\mathrm{wmat}_{b'a'}$. The correction term tends to $0$ by Theorem~\ref{thm:ntkdn:projectedVanishes}(2) ($\hat\Sigma^{-1}$ converges by Lemma~\ref{lem:ntkdn:singular}(1), and the fourth-moment averages by Lemma~\ref{lem:ntkdn:tightness}(3)) multiplied by the convergent $G_{k+1}$. Hence the claim.
 \end{proof}

@@ -346,10 +346,10 @@ The theorem is the one-sided conditioning statement on which the deep NTK argume
 Theorem~\ref{thm:ntkcond:quadMean} gives the \emph{mean} of the sandwich $u^\top WAW^\top v$. Concentration needs its variance. We compute $\mathbb E[(u^\top WAW^\top v)^2]$ exactly from the Gaussian fourth-moment (Isserlis) formula.
 
 \begin{lemma}[Gaussian matrix as a standard Gaussian vector]\label{lem:ntkcond:coordVec}
-  \lean{NTK.coordVec, NTK.measurable_coordVec, NTK.map_gaussianInit_pairIndex,
-        NTK.map_gaussianInit_coordVec}
+  \lean{NTK.measurable_toLp_uncurry, NTK.map_gaussianInit_pairIndex,
+        NTK.map_gaussianInit_toLp_uncurry}
   \leanok
-Let $\texttt{coordVec}:W\mapsto(W_{ik})_{(i,k)\in[n]\times[p]}\in\mathbb R^{[n]\times[p]}$ be the flattening of a matrix. It is measurable, and the law of $\texttt{coordVec}(W)$ under $W\sim\texttt{gaussianInit}\;n\;p$ is the standard Gaussian $\mathcal N(0,I_{np})$ on $\mathbb R^{[n]\times[p]}$ (the product of $np$ copies of $\mathcal N(0,1)$).
+Let $\mathrm{vec}:W\mapsto(W_{ik})_{(i,k)\in[n]\times[p]}\in\mathbb R^{[n]\times[p]}$ be the flattening of a matrix (in Lean, \texttt{WithLp.toLp 2 (Function.uncurry W)}). It is measurable, and the law of $\mathrm{vec}(W)$ under $W\sim\texttt{gaussianInit}\;n\;p$ is the standard Gaussian $\mathcal N(0,I_{np})$ on $\mathbb R^{[n]\times[p]}$ (the product of $np$ copies of $\mathcal N(0,1)$).
 \end{lemma}
 
 \begin{proof}
@@ -411,7 +411,7 @@ Consequently, for every $\varepsilon>0$,
 \begin{proof}
   \uses{lem:ntkcond:coordVec, thm:ntkcond:stdQuad, thm:ntkcond:quadMean, lem:ntkcond:elementary}
   \leanok
-Write $u^\top WAW^\top v=\sum_{x,y}C_{xy}\,\xi_x\xi_y$ with $\xi=\texttt{coordVec}(W)\sim\mathcal N(0,I_{np})$, $x=(i,k)$, $y=(j,l)$ and $C_{xy}=u_iv_jA_{kl}$ (\texttt{quadForm\_eq\_sum\_coord}). Then $C$ is the Kronecker product of the rank-one matrix $uv^\top$ and $A$, so by the Kronecker factorization of Lemma~\ref{lem:ntkcond:elementary}(2):
+Write $u^\top WAW^\top v=\sum_{x,y}C_{xy}\,\xi_x\xi_y$ with $\xi=\mathrm{vec}(W)\sim\mathcal N(0,I_{np})$, $x=(i,k)$, $y=(j,l)$ and $C_{xy}=u_iv_jA_{kl}$ (\texttt{quadForm\_eq\_sum\_coord}). Then $C$ is the Kronecker product of the rank-one matrix $uv^\top$ and $A$, so by the Kronecker factorization of Lemma~\ref{lem:ntkcond:elementary}(2):
 $\operatorname{tr}C=(u\cdot v)\operatorname{tr}A$, $\operatorname{tr}(C^2)=(u\cdot v)^2\operatorname{tr}(A^2)$ and $\|C\|_F^2=\|u\|^2\|v\|^2\|A\|_F^2$. Theorem~\ref{thm:ntkcond:stdQuad} gives the second moment. The mean is $(u\cdot v)\operatorname{tr}A$ by Theorem~\ref{thm:ntkcond:quadMean}, hence
 \[
   \operatorname{Var}=(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2\le2\|u\|^2\|v\|^2\|A\|_F^2

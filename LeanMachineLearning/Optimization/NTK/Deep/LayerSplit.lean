@@ -16,11 +16,11 @@ The deep NTK parameters are read from the product space
 readout) with the product of standard Gaussians, `deepMeasure d`. To condition on everything except
 one layer `i₀`, we use
 
-* `zeroLayer i₀ ω`: `ω` with the `i₀`-th population replaced by `0`,
+* the split `ω ↦ (Function.update ω.1 i₀ 0, ω.2)` zeroes the `i₀`-th population of `ω`,
 * `layerBlock n L`: the top-left `n × n` block of a population, i.e. the weight matrix actually
   used by a width-`n` network.
 
-`measurePreserving_layerSplit` states that `(zeroLayer i₀, layerBlock n ∘ eval i₀)` is a measure
+`measurePreserving_layerSplit` states that `(ω ↦ zeroed ω, layerBlock n ∘ eval i₀)` is a measure
 preserving map from `deepMeasure d` onto the product of the law of the rest with
 `gaussianInit n n`: the layer is independent of the rest and its block is a standard Gaussian
 matrix. This is the interface between the concrete network and the conditional Chebyshev bounds
@@ -50,10 +50,6 @@ instance (d : ℕ) : IsProbabilityMeasure (deepMeasure d) := by
 noncomputable def deepParams (d n0 n : ℕ) (ω : DeepSpace d) : DeepMLPParams d n0 n :=
   DeepMLPParams.ofTensor d n0 n (fun k => if h : k < d then ω.1 ⟨k, h⟩ else 0) ω.2
 
-/-- Replace the `i₀`-th weight population by `0`. -/
-def zeroLayer {d : ℕ} (i₀ : Fin d) (ω : DeepSpace d) : DeepSpace d :=
-  (Function.update ω.1 i₀ 0, ω.2)
-
 /-- The top-left `n × n` block of a weight population. -/
 def layerBlock (n : ℕ) (L : ℕ → ℕ → ℝ) : Fin n → Fin n → ℝ := fun j i => L j.val i.val
 
@@ -61,7 +57,9 @@ lemma measurable_layerBlock (n : ℕ) : Measurable (layerBlock n) :=
   measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun i =>
     (measurable_pi_apply i.val).comp (measurable_pi_apply j.val)
 
-lemma measurable_zeroLayer {d : ℕ} (i₀ : Fin d) : Measurable (zeroLayer i₀) := by
+/-- Replacing the `i₀`-th weight population by `0` is measurable. -/
+lemma measurable_zeroLayer {d : ℕ} (i₀ : Fin d) :
+    Measurable (fun ω : DeepSpace d => (Function.update ω.1 i₀ 0, ω.2)) := by
   refine Measurable.prodMk ?_ measurable_snd
   refine measurable_pi_iff.2 fun i => ?_
   by_cases h : i = i₀
@@ -140,7 +138,8 @@ theorem indepFun_prod_of_indepFun_fst {α β γ δ : Type*} [MeasurableSpace α]
 /-- Under the product Gaussian measure, one layer is independent of the other layers and the
 readout. -/
 theorem indepFun_layer_zeroLayer {d : ℕ} (i₀ : Fin d) :
-    IndepFun (fun ω : DeepSpace d => ω.1 i₀) (zeroLayer i₀) (deepMeasure d) := by
+    IndepFun (fun ω : DeepSpace d => ω.1 i₀)
+      (fun ω : DeepSpace d => (Function.update ω.1 i₀ 0, ω.2)) (deepMeasure d) := by
   classical
   set L : Measure (ℕ → ℕ → ℝ) := Measure.infinitePi fun _ : ℕ =>
     Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hL
@@ -172,12 +171,15 @@ theorem indepFun_layer_zeroLayer {d : ℕ} (i₀ : Fin d) :
     (measurable_zeroLayer i₀).fst.comp (measurable_id.prodMk (measurable_const (a := 0)))
   exact indepFun_prod_of_indepFun_fst _ _ (measurable_pi_apply i₀) hB' h3
 
-/-- **Layer splitting.** `ω ↦ (zeroLayer i₀ ω, layerBlock n (ω.1 i₀))` is measure preserving from
-`deepMeasure d` to the product of the law of `zeroLayer i₀` with `gaussianInit n n`. -/
+/-- **Layer splitting.** `ω ↦ ((Function.update ω.1 i₀ 0, ω.2), layerBlock n (ω.1 i₀))` is measure
+preserving from `deepMeasure d` to the product of the law of `ω ↦ (Function.update ω.1 i₀ 0, ω.2)`
+with `gaussianInit n n`. -/
 theorem measurePreserving_layerSplit {d : ℕ} (i₀ : Fin d) (n : ℕ) :
     MeasurePreserving
-      (fun ω : DeepSpace d => (zeroLayer i₀ ω, layerBlock n (ω.1 i₀))) (deepMeasure d)
-      (((deepMeasure d).map (zeroLayer i₀)).prod (gaussianInit n n)) := by
+      (fun ω : DeepSpace d => ((Function.update ω.1 i₀ 0, ω.2), layerBlock n (ω.1 i₀)))
+      (deepMeasure d)
+      (((deepMeasure d).map (fun ω : DeepSpace d => (Function.update ω.1 i₀ 0, ω.2))).prod
+        (gaussianInit n n)) := by
   have hev : Measurable fun ω : DeepSpace d => layerBlock n (ω.1 i₀) :=
     (measurable_layerBlock n).comp ((measurable_pi_apply i₀).comp measurable_fst)
   have hlaw : (deepMeasure d).map (fun ω : DeepSpace d => layerBlock n (ω.1 i₀)) =
