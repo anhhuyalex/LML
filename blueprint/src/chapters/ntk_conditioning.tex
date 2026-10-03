@@ -17,9 +17,9 @@ For a measure $\mu$ and real random variables $X_n$, we say that $X_n\to c$ \emp
 The decoupling argument of Chapter~\ref{chap:ntkdn} splits a Gaussian weight matrix $V$ into a part $VP$ that is seen by the forward pass and an independent part $VP^\perp$ that is not. The deterministic algebra of this splitting is collected here.
 
 \begin{definition}[Orthogonal projection matrix and its complement]\label{def:ntkcond:projector}
-  \lean{NTK.isOrthogonalProjection, NTK.orthogonalComplement}
+  \lean{NTK.isStarProjection_matrix_real_iff, IsStarProjection.transpose_eq, NTK.orthogonalComplement}
   \leanok
-A real square matrix $P$ is an \emph{orthogonal projection matrix} if $P^\top=P$ and $P^2=P$. Its \emph{complement} is $P^\perp:=I-P$.
+A real square matrix $P$ is an \emph{orthogonal projection matrix} if $P^\top=P$ and $P^2=P$. In Lean this is Mathlib's \texttt{IsStarProjection} (a self-adjoint idempotent), which for real matrices unfolds to exactly these two equations (\texttt{isStarProjection\_matrix\_real\_iff}). Its \emph{complement} is $P^\perp:=I-P$.
 \end{definition}
 
 \begin{lemma}[Algebra of a projector and its complement]\label{lem:ntkcond:projectorAlgebra}

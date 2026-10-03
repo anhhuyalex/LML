@@ -427,18 +427,18 @@ Let `W ~ gaussianInit n p` and let `P ∈ ℝ^{p × p}` be an orthogonal project
 spanned by forward post-activations. Then the projected component `W * P` and the complementary
 residual `W * Pᗮ` are statistically independent. -/
 theorem indepFun_gaussian_orthogonal_projection (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ)
-    (hP : isOrthogonalProjection P) :
+    (hP : IsStarProjection P) :
     IndepFun (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * P)
       (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * orthogonalComplement P)
       (gaussianInit n p) := by
   have hAB : Pᵀ * orthogonalComplement P = 0 := by
-    rw [hP.1]; exact mul_self_orthogonalComplement P hP
+    rw [hP.transpose_eq]; exact mul_self_orthogonalComplement P hP
   exact indepFun_gaussianInit_mul_of_transpose_mul_eq_zero P (orthogonalComplement P) hAB
 
 /-- Conditioning identity on the forward activation history:
 When `P * X = X`, the forward outputs `W * X` and the residual `W * Pᗮ` are independent. -/
 theorem indepFun_conditioned_weight_history (n p q : ℕ) (P : Matrix (Fin p) (Fin p) ℝ)
-    (hP : isOrthogonalProjection P) (X : Matrix (Fin p) (Fin q) ℝ) (hX : P * X = X) :
+    (hP : IsStarProjection P) (X : Matrix (Fin p) (Fin q) ℝ) (hX : P * X = X) :
     IndepFun (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * X)
       (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * orthogonalComplement P)
       (gaussianInit n p) := by

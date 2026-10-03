@@ -42,7 +42,7 @@ open scoped ENNReal
 namespace NTK
 
 theorem gaussianInit_measure_le_lintegral_of_section
-    (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ) (hP : isOrthogonalProjection P)
+    (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ) (hP : IsStarProjection P)
     (E : Set (Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ)) (hE : MeasurableSet E)
     (B : Matrix (Fin n) (Fin p) ℝ → ℝ≥0∞) (hB : Measurable B)
     (hsec : ∀ x : Matrix (Fin n) (Fin p) ℝ,
@@ -190,7 +190,7 @@ variable {Ω : Type*} [MeasurableSpace Ω]
 /-- Section bound for the quadratic form: for fixed vectors `u₀, v₀` and a projector `Q = Pᗮ`,
 the `Pᗮ`-quadratic form concentrates. -/
 lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
-    (hQ : isOrthogonalProjection Q) (u₀ v₀ : Fin n → ℝ) {ε : ℝ} (hε : 0 < ε) :
+    (hQ : IsStarProjection Q) (u₀ v₀ : Fin n → ℝ) {ε : ℝ} (hε : 0 < ε) :
     gaussianInit n p {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
         (u₀ ⬝ᵥ v₀) * (Q * A * Q).trace|} ≤
       ENNReal.ofReal (2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
@@ -199,7 +199,7 @@ lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
       ((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) =
         Matrix.of V * (Q * A * Q) * (Matrix.of V)ᵀ := by
     intro V
-    rw [Matrix.transpose_mul, hQ.1]
+    rw [Matrix.transpose_mul, hQ.transpose_eq]
     simp only [Matrix.mul_assoc]
   simp_rw [hmat]
   refine (gaussianInit_quadForm_chebyshev n p u₀ v₀ (Q * A * Q) hε).trans ?_
@@ -213,7 +213,7 @@ lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
 
 theorem conditional_quadForm_chebyshev
     (μ : Measure Ω) (n p : ℕ)
-    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, isOrthogonalProjection (P a))
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
     (hPm : Measurable P) (A : Ω → Matrix (Fin p) (Fin p) ℝ) (hAm : Measurable A)
     (u v : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u) (hvm : Measurable v)
     {ε : ℝ} (hε : 0 < ε) :
@@ -316,7 +316,7 @@ theorem conditional_quadForm_chebyshev
 `min 1 (2 ũ ṽ Ã / (n ε²))`, so the `O(1/n)` decay is explicit. -/
 theorem conditional_quadForm_chebyshev_normalized
     (μ : Measure Ω) (n p : ℕ) (hn : 0 < n)
-    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, isOrthogonalProjection (P a))
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
     (hPm : Measurable P) (A : Ω → Matrix (Fin p) (Fin p) ℝ) (hAm : Measurable A)
     (u v : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u) (hvm : Measurable v)
     {ε : ℝ} (hε : 0 < ε) :
@@ -355,7 +355,7 @@ theorem conditional_quadForm_chebyshev_normalized
   field_simp
 
 lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
-    (hQ : isOrthogonalProjection Q) (u₀ : Fin n → ℝ) (b : Fin p → ℝ) {ε : ℝ} (hε : 0 < ε) :
+    (hQ : IsStarProjection Q) (u₀ : Fin n → ℝ) (b : Fin p → ℝ) {ε : ℝ} (hε : 0 < ε) :
     gaussianInit n p {V | ε ≤ |u₀ ⬝ᵥ ((Matrix.of V * Q) *ᵥ b)|} ≤
       ENNReal.ofReal ((u₀ ⬝ᵥ u₀) * (b ⬝ᵥ b) / ε ^ 2) := by
   classical
@@ -368,7 +368,7 @@ lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
 
 theorem conditional_linearForm_chebyshev
     (μ : Measure Ω) (n p : ℕ)
-    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, isOrthogonalProjection (P a))
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
     (hPm : Measurable P) (b : Ω → Fin p → ℝ) (hbm : Measurable b)
     (u : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u)
     {ε : ℝ} (hε : 0 < ε) :
@@ -428,7 +428,7 @@ theorem conditional_linearForm_chebyshev
 `n⁻¹ ⟨b, y⟩` for the residual `y = n^{-1/2} (V Pᗮ)ᵀ u`. -/
 theorem conditional_linearForm_chebyshev_normalized
     (μ : Measure Ω) (n p : ℕ) (hn : 0 < n)
-    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, isOrthogonalProjection (P a))
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
     (hPm : Measurable P) (b : Ω → Fin p → ℝ) (hbm : Measurable b)
     (u : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u)
     {ε : ℝ} (hε : 0 < ε) :
