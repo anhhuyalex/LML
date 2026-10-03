@@ -14,7 +14,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 /-!
 # Gaussian Matrix Algebra: Moments, Joint Gaussianity and Independence of Linear Images
 
-Facts about a standard Gaussian weight matrix `W ~ gaussianInit n p` (i.i.d. `𝒩(0, 1)` entries) that
+Facts about a standard Gaussian weight matrix `W ~ 𝒩(0,1)^{n×p}` (i.i.d. `𝒩(0, 1)` entries) that
 do not refer to any network architecture; they complement the Gaussian *vector* algebra of
 `Initialization/GaussianAlgebra.lean`.
 
@@ -48,7 +48,7 @@ variable {n p q : ℕ}
 
 /-! ### Coordinate Expectations under the Gaussian Matrix Law -/
 
-/-- Every single coordinate `W i k` of a Gaussian matrix initialized by `gaussianInit n p`
+/-- Every single coordinate `W i k` of a Gaussian matrix initialized by `𝒩(0,1)^{n×p}`
 has unit variance: `∫ (W i k)² = 1`. -/
 theorem integral_gaussianInit_entry_sq (n p : ℕ) (i : Fin n) (k : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
@@ -132,7 +132,7 @@ lemma integrable_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : Fin p) :
   exact h1.integrable_mul h2
 
 /-- Exact coordinate covariance under the standard Gaussian matrix law:
-`∫ W i k * W j l ∂(gaussianInit n p) = if i = j ∧ k = l then 1 else 0`. -/
+`∫ W i k * W j l ∂(𝒩(0,1)^{n×p}) = if i = j ∧ k = l then 1 else 0`. -/
 theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, W i k * W j l ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) =
@@ -203,7 +203,7 @@ theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : F
       rw [integral_gaussianInit_entry n p i k, zero_mul]
 
 /-- Expectation of coordinate products of transpose vector multiplications:
-`∫ (Wᵀ *ᵥ u) k * (Wᵀ *ᵥ v) l ∂(gaussianInit n p) = if k = l then u ⬝ᵥ v else 0`. -/
+`∫ (Wᵀ *ᵥ u) k * (Wᵀ *ᵥ v) l ∂(𝒩(0,1)^{n×p}) = if k = l then u ⬝ᵥ v else 0`. -/
 lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l ∂(Measure.pi fun _ :
         Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
@@ -279,7 +279,7 @@ lemma integrable_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k
       (integrable_entry_mul_entry n p i j k l).const_mul (u i * v j)
 
 /-- Expectation of the general bilinear Gaussian quadratic form (Proposition 2.27 Step 4):
-`∫ u ⬝ᵥ ((W * A * Wᵀ) *ᵥ v) ∂(gaussianInit n p) = (u ⬝ᵥ v) * A.trace`
+`∫ u ⬝ᵥ ((W * A * Wᵀ) *ᵥ v) ∂(𝒩(0,1)^{n×p}) = (u ⬝ᵥ v) * A.trace`
 for arbitrary real matrix `A ∈ ℝ^{p × p}` and vectors `u, v ∈ ℝ^n`. -/
 theorem integral_gaussianMatrix_quadForm (n p : ℕ) (u v : Fin n → ℝ)
     (A : Matrix (Fin p) (Fin p) ℝ) :
@@ -340,7 +340,7 @@ theorem backward_empirical_quadForm_asymptotic_limit (n p : ℕ) (u v : Fin n �
 
 /-! ### Joint Gaussianity of the Weight Matrix -/
 
-/-- A standard Gaussian row `a ~ gaussianRowMeasure p` is a jointly Gaussian vector: its coordinates
+/-- A standard Gaussian row `a ~ 𝒩(0, I_p)` is a jointly Gaussian vector: its coordinates
 are independent standard Gaussians (`iIndepFun.hasGaussianLaw`). -/
 lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
     HasGaussianLaw (fun a : Fin p → ℝ => a) (Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
@@ -356,7 +356,7 @@ lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
     exact IsGaussian.hasGaussianLaw (measurable_pi_apply k).aemeasurable
   exact iIndepFun.hasGaussianLaw h1 (iIndepFun_readoutWeights p)
 
-/-- The whole weight matrix `W ~ gaussianInit n p` is a jointly Gaussian vector: its rows are
+/-- The whole weight matrix `W ~ 𝒩(0,1)^{n×p}` is a jointly Gaussian vector: its rows are
 independent Gaussian vectors. Every linear image `W ↦ (W A, W B)` is therefore jointly Gaussian. -/
 lemma hasGaussianLaw_gaussianInit_id (n p : ℕ) :
     HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W) (Measure.pi fun _ : Fin n => Measure.pi fun _ :
@@ -429,7 +429,7 @@ lemma integral_mul_entry_mul_mul_entry (A : Matrix (Fin p) (Fin q) ℝ)
   · simp [hij]
 
 /-- **Uncorrelated linear images of a Gaussian matrix are independent.** If `Aᵀ B = 0` then
-`W * A` and `W * B` are independent under `W ~ gaussianInit n p`. -/
+`W * A` and `W * B` are independent under `W ~ 𝒩(0,1)^{n×p}`. -/
 theorem indepFun_gaussianInit_mul_of_transpose_mul_eq_zero
     (A : Matrix (Fin p) (Fin q) ℝ) (B : Matrix (Fin p) (Fin r) ℝ) (hAB : Aᵀ * B = 0) :
     IndepFun (fun W : Fin n → Fin p → ℝ => Matrix.of W * A)
@@ -470,7 +470,7 @@ theorem indepFun_gaussianInit_mul_of_transpose_mul_eq_zero
 /-! ### Lemma 2.26 One-Sided Gaussian Conditioning -/
 
 /-- **Lemma 2.26 (One-Sided Gaussian Conditioning / Decoupling Identity)**:
-Let `W ~ gaussianInit n p` and let `P ∈ ℝ^{p × p}` be an orthogonal projection onto the subspace
+Let `W ~ 𝒩(0,1)^{n×p}` and let `P ∈ ℝ^{p × p}` be an orthogonal projection onto the subspace
 spanned by forward post-activations. Then the projected component `W * P` and the complementary
 residual `W * Pᗮ` are statistically independent. -/
 theorem indepFun_gaussian_orthogonal_projection (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ)

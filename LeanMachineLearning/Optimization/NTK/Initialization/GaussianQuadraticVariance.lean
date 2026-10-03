@@ -12,11 +12,11 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrix
 /-!
 # Second Moment of Gaussian Quadratic Forms
 
-Variance of the bilinear Gaussian quadratic form `u ⬝ᵥ (W A Wᵀ) v` under `W ~ gaussianInit n p`,
+Variance of the bilinear Gaussian quadratic form `u ⬝ᵥ (W A Wᵀ) v` under `W ~ 𝒩(0,1)^{n×p}`,
 which is the fluctuation estimate behind the backward-concentration step of the deep NTK
 (`G_k ≈ G_{k+1} · Φ'_k`).
 
-1. **Transport** (`map_gaussianInit_toLp_uncurry`): the entries of `W ~ gaussianInit n p`, viewed
+1. **Transport** (`map_gaussianInit_toLp_uncurry`): the entries of `W ~ 𝒩(0,1)^{n×p}`, viewed
    as a vector indexed by `Fin n × Fin p`, are a standard Gaussian vector (`stdGaussian`).
 2. **Isserlis for quadratic forms** (`integral_quadForm_sq_stdGaussian`): for `z ~ 𝒩(0, I)` and
    any matrix `C`, `E[(zᵀ C z)²] = (tr C)² + tr(C²) + ‖C‖_F²`. It is proved from the already
@@ -36,7 +36,7 @@ open MeasureTheory ProbabilityTheory Matrix
 
 namespace NTK
 
-/-! ### Transport of `gaussianInit` to a standard Gaussian vector -/
+/-! ### Transport of `𝒩(0,1)^{n×p}` to a standard Gaussian vector -/
 
 /-- The entries of a matrix `W`, viewed as a Euclidean vector indexed by pairs `(i, k)`, are
 `WithLp.toLp 2 (Function.uncurry W)`; this map is measurable. -/
@@ -60,7 +60,7 @@ lemma map_gaussianInit_pairIndex (n p : ℕ) :
   simp_rw [Measure.pi_pi]
   rw [Fintype.prod_prod_type]
 
-/-- The entries of `W ~ gaussianInit n p` form a standard Gaussian vector on `ℝ^{n × p}`. -/
+/-- The entries of `W ~ 𝒩(0,1)^{n×p}` form a standard Gaussian vector on `ℝ^{n × p}`. -/
 lemma map_gaussianInit_toLp_uncurry (n p : ℕ) :
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun W : Fin n →
         Fin p → ℝ =>
@@ -259,7 +259,7 @@ theorem memLp_quadForm_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
   funext W
   exact quadForm_eq_sum_coord n p u v A W
 
-/-- **Chebyshev bound for the bilinear Gaussian quadratic form.** For `W ~ gaussianInit n p`,
+/-- **Chebyshev bound for the bilinear Gaussian quadratic form.** For `W ~ 𝒩(0,1)^{n×p}`,
 `P(|u ⬝ᵥ W A Wᵀ v - (u ⬝ᵥ v) tr A| ≥ ε) ≤ 2 ‖u‖² ‖v‖² ‖A‖_F² / ε²`.
 With `A = D` diagonal and the normalization `n⁻²`, the right side is `O(n⁻¹)` when `n⁻¹‖u‖²`,
 `n⁻¹‖v‖²` and `n⁻¹ ‖D‖_F²` stay bounded. -/

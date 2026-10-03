@@ -10,22 +10,22 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.NeuronSum
 /-!
 # Two-layer network: finite-width NTK concentration
 
-Chebyshev concentration of the empirical NTK matrix under `initMeasure n d`, convergence in
+Chebyshev concentration of the empirical NTK matrix under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`, convergence in
 probability in Frobenius norm, the Rayleigh lower bound transferred from the limiting matrix, and
 the initial spectral-gap failure bound.
 
 ## Main results and proof outline
 
 - `chebyshev_entrywise_empiricalNTKMatrix` : finite-width entrywise Chebyshev concentration
-  under `initMeasure n d`.
+  under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 - `chebyshev_matrix_empiricalNTKMatrix` : finite-width matrix Frobenius norm Chebyshev
-  concentration under `initMeasure n d`.
+  concentration under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 - `tendsto_initMeasure_empiricalNTKMatrix_ge_eps` : finite-width convergence in probability of
-  the empirical NTK matrix in Frobenius norm under `initMeasure n d`.
+  the empirical NTK matrix in Frobenius norm under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 - `initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le` : Rayleigh lower bound
   transfer from `limitingFullNTKMatrix` under Frobenius distance `λ_min / 2`.
 - `chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure` : finite-width initial spectral-gap
-  failure concentration bound under `initMeasure n d`.
+  failure concentration bound under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 - `tendsto_initMeasure_initial_spectral_gap_failure` : spectral-gap failure measure tends to zero
   as width `n → ∞`.
 
@@ -44,7 +44,7 @@ attribute [local instance]
 
 @[expose] public section
 
-/-! ### Finite-Width NTK Concentration and Transport to `initMeasure` -/
+/-! ### Finite-Width NTK Concentration and Transport to `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)` -/
 
 section FiniteWidthNTKConcentration
 
@@ -94,7 +94,7 @@ private lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0
   simp_rw [h_w, h_w', h_a]
 
 /-- Finite-width entrywise Chebyshev concentration of the empirical NTK matrix under
-the joint initialization measure `initMeasure n d`. -/
+the joint initialization measure `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`. -/
 theorem chebyshev_entrywise_empiricalNTKMatrix
     {m d : ℕ} (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
     (hdφ_meas : Measurable (deriv φ))
@@ -202,7 +202,7 @@ least `ε / m`. Kept private to `NTK.Training.TwoLayer.Concentration` until a se
   exact not_lt_of_ge hA h_norm_lt
 
 /-- Finite-width matrix Chebyshev concentration of the empirical NTK in Frobenius norm
-under the joint initialization measure `initMeasure n d`. -/
+under the joint initialization measure `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`. -/
 theorem chebyshev_matrix_empiricalNTKMatrix
     {m d : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
     (hdφ_meas : Measurable (deriv φ))
@@ -299,7 +299,7 @@ theorem chebyshev_matrix_empiricalNTKMatrix
   rw [heq]
 
 /-- Qualitative finite-width convergence in probability of the empirical NTK matrix to
-`limitingFullNTKMatrix` under the varying initialization measure `initMeasure n d`. -/
+`limitingFullNTKMatrix` under the varying initialization measure `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`. -/
 theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
     {m d : ℕ} (hm : 0 < m) (hd : 0 < d) (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
     (hdφ_meas : Measurable (deriv φ))
@@ -389,7 +389,7 @@ theorem initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
   rwa [heq] at h_bound
 
 /-- Finite-width probability bound for initial empirical NTK spectral gap failure under
-`initMeasure n d`.
+`𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 By Chebyshev's inequality and Rayleigh perturbation, the probability that the empirical NTK fails to
 satisfy the spectral lower bound `(lambda_inf / 2) ‖v‖²` decays as `O(1 / n)`. -/
 theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure

@@ -55,18 +55,19 @@ original target.
 **Formal Probability Data**:
 For each width `n : ℕ`:
 - Parameter probability space: `Ω n := (Fin n → Fin d → ℝ) × (Fin n → ℝ)` with measure
-  `μ n := initMeasure n d`.
+  `μ n := 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 - Parameter packing: `θ₀ n (p : Ω n) := packParams p.1 p.2`.
 - Random trajectory family:
   `θ : ∀ n : ℕ, Ω n → ℝ → EuclideanSpace ℝ (Fin (n * d + n))`
   satisfying:
-  - Initial condition and gradient flow ODE: for each `n`, for `initMeasure n d`-almost every `p`,
+  - Initial condition and gradient flow ODE: for each `n`, for `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-almost
+every `p`,
     `ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)`.
     Here `mseLoss` already contains the `1 / m` normalization, so `ForwardGFTrajectory`
     corresponds to `θ' = -∇ mseLoss`, yielding the intended residual dynamics
     `r'(t) = -(1 / m) K(t) r(t)`.
-  - Trajectory measurability: `∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d)`.
+  - Trajectory measurability: `∀ n t, AEMeasurable (fun p => θ n p t) (𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n))`.
     Path continuity in `t` and measurability in `p` reduce the uniform supremum event
     `{p | ∃ t ∈ Set.Icc 0 T, ‖K n t p - K n 0 p‖ > ε}` to a countable dense subset of `[0, T]`,
     ensuring measurability of the supremum event.
@@ -89,12 +90,12 @@ For each width `n : ℕ`:
    `MeasureTheory.TendstoInDistribution (fun n p => r n t p) Filter.atTop`
      `(fun G => WithLp.toLp 2`
      `  ((NormedSpace.exp (- (t / m : ℝ) • limitingFullNTKMatrix φ X)) *ᵥ (G - y).ofLp))`
-     `(fun n => initMeasure n d) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
+     `(fun n => 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
 3. **Fixed-Time Prediction Convergence**: The network predictions converge in distribution:
    `MeasureTheory.TendstoInDistribution (fun n p => trainingOutputs ... (θ n p t)) Filter.atTop`
      `(fun G => y + WithLp.toLp 2`
      `  ((NormedSpace.exp (- (t / m : ℝ) • limitingFullNTKMatrix φ X)) *ᵥ (G - y).ofLp))`
-     `(fun n => initMeasure n d) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
+     `(fun n => 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
 
 **Mechanism**:
 This theorem does not require a positive spectral gap. PSD controls the residual norm, while
@@ -112,12 +113,12 @@ theorem finite_horizon_ntk_training_limit
     (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+    (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     (∀ ε > 0, Filter.Tendsto
-      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc 0 T,
+      (fun n => (𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)) {p | ∃ t ∈ Set.Icc 0 T,
         ‖empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
           empiricalNTKMatrix (netFromParams φ n d)
@@ -132,7 +133,7 @@ theorem finite_horizon_ntk_training_limit
         (fun (G : EuclideanSpace ℝ (Fin m)) =>
           (WithLp.toLp 2 ((NormedSpace.exp (- (t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
             (G - y).ofLp) : EuclideanSpace ℝ (Fin m)))
-        (fun n => initMeasure n d)
+        (fun n => 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n))
         (multivariateGaussian 0
           (limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k)))) ∧
     (∀ t ∈ Set.Icc 0 T,
@@ -144,7 +145,7 @@ theorem finite_horizon_ntk_training_limit
         (fun (G : EuclideanSpace ℝ (Fin m)) =>
           y + (WithLp.toLp 2 ((NormedSpace.exp (- (t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
             (G - y).ofLp) : EuclideanSpace ℝ (Fin m)))
-        (fun n => initMeasure n d)
+        (fun n => 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n))
         (multivariateGaussian 0
           (limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k))))
 -/
@@ -224,9 +225,11 @@ theorem tendsto_measure_exists_gt_of_good_events {Ω : ℕ → Type*} [∀ n, Me
     exact ⟨E, hEm, hEc, fun p hp hg t ht => (hEp p hp hg t ht).trans hlt.le⟩
 
 /-- **Kernel stationarity in probability on `[0, T]`.** If the trajectories `θ n p` solve the
-gradient-flow ODE for `initMeasure n d`-almost every initialization, then for every `ε₀ > 0` the
+gradient-flow ODE for `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-almost every initialization, then for every `ε₀ >
+0` the
 probability that the empirical NTK drifts by more than `ε₀` somewhere on `[0, T]` tends to zero.
-The event is not shown measurable, so `initMeasure n d` evaluates it as an *outer* probability; the
+The event is not shown measurable, so `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)` evaluates it as an *outer*
+probability; the
 proof bounds it by the complement of the measurable good event of
 `exists_measurableSet_finite_horizon_kernel_freeze`. No spectral gap is assumed. -/
 theorem tendsto_measure_kernel_drift_finite_horizon

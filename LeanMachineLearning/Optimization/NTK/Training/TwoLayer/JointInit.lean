@@ -16,7 +16,7 @@ Measurability of the empirical NTK matrix on packed parameters and the joint wea
 ## Main results and proof outline
 
 - `measurable_empiricalNTKMatrix_netFromParams_packParams` : measurability of the empirical NTK
-  matrix on packed parameters under `initMeasure n d`.
+  matrix on packed parameters under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 - `tendstoInDistribution_initial_trainingResidual` : canonical initial training residual weak limit
   `r_n(0) ⟹ G - y` on the scaled dataset `(1 / √d) * X`.
 - `tendstoInDistribution_joint_initial_residual_empiricalNTK` : joint weak convergence of initial
@@ -141,7 +141,7 @@ As width `n → ∞`, the joint law of the initial training residual
 and the full empirical NTK matrix
 `K_n(0) = empiricalNTKMatrix (netFromParams φ n d) X_scaled θ_0`
 converges in distribution to the joint pair `(G - y, limitingFullNTKMatrix φ X)`
-under `initMeasure n d`, where `G ~ 𝒩(0, Φ^{(∞)})` and `K_∞` is deterministic. -/
+under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`, where `G ~ 𝒩(0, Φ^{(∞)})` and `K_∞` is deterministic. -/
 theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
     {d m : ℕ} (hm : 0 < m) (hd : 0 < d)
     (φ : ℝ → ℝ) (hφ_diff : Differentiable ℝ φ)
@@ -191,7 +191,8 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
 
 /-- **Uniform residual radius at initialization.** For every failure level `ε > 0` there is a
 single deterministic radius `R ≥ 0`, valid for all widths `n`, such that the initial training
-residual on the scaled dataset exceeds `R` in norm with `initMeasure n d`-probability at most `ε`.
+residual on the scaled dataset exceeds `R` in norm with `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability at
+most `ε`.
 This is output-law tightness (from the characteristic-function limit) translated by `-y`. -/
 theorem exists_initial_residual_radius
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))

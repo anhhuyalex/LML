@@ -13,7 +13,8 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 
 The deep NTK parameters are read from the product space
 `DeepSpace d = (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)` (the first `d` infinite weight populations and the
-readout) with the product of standard Gaussians, `deepMeasure d`. To condition on everything except
+readout) with the product of standard Gaussians, `𝒩(0,1)^{⊗ DeepSpace d}`. To condition on
+everything except
 one layer `i₀`, we use
 
 * the split `ω ↦ (Function.update ω.1 i₀ 0, ω.2)` zeroes the `i₀`-th population of `ω`,
@@ -21,8 +22,8 @@ one layer `i₀`, we use
   used by a width-`n` network.
 
 `measurePreserving_layerSplit` states that `(ω ↦ zeroed ω, layerBlock n ∘ eval i₀)` is a measure
-preserving map from `deepMeasure d` onto the product of the law of the rest with
-`gaussianInit n n`: the layer is independent of the rest and its block is a standard Gaussian
+preserving map from `𝒩(0,1)^{⊗ DeepSpace d}` onto the product of the law of the rest with
+`𝒩(0,1)^{n×n}`: the layer is independent of the rest and its block is a standard Gaussian
 matrix. This is the interface between the concrete network and the conditional Chebyshev bounds
 of `Initialization/GaussianConditioning.lean`.
 -/
@@ -166,8 +167,9 @@ theorem indepFun_layer_zeroLayer {d : ℕ} (i₀ : Fin d) :
   exact indepFun_prod_of_indepFun_fst _ _ (measurable_pi_apply i₀) hB' h3
 
 /-- **Layer splitting.** `ω ↦ ((Function.update ω.1 i₀ 0, ω.2), layerBlock n (ω.1 i₀))` is measure
-preserving from `deepMeasure d` to the product of the law of `ω ↦ (Function.update ω.1 i₀ 0, ω.2)`
-with `gaussianInit n n`. -/
+preserving from `𝒩(0,1)^{⊗ DeepSpace d}` to the product of the law of `ω ↦ (Function.update ω.1 i₀
+0, ω.2)`
+with `𝒩(0,1)^{n×n}`. -/
 theorem measurePreserving_layerSplit {d : ℕ} (i₀ : Fin d) (n : ℕ) :
     MeasurePreserving
       (fun ω : DeepSpace d => ((Function.update ω.1 i₀ 0, ω.2), layerBlock n (ω.1 i₀)))

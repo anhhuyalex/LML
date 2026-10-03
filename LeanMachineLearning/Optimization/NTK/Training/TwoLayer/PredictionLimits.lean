@@ -41,7 +41,7 @@ attribute [local instance]
 /-- **Actual residual vs. frozen matrix-exponential residual, in probability.** If the trajectories
 `θ n p` solve the gradient-flow ODE for almost every initialization, then at each fixed time `t ≥ 0`
 the trained residual `r_n(t)` and the frozen residual `exp(-(t / m) K_∞) r_n(0)` are asymptotically
-equal: for every `ε₀ > 0`, `initMeasure n d {ε₀ ≤ ‖r_n(t) - exp(-(t / m) K_∞) r_n(0)‖} → 0`
+equal: for every `ε₀ > 0`, `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n) {ε₀ ≤ ‖r_n(t) - exp(-(t / m) K_∞) r_n(0)‖} → 0`
 (outer probability, as for `tendsto_measure_kernel_drift_finite_horizon`). No spectral gap is
 assumed. -/
 theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon

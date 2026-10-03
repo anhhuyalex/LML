@@ -99,7 +99,7 @@ lemma backwardSensitivity_hidden_decomp (θ : DeepMLPParams d n0 n) (k : ℕ) (h
 noncomputable def netDeriv (θ : DeepMLPParams d n0 n) (k : Fin d) (a : Fin m) : Fin n → ℝ :=
   fun j => φ' (deepMLPPreactivation d n0 n m φ X θ k a j)
 
-/-- `G_k^{ab} = wcov(φ'(h^a), φ'(h^b); x^a + y^a, x^b + y^b)`. -/
+/-- `G_k^{ab} = n⁻¹ ∑ⱼ φ'(h^a)ⱼ φ'(h^b)ⱼ (x^a + y^a)ⱼ (x^b + y^b)ⱼ`. -/
 lemma deepSensitivityGram_hidden_eq_wcov (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d)
     (hn : n ≠ 0) (hS : IsUnit (netGram φ X θ ⟨k, by omega⟩).det) (a b : Fin m) :
     deepSensitivityGram d n0 n m φ φ' X θ ⟨k, by omega⟩ a b =
@@ -164,7 +164,7 @@ lemma resid_mean_eq (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (hn :
   ring
 
 /-- **Decomposition of `n⁻¹ ⟨h_k^c, g_k^a⟩`.** On the event that `Σ̂` is invertible,
-`n⁻¹ ⟨h^c, g_k^a⟩ = wcov(1, φ'(h^a); h^c, x^a) + n⁻¹ √(n⁻¹) ⟨u^a, (V Pᗮ) (h^c ⊙ φ'(h^a))⟩`: the
+`n⁻¹ ⟨h^c, g_k^a⟩ = n⁻¹ ∑ⱼ φ'(h^a)ⱼ h^cⱼ x^aⱼ + n⁻¹ √(n⁻¹) ⟨u^a, (V Pᗮ) (h^c ⊙ φ'(h^a))⟩`: the
 projected part pairs through Cauchy–Schwarz, the residual part is a Gaussian linear form. -/
 lemma gradIndep_decomp (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (hn : n ≠ 0)
     (hS : IsUnit (netGram φ X θ ⟨k, by omega⟩).det) (a c : Fin m) :
@@ -435,13 +435,14 @@ lemma preFour_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
-        deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j ^ 4)
+      (fun (n : ℕ) (ω : DeepSpace d) =>
+        𝔼 j, deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j ^ 4)
       atTop (fun _ => c) := by
   obtain ⟨c, hc⟩ := featCov_cvg (n0 := n0) A X (fun x => x ^ 2) (continuous_id.pow 2) 1
     zero_le_one 2 (by norm_num) (fun x => by
       simp only [one_mul]; rw [abs_of_nonneg (by positivity)]; linarith [sq_abs x]) ℓ hℓ a a
   refine ⟨c, hc.congr_left fun n => Eventually.of_forall fun ω => ?_⟩
+  simp only [expect_fin_eq_inv_mul_sum]
   refine congrArg _ (Finset.sum_congr rfl fun j _ => by ring)
 
 /-- `n⁻¹ ∑ⱼ (h_ℓ^a,ⱼ)²` converges (feature `ψ = id`, i.e. the preactivation Gram diagonal). -/
@@ -566,7 +567,7 @@ noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : Deep
           (1 - gramProjector (pastFeat φ X n k hk q.1))).trace)
 
 /-- At a point where `Σ̂` is invertible, `residAbs` is the network quantity
-`wcov(φ'(h^a), φ'(h^b); y^a, y^b)` minus the conditional mean. -/
+`n⁻¹ ∑ⱼ φ'(h^a)ⱼ φ'(h^b)ⱼ y^aⱼ y^bⱼ` minus the conditional mean. -/
 lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : DeepSpace d)
     (hS : IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩).det) :
     residAbs φ φ' X n k hk a b ω =
@@ -782,7 +783,8 @@ lemma avg4_feat_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
       (fun (n : ℕ) (ω : DeepSpace d) =>
         (𝔼 j, netFeat φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ j a ^ 4)) atTop (fun _ => c) := by
   obtain ⟨c, hc⟩ := actSq_cvg A X ℓ hℓ a
-  exact ⟨c, hc⟩
+  refine ⟨c, hc.congr_left fun n => Eventually.of_forall fun ω => ?_⟩
+  simp only [expect_fin_eq_inv_mul_sum, netFeat, Matrix.of_apply]
 
 end avg
 
@@ -793,7 +795,7 @@ section gperp
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
 include A in
-/-- **The residual Gram entry `G_⊥ = wcov(φ'(h^a), φ'(h^b); y^a, y^b)` is asymptotically
+/-- **The residual Gram entry `G_⊥ = n⁻¹ ∑ⱼ φ'(h^a)ⱼ φ'(h^b)ⱼ y^aⱼ y^bⱼ` is asymptotically
 `G_{k+1} Φ'_k`.** -/
 theorem gperp_sub_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
@@ -875,7 +877,9 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     have hf := netDeriv_zeroLayer φ φ' X n k hk ω a
     simp only [splitPt]
     rw [hh, hf]
-    exact avg_sq_mul_le_avg4 _ _
+    exact avg_sq_mul_le_avg4
+      (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c)
+      (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
   have h := tendsto_residualLinearForm ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>

@@ -60,12 +60,12 @@ file re-exports all of them.
   * Evaluation points $\mathbf{x}^1, \dots, \mathbf{x}^m \in \mathbb{R}^{n_0}$
     (`X : Fin m → Fin d → ℝ`).
   * Readout weights: $a_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(0, 1) \quad \forall i$
-    (`gaussianReadoutMeasure n`).
+    (`𝒩(0, I_n)`).
   * Input weights:
     $\mathbf{w}_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})$
-    (`gaussianInit n d`).
+    (`𝒩(0,1)^{n×d}`).
   * Parameter space $\boldsymbol{\theta} = \{(a_i, \mathbf{w}_i)\}_{i=1}^n$ with joint measure
-    `initMeasure n d`.
+    `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
   * Mutual Independence: $\{a_i\}_{i=1}^n$ is mutually independent of $\{\mathbf{w}_i\}_{i=1}^n$
     (`indepFun_input_readout`).
   * Scalar network output:
@@ -115,7 +115,7 @@ file re-exports all of them.
     the evaluation vector $(f(\mathbf{x}^1), \dots, f(\mathbf{x}^r))^\top$ has distribution
     $\mathcal{N}(\mu(\mathbf{x}^\cdot), [\Phi(\mathbf{x}^\alpha, \mathbf{x}^\beta)])$.
   * In Lean, the conditional network output $x \mapsto \text{evalSingle } \varphi\ W\ a\ x$
-    under `gaussianReadoutMeasure n` is formalized as an exact Gaussian process in Mathlib:
+    under `𝒩(0, I_n)` is formalized as an exact Gaussian process in Mathlib:
     `isGaussianProcess_exact_conditional_output`, with finite-dimensional distributions
     `exact_conditional_normality`, conditional mean zero `integral_conditional_output_eq_zero`,
     and conditional covariance `cov_conditional_output_eq_covariance`.
@@ -186,7 +186,7 @@ file re-exports all of them.
 
 * **Theorem 2.3 / Theorem 3 (Finite-Dimensional NNGP Limit / Multivariate Convergence)**:
   * As width $n \to \infty$, the output vector $\mathbf{f}_m$ converges in distribution under the
-    joint initialization measure `initMeasure n d` to the centered multivariate Gaussian
+    joint initialization measure `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)` to the centered multivariate Gaussian
     distribution with covariance $\boldsymbol{\Phi}$:
     $$\mathbf{f}_m \xrightarrow{d} \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Phi}\right)
       \quad \text{in } \mathbb{R}^m$$
@@ -386,7 +386,7 @@ file re-exports all of them.
   * Proposition 2.10: for a matrix `W` with i.i.d. standard Gaussian entries, the row-indexed
     family `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v)` consists of `n` i.i.d. copies of Proposition 2.9's
     bivariate Gaussian (`NTK.gaussianMatrix_mulVec_pair`), proved by pushing the row-product
-    measure `gaussianInit n n` forward row-by-row via `Measure.pi_map_pi`.
+    measure `𝒩(0,1)^{n×n}` forward row-by-row via `Measure.pi_map_pi`.
   * Propositions 2.9' and 2.10': the direct `Fin m`-indexed generalizations of Propositions 2.9
     and 2.10 from a fixed pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`
     (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), proved by the same
@@ -563,9 +563,9 @@ file re-exports all of them.
 * **Full Two-Layer NTK Initialization, Concentration, and Strong Law**:
   * `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
   * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation of the finite
-    array rearrangement between `(Fin n → singleNeuronMeasure d)` and `initMeasure n d`.
+    array rearrangement between `(Fin n → 𝒩(0, I_d) ⊗ 𝒩(0,1))` and `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
   * `NTK.measurePreserving_infiniteSeq_to_init` : measure preservation of the infinite sequence
-    prefix truncation to `initMeasure n d`.
+    prefix truncation to `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
   * `NTK.fullNTKSummandSecondMoment` : uncentered second moment of the full NTK summand.
   * `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
   * `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.

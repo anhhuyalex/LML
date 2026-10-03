@@ -11,7 +11,7 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianQuadra
 /-!
 # Conditional Chebyshev Bounds for the Residual of a Gaussian Weight Matrix
 
-Let `V ~ gaussianInit n p` be a layer's weight matrix and `P` an orthogonal projector built from the
+Let `V ~ 𝒩(0,1)^{n×p}` be a layer's weight matrix and `P` an orthogonal projector built from the
 *past* `a ∈ Ω` (e.g. onto the span of the forward features). By Lemma 2.26 the projected part
 `V P` and the residual `V Pᗮ` are independent. Quantities such as the backward sensitivities `u`
 depend on `V` only through `V P` (and on the *future*, also part of `a`), so, conditionally on

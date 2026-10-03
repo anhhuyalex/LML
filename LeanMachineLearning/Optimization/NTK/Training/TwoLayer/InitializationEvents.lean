@@ -297,7 +297,7 @@ lemma activation_locallyLipschitz {φ : ℝ → ℝ} {C₁ C₂ : ℝ}
 
 /-- **Jacobian and readout good events for a smooth activation.** For every `δ ∈ (0, 1]` there is a
 constant `M₀` (independent of the width) such that, for every width `n ≥ 1`, there is a measurable
-event of `initMeasure n d`-probability `≥ 1 - 2 δ` on which the initial output Jacobian has
+event of `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability `≥ 1 - 2 δ` on which the initial output Jacobian has
 Frobenius norm at most `M₀` and every readout weight is at most `√(2 log (2 n / δ))`. The Jacobian
 bound uses only the bounded derivative
 (`outputJacobian_netFromParams_frobenius_norm_concentration_of_L2`), not a bound on `φ`. -/
@@ -570,7 +570,8 @@ discharged.** Assume a
 value of `φ`), and that the limiting kernel satisfies `K_∞ ≥ lambda_inf • 1` with
 `lambda_inf > 0`. For every `δ ∈ (0, 1]` and `ε > 0` there are a deterministic sequence
 `freezeRate n → 0` and a width `N` such that for every `n ≥ N`,
-there is a *measurable* event `E` of `initMeasure n d`-probability at least `1 - 2 * δ - 2 * ε`
+there is a *measurable* event `E` of `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability at least `1 - 2 * δ - 2
+* ε`
 such that from every initialization in `E`, every gradient flow started at `θ₀ = packParams W a`
 satisfies, for all `t ≥ 0`:
 
@@ -745,7 +746,8 @@ theorem exists_kernel_freeze_event_of_positive_gap
     ((hEp p hp θ_traj hflow).1 t ht).2.1)
 
 /-- **Global positive-gap lazy training limit (paper-facing form).** Let `θ n p` be trajectories
-that solve the gradient-flow ODE for `initMeasure n d`-almost every initialization, and assume the
+that solve the gradient-flow ODE for `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-almost every initialization, and
+assume the
 limiting kernel satisfies `K_∞ ≥ lambda_inf • 1`, `lambda_inf > 0`. For every confidence
 `η ∈ (0, 1]` there are a drift rate `freezeRate n → 0`, with
 `freezeRate n ≤ K₀ √(log n / n)` (the logarithm comes from the maximum readout weight), and a width
@@ -865,7 +867,8 @@ theorem global_positive_gap_lazy_training_limit_inv_sqrt_width
 
 /-- **Single-confidence form of `exists_kernel_freeze_event_of_positive_gap`.** For every
 confidence level `η ∈ (0, 1]` there are a deterministic drift rate `freezeRate n → 0` and a width
-`N` such that for `n ≥ N`, with `initMeasure n d`-probability at least `1 - η`, every gradient flow
+`N` such that for `n ≥ N`, with `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability at least `1 - η`, every
+gradient flow
 from `packParams W a` keeps the empirical NTK within `freezeRate n` of its initial value for all
 `t ≥ 0`. This is the main theorem with `δ = ε = η / 4`.
 
@@ -900,7 +903,8 @@ theorem exists_kernel_freeze_event_of_positive_gap_of_confidence
 `SmoothActivation` (no bound on the value of `φ`). For every horizon
 `T ≥ 0`, `δ ∈ (0, 1]` and `ε > 0` there are a radius `R ≥ 0`, a deterministic sequence
 `freezeRate n → 0` and a width `N` such that for `n ≥ N` there is a *measurable* event `E` of
-`initMeasure n d`-probability at least `1 - 2 * δ - ε` on which the initial residual has norm at
+`𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability at least `1 - 2 * δ - ε` on which the initial residual has
+norm at
 most `R` and every gradient flow from `packParams W a`, for all `t ∈ [0, T]`,
 keeps the empirical NTK within `freezeRate n` of its initial value, keeps the output Jacobian within
 `jacRate n` of its initial value (*Jacobian* freezing, which is strictly stronger than kernel
@@ -1074,7 +1078,7 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
 /-- **Finite-horizon kernel freeze with no spectral gap.** Consequence of
 `exists_measurableSet_finite_horizon_kernel_freeze`: for every horizon `T ≥ 0`, `δ ∈ (0, 1]` and
 `ε > 0` there are a deterministic sequence `freezeRate n → 0` and a width `N` such that for `n ≥ N`,
-with `initMeasure n d`-probability at least `1 - 2 * δ - ε`, every gradient flow started at
+with `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability at least `1 - 2 * δ - ε`, every gradient flow started at
 `packParams W a` keeps the empirical NTK within `freezeRate n` of its initial value on `[0, T]`.
 No lower bound on the spectrum of the limiting kernel is assumed, in contrast to
 `exists_kernel_freeze_event_of_positive_gap`. -/

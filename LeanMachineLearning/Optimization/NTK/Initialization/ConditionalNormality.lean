@@ -23,7 +23,7 @@ Conditional on the input weights, the network output is an exact centered multiv
   $\boldsymbol{\Phi}^{(n)}$ and `limitingCovariance_posSemidef` for the limiting NNGP Gram
   matrix $\boldsymbol{\Phi}$.
 * In Lean, the conditional network output $x \mapsto \text{evalSingle } \varphi\ W\ a\ x$
-  under `gaussianReadoutMeasure n` is formalized as an exact Gaussian process in Mathlib:
+  under `𝒩(0, I_n)` is formalized as an exact Gaussian process in Mathlib:
   `isGaussianProcess_exact_conditional_output`, with finite-dimensional distributions
   `exact_conditional_normality`, conditional mean zero `integral_conditional_output_eq_zero`,
   and conditional covariance `cov_conditional_output_eq_covariance`.
@@ -281,7 +281,7 @@ lemma map_readout_inner_evalVector
         (Real.toNNReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp)) :=
       map_readout_projection_eq_gaussianReal φ W X t.ofLp
 
-/-- The characteristic function of `evalVector` under `gaussianReadoutMeasure n`. -/
+/-- The characteristic function of `evalVector` under `𝒩(0, I_n)`. -/
 lemma charFun_readout_evalVector
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
@@ -358,7 +358,7 @@ instance isGaussian_conditional_output
 
 /-- **Definition 2.2 (Gaussian Process)**:
 Conditional on input weights `W`, the scalar random network output function
-`x ↦ evalSingle φ W a x` under the readout measure `gaussianReadoutMeasure n`
+`x ↦ evalSingle φ W a x` under the readout measure `𝒩(0, I_n)`
 is an exact Gaussian process in the sense of Mathlib's `ProbabilityTheory.IsGaussianProcess`. -/
 theorem isGaussianProcess_exact_conditional_output
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) :

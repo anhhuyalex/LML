@@ -44,7 +44,7 @@ of the output to the NNGP at initialization (Theorem 3).
     \mathbb{E}_{\mathbf{w}_i}[\varphi(\mathbf{w}_i^\top \mathbf{x}^\beta)^2]} < \infty$$
   (`NTK.integrable_cov_summand_of_memLp`).
 * As width $n \to \infty$, the output vector $\mathbf{f}_m$ converges in distribution under the
-  joint initialization measure `initMeasure n d` to the centered multivariate Gaussian
+  joint initialization measure `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)` to the centered multivariate Gaussian
   distribution with covariance $\boldsymbol{\Phi}$:
   $$\mathbf{f}_m \xrightarrow{d} \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Phi}\right)
     \quad \text{in } \mathbb{R}^m$$
@@ -253,7 +253,7 @@ section Theorem3
 /-! ### Limiting NNGP Covariance Matrix and Output Distribution -/
 
 /-- The limiting NNGP covariance matrix `Φ^{(∞)} ∈ ℝ^{m × m}`:
-  `Φ^{(∞), α β} = ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)`. -/
+  `Φ^{(∞), α β} = ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(𝒩(0, I_d))`. -/
 noncomputable def limitingCovariance
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) : Matrix (Fin m) (Fin m) ℝ :=
   fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)
@@ -432,7 +432,7 @@ lemma evalVector_joint_measurable
     (measurable_pi_iff.2 fun α => evalSingle_joint_measurable φ hφ (X α))
 
 /-- Joint distribution of network outputs across evaluation points `X` at width `n`:
-  `outputMeasure n d φ X = (initMeasure n d).map (fun (W, a) => evalVector φ W a X)`. -/
+  `outputMeasure n d φ X = (𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)).map (fun (W, a) => evalVector φ W a X)`. -/
 noncomputable def outputMeasure (n d : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) :
     Measure (EuclideanSpace ℝ (Fin m)) :=
   Measure.map (fun p => evalVector φ p.1 p.2 X) ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
@@ -454,7 +454,7 @@ lemma isProbabilityMeasure_outputMeasure
   exact (Measure.isProbabilityMeasure_map_iff (evalVector_joint_measurable φ hφ X).aemeasurable).mpr inferInstance
 
 /-- Transport: The pushforward of the infinite Gaussian row product measure under restriction to the
-first `n` hidden units is exactly the finite-width input weight measure `gaussianInit n d`. -/
+first `n` hidden units is exactly the finite-width input weight measure `𝒩(0,1)^{n×d}`. -/
 lemma map_infinitePi_rows_eq_gaussianInit (n d : ℕ) :
     Measure.map (fun (rows : ℕ → Fin d → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) = (Measure.pi
@@ -463,7 +463,7 @@ lemma map_infinitePi_rows_eq_gaussianInit (n d : ℕ) :
 
 /-! ### Step 1 & Step 2: Unconditional Characteristic Function -/
 
-/-- Step 1 & 2 helper: Integrating out the readout weights under `gaussianReadoutMeasure n` gives the
+/-- Step 1 & 2 helper: Integrating out the readout weights under `𝒩(0, I_n)` gives the
 conditional characteristic function `exp(- (1/2) t ⬝ᵥ Φ^{(n)} *ᵥ t)`. -/
 lemma integral_exp_inner_evalVector
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
@@ -483,7 +483,8 @@ lemma integral_exp_inner_evalVector
       charFun_readout_evalVector φ W X t
 
 /-- **Step 2 (Law of Total Expectation for the Characteristic Function)**:
-The unconditional characteristic function of the network output vector under `initMeasure n d` is the
+The unconditional characteristic function of the network output vector under `𝒩(0,1)^{n×d} ⊗ 𝒩(0,
+I_n)` is the
 expectation over input weights `W` of the conditional characteristic function:
   `charFun (outputMeasure n d φ X) t = 𝔼_W [exp(- (1/2) t ⬝ᵥ Φ^{(n)}(W) *ᵥ t)]`. -/
 lemma charFun_outputMeasure
@@ -559,7 +560,7 @@ lemma continuous_charFun_integrand (t : EuclideanSpace ℝ (Fin m)) :
   exact Complex.continuous_exp.comp
     (((Complex.continuous_ofReal.comp (continuous_matrix_quadratic t.ofLp)).neg).div_const 2)
 
-/-- Expressing the expectation under `gaussianInit n d` as an expectation under `infinitePi`. -/
+/-- Expressing the expectation under `𝒩(0,1)^{n×d}` as an expectation under `infinitePi`. -/
 lemma integral_charFun_gaussianInit_eq_infinitePi
     (n : ℕ) (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :

@@ -11,7 +11,8 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.JacobianBou
 # Two-layer network: neuron-sum formula for the empirical NTK
 
 The empirical NTK matrix of the packed network as an explicit sum over neurons, its evaluation on
-the scaled dataset `X / √d`, and the bridge between sequence prefixes and `initMeasure`.
+the scaled dataset `X / √d`, and the bridge between sequence prefixes and `𝒩(0,1)^{n×d} ⊗ 𝒩(0,
+I_n)`.
 
 ## Main results and proof outline
 

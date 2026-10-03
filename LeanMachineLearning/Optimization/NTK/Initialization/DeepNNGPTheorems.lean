@@ -654,7 +654,7 @@ theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
           (by omega))
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
-`gaussianReadoutMeasure n`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/
+`𝒩(0, I_n)`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/
 lemma map_infinitePi_real_eq_gaussianReadoutMeasure (n : ℕ) :
     Measure.map (fun (rows : ℕ → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) = (Measure.pi fun _ : Fin n => gaussianReal
@@ -701,7 +701,7 @@ the depth-`L` network's width-`n` output map is exactly the centered multivariat
 the width-`n` output covariance — the exact conditional normality of the readout layer
 (`exact_conditional_normality_general_multivariate`), transported along
 `map_infinitePi_real_eq_gaussianReadoutMeasure` from the infinite readout population down to the
-finite-width `gaussianReadoutMeasure n` it is built on. -/
+finite-width `𝒩(0, I_n)` it is built on. -/
 lemma map_deepEval_snd_eq_multivariateGaussian (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (w : Fin L → ℕ → ℕ → ℝ) :
     Measure.map

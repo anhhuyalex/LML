@@ -297,7 +297,7 @@ lemma tendsto_chebyshev_bound_atTop (C ε : ℝ) :
 
 /-- Property 1 (Empirical NTK Entrywise Chebyshev Concentration Bound):
 For any tolerance `ε > 0`, the probability under the initialization measure
-`Measure.infinitePi (fun _ => gaussianRowMeasure d)` that the empirical NTK
+`Measure.infinitePi (fun _ => Measure.pi fun _ : Fin d => gaussianReal 0 1)` that the empirical NTK
 `shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x'` deviates from its expectation by `≥ ε`
 is bounded by
 `variance (fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x') μ / ε²`.

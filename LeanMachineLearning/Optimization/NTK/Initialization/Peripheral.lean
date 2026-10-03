@@ -50,7 +50,8 @@ lemma cov_conditional_output_eq_covariance
 /-! ### Independence Across Depth -/
 
 /-- **Independence Across Depth**: if the per-layer weight matrices `W_0, …, W_{L-1}` are mutually
-independent and identically initialized (`Measure.pi (fun _ : Fin L => gaussianInit n d)`), then
+independent and identically initialized (`Measure.pi (fun _ : Fin L => Measure.pi fun _ : Fin n =>
+Measure.pi fun _ : Fin d => gaussianReal 0 1)`), then
 for every layer `ℓ`, the weight matrix `W_ℓ` is independent of the history
 `(W_i)_{i < ℓ}` — the finite-width analogue of "`W_ℓ` is independent of `F_ℓ`". -/
 theorem indepFun_layer_history (L n d : ℕ) (ℓ : Fin L) :

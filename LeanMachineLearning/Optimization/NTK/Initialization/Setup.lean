@@ -46,9 +46,9 @@ independence structure, and entrywise (max) concentration for the readout weight
 ## Main results and proof outline
 
 * Readout weights: $a_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(0, 1) \quad \forall i$
-  (`gaussianReadoutMeasure n`).
+  (`𝒩(0, I_n)`).
 * Parameter space $\boldsymbol{\theta} = \{(a_i, \mathbf{w}_i)\}_{i=1}^n$ with joint measure
-  `initMeasure n d`.
+  `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 * Mutual Independence: $\{a_i\}_{i=1}^n$ is mutually independent of $\{\mathbf{w}_i\}_{i=1}^n$
   (`indepFun_input_readout`).
 * Scalar network output:
@@ -337,7 +337,7 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
   exact hcompl_ge
 
 /-- Lift Gap 4b's readout-only event to the full initialization product measure
-`initMeasure n d = (gaussianInit n d).prod (gaussianReadoutMeasure n)`. -/
+the product `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)` of the input-weight and readout laws. -/
 lemma initMeasure_forall_abs_readout_ge (n d : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
     (hδ1 : δ ≤ 1) :
     ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun

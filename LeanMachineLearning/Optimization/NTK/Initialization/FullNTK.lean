@@ -17,9 +17,9 @@ numbers for the full NTK and its quantitative concentration.
 
 * `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
 * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation of the finite
-  array rearrangement between `(Fin n → singleNeuronMeasure d)` and `initMeasure n d`.
+  array rearrangement between `(Fin n → 𝒩(0, I_d) ⊗ 𝒩(0,1))` and `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 * `NTK.measurePreserving_infiniteSeq_to_init` : measure preservation of the infinite sequence
-  prefix truncation to `initMeasure n d`.
+  prefix truncation to `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 * `NTK.fullNTKSummandSecondMoment` : uncentered second moment of the full NTK summand.
 * `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
 * `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.
@@ -62,7 +62,7 @@ The joint initialization law of a single hidden neuron `(w, a)` with input weigh
 `w ~ 𝒩(0, I_d)` and readout weight `a ~ 𝒩(0, 1)`. -/
 
 /-- Measure-preserving rearrangement between a finite array of neuron pairs
-and the repository's `(W, a)` initialization representation `initMeasure n d`. -/
+and the repository's `(W, a)` initialization representation `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`. -/
 theorem measurePreserving_arrowProd_singleNeuronMeasure (n d : ℕ) :
     MeasurePreserving (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n))
       (Measure.pi fun _ : Fin n => ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
@@ -73,8 +73,9 @@ theorem measurePreserving_arrowProd_singleNeuronMeasure (n d : ℕ) :
     (fun _ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) (fun _ => gaussianReal 0 1)
 
 /-- **Markov bound for neuron averages.** For a nonnegative measurable single-neuron observable
-`g` that is integrable under `singleNeuronMeasure d`, the width-normalized empirical average
-`n⁻¹ ∑ᵢ g (Wᵢ, aᵢ)` is at most `τ` with `initMeasure n d`-probability at least `1 - δ`, as soon as
+`g` that is integrable under `𝒩(0, I_d) ⊗ 𝒩(0,1)`, the width-normalized empirical average
+`n⁻¹ ∑ᵢ g (Wᵢ, aᵢ)` is at most `τ` with `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability at least `1 - δ`, as
+soon as
 `E g ≤ τ δ`. The threshold is independent of the width, in contrast with the maximum-readout bound
 whose threshold grows like `√(log n)`. -/
 theorem measureReal_initMeasure_neuronAverage_le {n d : ℕ} (hn : 0 < n)
@@ -130,8 +131,9 @@ theorem measurePreserving_prefixMap {α : Type*} [MeasurableSpace α]
   rwa [heq] at h_comp
 
 /-- The measure-preserving map from the infinite sequence space
-`Measure.infinitePi (fun _ => singleNeuronMeasure d)` to the repository's finite-width
-initialization representation `initMeasure n d`.
+`Measure.infinitePi (fun _ => (Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0
+1))` to the repository's finite-width
+initialization representation `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 Composes the prefix restriction map with the finite array rearrangement
 `measurePreserving_arrowProd_singleNeuronMeasure`. -/
 theorem measurePreserving_infiniteSeq_to_init (n d : ℕ) :
@@ -177,7 +179,7 @@ lemma measurable_fullNTK_summand {d : ℕ}
   exact (h_φx.mul h_φx').add (((h_a2.mul h_dφx).mul h_dφx').mul_const (x ⬝ᵥ x'))
 
 /-- Integrability of the full activation-plus-derivative single-neuron NTK summand
-under `singleNeuronMeasure d`. Follows from product-measure Fubini and independence of
+under `𝒩(0, I_d) ⊗ 𝒩(0,1)`. Follows from product-measure Fubini and independence of
 weights and readouts. -/
 lemma integrable_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
@@ -274,7 +276,7 @@ lemma memLp_two_fullNTK_summand {d : ℕ}
     (memLp_two_iff_integrable_sq h2_meas.aestronglyMeasurable).2 h2_sq
   exact h1.add h2
 
-/-- Integrability of the squared full NTK summand under `singleNeuronMeasure d`,
+/-- Integrability of the squared full NTK summand under `𝒩(0, I_d) ⊗ 𝒩(0,1)`,
 providing second-moment bounds needed for quantitative concentration and Chebyshev bounds. -/
 lemma integrable_sq_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
@@ -291,7 +293,7 @@ lemma integrable_sq_fullNTK_summand {d : ℕ}
   have h_meas := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
   exact (memLp_two_iff_integrable_sq h_meas.aestronglyMeasurable).1 h_mem
 
-/-- The expectation of the full single-neuron NTK summand under `singleNeuronMeasure d`
+/-- The expectation of the full single-neuron NTK summand under `𝒩(0, I_d) ⊗ 𝒩(0,1)`
 equals the sum of the NNGP activation kernel entry and the derivative kernel entry
 scaled by the input inner product `x ⬝ᵥ x'`. -/
 lemma integral_fullNTK_summand {d : ℕ}
@@ -348,7 +350,7 @@ lemma integral_fullNTK_summand {d : ℕ}
 /-! ### Strong Law of Large Numbers for the Full NTK -/
 
 /-- Strong law of large numbers for empirical averages of the full NTK summand
-over an i.i.d. neuron sequence drawn from `singleNeuronMeasure d`.
+over an i.i.d. neuron sequence drawn from `𝒩(0, I_d) ⊗ 𝒩(0,1)`.
 Reuses the generalized `iid_average_tendsto_integral` from `NTK.Foundations.IIDAverage`. -/
 theorem fullNTKSummand_tendsto_integral {d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
@@ -679,7 +681,7 @@ theorem limitingFullNTKMatrix_posSemidef {m d : ℕ}
 
 /-- **Strict positive definiteness of the NNGP covariance from feature independence.** If the
 features `w ↦ φ(w ⬝ᵥ X α)` are linearly independent modulo Gaussian-null sets -- no nontrivial
-combination `∑ α, u α * φ (w ⬝ᵥ X α)` vanishes `gaussianRowMeasure d`-almost everywhere -- then
+combination `∑ α, u α * φ (w ⬝ᵥ X α)` vanishes `𝒩(0, I_d)`-almost everywhere -- then
 `limitingCovariance φ X` is positive definite. The argument is the quadratic-form identity
 `u ⬝ᵥ Φ u = 𝔼[(∑ α, u α φ(w ⬝ᵥ X α))²]`, which is positive as soon as the square is not
 a.e. zero. -/
@@ -783,7 +785,7 @@ theorem fullNTKMatrix_scaled_dataset_tendsto_limitingFullNTKMatrix {m d : ℕ} (
 section FullNTKConcentration
 
 /-- Uncentered second moment of the full activation-plus-derivative NTK summand under
-`singleNeuronMeasure d`. Hides the bivariate Gaussian integral over hidden weight and readout
+`𝒩(0, I_d) ⊗ 𝒩(0,1)`. Hides the bivariate Gaussian integral over hidden weight and readout
 parameters `(w, a)`.
 
 This moment is the core quantitative constant in:

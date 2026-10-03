@@ -356,7 +356,7 @@ lemma dotProduct_eq_inner_toLp (x y : Fin d → ℝ) :
   rw [EuclideanSpace.inner_toLp_toLp]
   simp [dotProduct]
 
-/-- Pushforward of `gaussianRowMeasure` by the linear functional `w ↦ wᵀx` is a 1D Gaussian
+/-- Pushforward of `𝒩(0, I_d)` by the linear functional `w ↦ wᵀx` is a 1D Gaussian
 with mean `0` and variance `xᵀx`. -/
 lemma map_gaussianRowMeasure_dotProduct (x : Fin d → ℝ) :
     Measure.map (fun w => w ⬝ᵥ x) (Measure.pi fun _ : Fin d => gaussianReal 0 1) =

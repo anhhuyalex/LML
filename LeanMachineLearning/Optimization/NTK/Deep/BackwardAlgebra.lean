@@ -15,10 +15,13 @@ Pure finite-dimensional identities and inequalities used in the decoupling appro
 
 Normalized pairings of vectors in `ℝⁿ` (`n⁻¹ ∑ⱼ …`):
 
-* `wcov f g a b = n⁻¹ ∑ⱼ fⱼ gⱼ aⱼ bⱼ` and `wsq f a = n⁻¹ ∑ⱼ fⱼ² aⱼ²`;
-* `wcov_sq_le`: Cauchy–Schwarz `wcov f g a b ² ≤ wsq f a · wsq g b`;
+* the weighted pairing `n⁻¹ ∑ⱼ fⱼ gⱼ aⱼ bⱼ` (written `𝔼 j, f j * g j * (a j * b j)`) and the
+weighted
+  mean square `n⁻¹ ∑ⱼ fⱼ² aⱼ²`, both Mathlib `Finset.expect` averages over `Fin n`;
+* `wcov_sq_le`: Cauchy–Schwarz `(n⁻¹ ∑ⱼ fⱼ gⱼ aⱼ bⱼ)² ≤ (n⁻¹ ∑ⱼ fⱼ² aⱼ²)(n⁻¹ ∑ⱼ gⱼ² bⱼ²)`;
 * `wcov_sub_sq_le`: if `s = x + y`, `s' = x' + y'` then
-  `(wcov s s' − wcov y y')² ≤ 3 (N_f(x) N_g(x') + N_f(x) N_g(y') + N_f(y) N_g(x'))`.
+  `(⟨s, s'⟩ − ⟨y, y'⟩)² ≤ 3 (N_f(x) N_g(x') + N_f(x) N_g(y') + N_f(y) N_g(x'))`, where
+  `⟨a, b⟩ = n⁻¹ ∑ⱼ fⱼ gⱼ aⱼ bⱼ` and `N_f(a) = n⁻¹ ∑ⱼ fⱼ² aⱼ²`.
 
 The projected part of a back-propagated vector (`Vᵀ u = Φ c + (V Pᗮ)ᵀ u`, see
 `transpose_mulVec_eq_gramProjector_add`) in normalized form: with `Σ̂ = n⁻¹ ΦᵀΦ`,
@@ -214,7 +217,7 @@ lemma wcov_smul_transpose_mulVec (f g u v : Fin n → ℝ) (W : Matrix (Fin n) (
   rw [← mul_assoc, ← mul_inv]
   ring_nf
 
-/-- `n⁻¹ ‖h ⊙ f‖² ≤ (avg4 h + avg4 f) / 2` (AM–GM). -/
+/-- `n⁻¹ ‖h ⊙ f‖² ≤ (n⁻¹ ∑ⱼ hⱼ⁴ + n⁻¹ ∑ⱼ fⱼ⁴) / 2` (AM–GM). -/
 lemma avg_sq_mul_le_avg4 (h f : Fin n → ℝ) :
     (n : ℝ)⁻¹ * ((fun j => h j * f j) ⬝ᵥ (fun j => h j * f j)) ≤ ((𝔼 j, h j ^ 4) + (𝔼 j, f j ^ 4)) / 2 := by
   simp only [expect_fin_eq_inv_mul_sum, dotProduct]

@@ -16,7 +16,7 @@ public import LeanMachineLearning.Optimization.NTK.Foundations.TendstoInMeasureU
 Sequence-level (`n → ∞`) versions of the conditional Chebyshev bounds of
 `Initialization/GaussianConditioning.lean`, stated over an arbitrary probability space `(Ω, μ)`
 equipped, for each width `n`, with a measure-preserving coordinate map
-`Ψ n : Ω → Z × (Fin n → Fin n → ℝ)` onto `ρ.prod (gaussianInit n n)` (past `z ∈ Z`, Gaussian layer
+`Ψ n : Ω → Z × (Fin n → Fin n → ℝ)` onto `ρ.prod (𝒩(0,1)^{n×n})` (past `z ∈ Z`, Gaussian layer
 `V`). The projector is the Gram projector `P = gramProjector (Φ n z)` of past features.
 
 * `tendsto_residualQuadForm`: for vectors `u, v` depending on `(V P, z)` and a past-measurable

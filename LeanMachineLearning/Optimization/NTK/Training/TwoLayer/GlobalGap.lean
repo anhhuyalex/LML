@@ -52,7 +52,7 @@ satisfies a strictly positive spectral gap:
   `λ_min(limitingFullNTKMatrix φ X) = lambda_inf > 0`.
 
 Then for any fixed confidence `δ ∈ (0, 1)`, there exist `N : ℕ` and `C > 0` such that for all
-`n ≥ N`, with probability at least `1 - δ` under `initMeasure n d`:
+`n ≥ N`, with probability at least `1 - δ` under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`:
 1. **Uniform Spectral Gap**: For all `t ≥ 0`, `λ_min(K_n(t)) ≥ lambda_inf / 2`.
 2. **Uniform Kernel Freeze**: For all `t ≥ 0`:
    `‖K_n(t) - K_n(0)‖ ≤ C * √(log n / n)` in the Frobenius norm.
@@ -76,7 +76,7 @@ By path continuity of the gradient flow trajectory `t ↦ θ n p t` and continui
 matrix operations, residual, and MSE loss, each uniform-over-time condition `∀ t ≥ 0, ...`
 is equivalent to the countable intersection over non-negative rationals `t ∈ ℚ, 0 ≤ t`.
 Because each fixed-time evaluation is measurable from trajectory measurability (`hθ_meas`),
-the uniform-time intersection event is measurable under `initMeasure n d`.
+the uniform-time intersection event is measurable under `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 
 **Commented Formal Lean Signature**:
 ```lean
@@ -90,12 +90,12 @@ theorem global_positive_gap_lazy_training_limit
     (hK_gap : Matrix.PosSemidef (limitingFullNTKMatrix φ X - lambda_inf • 1))
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (initMeasure n d))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+    (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) (𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)))
+    (hθ_flow : ∀ n, ∀ᵐ p ∂(𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     ∀ δ ∈ Set.Ioo (0 : ℝ) 1, ∃ (N : ℕ) (C : ℝ), 0 < C ∧ ∀ n ≥ N,
-      (initMeasure n d) {p |
+      (𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)) {p |
         (∀ t ≥ 0, Matrix.PosSemidef
           (empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) - (lambda_inf / 2) • 1)) ∧

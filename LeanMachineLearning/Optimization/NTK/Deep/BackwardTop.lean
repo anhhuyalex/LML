@@ -24,7 +24,7 @@ At `ℓ = d - 1` the sensitivity is `g_{d-1} = W_d ⊙ φ'(h_{d-1})` with an ind
 public section
 
 open MeasureTheory ProbabilityTheory Filter Matrix
-open scoped Matrix
+open scoped Matrix BigOperators
 
 namespace NTK
 
@@ -90,8 +90,9 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
     have hc2' := hF4 (fun n ω => (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a) j ^ 4))
       c2 (fun n => measurable_avg4 fun j =>
         hφ'm.comp ((measurable_netPre hφm X n ⟨d - 1, by omega⟩ a j).comp (hmeas0 n)))
-      (fun n ω => (congrArg (𝔼 j, (netDeriv_deepParams_readout (φ := φ) (φ' := φ') X n ω
-        (fun _ => 0) ⟨d - 1, by omega⟩ a) j ^ 4)).symm) hc2
+      (fun n ω => (congrArg (fun v : Fin n → ℝ => 𝔼 j, v j ^ 4)
+        (netDeriv_deepParams_readout (φ := φ) (φ' := φ') X n ω
+          (fun _ => 0) ⟨d - 1, by omega⟩ a)).symm) hc2
     refine ⟨fun n w => ((𝔼 j, (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (w, fun _ => 0))
         ⟨d - 1, by omega⟩ b) j ^ 4) + (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n (w, fun _ => 0))
           ⟨d - 1, by omega⟩ a) j ^ 4)) / 2, (c1 + c2) / 2, fun n w => ?_,

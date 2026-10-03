@@ -68,7 +68,8 @@ private lemma abs_unpackA_le_of_displacement {n d : ℕ}
   constructor <;> linarith
 
 /-- **Gaussian-initialization good event for the kernel-freeze bound.** There is a measurable event
-`E` of `initMeasure n d`-probability `≥ 1 - 2δ` on which both the initial Jacobian norm and every
+`E` of `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`-probability `≥ 1 - 2δ` on which both the initial Jacobian norm
+and every
 readout weight are controlled (Gap 3's Jacobian-norm concentration and Gap 4b's entrywise
 readout-weight concentration, combined by a union bound). Deterministic consequences of membership
 in `E` are in `freeze_bound_of_initial_jacobian_and_readout_bounds`. -/

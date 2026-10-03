@@ -27,7 +27,7 @@ Algebraic facts about jointly Gaussian vectors used by the conditional-normality
 * Proposition 2.10: for a matrix `W` with i.i.d. standard Gaussian entries, the row-indexed
   family `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v)` consists of `n` i.i.d. copies of Proposition 2.9's
   bivariate Gaussian (`NTK.gaussianMatrix_mulVec_pair`), proved by pushing the row-product
-  measure `gaussianInit n n` forward row-by-row via `Measure.pi_map_pi`.
+  measure `𝒩(0,1)^{n×n}` forward row-by-row via `Measure.pi_map_pi`.
 * Propositions 2.9' and 2.10': the direct `Fin m`-indexed generalizations of Propositions 2.9
   and 2.10 from a fixed pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`
   (`NTK.stdGaussian_inner_family`, `NTK.gaussianMatrix_mulVec_family`), proved by the same
@@ -106,7 +106,7 @@ theorem gaussian_map_mulVec {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Finty
   rw [h_mean, h_quad]
 
 /-- **Proposition 2.9 (Inner Products with a Standard Gaussian Vector)**:
-For `g ~ 𝒩(0, I_n)` (`gaussianReadoutMeasure n`) and fixed deterministic vectors `u v : Fin n → ℝ`,
+For `g ~ 𝒩(0, I_n)` (`𝒩(0, I_n)`) and fixed deterministic vectors `u v : Fin n → ℝ`,
 the joint law of the pair of projections `(⟪g,u⟫, ⟪g,v⟫) = (g ⬝ᵥ u, g ⬝ᵥ v)` is the bivariate
 Gaussian with covariance matrix `!![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v]`. -/
 theorem stdGaussian_inner_pair (n : ℕ) (u v : Fin n → ℝ) :
@@ -140,7 +140,7 @@ theorem stdGaussian_inner_pair (n : ℕ) (u v : Fin n → ℝ) :
   simp
 
 /-- **Proposition 2.10 (Matrix-Vector Multiplication by a Gaussian Matrix)**:
-For `W : Fin n → Fin n → ℝ` with i.i.d. standard Gaussian entries (`gaussianInit n n`) and fixed
+For `W : Fin n → Fin n → ℝ` with i.i.d. standard Gaussian entries (`𝒩(0,1)^{n×n}`) and fixed
 deterministic vectors `u v : Fin n → ℝ`, the joint law of the row-indexed pairs
 `i ↦ (W i ⬝ᵥ u, W i ⬝ᵥ v) = i ↦ ((W *ᵥ u) i, (W *ᵥ v) i)` consists of `n` i.i.d. copies of the
 bivariate Gaussian from Proposition 2.9, i.e. the block/Kronecker-structured covariance
@@ -208,7 +208,7 @@ theorem stdGaussian_inner_family (n m : ℕ) (u : Fin m → Fin n → ℝ) :
 /-- **Proposition 2.10' (Matrix-Vector Multiplication by a Gaussian Matrix, `Fin m`-Family)**:
 The `Fin m`-indexed generalization of Proposition 2.10 (`gaussianMatrix_mulVec_pair`) from a fixed
 pair of vectors to a fixed family `u : Fin m → Fin n → ℝ`. For `W : Fin r → Fin n → ℝ` with i.i.d.
-standard Gaussian rows (`gaussianInit r n`), the row-indexed family
+standard Gaussian rows (`𝒩(0,1)^{r×n}`), the row-indexed family
 `i ↦ (α ↦ W i ⬝ᵥ u α) : Fin r → EuclideanSpace ℝ (Fin m)` consists of `r` i.i.d. copies of
 Proposition 2.9''s `m`-variate Gaussian with covariance `(α, β) ↦ u α ⬝ᵥ u β`. -/
 theorem gaussianMatrix_mulVec_family (n r m : ℕ) (u : Fin m → Fin n → ℝ) :

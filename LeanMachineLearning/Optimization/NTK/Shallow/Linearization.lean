@@ -345,7 +345,7 @@ noncomputable def dotMap {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →ₗ[
 noncomputable def dotCLM {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →L[ℝ] ℝ :=
   LinearMap.toContinuousLinearMap (dotMap x)
 
-/-- The pushforward of `gaussianRowMeasure d` by `w ↦ ∑ k, w k * x k` is a centred 1D Gaussian with
+/-- The pushforward of `𝒩(0, I_d)` by `w ↦ ∑ k, w k * x k` is a centred 1D Gaussian with
 variance `x ⬝ᵥ x`. This is `map_gaussianRowMeasure_dotProduct` with the dot product written out. -/
 lemma map_gaussianRowMeasure_dot {d : ℕ} (x : Fin d → ℝ) :
     Measure.map (fun w => ∑ k, w k * x k) (Measure.pi fun _ : Fin d => gaussianReal 0 1) =
@@ -530,7 +530,7 @@ lemma hoeffding_indicators_pi
     linarith
   exact (measureReal_mono h_subset).trans h_hoeffding
 
--- Bound 1 - δ ≤ (gaussianInit m d).real {W₀ | P W₀} when P holds for all W₀
+-- Bound 1 - δ ≤ (𝒩(0,1)^{m×d}).real {W₀ | P W₀} when P holds for all W₀
 private lemma measure_ge_one_sub_delta_of_univ
     {m d : ℕ} {δ : ℝ} (hδ : 0 < δ)
     {P : (Fin m → Fin d → ℝ) → Prop}

@@ -99,7 +99,8 @@ lemma tendstoInMeasure_half_sum {A₁ A₂ : ℕ → Ω → ℝ} {c₁ c₂ : �
   convert h using 2
   ring
 
-/-- The normalized fourth-moment bound `(avg4 f + avg4 g + avg4 a + avg4 b) / 4` of a weighted Gram
+/-- The normalized fourth-moment bound `(n⁻¹ ∑ⱼ fⱼ⁴ + n⁻¹ ∑ⱼ gⱼ⁴ + n⁻¹ ∑ⱼ aⱼ⁴ + n⁻¹ ∑ⱼ bⱼ⁴) / 4` of
+a weighted Gram
 entry converges when its four ingredients do. -/
 lemma tendstoInMeasure_quarter_sum {A₁ A₂ A₃ A₄ : ℕ → Ω → ℝ} {c₁ c₂ c₃ c₄ : ℝ}
     (h₁ : TendstoInMeasure μ A₁ atTop (fun _ => c₁))
