@@ -786,22 +786,23 @@ For constants $c,C,\varepsilon$: $c/\sqrt n\to0$ and $C/(\varepsilon^2n)\to0$ as
 \end{theorem}
 
 \begin{proof}
+  \uses{thm:ntkgf:kernelLipschitz, thm:ntkgf:displacementBound, thm:ntkgf:lazyDisplacement, lem:ntkgf:limits}
   \leanok
-(1) is the Lipschitz bound composed with the displacement bound; (2) is Theorem~\ref{thm:ntkgf:kernelLipschitz}; (3) follows from (1) and Lemma~\ref{lem:ntkgf:limits}.
+(1) is the Lipschitz bound composed with the displacement bound: the Lipschitz property of the kernel in the parameters (the kind of estimate given by Theorem~\ref{thm:ntkgf:kernelLipschitz}) turns $\|\theta(t)-\theta_0\|\le C/\sqrt n$ into $\|K(\theta(t))-K(\theta_0)\|\le L_K\|\theta(t)-\theta_0\|\le L_KC/\sqrt n$, and the displacement bound is the hypothesis that Theorems~\ref{thm:ntkgf:displacementBound} and~\ref{thm:ntkgf:lazyDisplacement} establish for the gradient flow. (2) is Theorem~\ref{thm:ntkgf:kernelLipschitz}; (3) follows from (1) and Lemma~\ref{lem:ntkgf:limits}.
 \end{proof}
 
 \begin{theorem}[Deterministic initialization]\label{thm:ntkgf:deterministicInit}
-  \uses{def:ntk:shallowLimitingNTK, lem:ntk:ntkConverges, thm:ntkf:slln, lem:ntkf:chebyshev}
+  \uses{def:ntk:shallowEmpiricalNTK, lem:ntkhelp:symmetryPsd, lem:ntkhelp:frobGradient, def:ntk:shallowLimitingNTK, lem:ntk:ntkConverges, thm:ntkf:slln, lem:ntkf:chebyshev}
   \lean{NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae,
         NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae,
         NTK.deterministic_initialization_chebyshev_bound}
   \leanok
-Let $\sigma'$ be measurable and bounded, and rows $w_0,w_1,\dots$ i.i.d.\ $\mathcal N(0,I_d)$. Almost surely the empirical kernel built from the first $n$ rows converges to the limiting NTK entrywise,
-$k_n(x,x')\to k_\infty(x,x')$, and for a finite dataset the empirical Gram matrix converges entrywise to $\bigl(k_\infty(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$.
+Let $\sigma'$ be measurable and bounded, and rows $w_0,w_1,\dots$ i.i.d.\ $\mathcal N(0,I_d)$. Almost surely the empirical kernel $k_n(x,x')$ built from the first $n$ rows (Definition~\ref{def:ntk:shallowEmpiricalNTK}) converges to the limiting NTK $k_\infty(x,x')$ (Definition~\ref{def:ntk:shallowLimitingNTK}) entrywise, and for a finite dataset the empirical Gram matrix $\bigl(k_n(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$ (the matrix of Lemma~\ref{lem:ntkhelp:symmetryPsd}(2), a Gram matrix of gradients by Lemma~\ref{lem:ntkhelp:frobGradient}) converges entrywise to $\bigl(k_\infty(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$.
 Quantitatively, if $k_n(x,x')\in L^2$ and $\operatorname{Var}(k_n(x,x'))\le C/n$, then for every $\varepsilon>0$
 \[
-  \Pr\bigl[\,|k_n(x,x')-\mathbb E k_n(x,x')|\ge\varepsilon\,\bigr]\le\frac{C}{\varepsilon^2n}.
+  \Pr\Bigl[\,\bigl|k_n(x,x')-\mathbb E_{w_0,\dots,w_{n-1}}\bigl[k_n(x,x')\bigr]\bigr|\ge\varepsilon\,\Bigr]\le\frac{C}{\varepsilon^2n},
 \]
+where $\mathbb E_{w_0,\dots,w_{n-1}}$ is the expectation over the $n$ i.i.d.\ Gaussian rows $w_0,\dots,w_{n-1}\sim\mathcal N(0,I_d)$ that define $k_n$ (the inputs $x,x'$ are fixed), and $\Pr$ is the probability over the same rows.
 \end{theorem}
 
 \begin{proof}
@@ -810,6 +811,30 @@ Quantitatively, if $k_n(x,x')\in L^2$ and $\operatorname{Var}(k_n(x,x'))\le C/n$
 The almost sure statements are Lemma~\ref{lem:ntk:ntkConverges} applied entrywise (finitely many entries, so ``almost surely for each'' implies ``almost surely for all''). The tail bound is Chebyshev's inequality
 (Lemma~\ref{lem:ntkf:chebyshev}) with the assumed variance bound.
 \end{proof}
+
+\begin{remark}[Role of this section in the NTK development]\label{rmk:ntkgf:infiniteWidthRole}
+  \uses{thm:ntkgf:kernelFreeze, thm:ntkgf:deterministicInit, lem:ntkgf:limits, thm:ntkgf:kernelLipschitz}
+\emph{Main results.} The previous section is deterministic: for one network it bounds how far the kernel moves in terms of the displacement of the parameters. This section adds the width $n$ and shows the two halves of the infinite-width limit.
+\begin{itemize}
+  \item \emph{The kernel does not move} (Theorem~\ref{thm:ntkgf:kernelFreeze}). If the displacement is $O(n^{-1/2})$ and the kernel is Lipschitz in the parameters, then $\|K(\theta(t))-K(\theta_0)\|\le L_KC/\sqrt n\to0$ for every $t\ge0$. Part~(2) is the version used when the width decay sits on the Jacobian Lipschitz constant $L_J$ rather than on the displacement.
+  \item \emph{The initial kernel converges} (Theorem~\ref{thm:ntkgf:deterministicInit}). At random initialization the empirical kernel $k_n$ converges almost surely to the deterministic limiting NTK $k_\infty$, with a Chebyshev tail bound of order $C/(\varepsilon^2n)$.
+\end{itemize}
+Together they say that a wide network trains with a kernel that starts near $K_\infty$ and stays there, which is exactly the frozen-kernel hypothesis of the closed-form dynamics.
+
+\emph{What it builds on.}
+\begin{itemize}
+  \item Kernel constancy is the Lipschitz propagation of Theorem~\ref{thm:ntkgf:kernelLipschitz} combined with a displacement bound from the lazy-training section (Theorems~\ref{thm:ntkgf:displacementBound} and~\ref{thm:ntkgf:lazyDisplacement}). Lemma~\ref{lem:ntkgf:limits} supplies the elementary limits $c/\sqrt n\to0$ and $C/(\varepsilon^2n)\to0$.
+  \item Deterministic initialization is the strong law of large numbers and Chebyshev's inequality (Theorem~\ref{thm:ntkf:slln}, Lemma~\ref{lem:ntkf:chebyshev}) applied to the empirical NTK of the shallow network (Definition~\ref{def:ntk:shallowEmpiricalNTK}, Lemma~\ref{lem:ntk:ntkConverges}). The dataset-level Gram matrix is the one of Lemma~\ref{lem:ntkhelp:symmetryPsd}(2).
+  \item Both statements concern the objects of the gradient-flow chapter, but neither uses the dynamics: kernel constancy takes the displacement bound as a hypothesis, and initialization only concerns the law of $\theta_0$.
+\end{itemize}
+
+\emph{What it is used for.} The results here are stated for a generic family of models. They are the template that the two-layer chapter instantiates with probabilities and explicit constants.
+\begin{itemize}
+  \item The convergence of the initial kernel is made quantitative for the two-layer network in Theorems~\ref{thm:ntktl:ntkLLN} and~\ref{thm:ntktl:ntkChebyshev}. The Chebyshev bound is what turns $K_n(0)\to K_\infty$ into an initial spectral gap with high probability (Theorem~\ref{thm:ntktl:spectralGapInit}), the input needed by the gap case of the lazy-training section.
+  \item Kernel constancy is proved for Gaussian initialization with all hypotheses discharged in Theorem~\ref{thm:ntktl:kernelFreezeGaussian}, and the rate $O(n^{-1/2})$ is obtained from a moment bound on a single neuron in Theorems~\ref{thm:ntktl:driftRate} and~\ref{thm:ntktl:globalEventInvSqrt}.
+  \item Both limits feed the comparison with the frozen-kernel dynamics: $K_n(0)\to K_\infty$ fixes the reference curve $\exp(-\frac tmK_\infty)r_0$, and kernel constancy supplies the small $\varepsilon_K$ in Theorem~\ref{thm:ntkgf:residualFrozen}. The next sections solve the frozen dynamics in the fixed-feature setting (Theorem~\ref{thm:ntkgf:affineFlow}) and compare test-point predictions (Theorem~\ref{thm:ntkgf:predictionError}).
+\end{itemize}
+\end{remark}
 
 
 \section{Fixed-feature (affine) dynamics and the minimum-norm interpolant}\label{sec:ntkgf:affine}
