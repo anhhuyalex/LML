@@ -401,56 +401,49 @@ theorem _root_.IsStarProjection.transpose_eq {p : Type*} [Fintype p] {P : Matrix
     (hP : IsStarProjection P) : Pᵀ = P :=
   ((isStarProjection_matrix_real_iff P).1 hP).1
 
-/-- The complementary orthogonal projector `Pᗮ = I - P`. -/
-def orthogonalComplement {p : Type*} [DecidableEq p]
-    (P : Matrix p p ℝ) : Matrix p p ℝ :=
-  1 - P
-
 /-- The transpose of the complementary projector is itself. -/
 theorem transpose_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
     (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    (orthogonalComplement P)ᵀ = orthogonalComplement P :=
+    (1 - P)ᵀ = (1 - P) :=
   (hP.one_sub).transpose_eq
 
 /-- The complementary projector is idempotent: `(I - P)² = I - P`. -/
 theorem orthogonalComplement_idem {p : Type*} [Fintype p] [DecidableEq p]
     (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    orthogonalComplement P * orthogonalComplement P = orthogonalComplement P :=
+    (1 - P) * (1 - P) = (1 - P) :=
   hP.one_sub.isIdempotentElem.eq
 
 /-- The complement of an orthogonal projection is an orthogonal projection. -/
 theorem orthogonalComplement_isOrthogonalProjection {p : Type*} [Fintype p] [DecidableEq p]
     (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    IsStarProjection (orthogonalComplement P) :=
+    IsStarProjection (1 - P) :=
   hP.one_sub
 
 /-- Orthogonal complement annihilates `P` from the left: `Pᗮ * P = 0`. -/
 theorem mul_orthogonalComplement_self {p : Type*} [Fintype p] [DecidableEq p]
     (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    orthogonalComplement P * P = 0 :=
+    (1 - P) * P = 0 :=
   hP.one_sub_mul_self
 
 /-- Orthogonal complement annihilates `P` from the right: `P * Pᗮ = 0`. -/
 theorem mul_self_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
     (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    P * orthogonalComplement P = 0 :=
+    P * (1 - P) = 0 :=
   hP.mul_one_sub_self
 
 /-- Exact algebraic decomposition of any weight matrix into projected and complementary
 components: `W = W P + W Pᗮ`. -/
 theorem orthogonalDecomposition {n p : Type*} [Fintype p] [DecidableEq p]
     (W : Matrix n p ℝ) (P : Matrix p p ℝ) :
-    W = W * P + W * orthogonalComplement P := by
-  dsimp [orthogonalComplement]
+    W = W * P + W * (1 - P) := by
   rw [Matrix.mul_sub, Matrix.mul_one, add_sub_cancel]
 
 /-- If `P` projects onto the subspace containing the columns of `X` (`P * X = X`), then the
 complementary residual `W * Pᗮ` annihilates `X`: `(W * Pᗮ) * X = 0`. -/
 theorem residual_annihilates {n p q : Type*} [Fintype p] [DecidableEq p]
     (W : Matrix n p ℝ) (P : Matrix p p ℝ) (X : Matrix p q ℝ) (hX : P * X = X) :
-    (W * orthogonalComplement P) * X = 0 := by
-  have h_comp : orthogonalComplement P * X = 0 := by
-    dsimp [orthogonalComplement]
+    (W * (1 - P)) * X = 0 := by
+  have h_comp : (1 - P) * X = 0 := by
     rw [Matrix.sub_mul, Matrix.one_mul, hX, sub_self]
   rw [Matrix.mul_assoc, h_comp, Matrix.mul_zero]
 
@@ -485,11 +478,11 @@ lemma mulVec_dot_self_le {p : Type*} [Fintype p]
     (Q *ᵥ b) ⬝ᵥ (Q *ᵥ b) ≤ b ⬝ᵥ b := by
   classical
   have h1 := mulVec_dot_self_eq Q hQ b
-  have h2 := mulVec_dot_self_eq (orthogonalComplement Q)
+  have h2 := mulVec_dot_self_eq (1 - Q)
     (orthogonalComplement_isOrthogonalProjection Q hQ) b
-  have h3 : (orthogonalComplement Q *ᵥ b) = b - Q *ᵥ b := by
-    simp [orthogonalComplement, Matrix.sub_mulVec]
-  have h4 : 0 ≤ (orthogonalComplement Q *ᵥ b) ⬝ᵥ (orthogonalComplement Q *ᵥ b) :=
+  have h3 : ((1 - Q) *ᵥ b) = b - Q *ᵥ b := by
+    simp [Matrix.sub_mulVec]
+  have h4 : 0 ≤ ((1 - Q) *ᵥ b) ⬝ᵥ ((1 - Q) *ᵥ b) :=
     Finset.sum_nonneg fun i _ => mul_self_nonneg _
   rw [h2, h3] at h4
   simp only [dotProduct_sub] at h4
@@ -532,9 +525,9 @@ lemma trace_compress_projector {p : Type*} [Fintype p] (Q A : Matrix p p ℝ)
 /-- `tr(Pᗮ A Pᗮ) = tr A - tr(A P)`: the mean of the residual Gaussian quadratic form. -/
 lemma trace_compress_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
     (P A : Matrix p p ℝ) (hP : IsStarProjection P) :
-    (orthogonalComplement P * A * orthogonalComplement P).trace = A.trace - (A * P).trace := by
+    ((1 - P) * A * (1 - P)).trace = A.trace - (A * P).trace := by
   rw [trace_compress_projector _ _ (orthogonalComplement_isOrthogonalProjection P hP)]
-  simp only [orthogonalComplement, Matrix.mul_sub, Matrix.mul_one, Matrix.trace_sub]
+  simp only [Matrix.mul_sub, Matrix.mul_one, Matrix.trace_sub]
 
 /-- **Kronecker factorization** of a double sum over a product index set whose summand splits as
 `f x.1 y.1 * g x.2 y.2`. -/

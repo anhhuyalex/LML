@@ -58,7 +58,7 @@ noncomputable def projPart (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d
 noncomputable def resPart (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (a : Fin m) :
     Fin n → ℝ :=
   Real.sqrt ((n : ℝ)⁻¹) •
-    ((θ.Wh ⟨k, by omega⟩ * orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩)))ᵀ *ᵥ
+    ((θ.Wh ⟨k, by omega⟩ * (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩)))ᵀ *ᵥ
       backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a)
 
 /-- **Decomposition of the hidden sensitivity.** If `Σ̂` is invertible, then
@@ -121,11 +121,11 @@ lemma wcov_resPart_eq (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (a 
         (resPart φ φ' X θ k hk a) (resPart φ φ' X θ k hk b) =
       ((n : ℝ) ^ 2)⁻¹ * (backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a ⬝ᵥ
         (((θ.Wh ⟨k, by omega⟩ *
-              orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩))) *
+              (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩))) *
             Matrix.diagonal (fun j => netDeriv φ φ' X θ ⟨k, by omega⟩ a j *
               netDeriv φ φ' X θ ⟨k, by omega⟩ b j) *
           (θ.Wh ⟨k, by omega⟩ *
-              orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩)))ᵀ) *ᵥ
+              (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩)))ᵀ) *ᵥ
           backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ b)) :=
   wcov_smul_transpose_mulVec _ _ _ _ _ _ (Real.sq_sqrt (by positivity))
 
@@ -136,10 +136,10 @@ lemma resid_mean_eq (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (hn :
     (hS : IsUnit (netGram φ X θ ⟨k, by omega⟩).det) (a b : Fin m) :
     ((n : ℝ) ^ 2)⁻¹ * ((backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a ⬝ᵥ
         backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ b) *
-      (orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩)) *
+      ((1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩)) *
         Matrix.diagonal (fun j => netDeriv φ φ' X θ ⟨k, by omega⟩ a j *
           netDeriv φ φ' X θ ⟨k, by omega⟩ b j) *
-        orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩))).trace) =
+        (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩))).trace) =
       deepSensitivityGram d n0 n m φ φ' X θ ⟨k + 1, by omega⟩ a b *
         deepDerivativeGram d n0 n m φ φ' X θ ⟨k, by omega⟩ a b -
       deepSensitivityGram d n0 n m φ φ' X θ ⟨k + 1, by omega⟩ a b *
@@ -173,12 +173,12 @@ lemma gradIndep_decomp (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (h
       ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
         (backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a ⬝ᵥ
           ((θ.Wh ⟨k, by omega⟩ *
-              orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩))) *ᵥ
+              (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩))) *ᵥ
             fun j => deepMLPPreactivation d n0 n m φ X θ ⟨k, by omega⟩ c j *
               netDeriv φ φ' X θ ⟨k, by omega⟩ a j)) := by
   unfold gradIndep
   rw [backwardSensitivity_hidden_decomp φ φ' X θ k hk hn hS a]
-  set W := θ.Wh ⟨k, by omega⟩ * orthogonalComplement (gramProjector (netFeat φ X θ ⟨k, by omega⟩))
+  set W := θ.Wh ⟨k, by omega⟩ * (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩))
     with hW
   set u := backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a with hu
   set b : Fin n → ℝ := fun j => deepMLPPreactivation d n0 n m φ X θ ⟨k, by omega⟩ c j *
@@ -530,17 +530,17 @@ noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : Deep
   let q := splitPt (d := d) n k hk ω
   ((n : ℝ) ^ 2)⁻¹ *
         (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
-          ((Matrix.of q.2 * orthogonalComplement (gramProjector (pastFeat φ X n k hk q.1)) *
+          ((Matrix.of q.2 * (1 - gramProjector (pastFeat φ X n k hk q.1)) *
               Matrix.diagonal (fun j => netDeriv φ φ' X (deepParams d n0 n q.1) ⟨k, by omega⟩ a j *
                 netDeriv φ φ' X (deepParams d n0 n q.1) ⟨k, by omega⟩ b j) *
-            (Matrix.of q.2 * orthogonalComplement (gramProjector (pastFeat φ X n k hk q.1)))ᵀ) *ᵥ
+            (Matrix.of q.2 * (1 - gramProjector (pastFeat φ X n k hk q.1)))ᵀ) *ᵥ
             atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk b) q)) -
       ((n : ℝ) ^ 2)⁻¹ * ((atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
           atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk b) q) *
-        (orthogonalComplement (gramProjector (pastFeat φ X n k hk q.1)) *
+        ((1 - gramProjector (pastFeat φ X n k hk q.1)) *
           Matrix.diagonal (fun j => netDeriv φ φ' X (deepParams d n0 n q.1) ⟨k, by omega⟩ a j *
             netDeriv φ φ' X (deepParams d n0 n q.1) ⟨k, by omega⟩ b j) *
-          orthogonalComplement (gramProjector (pastFeat φ X n k hk q.1))).trace)
+          (1 - gramProjector (pastFeat φ X n k hk q.1))).trace)
 
 /-- At a point where `Σ̂` is invertible, `residAbs` is the network quantity
 `wcov(φ'(h^a), φ'(h^b); y^a, y^b)` minus the conditional mean. -/
@@ -553,11 +553,10 @@ lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : DeepS
         (resPart φ φ' X (deepParams d n0 n ω) k hk b) -
       ((n : ℝ) ^ 2)⁻¹ * ((backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a ⬝ᵥ
           backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ b) *
-        (orthogonalComplement (gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩)) *
+        ((1 - gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩)) *
           Matrix.diagonal (fun j => netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a j *
             netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ b j) *
-          orthogonalComplement
-            (gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩))).trace) := by
+          (1 - gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩))).trace) := by
   have hua := atProj_nextSens_eq φ φ' X n k hk ω a hS
   have hub := atProj_nextSens_eq φ φ' X n k hk ω b hS
   have hΦ : pastFeat φ X n k hk (zeroLayer ((⟨k + 1, hk⟩ : Fin d)) ω) =
@@ -584,7 +583,7 @@ noncomputable def linAbs (n k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : DeepSp
   let q := splitPt (d := d) n k hk ω
   ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
     (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
-      ((Matrix.of q.2 * orthogonalComplement (gramProjector (pastFeat φ X n k hk q.1))) *ᵥ
+      ((Matrix.of q.2 * (1 - gramProjector (pastFeat φ X n k hk q.1))) *ᵥ
         fun j => deepMLPPreactivation d n0 n m φ X (deepParams d n0 n q.1) ⟨k, by omega⟩ c j *
           netDeriv φ φ' X (deepParams d n0 n q.1) ⟨k, by omega⟩ a j))
 
@@ -596,8 +595,7 @@ lemma linAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : DeepSpa
       ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
         (backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a ⬝ᵥ
           (((deepParams d n0 n ω).Wh ⟨k, by omega⟩ *
-              orthogonalComplement
-                (gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩))) *ᵥ
+              (1 - gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩))) *ᵥ
             fun j => deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c j *
               netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a j)) := by
   have hua := atProj_nextSens_eq φ φ' X n k hk ω a hS

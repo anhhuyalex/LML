@@ -81,9 +81,9 @@ section orthogonal
 variable {Ω : Type*} [MeasurableSpace Ω]
 
 lemma measurable_orthogonalComplement {p : ℕ} {P : Ω → Matrix (Fin p) (Fin p) ℝ}
-    (hP : Measurable P) : Measurable fun a => orthogonalComplement (P a) := by
+    (hP : Measurable P) : Measurable fun a => (1 - P a) := by
   refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
-  simp only [orthogonalComplement, Matrix.sub_apply]
+  simp only [Matrix.sub_apply]
   exact measurable_const.sub (measurable_matrix_entry hP i j)
 
 end orthogonal

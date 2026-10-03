@@ -798,7 +798,6 @@ NTK.integral_conditional_deepOutput_eq_zero
 NTK.cov_conditional_deepOutput_eq_covariance
 NTK.isStarProjection_matrix_real_iff
 IsStarProjection.transpose_eq
-NTK.orthogonalComplement
 NTK.transpose_orthogonalComplement
 NTK.orthogonalComplement_idem
 NTK.orthogonalComplement_isOrthogonalProjection

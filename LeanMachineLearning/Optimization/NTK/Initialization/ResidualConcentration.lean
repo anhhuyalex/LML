@@ -103,13 +103,13 @@ theorem tendsto_residualQuadForm (μ : Measure Ω) [IsProbabilityMeasure μ] (ρ
     {ε : ℝ} (hε : 0 < ε) :
     Tendsto (fun n : ℕ => μ {ω | ε ≤ |((n : ℝ) ^ 2)⁻¹ *
         (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ
-          ((Matrix.of (Ψ n ω).2 * orthogonalComplement (gramProjector (Φ n (Ψ n ω).1)) *
+          ((Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1)) *
               A n (Ψ n ω).1 *
-            (Matrix.of (Ψ n ω).2 * orthogonalComplement (gramProjector (Φ n (Ψ n ω).1)))ᵀ) *ᵥ
+            (Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1)))ᵀ) *ᵥ
             atProj (Φ n) (v n) (Ψ n ω))) -
       ((n : ℝ) ^ 2)⁻¹ * ((atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ atProj (Φ n) (v n) (Ψ n ω)) *
-        (orthogonalComplement (gramProjector (Φ n (Ψ n ω).1)) * A n (Ψ n ω).1 *
-          orthogonalComplement (gramProjector (Φ n (Ψ n ω).1))).trace)|})
+        ((1 - gramProjector (Φ n (Ψ n ω).1)) * A n (Ψ n ω).1 *
+          (1 - gramProjector (Φ n (Ψ n ω).1))).trace)|})
       atTop (nhds 0) := by
   classical
   obtain ⟨Bu, cu, hBu, hBuc⟩ := hcu
@@ -152,13 +152,13 @@ theorem tendsto_residualQuadForm (μ : Measure Ω) [IsProbabilityMeasure μ] (ρ
       (inv_nonneg.2 (Nat.cast_nonneg n))) (by positivity)
   have hmain : ∀ n : ℕ, 0 < n → μ {ω | ε ≤ |((n : ℝ) ^ 2)⁻¹ *
         (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ
-          ((Matrix.of (Ψ n ω).2 * orthogonalComplement (gramProjector (Φ n (Ψ n ω).1)) *
+          ((Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1)) *
               A n (Ψ n ω).1 *
-            (Matrix.of (Ψ n ω).2 * orthogonalComplement (gramProjector (Φ n (Ψ n ω).1)))ᵀ) *ᵥ
+            (Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1)))ᵀ) *ᵥ
             atProj (Φ n) (v n) (Ψ n ω))) -
       ((n : ℝ) ^ 2)⁻¹ * ((atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ atProj (Φ n) (v n) (Ψ n ω)) *
-        (orthogonalComplement (gramProjector (Φ n (Ψ n ω).1)) * A n (Ψ n ω).1 *
-          orthogonalComplement (gramProjector (Φ n (Ψ n ω).1))).trace)|} ≤
+        ((1 - gramProjector (Φ n (Ψ n ω).1)) * A n (Ψ n ω).1 *
+          (1 - gramProjector (Φ n (Ψ n ω).1))).trace)|} ≤
       ∫⁻ ω, min 1 (ENNReal.ofReal ((2 * (ε ^ 2)⁻¹) *
         ((n : ℝ)⁻¹ * (Bu n ω * Bv n ω * BA n ω)))) ∂μ := by
     intro n hn
@@ -206,7 +206,7 @@ theorem tendsto_residualLinearForm (μ : Measure Ω) [IsProbabilityMeasure μ] (
     {ε : ℝ} (hε : 0 < ε) :
     Tendsto (fun n : ℕ => μ {ω | ε ≤ |((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
         (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ
-          ((Matrix.of (Ψ n ω).2 * orthogonalComplement (gramProjector (Φ n (Ψ n ω).1))) *ᵥ
+          ((Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1))) *ᵥ
             b n (Ψ n ω).1))|})
       atTop (nhds 0) := by
   classical
@@ -241,7 +241,7 @@ theorem tendsto_residualLinearForm (μ : Measure Ω) [IsProbabilityMeasure μ] (
       (inv_nonneg.2 (Nat.cast_nonneg n))) (by positivity)
   have hmain : ∀ n : ℕ, 0 < n → μ {ω | ε ≤ |((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
         (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ
-          ((Matrix.of (Ψ n ω).2 * orthogonalComplement (gramProjector (Φ n (Ψ n ω).1))) *ᵥ
+          ((Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1))) *ᵥ
             b n (Ψ n ω).1))|} ≤
       ∫⁻ ω, min 1 (ENNReal.ofReal (((ε ^ 2)⁻¹) *
         ((n : ℝ)⁻¹ * (Bu n ω * Bb n ω)))) ∂μ := by

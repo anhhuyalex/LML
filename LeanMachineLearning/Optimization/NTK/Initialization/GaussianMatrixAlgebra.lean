@@ -429,18 +429,18 @@ residual `W * Pᗮ` are statistically independent. -/
 theorem indepFun_gaussian_orthogonal_projection (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ)
     (hP : IsStarProjection P) :
     IndepFun (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * P)
-      (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * orthogonalComplement P)
+      (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * (1 - P))
       (gaussianInit n p) := by
-  have hAB : Pᵀ * orthogonalComplement P = 0 := by
+  have hAB : Pᵀ * (1 - P) = 0 := by
     rw [hP.transpose_eq]; exact mul_self_orthogonalComplement P hP
-  exact indepFun_gaussianInit_mul_of_transpose_mul_eq_zero P (orthogonalComplement P) hAB
+  exact indepFun_gaussianInit_mul_of_transpose_mul_eq_zero P (1 - P) hAB
 
 /-- Conditioning identity on the forward activation history:
 When `P * X = X`, the forward outputs `W * X` and the residual `W * Pᗮ` are independent. -/
 theorem indepFun_conditioned_weight_history (n p q : ℕ) (P : Matrix (Fin p) (Fin p) ℝ)
     (hP : IsStarProjection P) (X : Matrix (Fin p) (Fin q) ℝ) (hX : P * X = X) :
     IndepFun (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * X)
-      (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * orthogonalComplement P)
+      (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * (1 - P))
       (gaussianInit n p) := by
   have h_indep := indepFun_gaussian_orthogonal_projection n p P hP
   have h_meas_mul : Measurable (fun M : Matrix (Fin n) (Fin p) ℝ => M * X) := by

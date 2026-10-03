@@ -82,8 +82,8 @@ theorem trace_gramProjector {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m
 /-- The residual projector `Pᗮ` annihilates the features: `Pᗮ Φ = 0`. -/
 theorem orthogonalComplement_gramProjector_mul {n m : Type*} [Fintype n] [Fintype m]
     [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
-    orthogonalComplement (gramProjector Φ) * Φ = 0 := by
-  simp [orthogonalComplement, Matrix.sub_mul, gramProjector_mul_self Φ h]
+    (1 - gramProjector Φ) * Φ = 0 := by
+  simp [Matrix.sub_mul, gramProjector_mul_self Φ h]
 
 /-- For invertible `Φᵀ Φ`, a weight matrix acts on the features only through its projected part:
 `V Φ = (V P) Φ`. -/
@@ -100,12 +100,12 @@ theorem transpose_mulVec_eq_gramProjector_add {k n m : Type*} [Fintype k] [Finty
     [Fintype m] [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (V : Matrix k n ℝ)
     (u : k → ℝ) :
     Vᵀ *ᵥ u = Φ *ᵥ ((Φᵀ * Φ)⁻¹ *ᵥ ((V * Φ)ᵀ *ᵥ u)) +
-      (V * orthogonalComplement (gramProjector Φ))ᵀ *ᵥ u := by
+      (V * (1 - gramProjector Φ))ᵀ *ᵥ u := by
   have hP := gramProjector_transpose Φ
-  have h1 : (V * orthogonalComplement (gramProjector Φ))ᵀ *ᵥ u =
+  have h1 : (V * (1 - gramProjector Φ))ᵀ *ᵥ u =
       Vᵀ *ᵥ u - gramProjector Φ *ᵥ (Vᵀ *ᵥ u) := by
     rw [Matrix.transpose_mul, Matrix.mulVec_mulVec]
-    simp only [orthogonalComplement, Matrix.transpose_sub, Matrix.transpose_one, hP,
+    simp only [Matrix.transpose_sub, Matrix.transpose_one, hP,
       Matrix.sub_mul, Matrix.one_mul, Matrix.sub_mulVec]
   have h2 : gramProjector Φ *ᵥ (Vᵀ *ᵥ u) = Φ *ᵥ ((Φᵀ * Φ)⁻¹ *ᵥ ((V * Φ)ᵀ *ᵥ u)) := by
     unfold gramProjector
