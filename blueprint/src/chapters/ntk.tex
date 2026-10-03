@@ -56,12 +56,13 @@ non-convex but tractable training problem.
 \end{remark}
 
 \begin{definition}[Gaussian random initialization]\label{def:ntk:gaussianInit}
-  \lean{NTK.gaussianInit, NTK.gaussianRowMeasure}
   \leanok
 The \emph{standard Gaussian initialization} is the product probability measure on
 $\mathbb{R}^{m \times d}$ under which the rows $w_1, \ldots, w_m \in \mathbb{R}^d$ are
 drawn i.i.d.\ from $\mathcal{N}(0, I_d)$.
 We write $W_0 \sim \mathcal{N}(0, I_d)^{\otimes m}$ for a draw from this initialization.
+In Lean there is no separate definition: the law is written out as
+\texttt{Measure.pi fun \_ : Fin m => Measure.pi fun \_ : Fin d => gaussianReal 0 1}.
 \end{definition}
 
 \begin{definition}[First-order Taylor linearization]\label{def:ntk:linearization}

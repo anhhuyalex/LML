@@ -65,7 +65,7 @@ The rows of $W$ are i.i.d.\ $\mathcal N(0,I_n)$, so the pushforward of the produ
   \lean{NTK.map_gaussianReadoutMeasure_coord, NTK.iIndepFun_readoutWeights, NTK.map_gaussianInit_row,
         NTK.iIndepFun_inputWeights, NTK.indepFun_input_readout}
   \leanok
-Each readout coordinate $a_i$ has marginal $\gamma$ and the readout weights are mutually independent. Each input row $W_i$ has marginal $\mathcal N(0,I_d)$ and the rows are mutually independent. The family of input weights $W$ is independent of the readout weights $a$ under $\texttt{initMeasure}\;n\;d$.
+Each readout coordinate $a_i$ has marginal $\gamma$ and the readout weights are mutually independent. Each input row $W_i$ has marginal $\mathcal N(0,I_d)$ and the rows are mutually independent. The family of input weights $W$ is independent of the readout weights $a$ under $\mu_{n,d}\;n\;d$.
 \end{lemma}
 
 \begin{proof}
@@ -84,7 +84,7 @@ The network output $f(x;W,a)=n^{-1/2}\sum_ia_i\varphi(W_i\cdot x)$ is linear, he
 
 \begin{lemma}[Readout energy and extremes]\label{lem:ntkdeep:readoutTails}
   \uses{lem:ntkdeep:independence, lem:ntkf:subGaussTail, lem:ntkf:markov}
-  \lean{NTK.gaussianReadoutEnergy, NTK.prob_gaussianReadout_sum_sq_le, NTK.prob_abs_gaussianReadout_coord_ge_le,
+  \lean{NTK.prob_gaussianReadout_sum_sq_le, NTK.prob_abs_gaussianReadout_coord_ge_le,
         NTK.prob_max_abs_gaussianReadout_ge_le, NTK.prob_forall_abs_gaussianReadout_le,
         NTK.initMeasure_forall_abs_readout_ge}
   \leanok
@@ -101,7 +101,7 @@ a bound growing only logarithmically in the width, also under the joint initiali
   \uses{lem:ntkf:subGaussTail, lem:ntkf:markov}
   \leanok
 $\mathbb E[a_i^2]=1$ so $\mathbb E[\mathcal E_n]=1$ and Markov's inequality (Lemma~\ref{lem:ntkf:markov}) gives the first claim. The one-coordinate tail is Lemma~\ref{lem:ntkf:subGaussTail}; the union bound over $n$ coordinates gives the maximum. Taking $\varepsilon=\sqrt{2\log(2n/\delta)}$ gives $2ne^{-\varepsilon^2/2}=2n\cdot\frac{\delta}{2n}=\delta$.
-The lift to $\texttt{initMeasure}$ holds because the event depends only on the second factor.
+The lift to $\mu_{n,d}$ holds because the event depends only on the second factor.
 \end{proof}
 
 \begin{lemma}[Activation moments and energy]\label{lem:ntkdeep:activationMoments}
@@ -224,7 +224,7 @@ Expand the square and integrate term by term (all terms are integrable by Cauchy
   \uses{def:ntktl:init, def:ntktl:network}
   \lean{NTK.outputMeasure, NTK.outputMeasure_eq_map, NTK.isProbabilityMeasure_outputMeasure}
   \leanok
-For measurable $\varphi$, $\operatorname{outputMeasure}\;n\;d\;\varphi\;X$ is the law of $f_m(W,a)$ under $\texttt{initMeasure}\;n\;d$, a probability measure on $\mathbb R^m$.
+For measurable $\varphi$, $\operatorname{outputMeasure}\;n\;d\;\varphi\;X$ is the law of $f_m(W,a)$ under $\mu_{n,d}\;n\;d$, a probability measure on $\mathbb R^m$.
 \end{definition}
 
 \begin{theorem}[Characteristic function of the output]\label{thm:ntkdeep:charFun}
@@ -251,7 +251,7 @@ the characteristic function of $\mathcal N(0,\Phi^{(\infty)})$.
   \uses{thm:ntkdeep:conditionalNormality, thm:ntkdeep:covarianceSLLN, thm:ntkdeep:limitingCovPsd}
   \leanok
 \emph{Step 1.} Integrating out the readout weights (Theorem~\ref{thm:ntkdeep:conditionalNormality}), the conditional characteristic function is $\exp(-\frac12t^\top\Phi^{(n)}t)$. \emph{Step 2.} By Fubini (the law of total expectation) the unconditional characteristic function is its expectation over $W$; the integrand is measurable in $W$.
-Using the measure-preserving identification of the first $n$ rows of an infinite sequence with $\texttt{gaussianInit}\;n\;d$, we may write the expectation over the infinite product measure.
+Using the measure-preserving identification of the first $n$ rows of an infinite sequence with $\mathcal N(0,1)^{\otimes n\times d}$, we may write the expectation over the infinite product measure.
 \emph{Step 3.} By Theorem~\ref{thm:ntkdeep:covarianceSLLN} and the continuity of $M\mapsto\exp(-\frac12t^\top Mt)$ the integrand converges almost surely to $\exp(-\frac12t^\top\Phi^{(\infty)}t)$.
 \emph{Step 4.} Since $\Phi^{(n)}\succeq0$ the exponent is nonpositive and the integrand has modulus at most $1$, so dominated convergence passes the limit under the expectation.
 \end{proof}
@@ -261,7 +261,7 @@ Using the measure-preserving identification of the first $n$ rows of an infinite
   \lean{NTK.outputMeasure_tendsto_multivariateGaussian, NTK.tendstoInDistribution_evalVector,
         NTK.tendstoInDistribution_evalVector_scaled_dataset, NTK.tendstoInDistribution_initialResidual_evalVector}
   \leanok
-Let $\varphi$ be measurable with $\varphi(w\cdot x^\alpha)\in L^2(\mathcal N(0,I_d))$ for every $\alpha$. As the width $n\to\infty$, the output vector $f_m=(f(x^1;\theta),\dots,f(x^m;\theta))^\top$ under $\texttt{initMeasure}\;n\;d$ converges in distribution, equivalently the output laws converge weakly, to the centred Gaussian
+Let $\varphi$ be measurable with $\varphi(w\cdot x^\alpha)\in L^2(\mathcal N(0,I_d))$ for every $\alpha$. As the width $n\to\infty$, the output vector $f_m=(f(x^1;\theta),\dots,f(x^m;\theta))^\top$ under $\mu_{n,d}\;n\;d$ converges in distribution, equivalently the output laws converge weakly, to the centred Gaussian
 \[
   f_m\xrightarrow{d}\mathcal N\bigl(0,\Phi^{(\infty)}\bigr)\qquad\text{in }\mathbb R^m .
 \]
@@ -525,7 +525,7 @@ every coordinate of $K^{1/2}z$ is bounded by $\|K^{1/2}\|\,\|z\|$. Dominated con
 (1) (Base case) The empirical covariance of the input layer, $\frac1n\sum_{j<n}\varphi(h_0(\alpha)_j)\varphi(h_0(\beta)_j)$, converges in probability to $\Phi_1=\mathcal C_\varphi(\Phi_0)$, with $\Phi_0=\frac1d\,XX^\top$; in particular the layer-zero case of the deep recursion holds for the layer population.
 (2) (Conditional law) With all preceding populations fixed, a fresh infinite population produces an i.i.d.\ Gaussian next preactivation layer: the pushforward of the infinite Gaussian population restricted to the first $n$ rows and columns is the finite conditional layer law
 $\bigotimes_{j<n}\mathcal N\bigl(0,\tfrac1n\sum_k\varphi(H_k)\varphi(H_k)^\top\bigr)$, in particular for $h_{\ell+1}$ given the weights of layers $\le\ell$.
-(3) The pushforward of the infinite real population restricted to $n$ coordinates is $\texttt{gaussianReadoutMeasure}\;n$, and $h_\ell(\alpha)_j$ is a measurable function of the layer population.
+(3) The pushforward of the infinite real population restricted to $n$ coordinates is $\mathcal N(0,I_n)$, and $h_\ell(\alpha)_j$ is a measurable function of the layer population.
 \end{lemma}
 
 \begin{proof}

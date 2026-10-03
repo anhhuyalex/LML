@@ -36,13 +36,12 @@ The last identity is the reason for the factor $\frac1d$ in the base Gram matrix
 
 \begin{definition}[Gradient matrix]\label{def:ntkhelp:gradientMatrix}
   \uses{def:ntk:shallowNetwork}
-  \lean{NTK.gradientMatrix}
   \leanok
 For an input $x\in\mathbb R^d$ and initialization $W_0$, the \emph{gradient matrix} $\nabla_Wf(x;W_0)\in\mathbb R^{m\times d}$ has entries
 \[
   \bigl(\nabla_Wf(x;W_0)\bigr)_{jk}=\frac1{\sqrt m}\,a_j\,\sigma'(w_{0,j}\cdot x)\,x_k .
 \]
-This is the gradient of $W\mapsto f(x;W)$ at $W_0$ when $\sigma'$ is the derivative of $\sigma$.
+This is the gradient of $W\mapsto f(x;W)$ at $W_0$ when $\sigma'$ is the derivative of $\sigma$. In Lean it is not a separate definition: the entry is written out as \texttt{(m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * x l) * x k}.
 \end{definition}
 
 \begin{lemma}[Frobenius inner product of gradient matrices]\label{lem:ntkhelp:frobGradient}
@@ -302,4 +301,4 @@ The identity is the form in which the displacement of one neuron's parameters en
 
 \section{Status of the universality statements}\label{sec:ntkhelp:universal}
 
-Section~\ref{sec:ntk:universal} of Chapter~\ref{chap:ntk} derives the universality of the ReLU NTK RKHS. In Lean, the following declarations of \texttt{Shallow/Universal.lean} are \emph{stated but their proofs contain \texttt{sorry}}: \texttt{isCompact\_ntkDomain}, \texttt{reducedReluFormula\_eq\_shallowLimitingNTK}, \texttt{reducedKernelCoeff\_pos}, \texttt{isUniversal} and \texttt{rkhs\_approx\_by\_network}. The definitions \texttt{reducedDomain} ($U=\{u:u\cdot u\le\tfrac12\}$) and \texttt{reducedKernelCoeff} are in place, but the latter is a closed-form \emph{placeholder} sequence, $c_0=\frac18$ and $c_n=\frac1{2\pi}\binom{2n}{n}\big/\bigl(4^n(2n+1)(n!)^2\bigr)$, which is not the Maclaurin coefficient sequence of $\tilde f$ (for instance $\tilde f(0)=\frac16\ne\frac18$); see the discussion in the proof of Lemma~\ref{lem:ntk:reducedKernelCoeff}. The blueprint nodes of Section~\ref{sec:ntk:universal} therefore carry \texttt{\textbackslash leanok} on their statements but not on their proofs.
+Section~\ref{sec:ntk:universal} of Chapter~\ref{chap:ntk} derives the universality of the ReLU NTK RKHS. In Lean, the following declarations of \texttt{Shallow/Universal.lean} are \emph{stated but their proofs contain \texttt{sorry}}: \texttt{isCompact\_ntkDomain}, \texttt{reducedReluFormula\_eq\_shallowLimitingNTK}, \texttt{reducedKernelCoeff\_pos}, \texttt{isUniversal} and \texttt{rkhs\_approx\_by\_network}. The definition \texttt{reducedKernelCoeff} is in place (the reduced domain $U=\{u:u\cdot u\le\tfrac12\}$ is not a separate Lean definition), but it is a closed-form \emph{placeholder} sequence, $c_0=\frac18$ and $c_n=\frac1{2\pi}\binom{2n}{n}\big/\bigl(4^n(2n+1)(n!)^2\bigr)$, which is not the Maclaurin coefficient sequence of $\tilde f$ (for instance $\tilde f(0)=\frac16\ne\frac18$); see the discussion in the proof of Lemma~\ref{lem:ntk:reducedKernelCoeff}. The blueprint nodes of Section~\ref{sec:ntk:universal} therefore carry \texttt{\textbackslash leanok} on their statements but not on their proofs.

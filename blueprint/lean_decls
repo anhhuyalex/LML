@@ -231,8 +231,6 @@ NTK.locallyLipschitz_mul_real
 NTK.norm_euclidean_le_sum_norm
 NTK.locallyLipschitz_euclidean_of_coord
 NTK.ShallowNetwork
-NTK.gaussianInit
-NTK.gaussianRowMeasure
 NTK.linearization
 NTK.BetaSmooth
 NTK.smoothLinearizationBound
@@ -455,9 +453,6 @@ NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay
 NTK.evalSingle
 NTK.evalVector
 NTK.empiricalCovariance
-NTK.gaussianReadoutMeasure
-NTK.initMeasure
-NTK.singleNeuronMeasure
 NTK.measurePreserving_arrowProd_singleNeuronMeasure
 NTK.measurePreserving_prefixMap
 NTK.measurePreserving_infiniteSeq_to_init
@@ -649,7 +644,6 @@ NTK.inner_evalVector_continuous
 NTK.inner_evalVector_measurable
 NTK.evalSingle_joint_measurable
 NTK.evalVector_joint_measurable
-NTK.gaussianReadoutEnergy
 NTK.prob_gaussianReadout_sum_sq_le
 NTK.prob_abs_gaussianReadout_coord_ge_le
 NTK.prob_max_abs_gaussianReadout_ge_le
@@ -909,7 +903,6 @@ NTK.chebyshev_activationProduct_pi
 NTK.continuousOn_covarianceEntry
 NTK.measurable_comp_of_continuousOn_psd
 NTK.tendsto_measure_conditional_activationProduct
-NTK.gaussianSqCenteredVariance
 NTK.gaussianSqCenteredVariance_nonneg
 NTK.memLp_sq_sub_one_mul_gaussianReal
 NTK.chebyshev_centeredSquare_weighted
@@ -974,7 +967,6 @@ NTK.deepLimitingNTK_posSemidef
 NTK.deepLimitingNTK_ge_nngp
 NTK.deepLimitingNTK_twoLayer_eq_add_hadamard
 NTK.DeepSpace
-NTK.deepMeasure
 NTK.deepParams
 NTK.deepParams_prefix
 NTK.tendstoInMeasure_prod_of_prefix_prod
@@ -1019,10 +1011,6 @@ NTK.measurable_diagDeriv
 NTK.measurable_sensitivityGram_entry
 NTK.measurable_derivativeGram_entry
 NTK.deepParams_eq_updateWh
-NTK.wsq
-NTK.wcov
-NTK.avg4
-NTK.wmat
 NTK.wsq_nonneg
 NTK.avg4_nonneg
 NTK.wcov_sq_le
@@ -1114,7 +1102,6 @@ NTK.sq_dotProduct_le
 NTK.dotProduct_scaled_input
 NTK.dotProduct_scaled_input_div
 NTK.dotProduct_scaled_dataset
-NTK.gradientMatrix
 NTK.sum_gradientMatrix_mul_eq
 NTK.shallowEmpiricalNTK_symm
 NTK.shallowEmpiricalNTK_dataset_posSemidef

@@ -33,10 +33,9 @@ $\Phi^{(n)}_{\alpha\beta}=\frac1n\sum_{i=1}^n\varphi(w_i\cdot x^\alpha)\varphi(w
 
 \begin{definition}[Initialization measure]\label{def:ntktl:init}
   \uses{def:ntk:gaussianInit}
-  \lean{NTK.gaussianReadoutMeasure, NTK.initMeasure, NTK.singleNeuronMeasure}
   \leanok
-The \emph{initialization measure} on pairs $(W,a)$ is $\texttt{initMeasure}\;n\;d=\mathcal N(0,I_d)^{\otimes n}\otimes\mathcal N(0,1)^{\otimes n}$: the hidden rows
-$w_i\sim\mathcal N(0,I_d)$ and readout weights $a_i\sim\mathcal N(0,1)$ are all independent. The single-neuron law $\texttt{singleNeuronMeasure}\;d$ on $(w,a)\in\mathbb R^d\times\mathbb R$
+The \emph{initialization measure} on pairs $(W,a)$ is $\mu_{n,d}:=\mathcal N(0,I_d)^{\otimes n}\otimes\mathcal N(0,1)^{\otimes n}$ (in Lean written out as a \texttt{Measure.pi}\,\texttt{.prod}\,\texttt{Measure.pi} of standard Gaussians, with no separate definition): the hidden rows
+$w_i\sim\mathcal N(0,I_d)$ and readout weights $a_i\sim\mathcal N(0,1)$ are all independent. The single-neuron law $\nu_d$ on $(w,a)\in\mathbb R^d\times\mathbb R$
 is $\mathcal N(0,I_d)\otimes\mathcal N(0,1)$.
 \end{definition}
 
@@ -45,11 +44,11 @@ is $\mathcal N(0,I_d)\otimes\mathcal N(0,1)$.
   \lean{NTK.measurePreserving_arrowProd_singleNeuronMeasure, NTK.measurePreserving_prefixMap,
         NTK.measurePreserving_infiniteSeq_to_init, NTK.measureReal_initMeasure_neuronAverage_le}
   \leanok
-(1) The rearrangement $\bigl((w_i,a_i)\bigr)_{i<n}\mapsto\bigl((w_i)_i,(a_i)_i\bigr)$ carries the product of $n$ copies of the single-neuron law onto $\texttt{initMeasure}\;n\;d$.
+(1) The rearrangement $\bigl((w_i,a_i)\bigr)_{i<n}\mapsto\bigl((w_i)_i,(a_i)_i\bigr)$ carries the product of $n$ copies of the single-neuron law onto $\mu_{n,d}$.
 (2) Restricting an infinite i.i.d.\ sequence to its first $n$ elements is measure preserving from $\nu^{\otimes\mathbb N}$ to $\nu^{\otimes n}$; hence the first $n$ neurons of an infinite i.i.d.\
-neuron sequence have law $\texttt{initMeasure}\;n\;d$.
+neuron sequence have law $\mu_{n,d}$.
 (3) (Markov for neuron averages) If $g\ge0$ is measurable, integrable for the single-neuron law and $\mathbb E\,g\le\tau\delta$, then the neuron average $\frac1n\sum_ig(w_i,a_i)$ is at most $\tau$ with
-$\texttt{initMeasure}$-probability at least $1-\delta$; the threshold does not depend on the width.
+$\mu_{n,d}$-probability at least $1-\delta$; the threshold does not depend on the width.
 \end{lemma}
 
 \begin{proof}
@@ -348,11 +347,11 @@ In this section $\varphi$ is differentiable, $\varphi'$ is measurable, and the $
   \lean{NTK.chebyshev_entrywise_empiricalNTKMatrix, NTK.chebyshev_matrix_empiricalNTKMatrix,
         NTK.tendsto_initMeasure_empiricalNTKMatrix_ge_eps}
   \leanok
-Let $K_n$ be the empirical NTK matrix on the scaled dataset at $\theta_0=\operatorname{packParams}(W,a)$ with $(W,a)\sim\texttt{initMeasure}\;n\;d$.
+Let $K_n$ be the empirical NTK matrix on the scaled dataset at $\theta_0=\operatorname{packParams}(W,a)$ with $(W,a)\sim\mu_{n,d}$.
 \begin{enumerate}
   \item For every entry and every $c>0$, $\Pr\bigl[|K_{n,\alpha\beta}-K_{\infty,\alpha\beta}|\ge c\bigr]\le\dfrac{\operatorname{Var}(g_{\alpha\beta})}{n\,c^2}\le\dfrac{\mathbb E[g_{\alpha\beta}^2]}{n\,c^2}$.
   \item In Frobenius norm, for every $\varepsilon>0$: $\Pr\bigl[\|K_n-K_\infty\|\ge\varepsilon\bigr]\le\dfrac{m^2\sum_{\alpha,\beta}\mathbb E[g_{\alpha\beta}^2]}{n\,\varepsilon^2}=O(1/n)$.
-  \item $\Pr\bigl[\|K_n-K_\infty\|\ge\varepsilon\bigr]\to0$ as $n\to\infty$ (convergence in probability, under the varying measures $\texttt{initMeasure}\;n\;d$).
+  \item $\Pr\bigl[\|K_n-K_\infty\|\ge\varepsilon\bigr]\to0$ as $n\to\infty$ (convergence in probability, under the varying measures $\mu_{n,d}$).
 \end{enumerate}
 \end{theorem}
 
@@ -490,7 +489,7 @@ $\sqrt{c_1(\log n)+c_2}/\sqrt n\to0$ since $\log n=o(n)$.
         NTK.exists_kernel_freeze_event_of_positive_gap}
   \leanok
 Let $\varphi$ be a smooth activation, $m,d\ge1$, and suppose $K_\infty-\lambda_\infty I\succeq0$ with $\lambda_\infty>0$. For every $\delta\in(0,1]$ and $\varepsilon>0$ there are a deterministic sequence $\mathrm{freezeRate}(n)\to0$ with $\mathrm{freezeRate}(n)\le K_0\sqrt{\log n/n}$ and a width $N$
-such that for every $n\ge N$ there is a \emph{measurable} event $E$ of $\texttt{initMeasure}$-probability at least $1-2\delta-2\varepsilon$ such that from every initialization in $E$, every forward gradient flow $\theta$ of the MSE loss satisfies, for all $t\ge0$:
+such that for every $n\ge N$ there is a \emph{measurable} event $E$ of $\mu_{n,d}$-probability at least $1-2\delta-2\varepsilon$ such that from every initialization in $E$, every forward gradient flow $\theta$ of the MSE loss satisfies, for all $t\ge0$:
 \begin{itemize}
   \item the empirical NTK has Rayleigh--Ritz parameter $\lambda_\infty/4$ (a uniform spectral gap);
   \item the kernel drift is at most $\mathrm{freezeRate}(n)$: $\|K(\theta(t))-K(\theta_0)\|\le\mathrm{freezeRate}(n)$;
@@ -514,7 +513,7 @@ $\lambda_0/2=\lambda_\infty/4$.
   \lean{NTK.global_positive_gap_lazy_training_limit,
         NTK.exists_kernel_freeze_event_of_positive_gap_of_confidence}
   \leanok
-Under the hypotheses of Theorem~\ref{thm:ntktl:globalEvent}, let $\theta_n(p)$ be forward gradient-flow trajectories for $\texttt{initMeasure}$-almost every initialization $p$. For every confidence $\eta\in(0,1]$ there are $\mathrm{freezeRate}(n)\to0$ with
+Under the hypotheses of Theorem~\ref{thm:ntktl:globalEvent}, let $\theta_n(p)$ be forward gradient-flow trajectories for $\mu_{n,d}$-almost every initialization $p$. For every confidence $\eta\in(0,1]$ there are $\mathrm{freezeRate}(n)\to0$ with
 $\mathrm{freezeRate}(n)\le K_0\sqrt{\log n/n}$ and $N$ such that for $n\ge N$ there is a measurable event $E$ of probability at least $1-\eta$ on which, for almost every initialization, the conclusions of Theorem~\ref{thm:ntktl:globalEvent} hold for $\theta_n(p)$. In the single-confidence form, with probability at least $1-\eta$ every gradient flow keeps the empirical NTK within
 $\mathrm{freezeRate}(n)$ of its initial value for all $t\ge0$.
 \end{theorem}

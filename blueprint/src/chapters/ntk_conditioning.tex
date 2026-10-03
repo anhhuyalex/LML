@@ -8,7 +8,7 @@ The Lean files covered are \texttt{Foundations/MatrixUtil}, \texttt{GramProjecto
 Everything in this chapter is formalized and fully proved.
 
 \medskip\noindent\textbf{Conventions.}
-A \emph{Gaussian weight matrix} is $W\in\mathbb R^{n\times p}$ with i.i.d.\ $\mathcal N(0,1)$ entries; its law is \texttt{gaussianInit n p}, and a \emph{Gaussian row} is a vector in $\mathbb R^p$ with i.i.d.\ $\mathcal N(0,1)$ entries (\texttt{gaussianRowMeasure p}); see Section~\ref{sec:ntkdeep:setup}.
+A \emph{Gaussian weight matrix} is $W\in\mathbb R^{n\times p}$ with i.i.d.\ $\mathcal N(0,1)$ entries; its law is $\mathcal N(0,1)^{\otimes n\times p}$ (written out as an iterated \texttt{Measure.pi} in Lean), and a \emph{Gaussian row} is a vector in $\mathbb R^p$ with i.i.d.\ $\mathcal N(0,1)$ entries ($\mathcal N(0,I_p)$); see Section~\ref{sec:ntkdeep:setup}.
 For a measure $\mu$ and real random variables $X_n$, we say that $X_n\to c$ \emph{in measure} (in probability when $\mu$ is a probability measure) if $\mu(|X_n-c|\ge\varepsilon)\to0$ for every $\varepsilon>0$. For matrix- or vector-valued sequences the distance is the maximum over entries, so convergence in measure is equivalent to entrywise convergence in measure. $\|A\|_F$ is the Frobenius norm, $u\cdot v$ the Euclidean inner product, and $\odot$ the Hadamard (entrywise) product.
 
 
@@ -322,7 +322,7 @@ The entries of $W$ are independent Gaussians, hence jointly Gaussian, and a line
   \lean{NTK.indepFun_gaussianInit_mul_of_transpose_mul_eq_zero,
         NTK.indepFun_gaussian_orthogonal_projection, NTK.indepFun_conditioned_weight_history}
   \leanok
-Let $W\sim\texttt{gaussianInit}\;n\;p$.
+Let $W\sim\mathcal N(0,1)^{\otimes n\times p}$.
 \begin{enumerate}
   \item If $A\in\mathbb R^{p\times q}$ and $B\in\mathbb R^{p\times r}$ satisfy $A^\top B=0$, then $WA$ and $WB$ are independent.
   \item (One-sided conditioning) If $P\in\mathbb R^{p\times p}$ is an orthogonal projection matrix, then $WP$ and $WP^\perp$ are independent.
@@ -349,7 +349,7 @@ Theorem~\ref{thm:ntkcond:quadMean} gives the \emph{mean} of the sandwich $u^\top
   \lean{NTK.measurable_toLp_uncurry, NTK.map_gaussianInit_pairIndex,
         NTK.map_gaussianInit_toLp_uncurry}
   \leanok
-Let $\mathrm{vec}:W\mapsto(W_{ik})_{(i,k)\in[n]\times[p]}\in\mathbb R^{[n]\times[p]}$ be the flattening of a matrix (in Lean, \texttt{WithLp.toLp 2 (Function.uncurry W)}). It is measurable, and the law of $\mathrm{vec}(W)$ under $W\sim\texttt{gaussianInit}\;n\;p$ is the standard Gaussian $\mathcal N(0,I_{np})$ on $\mathbb R^{[n]\times[p]}$ (the product of $np$ copies of $\mathcal N(0,1)$).
+Let $\mathrm{vec}:W\mapsto(W_{ik})_{(i,k)\in[n]\times[p]}\in\mathbb R^{[n]\times[p]}$ be the flattening of a matrix (in Lean, \texttt{WithLp.toLp 2 (Function.uncurry W)}). It is measurable, and the law of $\mathrm{vec}(W)$ under $W\sim\mathcal N(0,1)^{\otimes n\times p}$ is the standard Gaussian $\mathcal N(0,I_{np})$ on $\mathbb R^{[n]\times[p]}$ (the product of $np$ copies of $\mathcal N(0,1)$).
 \end{lemma}
 
 \begin{proof}
@@ -398,7 +398,7 @@ $\sum C_{ab}C_{cd}(\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\del
   \lean{NTK.quadForm_eq_sum_coord, NTK.integral_quadForm_sq_gaussianInit,
         NTK.memLp_quadForm_gaussianInit, NTK.gaussianInit_quadForm_chebyshev}
   \leanok
-Let $W\sim\texttt{gaussianInit}\;n\;p$, $u,v\in\mathbb R^n$ and $A\in\mathbb R^{p\times p}$. Then $u^\top WAW^\top v\in L^2$ and
+Let $W\sim\mathcal N(0,1)^{\otimes n\times p}$, $u,v\in\mathbb R^n$ and $A\in\mathbb R^{p\times p}$. Then $u^\top WAW^\top v\in L^2$ and
 \[
   \mathbb E\bigl[(u^\top WAW^\top v)^2\bigr]=\bigl((u\cdot v)\operatorname{tr}A\bigr)^2+(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2 .
 \]
@@ -435,7 +435,7 @@ The sandwich bound of Theorem~\ref{thm:ntkcond:sandwichVariance} is for determin
   \lean{NTK.integral_linearForm_gaussianInit, NTK.memLp_linearForm_gaussianInit,
         NTK.integral_linearForm_sq_gaussianInit, NTK.gaussianInit_linearForm_chebyshev}
   \leanok
-For $W\sim\texttt{gaussianInit}\;n\;p$, $u\in\mathbb R^n$ and $c\in\mathbb R^p$, $u\cdot(Wc)$ is centred and in $L^2$ with $\mathbb E\bigl[(u\cdot Wc)^2\bigr]=\|u\|^2\|c\|^2$, and for $\varepsilon>0$
+For $W\sim\mathcal N(0,1)^{\otimes n\times p}$, $u\in\mathbb R^n$ and $c\in\mathbb R^p$, $u\cdot(Wc)$ is centred and in $L^2$ with $\mathbb E\bigl[(u\cdot Wc)^2\bigr]=\|u\|^2\|c\|^2$, and for $\varepsilon>0$
 \[
   \Pr\bigl[|u\cdot Wc|\ge\varepsilon\bigr]\le\frac{\|u\|^2\|c\|^2}{\varepsilon^2}.
 \]
@@ -453,7 +453,7 @@ $u\cdot Wc=\sum_{i,k}u_ic_kW_{ik}$ is a centred Gaussian with variance $\sum_{i,
   \uses{thm:ntkcond:lemma226}
   \lean{NTK.gaussianInit_measure_le_lintegral_of_section}
   \leanok
-Let $P\in\mathbb R^{p\times p}$ be an orthogonal projection matrix, $W\sim\texttt{gaussianInit}\;n\;p$, and $E$ a measurable subset of pairs of $n\times p$ matrices. Let $B:\mathbb R^{n\times p}\to[0,\infty]$ be measurable such that for every fixed $x$,
+Let $P\in\mathbb R^{p\times p}$ be an orthogonal projection matrix, $W\sim\mathcal N(0,1)^{\otimes n\times p}$, and $E$ a measurable subset of pairs of $n\times p$ matrices. Let $B:\mathbb R^{n\times p}\to[0,\infty]$ be measurable such that for every fixed $x$,
 \[
   \Pr\bigl[(x,\,WP^\perp)\in E\bigr]\le B(x).
 \]
@@ -475,7 +475,7 @@ By Theorem~\ref{thm:ntkcond:lemma226}(2) the law of $(WP,WP^\perp)$ is the produ
   \uses{thm:ntkcond:sandwichVariance, lem:ntkcond:linearForm, lem:ntkcond:projectorNorms}
   \lean{NTK.quadForm_section_le, NTK.linearForm_section_le}
   \leanok
-Let $Q\in\mathbb R^{p\times p}$ be an orthogonal projection matrix, $A\in\mathbb R^{p\times p}$, $u_0,v_0\in\mathbb R^n$, $b\in\mathbb R^p$, $\varepsilon>0$ and $V\sim\texttt{gaussianInit}\;n\;p$. Then
+Let $Q\in\mathbb R^{p\times p}$ be an orthogonal projection matrix, $A\in\mathbb R^{p\times p}$, $u_0,v_0\in\mathbb R^n$, $b\in\mathbb R^p$, $\varepsilon>0$ and $V\sim\mathcal N(0,1)^{\otimes n\times p}$. Then
 \[
   \Pr\Bigl[\bigl|u_0^\top(VQ)A(VQ)^\top v_0-(u_0\cdot v_0)\operatorname{tr}(QAQ)\bigr|\ge\varepsilon\Bigr]\le\frac{2\|u_0\|^2\|v_0\|^2\|A\|_F^2}{\varepsilon^2},\qquad
   \Pr\bigl[|u_0\cdot(VQ)b|\ge\varepsilon\bigr]\le\frac{\|u_0\|^2\|b\|^2}{\varepsilon^2}.
@@ -493,7 +493,7 @@ Since $Q^\top=Q$, $(VQ)A(VQ)^\top=V(QAQ)V^\top$, so Theorem~\ref{thm:ntkcond:san
   \lean{NTK.conditional_quadForm_chebyshev, NTK.conditional_quadForm_chebyshev_normalized,
         NTK.conditional_linearForm_chebyshev, NTK.conditional_linearForm_chebyshev_normalized}
   \leanok
-Let $(\Omega,\mu)$ be a probability space (the \emph{past}), $V\sim\texttt{gaussianInit}\;n\;p$ independent of the past, and let $P:\Omega\to\mathbb R^{p\times p}$ and $A:\Omega\to\mathbb R^{p\times p}$ be measurable with $P(a)$ an orthogonal projection matrix for every $a$. Let $u,v:\mathbb R^{n\times p}\times\Omega\to\mathbb R^n$ be measurable, and abbreviate
+Let $(\Omega,\mu)$ be a probability space (the \emph{past}), $V\sim\mathcal N(0,1)^{\otimes n\times p}$ independent of the past, and let $P:\Omega\to\mathbb R^{p\times p}$ and $A:\Omega\to\mathbb R^{p\times p}$ be measurable with $P(a)$ an orthogonal projection matrix for every $a$. Let $u,v:\mathbb R^{n\times p}\times\Omega\to\mathbb R^n$ be measurable, and abbreviate
 \[
   \tilde u=u(VP(a),a),\qquad\tilde v=v(VP(a),a),\qquad R=VP(a)^\perp .
 \]
@@ -599,7 +599,7 @@ This is the probabilistic step of the forward induction (Theorem~\ref{thm:ntkdee
 At the top layer the backward sensitivity is $g_{d-1}=W_d\odot\varphi'(h_{d-1})$, with $W_d$ an independent standard Gaussian readout (Chapter~\ref{chap:ntkdn}). Its Gram entries are therefore Gaussian-\emph{weighted} averages $n^{-1}\sum_ja_j^2y_j$ and, for the gradient-independence quantity, Gaussian \emph{linear} forms $n^{-1}\sum_ja_jy_j$, in weights $y$ depending on the past.
 
 \begin{lemma}[Variance of the centred square]\label{lem:ntkcond:centeredSquare}
-  \lean{NTK.gaussianSqCenteredVariance, NTK.gaussianSqCenteredVariance_nonneg,
+  \lean{NTK.gaussianSqCenteredVariance_nonneg,
         NTK.memLp_sq_sub_one_mul_gaussianReal, NTK.chebyshev_centeredSquare_weighted}
   \leanok
 Let $\sigma^2_{\mathrm{sq}}:=\operatorname{Var}_{x\sim\mathcal N(0,1)}(x^2-1)=2$ (a nonnegative constant). For fixed $y\in\mathbb R^n$, $x\mapsto(x^2-1)y$ is in $L^2(\mathcal N(0,1))$, and for $a\sim\mathcal N(0,I_n)$ and $\varepsilon>0$,
@@ -699,7 +699,7 @@ $P_\Phi=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$ is a composition of the measurable op
   \uses{thm:ntkcond:conditionalChebyshev, lem:ntkcond:mconvSqueeze, def:ntkcond:bddByConv, def:ntkcond:atProj, lem:ntkcond:atProjMeasurable, lem:ntkcond:gramProjectorProps}
   \lean{NTK.tendsto_residualQuadForm}
   \leanok
-Let $(\Omega,\mu)$ be a probability space, $(Z,\rho)$ a probability space (the \emph{past}) and, for each $n$, $\Psi_n:\Omega\to Z\times\mathbb R^{n\times n}$ a measure-preserving map onto $\rho\otimes\texttt{gaussianInit}\;n\;n$; write $\Psi_n(\omega)=(z,V)$. Let $\Phi_n:Z\to\mathbb R^{n\times m}$ and $A_n:Z\to\mathbb R^{n\times n}$ be measurable, and $u_n,v_n:\mathbb R^{n\times n}\times Z\to\mathbb R^n$ measurable. Put $P=P_{\Phi_n(z)}$, $\tilde u=\texttt{atProj}\,\Phi_n\,u_n(z,V)$, $\tilde v=\texttt{atProj}\,\Phi_n\,v_n(z,V)$ and $R=VP^\perp$. Assume that the three sequences
+Let $(\Omega,\mu)$ be a probability space, $(Z,\rho)$ a probability space (the \emph{past}) and, for each $n$, $\Psi_n:\Omega\to Z\times\mathbb R^{n\times n}$ a measure-preserving map onto $\rho\otimes\mathcal N(0,1)^{\otimes n\times n}\;n\;n$; write $\Psi_n(\omega)=(z,V)$. Let $\Phi_n:Z\to\mathbb R^{n\times m}$ and $A_n:Z\to\mathbb R^{n\times n}$ be measurable, and $u_n,v_n:\mathbb R^{n\times n}\times Z\to\mathbb R^n$ measurable. Put $P=P_{\Phi_n(z)}$, $\tilde u=\texttt{atProj}\,\Phi_n\,u_n(z,V)$, $\tilde v=\texttt{atProj}\,\Phi_n\,v_n(z,V)$ and $R=VP^\perp$. Assume that the three sequences
 \[
   n^{-1}\|\tilde u\|^2,\qquad n^{-1}\|\tilde v\|^2,\qquad n^{-1}\|A_n(z)\|_F^2
 \]
@@ -712,7 +712,7 @@ are dominated by convergent sequences (Definition~\ref{def:ntkcond:bddByConv}). 
 \begin{proof}
   \uses{thm:ntkcond:conditionalChebyshev, lem:ntkcond:mconvSqueeze, lem:ntkcond:mconvAlgebra}
   \leanok
-Transport the event along $\Psi_n$, which is measure preserving, to $\rho\otimes\texttt{gaussianInit}$; the Gram projector is an orthogonal projection for every $\Phi$ (Lemma~\ref{lem:ntkcond:gramProjectorProps}(1)), so Theorem~\ref{thm:ntkcond:conditionalChebyshev} applies. The probability is at most $\int\min(1,b_n)$ with $b_n=2\bar u\bar v\bar A/(n\varepsilon^2)$, $\bar u=n^{-1}\|\tilde u\|^2$ etc. By hypothesis $\bar u\le B^u_n$, $\bar v\le B^v_n$, $\bar A\le B^A_n$ with $B^\bullet_n\to c_\bullet$ in measure, so $2B^u_nB^v_nB^A_n\to2c_uc_vc_A$ (Lemma~\ref{lem:ntkcond:mconvAlgebra}) and $b_n\le2B^u_nB^v_nB^A_n/(n\varepsilon^2)\to0$ in measure by Lemma~\ref{lem:ntkcond:atProjMeasurable}. Lemma~\ref{lem:ntkcond:mconvSqueeze} concludes.
+Transport the event along $\Psi_n$, which is measure preserving, to $\rho\otimes\mathcal N(0,1)^{\otimes n\times n}$; the Gram projector is an orthogonal projection for every $\Phi$ (Lemma~\ref{lem:ntkcond:gramProjectorProps}(1)), so Theorem~\ref{thm:ntkcond:conditionalChebyshev} applies. The probability is at most $\int\min(1,b_n)$ with $b_n=2\bar u\bar v\bar A/(n\varepsilon^2)$, $\bar u=n^{-1}\|\tilde u\|^2$ etc. By hypothesis $\bar u\le B^u_n$, $\bar v\le B^v_n$, $\bar A\le B^A_n$ with $B^\bullet_n\to c_\bullet$ in measure, so $2B^u_nB^v_nB^A_n\to2c_uc_vc_A$ (Lemma~\ref{lem:ntkcond:mconvAlgebra}) and $b_n\le2B^u_nB^v_nB^A_n/(n\varepsilon^2)\to0$ in measure by Lemma~\ref{lem:ntkcond:atProjMeasurable}. Lemma~\ref{lem:ntkcond:mconvSqueeze} concludes.
 \end{proof}
 
 \begin{theorem}[Residual linear form tends to zero]\label{thm:ntkcond:residualLinear}

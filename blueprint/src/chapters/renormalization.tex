@@ -2623,7 +2623,7 @@ The migration order is:
     shared representation;
   \item restate new results on the shared representation while retaining compatibility wrappers
     for existing public names; and
-  \item migrate \texttt{NTK.gaussianRowMeasure} and \texttt{NTK.gaussianInit} only after the shared
+  \item migrate the explicit NTK Gaussian initialization measures only after the shared
     product-Gaussian coordinate lemmas prove the same laws used by all NTK downstream files.
 \end{enumerate}
 This order keeps the refactor observational: downstream evaluation functions and theorem

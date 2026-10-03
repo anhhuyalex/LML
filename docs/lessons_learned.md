@@ -356,10 +356,10 @@ Avoid calling powerful normalization tactics like `field_simp` or `simp` on goal
 - **Measure Scaling Types (`ENNReal` vs `ℝ`):** When working with measures (e.g., `SignedMeasure`), scaling happens via `c • μ` where `c : ℝ≥0∞` (`ENNReal`). However, values like `totalMass μ` are computed as `ℝ`. Attempting to directly equate scalar multiplication of a measure with a real-valued inverse leads to cryptic type class resolution failures (`HMul ℝ ENNReal`). Keep measure evaluations in `ENNReal` as long as possible before converting to `Real`.
 - **Norm Eq Abs:** For `ℝ`, prefer `|x|` over `‖x‖`. Use `simp [Real.norm_eq_abs]` to normalize. `linarith` and `positivity` often treat them as distinct atoms.
 - **The Pi Norm Reality Check**: The default norm on general function types `ι → ℝ` (or `ι → ℂ`) in Mathlib is the **supremum norm (Pi norm)**, not the L2 Euclidean norm. Assuming that `‖x‖^2 = \sum x_i^2` will fail mathematically unless the function type is wrapped in `EuclideanSpace ι ℝ` or you explicitly define and compute with a custom Frobenius norm.
-- **Instance Resolution Does Not Unfold `def`s:** Typeclass search matches instance conclusions against the goal without unfolding regular (non-`@[reducible]`) definitions. Verified instance: with `gaussianRowMeasure d` a project `def` equal to `Measure.pi (fun _ : Fin d => gaussianReal 0 1)`, the goal `IsProbabilityMeasure (gaussianRowMeasure d)` fails to synthesize even though `Measure.pi.instIsProbabilityMeasure` and the `gaussianReal` probability instance both exist. **Fix (verified):** ship a dedicated instance next to the wrapper:
+- **Instance Resolution Does Not Unfold `def`s:** Typeclass search matches instance conclusions against the goal without unfolding regular (non-`@[reducible]`) definitions. Verified instance: with `rowMeasure d` a (hypothetical) project `def` equal to `Measure.pi (fun _ : Fin d => gaussianReal 0 1)`, the goal `IsProbabilityMeasure (rowMeasure d)` fails to synthesize even though `Measure.pi.instIsProbabilityMeasure` and the `gaussianReal` probability instance both exist. **Fix (verified):** ship a dedicated instance next to the wrapper:
   ```lean
-  instance : IsProbabilityMeasure (gaussianRowMeasure d) := by
-    unfold gaussianRowMeasure
+  instance : IsProbabilityMeasure (rowMeasure d) := by
+    unfold rowMeasure
     infer_instance
   ```
   Rule: every project-level `def` wrapping a measure (or any type with relevant instances) should declare its own instances immediately after the definition.

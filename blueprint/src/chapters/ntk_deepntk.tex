@@ -204,9 +204,9 @@ All probabilistic statements concern the product probability space on which the 
 
 \begin{definition}[The Gaussian space of a depth-$d$ network]\label{def:ntkdn:deepSpace}
   \uses{def:ntkdn:params}
-  \lean{NTK.DeepSpace, NTK.deepMeasure, NTK.deepParams}
+  \lean{NTK.DeepSpace, NTK.deepParams}
   \leanok
-$\texttt{DeepSpace}\;d$ is the product of $d$ copies of the space $\mathbb R^{\mathbb N\times\mathbb N}$ of weight populations and one copy of $\mathbb R^{\mathbb N}$ (the readout); $\texttt{deepMeasure}\;d$ is the product of i.i.d.\ standard Gaussian measures; it is a probability measure. $\texttt{deepParams}\;d\;n_0\;n:\texttt{DeepSpace}\;d\to\texttt{DeepMLPParams}\;d\;n_0\;n$ is $\texttt{ofTensor}$ applied to the population (padded by $0$ beyond $d$) and the readout.
+$\texttt{DeepSpace}\;d$ is the product of $d$ copies of the space $\mathbb R^{\mathbb N\times\mathbb N}$ of weight populations and one copy of $\mathbb R^{\mathbb N}$ (the readout); $\gamma_d$ denotes the product of i.i.d.\ standard Gaussian measures on it (a probability measure; written out explicitly in Lean, with no separate definition). $\texttt{deepParams}\;d\;n_0\;n:\texttt{DeepSpace}\;d\to\texttt{DeepMLPParams}\;d\;n_0\;n$ is $\texttt{ofTensor}$ applied to the population (padded by $0$ beyond $d$) and the readout.
 \end{definition}
 
 \begin{lemma}[Transport between the two spaces]\label{lem:ntkdn:transport}
@@ -216,7 +216,7 @@ $\texttt{DeepSpace}\;d$ is the product of $d$ copies of the space $\mathbb R^{\m
   \leanok
 \begin{enumerate}
   \item For the product-space point $q=(W,w_{\mathrm{out}})$, $\texttt{deepParams}$ of the prefix $((W_i)_{i<d},w_{\mathrm{out}})$ equals $\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ (for $d>0$).
-  \item Let $F_n$ be measurable scalar functions on $\texttt{DeepSpace}\;d$. If $F_n\to c$ in measure for $\texttt{deepMeasure}\;d$, then $q\mapsto F_n(\text{prefix}(q))$ converges to $c$ in measure on the full product space. The same holds for families $F_n$ of the first $d$ populations alone (ignoring the readout), both on the full product space and on $\texttt{DeepSpace}\;d$.
+  \item Let $F_n$ be measurable scalar functions on $\texttt{DeepSpace}\;d$. If $F_n\to c$ in measure for $\gamma_d$, then $q\mapsto F_n(\text{prefix}(q))$ converges to $c$ in measure on the full product space. The same holds for families $F_n$ of the first $d$ populations alone (ignoring the readout), both on the full product space and on $\texttt{DeepSpace}\;d$.
 \end{enumerate}
 \end{lemma}
 
@@ -232,17 +232,17 @@ $\texttt{DeepSpace}\;d$ is the product of $d$ copies of the space $\mathbb R^{\m
         NTK.map_layerBlock_infinitePi, NTK.indepFun_prod_of_indepFun_fst,
         NTK.indepFun_layer_zeroLayer, NTK.measurePreserving_layerSplit}
   \leanok
-For $i_0<d$ let $\mathrm{zero}_{i_0}(\omega)$ be $\omega$ with the $i_0$-th weight population replaced by $0$ (in Lean, \texttt{(Function.update ω.1 i₀ 0, ω.2)}), and $\texttt{layerBlock}_n(L)=(L_{ji})_{j,i<n}$ the top-left $n\times n$ block of a population. Under $\texttt{deepMeasure}\;d$:
+For $i_0<d$ let $\mathrm{zero}_{i_0}(\omega)$ be $\omega$ with the $i_0$-th weight population replaced by $0$ (in Lean, \texttt{(Function.update ω.1 i₀ 0, ω.2)}), and $\texttt{layerBlock}_n(L)=(L_{ji})_{j,i<n}$ the top-left $n\times n$ block of a population. Under $\gamma_d$:
 \begin{enumerate}
   \item the $i_0$-th population is independent of $\mathrm{zero}_{i_0}$, i.e.\ of all other populations and the readout;
-  \item the block $\texttt{layerBlock}_n(\omega_{i_0})$ of a standard Gaussian population is a standard Gaussian matrix, $\mathcal L(\texttt{layerBlock}_n)=\texttt{gaussianInit}\;n\;n$;
-  \item $\omega\mapsto\bigl(\mathrm{zero}_{i_0}(\omega),\texttt{layerBlock}_n(\omega_{i_0})\bigr)$ is measure preserving from $\texttt{deepMeasure}\;d$ onto $\mathcal L(\mathrm{zero}_{i_0})\otimes\texttt{gaussianInit}\;n\;n$.
+  \item the block $\texttt{layerBlock}_n(\omega_{i_0})$ of a standard Gaussian population is a standard Gaussian matrix, $\mathcal L(\texttt{layerBlock}_n)=\mathcal N(0,1)^{\otimes n\times n}$;
+  \item $\omega\mapsto\bigl(\mathrm{zero}_{i_0}(\omega),\texttt{layerBlock}_n(\omega_{i_0})\bigr)$ is measure preserving from $\gamma_d$ onto $\mathcal L(\mathrm{zero}_{i_0})\otimes\mathcal N(0,1)^{\otimes n\times n}$.
 \end{enumerate}
 \end{theorem}
 
 \begin{proof}
   \leanok
-(1) The coordinates of a product measure are independent. For the formal statement: if $A$ and $B$ are independent under $\mu$ then $A\circ\mathrm{fst}$ and $(B\circ\mathrm{fst},\mathrm{snd})$ are independent under $\mu\otimes\nu$ (\texttt{indepFun\_prod\_of\_indepFun\_fst}), which is applied to the product structure of $\texttt{deepMeasure}$. (2) The top-left block of the i.i.d.\ Gaussian array $(L_{ji})_{j,i\in\mathbb N}$ is the $n\times n$ sub-array, which is i.i.d.\ Gaussian. (3) By (1) the joint law of the pair is the product of the marginals, and by (2) the second marginal is $\texttt{gaussianInit}\;n\;n$.
+(1) The coordinates of a product measure are independent. For the formal statement: if $A$ and $B$ are independent under $\mu$ then $A\circ\mathrm{fst}$ and $(B\circ\mathrm{fst},\mathrm{snd})$ are independent under $\mu\otimes\nu$ (\texttt{indepFun\_prod\_of\_indepFun\_fst}), which is applied to the product structure of $\gamma_d$. (2) The top-left block of the i.i.d.\ Gaussian array $(L_{ji})_{j,i\in\mathbb N}$ is the $n\times n$ sub-array, which is i.i.d.\ Gaussian. (3) By (1) the joint law of the pair is the product of the marginals, and by (2) the second marginal is $\mathcal N(0,1)^{\otimes n\times n}$.
 \end{proof}
 
 This is the interface between the concrete network and the abstract conditional bounds of Chapter~\ref{chap:ntkcond}: fixing $i_0=k+1$, the matrix $W_{k+1}$ is an independent standard Gaussian matrix $V$ and ``the past'' $z$ is everything else.
@@ -271,7 +271,7 @@ By the bridge (Theorem~\ref{thm:ntkdn:bridge}) the entries are the feature avera
   \uses{thm:ntkcond:featureCovariance, lem:ntkdn:transport, thm:ntkdn:bridge}
   \lean{NTK.deepSpace_featureCov_tendsto, NTK.deepSpace_activationGram_tendsto, NTK.derivGram_tendsto}
   \leanok
-On $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$, where the readout is available, for every continuous $\psi$ of polynomial growth and $\ell<d$,
+On $(\texttt{DeepSpace}\;d,\gamma_d)$, where the readout is available, for every continuous $\psi$ of polynomial growth and $\ell<d$,
 \[
   \frac1n\sum_{j\le n}\psi\bigl(h_{\ell,j}^a\bigr)\psi\bigl(h_{\ell,j}^b\bigr)\longrightarrow\mathbb E_{z\sim\mathcal N(0,\Sigma^\ell)}\bigl[\psi(z_a)\psi(z_b)\bigr],\qquad\frac1n\varphi(h_\ell^a)\cdot\varphi(h_\ell^b)\longrightarrow\Sigma^{\ell+1}_{ab},
 \]
@@ -382,12 +382,12 @@ With Theorem~\ref{thm:ntkdn:layerSplit} this expresses a point $\omega$ as the p
 This section contains the finite-dimensional identities and inequalities that are used in the backward induction. Nothing in it is probabilistic. Throughout $f,g,a,b,s,x,y,\dots\in\mathbb R^n$ and the dot denotes the Euclidean inner product.
 
 \begin{definition}[Weighted pairings]\label{def:ntkdn:wcov}
-  \lean{NTK.wsq, NTK.wcov, NTK.avg4, NTK.wmat}
   \leanok
 For $f,g,a,b\in\mathbb R^n$ and $\Phi\in\mathbb R^{n\times m}$ put
 \[
   \mathrm{wsq}(f;a)=\tfrac1n\sum_jf_j^2a_j^2,\quad\mathrm{wcov}(f,g;a,b)=\tfrac1n\sum_jf_jg_ja_jb_j,\quad\mathrm{avg}_4(v)=\tfrac1n\sum_jv_j^4,\quad\mathrm{wmat}(f,g;\Phi)_{ab}=\tfrac1n\sum_jf_jg_j\Phi_{ja}\Phi_{jb}.
 \]
+In Lean these are not separate definitions: each is the uniform average \texttt{Finset.expect} over $\mathrm{Fin}\,n$, e.g.\ $\mathrm{wcov}(f,g;a,b)$ is \texttt{𝔼 j, f j * g j * (a j * b j)}, and \texttt{expect\_fin\_eq\_inv\_mul\_sum} converts to $\frac1n\sum$.
 \end{definition}
 
 \begin{lemma}[Cauchy--Schwarz decoupling]\label{lem:ntkdn:wcovCS}
@@ -558,7 +558,7 @@ Let $k+1<d$, $n>0$ and suppose $\hat\Sigma_k$ is invertible. Write $u^a=g_{k+1}^
         NTK.netGram_inv_entry_tendsto, NTK.netGram_singular_tendsto, NTK.goodSet,
         NTK.goodSet_compl_tendsto, NTK.isUnit_det_gram_of_netGram}
   \leanok
-Let $k<d$ and suppose $\Sigma^{k+1}$ is positive definite. On $\bigl(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d\bigr)$:
+Let $k<d$ and suppose $\Sigma^{k+1}$ is positive definite. On $\bigl(\texttt{DeepSpace}\;d,\gamma_d\bigr)$:
 \begin{enumerate}
   \item $\hat\Sigma_k\to\Sigma^{k+1}$ entrywise and as a matrix in measure, and $\hat\Sigma_k^{-1}\to(\Sigma^{k+1})^{-1}$ in measure.
   \item $\mu\bigl[\hat\Sigma_k\ \text{singular}\bigr]\to0$, i.e.\ the \emph{good set} $\mathrm{good}_n=\{\omega:\hat\Sigma_k(\omega)\text{ is invertible},\,n>0\}$ has $\mu(\mathrm{good}_n^c)\to0$. On $\mathrm{good}_n$, $\Phi_k^\top\Phi_k$ is also invertible.
@@ -598,7 +598,7 @@ Let $(\varphi,\varphi')$ carry activation data, $\ell<d$ and $a,b\in[m]$. On $\t
         NTK.pastFeat_zeroLayer, NTK.netGram_zeroLayer, NTK.netDeriv_zeroLayer, NTK.atProj_sq_bddByConv,
         NTK.residAbs_tendsto, NTK.gperp_sub_tendsto}
   \leanok
-Let $k+1<d$, assume $\Sigma^{k+1}\succ0$, and assume that for all $c,c'\in[m]$ the entries $G_{k+1}^{(n),cc'}$ converge in measure to some constants (convergence at layer $k+1$). Then, for $a,b\in[m]$, in measure on $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$,
+Let $k+1<d$, assume $\Sigma^{k+1}\succ0$, and assume that for all $c,c'\in[m]$ the entries $G_{k+1}^{(n),cc'}$ converge in measure to some constants (convergence at layer $k+1$). Then, for $a,b\in[m]$, in measure on $(\texttt{DeepSpace}\;d,\gamma_d)$,
 \[
   \mathrm{wcov}\bigl(f_k^a,f_k^b;y^a,y^b\bigr)-G_{k+1}^{(n),ab}\,\Phi'^{(n),ab}_k\longrightarrow0 .
 \]
@@ -607,7 +607,7 @@ Let $k+1<d$, assume $\Sigma^{k+1}\succ0$, and assume that for all $c,c'\in[m]$ t
 \begin{proof}
   \uses{thm:ntkcond:residualQuad, lem:ntkdn:hiddenDecomp, lem:ntkdn:congruence, thm:ntkdn:layerSplit, lem:ntkdn:layerSubstitution, lem:ntkdn:tightness, lem:ntkdn:singular, thm:ntkdn:projectedVanishes}
   \leanok
-Put $i_0=k+1$ and use the layer split of Theorem~\ref{thm:ntkdn:layerSplit}: $\omega\mapsto(z,V)=(\mathrm{zero}_{i_0}\omega,\texttt{layerBlock}_n(\omega_{i_0}))$ is measure preserving onto $\mathcal L(z)\otimes\texttt{gaussianInit}\;n\;n$ (the ``splitPt'').
+Put $i_0=k+1$ and use the layer split of Theorem~\ref{thm:ntkdn:layerSplit}: $\omega\mapsto(z,V)=(\mathrm{zero}_{i_0}\omega,\texttt{layerBlock}_n(\omega_{i_0}))$ is measure preserving onto $\mathcal L(z)\otimes\mathcal N(0,1)^{\otimes n\times n}$ (the ``splitPt'').
 The past data $\Phi_k$, $\hat\Sigma_k$, $f_k^a$ are unchanged by zeroing layer $k+1$ (Lemma~\ref{lem:ntkdn:congruence}(1); \texttt{pastFeat\_zeroLayer}, \texttt{netGram\_zeroLayer}, \texttt{netDeriv\_zeroLayer}), so they are measurable functions of the past $z$ alone. By Lemma~\ref{lem:ntkdn:layerSubstitution} the network at $\omega$ is the network at $z$ with $W_{k+1}=V$ inserted. By Lemma~\ref{lem:ntkdn:congruence}(4) and Lemma~\ref{lem:ntkcond:gramProjectorProps}(3), on the event that $\hat\Sigma_k$ is invertible the vector $g_{k+1}$ at $\omega$ equals $g_{k+1}$ evaluated with $W_{k+1}$ replaced by $VP_{\Phi_k}$, i.e.\ $\texttt{atProj}\;\Phi_k\;(\texttt{nextSens}^a)$ at the split point (\texttt{atProj\_nextSens\_eq}): the vector $u^a$ in Lemma~\ref{lem:ntkdn:hiddenDecomp} is of the form required by Theorem~\ref{thm:ntkcond:residualQuad}.
 The tightness hypotheses of that theorem hold: $n^{-1}\|u^a\|^2=G_{k+1}^{(n),aa}$ converges by assumption (on the good event, where $\texttt{atProj}$ agrees with the network quantity: \texttt{atProj\_sq\_bddByConv}), and $n^{-1}\|D^{ab}\|_F^2=\frac1n\sum_j(f_j^af_j^b)^2$ converges by Lemma~\ref{lem:ntkdn:tightness}(2). Theorem~\ref{thm:ntkcond:residualQuad}, with $A_n=D^{ab}$, shows that the residual form $\mathrm{wcov}(f^a,f^b;y^a,y^b)$ of Lemma~\ref{lem:ntkdn:hiddenDecomp}(3) minus its conditional mean (\texttt{residAbs}) tends to $0$ in measure, the discrepancy between the two on the bad event being negligible by Lemma~\ref{lem:ntkdn:singular}. The conditional mean is, by Lemma~\ref{lem:ntkdn:hiddenDecomp}(4), $G_{k+1}\Phi'_k-G_{k+1}\cdot n^{-1}\sum(\hat\Sigma^{-1})_{a'b'}\mathrm{wmat}_{b'a'}$. The correction term tends to $0$ by Theorem~\ref{thm:ntkdn:projectedVanishes}(2) ($\hat\Sigma^{-1}$ converges by Lemma~\ref{lem:ntkdn:singular}(1), and the fourth-moment averages by Lemma~\ref{lem:ntkdn:tightness}(3)) multiplied by the convergent $G_{k+1}$. Hence the claim.
 \end{proof}
@@ -616,7 +616,7 @@ The tightness hypotheses of that theorem hold: $n^{-1}\|u^a\|^2=G_{k+1}^{(n),aa}
   \uses{thm:ntkdn:residualGram, lem:ntkdn:hiddenDecomp, lem:ntkdn:wcovCS, thm:ntkdn:projectedVanishes, lem:ntkdn:singular, lem:ntkdn:tightness}
   \lean{NTK.wcov_self_eq_wsq, NTK.wsq_projPart_tendsto, NTK.decoupling_tendsto}
   \leanok
-Let $k+1<d$ and $\Sigma^{k+1}\succ0$. Suppose that (a) all entries $G_{k+1}^{(n),cc'}$ converge in measure to constants, and (b) the gradient-independence quantities at layer $k+1$ vanish: $\gamma_{k+1}(a,b)\to0$ in measure for all $a,b$. Then for all $a,b\in[m]$, in measure on $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$,
+Let $k+1<d$ and $\Sigma^{k+1}\succ0$. Suppose that (a) all entries $G_{k+1}^{(n),cc'}$ converge in measure to constants, and (b) the gradient-independence quantities at layer $k+1$ vanish: $\gamma_{k+1}(a,b)\to0$ in measure for all $a,b$. Then for all $a,b\in[m]$, in measure on $(\texttt{DeepSpace}\;d,\gamma_d)$,
 \[
   G_k^{(n),ab}-G_{k+1}^{(n),ab}\,\Phi'^{(n),ab}_k\longrightarrow0 .
 \]
@@ -664,7 +664,7 @@ Write $C(\ell)$ for the statement ``$G_\ell^{(n),ab}\to\Pi^\ell_{ab}$ in measure
   \lean{NTK.preactivation_deepParams_readout, NTK.netDeriv_deepParams_readout,
         NTK.gradIndep_top_tendsto, NTK.sensitivityGram_top_tendsto}
   \leanok
-Let $d\ge1$. On $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$, in measure and for all $a,b$:
+Let $d\ge1$. On $(\texttt{DeepSpace}\;d,\gamma_d)$, in measure and for all $a,b$:
 \begin{enumerate}
   \item $I(d-1)$: $\gamma_{d-1}(a,b)=n^{-1}\langle h_{d-1}^b,g_{d-1}^a\rangle\to0$;
   \item $C(d-1)$: $G_{d-1}^{(n),ab}\to\int\varphi'(z_a)\varphi'(z_b)\,d\mathcal N(0,\Sigma^{d-1})=\dot\Sigma^{d-1}_{ab}=\Pi^{d-1}_{ab}$.
@@ -683,7 +683,7 @@ The forward pass does not read the readout, so $h_{d-1}$ and $f^a=\varphi'(h_{d-
   \uses{thm:ntkdn:top, thm:ntkdn:decoupling, thm:ntkdn:gradIndepStep, def:ntkdn:limitingNTK, lem:ntkdn:tightness, lem:ntkcond:mconvAlgebra}
   \lean{NTK.deepSpace_sensitivity_induction}
   \leanok
-Let $d\ge1$ and let Hypothesis~\ref{hyp:ntkdn:nondeg} hold. On $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$, for every layer $k<d$ both $C(k)$ and $I(k)$ hold.
+Let $d\ge1$ and let Hypothesis~\ref{hyp:ntkdn:nondeg} hold. On $(\texttt{DeepSpace}\;d,\gamma_d)$, for every layer $k<d$ both $C(k)$ and $I(k)$ hold.
 \end{theorem}
 
 \begin{proof}
