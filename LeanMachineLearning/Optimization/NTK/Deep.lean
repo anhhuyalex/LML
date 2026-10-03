@@ -10,6 +10,7 @@ public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.GaussianDecoupling
 public import LeanMachineLearning.Optimization.NTK.Deep.BackwardConcentration
+public import LeanMachineLearning.Optimization.NTK.Deep.BackwardTop
 
 /-!
 # Deep Neural Tangent Kernel (Deep NTK) Curriculum
@@ -33,7 +34,15 @@ Tangent Kernel (depth `d ≥ 1`), structured as follows:
   measure.
   (The Gaussian matrix algebra, including Lemma 2.26, lives in
   `Initialization/GaussianMatrixAlgebra.lean`.)
-* `NTK.Deep.BackwardConcentration`: backward sensitivity Gram concentration (readout layer and the
-  downward induction) and the convergence in probability of `deepEmpiricalNTK` to `deepLimitingNTK`
-  (Theorem 2.27).
+* `NTK.Deep.LayerSplit`, `NTK.Deep.DeepSpaceForward`: the Gaussian space `DeepSpace d` of weight
+  populations, the split of one layer from the rest (a measure-preserving map onto a product), and
+  forward Gram concentration on that space.
+* `NTK.Deep.BackwardAlgebra`, `NTK.Deep.DecouplingBounds`, `NTK.Deep.BackwardStructure`: the
+  deterministic weighted-average algebra (Cauchy–Schwarz, fourth-moment bounds, projected part),
+  the convergence-in-measure bounds for the decoupling, and the layer-substitution structure.
+* `NTK.Deep.BackwardDecoupling`: the decoupling `G_k − G_{k+1} Φ'_k → 0` of the backward Gram matrix
+  from the residual and projected parts of the back-propagated vector.
+* `NTK.Deep.BackwardInduction`, `NTK.Deep.BackwardTop`, `NTK.Deep.BackwardConcentration`: the joint
+  downward induction on Gram convergence and gradient independence, its readout-layer base case,
+  and the convergence in probability of `deepEmpiricalNTK` to `deepLimitingNTK` (Theorem 2.27).
 -/

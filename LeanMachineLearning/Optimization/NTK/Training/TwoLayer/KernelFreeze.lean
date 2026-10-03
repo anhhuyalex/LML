@@ -189,7 +189,7 @@ lemma jacobian_ball_bounds_of_initial_bounds
       rw [hθ₀_def]; exact congrFun (unpackA_packParams p.1 p.2) i
     rw [hival]; exact hp2 i
   -- the Jacobian Lipschitz bound, applied on the ball of radius `r`: the Jacobian is
-`L_J`-Lipschitz there, since
+  -- `L_J`-Lipschitz there, since
   -- every `θ` with `‖θ - θ₀‖ ≤ r` has readout weights bounded by `R₀ + r` (deterministic
   -- ball-propagation of the entrywise concentration bound, `abs_unpackA_le_of_displacement`).
   have hJ_lip_ball : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)), ‖θ - θ₀‖ ≤ r →

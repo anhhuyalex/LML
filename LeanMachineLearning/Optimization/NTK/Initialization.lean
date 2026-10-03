@@ -526,8 +526,8 @@ file re-exports all of them.
   * `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
     $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
   * `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in
-    probability $\Phi_\ell^{(n)} \xrightarrow{\mathbb{P}} \Phi_\ell$. **Currently `sorry`d** — see
-    its docstring for the remaining random-conditional-layer fluctuation argument.
+    probability $\Phi_\ell^{(n)} \xrightarrow{\mathbb{P}} \Phi_\ell$. Proved in
+    `Initialization/DeepNNGPTheorems.lean`.
   * `NTK.measurable_deepEval`, `NTK.deepEval_covariance_posSemidef`,
     `NTK.map_deepEval_snd_eq_multivariateGaussian`, `NTK.charFun_map_deepEval`,
     `NTK.norm_charFun_deepEval_le_one`, `NTK.aestronglyMeasurable_charFun_deepEval`,
@@ -537,11 +537,11 @@ file re-exports all of them.
   * `NTK.tendstoInDistribution_deepEval` : Part 2, output convergence in distribution
     $\mathbf{f}_m(\boldsymbol{\theta}) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \Phi_L)$. Fully
     proved (reuses `NTK.exact_conditional_normality_general_multivariate` verbatim for the exact
-    conditional normality step; depends on Part 1's statement, which is still `sorry`d above).
+    conditional normality step; uses Part 1).
 
 * **Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5)**:
   * `NTK.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
-  * `NTK.reluDeriv` : weak derivative alias to `Kernel.reluIndicator`.
+  * `NTK.reluDeriv` : the weak derivative `1[u ≥ 0]` (the same function as `reluIndicator`).
   * `NTK.pearsonRho_mem_Icc` : Pearson correlation $\rho \in [-1, 1]$.
   * `NTK.corrMatrix2x2_posSemidef` : positive semidefiniteness of the $2 \times 2$ correlation
     matrix for $\rho \in [-1, 1]$.

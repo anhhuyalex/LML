@@ -1314,7 +1314,7 @@ private lemma relu_secondOrder_scaling_bound
           6 * B ^ (4 / 3 : ℝ) + 3 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ) := by linarith [h_num1, h_num2]
       exact div_le_div_of_nonneg_right h_sum_num h_m_pow_pos
 
-/- For any additional `V` with `‖V − W₀‖_F ≤ B`:
+/-- For any additional `V` with `‖V − W₀‖_F ≤ B`:
   `|f(x; V) − (f(x; W) + ⟨∇_W f(x; W), V − W⟩_F)| ≤ (6B^{4/3} + 3B·(ln(1/δ))^{1/4}) / m^{1/6}`. -/
 theorem reluLinearizationBound_secondOrder
     (net : ReLUNetwork d m)
