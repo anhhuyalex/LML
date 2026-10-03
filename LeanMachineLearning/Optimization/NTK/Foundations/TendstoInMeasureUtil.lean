@@ -402,6 +402,7 @@ theorem tendstoInMeasure_sum_mul {Ω ι : Type*} [Fintype ι] {mΩ : MeasurableS
   have hcont : Continuous (fun v : ι ⊕ ι → ℝ => ∑ i, v (Sum.inl i) * v (Sum.inr i)) := by
     fun_prop
   simpa using tendstoInMeasure_comp_of_continuousAt hpair hcont.continuousAt
+
 /-- **Products of convergent sequences.** If `a n → a'` and `b n → b'` in measure then
 `a n * b n → a' * b'` in measure (the one-term case of `tendstoInMeasure_sum_mul`). -/
 theorem tendstoInMeasure_mul {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}

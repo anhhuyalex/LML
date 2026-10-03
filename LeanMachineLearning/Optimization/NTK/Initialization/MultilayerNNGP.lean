@@ -121,6 +121,7 @@ lemma projection_layer_variance_eq_multivariate (σw σb : ℝ) (n m : ℕ) (H :
   exact Finset.sum_congr rfl fun α _ =>
     Finset.sum_congr rfl fun β _ => Finset.sum_congr rfl fun j _ => by ring
 
+/-- The empirical layer covariance defines a nonnegative quadratic form: `0 ≤ t ⬝ᵥ Σ⁽ⁿ⁾ *ᵥ t`. -/
 lemma empirical_layer_covariance_nonneg_multivariate (σw σb : ℝ) (n m : ℕ)
     (H : Fin n → Fin m → ℝ) (t : EuclideanSpace ℝ (Fin m)) :
     0 ≤ t.ofLp ⬝ᵥ (fun α β : Fin m => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
@@ -128,6 +129,7 @@ lemma empirical_layer_covariance_nonneg_multivariate (σw σb : ℝ) (n m : ℕ)
   rw [← projection_layer_variance_eq_multivariate]
   exact add_nonneg (sq_nonneg _) (Finset.sum_nonneg fun _ _ => sq_nonneg _)
 
+/-- The empirical layer covariance `σb² + σw² n⁻¹ ∑ⱼ Hⱼα Hⱼβ` is Hermitian. -/
 lemma empirical_layer_covariance_isHermitian_multivariate (σw σb : ℝ) (n m : ℕ)
     (H : Fin n → Fin m → ℝ) :
     Matrix.IsHermitian (show Matrix (Fin m) (Fin m) ℝ from fun α β =>
@@ -139,6 +141,7 @@ lemma empirical_layer_covariance_isHermitian_multivariate (σw σb : ℝ) (n m :
   congr 1
   exact Finset.sum_congr rfl fun j _ => by ring
 
+/-- The empirical layer covariance `σb² + σw² n⁻¹ ∑ⱼ Hⱼα Hⱼβ` is positive semidefinite. -/
 lemma empirical_layer_covariance_posSemidef_multivariate (σw σb : ℝ) (n m : ℕ)
     (H : Fin n → Fin m → ℝ) :
     (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
@@ -316,6 +319,8 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
   rw [charFun_multivariateGaussian hPos]
   simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
 
+/-- Characteristic function of the conditional preactivation: integrating out the readout weights
+and bias gives `exp (-(t ⬝ᵥ Σ⁽ⁿ⁾ *ᵥ t) / 2)`. -/
 lemma charFun_conditional_preactivation_multivariate (σw σb : ℝ) (n m : ℕ)
     (H : Fin n → Fin m → ℝ) (t : EuclideanSpace ℝ (Fin m)) :
     charFun
@@ -330,6 +335,7 @@ lemma charFun_conditional_preactivation_multivariate (σw σb : ℝ) (n m : ℕ)
     (empirical_layer_covariance_posSemidef_multivariate σw σb n m H)]
   simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub, neg_div]
 
+/-- The limiting recurrence matrix `σb² + σw² 𝔼[φ(zα) φ(zβ)]`, `z ~ 𝒩(0, K)`, is Hermitian. -/
 lemma limitingRecurrence_isHermitian_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ)
     (K : Matrix (Fin m) (Fin m) ℝ) :
     Matrix.IsHermitian (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
@@ -341,6 +347,7 @@ lemma limitingRecurrence_isHermitian_multivariate (σw σb : ℝ) (m : ℕ) (φ 
   congr 1 with z
   ring
 
+/-- The limiting recurrence matrix defines a nonnegative quadratic form (for `L²` activations). -/
 lemma limitingRecurrence_nonneg_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ)
     (hφ_meas : Measurable φ) (K : Matrix (Fin m) (Fin m) ℝ)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
@@ -363,6 +370,8 @@ lemma limitingRecurrence_nonneg_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ
   exact empirical_layer_covariance_nonneg_multivariate σw σb n m
     (fun j α => φ ((Z j).ofLp α)) (WithLp.toLp 2 c)
 
+/-- The limiting recurrence matrix `σb² + σw² 𝔼[φ(zα) φ(zβ)]`, `z ~ 𝒩(0, K)`, is positive
+semidefinite. -/
 lemma limitingRecurrence_posSemidef_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ)
     (hφ_meas : Measurable φ) (K : Matrix (Fin m) (Fin m) ℝ)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
@@ -395,6 +404,9 @@ private lemma measurable_exp_quadratic_layerRecurrence_multivariate
       (measurable_pi_apply j.val))
   exact Complex.measurable_exp.comp ((Complex.measurable_ofReal.comp h_quad).neg.div_const 2)
 
+/-- Dominated convergence for the conditional characteristic functions: `∫ exp (-(t ⬝ᵥ Σ⁽ⁿ⁾(Z) *ᵥ t)
+/ 2)` over i.i.d. `𝒩(0, K)` draws converges to `exp (-(t ⬝ᵥ Σ *ᵥ t) / 2)`, where `Σ` is the
+limiting recurrence matrix. -/
 lemma tendsto_charFun_preactivation_dct_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
@@ -446,6 +458,7 @@ lemma tendsto_charFun_preactivation_dct_multivariate
   simpa only [integral_const, probReal_univ, one_smul] using h_lim
 
 -- Measurability of the sequential (input-and-readout) preactivation map.
+/-- The sequential preactivation `(Z, (w, b)) ↦ σb b + σw n^{-1/2} ∑ⱼ wⱼ φ(Zⱼ)` is measurable. -/
 lemma measurable_sequential_preactivation (σw σb : ℝ) (n m : ℕ) (φ : ℝ → ℝ)
     (hφ_meas : Measurable φ) :
     Measurable (fun (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) =>
@@ -459,6 +472,8 @@ lemma measurable_sequential_preactivation (σw σb : ℝ) (n m : ℕ) (φ : ℝ 
   exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable.comp
     ((measurable_pi_apply j.val).comp measurable_fst))
 
+/-- The characteristic function of the sequential preactivation equals the expectation of `exp (-(t
+⬝ᵥ Σ⁽ⁿ⁾(Z) *ᵥ t) / 2)` over the previous layer `Z ~ 𝒩(0, K)^{⊗ℕ}`. -/
 lemma charFun_map_sequential_preactivation_multivariate
     (σw σb : ℝ) (n m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
@@ -510,6 +525,8 @@ lemma charFun_map_sequential_preactivation_multivariate
   exact charFun_conditional_preactivation_multivariate σw σb n m
     (fun j α => φ ((Z j.val).ofLp α)) t
 
+/-- The characteristic functions of the sequential preactivations converge pointwise to that of
+`𝒩(0, σb² + σw² 𝔼[φ φ])` (strong law plus dominated convergence). -/
 lemma tendsto_charFun_sequential_preactivation_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
@@ -556,6 +573,9 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
 
 
 set_option backward.isDefEq.respectTransparency.types false in
+/-- **Sequential Multilayer NNGP Limit.** For a measurable activation `φ` with `φ(zα) ∈ L²(𝒩(0,
+K))`, the next-layer preactivation vector built from i.i.d. `𝒩(0, K)` previous-layer draws
+converges in distribution to the centered Gaussian with covariance `σb² + σw² 𝔼[φ(zα) φ(zβ)]`. -/
 theorem tendstoInDistribution_sequential_preactivation
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)

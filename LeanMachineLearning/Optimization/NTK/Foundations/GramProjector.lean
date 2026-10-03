@@ -30,6 +30,7 @@ noncomputable def gramProjector {n m : Type*} [Fintype n] [Fintype m] [Decidable
     (Φ : Matrix n m ℝ) : Matrix n n ℝ :=
   Φ * (Φᵀ * Φ)⁻¹ * Φᵀ
 
+/-- The Gram projector is symmetric, `P_Φᵀ = P_Φ`, for every `Φ` (as `(ΦᵀΦ)⁻¹` is symmetric). -/
 theorem gramProjector_transpose {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m]
     (Φ : Matrix n m ℝ) : (gramProjector Φ)ᵀ = gramProjector Φ := by
   have hsymm : ((Φᵀ * Φ)⁻¹)ᵀ = (Φᵀ * Φ)⁻¹ := by
@@ -38,6 +39,8 @@ theorem gramProjector_transpose {n m : Type*} [Fintype n] [Fintype m] [Decidable
   rw [Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_transpose, hsymm,
     Matrix.mul_assoc]
 
+/-- If `ΦᵀΦ` is invertible, the Gram projector `P_Φ` is an orthogonal projection
+(`IsStarProjection`). -/
 theorem isOrthogonalProjection_gramProjector {n m : Type*} [Fintype n] [Fintype m]
     [DecidableEq m] (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
     IsStarProjection (gramProjector Φ) := by
@@ -49,6 +52,7 @@ theorem isOrthogonalProjection_gramProjector {n m : Type*} [Fintype n] [Fintype 
           simp only [Matrix.mul_assoc]
       _ = Φ * (Φᵀ * Φ)⁻¹ * Φᵀ := by rw [hinv, Matrix.mul_one]
 
+/-- If `ΦᵀΦ` is invertible, the Gram projector fixes the features: `P_Φ Φ = Φ`. -/
 theorem gramProjector_mul_self {n m : Type*} [Fintype n] [Fintype m]
     [DecidableEq m] (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
     gramProjector Φ * Φ = Φ := by

@@ -42,6 +42,8 @@ def BddByConv {Ω : Type*} {mΩ : MeasurableSpace Ω} (μ : Measure Ω) (q : ℕ
   ∃ (B : ℕ → Ω → ℝ) (c : ℝ), (∀ n ω, q n ω ≤ B n ω) ∧
     TendstoInMeasure μ B atTop (fun _ => c)
 
+/-- A sequence converging in measure to a constant satisfies `BddByConv` (it is dominated by
+itself). -/
 lemma BddByConv.of_tendstoInMeasure {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
     {q : ℕ → Ω → ℝ} {c : ℝ} (h : TendstoInMeasure μ q atTop (fun _ => c)) : BddByConv μ q :=
   ⟨q, c, fun _ _ => le_rfl, h⟩
@@ -50,6 +52,7 @@ section prelim
 
 variable {Z : Type*} [MeasurableSpace Z] {n m : ℕ}
 
+/-- The Gram projector `gramProjector (Φ z)` depends measurably on `z` when `Φ` does. -/
 lemma measurable_gramProjector {Φ : Z → Matrix (Fin n) (Fin m) ℝ} (hΦ : Measurable Φ) :
     Measurable fun z => gramProjector (Φ z) := by
   unfold gramProjector
@@ -64,6 +67,7 @@ noncomputable def atProj (Φ : Z → Matrix (Fin n) (Fin m) ℝ)
     Fin n → ℝ :=
   u (Matrix.of q.2 * gramProjector (Φ q.1), q.1)
 
+/-- `atProj Φ u` is measurable when `Φ` and `u` are. -/
 lemma measurable_atProj {Φ : Z → Matrix (Fin n) (Fin m) ℝ} (hΦ : Measurable Φ)
     {u : Matrix (Fin n) (Fin n) ℝ × Z → Fin n → ℝ} (hu : Measurable u) :
     Measurable (atProj Φ u) := by

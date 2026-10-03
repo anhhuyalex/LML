@@ -41,6 +41,10 @@ open scoped ENNReal
 
 namespace NTK
 
+/-- **Conditional measure bound from sections.** Let `W` have i.i.d. standard Gaussian entries and
+`P` be an orthogonal projector, so that `W P` and `W (1 - P)` are independent. If every section
+`{V | (x, V (1 - P)) ∈ E}` of an event `E` has probability at most `B x`, then `{V | (V P, V (1
+- P)) ∈ E}` has probability at most `∫⁻ B (V P)`. -/
 theorem gaussianInit_measure_le_lintegral_of_section
     (n p : ℕ) (P : Matrix (Fin p) (Fin p) ℝ) (hP : IsStarProjection P)
     (E : Set (Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ)) (hE : MeasurableSet E)
@@ -149,6 +153,7 @@ theorem integral_linearForm_sq_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c :
   refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
   ring
 
+/-- A linear form `u ⬝ᵥ (W c)` of a standard Gaussian matrix `W` is in `L²`. -/
 theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
     MemLp (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) 2 (Measure.pi fun _ : Fin n =>
         Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
@@ -161,6 +166,7 @@ theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p
   rw [this]
   exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry n p i j).const_mul _
 
+/-- A linear form `u ⬝ᵥ (W c)` of a standard Gaussian matrix `W` has mean zero. -/
 theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
     ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (Matrix.of W *ᵥ c) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
         : Fin p => gaussianReal 0 1) = 0 := by
@@ -228,6 +234,11 @@ lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
   have h2 : 0 ≤ 2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) := by positivity
   exact mul_le_mul_of_nonneg_left this h2
 
+/-- **Conditional Chebyshev bound for the residual quadratic form.** Let `P` be a random orthogonal
+projector and `W` a standard Gaussian matrix. The quadratic form `u ⬝ᵥ (W (1 - P) A (W (1 - P))ᵀ
+v)` of the residual part deviates from its conditional mean `(u ⬝ᵥ v) tr ((1 - P) A (1 - P))` by
+at least `ε` with probability at most `∫⁻ min 1 (2 ‖u‖² ‖v‖² ‖A‖_F² / ε²)`, where `u`, `v` may
+depend on the projected part `W P` and on the past. -/
 theorem conditional_quadForm_chebyshev
     (μ : Measure Ω) (n p : ℕ)
     (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
@@ -372,6 +383,8 @@ theorem conditional_quadForm_chebyshev_normalized
   congr 2
   field_simp
 
+/-- Chebyshev bound for a linear form of the residual part: for an orthogonal projector `Q` and a
+standard Gaussian matrix `V`, `ℙ(ε ≤ |u₀ ⬝ᵥ ((V Q) b)|) ≤ (u₀ ⬝ᵥ u₀)(b ⬝ᵥ b) / ε²`. -/
 lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
     (hQ : IsStarProjection Q) (u₀ : Fin n → ℝ) (b : Fin p → ℝ) {ε : ℝ} (hε : 0 < ε) :
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
@@ -385,6 +398,10 @@ lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
   have hu : 0 ≤ u₀ ⬝ᵥ u₀ := dotProduct_self_star_nonneg _
   exact mul_le_mul_of_nonneg_left (mulVec_dot_self_le Q hQ b) hu
 
+/-- **Conditional Chebyshev bound for the residual linear form.** Let `P` be a random orthogonal
+projector and `W` a standard Gaussian matrix. The linear form `u ⬝ᵥ (W (1 - P) b)` is at least
+`ε` in absolute value with probability at most `∫⁻ min 1 ((u ⬝ᵥ u)(b ⬝ᵥ b) / ε²)`, where `u` may
+depend on the projected part `W P` and on the past. -/
 theorem conditional_linearForm_chebyshev
     (μ : Measure Ω) (n p : ℕ)
     (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))

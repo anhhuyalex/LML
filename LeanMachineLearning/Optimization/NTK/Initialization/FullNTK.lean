@@ -733,6 +733,7 @@ noncomputable def fullNTKSummandSecondMoment (d : ℕ) (φ : ℝ → ℝ)
        ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) ^ 2
     ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1))
 
+/-- The second moment of the full NTK summand is nonnegative. -/
 lemma fullNTKSummandSecondMoment_nonneg (d : ℕ) (φ : ℝ → ℝ) {m : ℕ} (X : Fin m → Fin d → ℝ)
     (α β : Fin m) : 0 ≤ fullNTKSummandSecondMoment d φ X α β :=
   integral_nonneg fun _ => sq_nonneg _

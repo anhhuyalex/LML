@@ -248,6 +248,7 @@ lemma gaussianSqCenteredVariance_nonneg : 0 ≤ (ProbabilityTheory.variance (fun
     (gaussianReal 0 1)) :=
   variance_nonneg _ _
 
+/-- For every real `y`, the function `x ↦ (x² - 1) * y` is in `L²` of the standard Gaussian. -/
 lemma memLp_sq_sub_one_mul_gaussianReal (y : ℝ) :
     MemLp (fun x : ℝ => (x ^ 2 - 1) * y) 2 (gaussianReal 0 1) :=
   (memLp_sq_gaussianReal_two.sub (memLp_const 1)).mul_const y

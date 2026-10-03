@@ -232,15 +232,18 @@ noncomputable abbrev matrixCLM {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) :
     EuclideanSpace ℝ (Fin b) →L[ℝ] EuclideanSpace ℝ (Fin a) :=
   LinearMap.toContinuousLinearMap (Matrix.toEuclideanLin M)
 
+/-- `matrixCLM M v` is the matrix-vector product `M *ᵥ v`. -/
 lemma matrixCLM_apply {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) (v : EuclideanSpace ℝ (Fin b)) :
     matrixCLM M v = WithLp.toLp 2 (M *ᵥ v.ofLp) := by
   simp [matrixCLM, Matrix.toLpLin_apply]
 
+/-- `matrixCLM` is additive: `matrixCLM M - matrixCLM N = matrixCLM (M - N)`. -/
 lemma matrixCLM_sub {a b : ℕ} (M N : Matrix (Fin a) (Fin b) ℝ) :
     matrixCLM M - matrixCLM N = matrixCLM (M - N) := by
   ext v : 1
   simp [matrixCLM_apply, Matrix.sub_mulVec]
 
+/-- The operator norm of `matrixCLM M` is at most the Frobenius norm of `M`. -/
 lemma norm_matrixCLM_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ) : ‖matrixCLM M‖ ≤ ‖M‖ :=
   ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg _) fun v => by
     rw [matrixCLM_apply]; exact mulVec_frobenius_norm_le M v

@@ -295,6 +295,7 @@ lemma matrix_mul_apply_eq_sum (W : Fin n → Fin p → ℝ) (A : Matrix (Fin p) 
   simp only [Matrix.mul_apply, Matrix.of_apply]
   exact Finset.sum_congr rfl fun a _ => mul_comm _ _
 
+/-- Each entry of `W A` is in `L²` for `W` a standard Gaussian matrix and `A` a fixed matrix. -/
 lemma memLp_mul_entry (A : Matrix (Fin p) (Fin q) ℝ) (i : Fin n) (k : Fin q) :
     MemLp (fun W : Fin n → Fin p → ℝ => (Matrix.of W * A) i k) 2 (Measure.pi fun _ : Fin n =>
         Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
@@ -378,6 +379,7 @@ theorem indepFun_gaussianInit_mul_of_transpose_mul_eq_zero
       (Matrix.of fun i k => f (i, k) : Matrix (Fin n) (Fin r) ℝ)) :=
     Measurable.of_eval fun i => Measurable.of_eval fun k => measurable_pi_apply (i, k)
   exact h_indep.comp hmA hmB
+
 /-! ### Lemma 2.26 One-Sided Gaussian Conditioning -/
 
 /-- **Lemma 2.26 (One-Sided Gaussian Conditioning / Decoupling Identity)**:

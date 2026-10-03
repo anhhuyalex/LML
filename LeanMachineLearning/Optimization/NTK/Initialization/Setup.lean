@@ -117,16 +117,19 @@ noncomputable def empiricalCovariance
 
 /-! ### API for Network Evaluation -/
 
+/-- Coordinates of `evalVector` are the network outputs `evalSingle` at the corresponding inputs. -/
 @[simp] lemma evalVector_ofLp
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (X : Fin m → Fin d → ℝ) (α : Fin m) :
     (evalVector φ W a X).ofLp α = evalSingle φ W a (X α) := rfl
 
+/-- The inner product `⟪t, f_m⟫` equals `∑ α, t α * f(X α)`. -/
 lemma evalVector_inner
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (a : Fin n → ℝ) (t : EuclideanSpace ℝ (Fin m)) :
     ⟪t, evalVector φ W a X⟫ = ∑ α : Fin m, t.ofLp α * evalSingle φ W a (X α) := by
   simp only [evalVector, PiLp.inner_apply, RCLike.inner_apply', conj_trivial]
 
+/-- `evalVector` is continuous in the readout weights `a`. -/
 lemma evalVector_continuous
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
     Continuous (fun a => evalVector φ W a X) := by
@@ -136,17 +139,20 @@ lemma evalVector_continuous
   exact continuous_const.mul (continuous_finsetSum _ fun i _ =>
     (continuous_apply i).mul continuous_const)
 
+/-- `evalVector` is measurable in the readout weights `a`. -/
 lemma evalVector_measurable
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
     Measurable (fun a => evalVector φ W a X) :=
   (evalVector_continuous φ W X).measurable
 
+/-- The map `a ↦ ⟪t, evalVector φ W a X⟫` is continuous. -/
 lemma inner_evalVector_continuous
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
     Continuous (fun a => ⟪t, evalVector φ W a X⟫) :=
   (innerSL ℝ t).continuous.comp (evalVector_continuous φ W X)
 
+/-- The map `a ↦ ⟪t, evalVector φ W a X⟫` is measurable. -/
 lemma inner_evalVector_measurable
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
@@ -289,7 +295,7 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
   rw [hrhs] at hbad
   have hcompl : {a : Fin n → ℝ | ∀ i, |a i| ≤ ε}ᶜ ⊆ {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} := by
     intro a ha
-    simp only [Set.mem_compl_iff, Set.mem_setOf_eq, not_forall, not_le] at ha
+    simp only [Set.mem_compl_iff, Set.mem_ofPred_eq, not_forall, not_le] at ha
     obtain ⟨i, hi⟩ := ha
     exact ⟨i, hi.le⟩
   exact one_sub_le_measureReal_of_measureReal_compl_le _ ((measureReal_mono hcompl).trans hbad)

@@ -18,7 +18,7 @@ public import Mathlib.Topology.Algebra.Module.FiniteDimension
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
 
 /-!
-# ODE tools: Grönwall, bootstrap, linear-ODE stability, and global flows
+# ODE tools: Grönwall, bootstrap, and global flows
 
 Network-independent analytic tools used by the gradient-flow development:
 
@@ -36,8 +36,6 @@ open Real MeasureTheory ProbabilityTheory Filter
 open scoped RealInnerProductSpace Matrix Matrix.Norms.Frobenius Topology
 
 namespace NTK
-
-variable {ι : Type*} {d m P : ℕ}
 
 /-! ### Reusable Analytic Tool: Grönwall Differential Inequality -/
 
@@ -135,6 +133,7 @@ lemma integral_exp_neg_le (c T : ℝ) (hc : 0 < c) (hT : 0 ≤ T) :
       apply mul_le_mul_of_nonneg_left _ h3
       linarith [Real.exp_nonneg (-c * T)]
     _ = c⁻¹ := by ring
+
 /-- **Continuous-induction (bootstrap) principle on `[0, T]`.** Let `d` be continuous and
 `C < r` (only continuity on `[0, T]` is needed). Suppose that whenever `d ≤ r` holds on all of
 `[0, S]` (for `S ∈ [0, T]`), the sharper
@@ -202,12 +201,14 @@ lemma abs_cutoff_sub_le {A : ℝ} (hA : 0 < A) (x y : E) :
   exact h.trans h1
 
 omit [NormedSpace ℝ E] in
+/-- The cutoff `max 0 (min 1 (2 - ‖x‖ / A))` vanishes outside the ball of radius `2A`. -/
 lemma cutoff_eq_zero {A : ℝ} (hA : 0 < A) {x : E} (hx : 2 * A ≤ ‖x‖) :
     max 0 (min 1 (2 - ‖x‖ / A)) = 0 := by
   have h2 : 2 ≤ ‖x‖ / A := by rw [le_div_iff₀ hA]; linarith
   exact max_eq_left ((min_le_right _ _).trans (by linarith))
 
 omit [NormedSpace ℝ E] in
+/-- The cutoff `max 0 (min 1 (2 - ‖x‖ / A))` equals `1` on the ball of radius `A`. -/
 lemma cutoff_eq_one {A : ℝ} (hA : 0 < A) {x : E} (hx : ‖x‖ ≤ A) :
     max 0 (min 1 (2 - ‖x‖ / A)) = 1 := by
   have h1 : ‖x‖ / A ≤ 1 := by rw [div_le_iff₀ hA]; linarith

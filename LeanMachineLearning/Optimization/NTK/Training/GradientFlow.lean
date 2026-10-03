@@ -239,7 +239,7 @@ linearization error).
   Frobenius norm at most `M` at `θ₀` and `θ` and changes by at most `L_J * ‖θ - θ₀‖` between them.
   This is the input the lazy-training bootstrap needs at every `θ` near `θ₀`.
 * `NTK.restrictCoords`, `NTK.norm_restrictCoords_gradient_mseLoss_le`,
-  `NTK.norm_map_sub_le_integral_of_gfTrajectory` : displacement of a *block of coordinates* (or any
+  `NTK.norm_map_sub_le_integral_of_forwardGF` : displacement of a *block of coordinates* (or any
   continuous linear image) of a gradient flow is at most the integral of the speed of that block;
   the block speed under MSE flow is `(1/m) ‖J_block‖ ‖r‖`.
 * `NTK.integral_exp_neg_le` : Reusable bound `∫₀ᵀ exp(-c t) dt ≤ 1/c` for `c > 0`.

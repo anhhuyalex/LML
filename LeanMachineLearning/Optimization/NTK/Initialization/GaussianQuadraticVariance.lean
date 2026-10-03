@@ -45,6 +45,8 @@ lemma measurable_toLp_uncurry (n p : ℕ) :
       (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p))) :=
   (PiLp.continuous_toLp 2 _).measurable.comp measurable_uncurry
 
+/-- Currying the rows of a standard Gaussian matrix into one `Fin n × Fin p`-indexed family pushes
+`𝒩(0,1)^{n×p}` forward to the product measure over index pairs. -/
 lemma map_gaussianInit_pairIndex (n p : ℕ) :
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun W : Fin n →
         Fin p → ℝ => Function.uncurry W) =
@@ -77,6 +79,8 @@ section stdGaussian
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
 omit [DecidableEq ι] in
+/-- A single coordinate of a standard Gaussian vector in `EuclideanSpace` has finite moments of
+every finite order. -/
 lemma memLp_coord_stdGaussian (a : ι) (p : ℝ≥0∞) (hp : p ≠ ⊤) :
     MemLp (fun z : EuclideanSpace ℝ ι => z a) p (stdGaussian (EuclideanSpace ℝ ι)) :=
   IsGaussian.memLp_dual _ (EuclideanSpace.proj a) p hp

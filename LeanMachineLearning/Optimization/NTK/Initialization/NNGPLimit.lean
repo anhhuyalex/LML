@@ -362,6 +362,8 @@ theorem limitingCovariance_posSemidef
   Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (limitingCovariance_isHermitian φ X)
     fun x => by simpa using limitingCovariance_nonneg φ X hφ_meas hφ_L2 x
 
+/-- The scalar network output `evalSingle` is jointly measurable in the input and readout weights.
+-/
 lemma evalSingle_joint_measurable
     (φ : ℝ → ℝ) (hφ : Measurable φ) (x : Fin d → ℝ) :
     Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalSingle φ p.1 p.2 x) := by
@@ -374,6 +376,7 @@ lemma evalSingle_joint_measurable
     hφ.comp ((measurable_dotProduct_left x).comp ((measurable_pi_apply i).comp measurable_fst))
   exact h_ai.mul h_Wi
 
+/-- The output vector `evalVector` is jointly measurable in the input and readout weights. -/
 lemma evalVector_joint_measurable
     (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ) :
     Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalVector φ p.1 p.2 X) := by

@@ -30,7 +30,7 @@ needs no spectral gap.
 * `NTK.finite_horizon_displacement_bound`, `NTK.finite_horizon_kernel_freeze_bound` : finite-horizon
   bootstrap and kernel freeze on `[0, T]` with no spectral gap.
 * `NTK.restrictCoords`, `NTK.norm_restrictCoords_gradient_mseLoss_le`,
-  `NTK.norm_map_sub_le_integral_of_gfTrajectory` : displacement of a *block of coordinates* (or any
+  `NTK.norm_map_sub_le_integral_of_forwardGF` : displacement of a *block of coordinates* (or any
   continuous linear image) of a gradient flow is at most the integral of the speed of that block;
   the block speed under MSE flow is `(1/m) ‖J_block‖ ‖r‖`.
 * `NTK.displacement_integral_bound` : A `T`-independent displacement
