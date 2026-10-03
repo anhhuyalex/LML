@@ -214,7 +214,8 @@ theorem empiricalCovariance_posSemidef
 /-- Pushforward of the readout measure under standard inner product with a vector `v : Fin n → ℝ`
 is a 1D Gaussian with mean 0 and variance `∑ i, v i ^ 2`. -/
 lemma map_gaussianReadoutMeasure_inner (v : Fin n → ℝ) :
-    Measure.map (fun a : Fin n → ℝ => ∑ i : Fin n, a i * v i) (gaussianReadoutMeasure n) =
+    Measure.map (fun a : Fin n → ℝ => ∑ i : Fin n, a i * v i) (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1) =
       gaussianReal 0 (Real.toNNReal (∑ i : Fin n, v i ^ 2)) := by
   have h_eq : (fun a : Fin n → ℝ => ∑ i : Fin n, a i * v i) =
       (fun (u : EuclideanSpace ℝ (Fin n)) => innerSL ℝ (WithLp.toLp 2 v) u) ∘ (WithLp.toLp 2) := by
@@ -223,7 +224,7 @@ lemma map_gaussianReadoutMeasure_inner (v : Fin n → ℝ) :
     rw [EuclideanSpace.inner_toLp_toLp]
     simp [dotProduct, mul_comm]
   rw [h_eq, ← Measure.map_map]
-  · have h_toLp : Measure.map (WithLp.toLp 2) (gaussianReadoutMeasure n) =
+  · have h_toLp : Measure.map (WithLp.toLp 2) (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
         stdGaussian (EuclideanSpace ℝ (Fin n)) := map_pi_eq_stdGaussian
     rw [h_toLp]
     have h_map := IsGaussian.map_eq_gaussianReal
@@ -246,13 +247,14 @@ Conditional on `W`, every scalar linear projection `∑ α, c α * f(X α; W, a)
 as a univariate centered Gaussian with variance `c ⬝ᵥ Φ^{(n)} *ᵥ c`. -/
 theorem map_readout_projection_eq_gaussianReal
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) (c : Fin m → ℝ) :
-    Measure.map (fun a => ∑ α : Fin m, c α * evalSingle φ W a (X α)) (gaussianReadoutMeasure n) =
+    Measure.map (fun a => ∑ α : Fin m, c α * evalSingle φ W a (X α)) (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1) =
       gaussianReal 0 (Real.toNNReal (c ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ c)) := by
   calc
     Measure.map (fun a => ∑ α : Fin m, c α * evalSingle φ W a (X α))
-        (gaussianReadoutMeasure n) =
+        (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
         Measure.map (fun a => ∑ i : Fin n, a i * projectionCoeff n φ W X c i)
-          (gaussianReadoutMeasure n) := by
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
       congr 1
       funext a
       exact projection_eq_sum_projectionCoeff φ W a X c
@@ -266,12 +268,12 @@ theorem map_readout_projection_eq_gaussianReal
 lemma map_readout_inner_evalVector
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
-    Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) =
+    Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp)) := by
   calc
-    Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) =
+    Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
         Measure.map (fun a => ∑ α : Fin m, t.ofLp α * evalSingle φ W a (X α))
-          (gaussianReadoutMeasure n) := by
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
       congr 1
       funext a
       exact evalVector_inner φ W X a t
@@ -283,9 +285,10 @@ lemma map_readout_inner_evalVector
 lemma charFun_readout_evalVector
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
-    charFun (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) t =
+    charFun (Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0
+        1)) t =
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) := by
-  set μ := Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)
+  set μ := Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0 1)
   rw [charFun_apply]
   rw [integral_map (evalVector_measurable φ W X).aemeasurable (by fun_prop)]
   have h_exp : (fun a => Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)) =
@@ -296,8 +299,10 @@ lemma charFun_readout_evalVector
   rw [h_exp]
   have h_meas_inner : Measurable (fun a => ⟪t, evalVector φ W a X⟫) :=
     inner_evalVector_measurable φ W X t
-  have h_int_map : (∫ a, Complex.exp (⟪t, evalVector φ W a X⟫ * Complex.I) ∂gaussianReadoutMeasure n) =
-      ∫ y : ℝ, Complex.exp (y * Complex.I) ∂Measure.map (fun a => ⟪t, evalVector φ W a X⟫) (gaussianReadoutMeasure n) := by
+  have h_int_map : (∫ a, Complex.exp (⟪t, evalVector φ W a X⟫ * Complex.I) ∂(Measure.pi fun _ : Fin
+      n => gaussianReal 0 1)) =
+      ∫ y : ℝ, Complex.exp (y * Complex.I) ∂Measure.map (fun a => ⟪t, evalVector φ W a
+          X⟫) (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
     rw [integral_map h_meas_inner.aemeasurable (by fun_prop)]
   rw [h_int_map, map_readout_inner_evalVector φ W X t]
   have h_cf_1 : (∫ y : ℝ, Complex.exp (y * Complex.I) ∂(gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp)))) =
@@ -332,7 +337,7 @@ pushforward measure is computed via the 1D projection theorem to be
 `multivariateGaussian 0 Φ^{(n)}` exactly, proving Theorem 1. -/
 theorem exact_conditional_normality
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
-    Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n) =
+    Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (empiricalCovariance n φ W X) := by
   have hPos : (empiricalCovariance n φ W X).PosSemidef :=
     empiricalCovariance_posSemidef n φ W X
@@ -345,7 +350,8 @@ theorem exact_conditional_normality
 /-- The conditional distribution of the output vector satisfies `IsGaussian`. -/
 instance isGaussian_conditional_output
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
-    IsGaussian (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) := by
+    IsGaussian (Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal
+        0 1)) := by
   rw [exact_conditional_normality]
   infer_instance
 
@@ -358,11 +364,12 @@ theorem isGaussianProcess_exact_conditional_output
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) :
     ProbabilityTheory.IsGaussianProcess
       (fun (x : Fin d → ℝ) (a : Fin n → ℝ) => evalSingle φ W a x)
-      (gaussianReadoutMeasure n) where
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1) where
   hasGaussianLaw I := by
     let e := Fintype.equivFin I
     let X : Fin (Fintype.card I) → Fin d → ℝ := fun α => (e.symm α).1
-    have h_gauss : HasGaussianLaw (fun a => evalVector φ W a X) (gaussianReadoutMeasure n) :=
+    have h_gauss : HasGaussianLaw (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1) :=
       ⟨(evalVector_measurable φ W X).aemeasurable, isGaussian_conditional_output φ W X⟩
     let L : EuclideanSpace ℝ (Fin (Fintype.card I)) →L[ℝ] (I → ℝ) :=
       { toFun := fun v i => v.ofLp (e i)

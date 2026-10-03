@@ -198,7 +198,7 @@ lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
     exact (measurable_pi_apply k.val).comp (measurable_pi_apply j)
   have hrestrictColumns : Measure.map restrictColumns
       (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-      Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n := by
+      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
     calc
       Measure.map restrictColumns
           (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
@@ -210,19 +210,19 @@ lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
               (μ := fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
               (f := fun _ (r : ℕ → ℝ) (k : Fin n) => r k.val)
               (fun _ => measurable_pi_iff.2 fun k => measurable_pi_apply k.val))
-      _ = Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n := by
+      _ = Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
         congr 1
         funext j
         rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective,
           Measure.infinitePi_eq_pi]
-        rfl
   let restrictRows : (ℕ → Fin n → ℝ) → (Fin n → Fin n → ℝ) :=
     fun W j k => W j.val k
   have hrestrictRows_meas : Measurable restrictRows := by
     refine measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun k => ?_
     exact (measurable_pi_apply k).comp (measurable_pi_apply j.val)
   have hrestrictRows : Measure.map restrictRows
-      (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n) = gaussianInit n n := by
+      (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1)) = (Measure.pi
+          fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
     exact map_infinitePi_rows_eq_gaussianInit n n
   let F : (Fin n → Fin n → ℝ) → Fin n → EuclideanSpace ℝ (Fin m) :=
     fun W j => WithLp.toLp 2 fun α =>
@@ -244,12 +244,14 @@ lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
         (Measure.map restrictColumns
           (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
         rw [← Measure.map_map (hF_meas.comp hrestrictRows_meas) hrestrictColumns_meas]
-    _ = Measure.map (F ∘ restrictRows) (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n) := by
+    _ = Measure.map (F ∘ restrictRows) (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1)) := by
       rw [hrestrictColumns]
     _ = Measure.map F (Measure.map restrictRows
-        (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure n)) := by
+        (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1))) := by
       rw [← Measure.map_map hF_meas hrestrictRows_meas]
-    _ = Measure.map F (gaussianInit n n) := by rw [hrestrictRows]
+    _ = Measure.map F (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0
+        1) := by rw [hrestrictRows]
     _ = Measure.pi (fun _ : Fin n =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ k : Fin n,
@@ -655,7 +657,8 @@ theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
 `gaussianReadoutMeasure n`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/
 lemma map_infinitePi_real_eq_gaussianReadoutMeasure (n : ℕ) :
     Measure.map (fun (rows : ℕ → ℝ) (i : Fin n) => rows i.val)
-      (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) = gaussianReadoutMeasure n := by
+      (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) = (Measure.pi fun _ : Fin n => gaussianReal
+          0 1) := by
   rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
 
 /-- Measurability of the depth-`L` network's width-`n` output map (readout weights times the

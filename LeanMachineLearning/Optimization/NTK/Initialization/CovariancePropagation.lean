@@ -178,7 +178,7 @@ theorem multivariateGaussian_pi_eq_kronecker (n m : ℕ) (Φ : Matrix (Fin m) (F
     rw [← h_quadratic, Finset.sum_div]
     simp
   have h_arg : (∑ j : Fin n, -((((tb j).ofLp ⬝ᵥ Φ *ᵥ (tb j).ofLp : ℝ) : ℂ) / 2)) =
-      -((((t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp : ℝ) : ℂ)) / 2) := by
+      -(((t.ofLp ⬝ᵥ (Φ ⊗ₖ (1 : Matrix (Fin n) (Fin n) ℝ)) *ᵥ t.ofLp : ℝ) : ℂ) / 2) := by
     exact_mod_cast h_real
   rw [← Complex.exp_sum, h_arg]
 
@@ -205,7 +205,7 @@ theorem exact_conditional_normality_layer (n n' m : ℕ) (H : Fin n → Fin m �
     Measure.map (fun W : Fin n' → Fin n → ℝ =>
         WithLp.toLp 2 (fun p : Fin m × Fin n' =>
           (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W p.2 k * H k p.1))
-      (gaussianInit n' n) =
+      (Measure.pi fun _ : Fin n' => Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin m × Fin n'))
         ((show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ k : Fin n, H k α * H k β) ⊗ₖ
           (1 : Matrix (Fin n') (Fin n') ℝ)) := by
@@ -284,7 +284,7 @@ theorem conditional_preactivations_eq_pi (n n' m : ℕ) (φ : ℝ → ℝ)
       (fun W : Fin n' → Fin n → ℝ =>
         fun j : Fin n' => WithLp.toLp 2 fun α : Fin m =>
           (n : ℝ)⁻¹.sqrt * ∑ k : Fin n, W j k * φ ((H k).ofLp α))
-      (gaussianInit n' n) =
+      (Measure.pi fun _ : Fin n' => Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       Measure.pi (fun _ : Fin n' =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β : Fin m =>

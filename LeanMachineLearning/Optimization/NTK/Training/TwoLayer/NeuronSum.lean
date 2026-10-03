@@ -262,11 +262,14 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_tendsto_limitingFullNTKM
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
       Integrable (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_int : ∀ α β : Fin m,
       Integrable (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) (gaussianRowMeasure d)) :
-    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => singleNeuronMeasure d),
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
+    ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => ((Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (gaussianReal 0 1))),
       Filter.Tendsto
         (fun n : ℕ =>
           empiricalNTKMatrix (netFromParams φ n d)

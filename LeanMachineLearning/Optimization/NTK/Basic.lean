@@ -89,21 +89,13 @@ noncomputable def gradientMatrix
   fun j k =>
     (m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l : Fin d, W₀ j l * x l) * x k
 
-/-! ### Gaussian initialization (Definition 4.2) -/
+/-! ### Gaussian initialization (Definition 4.2)
 
-/-- **Definition 4.2** (Standard Gaussian initialization).
-The probability measure on `Fin m → Fin d → ℝ` (thought of as `ℝ^{m×d}`) under which
-the rows `W₀ 0, …, W₀ (m-1) : Fin d → ℝ` are drawn i.i.d. from `𝒩(0, Iᵈ)`.
-
-In Lean we realize this as the product measure `⊗ⱼ 𝒩(0, Iᵈ)` over rows.
-Each row distribution is itself the product measure `⊗ₖ 𝒩(0, 1)` over coordinates. -/
-noncomputable def gaussianRowMeasure (d : ℕ) : Measure (Fin d → ℝ) :=
-  Measure.pi (fun _ : Fin d => gaussianReal 0 1)
-
-/-- The standard Gaussian initialization measure on `Fin m → Fin d → ℝ`.
-This is the product over rows of the row-wise Gaussian measure. -/
-noncomputable def gaussianInit (m d : ℕ) : Measure (Fin m → Fin d → ℝ) :=
-  Measure.pi (fun _ : Fin m => gaussianRowMeasure d)
+**Definition 4.2** (Standard Gaussian initialization). The standard Gaussian initialization of
+a weight matrix `W₀ : Fin m → Fin d → ℝ` is the product measure under which the rows
+`W₀ 0, …, W₀ (m-1)` are i.i.d. `𝒩(0, Iᵈ)`, each row itself having i.i.d. `𝒩(0, 1)` coordinates. It
+is written out explicitly throughout as
+`Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0 1`. -/
 
 /-! ### Taylor linearization (Definition 4.3) -/
 

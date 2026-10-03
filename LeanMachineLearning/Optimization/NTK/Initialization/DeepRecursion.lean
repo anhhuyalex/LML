@@ -156,7 +156,7 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
   have hrestrictRows :
       Measure.map restrictRows
         (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-      Measure.infinitePi fun _ : ℕ => gaussianReadoutMeasure d := by
+      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
     calc
       Measure.map restrictRows
           (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
@@ -168,7 +168,7 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
               (μ := fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
               (f := fun _ (r : ℕ → ℝ) (k : Fin d) => r k.val)
               (fun _ => measurable_pi_iff.2 fun k => measurable_pi_apply k.val))
-      _ = Measure.infinitePi fun _ : ℕ => gaussianReadoutMeasure d := by
+      _ = Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
         congr 1
         funext j
         rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective,
@@ -184,18 +184,20 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
     exact Finset.measurable_sum _ fun k _ =>
       ((measurable_pi_apply k).comp (measurable_pi_apply j)).mul_const _
   have hprojectRows :
-      Measure.map projectRows (Measure.infinitePi fun _ : ℕ => gaussianReadoutMeasure d) =
+      Measure.map projectRows (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) =
       Measure.infinitePi fun _ : ℕ =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β => (d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := by
     calc
-      Measure.map projectRows (Measure.infinitePi fun _ : ℕ => gaussianReadoutMeasure d) =
+      Measure.map projectRows (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) =
         Measure.infinitePi fun _ : ℕ => Measure.map
           (fun r : Fin d → ℝ => WithLp.toLp 2 fun α => r ⬝ᵥ u α)
-          (gaussianReadoutMeasure d) := by
+          (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
           simpa [projectRows] using
             (Measure.infinitePi_map_pi
-              (μ := fun _ : ℕ => gaussianReadoutMeasure d)
+              (μ := fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1))
               (f := fun _ (r : Fin d → ℝ) => WithLp.toLp 2 fun α => r ⬝ᵥ u α)
               (fun _ => (PiLp.continuous_toLp 2 _).measurable.comp
                 (continuous_pi fun α => by fun_prop).measurable))

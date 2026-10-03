@@ -215,14 +215,14 @@ open Real MeasureTheory MeasureTheory.Measure ProbabilityTheory Set
 /-- Pushing the integral over the row-wise Gaussian forward to `EuclideanSpace` via `toLp 2`. -/
 lemma integral_gaussianRowMeasure_eq_integral_stdGaussian
     {d : ℕ} (f : (Fin d → ℝ) → ℝ) :
-    ∫ w, f w ∂(gaussianRowMeasure d) =
+    ∫ w, f w ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1) =
     ∫ y, f y.ofLp ∂(stdGaussian (EuclideanSpace ℝ (Fin d))) := by
   rw [← map_pi_eq_stdGaussian (ι := Fin d)]
   rw [show Measure.map (WithLp.toLp 2) (Measure.pi fun x => gaussianReal 0 1) =
         Measure.map ⇑(MeasurableEquiv.toLp 2 (Fin d → ℝ)) (Measure.pi fun x => gaussianReal 0 1)
       by rw [MeasurableEquiv.coe_toLp]]
   rw [integral_map_equiv (MeasurableEquiv.toLp 2 (Fin d → ℝ))]
-  simp [WithLp.ofLp_toLp, gaussianRowMeasure]
+  simp [WithLp.ofLp_toLp]
 
 /-- The joint law of the first two coordinate projections under a product probability measure
 is the product of the first two marginals. -/
@@ -461,7 +461,8 @@ private lemma continuous_relu_polar : Continuous relu :=
 private lemma integral_stdGaussian_fin2_eq_prod
     (g : ℝ × ℝ → ℝ)
     (hg : AEStronglyMeasurable g
-      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (gaussianRowMeasure 2))) :
+      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
+          1))) :
     ∫ z : EuclideanSpace ℝ (Fin 2), g (z.ofLp 0, z.ofLp 1)
       ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) =
     ∫ p, g p ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) := by
@@ -470,7 +471,8 @@ private lemma integral_stdGaussian_fin2_eq_prod
   rw [← hrow]
   have hmap := map_pi_eval_two (d := 2) (by norm_num)
     (μ := fun _ : Fin 2 => gaussianReal 0 1)
-  change Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (gaussianRowMeasure 2) =
+  change Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
+      1) =
       (gaussianReal 0 1).prod (gaussianReal 0 1) at hmap
   rw [← hmap, integral_map (by fun_prop) hg]
 
@@ -486,7 +488,8 @@ lemma integral_stdGaussian_relu_angle
   have hmeas : AEStronglyMeasurable
       (fun p : ℝ × ℝ => relu p.1 *
         relu (Real.cos theta * p.1 + Real.sin theta * p.2))
-      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (gaussianRowMeasure 2)) := by
+      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
+          1)) := by
     apply Continuous.aestronglyMeasurable
     exact (continuous_relu_polar.comp continuous_fst).mul
       (continuous_relu_polar.comp
@@ -509,7 +512,8 @@ lemma integral_stdGaussian_reluIndicator_angle
   have hmeas : AEStronglyMeasurable
       (fun p : ℝ × ℝ => reluIndicator p.1 *
         reluIndicator (Real.cos theta * p.1 + Real.sin theta * p.2))
-      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (gaussianRowMeasure 2)) := by
+      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
+          1)) := by
     apply StronglyMeasurable.aestronglyMeasurable
     exact ((measurable_reluIndicator.comp measurable_fst).mul
       (measurable_reluIndicator.comp

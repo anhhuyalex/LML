@@ -150,14 +150,14 @@ lemma activation_regularity_of_bounds (φ : ℝ → ℝ) (C₁ C₂ : ℝ)
 /-- A bounded measurable function of a Gaussian-row preactivation is in `L²`. -/
 private lemma memLp_two_gaussianRow_comp_of_bounded {d : ℕ} (g : ℝ → ℝ) (hg : Measurable g)
     {B : ℝ} (hB : ∀ z, |g z| ≤ B) (x : Fin d → ℝ) :
-    MemLp (fun w => g (w ⬝ᵥ x)) 2 (gaussianRowMeasure d) :=
+    MemLp (fun w => g (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
   MemLp.of_bound (hg.comp (measurable_dotProduct_left x)).aestronglyMeasurable B
     (Filter.Eventually.of_forall fun w => by simpa [Real.norm_eq_abs] using hB _)
 
 /-- A product of two bounded measurable functions of Gaussian-row preactivations is in `L²`. -/
 private lemma memLp_two_gaussianRow_mul_comp_of_bounded {d : ℕ} (g : ℝ → ℝ) (hg : Measurable g)
     {B : ℝ} (hB : ∀ z, |g z| ≤ B) (x x' : Fin d → ℝ) :
-    MemLp (fun w => g (w ⬝ᵥ x) * g (w ⬝ᵥ x')) 2 (gaussianRowMeasure d) :=
+    MemLp (fun w => g (w ⬝ᵥ x) * g (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
   MemLp.of_bound ((hg.comp (measurable_dotProduct_left x)).mul
     (hg.comp (measurable_dotProduct_left x'))).aestronglyMeasurable (B * B)
     (Filter.Eventually.of_forall fun w => by
@@ -262,17 +262,21 @@ private lemma activation_growth {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : Smo
 bounded derivative alone: `φ` has linear growth and `deriv φ` is bounded. -/
 lemma activation_memLp_two {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : SmoothActivation φ C₁ C₂)
     {d : ℕ} :
-    (∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d)) ∧
+    (∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
+        1)) ∧
     (∀ x x' : Fin d → ℝ,
-      MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) ∧
-    (∀ x : Fin d → ℝ, MemLp (fun w => deriv φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d)) ∧
+      MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) ∧
+    (∀ x : Fin d → ℝ, MemLp (fun w => deriv φ (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal
+        0 1)) ∧
     (∀ x x' : Fin d → ℝ,
-      MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) := by
+      MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) := by
   obtain ⟨hC₁0, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
   have hmeas : Measurable φ := hact.differentiable.continuous.measurable
   have hA : 0 ≤ |φ 0| := abs_nonneg _
-  have h1 : ∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d) := fun x => by
+  have h1 : ∀ x : Fin d → ℝ, MemLp (fun w => φ (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal
+      0 1) := fun x => by
     simpa using memLp_gaussianRow_comp_of_linear_growth φ hmeas hA hC₁0
       (activation_growth hact) x 2
   exact ⟨h1, fun x x' => memLp_two_gaussianRow_mul_comp_of_linear_growth φ hmeas hA hC₁0
@@ -302,14 +306,16 @@ private lemma exists_jacobian_bound_and_good_events {φ : ℝ → ℝ} {C₁ C�
     (hδ1 : δ ≤ 1) :
     ∃ M₀ : ℝ, 0 ≤ M₀ ∧ ∀ n : ℕ, 0 < n →
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)),
-        MeasurableSet E ∧ (initMeasure n d).real E ≥ 1 - 2 * δ ∧
+        MeasurableSet E ∧ ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+            1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 * δ ∧
         ∀ p ∈ E,
           ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤ M₀ ∧
           ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)) := by
   obtain ⟨-, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hact.deriv_bdd
     hact.deriv_lip hact.differentiable
   have hL2 := (activation_memLp_two hact (d := d)).1
-  refine ⟨Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(gaussianRowMeasure d)) + 1 +
+  refine ⟨Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1)) + 1 +
       C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ), Real.sqrt_nonneg _, fun n hn => ?_⟩
   exact exists_measurableSet_initial_jacobian_and_readout_bounds φ n d m hn X hact.differentiable
     hact.differentiable.continuous.measurable hderiv_meas hδ hδ1 _
@@ -331,7 +337,8 @@ theorem exists_measurableSet_global_lazy_training_event_with_extra
     {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε)
     (Extra : ∀ n : ℕ, Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)))
     (hExtra_meas : ∀ n, 0 < n → MeasurableSet (Extra n)) {κ : ℝ}
-    (hExtra : ∀ n, 0 < n → (initMeasure n d).real (Extra n) ≥ 1 - κ) :
+    (hExtra : ∀ n, 0 < n → ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real (Extra n) ≥ 1 - κ) :
     ∃ (freezeRate jacRate taylorRate : ℕ → ℝ) (N : ℕ) (C M R : ℝ),
       Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧
       Filter.Tendsto jacRate Filter.atTop (nhds 0) ∧
@@ -339,7 +346,8 @@ theorem exists_measurableSet_global_lazy_training_event_with_extra
       (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
       0 ≤ C ∧ 0 ≤ M ∧ 0 ≤ R ∧ ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - 2 * δ - 2 * ε - κ ∧ ∀ p ∈ E, p ∈ Extra n ∧
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 * δ - 2 * ε - κ ∧ ∀ p ∈ E, p ∈ Extra n ∧
           ‖outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤ M ∧
           (∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
@@ -395,13 +403,16 @@ theorem exists_measurableSet_global_lazy_training_event_with_extra
     activation_regularity_of_bounds φ C₁ C₂ hC₁_bdd hderiv_lip hφ
   -- `L²` integrability of the activation-side observables (from linear growth).
   obtain ⟨hL2, hL2mul, -, hdL2mul⟩ := activation_memLp_two hact (d := d)
-  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (gaussianRowMeasure d) :=
+  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
+      1) :=
     fun α => hL2 (Xs α)
   have hφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => φ (w ⬝ᵥ Xs α) * φ (w ⬝ᵥ Xs β)) 2 (gaussianRowMeasure d) :=
+      MemLp (fun w => φ (w ⬝ᵥ Xs α) * φ (w ⬝ᵥ Xs β)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
+          1) :=
     fun α β => hL2mul (Xs α) (Xs β)
   have hdφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => deriv φ (w ⬝ᵥ Xs α) * deriv φ (w ⬝ᵥ Xs β)) 2 (gaussianRowMeasure d) :=
+      MemLp (fun w => deriv φ (w ⬝ᵥ Xs α) * deriv φ (w ⬝ᵥ Xs β)) 2 (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1) :=
     fun α β => hdL2mul (Xs α) (Xs β)
   -- Initial residual radius and initial spectral-gap failure.
   obtain ⟨R, hR_nonneg, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
@@ -455,22 +466,37 @@ theorem exists_measurableSet_global_lazy_training_event_with_extra
     simp_rw [trainingResidual_netFromParams_packParams]
     exact (evalVector_joint_measurable φ hmeasφ Xs).sub_const y
   have hTm : MeasurableSet T := measurableSet_lt measurable_const hres_meas.norm
-  have hUr : (initMeasure n d).real U ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le hU.le
-  have hTr : (initMeasure n d).real T ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le (hR n)
-  have hEc : (initMeasure n d).real Eᶜ ≤ 2 * δ := by
+  have hUr : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0
+      1)).real U ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le hU.le
+  have hTr : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0
+      1)).real T ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le (hR n)
+  have hEc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Eᶜ ≤ 2 * δ := by
     rw [probReal_compl_eq_one_sub hEm]; linarith
   -- Union bound on the complement of `G = E ∩ Uᶜ ∩ Tᶜ`.
-  have hG3c : (initMeasure n d).real (E ∩ Uᶜ ∩ Tᶜ)ᶜ ≤ 2 * δ + ε + ε :=
-    calc (initMeasure n d).real (E ∩ Uᶜ ∩ Tᶜ)ᶜ
-        ≤ (initMeasure n d).real (E ∩ Uᶜ)ᶜ + (initMeasure n d).real Tᶜᶜ :=
+  have hG3c : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real (E ∩ Uᶜ ∩ Tᶜ)ᶜ ≤ 2 * δ + ε + ε :=
+    calc ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real (E ∩ Uᶜ ∩ Tᶜ)ᶜ
+        ≤ ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real (E ∩ Uᶜ)ᶜ + ((Measure.pi fun _ :
+            Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Tᶜᶜ :=
           measureReal_compl_inter_le _ _ _
-      _ ≤ ((initMeasure n d).real Eᶜ + (initMeasure n d).real Uᶜᶜ) +
-            (initMeasure n d).real Tᶜᶜ := by
+      _ ≤ (((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Eᶜ + ((Measure.pi fun _ : Fin n =>
+          Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Uᶜᶜ) +
+            ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+                (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Tᶜᶜ := by
           gcongr; exact measureReal_compl_inter_le _ _ _
       _ ≤ 2 * δ + ε + ε := by rw [compl_compl, compl_compl]; linarith
-  have hXc : (initMeasure n d).real (Extra n)ᶜ ≤ κ := by
+  have hXc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real (Extra n)ᶜ ≤ κ := by
     rw [probReal_compl_eq_one_sub (hExtra_meas n hn0)]; linarith [hExtra n hn0]
-  have hGc : (initMeasure n d).real ((E ∩ Uᶜ ∩ Tᶜ) ∩ Extra n)ᶜ ≤ 2 * δ + ε + ε + κ :=
+  have hGc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real ((E ∩ Uᶜ ∩
+      Tᶜ) ∩ Extra n)ᶜ ≤ 2 * δ + ε + ε + κ :=
     (measureReal_compl_inter_le _ _ _).trans (add_le_add hG3c hXc)
   refine ⟨(E ∩ Uᶜ ∩ Tᶜ) ∩ Extra n, ((hEm.inter hUm.compl).inter hTm.compl).inter
     (hExtra_meas n hn0),
@@ -568,7 +594,8 @@ theorem exists_measurableSet_global_lazy_training_event
       (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
       ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - 2 * δ - 2 * ε ∧ ∀ p ∈ E,
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 * δ - 2 * ε ∧ ∀ p ∈ E,
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
@@ -619,7 +646,8 @@ theorem exists_measurableSet_global_lazy_training_event_inv_sqrt_width
       (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ / Real.sqrt (n : ℝ)) ∧
       ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - 3 * δ - 2 * ε ∧ ∀ p ∈ E,
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 3 * δ - 2 * ε ∧ ∀ p ∈ E,
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) θ_traj →
@@ -692,7 +720,8 @@ theorem exists_kernel_freeze_event_of_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
-      (initMeasure n d).real
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -731,7 +760,8 @@ theorem global_positive_gap_lazy_training_limit
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
@@ -739,7 +769,8 @@ theorem global_positive_gap_lazy_training_limit
       (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ * Real.sqrt (Real.log n / n)) ∧
       ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - η ∧ ∀ᵐ p ∂(initMeasure n d), p ∈ E →
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - η ∧ ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
           (∀ t : ℝ, 0 ≤ t →
             (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
               v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
@@ -782,7 +813,8 @@ theorem global_positive_gap_lazy_training_limit_inv_sqrt_width
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
@@ -790,7 +822,8 @@ theorem global_positive_gap_lazy_training_limit_inv_sqrt_width
       (∃ K₀ : ℝ, 0 ≤ K₀ ∧ ∀ n ≥ N, freezeRate n ≤ K₀ / Real.sqrt (n : ℝ)) ∧
       ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - η ∧ ∀ᵐ p ∂(initMeasure n d), p ∈ E →
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - η ∧ ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
           (∀ t : ℝ, 0 ≤ t →
             (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
               v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
@@ -837,7 +870,8 @@ theorem exists_kernel_freeze_event_of_positive_gap_of_confidence
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
-      (initMeasure n d).real
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -883,7 +917,8 @@ theorem exists_measurableSet_finite_horizon_lazy_training_event
       Filter.Tendsto jacRate Filter.atTop (nhds 0) ∧
       Filter.Tendsto taylorRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - 2 * δ - ε ∧
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 * δ - ε ∧
         ∀ p ∈ E,
           ‖trainingResidual (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ ≤ R ∧
@@ -919,7 +954,8 @@ theorem exists_measurableSet_finite_horizon_lazy_training_event
   have hmeasφ : Measurable φ := hφ.continuous.measurable
   obtain ⟨hC₁_nonneg, hC₂_nonneg, hφ_lip, hderiv_meas⟩ :=
     activation_regularity_of_bounds φ C₁ C₂ hC₁_bdd hderiv_lip hφ
-  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (gaussianRowMeasure d) := fun α =>
+  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
+      1) := fun α =>
     (activation_memLp_two hact (d := d)).1 (Xs α)
   obtain ⟨R, hR_nonneg, hR⟩ := exists_initial_residual_radius φ X y hmeasφ hφ_out_L2
     (ε := ENNReal.ofReal ε) (ENNReal.ofReal_pos.2 hε)
@@ -952,10 +988,14 @@ theorem exists_measurableSet_finite_horizon_lazy_training_event
   obtain ⟨E, hEm, hEμ, hEp⟩ := hM₀ n hn0
   set Tail : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) := {p | R <
     ‖trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)‖} with hTail
-  have hTr : (initMeasure n d).real Tail ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le (hR n)
-  have hEc : (initMeasure n d).real Eᶜ ≤ 2 * δ := by
+  have hTr : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0
+      1)).real Tail ≤ ε := ENNReal.toReal_le_of_le_ofReal hε.le (hR n)
+  have hEc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Eᶜ ≤ 2 * δ := by
     rw [probReal_compl_eq_one_sub hEm]; linarith
-  have hGc : (initMeasure n d).real (E ∩ Tailᶜ)ᶜ ≤ 2 * δ + ε :=
+  have hGc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real (E ∩ Tailᶜ)ᶜ ≤ 2 * δ + ε :=
     (measureReal_compl_inter_le _ _ _).trans (by rw [compl_compl]; linarith)
   have hres_meas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
       trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)) := by
@@ -1001,7 +1041,8 @@ theorem exists_measurableSet_finite_horizon_kernel_freeze
     ∃ (R : ℝ) (freezeRate : ℕ → ℝ) (N : ℕ), 0 ≤ R ∧
       Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
       ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
-        (initMeasure n d).real E ≥ 1 - 2 * δ - ε ∧
+        ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+            fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 * δ - ε ∧
         ∀ p ∈ E,
           ‖trainingResidual (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖ ≤ R ∧
@@ -1034,7 +1075,8 @@ theorem exists_finite_horizon_kernel_freeze_event
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     {δ ε : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
-      (initMeasure n d).real
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)
@@ -1059,7 +1101,8 @@ theorem exists_finite_horizon_kernel_freeze_event_of_confidence
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     {η : ℝ} (hη : 0 < η) (hη1 : η ≤ 1) :
     ∃ (freezeRate : ℕ → ℝ) (N : ℕ), Filter.Tendsto freezeRate Filter.atTop (nhds 0) ∧ ∀ n ≥ N,
-      (initMeasure n d).real
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)).real
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
           ∀ θ_traj : ℝ → EuclideanSpace ℝ (Fin (n * d + n)),
             ForwardGFTrajectory (mseLoss (netFromParams φ n d)

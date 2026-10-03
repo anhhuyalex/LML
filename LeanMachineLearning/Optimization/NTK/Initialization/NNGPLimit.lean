@@ -165,9 +165,9 @@ lemma measurable_cov_summand (φ : ℝ → ℝ) (hφ : Measurable φ) (x x' : Fi
 under the Gaussian row measure, their product is integrable. -/
 lemma integrable_cov_summand_of_memLp
     (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hx : MemLp (fun w => φ (w ⬝ᵥ x)) 2 (gaussianRowMeasure d))
-    (hx' : MemLp (fun w => φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d)) :
-    Integrable (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) (gaussianRowMeasure d) :=
+    (hx : MemLp (fun w => φ (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
+    (hx' : MemLp (fun w => φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
+    Integrable (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
   hx.integrable_mul hx'
 
 /-! ### Step 2 & Step 4: SLLN Convergence (Entrywise and Full Matrix) -/
@@ -185,16 +185,18 @@ deterministic limiting NNGP expectation:
 theorem empiricalCovariance_tendsto_integral
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (α β : Fin m) :
-    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d => gaussianReal
+        0 1)),
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
       Filter.atTop
-      (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) := by
+      (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+          1))) := by
   set g := fun w : Fin d → ℝ => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)
   have hg_meas : Measurable g := measurable_cov_summand φ hφ_meas (X α) (X β)
-  have hg_int : Integrable g (gaussianRowMeasure d) :=
+  have hg_int : Integrable g (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
     integrable_cov_summand_of_memLp φ (X α) (X β) (hφ_L2 α) (hφ_L2 β)
   simpa only [empiricalCovariance, g] using
     gaussianRow_average_tendsto_integral g hg_meas hg_int
@@ -211,26 +213,32 @@ limiting NNGP Gram matrix in `Matrix (Fin m) (Fin m) ℝ`:
 theorem empiricalCovariance_tendsto_matrix_integral
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
-    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
+    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d => gaussianReal
+        0 1)),
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
         Filter.atTop
-        (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) : Matrix (Fin m) (Fin m) ℝ)) := by
+        (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+            gaussianReal 0 1)) : Matrix (Fin m) (Fin m) ℝ)) := by
   have h_entry : ∀ α β : Fin m,
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)),
         Filter.Tendsto
           (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
           Filter.atTop
-          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) :=
+          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+              1))) :=
     fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
   have h_all :
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)),
         ∀ α β : Fin m,
           Filter.Tendsto
             (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
             Filter.atTop
-            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) := by
+            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+                1))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
@@ -248,13 +256,13 @@ section Theorem3
   `Φ^{(∞), α β} = ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)`. -/
 noncomputable def limitingCovariance
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) : Matrix (Fin m) (Fin m) ℝ :=
-  fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)
+  fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)
 
 /-- Equation lemma for `limitingCovariance`. -/
 lemma limitingCovariance_apply
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (α β : Fin m) :
     limitingCovariance φ X α β =
-      ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d) := rfl
+      ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1) := rfl
 
 /-- The limiting NNGP covariance matrix is symmetric (Hermitian). -/
 lemma limitingCovariance_isHermitian
@@ -269,27 +277,32 @@ lemma limitingCovariance_isHermitian
 lemma empiricalCovariance_tendsto_limitingCovariance
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
-    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
+    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d => gaussianReal
+        0 1)),
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
         Filter.atTop
         (nhds (limitingCovariance φ X)) :=
 by
   have h_entry : ∀ α β : Fin m,
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)),
         Filter.Tendsto
           (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
           Filter.atTop
-          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) :=
+          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+              1))) :=
     fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
   have h_all :
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)),
         ∀ α β : Fin m,
           Filter.Tendsto
             (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
             Filter.atTop
-            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d))) := by
+            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+                1))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
@@ -297,7 +310,7 @@ by
     (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
     Filter.atTop
     (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)
-      ∂(gaussianRowMeasure d)) : Matrix (Fin m) (Fin m) ℝ))
+      ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)) : Matrix (Fin m) (Fin m) ℝ))
   exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hrows α β
 
 /-- The quadratic form with a matrix `M ↦ c ⬝ᵥ M *ᵥ c` is continuous. -/
@@ -320,26 +333,34 @@ squared projected activation:
 This directly verifies condition (i) of Definition 2.2, confirming `Φ` is positive semidefinite. -/
 lemma sum_sum_mul_limitingCovariance_eq_integral_sq
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal
+        0 1))
     (u : Fin m → ℝ) :
     (∑ α : Fin m, ∑ β : Fin m, u α * u β * limitingCovariance φ X α β) =
-      ∫ w, (∑ α : Fin m, u α * φ (w ⬝ᵥ X α)) ^ 2 ∂(gaussianRowMeasure d) := by
+      ∫ w, (∑ α : Fin m, u α * φ (w ⬝ᵥ X α)) ^ 2 ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+          1) := by
   have hint (α β : Fin m) :
-      Integrable (fun w => (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (gaussianRowMeasure d) :=
+      Integrable (fun w => (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1) :=
     (integrable_cov_summand_of_memLp φ (X α) (X β) (hφ_L2 α) (hφ_L2 β)).const_mul (u α * u β)
   simp_rw [limitingCovariance_apply]
   have h1 (α : Fin m) :
-      (∑ β : Fin m, u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d)) =
-      ∫ w, ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(gaussianRowMeasure d) := by
+      (∑ β : Fin m, u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) =
+      ∫ w, ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1) := by
     have h_in (β : Fin m) :
-        u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(gaussianRowMeasure d) =
-        ∫ w, (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(gaussianRowMeasure d) :=
+        u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
+            1) =
+        ∫ w, (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(Measure.pi fun _ : Fin d => gaussianReal
+            0 1) :=
       (integral_const_mul (u α * u β) (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))).symm
     simp_rw [h_in]
     exact (integral_finsetSum _ fun β _ => hint α β).symm
   simp_rw [h1]
   have hint_sum (α : Fin m) :
-      Integrable (fun w => ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (gaussianRowMeasure d) :=
+      Integrable (fun w => ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (Measure.pi fun _
+          : Fin d => gaussianReal 0 1) :=
     integrable_finsetSum _ fun β _ => hint α β
   rw [← integral_finsetSum _ fun α _ => hint_sum α]
   congr 1 with w
@@ -356,7 +377,8 @@ lemma sum_sum_mul_limitingCovariance_eq_integral_sq
 expectation-of-square identity. -/
 lemma sum_sum_mul_limitingCovariance_nonneg
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α : Fin m, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal
+        0 1))
     (u : Fin m → ℝ) :
     0 ≤ ∑ α : Fin m, ∑ β : Fin m, u α * u β * limitingCovariance φ X α β := by
   rw [sum_sum_mul_limitingCovariance_eq_integral_sq φ X hφ_L2 u]
@@ -366,7 +388,7 @@ lemma sum_sum_mul_limitingCovariance_nonneg
 lemma limitingCovariance_nonneg
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (c : Fin m → ℝ) :
     0 ≤ c ⬝ᵥ (limitingCovariance φ X) *ᵥ c := by
   have h_ae := empiricalCovariance_tendsto_limitingCovariance φ X hφ_meas hφ_L2
@@ -384,7 +406,7 @@ lemma limitingCovariance_nonneg
 theorem limitingCovariance_posSemidef
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     (limitingCovariance φ X).PosSemidef :=
   Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (limitingCovariance_isHermitian φ X)
     fun x => by simpa using limitingCovariance_nonneg φ X hφ_meas hφ_L2 x
@@ -413,14 +435,16 @@ lemma evalVector_joint_measurable
   `outputMeasure n d φ X = (initMeasure n d).map (fun (W, a) => evalVector φ W a X)`. -/
 noncomputable def outputMeasure (n d : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) :
     Measure (EuclideanSpace ℝ (Fin m)) :=
-  Measure.map (fun p => evalVector φ p.1 p.2 X) (initMeasure n d)
+  Measure.map (fun p => evalVector φ p.1 p.2 X) ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
+      d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
 
 /-- The output law as the pushforward of the joint initialization measure. This is the public
 equation lemma for `outputMeasure`, so downstream proofs need not unfold its implementation. -/
 lemma outputMeasure_eq_map
     (n d : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) :
     outputMeasure n d φ X =
-      Measure.map (fun p => evalVector φ p.1 p.2 X) (initMeasure n d) := rfl
+      Measure.map (fun p => evalVector φ p.1 p.2 X) ((Measure.pi fun _ : Fin n => Measure.pi fun _ :
+          Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := rfl
 
 /-- `outputMeasure n d φ X` is a probability measure when `φ` is measurable. -/
 lemma isProbabilityMeasure_outputMeasure
@@ -433,9 +457,9 @@ lemma isProbabilityMeasure_outputMeasure
 first `n` hidden units is exactly the finite-width input weight measure `gaussianInit n d`. -/
 lemma map_infinitePi_rows_eq_gaussianInit (n d : ℕ) :
     Measure.map (fun (rows : ℕ → Fin d → ℝ) (i : Fin n) => rows i.val)
-      (Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d) = gaussianInit n d := by
+      (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) = (Measure.pi
+          fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
   rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
-  rfl
 
 /-! ### Step 1 & Step 2: Unconditional Characteristic Function -/
 
@@ -444,13 +468,15 @@ conditional characteristic function `exp(- (1/2) t ⬝ᵥ Φ^{(n)} *ᵥ t)`. -/
 lemma integral_exp_inner_evalVector
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
-    (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I) ∂(gaussianReadoutMeasure n)) =
+    (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I) ∂(Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1)) =
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) := by
   have h_meas : Measurable (fun a => evalVector φ W a X) := evalVector_measurable φ W X
   calc
     (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)
-        ∂(gaussianReadoutMeasure n)) =
-        charFun (Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) t := by
+        ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1)) =
+        charFun (Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal
+            0 1)) t := by
       rw [charFun_apply, integral_map h_meas.aemeasurable (by fun_prop)]
     _ = Complex.exp
         (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) :=
@@ -465,18 +491,21 @@ lemma charFun_outputMeasure
     (t : EuclideanSpace ℝ (Fin m)) :
     charFun (outputMeasure n d φ X) t =
       ∫ W, Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2)
-        ∂(gaussianInit n d) := by
+        ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
   have h_meas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => evalVector φ p.1 p.2 X) :=
     evalVector_joint_measurable φ hφ X
   calc
     charFun (outputMeasure n d φ X) t =
-        ∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I) ∂(initMeasure n d) := by
+        ∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I) ∂((Measure.pi fun _ : Fin n =>
+            Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := by
       rw [outputMeasure_eq_map, charFun_apply,
         integral_map h_meas.aemeasurable (by fun_prop)]
     _ = ∫ W, (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)
-          ∂(gaussianReadoutMeasure n)) ∂(gaussianInit n d) := by
+          ∂(Measure.pi fun _ : Fin n => gaussianReal 0
+              1)) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
       change (∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I)
-          ∂((gaussianInit n d).prod (gaussianReadoutMeasure n))) = _
+          ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+              (Measure.pi fun _ : Fin n => gaussianReal 0 1))) = _
       have h_inner : Measurable
           (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
             ⟪evalVector φ p.1 p.2 X, t⟫) :=
@@ -484,14 +513,15 @@ lemma charFun_outputMeasure
       have h_exp_meas : AEStronglyMeasurable
           (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
             Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I))
-          ((gaussianInit n d).prod (gaussianReadoutMeasure n)) :=
+          ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+              (Measure.pi fun _ : Fin n => gaussianReal 0 1)) :=
         (Complex.continuous_exp.measurable.comp
           ((Complex.measurable_ofReal.comp h_inner).mul_const Complex.I)).aestronglyMeasurable
       exact integral_prod _ (Integrable.of_bound h_exp_meas 1
         (ae_of_all _ fun p => (Complex.norm_exp_ofReal_mul_I _).le))
     _ = ∫ W, Complex.exp
         (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2)
-          ∂(gaussianInit n d) := by
+          ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
       congr 1 with W
       exact integral_exp_inner_evalVector φ W X t
 
@@ -532,9 +562,9 @@ lemma integral_charFun_gaussianInit_eq_infinitePi
     (n : ℕ) (φ : ℝ → ℝ) (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
     (∫ W, Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2)
-      ∂(gaussianInit n d)) =
+      ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1)) =
     ∫ rows, Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ t.ofLp) / 2)
-      ∂(Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d) := by
+      ∂(Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) := by
   rw [← map_infinitePi_rows_eq_gaussianInit n d]
   have h_map : Measurable (fun (rows : ℕ → Fin d → ℝ) (i : Fin n) => rows i.val) :=
     measurable_pi_iff.2 fun i => measurable_pi_apply i.val
@@ -551,9 +581,10 @@ characteristic integrand converges almost surely. -/
 lemma charFun_integrand_tendsto_ae
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (t : EuclideanSpace ℝ (Fin m)) :
-    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d => gaussianReal
+        0 1)),
       Filter.Tendsto
         (fun n : ℕ => Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ t.ofLp) / 2))
         Filter.atTop
@@ -580,16 +611,17 @@ converges to `exp(- (1/2) t ⬝ᵥ Φ^{(∞)} *ᵥ t)`. -/
 lemma tendsto_integral_charFun_infinitePi
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
       (fun n : ℕ =>
         ∫ rows, Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ t.ofLp) / 2)
-          ∂(Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d))
+          ∂(Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)))
       Filter.atTop
       (nhds (Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (limitingCovariance φ X) *ᵥ t.ofLp) / 2))) := by
   have h_ae := charFun_integrand_tendsto_ae φ X hφ_meas hφ_L2 t
-  have h_bound : ∀ n : ℕ, ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d),
+  have h_bound : ∀ n : ℕ, ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ : ℕ => (Measure.pi fun
+      _ : Fin d => gaussianReal 0 1)),
       ‖Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ t.ofLp) / 2)‖ ≤ (1 : ℝ) :=
     fun n => ae_of_all _ fun rows => norm_charFun_readout_le_one n φ _ X t
   have h_meas (n : ℕ) : Measurable (fun rows : ℕ → Fin d → ℝ =>
@@ -611,7 +643,7 @@ function:
 lemma tendsto_charFun_outputMeasure
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
       (fun n : ℕ => charFun (outputMeasure n d φ X) t)
@@ -619,7 +651,7 @@ lemma tendsto_charFun_outputMeasure
       (nhds (Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (limitingCovariance φ X) *ᵥ t.ofLp) / 2))) := by
   have h_eq (n : ℕ) : charFun (outputMeasure n d φ X) t =
       ∫ rows, Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ t.ofLp) / 2)
-        ∂(Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d) := by
+        ∂(Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) := by
     rw [charFun_outputMeasure n φ hφ_meas X t,
       integral_charFun_gaussianInit_eq_infinitePi n φ hφ_meas X t]
   simp_rw [h_eq]
@@ -632,7 +664,7 @@ multivariate Gaussian `𝒩(0, Φ^{(∞)})`. -/
 lemma tendsto_charFun_outputMeasure_eq_multivariateGaussian
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
       (fun n : ℕ => charFun (outputMeasure n d φ X) t)
@@ -684,9 +716,10 @@ converges almost surely:
 lemma conditionalVariance_tendsto_limitingVariance_ae
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (u : Fin m → ℝ) :
-    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => gaussianRowMeasure d),
+    ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d => gaussianReal
+        0 1)),
       Filter.Tendsto
         (fun n : ℕ => u ⬝ᵥ (empiricalCovariance n φ (fun i => rows i.val) X) *ᵥ u)
         Filter.atTop
@@ -700,7 +733,8 @@ lemma charFun_map_projection_eq_outputMeasure
     (n : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (X : Fin m → Fin d → ℝ)
     (u : Fin m → ℝ) (t : ℝ) :
     charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t =
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) ((Measure.pi fun _ : Fin n => Measure.pi fun _
+          : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) t =
       charFun (outputMeasure n d φ X) (WithLp.toLp 2 (t • u)) := by
   have h_proj_meas : Measurable (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
       ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) :=
@@ -722,9 +756,10 @@ lemma charFun_map_projection
     (n : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (X : Fin m → Fin d → ℝ)
     (u : Fin m → ℝ) (t : ℝ) :
     charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t =
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) ((Measure.pi fun _ : Fin n => Measure.pi fun _
+          : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) t =
       ∫ W, Complex.exp (- Complex.ofReal (t ^ 2 * (u ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ u)) / 2)
-        ∂(gaussianInit n d) := by
+        ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
   rw [charFun_map_projection_eq_outputMeasure n φ hφ_meas X u t,
     charFun_outputMeasure n φ hφ_meas X (WithLp.toLp 2 (t • u))]
   congr 1 with W
@@ -738,16 +773,18 @@ the limit of the scalar characteristic function without repeating the DCT proof:
 lemma tendsto_charFun_map_projection
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (u : Fin m → ℝ) (t : ℝ) :
     Filter.Tendsto
       (fun n : ℕ => charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t)
+        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) ((Measure.pi fun _ : Fin n => Measure.pi fun
+            _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) t)
       Filter.atTop
       (nhds (Complex.exp (- Complex.ofReal (t ^ 2 * (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u)) / 2))) := by
   have h_eq (n : ℕ) :
       charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t =
+        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) ((Measure.pi fun _ : Fin n => Measure.pi fun
+            _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) t =
       charFun (outputMeasure n d φ X) (WithLp.toLp 2 (t • u)) :=
     charFun_map_projection_eq_outputMeasure n φ hφ_meas X u t
   simp_rw [h_eq]
@@ -762,11 +799,12 @@ of the univariate Gaussian `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
 lemma tendsto_charFun_map_projection_eq_gaussianReal
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (u : Fin m → ℝ) (t : ℝ) :
     Filter.Tendsto
       (fun n : ℕ => charFun (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) t)
+        ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) ((Measure.pi fun _ : Fin n => Measure.pi fun
+            _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) t)
       Filter.atTop
       (nhds (charFun (gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u))) t)) := by
   have h_nonneg : 0 ≤ u ⬝ᵥ (limitingCovariance φ X) *ᵥ u :=
@@ -787,7 +825,8 @@ lemma isProbabilityMeasure_map_projection
     (n d : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (X : Fin m → Fin d → ℝ) (u : Fin m → ℝ) :
     IsProbabilityMeasure (Measure.map (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) =>
-      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d)) :=
+      ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) ((Measure.pi fun _ : Fin n => Measure.pi fun _
+          : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) :=
   (Measure.isProbabilityMeasure_map_iff (projection_joint_measurable φ hφ_meas X u).aemeasurable).mpr inferInstance
 
 
@@ -803,7 +842,7 @@ converges weakly to the multivariate Gaussian distribution `𝒩(0, Φ^{(∞)})`
 theorem outputMeasure_tendsto_multivariateGaussian
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
       (fun n : ℕ => ⟨outputMeasure n d φ X,
         isProbabilityMeasure_outputMeasure n d φ hφ_meas X⟩)
@@ -834,12 +873,13 @@ measure converges in distribution to the centered multivariate Gaussian `𝒩(0,
 theorem tendstoInDistribution_evalVector
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) => evalVector φ p.1 p.2 X)
       Filter.atTop
       id
-      (fun n => initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
       (multivariateGaussian 0 (limitingCovariance φ X)) where
   forall_aemeasurable n := (evalVector_joint_measurable φ hφ_meas X).aemeasurable
   aemeasurable_limit := measurable_id.aemeasurable
@@ -854,13 +894,14 @@ theorem tendstoInDistribution_evalVector_scaled_dataset
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
-      (gaussianRowMeasure d)) :
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
         evalVector φ p.1 p.2 (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))
       Filter.atTop
       id
-      (fun n => initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
       (multivariateGaussian 0
         (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) :=
   tendstoInDistribution_evalVector φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) hφ_meas hφ_L2
@@ -873,13 +914,14 @@ theorem tendstoInDistribution_initialResidual_evalVector
     (y : EuclideanSpace ℝ (Fin m))
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
-      (gaussianRowMeasure d)) :
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
         evalVector φ p.1 p.2 (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) - y)
       Filter.atTop
       (fun G => G - y)
-      (fun n => initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
       (multivariateGaussian 0
         (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
   have h := tendstoInDistribution_evalVector_scaled_dataset φ X hφ_meas hφ_L2
@@ -891,7 +933,7 @@ via Lévy continuity (`MeasureTheory.isTightMeasureSet_of_tendsto_charFun`). -/
 theorem isTightMeasureSet_range_outputMeasure
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     IsTightMeasureSet (Set.range (outputMeasure · d φ X)) := by
   have : ∀ n, IsProbabilityMeasure (outputMeasure n d φ X) :=
     fun n => isProbabilityMeasure_outputMeasure n d φ hφ_meas X
@@ -906,7 +948,7 @@ theorem isTightMeasureSet_range_outputMeasure_scaled_dataset
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
-      (gaussianRowMeasure d)) :
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     IsTightMeasureSet
       (Set.range (outputMeasure · d φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) :=
   isTightMeasureSet_range_outputMeasure φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
@@ -918,10 +960,12 @@ to the centered univariate Gaussian `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`. -/
 theorem map_projection_tendsto_gaussianReal
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (u : Fin m → ℝ) :
     Filter.Tendsto (β := ProbabilityMeasure ℝ)
-      (fun n : ℕ => ⟨Measure.map (fun p => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α)) (initMeasure n d),
+      (fun n : ℕ => ⟨Measure.map (fun p => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α))
+          ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
         isProbabilityMeasure_map_projection n d φ hφ_meas X u⟩)
       Filter.atTop
       (nhds ⟨gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u)), inferInstance⟩) := by
@@ -951,13 +995,14 @@ distribution `𝒩(0, u ⬝ᵥ Φ^{(∞)} *ᵥ u)`:
 theorem tendstoInDistribution_projection
     (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (hφ_meas : Measurable φ)
-    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (u : Fin m → ℝ) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) => ∑ α : Fin m, u α * evalSingle φ p.1 p.2 (X α))
       Filter.atTop
       id
-      (fun n => initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
       (gaussianReal 0 (Real.toNNReal (u ⬝ᵥ (limitingCovariance φ X) *ᵥ u))) where
   forall_aemeasurable n := (projection_joint_measurable φ hφ_meas X u).aemeasurable
   aemeasurable_limit := measurable_id.aemeasurable

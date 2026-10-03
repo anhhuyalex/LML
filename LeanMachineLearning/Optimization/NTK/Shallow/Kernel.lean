@@ -229,7 +229,7 @@ given in `reluNTK_closedForm`. -/
 noncomputable def shallowLimitingNTK (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) : ℝ :=
   (x ⬝ᵥ x') *
     ∫ w : Fin d → ℝ,
-      σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x') ∂(gaussianRowMeasure d)
+      σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)
 
 /-- The limiting NTK is symmetric. -/
 lemma shallowLimitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
@@ -239,8 +239,7 @@ lemma shallowLimitingNTK_symm (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) :
 /-! ### Measurability and integrability of the NTK summand -/
 
 /-- The standard Gaussian row measure `𝒩(0, Iᵈ)` is a probability measure. -/
-instance : IsProbabilityMeasure (gaussianRowMeasure d) := by
-  unfold gaussianRowMeasure
+instance : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
   infer_instance
 
 /-- The dot product `w ↦ wᵀx` with a fixed vector is measurable. -/
@@ -266,7 +265,8 @@ lemma abs_ntkSummand_le {σ' : ℝ → ℝ} {C : ℝ} (hC : ∀ z, |σ' z| ≤ C
 row measure when `σ'` is measurable and bounded. -/
 lemma integrable_ntkSummand {σ' : ℝ → ℝ} (hσ'm : Measurable σ') {C : ℝ}
     (hC : ∀ z, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
-    Integrable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) (gaussianRowMeasure d) :=
+    Integrable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1) :=
   Integrable.of_bound (measurable_ntkSummand hσ'm x x').aestronglyMeasurable (C * C)
     (Filter.Eventually.of_forall fun w => by
       rw [Real.norm_eq_abs]
@@ -279,14 +279,14 @@ i.i.d. Gaussian rows. Specializes `iid_average_tendsto_integral` to Gaussian row
 lemma gaussianRow_average_tendsto_integral
     (g : (Fin d → ℝ) → ℝ)
     (hg_meas : Measurable g)
-    (hg_int : Integrable g (gaussianRowMeasure d)) :
+    (hg_int : Integrable g (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
-      ∂(Measure.infinitePi fun _ : ℕ => gaussianRowMeasure d),
+      ∂(Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)),
       Filter.Tendsto
         (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, g (rows j))
         Filter.atTop
-        (nhds (∫ w, g w ∂(gaussianRowMeasure d))) :=
-  iid_average_tendsto_integral (gaussianRowMeasure d) g hg_meas hg_int
+        (nhds (∫ w, g w ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1))) :=
+  iid_average_tendsto_integral (Measure.pi fun _ : Fin d => gaussianReal 0 1) g hg_meas hg_int
 
 /-- **Lemma 4.3** (Almost sure convergence of the empirical NTK).
 For fixed `x, x' ∈ ℝᵈ`, a measurable bounded `σ'`, and an infinite sequence of iid
@@ -311,7 +311,8 @@ theorem ntk_convergence
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
-      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => gaussianRowMeasure d)),
+      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0
+          1))),
       Filter.Tendsto
         (fun width => shallowEmpiricalNTK σ' (fun j : Fin width => rows j.val) x x')
         Filter.atTop
@@ -320,7 +321,7 @@ theorem ntk_convergence
   have hg_meas : Measurable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) :=
     measurable_ntkSummand hσ'_meas x x'
   have hg_int : Integrable (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x'))
-      (gaussianRowMeasure d) :=
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
     integrable_ntkSummand hσ'_meas hC x x'
   filter_upwards [gaussianRow_average_tendsto_integral
     (fun w : Fin d → ℝ => σ' (w ⬝ᵥ x) * σ' (w ⬝ᵥ x')) hg_meas hg_int]
@@ -358,7 +359,7 @@ lemma dotProduct_eq_inner_toLp (x y : Fin d → ℝ) :
 /-- Pushforward of `gaussianRowMeasure` by the linear functional `w ↦ wᵀx` is a 1D Gaussian
 with mean `0` and variance `xᵀx`. -/
 lemma map_gaussianRowMeasure_dotProduct (x : Fin d → ℝ) :
-    Measure.map (fun w => w ⬝ᵥ x) (gaussianRowMeasure d) =
+    Measure.map (fun w => w ⬝ᵥ x) (Measure.pi fun _ : Fin d => gaussianReal 0 1) =
       gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := by
   have h_eq : (fun w : Fin d → ℝ => w ⬝ᵥ x) =
       (fun (v : EuclideanSpace ℝ (Fin d)) => innerSL ℝ (WithLp.toLp 2 x) v) ∘ (WithLp.toLp 2) := by
@@ -366,7 +367,7 @@ lemma map_gaussianRowMeasure_dotProduct (x : Fin d → ℝ) :
     dsimp
     rw [← dotProduct_eq_inner_toLp w x]
   rw [h_eq, ← Measure.map_map]
-  · have h_toLp : Measure.map (WithLp.toLp 2) (gaussianRowMeasure d) =
+  · have h_toLp : Measure.map (WithLp.toLp 2) (Measure.pi fun _ : Fin d => gaussianReal 0 1) =
         stdGaussian (EuclideanSpace ℝ (Fin d)) := map_pi_eq_stdGaussian
     rw [h_toLp]
     have h_map := IsGaussian.map_eq_gaussianReal

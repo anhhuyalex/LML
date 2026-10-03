@@ -140,7 +140,8 @@ theorem deepSensitivityGram_sub_mul_tendstoInMeasure
   have hd : 0 < d := by omega
   let A : ActivationData φ φ' := ⟨hφ_cont, hφ'_cont, C, hC, p, hp, hφ_growth, hφ'_growth⟩
   obtain ⟨hC1, hI1⟩ := deepSpace_sensitivity_induction A X hd hnd (k + 1) hk
-  have hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure (deepMeasure d)
+  have hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c')
       atTop (fun _ => c0) := fun c c' => ⟨_, hC1 c c'⟩

@@ -121,14 +121,15 @@ theorem tendstoInDistribution_initial_trainingResidual
     (y : EuclideanSpace ℝ (Fin m))
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
-      (gaussianRowMeasure d)) :
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
         trainingResidual (netFromParams φ n d)
           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2))
       Filter.atTop
       (fun G => G - y)
-      (fun n => initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
       (multivariateGaussian 0
         (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
   simp_rw [trainingResidual_netFromParams_packParams]
@@ -148,10 +149,12 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hφ_L2 : ∀ α β : Fin m,
       MemLp (fun w => φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_L2 : ∀ α β : Fin m,
       MemLp (fun w => deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d)) :
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
         (trainingResidual (netFromParams φ n d)
@@ -160,7 +163,8 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)))
       Filter.atTop
       (fun G => (G - y, limitingFullNTKMatrix φ X))
-      (fun n => initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
       (multivariateGaussian 0
         (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) := by
   have hX := tendstoInDistribution_initial_trainingResidual φ X y
@@ -168,7 +172,8 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
       ((hφ_diff.continuous.measurable.comp
         (measurable_dotProduct_left _)).aestronglyMeasurable) (hφ_L2 α α)
   have hY : ∀ ε > 0, Filter.Tendsto
-      (fun n => (initMeasure n d)
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1))
         {p | ε ≤
           ‖empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) -
@@ -177,7 +182,8 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
     fun ε hε => tendsto_initMeasure_empiricalNTKMatrix_ge_eps hm hd φ hφ_diff hdφ_meas X
       hφ_L2 hdφ_L2 hε
   have hY_meas : ∀ n, AEMeasurable (fun p => empiricalNTKMatrix (netFromParams φ n d)
-      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) (initMeasure n d) :=
+      (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) ((Measure.pi fun _ : Fin n =>
+          Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) :=
     fun n => (measurable_empiricalNTKMatrix_netFromParams_packParams φ hφ_diff hdφ_meas
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)).aemeasurable
   exact hX.prodMk_of_tendsto_measure_norm_sub_const hY hY_meas
@@ -190,9 +196,10 @@ theorem exists_initial_residual_radius
     {d m : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
     (hφ_meas : Measurable φ)
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
-      (gaussianRowMeasure d))
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     {ε : ENNReal} (hε : 0 < ε) :
-    ∃ R : ℝ, 0 ≤ R ∧ ∀ n, initMeasure n d
+    ∃ R : ℝ, 0 ≤ R ∧ ∀ n, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | R <
         ‖trainingResidual (netFromParams φ n d)
           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖} ≤ ε := by
@@ -203,7 +210,8 @@ theorem exists_initial_residual_radius
     (continuous_sub_right y)
   simp_rw [trainingResidual_netFromParams_packParams]
   refine exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map
-    (μ := fun n => initMeasure n d)
+    (μ := fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
     (X := fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
       evalVector φ p.1 p.2 (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) - y)
     (fun n => ((hmeas n).sub_const y).aemeasurable) htight

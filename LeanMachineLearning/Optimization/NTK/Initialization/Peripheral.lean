@@ -27,7 +27,8 @@ variable {d n m : ℕ}
 /-- The conditional expectation of the output vector vanishes. -/
 lemma integral_conditional_output_eq_zero
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
-    ∫ v, v ∂(Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)) = 0 := by
+    ∫ v, v ∂(Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0
+        1)) = 0 := by
   rw [exact_conditional_normality]
   exact integral_id_multivariateGaussian
 
@@ -35,7 +36,7 @@ lemma integral_conditional_output_eq_zero
 lemma cov_conditional_output_eq_covariance
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) (α β : Fin m) :
     cov[fun (v : EuclideanSpace ℝ (Fin m)) => v.ofLp α, fun v => v.ofLp β;
-      Measure.map (fun a => evalVector φ W a X) (gaussianReadoutMeasure n)] =
+      Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0 1)] =
       empiricalCovariance n φ W X α β := by
   rw [exact_conditional_normality]
   have hPos : (empiricalCovariance n φ W X).PosSemidef :=
@@ -55,9 +56,11 @@ for every layer `ℓ`, the weight matrix `W_ℓ` is independent of the history
 theorem indepFun_layer_history (L n d : ℕ) (ℓ : Fin L) :
     IndepFun (fun ω : Fin L → Fin n → Fin d → ℝ => ω ℓ)
       (fun ω : Fin L → Fin n → Fin d → ℝ => fun i : Finset.Iio ℓ => ω i)
-      (Measure.pi (fun _ : Fin L => gaussianInit n d)) := by
+      (Measure.pi (fun _ : Fin L => (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))) := by
   have h_indep : iIndepFun (fun ℓ : Fin L => fun ω : Fin L → Fin n → Fin d → ℝ => ω ℓ)
-      (Measure.pi (fun _ : Fin L => gaussianInit n d)) :=
+      (Measure.pi (fun _ : Fin L => (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))) :=
     iIndepFun_pi (fun _ => aemeasurable_id)
   have h_meas : ∀ i : Fin L, Measurable (fun ω : Fin L → Fin n → Fin d → ℝ => ω i) :=
     fun i => measurable_pi_apply i

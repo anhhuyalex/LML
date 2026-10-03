@@ -94,12 +94,15 @@ theorem tendstoInMeasure_gaussianSq_weighted_average
         have : c₂ + 1 < Mn n w := hw
         rw [le_abs]; left; linarith)
     set c : ℕ → ℝ≥0∞ := fun n =>
-      ENNReal.ofReal (gaussianSqCenteredVariance * (c₂ + 1) / ((n : ℝ) * ε ^ 2)) with hc_def
+      ENNReal.ofReal ((ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (c₂
+          + 1) / ((n : ℝ) * ε ^ 2)) with hc_def
     have hc : Tendsto c atTop (nhds 0) := by
-      have h0 : Tendsto (fun n : ℕ => (gaussianSqCenteredVariance * (c₂ + 1) / ε ^ 2) / (n : ℝ))
+      have h0 : Tendsto (fun n : ℕ => ((ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1)
+          (gaussianReal 0 1)) * (c₂ + 1) / ε ^ 2) / (n : ℝ))
           atTop (nhds 0) := tendsto_const_div_atTop_nhds_zero_nat _
       have h1 : Tendsto (fun n : ℕ => ENNReal.ofReal
-          ((gaussianSqCenteredVariance * (c₂ + 1) / ε ^ 2) / (n : ℝ))) atTop (nhds 0) := by
+          (((ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (c₂ + 1) / ε
+              ^ 2) / (n : ℝ))) atTop (nhds 0) := by
         simpa using ENNReal.tendsto_ofReal h0
       refine h1.congr fun n => ?_
       simp only [hc_def]
@@ -143,10 +146,13 @@ theorem tendstoInMeasure_gaussianSq_weighted_average
         rw [hsum]
         have hV := gaussianSqCenteredVariance_nonneg
         have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
-        calc gaussianSqCenteredVariance * (n * Mn n w) / ((n : ℝ) ^ 2 * ε ^ 2)
-            = gaussianSqCenteredVariance * Mn n w / ((n : ℝ) * ε ^ 2) := by
+        calc (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (n * Mn n
+            w) / ((n : ℝ) ^ 2 * ε ^ 2)
+            = (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0
+                1)) * Mn n w / ((n : ℝ) * ε ^ 2) := by
               field_simp
-          _ ≤ gaussianSqCenteredVariance * (c₂ + 1) / ((n : ℝ) * ε ^ 2) := by
+          _ ≤ (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (c₂ +
+              1) / ((n : ℝ) * ε ^ 2) := by
               gcongr
     exact tendsto_of_lintegral_section_bound νH
       (fun n => (νH.prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (S n))

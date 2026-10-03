@@ -87,11 +87,6 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
 
 /-! ### The (d-1)-dimensional ball that is isomorphic to the NTK domain -/
 
-/-- The reduced domain: `U = {u ∈ ℝᵈ⁻¹ : ‖u‖² ≤ 1/2}`.
-  The NTK domain `𝒳 ⊆ ℝᵈ` is in bijection with `U` by dropping the last coordinate. -/
-def reducedDomain (d : ℕ) : Set (Fin d → ℝ) :=
-  {u | u ⬝ᵥ u ≤ 1 / 2}
-
 /-- The ReLU NTK in coordinates on the reduced domain `U`. For `x, x'` in the NTK domain, let
 `z = u ⬝ᵥ u'` where `u, u'` are `x, x'` with the last coordinate dropped. Then
 `f_tilde(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)` equals
@@ -201,7 +196,8 @@ theorem rkhs_approx_by_network
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     ∃ (m : ℕ) (net : ShallowNetwork relu d m)
       (B : ℝ), 0 ≤ B ∧
-      ∀ᵐ W₀ ∂(gaussianInit m d),
+      ∀ᵐ W₀ ∂(Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => ProbabilityTheory.gaussianReal
+          0 1),
         ∃ W : Fin m → Fin d → ℝ,
           Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B ∧
           ∀ x ∈ ntkDomain d, |net.eval x W - h x| ≤ ε := by

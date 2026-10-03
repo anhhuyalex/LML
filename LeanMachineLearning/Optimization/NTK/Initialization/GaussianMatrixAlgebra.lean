@@ -51,42 +51,54 @@ variable {n p q : ℕ}
 /-- Every single coordinate `W i k` of a Gaussian matrix initialized by `gaussianInit n p`
 has unit variance: `∫ (W i k)² = 1`. -/
 theorem integral_gaussianInit_entry_sq (n p : ℕ) (i : Fin n) (k : Fin p) :
-    ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(gaussianInit n p) = 1 := by
-  have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) =
-      gaussianRowMeasure p := map_gaussianInit_row i
-  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) =
+    ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) = 1 := by
+  have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
+      Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+      (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
+  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
+      1) =
       gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
-  have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) :=
+  have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
+      Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     (measurable_pi_apply i).aemeasurable
-  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) :=
+  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
+      1) :=
     (measurable_pi_apply k).aemeasurable
   have hf1_cont : Continuous (fun a : Fin p → ℝ => (a k) ^ 2) := by fun_prop
   have hf2_cont : Continuous (fun x : ℝ => x ^ 2) := by fun_prop
-  have h_step1 : ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(gaussianInit n p) =
-      ∫ a : Fin p → ℝ, (a k) ^ 2 ∂(gaussianRowMeasure p) := by
+  have h_step1 : ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
+      : Fin p => gaussianReal 0 1) =
+      ∫ a : Fin p → ℝ, (a k) ^ 2 ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
     rw [← integral_map h_meas1 hf1_cont.aestronglyMeasurable, h_row]
-  have h_step2 : ∫ a : Fin p → ℝ, (a k) ^ 2 ∂(gaussianRowMeasure p) =
+  have h_step2 : ∫ a : Fin p → ℝ, (a k) ^ 2 ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       ∫ x : ℝ, x ^ 2 ∂(gaussianReal 0 1) := by
     rw [← integral_map h_meas2 hf2_cont.aestronglyMeasurable, h_coord]
   rw [h_step1, h_step2, integral_sq_gaussianReal]
 
 /-- Every single coordinate `W i k` of a Gaussian matrix has zero mean: `∫ W i k = 0`. -/
 theorem integral_gaussianInit_entry (n p : ℕ) (i : Fin n) (k : Fin p) :
-    ∫ W : Fin n → Fin p → ℝ, W i k ∂(gaussianInit n p) = 0 := by
-  have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) =
-      gaussianRowMeasure p := map_gaussianInit_row i
-  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) =
+    ∫ W : Fin n → Fin p → ℝ, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) = 0 := by
+  have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
+      Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+      (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
+  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
+      1) =
       gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
-  have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) :=
+  have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
+      Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     (measurable_pi_apply i).aemeasurable
-  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) :=
+  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
+      1) :=
     (measurable_pi_apply k).aemeasurable
   have hf1_cont : Continuous (fun a : Fin p → ℝ => a k) := by fun_prop
   have hf2_cont : Continuous (fun x : ℝ => x) := by fun_prop
-  have h_step1 : ∫ W : Fin n → Fin p → ℝ, W i k ∂(gaussianInit n p) =
-      ∫ a : Fin p → ℝ, a k ∂(gaussianRowMeasure p) := by
+  have h_step1 : ∫ W : Fin n → Fin p → ℝ, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
+      p => gaussianReal 0 1) =
+      ∫ a : Fin p → ℝ, a k ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
     rw [← integral_map h_meas1 hf1_cont.aestronglyMeasurable, h_row]
-  have h_step2 : ∫ a : Fin p → ℝ, a k ∂(gaussianRowMeasure p) =
+  have h_step2 : ∫ a : Fin p → ℝ, a k ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       ∫ x : ℝ, x ∂(gaussianReal 0 1) := by
     rw [← integral_map h_meas2 hf2_cont.aestronglyMeasurable, h_coord]
   have h_zero : ∫ x : ℝ, x ∂(gaussianReal 0 1) = 0 :=
@@ -97,21 +109,24 @@ theorem integral_gaussianInit_entry (n p : ℕ) (i : Fin n) (k : Fin p) :
 
 /-- Every single coordinate of a standard Gaussian matrix is square-integrable (in `L²`). -/
 lemma memLp_entry (n p : ℕ) (i : Fin n) (l : Fin p) :
-    MemLp (fun W : Fin n → Fin p → ℝ => W i l) 2 (gaussianInit n p) := by
+    MemLp (fun W : Fin n → Fin p → ℝ => W i l) 2 (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
+        p => gaussianReal 0 1) := by
   have h_base : MemLp id (2 : ENNReal) (gaussianReal 0 1) := memLp_id_gaussianReal (2 : NNReal)
   have h_pres_l : MeasurePreserving (fun a : Fin p → ℝ => a l)
-      (gaussianRowMeasure p) (gaussianReal 0 1) :=
+      (Measure.pi fun _ : Fin p => gaussianReal 0 1) (gaussianReal 0 1) :=
     measurePreserving_eval (fun _ : Fin p => gaussianReal 0 1) l
-  have h_row : MemLp (fun a : Fin p → ℝ => a l) 2 (gaussianRowMeasure p) :=
+  have h_row : MemLp (fun a : Fin p → ℝ => a l) 2 (Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     h_base.comp_measurePreserving h_pres_l
   have h_pres_i : MeasurePreserving (fun W : Fin n → Fin p → ℝ => W i)
-      (gaussianInit n p) (gaussianRowMeasure p) :=
-    measurePreserving_eval (fun _ : Fin n => gaussianRowMeasure p) i
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (Measure.pi fun _ :
+          Fin p => gaussianReal 0 1) :=
+    measurePreserving_eval (fun _ : Fin n => (Measure.pi fun _ : Fin p => gaussianReal 0 1)) i
   exact h_row.comp_measurePreserving h_pres_i
 
 /-- Bilinear product of any two matrix coordinates `W i k * W j l` is integrable. -/
 lemma integrable_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : Fin p) :
-    Integrable (fun W : Fin n → Fin p → ℝ => W i k * W j l) (gaussianInit n p) := by
+    Integrable (fun W : Fin n → Fin p → ℝ => W i k * W j l) (Measure.pi fun _ : Fin n => Measure.pi
+        fun _ : Fin p => gaussianReal 0 1) := by
   have h1 := memLp_entry n p i k
   have h2 := memLp_entry n p j l
   exact h1.integrable_mul h2
@@ -119,7 +134,8 @@ lemma integrable_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : Fin p) :
 /-- Exact coordinate covariance under the standard Gaussian matrix law:
 `∫ W i k * W j l ∂(gaussianInit n p) = if i = j ∧ k = l then 1 else 0`. -/
 theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : Fin p) :
-    ∫ W : Fin n → Fin p → ℝ, W i k * W j l ∂(gaussianInit n p) =
+    ∫ W : Fin n → Fin p → ℝ, W i k * W j l ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) =
       if i = j ∧ k = l then 1 else 0 := by
   split_ifs with h
   · rcases h with ⟨rfl, rfl⟩
@@ -129,30 +145,38 @@ theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : F
   · by_cases hij : i = j
     · subst hij
       have hkl : k ≠ l := fun h_eq => h ⟨rfl, h_eq⟩
-      have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) =
-          gaussianRowMeasure p := map_gaussianInit_row i
-      have h_meas_row : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) :=
+      have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
+          Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+          (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
+      have h_meas_row : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
+          Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
         (measurable_pi_apply i).aemeasurable
       have h_fun_cont : Continuous (fun a : Fin p → ℝ => a k * a l) := by fun_prop
-      have h_step : ∫ W : Fin n → Fin p → ℝ, W i k * W i l ∂(gaussianInit n p) =
-          ∫ a : Fin p → ℝ, a k * a l ∂(gaussianRowMeasure p) := by
+      have h_step : ∫ W : Fin n → Fin p → ℝ, W i k * W i l ∂(Measure.pi fun _ : Fin n => Measure.pi
+          fun _ : Fin p => gaussianReal 0 1) =
+          ∫ a : Fin p → ℝ, a k * a l ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
         rw [← integral_map h_meas_row h_fun_cont.aestronglyMeasurable, h_row]
       rw [h_step]
       have h_indep := (iIndepFun_readoutWeights p).indepFun hkl
-      have h_meask : AEStronglyMeasurable (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) := by
+      have h_meask : AEStronglyMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1) := by
         have hc : Continuous (fun a : Fin p → ℝ => a k) := by fun_prop
         exact hc.aestronglyMeasurable
-      have h_measl : AEStronglyMeasurable (fun a : Fin p → ℝ => a l) (gaussianRowMeasure p) := by
+      have h_measl : AEStronglyMeasurable (fun a : Fin p → ℝ => a l) (Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1) := by
         have hc : Continuous (fun a : Fin p → ℝ => a l) := by fun_prop
         exact hc.aestronglyMeasurable
-      change (fun a => a k) ⟂ᵢ[gaussianRowMeasure p] (fun a => a l) at h_indep
+      change (fun a => a k) ⟂ᵢ[(Measure.pi fun _ : Fin p => gaussianReal 0 1)] (fun a => a
+          l) at h_indep
       rw [h_indep.integral_fun_mul_eq_mul_integral h_meask h_measl]
-      have h_coord_k : Measure.map (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) =
+      have h_coord_k : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1) =
           gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
-      have h_meas_k' : AEMeasurable (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) :=
+      have h_meas_k' : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1) :=
         (measurable_pi_apply k).aemeasurable
       have hf_cont : Continuous (fun x : ℝ => x) := by fun_prop
-      have h_int_k : ∫ a : Fin p → ℝ, a k ∂(gaussianRowMeasure p) =
+      have h_int_k : ∫ a : Fin p → ℝ, a k ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) =
           ∫ x : ℝ, x ∂(gaussianReal 0 1) := by
         rw [← integral_map h_meas_k' hf_cont.aestronglyMeasurable, h_coord_k]
       have h_zero : ∫ x : ℝ, x ∂(gaussianReal 0 1) = 0 :=
@@ -161,23 +185,27 @@ theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : F
     · have h_indep_row := (iIndepFun_inputWeights n p).indepFun hij
       have h_indep_entry := h_indep_row.comp (measurable_pi_apply k) (measurable_pi_apply l)
       have h_meas_ik : AEStronglyMeasurable (fun W : Fin n → Fin p → ℝ =>
-          ((fun f => f k) ∘ fun W => W i) W) (gaussianInit n p) := by
+          ((fun f => f k) ∘ fun W => W
+              i) W) (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
         have hc : Continuous (fun W : Fin n → Fin p → ℝ => W i k) := by fun_prop
         exact hc.aestronglyMeasurable
       have h_meas_jl : AEStronglyMeasurable (fun W : Fin n → Fin p → ℝ =>
-          ((fun f => f l) ∘ fun W => W j) W) (gaussianInit n p) := by
+          ((fun f => f l) ∘ fun W => W
+              j) W) (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
         have hc : Continuous (fun W : Fin n → Fin p → ℝ => W j l) := by fun_prop
         exact hc.aestronglyMeasurable
       have h_step : (fun W : Fin n → Fin p → ℝ => W i k * W j l) =
           (fun W => ((fun f => f k) ∘ fun W => W i) W * ((fun f => f l) ∘ fun W => W j) W) := rfl
       rw [h_step, h_indep_entry.integral_fun_mul_eq_mul_integral h_meas_ik h_meas_jl]
-      change (∫ W, W i k ∂(gaussianInit n p)) * (∫ W, W j l ∂(gaussianInit n p)) = 0
+      change (∫ W, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
+          1)) * (∫ W, W j l ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) = 0
       rw [integral_gaussianInit_entry n p i k, zero_mul]
 
 /-- Expectation of coordinate products of transpose vector multiplications:
 `∫ (Wᵀ *ᵥ u) k * (Wᵀ *ᵥ v) l ∂(gaussianInit n p) = if k = l then u ⬝ᵥ v else 0`. -/
 lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l : Fin p) :
-    ∫ W : Fin n → Fin p → ℝ, ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l ∂(gaussianInit n p) =
+    ∫ W : Fin n → Fin p → ℝ, ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l ∂(Measure.pi fun _ :
+        Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       if k = l then u ⬝ᵥ v else 0 := by
   have h_eq : (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) =
       fun W => ∑ i : Fin n, ∑ j : Fin n, u i * v j * (W i k * W j l) := by
@@ -198,7 +226,8 @@ lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l
     (integrable_finsetSum _ fun j _ =>
       (integrable_entry_mul_entry n p i j k l).const_mul (u i * v j))]
   have h_inner : ∀ (i : Fin n),
-      (∫ W : Fin n → Fin p → ℝ, ∑ j : Fin n, u i * v j * (W i k * W j l) ∂(gaussianInit n p)) =
+      (∫ W : Fin n → Fin p → ℝ, ∑ j : Fin n, u i * v j * (W i k * W j l) ∂(Measure.pi fun _ : Fin n
+          => Measure.pi fun _ : Fin p => gaussianReal 0 1)) =
       ∑ j : Fin n, u i * v j * (if i = j ∧ k = l then 1 else 0) := by
     intro i
     rw [integral_finsetSum _ fun j _ =>
@@ -228,7 +257,7 @@ lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l
 /-- Integrability of coordinate products of transpose vector multiplications. -/
 lemma integrable_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l : Fin p) :
     Integrable (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l)
-      (gaussianInit n p) := by
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
   have h_eq : (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) =
       fun W => ∑ i : Fin n, ∑ j : Fin n, u i * v j * (W i k * W j l) := by
     ext W
@@ -253,7 +282,8 @@ lemma integrable_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k
 for arbitrary real matrix `A ∈ ℝ^{p × p}` and vectors `u, v ∈ ℝ^n`. -/
 theorem integral_gaussianMatrix_quadForm (n p : ℕ) (u v : Fin n → ℝ)
     (A : Matrix (Fin p) (Fin p) ℝ) :
-    ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) ∂(gaussianInit n p) =
+    ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) ∂(Measure.pi fun _ :
+        Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       (u ⬝ᵥ v) * A.trace := by
   have h_quad : (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) =
       fun W => ∑ k : Fin p, ∑ l : Fin p,
@@ -271,7 +301,8 @@ theorem integral_gaussianMatrix_quadForm (n p : ℕ) (u v : Fin n → ℝ)
       (integrable_mulVec_transpose_mul_apply n p u v k l).const_mul (A k l)]
   have h_inner : ∀ (k : Fin p),
       (∫ W : Fin n → Fin p → ℝ, ∑ l : Fin p,
-        A k l * (((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) ∂(gaussianInit n p)) =
+        A k l * (((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) ∂(Measure.pi fun _ : Fin n =>
+            Measure.pi fun _ : Fin p => gaussianReal 0 1)) =
       ∑ l : Fin p, A k l * (if k = l then u ⬝ᵥ v else 0) := by
     intro k
     rw [integral_finsetSum _ fun l _ =>
@@ -300,7 +331,8 @@ theorem backward_empirical_quadForm_asymptotic_limit (n p : ℕ) (u v : Fin n �
     (A : Matrix (Fin p) (Fin p) ℝ) :
     (n : ℝ)⁻¹ * (n : ℝ)⁻¹ *
       ∫ W : Fin n → Fin p → ℝ,
-        u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) ∂(gaussianInit n p) =
+        u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) ∂(Measure.pi fun _ : Fin n => Measure.pi
+            fun _ : Fin p => gaussianReal 0 1) =
       ((n : ℝ)⁻¹ * (u ⬝ᵥ v)) * ((n : ℝ)⁻¹ * A.trace) := by
   rw [integral_gaussianMatrix_quadForm]
   ring
@@ -310,12 +342,15 @@ theorem backward_empirical_quadForm_asymptotic_limit (n p : ℕ) (u v : Fin n �
 /-- A standard Gaussian row `a ~ gaussianRowMeasure p` is a jointly Gaussian vector: its coordinates
 are independent standard Gaussians (`iIndepFun.hasGaussianLaw`). -/
 lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
-    HasGaussianLaw (fun a : Fin p → ℝ => a) (gaussianRowMeasure p) := by
-  have h1 : ∀ k : Fin p, HasGaussianLaw (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) := by
+    HasGaussianLaw (fun a : Fin p → ℝ => a) (Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
+  have h1 : ∀ k : Fin p, HasGaussianLaw (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) := by
     intro k
-    have hk : Measure.map (fun a : Fin p → ℝ => a k) (gaussianRowMeasure p) = gaussianReal 0 1 :=
+    have hk : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
+        1) = gaussianReal 0 1 :=
       map_gaussianReadoutMeasure_coord k
-    have : IsGaussian ((gaussianRowMeasure p).map (fun a : Fin p → ℝ => a k)) := by
+    have : IsGaussian ((Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun a : Fin p → ℝ => a
+        k)) := by
       rw [hk]; infer_instance
     exact IsGaussian.hasGaussianLaw (measurable_pi_apply k).aemeasurable
   exact iIndepFun.hasGaussianLaw h1 (iIndepFun_readoutWeights p)
@@ -323,10 +358,13 @@ lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
 /-- The whole weight matrix `W ~ gaussianInit n p` is a jointly Gaussian vector: its rows are
 independent Gaussian vectors. Every linear image `W ↦ (W A, W B)` is therefore jointly Gaussian. -/
 lemma hasGaussianLaw_gaussianInit_id (n p : ℕ) :
-    HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W) (gaussianInit n p) := by
-  have h1 : ∀ i : Fin n, HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W i) (gaussianInit n p) := by
+    HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W) (Measure.pi fun _ : Fin n => Measure.pi fun _ :
+        Fin p => gaussianReal 0 1) := by
+  have h1 : ∀ i : Fin n, HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n
+      => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
     intro i
-    have : IsGaussian ((gaussianInit n p).map (fun W : Fin n → Fin p → ℝ => W i)) := by
+    have : IsGaussian ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
+        1).map (fun W : Fin n → Fin p → ℝ => W i)) := by
       rw [map_gaussianInit_row i]
       have := (hasGaussianLaw_gaussianRowMeasure_id p).isGaussian_map
       simpa using this
@@ -346,13 +384,15 @@ lemma matrix_mul_apply_eq_sum (W : Fin n → Fin p → ℝ) (A : Matrix (Fin p) 
   exact Finset.sum_congr rfl fun a _ => mul_comm _ _
 
 lemma memLp_mul_entry (A : Matrix (Fin p) (Fin q) ℝ) (i : Fin n) (k : Fin q) :
-    MemLp (fun W : Fin n → Fin p → ℝ => (Matrix.of W * A) i k) 2 (gaussianInit n p) := by
+    MemLp (fun W : Fin n → Fin p → ℝ => (Matrix.of W * A) i k) 2 (Measure.pi fun _ : Fin n =>
+        Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
   simp_rw [matrix_mul_apply_eq_sum]
   exact memLp_finsetSum _ fun a _ => (memLp_entry n p i a).const_mul _
 
 /-- Zero mean of the entries of `W * A`. -/
 lemma integral_mul_entry (A : Matrix (Fin p) (Fin q) ℝ) (i : Fin n) (k : Fin q) :
-    ∫ W : Fin n → Fin p → ℝ, (Matrix.of W * A) i k ∂(gaussianInit n p) = 0 := by
+    ∫ W : Fin n → Fin p → ℝ, (Matrix.of W * A) i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ :
+        Fin p => gaussianReal 0 1) = 0 := by
   simp_rw [matrix_mul_apply_eq_sum]
   rw [integral_finsetSum _ fun a _ => ((memLp_entry n p i a).integrable (by norm_num)).const_mul _]
   simp [integral_const_mul, integral_gaussianInit_entry]
@@ -361,7 +401,8 @@ lemma integral_mul_entry (A : Matrix (Fin p) (Fin q) ℝ) (i : Fin n) (k : Fin q
 `E[(W A)_{ik} (W B)_{jl}] = δ_{ij} (Aᵀ B)_{kl}`. -/
 lemma integral_mul_entry_mul_mul_entry (A : Matrix (Fin p) (Fin q) ℝ)
     (B : Matrix (Fin p) (Fin r) ℝ) (i j : Fin n) (k : Fin q) (l : Fin r) :
-    ∫ W : Fin n → Fin p → ℝ, (Matrix.of W * A) i k * (Matrix.of W * B) j l ∂(gaussianInit n p) =
+    ∫ W : Fin n → Fin p → ℝ, (Matrix.of W * A) i k * (Matrix.of W * B) j l ∂(Measure.pi fun _ : Fin
+        n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       if i = j then (Aᵀ * B) k l else 0 := by
   have h_eq : (fun W : Fin n → Fin p → ℝ => (Matrix.of W * A) i k * (Matrix.of W * B) j l) =
       fun W => ∑ a : Fin p, ∑ b : Fin p, (A a k * B b l) * (W i a * W j b) := by
@@ -374,7 +415,8 @@ lemma integral_mul_entry_mul_mul_entry (A : Matrix (Fin p) (Fin q) ℝ)
   rw [h_eq, integral_finsetSum _ fun a _ => integrable_finsetSum _ fun b _ =>
     (integrable_entry_mul_entry n p i j a b).const_mul _]
   have h_inner : ∀ a : Fin p,
-      ∫ W : Fin n → Fin p → ℝ, ∑ b : Fin p, (A a k * B b l) * (W i a * W j b) ∂(gaussianInit n p) =
+      ∫ W : Fin n → Fin p → ℝ, ∑ b : Fin p, (A a k * B b l) * (W i a * W j b) ∂(Measure.pi fun _ :
+          Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
         ∑ b : Fin p, (A a k * B b l) * (if i = j ∧ a = b then 1 else 0) := by
     intro a
     rw [integral_finsetSum _ fun b _ => (integrable_entry_mul_entry n p i j a b).const_mul _]
@@ -390,26 +432,30 @@ lemma integral_mul_entry_mul_mul_entry (A : Matrix (Fin p) (Fin q) ℝ)
 theorem indepFun_gaussianInit_mul_of_transpose_mul_eq_zero
     (A : Matrix (Fin p) (Fin q) ℝ) (B : Matrix (Fin p) (Fin r) ℝ) (hAB : Aᵀ * B = 0) :
     IndepFun (fun W : Fin n → Fin p → ℝ => Matrix.of W * A)
-      (fun W : Fin n → Fin p → ℝ => Matrix.of W * B) (gaussianInit n p) := by
+      (fun W : Fin n → Fin p → ℝ => Matrix.of W * B) (Measure.pi fun _ : Fin n => Measure.pi fun _ :
+          Fin p => gaussianReal 0 1) := by
   let X : Fin n × Fin q → (Fin n → Fin p → ℝ) → ℝ := fun ik W => (Matrix.of W * A) ik.1 ik.2
   let Y : Fin n × Fin r → (Fin n → Fin p → ℝ) → ℝ := fun jl W => (Matrix.of W * B) jl.1 jl.2
   -- the joint law of `(W A, W B)` is Gaussian, being a linear image of `W`
   have hjoint : HasGaussianLaw (fun W : Fin n → Fin p → ℝ => (fun ik => X ik W, fun jl => Y jl W))
-      (gaussianInit n p) :=
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     (hasGaussianLaw_gaussianInit_id n p).map_fun
       (LinearMap.toContinuousLinearMap (LinearMap.prod
         ((LinearEquiv.curry ℝ ℝ (Fin n) (Fin q)).symm.toLinearMap ∘ₗ
           mulRightLinearMap (Fin n) ℝ A)
         ((LinearEquiv.curry ℝ ℝ (Fin n) (Fin r)).symm.toLinearMap ∘ₗ
           mulRightLinearMap (Fin n) ℝ B)))
-  have hcov : ∀ ik jl, cov[X ik, Y jl; gaussianInit n p] = 0 := by
+  have hcov : ∀ ik jl, cov[X ik, Y jl; (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1)] = 0 := by
     intro ik jl
     have := hjoint.isProbabilityMeasure
     rw [covariance_eq_sub (memLp_mul_entry A _ _) (memLp_mul_entry B _ _)]
-    have h1 : (gaussianInit n p)[X ik] = 0 := integral_mul_entry A ik.1 ik.2
+    have h1 : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)[X
+        ik] = 0 := integral_mul_entry A ik.1 ik.2
     have h2 : (X ik * Y jl : (Fin n → Fin p → ℝ) → ℝ) = fun W => X ik W * Y jl W := rfl
     rw [h1, zero_mul, sub_zero, h2]
-    change ∫ W, (Matrix.of W * A) ik.1 ik.2 * (Matrix.of W * B) jl.1 jl.2 ∂(gaussianInit n p) = 0
+    change ∫ W, (Matrix.of W * A) ik.1 ik.2 * (Matrix.of W * B) jl.1 jl.2 ∂(Measure.pi fun _ : Fin n
+        => Measure.pi fun _ : Fin p => gaussianReal 0 1) = 0
     rw [integral_mul_entry_mul_mul_entry, hAB]
     simp
   have h_indep := HasGaussianLaw.indepFun_of_covariance_eval hjoint hcov
@@ -430,7 +476,7 @@ theorem indepFun_gaussian_orthogonal_projection (n p : ℕ) (P : Matrix (Fin p) 
     (hP : IsStarProjection P) :
     IndepFun (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * P)
       (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * (1 - P))
-      (gaussianInit n p) := by
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
   have hAB : Pᵀ * (1 - P) = 0 := by
     rw [hP.transpose_eq]; exact mul_self_orthogonalComplement P hP
   exact indepFun_gaussianInit_mul_of_transpose_mul_eq_zero P (1 - P) hAB
@@ -441,7 +487,7 @@ theorem indepFun_conditioned_weight_history (n p q : ℕ) (P : Matrix (Fin p) (F
     (hP : IsStarProjection P) (X : Matrix (Fin p) (Fin q) ℝ) (hX : P * X = X) :
     IndepFun (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * X)
       (fun W : Fin n → Fin p → ℝ => (Matrix.of W) * (1 - P))
-      (gaussianInit n p) := by
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
   have h_indep := indepFun_gaussian_orthogonal_projection n p P hP
   have h_meas_mul : Measurable (fun M : Matrix (Fin n) (Fin p) ℝ => M * X) := by
     refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_

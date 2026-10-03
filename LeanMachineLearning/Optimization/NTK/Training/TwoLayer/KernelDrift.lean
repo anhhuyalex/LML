@@ -463,12 +463,14 @@ lemma measurable_neuronMoment {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C�
 /-- The single-neuron moment is integrable under the Gaussian single-neuron law. -/
 lemma integrable_neuronMoment {φ : ℝ → ℝ} (C₁ C₂ : ℝ)
     (X : Fin m → Fin d → ℝ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d)) :
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1)) :
     Integrable (fun q : (Fin d → ℝ) × ℝ => neuronMoment φ C₁ C₂ X q.1 q.2)
-      (singleNeuronMeasure d) := by
+      ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
   obtain ⟨c₂, c₃, c₄, h⟩ := neuronMoment_eq_poly φ C₁ C₂ X (m := m) (d := d)
   have hG : Integrable (fun w : Fin d → ℝ => ∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2)
-      (gaussianRowMeasure d) := integrable_finsetSum _ fun α _ => (hL2 α).integrable_sq
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1) := integrable_finsetSum _ fun α _ => (hL2
+          α).integrable_sq
   have h2 := integrable_sq_gaussianReal
   have h4 := integrable_pow_four_gaussianReal
   have hu : Integrable (fun a : ℝ => c₂ * a ^ 2 + c₃) (gaussianReal 0 1) :=
@@ -482,7 +484,7 @@ lemma integrable_neuronMoment {φ : ℝ → ℝ} (C₁ C₂ : ℝ)
     exact ((h4.const_mul _).add (h2.const_mul _)).add (integrable_const _)
   have h1 := hG.mul_prod hu
   have h3 := (integrable_const (1 : ℝ) : Integrable (fun _ : Fin d → ℝ => (1 : ℝ))
-    (gaussianRowMeasure d)).mul_prod hv
+    (Measure.pi fun _ : Fin d => gaussianReal 0 1)).mul_prod hv
   refine (h1.add h3).congr (Filter.Eventually.of_forall fun q => ?_)
   simp only [Pi.add_apply, one_mul, h]
   ring
@@ -493,14 +495,17 @@ width-independent threshold `τ` such that the empirical average `n⁻¹ ∑ᵢ 
 most `τ` on a measurable initialization event of probability at least `1 - δ`, for every width. -/
 theorem exists_neuronMoment_event {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C₂ : ℝ)
     (X : Fin m → Fin d → ℝ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1))
     {δ : ℝ} (hδ : 0 < δ) :
     ∃ τ : ℝ, 0 < τ ∧ ∀ n : ℕ, 0 < n →
       MeasurableSet {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
         (n : ℝ)⁻¹ * ∑ i : Fin n, neuronMoment φ C₁ C₂ X (p.1 i) (p.2 i) ≤ τ} ∧
-      (initMeasure n d).real {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)).real {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
         (n : ℝ)⁻¹ * ∑ i : Fin n, neuronMoment φ C₁ C₂ X (p.1 i) (p.2 i) ≤ τ} ≥ 1 - δ := by
-  set I : ℝ := ∫ q, neuronMoment φ C₁ C₂ X q.1 q.2 ∂(singleNeuronMeasure d)
+  set I : ℝ := ∫ q, neuronMoment φ C₁ C₂ X q.1 q.2 ∂((Measure.pi fun _ : Fin d => gaussianReal 0
+      1).prod (gaussianReal 0 1))
     with hI
   have hI0 : 0 ≤ I := integral_nonneg fun q => neuronMoment_nonneg _ _ _ _ _ _
   refine ⟨I / δ + 1, by positivity, fun n hn => ⟨?_, ?_⟩⟩

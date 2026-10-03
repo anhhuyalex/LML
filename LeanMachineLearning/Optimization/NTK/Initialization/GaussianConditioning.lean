@@ -46,9 +46,12 @@ theorem gaussianInit_measure_le_lintegral_of_section
     (E : Set (Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ)) (hE : MeasurableSet E)
     (B : Matrix (Fin n) (Fin p) ℝ → ℝ≥0∞) (hB : Measurable B)
     (hsec : ∀ x : Matrix (Fin n) (Fin p) ℝ,
-      gaussianInit n p {V | (x, Matrix.of V * (1 - P)) ∈ E} ≤ B x) :
-    gaussianInit n p {V | (Matrix.of V * P, Matrix.of V * (1 - P)) ∈ E} ≤
-      ∫⁻ V, B (Matrix.of V * P) ∂gaussianInit n p := by
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) {V | (x, Matrix.of
+          V * (1 - P)) ∈ E} ≤ B x) :
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) {V | (Matrix.of V *
+        P, Matrix.of V * (1 - P)) ∈ E} ≤
+      ∫⁻ V, B (Matrix.of V * P) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1) := by
   classical
   have hX : Measurable (fun V : Fin n → Fin p → ℝ => Matrix.of V * P) := by
     refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
@@ -61,31 +64,39 @@ theorem gaussianInit_measure_le_lintegral_of_section
     exact Finset.measurable_sum _ fun k _ =>
       ((measurable_pi_apply k).comp (measurable_pi_apply i)).mul_const _
   have hind := indepFun_gaussian_orthogonal_projection n p P hP
-  have : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
+      0 1) := by infer_instance
   rw [indepFun_iff_map_prod_eq_prod_map_map hX.aemeasurable hY.aemeasurable] at hind
   have hpair : Measurable (fun V : Fin n → Fin p → ℝ =>
       (Matrix.of V * P, Matrix.of V * (1 - P))) := hX.prodMk hY
-  have h1 : gaussianInit n p {V | (Matrix.of V * P, Matrix.of V * (1 - P)) ∈ E} =
-      ((gaussianInit n p).map (fun V : Fin n → Fin p → ℝ =>
+  have h1 : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
+      1) {V | (Matrix.of V * P, Matrix.of V * (1 - P)) ∈ E} =
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun V : Fin n
+          → Fin p → ℝ =>
         (Matrix.of V * P, Matrix.of V * (1 - P)))) E := by
     rw [Measure.map_apply hpair hE]; rfl
   rw [h1, hind, Measure.prod_apply hE]
-  calc ∫⁻ x, ((gaussianInit n p).map (fun V : Fin n → Fin p → ℝ =>
+  calc ∫⁻ x, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun V
+      : Fin n → Fin p → ℝ =>
           Matrix.of V * (1 - P))) (Prod.mk x ⁻¹' E)
-        ∂((gaussianInit n p).map (fun V : Fin n → Fin p → ℝ => Matrix.of V * P))
-      ≤ ∫⁻ x, B x ∂((gaussianInit n p).map (fun V : Fin n → Fin p → ℝ => Matrix.of V * P)) := by
+        ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun V :
+            Fin n → Fin p → ℝ => Matrix.of V * P))
+      ≤ ∫⁻ x, B x ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map
+          (fun V : Fin n → Fin p → ℝ => Matrix.of V * P)) := by
         refine lintegral_mono fun x => ?_
         have hsect : MeasurableSet (Prod.mk x ⁻¹' E) := measurable_prodMk_left hE
         rw [Measure.map_apply hY hsect]
         exact hsec x
-    _ = ∫⁻ V, B (Matrix.of V * P) ∂gaussianInit n p := lintegral_map hB hX
+    _ = ∫⁻ V, B (Matrix.of V * P) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) := lintegral_map hB hX
 
 
 section linear
 
 /-- Second moment of the bilinear Gaussian linear form: `E[(u ⬝ᵥ W c)²] = ‖u‖² ‖c‖²`. -/
 theorem integral_linearForm_sq_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
-    ∫ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (Matrix.of W *ᵥ c)) ^ 2 ∂(gaussianInit n p) =
+    ∫ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (Matrix.of W *ᵥ c)) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi
+        fun _ : Fin p => gaussianReal 0 1) =
       (u ⬝ᵥ u) * (c ⬝ᵥ c) := by
   classical
   have hexp : ∀ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (Matrix.of W *ᵥ c)) ^ 2 =
@@ -97,17 +108,21 @@ theorem integral_linearForm_sq_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c :
     ring
   simp_rw [hexp]
   have hint : ∀ i j i' j', Integrable (fun W : Fin n → Fin p → ℝ =>
-      (u i * c j * (u i' * c j')) * (W i j * W i' j')) (gaussianInit n p) :=
+      (u i * c j * (u i' * c j')) * (W i j * W i'
+          j')) (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     fun i j i' j' => (integrable_entry_mul_entry n p i i' j j').const_mul _
   have h1 : ∀ i j i' j', ∫ W : Fin n → Fin p → ℝ,
-      (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(gaussianInit n p) =
+      (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
+          : Fin p => gaussianReal 0 1) =
       (u i * c j * (u i' * c j')) * (if i = i' ∧ j = j' then 1 else 0) := by
     intro i j i' j'
     rw [integral_const_mul, integral_gaussianInit_entry_mul_entry]
   have hsum : ∫ W : Fin n → Fin p → ℝ,
-      ∑ i, ∑ j, ∑ i', ∑ j', (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(gaussianInit n p) =
+      ∑ i, ∑ j, ∑ i', ∑ j', (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(Measure.pi fun _ : Fin
+          n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       ∑ i, ∑ j, ∑ i', ∑ j', ∫ W : Fin n → Fin p → ℝ,
-        (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(gaussianInit n p) := by
+        (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(Measure.pi fun _ : Fin n => Measure.pi fun
+            _ : Fin p => gaussianReal 0 1) := by
     rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
       integrable_finsetSum _ fun i' _ => integrable_finsetSum _ fun j' _ => hint i j i' j']
     refine Finset.sum_congr rfl fun i _ => ?_
@@ -137,7 +152,8 @@ theorem integral_linearForm_sq_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c :
   ring
 
 theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
-    MemLp (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) 2 (gaussianInit n p) := by
+    MemLp (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) 2 (Measure.pi fun _ : Fin n =>
+        Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
   have : (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) =
       fun W => ∑ i, ∑ j, (u i * c j) * W i j := by
     funext W
@@ -148,7 +164,8 @@ theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p
   exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry n p i j).const_mul _
 
 theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
-    ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (Matrix.of W *ᵥ c) ∂(gaussianInit n p) = 0 := by
+    ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (Matrix.of W *ᵥ c) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
+        : Fin p => gaussianReal 0 1) = 0 := by
   have : (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) =
       fun W => ∑ i, ∑ j, (u i * c j) * W i j := by
     funext W
@@ -166,13 +183,16 @@ theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fi
 moment `‖u‖² ‖c‖²`. -/
 theorem gaussianInit_linearForm_chebyshev (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) {ε : ℝ}
     (hε : 0 < ε) :
-    (gaussianInit n p) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
+        1) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
       ENNReal.ofReal ((u ⬝ᵥ u) * (c ⬝ᵥ c) / ε ^ 2) := by
   classical
-  have : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
+      0 1) := by infer_instance
   have hmem := memLp_linearForm_gaussianInit n p u c
   have h := meas_ge_le_variance_div_sq hmem hε
-  have hmean : (gaussianInit n p)[fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)] = 0 :=
+  have hmean : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)[fun W :
+      Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)] = 0 :=
     integral_linearForm_gaussianInit n p u c
   simp only [hmean, sub_zero] at h
   refine h.trans (ENNReal.ofReal_le_ofReal (le_of_eq ?_))
@@ -191,7 +211,8 @@ variable {Ω : Type*} [MeasurableSpace Ω]
 the `Pᗮ`-quadratic form concentrates. -/
 lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
     (hQ : IsStarProjection Q) (u₀ v₀ : Fin n → ℝ) {ε : ℝ} (hε : 0 < ε) :
-    gaussianInit n p {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
+        1) {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
         (u₀ ⬝ᵥ v₀) * (Q * A * Q).trace|} ≤
       ENNReal.ofReal (2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
   classical
@@ -217,7 +238,7 @@ theorem conditional_quadForm_chebyshev
     (hPm : Measurable P) (A : Ω → Matrix (Fin p) (Fin p) ℝ) (hAm : Measurable A)
     (u v : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u) (hvm : Measurable v)
     {ε : ℝ} (hε : 0 < ε) :
-    (μ.prod (gaussianInit n p))
+    (μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1))
       {q | ε ≤ |u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
           ((Matrix.of q.2 * (1 - P q.1) * A q.1 *
             (Matrix.of q.2 * (1 - P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1)) -
@@ -226,9 +247,11 @@ theorem conditional_quadForm_chebyshev
     ∫⁻ q, min 1 (ENNReal.ofReal
       (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
       (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
-      (∑ k, ∑ l, A q.1 k l ^ 2) / ε ^ 2)) ∂(μ.prod (gaussianInit n p)) := by
+      (∑ k, ∑ l, A q.1 k l ^
+          2) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) := by
   classical
-  have hγ : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
+  have hγ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) := by infer_instance
   have hOf : Measurable
       (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
     measurable_snd
@@ -320,7 +343,7 @@ theorem conditional_quadForm_chebyshev_normalized
     (hPm : Measurable P) (A : Ω → Matrix (Fin p) (Fin p) ℝ) (hAm : Measurable A)
     (u v : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u) (hvm : Measurable v)
     {ε : ℝ} (hε : 0 < ε) :
-    (μ.prod (gaussianInit n p))
+    (μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1))
       {q | ε ≤ |((n : ℝ) ^ 2)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
           ((Matrix.of q.2 * (1 - P q.1) * A q.1 *
             (Matrix.of q.2 * (1 - P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1))) -
@@ -330,7 +353,7 @@ theorem conditional_quadForm_chebyshev_normalized
       (2 * ((n : ℝ)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1))) *
       ((n : ℝ)⁻¹ * (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1))) *
       ((n : ℝ)⁻¹ * ∑ k, ∑ l, A q.1 k l ^ 2) / ((n : ℝ) * ε ^ 2)))
-      ∂(μ.prod (gaussianInit n p)) := by
+      ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) := by
   have hn' : (0 : ℝ) < n := Nat.cast_pos.mpr hn
   have hc : (0 : ℝ) < ((n : ℝ) ^ 2)⁻¹ := by positivity
   have hε' : 0 < (n : ℝ) ^ 2 * ε := by positivity
@@ -356,7 +379,8 @@ theorem conditional_quadForm_chebyshev_normalized
 
 lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
     (hQ : IsStarProjection Q) (u₀ : Fin n → ℝ) (b : Fin p → ℝ) {ε : ℝ} (hε : 0 < ε) :
-    gaussianInit n p {V | ε ≤ |u₀ ⬝ᵥ ((Matrix.of V * Q) *ᵥ b)|} ≤
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
+        1) {V | ε ≤ |u₀ ⬝ᵥ ((Matrix.of V * Q) *ᵥ b)|} ≤
       ENNReal.ofReal ((u₀ ⬝ᵥ u₀) * (b ⬝ᵥ b) / ε ^ 2) := by
   classical
   simp_rw [← Matrix.mulVec_mulVec]
@@ -372,14 +396,15 @@ theorem conditional_linearForm_chebyshev
     (hPm : Measurable P) (b : Ω → Fin p → ℝ) (hbm : Measurable b)
     (u : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u)
     {ε : ℝ} (hε : 0 < ε) :
-    (μ.prod (gaussianInit n p))
+    (μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1))
       {q | ε ≤ |u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
           ((Matrix.of q.2 * (1 - P q.1)) *ᵥ b q.1)|} ≤
     ∫⁻ q, min 1 (ENNReal.ofReal
       ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
-      (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (gaussianInit n p)) := by
+      (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) := by
   classical
-  have hγ : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
+  have hγ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) := by infer_instance
   have hOf : Measurable
       (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
     measurable_snd
@@ -432,13 +457,13 @@ theorem conditional_linearForm_chebyshev_normalized
     (hPm : Measurable P) (b : Ω → Fin p → ℝ) (hbm : Measurable b)
     (u : Matrix (Fin n) (Fin p) ℝ × Ω → Fin n → ℝ) (hum : Measurable u)
     {ε : ℝ} (hε : 0 < ε) :
-    (μ.prod (gaussianInit n p))
+    (μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1))
       {q | ε ≤ |((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
           ((Matrix.of q.2 * (1 - P q.1)) *ᵥ b q.1))|} ≤
     ∫⁻ q, min 1 (ENNReal.ofReal
       (((n : ℝ)⁻¹ * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1))) *
       ((n : ℝ)⁻¹ * (b q.1 ⬝ᵥ b q.1)) / ((n : ℝ) * ε ^ 2)))
-      ∂(μ.prod (gaussianInit n p)) := by
+      ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) := by
   have hn' : (0 : ℝ) < n := Nat.cast_pos.mpr hn
   have hs : 0 < Real.sqrt ((n : ℝ)⁻¹) := Real.sqrt_pos.2 (by positivity)
   have hc : 0 < (n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹) := by positivity

@@ -287,14 +287,15 @@ private lemma integral_exp_mul_I_gaussianReal (v : ℝ) (hv : 0 ≤ v) :
 -- The characteristic function of a linear form in the Gaussian readout weights.
 private lemma integral_exp_sum_mul_I_gaussianReadout (c : Fin n → ℝ) :
     (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * c j : ℝ) * Complex.I)
-      ∂gaussianReadoutMeasure n) =
+      ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1)) =
       Complex.exp (- Complex.ofReal (∑ j : Fin n, (c j) ^ 2) / 2) := by
   have h_map := map_gaussianReadoutMeasure_inner c
   have h_meas_dot : Measurable (fun w : Fin n → ℝ => ∑ j : Fin n, w j * c j) := by
     refine Finset.measurable_sum _ fun j _ => (measurable_pi_apply j).mul_const _
   have h_int : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * c j : ℝ) * Complex.I)
-      ∂gaussianReadoutMeasure n) = ∫ y : ℝ, Complex.exp (y * Complex.I)
-        ∂Measure.map (fun w => ∑ j : Fin n, w j * c j) (gaussianReadoutMeasure n) := by
+      ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1)) = ∫ y : ℝ, Complex.exp (y * Complex.I)
+        ∂Measure.map (fun w => ∑ j : Fin n, w j * c j) (Measure.pi fun _ : Fin n => gaussianReal 0
+            1) := by
     rw [integral_map h_meas_dot.aemeasurable (by fun_prop)]
   rw [h_int, h_map]
   exact integral_exp_mul_I_gaussianReal _ (Finset.sum_nonneg fun _ _ => sq_nonneg _)
@@ -321,7 +322,7 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
     Measure.map
       (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
         σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * H j α)
-      ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)) =
+      ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (fun α β : Fin m => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
           ∑ j : Fin n, H j α * H j β) := by
@@ -361,9 +362,9 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
   have h_prod : (∫ p : (Fin n → ℝ) × ℝ,
       Complex.exp ((∑ j : Fin n, p.1 j * cw j : ℝ) * Complex.I) *
         Complex.exp ((cb * p.2 : ℝ) * Complex.I)
-      ∂(gaussianReadoutMeasure n).prod (gaussianReal 0 1)) =
+      ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)) =
     (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I)
-      ∂gaussianReadoutMeasure n) *
+      ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1)) *
       (∫ b : ℝ, Complex.exp ((cb * b : ℝ) * Complex.I) ∂gaussianReal 0 1) :=
     integral_prod_mul (fun w : Fin n → ℝ => Complex.exp ((∑ j : Fin n, w j * cw j : ℝ) * Complex.I))
       (fun b : ℝ => Complex.exp ((cb * b : ℝ) * Complex.I))
@@ -386,7 +387,7 @@ lemma charFun_conditional_preactivation_multivariate (σw σb : ℝ) (n m : ℕ)
     charFun
       (Measure.map (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
         σb * p.2 + (σw * (n : ℝ)⁻¹.sqrt) * ∑ j, p.1 j * H j α)
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))) t =
+        ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1))) t =
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
         (fun α β : Fin m => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
           ∑ j : Fin n, H j α * H j β) *ᵥ t.ofLp) / 2) := by
@@ -531,7 +532,7 @@ lemma charFun_map_sequential_preactivation_multivariate
         WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
           ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
       ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t =
+        ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)))) t =
       ∫ Z : ℕ → EuclideanSpace ℝ (Fin m),
         Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
           (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n,
@@ -541,7 +542,7 @@ lemma charFun_map_sequential_preactivation_multivariate
     WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
       ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α)
   set μZ := Measure.infinitePi fun _ : ℕ => multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K
-  set μP := (gaussianReadoutMeasure n).prod (gaussianReal 0 1)
+  set μP := (Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)
   have hF_meas : Measurable F := measurable_sequential_preactivation σw σb n m φ hφ_meas
   rw [charFun_apply, integral_map hF_meas.aemeasurable (by fun_prop)]
   have h_inner (p : (ℕ → EuclideanSpace ℝ (Fin m)) × ((Fin n → ℝ) × ℝ)) :
@@ -586,7 +587,7 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
           WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
             ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
         ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t)
+          ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)))) t)
       Filter.atTop
       (nhds (charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
@@ -608,7 +609,7 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
         WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
           ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
       ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))) t =
+        ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)))) t =
       ∫ Z : ℕ → EuclideanSpace ℝ (Fin m),
         Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
           (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n,
@@ -641,7 +642,7 @@ theorem tendstoInDistribution_sequential_preactivation
           ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
       Filter.atTop id
       (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))
+        ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)))
       (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
           φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) where
@@ -654,7 +655,7 @@ theorem tendstoInDistribution_sequential_preactivation
           WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
             ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
         ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-          ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))) :=
+          ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1))) :=
       (measurable_sequential_preactivation σw σb n m φ hφ_meas).aemeasurable
     have h_weak : Filter.Tendsto (β := ProbabilityMeasure (EuclideanSpace ℝ (Fin m)))
         (fun n : ℕ => ⟨Measure.map
@@ -662,7 +663,7 @@ theorem tendstoInDistribution_sequential_preactivation
             WithLp.toLp 2 fun α : Fin m => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
               ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
           ((Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-            ((gaussianReadoutMeasure n).prod (gaussianReal 0 1))),
+            ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1))),
           (Measure.isProbabilityMeasure_map_iff (h_meas n)).mpr inferInstance⟩)
         Filter.atTop
         (nhds ⟨multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
@@ -692,7 +693,7 @@ theorem tendstoInDistribution_sequential_bivariate
           ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
       Filter.atTop id
       (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((gaussianReadoutMeasure n).prod (gaussianReal 0 1)))
+        ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)))
       (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
         (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2),
           φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) :=

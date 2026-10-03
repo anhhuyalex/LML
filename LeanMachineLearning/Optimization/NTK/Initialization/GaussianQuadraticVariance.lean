@@ -46,7 +46,8 @@ lemma measurable_toLp_uncurry (n p : ℕ) :
   (PiLp.continuous_toLp 2 _).measurable.comp measurable_uncurry
 
 lemma map_gaussianInit_pairIndex (n p : ℕ) :
-    (gaussianInit n p).map (fun W : Fin n → Fin p → ℝ => Function.uncurry W) =
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun W : Fin n →
+        Fin p → ℝ => Function.uncurry W) =
       Measure.pi (fun _ : Fin n × Fin p => gaussianReal 0 1) := by
   symm
   refine Measure.pi_eq fun s hs => ?_
@@ -55,13 +56,14 @@ lemma map_gaussianInit_pairIndex (n p : ℕ) :
   have hpre : (fun W : Fin n → Fin p → ℝ => Function.uncurry W) ⁻¹'
       (Set.univ.pi s) = Set.univ.pi (fun i : Fin n => Set.univ.pi fun k : Fin p => s (i, k)) := by
     ext W; simp [Set.mem_pi]
-  rw [hpre, gaussianInit, Measure.pi_pi]
-  simp_rw [gaussianRowMeasure, Measure.pi_pi]
+  rw [hpre, Measure.pi_pi]
+  simp_rw [Measure.pi_pi]
   rw [Fintype.prod_prod_type]
 
 /-- The entries of `W ~ gaussianInit n p` form a standard Gaussian vector on `ℝ^{n × p}`. -/
 lemma map_gaussianInit_toLp_uncurry (n p : ℕ) :
-    (gaussianInit n p).map (fun W : Fin n → Fin p → ℝ =>
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun W : Fin n →
+        Fin p → ℝ =>
       (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p))) =
       stdGaussian (EuclideanSpace ℝ (Fin n × Fin p)) := by
   rw [← map_pi_eq_stdGaussian, ← map_gaussianInit_pairIndex, Measure.map_map (by fun_prop)
@@ -198,7 +200,7 @@ lemma quadForm_eq_sum_coord (n p : ℕ) (u v : Fin n → ℝ) (A : Matrix (Fin p
 theorem integral_quadForm_sq_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
     (A : Matrix (Fin p) (Fin p) ℝ) :
     ∫ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) ^ 2
-        ∂(gaussianInit n p) =
+        ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       ((u ⬝ᵥ v) * A.trace) ^ 2 + (u ⬝ᵥ v) ^ 2 * ∑ k, ∑ l, A k l * A l k +
         (u ⬝ᵥ u) * (v ⬝ᵥ v) * ∑ k, ∑ l, A k l ^ 2 := by
   classical
@@ -243,7 +245,7 @@ theorem integral_quadForm_sq_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
 theorem memLp_quadForm_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
     (A : Matrix (Fin p) (Fin p) ℝ) :
     MemLp (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) 2
-      (gaussianInit n p) := by
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
   classical
   have hz : MemLp (fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
       ∑ x : Fin n × Fin p, ∑ y : Fin n × Fin p,
@@ -263,11 +265,12 @@ With `A = D` diagonal and the normalization `n⁻²`, the right side is `O(n⁻�
 `n⁻¹‖v‖²` and `n⁻¹ ‖D‖_F²` stay bounded. -/
 theorem gaussianInit_quadForm_chebyshev (n p : ℕ) (u v : Fin n → ℝ)
     (A : Matrix (Fin p) (Fin p) ℝ) {ε : ℝ} (hε : 0 < ε) :
-    (gaussianInit n p)
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)
       {W | ε ≤ |u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) - (u ⬝ᵥ v) * A.trace|} ≤
       ENNReal.ofReal (2 * (u ⬝ᵥ u) * (v ⬝ᵥ v) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
   classical
-  have : IsProbabilityMeasure (gaussianInit n p) := by unfold gaussianInit; infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
+      0 1) := by infer_instance
   have hmem := memLp_quadForm_gaussianInit n p u v A
   have hmean := integral_gaussianMatrix_quadForm n p u v A
   have h := meas_ge_le_variance_div_sq hmem hε

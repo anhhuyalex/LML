@@ -70,7 +70,8 @@ lemma prob_halfspace_intersect
     (x x' : Fin d → ℝ)
     (hx : x ⬝ᵥ x = 1)
     (hx' : x' ⬝ᵥ x' = 1) :
-    ∫ w : Fin d → ℝ, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(gaussianRowMeasure d) =
+    ∫ w : Fin d → ℝ, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1) =
       (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
   have hρ := dotProduct_mem_Icc_of_unit hx hx'
   let A : Matrix (Fin 2) (Fin d) ℝ := Matrix.of ![x, x']

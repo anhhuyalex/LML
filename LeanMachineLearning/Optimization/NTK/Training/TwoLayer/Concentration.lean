@@ -101,17 +101,22 @@ theorem chebyshev_entrywise_empiricalNTKMatrix
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (n : ℕ) (hn : 0 < n) (α β : Fin m) {c : ℝ} (hc : 0 < c) :
-    (initMeasure n d)
+    ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun
+        _ : Fin n => gaussianReal 0 1))
       {p | c ≤ |empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
         (packParams p.1 p.2) α β - limitingFullNTKMatrix φ X α β|} ≤
       ENNReal.ofReal (fullNTKSummandSecondMoment d φ X α β / ((n : ℝ) * c ^ 2)) := by
-  have h_meas_eq : (initMeasure n d) =
-      (Measure.pi fun _ : Fin n => singleNeuronMeasure d).map
+  have h_meas_eq : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)) =
+      (Measure.pi fun _ : Fin n => ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (gaussianReal 0 1))).map
         (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n)) :=
     (measurePreserving_arrowProd_singleNeuronMeasure n d).map_eq.symm
   rw [h_meas_eq, MeasurableEquiv.map_apply]
@@ -121,13 +126,15 @@ theorem chebyshev_entrywise_empiricalNTKMatrix
      u.2 ^ 2 * deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
        deriv φ (u.1 ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)) *
        ((fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))
-  have hY_L2 : MemLp Y 2 (singleNeuronMeasure d) :=
+  have hY_L2 : MemLp Y 2 ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
     memLp_two_fullNTK_summand φ hdφ_meas
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)
       (hφ_L2 α β) (hdφ_L2 α β)
-  have h_cheb := chebyshev_average_pi_le_second_moment (singleNeuronMeasure d) hn Y hY_L2 hc
-  have h_int : ∫ x, Y x ∂(singleNeuronMeasure d) = limitingFullNTKMatrix φ X α β :=
+  have h_cheb := chebyshev_average_pi_le_second_moment ((Measure.pi fun _ : Fin d => gaussianReal 0
+      1).prod (gaussianReal 0 1)) hn Y hY_L2 hc
+  have h_int : ∫ x, Y x ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0
+      1)) = limitingFullNTKMatrix φ X α β :=
     integral_fullNTK_summand_scaled_dataset_eq_limiting hd φ X
       (fun a b => (hφ_L2 a b).integrable (by norm_num))
       (fun a b => (hdφ_L2 a b).integrable (by norm_num)) α β
@@ -202,12 +209,15 @@ theorem chebyshev_matrix_empiricalNTKMatrix
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (n : ℕ) (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) :
-    (initMeasure n d)
+    ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun
+        _ : Fin n => gaussianReal 0 1))
       {p | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
         (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
       ENNReal.ofReal (((m : ℝ) ^ 2 *
@@ -229,21 +239,28 @@ theorem chebyshev_matrix_empiricalNTKMatrix
     rcases h_ex with ⟨p, hp⟩
     simp only [Set.mem_iUnion]
     exact ⟨p, hp⟩
-  have h_meas_union : (initMeasure n d)
+  have h_meas_union : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       {pt | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
         (packParams pt.1 pt.2) - limitingFullNTKMatrix φ X‖} ≤
-      (initMeasure n d) (⋃ p : Fin m × Fin m, E p) :=
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)) (⋃ p : Fin m × Fin m, E p) :=
     measure_mono h_sub
-  have h_union_le : (initMeasure n d) (⋃ p : Fin m × Fin m, E p) ≤
-      ∑ p : Fin m × Fin m, (initMeasure n d) (E p) :=
-    measure_iUnion_fintype_le (initMeasure n d) _
+  have h_union_le : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (⋃ p : Fin m × Fin m, E p) ≤
+      ∑ p : Fin m × Fin m, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+          1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E p) :=
+    measure_iUnion_fintype_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal
+        0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) _
   have hm_pos : (0 : ℝ) < (m : ℝ) := Nat.cast_pos.2 hm
   have h_eps_m_pos : 0 < ε / (m : ℝ) := div_pos hε hm_pos
-  have h_entry_le : ∀ p : Fin m × Fin m, (initMeasure n d) (E p) ≤
+  have h_entry_le : ∀ p : Fin m × Fin m, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E p) ≤
       ENNReal.ofReal (fullNTKSummandSecondMoment d φ X p.1 p.2 / ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) :=
     fun p => chebyshev_entrywise_empiricalNTKMatrix hd φ hφ_diff hdφ_meas X hφ_L2 hdφ_L2 n hn
       p.1 p.2 h_eps_m_pos
-  have h_sum_le : (∑ p : Fin m × Fin m, (initMeasure n d) (E p)) ≤
+  have h_sum_le : (∑ p : Fin m × Fin m, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E p)) ≤
       ∑ p : Fin m × Fin m,
         ENNReal.ofReal (fullNTKSummandSecondMoment d φ X p.1 p.2 /
           ((n : ℝ) * (ε / (m : ℝ)) ^ 2)) :=
@@ -289,13 +306,16 @@ theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     {ε : ℝ} (hε : 0 < ε) :
     Filter.Tendsto
-      (fun n : ℕ => (initMeasure n d)
+      (fun n : ℕ => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1))
         {p | ε ≤
           ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖})
@@ -303,7 +323,8 @@ theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
       (nhds 0) := by
   let C := (m : ℝ) ^ 2 * ∑ p : Fin m × Fin m, fullNTKSummandSecondMoment d φ X p.1 p.2
   have h_le : ∀ n : ℕ, 0 < n →
-      (initMeasure n d)
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1))
         {p | ε ≤
           ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
@@ -324,7 +345,8 @@ theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
       (nhds 0) := by
     simpa using ENNReal.tendsto_ofReal h_real
   have h_le_eventually : ∀ᶠ n in Filter.atTop,
-      (initMeasure n d)
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1))
         {p | ε ≤
           ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} ≤
@@ -332,7 +354,8 @@ theorem tendsto_initMeasure_empiricalNTKMatrix_ge_eps
     filter_upwards [Filter.eventually_ge_atTop 1] with n hn
     exact h_le n (Nat.zero_lt_one.trans_le hn)
   have h_bot : ∀ᶠ n in Filter.atTop, 0 ≤
-      (initMeasure n d)
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1))
         {p | ε ≤
           ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} := by
@@ -375,14 +398,17 @@ theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (n : ℕ) (hn : 0 < n) :
-    (initMeasure n d)
+    ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun
+        _ : Fin n => gaussianReal 0 1))
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
         (lambda_inf / 2) * ‖v‖ ^ 2 ≤
           v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
@@ -402,12 +428,14 @@ theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure
     by_contra! h_lt
     exact hp (initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
       φ X n p lambda_inf hK_gap h_lt.le)
-  have h_failure_le_tail : (initMeasure n d)
+  have h_failure_le_tail : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
         (lambda_inf / 2) * ‖v‖ ^ 2 ≤
           v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ v.ofLp)} ≤
-      (initMeasure n d)
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1))
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | lambda_inf / 2 ≤
           ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖} :=
@@ -425,14 +453,17 @@ theorem tendsto_initMeasure_initial_spectral_gap_failure
     (X : Fin m → Fin d → ℝ)
     (hφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (hdφ_L2 : ∀ α β : Fin m, MemLp (fun w =>
       deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) *
-        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k))) 2 (gaussianRowMeasure d))
+        deriv φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β
+            k))) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     (lambda_inf : ℝ) (hlambda_inf : 0 < lambda_inf)
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef) :
     Filter.Tendsto
-      (fun n : ℕ => (initMeasure n d)
+      (fun n : ℕ => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1))
         {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
           (lambda_inf / 2) * ‖v‖ ^ 2 ≤
             v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)

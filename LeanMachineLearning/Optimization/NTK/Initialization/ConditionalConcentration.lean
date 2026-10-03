@@ -242,12 +242,9 @@ theorem tendsto_measure_conditional_activationProduct
   exact tendsto_of_lintegral_section_bound μ₁ (fun n => (ν.prod μ₁) (S n))
     (fun n b => ν ((fun a => (a, b)) ⁻¹' S n)) Esec u c hprod
     (by filter_upwards [Filter.eventually_gt_atTop 0] with n hn b using hsec n hn b) hE hu hc
-/-- Variance of `x ↦ x² - 1` under the standard Gaussian (a finite constant, `= 2`). -/
-noncomputable def gaussianSqCenteredVariance : ℝ :=
-  Var[fun x : ℝ => x ^ 2 - 1; gaussianReal 0 1]
-
 @[simp]
-lemma gaussianSqCenteredVariance_nonneg : 0 ≤ gaussianSqCenteredVariance :=
+lemma gaussianSqCenteredVariance_nonneg : 0 ≤ (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1)
+    (gaussianReal 0 1)) :=
   variance_nonneg _ _
 
 lemma memLp_sq_sub_one_mul_gaussianReal (y : ℝ) :
@@ -260,7 +257,8 @@ theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → 
     {ε : ℝ} (hε : 0 < ε) :
     (Measure.pi fun _ : Fin n => gaussianReal 0 1)
       {a | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, (a j ^ 2 - 1) * y j|} ≤
-      ENNReal.ofReal (gaussianSqCenteredVariance * (∑ j, y j ^ 2) / ((n : ℝ) ^ 2 * ε ^ 2)) := by
+      ENNReal.ofReal ((ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (∑
+          j, y j ^ 2) / ((n : ℝ) ^ 2 * ε ^ 2)) := by
   classical
   let μ : Measure (Fin n → ℝ) := Measure.pi fun _ : Fin n => gaussianReal 0 1
   let g : Fin n → ℝ → ℝ := fun j x => (x ^ 2 - 1) * y j
@@ -299,18 +297,20 @@ theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → 
     exact Finset.sum_eq_zero fun j _ => hj j
   have hmean : μ[fun a => (n : ℝ)⁻¹ * S a] = 0 := by
     rw [integral_const_mul, hmean_S, mul_zero]
-  have hvarS : Var[S; μ] = gaussianSqCenteredVariance * ∑ j, y j ^ 2 := by
+  have hvarS : Var[S; μ] = (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0
+      1)) * ∑ j, y j ^ 2 := by
     have h := variance_sum_pi (μ := fun _ : Fin n => gaussianReal 0 1) hg
     simp only [S]
     rw [h]
-    have hvj : ∀ j, Var[g j; gaussianReal 0 1] = y j ^ 2 * gaussianSqCenteredVariance := by
+    have hvj : ∀ j, Var[g j; gaussianReal 0 1] = y j ^ 2 * (ProbabilityTheory.variance (fun x : ℝ =>
+        x ^ 2 - 1) (gaussianReal 0 1)) := by
       intro j
       have : g j = fun x => y j * (x ^ 2 - 1) := by funext x; simp [g, mul_comm]
       rw [this, variance_const_mul]
-      rfl
     simp_rw [hvj, ← Finset.sum_mul, mul_comm]
   have hvar : Var[fun a => (n : ℝ)⁻¹ * S a; μ] =
-      (n : ℝ)⁻¹ ^ 2 * (gaussianSqCenteredVariance * ∑ j, y j ^ 2) := by
+      (n : ℝ)⁻¹ ^ 2 * ((ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * ∑
+          j, y j ^ 2) := by
     rw [variance_const_mul, hvarS]
   have hcheb := meas_ge_le_variance_div_sq hX_mem hε
   rw [hmean, hvar] at hcheb

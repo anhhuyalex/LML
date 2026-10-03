@@ -123,7 +123,8 @@ theorem tendsto_initMeasure_crossKernel_ge_eps
     (hact : SmoothActivation φ C₁ C₂) (X : Fin m → Fin d → ℝ) (x : Fin d → ℝ)
     {ε : ℝ} (hε : 0 < ε) :
     Filter.Tendsto
-      (fun n : ℕ => (initMeasure n d) {p | ε ≤
+      (fun n : ℕ => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)) {p | ε ≤
         ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ
             (gradParams φ n d
@@ -170,12 +171,14 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
     (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
     Filter.Tendsto
-      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
         ε₀ < ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) *ᵥ
             (gradParams φ n d
@@ -198,7 +201,8 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
   set G₀ : ℝ := Real.sqrt (|L' (Fin.last m) (Fin.last m)| + 1) with hG₀
   have hU' := tendsto_initMeasure_empiricalNTKMatrix_ge_eps (Nat.succ_pos m) hd φ hφ hderiv_meas X'
     (fun α β => hL2mul _ _) (fun α β => hdL2mul _ _) one_pos
-  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Icc 0 T)
+  refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Icc 0 T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y) (packParams p.1 p.2)
       (θ n p)) (fun n p t => ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) *ᵥ
@@ -233,17 +237,20 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
       Fin (m + 1) → Fin d → ℝ) (packParams p.1 p.2) - L'‖} with hU'def
   have hUm' : MeasurableSet U' :=
     measurableSet_empiricalNTKMatrix_dist_ge φ hφ hderiv_meas _ L' 1
-  have hU'r : (initMeasure n d).real U' ≤ c / 4 := by
+  have hU'r : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real U' ≤ c / 4 := by
     refine ENNReal.toReal_le_of_le_ofReal (by positivity) ?_
     have : (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X' α j) =
         (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs : Fin (m + 1) → Fin d → ℝ) := scaled_snoc X x
     simp only [hU'def, ← this]
     exact hUn'.le
   refine ⟨E ∩ U'ᶜ, hEm.inter hUm'.compl, ?_, ?_⟩
-  · have hEc : (initMeasure n d).real Eᶜ ≤ 2 * δ + c / 4 := by
+  · have hEc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Eᶜ ≤ 2 * δ + c / 4 := by
       rw [probReal_compl_eq_one_sub hEm]
       linarith
-    have h2 := measureReal_compl_inter_le (initMeasure n d) E U'ᶜ
+    have h2 := measureReal_compl_inter_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) E U'ᶜ
     rw [compl_compl] at h2
     have := min_le_right 1 (c / 8)
     have h3 : 2 * δ ≤ c / 4 := by rw [hδ]; linarith
@@ -295,12 +302,14 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂(initMeasure n d),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
     Filter.Tendsto
-      (fun n => (initMeasure n d) {p | ∃ t ∈ Set.Ici (0 : ℝ),
+      (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin n => gaussianReal 0 1)) {p | ∃ t ∈ Set.Ici (0 : ℝ),
         ε₀ < ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) *ᵥ
             (gradParams φ n d
@@ -323,7 +332,8 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
   set G₀ : ℝ := Real.sqrt (|L' (Fin.last m) (Fin.last m)| + 1) with hG₀
   have hU' := tendsto_initMeasure_empiricalNTKMatrix_ge_eps (Nat.succ_pos m) hd φ hφ hderiv_meas X'
     (fun α β => hL2mul _ _) (fun α β => hdL2mul _ _) one_pos
-  refine tendsto_measure_exists_gt_of_good_events (fun n => initMeasure n d) (Set.Ici 0)
+  refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Ici 0)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y) (packParams p.1 p.2)
       (θ n p)) (fun n p t => ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) *ᵥ
@@ -359,17 +369,20 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
       Fin (m + 1) → Fin d → ℝ) (packParams p.1 p.2) - L'‖} with hU'def
   have hUm' : MeasurableSet U' :=
     measurableSet_empiricalNTKMatrix_dist_ge φ hφ hderiv_meas _ L' 1
-  have hU'r : (initMeasure n d).real U' ≤ c / 4 := by
+  have hU'r : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real U' ≤ c / 4 := by
     refine ENNReal.toReal_le_of_le_ofReal (by positivity) ?_
     have : (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X' α j) =
         (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs : Fin (m + 1) → Fin d → ℝ) := scaled_snoc X x
     simp only [hU'def, ← this]
     exact hUn'.le
   refine ⟨E ∩ U'ᶜ, hEm.inter hUm'.compl, ?_, ?_⟩
-  · have hEc : (initMeasure n d).real Eᶜ ≤ 2 * δ + 2 * (c / 8) := by
+  · have hEc : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real Eᶜ ≤ 2 * δ + 2 * (c / 8) := by
       rw [probReal_compl_eq_one_sub hEm]
       linarith
-    have h2 := measureReal_compl_inter_le (initMeasure n d) E U'ᶜ
+    have h2 := measureReal_compl_inter_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) E U'ᶜ
     rw [compl_compl] at h2
     have := min_le_right 1 (c / 8)
     have h3 : 2 * δ ≤ c / 4 := by rw [hδ]; linarith

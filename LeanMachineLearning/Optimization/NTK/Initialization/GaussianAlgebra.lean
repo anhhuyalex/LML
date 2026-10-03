@@ -111,7 +111,7 @@ the joint law of the pair of projections `(⟪g,u⟫, ⟪g,v⟫) = (g ⬝ᵥ u, 
 Gaussian with covariance matrix `!![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v]`. -/
 theorem stdGaussian_inner_pair (n : ℕ) (u v : Fin n → ℝ) :
     Measure.map (fun a : Fin n → ℝ => WithLp.toLp 2 (![a ⬝ᵥ u, a ⬝ᵥ v] : Fin 2 → ℝ))
-        (gaussianReadoutMeasure n) =
+        (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian 0 !![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v] := by
   set A : Matrix (Fin 2) (Fin n) ℝ := Matrix.of ![u, v] with hA_def
   have hA_mulVec : ∀ a : Fin n → ℝ, A *ᵥ a = ![a ⬝ᵥ u, a ⬝ᵥ v] := by
@@ -125,7 +125,7 @@ theorem stdGaussian_inner_pair (n : ℕ) (u v : Fin n → ℝ) :
   have hSpos : (1 : Matrix (Fin n) (Fin n) ℝ).PosSemidef := Matrix.PosSemidef.one
   have h_map := gaussian_map_mulVec (0 : EuclideanSpace ℝ (Fin n)) 1 hSpos A
   rw [hF_eq, ← Measure.map_map (by fun_prop) (by fun_prop)]
-  have h_toLp : Measure.map (WithLp.toLp 2) (gaussianReadoutMeasure n) =
+  have h_toLp : Measure.map (WithLp.toLp 2) (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin n)) 1 := by
     rw [map_pi_eq_stdGaussian, multivariateGaussian_zero_one]
   rw [h_toLp, h_map]
@@ -149,18 +149,21 @@ theorem gaussianMatrix_mulVec_pair (n : ℕ) (u v : Fin n → ℝ) :
     Measure.map
       (fun W : Fin n → Fin n → ℝ =>
         fun i : Fin n => WithLp.toLp 2 (![W i ⬝ᵥ u, W i ⬝ᵥ v] : Fin 2 → ℝ))
-      (gaussianInit n n) =
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       Measure.pi (fun _ : Fin n => multivariateGaussian 0 !![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v]) := by
-  have h_init_eq : gaussianInit n n = Measure.pi (fun _ : Fin n => gaussianReadoutMeasure n) := rfl
+  have h_init_eq : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0
+      1) = Measure.pi (fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := rfl
   set f := fun a : Fin n → ℝ => WithLp.toLp 2 (![a ⬝ᵥ u, a ⬝ᵥ v] : Fin 2 → ℝ) with hf_def
   have hf_cont : Continuous f := by
     apply (PiLp.continuous_toLp 2 _).comp
     refine continuous_pi fun k => ?_
     fin_cases k <;> fun_prop
   have hf_meas : Measurable f := hf_cont.measurable
-  have hσ : ∀ i : Fin n, SigmaFinite ((gaussianReadoutMeasure n).map f) := fun i => by
+  have hσ : ∀ i : Fin n, SigmaFinite ((Measure.pi fun _ : Fin n => gaussianReal 0 1).map
+      f) := fun i => by
     rw [hf_def, stdGaussian_inner_pair]; infer_instance
-  rw [h_init_eq, Measure.pi_map_pi (μ := fun _ : Fin n => gaussianReadoutMeasure n)
+  rw [h_init_eq, Measure.pi_map_pi (μ := fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal
+      0 1))
     (f := fun _ : Fin n => f) (fun _ => hf_meas.aemeasurable)]
   congr 1
   funext i
@@ -173,7 +176,7 @@ vectors `u α`, the joint law of the projections `α ↦ ⟪g, u α⟫ = g ⬝�
 Gaussian with covariance matrix `(α, β) ↦ u α ⬝ᵥ u β`. -/
 theorem stdGaussian_inner_family (n m : ℕ) (u : Fin m → Fin n → ℝ) :
     Measure.map (fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α))
-        (gaussianReadoutMeasure n) =
+        (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β) := by
   set A : Matrix (Fin m) (Fin n) ℝ := Matrix.of u with hA_def
@@ -188,7 +191,7 @@ theorem stdGaussian_inner_family (n m : ℕ) (u : Fin m → Fin n → ℝ) :
   have hSpos : (1 : Matrix (Fin n) (Fin n) ℝ).PosSemidef := Matrix.PosSemidef.one
   have h_map := gaussian_map_mulVec (0 : EuclideanSpace ℝ (Fin n)) 1 hSpos A
   rw [hF_eq, ← Measure.map_map (by fun_prop) (by fun_prop)]
-  have h_toLp : Measure.map (WithLp.toLp 2) (gaussianReadoutMeasure n) =
+  have h_toLp : Measure.map (WithLp.toLp 2) (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin n)) 1 := by
     rw [map_pi_eq_stdGaussian, multivariateGaussian_zero_one]
   rw [h_toLp, h_map]
@@ -211,17 +214,20 @@ theorem gaussianMatrix_mulVec_family (n r m : ℕ) (u : Fin m → Fin n → ℝ)
     Measure.map
       (fun W : Fin r → Fin n → ℝ =>
         fun i : Fin r => WithLp.toLp 2 (fun α : Fin m => W i ⬝ᵥ u α))
-      (gaussianInit r n) =
+      (Measure.pi fun _ : Fin r => Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       Measure.pi (fun _ : Fin r =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β)) := by
-  have h_init_eq : gaussianInit r n = Measure.pi (fun _ : Fin r => gaussianReadoutMeasure n) := rfl
+  have h_init_eq : (Measure.pi fun _ : Fin r => Measure.pi fun _ : Fin n => gaussianReal 0
+      1) = Measure.pi (fun _ : Fin r => (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := rfl
   set f := fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α) with hf_def
   have hf_cont : Continuous f :=
     (PiLp.continuous_toLp 2 _).comp (continuous_pi fun α => by fun_prop)
   have hf_meas : Measurable f := hf_cont.measurable
-  have hσ : ∀ i : Fin r, SigmaFinite ((gaussianReadoutMeasure n).map f) := fun i => by
+  have hσ : ∀ i : Fin r, SigmaFinite ((Measure.pi fun _ : Fin n => gaussianReal 0 1).map
+      f) := fun i => by
     rw [hf_def, stdGaussian_inner_family]; infer_instance
-  rw [h_init_eq, Measure.pi_map_pi (μ := fun _ : Fin r => gaussianReadoutMeasure n)
+  rw [h_init_eq, Measure.pi_map_pi (μ := fun _ : Fin r => (Measure.pi fun _ : Fin n => gaussianReal
+      0 1))
     (f := fun _ : Fin r => f) (fun _ => hf_meas.aemeasurable)]
   congr 1
   funext i

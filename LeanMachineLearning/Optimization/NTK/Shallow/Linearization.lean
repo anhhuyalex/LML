@@ -348,7 +348,7 @@ noncomputable def dotCLM {d : ℕ} (x : Fin d → ℝ) : (Fin d → ℝ) →L[�
 /-- The pushforward of `gaussianRowMeasure d` by `w ↦ ∑ k, w k * x k` is a centred 1D Gaussian with
 variance `x ⬝ᵥ x`. This is `map_gaussianRowMeasure_dotProduct` with the dot product written out. -/
 lemma map_gaussianRowMeasure_dot {d : ℕ} (x : Fin d → ℝ) :
-    Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d) =
+    Measure.map (fun w => ∑ k, w k * x k) (Measure.pi fun _ : Fin d => gaussianReal 0 1) =
       gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x)) := map_gaussianRowMeasure_dotProduct x
 
 /-- Informal proof: The density of a 1D Gaussian $Z \sim \mathcal{N}(0, v)$ is
@@ -405,20 +405,26 @@ lemma gaussianReal_Icc_bound (v : ℝ≥0) (hv : 0 < v) (a : ℝ) (ha : 0 ≤ a)
 
 
 lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ x) (τ : ℝ) (hτ : 0 < τ) :
-    (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} ≤ τ := by
+    (Measure.pi fun _ : Fin d => gaussianReal 0 1).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ
+        x)} ≤ τ := by
   have h_map := map_gaussianRowMeasure_dot x
-  have h_prob_eq : (gaussianRowMeasure d).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
+  have h_prob_eq : (Measure.pi fun _ : Fin d => gaussianReal 0
+      1).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
       (gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x))).real {z | |z| ≤ τ * Real.sqrt (x ⬝ᵥ x)} := by
     have h_set : {z : ℝ | |z| ≤ τ * Real.sqrt (x ⬝ᵥ x)} = Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x)) := by ext z; simp [abs_le]
     have h_meas : Measurable (fun w : Fin d → ℝ => ∑ k, w k * x k) := (dotCLM x).continuous.measurable
     have h_preimage : {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
       (fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by ext w; simp [abs_le]
     rw [h_preimage]
-    have h_map_apply : (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)) (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) =
-      (gaussianRowMeasure d) ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x)))) :=
+    have h_map_apply : (Measure.map (fun w => ∑ k, w k * x k) (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1)) (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) =
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1) ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹'
+          (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x)))) :=
         Measure.map_apply h_meas measurableSet_Icc
-    have h_real_eq : ((gaussianRowMeasure d).real ((fun w : Fin d → ℝ => ∑ k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))))) =
-      (Measure.map (fun w => ∑ k, w k * x k) (gaussianRowMeasure d)).real (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by
+    have h_real_eq : ((Measure.pi fun _ : Fin d => gaussianReal 0 1).real ((fun w : Fin d → ℝ => ∑
+        k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))))) =
+      (Measure.map (fun w => ∑ k, w k * x k) (Measure.pi fun _ : Fin d => gaussianReal 0
+          1)).real (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by
       exact congr_arg ENNReal.toReal h_map_apply.symm
     rw [h_real_eq, h_map, ← h_set]
   have h_bound := gaussianReal_Icc_bound (Real.toNNReal (x ⬝ᵥ x)) (Real.toNNReal_pos.mpr hx)
@@ -490,7 +496,7 @@ lemma hoeffding_indicators_pi
     have h_aemeas : ∀ i : Fin m, AEMeasurable (fun x : Ω ↦ (if x ∈ S then (1 : ℝ) else 0) - (Measure.pi (fun _ : Fin m => μ))[X i]) μ :=
       fun i ↦ ((Measurable.ite hS measurable_const measurable_const).sub measurable_const).aemeasurable
     exact iIndepFun_pi h_aemeas
-  have hY_subG : ∀ j, HasSubgaussianMGF (Y j) ((1 / 4 : ℝ≥0)) (Measure.pi (fun _ : Fin m => μ)) := by
+  have hY_subG : ∀ j, HasSubgaussianMGF (Y j) (1 / 4 : ℝ≥0) (Measure.pi (fun _ : Fin m => μ)) := by
     intro j
     have hm : AEMeasurable (X j) (Measure.pi (fun _ : Fin m => μ)) := (hX_meas j).aemeasurable
     have h_subG := hasSubgaussianMGF_of_mem_Icc hm (hX_bound j)
@@ -528,12 +534,15 @@ private lemma measure_ge_one_sub_delta_of_univ
     {m d : ℕ} {δ : ℝ} (hδ : 0 < δ)
     {P : (Fin m → Fin d → ℝ) → Prop}
     (hP : ∀ W₀, P W₀) :
-    1 - δ ≤ (gaussianInit m d).real {W₀ | P W₀} := by
+    1 - δ ≤ (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).real {W₀ | P W₀} := by
   have h_univ : {W₀ | P W₀} = Set.univ := Set.ext fun W₀ => iff_true_intro (hP W₀)
   rw [h_univ]
-  have : IsProbabilityMeasure (gaussianRowMeasure d) := by unfold gaussianRowMeasure; infer_instance
-  have : IsProbabilityMeasure (gaussianInit m d) := by unfold gaussianInit; infer_instance
-  have h_prob_univ : (gaussianInit m d).real Set.univ = 1 := by simp
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
+      0 1) := by infer_instance
+  have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
+      1).real Set.univ = 1 := by simp
   rw [h_prob_univ]
   exact sub_le_self 1 (le_of_lt hδ)
 
@@ -548,7 +557,7 @@ theorem reluSignConcentration
     (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ x)
     (τ : ℝ) (hτ : 0 < τ)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
-    (gaussianInit m d).real {W₀ |
+    (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0 1).real {W₀ |
       (m : ℝ) * τ + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) <
         (signAmbiguous τ x W₀).card} ≤ δ := by
   by_cases hm : m = 0
@@ -565,14 +574,13 @@ theorem reluSignConcentration
   have h_m_pos : 0 < (m : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hm)
   have h_prob := prob_signAmbiguous_le_tau x hx τ hτ
   have h_t_nonneg : 0 ≤ Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ)) := Real.sqrt_nonneg _
-  have : IsProbabilityMeasure (gaussianRowMeasure d) := by
-    dsimp [gaussianRowMeasure]
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
     infer_instance
   have hS_meas : MeasurableSet {w : Fin d → ℝ | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} := by
     apply measurableSet_le
     · exact (Measurable.norm (dotCLM x).continuous.measurable)
     · exact measurable_const
-  have h_hoeffding := hoeffding_indicators_pi m (gaussianRowMeasure d)
+  have h_hoeffding := hoeffding_indicators_pi m (Measure.pi fun _ : Fin d => gaussianReal 0 1)
     {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} hS_meas τ h_prob
     (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) h_t_nonneg
   have h_one_lt_div : 1 ≤ 1 / δ := (le_div_iff₀ hδ).mpr (by linarith)
@@ -592,7 +600,6 @@ theorem reluSignConcentration
   have h_exp : Real.exp (- 2 * (Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))) ^ 2 / m) = δ := by
     rw [h_calc, Real.exp_neg, Real.exp_log (zero_lt_one.trans_le h_one_lt_div)]
     rw [one_div, inv_inv]
-  unfold gaussianInit signAmbiguous
   exact h_hoeffding.trans (le_of_eq h_exp)
 
 /-! ### Bad index sets for the ReLU proof -/
@@ -1100,15 +1107,16 @@ theorem reluLinearizationBound
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
-    1 - δ ≤ (gaussianInit m d).real {W₀ |
+    1 - δ ≤ (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0 1).real {W₀ |
       ∀ W : Fin m → Fin d → ℝ,
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
           |net.eval x W -
            linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
-  have : IsProbabilityMeasure (gaussianRowMeasure d) := by unfold gaussianRowMeasure; infer_instance
-  have : IsProbabilityMeasure (gaussianInit m d) := by unfold gaussianInit; infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
+      0 1) := by infer_instance
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
   by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
@@ -1160,9 +1168,12 @@ theorem reluLinearizationBound
     simp only [Set.mem_ofPred, Set.mem_compl_iff]
     exact not_lt.symm
   -- The probability of the complement is ≥ 1 - δ
-  apply le_trans (b := (gaussianInit m d).real {W₀ : Fin m → Fin d → ℝ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
+  apply le_trans (b := (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
+      1).real {W₀ : Fin m → Fin d → ℝ | ((signAmbiguous r x
+      W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
   · rw [h_compl, measureReal_compl]
-    · have h_prob_univ : (gaussianInit m d).real Set.univ = 1 := by simp
+    · have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).real Set.univ = 1 := by simp
       rw [h_prob_univ]
       exact sub_le_sub_left h_sign_conc 1
     · exact measurableSet_lt measurable_const (measurable_signAmbiguous_card r x)
@@ -1309,7 +1320,7 @@ theorem reluLinearizationBound_secondOrder
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
-    1 - δ ≤ (gaussianInit m d).real {W₀ |
+    1 - δ ≤ (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0 1).real {W₀ |
       ∀ W V : Fin m → Fin d → ℝ,
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) ≤ B →
@@ -1319,8 +1330,9 @@ theorem reluLinearizationBound_secondOrder
             net.eval x W)|
           ≤ (6 * B ^ (4 / 3 : ℝ) + 3 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
-  have : IsProbabilityMeasure (gaussianRowMeasure d) := by unfold gaussianRowMeasure; infer_instance
-  have : IsProbabilityMeasure (gaussianInit m d) := by unfold gaussianInit; infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
+  have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
+      0 1) := by infer_instance
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
   by_cases hx_pos : 0 < x ⬝ᵥ x
   swap
@@ -1379,9 +1391,12 @@ theorem reluLinearizationBound_secondOrder
     ext W₀
     simp only [Set.mem_ofPred, Set.mem_compl_iff]
     exact not_lt.symm
-  apply le_trans (b := (gaussianInit m d).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
+  apply le_trans (b := (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
+      1).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m :
+      ℝ) / 2 * Real.log (1 / δ))})
   · rw [h_compl, measureReal_compl]
-    · have h_prob_univ : (gaussianInit m d).real Set.univ = 1 := by simp
+    · have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
+        1).real Set.univ = 1 := by simp
       rw [h_prob_univ]
       exact sub_le_sub_left h_sign_conc 1
     · exact measurableSet_lt measurable_const (measurable_signAmbiguous_card r x)

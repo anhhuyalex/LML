@@ -38,7 +38,8 @@ theorem tendstoInMeasure_deepSpace_of_prefix (d : ℕ)
       (Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
       F atTop (fun _ => c)) :
-    TendstoInMeasure (deepMeasure d) (fun n (ω : DeepSpace d) => F n ω.1) atTop
+    TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun n (ω : DeepSpace d) => F n ω.1) atTop
       (fun _ => c) :=
   tendstoInMeasure_comp_measurePreserving h measurePreserving_fst hF measurable_const
 
@@ -51,7 +52,8 @@ theorem deepSpace_featureCov_tendsto (φ ψ : ℝ → ℝ) (hφ_cont : Continuou
     (Cψ : ℝ) (hCψ : 0 ≤ Cψ) (pψ : ℕ) (hpψ : 0 < pψ)
     (hψ_growth : ∀ x : ℝ, |ψ x| ≤ Cψ * (1 + |x| ^ pψ))
     (X : Fin m → Fin n0 → ℝ) (ℓ : ℕ) (hℓ : ℓ < d) (a b : Fin m) :
-    TendstoInMeasure (deepMeasure d)
+    TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         ψ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) *
         ψ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ b j))
@@ -78,7 +80,8 @@ theorem deepSpace_featureCov_tendsto (φ ψ : ℝ → ℝ) (hφ_cont : Continuou
 theorem deepSpace_activationGram_tendsto (φ : ℝ → ℝ) (hφ_cont : Continuous φ) (C : ℝ)
     (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
     (X : Fin m → Fin n0 → ℝ) (ℓ : ℕ) (hℓ : ℓ < d) (a b : Fin m) :
-    TendstoInMeasure (deepMeasure d)
+    TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         φ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) *
         φ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ b j))

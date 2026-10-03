@@ -46,7 +46,8 @@ lemma netDeriv_deepParams_readout (n : ℕ) (ω : DeepSpace d) (v : ℕ → ℝ)
 include A in
 /-- **`I(d-1)`: gradient independence at the top hidden layer.** -/
 theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
-    TendstoInMeasure (deepMeasure d)
+    TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a b) atTop (fun _ => 0) := by
   have hφm : Measurable φ := A.cont.measurable
@@ -66,7 +67,8 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
   have hF4 : ∀ (F : ∀ n : ℕ, DeepSpace d → ℝ) (c : ℝ),
       (∀ n, Measurable (fun w : Fin d → ℕ → ℕ → ℝ => F n (w, fun _ => 0))) →
       (∀ n (ω : DeepSpace d), F n ω = F n (ω.1, fun _ => 0)) →
-      TendstoInMeasure (deepMeasure d) (fun (n : ℕ) (ω : DeepSpace d) => F n ω) atTop
+      TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) => F n ω) atTop
         (fun _ => c) →
       TendstoInMeasure π (fun (n : ℕ) (w : Fin d → ℕ → ℕ → ℝ) => F n (w, fun _ => 0)) atTop
         (fun _ => c) := by
@@ -115,7 +117,8 @@ include A in
 /-- **`C(d-1)`: the top-layer sensitivity Gram converges** on `DeepSpace`:
 `G_{d-1}^{ab} → ∫ φ'φ' d𝒩(0, Σ^{d-1})`. -/
 theorem sensitivityGram_top_tendsto (hd : 0 < d) (a b : Fin m) :
-    TendstoInMeasure (deepMeasure d)
+    TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a b)
       atTop

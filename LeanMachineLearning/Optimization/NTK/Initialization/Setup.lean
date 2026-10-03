@@ -166,35 +166,18 @@ lemma inner_evalVector_measurable
 
 /-! ### Initialization Probability Space and Independence Structure -/
 
-/-- Transparent readout weight product measure on `Fin n → ℝ` with i.i.d. coordinates $\mathcal{N}(0, 1)$. -/
-noncomputable abbrev gaussianReadoutMeasure (n : ℕ) : Measure (Fin n → ℝ) :=
-  Measure.pi (fun _ : Fin n => gaussianReal 0 1)
-
-/-- Instance: `gaussianInit n d` from `NTK.Basic` is a probability measure. -/
-instance instIsProbabilityMeasureGaussianInit (n d : ℕ) :
-    IsProbabilityMeasure (gaussianInit n d) := by
-  dsimp [gaussianInit]
-  infer_instance
-
-/-- Transparent joint initialization measure on `(Fin n → Fin d → ℝ) × (Fin n → ℝ)`
-using the existing `NTK.gaussianInit` from `NTK.Basic`. -/
-noncomputable abbrev initMeasure (n d : ℕ) : Measure ((Fin n → Fin d → ℝ) × (Fin n → ℝ)) :=
-  (gaussianInit n d).prod (gaussianReadoutMeasure n)
-
 /-- Readout weight coordinates `a_i` have marginal standard normal distribution
 $\mathcal{N}(0, 1)$. -/
 lemma map_gaussianReadoutMeasure_coord (i : Fin n) :
-    Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) = gaussianReal 0 1 :=
+    Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n => gaussianReal 0
+        1) = gaussianReal 0 1 :=
   (MeasureTheory.measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
-
-/-- The normalized squared Euclidean norm of a readout vector. -/
-noncomputable def gaussianReadoutEnergy (n : ℕ) (a : Fin n → ℝ) : ℝ :=
-  (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2
 
 /-- Markov tail bound for the normalized squared readout energy. -/
 lemma prob_gaussianReadout_sum_sq_le
     (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ) :
-    (gaussianReadoutMeasure n).real {a | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} ≥
+    (Measure.pi fun _ : Fin n => gaussianReal 0 1).real {a | (n :
+        ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ δ⁻¹} ≥
       1 - δ :=
   measureReal_pi_average_le_ge_one_sub (μ := gaussianReal 0 1) hn (g := fun a : ℝ => a ^ 2)
     (by fun_prop) integrable_sq_gaussianReal (fun _ => sq_nonneg _) (inv_pos.2 hδ)
@@ -205,12 +188,15 @@ Gaussian row law and `∑_α E φ(w ⬝ᵥ x_α)² ≤ τ δ`, then the width-no
 `n⁻¹ ∑_i ∑_α φ(W_i ⬝ᵥ x_α)²` of the hidden weights is at most `τ` with probability `≥ 1 - δ`. -/
 lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (φ : ℝ → ℝ)
     (hφ : Measurable φ) (X : Fin m → Fin d → ℝ)
-    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (gaussianRowMeasure d))
+    (hL2 : ∀ α, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ X α)) 2 (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1))
     {τ δ : ℝ} (hτ : 0 < τ)
-    (hv : ∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(gaussianRowMeasure d) ≤ τ * δ) :
-    (gaussianInit n d).real {W | (n : ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
+    (hv : ∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1) ≤ τ *
+        δ) :
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).real {W | (n :
+        ℝ)⁻¹ * ∑ i : Fin n, ∑ α : Fin m,
       φ (W i ⬝ᵥ X α) ^ 2 ≤ τ} ≥ 1 - δ :=
-  measureReal_pi_average_le_ge_one_sub (μ := gaussianRowMeasure d) hn
+  measureReal_pi_average_le_ge_one_sub (μ := (Measure.pi fun _ : Fin d => gaussianReal 0 1)) hn
     (g := fun w => ∑ α : Fin m, φ (w ⬝ᵥ X α) ^ 2)
     (Finset.measurable_sum _ fun α _ =>
       (hφ.comp (measurable_dotProduct_left (X α))).pow_const 2)
@@ -221,9 +207,9 @@ lemma measureReal_gaussianInit_activationEnergy_le {n d m : ℕ} (hn : 0 < n) (�
 lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
     (hA : 0 ≤ A) (hB : 0 ≤ B)
     (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x : Fin d → ℝ) (p : NNReal) :
-    MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x)) p (gaussianRowMeasure d) := by
+    MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x)) p (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
   have hlin : Measurable (fun w : Fin d → ℝ => w ⬝ᵥ x) := measurable_dotProduct_left x
-  change MemLp (φ ∘ fun w : Fin d → ℝ => w ⬝ᵥ x) p (gaussianRowMeasure d)
+  change MemLp (φ ∘ fun w : Fin d → ℝ => w ⬝ᵥ x) p (Measure.pi fun _ : Fin d => gaussianReal 0 1)
   rw [← memLp_map_measure_iff (hφ.aestronglyMeasurable) hlin.aemeasurable,
     map_gaussianRowMeasure_dotProduct]
   have hid := memLp_id_gaussianReal (μ := 0) (v := Real.toNNReal (x ⬝ᵥ x)) p
@@ -238,9 +224,10 @@ lemma memLp_gaussianRow_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurab
 lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : Measurable φ) {A B : ℝ}
     (hA : 0 ≤ A) (hB : 0 ≤ B)
     (hgrow : ∀ z, |φ z| ≤ A + B * |z|) (x x' : Fin d → ℝ) :
-    MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (gaussianRowMeasure d) := by
+    MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1) := by
   have h4 : ∀ y : Fin d → ℝ, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ y)) (4 : ENNReal)
-      (gaussianRowMeasure d) := fun y => by
+      (Measure.pi fun _ : Fin d => gaussianReal 0 1) := fun y => by
     simpa using memLp_gaussianRow_comp_of_linear_growth φ hφ hA hB hgrow y (d := d) 4
   have : ENNReal.HolderTriple 4 4 2 := ⟨by
     rw [← two_mul]
@@ -263,14 +250,16 @@ which gives the much better `R = O(√(log(n/δ)))` - logarithmic, not polynomia
 
 /-- Transport the two-sided tail bound to a single readout coordinate `a i`. -/
 lemma prob_abs_gaussianReadout_coord_ge_le (n : ℕ) (i : Fin n) (ε : ℝ) (hε : 0 ≤ ε) :
-    (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ε ≤ |a i|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
-  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) =
+    (Measure.pi fun _ : Fin n => gaussianReal 0
+        1).real {a : Fin n → ℝ | ε ≤ |a i|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
+  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n => gaussianReal 0
+      1) =
       gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
   have hpre : {a : Fin n → ℝ | ε ≤ |a i|} =
       (fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|} := rfl
   have hms : MeasurableSet {x : ℝ | ε ≤ |x|} :=
     measurableSet_le measurable_const continuous_abs.measurable
-  have hkey : (gaussianReadoutMeasure n).real
+  have hkey : (Measure.pi fun _ : Fin n => gaussianReal 0 1).real
       ((fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|}) =
       (gaussianReal 0 1).real {x : ℝ | ε ≤ |x|} := by
     unfold MeasureTheory.Measure.real
@@ -281,14 +270,15 @@ lemma prob_abs_gaussianReadout_coord_ge_le (n : ℕ) (i : Fin n) (ε : ℝ) (hε
 /-- Union bound over all `n` readout coordinates: the probability that *some* coordinate exceeds
 `ε` in absolute value is at most `2n` times the single-coordinate tail bound. -/
 theorem prob_max_abs_gaussianReadout_ge_le (n : ℕ) (ε : ℝ) (hε : 0 ≤ ε) :
-    (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} ≤
+    (Measure.pi fun _ : Fin n => gaussianReal 0 1).real {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} ≤
       2 * (n : ℝ) * Real.exp (-ε ^ 2 / 2) := by
   have heq : {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} = ⋃ i : Fin n, {a : Fin n → ℝ | ε ≤ |a i|} := by
     ext a; simp
   rw [heq]
   calc
-    (gaussianReadoutMeasure n).real (⋃ i : Fin n, {a : Fin n → ℝ | ε ≤ |a i|}) ≤
-        ∑ i : Fin n, (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ε ≤ |a i|} :=
+    (Measure.pi fun _ : Fin n => gaussianReal 0 1).real (⋃ i : Fin n, {a : Fin n → ℝ | ε ≤ |a i|}) ≤
+        ∑ i : Fin n, (Measure.pi fun _ : Fin n => gaussianReal 0
+            1).real {a : Fin n → ℝ | ε ≤ |a i|} :=
       measureReal_iUnion_fintype_le _
     _ ≤ ∑ _i : Fin n, 2 * Real.exp (-ε ^ 2 / 2) :=
       Finset.sum_le_sum (fun i _ => prob_abs_gaussianReadout_coord_ge_le n i ε hε)
@@ -300,7 +290,7 @@ theorem prob_max_abs_gaussianReadout_ge_le (n : ℕ) (ε : ℝ) (hε : 0 ≤ ε)
 `|a i| ≤ √(2 log(2n/δ))` - a bound that grows only **logarithmically** in the width `n`. -/
 theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
     (hδ1 : δ ≤ 1) :
-    (gaussianReadoutMeasure n).real
+    (Measure.pi fun _ : Fin n => gaussianReal 0 1).real
       {a : Fin n → ℝ | ∀ i, |a i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} ≥ 1 - δ := by
   set ε : ℝ := Real.sqrt (2 * Real.log (2 * n / δ)) with hε_def
   have hnδ_pos : 0 < 2 * (n : ℝ) / δ := by positivity
@@ -327,10 +317,12 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
   rw [hcompl]
   have hsub : {a : Fin n → ℝ | ∃ i, ε < |a i|} ⊆ {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} :=
     fun a ⟨i, hi⟩ => ⟨i, hi.le⟩
-  have hle := measureReal_mono (μ := gaussianReadoutMeasure n) hsub
-  have hbad' : (gaussianReadoutMeasure n).real {a : Fin n → ℝ | ∃ i, ε < |a i|} ≤ δ :=
+  have hle := measureReal_mono (μ := (Measure.pi fun _ : Fin n => gaussianReal 0 1)) hsub
+  have hbad' : (Measure.pi fun _ : Fin n => gaussianReal 0
+      1).real {a : Fin n → ℝ | ∃ i, ε < |a i|} ≤ δ :=
     hle.trans hbad
-  have hcompl_ge : (gaussianReadoutMeasure n).real ({a : Fin n → ℝ | ∃ i, ε < |a i|} ᶜ) ≥
+  have hcompl_ge : (Measure.pi fun _ : Fin n => gaussianReal 0 1).real ({a : Fin n → ℝ | ∃ i, ε < |a
+      i|} ᶜ) ≥
       1 - δ := by
     have hUn : {a : Fin n → ℝ | ∃ i, ε < |a i|} = ⋃ i : Fin n, {a : Fin n → ℝ | ε < |a i|} := by
       ext a; simp
@@ -338,7 +330,7 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
       rw [hUn]
       exact MeasurableSet.iUnion (fun i => measurableSet_lt measurable_const
         (continuous_abs.measurable.comp (measurable_pi_apply i)))
-    have := probReal_compl_eq_one_sub (μ := gaussianReadoutMeasure n)
+    have := probReal_compl_eq_one_sub (μ := (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       (s := {a : Fin n → ℝ | ∃ i, ε < |a i|}) hmeas
     rw [ge_iff_le, this]
     linarith
@@ -348,36 +340,42 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
 `initMeasure n d = (gaussianInit n d).prod (gaussianReadoutMeasure n)`. -/
 lemma initMeasure_forall_abs_readout_ge (n d : ℕ) (hn : 0 < n) {δ : ℝ} (hδ : 0 < δ)
     (hδ1 : δ ≤ 1) :
-    (initMeasure n d).real
+    ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun
+        _ : Fin n => gaussianReal 0 1)).real
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
         ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} ≥ 1 - δ := by
   have hset : {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
       ∀ i, |p.2 i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} =
       Set.univ ×ˢ {a : Fin n → ℝ | ∀ i, |a i| ≤ Real.sqrt (2 * Real.log (2 * n / δ))} := by
     ext p; simp
-  rw [hset, initMeasure, MeasureTheory.measureReal_prod_prod]
+  rw [hset, MeasureTheory.measureReal_prod_prod]
   simpa using prob_forall_abs_gaussianReadout_le n hn hδ hδ1
 
 /-- Readout weights `a_i` are mutually independent across hidden units `i ∈ Fin n`. -/
 lemma iIndepFun_readoutWeights (n : ℕ) :
-    iIndepFun (fun i : Fin n => fun a : Fin n → ℝ => a i) (gaussianReadoutMeasure n) :=
+    iIndepFun (fun i : Fin n => fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n => gaussianReal
+        0 1) :=
   iIndepFun_pi (fun _ => aemeasurable_id)
 
 /-- Input weight rows `W_i` have marginal standard Gaussian row distribution `𝒩(0, Iᵈ)`. -/
 lemma map_gaussianInit_row (i : Fin n) :
-    Measure.map (fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d) = gaussianRowMeasure d :=
-  (MeasureTheory.measurePreserving_eval (fun _ : Fin n => gaussianRowMeasure d) i).map_eq
+    Measure.map (fun W : Fin n → Fin d → ℝ => W i) (Measure.pi fun _ : Fin n => Measure.pi fun _ :
+        Fin d => gaussianReal 0 1) = (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
+  (MeasureTheory.measurePreserving_eval (fun _ : Fin n => (Measure.pi fun _ : Fin d => gaussianReal
+      0 1)) i).map_eq
 
 /-- Input weight rows `W_i` are mutually independent across hidden unit indices `i ∈ Fin n`. -/
 lemma iIndepFun_inputWeights (n d : ℕ) :
-    iIndepFun (fun i : Fin n => fun W : Fin n → Fin d → ℝ => W i) (gaussianInit n d) :=
+    iIndepFun (fun i : Fin n => fun W : Fin n → Fin d → ℝ => W i) (Measure.pi fun _ : Fin n =>
+        Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
   iIndepFun_pi (fun _ => aemeasurable_id)
 
 /-- Mutual Independence: the family of input weights `W` is independent of readout weights `a`. -/
 lemma indepFun_input_readout (n d : ℕ) :
     IndepFun (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.1)
       (fun p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) => p.2)
-      (initMeasure n d) :=
+      ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+          fun _ : Fin n => gaussianReal 0 1)) :=
   indepFun_prod measurable_id measurable_id
 
 end Preliminaries
