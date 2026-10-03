@@ -152,14 +152,14 @@ lemma sum_gradientMatrix_mul_eq
     (σ' : ℝ → ℝ) (outerCoeffs : Fin m → ℝ)
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ) :
     (∑ i : Fin m, ∑ j : Fin d,
-      gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
-        gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
+      ((m : ℝ)⁻¹.sqrt * outerCoeffs i * σ' (∑ l, W₀ i l * x l) * x j) *
+        ((m : ℝ)⁻¹.sqrt * outerCoeffs i * σ' (∑ l, W₀ i l * x' l) * x' j)) =
     (x ⬝ᵥ x') *
       ((m : ℝ)⁻¹ * ∑ j : Fin m,
         outerCoeffs j ^ 2 *
         σ' (∑ k : Fin d, W₀ j k * x k) *
         σ' (∑ k : Fin d, W₀ j k * x' k)) := by
-  unfold gradientMatrix dotProduct
+  unfold dotProduct
   simp_rw [gradient_matrix_term_eq]
   rw [Finset.sum_comm]
   simp_rw [← Finset.mul_sum]
@@ -176,8 +176,8 @@ lemma sum_gradientMatrix_mul_eq_shallowEmpiricalNTK_of_sq_one
     (W₀ : Fin m → Fin d → ℝ) (x x' : Fin d → ℝ)
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
     (∑ i : Fin m, ∑ j : Fin d,
-      gradientMatrix (σ' := σ') outerCoeffs x W₀ i j *
-        gradientMatrix (σ' := σ') outerCoeffs x' W₀ i j) =
+      ((m : ℝ)⁻¹.sqrt * outerCoeffs i * σ' (∑ l, W₀ i l * x l) * x j) *
+        ((m : ℝ)⁻¹.sqrt * outerCoeffs i * σ' (∑ l, W₀ i l * x' l) * x' j)) =
     shallowEmpiricalNTK σ' W₀ x x' := by
   rw [sum_gradientMatrix_mul_eq]
   simp [shallowEmpiricalNTK, houter]
@@ -195,8 +195,8 @@ theorem shallowEmpiricalNTK_dataset_posSemidef
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
     (Matrix.of (fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
   have h_eq : (Matrix.of fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β)) =
-      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k) *
-      (Matrix.of fun α (j, k) => gradientMatrix (σ' := σ') outerCoeffs (X α) W₀ j k)ᵀ := by
+      (Matrix.of fun α (j, k) => ((m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * (X α) l) * (X α) k)) *
+      (Matrix.of fun α (j, k) => ((m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * (X α) l) * (X α) k))ᵀ := by
     ext α β
     simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
     rw [Fintype.sum_prod_type]

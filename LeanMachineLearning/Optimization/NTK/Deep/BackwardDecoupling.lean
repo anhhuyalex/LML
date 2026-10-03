@@ -327,8 +327,8 @@ lemma measurable_netPre (n : ℕ) (ℓ : Fin d) (a : Fin m) (j : Fin n) :
   measurable_deepMLPPreactivation (paramsMeasurable_deepParams d n0 n) hφ X ℓ a j
 
 lemma measurable_avg4 {Z : Type*} [MeasurableSpace Z] {n : ℕ} {v : Z → Fin n → ℝ}
-    (hv : ∀ j, Measurable fun z => v z j) : Measurable fun z => avg4 (v z) := by
-  unfold avg4
+    (hv : ∀ j, Measurable fun z => v z j) : Measurable fun z => (𝔼 j, (v z) j ^ 4) := by
+  simp only [expect_fin_eq_inv_mul_sum]
   exact measurable_const.mul (Finset.measurable_sum _ fun j _ => (hv j).pow_const 4)
 
 include hφ in
@@ -768,10 +768,10 @@ lemma avg4_deriv_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
-        avg4 (netDeriv φ φ' X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a)) atTop (fun _ => c) := by
+        (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a) j ^ 4)) atTop (fun _ => c) := by
   obtain ⟨c, hc⟩ := derivSq_cvg A X ℓ hℓ a a
   refine ⟨c, hc.congr_left fun n => Eventually.of_forall fun ω => ?_⟩
-  simp only [avg4, netDeriv]
+  simp only [expect_fin_eq_inv_mul_sum, netDeriv]
   exact congrArg _ (Finset.sum_congr rfl fun j _ => by ring)
 
 include A in
@@ -780,7 +780,7 @@ lemma avg4_feat_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
-        avg4 (fun j => netFeat φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ j a)) atTop (fun _ => c) := by
+        (𝔼 j, netFeat φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ j a ^ 4)) atTop (fun _ => c) := by
   obtain ⟨c, hc⟩ := actSq_cvg A X ℓ hℓ a
   exact ⟨c, hc⟩
 
@@ -868,8 +868,8 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
         netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ a j))) := by
     obtain ⟨c1, hc1⟩ := preFour_cvg (d := d) (n0 := n0) A X k (by omega) c
     obtain ⟨c2, hc2⟩ := avg4_deriv_cvg (d := d) (n0 := n0) A X k (by omega) a
-    refine ⟨fun n ω => (avg4 (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω)
-        ⟨k, by omega⟩ c) + avg4 (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)) / 2,
+    refine ⟨fun n ω => ((𝔼 j, (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω)
+        ⟨k, by omega⟩ c) j ^ 4) + (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j ^ 4)) / 2,
       (c1 + c2) / 2, fun n ω => ?_, tendstoInMeasure_half_sum hc1 hc2⟩
     have hh := preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl c
     have hf := netDeriv_zeroLayer φ φ' X n k hk ω a
@@ -905,9 +905,8 @@ section decoupling
 
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
-lemma wcov_self_eq_wsq {n : ℕ} (f y : Fin n → ℝ) : (𝔼 j, f j * f j * (y j * y j)) = wsq f y := by
+lemma wcov_self_eq_wsq {n : ℕ} (f y : Fin n → ℝ) : (𝔼 j, f j * f j * (y j * y j)) = (𝔼 j, f j ^ 2 * y j ^ 2) := by
   simp only [expect_fin_eq_inv_mul_sum]
-  unfold wsq
   congr 1
   exact Finset.sum_congr rfl fun j _ => by ring
 
@@ -927,8 +926,7 @@ lemma wsq_projPart_tendsto (k : ℕ) (hk : k + 1 < d)
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
-        wsq (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
-          (projPart φ φ' X (deepParams d n0 n ω) k hk a)) atTop (fun _ => 0) := by
+        (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j ^ 2 * (projPart φ φ' X (deepParams d n0 n ω) k hk a) j ^ 2)) atTop (fun _ => 0) := by
   refine tendstoInMeasure_wsq_mulVec (μ := ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ :
       ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
           gaussianReal 0 1)))
@@ -994,8 +992,7 @@ theorem decoupling_tendsto (k : ℕ) (hk : k + 1 < d)
       Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
           (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
-        wsq (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ c)
-          (resPart φ φ' X (deepParams d n0 n ω) k hk c)) atTop (fun _ => c1) := by
+        (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ c) j ^ 2 * (resPart φ φ' X (deepParams d n0 n ω) k hk c) j ^ 2)) atTop (fun _ => c1) := by
     intro c
     obtain ⟨c0, hc0⟩ := hG c c
     obtain ⟨c1, hc1⟩ := derivGram_cvg (d := d) (n0 := n0) A X k (by omega) c c
@@ -1066,7 +1063,7 @@ theorem gradIndep_step_tendsto (k : ℕ) (hk : k + 1 < d)
     refine tendstoInMeasure_zero_of_sq_le (fun n ω => ?_) hprod
     refine (wcov_sq_le _ _ _ _).trans (le_of_eq ?_)
     congr 1
-    simp only [wsq, one_pow, one_mul]
+    simp only [expect_fin_eq_inv_mul_sum, one_pow, one_mul]
   have hT2 := linAbs_tendsto A X k hk hpd (fun c' => hG c' c') a c
   have hsum := tendstoInMeasure_add hT1 hT2
   rw [add_zero] at hsum

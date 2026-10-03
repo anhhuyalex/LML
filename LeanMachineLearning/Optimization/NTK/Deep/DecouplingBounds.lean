@@ -122,22 +122,22 @@ theorem tendstoInMeasure_wsq_mulVec
     (f : ∀ n : ℕ, Ω → Fin n → ℝ) (Φ : ∀ n : ℕ, Ω → Matrix (Fin n) (Fin m) ℝ)
     (w : ℕ → Ω → Fin m → ℝ)
     (hw : ∀ a, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => w n ω a) atTop (fun _ => 0))
-    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => avg4 (f n ω)) atTop (fun _ => c))
+    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 4)) atTop (fun _ => c))
     (hΦ : ∀ a, ∃ c : ℝ, TendstoInMeasure μ
-      (fun (n : ℕ) (ω : Ω) => avg4 (fun j => Φ n ω j a)) atTop (fun _ => c)) :
-    TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => wsq (f n ω) (Φ n ω *ᵥ w n ω)) atTop
+      (fun (n : ℕ) (ω : Ω) => (𝔼 j, Φ n ω j a ^ 4)) atTop (fun _ => c)) :
+    TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 2 * (Φ n ω *ᵥ w n ω) j ^ 2)) atTop
       (fun _ => 0) := by
   obtain ⟨cf, hcf⟩ := hf
   choose cΦ hcΦ using hΦ
   obtain ⟨T, hT⟩ : ∃ T : Fin m × Fin m → ℕ → Ω → ℝ, ∀ ab n ω, T ab n ω =
       |w n ω ab.1| * |w n ω ab.2| *
-        ((avg4 (f n ω) + avg4 (f n ω) + avg4 (fun j => Φ n ω j ab.1) +
-          avg4 (fun j => Φ n ω j ab.2)) / 4) := ⟨_, fun _ _ _ => rfl⟩
+        (((𝔼 j, (f n ω) j ^ 4) + (𝔼 j, (f n ω) j ^ 4) + (𝔼 j, Φ n ω j ab.1 ^ 4) +
+          (𝔼 j, Φ n ω j ab.2 ^ 4)) / 4) := ⟨_, fun _ _ _ => rfl⟩
   have hT0 : ∀ ab, TendstoInMeasure μ (T ab) atTop (fun _ => 0) := by
     intro ab
     have e : T ab = fun n ω => |w n ω ab.1| * |w n ω ab.2| *
-        ((avg4 (f n ω) + avg4 (f n ω) + avg4 (fun j => Φ n ω j ab.1) +
-          avg4 (fun j => Φ n ω j ab.2)) / 4) := funext fun n => funext fun ω => hT ab n ω
+        (((𝔼 j, (f n ω) j ^ 4) + (𝔼 j, (f n ω) j ^ 4) + (𝔼 j, Φ n ω j ab.1 ^ 4) +
+          (𝔼 j, Φ n ω j ab.2 ^ 4)) / 4) := funext fun n => funext fun ω => hT ab n ω
     rw [e]
     exact tendstoInMeasure_mul_mul_zero (tendstoInMeasure_abs_zero (hw ab.1))
       (tendstoInMeasure_abs_zero (hw ab.2))
@@ -158,10 +158,10 @@ theorem tendstoInMeasure_inv_nat_mul_trace
     (S : ℕ → Ω → Matrix (Fin m) (Fin m) ℝ)
     (hS : ∀ a b, ∃ c : ℝ, TendstoInMeasure μ
       (fun (n : ℕ) (ω : Ω) => S n ω a b) atTop (fun _ => c))
-    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => avg4 (f n ω)) atTop (fun _ => c))
-    (hg : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => avg4 (g n ω)) atTop (fun _ => c))
+    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 4)) atTop (fun _ => c))
+    (hg : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (g n ω) j ^ 4)) atTop (fun _ => c))
     (hΦ : ∀ a, ∃ c : ℝ, TendstoInMeasure μ
-      (fun (n : ℕ) (ω : Ω) => avg4 (fun j => Φ n ω j a)) atTop (fun _ => c)) :
+      (fun (n : ℕ) (ω : Ω) => (𝔼 j, Φ n ω j a ^ 4)) atTop (fun _ => c)) :
     TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) =>
       (n : ℝ)⁻¹ * ∑ a, ∑ b, S n ω a b * (𝔼 j, (f n ω) j * (g n ω) j * (Φ n ω) j b *
           (Φ n ω) j a)) atTop
@@ -171,12 +171,12 @@ theorem tendstoInMeasure_inv_nat_mul_trace
   choose cΦ hcΦ using hΦ
   choose cS hcS using hS
   obtain ⟨U, hU⟩ : ∃ U : Fin m × Fin m → ℕ → Ω → ℝ, ∀ ab n ω, U ab n ω =
-      |S n ω ab.1 ab.2| * ((avg4 (f n ω) + avg4 (g n ω) + avg4 (fun j => Φ n ω j ab.2) +
-        avg4 (fun j => Φ n ω j ab.1)) / 4) := ⟨_, fun _ _ _ => rfl⟩
+      |S n ω ab.1 ab.2| * (((𝔼 j, (f n ω) j ^ 4) + (𝔼 j, (g n ω) j ^ 4) + (𝔼 j, Φ n ω j ab.2 ^ 4) +
+        (𝔼 j, Φ n ω j ab.1 ^ 4)) / 4) := ⟨_, fun _ _ _ => rfl⟩
   have hU0 : ∀ ab, ∃ c : ℝ, TendstoInMeasure μ (U ab) atTop (fun _ => c) := by
     intro ab
-    have e : U ab = fun n ω => |S n ω ab.1 ab.2| * ((avg4 (f n ω) + avg4 (g n ω) +
-        avg4 (fun j => Φ n ω j ab.2) + avg4 (fun j => Φ n ω j ab.1)) / 4) :=
+    have e : U ab = fun n ω => |S n ω ab.1 ab.2| * (((𝔼 j, (f n ω) j ^ 4) + (𝔼 j, (g n ω) j ^ 4) +
+        (𝔼 j, Φ n ω j ab.2 ^ 4) + (𝔼 j, Φ n ω j ab.1 ^ 4)) / 4) :=
       funext fun n => funext fun ω => hU ab n ω
     rw [e]
     exact ⟨_, tendstoInMeasure_mul (tendstoInMeasure_abs (hcS ab.1 ab.2))

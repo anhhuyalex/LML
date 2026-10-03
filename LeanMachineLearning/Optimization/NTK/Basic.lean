@@ -31,8 +31,6 @@ making it much easier to analyze than `f` itself.
 * `NTK.ShallowNetwork σ d m` : a scaled shallow network with activation `σ`,
   input dimension `d`, and width `m`.
 * `NTK.ShallowNetwork.eval` : evaluate `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)`.
-* `NTK.gaussianInit` : the standard Gaussian initialization measure on `ℝ^{m×d}`.
-* `NTK.gradientMatrix` : `∇_W f(x; W₀)` — the gradient of `f` w.r.t. `W` at `W₀`.
 * `NTK.linearization` : the first-order Taylor linearization `f₀(x; W)`.
 
 -/
@@ -74,20 +72,12 @@ noncomputable def ShallowNetwork.eval
     (W : Fin m → Fin d → ℝ) : ℝ :=
   (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * σ (∑ k : Fin d, W j k * x k)
 
-/-- The gradient of `f(x; W)` with respect to `W`, evaluated at `W₀`.
-This is the matrix `∇_W f(x; W₀) ∈ ℝ^{m×d}` with entry `(j, k)` equal to
-  `aⱼ · σ'(wⱼ₀ᵀx) · xₖ / √m`.
+/-! ### The weight gradient `∇_W f(x; W₀)`
 
-For the ReLU, `σ'(z) = 1[z ≥ 0]` (a.e.), so the gradient is sparse at signs. -/
-noncomputable def gradientMatrix
-    {σ' : ℝ → ℝ} -- derivative of σ
-    {d m : ℕ}
-    (outerCoeffs : Fin m → ℝ)
-    (x : Fin d → ℝ)
-    (W₀ : Fin m → Fin d → ℝ) :
-    Fin m → Fin d → ℝ :=
-  fun j k =>
-    (m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l : Fin d, W₀ j l * x l) * x k
+The gradient of `f(x; W)` with respect to `W`, evaluated at `W₀`, is the matrix in `ℝ^{m×d}` with
+entry `(j, k)` equal to `aⱼ · σ'(wⱼ₀ᵀx) · xₖ / √m`, written out explicitly as
+`(m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * x l) * x k`. For the ReLU, `σ'(z) = 1[z ≥ 0]`
+(a.e.), so the gradient is sparse at signs. -/
 
 /-! ### Gaussian initialization (Definition 4.2)
 

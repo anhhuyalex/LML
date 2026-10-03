@@ -83,18 +83,18 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
       (n : ℝ)⁻¹ * ∑ j : Fin n, yv n w j ^ 2) := by
     obtain ⟨c1, hc1⟩ := preFour_cvg (d := d) (n0 := n0) A X (d - 1) (by omega) b
     obtain ⟨c2, hc2⟩ := avg4_deriv_cvg (d := d) (n0 := n0) A X (d - 1) (by omega) a
-    have hc1' := hF4 (fun n ω => avg4 (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω)
-      ⟨d - 1, by omega⟩ b)) c1 (fun n => measurable_avg4 fun j =>
+    have hc1' := hF4 (fun n ω => (𝔼 j, (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω)
+      ⟨d - 1, by omega⟩ b) j ^ 4)) c1 (fun n => measurable_avg4 fun j =>
         (measurable_netPre hφm X n ⟨d - 1, by omega⟩ b j).comp (hmeas0 n)) (fun n ω => by
         simp only [preactivation_deepParams_readout]) hc1
-    have hc2' := hF4 (fun n ω => avg4 (netDeriv φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a))
+    have hc2' := hF4 (fun n ω => (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a) j ^ 4))
       c2 (fun n => measurable_avg4 fun j =>
         hφ'm.comp ((measurable_netPre hφm X n ⟨d - 1, by omega⟩ a j).comp (hmeas0 n)))
-      (fun n ω => (congrArg avg4 (netDeriv_deepParams_readout (φ := φ) (φ' := φ') X n ω
-        (fun _ => 0) ⟨d - 1, by omega⟩ a)).symm) hc2
-    refine ⟨fun n w => (avg4 (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (w, fun _ => 0))
-        ⟨d - 1, by omega⟩ b) + avg4 (netDeriv φ φ' X (deepParams d n0 n (w, fun _ => 0))
-          ⟨d - 1, by omega⟩ a)) / 2, (c1 + c2) / 2, fun n w => ?_,
+      (fun n ω => (congrArg (𝔼 j, (netDeriv_deepParams_readout (φ := φ) (φ' := φ') X n ω
+        (fun _ => 0) ⟨d - 1, by omega⟩ a) j ^ 4)).symm) hc2
+    refine ⟨fun n w => ((𝔼 j, (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (w, fun _ => 0))
+        ⟨d - 1, by omega⟩ b) j ^ 4) + (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n (w, fun _ => 0))
+          ⟨d - 1, by omega⟩ a) j ^ 4)) / 2, (c1 + c2) / 2, fun n w => ?_,
       tendstoInMeasure_half_sum hc1' hc2'⟩
     have := avg_sq_mul_le_avg4
       (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (w, fun _ => 0))

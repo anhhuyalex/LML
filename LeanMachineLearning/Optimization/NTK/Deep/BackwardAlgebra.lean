@@ -38,22 +38,17 @@ namespace NTK
 
 variable {n m : ℕ}
 
-/-- Weighted mean square `N_f(a) = n⁻¹ ∑ⱼ fⱼ² aⱼ²`. -/
-noncomputable def wsq (f a : Fin n → ℝ) : ℝ := (n : ℝ)⁻¹ * ∑ j, f j ^ 2 * a j ^ 2
+/-- The weighted mean square `n⁻¹ ∑ⱼ fⱼ² aⱼ²` is nonnegative. -/
+lemma wsq_nonneg (f a : Fin n → ℝ) : 0 ≤ 𝔼 j, f j ^ 2 * a j ^ 2 :=
+  Finset.expect_nonneg fun _ _ => mul_nonneg (sq_nonneg _) (sq_nonneg _)
 
-/-- Normalized fourth moment `n⁻¹ ∑ⱼ vⱼ⁴`. -/
-noncomputable def avg4 (v : Fin n → ℝ) : ℝ := (n : ℝ)⁻¹ * ∑ j, v j ^ 4
-
-lemma wsq_nonneg (f a : Fin n → ℝ) : 0 ≤ wsq f a :=
-  mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n))
-    (Finset.sum_nonneg fun _ _ => mul_nonneg (sq_nonneg _) (sq_nonneg _))
-
-lemma avg4_nonneg (v : Fin n → ℝ) : 0 ≤ avg4 v :=
-  mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n)) (Finset.sum_nonneg fun _ _ => by positivity)
+/-- The normalized fourth moment `n⁻¹ ∑ⱼ vⱼ⁴` is nonnegative. -/
+lemma avg4_nonneg (v : Fin n → ℝ) : 0 ≤ 𝔼 j, v j ^ 4 :=
+  Finset.expect_nonneg fun _ _ => by positivity
 
 /-- **Cauchy–Schwarz** for the weighted pairing. -/
 lemma wcov_sq_le (f g a b : Fin n → ℝ) : (𝔼 j, f j * g j * (a j *
-    b j)) ^ 2 ≤ wsq f a * wsq g b := by
+    b j)) ^ 2 ≤ (𝔼 j, f j ^ 2 * a j ^ 2) * (𝔼 j, g j ^ 2 * b j ^ 2) := by
   have hcs := dotProduct_sq_le_mul_self (fun j => f j * a j) (fun j => g j * b j)
   simp only [dotProduct] at hcs
   have hn : 0 ≤ ((n : ℝ)⁻¹) ^ 2 := sq_nonneg _
@@ -63,9 +58,9 @@ lemma wcov_sq_le (f g a b : Fin n → ℝ) : (𝔼 j, f j * g j * (a j *
     rw [mul_pow]
     congr 2
     exact Finset.sum_congr rfl fun j _ => by ring
-  have h2 : wsq f a * wsq g b = ((n : ℝ)⁻¹) ^ 2 *
+  have h2 : (𝔼 j, f j ^ 2 * a j ^ 2) * (𝔼 j, g j ^ 2 * b j ^ 2) = ((n : ℝ)⁻¹) ^ 2 *
       ((∑ j, f j * a j * (f j * a j)) * ∑ j, g j * b j * (g j * b j)) := by
-    unfold wsq
+    simp only [expect_fin_eq_inv_mul_sum]
     rw [show ((n : ℝ)⁻¹ * ∑ j, f j ^ 2 * a j ^ 2) * ((n : ℝ)⁻¹ * ∑ j, g j ^ 2 * b j ^ 2) =
       ((n : ℝ)⁻¹) ^ 2 * ((∑ j, f j ^ 2 * a j ^ 2) * ∑ j, g j ^ 2 * b j ^ 2) by ring]
     congr 2
@@ -89,7 +84,7 @@ lemma wcov_add_add (f g x y x' y' : Fin n → ℝ) :
 `N_f(x) N_g(x') + N_f(x) N_g(y') + N_f(y) N_g(x')`. -/
 lemma wcov_sub_sq_le (f g x y x' y' : Fin n → ℝ) :
     ((𝔼 j, f j * g j * ((x + y) j * (x' + y') j)) - (𝔼 j, f j * g j * (y j * y' j))) ^ 2 ≤
-      3 * (wsq f x * wsq g x' + wsq f x * wsq g y' + wsq f y * wsq g x') := by
+      3 * ((𝔼 j, f j ^ 2 * x j ^ 2) * (𝔼 j, g j ^ 2 * x' j ^ 2) + (𝔼 j, f j ^ 2 * x j ^ 2) * (𝔼 j, g j ^ 2 * y' j ^ 2) + (𝔼 j, f j ^ 2 * y j ^ 2) * (𝔼 j, g j ^ 2 * x' j ^ 2)) := by
   rw [wcov_add_add]
   have h1 := wcov_sq_le f g x x'
   have h2 := wcov_sq_le f g x y'
@@ -119,10 +114,9 @@ lemma abs_mul_mul_mul_le (p q r s : ℝ) : |p * q * r * s| ≤ (p ^ 4 + q ^ 4 + 
 
 /-- Every weighted Gram entry is dominated by an average of fourth powers. -/
 lemma abs_wmat_le (f g : Fin n → ℝ) (Φ : Matrix (Fin n) (Fin m) ℝ) (a b : Fin m) :
-    |(𝔼 j, f j * g j * Φ j a * Φ j b)| ≤ (avg4 f + avg4 g + avg4 (fun j => Φ j a) + avg4 (fun j =>
-        Φ j b)) / 4 := by
+    |(𝔼 j, f j * g j * Φ j a * Φ j b)| ≤ ((𝔼 j, f j ^ 4) + (𝔼 j, g j ^ 4) + (𝔼 j, Φ j a ^ 4) + (𝔼 j, (fun j =>
+        Φ j b) j ^ 4)) / 4 := by
   simp only [expect_fin_eq_inv_mul_sum]
-  unfold avg4
   have hn : 0 ≤ (n : ℝ)⁻¹ := inv_nonneg.2 (Nat.cast_nonneg n)
   rw [abs_mul, abs_of_nonneg hn]
   calc (n : ℝ)⁻¹ * |∑ j, f j * g j * Φ j a * Φ j b|
@@ -135,7 +129,7 @@ lemma abs_wmat_le (f g : Fin n → ℝ) (Φ : Matrix (Fin n) (Fin m) ℝ) (a b :
 
 /-- `N_f(Φ w) = ∑_{ab} w_a w_b M(f,f)_{ab}`. -/
 lemma wsq_mulVec_eq (f : Fin n → ℝ) (Φ : Matrix (Fin n) (Fin m) ℝ) (w : Fin m → ℝ) :
-    wsq f (Φ *ᵥ w) = ∑ a, ∑ b, w a * w b * (𝔼 j, f j * f j * Φ j a * Φ j b) := by
+    (𝔼 j, f j ^ 2 * (Φ *ᵥ w) j ^ 2) = ∑ a, ∑ b, w a * w b * (𝔼 j, f j * f j * Φ j a * Φ j b) := by
   have key : ∀ j, f j ^ 2 * (∑ a, Φ j a * w a) ^ 2 =
       ∑ a, ∑ b, w a * w b * (f j * f j * Φ j a * Φ j b) := by
     intro j
@@ -145,7 +139,6 @@ lemma wsq_mulVec_eq (f : Fin n → ℝ) (Φ : Matrix (Fin n) (Fin m) ℝ) (w : F
     refine Finset.sum_congr rfl fun b _ => ?_
     ring
   simp only [expect_fin_eq_inv_mul_sum]
-  unfold wsq
   simp only [Matrix.mulVec, dotProduct, key, Finset.mul_sum]
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun a _ => ?_
@@ -223,8 +216,8 @@ lemma wcov_smul_transpose_mulVec (f g u v : Fin n → ℝ) (W : Matrix (Fin n) (
 
 /-- `n⁻¹ ‖h ⊙ f‖² ≤ (avg4 h + avg4 f) / 2` (AM–GM). -/
 lemma avg_sq_mul_le_avg4 (h f : Fin n → ℝ) :
-    (n : ℝ)⁻¹ * ((fun j => h j * f j) ⬝ᵥ (fun j => h j * f j)) ≤ (avg4 h + avg4 f) / 2 := by
-  unfold avg4 dotProduct
+    (n : ℝ)⁻¹ * ((fun j => h j * f j) ⬝ᵥ (fun j => h j * f j)) ≤ ((𝔼 j, h j ^ 4) + (𝔼 j, f j ^ 4)) / 2 := by
+  simp only [expect_fin_eq_inv_mul_sum, dotProduct]
   have hn : 0 ≤ (n : ℝ)⁻¹ := inv_nonneg.2 (Nat.cast_nonneg n)
   calc (n : ℝ)⁻¹ * ∑ j, h j * f j * (h j * f j)
       ≤ (n : ℝ)⁻¹ * ∑ j, (h j ^ 4 + f j ^ 4) / 2 := by
