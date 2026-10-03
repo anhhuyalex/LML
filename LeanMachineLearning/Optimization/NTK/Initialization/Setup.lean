@@ -11,6 +11,7 @@ public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
 public import LeanMachineLearning.Optimization.NTK.ReLU.ArcCosine
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
+public import LeanMachineLearning.Optimization.NTK.Foundations.InfinitePiPrefix
 public import Mathlib.MeasureTheory.Measure.TightNormed
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real

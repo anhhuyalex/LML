@@ -59,19 +59,7 @@ theorem indepFun_layer_history (L n d : ℕ) (ℓ : Fin L) :
       (fun ω : Fin L → Fin n → Fin d → ℝ => fun i : Finset.Iio ℓ => ω i)
       (Measure.pi (fun _ : Fin L => (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
           gaussianReal 0 1))) := by
-  have h_indep : iIndepFun (fun ℓ : Fin L => fun ω : Fin L → Fin n → Fin d → ℝ => ω ℓ)
-      (Measure.pi (fun _ : Fin L => (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1))) :=
-    iIndepFun_pi (fun _ => aemeasurable_id)
-  have h_meas : ∀ i : Fin L, Measurable (fun ω : Fin L → Fin n → Fin d → ℝ => ω i) :=
-    fun i => measurable_pi_apply i
-  have h_disj : Disjoint ({ℓ} : Finset (Fin L)) (Finset.Iio ℓ) :=
-    Finset.disjoint_singleton_left.2 (by simp)
-  have h := h_indep.indepFun_finset {ℓ} (Finset.Iio ℓ) h_disj h_meas
-  exact h.comp (measurable_pi_apply (⟨ℓ, Finset.mem_singleton_self ℓ⟩ :
-    ({ℓ} : Finset (Fin L)))) measurable_id
-
-
+  indepFun_pi_apply_Iio (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) ℓ
 
 /-! ### Arc-Cosine Kernel Representation (Cho & Saul) -/
 

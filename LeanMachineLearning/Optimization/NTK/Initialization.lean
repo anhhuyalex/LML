@@ -304,8 +304,6 @@ re-exported by this module.
     Preactivations converge in distribution to
     $\mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma}^{(\ell+1)})$ for arbitrary $m$:
     `NTK.tendstoInDistribution_sequential_preactivation`.
-  * Public Bivariate Corollary ($m = 2$):
-    `NTK.tendstoInDistribution_sequential_bivariate`.
 
 * **Layer-by-Layer Conditional Gaussian Structure**:
   * **Independence Across Depth**: mutual independence of the per-layer weight matrices
@@ -479,7 +477,6 @@ re-exported by this module.
   * `NTK.tendsto_charFun_sequential_preactivation_multivariate` : pointwise DCT convergence of the
     multivariate preactivation characteristic functions.
   * `NTK.tendstoInDistribution_sequential_preactivation` : master theorem for arbitrary `Fin m`.
-  * `NTK.tendstoInDistribution_sequential_bivariate` : public `m = 2` bivariate corollary.
 
 * **Layer-by-Layer Conditional Gaussian Structure**:
   * `NTK.multivariateGaussian_pi_eq_kronecker` : Kronecker-product concatenation of `n` i.i.d.

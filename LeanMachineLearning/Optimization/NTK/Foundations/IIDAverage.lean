@@ -96,6 +96,29 @@ lemma iid_average_tendsto_integral {Ω : Type*} [MeasurableSpace Ω]
   ext width
   rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
 
+/-- Almost-sure convergence of a sequence of matrices follows from almost-sure convergence of
+each entry (the index types are finite, so the countably many null sets can be merged). -/
+lemma ae_tendsto_matrix_of_forall_entry {Ω ι κ : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    [Finite ι] [Finite κ] {F : ℕ → Ω → Matrix ι κ ℝ} {L : Matrix ι κ ℝ}
+    (h : ∀ i j, ∀ᵐ ω ∂μ, Tendsto (fun n => F n ω i j) atTop (nhds (L i j))) :
+    ∀ᵐ ω ∂μ, Tendsto (fun n => F n ω) atTop (nhds L) := by
+  filter_upwards [ae_all_iff.2 fun i => ae_all_iff.2 fun j => h i j] with ω hω
+  exact tendsto_pi_nhds.2 fun i => tendsto_pi_nhds.2 fun j => hω i j
+
+/-- **Independence across coordinates.** Under an i.i.d. product measure, the `ℓ`-th coordinate is
+independent of the family of all earlier coordinates `(ω i)_{i < ℓ}`. -/
+theorem indepFun_pi_apply_Iio {ι X : Type*} [Fintype ι] [LinearOrder ι] [LocallyFiniteOrderBot ι]
+    [MeasurableSpace X] (μ : Measure X) [IsProbabilityMeasure μ] (ℓ : ι) :
+    IndepFun (fun ω : ι → X => ω ℓ) (fun ω : ι → X => fun i : Finset.Iio ℓ => ω i)
+      (Measure.pi fun _ : ι => μ) := by
+  have h_indep : iIndepFun (fun ℓ : ι => fun ω : ι → X => ω ℓ) (Measure.pi fun _ : ι => μ) :=
+    iIndepFun_pi (fun _ => aemeasurable_id)
+  have h_disj : Disjoint ({ℓ} : Finset ι) (Finset.Iio ℓ) :=
+    Finset.disjoint_singleton_left.2 (by simp)
+  have h := h_indep.indepFun_finset {ℓ} (Finset.Iio ℓ) h_disj fun i => measurable_pi_apply i
+  exact h.comp (measurable_pi_apply (⟨ℓ, Finset.mem_singleton_self ℓ⟩ : ({ℓ} : Finset ι)))
+    measurable_id
+
 /-! ### Generic Finite-Sample Concentration for i.i.d. Averages -/
 
 section IIDAverageConcentration

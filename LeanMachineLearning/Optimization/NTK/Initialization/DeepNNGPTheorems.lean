@@ -198,23 +198,8 @@ lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
     exact (measurable_pi_apply k.val).comp (measurable_pi_apply j)
   have hrestrictColumns : Measure.map restrictColumns
       (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-    calc
-      Measure.map restrictColumns
-          (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-        Measure.infinitePi fun _ : ℕ =>
-          Measure.map (fun r : ℕ → ℝ => fun k : Fin n => r k.val)
-            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
-          simpa [restrictColumns] using
-            (Measure.infinitePi_map_pi
-              (μ := fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-              (f := fun _ (r : ℕ → ℝ) (k : Fin n) => r k.val)
-              (fun _ => measurable_pi_iff.2 fun k => measurable_pi_apply k.val))
-      _ = Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-        congr 1
-        funext j
-        rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective,
-          Measure.infinitePi_eq_pi]
+      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
+    map_prefixMap_infinitePi (gaussianReal 0 1) n
   let restrictRows : (ℕ → Fin n → ℝ) → (Fin n → Fin n → ℝ) :=
     fun W j k => W j.val k
   have hrestrictRows_meas : Measurable restrictRows := by
@@ -654,12 +639,12 @@ theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
           (by omega))
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
-`𝒩(0, I_n)`. Mirrors `map_infinitePi_rows_eq_gaussianInit`. -/
+`𝒩(0, I_n)`. Special case of `measurePreserving_prefixMap`. -/
 lemma map_infinitePi_real_eq_gaussianReadoutMeasure (n : ℕ) :
     Measure.map (fun (rows : ℕ → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) = (Measure.pi fun _ : Fin n => gaussianReal
           0 1) := by
-  rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
+  exact (measurePreserving_prefixMap (gaussianReal 0 1) n).map_eq
 
 /-- Measurability of the depth-`L` network's width-`n` output map (readout weights times the
 final hidden layer's activations, summed and scaled), jointly in the hidden and readout weight

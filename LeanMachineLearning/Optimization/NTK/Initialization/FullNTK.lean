@@ -96,40 +96,6 @@ theorem measureReal_initMeasure_neuronAverage_le {n d : ℕ} (hn : 0 < n)
   rw [Measure.real, ← hpre]
   exact hpi
 
-/-- Equivalence between `Fin n` and `{i : ℕ // i ∈ Finset.range n}`. -/
-private def finEquivRange (n : ℕ) : Fin n ≃ ↑(Finset.range n) where
-  toFun i := ⟨i.val, Finset.mem_range.2 i.isLt⟩
-  invFun j := ⟨j.val, Finset.mem_range.1 j.2⟩
-  left_inv i := by ext; rfl
-  right_inv j := by ext; rfl
-
-/-- Restricting an infinite sequence under `Measure.infinitePi` to `Finset.range n` preserves
-measure with respect to the finite product measure on `↑(Finset.range n)`. -/
-private theorem measurePreserving_restrict_range {α : Type*} [MeasurableSpace α]
-    (ν : Measure α) [IsProbabilityMeasure ν] (n : ℕ) :
-    MeasurePreserving (Finset.range n).restrict
-      (Measure.infinitePi fun _ : ℕ => ν)
-      (Measure.pi fun _ : ↑(Finset.range n) => ν) where
-  measurable := measurable_pi_iff.2 fun i => measurable_pi_apply i.1
-  map_eq := Measure.infinitePi_map_restrict (fun _ : ℕ => ν)
-
-/-- Restricting an infinite sequence under `Measure.infinitePi` to its first `n` elements
-indexed by `Fin n` is measure-preserving with respect to `Measure.pi (fun _ : Fin n => ν)`. -/
-theorem measurePreserving_prefixMap {α : Type*} [MeasurableSpace α]
-    (ν : Measure α) [IsProbabilityMeasure ν] (n : ℕ) :
-    MeasurePreserving (fun (seq : ℕ → α) (i : Fin n) => seq i.val)
-      (Measure.infinitePi fun _ : ℕ => ν)
-      (Measure.pi fun _ : Fin n => ν) := by
-  have h_restrict := measurePreserving_restrict_range ν n
-  have h_congr := (measurePreserving_piCongrLeft (fun _ : Fin n => ν) (finEquivRange n).symm)
-  have h_comp := h_congr.comp h_restrict
-  have heq : (MeasurableEquiv.piCongrLeft (fun _ => α) (finEquivRange n).symm ∘
-      (Finset.range n).restrict) =
-      (fun (seq : ℕ → α) (i : Fin n) => seq i.val) := by
-    ext seq i
-    rfl
-  rwa [heq] at h_comp
-
 /-- The measure-preserving map from the infinite sequence space
 `Measure.infinitePi (fun _ => (Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0
 1))` to the repository's finite-width
@@ -383,7 +349,7 @@ theorem fullNTKSummand_tendsto_integral {d : ℕ}
 
 /-- Full matrix almost-sure convergence of the empirical NTK Gram matrix on dataset `X`
 to the deterministic limiting NTK Gram matrix. Assembles entrywise SLLN convergence
-over the finite index space `Fin m × Fin m` using `tendsto_pi_nhds` and `ae_all_iff`. -/
+over the finite index space `Fin m × Fin m` (`ae_tendsto_matrix_of_forall_entry`). -/
 theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
@@ -406,41 +372,8 @@ theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
             (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal
                 0 1)) *
               (X α ⬝ᵥ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
-  have h_entry : ∀ α β : Fin m,
-      ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => ((Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1).prod (gaussianReal 0 1))),
-        Filter.Tendsto
-          (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
-            (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
-              (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
-                (X α ⬝ᵥ X β)))
-          Filter.atTop
-          (nhds ((∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1))
-              +
-            (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal
-                0 1)) *
-              (X α ⬝ᵥ X β))) :=
-    fun α β => fullNTKSummand_tendsto_integral φ hφ_meas hdφ_meas (X α) (X β)
-      (hφ_int α β) (hdφ_int α β)
-  have h_all :
-      ∀ᵐ seq : ℕ → (Fin d → ℝ) × ℝ ∂(Measure.infinitePi fun _ => ((Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1).prod (gaussianReal 0 1))),
-        ∀ α β : Fin m,
-          Filter.Tendsto
-            (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n,
-              (φ ((seq j).1 ⬝ᵥ X α) * φ ((seq j).1 ⬝ᵥ X β) +
-                (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
-                  (X α ⬝ᵥ X β)))
-            Filter.atTop
-            (nhds ((∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
-                gaussianReal 0 1)) +
-              (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
-                  gaussianReal 0 1)) *
-                (X α ⬝ᵥ X β))) := by
-    simp_rw [ae_all_iff]
-    exact h_entry
-  filter_upwards [h_all] with seq hseq
-  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hseq α β
+  exact ae_tendsto_matrix_of_forall_entry fun α β =>
+    fullNTKSummand_tendsto_integral φ hφ_meas hdφ_meas (X α) (X β) (hφ_int α β) (hdφ_int α β)
 
 /-- Full matrix almost-sure convergence of the empirical NTK on the paper's scaled dataset
 `(1 / √d) * X`, with explicit scaling `1 / d` on the derivative covariance factor. -/

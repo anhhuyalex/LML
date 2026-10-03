@@ -73,26 +73,12 @@ theorem map_layerBlock_infinitePi (n : ℕ) :
     measurable_pi_iff.2 fun j => measurable_pi_apply j.val
   have hA : (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).map cols =
-      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-    calc (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
-            gaussianReal 0 1).map cols
-        = Measure.infinitePi fun _ : ℕ => Measure.map (fun r : ℕ → ℝ => fun k : Fin n => r k.val)
-            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
-          simpa [cols] using
-            (Measure.infinitePi_map_pi
-              (μ := fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-              (f := fun _ (r : ℕ → ℝ) (k : Fin n) => r k.val)
-              (fun _ => measurable_pi_iff.2 fun k => measurable_pi_apply k.val))
-      _ = Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-          congr 1
-          funext j
-          rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective,
-            Measure.infinitePi_eq_pi]
+      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
+    map_prefixMap_infinitePi (gaussianReal 0 1) n
   have hB : (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n =>
       gaussianReal 0 1)).map rows =
-      Measure.pi fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-    rw [show rows = fun R j => R j.val from rfl,
-      Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
+      Measure.pi fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
+    (measurePreserving_prefixMap (Measure.pi fun _ : Fin n => gaussianReal 0 1) n).map_eq
   have hcomp : layerBlock n = rows ∘ cols := rfl
   rw [hcomp, ← Measure.map_map hrows hcols, hA, hB]
 

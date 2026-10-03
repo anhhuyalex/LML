@@ -217,28 +217,8 @@ theorem empiricalCovariance_tendsto_matrix_integral
         Filter.atTop
         (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
             gaussianReal 0 1)) : Matrix (Fin m) (Fin m) ℝ)) := by
-  have h_entry : ∀ α β : Fin m,
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1)),
-        Filter.Tendsto
-          (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
-          Filter.atTop
-          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
-              gaussianReal 0 1))) :=
-    fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
-  have h_all :
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1)),
-        ∀ α β : Fin m,
-          Filter.Tendsto
-            (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
-            Filter.atTop
-            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
-                gaussianReal 0 1))) := by
-    simp_rw [ae_all_iff]
-    exact h_entry
-  filter_upwards [h_all] with rows hrows
-  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hrows α β
+  exact ae_tendsto_matrix_of_forall_entry fun α β =>
+    empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
 
 end Theorem2
 
@@ -280,34 +260,7 @@ lemma empiricalCovariance_tendsto_limitingCovariance
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
         Filter.atTop
         (nhds (limitingCovariance φ X)) :=
-by
-  have h_entry : ∀ α β : Fin m,
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1)),
-        Filter.Tendsto
-          (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
-          Filter.atTop
-          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
-              gaussianReal 0 1))) :=
-    fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
-  have h_all :
-      ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1)),
-        ∀ α β : Fin m,
-          Filter.Tendsto
-            (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
-            Filter.atTop
-            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
-                gaussianReal 0 1))) := by
-    simp_rw [ae_all_iff]
-    exact h_entry
-  filter_upwards [h_all] with rows hrows
-  change Filter.Tendsto
-    (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X)
-    Filter.atTop
-    (nhds ((fun α β => ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)
-      ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)) : Matrix (Fin m) (Fin m) ℝ))
-  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hrows α β
+  empiricalCovariance_tendsto_matrix_integral φ X hφ_meas hφ_L2
 
 /-- The quadratic form with a matrix `M ↦ c ⬝ᵥ M *ᵥ c` is continuous. -/
 lemma continuous_matrix_quadratic (c : Fin m → ℝ) :
@@ -455,7 +408,7 @@ lemma map_infinitePi_rows_eq_gaussianInit (n d : ℕ) :
     Measure.map (fun (rows : ℕ → Fin d → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) = (Measure.pi
           fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
-  rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
+  exact (measurePreserving_prefixMap (Measure.pi fun _ : Fin d => gaussianReal 0 1) n).map_eq
 
 /-! ### Step 1 & Step 2: Unconditional Characteristic Function -/
 

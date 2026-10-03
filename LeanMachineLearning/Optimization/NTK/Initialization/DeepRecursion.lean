@@ -155,23 +155,8 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
   have hrestrictRows :
       Measure.map restrictRows
         (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
-    calc
-      Measure.map restrictRows
-          (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-        Measure.infinitePi fun _ : ℕ =>
-          Measure.map (fun r : ℕ → ℝ => fun k : Fin d => r k.val)
-            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
-          simpa [restrictRows] using
-            (Measure.infinitePi_map_pi
-              (μ := fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-              (f := fun _ (r : ℕ → ℝ) (k : Fin d) => r k.val)
-              (fun _ => measurable_pi_iff.2 fun k => measurable_pi_apply k.val))
-      _ = Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
-        congr 1
-        funext j
-        rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective,
-          Measure.infinitePi_eq_pi]
+      Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
+    map_prefixMap_infinitePi (gaussianReal 0 1) d
   let u : Fin m → Fin d → ℝ := fun α k => (d : ℝ)⁻¹.sqrt * X α k
   let projectRows : (ℕ → Fin d → ℝ) → (ℕ → EuclideanSpace ℝ (Fin m)) :=
     fun W j => WithLp.toLp 2 fun α => W j ⬝ᵥ u α
@@ -230,25 +215,15 @@ lemma map_infinitePi_input_preactivations (d m : ℕ) (X : Fin m → Fin d → �
 
 /-- **Independence Across Depth**, for the uniform `Fin L → ℕ → ℕ → ℝ` layer population feeding
 `deepPreactivation`.  This is the infinite-population analogue of `indepFun_layer_history`
-(`NTK.Initialization.Peripheral`); the proof is identical (`iIndepFun_pi` is generic in the per-index
-measurable space and measure), only the per-layer type changes from the finite-width
-`Fin n → Fin d → ℝ` to the infinite-population `ℕ → ℕ → ℝ`. -/
+(`NTK.Initialization.Peripheral`); both are instances of `indepFun_pi_apply_Iio`, with per-layer
+type `Fin n → Fin d → ℝ` resp. the infinite-population `ℕ → ℕ → ℝ`. -/
 theorem indepFun_deepLayer_history (L : ℕ) (ℓ : Fin L) :
     IndepFun (fun ω : Fin L → ℕ → ℕ → ℝ => ω ℓ)
       (fun ω : Fin L → ℕ → ℕ → ℝ => fun i : Finset.Iio ℓ => ω i)
       (Measure.pi (fun _ : Fin L =>
         Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
-  have h_indep : iIndepFun (fun ℓ : Fin L => fun ω : Fin L → ℕ → ℕ → ℝ => ω ℓ)
-      (Measure.pi (fun _ : Fin L =>
-        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) :=
-    iIndepFun_pi (fun _ => aemeasurable_id)
-  have h_meas : ∀ i : Fin L, Measurable (fun ω : Fin L → ℕ → ℕ → ℝ => ω i) :=
-    fun i => measurable_pi_apply i
-  have h_disj : Disjoint ({ℓ} : Finset (Fin L)) (Finset.Iio ℓ) :=
-    Finset.disjoint_singleton_left.2 (by simp)
-  have h := h_indep.indepFun_finset {ℓ} (Finset.Iio ℓ) h_disj h_meas
-  exact h.comp (measurable_pi_apply (⟨ℓ, Finset.mem_singleton_self ℓ⟩ :
-    ({ℓ} : Finset (Fin L)))) measurable_id
+  indepFun_pi_apply_Iio
+    (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) ℓ
 
 /-- The current infinite weight population is independent of all earlier populations.  This
 pushforward form is the measure-theoretic interface used by the deep covariance induction: it

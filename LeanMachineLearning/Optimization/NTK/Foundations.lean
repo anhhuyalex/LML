@@ -12,6 +12,7 @@ public import LeanMachineLearning.Optimization.NTK.Foundations.TendstoInMeasureU
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
+public import LeanMachineLearning.Optimization.NTK.Foundations.InfinitePiPrefix
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 
 /-!
@@ -23,6 +24,7 @@ Network-independent tools used throughout the NTK development:
   (`matrixCLM`), Gram projectors (`IsStarProjection`), and measurability of matrix operations;
 * `IIDAverage`, `SlutskyTightness`, `TendstoInMeasureUtil`: i.i.d. averages with Chebyshev bounds,
   Slutsky/tightness/Markov lemmas, and convergence in measure for matrix-valued sequences;
+* `InfinitePiPrefix`: restricting i.i.d. sequences/arrays to their first `n` coordinates;
 * `Concentration`: standard-Gaussian moment and tail bounds with probability-measure union-bound
   algebra;
 * `ODE`: Grönwall, the bootstrap principle, global flows of locally Lipschitz fields.

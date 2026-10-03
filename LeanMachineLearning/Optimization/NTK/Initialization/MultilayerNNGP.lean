@@ -54,7 +54,6 @@ Conditional normality and recurrence convergence for sequentially built multilay
 * `NTK.tendsto_charFun_sequential_preactivation_multivariate` : pointwise DCT convergence of the
   multivariate preactivation characteristic functions.
 * `NTK.tendstoInDistribution_sequential_preactivation` : master theorem for arbitrary `Fin m`.
-* `NTK.tendstoInDistribution_sequential_bivariate` : public `m = 2` bivariate corollary.
 
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
@@ -172,42 +171,8 @@ lemma multivariateGaussian_average_tendsto_integral_multivariate
       ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
       Filter.Tendsto
         (fun width : ℕ => (width : ℝ)⁻¹ * ∑ j : Fin width, g (seq j))
-        Filter.atTop (nhds (∫ z, g z ∂(multivariateGaussian 0 K))) := by
-  set μ := Measure.infinitePi (fun _ : ℕ => multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) K)
-  have hmap_eval : ∀ i : ℕ, μ.map (fun seq => seq i) = multivariateGaussian 0 K :=
-    fun i => Measure.infinitePi_map_eval _ i
-  have hmp : MeasurePreserving (fun seq : ℕ → EuclideanSpace ℝ (Fin m) => seq 0) μ
-      (multivariateGaussian 0 K) :=
-    measurePreserving_eval_infinitePi (fun _ : ℕ => multivariateGaussian 0 K) 0
-  have hint : Integrable (fun seq : ℕ → EuclideanSpace ℝ (Fin m) => g (seq 0)) μ :=
-    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
-  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j seq => g (seq j)) := by
-    have h := iIndepFun_infinitePi (P := fun _ : ℕ => multivariateGaussian 0 K)
-      (X := fun _ : ℕ => g) (fun _ => hg_meas)
-    intro i j hij
-    exact h.indepFun hij
-  have hident : ∀ i : ℕ,
-      IdentDistrib (fun seq : ℕ → EuclideanSpace ℝ (Fin m) => g (seq i))
-        (fun seq : ℕ → EuclideanSpace ℝ (Fin m) => g (seq 0)) μ μ := by
-    intro i
-    have hcoord : IdentDistrib (fun seq : ℕ → EuclideanSpace ℝ (Fin m) => seq i)
-        (fun seq : ℕ → EuclideanSpace ℝ (Fin m) => seq 0) μ μ := by
-      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
-      rw [hmap_eval i, hmap_eval 0]
-    exact hcoord.comp hg_meas
-  have hslln : ∀ᵐ seq ∂μ, Filter.Tendsto
-      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (seq i))
-      Filter.atTop (nhds (∫ seq, g (seq 0) ∂μ)) :=
-    strong_law_ae _ hint hindep hident
-  have hexp : ∫ seq, g (seq 0) ∂μ = ∫ z, g z ∂(multivariateGaussian 0 K) := by
-    rw [← hmap_eval 0]
-    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
-      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
-  filter_upwards [hslln] with seq hseq
-  rw [← hexp]
-  convert hseq using 1
-  ext width
-  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
+        Filter.atTop (nhds (∫ z, g z ∂(multivariateGaussian 0 K))) :=
+  iid_average_tendsto_integral (multivariateGaussian 0 K) g hg_meas hg_int
 
 /-- Almost-sure convergence of every entry of the empirical covariance recurrence. -/
 theorem empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate
@@ -242,21 +207,7 @@ theorem empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate
     have h_scale := hZ.const_mul (σw ^ 2)
     simp_rw [← mul_assoc] at h_scale
     exact h_scale.const_add (σb ^ 2)
-  have h_all :
-      ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin m) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
-        ∀ α β : Fin m, Filter.Tendsto
-          (fun n : ℕ => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
-            ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
-          Filter.atTop
-          (nhds (σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
-            φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
-    rw [ae_all_iff]
-    intro α
-    rw [ae_all_iff]
-    intro β
-    exact h_entry α β
-  filter_upwards [h_all] with Z hZ
-  exact tendsto_pi_nhds.2 fun α => tendsto_pi_nhds.2 fun β => hZ α β
+  exact ae_tendsto_matrix_of_forall_entry h_entry
 
 -- Measurability of the per-layer preactivation map used to build the conditional Gaussian.
 private lemma measurable_conditional_preactivation (σw σb : ℝ) (n m : ℕ) (H : Fin n → Fin m → ℝ) :
@@ -656,29 +607,6 @@ theorem tendstoInDistribution_sequential_preactivation
       exact tendsto_charFun_sequential_preactivation_multivariate σw σb m φ hφ_meas K hK_pos hφ_L2 t
     convert! h_weak
     exact Measure.map_id
-
-set_option backward.isDefEq.respectTransparency.types false in
-/-- **Sequential Multilayer NNGP Limit (Bivariate Corollary)**:
-For two evaluation points `m = 2`, the joint layer-to-layer preactivation vector converges in
-distribution to the centered bivariate Gaussian with covariance determined by the limiting
-recurrence `fun α β => σb ^ 2 + σw ^ 2 * ∫ z, φ (z.ofLp α) * φ (z.ofLp β) d𝒩(0, K)`. -/
-theorem tendstoInDistribution_sequential_bivariate
-    (σw σb : ℝ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
-    (K : Matrix (Fin 2) (Fin 2) ℝ)
-    (hK_pos : K.PosSemidef)
-    (hφ_L2 : ∀ α : Fin 2, MemLp (fun z : EuclideanSpace ℝ (Fin 2) => φ (z.ofLp α)) 2
-      (multivariateGaussian 0 K)) :
-    TendstoInDistribution
-      (fun n (p : (ℕ → EuclideanSpace ℝ (Fin 2)) × ((Fin n → ℝ) × ℝ)) =>
-        WithLp.toLp 2 fun α : Fin 2 => σb * p.2.2 + (σw * (n : ℝ)⁻¹.sqrt) *
-          ∑ j : Fin n, p.2.1 j * φ ((p.1 j.val).ofLp α))
-      Filter.atTop id
-      (fun n => (Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K).prod
-        ((Measure.pi fun _ : Fin n => gaussianReal 0 1).prod (gaussianReal 0 1)))
-      (multivariateGaussian (0 : EuclideanSpace ℝ (Fin 2))
-        (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin 2),
-          φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) :=
-  tendstoInDistribution_sequential_preactivation σw σb 2 φ hφ_meas K hK_pos hφ_L2
 
 end MultilayerSequentialNNGP
 

@@ -53,57 +53,21 @@ has unit variance: `∫ (W i k)² = 1`. -/
 theorem integral_gaussianInit_entry_sq (n p : ℕ) (i : Fin n) (k : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) = 1 := by
-  have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
-      Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-      (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
-  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) =
-      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
-  have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
-      Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-    (measurable_pi_apply i).aemeasurable
-  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) :=
-    (measurable_pi_apply k).aemeasurable
-  have hf1_cont : Continuous (fun a : Fin p → ℝ => (a k) ^ 2) := by fun_prop
-  have hf2_cont : Continuous (fun x : ℝ => x ^ 2) := by fun_prop
-  have h_step1 : ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
-      : Fin p => gaussianReal 0 1) =
-      ∫ a : Fin p → ℝ, (a k) ^ 2 ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-    rw [← integral_map h_meas1 hf1_cont.aestronglyMeasurable, h_row]
-  have h_step2 : ∫ a : Fin p → ℝ, (a k) ^ 2 ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-      ∫ x : ℝ, x ^ 2 ∂(gaussianReal 0 1) := by
-    rw [← integral_map h_meas2 hf2_cont.aestronglyMeasurable, h_coord]
-  rw [h_step1, h_step2, integral_sq_gaussianReal]
+  rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i := i)
+      (f := fun a : Fin p → ℝ => a k ^ 2)
+      (by fun_prop : Measurable fun a : Fin p → ℝ => a k ^ 2).aestronglyMeasurable,
+    integral_comp_eval (μ := fun _ : Fin p => gaussianReal 0 1) (i := k)
+      (f := fun x : ℝ => x ^ 2)
+      (by fun_prop : Measurable fun x : ℝ => x ^ 2).aestronglyMeasurable, integral_sq_gaussianReal]
 
 /-- Every single coordinate `W i k` of a Gaussian matrix has zero mean: `∫ W i k = 0`. -/
 theorem integral_gaussianInit_entry (n p : ℕ) (i : Fin n) (k : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) = 0 := by
-  have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
-      Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-      (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
-  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) =
-      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
-  have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
-      Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-    (measurable_pi_apply i).aemeasurable
-  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) :=
-    (measurable_pi_apply k).aemeasurable
-  have hf1_cont : Continuous (fun a : Fin p → ℝ => a k) := by fun_prop
-  have hf2_cont : Continuous (fun x : ℝ => x) := by fun_prop
-  have h_step1 : ∫ W : Fin n → Fin p → ℝ, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
-      p => gaussianReal 0 1) =
-      ∫ a : Fin p → ℝ, a k ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-    rw [← integral_map h_meas1 hf1_cont.aestronglyMeasurable, h_row]
-  have h_step2 : ∫ a : Fin p → ℝ, a k ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-      ∫ x : ℝ, x ∂(gaussianReal 0 1) := by
-    rw [← integral_map h_meas2 hf2_cont.aestronglyMeasurable, h_coord]
-  have h_zero : ∫ x : ℝ, x ∂(gaussianReal 0 1) = 0 :=
-    ProbabilityTheory.integral_id_gaussianReal (μ := 0) (v := 1)
-  rw [h_step1, h_step2, h_zero]
+  rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i := i)
+      (f := fun a : Fin p → ℝ => a k)
+      (by fun_prop : Measurable fun a : Fin p → ℝ => a k).aestronglyMeasurable, integral_eval,
+    ProbabilityTheory.integral_id_gaussianReal]
 
 /-! ### Bilinear Gaussian Form Expectation (Proposition 2.27 Step 4) -/
 
@@ -112,16 +76,9 @@ lemma memLp_entry (n p : ℕ) (i : Fin n) (l : Fin p) :
     MemLp (fun W : Fin n → Fin p → ℝ => W i l) 2 (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
         p => gaussianReal 0 1) := by
   have h_base : MemLp id (2 : ENNReal) (gaussianReal 0 1) := memLp_id_gaussianReal (2 : NNReal)
-  have h_pres_l : MeasurePreserving (fun a : Fin p → ℝ => a l)
-      (Measure.pi fun _ : Fin p => gaussianReal 0 1) (gaussianReal 0 1) :=
-    measurePreserving_eval (fun _ : Fin p => gaussianReal 0 1) l
-  have h_row : MemLp (fun a : Fin p → ℝ => a l) 2 (Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-    h_base.comp_measurePreserving h_pres_l
-  have h_pres_i : MeasurePreserving (fun W : Fin n → Fin p → ℝ => W i)
-      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (Measure.pi fun _ :
-          Fin p => gaussianReal 0 1) :=
-    measurePreserving_eval (fun _ : Fin n => (Measure.pi fun _ : Fin p => gaussianReal 0 1)) i
-  exact h_row.comp_measurePreserving h_pres_i
+  exact h_base.comp_measurePreserving
+    ((measurePreserving_eval (fun _ : Fin p => gaussianReal 0 1) l).comp
+      (measurePreserving_eval (fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) i))
 
 /-- Bilinear product of any two matrix coordinates `W i k * W j l` is integrable. -/
 lemma integrable_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : Fin p) :
@@ -145,62 +102,41 @@ theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : F
   · by_cases hij : i = j
     · subst hij
       have hkl : k ≠ l := fun h_eq => h ⟨rfl, h_eq⟩
-      have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
-          Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-          (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
-      have h_meas_row : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
-          Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-        (measurable_pi_apply i).aemeasurable
-      have h_fun_cont : Continuous (fun a : Fin p → ℝ => a k * a l) := by fun_prop
-      have h_step : ∫ W : Fin n → Fin p → ℝ, W i k * W i l ∂(Measure.pi fun _ : Fin n => Measure.pi
-          fun _ : Fin p => gaussianReal 0 1) =
-          ∫ a : Fin p → ℝ, a k * a l ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-        rw [← integral_map h_meas_row h_fun_cont.aestronglyMeasurable, h_row]
-      rw [h_step]
+      rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i := i)
+        (f := fun a : Fin p → ℝ => a k * a l) (by fun_prop)]
       have h_indep := (iIndepFun_readoutWeights p).indepFun hkl
-      have h_meask : AEStronglyMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-          gaussianReal 0 1) := by
-        have hc : Continuous (fun a : Fin p → ℝ => a k) := by fun_prop
-        exact hc.aestronglyMeasurable
-      have h_measl : AEStronglyMeasurable (fun a : Fin p → ℝ => a l) (Measure.pi fun _ : Fin p =>
-          gaussianReal 0 1) := by
-        have hc : Continuous (fun a : Fin p → ℝ => a l) := by fun_prop
-        exact hc.aestronglyMeasurable
       change (fun a => a k) ⟂ᵢ[(Measure.pi fun _ : Fin p => gaussianReal 0 1)] (fun a => a
           l) at h_indep
-      rw [h_indep.integral_fun_mul_eq_mul_integral h_meask h_measl]
-      have h_coord_k : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-          gaussianReal 0 1) =
-          gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
-      have h_meas_k' : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-          gaussianReal 0 1) :=
-        (measurable_pi_apply k).aemeasurable
-      have hf_cont : Continuous (fun x : ℝ => x) := by fun_prop
-      have h_int_k : ∫ a : Fin p → ℝ, a k ∂(Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-          ∫ x : ℝ, x ∂(gaussianReal 0 1) := by
-        rw [← integral_map h_meas_k' hf_cont.aestronglyMeasurable, h_coord_k]
-      have h_zero : ∫ x : ℝ, x ∂(gaussianReal 0 1) = 0 :=
-        ProbabilityTheory.integral_id_gaussianReal (μ := 0) (v := 1)
-      rw [h_int_k, h_zero, zero_mul]
+      rw [h_indep.integral_fun_mul_eq_mul_integral
+          (by fun_prop : Measurable fun a : Fin p → ℝ => a k).aestronglyMeasurable
+          (by fun_prop : Measurable fun a : Fin p → ℝ => a l).aestronglyMeasurable, integral_eval,
+        ProbabilityTheory.integral_id_gaussianReal, zero_mul]
     · have h_indep_row := (iIndepFun_inputWeights n p).indepFun hij
       have h_indep_entry := h_indep_row.comp (measurable_pi_apply k) (measurable_pi_apply l)
-      have h_meas_ik : AEStronglyMeasurable (fun W : Fin n → Fin p → ℝ =>
-          ((fun f => f k) ∘ fun W => W
-              i) W) (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-        have hc : Continuous (fun W : Fin n → Fin p → ℝ => W i k) := by fun_prop
-        exact hc.aestronglyMeasurable
-      have h_meas_jl : AEStronglyMeasurable (fun W : Fin n → Fin p → ℝ =>
-          ((fun f => f l) ∘ fun W => W
-              j) W) (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-        have hc : Continuous (fun W : Fin n → Fin p → ℝ => W j l) := by fun_prop
-        exact hc.aestronglyMeasurable
-      have h_step : (fun W : Fin n → Fin p → ℝ => W i k * W j l) =
-          (fun W => ((fun f => f k) ∘ fun W => W i) W * ((fun f => f l) ∘ fun W => W j) W) := rfl
-      rw [h_step, h_indep_entry.integral_fun_mul_eq_mul_integral h_meas_ik h_meas_jl]
-      change (∫ W, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
-          gaussianReal 0 1)) * (∫ W, W j l ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
-              gaussianReal 0 1)) = 0
-      rw [integral_gaussianInit_entry n p i k, zero_mul]
+      change (fun W : Fin n → Fin p → ℝ => W i k) ⟂ᵢ[Measure.pi fun _ : Fin n =>
+        Measure.pi fun _ : Fin p => gaussianReal 0 1] (fun W : Fin n → Fin p → ℝ => W j l)
+        at h_indep_entry
+      rw [h_indep_entry.integral_fun_mul_eq_mul_integral
+          (by fun_prop : Measurable fun W : Fin n → Fin p → ℝ => W i k).aestronglyMeasurable
+          (by fun_prop : Measurable fun W : Fin n → Fin p → ℝ => W j l).aestronglyMeasurable,
+        integral_gaussianInit_entry n p i k, zero_mul]
+
+/-- Expansion of a product of two coordinates of `Wᵀ *ᵥ u` and `Wᵀ *ᵥ v` as a double sum of
+coordinate products of `W`. -/
+lemma mulVec_transpose_mul_apply_eq_sum (u v : Fin n → ℝ) (k l : Fin p) (W : Fin n → Fin p → ℝ) :
+    ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l =
+      ∑ i : Fin n, ∑ j : Fin n, u i * v j * (W i k * W j l) := by
+  have h_u : ((Matrix.of W)ᵀ *ᵥ u) k = ∑ i : Fin n, u i * W i k := by
+    simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
+    refine Finset.sum_congr rfl fun i _ => mul_comm _ _
+  have h_v : ((Matrix.of W)ᵀ *ᵥ v) l = ∑ j : Fin n, v j * W j l := by
+    simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
+    refine Finset.sum_congr rfl fun j _ => mul_comm _ _
+  rw [h_u, h_v]
+  simp_rw [Finset.sum_mul, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  refine Finset.sum_congr rfl fun j _ => ?_
+  ring
 
 /-- Expectation of coordinate products of transpose vector multiplications:
 `∫ (Wᵀ *ᵥ u) k * (Wᵀ *ᵥ v) l ∂(𝒩(0,1)^{n×p}) = if k = l then u ⬝ᵥ v else 0`. -/
@@ -208,21 +144,7 @@ lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l
     ∫ W : Fin n → Fin p → ℝ, ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l ∂(Measure.pi fun _ :
         Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       if k = l then u ⬝ᵥ v else 0 := by
-  have h_eq : (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) =
-      fun W => ∑ i : Fin n, ∑ j : Fin n, u i * v j * (W i k * W j l) := by
-    ext W
-    have h_u : ((Matrix.of W)ᵀ *ᵥ u) k = ∑ i : Fin n, u i * W i k := by
-      simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
-      refine Finset.sum_congr rfl fun i _ => mul_comm _ _
-    have h_v : ((Matrix.of W)ᵀ *ᵥ v) l = ∑ j : Fin n, v j * W j l := by
-      simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
-      refine Finset.sum_congr rfl fun j _ => mul_comm _ _
-    rw [h_u, h_v]
-    simp_rw [Finset.sum_mul, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => ?_
-    refine Finset.sum_congr rfl fun j _ => ?_
-    ring
-  rw [h_eq]
+  simp_rw [mulVec_transpose_mul_apply_eq_sum]
   rw [integral_finsetSum _ fun i _ =>
     (integrable_finsetSum _ fun j _ =>
       (integrable_entry_mul_entry n p i j k l).const_mul (u i * v j))]
@@ -259,21 +181,7 @@ lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l
 lemma integrable_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l : Fin p) :
     Integrable (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l)
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-  have h_eq : (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) =
-      fun W => ∑ i : Fin n, ∑ j : Fin n, u i * v j * (W i k * W j l) := by
-    ext W
-    have h_u : ((Matrix.of W)ᵀ *ᵥ u) k = ∑ i : Fin n, u i * W i k := by
-      simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
-      refine Finset.sum_congr rfl fun i _ => mul_comm _ _
-    have h_v : ((Matrix.of W)ᵀ *ᵥ v) l = ∑ j : Fin n, v j * W j l := by
-      simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
-      refine Finset.sum_congr rfl fun j _ => mul_comm _ _
-    rw [h_u, h_v]
-    simp_rw [Finset.sum_mul, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => ?_
-    refine Finset.sum_congr rfl fun j _ => ?_
-    ring
-  rw [h_eq]
+  simp_rw [mulVec_transpose_mul_apply_eq_sum]
   exact integrable_finsetSum _ fun i _ =>
     integrable_finsetSum _ fun j _ =>
       (integrable_entry_mul_entry n p i j k l).const_mul (u i * v j)

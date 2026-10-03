@@ -357,10 +357,10 @@ $(\sigma_bt\cdot\mathbf 1)^2+\sum_j(\frac{\sigma_w}{\sqrt n}\sum_\alpha t_\alpha
   \lean{NTK.tendsto_charFun_preactivation_dct_multivariate, NTK.measurable_sequential_preactivation,
         NTK.charFun_map_sequential_preactivation_multivariate,
         NTK.tendsto_charFun_sequential_preactivation_multivariate,
-        NTK.tendstoInDistribution_sequential_preactivation, NTK.tendstoInDistribution_sequential_bivariate}
+        NTK.tendstoInDistribution_sequential_preactivation}
   \leanok
 Let $K\succeq0$, $\varphi$ measurable with $\varphi(z_\alpha)\in L^2(\mathcal N(0,K))$ for every $\alpha$. Let the previous layer be i.i.d.\ $\mathcal N(0,K)$ vectors $Z_j$, independent of $(w,b)$. Then the next-layer preactivation vector
-$\sigma_b\,b+\frac{\sigma_w}{\sqrt n}\sum_{j<n}w_j\,\varphi(Z_j)\in\mathbb R^m$ converges in distribution as $n\to\infty$ to $\mathcal N\bigl(0,\mathcal C_\varphi(K)\bigr)$; for $m=2$ this is the bivariate corollary.
+$\sigma_b\,b+\frac{\sigma_w}{\sqrt n}\sum_{j<n}w_j\,\varphi(Z_j)\in\mathbb R^m$ converges in distribution as $n\to\infty$ to $\mathcal N\bigl(0,\mathcal C_\varphi(K)\bigr)$.
 \end{theorem}
 
 \begin{proof}
@@ -416,10 +416,9 @@ By Theorem~\ref{thm:ntkdeep:gaussianMatrix} (with $u^\alpha=H_{\cdot\alpha}/\sqr
 \begin{lemma}[Moments of polynomially growing activations]\label{lem:ntkdeep:polyGrowth}
   \lean{NTK.memLp_activation_coordinate_of_polynomial_growth,
         NTK.memLp_activation_coordinate_of_polynomial_growth_of_nat,
-        NTK.memLp_activation_product_of_polynomial_growth,
-        NTK.memLp_activation_product_pi_of_polynomial_growth}
+        NTK.memLp_activation_product_of_polynomial_growth}
   \leanok
-If $\varphi$ is measurable with $|\varphi(x)|\le C(1+|x|^p)$, then for every Gaussian $\mathcal N(0,K)$ and coordinate $\alpha$, $\varphi(z_\alpha)\in L^q$ for every finite $q$, and the product $\varphi(z_\alpha)\varphi(z_\beta)$ is in $L^2$, also after selecting a coordinate of a finite i.i.d.\ Gaussian layer.
+If $\varphi$ is measurable with $|\varphi(x)|\le C(1+|x|^p)$, then for every Gaussian $\mathcal N(0,K)$ and coordinate $\alpha$, $\varphi(z_\alpha)\in L^q$ for every finite $q$, and the product $\varphi(z_\alpha)\varphi(z_\beta)$ is in $L^2$.
 \end{lemma}
 
 \begin{proof}
@@ -429,9 +428,7 @@ Gaussian measures have moments of every finite order, so $|\varphi(z_\alpha)|^q\
 
 \begin{theorem}[Conditional empirical covariance propagation]\label{thm:ntkdeep:covariancePropagation}
   \uses{lem:ntkdeep:polyGrowth, thm:ntkf:slln, lem:ntkf:chebyshev, def:ntkdeep:layerCovariance}
-  \lean{NTK.empiricalCovariance_entry_chebyshev_of_polynomial_growth,
-        NTK.variance_empiricalCovariance_entry_le_of_polynomial_growth,
-        NTK.conditional_empiricalCovariance_tendstoInMeasure,
+  \lean{NTK.conditional_empiricalCovariance_tendstoInMeasure,
         NTK.conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth,
         NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq}
   \leanok
