@@ -58,7 +58,7 @@ theorem indepFun_layer_history (L n d : ℕ) (ℓ : Fin L) :
     IndepFun (fun ω : Fin L → Fin n → Fin d → ℝ => ω ℓ)
       (fun ω : Fin L → Fin n → Fin d → ℝ => fun i : Finset.Iio ℓ => ω i)
       (Measure.pi (fun _ : Fin L => (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1))) := by
+          gaussianReal 0 1))) :=
   indepFun_pi_apply_Iio (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) ℓ
 
 /-! ### Arc-Cosine Kernel Representation (Cho & Saul) -/

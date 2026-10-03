@@ -220,7 +220,7 @@ theorem indepFun_deepLayer_history (L : ℕ) (ℓ : Fin L) :
     IndepFun (fun ω : Fin L → ℕ → ℕ → ℝ => ω ℓ)
       (fun ω : Fin L → ℕ → ℕ → ℝ => fun i : Finset.Iio ℓ => ω i)
       (Measure.pi (fun _ : Fin L =>
-        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
+        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) :=
   indepFun_pi_apply_Iio
     (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) ℓ
 
@@ -514,8 +514,8 @@ lemma polynomial_growth_mono (φ : ℝ → ℝ) {C C' : ℝ} (hC : 0 ≤ C) (hCC
     · linarith [pow_le_pow_right₀ h1 hp]
   have hpos : 0 ≤ 1 + |x| ^ p' := by positivity
   calc |φ x| ≤ C * (1 + |x| ^ p) := h x
-    _ ≤ C * (2 * (1 + |x| ^ p')) := mul_le_mul_of_nonneg_left (by linarith [pow_nonneg
-        (abs_nonneg x) p']) hC
+    _ ≤ C * (2 * (1 + |x| ^ p')) :=
+      mul_le_mul_of_nonneg_left (by linarith [pow_nonneg (abs_nonneg x) p']) hC
     _ = (2 * C) * (1 + |x| ^ p') := by ring
     _ ≤ C' * (1 + |x| ^ p') := mul_le_mul_of_nonneg_right hCC hpos
 

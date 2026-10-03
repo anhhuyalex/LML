@@ -41,19 +41,6 @@ Conditional normality and recurrence convergence for sequentially built multilay
   Preactivations converge in distribution to
   $\mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma}^{(\ell+1)})$ for arbitrary $m$:
   `NTK.tendstoInDistribution_sequential_preactivation`.
-* Public Bivariate Corollary ($m = 2$):
-  `NTK.tendstoInDistribution_sequential_bivariate`.
-* `NTK.empirical_layer_covariance_posSemidef_multivariate` : positive semidefiniteness of the
-  empirical layer covariance matrix.
-* `NTK.exact_conditional_normality_general_multivariate` : exact multivariate conditional
-  normality across layers.
-* `NTK.empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate` : entrywise SLLN
-  convergence of the sequential empirical covariance recurrence.
-* `NTK.limitingRecurrence_posSemidef_multivariate` : positive semidefiniteness of the limiting
-  recurrence matrix.
-* `NTK.tendsto_charFun_sequential_preactivation_multivariate` : pointwise DCT convergence of the
-  multivariate preactivation characteristic functions.
-* `NTK.tendstoInDistribution_sequential_preactivation` : master theorem for arbitrary `Fin m`.
 
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
@@ -526,7 +513,6 @@ lemma charFun_map_sequential_preactivation_multivariate
 lemma tendsto_charFun_sequential_preactivation_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    (hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
@@ -569,13 +555,10 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
   exact tendsto_charFun_preactivation_dct_multivariate σw σb m φ hφ_meas K hφ_L2 t
 
 
-
-
 set_option backward.isDefEq.respectTransparency.types false in
 theorem tendstoInDistribution_sequential_preactivation
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    (hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) :
     TendstoInDistribution
@@ -613,7 +596,7 @@ theorem tendstoInDistribution_sequential_preactivation
             φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)), inferInstance⟩) := by
       apply ProbabilityMeasure.tendsto_of_tendsto_charFun
       intro t
-      exact tendsto_charFun_sequential_preactivation_multivariate σw σb m φ hφ_meas K hK_pos hφ_L2 t
+      exact tendsto_charFun_sequential_preactivation_multivariate σw σb m φ hφ_meas K hφ_L2 t
     convert! h_weak
     exact Measure.map_id
 

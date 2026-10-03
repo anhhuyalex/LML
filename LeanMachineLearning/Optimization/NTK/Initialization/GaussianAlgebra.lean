@@ -112,7 +112,7 @@ theorem stdGaussian_inner_family (n m : ℕ) (u : Fin m → Fin n → ℝ) :
 `f` to every coordinate pushes `ν^{⊗ι}` forward to `κ^{⊗ι}` (a form of `Measure.pi_map_pi` with a
 constant family). -/
 lemma map_pi_rows_eq_pi {ι α β : Type*} [Fintype ι] [MeasurableSpace α] [MeasurableSpace β]
-    {ν : Measure α} {κ : Measure β} [SigmaFinite ν] [SigmaFinite κ] {f : α → β}
+    {ν : Measure α} {κ : Measure β} [SigmaFinite κ] {f : α → β}
     (hf : AEMeasurable f ν) (h : ν.map f = κ) :
     (Measure.pi fun _ : ι => ν).map (fun W i => f (W i)) = Measure.pi fun _ : ι => κ := by
   have : SigmaFinite (ν.map f) := h ▸ ‹SigmaFinite κ›
