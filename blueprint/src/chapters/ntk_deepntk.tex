@@ -1,0 +1,764 @@
+\chapter{The deep neural tangent kernel at initialization: Propositions 2.25 and 2.27, Lemma 2.26 and Theorem 2.27}\label{chap:ntkdn}
+
+This chapter treats the NTK of a deep fully connected network at random initialization. It proves that, as the width $n\to\infty$ with depth, input dimension and number of inputs fixed, the empirical NTK Gram matrix converges in probability to a deterministic matrix given by an explicit recursion (Theorem~\ref{thm:ntkdn:main}). The forward half of the argument, the convergence of the layerwise covariances, is Theorem~\ref{thm:ntkdeep:deepCovariance} of Chapter~\ref{chap:ntkdeep}. The new input is the \emph{backward} half: the concentration of the Gram matrices of backpropagated vectors. It rests on the conditioning and concentration tools of Chapter~\ref{chap:ntkcond}.
+
+The Lean files are \texttt{Optimization/NTK/Deep/}: \texttt{Architecture}, \texttt{LayerwiseNTK}, \texttt{LimitingNTK}, \texttt{LayerSplit}, \texttt{GaussianDecoupling}, \texttt{DeepSpaceForward}, \texttt{BackwardStructure}, \texttt{BackwardAlgebra}, \texttt{DecouplingBounds}, \texttt{BackwardDecoupling}, \texttt{BackwardTop}, \texttt{BackwardInduction}, \texttt{BackwardConcentration}.
+
+\medskip\noindent\textbf{Status.}
+Everything in this chapter is formalized and fully proved, with one \emph{extra hypothesis} in the main theorem that the informal statement does not carry (Hypothesis~\ref{hyp:ntkdn:nondeg}). Two points are \emph{not} formalized and are stated as such below: the identification of $\sum_\ell G_\ell\odot\Phi_\ell$ with the Gram matrix of parameter gradients (in Lean $\Theta^{\mathrm{emp}}$ is \emph{defined} by the layerwise formula, and $\varphi'$ is an arbitrary continuous companion function; Remark~\ref{rmk:ntkdn:chainRule}); and the verification of Hypothesis~\ref{hyp:ntkdn:nondeg} for concrete activations.
+
+\medskip\noindent\textbf{Setting and conventions.}
+The depth $d\ge1$ is the number of \emph{hidden} layers. The network has $d+1$ weight matrices
+\[
+  W_0\in\mathbb R^{n\times n_0},\qquad W_1,\dots,W_{d-1}\in\mathbb R^{n\times n},\qquad W_d\in\mathbb R^n\ \text{(readout)},
+\]
+with i.i.d.\ $\mathcal N(0,1)$ entries; $d=1$ is the two-layer network. For fixed inputs $x^1,\dots,x^m\in\mathbb R^{n_0}$ (collected in $X$) the preactivations are
+\[
+  h_0^\alpha=\tfrac1{\sqrt{n_0}}W_0x^\alpha,\qquad h_{\ell+1}^\alpha=\tfrac1{\sqrt n}\,W_{\ell+1}\,\varphi(h_\ell^\alpha)\quad(\ell+1\le d-1),\qquad f^\alpha=\tfrac1{\sqrt n}\,W_d\cdot\varphi(h_{d-1}^\alpha).
+\]
+(The Lean indexing: $W_{\ell+1}$ is \texttt{Wh}~$\ell$, the hidden layers are $\ell\in\{0,\dots,d-1\}$, and the source of the notes indexes hidden layers from $1$. Consequently the indices of the preactivations $h_\ell$, the sensitivities $g_\ell$ and the backward Gram matrices $G_\ell$ below are the source indices minus one, while the forward Gram matrices $\Phi_\ell$ ($\ell=0$ the input Gram matrix) carry the same index as in the source; the NTK formula reads $\sum_{\ell=0}^dG_\ell\odot\Phi_\ell$ here and $\sum_{\ell=0}^dG^{\mathrm{src}}_{\ell+1}\odot\Phi_\ell$ in the source.) The activation $\varphi$ is continuous with polynomial growth $|\varphi(x)|\le C(1+|x|^p)$, and $\varphi'$ is a companion function, also continuous with $|\varphi'(x)|\le C(1+|x|^p)$; in applications $\varphi'$ is the (weak) derivative of $\varphi$. All matrices indexed by the inputs are $m\times m$. We write $\Sigma^\ell=\texttt{layerCovarianceSeq}\;1\;0\;\varphi\;m\;\Phi_0$ for the limiting forward kernels: $\Sigma^0=\Phi_0=\frac1{n_0}XX^\top$ and $\Sigma^{\ell+1}=\mathcal C_\varphi(\Sigma^\ell)$ with $\mathcal C_\varphi(K)_{\alpha\beta}=\mathbb E_{z\sim\mathcal N(0,K)}[\varphi(z_\alpha)\varphi(z_\beta)]$ (Definition~\ref{def:ntkdeep:layerCovariance}), and $\dot\Sigma^\ell=\mathcal C_{\varphi'}(\Sigma^\ell)$.
+
+
+\section{The finite-width architecture}\label{sec:ntkdn:architecture}
+
+\begin{definition}[Parameters of a deep network]\label{def:ntkdn:params}
+  \lean{NTK.DeepMLPParams, NTK.DeepMLPParams.ofTensor}
+  \leanok
+A parameter record $\theta=(W_0,(W_{\ell+1})_{\ell<d-1},W_d)\in\mathbb R^{n\times n_0}\times(\mathbb R^{n\times n})^{d-1}\times\mathbb R^n$ (\texttt{DeepMLPParams d n0 n}). Given an infinite weight tensor $W:\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R$ and a readout $w_{\mathrm{out}}:\mathbb N\to\mathbb R$, \texttt{ofTensor} takes the top-left $n\times n_0$ block of $W_0$, the top-left $n\times n$ blocks of $W_{\ell+1}$ and the first $n$ entries of $w_{\mathrm{out}}$.
+\end{definition}
+
+\begin{definition}[Forward pass and output]\label{def:ntkdn:forward}
+  \uses{def:ntkdn:params}
+  \lean{NTK.deepMLPPreactivation, NTK.deepMLPPreactivation_zero, NTK.deepMLPPreactivation_succ,
+        NTK.deepMLPOutput}
+  \leanok
+For $\theta$ and inputs $X$ define $h_\ell^\alpha(\theta)\in\mathbb R^n$ and $f^\alpha(\theta)$ by the formulas of the conventions above (\texttt{deepMLPPreactivation}, \texttt{deepMLPOutput}).
+\end{definition}
+
+\begin{theorem}[Bridge to the infinite-population forward pass]\label{thm:ntkdn:bridge}
+  \uses{def:ntkdn:forward, def:ntkdeep:deepPreactivation}
+  \lean{NTK.deepMLPPreactivation_ofTensor_eq_deepPreactivation}
+  \leanok
+For every weight tensor $W$, readout $w_{\mathrm{out}}$, width $n$ and layer $\ell<d$, the preactivation $h_\ell(\texttt{ofTensor}\;W\;w_{\mathrm{out}})$ of Definition~\ref{def:ntkdn:forward} equals the preactivation \texttt{deepPreactivation} of Definition~\ref{def:ntkdeep:deepPreactivation} computed from the same tensor.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Induction on $\ell$: both are given by the same recursion on the same top-left blocks.
+\end{proof}
+
+This bridge identifies the finite parameter record, on which gradients and Gram matrices of this chapter are defined, with the single infinite Gaussian population on which the convergence results of Chapter~\ref{chap:ntkdeep} are stated.
+
+\begin{definition}[Layerwise Gram matrices and backward sensitivities]\label{def:ntkdn:gram}
+  \uses{def:ntkdn:forward}
+  \lean{NTK.deepActivationGram, NTK.deepActivationGram_zero, NTK.deepActivationGram_succ,
+        NTK.deepDerivativeGram, NTK.backwardSensitivity, NTK.backwardSensitivity_top,
+        NTK.backwardSensitivity_step, NTK.deepSensitivityGram, NTK.deepSensitivityGram_terminal,
+        NTK.deepSensitivityGram_hidden}
+  \leanok
+Fix $\theta$ and inputs $X$.
+\begin{itemize}
+  \item (\emph{Forward Gram}) $\Phi_0^{(n)}=\frac1{n_0}XX^\top$ and, for $1\le\ell\le d$, $\Phi_\ell^{(n),\alpha\beta}=\frac1n\,\varphi(h_{\ell-1}^\alpha)\cdot\varphi(h_{\ell-1}^\beta)$ (\texttt{deepActivationGram}).
+  \item (\emph{Derivative Gram}) for $0\le\ell\le d-1$, $\Phi'^{(n),\alpha\beta}_\ell=\frac1n\,\varphi'(h_\ell^\alpha)\cdot\varphi'(h_\ell^\beta)$ (\texttt{deepDerivativeGram}).
+  \item (\emph{Backward sensitivities}) $g_{d-1}^\alpha=W_d\odot\varphi'(h_{d-1}^\alpha)$ and, for $\ell<d-1$,
+    \[ g_\ell^\alpha=\varphi'(h_\ell^\alpha)\odot\bigl(n^{-1/2}\,W_{\ell+1}^\top g_{\ell+1}^\alpha\bigr)\qquad(\texttt{backwardSensitivity}). \]
+  \item (\emph{Backward Gram}) $G_\ell^{(n),\alpha\beta}=\frac1n\,g_\ell^\alpha\cdot g_\ell^\beta$ for $0\le\ell\le d-1$, and $G_d^{(n)}=\mathbf 1_{m\times m}$, the terminal condition (\texttt{deepSensitivityGram}).
+\end{itemize}
+\end{definition}
+
+The sensitivity is the normalized backpropagated error: formally $g_\ell^\alpha=\sqrt n\,\nabla_{h_\ell^\alpha}f^\alpha$ when $\varphi'$ is the derivative of $\varphi$, as one sees by the chain rule from $h_{\ell+1}=n^{-1/2}W_{\ell+1}\varphi(h_\ell)$ and $f=n^{-1/2}W_d\cdot\varphi(h_{d-1})$.
+
+\begin{remark}[The chain-rule identification is not formalized]\label{rmk:ntkdn:chainRule}
+\uses{def:ntkdn:gram}
+For parameter gradients one finds, again by the chain rule, $\nabla_{W_\ell}f^\alpha=n^{-1}\,g_\ell^\alpha\,\varphi(h_{\ell-1}^\alpha)^\top$ for $1\le\ell\le d-1$ (for $\ell=0$ with $n_0^{-1/2}n^{-1/2}\,g_0^\alpha(x^\alpha)^\top$, and for the readout $\nabla_{W_d}f^\alpha=n^{-1/2}\varphi(h_{d-1}^\alpha)$). Hence the Frobenius inner product of the gradients of two inputs in block $\ell$ is $G_\ell^{(n),\alpha\beta}\Phi_\ell^{(n),\alpha\beta}$, and the NTK Gram matrix $\langle\nabla_\theta f^\alpha,\nabla_\theta f^\beta\rangle$ is $\sum_{\ell=0}^dG_\ell^{(n)}\odot\Phi_\ell^{(n)}$. In the Lean development $\Theta^{\mathrm{emp}}$ is \emph{defined} as this sum (Definition~\ref{def:ntkdn:empiricalNTK}) and the above chain-rule computation is not formalized; the theorems below are statements about the sum, for an arbitrary continuous companion function $\varphi'$. The two-layer case, where the gradient Gram matrix is formalized, is consistent with the sum (Theorem~\ref{thm:ntkdn:twoLayer}).
+\end{remark}
+
+\begin{theorem}[Symmetry and positive semidefiniteness of the Gram matrices]\label{thm:ntkdn:gramPsd}
+  \uses{def:ntkdn:gram, lem:ntkcond:gram}
+  \lean{NTK.deepActivationGram_transpose, NTK.deepActivationGram_posSemidef,
+        NTK.deepDerivativeGram_transpose, NTK.deepDerivativeGram_posSemidef,
+        NTK.deepSensitivityGram_transpose, NTK.deepSensitivityGram_posSemidef}
+  \leanok
+All matrices $\Phi_\ell^{(n)}$ ($0\le\ell\le d$), $\Phi'^{(n)}_\ell$ ($\ell<d$) and $G_\ell^{(n)}$ ($0\le\ell\le d$) are symmetric and positive semidefinite.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:gram}
+  \leanok
+Each is $c\,MM^\top$ with $c=n^{-1}$ or $c=n_0^{-1}$ and $M$ the matrix whose rows are the feature vectors $\varphi(h^\alpha)$, $\varphi'(h^\alpha)$, $g^\alpha$ or $x^\alpha$; or the all-ones matrix. Apply Lemma~\ref{lem:ntkcond:gram}.
+\end{proof}
+
+\begin{lemma}[Suffix congruence of the backward pass]\label{lem:ntkdn:suffixCongruence}
+  \uses{def:ntkdn:gram}
+  \lean{NTK.backwardSensitivity_congr_of_eqOn}
+  \leanok
+Let $\theta,\theta'$ be two parameter records and $\ell\le d-1$. If $W_d=W_d'$, $W_k=W'_k$ for all hidden $k\ge\ell+1$ and the preactivations $h_k(\theta)=h_k(\theta')$ for all $k\ge\ell$, then $g_\ell(\theta)=g_\ell(\theta')$. In particular, $g_{\ell}$ depends on $W_{\ell}$ only through the preactivation $h_\ell$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Downward induction from $\ell=d-1$: $g_{d-1}$ is a function of $W_d$ and $h_{d-1}$; and $g_\ell$ is a function of $h_\ell$, $W_{\ell+1}$ and $g_{\ell+1}$.
+\end{proof}
+
+This is the mirror image of the locality of the forward pass (Lemma~\ref{lem:ntkcond:locality}): $h_\ell$ reads only the weights up to $\ell$, and $g_\ell$ reads only the weights from $\ell+1$ onward and the preactivations from $\ell$ on.
+
+
+\section{The layerwise decomposition (Proposition 2.25)}\label{sec:ntkdn:layerwise}
+
+\begin{definition}[Empirical NTK matrix]\label{def:ntkdn:empiricalNTK}
+  \uses{def:ntkdn:gram}
+  \lean{NTK.deepEmpiricalNTK}
+  \leanok
+$\Theta^{\mathrm{emp},(d)}:=\sum_{\ell=0}^dG_\ell^{(n)}\odot\Phi_\ell^{(n)}\in\mathbb R^{m\times m}$ (\texttt{deepEmpiricalNTK}).
+\end{definition}
+
+\begin{theorem}[Layerwise decomposition, symmetry, positivity and Loewner dominance (Proposition 2.25)]\label{thm:ntkdn:layerwise}
+  \uses{def:ntkdn:empiricalNTK, thm:ntkdn:gramPsd}
+  \lean{NTK.deepEmpiricalNTK_eq_sum_hadamard, NTK.deepEmpiricalNTK_transpose,
+        NTK.deepEmpiricalNTK_posSemidef, NTK.deepEmpiricalNTK_ge_nngp}
+  \leanok
+For every parameter record $\theta$ and inputs $X$:
+\begin{enumerate}
+  \item $\Theta^{\mathrm{emp},(d)}=\sum_{\ell=0}^dG_\ell^{(n)}\odot\Phi_\ell^{(n)}$ (the definition);
+  \item $\Theta^{\mathrm{emp},(d)}$ is symmetric and positive semidefinite;
+  \item (Loewner dominance over the NNGP kernel) $\Phi_d^{(n)}\preceq\Theta^{\mathrm{emp},(d)}$, i.e.\ $\Theta^{\mathrm{emp},(d)}-\Phi_d^{(n)}=\sum_{\ell<d}G_\ell^{(n)}\odot\Phi_\ell^{(n)}\succeq0$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdn:gramPsd}
+  \leanok
+Each summand is a Hadamard product of two positive semidefinite matrices (Theorem~\ref{thm:ntkdn:gramPsd}), hence positive semidefinite by the Schur product theorem; sums of positive semidefinite matrices are positive semidefinite, giving (2). For (3), $G_d^{(n)}=\mathbf 1_{m\times m}$ is the unit of $\odot$ (Lemma~\ref{lem:ntkcond:gram}), so the $\ell=d$ summand is $\Phi_d^{(n)}$, and the remaining sum is positive semidefinite by the same argument. The order is Mathlib's Loewner order, $A\preceq B$ iff $B-A$ is positive semidefinite.
+\end{proof}
+
+The matrix $\Phi_d^{(n)}$ is the empirical covariance of the output layer, i.e.\ the finite-width NNGP kernel (Chapter~\ref{chap:ntkdeep}); part~(3) says that training the hidden layers can only add positive semidefinite mass to the kernel of the readout-only model.
+
+\begin{theorem}[Two-layer case, empirical]\label{thm:ntkdn:twoLayerEmpirical}
+  \uses{thm:ntkdn:layerwise}
+  \lean{NTK.deepEmpiricalNTK_twoLayer_eq_add_hadamard}
+  \leanok
+For $d=1$ and every $\theta$, $\Theta^{\mathrm{emp},(1)}=\Phi_1^{(n)}+G_0^{(n)}\odot\Phi_0^{(n)}$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The sum over $\ell\in\{0,1\}$ has two terms, with $G_1^{(n)}=\mathbf 1$.
+\end{proof}
+
+
+\section{The limiting kernel (Proposition 2.27)}\label{sec:ntkdn:limit}
+
+\begin{definition}[Limiting backward kernels and the limiting NTK]\label{def:ntkdn:limitingNTK}
+  \uses{def:ntkdeep:layerCovariance}
+  \lean{NTK.deepLimitingSensitivityKernel, NTK.deepLimitingSensitivityKernel_terminal,
+        NTK.deepLimitingSensitivityKernel_step, NTK.deepLimitingNTK}
+  \leanok
+Let $\Phi_0$ be a base Gram matrix. Define $\Pi^d=\mathbf 1_{m\times m}$ and, for $\ell<d$,
+\[
+  \Pi^\ell=\dot\Sigma^\ell\odot\Pi^{\ell+1},\qquad\dot\Sigma^\ell_{\alpha\beta}=\mathbb E_{z\sim\mathcal N(0,\Sigma^\ell)}\bigl[\varphi'(z_\alpha)\varphi'(z_\beta)\bigr],
+\]
+that is, $\Pi^\ell=\dot\Sigma^\ell\odot\dot\Sigma^{\ell+1}\odot\dots\odot\dot\Sigma^{d-1}$ (\texttt{deepLimitingSensitivityKernel}). The \emph{limiting NTK} is
+\[
+  \Theta^{(d)}:=\sum_{\ell=0}^d\Pi^\ell\odot\Sigma^\ell\qquad(\texttt{deepLimitingNTK}).
+\]
+\end{definition}
+
+The definition mirrors Definition~\ref{def:ntkdn:empiricalNTK} with each empirical Gram replaced by its deterministic limit: $\Phi_\ell^{(n)}\to\Sigma^\ell$ and $G_\ell^{(n)}\to\Pi^\ell$, the latter being the content of Theorem~\ref{thm:ntkdn:backwardConvergence}. The recursion $\Pi^\ell=\dot\Sigma^\ell\odot\Pi^{\ell+1}$ is the limiting form of the backward recursion $g_\ell=\varphi'(h_\ell)\odot n^{-1/2}W_{\ell+1}^\top g_{\ell+1}$: the Gaussian matrix $W_{\ell+1}^\top$ acts on $g_{\ell+1}$ as an \emph{independent} Gaussian, so the Gram matrix of $n^{-1/2}W_{\ell+1}^\top g_{\ell+1}$ is asymptotically that of $g_{\ell+1}$ (this is the "gradient independence" heuristic), and the diagonal multiplication by $\varphi'(h_\ell)$ multiplies the Gram matrix entrywise by the derivative Gram $\Phi'^{(n)}_\ell\to\dot\Sigma^\ell$.
+
+\begin{theorem}[Properties of the limiting NTK]\label{thm:ntkdn:limitProps}
+  \uses{def:ntkdn:limitingNTK, lem:ntkcond:gram, thm:ntkdeep:limitingCovPsd, lem:ntkdeep:layerKernelPsd}
+  \lean{NTK.deepLimitingSensitivityKernel_transpose, NTK.deepLimitingSensitivityKernel_posSemidef,
+        NTK.deepLimitingNTK_eq_sum_hadamard, NTK.deepLimitingNTK_transpose,
+        NTK.deepLimitingNTK_posSemidef, NTK.deepLimitingNTK_ge_nngp}
+  \leanok
+Suppose $\varphi,\varphi'$ are measurable, $\Phi_0\succeq0$, and for every $k,\alpha$ the functions $\varphi(z_\alpha)$ and $\varphi'(z_\alpha)$ are in $L^2\bigl(\mathcal N(0,\Sigma^k)\bigr)$. Then:
+\begin{enumerate}
+  \item $\Pi^\ell$ is symmetric (the symmetry holds without any integrability hypothesis) and positive semidefinite for every $\ell$;
+  \item $\Theta^{(d)}=\sum_{\ell=0}^d\Pi^\ell\odot\Sigma^\ell$ is symmetric and positive semidefinite;
+  \item $\Sigma^d\preceq\Theta^{(d)}$ in the Loewner order.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:gram, lem:ntkdeep:layerKernelPsd, thm:ntkdeep:limitingCovPsd}
+  \leanok
+By Lemma~\ref{lem:ntkdeep:layerKernelPsd} and the $L^2$ hypothesis, each $\Sigma^k$ is positive semidefinite. A matrix $\dot\Sigma^k_{\alpha\beta}=\mathbb E[\varphi'(z_\alpha)\varphi'(z_\beta)]$ is the Gram matrix of the vectors $(\varphi'(z_\alpha))_\alpha\in L^2$, hence positive semidefinite, and Schur products of positive semidefinite matrices are positive semidefinite; by downward induction $\Pi^\ell$ is positive semidefinite, with $\Pi^d=\mathbf 1$. Parts (2) and (3) follow as in Theorem~\ref{thm:ntkdn:layerwise}, using that $\Pi^d=\mathbf 1$ is the Hadamard unit.
+\end{proof}
+
+\begin{theorem}[Two-layer case, limiting]\label{thm:ntkdn:twoLayer}
+  \uses{def:ntkdn:limitingNTK}
+  \lean{NTK.deepLimitingNTK_twoLayer_eq_add_hadamard}
+  \leanok
+For $d=1$, $\Theta^{(1)}=\Sigma^1+\dot\Sigma^0\odot\Phi_0$ with $\dot\Sigma^0=\mathcal C_{\varphi'}(\Phi_0)$. This is the decomposition \texttt{limitingFullNTKMatrix}$=\mathcal C_\varphi(\Phi_0)+\mathcal C_{\varphi'}(\Phi_0)\odot\Phi_0$ of the two-layer network (Chapter~\ref{chap:ntktl}).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+At $d=1$ the recursion gives $\Pi^1=\mathbf 1$ and $\Pi^0=\dot\Sigma^0$; and $\Sigma^1=\mathcal C_\varphi(\Phi_0)$.
+\end{proof}
+
+
+\section{Reading the parameters from a Gaussian space}\label{sec:ntkdn:space}
+
+All probabilistic statements concern the product probability space on which the weights live. Two spaces occur: the \emph{product space} $(\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R)\times(\mathbb N\to\mathbb R)$, one infinite Gaussian population for each layer index together with the readout, on which the final theorem is stated and which is independent of $n$ (so all widths are coupled on one probability space); and its restriction to the first $d$ populations. We call the latter $\texttt{DeepSpace}\;d=(\mathrm{Fin}\;d\to\mathbb N\to\mathbb N\to\mathbb R)\times(\mathbb N\to\mathbb R)$.
+
+\begin{definition}[The Gaussian space of a depth-$d$ network]\label{def:ntkdn:deepSpace}
+  \uses{def:ntkdn:params}
+  \lean{NTK.DeepSpace, NTK.deepMeasure, NTK.deepParams}
+  \leanok
+$\texttt{DeepSpace}\;d$ is the product of $d$ copies of the space $\mathbb R^{\mathbb N\times\mathbb N}$ of weight populations and one copy of $\mathbb R^{\mathbb N}$ (the readout); $\texttt{deepMeasure}\;d$ is the product of i.i.d.\ standard Gaussian measures; it is a probability measure. $\texttt{deepParams}\;d\;n_0\;n:\texttt{DeepSpace}\;d\to\texttt{DeepMLPParams}\;d\;n_0\;n$ is $\texttt{ofTensor}$ applied to the population (padded by $0$ beyond $d$) and the readout.
+\end{definition}
+
+\begin{lemma}[Transport between the two spaces]\label{lem:ntkdn:transport}
+  \uses{def:ntkdn:deepSpace, lem:ntkdeep:probTools}
+  \lean{NTK.deepParams_prefix, NTK.tendstoInMeasure_prod_of_prefix_prod,
+        NTK.tendstoInMeasure_prod_of_prefix, NTK.tendstoInMeasure_deepSpace_of_prefix}
+  \leanok
+\begin{enumerate}
+  \item For the product-space point $q=(W,w_{\mathrm{out}})$, $\texttt{deepParams}$ of the prefix $((W_i)_{i<d},w_{\mathrm{out}})$ equals $\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ (for $d>0$).
+  \item Let $F_n$ be measurable scalar functions on $\texttt{DeepSpace}\;d$. If $F_n\to c$ in measure for $\texttt{deepMeasure}\;d$, then $q\mapsto F_n(\text{prefix}(q))$ converges to $c$ in measure on the full product space. The same holds for families $F_n$ of the first $d$ populations alone (ignoring the readout), both on the full product space and on $\texttt{DeepSpace}\;d$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkdeep:probTools}
+  \leanok
+(1) is unfolding of definitions. (2) The projection of the full product measure onto the first $d$ populations and the readout is measure preserving, because a projection of an infinite product of probability measures onto finitely many factors has the product of those factors as its law; the claim is the statement that convergence in measure is preserved by precomposition with a measure-preserving map (Lemma~\ref{lem:ntkdeep:probTools}(4)).
+\end{proof}
+
+\begin{theorem}[Layer splitting]\label{thm:ntkdn:layerSplit}
+  \uses{def:ntkdn:deepSpace, thm:ntkcond:lemma226}
+  \lean{NTK.zeroLayer, NTK.layerBlock, NTK.measurable_zeroLayer, NTK.measurable_layerBlock,
+        NTK.map_layerBlock_infinitePi, NTK.indepFun_prod_of_indepFun_fst,
+        NTK.indepFun_layer_zeroLayer, NTK.measurePreserving_layerSplit}
+  \leanok
+For $i_0<d$ let $\texttt{zeroLayer}_{i_0}(\omega)$ be $\omega$ with the $i_0$-th weight population replaced by $0$, and $\texttt{layerBlock}_n(L)=(L_{ji})_{j,i<n}$ the top-left $n\times n$ block of a population. Under $\texttt{deepMeasure}\;d$:
+\begin{enumerate}
+  \item the $i_0$-th population is independent of $\texttt{zeroLayer}_{i_0}$, i.e.\ of all other populations and the readout;
+  \item the block $\texttt{layerBlock}_n(\omega_{i_0})$ of a standard Gaussian population is a standard Gaussian matrix, $\mathcal L(\texttt{layerBlock}_n)=\texttt{gaussianInit}\;n\;n$;
+  \item $\omega\mapsto\bigl(\texttt{zeroLayer}_{i_0}(\omega),\texttt{layerBlock}_n(\omega_{i_0})\bigr)$ is measure preserving from $\texttt{deepMeasure}\;d$ onto $\mathcal L(\texttt{zeroLayer}_{i_0})\otimes\texttt{gaussianInit}\;n\;n$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) The coordinates of a product measure are independent. For the formal statement: if $A$ and $B$ are independent under $\mu$ then $A\circ\mathrm{fst}$ and $(B\circ\mathrm{fst},\mathrm{snd})$ are independent under $\mu\otimes\nu$ (\texttt{indepFun\_prod\_of\_indepFun\_fst}), which is applied to the product structure of $\texttt{deepMeasure}$. (2) The top-left block of the i.i.d.\ Gaussian array $(L_{ji})_{j,i\in\mathbb N}$ is the $n\times n$ sub-array, which is i.i.d.\ Gaussian. (3) By (1) the joint law of the pair is the product of the marginals, and by (2) the second marginal is $\texttt{gaussianInit}\;n\;n$.
+\end{proof}
+
+This is the interface between the concrete network and the abstract conditional bounds of Chapter~\ref{chap:ntkcond}: fixing $i_0=k+1$, the matrix $W_{k+1}$ is an independent standard Gaussian matrix $V$ and ``the past'' $z$ is everything else.
+
+
+\section{Forward concentration on the product space}\label{sec:ntkdn:forward}
+
+\begin{theorem}[Forward Gram concentration on the product space]\label{thm:ntkdn:forwardProductSpace}
+  \uses{thm:ntkcond:featureCovariance, thm:ntkdeep:deepCovariance, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:locality}
+  \lean{NTK.deepActivationGram_entry_tendstoInMeasure, NTK.deepDerivativeGram_entry_tendstoInMeasure}
+  \leanok
+Let $\varphi,\varphi'$ be continuous with polynomial growth, $X$ inputs, $k<d$, $\alpha,\beta\in[m]$, and $\Phi_0=\frac1{n_0}XX^\top$. Under the product Gaussian measure on $(W,w_{\mathrm{out}})$, with $\theta_n=\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ at width $n$, as $n\to\infty$:
+\[
+  \Phi_{k+1}^{(n),\alpha\beta}\xrightarrow{\ \mu\ }\Sigma^{k+1}_{\alpha\beta},\qquad\Phi'^{(n),\alpha\beta}_k\xrightarrow{\ \mu\ }\dot\Sigma^k_{\alpha\beta}=\mathbb E_{z\sim\mathcal N(0,\Sigma^k)}\bigl[\varphi'(z_\alpha)\varphi'(z_\beta)\bigr]
+\]
+in measure.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:featureCovariance, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:locality}
+  \leanok
+By the bridge (Theorem~\ref{thm:ntkdn:bridge}) the entries are the feature averages of Theorem~\ref{thm:ntkcond:featureCovariance} with $\psi=\varphi$, respectively $\psi=\varphi'$, evaluated on a population of $L=d$ layers. That theorem is stated for the product over the first $d$ populations. By locality (Lemma~\ref{lem:ntkcond:locality}(2)) the preactivations up to layer $k<d$ read only the first $d$ populations, so the transport Lemma~\ref{lem:ntkdn:transport}(2) moves the statement to the full product space. Note that the derivative Gram has limit $\int\varphi'\varphi'\,d\mathcal N(0,\Sigma^k)$, built with the forward kernel $\Sigma^k$ of $\varphi$ but averaging the feature $\varphi'$.
+\end{proof}
+
+\begin{theorem}[Forward concentration on \texttt{DeepSpace}]\label{thm:ntkdn:forwardDeepSpace}
+  \uses{thm:ntkcond:featureCovariance, lem:ntkdn:transport, thm:ntkdn:bridge}
+  \lean{NTK.deepSpace_featureCov_tendsto, NTK.deepSpace_activationGram_tendsto, NTK.derivGram_tendsto}
+  \leanok
+On $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$, where the readout is available, for every continuous $\psi$ of polynomial growth and $\ell<d$,
+\[
+  \frac1n\sum_{j\le n}\psi\bigl(h_{\ell,j}^a\bigr)\psi\bigl(h_{\ell,j}^b\bigr)\longrightarrow\mathbb E_{z\sim\mathcal N(0,\Sigma^\ell)}\bigl[\psi(z_a)\psi(z_b)\bigr],\qquad\frac1n\varphi(h_\ell^a)\cdot\varphi(h_\ell^b)\longrightarrow\Sigma^{\ell+1}_{ab},
+\]
+in measure, where $h=h(\texttt{deepParams}\;d\;n_0\;n\;\omega)$. With $\psi=\varphi'$ the first statement is the convergence of the derivative Gram matrix, $\Phi'^{(n),ab}_\ell\to\dot\Sigma^\ell_{ab}$ (\texttt{derivGram\_tendsto}).
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:featureCovariance, lem:ntkdn:transport}
+  \leanok
+The forward pass ignores the readout, so the feature averages are functions of the first coordinate of $\omega$ only; the claim follows from Theorem~\ref{thm:ntkcond:featureCovariance} and Lemma~\ref{lem:ntkdn:transport}(2) (\texttt{tendstoInMeasure\_deepSpace\_of\_prefix}).
+\end{proof}
+
+\begin{theorem}[Deterministic assembly]\label{thm:ntkdn:assembly}
+  \uses{thm:ntkdn:layerwise, def:ntkdn:limitingNTK, lem:ntkcond:mconvAlgebra}
+  \lean{NTK.deepEmpiricalNTK_entry_tendstoInMeasure_of_layerwise}
+  \leanok
+Let $(\Omega,\mu)$ be any measure space and $\theta_n:\Omega\to\texttt{DeepMLPParams}\;d\;n_0\;n$ any random parameter family. Fix $(\alpha,\beta)$. Suppose that for every $k<d$,
+\[
+  \Phi_{k+1}^{(n),\alpha\beta}(\theta_n)\to\Sigma^{k+1}_{\alpha\beta}\quad\text{and}\quad G_k^{(n),\alpha\beta}(\theta_n)\to\Pi^k_{\alpha\beta}\quad\text{in measure}.
+\]
+Then $\Theta^{\mathrm{emp},(d),\alpha\beta}(\theta_n)\to\Theta^{(d),\alpha\beta}$ in measure.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdn:layerwise, lem:ntkcond:mconvAlgebra}
+  \leanok
+By Theorem~\ref{thm:ntkdn:layerwise}, $\Theta^{\mathrm{emp},\alpha\beta}=\sum_{\ell=0}^dG_\ell^{\alpha\beta}\Phi_\ell^{\alpha\beta}$. The two end layers need no hypothesis: $\Phi_0^{(n)}=\Sigma^0$ is the deterministic input Gram matrix and $G_d^{(n)}=\Pi^d=\mathbf 1$ is the terminal condition, so the $\ell=0$ term is $G_0\Phi_0\to\Pi^0\Sigma^0$ and the $\ell=d$ term is $\Phi_d\to\Sigma^d=\Pi^d\Sigma^d$. For $1\le\ell\le d-1$ the hypotheses give both factors converging. Lemma~\ref{lem:ntkcond:mconvAlgebra}(3) (sums of products of convergent families) gives the claim. (For $\ell=0$ one needs only $G_0\to\Pi^0$, which is the hypothesis at $k=0$; for $\ell=d$, $\Phi_d\to\Sigma^d$ is the hypothesis at $k=d-1$.)
+\end{proof}
+
+The proof of the main theorem reduces to the two families of hypotheses: forward convergence, which is Theorem~\ref{thm:ntkdn:forwardProductSpace}, and backward convergence $G_k^{(n)}\to\Pi^k$, which occupies the rest of the chapter.
+
+
+\section{Structure of the two passes under substitution of one layer}\label{sec:ntkdn:structure}
+
+The backward induction conditions on one weight matrix $V=W_{k+1}$ and treats all other layers as fixed. This section records the structural facts about the forward and backward passes that make the conditioning legitimate.
+
+\begin{definition}[Substituting one weight matrix]\label{def:ntkdn:updateWh}
+  \uses{def:ntkdn:params}
+  \lean{NTK.DeepMLPParams.updateWh, NTK.DeepMLPParams.updateWh_Wh_self,
+        NTK.DeepMLPParams.updateWh_Wh_of_ne, NTK.DeepMLPParams.updateWh_W0,
+        NTK.DeepMLPParams.updateWh_Wd}
+  \leanok
+For a record $\theta$, a hidden index $k$ and a matrix $Y\in\mathbb R^{n\times n}$, $\theta[W_{k+1}\leftarrow Y]$ is the record with $W_{k+1}$ replaced by $Y$ and everything else unchanged.
+\end{definition}
+
+\begin{lemma}[Congruence of the passes]\label{lem:ntkdn:congruence}
+  \uses{def:ntkdn:updateWh, def:ntkdn:forward, def:ntkdn:gram}
+  \lean{NTK.deepMLPPreactivation_congr_prefix, NTK.deepMLPPreactivation_congr_suffix,
+        NTK.deepMLPPreactivation_updateWh_of_le, NTK.deepMLPPreactivation_succ_mulVec,
+        NTK.backwardSensitivity_updateWh_congr, NTK.backwardSensitivity_succ_mulVec}
+  \leanok
+Let $\theta,\theta'$ be records, $\ell\le d-1$ and $k+1\le d-1$.
+\begin{enumerate}
+  \item (Prefix) If $W_0=W_0'$ and $W_j=W'_j$ for all $1\le j\le\ell$, then $h_\ell(\theta)=h_\ell(\theta')$. Consequently $h_\ell(\theta[W_{k+1}\leftarrow Y])=h_\ell(\theta)$ for $\ell\le k$: changing $W_{k+1}$ does not affect the forward pass up to layer $k$.
+  \item (Suffix) If $h_{\ell_0}(\theta)=h_{\ell_0}(\theta')$ and $W_j=W_j'$ for $j\ge\ell_0+1$, then $h_\ell(\theta)=h_\ell(\theta')$ for $\ell\ge\ell_0$.
+  \item (Matrix form) $h_{k+1}^\alpha=n^{-1/2}\,W_{k+1}\varphi(h_k^\alpha)$ and $g_k^\alpha=\varphi'(h_k^\alpha)\odot\bigl(n^{-1/2}W_{k+1}^\top g_{k+1}^\alpha\bigr)$.
+  \item (Dependence through $W_{k+1}\Phi_k$ only) Let $\Phi_k=[\varphi(h_k^\alpha)]_{\alpha}\in\mathbb R^{n\times m}$. If $Y,Y'\in\mathbb R^{n\times n}$ satisfy $Y\Phi_k=Y'\Phi_k$ then
+  \[
+    g_{k+1}\bigl(\theta[W_{k+1}\leftarrow Y]\bigr)=g_{k+1}\bigl(\theta[W_{k+1}\leftarrow Y']\bigr).
+  \]
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) and (2) are induction on the layer, the forward recursion reading $h_{\ell+1}$ from $h_\ell$ and $W_{\ell+1}$ only. (3) is the definition in matrix form. (4) By (1), $h_k$ and $\Phi_k$ do not depend on $W_{k+1}$, so replacing $W_{k+1}$ by $Y$ or $Y'$ leaves $h_k$ unchanged. By (3), $h_{k+1}=n^{-1/2}W_{k+1}\Phi_k$ depends on $W_{k+1}$ only through $W_{k+1}\Phi_k$; hence the preactivation $h_{k+1}$ is the same for $Y$ and $Y'$, and so are the later weights and the readout. Lemma~\ref{lem:ntkdn:suffixCongruence} with $\ell=k+1$ gives $g_{k+1}(\theta[\cdot\leftarrow Y])=g_{k+1}(\theta[\cdot\leftarrow Y'])$.
+\end{proof}
+
+Part (4) is the structural input to the conditioning: together with Lemma~\ref{lem:ntkcond:gramProjectorProps}(3) it says that when $\Phi_k^\top\Phi_k$ is invertible, $g_{k+1}$ is unchanged if $W_{k+1}$ is replaced by its projection $W_{k+1}P_{\Phi_k}$, because $W_{k+1}\Phi_k=(W_{k+1}P)\Phi_k$. So $g_{k+1}$ is a function of $W_{k+1}P$ (and of the other layers), and Theorem~\ref{thm:ntkcond:lemma226} makes $W_{k+1}P^\perp$ independent of it.
+
+\begin{lemma}[Measurability of the passes]\label{lem:ntkdn:measurable}
+  \uses{def:ntkdn:forward, def:ntkdn:gram, def:ntkdn:deepSpace, lem:ntkcond:measurability}
+  \lean{NTK.ParamsMeasurable, NTK.measurable_deepMLPPreactivation, NTK.measurable_backwardSensitivity,
+        NTK.measurable_prefixTensor_entry, NTK.paramsMeasurable_deepParams,
+        NTK.paramsMeasurable_updateWh, NTK.paramsMeasurable_updateWh_matrix,
+        NTK.measurable_nextSens, NTK.measurable_netPre, NTK.measurable_avg4, NTK.measurable_pastFeat,
+        NTK.measurable_diagDeriv, NTK.measurable_sensitivityGram_entry,
+        NTK.measurable_derivativeGram_entry}
+  \leanok
+Call a family of records $z\mapsto\theta(z)$ \emph{measurable} if every weight entry is a measurable function of $z$ (\texttt{ParamsMeasurable}). If $\theta$ is measurable and $\varphi,\varphi'$ are measurable then every $h_\ell^\alpha(\theta(z))_j$ and $g_\ell^\alpha(\theta(z))_j$ is measurable in $z$. The families $\texttt{deepParams}\;d\;n_0\;n$ on $\texttt{DeepSpace}\;d$ and $(\omega,Y)\mapsto\texttt{deepParams}(\omega)[W_{k+1}\leftarrow Y]$ (with $Y$ a measurable matrix) are measurable; consequently the backward and derivative Gram entries are measurable functions on $\texttt{DeepSpace}\;d$, and so are the feature matrix $\Phi_k$, the diagonal matrices $\operatorname{diag}(\varphi'(h_k^a)\varphi'(h_k^b))$, fourth-moment averages and the vector $g_{k+1}$ as a function of the substituted weight.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+By induction on the layer using that sums, products and compositions of measurable functions are measurable (Lemma~\ref{lem:ntkcond:measurability}).
+\end{proof}
+
+\begin{lemma}[A layer as a substitution into the network with that layer zeroed]\label{lem:ntkdn:layerSubstitution}
+  \uses{def:ntkdn:updateWh, thm:ntkdn:layerSplit}
+  \lean{NTK.deepParams_eq_updateWh}
+  \leanok
+For $k<d-1$ and $\omega\in\texttt{DeepSpace}\;d$, with $i_0=k+1$,
+\[
+  \texttt{deepParams}(\omega)=\texttt{deepParams}\bigl(\texttt{zeroLayer}_{i_0}\omega\bigr)\bigl[W_{k+1}\leftarrow\texttt{layerBlock}_n(\omega_{i_0})\bigr].
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Both records have the same $W_0$, readout and hidden matrices other than $W_{k+1}$; the matrix $W_{k+1}$ of $\texttt{deepParams}(\omega)$ is the top-left block of the population $\omega_{i_0}$.
+\end{proof}
+
+With Theorem~\ref{thm:ntkdn:layerSplit} this expresses a point $\omega$ as the pair (rest of the network with layer $k+1$ zeroed, an independent standard Gaussian matrix inserted at layer $k+1$), which is the form to which the conditional Chebyshev bounds apply.
+
+
+\section{Deterministic algebra of the decoupling}\label{sec:ntkdn:algebra}
+
+This section contains the finite-dimensional identities and inequalities that are used in the backward induction. Nothing in it is probabilistic. Throughout $f,g,a,b,s,x,y,\dots\in\mathbb R^n$ and the dot denotes the Euclidean inner product.
+
+\begin{definition}[Weighted pairings]\label{def:ntkdn:wcov}
+  \lean{NTK.wsq, NTK.wcov, NTK.avg4, NTK.wmat}
+  \leanok
+For $f,g,a,b\in\mathbb R^n$ and $\Phi\in\mathbb R^{n\times m}$ put
+\[
+  \mathrm{wsq}(f;a)=\tfrac1n\sum_jf_j^2a_j^2,\quad\mathrm{wcov}(f,g;a,b)=\tfrac1n\sum_jf_jg_ja_jb_j,\quad\mathrm{avg}_4(v)=\tfrac1n\sum_jv_j^4,\quad\mathrm{wmat}(f,g;\Phi)_{ab}=\tfrac1n\sum_jf_jg_j\Phi_{ja}\Phi_{jb}.
+\]
+\end{definition}
+
+\begin{lemma}[Cauchy--Schwarz decoupling]\label{lem:ntkdn:wcovCS}
+  \uses{def:ntkdn:wcov}
+  \lean{NTK.wsq_nonneg, NTK.avg4_nonneg, NTK.wcov_sq_le, NTK.wcov_add_add, NTK.wcov_sub_sq_le}
+  \leanok
+\begin{enumerate}
+  \item $\mathrm{wsq}\ge0$, $\mathrm{avg}_4\ge0$ and $\mathrm{wcov}(f,g;a,b)^2\le\mathrm{wsq}(f;a)\,\mathrm{wsq}(g;b)$.
+  \item $\mathrm{wcov}(f,g;x+y,x'+y')=\mathrm{wcov}(f,g;x,x')+\mathrm{wcov}(f,g;x,y')+\mathrm{wcov}(f,g;y,x')+\mathrm{wcov}(f,g;y,y')$.
+  \item (Decoupling inequality)
+  \[
+    \bigl(\mathrm{wcov}(f,g;x+y,x'+y')-\mathrm{wcov}(f,g;y,y')\bigr)^2\le3\bigl(\mathrm{wsq}(f;x)\mathrm{wsq}(g;x')+\mathrm{wsq}(f;x)\mathrm{wsq}(g;y')+\mathrm{wsq}(f;y)\mathrm{wsq}(g;x')\bigr).
+  \]
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is Cauchy--Schwarz for the weighted sums $\frac1n\sum_j(f_ja_j)(g_jb_j)$. (2) is bilinearity. (3) By (2) the left side is $(A+B+C)^2$ with $A=\mathrm{wcov}(f,g;x,x')$, $B=\mathrm{wcov}(f,g;x,y')$, $C=\mathrm{wcov}(f,g;y,x')$; $(A+B+C)^2\le3(A^2+B^2+C^2)$, and each square is bounded by (1).
+\end{proof}
+
+This is how the difference between the Gram entry of $g_k=\varphi'(h_k)\odot(x+y)$ and the Gram entry of the residual part alone is controlled: every term in the bound contains the weighted size of the \emph{projected} parts $x,x'$, which will be shown to vanish.
+
+\begin{lemma}[Fourth-moment domination]\label{lem:ntkdn:fourthMoment}
+  \uses{def:ntkdn:wcov}
+  \lean{NTK.abs_mul_mul_mul_le, NTK.abs_wmat_le, NTK.wsq_mulVec_eq, NTK.avg_sq_mul_le_avg4}
+  \leanok
+\begin{enumerate}
+  \item $|pqrs|\le(p^4+q^4+r^4+s^4)/4$ for real $p,q,r,s$.
+  \item $\bigl|\mathrm{wmat}(f,g;\Phi)_{ab}\bigr|\le\tfrac14\bigl(\mathrm{avg}_4(f)+\mathrm{avg}_4(g)+\mathrm{avg}_4(\Phi_{\cdot a})+\mathrm{avg}_4(\Phi_{\cdot b})\bigr)$.
+  \item For $w\in\mathbb R^m$, $\mathrm{wsq}(f;\Phi w)=\sum_{a,b}w_aw_b\,\mathrm{wmat}(f,f;\Phi)_{ab}$.
+  \item $\tfrac1n\|h\odot f\|^2\le\tfrac12\bigl(\mathrm{avg}_4(h)+\mathrm{avg}_4(f)\bigr)$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) AM--GM for the four nonnegative numbers $p^4,q^4,r^4,s^4$: $|pqrs|=(p^4q^4r^4s^4)^{1/4}\le\frac14(p^4+q^4+r^4+s^4)$. (2) apply (1) termwise with $p=f_j$, $q=g_j$, $r=\Phi_{ja}$, $s=\Phi_{jb}$ and average over $j$. (3) $(\Phi w)_j=\sum_a\Phi_{ja}w_a$, so $\mathrm{wsq}(f;\Phi w)=\frac1n\sum_jf_j^2\sum_{a,b}w_aw_b\Phi_{ja}\Phi_{jb}$. (4) $h_j^2f_j^2\le(h_j^4+f_j^4)/2$.
+\end{proof}
+
+The role of the fourth-moment bounds is to dominate all the weighted Gram entries by averages of fourth powers of the preactivations, features and derivative features, which converge in probability by the forward feature-covariance theorem (Theorem~\ref{thm:ntkcond:featureCovariance}) with $\psi=x^2,\varphi^2,\varphi'^2$ (Lemma~\ref{lem:ntkcond:polyGrowth}(2)). This replaces any higher-moment concentration for the network by consequences of the forward results.
+
+\begin{lemma}[The projected part in normalized form]\label{lem:ntkdn:projectedPart}
+  \uses{thm:ntkcond:backSplit, def:ntkdn:wcov}
+  \lean{NTK.inv_gram_eq_smul_inv_normalized, NTK.projected_part_eq,
+        NTK.trace_diagonal_gramProjector, NTK.wcov_smul_transpose_mulVec}
+  \leanok
+Let $\Phi\in\mathbb R^{n\times m}$, $\hat\Sigma:=\frac1n\Phi^\top\Phi$ invertible, $V\in\mathbb R^{n\times n}$ and $u\in\mathbb R^n$.
+\begin{enumerate}
+  \item $(\Phi^\top\Phi)^{-1}=n^{-1}\hat\Sigma^{-1}$.
+  \item With $\zeta=n^{-1}\bigl(n^{-1/2}V\Phi\bigr)^\top u\in\mathbb R^m$, the projected part of $n^{-1/2}V^\top u$ from Theorem~\ref{thm:ntkcond:backSplit} equals $\Phi\hat\Sigma^{-1}\zeta$, i.e.
+  $n^{-1/2}\,\Phi(\Phi^\top\Phi)^{-1}(V\Phi)^\top u=\Phi\bigl(\hat\Sigma^{-1}\zeta\bigr)$.
+  \item For $f,g\in\mathbb R^n$ and $D=\operatorname{diag}(f\odot g)$, $\operatorname{tr}(DP_\Phi)=\sum_{a,b}(\hat\Sigma^{-1})_{ab}\,\mathrm{wmat}(f,g;\Phi)_{ba}$.
+  \item For $s^2=n^{-1}$ and $W\in\mathbb R^{n\times n}$, $\mathrm{wcov}(f,g;\,sW^\top u,\,sW^\top v)=n^{-2}\,u^\top\bigl(WDW^\top\bigr)v$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) $\Phi^\top\Phi=n\hat\Sigma$. (2) By (1), $n^{-1/2}\Phi(\Phi^\top\Phi)^{-1}(V\Phi)^\top u=n^{-1/2}\Phi\,n^{-1}\hat\Sigma^{-1}(V\Phi)^\top u=\Phi\hat\Sigma^{-1}\bigl(n^{-1}(n^{-1/2}V\Phi)^\top u\bigr)$, the last step moving the factor $n^{-1/2}$ into $V\Phi$. In the network $V=W_{k+1}$ and $\Phi=\Phi_k$, so $H:=n^{-1/2}V\Phi$ has the columns $n^{-1/2}W_{k+1}\varphi(h_k^b)=h_{k+1}^b$, and $\zeta_b=n^{-1}\langle h_{k+1}^b,u\rangle$. (3) $\operatorname{tr}(DP_\Phi)=\operatorname{tr}\bigl(D\Phi(\Phi^\top\Phi)^{-1}\Phi^\top\bigr)=\operatorname{tr}\bigl((\Phi^\top\Phi)^{-1}\Phi^\top D\Phi\bigr)=\operatorname{tr}\bigl(n^{-1}\hat\Sigma^{-1}\cdot n\,\mathrm{wmat}(f,g;\Phi)\bigr)$, using $(\Phi^\top D\Phi)_{ab}=\sum_jf_jg_j\Phi_{ja}\Phi_{jb}=n\,\mathrm{wmat}(f,g;\Phi)_{ab}$. (4) is the definition and $s^2=n^{-1}$.
+\end{proof}
+
+\begin{remark}[Why these identities appear]\label{rmk:ntkdn:projectedPartRemark}
+\uses{lem:ntkdn:projectedPart, thm:ntkcond:backSplit}
+Part~(2) shows that the projected part $x=\Phi\hat\Sigma^{-1}\zeta$ is controlled by the vector $\zeta$, whose entries are the \emph{gradient-independence quantities} $n^{-1}\langle h_{k+1}^b,g_{k+1}^a\rangle$ (Definition~\ref{def:ntkdn:netDefs}); and part~(3) writes the trace that appears in the conditional mean of the residual form through weighted Gram entries, which are dominated by Lemma~\ref{lem:ntkdn:fourthMoment}(2). The matrix $\hat\Sigma^{-1}$ is stochastically bounded precisely because the limiting kernel is invertible, which is the only place where Hypothesis~\ref{hyp:ntkdn:nondeg} enters.
+\end{remark}
+
+
+\section{A calculus for the bounds}\label{sec:ntkdn:calculus}
+
+\begin{lemma}[Convergence-in-measure consequences of the algebra]\label{lem:ntkdn:decouplingBounds}
+  \uses{def:ntkdn:wcov, lem:ntkdn:fourthMoment, lem:ntkcond:mconvAlgebra, lem:ntkcond:mconvDomination, thm:ntkcond:mconvInverse}
+  \lean{NTK.tendstoInMeasure_sum_zero, NTK.tendstoInMeasure_abs_zero, NTK.tendstoInMeasure_abs,
+        NTK.tendstoInMeasure_matrix_of_entries, NTK.tendstoInMeasure_three_terms,
+        NTK.tendstoInMeasure_mul_mul_zero, NTK.tendstoInMeasure_half_sum,
+        NTK.tendstoInMeasure_quarter_sum}
+  \leanok
+Let $(\Omega,\mu)$ be a measure space and all sequences be real random variables.
+\begin{enumerate}
+  \item Finite sums of sequences tending to $0$ in measure tend to $0$; $|f_n|\to0$ if $f_n\to0$; $|f_n|\to|c|$ if $f_n\to c$.
+  \item A matrix sequence converges in measure iff its entries do.
+  \item If $x_a,x_b\to0$ and $y_a\to c_a$, $y_b\to c_b$ in measure, then $3(x_ax_b+x_ay_b+y_ax_b)\to0$ in measure.
+  \item If $a_n,b_n\to0$ and $c_n\to\gamma$ in measure then $a_nb_nc_n\to0$.
+  \item If $A_1,\dots,A_4$ converge in measure to $c_1,\dots,c_4$ then $\tfrac12(A_1+A_2)\to\frac12(c_1+c_2)$ and $\tfrac14(A_1+A_2+A_3+A_4)\to\frac14\sum c_i$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+All are instances of Lemmas~\ref{lem:ntkcond:mconvAlgebra} and~\ref{lem:ntkcond:mconvDomination} and the fact that the distance on matrices is the maximum over entries.
+\end{proof}
+
+\begin{theorem}[The projected part vanishes and the trace term is negligible]\label{thm:ntkdn:projectedVanishes}
+  \uses{lem:ntkdn:fourthMoment, lem:ntkdn:decouplingBounds, lem:ntkdn:projectedPart, thm:ntkcond:mconvInverse}
+  \lean{NTK.tendstoInMeasure_wsq_mulVec, NTK.tendstoInMeasure_inv_nat_mul_trace}
+  \leanok
+Let $f_n,g_n:\Omega\to\mathbb R^n$, $\Phi_n:\Omega\to\mathbb R^{n\times m}$ be random and assume that $\mathrm{avg}_4(f_n)$, $\mathrm{avg}_4(g_n)$ and $\mathrm{avg}_4(\Phi_{n,\cdot a})$ ($a\le m$) each converge in measure to some constants.
+\begin{enumerate}
+  \item If $w_n:\Omega\to\mathbb R^m$ satisfies $w_{n,a}\to0$ in measure for every $a$, then $\mathrm{wsq}(f_n;\Phi_nw_n)\to0$ in measure.
+  \item If $S_n:\Omega\to\mathbb R^{m\times m}$ has every entry converging in measure to a constant, then $\tfrac1n\sum_{a,b}(S_n)_{ab}\,\mathrm{wmat}(f_n,g_n;\Phi_n)_{ba}\to0$ in measure.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdn:fourthMoment, lem:ntkdn:decouplingBounds}
+  \leanok
+(1) By Lemma~\ref{lem:ntkdn:fourthMoment}(3), $\mathrm{wsq}(f;\Phi w)=\sum_{a,b}w_aw_b\,\mathrm{wmat}(f,f;\Phi)_{ab}$ and by (2) of that lemma each $\mathrm{wmat}$ entry is bounded in absolute value by a quarter-sum of fourth-moment averages, which converges in measure by Lemma~\ref{lem:ntkdn:decouplingBounds}(5). Hence each summand is dominated by $|w_a||w_b|\cdot B_n$ with $B_n$ convergent, which tends to $0$ by Lemma~\ref{lem:ntkdn:decouplingBounds}(4) and domination (Lemma~\ref{lem:ntkcond:mconvDomination}(1)). Sum over the finitely many $(a,b)$. (2) Similarly each summand is $\tfrac1n(S_n)_{ab}\mathrm{wmat}_{ba}$, with $(S_n)_{ab}$ convergent and $|\mathrm{wmat}_{ba}|$ dominated by a convergent sequence; the product of a convergent sequence, a dominated-by-convergent sequence and $\tfrac1n\to0$ tends to $0$.
+\end{proof}
+
+These are the two places where finite $m$ matters: the projected part has only $m$ degrees of freedom, so its weighted size and the normalized trace $\frac1n\operatorname{tr}(DP)\le m\,\|D\|_\infty/n$-type terms vanish as $n\to\infty$.
+
+
+\section{The decoupling approximation and the gradient-independence step}\label{sec:ntkdn:decoupling}
+
+\begin{remark}[Hypothesis: non-degeneracy of the limiting forward kernels]\label{hyp:ntkdn:nondeg}
+For $1\le\ell<d$ the limiting forward kernel $\Sigma^\ell\in\mathbb R^{m\times m}$ is positive definite. (The input layer $\ell=0$ is \emph{not} constrained.) In Lean: \texttt{hnd :$\forall\ell,1\le\ell\to\ell<d\to(\texttt{layerCovarianceSeq}\;1\;0\;\varphi\;m\;\Phi_0\;\ell).\texttt{PosDef}$}.
+\end{remark}
+
+This hypothesis is not part of the informal statement of the theorem. It enters only through the invertibility of the empirical forward Gram matrix $\hat\Sigma_k=\frac1n\Phi_k^\top\Phi_k\to\Sigma^{k+1}$, which is needed to form the projected part. It fails, for instance, for a linear activation with $m>n_0$ (then $\operatorname{rank}\Sigma^1\le n_0<m$), and for repeated or collinear inputs. For generic inputs and a non-polynomial activation it is expected to hold, but this is not proved here. Removing it would require reducing to a linearly independent subfamily of inputs, or a spectral-gap argument for the pseudo-inverse of $\hat\Sigma_k$.
+
+\begin{definition}[The network quantities of the induction]\label{def:ntkdn:netDefs}
+  \uses{def:ntkdn:gram, def:ntkdn:wcov, def:ntkcond:gramProjector, thm:ntkcond:backSplit}
+  \lean{NTK.netFeat, NTK.netGram, NTK.netDeriv, NTK.gradIndep, NTK.projPart, NTK.resPart,
+        NTK.pastFeat, NTK.nextSens, NTK.ActivationData}
+  \leanok
+For a record $\theta$, a layer $k$ and inputs $a,b\in[m]$ put
+\begin{itemize}
+  \item $\Phi_k=\texttt{netFeat}=[\varphi(h_k^a)]_{a\le m}\in\mathbb R^{n\times m}$, $\hat\Sigma_k=\texttt{netGram}=\frac1n\Phi_k^\top\Phi_k$ (so $\hat\Sigma_k=\Phi_{k+1}^{(n)}$), $f_k^a=\texttt{netDeriv}=\varphi'(h_k^a)\in\mathbb R^n$;
+  \item $\gamma_\ell(a,b)=\texttt{gradIndep}=n^{-1}\langle h_\ell^b,g_\ell^a\rangle$, the \emph{gradient-independence quantity};
+  \item for $k+1<d$, the \emph{projected part} $x^a=\texttt{projPart}=\Phi_k\hat\Sigma_k^{-1}\bigl(\gamma_{k+1}(a,b)\bigr)_{b\le m}$ and the \emph{residual part} $y^a=\texttt{resPart}=n^{-1/2}\bigl(W_{k+1}P_{\Phi_k}^\perp\bigr)^\top g_{k+1}^a$;
+  \item \texttt{pastFeat} $=\Phi_k$ regarded as a function on $\texttt{DeepSpace}\;d$, and $\texttt{nextSens}$ the vector $g_{k+1}^a$ regarded as a function of the pair (substituted weight $Y$ for $W_{k+1}$, point $\omega$);
+  \item $\texttt{ActivationData}\;\varphi\;\varphi'$ bundles the standing assumptions: $\varphi,\varphi'$ continuous and $|\varphi|,|\varphi'|\le C(1+|x|^p)$ with common $C\ge0$, $p>0$.
+\end{itemize}
+\end{definition}
+
+The quantity $\gamma_\ell(a,b)=n^{-1}\langle h_\ell^b,g_\ell^a\rangle$ measures the correlation between a forward preactivation and a backpropagated sensitivity at the same layer; the heuristic of ``gradient independence'' asserts that it tends to zero. In the proof it is the quantity that kills the projected part.
+
+\begin{lemma}[Decomposition of the hidden sensitivity]\label{lem:ntkdn:hiddenDecomp}
+  \uses{def:ntkdn:netDefs, thm:ntkcond:backSplit, lem:ntkdn:projectedPart, lem:ntkdn:congruence, lem:ntkdn:wcovCS}
+  \lean{NTK.backwardSensitivity_hidden_decomp, NTK.deepSensitivityGram_hidden_eq_wcov,
+        NTK.wcov_resPart_eq, NTK.resid_mean_eq, NTK.gradIndep_decomp}
+  \leanok
+Let $k+1<d$, $n>0$ and suppose $\hat\Sigma_k$ is invertible. Write $u^a=g_{k+1}^a$, $P=P_{\Phi_k}$, $D^{ab}=\operatorname{diag}(f_k^a\odot f_k^b)$.
+\begin{enumerate}
+  \item (Decomposition) $g_k^a=f_k^a\odot(x^a+y^a)$.
+  \item (Gram entry) $G_k^{(n),ab}=\mathrm{wcov}\bigl(f_k^a,f_k^b;\,x^a+y^a,\,x^b+y^b\bigr)$.
+  \item (Residual form) $\mathrm{wcov}\bigl(f_k^a,f_k^b;y^a,y^b\bigr)=n^{-2}\,(u^a)^\top\bigl(W_{k+1}P^\perp\bigr)D^{ab}\bigl(W_{k+1}P^\perp\bigr)^\top u^b$.
+  \item (Conditional mean of the residual form)
+  \[
+    n^{-2}(u^a\cdot u^b)\operatorname{tr}\bigl(P^\perp D^{ab}P^\perp\bigr)=G_{k+1}^{(n),ab}\Phi'^{(n),ab}_k-G_{k+1}^{(n),ab}\cdot n^{-1}\sum_{a',b'}(\hat\Sigma_k^{-1})_{a'b'}\,\mathrm{wmat}\bigl(f_k^a,f_k^b;\Phi_k\bigr)_{b'a'} .
+  \]
+  \item (Gradient independence at layer $k$) For $c\in[m]$,
+  \[
+    \gamma_k(a,c)=\mathrm{wcov}\bigl(\mathbf 1,f_k^a;\,h_k^c,\,x^a\bigr)+n^{-1}\sqrt{n^{-1}}\;u^a\cdot\Bigl(\bigl(W_{k+1}P^\perp\bigr)\bigl(h_k^c\odot f_k^a\bigr)\Bigr).
+  \]
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkcond:backSplit, lem:ntkdn:projectedPart}
+  \leanok
+(1) By Lemma~\ref{lem:ntkdn:congruence}(3), $g_k^a=f_k^a\odot(n^{-1/2}W_{k+1}^\top u^a)$, and Theorem~\ref{thm:ntkcond:backSplit} with $V=W_{k+1}$ splits $n^{-1/2}W_{k+1}^\top u^a$ into the projected part, which by Lemma~\ref{lem:ntkdn:projectedPart}(2) is $x^a$, and the residual part $y^a$. (2) is the definition of $G_k$ and (1). (3) is Lemma~\ref{lem:ntkdn:projectedPart}(4) with $W=W_{k+1}P^\perp$. (4) By Lemma~\ref{lem:ntkdn:projectedPart}(3) and Lemma~\ref{lem:ntkcond:projectorNorms}(3), $\operatorname{tr}(P^\perp DP^\perp)=\operatorname{tr}D-\operatorname{tr}(DP)$ with $n^{-1}\operatorname{tr}D=\Phi'^{(n),ab}_k$ and $\operatorname{tr}(DP)=\sum(\hat\Sigma^{-1})_{a'b'}\mathrm{wmat}_{b'a'}$; and $n^{-1}(u^a\cdot u^b)=G_{k+1}^{(n),ab}$. (5) $\gamma_k(a,c)=n^{-1}\langle h_k^c,f_k^a\odot(x^a+y^a)\rangle$; the $x^a$-term is $\mathrm{wcov}(\mathbf 1,f_k^a;h_k^c,x^a)$ and the $y^a$-term is $n^{-1}\sum_jh^c_jf^a_jy^a_j=n^{-1}n^{-1/2}\,u^a\cdot(W_{k+1}P^\perp)(h^c_k\odot f^a_k)$ by transposition.
+\end{proof}
+
+\begin{lemma}[The invertibility event]\label{lem:ntkdn:singular}
+  \uses{def:ntkdn:netDefs, thm:ntkdn:forwardDeepSpace, thm:ntkcond:mconvInverse, lem:ntkcond:mconvAlgebra}
+  \lean{NTK.netGram_apply, NTK.netGram_entry_tendsto, NTK.netGram_matrix_tendsto,
+        NTK.netGram_inv_entry_tendsto, NTK.netGram_singular_tendsto, NTK.goodSet,
+        NTK.goodSet_compl_tendsto, NTK.isUnit_det_gram_of_netGram}
+  \leanok
+Let $k<d$ and suppose $\Sigma^{k+1}$ is positive definite. On $\bigl(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d\bigr)$:
+\begin{enumerate}
+  \item $\hat\Sigma_k\to\Sigma^{k+1}$ entrywise and as a matrix in measure, and $\hat\Sigma_k^{-1}\to(\Sigma^{k+1})^{-1}$ in measure.
+  \item $\mu\bigl[\hat\Sigma_k\ \text{singular}\bigr]\to0$, i.e.\ the \emph{good set} $\mathrm{good}_n=\{\omega:\hat\Sigma_k(\omega)\text{ is invertible},\,n>0\}$ has $\mu(\mathrm{good}_n^c)\to0$. On $\mathrm{good}_n$, $\Phi_k^\top\Phi_k$ is also invertible.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkdn:forwardDeepSpace, thm:ntkcond:mconvInverse}
+  \leanok
+(1) The entries of $\hat\Sigma_k$ are $\frac1n\varphi(h_k^a)\cdot\varphi(h_k^b)$, which converge to $\Sigma^{k+1}_{ab}$ by Theorem~\ref{thm:ntkdn:forwardDeepSpace}; inversion is Theorem~\ref{thm:ntkcond:mconvInverse}. (2) $\det\hat\Sigma_k$ is a polynomial in the entries, so $\det\hat\Sigma_k\to\det\Sigma^{k+1}>0$ in measure (continuous mapping); hence $\mu(\det\hat\Sigma_k\le\tfrac12\det\Sigma^{k+1})\to0$, and $\det\hat\Sigma_k=0$ lies in this event for large $n$. Since $\Phi^\top\Phi=n\hat\Sigma$, invertibility transfers.
+\end{proof}
+
+The singular event is thus negligible without any quantitative control on the smallest eigenvalue; this is why a good-event argument (Lemma~\ref{lem:ntkcond:mconvDomination}(2),(3)) suffices.
+
+\begin{lemma}[Tightness of the inputs to the conditional bounds]\label{lem:ntkdn:tightness}
+  \uses{thm:ntkdn:forwardDeepSpace, lem:ntkcond:polyGrowth, lem:ntkdn:fourthMoment, lem:ntkdn:decouplingBounds}
+  \lean{NTK.featCov_cvg, NTK.growth_sq_deriv, NTK.growth_sq_act, NTK.derivSq_cvg, NTK.actSq_cvg,
+        NTK.preFour_cvg, NTK.preSq_cvg, NTK.avg4_deriv_cvg, NTK.avg4_feat_cvg, NTK.derivGram_cvg}
+  \leanok
+Let $(\varphi,\varphi')$ carry activation data, $\ell<d$ and $a,b\in[m]$. On $\texttt{DeepSpace}\;d$ the following sequences converge in measure to some constants:
+\begin{enumerate}
+  \item $\frac1n\sum_j\psi(h_{\ell,j}^a)\psi(h_{\ell,j}^b)$ for every continuous $\psi$ of polynomial growth (for each $\psi$ with growth bound);
+  \item $\frac1n\sum_j\bigl(\varphi'(h^a_{\ell,j})\varphi'(h^b_{\ell,j})\bigr)^2$, $\ \frac1n\sum_j\varphi(h^a_{\ell,j})^4$, $\ \frac1n\sum_j(h^a_{\ell,j})^4$, $\ \frac1n\sum_j(h^a_{\ell,j})^2$;
+  \item $\mathrm{avg}_4(f_\ell^a)=\frac1n\sum_j\varphi'(h^a_{\ell,j})^4$ and $\mathrm{avg}_4(\Phi_{\ell,\cdot a})=\frac1n\sum_j\varphi(h^a_{\ell,j})^4$;
+  \item the derivative Gram entries $\Phi'^{(n),ab}_\ell$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is Theorem~\ref{thm:ntkdn:forwardDeepSpace}. For (2), apply (1) with $\psi=\varphi'^2$, $\varphi^2$, $x\mapsto x^2$, $x\mapsto x$, whose polynomial growth follows from Lemma~\ref{lem:ntkcond:polyGrowth}(2) (\texttt{growth\_sq\_deriv}, \texttt{growth\_sq\_act}); note that $\bigl(\varphi'(h^a)\varphi'(h^b)\bigr)^2=\psi(h^a)\psi(h^b)$ for $\psi=\varphi'^2$. (3) is the case $a=b$. (4) is (1) with $\psi=\varphi'$.
+\end{proof}
+
+\begin{theorem}[Residual Gram form concentrates]\label{thm:ntkdn:residualGram}
+  \uses{thm:ntkcond:residualQuad, lem:ntkdn:hiddenDecomp, lem:ntkdn:congruence, thm:ntkdn:layerSplit, lem:ntkdn:layerSubstitution, lem:ntkdn:tightness, lem:ntkdn:singular, lem:ntkdn:measurable}
+  \lean{NTK.splitPt, NTK.residAbs, NTK.residAbs_eq, NTK.atProj_nextSens_eq, NTK.preactivation_zeroLayer,
+        NTK.pastFeat_zeroLayer, NTK.netGram_zeroLayer, NTK.netDeriv_zeroLayer, NTK.atProj_sq_bddByConv,
+        NTK.residAbs_tendsto, NTK.gperp_sub_tendsto}
+  \leanok
+Let $k+1<d$, assume $\Sigma^{k+1}\succ0$, and assume that for all $c,c'\in[m]$ the entries $G_{k+1}^{(n),cc'}$ converge in measure to some constants (convergence at layer $k+1$). Then, for $a,b\in[m]$, in measure on $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$,
+\[
+  \mathrm{wcov}\bigl(f_k^a,f_k^b;y^a,y^b\bigr)-G_{k+1}^{(n),ab}\,\Phi'^{(n),ab}_k\longrightarrow0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:residualQuad, lem:ntkdn:hiddenDecomp, lem:ntkdn:congruence, thm:ntkdn:layerSplit, lem:ntkdn:layerSubstitution, lem:ntkdn:tightness, lem:ntkdn:singular, thm:ntkdn:projectedVanishes}
+  \leanok
+Put $i_0=k+1$ and use the layer split of Theorem~\ref{thm:ntkdn:layerSplit}: $\omega\mapsto(z,V)=(\texttt{zeroLayer}_{i_0}\omega,\texttt{layerBlock}_n(\omega_{i_0}))$ is measure preserving onto $\mathcal L(z)\otimes\texttt{gaussianInit}\;n\;n$ (the ``splitPt'').
+The past data $\Phi_k$, $\hat\Sigma_k$, $f_k^a$ are unchanged by zeroing layer $k+1$ (Lemma~\ref{lem:ntkdn:congruence}(1); \texttt{pastFeat\_zeroLayer}, \texttt{netGram\_zeroLayer}, \texttt{netDeriv\_zeroLayer}), so they are measurable functions of the past $z$ alone. By Lemma~\ref{lem:ntkdn:layerSubstitution} the network at $\omega$ is the network at $z$ with $W_{k+1}=V$ inserted. By Lemma~\ref{lem:ntkdn:congruence}(4) and Lemma~\ref{lem:ntkcond:gramProjectorProps}(3), on the event that $\hat\Sigma_k$ is invertible the vector $g_{k+1}$ at $\omega$ equals $g_{k+1}$ evaluated with $W_{k+1}$ replaced by $VP_{\Phi_k}$, i.e.\ $\texttt{atProj}\;\Phi_k\;(\texttt{nextSens}^a)$ at the split point (\texttt{atProj\_nextSens\_eq}): the vector $u^a$ in Lemma~\ref{lem:ntkdn:hiddenDecomp} is of the form required by Theorem~\ref{thm:ntkcond:residualQuad}.
+The tightness hypotheses of that theorem hold: $n^{-1}\|u^a\|^2=G_{k+1}^{(n),aa}$ converges by assumption (on the good event, where $\texttt{atProj}$ agrees with the network quantity: \texttt{atProj\_sq\_bddByConv}), and $n^{-1}\|D^{ab}\|_F^2=\frac1n\sum_j(f_j^af_j^b)^2$ converges by Lemma~\ref{lem:ntkdn:tightness}(2). Theorem~\ref{thm:ntkcond:residualQuad}, with $A_n=D^{ab}$, shows that the residual form $\mathrm{wcov}(f^a,f^b;y^a,y^b)$ of Lemma~\ref{lem:ntkdn:hiddenDecomp}(3) minus its conditional mean (\texttt{residAbs}) tends to $0$ in measure, the discrepancy between the two on the bad event being negligible by Lemma~\ref{lem:ntkdn:singular}. The conditional mean is, by Lemma~\ref{lem:ntkdn:hiddenDecomp}(4), $G_{k+1}\Phi'_k-G_{k+1}\cdot n^{-1}\sum(\hat\Sigma^{-1})_{a'b'}\mathrm{wmat}_{b'a'}$. The correction term tends to $0$ by Theorem~\ref{thm:ntkdn:projectedVanishes}(2) ($\hat\Sigma^{-1}$ converges by Lemma~\ref{lem:ntkdn:singular}(1), and the fourth-moment averages by Lemma~\ref{lem:ntkdn:tightness}(3)) multiplied by the convergent $G_{k+1}$. Hence the claim.
+\end{proof}
+
+\begin{theorem}[The decoupling approximation]\label{thm:ntkdn:decoupling}
+  \uses{thm:ntkdn:residualGram, lem:ntkdn:hiddenDecomp, lem:ntkdn:wcovCS, thm:ntkdn:projectedVanishes, lem:ntkdn:singular, lem:ntkdn:tightness}
+  \lean{NTK.wcov_self_eq_wsq, NTK.wsq_projPart_tendsto, NTK.decoupling_tendsto}
+  \leanok
+Let $k+1<d$ and $\Sigma^{k+1}\succ0$. Suppose that (a) all entries $G_{k+1}^{(n),cc'}$ converge in measure to constants, and (b) the gradient-independence quantities at layer $k+1$ vanish: $\gamma_{k+1}(a,b)\to0$ in measure for all $a,b$. Then for all $a,b\in[m]$, in measure on $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$,
+\[
+  G_k^{(n),ab}-G_{k+1}^{(n),ab}\,\Phi'^{(n),ab}_k\longrightarrow0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdn:residualGram, lem:ntkdn:hiddenDecomp, lem:ntkdn:wcovCS, thm:ntkdn:projectedVanishes, lem:ntkdn:singular, lem:ntkdn:tightness}
+  \leanok
+On the good event $\mathrm{good}_n$ of Lemma~\ref{lem:ntkdn:singular} (whose complement has vanishing measure, so by Lemma~\ref{lem:ntkcond:mconvDomination}(2),(3) one may work on it) write $G_k^{ab}=\mathrm{wcov}(f^a,f^b;x^a+y^a,x^b+y^b)$ (Lemma~\ref{lem:ntkdn:hiddenDecomp}(2)) and compare with $G_\perp=\mathrm{wcov}(f^a,f^b;y^a,y^b)$ by the decoupling inequality of Lemma~\ref{lem:ntkdn:wcovCS}(3):
+\[
+  (G_k^{ab}-G_\perp)^2\le3\bigl[N_{f^a}(x^a)N_{f^b}(x^b)+N_{f^a}(x^a)N_{f^b}(y^b)+N_{f^a}(y^a)N_{f^b}(x^b)\bigr],\quad N_f(\cdot)=\mathrm{wsq}(f;\cdot).
+\]
+\emph{The projected parts vanish.} Here $x^a=\Phi_k w^a$ with $w^a=\hat\Sigma_k^{-1}\zeta^a$, $\zeta^a_b=\gamma_{k+1}(a,b)\to0$ by (b), and $\hat\Sigma_k^{-1}$ converges by Lemma~\ref{lem:ntkdn:singular}(1); so $w^a_c\to0$ in measure for each $c$ (product of convergent and null sequences, Lemma~\ref{lem:ntkcond:mconvAlgebra}). Theorem~\ref{thm:ntkdn:projectedVanishes}(1), whose fourth-moment hypotheses hold by Lemma~\ref{lem:ntkdn:tightness}(3), gives $N_{f^a}(x^a)\to0$ and likewise $N_{f^b}(x^b)\to0$ (\texttt{wsq\_projPart\_tendsto}).
+\emph{The residual parts are tight.} $N_{f^a}(y^a)=\mathrm{wcov}(f^a,f^a;y^a,y^a)$ (\texttt{wcov\_self\_eq\_wsq}) is the diagonal case of the residual form, which by Theorem~\ref{thm:ntkdn:residualGram} differs from $G_{k+1}^{(n),aa}\Phi'^{(n),aa}_k$ by $o_{\mathbb P}(1)$, and $G_{k+1}^{aa}\Phi'^{aa}_k$ converges by (a) and Lemma~\ref{lem:ntkdn:tightness}(4).
+By Lemma~\ref{lem:ntkdn:decouplingBounds}(3) the bound $3[\ldots]$ tends to $0$ in measure, and by domination (Lemma~\ref{lem:ntkcond:mconvDomination}(1)) $G_k^{ab}-G_\perp\to0$. Combined with Theorem~\ref{thm:ntkdn:residualGram}, $G_\perp-G_{k+1}\Phi'_k\to0$, this gives the claim.
+\end{proof}
+
+The essential observation is that the projected part $x$, which is not independent of $u=g_{k+1}$ and therefore cannot be treated by the conditional Chebyshev bounds, is negligible, \emph{because the quantities $\gamma_{k+1}$ vanish}. The invariant $\gamma$ thus has to be propagated down the layers together with the Gram convergence; this is the reason for the joint induction below. One might expect the projected part, which has only $m$ degrees of freedom, to be negligible for trivial reasons ($O(m/n)$); this is not so, because $u=g_{k+1}$ depends on $W_{k+1}P$ through $h_{k+1}$, and the projected part $\Phi\hat\Sigma^{-1}\zeta$ is of order one unless $\zeta\to0$.
+
+\begin{theorem}[Gradient independence propagates down one layer]\label{thm:ntkdn:gradIndepStep}
+  \uses{lem:ntkdn:hiddenDecomp, thm:ntkcond:residualLinear, lem:ntkdn:wcovCS, thm:ntkdn:projectedVanishes, lem:ntkdn:singular, lem:ntkdn:tightness, thm:ntkdn:layerSplit, lem:ntkdn:congruence}
+  \lean{NTK.linAbs, NTK.linAbs_eq, NTK.sum_sq_diagonal, NTK.linAbs_tendsto, NTK.gradIndep_step_tendsto}
+  \leanok
+Let $k+1<d$, $\Sigma^{k+1}\succ0$. Suppose (a) $G_{k+1}^{(n),cc'}$ converges in measure to constants and (b) $\gamma_{k+1}(a,b)\to0$ in measure for all $a,b$. Then for $a,c\in[m]$,
+\[
+  \gamma_k(a,c)=n^{-1}\bigl\langle h_k^c,g_k^a\bigr\rangle\longrightarrow0\quad\text{in measure}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdn:hiddenDecomp, thm:ntkcond:residualLinear, lem:ntkdn:wcovCS, thm:ntkdn:projectedVanishes, lem:ntkdn:singular, lem:ntkdn:tightness}
+  \leanok
+On the good event (Lemma~\ref{lem:ntkdn:singular}), Lemma~\ref{lem:ntkdn:hiddenDecomp}(5) writes $\gamma_k(a,c)$ as the sum of two terms.
+\emph{First term.} By Cauchy--Schwarz (Lemma~\ref{lem:ntkdn:wcovCS}(1)), $\mathrm{wcov}(\mathbf 1,f^a;h^c,x^a)^2\le\mathrm{wsq}(\mathbf 1;h^c)\,\mathrm{wsq}(f^a;x^a)=\bigl(\tfrac1n\|h_k^c\|^2\bigr)\,N_{f^a}(x^a)$. The first factor converges (Lemma~\ref{lem:ntkdn:tightness}(2), $\psi=\mathrm{id}$) and the second tends to $0$ as in the proof of Theorem~\ref{thm:ntkdn:decoupling} (using (b)), so the product tends to $0$.
+\emph{Second term.} This is the residual linear form $n^{-1}\sqrt{n^{-1}}\;u^a\cdot(W_{k+1}P^\perp)\,b$ with $b=h_k^c\odot f_k^a$, which is a function of the past alone (it depends on layers $\le k$ only, by Lemma~\ref{lem:ntkdn:congruence}(1)), and $u^a=g_{k+1}^a$ is, on the good event, evaluated at the projected weight, exactly as in Theorem~\ref{thm:ntkdn:residualGram} (\texttt{linAbs\_eq}). The hypotheses of Theorem~\ref{thm:ntkcond:residualLinear} hold: $n^{-1}\|u^a\|^2=G_{k+1}^{(n),aa}$ converges by (a), and $n^{-1}\|b\|^2=\tfrac1n\|h_k^c\odot f_k^a\|^2\le\tfrac12\bigl(\mathrm{avg}_4(h_k^c)+\mathrm{avg}_4(f_k^a)\bigr)$ (Lemma~\ref{lem:ntkdn:fourthMoment}(4)), which converges by Lemma~\ref{lem:ntkdn:tightness}(2),(3). Theorem~\ref{thm:ntkcond:residualLinear} then shows that the second term tends to $0$ in measure.
+\end{proof}
+
+
+\section{The top layer and the joint induction}\label{sec:ntkdn:induction}
+
+Write $C(\ell)$ for the statement ``$G_\ell^{(n),ab}\to\Pi^\ell_{ab}$ in measure for all $a,b$'' and $I(\ell)$ for ``$\gamma_\ell(a,b)\to0$ in measure for all $a,b$''.
+
+\begin{theorem}[Base cases at the top hidden layer]\label{thm:ntkdn:top}
+  \uses{thm:ntkcond:weightedAverage, thm:ntkcond:linearAverage, thm:ntkdn:forwardDeepSpace, lem:ntkdn:tightness, lem:ntkdn:fourthMoment, lem:ntkdn:congruence}
+  \lean{NTK.preactivation_deepParams_readout, NTK.netDeriv_deepParams_readout,
+        NTK.gradIndep_top_tendsto, NTK.sensitivityGram_top_tendsto}
+  \leanok
+Let $d\ge1$. On $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$, in measure and for all $a,b$:
+\begin{enumerate}
+  \item $I(d-1)$: $\gamma_{d-1}(a,b)=n^{-1}\langle h_{d-1}^b,g_{d-1}^a\rangle\to0$;
+  \item $C(d-1)$: $G_{d-1}^{(n),ab}\to\int\varphi'(z_a)\varphi'(z_b)\,d\mathcal N(0,\Sigma^{d-1})=\dot\Sigma^{d-1}_{ab}=\Pi^{d-1}_{ab}$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:weightedAverage, thm:ntkcond:linearAverage, thm:ntkdn:forwardDeepSpace, lem:ntkdn:tightness, lem:ntkdn:fourthMoment}
+  \leanok
+The forward pass does not read the readout, so $h_{d-1}$ and $f^a=\varphi'(h_{d-1}^a)$ are functions of the first coordinate of $\omega$ and independent of the readout $W_d=:v$ (\texttt{preactivation\_deepParams\_readout}, \texttt{netDeriv\_deepParams\_readout}). Since $g_{d-1}^a=v\odot f^a$:
+(1) $\gamma_{d-1}(a,b)=n^{-1}\sum_jv_j\,y_j$ with $y_j=h^b_{d-1,j}f^a_j$ a function of the past, a centred Gaussian linear form in the independent readout. Its weights satisfy $n^{-1}\sum_jy_j^2\le\frac12(\mathrm{avg}_4(h^b)+\mathrm{avg}_4(f^a))$ (Lemma~\ref{lem:ntkdn:fourthMoment}(4)), dominated by a convergent sequence by Lemma~\ref{lem:ntkdn:tightness}. Theorem~\ref{thm:ntkcond:linearAverage}(2) gives the claim.
+(2) $G_{d-1}^{ab}=n^{-1}\sum_jv_j^2y_j$ with $y_j=\varphi'(h^a_{d-1,j})\varphi'(h^b_{d-1,j})$. By Lemma~\ref{lem:ntkdn:tightness}, $n^{-1}\sum_jy_j=\Phi'^{(n),ab}_{d-1}\to\dot\Sigma^{d-1}_{ab}$ and $n^{-1}\sum_jy_j^2\to$ a constant. Theorem~\ref{thm:ntkcond:weightedAverage} shows $G_{d-1}^{ab}\to\dot\Sigma^{d-1}_{ab}$, and $\Pi^{d-1}=\dot\Sigma^{d-1}\odot\Pi^d=\dot\Sigma^{d-1}$ since $\Pi^d=\mathbf 1$.
+\end{proof}
+
+\begin{theorem}[The joint downward induction]\label{thm:ntkdn:induction}
+  \uses{thm:ntkdn:top, thm:ntkdn:decoupling, thm:ntkdn:gradIndepStep, def:ntkdn:limitingNTK, lem:ntkdn:tightness, lem:ntkcond:mconvAlgebra}
+  \lean{NTK.deepSpace_sensitivity_induction}
+  \leanok
+Let $d\ge1$ and let Hypothesis~\ref{hyp:ntkdn:nondeg} hold. On $(\texttt{DeepSpace}\;d,\texttt{deepMeasure}\;d)$, for every layer $k<d$ both $C(k)$ and $I(k)$ hold.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdn:top, thm:ntkdn:decoupling, thm:ntkdn:gradIndepStep, lem:ntkdn:tightness, lem:ntkcond:mconvAlgebra}
+  \leanok
+Downward induction on $k=d-1,d-2,\dots,0$ for the pair $\bigl(C(k),I(k)\bigr)$. For $k=d-1$ this is Theorem~\ref{thm:ntkdn:top}. Suppose $k+1<d$ and $C(k+1)$, $I(k+1)$ hold. Hypothesis~\ref{hyp:ntkdn:nondeg} supplies $\Sigma^{k+1}\succ0$, since $1\le k+1<d$. Theorem~\ref{thm:ntkdn:gradIndepStep} gives $I(k)$. Theorem~\ref{thm:ntkdn:decoupling} gives $G_k^{ab}-G_{k+1}^{ab}\Phi'^{ab}_k\to0$; by $C(k+1)$, $G_{k+1}^{ab}\to\Pi^{k+1}_{ab}$, and by Lemma~\ref{lem:ntkdn:tightness}(4), $\Phi'^{(n),ab}_k\to\dot\Sigma^k_{ab}$. By the algebra of limits (Lemma~\ref{lem:ntkcond:mconvAlgebra}), $G_{k+1}\Phi'_k\to\Pi^{k+1}_{ab}\dot\Sigma^k_{ab}=\bigl(\dot\Sigma^k\odot\Pi^{k+1}\bigr)_{ab}=\Pi^k_{ab}$ (Definition~\ref{def:ntkdn:limitingNTK}) and hence $G_k^{ab}\to\Pi^k_{ab}$, which is $C(k)$.
+\end{proof}
+
+\begin{remark}[Why the two statements must be proved together]\label{rmk:ntkdn:whyJoint}
+\uses{thm:ntkdn:induction}
+The induction step for $C(k)$ uses $I(k+1)$ (to kill the projected part), and $I(k)$ itself uses $C(k+1)$ (to make the conditional bounds tight) and $I(k+1)$. Neither statement can be established separately from the top layer.
+\end{remark}
+
+
+\section{Theorem 2.27: convergence of the deep empirical NTK}\label{sec:ntkdn:main}
+
+The induction is carried out on $\texttt{DeepSpace}\;d$, where the readout is available as a coordinate; the final theorems are stated on the full product space of $(W,w_{\mathrm{out}})$ so that all widths live on one probability space.
+
+\begin{theorem}[Backward Gram convergence]\label{thm:ntkdn:backwardConvergence}
+  \uses{thm:ntkdn:induction, thm:ntkdn:top, thm:ntkdn:decoupling, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:polyGrowth}
+  \lean{NTK.deepSensitivityGram_readout_entry_tendstoInMeasure,
+        NTK.deepSensitivityGram_sub_mul_tendstoInMeasure, NTK.deepSensitivityGram_entry_tendstoInMeasure}
+  \leanok
+Let $\varphi,\varphi'$ be continuous with $|\varphi(x)|,|\varphi'(x)|\le C(1+|x|^p)$, let $d\ge1$, $X$ be inputs, $\Phi_0=\frac1{n_0}XX^\top$, and consider $\theta_n=\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ under the product Gaussian measure on $(W,w_{\mathrm{out}})$.
+\begin{enumerate}
+  \item (Top layer; no non-degeneracy assumption, and the two growth constants may differ) $G_{d-1}^{(n),ab}\to\dot\Sigma^{d-1}_{ab}$ in measure.
+  \item (Decoupling approximation) Under Hypothesis~\ref{hyp:ntkdn:nondeg}, for $k+1<d$ and $\varepsilon>0$,
+  \[
+    \mu\Bigl[\bigl|G_k^{(n),ab}-G_{k+1}^{(n),ab}\Phi'^{(n),ab}_k\bigr|\ge\varepsilon\Bigr]\xrightarrow[n\to\infty]{}0 .
+  \]
+  \item (Backward convergence) Under Hypothesis~\ref{hyp:ntkdn:nondeg}, for every $k<d$ and $a,b\in[m]$: $G_k^{(n),ab}\to\Pi^k_{ab}$ in measure.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdn:induction, thm:ntkdn:top, thm:ntkdn:decoupling, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:polyGrowth}
+  \leanok
+Each statement on $\texttt{DeepSpace}\;d$ is Theorem~\ref{thm:ntkdn:top}(2), Theorem~\ref{thm:ntkdn:decoupling} (with (a) and (b) supplied by Theorem~\ref{thm:ntkdn:induction} at layer $k+1$) and Theorem~\ref{thm:ntkdn:induction}, respectively. They are transported to the full product space by Lemma~\ref{lem:ntkdn:transport}(1),(2), since $\texttt{ofTensor}$ of a point of the product space equals $\texttt{deepParams}$ of its prefix. For (1) the growth constants of $\varphi$ and $\varphi'$ are merged into a single pair $(C'',p'')$ with Lemma~\ref{lem:ntkcond:polyGrowth}(1), which is where the factor $2C$ is needed; for (2) and (3) the hypothesis is stated with a common growth constant, as in \texttt{ActivationData}.
+\end{proof}
+
+\begin{theorem}[Convergence of the empirical NTK to the limiting NTK (Theorem~2.27)]\label{thm:ntkdn:main}
+  \uses{thm:ntkdn:backwardConvergence, thm:ntkdn:forwardProductSpace, thm:ntkdn:assembly, thm:ntkdn:layerwise, def:ntkdn:limitingNTK}
+  \lean{NTK.deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK}
+  \leanok
+Let $d\ge1$, $n_0,m\in\mathbb N$, $\varphi,\varphi'$ continuous with $|\varphi(x)|,|\varphi'(x)|\le C(1+|x|^p)$, $X$ inputs, $\Phi_0=\frac1{n_0}XX^\top$, and assume Hypothesis~\ref{hyp:ntkdn:nondeg} (the forward kernels $\Sigma^\ell$, $1\le\ell<d$, are positive definite). Let $\theta_n=\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ with $(W,w_{\mathrm{out}})$ drawn from the product of standard Gaussian measures. Then for all $\alpha,\beta\in[m]$,
+\[
+  \Theta^{\mathrm{emp},(d),\alpha\beta}(\theta_n)\xrightarrow[n\to\infty]{}\Theta^{(d),\alpha\beta}\quad\text{in probability.}
+\]
+Equivalently, the matrix $\Theta^{\mathrm{emp},(d)}(\theta_n)$ converges in probability to $\Theta^{(d)}=\sum_{\ell=0}^d\Pi^\ell\odot\Sigma^\ell$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkdn:backwardConvergence, thm:ntkdn:forwardProductSpace, thm:ntkdn:assembly}
+  \leanok
+By the deterministic assembly (Theorem~\ref{thm:ntkdn:assembly}) it suffices to verify, for every $k<d$, the forward convergence $\Phi_{k+1}^{(n),\alpha\beta}\to\Sigma^{k+1}_{\alpha\beta}$, which is Theorem~\ref{thm:ntkdn:forwardProductSpace}, and the backward convergence $G_k^{(n),\alpha\beta}\to\Pi^k_{\alpha\beta}$, which is Theorem~\ref{thm:ntkdn:backwardConvergence}(3). Entrywise convergence in measure is convergence of the matrix (Lemma~\ref{lem:ntkdn:decouplingBounds}(2)).
+\end{proof}
+
+\begin{remark}[The two limiting objects and the hypothesis]\label{rmk:ntkdn:hypothesisRemark}
+\uses{thm:ntkdn:main, hyp:ntkdn:nondeg}
+The statement is a convergence \emph{in probability for a fixed realization of the infinite array of weights}, not in distribution: all widths $n$ are realized on the same probability space as top-left blocks of the same infinite array. Hypothesis~\ref{hyp:ntkdn:nondeg} is used only in the decoupling approximation (Theorem~\ref{thm:ntkdn:decoupling}), through the convergence of $\hat\Sigma_k^{-1}$ and the vanishing of the probability of the singular event. The forward ingredients (Theorem~\ref{thm:ntkdn:forwardProductSpace}) and the top-layer step (Theorem~\ref{thm:ntkdn:top}) do not use it. In particular, for $d=1$ the hypothesis is void, and Theorem~\ref{thm:ntkdn:main} recovers, for the full two-layer NTK, the convergence of Chapter~\ref{chap:ntktl} to $\mathcal C_\varphi(\Phi_0)+\mathcal C_{\varphi'}(\Phi_0)\odot\Phi_0$ (Theorem~\ref{thm:ntkdn:twoLayer}).
+\end{remark}
+
+
+\section{Relation of this chapter to prior and following results}\label{sec:ntkdn:relation}
+
+\begin{remark}[Role of this chapter in the NTK development]\label{rmk:ntkdn:role}
+  \uses{thm:ntkdn:main, thm:ntkdn:layerwise, thm:ntkdn:limitProps, thm:ntkcond:lemma226, thm:ntkcond:conditionalChebyshev}
+\emph{Main result.} At random initialization the empirical NTK of a deep network is, for large width, a deterministic matrix: the sum over parameter blocks of Hadamard products of a forward kernel $\Sigma^\ell$ and a backward kernel $\Pi^\ell=\dot\Sigma^\ell\odot\dots\odot\dot\Sigma^{d-1}$ (Theorem~\ref{thm:ntkdn:main}). The matrix is positive semidefinite and dominates the NNGP kernel $\Sigma^d$ (Theorem~\ref{thm:ntkdn:limitProps}).
+
+\emph{What it builds on.}
+\begin{itemize}
+  \item The forward half is the deep NNGP recursion of Chapter~\ref{chap:ntkdeep} (Theorem~\ref{thm:ntkdeep:deepCovariance}), which supplies $\Phi^{(n)}_\ell\to\Sigma^\ell$ and, in the generalized form of Theorem~\ref{thm:ntkcond:featureCovariance}, the derivative Gram limits $\Phi'^{(n)}_\ell\to\dot\Sigma^\ell$ and the fourth-moment averages needed for the tightness estimates.
+  \item The backward half, which is new, uses the one-sided Gaussian conditioning of Lemma~2.26 (Theorem~\ref{thm:ntkcond:lemma226}), the second-moment computation for Gaussian sandwiches (Theorem~\ref{thm:ntkcond:sandwichVariance}) and the conditional Chebyshev bounds built from them (Theorems~\ref{thm:ntkcond:conditionalChebyshev},~\ref{thm:ntkcond:residualQuad},~\ref{thm:ntkcond:residualLinear}).
+  \item The shallow case $d=1$ reproduces the two-layer limiting NTK of Chapter~\ref{chap:ntktl} (Theorem~\ref{thm:ntkdn:twoLayer}).
+\end{itemize}
+
+\emph{What it is used for.} By itself this chapter is a statement about initialization. It is the deep analogue of the initial-kernel convergence for two layers, and the input to a deep version of the training results of Chapters~\ref{chap:ntkgf} and~\ref{chap:ntktl}: the gradient-flow theory of Chapter~\ref{chap:ntkgf} takes as hypotheses a spectral gap of the initial kernel and Lipschitz bounds on the Jacobian. A deep training theorem would need (i) the gap, which would follow from positive definiteness of $\Sigma^d$, since $\Theta^{(d)}\succeq\Sigma^d$ (Hypothesis~\ref{hyp:ntkdn:nondeg} constrains only the layers $\ell<d$, so this is an additional assumption), and (ii) Jacobian bounds on a ball around the initialization. Neither is formalized for $d\ge2$.
+\end{remark}

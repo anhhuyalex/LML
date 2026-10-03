@@ -735,6 +735,30 @@ Same bootstrap as Theorem~\ref{thm:ntkgf:lazyDisplacement}, with the core claim 
 $d(S)\le SM\|r_0\|/m\le C$. The kernel statement is Theorem~\ref{thm:ntkgf:kernelLipschitz}.
 \end{proof}
 
+\begin{remark}[Role of this section in the NTK development]\label{rmk:ntkgf:lazyRole}
+  \uses{thm:ntkgf:displacementBound, thm:ntkgf:lazyDisplacement, thm:ntkgf:lazyGlobal, thm:ntkgf:finiteHorizon, thm:ntkf:bootstrap}
+\emph{Main results.} The section answers one question: when does gradient flow keep the parameters, and hence the kernel, near their initial values? There are two answers, depending on whether the initial kernel has a spectral gap.
+\begin{itemize}
+  \item \emph{With a gap} (Theorems~\ref{thm:ntkgf:lazyDisplacement} and~\ref{thm:ntkgf:lazyGlobal}). If $K(\theta_0)$ has smallest eigenvalue at least $\lambda_0>0$ and the Jacobian is bounded and Lipschitz on a ball around $\theta_0$ with $2ML_Jr\le\lambda_0/2$, then the flow never leaves the ball: $\|\theta(t)-\theta_0\|\le C$ for all $t\ge0$, for any $C<r$ with $C\ge2M\|r_0\|/\lambda_0$. As consequences the kernel keeps the gap $\lambda_0/2$, moves by at most $2ML_JC$, and the residual and loss decay exponentially, all uniformly in time.
+  \item \emph{Without a gap} (Theorem~\ref{thm:ntkgf:finiteHorizon}). Positive semidefiniteness alone only makes $\|r(t)\|$ nonincreasing, so the displacement grows linearly, $\|\theta(t)-\theta_0\|\le tM\|r_0\|/m$. The same bootstrap then gives the same conclusions on a fixed horizon $[0,T]$, as long as the ball radius is chosen larger than $C=TM\|r_0\|/m$. The price is that nothing is uniform in time and no decay of the residual is obtained.
+\end{itemize}
+
+\emph{What it builds on.}
+\begin{itemize}
+  \item The kernel-stability section supplies the two analytic inputs: Lipschitz propagation from $J$ to $K$ (Theorem~\ref{thm:ntkgf:kernelLipschitz}) and the persistence of a Rayleigh--Ritz gap under small displacement (Theorem~\ref{thm:ntkgf:rayleighStability}, packaged on a ball in Theorem~\ref{thm:ntkgf:rayleighBall}).
+  \item The dynamics sections supply the speed of the flow. The gradient formula (Theorem~\ref{thm:ntkgf:mseGradient}) gives $\|\theta'\|\le\frac Mm\|r\|$, and the residual bounds of Theorems~\ref{thm:ntkgf:expDecay} and~\ref{thm:ntkgf:expDecayIcc} (with a gap) or Lemma~\ref{lem:ntkgf:lossMonotone} (without) control $\|r\|$. Theorem~\ref{thm:ntkgf:displacementBound} integrates the two, and it is the only place where the two cases differ.
+  \item The bootstrap principle (Theorem~\ref{thm:ntkf:bootstrap}) closes the circularity: the estimates hold only inside the ball, and the ball is exactly what has to be proved. Both main theorems use it in the same way, and only the core estimate $d(S)\le C$ changes.
+\end{itemize}
+
+\emph{What it is used for.} This section is deterministic and takes the Jacobian estimates as hypotheses. It does not say that they hold for a wide network.
+\begin{itemize}
+  \item The next section turns the drift bound $2ML_JC$ into a limit as the width grows (Theorem~\ref{thm:ntkgf:kernelFreeze}), once the Jacobian estimates carry the appropriate powers of $n$.
+  \item In the two-layer chapter the Jacobian estimates are proved with high probability over the initialization (Theorem~\ref{thm:ntktl:ballBounds}). Combining them with Theorem~\ref{thm:ntkgf:lazyGlobal} gives the uniform-in-time good event and the freezing of the kernel for all $t\ge0$ in the spectral-gap case. Combining them with Theorem~\ref{thm:ntkgf:finiteHorizon} gives the corresponding finite-horizon event (Theorem~\ref{thm:ntktl:finiteHorizonEvent}) and the finite-horizon stationarity results (Theorem~\ref{thm:ntktl:finiteHorizonLimits}), which need no gap and so also cover cases where the initial kernel is degenerate.
+  \item The block-speed bound of Theorem~\ref{thm:ntkgf:displacementLinear}(2) is the ingredient for the per-neuron displacement estimate (Theorem~\ref{thm:ntktl:neuronDisplacement}).
+  \item The kernel drift obtained here is the quantity $\varepsilon_K$ that enters the frozen-kernel comparison of Theorem~\ref{thm:ntkgf:residualFrozen}, which is how ``the kernel barely moves'' becomes ``the trained network follows the closed-form linear dynamics''.
+\end{itemize}
+\end{remark}
+
 
 \section{Infinite-width asymptotics}\label{sec:ntkgf:infiniteWidth}
 

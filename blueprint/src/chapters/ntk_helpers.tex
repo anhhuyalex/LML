@@ -1,0 +1,305 @@
+\chapter{Supplement: helper lemmas of the shallow and two-layer development}\label{chap:ntkhelp}
+
+The chapters on the shallow NTK (Chapter~\ref{chap:ntk}) and on two-layer training (Chapter~\ref{chap:ntktl}) state their main results and the key estimates. The Lean development also contains a number of auxiliary declarations that those chapters use without stating: scalings of inner products, the explicit gradient matrix, measurability and integrability facts needed for the strong law, and the bookkeeping for the ReLU linearization bound, including the elementary arithmetic that produces the exponent $m^{-1/6}$. This supplement records them with proofs, so that every proved declaration in \texttt{Shallow/} and \texttt{Training/TwoLayer/} appears in the blueprint. It also records which universality statements of Chapter~\ref{chap:ntk} are \emph{not} yet proved in Lean (Section~\ref{sec:ntkhelp:universal}).
+
+\medskip\noindent\textbf{Notation.}
+Throughout, $\sigma$ is an activation and $\sigma'$ a companion function (its derivative), $a=(a_j)_{j\le m}$ are fixed outer coefficients with $|a_j|\le1$ (Definition~\ref{def:ntk:shallowNetwork}), $W_0,W\in\mathbb R^{m\times d}$ have rows $w_{0,j},w_j$, and $f(x;W)=m^{-1/2}\sum_ja_j\sigma(w_j\cdot x)$.
+
+
+\section{Dot products and input scalings}\label{sec:ntkhelp:dot}
+
+The NTK results are stated for inputs rescaled by $d^{-1/2}$, so that $\|x\|\le1$. The following identities move this scaling through the inner products that appear.
+
+\begin{lemma}[Inner products and scalings]\label{lem:ntkhelp:dotScaling}
+  \lean{NTK.norm_sq_eq_dotProduct, NTK.dotProduct_eq_inner_toLp, NTK.dotProduct_mul_right,
+        NTK.dotProduct_mul_mul, NTK.sq_dotProduct_le, NTK.dotProduct_scaled_input,
+        NTK.dotProduct_scaled_input_div, NTK.dotProduct_scaled_dataset}
+  \leanok
+Let $x,y,w\in\mathbb R^d$, $c,c_1,c_2\in\mathbb R$ and $d\ge1$.
+\begin{enumerate}
+  \item $\|x\|^2=x\cdot x$ for $x$ regarded in $\mathbb R^d$ with the Euclidean norm, and $x\cdot y$ is the Euclidean inner product of the two vectors regarded as elements of $L^2$.
+  \item $x\cdot(cy)=c\,(x\cdot y)$ and $(c_1x)\cdot(c_2y)=c_1c_2\,(x\cdot y)$.
+  \item (Cauchy--Schwarz in sum-of-squares form) $(w\cdot x)^2\le\bigl(\sum_jw_j^2\bigr)\bigl(\sum_jx_j^2\bigr)$.
+  \item (Scaled inputs) $w\cdot\bigl(d^{-1/2}x\bigr)=d^{-1/2}(w\cdot x)=\dfrac{w\cdot x}{\sqrt d}$ and $\bigl(d^{-1/2}x\bigr)\cdot\bigl(d^{-1/2}y\bigr)=\dfrac1d\,x\cdot y$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+All are one-line computations from bilinearity of the dot product; (3) is Cauchy--Schwarz, and the last identity uses $(d^{-1/2})^2=d^{-1}$.
+\end{proof}
+
+The last identity is the reason for the factor $\frac1d$ in the base Gram matrix $\Phi_0=\frac1dXX^\top$ of the deep recursion (Chapters~\ref{chap:ntkdeep} and~\ref{chap:ntkdn}).
+
+
+\section{The gradient matrix and symmetry and positivity of the shallow NTK}\label{sec:ntkhelp:gradient}
+
+\begin{definition}[Gradient matrix]\label{def:ntkhelp:gradientMatrix}
+  \uses{def:ntk:shallowNetwork}
+  \lean{NTK.gradientMatrix}
+  \leanok
+For an input $x\in\mathbb R^d$ and initialization $W_0$, the \emph{gradient matrix} $\nabla_Wf(x;W_0)\in\mathbb R^{m\times d}$ has entries
+\[
+  \bigl(\nabla_Wf(x;W_0)\bigr)_{jk}=\frac1{\sqrt m}\,a_j\,\sigma'(w_{0,j}\cdot x)\,x_k .
+\]
+This is the gradient of $W\mapsto f(x;W)$ at $W_0$ when $\sigma'$ is the derivative of $\sigma$.
+\end{definition}
+
+\begin{lemma}[Frobenius inner product of gradient matrices]\label{lem:ntkhelp:frobGradient}
+  \uses{def:ntkhelp:gradientMatrix}
+  \lean{NTK.sum_gradientMatrix_mul_eq}
+  \leanok
+For all inputs $x,x'$ and arbitrary outer coefficients $a_j$ (no bound on $|a_j|$ is needed),
+\[
+  \bigl\langle\nabla_Wf(x;W_0),\nabla_Wf(x';W_0)\bigr\rangle_F=(x\cdot x')\cdot\frac1m\sum_{j=1}^ma_j^2\,\sigma'(w_{0,j}\cdot x)\,\sigma'(w_{0,j}\cdot x').
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$\langle\nabla f(x),\nabla f(x')\rangle_F=\sum_{j,k}\frac1m a_j^2\sigma'(w_{0,j}\cdot x)\sigma'(w_{0,j}\cdot x')\,x_kx'_k$, and $\sum_kx_kx'_k=x\cdot x'$.
+\end{proof}
+
+With $a_j^2=1$ the right side is the empirical NTK $k_m(x,x')$ of Definition~\ref{def:ntk:shallowEmpiricalNTK}; this is Lemma~\ref{lem:ntk:frobInnerGradient}, which is the specialization of the present lemma to $a_j^2=1$.
+
+\begin{lemma}[Symmetry and positivity]\label{lem:ntkhelp:symmetryPsd}
+  \uses{lem:ntkhelp:frobGradient, def:ntk:shallowEmpiricalNTK, def:ntk:shallowLimitingNTK, lem:ntkcond:gram}
+  \lean{NTK.shallowEmpiricalNTK_symm, NTK.shallowEmpiricalNTK_dataset_posSemidef,
+        NTK.shallowLimitingNTK_symm}
+  \leanok
+\begin{enumerate}
+  \item $k_m(x,x')=k_m(x',x)$ and $k(x,x')=k(x',x)$ for the empirical and the limiting NTK.
+  \item If $a_j^2=1$ for all $j$, then for every finite dataset $x^1,\dots,x^N$ the matrix $\bigl(k_m(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$ is positive semidefinite.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkhelp:frobGradient, lem:ntkcond:gram}
+  \leanok
+(1) The definitions are symmetric in $(x,x')$ since $x\cdot x'=x'\cdot x$ and the remaining factor is a symmetric expression. (2) By Lemma~\ref{lem:ntkhelp:frobGradient} the matrix is the Gram matrix $\bigl(\langle G_\alpha,G_\beta\rangle_F\bigr)_{\alpha\beta}$ of the gradient matrices $G_\alpha=\nabla_Wf(x^\alpha;W_0)\in\mathbb R^{m\times d}\cong\mathbb R^{md}$, which is positive semidefinite by Lemma~\ref{lem:ntkcond:gram}.
+\end{proof}
+
+\begin{lemma}[Linearization of a ReLU-type activation]\label{lem:ntkhelp:reluLinearization}
+  \uses{def:ntk:linearization, def:ntkhelp:gradientMatrix}
+  \lean{NTK.linearization_relu_eq}
+  \leanok
+Suppose the activation has the form $\sigma(z)=z\,\sigma'(z)$ for all $z$. Then the first-order Taylor linearization of Definition~\ref{def:ntk:linearization} simplifies to
+\[
+  f_0(x;W)=\frac1{\sqrt m}\sum_ja_j\,\sigma'(w_{0,j}\cdot x)\,(w_j\cdot x)=\bigl\langle\nabla_Wf(x;W_0),W\bigr\rangle_F .
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+By definition $f_0(x;W)=m^{-1/2}\sum_ja_j\bigl[\sigma(w_{0,j}\cdot x)+\sigma'(w_{0,j}\cdot x)(w_j-w_{0,j})\cdot x\bigr]$. Since $\sigma(w_{0,j}\cdot x)=\sigma'(w_{0,j}\cdot x)(w_{0,j}\cdot x)$ the zeroth-order term cancels the $-w_{0,j}$ part of the second term, leaving $m^{-1/2}\sum_ja_j\sigma'(w_{0,j}\cdot x)(w_j\cdot x)$, which is $\langle\nabla_Wf(x;W_0),W\rangle_F$ by Definition~\ref{def:ntkhelp:gradientMatrix}.
+\end{proof}
+
+The ReLU satisfies $\sigma(z)=z\,\mathbf 1[z\ge0]$, so for it the linearization is \emph{linear} in $W$, and the linearization error is the difference between $f(x;W)$ and a linear functional.
+
+
+\section{Gaussian rows: measurability, boundedness and the strong law}\label{sec:ntkhelp:rows}
+
+The convergence of the empirical NTK to the limiting NTK (Lemma~\ref{lem:ntk:ntkConverges}) is the strong law of large numbers for the i.i.d.\ summands $x\cdot x'\,\sigma'(w\cdot x)\sigma'(w\cdot x')$, $w\sim\mathcal N(0,I_d)$. The following facts verify its hypotheses.
+
+\begin{lemma}[Hypotheses of the strong law]\label{lem:ntkhelp:slln}
+  \uses{def:ntk:gaussianInit, thm:ntkf:slln}
+  \lean{NTK.measurable_dotProduct_left, NTK.measurable_ntkSummand, NTK.abs_ntkSummand_le,
+        NTK.gaussianRow_average_tendsto_integral}
+  \leanok
+Let $x,x'\in\mathbb R^d$.
+\begin{enumerate}
+  \item $w\mapsto w\cdot x$ is measurable, and if $\sigma'$ is measurable so is $w\mapsto\sigma'(w\cdot x)\sigma'(w\cdot x')$.
+  \item If $|\sigma'|\le C$ then $|\sigma'(w\cdot x)\sigma'(w\cdot x')|\le C^2$ for all $w$; in particular this function is integrable under any probability measure.
+  \item (Strong law for Gaussian rows) Let $g:\mathbb R^d\to\mathbb R$ be measurable and integrable under $\mathcal N(0,I_d)$, and let $w_1,w_2,\dots$ be i.i.d.\ $\mathcal N(0,I_d)$ rows. Then almost surely
+  \[
+    \frac1n\sum_{j=1}^ng(w_j)\longrightarrow\mathbb E_{w\sim\mathcal N(0,I_d)}[g(w)]\qquad(n\to\infty).
+  \]
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkf:slln}
+  \leanok
+(1) $w\mapsto w\cdot x$ is linear, hence continuous and measurable; compositions and products of measurable functions are measurable. (2) is the bound $|\sigma'|\le C$ applied twice. (3) is the strong law of large numbers for i.i.d.\ integrable variables (Theorem~\ref{thm:ntkf:slln}), applied to the Gaussian row measure.
+\end{proof}
+
+\begin{lemma}[The projection of a Gaussian row]\label{lem:ntkhelp:rowProjection}
+  \uses{def:ntk:gaussianInit}
+  \lean{NTK.dotMap, NTK.dotCLM, NTK.map_gaussianRowMeasure_dotProduct, NTK.map_gaussianRowMeasure_dot}
+  \leanok
+Let $\texttt{dotMap}\;x:w\mapsto\sum_kw_kx_k$, a linear functional on $\mathbb R^d$, and $\texttt{dotCLM}\;x$ the same functional as a continuous linear map. For $w\sim\mathcal N(0,I_d)$, the real random variable $w\cdot x$ is distributed as $\mathcal N(0,\,x\cdot x)$:
+\[
+  \text{law of }(w\mapsto w\cdot x)=\mathcal N\bigl(0,\,x\cdot x\bigr).
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+A linear image of a standard Gaussian vector is a centred Gaussian; its variance is $\sum_kx_k^2\operatorname{Var}(w_k)=x\cdot x$ by independence of the coordinates. Both forms in the Lean statement (the dot product written as $w\cdot x$ and as an explicit sum) are the same functional.
+\end{proof}
+
+
+\section{The ReLU linearization bound: bookkeeping}\label{sec:ntkhelp:relu}
+
+Lemma~\ref{lem:ntk:reluLinearization} is assembled from several elementary steps whose statements are collected here. Throughout $\sigma=\mathrm{relu}$ is the ReLU $z\mapsto\max(z,0)$, $\sigma'=\mathrm{relu}'(z)=\mathbf 1[z\ge0]$ (Definition~\ref{def:ntkr:relu}), and $\texttt{ReLUNetwork}\;d\;m$ is a shallow network with this activation.
+
+\begin{definition}[Bad neuron sets]\label{def:ntkhelp:badSets}
+  \lean{NTK.signAmbiguous, NTK.largePerturb, NTK.badSet, NTK.ReLUNetwork}
+  \leanok
+For $x\in\mathbb R^d$, $\tau,r\in\mathbb R$ and $W,W_0\in\mathbb R^{m\times d}$ put
+\begin{align*}
+  \texttt{signAmbiguous}(\tau,x,W_0)&=\bigl\{j\le m:\ |w_{0,j}\cdot x|\le\tau\|x\|\bigr\},\\
+  \texttt{largePerturb}(r,W,W_0)&=\bigl\{j\le m:\ \|w_j-w_{0,j}\|\ge r\bigr\},\\
+  \texttt{badSet}(\tau,r,x,W,W_0)&=\texttt{signAmbiguous}\cup\texttt{largePerturb}.
+\end{align*}
+\end{definition}
+
+The first set contains the neurons whose sign at initialization is not decided with margin $\tau\|x\|$; the second the neurons that move a distance of at least $r$. Outside the union the sign of $w_j\cdot x$ cannot have flipped (Lemma~\ref{lem:ntk:signPreserved}).
+
+\begin{lemma}[Measurability of the number of ambiguous neurons]\label{lem:ntkhelp:ambiguousMeasurable}
+  \uses{def:ntkhelp:badSets, def:ntk:gaussianInit}
+  \lean{NTK.measurable_signAmbiguous_card}
+  \leanok
+For fixed $r$ and $x$, the map $W_0\mapsto\bigl|\texttt{signAmbiguous}(r,x,W_0)\bigr|\in\mathbb R$ is measurable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$|\texttt{signAmbiguous}|=\sum_j\mathbf 1\bigl[\,|w_{0,j}\cdot x|\le r\|x\|\,\bigr]$, a finite sum of indicators of measurable sets, because $W_0\mapsto w_{0,j}\cdot x$ is continuous (it is \texttt{dotCLM}), $|\cdot|$ is continuous and $\{u:|u|\le c\}$ is closed.
+\end{proof}
+
+The measurability is needed so that the probability bound of Lemma~\ref{lem:ntk:signConcentration} can be applied to the event $\{|\texttt{signAmbiguous}|\le\ldots\}$ and then used inside a statement about $W_0$ that holds uniformly in $W$.
+
+\begin{lemma}[Gaussian small-ball estimate]\label{lem:ntkhelp:smallBall}
+  \uses{lem:ntkhelp:rowProjection}
+  \lean{NTK.gaussianReal_Icc_bound}
+  \leanok
+Let $v>0$ and $a\ge0$. For $Z\sim\mathcal N(0,v)$,
+\[
+  \Pr\bigl[|Z|\le a\bigr]\le\frac{2a}{\sqrt{2\pi v}} .
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The density of $\mathcal N(0,v)$ is bounded by its value at $0$, namely $(2\pi v)^{-1/2}$, and $\{|z|\le a\}$ has Lebesgue measure $2a$.
+\end{proof}
+
+With Lemma~\ref{lem:ntkhelp:rowProjection}, $v=\|x\|^2$ and $a=\tau\|x\|$, this gives $\Pr[|w\cdot x|\le\tau\|x\|]\le2\tau/\sqrt{2\pi}\le\tau$, which is Lemma~\ref{lem:ntk:probSignAmbiguous}.
+
+\begin{lemma}[Taylor bound for $\beta$-smooth activations]\label{lem:ntkhelp:taylor}
+  \uses{def:ntk:betaSmooth}
+  \lean{NTK.BetaSmooth.β_nonneg, NTK.BetaSmooth.taylor_bound}
+  \leanok
+Let $\sigma$ be $\beta$-smooth (Definition~\ref{def:ntk:betaSmooth}). Then $\beta\ge0$ and for all $r,s\in\mathbb R$,
+\[
+  \bigl|\sigma(r)-\sigma(s)-\sigma'(s)(r-s)\bigr|\le\frac{\beta\,(r-s)^2}{2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$\beta\ge|\sigma''(0)|\ge0$. By Taylor's theorem with Lagrange remainder, $\sigma(r)-\sigma(s)-\sigma'(s)(r-s)=\tfrac12\sigma''(\xi)(r-s)^2$ for some $\xi$ between $r$ and $s$, and $|\sigma''(\xi)|\le\beta$.
+\end{proof}
+
+This is the pointwise estimate used in the proof of Proposition~\ref{prop:ntk:smoothLinearization}.
+
+\begin{lemma}[Pointwise and summed ReLU linearization error]\label{lem:ntkhelp:reluError}
+  \uses{def:ntkhelp:badSets, def:ntk:linearization, def:ntkr:relu, lem:ntk:signPreserved}
+  \lean{NTK.relu_linearization_error_le, NTK.relu_eval_sub_linearization_eq, NTK.sum_eq_sum_badSet,
+        NTK.relu_error_sum_le}
+  \leanok
+Let $e_j(W):=a_j\,\mathrm{relu}(w_j\cdot x)-a_j\,\mathrm{relu}'(w_{0,j}\cdot x)\,(w_j\cdot x)$ be the per-neuron linearization error of a \texttt{ReLUNetwork} with $|a_j|\le1$.
+\begin{enumerate}
+  \item For real $a,b$: $\bigl|\mathrm{relu}(a)-\mathrm{relu}'(b)\,a\bigr|\le|a-b|$.
+  \item $f(x;W)-f_0(x;W)=\dfrac1{\sqrt m}\sum_{j=1}^me_j(W)$.
+  \item If $e_j(W)=0$ for all $j\notin\texttt{badSet}(\tau,\tau,x,W,W_0)$, then $\sum_{j=1}^me_j(W)=\sum_{j\in\texttt{badSet}}e_j(W)$.
+  \item For every index set $S\subseteq[m]$,
+  $\Bigl|\sum_{j\in S}e_j(W)\Bigr|\le\sum_{j\in S}\bigl|(w_j-w_{0,j})\cdot x\bigr|$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntk:signPreserved}
+  \leanok
+(1) If $b\ge0$, then $\mathrm{relu}'(b)=1$ and $\mathrm{relu}(a)-a=\max(-a,0)$, which is $0$ if $a\ge0$ and $-a\le b-a=|a-b|$ if $a<0\le b$. If $b<0$, then $\mathrm{relu}'(b)=0$ and $\mathrm{relu}(a)=\max(a,0)$ is $0$ if $a\le0$ and $a\le a-b=|a-b|$ if $a>0>b$.
+(2) By Lemma~\ref{lem:ntkhelp:reluLinearization}, $f_0(x;W)=m^{-1/2}\sum_ja_j\,\mathrm{relu}'(w_{0,j}\cdot x)(w_j\cdot x)$, while $f(x;W)=m^{-1/2}\sum_ja_j\,\mathrm{relu}(w_j\cdot x)$; subtract.
+(3) Split $\sum_{j\le m}=\sum_{j\in\texttt{badSet}}+\sum_{j\notin\texttt{badSet}}$ and the second sum vanishes termwise.
+(4) By (1) with $a=w_j\cdot x$, $b=w_{0,j}\cdot x$, and $|a_j|\le1$, $|e_j|\le|a_j|\,|(w_j-w_{0,j})\cdot x|\le|(w_j-w_{0,j})\cdot x|$; apply the triangle inequality.
+\end{proof}
+
+Statement (3) is where Lemma~\ref{lem:ntk:signPreserved} enters: outside the bad set, the sign of $w_j\cdot x$ equals that of $w_{0,j}\cdot x$, so the ReLU is exactly linear along the relevant segment and $e_j=0$. Statement (4) is the bound of Lemma~\ref{lem:ntk:csBound} before Cauchy--Schwarz.
+
+\begin{lemma}[Frobenius norms]\label{lem:ntkhelp:frob}
+  \lean{NTK.sqrt_sum_sq_eq_zero, NTK.frob_sub_le}
+  \leanok
+For $W\in\mathbb R^{m\times d}$, $\|W\|_F=\sqrt{\sum_{i,j}W_{ij}^2}=0$ if and only if $W=0$. If $\|V-W_0\|_F\le B$ and $\|W-W_0\|_F\le B$ with $B\ge0$, then $\|V-W\|_F\le2B$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+A sum of squares vanishes iff every term vanishes. For the second claim, $\|V-W\|_F\le\|V-W_0\|_F+\|W-W_0\|_F\le2B$ by the triangle inequality (the Lean proof uses $(p-q)^2\le2p^2+2q^2$ entrywise, giving $\|V-W\|_F^2\le4B^2$).
+\end{proof}
+
+The second statement is used for the second inequality of Lemma~\ref{lem:ntk:reluLinearization}, where two weight matrices $V,W$ both lie in the ball of radius $B$ about $W_0$.
+
+\begin{lemma}[The arithmetic behind the exponent $m^{-1/6}$]\label{lem:ntkhelp:arithmetic}
+  \uses{lem:ntk:cardLargePerturb, lem:ntk:signConcentration}
+  \lean{NTK.sqrt_add_le_add_sqrt, NTK.m_pow_bound, NTK.sqrt_B_pow, NTK.sqrt_m_pow, NTK.sqrt_sqrt_m_pow,
+        NTK.reluLinearization_algebraic_bound}
+  \leanok
+Let $m\ge1$, $B\ge0$ and $\delta\in(0,1)$, and set $L:=\ln(1/\delta)$,
+\[
+  r:=\frac{B^{2/3}}{m^{1/3}},\qquad S:=mr+\sqrt{\tfrac m2L}+\Bigl(\frac Br\Bigr)^2 .
+\]
+Then
+\[
+  \frac B{\sqrt m}\sqrt S\ \le\ \frac{2B^{4/3}+B\,L^{1/4}}{m^{1/6}} .
+\]
+The following elementary facts are used: $\sqrt{x+y}\le\sqrt x+\sqrt y$ for $x,y\ge0$; $m^{-1/4}\le m^{-1/6}$; $\sqrt{B^{2/3}}=B^{1/3}$; $\sqrt{m^{-1/3}}=m^{-1/6}$; $\sqrt{\sqrt{1/(2m)}}=(2m)^{-1/4}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+With the chosen $r$, $mr=B^{2/3}m^{2/3}$ and $(B/r)^2=B^{2/3}m^{2/3}$, so $S=2B^{2/3}m^{2/3}+\sqrt{\tfrac m2L}$. By $\sqrt{x+y}\le\sqrt x+\sqrt y$,
+\[
+  \sqrt S\le\sqrt2\,B^{1/3}m^{1/3}+\bigl(\tfrac m2\bigr)^{1/4}L^{1/4}.
+\]
+Multiplying by $B/\sqrt m=Bm^{-1/2}$ gives $\sqrt2\,B^{4/3}m^{-1/6}+2^{-1/4}B\,L^{1/4}m^{-1/4}$. Now $\sqrt2\le2$, $2^{-1/4}\le1$ and $m^{-1/4}\le m^{-1/6}$ for $m\ge1$, which gives the claim.
+\end{proof}
+
+This computation shows why the radius $r=B^{2/3}/m^{1/3}$ is the right choice: it balances the number $mr$ of sign-ambiguous neurons against the number $(B/r)^2$ of neurons that moved by at least $r$ (Lemma~\ref{lem:ntk:cardLargePerturb}), and both contribute the same order $m^{2/3}$ to the size $S$ of the bad set. The resulting rate is $m^{-1/6}$.
+
+
+\section{Neuron blocks of the packed parameter vector}\label{sec:ntkhelp:neuron}
+
+The two-layer network has parameters $\theta=(W,a)\in\mathbb R^{nd+n}$ packed into one vector (Definition~\ref{def:ntktl:packing}), with $\texttt{idxW}\;i\;j$ the index of $W_{ij}$ and $\texttt{idxA}\;i$ the index of $a_i$.
+
+\begin{definition}[Coordinates of one neuron]\label{def:ntkhelp:neuronCoords}
+  \uses{def:ntktl:packing}
+  \lean{NTK.neuronCoords}
+  \leanok
+For a neuron $i\le n$, the label set $\{\text{none}\}\cup\{\text{some }j:j\le d\}$ is mapped into the packed coordinates by $\texttt{neuronCoords}\;n\;d\;i:\ \text{none}\mapsto\texttt{idxA}\;i$ (the readout weight), $\text{some }j\mapsto\texttt{idxW}\;i\;j$ (the $j$-th input weight). Restricting a parameter vector $v$ to these $d+1$ coordinates, $\texttt{restrictCoords}\,(\texttt{neuronCoords}\;n\;d\;i)\,v$, extracts the \emph{block of neuron $i$}.
+\end{definition}
+
+\begin{lemma}[Norm of a neuron block]\label{lem:ntkhelp:neuronBlockNorm}
+  \uses{def:ntkhelp:neuronCoords}
+  \lean{NTK.norm_sq_restrictCoords_neuronCoords, NTK.norm_restrictCoords_neuronCoords_le}
+  \leanok
+For every parameter vector $v\in\mathbb R^{nd+n}$ and neuron $i$,
+\[
+  \bigl\|\texttt{restrictCoords}\,(\texttt{neuronCoords}\;n\;d\;i)\,v\bigr\|^2=\sum_{j\le d}v_{\texttt{idxW}\,i\,j}^2+v_{\texttt{idxA}\,i}^2\ \le\ \|v\|^2 .
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The restriction is the vector of the selected entries of $v$, so its squared norm is the sum of the squares of these entries, namely those at $\texttt{idxW}\;i\;j$, $j\le d$, and at $\texttt{idxA}\;i$. These are $d+1$ distinct coordinates, so the sum is at most the full sum of squares $\|v\|^2$.
+\end{proof}
+
+The identity is the form in which the displacement of one neuron's parameters enters the Jacobian-Lipschitz estimates of Chapter~\ref{chap:ntktl}: the squared change of the Jacobian is bounded by a sum over neurons of a neuron-dependent scale times $\|\texttt{restrictCoords}\,(\texttt{neuronCoords}\;i)(\theta-\theta_0)\|^2$ (Theorem~\ref{thm:ntktl:neuronDisplacement} and the preceding lemmas), and the per-neuron displacement is controlled using the block-speed bound of Theorem~\ref{thm:ntkgf:displacementLinear}(2).
+
+
+\section{Status of the universality statements}\label{sec:ntkhelp:universal}
+
+Section~\ref{sec:ntk:universal} of Chapter~\ref{chap:ntk} derives the universality of the ReLU NTK RKHS. In Lean, the following declarations of \texttt{Shallow/Universal.lean} are \emph{stated but their proofs contain \texttt{sorry}}: \texttt{isCompact\_ntkDomain}, \texttt{reducedReluFormula\_eq\_shallowLimitingNTK}, \texttt{reducedKernelCoeff\_pos}, \texttt{isUniversal} and \texttt{rkhs\_approx\_by\_network}. The definitions \texttt{reducedDomain} ($U=\{u:u\cdot u\le\tfrac12\}$) and \texttt{reducedKernelCoeff} are in place, but the latter is a closed-form \emph{placeholder} sequence, $c_0=\frac18$ and $c_n=\frac1{2\pi}\binom{2n}{n}\big/\bigl(4^n(2n+1)(n!)^2\bigr)$, which is not the Maclaurin coefficient sequence of $\tilde f$ (for instance $\tilde f(0)=\frac16\ne\frac18$); see the discussion in the proof of Lemma~\ref{lem:ntk:reducedKernelCoeff}. The blueprint nodes of Section~\ref{sec:ntk:universal} therefore carry \texttt{\textbackslash leanok} on their statements but not on their proofs.

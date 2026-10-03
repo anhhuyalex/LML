@@ -1,0 +1,845 @@
+\chapter{Projections, Gaussian conditioning and concentration: the tools behind the deep NTK}\label{chap:ntkcond}
+
+The convergence of the empirical NTK of a deep network (Theorem~\ref{thm:ntkdn:main} in Chapter~\ref{chap:ntkdn}) needs a set of tools that are independent of any network architecture: orthogonal projectors built from a Gram matrix, the algebra of Gaussian weight matrices, second moments of Gaussian quadratic forms, Chebyshev bounds that hold conditionally on a random past, and a small calculus of convergence in probability. This chapter records them with complete statements and proofs. Chapter~\ref{chap:ntkdn} then uses them without further comment.
+
+The Lean files covered are \texttt{Foundations/MatrixUtil}, \texttt{GramProjector}, \texttt{MatrixMeasurability}, \texttt{TendstoInMeasureUtil}, and, in \texttt{Initialization/}, \texttt{GaussianMatrixAlgebra}, \texttt{GaussianQuadraticVariance}, \texttt{GaussianConditioning}, \texttt{ConditionalConcentration}, \texttt{ReadoutConcentration}, \texttt{ReadoutLinearConcentration}, \texttt{ResidualConcentration}, together with the forward-pass helpers of \texttt{DeepRecursion} and \texttt{DeepNNGPTheorems} that were not recorded in Chapter~\ref{chap:ntkdeep}.
+
+\medskip\noindent\textbf{Status.}
+Everything in this chapter is formalized and fully proved.
+
+\medskip\noindent\textbf{Conventions.}
+A \emph{Gaussian weight matrix} is $W\in\mathbb R^{n\times p}$ with i.i.d.\ $\mathcal N(0,1)$ entries; its law is \texttt{gaussianInit n p}, and a \emph{Gaussian row} is a vector in $\mathbb R^p$ with i.i.d.\ $\mathcal N(0,1)$ entries (\texttt{gaussianRowMeasure p}); see Section~\ref{sec:ntkdeep:setup}.
+For a measure $\mu$ and real random variables $X_n$, we say that $X_n\to c$ \emph{in measure} (in probability when $\mu$ is a probability measure) if $\mu(|X_n-c|\ge\varepsilon)\to0$ for every $\varepsilon>0$. For matrix- or vector-valued sequences the distance is the maximum over entries, so convergence in measure is equivalent to entrywise convergence in measure. $\|A\|_F$ is the Frobenius norm, $u\cdot v$ the Euclidean inner product, and $\odot$ the Hadamard (entrywise) product.
+
+
+\section{Orthogonal projectors and elementary matrix inequalities}\label{sec:ntkcond:projectors}
+
+The decoupling argument of Chapter~\ref{chap:ntkdn} splits a Gaussian weight matrix $V$ into a part $VP$ that is seen by the forward pass and an independent part $VP^\perp$ that is not. The deterministic algebra of this splitting is collected here.
+
+\begin{definition}[Orthogonal projection matrix and its complement]\label{def:ntkcond:projector}
+  \lean{NTK.isOrthogonalProjection, NTK.orthogonalComplement}
+  \leanok
+A real square matrix $P$ is an \emph{orthogonal projection matrix} if $P^\top=P$ and $P^2=P$. Its \emph{complement} is $P^\perp:=I-P$.
+\end{definition}
+
+\begin{lemma}[Algebra of a projector and its complement]\label{lem:ntkcond:projectorAlgebra}
+  \uses{def:ntkcond:projector}
+  \lean{NTK.transpose_orthogonalComplement, NTK.orthogonalComplement_idem,
+        NTK.orthogonalComplement_isOrthogonalProjection, NTK.mul_orthogonalComplement_self,
+        NTK.mul_self_orthogonalComplement, NTK.orthogonalDecomposition, NTK.residual_annihilates,
+        NTK.orthogonalDecomposition_mul}
+  \leanok
+Let $P$ be an orthogonal projection matrix. Then:
+\begin{enumerate}
+  \item $P^\perp$ is an orthogonal projection matrix, and $PP^\perp=P^\perp P=0$.
+  \item For every matrix $W$ with $p$ columns, $W=WP+WP^\perp$.
+  \item If $X$ satisfies $PX=X$ (the columns of $X$ lie in the range of $P$), then $(WP^\perp)X=0$ and therefore $WX=(WP)X$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{def:ntkcond:projector}
+  \leanok
+(1) $(P^\perp)^\top=I-P^\top=P^\perp$, $(P^\perp)^2=I-2P+P^2=P^\perp$ and $PP^\perp=P-P^2=0$. (2) is $W(P+P^\perp)=W$. (3) $P^\perp X=X-PX=0$, hence $(WP^\perp)X=0$, and (2) gives $WX=WPX+WP^\perp X=(WP)X$.
+\end{proof}
+
+Part~(3) is the algebraic reason that forward propagation through a layer only sees $WP$ when the incoming features lie in the range of $P$; this is what makes the unseen part $WP^\perp$ conditionally independent noise (Theorem~\ref{thm:ntkcond:lemma226} below).
+
+\begin{lemma}[Projections do not increase norms; traces of compressions]\label{lem:ntkcond:projectorNorms}
+  \uses{def:ntkcond:projector}
+  \lean{NTK.mulVec_dot_self_eq, NTK.mulVec_dot_self_le, NTK.frobSq_projector_mul_le,
+        NTK.frobSq_mul_projector_le, NTK.frobSq_compress_le, NTK.trace_compress_projector,
+        NTK.trace_compress_orthogonalComplement}
+  \leanok
+Let $Q$ be an orthogonal projection matrix on $\mathbb R^p$, $A\in\mathbb R^{p\times p}$, $B\in\mathbb R^{p\times q}$, $B'\in\mathbb R^{q\times p}$ and $x\in\mathbb R^p$. Then
+\begin{enumerate}
+  \item $\|Qx\|^2=x\cdot Qx\le\|x\|^2$;
+  \item $\|QB\|_F\le\|B\|_F$, $\|B'Q\|_F\le\|B'\|_F$, and consequently $\|QAQ\|_F\le\|A\|_F$;
+  \item $\operatorname{tr}(QAQ)=\operatorname{tr}(AQ)$, and $\operatorname{tr}(P^\perp AP^\perp)=\operatorname{tr}A-\operatorname{tr}(AP)$ for every orthogonal projection matrix $P$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) $\|Qx\|^2=x^\top Q^\top Qx=x^\top Q^2x=x\cdot Qx$, and $x\cdot Qx=\|Qx\|^2\le\|x\|\,\|Qx\|$ by Cauchy--Schwarz gives $\|Qx\|\le\|x\|$. (2) The columns of $QB$ are the images of the columns of $B$ under $Q$, so (1) applies column by column; for $B'Q$ use the transpose. Then $\|QAQ\|_F\le\|AQ\|_F\le\|A\|_F$. (3) By cyclicity of the trace and $Q^2=Q$, $\operatorname{tr}(QAQ)=\operatorname{tr}(AQ^2)=\operatorname{tr}(AQ)$. Finally $P^\perp AP^\perp$ has trace $\operatorname{tr}(AP^\perp)=\operatorname{tr}A-\operatorname{tr}(AP)$.
+\end{proof}
+
+\begin{lemma}[Elementary inequalities and identities]\label{lem:ntkcond:elementary}
+  \lean{NTK.dotProduct_sq_le_mul_self, NTK.sum_mul_transpose_le_frobSq, NTK.sum_prod_prod_mul,
+        NTK.quadForm_mul_mul_transpose}
+  \leanok
+Let $u,v\in\mathbb R^p$, $A\in\mathbb R^{p\times p}$, $W\in\mathbb R^{n\times p}$, $x,y\in\mathbb R^n$.
+\begin{enumerate}
+  \item $(u\cdot v)^2\le\|u\|^2\|v\|^2$ and $\operatorname{tr}(A^2)=\sum_{k,l}A_{kl}A_{lk}\le\|A\|_F^2$.
+  \item (Kronecker factorization) For finite index sets $\iota,\kappa$ and functions $f:\iota^2\to\mathbb R$, $g:\kappa^2\to\mathbb R$,
+        $\sum_{a,b\in\iota\times\kappa}f(a_1,b_1)g(a_2,b_2)=\bigl(\sum_{i,j}f(i,j)\bigr)\bigl(\sum_{k,l}g(k,l)\bigr)$.
+  \item $x^\top(WAW^\top)y=(W^\top x)^\top A\,(W^\top y)$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) The first is Cauchy--Schwarz; the second is Cauchy--Schwarz in $\mathbb R^{p^2}$ applied to $A$ and $A^\top$, which have the same Frobenius norm. (2) is distributivity of a product of two sums. (3) is associativity of the matrix product.
+\end{proof}
+
+\begin{lemma}[Gram matrices and the Hadamard unit]\label{lem:ntkcond:gram}
+  \lean{NTK.gram_transpose, NTK.scaled_gram_transpose, NTK.const_matrix_transpose,
+        NTK.mul_transpose_posSemidef, NTK.gram_posSemidef, NTK.scaled_gram_posSemidef,
+        NTK.posSemidef_allOnes, NTK.hadamard_allOnes, NTK.allOnes_hadamard}
+  \leanok
+Let $M\in\mathbb R^{m\times n}$ have rows $M_\alpha$, and let $\mathbf 1_{m\times m}$ be the all-ones matrix. Then the matrices $(M_\alpha\cdot M_\beta)_{\alpha\beta}=MM^\top$, $c\,MM^\top$ ($c\ge0$) and $\mathbf 1_{m\times m}$ are symmetric and positive semidefinite, and $A\odot\mathbf 1_{m\times m}=\mathbf 1_{m\times m}\odot A=A$ for every matrix $A$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$x^\top MM^\top x=\|M^\top x\|^2\ge0$, and $\mathbf 1_{m\times m}=\mathbf 1\mathbf 1^\top$ is a Gram matrix of the one-column matrix $\mathbf 1$. The Hadamard identities hold entry by entry.
+\end{proof}
+
+These facts are used for the positive semidefiniteness of the layerwise Gram matrices and of the empirical NTK (Section~\ref{sec:ntkdn:architecture}), where the all-ones matrix is the terminal condition of the backward recursion and the unit of $\odot$.
+
+\subsection{The Gram projector}
+
+\begin{definition}[Gram projector]\label{def:ntkcond:gramProjector}
+  \lean{NTK.gramProjector}
+  \leanok
+For $\Phi\in\mathbb R^{n\times m}$ put $P_\Phi:=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top\in\mathbb R^{n\times n}$, where $(\cdot)^{-1}$ is the matrix inverse with the convention that it equals $0$ for a singular matrix.
+\end{definition}
+
+If $\Phi^\top\Phi$ is invertible ($\Phi$ has full column rank) then $P_\Phi$ is the orthogonal projector onto the column span of $\Phi$. In the application $\Phi=[\varphi(h^\alpha)]_{\alpha\le m}$ is the matrix of the $m$ forward features of one layer.
+
+\begin{lemma}[Properties of the Gram projector]\label{lem:ntkcond:gramProjectorProps}
+  \uses{def:ntkcond:gramProjector, def:ntkcond:projector, lem:ntkcond:projectorAlgebra}
+  \lean{NTK.gramProjector_transpose, NTK.isOrthogonalProjection_gramProjector,
+        NTK.isOrthogonalProjection_gramProjector_all, NTK.gramProjector_mul_self,
+        NTK.trace_gramProjector, NTK.trace_orthogonalProjectionOfGram,
+        NTK.orthogonalComplement_gramProjector_mul, NTK.mul_eq_mul_gramProjector_mul}
+  \leanok
+Let $\Phi\in\mathbb R^{n\times m}$ and $P=P_\Phi$.
+\begin{enumerate}
+  \item $P^\top=P$ always, and $P$ is an orthogonal projection matrix \emph{for every} $\Phi$ (if $\Phi^\top\Phi$ is singular, $P=0$).
+  \item If $\Phi^\top\Phi$ is invertible, then $P\Phi=\Phi$, $P^\perp\Phi=0$, and $\operatorname{tr}P=m$. In particular $\tfrac1n\operatorname{tr}P=m/n\to0$ as $n\to\infty$ with $m$ fixed.
+  \item If $\Phi^\top\Phi$ is invertible, then for every matrix $V$ with $n$ columns, $V\Phi=(VP)\Phi$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkcond:projectorAlgebra}
+  \leanok
+Symmetry follows from $(\Phi^\top\Phi)^{-1}$ being symmetric. If $G:=\Phi^\top\Phi$ is invertible then $P^2=\Phi G^{-1}(\Phi^\top\Phi)G^{-1}\Phi^\top=\Phi G^{-1}\Phi^\top=P$ and $P\Phi=\Phi G^{-1}G=\Phi$. If $G$ is singular, $P=0$ by convention, which is trivially an orthogonal projection. Then $P^\perp\Phi=\Phi-P\Phi=0$, and $\operatorname{tr}P=\operatorname{tr}(\Phi G^{-1}\Phi^\top)=\operatorname{tr}(G^{-1}\Phi^\top\Phi)=\operatorname{tr}I_m=m$ by cyclicity. Part~(3) is Lemma~\ref{lem:ntkcond:projectorAlgebra}(3) applied with $X=\Phi$.
+\end{proof}
+
+The convention $0^{-1}=0$ is deliberate: it makes $\Phi\mapsto P_\Phi$ a function defined and measurable on all of $\mathbb R^{n\times m}$ without a case distinction, and the singular event is controlled separately (Lemma~\ref{lem:ntkdn:singular}).
+
+\begin{theorem}[Splitting of a back-propagated vector]\label{thm:ntkcond:backSplit}
+  \uses{def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps}
+  \lean{NTK.transpose_mulVec_eq_gramProjector_add}
+  \leanok
+Let $\Phi\in\mathbb R^{n\times m}$ with $\Phi^\top\Phi$ invertible, $V\in\mathbb R^{k\times n}$ and $u\in\mathbb R^k$. Then
+\[
+  V^\top u\;=\;\Phi\,c\;+\;(VP_\Phi^\perp)^\top u,\qquad c=(\Phi^\top\Phi)^{-1}(V\Phi)^\top u.
+\]
+The first summand depends on $V$ only through the $k\times m$ matrix $V\Phi$; the second only through $VP_\Phi^\perp$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:projectorAlgebra, lem:ntkcond:gramProjectorProps}
+  \leanok
+By Lemma~\ref{lem:ntkcond:projectorAlgebra}(2), $V=VP+VP^\perp$ with $P=P_\Phi$, so $V^\top u=P^\top V^\top u+(VP^\perp)^\top u$, and $P^\top V^\top u=P V^\top u=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top V^\top u=\Phi(\Phi^\top\Phi)^{-1}(V\Phi)^\top u$.
+\end{proof}
+
+This is the decomposition on which the backward induction of Chapter~\ref{chap:ntkdn} rests. In the application $u$ is a backpropagated vector that, by the structure of the network, depends on the layer weight $V$ only through $V\Phi$; the splitting isolates the part of $V^\top u$ which is a fresh Gaussian.
+
+
+\section{Measurability of matrix expressions}\label{sec:ntkcond:measurability}
+
+Statements about convergence in measure and about Fubini decompositions require every random object to be measurable. The following lemma is the glue that lets this be checked once and for all.
+
+\begin{lemma}[Measurability of matrix expressions]\label{lem:ntkcond:measurability}
+  \uses{def:ntkcond:projector}
+  \lean{NTK.measurable_matrix_entry, NTK.measurable_vec_entry, NTK.measurable_matrix_mul,
+        NTK.measurable_matrix_transpose, NTK.measurable_mulVec, NTK.measurable_dotProduct,
+        NTK.measurable_matrix_nonsing_inv, NTK.measurable_orthogonalComplement}
+  \leanok
+Let $Z$ be a measurable space and $A:Z\to\mathbb R^{n\times p}$, $B:Z\to\mathbb R^{p\times q}$, $v:Z\to\mathbb R^p$, $u:Z\to\mathbb R^p$ maps. Then $A$ is measurable if and only if each entry $z\mapsto A(z)_{ij}$ is. If $A,B,u,v$ are measurable, so are $z\mapsto A(z)B(z)$, $A(z)^\top$, $A(z)v(z)$, $u(z)\cdot v(z)$, and, for measurable $P:Z\to\mathbb R^{p\times p}$, $z\mapsto I-P(z)$. The inversion map $A\mapsto A^{-1}$ on $\mathbb R^{n\times n}$ (with $0^{-1}=0$) is measurable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The product $\sigma$-algebra on $\mathbb R^{n\times p}$ is generated by the coordinate maps, giving the first statement. Products, sums and transposes are polynomial in the entries, hence measurable. The inverse equals $\det(A)^{-1}\operatorname{adj}(A)$ with the convention $0^{-1}=0$; $\det$ and $\operatorname{adj}$ are polynomial in the entries and $x\mapsto x^{-1}$ is measurable on $\mathbb R$.
+\end{proof}
+
+
+\section{A calculus of convergence in measure}\label{sec:ntkcond:mconv}
+
+The arguments in Chapter~\ref{chap:ntkdn} manipulate dozens of sequences that converge in probability. This section records the closure properties that are used, beyond the continuous-mapping, two-stage and measure-preserving statements of Lemma~\ref{lem:ntkdeep:probTools}. Throughout, $(\Omega,\mu)$ is a measure space and $(f_n),(g_n)$ are real-valued.
+
+\begin{lemma}[Algebra of limits in measure]\label{lem:ntkcond:mconvAlgebra}
+  \lean{NTK.tendstoInMeasure_const, NTK.tendstoInMeasure_of_tendsto, NTK.tendstoInMeasure_add,
+        NTK.tendstoInMeasure_sub, NTK.tendstoInMeasure_mul, NTK.tendstoInMeasure_sum_mul,
+        NTK.tendstoInMeasure_pi, NTK.tendstoInMeasure_of_dist_le_add}
+  \leanok
+Let $f_n\to a$ and $g_n\to b$ in measure.
+\begin{enumerate}
+  \item A constant sequence, and more generally a deterministic real sequence $c_n\to a$, converges in measure to $a$.
+  \item $f_n+g_n\to a+b$, $f_n-g_n\to a-b$ and $f_ng_n\to ab$ in measure.
+  \item If $f^i_n\to a_i$ and $g^i_n\to b_i$ in measure for each $i$ in a finite index set $I$, then $\sum_{i\in I}f^i_ng^i_n\to\sum_{i\in I}a_ib_i$ in measure, and the vector $(f^i_n)_{i\in I}$ converges in measure to $(a_i)_{i\in I}$.
+  \item If $h_n$ satisfies $|h_n-c|\le|f_n-a|+|g_n-b|$ pointwise, then $h_n\to c$ in measure.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) The tail event is empty for large $n$. (4) If $|h_n-c|\ge\varepsilon$ then $|f_n-a|\ge\varepsilon/2$ or $|g_n-b|\ge\varepsilon/2$, so the tail probability is at most $\mu(|f_n-a|\ge\varepsilon/2)+\mu(|g_n-b|\ge\varepsilon/2)\to0$. (2) The statements for sums and differences are instances of (4). For the product, $|f_ng_n-ab|\le|f_n-a|\,|g_n-b|+|a|\,|g_n-b|+|b|\,|f_n-a|$; if the left side is at least $\varepsilon$ then one of the three terms is at least $\varepsilon/3$, and the first can be at least $\varepsilon/3$ only if one of its factors is at least $\sqrt{\varepsilon/3}$. A union bound gives the claim. (3) For a vector (with the maximum distance on the finite product) apply a union bound over $i$; the sum of products follows from (2) and an induction over the finite index set.
+\end{proof}
+
+\begin{lemma}[Domination and good events]\label{lem:ntkcond:mconvDomination}
+  \lean{NTK.tendstoInMeasure_zero_of_abs_le, NTK.tendstoInMeasure_zero_of_sq_le,
+        NTK.tendstoInMeasure_zero_of_sq_le_on_good, NTK.tendstoInMeasure_congr_of_measure_ne_tendsto,
+        NTK.tendstoInMeasure_congr_on_good, NTK.tendstoInMeasure_of_comp_fst}
+  \leanok
+\begin{enumerate}
+  \item If $|f_n|\le g_n$ pointwise and $g_n\to0$ in measure, then $f_n\to0$ in measure. The same holds under $f_n^2\le g_n$.
+  \item Let $G_n$ be measurable sets with $\mu(G_n^c)\to0$. If $f_n^2\le g_n$ on $G_n$ and $g_n\to0$ in measure, then $f_n\to0$ in measure.
+  \item If $\mu(f_n\ne g_n)\to0$, or more generally $f_n=g_n$ on sets $G_n$ with $\mu(G_n^c)\to0$, and $f_n\to c$ in measure, then $g_n\to c$ in measure.
+  \item (Reverse transport along a coordinate projection) Let $\nu$ be a probability measure, $F_n$ measurable on $\Omega$, and suppose $F_n(\omega)$, regarded as a function of $(\omega,\omega')\in\Omega\times\Omega'$ that ignores $\omega'$, converges to $c$ in measure for $\mu\otimes\nu$. Then $F_n\to c$ in measure for $\mu$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) $\{|f_n|\ge\varepsilon\}\subseteq\{g_n\ge\varepsilon\}$, and $\{f_n^2\ge\varepsilon^2\}\subseteq\{g_n\ge\varepsilon^2\}$. (2) $\{|f_n|\ge\varepsilon\}\subseteq G_n^c\cup\{g_n\ge\varepsilon^2\}$. (3) $\{|g_n-c|\ge\varepsilon\}\subseteq G_n^c\cup\{|f_n-c|\ge\varepsilon\}$. (4) $(\mu\otimes\nu)(\{F_n\in A\}\times\Omega')=\mu(F_n\in A)\,\nu(\Omega')=\mu(F_n\in A)$.
+\end{proof}
+
+The good-event statements (2) and (3) are used for the event that the empirical Gram matrix $\hat\Sigma=\tfrac1n\Phi^\top\Phi$ is invertible, whose probability tends to $1$ (Lemma~\ref{lem:ntkdn:singular}); on its complement the formulas involving $\hat\Sigma^{-1}$ are meaningless and one needs to discard it at no cost.
+
+\begin{lemma}[Chebyshev squeeze]\label{lem:ntkcond:mconvSqueeze}
+  \lean{NTK.tendsto_lintegral_min_one_ofReal, NTK.tendsto_measure_of_le_lintegral_min_one}
+  \leanok
+Let $\mu$ be a probability measure and $b_n\ge0$ with $b_n\to0$ in measure. Then $\int\min(1,b_n)\,d\mu\to0$. Consequently, if $E_n$ are events with $\mu(E_n)\le\int\min(1,b_n)\,d\mu$ for all large $n$, then $\mu(E_n)\to0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+For $\eta>0$, $\min(1,b_n)\le\eta+\mathbf 1_{\{b_n>\eta\}}$, so $\int\min(1,b_n)\,d\mu\le\eta+\mu(b_n>\eta)$. Letting $n\to\infty$ and then $\eta\to0$ gives the first claim; the second follows at once.
+\end{proof}
+
+All the conditional Chebyshev bounds below have exactly this shape: the conditional probability of a bad event is at most $\min(1,b_n)$ for a random bound $b_n$ built from squared norms divided by $n$, and the lemma converts the \emph{convergence in measure} of $b_n$ to $0$ into the convergence of the \emph{unconditional} probability to $0$. The truncation by $1$ is what makes the argument insensitive to the (small-probability) region where $b_n$ is large.
+
+\begin{theorem}[Inverse of a convergent matrix sequence]\label{thm:ntkcond:mconvInverse}
+  \uses{lem:ntkdeep:probTools}
+  \lean{NTK.tendstoInMeasure_matrix_inv, NTK.tendstoInMeasure_matrix_inv_of_posDef}
+  \leanok
+Let $F_n$ be random matrices over a finite index set $\iota$ with $F_n\to M$ in measure. If $M$ is invertible (for instance positive definite), then $F_n^{-1}\to M^{-1}$ in measure, with the convention $0^{-1}=0$ for singular matrices.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkdeep:probTools}
+  \leanok
+On the open set $\{\det\ne0\}$ the map $A\mapsto A^{-1}=\det(A)^{-1}\operatorname{adj}(A)$ is continuous, hence continuous at $M$. The continuous-mapping lemma, Lemma~\ref{lem:ntkdeep:probTools}(1), gives the claim; the singular matrices (where the convention is used) lie outside a neighbourhood of $M$ and have vanishing probability.
+\end{proof}
+
+In the deep NTK this yields $\hat\Sigma_n^{-1}\to(\Sigma^{\ell+1})^{-1}$ for the empirical activation Gram under the positive definiteness hypothesis on the limiting kernel, and in particular makes $\|\hat\Sigma_n^{-1}\|$ stochastically bounded.
+
+
+\section{Gaussian weight matrices: moments, linear images and Lemma~2.26}\label{sec:ntkcond:gaussianMatrix}
+
+Throughout this section $W\in\mathbb R^{n\times p}$ has i.i.d.\ $\mathcal N(0,1)$ entries. This complements the Gaussian vector algebra of Section~\ref{sec:ntkdeep:gaussianAlgebra}.
+
+\begin{lemma}[Coordinate moments]\label{lem:ntkcond:coordMoments}
+  \lean{NTK.integral_gaussianInit_entry, NTK.integral_gaussianInit_entry_sq, NTK.memLp_entry,
+        NTK.integrable_entry_mul_entry, NTK.integral_gaussianInit_entry_mul_entry}
+  \leanok
+Every entry $W_{ik}$ is in $L^2$ with $\mathbb E[W_{ik}]=0$ and $\mathbb E[W_{ik}^2]=1$, products of two entries are integrable, and
+\[
+  \mathbb E[W_{ik}W_{jl}]=\delta_{ij}\,\delta_{kl}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The entries are independent standard Gaussians, so $W_{ik}\in L^2$, the mean is $0$ and the variance is $1$; two distinct entries are independent with mean zero, so their product has mean zero.
+\end{proof}
+
+\begin{lemma}[Moments of the transpose action]\label{lem:ntkcond:transposeMoments}
+  \uses{lem:ntkcond:coordMoments}
+  \lean{NTK.integral_mulVec_transpose_mul_apply, NTK.integrable_mulVec_transpose_mul_apply}
+  \leanok
+For $u,v\in\mathbb R^n$ and $k,l\in\{1,\dots,p\}$, the product $(W^\top u)_k(W^\top v)_l$ is integrable and
+\[
+  \mathbb E\bigl[(W^\top u)_k\,(W^\top v)_l\bigr]=\delta_{kl}\,(u\cdot v).
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkcond:coordMoments}
+  \leanok
+$(W^\top u)_k(W^\top v)_l=\sum_{i,j}u_iv_jW_{ik}W_{jl}$ and, by Lemma~\ref{lem:ntkcond:coordMoments}, the expectation is $\sum_{i,j}u_iv_j\delta_{ij}\delta_{kl}=\delta_{kl}\,u\cdot v$.
+\end{proof}
+
+\begin{theorem}[Mean of a bilinear Gaussian quadratic form]\label{thm:ntkcond:quadMean}
+  \uses{lem:ntkcond:coordMoments}
+  \lean{NTK.integral_gaussianMatrix_quadForm, NTK.backward_empirical_quadForm_asymptotic_limit}
+  \leanok
+For all $u,v\in\mathbb R^n$ and every (not necessarily symmetric) $A\in\mathbb R^{p\times p}$,
+\[
+  \mathbb E\bigl[u^\top(WAW^\top)v\bigr]=(u\cdot v)\operatorname{tr}A.
+\]
+In the normalization used for the backward Gram matrices,
+\[
+  \frac1{n^2}\,\mathbb E\bigl[u^\top(WAW^\top)v\bigr]=\Bigl(\frac1n\,u\cdot v\Bigr)\Bigl(\frac1n\operatorname{tr}A\Bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:coordMoments}
+  \leanok
+$u^\top WAW^\top v=\sum_{i,j}\sum_{k,l}u_iv_jA_{kl}W_{ik}W_{jl}$. Taking expectations with Lemma~\ref{lem:ntkcond:coordMoments} leaves $\sum_{i,j}\sum_{k,l}u_iv_jA_{kl}\delta_{ij}\delta_{kl}=(u\cdot v)\operatorname{tr}A$. The normalized form is the same identity divided by $n^2$.
+\end{proof}
+
+The normalized form says that, when $u,v$ are fixed, a Gaussian sandwich $\tfrac1{n^2}u^\top WAW^\top v$ factorizes into the normalized pairing of the two vectors and the normalized trace of $A$. This is the identity that produces the transmission factor of the backward recursion in Chapter~\ref{chap:ntkdn}: for $A=\operatorname{diag}(\varphi'(h^\alpha)\varphi'(h^\beta))$ the normalized trace is a derivative Gram entry $\Phi'^{(n)}_{\alpha\beta}$.
+
+\begin{lemma}[Joint Gaussianity and linear images]\label{lem:ntkcond:linearImages}
+  \uses{lem:ntkcond:coordMoments}
+  \lean{NTK.hasGaussianLaw_gaussianRowMeasure_id, NTK.hasGaussianLaw_gaussianInit_id,
+        NTK.matrix_mul_apply_eq_sum, NTK.memLp_mul_entry, NTK.integral_mul_entry,
+        NTK.integral_mul_entry_mul_mul_entry}
+  \leanok
+\begin{enumerate}
+  \item The vector $W$ (all entries) is jointly Gaussian; so is a Gaussian row. Hence for deterministic matrices $A\in\mathbb R^{p\times q}$, $B\in\mathbb R^{p\times r}$ the pair $(WA,WB)$ is jointly Gaussian.
+  \item $(WA)_{ik}=\sum_aA_{ak}W_{ia}$ is centred and in $L^2$.
+  \item $\mathbb E\bigl[(WA)_{ik}(WB)_{jl}\bigr]=\delta_{ij}\,(A^\top B)_{kl}$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkcond:coordMoments}
+  \leanok
+The entries of $W$ are independent Gaussians, hence jointly Gaussian, and a linear image of a jointly Gaussian vector is jointly Gaussian. (2) is the displayed formula together with Lemma~\ref{lem:ntkcond:coordMoments}. (3) $\mathbb E[(WA)_{ik}(WB)_{jl}]=\sum_{a,b}A_{ak}B_{bl}\,\mathbb E[W_{ia}W_{jb}]=\sum_{a,b}A_{ak}B_{bl}\delta_{ij}\delta_{ab}=\delta_{ij}(A^\top B)_{kl}$.
+\end{proof}
+
+\begin{theorem}[Uncorrelated linear images are independent; Lemma~2.26 of the source]\label{thm:ntkcond:lemma226}
+  \uses{lem:ntkcond:linearImages, lem:ntkcond:projectorAlgebra, def:ntkcond:projector}
+  \lean{NTK.indepFun_gaussianInit_mul_of_transpose_mul_eq_zero,
+        NTK.indepFun_gaussian_orthogonal_projection, NTK.indepFun_conditioned_weight_history}
+  \leanok
+Let $W\sim\texttt{gaussianInit}\;n\;p$.
+\begin{enumerate}
+  \item If $A\in\mathbb R^{p\times q}$ and $B\in\mathbb R^{p\times r}$ satisfy $A^\top B=0$, then $WA$ and $WB$ are independent.
+  \item (One-sided conditioning) If $P\in\mathbb R^{p\times p}$ is an orthogonal projection matrix, then $WP$ and $WP^\perp$ are independent.
+  \item If moreover $X\in\mathbb R^{p\times q}$ satisfies $PX=X$, then $WX$ and $WP^\perp$ are independent.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:linearImages, lem:ntkcond:projectorAlgebra}
+  \leanok
+(1) By Lemma~\ref{lem:ntkcond:linearImages}(1) the pair $(WA,WB)$ is jointly Gaussian, and by part~(3) of the same lemma every covariance $\operatorname{Cov}\bigl((WA)_{ik},(WB)_{jl}\bigr)=\delta_{ij}(A^\top B)_{kl}$ vanishes. For a jointly Gaussian vector, uncorrelated blocks are independent.
+(2) Take $A=P$, $B=P^\perp$: $P^\top P^\perp=PP^\perp=0$ by Lemma~\ref{lem:ntkcond:projectorAlgebra}(1).
+(3) From $PX=X$ and $P^\top=P$ we get $X^\top P^\perp=(P^\perp X)^\top=(X-PX)^\top=0$, so (1) applies with $A=X$ and $B=P^\perp$.
+\end{proof}
+
+The theorem is the one-sided conditioning statement on which the deep NTK argument is built: if a quantity (a forward feature, a backpropagated vector from later layers) depends on the layer matrix $V$ only through $VP$, then conditionally on that quantity, the remaining part $VP^\perp$ is still an unconditioned Gaussian matrix. Its use requires $P$ to be deterministic, or at least independent of $V$; it is applied conditionally on the other layers in Section~\ref{sec:ntkcond:conditional}.
+
+
+\section{The second moment of a Gaussian quadratic form}\label{sec:ntkcond:quadVariance}
+
+Theorem~\ref{thm:ntkcond:quadMean} gives the \emph{mean} of the sandwich $u^\top WAW^\top v$. Concentration needs its variance. We compute $\mathbb E[(u^\top WAW^\top v)^2]$ exactly from the Gaussian fourth-moment (Isserlis) formula.
+
+\begin{lemma}[Gaussian matrix as a standard Gaussian vector]\label{lem:ntkcond:coordVec}
+  \lean{NTK.coordVec, NTK.measurable_coordVec, NTK.map_gaussianInit_pairIndex,
+        NTK.map_gaussianInit_coordVec}
+  \leanok
+Let $\texttt{coordVec}:W\mapsto(W_{ik})_{(i,k)\in[n]\times[p]}\in\mathbb R^{[n]\times[p]}$ be the flattening of a matrix. It is measurable, and the law of $\texttt{coordVec}(W)$ under $W\sim\texttt{gaussianInit}\;n\;p$ is the standard Gaussian $\mathcal N(0,I_{np})$ on $\mathbb R^{[n]\times[p]}$ (the product of $np$ copies of $\mathcal N(0,1)$).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The matrix measure is by definition the product of one-dimensional standard Gaussians over $(i,k)$, and flattening only relabels coordinates.
+\end{proof}
+
+\begin{lemma}[Coordinate Gaussian moments]\label{lem:ntkcond:coordFour}
+  \lean{NTK.memLp_coord_stdGaussian, NTK.holderTriple_four_four_two, NTK.memLp_coord_mul_stdGaussian,
+        NTK.integrable_coord_four, NTK.integral_coord_four}
+  \leanok
+Let $z\sim\mathcal N(0,I_N)$. Every coordinate is in $L^q$ for all $q<\infty$; products $z_az_b$ are in $L^2$ and products $z_az_bz_cz_d$ are integrable, and
+\[
+  \mathbb E\bigl[z_az_bz_cz_d\bigr]=\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\delta_{bc}\qquad(\text{Isserlis' formula}).
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Gaussian coordinates have all moments; the product $z_az_b$ is in $L^2$ by H\"older with exponents $(4,4,2)$ (\texttt{holderTriple\_four\_four\_two}), and the four-fold product is integrable by the same argument. For the formula, if some index appears exactly once the expectation vanishes by independence and zero mean. Otherwise either all four indices coincide, giving $\mathbb E z^4=3$ (the right-hand side is $1+1+1$), or they split into two distinct pairs, giving a product of two variances $=1$, which equals the single nonvanishing term on the right.
+\end{proof}
+
+The Lean proof of this lemma cites the already formalized Isserlis formula for the quartic model (\texttt{Renormalization/Quartic}) rather than repeating the Wick expansion.
+
+\begin{theorem}[Second moment of a Gaussian quadratic form]\label{thm:ntkcond:stdQuad}
+  \uses{lem:ntkcond:coordFour}
+  \lean{NTK.integral_quadForm_sq_stdGaussian}
+  \leanok
+Let $z\sim\mathcal N(0,I_N)$ and let $C$ be any real $N\times N$ matrix. Then
+\[
+  \mathbb E\bigl[(z^\top Cz)^2\bigr]=(\operatorname{tr}C)^2+\operatorname{tr}(C^2)+\|C\|_F^2 .
+\]
+In particular $\operatorname{Var}(z^\top Cz)=\operatorname{tr}(C^2)+\|C\|_F^2$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:coordFour}
+  \leanok
+$(z^\top Cz)^2=\sum_{a,b,c,d}C_{ab}C_{cd}\,z_az_bz_cz_d$. By Lemma~\ref{lem:ntkcond:coordFour} the expectation is
+$\sum C_{ab}C_{cd}(\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\delta_{bc})
+=(\sum_aC_{aa})^2+\sum_{a,b}C_{ab}^2+\sum_{a,b}C_{ab}C_{ba}$. The mean of $z^\top Cz$ is $\operatorname{tr}C$, which gives the variance.
+\end{proof}
+
+\begin{theorem}[Second moment and Chebyshev bound for the sandwich]\label{thm:ntkcond:sandwichVariance}
+  \uses{lem:ntkcond:coordVec, thm:ntkcond:stdQuad, thm:ntkcond:quadMean, lem:ntkcond:elementary}
+  \lean{NTK.quadForm_eq_sum_coord, NTK.integral_quadForm_sq_gaussianInit,
+        NTK.memLp_quadForm_gaussianInit, NTK.gaussianInit_quadForm_chebyshev}
+  \leanok
+Let $W\sim\texttt{gaussianInit}\;n\;p$, $u,v\in\mathbb R^n$ and $A\in\mathbb R^{p\times p}$. Then $u^\top WAW^\top v\in L^2$ and
+\[
+  \mathbb E\bigl[(u^\top WAW^\top v)^2\bigr]=\bigl((u\cdot v)\operatorname{tr}A\bigr)^2+(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2 .
+\]
+Consequently, for every $\varepsilon>0$,
+\[
+  \Pr\Bigl[\bigl|u^\top WAW^\top v-(u\cdot v)\operatorname{tr}A\bigr|\ge\varepsilon\Bigr]\le\frac{2\,\|u\|^2\|v\|^2\|A\|_F^2}{\varepsilon^2}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:coordVec, thm:ntkcond:stdQuad, thm:ntkcond:quadMean, lem:ntkcond:elementary}
+  \leanok
+Write $u^\top WAW^\top v=\sum_{x,y}C_{xy}\,\xi_x\xi_y$ with $\xi=\texttt{coordVec}(W)\sim\mathcal N(0,I_{np})$, $x=(i,k)$, $y=(j,l)$ and $C_{xy}=u_iv_jA_{kl}$ (\texttt{quadForm\_eq\_sum\_coord}). Then $C$ is the Kronecker product of the rank-one matrix $uv^\top$ and $A$, so by the Kronecker factorization of Lemma~\ref{lem:ntkcond:elementary}(2):
+$\operatorname{tr}C=(u\cdot v)\operatorname{tr}A$, $\operatorname{tr}(C^2)=(u\cdot v)^2\operatorname{tr}(A^2)$ and $\|C\|_F^2=\|u\|^2\|v\|^2\|A\|_F^2$. Theorem~\ref{thm:ntkcond:stdQuad} gives the second moment. The mean is $(u\cdot v)\operatorname{tr}A$ by Theorem~\ref{thm:ntkcond:quadMean}, hence
+\[
+  \operatorname{Var}=(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2\le2\|u\|^2\|v\|^2\|A\|_F^2
+\]
+by Lemma~\ref{lem:ntkcond:elementary}(1). Chebyshev's inequality gives the tail bound.
+\end{proof}
+
+\begin{remark}[Scaling]\label{rmk:ntkcond:sandwichScaling}
+\uses{thm:ntkcond:sandwichVariance}
+With the normalization $n^{-2}$ and $A=D$ diagonal, set $\tilde u=n^{-1}\|u\|^2$, $\tilde v=n^{-1}\|v\|^2$ and $\tilde D=n^{-1}\|D\|_F^2$. The bound becomes $2\tilde u\tilde v\tilde D/(n\varepsilon^2)$ for the deviation of $n^{-2}u^\top WDW^\top v$ from $n^{-2}(u\cdot v)\operatorname{tr}D$: the fluctuation is $O(n^{-1/2})$, provided the three normalized squared norms stay bounded. These are the quantities that Chapter~\ref{chap:ntkdn} shows converge in probability.
+\end{remark}
+
+
+\section{Conditional Chebyshev bounds for the residual part}\label{sec:ntkcond:conditional}
+
+The sandwich bound of Theorem~\ref{thm:ntkcond:sandwichVariance} is for deterministic vectors $u,v$. In the network $u,v$ are backpropagated vectors that depend on the weights, so one needs a bound that is valid conditionally on a random \emph{past}. The tool is Theorem~\ref{thm:ntkcond:lemma226}: once the dependence on the layer $V$ is through $VP$ only, the other part $VP^\perp$ is independent and the Chebyshev bound applies with $u,v$ frozen.
+
+\subsection{Linear forms}
+
+\begin{lemma}[Gaussian linear forms]\label{lem:ntkcond:linearForm}
+  \lean{NTK.integral_linearForm_gaussianInit, NTK.memLp_linearForm_gaussianInit,
+        NTK.integral_linearForm_sq_gaussianInit, NTK.gaussianInit_linearForm_chebyshev}
+  \leanok
+For $W\sim\texttt{gaussianInit}\;n\;p$, $u\in\mathbb R^n$ and $c\in\mathbb R^p$, $u\cdot(Wc)$ is centred and in $L^2$ with $\mathbb E\bigl[(u\cdot Wc)^2\bigr]=\|u\|^2\|c\|^2$, and for $\varepsilon>0$
+\[
+  \Pr\bigl[|u\cdot Wc|\ge\varepsilon\bigr]\le\frac{\|u\|^2\|c\|^2}{\varepsilon^2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkcond:coordMoments}
+  \leanok
+$u\cdot Wc=\sum_{i,k}u_ic_kW_{ik}$ is a centred Gaussian with variance $\sum_{i,k}u_i^2c_k^2=\|u\|^2\|c\|^2$ by independence of the entries. Chebyshev's inequality gives the bound.
+\end{proof}
+
+\subsection{Transfer from sections to the joint law}
+
+\begin{lemma}[Section bound transfers to the joint probability]\label{lem:ntkcond:sectionTransfer}
+  \uses{thm:ntkcond:lemma226}
+  \lean{NTK.gaussianInit_measure_le_lintegral_of_section}
+  \leanok
+Let $P\in\mathbb R^{p\times p}$ be an orthogonal projection matrix, $W\sim\texttt{gaussianInit}\;n\;p$, and $E$ a measurable subset of pairs of $n\times p$ matrices. Let $B:\mathbb R^{n\times p}\to[0,\infty]$ be measurable such that for every fixed $x$,
+\[
+  \Pr\bigl[(x,\,WP^\perp)\in E\bigr]\le B(x).
+\]
+Then
+\[
+  \Pr\bigl[(WP,\,WP^\perp)\in E\bigr]\le\mathbb E\bigl[B(WP)\bigr].
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkcond:lemma226}
+  \leanok
+By Theorem~\ref{thm:ntkcond:lemma226}(2) the law of $(WP,WP^\perp)$ is the product of its marginals. By Tonelli, $\Pr[(WP,WP^\perp)\in E]=\int\Pr[(x,WP^\perp)\in E]\,d\mathcal L(WP)(x)\le\int B\,d\mathcal L(WP)=\mathbb E[B(WP)]$.
+\end{proof}
+
+\subsection{Sandwich and linear form on the residual}
+
+\begin{lemma}[Fixed vectors, residual projector]\label{lem:ntkcond:sectionBounds}
+  \uses{thm:ntkcond:sandwichVariance, lem:ntkcond:linearForm, lem:ntkcond:projectorNorms}
+  \lean{NTK.quadForm_section_le, NTK.linearForm_section_le}
+  \leanok
+Let $Q\in\mathbb R^{p\times p}$ be an orthogonal projection matrix, $A\in\mathbb R^{p\times p}$, $u_0,v_0\in\mathbb R^n$, $b\in\mathbb R^p$, $\varepsilon>0$ and $V\sim\texttt{gaussianInit}\;n\;p$. Then
+\[
+  \Pr\Bigl[\bigl|u_0^\top(VQ)A(VQ)^\top v_0-(u_0\cdot v_0)\operatorname{tr}(QAQ)\bigr|\ge\varepsilon\Bigr]\le\frac{2\|u_0\|^2\|v_0\|^2\|A\|_F^2}{\varepsilon^2},\qquad
+  \Pr\bigl[|u_0\cdot(VQ)b|\ge\varepsilon\bigr]\le\frac{\|u_0\|^2\|b\|^2}{\varepsilon^2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkcond:sandwichVariance, lem:ntkcond:linearForm, lem:ntkcond:projectorNorms}
+  \leanok
+Since $Q^\top=Q$, $(VQ)A(VQ)^\top=V(QAQ)V^\top$, so Theorem~\ref{thm:ntkcond:sandwichVariance} applies with the matrix $QAQ$, and $\|QAQ\|_F\le\|A\|_F$ by Lemma~\ref{lem:ntkcond:projectorNorms}(2). For the linear form, $(VQ)b=V(Qb)$ and Lemma~\ref{lem:ntkcond:linearForm} gives the bound $\|u_0\|^2\|Qb\|^2/\varepsilon^2\le\|u_0\|^2\|b\|^2/\varepsilon^2$ by Lemma~\ref{lem:ntkcond:projectorNorms}(1).
+\end{proof}
+
+\begin{theorem}[Conditional Chebyshev bounds]\label{thm:ntkcond:conditionalChebyshev}
+  \uses{lem:ntkcond:sectionTransfer, lem:ntkcond:sectionBounds, lem:ntkcond:measurability, lem:ntkcond:projectorNorms}
+  \lean{NTK.conditional_quadForm_chebyshev, NTK.conditional_quadForm_chebyshev_normalized,
+        NTK.conditional_linearForm_chebyshev, NTK.conditional_linearForm_chebyshev_normalized}
+  \leanok
+Let $(\Omega,\mu)$ be a probability space (the \emph{past}), $V\sim\texttt{gaussianInit}\;n\;p$ independent of the past, and let $P:\Omega\to\mathbb R^{p\times p}$ and $A:\Omega\to\mathbb R^{p\times p}$ be measurable with $P(a)$ an orthogonal projection matrix for every $a$. Let $u,v:\mathbb R^{n\times p}\times\Omega\to\mathbb R^n$ be measurable, and abbreviate
+\[
+  \tilde u=u(VP(a),a),\qquad\tilde v=v(VP(a),a),\qquad R=VP(a)^\perp .
+\]
+(That is, $u$ and $v$ are evaluated at the \emph{projected} weight $VP$ and the past.) Then for $\varepsilon>0$:
+\begin{enumerate}
+  \item (Quadratic form)
+  \[
+    \Pr\Bigl[\bigl|\tilde u^\top RA(a)R^\top\tilde v-(\tilde u\cdot\tilde v)\operatorname{tr}\bigl(P^\perp A P^\perp\bigr)\bigr|\ge\varepsilon\Bigr]\le\mathbb E\Bigl[\min\Bigl(1,\tfrac{2\|\tilde u\|^2\|\tilde v\|^2\|A(a)\|_F^2}{\varepsilon^2}\Bigr)\Bigr].
+  \]
+  \item (Linear form) for measurable $b:\Omega\to\mathbb R^p$,
+  \[
+    \Pr\bigl[|\tilde u\cdot Rb(a)|\ge\varepsilon\bigr]\le\mathbb E\Bigl[\min\Bigl(1,\tfrac{\|\tilde u\|^2\|b(a)\|^2}{\varepsilon^2}\Bigr)\Bigr].
+  \]
+\end{enumerate}
+In the normalization of the backward Gram matrices, with $n>0$, the same bounds read
+\[
+  \Pr\Bigl[\bigl|n^{-2}\tilde u^\top RAR^\top\tilde v-n^{-2}(\tilde u\cdot\tilde v)\operatorname{tr}(P^\perp AP^\perp)\bigr|\ge\varepsilon\Bigr]\le\mathbb E\Bigl[\min\Bigl(1,\frac{2\,\bar u\,\bar v\,\bar A}{n\,\varepsilon^2}\Bigr)\Bigr],
+\]
+\[
+  \Pr\bigl[\,\bigl|n^{-1}\sqrt{n^{-1}}\;\tilde u\cdot Rb\bigr|\ge\varepsilon\bigr]\le\mathbb E\Bigl[\min\Bigl(1,\frac{\bar u\,\bar b}{n\,\varepsilon^2}\Bigr)\Bigr],
+\]
+with $\bar u=n^{-1}\|\tilde u\|^2$, $\bar v=n^{-1}\|\tilde v\|^2$, $\bar A=n^{-1}\|A\|_F^2$ and $\bar b=n^{-1}\|b\|^2$.
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:sectionTransfer, lem:ntkcond:sectionBounds, lem:ntkcond:measurability}
+  \leanok
+Fix the past $a$. By Lemma~\ref{lem:ntkcond:sectionTransfer} applied with $P=P(a)$, the bad event $E_a$ in the variables $(x,y)=(VP,VP^\perp)$ has probability at most $\mathbb E[B_a(VP)]$, where $B_a(x)$ bounds the probability of $\{y:(x,y)\in E_a\}$ with $y=VP^\perp$. For fixed $x$ the vectors $u(x,a)$, $v(x,a)$ are deterministic, so Lemma~\ref{lem:ntkcond:sectionBounds} with $Q=P(a)^\perp$ bounds this section probability by $2\|u(x,a)\|^2\|v(x,a)\|^2\|A(a)\|_F^2/\varepsilon^2$; probabilities are at most $1$, which gives the $\min(1,\cdot)$. Integrating over $a$ gives (1); (2) is identical with the linear-form bound. The normalized versions follow by dividing by $n^2$, respectively $n^{3/2}$; measurability of all maps in $(V,a)$ is Lemma~\ref{lem:ntkcond:measurability}.
+\end{proof}
+
+The role of the truncation by $1$ and of the evaluation at $VP$ is the following. The vectors $\tilde u,\tilde v$ would be backward sensitivities of the network, which depend on the layer matrix $V$ and on later layers; Theorem~\ref{thm:ntkcond:lemma226} is only usable because they depend on $V$ through $VP$ alone (Chapter~\ref{chap:ntkdn}, Lemma~\ref{lem:ntkdn:congruence}). Their squared norms are random, so the bound on the right is itself random; Lemma~\ref{lem:ntkcond:mconvSqueeze} converts its convergence in measure into the vanishing of the left-hand probability.
+
+
+\section{Concentration of empirical averages around conditional means}\label{sec:ntkcond:concentration}
+
+This section contains the concentration steps for \emph{fresh} Gaussian layers: the next layer of a network is, conditionally on the past, i.i.d.\ Gaussian with a random (past-measurable) covariance, and its empirical feature averages concentrate around Gaussian expectations.
+
+\begin{lemma}[Section-bound squeeze]\label{lem:ntkcond:sectionSqueeze}
+  \lean{NTK.tendsto_of_lintegral_section_bound}
+  \leanok
+Let $(\Omega_1,\mu_1)$ be a probability space and $P_n=\int\sigma_n(b)\,d\mu_1(b)$ (a Fubini decomposition of a probability into conditional probabilities $\sigma_n(b)\in[0,\infty]$ given $b$). Suppose that for all large $n$ and all $b$,
+\[
+  \sigma_n(b)\le\mathbf 1_{E_n}(b)+c_n,\qquad\mu_1(E_n)\le u_n,\qquad u_n\to0,\;c_n\to0 .
+\]
+Then $P_n\to0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$P_n\le\mu_1(E_n)+c_n\le u_n+c_n\to0$.
+\end{proof}
+
+This is the form in which a conditional Chebyshev bound is used: the conditional bound is small except on an exceptional set $E_n$ of pasts, which has small probability by hypothesis (for instance where a random covariance is far from its limit).
+
+\begin{lemma}[Chebyshev for a fixed Gaussian layer]\label{lem:ntkcond:chebyshevFixedCov}
+  \lean{NTK.chebyshev_activationProduct_pi}
+  \leanok
+Let $K\in\mathbb R^{m\times m}$, let $Z_1,\dots,Z_n$ be i.i.d.\ $\mathcal N(0,K)$ in $\mathbb R^m$, let $\varphi$ be continuous with $|\varphi(x)|\le C(1+|x|^p)$, $\alpha,\beta\in[m]$, and $\delta>0$. Put $M_{\alpha\beta}(K):=\mathbb E_{z\sim\mathcal N(0,K)}[(\varphi(z_\alpha)\varphi(z_\beta))^2]$ (a finite quantity). Then
+\[
+  \Pr\Bigl[\Bigl|\frac1n\sum_{j=1}^n\varphi(Z_{j,\alpha})\varphi(Z_{j,\beta})-\mathbb E_{z\sim\mathcal N(0,K)}[\varphi(z_\alpha)\varphi(z_\beta)]\Bigr|\ge\delta\Bigr]\le\frac{M_{\alpha\beta}(K)}{n\,\delta^2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \uses{lem:ntkf:chebyshev}
+  \leanok
+The summands $Y_j=\varphi(Z_{j,\alpha})\varphi(Z_{j,\beta})$ are i.i.d.\ with finite second moment $M_{\alpha\beta}(K)$ (polynomial growth and Gaussian moments), so $\operatorname{Var}(n^{-1}\sum Y_j)\le M_{\alpha\beta}(K)/n$ and Chebyshev's inequality gives the bound; this is the i.i.d.\ Chebyshev bound of Lemma~\ref{lem:ntkf:chebyshev}.
+\end{proof}
+
+\begin{lemma}[Continuity on the PSD cone and measurability]\label{lem:ntkcond:covarianceEntryContinuity}
+  \uses{thm:ntkdeep:covarianceContinuity, lem:ntkcond:measurability}
+  \lean{NTK.continuousOn_covarianceEntry, NTK.measurable_comp_of_continuousOn_psd}
+  \leanok
+Let $\varphi$ be continuous with polynomial growth. The map $K\mapsto\mathbb E_{z\sim\mathcal N(0,K)}[\varphi(z_\alpha)\varphi(z_\beta)]$ is continuous on the cone of positive semidefinite matrices. If $F:\mathbb R^{m\times m}\to\mathbb R$ is continuous on that cone and $S:\Omega\to\mathbb R^{m\times m}$ is measurable with positive semidefinite values, then $\omega\mapsto F(S(\omega))$ is measurable.
+\end{lemma}
+
+\begin{proof}
+  \uses{thm:ntkdeep:covarianceContinuity}
+  \leanok
+The first claim is Theorem~\ref{thm:ntkdeep:covarianceContinuity}. For the second, a function continuous on a subset of a metric space is the restriction of a Borel function to that subset, and $S$ takes values there; compose with the measurable $S$.
+\end{proof}
+
+\begin{theorem}[Conditional concentration with a random covariance]\label{thm:ntkcond:conditionalActivation}
+  \uses{lem:ntkcond:sectionSqueeze, lem:ntkcond:chebyshevFixedCov, lem:ntkcond:covarianceEntryContinuity, thm:ntkdeep:covarianceContinuity}
+  \lean{NTK.tendsto_measure_conditional_activationProduct}
+  \leanok
+Let $(\Omega_2,\nu)$ and $(\Omega_1,\mu_1)$ be probability spaces and $q=(a,b)\in\Omega_2\times\Omega_1$, where $a$ is the \emph{fresh} layer and $b$ the \emph{past}. Let $\varphi$ be continuous of polynomial growth. For each $n$ let $K_n:\Omega_2\times\Omega_1\to\mathbb R^{m\times m}$ be measurable, positive semidefinite-valued and independent of $a$, and suppose $K_n\to K_\infty$ in measure for $\nu\otimes\mu_1$, with $K_\infty$ positive semidefinite. Let $Z_n(q)\in(\mathbb R^m)^n$ be measurable and such that, for each fixed past $b$, the law of $a\mapsto Z_n(a,b)$ under $\nu$ is the product $\mathcal N(0,K_n(a,b))^{\otimes n}$. Then for every $\delta>0$,
+\[
+  (\nu\otimes\mu_1)\Bigl[\Bigl|\frac1n\sum_{j\le n}\varphi(Z_{n,j,\alpha})\varphi(Z_{n,j,\beta})-\mathbb E_{z\sim\mathcal N(0,K_n)}[\varphi(z_\alpha)\varphi(z_\beta)]\Bigr|\ge\delta\Bigr]\xrightarrow[n\to\infty]{}0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:sectionSqueeze, lem:ntkcond:chebyshevFixedCov, lem:ntkcond:covarianceEntryContinuity}
+  \leanok
+By Fubini, the probability equals $\int\sigma_n(b)\,d\mu_1(b)$ with $\sigma_n(b)$ the probability over the fresh layer $a$ with the past $b$ fixed. For fixed $b$ the conditional law of $Z_n$ is $\mathcal N(0,K_n(b))^{\otimes n}$, so Lemma~\ref{lem:ntkcond:chebyshevFixedCov} gives $\sigma_n(b)\le\min\bigl(1,M_{\alpha\beta}(K_n(b))/(n\delta^2)\bigr)$. By Theorem~\ref{thm:ntkdeep:covarianceContinuity}, $K\mapsto M_{\alpha\beta}(K)$ is continuous on the PSD cone, in particular at $K_\infty$, so there is $r>0$ with $M_{\alpha\beta}(K)\le M_{\alpha\beta}(K_\infty)+1$ when $\|K-K_\infty\|<r$. Let $E_n=\{b:\|K_n(b)-K_\infty\|\ge r\}$; $\mu_1(E_n)\to0$ since $K_n\to K_\infty$ in measure. For $b\notin E_n$ we have $\sigma_n(b)\le(M_{\alpha\beta}(K_\infty)+1)/(n\delta^2)=:c_n\to0$, while on $E_n$ we bound $\sigma_n\le1$. Lemma~\ref{lem:ntkcond:sectionSqueeze} concludes.
+\end{proof}
+
+This is the probabilistic step of the forward induction (Theorem~\ref{thm:ntkdeep:deepCovariance}): the next layer's empirical feature average is within $o(1)$ of its conditional mean $\int\varphi\varphi\,d\mathcal N(0,K_n)$, the conditional mean then converges by continuity (Lemma~\ref{lem:ntkcond:covarianceEntryContinuity}) and the induction hypothesis. The \emph{localization} of the second moment $M(K_n)$ near $M(K_\infty)$ is the technical point: $K_n$ is only close to $K_\infty$ in probability, and the Chebyshev bound uses the second moment at the random point $K_n$.
+
+\subsection{Gaussian-weighted averages}
+
+At the top layer the backward sensitivity is $g_{d-1}=W_d\odot\varphi'(h_{d-1})$, with $W_d$ an independent standard Gaussian readout (Chapter~\ref{chap:ntkdn}). Its Gram entries are therefore Gaussian-\emph{weighted} averages $n^{-1}\sum_ja_j^2y_j$ and, for the gradient-independence quantity, Gaussian \emph{linear} forms $n^{-1}\sum_ja_jy_j$, in weights $y$ depending on the past.
+
+\begin{lemma}[Variance of the centred square]\label{lem:ntkcond:centeredSquare}
+  \lean{NTK.gaussianSqCenteredVariance, NTK.gaussianSqCenteredVariance_nonneg,
+        NTK.memLp_sq_sub_one_mul_gaussianReal, NTK.chebyshev_centeredSquare_weighted}
+  \leanok
+Let $\sigma^2_{\mathrm{sq}}:=\operatorname{Var}_{x\sim\mathcal N(0,1)}(x^2-1)=2$ (a nonnegative constant). For fixed $y\in\mathbb R^n$, $x\mapsto(x^2-1)y$ is in $L^2(\mathcal N(0,1))$, and for $a\sim\mathcal N(0,I_n)$ and $\varepsilon>0$,
+\[
+  \Pr\Bigl[\Bigl|\frac1n\sum_{j=1}^n(a_j^2-1)\,y_j\Bigr|\ge\varepsilon\Bigr]\le\frac{\sigma_{\mathrm{sq}}^2\,\sum_jy_j^2}{n^2\varepsilon^2}.
+\]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The summands $(a_j^2-1)y_j$ are independent, centred, with variance $\sigma_{\mathrm{sq}}^2y_j^2$, so $\operatorname{Var}\bigl(\frac1n\sum_j(a_j^2-1)y_j\bigr)=\sigma_{\mathrm{sq}}^2\sum_jy_j^2/n^2$. Apply Chebyshev. (In Lean $\sigma^2_{\mathrm{sq}}$ is the variance as a defined constant, and the value $2$ is not needed.)
+\end{proof}
+
+\begin{theorem}[Gaussian-weighted averages]\label{thm:ntkcond:weightedAverage}
+  \uses{lem:ntkcond:centeredSquare, lem:ntkcond:sectionSqueeze}
+  \lean{NTK.tendstoInMeasure_gaussianSq_weighted_average}
+  \leanok
+Let $(\Omega,\nu_H)$ be a probability space, let $y_n:\Omega\to\mathbb R^n$ be measurable weights, and let $a\sim\mathcal N(0,I)$ be an infinite i.i.d.\ standard Gaussian sequence independent of $\Omega$. Suppose $\frac1n\sum_{j\le n}y_{n,j}\to c_1$ and $\frac1n\sum_{j\le n}y_{n,j}^2\to c_2$ in measure. Then, in measure for $\nu_H\otimes\mathcal N(0,1)^{\otimes\mathbb N}$,
+\[
+  \frac1n\sum_{j\le n}a_j^2\,y_{n,j}\longrightarrow c_1 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:centeredSquare, lem:ntkcond:sectionSqueeze, lem:ntkcond:mconvAlgebra}
+  \leanok
+Write $\frac1n\sum_ja_j^2y_j=\frac1n\sum_jy_j+\frac1n\sum_j(a_j^2-1)y_j$. The first term tends to $c_1$ by hypothesis. For the second, Lemma~\ref{lem:ntkcond:centeredSquare} bounds, for each fixed past, its tail by $\sigma_{\mathrm{sq}}^2\bigl(\tfrac1n\sum_jy_j^2\bigr)/(n\varepsilon^2)$. Because $\tfrac1n\sum_jy_j^2\to c_2$ in measure, the exceptional set where it exceeds $c_2+1$ has vanishing probability, and off it the bound is $\sigma_{\mathrm{sq}}^2(c_2+1)/(n\varepsilon^2)\to0$. Lemma~\ref{lem:ntkcond:sectionSqueeze} gives that the second term tends to $0$ in measure, and Lemma~\ref{lem:ntkcond:mconvAlgebra} combines the two limits.
+\end{proof}
+
+The second-moment hypothesis is used only to make the fluctuation tight; the limit is the \emph{unweighted} limit $c_1$ because $\mathbb E[a_j^2]=1$.
+
+\begin{theorem}[Gaussian linear forms in the readout vanish]\label{thm:ntkcond:linearAverage}
+  \uses{lem:ntkcond:sectionSqueeze}
+  \lean{NTK.chebyshev_linear_weighted, NTK.tendstoInMeasure_gaussianLinear_average}
+  \leanok
+\begin{enumerate}
+  \item For fixed $y\in\mathbb R^n$ and $a\sim\mathcal N(0,I_n)$, $\Pr\bigl[|\frac1n\sum_ja_jy_j|\ge\varepsilon\bigr]\le\sum_jy_j^2/(n^2\varepsilon^2)$.
+  \item Let $y_n:\Omega\to\mathbb R^n$ be measurable weights on a probability space, such that $\frac1n\sum_jy_{n,j}^2$ is bounded above by a sequence converging in measure (stochastic boundedness in the sense of Definition~\ref{def:ntkcond:bddByConv}), and let $v$ be an independent infinite i.i.d.\ $\mathcal N(0,1)$ sequence. Then $\frac1n\sum_{j\le n}v_jy_{n,j}\to0$ in measure.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \uses{lem:ntkcond:sectionSqueeze, lem:ntkcond:mconvSqueeze}
+  \leanok
+(1) $\frac1n\sum_ja_jy_j$ is centred with variance $\sum_jy_j^2/n^2$; apply Chebyshev. (2) Conditionally on the past $\omega$, (1) gives the bound $\min\bigl(1,\bar y_n(\omega)/(n\varepsilon^2)\bigr)$ with $\bar y_n=\frac1n\sum_jy_{n,j}^2$. Since $\bar y_n\le B_n$ with $B_n\to c$ in measure, $B_n/(n\varepsilon^2)\to0$ in measure, and Lemma~\ref{lem:ntkcond:mconvSqueeze} gives the claim.
+\end{proof}
+
+
+\section{Residual forms in the large-width limit}\label{sec:ntkcond:residual}
+
+Theorem~\ref{thm:ntkcond:conditionalChebyshev} is a statement for a fixed width. The following sequence-level statements are what the backward induction needs. They are phrased over an abstract probability space on which, for each $n$, a measure-preserving coordinate map splits the randomness into a past $z$ and an independent Gaussian layer $V$.
+
+\begin{definition}[Stochastic domination by a convergent sequence]\label{def:ntkcond:bddByConv}
+  \lean{NTK.BddByConv}
+  \leanok
+A sequence of real random variables $q_n$ on $(\Omega,\mu)$ is \emph{dominated by a convergent sequence} if there are random variables $B_n\ge q_n$ and a constant $c\in\mathbb R$ with $B_n\to c$ in measure.
+\end{definition}
+
+\begin{lemma}[Convergent sequences are dominated]\label{lem:ntkcond:bddByConvOf}
+  \uses{def:ntkcond:bddByConv}
+  \lean{NTK.BddByConv.of_tendstoInMeasure}
+  \leanok
+If $q_n\to c$ in measure, then $(q_n)$ is dominated by a convergent sequence (take $B_n=q_n$).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Trivial.
+\end{proof}
+
+This is the form of ``tightness'' that the Chebyshev bounds require: the normalized squared norms $n^{-1}\|\tilde u\|^2$ need not converge themselves but must be bounded by something that does, for instance by an average of fourth powers (Chapter~\ref{chap:ntkdn}, Section~\ref{sec:ntkdn:algebra}).
+
+\begin{definition}[The vector at the projected weight]\label{def:ntkcond:atProj}
+  \uses{def:ntkcond:gramProjector}
+  \lean{NTK.atProj}
+  \leanok
+Let $\Phi:Z\to\mathbb R^{n\times m}$ be the past-measurable feature matrix and $u:\mathbb R^{n\times n}\times Z\to\mathbb R^n$. For a point $(z,V)\in Z\times\mathbb R^{n\times n}$ put
+\[
+  \texttt{atProj}\,\Phi\,u\,(z,V):=u\bigl(VP_{\Phi(z)},\,z\bigr),
+\]
+i.e.\ $u$ evaluated at the projected weight. It is measurable whenever $\Phi$ and $u$ are.
+\end{definition}
+
+\begin{lemma}[Measurability and normalization]\label{lem:ntkcond:atProjMeasurable}
+  \uses{def:ntkcond:atProj, lem:ntkcond:measurability, lem:ntkcond:gramProjectorProps}
+  \lean{NTK.measurable_gramProjector, NTK.measurable_atProj, NTK.tendstoInMeasure_inv_nat_mul}
+  \leanok
+If $\Phi:Z\to\mathbb R^{n\times m}$ is measurable, then $z\mapsto P_{\Phi(z)}$ is measurable; $\texttt{atProj}\,\Phi\,u$ is measurable for measurable $u$. If $f_n\to c$ in measure, then $n^{-1}f_n\to0$ in measure.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$P_\Phi=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$ is a composition of the measurable operations of Lemma~\ref{lem:ntkcond:measurability} (using that the inverse is measurable with the convention $0^{-1}=0$, Lemma~\ref{lem:ntkcond:gramProjectorProps}(1)). For the last claim, $n^{-1}f_n=n^{-1}(f_n-c)+n^{-1}c$, the first term tends to $0$ in measure because $|n^{-1}(f_n-c)|\le|f_n-c|$ for $n\ge1$ and $f_n-c\to0$, and the second is a deterministic null sequence.
+\end{proof}
+
+\begin{theorem}[Residual quadratic form concentrates around its conditional mean]\label{thm:ntkcond:residualQuad}
+  \uses{thm:ntkcond:conditionalChebyshev, lem:ntkcond:mconvSqueeze, def:ntkcond:bddByConv, def:ntkcond:atProj, lem:ntkcond:atProjMeasurable, lem:ntkcond:gramProjectorProps}
+  \lean{NTK.tendsto_residualQuadForm}
+  \leanok
+Let $(\Omega,\mu)$ be a probability space, $(Z,\rho)$ a probability space (the \emph{past}) and, for each $n$, $\Psi_n:\Omega\to Z\times\mathbb R^{n\times n}$ a measure-preserving map onto $\rho\otimes\texttt{gaussianInit}\;n\;n$; write $\Psi_n(\omega)=(z,V)$. Let $\Phi_n:Z\to\mathbb R^{n\times m}$ and $A_n:Z\to\mathbb R^{n\times n}$ be measurable, and $u_n,v_n:\mathbb R^{n\times n}\times Z\to\mathbb R^n$ measurable. Put $P=P_{\Phi_n(z)}$, $\tilde u=\texttt{atProj}\,\Phi_n\,u_n(z,V)$, $\tilde v=\texttt{atProj}\,\Phi_n\,v_n(z,V)$ and $R=VP^\perp$. Assume that the three sequences
+\[
+  n^{-1}\|\tilde u\|^2,\qquad n^{-1}\|\tilde v\|^2,\qquad n^{-1}\|A_n(z)\|_F^2
+\]
+are dominated by convergent sequences (Definition~\ref{def:ntkcond:bddByConv}). Then for every $\varepsilon>0$
+\[
+  \mu\Bigl[\Bigl|\frac1{n^2}\tilde u^\top RA_nR^\top\tilde v-\frac1{n^2}(\tilde u\cdot\tilde v)\operatorname{tr}\bigl(P^\perp A_nP^\perp\bigr)\Bigr|\ge\varepsilon\Bigr]\xrightarrow[n\to\infty]{}0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:conditionalChebyshev, lem:ntkcond:mconvSqueeze, lem:ntkcond:mconvAlgebra}
+  \leanok
+Transport the event along $\Psi_n$, which is measure preserving, to $\rho\otimes\texttt{gaussianInit}$; the Gram projector is an orthogonal projection for every $\Phi$ (Lemma~\ref{lem:ntkcond:gramProjectorProps}(1)), so Theorem~\ref{thm:ntkcond:conditionalChebyshev} applies. The probability is at most $\int\min(1,b_n)$ with $b_n=2\bar u\bar v\bar A/(n\varepsilon^2)$, $\bar u=n^{-1}\|\tilde u\|^2$ etc. By hypothesis $\bar u\le B^u_n$, $\bar v\le B^v_n$, $\bar A\le B^A_n$ with $B^\bullet_n\to c_\bullet$ in measure, so $2B^u_nB^v_nB^A_n\to2c_uc_vc_A$ (Lemma~\ref{lem:ntkcond:mconvAlgebra}) and $b_n\le2B^u_nB^v_nB^A_n/(n\varepsilon^2)\to0$ in measure by Lemma~\ref{lem:ntkcond:atProjMeasurable}. Lemma~\ref{lem:ntkcond:mconvSqueeze} concludes.
+\end{proof}
+
+\begin{theorem}[Residual linear form tends to zero]\label{thm:ntkcond:residualLinear}
+  \uses{thm:ntkcond:conditionalChebyshev, lem:ntkcond:mconvSqueeze, def:ntkcond:bddByConv, def:ntkcond:atProj, lem:ntkcond:atProjMeasurable}
+  \lean{NTK.tendsto_residualLinearForm}
+  \leanok
+In the setting of Theorem~\ref{thm:ntkcond:residualQuad}, let in addition $b_n:Z\to\mathbb R^n$ be measurable, and assume $n^{-1}\|\tilde u\|^2$ and $n^{-1}\|b_n(z)\|^2$ are dominated by convergent sequences. Then for every $\varepsilon>0$
+\[
+  \mu\Bigl[\Bigl|n^{-1}\sqrt{n^{-1}}\;\tilde u\cdot\bigl(VP^\perp\bigr)b_n(z)\Bigr|\ge\varepsilon\Bigr]\xrightarrow[n\to\infty]{}0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:conditionalChebyshev, lem:ntkcond:mconvSqueeze, lem:ntkcond:atProjMeasurable}
+  \leanok
+As in Theorem~\ref{thm:ntkcond:residualQuad}: Theorem~\ref{thm:ntkcond:conditionalChebyshev}(2) bounds the probability by $\int\min\bigl(1,\bar u\bar b/(n\varepsilon^2)\bigr)$, and $\bar u\bar b/(n\varepsilon^2)\to0$ in measure.
+\end{proof}
+
+\begin{remark}[Role of Sections~\ref{sec:ntkcond:conditional}--\ref{sec:ntkcond:residual}]\label{rmk:ntkcond:residualRole}
+\uses{thm:ntkcond:residualQuad, thm:ntkcond:residualLinear, thm:ntkcond:lemma226}
+Two facts about the deep network make these abstract statements applicable. First, the backward sensitivity $g_{k+1}$ depends on $W_{k+1}$ only through $W_{k+1}\Phi_k$, where $\Phi_k=[\varphi(h_k^\alpha)]_\alpha$ is the feature matrix of layer $k$; second, $\Phi_k$ is independent of $W_{k+1}$. Taking $P=P_{\Phi_k}$ and the past $z=$ ``all other layers'' puts the network in the setting above, with $\tilde u=g_{k+1}$. The quadratic form is then the residual Gram entry of Theorem~\ref{thm:ntkdn:decoupling}, and the linear form is the residual part of the gradient-independence quantity of Theorem~\ref{thm:ntkdn:gradIndepStep}. The variance in both cases is of order $n^{-1}$.
+\end{remark}
+
+
+\section{Forward-pass tools for the deep recursion}\label{sec:ntkcond:forward}
+
+The proof of Theorem~\ref{thm:ntkdeep:deepCovariance} in Chapter~\ref{chap:ntkdeep} uses the following facts, which were not recorded there. They also give the generalization from the activation Gram to an arbitrary feature map $\psi$, which is what the backward induction needs for $\psi=\varphi'$ (the derivative Gram matrix) and $\psi=\varphi'^2$.
+
+\begin{lemma}[Locality of the forward pass]\label{lem:ntkcond:locality}
+  \uses{def:ntkdeep:deepPreactivation}
+  \lean{NTK.deepPreactivation_congr_of_eqOn, NTK.deepPreactivation_eq_prefix}
+  \leanok
+Let $W,W':\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R$ be weight populations.
+\begin{enumerate}
+  \item If $W_k=W'_k$ for all $k\le\ell$, then the layer-$\ell$ preactivations coincide: $h_\ell[W]=h_\ell[W']$.
+  \item If $\ell<D$, then $h_\ell[W]=h_\ell[W^{(D)}]$ where $W^{(D)}_k=W_k$ for $k<D$ and $W^{(D)}_k=0$ otherwise (truncation to the first $D$ layers).
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) By induction on $\ell$: $h_0$ depends only on $W_0$, and $h_{\ell+1}$ is a function of $W_{\ell+1}$ and $h_\ell$. (2) follows from (1) since $W^{(D)}$ and $W$ agree on all $k\le\ell<D$.
+\end{proof}
+
+\begin{lemma}[Polynomial growth is stable]\label{lem:ntkcond:polyGrowth}
+  \lean{NTK.polynomial_growth_mono, NTK.polynomial_growth_sq}
+  \leanok
+Let $|\varphi(x)|\le C(1+|x|^p)$ for all $x$.
+\begin{enumerate}
+  \item If $p\le p'$ and $2C\le C'$ then $|\varphi(x)|\le C'(1+|x|^{p'})$ for all $x$.
+  \item $|\varphi(x)^2|\le2C^2(1+|x|^{2p})$ for all $x$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) $|x|^p\le1+|x|^{p'}$ (if $|x|\le1$ the left side is at most $1$, otherwise $|x|^p\le|x|^{p'}$), hence $|\varphi|\le C(2+|x|^{p'})\le2C(1+|x|^{p'})\le C'(1+|x|^{p'})$. (2) $\varphi^2\le C^2(1+|x|^p)^2\le2C^2(1+|x|^{2p})$ by $(a+b)^2\le2a^2+2b^2$.
+\end{proof}
+
+The factor $2$ in (1) cannot be dropped, since $|x|^p\le|x|^{p'}$ fails near $0$. The lemma is used to merge the separate growth constants of $\varphi$ and $\varphi'$ into one, and to check the hypothesis for $\psi=\varphi'^2$ and $\psi=\varphi^2$ in the fourth-moment domination arguments of Chapter~\ref{chap:ntkdn}.
+
+\begin{lemma}[Measurability of feature averages]\label{lem:ntkcond:featureAverageMeasurable}
+  \uses{def:ntkdeep:deepPreactivation}
+  \lean{NTK.measurable_deepFeatureAverage}
+  \leanok
+For measurable $\varphi,\psi$, the empirical feature average
+\[
+  w\longmapsto\frac1n\sum_{j\le n}\psi\bigl(h_\ell(\alpha)_j[w]\bigr)\,\psi\bigl(h_\ell(\beta)_j[w]\bigr)
+\]
+is a measurable function of the layer-weight population $w\in(\mathbb R^{\mathbb N\times\mathbb N})^L$ (extended by $0$ beyond $L$). With $\psi=\varphi$ this is the activation Gram entry and with $\psi=\varphi'$ the derivative Gram entry.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Each preactivation is measurable by Lemma~\ref{lem:ntkdeep:freshLayer}(3), $\psi$ is measurable, and finite sums and products of measurable functions are measurable.
+\end{proof}
+
+\begin{theorem}[Successor-layer deviation, for an arbitrary feature map]\label{thm:ntkcond:successorDeviation}
+  \uses{thm:ntkcond:conditionalActivation, lem:ntkcond:locality, lem:ntkcond:featureAverageMeasurable, lem:ntkdeep:freshLayer, thm:ntkdeep:covarianceContinuity}
+  \lean{NTK.deepPreactivation_succ_deviation_tendsto}
+  \leanok
+Let $\varphi,\psi$ be continuous, $\psi$ of polynomial growth, $X$ the inputs, and $L$ the number of weight populations with $\ell+1<L$. Write $\hat K^{(n)}_\ell(w)=\bigl(\frac1n\sum_j\varphi(h_\ell(\alpha)_j[w])\varphi(h_\ell(\beta)_j[w])\bigr)_{\alpha\beta}$. Suppose $\hat K^{(n)}_\ell\to K_{\lim}$ in probability, with $K_{\lim}$ positive semidefinite. Then for every $\delta>0$ and $\alpha,\beta$,
+\[
+  \Pr\Bigl[\Bigl|\frac1n\sum_j\psi\bigl(h_{\ell+1}(\alpha)_j\bigr)\psi\bigl(h_{\ell+1}(\beta)_j\bigr)-\int\psi(z_\alpha)\psi(z_\beta)\,d\mathcal N\bigl(0,\hat K^{(n)}_\ell\bigr)(z)\Bigr|\ge\delta\Bigr]\xrightarrow[n\to\infty]{}0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:conditionalActivation, lem:ntkcond:locality, lem:ntkdeep:freshLayer}
+  \leanok
+Split the $L$-fold product measure at the coordinate $\ell+1$ (a measure-preserving identification $\prod_{i<L}\Omega_i\cong\Omega_{\ell+1}\times\prod_{i\ne\ell+1}\Omega_i$). By Lemma~\ref{lem:ntkcond:locality}(1), $\hat K^{(n)}_\ell$ depends only on populations of index $\le\ell$, hence is independent of the fresh coordinate $\ell+1$. By Lemma~\ref{lem:ntkdeep:freshLayer}(2) the conditional law of the layer-$(\ell+1)$ preactivations, given the other populations, is $\mathcal N(0,\hat K^{(n)}_\ell)^{\otimes n}$. These are exactly the hypotheses of Theorem~\ref{thm:ntkcond:conditionalActivation}, with the past being all coordinates other than $\ell+1$.
+\end{proof}
+
+\begin{theorem}[Successor step for feature covariances]\label{thm:ntkcond:successorFeature}
+  \uses{thm:ntkcond:successorDeviation, thm:ntkdeep:covarianceContinuity, lem:ntkdeep:probTools, lem:ntkcond:mconvAlgebra}
+  \lean{NTK.deepFeatureCovariance_succ_tendstoInMeasure}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntkcond:successorDeviation}, the empirical feature covariance of layer $\ell+1$ converges in probability:
+\[
+  \Bigl(\frac1n\sum_j\psi\bigl(h_{\ell+1}(\alpha)_j\bigr)\psi\bigl(h_{\ell+1}(\beta)_j\bigr)\Bigr)_{\alpha\beta}\longrightarrow\Bigl(\int\psi(z_\alpha)\psi(z_\beta)\,d\mathcal N(0,K_{\lim})\Bigr)_{\alpha\beta}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:successorDeviation, thm:ntkdeep:covarianceContinuity, lem:ntkdeep:probTools}
+  \leanok
+The empirical Gram matrices $\hat K^{(n)}_\ell$ are positive semidefinite (they are Gram matrices of features), converge to $K_{\lim}$ by hypothesis, and $K\mapsto\int\psi\psi\,d\mathcal N(0,K)$ is continuous within the PSD cone at $K_{\lim}$ (Theorem~\ref{thm:ntkdeep:covarianceContinuity}); the relative continuous-mapping theorem, Lemma~\ref{lem:ntkdeep:probTools}(1), gives that $\int\psi\psi\,d\mathcal N(0,\hat K^{(n)}_\ell)\to\int\psi\psi\,d\mathcal N(0,K_{\lim})$. Theorem~\ref{thm:ntkcond:successorDeviation} says the empirical average is close in probability to the former, and the two-stage lemma, Lemma~\ref{lem:ntkdeep:probTools}(2), combines the two.
+\end{proof}
+
+\begin{theorem}[Feature-covariance convergence for an arbitrary feature map]\label{thm:ntkcond:featureCovariance}
+  \uses{thm:ntkcond:successorFeature, thm:ntkdeep:deepCovariance, def:ntkdeep:layerCovariance, lem:ntkdeep:freshLayer}
+  \lean{NTK.deepEmpiricalFeatureCovariance_tendstoInMeasure}
+  \leanok
+Let $\varphi,\psi:\mathbb R\to\mathbb R$ be continuous with $|\varphi(x)|\le C(1+|x|^p)$ and $|\psi(x)|\le C_\psi(1+|x|^{p_\psi})$. Let $\Sigma^0=\Phi_0=\frac1d XX^\top$ and $\Sigma^{\ell+1}=\mathcal C_\varphi(\Sigma^\ell)$ (\texttt{layerCovarianceSeq}). Then for every layer $\ell<L$ of the depth-$L$ network built from the activation $\varphi$, as $n\to\infty$,
+\[
+  \frac1n\sum_{j\le n}\psi\bigl(h_\ell(\alpha)_j\bigr)\psi\bigl(h_\ell(\beta)_j\bigr)\;\longrightarrow\;\mathbb E_{z\sim\mathcal N(0,\Sigma^\ell)}\bigl[\psi(z_\alpha)\psi(z_\beta)\bigr]
+\]
+in probability, for all $\alpha,\beta\in[m]$.
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:ntkcond:successorFeature, thm:ntkdeep:deepCovariance, lem:ntkdeep:freshLayer}
+  \leanok
+For $\ell=0$ the preactivations $h_0(\alpha)_j$ are i.i.d.\ $\mathcal N(0,\Phi_0)$ across $j$ (Lemma~\ref{lem:ntkdeep:deepIndependence}(1)), so the claim is the weak law of large numbers for the i.i.d.\ variables $\psi(h_{0,j}^\alpha)\psi(h_{0,j}^\beta)$ (the layer-zero case of Lemma~\ref{lem:ntkdeep:freshLayer}(1)). For $\ell=\ell'+1$, apply Theorem~\ref{thm:ntkcond:successorFeature} with $K_{\lim}=\Sigma^{\ell'+1}$, whose hypothesis is the convergence $\hat K^{(n)}_{\ell'}\to\Sigma^{\ell'+1}$ of Theorem~\ref{thm:ntkdeep:deepCovariance} (the case $\psi=\varphi$ of the present theorem for the layer $\ell'$, proved by induction). Taking $\psi=\varphi$ recovers Theorem~\ref{thm:ntkdeep:deepCovariance}, since $\mathcal C_\varphi(\Sigma^{\ell})=\Sigma^{\ell+1}$.
+\end{proof}
+
+\begin{remark}[Indexing]\label{rmk:ntkcond:indexing}
+\uses{thm:ntkcond:featureCovariance}
+In Theorem~\ref{thm:ntkdeep:deepCovariance} the post-activation covariance of layer $\ell$ has limit $\Sigma^{\ell+1}$, because $\frac1n\sum_j\varphi(h_\ell)\varphi(h_\ell)$ is the Gaussian average $\int\varphi\varphi\,d\mathcal N(0,\Sigma^\ell)=\mathcal C_\varphi(\Sigma^\ell)=\Sigma^{\ell+1}$. Theorem~\ref{thm:ntkcond:featureCovariance} states the limit in terms of the covariance $\Sigma^\ell$ of the \emph{preactivations} of layer $\ell$ so that features other than $\varphi$ can be averaged against it; with $\psi=\varphi'$ it gives the derivative Gram limit $\dot\Sigma^\ell=\mathcal C_{\varphi'}(\Sigma^\ell)$.
+\end{remark}

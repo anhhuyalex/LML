@@ -3,13 +3,11 @@
 This chapter records the mathematics of a randomly initialized network as a function of its \emph{width}: exact conditional normality, the strong law for the covariance, and the convergence of the output to a Gaussian process (the neural-network Gaussian process, NNGP).
 It then treats multilayer networks: the layer-by-layer conditional Gaussian structure, the recursive kernel $\Phi_\ell$, and the deep NNGP recursion (Theorem~2.13 of the source).
 The Lean files are in \texttt{Optimization/NTK/Initialization/}: \texttt{Setup}, \texttt{GaussianAlgebra}, \texttt{ConditionalNormality}, \texttt{NNGPLimit}, \texttt{MultilayerNNGP}, \texttt{CovariancePropagation}, \texttt{DeepRecursion}, \texttt{DeepNNGPTheorems}, \texttt{Peripheral}.
+The remaining files of that directory, which support the backward half of the deep NTK argument (\texttt{GaussianMatrixAlgebra}, \texttt{GaussianQuadraticVariance}, \texttt{GaussianConditioning}, \texttt{ConditionalConcentration}, \texttt{ReadoutConcentration}, \texttt{ReadoutLinearConcentration}, \texttt{ResidualConcentration}), are treated in Chapter~\ref{chap:ntkcond}, and the deep NTK itself in Chapter~\ref{chap:ntkdn}.
 The ReLU closed forms used for the kernel recursion are in Chapter~\ref{chap:ntkr}; the NTK of the two-layer network (the full NTK summand and its limit) is in Chapter~\ref{chap:ntktl}.
 
 \medskip\noindent\textbf{Status.}
-Everything in this chapter is formalized and fully proved \emph{except} one statement:
-Part~1 of the deep recursion, the convergence in probability of the layerwise empirical covariance to the recursive kernel (Theorem~\ref{thm:ntkdeep:deepCovariance}), is stated in Lean but its proof is currently a \texttt{sorry}.
-Part~2 (convergence in distribution of the output) is proved \emph{from} that statement, and it is also proved as a standalone theorem under an explicit covariance-convergence hypothesis (Theorem~\ref{thm:ntkdeep:deepOutputStandalone}).
-The affected blueprint nodes carry no \texttt{\textbackslash leanok} on their proofs.
+Everything in this chapter is formalized and fully proved. In particular Part~1 of the deep recursion, the convergence in probability of the layerwise empirical covariance to the recursive kernel (Theorem~\ref{thm:ntkdeep:deepCovariance}), and Part~2, the convergence in distribution of the output (Theorem~\ref{thm:ntkdeep:deepOutput}), are sorry-free. Part~2 is also available as a standalone theorem under an explicit covariance-convergence hypothesis (Theorem~\ref{thm:ntkdeep:deepOutputStandalone}).
 
 \medskip\noindent\textbf{Notation.}
 $d$ is the input dimension, $n$ the (hidden) width, $m$ the number of evaluation points $x^1,\dots,x^m$ (collected in $X$), and $\varphi$ the activation. $\gamma=\mathcal N(0,1)$.
@@ -455,7 +453,8 @@ Theorem~\ref{thm:ntkf:slln} is stronger for a fixed conditioning realization). T
 \section{The deep NNGP recursion (Theorem~2.13)}\label{sec:ntkdeep:deep}
 
 \begin{definition}[Deep network from one weight population]\label{def:ntkdeep:deepPreactivation}
-  \lean{NTK.deepPreactivation, NTK.deepHistoryWeight}
+  \lean{NTK.deepPreactivation, NTK.deepHistoryWeight, NTK.deepPreactivation_congr_of_eqOn,
+        NTK.deepPreactivation_eq_prefix}
   \leanok
 Let $W:\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R$ be a single infinite population of i.i.d.\ standard Gaussian weights indexed by (layer, neuron, source neuron). The depth-$L$ preactivations $h_\ell(X^\alpha)_j$ are defined by
 \[
@@ -561,7 +560,6 @@ Formally, the conditional step is \texttt{tendsto\_measure\_conditional\_activat
   \leanok
 Let $\varphi$ be continuous with polynomial growth, and suppose that the empirical covariance of the final hidden layer converges in probability to the recursive kernel,
 $\frac1n\sum_{j<n}\varphi(h_{L-1}(\alpha)_j)\varphi(h_{L-1}(\beta)_j)\to\Phi_L$ (the conclusion of Theorem~\ref{thm:ntkdeep:deepCovariance} for $\ell=L-1$). Then the output vector converges in distribution as $n\to\infty$ to $\mathcal N(0,\Phi_L)$, $\Phi_L=\texttt{layerCovarianceSeq}\;1\;0\;\varphi\;m\;\Phi_0\;L$.
-This theorem is mathematically self-contained and depends on no unproved step.
 \end{theorem}
 
 \begin{proof}
@@ -580,7 +578,7 @@ For $L\ge1$, a continuous activation of polynomial growth, as the width $n\to\in
 
 \begin{proof}
   \uses{thm:ntkdeep:deepOutputStandalone, thm:ntkdeep:deepCovariance}
-\textbf{(Formalization status: the statement is in Lean and the proof is complete modulo Theorem~\ref{thm:ntkdeep:deepCovariance}, whose Lean proof is a \texttt{sorry}; the node carries no \texttt{\textbackslash leanok} on its proof for that reason.)}
+  \leanok
 Apply the standalone form, Theorem~\ref{thm:ntkdeep:deepOutputStandalone}, with the hypothesis supplied by Theorem~\ref{thm:ntkdeep:deepCovariance} for $\ell=L-1$.
 \end{proof}
 
