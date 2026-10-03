@@ -311,8 +311,8 @@ theorem ntk_convergence
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C)
     (x x' : Fin d → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
-      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0
-          1))),
+      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))),
       Filter.Tendsto
         (fun width => shallowEmpiricalNTK σ' (fun j : Fin width => rows j.val) x x')
         Filter.atTop

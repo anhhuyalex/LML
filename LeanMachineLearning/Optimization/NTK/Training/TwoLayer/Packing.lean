@@ -699,7 +699,8 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration
     simp
   have hprod_tail :
       ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
-          fun _ : Fin n => gaussianReal 0 1)).real {p | ((n : ℝ)⁻¹ * ∑ i : Fin n, p.2 i ^ 2) ≤ δ⁻¹} ≥ 1 - δ := by
+          fun _ : Fin n => gaussianReal 0 1)).real {p | ((n : ℝ)⁻¹ * ∑ i : Fin n,
+              p.2 i ^ 2) ≤ δ⁻¹} ≥ 1 - δ := by
     rw [hreadout_event, MeasureTheory.measureReal_prod_prod]
     simpa using htail
   have hsubset :
@@ -713,7 +714,8 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration
     ‖outputJacobian (netFromParams φ n d) X
     (packParams p.1 p.2)‖ ≤ Real.sqrt B} ≥ 1 - δ
   exact hprod_tail.trans (MeasureTheory.measureReal_mono (μ := ((Measure.pi fun _ : Fin n =>
-      Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) hsubset)
+      Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1))) hsubset)
 
 /-- **Gap 3 without a bound on `φ`.** Only a bounded derivative, differentiability and Gaussian
 square integrability of `φ(w ⬝ᵥ x_α)` are used (the latter follows from linear growth, which is
@@ -727,12 +729,13 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration_of_L2
         gaussianReal 0 1))
     {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun
-        _ : Fin n => gaussianReal 0 1)).real {p | ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
+        _ : Fin n => gaussianReal 0 1)).real {p | ‖outputJacobian (netFromParams φ n d) X
+            (packParams p.1 p.2)‖ ≤
       Real.sqrt (2 * ((∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(Measure.pi fun _ : Fin d => gaussianReal
           0 1)) + 1 +
         C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2) / δ)} ≥ 1 - δ := by
-  set v : ℝ := ∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-      1) with hv
+  set v : ℝ := ∑ α : Fin m, ∫ w, φ (w ⬝ᵥ X α) ^ 2 ∂(Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1) with hv
   set K : ℝ := C₁ ^ 2 * ∑ α : Fin m, ∑ j : Fin d, X α j ^ 2 with hK
   have hv0 : 0 ≤ v := Finset.sum_nonneg fun α _ => integral_nonneg fun w => sq_nonneg _
   have hK0 : 0 ≤ K := by positivity
@@ -748,8 +751,8 @@ theorem outputJacobian_netFromParams_frobenius_norm_concentration_of_L2
         {a : Fin n → ℝ | (n : ℝ)⁻¹ * ∑ i : Fin n, a i ^ 2 ≤ (δ / 2)⁻¹}) ≥ 1 - δ := by
     rw [measureReal_prod_prod]
     have h0 : 0 ≤ 1 - δ / 2 := by linarith
-    calc (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).real _ * (Measure.pi fun _ : Fin n => gaussianReal 0 1).real _
+    calc (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).real _ * (Measure.pi fun _ : Fin n => gaussianReal 0 1).real _
         ≥ (1 - δ / 2) * (1 - δ / 2) := mul_le_mul hA hB h0 measureReal_nonneg
       _ ≥ 1 - δ := by nlinarith [sq_nonneg δ]
   refine hprod.trans (measureReal_mono ?_)

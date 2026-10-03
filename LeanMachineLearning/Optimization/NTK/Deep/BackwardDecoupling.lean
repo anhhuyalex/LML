@@ -26,7 +26,7 @@ into the backward induction of the deep NTK.
 public section
 
 open MeasureTheory ProbabilityTheory Filter Matrix
-open scoped Matrix
+open scoped Matrix BigOperators
 
 namespace NTK
 
@@ -103,13 +103,14 @@ noncomputable def netDeriv (θ : DeepMLPParams d n0 n) (k : Fin d) (a : Fin m) :
 lemma deepSensitivityGram_hidden_eq_wcov (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d)
     (hn : n ≠ 0) (hS : IsUnit (netGram φ X θ ⟨k, by omega⟩).det) (a b : Fin m) :
     deepSensitivityGram d n0 n m φ φ' X θ ⟨k, by omega⟩ a b =
-      wcov (netDeriv φ φ' X θ ⟨k, by omega⟩ a) (netDeriv φ φ' X θ ⟨k, by omega⟩ b)
-        (projPart φ φ' X θ k hk a + resPart φ φ' X θ k hk a)
-        (projPart φ φ' X θ k hk b + resPart φ φ' X θ k hk b) := by
+      (𝔼 j, (netDeriv φ φ' X θ ⟨k, by omega⟩ a) j * (netDeriv φ φ' X θ ⟨k, by omega⟩ b) j *
+          ((projPart φ φ' X θ k hk a + resPart φ φ' X θ k hk a) j * (projPart φ φ' X θ k hk b +
+          resPart φ φ' X θ k hk b) j)) := by
   rw [deepSensitivityGram_hidden d n0 n m φ φ' X θ k (by omega), Matrix.of_apply,
     backwardSensitivity_hidden_decomp φ φ' X θ k hk hn hS a,
     backwardSensitivity_hidden_decomp φ φ' X θ k hk hn hS b]
-  unfold wcov netDeriv
+  simp only [expect_fin_eq_inv_mul_sum]
+  unfold netDeriv
   simp only [dotProduct, Pi.add_apply]
   congr 1
   exact Finset.sum_congr rfl fun j _ => by ring
@@ -117,8 +118,8 @@ lemma deepSensitivityGram_hidden_eq_wcov (θ : DeepMLPParams d n0 n) (k : ℕ) (
 /-- The weighted pairing of the residuals is the normalized residual quadratic form
 `n⁻² uᵀ (V Pᗮ) diag(f g) (V Pᗮ)ᵀ v`. -/
 lemma wcov_resPart_eq (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) :
-    wcov (netDeriv φ φ' X θ ⟨k, by omega⟩ a) (netDeriv φ φ' X θ ⟨k, by omega⟩ b)
-        (resPart φ φ' X θ k hk a) (resPart φ φ' X θ k hk b) =
+    (𝔼 j, (netDeriv φ φ' X θ ⟨k, by omega⟩ a) j * (netDeriv φ φ' X θ ⟨k, by omega⟩ b) j *
+        ((resPart φ φ' X θ k hk a) j * (resPart φ φ' X θ k hk b) j)) =
       ((n : ℝ) ^ 2)⁻¹ * (backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a ⬝ᵥ
         (((θ.Wh ⟨k, by omega⟩ *
               (1 - gramProjector (netFeat φ X θ ⟨k, by omega⟩))) *
@@ -144,8 +145,8 @@ lemma resid_mean_eq (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (hn :
         deepDerivativeGram d n0 n m φ φ' X θ ⟨k, by omega⟩ a b -
       deepSensitivityGram d n0 n m φ φ' X θ ⟨k + 1, by omega⟩ a b *
         ((n : ℝ)⁻¹ * ∑ a', ∑ b', (netGram φ X θ ⟨k, by omega⟩)⁻¹ a' b' *
-          wmat (netDeriv φ φ' X θ ⟨k, by omega⟩ a) (netDeriv φ φ' X θ ⟨k, by omega⟩ b)
-            (netFeat φ X θ ⟨k, by omega⟩) b' a') := by
+          (𝔼 j, (netDeriv φ φ' X θ ⟨k, by omega⟩ a) j * (netDeriv φ φ' X θ ⟨k, by omega⟩ b) j *
+              (netFeat φ X θ ⟨k, by omega⟩) j b' * (netFeat φ X θ ⟨k, by omega⟩) j a')) := by
   have hP := isOrthogonalProjection_gramProjector_all (netFeat φ X θ ⟨k, by omega⟩)
   rw [trace_compress_orthogonalComplement _ _ hP,
     trace_diagonal_gramProjector hn _ _ _ hS,
@@ -168,8 +169,8 @@ projected part pairs through Cauchy–Schwarz, the residual part is a Gaussian l
 lemma gradIndep_decomp (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (hn : n ≠ 0)
     (hS : IsUnit (netGram φ X θ ⟨k, by omega⟩).det) (a c : Fin m) :
     gradIndep φ φ' X θ ⟨k, by omega⟩ a c =
-      wcov (fun _ => (1 : ℝ)) (netDeriv φ φ' X θ ⟨k, by omega⟩ a)
-        (deepMLPPreactivation d n0 n m φ X θ ⟨k, by omega⟩ c) (projPart φ φ' X θ k hk a) +
+      (𝔼 j, 1 * (netDeriv φ φ' X θ ⟨k, by omega⟩ a) j * ((deepMLPPreactivation d n0 n m φ X θ ⟨k,
+          by omega⟩ c) j * (projPart φ φ' X θ k hk a) j)) +
       ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
         (backwardSensitivity d n0 n m φ φ' X θ ⟨k + 1, hk⟩ a ⬝ᵥ
           ((θ.Wh ⟨k, by omega⟩ *
@@ -198,7 +199,7 @@ lemma gradIndep_decomp (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k + 1 < d) (h
     rw [hy j, hb]
     simp only [netDeriv]
     ring
-  unfold wcov
+  simp only [expect_fin_eq_inv_mul_sum]
   simp only [dotProduct, netDeriv] at hsplit ⊢
   rw [hsplit]
   ring
@@ -384,7 +385,8 @@ include A
 lemma featCov_cvg (ψ : ℝ → ℝ) (hψ : Continuous ψ) (Cψ : ℝ) (hCψ : 0 ≤ Cψ) (pψ : ℕ) (hpψ : 0 < pψ)
     (hg : ∀ x : ℝ, |ψ x| ≤ Cψ * (1 + |x| ^ pψ)) (ℓ : ℕ) (hℓ : ℓ < d) (a b : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         ψ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) *
         ψ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ b j))
@@ -402,7 +404,8 @@ lemma growth_sq_act : ∀ x : ℝ, |φ x ^ 2| ≤ (2 * A.C ^ 2) * (1 + |x| ^ (2 
 generally the cross averages `n⁻¹ ∑ⱼ φ'(h^a)² φ'(h^b)²`. -/
 lemma derivSq_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a b : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         (φ' (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) *
           φ' (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ b j)) ^ 2)
@@ -416,7 +419,8 @@ lemma derivSq_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a b : Fin m) :
 /-- `n⁻¹ ∑ⱼ φ(h_ℓ^a,ⱼ)⁴` converges (feature `ψ = φ²`). -/
 lemma actSq_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         φ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) ^ 4)
       atTop (fun _ => c) := by
@@ -429,7 +433,8 @@ lemma actSq_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
 /-- `n⁻¹ ∑ⱼ (h_ℓ^a,ⱼ)⁴` converges (feature `ψ = x²`). -/
 lemma preFour_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j ^ 4)
       atTop (fun _ => c) := by
@@ -442,7 +447,8 @@ lemma preFour_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
 /-- `n⁻¹ ∑ⱼ (h_ℓ^a,ⱼ)²` converges (feature `ψ = id`, i.e. the preactivation Gram diagonal). -/
 lemma preSq_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j ^ 2)
       atTop (fun _ => c) := by
@@ -469,7 +475,8 @@ include A in
 /-- `Σ̂_k → Σ^{k+1}` entrywise. -/
 lemma netGram_entry_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop
       (fun _ => layerCovarianceSeq 1 0 φ m
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1) a b) := by
@@ -479,7 +486,8 @@ lemma netGram_entry_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
 include A in
 lemma netGram_matrix_tendsto (k : ℕ) (hk : k < d) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩) atTop
       (fun _ => layerCovarianceSeq 1 0 φ m
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)) :=
@@ -491,7 +499,8 @@ lemma netGram_inv_entry_tendsto (k : ℕ) (hk : k < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩)⁻¹ a b)
       atTop
       (fun _ => (layerCovarianceSeq 1 0 φ m
@@ -507,7 +516,8 @@ lemma netGram_singular_tendsto (k : ℕ) (hk : k < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef) :
     Tendsto (fun n : ℕ => ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       {ω : DeepSpace d | ¬ IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩).det})
       atTop (nhds 0) := by
   have hdet := tendstoInMeasure_comp_of_continuousAt
@@ -560,10 +570,9 @@ noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : Deep
 lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : DeepSpace d)
     (hS : IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩).det) :
     residAbs φ φ' X n k hk a b ω =
-      wcov (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
-        (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ b)
-        (resPart φ φ' X (deepParams d n0 n ω) k hk a)
-        (resPart φ φ' X (deepParams d n0 n ω) k hk b) -
+      (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j * (netDeriv φ φ' X
+          (deepParams d n0 n ω) ⟨k, by omega⟩ b) j * ((resPart φ φ' X
+          (deepParams d n0 n ω) k hk a) j * (resPart φ φ' X (deepParams d n0 n ω) k hk b) j)) -
       ((n : ℝ) ^ 2)⁻¹ * ((backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a ⬝ᵥ
           backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ b) *
         ((1 - gramProjector (netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩)) *
@@ -654,7 +663,8 @@ lemma goodSet_compl_tendsto (k : ℕ) (hk : k < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef) :
     Tendsto (fun n : ℕ => ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (goodSet (φ := φ) X k hk n)ᶜ) atTop (nhds 0) := by
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1)) (goodSet (φ := φ) X k hk n)ᶜ) atTop (nhds 0) := by
   refine (netGram_singular_tendsto A X k hk hpd).congr' ?_
   filter_upwards [eventually_ne_atTop 0] with n hn
   congr 1
@@ -667,12 +677,14 @@ lemma atProj_sq_bddByConv (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hG : ∀ c : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi
-        fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi
+            fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c)
       atTop (fun _ => c0)) (c : Fin m) :
     BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _
-        : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
+        : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun
+            (n : ℕ) (ω : DeepSpace d) =>
       (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω) ⬝ᵥ
         atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω))) := by
   have hbad := goodSet_compl_tendsto (d := d) (n0 := n0) A X k (by omega) hpd
@@ -692,23 +704,27 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hG : ∀ c : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi
-        fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi
+            fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c)
       atTop (fun _ => c0)) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => residAbs φ φ' X n k hk a b ω) atTop (fun _ => 0) := by
   have hbad := goodSet_compl_tendsto (d := d) (n0 := n0) A X k (by omega) hpd
   have hφm : Measurable φ := A.cont.measurable
   have hφ'm : Measurable φ' := A.cont'.measurable
   have hcu : ∀ c : Fin m, BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
       (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω) ⬝ᵥ
         atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω))) :=
     atProj_sq_bddByConv A X k hk hpd hG
   have hcA : BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
       (n : ℝ)⁻¹ * ∑ i, ∑ l, (Matrix.diagonal (fun j =>
         netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ a j *
         netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ b j) :
@@ -721,7 +737,8 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
   have h := tendsto_residualQuadForm ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1))
     (((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
       (fun ω : DeepSpace d => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
@@ -748,7 +765,8 @@ variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : 
 include A in
 lemma avg4_deriv_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         avg4 (netDeriv φ φ' X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a)) atTop (fun _ => c) := by
   obtain ⟨c, hc⟩ := derivSq_cvg A X ℓ hℓ a a
@@ -759,7 +777,8 @@ lemma avg4_deriv_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
 include A in
 lemma avg4_feat_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         avg4 (fun j => netFeat φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ j a)) atTop (fun _ => c) := by
   obtain ⟨c, hc⟩ := actSq_cvg A X ℓ hℓ a
@@ -780,24 +799,26 @@ theorem gperp_sub_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
-        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c')
       atTop (fun _ => c0)) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
-        wcov (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
-          (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ b)
-          (resPart φ φ' X (deepParams d n0 n ω) k hk a)
-          (resPart φ φ' X (deepParams d n0 n ω) k hk b) -
+        (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j * (netDeriv φ φ' X
+            (deepParams d n0 n ω) ⟨k, by omega⟩ b) j * ((resPart φ φ' X
+            (deepParams d n0 n ω) k hk a) j * (resPart φ φ' X (deepParams d n0 n ω) k hk b) j)) -
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ a b *
           deepDerivativeGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b)
       atTop (fun _ => 0) := by
   have h1 := residAbs_tendsto A X k hk hpd (fun c => hG c c) a b
   obtain ⟨c0, hc0⟩ := hG a b
   have htr := tendstoInMeasure_inv_nat_mul_trace (μ := ((Measure.pi fun _ : Fin d =>
-      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)))
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+          (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)))
     (fun n ω => netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
     (fun n ω => netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ b)
     (fun n ω => netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩)
@@ -825,17 +846,20 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hG : ∀ c : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi
-        fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi
+            fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c)
       atTop (fun _ => c0)) (a c : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) => linAbs φ φ' X n k hk a c ω) atTop (fun _ => 0) := by
   have hφm : Measurable φ := A.cont.measurable
   have hφ'm : Measurable φ' := A.cont'.measurable
   have hcb : BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) =>
       (n : ℝ)⁻¹ * ((fun j => deepMLPPreactivation d n0 n m φ X
           (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ c j *
         netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ a j) ⬝ᵥ
@@ -855,7 +879,8 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
   have h := tendsto_residualLinearForm ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1))
     (((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
       (fun ω : DeepSpace d => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
@@ -880,8 +905,9 @@ section decoupling
 
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
-lemma wcov_self_eq_wsq {n : ℕ} (f y : Fin n → ℝ) : wcov f f y y = wsq f y := by
-  unfold wcov wsq
+lemma wcov_self_eq_wsq {n : ℕ} (f y : Fin n → ℝ) : (𝔼 j, f j * f j * (y j * y j)) = wsq f y := by
+  simp only [expect_fin_eq_inv_mul_sum]
+  unfold wsq
   congr 1
   exact Finset.sum_congr rfl fun j _ => by ring
 
@@ -892,17 +918,20 @@ lemma wsq_projPart_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hI : ∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ
-        => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a b) atTop (fun _ => 0))
     (a : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         wsq (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
           (projPart φ φ' X (deepParams d n0 n ω) k hk a)) atTop (fun _ => 0) := by
   refine tendstoInMeasure_wsq_mulVec (μ := ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ :
-      ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)))
+      ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1)))
     (fun n ω => netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
     (fun n ω => netFeat φ X (deepParams d n0 n ω) ⟨k, by omega⟩)
     (fun n ω => (netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩)⁻¹ *ᵥ
@@ -910,7 +939,8 @@ lemma wsq_projPart_tendsto (k : ℕ) (hk : k + 1 < d)
     ?_ (avg4_deriv_cvg A X k (by omega) a) (fun c => avg4_feat_cvg A X k (by omega) c)
   intro c
   have := tendstoInMeasure_sum_mul (μ := ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ
-      => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)))
+      => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1)))
     (a := fun (b : Fin m) (n : ℕ) (ω : DeepSpace d) =>
       (netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩)⁻¹ c b)
     (b := fun (b : Fin m) (n : ℕ) (ω : DeepSpace d) =>
@@ -923,7 +953,8 @@ lemma wsq_projPart_tendsto (k : ℕ) (hk : k + 1 < d)
 include A in
 lemma derivGram_cvg (k : ℕ) (hk : k < d) (a b : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepDerivativeGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b)
       atTop (fun _ => c) := by
@@ -939,17 +970,20 @@ theorem decoupling_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
-        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c')
       atTop (fun _ => c0))
     (hI : ∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ
-        => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a b) atTop (fun _ => 0))
     (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b -
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ a b *
@@ -957,7 +991,8 @@ theorem decoupling_tendsto (k : ℕ) (hk : k + 1 < d)
       atTop (fun _ => 0) := by
   have hgp := gperp_sub_tendsto A X k hk hpd hG a b
   have hgpcc : ∀ c : Fin m, ∃ c1 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
-      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+          (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         wsq (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ c)
           (resPart φ φ' X (deepParams d n0 n ω) k hk c)) atTop (fun _ => c1) := by
@@ -974,13 +1009,14 @@ theorem decoupling_tendsto (k : ℕ) (hk : k + 1 < d)
   have hT := tendstoInMeasure_three_terms
     (wsq_projPart_tendsto A X k hk hpd hI a) (wsq_projPart_tendsto A X k hk hpd hI b) hya hyb
   have h1 : TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b -
-        wcov (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
-          (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ b)
-          (resPart φ φ' X (deepParams d n0 n ω) k hk a)
-          (resPart φ φ' X (deepParams d n0 n ω) k hk b)) atTop (fun _ => 0) := by
+        (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j * (netDeriv φ φ' X
+            (deepParams d n0 n ω) ⟨k, by omega⟩ b) j * ((resPart φ φ' X
+            (deepParams d n0 n ω) k hk a) j * (resPart φ φ' X (deepParams d n0 n
+            ω) k hk b) j))) atTop (fun _ => 0) := by
     refine tendstoInMeasure_zero_of_sq_le_on_good
       (good := goodSet (d := d) (n0 := n0) (φ := φ) X k (by omega)) ?_ hT
       (goodSet_compl_tendsto (d := d) (n0 := n0) A X k (by omega) hpd)
@@ -1000,17 +1036,20 @@ theorem gradIndep_step_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)
     (hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
-        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c')
       atTop (fun _ => c0))
     (hI : ∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ
-        => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨k + 1, hk⟩ a b) atTop (fun _ => 0))
     (a c : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a c) atTop (fun _ => 0) := by
   have hx := wsq_projPart_tendsto A X k hk hpd hI a
@@ -1018,11 +1057,12 @@ theorem gradIndep_step_tendsto (k : ℕ) (hk : k + 1 < d)
   have hprod := tendstoInMeasure_mul hc1 hx
   rw [mul_zero] at hprod
   have hT1 : TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+          gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
-        wcov (fun _ => (1 : ℝ)) (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a)
-          (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c)
-          (projPart φ φ' X (deepParams d n0 n ω) k hk a)) atTop (fun _ => 0) := by
+        (𝔼 j, 1 * (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j *
+            ((deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c) j *
+            (projPart φ φ' X (deepParams d n0 n ω) k hk a) j))) atTop (fun _ => 0) := by
     refine tendstoInMeasure_zero_of_sq_le (fun n ω => ?_) hprod
     refine (wcov_sq_le _ _ _ _).trans (le_of_eq ?_)
     congr 1

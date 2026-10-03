@@ -69,8 +69,8 @@ theorem gaussianInit_measure_le_lintegral_of_section
   rw [indepFun_iff_map_prod_eq_prod_map_map hX.aemeasurable hY.aemeasurable] at hind
   have hpair : Measurable (fun V : Fin n → Fin p → ℝ =>
       (Matrix.of V * P, Matrix.of V * (1 - P))) := hX.prodMk hY
-  have h1 : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
-      1) {V | (Matrix.of V * P, Matrix.of V * (1 - P)) ∈ E} =
+  have h1 : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) {V | (Matrix.of V * P, Matrix.of V * (1 - P)) ∈ E} =
       ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun V : Fin n
           → Fin p → ℝ =>
         (Matrix.of V * P, Matrix.of V * (1 - P)))) E := by
@@ -183,8 +183,8 @@ theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fi
 moment `‖u‖² ‖c‖²`. -/
 theorem gaussianInit_linearForm_chebyshev (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) {ε : ℝ}
     (hε : 0 < ε) :
-    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
-        1) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
       ENNReal.ofReal ((u ⬝ᵥ u) * (c ⬝ᵥ c) / ε ^ 2) := by
   classical
   have : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal
@@ -211,8 +211,8 @@ variable {Ω : Type*} [MeasurableSpace Ω]
 the `Pᗮ`-quadratic form concentrates. -/
 lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
     (hQ : IsStarProjection Q) (u₀ v₀ : Fin n → ℝ) {ε : ℝ} (hε : 0 < ε) :
-    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
-        1) {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
         (u₀ ⬝ᵥ v₀) * (Q * A * Q).trace|} ≤
       ENNReal.ofReal (2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
   classical
@@ -248,7 +248,8 @@ theorem conditional_quadForm_chebyshev
       (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
       (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
       (∑ k, ∑ l, A q.1 k l ^
-          2) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) := by
+          2) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+              gaussianReal 0 1)) := by
   classical
   have hγ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
       gaussianReal 0 1) := by infer_instance
@@ -379,8 +380,8 @@ theorem conditional_quadForm_chebyshev_normalized
 
 lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
     (hQ : IsStarProjection Q) (u₀ : Fin n → ℝ) (b : Fin p → ℝ) {ε : ℝ} (hε : 0 < ε) :
-    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
-        1) {V | ε ≤ |u₀ ⬝ᵥ ((Matrix.of V * Q) *ᵥ b)|} ≤
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) {V | ε ≤ |u₀ ⬝ᵥ ((Matrix.of V * Q) *ᵥ b)|} ≤
       ENNReal.ofReal ((u₀ ⬝ᵥ u₀) * (b ⬝ᵥ b) / ε ^ 2) := by
   classical
   simp_rw [← Matrix.mulVec_mulVec]
@@ -401,7 +402,8 @@ theorem conditional_linearForm_chebyshev
           ((Matrix.of q.2 * (1 - P q.1)) *ᵥ b q.1)|} ≤
     ∫⁻ q, min 1 (ENNReal.ofReal
       ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
-      (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) := by
+      (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1)) := by
   classical
   have hγ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
       gaussianReal 0 1) := by infer_instance

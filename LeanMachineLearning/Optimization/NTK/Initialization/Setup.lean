@@ -169,8 +169,8 @@ lemma inner_evalVector_measurable
 /-- Readout weight coordinates `a_i` have marginal standard normal distribution
 $\mathcal{N}(0, 1)$. -/
 lemma map_gaussianReadoutMeasure_coord (i : Fin n) :
-    Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n => gaussianReal 0
-        1) = gaussianReal 0 1 :=
+    Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1) = gaussianReal 0 1 :=
   (MeasureTheory.measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
 
 /-- Markov tail bound for the normalized squared readout energy. -/
@@ -250,10 +250,10 @@ which gives the much better `R = O(√(log(n/δ)))` - logarithmic, not polynomia
 
 /-- Transport the two-sided tail bound to a single readout coordinate `a i`. -/
 lemma prob_abs_gaussianReadout_coord_ge_le (n : ℕ) (i : Fin n) (ε : ℝ) (hε : 0 ≤ ε) :
-    (Measure.pi fun _ : Fin n => gaussianReal 0
-        1).real {a : Fin n → ℝ | ε ≤ |a i|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
-  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n => gaussianReal 0
-      1) =
+    (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1).real {a : Fin n → ℝ | ε ≤ |a i|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
+  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n =>
+      gaussianReal 0 1) =
       gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
   have hpre : {a : Fin n → ℝ | ε ≤ |a i|} =
       (fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|} := rfl
@@ -277,8 +277,8 @@ theorem prob_max_abs_gaussianReadout_ge_le (n : ℕ) (ε : ℝ) (hε : 0 ≤ ε)
   rw [heq]
   calc
     (Measure.pi fun _ : Fin n => gaussianReal 0 1).real (⋃ i : Fin n, {a : Fin n → ℝ | ε ≤ |a i|}) ≤
-        ∑ i : Fin n, (Measure.pi fun _ : Fin n => gaussianReal 0
-            1).real {a : Fin n → ℝ | ε ≤ |a i|} :=
+        ∑ i : Fin n, (Measure.pi fun _ : Fin n =>
+            gaussianReal 0 1).real {a : Fin n → ℝ | ε ≤ |a i|} :=
       measureReal_iUnion_fintype_le _
     _ ≤ ∑ _i : Fin n, 2 * Real.exp (-ε ^ 2 / 2) :=
       Finset.sum_le_sum (fun i _ => prob_abs_gaussianReadout_coord_ge_le n i ε hε)
@@ -318,8 +318,8 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
   have hsub : {a : Fin n → ℝ | ∃ i, ε < |a i|} ⊆ {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} :=
     fun a ⟨i, hi⟩ => ⟨i, hi.le⟩
   have hle := measureReal_mono (μ := (Measure.pi fun _ : Fin n => gaussianReal 0 1)) hsub
-  have hbad' : (Measure.pi fun _ : Fin n => gaussianReal 0
-      1).real {a : Fin n → ℝ | ∃ i, ε < |a i|} ≤ δ :=
+  have hbad' : (Measure.pi fun _ : Fin n =>
+      gaussianReal 0 1).real {a : Fin n → ℝ | ∃ i, ε < |a i|} ≤ δ :=
     hle.trans hbad
   have hcompl_ge : (Measure.pi fun _ : Fin n => gaussianReal 0 1).real ({a : Fin n → ℝ | ∃ i, ε < |a
       i|} ᶜ) ≥

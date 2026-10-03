@@ -27,8 +27,8 @@ variable {d n m : ℕ}
 /-- The conditional expectation of the output vector vanishes. -/
 lemma integral_conditional_output_eq_zero
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ) :
-    ∫ v, v ∂(Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0
-        1)) = 0 := by
+    ∫ v, v ∂(Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1)) = 0 := by
   rw [exact_conditional_normality]
   exact integral_id_multivariateGaussian
 

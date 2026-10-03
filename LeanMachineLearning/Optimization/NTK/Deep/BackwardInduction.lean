@@ -76,7 +76,8 @@ include A in
 /-- `Φ'_k → Σ̇^k` entrywise on `DeepSpace`. -/
 lemma derivGram_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepDerivativeGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop
       (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp a) * φ' (z.ofLp b)
@@ -94,24 +95,28 @@ theorem deepSpace_sensitivity_induction (hd : 0 < d)
       (layerCovarianceSeq 1 0 φ m (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ℓ).PosDef)
     (k : ℕ) (hk : k < d) :
     (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b) atTop
       (fun _ => deepLimitingSensitivityKernel d m φ φ'
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ⟨k, by omega⟩ a b)) ∧
     (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+            gaussianReal 0 1))
       (fun (n : ℕ) (ω : DeepSpace d) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop (fun _ => 0)) := by
   suffices key : ∀ j : ℕ, ∀ k : ℕ, ∀ hk : k < d, k + j = d - 1 →
       (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+              gaussianReal 0 1))
         (fun (n : ℕ) (ω : DeepSpace d) =>
           deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b) atTop
         (fun _ => deepLimitingSensitivityKernel d m φ φ'
           (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ⟨k, by omega⟩ a b)) ∧
       (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
-          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
+              gaussianReal 0 1))
         (fun (n : ℕ) (ω : DeepSpace d) =>
           gradIndep φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop (fun _ => 0)) from
     key (d - 1 - k) k hk (by omega)
@@ -142,7 +147,8 @@ theorem deepSpace_sensitivity_induction (hd : 0 < d)
     obtain ⟨hC, hI⟩ := ih (k + 1) hk1 (by omega)
     have hpd := hnd (k + 1) (by omega) hk1
     have hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
-        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+        Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
+            (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
         (fun (n : ℕ) (ω : DeepSpace d) =>
           deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c')
         atTop (fun _ => c0) := fun c c' => ⟨_, hC c c'⟩

@@ -461,8 +461,8 @@ private lemma continuous_relu_polar : Continuous relu :=
 private lemma integral_stdGaussian_fin2_eq_prod
     (g : ℝ × ℝ → ℝ)
     (hg : AEStronglyMeasurable g
-      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
-          1))) :
+      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 =>
+          gaussianReal 0 1))) :
     ∫ z : EuclideanSpace ℝ (Fin 2), g (z.ofLp 0, z.ofLp 1)
       ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) =
     ∫ p, g p ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) := by
@@ -471,8 +471,8 @@ private lemma integral_stdGaussian_fin2_eq_prod
   rw [← hrow]
   have hmap := map_pi_eval_two (d := 2) (by norm_num)
     (μ := fun _ : Fin 2 => gaussianReal 0 1)
-  change Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
-      1) =
+  change Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 =>
+      gaussianReal 0 1) =
       (gaussianReal 0 1).prod (gaussianReal 0 1) at hmap
   rw [← hmap, integral_map (by fun_prop) hg]
 
@@ -488,8 +488,8 @@ lemma integral_stdGaussian_relu_angle
   have hmeas : AEStronglyMeasurable
       (fun p : ℝ × ℝ => relu p.1 *
         relu (Real.cos theta * p.1 + Real.sin theta * p.2))
-      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
-          1)) := by
+      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 =>
+          gaussianReal 0 1)) := by
     apply Continuous.aestronglyMeasurable
     exact (continuous_relu_polar.comp continuous_fst).mul
       (continuous_relu_polar.comp
@@ -512,8 +512,8 @@ lemma integral_stdGaussian_reluIndicator_angle
   have hmeas : AEStronglyMeasurable
       (fun p : ℝ × ℝ => reluIndicator p.1 *
         reluIndicator (Real.cos theta * p.1 + Real.sin theta * p.2))
-      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 => gaussianReal 0
-          1)) := by
+      (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 =>
+          gaussianReal 0 1)) := by
     apply StronglyMeasurable.aestronglyMeasurable
     exact ((measurable_reluIndicator.comp measurable_fst).mul
       (measurable_reluIndicator.comp

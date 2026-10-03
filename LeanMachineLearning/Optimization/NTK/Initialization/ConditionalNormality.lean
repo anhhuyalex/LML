@@ -285,8 +285,8 @@ lemma map_readout_inner_evalVector
 lemma charFun_readout_evalVector
     (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (X : Fin m → Fin d → ℝ)
     (t : EuclideanSpace ℝ (Fin m)) :
-    charFun (Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0
-        1)) t =
+    charFun (Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1)) t =
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ (empiricalCovariance n φ W X) *ᵥ t.ofLp) / 2) := by
   set μ := Measure.map (fun a => evalVector φ W a X) (Measure.pi fun _ : Fin n => gaussianReal 0 1)
   rw [charFun_apply]

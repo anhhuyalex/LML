@@ -192,8 +192,8 @@ theorem empiricalCovariance_tendsto_integral
       Filter.Tendsto
         (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
       Filter.atTop
-      (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-          1))) := by
+      (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))) := by
   set g := fun w : Fin d → ℝ => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)
   have hg_meas : Measurable g := measurable_cov_summand φ hφ_meas (X α) (X β)
   have hg_int : Integrable g (Measure.pi fun _ : Fin d => gaussianReal 0 1) :=
@@ -227,8 +227,8 @@ theorem empiricalCovariance_tendsto_matrix_integral
         Filter.Tendsto
           (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
           Filter.atTop
-          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-              1))) :=
+          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+              gaussianReal 0 1))) :=
     fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
   have h_all :
       ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
@@ -237,8 +237,8 @@ theorem empiricalCovariance_tendsto_matrix_integral
           Filter.Tendsto
             (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
             Filter.atTop
-            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-                1))) := by
+            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+                gaussianReal 0 1))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
@@ -291,8 +291,8 @@ by
         Filter.Tendsto
           (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
           Filter.atTop
-          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-              1))) :=
+          (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+              gaussianReal 0 1))) :=
     fun α β => empiricalCovariance_tendsto_integral φ X hφ_meas hφ_L2 α β
   have h_all :
       ∀ᵐ rows : ℕ → Fin d → ℝ ∂(Measure.infinitePi fun _ => (Measure.pi fun _ : Fin d =>
@@ -301,8 +301,8 @@ by
           Filter.Tendsto
             (fun n : ℕ => empiricalCovariance n φ (fun i => rows i.val) X α β)
             Filter.atTop
-            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-                1))) := by
+            (nhds (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+                gaussianReal 0 1))) := by
     simp_rw [ae_all_iff]
     exact h_entry
   filter_upwards [h_all] with rows hrows
@@ -337,8 +337,8 @@ lemma sum_sum_mul_limitingCovariance_eq_integral_sq
         0 1))
     (u : Fin m → ℝ) :
     (∑ α : Fin m, ∑ β : Fin m, u α * u β * limitingCovariance φ X α β) =
-      ∫ w, (∑ α : Fin m, u α * φ (w ⬝ᵥ X α)) ^ 2 ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-          1) := by
+      ∫ w, (∑ α : Fin m, u α * φ (w ⬝ᵥ X α)) ^ 2 ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1) := by
   have hint (α β : Fin m) :
       Integrable (fun w => (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))) (Measure.pi fun _ : Fin d =>
           gaussianReal 0 1) :=
@@ -350,8 +350,8 @@ lemma sum_sum_mul_limitingCovariance_eq_integral_sq
       ∫ w, ∑ β : Fin m, u α * u β * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(Measure.pi fun _ : Fin d =>
           gaussianReal 0 1) := by
     have h_in (β : Fin m) :
-        u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-            1) =
+        u α * u β * ∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+            gaussianReal 0 1) =
         ∫ w, (u α * u β) * (φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) ∂(Measure.pi fun _ : Fin d => gaussianReal
             0 1) :=
       (integral_const_mul (u α * u β) (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β))).symm
@@ -497,12 +497,14 @@ lemma charFun_outputMeasure
   calc
     charFun (outputMeasure n d φ X) t =
         ∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I) ∂((Measure.pi fun _ : Fin n =>
-            Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := by
+            Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+                gaussianReal 0 1)) := by
       rw [outputMeasure_eq_map, charFun_apply,
         integral_map h_meas.aemeasurable (by fun_prop)]
     _ = ∫ W, (∫ a, Complex.exp (⟪evalVector φ W a X, t⟫ * Complex.I)
-          ∂(Measure.pi fun _ : Fin n => gaussianReal 0
-              1)) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
+          ∂(Measure.pi fun _ : Fin n =>
+              gaussianReal 0 1)) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+                  gaussianReal 0 1) := by
       change (∫ p, Complex.exp (⟪evalVector φ p.1 p.2 X, t⟫ * Complex.I)
           ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
               (Measure.pi fun _ : Fin n => gaussianReal 0 1))) = _

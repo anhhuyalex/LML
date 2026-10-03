@@ -408,8 +408,8 @@ lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ
     (Measure.pi fun _ : Fin d => gaussianReal 0 1).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ
         x)} ≤ τ := by
   have h_map := map_gaussianRowMeasure_dot x
-  have h_prob_eq : (Measure.pi fun _ : Fin d => gaussianReal 0
-      1).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
+  have h_prob_eq : (Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ x)} =
       (gaussianReal 0 (Real.toNNReal (x ⬝ᵥ x))).real {z | |z| ≤ τ * Real.sqrt (x ⬝ᵥ x)} := by
     have h_set : {z : ℝ | |z| ≤ τ * Real.sqrt (x ⬝ᵥ x)} = Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x)) := by ext z; simp [abs_le]
     have h_meas : Measurable (fun w : Fin d → ℝ => ∑ k, w k * x k) := (dotCLM x).continuous.measurable
@@ -423,8 +423,9 @@ lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ
         Measure.map_apply h_meas measurableSet_Icc
     have h_real_eq : ((Measure.pi fun _ : Fin d => gaussianReal 0 1).real ((fun w : Fin d → ℝ => ∑
         k, w k * x k) ⁻¹' (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))))) =
-      (Measure.map (fun w => ∑ k, w k * x k) (Measure.pi fun _ : Fin d => gaussianReal 0
-          1)).real (Set.Icc (- (τ * Real.sqrt (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by
+      (Measure.map (fun w => ∑ k, w k * x k) (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)).real (Set.Icc (- (τ * Real.sqrt
+          (x ⬝ᵥ x))) (τ * Real.sqrt (x ⬝ᵥ x))) := by
       exact congr_arg ENNReal.toReal h_map_apply.symm
     rw [h_real_eq, h_map, ← h_set]
   have h_bound := gaussianReal_Icc_bound (Real.toNNReal (x ⬝ᵥ x)) (Real.toNNReal_pos.mpr hx)
@@ -534,15 +535,15 @@ private lemma measure_ge_one_sub_delta_of_univ
     {m d : ℕ} {δ : ℝ} (hδ : 0 < δ)
     {P : (Fin m → Fin d → ℝ) → Prop}
     (hP : ∀ W₀, P W₀) :
-    1 - δ ≤ (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).real {W₀ | P W₀} := by
+    1 - δ ≤ (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).real {W₀ | P W₀} := by
   have h_univ : {W₀ | P W₀} = Set.univ := Set.ext fun W₀ => iff_true_intro (hP W₀)
   rw [h_univ]
   have : IsProbabilityMeasure (Measure.pi fun _ : Fin d => gaussianReal 0 1) := by infer_instance
   have : IsProbabilityMeasure (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal
       0 1) := by infer_instance
-  have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).real Set.univ = 1 := by simp
+  have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).real Set.univ = 1 := by simp
   rw [h_prob_univ]
   exact sub_le_self 1 (le_of_lt hδ)
 
@@ -1168,12 +1169,12 @@ theorem reluLinearizationBound
     simp only [Set.mem_ofPred, Set.mem_compl_iff]
     exact not_lt.symm
   -- The probability of the complement is ≥ 1 - δ
-  apply le_trans (b := (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).real {W₀ : Fin m → Fin d → ℝ | ((signAmbiguous r x
+  apply le_trans (b := (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).real {W₀ : Fin m → Fin d → ℝ | ((signAmbiguous r x
       W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m : ℝ) / 2 * Real.log (1 / δ))})
   · rw [h_compl, measureReal_compl]
-    · have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).real Set.univ = 1 := by simp
+    · have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).real Set.univ = 1 := by simp
       rw [h_prob_univ]
       exact sub_le_sub_left h_sign_conc 1
     · exact measurableSet_lt measurable_const (measurable_signAmbiguous_card r x)
@@ -1391,12 +1392,12 @@ theorem reluLinearizationBound_secondOrder
     ext W₀
     simp only [Set.mem_ofPred, Set.mem_compl_iff]
     exact not_lt.symm
-  apply le_trans (b := (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m :
+  apply le_trans (b := (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).real {W₀ | ((signAmbiguous r x W₀).card : ℝ) ≤ (m : ℝ) * r + Real.sqrt ((m :
       ℝ) / 2 * Real.log (1 / δ))})
   · rw [h_compl, measureReal_compl]
-    · have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).real Set.univ = 1 := by simp
+    · have h_prob_univ : (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).real Set.univ = 1 := by simp
       rw [h_prob_univ]
       exact sub_le_sub_left h_sign_conc 1
     · exact measurableSet_lt measurable_const (measurable_signAmbiguous_card r x)

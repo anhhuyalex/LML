@@ -171,8 +171,8 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
     (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -202,7 +202,8 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
   have hU' := tendsto_initMeasure_empiricalNTKMatrix_ge_eps (Nat.succ_pos m) hd φ hφ hderiv_meas X'
     (fun α β => hL2mul _ _) (fun α β => hdL2mul _ _) one_pos
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Icc 0 T)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Icc 0 T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y) (packParams p.1 p.2)
       (θ n p)) (fun n p t => ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) *ᵥ
@@ -302,8 +303,8 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -333,7 +334,8 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
   have hU' := tendsto_initMeasure_empiricalNTKMatrix_ge_eps (Nat.succ_pos m) hd φ hφ hderiv_meas X'
     (fun α β => hL2mul _ _) (fun α β => hdL2mul _ _) one_pos
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Ici 0)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Ici 0)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y) (packParams p.1 p.2)
       (θ n p)) (fun n p t => ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) *ᵥ

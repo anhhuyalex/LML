@@ -542,6 +542,13 @@ lemma dotProduct_sq_le_mul_self {p : Type*} [Fintype p] (u v : p → ℝ) :
   have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ u v
   simpa [dotProduct, sq] using this
 
+/-- The uniform average over `Fin n` (Mathlib's `Finset.expect`) is `n⁻¹ * ∑`. This is the bridge
+used to compute with weighted averages `𝔼 j, F j`, whose size `n` stays implicit. -/
+lemma expect_fin_eq_inv_mul_sum {n : ℕ} (F : Fin n → ℝ) :
+    Finset.univ.expect F = (n : ℝ)⁻¹ * ∑ j, F j := by
+  rw [Finset.expect_eq_sum_div_card]
+  simp [div_eq_inv_mul]
+
 /-- `tr(A²) ≤ ‖A‖_F²` for a real square matrix. -/
 lemma sum_mul_transpose_le_frobSq {p : Type*} [Fintype p] (A : Matrix p p ℝ) :
     ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, A k l ^ 2 := by

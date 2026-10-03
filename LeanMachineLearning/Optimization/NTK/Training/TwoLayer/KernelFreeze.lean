@@ -77,12 +77,13 @@ lemma exists_measurableSet_initial_jacobian_and_readout_bounds
     (hφ : Differentiable ℝ φ) (hφ_meas : Measurable φ) (hderiv_meas : Measurable (deriv φ))
     {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) (M₀ : ℝ)
     (hE1 : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin n => gaussianReal 0
-        1)).real {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
+        (Measure.pi fun _ : Fin n =>
+            gaussianReal 0 1)).real {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
       ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤ M₀} ≥ 1 - δ) :
     ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)),
-      MeasurableSet E ∧ ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-          1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 * δ ∧
+      MeasurableSet E ∧ ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - 2 *
+              δ ∧
       ∀ p ∈ E,
         ‖outputJacobian (netFromParams φ n d) X (packParams p.1 p.2)‖ ≤
           M₀ ∧
@@ -142,7 +143,8 @@ lemma exists_measurableSet_initial_jacobian_and_readout_bounds
       (continuous_abs.measurable.comp ((measurable_pi_apply i).comp measurable_snd))
       measurable_const)
   have hcombined := measureReal_inter_ge_of_ge ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin
-      d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) hE1_meas hE2_meas hE1 hE2
+      d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1)) hE1_meas hE2_meas hE1 hE2
   have hδ2 : (1 : ℝ) - δ - δ = 1 - 2 * δ := by ring
   rw [hδ2] at hcombined
   exact ⟨_, hE1_meas.inter hE2_meas, hcombined, fun p hp => hp⟩

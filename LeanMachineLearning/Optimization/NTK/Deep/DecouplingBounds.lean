@@ -25,7 +25,7 @@ Probabilistic (but network-free) corollaries of `Deep/BackwardAlgebra.lean`. Thr
 public section
 
 open MeasureTheory Filter Matrix
-open scoped Matrix
+open scoped Matrix BigOperators
 
 namespace NTK
 
@@ -163,7 +163,8 @@ theorem tendstoInMeasure_inv_nat_mul_trace
     (hΦ : ∀ a, ∃ c : ℝ, TendstoInMeasure μ
       (fun (n : ℕ) (ω : Ω) => avg4 (fun j => Φ n ω j a)) atTop (fun _ => c)) :
     TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) =>
-      (n : ℝ)⁻¹ * ∑ a, ∑ b, S n ω a b * wmat (f n ω) (g n ω) (Φ n ω) b a) atTop
+      (n : ℝ)⁻¹ * ∑ a, ∑ b, S n ω a b * (𝔼 j, (f n ω) j * (g n ω) j * (Φ n ω) j b *
+          (Φ n ω) j a)) atTop
       (fun _ => 0) := by
   obtain ⟨cf, hcf⟩ := hf
   obtain ⟨cg, hcg⟩ := hg

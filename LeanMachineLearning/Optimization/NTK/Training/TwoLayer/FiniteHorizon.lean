@@ -235,8 +235,8 @@ theorem tendsto_measure_kernel_drift_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -249,7 +249,8 @@ theorem tendsto_measure_kernel_drift_finite_horizon
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Icc 0 T)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Icc 0 T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => ‖empiricalNTKMatrix (netFromParams φ n d)
@@ -281,8 +282,8 @@ theorem tendsto_measure_jacobian_drift_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -295,7 +296,8 @@ theorem tendsto_measure_jacobian_drift_finite_horizon
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Icc 0 T)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Icc 0 T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => ‖outputJacobian (netFromParams φ n d)
@@ -328,8 +330,8 @@ theorem tendsto_measure_linearization_error_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -345,7 +347,8 @@ theorem tendsto_measure_linearization_error_finite_horizon
               (θ n p t - θ n p 0).ofLp)‖})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Icc 0 T)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Icc 0 T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => ‖trainingOutputs (netFromParams φ n d)
@@ -384,8 +387,8 @@ theorem tendsto_measure_jacobian_drift_global_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -398,7 +401,8 @@ theorem tendsto_measure_jacobian_drift_global_positive_gap
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)‖})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Ici 0)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Ici 0)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => ‖outputJacobian (netFromParams φ n d)
@@ -433,8 +437,8 @@ theorem tendsto_measure_linearization_error_global_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -450,7 +454,8 @@ theorem tendsto_measure_linearization_error_global_positive_gap
               (θ n p t - θ n p 0).ofLp)‖})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Ici 0)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Ici 0)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => ‖trainingOutputs (netFromParams φ n d)
@@ -515,8 +520,8 @@ theorem tendsto_measure_test_linearization_error_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (T : ℝ) (hT : 0 ≤ T)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (x : Fin d → ℝ) {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -528,7 +533,8 @@ theorem tendsto_measure_test_linearization_error_finite_horizon
           ⟪gradParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0), θ n p t - θ n p 0⟫|})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Icc (0 : ℝ) T)
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Icc (0 : ℝ) T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -
@@ -568,8 +574,8 @@ theorem tendsto_measure_test_linearization_error_global_positive_gap
     (hK_gap : (limitingFullNTKMatrix φ X - lambda_inf • 1).PosSemidef)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (x : Fin d → ℝ) {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -581,7 +587,8 @@ theorem tendsto_measure_test_linearization_error_global_positive_gap
           ⟪gradParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0), θ n p t - θ n p 0⟫|})
       Filter.atTop (nhds 0) := by
   refine tendsto_measure_exists_gt_of_good_events (fun n => ((Measure.pi fun _ : Fin n => Measure.pi
-      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) (Set.Ici (0 : ℝ))
+      fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+          (Set.Ici (0 : ℝ))
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     (fun n p t => |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -

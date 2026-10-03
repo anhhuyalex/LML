@@ -179,8 +179,8 @@ theorem tendsto_residualQuadForm (μ : Measure Ω) [IsProbabilityMeasure μ] (ρ
     have hg : Measurable fun q => min 1 (ENNReal.ofReal (bq n q)) :=
       measurable_const.min (ENNReal.measurable_ofReal.comp hbm)
     calc μ {ω | _} ≤ (μ.map (Ψ n)) _ := Measure.le_map_apply (hΨ n).measurable.aemeasurable _
-      _ = (ρ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0
-          1)) _ := by rw [(hΨ n).map_eq]
+      _ = (ρ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1)) _ := by rw [(hΨ n).map_eq]
       _ ≤ ∫⁻ q, min 1 (ENNReal.ofReal (bq n q)) ∂(ρ.prod (Measure.pi fun _ : Fin n => Measure.pi fun
           _ : Fin n => gaussianReal 0 1)) := hcond
       _ = ∫⁻ ω, min 1 (ENNReal.ofReal (bq n (Ψ n ω))) ∂μ := ((hΨ n).lintegral_comp hg).symm
@@ -262,8 +262,8 @@ theorem tendsto_residualLinearForm (μ : Measure Ω) [IsProbabilityMeasure μ] (
     have hg : Measurable fun q => min 1 (ENNReal.ofReal (bq n q)) :=
       measurable_const.min (ENNReal.measurable_ofReal.comp hbm)
     calc μ {ω | _} ≤ (μ.map (Ψ n)) _ := Measure.le_map_apply (hΨ n).measurable.aemeasurable _
-      _ = (ρ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0
-          1)) _ := by rw [(hΨ n).map_eq]
+      _ = (ρ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1)) _ := by rw [(hΨ n).map_eq]
       _ ≤ ∫⁻ q, min 1 (ENNReal.ofReal (bq n q)) ∂(ρ.prod (Measure.pi fun _ : Fin n => Measure.pi fun
           _ : Fin n => gaussianReal 0 1)) := hcond
       _ = ∫⁻ ω, min 1 (ENNReal.ofReal (bq n (Ψ n ω))) ∂μ := ((hΨ n).lintegral_comp hg).symm

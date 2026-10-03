@@ -504,8 +504,8 @@ theorem exists_neuronMoment_event {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁
       ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
           fun _ : Fin n => gaussianReal 0 1)).real {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) |
         (n : ℝ)⁻¹ * ∑ i : Fin n, neuronMoment φ C₁ C₂ X (p.1 i) (p.2 i) ≤ τ} ≥ 1 - δ := by
-  set I : ℝ := ∫ q, neuronMoment φ C₁ C₂ X q.1 q.2 ∂((Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (gaussianReal 0 1))
+  set I : ℝ := ∫ q, neuronMoment φ C₁ C₂ X q.1 q.2 ∂((Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (gaussianReal 0 1))
     with hI
   have hI0 : 0 ≤ I := integral_nonneg fun q => neuronMoment_nonneg _ _ _ _ _ _
   refine ⟨I / δ + 1, by positivity, fun n hn => ⟨?_, ?_⟩⟩

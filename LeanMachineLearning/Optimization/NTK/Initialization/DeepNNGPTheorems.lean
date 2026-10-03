@@ -250,8 +250,8 @@ lemma conditional_preactivations_infinite_eq_pi (n m : ℕ) (φ : ℝ → ℝ)
     _ = Measure.map F (Measure.map restrictRows
         (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n => gaussianReal 0 1))) := by
       rw [← Measure.map_map hF_meas hrestrictRows_meas]
-    _ = Measure.map F (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0
-        1) := by rw [hrestrictRows]
+    _ = Measure.map F (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
+        gaussianReal 0 1) := by rw [hrestrictRows]
     _ = Measure.pi (fun _ : Fin n =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (fun α β : Fin m => (n : ℝ)⁻¹ * ∑ k : Fin n,

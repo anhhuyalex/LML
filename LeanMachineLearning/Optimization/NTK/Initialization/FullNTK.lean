@@ -84,7 +84,8 @@ theorem measureReal_initMeasure_neuronAverage_le {n d : ℕ} (hn : 0 < n)
     (hv : ∫ q, g q ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) ≤ τ *
         δ) :
     ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun
-        _ : Fin n => gaussianReal 0 1)).real {p | (n : ℝ)⁻¹ * ∑ i : Fin n, g (p.1 i, p.2 i) ≤ τ} ≥ 1 - δ := by
+        _ : Fin n => gaussianReal 0 1)).real {p | (n : ℝ)⁻¹ * ∑ i : Fin n, g (p.1 i,
+            p.2 i) ≤ τ} ≥ 1 - δ := by
   have hpi := measureReal_pi_average_le_ge_one_sub (μ := ((Measure.pi fun _ : Fin d => gaussianReal
       0 1).prod (gaussianReal 0 1))) (n := n) hn hg hint
     hnn hτ hv
@@ -221,8 +222,8 @@ Uses the fourth-moment Gaussian readout bound `integrable_pow_four_gaussianReal`
 lemma memLp_two_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (hdφ_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
-        1))
+    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1))
     (hdφ_L2 : MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
         gaussianReal 0 1)) :
     MemLp (fun p : (Fin d → ℝ) × ℝ =>
@@ -278,8 +279,8 @@ providing second-moment bounds needed for quantitative concentration and Chebysh
 lemma integrable_sq_fullNTK_summand {d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
-        1))
+    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1))
     (hdφ_L2 : MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
         gaussianReal 0 1)) :
     Integrable (fun p : (Fin d → ℝ) × ℝ =>
@@ -304,8 +305,8 @@ lemma integral_fullNTK_summand {d : ℕ}
         p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
       ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) =
       (∫ w, φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)) +
-        (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-            1)) * (x ⬝ᵥ x') := by
+        (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d =>
+            gaussianReal 0 1)) * (x ⬝ᵥ x') := by
   have h1 : Integrable (fun p : (Fin d → ℝ) × ℝ => φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x'))
       ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
     hφ_int.comp_fst (gaussianReal 0 1)
@@ -329,8 +330,8 @@ lemma integral_fullNTK_summand {d : ℕ}
   have h_int2 : ∫ p : (Fin d → ℝ) × ℝ,
       p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')
       ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) =
-      (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-          1)) * (x ⬝ᵥ x') := by
+      (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) * (x ⬝ᵥ x') := by
     have h_eq : (fun p : (Fin d → ℝ) × ℝ =>
         p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) =
         (fun p : (Fin d → ℝ) × ℝ =>
@@ -364,14 +365,14 @@ theorem fullNTKSummand_tendsto_integral {d : ℕ}
             (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ x) * deriv φ ((seq j).1 ⬝ᵥ x') * (x ⬝ᵥ x')))
         Filter.atTop
         (nhds ((∫ w, φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)) +
-          (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-              1)) * (x ⬝ᵥ x'))) := by
+          (∫ w, deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d =>
+              gaussianReal 0 1)) * (x ⬝ᵥ x'))) := by
   set g := fun p : (Fin d → ℝ) × ℝ =>
     φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
       p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')
   have hg_meas : Measurable g := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
-  have hg_int : Integrable g ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0
-      1)) :=
+  have hg_int : Integrable g ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (gaussianReal 0 1)) :=
     integrable_fullNTK_summand φ x x' hφ_int hdφ_int
   have h_slln := iid_average_tendsto_integral ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
       (gaussianReal 0 1)) g hg_meas hg_int
@@ -385,8 +386,8 @@ theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d => gaussianReal 0
-          1))
+      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))
     (hdφ_int : ∀ α β : Fin m,
       Integrable (fun w => deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d =>
           gaussianReal 0 1)) :
@@ -429,8 +430,8 @@ theorem fullNTKMatrix_tendsto_integral {m d : ℕ}
                 (seq j).2 ^ 2 * deriv φ ((seq j).1 ⬝ᵥ X α) * deriv φ ((seq j).1 ⬝ᵥ X β) *
                   (X α ⬝ᵥ X β)))
             Filter.atTop
-            (nhds ((∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-                1)) +
+            (nhds ((∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+                gaussianReal 0 1)) +
               (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
                   gaussianReal 0 1)) *
                 (X α ⬝ᵥ X β))) := by
@@ -482,8 +483,8 @@ theorem fullNTKMatrix_norm_sub_tendsto_zero {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d => gaussianReal 0
-          1))
+      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))
     (hdφ_int : ∀ α β : Fin m,
       Integrable (fun w => deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d =>
           gaussianReal 0 1)) :
@@ -504,8 +505,8 @@ theorem fullNTKMatrix_norm_sub_tendsto_zero {m d : ℕ}
         (nhds 0) := by
   set L : Matrix (Fin m) (Fin m) ℝ := fun α β =>
     (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)) +
-      (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-          1)) * (X α ⬝ᵥ X β)
+      (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) * (X α ⬝ᵥ X β)
   have h := fullNTKMatrix_tendsto_integral φ hφ_meas hdφ_meas X hφ_int hdφ_int
   filter_upwards [h] with seq hseq
   have h_sub := hseq.sub (tendsto_const_nhds (x := L))
@@ -518,8 +519,8 @@ theorem fullNTKMatrix_tendstoInMeasure {m d : ℕ}
     (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
     (X : Fin m → Fin d → ℝ)
     (hφ_int : ∀ α β : Fin m,
-      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d => gaussianReal 0
-          1))
+      Integrable (fun w => φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))
     (hdφ_int : ∀ α β : Fin m,
       Integrable (fun w => deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β)) (Measure.pi fun _ : Fin d =>
           gaussianReal 0 1)) :
@@ -534,8 +535,8 @@ theorem fullNTKMatrix_tendstoInMeasure {m d : ℕ}
       Filter.atTop
       (fun _ => ((fun α β =>
         (∫ w, φ (w ⬝ᵥ X α) * φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1)) +
-          (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-              1)) *
+          (∫ w, deriv φ (w ⬝ᵥ X α) * deriv φ (w ⬝ᵥ X β) ∂(Measure.pi fun _ : Fin d =>
+              gaussianReal 0 1)) *
             (X α ⬝ᵥ X β)) : Matrix (Fin m) (Fin m) ℝ)) := by
   apply tendstoInMeasure_of_tendsto_ae
   · intro n
@@ -693,8 +694,8 @@ theorem limitingCovariance_posDef_of_ae_independent {m d : ℕ}
   refine Matrix.posDef_iff_dotProduct_mulVec.2 ⟨limitingCovariance_isHermitian φ X, ?_⟩
   intro c hc
   have hq : star c ⬝ᵥ (limitingCovariance φ X) *ᵥ c =
-      ∫ w, (∑ α : Fin m, c α * φ (w ⬝ᵥ X α)) ^ 2 ∂(Measure.pi fun _ : Fin d => gaussianReal 0
-          1) := by
+      ∫ w, (∑ α : Fin m, c α * φ (w ⬝ᵥ X α)) ^ 2 ∂(Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1) := by
     rw [← sum_sum_mul_limitingCovariance_eq_integral_sq φ X hφ_L2 c]
     simp only [star_trivial, dotProduct, Matrix.mulVec, Finset.mul_sum]
     exact Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => by ring

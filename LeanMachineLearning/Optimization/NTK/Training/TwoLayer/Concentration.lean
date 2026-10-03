@@ -131,10 +131,10 @@ theorem chebyshev_entrywise_empiricalNTKMatrix
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k)
       (hφ_L2 α β) (hdφ_L2 α β)
-  have h_cheb := chebyshev_average_pi_le_second_moment ((Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (gaussianReal 0 1)) hn Y hY_L2 hc
-  have h_int : ∫ x, Y x ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0
-      1)) = limitingFullNTKMatrix φ X α β :=
+  have h_cheb := chebyshev_average_pi_le_second_moment ((Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (gaussianReal 0 1)) hn Y hY_L2 hc
+  have h_int : ∫ x, Y x ∂((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
+      (gaussianReal 0 1)) = limitingFullNTKMatrix φ X α β :=
     integral_fullNTK_summand_scaled_dataset_eq_limiting hd φ X
       (fun a b => (hφ_L2 a b).integrable (by norm_num))
       (fun a b => (hdφ_L2 a b).integrable (by norm_num)) α β
@@ -239,8 +239,8 @@ theorem chebyshev_matrix_empiricalNTKMatrix
     rcases h_ex with ⟨p, hp⟩
     simp only [Set.mem_iUnion]
     exact ⟨p, hp⟩
-  have h_meas_union : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
+  have h_meas_union : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       {pt | ε ≤ ‖empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
         (packParams pt.1 pt.2) - limitingFullNTKMatrix φ X‖} ≤
       ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
@@ -248,8 +248,8 @@ theorem chebyshev_matrix_empiricalNTKMatrix
     measure_mono h_sub
   have h_union_le : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
       (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (⋃ p : Fin m × Fin m, E p) ≤
-      ∑ p : Fin m × Fin m, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-          1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E p) :=
+      ∑ p : Fin m × Fin m, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E p) :=
     measure_iUnion_fintype_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal
         0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) _
   have hm_pos : (0 : ℝ) < (m : ℝ) := Nat.cast_pos.2 hm
@@ -428,8 +428,8 @@ theorem chebyshev_matrix_empiricalNTKMatrix_spectral_gap_failure
     by_contra! h_lt
     exact hp (initial_empiricalNTKMatrix_rayleigh_lower_bound_of_frobenius_le
       φ X n p lambda_inf hK_gap h_lt.le)
-  have h_failure_le_tail : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
+  have h_failure_le_tail : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | ¬ ∀ v : EuclideanSpace ℝ (Fin m),
         (lambda_inf / 2) * ‖v‖ ^ 2 ≤
           v.ofLp ⬝ᵥ (empiricalNTKMatrix (netFromParams φ n d)

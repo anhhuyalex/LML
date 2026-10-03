@@ -297,8 +297,8 @@ theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → 
     exact Finset.sum_eq_zero fun j _ => hj j
   have hmean : μ[fun a => (n : ℝ)⁻¹ * S a] = 0 := by
     rw [integral_const_mul, hmean_S, mul_zero]
-  have hvarS : Var[S; μ] = (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0
-      1)) * ∑ j, y j ^ 2 := by
+  have hvarS : Var[S; μ] = (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1)
+      (gaussianReal 0 1)) * ∑ j, y j ^ 2 := by
     have h := variance_sum_pi (μ := fun _ : Fin n => gaussianReal 0 1) hg
     simp only [S]
     rw [h]

@@ -56,14 +56,14 @@ theorem integral_gaussianInit_entry_sq (n p : ℕ) (i : Fin n) (k : Fin p) :
   have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
       Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
-  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
-      1) =
+  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) =
       gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
   have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
       Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     (measurable_pi_apply i).aemeasurable
-  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
-      1) :=
+  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) :=
     (measurable_pi_apply k).aemeasurable
   have hf1_cont : Continuous (fun a : Fin p → ℝ => (a k) ^ 2) := by fun_prop
   have hf2_cont : Continuous (fun x : ℝ => x ^ 2) := by fun_prop
@@ -83,14 +83,14 @@ theorem integral_gaussianInit_entry (n p : ℕ) (i : Fin n) (k : Fin p) :
   have h_row : Measure.map (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
       Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       (Measure.pi fun _ : Fin p => gaussianReal 0 1) := map_gaussianInit_row i
-  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
-      1) =
+  have h_coord : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) =
       gaussianReal 0 1 := map_gaussianReadoutMeasure_coord k
   have h_meas1 : AEMeasurable (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n =>
       Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
     (measurable_pi_apply i).aemeasurable
-  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
-      1) :=
+  have h_meas2 : AEMeasurable (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+      gaussianReal 0 1) :=
     (measurable_pi_apply k).aemeasurable
   have hf1_cont : Continuous (fun a : Fin p → ℝ => a k) := by fun_prop
   have hf2_cont : Continuous (fun x : ℝ => x) := by fun_prop
@@ -197,8 +197,9 @@ theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : F
       have h_step : (fun W : Fin n → Fin p → ℝ => W i k * W j l) =
           (fun W => ((fun f => f k) ∘ fun W => W i) W * ((fun f => f l) ∘ fun W => W j) W) := rfl
       rw [h_step, h_indep_entry.integral_fun_mul_eq_mul_integral h_meas_ik h_meas_jl]
-      change (∫ W, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
-          1)) * (∫ W, W j l ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)) = 0
+      change (∫ W, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1)) * (∫ W, W j l ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+              gaussianReal 0 1)) = 0
       rw [integral_gaussianInit_entry n p i k, zero_mul]
 
 /-- Expectation of coordinate products of transpose vector multiplications:
@@ -346,8 +347,8 @@ lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
   have h1 : ∀ k : Fin p, HasGaussianLaw (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
       gaussianReal 0 1) := by
     intro k
-    have hk : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p => gaussianReal 0
-        1) = gaussianReal 0 1 :=
+    have hk : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) = gaussianReal 0 1 :=
       map_gaussianReadoutMeasure_coord k
     have : IsGaussian ((Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun a : Fin p → ℝ => a
         k)) := by
@@ -363,8 +364,8 @@ lemma hasGaussianLaw_gaussianInit_id (n p : ℕ) :
   have h1 : ∀ i : Fin n, HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n
       => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
     intro i
-    have : IsGaussian ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0
-        1).map (fun W : Fin n → Fin p → ℝ => W i)) := by
+    have : IsGaussian ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1).map (fun W : Fin n → Fin p → ℝ => W i)) := by
       rw [map_gaussianInit_row i]
       have := (hasGaussianLaw_gaussianRowMeasure_id p).isGaussian_map
       simpa using this

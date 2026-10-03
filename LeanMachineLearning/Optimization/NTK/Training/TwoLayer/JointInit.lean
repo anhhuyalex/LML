@@ -183,7 +183,8 @@ theorem tendstoInDistribution_joint_initial_residual_empiricalNTK
       hφ_L2 hdφ_L2 hε
   have hY_meas : ∀ n, AEMeasurable (fun p => empiricalNTKMatrix (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) ((Measure.pi fun _ : Fin n =>
-          Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) :=
+          Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+              gaussianReal 0 1)) :=
     fun n => (measurable_empiricalNTKMatrix_netFromParams_packParams φ hφ_diff hdφ_meas
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)).aemeasurable
   exact hX.prodMk_of_tendsto_measure_norm_sub_const hY hY_meas
@@ -198,8 +199,8 @@ theorem exists_initial_residual_radius
     (hφ_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j))) 2
       (Measure.pi fun _ : Fin d => gaussianReal 0 1))
     {ε : ENNReal} (hε : 0 < ε) :
-    ∃ R : ℝ, 0 ≤ R ∧ ∀ n, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
+    ∃ R : ℝ, 0 ≤ R ∧ ∀ n, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))
       {p : (Fin n → Fin d → ℝ) × (Fin n → ℝ) | R <
         ‖trainingResidual (netFromParams φ n d)
           (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (packParams p.1 p.2)‖} ≤ ε := by

@@ -494,8 +494,9 @@ theorem gradientFlow_finite_horizon_training_limit
           (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))) := by
   obtain ⟨θ, hflow, hcont⟩ := exists_forwardGradientFlow_family hact d m
     (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
-  have hae : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+  have hae : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), ForwardGFTrajectory
+          (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
     fun n => Filter.Eventually.of_forall (hflow n)
   exact ⟨θ, hflow, fun n t => (hcont n t).measurable,
@@ -530,7 +531,8 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit
         ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
           ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
               (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - η ∧ ∀ᵐ p ∂((Measure.pi
-              fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
+              fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+                  fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
             (∀ t : ℝ, 0 ≤ t →
               (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
                 v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
@@ -554,8 +556,9 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0)) := by
   obtain ⟨θ, hflow, hcont⟩ := exists_forwardGradientFlow_family hact d m
     (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
-  have hae : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+  have hae : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), ForwardGFTrajectory
+          (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
     fun n => Filter.Eventually.of_forall (hflow n)
   exact ⟨θ, hflow, fun n t => (hcont n t).measurable,
@@ -606,8 +609,10 @@ theorem gradientFlow_global_lazy_training_limit_of_feature_independence
             ∀ n ≥ N,
             ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
               ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
-                  (Measure.pi fun _ : Fin n => gaussianReal 0
-                  1)).real E ≥ 1 - η ∧ ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
+                  (Measure.pi fun _ : Fin n =>
+                      gaussianReal 0 1)).real E ≥ 1 - η ∧ ∀ᵐ p ∂((Measure.pi fun _ : Fin n =>
+                          Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+                          fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
                 (∀ t : ℝ, 0 ≤ t →
                   (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
                     v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
@@ -656,7 +661,8 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width
         ∃ E : Set ((Fin n → Fin d → ℝ) × (Fin n → ℝ)), MeasurableSet E ∧
           ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
               (Measure.pi fun _ : Fin n => gaussianReal 0 1)).real E ≥ 1 - η ∧ ∀ᵐ p ∂((Measure.pi
-              fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
+              fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
+                  fun _ : Fin n => gaussianReal 0 1)), p ∈ E →
             (∀ t : ℝ, 0 ≤ t →
               (∀ v : EuclideanSpace ℝ (Fin m), (lambda_inf / 4) * ‖v‖ ^ 2 ≤
                 v.ofLp ⬝ᵥ ((empiricalNTKMatrix (netFromParams φ n d)
@@ -680,8 +686,9 @@ theorem gradientFlow_global_positive_gap_lazy_training_limit_inv_sqrt_width
               (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)) Filter.atTop (nhds 0)) := by
   obtain ⟨θ, hflow, hcont⟩ := exists_forwardGradientFlow_family hact d m
     (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y
-  have hae : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-      1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), ForwardGFTrajectory (mseLoss (netFromParams φ n d)
+  have hae : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)), ForwardGFTrajectory
+          (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p) :=
     fun n => Filter.Eventually.of_forall (hflow n)
   exact ⟨θ, hflow, fun n t => (hcont n t).measurable,

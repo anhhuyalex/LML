@@ -151,8 +151,9 @@ theorem gaussianMatrix_mulVec_pair (n : ℕ) (u v : Fin n → ℝ) :
         fun i : Fin n => WithLp.toLp 2 (![W i ⬝ᵥ u, W i ⬝ᵥ v] : Fin 2 → ℝ))
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       Measure.pi (fun _ : Fin n => multivariateGaussian 0 !![u ⬝ᵥ u, u ⬝ᵥ v; u ⬝ᵥ v, v ⬝ᵥ v]) := by
-  have h_init_eq : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0
-      1) = Measure.pi (fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := rfl
+  have h_init_eq : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
+      gaussianReal 0 1) = Measure.pi (fun _ : Fin n => (Measure.pi fun _ : Fin n =>
+      gaussianReal 0 1)) := rfl
   set f := fun a : Fin n → ℝ => WithLp.toLp 2 (![a ⬝ᵥ u, a ⬝ᵥ v] : Fin 2 → ℝ) with hf_def
   have hf_cont : Continuous f := by
     apply (PiLp.continuous_toLp 2 _).comp
@@ -217,8 +218,9 @@ theorem gaussianMatrix_mulVec_family (n r m : ℕ) (u : Fin m → Fin n → ℝ)
       (Measure.pi fun _ : Fin r => Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       Measure.pi (fun _ : Fin r =>
         multivariateGaussian (0 : EuclideanSpace ℝ (Fin m)) (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β)) := by
-  have h_init_eq : (Measure.pi fun _ : Fin r => Measure.pi fun _ : Fin n => gaussianReal 0
-      1) = Measure.pi (fun _ : Fin r => (Measure.pi fun _ : Fin n => gaussianReal 0 1)) := rfl
+  have h_init_eq : (Measure.pi fun _ : Fin r => Measure.pi fun _ : Fin n =>
+      gaussianReal 0 1) = Measure.pi (fun _ : Fin r => (Measure.pi fun _ : Fin n =>
+      gaussianReal 0 1)) := rfl
   set f := fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α) with hf_def
   have hf_cont : Continuous f :=
     (PiLp.continuous_toLp 2 _).comp (continuous_pi fun α => by fun_prop)

@@ -258,8 +258,8 @@ theorem deterministic_initialization_shallowEmpiricalNTK_tendsto_ae
     (σ' : ℝ → ℝ) (hσ'_meas : Measurable σ')
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
-      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0
-          1))),
+      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))),
       Filter.Tendsto (fun n => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x')
         Filter.atTop (𝓝 (shallowLimitingNTK σ' x x')) :=
   ntk_convergence σ' hσ'_meas hσ'_bounded x x'
@@ -274,8 +274,8 @@ theorem deterministic_initialization_empiricalNTKMatrix_tendsto_ae
     (σ' : ℝ → ℝ) (hσ'_meas : Measurable σ')
     (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C) (X : Fin m → Fin d → ℝ) :
     ∀ᵐ rows : ℕ → Fin d → ℝ
-      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0
-          1))),
+      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1))),
       ∀ α β : Fin m,
         Filter.Tendsto (fun n => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) (X α) (X β))
           Filter.atTop (𝓝 (shallowLimitingNTK σ' (X α) (X β))) := by
@@ -306,12 +306,12 @@ by `C / (ε² * n)`. -/
 theorem deterministic_initialization_chebyshev_bound
     (σ' : ℝ → ℝ) (x x' : Fin d → ℝ) (n : ℕ) (C : ℝ) {ε : ℝ} (hε : 0 < ε)
     (hL2 : MemLp (fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x') 2
-      (MeasureTheory.Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0
-          1)))
+      (MeasureTheory.Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)))
     (hvar : ProbabilityTheory.variance
       (fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x')
-      (MeasureTheory.Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0
-          1)) ≤ C / (n : ℝ)) :
+      (MeasureTheory.Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1)) ≤ C / (n : ℝ)) :
     let μ := MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d =>
         gaussianReal 0 1))
     let k_n := fun rows => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x'

@@ -294,8 +294,8 @@ private lemma integral_exp_sum_mul_I_gaussianReadout (c : Fin n → ℝ) :
     refine Finset.measurable_sum _ fun j _ => (measurable_pi_apply j).mul_const _
   have h_int : (∫ w : Fin n → ℝ, Complex.exp ((∑ j : Fin n, w j * c j : ℝ) * Complex.I)
       ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1)) = ∫ y : ℝ, Complex.exp (y * Complex.I)
-        ∂Measure.map (fun w => ∑ j : Fin n, w j * c j) (Measure.pi fun _ : Fin n => gaussianReal 0
-            1) := by
+        ∂Measure.map (fun w => ∑ j : Fin n, w j * c j) (Measure.pi fun _ : Fin n =>
+            gaussianReal 0 1) := by
     rw [integral_map h_meas_dot.aemeasurable (by fun_prop)]
   rw [h_int, h_map]
   exact integral_exp_mul_I_gaussianReal _ (Finset.sum_nonneg fun _ _ => sq_nonneg _)

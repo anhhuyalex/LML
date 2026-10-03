@@ -148,8 +148,8 @@ theorem tendstoInMeasure_gaussianSq_weighted_average
         have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
         calc (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (n * Mn n
             w) / ((n : ℝ) ^ 2 * ε ^ 2)
-            = (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0
-                1)) * Mn n w / ((n : ℝ) * ε ^ 2) := by
+            = (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1)
+                (gaussianReal 0 1)) * Mn n w / ((n : ℝ) * ε ^ 2) := by
               field_simp
           _ ≤ (ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (c₂ +
               1) / ((n : ℝ) * ε ^ 2) := by

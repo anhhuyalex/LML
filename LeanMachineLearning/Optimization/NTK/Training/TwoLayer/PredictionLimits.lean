@@ -50,8 +50,8 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m)) (t : ℝ) (ht : 0 ≤ t)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -76,15 +76,15 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
   have hmeasφ : Measurable φ := hφ.continuous.measurable
   obtain ⟨-, -, -, hderiv_meas⟩ := activation_regularity_of_bounds φ C₁ C₂ hC₁_bdd hderiv_lip hφ
   obtain ⟨hL2, hL2mul, hdL2, hdL2mul⟩ := activation_memLp_two hact (d := d)
-  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
-      1) :=
+  have hφ_out_L2 : ∀ α, MemLp (fun w => φ (w ⬝ᵥ Xs α)) 2 (Measure.pi fun _ : Fin d =>
+      gaussianReal 0 1) :=
     fun α => hL2 (Xs α)
   have hdφ_out_L2 : ∀ α, MemLp (fun w => deriv φ (w ⬝ᵥ Xs α)) 2 (Measure.pi fun _ : Fin d =>
       gaussianReal 0 1) :=
     fun α => hdL2 (Xs α)
   have hφ_L2 : ∀ α β : Fin m,
-      MemLp (fun w => φ (w ⬝ᵥ Xs α) * φ (w ⬝ᵥ Xs β)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0
-          1) :=
+      MemLp (fun w => φ (w ⬝ᵥ Xs α) * φ (w ⬝ᵥ Xs β)) 2 (Measure.pi fun _ : Fin d =>
+          gaussianReal 0 1) :=
     fun α β => hL2mul (Xs α) (Xs β)
   have hdφ_L2 : ∀ α β : Fin m,
       MemLp (fun w => deriv φ (w ⬝ᵥ Xs α) * deriv φ (w ⬝ᵥ Xs β)) 2 (Measure.pi fun _ : Fin d =>
@@ -114,11 +114,12 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
     have := min_le_right 1 (c / 8)
     linarith
   have hnull : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
-      (Measure.pi fun _ : Fin n => gaussianReal 0
-      1)) {p | ¬ ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y)
+      (Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1)) {p | ¬ ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y)
       (packParams p.1 p.2) (θ n p)} = 0 := ae_iff.1 (hθ_flow n)
   calc ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
-      fun _ : Fin n => gaussianReal 0 1)) {p | ε₀ ≤ ‖trainingResidual (netFromParams φ n d) Xs y (θ n p t) -
+      fun _ : Fin n => gaussianReal 0 1)) {p | ε₀ ≤ ‖trainingResidual (netFromParams φ n d) Xs y
+          (θ n p t) -
           (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
             (trainingResidual (netFromParams φ n d) Xs y (packParams p.1 p.2)).ofLp) :
             EuclideanSpace ℝ (Fin m))‖}
@@ -176,7 +177,8 @@ theorem tendsto_measure_residual_sub_matrix_exp_finite_horizon
         rw [Set.mem_ofPred_eq] at hp
         linarith [hp, happrox, hbound, hlt]
     _ ≤ ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
-        fun _ : Fin n => gaussianReal 0 1)) (Eᶜ ∪ {p | e ≤ ‖empiricalNTKMatrix (netFromParams φ n d) Xs
+        fun _ : Fin n => gaussianReal 0 1)) (Eᶜ ∪ {p | e ≤ ‖empiricalNTKMatrix
+            (netFromParams φ n d) Xs
             (packParams p.1 p.2) - limitingFullNTKMatrix φ X‖}) + 0 := by
         rw [← hnull]; exact measure_union_le _ _
     _ ≤ ENNReal.ofReal (c / 2) + ENNReal.ofReal (c / 4) := by
@@ -207,8 +209,8 @@ theorem tendsto_measure_test_prediction_finite_horizon
     (hKinv : IsUnit (limitingFullNTKMatrix φ X)) (t : ℝ) (ht : 0 ≤ t) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -246,7 +248,8 @@ theorem tendsto_measure_test_prediction_finite_horizon
     rw [Matrix.mulVec_mulVec, Matrix.mul_nonsing_inv _ ((Matrix.isUnit_iff_isUnit_det _).1 hKinv),
       Matrix.one_mulVec]
   refine (tendsto_measure_exists_gt_of_eventually_good_events (fun n => ((Measure.pi fun _ : Fin n
-      => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1))) {t}
+      => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1))) {t}
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y) (packParams p.1 p.2)
       (θ n p)) (fun n p t' => |netFromParams φ n d xs (θ n p t') -
         netFromParams φ n d xs (θ n p 0) +
@@ -455,8 +458,8 @@ theorem tendsto_measure_test_prediction_global_positive_gap
     (hKpd : (limitingFullNTKMatrix φ X).PosDef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
@@ -495,7 +498,8 @@ theorem tendsto_measure_test_prediction_global_positive_gap
     rw [Matrix.mulVec_mulVec, Matrix.mul_nonsing_inv _ ((Matrix.isUnit_iff_isUnit_det _).1 hKinv),
       Matrix.one_mulVec]
   refine (tendsto_measure_exists_gt_of_eventually_good_events (fun n => ((Measure.pi fun _ : Fin n
-      => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
+      => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1)))
     (Set.Ici (0 : ℝ))
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y) (packParams p.1 p.2)
       (θ n p)) (fun n p t' => |netFromParams φ n d xs (θ n p t') -
@@ -733,13 +737,14 @@ theorem test_prediction_kernel_interpolation_limit
     (hKpd : (limitingFullNTKMatrix φ X).PosDef) (x : Fin d → ℝ)
     (θ : ∀ n : ℕ, (Fin n → Fin d → ℝ) × (Fin n → ℝ) → ℝ →
       EuclideanSpace ℝ (Fin (n * d + n)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
     {ε₀ c : ℝ} (hε₀ : 0 < ε₀) (hc : 0 < c) :
     ∃ T₀ : ℝ, ∀ᶠ n in Filter.atTop, ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
-        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) {p | ∃ t ∈ Set.Ici T₀, ε₀ <
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n =>
+            gaussianReal 0 1)) {p | ∃ t ∈ Set.Ici T₀, ε₀ <
         |netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p t) -
           netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) (θ n p 0) +
           ((limitingFullNTKMatrix φ X)⁻¹ *ᵥ (fun α : Fin m =>
@@ -782,8 +787,8 @@ theorem test_prediction_kernel_interpolation_limit
   filter_upwards [hglob.eventually (gt_mem_nhds (ENNReal.ofReal_pos.2
     (show 0 < c / 2 by positivity)))] with n hn
   have hnull : ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
-      (Measure.pi fun _ : Fin n => gaussianReal 0
-      1)) {p | ¬ ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y)
+      (Measure.pi fun _ : Fin n =>
+          gaussianReal 0 1)) {p | ¬ ForwardGFTrajectory (mseLoss (netFromParams φ n d) Xs y)
       (packParams p.1 p.2) (θ n p)} = 0 := ae_iff.1 (hθ_flow n)
   calc _ ≤ ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
       (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (({p | ∃ t ∈ Set.Ici (0 : ℝ), ε₀ / 2 <
@@ -868,8 +873,8 @@ theorem tendstoInDistribution_trainingResidual_matrix_exp
       EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) ((Measure.pi fun _ : Fin n => Measure.pi fun _
         : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     TendstoInDistribution
@@ -913,8 +918,8 @@ theorem tendstoInDistribution_trainingOutputs_matrix_exp
       EuclideanSpace ℝ (Fin (n * d + n)))
     (hθ_meas : ∀ n t, AEMeasurable (fun p => θ n p t) ((Measure.pi fun _ : Fin n => Measure.pi fun _
         : Fin d => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)))
-    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0
-        1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
+    (hθ_flow : ∀ n, ∀ᵐ p ∂((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
+        gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)),
       ForwardGFTrajectory (mseLoss (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     TendstoInDistribution
