@@ -319,10 +319,6 @@ lemma charFun_readout_evalVector
 
 
 
-end Theorem1
-
-section Theorem1
-
 /-- **Step 5 / Theorem 1 (Exact Conditional Normality)**:
 Conditional on the input weights `W` (the sub-$\sigma$-algebra $\mathcal{F}$), the output
 vector `f_m(W, a)` under the readout distribution is an exact centered multivariate Gaussian:

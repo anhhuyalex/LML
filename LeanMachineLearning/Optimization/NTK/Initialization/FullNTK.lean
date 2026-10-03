@@ -15,9 +15,9 @@ numbers for the full NTK and its quantitative concentration.
 
 ## Main results and proof outline
 
-* `NTK.singleNeuronMeasure` : product probability measure for a single hidden neuron `(w, a)`.
 * `NTK.measurePreserving_arrowProd_singleNeuronMeasure` : measure preservation of the finite
-  array rearrangement between `(Fin n → 𝒩(0, I_d) ⊗ 𝒩(0,1))` and `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
+  array rearrangement between `(Fin n → 𝒩(0, I_d) ⊗ 𝒩(0,1))` (one pair `(w, a)` per hidden
+  neuron) and `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 * `NTK.measurePreserving_infiniteSeq_to_init` : measure preservation of the infinite sequence
   prefix truncation to `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
 * `NTK.fullNTKSummandSecondMoment` : uncentered second moment of the full NTK summand.

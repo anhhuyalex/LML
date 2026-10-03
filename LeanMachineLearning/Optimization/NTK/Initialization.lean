@@ -510,9 +510,9 @@ re-exported by this module.
   * `NTK.tendstoInMeasure_comp_of_continuousAt`,
     `NTK.tendsto_integral_of_tendstoInMeasure_of_bounded` : general-purpose
     convergence-in-probability lemmas (continuous mapping to a constant limit; bounded convergence)
-    in `Foundations/TendstoInMeasureUtil.lean`, which also registers the
-    `PseudoEMetricSpace`/`PseudoMetricSpace (Matrix ι κ ℝ)` instances (`NTK.instPseudoEMetricSpaceMatrix`)
-    that they need on matrices.
+    in `Foundations/TendstoInMeasureUtil.lean`, which also registers the instances
+    `NTK.instPseudoEMetricSpaceMatrix` and `NTK.instPseudoMetricSpaceMatrix` (on `Matrix ι κ ℝ`)
+    that they need.
   * `NTK.continuousWithinAt_covarianceMap` : continuity of the covariance-update map
     $\mathcal{C}_\varphi$ on the positive-semidefinite cone, including its singular boundary.
   * `NTK.deepEmpiricalCovariance_tendstoInMeasure` : Part 1, layerwise covariance convergence in

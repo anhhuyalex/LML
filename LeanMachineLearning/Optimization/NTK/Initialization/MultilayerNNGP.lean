@@ -454,7 +454,6 @@ private lemma measurable_exp_quadratic_layerRecurrence_multivariate
 lemma tendsto_charFun_preactivation_dct_multivariate
     (σw σb : ℝ) (m : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurable φ)
     (K : Matrix (Fin m) (Fin m) ℝ)
-    (_hK_pos : K.PosSemidef)
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) (t : EuclideanSpace ℝ (Fin m)) :
     Filter.Tendsto
@@ -607,16 +606,10 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
         ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K) :=
     charFun_map_sequential_preactivation_multivariate σw σb n m φ hφ_meas K t
   simp_rw [h_eq]
-  exact tendsto_charFun_preactivation_dct_multivariate σw σb m φ hφ_meas K hK_pos hφ_L2 t
+  exact tendsto_charFun_preactivation_dct_multivariate σw σb m φ hφ_meas K hφ_L2 t
 
 
 
-end MultilayerSequentialNNGP
-
-section MultilayerSequentialNNGP
-
-set_option backward.isDefEq.respectTransparency false
-set_option backward.isDefEq.respectTransparency.types false
 
 set_option backward.isDefEq.respectTransparency.types false in
 theorem tendstoInDistribution_sequential_preactivation

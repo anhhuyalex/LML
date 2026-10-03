@@ -222,8 +222,8 @@ lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
   refine (gaussianInit_quadForm_chebyshev n p u₀ v₀ (Q * A * Q) hε).trans ?_
   refine ENNReal.ofReal_le_ofReal ?_
   refine div_le_div_of_nonneg_right ?_ (sq_nonneg ε)
-  have hu : 0 ≤ u₀ ⬝ᵥ u₀ := Finset.sum_nonneg fun i _ => mul_self_nonneg _
-  have hv : 0 ≤ v₀ ⬝ᵥ v₀ := Finset.sum_nonneg fun i _ => mul_self_nonneg _
+  have hu : 0 ≤ u₀ ⬝ᵥ u₀ := dotProduct_self_star_nonneg _
+  have hv : 0 ≤ v₀ ⬝ᵥ v₀ := dotProduct_self_star_nonneg _
   have := frobSq_compress_le Q hQ A
   have h2 : 0 ≤ 2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) := by positivity
   exact mul_le_mul_of_nonneg_left this h2
@@ -382,7 +382,7 @@ lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
   refine (gaussianInit_linearForm_chebyshev n p u₀ (Q *ᵥ b) hε).trans ?_
   refine ENNReal.ofReal_le_ofReal ?_
   refine div_le_div_of_nonneg_right ?_ (sq_nonneg ε)
-  have hu : 0 ≤ u₀ ⬝ᵥ u₀ := Finset.sum_nonneg fun i _ => mul_self_nonneg _
+  have hu : 0 ≤ u₀ ⬝ᵥ u₀ := dotProduct_self_star_nonneg _
   exact mul_le_mul_of_nonneg_left (mulVec_dot_self_le Q hQ b) hu
 
 theorem conditional_linearForm_chebyshev

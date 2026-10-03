@@ -131,9 +131,9 @@ theorem tendsto_residualQuadForm (μ : Measure Ω) [IsProbabilityMeasure μ] (ρ
       (2 * (ε ^ 2)⁻¹) * ((n : ℝ)⁻¹ * (Bu n ω * Bv n ω * BA n ω)) := by
     intro n ω
     have hu0 : 0 ≤ (n : ℝ)⁻¹ * (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ atProj (Φ n) (u n) (Ψ n ω)) :=
-      mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n)) (Finset.sum_nonneg fun _ _ => mul_self_nonneg _)
+      inv_natCast_mul_dotProduct_self_nonneg n _
     have hv0 : 0 ≤ (n : ℝ)⁻¹ * (atProj (Φ n) (v n) (Ψ n ω) ⬝ᵥ atProj (Φ n) (v n) (Ψ n ω)) :=
-      mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n)) (Finset.sum_nonneg fun _ _ => mul_self_nonneg _)
+      inv_natCast_mul_dotProduct_self_nonneg n _
     have hA0 : 0 ≤ (n : ℝ)⁻¹ * ∑ k, ∑ l, A n (Ψ n ω).1 k l ^ 2 :=
       mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n))
         (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _)
@@ -229,9 +229,9 @@ theorem tendsto_residualLinearForm (μ : Measure Ω) [IsProbabilityMeasure μ] (
   have hle : ∀ (n : ℕ) (ω : Ω), bq n (Ψ n ω) ≤ ((ε ^ 2)⁻¹) * ((n : ℝ)⁻¹ * (Bu n ω * Bb n ω)) := by
     intro n ω
     have hu0 : 0 ≤ (n : ℝ)⁻¹ * (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ atProj (Φ n) (u n) (Ψ n ω)) :=
-      mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n)) (Finset.sum_nonneg fun _ _ => mul_self_nonneg _)
+      inv_natCast_mul_dotProduct_self_nonneg n _
     have hb0' : 0 ≤ (n : ℝ)⁻¹ * (b n (Ψ n ω).1 ⬝ᵥ b n (Ψ n ω).1) :=
-      mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n)) (Finset.sum_nonneg fun _ _ => mul_self_nonneg _)
+      inv_natCast_mul_dotProduct_self_nonneg n _
     have hBu0 := hu0.trans (hBu n ω)
     have hmul : (n : ℝ)⁻¹ * (atProj (Φ n) (u n) (Ψ n ω) ⬝ᵥ atProj (Φ n) (u n) (Ψ n ω)) *
         ((n : ℝ)⁻¹ * (b n (Ψ n ω).1 ⬝ᵥ b n (Ψ n ω).1)) ≤ Bu n ω * Bb n ω :=

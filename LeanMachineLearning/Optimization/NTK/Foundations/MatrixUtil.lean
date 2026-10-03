@@ -211,6 +211,11 @@ theorem mulVec_frobenius_norm_le {a b : ℕ} (M : Matrix (Fin a) (Fin b) ℝ)
       Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (fun j => M i j) (fun j => w.ofLp j)
     _ = (∑ j : Fin b, (M i j) ^ 2) * ‖w‖ ^ 2 := by rw [hw_sq]
 
+/-- The normalised squared norm `n⁻¹ * (x ⬝ᵥ x)` of a real vector is nonnegative. -/
+lemma inv_natCast_mul_dotProduct_self_nonneg {ι : Type*} [Fintype ι] (n : ℕ) (x : ι → ℝ) :
+    0 ≤ (n : ℝ)⁻¹ * (x ⬝ᵥ x) :=
+  mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg n)) (dotProduct_self_star_nonneg x)
+
 /-- The real inner product on `EuclideanSpace ℝ ι` is the dot product of the underlying functions.
 Not a simp lemma: it would rewrite every real inner product on `EuclideanSpace`. -/
 lemma real_inner_eq_dotProduct {ι : Type*} [Fintype ι] (u v : EuclideanSpace ℝ ι) :
@@ -484,7 +489,7 @@ lemma mulVec_dot_self_le {p : Type*} [Fintype p]
   have h3 : ((1 - Q) *ᵥ b) = b - Q *ᵥ b := by
     simp [Matrix.sub_mulVec]
   have h4 : 0 ≤ ((1 - Q) *ᵥ b) ⬝ᵥ ((1 - Q) *ᵥ b) :=
-    Finset.sum_nonneg fun i _ => mul_self_nonneg _
+    dotProduct_self_star_nonneg _
   rw [h2, h3] at h4
   simp only [dotProduct_sub] at h4
   linarith

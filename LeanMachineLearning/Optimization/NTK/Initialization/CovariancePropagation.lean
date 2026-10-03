@@ -185,10 +185,6 @@ theorem multivariateGaussian_pi_eq_kronecker (n m : ℕ) (Φ : Matrix (Fin m) (F
 /-! ### Main Theorem: Conditional Pre-Activation Distribution -/
 
 
-end LayerByLayerConditionalGaussian
-
-section LayerByLayerConditionalGaussian
-
 /-- **Theorem (Conditional Pre-Activation Distribution)**: conditioned on the `Fin n`-wide
 previous-layer post-activations `H` (i.e. on `𝓕_ℓ`; as throughout this file, e.g.
 `exact_conditional_normality_general_multivariate`, conditioning is represented by taking `H` as a

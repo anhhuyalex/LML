@@ -202,10 +202,6 @@ theorem empiricalCovariance_tendsto_integral
     gaussianRow_average_tendsto_integral g hg_meas hg_int
 
 
-end Theorem2
-
-section Theorem2
-
 /-- **Theorem 2 (Full Matrix Strong Law of Large Numbers for the Covariance Tensor)**:
 As width `n → ∞`, the empirical covariance matrix converges almost surely to the deterministic
 limiting NNGP Gram matrix in `Matrix (Fin m) (Fin m) ℝ`:
@@ -833,10 +829,6 @@ lemma isProbabilityMeasure_map_projection
   (Measure.isProbabilityMeasure_map_iff (projection_joint_measurable φ hφ_meas X u).aemeasurable).mpr inferInstance
 
 
-
-end Theorem3
-
-section Theorem3
 
 /-- **Theorem 3 (Weak Convergence of Output Measure to NNGP Limit)**:
 As width `n → ∞`, the joint distribution of network outputs across evaluation points

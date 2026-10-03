@@ -253,8 +253,9 @@ instance instPseudoMetricSpaceMatrix (ι κ : Type*) [Fintype ι] [Fintype κ] :
   unfold Matrix; infer_instance
 
 /-- **Continuous mapping theorem for convergence in probability to a constant.** If `f n → y` in
-probability and `g` is continuous at `y`, then `g ∘ f n → g y` in probability. Used below to turn
-the inductive hypothesis `Φ_ℓ^{(n)} → Φ_ℓ` into `𝒞_φ(Φ_ℓ^{(n)}) → 𝒞_φ(Φ_ℓ)`. -/
+probability and `g` is continuous at `y`, then `g ∘ f n → g y` in probability. Used in the deep NNGP
+recursion to turn the inductive hypothesis `Φ_ℓ^{(n)} → Φ_ℓ` into
+`𝒞_φ(Φ_ℓ^{(n)}) → 𝒞_φ(Φ_ℓ)`. -/
 theorem tendstoInMeasure_comp_of_continuousAt
     {α E F : Type*} {mα : MeasurableSpace α} {μ : Measure α}
     [PseudoEMetricSpace E] [PseudoEMetricSpace F] {f : ℕ → α → E} {y : E} {g : E → F}
@@ -413,7 +414,7 @@ theorem tendstoInMeasure_mul {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measu
 
 /-- Convergence in probability is preserved by precomposition with a measure-preserving map.
 The explicit measurability hypotheses make the result applicable to the finite-dimensional
-covariance maps used below without relying on an implicit completion of the source measure. -/
+covariance maps used later without relying on an implicit completion of the source measure. -/
 theorem tendstoInMeasure_comp_measurePreserving
     {α β E : Type*} {mα : MeasurableSpace α} {mβ : MeasurableSpace β}
     {μ : Measure α} {ν : Measure β} [PseudoEMetricSpace E] [MeasurableSpace E]
@@ -437,9 +438,10 @@ theorem tendstoInMeasure_comp_measurePreserving
 subsequence, `TendstoInMeasure.exists_seq_tendsto_ae` extracts a further a.e.-convergent
 subsequence, along which the ordinary dominated convergence theorem gives convergence of the
 integrals; since every subsequence has such a further convergent subsequence,
-`tendsto_of_subseq_tendsto` closes the full sequence. Used below in place of Theorem 3's dominated
-convergence step (`tendsto_charFun_outputMeasure`), since Part 1 below only supplies convergence in
-probability, not the almost-sure convergence Theorem 3 had from Kolmogorov's SLLN. -/
+`tendsto_of_subseq_tendsto` closes the full sequence. Used in the deep NNGP recursion in place of
+Theorem 3's dominated convergence step (`tendsto_charFun_outputMeasure_eq_multivariateGaussian`),
+since Part 1 only supplies convergence in probability, not the almost-sure convergence Theorem 3
+had from Kolmogorov's SLLN. -/
 theorem tendsto_integral_of_tendstoInMeasure_of_bounded
     {α E : Type*} {mα : MeasurableSpace α} {μ : Measure α} [NormedAddCommGroup E]
     [NormedSpace ℝ E] {f : ℕ → α → E} {g : α → E}

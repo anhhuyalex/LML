@@ -45,37 +45,26 @@ independence structure, and entrywise (max) concentration for the readout weight
 
 ## Main results and proof outline
 
-* Readout weights: $a_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(0, 1) \quad \forall i$
-  (`𝒩(0, I_n)`).
-* Parameter space $\boldsymbol{\theta} = \{(a_i, \mathbf{w}_i)\}_{i=1}^n$ with joint measure
-  `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`.
-* Mutual Independence: $\{a_i\}_{i=1}^n$ is mutually independent of $\{\mathbf{w}_i\}_{i=1}^n$
-  (`indepFun_input_readout`).
-* Scalar network output:
-  $f(\mathbf{x}; \boldsymbol{\theta}) =
-    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$
-  (`evalSingle φ W a x`).
-* Output vector $\mathbf{f}_m = (f(\mathbf{x}^1), \dots, f(\mathbf{x}^m))^\top$
-  (`evalVector φ W a X`).
-* Empirical covariance matrix $\boldsymbol{\Phi}^{(n)} \in \mathbb{R}^{m \times m}$:
-  $\Phi^{(n), \alpha \beta} :=
-    \frac{1}{n} \sum_{i=1}^n \varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)
-    \varphi(\mathbf{w}_i^\top \mathbf{x}^\beta)$
-  (`empiricalCovariance n φ W X`).
+* The initialization probability space is written out explicitly: readout weights
+  $a_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(0, 1)$ have law
+  `Measure.pi fun _ : Fin n => gaussianReal 0 1` (`𝒩(0, I_n)`), input weights
+  $\mathbf{w}_i \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})$ have law
+  `Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1` (`𝒩(0,1)^{n×d}`),
+  and the parameters $\boldsymbol{\theta} = \{(a_i, \mathbf{w}_i)\}_{i=1}^n$ have the `.prod` of the
+  two.
+* `NTK.indepFun_input_readout` : mutual independence of the input weights $\mathbf{W}$ and the
+  readout weights $a$.
 * `NTK.evalSingle` : scalar network output
   $f(\mathbf{x}; \mathbf{W}, a) =
-    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$.
-* `NTK.evalSingle_eq_normalized_sum` : equation lemma for scalar network evaluation.
-* `NTK.evalVector` : output vector $\mathbf{f}_m(\mathbf{W}, a) \in \mathbb{R}^m$.
+    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$, with the equation lemma
+  `NTK.evalSingle_eq_normalized_sum`.
+* `NTK.evalVector` : output vector
+  $\mathbf{f}_m = (f(\mathbf{x}^1), \dots, f(\mathbf{x}^m))^\top \in \mathbb{R}^m$.
 * `NTK.empiricalCovariance` : empirical covariance matrix
-  $\boldsymbol{\Phi}^{(n)} \in \mathbb{R}^{m \times m}$.
-* `NTK.gaussianReadoutMeasure` : transparent product measure
-  $\bigotimes_{i=1}^n \mathcal{N}(0, 1)$.
-* `NTK.initMeasure` : joint parameter initialization measure
-  $(\bigotimes_{i=1}^n \mathcal{N}(\mathbf{0}, \mathbf{I}_{n_0})) \otimes
-    (\bigotimes_{i=1}^n \mathcal{N}(0, 1))$.
-* `NTK.indepFun_input_readout` : mutual independence of input weights $\mathbf{W}$ and
-  readout weights $a$.
+  $\Phi^{(n), \alpha \beta} := \frac{1}{n} \sum_{i=1}^n \varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)
+    \varphi(\mathbf{w}_i^\top \mathbf{x}^\beta) \in \mathbb{R}^{m \times m}$.
+* Entrywise (max) concentration of the readout weights
+  (`prob_abs_gaussianReadout_coord_ge_le`, `prob_forall_abs_gaussianReadout_le`).
 
 See
 `LeanMachineLearning.Optimization.NTK.Initialization`
@@ -230,6 +219,7 @@ lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : 
       (Measure.pi fun _ : Fin d => gaussianReal 0 1) := fun y => by
     simpa using memLp_gaussianRow_comp_of_linear_growth φ hφ hA hB hgrow y (d := d) 4
   exact MemLp.mul (r := 2) (h4 x') (h4 x)
+
 /-! ### Entrywise (max) concentration for readout weights
 
 `prob_gaussianReadout_sum_sq_le` above bounds the readout *energy* `n⁻¹ ∑ᵢ aᵢ²` (an average),
@@ -249,20 +239,9 @@ which gives the much better `R = O(√(log(n/δ)))` - logarithmic, not polynomia
 lemma prob_abs_gaussianReadout_coord_ge_le (n : ℕ) (i : Fin n) (ε : ℝ) (hε : 0 ≤ ε) :
     (Measure.pi fun _ : Fin n =>
         gaussianReal 0 1).real {a : Fin n → ℝ | ε ≤ |a i|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
-  have hmap : Measure.map (fun a : Fin n → ℝ => a i) (Measure.pi fun _ : Fin n =>
-      gaussianReal 0 1) =
-      gaussianReal 0 1 := map_gaussianReadoutMeasure_coord i
-  have hpre : {a : Fin n → ℝ | ε ≤ |a i|} =
-      (fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|} := rfl
-  have hms : MeasurableSet {x : ℝ | ε ≤ |x|} :=
-    measurableSet_le measurable_const continuous_abs.measurable
-  have hkey : (Measure.pi fun _ : Fin n => gaussianReal 0 1).real
-      ((fun a : Fin n → ℝ => a i) ⁻¹' {x : ℝ | ε ≤ |x|}) =
-      (gaussianReal 0 1).real {x : ℝ | ε ≤ |x|} := by
-    unfold MeasureTheory.Measure.real
-    rw [← Measure.map_apply (measurable_pi_apply i) hms, hmap]
-  rw [hpre, hkey]
-  exact prob_abs_gaussianReal_ge_le ε hε
+  exact ((measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).measureReal_preimage
+    (measurableSet_le measurable_const continuous_abs.measurable).nullMeasurableSet).trans_le
+    (prob_abs_gaussianReal_ge_le ε hε)
 
 /-- Union bound over all `n` readout coordinates: the probability that *some* coordinate exceeds
 `ε` in absolute value is at most `2n` times the single-coordinate tail bound. -/
@@ -308,30 +287,12 @@ theorem prob_forall_abs_gaussianReadout_le (n : ℕ) (hn : 0 < n) {δ : ℝ} (h�
   rw [hexp] at hbad
   have hrhs : 2 * (n:ℝ) * (δ / (2 * (n:ℝ))) = δ := by field_simp
   rw [hrhs] at hbad
-  have hcompl : {a : Fin n → ℝ | ∀ i, |a i| ≤ ε} = {a : Fin n → ℝ | ∃ i, ε < |a i|} ᶜ := by
-    ext a
-    simp [not_exists, not_lt]
-  rw [hcompl]
-  have hsub : {a : Fin n → ℝ | ∃ i, ε < |a i|} ⊆ {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} :=
-    fun a ⟨i, hi⟩ => ⟨i, hi.le⟩
-  have hle := measureReal_mono (μ := (Measure.pi fun _ : Fin n => gaussianReal 0 1)) hsub
-  have hbad' : (Measure.pi fun _ : Fin n =>
-      gaussianReal 0 1).real {a : Fin n → ℝ | ∃ i, ε < |a i|} ≤ δ :=
-    hle.trans hbad
-  have hcompl_ge : (Measure.pi fun _ : Fin n => gaussianReal 0 1).real ({a : Fin n → ℝ | ∃ i, ε < |a
-      i|} ᶜ) ≥
-      1 - δ := by
-    have hUn : {a : Fin n → ℝ | ∃ i, ε < |a i|} = ⋃ i : Fin n, {a : Fin n → ℝ | ε < |a i|} := by
-      ext a; simp
-    have hmeas : MeasurableSet {a : Fin n → ℝ | ∃ i, ε < |a i|} := by
-      rw [hUn]
-      exact MeasurableSet.iUnion (fun i => measurableSet_lt measurable_const
-        (continuous_abs.measurable.comp (measurable_pi_apply i)))
-    have := probReal_compl_eq_one_sub (μ := (Measure.pi fun _ : Fin n => gaussianReal 0 1))
-      (s := {a : Fin n → ℝ | ∃ i, ε < |a i|}) hmeas
-    rw [ge_iff_le, this]
-    linarith
-  exact hcompl_ge
+  have hcompl : {a : Fin n → ℝ | ∀ i, |a i| ≤ ε}ᶜ ⊆ {a : Fin n → ℝ | ∃ i, ε ≤ |a i|} := by
+    intro a ha
+    simp only [Set.mem_compl_iff, Set.mem_setOf_eq, not_forall, not_le] at ha
+    obtain ⟨i, hi⟩ := ha
+    exact ⟨i, hi.le⟩
+  exact one_sub_le_measureReal_of_measureReal_compl_le _ ((measureReal_mono hcompl).trans hbad)
 
 /-- Lift the readout-weight concentration's readout-only event to the full initialization product
 measure

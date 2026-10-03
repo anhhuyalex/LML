@@ -31,23 +31,29 @@ variable {Z : Type*} [MeasurableSpace Z] {n p q : Type*}
 /-- Entry `(i, j)` of a measurable matrix-valued map is measurable. -/
 lemma measurable_matrix_entry {A : Z → Matrix n p ℝ} (hA : Measurable A) (i : n) (j : p) :
     Measurable fun z => A z i j :=
-  (measurable_pi_apply j).comp ((measurable_pi_apply i).comp hA)
+  hA.eval_matrix
 
+/-- Entry `i` of a measurable vector-valued map is measurable. -/
 lemma measurable_vec_entry {v : Z → n → ℝ} (hv : Measurable v) (i : n) :
     Measurable fun z => v z i := (measurable_pi_apply i).comp hv
 
+/-- The product of measurable matrix-valued maps is measurable. -/
+@[fun_prop]
 lemma measurable_matrix_mul [Fintype p] {A : Z → Matrix n p ℝ} {B : Z → Matrix p q ℝ}
     (hA : Measurable A) (hB : Measurable B) : Measurable fun z => A z * B z := by
-  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
+  refine Measurable.of_eval_matrix _ fun i j => ?_
   simp only [Matrix.mul_apply]
   exact Finset.measurable_sum _ fun k _ =>
     (measurable_matrix_entry hA i k).mul (measurable_matrix_entry hB k j)
 
+/-- The transpose of a measurable matrix-valued map is measurable. -/
+@[fun_prop]
 lemma measurable_matrix_transpose {A : Z → Matrix n p ℝ} (hA : Measurable A) :
     Measurable fun z => (A z)ᵀ := by
-  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
-  exact measurable_matrix_entry hA j i
+  exact Measurable.of_eval_matrix _ fun i j => measurable_matrix_entry hA j i
 
+/-- The matrix-vector product of measurable maps is measurable. -/
+@[fun_prop]
 lemma measurable_mulVec [Fintype p] {A : Z → Matrix n p ℝ} {v : Z → p → ℝ}
     (hA : Measurable A) (hv : Measurable v) : Measurable fun z => A z *ᵥ v z := by
   refine Measurable.of_eval fun i => ?_
@@ -55,6 +61,8 @@ lemma measurable_mulVec [Fintype p] {A : Z → Matrix n p ℝ} {v : Z → p → 
   exact Finset.measurable_sum _ fun k _ =>
     (measurable_matrix_entry hA i k).mul (measurable_vec_entry hv k)
 
+/-- The dot product of measurable vector-valued maps is measurable. -/
+@[fun_prop]
 lemma measurable_dotProduct [Fintype n] {u v : Z → n → ℝ} (hu : Measurable u)
     (hv : Measurable v) : Measurable fun z => u z ⬝ᵥ v z := by
   simp only [dotProduct]
@@ -80,9 +88,10 @@ section orthogonal
 
 variable {Ω : Type*} [MeasurableSpace Ω]
 
+/-- `1 - P` is measurable when the projector-valued map `P` is. -/
 lemma measurable_orthogonalComplement {p : ℕ} {P : Ω → Matrix (Fin p) (Fin p) ℝ}
     (hP : Measurable P) : Measurable fun a => (1 - P a) := by
-  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
+  refine Measurable.of_eval_matrix _ fun i j => ?_
   simp only [Matrix.sub_apply]
   exact measurable_const.sub (measurable_matrix_entry hP i j)
 

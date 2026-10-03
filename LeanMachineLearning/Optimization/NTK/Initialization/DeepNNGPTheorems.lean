@@ -487,7 +487,7 @@ section DeepNNGPRecursion
 /-! ## Theorem 2.13 (Deep NNGP Recursion): Main Theorems
 
 The ambient probability space throughout is the joint depth-`L` initialization measure built in
-the first `DeepNNGPRecursion` section: a `Fin L`-indexed family of mutually independent, i.i.d.
+`Initialization/DeepRecursion.lean`: a `Fin L`-indexed family of mutually independent, i.i.d.
 standard-Gaussian layer weight populations `q.1 : Fin L → ℕ → ℕ → ℝ` (layer `0` doubling as the
 input weight matrix, restricted to its first `d` columns — see `deepPreactivation`), together with
 a readout population. `deepPreactivation`'s `W : ℕ → ℕ → ℕ → ℝ` argument is recovered from
@@ -920,8 +920,8 @@ lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ)
 /-- **Theorem 2.13, Part 2 (Output Convergence in Distribution - Standalone Form).** Under any
 probability space where the depth-`L` network's layer-`L` empirical covariance converges in
 probability to `layerCovarianceSeq 1 0 φ m Φ0 L`, the output vector converges in distribution to
-the centered multivariate Gaussian `𝒩(0, Φ_L)`.  This theorem is mathematically self-contained,
-depends on zero unproved steps, and establishes Step 6 of the Deep NNGP Recursion. -/
+the centered multivariate Gaussian `𝒩(0, Φ_L)`.  This theorem is mathematically self-contained
+and establishes Step 6 of the Deep NNGP Recursion. -/
 theorem tendstoInDistribution_deepEval_of_covariance_tendsto
     (d m L : ℕ) (φ : ℝ → ℝ) (hφ_cont : Continuous φ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))

@@ -56,14 +56,13 @@ This section assembles the single-layer-transition machinery above
 `conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq`) into an actual depth-`L`
 network with real weight matrices chained together at every layer, and proves that its empirical
 covariance converges layer by layer (Part 1) and that its output converges in distribution to the
-NNGP limit (Part 2).  The final theorem statements and full proof narratives are given in the
-second `DeepNNGPRecursion` section later in this file; this section contains the network
-construction and the supporting lemmas it needs.
+NNGP limit (Part 2).  The final theorem statements and full proof narratives are given in
+`Initialization/DeepNNGPTheorems.lean`; this file contains the network construction and the
+supporting lemmas it needs.
 
 Following the recursive pre-activation family `deepPreactivation` below, the per-layer empirical
 covariance and the joint initialization measure are both written out inline at each point of use
-(rather than named as separate definitions) to avoid adding more top-level declarations to an
-already-large file: the empirical covariance of a width-`n` post-activation family
+(rather than named as separate definitions): the empirical covariance of a width-`n` post-activation family
 `H : Fin n → Fin m → ℝ` is `fun α β => (n:ℝ)⁻¹ * ∑ j, φ (H j α) * φ (H j β)` (the same formula
 already inlined throughout `AsymptoticEmpiricalCovariancePropagation`, e.g. in
 `conditional_preactivations_eq_pi`), and the joint initialization measure of a depth-`L` network is
@@ -416,7 +415,7 @@ private lemma integral_activationProduct_multivariateGaussian_eq_stdGaussian
       (hφ_cont.measurable.comp
         (PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) β).measurable) |>.aestronglyMeasurable
 
-/-- **
+/-- **Continuity of the covariance update on the positive-semidefinite cone.**
 The claim: `K ↦ 𝒞_φ(K) := fun α β => ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)`
 is continuous *within the positive-semidefinite cone* at every
 `K0 : Matrix (Fin m) (Fin m) ℝ` in that cone — in particular at singular / rank-deficient `K0`,
@@ -426,8 +425,7 @@ nonzero singular PSD matrix would be false. In the Part 1 induction this theorem
 `Φ_ℓ^{(n)} → Φ_ℓ` into `𝒞_φ(Φ_ℓ^{(n)}) → 𝒞_φ(Φ_ℓ)` through
 `tendstoInMeasure_comp_of_continuousWithinAt` and the PSD invariant.
 
-**Why this should be true in general, not just for positive-definite `K`**: the underlying
-mathematical fact is standard on the *whole* PSD cone. Mathlib's own
+**Proof idea (valid on the whole PSD cone, not just for positive-definite `K`)**: Mathlib's own
 `multivariateGaussian μ S = (stdGaussian _).map (μ + toEuclideanCLM (CFC.sqrt S))`
 (`Mathlib.Probability.Distributions.Gaussian.Multivariate`) rewrites the integral above as an
 integral against a *fixed* reference measure `stdGaussian` with a `K`-dependent integrand built from

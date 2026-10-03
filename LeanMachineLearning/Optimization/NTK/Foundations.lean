@@ -6,6 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
+public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
+public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability
+public import LeanMachineLearning.Optimization.NTK.Foundations.TendstoInMeasureUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.SlutskyTightness
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
@@ -14,9 +17,13 @@ public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
 /-!
 # NTK foundations
 
-Network-independent tools used throughout the NTK development: matrix and Frobenius-norm facts
-(`matrixCLM`), i.i.d. averages with Chebyshev bounds, Slutsky/tightness/Markov lemmas,
-standard-Gaussian moment and tail bounds with probability-measure union-bound algebra
-(`Concentration`), and ODE tools (`ODE`: Grönwall, the bootstrap principle, global flows of
-locally Lipschitz fields).
+Network-independent tools used throughout the NTK development:
+
+* `MatrixUtil`, `GramProjector`, `MatrixMeasurability`: matrix and Frobenius-norm facts
+  (`matrixCLM`), Gram projectors (`IsStarProjection`), and measurability of matrix operations;
+* `IIDAverage`, `SlutskyTightness`, `TendstoInMeasureUtil`: i.i.d. averages with Chebyshev bounds,
+  Slutsky/tightness/Markov lemmas, and convergence in measure for matrix-valued sequences;
+* `Concentration`: standard-Gaussian moment and tail bounds with probability-measure union-bound
+  algebra;
+* `ODE`: Grönwall, the bootstrap principle, global flows of locally Lipschitz fields.
 -/
