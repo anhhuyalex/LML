@@ -51,8 +51,6 @@ and polar-coordinate evaluation (`NTK.ReLU.ChoSaul`).
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
@@ -89,7 +87,8 @@ lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : reluIndicator (c * u) = r
 
 /-! ### 2×2 Covariance and Correlation Geometry -/
 
-/-- Positive semidefiniteness of the standardized 2×2 correlation matrix `!![1, ρ; ρ, 1]` for `|ρ| ≤ 1`. -/
+/-- Positive semidefiniteness of the standardized 2×2 correlation matrix `!![1, ρ; ρ, 1]` for
+`|ρ| ≤ 1`. -/
 lemma corrMatrix2x2_posSemidef {ρ : ℝ} (hρ : ρ ∈ Set.Icc (-1) 1) :
     (show Matrix (Fin 2) (Fin 2) ℝ from !![1, ρ; ρ, 1]).PosSemidef := by
   refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg ?_ fun x => ?_
@@ -115,7 +114,8 @@ lemma pearsonRho_mem_Icc
     Φαβ / Real.sqrt (Φαα * Φββ) ∈ Set.Icc (-1) 1 := by
   have h_quad := hSigma.dotProduct_mulVec_nonneg (![-Φαβ, Φαα])
   simp only [star_trivial] at h_quad
-  have h_eval : (![-Φαβ, Φαα] : Fin 2 → ℝ) ⬝ᵥ (!![Φαα, Φαβ; Φαβ, Φββ] : Matrix (Fin 2) (Fin 2) ℝ) *ᵥ (![-Φαβ, Φαα]) =
+  have h_eval : (![-Φαβ, Φαα] : Fin 2 → ℝ) ⬝ᵥ (!![Φαα, Φαβ; Φαβ,
+      Φββ] : Matrix (Fin 2) (Fin 2) ℝ) *ᵥ (![-Φαβ, Φαα]) =
       Φαα * (Φαα * Φββ - Φαβ ^ 2) := by
     simp [dotProduct, mulVec, Fin.sum_univ_two]
     ring
@@ -148,7 +148,8 @@ private lemma diagonal_scale_offDiagonal_eq (a b x : ℝ) (ha : 0 < a) (hb : 0 <
     _ = Real.sqrt (a * b) * (x / Real.sqrt (a * b)) := by rw [h_sqrt_mul]
     _ = x := mul_div_cancel₀ x h_sqrt_ne
 
-/-- Scaling identity: congruent transformation of the standardized correlation matrix by diagonal standard deviations
+/-- Scaling identity: congruent transformation of the standardized correlation matrix by diagonal
+standard deviations
 recovers the unstandardized 2x2 covariance matrix `!![Φαα, Φαβ; Φαβ, Φββ]`. -/
 lemma diagScale2x2_mul_corr_mul_diagScale
     (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ) :
@@ -210,8 +211,10 @@ lemma toEuclideanCLM_diagScale_apply
 lemma relu_mul_relu_toEuclideanCLM_diagScale
     (Φαα Φββ : ℝ) (hΦαα : 0 ≤ Φαα) (_hΦββ : 0 ≤ Φββ)
     (z : EuclideanSpace ℝ (Fin 2)) :
-    relu ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 0) *
-      relu ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
+    relu ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2)
+        ℝ) z).ofLp 0) *
+      relu ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
+          Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
       Real.sqrt (Φαα * Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by
   obtain ⟨h0, h1⟩ := toEuclideanCLM_diagScale_apply (Real.sqrt Φαα) (Real.sqrt Φββ) z
   rw [h0, h1]
@@ -225,12 +228,15 @@ lemma relu_mul_relu_toEuclideanCLM_diagScale
     _ = Real.sqrt (Φαα * Φββ) * (relu (z.ofLp 0) * relu (z.ofLp 1)) := by rw [Real.sqrt_mul hΦαα]
 
 /-- Pullback of the ReLU indicator product under diagonal scaling:
-positive multipliers leave signs invariant, so `reluIndicator (D z)₀ * reluIndicator (D z)₁ = reluIndicator z₀ * reluIndicator z₁`. -/
+positive multipliers leave signs invariant, so
+`reluIndicator (D z)₀ * reluIndicator (D z)₁ = reluIndicator z₀ * reluIndicator z₁`. -/
 lemma reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale
     (Φαα Φββ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
     (z : EuclideanSpace ℝ (Fin 2)) :
-    reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 0) *
-      reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0, Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
+    reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
+        Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 0) *
+      reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
+          Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
       reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1) := by
   obtain ⟨h0, h1⟩ := toEuclideanCLM_diagScale_apply (Real.sqrt Φαα) (Real.sqrt Φββ) z
   rw [h0, h1]
@@ -250,7 +256,8 @@ lemma div_two_pi_pi_sub_arccos_eq_arcsin (ρ : ℝ) :
   field_simp
   ring
 
-/-- Adjoint of the continuous linear map induced by a real 2x2 matrix on `EuclideanSpace ℝ (Fin 2)`. -/
+/-- Adjoint of the continuous linear map induced by a real 2x2 matrix on `EuclideanSpace ℝ (Fin 2)`.
+-/
 lemma toEuclideanCLM_adjoint (A : Matrix (Fin 2) (Fin 2) ℝ) :
     (toEuclideanCLM (𝕜 := ℝ) A).adjoint = toEuclideanCLM (𝕜 := ℝ) Aᵀ := by
   apply ContinuousLinearMap.ext
@@ -342,7 +349,8 @@ lemma map_cholesky2x2_stdGaussian (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
 /-! ### Step 1: Reduction to Standardized Variables via Positive Homogeneity -/
 
 /-- Scaling of bivariate Gaussian distributions: pushforward of the standardized bivariate normal
-under the diagonal standard deviation scaling yields the unstandardized bivariate normal (Step 1). -/
+under the diagonal standard deviation scaling yields the unstandardized bivariate normal (Step 1).
+-/
 lemma map_diagScale2x2_multivariateGaussian
     (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
     (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
@@ -363,7 +371,8 @@ lemma map_diagScale2x2_multivariateGaussian
   · simp only [id_eq]
     rw [integral_id_multivariateGaussian]
     rw [integral_map T.continuous.measurable.aemeasurable (by fun_prop)]
-    have hT_int : ∫ x, T x ∂μ_R = T (∫ x, x ∂μ_R) := ContinuousLinearMap.integral_comp_comm T IsGaussian.integrable_id
+    have hT_int : ∫ x, T x ∂μ_R = T (∫ x, x ∂μ_R) :=
+        ContinuousLinearMap.integral_comp_comm T IsGaussian.integrable_id
     rw [hT_int]
     dsimp [μ_R]
     rw [integral_id_multivariateGaussian]
@@ -487,7 +496,8 @@ private lemma integral_corrGaussian_eq_angle
       (Measure.map (toEuclideanCLM (𝕜 := ℝ) L)
         (stdGaussian (EuclideanSpace ℝ (Fin 2)))) :=
     (((hf.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
-      (hg.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)).stronglyMeasurable).aestronglyMeasurable
+      (hg.comp (EuclideanSpace.proj (1 : Fin
+          2)).measurable)).stronglyMeasurable).aestronglyMeasurable
   rw [integral_map (toEuclideanCLM (𝕜 := ℝ) L).continuous.measurable.aemeasurable hint]
   change ∫ z : EuclideanSpace ℝ (Fin 2),
       f ((toEuclideanCLM (𝕜 := ℝ) L z).ofLp 0) *
@@ -567,7 +577,8 @@ lemma expected_relu_mul_relu_standardized
 
 /-! ### Step 4: Final Scaling Assembly -/
 
-/-- **Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU Derivative - 1st order / Derivative Kernel)**:
+/-- **Proposition 2.5 (Cho-Saul / Arc-Cosine Kernel for ReLU Derivative - 1st order / Derivative
+Kernel)**:
 Under centered bivariate Gaussian preactivations `(h^α, h^β) ~ 𝒩(0, Σ)` with positive diagonal
 variances `Φαα, Φββ > 0` and correlation `ρ = Φαβ / √(Φαα * Φββ) ∈ [-1, 1]`, the expected product of
 ReLU weak derivatives equals the orthant probability: `1/4 + (1 / (2π)) * arcsin ρ`. -/

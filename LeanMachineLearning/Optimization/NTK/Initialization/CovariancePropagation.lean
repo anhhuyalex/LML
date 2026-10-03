@@ -57,8 +57,6 @@ for the overview of the whole development.
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
@@ -74,7 +72,8 @@ section LayerByLayerConditionalGaussian
 
 /-- The recursively-defined deterministic limiting forward covariance kernel `Φ_ℓ ∈ ℝ^{m × m}`,
 built from a base kernel `Φ0` by repeatedly applying the covariance operator
-`𝒞_φ(K) := fun α β => σb ^ 2 + σw ^ 2 * ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)`
+`𝒞_φ(K) := fun α β => σb ^ 2 + σw ^ 2 * ∫ z, φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0
+K)`
 (the same map that already appears throughout `MultilayerSequentialNNGP`, e.g. in
 `limitingRecurrence_posSemidef_multivariate`): `Φ_0 := Φ0`, `Φ_{ℓ+1} := 𝒞_φ(Φ_ℓ)`. -/
 noncomputable def layerCovarianceSeq (σw σb : ℝ) (φ : ℝ → ℝ) (m : ℕ)
@@ -192,7 +191,8 @@ plain given argument rather than through `condDistrib`/`Kernel` machinery), the 
 next-layer preactivation vector `H_{ℓ+1} ∈ ℝ^{m n'}` — stacked `(α, i)` with `α` the input index and
 `i` the neuron index, matching `[(h^1)ᵀ, …, (h^m)ᵀ]ᵀ` — is exactly Gaussian with covariance
 `Φ_ℓ^{(n)} ⊗ I_{n'}`, where `Φ_ℓ^{(n)} α β := n⁻¹ ∑ k, H k α * H k β` is the finite-width empirical
-covariance of `H` (the `σw = 1, σb = 0` case of `empirical_layer_covariance_posSemidef_multivariate`).
+covariance of `H` (the `σw = 1, σb = 0` case of
+`empirical_layer_covariance_posSemidef_multivariate`).
 This is the depth generalization of Theorem 1 (`exact_conditional_normality`) combining the
 `Fin m`-family Gaussian vector algebra (`gaussianMatrix_mulVec_family`) with the Kronecker
 concatenation of the resulting `n'` i.i.d. neuron preactivations

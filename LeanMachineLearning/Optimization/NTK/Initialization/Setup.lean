@@ -57,7 +57,8 @@ independence structure, and entrywise (max) concentration for the readout weight
   readout weights $a$.
 * `NTK.evalSingle` : scalar network output
   $f(\mathbf{x}; \mathbf{W}, a) =
-    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$, with the equation lemma
+    \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$, with the equation
+    lemma
   `NTK.evalSingle_eq_normalized_sum`.
 * `NTK.evalVector` : output vector
   $\mathbf{f}_m = (f(\mathbf{x}^1), \dots, f(\mathbf{x}^m))^\top \in \mathbb{R}^m$.
@@ -73,8 +74,6 @@ for the overview of the whole development.
 -/
 
 @[expose] public section
-
-set_option linter.style.longLine false
 
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal

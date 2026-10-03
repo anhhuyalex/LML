@@ -43,8 +43,6 @@ for the overview of the whole development.
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 

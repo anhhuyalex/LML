@@ -87,7 +87,9 @@ lemma wcov_add_add (f g x y x' y' : Fin n → ℝ) :
 `N_f(x) N_g(x') + N_f(x) N_g(y') + N_f(y) N_g(x')`. -/
 lemma wcov_sub_sq_le (f g x y x' y' : Fin n → ℝ) :
     ((𝔼 j, f j * g j * ((x + y) j * (x' + y') j)) - (𝔼 j, f j * g j * (y j * y' j))) ^ 2 ≤
-      3 * ((𝔼 j, f j ^ 2 * x j ^ 2) * (𝔼 j, g j ^ 2 * x' j ^ 2) + (𝔼 j, f j ^ 2 * x j ^ 2) * (𝔼 j, g j ^ 2 * y' j ^ 2) + (𝔼 j, f j ^ 2 * y j ^ 2) * (𝔼 j, g j ^ 2 * x' j ^ 2)) := by
+      3 * ((𝔼 j, f j ^ 2 * x j ^ 2) * (𝔼 j, g j ^ 2 * x' j ^ 2) +
+          (𝔼 j, f j ^ 2 * x j ^ 2) * (𝔼 j, g j ^ 2 * y' j ^ 2) +
+          (𝔼 j, f j ^ 2 * y j ^ 2) * (𝔼 j, g j ^ 2 * x' j ^ 2)) := by
   rw [wcov_add_add]
   have h1 := wcov_sq_le f g x x'
   have h2 := wcov_sq_le f g x y'
@@ -117,7 +119,8 @@ lemma abs_mul_mul_mul_le (p q r s : ℝ) : |p * q * r * s| ≤ (p ^ 4 + q ^ 4 + 
 
 /-- Every weighted Gram entry is dominated by an average of fourth powers. -/
 lemma abs_wmat_le (f g : Fin n → ℝ) (Φ : Matrix (Fin n) (Fin m) ℝ) (a b : Fin m) :
-    |(𝔼 j, f j * g j * Φ j a * Φ j b)| ≤ ((𝔼 j, f j ^ 4) + (𝔼 j, g j ^ 4) + (𝔼 j, Φ j a ^ 4) + (𝔼 j, (fun j =>
+    |(𝔼 j, f j * g j * Φ j a * Φ j b)| ≤ ((𝔼 j, f j ^ 4) + (𝔼 j, g j ^ 4) + (𝔼 j, Φ j a ^ 4) +
+        (𝔼 j, (fun j =>
         Φ j b) j ^ 4)) / 4 := by
   simp only [expect_fin_eq_inv_mul_sum]
   have hn : 0 ≤ (n : ℝ)⁻¹ := inv_nonneg.2 (Nat.cast_nonneg n)
@@ -219,7 +222,8 @@ lemma wcov_smul_transpose_mulVec (f g u v : Fin n → ℝ) (W : Matrix (Fin n) (
 
 /-- `n⁻¹ ‖h ⊙ f‖² ≤ (n⁻¹ ∑ⱼ hⱼ⁴ + n⁻¹ ∑ⱼ fⱼ⁴) / 2` (AM–GM). -/
 lemma avg_sq_mul_le_avg4 (h f : Fin n → ℝ) :
-    (n : ℝ)⁻¹ * ((fun j => h j * f j) ⬝ᵥ (fun j => h j * f j)) ≤ ((𝔼 j, h j ^ 4) + (𝔼 j, f j ^ 4)) / 2 := by
+    (n : ℝ)⁻¹ * ((fun j => h j * f j) ⬝ᵥ (fun j => h j * f j)) ≤ ((𝔼 j, h j ^ 4) +
+        (𝔼 j, f j ^ 4)) / 2 := by
   simp only [expect_fin_eq_inv_mul_sum, dotProduct]
   have hn : 0 ≤ (n : ℝ)⁻¹ := inv_nonneg.2 (Nat.cast_nonneg n)
   calc (n : ℝ)⁻¹ * ∑ j, h j * f j * (h j * f j)

@@ -38,8 +38,6 @@ for the overview of the whole development.
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
@@ -62,7 +60,8 @@ supporting lemmas it needs.
 
 Following the recursive pre-activation family `deepPreactivation` below, the per-layer empirical
 covariance and the joint initialization measure are both written out inline at each point of use
-(rather than named as separate definitions): the empirical covariance of a width-`n` post-activation family
+(rather than named as separate definitions): the empirical covariance of a width-`n` post-activation
+family
 `H : Fin n → Fin m → ℝ` is `fun α β => (n:ℝ)⁻¹ * ∑ j, φ (H j α) * φ (H j β)` (the same formula
 already inlined throughout `AsymptoticEmpiricalCovariancePropagation`, e.g. in
 `conditional_preactivations_eq_pi`), and the joint initialization measure of a depth-`L` network is
@@ -515,7 +514,8 @@ lemma polynomial_growth_mono (φ : ℝ → ℝ) {C C' : ℝ} (hC : 0 ≤ C) (hCC
     · linarith [pow_le_pow_right₀ h1 hp]
   have hpos : 0 ≤ 1 + |x| ^ p' := by positivity
   calc |φ x| ≤ C * (1 + |x| ^ p) := h x
-    _ ≤ C * (2 * (1 + |x| ^ p')) := mul_le_mul_of_nonneg_left (by linarith [pow_nonneg (abs_nonneg x) p']) hC
+    _ ≤ C * (2 * (1 + |x| ^ p')) := mul_le_mul_of_nonneg_left (by linarith [pow_nonneg
+        (abs_nonneg x) p']) hC
     _ = (2 * C) * (1 + |x| ^ p') := by ring
     _ ≤ C' * (1 + |x| ^ p') := mul_le_mul_of_nonneg_right hCC hpos
 

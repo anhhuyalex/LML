@@ -62,8 +62,6 @@ for the overview of the whole development.
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
@@ -106,7 +104,8 @@ lemma projection_layer_variance_eq_multivariate (σw σb : ℝ) (n m : ℕ) (H :
     (t : EuclideanSpace ℝ (Fin m)) :
     (σb * ∑ α : Fin m, t.ofLp α) ^ 2 +
       ∑ j : Fin n, ((σw * (n : ℝ)⁻¹.sqrt) * ∑ α : Fin m, t.ofLp α * H j α) ^ 2 =
-      t.ofLp ⬝ᵥ (fun α β : Fin m => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j β) *ᵥ t.ofLp := by
+      t.ofLp ⬝ᵥ (fun α β : Fin m => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n, H j α * H j
+          β) *ᵥ t.ofLp := by
   have h_square (f : Fin m → ℝ) :
       (∑ α : Fin m, f α) ^ 2 = ∑ α : Fin m, ∑ β : Fin m, f α * f β := by
     rw [pow_two, Fintype.sum_mul_sum]
@@ -188,7 +187,8 @@ theorem empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate
         (nhds (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
           φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) := by
   have h_entry : ∀ α β : Fin m,
-      ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin m) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
+      ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin m) ∂(Measure.infinitePi
+          fun _ : ℕ => multivariateGaussian 0 K),
         Filter.Tendsto
           (fun n : ℕ => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
             ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β))
@@ -294,7 +294,8 @@ lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : �
   -- The weights and bias are independent, so split the characteristic integrand.
   have h_split (p : (Fin n → ℝ) × ℝ) :
       Complex.exp ((((σb * ∑ α : Fin m, t.ofLp α) * p.2 +
-        ∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * ∑ α : Fin m, t.ofLp α * H j α)) : ℝ) * Complex.I) =
+        ∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) * ∑ α : Fin m, t.ofLp α * H j
+            α)) : ℝ) * Complex.I) =
       Complex.exp ((∑ j : Fin n, p.1 j * ((σw * (n : ℝ)⁻¹.sqrt) *
         ∑ α : Fin m, t.ofLp α * H j α) : ℝ) * Complex.I) *
       Complex.exp (((σb * ∑ α : Fin m, t.ofLp α) * p.2 : ℝ) * Complex.I) := by
@@ -358,15 +359,18 @@ lemma limitingRecurrence_nonneg_multivariate (σw σb : ℝ) (m : ℕ) (φ : ℝ
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) (c : Fin m → ℝ) :
     0 ≤ c ⬝ᵥ (fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ c := by
-  have hslln := empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate σw σb m φ hφ_meas K hφ_L2
+      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0
+          K)) *ᵥ c := by
+  have hslln := empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate σw σb m φ hφ_meas K
+      hφ_L2
   rcases hslln.exists with ⟨Z, hZ⟩
   have h_quad : Filter.Tendsto
       (fun n : ℕ => c ⬝ᵥ (fun α β : Fin m => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) *
         ∑ j : Fin n, φ ((Z j.val).ofLp α) * φ ((Z j.val).ofLp β)) *ᵥ c)
       Filter.atTop
       (nhds (c ⬝ᵥ (fun α β => σb ^ 2 + σw ^ 2 *
-        ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ c)) :=
+        ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0
+            K)) *ᵥ c)) :=
     (continuous_matrix_quadratic c).continuousAt.tendsto.comp hZ
   refine ge_of_tendsto h_quad (Filter.Eventually.of_forall fun n => ?_)
   exact empirical_layer_covariance_nonneg_multivariate σw σb n m
@@ -377,7 +381,8 @@ lemma limitingRecurrence_posSemidef_multivariate (σw σb : ℝ) (m : ℕ) (φ :
     (hφ_L2 : ∀ α : Fin m, MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) 2
       (multivariateGaussian 0 K)) :
     (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)).PosSemidef :=
+      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0
+          K)).PosSemidef :=
   Matrix.PosSemidef.of_dotProduct_mulVec_nonneg
     (limitingRecurrence_isHermitian_multivariate σw σb m φ K)
     fun x => by simpa using limitingRecurrence_nonneg_multivariate σw σb m φ hφ_meas K hφ_L2 x
@@ -395,7 +400,8 @@ private lemma measurable_exp_quadratic_layerRecurrence_multivariate
     simp only [dotProduct, mulVec]
     refine Finset.measurable_sum _ fun α _ => ?_
     refine measurable_const.mul (Finset.measurable_sum _ fun β _ => ?_)
-    refine (measurable_const.add (measurable_const.mul (Finset.measurable_sum _ fun j _ => ?_))).mul_const _
+    refine (measurable_const.add (measurable_const.mul (Finset.measurable_sum _
+        fun j _ => ?_))).mul_const _
     refine (hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) α).measurable.comp
       (measurable_pi_apply j.val))).mul ?_
     exact hφ_meas.comp ((PiLp.continuous_apply 2 (fun _ : Fin m => ℝ) β).measurable.comp
@@ -417,11 +423,13 @@ lemma tendsto_charFun_preactivation_dct_multivariate
       (nhds (Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
         (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
           φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)) *ᵥ t.ofLp) / 2))) := by
-  have hslln := empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate σw σb m φ hφ_meas K hφ_L2
+  have hslln := empiricalCovariance_tendsto_limitingRecurrence_ae_multivariate σw σb m φ hφ_meas K
+      hφ_L2
   have h_cont : Continuous (fun M : Matrix (Fin m) (Fin m) ℝ =>
       Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ M *ᵥ t.ofLp) / 2)) :=
     continuous_charFun_integrand t
-  have h_ae : ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin m) ∂(Measure.infinitePi fun _ : ℕ => multivariateGaussian 0 K),
+  have h_ae : ∀ᵐ Z : ℕ → EuclideanSpace ℝ (Fin m) ∂(Measure.infinitePi
+      fun _ : ℕ => multivariateGaussian 0 K),
       Filter.Tendsto
         (fun n : ℕ => Complex.exp (- Complex.ofReal (t.ofLp ⬝ᵥ
           (fun α β => σb ^ 2 + (σw ^ 2 * (n : ℝ)⁻¹) * ∑ j : Fin n,
@@ -533,7 +541,8 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
         (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),
           φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K))) t)) := by
   have hPos : (show Matrix (Fin m) (Fin m) ℝ from fun α β => σb ^ 2 + σw ^ 2 *
-      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0 K)).PosSemidef :=
+      ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂(multivariateGaussian 0
+          K)).PosSemidef :=
     limitingRecurrence_posSemidef_multivariate σw σb m φ hφ_meas K hφ_L2
   have h_cf : charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
       (fun α β => σb ^ 2 + σw ^ 2 * ∫ z : EuclideanSpace ℝ (Fin m),

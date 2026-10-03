@@ -41,8 +41,6 @@ tail bounds for empirical averages of i.i.d. samples. They are used by `NTK.Init
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 

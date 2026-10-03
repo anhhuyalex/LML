@@ -145,7 +145,8 @@ By the criterion of Steinwart-Christmann 2008 (Corollary 4.57), a dot-product ke
 is universal on a bounded domain iff all its series coefficients are strictly positive. -/
 noncomputable def reducedKernelCoeff (n : ℕ) : ℝ :=
   -- The coefficient of zⁿ in the Maclaurin series of f_tilde.
-  -- NOTE: a placeholder. The true constant term is f_tilde(0) = 1/4 − (1/2)(π/3)/(2π) = 1/6, not 1/8.
+  -- NOTE: a placeholder. The true constant term is f_tilde(0) = 1/4 − (1/2)(π/3)/(2π) = 1/6, not
+  -- 1/8.
   -- For n ≥ 1: comes from the Maclaurin series of arccos shifted by 1/2.
   if n = 0 then 1 / 8
   else 1 / (2 * Real.pi) *

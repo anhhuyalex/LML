@@ -87,7 +87,8 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
       ⟨d - 1, by omega⟩ b) j ^ 4)) c1 (fun n => measurable_avg4 fun j =>
         (measurable_netPre hφm X n ⟨d - 1, by omega⟩ b j).comp (hmeas0 n)) (fun n ω => by
         simp only [preactivation_deepParams_readout]) hc1
-    have hc2' := hF4 (fun n ω => (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a) j ^ 4))
+    have hc2' := hF4 (fun n ω => (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨d - 1,
+        by omega⟩ a) j ^ 4))
       c2 (fun n => measurable_avg4 fun j =>
         hφ'm.comp ((measurable_netPre hφm X n ⟨d - 1, by omega⟩ a j).comp (hmeas0 n)))
       (fun n ω => (congrArg (fun v : Fin n → ℝ => 𝔼 j, v j ^ 4)

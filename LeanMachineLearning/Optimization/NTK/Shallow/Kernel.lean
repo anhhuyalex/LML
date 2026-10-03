@@ -195,8 +195,10 @@ theorem shallowEmpiricalNTK_dataset_posSemidef
     (houter : ∀ j : Fin m, outerCoeffs j ^ 2 = 1) :
     (Matrix.of (fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β))).PosSemidef := by
   have h_eq : (Matrix.of fun α β => shallowEmpiricalNTK σ' W₀ (X α) (X β)) =
-      (Matrix.of fun α (j, k) => ((m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * (X α) l) * (X α) k)) *
-      (Matrix.of fun α (j, k) => ((m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * (X α) l) * (X α) k))ᵀ := by
+      (Matrix.of fun α (j, k) => ((m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * (X α) l) *
+          (X α) k)) *
+      (Matrix.of fun α (j, k) => ((m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * (X α) l) *
+          (X α) k))ᵀ := by
     ext α β
     simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
     rw [Fintype.sum_prod_type]

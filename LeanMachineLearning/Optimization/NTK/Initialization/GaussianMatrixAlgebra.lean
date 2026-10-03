@@ -53,7 +53,8 @@ has unit variance: `∫ (W i k)² = 1`. -/
 theorem integral_gaussianInit_entry_sq (n p : ℕ) (i : Fin n) (k : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) = 1 := by
-  rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i := i)
+  rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i :=
+      i)
       (f := fun a : Fin p → ℝ => a k ^ 2)
       (by fun_prop : Measurable fun a : Fin p → ℝ => a k ^ 2).aestronglyMeasurable,
     integral_comp_eval (μ := fun _ : Fin p => gaussianReal 0 1) (i := k)
@@ -64,7 +65,8 @@ theorem integral_gaussianInit_entry_sq (n p : ℕ) (i : Fin n) (k : Fin p) :
 theorem integral_gaussianInit_entry (n p : ℕ) (i : Fin n) (k : Fin p) :
     ∫ W : Fin n → Fin p → ℝ, W i k ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) = 0 := by
-  rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i := i)
+  rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i :=
+      i)
       (f := fun a : Fin p → ℝ => a k)
       (by fun_prop : Measurable fun a : Fin p → ℝ => a k).aestronglyMeasurable, integral_eval,
     ProbabilityTheory.integral_id_gaussianReal]
@@ -102,7 +104,8 @@ theorem integral_gaussianInit_entry_mul_entry (n p : ℕ) (i j : Fin n) (k l : F
   · by_cases hij : i = j
     · subst hij
       have hkl : k ≠ l := fun h_eq => h ⟨rfl, h_eq⟩
-      rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) (i := i)
+      rw [integral_comp_eval (μ := fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)
+          (i := i)
         (f := fun a : Fin p → ℝ => a k * a l) (by fun_prop)]
       have h_indep := (iIndepFun_readoutWeights p).indepFun hkl
       change (fun a => a k) ⟂ᵢ[(Measure.pi fun _ : Fin p => gaussianReal 0 1)] (fun a => a

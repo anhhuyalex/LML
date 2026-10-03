@@ -39,8 +39,6 @@ for the overview of the whole development.
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
@@ -515,8 +513,10 @@ polynomial-growth feature map `ψ` the empirical feature covariance
 covariance update `∫ ψ ψ d𝒩(0, Klim)`.
 
 This is the conditional-Chebyshev fluctuation bound (`deepPreactivation_succ_deviation_tendsto`)
-combined with continuity of the covariance-update map on the PSD cone. With `ψ = φ` it is the induction
-step of `deepEmpiricalCovariance_tendstoInMeasure`; with `ψ = φ'` it gives the derivative Gram matrix. -/
+combined with continuity of the covariance-update map on the PSD cone. With `ψ = φ` it is the
+induction
+step of `deepEmpiricalCovariance_tendstoInMeasure`; with `ψ = φ'` it gives the derivative Gram
+matrix. -/
 theorem deepFeatureCovariance_succ_tendstoInMeasure
     (d m L : ℕ) (φ ψ : ℝ → ℝ) (hφ_cont : Continuous φ) (hψ_cont : Continuous ψ)
     (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
@@ -540,7 +540,8 @@ theorem deepFeatureCovariance_succ_tendstoInMeasure
           ψ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (ℓ + 1) β j))
       Filter.atTop
       (fun _ => fun α β : Fin m =>
-        ∫ z : EuclideanSpace ℝ (Fin m), ψ (z.ofLp α) * ψ (z.ofLp β) ∂multivariateGaussian 0 Klim) := by
+        ∫ z : EuclideanSpace ℝ (Fin m), ψ (z.ofLp α) * ψ (z.ofLp β) ∂multivariateGaussian 0 Klim) :=
+            by
   have hempirical_pos : ∀ (n : ℕ) (w : Fin L → ℕ → ℕ → ℝ),
       (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
         φ (deepPreactivation d m n φ X
@@ -665,7 +666,8 @@ lemma measurable_deepEval (d m L : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurabl
     (measurable_pi_apply j.val).comp (measurable_fst.comp measurable_snd)
   have h_φ : Measurable (fun q : (Fin L → ℕ → ℕ → ℝ) × ((ℕ → ℝ) × ℝ) =>
       φ (deepPreactivation d m n φ X (fun k => if h : k < L then q.1 ⟨k, h⟩ else 0) (L - 1) α j)) :=
-    (hφ_meas.comp (measurable_deepPreactivation d m n L φ hφ_meas X (L - 1) α j)).comp measurable_fst
+    (hφ_meas.comp (measurable_deepPreactivation d m n L φ hφ_meas X
+        (L - 1) α j)).comp measurable_fst
   exact h_a.mul h_φ
 
 /-- Positive semidefiniteness of the depth-`L` network's width-`n` output covariance (the
@@ -678,7 +680,8 @@ lemma deepEval_covariance_posSemidef (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin
       φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j)
       ).PosSemidef := by
   simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
-    (fun j α => φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j))
+    (fun j α => φ (deepPreactivation d m n φ X (fun k => if h : k <
+        L then w ⟨k, h⟩ else 0) (L - 1) α j))
 
 /-- For a fixed realization `w` of the hidden weights, the pushforward of the readout population
 (together with one unused throwaway real coordinate, see `tendstoInDistribution_deepEval`) under
@@ -697,11 +700,13 @@ lemma map_deepEval_snd_eq_multivariateGaussian (d m n L : ℕ) (φ : ℝ → ℝ
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
           φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
-          φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j)) := by
+          φ (deepPreactivation d m n φ X (fun k => if h : k <
+              L then w ⟨k, h⟩ else 0) (L - 1) β j)) := by
   set H : Fin n → Fin m → ℝ := fun j α =>
     φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j)
     with hH_def
-  have h_split : (fun r : (ℕ → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n,
+  have h_split : (fun r : (ℕ → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
+      (n : ℝ)⁻¹.sqrt * ∑ j : Fin n,
         r.1 j.val * H j α) =
       (fun p : (Fin n → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
         (0 : ℝ) * p.2 + (1 * (n : ℝ)⁻¹.sqrt) * ∑ j : Fin n, p.1 j * H j α) ∘
@@ -768,7 +773,8 @@ lemma charFun_map_deepEval (d m L : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurab
     (∫ r : (ℕ → ℝ) × ℝ, Complex.exp (⟪(WithLp.toLp 2 fun α : Fin m => (n : ℝ)⁻¹.sqrt * ∑ j : Fin n,
         r.1 j.val * φ (deepPreactivation d m n φ X
           (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) : EuclideanSpace ℝ (Fin m)), t⟫
-        * Complex.I) ∂((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0 1))) =
+        * Complex.I) ∂((Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (gaussianReal 0
+            1))) =
         charFun (Measure.map (fun r : (ℕ → ℝ) × ℝ => WithLp.toLp 2 fun α : Fin m =>
           (n : ℝ)⁻¹.sqrt * ∑ j : Fin n, r.1 j.val * φ (deepPreactivation d m n φ X
             (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j))
@@ -776,13 +782,17 @@ lemma charFun_map_deepEval (d m L : ℕ) (φ : ℝ → ℝ) (hφ_meas : Measurab
       rw [charFun_apply, integral_map h_meas_w.aemeasurable (by fun_prop)]
     _ = charFun (multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
           (show Matrix (Fin m) (Fin m) ℝ from fun α β => (n : ℝ)⁻¹ * ∑ j : Fin n,
-            φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
-            φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j))) t := by
+            φ (deepPreactivation d m n φ X (fun k => if h : k <
+                L then w ⟨k, h⟩ else 0) (L - 1) α j) *
+            φ (deepPreactivation d m n φ X (fun k => if h : k <
+                L then w ⟨k, h⟩ else 0) (L - 1) β j))) t := by
       rw [map_deepEval_snd_eq_multivariateGaussian d m n L φ X w]
     _ = Complex.exp (-Complex.ofReal (t.ofLp ⬝ᵥ (show Matrix (Fin m) (Fin m) ℝ from fun α β =>
           (n : ℝ)⁻¹ * ∑ j : Fin n,
-            φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j) *
-            φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) β j))
+            φ (deepPreactivation d m n φ X (fun k => if h : k <
+                L then w ⟨k, h⟩ else 0) (L - 1) α j) *
+            φ (deepPreactivation d m n φ X (fun k => if h : k <
+                L then w ⟨k, h⟩ else 0) (L - 1) β j))
           *ᵥ t.ofLp) / 2) := by
       rw [charFun_multivariateGaussian (deepEval_covariance_posSemidef d m n L φ X w)]
       simp only [inner_zero_right, ofReal_zero, zero_mul, zero_sub]
@@ -800,7 +810,8 @@ lemma norm_charFun_deepEval_le_one (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin m
       *ᵥ t.ofLp) / 2)‖ ≤ 1 :=
   norm_exp_neg_ofReal_div_two_le_one (by
     simpa using empirical_layer_covariance_nonneg_multivariate 1 0 n m
-      (fun j α => φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) (L - 1) α j))
+      (fun j α => φ (deepPreactivation d m n φ X (fun k => if h : k <
+          L then w ⟨k, h⟩ else 0) (L - 1) α j))
       t)
 
 /-- Measurability, in the hidden weights `w`, of the depth-`L` network's width-`n` characteristic
@@ -900,7 +911,8 @@ lemma tendsto_charFun_map_deepEval (d m L : ℕ) (hL : 0 < L) (φ : ℝ → ℝ)
   have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
     (L - 1) (by omega)
   rw [hL1] at hP1
-  exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X t hP1
+  exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X t
+      hP1
 
 /-- **Theorem 2.13, Part 2 (Output Convergence in Distribution - Standalone Form).** Under any
 probability space where the depth-`L` network's layer-`L` empirical covariance converges in
@@ -950,7 +962,8 @@ theorem tendstoInDistribution_deepEval_of_covariance_tendsto
           inferInstance⟩) := by
       apply ProbabilityMeasure.tendsto_of_tendsto_charFun
       intro t
-      exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X t hP
+      exact tendsto_charFun_map_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth
+          X t hP
     convert! h_weak
     exact congrArg nhds (Subtype.ext Measure.map_id)
 
@@ -1004,7 +1017,8 @@ theorem tendstoInDistribution_deepEval
   have hP1 := deepEmpiricalCovariance_tendstoInMeasure d m L φ hφ_cont C hC p hp hφ_growth X
     (L - 1) (by omega)
   rw [hL1] at hP1
-  exact tendstoInDistribution_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X hP1
+  exact tendstoInDistribution_deepEval_of_covariance_tendsto d m L φ hφ_cont C hC p hp hφ_growth X
+      hP1
 
 end DeepNNGPRecursion
 

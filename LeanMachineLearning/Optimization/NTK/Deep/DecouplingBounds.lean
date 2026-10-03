@@ -123,7 +123,8 @@ theorem tendstoInMeasure_wsq_mulVec
     (f : ∀ n : ℕ, Ω → Fin n → ℝ) (Φ : ∀ n : ℕ, Ω → Matrix (Fin n) (Fin m) ℝ)
     (w : ℕ → Ω → Fin m → ℝ)
     (hw : ∀ a, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => w n ω a) atTop (fun _ => 0))
-    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 4)) atTop (fun _ => c))
+    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 4)) atTop
+        (fun _ => c))
     (hΦ : ∀ a, ∃ c : ℝ, TendstoInMeasure μ
       (fun (n : ℕ) (ω : Ω) => (𝔼 j, Φ n ω j a ^ 4)) atTop (fun _ => c)) :
     TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 2 * (Φ n ω *ᵥ w n ω) j ^ 2)) atTop
@@ -159,8 +160,10 @@ theorem tendstoInMeasure_inv_nat_mul_trace
     (S : ℕ → Ω → Matrix (Fin m) (Fin m) ℝ)
     (hS : ∀ a b, ∃ c : ℝ, TendstoInMeasure μ
       (fun (n : ℕ) (ω : Ω) => S n ω a b) atTop (fun _ => c))
-    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 4)) atTop (fun _ => c))
-    (hg : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (g n ω) j ^ 4)) atTop (fun _ => c))
+    (hf : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (f n ω) j ^ 4)) atTop
+        (fun _ => c))
+    (hg : ∃ c : ℝ, TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) => (𝔼 j, (g n ω) j ^ 4)) atTop
+        (fun _ => c))
     (hΦ : ∀ a, ∃ c : ℝ, TendstoInMeasure μ
       (fun (n : ℕ) (ω : Ω) => (𝔼 j, Φ n ω j a ^ 4)) atTop (fun _ => c)) :
     TendstoInMeasure μ (fun (n : ℕ) (ω : Ω) =>

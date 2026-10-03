@@ -76,8 +76,6 @@ for the overview of the whole development.
 
 @[expose] public section
 
-set_option linter.style.longLine false
-
 open Real MeasureTheory ProbabilityTheory Matrix Complex
 open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
@@ -305,12 +303,15 @@ lemma charFun_readout_evalVector
           X⟫) (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
     rw [integral_map h_meas_inner.aemeasurable (by fun_prop)]
   rw [h_int_map, map_readout_inner_evalVector φ W X t]
-  have h_cf_1 : (∫ y : ℝ, Complex.exp (y * Complex.I) ∂(gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp)))) =
-      charFun (gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp))) 1 := by
+  have h_cf_1 : (∫ y : ℝ, Complex.exp (y * Complex.I) ∂(gaussianReal 0 (Real.toNNReal
+      (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp)))) =
+      charFun (gaussianReal 0 (Real.toNNReal (t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ
+          t.ofLp))) 1 := by
     rw [charFun_apply_real]
     simp
   rw [h_cf_1, charFun_gaussianReal]
-  simp only [Complex.ofReal_zero, mul_zero, zero_mul, Complex.ofReal_one, mul_one, one_pow, zero_sub]
+  simp only [Complex.ofReal_zero, mul_zero, zero_mul, Complex.ofReal_one, mul_one, one_pow,
+      zero_sub]
   have h_nonneg : 0 ≤ t.ofLp ⬝ᵥ empiricalCovariance n φ W X *ᵥ t.ofLp :=
     empiricalCovariance_nonneg n φ W X t.ofLp
   rw [Real.coe_toNNReal _ h_nonneg]
