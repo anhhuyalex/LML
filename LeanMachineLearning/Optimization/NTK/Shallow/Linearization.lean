@@ -6,14 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
-import LeanMachineLearning.Optimization.NTK.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Probability.Distributions.Gaussian.Fernique
-public import Mathlib.Probability.Independence.Basic
-public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Basic
 public import Mathlib.Probability.Moments.SubGaussian
-public import Mathlib.Probability.Distributions.Gaussian.Basic
-public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 
 /-!
 # Linearization bounds: smooth activations and ReLU

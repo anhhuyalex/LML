@@ -5,13 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Initialization
-public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow
-public import Mathlib.Analysis.InnerProductSpace.PiL2
-public import Mathlib.Analysis.Calculus.FDeriv.Prod
-public import Mathlib.Analysis.Calculus.Deriv.Basic
-public import Mathlib.Analysis.Calculus.Gradient.Basic
 
 /-!
 # Two-layer network: parameter packing, gradients and the Jacobian norm

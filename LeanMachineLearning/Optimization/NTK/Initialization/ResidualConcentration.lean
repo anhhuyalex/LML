@@ -8,7 +8,6 @@ module
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianConditioning
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
 public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
-public import LeanMachineLearning.Optimization.NTK.Foundations.TendstoInMeasureUtil
 
 /-!
 # Convergence in Measure of Residual Gaussian Forms

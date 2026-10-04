@@ -5,17 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.Probability.Independence.Integration
-public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
-public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
-public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
-public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
-public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
-public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
-public import LeanMachineLearning.Optimization.NTK.Initialization.CovariancePropagation
-public import LeanMachineLearning.Optimization.NTK.Initialization.DeepNNGPTheorems
 
 /-!
 # Deep NTK Convergence: Backward Decoupling and Theorem 2.27

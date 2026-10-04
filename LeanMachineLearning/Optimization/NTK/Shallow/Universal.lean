@@ -5,12 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
-public import LeanMachineLearning.Optimization.Approximation.Basic
-public import Mathlib.Topology.Algebra.Module.UniformConvergence
-public import Mathlib.Topology.ContinuousMap.Algebra
-public import Mathlib.Analysis.InnerProductSpace.PiL2
 
 /-!
 # Universal approximation via the NTK RKHS

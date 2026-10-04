@@ -7,30 +7,12 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaul
 public import Mathlib.MeasureTheory.Measure.TightNormed
-public import Mathlib.Probability.Distributions.Gaussian.Multivariate
-public import Mathlib.Probability.Distributions.Gaussian.Real
-public import Mathlib.Probability.Distributions.Gaussian.Basic
-public import Mathlib.Probability.Distributions.Gaussian.CharFun
-public import Mathlib.Probability.Independence.Basic
-public import Mathlib.Probability.Independence.InfinitePi
-public import Mathlib.Probability.ProductMeasure
-public import Mathlib.MeasureTheory.Constructions.Pi
-public import Mathlib.Probability.StrongLaw
-public import Mathlib.Analysis.InnerProductSpace.PiL2
-public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.LevyConvergence
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.TaylorExpansion
-public import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
-public import Mathlib.Topology.MetricSpace.Lipschitz
-public import Mathlib.MeasureTheory.Function.ConvergenceInMeasure
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
-public import Mathlib.LinearAlgebra.Matrix.Kronecker
-public import Mathlib.Analysis.Matrix.Order
 public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
-public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Probability.Independence.CharacteristicFunction
-public import Mathlib.Analysis.Matrix.Normed
 
 /-!
 # Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5)

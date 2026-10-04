@@ -6,7 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
-public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 
 /-!
 # Splitting One Weight Layer from the Rest of the Initialization

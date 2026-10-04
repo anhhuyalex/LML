@@ -16,11 +16,13 @@ Conditional on the input weights, the network output is an exact centered multiv
 
 **Theorem 1** (`NTK.exact_conditional_normality`). Conditional on the input weights
 $\mathbf{W}$ (the sub-$\sigma$-algebra $\mathcal{F}$), the output vector
-$\mathbf{f}_m = (f(\mathbf{x}^1; \boldsymbol{\theta}), \dots, f(\mathbf{x}^m; \boldsymbol{\theta}))^\top$
+$\mathbf{f}_m = (f(\mathbf{x}^1; \boldsymbol{\theta}), \dots, f(\mathbf{x}^m;
+\boldsymbol{\theta}))^\top$
 is an exact centered multivariate Gaussian,
 $$\mathbf{f}_m \mid \mathcal{F} \sim \mathcal{N}\left(\mathbf{0}, \boldsymbol{\Phi}^{(n)}\right),$$
 whose covariance $\boldsymbol{\Phi}^{(n)}$ is symmetric positive semidefinite for every width $n$
-(`NTK.empiricalCovariance_posSemidef`). Equivalently, $x \mapsto \text{evalSingle } \varphi\ W\ a\ x$
+(`NTK.empiricalCovariance_posSemidef`). Equivalently, $x \mapsto \text{evalSingle } \varphi\ W\ a\
+x$
 under `𝒩(0, I_n)` is an exact Gaussian process
 (`NTK.isGaussianProcess_exact_conditional_output`, Definition 2.2).
 
@@ -28,7 +30,8 @@ Proof steps:
 
 * Step 1: for a projection vector $\mathbf{c} \in \mathbb{R}^m$, the scalar projection is
   $$\sum_{\alpha=1}^m c_\alpha f(\mathbf{x}^\alpha; \boldsymbol{\theta}) = \sum_{i=1}^n a_i \psi_i,
-    \quad \psi_i := \tfrac{1}{\sqrt{n}} \sum_{\alpha} c_\alpha \varphi(\mathbf{w}_i^\top \mathbf{x}^\alpha)$$
+    \quad \psi_i := \tfrac{1}{\sqrt{n}} \sum_{\alpha} c_\alpha \varphi(\mathbf{w}_i^\top
+    \mathbf{x}^\alpha)$$
   (`NTK.projectionCoeff`, `NTK.projection_eq_sum_projectionCoeff`).
 * Step 2: $\psi_i$ is $\mathcal{F}$-measurable, so conditionally on $\mathcal{F}$ the coefficients
   are deterministic constants (`NTK.projectionCoeff_measurable`).

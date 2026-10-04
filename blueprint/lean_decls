@@ -625,6 +625,7 @@ NTK.tendsto_measure_crossKernel_drift_global_positive_gap
 NTK.tendsto_measure_test_prediction_finite_horizon
 NTK.tendsto_measure_test_prediction_global_positive_gap
 NTK.test_prediction_kernel_interpolation_limit
+NTK.real_inner_eq_dotProduct
 NTK.gaussian_map_mulVec
 NTK.stdGaussian_inner_pair
 NTK.stdGaussian_inner_family

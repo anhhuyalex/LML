@@ -6,8 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
-public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
-public import Mathlib.Analysis.Matrix.MeasurableSpace
 
 /-!
 # Measurability of Matrix Expressions

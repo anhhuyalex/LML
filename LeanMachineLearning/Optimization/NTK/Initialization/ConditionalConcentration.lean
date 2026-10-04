@@ -6,8 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepRecursion
-public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
-public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 
 /-!
 # Conditional Chebyshev Concentration with a Random Conditioning Covariance

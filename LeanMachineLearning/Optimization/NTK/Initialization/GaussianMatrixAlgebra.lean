@@ -8,7 +8,6 @@ module
 public import Mathlib.Probability.Independence.Integration
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 public import Mathlib.LinearAlgebra.Matrix.Bilinear
-public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 
 /-!

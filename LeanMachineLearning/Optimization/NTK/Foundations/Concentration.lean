@@ -7,7 +7,6 @@ module
 
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Moments.SubGaussian
-public import Mathlib.Probability.Moments.Variance
 
 /-!
 # Generic Gaussian and probability-measure lemmas

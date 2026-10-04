@@ -5,20 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 public import LeanMachineLearning.Optimization.NTK.Initialization
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE
-public import Mathlib.Analysis.InnerProductSpace.Calculus
-public import Mathlib.Analysis.Calculus.Deriv.MeanValue
-public import Mathlib.Analysis.Calculus.Deriv.Mul
-public import Mathlib.Analysis.ODE.ExistUnique
-public import Mathlib.Analysis.SpecialFunctions.Exponential
-public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-public import Mathlib.Analysis.Matrix.Normed
-public import Mathlib.LinearAlgebra.Matrix.PosDef
-public import Mathlib.Topology.Algebra.Order.Field
-public import Mathlib.Topology.Algebra.Module.FiniteDimension
-public import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
 
 /-!
 # Gradient flow: function-space dynamics and risk dissipation

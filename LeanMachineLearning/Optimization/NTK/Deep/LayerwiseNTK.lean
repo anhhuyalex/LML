@@ -5,12 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Basic
-public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
-public import Mathlib.Analysis.Matrix.Order
-public import Mathlib.LinearAlgebra.Matrix.Hadamard
-public import Mathlib.Algebra.BigOperators.Fin
 
 /-!
 # Exact Layerwise NTK Decomposition and Positive Semidefiniteness (Proposition 2.25)

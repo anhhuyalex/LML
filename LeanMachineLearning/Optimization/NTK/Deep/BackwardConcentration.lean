@@ -6,8 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Deep.BackwardInduction
-public import LeanMachineLearning.Optimization.NTK.Deep.GaussianDecoupling
-public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutConcentration
 
 /-!
 # Backward Sensitivity Concentration and Theorem 2.27

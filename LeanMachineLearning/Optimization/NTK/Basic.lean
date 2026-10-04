@@ -6,10 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Approximation.Basic
-public import Mathlib.Analysis.InnerProductSpace.Basic
-public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-public import Mathlib.Probability.Distributions.Gaussian.Real
-public import Mathlib.Analysis.Calculus.FDeriv.Basic
 
 /-!
 # Scaled shallow networks and Taylor linearization near initialization

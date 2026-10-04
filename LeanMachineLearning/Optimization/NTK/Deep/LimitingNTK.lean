@@ -5,17 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Basic
-public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
-public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
 public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
-public import LeanMachineLearning.Optimization.NTK.Initialization.CovariancePropagation
-public import LeanMachineLearning.Optimization.NTK.Initialization.MultilayerNNGP
 public import LeanMachineLearning.Optimization.NTK.Initialization.FullNTK
-public import LeanMachineLearning.Optimization.NTK.ReLU.ChoSaul
-public import Mathlib.Analysis.Matrix.Order
-public import Mathlib.LinearAlgebra.Matrix.Hadamard
-public import Mathlib.Algebra.BigOperators.Fin
 
 /-!
 # Limiting Deep Neural Tangent Kernel and Backward Recurrence (Proposition 2.27)

@@ -5,7 +5,6 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
 

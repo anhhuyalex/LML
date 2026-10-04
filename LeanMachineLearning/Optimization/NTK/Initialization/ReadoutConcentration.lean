@@ -6,7 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.DeepNNGPTheorems
-public import LeanMachineLearning.Optimization.NTK.Initialization.ConditionalConcentration
 
 /-!
 # Concentration of Gaussian-Weighted Averages (Readout Layer)

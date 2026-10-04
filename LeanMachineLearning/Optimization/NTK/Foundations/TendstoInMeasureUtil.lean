@@ -5,10 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.MeasureTheory.Function.ConvergenceInMeasure
-public import Mathlib.MeasureTheory.Integral.Lebesgue.Add
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
-public import Mathlib.Topology.Instances.Matrix
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 
 /-!

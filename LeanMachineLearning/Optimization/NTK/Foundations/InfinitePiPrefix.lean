@@ -6,7 +6,6 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Probability.Independence.InfinitePi
-public import Mathlib.Probability.ProductMeasure
 
 /-!
 # Prefix restriction of infinite product measures
