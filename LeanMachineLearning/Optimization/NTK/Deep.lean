@@ -34,7 +34,7 @@ Tangent Kernel (depth `d ≥ 1`), structured as follows:
   measure.
   (The Gaussian matrix algebra, including Lemma 2.26, lives in
   `Initialization/GaussianMatrixAlgebra.lean`.)
-* `NTK.Deep.LayerSplit`, `NTK.Deep.DeepSpaceForward`: the Gaussian space `DeepSpace d` of weight
+* `NTK.Deep.LayerSplit`, `NTK.Deep.DeepSpaceForward`: the product of the first `d` Gaussian weight
   populations, the split of one layer from the rest (a measure-preserving map onto a product), and
   forward Gram concentration on that space.
 * `NTK.Deep.BackwardAlgebra`, `NTK.Deep.DecouplingBounds`, `NTK.Deep.BackwardStructure`: the

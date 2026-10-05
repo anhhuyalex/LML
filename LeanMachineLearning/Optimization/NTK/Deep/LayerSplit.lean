@@ -11,17 +11,17 @@ public import LeanMachineLearning.Optimization.NTK.Deep.Architecture
 # Splitting One Weight Layer from the Rest of the Initialization
 
 The deep NTK parameters are read from the product space
-`DeepSpace d = (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)` (the first `d` infinite weight populations and the
-readout) with the product of standard Gaussians, `𝒩(0,1)^{⊗ DeepSpace d}`. To condition on
+`(Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)` (the first `d` infinite weight populations and the
+readout) with the product of standard Gaussians. To condition on
 everything except
 one layer `i₀`, we use
 
 * the split `ω ↦ (Function.update ω.1 i₀ 0, ω.2)` zeroes the `i₀`-th population of `ω`,
-* `layerBlock n L`: the top-left `n × n` block of a population, i.e. the weight matrix actually
-  used by a width-`n` network.
+* `fun j i ↦ L j.val i.val`: the top-left `n × n` block of a population, i.e. the weight matrix
+  actually used by a width-`n` network.
 
-`measurePreserving_layerSplit` states that `(ω ↦ zeroed ω, layerBlock n ∘ eval i₀)` is a measure
-preserving map from `𝒩(0,1)^{⊗ DeepSpace d}` onto the product of the law of the rest with
+`measurePreserving_layerSplit` states that `(ω ↦ zeroed ω, fun j i ↦ (ω.1 i₀) j.val i.val)` is a
+measure preserving map onto the product of the law of the rest with
 `𝒩(0,1)^{n×n}`: the layer is independent of the rest and its block is a standard Gaussian
 matrix. This is the interface between the concrete network and the conditional Chebyshev bounds
 of `Initialization/GaussianConditioning.lean`.
@@ -34,24 +34,20 @@ open MeasureTheory ProbabilityTheory
 
 namespace NTK
 
-/-- The weight populations of the first `d` layers and the readout. -/
-abbrev DeepSpace (d : ℕ) := (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)
-
-/-- Finite-width network parameters read from a point of `DeepSpace d`. -/
-noncomputable def deepParams (d n0 n : ℕ) (ω : DeepSpace d) : DeepMLPParams d n0 n :=
+/-- Finite-width network parameters read from the weight-population/readout product. -/
+noncomputable def deepParams (d n0 n : ℕ) (ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) :
+    DeepMLPParams d n0 n :=
   DeepMLPParams.ofTensor d n0 n (fun k => if h : k < d then ω.1 ⟨k, h⟩ else 0) ω.2
 
-/-- The top-left `n × n` block of a weight population. -/
-def layerBlock (n : ℕ) (L : ℕ → ℕ → ℝ) : Fin n → Fin n → ℝ := fun j i => L j.val i.val
-
-/-- The `n × n` block extraction `layerBlock n` is measurable. -/
-lemma measurable_layerBlock (n : ℕ) : Measurable (layerBlock n) :=
+/-- The top-left `n × n` block restriction is measurable. -/
+lemma measurable_layerBlock (n : ℕ) : Measurable (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) :=
   measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun i =>
     (measurable_pi_apply i.val).comp (measurable_pi_apply j.val)
 
 /-- Replacing the `i₀`-th weight population by `0` is measurable. -/
 lemma measurable_zeroLayer {d : ℕ} (i₀ : Fin d) :
-    Measurable (fun ω : DeepSpace d => (Function.update ω.1 i₀ 0, ω.2)) := by
+    Measurable (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+      (Function.update ω.1 i₀ 0, ω.2)) := by
   refine Measurable.prodMk ?_ measurable_snd
   refine measurable_pi_iff.2 fun i => ?_
   by_cases h : i = i₀
@@ -62,7 +58,8 @@ lemma measurable_zeroLayer {d : ℕ} (i₀ : Fin d) :
 /-- The `n × n` block of a standard Gaussian population is a standard Gaussian matrix. -/
 theorem map_layerBlock_infinitePi (n : ℕ) :
     (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).map
-      (layerBlock n) = (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
+      (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) =
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
           gaussianReal 0 1) := by
   let cols : (ℕ → ℕ → ℝ) → (ℕ → Fin n → ℝ) := fun L j i => L j i.val
   let rows : (ℕ → Fin n → ℝ) → (Fin n → Fin n → ℝ) := fun R j => R j.val
@@ -79,7 +76,7 @@ theorem map_layerBlock_infinitePi (n : ℕ) :
       gaussianReal 0 1)).map rows =
       Measure.pi fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
     (measurePreserving_prefixMap (Measure.pi fun _ : Fin n => gaussianReal 0 1) n).map_eq
-  have hcomp : layerBlock n = rows ∘ cols := rfl
+  have hcomp : (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) = rows ∘ cols := rfl
   rw [hcomp, ← Measure.map_map hrows hcols, hA, hB]
 
 /-- Independence of one factor of a product measure's pair from a third coordinate:
@@ -117,8 +114,9 @@ theorem indepFun_prod_of_indepFun_fst {α β γ δ : Type*} [MeasurableSpace α]
 /-- Under the product Gaussian measure, one layer is independent of the other layers and the
 readout. -/
 theorem indepFun_layer_zeroLayer {d : ℕ} (i₀ : Fin d) :
-    IndepFun (fun ω : DeepSpace d => ω.1 i₀)
-      (fun ω : DeepSpace d => (Function.update ω.1 i₀ 0, ω.2)) ((Measure.pi fun _ : Fin d =>
+    IndepFun (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) => ω.1 i₀)
+      (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) => (Function.update ω.1 i₀ 0, ω.2))
+      ((Measure.pi fun _ : Fin d =>
           Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
               (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
   classical
@@ -152,37 +150,43 @@ theorem indepFun_layer_zeroLayer {d : ℕ} (i₀ : Fin d) :
     (measurable_zeroLayer i₀).fst.comp (measurable_id.prodMk (measurable_const (a := 0)))
   exact indepFun_prod_of_indepFun_fst _ _ (measurable_pi_apply i₀) hB' h3
 
-/-- **Layer splitting.** `ω ↦ ((Function.update ω.1 i₀ 0, ω.2), layerBlock n (ω.1 i₀))` is measure
-preserving from `𝒩(0,1)^{⊗ DeepSpace d}` to the product of the law of `ω ↦ (Function.update ω.1 i₀
-0, ω.2)`
-with `𝒩(0,1)^{n×n}`. -/
+/-- **Layer splitting.** `ω ↦ ((Function.update ω.1 i₀ 0, ω.2), fun j i ↦ (ω.1 i₀) j.val i.val)`
+is measure preserving from the initialization law to the product of the law of
+`ω ↦ (Function.update ω.1 i₀ 0, ω.2)` with `𝒩(0,1)^{n×n}`. -/
 theorem measurePreserving_layerSplit {d : ℕ} (i₀ : Fin d) (n : ℕ) :
     MeasurePreserving
-      (fun ω : DeepSpace d => ((Function.update ω.1 i₀ 0, ω.2), layerBlock n (ω.1 i₀)))
+      (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+        ((Function.update ω.1 i₀ 0, ω.2), fun j i => (ω.1 i₀) j.val i.val))
       ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
           gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
       ((((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ
           => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
-              (fun ω : DeepSpace d => (Function.update ω.1 i₀ 0, ω.2))).prod
+              (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+                (Function.update ω.1 i₀ 0, ω.2))).prod
         (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1)) := by
-  have hev : Measurable fun ω : DeepSpace d => layerBlock n (ω.1 i₀) :=
+  have hev : Measurable fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+      fun j i => (ω.1 i₀) j.val i.val :=
     (measurable_layerBlock n).comp ((measurable_pi_apply i₀).comp measurable_fst)
   have hlaw : ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _
       : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
-          (fun ω : DeepSpace d => layerBlock n (ω.1 i₀)) =
+          (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) => fun j i => (ω.1 i₀) j.val i.val) =
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-    have h1 : (fun ω : DeepSpace d => layerBlock n (ω.1 i₀)) =
-        (layerBlock n ∘ fun w : Fin d → ℕ → ℕ → ℝ => w i₀) ∘ Prod.fst := rfl
+    have h1 : (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+        fun j i => (ω.1 i₀) j.val i.val) =
+        ((fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) ∘
+          fun w : Fin d → ℕ → ℕ → ℝ => w i₀) ∘ Prod.fst := rfl
     rw [h1, ← Measure.map_map ((measurable_layerBlock n).comp (measurable_pi_apply i₀))
       measurable_fst]
     rw [Measure.map_fst_prod]
     simp only [measure_univ, one_smul]
     have := (measurePreserving_eval (fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) i₀).map_eq
-    calc Measure.map (layerBlock n ∘ fun w : Fin d → ℕ → ℕ → ℝ => w i₀)
+    calc Measure.map ((fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) ∘
+        fun w : Fin d → ℕ → ℕ → ℝ => w i₀)
           (Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
             Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-        = Measure.map (layerBlock n) (Measure.map (fun w : Fin d → ℕ → ℕ → ℝ => w i₀)
+        = Measure.map (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val)
+          (Measure.map (fun w : Fin d → ℕ → ℕ → ℝ => w i₀)
           (Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
             Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) :=
           (Measure.map_map (measurable_layerBlock n) (measurable_pi_apply i₀)).symm

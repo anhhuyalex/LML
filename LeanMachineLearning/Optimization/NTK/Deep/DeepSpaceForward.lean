@@ -9,10 +9,10 @@ public import LeanMachineLearning.Optimization.NTK.Deep.GaussianDecoupling
 public import LeanMachineLearning.Optimization.NTK.Deep.BackwardStructure
 
 /-!
-# Forward Concentration on `DeepSpace`
+# Forward Concentration on `population/readout product`
 
 The forward results of `Initialization/DeepNNGPTheorems.lean` are stated on the product of the
-first `d` Gaussian weight populations. The backward induction works on `DeepSpace d` (these
+first `d` Gaussian weight populations. The backward induction works on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))` (these
 populations together with the readout), where the readout is available. This file transports
 the forward results there (`Prod.fst` is measure preserving):
 
@@ -31,7 +31,7 @@ open scoped Matrix
 namespace NTK
 
 /-- Transport of convergence in measure from the `Fin d`-indexed weight populations to
-`DeepSpace d` for families that ignore the readout. -/
+`((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))` for families that ignore the readout. -/
 theorem tendstoInMeasure_deepSpace_of_prefix (d : ℕ)
     (F : ℕ → (Fin d → ℕ → ℕ → ℝ) → ℝ) (c : ℝ) (hF : ∀ n, Measurable (F n))
     (h : TendstoInMeasure
@@ -40,13 +40,13 @@ theorem tendstoInMeasure_deepSpace_of_prefix (d : ℕ)
       F atTop (fun _ => c)) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
-            gaussianReal 0 1)) (fun n (ω : DeepSpace d) => F n ω.1) atTop
+            gaussianReal 0 1)) (fun n (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => F n ω.1) atTop
       (fun _ => c) :=
   tendstoInMeasure_comp_measurePreserving h measurePreserving_fst hF measurable_const
 
 variable {d n0 m : ℕ}
 
-/-- **Feature-covariance convergence on `DeepSpace`.** -/
+/-- **Feature-covariance convergence on `population/readout product`.** -/
 theorem deepSpace_featureCov_tendsto (φ ψ : ℝ → ℝ) (hφ_cont : Continuous φ)
     (hψ_cont : Continuous ψ) (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
     (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
@@ -56,7 +56,7 @@ theorem deepSpace_featureCov_tendsto (φ ψ : ℝ → ℝ) (hφ_cont : Continuou
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         ψ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) *
         ψ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ b j))
       atTop
@@ -77,7 +77,7 @@ theorem deepSpace_featureCov_tendsto (φ ψ : ℝ → ℝ) (hφ_cont : Continuou
     simp only [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X _ _ ℓ hℓ]
   · rfl
 
-/-- **Activation-Gram convergence on `DeepSpace`:**
+/-- **Activation-Gram convergence on `population/readout product`:**
 `n⁻¹ ⟨φ(h_ℓ^a), φ(h_ℓ^b)⟩ → Σ^{ℓ+1}_{ab}`. -/
 theorem deepSpace_activationGram_tendsto (φ : ℝ → ℝ) (hφ_cont : Continuous φ) (C : ℝ)
     (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p) (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
@@ -85,7 +85,7 @@ theorem deepSpace_activationGram_tendsto (φ : ℝ → ℝ) (hφ_cont : Continuo
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) => (n : ℝ)⁻¹ * ∑ j : Fin n,
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => (n : ℝ)⁻¹ * ∑ j : Fin n,
         φ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ a j) *
         φ (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨ℓ, hℓ⟩ b j))
       atTop

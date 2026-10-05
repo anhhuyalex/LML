@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.Optimization.NTK.Deep.BackwardTop
 
 /-!
-# The Joint Downward Induction on `DeepSpace`
+# The Joint Downward Induction on `population/readout product`
 
 The backward Gram convergence `C(ℓ)` (`G_ℓ^{ab} → Π^ℓ_{ab}` for all pairs) and the
 gradient-independence invariant `I(ℓ)` (`n⁻¹ ⟨h_ℓ^b, g_ℓ^a⟩ → 0` for all pairs) are proved together
@@ -20,7 +20,7 @@ by downward induction on `ℓ = d - 1, …, 0`:
   `decoupling_tendsto` together with `G_{ℓ+1} → Π^{ℓ+1}` and `Φ'_ℓ → Σ̇^ℓ` gives `C(ℓ)` (the limit
   recursion `Π^ℓ = Σ̇^ℓ ⊙ Π^{ℓ+1}` is `deepLimitingSensitivityKernel_step`).
 
-The result `deepSpace_sensitivity_induction` is stated on `DeepSpace d` and transported to the
+The result `deepSpace_sensitivity_induction` is stated on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))` and transported to the
 `(W, w_out)` product space in `Deep/BackwardConcentration.lean`.
 -/
 
@@ -45,12 +45,12 @@ lemma deepParams_prefix (hd : 0 < d) (n : ℕ) (q : (ℕ → ℕ → ℕ → ℝ
     have : ℓ.val + 1 < d := by have := ℓ.2; omega
     simp [this]
 
-/-- The backward Gram entries are measurable functions of the point of `DeepSpace`. -/
+/-- The backward Gram entries are measurable functions of the point of `population/readout product`. -/
 lemma measurable_sensitivityGram_entry (hφ : Measurable φ) (hφ' : Measurable φ') (n k : ℕ)
     (hk : k < d) (a b : Fin m) :
-    Measurable fun ω : DeepSpace d =>
+    Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
       deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b := by
-  have : ∀ ω : DeepSpace d, deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω)
+  have : ∀ ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)), deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω)
       ⟨k, by omega⟩ a b = (n : ℝ)⁻¹ * ∑ j : Fin n,
         backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a j *
         backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ b j := by
@@ -62,10 +62,10 @@ lemma measurable_sensitivityGram_entry (hφ : Measurable φ) (hφ' : Measurable 
     (measurable_backwardSensitivity (paramsMeasurable_deepParams d n0 n) hφ hφ' X ⟨k, hk⟩ a j).mul
       (measurable_backwardSensitivity (paramsMeasurable_deepParams d n0 n) hφ hφ' X ⟨k, hk⟩ b j))
 
-/-- The derivative Gram entries are measurable functions of the point of `DeepSpace`. -/
+/-- The derivative Gram entries are measurable functions of the point of `population/readout product`. -/
 lemma measurable_derivativeGram_entry (hφ : Measurable φ) (hφ' : Measurable φ') (n k : ℕ)
     (hk : k < d) (a b : Fin m) :
-    Measurable fun ω : DeepSpace d =>
+    Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
       deepDerivativeGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b := by
   simp only [deepDerivativeGram, Matrix.of_apply, dotProduct]
   exact measurable_const.mul (Finset.measurable_sum _ fun j _ =>
@@ -73,12 +73,12 @@ lemma measurable_derivativeGram_entry (hφ : Measurable φ) (hφ' : Measurable �
       (hφ'.comp (measurable_netPre hφ X n ⟨k, hk⟩ b j)))
 
 include A in
-/-- `Φ'_k → Σ̇^k` entrywise on `DeepSpace`. -/
+/-- `Φ'_k → Σ̇^k` entrywise on `population/readout product`. -/
 lemma derivGram_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) =>
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
         deepDerivativeGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop
       (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp a) * φ' (z.ofLp b)
         ∂multivariateGaussian 0
@@ -88,7 +88,7 @@ lemma derivGram_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
       simp [deepDerivativeGram, dotProduct]
 
 include A in
-/-- **The joint downward induction on `DeepSpace`**: for every layer `k < d`, the backward Gram
+/-- **The joint downward induction on `population/readout product`**: for every layer `k < d`, the backward Gram
 entries converge to the limiting backward kernel `Π^k`, and gradient independence holds. -/
 theorem deepSpace_sensitivity_induction (hd : 0 < d)
     (hnd : ∀ ℓ : ℕ, 1 ≤ ℓ → ℓ < d →
@@ -97,27 +97,27 @@ theorem deepSpace_sensitivity_induction (hd : 0 < d)
     (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) =>
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b) atTop
       (fun _ => deepLimitingSensitivityKernel d m φ φ'
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ⟨k, by omega⟩ a b)) ∧
     (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) =>
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop (fun _ => 0)) := by
   suffices key : ∀ j : ℕ, ∀ k : ℕ, ∀ hk : k < d, k + j = d - 1 →
       (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
           Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
               gaussianReal 0 1))
-        (fun (n : ℕ) (ω : DeepSpace d) =>
+        (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
           deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b) atTop
         (fun _ => deepLimitingSensitivityKernel d m φ φ'
           (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) ⟨k, by omega⟩ a b)) ∧
       (∀ a b : Fin m, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
           Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
               gaussianReal 0 1))
-        (fun (n : ℕ) (ω : DeepSpace d) =>
+        (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
           gradIndep φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop (fun _ => 0)) from
     key (d - 1 - k) k hk (by omega)
   intro j
@@ -149,7 +149,7 @@ theorem deepSpace_sensitivity_induction (hd : 0 < d)
     have hG : ∀ c c' : Fin m, ∃ c0 : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d =>
         Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
             (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
-        (fun (n : ℕ) (ω : DeepSpace d) =>
+        (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
           deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k + 1, by omega⟩ c c')
         atTop (fun _ => c0) := fun c c' => ⟨_, hC c c'⟩
     refine ⟨fun a b => ?_, fun a b => gradIndep_step_tendsto A X k hk1 hpd hG hI a b⟩

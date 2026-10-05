@@ -98,6 +98,7 @@ public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
+public import LeanMachineLearning.Optimization.NTK.Foundations.InfinitePiPrefix
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.ODE

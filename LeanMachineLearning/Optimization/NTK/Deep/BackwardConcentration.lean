@@ -16,9 +16,9 @@ resulting convergence of the deep empirical NTK (Theorem 2.27).
 
 The hard core, the decoupling approximation `G_k - G_{k+1} · Φ'_k → 0` (`decoupling_tendsto`; its
 proof by Gaussian conditioning on the projected part, an Isserlis variance bound and the
-gradient-independence invariant lives on `DeepSpace`, in `Deep/BackwardDecoupling.lean` and
+gradient-independence invariant lives on `population/readout product`, in `Deep/BackwardDecoupling.lean` and
 `Deep/BackwardInduction.lean`), and the top hidden layer (`sensitivityGram_top_tendsto`,
-`Deep/BackwardTop.lean`) are proved on `DeepSpace` and not transported separately to the
+`Deep/BackwardTop.lean`) are proved on `population/readout product` and not transported separately to the
 `(W, w_out)` product space.
 
 * `NTK.deepSensitivityGram_entry_tendstoInMeasure`: the downward induction
@@ -43,7 +43,7 @@ backward Gram entry `G_k^{(n), αβ} = n⁻¹ ⟨g_k^α, g_k^β⟩` (`deepSensit
 measure to the limiting backward covariance `Π^k_{αβ}` (`deepLimitingSensitivityKernel`).
 
 Downward induction on `k`, carried out jointly with the gradient-independence invariant
-`I(k): n⁻¹ ⟨h_k^b, g_k^a⟩ → 0` on `DeepSpace` (`deepSpace_sensitivity_induction`). The top hidden
+`I(k): n⁻¹ ⟨h_k^b, g_k^a⟩ → 0` on `population/readout product` (`deepSpace_sensitivity_induction`). The top hidden
 layer is `sensitivityGram_top_tendsto` (limit `Σ̇^{d-1} = Π^{d-1}`, as `Π^d = 1`). For `k + 1 < d`,
 `G_k ≈ G_{k+1} · Φ'_k` (`decoupling_tendsto`), the induction hypothesis gives `G_{k+1} → Π^{k+1}`,
 the derivative Gram converges to `Σ̇^k` (`derivGram_tendsto`), and `tendstoInMeasure_mul` combines

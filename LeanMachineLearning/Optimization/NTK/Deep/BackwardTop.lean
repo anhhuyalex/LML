@@ -12,12 +12,12 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutLinearC
 # The Top Hidden Layer: Base Cases of the Backward Induction
 
 At `ℓ = d - 1` the sensitivity is `g_{d-1} = W_d ⊙ φ'(h_{d-1})` with an independent Gaussian readout
-`W_d`. This file proves, on `DeepSpace d`, the two base cases of the joint downward induction:
+`W_d`. This file proves, on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))`, the two base cases of the joint downward induction:
 
 * `gradIndep_top_tendsto`: `I(d-1)`, i.e. `n⁻¹ ⟨h_{d-1}^b, g_{d-1}^a⟩ → 0` (a centred Gaussian
   linear form in the readout);
 * `sensitivityGram_top_tendsto`: `G_{d-1}^{ab} → ∫ φ'φ' d𝒩(0, Σ^{d-1})` (the weighted Gaussian
-  average of `Deep/BackwardConcentration.lean`, transported to `DeepSpace`).
+  average of `Deep/BackwardConcentration.lean`, transported to `population/readout product`).
 -/
 
 @[expose]
@@ -31,14 +31,14 @@ namespace NTK
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
 /-- The forward pass does not read the readout `Wd`: it depends on `ω` only through `ω.1`. -/
-lemma preactivation_deepParams_readout (n : ℕ) (ω : DeepSpace d) (v : ℕ → ℝ) (ℓ : Fin d) :
+lemma preactivation_deepParams_readout (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (v : ℕ → ℝ) (ℓ : Fin d) :
     deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (ω.1, v)) ℓ =
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ℓ :=
   deepMLPPreactivation_congr_prefix φ X _ _ ℓ rfl fun _ _ => rfl
 
-/-- `netDeriv` does not depend on the readout component of a `DeepSpace` point: replacing it by any
+/-- `netDeriv` does not depend on the readout component of a `population/readout product` point: replacing it by any
 `v` leaves it unchanged. -/
-lemma netDeriv_deepParams_readout (n : ℕ) (ω : DeepSpace d) (v : ℕ → ℝ) (ℓ : Fin d) (a : Fin m) :
+lemma netDeriv_deepParams_readout (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (v : ℕ → ℝ) (ℓ : Fin d) (a : Fin m) :
     netDeriv φ φ' X (deepParams d n0 n (ω.1, v)) ℓ a =
       netDeriv φ φ' X (deepParams d n0 n ω) ℓ a := by
   funext j
@@ -51,7 +51,7 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) =>
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
         gradIndep φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a b) atTop (fun _ => 0) := by
   have hφm : Measurable φ := A.cont.measurable
   have hφ'm : Measurable φ' := A.cont'.measurable
@@ -62,17 +62,17 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
     deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (w, fun _ => 0)) ⟨d - 1, by omega⟩ b j *
       netDeriv φ φ' X (deepParams d n0 n (w, fun _ => 0)) ⟨d - 1, by omega⟩ a j
   have hmeas0 : ∀ n : ℕ, Measurable (fun w : Fin d → ℕ → ℕ → ℝ => ((w, fun _ => (0 : ℝ)) :
-      DeepSpace d)) := fun n => measurable_id.prodMk measurable_const
+      ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)))) := fun n => measurable_id.prodMk measurable_const
   have hy : ∀ n j, Measurable fun w => yv n w j := by
     intro n j
     exact ((measurable_netPre hφm X n ⟨d - 1, by omega⟩ b j).comp (hmeas0 n)).mul
       (hφ'm.comp ((measurable_netPre hφm X n ⟨d - 1, by omega⟩ a j).comp (hmeas0 n)))
-  have hF4 : ∀ (F : ∀ n : ℕ, DeepSpace d → ℝ) (c : ℝ),
+  have hF4 : ∀ (F : ∀ n : ℕ, ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) → ℝ) (c : ℝ),
       (∀ n, Measurable (fun w : Fin d → ℕ → ℕ → ℝ => F n (w, fun _ => 0))) →
-      (∀ n (ω : DeepSpace d), F n ω = F n (ω.1, fun _ => 0)) →
+      (∀ n (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))), F n ω = F n (ω.1, fun _ => 0)) →
       TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
           Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
-              gaussianReal 0 1)) (fun (n : ℕ) (ω : DeepSpace d) => F n ω) atTop
+              gaussianReal 0 1)) (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => F n ω) atTop
         (fun _ => c) →
       TendstoInMeasure π (fun (n : ℕ) (w : Fin d → ℕ → ℕ → ℝ) => F n (w, fun _ => 0)) atTop
         (fun _ => c) := by
@@ -120,13 +120,13 @@ theorem gradIndep_top_tendsto (hd : 0 < d) (a b : Fin m) :
   ring
 
 include A in
-/-- **`C(d-1)`: the top-layer sensitivity Gram converges** on `DeepSpace`:
+/-- **`C(d-1)`: the top-layer sensitivity Gram converges** on `population/readout product`:
 `G_{d-1}^{ab} → ∫ φ'φ' d𝒩(0, Σ^{d-1})`. -/
 theorem sensitivityGram_top_tendsto (hd : 0 < d) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : DeepSpace d) =>
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
         deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨d - 1, by omega⟩ a b)
       atTop
       (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp a) * φ' (z.ofLp b)

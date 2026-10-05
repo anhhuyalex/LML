@@ -213,22 +213,22 @@ lemma measurable_backwardSensitivity {θ : Z → DeepMLPParams d n0 n} (hθ : Pa
 
 end measurability
 
-/-! ### The parameters read from `DeepSpace`, and the layer substitution -/
+/-! ### The parameters read from `population/readout product`, and the layer substitution -/
 
 section deepSpace
 
 variable (d n0 n)
 
-/-- Entries of the zero-padded prefix weight tensor of a `DeepSpace` point are measurable. -/
+/-- Entries of the zero-padded prefix weight tensor of a `population/readout product` point are measurable. -/
 lemma measurable_prefixTensor_entry (k j i : ℕ) :
-    Measurable fun ω : DeepSpace d => (if h : k < d then ω.1 ⟨k, h⟩ else 0) j i := by
+    Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => (if h : k < d then ω.1 ⟨k, h⟩ else 0) j i := by
   by_cases h : k < d
   · simp only [h, dite_true]
     exact (measurable_pi_apply i).comp ((measurable_pi_apply j).comp
       ((measurable_pi_apply (⟨k, h⟩ : Fin d)).comp measurable_fst))
   · simp only [h, dite_false]; exact measurable_const
 
-/-- `deepParams d n0 n` is a measurable family of parameter records on `DeepSpace`. -/
+/-- `deepParams d n0 n` is a measurable family of parameter records on `population/readout product`. -/
 lemma paramsMeasurable_deepParams : ParamsMeasurable (deepParams d n0 n) where
   W0 j i := measurable_prefixTensor_entry d 0 j.val i.val
   Wh ℓ j i := measurable_prefixTensor_entry d (ℓ.val + 1) j.val i.val
@@ -240,10 +240,10 @@ variable {d n0 n}
 with that population zeroed.**
 With `i₀ = k + 1` the weight population feeding `Wh k`: the network at `ω` is the network at
 `(Function.update ω.1 i₀ 0, ω.2)` with `Wh k` replaced by the `n × n` block of `ω.1 i₀`. -/
-lemma deepParams_eq_updateWh (k : Fin (d - 1)) (ω : DeepSpace d) :
+lemma deepParams_eq_updateWh (k : Fin (d - 1)) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) :
     deepParams d n0 n ω =
       (deepParams d n0 n (Function.update ω.1 (⟨k.val + 1, by omega⟩ : Fin d) 0, ω.2)).updateWh k
-        (Matrix.of (layerBlock n (ω.1 ⟨k.val + 1, by omega⟩))) := by
+        (Matrix.of (fun j i => (ω.1 ⟨k.val + 1, by omega⟩) j.val i.val)) := by
   have hk := k.2
   simp only [deepParams, DeepMLPParams.ofTensor, DeepMLPParams.updateWh,
     DeepMLPParams.mk.injEq]
