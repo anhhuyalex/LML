@@ -61,6 +61,7 @@ structure BetaSmooth (σ : ℝ → ℝ) (β : ℝ) : Prop where
   /-- Second derivative is bounded: `|σ''(z)| ≤ β`. -/
   hessian_bound   : ∀ z : ℝ, |deriv (deriv σ) z| ≤ β
 
+/-- The smoothness constant of a `β`-smooth activation is nonnegative. -/
 lemma BetaSmooth.β_nonneg {σ : ℝ → ℝ} {β : ℝ} (h : BetaSmooth σ β) : 0 ≤ β :=
   (abs_nonneg (deriv (deriv σ) 0)).trans (h.hessian_bound 0)
 
@@ -377,6 +378,7 @@ private lemma setIntegral_const_abs_bound (a : ℝ) (_ha : 0 ≤ a) (c : ℝ) :
   have : a + a = 2 * a := by ring
   rw [this, smul_eq_mul]
 
+/-- Small-ball bound for a centered Gaussian of variance `v`: `ℙ(|z| ≤ a) ≤ 2a / √(2π v)`. -/
 lemma gaussianReal_Icc_bound (v : ℝ≥0) (hv : 0 < v) (a : ℝ) (ha : 0 ≤ a) :
     (gaussianReal 0 v).real {z | |z| ≤ a} ≤ 2 * a / Real.sqrt (2 * Real.pi * v) := by
   have hv_ne : v ≠ 0 := ne_of_gt hv
@@ -401,6 +403,8 @@ lemma gaussianReal_Icc_bound (v : ℝ≥0) (hv : 0 < v) (a : ℝ) (ha : 0 ≤ a)
   exact h2.trans_eq h3
 
 
+/-- For a standard Gaussian row `w`, the probability that `|w ⬝ x| ≤ τ ‖x‖` is at most `τ` (the sign
+of the preactivation is ambiguous at scale `τ`). -/
 lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ x) (τ : ℝ) (hτ : 0 < τ) :
     (Measure.pi fun _ : Fin d => gaussianReal 0 1).real {w | |∑ k, w k * x k| ≤ τ * Real.sqrt (x ⬝ᵥ
         x)} ≤ τ := by
@@ -467,6 +471,8 @@ lemma prob_signAmbiguous_le_tau {d : ℕ} (x : Fin d → ℝ) (hx : 0 < x ⬝ᵥ
   rw [h_prob_eq]
   exact h_bound.trans (le_of_eq h_simp) |> fun h => h.trans h_final
 
+/-- Hoeffding bound for the number of coordinates among `m` i.i.d. draws that land in an event `S`
+of probability at most `p`: it exceeds `m p + t` with probability at most `exp (-2 t² / m)`. -/
 lemma hoeffding_indicators_pi
     (m : ℕ) {Ω : Type} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (S : Set Ω) [DecidablePred (· ∈ S)] (hS : MeasurableSet S) (p : ℝ) (hp : μ.real S ≤ p)
@@ -693,6 +699,7 @@ noncomputable def reluDeriv : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 /-- Scaled shallow network with ReLU activation. -/
 abbrev ReLUNetwork (d m : ℕ) := ShallowNetwork relu d m
 
+/-- A neuron outside the bad set contributes no linearization error. -/
 lemma relu_error_eq_zero_outside_badSet
     {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ) (hτ : 0 < τ)
@@ -710,6 +717,7 @@ lemma relu_error_eq_zero_outside_badSet
     push Not at h_W
     rw [max_eq_right h_W.le, zero_mul, sub_zero, mul_zero]
 
+/-- Per-neuron ReLU linearization error: `|relu a - relu'(b) · a| ≤ |a - b|`. -/
 lemma relu_linearization_error_le (a b : ℝ) :
     |relu a - reluDeriv b * a| ≤ |a - b| := by
   dsimp [relu, reluDeriv]
@@ -732,6 +740,7 @@ lemma relu_linearization_error_le (a b : ℝ) :
     · rw [max_eq_right ha, abs_zero]
       exact abs_nonneg _
 
+/-- `relu z = reluDeriv z * z`. -/
 lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluDeriv z * z := by
   dsimp [relu, reluDeriv]
   split_ifs with h
@@ -739,6 +748,8 @@ lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluDeriv z * z := by
   · push Not at h
     rw [max_eq_right h.le, zero_mul]
 
+/-- The ReLU network minus its linearization is `m^{-1/2}` times the sum of the per-neuron
+linearization errors. -/
 lemma relu_eval_sub_linearization_eq
     {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) :
     net.eval x W - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W =
@@ -760,6 +771,7 @@ lemma relu_eval_sub_linearization_eq
   rw [h_dist]
   ring
 
+/-- The error sum reduces to a sum over the bad set, since every other neuron contributes zero. -/
 lemma sum_eq_sum_badSet
     {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ)
@@ -776,6 +788,7 @@ lemma sum_eq_sum_badSet
   · intro j _ hj
     exact h_zero j hj
 
+/-- Bound on the linearization-error sum over a finite set `S` of neurons. -/
 lemma relu_error_sum_le
     {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (S : Finset (Fin m)) :
@@ -804,6 +817,8 @@ lemma relu_error_sum_le
       nlinarith [abs_nonneg (relu (∑ k, W j k * x k) - reluDeriv
           (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)]
 
+/-- Cauchy–Schwarz bound for the perturbation on a set `S` of neurons: `∑_{j ∈ S} |⟨W_j - W₀_j, x⟩|
+≤ √|S| · B` when `‖W - W₀‖_F ≤ B` and `‖x‖ ≤ 1`. -/
 lemma relu_error_cs_bound
     {d m : ℕ} (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (W W₀ : Fin m → Fin d → ℝ) (B : ℝ)
@@ -871,6 +886,7 @@ lemma relu_error_cs_bound
     nlinarith [h_CS_bound, h_nonneg_sum, h_nonneg_RHS]
   exact h_sum_le.trans h_sqrt_le
 
+/-- At most `(B / r)²` neurons are perturbed by more than `r` when `‖W - W₀‖_F ≤ B`. -/
 lemma card_largePerturb_bound
     {d m : ℕ} (W W₀ : Fin m → Fin d → ℝ) (r B : ℝ) (hr : 0 < r)
     (h_frob : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B) :
@@ -912,6 +928,7 @@ lemma card_largePerturb_bound
   rw [div_pow]
   exact (le_div_iff₀ hr_pos).mpr h_bound
 
+/-- `√(x + y) ≤ √x + √y` for nonnegative `x` and `y`. -/
 lemma sqrt_add_le_add_sqrt {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
     Real.sqrt (x + y) ≤ Real.sqrt x + Real.sqrt y := by
   rw [Real.sqrt_le_iff]
@@ -924,19 +941,23 @@ lemma sqrt_add_le_add_sqrt {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
         by rw [Real.sq_sqrt hx, Real.sq_sqrt hy]
     _ = (Real.sqrt x + Real.sqrt y) ^ 2 := by ring
 
+/-- `m^{-1/4} ≤ m^{-1/6}` for `m ≥ 1`. -/
 lemma m_pow_bound (m : ℕ) (hm : 1 ≤ m) : (m : ℝ) ^ (-1/4 : ℝ) ≤ (m : ℝ) ^ (-1/6 : ℝ) :=
   Real.rpow_le_rpow_of_exponent_le (by exact_mod_cast hm) (by norm_num)
 
+/-- `√(B^{2/3}) = B^{1/3}` for `B ≥ 0`. -/
 lemma sqrt_B_pow (B : ℝ) (hB : 0 ≤ B) : Real.sqrt (B ^ (2/3 : ℝ)) = B ^ (1/3 : ℝ) := by
   rw [Real.sqrt_eq_rpow, ← Real.rpow_mul hB]
   congr 1
   norm_num
 
+/-- `√(m^{-1/3}) = m^{-1/6}`. -/
 lemma sqrt_m_pow (m : ℕ) (_hm : 1 ≤ m) : Real.sqrt ((m : ℝ) ^ (-1/3 : ℝ)) = (m : ℝ) ^ (-1/6 : ℝ) :=
     by
   rw [Real.sqrt_eq_rpow, ← Real.rpow_mul (Nat.cast_nonneg m)]
   congr 1; norm_num
 
+/-- `√(√(1 / (2m))) = (2m)^{-1/4}`. -/
 lemma sqrt_sqrt_m_pow (m : ℕ) (_hm : 1 ≤ m) : Real.sqrt (Real.sqrt (1 / (2 * (m : ℝ)))) =
     (2 * (m : ℝ)) ^ (-1/4 : ℝ) := by
   have hm_pos : 0 ≤ 2 * (m : ℝ) := by positivity
@@ -963,6 +984,9 @@ private lemma sqrt_two_mul_b_rpow_le
     exact Real.sqrt_le_sqrt (by norm_num)
   exact mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right h2 (by positivity)) (by positivity)
 
+/-- Algebraic estimate used to tidy the exponents in `reluLinearizationBound`: for `r = B^{2/3} /
+m^{1/3}` the quantity `B / √m · √(m r + √(m / 2 · log (1/δ)) + (B/r)²)` is at most `(2 B^{4/3} +
+B (log (1/δ))^{1/4}) / m^{1/6}`. -/
 lemma reluLinearization_algebraic_bound
     (m : ℕ) (hm : 1 ≤ m) (B δ : ℝ) (hB : 0 ≤ B) (hδ : 0 < δ) (hδ1 : δ < 1) :
     let r := B ^ (2/3 : ℝ) / (m : ℝ) ^ (1/3 : ℝ)
@@ -1122,6 +1146,7 @@ lemma reluLinearization_algebraic_bound
       rw [h1]
       ring
 
+/-- The Frobenius norm of a matrix vanishes iff the matrix is zero. -/
 lemma sqrt_sum_sq_eq_zero {d m : ℕ} (W : Fin m → Fin d → ℝ) :
   Real.sqrt (∑ i : Fin m, ∑ j : Fin d, W i j ^ 2) = 0 ↔ W = 0 := by
   rw [Real.sqrt_eq_zero (Finset.sum_nonneg (fun i _ ↦ Finset.sum_nonneg (fun j _ ↦ sq_nonneg
@@ -1289,6 +1314,8 @@ theorem reluLinearizationBound
     · positivity
   exact le_trans h_diff_S (le_trans h_bound h_alg)
 
+/-- Triangle inequality in Frobenius norm: if `V` and `W` are both within `B` of `W₀`, they are
+within `2B` of each other. -/
 lemma frob_sub_le {d m : ℕ} (V W W₀ : Fin m → Fin d → ℝ) (B : ℝ) (hB : 0 ≤ B)
     (hV : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) ≤ B)
     (hW : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B) :

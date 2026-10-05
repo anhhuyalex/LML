@@ -825,7 +825,6 @@ theorem outputMeasure_tendsto_multivariateGaussian
   intro t
   exact tendsto_charFun_outputMeasure_eq_multivariateGaussian φ X hφ_meas hφ_L2 t
 
-set_option backward.isDefEq.respectTransparency.types false in
 /-- **Theorem 3 (Asymptotic Convergence in Distribution to NNGP)**:
 As width `n → ∞`, the output vector `f_m(W, a)` under the parameter initialization
 measure converges in distribution to the centered multivariate Gaussian `𝒩(0, Φ^{(∞)})`:
@@ -859,7 +858,7 @@ theorem tendstoInDistribution_evalVector
   aemeasurable_limit := measurable_id.aemeasurable
   tendsto := by
     convert! outputMeasure_tendsto_multivariateGaussian φ X hφ_meas hφ_L2
-    exact Subtype.ext Measure.map_id
+    exact congrArg nhds (Subtype.ext Measure.map_id)
 
 /-- Convergence in distribution of the neural network output vector evaluated on the
 paper's scaled dataset `(1 / √d) * X` to the limiting Gaussian distribution
@@ -948,7 +947,6 @@ theorem map_projection_tendsto_gaussianReal
   intro t
   exact tendsto_charFun_map_projection_eq_gaussianReal φ X hφ_meas hφ_L2 u t
 
-set_option backward.isDefEq.respectTransparency.types false in
 /-- **Theorem (Gaussianity of Linear Combinations / Asymptotic Univariate NNGP)**:
 As width `n → ∞`, the scalar linear combination `S_n(u) = ∑ α, u α * f(X α; θ)` under
 parameter initialization converges in distribution to the centered univariate normal
@@ -986,7 +984,7 @@ theorem tendstoInDistribution_projection
   aemeasurable_limit := measurable_id.aemeasurable
   tendsto := by
     convert! map_projection_tendsto_gaussianReal φ X hφ_meas hφ_L2 u
-    exact Subtype.ext Measure.map_id
+    exact congrArg nhds (Subtype.ext Measure.map_id)
 
 end Theorem3
 

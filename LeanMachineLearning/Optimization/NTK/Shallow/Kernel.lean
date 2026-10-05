@@ -76,10 +76,12 @@ lemma norm_sq_eq_dotProduct (x : EuclideanSpace ℝ (Fin d)) :
   rw [EuclideanSpace.real_norm_sq_eq]
   simpa using (dotProduct_self_eq_sum_sq x.ofLp).symm
 
+/-- `x ⬝ᵥ (fun k => c * y k) = c * (x ⬝ᵥ y)`: a scalar pulls out of a dot product. -/
 lemma dotProduct_mul_right (c : ℝ) (x y : Fin d → ℝ) :
     x ⬝ᵥ (fun k => c * y k) = c * (x ⬝ᵥ y) :=
   dotProduct_smul c x y
 
+/-- `(fun k => c₁ * x k) ⬝ᵥ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⬝ᵥ y)`. -/
 lemma dotProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
     (fun k => c₁ * x k) ⬝ᵥ (fun k => c₂ * y k) = (c₁ * c₂) * (x ⬝ᵥ y) := by
   simp only [dotProduct, Finset.mul_sum]

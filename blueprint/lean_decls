@@ -173,8 +173,6 @@ Approximation.Sampling.barronSamplingBound
 NTK.posSemidef_sum_nonneg
 NTK.dotProduct_self_eq_sum_sq
 NTK.trace_vecMulVec_mul_transpose_vecMulVec
-NTK.trace_transpose_vecMulVec_mul_vecMulVec
-NTK.sum_hadamard_vecMulVec
 NTK.matrix_frobenius_norm_sq
 NTK.vecMulVec_frobenius_norm_sq
 NTK.vecMulVec_frobenius_norm
@@ -207,7 +205,6 @@ MeasureTheory.measureReal_fun_le_ge_one_sub_of_integral_le
 MeasureTheory.measureReal_pi_average_le_ge_one_sub
 MeasureTheory.tendstoInDistribution_of_tendsto_measure_norm_sub
 MeasureTheory.TendstoInDistribution.prodMk_of_tendsto_measure_norm_sub_const
-MeasureTheory.TendstoInDistribution.continuous_comp_prodMk_of_tendsto_measure_norm_sub_const
 MeasureTheory.TendstoInDistribution.sub_const
 MeasureTheory.exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map
 MeasureTheory.memLp_two_of_memLp_two_mul_self
@@ -432,7 +429,6 @@ NTK.tendsto_shallowEmpiricalNTK_chebyshev_bound
 NTK.lazy_training_kernel_freeze_bound
 NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound
 NTK.tendsto_lazy_training_kernel_freeze_matrix
-NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae
 NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae
 NTK.deterministic_initialization_chebyshev_bound
 NTK.hasDerivAt_affineFlowSolution
@@ -510,17 +506,13 @@ NTK.empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq_matrix
 NTK.limitingCovariance
 NTK.limitingFullNTKMatrix
 NTK.limitingFullNTKMatrix_apply
-NTK.limitingFullNTKMatrix_isHermitian
 NTK.limitingFullNTKMatrix_eq_add_hadamard
 NTK.limitingFullNTKMatrix_posSemidef
 NTK.limitingCovariance_posDef_of_ae_independent
 NTK.limitingFullNTKMatrix_posDef_of_ae_independent
-NTK.injective_of_ae_independent
 NTK.measurable_fullNTK_summand
 NTK.integrable_fullNTK_summand
-NTK.integrable_fullNTK_summand_of_memLp
 NTK.memLp_two_fullNTK_summand
-NTK.integrable_sq_fullNTK_summand
 NTK.integral_fullNTK_summand
 NTK.fullNTKSummand_tendsto_integral
 NTK.fullNTKMatrix_tendsto_integral
@@ -740,7 +732,6 @@ NTK.indepFun_layer_history
 NTK.multivariateGaussian_pi_eq_kronecker
 NTK.exact_conditional_normality_layer
 NTK.conditional_preactivations_eq_pi
-NTK.conditional_preactivation_covariance_posSemidef
 NTK.memLp_activation_coordinate_of_polynomial_growth
 NTK.memLp_activation_coordinate_of_polynomial_growth_of_nat
 NTK.memLp_activation_product_of_polynomial_growth
@@ -748,13 +739,10 @@ NTK.conditional_empiricalCovariance_tendstoInMeasure
 NTK.conditional_empiricalCovariance_tendstoInMeasure_of_polynomial_growth
 NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq
 NTK.deepPreactivation
-NTK.deepHistoryWeight
 NTK.deepPreactivation_congr_of_eqOn
 NTK.deepPreactivation_eq_prefix
 NTK.map_infinitePi_input_preactivations
 NTK.indepFun_deepLayer_history
-NTK.map_deepLayer_history_eq_prod
-NTK.deepPreactivation_eq_deepHistoryWeight
 NTK.instPseudoEMetricSpaceMatrix
 NTK.instPseudoMetricSpaceMatrix
 NTK.tendstoInMeasure_comp_of_continuousAt
@@ -790,10 +778,7 @@ NTK.integral_conditional_deepOutput_eq_zero
 NTK.cov_conditional_deepOutput_eq_covariance
 NTK.isStarProjection_matrix_real_iff
 IsStarProjection.transpose_eq
-NTK.transpose_orthogonalComplement
-NTK.orthogonalComplement_idem
 NTK.orthogonalComplement_isOrthogonalProjection
-NTK.mul_orthogonalComplement_self
 NTK.mul_self_orthogonalComplement
 NTK.orthogonalDecomposition
 NTK.residual_annihilates
@@ -809,7 +794,6 @@ NTK.dotProduct_sq_le_mul_self
 NTK.sum_mul_transpose_le_frobSq
 NTK.sum_prod_prod_mul
 NTK.quadForm_mul_mul_transpose
-NTK.gram_transpose
 NTK.scaled_gram_transpose
 NTK.const_matrix_transpose
 NTK.mul_transpose_posSemidef
@@ -823,8 +807,6 @@ NTK.gramProjector_transpose
 NTK.isOrthogonalProjection_gramProjector
 NTK.isOrthogonalProjection_gramProjector_all
 NTK.gramProjector_mul_self
-NTK.trace_gramProjector
-NTK.orthogonalComplement_gramProjector_mul
 NTK.mul_eq_mul_gramProjector_mul
 NTK.transpose_mulVec_eq_gramProjector_add
 NTK.measurable_matrix_entry
@@ -941,8 +923,6 @@ NTK.deepSensitivityGram_terminal
 NTK.deepSensitivityGram_hidden
 NTK.deepActivationGram_transpose
 NTK.deepActivationGram_posSemidef
-NTK.deepDerivativeGram_transpose
-NTK.deepDerivativeGram_posSemidef
 NTK.deepSensitivityGram_transpose
 NTK.deepSensitivityGram_posSemidef
 NTK.backwardSensitivity_congr_of_eqOn
@@ -977,7 +957,6 @@ NTK.indepFun_prod_of_indepFun_fst
 NTK.indepFun_layer_zeroLayer
 NTK.measurePreserving_layerSplit
 NTK.deepActivationGram_entry_tendstoInMeasure
-NTK.deepDerivativeGram_entry_tendstoInMeasure
 NTK.deepSpace_featureCov_tendsto
 NTK.deepSpace_activationGram_tendsto
 NTK.derivGram_tendsto
@@ -998,7 +977,6 @@ NTK.measurable_deepMLPPreactivation
 NTK.measurable_backwardSensitivity
 NTK.measurable_prefixTensor_entry
 NTK.paramsMeasurable_deepParams
-NTK.paramsMeasurable_updateWh
 NTK.paramsMeasurable_updateWh_matrix
 NTK.measurable_nextSens
 NTK.measurable_netPre
@@ -1008,8 +986,6 @@ NTK.measurable_diagDeriv
 NTK.measurable_sensitivityGram_entry
 NTK.measurable_derivativeGram_entry
 NTK.deepParams_eq_updateWh
-NTK.wsq_nonneg
-NTK.avg4_nonneg
 NTK.wcov_sq_le
 NTK.wcov_add_add
 NTK.wcov_sub_sq_le
@@ -1087,8 +1063,6 @@ NTK.netDeriv_deepParams_readout
 NTK.gradIndep_top_tendsto
 NTK.sensitivityGram_top_tendsto
 NTK.deepSpace_sensitivity_induction
-NTK.deepSensitivityGram_readout_entry_tendstoInMeasure
-NTK.deepSensitivityGram_sub_mul_tendstoInMeasure
 NTK.deepSensitivityGram_entry_tendstoInMeasure
 NTK.deepEmpiricalNTK_tendstoInMeasure_deepLimitingNTK
 NTK.norm_sq_eq_dotProduct

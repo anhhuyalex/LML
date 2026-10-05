@@ -36,6 +36,8 @@ lemma preactivation_deepParams_readout (n : ℕ) (ω : DeepSpace d) (v : ℕ →
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ℓ :=
   deepMLPPreactivation_congr_prefix φ X _ _ ℓ rfl fun _ _ => rfl
 
+/-- `netDeriv` does not depend on the readout component of a `DeepSpace` point: replacing it by any
+`v` leaves it unchanged. -/
 lemma netDeriv_deepParams_readout (n : ℕ) (ω : DeepSpace d) (v : ℕ → ℝ) (ℓ : Fin d) (a : Fin m) :
     netDeriv φ φ' X (deepParams d n0 n (ω.1, v)) ℓ a =
       netDeriv φ φ' X (deepParams d n0 n ω) ℓ a := by

@@ -70,11 +70,13 @@ def idxW {n d : ℕ} (i : Fin n) (j : Fin d) : Fin (n * d + n) :=
 def idxA {n d : ℕ} (i : Fin n) : Fin (n * d + n) :=
   paramIndexEquiv n d (Sum.inr i)
 
+/-- The inverse of `paramIndexEquiv` sends the index of weight `W i j` back to `Sum.inl (i, j)`. -/
 @[simp]
 lemma paramIndexEquiv_symm_idxW {n d : ℕ} (i : Fin n) (j : Fin d) :
     (paramIndexEquiv n d).symm (idxW i j) = Sum.inl (i, j) :=
   (paramIndexEquiv n d).symm_apply_apply (Sum.inl (i, j))
 
+/-- The inverse of `paramIndexEquiv` sends the index of readout `a i` back to `Sum.inr i`. -/
 @[simp]
 lemma paramIndexEquiv_symm_idxA {n d : ℕ} (i : Fin n) :
     (paramIndexEquiv n d).symm (idxA i) = Sum.inr i :=
@@ -98,30 +100,35 @@ noncomputable def unpackA {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))
     Fin n → ℝ :=
   fun i => θ (idxA i)
 
+/-- The packed parameter vector has entry `W i j` at the weight index `idxW i j`. -/
 lemma packParams_apply_idxW {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
     (i : Fin n) (j : Fin d) :
     packParams W a (idxW i j) = W i j := by
   dsimp [packParams]
   rw [paramIndexEquiv_symm_idxW]
 
+/-- The packed parameter vector has entry `a i` at the readout index `idxA i`. -/
 lemma packParams_apply_idxA {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
     (i : Fin n) :
     packParams W a (idxA i) = a i := by
   dsimp [packParams]
   rw [paramIndexEquiv_symm_idxA]
 
+/-- Unpacking the weights of a packed parameter vector returns `W`. -/
 @[simp]
 lemma unpackW_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
     unpackW (packParams W a) = W := by
   ext i j
   exact packParams_apply_idxW W a i j
 
+/-- Unpacking the readout of a packed parameter vector returns `a`. -/
 @[simp]
 lemma unpackA_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
     unpackA (packParams W a) = a := by
   ext i
   exact packParams_apply_idxA W a i
 
+/-- Packing the unpacked weights and readout of `θ` returns `θ`. -/
 @[simp]
 lemma packParams_unpack {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     packParams (unpackW θ) (unpackA θ) = θ := by
@@ -207,11 +214,13 @@ noncomputable def netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) : ℝ :=
   evalSingle φ (unpackW θ) (unpackA θ) x
 
+/-- The packed-parameter network is `n^{-1/2} ∑_i a_i φ(w_i ⬝ x)`. -/
 lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ x) :=
   evalSingle_eq_normalized_sum φ (unpackW θ) (unpackA θ) x
 
+/-- The training outputs of the packed-parameter network are `evalVector φ W a X`. -/
 @[simp]
 lemma trainingOutputs_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
@@ -219,6 +228,7 @@ lemma trainingOutputs_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
   unfold trainingOutputs evalVector netFromParams
   simp only [unpackW_packParams, unpackA_packParams]
 
+/-- The training residual of the packed-parameter network is `evalVector φ W a X - y`. -/
 @[simp]
 lemma trainingResidual_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (y : EuclideanSpace ℝ (Fin m))
@@ -338,6 +348,7 @@ theorem tangentFeature_netFromParams_of_differentiable (φ : ℝ → ℝ) (hφ :
     tangentFeature (netFromParams φ n d) x θ = gradParams φ n d x θ :=
   tangentFeature_netFromParams φ n d x θ (fun _ => hφ _)
 
+/-- The input-weight block of the tangent feature is `gradW`. -/
 @[simp]
 lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
@@ -346,6 +357,7 @@ lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
   rw [tangentFeature_netFromParams φ n d x θ hφ]
   exact unpackW_packParams _ _
 
+/-- The readout block of the tangent feature is `gradA`. -/
 @[simp]
 lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))

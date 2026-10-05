@@ -60,25 +60,6 @@ theorem trace_vecMulVec_mul_transpose_vecMulVec {m n : Type*} {R : Type*} [Finty
   rw [Matrix.transpose_vecMulVec, Matrix.vecMulVec_mul_vecMulVec, Matrix.trace_vecMulVec]
   rw [dotProduct_smul, smul_eq_mul, mul_comm]
 
-/-- Frobenius inner product of two rank-one matrices in transpose-first orientation:
-`Tr((u vᵀ)ᵀ (p qᵀ)) = (u ⬝ᵥ p) * (v ⬝ᵥ q)`.
-Holds over any commutative semiring and arbitrary finite index types `m` and `n`. -/
-theorem trace_transpose_vecMulVec_mul_vecMulVec {m n : Type*} {R : Type*} [Fintype m] [Fintype n]
-    [CommSemiring R]
-    (u p : m → R) (v q : n → R) :
-    Matrix.trace ((Matrix.vecMulVec u v)ᵀ * Matrix.vecMulVec p q) = (u ⬝ᵥ p) * (v ⬝ᵥ q) := by
-  rw [Matrix.transpose_vecMulVec]
-  have h := trace_vecMulVec_mul_transpose_vecMulVec (R := R) v q u p
-  rw [Matrix.transpose_vecMulVec] at h
-  rw [h, mul_comm]
-
-/-- Sum of all entries of the Hadamard product of two rank-one matrices:
-`∑ i, ∑ j, (u vᵀ ⊙ p qᵀ) i j = (u ⬝ᵥ p) * (v ⬝ᵥ q)`. -/
-theorem sum_hadamard_vecMulVec {m n : Type*} {R : Type*} [Fintype m] [Fintype n] [CommSemiring R]
-    (u p : m → R) (v q : n → R) :
-    (∑ i, ∑ j, (Matrix.vecMulVec u v ⊙ Matrix.vecMulVec p q) i j) = (u ⬝ᵥ p) * (v ⬝ᵥ q) := by
-  rw [Matrix.sum_hadamard_eq, trace_vecMulVec_mul_transpose_vecMulVec]
-
 /-! ### Frobenius Norm Utilities and the Gradient Speed Bound
 
 Reusable Cauchy-Schwarz-type norm bounds for the Frobenius norm on matrices, used to bound how
@@ -294,12 +275,6 @@ theorem exists_pos_sub_smul_one_posSemidef_of_posDef {n : Type*} [Finite n] [Dec
 
 /-! ### General Gram Matrices and Positive Semidefiniteness -/
 
-/-- The unscaled Gram matrix `M * Mᵀ` formed by vector dot products is symmetric. -/
-theorem gram_transpose {m n R : Type*} [Fintype n] [CommSemiring R] (M : Matrix m n R) :
-    (Matrix.of fun α β => M α ⬝ᵥ M β)ᵀ = Matrix.of fun α β => M α ⬝ᵥ M β := by
-  ext α β
-  simp [Matrix.transpose_apply, dotProduct_comm]
-
 /-- A scaled Gram matrix `c • (M * Mᵀ)` is symmetric. -/
 theorem scaled_gram_transpose {m n R : Type*} [Fintype n] [CommSemiring R] (c : R)
     (M : Matrix m n R) :
@@ -388,29 +363,11 @@ theorem _root_.IsStarProjection.transpose_eq {p : Type*} [Fintype p] {P : Matrix
     (hP : IsStarProjection P) : Pᵀ = P :=
   ((isStarProjection_matrix_real_iff P).1 hP).1
 
-/-- The transpose of the complementary projector is itself. -/
-theorem transpose_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
-    (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    (1 - P)ᵀ = (1 - P) :=
-  (hP.one_sub).transpose_eq
-
-/-- The complementary projector is idempotent: `(I - P)² = I - P`. -/
-theorem orthogonalComplement_idem {p : Type*} [Fintype p] [DecidableEq p]
-    (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    (1 - P) * (1 - P) = (1 - P) :=
-  hP.one_sub.isIdempotentElem.eq
-
 /-- The complement of an orthogonal projection is an orthogonal projection. -/
 theorem orthogonalComplement_isOrthogonalProjection {p : Type*} [Fintype p] [DecidableEq p]
     (P : Matrix p p ℝ) (hP : IsStarProjection P) :
     IsStarProjection (1 - P) :=
   hP.one_sub
-
-/-- Orthogonal complement annihilates `P` from the left: `Pᗮ * P = 0`. -/
-theorem mul_orthogonalComplement_self {p : Type*} [Fintype p] [DecidableEq p]
-    (P : Matrix p p ℝ) (hP : IsStarProjection P) :
-    (1 - P) * P = 0 :=
-  hP.one_sub_mul_self
 
 /-- Orthogonal complement annihilates `P` from the right: `P * Pᗮ = 0`. -/
 theorem mul_self_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]

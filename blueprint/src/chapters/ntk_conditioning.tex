@@ -24,14 +24,13 @@ A real square matrix $P$ is an \emph{orthogonal projection matrix} if $P^\top=P$
 
 \begin{lemma}[Algebra of a projector and its complement]\label{lem:ntkcond:projectorAlgebra}
   \uses{def:ntkcond:projector}
-  \lean{NTK.transpose_orthogonalComplement, NTK.orthogonalComplement_idem,
-        NTK.orthogonalComplement_isOrthogonalProjection, NTK.mul_orthogonalComplement_self,
+  \lean{NTK.orthogonalComplement_isOrthogonalProjection,
         NTK.mul_self_orthogonalComplement, NTK.orthogonalDecomposition, NTK.residual_annihilates,
         NTK.orthogonalDecomposition_mul}
   \leanok
 Let $P$ be an orthogonal projection matrix. Then:
 \begin{enumerate}
-  \item $P^\perp$ is an orthogonal projection matrix, and $PP^\perp=P^\perp P=0$.
+  \item $P^\perp$ is an orthogonal projection matrix, and $P^\perp P=0$ (hence also $PP^\perp=0$, by transposition).
   \item For every matrix $W$ with $p$ columns, $W=WP+WP^\perp$.
   \item If $X$ satisfies $PX=X$ (the columns of $X$ lie in the range of $P$), then $(WP^\perp)X=0$ and therefore $WX=(WP)X$.
 \end{enumerate}
@@ -42,6 +41,11 @@ Let $P$ be an orthogonal projection matrix. Then:
   \leanok
 (1) $(P^\perp)^\top=I-P^\top=P^\perp$, $(P^\perp)^2=I-2P+P^2=P^\perp$ and $PP^\perp=P-P^2=0$. (2) is $W(P+P^\perp)=W$. (3) $P^\perp X=X-PX=0$, hence $(WP^\perp)X=0$, and (2) gives $WX=WPX+WP^\perp X=(WP)X$.
 \end{proof}
+
+\begin{remark}[Change to the formalization: projector algebra]\label{rmk:ntkcond:projectorAlgebraChange}
+An earlier version of this lemma listed three further one-line facts as formalized: $(P^\perp)^\top=P^\perp$, $(P^\perp)^2=P^\perp$ and $PP^\perp=0$ (Lean: \texttt{transpose\_orthogonalComplement}, \texttt{orthogonalComplement\_idem}, \texttt{mul\_orthogonalComplement\_self}). They have been removed. Since the complement is now written as \texttt{1 - P} (Definition~\ref{def:ntkcond:projector}), they are exactly Mathlib's \texttt{IsStarProjection.one\_sub} and \texttt{IsStarProjection.mul\_one\_sub\_self}, and no later result used the wrappers. The mathematical content of the lemma is unchanged; only $P^\perp$ being a projection and $P^\perp P=0$ remain as Lean statements here.
+\end{remark}
+
 
 Part~(3) is the algebraic reason that forward propagation through a layer only sees $WP$ when the incoming features lie in the range of $P$; this is what makes the unseen part $WP^\perp$ conditionally independent noise (Theorem~\ref{thm:ntkcond:lemma226} below).
 
@@ -83,7 +87,7 @@ Let $u,v\in\mathbb R^p$, $A\in\mathbb R^{p\times p}$, $W\in\mathbb R^{n\times p}
 \end{proof}
 
 \begin{lemma}[Gram matrices and the Hadamard unit]\label{lem:ntkcond:gram}
-  \lean{NTK.gram_transpose, NTK.scaled_gram_transpose, NTK.const_matrix_transpose,
+  \lean{NTK.scaled_gram_transpose, NTK.const_matrix_transpose,
         NTK.mul_transpose_posSemidef, NTK.gram_posSemidef, NTK.scaled_gram_posSemidef,
         NTK.posSemidef_allOnes, NTK.hadamard_allOnes, NTK.allOnes_hadamard}
   \leanok
@@ -94,6 +98,11 @@ Let $M\in\mathbb R^{m\times n}$ have rows $M_\alpha$, and let $\mathbf 1_{m\time
   \leanok
 $x^\top MM^\top x=\|M^\top x\|^2\ge0$, and $\mathbf 1_{m\times m}=\mathbf 1\mathbf 1^\top$ is a Gram matrix of the one-column matrix $\mathbf 1$. The Hadamard identities hold entry by entry.
 \end{proof}
+
+\begin{remark}[Change to the formalization: Gram matrices]\label{rmk:ntkcond:gramChange}
+The unscaled symmetry statement $(MM^\top)^\top=MM^\top$ (Lean: \texttt{gram\_transpose}) is no longer a separate lemma: it is the case $c=1$ of \texttt{scaled\_gram\_transpose}, and nothing used it directly.
+\end{remark}
+
 
 These facts are used for the positive semidefiniteness of the layerwise Gram matrices and of the empirical NTK (Section~\ref{sec:ntkdn:architecture}), where the all-ones matrix is the terminal condition of the backward recursion and the unit of $\odot$.
 
@@ -111,13 +120,12 @@ If $\Phi^\top\Phi$ is invertible ($\Phi$ has full column rank) then $P_\Phi$ is 
   \uses{def:ntkcond:gramProjector, def:ntkcond:projector, lem:ntkcond:projectorAlgebra}
   \lean{NTK.gramProjector_transpose, NTK.isOrthogonalProjection_gramProjector,
         NTK.isOrthogonalProjection_gramProjector_all, NTK.gramProjector_mul_self,
-        NTK.trace_gramProjector,
-        NTK.orthogonalComplement_gramProjector_mul, NTK.mul_eq_mul_gramProjector_mul}
+        NTK.mul_eq_mul_gramProjector_mul}
   \leanok
 Let $\Phi\in\mathbb R^{n\times m}$ and $P=P_\Phi$.
 \begin{enumerate}
   \item $P^\top=P$ always, and $P$ is an orthogonal projection matrix \emph{for every} $\Phi$ (if $\Phi^\top\Phi$ is singular, $P=0$).
-  \item If $\Phi^\top\Phi$ is invertible, then $P\Phi=\Phi$, $P^\perp\Phi=0$, and $\operatorname{tr}P=m$. In particular $\tfrac1n\operatorname{tr}P=m/n\to0$ as $n\to\infty$ with $m$ fixed.
+  \item If $\Phi^\top\Phi$ is invertible, then $P\Phi=\Phi$ (formalized). Consequently $P^\perp\Phi=0$ and, by cyclicity of the trace, $\operatorname{tr}P=m$, so $\tfrac1n\operatorname{tr}P=m/n\to0$ as $n\to\infty$ with $m$ fixed; these two consequences are \emph{not} formalized, see the remark below.
   \item If $\Phi^\top\Phi$ is invertible, then for every matrix $V$ with $n$ columns, $V\Phi=(VP)\Phi$.
 \end{enumerate}
 \end{lemma}
@@ -127,6 +135,11 @@ Let $\Phi\in\mathbb R^{n\times m}$ and $P=P_\Phi$.
   \leanok
 Symmetry follows from $(\Phi^\top\Phi)^{-1}$ being symmetric. If $G:=\Phi^\top\Phi$ is invertible then $P^2=\Phi G^{-1}(\Phi^\top\Phi)G^{-1}\Phi^\top=\Phi G^{-1}\Phi^\top=P$ and $P\Phi=\Phi G^{-1}G=\Phi$. If $G$ is singular, $P=0$ by convention, which is trivially an orthogonal projection. Then $P^\perp\Phi=\Phi-P\Phi=0$, and $\operatorname{tr}P=\operatorname{tr}(\Phi G^{-1}\Phi^\top)=\operatorname{tr}(G^{-1}\Phi^\top\Phi)=\operatorname{tr}I_m=m$ by cyclicity. Part~(3) is Lemma~\ref{lem:ntkcond:projectorAlgebra}(3) applied with $X=\Phi$.
 \end{proof}
+
+\begin{remark}[Change to the formalization: Gram projector]\label{rmk:ntkcond:gramProjectorChange}
+An earlier version of this lemma advertised $P^\perp\Phi=0$ and $\operatorname{tr}P_\Phi=m$ as formalized (Lean: \texttt{orthogonalComplement\_gramProjector\_mul}, \texttt{trace\_gramProjector}, and the near-duplicate \texttt{trace\_orthogonalProjectionOfGram}). They were removed because nothing in the Lean development uses them: $P^\perp\Phi=(1-P)\Phi=\Phi-P\Phi=0$ is immediate from \texttt{gramProjector\_mul\_self}, and the deep argument only needs the trace of $P$ against a diagonal matrix (\texttt{trace\_diagonal\_gramProjector}), not $\operatorname{tr}P=m$ itself. The statement $\tfrac1n\operatorname{tr}P=m/n\to0$ remains the informal motivation for why the projected part of the next layer is negligible.
+\end{remark}
+
 
 The convention $0^{-1}=0$ is deliberate: it makes $\Phi\mapsto P_\Phi$ a function defined and measurable on all of $\mathbb R^{n\times m}$ without a case distinction, and the singular event is controlled separately (Lemma~\ref{lem:ntkdn:singular}).
 

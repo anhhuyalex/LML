@@ -36,15 +36,11 @@ of positive semidefiniteness.
 \end{proof}
 
 \begin{lemma}[Frobenius inner products of rank-one matrices]\label{lem:ntkf:rankOneInner}
-  \lean{NTK.dotProduct_self_eq_sum_sq, NTK.trace_vecMulVec_mul_transpose_vecMulVec,
-        NTK.trace_transpose_vecMulVec_mul_vecMulVec, NTK.sum_hadamard_vecMulVec}
+  \lean{NTK.dotProduct_self_eq_sum_sq, NTK.trace_vecMulVec_mul_transpose_vecMulVec}
   \leanok
 For vectors $u,p\in\mathbb R^m$ and $v,q\in\mathbb R^n$ (over any commutative semiring),
 \[
-  \operatorname{Tr}\bigl((uv^\top)(pq^\top)^\top\bigr)
-  =\operatorname{Tr}\bigl((uv^\top)^\top(pq^\top)\bigr)
-  =\sum_{i,j}(uv^\top)_{ij}(pq^\top)_{ij}
-  =(u\cdot p)\,(v\cdot q).
+  \operatorname{Tr}\bigl((uv^\top)(pq^\top)^\top\bigr)=(u\cdot p)\,(v\cdot q).
 \]
 Moreover $x\cdot x=\sum_kx_k^2$.
 \end{lemma}
@@ -54,6 +50,11 @@ Moreover $x\cdot x=\sum_kx_k^2$.
 Expand the trace and use $(uv^\top)_{ij}(pq^\top)_{ij}=u_ip_i\,v_jq_j$. The double sum then
 factors as $\bigl(\sum_iu_ip_i\bigr)\bigl(\sum_jv_jq_j\bigr)$.
 \end{proof}
+
+\begin{remark}[Change to the formalization: rank-one inner products]\label{rmk:ntkf:rankOneChange}
+An earlier version displayed the chain $\operatorname{Tr}\bigl((uv^\top)(pq^\top)^\top\bigr)=\operatorname{Tr}\bigl((uv^\top)^\top(pq^\top)\bigr)=\sum_{i,j}(uv^\top)_{ij}(pq^\top)_{ij}=(u\cdot p)(v\cdot q)$ and listed its two intermediate equalities as formalized (Lean: \texttt{trace\_transpose\_vecMulVec\_mul\_vecMulVec}, \texttt{sum\_hadamard\_vecMulVec}). Only the end-to-end identity $\operatorname{Tr}\bigl((uv^\top)(pq^\top)^\top\bigr)=(u\cdot p)(v\cdot q)$ is used downstream, so the intermediate equalities were removed from Lean; they remain true and are the elementary steps of the proof (the middle terms are the Frobenius inner product of $uv^\top$ and $pq^\top$).
+\end{remark}
+
 
 \begin{lemma}[Frobenius norms of rank-one matrices]\label{lem:ntkf:rankOneNorm}
   \uses{lem:ntkf:rankOneInner}
@@ -285,12 +286,10 @@ Then $Y_i\to Z$ in distribution.
 \begin{theorem}[Varying-space Slutsky theorem]\label{thm:ntkf:slutsky}
   \uses{lem:ntkf:slutskyPerturb}
   \lean{MeasureTheory.TendstoInDistribution.prodMk_of_tendsto_measure_norm_sub_const,
-        MeasureTheory.TendstoInDistribution.continuous_comp_prodMk_of_tendsto_measure_norm_sub_const,
         MeasureTheory.TendstoInDistribution.sub_const}
   \leanok
 Suppose $X_i\to Z$ in distribution along $l$ and $Y_i\to c$ in measure for a deterministic
-constant $c$ (with $Y_i$ a.e.\ measurable). Then $(X_i,Y_i)\to(Z,c)$ in distribution; for every
-continuous $g$, $g(X_i,Y_i)\to g(Z,c)$ in distribution; and $X_i-c\to Z-c$ in distribution.
+constant $c$ (with $Y_i$ a.e.\ measurable). Then $(X_i,Y_i)\to(Z,c)$ in distribution, and $X_i-c\to Z-c$ in distribution. (For every continuous $g$ one also gets $g(X_i,Y_i)\to g(Z,c)$ in distribution, by Mathlib's continuous mapping theorem \texttt{TendstoInDistribution.continuous\_comp}.)
 \end{theorem}
 
 \begin{proof}
@@ -301,6 +300,11 @@ The difference $(X_i,Y_i)-(X_i,c)=(0,Y_i-c)$ tends to $0$ in measure, so
 Lemma~\ref{lem:ntkf:slutskyPerturb} gives the first claim. The continuous mapping theorem gives the
 second. The third is the continuous mapping theorem for the translation $x\mapsto x-c$.
 \end{proof}
+
+\begin{remark}[Change to the formalization: Slutsky]\label{rmk:ntkf:slutskyChange}
+An earlier version also listed the corollary ``$g(X_i,Y_i)\to g(Z,c)$ for continuous $g$'' as a separate formalized result (Lean: \texttt{continuous\_comp\_prodMk\_of\_tendsto\_measure\_norm\_sub\_const}). It was only the composition of the pair statement with Mathlib's continuous mapping theorem, and was never used, so it was removed; the pair statement is the formalized content.
+\end{remark}
+
 
 \begin{lemma}[Uniform radius from tightness]\label{lem:ntkf:tightRadius}
   \lean{MeasureTheory.exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map}

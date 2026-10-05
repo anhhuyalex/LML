@@ -41,11 +41,14 @@ attribute [local instance]
 
 /-! ### Local Lipschitz Bound on the Output Jacobian -/
 
+/-- `(u + v)² ≤ 2 u² + 2 v²`. -/
 lemma two_mul_add_two_mul_sq (u v : ℝ) :
     (u + v) ^ 2 ≤ 2 * u ^ 2 + 2 * v ^ 2 := by
   have : 0 ≤ (u - v) ^ 2 := sq_nonneg (u - v)
   linarith
 
+/-- The squared norm of a parameter difference splits into an input-weight part and a readout part.
+-/
 lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖θ₁ - θ₂‖ ^ 2 =
       (∑ i : Fin n, ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
@@ -65,11 +68,15 @@ lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n *
     change ((θ₁ - θ₂) (idxA i)) ^ 2 = _
     simp only [PiLp.sub_apply, unpackA]
 
+/-- Cauchy–Schwarz for a difference: `(x ⬝ᵥ z - y ⬝ᵥ z)² ≤ ‖x - y‖² ‖z‖²`. -/
 lemma dotProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :
     (x ⬝ᵥ z - y ⬝ᵥ z) ^ 2 ≤ (∑ j : Fin d, (x j - y j) ^ 2) * (∑ j : Fin d, z j ^ 2) := by
   rw [← sub_dotProduct]
   exact sq_dotProduct_le (x - y) z
 
+/-- The squared Frobenius distance between the output Jacobians at two parameters is the sum, over
+data points and neurons, of the squared differences of the input-weight and readout gradient
+blocks. -/
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⬝ᵥ X α))
@@ -103,6 +110,9 @@ lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₁ hφ₁ α i]
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₂ hφ₂ α i]
 
+/-- Lipschitz bound for the gradient block of a single neuron: the squared gradient difference is at
+most `n⁻¹ (2 R² C₂² Sx² + 3 C₁² Sx)` times the squared parameter difference of that neuron,
+where `Sx = ‖x‖²`. -/
 lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n)
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)
@@ -247,6 +257,8 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
       ring
 
 
+/-- Lipschitz bound for the full gradient: summing the single-neuron bounds gives `‖∇f(θ₁) -
+∇f(θ₂)‖² ≤ n⁻¹ (2 R² C₂² Sx² + 3 C₁² Sx) ‖θ₁ - θ₂‖²`. -/
 lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
     (C₁ C₂ R : ℝ) (hC₁_nonneg : 0 ≤ C₁) (hC₂_nonneg : 0 ≤ C₂) (hR_nonneg : 0 ≤ R)

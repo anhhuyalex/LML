@@ -146,7 +146,6 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.Concentrati
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.CrossKernel
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.FiniteHorizon
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.FlowConstruction
-public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.GlobalGap
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.InitializationEvents
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.JacobianBounds
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.JointInit

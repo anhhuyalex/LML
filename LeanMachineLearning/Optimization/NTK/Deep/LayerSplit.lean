@@ -44,6 +44,7 @@ noncomputable def deepParams (d n0 n : ℕ) (ω : DeepSpace d) : DeepMLPParams d
 /-- The top-left `n × n` block of a weight population. -/
 def layerBlock (n : ℕ) (L : ℕ → ℕ → ℝ) : Fin n → Fin n → ℝ := fun j i => L j.val i.val
 
+/-- The `n × n` block extraction `layerBlock n` is measurable. -/
 lemma measurable_layerBlock (n : ℕ) : Measurable (layerBlock n) :=
   measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun i =>
     (measurable_pi_apply i.val).comp (measurable_pi_apply j.val)

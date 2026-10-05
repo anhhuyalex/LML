@@ -313,16 +313,6 @@ theorem conditional_preactivations_eq_pi (n n' m : ℕ) (φ : ℝ → ℝ)
         ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
           (φ ((H k).ofLp α) * φ ((H k).ofLp β)) by ring, hroot]
 
-/-- The activated empirical covariance appearing in `conditional_preactivations_eq_pi` is
-positive semidefinite. -/
-lemma conditional_preactivation_covariance_posSemidef (n m : ℕ) (φ : ℝ → ℝ)
-    (H : Fin n → EuclideanSpace ℝ (Fin m)) :
-    (show Matrix (Fin m) (Fin m) ℝ from fun α β : Fin m =>
-      (n : ℝ)⁻¹ * ∑ k : Fin n,
-        φ ((H k).ofLp α) * φ ((H k).ofLp β)).PosSemidef := by
-  simpa using empirical_layer_covariance_posSemidef_multivariate 1 0 n m
-    (fun k α => φ ((H k).ofLp α))
-
 /-- Polynomial growth gives the coordinatewise `L²` hypothesis required by the conditional
 covariance SLLN.  Gaussian measures have moments of every finite order, so no boundedness
 assumption on the activation is needed. -/

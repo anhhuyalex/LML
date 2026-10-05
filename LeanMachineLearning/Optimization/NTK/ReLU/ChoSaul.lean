@@ -94,6 +94,8 @@ private lemma angular_relu_support (theta : ℝ) (htheta0 : 0 ≤ theta) (htheta
       exact htarget ⟨ha.trans h.1, h.2.trans_lt hb⟩
     simp [Set.indicator_of_notMem htarget, Set.indicator_of_notMem hnot]
 
+/-- Angular integral of two shifted ReLU factors: `∫_{-π}^{π} relu (cos φ) relu (cos (φ - θ)) dφ =
+(sin θ + (π - θ) cos θ) / 2` for `θ ∈ [0, π]`. -/
 lemma angular_relu_integral (theta : ℝ) (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi) :
     ∫ phi in Set.Ioo (-Real.pi) Real.pi,
       relu (Real.cos phi) * relu (Real.cos (phi - theta)) =
@@ -194,6 +196,8 @@ private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
       exact htarget ⟨ha.trans h.1, h.2.trans_lt hb⟩
     simp [Set.indicator_of_notMem htarget, Set.indicator_of_notMem hnot]
 
+/-- Angular integral of two shifted ReLU indicators: `∫_{-π}^{π} 1[cos φ ≥ 0] 1[cos (φ - θ) ≥ 0] dφ
+= π - θ` for `θ ∈ [0, π]`. -/
 lemma angular_indicator_integral (theta : ℝ) (htheta0 : 0 ≤ theta)
     (hthetapi : theta ≤ Real.pi) :
     ∫ phi in Set.Ioo (-Real.pi) Real.pi,
@@ -242,6 +246,7 @@ lemma map_pi_eval_two {d : ℕ} (hd : 2 ≤ d) {μ : Fin d → Measure ℝ}
     ((measurable_pi_apply (⟨1, by linarith⟩ : Fin d)).aemeasurable) h01
   simpa only [Measure.pi_map_eval, measure_univ, Finset.prod_const_one, one_smul] using h_map
 
+/-- An integral against `𝒩(0,1) ⊗ 𝒩(0,1)` written with the explicit Gaussian densities. -/
 lemma integral_prod_stdGaussian_eq_density (f : ℝ × ℝ → ℝ) :
     ∫ p, f p ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) =
       ∫ p, gaussianPDFReal 0 1 p.1 * gaussianPDFReal 0 1 p.2 * f p := by
@@ -256,6 +261,7 @@ lemma integral_prod_stdGaussian_eq_density (f : ℝ × ℝ → ℝ) :
   simp only [ENNReal.toReal_mul, toReal_gaussianPDF, smul_eq_mul]
   rw [volume_eq_prod]
 
+/-- Radial Gaussian integral `∫₀^∞ r e^{-r²/2} dr = 1`. -/
 lemma integral_radial_gaussian_one :
     ∫ r in Set.Ioi (0 : ℝ), r * Real.exp (-(1 / 2 : ℝ) * r ^ 2) = 1 := by
   have h := integral_rpow_mul_exp_neg_mul_rpow
@@ -270,6 +276,7 @@ lemma integral_radial_gaussian_one :
     _ = (1 / 2 : ℝ) ^ (-(1 + 1 : ℝ) / 2) * (1 / 2) * Real.Gamma ((1 + 1) / 2) := h
     _ = 1 := by norm_num [Real.rpow_neg_one, Real.Gamma_one]
 
+/-- Radial Gaussian integral `∫₀^∞ r³ e^{-r²/2} dr = 2`. -/
 lemma integral_radial_gaussian_three :
     ∫ r in Set.Ioi (0 : ℝ), r ^ 3 * Real.exp (-(1 / 2 : ℝ) * r ^ 2) = 2 := by
   have h := integral_rpow_mul_exp_neg_mul_rpow
@@ -286,6 +293,7 @@ lemma integral_radial_gaussian_three :
     _ = (1 / 2 : ℝ) ^ (-(3 + 1 : ℝ) / 2) * (1 / 2) * Real.Gamma ((3 + 1) / 2) := h
     _ = 2 := by norm_num [hGamma, Real.rpow_intCast]
 
+/-- In polar coordinates the product of two standard Gaussian densities is `(2π)⁻¹ e^{-r²/2}`. -/
 lemma stdGaussian_density_polar (r phi : ℝ) :
     gaussianPDFReal 0 1 (r * Real.cos phi) *
         gaussianPDFReal 0 1 (r * Real.sin phi) =

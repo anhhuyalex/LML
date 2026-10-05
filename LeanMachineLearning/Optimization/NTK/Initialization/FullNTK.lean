@@ -24,7 +24,6 @@ numbers for the full NTK and its quantitative concentration.
 * `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
 * `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.
 * `NTK.memLp_two_fullNTK_summand` : square-integrability (`MemLp 2`) of full summand.
-* `NTK.integrable_sq_fullNTK_summand` : second-moment bound for quantitative concentration.
 * `NTK.integral_fullNTK_summand` : expectation identity decomposing into NNGP plus
   derivative kernel.
 * `NTK.fullNTKSummand_tendsto_integral` : entrywise almost-sure convergence of empirical sums.
@@ -169,19 +168,6 @@ lemma integrable_fullNTK_summand {d : ℕ}
     ring
   exact h1.add h2
 
-/-- Integrability of the full NTK summand under `MemLp 2` hypotheses on `φ` and `deriv φ`. -/
-lemma integrable_fullNTK_summand_of_memLp {d : ℕ}
-    (φ : ℝ → ℝ) (x x' : Fin d → ℝ)
-    (hφ : MemLp (fun w => φ (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
-    (hφ' : MemLp (fun w => φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
-    (hdφ : MemLp (fun w => deriv φ (w ⬝ᵥ x)) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1))
-    (hdφ' : MemLp (fun w => deriv φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d => gaussianReal 0 1)) :
-    Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x'))
-      ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
-  integrable_fullNTK_summand φ x x' (hφ.integrable_mul hφ') (hdφ.integrable_mul hdφ')
-
 /-- Square-integrability (`MemLp 2`) of the full single-neuron NTK summand under
 `MemLp 2` hypotheses on the activation product and derivative product.
 Uses the fourth-moment Gaussian readout bound `integrable_pow_four_gaussianReal`. -/
@@ -239,23 +225,6 @@ lemma memLp_two_fullNTK_summand {d : ℕ}
       ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
     (memLp_two_iff_integrable_sq h2_meas.aestronglyMeasurable).2 h2_sq
   exact h1.add h2
-
-/-- Integrability of the squared full NTK summand under `𝒩(0, I_d) ⊗ 𝒩(0,1)`,
-providing second-moment bounds needed for quantitative concentration and Chebyshev bounds. -/
-lemma integrable_sq_fullNTK_summand {d : ℕ}
-    (φ : ℝ → ℝ) (hφ_meas : Measurable φ) (hdφ_meas : Measurable (deriv φ))
-    (x x' : Fin d → ℝ)
-    (hφ_L2 : MemLp (fun w => φ (w ⬝ᵥ x) * φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
-        gaussianReal 0 1))
-    (hdφ_L2 : MemLp (fun w => deriv φ (w ⬝ᵥ x) * deriv φ (w ⬝ᵥ x')) 2 (Measure.pi fun _ : Fin d =>
-        gaussianReal 0 1)) :
-    Integrable (fun p : (Fin d → ℝ) × ℝ =>
-      (φ (p.1 ⬝ᵥ x) * φ (p.1 ⬝ᵥ x') +
-        p.2 ^ 2 * deriv φ (p.1 ⬝ᵥ x) * deriv φ (p.1 ⬝ᵥ x') * (x ⬝ᵥ x')) ^ 2)
-      ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-  have h_mem := memLp_two_fullNTK_summand φ hdφ_meas x x' hφ_L2 hdφ_L2
-  have h_meas := measurable_fullNTK_summand φ hφ_meas hdφ_meas x x'
-  exact (memLp_two_iff_integrable_sq h_meas.aestronglyMeasurable).1 h_mem
 
 /-- The expectation of the full single-neuron NTK summand under `𝒩(0, I_d) ⊗ 𝒩(0,1)`
 equals the sum of the NNGP activation kernel entry and the derivative kernel entry
@@ -537,24 +506,6 @@ lemma limitingFullNTKMatrix_apply {m d : ℕ}
         limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β *
           ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β)) := rfl
 
-/-- The limiting full NTK Gram matrix is symmetric (Hermitian). -/
-lemma limitingFullNTKMatrix_isHermitian {m d : ℕ}
-    (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ) :
-    (limitingFullNTKMatrix φ X).IsHermitian := by
-  ext α β
-  simp only [limitingFullNTKMatrix_apply, conjTranspose_apply, star_trivial]
-  have h1 : limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) β α =
-      limitingCovariance φ (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β := by
-    rw [limitingCovariance_apply, limitingCovariance_apply]
-    congr 1 with w
-    ring
-  have h2 : limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) β α =
-      limitingCovariance (deriv φ) (fun α k => (Real.sqrt (d : ℝ))⁻¹ * X α k) α β := by
-    rw [limitingCovariance_apply, limitingCovariance_apply]
-    congr 1 with w
-    ring
-  rw [h1, h2, dotProduct_comm]
-
 /-- The limiting full NTK is the NNGP covariance of `φ` plus the Schur product of the covariance of
 `φ'` with the input Gram matrix of the scaled dataset. -/
 lemma limitingFullNTKMatrix_eq_add_hadamard {m d : ℕ}
@@ -665,23 +616,6 @@ theorem limitingFullNTKMatrix_posDef_of_ae_independent {m d : ℕ}
   exact (limitingCovariance_posDef_of_ae_independent φ scaledX hφ_L2 hind).add_posSemidef
     ((limitingCovariance_posSemidef (deriv φ) scaledX hdφ_meas hdφ_L2).hadamard
       (Matrix.posSemidef_self_mul_conjTranspose scaledX))
-
-/-- **Feature independence forces distinct inputs.** If the scaled features are linearly independent
-modulo Gaussian-null sets, the inputs `X α` are pairwise distinct. This is the necessary half of the
-source's informal condition "distinct inputs and an expressive activation": the hypothesis of
-`limitingCovariance_posDef_of_ae_independent` cannot hold for a dataset with a repeated input, and
-the remaining (sufficiency) content is exactly the independence hypothesis. -/
-theorem injective_of_ae_independent {m d : ℕ} (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (hind : ∀ u : Fin m → ℝ,
-      (∀ᵐ w ∂(Measure.pi fun _ : Fin d => gaussianReal 0 1),
-        ∑ α : Fin m, u α * φ (w ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k)) = 0) → u = 0) :
-    Function.Injective X := by
-  intro α β hαβ
-  by_contra hne
-  have h := hind (Pi.single α 1 - Pi.single β 1) (Filter.Eventually.of_forall fun w => by
-    simp [Pi.sub_apply, sub_mul, Finset.sum_sub_distrib, Pi.single_apply, ite_mul, hαβ])
-  have := congrFun h α
-  simp [hne] at this
 
 /-- Matrix almost-sure convergence of the empirical NTK neuron-average matrix to the
 deterministic `limitingFullNTKMatrix` on the paper's scaled dataset `(1 / √d) * X`. -/

@@ -558,7 +558,6 @@ re-exported by this module.
   * `NTK.measurable_fullNTK_summand` : measurability of full activation-derivative summand.
   * `NTK.integrable_fullNTK_summand` : integrability under product Gaussian measure.
   * `NTK.memLp_two_fullNTK_summand` : square-integrability (`MemLp 2`) of full summand.
-  * `NTK.integrable_sq_fullNTK_summand` : second-moment bound for quantitative concentration.
   * `NTK.integral_fullNTK_summand` : expectation identity decomposing into NNGP plus
     derivative kernel.
   * `NTK.fullNTKSummand_tendsto_integral` : entrywise almost-sure convergence of empirical sums.

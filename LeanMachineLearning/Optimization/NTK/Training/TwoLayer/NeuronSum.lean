@@ -121,6 +121,8 @@ theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m
 
 /-! ### Scaled-Dataset Network Evaluation and Gradients -/
 
+/-- Network output on the scaled input `x / √d`: `f(x/√d; θ) = n^{-1/2} ∑_i a_i φ(d^{-1/2} (w_i ⬝
+x))`. -/
 lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
@@ -132,6 +134,8 @@ lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
   intro i _
   rw [dotProduct_scaled_input]
 
+/-- Same as `netFromParams_scaled_input`, with the scaling written as division: `φ((w_i ⬝ x) / √d)`.
+-/
 lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
@@ -143,6 +147,7 @@ lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
   intro i _
   rw [dotProduct_scaled_input_div]
 
+/-- Input-weight gradient on the scaled input `x / √d`. -/
 lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (j : Fin d) :
     gradW φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i j =
@@ -152,6 +157,7 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
   rw [dotProduct_scaled_input]
   ring
 
+/-- Readout gradient on the scaled input `x / √d`: `n^{-1/2} φ(d^{-1/2} (w_i ⬝ x))`. -/
 lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i =

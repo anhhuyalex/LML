@@ -285,6 +285,7 @@ lemma activation_memLp_two {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : SmoothAc
     fun x x' => memLp_two_gaussianRow_mul_comp_of_bounded (deriv φ) hderiv_meas hact.deriv_bdd x
       x'⟩
 
+/-- A smooth activation and its derivative are locally Lipschitz. -/
 lemma activation_locallyLipschitz {φ : ℝ → ℝ} {C₁ C₂ : ℝ}
     (hact : SmoothActivation φ C₁ C₂) :
     LocallyLipschitz φ ∧ LocallyLipschitz (deriv φ) := by

@@ -16,7 +16,6 @@ public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.Initializat
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.FiniteHorizon
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.CrossKernel
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.PredictionLimits
-public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.GlobalGap
 public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.FlowConstruction
 
 /-!
@@ -56,7 +55,6 @@ kernel-freeze, finite-horizon and global positive-gap theorems.
 * `FiniteHorizon` : finite-horizon specification, Jacobian and linearization-error freezing.
 * `CrossKernel` : the train-test cross-kernel.
 * `PredictionLimits` : test-prediction and weak limits of the trained residual and outputs.
-* `GlobalGap` : the global positive-gap theorem.
 * `FlowConstruction` : construction of the forward gradient-flow family.
 
 ## Main Definitions

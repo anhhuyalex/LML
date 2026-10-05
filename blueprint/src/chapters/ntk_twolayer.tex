@@ -204,10 +204,10 @@ where $\odot$ is the entrywise (Hadamard) product. Entrywise $K_{\infty,\alpha\b
 
 \begin{theorem}[Structure of the limiting NTK]\label{thm:ntktl:limitingProps}
   \uses{def:ntktl:shallowLimitingNTK, lem:ntkf:rankOneInner}
-  \lean{NTK.limitingFullNTKMatrix_apply, NTK.limitingFullNTKMatrix_isHermitian,
-        NTK.limitingFullNTKMatrix_eq_add_hadamard, NTK.limitingFullNTKMatrix_posSemidef}
+  \lean{NTK.limitingFullNTKMatrix_apply, NTK.limitingFullNTKMatrix_eq_add_hadamard,
+        NTK.limitingFullNTKMatrix_posSemidef}
   \leanok
-$K_\infty$ is symmetric, equals $\Phi(\varphi;\tilde X)+\Phi(\varphi';\tilde X)\odot(\tilde X\tilde X^\top)$, and is positive semidefinite if $\varphi,\varphi'$ are measurable with Gaussian second moments along every row.
+$K_\infty$ equals $\Phi(\varphi;\tilde X)+\Phi(\varphi';\tilde X)\odot(\tilde X\tilde X^\top)$, and is positive semidefinite (in particular symmetric) if $\varphi,\varphi'$ are measurable with Gaussian second moments along every row.
 \end{theorem}
 
 \begin{proof}
@@ -216,13 +216,18 @@ Each covariance matrix is a Gram matrix in $L^2(\mathcal N(0,I_d))$ and hence po
 matrices is positive semidefinite.
 \end{proof}
 
+\begin{remark}[Change to the formalization: symmetry of $K_\infty$]\label{rmk:ntktl:limitingPropsChange}
+An earlier version stated, as a separate formalized fact, that $K_\infty$ is symmetric with no hypotheses on $\varphi$ (Lean: \texttt{limitingFullNTKMatrix\_isHermitian}). That lemma has been removed: no later result used it, and under the measurability and second-moment hypotheses of the positive-semidefiniteness statement symmetry is Mathlib's \texttt{Matrix.PosSemidef.isHermitian}. Symmetry without these hypotheses is still true (each entry $\Phi_{\alpha\beta}$ and $x^\alpha\cdot x^\beta$ is symmetric in $\alpha,\beta$) but is no longer formalized.
+\end{remark}
+
+
 \begin{theorem}[Strict positivity from feature independence]\label{thm:ntktl:posDef}
   \uses{thm:ntktl:limitingProps}
   \lean{NTK.limitingCovariance_posDef_of_ae_independent,
-        NTK.limitingFullNTKMatrix_posDef_of_ae_independent, NTK.injective_of_ae_independent}
+        NTK.limitingFullNTKMatrix_posDef_of_ae_independent}
   \leanok
 Call the features $w\mapsto\varphi(w\cdot\tilde x^\alpha)$ \emph{independent modulo Gaussian-null sets} if no nontrivial combination $\sum_\alpha u_\alpha\varphi(w\cdot\tilde x^\alpha)$ vanishes for almost every Gaussian $w$.
-Then $\Phi(\varphi;\tilde X)$ is positive definite, hence so is $K_\infty$, and the inputs $x^\alpha$ are pairwise distinct.
+Then $\Phi(\varphi;\tilde X)$ is positive definite, hence so is $K_\infty$. (The inputs $x^\alpha$ are then also pairwise distinct; this consequence is not formalized, see the remark below.)
 \end{theorem}
 
 \begin{proof}
@@ -231,11 +236,15 @@ $u^\top\Phi u=\mathbb E\bigl[(\sum_\alpha u_\alpha\varphi(w\cdot\tilde x^\alpha)
 $\Phi\succ0$. If two inputs were equal, $u=e_\alpha-e_\beta$ would be a nontrivial vanishing combination.
 \end{proof}
 
+\begin{remark}[Change to the formalization: distinct inputs]\label{rmk:ntktl:posDefChange}
+An earlier version also formalized the consequence ``the inputs $x^\alpha$ are pairwise distinct'' (Lean: \texttt{injective\_of\_ae\_independent}). It was not used by any later result and has been removed. The argument is the last sentence of the proof above: if $x^\alpha=x^\beta$ for $\alpha\ne\beta$, then $u=e_\alpha-e_\beta$ is a nontrivial combination that vanishes identically, contradicting independence modulo Gaussian-null sets.
+\end{remark}
+
+
 \begin{theorem}[Strong law and convergence in probability of the empirical NTK]\label{thm:ntktl:ntkLLN}
   \uses{thm:ntktl:scaledDataset, thm:ntkf:slln, def:ntktl:shallowLimitingNTK}
   \lean{NTK.measurable_fullNTK_summand, NTK.integrable_fullNTK_summand,
-        NTK.integrable_fullNTK_summand_of_memLp, NTK.memLp_two_fullNTK_summand,
-        NTK.integrable_sq_fullNTK_summand, NTK.integral_fullNTK_summand,
+        NTK.memLp_two_fullNTK_summand, NTK.integral_fullNTK_summand,
         NTK.fullNTKSummand_tendsto_integral, NTK.fullNTKMatrix_tendsto_integral,
         NTK.fullNTKMatrix_scaled_dataset_tendsto_integral, NTK.fullNTKMatrix_norm_sub_tendsto_zero,
         NTK.fullNTKMatrix_tendstoInMeasure, NTK.fullNTKMatrix_scaled_dataset_tendstoInMeasure,
@@ -260,6 +269,11 @@ Measurability is clear. Integrability and square integrability follow from Cauch
 $\mathbb E[a^4]<\infty$ for the readout (Lemma~\ref{lem:ntkf:gaussMoments}); the expectation uses the independence of $w$ and $a$ and $\mathbb E[a^2]=1$.
 The strong law (Theorem~\ref{thm:ntkf:slln}) gives almost sure entrywise convergence for each of the finitely many pairs $(\alpha,\beta)$, which implies almost sure convergence in Frobenius norm; almost sure convergence implies convergence in probability.
 \end{proof}
+
+\begin{remark}[Change to the formalization: integrability of the NTK summand]\label{rmk:ntktl:ntkLLNChange}
+An earlier version listed two further integrability facts as formalized: integrability of $g_{\alpha\beta}$ under $L^2$ hypotheses on $\varphi,\varphi'$ (Lean: \texttt{integrable\_fullNTK\_summand\_of\_memLp}) and integrability of $g_{\alpha\beta}^2$ (Lean: \texttt{integrable\_sq\_fullNTK\_summand}). They were removed as unused. The first is \texttt{integrable\_fullNTK\_summand} applied to \texttt{MemLp.integrable\_mul}; the second is the statement that $g_{\alpha\beta}\in L^2$ already formalized as \texttt{memLp\_two\_fullNTK\_summand}.
+\end{remark}
+
 
 
 \section{Concentration of the output Jacobian and Lipschitz bounds}\label{sec:ntktl:jacobianBounds}

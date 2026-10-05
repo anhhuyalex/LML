@@ -133,12 +133,14 @@ noncomputable def deepMLPPreactivation (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : 
       Real.sqrt ((n : ℝ)⁻¹) * ∑ k : Fin n,
         θ.Wh ⟨ℓ, by omega⟩ j k * φ (deepMLPPreactivation d n0 n m φ X θ ⟨ℓ, by omega⟩ α k)
 
+/-- The first preactivation layer: `h_0^α = n₀^{-1/2} W_0 x^α`. -/
 lemma deepMLPPreactivation_zero (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (h0 : 0 < d) (α : Fin m) (j : Fin n) :
     deepMLPPreactivation d n0 n m φ X θ ⟨0, h0⟩ α j =
       Real.sqrt ((n0 : ℝ)⁻¹) * (θ.W0 j ⬝ᵥ X α) := by
   rw [deepMLPPreactivation]
 
+/-- The forward recursion: `h_{ℓ+1}^α = n^{-1/2} W_{ℓ+1} φ(h_ℓ^α)`. -/
 lemma deepMLPPreactivation_succ (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : ℕ) (hℓ : ℓ + 1 < d) (α : Fin m) (j : Fin n) :
     deepMLPPreactivation d n0 n m φ X θ ⟨ℓ + 1, hℓ⟩ α j =
@@ -192,6 +194,7 @@ noncomputable def deepActivationGram (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fi
       (n : ℝ)⁻¹ * ((fun j => φ (deepMLPPreactivation d n0 n m φ X θ ⟨ℓ.val - 1, hpred⟩ α j)) ⬝ᵥ
                    (fun j => φ (deepMLPPreactivation d n0 n m φ X θ ⟨ℓ.val - 1, hpred⟩ β j)))
 
+/-- At layer `0` the activation Gram matrix is the input Gram matrix `n₀⁻¹ ⟨x^α, x^β⟩`. -/
 lemma deepActivationGram_zero (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (h0 : 0 < d + 1) :
     deepActivationGram d n0 n m φ X θ ⟨0, h0⟩ =
@@ -199,6 +202,8 @@ lemma deepActivationGram_zero (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m →
   ext α β
   simp [deepActivationGram]
 
+/-- The activation Gram matrix at layer `k + 1` is the Gram matrix `n⁻¹ ⟨φ(h_k^α), φ(h_k^β)⟩` of the
+layer-`k` activations. -/
 lemma deepActivationGram_succ (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k < d) :
     deepActivationGram d n0 n m φ X θ ⟨k + 1, by omega⟩ =
@@ -239,18 +244,6 @@ noncomputable def deepDerivativeGram (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X 
     (n : ℝ)⁻¹ * ((fun j => φ' (deepMLPPreactivation d n0 n m φ X θ k α j)) ⬝ᵥ
                  (fun j => φ' (deepMLPPreactivation d n0 n m φ X θ k β j)))
 
-/-- The empirical derivative Gram matrix `Φ'_{k+1}^{(n)}` is symmetric. -/
-theorem deepDerivativeGram_transpose (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
-    (θ : DeepMLPParams d n0 n) (k : Fin d) :
-    (deepDerivativeGram d n0 n m φ φ' X θ k)ᵀ = deepDerivativeGram d n0 n m φ φ' X θ k :=
-  scaled_gram_transpose (n : ℝ)⁻¹ _
-
-/-- The empirical derivative Gram matrix `Φ'_{k+1}^{(n)}` is positive semidefinite. -/
-theorem deepDerivativeGram_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
-    (θ : DeepMLPParams d n0 n) (k : Fin d) :
-    (deepDerivativeGram d n0 n m φ φ' X θ k).PosSemidef :=
-  scaled_gram_posSemidef (n : ℝ)⁻¹ (by positivity) _
-
 /-- Normalized backward sensitivity vectors `g_ℓ^α = √n ∇_{h_ℓ^α} f^α ∈ ℝ^n` for `ℓ ∈ Fin d`.
 Satisfies the backward recurrence:
 - Top hidden layer `ℓ = d - 1`: `g_{d-1}^α = Wd ⊙ φ'(h_{d-1}^α)`
@@ -270,6 +263,7 @@ noncomputable def backwardSensitivity (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X
 termination_by ℓ => d - 1 - ℓ.val
 decreasing_by omega
 
+/-- The top backward sensitivity is `g_{d-1} = W_d ⊙ φ'(h_{d-1})`. -/
 lemma backwardSensitivity_top (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (hd : 0 < d) (α : Fin m) (j : Fin n) :
     backwardSensitivity d n0 n m φ φ' X θ ⟨d - 1, by omega⟩ α j =
@@ -277,6 +271,8 @@ lemma backwardSensitivity_top (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m
   rw [backwardSensitivity]
   simp
 
+/-- The backward recursion for `ℓ < d - 1`: `g_ℓ` is `φ'(h_ℓ)` times the sensitivity `g_{ℓ+1}` back-
+propagated through `W_{ℓ+1}ᵀ`. -/
 lemma backwardSensitivity_step (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (ℓ : Fin d) (hne : ℓ.val < d - 1) (α : Fin m) (j : Fin n) :
     backwardSensitivity d n0 n m φ φ' X θ ℓ α j =
@@ -287,6 +283,22 @@ lemma backwardSensitivity_step (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin 
   rw [backwardSensitivity]
   have htop : ¬ ℓ.val = d - 1 := by omega
   simp [htop]
+
+/-- **Downward induction on `Fin n`.** To prove `P ℓ` for every layer `ℓ`, prove it at the top
+layer (`ℓ.val + 1 = n`) and show that `P (ℓ + 1)` implies `P ℓ` for every non-top layer. Used for
+the backward recursions (`backwardSensitivity`, `deepLimitingSensitivityKernel`). -/
+@[elab_as_elim]
+theorem backwardInduction {n : ℕ} {P : Fin n → Prop}
+    (top : ∀ ℓ : Fin n, ℓ.val + 1 = n → P ℓ)
+    (step : ∀ ℓ : Fin n, (hℓ : ℓ.val + 1 < n) → P ⟨ℓ.val + 1, hℓ⟩ → P ℓ) (ℓ : Fin n) : P ℓ := by
+  suffices H : ∀ k : ℕ, ∀ ℓ : Fin n, n - 1 - ℓ.val = k → P ℓ from H _ ℓ rfl
+  intro k
+  induction k with
+  | zero => intro ℓ h; exact top ℓ (by have := ℓ.2; omega)
+  | succ k ih =>
+    intro ℓ h
+    have hℓ : ℓ.val + 1 < n := by have := ℓ.2; omega
+    exact step ℓ hℓ (ih ⟨ℓ.val + 1, hℓ⟩ (by simp only; omega))
 
 /-- **Suffix congruence for the backward pass.** The sensitivity `g_ℓ` reads only the readout `Wd`,
 the hidden weights `Wh k` and the preactivations `h_k` with `k ≥ ℓ` (the mirror image of
@@ -300,31 +312,21 @@ lemma backwardSensitivity_congr_of_eqOn (d n0 n m : ℕ) (φ φ' : ℝ → ℝ)
     (hh : ∀ k : Fin d, ℓ.val ≤ k.val →
       deepMLPPreactivation d n0 n m φ X θ k = deepMLPPreactivation d n0 n m φ X θ' k) :
     backwardSensitivity d n0 n m φ φ' X θ ℓ = backwardSensitivity d n0 n m φ φ' X θ' ℓ := by
-  suffices H : ∀ j : ℕ, ∀ ℓ : Fin d, d - 1 - ℓ.val = j →
-      (∀ k : Fin (d - 1), ℓ.val ≤ k.val → θ.Wh k = θ'.Wh k) →
-      (∀ k : Fin d, ℓ.val ≤ k.val →
-        deepMLPPreactivation d n0 n m φ X θ k = deepMLPPreactivation d n0 n m φ X θ' k) →
-      backwardSensitivity d n0 n m φ φ' X θ ℓ = backwardSensitivity d n0 n m φ φ' X θ' ℓ from
-    H _ ℓ rfl hWh hh
-  intro j
-  induction j with
-  | zero =>
-    intro ℓ hj hWh hh
+  induction ℓ using backwardInduction with
+  | top ℓ hℓ =>
     have hd : 0 < d := by have := ℓ.2; omega
-    have heq : ℓ = ⟨d - 1, by omega⟩ := Fin.ext (by have := ℓ.2; simp only; omega)
+    have heq : ℓ = ⟨d - 1, by omega⟩ := Fin.ext (by simp only; omega)
     have hh' := hh ℓ le_rfl
     rw [heq] at hh' ⊢
     funext α i
     rw [backwardSensitivity_top d n0 n m φ φ' X θ hd, backwardSensitivity_top d n0 n m φ φ' X θ' hd,
       hWd, hh']
-  | succ j ih =>
-    intro ℓ hj hWh hh
+  | step ℓ hℓ ih =>
     have hne : ℓ.val < d - 1 := by omega
     funext α i
     rw [backwardSensitivity_step d n0 n m φ φ' X θ ℓ hne,
       backwardSensitivity_step d n0 n m φ φ' X θ' ℓ hne]
-    have hrec := ih ⟨ℓ.val + 1, by omega⟩ (by simp only; omega)
-      (fun k hk => hWh k (by simp only at hk; omega))
+    have hrec := ih (fun k hk => hWh k (by simp only at hk; omega))
       (fun k hk => hh k (by simp only at hk; omega))
     rw [hh ℓ le_rfl, hWh ⟨ℓ.val, by omega⟩ le_rfl]
     simp only [hrec]
@@ -342,6 +344,7 @@ noncomputable def deepSensitivityGram (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X
       (n : ℝ)⁻¹ * (backwardSensitivity d n0 n m φ φ' X θ ⟨ℓ.val, hℓ⟩ α ⬝ᵥ
                    backwardSensitivity d n0 n m φ φ' X θ ⟨ℓ.val, hℓ⟩ β)
 
+/-- The terminal backward Gram matrix (layer `d`) is the all-ones matrix. -/
 lemma deepSensitivityGram_terminal (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) :
     deepSensitivityGram d n0 n m φ φ' X θ ⟨d, by omega⟩ =
@@ -349,6 +352,8 @@ lemma deepSensitivityGram_terminal (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : 
   ext α β
   simp [deepSensitivityGram]
 
+/-- For a hidden layer `k < d` the backward Gram matrix is the Gram matrix `n⁻¹ ⟨g_k^α, g_k^β⟩` of
+the sensitivities. -/
 lemma deepSensitivityGram_hidden (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
     (θ : DeepMLPParams d n0 n) (k : ℕ) (hk : k < d) :
     deepSensitivityGram d n0 n m φ φ' X θ ⟨k, by omega⟩ =

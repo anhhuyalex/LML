@@ -23,9 +23,8 @@ corresponding Chebyshev bounds.
 * `NTK.lazy_training_kernel_freeze_bound` : Step 2 kernel freeze bound under lazy training.
 * `NTK.tendsto_lazy_training_kernel_freeze` : Asymptotic freeze limit as `n → ∞`.
 * `NTK.tendsto_lazy_training_kernel_freeze_matrix` : Empirical NTK matrix freeze as `n → ∞`.
-* `NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae` :
-  Property 1 a.s. initialization limit.
-* `NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae` : Gram matrix a.s. limit.
+* `NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae` : Property 1 a.s. Gram matrix
+  limit (entrywise `NTK.ntk_convergence`).
 * `NTK.deterministic_initialization_chebyshev_bound` : Property 1 entrywise Chebyshev bound.
 * `NTK.tendsto_shallowEmpiricalNTK_chebyshev_bound` : Property 1 Chebyshev tail decay in ENNReal.
 
@@ -251,21 +250,6 @@ theorem tendsto_lazy_training_kernel_freeze_matrix
     exact lazy_training_kernel_freeze_bound (f n) X (θ_traj n) (θ₀ n) C L_K hL_K n
       (hlazy n) (hLip n) t ht
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le hg hh hgf hfh
-
-/-- Property 1 (Deterministic NTK Initialization):
-By `ntk_convergence` from `NTK.Shallow.Kernel`, the empirical kernel `shallowEmpiricalNTK`
-built from `n` Gaussian hidden rows converges almost surely to the deterministic
-limiting kernel `shallowLimitingNTK` as width `n → ∞`:
-  `k_n(x, x') → k_∞(x, x')` a.s. -/
-theorem deterministic_initialization_shallowEmpiricalNTK_tendsto_ae
-    (σ' : ℝ → ℝ) (hσ'_meas : Measurable σ')
-    (hσ'_bounded : ∃ C : ℝ, ∀ z : ℝ, |σ' z| ≤ C) (x x' : Fin d → ℝ) :
-    ∀ᵐ rows : ℕ → Fin d → ℝ
-      ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => (Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1))),
-      Filter.Tendsto (fun n => shallowEmpiricalNTK σ' (fun j : Fin n => rows j.val) x x')
-        Filter.atTop (𝓝 (shallowLimitingNTK σ' x x')) :=
-  ntk_convergence σ' hσ'_meas hσ'_bounded x x'
 
 /-- Property 1 (Deterministic NTK Gram Matrix Initialization Limit):
 For any finite dataset `X : Fin m → Fin d → ℝ`, the empirical NTK Gram matrix

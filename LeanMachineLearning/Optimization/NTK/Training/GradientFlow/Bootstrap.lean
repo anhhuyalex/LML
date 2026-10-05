@@ -82,9 +82,11 @@ noncomputable def restrictCoords (k : κ → ι') :
       map_add' := fun _ _ => rfl
       map_smul' := fun _ _ => rfl }
 
+/-- The coordinates of `restrictCoords k v` are `v (k o)`. -/
 @[simp] lemma restrictCoords_apply (k : κ → ι') (v : EuclideanSpace ℝ ι') (o : κ) :
     restrictCoords k v o = v (k o) := rfl
 
+/-- `‖restrictCoords k v‖² = ∑_o v (k o)²`. -/
 lemma norm_sq_restrictCoords (k : κ → ι') (v : EuclideanSpace ℝ ι') :
     ‖restrictCoords k v‖ ^ 2 = ∑ o : κ, v (k o) ^ 2 := by
   rw [EuclideanSpace.real_norm_sq_eq]; rfl

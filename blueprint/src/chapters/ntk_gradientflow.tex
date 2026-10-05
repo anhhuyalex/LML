@@ -793,8 +793,7 @@ For constants $c,C,\varepsilon$: $c/\sqrt n\to0$ and $C/(\varepsilon^2n)\to0$ as
 
 \begin{theorem}[Deterministic initialization]\label{thm:ntkgf:deterministicInit}
   \uses{def:ntk:shallowEmpiricalNTK, lem:ntkhelp:symmetryPsd, lem:ntkhelp:frobGradient, def:ntk:shallowLimitingNTK, lem:ntk:ntkConverges, thm:ntkf:slln, lem:ntkf:chebyshev}
-  \lean{NTK.deterministic_initialization_shallowEmpiricalNTK_tendsto_ae,
-        NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae,
+  \lean{NTK.ntk_convergence, NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae,
         NTK.deterministic_initialization_chebyshev_bound}
   \leanok
 Let $\sigma'$ be measurable and bounded, and rows $w_0,w_1,\dots$ i.i.d.\ $\mathcal N(0,I_d)$. Almost surely the empirical kernel $k_n(x,x')$ built from the first $n$ rows (Definition~\ref{def:ntk:shallowEmpiricalNTK}) converges to the limiting NTK $k_\infty(x,x')$ (Definition~\ref{def:ntk:shallowLimitingNTK}) entrywise, and for a finite dataset the empirical Gram matrix $\bigl(k_n(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$ (the matrix of Lemma~\ref{lem:ntkhelp:symmetryPsd}(2), a Gram matrix of gradients by Lemma~\ref{lem:ntkhelp:frobGradient}) converges entrywise to $\bigl(k_\infty(x^\alpha,x^\beta)\bigr)_{\alpha\beta}$.
@@ -811,6 +810,11 @@ where $\mathbb E_{w_0,\dots,w_{n-1}}$ is the expectation over the $n$ i.i.d.\ Ga
 The almost sure statements are Lemma~\ref{lem:ntk:ntkConverges} applied entrywise (finitely many entries, so ``almost surely for each'' implies ``almost surely for all''). The tail bound is Chebyshev's inequality
 (Lemma~\ref{lem:ntkf:chebyshev}) with the assumed variance bound.
 \end{proof}
+
+\begin{remark}[Change to the formalization: pointwise statement]\label{rmk:ntkgf:deterministicInitChange}
+The pointwise almost-sure convergence $k_n(x,x')\to k_\infty(x,x')$ used to have its own restatement in the gradient-flow chapter (Lean: \texttt{deterministic\_initialization\_shallowEmpiricalNTK\_tendsto\_ae}). It was literally \texttt{ntk\_convergence} (Lemma~\ref{lem:ntk:ntkConverges}) under a different name, so the restatement was removed and this node now cites \texttt{ntk\_convergence} directly. The Gram-matrix version is kept.
+\end{remark}
+
 
 \begin{remark}[Role of this section in the NTK development]\label{rmk:ntkgf:infiniteWidthRole}
   \uses{thm:ntkgf:kernelFreeze, thm:ntkgf:deterministicInit, lem:ntkgf:limits, thm:ntkgf:kernelLipschitz}

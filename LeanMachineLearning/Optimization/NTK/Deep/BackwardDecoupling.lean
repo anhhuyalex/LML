@@ -233,6 +233,8 @@ lemma preactivation_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpa
   conv_rhs => rw [deepParams_eq_updateWh (n0 := n0) (n := n) ⟨k, by omega⟩ ω]
   rw [deepMLPPreactivation_updateWh_of_le φ X _ ⟨k, by omega⟩ _ ℓ hℓ]
 
+/-- Zeroing the layer-`k + 1` weights does not change the past features `pastFeat` (they read only
+layers `≤ k`). -/
 lemma pastFeat_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) :
     pastFeat φ X n k hk (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2) =
       pastFeat φ X n k hk ω := by
@@ -240,6 +242,8 @@ lemma pastFeat_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d)
   simp only [pastFeat, netFeat, Matrix.of_apply]
   rw [preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl]
 
+/-- Zeroing the layer-`k + 1` weights does not change the layer-`k` activation Gram matrix
+`netGram`. -/
 lemma netGram_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) :
     netGram φ X (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2))
         ⟨k, by omega⟩ =
@@ -249,6 +253,8 @@ lemma netGram_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) 
   unfold pastFeat at this
   rw [this]
 
+/-- Zeroing the layer-`k + 1` weights does not change the layer-`k` derivative vectors `netDeriv`.
+-/
 lemma netDeriv_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d) (c : Fin m) :
     netDeriv φ φ' X (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2))
         ⟨k, by omega⟩ c =
@@ -257,6 +263,7 @@ lemma netDeriv_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : DeepSpace d)
   simp only [netDeriv]
   rw [preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl]
 
+/-- If the normalized Gram matrix `n⁻¹ ΦᵀΦ` has unit determinant, so does `ΦᵀΦ`. -/
 lemma isUnit_det_gram_of_netGram {n : ℕ} (Φ : Matrix (Fin n) (Fin m) ℝ)
     (h : IsUnit ((n : ℝ)⁻¹ • (Φᵀ * Φ)).det) : IsUnit (Φᵀ * Φ).det := by
   rw [Matrix.det_smul] at h
@@ -300,6 +307,7 @@ section measurability
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (hφ : Measurable φ) (hφ' : Measurable φ')
   (X : Fin m → Fin n0 → ℝ)
 
+/-- The substitution `(Y, ω) ↦ θ(ω)[W_{k+1} ← Y]` is a measurable family of parameter records. -/
 lemma paramsMeasurable_updateWh_matrix (n : ℕ) (k : Fin (d - 1)) :
     ParamsMeasurable (fun p : Matrix (Fin n) (Fin n) ℝ × DeepSpace d =>
       (deepParams d n0 n p.2).updateWh k p.1) where
@@ -314,6 +322,7 @@ lemma paramsMeasurable_updateWh_matrix (n : ℕ) (k : Fin (d - 1)) :
   Wd j := (paramsMeasurable_deepParams d n0 n).Wd j |>.comp measurable_snd
 
 include hφ hφ' in
+/-- The next-layer sensitivity vector `g_{k+1}` is measurable on `DeepSpace`. -/
 lemma measurable_nextSens (n k : ℕ) (hk : k + 1 < d) (a : Fin m) :
     Measurable (nextSens φ φ' X (d := d) (n0 := n0) n k hk a) := by
   refine measurable_pi_iff.2 fun j => ?_
@@ -321,23 +330,27 @@ lemma measurable_nextSens (n k : ℕ) (hk : k + 1 < d) (a : Fin m) :
     hφ hφ' X ⟨k + 1, hk⟩ a j
 
 include hφ in
+/-- The preactivations of the network `deepParams` are measurable on `DeepSpace`. -/
 lemma measurable_netPre (n : ℕ) (ℓ : Fin d) (a : Fin m) (j : Fin n) :
     Measurable fun ω : DeepSpace d =>
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ℓ a j :=
   measurable_deepMLPPreactivation (paramsMeasurable_deepParams d n0 n) hφ X ℓ a j
 
+/-- Fourth-moment averages `𝔼 j, (v z j)⁴` of a measurable family are measurable. -/
 lemma measurable_avg4 {Z : Type*} [MeasurableSpace Z] {n : ℕ} {v : Z → Fin n → ℝ}
     (hv : ∀ j, Measurable fun z => v z j) : Measurable fun z => (𝔼 j, (v z) j ^ 4) := by
   simp only [expect_fin_eq_inv_mul_sum]
   exact measurable_const.mul (Finset.measurable_sum _ fun j _ => (hv j).pow_const 4)
 
 include hφ in
+/-- The past feature matrix `pastFeat` is measurable on `DeepSpace`. -/
 lemma measurable_pastFeat (n k : ℕ) (hk : k + 1 < d) :
     Measurable (pastFeat φ X (d := d) (n0 := n0) n k hk) := by
   refine Measurable.of_eval_matrix _ fun j a => ?_
   exact hφ.comp (measurable_netPre hφ X n ⟨k, by omega⟩ a j)
 
 include hφ hφ' in
+/-- The diagonal matrix `diag (φ'(h_k^a) φ'(h_k^b))` is measurable on `DeepSpace`. -/
 lemma measurable_diagDeriv (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) :
     Measurable fun ω : DeepSpace d =>
       (Matrix.diagonal (fun j => netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a j *
@@ -394,9 +407,11 @@ lemma featCov_cvg (ψ : ℝ → ℝ) (hψ : Continuous ψ) (Cψ : ℝ) (hCψ : 0
   ⟨_, deepSpace_featureCov_tendsto φ ψ A.cont hψ A.C A.hC A.p A.hp A.growth Cψ hCψ pψ hpψ hg X ℓ
     hℓ a b⟩
 
+/-- Polynomial growth of `φ'²`: `|φ'(x)²| ≤ 2 C² (1 + |x|^{2p})`. -/
 lemma growth_sq_deriv : ∀ x : ℝ, |φ' x ^ 2| ≤ (2 * A.C ^ 2) * (1 + |x| ^ (2 * A.p)) :=
   polynomial_growth_sq φ' A.C A.p A.growth'
 
+/-- Polynomial growth of `φ²`: `|φ(x)²| ≤ 2 C² (1 + |x|^{2p})`. -/
 lemma growth_sq_act : ∀ x : ℝ, |φ x ^ 2| ≤ (2 * A.C ^ 2) * (1 + |x| ^ (2 * A.p)) :=
   polynomial_growth_sq φ A.C A.p A.growth
 
@@ -466,6 +481,7 @@ section gram
 
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
+/-- Entrywise formula `netGram θ k a b = n⁻¹ ∑ⱼ φ(h_k^a j) φ(h_k^b j)`. -/
 lemma netGram_apply {n : ℕ} (θ : DeepMLPParams d n0 n) (k : Fin d) (a b : Fin m) :
     netGram φ X θ k a b = (n : ℝ)⁻¹ * ∑ j : Fin n,
       φ (deepMLPPreactivation d n0 n m φ X θ k a j) *
@@ -485,6 +501,8 @@ lemma netGram_entry_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
   simpa only [netGram_apply] using this
 
 include A in
+/-- The activation Gram matrix `netGram` converges in measure to the limiting forward kernel
+`Σ^{k+1}` (entrywise convergence assembled into a matrix statement). -/
 lemma netGram_matrix_tendsto (k : ℕ) (hk : k < d) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
@@ -647,6 +665,8 @@ section residual
 
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
+/-- The squared Frobenius norm of a diagonal matrix is the sum of squares of its diagonal entries.
+-/
 lemma sum_sq_diagonal {n : ℕ} (v : Fin n → ℝ) :
     ∑ k, ∑ l, (Matrix.diagonal v) k l ^ 2 = ∑ j, v j ^ 2 := by
   refine Finset.sum_congr rfl fun k _ => ?_
@@ -660,6 +680,8 @@ def goodSet (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (n : ℕ) : Se
   {ω | n ≠ 0 ∧ IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩).det}
 
 include A in
+/-- The probability of the complement of the good set (where the empirical activation Gram is
+invertible) tends to `0`, given positive definiteness of the limit. -/
 lemma goodSet_compl_tendsto (k : ℕ) (hk : k < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef) :
@@ -764,6 +786,8 @@ section avg
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
 include A in
+/-- The fourth-moment averages of the derivative vectors `φ'(h_ℓ^a)` converge in measure to a
+constant. -/
 lemma avg4_deriv_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
@@ -776,6 +800,8 @@ lemma avg4_deriv_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
   exact congrArg _ (Finset.sum_congr rfl fun j _ => by ring)
 
 include A in
+/-- The fourth-moment averages of the feature vectors `φ(h_ℓ^a)` converge in measure to a constant.
+-/
 lemma avg4_feat_cvg (ℓ : ℕ) (hℓ : ℓ < d) (a : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
@@ -910,6 +936,8 @@ section decoupling
 
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
+/-- The diagonal of the weighted pairing is the weighted square: `wcov (f, f; y, y) = wsq (f; y)`.
+-/
 lemma wcov_self_eq_wsq {n : ℕ} (f y : Fin n → ℝ) : (𝔼 j, f j * f j * (y j * y j)) =
     (𝔼 j, f j ^ 2 * y j ^ 2) := by
   simp only [expect_fin_eq_inv_mul_sum]
@@ -956,6 +984,8 @@ lemma wsq_projPart_tendsto (k : ℕ) (hk : k + 1 < d)
   simpa [Matrix.mulVec, dotProduct] using this
 
 include A in
+/-- The derivative Gram entries converge in measure to a constant (`∃`-form of `derivGram_tendsto`).
+-/
 lemma derivGram_cvg (k : ℕ) (hk : k < d) (a b : Fin m) :
     ∃ c : ℝ, TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
@@ -968,9 +998,42 @@ lemma derivGram_cvg (k : ℕ) (hk : k < d) (a b : Fin m) :
   simp [deepDerivativeGram, dotProduct]
 
 include A in
-/-- **The decoupling approximation.** Under `hnd` at layer `k + 1`, convergence of `G_{k+1}` and
-gradient independence `I(k+1)`: `G_k^{ab} − G_{k+1}^{ab} Φ'^{ab}_k → 0` in measure on
-`DeepSpace`. -/
+/-- **The decoupling approximation (the hard core of the backward induction).** For a
+hidden layer `k` with `k + 1 < d`, the backward Gram entry at layer `k` is asymptotically the
+product of the backward Gram entry at layer `k + 1` and the derivative Gram entry at layer `k`:
+`G_k^{(n),αβ} - G_{k+1}^{(n),αβ} · Φ'^{(n),αβ}_k → 0` in measure.
+
+**Extra hypothesis `hnd`:** the limiting forward kernel `Σ^ℓ = layerCovarianceSeq 1 0 φ m Φ0 ℓ`
+(the limit of the activation Gram `n⁻¹ ⟨φ(h_{ℓ-1}^α), φ(h_{ℓ-1}^β)⟩`, `Φ0 = X Xᵀ / n0`) is
+**positive definite** for every `1 ≤ ℓ < d` (the input layer `ℓ = 0` is not constrained). The
+orthogonal projector onto the span of the `m` forward features is controlled through the inverse
+`Σ̂⁻¹` of the empirical Gram, which is only uniformly bounded when the limiting Gram is invertible.
+The hypothesis is expected to hold for generic inputs and a non-polynomial activation (not proved
+here), but it fails for linear `φ` once `m > n0`, and for repeated or collinear inputs. It is *not*
+needed for the forward results, and is the only reason the backward induction and Theorem 2.27
+below carry it.
+
+**Proof.** With `D = diag(φ'(h_k^α) φ'(h_k^β))` and `u^γ = g_{k+1}^γ`,
+`G_k^{αβ} = n⁻² (u^α)ᵀ W_{k+1} D W_{k+1}ᵀ u^β`. Let `Φ = [φ(h_k^1) … φ(h_k^m)]` and `P` the
+orthogonal projector onto its span, so `n^{-1/2} W_{k+1}ᵀ u = x + y` with the projected part
+`x = Φ (Σ̂⁻¹ ζ)`, `ζ = n⁻¹ ⟨h_{k+1}, u⟩`, and the residual `y = n^{-1/2} (W_{k+1} Pᗮ)ᵀ u`
+(`backwardSensitivity_hidden_decomp`). The forward pass, hence `u`, sees `W_{k+1}` only through
+`W_{k+1} P` (`backwardSensitivity_updateWh_congr`), while the residual `W_{k+1} Pᗮ` is independent
+of `(W_{k+1} P, later layers)` (Lemma 2.26, `measurePreserving_layerSplit`).
+
+* *Residual part* (`gperp_sub_tendsto`): conditionally on `(W_{k+1} P, past, future)` the
+  quadratic form `n⁻² uᵀ (W Pᗮ) D (W Pᗮ)ᵀ v` has mean `G_{k+1} Φ'_k − G_{k+1} n⁻¹ tr(D P)` and
+  variance `O(n⁻¹)` (`tendsto_residualQuadForm`, from Isserlis), and `n⁻¹ tr(D P) → 0`
+  (`tendstoInMeasure_inv_nat_mul_trace`).
+* *Projected part* (`wsq_projPart_tendsto`): vanishes thanks to the **gradient-independence
+  invariant** `I(ℓ): n⁻¹ ⟨h_ℓ^b, g_ℓ^a⟩ → 0` (`ζ → 0`), with `Σ̂⁻¹ → (Σ^{k+1})⁻¹` bounded.
+* *Assembly* (`decoupling_tendsto`): Cauchy–Schwarz `|G_k − G_⊥|² ≤ 3 [N_f(x) N_g(x') + N_f(x)
+  N_g(y') + N_f(y) N_g(x')]` (`wcov_sub_sq_le`).
+
+The invariant `I` and the decoupling are proved in one joint downward induction on `DeepSpace`
+(`deepSpace_sensitivity_induction`, `Deep/BackwardInduction.lean`); this statement is its
+`ℓ = k` instance, with `hnd` at layer `k + 1`, convergence of `G_{k+1}` and gradient independence
+`I(k+1)` as hypotheses. -/
 theorem decoupling_tendsto (k : ℕ) (hk : k + 1 < d)
     (hpd : (layerCovarianceSeq 1 0 φ m
       (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)).PosDef)

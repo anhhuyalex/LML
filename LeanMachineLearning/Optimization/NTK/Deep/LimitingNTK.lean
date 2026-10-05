@@ -74,6 +74,7 @@ noncomputable def deepLimitingSensitivityKernel (d m : ℕ) (φ φ' : ℝ → �
 termination_by ℓ => d - ℓ.val
 decreasing_by omega
 
+/-- The limiting sensitivity kernel at the top layer `d` is the all-ones matrix. -/
 lemma deepLimitingSensitivityKernel_terminal (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) :
     deepLimitingSensitivityKernel d m φ φ' Φ0 ⟨d, by omega⟩ =
@@ -81,6 +82,8 @@ lemma deepLimitingSensitivityKernel_terminal (d m : ℕ) (φ φ' : ℝ → ℝ)
   ext α β
   simp [deepLimitingSensitivityKernel]
 
+/-- The recursion for the limiting sensitivity kernel: for `ℓ < d` it is the Hadamard product of the
+Gaussian derivative covariance of the layer-`ℓ` forward kernel with the kernel of layer `ℓ + 1`. -/
 lemma deepLimitingSensitivityKernel_step (d m : ℕ) (φ φ' : ℝ → ℝ)
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) (ℓ : Fin (d + 1)) (hne : ℓ.val < d) :
     deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ =
@@ -97,31 +100,25 @@ theorem deepLimitingSensitivityKernel_transpose (d m : ℕ) (φ φ' : ℝ → �
     (Φ0 : Matrix (Fin m) (Fin m) ℝ) (ℓ : Fin (d + 1)) :
     (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ)ᵀ =
       deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ := by
-  have H : ∀ k, ∀ (ℓ : Fin (d + 1)), d - ℓ.val = k →
-      (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ)ᵀ =
-        deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ := by
-    intro k
-    induction k using Nat.strong_induction_on with
-    | h k ih =>
-      intro ℓ hk
-      rw [deepLimitingSensitivityKernel]
-      split_ifs with htop
-      · exact const_matrix_transpose 1
-      · have hsucc : ℓ.val + 1 < d + 1 := by omega
-        have h_ih := ih (d - (ℓ.val + 1)) (by omega) ⟨ℓ.val + 1, hsucc⟩ rfl
-        have h_dot_trans :
-            (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
-              φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0
-                (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val)))ᵀ =
-            (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
-              φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0
-                (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) := by
-          ext α β
-          simp only [Matrix.transpose_apply, Matrix.of_apply]
-          congr 1 with z
-          ring
-        simp only [Matrix.transpose_hadamard, h_dot_trans, h_ih]
-  exact H (d - ℓ.val) ℓ rfl
+  induction ℓ using backwardInduction with
+  | top ℓ hℓ =>
+    have hℓd : ℓ = ⟨d, by omega⟩ := Fin.ext (by simp only; omega)
+    rw [hℓd, deepLimitingSensitivityKernel_terminal]
+    exact const_matrix_transpose 1
+  | step ℓ hℓ ih =>
+    have h_dot_trans :
+        (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
+          φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0
+            (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val)))ᵀ =
+        (Matrix.of fun α β => ∫ z : EuclideanSpace ℝ (Fin m),
+          φ' (z.ofLp α) * φ' (z.ofLp β) ∂(multivariateGaussian 0
+            (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) := by
+      ext α β
+      simp only [Matrix.transpose_apply, Matrix.of_apply]
+      congr 1 with z
+      ring
+    rw [deepLimitingSensitivityKernel_step d m φ φ' Φ0 ℓ (by omega)]
+    simp only [Matrix.transpose_hadamard, h_dot_trans, ih]
 
 /-- The limiting backward covariance matrix is positive semidefinite at every layer `ℓ`,
 assuming `φ'` is measurable and has finite $L^2$ moments under the forward Gaussian layers. -/
@@ -131,34 +128,29 @@ theorem deepLimitingSensitivityKernel_posSemidef (d m : ℕ) (φ φ' : ℝ → �
       MemLp (fun z : EuclideanSpace ℝ (Fin m) => φ' (z.ofLp α)) 2
         (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 k))) (ℓ : Fin (d + 1)) :
     (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ).PosSemidef := by
-  have H : ∀ k, ∀ (ℓ : Fin (d + 1)), d - ℓ.val = k →
-      (deepLimitingSensitivityKernel d m φ φ' Φ0 ℓ).PosSemidef := by
-    intro k
-    induction k using Nat.strong_induction_on with
-    | h k ih =>
-      intro ℓ hk
-      rw [deepLimitingSensitivityKernel]
-      split_ifs with htop
-      · exact posSemidef_allOnes (m := Fin m)
-      · have hsucc : ℓ.val + 1 < d + 1 := by omega
-        have h_rec := limitingRecurrence_posSemidef_multivariate 1 0 m φ' hφ'_meas
-          (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val) (hφ'_L2 ℓ.val)
-        have h_dot_psd : (Matrix.of fun α β =>
-            ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂
-              (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))).PosSemidef := by
-          have heq : (Matrix.of fun α β =>
-              ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂
-                (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) =
-            (show Matrix (Fin m) (Fin m) ℝ from fun α β => 0 ^ 2 + 1 ^ 2 *
-              ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂
-                (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) := by
-            ext α β
-            simp
-          rw [heq]
-          exact h_rec
-        have h_tail := ih (d - (ℓ.val + 1)) (by omega) ⟨ℓ.val + 1, hsucc⟩ rfl
-        exact Matrix.PosSemidef.hadamard h_dot_psd h_tail
-  exact H (d - ℓ.val) ℓ rfl
+  induction ℓ using backwardInduction with
+  | top ℓ hℓ =>
+    have hℓd : ℓ = ⟨d, by omega⟩ := Fin.ext (by simp only; omega)
+    rw [hℓd, deepLimitingSensitivityKernel_terminal]
+    exact posSemidef_allOnes (m := Fin m)
+  | step ℓ hℓ ih =>
+    have h_rec := limitingRecurrence_posSemidef_multivariate 1 0 m φ' hφ'_meas
+      (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val) (hφ'_L2 ℓ.val)
+    have h_dot_psd : (Matrix.of fun α β =>
+        ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂
+          (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))).PosSemidef := by
+      have heq : (Matrix.of fun α β =>
+          ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂
+            (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) =
+        (show Matrix (Fin m) (Fin m) ℝ from fun α β => 0 ^ 2 + 1 ^ 2 *
+          ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β) ∂
+            (multivariateGaussian 0 (layerCovarianceSeq 1 0 φ m Φ0 ℓ.val))) := by
+        ext α β
+        simp
+      rw [heq]
+      exact h_rec
+    rw [deepLimitingSensitivityKernel_step d m φ φ' Φ0 ℓ (by omega)]
+    exact Matrix.PosSemidef.hadamard h_dot_psd ih
 
 /-- Deterministic limiting Neural Tangent Kernel (NTK) Gram matrix `Θ^{(d)} ∈ ℝ^{m × m}`
 (Proposition 2.27):

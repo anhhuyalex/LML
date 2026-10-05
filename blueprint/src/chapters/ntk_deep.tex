@@ -400,7 +400,8 @@ A family of independent coordinates is independent of any sub-family of other co
 \begin{theorem}[Kronecker structure of a conditional layer]\label{thm:ntkdeep:kronecker}
   \uses{thm:ntkdeep:gaussianMatrix}
   \lean{NTK.multivariateGaussian_pi_eq_kronecker, NTK.exact_conditional_normality_layer,
-        NTK.conditional_preactivations_eq_pi, NTK.conditional_preactivation_covariance_posSemidef}
+        NTK.conditional_preactivations_eq_pi,
+        NTK.empirical_layer_covariance_posSemidef_multivariate}
   \leanok
 (1) Concatenating $n$ i.i.d.\ copies of an $m$-variate $\mathcal N(0,\Phi)$ (stacked $(\alpha,j)$) gives a Gaussian with Kronecker covariance $\Phi\otimes I_n$.
 (2) Conditional on the previous layer $H\in\mathbb R^{n\times m}$, the full width-$n'$ next-layer preactivation $\mathbf H_{\ell+1}\in\mathbb R^{mn'}$ with entries $\frac1{\sqrt n}\sum_kW_{jk}H_{k\alpha}$ is exactly $\mathcal N\bigl(0,\Phi^{(n)}_\ell\otimes I_{n'}\bigr)$, where $\Phi^{(n)}_{\ell,\alpha\beta}=\frac1n\sum_kH_{k\alpha}H_{k\beta}$.
@@ -412,6 +413,11 @@ A family of independent coordinates is independent of any sub-family of other co
   \leanok
 By Theorem~\ref{thm:ntkdeep:gaussianMatrix} (with $u^\alpha=H_{\cdot\alpha}/\sqrt n$) the row-indexed family consists of $n'$ i.i.d.\ copies of $\mathcal N(0,\Phi^{(n)}_\ell)$; (1) turns the product of $n'$ i.i.d.\ Gaussians into one Gaussian with Kronecker covariance. Positive semidefiniteness of $\frac1n\sum_k\varphi(H_k)\varphi(H_k)^\top$ is that of a Gram matrix.
 \end{proof}
+
+\begin{remark}[Change to the formalization: positive semidefiniteness of the conditional covariance]\label{rmk:ntkdeep:kroneckerChange}
+Part~(3) used to be backed by a dedicated lemma (Lean: \texttt{conditional\_preactivation\_covariance\_posSemidef}). It was a one-line specialization ($\sigma_w=1$, $\sigma_b=0$) of \texttt{empirical\_layer\_covariance\_posSemidef\_multivariate} and was never used, so it was removed; the claim is now formalized directly by that general lemma.
+\end{remark}
+
 
 \begin{lemma}[Moments of polynomially growing activations]\label{lem:ntkdeep:polyGrowth}
   \lean{NTK.memLp_activation_coordinate_of_polynomial_growth,
@@ -450,7 +456,7 @@ Theorem~\ref{thm:ntkf:slln} is stronger for a fixed conditioning realization). T
 \section{The deep NNGP recursion (Theorem~2.13)}\label{sec:ntkdeep:deep}
 
 \begin{definition}[Deep network from one weight population]\label{def:ntkdeep:deepPreactivation}
-  \lean{NTK.deepPreactivation, NTK.deepHistoryWeight, NTK.deepPreactivation_congr_of_eqOn,
+  \lean{NTK.deepPreactivation, NTK.deepPreactivation_congr_of_eqOn,
         NTK.deepPreactivation_eq_prefix}
   \leanok
 Let $W:\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R$ be a single infinite population of i.i.d.\ standard Gaussian weights indexed by (layer, neuron, source neuron). The depth-$L$ preactivations $h_\ell(X^\alpha)_j$ are defined by
@@ -459,24 +465,27 @@ Let $W:\mathbb N\to\mathbb N\to\mathbb N\to\mathbb R$ be a single infinite popul
   h_{\ell+1}(\alpha)_j=\frac1{\sqrt n}\sum_{k<n}W_{\ell+1,j,k}\,\varphi\bigl(h_\ell(\alpha)_k\bigr),
 \]
 and the output is $f_m(\theta)_\alpha=n^{-1/2}\sum_{j<n}a_j\,\varphi\bigl(h_{L-1}(\alpha)_j\bigr)$ with readout $a$ drawn from the same Gaussian. A preactivation at layer $\ell$ depends only on the weight populations of layers $\le\ell$
-(\texttt{deepPreactivation\_congr\_of\_eqOn}), and \texttt{deepHistoryWeight} reconstructs the total weight family from the populations strictly before a layer $r$.
+(\texttt{deepPreactivation\_congr\_of\_eqOn}).
 \end{definition}
 
 \begin{lemma}[Independence across depth for the deep population]\label{lem:ntkdeep:deepIndependence}
   \uses{def:ntkdeep:deepPreactivation, lem:ntkdeep:independenceDepth}
-  \lean{NTK.map_infinitePi_input_preactivations, NTK.indepFun_deepLayer_history, NTK.map_deepLayer_history_eq_prod,
-        NTK.deepPreactivation_eq_deepHistoryWeight}
+  \lean{NTK.map_infinitePi_input_preactivations, NTK.indepFun_deepLayer_history}
   \leanok
 (1) The infinite input-weight population, evaluated at the fixed inputs and normalized by $1/\sqrt d$, is an i.i.d.\ family of centred Gaussians with the base Gram covariance $(\Phi_0)_{\alpha\beta}=\frac1d\,x^\alpha\cdot x^\beta$.
-(2) For the layer population $\Omega=(\mathbb R^{\mathbb N\times\mathbb N})^L$ with product Gaussian measure, the weights $w_\ell$ of layer $\ell$ are independent of the history $(w_i)_{i<\ell}$, and the law of $(w_\ell,\text{history})$ is the product of their laws.
-(3) A preactivation before layer $r$ equals the one computed from the reconstructed history weights.
+(2) For the layer population $\Omega=(\mathbb R^{\mathbb N\times\mathbb N})^L$ with product Gaussian measure, the weights $w_\ell$ of layer $\ell$ are independent of the history $(w_i)_{i<\ell}$.
 \end{lemma}
 
 \begin{proof}
   \uses{lem:ntkdeep:independenceDepth}
   \leanok
-(1) is the pushforward of an i.i.d.\ Gaussian family along the linear map $W_j\mapsto(\frac1{\sqrt d}W_j\cdot x^\alpha)_\alpha$ (Theorem~\ref{thm:ntkdeep:projections}). (2) is Lemma~\ref{lem:ntkdeep:independenceDepth} with the per-layer type $\mathbb R^{\mathbb N\times\mathbb N}$. (3) holds because $h_\ell$ reads only the layers $\le\ell$.
+(1) is the pushforward of an i.i.d.\ Gaussian family along the linear map $W_j\mapsto(\frac1{\sqrt d}W_j\cdot x^\alpha)_\alpha$ (Theorem~\ref{thm:ntkdeep:projections}). (2) is Lemma~\ref{lem:ntkdeep:independenceDepth} with the per-layer type $\mathbb R^{\mathbb N\times\mathbb N}$.
 \end{proof}
+
+\begin{remark}[Change to the formalization: history weights]\label{rmk:ntkdeep:deepIndependenceChange}
+An earlier version of the deep-network definition and of this lemma also contained a ``history weight'' construction: a function \texttt{deepHistoryWeight} reconstructing the full weight family from the populations strictly before a layer $r$, a lemma that a preactivation before layer $r$ equals the one computed from the reconstructed weights (\texttt{deepPreactivation\_eq\_deepHistoryWeight}), and the statement that the joint law of $(w_\ell,\text{history})$ is the product of their laws (\texttt{map\_deepLayer\_history\_eq\_prod}). The proof of Theorem~2.13 turned out not to need any of them: independence of $w_\ell$ and the history (part~(2) above) together with locality of the forward pass (\texttt{deepPreactivation\_congr\_of\_eqOn}) suffice, so the three declarations were removed. The product-law statement is equivalent to the independence statement that is kept.
+\end{remark}
+
 
 \begin{lemma}[Convergence in probability: general tools]\label{lem:ntkdeep:probTools}
   \lean{NTK.instPseudoEMetricSpaceMatrix, NTK.instPseudoMetricSpaceMatrix, NTK.tendstoInMeasure_comp_of_continuousAt,

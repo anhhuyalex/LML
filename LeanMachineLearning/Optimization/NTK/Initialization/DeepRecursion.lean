@@ -224,50 +224,6 @@ theorem indepFun_deepLayer_history (L : ℕ) (ℓ : Fin L) :
   indepFun_pi_apply_Iio
     (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) ℓ
 
-/-- The current infinite weight population is independent of all earlier populations.  This
-pushforward form is the measure-theoretic interface used by the deep covariance induction: it
-separates the fresh layer weights from the history without introducing a second network state. -/
-lemma map_deepLayer_history_eq_prod (L : ℕ) (ℓ : Fin L) :
-    Measure.map
-      (fun w : Fin L → ℕ → ℕ → ℝ => (w ℓ, fun i : Finset.Iio ℓ => w i))
-      (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
-        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) =
-      (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
-        (Measure.map (fun w : Fin L → ℕ → ℕ → ℝ => fun i : Finset.Iio ℓ => w i)
-          (Measure.pi fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
-            Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
-  have hhistory_meas : Measurable
-      (fun w : Fin L → ℕ → ℕ → ℝ => fun i : Finset.Iio ℓ => w i) := by
-    refine measurable_pi_iff.2 fun i => ?_
-    exact measurable_pi_apply (i : Fin L)
-  rw [(indepFun_deepLayer_history L ℓ).map_prod_eq_prod_map_map]
-  · rw [(measurePreserving_eval (fun _ : Fin L => Measure.infinitePi fun _ : ℕ =>
-      Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) ℓ).map_eq]
-  · exact (measurable_pi_apply ℓ).aemeasurable
-  · exact hhistory_meas.aemeasurable
-
-/-- The total weight family reconstructed from the populations strictly before `r`.  Values at
-and after `r` are irrelevant for preactivations before `r` and are set to zero. -/
-noncomputable def deepHistoryWeight (L : ℕ) (r : Fin L)
-    (h : Finset.Iio r → ℕ → ℕ → ℝ) : ℕ → ℕ → ℕ → ℝ := fun k =>
-  if hk : k < r.val then
-    h ⟨⟨k, lt_trans hk r.isLt⟩, Finset.mem_Iio.mpr (show (⟨k, lt_trans hk r.isLt⟩ : Fin L) < r
-      from hk)⟩
-  else 0
-
-/-- A preactivation before `r` depends only on the `Iio r` history. -/
-lemma deepPreactivation_eq_deepHistoryWeight
-    (d m n L : ℕ) (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
-    (r : Fin L) (ℓ : ℕ) (hℓ : ℓ < r.val)
-    (w : Fin L → ℕ → ℕ → ℝ) :
-    deepPreactivation d m n φ X
-      (fun k => if hk : k < L then w ⟨k, hk⟩ else 0) ℓ =
-    deepPreactivation d m n φ X (deepHistoryWeight L r (fun i : Finset.Iio r => w i)) ℓ := by
-  apply deepPreactivation_congr_of_eqOn d m n φ X _ _ ℓ
-  intro k hk
-  have hkr : k < r.val := lt_of_le_of_lt hk hℓ
-  simp [deepHistoryWeight, hkr, lt_trans hkr r.isLt]
-
 /-! ### Matrix Convergence Reduction
 
 The general convergence-in-probability calculus (continuous mapping, products, matrix inverse,

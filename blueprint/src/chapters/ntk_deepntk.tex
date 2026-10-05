@@ -76,10 +76,9 @@ For parameter gradients one finds, again by the chain rule, $\nabla_{W_\ell}f^\a
 \begin{theorem}[Symmetry and positive semidefiniteness of the Gram matrices]\label{thm:ntkdn:gramPsd}
   \uses{def:ntkdn:gram, lem:ntkcond:gram}
   \lean{NTK.deepActivationGram_transpose, NTK.deepActivationGram_posSemidef,
-        NTK.deepDerivativeGram_transpose, NTK.deepDerivativeGram_posSemidef,
         NTK.deepSensitivityGram_transpose, NTK.deepSensitivityGram_posSemidef}
   \leanok
-All matrices $\Phi_\ell^{(n)}$ ($0\le\ell\le d$), $\Phi'^{(n)}_\ell$ ($\ell<d$) and $G_\ell^{(n)}$ ($0\le\ell\le d$) are symmetric and positive semidefinite.
+All matrices $\Phi_\ell^{(n)}$ ($0\le\ell\le d$) and $G_\ell^{(n)}$ ($0\le\ell\le d$) are symmetric and positive semidefinite. (The same holds for $\Phi'^{(n)}_\ell$ ($\ell<d$), by the same argument; this is not formalized, see the remark below.)
 \end{theorem}
 
 \begin{proof}
@@ -87,6 +86,11 @@ All matrices $\Phi_\ell^{(n)}$ ($0\le\ell\le d$), $\Phi'^{(n)}_\ell$ ($\ell<d$) 
   \leanok
 Each is $c\,MM^\top$ with $c=n^{-1}$ or $c=n_0^{-1}$ and $M$ the matrix whose rows are the feature vectors $\varphi(h^\alpha)$, $\varphi'(h^\alpha)$, $g^\alpha$ or $x^\alpha$; or the all-ones matrix. Apply Lemma~\ref{lem:ntkcond:gram}.
 \end{proof}
+
+\begin{remark}[Change to the formalization: derivative Gram matrices]\label{rmk:ntkdn:gramPsdChange}
+An earlier version also formalized symmetry and positive semidefiniteness of the derivative Gram matrices $\Phi'^{(n)}_\ell$ (Lean: \texttt{deepDerivativeGram\_transpose}, \texttt{deepDerivativeGram\_posSemidef}). No later result used them (only convergence of $\Phi'^{(n)}_\ell$ is needed, not its sign), so they were removed. Each was the two-line application of \texttt{scaled\_gram\_transpose} resp.\ \texttt{scaled\_gram\_posSemidef}, exactly as for $\Phi_\ell^{(n)}$.
+\end{remark}
+
 
 \begin{lemma}[Suffix congruence of the backward pass]\label{lem:ntkdn:suffixCongruence}
   \uses{def:ntkdn:gram}
@@ -252,20 +256,25 @@ This is the interface between the concrete network and the abstract conditional 
 
 \begin{theorem}[Forward Gram concentration on the product space]\label{thm:ntkdn:forwardProductSpace}
   \uses{thm:ntkcond:featureCovariance, thm:ntkdeep:deepCovariance, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:locality}
-  \lean{NTK.deepActivationGram_entry_tendstoInMeasure, NTK.deepDerivativeGram_entry_tendstoInMeasure}
+  \lean{NTK.deepActivationGram_entry_tendstoInMeasure}
   \leanok
 Let $\varphi,\varphi'$ be continuous with polynomial growth, $X$ inputs, $k<d$, $\alpha,\beta\in[m]$, and $\Phi_0=\frac1{n_0}XX^\top$. Under the product Gaussian measure on $(W,w_{\mathrm{out}})$, with $\theta_n=\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ at width $n$, as $n\to\infty$:
 \[
-  \Phi_{k+1}^{(n),\alpha\beta}\xrightarrow{\ \mu\ }\Sigma^{k+1}_{\alpha\beta},\qquad\Phi'^{(n),\alpha\beta}_k\xrightarrow{\ \mu\ }\dot\Sigma^k_{\alpha\beta}=\mathbb E_{z\sim\mathcal N(0,\Sigma^k)}\bigl[\varphi'(z_\alpha)\varphi'(z_\beta)\bigr]
+  \Phi_{k+1}^{(n),\alpha\beta}\xrightarrow{\ \mu\ }\Sigma^{k+1}_{\alpha\beta}
 \]
-in measure.
+in measure. (The analogous statement for the derivative Gram $\Phi'^{(n),\alpha\beta}_k\to\dot\Sigma^k_{\alpha\beta}=\mathbb E_{z\sim\mathcal N(0,\Sigma^k)}[\varphi'(z_\alpha)\varphi'(z_\beta)]$ is formalized on $\texttt{DeepSpace}$ in Theorem~\ref{thm:ntkdn:forwardDeepSpace}, not on the product space.)
 \end{theorem}
 
 \begin{proof}
   \uses{thm:ntkcond:featureCovariance, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:locality}
   \leanok
-By the bridge (Theorem~\ref{thm:ntkdn:bridge}) the entries are the feature averages of Theorem~\ref{thm:ntkcond:featureCovariance} with $\psi=\varphi$, respectively $\psi=\varphi'$, evaluated on a population of $L=d$ layers. That theorem is stated for the product over the first $d$ populations. By locality (Lemma~\ref{lem:ntkcond:locality}(2)) the preactivations up to layer $k<d$ read only the first $d$ populations, so the transport Lemma~\ref{lem:ntkdn:transport}(2) moves the statement to the full product space. Note that the derivative Gram has limit $\int\varphi'\varphi'\,d\mathcal N(0,\Sigma^k)$, built with the forward kernel $\Sigma^k$ of $\varphi$ but averaging the feature $\varphi'$.
+By the bridge (Theorem~\ref{thm:ntkdn:bridge}) the entries are the feature averages of Theorem~\ref{thm:ntkcond:featureCovariance} with $\psi=\varphi$, evaluated on a population of $L=d$ layers. That theorem is stated for the product over the first $d$ populations. By locality (Lemma~\ref{lem:ntkcond:locality}(2)) the preactivations up to layer $k<d$ read only the first $d$ populations, so the transport Lemma~\ref{lem:ntkdn:transport}(2) moves the statement to the full product space.
 \end{proof}
+
+\begin{remark}[Change to the formalization: derivative Gram on the product space]\label{rmk:ntkdn:forwardProductSpaceChange}
+An earlier version of this theorem also asserted the product-space convergence $\Phi'^{(n),\alpha\beta}_k\to\dot\Sigma^k_{\alpha\beta}$ (Lean: \texttt{deepDerivativeGram\_entry\_tendstoInMeasure}). Nothing used it: the derivative Gram is only ever needed on $\texttt{DeepSpace}$, where the readout is a coordinate (\texttt{derivGram\_tendsto}, Theorem~\ref{thm:ntkdn:forwardDeepSpace}), so the product-space copy was removed. The limit is built with the forward kernel $\Sigma^k$ of $\varphi$ but averages the feature $\varphi'$, i.e.\ it is $\int\varphi'\varphi'\,d\mathcal N(0,\Sigma^k)$.
+\end{remark}
+
 
 \begin{theorem}[Forward concentration on \texttt{DeepSpace}]\label{thm:ntkdn:forwardDeepSpace}
   \uses{thm:ntkcond:featureCovariance, lem:ntkdn:transport, thm:ntkdn:bridge}
@@ -346,7 +355,7 @@ Part (4) is the structural input to the conditioning: together with Lemma~\ref{l
   \uses{def:ntkdn:forward, def:ntkdn:gram, def:ntkdn:deepSpace, lem:ntkcond:measurability}
   \lean{NTK.ParamsMeasurable, NTK.measurable_deepMLPPreactivation, NTK.measurable_backwardSensitivity,
         NTK.measurable_prefixTensor_entry, NTK.paramsMeasurable_deepParams,
-        NTK.paramsMeasurable_updateWh, NTK.paramsMeasurable_updateWh_matrix,
+        NTK.paramsMeasurable_updateWh_matrix,
         NTK.measurable_nextSens, NTK.measurable_netPre, NTK.measurable_avg4, NTK.measurable_pastFeat,
         NTK.measurable_diagDeriv, NTK.measurable_sensitivityGram_entry,
         NTK.measurable_derivativeGram_entry}
@@ -358,6 +367,11 @@ Call a family of records $z\mapsto\theta(z)$ \emph{measurable} if every weight e
   \leanok
 By induction on the layer using that sums, products and compositions of measurable functions are measurable (Lemma~\ref{lem:ntkcond:measurability}).
 \end{proof}
+
+\begin{remark}[Change to the formalization: measurability of substitution]\label{rmk:ntkdn:measurableChange}
+There used to be two versions of the measurability of $(\omega,Y)\mapsto\theta(\omega)[W_{k+1}\leftarrow Y]$, one with the pair ordered $(Y,\omega)$ (\texttt{paramsMeasurable\_updateWh}) and one ordered $(\omega,Y)$ (\texttt{paramsMeasurable\_updateWh\_matrix}). Only the latter is used, so the former was removed.
+\end{remark}
+
 
 \begin{lemma}[A layer as a substitution into the network with that layer zeroed]\label{lem:ntkdn:layerSubstitution}
   \uses{def:ntkdn:updateWh, thm:ntkdn:layerSplit}
@@ -392,10 +406,10 @@ In Lean these are not separate definitions: each is the uniform average \texttt{
 
 \begin{lemma}[Cauchy--Schwarz decoupling]\label{lem:ntkdn:wcovCS}
   \uses{def:ntkdn:wcov}
-  \lean{NTK.wsq_nonneg, NTK.avg4_nonneg, NTK.wcov_sq_le, NTK.wcov_add_add, NTK.wcov_sub_sq_le}
+  \lean{NTK.wcov_sq_le, NTK.wcov_add_add, NTK.wcov_sub_sq_le}
   \leanok
 \begin{enumerate}
-  \item $\mathrm{wsq}\ge0$, $\mathrm{avg}_4\ge0$ and $\mathrm{wcov}(f,g;a,b)^2\le\mathrm{wsq}(f;a)\,\mathrm{wsq}(g;b)$.
+  \item $\mathrm{wcov}(f,g;a,b)^2\le\mathrm{wsq}(f;a)\,\mathrm{wsq}(g;b)$ (and $\mathrm{wsq}\ge0$, $\mathrm{avg}_4\ge0$, which are \texttt{Finset.expect\_nonneg} of squares and fourth powers).
   \item $\mathrm{wcov}(f,g;x+y,x'+y')=\mathrm{wcov}(f,g;x,x')+\mathrm{wcov}(f,g;x,y')+\mathrm{wcov}(f,g;y,x')+\mathrm{wcov}(f,g;y,y')$.
   \item (Decoupling inequality)
   \[
@@ -408,6 +422,11 @@ In Lean these are not separate definitions: each is the uniform average \texttt{
   \leanok
 (1) is Cauchy--Schwarz for the weighted sums $\frac1n\sum_j(f_ja_j)(g_jb_j)$. (2) is bilinearity. (3) By (2) the left side is $(A+B+C)^2$ with $A=\mathrm{wcov}(f,g;x,x')$, $B=\mathrm{wcov}(f,g;x,y')$, $C=\mathrm{wcov}(f,g;y,x')$; $(A+B+C)^2\le3(A^2+B^2+C^2)$, and each square is bounded by (1).
 \end{proof}
+
+\begin{remark}[Change to the formalization: nonnegativity of weighted averages]\label{rmk:ntkdn:wcovCSChange}
+Nonnegativity of $\mathrm{wsq}$ and $\mathrm{avg}_4$ used to be stated as lemmas (Lean: \texttt{wsq\_nonneg}, \texttt{avg4\_nonneg}). Since these averages are now written as \texttt{Finset.expect} of squares and fourth powers, nonnegativity is \texttt{Finset.expect\_nonneg} (or \texttt{positivity}) at each use, and the two lemmas were removed.
+\end{remark}
+
 
 This is how the difference between the Gram entry of $g_k=\varphi'(h_k)\odot(x+y)$ and the Gram entry of the residual part alone is controlled: every term in the bound contains the weighted size of the \emph{projected} parts $x,x'$, which will be shown to vanish.
 
@@ -704,25 +723,22 @@ The induction is carried out on $\texttt{DeepSpace}\;d$, where the readout is av
 
 \begin{theorem}[Backward Gram convergence]\label{thm:ntkdn:backwardConvergence}
   \uses{thm:ntkdn:induction, thm:ntkdn:top, thm:ntkdn:decoupling, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:polyGrowth}
-  \lean{NTK.deepSensitivityGram_readout_entry_tendstoInMeasure,
-        NTK.deepSensitivityGram_sub_mul_tendstoInMeasure, NTK.deepSensitivityGram_entry_tendstoInMeasure}
+  \lean{NTK.deepSensitivityGram_entry_tendstoInMeasure}
   \leanok
 Let $\varphi,\varphi'$ be continuous with $|\varphi(x)|,|\varphi'(x)|\le C(1+|x|^p)$, let $d\ge1$, $X$ be inputs, $\Phi_0=\frac1{n_0}XX^\top$, and consider $\theta_n=\texttt{ofTensor}\;W\;w_{\mathrm{out}}$ under the product Gaussian measure on $(W,w_{\mathrm{out}})$.
-\begin{enumerate}
-  \item (Top layer; no non-degeneracy assumption, and the two growth constants may differ) $G_{d-1}^{(n),ab}\to\dot\Sigma^{d-1}_{ab}$ in measure.
-  \item (Decoupling approximation) Under Hypothesis~\ref{hyp:ntkdn:nondeg}, for $k+1<d$ and $\varepsilon>0$,
-  \[
-    \mu\Bigl[\bigl|G_k^{(n),ab}-G_{k+1}^{(n),ab}\Phi'^{(n),ab}_k\bigr|\ge\varepsilon\Bigr]\xrightarrow[n\to\infty]{}0 .
-  \]
-  \item (Backward convergence) Under Hypothesis~\ref{hyp:ntkdn:nondeg}, for every $k<d$ and $a,b\in[m]$: $G_k^{(n),ab}\to\Pi^k_{ab}$ in measure.
-\end{enumerate}
+Under Hypothesis~\ref{hyp:ntkdn:nondeg}, for every $k<d$ and $a,b\in[m]$: $G_k^{(n),ab}\to\Pi^k_{ab}$ in measure. (The top-layer statement, Theorem~\ref{thm:ntkdn:top}, and the decoupling approximation, Theorem~\ref{thm:ntkdn:decoupling}, are formalized on $\texttt{DeepSpace}$ only; see the remark below.)
 \end{theorem}
 
 \begin{proof}
   \uses{thm:ntkdn:induction, thm:ntkdn:top, thm:ntkdn:decoupling, lem:ntkdn:transport, thm:ntkdn:bridge, lem:ntkcond:polyGrowth}
   \leanok
-Each statement on $\texttt{DeepSpace}\;d$ is Theorem~\ref{thm:ntkdn:top}(2), Theorem~\ref{thm:ntkdn:decoupling} (with (a) and (b) supplied by Theorem~\ref{thm:ntkdn:induction} at layer $k+1$) and Theorem~\ref{thm:ntkdn:induction}, respectively. They are transported to the full product space by Lemma~\ref{lem:ntkdn:transport}(1),(2), since $\texttt{ofTensor}$ of a point of the product space equals $\texttt{deepParams}$ of its prefix. For (1) the growth constants of $\varphi$ and $\varphi'$ are merged into a single pair $(C'',p'')$ with Lemma~\ref{lem:ntkcond:polyGrowth}(1), which is where the factor $2C$ is needed; for (2) and (3) the hypothesis is stated with a common growth constant, as in \texttt{ActivationData}.
+The statement on $\texttt{DeepSpace}\;d$ is Theorem~\ref{thm:ntkdn:induction}. It is transported to the full product space by Lemma~\ref{lem:ntkdn:transport}(1),(2), since $\texttt{ofTensor}$ of a point of the product space equals $\texttt{deepParams}$ of its prefix. The hypothesis is stated with a common growth constant for $\varphi$ and $\varphi'$, as in \texttt{ActivationData}.
 \end{proof}
+
+\begin{remark}[Change to the formalization: top layer and decoupling on the product space]\label{rmk:ntkdn:backwardConvergenceChange}
+An earlier version of this theorem had three parts, each transported to the product space of $(W,w_{\mathrm{out}})$: (1) convergence of the top-layer Gram $G_{d-1}^{(n)}\to\dot\Sigma^{d-1}$ with possibly different growth constants for $\varphi,\varphi'$ (Lean: \texttt{deepSensitivityGram\_readout\_entry\_tendstoInMeasure}), (2) the decoupling approximation $G_k^{(n),ab}-G_{k+1}^{(n),ab}\Phi'^{(n),ab}_k\to0$ (Lean: \texttt{deepSensitivityGram\_sub\_mul\_tendstoInMeasure}), and (3) the backward convergence. Parts (1) and (2) have been removed from the product-space statement because nothing used them there: the downward induction (Theorem~\ref{thm:ntkdn:induction}) consumes the top-layer result and the decoupling approximation on $\texttt{DeepSpace}$ (Theorems~\ref{thm:ntkdn:top} and~\ref{thm:ntkdn:decoupling}), and only its conclusion (3) is transported to the product space. The mathematical content is unchanged; (1) and (2) simply remain formalized one level down, on $\texttt{DeepSpace}$. One consequence is that the weaker requirement on the top layer (no non-degeneracy and distinct growth constants) is no longer available on the product space.
+\end{remark}
+
 
 \begin{theorem}[Convergence of the empirical NTK to the limiting NTK (Theorem~2.27)]\label{thm:ntkdn:main}
   \uses{thm:ntkdn:backwardConvergence, thm:ntkdn:forwardProductSpace, thm:ntkdn:assembly, thm:ntkdn:layerwise, def:ntkdn:limitingNTK}

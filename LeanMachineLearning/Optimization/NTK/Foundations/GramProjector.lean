@@ -76,19 +76,6 @@ theorem isOrthogonalProjection_gramProjector_all {n m : Type*} [Fintype n] [Fint
     rw [hz]
     exact IsStarProjection.zero _
 
-/-- The projector onto the column span of `Φ` has trace equal to the number of columns. -/
-theorem trace_gramProjector {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m]
-    (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
-    (gramProjector Φ).trace = Fintype.card m := by
-  unfold gramProjector
-  rw [Matrix.trace_mul_cycle, Matrix.mul_nonsing_inv _ h, Matrix.trace_one]
-
-/-- The residual projector `Pᗮ` annihilates the features: `Pᗮ Φ = 0`. -/
-theorem orthogonalComplement_gramProjector_mul {n m : Type*} [Fintype n] [Fintype m]
-    [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
-    (1 - gramProjector Φ) * Φ = 0 := by
-  simp [Matrix.sub_mul, gramProjector_mul_self Φ h]
-
 /-- For invertible `Φᵀ Φ`, a weight matrix acts on the features only through its projected part:
 `V Φ = (V P) Φ`. -/
 theorem mul_eq_mul_gramProjector_mul {n m : Type*} [Fintype n] [Fintype m]

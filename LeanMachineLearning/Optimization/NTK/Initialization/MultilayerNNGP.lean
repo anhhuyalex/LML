@@ -58,8 +58,6 @@ variable {d n m : ℕ}
 
 section MultilayerSequentialNNGP
 
-set_option backward.isDefEq.respectTransparency false
-set_option backward.isDefEq.respectTransparency.types false
 
 /-! ## Multilayer Sequential NNGP: Conditional Normality & Recurrence Convergence -/
 
@@ -254,6 +252,10 @@ private lemma integral_exp_mul_I_standardGaussian (c : ℝ) :
   push_cast
   ring
 
+-- The covariance is written as a plain lambda `fun α β => …`, so its type is `Fin m → Fin m → ℝ`
+-- rather than `Matrix (Fin m) (Fin m) ℝ`; finding `IsProbabilityMeasure (multivariateGaussian …)`
+-- then needs `Matrix` to be unfolded.
+set_option backward.isDefEq.respectTransparency.types false in
 /-- Conditional on deterministic previous-layer activations, the full `m`-vector of
 preactivations is exactly Gaussian. -/
 lemma exact_conditional_normality_general_multivariate (σw σb : ℝ) (n m : ℕ)
@@ -572,6 +574,9 @@ lemma tendsto_charFun_sequential_preactivation_multivariate
   exact tendsto_charFun_preactivation_dct_multivariate σw σb m φ hφ_meas K hφ_L2 t
 
 
+-- The covariance is written as a plain lambda `fun α β => …`, so its type is `Fin m → Fin m → ℝ`
+-- rather than `Matrix (Fin m) (Fin m) ℝ`; finding `IsProbabilityMeasure (multivariateGaussian …)`
+-- then needs `Matrix` to be unfolded.
 set_option backward.isDefEq.respectTransparency.types false in
 /-- **Sequential Multilayer NNGP Limit.** For a measurable activation `φ` with `φ(zα) ∈ L²(𝒩(0,
 K))`, the next-layer preactivation vector built from i.i.d. `𝒩(0, K)` previous-layer draws
@@ -618,7 +623,7 @@ theorem tendstoInDistribution_sequential_preactivation
       intro t
       exact tendsto_charFun_sequential_preactivation_multivariate σw σb m φ hφ_meas K hφ_L2 t
     convert! h_weak
-    exact Measure.map_id
+    exact Subtype.ext Measure.map_id
 
 end MultilayerSequentialNNGP
 

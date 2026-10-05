@@ -51,6 +51,7 @@ noncomputable def mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : F
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : ℝ :=
   (2 * (m : ℝ))⁻¹ * ‖trainingResidual f X y θ‖ ^ 2
 
+/-- The mean-squared loss as an explicit sum: `(2m)⁻¹ ∑_α (f(x^α; θ) - y_α)²`. -/
 lemma mseLoss_eq_sum (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) :
     mseLoss f X y θ = (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ - y α) ^ 2 := by

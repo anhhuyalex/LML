@@ -179,48 +179,6 @@ theorem deepActivationGram_entry_tendstoInMeasure
     rw [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 k hk, hcongr]
   · rfl
 
-/-- **Derivative Gram concentration (sub-lemma 1.1 of the backward step).** For `k < d` the
-empirical
-derivative Gram entry `Φ'^{(n), αβ}_k = n⁻¹ ∑_j φ'(h_{k,j}^α) φ'(h_{k,j}^β)` converges in measure to
-`∫ φ' φ' d𝒩(0, Σ^k)` with `Σ^k = layerCovarianceSeq 1 0 φ m Φ0 k`, i.e. the factor `Σ̇^k` appearing
-in
-`deepLimitingSensitivityKernel`. Note that the covariance is built from `φ` while the averaged
-feature is
-`φ'`; this is `deepEmpiricalFeatureCovariance_tendstoInMeasure` with `ψ = φ'`. -/
-theorem deepDerivativeGram_entry_tendstoInMeasure
-    (d n0 m : ℕ) (φ φ' : ℝ → ℝ) (hφ_cont : Continuous φ) (hφ'_cont : Continuous φ')
-    (C : ℝ) (hC : 0 ≤ C) (p : ℕ) (hp : 0 < p)
-    (hφ_growth : ∀ x : ℝ, |φ x| ≤ C * (1 + |x| ^ p))
-    (C' : ℝ) (hC' : 0 ≤ C') (p' : ℕ) (hp' : 0 < p')
-    (hφ'_growth : ∀ x : ℝ, |φ' x| ≤ C' * (1 + |x| ^ p'))
-    (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (α β : Fin m) :
-    TendstoInMeasure
-      (Measure.prod
-        (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
-          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
-      (fun n : ℕ => fun (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
-        deepDerivativeGram d n0 n m φ φ' X (DeepMLPParams.ofTensor d n0 n q.1 q.2)
-          ⟨k, hk⟩ α β)
-      Filter.atTop
-      (fun _ => ∫ z : EuclideanSpace ℝ (Fin m), φ' (z.ofLp α) * φ' (z.ofLp β)
-        ∂multivariateGaussian 0
-        (layerCovarianceSeq 1 0 φ m (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) k)) := by
-  have hν := deepEmpiricalFeatureCovariance_tendstoInMeasure n0 m d φ φ' hφ_cont hφ'_cont C hC p hp
-    hφ_growth C' hC' p' hp' hφ'_growth X k hk
-  have hentry := tendstoInMeasure_comp_of_continuousAt
-    (g := fun M : Fin m → Fin m → ℝ => M α β)
-    hν (by exact ((continuous_apply β).comp (continuous_apply α)).continuousAt)
-  have hmeas := fun n : ℕ => measurable_deepFeatureAverage n0 m n d φ φ' hφ_cont.measurable
-    hφ'_cont.measurable X k α β
-  have hcomp := tendstoInMeasure_prod_of_prefix d _ _ hmeas hentry
-  convert hcomp using 3
-  · rename_i n q
-    have hcongr := deepPreactivation_eq_prefix n0 m n d φ X q.1 k (by omega)
-    simp only [deepDerivativeGram, Matrix.of_apply, dotProduct]
-    rw [deepMLPPreactivation_ofTensor_eq_deepPreactivation d n0 n m φ X q.1 q.2 k hk, hcongr]
-  · rfl
-
 end NTK
 
 end

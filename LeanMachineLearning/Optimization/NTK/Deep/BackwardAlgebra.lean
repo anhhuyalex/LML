@@ -41,37 +41,21 @@ namespace NTK
 
 variable {n m : ℕ}
 
-/-- The weighted mean square `n⁻¹ ∑ⱼ fⱼ² aⱼ²` is nonnegative. -/
-lemma wsq_nonneg (f a : Fin n → ℝ) : 0 ≤ 𝔼 j, f j ^ 2 * a j ^ 2 :=
-  Finset.expect_nonneg fun _ _ => mul_nonneg (sq_nonneg _) (sq_nonneg _)
-
-/-- The normalized fourth moment `n⁻¹ ∑ⱼ vⱼ⁴` is nonnegative. -/
-lemma avg4_nonneg (v : Fin n → ℝ) : 0 ≤ 𝔼 j, v j ^ 4 :=
-  Finset.expect_nonneg fun _ _ => by positivity
-
 /-- **Cauchy–Schwarz** for the weighted pairing. -/
 lemma wcov_sq_le (f g a b : Fin n → ℝ) : (𝔼 j, f j * g j * (a j *
     b j)) ^ 2 ≤ (𝔼 j, f j ^ 2 * a j ^ 2) * (𝔼 j, g j ^ 2 * b j ^ 2) := by
-  have hcs := dotProduct_sq_le_mul_self (fun j => f j * a j) (fun j => g j * b j)
-  simp only [dotProduct] at hcs
-  have hn : 0 ≤ ((n : ℝ)⁻¹) ^ 2 := sq_nonneg _
-  have h1 : (𝔼 j, f j * g j * (a j * b j)) ^ 2 = ((n : ℝ)⁻¹) ^ 2 * (∑ j, f j * a j * (g j *
-      b j)) ^ 2 := by
-    simp only [expect_fin_eq_inv_mul_sum]
-    rw [mul_pow]
-    congr 2
-    exact Finset.sum_congr rfl fun j _ => by ring
-  have h2 : (𝔼 j, f j ^ 2 * a j ^ 2) * (𝔼 j, g j ^ 2 * b j ^ 2) = ((n : ℝ)⁻¹) ^ 2 *
-      ((∑ j, f j * a j * (f j * a j)) * ∑ j, g j * b j * (g j * b j)) := by
-    simp only [expect_fin_eq_inv_mul_sum]
-    rw [show ((n : ℝ)⁻¹ * ∑ j, f j ^ 2 * a j ^ 2) * ((n : ℝ)⁻¹ * ∑ j, g j ^ 2 * b j ^ 2) =
-      ((n : ℝ)⁻¹) ^ 2 * ((∑ j, f j ^ 2 * a j ^ 2) * ∑ j, g j ^ 2 * b j ^ 2) by ring]
-    congr 2
-    · exact Finset.sum_congr rfl fun j _ => by ring
-    · exact Finset.sum_congr rfl fun j _ => by ring
-  rw [h1, h2]
-  exact mul_le_mul_of_nonneg_left hcs hn
+  have h := Finset.expect_mul_sq_le_sq_mul_sq Finset.univ (fun j => f j * a j) (fun j => g j * b j)
+  have e1 : (𝔼 j, f j * g j * (a j * b j)) = 𝔼 j, (f j * a j) * (g j * b j) :=
+    Finset.expect_congr rfl fun j _ => by ring
+  have e2 : (𝔼 j, f j ^ 2 * a j ^ 2) = 𝔼 j, (f j * a j) ^ 2 :=
+    Finset.expect_congr rfl fun j _ => by ring
+  have e3 : (𝔼 j, g j ^ 2 * b j ^ 2) = 𝔼 j, (g j * b j) ^ 2 :=
+    Finset.expect_congr rfl fun j _ => by ring
+  rw [e1, e2, e3]
+  exact h
 
+/-- Bilinearity of the weighted pairing in its weight arguments: `wcov (f, g; x + y, x' + y')`
+expands into four terms. -/
 lemma wcov_add_add (f g x y x' y' : Fin n → ℝ) :
     (𝔼 j, f j * g j * ((x + y) j * (x' + y') j)) =
       (𝔼 j, f j * g j * (x j * x' j)) + (𝔼 j, f j * g j * (x j * y' j)) + (𝔼 j, f j * g j * (y j *
@@ -104,6 +88,7 @@ lemma wcov_sub_sq_le (f g x y x' y' : Fin n → ℝ) :
 
 /-! ### Fourth-moment domination of weighted Gram entries -/
 
+/-- Four-term AM–GM: `|p q r s| ≤ (p⁴ + q⁴ + r⁴ + s⁴) / 4`. -/
 lemma abs_mul_mul_mul_le (p q r s : ℝ) : |p * q * r * s| ≤ (p ^ 4 + q ^ 4 + r ^ 4 + s ^ 4) / 4 := by
   have h1 : |p * q| ≤ (p ^ 2 + q ^ 2) / 2 := by
     rw [abs_le]; constructor <;> nlinarith [sq_nonneg (p + q), sq_nonneg (p - q)]
@@ -159,17 +144,11 @@ lemma inv_gram_eq_smul_inv_normalized (hn : n ≠ 0) (Φ : Matrix (Fin n) (Fin m
     (hS : IsUnit ((n : ℝ)⁻¹ • (Φᵀ * Φ)).det) :
     (Φᵀ * Φ)⁻¹ = (n : ℝ)⁻¹ • ((n : ℝ)⁻¹ • (Φᵀ * Φ))⁻¹ := by
   have hn' : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.2 hn
-  refine Matrix.inv_eq_right_inv ?_
+  haveI : Invertible (n : ℝ) := invertibleOfNonzero hn'
   have h1 : (Φᵀ * Φ) = (n : ℝ) • ((n : ℝ)⁻¹ • (Φᵀ * Φ)) := by
     rw [smul_smul, mul_inv_cancel₀ hn', one_smul]
-  rw [Matrix.mul_smul]
-  calc (n : ℝ)⁻¹ • ((Φᵀ * Φ) * ((n : ℝ)⁻¹ • (Φᵀ * Φ))⁻¹)
-      = (n : ℝ)⁻¹ • (((n : ℝ) • ((n : ℝ)⁻¹ • (Φᵀ * Φ))) * ((n : ℝ)⁻¹ • (Φᵀ * Φ))⁻¹) := by
-        rw [← h1]
-    _ = (n : ℝ)⁻¹ • ((n : ℝ) • (((n : ℝ)⁻¹ • (Φᵀ * Φ)) * ((n : ℝ)⁻¹ • (Φᵀ * Φ))⁻¹)) := by
-        rw [Matrix.smul_mul]
-    _ = 1 := by
-        rw [Matrix.mul_nonsing_inv _ hS, smul_smul, inv_mul_cancel₀ hn', one_smul]
+  conv_lhs => rw [h1]
+  rw [Matrix.inv_smul _ _ hS, invOf_eq_inv]
 
 /-- The projected part in normalized form: with `Σ̂ = n⁻¹ ΦᵀΦ` (invertible), `H = n^{-1/2} V Φ` and
 `ζ = n⁻¹ Hᵀ u`, one has `n^{-1/2} Φ c = Φ (Σ̂⁻¹ ζ)` for `c = (ΦᵀΦ)⁻¹ (VΦ)ᵀ u`. -/

@@ -39,17 +39,22 @@ def DeepMLPParams.updateWh (θ : DeepMLPParams d n0 n) (k : Fin (d - 1))
     (X : Matrix (Fin n) (Fin n) ℝ) : DeepMLPParams d n0 n :=
   { θ with Wh := Function.update θ.Wh k X }
 
+/-- Substituting a hidden weight matrix and reading it back gives the substituted matrix. -/
 @[simp] lemma DeepMLPParams.updateWh_Wh_self (θ : DeepMLPParams d n0 n) (k : Fin (d - 1))
     (X : Matrix (Fin n) (Fin n) ℝ) : (θ.updateWh k X).Wh k = X := by
   simp [DeepMLPParams.updateWh]
 
+/-- Substituting the hidden matrix at layer `k` leaves every other hidden matrix `j ≠ k` unchanged.
+-/
 lemma DeepMLPParams.updateWh_Wh_of_ne (θ : DeepMLPParams d n0 n) {k j : Fin (d - 1)}
     (X : Matrix (Fin n) (Fin n) ℝ) (h : j ≠ k) : (θ.updateWh k X).Wh j = θ.Wh j := by
   simp [DeepMLPParams.updateWh, Function.update_of_ne h]
 
+/-- Substituting a hidden matrix leaves the input weights `W0` unchanged. -/
 @[simp] lemma DeepMLPParams.updateWh_W0 (θ : DeepMLPParams d n0 n) (k : Fin (d - 1))
     (X : Matrix (Fin n) (Fin n) ℝ) : (θ.updateWh k X).W0 = θ.W0 := rfl
 
+/-- Substituting a hidden matrix leaves the readout weights `Wd` unchanged. -/
 @[simp] lemma DeepMLPParams.updateWh_Wd (θ : DeepMLPParams d n0 n) (k : Fin (d - 1))
     (X : Matrix (Fin n) (Fin n) ℝ) : (θ.updateWh k X).Wd = θ.Wd := rfl
 
@@ -169,6 +174,8 @@ structure ParamsMeasurable (θ : Z → DeepMLPParams d n0 n) : Prop where
   Wh : ∀ ℓ j i, Measurable fun z => (θ z).Wh ℓ j i
   Wd : ∀ j, Measurable fun z => (θ z).Wd j
 
+/-- Preactivations are measurable functions of `z` whenever the parameter family `θ` is measurable
+(`ParamsMeasurable`). -/
 lemma measurable_deepMLPPreactivation {θ : Z → DeepMLPParams d n0 n} (hθ : ParamsMeasurable θ)
     {φ : ℝ → ℝ} (hφ : Measurable φ) (X : Fin m → Fin n0 → ℝ) (ℓ : Fin d) (α : Fin m)
     (j : Fin n) : Measurable fun z => deepMLPPreactivation d n0 n m φ X (θ z) ℓ α j := by
@@ -184,28 +191,25 @@ lemma measurable_deepMLPPreactivation {θ : Z → DeepMLPParams d n0 n} (hθ : P
     refine measurable_const.mul (Finset.measurable_sum _ fun i _ => (hθ.Wh _ j i).mul ?_)
     exact hφ.comp (ih i (by omega))
 
+/-- Backward sensitivities are measurable functions of `z` whenever the parameter family `θ` is
+measurable (`ParamsMeasurable`). -/
 lemma measurable_backwardSensitivity {θ : Z → DeepMLPParams d n0 n} (hθ : ParamsMeasurable θ)
     {φ φ' : ℝ → ℝ} (hφ : Measurable φ) (hφ' : Measurable φ') (X : Fin m → Fin n0 → ℝ)
     (ℓ : Fin d) (α : Fin m) (j : Fin n) :
     Measurable fun z => backwardSensitivity d n0 n m φ φ' X (θ z) ℓ α j := by
-  suffices H : ∀ t : ℕ, ∀ ℓ : Fin d, d - 1 - ℓ.val = t → ∀ j : Fin n,
-      Measurable fun z => backwardSensitivity d n0 n m φ φ' X (θ z) ℓ α j from H _ ℓ rfl j
-  intro t
-  induction t with
-  | zero =>
-    intro ℓ ht j
+  induction ℓ using backwardInduction generalizing j with
+  | top ℓ hℓ =>
     have hd : 0 < d := by have := ℓ.2; omega
-    have heq : ℓ = ⟨d - 1, by omega⟩ := Fin.ext (by have := ℓ.2; simp only; omega)
+    have heq : ℓ = ⟨d - 1, by omega⟩ := Fin.ext (by simp only; omega)
     rw [heq]
     simp only [backwardSensitivity_top d n0 n m φ φ' X _ hd]
     exact (hθ.Wd j).mul (hφ'.comp (measurable_deepMLPPreactivation hθ hφ X _ α j))
-  | succ t ih =>
-    intro ℓ ht j
+  | step ℓ hℓ ih =>
     have hne : ℓ.val < d - 1 := by omega
     simp only [backwardSensitivity_step d n0 n m φ φ' X _ ℓ hne]
     refine (hφ'.comp (measurable_deepMLPPreactivation hθ hφ X ℓ α j)).mul
       (measurable_const.mul (Finset.measurable_sum _ fun i _ => (hθ.Wh _ i j).mul ?_))
-    exact ih ⟨ℓ.val + 1, by omega⟩ (by simp only; omega) i
+    exact ih i
 
 end measurability
 
@@ -215,6 +219,7 @@ section deepSpace
 
 variable (d n0 n)
 
+/-- Entries of the zero-padded prefix weight tensor of a `DeepSpace` point are measurable. -/
 lemma measurable_prefixTensor_entry (k j i : ℕ) :
     Measurable fun ω : DeepSpace d => (if h : k < d then ω.1 ⟨k, h⟩ else 0) j i := by
   by_cases h : k < d
@@ -223,25 +228,11 @@ lemma measurable_prefixTensor_entry (k j i : ℕ) :
       ((measurable_pi_apply (⟨k, h⟩ : Fin d)).comp measurable_fst))
   · simp only [h, dite_false]; exact measurable_const
 
+/-- `deepParams d n0 n` is a measurable family of parameter records on `DeepSpace`. -/
 lemma paramsMeasurable_deepParams : ParamsMeasurable (deepParams d n0 n) where
   W0 j i := measurable_prefixTensor_entry d 0 j.val i.val
   Wh ℓ j i := measurable_prefixTensor_entry d (ℓ.val + 1) j.val i.val
   Wd j := (measurable_pi_apply j.val).comp measurable_snd
-
-/-- The parameter record with the hidden matrix `Wh k` replaced by the (measurable) matrix
-`Matrix.of x`, where `x` is the second coordinate. -/
-lemma paramsMeasurable_updateWh (k : Fin (d - 1)) :
-    ParamsMeasurable (fun q : DeepSpace d × (Fin n → Fin n → ℝ) =>
-      (deepParams d n0 n q.1).updateWh k (Matrix.of q.2)) where
-  W0 j i := (paramsMeasurable_deepParams d n0 n).W0 j i |>.comp measurable_fst
-  Wh ℓ j i := by
-    by_cases h : ℓ = k
-    · subst h
-      simp only [DeepMLPParams.updateWh_Wh_self, Matrix.of_apply]
-      exact (measurable_pi_apply i).comp ((measurable_pi_apply j).comp measurable_snd)
-    · simp only [DeepMLPParams.updateWh_Wh_of_ne _ _ h]
-      exact (paramsMeasurable_deepParams d n0 n).Wh ℓ j i |>.comp measurable_fst
-  Wd j := (paramsMeasurable_deepParams d n0 n).Wd j |>.comp measurable_fst
 
 variable {d n0 n}
 

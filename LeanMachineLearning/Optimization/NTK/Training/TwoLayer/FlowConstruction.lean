@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.GlobalGap
+public import LeanMachineLearning.Optimization.NTK.Training.TwoLayer.PredictionLimits
 
 /-!
 # Two-layer network: construction of the gradient-flow family

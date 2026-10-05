@@ -60,6 +60,7 @@ def neuronCoords (n d : ℕ) (i : Fin n) : Option (Fin d) → Fin (n * d + n)
   | none => idxA i
   | some j => idxW i j
 
+/-- The squared norm of the coordinates of one neuron `(w_i, a_i)` is `∑_j v(w_{ij})² + v(a_i)²`. -/
 lemma norm_sq_restrictCoords_neuronCoords (i : Fin n)
     (v : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) v‖ ^ 2 =
@@ -76,6 +77,7 @@ private lemma norm_sq_restrictCoords_neuronCoords_sub (i : Fin n)
   rw [norm_sq_restrictCoords_neuronCoords]
   rfl
 
+/-- The coordinates of a single neuron have norm at most that of the whole parameter vector. -/
 lemma norm_restrictCoords_neuronCoords_le (i : Fin n)
     (v : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) v‖ ≤ ‖v‖ := by
@@ -118,14 +120,17 @@ noncomputable def neuronMoment (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m �
   neuronLipschitzScaleSq C₁ C₂ X a *
     (neuronJacobianScaleSq φ C₁ X w a + neuronLipschitzScaleSq C₁ C₂ X a)
 
+/-- `neuronLipschitzScaleSq` is nonnegative. -/
 lemma neuronLipschitzScaleSq_nonneg (C₁ C₂ : ℝ) (X : Fin m → Fin d → ℝ) (a : ℝ) :
     0 ≤ neuronLipschitzScaleSq C₁ C₂ X a :=
   Finset.sum_nonneg fun _ _ => by positivity
 
+/-- `neuronJacobianScaleSq` is nonnegative. -/
 lemma neuronJacobianScaleSq_nonneg (φ : ℝ → ℝ) (C₁ : ℝ) (X : Fin m → Fin d → ℝ)
     (w : Fin d → ℝ) (a : ℝ) : 0 ≤ neuronJacobianScaleSq φ C₁ X w a :=
   Finset.sum_nonneg fun _ _ => by positivity
 
+/-- `neuronMoment` is nonnegative. -/
 lemma neuronMoment_nonneg (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m → Fin d → ℝ)
     (w : Fin d → ℝ) (a : ℝ) : 0 ≤ neuronMoment φ C₁ C₂ X w a :=
   mul_nonneg (neuronLipschitzScaleSq_nonneg _ _ _ _)
@@ -145,6 +150,8 @@ private lemma neuron_jacobian_block_sq (φ : ℝ → ℝ) (X : Fin m → Fin d �
     outputJacobian_netFromParams_apply_a φ n d m X θ hφ]
   ring
 
+/-- Energy of a single neuron's gradient block: `∑_j (∂_{w_{ij}} f)² + (∂_{a_i} f)² ≤ n⁻¹ (φ(w_i ⬝
+x)² + a_i² C₁² ‖x‖²)`. -/
 lemma neuron_block_energy_le (φ : ℝ → ℝ) {C₁ : ℝ} (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hn : 0 < n)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (x : Fin d → ℝ) :
     (∑ j : Fin d, gradW φ n d x θ i j ^ 2) + gradA φ n d x θ i ^ 2 ≤
@@ -449,6 +456,7 @@ private lemma neuronMoment_eq_poly (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin
     exact Finset.sum_congr rfl fun α _ => by ring
   rw [neuronMoment, hQ, hΛ]
 
+/-- `neuronMoment` is measurable as a function of the single-neuron sample `(w, a)`. -/
 lemma measurable_neuronMoment {φ : ℝ → ℝ} (hφ : Measurable φ) (C₁ C₂ : ℝ)
     (X : Fin m → Fin d → ℝ) :
     Measurable (fun q : (Fin d → ℝ) × ℝ => neuronMoment φ C₁ C₂ X q.1 q.2) := by
