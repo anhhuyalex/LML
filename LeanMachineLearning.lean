@@ -81,6 +81,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Am
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Basic
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomFeatures
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic

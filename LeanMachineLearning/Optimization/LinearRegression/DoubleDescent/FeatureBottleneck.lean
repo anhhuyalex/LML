@@ -90,11 +90,9 @@ theorem featureBottleneck_variance_eq_trace (X : Matrix m n₀ ℝ) (S : Matrix 
       (S * (((X * S)ᵀ * (X * S))⁻¹ * (X * S)ᵀ)) *ᵥ (X *ᵥ θ.ofLp + ε)) :
     LinearRegression.variance (1 : Matrix n₀ n₀ ℝ) P β_hat =
       σ_sq * Matrix.trace (((X * S)ᵀ * (X * S))⁻¹ * (Sᵀ * S)) := by
-  rw [(linearEstimator_bias_variance (S * (((X * S)ᵀ * (X * S))⁻¹ * (X * S)ᵀ)) X θ 1
-    (σ_sq • (1 : Matrix m m ℝ)) P hε h_mean (fun i j => by
-      simpa [Matrix.one_apply] using h_cov i j) β_hat hβ).2.1,
-    ← trace_operator_transpose_mul_self_eq_featureBottleneck S (X * S) hZ]
-  simp only [Matrix.mul_one, Matrix.mul_smul, Matrix.smul_mul, Matrix.trace_smul, smul_eq_mul]
+  rw [(linearEstimator_bias_variance_isotropic (S * (((X * S)ᵀ * (X * S))⁻¹ * (X * S)ᵀ)) X θ 1
+    σ_sq P hε h_mean h_cov β_hat hβ).2.1,
+    ← trace_operator_transpose_mul_self_eq_featureBottleneck S (X * S) hZ, Matrix.mul_one]
   congr 1
   exact Matrix.trace_mul_comm _ _
 

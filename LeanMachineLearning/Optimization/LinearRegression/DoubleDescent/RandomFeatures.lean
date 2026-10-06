@@ -74,9 +74,10 @@ theorem rightInverse_interpolates {m n : Type*} [Fintype m] [Fintype n] [Decidab
   rw [Matrix.mulVec_mulVec, self_mul_rightInverse Z hZ, Matrix.one_mulVec]
 
 /-- **Pythagoras for the right-inverse interpolator.** If `Z Zᵀ` is invertible, every interpolator
-`Z η = y` satisfies `‖η‖² = ‖η̂‖² + ‖η - η̂‖²` with `η̂ = Zᵀ (Z Zᵀ)⁻¹ y`: the difference `η - η̂` lies
-in `ker Z`, which is orthogonal to `range Zᵀ ∋ η̂`. (This is `NTK.affine_minNorm_pythagoras` for
-`J = Z`, `r₀ = -y`, proved directly for arbitrary index types.) -/
+`Z η = y` satisfies `‖η‖² = ‖η̂‖² + ‖η - η̂‖²` with `η̂ = Zᵀ (Z Zᵀ)⁻¹ y`: the difference
+`η - η̂` lies in `ker Z`, which is orthogonal to `range Zᵀ ∋ η̂`. (This is
+`NTK.affine_minNorm_pythagoras` with `J = Z`, `r₀ = -y`, proved directly for arbitrary index
+types.) -/
 theorem rightInverse_norm_sq_decomp {m n : Type*} [Fintype m] [Fintype n] [DecidableEq m]
     (Z : Matrix m n ℝ) (hZ : IsUnit (Z * Zᵀ).det) (y : m → ℝ) {η : EuclideanSpace ℝ n}
     (h : Z *ᵥ η.ofLp = y) :

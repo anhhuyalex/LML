@@ -145,17 +145,11 @@ theorem ambientBottleneck_bias_variance (X : Matrix m n₀ ℝ) (S : Matrix n₀
     LinearRegression.bias Sigma P β_hat θ = 0 ∧
       LinearRegression.variance Sigma P β_hat = σ_sq * Matrix.trace ((Xᵀ * X)⁻¹ * Sigma) ∧
       LinearRegression.risk Sigma P β_hat θ = σ_sq * Matrix.trace ((Xᵀ * X)⁻¹ * Sigma) := by
-  have hOLS := leftInverse_mul_self X hX
-  obtain ⟨hb, hv, hr⟩ := linearEstimator_bias_variance ((Xᵀ * X)⁻¹ * Xᵀ) X θ Sigma
-    (σ_sq • (1 : Matrix m m ℝ)) P hε h_mean (fun i j => by
-      simpa [Matrix.one_apply] using h_cov i j) β_hat (fun ε => by
-        rw [hβ, rightInverse_interpolates S hS])
-  have hvar : Matrix.trace (((Xᵀ * X)⁻¹ * Xᵀ) * (σ_sq • (1 : Matrix m m ℝ)) *
-      ((Xᵀ * X)⁻¹ * Xᵀ)ᵀ * Sigma) = σ_sq * Matrix.trace ((Xᵀ * X)⁻¹ * Sigma) := by
-    rw [Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mul, Matrix.smul_mul,
-      leftInverse_mul_transpose X hX, Matrix.trace_smul, smul_eq_mul]
-  rw [hOLS, sub_self, Matrix.zero_mulVec, Matrix.mulVec_zero, dotProduct_zero] at hb hr
-  rw [hvar] at hv hr
+  obtain ⟨hb, hv, hr⟩ := linearEstimator_bias_variance_isotropic ((Xᵀ * X)⁻¹ * Xᵀ) X θ Sigma
+    σ_sq P hε h_mean h_cov β_hat (fun ε => by rw [hβ, rightInverse_interpolates S hS])
+  rw [leftInverse_mul_self X hX, sub_self, Matrix.zero_mulVec, Matrix.mulVec_zero,
+    dotProduct_zero] at hb hr
+  rw [leftInverse_mul_transpose X hX] at hv hr
   exact ⟨hb, hv, by simpa using hr⟩
 
 end BiasVariance

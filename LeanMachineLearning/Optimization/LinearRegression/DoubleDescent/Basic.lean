@@ -196,6 +196,29 @@ theorem linearEstimator_bias_variance [DecidableEq p] (M : Matrix p n ℝ) (X : 
   exact ⟨hbias, hvar, by rw [risk_eq_bias_add_variance Sigma β_hat θ hβ_mem, hbias, hvar]⟩
 
 
+/-- **Bias–variance decomposition for isotropic noise.** For centered noise with `Cov ε = σ² I`, the
+estimator `θ̂ = M (X θ⋆ + ε)` has bias `‖(M X - I) θ⋆‖²_Σ`, variance `σ² Tr (M Mᵀ Σ)`, and risk
+their sum. This is `linearEstimator_bias_variance` with `Γ = σ² I`. -/
+theorem linearEstimator_bias_variance_isotropic [DecidableEq p] [DecidableEq n]
+    (M : Matrix p n ℝ) (X : Matrix n p ℝ) (θ : EuclideanSpace ℝ p) (Sigma : Matrix p p ℝ)
+    (σ_sq : ℝ) (P : Measure (n → ℝ)) [IsProbabilityMeasure P]
+    (hε : ∀ i, MemLp (fun ε : n → ℝ => ε i) 2 P) (h_mean : ∀ i, ∫ ε, ε i ∂P = 0)
+    (h_cov : ∀ i j, ∫ ε, ε i * ε j ∂P = if i = j then σ_sq else 0)
+    (β_hat : (n → ℝ) → EuclideanSpace ℝ p) (hβ : ∀ ε, (β_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)) :
+    bias Sigma P β_hat θ =
+        ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) ∧
+      variance Sigma P β_hat = σ_sq * Matrix.trace (M * Mᵀ * Sigma) ∧
+      risk Sigma P β_hat θ =
+        ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) +
+          σ_sq * Matrix.trace (M * Mᵀ * Sigma) := by
+  have h := linearEstimator_bias_variance M X θ Sigma (σ_sq • (1 : Matrix n n ℝ)) P hε h_mean
+    (fun i j => by simpa [Matrix.one_apply] using h_cov i j) β_hat hβ
+  have htr : Matrix.trace (M * (σ_sq • (1 : Matrix n n ℝ)) * Mᵀ * Sigma) =
+      σ_sq * Matrix.trace (M * Mᵀ * Sigma) := by
+    rw [Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mul, Matrix.smul_mul, Matrix.trace_smul,
+      smul_eq_mul]
+  rwa [htr] at h
+
 /-- **Exact conditional bias–variance decomposition (isotropic noise, parameter risk).**
 `E_ε ‖M (X θ⋆ + ε) - θ⋆‖² = ‖(M X - I) θ⋆‖² + σ² Tr (Mᵀ M)` for noise with `E ε = 0`,
 `Cov ε = σ² I`. -/
@@ -211,12 +234,12 @@ theorem exact_conditional_bias_variance_decomposition [DecidableEq p] [Decidable
   have hsq : ∀ v : EuclideanSpace ℝ p,
       ‖v‖ ^ 2 = v.ofLp ⬝ᵥ (1 : Matrix p p ℝ) *ᵥ v.ofLp := fun v => by
     rw [EuclideanSpace.norm_sq_eq]; simp [dotProduct, sq]
-  obtain ⟨-, -, hrisk⟩ := linearEstimator_bias_variance M X θ 1 (σ_sq • (1 : Matrix n n ℝ)) P hε
-    h_mean (fun i j => by simpa [Matrix.one_apply] using h_cov i j) β_hat hβ
+  obtain ⟨-, -, hrisk⟩ := linearEstimator_bias_variance_isotropic M X θ 1 σ_sq P hε h_mean h_cov
+    β_hat hβ
   simp_rw [hsq]
   simp only [risk] at hrisk
   rw [show ∫ ε, (β_hat ε - θ).ofLp ⬝ᵥ (1 : Matrix p p ℝ) *ᵥ (β_hat ε - θ).ofLp ∂P = _ from hrisk]
-  simp [Matrix.mul_smul, Matrix.smul_mul, Matrix.trace_smul, Matrix.trace_mul_comm M]
+  simp [Matrix.trace_mul_comm M]
 
 end LinearRegression.DoubleDescent
 
