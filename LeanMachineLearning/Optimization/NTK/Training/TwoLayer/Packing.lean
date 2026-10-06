@@ -81,6 +81,16 @@ noncomputable def packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin 
     | Sum.inl (i, j) => W i j
     | Sum.inr i => a i)
 
+/-- Private proof implementation for the explicit input-weight coordinate projection. -/
+private noncomputable def unpackW {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    Fin n → Fin d → ℝ :=
+  fun i j => θ (paramIndexEquiv n d (Sum.inl (i, j)))
+
+/-- Private proof implementation for the explicit readout coordinate projection. -/
+private noncomputable def unpackA {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    Fin n → ℝ :=
+  fun i => θ (paramIndexEquiv n d (Sum.inr i))
+
 /-- The packed parameter vector has entry `W i j` at `paramIndexEquiv n d (Sum.inl (i, j))`. -/
 lemma packParams_apply_idxW {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
     (i : Fin n) (j : Fin d) :
