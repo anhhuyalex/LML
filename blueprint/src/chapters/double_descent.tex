@@ -15,8 +15,8 @@ The chapter has two layers.
   random-feature regression, the trace reductions that turn the variance into $\operatorname{Tr}$ of an inverse Gram matrix,
   the limits of the resulting \emph{explicit} ratio expressions along $n_0/m\to\gamma$, $n/m\to\delta$, and the global shape
   of the limiting risk curve (divergence at $\delta=1$, second descent, flat segment for $\gamma<1$).
-  \item The \emph{probabilistic layer} (Section~\ref{sec:dd:moments}) so far contains only the radial moments of the standard
-  Gaussian (inverse and fourth $\chi^2$ moments). The statements that the \emph{random} variance and bias converge in
+  \item The \emph{probabilistic layer} (Section~\ref{sec:dd:moments}) so far contains only the $\chi^2$ tail bound, resting on the radial
+  moments of the standard Gaussian of Chapter~\ref{chap:ntkf} (inverse and fourth $\chi^2$ moments). The statements that the \emph{random} variance and bias converge in
   probability to the closed forms of the deterministic layer are \textbf{not yet formalized}; Section~\ref{sec:dd:roadmap}
   states them as open nodes with their proof plan.
 \end{itemize}
@@ -574,75 +574,119 @@ $0+\sigma^2\gamma/(1-\gamma)$; combining left and right pieces gives continuity.
 \end{proof}
 
 
-\section{Radial moments of the Gaussian: inputs for the probabilistic layer}\label{sec:dd:moments}
+\section{Probabilistic background and the route taken}\label{sec:dd:route}
+
+The deterministic layer reduces the risk of random-feature regression to traces of inverse Gram matrices. To turn it into a statement
+about the \emph{random} estimator one needs four probabilistic facts about a Gaussian matrix $G\in\mathbb R^{p\times q}$ with i.i.d.\
+$\mathcal N(0,1)$ entries ($p\ge q$): (a) the law of $(G^\top G)^{-1}$ (or just of its trace), (b) invariance of the law under
+orthogonal maps, (c) conditional independence of a Gaussian vector from the projector built from the others, (d) concentration in
+probability. This section records the background that is already formalized (in Mathlib and in the NTK chapters), and then the route
+by which the present development uses it. The route differs from the textbook route in six points, each of which removed a heavy
+piece of random matrix theory from the formalization.
+
+\subsection{Background that is already formalized}
+
+The general Gaussian tools proved or imported for this chapter (Mathlib's standard Gaussian toolkit, the density of the standard Gaussian, radial and $\chi^2$ moments) are recorded in Chapter~\ref{chap:ntkf}, Section~\ref{sec:ntkf:radial}: Lemmas~\ref{lem:ntkf:mathlibGaussian} and~\ref{lem:ntkf:mathlibGamma}, Theorems~\ref{thm:ntkf:gaussianDensity} and~\ref{thm:ntkf:radialMoments}, Corollary~\ref{cor:ntkf:chiSquare}.
+
+
+
+
+\begin{remark}[Background from the NTK chapters used by the route]\label{rmk:dd:ntkBackground}
+  \uses{def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps, thm:ntkdeep:linearImage, lem:ntkr:matrixPush,
+        lem:ntkcond:coordVec, thm:ntkcond:lemma226, thm:ntkcond:stdQuad, lem:ntkf:markov, lem:ntkf:chebyshev}
+The following facts, already formalized and recorded in the NTK chapters, are the inputs for the open nodes of
+Section~\ref{sec:dd:roadmap}; none of them is re-proved here.
+\begin{itemize}
+  \item \emph{Gram projector} $P_\Phi=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$ and its properties (Definition~\ref{def:ntkcond:gramProjector},
+  Lemma~\ref{lem:ntkcond:gramProjectorProps}): an orthogonal projector for every $\Phi$, with $P\Phi=\Phi$ when $\Phi^\top\Phi$ is invertible.
+  \item \emph{Linear images of Gaussians} (Theorem~\ref{thm:ntkdeep:linearImage}) and the pushforward of the standard Gaussian along a matrix
+  (Lemma~\ref{lem:ntkr:matrixPush}): if $X$ has Gaussian rows and $Q^\top Q=I$ then $XQ$ again has i.i.d.\ $\mathcal N(0,1)$ entries, and
+  $OS\overset d=S$ for orthogonal $O$.
+  \item \emph{A Gaussian matrix is a standard Gaussian vector} (Lemma~\ref{lem:ntkcond:coordVec}), the bridge between matrix-valued and
+  Euclidean-space statements.
+  \item \emph{Independence of orthogonal components} (Theorem~\ref{thm:ntkcond:lemma226}): for a projector $P$ and Gaussian $W$, the images
+  $WP$ and $W(I-P)$ are independent. This is what makes $\xi=X\theta_\perp$ independent of $G=XQ$ in the bias computation, and a column independent of the
+  projector onto the other columns.
+  \item \emph{Gaussian quadratic forms} (Theorem~\ref{thm:ntkcond:stdQuad}): $\mathbb E(z^\top Cz)^2=(\operatorname{Tr}C)^2+\operatorname{Tr}C^2+\|C\|_F^2$ for
+  $z\sim\gamma$, hence $\operatorname{Var}(z^\top Cz)=2\operatorname{Tr}C^2$ for symmetric $C$.
+  \item \emph{Markov and Chebyshev} in high-probability form (Lemmas~\ref{lem:ntkf:markov} and~\ref{lem:ntkf:chebyshev}).
+\end{itemize}
+\end{remark}
+
+\subsection{The route: textbook versus the one taken}
+
+\begin{remark}[Six choices]\label{rmk:dd:route}
+  \uses{lem:ntkf:mathlibGaussian, lem:ntkf:mathlibGamma, rmk:dd:ntkBackground, thm:ntkf:radialMoments, thm:dd:chiTail}
+The classical derivation of Hastie et al.\ and Bach goes through the Wishart law, the Bartlett decomposition, the inverse-Wishart mean, Haar
+measure on the orthogonal group and the Grassmannian, the Beta law and Schur's lemma. We avoided every one of these. The chain of
+reductions is shown below; ``formalized'' means a node of Sections~\ref{sec:dd:risk}--\ref{sec:dd:moments}, ``open'' a node of
+Section~\ref{sec:dd:roadmap}.
+\begin{center}
+\small
+\begin{tabular}{p{0.20\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+need & textbook route & route taken\\ \hline
+law of $(G^\top G)^{-1}$ &
+Wishart density, Bartlett decomposition, inverse-Wishart law &
+only the \emph{diagonal} entries: $((G^\top G)^{-1})_{jj}=1/\|(I-P_{-j})g_j\|^2\sim1/\chi^2_{p-q+1}$ (Schur complement / dual vector); open
+(Theorem~\ref{thm:dd:invGramDiag})\\[1ex]
+$\chi^2$ and inverse $\chi^2$ moments &
+Gamma density, Stein recursion, or convolution of Gamma laws &
+polar coordinates against the explicit Gaussian density; the unit-ball volume cancels against $\gamma_E(E)=1$; one formula gives \emph{all} real
+moments $a>-k$, including the negative ones (Stein recursion cannot reach them); formalized (Theorem~\ref{thm:ntkf:radialMoments})\\[1ex]
+concentration of $\operatorname{Tr}(G^\top G)^{-1}$ &
+variance bound $\operatorname{Var}=O(p^{-1})$, which needs covariances of different diagonal entries &
+fourth-moment Markov bound for \emph{each} entry plus a union bound over the $q$ entries, using marginal laws only; tail formalized
+(Theorem~\ref{thm:dd:chiTail}), union bound open (Theorem~\ref{thm:dd:traceConcentration})\\[1ex]
+scale matrix $(S^\top S)^{-1}$ of the conditional Wishart &
+inverse-Wishart mean with general scale &
+the deterministic identity $\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)=\operatorname{Tr}((G^\top G)^{-1})$ for $S=QR$, $G=XQ$: only identity-scale Gaussians
+occur (Theorem~\ref{thm:dd:biasReduction}); open\\[1ex]
+bias $\|(I-P_S)\theta_\star\|^2$ &
+Haar projector on $\operatorname{Gr}(r,d)$, duality with a uniform vector on the sphere, Beta law &
+no Haar measure: $P_S$ is the Gram projector of a \emph{Gaussian} $S$, already rotation invariant ($P_{OS}=OP_SO^\top$); for $\theta=e_1$,
+$\|(I-P_S)e_1\|^2=1/(1+s_1^\top(S_2^\top S_2)^{-1}s_1)$, whose quadratic form concentrates by Chebyshev (Theorem~\ref{thm:dd:projectorProbability}); open\\[1ex]
+almost-sure invertibility of $G^\top G$ &
+zero set of a non-trivial polynomial has Lebesgue measure zero &
+inductively $g_j\notin\operatorname{span}(g_1,\dots,g_{j-1})$ a.s.: a proper subspace is null because $\langle g,u\rangle\sim\mathcal N(0,1)$ has no atom; open
+(Theorem~\ref{thm:dd:invGramDiag})
+\end{tabular}
+\end{center}
+\end{remark}
+
+\begin{remark}[Alternatives that were tried or considered]\label{rmk:dd:alternatives}
+  \uses{rmk:dd:route}
+For the radial moments three routes were weighed. (i) Induction on $k$ with Fubini on $\mathbb R^k=\mathbb R\times\mathbb R^{k-1}$ needs a Gamma
+convolution identity that Mathlib lacks. (ii) Gaussian integration by parts (Stein recursion) proves $\mathbb EY^{j+1}=(k+2j)\mathbb EY^j$ for integer $j\ge0$
+only; the existing proof of this in the DeepLinear files is about six hundred lines and cannot produce $\mathbb EY^{-1}$ or $\mathbb EY^{-2}$, which the inverse-Gram
+calculation requires. (iii) Polar coordinates against the density (Theorem~\ref{thm:ntkf:gaussianDensity}) turned out to be the shortest: the unit-ball volume
+$\mu(B(0,1))$ and the Gaussian normalization constant enter through the single constant $K$ of Theorem~\ref{thm:ntkf:radialMoments}, which is eliminated
+by the normalization $\int1\,d\gamma_E=1$ and never evaluated. The density itself was obtained by comparing characteristic functions with
+Mathlib's Gaussian Fourier integral (Lemma~\ref{lem:ntkf:mathlibGamma}) rather than by tensorizing one-dimensional densities.
+\end{remark}
+
+\begin{remark}[Numerical sanity checks of the planned reductions]\label{rmk:dd:numerics}
+  \uses{rmk:dd:route}
+Before planning the open nodes, the following were checked by simulation or exact linear algebra (they are not part of the formalization): the
+trace identity of Theorem~\ref{thm:dd:biasReduction} and the bias decomposition $\|(MX-I)\theta_\star\|^2=\|\theta_\perp\|^2+\|H^{-1}G^\top\xi\|^2$
+agree to machine precision on random instances; the dual-vector formula for $((G^\top G)^{-1})_{jj}$ and the formula
+$\operatorname{Tr}(W^{-2})=\sum_jW^{-1}_{jj}{}^2(1+\|\beta_j\|^2)$ ($\beta_j$ the regression coefficients of $g_j$ on the other columns) agree to machine precision; the Sherman--Morrison form
+of $\|(I-P_S)e_1\|^2$ agrees; and Monte Carlo means match $\mathbb E\operatorname{Tr}W^{-1}=q/(p-q-1)$ and
+$\mathbb E\operatorname{Tr}W^{-2}=q(p-1)/((p-q)(p-q-1)(p-q-3))$ to within sampling error. For the sample regime the Monte Carlo mean of
+$\operatorname{Tr}(M^\top M)$ matches $m/(n_0-m-1)+m/(n-m-1)$ to about one percent for three shapes.
+\end{remark}
+
+
+\section{Chi-squared tail bounds: inputs for the probabilistic layer}\label{sec:dd:moments}
 
 For a Gaussian matrix $G\in\mathbb R^{p\times q}$ ($p\ge q$) the diagonal entries of $(G^\top G)^{-1}$ are
-$1/\|(I-P_{-j})g_j\|^2$ (Section~\ref{sec:dd:roadmap}), and $\|(I-P_{-j})g_j\|^2$ is a $\chi^2$ variable. This section proves the
-moment calculus of $\chi^2$ variables that is then needed, in the generality of the standard Gaussian $\gamma_E$ on a
-finite-dimensional real inner product space $E$ of dimension $k$ (Mathlib's \texttt{stdGaussian}). The unit-ball volume that
-appears in polar coordinates is never computed: it cancels against the normalization $\gamma_E(E)=1$.
-
-\begin{theorem}[Density of the standard Gaussian]\label{thm:dd:gaussianDensity}
-  \lean{ProbabilityTheory.stdGaussian_eq_withDensity}
-  \leanok
-On a real inner product space $E$ of dimension $k$, $\gamma_E$ has Lebesgue density $x\mapsto(2\pi)^{-k/2}e^{-\|x\|^2/2}$.
-\end{theorem}
-
-\begin{proof}
-  \leanok
-Both sides are finite measures, so it suffices to compare characteristic functions. That of $\gamma_E$ is $t\mapsto e^{-\|t\|^2/2}$.
-That of the density measure is the Gaussian Fourier integral
-$\int e^{i\langle t,x\rangle}(2\pi)^{-k/2}e^{-\|x\|^2/2}\,dx=e^{-\|t\|^2/2}$, a case of Mathlib's
-\texttt{integral\_cexp\_neg\_mul\_sq\_norm\_add} with $b=1/2$.
-\end{proof}
-
-\begin{theorem}[Radial moments of the standard Gaussian]\label{thm:dd:radialMoments}
-  \uses{thm:dd:gaussianDensity}
-  \lean{ProbabilityTheory.integral_comp_norm_stdGaussian, ProbabilityTheory.integral_radial_gaussian,
-        ProbabilityTheory.integral_norm_rpow_stdGaussian, ProbabilityTheory.integrable_norm_rpow_stdGaussian}
-  \leanok
-Let $\dim E=k\ge1$ and $x\sim\gamma_E$. For every real $a>-k$, $\|x\|^a$ is integrable and
-\[
-  \mathbb E\|x\|^a=2^{a/2}\,\frac{\Gamma\bigl(\tfrac{k+a}2\bigr)}{\Gamma\bigl(\tfrac k2\bigr)} .
-\]
-\end{theorem}
-
-\begin{proof}
-  \leanok
-By Theorem~\ref{thm:dd:gaussianDensity} and polar coordinates (Mathlib's \texttt{integral\_fun\_norm\_addHaar}), for every $f$,
-$\mathbb Ef(\|x\|)=K\int_0^\infty r^{k-1}f(r)e^{-r^2/2}\,dr$ with a constant $K=(2\pi)^{-k/2}\,k\,\operatorname{vol}B(0,1)$ that does not depend
-on $f$. The one-dimensional integral is $\int_0^\infty r^{k-1+a}e^{-r^2/2}\,dr=2^{(k+a)/2-1}\Gamma\bigl(\tfrac{k+a}2\bigr)$ (Mathlib's
-\texttt{integral\_rpow\_mul\_exp\_neg\_mul\_rpow} with $p=2$, $b=1/2$). Taking $f\equiv1$ gives $K\cdot2^{k/2-1}\Gamma(k/2)=1$, which
-eliminates $K$ and yields the formula. Integrability follows because otherwise the Bochner integral would be $0$, contradicting the
-strictly positive right-hand side.
-\end{proof}
-
-\begin{corollary}[$\chi^2$ moments and inverse moments]\label{cor:dd:chiSquare}
-  \uses{thm:dd:radialMoments}
-  \lean{ProbabilityTheory.integral_norm_sq_pow_stdGaussian, ProbabilityTheory.integrable_norm_sq_pow_stdGaussian,
-        ProbabilityTheory.integral_sumSq_pow_pi_gaussianReal,
-        ProbabilityTheory.integral_inv_norm_sq_stdGaussian,
-        ProbabilityTheory.integral_inv_norm_sq_sq_stdGaussian,
-        ProbabilityTheory.integrable_inv_norm_sq_pow_stdGaussian}
-  \leanok
-Let $Y=\|x\|^2\sim\chi^2_k$. Then:
-\begin{enumerate}
-  \item $\mathbb E\,Y^j=\prod_{i<j}(k+2i)$ for every $j\in\mathbb N$, and all $Y^j$ are integrable. The same formula holds for
-  $\sum_ig_i^2$ with $g$ having i.i.d.\ standard normal coordinates indexed by a nonempty finite set of size $k$.
-  \item $\mathbb E\,Y^{-1}=1/(k-2)$ for $k>2$.
-  \item $\mathbb E\,Y^{-2}=1/\bigl((k-2)(k-4)\bigr)$ for $k>4$, and $Y^{-j}$ is integrable if $2j<k$.
-\end{enumerate}
-\end{corollary}
-
-\begin{proof}
-  \leanok
-Apply Theorem~\ref{thm:dd:radialMoments} with $a=2j$, $a=-2$ and $a=-4$. For $a=2j$ use $\Gamma(k/2+j)=\prod_{i<j}(k/2+i)\,\Gamma(k/2)$,
-so $2^j\prod(k/2+i)=\prod(k+2i)$. For $a=-2$ use $\Gamma(k/2)=(k/2-1)\Gamma(k/2-1)$, giving $\tfrac12/(k/2-1)=1/(k-2)$; for $a=-4$
-apply the recursion twice. The coordinate form is the transport of the first part along $\texttt{map\_pi\_eq\_stdGaussian}$.
-\end{proof}
+$1/\|(I-P_{-j})g_j\|^2$ (Section~\ref{sec:dd:roadmap}), and $\|(I-P_{-j})g_j\|^2$ is a $\chi^2$ variable. The moment calculus of
+$\chi^2$ variables needed for this (the radial moment formula, the moments $\mathbb EY^j$ and the inverse moments $\mathbb EY^{-1},\mathbb EY^{-2}$) is
+general Gaussian machinery and is recorded in Chapter~\ref{chap:ntkf}, Section~\ref{sec:ntkf:radial}
+(Theorem~\ref{thm:ntkf:radialMoments}, Corollary~\ref{cor:ntkf:chiSquare}). The fourth-moment tail bound below is the double-descent-specific
+consequence, in \texttt{DoubleDescent/GaussianMoments.lean}.
 
 \begin{theorem}[Fourth central moment and tail bound of $\chi^2_k$]\label{thm:dd:chiTail}
-  \uses{cor:dd:chiSquare}
+  \uses{cor:ntkf:chiSquare}
   \lean{LinearRegression.DoubleDescent.integrable_norm_sq_sub_pow_four,
         LinearRegression.DoubleDescent.integral_norm_sq_sub_pow_four,
         LinearRegression.DoubleDescent.measureReal_norm_sq_sub_ge_le}
@@ -655,7 +699,7 @@ Let $\dim E=k\ge1$ and $x\sim\gamma_E$. Then $\mathbb E\bigl(\|x\|^2-k\bigr)^4=1
 
 \begin{proof}
   \leanok
-Expand $(Y-k)^4=Y^4-4kY^3+6k^2Y^2-4k^3Y+k^4$ and insert the moments of Corollary~\ref{cor:dd:chiSquare}(1) for $j\le4$:
+Expand $(Y-k)^4=Y^4-4kY^3+6k^2Y^2-4k^3Y+k^4$ and insert the moments of Corollary~\ref{cor:ntkf:chiSquare}(1) for $j\le4$:
 $k(k+2)(k+4)(k+6)-4k^2(k+2)(k+4)+6k^3(k+2)-4k^4+k^4=12k^2+48k$. Markov's inequality for $(Y-k)^4$ at level $(\varepsilon k)^4$ bounds the
 probability by $(12k^2+48k)/(\varepsilon k)^4\le60/(\varepsilon^4k^2)$, since $k\ge1$.
 \end{proof}
@@ -674,7 +718,7 @@ The nodes in this section are \textbf{open}: they carry no \texttt{\textbackslas
 state exactly what remains to turn the deterministic layer into limits in probability for the random estimator.
 
 \begin{theorem}[Diagonal of the inverse Gram matrix]\label{thm:dd:invGramDiag}
-  \uses{lem:dd:leftInverse, cor:dd:chiSquare}
+  \uses{lem:dd:leftInverse, cor:ntkf:chiSquare}
 Let $G\in\mathbb R^{p\times q}$ have i.i.d.\ $\mathcal N(0,1)$ entries, $p\ge q$. Almost surely $G^\top G$ is invertible, and for each $j$
 \[
   \bigl((G^\top G)^{-1}\bigr)_{jj}=\frac1{\|(I-P_{-j})g_j\|^2}\ \overset{d}{=}\ \frac1{\chi^2_{p-q+1}},
@@ -688,7 +732,7 @@ By Lemma~\ref{lem:dd:leftInverse}, $((G^\top G)^{-1})_{jj}=\|a_j\|^2$ for $a_j$ 
 $\operatorname{range}G$ dual to $e_j$, namely $a_j=r_j/\|r_j\|^2$ with $r_j=(I-P_{-j})g_j$. The column $g_j$ is independent of $P_{-j}$, so
 conditionally $\|r_j\|^2$ is the squared norm of a standard Gaussian projected onto a subspace of dimension $p-q+1$, i.e.\ $\chi^2_{p-q+1}$.
 Almost-sure invertibility: $g_j\notin\operatorname{span}(g_1,\dots,g_{j-1})$ almost surely, since a proper subspace is null for the Gaussian.
-The mean follows from Corollary~\ref{cor:dd:chiSquare}(2).
+The mean follows from Corollary~\ref{cor:ntkf:chiSquare}(2).
 \end{proof}
 
 \begin{theorem}[Concentration of the inverse Gram trace]\label{thm:dd:traceConcentration}
@@ -703,8 +747,52 @@ $\mathbb P(|X_j/\nu-1|\ge\varepsilon)\le60/(\varepsilon^4\nu^2)$. A union bound 
 Outside the bad event $q/(\nu(1+\varepsilon))\le\operatorname{Tr}(G^\top G)^{-1}=\sum_j1/X_j\le q/(\nu(1-\varepsilon))$, and $q/\nu\to\rho/(1-\rho)$.
 \end{proof}
 
+\begin{theorem}[Trace and bias reductions]\label{thm:dd:biasReduction}
+  \uses{lem:dd:leftInverse, thm:dd:featureVariance, thm:dd:linearBV, lem:dd:wishartCancel, def:ntkcond:gramProjector}
+Let $S\in\mathbb R^{n_0\times n}$ have $S^\top S$ invertible and factor $S=QR$ with $Q^\top Q=I_n$, $R$ invertible, $P_S=QQ^\top$. Put $G=XQ$, $Z=XS=GR$,
+$H=G^\top G$, $\theta_\perp=(I-P_S)\theta_\star$, $\xi=X\theta_\perp$, $M=S(Z^\top Z)^{-1}Z^\top$. Then
+\[
+  \operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr)=\operatorname{Tr}(H^{-1}),\qquad
+  \|(MX-I)\theta_\star\|^2=\|\theta_\perp\|^2+\|H^{-1}G^\top\xi\|^2 .
+\]
+\end{theorem}
+
+\begin{proof}
+$Z^\top Z=R^\top HR$ and $S^\top S=R^\top R$, so $(Z^\top Z)^{-1}S^\top S=R^{-1}H^{-1}R$ and cyclicity gives $\operatorname{Tr}H^{-1}$. Also
+$M=QH^{-1}G^\top$ and $MXS=S$, so $MX$ fixes $\operatorname{range}S$; hence $(MX-I)\theta_\star=(MX-I)\theta_\perp=MX\theta_\perp-\theta_\perp$ with
+$MX\theta_\perp=QH^{-1}G^\top\xi\in\operatorname{range}S\perp\theta_\perp$, and Pythagoras gives the identity.
+\end{proof}
+
+\begin{theorem}[Second inverse moment and quadratic-form concentration]\label{thm:dd:invGramSecond}
+  \uses{thm:dd:invGramDiag, thm:dd:traceConcentration, thm:ntkcond:stdQuad, cor:ntkf:chiSquare}
+With $G\in\mathbb R^{p\times q}$ Gaussian and $W=G^\top G$, $\mathbb E\operatorname{Tr}W^{-2}=q(p-1)/\bigl((p-q)(p-q-1)(p-q-3)\bigr)$ for $p>q+3$. Hence, if $s\sim\gamma$ is
+independent of $G$, the quadratic form $s^\top W^{-1}s$ has conditional mean $\operatorname{Tr}W^{-1}$ and conditional variance $2\operatorname{Tr}W^{-2}=O(q/p^2)\to0$, so
+$s^\top W^{-1}s-\operatorname{Tr}W^{-1}\to0$ in probability.
+\end{theorem}
+
+\begin{proof}
+$\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|\beta_j\|^2)$. Given the other columns, $W^{-1}_{jj}$ depends only on $(I-P_{-j})g_j$ and $\beta_j$ only on $P_{-j}g_j$; these are independent
+(Theorem~\ref{thm:ntkcond:lemma226}). Hence $\mathbb E[W^{-1}_{jj}{}^2(1+\|\beta_j\|^2)]=\mathbb E[\chi^{-4}_{p-q+1}]\bigl(1+\mathbb E\operatorname{Tr}W_{-j}^{-1}\bigr)$, which equals
+$\frac1{(p-q-1)(p-q-3)}\cdot\frac{p-1}{p-q}$ by Corollary~\ref{cor:ntkf:chiSquare}; sum over $j$. The conditional variance of the quadratic form is
+$2\operatorname{Tr}W^{-2}$ by Theorem~\ref{thm:ntkcond:stdQuad}.
+\end{proof}
+
+\begin{theorem}[Projector bias without Haar measure]\label{thm:dd:projectorProbability}
+  \uses{thm:dd:invGramSecond, thm:dd:traceConcentration, def:ntkcond:gramProjector, lem:ntkr:matrixPush}
+Let $S\in\mathbb R^{n_0\times n}$ have i.i.d.\ $\mathcal N(0,1)$ entries with $n_0/n\to\gamma/\delta>1$. For every fixed $\theta$,
+$\|(I-P_S)\theta\|^2-(1-n/n_0)\|\theta\|^2\to0$ in probability, uniformly over $\|\theta\|\le M$.
+\end{theorem}
+
+\begin{proof}
+Since $OS\overset d=S$ and $P_{OS}=OP_SO^\top$ for orthogonal $O$ (Lemma~\ref{lem:ntkr:matrixPush}), the law of $\|(I-P_S)\theta\|^2$ equals $\|\theta\|^2$ times that of $\|(I-P_S)e_1\|^2$ (rotate $\theta$ to
+$\|\theta\|e_1$ by a reflection). Write $S=\binom{s_1^\top}{S_2}$. The dual-vector formula for the Gram matrix of $[S,e_1]$ gives
+$\|(I-P_S)e_1\|^2=1/(1+s_1^\top(S_2^\top S_2)^{-1}s_1)$ (a Sherman--Morrison identity). By Theorem~\ref{thm:dd:invGramSecond} the quadratic form is
+$\operatorname{Tr}(S_2^\top S_2)^{-1}+o_P(1)$, which tends to $\frac{n/n_0}{1-n/n_0}$ by Theorem~\ref{thm:dd:traceConcentration}; apply the continuous map $x\mapsto1/(1+x)$.
+\end{proof}
+
 \begin{theorem}[Feature bottleneck in probability]\label{thm:dd:featureProbability}
-  \uses{thm:dd:featureVariance, thm:dd:featureLimits, thm:dd:traceConcentration}
+  \uses{thm:dd:featureVariance, thm:dd:featureLimits, thm:dd:traceConcentration, thm:dd:biasReduction,
+        thm:dd:invGramSecond, thm:dd:projectorProbability}
 Let $X,S$ have i.i.d.\ standard normal entries, $m_k,n_{0,k},n_k\to\infty$ with $n_0/m\to\gamma$, $n/m\to\delta<\min\{1,\gamma\}$. Then
 $V(\hat\theta)\to\sigma^2\delta/(1-\delta)$ and $B(\hat\theta)\to\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ in probability.
 \end{theorem}

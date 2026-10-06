@@ -8,7 +8,8 @@ i.i.d.\ samples, a Slutsky theorem on width-dependent probability spaces, and th
 gradient-flow analysis needs.
 In the Lean development they live in
 \texttt{Optimization/NTK/Foundations/} (files \texttt{MatrixUtil}, \texttt{Concentration},
-\texttt{IIDAverage}, \texttt{SlutskyTightness}, \texttt{ODE}).
+\texttt{IIDAverage}, \texttt{SlutskyTightness}, \texttt{ODE}), and
+\texttt{ForMathlib/Probability/StdGaussianRadial.lean} for Section~\ref{sec:ntkf:radial}.
 
 Conventions.
 For a real matrix $A$ we write $\|A\|_{\mathrm F}=\bigl(\sum_{i,j}A_{ij}^2\bigr)^{1/2}$ for the
@@ -210,6 +211,97 @@ Let $\mu$ be a probability measure.
 $(A\cap B)^c=A^c\cup B^c$ and subadditivity give (2); (1) follows from (2) and
 $\mu(A\cap B)=1-\mu((A\cap B)^c)$ for measurable sets; (3) uses $\mu(S)+\mu(S^c)\ge1$, which holds
 for arbitrary $S$ through outer measure.
+\end{proof}
+
+
+\section{Radial moments of the standard Gaussian on a finite-dimensional space}\label{sec:ntkf:radial}
+
+This section records the moment calculus of the standard Gaussian $\gamma_E$ on a finite-dimensional real inner product space $E$ of dimension $k$
+(Mathlib's \texttt{stdGaussian}), in particular the moments of $\|x\|^2\sim\chi^2_k$ for \emph{all} real exponents, including negative ones. The Lean file is
+\texttt{ForMathlib/Probability/StdGaussianRadial.lean}. It is used by Chapter~\ref{chap:dd} (inverse Gram matrices of Gaussian matrices), but nothing in it depends on
+that chapter, and the statements are candidates for Mathlib. The unit-ball volume that appears in polar coordinates is never computed: it cancels against the normalization
+$\gamma_E(E)=1$.
+
+\begin{lemma}[Mathlib's standard Gaussian toolkit]\label{lem:ntkf:mathlibGaussian}
+  \lean{ProbabilityTheory.charFun_stdGaussian, ProbabilityTheory.stdGaussian_map,
+        ProbabilityTheory.map_pi_eq_stdGaussian, MeasureTheory.integral_fun_norm_addHaar}
+  \mathlibok
+Let $\gamma_E$ denote the standard Gaussian on a finite-dimensional real inner product space $E$.
+\begin{enumerate}
+  \item Its characteristic function is $t\mapsto e^{-\|t\|^2/2}$.
+  \item (\emph{Rotation invariance}) For every linear isometric equivalence $f:E\to F$, the image of $\gamma_E$ under $f$ is $\gamma_F$.
+  \item On $\mathbb R^\iota$ with the Euclidean structure, $\gamma$ is the image of the product measure $\mathcal N(0,1)^{\otimes\iota}$:
+  a vector with i.i.d.\ standard normal coordinates is a standard Gaussian vector.
+  \item (\emph{Polar coordinates}) For an additive Haar measure $\mu$ on $E$ of dimension $k$ and $f:\mathbb R\to\mathbb R$,
+  $\int f(\|x\|)\,d\mu=k\,\mu(B(0,1))\int_0^\infty r^{k-1}f(r)\,dr$.
+\end{enumerate}
+\end{lemma}
+
+\begin{lemma}[Gamma integrals and the Gaussian Fourier integral]\label{lem:ntkf:mathlibGamma}
+  \lean{integral_rpow_mul_exp_neg_mul_rpow, GaussianFourier.integral_cexp_neg_mul_sq_norm_add}
+  \mathlibok
+For $p>0$, $q>-1$, $b>0$: $\int_0^\infty x^qe^{-bx^p}\,dx=b^{-(q+1)/p}\,p^{-1}\Gamma\bigl(\tfrac{q+1}p\bigr)$. For $\operatorname{Re}b>0$ on a real
+inner product space $V$ of dimension $k$, $\int_Ve^{-b\|v\|^2+c\langle w,v\rangle}\,dv=(\pi/b)^{k/2}e^{c^2\|w\|^2/(4b)}$.
+\end{lemma}
+
+\begin{theorem}[Density of the standard Gaussian]\label{thm:ntkf:gaussianDensity}
+  \uses{lem:ntkf:mathlibGaussian, lem:ntkf:mathlibGamma}
+  \lean{ProbabilityTheory.stdGaussian_eq_withDensity}
+  \leanok
+On a real inner product space $E$ of dimension $k$, $\gamma_E$ has Lebesgue density $x\mapsto(2\pi)^{-k/2}e^{-\|x\|^2/2}$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Both sides are finite measures, so it suffices to compare characteristic functions. That of $\gamma_E$ is $t\mapsto e^{-\|t\|^2/2}$.
+That of the density measure is the Gaussian Fourier integral
+$\int e^{i\langle t,x\rangle}(2\pi)^{-k/2}e^{-\|x\|^2/2}\,dx=e^{-\|t\|^2/2}$, a case of Mathlib's
+\texttt{integral\_cexp\_neg\_mul\_sq\_norm\_add} with $b=1/2$.
+\end{proof}
+
+\begin{theorem}[Radial moments of the standard Gaussian]\label{thm:ntkf:radialMoments}
+  \uses{thm:ntkf:gaussianDensity, lem:ntkf:mathlibGaussian, lem:ntkf:mathlibGamma}
+  \lean{ProbabilityTheory.integral_comp_norm_stdGaussian, ProbabilityTheory.integral_radial_gaussian,
+        ProbabilityTheory.integral_norm_rpow_stdGaussian, ProbabilityTheory.integrable_norm_rpow_stdGaussian}
+  \leanok
+Let $\dim E=k\ge1$ and $x\sim\gamma_E$. For every real $a>-k$, $\|x\|^a$ is integrable and
+\[
+  \mathbb E\|x\|^a=2^{a/2}\,\frac{\Gamma\bigl(\tfrac{k+a}2\bigr)}{\Gamma\bigl(\tfrac k2\bigr)} .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntkf:gaussianDensity} and polar coordinates (Mathlib's \texttt{integral\_fun\_norm\_addHaar}), for every $f$,
+$\mathbb Ef(\|x\|)=K\int_0^\infty r^{k-1}f(r)e^{-r^2/2}\,dr$ with a constant $K=(2\pi)^{-k/2}\,k\,\operatorname{vol}B(0,1)$ that does not depend
+on $f$. The one-dimensional integral is $\int_0^\infty r^{k-1+a}e^{-r^2/2}\,dr=2^{(k+a)/2-1}\Gamma\bigl(\tfrac{k+a}2\bigr)$ (Mathlib's
+\texttt{integral\_rpow\_mul\_exp\_neg\_mul\_rpow} with $p=2$, $b=1/2$). Taking $f\equiv1$ gives $K\cdot2^{k/2-1}\Gamma(k/2)=1$, which
+eliminates $K$ and yields the formula. Integrability follows because otherwise the Bochner integral would be $0$, contradicting the
+strictly positive right-hand side.
+\end{proof}
+
+\begin{corollary}[$\chi^2$ moments and inverse moments]\label{cor:ntkf:chiSquare}
+  \uses{thm:ntkf:radialMoments}
+  \lean{ProbabilityTheory.integral_norm_sq_pow_stdGaussian, ProbabilityTheory.integrable_norm_sq_pow_stdGaussian,
+        ProbabilityTheory.integral_sumSq_pow_pi_gaussianReal,
+        ProbabilityTheory.integral_inv_norm_sq_stdGaussian,
+        ProbabilityTheory.integral_inv_norm_sq_sq_stdGaussian,
+        ProbabilityTheory.integrable_inv_norm_sq_pow_stdGaussian}
+  \leanok
+Let $Y=\|x\|^2\sim\chi^2_k$. Then:
+\begin{enumerate}
+  \item $\mathbb E\,Y^j=\prod_{i<j}(k+2i)$ for every $j\in\mathbb N$, and all $Y^j$ are integrable. The same formula holds for
+  $\sum_ig_i^2$ with $g$ having i.i.d.\ standard normal coordinates indexed by a nonempty finite set of size $k$.
+  \item $\mathbb E\,Y^{-1}=1/(k-2)$ for $k>2$.
+  \item $\mathbb E\,Y^{-2}=1/\bigl((k-2)(k-4)\bigr)$ for $k>4$, and $Y^{-j}$ is integrable if $2j<k$.
+\end{enumerate}
+\end{corollary}
+
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:ntkf:radialMoments} with $a=2j$, $a=-2$ and $a=-4$. For $a=2j$ use $\Gamma(k/2+j)=\prod_{i<j}(k/2+i)\,\Gamma(k/2)$,
+so $2^j\prod(k/2+i)=\prod(k+2i)$. For $a=-2$ use $\Gamma(k/2)=(k/2-1)\Gamma(k/2-1)$, giving $\tfrac12/(k/2-1)=1/(k-2)$; for $a=-4$
+apply the recursion twice. The coordinate form is the transport of the first part along $\texttt{map\_pi\_eq\_stdGaussian}$.
 \end{proof}
 
 
