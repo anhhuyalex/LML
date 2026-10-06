@@ -87,16 +87,22 @@ lemma norm_restrictCoords_neuronCoords_le (i : Fin n)
   rw [sub_zero] at h h0
   rw [h0, h]
   have h1 : (∑ j : Fin d,
-      (v (paramIndexEquiv n d (Sum.inl (i, j))) - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2) ≤
+      (v (paramIndexEquiv n d (Sum.inl (i, j))) -
+        (0 : EuclideanSpace ℝ (Fin (n * d + n))) (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) ≤
       ∑ i : Fin n, ∑ j : Fin d,
-        (v (paramIndexEquiv n d (Sum.inl (i, j))) - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2 :=
+        (v (paramIndexEquiv n d (Sum.inl (i, j))) -
+          (0 : EuclideanSpace ℝ (Fin (n * d + n))) (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2 :=
     Finset.single_le_sum (f := fun i : Fin n => ∑ j : Fin d,
-      (v (paramIndexEquiv n d (Sum.inl (i, j))) - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2)
+      (v (paramIndexEquiv n d (Sum.inl (i, j))) -
+        (0 : EuclideanSpace ℝ (Fin (n * d + n))) (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2)
       (fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _) (Finset.mem_univ i)
-  have h2 : (v (paramIndexEquiv n d (Sum.inr i)) - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 ≤
-      ∑ i : Fin n, (v (paramIndexEquiv n d (Sum.inr i)) - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 :=
+  have h2 : (v (paramIndexEquiv n d (Sum.inr i)) -
+      (0 : EuclideanSpace ℝ (Fin (n * d + n))) (paramIndexEquiv n d (Sum.inr i))) ^ 2 ≤
+      ∑ i : Fin n, (v (paramIndexEquiv n d (Sum.inr i)) -
+        (0 : EuclideanSpace ℝ (Fin (n * d + n))) (paramIndexEquiv n d (Sum.inr i))) ^ 2 :=
     Finset.single_le_sum (f := fun i : Fin n =>
-      (v (paramIndexEquiv n d (Sum.inr i)) - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2)
+      (v (paramIndexEquiv n d (Sum.inr i)) -
+        (0 : EuclideanSpace ℝ (Fin (n * d + n))) (paramIndexEquiv n d (Sum.inr i))) ^ 2)
       (fun _ _ => sq_nonneg _) (Finset.mem_univ i)
   linarith
 

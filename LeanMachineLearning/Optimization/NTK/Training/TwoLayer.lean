@@ -59,8 +59,7 @@ kernel-freeze, finite-horizon and global positive-gap theorems.
 
 ## Main Definitions
 - `packParams W a`: Pack weights `W` and readout `a` into a flat parameter vector `θ`.
-- `unpackW θ`: Extract weight matrix `W : Fin n → Fin d → ℝ`.
-- `unpackA θ`: Extract readout vector `a : Fin n → ℝ`.
+- Weight and readout coordinates are selected directly using `paramIndexEquiv`.
 - `netFromParams φ n d x θ`: Single-output network evaluation from flat parameter `θ`.
 - `gradW φ n d x θ`: Gradient block for `W`, evaluated at `(x, θ)`.
 - `gradA φ n d x θ`: Gradient block for `a`, evaluated at `(x, θ)`.
@@ -68,7 +67,7 @@ kernel-freeze, finite-horizon and global positive-gap theorems.
 
 ## Main Theorems
 - `unpackW_packParams`, `unpackA_packParams`: Left inverse equations.
-- `packParams_unpack`: Right inverse equation (`packParams (unpackW θ) (unpackA θ) = θ`).
+- `packParams_unpack`: Right inverse equation for the explicit coordinate projections.
 - `inner_packParams`: Inner product `⟪packParams W a, v⟫` in terms of components.
 - `inner_packParams_packParams`: Inner product `⟪packParams W₁ a₁, packParams W₂ a₂⟫`.
 - `hasFDerivAt_netFromParams`: Fréchet derivative of `netFromParams` with respect to `θ`.

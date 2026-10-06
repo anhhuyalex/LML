@@ -707,8 +707,9 @@ theorem exists_measurableSet_global_lazy_training_event_inv_sqrt_width
   obtain ⟨hray, hdrift, hres, hloss⟩ := horig t ht
   refine ⟨hray, le_min hdrift ?_, hres, hloss⟩
   have hmom : (n : ℝ)⁻¹ * ∑ i : Fin n, neuronMoment φ C₁ C₂ Xs
-      (unpackW (packParams p.1 p.2) i) (unpackA (packParams p.1 p.2) i) ≤ τ := by
-    simpa [unpackW_packParams, unpackA_packParams] using hpX
+      (fun j => packParams p.1 p.2 (paramIndexEquiv n d (Sum.inl (i, j))))
+      (packParams p.1 p.2 (paramIndexEquiv n d (Sum.inr i))) ≤ τ := by
+    simpa [packParams_apply_idxW, packParams_apply_idxA] using hpX
   have hsharp := kernel_drift_le_of_neuron_moments φ hφ hC₁_nonneg hC₂_nonneg hφ_lip
     hact.deriv_bdd hact.deriv_lip hn0 hm Xs y hflow hν (fun t ht => (hcert t ht).1)
     (fun t ht => (hcert t ht).2.2.1) (fun t ht => (hcert t ht).2.1) hJ0 hmom ht

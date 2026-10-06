@@ -20,14 +20,13 @@ coordinate equations, and the Frobenius-norm concentration of the output Jacobia
 * `Packing` : `packParams`, `netFromParams`, gradients, coordinate equations, Jacobian norm
   concentration.
 - `packParams W a`: Pack weights `W` and readout `a` into a flat parameter vector `θ`.
-- `unpackW θ`: Extract weight matrix `W : Fin n → Fin d → ℝ`.
-- `unpackA θ`: Extract readout vector `a : Fin n → ℝ`.
+- Weight and readout coordinates are selected directly with `paramIndexEquiv`.
 - `netFromParams φ n d x θ`: Single-output network evaluation from flat parameter `θ`.
 - `gradW φ n d x θ`: Gradient block for `W`, evaluated at `(x, θ)`.
 - `gradA φ n d x θ`: Gradient block for `a`, evaluated at `(x, θ)`.
 - `gradParams φ n d x θ`: Packed gradient vector of `netFromParams`.
 - `unpackW_packParams`, `unpackA_packParams`: Left inverse equations.
-- `packParams_unpack`: Right inverse equation (`packParams (unpackW θ) (unpackA θ) = θ`).
+- `packParams_unpack`: Right inverse equation for the explicit coordinate projections.
 - `inner_packParams`: Inner product `⟪packParams W a, v⟫` in terms of components.
 - `inner_packParams_packParams`: Inner product `⟪packParams W₁ a₁, packParams W₂ a₂⟫`.
 - `hasFDerivAt_netFromParams`: Fréchet derivative of `netFromParams` with respect to `θ`.
@@ -82,16 +81,6 @@ noncomputable def packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin 
     | Sum.inl (i, j) => W i j
     | Sum.inr i => a i)
 
-/-- Unpack the input weights `W : Fin n → Fin d → ℝ` from a flat parameter vector `θ`. -/
-noncomputable def unpackW {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    Fin n → Fin d → ℝ :=
-  fun i j => θ (paramIndexEquiv n d (Sum.inl (i, j)))
-
-/-- Unpack the readout weights `a : Fin n → ℝ` from a flat parameter vector `θ`. -/
-noncomputable def unpackA {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    Fin n → ℝ :=
-  fun i => θ (paramIndexEquiv n d (Sum.inr i))
-
 /-- The packed parameter vector has entry `W i j` at `paramIndexEquiv n d (Sum.inl (i, j))`. -/
 lemma packParams_apply_idxW {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ)
     (i : Fin n) (j : Fin d) :
@@ -109,21 +98,22 @@ lemma packParams_apply_idxA {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n
 /-- Unpacking the weights of a packed parameter vector returns `W`. -/
 @[simp]
 lemma unpackW_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
-    unpackW (packParams W a) = W := by
+    (fun i j => packParams W a (paramIndexEquiv n d (Sum.inl (i, j)))) = W := by
   ext i j
   exact packParams_apply_idxW W a i j
 
 /-- Unpacking the readout of a packed parameter vector returns `a`. -/
 @[simp]
 lemma unpackA_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
-    unpackA (packParams W a) = a := by
+    (fun i => packParams W a (paramIndexEquiv n d (Sum.inr i))) = a := by
   ext i
   exact packParams_apply_idxA W a i
 
 /-- Packing the unpacked weights and readout of `θ` returns `θ`. -/
 @[simp]
 lemma packParams_unpack {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    packParams (unpackW θ) (unpackA θ) = θ := by
+    packParams (fun i j => θ (paramIndexEquiv n d (Sum.inl (i, j))) )
+      (fun i => θ (paramIndexEquiv n d (Sum.inr i))) = θ := by
   ext k
   dsimp [packParams]
   cases h : (paramIndexEquiv n d).symm k with
@@ -132,12 +122,10 @@ lemma packParams_unpack {n d : ℕ} (θ : EuclideanSpace ℝ (Fin (n * d + n))) 
     have h_k : k = paramIndexEquiv n d (Sum.inl (i, j)) := by
       rw [← (paramIndexEquiv n d).apply_symm_apply k, h]
     rw [h_k]
-    rfl
   | inr i =>
     have h_k : k = paramIndexEquiv n d (Sum.inr i) := by
       rw [← (paramIndexEquiv n d).apply_symm_apply k, h]
     rw [h_k]
-    rfl
 
 /-- Packing hidden and readout weights into the parameter vector is continuous: it is a coordinate
 rearrangement. -/
@@ -159,7 +147,6 @@ private lemma dotW_CLM_apply {n d : ℕ} (i : Fin n) (x : Fin d → ℝ)
   simp only [dotW_CLM, sum_apply, smul_apply, PiLp.proj_apply, smul_eq_mul, dotProduct]
   apply Finset.sum_congr rfl
   intro j _
-  dsimp [unpackW]
   ring
 
 /-- The inner product `⟪packParams W a, v⟫` expressed as a sum over the
@@ -185,10 +172,10 @@ lemma inner_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → 
   simp only [Equiv.symm_apply_apply]
   have h_w : ∀ x x_1, v.ofLp (paramIndexEquiv n d (Sum.inl (x, x_1))) * W x x_1 =
       W x x_1 * v (paramIndexEquiv n d (Sum.inl (x, x_1))) := by
-    intro i j; dsimp [unpackW]; ring
+    intro i j; ring
   have h_a : ∀ x, v.ofLp (paramIndexEquiv n d (Sum.inr x)) * a x =
       a x * v (paramIndexEquiv n d (Sum.inr x)) := by
-    intro i; dsimp [unpackA]; ring
+    intro i; ring
   simp_rw [h_w, h_a]
 
 /-- Inner product of two packed parameter vectors decomposes into weight-matrix
@@ -198,19 +185,21 @@ lemma inner_packParams_packParams {n d : ℕ}
     ⟪packParams W₁ a₁, packParams W₂ a₂⟫ =
       (∑ i : Fin n, W₁ i ⬝ᵥ W₂ i) + ∑ i : Fin n, a₁ i * a₂ i := by
   rw [inner_packParams]
-  simp only [unpackW_packParams, unpackA_packParams]
+  simp_rw [packParams_apply_idxW, packParams_apply_idxA]
   rfl
 
 /-- Single-output evaluation of a two-layer network from a packed parameter vector `θ`. -/
 noncomputable def netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) : ℝ :=
-  evalSingle φ (unpackW θ) (unpackA θ) x
+  evalSingle φ (fun i j => θ (paramIndexEquiv n d (Sum.inl (i, j))))
+    (fun i => θ (paramIndexEquiv n d (Sum.inr i))) x
 
 /-- The packed-parameter network is `n^{-1/2} ∑_i a_i φ(w_i ⬝ x)`. -/
 lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) :=
-  evalSingle_eq_normalized_sum φ (unpackW θ) (unpackA θ) x
+  evalSingle_eq_normalized_sum φ (fun i j => θ (paramIndexEquiv n d (Sum.inl (i, j))))
+    (fun i => θ (paramIndexEquiv n d (Sum.inr i))) x
 
 /-- The explicit training-output vector of the packed-parameter network is `evalVector φ W a X`. -/
 @[simp]
@@ -281,17 +270,23 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
     intro i
     exact (h_a i).mul (h_comp i)
   have h_sum := HasFDerivAt.sum (u := Finset.univ)
-    (A := fun i θ => θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) (fun i _ => h_mul i)
+    (A := fun i (θ : EuclideanSpace ℝ (Fin (n * d + n))) =>
+      θ (paramIndexEquiv n d (Sum.inr i)) *
+        φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
+    (fun i _ => h_mul i)
   have h_sum_fun :
       (∑ i ∈ (Finset.univ : Finset (Fin n)),
-        fun θ' => unpackA θ' i * φ (unpackW θ' i ⬝ᵥ x)) =
-      (fun θ' => ∑ i : Fin n, unpackA θ' i * φ (unpackW θ' i ⬝ᵥ x)) := by
+        fun θ' => θ' (paramIndexEquiv n d (Sum.inr i)) *
+          φ ((fun j => θ' (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) =
+      (fun θ' => ∑ i : Fin n, θ' (paramIndexEquiv n d (Sum.inr i)) *
+        φ ((fun j => θ' (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
     ext θ'
     simp only [Finset.sum_apply]
   rw [h_sum_fun] at h_sum
   have h_scaled := h_sum.const_smul (n : ℝ)⁻¹.sqrt
   have h_net_eq :
-      (n : ℝ)⁻¹.sqrt • (fun θ' => ∑ i : Fin n, unpackA θ' i * φ (unpackW θ' i ⬝ᵥ x)) =
+      (n : ℝ)⁻¹.sqrt • (fun θ' => ∑ i : Fin n, θ' (paramIndexEquiv n d (Sum.inr i)) *
+        φ ((fun j => θ' (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) =
       netFromParams φ n d x := by
     ext θ'
     simp only [Pi.smul_apply, smul_eq_mul]
@@ -301,9 +296,9 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
   ext v
   simp only [smul_apply, sum_apply, add_apply, smul_eq_mul, dotW_CLM_apply,
     PiLp.proj_apply, InnerProductSpace.toDual_apply_apply]
-  dsimp [gradParams, unpackA]
+  dsimp [gradParams]
   rw [inner_packParams]
-  dsimp [gradW, gradA, dotProduct, unpackA]
+  dsimp [gradW, gradA, dotProduct]
   simp only [Finset.mul_sum]
   rw [← Finset.sum_add_distrib]
   apply Finset.sum_congr rfl
@@ -349,7 +344,8 @@ theorem tangentFeature_netFromParams_of_differentiable (φ : ℝ → ℝ) (hφ :
 lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
-    unpackW (tangentFeature (netFromParams φ n d) x θ) = gradW φ n d x θ := by
+    (fun i j => tangentFeature (netFromParams φ n d) x θ
+      (paramIndexEquiv n d (Sum.inl (i, j)))) = gradW φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
   exact unpackW_packParams _ _
 
@@ -358,7 +354,8 @@ lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
-    unpackA (tangentFeature (netFromParams φ n d) x θ) = gradA φ n d x θ := by
+    (fun i => tangentFeature (netFromParams φ n d) x θ
+      (paramIndexEquiv n d (Sum.inr i))) = gradA φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
   exact unpackA_packParams _ _
 
@@ -369,8 +366,9 @@ lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
     (α : Fin m) (i : Fin n) (j : Fin d) :
     outputJacobian (netFromParams φ n d) X θ α (paramIndexEquiv n d (Sum.inl (i, j))) =
       gradW φ n d (X α) θ i j := by
-  change unpackW (tangentFeature (netFromParams φ n d) (X α) θ) i j = _
-  rw [unpackW_tangentFeature φ n d (X α) θ (hφ α)]
+  change tangentFeature (netFromParams φ n d) (X α) θ
+    (paramIndexEquiv n d (Sum.inl (i, j))) = _
+  exact congrFun (congrFun (unpackW_tangentFeature φ n d (X α) θ (hφ α)) i) j
 
 /-- Output Jacobian entry for `netFromParams` evaluated at its `i`-th readout coordinate. -/
 lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
@@ -379,8 +377,9 @@ lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
     (α : Fin m) (i : Fin n) :
     outputJacobian (netFromParams φ n d) X θ α (paramIndexEquiv n d (Sum.inr i)) =
       gradA φ n d (X α) θ i := by
-  change unpackA (tangentFeature (netFromParams φ n d) (X α) θ) i = _
-  rw [unpackA_tangentFeature φ n d (X α) θ (hφ α)]
+  change tangentFeature (netFromParams φ n d) (X α) θ
+    (paramIndexEquiv n d (Sum.inr i)) = _
+  exact congrFun (unpackA_tangentFeature φ n d (X α) θ (hφ α)) i
 
 /-- **Readout-weight equation of the training flow.** Along a forward gradient flow of the MSE loss
 of a two-layer network, at every positive time
@@ -390,8 +389,9 @@ theorem forwardGF_readout_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : Fin m
     (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
     {θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ) {t : ℝ} (ht : 0 < t)
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⬝ᵥ X α)) (i : Fin n) :
-    HasDerivAt (fun s => unpackA (θ s) i)
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+      ((fun j => θ t (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) (i : Fin n) :
+    HasDerivAt (fun s => θ s (paramIndexEquiv n d (Sum.inr i)))
       (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual (netFromParams φ n d) X y (θ t) α *
         gradA φ n d (X α) (θ t) i)) t := by
   have h := hasDerivAt_coord_of_forwardGF (netFromParams φ n d) X y hflow ht
@@ -408,9 +408,10 @@ theorem forwardGF_inputWeight_hasDerivAt (φ : ℝ → ℝ) (n d m : ℕ) (X : F
     (y : EuclideanSpace ℝ (Fin m)) {θ₀ : EuclideanSpace ℝ (Fin (n * d + n))}
     {θ : ℝ → EuclideanSpace ℝ (Fin (n * d + n))}
     (hflow : ForwardGFTrajectory (mseLoss (netFromParams φ n d) X y) θ₀ θ) {t : ℝ} (ht : 0 < t)
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW (θ t) i ⬝ᵥ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+      ((fun j => θ t (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (i : Fin n) (j : Fin d) :
-    HasDerivAt (fun s => unpackW (θ s) i j)
+    HasDerivAt (fun s => θ s (paramIndexEquiv n d (Sum.inl (i, j))))
       (-((m : ℝ)⁻¹ * ∑ α : Fin m, trainingResidual (netFromParams φ n d) X y (θ t) α *
         gradW φ n d (X α) (θ t) i j)) t := by
   have h := hasDerivAt_coord_of_forwardGF (netFromParams φ n d) X y hflow ht

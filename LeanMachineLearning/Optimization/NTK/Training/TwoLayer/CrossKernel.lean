@@ -279,9 +279,10 @@ theorem tendsto_measure_crossKernel_drift_finite_horizon
       have h4 := le_abs_self (L' (Fin.last m) (Fin.last m))
       rw [h1]
       linarith
-    have hreadout : ∀ i : Fin n, |unpackA (packParams p.1 p.2) i| ≤
+    have hreadout : ∀ i : Fin n,
+        |packParams p.1 p.2 (paramIndexEquiv n d (Sum.inr i))| ≤
         Real.sqrt (2 * Real.log (2 * n / δ)) := fun i => by
-      simpa [unpackA_packParams] using hp2 i
+      simpa [packParams_apply_idxA] using hp2 i
     have hall' := hall (θ n p) hflow t ht
     have := norm_crossKernel_sub_le hact hn0 Xs xs hreadout hall'.2.2.2 hJ0 hall'.2.1 hg0
     rw [hflow.init]
@@ -412,9 +413,10 @@ theorem tendsto_measure_crossKernel_drift_global_positive_gap
       have h4 := le_abs_self (L' (Fin.last m) (Fin.last m))
       rw [h1]
       linarith
-    have hreadout : ∀ i : Fin n, |unpackA (packParams p.1 p.2) i| ≤
+    have hreadout : ∀ i : Fin n,
+        |packParams p.1 p.2 (paramIndexEquiv n d (Sum.inr i))| ≤
         Real.sqrt (2 * Real.log (2 * n / δ)) := fun i => by
-      simpa [unpackA_packParams] using hp2 i
+      simpa [packParams_apply_idxA] using hp2 i
     have hall' := (hall (θ n p) hflow).2 t ht
     have := norm_crossKernel_sub_le hact hn0 Xs xs hreadout hall'.1 hJ0 hall'.2.2.2.1 hg0
     rw [hflow.init]

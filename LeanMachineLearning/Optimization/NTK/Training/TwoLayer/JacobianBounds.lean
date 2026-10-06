@@ -62,11 +62,11 @@ lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n *
     apply Finset.sum_congr rfl
     intro j _
     change ((θ₁ - θ₂) (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2 = _
-    simp only [PiLp.sub_apply, unpackW]
+    simp only [PiLp.sub_apply]
   · apply Finset.sum_congr rfl
     intro i _
     change ((θ₁ - θ₂) (paramIndexEquiv n d (Sum.inr i))) ^ 2 = _
-    simp only [PiLp.sub_apply, unpackA]
+    simp only [PiLp.sub_apply]
 
 /-- Cauchy–Schwarz for a difference: `(x ⬝ᵥ z - y ⬝ᵥ z)² ≤ ‖x - y‖² ‖z‖²`. -/
 lemma dotProduct_sub_sq_le (d : ℕ) (x y z : Fin d → ℝ) :

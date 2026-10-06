@@ -97,14 +97,14 @@ theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (
     (ContinuousLinearMap.contDiff (EuclideanSpace.proj k : EuclideanSpace ℝ (Fin (n * d + n))
       →L[ℝ] ℝ)).locallyLipschitz
   have hpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => unpackW θ i ⬝ᵥ X α) := fun i α => by
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => (fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) := fun i α => by
     unfold dotProduct
     exact locallyLipschitz_finset_sum _ fun j _ => locallyLipschitz_mul_const _ (hproj _)
   have hφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => φ (unpackW θ i ⬝ᵥ X α)) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) :=
     fun i α => hφL.comp (hpre i α)
   have hdφpre : ∀ (i : Fin n) (α : Fin m), LocallyLipschitz
-      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => deriv φ (unpackW θ i ⬝ᵥ X α)) :=
+      (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) :=
     fun i α => hdφL.comp (hpre i α)
   have hnet : ∀ α : Fin m, LocallyLipschitz
       (fun θ : EuclideanSpace ℝ (Fin (n * d + n)) => netFromParams φ n d (X α) θ) := fun α => by
@@ -128,14 +128,14 @@ theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (
     rcases p with ⟨i, j⟩ | i
     · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inl (i, j))) =
-            (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ X α) * X α j := fun θ =>
+            (n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) * X α j := fun θ =>
         packParams_apply_idxW _ _ i j
       simp only [this]
       exact locallyLipschitz_mul_const _ (locallyLipschitz_mul_real
         (locallyLipschitz_const_mul _ (hproj (paramIndexEquiv n d (Sum.inr i)))) (hdφpre i α))
     · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inr i)) =
-            (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⬝ᵥ X α) := fun θ => packParams_apply_idxA _ _ i
+            (n : ℝ)⁻¹.sqrt * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) := fun θ => packParams_apply_idxA _ _ i
       simp only [this]
       exact locallyLipschitz_const_mul _ (hφpre i α)
   exact (locallyLipschitz_const_mul _ (locallyLipschitz_finset_sum _ fun α _ =>
@@ -177,7 +177,7 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
     intro α i
     refine (neuron_block_energy_le φ hact.deriv_bdd hn θ i (X α)).trans ?_
     refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-    set u := unpackW θ i ⬝ᵥ X α with hu
+    set u := (fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α with hu
     have hφu : φ u ^ 2 ≤ 2 * φ 0 ^ 2 + 2 * (C₁ ^ 2 * u ^ 2) := by
       have h1 : |φ u| ≤ |φ 0| + C₁ * |u| := by
         have := hφ_lip u 0
@@ -202,7 +202,7 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
     have hC := sq_nonneg C₁
     have hu2 : u ^ 2 ≤ ‖θ‖ ^ 2 * S α :=
       hucs.trans (mul_le_mul_of_nonneg_right hw hSα)
-    have hun : unpackA θ i ^ 2 = θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 := rfl
+    have hun : θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 = θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 := rfl
     rw [hun]
     nlinarith [mul_le_mul_of_nonneg_left hu2 hC, mul_le_mul_of_nonneg_left ha
       (mul_nonneg hC hSα)]
@@ -262,48 +262,48 @@ private lemma exists_residual_bound (hact : SmoothActivation φ C₁ C₂) (hn :
   refine (abs_sub _ _).trans ?_
   refine add_le_add ?_ le_rfl
   rw [netFromParams_eq_normalized_sum, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-  have hterm : ∀ i : Fin n, |unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)| ≤
+  have hterm : ∀ i : Fin n, |θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)| ≤
       ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))) := by
     intro i
     have hblock : (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) + θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ‖θ‖ ^ 2 := by
       rw [← norm_sq_restrictCoords_neuronCoords]
       exact pow_le_pow_left₀ (norm_nonneg _) (norm_restrictCoords_neuronCoords_le i θ) 2
-    have ha : |unpackA θ i| ≤ ρp := by
-      have h2 : unpackA θ i ^ 2 ≤ ρp ^ 2 := by
+    have ha : |θ (paramIndexEquiv n d (Sum.inr i))| ≤ ρp := by
+      have h2 : θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ρp ^ 2 := by
         change θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ρp ^ 2
         have := hblock
         nlinarith [Finset.sum_nonneg fun j (_ : j ∈ Finset.univ) => sq_nonneg (θ (paramIndexEquiv n d (Sum.inl (i, j)))),
           pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
       exact (sq_le_sq₀ (abs_nonneg _) hρ0).1 (by rwa [sq_abs])
-    have hu : |unpackW θ i ⬝ᵥ X α| ≤ ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2) := by
+    have hu : |(fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α| ≤ ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2) := by
       have hw : (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) ≤ ρp ^ 2 := by
         have := hblock
         nlinarith [sq_nonneg (θ (paramIndexEquiv n d (Sum.inr i))), pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
-      have hu2 : |unpackW θ i ⬝ᵥ X α| ^ 2 ≤
+      have hu2 : |(fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α| ^ 2 ≤
           (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) ^ 2 := by
         rw [sq_abs, mul_pow, Real.sq_sqrt (Finset.sum_nonneg fun _ _ => sq_nonneg _)]
-        exact (sq_dotProduct_le (unpackW θ i) (X α)).trans
+        exact (sq_dotProduct_le ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j))))) (X α)).trans
           (mul_le_mul_of_nonneg_right hw (Finset.sum_nonneg fun _ _ => sq_nonneg _))
       exact (sq_le_sq₀ (abs_nonneg _) (by positivity)).1 hu2
-    have hφu : |φ (unpackW θ i ⬝ᵥ X α)| ≤
+    have hφu : |φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)| ≤
         |φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) := by
-      have := hφ_lip (unpackW θ i ⬝ᵥ X α) 0
+      have := hφ_lip ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) 0
       rw [sub_zero] at this
-      have h1 : |φ (unpackW θ i ⬝ᵥ X α)| ≤ |φ 0| + |φ (unpackW θ i ⬝ᵥ X α) - φ 0| := by
-        have := abs_sub_abs_le_abs_sub (φ (unpackW θ i ⬝ᵥ X α)) (φ 0)
-        linarith [abs_sub_comm (φ (unpackW θ i ⬝ᵥ X α)) (φ 0)]
-      have h2 : C₁ * |unpackW θ i ⬝ᵥ X α| ≤ C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) :=
+      have h1 : |φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)| ≤ |φ 0| + |φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) - φ 0| := by
+        have := abs_sub_abs_le_abs_sub (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) (φ 0)
+        linarith [abs_sub_comm (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) (φ 0)]
+      have h2 : C₁ * |(fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α| ≤ C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) :=
         mul_le_mul_of_nonneg_left hu hC₁0
       linarith
     rw [abs_mul]
     exact mul_le_mul ha hφu (abs_nonneg _) hρ0
-  have hsum : |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)| ≤
+  have hsum : |∑ i : Fin n, θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)| ≤
       (n : ℝ) * (ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)))) := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
     calc _ ≤ ∑ _i : Fin n, ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))) :=
           Finset.sum_le_sum fun i _ => hterm i
       _ = _ := by simp
-  calc ((n : ℝ)⁻¹).sqrt * |∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)|
+  calc ((n : ℝ)⁻¹).sqrt * |∑ i : Fin n, θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)|
       ≤ ((n : ℝ)⁻¹).sqrt * ((n : ℝ) *
           (ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))))) :=
         mul_le_mul_of_nonneg_left hsum (Real.sqrt_nonneg _)

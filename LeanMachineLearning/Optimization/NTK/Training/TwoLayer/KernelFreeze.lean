@@ -63,7 +63,8 @@ private lemma abs_unpackA_le_of_displacement {n d : ℕ}
     |θ (paramIndexEquiv n d (Sum.inr i))| ≤ R₀ + r := by
   have hproj : |(θ - θ₀).ofLp (paramIndexEquiv n d (Sum.inr i))| ≤ ‖θ - θ₀‖ := by
     simpa [Real.norm_eq_abs] using PiLp.norm_apply_le (θ - θ₀) (paramIndexEquiv n d (Sum.inr i))
-  have heq : θ (paramIndexEquiv n d (Sum.inr i)) - θ₀ (paramIndexEquiv n d (Sum.inr i)) = (θ - θ₀).ofLp (paramIndexEquiv n d (Sum.inr i)) := by dsimp [unpackA]
+  have heq : θ (paramIndexEquiv n d (Sum.inr i)) - θ₀ (paramIndexEquiv n d (Sum.inr i)) =
+      (θ - θ₀).ofLp (paramIndexEquiv n d (Sum.inr i)) := by rfl
   have hdiff : |θ (paramIndexEquiv n d (Sum.inr i)) - θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ r := heq ▸ hproj.trans hr
   have h1 := abs_le.mp h₀
   have h2 := abs_le.mp hdiff

@@ -562,17 +562,10 @@ section bridge
 
 variable {d n0 m : ℕ} (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
 
-/-- The layer split of `population/readout product` at the population of `Wh k`: past (the population zeroed) and
-the Gaussian block. -/
-noncomputable def splitPt (n k : ℕ) (hk : k + 1 < d) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) :
-    ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) × (Fin n → Fin n → ℝ) :=
-  ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2),
-    fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)
-
 /-- The expression whose concentration is given by `tendsto_residualQuadForm`, at the split
 point of `ω`. -/
 noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) : ℝ :=
-  let q := splitPt (d := d) n k hk ω
+  let q := ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)
   ((n : ℝ) ^ 2)⁻¹ *
         (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
           ((Matrix.of q.2 * (1 - gramProjector (pastFeat φ X n k hk q.1)) *
@@ -618,14 +611,14 @@ lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fin
     rw [this]
     simp
   rw [wcov_resPart_eq φ φ' X (deepParams d n0 n ω) k hk a b, hV, ← hΦ]
-  unfold residAbs splitPt
+  unfold residAbs
   simp only [hD]
   rw [hua, hub]
 
 /-- The linear-form expression whose concentration is given by `tendsto_residualLinearForm`, at the
 split point of `ω`, for `b = h_k^c ⊙ φ'(h_k^a)`. -/
 noncomputable def linAbs (n k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) : ℝ :=
-  let q := splitPt (d := d) n k hk ω
+  let q := ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)
   ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
     (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
       ((Matrix.of q.2 * (1 - gramProjector (pastFeat φ X n k hk q.1))) *ᵥ
@@ -656,7 +649,7 @@ lemma linAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : ((Fin d
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c :=
     preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl c
   rw [hV, ← hΦ]
-  unfold linAbs splitPt
+  unfold linAbs
   simp only [netDeriv_zeroLayer φ φ' X n k hk ω, hh]
   rw [hua]
 
@@ -711,8 +704,8 @@ lemma atProj_sq_bddByConv (k : ℕ) (hk : k + 1 < d)
     BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _
         : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun
             (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
-      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω) ⬝ᵥ
-        atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω))) := by
+      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)) ⬝ᵥ
+        atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)))) := by
   have hbad := goodSet_compl_tendsto (d := d) (n0 := n0) A X k (by omega) hpd
   obtain ⟨c0, hc⟩ := hG c
   refine BddByConv.of_tendstoInMeasure (c := c0) (tendstoInMeasure_congr_on_good
@@ -720,7 +713,7 @@ lemma atProj_sq_bddByConv (k : ℕ) (hk : k + 1 < d)
   intro n ω hω
   obtain ⟨hn, hS⟩ := hω
   have := atProj_nextSens_eq φ φ' X n k hk ω c hS
-  simp only [splitPt]
+  simp only []
   rw [this, deepSensitivityGram_hidden d n0 n m φ φ' X _ (k + 1) hk, Matrix.of_apply]
 
 include A in
@@ -745,20 +738,20 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
   have hcu : ∀ c : Fin m, BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
       Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
           gaussianReal 0 1)) (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
-      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω) ⬝ᵥ
-        atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (splitPt n k hk ω))) :=
+      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)) ⬝ᵥ
+        atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)))) :=
     atProj_sq_bddByConv A X k hk hpd hG
   have hcA : BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
       Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
           gaussianReal 0 1)) (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
       (n : ℝ)⁻¹ * ∑ i, ∑ l, (Matrix.diagonal (fun j =>
-        netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ a j *
-        netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ b j) :
+        netDeriv φ φ' X (deepParams d n0 n (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)).1) ⟨k, by omega⟩ a j *
+        netDeriv φ φ' X (deepParams d n0 n (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)).1) ⟨k, by omega⟩ b j) :
         Matrix (Fin n) (Fin n) ℝ) i l ^ 2) := by
     obtain ⟨c, hc⟩ := derivSq_cvg (d := d) (n0 := n0) A X k (by omega) a b
     refine BddByConv.of_tendstoInMeasure (c := c) (hc.congr_left fun n =>
       Eventually.of_forall fun ω => ?_)
-    simp only [splitPt, netDeriv_zeroLayer φ φ' X n k hk ω, sum_sq_diagonal]
+    simp only [netDeriv_zeroLayer φ φ' X n k hk ω, sum_sq_diagonal]
     rfl
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
@@ -768,7 +761,7 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     (((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
       (fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
-    (fun n ω => splitPt n k hk ω)
+    (fun n ω => ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val))
     (fun n => measurePreserving_layerSplit (⟨k + 1, hk⟩ : Fin d) n)
     (fun n => pastFeat φ X n k hk) (fun n => measurable_pastFeat hφm X n k hk)
     (fun (n : ℕ) (z : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => (Matrix.diagonal (fun j =>
@@ -892,11 +885,11 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
       Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
           gaussianReal 0 1)) (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
       (n : ℝ)⁻¹ * ((fun j => deepMLPPreactivation d n0 n m φ X
-          (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ c j *
-        netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ a j) ⬝ᵥ
+          (deepParams d n0 n (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)).1) ⟨k, by omega⟩ c j *
+        netDeriv φ φ' X (deepParams d n0 n (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)).1) ⟨k, by omega⟩ a j) ⬝ᵥ
         (fun j => deepMLPPreactivation d n0 n m φ X
-          (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ c j *
-        netDeriv φ φ' X (deepParams d n0 n (splitPt n k hk ω).1) ⟨k, by omega⟩ a j))) := by
+          (deepParams d n0 n (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)).1) ⟨k, by omega⟩ c j *
+        netDeriv φ φ' X (deepParams d n0 n (((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val)).1) ⟨k, by omega⟩ a j))) := by
     obtain ⟨c1, hc1⟩ := preFour_cvg (d := d) (n0 := n0) A X k (by omega) c
     obtain ⟨c2, hc2⟩ := avg4_deriv_cvg (d := d) (n0 := n0) A X k (by omega) a
     refine ⟨fun n ω => ((𝔼 j, (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω)
@@ -905,7 +898,7 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
       (c1 + c2) / 2, fun n ω => ?_, tendstoInMeasure_half_sum hc1 hc2⟩
     have hh := preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl c
     have hf := netDeriv_zeroLayer φ φ' X n k hk ω a
-    simp only [splitPt]
+    simp only []
     rw [hh, hf]
     exact avg_sq_mul_le_avg4
       (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c)
@@ -918,7 +911,7 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     (((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
       (fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
-    (fun n ω => splitPt n k hk ω)
+    (fun n ω => ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2), fun j i => (ω.1 (⟨k + 1, hk⟩ : Fin d)) j.val i.val))
     (fun n => measurePreserving_layerSplit (⟨k + 1, hk⟩ : Fin d) n)
     (fun n => pastFeat φ X n k hk) (fun n => measurable_pastFeat hφm X n k hk)
     (fun (n : ℕ) (z : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (j : Fin n) => deepMLPPreactivation d n0 n m φ X
