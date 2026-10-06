@@ -171,14 +171,6 @@ theorem norm_sq_residual_eq_leftInverse_add (η : EuclideanSpace ℝ n) :
   ring
 
 omit hZ in
-/-- The Gram projector residual is the left-inverse fit residual:
-`(1 - P_Z) y = y - Z (Zᵀ Z)⁻¹ Zᵀ y`, for a plain vector `y : m → ℝ`. -/
-theorem one_sub_gramProjector_mulVec [DecidableEq m] (y : m → ℝ) :
-    (1 - gramProjector Z) *ᵥ y = y - Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y) := by
-  simp only [Matrix.sub_mulVec, Matrix.one_mulVec, gramProjector, Matrix.mulVec_mulVec,
-    Matrix.mul_assoc]
-
-omit hZ in
 variable [DecidableEq m] in
 /-- **The residual of the left-inverse fit is the orthogonal-projection residual:**
 `‖Z η̂ - y‖ = ‖(I - P_Z) y‖` with `P_Z = Z (Zᵀ Z)⁻¹ Zᵀ` the Gram projector. -/
@@ -188,7 +180,7 @@ theorem norm_sq_residual_leftInverse :
   rw [← norm_neg (WithLp.toLp 2 ((1 - gramProjector Z) *ᵥ y.ofLp))]
   congr 1
   ext i
-  simp [one_sub_gramProjector_mulVec]
+  simp [NTK.one_sub_gramProjector_mulVec]
 
 /-- **Feature-bottleneck estimator is a global minimizer.** If `Zᵀ Z` is invertible, the
 left-inverse coefficients `(Zᵀ Z)⁻¹ Zᵀ y` minimize the residual norm `‖Z η - y‖`, equivalently

@@ -105,6 +105,35 @@ theorem transpose_mulVec_eq_gramProjector_add {k n m : Type*} [Fintype k] [Finty
   rw [h1, h2]
   abel
 
+/-- **Residual of the Gram projector.** `(1 - P_Φ) y = y - Φ (Φᵀ Φ)⁻¹ Φᵀ y`, i.e. the residual of
+the least-squares fit of `y` on the columns of `Φ`. -/
+theorem one_sub_gramProjector_mulVec {n m : Type*} [Fintype n] [Fintype m] [DecidableEq n]
+    [DecidableEq m] (Φ : Matrix n m ℝ) (y : n → ℝ) :
+    (1 - gramProjector Φ) *ᵥ y = y - Φ *ᵥ (((Φᵀ * Φ)⁻¹ * Φᵀ) *ᵥ y) := by
+  simp only [Matrix.sub_mulVec, Matrix.one_mulVec, gramProjector, Matrix.mulVec_mulVec,
+    Matrix.mul_assoc]
+
+/-- **The Gram projector has trace equal to the number of columns.** If `Φᵀ Φ` is invertible,
+`Tr P_Φ = card m` (the rank of `Φ`), by cyclic invariance of the trace. -/
+theorem trace_gramProjector {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m]
+    (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) :
+    (gramProjector Φ).trace = (Fintype.card m : ℝ) := by
+  rw [gramProjector, Matrix.mul_assoc, Matrix.trace_mul_comm, Matrix.mul_assoc,
+    Matrix.nonsing_inv_mul _ h, Matrix.trace_one]
+
+/-- **Pythagoras for the Gram projector residual.** If `Φᵀ Φ` is invertible,
+`‖(1 - P_Φ) y‖² = ‖y‖² - yᵀ P_Φ y`. -/
+theorem dotProduct_one_sub_gramProjector_mulVec_self {n m : Type*} [Fintype n] [Fintype m]
+    [DecidableEq n] [DecidableEq m] (Φ : Matrix n m ℝ) (h : IsUnit (Φᵀ * Φ).det) (y : n → ℝ) :
+    ((1 - gramProjector Φ) *ᵥ y) ⬝ᵥ ((1 - gramProjector Φ) *ᵥ y) =
+      y ⬝ᵥ y - y ⬝ᵥ (gramProjector Φ *ᵥ y) := by
+  have hP := isOrthogonalProjection_gramProjector Φ h
+  have h1 : IsStarProjection (1 - gramProjector Φ) := hP.one_sub
+  have hsq : (1 - gramProjector Φ) * (1 - gramProjector Φ) = 1 - gramProjector Φ :=
+    ((isStarProjection_matrix_real_iff _).1 h1).2
+  rw [← Matrix.dotProduct_transpose_mulVec, h1.transpose_eq, Matrix.mulVec_mulVec, hsq,
+    Matrix.sub_mulVec, Matrix.one_mulVec, dotProduct_sub]
+
 end NTK
 
 end

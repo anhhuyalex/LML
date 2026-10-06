@@ -194,7 +194,7 @@ theorem inv_gram_apply_self [DecidableEq m] (Z : Matrix m n ℝ) (hZ : IsUnit (Z
         ((1 - NTK.gramProjector (Z.submatrix id (Subtype.val : {k // k ≠ j} → n))) *ᵥ
           Z.col j))⁻¹ := by
   have h := congrFun (dual_core Z hZ j) j
-  rw [one_sub_gramProjector_mulVec]
+  rw [NTK.one_sub_gramProjector_mulVec]
   simp only [Pi.sub_apply, Pi.smul_apply, mulVec_single_one, col_apply, smul_eq_mul,
     extendNe, Pi.single_eq_same, dite_true, sub_zero] at h
   exact eq_inv_of_mul_eq_one_right h.symm
