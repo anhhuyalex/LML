@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
+public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import Mathlib.MeasureTheory.Integral.Gamma
 
 /-!
@@ -261,37 +262,27 @@ lemma integral_prod_stdGaussian_eq_density (f : ℝ × ℝ → ℝ) :
   simp only [ENNReal.toReal_mul, toReal_gaussianPDF, smul_eq_mul]
   rw [volume_eq_prod]
 
-/-- Radial Gaussian integral `∫₀^∞ r e^{-r²/2} dr = 1`. -/
+/-- Radial Gaussian integral `∫₀^∞ r e^{-r²/2} dr = 1`: the case `k = 2`, `a = 0` of
+`ProbabilityTheory.integral_radial_gaussian`. -/
 lemma integral_radial_gaussian_one :
     ∫ r in Set.Ioi (0 : ℝ), r * Real.exp (-(1 / 2 : ℝ) * r ^ 2) = 1 := by
-  have h := integral_rpow_mul_exp_neg_mul_rpow
-    (p := (2 : ℝ)) (q := (1 : ℝ)) (b := (1 / 2 : ℝ)) (by norm_num) (by norm_num)
-      (by norm_num)
-  calc
-    _ = ∫ r in Set.Ioi (0 : ℝ), r ^ (1 : ℝ) *
-        Real.exp (-(1 / 2 : ℝ) * r ^ (2 : ℝ)) := by
-          apply setIntegral_congr_fun measurableSet_Ioi
-          intro r _
-          norm_num [Real.rpow_one, Real.rpow_natCast]
-    _ = (1 / 2 : ℝ) ^ (-(1 + 1 : ℝ) / 2) * (1 / 2) * Real.Gamma ((1 + 1) / 2) := h
-    _ = 1 := by norm_num [Real.rpow_neg_one, Real.Gamma_one]
+  have h := integral_radial_gaussian (k := 2) (by norm_num) (a := 0) (by norm_num)
+  simp only [Real.rpow_zero, one_mul] at h
+  have e : ∀ r : ℝ, -(1 / 2 : ℝ) * r ^ 2 = -r ^ 2 / 2 := fun r => by ring
+  simp_rw [e]
+  norm_num at h
+  simpa using h
 
-/-- Radial Gaussian integral `∫₀^∞ r³ e^{-r²/2} dr = 2`. -/
+/-- Radial Gaussian integral `∫₀^∞ r³ e^{-r²/2} dr = 2`: the case `k = 4`, `a = 0` of
+`ProbabilityTheory.integral_radial_gaussian`. -/
 lemma integral_radial_gaussian_three :
     ∫ r in Set.Ioi (0 : ℝ), r ^ 3 * Real.exp (-(1 / 2 : ℝ) * r ^ 2) = 2 := by
-  have h := integral_rpow_mul_exp_neg_mul_rpow
-    (p := (2 : ℝ)) (q := (3 : ℝ)) (b := (1 / 2 : ℝ)) (by norm_num) (by norm_num)
-      (by norm_num)
-  have hGamma : Real.Gamma 2 = 1 := by
-    simp
-  calc
-    _ = ∫ r in Set.Ioi (0 : ℝ), r ^ (3 : ℝ) *
-        Real.exp (-(1 / 2 : ℝ) * r ^ (2 : ℝ)) := by
-          apply setIntegral_congr_fun measurableSet_Ioi
-          intro r _
-          norm_num [Real.rpow_natCast]
-    _ = (1 / 2 : ℝ) ^ (-(3 + 1 : ℝ) / 2) * (1 / 2) * Real.Gamma ((3 + 1) / 2) := h
-    _ = 2 := by norm_num [hGamma, Real.rpow_intCast]
+  have h := integral_radial_gaussian (k := 4) (by norm_num) (a := 0) (by norm_num)
+  simp only [Real.rpow_zero, one_mul] at h
+  have e : ∀ r : ℝ, -(1 / 2 : ℝ) * r ^ 2 = -r ^ 2 / 2 := fun r => by ring
+  simp_rw [e]
+  norm_num at h
+  exact h
 
 /-- In polar coordinates the product of two standard Gaussian densities is `(2π)⁻¹ e^{-r²/2}`. -/
 lemma stdGaussian_density_polar (r phi : ℝ) :

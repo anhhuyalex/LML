@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.Basic
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
 
@@ -68,10 +69,6 @@ theorem sum_pow_le_card_pow_mul_sum_pow_nat {ι : Type*} [Fintype ι]
       rw [hsub, Real.rpow_natCast]
       simp_rw [Real.rpow_natCast]
 
-/-- The product law of `n` independent standard real Gaussians. -/
-def standardGaussianVectorLaw (n : ℕ) : Measure (Fin n → ℝ) :=
-  Measure.pi fun _ : Fin n => gaussianReal 0 1
-
 /-- Output law of one freshly initialized bias-free linear layer. -/
 def oneLayerOutputLaw {ι : Type uI} {κ : Type uJ} [Fintype ι] [Fintype κ]
     (Cw : ℝ≥0) (x : ι → ℝ) : Measure (κ → ℝ) :=
@@ -101,652 +98,22 @@ theorem map_batchPreactivation
     hyperparams_biasVariance, hyperparams_weightVariance, NNReal.coe_zero, zero_add] using
     map_evalBatch_layerGaussianInit (p := hyperparams Cw) x
 
-/-- Even-moment recurrence for a standard one-dimensional Gaussian:
-`∫ z, z ^ (2 * (a + 1)) = (2a + 1) * ∫ z, z ^ (2 * a)`.
+/-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector:
+`E (∑ᵢ gᵢ²)^m = ∏_{s<m} (n + 2 s)`, the moments of a `χ²_n` variable.
 
-This is the one-coordinate instance of the chi-square recursion used below in
-`integral_sumSq_pow_stdGaussian_succ`.  It follows directly from
-`Renormalization.integral_mul_pow_gaussianReal` (Stein's lemma for monomials). -/
-private lemma integral_pow_two_mul_succ_stdGaussian (a : ℕ) :
-    ∫ u : ℝ, u ^ (2 * (a + 1)) ∂gaussianReal 0 1 =
-      (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a) ∂gaussianReal 0 1 := by
-  calc
-    ∫ u : ℝ, u ^ (2 * (a + 1)) ∂gaussianReal 0 1
-        = ∫ u : ℝ, u * u ^ (2 * a + 1) ∂gaussianReal 0 1 := by
-            apply MeasureTheory.integral_congr_ae
-            filter_upwards with u
-            rw [show 2 * (a + 1) = (2 * a + 1) + 1 by omega, pow_succ']
-    _ = (2 * (a : ℝ) + 1) * ∫ u : ℝ, u ^ (2 * a) ∂gaussianReal 0 1 := by
-            rw [Renormalization.integral_mul_pow_gaussianReal 1 (2 * a + 1)]
-            norm_num [show 2 * a + 1 - 1 = 2 * a by omega]
-
-/-- Monomials are integrable under the standard one-dimensional Gaussian. -/
-private lemma integrable_pow_stdGaussian (n : ℕ) :
-    Integrable (fun z : ℝ => z ^ n) (gaussianReal 0 1) := by
-  -- The Gaussian has finite moments of every order (Fernique), so `‖z‖^(n+1)` is integrable.
-  have hmem : MemLp (fun z : ℝ => z) ((n + 1 : ℕ) : ℝ≥0∞) (gaussianReal 0 1) :=
-    memLp_id_gaussianReal' ((n + 1 : ℕ) : ℝ≥0∞) (by norm_num)
-  have hint_dom : Integrable (fun z : ℝ => (1 : ℝ) + ‖z‖ ^ (n + 1)) (gaussianReal 0 1) :=
-    (integrable_const _).add hmem.integrable_norm_pow'
-  refine Integrable.mono' hint_dom ?_ (Filter.Eventually.of_forall ?_)
-  · fun_prop
-  · intro z
-    rw [norm_pow]
-    by_cases hz : ‖z‖ ≤ 1
-    · have hzpow : ‖z‖ ^ n ≤ 1 := pow_le_one₀ (norm_nonneg z) hz
-      nlinarith [hzpow, pow_nonneg (norm_nonneg z) (n + 1)]
-    · have hz' : 1 ≤ ‖z‖ := le_of_not_ge hz
-      have hzpow : ‖z‖ ^ n ≤ ‖z‖ ^ (n + 1) :=
-        pow_le_pow_right₀ hz' (Nat.le_add_right n 1)
-      nlinarith [hzpow]
-
-/-- The `m`-th power of the sum of squares is integrable under the standard Gaussian vector law.
-
-The proof bounds `(∑ i, g i ^ 2)^m` by the power-mean inequality in terms of the coordinate
-monomials `g j ^ (2m)`, each of which is integrable because every coordinate is a standard
-one-dimensional Gaussian. -/
-private lemma integrable_sumSq_pow_stdGaussian (m : ℕ) (n : ℕ) :
-    Integrable (fun g : Fin n → ℝ => (∑ i : Fin n, g i ^ 2) ^ m)
-      (standardGaussianVectorLaw n) := by
-  let μ : Measure (Fin n → ℝ) := standardGaussianVectorLaw n
-  have : IsFiniteMeasure (standardGaussianVectorLaw n) := by
-    unfold standardGaussianVectorLaw
-    infer_instance
-  by_cases hn : n = 0
-  · subst n
-    by_cases hm : m = 0
-    · subst m
-      simp [standardGaussianVectorLaw]
-    · simp [standardGaussianVectorLaw, zero_pow hm]
-  · by_cases hm : m = 0
-    · subst m
-      exact integrable_const (1 : ℝ)
-    · have hmpos : 1 ≤ m := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hm)
-      have hcoord : ∀ j : Fin n,
-          Integrable (fun g : Fin n → ℝ => g j ^ (2 * m)) μ := by
-        intro j
-        have hmem : MemLp (fun g : Fin n → ℝ => g j) ((2 * m : ℕ) : ℝ≥0∞) μ := by
-          simpa [μ, standardGaussianVectorLaw] using
-            (MemLp.comp_measurePreserving
-              (memLp_id_gaussianReal' ((2 * m : ℕ) : ℝ≥0∞) (ENNReal.natCast_ne_top (2 * m)))
-              (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j))
-        have hint : Integrable (fun g : Fin n → ℝ => ‖g j‖ ^ (2 * m)) μ :=
-          hmem.integrable_norm_pow'
-        rw [← integrable_norm_iff ((measurable_pi_apply j).pow_const (2 * m)).aestronglyMeasurable]
-        simpa [norm_pow] using hint
-      have hsum : Integrable (fun g : Fin n → ℝ => ∑ j : Fin n, g j ^ (2 * m)) μ := by
-        simpa using
-          (integrable_finsetSum Finset.univ (μ := μ) (f := fun (j : Fin n) g => g j ^ (2 * m))
-            (fun j _ => hcoord j))
-      -- power-mean bound: `X^m ≤ n^(m-1) · ∑ g_j^(2m)`.
-      have hbound : ∀ g : Fin n → ℝ,
-          (∑ i : Fin n, g i ^ 2) ^ m ≤ (n : ℝ) ^ (m - 1) * ∑ j : Fin n, g j ^ (2 * m) := by
-        intro g
-        simpa [Fintype.card_fin, pow_mul] using
-          (sum_pow_le_card_pow_mul_sum_pow_nat (fun i : Fin n => g i ^ 2) m hmpos
-            (fun i => sq_nonneg (g i)))
-      refine Integrable.mono' (hsum.const_mul ((n : ℝ) ^ (m - 1))) ?_
-        (Filter.Eventually.of_forall ?_)
-      · exact ((Finset.measurable_sum Finset.univ (fun i _ =>
-          (measurable_pi_apply i).pow_const 2)).pow_const m).aestronglyMeasurable
-      · intro g
-        rw [Real.norm_eq_abs,
-          abs_of_nonneg (pow_nonneg (Finset.sum_nonneg (fun i _ => sq_nonneg (g i))) m)]
-        exact hbound g
-
-/-- `g i ^ 2 * (∑ j, g j ^ 2) ^ k` is integrable: it is dominated by `(∑ j, g j ^ 2) ^ (k+1)`. -/
-private lemma integrable_sq_mul_sumSq_pow_stdGaussian (k : ℕ) (n : ℕ) (i : Fin n) :
-    Integrable (fun g : Fin n → ℝ => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k)
-      (standardGaussianVectorLaw n) := by
-  refine Integrable.mono' (integrable_sumSq_pow_stdGaussian (k + 1) n) ?_
-    (Filter.Eventually.of_forall ?_)
-  · exact (((measurable_pi_apply i).pow_const 2).mul
-      ((Finset.measurable_sum Finset.univ (fun j _ =>
-        (measurable_pi_apply j).pow_const 2)).pow_const k)).aestronglyMeasurable
-  · intro g
-    have hpos : 0 ≤ g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k :=
-      mul_nonneg (sq_nonneg (g i))
-        (pow_nonneg (Finset.sum_nonneg (fun j _ => sq_nonneg (g j))) k)
-    rw [Real.norm_eq_abs, abs_of_nonneg hpos]
-    -- `g i ^ 2 ≤ ∑ j, g j ^ 2` and `(∑ g^2)^k ≥ 0`
-    have hle : g i ^ 2 ≤ ∑ j : Fin n, g j ^ 2 :=
-      Finset.single_le_sum (f := fun j : Fin n => g j ^ 2) (fun j _ => sq_nonneg (g j))
-        (Finset.mem_univ i)
-    have hXk : 0 ≤ (∑ j : Fin n, g j ^ 2) ^ k :=
-      pow_nonneg (Finset.sum_nonneg (fun j _ => sq_nonneg (g j))) k
-    have hmul : g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k ≤
-        (∑ j : Fin n, g j ^ 2) ^ (k + 1) := by
-      simpa [pow_succ'] using (mul_le_mul_of_nonneg_right hle hXk)
-    exact hmul
-
-/-- The elementary binomial identity `(j+1) * (k choose (j+1)) = k * ((k-1) choose j)`
-for `j < k`, used to reindex the coefficient sums in the chi-square moment recursion. -/
-private lemma Nat_choose_mul_succ (j k : ℕ) (hj : j < k) :
-    (j + 1) * (k.choose (j + 1)) = k * ((k - 1).choose j) := by
-  have hk : k = (k - 1) + 1 := by omega
-  calc
-    (j + 1) * (k.choose (j + 1)) = (j + 1) * (((k - 1) + 1).choose (j + 1)) := by
-      rw [← hk]
-    _ = k * ((k - 1).choose j) := by
-      rw [Nat.mul_comm, ← Nat.add_one_mul_choose_eq (k - 1) j, ← hk]
-
-/-- The binomial coefficient identity behind the chi-square recursion: for any sequences `M`, `C`
-with `M (a+1) = (2a+1) M a`, `∑ (k choose j) C(k-j) M(j+1)`
-equals `∑ (k choose j) C(k-j) M j + 2k ∑ ((k-1) choose j) C(k-1-j) M(j+1)`. -/
-private lemma momentRecurrence_coefficient (k : ℕ) (M C : ℕ → ℝ)
-    (hM : ∀ a : ℕ, M (a + 1) = (2 * (a : ℝ) + 1) * M a) :
-    (∑ j ∈ Finset.range (k + 1), ((k.choose j : ℝ) * C (k - j) * M (j + 1))) =
-      (∑ j ∈ Finset.range (k + 1), ((k.choose j : ℝ) * C (k - j) * M j)) +
-        (2 : ℝ) * k * (∑ j ∈ Finset.range (k - 1 + 1),
-          (((k - 1).choose j : ℝ) * C (k - 1 - j) * M (j + 1))) := by
-  classical
-  let A : ℕ → ℝ := fun j => (k.choose j : ℝ) * C (k - j)
-  let B : ℕ → ℝ := fun j => ((k - 1).choose j : ℝ) * C (k - 1 - j)
-  have h_reindex :
-      (∑ j ∈ Finset.range (k + 1), (j : ℝ) * A j * M j) =
-        (k : ℝ) * ∑ j ∈ Finset.range (k - 1 + 1), (B j * M (j + 1)) := by
-    by_cases hk0 : k = 0
-    · subst k
-      simp
-    · have hkm : k - 1 + 1 = k := by omega
-      rw [Finset.sum_range_succ']
-      simp only [Nat.cast_add, Nat.cast_one, CharP.cast_eq_zero, zero_mul, add_zero]
-      rw [hkm]
-      rw [Finset.mul_sum]
-      refine Finset.sum_congr rfl ?_
-      intro j hj
-      have hjlt : j < k := Finset.mem_range.mp hj
-      have hchoose := Nat_choose_mul_succ j k hjlt
-      have hpow : k - (j + 1) = k - 1 - j := by omega
-      have hc : ((j : ℝ) + 1) * (k.choose (j + 1) : ℝ) = (k : ℝ) * ((k - 1).choose j : ℝ) := by
-        have hc' : ((j + 1 : ℕ) : ℝ) * (k.choose (j + 1) : ℝ) =
-            (k : ℝ) * ((k - 1).choose j : ℝ) := by
-          exact_mod_cast hchoose
-        rwa [show ((j + 1 : ℕ) : ℝ) = (j : ℝ) + 1 by norm_num] at hc'
-      dsimp [A, B]
-      rw [hpow]
-      rw [show ((j : ℝ) + 1) * (↑(k.choose (j + 1)) * C (k - 1 - j)) * M (j + 1) =
-          (((j : ℝ) + 1) * ↑(k.choose (j + 1))) * C (k - 1 - j) * M (j + 1) by ring]
-      rw [hc]
-      ring
-  calc
-    (∑ j ∈ Finset.range (k + 1), ((k.choose j : ℝ) * C (k - j) * M (j + 1)))
-        = ∑ j ∈ Finset.range (k + 1), (A j * ((2 * (j : ℝ) + 1) * M j)) := by
-          dsimp [A]
-          refine Finset.sum_congr rfl ?_
-          intro j _
-          rw [hM]
-    _ = ∑ j ∈ Finset.range (k + 1), (A j * M j) +
-          2 * ∑ j ∈ Finset.range (k + 1), ((j : ℝ) * A j * M j) := by
-          have hsummand : (∑ j ∈ Finset.range (k + 1), A j * ((2 * (j : ℝ) + 1) * M j)) =
-              ∑ j ∈ Finset.range (k + 1), (A j * M j + 2 * (j : ℝ) * A j * M j) := by
-            refine Finset.sum_congr rfl ?_
-            intro j _
-            ring
-          rw [hsummand, Finset.sum_add_distrib]
-          congr 1
-          rw [Finset.mul_sum]
-          refine Finset.sum_congr rfl ?_
-          intro j _
-          ring
-    _ = ∑ j ∈ Finset.range (k + 1), (A j * M j) +
-          (2 * (k : ℝ)) * ∑ j ∈ Finset.range (k - 1 + 1), (B j * M (j + 1)) := by
-          rw [h_reindex]
-          ring
-    _ = (∑ j ∈ Finset.range (k + 1), ((k.choose j : ℝ) * C (k - j) * M j)) +
-          (2 : ℝ) * k * (∑ j ∈ Finset.range (k - 1 + 1),
-            (((k - 1).choose j : ℝ) * C (k - 1 - j) * M (j + 1))) := by
-          dsimp [A, B]
-
-/-- Stein's identity for `z^2 (z^2 + R)^k` under the standard Gaussian:
-`E[z^2 (z^2+R)^k] = E[(z^2+R)^k] + 2k E[z^2 (z^2+R)^(k-1)]`.
-
-The proof expands both sides by the binomial theorem, evaluates the resulting even moments with
-`integral_pow_two_mul_succ_stdGaussian`, and reindexes the coefficient sums with
-`Nat_choose_mul_succ`.  This is the one-coordinate engine behind the chi-square recursion. -/
-private lemma integral_sq_mul_sq_add_pow_stdGaussian (k : ℕ) (R : ℝ) :
-    ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1 =
-      ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1 +
-        (2 : ℝ) * k * ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 := by
-  classical
-  let M : ℕ → ℝ := fun a => ∫ z : ℝ, z ^ (2 * a) ∂gaussianReal 0 1
-  have hM_succ : ∀ a : ℕ, M (a + 1) = (2 * (a : ℝ) + 1) * M a := by
-    intro a
-    simpa [M] using integral_pow_two_mul_succ_stdGaussian a
-  let A : ℕ → ℝ := fun j => (k.choose j : ℝ) * R ^ (k - j)
-  let B : ℕ → ℝ := fun j => ((k - 1).choose j : ℝ) * R ^ (k - 1 - j)
-  have h_int_pow (a : ℕ) : Integrable (fun z : ℝ => z ^ a) (gaussianReal 0 1) :=
-    integrable_pow_stdGaussian a
-  have hbinom (z : ℝ) : (z ^ 2 + R) ^ k =
-      ∑ j ∈ Finset.range (k + 1), (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) :=
-    add_pow (z ^ 2) R k
-  have hbinom' (z : ℝ) : (z ^ 2 + R) ^ (k - 1) =
-      ∑ j ∈ Finset.range (k - 1 + 1), (z ^ 2) ^ j * R ^ (k - 1 - j) *
-        ((k - 1).choose j : ℝ) :=
-    add_pow (z ^ 2) R (k - 1)
-  have hP : ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1 =
-      ∑ j ∈ Finset.range (k + 1), (A j * M (j + 1)) := by
-    calc
-      ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1
-          = ∫ z : ℝ, z ^ 2 * (∑ j ∈ Finset.range (k + 1),
-              (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ)) ∂gaussianReal 0 1 := by
-              apply MeasureTheory.integral_congr_ae
-              filter_upwards with z
-              rw [hbinom]
-      _ = ∫ z : ℝ, ∑ j ∈ Finset.range (k + 1),
-              (z ^ 2 * (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ)) ∂gaussianReal 0 1 := by
-              apply MeasureTheory.integral_congr_ae
-              filter_upwards with z
-              rw [Finset.mul_sum]
-              refine Finset.sum_congr rfl ?_
-              intro j _
-              ring
-      _ = ∑ j ∈ Finset.range (k + 1),
-            ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1 := by
-            rw [integral_finsetSum]
-            intro j _
-            have hint : Integrable (fun z : ℝ => z ^ 2 * (z ^ 2) ^ j) (gaussianReal 0 1) := by
-              simpa [pow_mul, pow_add, show 2 * (j + 1) = 2 + 2 * j by omega] using
-                h_int_pow (2 * (j + 1))
-            simpa [mul_assoc, mul_comm, mul_left_comm] using
-              (hint.const_mul ((k.choose j : ℝ) * R ^ (k - j)))
-      _ = ∑ j ∈ Finset.range (k + 1), (A j * M (j + 1)) := by
-            refine Finset.sum_congr rfl ?_
-            intro j _
-            dsimp [A, M]
-            calc
-              ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1
-                  = ∫ z : ℝ, (k.choose j : ℝ) * (R ^ (k - j) * (z ^ 2 * (z ^ 2) ^ j))
-                      ∂gaussianReal 0 1 := by
-                      apply MeasureTheory.integral_congr_ae
-                      filter_upwards with z
-                      ring
-              _ = (k.choose j : ℝ) *
-                      ∫ z : ℝ, R ^ (k - j) * (z ^ 2 * (z ^ 2) ^ j) ∂gaussianReal 0 1 := by
-                      rw [integral_const_mul]
-              _ = (k.choose j : ℝ) * (R ^ (k - j) *
-                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1) := by
-                      rw [integral_const_mul]
-              _ = (k.choose j : ℝ) * R ^ (k - j) *
-                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1 := by
-                      ring
-              _ = (k.choose j : ℝ) * R ^ (k - j) *
-                      ∫ z : ℝ, z ^ (2 * (j + 1)) ∂gaussianReal 0 1 := by
-                      congr 1
-                      apply MeasureTheory.integral_congr_ae
-                      filter_upwards with z
-                      rw [← pow_mul, ← pow_add, show 2 * (j + 1) = 2 + 2 * j by omega]
-  have hQ : ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1 =
-      ∑ j ∈ Finset.range (k + 1), (A j * M j) := by
-    calc
-      ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1
-          = ∫ z : ℝ, ∑ j ∈ Finset.range (k + 1),
-              ((z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ)) ∂gaussianReal 0 1 := by
-              apply MeasureTheory.integral_congr_ae
-              filter_upwards with z
-              rw [hbinom]
-      _ = ∑ j ∈ Finset.range (k + 1),
-            ∫ z : ℝ, (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1 := by
-            rw [integral_finsetSum]
-            intro j _
-            have hint : Integrable (fun z : ℝ => (z ^ 2) ^ j) (gaussianReal 0 1) := by
-              simpa [pow_mul] using h_int_pow (2 * j)
-            simpa [mul_assoc, mul_comm, mul_left_comm] using
-              (hint.const_mul ((k.choose j : ℝ) * R ^ (k - j)))
-      _ = ∑ j ∈ Finset.range (k + 1), (A j * M j) := by
-            refine Finset.sum_congr rfl ?_
-            intro j _
-            dsimp [A, M]
-            calc
-              ∫ z : ℝ, (z ^ 2) ^ j * R ^ (k - j) * (k.choose j : ℝ) ∂gaussianReal 0 1
-                  = ∫ z : ℝ, (k.choose j : ℝ) * (R ^ (k - j) * (z ^ 2) ^ j)
-                      ∂gaussianReal 0 1 := by
-                      apply MeasureTheory.integral_congr_ae
-                      filter_upwards with z
-                      ring
-              _ = (k.choose j : ℝ) *
-                      ∫ z : ℝ, R ^ (k - j) * (z ^ 2) ^ j ∂gaussianReal 0 1 := by
-                      rw [integral_const_mul]
-              _ = (k.choose j : ℝ) * (R ^ (k - j) *
-                      ∫ z : ℝ, (z ^ 2) ^ j ∂gaussianReal 0 1) := by
-                      rw [integral_const_mul]
-              _ = (k.choose j : ℝ) * R ^ (k - j) *
-                      ∫ z : ℝ, (z ^ 2) ^ j ∂gaussianReal 0 1 := by
-                      ring
-              _ = (k.choose j : ℝ) * R ^ (k - j) * M j := by
-                      congr 1
-                      apply MeasureTheory.integral_congr_ae
-                      filter_upwards with z
-                      rw [← pow_mul]
-  have hP' : ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 =
-      ∑ j ∈ Finset.range (k - 1 + 1), (B j * M (j + 1)) := by
-    calc
-      ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1
-          = ∫ z : ℝ, z ^ 2 * (∑ j ∈ Finset.range (k - 1 + 1),
-              (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ)) ∂gaussianReal 0 1 := by
-              apply MeasureTheory.integral_congr_ae
-              filter_upwards with z
-              rw [hbinom']
-      _ = ∫ z : ℝ, ∑ j ∈ Finset.range (k - 1 + 1),
-              (z ^ 2 * (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ))
-                ∂gaussianReal 0 1 := by
-              apply MeasureTheory.integral_congr_ae
-              filter_upwards with z
-              rw [Finset.mul_sum]
-              refine Finset.sum_congr rfl ?_
-              intro j _
-              ring
-      _ = ∑ j ∈ Finset.range (k - 1 + 1),
-            ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ)
-              ∂gaussianReal 0 1 := by
-            rw [integral_finsetSum]
-            intro j _
-            have hint : Integrable (fun z : ℝ => z ^ 2 * (z ^ 2) ^ j) (gaussianReal 0 1) := by
-              simpa [pow_mul, pow_add, show 2 * (j + 1) = 2 + 2 * j by omega] using
-                h_int_pow (2 * (j + 1))
-            simpa [mul_assoc, mul_comm, mul_left_comm] using
-              (hint.const_mul (((k - 1).choose j : ℝ) * R ^ (k - 1 - j)))
-      _ = ∑ j ∈ Finset.range (k - 1 + 1), (B j * M (j + 1)) := by
-            refine Finset.sum_congr rfl ?_
-            intro j _
-            dsimp [B, M]
-            calc
-              ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j * R ^ (k - 1 - j) * ((k - 1).choose j : ℝ)
-                  ∂gaussianReal 0 1
-                  = ∫ z : ℝ, ((k - 1).choose j : ℝ) *
-                      (R ^ (k - 1 - j) * (z ^ 2 * (z ^ 2) ^ j)) ∂gaussianReal 0 1 := by
-                      apply MeasureTheory.integral_congr_ae
-                      filter_upwards with z
-                      ring
-              _ = ((k - 1).choose j : ℝ) *
-                      ∫ z : ℝ, R ^ (k - 1 - j) * (z ^ 2 * (z ^ 2) ^ j) ∂gaussianReal 0 1 := by
-                      rw [integral_const_mul]
-              _ = ((k - 1).choose j : ℝ) * (R ^ (k - 1 - j) *
-                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1) := by
-                      rw [integral_const_mul]
-              _ = ((k - 1).choose j : ℝ) * R ^ (k - 1 - j) *
-                      ∫ z : ℝ, z ^ 2 * (z ^ 2) ^ j ∂gaussianReal 0 1 := by
-                      ring
-              _ = ((k - 1).choose j : ℝ) * R ^ (k - 1 - j) *
-                      ∫ z : ℝ, z ^ (2 * (j + 1)) ∂gaussianReal 0 1 := by
-                      congr 1
-                      apply MeasureTheory.integral_congr_ae
-                      filter_upwards with z
-                      rw [← pow_mul, ← pow_add, show 2 * (j + 1) = 2 + 2 * j by omega]
-  calc
-    ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ k ∂gaussianReal 0 1
-        = ∑ j ∈ Finset.range (k + 1), (A j * M (j + 1)) := hP
-    _ = (∑ j ∈ Finset.range (k + 1), (A j * M j)) +
-          (2 : ℝ) * k * (∑ j ∈ Finset.range (k - 1 + 1), (B j * M (j + 1))) := by
-          simpa [A, B] using momentRecurrence_coefficient k M (fun x : ℕ => R ^ x) hM_succ
-    _ = ∫ z : ℝ, (z ^ 2 + R) ^ k ∂gaussianReal 0 1 +
-          (2 : ℝ) * k * ∫ z : ℝ, z ^ 2 * (z ^ 2 + R) ^ (k - 1) ∂gaussianReal 0 1 := by
-          rw [hQ, hP']
-
--- Fubini for the split `standardGaussianVectorLaw (m+1)`: splitting off coordinate `i` from
--- `Fin (m+1)` via `i.succAbove` (so the remaining coordinates are indexed by `Fin m`), an
--- integral over the product law equals the iterated integral in which the single coordinate is
--- integrated first.  That order is what lets the one-dimensional Stein identity
--- `integral_sq_mul_sq_add_pow_stdGaussian` apply inside the inner integral.
--- The integrability hypothesis is carried by the caller; it is the only side condition Fubini
--- requires.
-private lemma integral_split_coord {m : ℕ} (i : Fin (m + 1))
-    (F : ℝ × (Fin m → ℝ) → ℝ)
-    (hF : Integrable F ((gaussianReal 0 1).prod
-      (Measure.pi fun _ : Fin m => gaussianReal 0 1))) :
-    ∫ g : Fin (m + 1) → ℝ, F (g i, fun j : Fin m => g (i.succAbove j))
-        ∂standardGaussianVectorLaw (m + 1) =
-      ∫ y : Fin m → ℝ, ∫ t : ℝ, F (t, y) ∂gaussianReal 0 1
-        ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
-  classical
-  let e : (Fin (m + 1) → ℝ) ≃ᵐ ℝ × (Fin m → ℝ) :=
-    MeasurableEquiv.piFinSuccAbove (fun _ : Fin (m + 1) => ℝ) i
-  have hp : MeasurePreserving e (standardGaussianVectorLaw (m + 1))
-      ((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
-    simpa [e, standardGaussianVectorLaw] using
-      (measurePreserving_piFinSuccAbove (fun _ : Fin (m + 1) => gaussianReal 0 1) i)
-  calc
-    ∫ g : Fin (m + 1) → ℝ, F (e g) ∂standardGaussianVectorLaw (m + 1)
-        = ∫ ty : ℝ × (Fin m → ℝ), F ty
-            ∂((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) :=
-          hp.integral_comp' F
-    _ = ∫ y : Fin m → ℝ, ∫ t : ℝ, F (t, y) ∂gaussianReal 0 1
-          ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) :=
-          MeasureTheory.integral_prod_symm F hF
-
--- Integrability transport across the split `piFinSuccAbove` equivalence: a function is
--- integrable on the split product law iff its pullback is integrable on the vector law.
--- This is the integrability half of `integral_split_coord`; the equivalence is a measurable
--- map, so `integrable_map_equiv` applies with no measurability side condition.
-private lemma integrable_split_coord_iff {m : ℕ} (i : Fin (m + 1))
-    (F : ℝ × (Fin m → ℝ) → ℝ) :
-    Integrable F ((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) ↔
-      Integrable (fun g : Fin (m + 1) → ℝ => F (g i, fun j : Fin m => g (i.succAbove j)))
-        (standardGaussianVectorLaw (m + 1)) := by
-  classical
-  let e : (Fin (m + 1) → ℝ) ≃ᵐ ℝ × (Fin m → ℝ) :=
-    MeasurableEquiv.piFinSuccAbove (fun _ : Fin (m + 1) => ℝ) i
-  have hp : MeasurePreserving e (standardGaussianVectorLaw (m + 1))
-      ((gaussianReal 0 1).prod (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
-    simpa [e, standardGaussianVectorLaw] using
-      (measurePreserving_piFinSuccAbove (fun _ : Fin (m + 1) => gaussianReal 0 1) i)
-  rw [← hp.map_eq]
-  exact integrable_map_equiv e F
-
--- Stein's identity for a single coordinate of the squared-norm vector:
--- `E[g_i ^ 2 · X ^ k] = E[X ^ k] + 2k · E[g_i ^ 2 · X ^ (k-1)]` with `X = ∑ j, g j ^ 2`.
--- Proof: split off coordinate `i` with `integral_split_coord`, apply the one-dimensional
--- Stein identity `integral_sq_mul_sq_add_pow_stdGaussian` to the inner integral, then
--- reassemble the two terms with the same split.
-private lemma integral_coord_sq_mul_sumSq_pow_stdGaussian (k n : ℕ) (i : Fin n) :
-    ∫ g : Fin n → ℝ, g i ^ 2 * ((∑ j : Fin n, g j ^ 2) ^ k) ∂standardGaussianVectorLaw n =
-      ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ k) ∂standardGaussianVectorLaw n +
-        (2 : ℝ) * k * ∫ g : Fin n → ℝ, g i ^ 2 * ((∑ j : Fin n, g j ^ 2) ^ (k - 1))
-          ∂standardGaussianVectorLaw n := by
-  classical
-  by_cases hn : n = 0
-  · subst n
-    exact False.elim (Nat.not_lt_zero i.1 i.2)
-  · obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
-    -- split-space integrands: `t` is the coordinate value, `y` collects the remaining coordinates
-    let R : (Fin m → ℝ) → ℝ := fun y => ∑ j : Fin m, y j ^ 2
-    let Fs : ℝ × (Fin m → ℝ) → ℝ := fun ty => ty.1 ^ 2 * (ty.1 ^ 2 + R ty.2) ^ k
-    let F0 : ℝ × (Fin m → ℝ) → ℝ := fun ty => (ty.1 ^ 2 + R ty.2) ^ k
-    let Fp : ℝ × (Fin m → ℝ) → ℝ := fun ty => ty.1 ^ 2 * (ty.1 ^ 2 + R ty.2) ^ (k - 1)
-    -- Under the split, `∑ g ^ 2 = g i ^ 2 + (rest sum)`, so each split integrand matches its
-    -- unsplit counterpart pointwise.
-    have hFs (g : Fin (m + 1) → ℝ) :
-        Fs (g i, fun j : Fin m => g (i.succAbove j)) =
-          g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ k) := by
-      dsimp [Fs, R]
-      congr 1
-      rw [Fin.sum_univ_succAbove (fun j : Fin (m + 1) => g j ^ 2) i]
-    have hF0 (g : Fin (m + 1) → ℝ) :
-        F0 (g i, fun j : Fin m => g (i.succAbove j)) =
-          (∑ j : Fin (m + 1), g j ^ 2) ^ k := by
-      dsimp [F0, R]
-      rw [Fin.sum_univ_succAbove (fun j : Fin (m + 1) => g j ^ 2) i]
-    have hFp (g : Fin (m + 1) → ℝ) :
-        Fp (g i, fun j : Fin m => g (i.succAbove j)) =
-          g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ (k - 1)) := by
-      dsimp [Fp, R]
-      congr 1
-      rw [Fin.sum_univ_succAbove (fun j : Fin (m + 1) => g j ^ 2) i]
-    -- Integrability on the split measure, transported from the known vector-law integrability.
-    have hFs_int : Integrable Fs ((gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
-      rw [integrable_split_coord_iff i Fs]
-      simpa [hFs] using integrable_sq_mul_sumSq_pow_stdGaussian k (m + 1) i
-    have hF0_int : Integrable F0 ((gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
-      rw [integrable_split_coord_iff i F0]
-      simpa [hF0] using integrable_sumSq_pow_stdGaussian k (m + 1)
-    have hFp_int : Integrable Fp ((gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin m => gaussianReal 0 1)) := by
-      rw [integrable_split_coord_iff i Fp]
-      simpa [hFp] using integrable_sq_mul_sumSq_pow_stdGaussian (k - 1) (m + 1) i
-    -- The inner (single-coordinate) integrals are integrable as functions of the rest.
-    have hA_int : Integrable (fun y : Fin m → ℝ => ∫ t : ℝ, F0 (t, y) ∂gaussianReal 0 1)
-        (Measure.pi fun _ : Fin m => gaussianReal 0 1) :=
-      hF0_int.integral_prod_right
-    have hB_int : Integrable (fun y : Fin m → ℝ => ∫ t : ℝ, Fp (t, y) ∂gaussianReal 0 1)
-        (Measure.pi fun _ : Fin m => gaussianReal 0 1) :=
-      hFp_int.integral_prod_right
-    calc
-      ∫ g : Fin (m + 1) → ℝ, g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ k)
-            ∂standardGaussianVectorLaw (m + 1)
-          = ∫ g : Fin (m + 1) → ℝ, Fs (g i, fun j : Fin m => g (i.succAbove j))
-              ∂standardGaussianVectorLaw (m + 1) := by
-              simp [hFs]
-      _ = ∫ y : Fin m → ℝ, ∫ t : ℝ, Fs (t, y) ∂gaussianReal 0 1
-            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) :=
-            integral_split_coord i Fs hFs_int
-      _ = ∫ y : Fin m → ℝ,
-            (∫ t : ℝ, F0 (t, y) ∂gaussianReal 0 1 +
-              (2 : ℝ) * k * ∫ t : ℝ, Fp (t, y) ∂gaussianReal 0 1)
-              ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
-            apply MeasureTheory.integral_congr_ae
-            filter_upwards with y
-            -- the one-dimensional Stein identity with `R = ∑ y ^ 2`
-            simpa [Fs, F0, Fp, R] using integral_sq_mul_sq_add_pow_stdGaussian k (R y)
-      _ = ∫ y : Fin m → ℝ, ∫ t : ℝ, F0 (t, y) ∂gaussianReal 0 1
-            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) +
-          (2 : ℝ) * k * ∫ y : Fin m → ℝ, ∫ t : ℝ, Fp (t, y) ∂gaussianReal 0 1
-            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
-            rw [integral_add hA_int (hB_int.const_mul ((2 : ℝ) * k)),
-              MeasureTheory.integral_const_mul]
-      _ = ∫ g : Fin (m + 1) → ℝ, ((∑ j : Fin (m + 1), g j ^ 2) ^ k)
-            ∂standardGaussianVectorLaw (m + 1) +
-          (2 : ℝ) * k * ∫ g : Fin (m + 1) → ℝ,
-            g i ^ 2 * ((∑ j : Fin (m + 1), g j ^ 2) ^ (k - 1))
-            ∂standardGaussianVectorLaw (m + 1) := by
-            -- reassemble the two terms back on the vector law
-            rw [← integral_split_coord i F0 hF0_int, ← integral_split_coord i Fp hFp_int]
-            congr 1
-            · simp [hF0]
-            · congr 1
-              simp [hFp]
-
-private lemma integral_sumSq_pow_stdGaussian_succ (k n : ℕ) :
-    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n =
-      ((n : ℝ) + 2 * k) *
-        ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
-  classical
-  by_cases hk : k = 0
-  · -- `k = 0`: `∫ X = n` (each `g i ^ 2` contributes `1`) and the right side is `n · ∫ 1 = n`.
-    have hk0 : k = 0 := hk
-    have hprob : (standardGaussianVectorLaw n).real Set.univ = 1 := by
-      simp [standardGaussianVectorLaw]
-    have hcoord (i : Fin n) :
-        ∫ g : Fin n → ℝ, g i ^ 2 ∂standardGaussianVectorLaw n = 1 := by
-      simpa [hprob] using integral_coord_sq_mul_sumSq_pow_stdGaussian 0 n i
-    calc
-      ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n
-          = ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ (0 + 1)) ∂standardGaussianVectorLaw n := by
-            rw [hk0]
-      _ = ∫ g : Fin n → ℝ, (∑ i : Fin n, g i ^ 2) ∂standardGaussianVectorLaw n := by
-            simp [pow_succ]
-      _ = ∑ i : Fin n, ∫ g : Fin n → ℝ, g i ^ 2 ∂standardGaussianVectorLaw n := by
-            exact (integral_finsetSum Finset.univ
-              (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2)
-              (fun i _ => by simpa using integrable_sq_mul_sumSq_pow_stdGaussian 0 n i))
-      _ = ∑ _i : Fin n, (1 : ℝ) := by
-            simp [hcoord]
-      _ = (n : ℝ) := by simp [Finset.sum_const, Fintype.card_fin]
-      _ = ((n : ℝ) + 2 * k) *
-            ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n := by
-            rw [hk0]
-            rw [show ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ 0)
-                ∂standardGaussianVectorLaw n = 1 by simp [hprob]]
-            norm_num
-  · -- `k = k' + 1`: factor `X ^ (k + 1) = X · X ^ k`, apply the coordinate Stein identity to
-    -- each summand `g i ^ 2 · X ^ k`, and recombine `∑ g i ^ 2 · X ^ k' = X · X ^ k'`.
-    obtain ⟨k', rfl⟩ := Nat.exists_eq_succ_of_ne_zero hk
-    calc
-      ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) ^ (k' + 1 + 1)) ∂standardGaussianVectorLaw n
-          = ∫ g : Fin n → ℝ, ((∑ i : Fin n, g i ^ 2) * (∑ i : Fin n, g i ^ 2) ^ (k' + 1))
-              ∂standardGaussianVectorLaw n := by
-            simp [pow_succ']
-      _ = ∫ g : Fin n → ℝ,
-            (∑ i : Fin n, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1))
-              ∂standardGaussianVectorLaw n := by
-            simp [Finset.sum_mul]
-      _ = ∑ i : Fin n,
-            ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1)
-              ∂standardGaussianVectorLaw n := by
-            exact (integral_finsetSum Finset.univ
-              (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ (k' + 1))
-              (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian (k' + 1) n i))
-      _ = ∑ i : Fin n,
-            (∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
-              (2 : ℝ) * (k' + 1) *
-                ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k'
-                  ∂standardGaussianVectorLaw n) := by
-            refine Finset.sum_congr rfl ?_
-            intro i _
-            -- the coordinate Stein identity with `k = k' + 1`
-            simpa using integral_coord_sq_mul_sumSq_pow_stdGaussian (k' + 1) n i
-      _ = (n : ℝ) *
-            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
-          (2 : ℝ) * (k' + 1) *
-            ∑ i : Fin n,
-              ∫ g : Fin n → ℝ, g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k'
-                ∂standardGaussianVectorLaw n := by
-            rw [Finset.sum_add_distrib, Finset.sum_const, ← Finset.mul_sum]
-            simp [Fintype.card_fin]
-      _ = (n : ℝ) *
-            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
-          (2 : ℝ) * (k' + 1) *
-            ∫ g : Fin n → ℝ, (∑ i : Fin n, g i ^ 2) * (∑ j : Fin n, g j ^ 2) ^ k'
-              ∂standardGaussianVectorLaw n := by
-            -- `∑ i, ∫ g i ^ 2 · X ^ k' = ∫ (∑ g i ^ 2) · X ^ k'`
-            rw [(integral_finsetSum Finset.univ
-              (f := fun (i : Fin n) (g : Fin n → ℝ) => g i ^ 2 * (∑ j : Fin n, g j ^ 2) ^ k')
-              (fun i _ => integrable_sq_mul_sumSq_pow_stdGaussian k' n i)).symm]
-            congr 2
-            simp [← Finset.sum_mul]
-      _ = (n : ℝ) *
-            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n +
-          (2 : ℝ) * (k' + 1) *
-            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ (k' + 1)) ∂standardGaussianVectorLaw n := by
-            -- `X · X ^ k' = X ^ (k' + 1)`
-            congr 2
-            simp [pow_succ']
-      _ = ((n : ℝ) + 2 * k'.succ) *
-            ∫ g : Fin n → ℝ, ((∑ j : Fin n, g j ^ 2) ^ k'.succ) ∂standardGaussianVectorLaw n := by
-            -- the conclusion is stated with `k = k'.succ`; unfold the successor in the cast
-            rw [show (↑k'.succ : ℝ) = ↑k' + 1 by norm_num]
-            ring
-
-/-- Unnormalized chi-square moments for the squared norm of a standard Gaussian vector.
-
-Informal proof: write `X g = ∑ i, g i ^ 2`.  The Gaussian integration-by-parts/Stein identity
-for one coordinate, applied to `z * (z^2 + R)^k` while holding the other coordinates fixed, gives
-`∫ X^(k+1) = ((n : ℝ) + 2*k) * ∫ X^k`.  The base case is the integral of the constant `1` under a
-probability measure.  Induction over `k` then gives the product formula below.  This is exactly the
-standard moment formula for a chi-square random variable with `n` degrees of freedom; see
-<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>.  A complete formal proof should
-combine `Renormalization.integral_mul_pow_gaussianReal` with finite-product Fubini for
-`Measure.pi`.
--/
+This is `ProbabilityTheory.integral_sumSq_pow_pi_gaussianReal` (radial moments of the standard
+Gaussian, `ForMathlib/Probability/StdGaussianRadial.lean`); the case `n = 0` is the point mass at
+`0`, where both sides are `0 ^ m` and `∏_{s<m} 2 s`. -/
 theorem integral_sumSq_pow_stdGaussian (m n : ℕ) :
-    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n =
+    ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       ∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s) := by
-  induction m with
-  | zero =>
-      simp [standardGaussianVectorLaw]
-  | succ k ih =>
-      calc
-        ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ (k + 1)) ∂standardGaussianVectorLaw n
-            = ((n : ℝ) + 2 * k) *
-                ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ k) ∂standardGaussianVectorLaw n :=
-              integral_sumSq_pow_stdGaussian_succ k n
-        _ = ((n : ℝ) + 2 * k) *
-              (∏ s ∈ Finset.range k, ((n : ℝ) + 2 * s)) := by
-              rw [ih]
-        _ = ∏ s ∈ Finset.range (k + 1), ((n : ℝ) + 2 * s) := by
-              rw [Finset.prod_range_succ]
-              ring
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · rcases Nat.eq_zero_or_pos m with rfl | hm
+    · simp
+    · rw [Finset.prod_eq_zero (Finset.mem_range.mpr hm) (by simp)]
+      simp [zero_pow hm.ne']
+  · have : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+    simpa using integral_sumSq_pow_pi_gaussianReal (ι := Fin n) m
 
 private lemma normalized_chiSquare_product_algebra (m n : ℕ) (hn : 0 < n) :
     ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) =
@@ -778,12 +145,15 @@ the recurrence using the local one-dimensional Stein identity
 `Renormalization.integral_mul_pow_gaussianReal` and finite-product Fubini.
 -/
 theorem integral_normalizedSumSq_pow_stdGaussian (m n : ℕ) (hn : 0 < n) :
-    ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n =
+    ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m)
+        ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       widthMomentFactor m n := by
   calc
-    ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n
+    ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m)
+        ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1)
         = ((n : ℝ)⁻¹) ^ m *
-            ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m) ∂standardGaussianVectorLaw n := by
+            ∫ g : Fin n → ℝ, ((∑ i, g i ^ 2) ^ m)
+              ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
           simp_rw [mul_pow]
           rw [MeasureTheory.integral_const_mul]
     _ = ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) := by
@@ -799,7 +169,7 @@ proof can instead induct using Gaussian integration by parts and
 <https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>.
 -/
 theorem integral_normalizedEnergy_pow_stdGaussian (m n : ℕ) (hn : 0 < n) :
-    ∫ g, NeuralNetwork.normalizedEnergy g ^ m ∂standardGaussianVectorLaw n =
+    ∫ g, NeuralNetwork.normalizedEnergy g ^ m ∂(Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       widthMomentFactor m n := by
   simpa [NeuralNetwork.normalizedEnergy, Fintype.card_fin] using
     integral_normalizedSumSq_pow_stdGaussian m n hn
@@ -844,8 +214,8 @@ entry is `(Cw : ℝ) * normalizedEnergy x`.  Projecting every coordinate back wi
 `ProbabilityTheory.measurePreserving_eval_multivariateGaussian`, identifying the scaled Gaussian
 with the image of `gaussianReal 0 1` under multiplication by the square root of that variance
 (`ProbabilityTheory.gaussianReal_map_const_mul`), and relabelling `κ` to `Fin (Fintype.card κ)`
-(`MeasureTheory.measurePreserving_piCongrLeft`) yields the displayed pushforward of
-`standardGaussianVectorLaw`. -/
+(`MeasureTheory.measurePreserving_piCongrLeft`) yields the displayed pushforward of the
+standard product Gaussian on `Fin (Fintype.card κ) → ℝ`. -/
 private lemma oneLayerOutputLaw_eq_map_stdGaussian
     {ι : Type uI} {κ : Type uJ} [Fintype ι] [Fintype κ]
     (Cw : ℝ≥0) (x : ι → ℝ) :
@@ -853,7 +223,7 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
       Measure.map
         (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ =>
           Real.sqrt ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) * g (Fintype.equivFin κ j))
-        (standardGaussianVectorLaw (Fintype.card κ)) := by
+        ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
   classical
   let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
   have hs : 0 ≤ s := by
@@ -1122,8 +492,8 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
     _ = Measure.map
           (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ =>
             Real.sqrt ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) * g (Fintype.equivFin κ j))
-          (standardGaussianVectorLaw (Fintype.card κ)) := by
-          dsimp [standardGaussianVectorLaw, s, e]
+          ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
+          dsimp [s, e]
 
 /-- Transport-and-scaling form of the one-layer normalized-energy moment calculation.
 
@@ -1141,7 +511,8 @@ one-dimensional Gaussian as the image of `gaussianReal 0 1` under multiplication
 `ProbabilityTheory.gaussianReal_map_const_mul` and nonnegativity from `Cw.property` and
 `NeuralNetwork.normalizedEnergy_nonneg x`.  Relabel the finite output type `κ` by
 `Fintype.equivFin κ`; `MeasurableEquiv.piCongrLeft`/`measurePreserving_piCongrLeft` transports the
-standard product Gaussian to `standardGaussianVectorLaw (Fintype.card κ)`.  Finally, pointwise,
+standard product Gaussian to `Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1`.
+Finally, pointwise,
 `normalizedEnergy (fun j => sqrt s * g j) = s * normalizedEnergy g`; raising to the `m`-th power
 and factoring the constant out of the integral gives the stated identity.
 
@@ -1156,7 +527,7 @@ theorem integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian
         ∂oneLayerOutputLaw (ι := ι) (κ := κ) Cw x =
       ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m *
         ∫ g : Fin (Fintype.card κ) → ℝ, NeuralNetwork.normalizedEnergy g ^ m
-          ∂standardGaussianVectorLaw (Fintype.card κ) := by
+          ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
   classical
   let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
   have hs : 0 ≤ s := by
@@ -1165,7 +536,7 @@ theorem integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian
   let φ : (Fin (Fintype.card κ) → ℝ) → κ → ℝ :=
     fun g j => Real.sqrt s * g (Fintype.equivFin κ j)
   have hLaw : oneLayerOutputLaw (ι := ι) (κ := κ) Cw x =
-      Measure.map φ (standardGaussianVectorLaw (Fintype.card κ)) := by
+      Measure.map φ ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
     simpa [φ, s] using oneLayerOutputLaw_eq_map_stdGaussian Cw x
   have hφ_meas : Measurable φ := by
     dsimp [φ]
@@ -1183,27 +554,27 @@ theorem integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian
     ∫ z : κ → ℝ, NeuralNetwork.normalizedEnergy z ^ m
         ∂oneLayerOutputLaw (ι := ι) (κ := κ) Cw x
         = ∫ z : κ → ℝ, NeuralNetwork.normalizedEnergy z ^ m
-            ∂Measure.map φ (standardGaussianVectorLaw (Fintype.card κ)) := by
+            ∂Measure.map φ ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
           rw [hLaw]
     _ = ∫ g : Fin (Fintype.card κ) → ℝ,
           (NeuralNetwork.normalizedEnergy (φ g)) ^ m
-          ∂standardGaussianVectorLaw (Fintype.card κ) := by
+          ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
           rw [MeasureTheory.integral_map]
           · exact hφ_meas.aemeasurable
           · exact hcont.aestronglyMeasurable
     _ = ∫ g : Fin (Fintype.card κ) → ℝ, (s * NeuralNetwork.normalizedEnergy g) ^ m
-          ∂standardGaussianVectorLaw (Fintype.card κ) := by
+          ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
           apply MeasureTheory.integral_congr_ae
           filter_upwards with g
           exact hpoint g
     _ = s ^ m *
           ∫ g : Fin (Fintype.card κ) → ℝ, NeuralNetwork.normalizedEnergy g ^ m
-            ∂standardGaussianVectorLaw (Fintype.card κ) := by
+            ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
           simp_rw [mul_pow]
           rw [MeasureTheory.integral_const_mul]
     _ = ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m *
           ∫ g : Fin (Fintype.card κ) → ℝ, NeuralNetwork.normalizedEnergy g ^ m
-            ∂standardGaussianVectorLaw (Fintype.card κ) := by
+            ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
           rfl
 
 /-- One freshly initialized layer multiplies the `m`-th normalized-energy moment by
@@ -1226,7 +597,7 @@ theorem integral_normalizedEnergy_pow_randomLayerKernel
         ∂oneLayerOutputLaw (ι := ι) (κ := κ) Cw x
         = ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m *
             ∫ g : Fin (Fintype.card κ) → ℝ, NeuralNetwork.normalizedEnergy g ^ m
-              ∂standardGaussianVectorLaw (Fintype.card κ) := by
+              ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
           exact integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian Cw x m
     _ = ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m *
           widthMomentFactor m (Fintype.card κ) := by

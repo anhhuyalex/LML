@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
 public import LeanMachineLearning.Optimization.NTK.Shallow.DatasetNTK
 
@@ -118,6 +119,19 @@ theorem mseLoss_linear (Z : Matrix (Fin m) (Fin n) ℝ) (y : EuclideanSpace ℝ 
     mseLoss (fun (z : Fin n → ℝ) (η : EuclideanSpace ℝ (Fin n)) => z ⬝ᵥ η.ofLp) Z y η =
       (2 * (m : ℝ))⁻¹ * ‖WithLp.toLp 2 (Z *ᵥ η.ofLp) - y‖ ^ 2 := rfl
 
+/-- **Bridge to `LinearRegression.leastSquaresLoss`.** For `m > 0` samples,
+`‖y - Z η‖² = 2 m · NTK.mseLoss` of the linear model. Hence the minimizers of the two losses
+coincide, which unifies the minimizer theorems of this file (stated for the residual norm) with
+`LinearRegression.IsMinNormLeastSquares`. -/
+theorem leastSquaresLoss_eq_two_mul_card_mul_mseLoss (hm : 0 < m) (Z : Matrix (Fin m) (Fin n) ℝ)
+    (y : EuclideanSpace ℝ (Fin m)) (η : EuclideanSpace ℝ (Fin n)) :
+    LinearRegression.leastSquaresLoss Z y η =
+      2 * (m : ℝ) * mseLoss (fun (z : Fin n → ℝ) (η : EuclideanSpace ℝ (Fin n)) => z ⬝ᵥ η.ofLp)
+        Z y η := by
+  rw [mseLoss_linear, ← mul_assoc, mul_inv_cancel₀ (by positivity), one_mul,
+    LinearRegression.leastSquaresLoss, norm_sub_rev]
+  rfl
+
 section FeatureBottleneck
 
 variable {m n : Type*} [Fintype m] [Fintype n] [DecidableEq n]
@@ -207,6 +221,85 @@ theorem eq_leftInverse_of_norm_residual_le (η : EuclideanSpace ℝ n)
   simpa [hv, sub_eq_zero] using congrFun hv0 i
 
 end FeatureBottleneck
+
+section MinNormLeastSquares
+
+variable {m n : Type*} [Fintype m] [Fintype n]
+
+/-- `LinearRegression.leastSquaresLoss` is the square of the residual norm, so it has the same
+minimizers as `η ↦ ‖Z η - y‖` (the form used throughout this file). -/
+theorem isMinOn_leastSquaresLoss_iff (Z : Matrix m n ℝ) (y : EuclideanSpace ℝ m)
+    (η : EuclideanSpace ℝ n) :
+    IsMinOn (LinearRegression.leastSquaresLoss Z y) Set.univ η ↔
+      IsMinOn (fun η' : EuclideanSpace ℝ n => ‖WithLp.toLp 2 (Z *ᵥ η'.ofLp) - y‖) Set.univ η := by
+  have h : ∀ η' : EuclideanSpace ℝ n, LinearRegression.leastSquaresLoss Z y η' =
+      ‖WithLp.toLp 2 (Z *ᵥ η'.ofLp) - y‖ ^ 2 := fun η' => by
+    rw [LinearRegression.leastSquaresLoss, norm_sub_rev]
+    rfl
+  simp only [isMinOn_iff, Set.mem_univ, forall_const, h]
+  exact forall_congr' fun η' => sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)
+
+/-- **Minimum-norm least squares from the norm form.** If `η` has norm at most that of every
+minimizer of the residual norm, it is a `LinearRegression.IsMinNormLeastSquares` estimator. -/
+theorem isMinNormLeastSquares_of_norm_le (Z : Matrix m n ℝ) (y : EuclideanSpace ℝ m)
+    (η : EuclideanSpace ℝ n)
+    (hnorm : ∀ η' : EuclideanSpace ℝ n,
+      IsMinOn (fun η'' : EuclideanSpace ℝ n => ‖WithLp.toLp 2 (Z *ᵥ η''.ofLp) - y‖)
+        Set.univ η' → ‖η‖ ≤ ‖η'‖) :
+    LinearRegression.IsMinNormLeastSquares Z y η :=
+  isMinOn_iff.mpr fun η' hη' => hnorm η' ((isMinOn_leastSquaresLoss_iff Z y η').mp hη')
+
+variable [DecidableEq n] in
+/-- **The feature-bottleneck estimator is the ridgeless least-squares solution.** If `Zᵀ Z` is
+invertible, `(Zᵀ Z)⁻¹ Zᵀ y` minimizes `LinearRegression.leastSquaresLoss` and is
+`LinearRegression.IsMinNormLeastSquares`: it is the unique minimizer of the residual
+(`eq_leftInverse_of_norm_residual_le`), hence trivially of minimum norm. -/
+theorem leftInverse_isMinNormLeastSquares (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det)
+    (y : EuclideanSpace ℝ m) :
+    IsMinOn (LinearRegression.leastSquaresLoss Z y) Set.univ
+        (WithLp.toLp 2 (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) ∧
+      LinearRegression.IsMinNormLeastSquares Z y
+        (WithLp.toLp 2 (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) := by
+  refine ⟨(isMinOn_leastSquaresLoss_iff Z y _).mpr (leftInverse_isMinOn Z hZ y), ?_⟩
+  refine isMinNormLeastSquares_of_norm_le Z y _ fun η' hη' => ?_
+  have h := eq_leftInverse_of_norm_residual_le Z hZ y η'
+    (isMinOn_iff.mp hη' (WithLp.toLp 2 (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) (Set.mem_univ _))
+  exact le_of_eq (congrArg norm h.symm)
+
+variable [DecidableEq m] in
+/-- **The sample-bottleneck estimator is the ridgeless least-squares solution.** If `Z Zᵀ` is
+invertible, the minimum-norm interpolator `Zᵀ (Z Zᵀ)⁻¹ y` minimizes
+`LinearRegression.leastSquaresLoss` (with value `0`) and is
+`LinearRegression.IsMinNormLeastSquares`: every minimizer is an interpolator, whose norm is at
+least that of `Zᵀ (Z Zᵀ)⁻¹ y` (`rightInverse_norm_sq_decomp`). -/
+theorem rightInverse_isMinNormLeastSquares (Z : Matrix m n ℝ) (hZ : IsUnit (Z * Zᵀ).det)
+    (y : EuclideanSpace ℝ m) :
+    IsMinOn (LinearRegression.leastSquaresLoss Z y) Set.univ
+        (WithLp.toLp 2 ((Zᵀ * (Z * Zᵀ)⁻¹) *ᵥ y.ofLp)) ∧
+      LinearRegression.IsMinNormLeastSquares Z y
+        (WithLp.toLp 2 ((Zᵀ * (Z * Zᵀ)⁻¹) *ᵥ y.ofLp)) := by
+  set ηh : EuclideanSpace ℝ n := WithLp.toLp 2 ((Zᵀ * (Z * Zᵀ)⁻¹) *ᵥ y.ofLp) with hηh
+  have h0 : ‖(WithLp.toLp 2 (Z *ᵥ ηh.ofLp) : EuclideanSpace ℝ m) - y‖ = 0 := by
+    rw [hηh, WithLp.ofLp_toLp, rightInverse_interpolates Z hZ y.ofLp]
+    simp
+  refine ⟨(isMinOn_leastSquaresLoss_iff Z y _).mpr (isMinOn_iff.mpr fun η' _ => ?_), ?_⟩
+  · change ‖(WithLp.toLp 2 (Z *ᵥ ηh.ofLp) : EuclideanSpace ℝ m) - y‖ ≤ _
+    rw [h0]
+    exact norm_nonneg _
+  refine isMinNormLeastSquares_of_norm_le Z y _ fun η' hη' => ?_
+  have hle := isMinOn_iff.mp hη' ηh (Set.mem_univ _)
+  have hint : Z *ᵥ η'.ofLp = y.ofLp := by
+    have h1 : ‖(WithLp.toLp 2 (Z *ᵥ η'.ofLp) : EuclideanSpace ℝ m) - y‖ = 0 :=
+      le_antisymm (le_trans hle (le_of_eq h0)) (norm_nonneg _)
+    have := sub_eq_zero.mp (norm_eq_zero.mp h1)
+    simpa using congrArg WithLp.ofLp this
+  have h2 := rightInverse_norm_sq_decomp Z hZ y.ofLp hint
+  have h3 : ‖ηh‖ ^ 2 ≤ ‖η'‖ ^ 2 := by
+    rw [h2]
+    exact le_add_of_nonneg_right (sq_nonneg _)
+  exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp h3
+
+end MinNormLeastSquares
 
 end LinearRegression.DoubleDescent
 
