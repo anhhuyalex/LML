@@ -34,6 +34,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
 public import LeanMachineLearning.ForMathlib.Probability.Process.HittingTime
+public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
 public import LeanMachineLearning.Online.Bandit.Algorithms.ETC
@@ -81,6 +82,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Am
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Basic
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.DoubleDescentCurve
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GaussianMoments
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomFeatures
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.HMRT
