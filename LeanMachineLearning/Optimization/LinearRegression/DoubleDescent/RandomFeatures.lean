@@ -50,11 +50,29 @@ theorem leftInverse_mul_self {m n : Type*} [Fintype m] [Fintype n] [DecidableEq 
     (Z : Matrix m n ℝ) (h : IsUnit (Zᵀ * Z).det) : ((Zᵀ * Z)⁻¹ * Zᵀ) * Z = 1 := by
   rw [Matrix.mul_assoc, Matrix.nonsing_inv_mul _ h]
 
+/-- The left-inverse operator `(Zᵀ Z)⁻¹ Zᵀ` has "covariance" `(Zᵀ Z)⁻¹`: with `A = (Zᵀ Z)⁻¹ Zᵀ`,
+`A Aᵀ = (Zᵀ Z)⁻¹` (the inverse is symmetric). This is the matrix behind the OLS variance
+`σ² Tr ((Zᵀ Z)⁻¹ Σ)`. -/
+theorem leftInverse_mul_transpose {m n : Type*} [Fintype m] [Fintype n] [DecidableEq n]
+    (Z : Matrix m n ℝ) (h : IsUnit (Zᵀ * Z).det) :
+    ((Zᵀ * Z)⁻¹ * Zᵀ) * ((Zᵀ * Z)⁻¹ * Zᵀ)ᵀ = (Zᵀ * Z)⁻¹ := by
+  rw [Matrix.transpose_mul, Matrix.transpose_nonsing_inv, Matrix.transpose_mul,
+    Matrix.transpose_transpose, Matrix.mul_assoc, ← Matrix.mul_assoc Zᵀ, Matrix.mul_nonsing_inv _ h,
+    Matrix.mul_one]
+
 /-- **Right inverse.** If `Z Zᵀ` is invertible (full row rank, `m ≤ n`), then `Zᵀ (Z Zᵀ)⁻¹` is a
 right inverse of `Z`. -/
 theorem self_mul_rightInverse {m n : Type*} [Fintype m] [Fintype n] [DecidableEq m]
     (Z : Matrix m n ℝ) (h : IsUnit (Z * Zᵀ).det) : Z * (Zᵀ * (Z * Zᵀ)⁻¹) = 1 := by
   rw [← Matrix.mul_assoc, Matrix.mul_nonsing_inv _ h]
+
+/-- **Right-inverse coefficients interpolate.** If `Z Zᵀ` is invertible, the coefficients
+`Zᵀ (Z Zᵀ)⁻¹ y` fit any target exactly: `Z (Zᵀ (Z Zᵀ)⁻¹ y) = y`. Stated for arbitrary index types
+and plain vectors, so that it also serves as the surjectivity of a full-row-rank `S`. -/
+theorem rightInverse_interpolates {m n : Type*} [Fintype m] [Fintype n] [DecidableEq m]
+    (Z : Matrix m n ℝ) (hZ : IsUnit (Z * Zᵀ).det) (y : m → ℝ) :
+    Z *ᵥ ((Zᵀ * (Z * Zᵀ)⁻¹) *ᵥ y) = y := by
+  rw [Matrix.mulVec_mulVec, self_mul_rightInverse Z hZ, Matrix.one_mulVec]
 
 variable {m n : ℕ}
 
@@ -163,12 +181,6 @@ private theorem matrixCLM_rightInverse :
   simp [matrixCLM_apply, Matrix.neg_mulVec, Matrix.mulVec_neg]
 
 include hZ
-
-/-- **Sample-bottleneck estimator interpolates.** If `Z Zᵀ` is invertible, the right-inverse
-coefficients `Zᵀ (Z Zᵀ)⁻¹ y` fit the targets exactly: `Z (Zᵀ (Z Zᵀ)⁻¹ y) = y`. -/
-theorem rightInverse_interpolates :
-    Z *ᵥ ((Zᵀ * (Z * Zᵀ)⁻¹) *ᵥ y.ofLp) = y.ofLp := by
-  rw [Matrix.mulVec_mulVec, self_mul_rightInverse Z hZ, Matrix.one_mulVec]
 
 /-- **Pythagoras for the right-inverse interpolator.** If `Z Zᵀ` is invertible, every interpolator
 `Z η = y` satisfies `‖η‖² = ‖η̂‖² + ‖η - η̂‖²` with `η̂ = Zᵀ (Z Zᵀ)⁻¹ y`. This is
