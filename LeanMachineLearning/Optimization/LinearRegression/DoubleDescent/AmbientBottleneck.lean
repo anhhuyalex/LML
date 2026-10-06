@@ -95,7 +95,7 @@ theorem ambientBottleneck_isMinOn :
 /-- **Pythagoras for the minimum-norm fit.** Every minimizer `η` of the residual norm
 (`‖Z η - y‖ ≤ ‖Z ηh - y‖`) satisfies `‖η‖² = ‖ηh‖² + ‖η - ηh‖²` for the minimum-norm coefficients
 `ηh = Sᵀ (S Sᵀ)⁻¹ (Xᵀ X)⁻¹ Xᵀ y`: its projection `S η` is forced to be the OLS fit
-(`eq_leftInverse_of_norm_residual_le`), so `η - ηh ∈ ker S`, which is orthogonal to `range Sᵀ`. -/
+(`eq_leftInverse_of_norm_residual_le`), so `rightInverse_norm_sq_decomp` for `S` applies. -/
 theorem ambientBottleneck_norm_sq_decomp {η : EuclideanSpace ℝ n}
     (h : ‖WithLp.toLp 2 ((X * S) *ᵥ η.ofLp) - y‖ ≤
       ‖WithLp.toLp 2 ((X * S) *ᵥ ((Sᵀ * (S * Sᵀ)⁻¹) *ᵥ (((Xᵀ * X)⁻¹ * Xᵀ) *ᵥ y.ofLp))) - y‖) :
@@ -103,24 +103,12 @@ theorem ambientBottleneck_norm_sq_decomp {η : EuclideanSpace ℝ n}
       ‖(WithLp.toLp 2 ((Sᵀ * (S * Sᵀ)⁻¹) *ᵥ (((Xᵀ * X)⁻¹ * Xᵀ) *ᵥ y.ofLp)) :
         EuclideanSpace ℝ n)‖ ^ 2 +
       ‖η - WithLp.toLp 2 ((Sᵀ * (S * Sᵀ)⁻¹) *ᵥ (((Xᵀ * X)⁻¹ * Xᵀ) *ᵥ y.ofLp))‖ ^ 2 := by
-  set w : n₀ → ℝ := ((Xᵀ * X)⁻¹ * Xᵀ) *ᵥ y.ofLp with hw
-  set ηh : EuclideanSpace ℝ n := WithLp.toLp 2 ((Sᵀ * (S * Sᵀ)⁻¹) *ᵥ w) with hηh
-  have hSη : S *ᵥ η.ofLp = w := by
+  have hSη : S *ᵥ η.ofLp = ((Xᵀ * X)⁻¹ * Xᵀ) *ᵥ y.ofLp := by
     have h' := h
     rw [mulVec_ambientBottleneck X S hS y, ← Matrix.mulVec_mulVec η.ofLp X S] at h'
     have := eq_leftInverse_of_norm_residual_le X hX y (WithLp.toLp 2 (S *ᵥ η.ofLp)) h'
     simpa using congrArg WithLp.ofLp this
-  have hd : S *ᵥ (η - ηh).ofLp = 0 := by
-    simp [hηh, Matrix.mulVec_sub, hSη, rightInverse_interpolates S hS]
-  have horth : ⟪ηh, η - ηh⟫ = 0 := by
-    rw [real_inner_eq_dotProduct, hηh, WithLp.ofLp_toLp, dotProduct_comm, Matrix.dotProduct_mulVec,
-      ← Matrix.mulVec_transpose, Matrix.transpose_mul, Matrix.transpose_nonsing_inv,
-      Matrix.transpose_mul, Matrix.transpose_transpose, ← Matrix.mulVec_mulVec, hd,
-      Matrix.mulVec_zero, zero_dotProduct]
-  have hsplit : η = ηh + (η - ηh) := by abel
-  conv_lhs => rw [hsplit]
-  rw [norm_add_sq_real, horth]
-  ring
+  exact rightInverse_norm_sq_decomp S hS _ hSη
 
 /-- **Ambient-bottleneck estimator is the unique minimum-norm minimizer.** A minimizer `η` of
 `‖Z η - y‖` with `‖η‖ ≤ ‖ηh‖` equals `ηh = Sᵀ (S Sᵀ)⁻¹ (Xᵀ X)⁻¹ Xᵀ y`. -/
