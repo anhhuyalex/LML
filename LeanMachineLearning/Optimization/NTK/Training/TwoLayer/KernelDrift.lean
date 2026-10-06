@@ -54,17 +54,17 @@ bounded in probability by Markov's inequality (`exists_neuronMoment_event`), giv
 section SharpKernelDrift
 variable {n d m : ℕ}
 
-/-- Coordinates of neuron `i` in the packed parameter vector: the readout `idxA i` (`none`) and
-the hidden weights `idxW i j` (`some j`). -/
+/-- Coordinates of neuron `i` in the packed parameter vector: the readout `paramIndexEquiv n d (Sum.inr i)` (`none`) and
+the hidden weights `paramIndexEquiv n d (Sum.inl (i, j))` (`some j`). -/
 def neuronCoords (n d : ℕ) (i : Fin n) : Option (Fin d) → Fin (n * d + n)
-  | none => idxA i
-  | some j => idxW i j
+  | none => paramIndexEquiv n d (Sum.inr i)
+  | some j => paramIndexEquiv n d (Sum.inl (i, j))
 
 /-- The squared norm of the coordinates of one neuron `(w_i, a_i)` is `∑_j v(w_{ij})² + v(a_i)²`. -/
 lemma norm_sq_restrictCoords_neuronCoords (i : Fin n)
     (v : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) v‖ ^ 2 =
-      (∑ j : Fin d, v (idxW i j) ^ 2) + v (idxA i) ^ 2 := by
+      (∑ j : Fin d, v (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) + v (paramIndexEquiv n d (Sum.inr i)) ^ 2 := by
   rw [norm_sq_restrictCoords, Fintype.sum_option]
   simp only [neuronCoords]
   ring
@@ -72,8 +72,8 @@ lemma norm_sq_restrictCoords_neuronCoords (i : Fin n)
 private lemma norm_sq_restrictCoords_neuronCoords_sub (i : Fin n)
     (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖restrictCoords (neuronCoords n d i) (θ₁ - θ₂)‖ ^ 2 =
-      (∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
-        (unpackA θ₁ i - unpackA θ₂ i) ^ 2 := by
+      (∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 := by
   rw [norm_sq_restrictCoords_neuronCoords]
   rfl
 
@@ -87,16 +87,16 @@ lemma norm_restrictCoords_neuronCoords_le (i : Fin n)
   rw [sub_zero] at h h0
   rw [h0, h]
   have h1 : (∑ j : Fin d,
-      (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2) ≤
+      (v (paramIndexEquiv n d (Sum.inl (i, j))) - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2) ≤
       ∑ i : Fin n, ∑ j : Fin d,
-        (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2 :=
+        (v (paramIndexEquiv n d (Sum.inl (i, j))) - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2 :=
     Finset.single_le_sum (f := fun i : Fin n => ∑ j : Fin d,
-      (unpackW v i j - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2)
+      (v (paramIndexEquiv n d (Sum.inl (i, j))) - unpackW (0 : EuclideanSpace ℝ (Fin (n * d + n))) i j) ^ 2)
       (fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _) (Finset.mem_univ i)
-  have h2 : (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 ≤
-      ∑ i : Fin n, (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 :=
+  have h2 : (v (paramIndexEquiv n d (Sum.inr i)) - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 ≤
+      ∑ i : Fin n, (v (paramIndexEquiv n d (Sum.inr i)) - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2 :=
     Finset.single_le_sum (f := fun i : Fin n =>
-      (unpackA v i - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2)
+      (v (paramIndexEquiv n d (Sum.inr i)) - unpackA (0 : EuclideanSpace ℝ (Fin (n * d + n))) i) ^ 2)
       (fun _ _ => sq_nonneg _) (Finset.mem_univ i)
   linarith
 
@@ -139,7 +139,7 @@ lemma neuronMoment_nonneg (φ : ℝ → ℝ) (C₁ C₂ : ℝ) (X : Fin m → Fi
 /-- The squared norm of neuron `i`'s Jacobian block is its gradient-coordinate energy. -/
 private lemma neuron_jacobian_block_sq (φ : ℝ → ℝ) (X : Fin m → Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α)) (i : Fin n) :
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) (i : Fin n) :
     ∑ α : Fin m, ∑ o : Option (Fin d),
         outputJacobian (netFromParams φ n d) X θ α (neuronCoords n d i o) ^ 2 =
       ∑ α : Fin m, ((∑ j : Fin d, gradW φ n d (X α) θ i j ^ 2) +
@@ -155,25 +155,25 @@ x)² + a_i² C₁² ‖x‖²)`. -/
 lemma neuron_block_energy_le (φ : ℝ → ℝ) {C₁ : ℝ} (hC₁ : ∀ z, |deriv φ z| ≤ C₁) (hn : 0 < n)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (x : Fin d → ℝ) :
     (∑ j : Fin d, gradW φ n d x θ i j ^ 2) + gradA φ n d x θ i ^ 2 ≤
-      (n : ℝ)⁻¹ * (φ (unpackW θ i ⬝ᵥ x) ^ 2 + unpackA θ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2) := by
+      (n : ℝ)⁻¹ * (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) ^ 2 + θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2) := by
   have hroot : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := Real.sq_sqrt (by positivity)
-  have hd_sq : deriv φ (unpackW θ i ⬝ᵥ x) ^ 2 ≤ C₁ ^ 2 := by
+  have hd_sq : deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) ^ 2 ≤ C₁ ^ 2 := by
     rw [← sq_abs]
     exact (sq_le_sq₀ (abs_nonneg _) ((abs_nonneg _).trans (hC₁ 0))).2 (hC₁ _)
   have hW : (∑ j : Fin d, gradW φ n d x θ i j ^ 2) =
-      (n : ℝ)⁻¹ * (unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) ^ 2 * ∑ j : Fin d, x j ^ 2) := by
+      (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) ^ 2 * ∑ j : Fin d, x j ^ 2) := by
     rw [Finset.mul_sum, Finset.mul_sum]
     refine Finset.sum_congr rfl fun j _ => ?_
     simp only [gradW]
-    rw [show (n : ℝ)⁻¹.sqrt * unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x) * x j =
-        (n : ℝ)⁻¹.sqrt * (unpackA θ i * deriv φ (unpackW θ i ⬝ᵥ x) * x j) by ring, mul_pow, hroot]
+    rw [show (n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j =
+        (n : ℝ)⁻¹.sqrt * (θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j) by ring, mul_pow, hroot]
     ring
-  have hA : gradA φ n d x θ i ^ 2 = (n : ℝ)⁻¹ * φ (unpackW θ i ⬝ᵥ x) ^ 2 := by
+  have hA : gradA φ n d x θ i ^ 2 = (n : ℝ)⁻¹ * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) ^ 2 := by
     simp only [gradA]; rw [mul_pow, hroot]
   rw [hW, hA]
   have hSx : 0 ≤ ∑ j : Fin d, x j ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
-  have : unpackA θ i ^ 2 * deriv φ (unpackW θ i ⬝ᵥ x) ^ 2 * ∑ j : Fin d, x j ^ 2 ≤
-      unpackA θ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2 := by gcongr
+  have : θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) ^ 2 * ∑ j : Fin d, x j ^ 2 ≤
+      θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * C₁ ^ 2 * ∑ j : Fin d, x j ^ 2 := by gcongr
   have hn' : 0 ≤ (n : ℝ)⁻¹ := by positivity
   nlinarith [mul_le_mul_of_nonneg_left this hn']
 
@@ -181,11 +181,11 @@ lemma neuron_block_energy_le (φ : ℝ → ℝ) {C₁ : ℝ} (hC₁ : ∀ z, |de
 /-- The displacement of neuron `i`'s coordinates, in the two forms used in the Jacobian-Lipschitz
 estimates. -/
 private lemma neuron_displacement_eq (i : Fin n) (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    (∑ j : Fin d, (unpackW θ₀ i j - unpackW θ i j) ^ 2) + (unpackA θ₀ i - unpackA θ i) ^ 2 =
+    (∑ j : Fin d, (θ₀ (paramIndexEquiv n d (Sum.inl (i, j))) - θ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) + (θ₀ (paramIndexEquiv n d (Sum.inr i)) - θ (paramIndexEquiv n d (Sum.inr i))) ^ 2 =
       ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 := by
   have hc : ∀ a b : ℝ, (a - b) ^ 2 = (b - a) ^ 2 := fun a b => by ring
   rw [norm_sq_restrictCoords_neuronCoords_sub]
-  simp_rw [hc (unpackW θ₀ i _), hc (unpackA θ₀ i)]
+  simp_rw [hc (θ₀ (paramIndexEquiv n d (Sum.inl (i, _)))), hc (θ₀ (paramIndexEquiv n d (Sum.inr i)))]
 
 /-- `b² ≤ 2 a² + 2 (a - b)²`, i.e. `add_sq_le` for `b = a + (b - a)`. -/
 private lemma sq_le_two_mul_sq_add_two_mul_sq_sub (a b : ℝ) :
@@ -201,19 +201,19 @@ private lemma neuron_jacobian_block_energy_le_of_displacement (φ : ℝ → ℝ)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|) (hn : 0 < n)
     (X : Fin m → Fin d → ℝ) (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     ∑ α : Fin m, ((∑ j : Fin d, gradW φ n d (X α) θ i j ^ 2) + gradA φ n d (X α) θ i ^ 2) ≤
-      2 * ((n : ℝ)⁻¹ * neuronJacobianScaleSq φ C₁ X (unpackW θ₀ i) (unpackA θ₀ i)) +
-      2 * ((n : ℝ)⁻¹ * neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
+      2 * ((n : ℝ)⁻¹ * neuronJacobianScaleSq φ C₁ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i)))) +
+      2 * ((n : ℝ)⁻¹ * neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i))) *
         ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2) := by
   set D := ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 with hD
   have hα : ∀ α : Fin m,
       (∑ j : Fin d, gradW φ n d (X α) θ i j ^ 2) + gradA φ n d (X α) θ i ^ 2 ≤
-        2 * ((n : ℝ)⁻¹ * (φ (unpackW θ₀ i ⬝ᵥ X α) ^ 2 +
-          unpackA θ₀ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)) +
-        2 * ((n : ℝ)⁻¹ * (2 * unpackA θ₀ i ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
+        2 * ((n : ℝ)⁻¹ * (φ ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) ^ 2 +
+          θ₀ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)) +
+        2 * ((n : ℝ)⁻¹ * (2 * θ₀ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
           3 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) * D) := by
     intro α
     have h0 := neuron_block_energy_le φ hC₁ hn θ₀ i (X α)
-    have hd := grad_single_neuron_sub_le φ n d (X α) θ₀ θ i C₁ C₂ |unpackA θ₀ i| hC₁0 hC₂0
+    have hd := grad_single_neuron_sub_le φ n d (X α) θ₀ θ i C₁ C₂ |θ₀ (paramIndexEquiv n d (Sum.inr i))| hC₁0 hC₂0
       (abs_nonneg _) hφ_lip hC₁ hderiv_lip le_rfl
     dsimp only at hd
     rw [neuron_displacement_eq, sq_abs] at hd
@@ -225,9 +225,9 @@ private lemma neuron_jacobian_block_energy_le_of_displacement (φ : ℝ → ℝ)
     have hA := sq_le_two_mul_sq_add_two_mul_sq_sub (gradA φ n d (X α) θ₀ i)
       (gradA φ n d (X α) θ i)
     nlinarith
-  calc _ ≤ ∑ α : Fin m, (2 * ((n : ℝ)⁻¹ * (φ (unpackW θ₀ i ⬝ᵥ X α) ^ 2 +
-          unpackA θ₀ i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)) +
-        2 * ((n : ℝ)⁻¹ * (2 * unpackA θ₀ i ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
+  calc _ ≤ ∑ α : Fin m, (2 * ((n : ℝ)⁻¹ * (φ ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) ^ 2 +
+          θ₀ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2)) +
+        2 * ((n : ℝ)⁻¹ * (2 * θ₀ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
           3 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) * D)) := Finset.sum_le_sum fun α _ => hα α
     _ = _ := by
       simp only [neuronJacobianScaleSq, neuronLipschitzScaleSq, Finset.sum_add_distrib,
@@ -240,16 +240,16 @@ lemma outputJacobian_sub_norm_sq_le_neuron_sum (φ : ℝ → ℝ) (hφ : Differe
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
     (X : Fin m → Fin d → ℝ) (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖outputJacobian (netFromParams φ n d) X θ - outputJacobian (netFromParams φ n d) X θ₀‖ ^ 2 ≤
-      (n : ℝ)⁻¹ * ∑ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
+      (n : ℝ)⁻¹ * ∑ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i))) *
         ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 := by
   rw [norm_sub_rev, outputJacobian_sub_frobenius_norm_sq φ n d m X θ₀ θ
     (fun _ _ => hφ.differentiableAt) (fun _ _ => hφ.differentiableAt)]
   simp_rw [← Finset.sum_add_distrib]
-  calc _ ≤ ∑ α : Fin m, ∑ i : Fin n, (n : ℝ)⁻¹ * (2 * |unpackA θ₀ i| ^ 2 * C₂ ^ 2 *
+  calc _ ≤ ∑ α : Fin m, ∑ i : Fin n, (n : ℝ)⁻¹ * (2 * |θ₀ (paramIndexEquiv n d (Sum.inr i))| ^ 2 * C₂ ^ 2 *
           (∑ j : Fin d, X α j ^ 2) ^ 2 + 3 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) *
         ‖restrictCoords (neuronCoords n d i) (θ - θ₀)‖ ^ 2 := by
         refine Finset.sum_le_sum fun α _ => Finset.sum_le_sum fun i _ => ?_
-        have hd := grad_single_neuron_sub_le φ n d (X α) θ₀ θ i C₁ C₂ |unpackA θ₀ i| hC₁0 hC₂0
+        have hd := grad_single_neuron_sub_le φ n d (X α) θ₀ θ i C₁ C₂ |θ₀ (paramIndexEquiv n d (Sum.inr i))| hC₁0 hC₂0
           (abs_nonneg _) hφ_lip hC₁ hderiv_lip le_rfl
         dsimp only at hd
         rwa [neuron_displacement_eq] at hd
@@ -279,11 +279,11 @@ lemma neuron_displacement_le (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) {C
     {T : ℝ} (hT : 0 ≤ T) (i : Fin n) :
     ‖restrictCoords (neuronCoords n d i) (θ_traj T - θ₀)‖ ≤
       (m : ℝ)⁻¹ * Real.sqrt (2 * ((n : ℝ)⁻¹ *
-        (neuronJacobianScaleSq φ C₁ X (unpackW θ₀ i) (unpackA θ₀ i) +
-          C ^ 2 * neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i)))) * R / ν := by
+        (neuronJacobianScaleSq φ C₁ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) +
+          C ^ 2 * neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i)))))) * R / ν := by
   set b := Real.sqrt (2 * ((n : ℝ)⁻¹ *
-        (neuronJacobianScaleSq φ C₁ X (unpackW θ₀ i) (unpackA θ₀ i) +
-          C ^ 2 * neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i)))) with hb
+        (neuronJacobianScaleSq φ C₁ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) +
+          C ^ 2 * neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i)))))) with hb
   have hR : 0 ≤ R := by
     have := (norm_nonneg _).trans (hres 0 le_rfl)
     simpa using this
@@ -305,14 +305,14 @@ lemma neuron_displacement_le (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) {C
     have hD : ‖restrictCoords (neuronCoords n d i) (θ_traj t - θ₀)‖ ^ 2 ≤ C ^ 2 :=
       pow_le_pow_left₀ (norm_nonneg _)
         ((norm_restrictCoords_neuronCoords_le i _).trans (hdisp t ht.1)) 2
-    have hΛ := neuronLipschitzScaleSq_nonneg C₁ C₂ X (unpackA θ₀ i)
+    have hΛ := neuronLipschitzScaleSq_nonneg C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i)))
     have hsqrt : Real.sqrt (∑ α : Fin m, ((∑ j : Fin d, gradW φ n d (X α) (θ_traj t) i j ^ 2) +
         gradA φ n d (X α) (θ_traj t) i ^ 2)) ≤ b := by
       refine Real.sqrt_le_sqrt ?_
       have hn' : 0 ≤ (n : ℝ)⁻¹ := by positivity
-      have : (n : ℝ)⁻¹ * neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
+      have : (n : ℝ)⁻¹ * neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i))) *
           ‖restrictCoords (neuronCoords n d i) (θ_traj t - θ₀)‖ ^ 2 ≤
-          (n : ℝ)⁻¹ * (C ^ 2 * neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i)) := by
+          (n : ℝ)⁻¹ * (C ^ 2 * neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i)))) := by
         rw [mul_assoc]
         refine mul_le_mul_of_nonneg_left ?_ hn'
         nlinarith
@@ -361,7 +361,7 @@ theorem kernel_drift_le_of_neuron_moments (φ : ℝ → ℝ) (hφ : Differentiab
     (hJ : ∀ t : ℝ, 0 ≤ t → ‖outputJacobian (netFromParams φ n d) X (θ_traj t)‖ ≤ M)
     (hJ₀ : ‖outputJacobian (netFromParams φ n d) X θ₀‖ ≤ M)
     (hmom : (n : ℝ)⁻¹ * ∑ i : Fin n,
-      neuronMoment φ C₁ C₂ X (unpackW θ₀ i) (unpackA θ₀ i) ≤ τ)
+      neuronMoment φ C₁ C₂ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) ≤ τ)
     {t : ℝ} (ht : 0 ≤ t) :
     ‖empiricalNTKMatrix (netFromParams φ n d) X (θ_traj t) -
         empiricalNTKMatrix (netFromParams φ n d) X θ₀‖ ≤
@@ -374,13 +374,13 @@ theorem kernel_drift_le_of_neuron_moments (φ : ℝ → ℝ) (hφ : Differentiab
   set K₁ : ℝ := R / ((m : ℝ) * ν) with hK₁
   have hK₁0 : 0 ≤ K₁ := by positivity
   -- per-neuron bound on `Λ_i² ρ_i²`
-  have hneuron : ∀ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
+  have hneuron : ∀ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i))) *
       ‖restrictCoords (neuronCoords n d i) (θ_traj t - θ₀)‖ ^ 2 ≤
         K₁ ^ 2 * (2 * (n : ℝ)⁻¹ * (1 + C ^ 2)) *
-          neuronMoment φ C₁ C₂ X (unpackW θ₀ i) (unpackA θ₀ i) := by
+          neuronMoment φ C₁ C₂ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) := by
     intro i
-    set Q := neuronJacobianScaleSq φ C₁ X (unpackW θ₀ i) (unpackA θ₀ i) with hQ
-    set Λ := neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) with hΛ
+    set Q := neuronJacobianScaleSq φ C₁ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) with hQ
+    set Λ := neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i))) with hΛ
     have hQ0 : 0 ≤ Q := neuronJacobianScaleSq_nonneg _ _ _ _ _
     have hΛ0 : 0 ≤ Λ := neuronLipschitzScaleSq_nonneg _ _ _ _
     have hρ := neuron_displacement_le φ hφ hC₁0 hC₂0 hφ_lip hC₁ hderiv_lip hn hm X y hflow hν hdisp
@@ -393,7 +393,7 @@ theorem kernel_drift_le_of_neuron_moments (φ : ℝ → ℝ) (hφ : Differentiab
       calc _ ≤ ((m : ℝ)⁻¹ * b * R / ν) ^ 2 := pow_le_pow_left₀ (norm_nonneg _) hρ 2
         _ = K₁ ^ 2 * b ^ 2 := by rw [hK₁]; ring
         _ = _ := by rw [hb2]
-    have hmomeq : neuronMoment φ C₁ C₂ X (unpackW θ₀ i) (unpackA θ₀ i) = Λ * (Q + Λ) := rfl
+    have hmomeq : neuronMoment φ C₁ C₂ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) = Λ * (Q + Λ) := rfl
     rw [hmomeq]
     calc Λ * ‖restrictCoords (neuronCoords n d i) (θ_traj t - θ₀)‖ ^ 2
         ≤ Λ * (K₁ ^ 2 * (2 * ((n : ℝ)⁻¹ * (Q + C ^ 2 * Λ)))) :=
@@ -410,13 +410,13 @@ theorem kernel_drift_le_of_neuron_moments (φ : ℝ → ℝ) (hφ : Differentiab
         (K₁ * Real.sqrt (2 * (1 + C ^ 2) * τ) / Real.sqrt (n : ℝ)) ^ 2 := by
     refine (outputJacobian_sub_norm_sq_le_neuron_sum φ hφ hC₁0 hC₂0 hφ_lip hC₁ hderiv_lip X
       (θ_traj t) θ₀).trans ?_
-    calc (n : ℝ)⁻¹ * ∑ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (unpackA θ₀ i) *
+    calc (n : ℝ)⁻¹ * ∑ i : Fin n, neuronLipschitzScaleSq C₁ C₂ X (θ₀ (paramIndexEquiv n d (Sum.inr i))) *
           ‖restrictCoords (neuronCoords n d i) (θ_traj t - θ₀)‖ ^ 2
         ≤ (n : ℝ)⁻¹ * ∑ i : Fin n, K₁ ^ 2 * (2 * (n : ℝ)⁻¹ * (1 + C ^ 2)) *
-            neuronMoment φ C₁ C₂ X (unpackW θ₀ i) (unpackA θ₀ i) :=
+            neuronMoment φ C₁ C₂ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i))) :=
           mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun i _ => hneuron i) (by positivity)
       _ = K₁ ^ 2 * (2 * (1 + C ^ 2)) * (n : ℝ)⁻¹ * ((n : ℝ)⁻¹ * ∑ i : Fin n,
-            neuronMoment φ C₁ C₂ X (unpackW θ₀ i) (unpackA θ₀ i)) := by
+            neuronMoment φ C₁ C₂ X ((fun j => θ₀ (paramIndexEquiv n d (Sum.inl (i, j))))) (θ₀ (paramIndexEquiv n d (Sum.inr i)))) := by
           rw [← Finset.mul_sum]; ring
       _ ≤ K₁ ^ 2 * (2 * (1 + C ^ 2)) * (n : ℝ)⁻¹ * τ :=
           mul_le_mul_of_nonneg_left hmom (by positivity)

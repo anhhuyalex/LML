@@ -51,8 +51,8 @@ lemma two_mul_add_two_mul_sq (u v : ℝ) :
 -/
 lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖θ₁ - θ₂‖ ^ 2 =
-      (∑ i : Fin n, ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
-      ∑ i : Fin n, (unpackA θ₁ i - unpackA θ₂ i) ^ 2 := by
+      (∑ i : Fin n, ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+      ∑ i : Fin n, (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 := by
   rw [EuclideanSpace.real_norm_sq_eq]
   rw [← Equiv.sum_comp (paramIndexEquiv n d)]
   rw [Fintype.sum_sum_type, Fintype.sum_prod_type]
@@ -61,11 +61,11 @@ lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n *
     intro i _
     apply Finset.sum_congr rfl
     intro j _
-    change ((θ₁ - θ₂) (idxW i j)) ^ 2 = _
+    change ((θ₁ - θ₂) (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2 = _
     simp only [PiLp.sub_apply, unpackW]
   · apply Finset.sum_congr rfl
     intro i _
-    change ((θ₁ - θ₂) (idxA i)) ^ 2 = _
+    change ((θ₁ - θ₂) (paramIndexEquiv n d (Sum.inr i))) ^ 2 = _
     simp only [PiLp.sub_apply, unpackA]
 
 /-- Cauchy–Schwarz for a difference: `(x ⬝ᵥ z - y ⬝ᵥ z)² ≤ ‖x - y‖² ‖z‖²`. -/
@@ -79,8 +79,8 @@ data points and neurons, of the squared differences of the input-weight and read
 blocks. -/
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⬝ᵥ X α))
-    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⬝ᵥ X α)) :
+    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ₁ -
         outputJacobian (netFromParams φ n d) X θ₂‖ ^ 2 =
       (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
@@ -99,14 +99,14 @@ lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     intro i _
     apply Finset.sum_congr rfl
     intro j _
-    change (outputJacobian (netFromParams φ n d) X θ₁ α (idxW i j) -
-            outputJacobian (netFromParams φ n d) X θ₂ α (idxW i j)) ^ 2 = _
+    change (outputJacobian (netFromParams φ n d) X θ₁ α (paramIndexEquiv n d (Sum.inl (i, j))) -
+            outputJacobian (netFromParams φ n d) X θ₂ α (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2 = _
     rw [outputJacobian_netFromParams_apply_W φ n d m X θ₁ hφ₁ α i j]
     rw [outputJacobian_netFromParams_apply_W φ n d m X θ₂ hφ₂ α i j]
   · apply Finset.sum_congr rfl
     intro i _
-    change (outputJacobian (netFromParams φ n d) X θ₁ α (idxA i) -
-            outputJacobian (netFromParams φ n d) X θ₂ α (idxA i)) ^ 2 = _
+    change (outputJacobian (netFromParams φ n d) X θ₁ α (paramIndexEquiv n d (Sum.inr i)) -
+            outputJacobian (netFromParams φ n d) X θ₂ α (paramIndexEquiv n d (Sum.inr i))) ^ 2 = _
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₁ hφ₁ α i]
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₂ hφ₂ α i]
 
@@ -119,28 +119,28 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (ha₁ : |unpackA θ₁ i| ≤ R) :
+    (ha₁ : |θ₁ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     let Sx := ∑ j : Fin d, x j ^ 2
-    let Wdiff := ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2
-    let Adiff := (unpackA θ₁ i - unpackA θ₂ i) ^ 2
+    let Wdiff := ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2
+    let Adiff := (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2
     (∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
       (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2 ≤
         (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) * (Wdiff + Adiff) := by
   dsimp only
   let Sx := ∑ j : Fin d, x j ^ 2
-  let Wdiff := ∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2
-  let Adiff := (unpackA θ₁ i - unpackA θ₂ i) ^ 2
+  let Wdiff := ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2
+  let Adiff := (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2
   have hSx_nonneg : 0 ≤ Sx := Finset.sum_nonneg (fun _ _ => sq_nonneg _)
   have hWdiff_nonneg : 0 ≤ Wdiff := Finset.sum_nonneg (fun _ _ => sq_nonneg _)
   have hAdiff_nonneg : 0 ≤ Adiff := sq_nonneg _
   have hroot_sq : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := by
     rw [Real.sq_sqrt]
     positivity
-  let u₁ := unpackW θ₁ i ⬝ᵥ x
-  let u₂ := unpackW θ₂ i ⬝ᵥ x
+  let u₁ := (fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x
+  let u₂ := (fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x
   have hu_diff_sq : (u₁ - u₂) ^ 2 ≤ Wdiff * Sx := by
     dsimp [u₁, u₂, Wdiff, Sx]
-    exact dotProduct_sub_sq_le d (unpackW θ₁ i) (unpackW θ₂ i) x
+    exact dotProduct_sub_sq_le d ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j))))) ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j))))) x
   have hφ_sub_sq : (φ u₁ - φ u₂) ^ 2 ≤ C₁ ^ 2 * (Sx * Wdiff) := by
     have h1 : |φ u₁ - φ u₂| ≤ C₁ * |u₁ - u₂| := hφ_lip u₁ u₂
     have h2 : |φ u₁ - φ u₂| ^ 2 ≤ (C₁ * |u₁ - u₂|) ^ 2 := by
@@ -167,58 +167,58 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
       (n : ℝ)⁻¹ * (C₁ ^ 2 * Sx * Wdiff) := by
     dsimp [gradA, u₁, u₂]
     rw [← mul_sub, mul_pow, hroot_sq]
-    have h_sub : (φ (unpackW θ₁ i ⬝ᵥ x) - φ (unpackW θ₂ i ⬝ᵥ x)) ^ 2 ≤
+    have h_sub : (φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) - φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) ^ 2 ≤
         C₁ ^ 2 * (Sx * Wdiff) := hφ_sub_sq
     have h_prod := mul_le_mul_of_nonneg_left h_sub (by positivity : 0 ≤ (n : ℝ)⁻¹)
     calc
-      (n : ℝ)⁻¹ * (φ (unpackW θ₁ i ⬝ᵥ x) - φ (unpackW θ₂ i ⬝ᵥ x)) ^ 2
+      (n : ℝ)⁻¹ * (φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) - φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) ^ 2
         ≤ (n : ℝ)⁻¹ * (C₁ ^ 2 * (Sx * Wdiff)) := h_prod
       _ = (n : ℝ)⁻¹ * (C₁ ^ 2 * Sx * Wdiff) := by ring
-  have hD_sq : (unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂) ^ 2 ≤
+  have hD_sq : (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 ≤
       2 * R ^ 2 * C₂ ^ 2 * Sx * Wdiff + 2 * C₁ ^ 2 * Adiff := by
-    have hsplit : unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂ =
-        unpackA θ₁ i * (deriv φ u₁ - deriv φ u₂) +
-        (unpackA θ₁ i - unpackA θ₂ i) * deriv φ u₂ := by ring
+    have hsplit : θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂ =
+        θ₁ (paramIndexEquiv n d (Sum.inr i)) * (deriv φ u₁ - deriv φ u₂) +
+        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂ := by ring
     rw [hsplit]
-    have h2 := two_mul_add_two_mul_sq (unpackA θ₁ i * (deriv φ u₁ - deriv φ u₂))
-      ((unpackA θ₁ i - unpackA θ₂ i) * deriv φ u₂)
-    have ha₁_sq : (unpackA θ₁ i) ^ 2 ≤ R ^ 2 := by
+    have h2 := two_mul_add_two_mul_sq (θ₁ (paramIndexEquiv n d (Sum.inr i)) * (deriv φ u₁ - deriv φ u₂))
+      ((θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂)
+    have ha₁_sq : (θ₁ (paramIndexEquiv n d (Sum.inr i))) ^ 2 ≤ R ^ 2 := by
       rw [← sq_abs]
       exact (sq_le_sq₀ (abs_nonneg _) hR_nonneg).2 ha₁
     have hderiv_sq : (deriv φ u₂) ^ 2 ≤ C₁ ^ 2 := by
       rw [← sq_abs]
       exact (sq_le_sq₀ (abs_nonneg _) hC₁_nonneg).2 (hderiv_bound u₂)
-    have hpart1 : (unpackA θ₁ i * (deriv φ u₁ - deriv φ u₂)) ^ 2 ≤
+    have hpart1 : (θ₁ (paramIndexEquiv n d (Sum.inr i)) * (deriv φ u₁ - deriv φ u₂)) ^ 2 ≤
         R ^ 2 * C₂ ^ 2 * Sx * Wdiff := by
       rw [mul_pow]
       calc
-        (unpackA θ₁ i) ^ 2 * (deriv φ u₁ - deriv φ u₂) ^ 2
+        (θ₁ (paramIndexEquiv n d (Sum.inr i))) ^ 2 * (deriv φ u₁ - deriv φ u₂) ^ 2
           ≤ R ^ 2 * (deriv φ u₁ - deriv φ u₂) ^ 2 :=
             mul_le_mul_of_nonneg_right ha₁_sq (sq_nonneg _)
         _ ≤ R ^ 2 * (C₂ ^ 2 * (Sx * Wdiff)) :=
           mul_le_mul_of_nonneg_left hderiv_sub_sq (by positivity)
         _ = R ^ 2 * C₂ ^ 2 * Sx * Wdiff := by ring
-    have hpart2 : ((unpackA θ₁ i - unpackA θ₂ i) * deriv φ u₂) ^ 2 ≤
+    have hpart2 : ((θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂) ^ 2 ≤
         C₁ ^ 2 * Adiff := by
       rw [mul_pow]
       dsimp [Adiff]
       calc
-        (unpackA θ₁ i - unpackA θ₂ i) ^ 2 * (deriv φ u₂) ^ 2
-          ≤ (unpackA θ₁ i - unpackA θ₂ i) ^ 2 * C₁ ^ 2 :=
+        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 * (deriv φ u₂) ^ 2
+          ≤ (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 * C₁ ^ 2 :=
             mul_le_mul_of_nonneg_left hderiv_sq (sq_nonneg _)
-        _ = C₁ ^ 2 * (unpackA θ₁ i - unpackA θ₂ i) ^ 2 := by ring
+        _ = C₁ ^ 2 * (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 := by ring
     linarith
   have hW_term : (∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) ≤
       (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 * Wdiff + 2 * C₁ ^ 2 * Sx * Adiff) := by
     have hj : ∀ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2 =
-        (n : ℝ)⁻¹ * (unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂) ^ 2 * x j ^ 2 := by
+        (n : ℝ)⁻¹ * (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * x j ^ 2 := by
       intro j
       dsimp [gradW, u₁, u₂]
-      have : (n : ℝ)⁻¹.sqrt * unpackA θ₁ i * deriv φ (unpackW θ₁ i ⬝ᵥ x) * x j -
-             (n : ℝ)⁻¹.sqrt * unpackA θ₂ i * deriv φ (unpackW θ₂ i ⬝ᵥ x) * x j =
+      have : (n : ℝ)⁻¹.sqrt * θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j -
+             (n : ℝ)⁻¹.sqrt * θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j =
              (n : ℝ)⁻¹.sqrt *
-              (unpackA θ₁ i * deriv φ (unpackW θ₁ i ⬝ᵥ x) -
-               unpackA θ₂ i * deriv φ (unpackW θ₂ i ⬝ᵥ x)) * x j := by ring
+              (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) -
+               θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j := by ring
       rw [this, mul_pow, mul_pow, hroot_sq]
     simp_rw [hj]
     rw [← Finset.mul_sum]
@@ -227,8 +227,8 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     have h_prod := mul_le_mul_of_nonneg_right hD_sq hSx_nonneg
     have h_final := mul_le_mul_of_nonneg_left h_prod (by positivity : 0 ≤ (n : ℝ)⁻¹)
     calc
-      (n : ℝ)⁻¹ * (unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂) ^ 2 * Sx
-        = (n : ℝ)⁻¹ * ((unpackA θ₁ i * deriv φ u₁ - unpackA θ₂ i * deriv φ u₂) ^ 2 * Sx) := by ring
+      (n : ℝ)⁻¹ * (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * Sx
+        = (n : ℝ)⁻¹ * ((θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * Sx) := by ring
       _ ≤ (n : ℝ)⁻¹ * ((2 * R ^ 2 * C₂ ^ 2 * Sx * Wdiff + 2 * C₁ ^ 2 * Adiff) * Sx) := h_final
       _ = (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 * Wdiff + 2 * C₁ ^ 2 * Sx * Adiff) := by ring
   calc
@@ -265,7 +265,7 @@ lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (ha₁ : ∀ i : Fin n, |unpackA θ₁ i| ≤ R) :
+    (ha₁ : ∀ i : Fin n, |θ₁ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     let Sx := ∑ j : Fin d, x j ^ 2
     (∑ i : Fin n, ∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
       ∑ i : Fin n, (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2 ≤
@@ -276,8 +276,8 @@ lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
       (∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
         (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2 ≤
           (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) *
-            ((∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
-             (unpackA θ₁ i - unpackA θ₂ i) ^ 2) := by
+            ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+             (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) := by
     intro i
     exact grad_single_neuron_sub_le φ n d x θ₁ θ₂ i C₁ C₂ R hC₁_nonneg hC₂_nonneg hR_nonneg
       hφ_lip hderiv_bound hderiv_lip (ha₁ i)
@@ -286,14 +286,14 @@ lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (∑ i : Fin n, ((∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
         (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2))
       ≤ ∑ i : Fin n, (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) *
-          ((∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
-           (unpackA θ₁ i - unpackA θ₂ i) ^ 2) := by
+          ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+           (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) := by
         apply Finset.sum_le_sum
         intro i _
         exact h_single i
     _ = (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) *
-        ∑ i : Fin n, ((∑ j : Fin d, (unpackW θ₁ i j - unpackW θ₂ i j) ^ 2) +
-           (unpackA θ₁ i - unpackA θ₂ i) ^ 2) := by
+        ∑ i : Fin n, ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+           (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) := by
       rw [← Finset.mul_sum]
     _ = (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) * ‖θ₁ - θ₂‖ ^ 2 := by
       rw [Finset.sum_add_distrib]
@@ -310,9 +310,9 @@ theorem outputJacobian_netFromParams_frobenius_sub_le
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₁ i ⬝ᵥ X α))
-    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ₂ i ⬝ᵥ X α))
-    (ha₁ : ∀ i : Fin n, |unpackA θ₁ i| ≤ R) :
+    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (ha₁ : ∀ i : Fin n, |θ₁ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     let K := Real.sqrt (∑ α : Fin m, (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
       3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2)))
     ‖outputJacobian (netFromParams φ n d) X θ₁ -
@@ -381,7 +381,7 @@ theorem norm_trainingOutputs_netFromParams_sub_linearization_le
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
+    (ha : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     ‖WithLp.toLp 2 (fun α => netFromParams φ n d (X α) θ) -
         WithLp.toLp 2 (fun α => netFromParams φ n d (X α) θ₀) -
         WithLp.toLp 2 (outputJacobian (netFromParams φ n d) X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤
@@ -408,7 +408,7 @@ theorem abs_netFromParams_sub_linearization_le
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
+    (ha : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     |netFromParams φ n d x θ - netFromParams φ n d x θ₀ -
         ⟪gradParams φ n d x θ₀, θ - θ₀⟫| ≤
       (Real.sqrt (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, x j ^ 2) ^ 2 +
@@ -436,7 +436,7 @@ theorem norm_gradParams_sub_le
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
+    (ha : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     ‖gradParams φ n d x θ - gradParams φ n d x θ₀‖ ≤
       (Real.sqrt (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, x j ^ 2) ^ 2 +
         3 * C₁ ^ 2 * (∑ j : Fin d, x j ^ 2)) / Real.sqrt (n : ℝ)) * ‖θ - θ₀‖ := by
@@ -459,7 +459,7 @@ theorem norm_gradParams_sub_le
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
 theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ (unpackW θ i ⬝ᵥ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
       (∑ i : Fin n, gradW φ n d (X α) θ i ⬝ᵥ gradW φ n d (X β) θ i) +

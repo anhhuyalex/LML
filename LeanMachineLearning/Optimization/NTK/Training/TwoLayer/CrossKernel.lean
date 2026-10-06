@@ -60,7 +60,7 @@ Lipschitz scale of `norm_gradParams_sub_le`. -/
 private lemma norm_crossKernel_sub_le {φ : ℝ → ℝ} {C₁ C₂ : ℝ} (hact : SmoothActivation φ C₁ C₂)
     {n d m : ℕ} (hn : 0 < n) (Xs : Fin m → Fin d → ℝ) (xs : Fin d → ℝ)
     {θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n))} {R Cd M jr G₀ : ℝ}
-    (hR : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ Cd)
+    (hR : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ Cd)
     (hJ₀ : ‖outputJacobian (netFromParams φ n d) Xs θ₀‖ ≤ M)
     (hJ : ‖outputJacobian (netFromParams φ n d) Xs θ -
       outputJacobian (netFromParams φ n d) Xs θ₀‖ ≤ jr)

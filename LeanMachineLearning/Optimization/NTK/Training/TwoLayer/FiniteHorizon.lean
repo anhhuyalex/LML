@@ -491,7 +491,7 @@ are bounded by `R` and `‖θ - θ₀‖ ≤ C`, the network differs from its li
 lemma abs_netFromParams_sub_linearization_le_of_disp {φ : ℝ → ℝ} {C₁ C₂ : ℝ}
     (hact : SmoothActivation φ C₁ C₂) {n d : ℕ} (hn : 0 < n) (x : Fin d → ℝ)
     {θ₀ θ : EuclideanSpace ℝ (Fin (n * d + n))} {R C : ℝ}
-    (hR : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ C) :
+    (hR : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R) (hΔ : ‖θ - θ₀‖ ≤ C) :
     |netFromParams φ n d x θ - netFromParams φ n d x θ₀ - ⟪gradParams φ n d x θ₀, θ - θ₀⟫| ≤
       (Real.sqrt (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, x j ^ 2) ^ 2 +
         3 * C₁ ^ 2 * (∑ j : Fin d, x j ^ 2)) / Real.sqrt (n : ℝ)) / 2 * C ^ 2 := by

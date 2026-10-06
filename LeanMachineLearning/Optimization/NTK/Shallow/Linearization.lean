@@ -696,12 +696,9 @@ noncomputable def relu : ℝ → ℝ := fun z => max z 0
 /-- The subgradient / derivative of ReLU (a.e. equal to the indicator): `σ'(z) = 1[z ≥ 0]`. -/
 noncomputable def reluDeriv : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 
-/-- Scaled shallow network with ReLU activation. -/
-abbrev ReLUNetwork (d m : ℕ) := ShallowNetwork relu d m
-
 /-- A neuron outside the bad set contributes no linearization error. -/
 lemma relu_error_eq_zero_outside_badSet
-    {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ) (hτ : 0 < τ)
     (j : Fin m) (hj : j ∉ badSet τ τ x W W₀) :
     net.outerCoeffs j * relu (∑ k, W j k * x k) -
@@ -751,7 +748,7 @@ lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluDeriv z * z := by
 /-- The ReLU network minus its linearization is `m^{-1/2}` times the sum of the per-neuron
 linearization errors. -/
 lemma relu_eval_sub_linearization_eq
-    {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) :
+    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) :
     net.eval x W - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W =
     (m : ℝ)⁻¹.sqrt * ∑ j : Fin m,
       (net.outerCoeffs j * relu (∑ k, W j k * x k) -
@@ -773,7 +770,7 @@ lemma relu_eval_sub_linearization_eq
 
 /-- The error sum reduces to a sum over the bad set, since every other neuron contributes zero. -/
 lemma sum_eq_sum_badSet
-    {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ)
     (h_zero : ∀ j : Fin m, j ∉ badSet τ τ x W W₀ →
       net.outerCoeffs j * relu (∑ k, W j k * x k) -
@@ -790,7 +787,7 @@ lemma sum_eq_sum_badSet
 
 /-- Bound on the linearization-error sum over a finite set `S` of neurons. -/
 lemma relu_error_sum_le
-    {d m : ℕ} (net : ReLUNetwork d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (S : Finset (Fin m)) :
     |∑ j ∈ S, (net.outerCoeffs j * relu (∑ k, W j k * x k) -
       net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)| ≤
@@ -1193,7 +1190,7 @@ With probability at least `1 − δ` over `W₀`, for every `W` with `‖W − W
 6. Outside `S`, signs are preserved, so the linearization error sums only over `j ∈ S`;
    Cauchy-Schwarz gives the stated bound. -/
 theorem reluLinearizationBound
-    (net : ReLUNetwork d m)
+    (net : ShallowNetwork relu d m)
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
@@ -1423,7 +1420,7 @@ private lemma relu_secondOrder_scaling_bound
 /-- For any additional `V` with `‖V − W₀‖_F ≤ B`:
   `|f(x; V) − (f(x; W) + ⟨∇_W f(x; W), V − W⟩_F)| ≤ (6B^{4/3} + 3B·(ln(1/δ))^{1/4}) / m^{1/6}`. -/
 theorem reluLinearizationBound_secondOrder
-    (net : ReLUNetwork d m)
+    (net : ShallowNetwork relu d m)
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :

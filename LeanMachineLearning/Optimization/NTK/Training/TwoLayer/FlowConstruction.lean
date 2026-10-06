@@ -132,7 +132,7 @@ theorem locallyLipschitz_neg_gradient_mseLoss_netFromParams (φ : ℝ → ℝ) (
         packParams_apply_idxW _ _ i j
       simp only [this]
       exact locallyLipschitz_mul_const _ (locallyLipschitz_mul_real
-        (locallyLipschitz_const_mul _ (hproj (idxA i))) (hdφpre i α))
+        (locallyLipschitz_const_mul _ (hproj (paramIndexEquiv n d (Sum.inr i)))) (hdφpre i α))
     · have : ∀ θ : EuclideanSpace ℝ (Fin (n * d + n)),
           gradParams φ n d (X α) θ ((paramIndexEquiv n d) (Sum.inr i)) =
             (n : ℝ)⁻¹.sqrt * φ (unpackW θ i ⬝ᵥ X α) := fun θ => packParams_apply_idxA _ _ i
@@ -166,7 +166,7 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
   refine ⟨Real.sqrt (2 * m * φ 0 ^ 2), Real.sqrt (3 * C₁ ^ 2 * ∑ α : Fin m, S α),
     Real.sqrt_nonneg _, Real.sqrt_nonneg _, fun θ => ?_⟩
   have hn' : (0 : ℝ) < n := Nat.cast_pos.2 hn
-  have hblock : ∀ i : Fin n, (∑ j : Fin d, θ (idxW i j) ^ 2) + θ (idxA i) ^ 2 ≤ ‖θ‖ ^ 2 :=
+  have hblock : ∀ i : Fin n, (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) + θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ‖θ‖ ^ 2 :=
     fun i => by
       rw [← norm_sq_restrictCoords_neuronCoords]
       exact pow_le_pow_left₀ (norm_nonneg _) (norm_restrictCoords_neuronCoords_le i θ) 2
@@ -191,18 +191,18 @@ private lemma exists_jacobian_linear_bound (hact : SmoothActivation φ C₁ C₂
         _ ≤ (|φ 0| + C₁ * |u|) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) h1 2
         _ ≤ 2 * (|φ 0| ^ 2 + (C₁ * |u|) ^ 2) := h2
         _ = _ := by rw [sq_abs, mul_pow, sq_abs]; ring
-    have hucs : u ^ 2 ≤ (∑ j : Fin d, θ (idxW i j) ^ 2) * S α := sq_dotProduct_le _ _
-    have hw : (∑ j : Fin d, θ (idxW i j) ^ 2) ≤ ‖θ‖ ^ 2 := by
+    have hucs : u ^ 2 ≤ (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) * S α := sq_dotProduct_le _ _
+    have hw : (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) ≤ ‖θ‖ ^ 2 := by
       have := hblock i
-      nlinarith [sq_nonneg (θ (idxA i))]
-    have ha : θ (idxA i) ^ 2 ≤ ‖θ‖ ^ 2 := by
+      nlinarith [sq_nonneg (θ (paramIndexEquiv n d (Sum.inr i)))]
+    have ha : θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ‖θ‖ ^ 2 := by
       have := hblock i
-      nlinarith [Finset.sum_nonneg fun j (_ : j ∈ Finset.univ) => sq_nonneg (θ (idxW i j))]
+      nlinarith [Finset.sum_nonneg fun j (_ : j ∈ Finset.univ) => sq_nonneg (θ (paramIndexEquiv n d (Sum.inl (i, j))))]
     have hSα := hS0 α
     have hC := sq_nonneg C₁
     have hu2 : u ^ 2 ≤ ‖θ‖ ^ 2 * S α :=
       hucs.trans (mul_le_mul_of_nonneg_right hw hSα)
-    have hun : unpackA θ i ^ 2 = θ (idxA i) ^ 2 := rfl
+    have hun : unpackA θ i ^ 2 = θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 := rfl
     rw [hun]
     nlinarith [mul_le_mul_of_nonneg_left hu2 hC, mul_le_mul_of_nonneg_left ha
       (mul_nonneg hC hSα)]
@@ -265,20 +265,20 @@ private lemma exists_residual_bound (hact : SmoothActivation φ C₁ C₂) (hn :
   have hterm : ∀ i : Fin n, |unpackA θ i * φ (unpackW θ i ⬝ᵥ X α)| ≤
       ρp * (|φ 0| + C₁ * (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2))) := by
     intro i
-    have hblock : (∑ j : Fin d, θ (idxW i j) ^ 2) + θ (idxA i) ^ 2 ≤ ‖θ‖ ^ 2 := by
+    have hblock : (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) + θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ‖θ‖ ^ 2 := by
       rw [← norm_sq_restrictCoords_neuronCoords]
       exact pow_le_pow_left₀ (norm_nonneg _) (norm_restrictCoords_neuronCoords_le i θ) 2
     have ha : |unpackA θ i| ≤ ρp := by
       have h2 : unpackA θ i ^ 2 ≤ ρp ^ 2 := by
-        change θ (idxA i) ^ 2 ≤ ρp ^ 2
+        change θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 ≤ ρp ^ 2
         have := hblock
-        nlinarith [Finset.sum_nonneg fun j (_ : j ∈ Finset.univ) => sq_nonneg (θ (idxW i j)),
+        nlinarith [Finset.sum_nonneg fun j (_ : j ∈ Finset.univ) => sq_nonneg (θ (paramIndexEquiv n d (Sum.inl (i, j)))),
           pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
       exact (sq_le_sq₀ (abs_nonneg _) hρ0).1 (by rwa [sq_abs])
     have hu : |unpackW θ i ⬝ᵥ X α| ≤ ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2) := by
-      have hw : (∑ j : Fin d, θ (idxW i j) ^ 2) ≤ ρp ^ 2 := by
+      have hw : (∑ j : Fin d, θ (paramIndexEquiv n d (Sum.inl (i, j))) ^ 2) ≤ ρp ^ 2 := by
         have := hblock
-        nlinarith [sq_nonneg (θ (idxA i)), pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
+        nlinarith [sq_nonneg (θ (paramIndexEquiv n d (Sum.inr i))), pow_le_pow_left₀ (norm_nonneg θ) hθ' 2]
       have hu2 : |unpackW θ i ⬝ᵥ X α| ^ 2 ≤
           (ρp * Real.sqrt (∑ j : Fin d, X α j ^ 2)) ^ 2 := by
         rw [sq_abs, mul_pow, Real.sq_sqrt (Finset.sum_nonneg fun _ _ => sq_nonneg _)]

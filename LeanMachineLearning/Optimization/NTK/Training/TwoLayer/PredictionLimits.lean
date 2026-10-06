@@ -392,7 +392,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
         hflow hdiff g ht L hK_inf (L⁻¹ *ᵥ kv) kv hLa hJ hK hk t ⟨ht, le_rfl⟩
       have hg' : gradParams φ n d xs θ₀ = g := (tangentFeature_netFromParams_of_differentiable φ
         hφ n d xs θ₀).symm
-      have hreadout : ∀ i : Fin n, |unpackA θ₀ i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)) :=
+      have hreadout : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ Real.sqrt (2 * Real.log (2 * n / δ)) :=
         fun i => by simpa [hθ₀, unpackA_packParams] using hp2 i
       have hdisp := (hallt t ⟨ht, le_rfl⟩).2.2.2
       have htay := abs_netFromParams_sub_linearization_le_of_disp hact hn0 xs hreadout hdisp
@@ -660,7 +660,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
         hνlam hJ hK hk (fun s hs => by simpa [hν] using (horig s hs).2.2.1) t' ht'
       have hg' : gradParams φ n d xs θ₀ = g := (tangentFeature_netFromParams_of_differentiable φ
         hφ n d xs θ₀).symm
-      have hreadout : ∀ i : Fin n, |unpackA θ₀ i| ≤ Real.sqrt (2 * Real.log (2 * n / δ)) :=
+      have hreadout : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ Real.sqrt (2 * Real.log (2 * n / δ)) :=
         fun i => by simpa [hθ₀, unpackA_packParams] using hp2 i
       have hdisp := (hcert t' ht').1
       have htay := abs_netFromParams_sub_linearization_le_of_disp hact hn0 xs hreadout hdisp

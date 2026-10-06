@@ -59,12 +59,12 @@ that the Jacobian Lipschitz
 theorem needs. -/
 private lemma abs_unpackA_le_of_displacement {n d : ℕ}
     (θ θ₀ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (i : Fin n) (R₀ r : ℝ) (h₀ : |unpackA θ₀ i| ≤ R₀) (hr : ‖θ - θ₀‖ ≤ r) :
-    |unpackA θ i| ≤ R₀ + r := by
-  have hproj : |(θ - θ₀).ofLp (idxA i)| ≤ ‖θ - θ₀‖ := by
-    simpa [Real.norm_eq_abs] using PiLp.norm_apply_le (θ - θ₀) (idxA i)
-  have heq : unpackA θ i - unpackA θ₀ i = (θ - θ₀).ofLp (idxA i) := by dsimp [unpackA]
-  have hdiff : |unpackA θ i - unpackA θ₀ i| ≤ r := heq ▸ hproj.trans hr
+    (i : Fin n) (R₀ r : ℝ) (h₀ : |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R₀) (hr : ‖θ - θ₀‖ ≤ r) :
+    |θ (paramIndexEquiv n d (Sum.inr i))| ≤ R₀ + r := by
+  have hproj : |(θ - θ₀).ofLp (paramIndexEquiv n d (Sum.inr i))| ≤ ‖θ - θ₀‖ := by
+    simpa [Real.norm_eq_abs] using PiLp.norm_apply_le (θ - θ₀) (paramIndexEquiv n d (Sum.inr i))
+  have heq : θ (paramIndexEquiv n d (Sum.inr i)) - θ₀ (paramIndexEquiv n d (Sum.inr i)) = (θ - θ₀).ofLp (paramIndexEquiv n d (Sum.inr i)) := by dsimp [unpackA]
+  have hdiff : |θ (paramIndexEquiv n d (Sum.inr i)) - θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ r := heq ▸ hproj.trans hr
   have h1 := abs_le.mp h₀
   have h2 := abs_le.mp hdiff
   rw [abs_le]
@@ -183,9 +183,9 @@ lemma jacobian_ball_bounds_of_initial_bounds
           L_J * ‖θ - packParams p.1 p.2‖) := by
   set θ₀ := packParams p.1 p.2 with hθ₀_def
   set R₀ : ℝ := Real.sqrt (2 * Real.log (2 * n / δ)) with hR₀_def
-  have hR₀_i : ∀ i : Fin n, |unpackA θ₀ i| ≤ R₀ := by
+  have hR₀_i : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ R₀ := by
     intro i
-    have hival : unpackA θ₀ i = p.2 i := by
+    have hival : θ₀ (paramIndexEquiv n d (Sum.inr i)) = p.2 i := by
       rw [hθ₀_def]; exact congrFun (unpackA_packParams p.1 p.2) i
     rw [hival]; exact hp2 i
   -- the Jacobian Lipschitz bound, applied on the ball of radius `r`: the Jacobian is
@@ -196,7 +196,7 @@ lemma jacobian_ball_bounds_of_initial_bounds
       ‖outputJacobian (netFromParams φ n d) X θ -
         outputJacobian (netFromParams φ n d) X θ₀‖ ≤ L_J * ‖θ - θ₀‖ := by
     intro θ hθ
-    have hRθ : ∀ i : Fin n, |unpackA θ i| ≤ R₀ + r :=
+    have hRθ : ∀ i : Fin n, |θ (paramIndexEquiv n d (Sum.inr i))| ≤ R₀ + r :=
       fun i => abs_unpackA_le_of_displacement θ θ₀ i R₀ r (hR₀_i i) hθ
     have hKle := outputJacobian_netFromParams_frobenius_sub_le φ n d m hn X θ θ₀ C₁ C₂ (R₀ + r)
       hC₁_nonneg hC₂_nonneg (by positivity) hφ_lip hC₁_bdd hderiv_lip

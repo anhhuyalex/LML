@@ -77,6 +77,7 @@ public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import LeanMachineLearning.Optimization.Lasso.LCP
 public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Theorems
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Basic
 public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic
