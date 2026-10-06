@@ -105,6 +105,18 @@ lemma packParams_apply_idxA {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n
   dsimp [packParams]
   rw [paramIndexEquiv_symm_idxA]
 
+/-- The hidden-weight row recovered from `packParams`; this function equality rewrites dot
+products directly. -/
+lemma packParams_weight_row {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (i : Fin n) :
+    (fun j => packParams W a (paramIndexEquiv n d (Sum.inl (i, j)))) = W i := by
+  ext j
+  exact packParams_apply_idxW W a i j
+
+/-- The readout coordinate recovered from `packParams`. -/
+lemma packParams_readout {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (i : Fin n) :
+    packParams W a (paramIndexEquiv n d (Sum.inr i)) = a i :=
+  packParams_apply_idxA W a i
+
 /-- Unpacking the weights of a packed parameter vector returns `W`. -/
 @[simp]
 lemma unpackW_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
@@ -286,16 +298,19 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
     (fun i _ => h_mul i)
   have h_sum_fun :
       (∑ i ∈ (Finset.univ : Finset (Fin n)),
-        fun θ' => θ' (paramIndexEquiv n d (Sum.inr i)) *
+        fun (θ' : EuclideanSpace ℝ (Fin (n * d + n))) =>
+          θ' (paramIndexEquiv n d (Sum.inr i)) *
           φ ((fun j => θ' (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) =
-      (fun θ' => ∑ i : Fin n, θ' (paramIndexEquiv n d (Sum.inr i)) *
+      (fun (θ' : EuclideanSpace ℝ (Fin (n * d + n))) =>
+        ∑ i : Fin n, θ' (paramIndexEquiv n d (Sum.inr i)) *
         φ ((fun j => θ' (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
     ext θ'
     simp only [Finset.sum_apply]
   rw [h_sum_fun] at h_sum
   have h_scaled := h_sum.const_smul (n : ℝ)⁻¹.sqrt
   have h_net_eq :
-      (n : ℝ)⁻¹.sqrt • (fun θ' => ∑ i : Fin n, θ' (paramIndexEquiv n d (Sum.inr i)) *
+      (n : ℝ)⁻¹.sqrt • (fun (θ' : EuclideanSpace ℝ (Fin (n * d + n))) =>
+        ∑ i : Fin n, θ' (paramIndexEquiv n d (Sum.inr i)) *
         φ ((fun j => θ' (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) =
       netFromParams φ n d x := by
     ext θ'
@@ -512,7 +527,8 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
     rw [Real.sq_sqrt]
     positivity
   rw [outputJacobian_netFromParams_frobenius_norm_sq φ n d m X (packParams W a) (by
-    simpa only [unpackW_packParams] using hφ)]
+    intro α i
+    simpa only [packParams_weight_row] using hφ α i)]
   rw [Finset.mul_sum, ← Finset.sum_add_distrib]
   apply Finset.sum_le_sum
   intro α hα
@@ -534,7 +550,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
           intro j hj
           have hpre_nonneg : 0 ≤ (n : ℝ)⁻¹ * a i ^ 2 * X α j ^ 2 := by positivity
           dsimp [gradW]
-          simp only [unpackA_packParams, unpackW_packParams]
+          rw [packParams_readout, packParams_weight_row]
           rw [mul_pow, mul_pow, mul_pow, hroot_sq]
           nlinarith
       _ = (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
@@ -543,7 +559,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
         rw [Finset.mul_sum]
   have hA : gradA φ n d (X α) (packParams W a) i ^ 2 ≤ (n : ℝ)⁻¹ * C₀ ^ 2 := by
     dsimp [gradA]
-    simp only [unpackW_packParams]
+    rw [packParams_weight_row]
     rw [mul_pow, hroot_sq]
     exact mul_le_mul_of_nonneg_left hφ_sq (by positivity)
   calc
@@ -618,7 +634,8 @@ lemma outputJacobian_netFromParams_norm_sq_le_energies
   have hroot_sq : ((n : ℝ)⁻¹.sqrt) ^ 2 = (n : ℝ)⁻¹ := by
     rw [Real.sq_sqrt]; positivity
   rw [outputJacobian_netFromParams_frobenius_norm_sq φ n d m X (packParams W a) (by
-    simpa only [unpackW_packParams] using hφ)]
+    intro α i
+    simpa only [packParams_weight_row] using hφ α i)]
   have hterm : ∀ α : Fin m, ∀ i : Fin n,
       (∑ j : Fin d, gradW φ n d (X α) (packParams W a) i j ^ 2) +
         gradA φ n d (X α) (packParams W a) i ^ 2 ≤
@@ -633,14 +650,14 @@ lemma outputJacobian_netFromParams_norm_sq_le_energies
             refine Finset.sum_le_sum fun j _ => ?_
             have hpre : 0 ≤ (n : ℝ)⁻¹ * a i ^ 2 * X α j ^ 2 := by positivity
             dsimp [gradW]
-            simp only [unpackA_packParams, unpackW_packParams]
+            rw [packParams_readout, packParams_weight_row]
             rw [mul_pow, mul_pow, mul_pow, hroot_sq]
             nlinarith
         _ = (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
             simp only [← Finset.mul_sum]
     have hA : gradA φ n d (X α) (packParams W a) i ^ 2 = (n : ℝ)⁻¹ * φ (W i ⬝ᵥ X α) ^ 2 := by
       dsimp [gradA]
-      simp only [unpackW_packParams]
+      rw [packParams_weight_row]
       rw [mul_pow, hroot_sq]
     rw [hA]
     nlinarith

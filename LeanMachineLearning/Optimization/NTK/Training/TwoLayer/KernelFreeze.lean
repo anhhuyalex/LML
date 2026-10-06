@@ -119,7 +119,7 @@ lemma exists_measurableSet_initial_jacobian_and_readout_bounds
         exact outputJacobian_netFromParams_frobenius_norm_sq φ n d m X (packParams p.1 p.2)
           (fun α i => hφ.differentiableAt)
       rw [heq]
-      simp only [gradW, gradA, unpackW_packParams, unpackA_packParams]
+      simp_rw [gradW, gradA, packParams_weight_row, packParams_readout]
       refine Measurable.add ?_ ?_
       · exact Finset.measurable_sum _ (fun α _ => Finset.measurable_sum _ (fun i _ =>
           Finset.measurable_sum _ (fun j _ => (((measurable_const.mul

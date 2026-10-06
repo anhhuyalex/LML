@@ -54,8 +54,8 @@ bounded in probability by Markov's inequality (`exists_neuronMoment_event`), giv
 section SharpKernelDrift
 variable {n d m : ℕ}
 
-/-- Coordinates of neuron `i` in the packed parameter vector: the readout `paramIndexEquiv n d (Sum.inr i)` (`none`) and
-the hidden weights `paramIndexEquiv n d (Sum.inl (i, j))` (`some j`). -/
+/-- Coordinates of neuron `i` in the packed parameter vector: the readout coordinate (`none`) and
+the hidden-weight coordinates (`some j`). -/
 def neuronCoords (n d : ℕ) (i : Fin n) : Option (Fin d) → Fin (n * d + n)
   | none => paramIndexEquiv n d (Sum.inr i)
   | some j => paramIndexEquiv n d (Sum.inl (i, j))

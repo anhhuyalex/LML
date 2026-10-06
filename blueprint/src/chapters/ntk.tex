@@ -393,8 +393,6 @@ Multiplying by $x^\top x'$ gives the result.
 \section{Universal approximation via the NTK RKHS}\label{sec:ntk:universal}
 
 \begin{definition}[NTK domain]\label{def:ntk:domain}
-  \lean{NTK.ntkDomain}
-  \leanok
 The \emph{NTK domain} is the set
 \[
   \mathcal{X} := \bigl\{x \in \mathbb{R}^d : \|x\| = 1,\; x_d = 1/\sqrt{2}\bigr\}.
@@ -427,7 +425,7 @@ All Maclaurin series coefficients of $\tilde{f}(z)$ are strictly positive.
 \end{lemma}
 
 \begin{proof}
-\textbf{(Not formalized for the true coefficients: the Lean definition \texttt{reducedKernelCoeff} is a closed-form placeholder, $c_0=\frac18$ and $c_n=\frac1{2\pi}\binom{2n}{n}\big/\bigl(4^n(2n+1)(n!)^2\bigr)$ for $n\ge1$, which does not equal the Maclaurin coefficient of $\tilde f$; for instance $\tilde f(0)=\frac14-\frac12\cdot\frac{\pi/3}{2\pi}=\frac16\ne\frac18$. Its positivity lemma is moreover \texttt{sorry}. This proof carries no \texttt{\textbackslash leanok}.)}
+\textbf{(Not formalized for the true coefficients: the current Lean statement uses a closed-form placeholder, $c_0=\frac18$ and $c_n=\frac1{2\pi}\binom{2n}{n}\big/\bigl(4^n(2n+1)(n!)^2\bigr)$ for $n\ge1$, which does not equal the Maclaurin coefficient of $\tilde f$; for instance $\tilde f(0)=\frac14-\frac12\cdot\frac{\pi/3}{2\pi}=\frac16\ne\frac18$. Its positivity lemma is moreover \texttt{sorry}. This proof carries no \texttt{\textbackslash leanok}.)}
 Since $\pi-\arccos t=\frac\pi2+\arcsin t$, we have $\tilde f(z)=g(z+\tfrac12)$ with $g(t)=\frac t4+\frac{t\arcsin t}{2\pi}$. The function $\arcsin$ has a Maclaurin series with nonnegative coefficients and is analytic on $|t|<1$, so $\arcsin^{(k)}(t)>0$ for all $k\ge0$ and $t\in(0,1)$. By the Leibniz rule, $(t\arcsin t)^{(n)}=t\arcsin^{(n)}(t)+n\arcsin^{(n-1)}(t)>0$ for $n\ge1$ and $t\in(0,1)$; hence $g^{(n)}(\tfrac12)>0$ for every $n\ge0$. The Maclaurin coefficients of $\tilde f$ at $z=0$ are $g^{(n)}(\tfrac12)/n!>0$.
 \end{proof}
 

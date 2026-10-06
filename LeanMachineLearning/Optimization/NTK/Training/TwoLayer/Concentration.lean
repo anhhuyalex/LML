@@ -70,8 +70,8 @@ private lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0
     (packParams (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1
                 (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2)
     (fun _ _ => hφ_diff.differentiableAt) α β
+  simp_rw [packParams_weight_row, packParams_readout] at h
   rw [h]
-  simp only [unpackW_packParams, unpackA_packParams]
   have h_prod : (d : ℝ)⁻¹ * (X α ⬝ᵥ X β) =
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) :=
     (dotProduct_scaled_dataset d hd (X α) (X β)).symm

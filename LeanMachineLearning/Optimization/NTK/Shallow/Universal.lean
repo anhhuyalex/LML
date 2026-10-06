@@ -33,7 +33,6 @@ The argument proceeds in three steps:
 
 ## Main definitions
 
-* `NTK.ntkDomain` : `𝒳 = {x ∈ ℝᵈ : ‖x‖₂ = 1, xᵈ₋₁ = 1/√2}`.
 * `NTK.RKHSClass` : `ℋ` — the NTK RKHS predictor class.
 * `NTK.isUniversal` : Theorem 4.1 — `ℋ` is a universal approximator over `𝒳`.
 
@@ -54,30 +53,17 @@ namespace NTK
 
 variable {d : ℕ}
 
-/-! ### NTK domain (Definition 4.7) -/
-
-/-- **Definition 4.7** (NTK domain).
-The *NTK domain* is the compact subset of the unit sphere in `ℝᵈ` obtained by
-fixing the last coordinate to `1/√2`:
-  `𝒳 = {x ∈ ℝᵈ : ‖x‖₂ = 1, xᵈ₋₁ = 1/√2}`.
-
-Fixing the last coordinate plays the role of an implicit bias: it ensures that
-the ReLU NTK `k(x,x') = (xᵀx')(π − arccos(xᵀx'))/(2π)` restricted to `𝒳`
-has all-positive Maclaurin coefficients, making it a universal kernel.
-
-The Euclidean norm is encoded as `x ⬝ᵥ x = 1` rather than Lean's default norm on
-the raw function type `Fin d → ℝ`. -/
-def ntkDomain (d : ℕ) : Set (Fin d → ℝ) :=
-  {x | x ⬝ᵥ x = 1 ∧
-    (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}
-
-/-- The NTK domain is a subset of the Euclidean unit sphere. -/
+/-- The NTK sphere slice is a subset of the Euclidean unit sphere. -/
 lemma ntkDomain_subset_sphere (d : ℕ) :
-    ntkDomain d ⊆ {x : Fin d → ℝ | x ⬝ᵥ x = 1} :=
+    {x : Fin d → ℝ | x ⬝ᵥ x = 1 ∧
+      (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)} ⊆
+      {x | x ⬝ᵥ x = 1} :=
   fun _ hx => hx.1
 
 /-- The NTK domain is compact (closed subset of the unit sphere in ℝᵈ). -/
-lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
+lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) :
+    IsCompact {x : Fin d → ℝ | x ⬝ᵥ x = 1 ∧
+      (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)} := by
   sorry
 
 /-! ### The (d-1)-dimensional ball that is isomorphic to the NTK domain -/
@@ -88,8 +74,12 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) : IsCompact (ntkDomain d) := by
 `shallowLimitingNTK reluIndicator x x'`. -/
 lemma reducedReluFormula_eq_shallowLimitingNTK
     (d : ℕ) (x x' : Fin (d + 1) → ℝ)
-    (hx : x ∈ ntkDomain (d + 1))
-    (hx' : x' ∈ ntkDomain (d + 1)) :
+    (hx : x ∈ {x | x ⬝ᵥ x = 1 ∧
+      (∃ hd : 0 < d + 1,
+        x ⟨d + 1 - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)})
+    (hx' : x' ∈ {x | x ⬝ᵥ x = 1 ∧
+      (∃ hd : 0 < d + 1,
+        x ⟨d + 1 - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}) :
     ((fun k : Fin d => x k.castSucc) ⬝ᵥ (fun k : Fin d => x' k.castSucc) + 1 / 2) / 2 -
       ((fun k : Fin d => x k.castSucc) ⬝ᵥ (fun k : Fin d => x' k.castSucc) + 1 / 2) *
         Real.arccos
@@ -105,7 +95,8 @@ lemma reducedReluFormula_eq_shallowLimitingNTK
 where `k` is the ReLU limiting NTK. -/
 def RKHSClass (d : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
   { h | ∃ (n : ℕ) (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ),
-          (∀ j, pts j ∈ ntkDomain d) ∧
+          (∀ j, pts j ∈ {x | x ⬝ᵥ x = 1 ∧
+            (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}) ∧
           h = fun x => ∑ j : Fin n, α j * shallowLimitingNTK reluIndicator x (pts j) }
 
 /-- The zero function belongs to `ℋ` (via the empty sum). -/
@@ -127,28 +118,25 @@ lemma RKHSClass_add (d : ℕ) {h₁ h₂ : (Fin d → ℝ) → ℝ}
   refine ⟨n₁ + n₂, Fin.append α₁ α₂, Fin.append pts₁ pts₂, ?_, ?_⟩
   · intro j
     induction j using Fin.addCases with
-    | left i => simp [hmem₁]
-    | right i => simp [hmem₂]
+    | left i => simpa using hmem₁ i
+    | right i => simpa using hmem₂ i
   · ext x
     simp [Fin.sum_univ_add, Fin.append]
 
 /-! ### Universality criterion for dot-product kernels -/
 
-/-- The power series coefficients of `f_tilde(z) = (z+1/2)/2 − (z+1/2)arccos(z+1/2)/(2π)`.
+/- The power series coefficients of `f_tilde(z) = (z+1/2)/2 − (z+1/2)arccos(z+1/2)/(2π)`.
 These determine whether the reduced kernel `k_tilde(u,u') = f_tilde(u·u')` is universal.
 By the criterion of Steinwart-Christmann 2008 (Corollary 4.57), a dot-product kernel
 is universal on a bounded domain iff all its series coefficients are strictly positive. -/
-noncomputable def reducedKernelCoeff (n : ℕ) : ℝ :=
-  -- The coefficient of zⁿ in the Maclaurin series of f_tilde.
-  -- NOTE: a placeholder. The true constant term is f_tilde(0) = 1/4 − (1/2)(π/3)/(2π) = 1/6, not
-  -- 1/8.
-  -- For n ≥ 1: comes from the Maclaurin series of arccos shifted by 1/2.
-  if n = 0 then 1 / 8
-  else 1 / (2 * Real.pi) *
-    ((2 * n).choose n : ℝ) / (4 ^ n * (2 * n + 1) * n.factorial ^ 2)
+/-- Positivity of the current closed-form placeholder for a reduced-kernel coefficient.
 
-/-- All Maclaurin coefficients of `f_tilde` are strictly positive. -/
-lemma reducedKernelCoeff_pos (n : ℕ) : 0 < reducedKernelCoeff n := by
+The true Maclaurin coefficients have not yet been formalized; this named lemma isolates that
+temporary proof obligation without adding a public name for its one-use expression. -/
+lemma reducedKernelCoeff_pos (n : ℕ) : 0 <
+    (if n = 0 then 1 / 8 else
+      1 / (2 * Real.pi) * ((2 * n).choose n : ℝ) /
+        (4 ^ n * (2 * n + 1) * n.factorial ^ 2)) := by
   sorry
 
 /-! ### Universal approximation theorem (Theorem 4.1) -/
@@ -167,10 +155,13 @@ for every continuous `g : 𝒳 → ℝ` and `ε > 0`, there exists `h ∈ ℋ` w
 - Transfer back to `𝒳` via the bijection. -/
 theorem isUniversal (d : ℕ) (hd : 0 < d) :
     ∀ g : (Fin d → ℝ) → ℝ,
-      ContinuousOn g (ntkDomain d) →
+      ContinuousOn g {x | x ⬝ᵥ x = 1 ∧
+        (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)} →
       ∀ ε > 0,
         ∃ h ∈ RKHSClass d,
-          ∀ x ∈ ntkDomain d, |g x - h x| ≤ ε := by
+          ∀ x ∈ {x | x ⬝ᵥ x = 1 ∧
+            (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)},
+            |g x - h x| ≤ ε := by
   sorry
 
 /-! ### Connection to overparameterized networks -/
@@ -196,7 +187,9 @@ theorem rkhs_approx_by_network
           0 1),
         ∃ W : Fin m → Fin d → ℝ,
           Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B ∧
-          ∀ x ∈ ntkDomain d, |net.eval x W - h x| ≤ ε := by
+          ∀ x ∈ {x | x ⬝ᵥ x = 1 ∧
+            (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)},
+            |net.eval x W - h x| ≤ ε := by
   sorry
 
 end NTK

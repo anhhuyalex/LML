@@ -90,7 +90,7 @@ lemma measurable_empiricalNTKMatrix_netFromParams_packParams
     ext p
     have h := empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m X
       (packParams p.1 p.2) (fun _ _ => hφ_diff.differentiableAt) α β
-    simp only [unpackW_packParams, unpackA_packParams] at h
+    simp_rw [packParams_weight_row, packParams_readout] at h
     exact h
   rw [h_eq]
   refine Measurable.const_mul ?_ _
