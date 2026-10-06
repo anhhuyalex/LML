@@ -41,8 +41,6 @@ open scoped Matrix
 
 variable {Ω p n : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [Fintype p] [Fintype n]
 
-variable {Ω p n : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [Fintype p] [Fintype n]
-
 /-- Quadratic forms of a square-integrable random vector integrate against its second-moment
 matrix. -/
 theorem integral_dotProduct_mulVec_self (x : Ω → p → ℝ) (hx : ∀ j, MemLp (fun ω => x ω j) 2 μ)
@@ -134,6 +132,15 @@ theorem risk_eq_bias_add_variance [IsProbabilityMeasure μ] (Sigma : Matrix p p 
     Matrix.trace_vecMulVec, dotProduct_comm, add_comm]
 
 
+omit [Fintype p] in
+/-- Entries of `M Γ Mᵀ` are bilinear forms in the rows of `M`: `M j ⬝ Γ (M k) = (M Γ Mᵀ) j k`. -/
+private theorem dotProduct_mulVec_row_eq (M : Matrix p n ℝ) (Γ : Matrix n n ℝ) (j k : p) :
+    M j ⬝ᵥ (Γ *ᵥ M k) = (M * Γ * Mᵀ) j k := by
+  simp only [Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.transpose_apply, Finset.sum_mul,
+    Finset.mul_sum]
+  rw [Finset.sum_comm]
+  simp_rw [mul_assoc]
+
 /-- **Exact conditional bias–variance decomposition for a linear estimator** `θ̂ = M (X θ⋆ + ε)`
 with centered noise of covariance `Γ`: the bias is `‖(M X - I) θ⋆‖²_Σ` and the variance is
 `Tr (M Γ Mᵀ Σ)`; in particular `R = B + V`. -/
@@ -185,10 +192,7 @@ theorem linearEstimator_bias_variance [DecidableEq p] (M : Matrix p n ℝ) (X : 
       rfl
     simp_rw [hpt]
     rw [this]
-    simp only [Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.transpose_apply,
-      Finset.sum_mul, Finset.mul_sum]
-    rw [Finset.sum_comm]
-    simp_rw [mul_assoc]
+    exact dotProduct_mulVec_row_eq M Γ j k
   exact ⟨hbias, hvar, by rw [risk_eq_bias_add_variance Sigma β_hat θ hβ_mem, hbias, hvar]⟩
 
 
