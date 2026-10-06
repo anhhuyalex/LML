@@ -68,8 +68,10 @@ theorem mseLoss_linear (Z : Matrix (Fin m) (Fin n) ℝ) (y : EuclideanSpace ℝ 
 
 section FeatureBottleneck
 
-variable (Z : Matrix (Fin m) (Fin n) ℝ) (hZ : IsUnit (Zᵀ * Z).det)
-  (y : EuclideanSpace ℝ (Fin m))
+variable {m n : Type*} [Fintype m] [Fintype n] [DecidableEq n]
+
+variable (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det)
+  (y : EuclideanSpace ℝ m)
 
 include hZ
 
@@ -83,16 +85,16 @@ private theorem transpose_mulVec_residual_leftInverse :
 /-- **Pythagoras for the left-inverse fit.** For the left-inverse coefficients
 `η̂ = (Zᵀ Z)⁻¹ Zᵀ y`, every `η` has `‖Z η - y‖² = ‖Z η̂ - y‖² + ‖Z (η - η̂)‖²`, since the residual
 `Z η̂ - y` is orthogonal to the range of `Z`. -/
-theorem norm_sq_residual_eq_leftInverse_add (η : EuclideanSpace ℝ (Fin n)) :
+theorem norm_sq_residual_eq_leftInverse_add (η : EuclideanSpace ℝ n) :
     ‖WithLp.toLp 2 (Z *ᵥ η.ofLp) - y‖ ^ 2 =
       ‖WithLp.toLp 2 (Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) - y‖ ^ 2 +
         ‖(WithLp.toLp 2 (Z *ᵥ (η.ofLp - (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp))) :
-          EuclideanSpace ℝ (Fin m))‖ ^ 2 := by
-  set a : EuclideanSpace ℝ (Fin m) :=
+          EuclideanSpace ℝ m)‖ ^ 2 := by
+  set a : EuclideanSpace ℝ m :=
     WithLp.toLp 2 (Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) - y with ha
-  set b : EuclideanSpace ℝ (Fin m) :=
+  set b : EuclideanSpace ℝ m :=
     WithLp.toLp 2 (Z *ᵥ (η.ofLp - (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp))) with hb
-  have hsplit : (WithLp.toLp 2 (Z *ᵥ η.ofLp) : EuclideanSpace ℝ (Fin m)) - y = a + b := by
+  have hsplit : (WithLp.toLp 2 (Z *ᵥ η.ofLp) : EuclideanSpace ℝ m) - y = a + b := by
     ext i
     simp [ha, hb, Matrix.mulVec_sub]
   have horth : ⟪a, b⟫ = 0 := by
@@ -103,11 +105,12 @@ theorem norm_sq_residual_eq_leftInverse_add (η : EuclideanSpace ℝ (Fin n)) :
   ring
 
 omit hZ in
+variable [DecidableEq m] in
 /-- **The residual of the left-inverse fit is the orthogonal-projection residual:**
 `‖Z η̂ - y‖ = ‖(I - P_Z) y‖` with `P_Z = Z (Zᵀ Z)⁻¹ Zᵀ` the Gram projector. -/
 theorem norm_sq_residual_leftInverse :
     ‖WithLp.toLp 2 (Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) - y‖ =
-      ‖(WithLp.toLp 2 ((1 - gramProjector Z) *ᵥ y.ofLp) : EuclideanSpace ℝ (Fin m))‖ := by
+      ‖(WithLp.toLp 2 ((1 - gramProjector Z) *ᵥ y.ofLp) : EuclideanSpace ℝ m)‖ := by
   rw [← norm_neg (WithLp.toLp 2 ((1 - gramProjector Z) *ᵥ y.ofLp))]
   congr 1
   ext i
@@ -117,7 +120,7 @@ theorem norm_sq_residual_leftInverse :
 left-inverse coefficients `(Zᵀ Z)⁻¹ Zᵀ y` minimize the residual norm `‖Z η - y‖`, equivalently
 `NTK.mseLoss` of the linear model (`mseLoss_linear`). -/
 theorem leftInverse_isMinOn :
-    IsMinOn (fun η : EuclideanSpace ℝ (Fin n) => ‖WithLp.toLp 2 (Z *ᵥ η.ofLp) - y‖) Set.univ
+    IsMinOn (fun η : EuclideanSpace ℝ n => ‖WithLp.toLp 2 (Z *ᵥ η.ofLp) - y‖) Set.univ
       (WithLp.toLp 2 (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) := isMinOn_iff.mpr fun η _ => by
   refine le_of_pow_le_pow_left₀ two_ne_zero (norm_nonneg _) ?_
   rw [norm_sq_residual_eq_leftInverse_add Z hZ y η]
@@ -126,13 +129,13 @@ theorem leftInverse_isMinOn :
 /-- **Feature-bottleneck estimator is the unique minimizer.** If `Zᵀ Z` is invertible, any
 coefficient vector whose residual norm is at most that of `(Zᵀ Z)⁻¹ Zᵀ y` equals it, because `Z` is
 injective. -/
-theorem eq_leftInverse_of_norm_residual_le (η : EuclideanSpace ℝ (Fin n))
+theorem eq_leftInverse_of_norm_residual_le (η : EuclideanSpace ℝ n)
     (h : ‖WithLp.toLp 2 (Z *ᵥ η.ofLp) - y‖ ≤
       ‖WithLp.toLp 2 (Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp)) - y‖) :
     η = WithLp.toLp 2 (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp) := by
   have h2 := norm_sq_residual_eq_leftInverse_add Z hZ y η
-  set v : Fin n → ℝ := η.ofLp - ((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp with hv
-  have hN : ‖(WithLp.toLp 2 (Z *ᵥ v) : EuclideanSpace ℝ (Fin m))‖ ^ 2 ≤ 0 := by
+  set v : n → ℝ := η.ofLp - ((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp with hv
+  have hN : ‖(WithLp.toLp 2 (Z *ᵥ v) : EuclideanSpace ℝ m)‖ ^ 2 ≤ 0 := by
     nlinarith [pow_le_pow_left₀ (norm_nonneg _) h 2]
   have hZv : Z *ᵥ v = 0 := by
     have := norm_eq_zero.mp (sq_eq_zero_iff.mp (le_antisymm hN (sq_nonneg _)))

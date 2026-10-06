@@ -565,7 +565,7 @@ theorem tendsto_measure_test_linearization_error_finite_horizon
     rw [hflow.init]
     exact abs_netFromParams_sub_linearization_le_of_disp hact hn0
       (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j)
-      (fun i => by simpa [unpackA_packParams] using hp2 i) hdisp
+      (fun i => by simpa only [packParams_readout] using hp2 i) hdisp
 
 /-- **Linearization error at a test input, in probability on `[0, ∞)` from a positive gap.**
 The test-point counterpart of `tendsto_measure_linearization_error_global_positive_gap`: for every
@@ -620,7 +620,7 @@ theorem tendsto_measure_test_linearization_error_global_positive_gap
     rw [hflow.init]
     exact abs_netFromParams_sub_linearization_le_of_disp hact hn0
       (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j)
-      (fun i => by simpa [unpackA_packParams] using hp2 i) hdisp
+      (fun i => by simpa only [packParams_readout] using hp2 i) hdisp
 
 end
 
