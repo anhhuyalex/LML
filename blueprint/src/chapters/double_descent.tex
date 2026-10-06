@@ -242,7 +242,9 @@ injective since $Z^\top Z$ is invertible.
 \end{proof}
 
 
-\section{Feature bottleneck: $\delta<\min\{1,\gamma\}$}\label{sec:dd:feature}
+\section{Feature bottleneck}\label{sec:dd:feature}
+
+This regime is $\delta<\min\{1,\gamma\}$: fewer features than both samples and ambient dimensions.
 
 \begin{lemma}[Variance trace reduction]\label{lem:dd:featureTrace}
   \uses{lem:dd:leftInverse}
@@ -321,7 +323,9 @@ $(n_0/m,n/m)$ on $\{\gamma\neq0,\delta\ne1\}$.
 \end{proof}
 
 
-\section{Ambient bottleneck: $\gamma<1$, $\gamma\le\delta$}\label{sec:dd:ambient}
+\section{Ambient bottleneck}\label{sec:dd:ambient}
+
+This regime is $\gamma<1$, $\gamma\le\delta$: the ambient dimension is the bottleneck.
 
 \begin{lemma}[Subspace saturation]\label{lem:dd:saturation}
   \lean{LinearRegression.DoubleDescent.range_mulVecLin_mul_eq}
@@ -381,7 +385,9 @@ Remark~\ref{rmk:dd:wishartRole}, the identification of $\operatorname{Tr}(X^\top
 \end{remark}
 
 
-\section{Sample bottleneck: $\gamma,\delta>1$}\label{sec:dd:sample}
+\section{Sample bottleneck}\label{sec:dd:sample}
+
+This regime is $\gamma,\delta>1$: more ambient dimensions and features than samples.
 
 \begin{theorem}[The random-feature predictor interpolates the training data]\label{thm:dd:sampleInterpolates}
   \uses{lem:dd:rightInverse}

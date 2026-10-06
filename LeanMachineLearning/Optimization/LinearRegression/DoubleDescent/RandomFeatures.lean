@@ -128,9 +128,9 @@ variable (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det)
 include hZ
 
 /-- Normal equations: the residual of the left-inverse fit is orthogonal to the columns of `Z`,
-`Zᵀ (Z η̂ - y) = 0` for `η̂ = (Zᵀ Z)⁻¹ Zᵀ y`. -/
-private theorem transpose_mulVec_residual_leftInverse :
-    Zᵀ *ᵥ (Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp) - y.ofLp) = 0 := by
+`Zᵀ (Z η̂ - y) = 0` for `η̂ = (Zᵀ Z)⁻¹ Zᵀ y`, for a plain vector `y : m → ℝ`. -/
+theorem transpose_mulVec_residual_leftInverse (y : m → ℝ) :
+    Zᵀ *ᵥ (Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y) - y) = 0 := by
   rw [Matrix.mulVec_sub, Matrix.mulVec_mulVec, Matrix.mulVec_mulVec, ← Matrix.mul_assoc,
     Matrix.mul_nonsing_inv _ hZ, Matrix.one_mul, sub_self]
 
@@ -152,9 +152,17 @@ theorem norm_sq_residual_eq_leftInverse_add (η : EuclideanSpace ℝ n) :
   have horth : ⟪a, b⟫ = 0 := by
     have ha' : a.ofLp = Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y.ofLp) - y.ofLp := by simp [ha]
     rw [real_inner_eq_dotProduct, ha', hb, WithLp.ofLp_toLp, Matrix.dotProduct_mulVec,
-      ← Matrix.mulVec_transpose, transpose_mulVec_residual_leftInverse Z hZ y, zero_dotProduct]
+      ← Matrix.mulVec_transpose, transpose_mulVec_residual_leftInverse Z hZ y.ofLp, zero_dotProduct]
   rw [hsplit, norm_add_sq_real, horth]
   ring
+
+omit hZ in
+/-- The Gram projector residual is the left-inverse fit residual:
+`(1 - P_Z) y = y - Z (Zᵀ Z)⁻¹ Zᵀ y`, for a plain vector `y : m → ℝ`. -/
+theorem one_sub_gramProjector_mulVec [DecidableEq m] (y : m → ℝ) :
+    (1 - gramProjector Z) *ᵥ y = y - Z *ᵥ (((Zᵀ * Z)⁻¹ * Zᵀ) *ᵥ y) := by
+  simp only [Matrix.sub_mulVec, Matrix.one_mulVec, gramProjector, Matrix.mulVec_mulVec,
+    Matrix.mul_assoc]
 
 omit hZ in
 variable [DecidableEq m] in
@@ -166,7 +174,7 @@ theorem norm_sq_residual_leftInverse :
   rw [← norm_neg (WithLp.toLp 2 ((1 - gramProjector Z) *ᵥ y.ofLp))]
   congr 1
   ext i
-  simp [gramProjector, Matrix.sub_mulVec, ← Matrix.mulVec_mulVec]
+  simp [one_sub_gramProjector_mulVec]
 
 /-- **Feature-bottleneck estimator is a global minimizer.** If `Zᵀ Z` is invertible, the
 left-inverse coefficients `(Zᵀ Z)⁻¹ Zᵀ y` minimize the residual norm `‖Z η - y‖`, equivalently
