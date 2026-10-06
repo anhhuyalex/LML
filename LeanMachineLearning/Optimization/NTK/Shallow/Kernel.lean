@@ -41,8 +41,8 @@ needs the two-dimensional Gaussian computation from `NTK.ReLU.ArcCosine`.
 * `NTK.ntk_convergence` : almost sure convergence `kₘ(x,x') → k(x,x')` (SLLN).
 * `NTK.reluNTK_closedForm` (in `NTK.ReLU.ClosedForm`) : closed form
   `k(x,x') = xᵀx'·(π−arccos(xᵀx'))/(2π)` for ReLU.
-* `NTK.trainingOutputs` (and the rest of this list, in `NTK.Shallow.DatasetNTK`) : the vector
-  `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ` of predictions on the training dataset.
+* The explicit vector `fun α ↦ f (X α) θ` (and the rest of this list, in
+  `NTK.Shallow.DatasetNTK`) represents predictions on the training dataset.
 * `NTK.trainingResidual` : the residual error vector `r(θ) = f(θ) - y`.
 * `NTK.mseLoss` : the empirical MSE loss objective `L(θ) = (1 / 2m) ‖r(θ)‖²`.
 * `NTK.tangentFeature` : the sensitivity vector `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`.

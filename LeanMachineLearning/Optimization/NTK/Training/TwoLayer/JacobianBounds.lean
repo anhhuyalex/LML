@@ -382,7 +382,8 @@ theorem norm_trainingOutputs_netFromParams_sub_linearization_le
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
     (ha : ∀ i : Fin n, |unpackA θ₀ i| ≤ R) :
-    ‖trainingOutputs (netFromParams φ n d) X θ - trainingOutputs (netFromParams φ n d) X θ₀ -
+    ‖WithLp.toLp 2 (fun α => netFromParams φ n d (X α) θ) -
+        WithLp.toLp 2 (fun α => netFromParams φ n d (X α) θ₀) -
         WithLp.toLp 2 (outputJacobian (netFromParams φ n d) X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤
       (Real.sqrt (∑ α : Fin m, (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
         3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2))) / Real.sqrt (n : ℝ)) / 2 * ‖θ - θ₀‖ ^ 2 :=
@@ -417,7 +418,7 @@ theorem abs_netFromParams_sub_linearization_le
   have hcoord : ∀ v : EuclideanSpace ℝ (Fin 1), ‖v‖ = |v 0| := fun v => by
     simp [EuclideanSpace.norm_eq, Real.sqrt_sq_eq_abs]
   rw [hcoord] at h
-  simp only [trainingOutputs, PiLp.sub_apply, Finset.univ_unique, Fin.default_eq_zero,
+  simp only [PiLp.sub_apply, Finset.univ_unique, Fin.default_eq_zero,
     Finset.sum_singleton] at h
   convert h using 2
   simp only [outputJacobian, Matrix.mulVec_apply, dotProduct, tangentFeature, PiLp.inner_apply]

@@ -218,7 +218,8 @@ Jacobian is `L`-Lipschitz at `θ₀` on the closed ball of radius `r` around `θ
 (`‖J θ - J θ₀‖ ≤ L ‖θ - θ₀‖`, Frobenius norm) and each output is differentiable there, then for
 `‖θ - θ₀‖ ≤ r`
 `‖f(θ) - f(θ₀) - J(θ₀) (θ - θ₀)‖ ≤ (L / 2) ‖θ - θ₀‖²`. This is
-`norm_sub_sub_fderiv_le_of_lipschitz_fderiv` for `G = trainingOutputs`, with `G' z` the linear map
+`norm_sub_sub_fderiv_le_of_lipschitz_fderiv` for the explicit output vector, with `G' z` the
+linear map
 `v ↦ J(z) v` (its operator norm is at most the Frobenius norm, `mulVec_frobenius_norm_le`). -/
 theorem norm_trainingOutputs_sub_linearization_le
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (θ₀ : EuclideanSpace ℝ (Fin P)) (r L : ℝ)
@@ -227,9 +228,10 @@ theorem norm_trainingOutputs_sub_linearization_le
     (hJ_lip : ∀ θ : EuclideanSpace ℝ (Fin P), ‖θ - θ₀‖ ≤ r →
       ‖outputJacobian f X θ - outputJacobian f X θ₀‖ ≤ L * ‖θ - θ₀‖)
     {θ : EuclideanSpace ℝ (Fin P)} (hθ : ‖θ - θ₀‖ ≤ r) :
-    ‖trainingOutputs f X θ - trainingOutputs f X θ₀ -
+    ‖WithLp.toLp 2 (fun α => f (X α) θ) - WithLp.toLp 2 (fun α => f (X α) θ₀) -
         WithLp.toLp 2 (outputJacobian f X θ₀ *ᵥ (θ - θ₀).ofLp)‖ ≤ L / 2 * ‖θ - θ₀‖ ^ 2 := by
-  have h := norm_sub_sub_fderiv_le_of_lipschitz_fderiv (G := trainingOutputs f X)
+  have h := norm_sub_sub_fderiv_le_of_lipschitz_fderiv
+    (G := fun θ => WithLp.toLp 2 (fun α => f (X α) θ))
     (G' := fun z => matrixCLM (outputJacobian f X z)) (x₀ := θ₀) (x := θ) (r := r) (L := L)
     (fun z hz => by
       rw [← hasFDerivWithinAt_univ, hasFDerivWithinAt_euclidean]

@@ -33,17 +33,11 @@ and the exact induced function-space training dynamics.
 
 variable {ι : Type*} {P : ℕ}
 
-/-- The vector of network outputs on the training dataset:
-  `f(θ) = [f(x¹; θ), …, f(xᵐ; θ)]ᵀ ∈ ℝᵐ`. -/
-noncomputable def trainingOutputs (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
-  WithLp.toLp 2 (fun α => f (X α) θ)
-
 /-- The residual error vector function:
   `r(θ) = f(θ) - y ∈ ℝᵐ`. -/
 noncomputable def trainingResidual (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
-  trainingOutputs f X θ - y
+  WithLp.toLp 2 (fun α => f (X α) θ) - y
 
 /-- The empirical Mean-Squared Error (MSE) loss objective:
   `L(θ) = (1 / 2m) ∑_α (f(x^α; θ) - y^α)² = (1 / 2m) ‖f(θ) - y‖² = (1 / 2m) ‖r(θ)‖²`. -/
@@ -55,7 +49,7 @@ noncomputable def mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : F
 lemma mseLoss_eq_sum (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) :
     mseLoss f X y θ = (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ - y α) ^ 2 := by
-  simp [mseLoss, EuclideanSpace.real_norm_sq_eq, trainingResidual, trainingOutputs]
+  simp [mseLoss, EuclideanSpace.real_norm_sq_eq, trainingResidual]
 
 /-- The tangent feature map `x ↦ ∇_θ f(x; θ) ∈ ℝ^P`, representing the sensitivity
 of the scalar output with respect to parameters. -/

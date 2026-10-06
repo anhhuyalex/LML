@@ -107,7 +107,7 @@ theorem hasDerivAt_trainingOutputs_coord
     (θ' : ℝ → EuclideanSpace ℝ (Fin P)) (t : ℝ) (α : Fin m)
     (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t))
     (hθ : HasDerivAt θ_traj (θ' t) t) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       ⟪tangentFeature f (X α) (θ_traj t), θ' t⟫ t := by
   have hcomp := hdiff.hasFDerivAt.comp_hasDerivAt t hθ
   have hgrad : fderiv ℝ (fun θ' => f (X α) θ') (θ_traj t) (θ' t) =
@@ -128,7 +128,7 @@ theorem hasDerivAt_trainingOutputs_coord_sum
     (θ' : ℝ → EuclideanSpace ℝ (Fin P)) (t : ℝ) (α : Fin m)
     (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t))
     (hθ : HasDerivAt θ_traj (θ' t) t) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (∑ j : Fin P, tangentFeature f (X α) (θ_traj t) j * θ' t j) t := by
   have h := hasDerivAt_trainingOutputs_coord f X θ_traj θ' t α hdiff hθ
   rw [euclideanSpace_inner_eq_sum] at h
@@ -303,7 +303,7 @@ theorem gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad
     (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)) t)
     (α : Fin m)
     (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t)) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (-⟪tangentFeature f (X α) (θ_traj t),
         gradient (generalizedEmpiricalRisk ℓ f X y) (θ_traj t)⟫) t := by
   have h := hasDerivAt_trainingOutputs_coord f X θ_traj
@@ -323,7 +323,7 @@ theorem gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun f' => ℓ f' (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (- (m : ℝ)⁻¹ * ∑ β : Fin m,
         ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ *
           (generalizedResidual ℓ f X y (θ_traj t)) β) t := by
@@ -358,7 +358,7 @@ theorem gradient_flow_generalizedOutput_coord_ode
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun f' => ℓ f' (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (- (m : ℝ)⁻¹ * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β *
         (generalizedResidual ℓ f X y (θ_traj t)) β) t := by
   have h := gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner ℓ f X y t hflow α hf hℓ
@@ -383,7 +383,7 @@ theorem gradient_flow_generalizedOutput_vector_ode
     (hf : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t))
     (hℓ : ∀ β : Fin m, HasDerivAt (fun f' => ℓ f' (y β))
       (generalizedResidual ℓ f X y (θ_traj t) β) (f (X β) (θ_traj t))) :
-    HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
+    HasDerivAt (fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ •
         ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
           (generalizedResidual ℓ f X y (θ_traj t)).ofLp))) t := by
@@ -415,7 +415,7 @@ theorem gradient_flow_output_coord_deriv_eq_inner_grad
     {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
     (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t) (α : Fin m)
     (hdiff : DifferentiableAt ℝ (fun θ' => f (X α) θ') (θ_traj t)) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (-⟪tangentFeature f (X α) (θ_traj t), gradient (mseLoss f X y) (θ_traj t)⟫) t := by
   rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow ⊢
   exact gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad _ f X y t hflow α hdiff
@@ -429,7 +429,7 @@ theorem gradient_flow_output_coord_deriv_eq_sum_inner
     {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
     (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t) (α : Fin m)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (- (m : ℝ)⁻¹ * ∑ β : Fin m,
         ⟪tangentFeature f (X α) (θ_traj t), tangentFeature f (X β) (θ_traj t)⟫ *
           (trainingResidual f X y (θ_traj t)) β) t := by
@@ -446,7 +446,7 @@ theorem gradient_flow_output_coord_ode
     {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
     (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t) (α : Fin m)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
-    HasDerivAt (fun s => (trainingOutputs f X (θ_traj s)) α)
+    HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (- (m : ℝ)⁻¹ *
         ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β *
           (trainingResidual f X y (θ_traj t)) β) t := by
@@ -463,7 +463,7 @@ theorem gradient_flow_output_vector_ode
     {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
     (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
-    HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
+    HasDerivAt (fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ •
         ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
   rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow
@@ -479,9 +479,9 @@ theorem gradient_flow_output_vector_ode_sub_y
     {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
     (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
-    HasDerivAt (fun s => trainingOutputs f X (θ_traj s))
+    HasDerivAt (fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
-        ((trainingOutputs f X (θ_traj t)) - y).ofLp))) t :=
+        ((WithLp.toLp 2 (fun α => f (X α) (θ_traj t))) - y).ofLp))) t :=
   gradient_flow_output_vector_ode f X y t hflow hdiff
 
 /-- Step 5 (Matrix-Vector Formulation for Residual Vector):
@@ -522,17 +522,19 @@ theorem hasDerivAt_generalizedEmpiricalRisk_coord_sum
     (ℓ : ℝ → ℝ → ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
     (y : EuclideanSpace ℝ (Fin m)) (θ_traj : ℝ → EuclideanSpace ℝ (Fin P)) (t : ℝ)
     (f' : Fin m → ℝ)
-    (hf' : ∀ α : Fin m, HasDerivAt (fun s => trainingOutputs f X (θ_traj s) α) (f' α) t)
+    (hf' : ∀ α : Fin m,
+      HasDerivAt (fun s => WithLp.toLp 2 (fun β => f (X β) (θ_traj s)) α) (f' α) t)
     (hℓ : ∀ α : Fin m, HasDerivAt (fun v => ℓ v (y α))
-      (generalizedResidual ℓ f X y (θ_traj t) α) (trainingOutputs f X (θ_traj t) α)) :
+      (generalizedResidual ℓ f X y (θ_traj t) α) (WithLp.toLp 2 (fun α => f (X α) (θ_traj t)) α)) :
     HasDerivAt (fun s => generalizedEmpiricalRisk ℓ f X y (θ_traj s))
       ((m : ℝ)⁻¹ * ((generalizedResidual ℓ f X y (θ_traj t)).ofLp ⬝ᵥ f')) t := by
   have h_term : ∀ α : Fin m,
-      HasDerivAt ((fun v => ℓ v (y α)) ∘ fun s => trainingOutputs f X (θ_traj s) α)
+      HasDerivAt ((fun v => ℓ v (y α)) ∘ fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)) α)
         (generalizedResidual ℓ f X y (θ_traj t) α * f' α) t :=
     fun α => HasDerivAt.comp t (hℓ α) (hf' α)
   have h_sum : HasDerivAt
-      (fun s => ∑ α : Fin m, ((fun v => ℓ v (y α)) ∘ fun s' => trainingOutputs f X (θ_traj s') α) s)
+      (fun s => ∑ α : Fin m,
+        ((fun v => ℓ v (y α)) ∘ fun s' => WithLp.toLp 2 (fun β => f (X β) (θ_traj s')) α) s)
       (∑ α : Fin m, generalizedResidual ℓ f X y (θ_traj t) α * f' α) t :=
     HasDerivAt.fun_sum (fun α _ => h_term α)
   have h_scaled := h_sum.const_mul (m : ℝ)⁻¹
@@ -566,7 +568,8 @@ theorem risk_dissipation_identity
   set r := generalizedResidual ℓ f X y (θ_traj t) with hr_def
   set K := empiricalNTKMatrix f X (θ_traj t) with hK_def
   set f' : Fin m → ℝ := fun α => - (m : ℝ)⁻¹ * ∑ β : Fin m, K α β * r β with hf'_def
-  have hf' : ∀ α : Fin m, HasDerivAt (fun s => trainingOutputs f X (θ_traj s) α) (f' α) t := by
+  have hf' : ∀ α : Fin m,
+      HasDerivAt (fun s => WithLp.toLp 2 (fun β => f (X β) (θ_traj s)) α) (f' α) t := by
     intro α
     exact gradient_flow_generalizedOutput_coord_ode ℓ f X y t hflow α hf hℓ
   have h_step1 := hasDerivAt_generalizedEmpiricalRisk_coord_sum ℓ f X y θ_traj t f' hf' hℓ

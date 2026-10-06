@@ -389,10 +389,10 @@ theorem exists_measurableSet_global_lazy_training_event_with_extra
                 outputJacobian (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
                 jacRate n ∧
-              ‖trainingOutputs (netFromParams φ n d)
-                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
-                trainingOutputs (netFromParams φ n d)
-                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) -
+              ‖WithLp.toLp 2 (fun α => netFromParams φ n d
+                  (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t)) -
+                WithLp.toLp 2 (fun α => netFromParams φ n d
+                  (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) -
                 WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ
                     (θ_traj t - packParams p.1 p.2).ofLp)‖ ≤ taylorRate n) ∧
@@ -953,10 +953,10 @@ theorem exists_measurableSet_finite_horizon_lazy_training_event
                 outputJacobian (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)‖ ≤
                 jacRate n ∧
-              ‖trainingOutputs (netFromParams φ n d)
-                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t) -
-                trainingOutputs (netFromParams φ n d)
-                  (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) -
+              ‖WithLp.toLp 2 (fun α => netFromParams φ n d
+                  (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ_traj t)) -
+                WithLp.toLp 2 (fun α => netFromParams φ n d
+                  (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2)) -
                 WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
                   (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (packParams p.1 p.2) *ᵥ
                     (θ_traj t - packParams p.1 p.2).ofLp)‖ ≤ taylorRate n ∧

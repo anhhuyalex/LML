@@ -72,7 +72,7 @@ lemma gradient_mseLoss_netFromParams_apply (φ : ℝ → ℝ) (hφ : Differentia
   congr 1
   refine Finset.sum_congr rfl fun α _ => ?_
   rw [outputJacobian, Matrix.of_apply, tangentFeature_netFromParams_of_differentiable φ hφ n d]
-  simp [trainingResidual, trainingOutputs]
+  simp [trainingResidual]
   ring
 
 private lemma locallyLipschitz_const_mul {α : Type*} [PseudoEMetricSpace α] (c : ℝ) {f : α → ℝ}
@@ -484,8 +484,8 @@ theorem gradientFlow_finite_horizon_training_limit
           (limitingCovariance φ (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))) ∧
       (∀ t : ℝ, 0 ≤ t → TendstoInDistribution
         (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
-          trainingOutputs (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t))
+          WithLp.toLp 2 (fun α => netFromParams φ n d
+            (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)))
         Filter.atTop
         (fun G : EuclideanSpace ℝ (Fin m) =>
           y + (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ

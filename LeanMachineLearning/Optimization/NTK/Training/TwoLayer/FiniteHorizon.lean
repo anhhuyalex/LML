@@ -76,7 +76,8 @@ every `p`,
     `r n t p := trainingResidual (netFromParams φ n d)`
       `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y (θ n p t)`.
   - Predictions:
-    `trainingOutputs (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)`.
+    `WithLp.toLp 2 (fun α => netFromParams φ n d`
+    `  (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t))`.
   - Empirical NTK:
     `K n t p := empiricalNTKMatrix (netFromParams φ n d)`
       `(fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)`.
@@ -92,7 +93,8 @@ every `p`,
      `  ((NormedSpace.exp (- (t / m : ℝ) • limitingFullNTKMatrix φ X)) *ᵥ (G - y).ofLp))`
      `(fun n => 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
 3. **Fixed-Time Prediction Convergence**: The network predictions converge in distribution:
-   `MeasureTheory.TendstoInDistribution (fun n p => trainingOutputs ... (θ n p t)) Filter.atTop`
+   `MeasureTheory.TendstoInDistribution (fun n p => WithLp.toLp 2`
+   `  (fun α => f (X α) (θ n p t))) Filter.atTop`
      `(fun G => y + WithLp.toLp 2`
      `  ((NormedSpace.exp (- (t / m : ℝ) • limitingFullNTKMatrix φ X)) *ᵥ (G - y).ofLp))`
      `(fun n => 𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)) (multivariateGaussian 0 (limitingCovariance φ scaledX))`.
@@ -139,8 +141,8 @@ theorem finite_horizon_ntk_training_limit
     (∀ t ∈ Set.Icc 0 T,
       MeasureTheory.TendstoInDistribution
         (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
-          trainingOutputs (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t))
+          WithLp.toLp 2 (fun α => netFromParams φ n d
+            (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)))
         Filter.atTop
         (fun (G : EuclideanSpace ℝ (Fin m)) =>
           y + (WithLp.toLp 2 ((NormedSpace.exp (- (t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
@@ -341,10 +343,10 @@ theorem tendsto_measure_linearization_error_finite_horizon
     Filter.Tendsto
       (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin n => gaussianReal 0 1)) {p | ∃ t ∈ Set.Icc (0 : ℝ) T,
-        ε₀ < ‖trainingOutputs (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
-          trainingOutputs (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+        ε₀ < ‖WithLp.toLp 2 (fun α => netFromParams φ n d
+            (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)) -
+          WithLp.toLp 2 (fun α => netFromParams φ n d
+            (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)) -
           WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
               (θ n p t - θ n p 0).ofLp)‖})
@@ -354,10 +356,10 @@ theorem tendsto_measure_linearization_error_finite_horizon
           (Set.Icc 0 T)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
-    (fun n p t => ‖trainingOutputs (netFromParams φ n d)
-        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
-      trainingOutputs (netFromParams φ n d)
-        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+    (fun n p t => ‖WithLp.toLp 2 (fun α => netFromParams φ n d
+        (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)) -
+      WithLp.toLp 2 (fun α => netFromParams φ n d
+        (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)) -
       WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
           (θ n p t - θ n p 0).ofLp)‖) hθ_flow (fun c hc => ?_) hε₀
@@ -448,10 +450,10 @@ theorem tendsto_measure_linearization_error_global_positive_gap
     Filter.Tendsto
       (fun n => ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin n => gaussianReal 0 1)) {p | ∃ t ∈ Set.Ici (0 : ℝ),
-        ε₀ < ‖trainingOutputs (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
-          trainingOutputs (netFromParams φ n d)
-            (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+        ε₀ < ‖WithLp.toLp 2 (fun α => netFromParams φ n d
+            (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)) -
+          WithLp.toLp 2 (fun α => netFromParams φ n d
+            (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)) -
           WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
             (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
               (θ n p t - θ n p 0).ofLp)‖})
@@ -461,10 +463,10 @@ theorem tendsto_measure_linearization_error_global_positive_gap
           (Set.Ici 0)
     (fun n p => ForwardGFTrajectory (mseLoss (netFromParams φ n d)
       (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p))
-    (fun n p t => ‖trainingOutputs (netFromParams φ n d)
-        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t) -
-      trainingOutputs (netFromParams φ n d)
-        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) -
+    (fun n p t => ‖WithLp.toLp 2 (fun α => netFromParams φ n d
+        (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)) -
+      WithLp.toLp 2 (fun α => netFromParams φ n d
+        (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0)) -
       WithLp.toLp 2 (outputJacobian (netFromParams φ n d)
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p 0) *ᵥ
           (θ n p t - θ n p 0).ofLp)‖) hθ_flow (fun c hc => ?_) hε₀

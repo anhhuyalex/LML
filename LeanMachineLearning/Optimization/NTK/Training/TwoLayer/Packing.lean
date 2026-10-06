@@ -220,12 +220,13 @@ lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d 
     netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, unpackA θ i * φ (unpackW θ i ⬝ᵥ x) :=
   evalSingle_eq_normalized_sum φ (unpackW θ) (unpackA θ) x
 
-/-- The training outputs of the packed-parameter network are `evalVector φ W a X`. -/
+/-- The explicit training-output vector of the packed-parameter network is `evalVector φ W a X`. -/
 @[simp]
 lemma trainingOutputs_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
-    trainingOutputs (netFromParams φ n d) X (packParams W a) = evalVector φ W a X := by
-  unfold trainingOutputs evalVector netFromParams
+    WithLp.toLp 2 (fun α => netFromParams φ n d (X α) (packParams W a)) =
+      evalVector φ W a X := by
+  unfold evalVector netFromParams
   simp only [unpackW_packParams, unpackA_packParams]
 
 /-- The training residual of the packed-parameter network is `evalVector φ W a X - y`. -/

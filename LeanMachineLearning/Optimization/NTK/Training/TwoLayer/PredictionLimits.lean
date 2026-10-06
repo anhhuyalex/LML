@@ -925,8 +925,8 @@ theorem tendstoInDistribution_trainingOutputs_matrix_exp
         (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y) (packParams p.1 p.2) (θ n p)) :
     TendstoInDistribution
       (fun n (p : (Fin n → Fin d → ℝ) × (Fin n → ℝ)) =>
-        trainingOutputs (netFromParams φ n d)
-          (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t))
+        WithLp.toLp 2 (fun α => netFromParams φ n d
+          (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j) (θ n p t)))
       Filter.atTop
       (fun G : EuclideanSpace ℝ (Fin m) =>
         y + (WithLp.toLp 2 ((NormedSpace.exp (-(t / (m : ℝ)) • limitingFullNTKMatrix φ X)) *ᵥ
