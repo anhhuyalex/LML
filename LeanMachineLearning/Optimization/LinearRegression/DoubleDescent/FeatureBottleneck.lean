@@ -61,14 +61,20 @@ theorem trace_operator_transpose_mul_self_eq_featureBottleneck (S : Matrix n₀ 
       _ = S * ((Zᵀ * Z)⁻¹ * Sᵀ) := by rw [leftInverse_mul_self Z hZ, Matrix.mul_one]
   rw [hM, Matrix.trace_mul_comm, hBA, Matrix.trace_mul_comm, Matrix.mul_assoc]
 
-/-- **Algebraic core of the Wishart cancellation.** If `G` is invertible and `n` is its size, then
-`Tr (c • G⁻¹ * G) = c n`; with `c = (m - n - 1)⁻¹`, the mean `(m-n-1)⁻¹ (Sᵀ S)⁻¹` of
-`(Zᵀ Z)⁻¹` against `G = Sᵀ S` gives `n / (m - n - 1)`. -/
+/-- **Trace cancellation against an inverse Gram matrix.** If `G` is invertible, then
+`Tr ((c • G⁻¹) G) = c · card n`, whatever the scalar `c`. -/
+theorem trace_smul_inv_mul_self (c : ℝ) (G : Matrix n n ℝ) (hG : IsUnit G.det) :
+    Matrix.trace ((c • G⁻¹) * G) = c * (Fintype.card n : ℝ) := by
+  rw [Matrix.smul_mul, Matrix.nonsing_inv_mul _ hG, Matrix.trace_smul, Matrix.trace_one,
+    smul_eq_mul]
+
+/-- **Algebraic core of the Wishart cancellation.** With `c = (m - n - 1)⁻¹`, the mean
+`(m-n-1)⁻¹ (Sᵀ S)⁻¹` of `(Zᵀ Z)⁻¹` against `G = Sᵀ S` gives `Tr (· G) = n / (m - n - 1)`
+(`trace_smul_inv_mul_self`). -/
 theorem trace_inverseWishartMean_mul_gram (m : ℕ) (G : Matrix n n ℝ) (hG : IsUnit G.det) :
     Matrix.trace ((((m : ℝ) - Fintype.card n - 1)⁻¹ • G⁻¹) * G) =
       (Fintype.card n : ℝ) / ((m : ℝ) - Fintype.card n - 1) := by
-  rw [Matrix.smul_mul, Matrix.nonsing_inv_mul _ hG, Matrix.trace_smul, Matrix.trace_one,
-    smul_eq_mul, div_eq_inv_mul]
+  rw [trace_smul_inv_mul_self _ G hG, div_eq_inv_mul]
 
 end Algebra
 
