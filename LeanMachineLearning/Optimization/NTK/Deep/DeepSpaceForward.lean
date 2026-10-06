@@ -12,8 +12,8 @@ public import LeanMachineLearning.Optimization.NTK.Deep.BackwardStructure
 # Forward Concentration on `population/readout product`
 
 The forward results of `Initialization/DeepNNGPTheorems.lean` are stated on the product of the
-first `d` Gaussian weight populations. The backward induction works on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))` (these
-populations together with the readout), where the readout is available. This file transports
+first `d` Gaussian weight populations. The backward induction additionally carries an
+independent Gaussian readout. This file transports
 the forward results there (`Prod.fst` is measure preserving):
 
 * `tendstoInMeasure_deepSpace_of_prefix`: the transport lemma;

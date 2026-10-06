@@ -219,16 +219,18 @@ section deepSpace
 
 variable (d n0 n)
 
-/-- Entries of the zero-padded prefix weight tensor of a `population/readout product` point are measurable. -/
+/-- Entries of the zero-padded prefix tensor of a population/readout-product point are
+measurable. -/
 lemma measurable_prefixTensor_entry (k j i : ℕ) :
-    Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => (if h : k < d then ω.1 ⟨k, h⟩ else 0) j i := by
+    Measurable fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+      (if h : k < d then ω.1 ⟨k, h⟩ else 0) j i := by
   by_cases h : k < d
   · simp only [h, dite_true]
     exact (measurable_pi_apply i).comp ((measurable_pi_apply j).comp
       ((measurable_pi_apply (⟨k, h⟩ : Fin d)).comp measurable_fst))
   · simp only [h, dite_false]; exact measurable_const
 
-/-- `deepParams d n0 n` is a measurable family of parameter records on `population/readout product`. -/
+/-- `deepParams d n0 n` is a measurable parameter family on the population/readout product. -/
 lemma paramsMeasurable_deepParams : ParamsMeasurable (deepParams d n0 n) where
   W0 j i := measurable_prefixTensor_entry d 0 j.val i.val
   Wh ℓ j i := measurable_prefixTensor_entry d (ℓ.val + 1) j.val i.val
@@ -257,7 +259,6 @@ lemma deepParams_eq_updateWh (k : Fin (d - 1)) (ω : ((Fin d → ℕ → ℕ →
     by_cases h : ℓ = k
     · subst h
       simp only [Function.update_self, hk1, dite_true]
-      rfl
     · have hℓ1 : ℓ.val + 1 < d := by have := ℓ.2; omega
       have : (⟨ℓ.val + 1, hℓ1⟩ : Fin d) ≠ ⟨k.val + 1, hk1⟩ := by
         intro h'; apply h; exact Fin.ext (by simpa [Fin.ext_iff] using h')

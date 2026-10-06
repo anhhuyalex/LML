@@ -40,7 +40,8 @@ noncomputable def deepParams (d n0 n : ℕ) (ω : (Fin d → ℕ → ℕ → ℝ
   DeepMLPParams.ofTensor d n0 n (fun k => if h : k < d then ω.1 ⟨k, h⟩ else 0) ω.2
 
 /-- The top-left `n × n` block restriction is measurable. -/
-lemma measurable_layerBlock (n : ℕ) : Measurable (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) :=
+lemma measurable_layerBlock (n : ℕ) :
+    Measurable (fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val) :=
   measurable_pi_iff.2 fun j => measurable_pi_iff.2 fun i =>
     (measurable_pi_apply i.val).comp (measurable_pi_apply j.val)
 
@@ -58,7 +59,7 @@ lemma measurable_zeroLayer {d : ℕ} (i₀ : Fin d) :
 /-- The `n × n` block of a standard Gaussian population is a standard Gaussian matrix. -/
 theorem map_layerBlock_infinitePi (n : ℕ) :
     (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).map
-      (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) =
+      (fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val) =
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n =>
           gaussianReal 0 1) := by
   let cols : (ℕ → ℕ → ℝ) → (ℕ → Fin n → ℝ) := fun L j i => L j i.val
@@ -76,7 +77,8 @@ theorem map_layerBlock_infinitePi (n : ℕ) :
       gaussianReal 0 1)).map rows =
       Measure.pi fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
     (measurePreserving_prefixMap (Measure.pi fun _ : Fin n => gaussianReal 0 1) n).map_eq
-  have hcomp : (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) = rows ∘ cols := rfl
+  have hcomp : (fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val) =
+      rows ∘ cols := rfl
   rw [hcomp, ← Measure.map_map hrows hcols, hA, hB]
 
 /-- Independence of one factor of a product measure's pair from a third coordinate:
@@ -165,15 +167,16 @@ theorem measurePreserving_layerSplit {d : ℕ} (i₀ : Fin d) (n : ℕ) :
                 (Function.update ω.1 i₀ 0, ω.2))).prod
         (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1)) := by
   have hev : Measurable fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
-      fun j i => (ω.1 i₀) j.val i.val :=
+      fun (j : Fin n) (i : Fin n) => (ω.1 i₀) j.val i.val :=
     (measurable_layerBlock n).comp ((measurable_pi_apply i₀).comp measurable_fst)
   have hlaw : ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _
       : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
-          (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) => fun j i => (ω.1 i₀) j.val i.val) =
+          (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
+            fun (j : Fin n) (i : Fin n) => (ω.1 i₀) j.val i.val) =
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
     have h1 : (fun ω : (Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ) =>
-        fun j i => (ω.1 i₀) j.val i.val) =
-        ((fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) ∘
+        fun (j : Fin n) (i : Fin n) => (ω.1 i₀) j.val i.val) =
+        ((fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val) ∘
           fun w : Fin d → ℕ → ℕ → ℝ => w i₀) ∘ Prod.fst := rfl
     rw [h1, ← Measure.map_map ((measurable_layerBlock n).comp (measurable_pi_apply i₀))
       measurable_fst]
@@ -181,11 +184,11 @@ theorem measurePreserving_layerSplit {d : ℕ} (i₀ : Fin d) (n : ℕ) :
     simp only [measure_univ, one_smul]
     have := (measurePreserving_eval (fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) i₀).map_eq
-    calc Measure.map ((fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val) ∘
+    calc Measure.map ((fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val) ∘
         fun w : Fin d → ℕ → ℕ → ℝ => w i₀)
           (Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
             Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)
-        = Measure.map (fun (L : ℕ → ℕ → ℝ) j i => L j.val i.val)
+        = Measure.map (fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val)
           (Measure.map (fun w : Fin d → ℕ → ℕ → ℝ => w i₀)
           (Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
             Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) :=
