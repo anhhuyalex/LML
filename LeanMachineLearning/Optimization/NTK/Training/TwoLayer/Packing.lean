@@ -61,14 +61,18 @@ indexes `a_i`. -/
 def paramIndexEquiv (n d : ℕ) : (Fin n × Fin d) ⊕ Fin n ≃ Fin (n * d + n) :=
   (Equiv.sumCongr finProdFinEquiv (Equiv.refl (Fin n))).trans finSumFinEquiv
 
-/-- The inverse of `paramIndexEquiv` sends the index of weight `W i j` back to `Sum.inl (i, j)`. -/
-@[simp]
+/-- The inverse of `paramIndexEquiv` sends the index of weight `W i j` back to `Sum.inl (i, j)`.
+
+This is kept as an explicit rewrite lemma rather than a simp rule, since it is an instance of
+`Equiv.symm_apply_apply`. -/
 lemma paramIndexEquiv_symm_idxW {n d : ℕ} (i : Fin n) (j : Fin d) :
     (paramIndexEquiv n d).symm (paramIndexEquiv n d (Sum.inl (i, j))) = Sum.inl (i, j) :=
   (paramIndexEquiv n d).symm_apply_apply (Sum.inl (i, j))
 
-/-- The inverse of `paramIndexEquiv` sends the index of readout `a i` back to `Sum.inr i`. -/
-@[simp]
+/-- The inverse of `paramIndexEquiv` sends the index of readout `a i` back to `Sum.inr i`.
+
+This is kept as an explicit rewrite lemma rather than a simp rule, since it is an instance of
+`Equiv.symm_apply_apply`. -/
 lemma paramIndexEquiv_symm_idxA {n d : ℕ} (i : Fin n) :
     (paramIndexEquiv n d).symm (paramIndexEquiv n d (Sum.inr i)) = Sum.inr i :=
   (paramIndexEquiv n d).symm_apply_apply (Sum.inr i)
