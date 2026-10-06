@@ -24,7 +24,9 @@ For the standard Gaussian measure `stdGaussian E` on a finite-dimensional real i
   `E ‖x‖^a = 2^(a/2) Γ ((k + a)/2) / Γ (k/2)` for every real `a > -k`, together with integrability;
 * `integral_norm_sq_pow_stdGaussian`: the `χ²_k` moments `E (‖x‖²)^j = ∏_{i<j} (k + 2 i)`;
 * `integral_sumSq_pow_pi_gaussianReal`: the same moments for `∑ g_i²` under
-  `Measure.pi fun _ => gaussianReal 0 1`.
+  `Measure.pi fun _ => gaussianReal 0 1`;
+* `stdGaussian_submodule_eq_zero`, `pi_gaussianReal_submodule_eq_zero`: proper subspaces are
+  null (an almost-sure statement, e.g. a Gaussian vector avoids the span of finitely many others).
 
 Since `‖x‖²` under `stdGaussian E` is a `χ²_k` variable, these are the chi-squared moments,
 including the inverse moments (`a < 0`) that the Wishart and inverse-Wishart calculations of
@@ -326,6 +328,36 @@ theorem integrable_inv_norm_sq_pow_stdGaussian [Nontrivial E] {j : ℕ}
   have := integrable_norm_rpow_stdGaussian (E := E) (a := -(2 * (j : ℝ))) (by linarith)
   simpa only [Real.rpow_neg (norm_nonneg _), rpow_two_mul_natCast (norm_nonneg _), inv_pow]
     using this
+
+/-- The product of i.i.d. standard normals is `stdGaussian` pushed to coordinates: the
+`ofLp`-version of `map_pi_eq_stdGaussian`. -/
+theorem pi_gaussianReal_eq_map_stdGaussian {κ : Type*} [Fintype κ] :
+    (Measure.pi fun _ : κ => gaussianReal 0 1) =
+      (stdGaussian (EuclideanSpace ℝ κ)).map (fun x => x.ofLp) := by
+  rw [← map_pi_eq_stdGaussian, Measure.map_map (by fun_prop) (by fun_prop)]
+  simp [Function.comp_def]
+
+/-- **A proper subspace is `stdGaussian`-null.** The standard Gaussian has a Lebesgue density
+(`stdGaussian_eq_withDensity`) and proper subspaces are Lebesgue-null
+(`MeasureTheory.Measure.addHaar_submodule`). -/
+theorem stdGaussian_submodule_eq_zero (K : Submodule ℝ E) (hK : K ≠ ⊤) :
+    stdGaussian E K = 0 := by
+  rw [stdGaussian_eq_withDensity]
+  exact withDensity_absolutelyContinuous _ _ (Measure.addHaar_submodule _ K hK)
+
+/-- A proper subspace of `ι → ℝ` is null for the product of standard normals. -/
+theorem pi_gaussianReal_submodule_eq_zero {ι : Type*} [Fintype ι] (K : Submodule ℝ (ι → ℝ))
+    (hK : K ≠ ⊤) : (Measure.pi fun _ : ι => gaussianReal 0 1) K = 0 := by
+  have hKc : IsClosed (K : Set (ι → ℝ)) := K.closed_of_finiteDimensional
+  rw [pi_gaussianReal_eq_map_stdGaussian, Measure.map_apply (by fun_prop) hKc.measurableSet]
+  refine stdGaussian_submodule_eq_zero (K.comap (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toLinearMap) ?_
+  intro h
+  apply hK
+  rw [eq_top_iff]
+  intro x _
+  have : (WithLp.linearEquiv 2 ℝ (ι → ℝ)).symm x ∈
+      K.comap (WithLp.linearEquiv 2 ℝ (ι → ℝ)).toLinearMap := by rw [h]; trivial
+  simpa using this
 
 end ProbabilityTheory
 

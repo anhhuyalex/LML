@@ -134,6 +134,93 @@ theorem dotProduct_one_sub_gramProjector_mulVec_self {n m : Type*} [Fintype n] [
   rw [← Matrix.dotProduct_transpose_mulVec, h1.transpose_eq, Matrix.mulVec_mulVec, hsq,
     Matrix.sub_mulVec, Matrix.one_mulVec, dotProduct_sub]
 
+
+/-- The Gram projector only depends on the span of the columns: relabelling the columns by an
+equivalence does not change it. -/
+theorem gramProjector_submatrix_equiv {n m m' : Type*} [Fintype n] [Fintype m] [Fintype m']
+    [DecidableEq m] [DecidableEq m'] (A : Matrix n m ℝ) (e : m' ≃ m) :
+    gramProjector (A.submatrix id e) = gramProjector A := by
+  have hG : (A.submatrix id e)ᵀ * (A.submatrix id e) = (Aᵀ * A).submatrix e e := by
+    ext a b
+    simp [Matrix.mul_apply, Matrix.submatrix_apply]
+  ext i k
+  simp only [gramProjector, hG, Matrix.inv_submatrix_equiv, Matrix.mul_apply,
+    Matrix.submatrix_apply, Matrix.transpose_apply, id]
+  rw [← Equiv.sum_comp e (fun b => (∑ a, A i a * (Aᵀ * A)⁻¹ a b) * A k b)]
+  refine Finset.sum_congr rfl fun b _ => ?_
+  rw [← Equiv.sum_comp e (fun a => A i a * (Aᵀ * A)⁻¹ a (e b))]
+
+universe u
+
+/-- **Orthogonal projections factor through orthonormal rows.** An orthogonal projection matrix
+`P` is `Oᵀ O` for a matrix `O` with orthonormal rows (`O Oᵀ = 1`), indexed by a type `κ` with
+`card κ = Tr P`.
+
+Proof: the spectral theorem gives `P = U D Uᵀ` with `U` orthogonal; idempotence forces the
+eigenvalues in `D` to be `0` or `1`, and `O` keeps the rows of `Uᵀ` with eigenvalue `1`. -/
+theorem exists_orthonormal_rows_of_isStarProjection {ι : Type u} [Fintype ι]
+    (P : Matrix ι ι ℝ) (hP : IsStarProjection P) :
+    ∃ (κ : Type u) (_ : Fintype κ) (_ : DecidableEq κ) (O : Matrix κ ι ℝ),
+      O * Oᵀ = 1 ∧ Oᵀ * O = P ∧ (Fintype.card κ : ℝ) = P.trace := by
+  classical
+  have hidem : P * P = P := ((isStarProjection_matrix_real_iff _).1 hP).2
+  have hH : P.IsHermitian := by
+    simpa [Matrix.IsHermitian, Matrix.conjTranspose_eq_transpose_of_trivial] using hP.transpose_eq
+  obtain ⟨U, d, hspec, hUU, hUU'⟩ : ∃ (U : Matrix ι ι ℝ) (d : ι → ℝ),
+      P = U * Matrix.diagonal d * Uᵀ ∧ Uᵀ * U = 1 ∧ U * Uᵀ = 1 := by
+    refine ⟨(hH.eigenvectorUnitary : Matrix ι ι ℝ), hH.eigenvalues, ?_, ?_, ?_⟩
+    · have := hH.spectral_theorem
+      simpa [Unitary.conjStarAlgAut_apply, Function.comp_def,
+        Matrix.star_eq_conjTranspose, Matrix.conjTranspose_eq_transpose_of_trivial] using this
+    · simpa [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_eq_transpose_of_trivial] using
+        Unitary.star_mul_self_of_mem hH.eigenvectorUnitary.2
+    · simpa [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_eq_transpose_of_trivial] using
+        Unitary.mul_star_self_of_mem hH.eigenvectorUnitary.2
+  have hD : Uᵀ * P * U = Matrix.diagonal d := by
+    rw [hspec]
+    calc Uᵀ * (U * Matrix.diagonal d * Uᵀ) * U
+        = (Uᵀ * U) * Matrix.diagonal d * (Uᵀ * U) := by simp only [Matrix.mul_assoc]
+      _ = _ := by rw [hUU, Matrix.one_mul, Matrix.mul_one]
+  have hDD : Matrix.diagonal d * Matrix.diagonal d = Matrix.diagonal d := by
+    calc _ = Uᵀ * P * (U * Uᵀ) * P * U := by rw [← hD]; simp only [Matrix.mul_assoc]
+      _ = Uᵀ * (P * P) * U := by rw [hUU', Matrix.mul_one]; simp only [Matrix.mul_assoc]
+      _ = _ := by rw [hidem, hD]
+  have h01 : ∀ k, d k = 0 ∨ d k = 1 := fun k => by
+    have := congrFun (congrFun hDD k) k
+    simp only [Matrix.diagonal_mul_diagonal, Matrix.diagonal_apply_eq] at this
+    have h2 : d k * (d k - 1) = 0 := by linarith
+    rcases mul_eq_zero.mp h2 with h | h
+    · exact Or.inl h
+    · exact Or.inr (by linarith)
+  have hsum : ∀ (f : ι → ℝ), ∑ s : {k // d k = 1}, f s.1 = ∑ k, d k * f k := fun f => by
+    rw [← Finset.sum_subtype (Finset.univ.filter fun k => d k = 1) (fun k => by simp) f,
+      Finset.sum_filter]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rcases h01 k with h | h <;> simp [h]
+  refine ⟨{k // d k = 1}, inferInstance, inferInstance, Matrix.of fun s i => U i s.1, ?_, ?_, ?_⟩
+  · ext s t
+    have := congrFun (congrFun hUU s.1) t.1
+    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply] at this ⊢
+    rw [show (∑ i, U i s.1 * U i t.1) = _ from this]
+    simp [Matrix.one_apply, Subtype.ext_iff]
+  · ext i j
+    simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply]
+    have hij : P i j = ∑ k, U i k * d k * U j k := by
+      conv_lhs => rw [hspec]
+      rw [Matrix.mul_apply]
+      refine Finset.sum_congr rfl fun k _ => ?_
+      rw [Matrix.mul_diagonal, Matrix.transpose_apply]
+    rw [hij, hsum (fun k => U i k * U j k)]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    ring
+  · have : P.trace = ∑ k, d k := by
+      rw [hspec, Matrix.trace_mul_comm, ← Matrix.mul_assoc, hUU, Matrix.one_mul,
+        Matrix.trace_diagonal]
+    rw [this]
+    have := hsum (fun _ => (1 : ℝ))
+    simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one] at this
+    exact this
+
 end NTK
 
 end
