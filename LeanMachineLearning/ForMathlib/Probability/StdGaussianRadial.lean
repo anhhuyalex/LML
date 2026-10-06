@@ -238,8 +238,8 @@ theorem integrable_norm_sq_pow_stdGaussian [Nontrivial E] (j : ℕ) :
 `E (‖x‖²)^j = ∏_{i<j} (k + 2 i)`.
 
 Proof: `integral_norm_rpow_stdGaussian` with `a = 2j` and `Γ (k/2 + j) = ∏_{i<j} (k/2 + i) Γ (k/2)`.
-This subsumes `NeuralNetwork.DeepLinear.integral_sumSq_pow_stdGaussian`, whose ~600-line Stein
-recursion can be replaced by `integral_sumSq_pow_pi_gaussianReal` below. -/
+It is the engine of `NeuralNetwork.DeepLinear.integral_sumSq_pow_stdGaussian`, which replaced a
+Stein-recursion proof of the same formula. -/
 theorem integral_norm_sq_pow_stdGaussian [Nontrivial E] (j : ℕ) :
     ∫ x, (‖x‖ ^ 2) ^ j ∂stdGaussian E =
       ∏ i ∈ Finset.range j, ((Module.finrank ℝ E : ℝ) + 2 * i) := by
