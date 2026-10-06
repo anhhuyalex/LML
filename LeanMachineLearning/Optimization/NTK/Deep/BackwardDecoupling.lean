@@ -208,9 +208,8 @@ end theta
 
 /-! ### Splitting the layer `Wh k` from the rest -/
 
-/-- Internal point pairing the population with layer `k + 1` zeroed and its extracted
-Gaussian block. Public results expose the corresponding measure-preservation theorem instead. -/
-private noncomputable def layerSplitPoint {d : ℕ} (n k : ℕ) (hk : k + 1 < d)
+/-- Point pairing the population with layer `k + 1` zeroed and its extracted Gaussian block. -/
+noncomputable def layerSplitPoint {d : ℕ} (n k : ℕ) (hk : k + 1 < d)
     (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) :
     ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) × (Fin n → Fin n → ℝ) :=
   ((Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2),
@@ -620,7 +619,7 @@ lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fin
     simp
   rw [wcov_resPart_eq φ φ' X (deepParams d n0 n ω) k hk a b, hV, ← hΦ]
   unfold residAbs
-  simp only [hD]
+  simp only [layerSplitPoint, hD]
   rw [hua, hub]
 
 /-- The linear-form expression whose concentration is given by `tendsto_residualLinearForm`, at the
@@ -658,7 +657,7 @@ lemma linAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : ((Fin d
     preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl c
   rw [hV, ← hΦ]
   unfold linAbs
-  simp only [netDeriv_zeroLayer φ φ' X n k hk ω, hh]
+  simp only [layerSplitPoint, netDeriv_zeroLayer φ φ' X n k hk ω, hh]
   rw [hua]
 
 end bridge
@@ -721,7 +720,7 @@ lemma atProj_sq_bddByConv (k : ℕ) (hk : k + 1 < d)
   intro n ω hω
   obtain ⟨hn, hS⟩ := hω
   have := atProj_nextSens_eq φ φ' X n k hk ω c hS
-  simp only []
+  simp only [layerSplitPoint]
   rw [this, deepSensitivityGram_hidden d n0 n m φ φ' X _ (k + 1) hk, Matrix.of_apply]
 
 include A in
@@ -759,7 +758,7 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     obtain ⟨c, hc⟩ := derivSq_cvg (d := d) (n0 := n0) A X k (by omega) a b
     refine BddByConv.of_tendstoInMeasure (c := c) (hc.congr_left fun n =>
       Eventually.of_forall fun ω => ?_)
-    simp only [netDeriv_zeroLayer φ φ' X n k hk ω, sum_sq_diagonal]
+    simp only [layerSplitPoint, netDeriv_zeroLayer φ φ' X n k hk ω, sum_sq_diagonal]
     rfl
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
@@ -906,7 +905,7 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
       (c1 + c2) / 2, fun n ω => ?_, tendstoInMeasure_half_sum hc1 hc2⟩
     have hh := preactivation_zeroLayer φ X n k hk ω ⟨k, by omega⟩ le_rfl c
     have hf := netDeriv_zeroLayer φ φ' X n k hk ω a
-    simp only []
+    simp only [layerSplitPoint]
     rw [hh, hf]
     exact avg_sq_mul_le_avg4
       (deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ⟨k, by omega⟩ c)
