@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInverse
 public import LeanMachineLearning.Optimization.NTK.Training.GradientFlow.ODEStability
 
 /-!
@@ -106,30 +107,21 @@ theorem minNorm_pythagoras {E F : Type*} [NormedAddCommGroup E] [InnerProductSpa
 `J Jᵀ` and put `wInf = -Jᵀ (J Jᵀ)⁻¹ r₀`. Then `J wInf = -r₀`, and every `w'` with `J w' = -r₀`
 satisfies `‖w'‖² = ‖wInf‖² + ‖w' - wInf‖²`; hence `wInf` is the unique minimum-norm solution of the
 interpolation constraint `f₀ + J w = y` (`r₀ = f₀ - y`). The increment `wInf` lies in the range of
-`Jᵀ` (`(ker J)ᗮ`), so it is orthogonal to `ker J`. This is proved directly by Pythagoras from the
-adjoint identity `inner_matrixCLM_transpose`, which is all `LinearMap.orthogonal_ker` would
-supply. -/
+`Jᵀ` (`(ker J)ᗮ`), so it is orthogonal to `ker J`. This is the case `Z = J`, `y = -r₀` of
+`Matrix.rightInverse_norm_sq_decomp`, which holds for arbitrary index types. -/
 theorem affine_minNorm_pythagoras (J : Matrix (Fin m) (Fin P) ℝ) (hG : IsUnit (J * Jᵀ))
     (r₀ : EuclideanSpace ℝ (Fin m)) {w' : EuclideanSpace ℝ (Fin P)}
     (hw' : J *ᵥ w'.ofLp = -r₀.ofLp) :
     J *ᵥ (matrixCLM (-(Jᵀ * (J * Jᵀ)⁻¹)) r₀).ofLp = -r₀.ofLp ∧
       ‖w'‖ ^ 2 = ‖matrixCLM (-(Jᵀ * (J * Jᵀ)⁻¹)) r₀‖ ^ 2 +
         ‖w' - matrixCLM (-(Jᵀ * (J * Jᵀ)⁻¹)) r₀‖ ^ 2 := by
-  have hGinv : (J * Jᵀ) * (J * Jᵀ)⁻¹ = 1 :=
-    Matrix.mul_nonsing_inv _ ((Matrix.isUnit_iff_isUnit_det _).1 hG)
-  set wInf := matrixCLM (-(Jᵀ * (J * Jᵀ)⁻¹)) r₀ with hwInf
-  have hJw : J *ᵥ wInf.ofLp = -r₀.ofLp := by
-    rw [hwInf, matrixCLM_apply]
-    change J *ᵥ (-(Jᵀ * (J * Jᵀ)⁻¹) *ᵥ r₀.ofLp) = _
-    rw [Matrix.mulVec_mulVec, Matrix.mul_neg, ← Matrix.mul_assoc, hGinv, Matrix.neg_mulVec,
-      Matrix.one_mulVec]
-  refine ⟨hJw, ?_⟩
-  have hrange : wInf = ContinuousLinearMap.adjoint (matrixCLM J) (matrixCLM (-(J * Jᵀ)⁻¹) r₀) := by
-    rw [← matrixCLM_transpose_eq_adjoint, hwInf]
-    ext i : 1
-    simp [matrixCLM_apply, Matrix.mulVec_mulVec, Matrix.mul_neg]
-  exact minNorm_pythagoras (matrixCLM J) (-r₀) _ hrange
-    (by rw [matrixCLM_apply, hJw]; rfl) (by rw [matrixCLM_apply, hw']; rfl)
+  have hG' : IsUnit (J * Jᵀ).det := (Matrix.isUnit_iff_isUnit_det _).1 hG
+  have hwInf : matrixCLM (-(Jᵀ * (J * Jᵀ)⁻¹)) r₀ =
+      WithLp.toLp 2 ((Jᵀ * (J * Jᵀ)⁻¹) *ᵥ (-r₀.ofLp)) := by
+    rw [matrixCLM_apply, Matrix.neg_mulVec, Matrix.mulVec_neg]
+  rw [hwInf]
+  exact ⟨by rw [WithLp.ofLp_toLp, Matrix.rightInverse_interpolates J hG'],
+    Matrix.rightInverse_norm_sq_decomp J hG' (-r₀.ofLp) hw'⟩
 
 /-- The affine-flow limit `wInf` has the least norm among all solutions of `J w = -r₀`. -/
 theorem norm_affine_limit_le (J : Matrix (Fin m) (Fin P) ℝ) (hG : IsUnit (J * Jᵀ))

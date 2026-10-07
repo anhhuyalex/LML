@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
-public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GaussianMoments
+public import LeanMachineLearning.ForMathlib.Probability.StdGaussianChiSqTails
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GramInverse
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
@@ -35,7 +35,7 @@ gaussianReal 0 1` as in `NTK/Initialization`. We prove:
   `GramInverse.lean` and the radial moments of `StdGaussianRadial.lean`. No Wishart density,
   Bartlett decomposition or Haar measure is used.
 
-Together with `GaussianMoments.lean` these are the inputs for the concentration of
+Together with `StdGaussianChiSqTails.lean` these are the inputs for the concentration of
 `Tr ((Wᵀ W)⁻¹)` (Milestone 7d).
 -/
 

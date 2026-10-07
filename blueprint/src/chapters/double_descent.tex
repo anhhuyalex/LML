@@ -3,7 +3,7 @@
 This chapter records the mathematics formalized in
 \texttt{Optimization/LinearRegression/DoubleDescent/} (modules \texttt{Basic}, \texttt{RandomFeatures},
 \texttt{FeatureBottleneck}, \texttt{AmbientBottleneck}, \texttt{SampleBottleneck},
-\texttt{DoubleDescentCurve}, \texttt{GaussianMoments}, \texttt{GramInverse}) on top of \texttt{Optimization/LinearRegression/HMRT.lean},
+\texttt{DoubleDescentCurve}, \texttt{ForMathlib/Probability/StdGaussianChiSqTails}, \texttt{GramInverse}) on top of \texttt{Optimization/LinearRegression/HMRT.lean},
 together with \texttt{ForMathlib/Probability/StdGaussianRadial.lean} and
 \texttt{ForMathlib/LinearAlgebra/Matrix/MulTranspose.lean}. It follows Bach (2024), Hastie et al.\ (2022) and
 Belkin et al.\ (2019) \cite{bach2024highdim,hastie2022surprises,belkin2019reconciling}.
@@ -194,8 +194,8 @@ in terms of the displayed matrices.
 \end{definition}
 
 \begin{lemma}[Left inverse and its covariance]\label{lem:dd:leftInverse}
-  \lean{LinearRegression.DoubleDescent.leftInverse_mul_self,
-        LinearRegression.DoubleDescent.leftInverse_mul_transpose}
+  \lean{Matrix.leftInverse_mul_self,
+        Matrix.leftInverse_mul_transpose}
   \leanok
 If $Z^\top Z$ is invertible, then $A:=(Z^\top Z)^{-1}Z^\top$ satisfies $AZ=I$ and $AA^\top=(Z^\top Z)^{-1}$.
 \end{lemma}
@@ -207,8 +207,8 @@ $AA^\top=(Z^\top Z)^{-1}Z^\top Z(Z^\top Z)^{-1}=(Z^\top Z)^{-1}$.
 \end{proof}
 
 \begin{lemma}[Right inverse; interpolation]\label{lem:dd:rightInverse}
-  \lean{LinearRegression.DoubleDescent.self_mul_rightInverse,
-        LinearRegression.DoubleDescent.rightInverse_interpolates}
+  \lean{Matrix.self_mul_rightInverse,
+        Matrix.rightInverse_interpolates}
   \leanok
 If $ZZ^\top$ is invertible then $ZZ^\top(ZZ^\top)^{-1}=I$; consequently, for every target $y$ the coefficients
 $\hat\eta=Z^\top(ZZ^\top)^{-1}y$ interpolate: $Z\hat\eta=y$.
@@ -221,8 +221,8 @@ $Z\bigl(Z^\top(ZZ^\top)^{-1}\bigr)=(ZZ^\top)(ZZ^\top)^{-1}=I$; apply it to $y$.
 
 \begin{theorem}[The right-inverse fit is the unique minimum-norm interpolator]\label{thm:dd:minNorm}
   \uses{lem:dd:rightInverse}
-  \lean{LinearRegression.DoubleDescent.rightInverse_norm_sq_decomp,
-        LinearRegression.DoubleDescent.eq_rightInverse_of_norm_le}
+  \lean{Matrix.rightInverse_norm_sq_decomp,
+        Matrix.eq_rightInverse_of_norm_le}
   \leanok
 Let $ZZ^\top$ be invertible, $\hat\eta=Z^\top(ZZ^\top)^{-1}y$, and let $\eta$ satisfy $Z\eta=y$. Then
 \[
@@ -737,13 +737,13 @@ $1/\|(I-P_{-j})g_j\|^2$ (Section~\ref{sec:dd:roadmap}), and $\|(I-P_{-j})g_j\|^2
 $\chi^2$ variables needed for this (the radial moment formula, the moments $\mathbb EY^j$ and the inverse moments $\mathbb EY^{-1},\mathbb EY^{-2}$) is
 general Gaussian machinery and is recorded in Chapter~\ref{chap:ntkf}, Section~\ref{sec:ntkf:radial}
 (Theorem~\ref{thm:ntkf:radialMoments}, Corollary~\ref{cor:ntkf:chiSquare}). The fourth-moment tail bound below is the double-descent-specific
-consequence, in \texttt{DoubleDescent/GaussianMoments.lean}.
+consequence, in \texttt{ForMathlib/Probability/StdGaussianChiSqTails.lean}.
 
 \begin{theorem}[Fourth central moment and tail bound of $\chi^2_k$]\label{thm:dd:chiTail}
   \uses{cor:ntkf:chiSquare}
-  \lean{LinearRegression.DoubleDescent.integrable_norm_sq_sub_pow_four,
-        LinearRegression.DoubleDescent.integral_norm_sq_sub_pow_four,
-        LinearRegression.DoubleDescent.measureReal_norm_sq_sub_ge_le}
+  \lean{ProbabilityTheory.integrable_norm_sq_sub_pow_four,
+        ProbabilityTheory.integral_norm_sq_sub_pow_four,
+        ProbabilityTheory.measureReal_norm_sq_sub_ge_le}
   \leanok
 Let $\dim E=k\ge1$ and $x\sim\gamma_E$. Then $\mathbb E\bigl(\|x\|^2-k\bigr)^4=12k^2+48k$, and for every $\varepsilon>0$,
 \[

@@ -8,14 +8,13 @@ module
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 
 /-!
-# Chi-squared moments and tail bounds for the random-matrix inputs of double descent
+# Chi-squared fourth moment and tail bounds for standard Gaussian vectors
 
 For `x ~ stdGaussian E` with `dim E = k`, the variable `‖x‖²` is `χ²_k`. The radial moment formula
 of `ForMathlib/Probability/StdGaussianRadial.lean` (`E ‖x‖^a = 2^(a/2) Γ ((k+a)/2) / Γ (k/2)`)
-gives, in this file, the exact fourth central moment and the resulting tail bound used to
-concentrate `Tr ((Gᵀ G)⁻¹) = ∑ⱼ 1 / χ²_{p-q+1}` for a Gaussian `G ∈ ℝ^{p × q}` without ever
-estimating covariances between the diagonal entries (Milestone 7 of the double-descent plan;
-[Bach, 2024]; [Hastie et al., 2022]; [Belkin et al., 2019]):
+gives, in this file, the exact fourth central moment and the resulting tail bound used, in the
+double-descent development, to concentrate `Tr ((Gᵀ G)⁻¹) = ∑ⱼ 1 / χ²_{p-q+1}` for a Gaussian
+`G ∈ ℝ^{p × q}` without ever estimating covariances between the diagonal entries:
 
 * `integral_norm_sq_sub_pow_four`: `E (‖x‖² - k)⁴ = 12 k² + 48 k`;
 * `measureReal_norm_sq_sub_abs_ge_le`: `ℙ (|‖x‖² - k| ≥ t) ≤ (12 k² + 48 k) / t⁴`;
@@ -30,7 +29,7 @@ The inverse moments `E 1/χ²_k = 1/(k-2)` and `E 1/χ⁴_k = 1/((k-2)(k-4))` ar
 @[expose]
 public section
 
-namespace LinearRegression.DoubleDescent
+namespace ProbabilityTheory
 
 open MeasureTheory ProbabilityTheory
 
@@ -139,6 +138,6 @@ theorem measure_dev_le_of_map_norm_sq {α : Type*} [MeasurableSpace α] {μ : Me
   rw [this, ← h1, ← ofReal_measureReal]
   exact ENNReal.ofReal_le_ofReal h2
 
-end LinearRegression.DoubleDescent
+end ProbabilityTheory
 
 end

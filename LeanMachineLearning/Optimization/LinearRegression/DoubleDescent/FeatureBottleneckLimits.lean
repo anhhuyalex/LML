@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FitErrorConcentration
 
@@ -523,14 +524,6 @@ theorem tendsto_feature_ratios {mm nn n0 : ℕ → ℕ} {δ γ : ℝ} (hδ1 : δ
     simp only [Pi.div_apply]
     rw [div_div_div_cancel_right₀ (hmpos k).ne']
 
-private theorem tendsto_ofReal_div_sq {u : ℕ → ℝ} (hu : Tendsto u atTop atTop) {t : ℝ}
-    (ht : 0 < t) :
-    Tendsto (fun k => ENNReal.ofReal (60 / (t ^ 4 * u k ^ 2))) atTop (𝓝 0) := by
-  have h1 : Tendsto (fun k => t ^ 4 * u k ^ 2) atTop atTop :=
-    Tendsto.const_mul_atTop (by positivity) ((tendsto_pow_atTop (by norm_num)).comp hu)
-  have h2 := (tendsto_const_nhds (x := (60 : ℝ))).div_atTop h1
-  simpa using ENNReal.tendsto_ofReal h2
-
 /-- **Bias of the feature-bottleneck estimator converges in probability (Milestone 3b, bias
 half).** Let `S_k` be `n₀_k × n_k` and `X_k` independent `m_k × n₀_k` Gaussian matrices,
 `1 ≤ n_k ≤ min {m_k, n₀_k}`, `n_k → ∞`, `n_k / m_k → δ < 1`, `n₀_k / m_k → γ > 0` and
@@ -593,8 +586,9 @@ theorem tendsto_measure_featureBias_deviation {mm nn n0 : ℕ → ℕ} {δ γ r 
           ((1 - gramProjector (Matrix.of S)) *ᵥ θ k) - (1 - (nn k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k)|} +
         (ENNReal.ofReal (60 / (t ^ 4 * ((mm k - nn k + 1 : ℕ) : ℝ) ^ 2)) +
           ENNReal.ofReal (60 / (t ^ 4 * (nn k : ℝ) ^ 2)))) atTop (𝓝 0) := by
-    have := h7e.add ((tendsto_ofReal_div_sq hνtop ht0).add
-      (tendsto_ofReal_div_sq (tendsto_natCast_atTop_atTop.comp hnn) ht0))
+    have := h7e.add ((ENNReal.tendsto_ofReal_div_mul_sq hνtop 60 (by positivity : 0 < t ^ 4)).add
+      (ENNReal.tendsto_ofReal_div_mul_sq (tendsto_natCast_atTop_atTop.comp hnn) 60
+        (by positivity : 0 < t ^ 4)))
     simpa using this
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbound
     (Eventually.of_forall fun _ => bot_le) ?_

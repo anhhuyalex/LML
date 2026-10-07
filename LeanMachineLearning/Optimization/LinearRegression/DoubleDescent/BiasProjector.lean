@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
+public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomMatrixFoundations
 
 /-!
@@ -327,14 +328,8 @@ theorem tendsto_measure_resid_deviation (n₀ nn : ℕ → ℕ) (hnn : ∀ k, nn
     tendsto_natCast_atTop_atTop.comp htop
   have hnat₀ : Tendsto (fun k => (n₀ k : ℝ)) atTop atTop :=
     tendsto_atTop_mono (fun k => by exact_mod_cast hnn k) hnat
-  have hlim : ∀ u : ℕ → ℝ, Tendsto u atTop atTop →
-      Tendsto (fun k => ENNReal.ofReal (60 / (ε' ^ 4 * u k ^ 2))) atTop (𝓝 0) := by
-    intro u hu
-    have h1 : Tendsto (fun k => ε' ^ 4 * u k ^ 2) atTop atTop :=
-      Tendsto.const_mul_atTop (by positivity) ((tendsto_pow_atTop (by norm_num)).comp hu)
-    have h2 := (tendsto_const_nhds (x := (60 : ℝ))).div_atTop h1
-    simpa using ENNReal.tendsto_ofReal h2
-  have hsum := (hlim _ hnat).add (hlim _ hnat₀)
+  have hsum := (ENNReal.tendsto_ofReal_div_mul_sq hnat 60 (by positivity : 0 < ε' ^ 4)).add
+    (ENNReal.tendsto_ofReal_div_mul_sq hnat₀ 60 (by positivity : 0 < ε' ^ 4))
   rw [add_zero] at hsum
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hsum
     (Eventually.of_forall fun k => bot_le) ?_

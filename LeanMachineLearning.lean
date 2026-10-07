@@ -7,6 +7,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.D
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInverse
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
@@ -36,6 +37,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
 public import LeanMachineLearning.ForMathlib.Probability.Process.HittingTime
+public import LeanMachineLearning.ForMathlib.Probability.StdGaussianChiSqTails
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
@@ -87,7 +89,6 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Do
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneckLimits
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FitErrorConcentration
-public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GaussianMoments
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GramInverse
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.InverseGramTrace
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomFeatures
