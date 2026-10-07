@@ -199,24 +199,37 @@ the bilinear forms $M_j\cdot\Gamma M_k$ (\texttt{Matrix.mul\_mul\_transpose\_app
 
 \section{Random features and the three pseudoinverses}\label{sec:dd:features}
 
+\paragraph{The regression problem.}
+The data come from the linear model of Definition~\ref{def:dd:linearModel} with parameter dimension $p=n_0$ (the \emph{ambient} dimension): the labels are $y=X\theta_\star+\varepsilon\in\mathbb R^m$, where $\theta_\star\in\mathbb R^{n_0}$ is the unknown teacher,
+the $m$ rows of $X\in\mathbb R^{m\times n_0}$ are the sample inputs $x_1,\dots,x_m$, and the noise $\varepsilon$ is centered with covariance $\sigma^2I_m$. The learner does not fit $n_0$ coefficients directly. It first maps every input to $n$
+\emph{random features}, $x\mapsto S^\top x\in\mathbb R^n$, using a fixed matrix $S\in\mathbb R^{n_0\times n}$ (in the probabilistic layer, a Gaussian matrix independent of $X$), and then fits coefficients $\eta\in\mathbb R^n$ in feature space.
+Stacking the feature vectors of the samples as rows gives the \emph{feature matrix} $Z=XS\in\mathbb R^{m\times n}$. The learned predictor is $x\mapsto(S^\top x)\cdot\hat\eta=x\cdot(S\hat\eta)$, so it is also a linear function of the original input, with the
+ambient-space coefficient vector $S\hat\eta\in\mathbb R^{n_0}$. This vector is the estimator of $\theta_\star$ whose risk, bias and variance are studied (Definition~\ref{def:dd:risk}).
+
 \begin{definition}[Ridgeless random-feature regression]\label{def:dd:randomFeatures}
-  \uses{def:dd:risk}
-Given $X\in\mathbb R^{m\times n_0}$, a projection $S\in\mathbb R^{n_0\times n}$ and labels $y\in\mathbb R^m$, put $Z=XS$. The
-ridgeless random-feature estimator is $\hat\theta=S\hat\eta$, where $\hat\eta$ is the minimum-norm minimizer of
-$\eta\mapsto\|Z\eta-y\|$. Which pseudoinverse represents $\hat\eta$ depends on the regime
-(here $\gamma=n_0/m$, $\delta=n/m$):
+  \uses{def:dd:linearModel, def:dd:risk}
+Let $X\in\mathbb R^{m\times n_0}$, let $S\in\mathbb R^{n_0\times n}$ be any matrix (a map from $n_0$ ambient coordinates to $n$ features; it is not assumed to be a projection or to have orthonormal columns), let $y\in\mathbb R^m$ be the labels, and put $Z=XS$.
+\begin{itemize}
+  \item The \emph{feature coefficients} $\hat\eta\in\mathbb R^n$ are the minimum-norm minimizer of $\eta\mapsto\|Z\eta-y\|$: among all least-squares solutions it is the one of smallest Euclidean norm. ``Ridgeless'' means that there is no
+  penalty term, as the limit of vanishing ridge penalty.
+  \item The \emph{random-feature estimator} is $\hat\theta:=S\hat\eta\in\mathbb R^{n_0}$.
+  \item Which pseudoinverse of $Z$ gives $\hat\eta$ depends on the regime ($\gamma=n_0/m$, $\delta=n/m$), and in every regime $\hat\theta=My$ for a matrix $M\in\mathbb R^{n_0\times m}$ built only from $X$ and $S$:
+\end{itemize}
 \begin{center}
-\begin{tabular}{lll}
-regime & rank condition & $\hat\eta$\\ \hline
-feature bottleneck, $\delta<\min\{1,\gamma\}$ & $Z^\top Z$ invertible & $(Z^\top Z)^{-1}Z^\top y$\\
-ambient bottleneck, $\gamma<1,\ \gamma\le\delta$ & $X^\top X$, $SS^\top$ invertible &
-$S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top y$\\
-sample bottleneck, $\gamma,\delta>1$ & $ZZ^\top$ invertible & $Z^\top(ZZ^\top)^{-1}y$
+\small
+\begin{tabular}{llll}
+regime & invertibility assumed & $\hat\eta$ & $M$ (so that $\hat\theta=My$)\\ \hline
+feature bottleneck, $\delta<\min\{1,\gamma\}$ & $Z^\top Z$ & $(Z^\top Z)^{-1}Z^\top y$ & $S(Z^\top Z)^{-1}Z^\top$\\[0.5ex]
+ambient bottleneck, $\gamma<1,\ \gamma\le\delta$ & $X^\top X$, $SS^\top$ &
+$S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top y$ & $SS^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top=(X^\top X)^{-1}X^\top$\\[0.5ex]
+sample bottleneck, $\gamma,\delta>1$ & $ZZ^\top$ & $Z^\top(ZZ^\top)^{-1}y$ & $SZ^\top(ZZ^\top)^{-1}$
 \end{tabular}
 \end{center}
-In each regime $\hat\theta=My$ is a \emph{linear} estimator with $M=S\,Z^\dagger$-type operator, so
-Theorem~\ref{thm:dd:linearBV} applies. This definition is not a Lean declaration: the Lean files state each regime directly
-in terms of the displayed matrices.
+In the ambient regime $S$ has full row rank, so $SS^\top(SS^\top)^{-1}=I$ and $\hat\theta$ is ordinary least squares in the original coordinates. In the feature regime $Z$ has full column rank and $\hat\eta$ is the unique least-squares solution; in the sample regime $Z$ has full row rank,
+$Z\hat\eta=y$ interpolates the data, and $\hat\eta$ is the minimum-norm interpolator (Theorems~\ref{thm:dd:minNorm} and~\ref{thm:dd:leastSquares}).
+
+Because $M$ does not depend on $\varepsilon$, $\hat\theta=M(X\theta_\star+\varepsilon)$ is a linear estimator in the sense of Definition~\ref{def:dd:linearModel}, so Theorem~\ref{thm:dd:linearBV} applies with this $M$. This definition is not a Lean declaration.
+Each regime's Lean theorem takes an estimator \texttt{β\_hat} together with the hypothesis \texttt{hβ : ∀ ε, (β\_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)} with $M$ written out as in the last column, and the invertibility assumptions as \texttt{IsUnit} hypotheses.
 \end{definition}
 
 \begin{lemma}[Left inverse and its covariance]\label{lem:dd:leftInverse}
