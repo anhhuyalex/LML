@@ -82,7 +82,6 @@ public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Theorems
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.AmbientBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Basic
-public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.BiasConcentration
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.BiasProjector
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.DoubleDescentCurve
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck

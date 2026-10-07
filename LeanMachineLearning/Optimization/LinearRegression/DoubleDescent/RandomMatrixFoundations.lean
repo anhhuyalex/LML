@@ -203,7 +203,7 @@ for `B`-a.e. `b`, the law of `a ↦ F (a, b)` under `A` is a fixed probability m
 law of `F` under `A ⊗ B` is `λ`. -/
 theorem map_prod_eq_of_ae {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
     [MeasurableSpace γ] (A : Measure α) (B : Measure β) [SFinite A] [IsProbabilityMeasure B]
-    (F : α × β → γ) (hF : Measurable F) (lam : Measure γ) [IsProbabilityMeasure lam]
+    (F : α × β → γ) (hF : Measurable F) (lam : Measure γ)
     (h : ∀ᵐ b ∂B, A.map (fun a => F (a, b)) = lam) : (A.prod B).map F = lam := by
   ext s hs
   rw [Measure.map_apply hF hs, Measure.prod_apply_symm (hF hs)]
