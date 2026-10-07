@@ -46,17 +46,53 @@ be a true inverse assumes \texttt{IsUnit A.det} explicitly.
 
 \section{The linear model: risk, bias and variance}\label{sec:dd:risk}
 
+\paragraph{Notation: one parameter, one estimator.}
+Throughout the chapter the unknown parameter is $\theta_\star\in\mathbb R^p$ and an estimator of it is $\hat\theta$. The Lean file \texttt{HMRT.lean}, which follows Hastie et al.\ (2022), calls the same objects
+$\beta$ and $\hat\beta$ (\texttt{β}, \texttt{β\_hat}), and the Lean files of this chapter write \texttt{θ}, \texttt{θ\_star}, \texttt{β\_hat}. They are the same thing: \emph{$\hat\beta$ in a Lean statement of \texttt{HMRT.lean} and $\hat\theta$ in this chapter are the
+same estimator, and $\beta$ and $\theta_\star$ the same parameter}. Dimensions follow the same rule.
+\begin{center}
+\small
+\begin{tabular}{llll}
+object & this chapter & \texttt{HMRT.lean} & Lean in \texttt{Basic.lean}\\ \hline
+parameter & $\theta_\star$ & $\beta$ & \texttt{θ}, \texttt{θ\_star}\\
+estimator & $\hat\theta$ & $\hat\beta$ & \texttt{β\_hat}\\
+parameter dimension & $p$ (in the random-feature application $p=n_0$) & $p$ & \texttt{p}\\
+number of samples & $m$ & $n$ & \texttt{n}\\
+feature covariance, noise covariance & $\Sigma$, $\Gamma$ & \texttt{Sigma} & \texttt{Sigma}, \texttt{Γ}
+\end{tabular}
+\end{center}
+So the generic statements of this section are written with parameter dimension $p$ and $m$ samples; the sample index type of the Lean lemmas is called \texttt{n} there, while from Section~\ref{sec:dd:features} on the Lean files use \texttt{m} for samples, \texttt{n₀} for the ambient dimension and \texttt{n} for the number of features.
+
+\begin{definition}[Linear model and linear estimator]\label{def:dd:linearModel}
+In the \emph{linear model} the labels are $y=X\theta_\star+\varepsilon\in\mathbb R^m$, where $X\in\mathbb R^{m\times p}$ is the design matrix, $\theta_\star\in\mathbb R^p$ is a fixed parameter and the noise $\varepsilon\in\mathbb R^m$ is a random vector with
+$\mathbb E\varepsilon=0$ and covariance $\operatorname{Cov}\varepsilon=\Gamma$ (isotropic noise: $\Gamma=\sigma^2I_m$). The design $X$ is treated as fixed, so all randomness is in $\varepsilon$.
+An estimator $\hat\theta$ of $\theta_\star$ is \emph{linear} if there is a matrix $M\in\mathbb R^{p\times m}$, which may depend on $X$ (and on a projection $S$ in the random-feature setting) but not on $\varepsilon$, with
+\[
+  \hat\theta=My=M(X\theta_\star+\varepsilon).
+\]
+Subtracting $\theta_\star$ gives the \emph{error partition}
+\[
+  \hat\theta-\theta_\star=\underbrace{(MX-I)\theta_\star}_{\text{fixed}}+\underbrace{M\varepsilon}_{\text{centered}},
+\]
+a deterministic vector plus a centered random vector; it is just the distributive law $M(X\theta_\star+\varepsilon)=MX\theta_\star+M\varepsilon$ and has no separate Lean statement.
+\end{definition}
+
+This is not a Lean definition: there is no declaration for ``linear model'' or ``linear estimator''. Every Lean theorem takes an arbitrary estimator \texttt{β\_hat : (n → ℝ) → EuclideanSpace ℝ p} (a function of the noise) together with the hypothesis
+\texttt{hβ : ∀ ε, (β\_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)}, and the noise assumptions as the hypotheses \texttt{h\_mean} (centered) and \texttt{h\_cov} (covariance $\Gamma$). Definition~\ref{def:dd:linearModel} is exactly the conjunction of these hypotheses,
+and a theorem below that says ``let $\hat\theta=M(X\theta_\star+\varepsilon)$'' assumes it.
+
 \begin{definition}[Risk, bias, covariance and variance of an estimator]\label{def:dd:risk}
   \lean{LinearRegression.risk, LinearRegression.bias, LinearRegression.covCondX, LinearRegression.variance}
   \leanok
-Let $\hat\beta$ be a random vector in $\mathbb R^p$ (the estimator, random through the noise) and $\Sigma\in\mathbb R^{p\times p}$ a
+Let $\hat\theta$ be a random vector in $\mathbb R^p$ (the estimator, random through the noise) and $\Sigma\in\mathbb R^{p\times p}$ a
 weighting matrix (the feature covariance). Its \emph{risk}, \emph{bias} and \emph{variance} are
 \[
-  R(\hat\beta;\beta)=\mathbb E\,(\hat\beta-\beta)^\top\Sigma(\hat\beta-\beta),\qquad
-  B(\hat\beta;\beta)=(\mathbb E\hat\beta-\beta)^\top\Sigma(\mathbb E\hat\beta-\beta),\qquad
-  V(\hat\beta)=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\beta)\,\Sigma\bigr),
+  R(\hat\theta;\theta_\star)=\mathbb E\,(\hat\theta-\theta_\star)^\top\Sigma(\hat\theta-\theta_\star),\qquad
+  B(\hat\theta;\theta_\star)=(\mathbb E\hat\theta-\theta_\star)^\top\Sigma(\mathbb E\hat\theta-\theta_\star),\qquad
+  V(\hat\theta)=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\,\Sigma\bigr),
 \]
-where $\operatorname{Cov}(\hat\beta)_{jk}=\operatorname{cov}(\hat\beta_j,\hat\beta_k)$.
+where $\operatorname{Cov}(\hat\theta)_{jk}=\operatorname{cov}(\hat\theta_j,\hat\theta_k)$. In Lean these are \texttt{LinearRegression.risk}, \texttt{bias}, \texttt{covCondX} and \texttt{variance}, with $\theta_\star$ and $\hat\theta$ named \texttt{β} and \texttt{β\_hat}.
+They make sense for any estimator and say nothing about linearity.
 \end{definition}
 
 \begin{lemma}[Second moments of a square-integrable random vector]\label{lem:dd:secondMoments}
@@ -100,40 +136,25 @@ Apply Lemma~\ref{lem:dd:secondMoments} with $a=b=v$.
   \lean{LinearRegression.DoubleDescent.integral_sub_mul_sub,
         LinearRegression.DoubleDescent.risk_eq_bias_add_variance}
   \leanok
-For any estimator $\hat\beta$ with square-integrable coordinates on a probability space,
-$R(\hat\beta;\beta)=B(\hat\beta;\beta)+V(\hat\beta)$.
+For any estimator $\hat\theta$ with square-integrable coordinates on a probability space,
+$R(\hat\theta;\theta_\star)=B(\hat\theta;\theta_\star)+V(\hat\theta)$.
 \end{theorem}
 
 \begin{proof}
   \leanok
 For square-integrable $f,g$ one has $\mathbb E[(f-a)(g-b)]=\operatorname{cov}(f,g)+(\mathbb Ef-a)(\mathbb Eg-b)$. Hence the
-second-moment matrix of $\hat\beta-\beta$ is $\operatorname{Cov}(\hat\beta)+dd^\top$ with $d=\mathbb E\hat\beta-\beta$.
-By Lemma~\ref{lem:dd:secondMoments}, $R=\operatorname{Tr}\bigl((\operatorname{Cov}(\hat\beta)+dd^\top)\Sigma\bigr)
+second-moment matrix of $\hat\theta-\theta_\star$ is $\operatorname{Cov}(\hat\theta)+dd^\top$ with $d=\mathbb E\hat\theta-\theta_\star$.
+By Lemma~\ref{lem:dd:secondMoments}, $R=\operatorname{Tr}\bigl((\operatorname{Cov}(\hat\theta)+dd^\top)\Sigma\bigr)
 =V+d^\top\Sigma d=V+B$.
 \end{proof}
 
-\begin{lemma}[Error partition of a linear estimator]\label{lem:dd:errorPartition}
-  \lean{LinearRegression.DoubleDescent.linear_estimator_error_partition}
-  \leanok
-For every matrix $M\in\mathbb R^{p\times m}$, design $X\in\mathbb R^{m\times p}$, parameter $\theta_\star$ and noise
-$\varepsilon$, the estimator $\hat\theta=M(X\theta_\star+\varepsilon)$ satisfies
-\[
-  \hat\theta-\theta_\star=(MX-I)\theta_\star+M\varepsilon .
-\]
-\end{lemma}
-
-\begin{proof}
-  \leanok
-Expand $M(X\theta_\star+\varepsilon)=(MX)\theta_\star+M\varepsilon$ and subtract $\theta_\star=I\theta_\star$.
-\end{proof}
-
 \begin{theorem}[Exact bias--variance decomposition of a linear estimator]\label{thm:dd:linearBV}
-  \uses{def:dd:risk, thm:dd:riskBiasVariance, lem:dd:errorPartition, lem:dd:secondMoments}
+  \uses{def:dd:linearModel, def:dd:risk, thm:dd:riskBiasVariance, lem:dd:secondMoments}
   \lean{LinearRegression.DoubleDescent.linearEstimator_bias_variance,
         LinearRegression.DoubleDescent.linearEstimator_bias_variance_isotropic,
         LinearRegression.DoubleDescent.exact_conditional_bias_variance_decomposition}
   \leanok
-Let $\hat\theta=M(X\theta_\star+\varepsilon)$ with $\varepsilon$ centered, square-integrable, with covariance matrix $\Gamma$.
+Let $\hat\theta=M(X\theta_\star+\varepsilon)$ be a linear estimator in the linear model of Definition~\ref{def:dd:linearModel}, with $\varepsilon$ centered, square-integrable, with covariance matrix $\Gamma$.
 Then
 \[
   B=\bigl((MX-I)\theta_\star\bigr)^\top\Sigma\bigl((MX-I)\theta_\star\bigr),\qquad
@@ -148,8 +169,8 @@ For isotropic noise $\Gamma=\sigma^2I$ the variance is $\sigma^2\operatorname{Tr
 
 \begin{proof}
   \leanok
-By Lemma~\ref{lem:dd:errorPartition} the estimator is affine in $\varepsilon$: $\mathbb E\hat\theta=MX\theta_\star$ and
-$\hat\theta-\mathbb E\hat\theta=M\varepsilon$. The covariance of $M\varepsilon$ has entries
+By the error partition of Definition~\ref{def:dd:linearModel} the estimator is affine in $\varepsilon$: $\mathbb E\hat\theta=MX\theta_\star$ (since $\mathbb E\varepsilon=0$) and
+$\hat\theta-\mathbb E\hat\theta=M\varepsilon$, so the bias vector is $\mathbb E\hat\theta-\theta_\star=(MX-I)\theta_\star$. The covariance of $M\varepsilon$ has entries
 $M_j\cdot\Gamma M_k=(M\Gamma M^\top)_{jk}$ by Lemma~\ref{lem:dd:secondMoments} (applied to $a=M_j,b=M_k$, the rows of $M$).
 This gives $B$ and $V$, and $R=B+V$ is Theorem~\ref{thm:dd:riskBiasVariance}. The isotropic statements specialize
 $\Gamma=\sigma^2I$ and use $\operatorname{Tr}(MM^\top)=\operatorname{Tr}(M^\top M)$.
@@ -160,7 +181,7 @@ $\Gamma=\sigma^2I$ and use $\operatorname{Tr}(MM^\top)=\operatorname{Tr}(M^\top 
   \lean{LinearRegression.DoubleDescent.lemma1_of_linear_model,
         Matrix.mul_mul_transpose_apply}
   \leanok
-Let $y=X\theta+\varepsilon$ with $n$ samples, $\varepsilon$ centered with $\operatorname{Cov}\varepsilon=\sigma^2I_n$, and
+Let $y=X\theta+\varepsilon$ with $n$ samples (the number of samples is called $n$ here, as in \texttt{HMRT.lean}, and $m$ in the rest of the chapter), $\varepsilon$ centered with $\operatorname{Cov}\varepsilon=\sigma^2I_n$, and
 $\hat\Sigma=X^\top X/n$. Let $\hat\Sigma^+$ be a symmetric pseudo-inverse in the sense $\hat\Sigma^+\hat\Sigma\hat\Sigma^+=\hat\Sigma^+$ with
 $\hat\Sigma^+\hat\Sigma$ symmetric, and $\hat\theta=\hat\Sigma^+X^\top y/n$. With $\Pi=I-\hat\Sigma^+\hat\Sigma$,
 \[
@@ -726,7 +747,7 @@ Mathlib's Gaussian Fourier integral (Lemma~\ref{lem:ntkf:mathlibGamma}) rather t
 Before planning the reductions, the following were checked by simulation or exact linear algebra (these checks are not part of the formalization; the deterministic identities were afterwards proved in Lean, Section~\ref{sec:dd:gram}): the
 trace identity of Theorem~\ref{thm:dd:traceReduction} and the bias decomposition $\|(MX-I)\theta_\star\|^2=\|\theta_\perp\|^2+\|H^{-1}G^\top\xi\|^2$
 agree to machine precision on random instances; the dual-vector formula for $((G^\top G)^{-1})_{jj}$ and the formula
-$\operatorname{Tr}(W^{-2})=\sum_jW^{-1}_{jj}{}^2(1+\|\beta_j\|^2)$ ($\beta_j$ the regression coefficients of $g_j$ on the other columns) agree to machine precision; the Sherman--Morrison form
+$\operatorname{Tr}(W^{-2})=\sum_jW^{-1}_{jj}{}^2(1+\|b_j\|^2)$ ($b_j$ the regression coefficients of $g_j$ on the other columns) agree to machine precision; the Sherman--Morrison form
 of $\|(I-P_S)e_1\|^2$ agrees; and Monte Carlo means match $\mathbb E\operatorname{Tr}W^{-1}=q/(p-q-1)$ and
 $\mathbb E\operatorname{Tr}W^{-2}=q(p-1)/((p-q)(p-q-1)(p-q-3))$ to within sampling error. For the sample regime the Monte Carlo mean of
 $\operatorname{Tr}(M^\top M)$ matches $m/(n_0-m-1)+m/(n-m-1)$ to about one percent for three shapes.
@@ -848,19 +869,19 @@ $\operatorname{Tr}(G^\top G)^{-1}$ by cyclicity. The feature covariance $S^\top 
         LinearRegression.DoubleDescent.inv_gram_apply_ne}
   \leanok
 Let $Z^\top Z$ be invertible, $z_j$ the $j$th column of $Z$, $Z_{-j}$ the matrix without it, $P_{-j}$ its Gram projector, and
-$\beta_j=(Z_{-j}^\top Z_{-j})^{-1}Z_{-j}^\top z_j$ the least-squares coefficients of $z_j$ on the other columns. Then
+$b_j=(Z_{-j}^\top Z_{-j})^{-1}Z_{-j}^\top z_j$ the least-squares coefficients of $z_j$ on the other columns. Then
 \[
   \bigl((Z^\top Z)^{-1}\bigr)_{jj}=\frac1{\|(I-P_{-j})z_j\|^2},\qquad
-  \bigl((Z^\top Z)^{-1}\bigr)_{ij}=-\beta_{j,i}\,\bigl((Z^\top Z)^{-1}\bigr)_{jj}\quad(i\neq j).
+  \bigl((Z^\top Z)^{-1}\bigr)_{ij}=-b_{j,i}\,\bigl((Z^\top Z)^{-1}\bigr)_{jj}\quad(i\neq j).
 \]
 \end{theorem}
 
 \begin{proof}
   \leanok
-Put $r=z_j-Z_{-j}\beta_j=(I-P_{-j})z_j$. The normal equations for $Z_{-j}$ give $Z_{-j}^\top r=0$, and $z_j=r+Z_{-j}\beta_j$ gives $z_j^\top r=\|r\|^2$, so
-$Z^\top r=\|r\|^2e_j$. Moreover $r=Zc$ for $c=e_j-(\beta_j\text{ extended by }0)$. Hence
+Put $r=z_j-Z_{-j}b_j=(I-P_{-j})z_j$. The normal equations for $Z_{-j}$ give $Z_{-j}^\top r=0$, and $z_j=r+Z_{-j}b_j$ gives $z_j^\top r=\|r\|^2$, so
+$Z^\top r=\|r\|^2e_j$. Moreover $r=Zc$ for $c=e_j-(b_j\text{ extended by }0)$. Hence
 $Z^\top Zc=\|r\|^2e_j$ and, applying $(Z^\top Z)^{-1}$, $c=\|r\|^2(Z^\top Z)^{-1}e_j$. Reading coordinate $j$ (where $c_j=1$) gives the first identity and
-coordinate $i\neq j$ (where $c_i=-\beta_{j,i}$) the second.
+coordinate $i\neq j$ (where $c_i=-b_{j,i}$) the second.
 \end{proof}
 
 \begin{theorem}[$\operatorname{Tr}W^{-2}$ through the column regressions]\label{thm:dd:traceSecond}
@@ -869,19 +890,19 @@ coordinate $i\neq j$ (where $c_i=-\beta_{j,i}$) the second.
   \leanok
 If $W=Z^\top Z$ is invertible, then
 \[
-  \operatorname{Tr}(W^{-1}W^{-1})=\sum_jW^{-1}_{jj}{}^2\bigl(1+\|\beta_j\|^2\bigr).
+  \operatorname{Tr}(W^{-1}W^{-1})=\sum_jW^{-1}_{jj}{}^2\bigl(1+\|b_j\|^2\bigr).
 \]
 \end{theorem}
 
 \begin{proof}
   \leanok
-$W^{-1}$ is symmetric, so $\operatorname{Tr}W^{-2}=\sum_j\sum_i(W^{-1}_{ij})^2$. Split off $i=j$ and use $W^{-1}_{ij}=-\beta_{j,i}W^{-1}_{jj}$
+$W^{-1}$ is symmetric, so $\operatorname{Tr}W^{-2}=\sum_j\sum_i(W^{-1}_{ij})^2$. Split off $i=j$ and use $W^{-1}_{ij}=-b_{j,i}W^{-1}_{jj}$
 from Theorem~\ref{thm:dd:dualVector} for $i\neq j$. By the same theorem, $W^{-1}_{jj}$ depends on $z_j$ only through the residual
-$(I-P_{-j})z_j$ while $\beta_j$ depends on $P_{-j}z_j$; for Gaussian $Z$ these are independent, which is what makes $\mathbb E\operatorname{Tr}W^{-2}$ computable.
+$(I-P_{-j})z_j$ while $b_j$ depends on $P_{-j}z_j$; for Gaussian $Z$ these are independent, which is what makes $\mathbb E\operatorname{Tr}W^{-2}$ computable.
 \end{proof}
 
 \begin{theorem}[Bias reduction (Pythagoras)]\label{thm:dd:biasReduction}
-  \uses{lem:dd:orthFactor, thm:dd:traceReduction, lem:dd:errorPartition, thm:dd:linearBV, lem:dd:leftInverse}
+  \uses{lem:dd:orthFactor, thm:dd:traceReduction, def:dd:linearModel, thm:dd:linearBV, lem:dd:leftInverse}
   \lean{LinearRegression.DoubleDescent.operator_eq_orthonormal_frame,
         LinearRegression.DoubleDescent.bias_eq_omitted_add_fit_error}
   \leanok
@@ -1191,6 +1212,6 @@ Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n_0)$. There is no sepa
 \emph{Sample bottleneck.} \textbf{Not formalized.} Only the deterministic facts of Section~\ref{sec:dd:sample} (interpolation, the trace reduction and the explicit limits) exist. For $\gamma,\delta>1$ both $X$ and $Z=XS$ are wide, so
 $ZZ^\top$ is the matrix to invert and the Gram matrix is not that of a single Gaussian matrix; a Monte Carlo experiment suggests that the expected variance is $m/(n_0-m-1)+m/(n-m-1)$, and this identification needs its own argument.
 
-\emph{Unused deterministic lemma.} The decomposition $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|\beta_j\|^2)$ of Theorem~\ref{thm:dd:traceSecond} was prepared for a second-moment route to the quadratic form $s^\top W^{-1}s$; the proof of Theorem~\ref{thm:dd:fitError} gives
+\emph{Unused deterministic lemma.} The decomposition $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|b_j\|^2)$ of Theorem~\ref{thm:dd:traceSecond} was prepared for a second-moment route to the quadratic form $s^\top W^{-1}s$; the proof of Theorem~\ref{thm:dd:fitError} gives
 the concentration directly from the exact law of the Rayleigh quotient, so no second inverse moment is needed and no later file uses Theorem~\ref{thm:dd:traceSecond}.
 \end{remark}

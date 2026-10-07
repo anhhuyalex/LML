@@ -24,6 +24,7 @@ Learning.IT.filtration
 Learning.IT.adapted_step
 Learning.IT.adapted_hist
 ProbabilityTheory.Kernel.condDistrib_trajMeasure
+Learning.IsAlgEnvSeq.hasLaw_step_zero
 Learning.IT.action
 Learning.IT.feedback
 Learning.IT.adapted_action
@@ -123,6 +124,7 @@ Approximation.Univariate.stepApprox
 Approximation.Univariate.stepApprox_collapse
 Approximation.Univariate.abs_g_breakpoint_sub_le
 Approximation.Univariate.stepApprox_error
+Approximation.Univariate.stepApprox_error
 Approximation.Multivariate.uniformModulus
 Approximation.Multivariate.RectanglePartition
 Approximation.Multivariate.piecewiseConstApprox
@@ -159,8 +161,13 @@ Approximation.Sampling.maureySamplingExistence
 Approximation.BarronNorm.BarronClass
 Approximation.BarronNorm.barronTheorem
 Approximation.InfiniteWidth.InfiniteWidthNetwork
+Approximation.InfiniteWidth.univariateIntegralRep
 Approximation.BarronNorm.barronNorm
+Approximation.BarronNorm.BarronClass
 Approximation.BarronNorm.gaussian_barronNorm_bound
+Approximation.BarronNorm.barronTheorem
+Approximation.Sampling.maureySampling
+Approximation.Sampling.maureySamplingExistence
 Approximation.Sampling.maureySamplingSignedMeasure
 Approximation.Sampling.barronSamplingBound
 NTK.posSemidef_sum_nonneg
@@ -317,6 +324,7 @@ NTK.limitingRecurrence_relu_bivariate
 NTK.map_matrixCLM_stdGaussian
 NTK.dotProduct_mem_Icc_of_unit
 NTK.prob_halfspace_intersect
+NTK.reluNTK_closedForm
 NTK.reluNTK_nonneg_of_nonneg_inner
 NTK.reluNTK_self
 NTK.trainingResidual
@@ -439,6 +447,7 @@ NTK.tendsto_shallowEmpiricalNTK_chebyshev_bound
 NTK.lazy_training_kernel_freeze_bound
 NTK.empiricalNTKMatrix_trajectory_freeze_of_jacobian_bound
 NTK.tendsto_lazy_training_kernel_freeze_matrix
+NTK.ntk_convergence
 NTK.deterministic_initialization_empiricalNTKMatrix_tendsto_ae
 NTK.deterministic_initialization_chebyshev_bound
 NTK.hasDerivAt_affineFlowSolution
@@ -449,6 +458,10 @@ NTK.norm_affine_limit_le
 NTK.eq_affine_limit_of_norm_le
 NTK.tendsto_affineFlowSolution
 NTK.inner_affine_limit
+NTK.affineFlow_eq_solution
+NTK.tendsto_affineFlowSolution
+NTK.affine_minNorm_pythagoras
+NTK.norm_affine_limit_le
 NTK.hasDerivAt_inner_tangentFeature_displacement
 NTK.hasDerivAt_frozenPrediction
 NTK.abs_dotProduct_le_norm_mul_norm
@@ -623,6 +636,7 @@ NTK.tendsto_measure_crossKernel_drift_global_positive_gap
 NTK.tendsto_measure_test_prediction_finite_horizon
 NTK.tendsto_measure_test_prediction_global_positive_gap
 NTK.test_prediction_kernel_interpolation_limit
+NTK.real_inner_eq_dotProduct
 NTK.gaussian_map_mulVec
 NTK.stdGaussian_inner_pair
 NTK.stdGaussian_inner_family
@@ -669,6 +683,7 @@ NTK.isGaussian_conditional_output
 NTK.isGaussianProcess_exact_conditional_output
 NTK.integral_conditional_output_eq_zero
 NTK.cov_conditional_output_eq_covariance
+NTK.limitingCovariance
 NTK.limitingCovariance_apply
 NTK.measurable_cov_summand
 NTK.integrable_cov_summand_of_memLp
@@ -736,6 +751,7 @@ NTK.indepFun_layer_history
 NTK.multivariateGaussian_pi_eq_kronecker
 NTK.exact_conditional_normality_layer
 NTK.conditional_preactivations_eq_pi
+NTK.empirical_layer_covariance_posSemidef_multivariate
 NTK.memLp_activation_coordinate_of_polynomial_growth
 NTK.memLp_activation_coordinate_of_polynomial_growth_of_nat
 NTK.memLp_activation_product_of_polynomial_growth
@@ -758,6 +774,7 @@ NTK.tendsto_integral_of_tendstoInMeasure_of_bounded
 NTK.abs_toEuclideanCLM_ofLp_le
 NTK.continuousWithinAt_covarianceMap
 NTK.continuousWithinAt_activationProductSq
+NTK.conditional_empiricalCovariance_tendstoInMeasure_layerCovarianceSeq
 NTK.input_empiricalCovariance_tendstoInMeasure
 NTK.deepEmpiricalCovariance_zero_tendstoInMeasure
 NTK.conditional_preactivations_infinite_eq_pi
@@ -899,6 +916,8 @@ NTK.measurable_atProj
 NTK.tendstoInMeasure_inv_nat_mul
 NTK.tendsto_residualQuadForm
 NTK.tendsto_residualLinearForm
+NTK.deepPreactivation_congr_of_eqOn
+NTK.deepPreactivation_eq_prefix
 NTK.polynomial_growth_mono
 NTK.polynomial_growth_sq
 NTK.measurable_deepFeatureAverage
@@ -1088,6 +1107,7 @@ NTK.map_gaussianRowMeasure_dot
 NTK.signAmbiguous
 NTK.largePerturb
 NTK.badSet
+NTK.ShallowNetwork
 NTK.measurable_signAmbiguous_card
 NTK.gaussianReal_Icc_bound
 NTK.BetaSmooth.β_nonneg
@@ -1106,6 +1126,7 @@ NTK.sqrt_sqrt_m_pow
 NTK.reluLinearization_algebraic_bound
 NTK.neuronCoords
 NTK.norm_sq_restrictCoords_neuronCoords
+NTK.norm_restrictCoords_neuronCoords_le
 LinearRegression.risk
 LinearRegression.bias
 LinearRegression.covCondX
@@ -1116,7 +1137,6 @@ LinearRegression.DoubleDescent.excess_prediction_risk_eq_mahalanobis
 LinearRegression.DoubleDescent.excess_prediction_risk_eq_param_risk_isotropic
 LinearRegression.DoubleDescent.integral_sub_mul_sub
 LinearRegression.DoubleDescent.risk_eq_bias_add_variance
-LinearRegression.DoubleDescent.linear_estimator_error_partition
 LinearRegression.DoubleDescent.linearEstimator_bias_variance
 LinearRegression.DoubleDescent.linearEstimator_bias_variance_isotropic
 LinearRegression.DoubleDescent.exact_conditional_bias_variance_decomposition
@@ -1205,6 +1225,7 @@ LinearRegression.DoubleDescent.map_gaussianMatrix_mul_orthonormal
 LinearRegression.DoubleDescent.map_gaussianMatrix_transpose
 LinearRegression.DoubleDescent.map_gaussianMatrix_orthogonal_mul
 Matrix.exists_orthogonal_mulVec_eq
+Matrix.orthogonalDecomposition
 Matrix.exists_orthonormal_rows_of_isStarProjection
 LinearRegression.DoubleDescent.map_dotProduct_projector_mulVec
 LinearRegression.DoubleDescent.measure_projector_norm_sq_dev_le
@@ -1222,6 +1243,7 @@ LinearRegression.DoubleDescent.tendsto_measure_trace_inv_gram_deviation
 LinearRegression.DoubleDescent.map_quadForm_inv_gram
 LinearRegression.DoubleDescent.ae_dotProduct_self_ne_zero_pi_gaussianReal
 LinearRegression.DoubleDescent.map_dotProduct_div_quadForm_inv_gram
+ProbabilityTheory.measure_dev_le_of_map_norm_sq
 LinearRegression.DoubleDescent.measure_quadForm_inv_gram_deviation_le
 LinearRegression.DoubleDescent.fitError_eq_quadForm
 LinearRegression.DoubleDescent.measure_fitError_deviation_le
