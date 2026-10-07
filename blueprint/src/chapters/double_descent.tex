@@ -5,7 +5,7 @@ This chapter records the mathematics formalized in
 Bach (2024), Hastie et al.\ (2022) and Belkin et al.\ (2019) \cite{bach2024highdim,hastie2022surprises,belkin2019reconciling}. The Lean modules and the sections that document them are:
 \begin{center}
 \small
-\begin{tabular}{ll}
+\begin{tabular}{p{0.72\textwidth}p{0.18\textwidth}}
 module & section\\ \hline
 \texttt{Basic}, \texttt{HMRT} & \ref{sec:dd:risk}\\
 \texttt{RandomFeatures}, \texttt{ForMathlib/LinearAlgebra/Matrix/LeftRightInverse} & \ref{sec:dd:features}\\
@@ -52,7 +52,7 @@ $\beta$ and $\hat\beta$ (\texttt{β}, \texttt{β\_hat}), and the Lean files of t
 same estimator, and $\beta$ and $\theta_\star$ the same parameter}. Dimensions follow the same rule.
 \begin{center}
 \small
-\begin{tabular}{llll}
+\begin{tabular}{p{0.20\textwidth}p{0.26\textwidth}p{0.17\textwidth}p{0.20\textwidth}}
 object & this chapter & \texttt{HMRT.lean} & Lean in \texttt{Basic.lean}\\ \hline
 parameter & $\theta_\star$ & $\beta$ & \texttt{θ}, \texttt{θ\_star}\\
 estimator & $\hat\theta$ & $\hat\beta$ & \texttt{β\_hat}\\
@@ -217,8 +217,8 @@ Let $X\in\mathbb R^{m\times n_0}$, let $S\in\mathbb R^{n_0\times n}$ be any matr
 \end{itemize}
 \begin{center}
 \small
-\begin{tabular}{llll}
-regime & invertibility assumed & $\hat\eta$ & $M$ (so that $\hat\theta=My$)\\ \hline
+\begin{tabular}{p{0.22\textwidth}p{0.13\textwidth}p{0.24\textwidth}p{0.27\textwidth}}
+regime & invertible & $\hat\eta$ & $M$ (so that $\hat\theta=My$)\\ \hline
 feature bottleneck, $\delta<\min\{1,\gamma\}$ & $Z^\top Z$ & $(Z^\top Z)^{-1}Z^\top y$ & $S(Z^\top Z)^{-1}Z^\top$\\[0.5ex]
 ambient bottleneck, $\gamma<1,\ \gamma\le\delta$ & $X^\top X$, $SS^\top$ &
 $S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top y$ & $SS^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top=(X^\top X)^{-1}X^\top$\\[0.5ex]
