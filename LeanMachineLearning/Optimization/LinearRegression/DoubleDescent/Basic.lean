@@ -25,8 +25,8 @@ definitions are introduced: the measurement operator is just the matrix `M` (for
 * `excess_prediction_risk_eq_mahalanobis`, `excess_prediction_risk_eq_param_risk_isotropic`:
   `E_{x_new}[(x_new ⬝ (θ̂ - θ⋆))²]` is the `Σ`-norm (resp. squared Euclidean norm) of `θ̂ - θ⋆`;
 * `risk_eq_bias_add_variance`: `R = B + V` for any estimator with square-integrable coordinates;
-* `linear_estimator_error_partition`: `θ̂ - θ⋆ = (M X - I) θ⋆ + M ε`;
-* `linearEstimator_bias_variance`: for centered noise of covariance `Γ`,
+* `linearEstimator_bias_variance`: for centered noise of covariance `Γ`, the error splits as
+  `θ̂ - θ⋆ = (M X - I) θ⋆ + M ε` (a fixed part and a centered part), so
   `B = ‖(M X - I) θ⋆‖²_Σ` and `V = Tr (M Γ Mᵀ Σ)`;
 * `exact_conditional_bias_variance_decomposition`: the isotropic case
   `E ‖θ̂ - θ⋆‖² = ‖(M X - I) θ⋆‖² + σ² Tr (Mᵀ M)`.
@@ -86,13 +86,6 @@ theorem excess_prediction_risk_eq_param_risk_isotropic [DecidableEq p] (P : Meas
     ∫ x, (x ⬝ᵥ v) ^ 2 ∂P = v ⬝ᵥ v := by
   simpa using excess_prediction_risk_eq_mahalanobis P hP 1 (fun j k => by
     simpa [Matrix.one_apply] using h_cov j k) v
-
-/-- Error vector partition for an arbitrary linear estimator `θ̂ = M y`, `y = X θ⋆ + ε`. -/
-theorem linear_estimator_error_partition [DecidableEq p]
-    (M : Matrix p n ℝ) (X : Matrix n p ℝ) (θ_star : p → ℝ) (ε : n → ℝ) :
-    M *ᵥ (X *ᵥ θ_star + ε) - θ_star = (M * X - 1) *ᵥ θ_star + M *ᵥ ε := by
-  rw [Matrix.mulVec_add, Matrix.mulVec_mulVec, Matrix.sub_mulVec, Matrix.one_mulVec]
-  abel
 
 /-- Second moment of a shifted pair of square-integrable variables. -/
 theorem integral_sub_mul_sub [IsProbabilityMeasure μ] {f g : Ω → ℝ} (hf : MemLp f 2 μ)

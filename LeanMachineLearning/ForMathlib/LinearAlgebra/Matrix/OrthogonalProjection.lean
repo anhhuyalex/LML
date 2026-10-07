@@ -13,7 +13,8 @@ public import Mathlib.LinearAlgebra.Matrix.Hermitian
 
 Pure real linear algebra for an orthogonal projection matrix `P` (`IsStarProjection P`, i.e.
 `Pᵀ = P` and `P * P = P`): the complement `1 - P`, the exact decomposition `W = W P + W Pᗮ` of any
-matrix, the residual `W Pᗮ` annihilating every `X` with `P X = X`, and `‖P x‖² = x ⬝ P x ≤ ‖x‖²`.
+matrix, the residual `W Pᗮ` annihilating every `X` with `P X = X`, `‖P x‖² = x ⬝ P x ≤ ‖x‖²`, and
+the resulting trace and Frobenius-norm identities for compressions `P A P`.
 -/
 
 @[expose] public section
@@ -95,6 +96,47 @@ lemma mulVec_dot_self_le {p : Type*} [Fintype p]
   rw [h2, h3] at h4
   simp only [dotProduct_sub] at h4
   linarith
+
+/-- Left multiplication by an orthogonal projection does not increase the Frobenius norm. -/
+lemma frobSq_projector_mul_le {p q : Type*} [Fintype p] [Fintype q]
+    (Q : Matrix p p ℝ) (hQ : IsStarProjection Q) (B : Matrix p q ℝ) :
+    ∑ k, ∑ l, (Q * B) k l ^ 2 ≤ ∑ k, ∑ l, B k l ^ 2 := by
+  rw [Finset.sum_comm (f := fun k l => (Q * B) k l ^ 2),
+    Finset.sum_comm (f := fun k l => B k l ^ 2)]
+  refine Finset.sum_le_sum fun l _ => ?_
+  have := mulVec_dot_self_le Q hQ (fun i => B i l)
+  simpa [dotProduct, Matrix.mulVec, Matrix.mul_apply, sq] using this
+
+/-- Right multiplication by an orthogonal projection does not increase the Frobenius norm. -/
+lemma frobSq_mul_projector_le {p q : Type*} [Fintype p] [Fintype q]
+    (Q : Matrix p p ℝ) (hQ : IsStarProjection Q) (B : Matrix q p ℝ) :
+    ∑ k, ∑ l, (B * Q) k l ^ 2 ≤ ∑ k, ∑ l, B k l ^ 2 := by
+  have h := frobSq_projector_mul_le Q hQ Bᵀ
+  rw [Finset.sum_comm (f := fun k l => (B * Q) k l ^ 2),
+    Finset.sum_comm (f := fun k l => B k l ^ 2)]
+  have hT : (Q * Bᵀ) = (B * Q)ᵀ := by rw [Matrix.transpose_mul, hQ.transpose_eq]
+  rw [hT] at h
+  simpa using h
+
+/-- Compression by an orthogonal projector does not increase the Frobenius norm:
+`‖Q A Q‖_F ≤ ‖A‖_F`. -/
+lemma frobSq_compress_le {p : Type*} [Fintype p]
+    (Q : Matrix p p ℝ) (hQ : IsStarProjection Q) (A : Matrix p p ℝ) :
+    ∑ k, ∑ l, (Q * A * Q) k l ^ 2 ≤ ∑ k, ∑ l, A k l ^ 2 := by
+  rw [Matrix.mul_assoc]
+  exact (frobSq_projector_mul_le Q hQ (A * Q)).trans (frobSq_mul_projector_le Q hQ A)
+
+/-- Trace of a matrix compressed by an orthogonal projector: `tr(Q A Q) = tr(A Q)`. -/
+lemma trace_compress_projector {p : Type*} [Fintype p] (Q A : Matrix p p ℝ)
+    (hQ : IsStarProjection Q) : (Q * A * Q).trace = (A * Q).trace := by
+  rw [Matrix.trace_mul_cycle, hQ.isIdempotentElem.eq, Matrix.trace_mul_comm]
+
+/-- `tr(Pᗮ A Pᗮ) = tr A - tr(A P)`: the mean of the residual Gaussian quadratic form. -/
+lemma trace_compress_orthogonalComplement {p : Type*} [Fintype p] [DecidableEq p]
+    (P A : Matrix p p ℝ) (hP : IsStarProjection P) :
+    ((1 - P) * A * (1 - P)).trace = A.trace - (A * P).trace := by
+  rw [trace_compress_projector _ _ (orthogonalComplement_isOrthogonalProjection P hP)]
+  simp only [Matrix.mul_sub, Matrix.mul_one, Matrix.trace_sub]
 
 end Matrix
 

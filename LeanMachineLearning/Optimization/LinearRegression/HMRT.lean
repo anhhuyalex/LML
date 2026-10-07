@@ -18,6 +18,13 @@ public import LeanMachineLearning.Optimization.ConvexOpt.Basic
 This file formalizes the linear model setup, prediction risk, bias-variance
 decomposition, and the ridgeless least squares estimator following Section 2 of
 Hastie, Montanari, Rosset, and Tibshirani (HMRT, 2022).
+
+`lemma1` is the *algebraic core* of HMRT Lemma 1: it takes the conditional mean and covariance of
+`β̂` as hypotheses. The probabilistic input, that `β̂ = Σ̂⁺ Xᵀ y / n` has mean `Σ̂⁺ Σ̂ β` and
+covariance `σ² / n · Σ̂⁺` under the linear model, is
+`LinearRegression.DoubleDescent.lemma1_of_linear_model` (`DoubleDescent/Basic.lean`), which
+derives it from the general linear-estimator theorem and then applies `lemma1_bias`. That file
+imports this one, so the cross-reference runs in this direction only.
 -/
 
 @[expose] public section
@@ -128,7 +135,11 @@ Under the linear model $y = X \beta + \epsilon$, the min-norm least squares esti
 has conditional bias and variance:
 $$ B_X(\hat{\beta}; \beta) = \beta^T \Pi \Sigma \Pi \beta \quad \text{and} \quad
    V_X(\hat{\beta}; \beta) = \frac{\sigma^2}{n} \operatorname{Tr}(\hat{\Sigma}^+ \Sigma) $$
-where $\hat{\Sigma} = X^T X / n$ and $\Pi = I - \hat{\Sigma}^+ \hat{\Sigma}$. -/
+where $\hat{\Sigma} = X^T X / n$ and $\Pi = I - \hat{\Sigma}^+ \hat{\Sigma}$.
+
+This is the algebraic core: the mean and covariance of $\hat{\beta}$ are hypotheses. For the
+statement with these derived from the linear model, see
+`LinearRegression.DoubleDescent.lemma1_of_linear_model`. -/
 theorem lemma1
     (Sigma : Matrix p p ℝ) (Sigma_hat Sigma_hat_dagger : Matrix p p ℝ)
     (h_symm : (1 - Sigma_hat_dagger * Sigma_hat).IsSymm)

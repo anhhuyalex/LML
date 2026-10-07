@@ -51,9 +51,9 @@ Part~(3) is the algebraic reason that forward propagation through a layer only s
 
 \begin{lemma}[Projections do not increase norms; traces of compressions]\label{lem:ntkcond:projectorNorms}
   \uses{def:ntkcond:projector}
-  \lean{Matrix.mulVec_dot_self_eq, Matrix.mulVec_dot_self_le, NTK.frobSq_projector_mul_le,
-        NTK.frobSq_mul_projector_le, NTK.frobSq_compress_le, NTK.trace_compress_projector,
-        NTK.trace_compress_orthogonalComplement}
+  \lean{Matrix.mulVec_dot_self_eq, Matrix.mulVec_dot_self_le, Matrix.frobSq_projector_mul_le,
+        Matrix.frobSq_mul_projector_le, Matrix.frobSq_compress_le, Matrix.trace_compress_projector,
+        Matrix.trace_compress_orthogonalComplement}
   \leanok
 Let $Q$ be an orthogonal projection matrix on $\mathbb R^p$, $A\in\mathbb R^{p\times p}$, $B\in\mathbb R^{p\times q}$, $B'\in\mathbb R^{q\times p}$ and $x\in\mathbb R^p$. Then
 \begin{enumerate}
