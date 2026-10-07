@@ -150,6 +150,19 @@ theorem gramProjector_submatrix_equiv {n m m' : Type*} [Fintype n] [Fintype m] [
   refine Finset.sum_congr rfl fun b _ => ?_
   rw [← Equiv.sum_comp e (fun a => A i a * (Aᵀ * A)⁻¹ a (e b))]
 
+/-- **Equivariance of the Gram projector.** For a matrix `U` with orthonormal columns
+(`Uᵀ U = 1`, e.g. an orthogonal matrix), `P_{U Φ} = U P_Φ Uᵀ`: the Gram matrix is unchanged,
+`(U Φ)ᵀ (U Φ) = Φᵀ Φ`. -/
+theorem gramProjector_orthonormal_mul {n n' m : Type*} [Fintype n] [Fintype n'] [Fintype m]
+    [DecidableEq n]
+    [DecidableEq m] (U : Matrix n' n ℝ) (hU : Uᵀ * U = 1) (Φ : Matrix n m ℝ) :
+    gramProjector (U * Φ) = U * gramProjector Φ * Uᵀ := by
+  have hG : (U * Φ)ᵀ * (U * Φ) = Φᵀ * Φ := by
+    rw [Matrix.transpose_mul, Matrix.mul_assoc, ← Matrix.mul_assoc Uᵀ, hU, Matrix.one_mul]
+  unfold gramProjector
+  rw [hG]
+  simp only [Matrix.transpose_mul, Matrix.mul_assoc]
+
 universe u
 
 /-- **Orthogonal projections factor through orthonormal rows.** An orthogonal projection matrix

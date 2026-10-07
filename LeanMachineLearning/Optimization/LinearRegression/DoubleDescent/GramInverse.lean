@@ -17,7 +17,8 @@ probabilistic: these lemmas reduce the random quantities `Tr ((Zᵀ Z)⁻¹ Sᵀ
 `‖(M X - 1) θ⋆‖²` of the random-feature estimator `θ̂ = M y`, `M = S (Zᵀ Z)⁻¹ Zᵀ`, `Z = X S`, to
 statements about a standard Gaussian matrix `G = X Q` that Gaussian invariance can then handle.
 
-* `exists_orthonormal_factor`: `S = Q R` with `Qᵀ Q = 1` and `R` invertible, from `Sᵀ S` invertible
+* `exists_orthonormal_factor`: `S = Q R` with `Qᵀ Q = 1` and `R` invertible and symmetric, from
+  `Sᵀ S` invertible
   (`R = √(Sᵀ S)`, `Q = S R⁻¹`; no Gram-Schmidt, no triangularity);
 * `trace_inv_gram_mul_gram_of_factor`: `Tr ((Zᵀ Z)⁻¹ Sᵀ S) = Tr ((Gᵀ G)⁻¹)`: the feature covariance
   cancels, so only identity-covariance Wishart matrices are ever needed;
@@ -46,13 +47,14 @@ open scoped MatrixOrder
 variable {m n n₀ : Type*} [Fintype m] [Fintype n] [Fintype n₀] [DecidableEq n]
 
 /-- **Orthonormal frame of a full-column-rank matrix.** If `Sᵀ S` is invertible, then `S = Q R`
-with `Qᵀ Q = 1` and `R` invertible.
+with `Qᵀ Q = 1` and `R` invertible and symmetric (`R = √(Sᵀ S)`, so `Rᵀ R = R R = Sᵀ S`).
 
 Proof: take `R = √(Sᵀ S)` (`CFC.sqrt`, symmetric with `R R = Sᵀ S`) and `Q = S R⁻¹`; then
 `Qᵀ Q = R⁻¹ (Sᵀ S) R⁻¹ = 1`. No Gram-Schmidt and no triangularity are needed, since only
 `Rᵀ R = Sᵀ S` is ever used downstream. -/
 theorem exists_orthonormal_factor (S : Matrix n₀ n ℝ) (hS : IsUnit (Sᵀ * S).det) :
-    ∃ (Q : Matrix n₀ n ℝ) (R : Matrix n n ℝ), Qᵀ * Q = 1 ∧ IsUnit R.det ∧ S = Q * R := by
+    ∃ (Q : Matrix n₀ n ℝ) (R : Matrix n n ℝ), Qᵀ * Q = 1 ∧ IsUnit R.det ∧ Rᵀ = R ∧
+      S = Q * R := by
   have hpsd : 0 ≤ Sᵀ * S := by
     rw [Matrix.nonneg_iff_posSemidef]
     simpa using Matrix.posSemidef_conjTranspose_mul_self S
@@ -64,7 +66,7 @@ theorem exists_orthonormal_factor (S : Matrix n₀ n ℝ) (hS : IsUnit (Sᵀ * S
   have hdet : IsUnit R.det := by
     have : IsUnit (R.det * R.det) := by rw [← det_mul, hRR]; exact hS
     exact (isUnit_mul_self_iff.mp this)
-  refine ⟨S * R⁻¹, R, ?_, hdet, ?_⟩
+  refine ⟨S * R⁻¹, R, ?_, hdet, hRT, ?_⟩
   · have hRinvT : (R⁻¹)ᵀ = R⁻¹ := by rw [transpose_nonsing_inv, hRT]
     have hinv : R⁻¹ * R = 1 := nonsing_inv_mul _ hdet
     calc (S * R⁻¹)ᵀ * (S * R⁻¹) = R⁻¹ * (Sᵀ * S) * R⁻¹ := by

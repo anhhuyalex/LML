@@ -10,6 +10,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Ga
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GramInverse
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianAlgebra
+public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianQuadraticVariance
 public import LeanMachineLearning.Optimization.NTK.Initialization.ResidualConcentration
 
 /-!
@@ -22,6 +23,8 @@ gaussianReal 0 1` as in `NTK/Initialization`. We prove:
 
 * `map_gaussianMatrix_mul_orthonormal`: **orthogonal invariance**: if `Qᵀ Q = 1` then `W Q` has
   again i.i.d. standard normal entries (from `NTK.gaussian_map_mulVec`);
+* `map_gaussianMatrix_transpose`, `map_gaussianMatrix_orthogonal_mul`: `Wᵀ` is Gaussian and so
+  is `U W` for `Uᵀ U = 1` (left invariance, the transpose of the above);
 * `map_dotProduct_projector_mulVec`: for a Gaussian vector `g` and an orthogonal projection `P`
   of trace `r`, `‖P g‖²` is `χ²_r` (`NTK.exists_orthonormal_rows_of_isStarProjection`);
 * `measurePreserving_columnSplit`, `map_prod_eq_of_ae`: column `j` of `W` is independent of the
@@ -78,6 +81,67 @@ theorem map_gaussianMatrix_mul_orthonormal {ρ ι κ : Type*} [Fintype ρ] [Fint
   congr 1
   funext W i k
   simp [Matrix.mul_apply, Matrix.mulVec, dotProduct, mul_comm]
+
+/-- **Transposing a Gaussian matrix.** If `W` has i.i.d. standard normal entries, so does `Wᵀ`
+(through the pair-indexed vector of entries, `NTK.map_gaussianInit_pairIndex`). -/
+theorem map_gaussianMatrix_transpose (p q : ℕ) :
+    (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1).map
+        (fun W : Fin p → Fin q → ℝ => fun k i => W i k) =
+      Measure.pi fun _ : Fin q => Measure.pi fun _ : Fin p => gaussianReal 0 1 := by
+  have h1 := map_gaussianInit_pairIndex p q
+  have h2 := map_gaussianInit_pairIndex q p
+  have hsw := Measure.pi_map_piCongrLeft (Equiv.prodComm (Fin p) (Fin q))
+    (β := fun _ : Fin q × Fin p => ℝ) (fun _ => gaussianReal 0 1)
+  have hcur : Measurable (fun f : Fin q × Fin p → ℝ => fun k i => f (k, i)) :=
+    Measurable.of_eval fun k => Measurable.of_eval fun i => measurable_pi_apply (k, i)
+  have hsw' : Measurable (fun f : Fin p × Fin q → ℝ => fun x : Fin q × Fin p => f x.swap) :=
+    Measurable.of_eval fun x => measurable_pi_apply x.swap
+  have hu : Measurable (fun W : Fin p → Fin q → ℝ => Function.uncurry W) := measurable_uncurry
+  have key : (fun W : Fin p → Fin q → ℝ => fun k i => W i k) =
+      (fun f : Fin q × Fin p → ℝ => fun k i => f (k, i)) ∘
+        (fun f : Fin p × Fin q → ℝ => fun x : Fin q × Fin p => f x.swap) ∘
+        (fun W : Fin p → Fin q → ℝ => Function.uncurry W) := by
+    funext W k i; rfl
+  rw [key, ← Measure.map_map hcur (hsw'.comp hu), ← Measure.map_map hsw' hu, h1]
+  have hmm : (fun f : Fin p × Fin q → ℝ => fun x : Fin q × Fin p => f x.swap) =
+      ⇑(MeasurableEquiv.piCongrLeft (fun _ : Fin q × Fin p => ℝ)
+        (Equiv.prodComm (Fin p) (Fin q))) := by
+    funext f x
+    simp [MeasurableEquiv.piCongrLeft, Equiv.piCongrLeft_apply]
+  have hu' : Measurable (fun W : Fin q → Fin p → ℝ => Function.uncurry W) := measurable_uncurry
+  rw [hmm, hsw, ← h2, Measure.map_map hcur hu']
+  have : (fun f : Fin q × Fin p → ℝ => fun k i => f (k, i)) ∘
+      (fun W : Fin q → Fin p → ℝ => Function.uncurry W) = id := by
+    funext W k i; rfl
+  rw [this, Measure.map_id]
+
+/-- **Left orthogonal invariance of a Gaussian matrix.** If `W` has i.i.d. standard normal entries
+and `Uᵀ U = 1`, then `U W` again has i.i.d. standard normal entries. This is
+`map_gaussianMatrix_mul_orthonormal` for `Wᵀ Uᵀ`, conjugated by `map_gaussianMatrix_transpose`. -/
+theorem map_gaussianMatrix_orthogonal_mul {p q : ℕ} (U : Matrix (Fin p) (Fin p) ℝ)
+    (hU : Uᵀ * U = 1) :
+    (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1).map
+        (fun W : Fin p → Fin q → ℝ => fun i k => (U * Matrix.of W) i k) =
+      Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1 := by
+  have hU' : (Uᵀ)ᵀ * Uᵀ = 1 := by rw [transpose_transpose]; exact mul_eq_one_comm.mp hU
+  have hR := map_gaussianMatrix_mul_orthonormal (ρ := Fin q) (ι := Fin p) Uᵀ hU'
+  have hT1 := map_gaussianMatrix_transpose p q
+  have hT2 := map_gaussianMatrix_transpose q p
+  have mT : ∀ a b : ℕ, Measurable (fun W : Fin a → Fin b → ℝ => fun k i => W i k) := fun a b =>
+    Measurable.of_eval fun k => Measurable.of_eval fun i =>
+      (measurable_pi_apply k).comp (measurable_pi_apply i)
+  have mR : Measurable (fun W : Fin q → Fin p → ℝ => fun i k => (Matrix.of W * Uᵀ) i k) :=
+    Measurable.of_eval fun i => Measurable.of_eval fun k => by
+      simp only [Matrix.mul_apply, Matrix.of_apply]
+      exact Finset.measurable_sum _ fun l _ => by fun_prop
+  have key : (fun W : Fin p → Fin q → ℝ => fun i k => (U * Matrix.of W) i k) =
+      (fun W : Fin q → Fin p → ℝ => fun k i => W i k) ∘
+        (fun W : Fin q → Fin p → ℝ => fun i k => (Matrix.of W * Uᵀ) i k) ∘
+        (fun W : Fin p → Fin q → ℝ => fun k i => W i k) := by
+    funext W i k
+    simp [Matrix.mul_apply, mul_comm]
+  rw [key, ← Measure.map_map (mT q p) (mR.comp (mT p q)), ← Measure.map_map mR (mT p q), hT1, hR,
+    hT2]
 
 /-- **Projected Gaussian norm is chi-squared.** If `g` has i.i.d. standard normal coordinates and
 `P` is an orthogonal projection matrix of trace `r`, then `‖P g‖²` has the law of `‖x‖²` for `x` a

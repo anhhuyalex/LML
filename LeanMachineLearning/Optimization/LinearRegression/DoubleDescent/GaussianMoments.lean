@@ -18,6 +18,7 @@ estimating covariances between the diagonal entries (Milestone 7 of the double-d
 [Bach, 2024]; [Hastie et al., 2022]; [Belkin et al., 2019]):
 
 * `integral_norm_sq_sub_pow_four`: `E (‖x‖² - k)⁴ = 12 k² + 48 k`;
+* `measureReal_norm_sq_sub_abs_ge_le`: `ℙ (|‖x‖² - k| ≥ t) ≤ (12 k² + 48 k) / t⁴`;
 * `measureReal_norm_sq_sub_ge_le`: `ℙ (|‖x‖² - k| ≥ ε k) ≤ 60 / (ε⁴ k²)`.
 
 The inverse moments `E 1/χ²_k = 1/(k-2)` and `E 1/χ⁴_k = 1/((k-2)(k-4))` are
@@ -78,37 +79,45 @@ theorem integral_norm_sq_sub_pow_four :
   push_cast
   ring
 
-/-- **Tail bound for `χ²_k`.** For `dim E = k` and `ε > 0`,
+/-- **Absolute tail bound for `χ²_k`.** For `dim E = k` and `t > 0`,
+`ℙ (|‖x‖² - k| ≥ t) ≤ (12 k² + 48 k) / t⁴`.
+
+Proof: Markov's inequality for `(‖x‖² - k)⁴`, whose mean is `12 k² + 48 k`
+(`integral_norm_sq_sub_pow_four`). -/
+theorem measureReal_norm_sq_sub_abs_ge_le {t : ℝ} (ht : 0 < t) :
+    (stdGaussian E).real {x : E | t ≤ |‖x‖ ^ 2 - Module.finrank ℝ E|} ≤
+      (12 * (Module.finrank ℝ E : ℝ) ^ 2 + 48 * (Module.finrank ℝ E : ℝ)) / t ^ 4 := by
+  set k : ℝ := (Module.finrank ℝ E : ℝ) with hkdef
+  have ht4 : 0 < t ^ 4 := by positivity
+  have hM := mul_meas_ge_le_integral_of_nonneg (μ := stdGaussian E)
+    (f := fun x : E => (‖x‖ ^ 2 - k) ^ 4)
+    (Filter.Eventually.of_forall fun x => by positivity)
+    (integrable_norm_sq_sub_pow_four k) (t ^ 4)
+  rw [integral_norm_sq_sub_pow_four] at hM
+  have hsub : {x : E | t ≤ |‖x‖ ^ 2 - k|} ⊆ {x : E | t ^ 4 ≤ (‖x‖ ^ 2 - k) ^ 4} := by
+    intro x hx
+    have : t ^ 4 ≤ |‖x‖ ^ 2 - k| ^ 4 := pow_le_pow_left₀ ht.le hx 4
+    simpa [pow_abs, abs_pow, Even.pow_abs (by decide : Even 4)] using this
+  calc (stdGaussian E).real {x : E | t ≤ |‖x‖ ^ 2 - k|}
+      ≤ (stdGaussian E).real {x : E | t ^ 4 ≤ (‖x‖ ^ 2 - k) ^ 4} := measureReal_mono hsub
+    _ ≤ (12 * k ^ 2 + 48 * k) / t ^ 4 := by rw [le_div_iff₀ ht4]; linarith
+
+/-- **Relative tail bound for `χ²_k`.** For `dim E = k` and `ε > 0`,
 `ℙ (|‖x‖² - k| ≥ ε k) ≤ 60 / (ε⁴ k²)`.
 
-Proof: Markov's inequality for `(‖x‖² - k)⁴`, whose mean is `12 k² + 48 k ≤ 60 k²`
-(`integral_norm_sq_sub_pow_four`). Summed over `q` entries by a union bound this is
-`60 q / (ε⁴ ν²) → 0` when `q ≍ ν`, which is what concentrates `Tr ((Gᵀ G)⁻¹)`. -/
+Summed over `q` entries by a union bound this is `60 q / (ε⁴ ν²) → 0` when `q ≍ ν`, which is what
+concentrates `Tr ((Gᵀ G)⁻¹)`. -/
 theorem measureReal_norm_sq_sub_ge_le {ε : ℝ} (hε : 0 < ε) :
     (stdGaussian E).real {x : E | ε * (Module.finrank ℝ E : ℝ) ≤
         |‖x‖ ^ 2 - Module.finrank ℝ E|} ≤ 60 / (ε ^ 4 * (Module.finrank ℝ E : ℝ) ^ 2) := by
   have hk : (1 : ℝ) ≤ Module.finrank ℝ E := by exact_mod_cast Module.finrank_pos
   set k : ℝ := (Module.finrank ℝ E : ℝ) with hkdef
   have hεk : 0 < (ε * k) ^ 4 := by positivity
-  have hM := mul_meas_ge_le_integral_of_nonneg (μ := stdGaussian E)
-    (f := fun x : E => (‖x‖ ^ 2 - k) ^ 4)
-    (Filter.Eventually.of_forall fun x => by positivity)
-    (integrable_norm_sq_sub_pow_four k) ((ε * k) ^ 4)
-  rw [integral_norm_sq_sub_pow_four] at hM
-  have hsub : {x : E | ε * k ≤ |‖x‖ ^ 2 - k|} ⊆ {x : E | (ε * k) ^ 4 ≤ (‖x‖ ^ 2 - k) ^ 4} := by
-    intro x hx
-    have : (ε * k) ^ 4 ≤ |‖x‖ ^ 2 - k| ^ 4 := pow_le_pow_left₀ (by positivity) hx 4
-    simpa [pow_abs, abs_pow, Even.pow_abs (by decide : Even 4)] using this
-  calc (stdGaussian E).real {x : E | ε * k ≤ |‖x‖ ^ 2 - k|}
-      ≤ (stdGaussian E).real {x : E | (ε * k) ^ 4 ≤ (‖x‖ ^ 2 - k) ^ 4} :=
-        measureReal_mono hsub
-    _ ≤ (12 * k ^ 2 + 48 * k) / (ε * k) ^ 4 := by
-        rw [le_div_iff₀ hεk]; linarith
-    _ ≤ 60 / (ε ^ 4 * k ^ 2) := by
-        rw [div_le_div_iff₀ hεk (by positivity)]
-        have : 0 < ε ^ 4 := by positivity
-        nlinarith [mul_pos this (show 0 < k by linarith), sq_nonneg k,
-          mul_pos this (mul_pos (show 0 < k by linarith) (show 0 < k by linarith))]
+  refine (measureReal_norm_sq_sub_abs_ge_le (by positivity : 0 < ε * k)).trans ?_
+  rw [div_le_div_iff₀ hεk (by positivity)]
+  have : 0 < ε ^ 4 := by positivity
+  nlinarith [mul_pos this (show 0 < k by linarith), sq_nonneg k,
+    mul_pos this (mul_pos (show 0 < k by linarith) (show 0 < k by linarith))]
 
 end LinearRegression.DoubleDescent
 

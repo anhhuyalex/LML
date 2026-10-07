@@ -6,6 +6,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.C
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.DataProcessing
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
@@ -81,6 +82,8 @@ public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Theorems
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.AmbientBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Basic
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.BiasConcentration
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.BiasProjector
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.DoubleDescentCurve
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.GaussianMoments
