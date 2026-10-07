@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalDiagonalization
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomMatrixFoundations
 
 /-!
@@ -21,6 +22,10 @@ of `(Wᵀ W)⁻¹` are exact inverse chi-squared variables (`map_inv_gram_diag_g
   non-asymptotic tail bound `ℙ (Tr ∉ [m / (ν (1+ε)), m / (ν (1-ε))]) ≤ 60 m / (ε⁴ ν²)`,
   `ν = p - m + 1`, from the fourth-moment Markov bound of `StdGaussianChiSqTails.lean` and a
   union bound over the `m` diagonal entries (no covariance estimate between entries is needed);
+  it is the unit-weight case of `measureReal_weighted_diag_inv_gram_deviation_le`;
+* `measure_trace_mul_inv_gram_deviation_le`: the same sandwich for `Tr (C (Wᵀ W)⁻¹)` with an
+  arbitrary PSD weight `C` (sandwich `Tr C / (ν (1 ± ε))`), by diagonalizing `C` and rotating `W`
+  (`Matrix.exists_trace_mul_eq_sum_eigenvalues`, `map_gaussianMatrix_mul_orthonormal`);
 * `tendsto_measure_trace_inv_gram_deviation`: **convergence in probability**
   `Tr ((Wᵀ W)⁻¹) → ρ / (1 - ρ)` along `m_k / p_k → ρ < 1` (Lemma 3.2, Part 2), stated for a sequence
   of product measures (no infinite probability space).
@@ -145,21 +150,21 @@ theorem measureReal_inv_gram_diag_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) (
   exact ENNReal.toReal_le_of_le_ofReal (by positivity) h
 
 
-/-- **Non-asymptotic concentration of `Tr ((Wᵀ W)⁻¹)`.** For a `p × (q+1)` Gaussian matrix with
-`q + 1 ≤ p`, `ν = p - q` and `0 < ε < 1`,
-`ℙ (Tr ((Wᵀ W)⁻¹) ∉ [(q+1) / (ν (1+ε)), (q+1) / (ν (1-ε))]) ≤ 60 (q+1) / (ε⁴ ν²)`.
+/-- **Non-asymptotic concentration of a nonnegatively weighted sum of the diagonal of `(Wᵀ W)⁻¹`.**
+For a `p × (q+1)` Gaussian matrix with `q + 1 ≤ p`, `ν = p - q`, weights `wⱼ ≥ 0` and `0 < ε < 1`,
+`ℙ (∑ⱼ wⱼ ((Wᵀ W)⁻¹)ⱼⱼ ∉ [∑ w / (ν (1+ε)), ∑ w / (ν (1-ε))]) ≤ 60 (q+1) / (ε⁴ ν²)`.
 
-Proof: the trace is `∑ⱼ 1 / Xⱼ` with every `Xⱼ ~ χ²_ν` (`map_inv_gram_diag_gaussianMatrix`), each
-`Xⱼ` lies in `ν (1 ± ε)` except with probability `60 / (ε⁴ ν²)`
+Proof: every `1 / ((Wᵀ W)⁻¹)ⱼⱼ` is a `χ²_ν` variable (`map_inv_gram_diag_gaussianMatrix`), it lies
+in `ν (1 ± ε)` except with probability `60 / (ε⁴ ν²)`
 (`measureReal_inv_gram_diag_deviation_le`), and a union bound over the `q+1` columns avoids any
-covariance estimate. -/
-theorem measureReal_trace_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) {ε : ℝ}
-    (hε : 0 < ε) (hε1 : ε < 1) :
+covariance estimate. On the good event every term, hence the weighted sum, is sandwiched. -/
+theorem measureReal_weighted_diag_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p)
+    (w : Fin (q + 1) → ℝ) (hw : ∀ j, 0 ≤ w j) {ε : ℝ} (hε : 0 < ε) (hε1 : ε < 1) :
     (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1).real
-        {W | ¬ (((q + 1 : ℕ) : ℝ) / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
-            ((Matrix.of W)ᵀ * Matrix.of W)⁻¹.trace ∧
-          ((Matrix.of W)ᵀ * Matrix.of W)⁻¹.trace ≤
-            ((q + 1 : ℕ) : ℝ) / (((p - q : ℕ) : ℝ) * (1 - ε)))} ≤
+        {W | ¬ ((∑ j, w j) / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
+            ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ∧
+          ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ≤
+            (∑ j, w j) / (((p - q : ℕ) : ℝ) * (1 - ε)))} ≤
       ((q + 1 : ℕ) : ℝ) * (60 / (ε ^ 4 * ((p - q : ℕ) : ℝ) ^ 2)) := by
   set μ := Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1 with hμ
   set ν : ℝ := ((p - q : ℕ) : ℝ) with hνdef
@@ -168,9 +173,9 @@ theorem measureReal_trace_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) 
     rw [hνdef]; exact_mod_cast this
   set E : Fin (q + 1) → Set (Fin p → Fin (q + 1) → ℝ) := fun j =>
     {W | ε * ν ≤ |(((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j)⁻¹ - ν|} with hE
-  have hsub : {W : Fin p → Fin (q + 1) → ℝ | ¬ (((q + 1 : ℕ) : ℝ) / (ν * (1 + ε)) ≤
-        ((Matrix.of W)ᵀ * Matrix.of W)⁻¹.trace ∧
-      ((Matrix.of W)ᵀ * Matrix.of W)⁻¹.trace ≤ ((q + 1 : ℕ) : ℝ) / (ν * (1 - ε)))} ⊆
+  have hsub : {W : Fin p → Fin (q + 1) → ℝ | ¬ ((∑ j, w j) / (ν * (1 + ε)) ≤
+        ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ∧
+      ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ≤ (∑ j, w j) / (ν * (1 - ε)))} ⊆
       ⋃ j, E j := by
     intro W hW
     by_contra hnot
@@ -183,25 +188,97 @@ theorem measureReal_trace_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) 
     have hpos : ∀ j, 0 < (M⁻¹ j j)⁻¹ := fun j =>
       lt_trans (mul_pos hν (by linarith)) (hX j).1
     have hD : ∀ j, M⁻¹ j j = ((M⁻¹ j j)⁻¹)⁻¹ := fun j => (inv_inv _).symm
-    have htr : M⁻¹.trace = ∑ j, M⁻¹ j j := rfl
     constructor
-    · rw [htr]
-      calc ((q + 1 : ℕ) : ℝ) / (ν * (1 + ε)) = ∑ _j : Fin (q + 1), 1 / (ν * (1 + ε)) := by
-            simp [div_eq_mul_inv]
-        _ ≤ ∑ j, M⁻¹ j j := Finset.sum_le_sum fun j _ => by
+    · calc (∑ j, w j) / (ν * (1 + ε)) = ∑ j, w j * (1 / (ν * (1 + ε))) := by
+            rw [Finset.sum_div]; exact Finset.sum_congr rfl fun j _ => by ring
+        _ ≤ ∑ j, w j * M⁻¹ j j := Finset.sum_le_sum fun j _ => by
+            refine mul_le_mul_of_nonneg_left ?_ (hw j)
             rw [hD j, one_div]
             exact inv_anti₀ (hpos j) (hX j).2.le
-    · rw [htr]
-      calc ∑ j, M⁻¹ j j ≤ ∑ _j : Fin (q + 1), 1 / (ν * (1 - ε)) :=
+    · calc ∑ j, w j * M⁻¹ j j ≤ ∑ j, w j * (1 / (ν * (1 - ε))) :=
             Finset.sum_le_sum fun j _ => by
+              refine mul_le_mul_of_nonneg_left ?_ (hw j)
               rw [hD j, one_div]
               exact inv_anti₀ (mul_pos hν (by linarith)) (hX j).1.le
-        _ = ((q + 1 : ℕ) : ℝ) / (ν * (1 - ε)) := by simp [div_eq_mul_inv]
+        _ = (∑ j, w j) / (ν * (1 - ε)) := by
+            rw [Finset.sum_div]; exact Finset.sum_congr rfl fun j _ => by ring
   calc μ.real {W | _} ≤ μ.real (⋃ j, E j) := measureReal_mono hsub
     _ ≤ ∑ j, μ.real (E j) := measureReal_iUnion_fintype_le _
     _ ≤ ∑ _j : Fin (q + 1), 60 / (ε ^ 4 * ν ^ 2) :=
         Finset.sum_le_sum fun j _ => measureReal_inv_gram_diag_deviation_le hqp j hε
     _ = _ := by simp
+
+
+/-- **Non-asymptotic concentration of `Tr ((Wᵀ W)⁻¹)`.** For a `p × (q+1)` Gaussian matrix with
+`q + 1 ≤ p`, `ν = p - q` and `0 < ε < 1`,
+`ℙ (Tr ((Wᵀ W)⁻¹) ∉ [(q+1) / (ν (1+ε)), (q+1) / (ν (1-ε))]) ≤ 60 (q+1) / (ε⁴ ν²)`: the case of
+unit weights of `measureReal_weighted_diag_inv_gram_deviation_le`. -/
+theorem measureReal_trace_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) {ε : ℝ}
+    (hε : 0 < ε) (hε1 : ε < 1) :
+    (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1).real
+        {W | ¬ (((q + 1 : ℕ) : ℝ) / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
+            ((Matrix.of W)ᵀ * Matrix.of W)⁻¹.trace ∧
+          ((Matrix.of W)ᵀ * Matrix.of W)⁻¹.trace ≤
+            ((q + 1 : ℕ) : ℝ) / (((p - q : ℕ) : ℝ) * (1 - ε)))} ≤
+      ((q + 1 : ℕ) : ℝ) * (60 / (ε ^ 4 * ((p - q : ℕ) : ℝ) ^ 2)) := by
+  simpa [Matrix.trace] using
+    measureReal_weighted_diag_inv_gram_deviation_le hqp (fun _ => 1) (fun _ => zero_le_one) hε hε1
+
+
+/-- **Concentration of `Tr (C (Wᵀ W)⁻¹)` for a PSD weight `C`.** For a `p × (q+1)` Gaussian matrix
+with `q + 1 ≤ p`, `ν = p - q` and `0 < ε < 1`, the trace `Tr (C (Wᵀ W)⁻¹)` lies in
+`[Tr C / (ν (1+ε)), Tr C / (ν (1-ε))]` except with probability at most `60 (q+1) / (ε⁴ ν²)`,
+whatever the PSD matrix `C`. Diagonalize `C = U diag(w) Uᵀ`; orthogonal invariance
+(`map_gaussianMatrix_mul_orthonormal`) turns `Uᵀ (Wᵀ W)⁻¹ U` into the inverse Gram matrix of
+another Gaussian matrix, and the weighted diagonal bound applies. -/
+theorem measure_trace_mul_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p)
+    (C : Matrix (Fin (q + 1)) (Fin (q + 1)) ℝ) (hC : C.PosSemidef) {ε : ℝ} (hε : 0 < ε)
+    (hε1 : ε < 1) :
+    (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1)
+        {W | ¬ (C.trace / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
+            (C * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹).trace ∧
+          (C * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹).trace ≤
+            C.trace / (((p - q : ℕ) : ℝ) * (1 - ε)))} ≤
+      ENNReal.ofReal (((q + 1 : ℕ) : ℝ) * (60 / (ε ^ 4 * ((p - q : ℕ) : ℝ) ^ 2))) := by
+  obtain ⟨U, w, hU, hw, hwsum, htr⟩ := exists_trace_mul_eq_sum_eigenvalues C hC
+  set μ := Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1
+    with hμ
+  set f : (Fin p → Fin (q + 1) → ℝ) → (Fin p → Fin (q + 1) → ℝ) := fun W i k =>
+    (Matrix.of W * U) i k with hf
+  have hfm : Measurable f := by
+    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
+    simp only [hf, Matrix.mul_apply, Matrix.of_apply]
+    exact Finset.measurable_sum _ fun j _ =>
+      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  have hmap : μ.map f = μ := map_gaussianMatrix_mul_orthonormal (ρ := Fin p) U hU
+  set E : Set (Fin p → Fin (q + 1) → ℝ) :=
+    {W | ¬ ((∑ j, w j) / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
+        ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ∧
+      ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ≤
+        (∑ j, w j) / (((p - q : ℕ) : ℝ) * (1 - ε)))} with hE
+  have hsub : {W : Fin p → Fin (q + 1) → ℝ | ¬ (C.trace / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
+            (C * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹).trace ∧
+          (C * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹).trace ≤
+            C.trace / (((p - q : ℕ) : ℝ) * (1 - ε)))} ⊆ f ⁻¹' E := by
+    intro W hW
+    have hfW : (Matrix.of (f W) : Matrix (Fin p) (Fin (q + 1)) ℝ) = Matrix.of W * U := rfl
+    have hinv : ((Matrix.of (f W))ᵀ * Matrix.of (f W))⁻¹ =
+        Uᵀ * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ * U := by
+      have h1 : (Matrix.of W * U)ᵀ * (Matrix.of W * U) =
+          Uᵀ * ((Matrix.of W)ᵀ * Matrix.of W) * U := by
+        rw [Matrix.transpose_mul]; simp only [Matrix.mul_assoc]
+      rw [hfW, h1]
+      exact inv_transpose_mul_mul_orthogonal _ U hU
+    simp only [Set.mem_preimage, hE, Set.mem_ofPred_eq] at hW ⊢
+    rw [hinv, hwsum, ← htr]
+    exact hW
+  have hreal := measureReal_weighted_diag_inv_gram_deviation_le hqp w hw hε hε1
+  calc μ _ ≤ μ (f ⁻¹' E) := measure_mono hsub
+    _ ≤ (μ.map f) E := Measure.le_map_apply hfm.aemeasurable E
+    _ = μ E := by rw [hmap]
+    _ ≤ _ := by
+      rw [← ofReal_measureReal]
+      exact ENNReal.ofReal_le_ofReal hreal
 
 
 /-- `measureReal_trace_inv_gram_deviation_le` for `m ≥ 1` columns, with `ν = p - m + 1`. -/

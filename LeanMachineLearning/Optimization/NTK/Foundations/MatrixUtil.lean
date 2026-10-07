@@ -369,19 +369,28 @@ lemma expect_fin_eq_inv_mul_sum {n : ℕ} (F : Fin n → ℝ) :
   rw [Finset.expect_eq_sum_div_card]
   simp [div_eq_inv_mul]
 
-/-- `tr(A²) ≤ ‖A‖_F²` for a real square matrix. -/
-lemma sum_mul_transpose_le_frobSq {p : Type*} [Fintype p] (A : Matrix p p ℝ) :
-    ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, A k l ^ 2 := by
-  have h1 : ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 :=
-    Finset.sum_le_sum fun k _ => Finset.sum_le_sum fun l _ => by
-      nlinarith [sq_nonneg (A k l - A l k)]
+/-- `|tr(A²)| ≤ ‖A‖_F²` for a real square matrix: `|A k l * A l k| ≤ (A k l² + A l k²) / 2`. -/
+lemma abs_sum_mul_transpose_le_frobSq {p : Type*} [Fintype p] (A : Matrix p p ℝ) :
+    |∑ k, ∑ l, A k l * A l k| ≤ ∑ k, ∑ l, A k l ^ 2 := by
+  have h1 : ∀ k l, |A k l * A l k| ≤ (A k l ^ 2 + A l k ^ 2) / 2 := fun k l =>
+    abs_le.2 ⟨by nlinarith [sq_nonneg (A k l + A l k)], by nlinarith [sq_nonneg (A k l - A l k)]⟩
   have e : ∑ k, ∑ l, A l k ^ 2 = ∑ k, ∑ l, A k l ^ 2 := Finset.sum_comm
   have h2 : ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 = ∑ k, ∑ l, A k l ^ 2 := by
     have : ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 =
         (∑ k, ∑ l, A k l ^ 2 + ∑ k, ∑ l, A l k ^ 2) / 2 := by
       simp only [Finset.sum_div, ← Finset.sum_add_distrib, add_div]
     rw [this, e]; ring
-  exact h1.trans h2.le
+  calc |∑ k, ∑ l, A k l * A l k| ≤ ∑ k, ∑ l, |A k l * A l k| :=
+        (Finset.abs_sum_le_sum_abs _ _).trans
+          (Finset.sum_le_sum fun k _ => Finset.abs_sum_le_sum_abs _ _)
+    _ ≤ ∑ k, ∑ l, (A k l ^ 2 + A l k ^ 2) / 2 :=
+        Finset.sum_le_sum fun k _ => Finset.sum_le_sum fun l _ => h1 k l
+    _ = ∑ k, ∑ l, A k l ^ 2 := h2
+
+/-- `tr(A²) ≤ ‖A‖_F²` for a real square matrix. -/
+lemma sum_mul_transpose_le_frobSq {p : Type*} [Fintype p] (A : Matrix p p ℝ) :
+    ∑ k, ∑ l, A k l * A l k ≤ ∑ k, ∑ l, A k l ^ 2 :=
+  (le_abs_self _).trans (abs_sum_mul_transpose_le_frobSq A)
 
 end NTK
 

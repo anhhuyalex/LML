@@ -21,8 +21,10 @@ bounded variance.
 * `gaussianInit_measure_le_lintegral_of_section`: the generic transfer. A bound `B x` on the
   `Pᗮ`-section probability, for every value `x` of `V P`, bounds the joint probability by
   `∫ B (V P)`.
-* `conditional_quadForm_chebyshev`: for vectors `u = u(V P, a)`, `v = v(V P, a)` and a weight matrix
-  `A(a)`,
+* `conditional_traceForm_chebyshev`: for a weight matrix `B = B(V P, a)`,
+  `P(|∑ᵢⱼ Bᵢⱼ ((V Pᗮ) A (V Pᗮ)ᵀ)ᵢⱼ − tr B · tr(Pᗮ A Pᗮ)| ≥ ε) ≤ ∫ min 1 (2 ‖B‖_F² ‖A‖_F² / ε²)`;
+* `conditional_quadForm_chebyshev`, its rank-one case `B = u vᵀ`: for vectors `u = u(V P, a)`,
+  `v = v(V P, a)` and a weight matrix `A(a)`,
   `P(|uᵀ (V Pᗮ) A (V Pᗮ)ᵀ v − (u ⬝ᵥ v) tr(Pᗮ A Pᗮ)| ≥ ε) ≤ ∫ min 1 (2 ‖u‖² ‖v‖² ‖A‖_F² / ε²)`
   (the `min 1` makes the bound usable with convergence in measure of the integrand).
 * `conditional_linearForm_chebyshev`: `P(|u ⬝ᵥ ((V Pᗮ) b)| ≥ ε) ≤ ∫ min 1 (‖u‖² ‖b‖² / ε²)`.
@@ -209,14 +211,14 @@ section conditional
 
 variable {Ω : Type*} [MeasurableSpace Ω]
 
-/-- Section bound for the quadratic form: for fixed vectors `u₀, v₀` and a projector `Q = Pᗮ`,
-the `Pᗮ`-quadratic form concentrates. -/
-lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
-    (hQ : IsStarProjection Q) (u₀ v₀ : Fin n → ℝ) {ε : ℝ} (hε : 0 < ε) :
+/-- Section bound for the trace form: for a fixed `B₀` and a projector `Q = Pᗮ`, the `Pᗮ`-trace form
+concentrates. -/
+lemma traceForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
+    (hQ : IsStarProjection Q) (B₀ : Matrix (Fin n) (Fin n) ℝ) {ε : ℝ} (hε : 0 < ε) :
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
-        gaussianReal 0 1) {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
-        (u₀ ⬝ᵥ v₀) * (Q * A * Q).trace|} ≤
-      ENNReal.ofReal (2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
+        gaussianReal 0 1) {V | ε ≤ |∑ i, ∑ j, B₀ i j *
+          (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) i j) - B₀.trace * (Q * A * Q).trace|} ≤
+      ENNReal.ofReal (2 * (∑ i, ∑ j, B₀ i j ^ 2) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
   classical
   have hmat : ∀ V : Fin n → Fin p → ℝ,
       ((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) =
@@ -225,20 +227,131 @@ lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
     rw [Matrix.transpose_mul, hQ.transpose_eq]
     simp only [Matrix.mul_assoc]
   simp_rw [hmat]
-  refine (gaussianInit_quadForm_chebyshev n p u₀ v₀ (Q * A * Q) hε).trans ?_
+  refine (gaussianInit_traceForm_chebyshev n p B₀ (Q * A * Q) hε).trans ?_
   refine ENNReal.ofReal_le_ofReal ?_
   refine div_le_div_of_nonneg_right ?_ (sq_nonneg ε)
-  have hu : 0 ≤ u₀ ⬝ᵥ u₀ := dotProduct_self_star_nonneg _
-  have hv : 0 ≤ v₀ ⬝ᵥ v₀ := dotProduct_self_star_nonneg _
+  have hB : 0 ≤ ∑ i, ∑ j, B₀ i j ^ 2 :=
+    Finset.sum_nonneg fun k _ => Finset.sum_nonneg fun l _ => sq_nonneg _
   have := frobSq_compress_le Q hQ A
-  have h2 : 0 ≤ 2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) := by positivity
-  exact mul_le_mul_of_nonneg_left this h2
+  exact mul_le_mul_of_nonneg_left this (by positivity)
+
+/-- **Conditional Chebyshev bound for the residual trace form.** Let `P` be a random orthogonal
+projector and `W` a standard Gaussian matrix. The trace form `∑ᵢⱼ Bᵢⱼ ((W Pᗮ) A (W Pᗮ)ᵀ)ᵢⱼ` of the
+residual part deviates from its conditional mean `tr B · tr (Pᗮ A Pᗮ)` by at least `ε` with
+probability at most `∫⁻ min 1 (2 ‖B‖_F² ‖A‖_F² / ε²)`, where the weight `B` may depend on the
+projected part `W P` and on the past. -/
+theorem conditional_traceForm_chebyshev
+    (μ : Measure Ω) (n p : ℕ)
+    (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
+    (hPm : Measurable P) (A : Ω → Matrix (Fin p) (Fin p) ℝ) (hAm : Measurable A)
+    (B : Matrix (Fin n) (Fin p) ℝ × Ω → Matrix (Fin n) (Fin n) ℝ) (hBm : Measurable B)
+    {ε : ℝ} (hε : 0 < ε) :
+    (μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1))
+      {q | ε ≤ |∑ i, ∑ j, B (Matrix.of q.2 * P q.1, q.1) i j *
+          ((Matrix.of q.2 * (1 - P q.1) * A q.1 * (Matrix.of q.2 * (1 - P q.1))ᵀ :
+            Matrix (Fin n) (Fin n) ℝ) i j) -
+        (B (Matrix.of q.2 * P q.1, q.1)).trace * ((1 - P q.1) * A q.1 * (1 - P q.1)).trace|} ≤
+    ∫⁻ q, min 1 (ENNReal.ofReal
+      (2 * (∑ i, ∑ j, B (Matrix.of q.2 * P q.1, q.1) i j ^ 2) * (∑ k, ∑ l, A q.1 k l ^ 2) /
+        ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+          gaussianReal 0 1)) := by
+  classical
+  have hOf : Measurable
+      (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
+    measurable_snd
+  have hPq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => P q.1) := hPm.comp measurable_fst
+  have hPc : Measurable (fun a => (1 - P a)) := measurable_orthogonalComplement hPm
+  have hPcq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => (1 - P q.1)) :=
+    hPc.comp measurable_fst
+  have hAq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => A q.1) := hAm.comp measurable_fst
+  have hX : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => Matrix.of q.2 * P q.1) :=
+    measurable_matrix_mul hOf hPq
+  have hY : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
+      Matrix.of q.2 * (1 - P q.1)) := measurable_matrix_mul hOf hPcq
+  have hxa : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 * P q.1, q.1)) :=
+    hX.prodMk measurable_fst
+  have hB' : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => B (Matrix.of q.2 * P q.1, q.1)) :=
+    hBm.comp hxa
+  have hexpr : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
+      ∑ i, ∑ j, B (Matrix.of q.2 * P q.1, q.1) i j *
+          ((Matrix.of q.2 * (1 - P q.1) * A q.1 * (Matrix.of q.2 * (1 - P q.1))ᵀ :
+            Matrix (Fin n) (Fin n) ℝ) i j) -
+        (B (Matrix.of q.2 * P q.1, q.1)).trace * ((1 - P q.1) * A q.1 * (1 - P q.1)).trace) := by
+    have hM : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
+        Matrix.of q.2 * (1 - P q.1) * A q.1 * (Matrix.of q.2 * (1 - P q.1))ᵀ) :=
+      measurable_matrix_mul (measurable_matrix_mul hY hAq) (measurable_matrix_transpose hY)
+    have hM2 : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
+        (1 - P q.1) * A q.1 * (1 - P q.1)) :=
+      measurable_matrix_mul (measurable_matrix_mul hPcq hAq) hPcq
+    refine (Finset.measurable_sum _ fun i _ => Finset.measurable_sum _ fun j _ =>
+      (measurable_matrix_entry hB' i j).mul (measurable_matrix_entry hM i j)).sub ?_
+    refine (Finset.measurable_sum _ fun i _ => measurable_matrix_entry hB' i i).mul ?_
+    exact Finset.measurable_sum _ fun i _ => measurable_matrix_entry hM2 i i
+  have hs : MeasurableSet {q : Ω × (Fin n → Fin p → ℝ) | ε ≤ |∑ i, ∑ j,
+        B (Matrix.of q.2 * P q.1, q.1) i j *
+          ((Matrix.of q.2 * (1 - P q.1) * A q.1 * (Matrix.of q.2 * (1 - P q.1))ᵀ :
+            Matrix (Fin n) (Fin n) ℝ) i j) -
+        (B (Matrix.of q.2 * P q.1, q.1)).trace * ((1 - P q.1) * A q.1 * (1 - P q.1)).trace|} :=
+    measurableSet_le measurable_const (continuous_abs.measurable.comp hexpr)
+  refine le_of_eq_of_le (Measure.prod_apply hs) ?_
+  have hBsq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
+      min 1 (ENNReal.ofReal
+        (2 * (∑ i, ∑ j, B (Matrix.of q.2 * P q.1, q.1) i j ^ 2) * (∑ k, ∑ l, A q.1 k l ^ 2) /
+          ε ^ 2))) := by
+    refine measurable_const.min (ENNReal.measurable_ofReal.comp ?_)
+    refine Measurable.div_const ((measurable_const.mul (Finset.measurable_sum _ fun i _ =>
+      Finset.measurable_sum _ fun j _ => (measurable_matrix_entry hB' i j).pow_const 2)).mul
+      (Finset.measurable_sum _ fun k _ => Finset.measurable_sum _ fun l _ =>
+        (measurable_matrix_entry hAq k l).pow_const 2)) _
+  rw [lintegral_prod _ hBsq.aemeasurable]
+  refine lintegral_mono fun a => ?_
+  have hBa : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ => B (x, a)) :=
+    hBm.comp (measurable_id.prodMk measurable_const)
+  have hMa : Measurable (fun z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ =>
+      z.2 * A a * z.2ᵀ) :=
+    measurable_matrix_mul (measurable_matrix_mul measurable_snd measurable_const)
+      (measurable_matrix_transpose measurable_snd)
+  have hEa : MeasurableSet {z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ |
+      ε ≤ |∑ i, ∑ j, B (z.1, a) i j * ((z.2 * A a * z.2ᵀ) i j) -
+        (B (z.1, a)).trace * ((1 - P a) * A a * (1 - P a)).trace|} := by
+    have h1 : Measurable (fun z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ =>
+        B (z.1, a)) := hBa.comp measurable_fst
+    refine measurableSet_le measurable_const (continuous_abs.measurable.comp ?_)
+    refine (Finset.measurable_sum _ fun i _ => Finset.measurable_sum _ fun j _ =>
+      (measurable_matrix_entry h1 i j).mul (measurable_matrix_entry hMa i j)).sub ?_
+    exact (Finset.measurable_sum _ fun i _ => measurable_matrix_entry h1 i i).mul measurable_const
+  have hBsa : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ =>
+      min 1 (ENNReal.ofReal (2 * (∑ i, ∑ j, B (x, a) i j ^ 2) * (∑ k, ∑ l, A a k l ^ 2) /
+        ε ^ 2))) := by
+    refine measurable_const.min (ENNReal.measurable_ofReal.comp ?_)
+    exact Measurable.div_const ((measurable_const.mul (Finset.measurable_sum _ fun i _ =>
+      Finset.measurable_sum _ fun j _ => (measurable_matrix_entry hBa i j).pow_const 2)).mul
+      measurable_const) _
+  exact gaussianInit_measure_le_lintegral_of_section n p (P a) (hP a) _ hEa _ hBsa
+    fun x => le_min prob_le_one (traceForm_section_le n p (1 - P a) (A a)
+      (orthogonalComplement_isOrthogonalProjection _ (hP a)) (B (x, a)) hε)
+
+/-- Section bound for the quadratic form: for fixed vectors `u₀, v₀` and a projector `Q = Pᗮ`,
+the `Pᗮ`-quadratic form concentrates. It is `traceForm_section_le` for the rank-one weight
+`u₀ v₀ᵀ`. -/
+lemma quadForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
+    (hQ : IsStarProjection Q) (u₀ v₀ : Fin n → ℝ) {ε : ℝ} (hε : 0 < ε) :
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
+        gaussianReal 0 1) {V | ε ≤ |u₀ ⬝ᵥ (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) *ᵥ v₀) -
+        (u₀ ⬝ᵥ v₀) * (Q * A * Q).trace|} ≤
+      ENNReal.ofReal (2 * (u₀ ⬝ᵥ u₀) * (v₀ ⬝ᵥ v₀) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
+  have h := traceForm_section_le n p Q A hQ (Matrix.vecMulVec u₀ v₀) hε
+  simp only [sum_sq_vecMulVec, trace_vecMulVec] at h
+  simp only [dotProduct_mulVec_eq_sum_vecMulVec u₀ v₀]
+  convert h using 3
+  ring
 
 /-- **Conditional Chebyshev bound for the residual quadratic form.** Let `P` be a random orthogonal
 projector and `W` a standard Gaussian matrix. The quadratic form `u ⬝ᵥ (W (1 - P) A (W (1 - P))ᵀ
 v)` of the residual part deviates from its conditional mean `(u ⬝ᵥ v) tr ((1 - P) A (1 - P))` by
 at least `ε` with probability at most `∫⁻ min 1 (2 ‖u‖² ‖v‖² ‖A‖_F² / ε²)`, where `u`, `v` may
-depend on the projected part `W P` and on the past. -/
+depend on the projected part `W P` and on the past. This is `conditional_traceForm_chebyshev` for
+the rank-one weight `u vᵀ`. -/
 theorem conditional_quadForm_chebyshev
     (μ : Measure Ω) (n p : ℕ)
     (P : Ω → Matrix (Fin p) (Fin p) ℝ) (hP : ∀ a, IsStarProjection (P a))
@@ -257,87 +370,16 @@ theorem conditional_quadForm_chebyshev
       (∑ k, ∑ l, A q.1 k l ^
           2) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
               gaussianReal 0 1)) := by
-  classical
-  have hOf : Measurable
-      (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
-    measurable_snd
-  have hPq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => P q.1) := hPm.comp measurable_fst
-  have hPc : Measurable (fun a => (1 - P a)) := measurable_orthogonalComplement hPm
-  have hPcq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => (1 - P q.1)) :=
-    hPc.comp measurable_fst
-  have hAq : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => A q.1) := hAm.comp measurable_fst
-  have hX : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => Matrix.of q.2 * P q.1) :=
-    measurable_matrix_mul hOf hPq
-  have hY : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
-      Matrix.of q.2 * (1 - P q.1)) := measurable_matrix_mul hOf hPcq
-  have hxa : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 * P q.1, q.1)) :=
-    hX.prodMk measurable_fst
-  have hu' : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => u (Matrix.of q.2 * P q.1, q.1)) :=
-    hum.comp hxa
-  have hv' : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) => v (Matrix.of q.2 * P q.1, q.1)) :=
-    hvm.comp hxa
-  have hexpr : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
-      u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
-          ((Matrix.of q.2 * (1 - P q.1) * A q.1 *
-            (Matrix.of q.2 * (1 - P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1)) -
-        (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
-          ((1 - P q.1) * A q.1 * (1 - P q.1)).trace) := by
-    refine (measurable_dotProduct hu' (measurable_mulVec
-      (measurable_matrix_mul (measurable_matrix_mul hY hAq) (measurable_matrix_transpose hY))
-      hv')).sub ((measurable_dotProduct hu' hv').mul ?_)
-    have hM : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
-        (1 - P q.1) * A q.1 * (1 - P q.1)) :=
-      measurable_matrix_mul (measurable_matrix_mul hPcq hAq) hPcq
-    simp only [Matrix.trace, Matrix.diag]
-    exact Finset.measurable_sum _ fun i _ => measurable_matrix_entry hM i i
-  have hs : MeasurableSet {q : Ω × (Fin n → Fin p → ℝ) | ε ≤ |u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
-          ((Matrix.of q.2 * (1 - P q.1) * A q.1 *
-            (Matrix.of q.2 * (1 - P q.1))ᵀ) *ᵥ v (Matrix.of q.2 * P q.1, q.1)) -
-        (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
-          ((1 - P q.1) * A q.1 * (1 - P q.1)).trace|} :=
-    measurableSet_le measurable_const (continuous_abs.measurable.comp hexpr)
-  refine le_of_eq_of_le (Measure.prod_apply hs) ?_
-  have hB : Measurable (fun q : Ω × (Fin n → Fin p → ℝ) =>
-      min 1 (ENNReal.ofReal
-      (2 * (u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
-      (v (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ v (Matrix.of q.2 * P q.1, q.1)) *
-      (∑ k, ∑ l, A q.1 k l ^ 2) / ε ^ 2))) := by
-    refine measurable_const.min (ENNReal.measurable_ofReal.comp ?_)
-    refine Measurable.div_const (((measurable_const.mul (measurable_dotProduct hu' hu')).mul
-      (measurable_dotProduct hv' hv')).mul ?_) _
-    exact Finset.measurable_sum _ fun k _ => Finset.measurable_sum _ fun l _ =>
-      (measurable_matrix_entry hAq k l).pow_const 2
-  rw [lintegral_prod _ hB.aemeasurable]
-  refine lintegral_mono fun a => ?_
-  have hua : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ => u (x, a)) :=
-    hum.comp (measurable_id.prodMk measurable_const)
-  have hva : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ => v (x, a)) :=
-    hvm.comp (measurable_id.prodMk measurable_const)
-  have hMa : Measurable (fun z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ =>
-      z.2 * A a * z.2ᵀ) :=
-    measurable_matrix_mul (measurable_matrix_mul measurable_snd measurable_const)
-      (measurable_matrix_transpose measurable_snd)
-  have hEa : MeasurableSet {z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ |
-      ε ≤ |u (z.1, a) ⬝ᵥ ((z.2 * A a * z.2ᵀ) *ᵥ v (z.1, a)) -
-        (u (z.1, a) ⬝ᵥ v (z.1, a)) *
-          ((1 - P a) * A a * (1 - P a)).trace|} := by
-    have h1 : Measurable (fun z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ =>
-        u (z.1, a)) := hua.comp measurable_fst
-    have h2 : Measurable (fun z : Matrix (Fin n) (Fin p) ℝ × Matrix (Fin n) (Fin p) ℝ =>
-        v (z.1, a)) := hva.comp measurable_fst
-    exact measurableSet_le measurable_const (continuous_abs.measurable.comp
-      ((measurable_dotProduct h1 (measurable_mulVec hMa h2)).sub
-        ((measurable_dotProduct h1 h2).mul measurable_const)))
-  have hBa : Measurable (fun x : Matrix (Fin n) (Fin p) ℝ =>
-      min 1 (ENNReal.ofReal (2 * (u (x, a) ⬝ᵥ u (x, a)) * (v (x, a) ⬝ᵥ v (x, a)) *
-        (∑ k, ∑ l, A a k l ^ 2) / ε ^ 2))) := by
-    refine measurable_const.min (ENNReal.measurable_ofReal.comp ?_)
-    exact Measurable.div_const (((measurable_const.mul (measurable_dotProduct hua hua)).mul
-      (measurable_dotProduct hva hva)).mul measurable_const) _
-  exact gaussianInit_measure_le_lintegral_of_section n p (P a) (hP a) _ hEa _ hBa
-    fun x => le_min prob_le_one (quadForm_section_le n p (1 - P a) (A a)
-      (orthogonalComplement_isOrthogonalProjection _ (hP a)) (u (x, a)) (v (x, a)) hε)
-
+  have hB : Measurable fun y : Matrix (Fin n) (Fin p) ℝ × Ω => Matrix.vecMulVec (u y) (v y) :=
+    Measurable.of_eval_matrix _ fun i j => by
+      simp only [vecMulVec_apply]
+      exact (measurable_vec_entry hum i).mul (measurable_vec_entry hvm j)
+  have h := conditional_traceForm_chebyshev μ n p P hP hPm A hAm _ hB hε
+  simp only [sum_sq_vecMulVec, trace_vecMulVec] at h
+  simp only [dotProduct_mulVec_eq_sum_vecMulVec]
+  refine h.trans (le_of_eq (lintegral_congr fun q => ?_))
+  congr 3
+  ring
 
 /-- **Normalized conditional quadratic-form bound.** The same statement as
 `conditional_quadForm_chebyshev` in the `n⁻²` normalization of the backward Gram matrices: with

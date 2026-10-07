@@ -11,7 +11,8 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrix
 /-!
 # Second Moment of Gaussian Quadratic Forms
 
-Variance of the bilinear Gaussian quadratic form `u ⬝ᵥ (W A Wᵀ) v` under `W ~ 𝒩(0,1)^{n×p}`,
+Variance of the Gaussian trace form `∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ` and of its rank-one case, the bilinear
+quadratic form `u ⬝ᵥ (W A Wᵀ) v` (`B = u vᵀ`), under `W ~ 𝒩(0,1)^{n×p}`,
 which is the fluctuation estimate behind the backward-concentration step of the deep NTK
 (`G_k ≈ G_{k+1} · Φ'_k`).
 
@@ -21,9 +22,14 @@ which is the fluctuation estimate behind the backward-concentration step of the 
    any matrix `C`, `E[(zᵀ C z)²] = (tr C)² + tr(C²) + ‖C‖_F²`. It is proved from the already
    formalized four-coordinate Isserlis formula `integral_coordinateProduct_four`
    (`Renormalization/Quartic.lean`), not from a fresh Wick expansion.
-3. **Matrix form** (`integral_quadForm_sq_gaussianInit`): with `C = (u vᵀ) ⊗ A`,
-   `E[(u ⬝ᵥ W A Wᵀ v)²] = ((u ⬝ᵥ v) tr A)² + (u ⬝ᵥ v)² tr(A²) + ‖u‖² ‖v‖² ‖A‖_F²`.
-4. **Chebyshev** (`gaussianInit_quadForm_chebyshev`):
+3. **Trace form** (`integral_traceForm_sq_gaussianInit`): with `C = B ⊗ A`,
+   `E[(∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ)²] = (tr B tr A)² + tr(B²) tr(A²) + ‖B‖_F² ‖A‖_F²`, hence the Chebyshev
+   bound `P(|∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ - tr B tr A| ≥ ε) ≤ 2 ‖B‖_F² ‖A‖_F² / ε²`
+   (`gaussianInit_traceForm_chebyshev`). The weight `B = Gram matrix` gives `‖W K‖_F²`-type
+   statistics, whose mean `tr B tr A` is a sum over `tr A` independent rows.
+4. **Bilinear form** (`integral_quadForm_sq_gaussianInit`, `gaussianInit_quadForm_chebyshev`): the
+   rank-one weight `B = u vᵀ` gives
+   `E[(u ⬝ᵥ W A Wᵀ v)²] = ((u ⬝ᵥ v) tr A)² + (u ⬝ᵥ v)² tr(A²) + ‖u‖² ‖v‖² ‖A‖_F²` and
    `P(|u ⬝ᵥ W A Wᵀ v - (u ⬝ᵥ v) tr A| ≥ ε) ≤ 2 ‖u‖² ‖v‖² ‖A‖_F² / ε²`.
 -/
 
@@ -164,31 +170,161 @@ theorem integral_quadForm_sq_stdGaussian (C : Matrix ι ι ℝ) :
 
 end stdGaussian
 
-/-! ### The matrix quadratic form `u ⬝ᵥ (W A Wᵀ) v` -/
+/-! ### The matrix trace form `∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ` -/
 
-/-- The bilinear Gaussian quadratic form as a quadratic form in the entries of `W`, with the
-Kronecker-type coefficient matrix `C_{(i,k),(j,l)} = u_i v_j A_{kl}`. -/
-lemma quadForm_eq_sum_coord (n p : ℕ) (u v : Fin n → ℝ) (A : Matrix (Fin p) (Fin p) ℝ)
-    (W : Fin n → Fin p → ℝ) :
-    u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) =
+/-- The trace form `∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ` as a quadratic form in the entries of `W`. -/
+lemma traceForm_eq_sum_coord (n p : ℕ) (B : Matrix (Fin n) (Fin n) ℝ)
+    (A : Matrix (Fin p) (Fin p) ℝ) (W : Fin n → Fin p → ℝ) :
+    ∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j) =
       ∑ x : Fin n × Fin p, ∑ y : Fin n × Fin p,
-        (u x.1 * v y.1 * A x.2 y.2) * (Function.uncurry W x * Function.uncurry W y) := by
-  rw [quadForm_mul_mul_transpose]
-  simp only [Function.uncurry, Fintype.sum_prod_type, mulVec, dotProduct, Matrix.transpose_apply,
-    Matrix.of_apply]
-  simp only [Finset.sum_mul, Finset.mul_sum]
-  conv_lhs =>
-    enter [2, k, 2, l]
-    rw [Finset.sum_comm]
-  conv_lhs =>
-    enter [2, k]
-    rw [Finset.sum_comm]
-  rw [Finset.sum_comm]
+        (B x.1 y.1 * A x.2 y.2) * (Function.uncurry W x * Function.uncurry W y) := by
+  simp only [Function.uncurry, Fintype.sum_prod_type, Matrix.mul_apply, Matrix.of_apply,
+    Matrix.transpose_apply, Finset.mul_sum, Finset.sum_mul]
   refine Finset.sum_congr rfl fun i _ => ?_
-  refine Finset.sum_congr rfl fun k _ => ?_
-  rw [Finset.sum_comm]
-  refine Finset.sum_congr rfl fun j _ => ?_
-  refine Finset.sum_congr rfl fun l _ => ?_
+  rw [Finset.sum_congr rfl (fun x _ => Finset.sum_comm), Finset.sum_comm]
+  refine Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun j _ =>
+    Finset.sum_congr rfl fun l _ => ?_
+  ring
+
+
+/-- **Mean of the Gaussian trace form.** `E ∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ = tr B · tr A`. -/
+theorem integral_traceForm_gaussianInit (n p : ℕ) (B : Matrix (Fin n) (Fin n) ℝ)
+    (A : Matrix (Fin p) (Fin p) ℝ) :
+    ∫ W : Fin n → Fin p → ℝ, ∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j)
+        ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+      B.trace * A.trace := by
+  have hexp : ∀ (W : Fin n → Fin p → ℝ) (i j : Fin n),
+      B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j) =
+        ∑ k, ∑ l, (B i j * A k l) * (W i k * W j l) := by
+    intro W i j
+    simp only [Matrix.mul_apply, Matrix.of_apply, Matrix.transpose_apply, Finset.mul_sum,
+      Finset.sum_mul]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun l _ => Finset.sum_congr rfl fun k _ => ?_
+    ring
+  simp_rw [hexp]
+  have hint : ∀ i j k l, Integrable (fun W : Fin n → Fin p → ℝ =>
+      (B i j * A k l) * (W i k * W j l))
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
+    fun i j k l => (integrable_entry_mul_entry n p i j k l).const_mul _
+  rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
+    integrable_finsetSum _ fun k _ => integrable_finsetSum _ fun l _ => hint i j k l]
+  simp_rw [integral_finsetSum _ fun j _ => integrable_finsetSum _ fun k _ =>
+    integrable_finsetSum _ fun l _ => hint _ j k l]
+  simp_rw [integral_finsetSum _ fun k _ => integrable_finsetSum _ fun l _ => hint _ _ k l]
+  simp_rw [integral_finsetSum _ fun l _ => hint _ _ _ l]
+  simp_rw [integral_const_mul, integral_gaussianInit_entry_mul_entry]
+  simp only [Matrix.trace, Matrix.diag, mul_ite, mul_one, mul_zero, ite_and]
+  simp [Finset.sum_ite_eq, Finset.sum_mul_sum]
+
+/-- **Second moment of the Gaussian trace form.**
+`E[(∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ)²] = (tr B tr A)² + (∑ Bᵢⱼ Bⱼᵢ)(∑ Aₖₗ Aₗₖ) + ‖B‖_F² ‖A‖_F²`. -/
+theorem integral_traceForm_sq_gaussianInit (n p : ℕ) (B : Matrix (Fin n) (Fin n) ℝ)
+    (A : Matrix (Fin p) (Fin p) ℝ) :
+    ∫ W : Fin n → Fin p → ℝ, (∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j)) ^ 2
+        ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+      (B.trace * A.trace) ^ 2 + (∑ i, ∑ j, B i j * B j i) * ∑ k, ∑ l, A k l * A l k +
+        (∑ i, ∑ j, B i j ^ 2) * ∑ k, ∑ l, A k l ^ 2 := by
+  classical
+  set C : Matrix (Fin n × Fin p) (Fin n × Fin p) ℝ :=
+    Matrix.of fun x y => B x.1 y.1 * A x.2 y.2 with hC
+  have hq : ∀ W : Fin n → Fin p → ℝ,
+      (∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j)) ^ 2 =
+      (fun z : EuclideanSpace ℝ (Fin n × Fin p) => (∑ a, ∑ b, C a b * (z a * z b)) ^ 2)
+        (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p)) := by
+    intro W
+    rw [traceForm_eq_sum_coord]
+    simp [hC]
+  simp_rw [hq]
+  rw [← integral_map (measurable_toLp_uncurry n p).aemeasurable
+    (by fun_prop : Measurable fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
+      (∑ a, ∑ b, C a b * (z a * z b)) ^ 2).aestronglyMeasurable,
+    map_gaussianInit_toLp_uncurry, integral_quadForm_sq_stdGaussian]
+  have htr : C.trace = B.trace * A.trace := by
+    simp only [hC, Matrix.trace, Matrix.diag, Matrix.of_apply, Fintype.sum_prod_type,
+      Finset.sum_mul_sum]
+  have hF : ∑ a, ∑ b, C a b ^ 2 = (∑ i, ∑ j, B i j ^ 2) * ∑ k, ∑ l, A k l ^ 2 := by
+    have h1 := sum_prod_prod_mul (fun i j : Fin n => B i j ^ 2) (fun k l : Fin p => A k l ^ 2)
+    simp only [hC, Matrix.of_apply, mul_pow]
+    exact h1
+  have hS : ∑ a, ∑ b, C a b * C b a = (∑ i, ∑ j, B i j * B j i) * ∑ k, ∑ l, A k l * A l k := by
+    have h1 := sum_prod_prod_mul (fun i j : Fin n => B i j * B j i)
+      (fun k l : Fin p => A k l * A l k)
+    refine Eq.trans ?_ h1
+    refine Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => ?_
+    simp only [hC, Matrix.of_apply]
+    ring
+  rw [htr, hF, hS]
+
+/-- The Gaussian trace form is square integrable. -/
+theorem memLp_traceForm_gaussianInit (n p : ℕ) (B : Matrix (Fin n) (Fin n) ℝ)
+    (A : Matrix (Fin p) (Fin p) ℝ) :
+    MemLp (fun W : Fin n → Fin p → ℝ =>
+      ∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j)) 2
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
+  classical
+  have hz : MemLp (fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
+      ∑ x : Fin n × Fin p, ∑ y : Fin n × Fin p,
+        (B x.1 y.1 * A x.2 y.2) * (z x * z y)) 2
+      (stdGaussian (EuclideanSpace ℝ (Fin n × Fin p))) := by
+    refine memLp_finsetSum _ fun x _ => memLp_finsetSum _ fun y _ => ?_
+    exact (memLp_coord_mul_stdGaussian x y).const_mul _
+  rw [← map_gaussianInit_toLp_uncurry] at hz
+  have := hz.comp_of_map (measurable_toLp_uncurry n p).aemeasurable
+  convert this using 1
+  funext W
+  exact traceForm_eq_sum_coord n p B A W
+
+/-- **Chebyshev bound for the Gaussian trace form.** For `W ~ 𝒩(0,1)^{n×p}`,
+`P(|∑ᵢⱼ Bᵢⱼ (W A Wᵀ)ᵢⱼ - tr B tr A| ≥ ε) ≤ 2 ‖B‖_F² ‖A‖_F² / ε²`. -/
+theorem gaussianInit_traceForm_chebyshev (n p : ℕ) (B : Matrix (Fin n) (Fin n) ℝ)
+    (A : Matrix (Fin p) (Fin p) ℝ) {ε : ℝ} (hε : 0 < ε) :
+    (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)
+      {W | ε ≤ |∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j) -
+        B.trace * A.trace|} ≤
+      ENNReal.ofReal (2 * (∑ i, ∑ j, B i j ^ 2) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
+  classical
+  have hmem := memLp_traceForm_gaussianInit n p B A
+  have hmean := integral_traceForm_gaussianInit n p B A
+  have h := meas_ge_le_variance_div_sq hmem hε
+  simp only [hmean] at h
+  refine h.trans (ENNReal.ofReal_le_ofReal ?_)
+  refine div_le_div_of_nonneg_right ?_ (sq_nonneg ε)
+  rw [variance_eq_sub hmem]
+  simp only [Pi.pow_apply]
+  rw [integral_traceForm_sq_gaussianInit, hmean]
+  have hFA : 0 ≤ ∑ k, ∑ l, A k l ^ 2 :=
+    Finset.sum_nonneg fun k _ => Finset.sum_nonneg fun l _ => sq_nonneg _
+  have hFB : 0 ≤ ∑ i, ∑ j, B i j ^ 2 :=
+    Finset.sum_nonneg fun k _ => Finset.sum_nonneg fun l _ => sq_nonneg _
+  have hSA := abs_sum_mul_transpose_le_frobSq A
+  have hSB := abs_sum_mul_transpose_le_frobSq B
+  have hprod : (∑ i, ∑ j, B i j * B j i) * (∑ k, ∑ l, A k l * A l k) ≤
+      (∑ i, ∑ j, B i j ^ 2) * ∑ k, ∑ l, A k l ^ 2 :=
+    (le_abs_self _).trans (by
+      rw [abs_mul]; exact mul_le_mul hSB hSA (abs_nonneg _) hFB)
+  nlinarith
+
+/-! ### The bilinear quadratic form `u ⬝ᵥ (W A Wᵀ) v` -/
+
+/-- The rank-one weight `u vᵀ` turns the trace form into the bilinear form `u ⬝ᵥ (M v)`. -/
+lemma dotProduct_mulVec_eq_sum_vecMulVec {n : ℕ} (u v : Fin n → ℝ) (M : Matrix (Fin n) (Fin n) ℝ) :
+    u ⬝ᵥ (M *ᵥ v) = ∑ i, ∑ j, Matrix.vecMulVec u v i j * M i j := by
+  simp only [dotProduct, mulVec, vecMulVec_apply, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
+  ring
+
+/-- The sums of squares and of transposed products of the rank-one weight `u vᵀ`. -/
+lemma sum_sq_vecMulVec {n : ℕ} (u v : Fin n → ℝ) :
+    ∑ i, ∑ j, Matrix.vecMulVec u v i j ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
+  simp only [vecMulVec_apply, dotProduct, sq, Finset.sum_mul_sum]
+  refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
+  ring
+
+lemma sum_mul_transpose_vecMulVec {n : ℕ} (u v : Fin n → ℝ) :
+    ∑ i, ∑ j, Matrix.vecMulVec u v i j * Matrix.vecMulVec u v j i = (u ⬝ᵥ v) ^ 2 := by
+  simp only [vecMulVec_apply, dotProduct, sq, Finset.sum_mul_sum]
+  refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
   ring
 
 /-- **Second moment of the bilinear Gaussian quadratic form.**
@@ -199,61 +335,18 @@ theorem integral_quadForm_sq_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
         ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       ((u ⬝ᵥ v) * A.trace) ^ 2 + (u ⬝ᵥ v) ^ 2 * ∑ k, ∑ l, A k l * A l k +
         (u ⬝ᵥ u) * (v ⬝ᵥ v) * ∑ k, ∑ l, A k l ^ 2 := by
-  classical
-  set C : Matrix (Fin n × Fin p) (Fin n × Fin p) ℝ :=
-    Matrix.of fun x y => u x.1 * v y.1 * A x.2 y.2 with hC
-  have hq : ∀ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) ^ 2 =
-      (fun z : EuclideanSpace ℝ (Fin n × Fin p) => (∑ a, ∑ b, C a b * (z a * z b)) ^ 2)
-        (WithLp.toLp 2 (Function.uncurry W) : EuclideanSpace ℝ (Fin n × Fin p)) := by
-    intro W
-    rw [quadForm_eq_sum_coord]
-    simp [hC]
-  simp_rw [hq]
-  rw [← integral_map (measurable_toLp_uncurry n p).aemeasurable
-    (by fun_prop : Measurable fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
-      (∑ a, ∑ b, C a b * (z a * z b)) ^ 2).aestronglyMeasurable,
-    map_gaussianInit_toLp_uncurry, integral_quadForm_sq_stdGaussian]
-  have htr : C.trace = (u ⬝ᵥ v) * A.trace := by
-    simp only [hC, Matrix.trace, Matrix.diag, Matrix.of_apply, Fintype.sum_prod_type, dotProduct,
-      Finset.sum_mul, Finset.mul_sum]
-    rw [Finset.sum_comm]
-  have hF : ∑ a, ∑ b, C a b ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) * ∑ k, ∑ l, A k l ^ 2 := by
-    have h1 := sum_prod_prod_mul (fun i j : Fin n => u i ^ 2 * v j ^ 2)
-      (fun k l : Fin p => A k l ^ 2)
-    have h2 : ∑ i, ∑ j, u i ^ 2 * v j ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) := by
-      simp only [dotProduct, Finset.sum_mul_sum, sq]
-    simp only [hC, Matrix.of_apply, mul_pow]
-    rw [← h2]
-    exact h1
-  have hS : ∑ a, ∑ b, C a b * C b a = (u ⬝ᵥ v) ^ 2 * ∑ k, ∑ l, A k l * A l k := by
-    have h1 := sum_prod_prod_mul (fun i j : Fin n => (u i * v i) * (u j * v j))
-      (fun k l : Fin p => A k l * A l k)
-    have h2 : ∑ i, ∑ j, (u i * v i) * (u j * v j) = (u ⬝ᵥ v) ^ 2 := by
-      simp only [dotProduct, Finset.sum_mul_sum, sq]
-    rw [← h2]
-    refine Eq.trans ?_ h1
-    refine Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => ?_
-    simp only [hC, Matrix.of_apply]
-    ring
-  rw [htr, hF, hS]
+  have h := integral_traceForm_sq_gaussianInit n p (Matrix.vecMulVec u v) A
+  simp only [sum_sq_vecMulVec, sum_mul_transpose_vecMulVec, trace_vecMulVec] at h
+  simp only [dotProduct_mulVec_eq_sum_vecMulVec u v]
+  convert h using 1
 
 /-- The bilinear Gaussian quadratic form is square integrable. -/
 theorem memLp_quadForm_gaussianInit (n p : ℕ) (u v : Fin n → ℝ)
     (A : Matrix (Fin p) (Fin p) ℝ) :
     MemLp (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) 2
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-  classical
-  have hz : MemLp (fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
-      ∑ x : Fin n × Fin p, ∑ y : Fin n × Fin p,
-        (u x.1 * v y.1 * A x.2 y.2) * (z x * z y)) 2
-      (stdGaussian (EuclideanSpace ℝ (Fin n × Fin p))) := by
-    refine memLp_finsetSum _ fun x _ => memLp_finsetSum _ fun y _ => ?_
-    exact (memLp_coord_mul_stdGaussian x y).const_mul _
-  rw [← map_gaussianInit_toLp_uncurry] at hz
-  have := hz.comp_of_map (measurable_toLp_uncurry n p).aemeasurable
-  convert this using 1
-  funext W
-  exact quadForm_eq_sum_coord n p u v A W
+  simpa only [dotProduct_mulVec_eq_sum_vecMulVec u v] using
+    memLp_traceForm_gaussianInit n p (Matrix.vecMulVec u v) A
 
 /-- **Chebyshev bound for the bilinear Gaussian quadratic form.** For `W ~ 𝒩(0,1)^{n×p}`,
 `P(|u ⬝ᵥ W A Wᵀ v - (u ⬝ᵥ v) tr A| ≥ ε) ≤ 2 ‖u‖² ‖v‖² ‖A‖_F² / ε²`.
@@ -264,22 +357,11 @@ theorem gaussianInit_quadForm_chebyshev (n p : ℕ) (u v : Fin n → ℝ)
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)
       {W | ε ≤ |u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) - (u ⬝ᵥ v) * A.trace|} ≤
       ENNReal.ofReal (2 * (u ⬝ᵥ u) * (v ⬝ᵥ v) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
-  classical
-  have hmem := memLp_quadForm_gaussianInit n p u v A
-  have hmean := integral_gaussianMatrix_quadForm n p u v A
-  have h := meas_ge_le_variance_div_sq hmem hε
-  simp only [hmean] at h
-  refine h.trans (ENNReal.ofReal_le_ofReal ?_)
-  refine div_le_div_of_nonneg_right ?_ (sq_nonneg ε)
-  rw [variance_eq_sub hmem]
-  simp only [Pi.pow_apply]
-  rw [integral_quadForm_sq_gaussianInit, hmean]
-  have hF : 0 ≤ ∑ k, ∑ l, A k l ^ 2 :=
-    Finset.sum_nonneg fun k _ => Finset.sum_nonneg fun l _ => sq_nonneg _
-  have hS := sum_mul_transpose_le_frobSq A
-  have hCS := dotProduct_sq_le_mul_self u v
-  nlinarith [mul_le_mul_of_nonneg_right hS (sq_nonneg (u ⬝ᵥ v)),
-    mul_le_mul_of_nonneg_right hCS hF, sq_nonneg (u ⬝ᵥ v)]
+  have h := gaussianInit_traceForm_chebyshev n p (Matrix.vecMulVec u v) A hε
+  simp only [sum_sq_vecMulVec, trace_vecMulVec] at h
+  simp only [dotProduct_mulVec_eq_sum_vecMulVec u v]
+  convert h using 3
+  ring
 
 end NTK
 
