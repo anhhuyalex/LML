@@ -1062,8 +1062,30 @@ $|e(t)-e(S)|\le\int_S^t|e'|\le B\int_S^\infty e^{-\nu s}ds=\frac B\nu e^{-\nu S}
   \uses{thm:ntkgf:predictionError, lem:ntkgf:expTail, def:ntkgf:crossKernel}
   \lean{NTK.abs_inner_displacement_add_frozenPrediction_le_of_exp_decay}
   \leanok
-In addition to the hypotheses of Theorem~\ref{thm:ntkgf:predictionError} on a window $[0,S]$ (including the bound $\varepsilon_k$ on the initial cross-kernel error of Definition~\ref{def:ntkgf:crossKernel}), assume: the Jacobian drift is at most $\varepsilon_J$ for \emph{all} times; the residual decays as $\|r(s)\|\le\|r_0\|e^{-\nu s}$ with $\nu>0$;
-and $K_\infty$ has spectral gap $\lambda$ with $\nu\le\lambda/m$. Then for every $t\ge0$,
+Let $m>0$, let $\theta$ be a forward gradient flow of the MSE loss from $\theta_0$, and
+assume that every training output $\theta'\mapsto f(x^\alpha;\theta')$ is differentiable at
+$\theta(s)$ for every $s\ge0$ and every training index $\alpha$. Let $K_\infty\succeq0$ and
+let $a,k_\infty\in\mathbb R^m$ satisfy $K_\infty a=k_\infty$. Fix $S\ge0$ and suppose that,
+for every $s\in[0,S]$,
+\[
+  \|K(\theta(s))-K_\infty\|\le\varepsilon_K,
+\]
+and that the empirical initial cross-kernel satisfies
+\[
+  \|J(\theta_0)g-k_\infty\|\le\varepsilon_k.
+\]
+Assume moreover that, for every $s\ge0$,
+\[
+  \|J(\theta(s))-J(\theta_0)\|\le\varepsilon_J
+  \qquad\text{and}\qquad
+  \|r(s)\|\le\|r_0\|e^{-\nu s},
+  \quad \nu>0,
+\]
+Finally, assume that $\lambda$ is a spectral gap for $K_\infty$, in the sense that
+\[
+  \lambda\|v\|^2\le v^\top K_\infty v\qquad\text{for every }v\in\mathbb R^m,
+\]
+and that $\nu\le\lambda/m$. Then for every $t\ge0$,
 \begin{multline*}
   |e(t)|\le S\cdot\frac1m\Bigl(\|g\|\varepsilon_J\|r_0\|+\varepsilon_k\|r_0\|+\|k_\infty\|\tfrac1m\varepsilon_K\|r_0\|S\Bigr)\\
   \qquad+\frac{\tfrac1m\|r_0\|\bigl(\|g\|\varepsilon_J+\varepsilon_k+2\|k_\infty\|\bigr)}{\nu}\,e^{-\nu S}.
@@ -1076,3 +1098,45 @@ and $K_\infty$ has spectral gap $\lambda$ with $\nu\le\lambda/m$. Then for every
 On $[0,S]$ use Theorem~\ref{thm:ntkgf:predictionError}. For $s>S$, both the actual residual and the frozen residual decay exponentially (the latter because $\nu\le\lambda/m$), so the three terms of
 Lemma~\ref{lem:ntkgf:predictionDerivative} give $|e'(s)|\le\frac1m\|r_0\|(\|g\|\varepsilon_J+\varepsilon_k+2\|k_\infty\|)e^{-\nu s}$; Lemma~\ref{lem:ntkgf:expTail} bounds the tail.
 \end{proof}
+
+\begin{remark}[Role of test-point prediction in the NTK development]
+  \uses{thm:ntkgf:outputODE, thm:ntkgf:matrixExp, thm:ntkgf:residualFrozen,
+        thm:ntkgf:affineLimit, thm:ntkgf:predictionError, thm:ntkgf:predictionUniform,
+        thm:ntktl:crossKernelInit, thm:ntktl:crossKernelFreeze, thm:ntktl:testPrediction,
+        thm:ntktl:interpolation}
+The preceding sections describe training outputs; this section transfers that description to a new
+input. The test output does not evolve from the training kernel alone: its derivative contains the
+train--test cross-kernel. Theorem~\ref{thm:ntkgf:predictionError} therefore compares the actual
+test-direction displacement with the frozen-kernel prediction and separates exactly three errors:
+movement of the training Jacobian, error in the initial cross-kernel, and the difference between the
+actual and frozen training residuals. Theorem~\ref{thm:ntkgf:predictionUniform} makes the comparison
+valid for all time when residual decay turns the remaining tail into an integrable exponential.
+Here \emph{uniform in time} means that, after fixing $S$, its right-hand side is independent of
+$t$: equivalently, it bounds $\sup_{t\ge0}|e(t)|$. It does not by itself assert that $e(t)$ tends
+to zero as $t\to\infty$; it says that the same error budget applies no matter how long the flow is
+run.
+
+\emph{What it builds on.} The residual ODE of Theorem~\ref{thm:ntkgf:outputODE} gives the training
+flow term $-J(\theta(t))^\top r(t)/m$. Pairing it with the frozen test feature $g$ produces the
+cross-kernel contribution in Lemma~\ref{lem:ntkgf:predictionDerivative}. The matrix-exponential
+solution of Theorem~\ref{thm:ntkgf:matrixExp} supplies the frozen residual, and
+Theorem~\ref{thm:ntkgf:residualFrozen} controls its difference from the true residual on a finite
+window. The relation $K_\infty a=k_\infty$ is the same kernel-regression relation as in
+Theorem~\ref{thm:ntkgf:affineLimit}: it converts the frozen training residual into the prediction
+at the test feature. For the uniform result, the spectral gap makes the frozen residual decay and
+the assumed decay of the true residual gives the matching tail estimate.
+
+\emph{What it is used for.} These are deterministic transfer estimates: they take the three errors
+as hypotheses rather than proving that they are small. The two-layer chapter supplies them
+probabilistically. Theorem~\ref{thm:ntktl:crossKernelInit} controls the initial cross-kernel error
+and Theorem~\ref{thm:ntktl:crossKernelFreeze} controls its evolution, together with the earlier
+kernel-freezing and residual-limit results. Substituting those estimates here, and adding the
+separate test-output linearization estimate, yields the finite-horizon and uniform-in-time claims
+of Theorem~\ref{thm:ntktl:testPrediction}. More specifically, the direct downstream Lean use of
+\texttt{NTK.abs\_inner\_displacement\_add\_frozenPrediction\_le\_of\_exp\_decay} is in
+the uniform, positive-gap part of Theorem~\ref{thm:ntktl:testPrediction}, formalized as
+\texttt{NTK.tendsto\_measure\_test\_prediction\_global\_positive\_gap}: it removes the finite
+horizon by controlling the tail after $S$. Theorem~\ref{thm:ntktl:interpolation}, formalized as
+\texttt{NTK.test\_prediction\_kernel\_interpolation\_limit}, then uses that global prediction
+result to let time tend to infinity and obtain the ridgeless kernel-regression interpolation limit.
+\end{remark}

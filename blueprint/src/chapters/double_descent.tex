@@ -1,31 +1,36 @@
 \chapter{Double descent in random-feature linear regression}\label{chap:dd}
 
 This chapter records the mathematics formalized in
-\texttt{Optimization/LinearRegression/DoubleDescent/} (modules \texttt{Basic}, \texttt{RandomFeatures},
-\texttt{FeatureBottleneck}, \texttt{AmbientBottleneck}, \texttt{SampleBottleneck},
-\texttt{DoubleDescentCurve}, \texttt{ForMathlib/Probability/StdGaussianChiSqTails}, \texttt{GramInverse}) on top of \texttt{Optimization/LinearRegression/HMRT.lean},
-together with \texttt{ForMathlib/Probability/StdGaussianRadial.lean} and
-\texttt{ForMathlib/LinearAlgebra/Matrix/MulTranspose.lean}. It follows Bach (2024), Hastie et al.\ (2022) and
-Belkin et al.\ (2019) \cite{bach2024highdim,hastie2022surprises,belkin2019reconciling}.
+\texttt{Optimization/LinearRegression/DoubleDescent/} on top of \texttt{Optimization/LinearRegression/HMRT.lean}, and the Gaussian and matrix tools it relies on. It follows
+Bach (2024), Hastie et al.\ (2022) and Belkin et al.\ (2019) \cite{bach2024highdim,hastie2022surprises,belkin2019reconciling}. The Lean modules and the sections that document them are:
+\begin{center}
+\small
+\begin{tabular}{ll}
+module & section\\ \hline
+\texttt{Basic}, \texttt{HMRT} & \ref{sec:dd:risk}\\
+\texttt{RandomFeatures}, \texttt{ForMathlib/LinearAlgebra/Matrix/LeftRightInverse} & \ref{sec:dd:features}\\
+\texttt{FeatureBottleneck}, \texttt{AmbientBottleneck}, \texttt{SampleBottleneck} & \ref{sec:dd:feature}, \ref{sec:dd:ambient}, \ref{sec:dd:sample}\\
+\texttt{DoubleDescentCurve} & \ref{sec:dd:curve}\\
+\texttt{ForMathlib/Probability/StdGaussianRadial}, \texttt{StdGaussianChiSqTails} & \ref{sec:ntkf:radial}, \ref{sec:dd:moments}\\
+\texttt{GramInverse}, \texttt{ForMathlib/LinearAlgebra/Matrix/\{GramProjector, MulTranspose\}} & \ref{sec:dd:gram} (and \ref{sec:dd:risk})\\
+\texttt{RandomMatrixFoundations}, \texttt{InverseGramTrace}, \texttt{BiasProjector}, \texttt{FitErrorConcentration}, \texttt{FeatureBottleneckLimits},
+\texttt{ForMathlib/LinearAlgebra/Matrix/\{Householder, OrthogonalProjection\}} & \ref{sec:dd:gaussian}
+\end{tabular}
+\end{center}
 
 \medskip\noindent\textbf{What is and is not formalized.}
-The chapter has two layers.
+The chapter has two layers, both sorry-free.
 \begin{itemize}
-  \item The \emph{deterministic layer} (Sections~\ref{sec:dd:risk}--\ref{sec:dd:curve}) is complete and sorry-free: exact
-  finite-sample bias--variance identities for linear estimators, the three pseudoinverse representations of ridgeless
-  random-feature regression, the trace reductions that turn the variance into $\operatorname{Tr}$ of an inverse Gram matrix,
-  the limits of the resulting \emph{explicit} ratio expressions along $n_0/m\to\gamma$, $n/m\to\delta$, and the global shape
+  \item The \emph{deterministic layer} (Sections~\ref{sec:dd:risk}--\ref{sec:dd:gram}): exact finite-sample bias--variance identities for linear estimators, the three pseudoinverse representations of ridgeless
+  random-feature regression, the trace and bias reductions that bring the variance and bias to a Gaussian matrix $G=XQ$ with $Q^\top Q=I$, the limits of the resulting \emph{explicit} ratio expressions along $n_0/m\to\gamma$, $n/m\to\delta$, and the global shape
   of the limiting risk curve (divergence at $\delta=1$, second descent, flat segment for $\gamma<1$).
-  \item The \emph{random-matrix inputs} are formalized in two parts. Section~\ref{sec:dd:moments} gives the $\chi^2$ tail bound, resting on the radial
-  moments of the standard Gaussian of Chapter~\ref{chap:ntkf} (inverse and fourth $\chi^2$ moments). Section~\ref{sec:dd:gram} gives the purely
-  linear-algebraic reductions (QR trace reduction, dual-vector formula for the inverse Gram matrix, Pythagorean bias reduction) that bring every random
-  quantity of the problem to a standard Gaussian matrix $G=XQ$. The statements that the \emph{random} variance and bias converge in
-  probability to the closed forms of the deterministic layer are \textbf{not yet formalized}; Section~\ref{sec:dd:roadmap}
-  states them as open nodes with their proof plan.
+  \item The \emph{probabilistic layer} (Sections~\ref{sec:dd:moments} and~\ref{sec:dd:gaussian}): the $\chi^2$ tail bound, orthogonal invariance of Gaussian matrices, almost-sure full rank, the exact law $1/\chi^2_{p-q}$ of the diagonal of $(G^\top G)^{-1}$ and
+  its mean, non-asymptotic and in-probability concentration of $\operatorname{Tr}(G^\top G)^{-1}$, the exact $\chi^2$ law of the Rayleigh quotient of $(G^\top G)^{-1}$ and the resulting fit-error concentration, the omitted signal of a Gaussian subspace, and
+  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$.
 \end{itemize}
-In particular, ``limit'' theorems below are limits of explicit finite-sample expressions such as
-$\sigma^2 n/(m-n-1)$, which is the expected variance \emph{if} the inverse-Wishart mean formula holds; that identification is
-part of the open probabilistic layer.
+\textbf{Not formalized:} the probabilistic limits in the sample-bottleneck regime $\gamma,\delta>1$, and a single theorem packaging the in-probability limits into the risk curve; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
+Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite-sample expressions such as $\sigma^2n/(m-n-1)$; the identification of these expressions with the \emph{random} variance is the content of Section~\ref{sec:dd:gaussian}
+for the feature and ambient regimes.
 
 \medskip\noindent\textbf{Notation.}
 The data are $m$ samples with inputs $X\in\mathbb R^{m\times n_0}$ (ambient dimension $n_0$) and labels
@@ -330,7 +335,8 @@ $(cG^{-1})G=cI_n$, whose trace is $cn$.
   \uses{lem:dd:wishartCancel}
 For a Gaussian design, conditionally on $S$ the matrix $(Z^\top Z)^{-1}$ is inverse-Wishart with mean
 $(m-n-1)^{-1}(S^\top S)^{-1}$. The lemma shows that against $S^\top S$ this mean contributes the number
-$n/(m-n-1)$. The inverse-Wishart mean itself is \emph{not} formalized; see Section~\ref{sec:dd:roadmap}.
+$n/(m-n-1)$. The Lean development does not use this conditional inverse-Wishart mean: the QR reduction (Theorem~\ref{thm:dd:traceReduction}) removes the scale $S^\top S$ altogether, and the identity-scale mean
+$\mathbb E\operatorname{Tr}(G^\top G)^{-1}=n/(m-n-1)$ is Theorem~\ref{thm:dd:invGramDiag}.
 \end{remark}
 
 \begin{theorem}[Variance of the feature-bottleneck estimator]\label{thm:dd:featureVariance}
@@ -648,8 +654,7 @@ The general Gaussian tools proved or imported for this chapter (Mathlib's standa
 \begin{remark}[Background from the NTK chapters used by the route]\label{rmk:dd:ntkBackground}
   \uses{def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps, thm:ntkdeep:linearImage, lem:ntkr:matrixPush,
         lem:ntkcond:coordVec, thm:ntkcond:lemma226, thm:ntkcond:stdQuad, lem:ntkf:markov, lem:ntkf:chebyshev}
-The following facts, already formalized and recorded in the NTK chapters, are the inputs for the open nodes of
-Section~\ref{sec:dd:roadmap} and the reductions of Section~\ref{sec:dd:gram}; none of them is re-proved here.
+The following facts, already formalized and recorded in the NTK chapters, are the inputs for Section~\ref{sec:dd:gaussian} and the reductions of Section~\ref{sec:dd:gram}; none of them is re-proved here.
 \begin{itemize}
   \item \emph{Gram projector} $P_\Phi=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$ and its properties (Definition~\ref{def:ntkcond:gramProjector},
   Lemma~\ref{lem:ntkcond:gramProjectorProps}): an orthogonal projector for every $\Phi$, with $P\Phi=\Phi$ when $\Phi^\top\Phi$ is invertible.
@@ -672,37 +677,35 @@ Section~\ref{sec:dd:roadmap} and the reductions of Section~\ref{sec:dd:gram}; no
 \begin{remark}[Six choices]\label{rmk:dd:route}
   \uses{lem:ntkf:mathlibGaussian, lem:ntkf:mathlibGamma, rmk:dd:ntkBackground, thm:ntkf:radialMoments, thm:dd:chiTail}
 The classical derivation of Hastie et al.\ and Bach goes through the Wishart law, the Bartlett decomposition, the inverse-Wishart mean, Haar
-measure on the orthogonal group and the Grassmannian, the Beta law and Schur's lemma. We avoided every one of these. The chain of
-reductions is shown below; ``formalized'' means a node of Sections~\ref{sec:dd:risk}--\ref{sec:dd:gram}, ``open'' a node of
-Section~\ref{sec:dd:roadmap}.
+measure on the orthogonal group and the Grassmannian, the Beta law and Schur's lemma. We avoided every one of these. Each row below names the Lean node that formalizes the step.
 \begin{center}
 \small
 \begin{tabular}{p{0.20\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
 need & textbook route & route taken\\ \hline
 law of $(G^\top G)^{-1}$ &
 Wishart density, Bartlett decomposition, inverse-Wishart law &
-only the \emph{diagonal} entries: $((G^\top G)^{-1})_{jj}=1/\|(I-P_{-j})g_j\|^2\sim1/\chi^2_{p-q+1}$ (Schur complement / dual vector); the deterministic identity is formalized (Theorem~\ref{thm:dd:dualVector}), the $\chi^2$ law is open
-(Theorem~\ref{thm:dd:invGramDiag})\\[1ex]
+only the \emph{diagonal} entries: $((G^\top G)^{-1})_{jj}=1/\|(I-P_{-j})g_j\|^2\sim1/\chi^2_{p-q}$ (dual vector, Theorem~\ref{thm:dd:dualVector}; law, Theorem~\ref{thm:dd:invGramDiag})\\[1ex]
 $\chi^2$ and inverse $\chi^2$ moments &
 Gamma density, Stein recursion, or convolution of Gamma laws &
 polar coordinates against the explicit Gaussian density; the unit-ball volume cancels against $\gamma_E(E)=1$; one formula gives \emph{all} real
-moments $a>-k$, including the negative ones (Stein recursion cannot reach them); formalized (Theorem~\ref{thm:ntkf:radialMoments})\\[1ex]
+moments $a>-k$, including the negative ones (Stein recursion cannot reach them) (Theorem~\ref{thm:ntkf:radialMoments})\\[1ex]
 concentration of $\operatorname{Tr}(G^\top G)^{-1}$ &
 variance bound $\operatorname{Var}=O(p^{-1})$, which needs covariances of different diagonal entries &
-fourth-moment Markov bound for \emph{each} entry plus a union bound over the $q$ entries, using marginal laws only; tail formalized
-(Theorem~\ref{thm:dd:chiTail}), union bound open (Theorem~\ref{thm:dd:traceConcentration})\\[1ex]
+fourth-moment Markov bound for \emph{each} entry plus a union bound over the $q$ entries, using marginal laws only (Theorems~\ref{thm:dd:chiTail} and~\ref{thm:dd:traceConcentration})\\[1ex]
 scale matrix $(S^\top S)^{-1}$ of the conditional Wishart &
 inverse-Wishart mean with general scale &
 the deterministic identity $\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)=\operatorname{Tr}((G^\top G)^{-1})$ for $S=QR$, $G=XQ$: only identity-scale Gaussians
-occur (Theorem~\ref{thm:dd:traceReduction}); formalized\\[1ex]
+occur (Theorems~\ref{thm:dd:traceReduction} and~\ref{thm:dd:featureVarianceProb})\\[1ex]
 bias $\|(I-P_S)\theta_\star\|^2$ &
 Haar projector on $\operatorname{Gr}(r,d)$, duality with a uniform vector on the sphere, Beta law &
-no Haar measure: $P_S$ is the Gram projector of a \emph{Gaussian} $S$, already rotation invariant ($P_{OS}=OP_SO^\top$); for $\theta=e_1$,
-$\|(I-P_S)e_1\|^2=1/(1+s_1^\top(S_2^\top S_2)^{-1}s_1)$, whose quadratic form concentrates by Chebyshev (Theorem~\ref{thm:dd:projectorProbability}); open, with the $\operatorname{Tr}W^{-2}$ decomposition formalized (Theorem~\ref{thm:dd:traceSecond})\\[1ex]
+no Haar measure: $S$ is Gaussian, hence left-invariant, and Householder reflections move $\theta$ to an independent Gaussian vector; Fubini reduces to two $\chi^2$ tails (Theorem~\ref{thm:dd:projectorProbability}). The
+Sherman--Morrison route planned originally was not needed\\[1ex]
+fit error $\|H^{-1}G^\top\xi\|^2$ &
+second inverse moment $\mathbb E\operatorname{Tr}W^{-2}$ and a Chebyshev bound for the quadratic form &
+the Rayleigh quotient $\|z\|^2/z^\top W^{-1}z$ is \emph{exactly} $\chi^2_{p-q}$, so the same fourth-moment tail applies (Theorems~\ref{thm:dd:quadFormLaw}--\ref{thm:dd:fitError}); no second inverse moment\\[1ex]
 almost-sure invertibility of $G^\top G$ &
 zero set of a non-trivial polynomial has Lebesgue measure zero &
-inductively $g_j\notin\operatorname{span}(g_1,\dots,g_{j-1})$ a.s.: a proper subspace is null because $\langle g,u\rangle\sim\mathcal N(0,1)$ has no atom; open
-(Theorem~\ref{thm:dd:invGramDiag})
+inductively a new column avoids the proper span of the others a.s., since a proper subspace is null for the Gaussian (Theorem~\ref{thm:dd:fullRankAS})
 \end{tabular}
 \end{center}
 \end{remark}
@@ -718,7 +721,7 @@ by the normalization $\int1\,d\gamma_E=1$ and never evaluated. The density itsel
 Mathlib's Gaussian Fourier integral (Lemma~\ref{lem:ntkf:mathlibGamma}) rather than by tensorizing one-dimensional densities.
 \end{remark}
 
-\begin{remark}[Numerical sanity checks of the planned reductions]\label{rmk:dd:numerics}
+\begin{remark}[Numerical sanity checks made before the reductions were proved]\label{rmk:dd:numerics}
   \uses{rmk:dd:route}
 Before planning the reductions, the following were checked by simulation or exact linear algebra (these checks are not part of the formalization; the deterministic identities were afterwards proved in Lean, Section~\ref{sec:dd:gram}): the
 trace identity of Theorem~\ref{thm:dd:traceReduction} and the bias decomposition $\|(MX-I)\theta_\star\|^2=\|\theta_\perp\|^2+\|H^{-1}G^\top\xi\|^2$
@@ -733,7 +736,7 @@ $\operatorname{Tr}(M^\top M)$ matches $m/(n_0-m-1)+m/(n-m-1)$ to about one perce
 \section{Chi-squared tail bounds: inputs for the probabilistic layer}\label{sec:dd:moments}
 
 For a Gaussian matrix $G\in\mathbb R^{p\times q}$ ($p\ge q$) the diagonal entries of $(G^\top G)^{-1}$ are
-$1/\|(I-P_{-j})g_j\|^2$ (Section~\ref{sec:dd:roadmap}), and $\|(I-P_{-j})g_j\|^2$ is a $\chi^2$ variable. The moment calculus of
+$1/\|(I-P_{-j})g_j\|^2$ (Theorem~\ref{thm:dd:dualVector}), and $\|(I-P_{-j})g_j\|^2$ is a $\chi^2$ variable (Theorem~\ref{thm:dd:invGramDiag}). The moment calculus of
 $\chi^2$ variables needed for this (the radial moment formula, the moments $\mathbb EY^j$ and the inverse moments $\mathbb EY^{-1},\mathbb EY^{-2}$) is
 general Gaussian machinery and is recorded in Chapter~\ref{chap:ntkf}, Section~\ref{sec:ntkf:radial}
 (Theorem~\ref{thm:ntkf:radialMoments}, Corollary~\ref{cor:ntkf:chiSquare}). The fourth-moment tail bound below is the double-descent-specific
@@ -743,12 +746,15 @@ consequence, in \texttt{ForMathlib/Probability/StdGaussianChiSqTails.lean}.
   \uses{cor:ntkf:chiSquare}
   \lean{ProbabilityTheory.integrable_norm_sq_sub_pow_four,
         ProbabilityTheory.integral_norm_sq_sub_pow_four,
-        ProbabilityTheory.measureReal_norm_sq_sub_ge_le}
+        ProbabilityTheory.measureReal_norm_sq_sub_abs_ge_le,
+        ProbabilityTheory.measureReal_norm_sq_sub_ge_le,
+        ProbabilityTheory.measure_dev_le_of_map_norm_sq}
   \leanok
-Let $\dim E=k\ge1$ and $x\sim\gamma_E$. Then $\mathbb E\bigl(\|x\|^2-k\bigr)^4=12k^2+48k$, and for every $\varepsilon>0$,
+Let $\dim E=k\ge1$ and $x\sim\gamma_E$. Then $\mathbb E\bigl(\|x\|^2-k\bigr)^4=12k^2+48k$, for every $t>0$ $\mathbb P(|\|x\|^2-k|\ge t)\le(12k^2+48k)/t^4$, and for every $\varepsilon>0$,
 \[
   \mathbb P\bigl(\bigl|\|x\|^2-k\bigr|\ge\varepsilon k\bigr)\le\frac{60}{\varepsilon^4k^2}.
 \]
+The last bound holds verbatim for \emph{any} random variable $f$ on any probability space whose law is that of $\|x\|^2$, $x\sim\gamma_{\mathbb R^k}$; this is the form applied to $\|Pg\|^2$, $\|g\|^2$ and $1/((W^\top W)^{-1})_{jj}$ below.
 \end{theorem}
 
 \begin{proof}
@@ -801,6 +807,25 @@ If $Z^\top Zv=0$ then $\|Zv\|^2=v^\top Z^\top Zv=0$, so $Zv=0$; conversely a ker
 $v$ in the kernel of $Z_{-j}$ extends by $0$ in coordinate $j$ to a vector $\tilde v$ with $Z\tilde v=Z_{-j}v=0$, so $\tilde v=0$ and $v=0$.
 \end{proof}
 
+\begin{lemma}[Further facts on the Gram projector]\label{lem:dd:gramProjectorFacts}
+  \uses{def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps}
+  \lean{Matrix.one_sub_gramProjector_mulVec,
+        Matrix.trace_gramProjector,
+        Matrix.dotProduct_one_sub_gramProjector_mulVec_self,
+        Matrix.gramProjector_submatrix_equiv,
+        Matrix.gramProjector_orthonormal_mul}
+  \leanok
+Let $\Phi\in\mathbb R^{n\times m}$ and $P_\Phi=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$. (1) $(I-P_\Phi)y=y-\Phi(\Phi^\top\Phi)^{-1}\Phi^\top y$, the least-squares residual. If $\Phi^\top\Phi$ is invertible then (2) $\operatorname{Tr}P_\Phi=\#\text{columns}$ and
+(3) $\|(I-P_\Phi)y\|^2=\|y\|^2-y^\top P_\Phi y$. (4) $P_\Phi$ is unchanged when the columns are relabelled by a bijection. (5) If $U^\top U=I$ then $P_{U\Phi}=UP_\Phi U^\top$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is the definition with $\Phi(\Phi^\top\Phi)^{-1}\Phi^\top y=P_\Phi y$. (2) $\operatorname{Tr}(\Phi(\Phi^\top\Phi)^{-1}\Phi^\top)=\operatorname{Tr}((\Phi^\top\Phi)^{-1}\Phi^\top\Phi)=\operatorname{Tr}I_m$ by cyclicity. (3) $I-P_\Phi$ is a symmetric idempotent, so
+$\|(I-P_\Phi)y\|^2=y^\top(I-P_\Phi)y$. (4) A relabelling conjugates $\Phi^\top\Phi$ by a permutation and the sum over columns is reindexed. (5) $(U\Phi)^\top(U\Phi)=\Phi^\top\Phi$, so only the outer factors change.
+These are the deterministic ingredients for deleting a column (Theorem~\ref{thm:dd:dualVector}) and for the law of $\|(I-P_{-j})w_j\|^2$ (Theorem~\ref{thm:dd:invGramDiag}), whose trace is $p-q$ by (2).
+\end{proof}
+
 \begin{theorem}[QR trace reduction]\label{thm:dd:traceReduction}
   \uses{lem:dd:orthFactor, lem:dd:wishartCancel}
   \lean{LinearRegression.DoubleDescent.trace_inv_gram_mul_gram_of_factor}
@@ -818,7 +843,7 @@ $\operatorname{Tr}(G^\top G)^{-1}$ by cyclicity. The feature covariance $S^\top 
 \end{proof}
 
 \begin{theorem}[Dual-vector formula for the inverse Gram matrix]\label{thm:dd:dualVector}
-  \uses{lem:dd:fullRank, lem:dd:leftInverse, def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps}
+  \uses{lem:dd:fullRank, lem:dd:leftInverse, lem:dd:gramProjectorFacts, def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps}
   \lean{LinearRegression.DoubleDescent.inv_gram_apply_self,
         LinearRegression.DoubleDescent.inv_gram_apply_ne}
   \leanok
@@ -877,89 +902,295 @@ The first term is the omitted signal and the second the error from fitting the n
 \end{proof}
 
 
-\section{Roadmap: the probabilistic identification (not yet formalized)}\label{sec:dd:roadmap}
+\section{Probability of the random-feature estimator}\label{sec:dd:gaussian}
 
-The nodes in this section are \textbf{open}: they carry no \texttt{\textbackslash lean} or \texttt{\textbackslash leanok} marker. They
-state exactly what remains to turn the deterministic layer and the reductions of Section~\ref{sec:dd:gram} into limits in probability for the random estimator.
+This section is the probabilistic layer. All matrices have i.i.d.\ $\mathcal N(0,1)$ entries and are written as product measures
+$\bigotimes_{i<p}\bigotimes_{k<q}\mathcal N(0,1)$ on $\mathbb R^{p\times q}$, as in the NTK initialization chapters. The Lean files are
+\texttt{DoubleDescent/RandomMatrixFoundations.lean} (invariance, full rank, law of the inverse-Gram diagonal),
+\texttt{InverseGramTrace.lean} (mean and concentration of $\operatorname{Tr}(G^\top G)^{-1}$),
+\texttt{BiasProjector.lean} (omitted signal of a Gaussian subspace), \texttt{FitErrorConcentration.lean} (fit error of a Gaussian regression) and
+\texttt{FeatureBottleneckLimits.lean} (the two limits of the feature-bottleneck estimator), together with
+\texttt{ForMathlib/LinearAlgebra/Matrix/Householder.lean} and \texttt{OrthogonalProjection.lean}. Section~\ref{sec:dd:route} compares this route
+with the textbook one. In every statement below the sequence index $k$ is suppressed when it is clear.
 
-\begin{theorem}[Law of the diagonal of the inverse Gram matrix]\label{thm:dd:invGramDiag}
-  \uses{thm:dd:dualVector, cor:ntkf:chiSquare}
-Let $G\in\mathbb R^{p\times q}$ have i.i.d.\ $\mathcal N(0,1)$ entries, $p\ge q$. Almost surely $G^\top G$ is invertible, and for each $j$
+\subsection{Invariance and independence}
+
+\begin{lemma}[Orthogonal invariance of Gaussian matrices]\label{lem:dd:invariance}
+  \uses{thm:ntkdeep:linearImage, lem:ntkr:matrixPush}
+  \lean{LinearRegression.DoubleDescent.map_pi_gaussianReal_mulVec,
+        LinearRegression.DoubleDescent.map_gaussianMatrix_mul_orthonormal,
+        LinearRegression.DoubleDescent.map_gaussianMatrix_transpose,
+        LinearRegression.DoubleDescent.map_gaussianMatrix_orthogonal_mul}
+  \leanok
+Let $W\in\mathbb R^{p\times q}$ be Gaussian.
+\begin{enumerate}
+  \item If $AA^\top=I$ and $g$ is a Gaussian vector then $Ag$ is a Gaussian vector.
+  \item If $Q^\top Q=I$ then $WQ$ is again Gaussian (right invariance; $Q$ may have fewer columns than $W$).
+  \item $W^\top$ is Gaussian, and if $U^\top U=I$ then $UW$ is Gaussian (left invariance).
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is the pushforward of the standard Gaussian along a matrix with orthonormal rows (Lemma~\ref{lem:ntkr:matrixPush} and Theorem~\ref{thm:ntkdeep:linearImage}).
+(2) applies (1) to each row of $W$ with $A=Q^\top$. (3) The transpose is a coordinate permutation of the standard Gaussian on the pair-indexed vector of entries, which
+preserves the product measure; $UW=(W^\top U^\top)^\top$ then follows from (2) conjugated by the transpose.
+\end{proof}
+
+\begin{lemma}[Orthogonal matrices are transitive on spheres]\label{lem:dd:householder}
+  \lean{Matrix.exists_orthogonal_mulVec_eq}
+  \leanok
+If $x^\top x=y^\top y$ there is $U$ with $UU^\top=U^\top U=I$ and $Ux=y$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+If $x=y$ take $U=I$. Otherwise the Householder reflection $U=I-2ww^\top/\|w\|^2$ with $w=x-y$ is orthogonal and swaps $x$ and $y$, because
+$\|x\|=\|y\|$ gives $2w^\top x=\|w\|^2$.
+\end{proof}
+
+\begin{lemma}[Projected Gaussian norms are chi-squared]\label{lem:dd:projectedChi}
+  \uses{thm:dd:chiTail, cor:ntkf:chiSquare, lem:ntkcond:gramProjectorProps}
+  \lean{Matrix.orthogonalDecomposition,
+        Matrix.exists_orthonormal_rows_of_isStarProjection,
+        LinearRegression.DoubleDescent.map_dotProduct_projector_mulVec,
+        LinearRegression.DoubleDescent.measure_projector_norm_sq_dev_le}
+  \leanok
+Let $g$ be a Gaussian vector and $P$ an orthogonal projection matrix ($P^\top=P=P^2$) of trace $r\ge1$. Then $\|Pg\|^2\sim\chi^2_r$, and for every $\varepsilon>0$
 \[
-  \bigl((G^\top G)^{-1}\bigr)_{jj}=\frac1{\|(I-P_{-j})g_j\|^2}\ \overset{d}{=}\ \frac1{\chi^2_{p-q+1}},
+  \mathbb P\bigl(\bigl|\|Pg\|^2-r\bigr|\ge\varepsilon r\bigr)\le\frac{60}{\varepsilon^4r^2}.
 \]
-where $P_{-j}$ is the orthogonal projector onto the span of the other columns. Consequently
-$\mathbb E\operatorname{Tr}(G^\top G)^{-1}=q/(p-q-1)$ for $p>q+1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+A projection of trace $r$ factors as $P=A^\top A$ with $A\in\mathbb R^{r\times p}$ having orthonormal rows, so $\|Pg\|^2=\|Ag\|^2$ and $Ag$ is a standard Gaussian
+in $\mathbb R^r$ by Lemma~\ref{lem:dd:invariance}(1). The tail bound is Theorem~\ref{thm:dd:chiTail} transported along the equality of laws.
+\end{proof}
+
+\begin{lemma}[Independent column; conditional law from a fibrewise law]\label{lem:dd:columnSplit}
+  \lean{LinearRegression.DoubleDescent.measurePreserving_columnSplit,
+        LinearRegression.DoubleDescent.map_prod_eq_of_ae}
+  \leanok
+(1) For Gaussian $W\in\mathbb R^{p\times(q+1)}$, the map $W\mapsto(\text{column }j,\ \text{the other columns})$ is measure preserving into the product of a Gaussian vector and a
+Gaussian $p\times q$ matrix; in particular column $j$ is independent of the rest. (2) Let $F:\alpha\times\beta\to\gamma$ be measurable and suppose that for $B$-a.e.\ $b$ the law of
+$a\mapsto F(a,b)$ under $A$ is a fixed measure $\lambda$. Then the law of $F$ under $A\otimes B$ is $\lambda$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is the reindexing of the pair-indexed Gaussian vector along $\{j\}\sqcup\{j\}^c$, which is measure preserving for the product measure. (2) is Fubini: for a measurable set $T$,
+$(A\otimes B)(F^{-1}T)=\int A\{a:F(a,b)\in T\}\,dB(b)=\lambda(T)$.
+\end{proof}
+
+\subsection{Full rank and the inverse Gram matrix}
+
+\begin{theorem}[Gaussian matrices have full column rank]\label{thm:dd:fullRankAS}
+  \uses{lem:dd:columnSplit, lem:dd:fullRank, thm:ntkf:subspaceNull}
+  \lean{LinearRegression.DoubleDescent.injective_mulVec_cons,
+        LinearRegression.DoubleDescent.ae_isUnit_det_gram_gaussianMatrix}
+  \leanok
+For $q\le p$, almost every Gaussian $W\in\mathbb R^{p\times q}$ has $W^\top W$ invertible.
 \end{theorem}
 
 \begin{proof}
-The identity $((G^\top G)^{-1})_{jj}=1/\|r_j\|^2$ with $r_j=(I-P_{-j})g_j$ is the deterministic Theorem~\ref{thm:dd:dualVector}. The column $g_j$ is independent of $P_{-j}$, so
-conditionally $\|r_j\|^2$ is the squared norm of a standard Gaussian projected onto a subspace of dimension $p-q+1$, i.e.\ $\chi^2_{p-q+1}$.
-Almost-sure invertibility: $g_j\notin\operatorname{span}(g_1,\dots,g_{j-1})$ almost surely, since a proper subspace is null for the Gaussian.
-The mean follows from Corollary~\ref{cor:ntkf:chiSquare}(2).
+  \leanok
+Induction on the number of columns. Split off column $0$ from the remaining $q$ columns, which are independent of it (Lemma~\ref{lem:dd:columnSplit}(1)). By induction the remaining columns a.s.\ have trivial kernel, so their
+span is a subspace of dimension $q<p$, a proper subspace of $\mathbb R^p$. A proper subspace is null for the Gaussian (Theorem~\ref{thm:ntkf:subspaceNull}: the Gaussian has a Lebesgue density and proper subspaces are Lebesgue-null). Hence
+column $0$ a.s.\ avoids the span, the kernel of the full matrix is trivial, and $W^\top W$ is invertible by Lemma~\ref{lem:dd:fullRank}. No polynomial zero-set argument is used.
+\end{proof}
+
+\begin{theorem}[Law of the diagonal of the inverse Gram matrix]\label{thm:dd:invGramDiag}
+  \uses{thm:dd:dualVector, thm:dd:fullRankAS, lem:dd:columnSplit, lem:dd:projectedChi, lem:dd:gramProjectorFacts, cor:ntkf:chiSquare}
+  \lean{LinearRegression.DoubleDescent.inv_gram_apply_self_succAbove,
+        LinearRegression.DoubleDescent.map_inv_gram_diag_gaussianMatrix,
+        LinearRegression.DoubleDescent.integral_inv_gram_diag_gaussianMatrix,
+        LinearRegression.DoubleDescent.integral_trace_inv_gram_gaussianMatrix}
+  \leanok
+Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$. For every $j$,
+\[
+  \bigl((W^\top W)^{-1}\bigr)_{jj}\ \overset d=\ \frac1{\chi^2_{p-q}}\qquad(p-q=p-(q+1)+1).
+\]
+Consequently $\mathbb E\bigl((W^\top W)^{-1}\bigr)_{jj}=1/(p-q-2)$ for $q+2<p$, and for a Gaussian $W\in\mathbb R^{p\times q}$ with $q+1<p$,
+$\mathbb E\operatorname{Tr}(W^\top W)^{-1}=q/(p-q-1)$, the inverse-Wishart mean.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:dd:dualVector}, $((W^\top W)^{-1})_{jj}=1/\|(I-P_{-j})w_j\|^2$ whenever $W^\top W$ is invertible, which holds a.s.\ (Theorem~\ref{thm:dd:fullRankAS}).
+For fixed other columns, $I-P_{-j}$ is an orthogonal projection of trace $p-q$, so $\|(I-P_{-j})w_j\|^2\sim\chi^2_{p-q}$ for the independent Gaussian column $w_j$
+(Lemmas~\ref{lem:dd:projectedChi} and~\ref{lem:dd:columnSplit}(1)); by Lemma~\ref{lem:dd:columnSplit}(2) this is also the law under the product measure. The means are
+$\mathbb E[1/\chi^2_\nu]=1/(\nu-2)$ (Corollary~\ref{cor:ntkf:chiSquare}) and linearity of the trace. The Wishart density, the Bartlett decomposition and Haar measure are never used.
 \end{proof}
 
 \begin{theorem}[Concentration of the inverse Gram trace]\label{thm:dd:traceConcentration}
   \uses{thm:dd:invGramDiag, thm:dd:chiTail}
-Let $p_k,q_k\to\infty$ with $q_k/p_k\to\rho\in[0,1)$ and $G_k$ as above. Then
-$\operatorname{Tr}(G_k^\top G_k)^{-1}\to\rho/(1-\rho)$ in probability.
+  \lean{LinearRegression.DoubleDescent.measureReal_inv_gram_diag_deviation_le,
+        LinearRegression.DoubleDescent.measure_trace_inv_gram_deviation_le,
+        LinearRegression.DoubleDescent.tendsto_measure_trace_inv_gram_deviation}
+  \leanok
+Let $W\in\mathbb R^{p\times m}$ be Gaussian with $1\le m\le p$, $\nu=p-m+1$ and $0<\varepsilon<1$. Then
+\[
+  \mathbb P\Bigl(\operatorname{Tr}(W^\top W)^{-1}\notin\Bigl[\tfrac m{\nu(1+\varepsilon)},\tfrac m{\nu(1-\varepsilon)}\Bigr]\Bigr)\le\frac{60\,m}{\varepsilon^4\nu^2}.
+\]
+Moreover, if $1\le m_k\le p_k$, $p_k\to\infty$ and $m_k/p_k\to\rho<1$, then $\operatorname{Tr}(W_k^\top W_k)^{-1}\to\rho/(1-\rho)$ in probability.
 \end{theorem}
 
 \begin{proof}
-With $\nu=p-q+1$ and $X_j=\|(I-P_{-j})g_j\|^2\sim\chi^2_\nu$, Theorem~\ref{thm:dd:chiTail} gives
-$\mathbb P(|X_j/\nu-1|\ge\varepsilon)\le60/(\varepsilon^4\nu^2)$. A union bound over $j\le q$ has probability $\le60q/(\varepsilon^4\nu^2)\to0$.
-Outside the bad event $q/(\nu(1+\varepsilon))\le\operatorname{Tr}(G^\top G)^{-1}=\sum_j1/X_j\le q/(\nu(1-\varepsilon))$, and $q/\nu\to\rho/(1-\rho)$.
+  \leanok
+For each diagonal entry, Theorem~\ref{thm:dd:invGramDiag} and the tail bound of Theorem~\ref{thm:dd:chiTail} give
+$\mathbb P(|1/((W^\top W)^{-1})_{jj}-\nu|\ge\varepsilon\nu)\le60/(\varepsilon^4\nu^2)$. A union bound over $j\le m$ costs $60m/(\varepsilon^4\nu^2)$; off the bad event
+$\operatorname{Tr}(W^\top W)^{-1}=\sum_j((W^\top W)^{-1})_{jj}$ lies in the stated interval. For the limit, $m_k/\nu_k\to\rho/(1-\rho)$, so for a fixed small tolerance the interval lies within $\varepsilon$ of the limit
+eventually, and $60m_k/(\varepsilon^4\nu_k^2)\to0$ since $\nu_k\to\infty$ and $m_k=O(\nu_k)$. Only the marginal laws of the diagonal entries are used, never covariances between them.
 \end{proof}
 
-\begin{theorem}[Second inverse moment and quadratic-form concentration]\label{thm:dd:invGramSecond}
-  \uses{thm:dd:invGramDiag, thm:dd:traceConcentration, thm:dd:traceSecond, thm:ntkcond:stdQuad, cor:ntkf:chiSquare}
-With $G\in\mathbb R^{p\times q}$ Gaussian and $W=G^\top G$, $\mathbb E\operatorname{Tr}W^{-2}=q(p-1)/\bigl((p-q)(p-q-1)(p-q-3)\bigr)$ for $p>q+3$. Hence, if $s\sim\gamma$ is
-independent of $G$, the quadratic form $s^\top W^{-1}s$ has conditional mean $\operatorname{Tr}W^{-1}$ and conditional variance $2\operatorname{Tr}W^{-2}=O(q/p^2)\to0$, so
-$s^\top W^{-1}s-\operatorname{Tr}W^{-1}\to0$ in probability.
+\subsection{Quadratic forms and the fit error}
+
+\begin{theorem}[The Rayleigh quotient of the Gram inverse is exactly chi-squared]\label{thm:dd:quadFormLaw}
+  \uses{thm:dd:invGramDiag, lem:dd:invariance, lem:dd:householder, lem:dd:columnSplit}
+  \lean{LinearRegression.DoubleDescent.map_quadForm_inv_gram,
+        LinearRegression.DoubleDescent.ae_dotProduct_self_ne_zero_pi_gaussianReal,
+        LinearRegression.DoubleDescent.map_dotProduct_div_quadForm_inv_gram}
+  \leanok
+Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$. (1) For every fixed unit vector $u$, $u^\top(W^\top W)^{-1}u\overset d=1/\chi^2_{p-q}$.
+(2) For an independent Gaussian vector $z\in\mathbb R^{q+1}$,
+\[
+  \frac{\|z\|^2}{z^\top(W^\top W)^{-1}z}\ \sim\ \chi^2_{p-q}\quad\text{exactly.}
+\]
 \end{theorem}
 
 \begin{proof}
-By Theorem~\ref{thm:dd:traceSecond}, $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|\beta_j\|^2)$. Given the other columns, $W^{-1}_{jj}$ depends only on $(I-P_{-j})g_j$ and $\beta_j$ only on $P_{-j}g_j$; these are independent
-(Theorem~\ref{thm:ntkcond:lemma226}). Hence $\mathbb E[W^{-1}_{jj}{}^2(1+\|\beta_j\|^2)]=\mathbb E[\chi^{-4}_{p-q+1}]\bigl(1+\mathbb E\operatorname{Tr}W_{-j}^{-1}\bigr)$, which equals
-$\frac1{(p-q-1)(p-q-3)}\cdot\frac{p-1}{p-q}$ by Corollary~\ref{cor:ntkf:chiSquare}; sum over $j$. The conditional variance of the quadratic form is
-$2\operatorname{Tr}W^{-2}$ by Theorem~\ref{thm:ntkcond:stdQuad}.
+  \leanok
+(1) By Lemma~\ref{lem:dd:householder} choose an orthogonal $U$ with $Ue_0=u$. Then $u^\top(W^\top W)^{-1}u=e_0^\top(U^\top W^\top WU)^{-1}e_0=((\tilde W^\top\tilde W)^{-1})_{00}$ with $\tilde W=WU$, which is Gaussian
+by Lemma~\ref{lem:dd:invariance}; apply the diagonal law of Theorem~\ref{thm:dd:invGramDiag}. (2) For fixed $z\neq0$ (almost sure) apply (1) to $u=z/\|z\|$, giving that the quotient has law $\chi^2_{p-q}$ for \emph{every} such $z$; Lemma~\ref{lem:dd:columnSplit}(2)
+assembles the product law with no independence or polar decomposition of $z$ needed.
 \end{proof}
 
-\begin{theorem}[Projector bias without Haar measure]\label{thm:dd:projectorProbability}
-  \uses{thm:dd:invGramSecond, thm:dd:traceConcentration, def:ntkcond:gramProjector, lem:ntkr:matrixPush}
-Let $S\in\mathbb R^{n_0\times n}$ have i.i.d.\ $\mathcal N(0,1)$ entries with $n_0/n\to\gamma/\delta>1$. For every fixed $\theta$,
-$\|(I-P_S)\theta\|^2-(1-n/n_0)\|\theta\|^2\to0$ in probability, uniformly over $\|\theta\|\le M$.
+\begin{theorem}[Concentration of a Gaussian quadratic form in the Gram inverse]\label{thm:dd:quadFormConc}
+  \uses{thm:dd:quadFormLaw, thm:dd:chiTail}
+  \lean{ProbabilityTheory.measure_dev_le_of_map_norm_sq,
+        LinearRegression.DoubleDescent.measure_quadForm_inv_gram_deviation_le}
+  \leanok
+With $W,z$ as in Theorem~\ref{thm:dd:quadFormLaw}, $\nu=p-q$, $n=q+1$ and $0<\eta<1$, the quadratic form $z^\top(W^\top W)^{-1}z$ lies in
+$\bigl[\tfrac{n(1-\eta)}{\nu(1+\eta)},\tfrac{n(1+\eta)}{\nu(1-\eta)}\bigr]$ except on an event of probability at most $60/(\eta^4\nu^2)+60/(\eta^4n^2)$.
 \end{theorem}
 
 \begin{proof}
-Since $OS\overset d=S$ and $P_{OS}=OP_SO^\top$ for orthogonal $O$ (Lemma~\ref{lem:ntkr:matrixPush}), the law of $\|(I-P_S)\theta\|^2$ equals $\|\theta\|^2$ times that of $\|(I-P_S)e_1\|^2$ (rotate $\theta$ to
-$\|\theta\|e_1$ by a reflection). Write $S=\binom{s_1^\top}{S_2}$. The dual-vector formula for the Gram matrix of $[S,e_1]$ gives
-$\|(I-P_S)e_1\|^2=1/(1+s_1^\top(S_2^\top S_2)^{-1}s_1)$ (a Sherman--Morrison identity). By Theorem~\ref{thm:dd:invGramSecond} the quadratic form is
-$\operatorname{Tr}(S_2^\top S_2)^{-1}+o_P(1)$, which tends to $\frac{n/n_0}{1-n/n_0}$ by Theorem~\ref{thm:dd:traceConcentration}; apply the continuous map $x\mapsto1/(1+x)$.
+  \leanok
+Both $\|z\|^2\sim\chi^2_n$ and $\|z\|^2/z^\top(W^\top W)^{-1}z\sim\chi^2_\nu$ (Theorem~\ref{thm:dd:quadFormLaw}(2)); the law-transfer form of the $\chi^2$ tail
+(\texttt{measure\_dev\_le\_of\_map\_norm\_sq}: the bound holds for any random variable having the law of $\|x\|^2$) bounds each deviation. Off both events the quotient of the two is sandwiched as stated.
 \end{proof}
 
-\begin{theorem}[Feature bottleneck in probability]\label{thm:dd:featureProbability}
-  \uses{thm:dd:featureVariance, thm:dd:featureLimits, thm:dd:traceConcentration, thm:dd:biasReduction,
-        thm:dd:invGramSecond, thm:dd:projectorProbability}
-Let $X,S$ have i.i.d.\ standard normal entries, $m_k,n_{0,k},n_k\to\infty$ with $n_0/m\to\gamma$, $n/m\to\delta<\min\{1,\gamma\}$. Then
-$V(\hat\theta)\to\sigma^2\delta/(1-\delta)$ and $B(\hat\theta)\to\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ in probability.
+\begin{theorem}[Fit error of a Gaussian regression]\label{thm:dd:fitError}
+  \uses{thm:dd:quadFormConc, lem:dd:orthFactor, lem:dd:invariance}
+  \lean{LinearRegression.DoubleDescent.fitError_eq_quadForm,
+        LinearRegression.DoubleDescent.measure_fitError_deviation_le}
+  \leanok
+Let $G\in\mathbb R^{m\times(q+1)}$ be Gaussian with $q+1\le m$ and $\zeta\in\mathbb R^m$ an independent Gaussian vector. With $\nu=m-q$, $n=q+1$ and $0<\eta<1$, the squared fit error
+$\|(G^\top G)^{-1}G^\top\zeta\|^2$ lies in $\bigl[\tfrac{n(1-\eta)}{\nu(1+\eta)},\tfrac{n(1+\eta)}{\nu(1-\eta)}\bigr]$ except on an event of probability at most
+$60/(\eta^4\nu^2)+60/(\eta^4n^2)$. It concentrates at $n/(m-n+1)$ without any second moment of the inverse Wishart matrix.
 \end{theorem}
 
 \begin{proof}
-Factor $S=QR$ with $Q^\top Q=I_n$ and $R$ invertible and put $G=XQ$ (i.i.d.\ standard Gaussian), so $Z=GR$ and
-$\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)=\operatorname{Tr}((G^\top G)^{-1})$ identically; the variance then converges by
-Theorem~\ref{thm:dd:traceConcentration} and Theorem~\ref{thm:dd:featureVariance}. For the bias, with $\theta_\perp=(I-P_S)\theta_\star$ and
-$\xi=X\theta_\perp$ (independent of $G$), one has $\|(MX-I)\theta_\star\|^2=\|\theta_\perp\|^2+\|H^{-1}G^\top\xi\|^2$ with $H=G^\top G$;
-the second term concentrates around $\|\theta_\perp\|^2\operatorname{Tr}H^{-1}$ (a Gaussian quadratic form), and $\|\theta_\perp\|^2\to(1-\delta/\gamma)\rho_\star$ by
-rotation invariance of $S$. Combining gives $(1-\delta/\gamma)\rho_\star(1+\delta/(1-\delta))=\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$.
+  \leanok
+If $G=QR$ with $Q^\top Q=I$ and $R$ symmetric invertible, then $(G^\top G)^{-1}G^\top\zeta=R^{-1}Q^\top\zeta$ and so $\|(G^\top G)^{-1}G^\top\zeta\|^2=z^\top(G^\top G)^{-1}z$ with $z=Q^\top\zeta$
+(\texttt{fitError\_eq\_quadForm}). For a fixed full-rank $G$ (a.s.\ by Theorem~\ref{thm:dd:fullRankAS}, with $Q$ from Lemma~\ref{lem:dd:orthFactor}), $z$ is a standard Gaussian by Lemma~\ref{lem:dd:invariance}(1), so the bound of Theorem~\ref{thm:dd:quadFormConc}
+applies, and Fubini over $G$ finishes.
 \end{proof}
 
-\begin{remark}[Remaining probabilistic statements]\label{rmk:dd:remaining}
-  \uses{thm:dd:featureProbability, thm:dd:ambientBV, thm:dd:sampleLimits}
-Not covered: (i) the ambient regime ($\operatorname{Tr}(X^\top X)^{-1}\to\gamma/(1-\gamma)$ in probability, which is
-Theorem~\ref{thm:dd:traceConcentration} with $(p,q)=(m,n_0)$, plus almost-sure invertibility of $SS^\top$); (ii) the sample regime
-$\gamma,\delta>1$: a Monte Carlo experiment confirms that the expected variance is $m/(n_0-m-1)+m/(n-m-1)$, but the two-sided
-structure of $Z=XS$ (both factors wide) needs its own argument; (iii) the only random-matrix ingredients proved so far are the $\chi^2$ tail bound (Section~\ref{sec:dd:moments}) and the deterministic
-reductions of Section~\ref{sec:dd:gram}; the probability-space statements (law of the diagonal, almost-sure invertibility, independence and
-concentration) remain open.
+\subsection{Bias of a Gaussian subspace}
+
+\begin{theorem}[Omitted signal of a Gaussian random subspace]\label{thm:dd:projectorProbability}
+  \uses{lem:dd:invariance, lem:dd:householder, lem:dd:projectedChi, thm:dd:chiTail, def:ntkcond:gramProjector}
+  \lean{LinearRegression.DoubleDescent.measure_resid_deviation_le,
+        LinearRegression.DoubleDescent.tendsto_measure_resid_deviation}
+  \leanok
+Let $S\in\mathbb R^{n_0\times n}$ be Gaussian, $1\le n\le n_0$, $P_S$ the Gram projector of $S$, $0<\varepsilon\le\tfrac12$. For every $\theta\in\mathbb R^{n_0}$,
+\[
+  \mathbb P\Bigl(\bigl|\|(I-P_S)\theta\|^2-(1-\tfrac n{n_0})\|\theta\|^2\bigr|>4\varepsilon\|\theta\|^2\Bigr)\le\frac{60}{\varepsilon^4n^2}+\frac{60}{\varepsilon^4n_0^2}.
+\]
+Consequently, if $n_k\le n_{0,k}$, $n_k\to\infty$ and $\|\theta_k\|^2\le M$, then $\|(I-P_{S_k})\theta_k\|^2-(1-n_k/n_{0,k})\|\theta_k\|^2\to0$ in probability; only $n_k\to\infty$ is needed.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By left invariance of $S$ (Lemma~\ref{lem:dd:invariance}(3)) and transitivity of the orthogonal group on spheres (Lemma~\ref{lem:dd:householder}) the failure probability is the same for all $\theta$ of the same norm,
+and by homogeneity for all $\theta\neq0$. It is therefore the average of the failure probability over an independent Gaussian vector $g$ replacing $\theta$. By Fubini this is the $g$-probability, for a fixed full-rank $S$, of
+$\{|\|P_Sg\|^2-n|\ge\varepsilon n\}\cup\{|\|g\|^2-n_0|\ge\varepsilon n_0\}$, and both are $\chi^2$ tails ($\|P_Sg\|^2\sim\chi^2_n$ by Lemma~\ref{lem:dd:projectedChi} and $\|g\|^2\sim\chi^2_{n_0}$).
+Outside these two events $\|(I-P_S)g\|^2=\|g\|^2-\|P_Sg\|^2$ is within $4\varepsilon\|g\|^2$ of $(1-n/n_0)\|g\|^2$, and scaling back to $\theta$ gives the claim. This route needs neither the Sherman--Morrison form of $\|(I-P_S)e_1\|^2$ nor a second inverse moment nor Haar measure.
+\end{proof}
+
+\subsection{The feature-bottleneck estimator}
+
+Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ be independent Gaussian matrices, $Z=XS$, $M=S(Z^\top Z)^{-1}Z^\top$, $\hat\theta=My$.
+
+\begin{theorem}[Variance of the feature-bottleneck estimator in probability]\label{thm:dd:featureVarianceProb}
+  \uses{thm:dd:featureVariance, thm:dd:traceReduction, thm:dd:traceConcentration, lem:dd:invariance}
+  \lean{LinearRegression.DoubleDescent.measure_trace_inv_gram_mul_gram_mem,
+        LinearRegression.DoubleDescent.tendsto_measure_featureTrace_deviation}
+  \leanok
+Fix any $S\in\mathbb R^{n_0\times n}$ with $S^\top S$ invertible. For every measurable $B$,
+$\mathbb P_X\bigl(\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)\in B\bigr)=\mathbb P_G\bigl(\operatorname{Tr}((G^\top G)^{-1})\in B\bigr)$ for $G\in\mathbb R^{m\times n}$ Gaussian. Hence if $1\le n_k\le m_k$, $m_k\to\infty$ and
+$n_k/m_k\to\delta<1$ then, for \emph{arbitrary} matrices $S_k$ with $S_k^\top S_k$ invertible,
+$\operatorname{Tr}((Z_k^\top Z_k)^{-1}S_k^\top S_k)\to\delta/(1-\delta)$ in probability. By Theorem~\ref{thm:dd:featureVariance} the variance $V(\hat\theta)=\sigma^2\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)$ therefore converges in probability to $\sigma^2\delta/(1-\delta)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Write $S=QR$ (Lemma~\ref{lem:dd:orthFactor}) and $G=XQ$; by Theorem~\ref{thm:dd:traceReduction} the trace equals $\operatorname{Tr}(G^\top G)^{-1}$ identically, and $G$ is Gaussian by Lemma~\ref{lem:dd:invariance}(2). The limit is
+Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n)$. Neither the law of $S$ nor its independence from $X$ is used.
+\end{proof}
+
+\begin{theorem}[Conditional concentration of the fit error of the bias]\label{thm:dd:featureBiasFixedS}
+  \uses{thm:dd:biasReduction, thm:dd:fitError, lem:dd:columnSplit, lem:dd:invariance}
+  \lean{LinearRegression.DoubleDescent.measurePreserving_mulVec_mul_orthonormal,
+        LinearRegression.DoubleDescent.measure_featureBias_deviation_le}
+  \leanok
+Fix $S\in\mathbb R^{n_0\times n}$ with $S^\top S$ invertible and $\theta\in\mathbb R^{n_0}$, put $\theta_\perp=(I-P_S)\theta$ and $R_{\mathrm{bias}}=\|(MX-I)\theta\|^2$, $\nu=m-n+1$, $0<\eta<1$.
+Then $R_{\mathrm{bias}}\in\|\theta_\perp\|^2\bigl[1+\tfrac{n(1-\eta)}{\nu(1+\eta)},\ 1+\tfrac{n(1+\eta)}{\nu(1-\eta)}\bigr]$ except on an $X$-event of probability at most $60/(\eta^4\nu^2)+60/(\eta^4n^2)$, whatever $S$ and $\theta$ are.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Let $S=QR$, $G=XQ$ and $u=\theta_\perp/\|\theta_\perp\|$, which is orthogonal to the columns of $Q$. The matrix $[Q\,|\,u]$ has orthonormal columns, so $X[Q\,|\,u]$ is Gaussian
+(Lemma~\ref{lem:dd:invariance}(2)) and its last column $\zeta=Xu$ is independent of $G=XQ$ (Lemma~\ref{lem:dd:columnSplit}(1); \texttt{measurePreserving\_mulVec\_mul\_orthonormal}). By
+Theorem~\ref{thm:dd:biasReduction}, $R_{\mathrm{bias}}=\|\theta_\perp\|^2\bigl(1+\|(G^\top G)^{-1}G^\top\zeta\|^2\bigr)$ since $X\theta_\perp=\|\theta_\perp\|\zeta$, and the fit error concentrates by Theorem~\ref{thm:dd:fitError}.
+\end{proof}
+
+\begin{theorem}[Bias of the feature-bottleneck estimator in probability]\label{thm:dd:featureBiasProb}
+  \uses{thm:dd:featureBiasFixedS, thm:dd:projectorProbability, thm:dd:featureLimits}
+  \lean{LinearRegression.DoubleDescent.measure_prod_sandwich_le,
+        LinearRegression.DoubleDescent.measure_featureBias_joint_le,
+        LinearRegression.DoubleDescent.measure_featureBias_joint_le',
+        LinearRegression.DoubleDescent.exists_tolerance_sandwich,
+        LinearRegression.DoubleDescent.tendsto_feature_ratios,
+        LinearRegression.DoubleDescent.tendsto_measure_featureBias_deviation}
+  \leanok
+Let $1\le n_k\le\min\{m_k,n_{0,k}\}$ with $n_k\to\infty$, $n_k/m_k\to\delta<1$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to r$. For independent Gaussian $S_k,X_k$ and every $\varepsilon>0$,
+\[
+  \mathbb P\Bigl(\bigl|\,\|(M_kX_k-I)\theta_k\|^2-\tfrac{\gamma-\delta}{\gamma(1-\delta)}\,r\,\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Put $a_k=(1-n_k/n_{0,k})\|\theta_k\|^2\to(1-\delta/\gamma)r=:a$ and $c=\delta/(1-\delta)$, so that $\frac{\gamma-\delta}{\gamma(1-\delta)}r=a(1+c)$ (\texttt{tendsto\_feature\_ratios}). The two-stage union bound
+(\texttt{measure\_prod\_sandwich\_le}: either $\|\theta_\perp\|^2$ is far from $a_k$ on the $S$-side, or $R_{\mathrm{bias}}$ leaves its sandwich given $S$) combines Theorem~\ref{thm:dd:featureBiasFixedS}, valid for $S$-a.e.\ $S$ by
+Theorem~\ref{thm:dd:fullRankAS}, with Theorem~\ref{thm:dd:projectorProbability}; this is \texttt{measure\_featureBias\_joint\_le}. A single small tolerance $t$ (\texttt{exists\_tolerance\_sandwich}:
+both sides of the sandwich are continuous in $t$ and equal $a(1+c)$ at $t=0$) puts the sandwich inside $(L-\varepsilon,L+\varepsilon)$ eventually, and every failure probability tends to $0$ because $\nu_k,n_k\to\infty$.
+\end{proof}
+
+\begin{remark}[What is and is not formalized in the probabilistic layer]\label{rmk:dd:remaining}
+  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleLimits}
+\emph{Feature bottleneck.} Variance and bias converge in probability to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ (Theorems~\ref{thm:dd:featureVarianceProb} and~\ref{thm:dd:featureBiasProb}), which are the limits
+the deterministic layer takes for the explicit expressions (Theorem~\ref{thm:dd:featureLimits}). The two statements are separate Lean theorems; they are not packaged into one theorem about the risk $R=B+V$.
+
+\emph{Ambient bottleneck.} The estimator is OLS, unbiased, with variance $\sigma^2\operatorname{Tr}(X^\top X)^{-1}$ (Theorem~\ref{thm:dd:ambientBV}); the convergence to $\sigma^2\gamma/(1-\gamma)$ is
+Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n_0)$. There is no separate Lean wrapper that states this for the ambient estimator.
+
+\emph{Sample bottleneck.} \textbf{Not formalized.} Only the deterministic facts of Section~\ref{sec:dd:sample} (interpolation, the trace reduction and the explicit limits) exist. For $\gamma,\delta>1$ both $X$ and $Z=XS$ are wide, so
+$ZZ^\top$ is the matrix to invert and the Gram matrix is not that of a single Gaussian matrix; a Monte Carlo experiment suggests that the expected variance is $m/(n_0-m-1)+m/(n-m-1)$, and this identification needs its own argument.
+
+\emph{Unused deterministic lemma.} The decomposition $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|\beta_j\|^2)$ of Theorem~\ref{thm:dd:traceSecond} was prepared for a second-moment route to the quadratic form $s^\top W^{-1}s$; the proof of Theorem~\ref{thm:dd:fitError} gives
+the concentration directly from the exact law of the Rayleigh quotient, so no second inverse moment is needed and no later file uses Theorem~\ref{thm:dd:traceSecond}.
 \end{remark}

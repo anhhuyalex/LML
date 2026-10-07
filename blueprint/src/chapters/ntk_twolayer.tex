@@ -190,6 +190,32 @@ The same formula holds at the parameters obtained by packing the first $n$ neuro
 Substitute $x\mapsto x/\sqrt d$ in Theorem~\ref{thm:ntktl:neuronSum}.
 \end{proof}
 
+\begin{remark}[Why the scaled dataset and input]\label{rmk:ntktl:whyScaled}
+  \uses{thm:ntktl:scaledDataset, thm:ntktl:neuronSum}
+The factor $1/\sqrt d$ is a normalization convention, not a mathematical necessity: Theorem~\ref{thm:ntktl:neuronSum} and the law of large numbers for the
+neuron average hold verbatim for the raw inputs $x^\alpha$, and every scaled statement is the raw one with $x$ replaced by $x/\sqrt d$ (that is the whole proof above).
+The Lean results are stated on the scaled dataset so that the hypotheses and limits below are written once, in a form that does not drift with $d$.
+The reasons are the following.
+\begin{enumerate}
+  \item \emph{The pre-activations stay of order one.} For $w\sim\mathcal N(0,I_d)$ the pre-activation $w\cdot x$ is $\mathcal N(0,\|x\|^2)$. A raw input with
+  coordinates of order one has $\|x\|^2\asymp d$, so $w\cdot x$ would have standard deviation $\asymp\sqrt d$ and $\varphi(w\cdot x)$ would probe the
+  activation far from the origin (saturating for $\tanh$, exploding for ReLU-like growth). On $\tilde x=x/\sqrt d$ one has $\|\tilde x\|^2=\|x\|^2/d$, which is $1$
+  for inputs on the sphere of radius $\sqrt d$ and $O(1)$ for coordinate-wise bounded inputs, so $w\cdot\tilde x$ has a variance that does not grow with $d$.
+  \item \emph{Both blocks of the NTK have the same size.} By Theorem~\ref{thm:ntktl:neuronSum} the readout block contributes $\varphi(w\cdot x^\alpha)\varphi(w\cdot x^\beta)$
+  and the input-weight block contributes $a^2\varphi'(w\cdot x^\alpha)\varphi'(w\cdot x^\beta)\,(x^\alpha\cdot x^\beta)$. On raw inputs the factor $x^\alpha\cdot x^\beta\asymp d$ would
+  make the input-weight block larger than the readout block by a factor of order $d$. After scaling it becomes the normalized inner product
+  $(x^\alpha\cdot x^\beta)/d$, so $K_\infty=\Phi(\varphi;\tilde X)+\bigl(\tfrac1dXX^\top\bigr)\odot\Phi(\varphi';\tilde X)$ (Definition~\ref{def:ntktl:shallowLimitingNTK})
+  is a sum of two comparable terms.
+  \item \emph{Dimension-free dependence on the data.} By rotation invariance of $\mathcal N(0,I_d)$, $\Phi_{\alpha\beta}(\varphi;X)$ depends on $X$ only through the Gram
+  matrix $XX^\top$ (this invariance is not formalized here). With the scaling, the whole limiting kernel $K_\infty$ is a function of the normalized Gram matrix
+  $\tfrac1dXX^\top$, whose diagonal is $\|x^\alpha\|^2/d$; this is the quantity one keeps fixed when comparing different input dimensions.
+  \item \emph{Agreement with the deep chapters.} The deep network normalizes its first layer in the same way, $h_0(\alpha)_j=d^{-1/2}\sum_kW_{0,j,k}x^\alpha_k$ with base
+  covariance $\Phi_0=\tfrac1dXX^\top$ (Chapter~\ref{chap:ntkdeep}), so the two-layer network is the depth-two case of the same convention.
+\end{enumerate}
+In this chapter $d$ is held fixed while $n\to\infty$, so the scaling is not needed for any of the limits to exist; it is the natural normalization if one wants the constants
+(the bound $M$, the Lipschitz constant $L_J$, the $L^2$ hypotheses on $\varphi,\varphi'$) to be uniform in $d$, and for comparing with the deep networks.
+\end{remark}
+
 \begin{definition}[Limiting covariance and limiting full NTK]\label{def:ntktl:shallowLimitingNTK}
   \uses{def:ntktl:network}
   \lean{NTK.limitingCovariance, NTK.limitingFullNTKMatrix}
@@ -235,6 +261,33 @@ Then $\Phi(\varphi;\tilde X)$ is positive definite, hence so is $K_\infty$. (The
 $u^\top\Phi u=\mathbb E\bigl[(\sum_\alpha u_\alpha\varphi(w\cdot\tilde x^\alpha))^2\bigr]$, which is strictly positive unless the combination vanishes almost everywhere. Since the second summand of $K_\infty$ is positive semidefinite, $K_\infty\succ0$ as soon as
 $\Phi\succ0$. If two inputs were equal, $u=e_\alpha-e_\beta$ would be a nontrivial vanishing combination.
 \end{proof}
+
+\begin{remark}[Intuition and role of strict positivity]\label{rmk:ntktl:posDefIntuition}
+  \uses{thm:ntktl:posDef, thm:ntktl:limitingProps, thm:ntktl:gapFromIndependence}
+\emph{Intuition.} The quadratic-form identity in the proof says that $\Phi(\varphi;\tilde X)$ is the Gram matrix of the $m$ functions
+$f_\alpha(w)=\varphi(w\cdot\tilde x^\alpha)$ in $L^2(\mathcal N(0,I_d))$: $\Phi_{\alpha\beta}=\langle f_\alpha,f_\beta\rangle$. A Gram matrix is positive definite exactly when
+its generating vectors are linearly independent, so $\Phi\succ0$ says that the $m$ training inputs produce $m$ genuinely different random features
+$f_1,\dots,f_m$, with no redundancy among them. Equivalently, there is no direction $u\in\mathbb R^m$ of the residual space in which the (limiting) network has
+zero variance at initialization, and no direction in which the kernel $K_\infty$ is flat. The second summand of $K_\infty$ is positive semidefinite, so
+it can only help; this is why independence of the \emph{values} $\varphi(w\cdot\tilde x^\alpha)$ already suffices, and no condition on $\varphi'$ beyond measurability and the
+$L^2$ bounds is needed.
+
+\emph{Why ``independent modulo Gaussian-null sets''.} Two features that differ only on a set of Gaussian measure zero are the same element of $L^2(\mathcal N(0,I_d))$ and
+contribute identically to every expectation, so the matrix $\Phi$ cannot see such differences. The integral $\mathbb E[(\sum_\alpha u_\alpha f_\alpha)^2]$ vanishes if and only if the
+combination vanishes almost everywhere, so ``vanishes almost everywhere'' is the exact condition that $u^\top\Phi u=0$ expresses. Requiring independence as functions
+\emph{everywhere} would be a different (and for the proof irrelevant) hypothesis, and would not match the quantity that appears in the dynamics. The converse also holds
+(if a nontrivial combination vanishes a.e., then $u^\top\Phi u=0$), so for $\Phi$ the hypothesis is sharp, although only the direction stated in the theorem is formalized.
+For a continuous activation the two notions coincide, because the Gaussian has an everywhere positive density and so every nonempty open set has positive measure; a continuous
+combination that vanishes a.e.\ therefore vanishes everywhere (this remark is not formalized, and the Lean hypothesis is the a.e.\ version). The hypothesis can fail:
+two equal inputs give the combination $u=e_\alpha-e_\beta$, and for a linear activation $\varphi(z)=z$ it fails as soon as $m>d$, since then the $m$ features $w\cdot\tilde x^\alpha$ lie in a $d$-dimensional space.
+
+\emph{Role in the formalization.} The positive-gap results (Theorems~\ref{thm:ntktl:globalEvent} and~\ref{thm:ntktl:globalLimit}) take the spectral gap
+$K_\infty-\lambda_\infty I\succeq0$, $\lambda_\infty>0$, as an \emph{assumption}; it is what makes the empirical kernel keep a uniform gap, the residual decay at rate at least $\lambda_\infty/m$,
+and the parameters stay in a ball of fixed radius, which is the lazy-training mechanism. Theorem~\ref{thm:ntktl:posDef} is the one place where this assumption is
+derived from a hypothesis about the data and the activation alone: positive definiteness gives, via the finite-dimensional spectral gap theorem,
+Theorem~\ref{thm:ntktl:gapFromIndependence}, and that discharges the gap hypothesis in item~(3) of Theorem~\ref{thm:ntktl:constructedLimits}. Without it, one would state
+the lazy-training limits for ``every $(\varphi,X)$ with $\lambda_{\min}(K_\infty)>0$'' and leave the reader to check that condition. The finite-horizon results, which need no gap, do not use it.
+\end{remark}
 
 \begin{remark}[Change to the formalization: distinct inputs]\label{rmk:ntktl:posDefChange}
 An earlier version also formalized the consequence ``the inputs $x^\alpha$ are pairwise distinct'' (Lean: \texttt{injective\_of\_ae\_independent}). It was not used by any later result and has been removed. The argument is the last sentence of the proof above: if $x^\alpha=x^\beta$ for $\alpha\ne\beta$, then $u=e_\alpha-e_\beta$ is a nontrivial combination that vanishes identically, contradicting independence modulo Gaussian-null sets.

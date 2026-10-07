@@ -305,6 +305,21 @@ apply the recursion twice. The coordinate form is the transport of the first par
 \end{proof}
 
 
+\begin{theorem}[Proper subspaces are Gaussian-null]\label{thm:ntkf:subspaceNull}
+  \uses{thm:ntkf:gaussianDensity, lem:ntkf:mathlibGaussian}
+  \lean{ProbabilityTheory.pi_gaussianReal_eq_map_stdGaussian,
+        ProbabilityTheory.stdGaussian_submodule_eq_zero,
+        ProbabilityTheory.pi_gaussianReal_submodule_eq_zero}
+  \leanok
+If $K\subsetneq E$ is a proper linear subspace then $\gamma_E(K)=0$. For $\iota$ a finite index type and $K\subsetneq\mathbb R^\iota$ a proper subspace, the product measure $\bigotimes_{i\in\iota}\mathcal N(0,1)$ gives $K$ measure $0$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntkf:gaussianDensity} $\gamma_E$ has a density with respect to Lebesgue (Haar) measure, so it is absolutely continuous; a proper subspace is Haar-null (Mathlib's \texttt{Measure.addHaar\_submodule}). The product form follows by
+transporting along the identification of $\bigotimes_i\mathcal N(0,1)$ with $\gamma$ on $\mathbb R^\iota$ (\texttt{pi\_gaussianReal\_eq\_map\_stdGaussian}). This replaces a polynomial zero-set argument, which Mathlib does not provide.
+\end{proof}
+
 \section{Averages of i.i.d.\ samples}\label{sec:ntkf:iid}
 
 \begin{theorem}[Strong law for an i.i.d.\ sequence]\label{thm:ntkf:slln}
