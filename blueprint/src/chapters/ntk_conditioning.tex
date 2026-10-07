@@ -17,16 +17,16 @@ For a measure $\mu$ and real random variables $X_n$, we say that $X_n\to c$ \emp
 The decoupling argument of Chapter~\ref{chap:ntkdn} splits a Gaussian weight matrix $V$ into a part $VP$ that is seen by the forward pass and an independent part $VP^\perp$ that is not. The deterministic algebra of this splitting is collected here.
 
 \begin{definition}[Orthogonal projection matrix and its complement]\label{def:ntkcond:projector}
-  \lean{NTK.isStarProjection_matrix_real_iff, IsStarProjection.transpose_eq}
+  \lean{Matrix.isStarProjection_matrix_real_iff, IsStarProjection.transpose_eq}
   \leanok
 A real square matrix $P$ is an \emph{orthogonal projection matrix} if $P^\top=P$ and $P^2=P$. In Lean this is Mathlib's \texttt{IsStarProjection} (a self-adjoint idempotent), which for real matrices unfolds to exactly these two equations (\texttt{isStarProjection\_matrix\_real\_iff}). Its \emph{complement} is $P^\perp:=I-P$; in Lean this is written out as \texttt{1 - P} (Mathlib's \texttt{IsStarProjection.one\_sub} shows it is again a projection), so there is no separate definition.
 \end{definition}
 
 \begin{lemma}[Algebra of a projector and its complement]\label{lem:ntkcond:projectorAlgebra}
   \uses{def:ntkcond:projector}
-  \lean{NTK.orthogonalComplement_isOrthogonalProjection,
-        NTK.mul_self_orthogonalComplement, NTK.orthogonalDecomposition, NTK.residual_annihilates,
-        NTK.orthogonalDecomposition_mul}
+  \lean{Matrix.orthogonalComplement_isOrthogonalProjection,
+        Matrix.mul_self_orthogonalComplement, Matrix.orthogonalDecomposition, Matrix.residual_annihilates,
+        Matrix.orthogonalDecomposition_mul}
   \leanok
 Let $P$ be an orthogonal projection matrix. Then:
 \begin{enumerate}
@@ -51,7 +51,7 @@ Part~(3) is the algebraic reason that forward propagation through a layer only s
 
 \begin{lemma}[Projections do not increase norms; traces of compressions]\label{lem:ntkcond:projectorNorms}
   \uses{def:ntkcond:projector}
-  \lean{NTK.mulVec_dot_self_eq, NTK.mulVec_dot_self_le, NTK.frobSq_projector_mul_le,
+  \lean{Matrix.mulVec_dot_self_eq, Matrix.mulVec_dot_self_le, NTK.frobSq_projector_mul_le,
         NTK.frobSq_mul_projector_le, NTK.frobSq_compress_le, NTK.trace_compress_projector,
         NTK.trace_compress_orthogonalComplement}
   \leanok
@@ -109,7 +109,7 @@ These facts are used for the positive semidefiniteness of the layerwise Gram mat
 \subsection{The Gram projector}
 
 \begin{definition}[Gram projector]\label{def:ntkcond:gramProjector}
-  \lean{NTK.gramProjector}
+  \lean{Matrix.gramProjector}
   \leanok
 For $\Phi\in\mathbb R^{n\times m}$ put $P_\Phi:=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top\in\mathbb R^{n\times n}$, where $(\cdot)^{-1}$ is the matrix inverse with the convention that it equals $0$ for a singular matrix.
 \end{definition}
@@ -118,9 +118,9 @@ If $\Phi^\top\Phi$ is invertible ($\Phi$ has full column rank) then $P_\Phi$ is 
 
 \begin{lemma}[Properties of the Gram projector]\label{lem:ntkcond:gramProjectorProps}
   \uses{def:ntkcond:gramProjector, def:ntkcond:projector, lem:ntkcond:projectorAlgebra}
-  \lean{NTK.gramProjector_transpose, NTK.isOrthogonalProjection_gramProjector,
-        NTK.isOrthogonalProjection_gramProjector_all, NTK.gramProjector_mul_self,
-        NTK.mul_eq_mul_gramProjector_mul}
+  \lean{Matrix.gramProjector_transpose, Matrix.isOrthogonalProjection_gramProjector,
+        Matrix.isOrthogonalProjection_gramProjector_all, Matrix.gramProjector_mul_self,
+        Matrix.mul_eq_mul_gramProjector_mul}
   \leanok
 Let $\Phi\in\mathbb R^{n\times m}$ and $P=P_\Phi$.
 \begin{enumerate}
@@ -145,7 +145,7 @@ The convention $0^{-1}=0$ is deliberate: it makes $\Phi\mapsto P_\Phi$ a functio
 
 \begin{theorem}[Splitting of a back-propagated vector]\label{thm:ntkcond:backSplit}
   \uses{def:ntkcond:gramProjector, lem:ntkcond:gramProjectorProps}
-  \lean{NTK.transpose_mulVec_eq_gramProjector_add}
+  \lean{Matrix.transpose_mulVec_eq_gramProjector_add}
   \leanok
 Let $\Phi\in\mathbb R^{n\times m}$ with $\Phi^\top\Phi$ invertible, $V\in\mathbb R^{k\times n}$ and $u\in\mathbb R^k$. Then
 \[

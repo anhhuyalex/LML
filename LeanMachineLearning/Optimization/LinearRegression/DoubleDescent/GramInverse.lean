@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomFeatures
-public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 
 /-!
 # Deterministic reductions for Gaussian random-feature regression
@@ -29,7 +29,7 @@ statements about a standard Gaussian matrix `G = X Q` that Gaussian invariance c
   inheritance by a submatrix with one column deleted;
 * `inv_gram_apply_self`, `inv_gram_apply_ne`: **dual-vector formula**
   `((Zᵀ Z)⁻¹)ⱼⱼ = ‖(1 - P_{Zⱼ}) zⱼ‖⁻²` and `((Zᵀ Z)⁻¹)ᵢⱼ = - βᵢ ((Zᵀ Z)⁻¹)ⱼⱼ` with `P_{Zⱼ}` the
-  `NTK.gramProjector` of `Z` without column `j` and `β` the regression of `zⱼ` on the other columns;
+  `Matrix.gramProjector` of `Z` without column `j` and `β` the regression of `zⱼ` on the other columns;
 * `trace_inv_gram_mul_self`: `Tr ((Zᵀ Z)⁻²) = ∑ⱼ ((Zᵀ Z)⁻¹)ⱼⱼ² (1 + ‖βⱼ‖²)`.
 
 For a Gaussian `G`, the dual-vector formula makes `((Gᵀ G)⁻¹)ⱼⱼ` an exact inverse `χ²_{p-q+1}`
@@ -192,11 +192,11 @@ private theorem dual_core (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det) (j :
 span of the other columns (Lemma 3.3 of the plan's notes; no block reindexing). -/
 theorem inv_gram_apply_self [DecidableEq m] (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det) (j : n) :
     (Zᵀ * Z)⁻¹ j j =
-      (((1 - NTK.gramProjector (Z.submatrix id (Subtype.val : {k // k ≠ j} → n))) *ᵥ Z.col j) ⬝ᵥ
-        ((1 - NTK.gramProjector (Z.submatrix id (Subtype.val : {k // k ≠ j} → n))) *ᵥ
+      (((1 - Matrix.gramProjector (Z.submatrix id (Subtype.val : {k // k ≠ j} → n))) *ᵥ Z.col j) ⬝ᵥ
+        ((1 - Matrix.gramProjector (Z.submatrix id (Subtype.val : {k // k ≠ j} → n))) *ᵥ
           Z.col j))⁻¹ := by
   have h := congrFun (dual_core Z hZ j) j
-  rw [NTK.one_sub_gramProjector_mulVec]
+  rw [Matrix.one_sub_gramProjector_mulVec]
   simp only [Pi.sub_apply, Pi.smul_apply, mulVec_single_one, col_apply, smul_eq_mul,
     extendNe, Pi.single_eq_same, dite_true, sub_zero] at h
   exact eq_inv_of_mul_eq_one_right h.symm

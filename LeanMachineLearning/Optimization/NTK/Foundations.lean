@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
-public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability
 public import LeanMachineLearning.Optimization.NTK.Foundations.TendstoInMeasureUtil
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage

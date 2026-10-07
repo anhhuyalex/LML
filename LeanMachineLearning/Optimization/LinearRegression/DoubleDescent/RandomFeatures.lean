@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInverse
 public import LeanMachineLearning.Optimization.LinearRegression.HMRT
-public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 public import LeanMachineLearning.Optimization.NTK.Shallow.DatasetNTK
 
 /-!
@@ -24,7 +24,7 @@ form in the two full-rank regimes ([Bach, 2024]; [Hastie et al., 2022]; [Belkin 
 
 No Moore–Penrose pseudoinverse is defined and no new loss or optimality predicate is introduced:
 optimality is stated for the residual norm `‖Z η - y‖` and the interpolation constraint
-`Z η = y`, by reusing `NTK.gramProjector` and `NTK.mseLoss`. `mseLoss_linear` identifies this
+`Z η = y`, by reusing `Matrix.gramProjector` and `NTK.mseLoss`. `mseLoss_linear` identifies this
 residual with the NTK development's `NTK.mseLoss` of the linear model `z ↦ z ⬝ η`.
 
 * `leftInverse_mul_self`, `self_mul_rightInverse`: the algebraic left/right inverse identities;
@@ -116,7 +116,7 @@ theorem norm_sq_residual_leftInverse :
   rw [← norm_neg (WithLp.toLp 2 ((1 - gramProjector Z) *ᵥ y.ofLp))]
   congr 1
   ext i
-  simp [NTK.one_sub_gramProjector_mulVec]
+  simp [Matrix.one_sub_gramProjector_mulVec]
 
 /-- **Feature-bottleneck estimator is a global minimizer.** If `Zᵀ Z` is invertible, the
 left-inverse coefficients `(Zᵀ Z)⁻¹ Zᵀ y` minimize the residual norm `‖Z η - y‖`, equivalently

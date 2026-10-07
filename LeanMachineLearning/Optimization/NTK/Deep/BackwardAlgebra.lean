@@ -5,7 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
+public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 
 /-!
 # Deterministic Algebra of the Backward Decoupling

@@ -6,9 +6,11 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.C
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.DataProcessing
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInverse
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Sigma
@@ -113,7 +115,6 @@ public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
-public import LeanMachineLearning.Optimization.NTK.Foundations.GramProjector
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Foundations.InfinitePiPrefix
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixMeasurability

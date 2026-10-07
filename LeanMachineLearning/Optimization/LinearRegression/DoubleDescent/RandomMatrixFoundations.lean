@@ -26,7 +26,7 @@ gaussianReal 0 1` as in `NTK/Initialization`. We prove:
 * `map_gaussianMatrix_transpose`, `map_gaussianMatrix_orthogonal_mul`: `Wᵀ` is Gaussian and so
   is `U W` for `Uᵀ U = 1` (left invariance, the transpose of the above);
 * `map_dotProduct_projector_mulVec`: for a Gaussian vector `g` and an orthogonal projection `P`
-  of trace `r`, `‖P g‖²` is `χ²_r` (`NTK.exists_orthonormal_rows_of_isStarProjection`);
+  of trace `r`, `‖P g‖²` is `χ²_r` (`Matrix.exists_orthonormal_rows_of_isStarProjection`);
 * `measurePreserving_columnSplit`, `map_prod_eq_of_ae`: column `j` of `W` is independent of the
   remaining columns, and the law under a product measure follows from the conditional law;
 * `ae_isUnit_det_gram_gaussianMatrix`: **almost-sure full column rank** for `q ≤ p`;
@@ -353,33 +353,33 @@ theorem map_inv_gram_diag_gaussianMatrix {p q : ℕ} (hqp : q + 1 ≤ p) (j : Fi
     Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1 with hB
   have hmp := measurePreserving_columnSplit (p := p) (q := q) j
   set F : (Fin p → ℝ) × (Fin p → Fin q → ℝ) → ℝ := fun y =>
-    (((1 - NTK.gramProjector (Matrix.of y.2)) *ᵥ y.1) ⬝ᵥ
-      ((1 - NTK.gramProjector (Matrix.of y.2)) *ᵥ y.1))⁻¹ with hFdef
+    (((1 - Matrix.gramProjector (Matrix.of y.2)) *ᵥ y.1) ⬝ᵥ
+      ((1 - Matrix.gramProjector (Matrix.of y.2)) *ᵥ y.1))⁻¹ with hFdef
   have hF : Measurable F := by
     have hP : Measurable fun y : (Fin p → ℝ) × (Fin p → Fin q → ℝ) =>
-        NTK.gramProjector (Matrix.of y.2) :=
+        Matrix.gramProjector (Matrix.of y.2) :=
       NTK.measurable_gramProjector (Φ := fun y : (Fin p → ℝ) × (Fin p → Fin q → ℝ) =>
         (Matrix.of y.2 : Matrix (Fin p) (Fin q) ℝ))
         (Measurable.of_eval fun i => Measurable.of_eval fun k =>
           (measurable_pi_apply k).comp ((measurable_pi_apply i).comp measurable_snd))
     have hv : Measurable fun y : (Fin p → ℝ) × (Fin p → Fin q → ℝ) =>
-        (1 - NTK.gramProjector (Matrix.of y.2)) *ᵥ y.1 :=
+        (1 - Matrix.gramProjector (Matrix.of y.2)) *ᵥ y.1 :=
       NTK.measurable_mulVec (NTK.measurable_orthogonalComplement hP) measurable_fst
     exact (NTK.measurable_dotProduct hv hv).inv
   have hlam : ∀ᵐ W' ∂B, A.map (fun g => F (g, W')) =
       (stdGaussian (EuclideanSpace ℝ (Fin (p - q)))).map (fun x => (‖x‖ ^ 2)⁻¹) := by
     filter_upwards [ae_isUnit_det_gram_gaussianMatrix q p (Nat.le_of_succ_le hqp)] with W' hW'
-    have hP := NTK.isOrthogonalProjection_gramProjector (Matrix.of W') hW'
-    have h1 : IsStarProjection (1 - NTK.gramProjector (Matrix.of W')) := hP.one_sub
-    have htr : ((p - q : ℕ) : ℝ) = (1 - NTK.gramProjector (Matrix.of W')).trace := by
-      rw [Matrix.trace_sub, Matrix.trace_one, NTK.trace_gramProjector _ hW']
+    have hP := Matrix.isOrthogonalProjection_gramProjector (Matrix.of W') hW'
+    have h1 : IsStarProjection (1 - Matrix.gramProjector (Matrix.of W')) := hP.one_sub
+    have htr : ((p - q : ℕ) : ℝ) = (1 - Matrix.gramProjector (Matrix.of W')).trace := by
+      rw [Matrix.trace_sub, Matrix.trace_one, Matrix.trace_gramProjector _ hW']
       simp [Nat.cast_sub (Nat.le_of_succ_le hqp)]
     have hlaw := map_dotProduct_projector_mulVec _ h1 (p - q) htr
     have e : (fun g : Fin p → ℝ => F (g, W')) = (fun s : ℝ => s⁻¹) ∘
-        (fun g : Fin p → ℝ => ((1 - NTK.gramProjector (Matrix.of W')) *ᵥ g) ⬝ᵥ
-          ((1 - NTK.gramProjector (Matrix.of W')) *ᵥ g)) := rfl
-    have hm1 : Measurable fun g : Fin p → ℝ => ((1 - NTK.gramProjector (Matrix.of W')) *ᵥ g) ⬝ᵥ
-        ((1 - NTK.gramProjector (Matrix.of W')) *ᵥ g) :=
+        (fun g : Fin p → ℝ => ((1 - Matrix.gramProjector (Matrix.of W')) *ᵥ g) ⬝ᵥ
+          ((1 - Matrix.gramProjector (Matrix.of W')) *ᵥ g)) := rfl
+    have hm1 : Measurable fun g : Fin p → ℝ => ((1 - Matrix.gramProjector (Matrix.of W')) *ᵥ g) ⬝ᵥ
+        ((1 - Matrix.gramProjector (Matrix.of W')) *ᵥ g) :=
       NTK.measurable_dotProduct (NTK.measurable_mulVec measurable_const measurable_id)
         (NTK.measurable_mulVec measurable_const measurable_id)
     rw [e, ← Measure.map_map measurable_inv hm1, hlaw,

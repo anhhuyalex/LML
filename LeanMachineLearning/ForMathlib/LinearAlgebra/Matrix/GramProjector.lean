@@ -5,12 +5,13 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
+public import Mathlib.Analysis.Matrix.Spectrum
 
 /-!
 # The Gram Projector `Φ (Φᵀ Φ)⁻¹ Φᵀ`
 
-The orthogonal projector onto the column span of a feature matrix `Φ` (the `m` forward features
+The orthogonal projector onto the column span of a feature matrix `Φ` (e.g. the `m` forward features
 `φ(h_k^α)` in the deep NTK), and the exact decomposition of a back-propagated vector
 `Vᵀ u = Φ c + (V Pᗮ)ᵀ u` with `c = (Φᵀ Φ)⁻¹ (V Φ)ᵀ u`. The first summand depends on the weight
 matrix `V` only through `V Φ`; the second is the residual used in the conditional Chebyshev bounds
@@ -20,10 +21,9 @@ of `Initialization/GaussianConditioning.lean`.
 @[expose]
 public section
 
-open Matrix
+open scoped Matrix
 
-namespace NTK
-
+namespace Matrix
 
 /-- The orthogonal projector `Φ (Φᵀ Φ)⁻¹ Φᵀ` onto the column span of `Φ`. -/
 noncomputable def gramProjector {n m : Type*} [Fintype n] [Fintype m] [DecidableEq m]
@@ -234,6 +234,6 @@ theorem exists_orthonormal_rows_of_isStarProjection {ι : Type u} [Fintype ι]
     simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one] at this
     exact this
 
-end NTK
+end Matrix
 
 end

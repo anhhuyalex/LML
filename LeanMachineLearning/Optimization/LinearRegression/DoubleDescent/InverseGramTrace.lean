@@ -19,8 +19,8 @@ of `(Wᵀ W)⁻¹` are exact inverse chi-squared variables (`map_inv_gram_diag_g
   (Lemma 3.2, Part 1: the inverse-Wishart mean, via `E [1/χ²_ν] = 1/(ν-2)`);
 * `measureReal_inv_gram_diag_deviation_le`, `measure_trace_inv_gram_deviation_le`: a
   non-asymptotic tail bound `ℙ (Tr ∉ [m / (ν (1+ε)), m / (ν (1-ε))]) ≤ 60 m / (ε⁴ ν²)`,
-  `ν = p - m + 1`, from the fourth-moment Markov bound of `StdGaussianChiSqTails.lean` and a union bound
-  over the `m` diagonal entries (no covariance estimate between entries is needed);
+  `ν = p - m + 1`, from the fourth-moment Markov bound of `StdGaussianChiSqTails.lean` and a
+  union bound over the `m` diagonal entries (no covariance estimate between entries is needed);
 * `tendsto_measure_trace_inv_gram_deviation`: **convergence in probability**
   `Tr ((Wᵀ W)⁻¹) → ρ / (1 - ρ)` along `m_k / p_k → ρ < 1` (Lemma 3.2, Part 2), stated for a sequence
   of product measures (no infinite probability space).
