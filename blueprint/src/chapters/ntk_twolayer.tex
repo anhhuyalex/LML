@@ -58,11 +58,11 @@ $\mu_{n,d}$-probability at least $1-\delta$; the threshold does not depend on th
 \end{proof}
 
 \begin{definition}[Parameter packing]\label{def:ntktl:packing}
-  \lean{NTK.paramIndexEquiv, NTK.idxW, NTK.idxA, NTK.packParams, NTK.unpackW, NTK.unpackA,
-        NTK.netFromParams, NTK.gradW, NTK.gradA, NTK.gradParams}
+  \lean{NTK.paramIndexEquiv, NTK.packParams, NTK.netFromParams, NTK.gradW, NTK.gradA,
+        NTK.gradParams}
   \leanok
-The trainable parameters are the flat vector $\theta\in\mathbb R^{nd+n}$ obtained by concatenating the entries $W_{ij}$ with the readout weights $a_i$ through a canonical bijection
-$(\{1..n\}\times\{1..d\})\sqcup\{1..n\}\simeq\{1..nd+n\}$ (indices $\mathrm{idxW}(i,j)$ and $\mathrm{idxA}(i)$). $\operatorname{packParams}(W,a)$ is this flat vector and $\operatorname{unpackW},\operatorname{unpackA}$ extract the blocks.
+The trainable parameters are the flat vector $\theta\in\mathbb R^{nd+n}$ obtained by concatenating the entries $W_{ij}$ with the readout weights $a_i$ through the canonical bijection
+$(\{1..n\}\times\{1..d\})\sqcup\{1..n\}\simeq\{1..nd+n\}$ \texttt{paramIndexEquiv}. Thus the coordinates of $W_{ij}$ and $a_i$ are respectively \texttt{paramIndexEquiv}$(\mathrm{Sum.inl}(i,j))$ and \texttt{paramIndexEquiv}$(\mathrm{Sum.inr}(i))$. $\operatorname{packParams}(W,a)$ is this flat vector; the two blocks are recovered by evaluating $\theta$ at those coordinates.
 The network written in the flat parameter is $\operatorname{netFromParams}(x,\theta)=f(x;\operatorname{unpackW}\theta,\operatorname{unpackA}\theta)$. Its two gradient blocks are
 \[
   \operatorname{gradW}(x,\theta)_{ij}=\frac1{\sqrt n}\,a_i\,\varphi'(w_i\cdot x)\,x_j,\qquad

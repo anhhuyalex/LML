@@ -471,11 +471,7 @@ NTK.map_prefixMap_infinitePi
 NTK.measurePreserving_infiniteSeq_to_init
 NTK.measureReal_initMeasure_neuronAverage_le
 NTK.paramIndexEquiv
-NTK.idxW
-NTK.idxA
 NTK.packParams
-NTK.unpackW
-NTK.unpackA
 NTK.netFromParams
 NTK.gradW
 NTK.gradA
@@ -1054,7 +1050,7 @@ NTK.preSq_cvg
 NTK.avg4_deriv_cvg
 NTK.avg4_feat_cvg
 NTK.derivGram_cvg
-NTK.splitPt
+NTK.layerSplitPoint
 NTK.residAbs
 NTK.residAbs_eq
 NTK.atProj_nextSens_eq
@@ -1104,7 +1100,7 @@ NTK.map_gaussianRowMeasure_dot
 NTK.signAmbiguous
 NTK.largePerturb
 NTK.badSet
-NTK.ReLUNetwork
+NTK.ShallowNetwork
 NTK.measurable_signAmbiguous_card
 NTK.gaussianReal_Icc_bound
 NTK.BetaSmooth.β_nonneg

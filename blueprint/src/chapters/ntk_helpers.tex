@@ -140,10 +140,10 @@ A linear image of a standard Gaussian vector is a centred Gaussian; its variance
 
 \section{The ReLU linearization bound: bookkeeping}\label{sec:ntkhelp:relu}
 
-Lemma~\ref{lem:ntk:reluLinearization} is assembled from several elementary steps whose statements are collected here. Throughout $\sigma=\mathrm{relu}$ is the ReLU $z\mapsto\max(z,0)$, $\sigma'=\mathrm{relu}'(z)=\mathbf 1[z\ge0]$ (Definition~\ref{def:ntkr:relu}), and $\texttt{ReLUNetwork}\;d\;m$ is a shallow network with this activation.
+Lemma~\ref{lem:ntk:reluLinearization} is assembled from several elementary steps whose statements are collected here. Throughout $\sigma=\mathrm{relu}$ is the ReLU $z\mapsto\max(z,0)$, $\sigma'=\mathrm{relu}'(z)=\mathbf 1[z\ge0]$ (Definition~\ref{def:ntkr:relu}), and $\texttt{NTK.ShallowNetwork}\;\mathrm{relu}\;d\;m$ is a shallow network with this activation.
 
 \begin{definition}[Bad neuron sets]\label{def:ntkhelp:badSets}
-  \lean{NTK.signAmbiguous, NTK.largePerturb, NTK.badSet, NTK.ReLUNetwork}
+  \lean{NTK.signAmbiguous, NTK.largePerturb, NTK.badSet, NTK.ShallowNetwork}
   \leanok
 For $x\in\mathbb R^d$, $\tau,r\in\mathbb R$ and $W,W_0\in\mathbb R^{m\times d}$ put
 \begin{align*}

@@ -938,6 +938,60 @@ By Theorem~\ref{thm:ntkf:spectralGap}, $JJ^\top\succeq cI$ for some $c>0$, so $\
 For the last identity, $\langle g,J^\top v\rangle=\langle Jg,v\rangle$.
 \end{proof}
 
+\begin{remark}[How the Lean results combine]\label{rmk:ntkgf:affineLimitLean}
+  \uses{thm:ntkgf:affineFlow, thm:ntkgf:minNorm}
+  \lean{NTK.affineFlow_eq_solution, NTK.tendsto_affineFlowSolution,
+        NTK.affine_minNorm_pythagoras, NTK.norm_affine_limit_le}
+  \leanok
+The formal conclusion of \texttt{NTK.tendsto\_affineFlowSolution} is only that the displayed
+closed-form curve tends to $w_\infty$. Its proof obtains a constant $c>0$ with
+$JJ^\top\succeq cI$ and proves the more informative estimate
+\[
+  \|w(t)-w_\infty\|
+  \leq \bigl\|J^\top(JJ^\top)^{-1}\bigr\|\,\|r_0\|\,e^{-(c/m)t}.
+\]
+For a symmetric positive-definite matrix $JJ^\top$, one may take $c=\lambda_{\min}(JJ^\top)$,
+which gives the usual rate stated in the theorem. The Lean proof calls this constant $c$ rather
+than defining it by the notation $\lambda_{\min}$.
+
+The remaining assertions are separate Lean results. \texttt{NTK.affineFlow\_eq\_solution} identifies
+the closed form with every forward solution of the affine ODE. The first component of
+\texttt{NTK.affine\_minNorm\_pythagoras} proves $Jw_\infty=-r_0$, equivalently
+$f_0+Jw_\infty=y$, and its second component is the Pythagoras identity. Finally,
+\texttt{NTK.norm\_affine\_limit\_le} packages that identity as the least-norm conclusion.
+Thus the convergence, interpolation, and minimum-norm claims here are the combined content of
+these four results, rather than all being the literal conclusion of the convergence theorem alone.
+\end{remark}
+
+\begin{remark}[Role of the fixed-feature section in the NTK development]
+  \uses{thm:ntkgf:outputODE, thm:ntkgf:matrixExp, thm:ntkgf:residualFrozen,
+        thm:ntkgf:kernelFreeze, thm:ntkgf:minNorm, thm:ntkgf:affineLimit,
+        thm:ntkgf:predictionError}
+This section is the parameter-space counterpart of the frozen-kernel dynamics developed earlier.
+Theorem~\ref{thm:ntkgf:outputODE} first shows that gradient flow drives the training residual by
+$r'=-K_t r/m$. Theorem~\ref{thm:ntkgf:matrixExp} solves that equation when the kernel is fixed.
+Here the frozen object is a Jacobian $J$: the linearized model has residual $r_0+Jw$ and fixed
+kernel $JJ^\top$. The matrix-exponential residual from the earlier theorem, lifted back to parameter
+space by $-J^\top(JJ^\top)^{-1}$, gives the closed form of
+Theorem~\ref{thm:ntkgf:affineFlow}.
+
+This lift also explains the implicit bias. A zero-initialized affine flow moves only in
+$\operatorname{range}(J^\top)$, while changes in $\ker J$ do not affect the training outputs.
+Theorem~\ref{thm:ntkgf:minNorm} therefore identifies the limit as the unique interpolant that has
+discarded all such invisible directions. Positive definiteness of $JJ^\top$ is the condition that
+every training residual direction is visible, so the residual decays to zero and interpolation is
+possible.
+
+The section is an exact model, not yet an approximation theorem for a nonlinear network.
+The earlier kernel-constancy result (Theorem~\ref{thm:ntkgf:kernelFreeze}) and the frozen-residual
+comparison (Theorem~\ref{thm:ntkgf:residualFrozen}) are what justify using fixed-kernel dynamics
+for a wide network. The affine formula then supplies their parameter-space and interpolation
+interpretation. In the next section it supplies the reference prediction at a test feature $g$:
+Theorem~\ref{thm:ntkgf:affineLimit} turns $\langle g,w_\infty\rangle$ into the kernel-regression
+formula, and Theorem~\ref{thm:ntkgf:predictionError} bounds the discrepancy between that frozen
+prediction and the prediction of the actual nonlinear gradient flow.
+\end{remark}
+
 
 \section{Test-point prediction along a gradient flow}\label{sec:ntkgf:testPrediction}
 
