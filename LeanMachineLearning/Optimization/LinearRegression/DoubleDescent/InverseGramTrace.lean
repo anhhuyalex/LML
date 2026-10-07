@@ -129,25 +129,20 @@ theorem measureReal_inv_gram_diag_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) (
       60 / (ε ^ 4 * ((p - q : ℕ) : ℝ) ^ 2) := by
   have hmeas := measurable_inv_gram_entry (p := p) j j
   have hlaw := map_inv_gram_diag_gaussianMatrix hqp j
-  have : NeZero (p - q) := ⟨by omega⟩
-  set S : Set ℝ := {d | ε * ((p - q : ℕ) : ℝ) ≤ |d⁻¹ - ((p - q : ℕ) : ℝ)|} with hS
-  have hSm : MeasurableSet S := measurableSet_le measurable_const (by fun_prop)
-  have h1 : (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1).real
-      {W | ε * ((p - q : ℕ) : ℝ) ≤
-        |(((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j)⁻¹ - ((p - q : ℕ) : ℝ)|} =
-      ((Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1).map
-        (fun W => ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j)).real S := by
-    rw [measureReal_def, measureReal_def, Measure.map_apply hmeas hSm]
-    rfl
-  rw [h1, hlaw, measureReal_def, Measure.map_apply (by fun_prop) hSm]
-  have := measureReal_norm_sq_sub_ge_le (E := EuclideanSpace ℝ (Fin (p - q))) hε
-  simp only [finrank_euclideanSpace, Fintype.card_fin] at this
-  have hset : (fun x : EuclideanSpace ℝ (Fin (p - q)) => (‖x‖ ^ 2)⁻¹) ⁻¹' S =
-      {x | ε * ((p - q : ℕ) : ℝ) ≤ |‖x‖ ^ 2 - ((p - q : ℕ) : ℝ)|} := by
-    ext x
-    simp [hS]
-  rw [hset]
-  exact this
+  have hlaw' : (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) =>
+      gaussianReal 0 1).map (fun W => (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j)⁻¹) =
+      (stdGaussian (EuclideanSpace ℝ (Fin (p - q)))).map (fun x => ‖x‖ ^ 2) := by
+    have e : (fun W : Fin p → Fin (q + 1) → ℝ => (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j)⁻¹) =
+        (fun y : ℝ => y⁻¹) ∘ (fun W => ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j) := rfl
+    rw [e, ← Measure.map_map (by fun_prop) hmeas, hlaw, Measure.map_map (by fun_prop)
+      (by fun_prop)]
+    congr 1
+    funext x
+    simp
+  have h := measure_dev_le_of_map_norm_sq (f := fun W : Fin p → Fin (q + 1) → ℝ =>
+    (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j)⁻¹) hmeas.inv (k := p - q) (by omega) hlaw' hε
+  rw [measureReal_def]
+  exact ENNReal.toReal_le_of_le_ofReal (by positivity) h
 
 
 /-- **Non-asymptotic concentration of `Tr ((Wᵀ W)⁻¹)`.** For a `p × (q+1)` Gaussian matrix with

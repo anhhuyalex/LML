@@ -880,9 +880,45 @@ $\|w'\|^2=\|w_\infty\|^2+\|w'-w_\infty\|^2$, so $\|w_\infty\|\le\|w'\|$ and equa
 \begin{proof}
   \uses{lem:ntkf:matrixCLM}
   \leanok
-$\|w'\|^2=\|w_\infty+(w'-w_\infty)\|^2=\|w_\infty\|^2+2\langle w_\infty,w'-w_\infty\rangle+\|w'-w_\infty\|^2$, and $\langle A^\dagger a,w'-w_\infty\rangle=\langle a,A(w'-w_\infty)\rangle=0$ since both interpolate. For the matrix case take
-$A=\operatorname{matrixCLM}(J)$, whose adjoint is $\operatorname{matrixCLM}(J^\top)$ (Lemma~\ref{lem:ntkf:matrixCLM}), and $a=-(JJ^\top)^{-1}r_0$.
+Set $h:=w'-w_\infty$. Since $w'$ and $w_\infty$ interpolate the same target,
+\[
+  Ah=Aw'-Aw_\infty=b-b=0.
+\]
+Thus $h\in\ker A$: it is precisely a parameter change which leaves the fitted outputs unchanged. On the other hand,
+the defining property of the adjoint and $w_\infty=A^\dagger a$ give
+\[
+  \langle w_\infty,h\rangle
+  =\langle A^\dagger a,h\rangle
+  =\langle a,Ah\rangle
+  =0.
+\]
+Consequently the decomposition $w'=w_\infty+h$ is orthogonal. Expanding its squared norm yields
+\[
+  \|w'\|^2=\|w_\infty+h\|^2
+  =\|w_\infty\|^2+2\langle w_\infty,h\rangle+\|h\|^2
+  =\|w_\infty\|^2+\|w'-w_\infty\|^2.
+\]
+This immediately implies $\|w_\infty\|\leq\|w'\|$. If equality holds, then
+$\|w'-w_\infty\|^2=0$, hence $w'=w_\infty$; this proves uniqueness.
+
+For the matrix case take $A=\operatorname{matrixCLM}(J)$, whose adjoint is
+$\operatorname{matrixCLM}(J^\top)$ (Lemma~\ref{lem:ntkf:matrixCLM}), and set
+$a:=-(JJ^\top)^{-1}r_0$. Then $A^\dagger a=-J^\top(JJ^\top)^{-1}r_0=w_\infty$, while
+$Jw_\infty=-JJ^\top(JJ^\top)^{-1}r_0=-r_0$, as required.
 \end{proof}
+
+\begin{remark}[Why the adjoint solution has minimum norm]
+  \uses{thm:ntkgf:minNorm}
+  \leanok
+Here $A^\dagger$ denotes the Hilbert-space \emph{adjoint} of $A$ (so, for a real matrix, it is the transpose), not the Moore--Penrose pseudoinverse. The set of all interpolants is the affine space
+\[
+  \{w:Aw=b\}=w_\infty+\ker A.
+\]
+Moving within this space means adding a vector in $\ker A$, which changes parameters without changing any fitted output.
+But $w_\infty=A^\dagger a$ belongs to $\operatorname{range}(A^\dagger)$, and
+\[\operatorname{range}(A^\dagger)\perp\ker A.\]
+It therefore has none of this output-invisible component. Geometrically, $w_\infty$ is the orthogonal projection of the origin onto the affine space of interpolants; every other interpolant is obtained by attaching a perpendicular nullspace vector, and so has larger norm. In the affine NTK model, gradient flow starts at $0$ and moves only in $\operatorname{range}(J^\top)$, which is why its limiting interpolant is exactly this distinguished one.
+\end{remark}
 
 \begin{theorem}[Convergence to the interpolant and kernel regression]\label{thm:ntkgf:affineLimit}
   \uses{thm:ntkgf:affineFlow, thm:ntkgf:minNorm, thm:ntkf:spectralGap, def:ntkgf:crossKernel}

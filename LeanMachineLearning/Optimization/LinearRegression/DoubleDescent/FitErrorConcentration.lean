@@ -12,7 +12,22 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.In
 /-!
 # Concentration of the fit error of a Gaussian regression
 
-TODO
+The quantity `‖(Gᵀ G)⁻¹ Gᵀ ζ‖²` is the fit error of least squares on `n` Gaussian columns `G` when
+the response `ζ` is an *independent* Gaussian vector; in random-feature regression it is the cost of
+fitting the signal `X θ⊥` omitted by the random features (Milestone 7e/7f of the plan;
+[Hastie et al., 2022]; [Belkin et al., 2019]). It concentrates at `n / (m - n + 1)` without any
+second moment of the inverse Wishart matrix and without `Tr ((Gᵀ G)⁻²)`:
+
+* `map_quadForm_inv_gram`: for a fixed unit vector `u`, `uᵀ (Wᵀ W)⁻¹ u ~ 1 / χ²_(p-q)`: the
+  diagonal law of `RandomMatrixFoundations.lean` rotated by a Householder reflection
+  (`Matrix.exists_orthogonal_mulVec_eq`) and `map_gaussianMatrix_mul_orthonormal`;
+* `map_dotProduct_div_quadForm_inv_gram`: for an independent Gaussian `z`, `‖z‖² / zᵀ (Wᵀ W)⁻¹ z`
+  is exactly `χ²_(p-q)` (`map_prod_eq_of_ae`: Fubini over the fixed direction `z / ‖z‖`);
+* `measure_quadForm_inv_gram_deviation_le`: `zᵀ (Wᵀ W)⁻¹ z` is within the sandwich
+  `n (1 ∓ η) / (ν (1 ± η))` except with probability `60 / (η⁴ ν²) + 60 / (η⁴ n²)`
+  (two `χ²` tails, `measure_dev_le_of_map_norm_sq`);
+* `fitError_eq_quadForm`, `measure_fitError_deviation_le`: the same for `‖(Gᵀ G)⁻¹ Gᵀ ζ‖²` with
+  `ζ ∈ ℝ^m`, through `G = Q R` and `z = Qᵀ ζ ~ 𝒩(0, I_n)`.
 -/
 
 @[expose]
@@ -143,24 +158,6 @@ theorem map_dotProduct_div_quadForm_inv_gram {p q : ℕ} (hqp : q + 1 ≤ p) :
   funext x
   simp
 
-/-- **`χ²` tail bound for any variable with the law of `‖x‖²`.** If `f` has under `μ` the law of
-`‖x‖²`, `x ~ stdGaussian (ℝ^k)` with `k ≥ 1`, then `μ (|f - k| ≥ ε k) ≤ 60 / (ε⁴ k²)`. -/
-theorem measure_dev_le_of_map_norm_sq {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    {f : α → ℝ} (hf : Measurable f) {k : ℕ} (hk : 0 < k)
-    (hlaw : μ.map f = (stdGaussian (EuclideanSpace ℝ (Fin k))).map (fun x => ‖x‖ ^ 2))
-    {ε : ℝ} (hε : 0 < ε) :
-    μ {a | ε * k ≤ |f a - k|} ≤ ENNReal.ofReal (60 / (ε ^ 4 * (k : ℝ) ^ 2)) := by
-  have : NeZero k := ⟨hk.ne'⟩
-  have hset : MeasurableSet {y : ℝ | ε * k ≤ |y - k|} :=
-    measurableSet_le measurable_const (by fun_prop)
-  have h1 := Measure.map_apply (μ := μ) hf hset
-  rw [hlaw, Measure.map_apply (by fun_prop) hset] at h1
-  have h2 := measureReal_norm_sq_sub_ge_le (E := EuclideanSpace ℝ (Fin k)) hε
-  simp only [finrank_euclideanSpace, Fintype.card_fin] at h2
-  have : {a | ε * k ≤ |f a - k|} = f ⁻¹' {y : ℝ | ε * k ≤ |y - k|} := rfl
-  rw [this, ← h1, ← ofReal_measureReal]
-  exact ENNReal.ofReal_le_ofReal h2
-
 /-- **Sandwich bound for the quadratic form of the inverse Gram matrix against a Gaussian
 vector.** For `W` a `p × (q+1)` Gaussian matrix and `z` an independent standard Gaussian vector,
 `ν = p - q`, `n = q + 1` and `0 < η < 1`, the quadratic form `zᵀ (Wᵀ W)⁻¹ z` lies in
@@ -197,7 +194,8 @@ theorem measure_quadForm_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) {
     measurable_matrix_nonsing_inv.comp (measurable_matrix_mul (measurable_matrix_transpose hW) hW)
   have hz2 : Measurable fun x : (Fin p → Fin (q + 1) → ℝ) × (Fin (q + 1) → ℝ) => x.2 ⬝ᵥ x.2 :=
     measurable_dotProduct measurable_snd measurable_snd
-  have hQm : Measurable Q := measurable_dotProduct measurable_snd (measurable_mulVec hH measurable_snd)
+  have hQm : Measurable Q :=
+    measurable_dotProduct measurable_snd (measurable_mulVec hH measurable_snd)
   have hFm : Measurable fun x : (Fin p → Fin (q + 1) → ℝ) × (Fin (q + 1) → ℝ) =>
       (x.2 ⬝ᵥ x.2) / Q x := hz2.div hQm
   have hE1 := measure_dev_le_of_map_norm_sq (μ := μW.prod μz) hFm (k := p - q) (by omega)
@@ -234,7 +232,8 @@ theorem measure_quadForm_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) {
     exact div_le_div₀ hapos.le (by linarith [ha1.1]) hFpos (by linarith [hF1.2])
   have hhi : Q x ≤ n * (1 + η) / (ν * (1 - η)) := by
     rw [hQeq]
-    exact div_le_div₀ (by positivity) (by linarith [ha1.2]) (by nlinarith [hF1.1]) (by linarith [hF1.1])
+    exact div_le_div₀ (by positivity) (by linarith [ha1.2]) (by nlinarith [hF1.1])
+      (by linarith [hF1.1])
   exact ⟨hlo, hhi⟩
 
 /-- **The least-squares fit of a Gaussian vector is a quadratic form in the Gram inverse.** If
@@ -336,7 +335,7 @@ theorem measure_fitError_deviation_le {m q : ℕ} (hqm : q + 1 ≤ m) {η : ℝ}
   refine le_trans (le_of_eq ?_) hEQb
   rw [Measure.prod_apply hETm, Measure.prod_apply hEQm]
   refine lintegral_congr_ae (hae.mono fun G hG => ?_)
-  show μζ (Prod.mk G ⁻¹' ET) = μz (Prod.mk G ⁻¹' EQ)
+  change μζ (Prod.mk G ⁻¹' ET) = μz (Prod.mk G ⁻¹' EQ)
   obtain ⟨Qg, R, hQ, hR, hRT, hGQR⟩ := exists_orthonormal_factor (Matrix.of G) hG
   have hlaw := map_pi_gaussianReal_mulVec Qgᵀ (by simpa using hQ)
   have hsetm : MeasurableSet (Prod.mk G ⁻¹' EQ) := measurable_prodMk_left hEQm

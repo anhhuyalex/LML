@@ -29,6 +29,12 @@ namespace Matrix
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+omit [Fintype n] in
+/-- A Householder matrix `1 - c • w wᵀ` is symmetric. -/
+theorem transpose_one_sub_smul_vecMulVec (w : n → ℝ) (c : ℝ) :
+    (1 - c • vecMulVec w w)ᵀ = 1 - c • vecMulVec w w := by
+  simp [transpose_sub, transpose_smul, transpose_vecMulVec]
+
 /-- **Orthogonal matrices act transitively on spheres.** If `x ⬝ x = y ⬝ y` there is an orthogonal
 matrix `U` (`U Uᵀ = Uᵀ U = 1`) with `U x = y`: the Householder reflection in `x - y`. -/
 theorem exists_orthogonal_mulVec_eq (x y : n → ℝ) (h : x ⬝ᵥ x = y ⬝ᵥ y) :
@@ -42,7 +48,7 @@ theorem exists_orthogonal_mulVec_eq (x y : n → ℝ) (h : x ⬝ᵥ x = y ⬝ᵥ
     · exact absurd (sub_eq_zero.mp (dotProduct_self_eq_zero.mp h'.symm)) hxy
   set c : ℝ := 2 / (w ⬝ᵥ w) with hc
   set U : Matrix n n ℝ := 1 - c • vecMulVec w w with hU
-  have hUT : Uᵀ = U := by simp [hU, transpose_sub, transpose_smul, transpose_vecMulVec]
+  have hUT : Uᵀ = U := transpose_one_sub_smul_vecMulVec w c
   have hcw : c * (w ⬝ᵥ w) = 2 := div_mul_cancel₀ _ hww.ne'
   have hUU : U * U = 1 := by
     have h2 : vecMulVec w w * vecMulVec w w = (w ⬝ᵥ w) • vecMulVec w w := by

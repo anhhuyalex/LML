@@ -47,25 +47,9 @@ universe u
 theorem measure_projector_norm_sq_dev_le {ι : Type u} [Fintype ι] (P : Matrix ι ι ℝ)
     (hP : IsStarProjection P) (r : ℕ) (hr : (r : ℝ) = P.trace) (hr0 : 0 < r) {ε : ℝ} (hε : 0 < ε) :
     (Measure.pi fun _ : ι => gaussianReal 0 1)
-        {g | ε * r ≤ |(P *ᵥ g) ⬝ᵥ (P *ᵥ g) - r|} ≤ ENNReal.ofReal (60 / (ε ^ 4 * (r : ℝ) ^ 2)) := by
-  have hlaw := map_dotProduct_projector_mulVec P hP r hr
-  have hmeas : Measurable fun g : ι → ℝ => (P *ᵥ g) ⬝ᵥ (P *ᵥ g) := by fun_prop
-  have hset : MeasurableSet {y : ℝ | ε * r ≤ |y - r|} :=
-    measurableSet_le measurable_const (by fun_prop)
-  have hnt : Nontrivial (EuclideanSpace ℝ (Fin r)) := by
-    have : NeZero r := ⟨hr0.ne'⟩
-    infer_instance
-  have h1 := Measure.map_apply (μ := Measure.pi fun _ : ι => gaussianReal 0 1) hmeas hset
-  rw [hlaw] at h1
-  have h2 := Measure.map_apply (μ := stdGaussian (EuclideanSpace ℝ (Fin r)))
-    (f := fun x => ‖x‖ ^ 2) (by fun_prop) hset
-  have hb := measureReal_norm_sq_sub_ge_le (E := EuclideanSpace ℝ (Fin r)) hε
-  simp only [finrank_euclideanSpace, Fintype.card_fin] at hb
-  have : (fun g : ι → ℝ => (P *ᵥ g) ⬝ᵥ (P *ᵥ g)) ⁻¹' {y : ℝ | ε * r ≤ |y - r|} =
-      {g | ε * r ≤ |(P *ᵥ g) ⬝ᵥ (P *ᵥ g) - r|} := rfl
-  rw [← this, ← h1, h2]
-  rw [← ENNReal.ofReal_toReal (measure_ne_top _ _)]
-  exact ENNReal.ofReal_le_ofReal hb
+        {g | ε * r ≤ |(P *ᵥ g) ⬝ᵥ (P *ᵥ g) - r|} ≤ ENNReal.ofReal (60 / (ε ^ 4 * (r : ℝ) ^ 2)) :=
+  measure_dev_le_of_map_norm_sq (f := fun g : ι → ℝ => (P *ᵥ g) ⬝ᵥ (P *ᵥ g)) (by fun_prop) hr0
+    (map_dotProduct_projector_mulVec P hP r hr) hε
 
 /-- **Ratio arithmetic.** If `a ≈ n` and `b ≈ n₀` within relative error `ε ≤ 1/2` and `n ≤ n₀`,
 then `a` is within `4 ε b` of `(n/n₀) b`. -/
@@ -96,7 +80,8 @@ section Residual
 
 variable {n₀ n : ℕ}
 
-private lemma measurable_resid :
+/-- Joint measurability of the residual energy `‖(1 - P_S) x‖²` in `(S, x)`. -/
+lemma measurable_resid :
     Measurable fun z : (Fin n₀ → Fin n → ℝ) × (Fin n₀ → ℝ) => resid(z.1, z.2) := by
   have hS : Measurable fun z : (Fin n₀ → Fin n → ℝ) × (Fin n₀ → ℝ) =>
       (Matrix.of z.1 : Matrix (Fin n₀) (Fin n) ℝ) :=

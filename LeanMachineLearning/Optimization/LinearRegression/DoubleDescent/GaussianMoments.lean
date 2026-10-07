@@ -19,7 +19,9 @@ estimating covariances between the diagonal entries (Milestone 7 of the double-d
 
 * `integral_norm_sq_sub_pow_four`: `E (‖x‖² - k)⁴ = 12 k² + 48 k`;
 * `measureReal_norm_sq_sub_abs_ge_le`: `ℙ (|‖x‖² - k| ≥ t) ≤ (12 k² + 48 k) / t⁴`;
-* `measureReal_norm_sq_sub_ge_le`: `ℙ (|‖x‖² - k| ≥ ε k) ≤ 60 / (ε⁴ k²)`.
+* `measureReal_norm_sq_sub_ge_le`: `ℙ (|‖x‖² - k| ≥ ε k) ≤ 60 / (ε⁴ k²)`;
+* `measure_dev_le_of_map_norm_sq`: the same bound for any random variable *with the law* of `‖x‖²`,
+  the form in which the tails are applied to `‖P g‖²`, `‖g‖²` and `1 / ((Wᵀ W)⁻¹)ⱼⱼ`.
 
 The inverse moments `E 1/χ²_k = 1/(k-2)` and `E 1/χ⁴_k = 1/((k-2)(k-4))` are
 `integral_inv_norm_sq_stdGaussian` and `integral_inv_norm_sq_sq_stdGaussian` in the radial file.
@@ -118,6 +120,24 @@ theorem measureReal_norm_sq_sub_ge_le {ε : ℝ} (hε : 0 < ε) :
   have : 0 < ε ^ 4 := by positivity
   nlinarith [mul_pos this (show 0 < k by linarith), sq_nonneg k,
     mul_pos this (mul_pos (show 0 < k by linarith) (show 0 < k by linarith))]
+
+/-- **`χ²` tail bound for any variable with the law of `‖x‖²`.** If `f` has under `μ` the law of
+`‖x‖²`, `x ~ stdGaussian (ℝ^k)` with `k ≥ 1`, then `μ (|f - k| ≥ ε k) ≤ 60 / (ε⁴ k²)`. -/
+theorem measure_dev_le_of_map_norm_sq {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    {f : α → ℝ} (hf : Measurable f) {k : ℕ} (hk : 0 < k)
+    (hlaw : μ.map f = (stdGaussian (EuclideanSpace ℝ (Fin k))).map (fun x => ‖x‖ ^ 2))
+    {ε : ℝ} (hε : 0 < ε) :
+    μ {a | ε * k ≤ |f a - k|} ≤ ENNReal.ofReal (60 / (ε ^ 4 * (k : ℝ) ^ 2)) := by
+  have : NeZero k := ⟨hk.ne'⟩
+  have hset : MeasurableSet {y : ℝ | ε * k ≤ |y - k|} :=
+    measurableSet_le measurable_const (by fun_prop)
+  have h1 := Measure.map_apply (μ := μ) hf hset
+  rw [hlaw, Measure.map_apply (by fun_prop) hset] at h1
+  have h2 := measureReal_norm_sq_sub_ge_le (E := EuclideanSpace ℝ (Fin k)) hε
+  simp only [finrank_euclideanSpace, Fintype.card_fin] at h2
+  have : {a | ε * k ≤ |f a - k|} = f ⁻¹' {y : ℝ | ε * k ≤ |y - k|} := rfl
+  rw [this, ← h1, ← ofReal_measureReal]
+  exact ENNReal.ofReal_le_ofReal h2
 
 end LinearRegression.DoubleDescent
 
