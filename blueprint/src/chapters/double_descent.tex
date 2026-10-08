@@ -235,6 +235,61 @@ Because $M$ does not depend on $\varepsilon$, $\hat\theta=M(X\theta_\star+\varep
 The matrix $M$ \emph{is} a Lean definition in the global theorem, where it is chosen by the dimensions (Definition~\ref{def:dd:minNormOperator}).
 \end{definition}
 
+\begin{remark}[Derivation of $M$ across the three regimes]\label{rmk:dd:derivationOfM}
+  \uses{def:dd:randomFeatures}
+In each regime, the matrix $M\in\mathbb R^{n_0\times m}$ is derived by first solving for the feature coefficients $\hat\eta\in\mathbb R^n$ as the minimum-norm minimizer of the least-squares loss $\eta\mapsto\|Z\eta-y\|^2$ (with $Z=XS$), and then applying the feature map $\hat\theta=S\hat\eta$. Because $\hat\eta$ depends linearly on $y$, writing $\hat\eta=Ay$ immediately yields $M=SA$. The derivation in each of the three regimes proceeds as follows:
+\begin{enumerate}
+  \item \textbf{Feature bottleneck ($\delta<\min\{1,\gamma\}$, so $n\le\min\{m,n_0\}$):}
+  Here features are the bottleneck. Assuming full column rank, $Z\in\mathbb R^{m\times n}$ has rank $n$, so the Gram matrix $Z^\top Z\in\mathbb R^{n\times n}$ is invertible.
+  The least-squares objective $\eta\mapsto\|Z\eta-y\|^2$ is strictly convex with gradient $2Z^\top(Z\eta-y)$. Setting the gradient to zero yields the normal equations
+  \[
+    Z^\top Z\eta = Z^\top y,
+  \]
+  whose unique solution is $\hat\eta=(Z^\top Z)^{-1}Z^\top y$. Because the least-squares minimizer is already unique, no tie-breaking by Euclidean norm is needed. Mapping to ambient coordinates gives
+  \[
+    \hat\theta = S\hat\eta = S(Z^\top Z)^{-1}Z^\top y \implies M = S(Z^\top Z)^{-1}Z^\top.
+  \]
+
+  \item \textbf{Sample bottleneck ($\gamma,\delta>1$, so $m\le\min\{n_0,n\}$):}
+  Here samples are the bottleneck. Assuming full row rank, $Z\in\mathbb R^{m\times n}$ has rank $m$, so the dual Gram matrix $ZZ^\top\in\mathbb R^{m\times m}$ is invertible.
+  Because $m<n$, the linear system $Z\eta=y$ is underdetermined and admits an affine space of exact interpolators (with zero residual). The ridgeless estimator is the interpolator of minimal Euclidean norm:
+  \[
+    \min_{\eta\in\mathbb R^n} \tfrac12\|\eta\|^2 \quad\text{subject to}\quad Z\eta=y.
+  \]
+  With Lagrange multiplier $\alpha\in\mathbb R^m$, the Lagrangian is $\mathcal L(\eta,\alpha)=\tfrac12\|\eta\|^2-\alpha^\top(Z\eta-y)$. The stationarity condition $\nabla_\eta\mathcal L=\eta-Z^\top\alpha=0$ requires $\eta=Z^\top\alpha$ (so $\eta\in\operatorname{range}Z^\top$). Substituting into the constraint gives $ZZ^\top\alpha=y$, so $\alpha=(ZZ^\top)^{-1}y$ and
+  \[
+    \hat\eta = Z^\top(ZZ^\top)^{-1}y.
+  \]
+  Mapping to ambient coordinates gives
+  \[
+    \hat\theta = S\hat\eta = SZ^\top(ZZ^\top)^{-1}y \implies M = SZ^\top(ZZ^\top)^{-1}.
+  \]
+
+  \item \textbf{Ambient bottleneck ($\gamma<1$, $\gamma\le\delta$, so $n_0\le\min\{m,n\}$):}
+  Here the ambient dimension is the bottleneck. Assuming full rank, $X\in\mathbb R^{m\times n_0}$ has full column rank $n_0$ ($X^\top X$ is invertible) and $S\in\mathbb R^{n_0\times n}$ has full row rank $n_0$ ($SS^\top$ is invertible).
+  The optimization problem decomposes into two stages via the ambient vector $\theta=S\eta\in\mathbb R^{n_0}$:
+  \begin{itemize}
+    \item \emph{Outer least-squares in ambient space:} Because $S$ has full row rank, the map $S:\mathbb R^n\to\mathbb R^{n_0}$ is surjective (Lemma~\ref{lem:dd:saturation}), so $S\eta$ covers all of $\mathbb R^{n_0}$. The minimal least-squares loss $\min_\eta\|X(S\eta)-y\|$ equals the ambient OLS loss $\min_\theta\|X\theta-y\|$, which is uniquely minimized at the OLS solution
+    \[
+      \hat\theta_{\mathrm{OLS}} = (X^\top X)^{-1}X^\top y.
+    \]
+    Because $X^\top X$ is invertible, $X$ is injective, so every least-squares minimizer $\eta$ must satisfy
+    \[
+      S\eta = \hat\theta_{\mathrm{OLS}} = (X^\top X)^{-1}X^\top y.
+    \]
+    \item \emph{Inner minimum-norm selection in feature space:} Among all $\eta$ satisfying this underdetermined constraint $S\eta=\hat\theta_{\mathrm{OLS}}$, the minimum-norm choice $\hat\eta$ solves $\min_\eta\tfrac12\|\eta\|^2$ subject to $S\eta=\hat\theta_{\mathrm{OLS}}$. By the right-inverse formula (applied to $S$),
+    \[
+      \hat\eta = S^\top(SS^\top)^{-1}\hat\theta_{\mathrm{OLS}} = S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top y.
+    \]
+  \end{itemize}
+  Mapping back to ambient space yields
+  \[
+    \hat\theta = S\hat\eta = SS^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top y = (X^\top X)^{-1}X^\top y,
+  \]
+  since $SS^\top(SS^\top)^{-1}=I_{n_0}$. Thus $M = SS^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top = (X^\top X)^{-1}X^\top$. The random-feature map $S$ cancels out entirely, and $\hat\theta$ reduces to ordinary least squares in the original ambient coordinates.
+\end{enumerate}
+\end{remark}
+
 \begin{lemma}[Left inverse and its covariance]\label{lem:dd:leftInverse}
   \lean{Matrix.leftInverse_mul_self,
         Matrix.leftInverse_mul_transpose}
@@ -330,6 +385,43 @@ dataset loss (Definition~\ref{def:ntkgf:outputs}). (2) By Theorem~\ref{thm:dd:le
 (3) The estimator interpolates (Lemma~\ref{lem:dd:rightInverse}), hence $L=0$ is the global minimum, and every minimizer is an interpolator,
 whose norm is at least that of $Z^\top(ZZ^\top)^{-1}y$ by Theorem~\ref{thm:dd:minNorm}.
 \end{proof}
+
+\begin{remark}[Context, foundations, and downstream role of Theorem~\ref{thm:dd:minNormLS}]\label{rmk:dd:minNormLSContext}
+  \uses{thm:dd:minNormLS}
+Theorem~\ref{thm:dd:minNormLS} provides the conceptual and algebraic foundation connecting the variational definition of ridgeless regression with the explicit operators analyzed in the rest of the chapter:
+\begin{itemize}
+  \item \textbf{Context and variational role:}
+  Definition~\ref{def:dd:randomFeatures} defines the feature coefficients $\hat\eta$ variationally as the minimum-norm minimizer among all minimizers of the least-squares loss $L(\eta)=\|y-Z\eta\|^2$. In general optimization, such two-tier minimization problems can be intricate. Theorem~\ref{thm:dd:minNormLS} establishes that whenever either Gram matrix ($Z^\top Z$ or $ZZ^\top$) is invertible, this variational problem has a closed-form solution given by the standard Moore--Penrose pseudoinverses: the left inverse $(Z^\top Z)^{-1}Z^\top y$ in the overdetermined regime, and the right inverse $Z^\top(ZZ^\top)^{-1}y$ in the underdetermined regime.
+
+  \item \textbf{How it builds on earlier proofs:}
+  The result synthesizes two complementary geometric properties proved immediately before it:
+  \begin{enumerate}
+    \item When $Z^\top Z$ is invertible, Theorem~\ref{thm:dd:leastSquares} applies the Gram projector $P_Z=Z(Z^\top Z)^{-1}Z^\top$ (Lemma~\ref{lem:dd:leftInverse}) and the Pythagorean decomposition
+    \[
+      \|Z\eta-y\|^2 = \|Z\hat\eta-y\|^2 + \|Z(\eta-\hat\eta)\|^2
+    \]
+    to show that $\hat\eta=(Z^\top Z)^{-1}Z^\top y$ is the unique minimizer of the residual norm. Because the least-squares minimizer is unique, it is automatically the unique minimizer of smallest Euclidean norm.
+    \item When $ZZ^\top$ is invertible, Lemma~\ref{lem:dd:rightInverse} shows that $\hat\eta=Z^\top(ZZ^\top)^{-1}y$ interpolates the data ($Z\hat\eta=y$), achieving the global minimum loss $L=0$. Any other minimizer must also interpolate, meaning $\eta-\hat\eta\in\ker Z$. Since $\hat\eta\in\operatorname{range}Z^\top=(\ker Z)^\perp$, Theorem~\ref{thm:dd:minNorm} establishes the Pythagorean decomposition
+    \[
+      \|\eta\|^2 = \|\hat\eta\|^2 + \|\eta-\hat\eta\|^2,
+    \]
+    proving that $\hat\eta$ has strictly smaller norm than any other interpolator.
+  \end{enumerate}
+
+  \item \textbf{How it is used by downstream results:}
+  Theorem~\ref{thm:dd:minNormLS} guarantees that the explicit operators $M$ studied in subsequent sections correctly realize the ridgeless estimator:
+  \begin{enumerate}
+    \item \emph{Feature bottleneck (Section~\ref{sec:dd:feature}):}
+    Justifies taking $\hat\eta=(Z^\top Z)^{-1}Z^\top y$ as the starting point for computing the variance trace $\operatorname{Tr}(M^\top M)=\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)$ (Lemma~\ref{lem:dd:featureTrace}) and the resulting risk bounds.
+    \item \emph{Ambient bottleneck (Section~\ref{sec:dd:ambient}):}
+    Theorem~\ref{thm:dd:ambientOLS} combines both halves of Theorem~\ref{thm:dd:minNormLS}: Theorem~\ref{thm:dd:leastSquares} applies to $X$ to fix the ambient predictions to the unique OLS fit $\hat\theta_{\mathrm{OLS}}$, while Theorem~\ref{thm:dd:minNorm} applies to $S$ to select the minimum-norm feature vector satisfying the interpolation constraint $S\eta=\hat\theta_{\mathrm{OLS}}$.
+    \item \emph{Sample bottleneck (Section~\ref{sec:dd:sample}):}
+    Guarantees that $\hat\eta=Z^\top(ZZ^\top)^{-1}y$ is the minimum-norm interpolator (Theorem~\ref{thm:dd:sampleInterpolates}), from which the sample-bottleneck variance trace formula (Theorem~\ref{thm:dd:sampleVariance}) and bias bounds follow.
+    \item \emph{Global double descent (Section~\ref{sec:dd:global}):}
+    Provides the rigorous justification for the global piecewise definition of $M(X,S)$ in Definition~\ref{def:dd:minNormOperator} and Lemma~\ref{lem:dd:globalBranches}, ensuring that the conditional risk $\mathsf{cr}(\sigma^2,\theta,X,S)$ accurately tracks the true ridgeless random-feature regression risk across all non-singular asymptotic regimes.
+  \end{enumerate}
+\end{itemize}
+\end{remark}
 
 
 \section{Feature bottleneck}\label{sec:dd:feature}
@@ -1265,12 +1357,11 @@ Theorem~\ref{thm:dd:biasReduction}, $R_{\mathrm{bias}}=\|\theta_\perp\|^2\bigl(1
   \uses{thm:dd:featureBiasFixedS, thm:dd:projectorProbability, thm:dd:featureLimits}
   \lean{LinearRegression.DoubleDescent.measure_prod_sandwich_le,
         LinearRegression.DoubleDescent.measure_featureBias_joint_le,
-        LinearRegression.DoubleDescent.measure_featureBias_joint_le',
         LinearRegression.DoubleDescent.exists_tolerance_sandwich,
         LinearRegression.DoubleDescent.tendsto_feature_ratios,
         LinearRegression.DoubleDescent.tendsto_measure_featureBias_deviation}
   \leanok
-Let $1\le n_k\le\min\{m_k,n_{0,k}\}$ with $n_k\to\infty$, $n_k/m_k\to\delta<1$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to r$. For independent Gaussian $S_k,X_k$ and every $\varepsilon>0$,
+Let $1\le n_k\le\min\{m_k,n_{0,k}\}$ with $n_k\to\infty$, $n_k/m_k\to\delta<1$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to r$. For independent Gaussian $X_k,S_k$ and every $\varepsilon>0$,
 \[
   \mathbb P\Bigl(\bigl|\,\|(M_kX_k-I)\theta_k\|^2-\tfrac{\gamma-\delta}{\gamma(1-\delta)}\,r\,\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
 \]
@@ -1525,7 +1616,7 @@ If $|A-a_0|<\varepsilon/2$ and $|B-b_0|<\varepsilon/(2(|\sigma|+1))$, then $|R-(
   \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:traceConcentration, thm:dd:projectorProbability}
   \lean{LinearRegression.DoubleDescent.measure_featureVariance_joint_le,
         LinearRegression.DoubleDescent.tendsto_measure_featureVariance_deviation,
-        LinearRegression.DoubleDescent.tendsto_measure_featureBias_deviation',
+        LinearRegression.DoubleDescent.tendsto_measure_featureBias_deviation,
         MeasureTheory.measure_prod_swap_le}
   \leanok
 Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $1\le n_k\le\min\{m_k,n_{0,k}\}$, $m_k\to\infty$ and $n_k/m_k\to\delta<1$. Then, with $Z_k=X_kS_k$, $\operatorname{Tr}\bigl((Z_k^\top Z_k)^{-1}S_k^\top S_k\bigr)\to\delta/(1-\delta)$ in probability, jointly in $(X_k,S_k)$.
@@ -1535,7 +1626,7 @@ If moreover $n_k\to\infty$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to\rho$
 \begin{proof}
   \leanok
 For a fixed realization of $S$ (almost surely of full column rank), the variance trace has the law of $\operatorname{Tr}(G^\top G)^{-1}$ for an $m\times n$ Gaussian matrix $G$; this is the $S$-section bound \texttt{measure\_featureVariance\_joint\_le}, which together with the product-measure lemma \texttt{measure\_prod\_le\_of\_ae\_section\_le}
-gives the joint bound and reduces the limit to Theorem~\ref{thm:dd:traceConcentration}. The bias statement is Theorem~\ref{thm:dd:featureBiasProb} with the factors of the product measure exchanged (\texttt{measure\_prod\_swap\_le}), so that all regimes use the order $(X,S)$.
+gives the joint bound and reduces the limit to Theorem~\ref{thm:dd:traceConcentration}. The bias statement is Theorem~\ref{thm:dd:featureBiasProb}, whose proof conditions on $S$ and therefore exchanges the two factors of the product measure once (\texttt{measure\_prod\_swap\_le}), so that all regimes are stated in the order $(X,S)$.
 \end{proof}
 
 \begin{theorem}[The risk converges in probability in each regime]\label{thm:dd:regimeRisks}
@@ -1544,7 +1635,7 @@ gives the joint bound and reduces the limit to Theorem~\ref{thm:dd:traceConcentr
         LinearRegression.DoubleDescent.tendsto_measure_sampleRisk_deviation,
         LinearRegression.DoubleDescent.tendsto_measure_ambientRisk_deviation}
   \leanok
-Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $\|\theta_k\|^2\to\rho$, and write $\mathsf{cr}_k=\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)$. For every $\varepsilon>0$ the probability that $\mathsf{cr}_k$ deviates by $\varepsilon$ or more from the stated limit tends to $0$ in each of the following cases.
+Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $\|\theta_k\|^2\to\rho$, and write $\mathsf{cr}_k=\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)$. For every $\varepsilon>0$ the probability that $\mathsf{cr}_k$ deviates by $\varepsilon$ or more from the stated limit tends to $0$ in each of the following cases, where the inequalities between $m_k,n_k,n_{0,k}$ are only required for all large $k$.
 \begin{enumerate}
   \item (Feature) $1\le n_k\le\min\{m_k,n_{0,k}\}$, $n_k\to\infty$, $n_k/m_k\to\delta<1$, $n_{0,k}/m_k\to\gamma>0$: limit $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho+\sigma^2\frac\delta{1-\delta}$.
   \item (Sample) $m_k<\min\{n_{0,k},n_k\}$, $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$, $n_k/m_k\to\delta>1$: limit $(1-\gamma^{-1})\frac\delta{\delta-1}\rho+\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$.
@@ -1556,6 +1647,7 @@ Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$
   \leanok
 (1) and (2): in the respective regime the minimum-norm operator is the feature, respectively sample, formula (Lemma~\ref{lem:dd:globalBranches}), so $\mathsf{cr}_k=A_k+\sigma^2B_k$ with $A_k$ the bias and $B_k$ the variance trace. Apply Lemma~\ref{lem:dd:deviationSum} with the limits of
 Theorem~\ref{thm:dd:featureJoint}, respectively Theorems~\ref{thm:dd:sampleBiasProb} and~\ref{thm:dd:sampleVarianceProb}.
+Throughout, shift the sequences by the index $K$ from which the inequalities hold; convergence is unaffected by dropping finitely many terms.
 (3) The matrices $S_k^\top$ and $X_k$ have full rank almost surely (Theorem~\ref{thm:dd:fullRankAS}; \texttt{ae\_isUnit\_det\_mul\_transpose\_gaussianMatrix} for $S_kS_k^\top$, using $n_{0,k}<n_k$). On this event, if $\operatorname{Tr}(X_k^\top X_k)^{-1}$ is within $\eta=\min\{\varepsilon/(|\sigma^2|+1),\gamma/(1-\gamma)\}$ of
 $\gamma/(1-\gamma)$ then it is positive, so $X_k^\top X_k$ is invertible and Lemma~\ref{lem:dd:globalBranches}(4) gives $\mathsf{cr}_k=\sigma^2\operatorname{Tr}(X_k^\top X_k)^{-1}$, within $\varepsilon$ of $\sigma^2\gamma/(1-\gamma)$. The bad event is therefore contained in $\{|\operatorname{Tr}(X_k^\top X_k)^{-1}-\gamma/(1-\gamma)|\ge\eta\}$, whose probability tends to $0$ by Theorem~\ref{thm:dd:traceConcentration} (this is the ambient limit that earlier had no Lean statement).
 \end{proof}
@@ -1564,18 +1656,14 @@ $\gamma/(1-\gamma)$ then it is positive, so $X_k^\top X_k$ is invertible and Lem
   \lean{LinearRegression.DoubleDescent.tendsto_ratio_of_ratios,
         LinearRegression.DoubleDescent.tendsto_atTop_of_ratio,
         LinearRegression.DoubleDescent.eventually_lt_of_ratio,
-        LinearRegression.DoubleDescent.eventually_gt_of_ratio,
-        LinearRegression.DoubleDescent.tendsto_measure_featureRisk_deviation_of_eventually,
-        LinearRegression.DoubleDescent.tendsto_measure_sampleRisk_deviation_of_eventually,
-        LinearRegression.DoubleDescent.tendsto_measure_ambientRisk_deviation_of_eventually}
+        LinearRegression.DoubleDescent.eventually_gt_of_ratio}
   \leanok
 (1) If $a_k/c_k\to\alpha$ and $b_k/c_k\to\beta\ne0$ then $a_k/b_k\to\alpha/\beta$. (2) If $a_k/c_k\to\alpha>0$ and $c_k\to\infty$ then $a_k\to\infty$. (3) If $a_k/b_k\to\alpha<1$ then $a_k<b_k$ eventually; if $\alpha>1$ then $b_k<a_k$ eventually.
-(4) The three conclusions of Theorem~\ref{thm:dd:regimeRisks} remain true if the structural inequalities between $m_k,n_k,n_{0,k}$ hold only for all large $k$.
 \end{lemma}
 
 \begin{proof}
   \leanok
-(1)--(3) are elementary limit arguments (multiply by $c_k$, respectively compare $a_k/b_k$ with $1$). (4) Shift the sequences by the index $K$ from which the inequalities hold, and use that convergence of a sequence is unaffected by dropping finitely many terms.
+These are elementary limit arguments (multiply by $c_k$, respectively compare $a_k/b_k$ with $1$).
 \end{proof}
 
 \begin{theorem}[Global double descent of the risk, in probability]\label{thm:dd:globalDoubleDescent}
