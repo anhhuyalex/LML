@@ -31,7 +31,14 @@ fixed design `Tr ((Z Zᵀ)⁻¹)` is `Tr ((X Xᵀ)⁻¹) / ν` up to a factor `1
 * `measure_sampleVariance_sandwich_le`: the non-asymptotic sandwich of the variance trace with
   an explicit failure probability.
 * `tendsto_measure_sampleVariance_deviation`: **the variance trace converges in probability to
-  `(γ - 1)⁻¹ + (δ - 1)⁻¹`** along `n₀ / m → γ > 1`, `n / m → δ > 1`.
+  `(γ - 1)⁻¹ + (δ - 1)⁻¹`** along `n₀ / m → γ > 1`, `n / m → δ > 1` (the `_transposed` version
+  is the same statement with the feature matrix given as `V = Sᵀ`, the form in which the
+  conditioning is carried out);
+* `measure_sampleBias_sandwich_le`, `tendsto_measure_sampleBias_deviation`: the bias
+  `‖(M X - 1) θ‖² = d + bᵀ (V Pᗮ)(V Pᗮ)ᵀ b - 2 bᵀ (V Pᗮ) θ`, `b = Z† X θ`, `d = ‖Pᗮ θ‖²`,
+  converges in probability to `(1 - γ⁻¹) (δ / (δ - 1)) ‖θ‖²`: `d → (1 - γ⁻¹) ‖θ‖²`
+  (Milestone 7e) and `(n₀ - m) ‖b‖² → ((γ - 1) / (δ - 1)) γ⁻¹ ‖θ‖²`, since `‖b‖²` is the fit
+  energy `(X θ)ᵀ (Z Zᵀ)⁻¹ (X θ)` (`measure_sampleQuadBad_le`).
 -/
 
 @[expose]
@@ -530,9 +537,9 @@ Proof: with `c₁ = (γ - 1)⁻¹`, `λ = (γ - 1) / (δ - 1)` the limit is `c�
 tolerance `t` (`exists_pos_lt_sandwich`) makes the sandwich of `measure_sampleVariance_sandwich_le`
 lie inside `(L - ε, L + ε)` eventually, and its failure probability tends to `0` by
 `tendsto_measure_design_trace_inv_deviation` and the ratio limits. -/
-theorem tendsto_measure_sampleVariance_deviation {mm nn n0 : ℕ → ℕ} {γ δ : ℝ} (hγ : 1 < γ)
-    (hδ : 1 < δ) (hm : ∀ k, 0 < mm k) (hmn : ∀ k, mm k ≤ nn k) (hmn0 : ∀ k, mm k ≤ n0 k)
-    (hmm : Tendsto mm atTop atTop)
+theorem tendsto_measure_sampleVariance_deviation_transposed {mm nn n0 : ℕ → ℕ} {γ δ : ℝ}
+    (hγ : 1 < γ) (hδ : 1 < δ) (hm : ∀ k, 0 < mm k) (hmn : ∀ k, mm k ≤ nn k)
+    (hmn0 : ∀ k, mm k ≤ n0 k) (hmm : Tendsto mm atTop atTop)
     (hγ' : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
     (hδ' : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
     (Var : ∀ k, (Fin (mm k) → Fin (n0 k) → ℝ) × (Fin (nn k) → Fin (n0 k) → ℝ) → ℝ)
@@ -1026,6 +1033,234 @@ theorem measure_sampleBias_sandwich_le (hm : 0 < m) (hmn : m ≤ n) (hmn₀ : m 
     _ = _ := by ring
 
 end Bias
+
+/-- **The bias of the sample-bottleneck estimator converges in probability (Milestone 7g, bias
+half).** Let `X_k` be `m_k × n₀_k` and `V_k` independent `n_k × n₀_k` Gaussian matrices,
+`S_k = V_kᵀ`, `Z_k = X_k S_k`, `M_k = S_k Z_k†`, with `0 < m_k ≤ min {n_k, n₀_k}`, `m_k → ∞`,
+`n₀_k / m_k → γ > 1`, `n_k / m_k → δ > 1` and `‖θ_k‖² → r`. Then the bias
+`R_bias = ‖(M_k X_k - 1) θ_k‖²` converges in probability to `(1 - γ⁻¹) (δ / (δ - 1)) r`.
+
+Proof: one tolerance `t` (`exists_pos_lt_sandwich`) in `measure_sampleBias_sandwich_le`, whose
+failure probability tends to `0` by `tendsto_measure_design_trace_inv_deviation` (singular design),
+`tendsto_measure_resid_deviation` (Milestone 7e, for `‖(1 - P_X) θ‖²`) and the ratio limits. -/
+theorem tendsto_measure_sampleBias_deviation_transposed {mm nn n0 : ℕ → ℕ} {γ δ r : ℝ}
+    (hγ : 1 < γ) (hδ : 1 < δ) (hm : ∀ k, 0 < mm k) (hmn : ∀ k, mm k ≤ nn k)
+    (hmn0 : ∀ k, mm k ≤ n0 k) (hmm : Tendsto mm atTop atTop)
+    (hγ' : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
+    (hδ' : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
+    (θ : ∀ k, Fin (n0 k) → ℝ) (hθ : Tendsto (fun k => θ k ⬝ᵥ θ k) atTop (𝓝 r))
+    (Rb : ∀ k, (Fin (mm k) → Fin (n0 k) → ℝ) × (Fin (nn k) → Fin (n0 k) → ℝ) → ℝ)
+    (hRb : ∀ k x, Rb k x =
+      (((Matrix.of x.2)ᵀ * (((Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ *
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹))) *
+          Matrix.of x.1 - 1) *ᵥ θ k) ⬝ᵥ
+      (((Matrix.of x.2)ᵀ * (((Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ *
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹))) *
+          Matrix.of x.1 - 1) *ᵥ θ k))
+    {ε : ℝ} (hε : 0 < ε) :
+    Tendsto (fun k =>
+      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (nn k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1))
+        {x | ε ≤ |Rb k x - (1 - γ⁻¹) * (δ / (δ - 1)) * r|}) atTop (𝓝 0) := by
+  have hγ1 : 0 < γ - 1 := by linarith
+  have hδ1 : 0 < δ - 1 := by linarith
+  have hγ0 : 0 < γ := by linarith
+  set lam : ℝ := (γ - 1) / (δ - 1) with hlam
+  set F : ℝ → ℝ := fun t => (1 - γ⁻¹) * r - t + lam * (γ⁻¹ * r - t) / (1 + t) - (t + 2 * t)
+    with hF
+  set G : ℝ → ℝ := fun t => (1 - γ⁻¹) * r + t + lam * (γ⁻¹ * r + t) / (1 - t) + (t + 2 * t)
+    with hG
+  have hL : (1 - γ⁻¹) * r + lam * (γ⁻¹ * r) = (1 - γ⁻¹) * (δ / (δ - 1)) * r := by
+    rw [hlam]; field_simp; ring
+  have hFc : ContinuousAt F 0 := by
+    refine ContinuousAt.sub (ContinuousAt.add (by fun_prop) (ContinuousAt.div (by fun_prop)
+      (by fun_prop) (by norm_num))) (by fun_prop)
+  have hGc : ContinuousAt G 0 := by
+    refine ContinuousAt.add (ContinuousAt.add (by fun_prop) (ContinuousAt.div (by fun_prop)
+      (by fun_prop) (by norm_num))) (by fun_prop)
+  have hF0 : F 0 = (1 - γ⁻¹) * (δ / (δ - 1)) * r := by simp [hF, ← hL]
+  have hG0 : G 0 = (1 - γ⁻¹) * (δ / (δ - 1)) * r := by simp [hG, ← hL]
+  obtain ⟨t, ht0, ht1, hFt, hGt⟩ := exists_pos_lt_sandwich hFc hGc hF0 hG0 hε one_pos
+  have ht1' : t < 1 := ht1
+  obtain ⟨hνtop, hrat, hmν2, hnν2, hlamk⟩ := tendsto_sample_ratios hδ hm hmn hmm hγ' hδ'
+  have hρ : Tendsto (fun k => (mm k : ℝ) / (n0 k : ℝ)) atTop (𝓝 γ⁻¹) := by
+    have := hγ'.inv₀ hγ0.ne'
+    refine this.congr fun k => ?_
+    simp [inv_div]
+  have hr0 : 0 ≤ r := ge_of_tendsto' hθ fun k => by
+    rw [← star_trivial (θ k)]; exact dotProduct_star_self_nonneg _
+  have hd₀ : Tendsto (fun k => (1 - (mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k)) atTop
+      (𝓝 ((1 - γ⁻¹) * r)) := (tendsto_const_nhds.sub hρ).mul hθ
+  have hs₀ : Tendsto (fun k => ((mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k)) atTop (𝓝 (γ⁻¹ * r)) :=
+    hρ.mul hθ
+  -- the design tails
+  have hX1 : Tendsto (fun k =>
+      (Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1)
+        {a | ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace ≤ 0}) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      (tendsto_measure_design_trace_inv_deviation hγ hm hmn0 hmm hγ' (inv_pos.2 hγ1))
+      (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => measure_mono ?_)
+    intro a ha
+    have hc : 0 < (γ - 1)⁻¹ := inv_pos.2 hγ1
+    simp only [Set.mem_ofPred_eq] at ha ⊢
+    rw [abs_of_nonpos (by linarith)]
+    linarith
+  obtain ⟨M, hM⟩ := hθ.bddAbove_range
+  have hM' : ∀ k, θ k ⬝ᵥ θ k ≤ max M 1 := fun k => (hM ⟨k, rfl⟩).trans (le_max_left _ _)
+  have h7e := tendsto_measure_resid_deviation n0 mm hmn0 hmm (M := max M 1)
+    (lt_of_lt_of_le one_pos (le_max_right _ _)) ht0 θ hM'
+  have hX5 : Tendsto (fun k =>
+      (Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1)
+        {a | t ≤ |((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ k) ⬝ᵥ
+          ((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ k) -
+          (1 - (mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k)|}) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h7e
+      (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => ?_)
+    exact measure_preimage_transpose_le (mm k) (n0 k)
+      {S | t ≤ |((1 - gramProjector (Matrix.of S)) *ᵥ θ k) ⬝ᵥ
+        ((1 - gramProjector (Matrix.of S)) *ᵥ θ k) - (1 - (mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k)|}
+  have hb2 : Tendsto (fun k => ENNReal.ofReal
+      ((mm k : ℝ) * (60 / (t ^ 4 * ((nn k - mm k + 1 : ℕ) : ℝ) ^ 2)))) atTop (𝓝 0) := by
+    have := (hmν2.const_mul (60 / t ^ 4))
+    simp only [mul_zero] at this
+    have h2 := ENNReal.tendsto_ofReal this
+    rw [ENNReal.ofReal_zero] at h2
+    refine h2.congr fun k => ?_
+    congr 1
+    have : (0 : ℝ) < ((nn k - mm k + 1 : ℕ) : ℝ) := by positivity
+    field_simp
+  have hb4 : Tendsto (fun k => ENNReal.ofReal
+      (60 / (t ^ 4 * ((nn k - mm k + 1 : ℕ) : ℝ) ^ 2))) atTop (𝓝 0) :=
+    ENNReal.tendsto_ofReal_div_mul_sq hνtop 60 (by positivity : 0 < t ^ 4)
+  have h1t : 0 < 1 - t := by linarith
+  have hc6 : Tendsto (fun k => ENNReal.ofReal (2 * (n0 k : ℝ) *
+      ((θ k ⬝ᵥ θ k) / (((nn k - mm k + 1 : ℕ) : ℝ) * (1 - t))) ^ 2 / t ^ 2)) atTop (𝓝 0) := by
+    have := ((hθ.pow 2).const_mul (2 / ((1 - t) ^ 2 * t ^ 2))).mul hnν2
+    simp only [mul_zero] at this
+    have h2 := ENNReal.tendsto_ofReal this
+    rw [ENNReal.ofReal_zero] at h2
+    refine h2.congr fun k => ?_
+    congr 1
+    have : (0 : ℝ) < ((nn k - mm k + 1 : ℕ) : ℝ) := by positivity
+    field_simp
+  have hc7 : Tendsto (fun k => ENNReal.ofReal
+      ((θ k ⬝ᵥ θ k) / (((nn k - mm k + 1 : ℕ) : ℝ) * (1 - t)) * (θ k ⬝ᵥ θ k) / t ^ 2))
+      atTop (𝓝 0) := by
+    have := ((hθ.pow 2).const_mul (1 / ((1 - t) * t ^ 2))).mul
+      (tendsto_inv_atTop_zero.comp hνtop)
+    simp only [mul_zero] at this
+    have h2 := ENNReal.tendsto_ofReal this
+    rw [ENNReal.ofReal_zero] at h2
+    refine h2.congr fun k => ?_
+    congr 1
+    have : (0 : ℝ) < ((nn k - mm k + 1 : ℕ) : ℝ) := by positivity
+    simp only [Function.comp]
+    field_simp
+  have hbound : Tendsto (fun k =>
+      3 * (Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1)
+          {a | ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace ≤ 0} +
+        (Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1)
+          {a | t ≤ |((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ k) ⬝ᵥ
+            ((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ k) - (1 - (mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k)|} +
+        3 * ENNReal.ofReal ((mm k : ℝ) * (60 / (t ^ 4 * ((nn k - mm k + 1 : ℕ) : ℝ) ^ 2))) +
+        3 * ENNReal.ofReal (60 / (t ^ 4 * ((nn k - mm k + 1 : ℕ) : ℝ) ^ 2)) +
+        ENNReal.ofReal (2 * (n0 k : ℝ) *
+          ((θ k ⬝ᵥ θ k) / (((nn k - mm k + 1 : ℕ) : ℝ) * (1 - t))) ^ 2 / t ^ 2) +
+        ENNReal.ofReal ((θ k ⬝ᵥ θ k) / (((nn k - mm k + 1 : ℕ) : ℝ) * (1 - t)) *
+          (θ k ⬝ᵥ θ k) / t ^ 2)) atTop (𝓝 0) := by
+    have h3 : (3 : ℝ≥0∞) ≠ ⊤ := by simp
+    have := (((((ENNReal.Tendsto.const_mul hX1 (Or.inr h3)).add hX5).add
+      (ENNReal.Tendsto.const_mul hb2 (Or.inr h3))).add
+      (ENNReal.Tendsto.const_mul hb4 (Or.inr h3))).add hc6).add hc7
+    simpa using this
+  -- the sandwich endpoints converge to `F t` and `G t`
+  have hlo : Tendsto (fun k => (1 - (mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k) - t +
+      (((n0 k : ℝ) - mm k) / ((nn k - mm k + 1 : ℕ) : ℝ)) *
+        (((mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k) - t) / (1 + t) - (t + 2 * t)) atTop (𝓝 (F t)) := by
+    have h := ((hd₀.sub_const t).add ((hlamk.mul (hs₀.sub_const t)).div_const (1 + t))).sub_const
+      (t + 2 * t)
+    refine h.congr fun k => ?_
+    simp
+  have hhi : Tendsto (fun k => (1 - (mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k) + t +
+      (((n0 k : ℝ) - mm k) / ((nn k - mm k + 1 : ℕ) : ℝ)) *
+        (((mm k : ℝ) / n0 k) * (θ k ⬝ᵥ θ k) + t) / (1 - t) + (t + 2 * t)) atTop (𝓝 (G t)) := by
+    have h := ((hd₀.add_const t).add ((hlamk.mul (hs₀.add_const t)).div_const (1 - t))).add_const
+      (t + 2 * t)
+    refine h.congr fun k => ?_
+    simp
+  have hevlo := hlo.eventually (lt_mem_nhds hFt)
+  have hevhi := hhi.eventually (gt_mem_nhds hGt)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbound
+    (Eventually.of_forall fun _ => zero_le) ?_
+  filter_upwards [hevlo, hevhi] with k h1 h2
+  refine le_trans (measure_mono ?_) (measure_sampleBias_sandwich_le (hm k) (hmn k) (hmn0 k)
+    (θ k) ht0 ht1' ht0 ht0 (Rb k) (hRb k) (ε₅ := t))
+  intro x hx
+  simp only [Set.mem_ofPred_eq] at hx ⊢
+  rintro ⟨h3, h4⟩
+  have : |Rb k x - (1 - γ⁻¹) * (δ / (δ - 1)) * r| < ε := by
+    rw [abs_lt]; constructor <;> linarith
+  exact absurd hx (not_le.2 this)
+
+/-- **Variance in the sample-bottleneck regime, in probability (Milestone 7g).** With the random
+feature matrix `S_k ∈ ℝ^{n₀_k × n_k}` itself Gaussian (rather than its transpose), the variance
+trace `Tr ((Z Zᵀ)⁻¹ (Z Sᵀ S Zᵀ) (Z Zᵀ)⁻¹)`, `Z = X S`, converges in probability to
+`(γ - 1)⁻¹ + (δ - 1)⁻¹` along `n₀_k / m_k → γ > 1`, `n_k / m_k → δ > 1`. This is
+`tendsto_measure_sampleVariance_deviation_transposed` for `V = Sᵀ`
+(`measure_prod_preimage_transpose_le`). -/
+theorem tendsto_measure_sampleVariance_deviation {mm nn n0 : ℕ → ℕ} {γ δ : ℝ} (hγ : 1 < γ)
+    (hδ : 1 < δ) (hm : ∀ k, 0 < mm k) (hmn : ∀ k, mm k ≤ nn k) (hmn0 : ∀ k, mm k ≤ n0 k)
+    (hmm : Tendsto mm atTop atTop)
+    (hγ' : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
+    (hδ' : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
+    (Var : ∀ k, (Fin (mm k) → Fin (n0 k) → ℝ) × (Fin (n0 k) → Fin (nn k) → ℝ) → ℝ)
+    (hVar : ∀ k x, Var k x = Matrix.trace
+      (((Matrix.of x.1 * Matrix.of x.2) * (Matrix.of x.1 * Matrix.of x.2)ᵀ)⁻¹ *
+        ((Matrix.of x.1 * Matrix.of x.2) * ((Matrix.of x.2)ᵀ * Matrix.of x.2) *
+          (Matrix.of x.1 * Matrix.of x.2)ᵀ) *
+        ((Matrix.of x.1 * Matrix.of x.2) * (Matrix.of x.1 * Matrix.of x.2)ᵀ)⁻¹))
+    {ε : ℝ} (hε : 0 < ε) :
+    Tendsto (fun k =>
+      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
+        {x | ε ≤ |Var k x - ((γ - 1)⁻¹ + (δ - 1)⁻¹)|}) atTop (𝓝 0) := by
+  have h := tendsto_measure_sampleVariance_deviation_transposed hγ hδ hm hmn hmn0 hmm hγ' hδ'
+    (fun k y => Var k (y.1, fun j i => y.2 i j)) (fun k y => by rw [hVar]; rfl) hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h
+    (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => ?_)
+  exact measure_prod_preimage_transpose_le _ (n0 k) (nn k)
+    {y | ε ≤ |Var k (y.1, fun j i => y.2 i j) - ((γ - 1)⁻¹ + (δ - 1)⁻¹)|}
+
+/-- **Bias in the sample-bottleneck regime, in probability (Milestone 7g).** With `S_k ∈
+ℝ^{n₀_k × n_k}` Gaussian, `M = S Zᵀ (Z Zᵀ)⁻¹`, `Z = X S`, the bias `‖(M X - 1) θ_k‖²` converges in
+probability to `(1 - γ⁻¹) (δ / (δ - 1)) r` along `‖θ_k‖² → r` and the ratio limits of
+`tendsto_measure_sampleVariance_deviation`. This is
+`tendsto_measure_sampleBias_deviation_transposed` for `V = Sᵀ`. -/
+theorem tendsto_measure_sampleBias_deviation {mm nn n0 : ℕ → ℕ} {γ δ r : ℝ} (hγ : 1 < γ)
+    (hδ : 1 < δ) (hm : ∀ k, 0 < mm k) (hmn : ∀ k, mm k ≤ nn k) (hmn0 : ∀ k, mm k ≤ n0 k)
+    (hmm : Tendsto mm atTop atTop)
+    (hγ' : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
+    (hδ' : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
+    (θ : ∀ k, Fin (n0 k) → ℝ) (hθ : Tendsto (fun k => θ k ⬝ᵥ θ k) atTop (𝓝 r))
+    (Rb : ∀ k, (Fin (mm k) → Fin (n0 k) → ℝ) × (Fin (n0 k) → Fin (nn k) → ℝ) → ℝ)
+    (hRb : ∀ k x, Rb k x =
+      ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+        (((Matrix.of x.1 * Matrix.of x.2) * (Matrix.of x.1 * Matrix.of x.2)ᵀ)⁻¹))) *
+          Matrix.of x.1 - 1) *ᵥ θ k) ⬝ᵥ
+      ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+        (((Matrix.of x.1 * Matrix.of x.2) * (Matrix.of x.1 * Matrix.of x.2)ᵀ)⁻¹))) *
+          Matrix.of x.1 - 1) *ᵥ θ k))
+    {ε : ℝ} (hε : 0 < ε) :
+    Tendsto (fun k =>
+      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
+        {x | ε ≤ |Rb k x - (1 - γ⁻¹) * (δ / (δ - 1)) * r|}) atTop (𝓝 0) := by
+  have h := tendsto_measure_sampleBias_deviation_transposed hγ hδ hm hmn hmn0 hmm hγ' hδ' θ hθ
+    (fun k y => Rb k (y.1, fun j i => y.2 i j)) (fun k y => by rw [hRb]; rfl) hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h
+    (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => ?_)
+  exact measure_prod_preimage_transpose_le _ (n0 k) (nn k)
+    {y | ε ≤ |Rb k (y.1, fun j i => y.2 i j) - (1 - γ⁻¹) * (δ / (δ - 1)) * r|}
 
 end LinearRegression.DoubleDescent
 

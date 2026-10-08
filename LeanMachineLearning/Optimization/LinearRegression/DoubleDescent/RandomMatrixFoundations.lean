@@ -25,9 +25,10 @@ gaussianReal 0 1` as in `NTK/Initialization`. We prove:
   again i.i.d. standard normal entries (from `NTK.gaussian_map_mulVec`);
 * `map_gaussianMatrix_transpose`, `map_gaussianMatrix_orthogonal_mul`: `Wᵀ` is Gaussian and so
   is `U W` for `Uᵀ U = 1` (left invariance, the transpose of the above);
-* `measure_preimage_mul_orthonormal_le`, `measure_preimage_transpose_le`: the same invariances as
-  one-sided bounds on events, `ℙ (W Q ∈ E) ≤ ℙ (G ∈ E)` and `ℙ (Wᵀ ∈ E) ≤ ℙ (G ∈ E)`, with no
-  measurability assumption on `E`;
+* `measure_preimage_mul_orthonormal_le`, `measure_preimage_transpose_le`,
+  `measure_prod_preimage_transpose_le`: the same invariances as one-sided bounds on events,
+  `ℙ (W Q ∈ E) ≤ ℙ (G ∈ E)` and `ℙ (Wᵀ ∈ E) ≤ ℙ (G ∈ E)` (also for a pair `(a, Wᵀ)` with an
+  independent `a`), with no measurability assumption on `E`;
 * `map_dotProduct_projector_mulVec`: for a Gaussian vector `g` and an orthogonal projection `P`
   of trace `r`, `‖P g‖²` is `χ²_r` (`Matrix.exists_orthonormal_rows_of_isStarProjection`);
 * `measurePreserving_columnSplit`, `map_prod_eq_of_ae`: column `j` of `W` is independent of the
@@ -175,6 +176,24 @@ theorem measure_preimage_transpose_le (p q : ℕ) (E : Set (Fin q → Fin p → 
       (measurable_pi_apply k).comp (measurable_pi_apply i)
   rw [← map_gaussianMatrix_transpose p q]
   exact Measure.le_map_apply hfm.aemeasurable E
+
+/-- **Pulling back an event of a pair `(a, W)` along transposition of the second component.** For
+a (σ-finite) measure `μ`, a `p × q` Gaussian matrix `W` independent of it, and any event `E` of
+pairs `(a, Wᵀ)`, `(μ ⊗ 𝒩^{p×q}) {(a, W) | (a, Wᵀ) ∈ E} ≤ (μ ⊗ 𝒩^{q×p}) E`. -/
+theorem measure_prod_preimage_transpose_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [SFinite μ] (p q : ℕ) (E : Set (α × (Fin q → Fin p → ℝ))) :
+    (μ.prod (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1))
+        {x | (x.1, fun k i => x.2 i k) ∈ E} ≤
+      (μ.prod (Measure.pi fun _ : Fin q => Measure.pi fun _ : Fin p => gaussianReal 0 1)) E := by
+  have hft : Measurable fun W : Fin p → Fin q → ℝ => fun k i => W i k :=
+    measurable_pi_iff.2 fun k => measurable_pi_iff.2 fun i =>
+      (measurable_pi_apply k).comp (measurable_pi_apply i)
+  have hmap := Measure.map_prod_map μ (Measure.pi fun _ : Fin p =>
+    Measure.pi fun _ : Fin q => gaussianReal 0 1) measurable_id hft
+  rw [Measure.map_id, map_gaussianMatrix_transpose p q] at hmap
+  refine le_trans (Measure.le_map_apply (measurable_id.prodMap hft).aemeasurable E)
+    (le_of_eq ?_)
+  rw [← hmap]
 
 /-- **Projected Gaussian norm is chi-squared.** If `g` has i.i.d. standard normal coordinates and
 `P` is an orthogonal projection matrix of trace `r`, then `‖P g‖²` has the law of `‖x‖²` for `x` a
