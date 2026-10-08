@@ -121,19 +121,22 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
 * `NTK.hasDerivAt_exponentialLoss` : Concrete example, exponential loss residual.
 * `NTK.hasFDerivAt_generalizedLoss_term` : Chain rule for a single generalized loss term.
 * `NTK.gradient_generalizedRisk` : Gradient of the generalized empirical risk.
+Steps 2--5 hold at learning rate `η` (the parameter ODE is `∂_t θ = -η ∇L(θ)`; gradient flow is
+`η = 1`):
 * `NTK.gradient_flow_generalizedOutput_coord_deriv_eq_inner_grad` : Step 2, generalized loss.
 * `NTK.gradient_flow_generalizedOutput_coord_deriv_eq_sum_inner` : Step 3, generalized loss.
 * `NTK.gradient_flow_generalizedOutput_coord_ode` : Step 4, generalized loss.
 * `NTK.gradient_flow_generalizedOutput_vector_ode` : Step 5, generalized output evolution
-  `∂_t f(t) = - (1/m) K_t r(t)`.
+  `∂_t f(t) = - (η/m) K_t r(t)`.
 * `NTK.gradient_flow_output_coord_deriv_eq_inner_grad` : Step 2 (squared loss), corollary.
 * `NTK.gradient_flow_output_coord_deriv_eq_sum_inner` : Step 3 (squared loss), corollary.
 * `NTK.gradient_flow_output_coord_ode` : Step 4 (squared loss), corollary.
 * `NTK.gradient_flow_output_vector_ode` : Step 5 output ODE at learning rate `η`,
   `∂_t f(t) = - (η/m) K_t r(t)` (unit-rate gradient flow is `η = 1`).
-* `NTK.gradient_flow_output_vector_ode_sub_y` : Step 5 output ODE
+* `NTK.gradient_flow_output_vector_ode_sub_y` : the `η = 1` case,
   `∂_t f(t) = - (1/m) K_t (f(t) - y)`.
-* `NTK.gradient_flow_residual_vector_ode` : Step 5 residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
+* `NTK.gradient_flow_residual_vector_ode` : the `η = 1` case, residual ODE
+  `∂_t r(t) = - (1/m) K_t r(t)`.
 * `NTK.hasDerivAt_generalizedEmpiricalRisk_coord_sum` : Prop 2.17 Step 1, chain rule
   `∂_t L(θ(t)) = (1/m) r(t)ᵀ ∂_t f(t)`.
 * `NTK.risk_dissipation_identity` : **Proposition 2.17**, risk dissipation identity

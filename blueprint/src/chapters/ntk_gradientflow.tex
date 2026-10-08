@@ -163,7 +163,7 @@ that is, coordinatewise $\partial_tf^\alpha(t)=-\frac\eta m\sum_\beta K_t^{\alph
   \partial_tf(t)=-\frac1mK_t\bigl(f(t)-y\bigr),\qquad
   \partial_tr(t)=-\frac1mK_t\,r(t).
 \]
-The learning rate only rescales the speed of the flow; the kernel $K_t$ is the same for every $\eta$. (The Lean statements \texttt{gradient\_flow\_output\_coord\_ode} and the \texttt{\_sub\_y}/residual forms are stated for $\eta=1$; \texttt{gradient\_flow\_output\_vector\_ode} carries $\eta$.)
+The learning rate only rescales the speed of the flow; the kernel $K_t$ is the same for every $\eta$. In Lean, the output statements (\texttt{gradient\_flow\_output\_coord\_ode}, \texttt{gradient\_flow\_output\_vector\_ode}) carry $\eta$; the \texttt{\_sub\_y} and residual forms are their $\eta=1$ cases.
 \end{theorem}
 
 \begin{proof}
@@ -220,11 +220,11 @@ Direct differentiation; for the logistic loss, $\frac{d}{df}\log(1+e^{-yf})=\fra
         NTK.gradient_flow_generalizedOutput_coord_ode, NTK.gradient_flow_generalizedOutput_vector_ode}
   \leanok
 Under the differentiability hypotheses on $f$ and $\ell$, $\nabla L_\ell(\theta)=\frac1m\sum_\alpha r^\alpha(\theta)\nabla f(x^\alpha;\theta)$, and
-along a gradient flow of $L_\ell$,
+along the flow $\theta'=-\eta\nabla L_\ell(\theta)$ of $L_\ell$ at learning rate $\eta$ (gradient flow is $\eta=1$),
 \[
-  \partial_tf(t)=-\frac1mK_t\,r(t),\qquad r^\alpha(t)=\partial_f\ell\bigl(f^\alpha(t),y^\alpha\bigr).
+  \partial_tf(t)=-\frac\eta mK_t\,r(t),\qquad r^\alpha(t)=\partial_f\ell\bigl(f^\alpha(t),y^\alpha\bigr).
 \]
-Proposition~2.15 (squared loss) is the special case $\ell=\frac12(f-y)^2$.
+Proposition~2.15 (squared loss) is the special case $\ell=\frac12(f-y)^2$, and the Lean squared-loss statements are proved as corollaries of these general ones.
 \end{theorem}
 
 \begin{proof}
