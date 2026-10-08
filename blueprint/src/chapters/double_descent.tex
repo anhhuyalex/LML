@@ -391,7 +391,10 @@ whose norm is at least that of $Z^\top(ZZ^\top)^{-1}y$ by Theorem~\ref{thm:dd:mi
 Theorem~\ref{thm:dd:minNormLS} provides the conceptual and algebraic foundation connecting the variational definition of ridgeless regression with the explicit operators analyzed in the rest of the chapter:
 \begin{itemize}
   \item \textbf{Context and variational role:}
-  Definition~\ref{def:dd:randomFeatures} defines the feature coefficients $\hat\eta$ variationally as the minimum-norm minimizer among all minimizers of the least-squares loss $L(\eta)=\|y-Z\eta\|^2$. In general optimization, such two-tier minimization problems can be intricate. Theorem~\ref{thm:dd:minNormLS} establishes that whenever either Gram matrix ($Z^\top Z$ or $ZZ^\top$) is invertible, this variational problem has a closed-form solution given by the standard Moore--Penrose pseudoinverses: the left inverse $(Z^\top Z)^{-1}Z^\top y$ in the overdetermined regime, and the right inverse $Z^\top(ZZ^\top)^{-1}y$ in the underdetermined regime.
+  Definition~\ref{def:dd:randomFeatures} defines the feature coefficients $\hat\eta$ variationally as the minimum-norm minimizer among all minimizers of the least-squares loss $L(\eta)=\|y-Z\eta\|^2$. In general optimization, such two-tier minimization problems can be intricate. 
+  Theorem~\ref{thm:dd:minNormLS} establishes that whenever either Gram matrix ($Z^\top Z$ or $ZZ^\top$) is invertible, this variational problem has a closed-form solution 
+  given by the standard Moore--Penrose pseudoinverses: the left inverse $(Z^\top Z)^{-1}Z^\top y$ in the overdetermined regime, 
+  and the right inverse $Z^\top(ZZ^\top)^{-1}y$ in the underdetermined regime.
 
   \item \textbf{How it builds on earlier proofs:}
   The result synthesizes two complementary geometric properties proved immediately before it:
@@ -414,11 +417,14 @@ Theorem~\ref{thm:dd:minNormLS} provides the conceptual and algebraic foundation 
     \item \emph{Feature bottleneck (Section~\ref{sec:dd:feature}):}
     Justifies taking $\hat\eta=(Z^\top Z)^{-1}Z^\top y$ as the starting point for computing the variance trace $\operatorname{Tr}(M^\top M)=\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)$ (Lemma~\ref{lem:dd:featureTrace}) and the resulting risk bounds.
     \item \emph{Ambient bottleneck (Section~\ref{sec:dd:ambient}):}
-    Theorem~\ref{thm:dd:ambientOLS} combines both halves of Theorem~\ref{thm:dd:minNormLS}: Theorem~\ref{thm:dd:leastSquares} applies to $X$ to fix the ambient predictions to the unique OLS fit $\hat\theta_{\mathrm{OLS}}$, while Theorem~\ref{thm:dd:minNorm} applies to $S$ to select the minimum-norm feature vector satisfying the interpolation constraint $S\eta=\hat\theta_{\mathrm{OLS}}$.
+    Theorem~\ref{thm:dd:ambientOLS} combines both halves of Theorem~\ref{thm:dd:minNormLS}: 
+    Theorem~\ref{thm:dd:leastSquares} applies to $X$ to fix the ambient predictions to the unique OLS fit $\hat\theta_{\mathrm{OLS}}$,
+     while Theorem~\ref{thm:dd:minNorm} applies to $S$ to select the minimum-norm feature vector satisfying the interpolation constraint $S\eta=\hat\theta_{\mathrm{OLS}}$.
     \item \emph{Sample bottleneck (Section~\ref{sec:dd:sample}):}
     Guarantees that $\hat\eta=Z^\top(ZZ^\top)^{-1}y$ is the minimum-norm interpolator (Theorem~\ref{thm:dd:sampleInterpolates}), from which the sample-bottleneck variance trace formula (Theorem~\ref{thm:dd:sampleVariance}) and bias bounds follow.
     \item \emph{Global double descent (Section~\ref{sec:dd:global}):}
-    Provides the rigorous justification for the global piecewise definition of $M(X,S)$ in Definition~\ref{def:dd:minNormOperator} and Lemma~\ref{lem:dd:globalBranches}, ensuring that the conditional risk $\mathsf{cr}(\sigma^2,\theta,X,S)$ accurately tracks the true ridgeless random-feature regression risk across all non-singular asymptotic regimes.
+    Provides the rigorous justification for the global piecewise definition of $M(X,S)$ in Definition~\ref{def:dd:minNormOperator} and Lemma~\ref{lem:dd:globalBranches}, 
+    ensuring that the conditional risk $\mathsf{cr}(\sigma^2,\theta,X,S)$ accurately tracks the true ridgeless random-feature regression risk across all non-singular asymptotic regimes.
   \end{enumerate}
 \end{itemize}
 \end{remark}
@@ -504,6 +510,51 @@ Write $n/(m-n-1)=(n/m)\big/\bigl(1-n/m-1/m\bigr)$. The numerator tends to $\delt
 quotient tends to $\delta/(1-\delta)$ by continuity of division away from zero. The bias is a continuous function of
 $(n_0/m,n/m)$ on $\{\gamma\neq0,\delta\ne1\}$.
 \end{proof}
+
+\begin{remark}[Context, scalar reduction, and downstream role of Theorem~\ref{thm:dd:featureLimits}]\label{rmk:dd:featureLimitsContext}
+  \uses{thm:dd:featureLimits, lem:dd:wishartCancel, thm:dd:featureVariance}
+At first glance, Theorem~\ref{thm:dd:featureLimits} appears to be a purely elementary calculus statement: 
+it proves limits of explicit rational functions of the integers $(m_k,n_k,n_{0,k})$, with no mention of random matrices, 
+probability measures, or regression estimators. 
+Its title, context, and vital role in the theory arise from the following considerations:
+\begin{itemize}
+  \item \textbf{Why the title refers to variance and bias:}
+  The two scalar sequences appearing in the theorem are the exact theoretical finite-sample expectations of the variance and bias for isotropic Gaussian designs:
+  \begin{enumerate}
+    \item \emph{Variance:} Theorem~\ref{thm:dd:featureVariance} expresses the finite-sample variance for a fixed design as $V(\hat\theta)=\sigma^2\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)$. For Gaussian inputs, conditionally on $S$, the matrix $(Z^\top Z)^{-1}$ follows an inverse-Wishart distribution with expectation $(m-n-1)^{-1}(S^\top S)^{-1}$. By the algebraic Wishart cancellation of Lemma~\ref{lem:dd:wishartCancel}, the expected variance simplifies exactly to
+    \[
+      \sigma^2\operatorname{Tr}\Bigl(\tfrac{1}{m-n-1}(S^\top S)^{-1}S^\top S\Bigr) = \sigma^2\frac{n}{m-n-1}.
+    \]
+    Thus, $\sigma^2\frac{n_k}{m_k-n_k-1}$ is precisely the expected finite-sample variance of the feature-bottleneck estimator.
+    \item \emph{Bias:} In random-feature regression, 
+    mapping the $n_0$ ambient coordinates to $n$ features contracts the signal: 
+    the parameter component orthogonal to the feature space $\operatorname{range}S$ is omitted, while in-sample least squares inflates the fit error. For isotropic Gaussian features, the expected squared bias decomposes as the product of the omitted-signal fraction $(1 - n/n_0)$ and the in-sample noise inflation $(1 - n/m)^{-1}$, yielding the ratio $\frac{n_0/m - n/m}{(n_0/m)(1 - n/m)}\rho_\star$.
+  \end{enumerate}
+
+  \item \textbf{Separation of concerns between analysis and probability:}
+  The Lean formalization deliberately separates deterministic real analysis from probabilistic concentration:
+  \begin{enumerate}
+    \item The probabilistic layer (Sections~\ref{sec:dd:gaussian} and~\ref{sec:dd:global}) proves that the random empirical quantities $\|(MX-I)\theta_\star\|^2$ and $\sigma^2\operatorname{Tr}(M^\top M)$ concentrate sharply around their deterministic expectations as dimensions grow.
+    \item Theorem~\ref{thm:dd:featureLimits} provides the deterministic analytic engine: once concentration around the finite-sample formulas is established, it evaluates the limits of these scalar sequences along the scaling rays $n/m\to\delta$ and $n_0/m\to\gamma$.
+  \end{enumerate}
+
+  \item \textbf{How it builds on earlier proofs:}
+  The result directly takes the scalar expression $n/(m-n-1)$ produced by the Wishart trace cancellation in Lemma~\ref{lem:dd:wishartCancel} and applies the algebra of limits (\texttt{Tendsto.div}, \texttt{Tendsto.sub} in Mathlib). By rewriting $n/(m-n-1) = (n/m)\big/(1 - n/m - 1/m)$, the limit is established solely under the hypothesis $\delta\ne1$ and $m\to\infty$, without requiring probabilistic tools.
+
+  \item \textbf{How it is used by downstream results:}
+  Because Theorem~\ref{thm:dd:featureLimits} isolates the core asymptotic ratio arithmetic, it is reused across multiple regimes and files:
+  \begin{enumerate}
+    \item \emph{Ambient bottleneck (Section~\ref{sec:dd:ambient}, Remark~\ref{rmk:dd:ambientAsymptotics}):}
+    In the ambient regime, the estimator is OLS with expected variance $\sigma^2n_0/(m-n_0-1)$. \texttt{AmbientBottleneck.lean} directly instantiates \texttt{featureBottleneck\_asymptotic\_variance\_limit} with $n:=n_0$ and $\delta:=\gamma$ to obtain $\sigma^2\gamma/(1-\gamma)$, avoiding duplicate proofs.
+    \item \emph{Sample bottleneck (Section~\ref{sec:dd:sample}):}
+    In \texttt{SampleBottleneck.lean}, evaluating the dual Gram trace requires the limit of $m/(n-m-1) = (m/n)\big/(1 - m/n - 1/n) \to (\delta-1)^{-1}$. This is obtained by invoking \texttt{featureBottleneck\_asymptotic\_variance\_limit} with the dimensions transposed.
+    \item \emph{The double-descent curve (Section~\ref{sec:dd:curve}):}
+    The deterministic curve functions $\mathsf B(\gamma,\delta) = \frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ and $\mathsf V(\gamma,\delta) = \sigma^2\frac{\delta}{1-\delta}$ of Definition~\ref{def:dd:curve} are defined directly by the limit values computed in this theorem.
+    \item \emph{Probabilistic concentration and global double descent (Sections~\ref{sec:dd:gaussian} and~\ref{sec:dd:global}):}
+    In Theorem~\ref{thm:dd:featureBiasProb} (\texttt{tendsto\_measure\_featureBias\_deviation}), the proof sandwiches the random bias between deterministic bounds whose ratio converges to $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ via Theorem~\ref{thm:dd:featureLimits} (\texttt{tendsto\_feature\_ratios}). Finally, in Theorems~\ref{thm:dd:regimeRisks} and~\ref{thm:dd:globalDoubleDescent}, it supplies the asymptotic targets for the convergence in probability of the total prediction risk.
+  \end{enumerate}
+\end{itemize}
+\end{remark}
 
 
 \section{Ambient bottleneck}\label{sec:dd:ambient}
