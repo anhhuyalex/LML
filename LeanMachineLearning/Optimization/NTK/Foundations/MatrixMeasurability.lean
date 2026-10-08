@@ -35,6 +35,14 @@ lemma measurable_matrix_entry {A : Z → Matrix n p ℝ} (hA : Measurable A) (i 
 lemma measurable_vec_entry {v : Z → n → ℝ} (hv : Measurable v) (i : n) :
     Measurable fun z => v z i := (measurable_pi_apply i).comp hv
 
+/-- A matrix built entrywise from a measurable family of rows is measurable in its entries:
+`W ↦ Matrix.of W` on the space of functions `n → p → ℝ`. -/
+@[fun_prop]
+lemma measurable_matrix_of {W : Type*} {n p : Type*} [MeasurableSpace W] {f : W → n → p → ℝ}
+    (hf : Measurable f) : Measurable fun w => (Matrix.of (f w) : Matrix n p ℝ) :=
+  Measurable.of_eval_matrix _ fun i k => (measurable_pi_apply k).comp
+    ((measurable_pi_apply i).comp hf)
+
 /-- The product of measurable matrix-valued maps is measurable. -/
 @[fun_prop]
 lemma measurable_matrix_mul [Fintype p] {A : Z → Matrix n p ℝ} {B : Z → Matrix p q ℝ}
@@ -72,6 +80,7 @@ end measurability
 section inverse
 
 /-- The matrix inverse is measurable (it is `det⁻¹ • adjugate`, with the convention `0⁻¹ = 0`). -/
+@[fun_prop]
 lemma measurable_matrix_nonsing_inv {n : Type*} [Fintype n] [DecidableEq n] :
     Measurable fun A : Matrix n n ℝ => A⁻¹ := by
   have h : (fun A : Matrix n n ℝ => A⁻¹) = fun A => (A.det)⁻¹ • A.adjugate := by

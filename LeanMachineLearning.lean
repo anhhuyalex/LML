@@ -98,6 +98,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Ra
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.RandomMatrixFoundations
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneckDecomposition
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneckFixedDesign
 public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic

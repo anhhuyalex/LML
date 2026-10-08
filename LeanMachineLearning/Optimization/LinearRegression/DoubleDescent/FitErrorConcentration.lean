@@ -26,6 +26,8 @@ second moment of the inverse Wishart matrix and without `Tr ((Gᵀ G)⁻²)`:
 * `measure_quadForm_inv_gram_deviation_le`: `zᵀ (Wᵀ W)⁻¹ z` is within the sandwich
   `n (1 ∓ η) / (ν (1 ± η))` except with probability `60 / (η⁴ ν²) + 60 / (η⁴ n²)`
   (two `χ²` tails, `measure_dev_le_of_map_norm_sq`);
+* `measure_quadForm_inv_gram_fixed_mem_le`: for a *fixed* vector `ξ`, `ξᵀ (Wᵀ W)⁻¹ ξ` lies in
+  `‖ξ‖² / (ν (1 ± η))` except with probability `60 / (η⁴ ν²)` (one `χ²` tail);
 * `fitError_eq_quadForm`, `measure_fitError_deviation_le`: the same for `‖(Gᵀ G)⁻¹ Gᵀ ζ‖²` with
   `ζ ∈ ℝ^m`, through `G = Q R` and `z = Qᵀ ζ ~ 𝒩(0, I_n)`.
 -/
@@ -235,6 +237,92 @@ theorem measure_quadForm_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p) {
     exact div_le_div₀ (by positivity) (by linarith [ha1.2]) (by nlinarith [hF1.1])
       (by linarith [hF1.1])
   exact ⟨hlo, hhi⟩
+
+/-- **Quadratic form of the inverse Gram matrix in a fixed direction, tail bound.** For a
+`p × (q+1)` Gaussian matrix with `q + 1 ≤ p`, any fixed vector `ξ`, `ν = p - q` and `0 < η < 1`,
+`ξᵀ (Wᵀ W)⁻¹ ξ ∈ [‖ξ‖² / (ν (1+η)), ‖ξ‖² / (ν (1-η))]` except with probability at most
+`60 / (η⁴ ν²)`: for a unit direction `ξ / ‖ξ‖` the quadratic form is exactly `1 / χ²_ν`
+(`map_quadForm_inv_gram`). -/
+theorem measure_quadForm_inv_gram_fixed_mem_le {p q : ℕ} (hqp : q + 1 ≤ p)
+    (ξ : Fin (q + 1) → ℝ) {η : ℝ} (hη : 0 < η) (hη1 : η < 1) :
+    (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1)
+        {W | ¬ ((ξ ⬝ᵥ ξ) / (((p - q : ℕ) : ℝ) * (1 + η)) ≤
+            ξ ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ ξ) ∧
+          ξ ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ ξ) ≤
+            (ξ ⬝ᵥ ξ) / (((p - q : ℕ) : ℝ) * (1 - η)))} ≤
+      ENNReal.ofReal (60 / (η ^ 4 * ((p - q : ℕ) : ℝ) ^ 2)) := by
+  set ν : ℝ := ((p - q : ℕ) : ℝ) with hν
+  have hν0 : 0 < ν := by rw [hν]; exact_mod_cast (by omega : 0 < p - q)
+  by_cases hξ : ξ ⬝ᵥ ξ = 0
+  · have h0 : ξ = 0 := dotProduct_self_eq_zero.1 hξ
+    subst h0
+    have : {W : Fin p → Fin (q + 1) → ℝ | ¬ (((0 : Fin (q + 1) → ℝ) ⬝ᵥ 0) / (ν * (1 + η)) ≤
+        (0 : Fin (q + 1) → ℝ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ 0) ∧
+      (0 : Fin (q + 1) → ℝ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ 0) ≤
+        ((0 : Fin (q + 1) → ℝ) ⬝ᵥ 0) / (ν * (1 - η)))} = ∅ := by
+      ext W; simp
+    rw [this]; simp
+  have hpos : 0 < ξ ⬝ᵥ ξ := lt_of_le_of_ne (by
+    rw [← star_trivial ξ]; exact dotProduct_star_self_nonneg ξ) (Ne.symm hξ)
+  set s : ℝ := Real.sqrt (ξ ⬝ᵥ ξ) with hs
+  have hs0 : 0 < s := Real.sqrt_pos.2 hpos
+  have hss : s * s = ξ ⬝ᵥ ξ := Real.mul_self_sqrt hpos.le
+  have hu : (s⁻¹ • ξ) ⬝ᵥ (s⁻¹ • ξ) = 1 := by
+    rw [smul_dotProduct, dotProduct_smul, smul_eq_mul, smul_eq_mul, ← hss]
+    field_simp
+  have hlaw := map_quadForm_inv_gram hqp _ hu
+  have hW' : Measurable fun W : Fin p → Fin (q + 1) → ℝ =>
+      (Matrix.of W : Matrix (Fin p) (Fin (q + 1)) ℝ) :=
+    Measurable.of_eval_matrix _ fun i k => (measurable_pi_apply k).comp (measurable_pi_apply i)
+  have hmq : Measurable fun W : Fin p → Fin (q + 1) → ℝ =>
+      (s⁻¹ • ξ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ (s⁻¹ • ξ)) :=
+    measurable_dotProduct measurable_const (measurable_mulVec
+      (measurable_matrix_nonsing_inv.comp
+        (measurable_matrix_mul (measurable_matrix_transpose hW') hW')) measurable_const)
+  have hlaw' : (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1).map
+      (fun W => ((s⁻¹ • ξ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ (s⁻¹ • ξ)))⁻¹) =
+      (stdGaussian (EuclideanSpace ℝ (Fin (p - q)))).map (fun x => ‖x‖ ^ 2) := by
+    have e : (fun W : Fin p → Fin (q + 1) → ℝ =>
+        ((s⁻¹ • ξ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ (s⁻¹ • ξ)))⁻¹) =
+        (fun y : ℝ => y⁻¹) ∘ (fun W => (s⁻¹ • ξ) ⬝ᵥ
+          (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ (s⁻¹ • ξ))) := rfl
+    rw [e, ← Measure.map_map (by fun_prop) hmq, hlaw, Measure.map_map (by fun_prop)
+      (by fun_prop)]
+    congr 1
+    funext x
+    simp
+  have hdev := measure_dev_le_of_map_norm_sq (f := fun W : Fin p → Fin (q + 1) → ℝ =>
+    ((s⁻¹ • ξ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ (s⁻¹ • ξ)))⁻¹) hmq.inv (k := p - q)
+    (by omega) hlaw' hη
+  refine le_trans (measure_mono ?_) hdev
+  intro W hW
+  by_contra hnot
+  simp only [Set.mem_ofPred_eq, not_le] at hnot hW
+  apply hW
+  set a : ℝ := (s⁻¹ • ξ) ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ (s⁻¹ • ξ)) with ha
+  have hfq : ξ ⬝ᵥ (((Matrix.of W)ᵀ * Matrix.of W)⁻¹ *ᵥ ξ) = (ξ ⬝ᵥ ξ) * a := by
+    rw [ha, Matrix.mulVec_smul, dotProduct_smul, smul_dotProduct, smul_eq_mul, smul_eq_mul,
+      ← mul_assoc, ← hss]
+    field_simp
+  obtain ⟨h1, h2⟩ := abs_lt.1 hnot
+  have hfa : 0 < a⁻¹ := by nlinarith [mul_pos hν0 hη]
+  have hapos : 0 < a := inv_pos.1 hfa
+  rw [hfq]
+  have hlo : ν * (1 - η) < a⁻¹ := by nlinarith
+  have hhi : a⁻¹ < ν * (1 + η) := by nlinarith
+  constructor
+  · rw [div_le_iff₀ (by positivity)]
+    have : a * (ν * (1 + η)) ≥ 1 := by
+      have := mul_lt_mul_of_pos_left hhi hapos
+      rw [mul_inv_cancel₀ hapos.ne'] at this
+      linarith
+    nlinarith [hpos]
+  · rw [le_div_iff₀ (by nlinarith)]
+    have : a * (ν * (1 - η)) ≤ 1 := by
+      have := mul_lt_mul_of_pos_left hlo hapos
+      rw [mul_inv_cancel₀ hapos.ne'] at this
+      linarith
+    nlinarith [hpos]
 
 /-- **The least-squares fit of a Gaussian vector is a quadratic form in the Gram inverse.** If
 `G = Q R` with `Qᵀ Q = 1` and `R` symmetric invertible, then for every `ζ`,

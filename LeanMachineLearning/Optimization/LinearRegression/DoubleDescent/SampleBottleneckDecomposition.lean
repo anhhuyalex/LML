@@ -136,6 +136,20 @@ theorem operator_mul_design_sub_one_mulVec (X : Matrix m n₀ ℝ) (S : Matrix n
   rw [key]
   simp only [← Matrix.mulVec_mulVec, Matrix.mulVec_sub, Matrix.sub_mulVec, Matrix.one_mulVec]
 
+/-- **Variance of the sample-bottleneck estimator as a sum.** If `X Xᵀ` and `Z Zᵀ`, `Z = X S`, are
+invertible, the variance trace of `sampleBottleneck_variance_eq_trace` splits into the ambient
+inverse-Wishart term and the residual term:
+`Tr ((Z Zᵀ)⁻¹ (Z Sᵀ S Zᵀ) (Z Zᵀ)⁻¹) = Tr ((X Xᵀ)⁻¹) + Tr ((Z† Z†ᵀ) (Sᵀ (1 - P_X) S))`. -/
+theorem sampleBottleneck_trace_eq_add (X : Matrix m n₀ ℝ) (S : Matrix n₀ n ℝ)
+    (hX : IsUnit (X * Xᵀ).det) (hZ : IsUnit ((X * S) * (X * S)ᵀ).det) :
+    Matrix.trace (((X * S) * (X * S)ᵀ)⁻¹ * ((X * S) * (Sᵀ * S) * (X * S)ᵀ) *
+        ((X * S) * (X * S)ᵀ)⁻¹) =
+      ((X * Xᵀ)⁻¹).trace +
+        ((((X * S)ᵀ * ((X * S) * (X * S)ᵀ)⁻¹) * ((X * S)ᵀ * ((X * S) * (X * S)ᵀ)⁻¹)ᵀ) *
+          (Sᵀ * (1 - gramProjector Xᵀ) * S)).trace := by
+  rw [← trace_operator_transpose_mul_self_eq_sampleBottleneck S (X * S),
+    trace_operator_transpose_mul_self_eq_add X S hX hZ, trace_residual_operator_eq X S hX]
+
 end LinearRegression.DoubleDescent
 
 end

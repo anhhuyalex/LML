@@ -29,7 +29,8 @@ statements about a standard Gaussian matrix `G = X Q` that Gaussian invariance c
   inheritance by a submatrix with one column deleted;
 * `inv_gram_apply_self`, `inv_gram_apply_ne`: **dual-vector formula**
   `((Zᵀ Z)⁻¹)ⱼⱼ = ‖(1 - P_{Zⱼ}) zⱼ‖⁻²` and `((Zᵀ Z)⁻¹)ᵢⱼ = - βᵢ ((Zᵀ Z)⁻¹)ⱼⱼ` with `P_{Zⱼ}` the
-  `Matrix.gramProjector` of `Z` without column `j` and `β` the regression of `zⱼ` on the other columns;
+  `Matrix.gramProjector` of `Z` without column `j` and `β` the regression of `zⱼ` on the other
+  columns;
 * `trace_inv_gram_mul_self`: `Tr ((Zᵀ Z)⁻²) = ∑ⱼ ((Zᵀ Z)⁻¹)ⱼⱼ² (1 + ‖βⱼ‖²)`.
 
 For a Gaussian `G`, the dual-vector formula makes `((Gᵀ G)⁻¹)ⱼⱼ` an exact inverse `χ²_{p-q+1}`
