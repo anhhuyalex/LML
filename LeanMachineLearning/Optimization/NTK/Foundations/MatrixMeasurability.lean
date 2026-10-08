@@ -58,6 +58,13 @@ lemma measurable_matrix_mul [Fintype p] {A : Z → Matrix n p ℝ} {B : Z → Ma
   exact Finset.measurable_sum _ fun k _ =>
     (measurable_matrix_entry hA i k).mul (measurable_matrix_entry hB k j)
 
+/-- Right multiplication of an array of rows by a fixed matrix is measurable:
+`W ↦ W Q` on `ρ → ι → ℝ`. -/
+@[fun_prop]
+lemma measurable_array_mul_const {ρ ι κ : Type*} [Fintype ι] (Q : Matrix ι κ ℝ) :
+    Measurable fun W : ρ → ι → ℝ => fun i k => (Matrix.of W * Q) i k :=
+  measurable_matrix_mul (measurable_matrix_of measurable_id) measurable_const
+
 /-- The transpose of a measurable matrix-valued map is measurable. -/
 @[fun_prop]
 lemma measurable_matrix_transpose {A : Z → Matrix n p ℝ} (hA : Measurable A) :

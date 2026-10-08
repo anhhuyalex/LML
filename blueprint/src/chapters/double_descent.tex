@@ -98,6 +98,28 @@ where $\operatorname{Cov}(\hat\theta)_{jk}=\operatorname{cov}(\hat\theta_j,\hat\
 They make sense for any estimator and say nothing about linearity.
 \end{definition}
 
+\begin{remark}[How conditioning on $X$ is implemented in Lean]\label{rmk:dd:conditioningOnX}
+  \uses{def:dd:risk, def:dd:linearModel}
+In the statistical literature and in the docstrings of \texttt{HMRT.lean}, the quantities in Definition~\ref{def:dd:risk} are described as conditional on the design $X$:
+\[
+  \operatorname{Cov}(\hat\beta\mid X)\quad\text{and}\quad V_X(\hat\beta;\beta)=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\beta\mid X)\Sigma\bigr).
+\]
+Yet in Lean, \texttt{LinearRegression.covCondX} and \texttt{LinearRegression.variance} take no matrix $X$ as an argument; their signatures are:
+\begin{align*}
+  &\texttt{covCondX} : \{\Omega : \text{Type}\} \to [\text{MeasurableSpace }\Omega] \to \text{Measure }\Omega \to (\Omega \to \mathbb R^p) \to \text{Matrix } p\ p\ \mathbb R, \\
+  &\texttt{variance} : \{\Omega : \text{Type}\} \to [\text{MeasurableSpace }\Omega] \to \text{Matrix } p\ p\ \mathbb R \to \text{Measure }\Omega \to (\Omega \to \mathbb R^p) \to \mathbb R.
+\end{align*}
+This apparent discrepancy reflects a standard and robust formalization pattern:
+\begin{itemize}
+  \item \textbf{Fixed design as a parameter:} Conditioning on $X$ in linear regression means treating $X$ as fixed (deterministic). Rather than conditioning on a random matrix $X$ via a sub-$\sigma$-algebra $\sigma(X)$, the matrix $X$ is passed as an ordinary deterministic matrix parameter to each theorem (\texttt{X : Matrix n p ℝ}).
+  \item \textbf{Sample space $\Omega$ as the noise space:} All randomness in the model comes from the noise vector $\varepsilon$. The sample space $\Omega$ is therefore instantiated as the space of noise vectors $n \to \mathbb R$, equipped with the noise distribution $\mu = P$ (with mean $0$ and covariance $\Gamma$).
+  \item \textbf{Estimator as a function of the noise:} The estimator $\hat\beta$ is formalized as a function $\hat\beta : (n \to \mathbb R) \to \mathbb R^p$ of the noise realization $\varepsilon$, with $X$ captured inside its definition via the hypothesis $\hat\beta(\varepsilon) = M(X\theta_\star + \varepsilon)$.
+\end{itemize}
+Because $X$ is held constant with respect to $\varepsilon$, computing the unconditional covariance of $\hat\beta$ under the noise measure $P$ via \texttt{covCondX P β\_hat} is measure-theoretically identical to taking the conditional covariance $\operatorname{Cov}(\hat\beta \mid X)$ under the joint distribution.
+
+This design avoids the overhead of formal measure disintegration and almost-everywhere equivalence classes that arise when conditioning on sub-$\sigma$-algebras in Mathlib. Instead, all conditional expectations reduce directly to standard Lebesgue integrals over $\varepsilon$, allowing theorems such as \texttt{linearEstimator\_bias\_variance} and \texttt{lemma1\_of\_linear\_model} to be proved through direct matrix algebra.
+\end{remark}
+
 \begin{lemma}[Second moments of a square-integrable random vector]\label{lem:dd:secondMoments}
   \lean{LinearRegression.DoubleDescent.integral_dotProduct_mulVec_self,
         LinearRegression.DoubleDescent.integral_dotProduct_mul_dotProduct}

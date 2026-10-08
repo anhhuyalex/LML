@@ -160,11 +160,7 @@ theorem measure_preimage_mul_orthonormal_le {ρ ι κ : Type*} [Fintype ρ] [Fin
     (Measure.pi fun _ : ρ => Measure.pi fun _ : ι => gaussianReal 0 1)
         {W | (fun i k => (Matrix.of W * Q) i k) ∈ E} ≤
       (Measure.pi fun _ : ρ => Measure.pi fun _ : κ => gaussianReal 0 1) E := by
-  have hfm : Measurable fun W : ρ → ι → ℝ => fun i k => (Matrix.of W * Q) i k := by
-    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
-    simp only [Matrix.mul_apply, Matrix.of_apply]
-    exact Finset.measurable_sum _ fun j _ =>
-      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  have hfm := NTK.measurable_array_mul_const (ρ := ρ) Q
   rw [← map_gaussianMatrix_mul_orthonormal (ρ := ρ) Q hQ]
   exact Measure.le_map_apply hfm.aemeasurable E
 

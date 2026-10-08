@@ -61,11 +61,7 @@ theorem map_quadForm_inv_gram {p q : ℕ} (hqp : q + 1 ≤ p) (u : Fin (q + 1) �
       Measurable.of_eval_matrix _ fun i k => (measurable_pi_apply k).comp (measurable_pi_apply i)
     exact measurable_matrix_entry (measurable_matrix_nonsing_inv.comp
       (measurable_matrix_mul (measurable_matrix_transpose hW) hW)) 0 0
-  have hrot : Measurable fun W : Fin p → Fin (q + 1) → ℝ => fun i k => (Matrix.of W * U) i k := by
-    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
-    simp only [Matrix.mul_apply, Matrix.of_apply]
-    exact Finset.measurable_sum _ fun j _ =>
-      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  have hrot := NTK.measurable_array_mul_const (ρ := Fin p) U
   conv_rhs => rw [← hmp, Measure.map_map hmeas hrot]
   congr 1
   funext W

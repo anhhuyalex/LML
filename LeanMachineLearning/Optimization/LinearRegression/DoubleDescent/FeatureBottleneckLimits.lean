@@ -30,8 +30,8 @@ inputs of Milestone 3b:
   `‖θ⊥‖² (1 + n (1 ∓ η) / (ν (1 ± η)))` except with the `X`-probability of
   `measure_fitError_deviation_le`, because `R_bias = ‖θ⊥‖² (1 + ‖(Gᵀ G)⁻¹ Gᵀ ζ‖²)`
   (`bias_eq_omitted_add_fit_error`) with `ζ = X θ⊥ / ‖θ⊥‖` independent of `G = X Q`;
-* `measure_prod_sandwich_le`, `measure_featureBias_joint_le'`: the two-stage union bound over
-  `(S, X)` with the `S`-event `‖(1 - P_S) θ‖² ≈ (1 - n/n₀) ‖θ‖²` of Milestone 7e;
+* `measure_prod_sandwich_le`, `measure_featureBias_joint_le`: the two-stage union bound over
+  `(X, S)` with the `S`-event `‖(1 - P_S) θ‖² ≈ (1 - n/n₀) ‖θ‖²` of Milestone 7e;
 * `tendsto_measure_featureBias_deviation`: the bias converges in probability to
   `(γ - δ) / (γ (1 - δ)) r` when `‖θ_k‖² → r`.
 
@@ -70,11 +70,7 @@ theorem measure_trace_inv_gram_mul_gram_mem {m n n₀ : ℕ} (S : Matrix (Fin n�
         {G | ((Matrix.of G)ᵀ * Matrix.of G)⁻¹.trace ∈ B} := by
   obtain ⟨Q, R, hQ, hR, -, hSQR⟩ := exists_orthonormal_factor S hS
   have hmap := map_gaussianMatrix_mul_orthonormal (ρ := Fin m) Q hQ
-  have hrot : Measurable fun X : Fin m → Fin n₀ → ℝ => fun i k => (Matrix.of X * Q) i k := by
-    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
-    simp only [Matrix.mul_apply, Matrix.of_apply]
-    exact Finset.measurable_sum _ fun j _ =>
-      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  have hrot := NTK.measurable_array_mul_const (ρ := Fin m) Q
   have hset : MeasurableSet {G : Fin m → Fin n → ℝ |
       ((Matrix.of G)ᵀ * Matrix.of G)⁻¹.trace ∈ B} := measurable_trace_inv_gram hB
   conv_rhs => rw [← hmap, Measure.map_apply hrot hset]
@@ -162,11 +158,7 @@ theorem measurePreserving_mulVec_mul_orthonormal {m n₀ n : ℕ}
       ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n => gaussianReal 0 1)) := by
   obtain ⟨Qa, hQa, hlast, hcast⟩ := exists_orthonormal_snoc Q hQ u hu hQu
-  have hrot : Measurable fun X : Fin m → Fin n₀ → ℝ => fun i k => (Matrix.of X * Qa) i k := by
-    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
-    simp only [Matrix.mul_apply, Matrix.of_apply]
-    exact Finset.measurable_sum _ fun j _ =>
-      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  have hrot := NTK.measurable_array_mul_const (ρ := Fin m) Qa
   have h1 : MeasurePreserving (fun X : Fin m → Fin n₀ → ℝ => fun i k => (Matrix.of X * Qa) i k)
       (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1)
       (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin (n + 1) => gaussianReal 0 1) :=
@@ -215,11 +207,7 @@ theorem measure_featureBias_deviation_le {m q n₀ : ℕ} (hqm : q + 1 ≤ m)
   have hQθp : Qᵀ *ᵥ θp = 0 := by
     rw [hθp, Matrix.mulVec_sub, Matrix.mulVec_mulVec, hQ, Matrix.one_mulVec, sub_self]
   -- almost surely the frame `G = X Q` has full column rank
-  have hrot : Measurable fun X : Fin m → Fin n₀ → ℝ => fun i k => (Matrix.of X * Q) i k := by
-    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
-    simp only [Matrix.mul_apply, Matrix.of_apply]
-    exact Finset.measurable_sum _ fun j _ =>
-      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  have hrot := NTK.measurable_array_mul_const (ρ := Fin m) Q
   have hunit : ∀ᵐ X ∂μX, IsUnit ((Matrix.of X * Q)ᵀ * (Matrix.of X * Q)).det := by
     refine ae_of_ae_map (p := fun G : Fin m → Fin (q + 1) → ℝ =>
       IsUnit ((Matrix.of G)ᵀ * Matrix.of G).det) hrot.aemeasurable ?_
@@ -303,30 +291,28 @@ theorem measure_featureBias_deviation_le {m q n₀ : ℕ} (hqm : q + 1 ≤ m)
   exact hpre
 
 /-- Joint measurability of the bias `‖(M X - 1) θ‖²`, `M = S (Zᵀ Z)⁻¹ Zᵀ`, `Z = X S`, in
-`(S, X)`. -/
+`(X, S)`. -/
 theorem measurable_featureBias {m n n₀ : ℕ} (θ : Fin n₀ → ℝ) :
-    Measurable fun x : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) =>
-      ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-        (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-          Matrix.of x.2 - 1) *ᵥ θ ⬝ᵥ ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-            (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-              Matrix.of x.2 - 1) *ᵥ θ := by
-  have hS : Measurable fun x : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) =>
-      (Matrix.of x.1 : Matrix (Fin n₀) (Fin n) ℝ) :=
-    Measurable.of_eval_matrix _ fun i k =>
-      (measurable_pi_apply k).comp ((measurable_pi_apply i).comp measurable_fst)
-  have hX : Measurable fun x : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) =>
-      (Matrix.of x.2 : Matrix (Fin m) (Fin n₀) ℝ) :=
-    Measurable.of_eval_matrix _ fun i k =>
-      (measurable_pi_apply k).comp ((measurable_pi_apply i).comp measurable_snd)
+    Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n₀ → Fin n → ℝ) =>
+      ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+        (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
+          Matrix.of x.1 - 1) *ᵥ θ ⬝ᵥ ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+            (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
+              Matrix.of x.1 - 1) *ᵥ θ := by
+  have hX : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n₀ → Fin n → ℝ) =>
+      (Matrix.of x.1 : Matrix (Fin m) (Fin n₀) ℝ) :=
+    measurable_matrix_of measurable_fst
+  have hS : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n₀ → Fin n → ℝ) =>
+      (Matrix.of x.2 : Matrix (Fin n₀) (Fin n) ℝ) :=
+    measurable_matrix_of measurable_snd
   have hZ := measurable_matrix_mul hX hS
   have hInv := measurable_matrix_nonsing_inv.comp
     (measurable_matrix_mul (measurable_matrix_transpose hZ) hZ)
   have hM := measurable_matrix_mul hS (measurable_matrix_mul hInv (measurable_matrix_transpose hZ))
   have hMX := measurable_matrix_mul hM hX
-  have hD : Measurable fun x : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) =>
-      ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ * (Matrix.of x.2 * Matrix.of x.1))⁻¹ *
-        (Matrix.of x.2 * Matrix.of x.1)ᵀ)) * Matrix.of x.2 - 1 : Matrix (Fin n₀) (Fin n₀) ℝ) :=
+  have hD : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n₀ → Fin n → ℝ) =>
+      ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ * (Matrix.of x.1 * Matrix.of x.2))⁻¹ *
+        (Matrix.of x.1 * Matrix.of x.2)ᵀ)) * Matrix.of x.1 - 1 : Matrix (Fin n₀) (Fin n₀) ℝ) :=
     Measurable.of_eval_matrix _ fun i j => by
       simp only [Matrix.sub_apply]
       exact (measurable_matrix_entry hMX i j).sub measurable_const
@@ -377,66 +363,27 @@ theorem measure_prod_sandwich_le {α β : Type*} [MeasurableSpace α] [Measurabl
     _ ≤ _ := measure_union_le _ _
     _ ≤ _ := by rw [hAm]; exact add_le_add le_rfl hBb
 
-/-- **Joint concentration of the feature-bottleneck bias over `(S, X)`.** Let `S` be an `n₀ × n`
-and `X` an independent `m × n₀` Gaussian matrix, `n = q + 1 ≤ min {m, n₀}`, `R_bias =
-‖(M X - 1) θ‖²` with `M = S (Zᵀ Z)⁻¹ Zᵀ`, `Z = X S`, `a = (1 - n/n₀) ‖θ‖²`, `ν = m - n + 1`,
-`0 < η < 1` and `ε₁ > 0`. Then `R_bias` lies in `[(a - ε₁)(1 + c₁), (a + ε₁)(1 + c₂)]`,
+/-- **Joint concentration of the feature-bottleneck bias over `(X, S)`.** Let `X` be an `m × n₀`
+and `S` an independent `n₀ × n` Gaussian matrix, `1 ≤ n ≤ min {m, n₀}`, `R_bias = ‖(M X - 1) θ‖²`
+with `M = S (Zᵀ Z)⁻¹ Zᵀ`, `Z = X S`, `a = (1 - n/n₀) ‖θ‖²`, `ν = m - n + 1`, `0 < η < 1` and
+`ε₁ > 0`. Then `R_bias` lies in `[(a - ε₁)(1 + c₁), (a + ε₁)(1 + c₂)]`,
 `c₁ = n (1 - η) / (ν (1 + η))`, `c₂ = n (1 + η) / (ν (1 - η))`, except on an event of probability at
 most `ℙ_S (|‖(1 - P_S) θ‖² - a| ≥ ε₁) + 60 / (η⁴ ν²) + 60 / (η⁴ n²)`. The first term is
 controlled by `tendsto_measure_resid_deviation` (Milestone 7e), the others by the sandwich bound
-for the fit error. -/
-theorem measure_featureBias_joint_le {m q n₀ : ℕ} (hqm : q + 1 ≤ m) (hqn : q + 1 ≤ n₀)
+for the fit error. The factors are ordered `(X, S)` as in `conditionalRisk` and the other regimes;
+the sandwich bound `measure_prod_sandwich_le` conditions on the first factor, so the proof swaps
+them once (`measure_prod_swap_le`). -/
+theorem measure_featureBias_joint_le {m n n₀ : ℕ} (hn : 0 < n) (hnm : n ≤ m) (hnn₀ : n ≤ n₀)
     (θ : Fin n₀ → ℝ)
-    (Rb : (Fin n₀ → Fin (q + 1) → ℝ) × (Fin m → Fin n₀ → ℝ) → ℝ)
-    (hRb : ∀ x, Rb x = ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-        (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-          Matrix.of x.2 - 1) *ᵥ θ ⬝ᵥ ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-            (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-              Matrix.of x.2 - 1) *ᵥ θ)
+    (Rb : (Fin m → Fin n₀ → ℝ) × (Fin n₀ → Fin n → ℝ) → ℝ)
+    (hRb : ∀ x, Rb x = ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+        (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
+          Matrix.of x.1 - 1) *ᵥ θ ⬝ᵥ ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+            (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
+              Matrix.of x.1 - 1) *ᵥ θ)
     {η ε₁ : ℝ} (hη : 0 < η) (hη1 : η < 1) :
-    ((Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1).prod
-      (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1))
-        {x | ¬ (((1 - (((q + 1 : ℕ) : ℝ)) / n₀) * (θ ⬝ᵥ θ) - ε₁) *
-              (1 + ((q + 1 : ℕ) : ℝ) * (1 - η) / (((m - q : ℕ) : ℝ) * (1 + η))) ≤ Rb x ∧
-            Rb x ≤ ((1 - (((q + 1 : ℕ) : ℝ)) / n₀) * (θ ⬝ᵥ θ) + ε₁) *
-              (1 + ((q + 1 : ℕ) : ℝ) * (1 + η) / (((m - q : ℕ) : ℝ) * (1 - η))))} ≤
-      (Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1)
-        {S | ε₁ ≤ |((1 - gramProjector (Matrix.of S)) *ᵥ θ) ⬝ᵥ
-          ((1 - gramProjector (Matrix.of S)) *ᵥ θ) -
-          (1 - (((q + 1 : ℕ) : ℝ)) / n₀) * (θ ⬝ᵥ θ)|} +
-        (ENNReal.ofReal (60 / (η ^ 4 * ((m - q : ℕ) : ℝ) ^ 2)) +
-          ENNReal.ofReal (60 / (η ^ 4 * ((q + 1 : ℕ) : ℝ) ^ 2))) := by
-  have hν : 0 < ((m - q : ℕ) : ℝ) := by exact_mod_cast (by omega : 0 < m - q)
-  have hn : 0 < ((q + 1 : ℕ) : ℝ) := by positivity
-  have h1η : 0 < 1 - η := by linarith
-  refine measure_prod_sandwich_le _ _
-    (s2 := fun S : Fin n₀ → Fin (q + 1) → ℝ =>
-      ((1 - gramProjector (Matrix.of S)) *ᵥ θ) ⬝ᵥ ((1 - gramProjector (Matrix.of S)) *ᵥ θ))
-    (Rb := Rb) (a := (1 - (((q + 1 : ℕ) : ℝ)) / n₀) * (θ ⬝ᵥ θ))
-    (c₁ := ((q + 1 : ℕ) : ℝ) * (1 - η) / (((m - q : ℕ) : ℝ) * (1 + η)))
-    (c₂ := ((q + 1 : ℕ) : ℝ) * (1 + η) / (((m - q : ℕ) : ℝ) * (1 - η))) (ε₁ := ε₁)
-    ?_ ?_ (by positivity) (by positivity) ?_
-  · have := (measurable_resid (n₀ := n₀) (n := q + 1)).comp
-      (measurable_id.prodMk (measurable_const (a := θ)))
-    exact this
-  · rw [funext hRb]; exact measurable_featureBias θ
-  · filter_upwards [ae_isUnit_det_gram_gaussianMatrix (q + 1) n₀ hqn] with S hS
-    exact measure_featureBias_deviation_le hqm (Matrix.of S) hS θ (fun X => Rb (S, X))
-      (fun X => hRb (S, X)) hη hη1
-
-/-- `measure_featureBias_joint_le` for a general number `n ≥ 1` of features, with
-`ν = m - n + 1`. -/
-theorem measure_featureBias_joint_le' {m n n₀ : ℕ} (hn : 0 < n) (hnm : n ≤ m) (hnn₀ : n ≤ n₀)
-    (θ : Fin n₀ → ℝ)
-    (Rb : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) → ℝ)
-    (hRb : ∀ x, Rb x = ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-        (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-          Matrix.of x.2 - 1) *ᵥ θ ⬝ᵥ ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-            (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-              Matrix.of x.2 - 1) *ᵥ θ)
-    {η ε₁ : ℝ} (hη : 0 < η) (hη1 : η < 1) :
-    ((Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin n => gaussianReal 0 1).prod
-      (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1))
+    ((Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin n => gaussianReal 0 1))
         {x | ¬ (((1 - (n : ℝ) / n₀) * (θ ⬝ᵥ θ) - ε₁) *
               (1 + (n : ℝ) * (1 - η) / (((m - n + 1 : ℕ) : ℝ) * (1 + η))) ≤ Rb x ∧
             Rb x ≤ ((1 - (n : ℝ) / n₀) * (θ ⬝ᵥ θ) + ε₁) *
@@ -450,7 +397,34 @@ theorem measure_featureBias_joint_le' {m n n₀ : ℕ} (hn : 0 < n) (hnm : n ≤
   obtain ⟨q, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn.ne'
   have e : m - (q + 1) + 1 = m - q := by omega
   rw [e]
-  exact measure_featureBias_joint_le hnm hnn₀ θ Rb hRb hη hη1
+  have hν : 0 < ((m - q : ℕ) : ℝ) := by exact_mod_cast (by omega : 0 < m - q)
+  have hn : 0 < ((q + 1 : ℕ) : ℝ) := by positivity
+  have h1η : 0 < 1 - η := by linarith
+  have hs2 : Measurable fun S : Fin n₀ → Fin (q + 1) → ℝ =>
+      ((1 - gramProjector (Matrix.of S)) *ᵥ θ) ⬝ᵥ ((1 - gramProjector (Matrix.of S)) *ᵥ θ) := by
+    have := (measurable_resid (n₀ := n₀) (n := q + 1)).comp
+      (measurable_id.prodMk (measurable_const (a := θ)))
+    exact this
+  have hRbm : Measurable fun z : (Fin n₀ → Fin (q + 1) → ℝ) × (Fin m → Fin n₀ → ℝ) =>
+      Rb z.swap := by
+    rw [funext hRb]; exact (measurable_featureBias θ).comp measurable_swap
+  have hsec : ∀ᵐ S ∂(Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin (q + 1) =>
+      gaussianReal 0 1), (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ =>
+        gaussianReal 0 1) {X | ¬ (((1 - gramProjector (Matrix.of S)) *ᵥ θ) ⬝ᵥ
+          ((1 - gramProjector (Matrix.of S)) *ᵥ θ) *
+            (1 + ((q + 1 : ℕ) : ℝ) * (1 - η) / (((m - q : ℕ) : ℝ) * (1 + η))) ≤ Rb (X, S) ∧
+          Rb (X, S) ≤ ((1 - gramProjector (Matrix.of S)) *ᵥ θ) ⬝ᵥ
+            ((1 - gramProjector (Matrix.of S)) *ᵥ θ) *
+              (1 + ((q + 1 : ℕ) : ℝ) * (1 + η) / (((m - q : ℕ) : ℝ) * (1 - η))))} ≤
+        ENNReal.ofReal (60 / (η ^ 4 * ((m - q : ℕ) : ℝ) ^ 2)) +
+          ENNReal.ofReal (60 / (η ^ 4 * ((q + 1 : ℕ) : ℝ) ^ 2)) := by
+    filter_upwards [ae_isUnit_det_gram_gaussianMatrix (q + 1) n₀ hnn₀] with S hS
+    exact measure_featureBias_deviation_le hnm (Matrix.of S) hS θ (fun X => Rb (X, S))
+      (fun X => hRb (X, S)) hη hη1
+  exact (measure_prod_swap_le _ _ _).trans (measure_prod_sandwich_le _ _ hs2 hRbm
+    (a := (1 - (((q + 1 : ℕ) : ℝ)) / n₀) * (θ ⬝ᵥ θ))
+    (by positivity : 0 ≤ ((q + 1 : ℕ) : ℝ) * (1 - η) / (((m - q : ℕ) : ℝ) * (1 + η)))
+    (by positivity : 0 ≤ ((q + 1 : ℕ) : ℝ) * (1 + η) / (((m - q : ℕ) : ℝ) * (1 - η))) hsec)
 
 /-- **Choice of the tolerances.** If `L = a (1 + c)`, then for every `ε > 0` there is a single
 `t ∈ (0, 1)` with `(a - t)(1 + c (1 - t)/(1 + t)) > L - ε` and
@@ -507,7 +481,7 @@ theorem tendsto_feature_ratios {mm nn n0 : ℕ → ℕ} {δ γ : ℝ} (hδ1 : δ
     rw [div_div_div_cancel_right₀ (hmpos k).ne']
 
 /-- **Bias of the feature-bottleneck estimator converges in probability (Milestone 3b, bias
-half).** Let `S_k` be `n₀_k × n_k` and `X_k` independent `m_k × n₀_k` Gaussian matrices,
+half).** Let `X_k` be `m_k × n₀_k` and `S_k` independent `n₀_k × n_k` Gaussian matrices,
 `1 ≤ n_k ≤ min {m_k, n₀_k}`, `n_k → ∞`, `n_k / m_k → δ < 1`, `n₀_k / m_k → γ > 0` and
 `‖θ_k‖² → r`. Then the bias `R_bias = ‖(M X - 1) θ_k‖²` of `θ̂ = M y`, `M = S (Zᵀ Z)⁻¹ Zᵀ`,
 `Z = X S`, converges in probability to `(γ - δ) / (γ (1 - δ)) r`: for every `ε > 0` the probability
@@ -515,7 +489,7 @@ that it differs from this by at least `ε` tends to `0`.
 
 Proof: with `a = (1 - δ/γ) r` and `c = δ/(1-δ)`, the limit is `a (1 + c)`. A single small tolerance
 `t` (`exists_tolerance_sandwich`) makes the sandwich `[(a_k - t)(1 + c₁), (a_k + t)(1 + c₂)]` of
-`measure_featureBias_joint_le'` lie inside `(L - ε, L + ε)` eventually, and its failure
+`measure_featureBias_joint_le` lie inside `(L - ε, L + ε)` eventually, and its failure
 probability tends to `0` by `tendsto_measure_resid_deviation` (Milestone 7e) and `ν_k, n_k → ∞`. -/
 theorem tendsto_measure_featureBias_deviation {mm nn n0 : ℕ → ℕ} {δ γ r : ℝ} (hδ1 : δ < 1)
     (hγ0 : 0 < γ) (hn : ∀ k, 0 < nn k) (hnm : ∀ k, nn k ≤ mm k) (hnn0 : ∀ k, nn k ≤ n0 k)
@@ -523,16 +497,16 @@ theorem tendsto_measure_featureBias_deviation {mm nn n0 : ℕ → ℕ} {δ γ r 
     (hδ : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
     (hγ : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
     (θ : ∀ k, Fin (n0 k) → ℝ) (hθ : Tendsto (fun k => θ k ⬝ᵥ θ k) atTop (𝓝 r))
-    (Rb : ∀ k, (Fin (n0 k) → Fin (nn k) → ℝ) × (Fin (mm k) → Fin (n0 k) → ℝ) → ℝ)
-    (hRb : ∀ k x, Rb k x = ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-        (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-          Matrix.of x.2 - 1) *ᵥ θ k ⬝ᵥ ((Matrix.of x.1 * (((Matrix.of x.2 * Matrix.of x.1)ᵀ *
-            (Matrix.of x.2 * Matrix.of x.1))⁻¹ * (Matrix.of x.2 * Matrix.of x.1)ᵀ)) *
-              Matrix.of x.2 - 1) *ᵥ θ k)
+    (Rb : ∀ k, (Fin (mm k) → Fin (n0 k) → ℝ) × (Fin (n0 k) → Fin (nn k) → ℝ) → ℝ)
+    (hRb : ∀ k x, Rb k x = ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+        (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
+          Matrix.of x.1 - 1) *ᵥ θ k ⬝ᵥ ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
+            (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
+              Matrix.of x.1 - 1) *ᵥ θ k)
     {ε : ℝ} (hε : 0 < ε) :
     Tendsto (fun k =>
-      ((Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1))
+      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
         {x | ε ≤ |Rb k x - (γ - δ) / (γ * (1 - δ)) * r|}) atTop (𝓝 0) := by
   have hmm : Tendsto mm atTop atTop := tendsto_atTop_mono hnm hnn
   obtain ⟨hνtop, hnν, hnn0r⟩ := tendsto_feature_ratios hδ1 hγ0 hn hnm hmm hδ hγ
@@ -575,7 +549,7 @@ theorem tendsto_measure_featureBias_deviation {mm nn n0 : ℕ → ℕ} {δ γ r 
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbound
     (Eventually.of_forall fun _ => bot_le) ?_
   filter_upwards [hlowk, hhighk] with k hk1 hk2
-  refine le_trans (measure_mono ?_) (measure_featureBias_joint_le' (hn k) (hnm k) (hnn0 k) (θ k)
+  refine le_trans (measure_mono ?_) (measure_featureBias_joint_le (hn k) (hnm k) (hnn0 k) (θ k)
     (Rb k) (hRb k) (η := t) (ε₁ := t) ht0 ht1)
   intro x hx
   simp only [Set.mem_ofPred_eq] at hx ⊢
@@ -583,6 +557,56 @@ theorem tendsto_measure_featureBias_deviation {mm nn n0 : ℕ → ℕ} {δ γ r 
   have : |Rb k x - (γ - δ) / (γ * (1 - δ)) * r| < ε := by
     rw [abs_lt]; constructor <;> linarith
   exact absurd hx (not_le.2 this)
+
+/-- **Joint variance bound in the feature-bottleneck regime.** For `X` an `m × n₀` and an
+independent `S` an `n₀ × n` Gaussian matrix with `n ≤ n₀`, the variance trace
+`Tr ((Zᵀ Z)⁻¹ Sᵀ S)`, `Z = X S`, falls in a measurable set `B` except with at most the probability
+that `Tr ((Gᵀ G)⁻¹) ∉ B` for `G` an `m × n` Gaussian matrix: for almost every `S` this is
+`measure_trace_inv_gram_mul_gram_mem`. -/
+theorem measure_featureVariance_joint_le {m n n₀ : ℕ} (hnn₀ : n ≤ n₀) {B : Set ℝ}
+    (hB : MeasurableSet B) :
+    ((Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin n => gaussianReal 0 1))
+        {x | (((Matrix.of x.1 * Matrix.of x.2)ᵀ * (Matrix.of x.1 * Matrix.of x.2))⁻¹ *
+          ((Matrix.of x.2)ᵀ * Matrix.of x.2)).trace ∈ B} ≤
+      (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n => gaussianReal 0 1)
+        {G | ((Matrix.of G)ᵀ * Matrix.of G)⁻¹.trace ∈ B} := by
+  set μX := Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1 with hμX
+  set μS := Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin n => gaussianReal 0 1 with hμS
+  have hX1 : IsProbabilityMeasure μX := by rw [hμX]; infer_instance
+  have hS1 : IsProbabilityMeasure μS := by rw [hμS]; infer_instance
+  set E : Set ((Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ)) :=
+    {z | (((Matrix.of z.2 * Matrix.of z.1)ᵀ * (Matrix.of z.2 * Matrix.of z.1))⁻¹ *
+      ((Matrix.of z.1)ᵀ * Matrix.of z.1)).trace ∈ B} with hE
+  have hmE : MeasurableSet E := by
+    have hm : Measurable fun z : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) =>
+        (((Matrix.of z.2 * Matrix.of z.1)ᵀ * (Matrix.of z.2 * Matrix.of z.1))⁻¹ *
+          ((Matrix.of z.1)ᵀ * Matrix.of z.1)).trace :=
+      measurable_matrix_trace (by fun_prop)
+    exact hm hB
+  refine le_trans (measure_prod_swap_le μX μS E) ?_
+  refine measure_prod_le_of_ae_section_le μS μX hmE ?_
+  filter_upwards [ae_isUnit_det_gram_gaussianMatrix n n₀ hnn₀] with S hS
+  refine le_of_eq ?_
+  exact measure_trace_inv_gram_mul_gram_mem (Matrix.of S) hS hB
+
+/-- **Variance of the feature-bottleneck estimator converges in probability (joint over `X`, `S`).**
+For `X_k`, `S_k` independent Gaussian, `1 ≤ n_k ≤ min {m_k, n₀_k}`, `m_k → ∞`, `n_k / m_k → δ < 1`:
+`Tr ((Z Zᵀ... )` precisely `Tr ((Zᵀ Z)⁻¹ Sᵀ S) → δ / (1 - δ)` in probability. -/
+theorem tendsto_measure_featureVariance_deviation {mm nn n0 : ℕ → ℕ} {δ : ℝ} (hδ1 : δ < 1)
+    (hn : ∀ k, 0 < nn k) (hnm : ∀ k, nn k ≤ mm k) (hnn0 : ∀ k, nn k ≤ n0 k)
+    (hmm : Tendsto mm atTop atTop)
+    (hr : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ)) {ε : ℝ} (hε : 0 < ε) :
+    Tendsto (fun k =>
+      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
+        {x | ε ≤ |(((Matrix.of x.1 * Matrix.of x.2)ᵀ * (Matrix.of x.1 * Matrix.of x.2))⁻¹ *
+          ((Matrix.of x.2)ᵀ * Matrix.of x.2)).trace - δ / (1 - δ)|}) atTop (𝓝 0) := by
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    (tendsto_measure_trace_inv_gram_deviation hδ1 hn hnm hmm hr hε)
+    (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => ?_)
+  exact measure_featureVariance_joint_le (hnn0 k) (B := {y | ε ≤ |y - δ / (1 - δ)|})
+    (measurableSet_le measurable_const (by fun_prop))
 
 end LinearRegression.DoubleDescent
 

@@ -128,86 +128,6 @@ theorem conditionalRisk_of_sample (σ_sq : ℝ) (θ : Fin n₀ → ℝ) (X : Mat
 
 end Defs
 
-section Feature
-
-/-- **Joint variance bound in the feature-bottleneck regime.** For `X` an `m × n₀` and an
-independent `S` an `n₀ × n` Gaussian matrix with `n ≤ n₀`, the variance trace
-`Tr ((Zᵀ Z)⁻¹ Sᵀ S)`, `Z = X S`, falls in a measurable set `B` except with at most the probability
-that `Tr ((Gᵀ G)⁻¹) ∉ B` for `G` an `m × n` Gaussian matrix: for almost every `S` this is
-`measure_trace_inv_gram_mul_gram_mem`. -/
-theorem measure_featureVariance_joint_le {m n n₀ : ℕ} (hnn₀ : n ≤ n₀) {B : Set ℝ}
-    (hB : MeasurableSet B) :
-    ((Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1).prod
-      (Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin n => gaussianReal 0 1))
-        {x | (((Matrix.of x.1 * Matrix.of x.2)ᵀ * (Matrix.of x.1 * Matrix.of x.2))⁻¹ *
-          ((Matrix.of x.2)ᵀ * Matrix.of x.2)).trace ∈ B} ≤
-      (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n => gaussianReal 0 1)
-        {G | ((Matrix.of G)ᵀ * Matrix.of G)⁻¹.trace ∈ B} := by
-  set μX := Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1 with hμX
-  set μS := Measure.pi fun _ : Fin n₀ => Measure.pi fun _ : Fin n => gaussianReal 0 1 with hμS
-  have hX1 : IsProbabilityMeasure μX := by rw [hμX]; infer_instance
-  have hS1 : IsProbabilityMeasure μS := by rw [hμS]; infer_instance
-  set E : Set ((Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ)) :=
-    {z | (((Matrix.of z.2 * Matrix.of z.1)ᵀ * (Matrix.of z.2 * Matrix.of z.1))⁻¹ *
-      ((Matrix.of z.1)ᵀ * Matrix.of z.1)).trace ∈ B} with hE
-  have hmE : MeasurableSet E := by
-    have hm : Measurable fun z : (Fin n₀ → Fin n → ℝ) × (Fin m → Fin n₀ → ℝ) =>
-        (((Matrix.of z.2 * Matrix.of z.1)ᵀ * (Matrix.of z.2 * Matrix.of z.1))⁻¹ *
-          ((Matrix.of z.1)ᵀ * Matrix.of z.1)).trace :=
-      measurable_matrix_trace (by fun_prop)
-    exact hm hB
-  refine le_trans (measure_prod_swap_le μX μS E) ?_
-  refine measure_prod_le_of_ae_section_le μS μX hmE ?_
-  filter_upwards [ae_isUnit_det_gram_gaussianMatrix n n₀ hnn₀] with S hS
-  refine le_of_eq ?_
-  exact measure_trace_inv_gram_mul_gram_mem (Matrix.of S) hS hB
-
-/-- **Variance of the feature-bottleneck estimator converges in probability (joint over `X`, `S`).**
-For `X_k`, `S_k` independent Gaussian, `1 ≤ n_k ≤ min {m_k, n₀_k}`, `m_k → ∞`, `n_k / m_k → δ < 1`:
-`Tr ((Z Zᵀ... )` precisely `Tr ((Zᵀ Z)⁻¹ Sᵀ S) → δ / (1 - δ)` in probability. -/
-theorem tendsto_measure_featureVariance_deviation {mm nn n0 : ℕ → ℕ} {δ : ℝ} (hδ1 : δ < 1)
-    (hn : ∀ k, 0 < nn k) (hnm : ∀ k, nn k ≤ mm k) (hnn0 : ∀ k, nn k ≤ n0 k)
-    (hmm : Tendsto mm atTop atTop)
-    (hr : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ)) {ε : ℝ} (hε : 0 < ε) :
-    Tendsto (fun k =>
-      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
-        {x | ε ≤ |(((Matrix.of x.1 * Matrix.of x.2)ᵀ * (Matrix.of x.1 * Matrix.of x.2))⁻¹ *
-          ((Matrix.of x.2)ᵀ * Matrix.of x.2)).trace - δ / (1 - δ)|}) atTop (𝓝 0) := by
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
-    (tendsto_measure_trace_inv_gram_deviation hδ1 hn hnm hmm hr hε)
-    (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => ?_)
-  exact measure_featureVariance_joint_le (hnn0 k) (B := {y | ε ≤ |y - δ / (1 - δ)|})
-    (measurableSet_le measurable_const (by fun_prop))
-
-/-- **Bias of the feature-bottleneck estimator converges in probability (joint over `X`, `S`),**
-in the order `(X, S)` used throughout this file: `measure_prod_swap_le` applied to
-`tendsto_measure_featureBias_deviation`. -/
-theorem tendsto_measure_featureBias_deviation' {mm nn n0 : ℕ → ℕ} {δ γ r : ℝ} (hδ1 : δ < 1)
-    (hγ0 : 0 < γ) (hn : ∀ k, 0 < nn k) (hnm : ∀ k, nn k ≤ mm k) (hnn0 : ∀ k, nn k ≤ n0 k)
-    (hnn : Tendsto nn atTop atTop)
-    (hδ : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
-    (hγ : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
-    (θ : ∀ k, Fin (n0 k) → ℝ) (hθ : Tendsto (fun k => θ k ⬝ᵥ θ k) atTop (𝓝 r))
-    (Rb : ∀ k, (Fin (mm k) → Fin (n0 k) → ℝ) × (Fin (n0 k) → Fin (nn k) → ℝ) → ℝ)
-    (hRb : ∀ k x, Rb k x = ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
-        (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
-          Matrix.of x.1 - 1) *ᵥ θ k ⬝ᵥ ((Matrix.of x.2 * (((Matrix.of x.1 * Matrix.of x.2)ᵀ *
-            (Matrix.of x.1 * Matrix.of x.2))⁻¹ * (Matrix.of x.1 * Matrix.of x.2)ᵀ)) *
-              Matrix.of x.1 - 1) *ᵥ θ k)
-    {ε : ℝ} (hε : 0 < ε) :
-    Tendsto (fun k =>
-      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
-        {x | ε ≤ |Rb k x - (γ - δ) / (γ * (1 - δ)) * r|}) atTop (𝓝 0) := by
-  have h := tendsto_measure_featureBias_deviation hδ1 hγ0 hn hnm hnn0 hnn hδ hγ θ hθ
-    (fun k z => Rb k z.swap) (fun k z => by rw [hRb]; rfl) hε
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h
-    (Eventually.of_forall fun _ => zero_le) (Eventually.of_forall fun k => ?_)
-  exact measure_prod_swap_le _ _ {z | ε ≤ |Rb k z.swap - (γ - δ) / (γ * (1 - δ)) * r|}
-
-end Feature
-
 section Ambient
 
 variable {m n n₀ : ℕ}
@@ -237,7 +157,8 @@ section Regimes
 `S_k` (`n₀_k × n_k`) be independent Gaussian matrices with `1 ≤ n_k ≤ min {m_k, n₀_k}`, `n_k → ∞`,
 `n_k / m_k → δ < 1`, `n₀_k / m_k → γ > 0` and `‖θ_k‖² → r`. Then `conditionalRisk` converges in
 probability to `(γ - δ) / (γ (1 - δ)) r + σ² δ / (1 - δ)`. -/
-theorem tendsto_measure_featureRisk_deviation {mm nn n0 : ℕ → ℕ} {δ γ r : ℝ} (σ_sq : ℝ)
+private theorem tendsto_measure_featureRisk_deviation_of_forall
+    {mm nn n0 : ℕ → ℕ} {δ γ r : ℝ} (σ_sq : ℝ)
     (hδ1 : δ < 1) (hγ0 : 0 < γ) (hn : ∀ k, 0 < nn k) (hnm : ∀ k, nn k ≤ mm k)
     (hnn0 : ∀ k, nn k ≤ n0 k) (hnn : Tendsto nn atTop atTop)
     (hδ : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
@@ -266,7 +187,7 @@ theorem tendsto_measure_featureRisk_deviation {mm nn n0 : ℕ → ℕ} {δ γ r 
       (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
     (fun k x => conditionalRisk σ_sq (θ k) (Matrix.of x.1) (Matrix.of x.2)) A B σ_sq
     ((γ - δ) / (γ * (1 - δ)) * r) (δ / (1 - δ))
-    (fun k x => ?_) (fun ε hε => tendsto_measure_featureBias_deviation' hδ1 hγ0 hn hnm hnn0 hnn hδ
+    (fun k x => ?_) (fun ε hε => tendsto_measure_featureBias_deviation hδ1 hγ0 hn hnm hnn0 hnn hδ
       hγ θ hθ A hA hε) (fun ε hε => ?_) hε
   · rw [hA, hB]
     exact conditionalRisk_of_feature σ_sq (θ k) _ _ (hfe k)
@@ -276,7 +197,8 @@ theorem tendsto_measure_featureRisk_deviation {mm nn n0 : ℕ → ℕ} {δ γ r 
 `S_k` (`n₀_k × n_k`) be independent Gaussian matrices with `m_k < min {n₀_k, n_k}`, `m_k → ∞`,
 `n₀_k / m_k → γ > 1`, `n_k / m_k → δ > 1` and `‖θ_k‖² → r`. Then `conditionalRisk` converges in
 probability to `(1 - γ⁻¹) δ / (δ - 1) r + σ² ((γ - 1)⁻¹ + (δ - 1)⁻¹)`. -/
-theorem tendsto_measure_sampleRisk_deviation {mm nn n0 : ℕ → ℕ} {γ δ r : ℝ} (σ_sq : ℝ)
+private theorem tendsto_measure_sampleRisk_deviation_of_forall
+    {mm nn n0 : ℕ → ℕ} {γ δ r : ℝ} (σ_sq : ℝ)
     (hγ : 1 < γ) (hδ : 1 < δ) (hm : ∀ k, 0 < mm k) (hmn : ∀ k, mm k < nn k)
     (hmn0 : ∀ k, mm k < n0 k) (hmm : Tendsto mm atTop atTop)
     (hγ' : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
@@ -323,7 +245,8 @@ theorem tendsto_measure_sampleRisk_deviation {mm nn n0 : ℕ → ℕ} {γ δ r :
 `S_k` (`n₀_k × n_k`) be independent Gaussian matrices with `n₀_k ≤ m_k`, `n₀_k < n_k`, `n₀_k → ∞`
 and `n₀_k / m_k → γ ∈ (0, 1)`. Then `conditionalRisk` converges in probability to the OLS variance
 `σ² γ / (1 - γ)`: the estimator is unbiased once `S Sᵀ` and `Xᵀ X` are invertible. -/
-theorem tendsto_measure_ambientRisk_deviation {mm nn n0 : ℕ → ℕ} {γ : ℝ} (σ_sq : ℝ)
+private theorem tendsto_measure_ambientRisk_deviation_of_forall
+    {mm nn n0 : ℕ → ℕ} {γ : ℝ} (σ_sq : ℝ)
     (hγ0 : 0 < γ) (hγ1 : γ < 1) (hn0 : ∀ k, 0 < n0 k) (hn0m : ∀ k, n0 k ≤ mm k)
     (hn0n : ∀ k, n0 k < nn k) (hn0top : Tendsto n0 atTop atTop)
     (hγ : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
@@ -438,8 +361,10 @@ end Ratios
 
 section Eventually
 
-/-- `tendsto_measure_featureRisk_deviation` with the structural hypotheses only eventually. -/
-theorem tendsto_measure_featureRisk_deviation_of_eventually {mm nn n0 : ℕ → ℕ} {δ γ r : ℝ}
+/-- **Total risk in the feature-bottleneck regime, in probability, with the structural
+hypotheses only eventually.** This is `tendsto_measure_featureRisk_deviation_of_forall` applied
+to the sequences shifted by the index from which the dimension inequalities hold. -/
+theorem tendsto_measure_featureRisk_deviation {mm nn n0 : ℕ → ℕ} {δ γ r : ℝ}
     (σ_sq : ℝ) (hδ1 : δ < 1) (hγ0 : 0 < γ) (hn : ∀ᶠ k in atTop, 0 < nn k)
     (hnm : ∀ᶠ k in atTop, nn k ≤ mm k) (hnn0 : ∀ᶠ k in atTop, nn k ≤ n0 k)
     (hnn : Tendsto nn atTop atTop)
@@ -454,15 +379,17 @@ theorem tendsto_measure_featureRisk_deviation_of_eventually {mm nn n0 : ℕ → 
           ((γ - δ) / (γ * (1 - δ)) * r + σ_sq * (δ / (1 - δ)))|}) atTop (𝓝 0) := by
   obtain ⟨K, hK⟩ := eventually_atTop.1 ((hn.and hnm).and hnn0)
   refine (tendsto_add_atTop_iff_nat K).1 ?_
-  exact tendsto_measure_featureRisk_deviation (mm := fun k => mm (k + K))
+  exact tendsto_measure_featureRisk_deviation_of_forall (mm := fun k => mm (k + K))
     (nn := fun k => nn (k + K)) (n0 := fun k => n0 (k + K)) σ_sq hδ1 hγ0
     (fun k => (hK (k + K) (by omega)).1.1) (fun k => (hK (k + K) (by omega)).1.2)
     (fun k => (hK (k + K) (by omega)).2) (hnn.comp (tendsto_add_atTop_nat K))
     (hδ.comp (tendsto_add_atTop_nat K)) (hγ.comp (tendsto_add_atTop_nat K))
     (fun k => θ (k + K)) (hθ.comp (tendsto_add_atTop_nat K)) hε
 
-/-- `tendsto_measure_sampleRisk_deviation` with the structural hypotheses only eventually. -/
-theorem tendsto_measure_sampleRisk_deviation_of_eventually {mm nn n0 : ℕ → ℕ} {γ δ r : ℝ}
+/-- **Total risk in the sample-bottleneck regime, in probability, with the structural
+hypotheses only eventually.** This is `tendsto_measure_sampleRisk_deviation_of_forall` applied
+to the sequences shifted by the index from which the dimension inequalities hold. -/
+theorem tendsto_measure_sampleRisk_deviation {mm nn n0 : ℕ → ℕ} {γ δ r : ℝ}
     (σ_sq : ℝ) (hγ : 1 < γ) (hδ : 1 < δ) (hm : ∀ᶠ k in atTop, 0 < mm k)
     (hmn : ∀ᶠ k in atTop, mm k < nn k) (hmn0 : ∀ᶠ k in atTop, mm k < n0 k)
     (hmm : Tendsto mm atTop atTop)
@@ -477,15 +404,17 @@ theorem tendsto_measure_sampleRisk_deviation_of_eventually {mm nn n0 : ℕ → �
           ((1 - γ⁻¹) * (δ / (δ - 1)) * r + σ_sq * ((γ - 1)⁻¹ + (δ - 1)⁻¹))|}) atTop (𝓝 0) := by
   obtain ⟨K, hK⟩ := eventually_atTop.1 ((hm.and hmn).and hmn0)
   refine (tendsto_add_atTop_iff_nat K).1 ?_
-  exact tendsto_measure_sampleRisk_deviation (mm := fun k => mm (k + K))
+  exact tendsto_measure_sampleRisk_deviation_of_forall (mm := fun k => mm (k + K))
     (nn := fun k => nn (k + K)) (n0 := fun k => n0 (k + K)) σ_sq hγ hδ
     (fun k => (hK (k + K) (by omega)).1.1) (fun k => (hK (k + K) (by omega)).1.2)
     (fun k => (hK (k + K) (by omega)).2) (hmm.comp (tendsto_add_atTop_nat K))
     (hγ'.comp (tendsto_add_atTop_nat K)) (hδ'.comp (tendsto_add_atTop_nat K))
     (fun k => θ (k + K)) (hθ.comp (tendsto_add_atTop_nat K)) hε
 
-/-- `tendsto_measure_ambientRisk_deviation` with the structural hypotheses only eventually. -/
-theorem tendsto_measure_ambientRisk_deviation_of_eventually {mm nn n0 : ℕ → ℕ} {γ : ℝ}
+/-- **Total risk in the ambient-bottleneck regime, in probability, with the structural
+hypotheses only eventually.** This is `tendsto_measure_ambientRisk_deviation_of_forall` applied
+to the sequences shifted by the index from which the dimension inequalities hold. -/
+theorem tendsto_measure_ambientRisk_deviation {mm nn n0 : ℕ → ℕ} {γ : ℝ}
     (σ_sq : ℝ) (hγ0 : 0 < γ) (hγ1 : γ < 1) (hn0 : ∀ᶠ k in atTop, 0 < n0 k)
     (hn0m : ∀ᶠ k in atTop, n0 k ≤ mm k) (hn0n : ∀ᶠ k in atTop, n0 k < nn k)
     (hn0top : Tendsto n0 atTop atTop)
@@ -498,7 +427,7 @@ theorem tendsto_measure_ambientRisk_deviation_of_eventually {mm nn n0 : ℕ → 
           σ_sq * (γ / (1 - γ))|}) atTop (𝓝 0) := by
   obtain ⟨K, hK⟩ := eventually_atTop.1 ((hn0.and hn0m).and hn0n)
   refine (tendsto_add_atTop_iff_nat K).1 ?_
-  exact tendsto_measure_ambientRisk_deviation (mm := fun k => mm (k + K))
+  exact tendsto_measure_ambientRisk_deviation_of_forall (mm := fun k => mm (k + K))
     (nn := fun k => nn (k + K)) (n0 := fun k => n0 (k + K)) σ_sq hγ0 hγ1
     (fun k => (hK (k + K) (by omega)).1.1) (fun k => (hK (k + K) (by omega)).1.2)
     (fun k => (hK (k + K) (by omega)).2) (hn0top.comp (tendsto_add_atTop_nat K))
@@ -554,7 +483,7 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
       unfold asymptoticTotalRisk
       rw [asymptoticBias_of_feature ρ h, asymptoticVariance_of_feature σ_sq h]
     rw [e]
-    exact tendsto_measure_featureRisk_deviation_of_eventually σ_sq hδ1 hγ0 hnnpos hnm hnn0
+    exact tendsto_measure_featureRisk_deviation σ_sq hδ1 hγ0 hnnpos hnm hnn0
       hnntop hδ' hγ' θ hθ hε
   · -- ambient bottleneck
     have e : asymptoticTotalRisk σ_sq ρ γ δ = σ_sq * (γ / (1 - γ)) := by
@@ -568,19 +497,19 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
         eventually_lt_of_ratio ((div_lt_one hδ0).2 hlt)
           (tendsto_ratio_of_ratios hδ0.ne' hmpos hγ' hδ') hnnpos
       rw [e]
-      exact tendsto_measure_ambientRisk_deviation_of_eventually σ_sq hγ0 hγ1 hn0pos hn0m hn0n
+      exact tendsto_measure_ambientRisk_deviation σ_sq hγ0 hγ1 hn0pos hn0m hn0n
         hn0top hγ' θ hε
     · rcases hord heq hγ1 with hle | hlt'
       · -- diagonal, feature side
         have hδ1 : δ < 1 := heq ▸ hγ1
         have hnm : ∀ᶠ k in atTop, nn k ≤ mm k :=
           (eventually_lt_of_ratio hδ1 hδ' hmpos).mono fun k hk => hk.le
-        have := tendsto_measure_featureRisk_deviation_of_eventually (r := ρ) σ_sq hδ1 hγ0
+        have := tendsto_measure_featureRisk_deviation (r := ρ) σ_sq hδ1 hγ0
           hnnpos hnm hle hnntop hδ' hγ' θ hθ hε
         rw [e]
         simpa [heq] using this
       · rw [e]
-        exact tendsto_measure_ambientRisk_deviation_of_eventually σ_sq hγ0 hγ1 hn0pos hn0m hlt'
+        exact tendsto_measure_ambientRisk_deviation σ_sq hγ0 hγ1 hn0pos hn0m hlt'
           hn0top hγ' θ hε
   · -- sample bottleneck
     have e : asymptoticTotalRisk σ_sq ρ γ δ =
@@ -589,7 +518,7 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
       rw [asymptoticBias_of_sample ρ hγ1.le hδ1.le, asymptoticVariance_of_sample σ_sq hγ1.le
         hδ1.le]
     rw [e]
-    exact tendsto_measure_sampleRisk_deviation_of_eventually σ_sq hγ1 hδ1 hmpos
+    exact tendsto_measure_sampleRisk_deviation σ_sq hγ1 hδ1 hmpos
       (eventually_gt_of_ratio hδ1 hδ' hmpos) (eventually_gt_of_ratio hγ1 hγ' hmpos) hmm hγ' hδ'
       θ hθ hε
 
