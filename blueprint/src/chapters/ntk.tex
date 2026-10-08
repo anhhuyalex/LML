@@ -36,16 +36,20 @@ width $m \in \mathbb{N}$, fixed outer layer $a \in \mathbb{R}^m$, and variable i
 matrix $W \in \mathbb{R}^{m \times d}$.
 
 \begin{definition}[Scaled shallow network]\label{def:ntk:shallowNetwork}
-  \lean{NTK.ShallowNetwork}
+  \lean{NTK.evalSingle}
   \leanok
 Let $\sigma : \mathbb{R} \to \mathbb{R}$ be an activation function, $d, m \in \mathbb{N}$,
-and fix $a \in \mathbb{R}^m$ with $|a_j| \le 1$ for all $j \in [m]$.
+and fix an outer layer $a \in \mathbb{R}^m$.
 The \emph{scaled shallow network} is the function
 \[
   f : \mathbb{R}^d \times \mathbb{R}^{m \times d} \to \mathbb{R}, \qquad
   f(x; W) := \frac{1}{\sqrt{m}} \sum_{j=1}^{m} a_j \, \sigma(w_j^\top x),
 \]
 where $w_j \in \mathbb{R}^d$ denotes the $j$-th row of $W$.
+In Lean there is no separate type for this network: $f(x;W)$ is \texttt{evalSingle $\sigma$ W a x},
+the same function that the two-layer training chapters use with a variable readout $a$
+(Definition~\ref{def:ntktl:network}). The standing assumption $|a_j| \le 1$ for all $j \in [m]$
+is a hypothesis of the results that need it, not part of the definition.
 \end{definition}
 
 \begin{remark}
@@ -77,6 +81,12 @@ The \emph{first-order Taylor linearization} of $f(\cdot\,; \cdot)$ at $W_0$ is
 \]
 where the gradient $\nabla_W f(x; W_0) \in \mathbb{R}^{m \times d}$ has rows
 $a_j \sigma'(w_{0,j}^\top x)\, x^\top / \sqrt{m}$.
+
+In Lean $\sigma'$ is an explicit parameter of \texttt{linearization}, not forced to be the
+derivative of $\sigma$, so that the ReLU can use its almost-everywhere derivative
+$\mathbf 1[z \ge 0]$ at the kink. When $\sigma$ is differentiable and $\sigma'$ is its derivative,
+the definition is the Taylor model of the packed two-layer network
+(Remark~\ref{rmk:ntktl:linearizationTaylor}).
 
 For an activation $\sigma$ that is differentiable almost everywhere (e.g.\ the ReLU),
 this expands to
@@ -248,7 +258,9 @@ $W \in \mathbb{R}^{m \times d}$ with $\|W - W_0\|_{\mathrm{F}} \le B$,
 \[
   |f(x; W) - f_0(x; W)| \le \frac{2B^{4/3} + B\ln(1/\delta)^{1/4}}{m^{1/6}}.
 \]
-Moreover, for every $V \in \mathbb{R}^{m \times d}$ with $\|V - W_0\|_{\mathrm{F}} \le B$,
+Moreover, on the same event, uniformly over all $W, V \in \mathbb{R}^{m \times d}$ with
+$\|W - W_0\|_{\mathrm{F}} \le B$ and $\|V - W_0\|_{\mathrm{F}} \le B$, the linearization at $W$
+(Definition~\ref{def:ntk:linearization} with $W$ in place of $W_0$) approximates $f$ at $V$:
 \[
   |f(x; V) - (f(x; W) + \langle \nabla_W f(x; W),\, V - W\rangle_{\mathrm{F}})| \le
   \frac{6B^{4/3} + 3B\ln(1/\delta)^{1/4}}{m^{1/6}}.
@@ -472,7 +484,7 @@ Finally, by combining the universal approximation of the RKHS class with the ReL
   \uses{def:ntk:rkhs, lem:ntk:reluLinearization}
   \lean{NTK.rkhs_approx_by_network}
   \leanok
-For every RKHS function $h \in \mathcal{H}$, target accuracy $\epsilon > 0$, and failure probability $\delta \in (0, 1)$, there exists a large enough width $m$, a radius $B \ge 0$, and an outer layer $a \in \mathbb{R}^m$ such that with probability at least $1-\delta$ over Gaussian initialization $W_0$, there exists an inner weight matrix $W$ with $\|W-W_0\|_{\mathrm{F}} \le B$ satisfying:
+For every RKHS function $h \in \mathcal{H}$, target accuracy $\epsilon > 0$, and failure probability $\delta \in (0, 1)$, there exists a large enough width $m$, a radius $B \ge 0$, and an outer layer $a \in \mathbb{R}^m$ with $|a_j| \le 1$ such that with probability at least $1-\delta$ over Gaussian initialization $W_0$, there exists an inner weight matrix $W$ with $\|W-W_0\|_{\mathrm{F}} \le B$ satisfying:
 \[
   \sup_{x \in \mathcal{X}} |f(x; W) - h(x)| \le \epsilon.
 \]

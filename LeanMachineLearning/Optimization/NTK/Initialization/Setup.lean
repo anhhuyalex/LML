@@ -27,7 +27,7 @@ independence structure, and entrywise (max) concentration for the readout weight
   two.
 * `NTK.indepFun_input_readout` : mutual independence of the input weights $\mathbf{W}$ and the
   readout weights $a$.
-* `NTK.evalSingle` : scalar network output
+* `NTK.evalSingle` (defined in `NTK.Basic`) : scalar network output
   $f(\mathbf{x}; \mathbf{W}, a) =
     \frac{1}{\sqrt{n}} \sum_{i=1}^n a_i \varphi(\mathbf{w}_i^\top \mathbf{x})$, with the equation
     lemma
@@ -59,19 +59,6 @@ section Preliminaries
 /-! ## Network Setup and Initialization Probability Space -/
 
 /-! ### Network Evaluation and Empirical Covariance -/
-
-/-- Single-output evaluation of a two-layer neural network with width `n`, activation `φ`,
-input weights `W`, and readout weights `a`:
-  `f(x; W, a) = (1/√n) ∑ i, a i * φ (W i ⬝ᵥ x)`. -/
-noncomputable def evalSingle
-    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (x : Fin d → ℝ) : ℝ :=
-  (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⬝ᵥ x)
-
-/-- The normalized-sum formula for a scalar network evaluation. This is the public
-equation lemma for `evalSingle`, so proofs need not unfold its implementation. -/
-lemma evalSingle_eq_normalized_sum
-    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (x : Fin d → ℝ) :
-    evalSingle φ W a x = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⬝ᵥ x) := rfl
 
 /-- The output vector `f_m(W, a) ∈ ℝᵐ` evaluated at `m` input points `X 0, …, X (m - 1)`:
   `f_m(W, a)_α = f(X α; W, a)`. -/

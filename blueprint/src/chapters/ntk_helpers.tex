@@ -140,10 +140,10 @@ A linear image of a standard Gaussian vector is a centred Gaussian; its variance
 
 \section{The ReLU linearization bound: bookkeeping}\label{sec:ntkhelp:relu}
 
-Lemma~\ref{lem:ntk:reluLinearization} is assembled from several elementary steps whose statements are collected here. Throughout $\sigma=\mathrm{relu}$ is the ReLU $z\mapsto\max(z,0)$, $\sigma'=\mathrm{relu}'(z)=\mathbf 1[z\ge0]$ (Definition~\ref{def:ntkr:relu}), and $\texttt{NTK.ShallowNetwork}\;\mathrm{relu}\;d\;m$ is a shallow network with this activation.
+Lemma~\ref{lem:ntk:reluLinearization} is assembled from several elementary steps whose statements are collected here. Throughout $\sigma=\mathrm{relu}$ is the ReLU $z\mapsto\max(z,0)$, $\sigma'=\mathrm{relu}'(z)=\mathbf 1[z\ge0]$ (Definition~\ref{def:ntkr:relu}), and $f(x;W)=\texttt{evalSingle relu W a x}$ is the shallow network with this activation and an outer layer $a\in\mathbb R^m$ with $|a_j|\le1$.
 
 \begin{definition}[Bad neuron sets]\label{def:ntkhelp:badSets}
-  \lean{NTK.signAmbiguous, NTK.largePerturb, NTK.badSet, NTK.ShallowNetwork}
+  \lean{NTK.signAmbiguous, NTK.largePerturb, NTK.badSet}
   \leanok
 For $x\in\mathbb R^d$, $\tau,r\in\mathbb R$ and $W,W_0\in\mathbb R^{m\times d}$ put
 \begin{align*}
@@ -208,7 +208,7 @@ This is the pointwise estimate used in the proof of Proposition~\ref{prop:ntk:sm
   \lean{NTK.relu_linearization_error_le, NTK.relu_eval_sub_linearization_eq, NTK.sum_eq_sum_badSet,
         NTK.relu_error_sum_le}
   \leanok
-Let $e_j(W):=a_j\,\mathrm{relu}(w_j\cdot x)-a_j\,\mathrm{relu}'(w_{0,j}\cdot x)\,(w_j\cdot x)$ be the per-neuron linearization error of a \texttt{ReLUNetwork} with $|a_j|\le1$.
+Let $e_j(W):=a_j\,\mathrm{relu}(w_j\cdot x)-a_j\,\mathrm{relu}'(w_{0,j}\cdot x)\,(w_j\cdot x)$ be the per-neuron linearization error of the ReLU network with outer layer $|a_j|\le1$.
 \begin{enumerate}
   \item For real $a,b$: $\bigl|\mathrm{relu}(a)-\mathrm{relu}'(b)\,a\bigr|\le|a-b|$.
   \item $f(x;W)-f_0(x;W)=\dfrac1{\sqrt m}\sum_{j=1}^me_j(W)$.

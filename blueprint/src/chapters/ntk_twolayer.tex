@@ -119,6 +119,28 @@ $J(\theta)_{\alpha,\mathrm{idxW}(i,j)}=\operatorname{gradW}(x^\alpha,\theta)_{ij
 Differentiate $f=n^{-1/2}\sum_ia_i\varphi(w_i\cdot x)$ term by term: $\partial_{a_i}f=n^{-1/2}\varphi(w_i\cdot x)$ and $\partial_{W_{ij}}f=n^{-1/2}a_i\varphi'(w_i\cdot x)x_j$.
 \end{proof}
 
+\begin{remark}[The shallow linearization is the Taylor model of the packed network]\label{rmk:ntktl:linearizationTaylor}
+  \uses{def:ntk:linearization, thm:ntktl:gradient, def:ntktl:packing}
+  \lean{NTK.linearization_eq_taylor}
+  \leanok
+Let $\varphi$ be differentiable, $a\in\mathbb R^n$ a fixed readout, and $W_0,W\in\mathbb R^{n\times d}$. Then the first-order
+linearization of Definition~\ref{def:ntk:linearization} with $\sigma'=\varphi'$ equals the Taylor model of the packed network,
+\[
+  f_0(x;W)=f\bigl(x;\operatorname{packParams}(W_0,a)\bigr)
+    +\bigl\langle\nabla_\theta f\bigl(x;\operatorname{packParams}(W_0,a)\bigr),\,
+      \operatorname{packParams}(W,a)-\operatorname{packParams}(W_0,a)\bigr\rangle .
+\]
+So the Chapter~4 linearization (which freezes the readout) and the Taylor remainders for the jointly trained $(W,a)$ network are the same object:
+only the input-weight block $\operatorname{gradW}$ of the tangent feature contributes, because the difference has zero readout block.
+\end{remark}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntktl:gradient} the tangent feature at $\operatorname{packParams}(W_0,a)$ is $\operatorname{packParams}(\operatorname{gradW},\operatorname{gradA})$, and inner products
+decompose over the two blocks (Lemma~\ref{lem:ntktl:packingProps}). The readout block of the direction vanishes, and
+$\operatorname{gradW}_i\cdot(w_i-w_{0,i})=n^{-1/2}a_i\varphi'(w_{0,i}\cdot x)\,(w_i-w_{0,i})\cdot x$, which is the second summand of the definition of $f_0$.
+\end{proof}
+
 \begin{theorem}[Coordinate equations of the training flow]\label{thm:ntktl:coordinateFlow}
   \uses{thm:ntktl:gradient, thm:ntkgf:kineticEnergy}
   \lean{NTK.forwardGF_readout_hasDerivAt, NTK.forwardGF_inputWeight_hasDerivAt}

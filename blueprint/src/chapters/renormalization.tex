@@ -2452,7 +2452,7 @@ sample and neural indices, independence of layer parameters is visible, and the 
 is stated as an equality of measures.
 
 \subsubsection*{Phase N6: refactor and integration}
-Bridge \texttt{Approximation.OneHiddenLayer.Network} and \texttt{NTK.ShallowNetwork} to the shared
+Bridge \texttt{Approximation.OneHiddenLayer.Network} and \texttt{NTK.evalSingle} (formerly \texttt{NTK.ShallowNetwork}) to the shared
 dense-layer API without changing their public mathematical statements.  Add the new modules to the
 renormalization umbrella only after targeted checks pass, then run the full LML build and linters.
 No phase is complete while a theorem in that phase contains \texttt{sorry}.
@@ -2613,8 +2613,9 @@ claims that properly remain prose.
 Three existing developments encode overlapping special cases:
 \texttt{Approximation.OneHiddenLayer.Network} stores a hidden affine layer and scalar output
 coefficients, \texttt{Approximation.TwoHiddenLayer.Network} repeats that representation for two
-hidden layers, and \texttt{NTK.ShallowNetwork} stores a scaled, bias-free shallow network with
-fixed outer coefficients.  The Chapter~2 API should not add a fourth unrelated encoding.
+hidden layers, and \texttt{NTK.ShallowNetwork} stored a scaled, bias-free shallow network with
+fixed outer coefficients (it has since been replaced by the function \texttt{NTK.evalSingle}
+with a hypothesis $|a_j|\le1$).  The Chapter~2 API should not add a fourth unrelated encoding.
 
 The migration order is:
 \begin{enumerate}

@@ -170,7 +170,8 @@ theorem isUniversal (d : ℕ) (hd : 0 < d) :
 random initialization.
 
 For any `h ∈ ℋ`, `ε > 0`, and failure probability `δ`, there exists a large-width
-scaled shallow ReLU network and a radius `B` such that, with high probability over
+scaled shallow ReLU network (`evalSingle relu · a` with `|aⱼ| ≤ 1`) and a radius `B` such that,
+with high probability over
 Gaussian initialization `W₀`, some `W` within Frobenius distance `B` of `W₀`
 approximates `h` on the NTK domain.
 
@@ -181,7 +182,7 @@ theorem rkhs_approx_by_network
     (h : (Fin d → ℝ) → ℝ) (hh : h ∈ RKHSClass d)
     (ε : ℝ) (hε : 0 < ε)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
-    ∃ (m : ℕ) (net : ShallowNetwork relu d m)
+    ∃ (m : ℕ) (a : Fin m → ℝ) (_ : ∀ j, |a j| ≤ 1)
       (B : ℝ), 0 ≤ B ∧
       ∀ᵐ W₀ ∂(Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => ProbabilityTheory.gaussianReal
           0 1),
@@ -189,7 +190,7 @@ theorem rkhs_approx_by_network
           Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B ∧
           ∀ x ∈ {x | x ⬝ᵥ x = 1 ∧
             (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)},
-            |net.eval x W - h x| ≤ ε := by
+            |evalSingle relu W a x - h x| ≤ ε := by
   sorry
 
 end NTK

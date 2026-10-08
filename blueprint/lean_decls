@@ -247,7 +247,6 @@ NTK.locallyLipschitz_finset_sum
 NTK.locallyLipschitz_mul_real
 NTK.norm_euclidean_le_sum_norm
 NTK.locallyLipschitz_euclidean_of_coord
-NTK.ShallowNetwork
 NTK.linearization
 NTK.BetaSmooth
 NTK.smoothLinearizationBound
@@ -1101,6 +1100,7 @@ NTK.shallowEmpiricalNTK_symm
 NTK.shallowEmpiricalNTK_dataset_posSemidef
 NTK.shallowLimitingNTK_symm
 NTK.linearization_relu_eq
+NTK.linearization_eq_taylor
 NTK.measurable_dotProduct_left
 NTK.measurable_ntkSummand
 NTK.abs_ntkSummand_le
@@ -1112,7 +1112,6 @@ NTK.map_gaussianRowMeasure_dot
 NTK.signAmbiguous
 NTK.largePerturb
 NTK.badSet
-NTK.ShallowNetwork
 NTK.measurable_signAmbiguous_card
 NTK.gaussianReal_Icc_bound
 NTK.BetaSmooth.β_nonneg

@@ -186,20 +186,20 @@ No probabilistic argument is needed; the bound holds for any `W, V ∈ ℝ^{m×d
 theorem smoothLinearizationBound
     {σ : ℝ → ℝ} {β : ℝ}
     (hσ : BetaSmooth σ β)
-    (net : ShallowNetwork σ d m)
+    (a : Fin m → ℝ) (ha : ∀ j, |a j| ≤ 1)
     (x : Fin d → ℝ)
     (hx : x ⬝ᵥ x ≤ 1)
     (W V : Fin m → Fin d → ℝ) :
-    |net.eval x W - linearization (σ := σ) (σ' := deriv σ) net.outerCoeffs x V W|
+    |evalSingle σ W a x - linearization (σ := σ) (σ' := deriv σ) a x V W|
     ≤ β / (2 * Real.sqrt m) * Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
-  dsimp [ShallowNetwork.eval, linearization]
+  simp only [evalSingle, linearization, dotProduct, Pi.sub_apply]
   have h_pull :
-    (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * σ (∑ k : Fin d, W j k * x k) -
-    ((m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * σ (∑ k : Fin d, V j k * x k) +
+    (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, a j * σ (∑ k : Fin d, W j k * x k) -
+    ((m : ℝ)⁻¹.sqrt * ∑ j : Fin m, a j * σ (∑ k : Fin d, V j k * x k) +
      (m : ℝ)⁻¹.sqrt * ∑ j : Fin m,
-      net.outerCoeffs j * deriv σ (∑ k : Fin d, V j k * x k) *
+      a j * deriv σ (∑ k : Fin d, V j k * x k) *
         ∑ k : Fin d, (W j k - V j k) * x k) =
-    (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * (
+    (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, a j * (
       σ (∑ k : Fin d, W j k * x k) - σ (∑ k : Fin d, V j k * x k) -
       deriv σ (∑ k : Fin d, V j k * x k) * ∑ k : Fin d, (W j k - V j k) * x k) := by
     rw [← mul_add, ← mul_sub]
@@ -209,23 +209,23 @@ theorem smoothLinearizationBound
     intro j _
     ring
   rw [h_pull]
-  have h_abs : |(m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * (
+  have h_abs : |(m : ℝ)⁻¹.sqrt * ∑ j : Fin m, a j * (
       σ (∑ k : Fin d, W j k * x k) - σ (∑ k : Fin d, V j k * x k) -
       deriv σ (∑ k : Fin d, V j k * x k) * ∑ k : Fin d, (W j k - V j k) * x k)| =
-    (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, net.outerCoeffs j * (
+    (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, a j * (
       σ (∑ k : Fin d, W j k * x k) - σ (∑ k : Fin d, V j k * x k) -
       deriv σ (∑ k : Fin d, V j k * x k) * ∑ k : Fin d, (W j k - V j k) * x k)| := by
     rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
   rw [h_abs]
-  have h_sum_le : |∑ j : Fin m, net.outerCoeffs j * (
+  have h_sum_le : |∑ j : Fin m, a j * (
       σ (∑ k : Fin d, W j k * x k) - σ (∑ k : Fin d, V j k * x k) -
       deriv σ (∑ k : Fin d, V j k * x k) * ∑ k : Fin d, (W j k - V j k) * x k)| ≤
-    ∑ j : Fin m, |net.outerCoeffs j * (
+    ∑ j : Fin m, |a j * (
       σ (∑ k : Fin d, W j k * x k) - σ (∑ k : Fin d, V j k * x k) -
       deriv σ (∑ k : Fin d, V j k * x k) * ∑ k : Fin d, (W j k - V j k) * x k)| :=
     Finset.abs_sum_le_sum_abs _ _
   have h_bound : ∀ j : Fin m,
-      |net.outerCoeffs j * (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
+      |a j * (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
         deriv σ (∑ k, V j k * x k) * ∑ k, (W j k - V j k) * x k)| ≤
         β / 2 * (∑ k, (W j k - V j k) * x k)^2 := by
     intro j
@@ -242,13 +242,13 @@ theorem smoothLinearizationBound
           β / 2 * (∑ k : Fin d, (W j k - V j k) * x k) ^ 2 := by
       ring
     rw [h_rewrite] at h_taylor
-    have h1 := net.outerCoeffs_bound j
+    have h1 := ha j
     nlinarith [abs_nonneg (σ (∑ k : Fin d, W j k * x k) -
       σ (∑ k : Fin d, V j k * x k) -
       deriv σ (∑ k : Fin d, V j k * x k) *
         ∑ k : Fin d, (W j k - V j k) * x k)]
   have h_sum_bound :
-      ∑ j : Fin m, |net.outerCoeffs j *
+      ∑ j : Fin m, |a j *
         (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
           deriv σ (∑ k, V j k * x k) * ∑ k, (W j k - V j k) * x k)| ≤
         ∑ j : Fin m, (β / 2 * (∑ k, (W j k - V j k) * x k)^2) :=
@@ -271,12 +271,12 @@ theorem smoothLinearizationBound
     exact Finset.sum_nonneg (fun i _ => Finset.sum_nonneg (fun j _ => sq_nonneg _))
   have h_m_pos : 0 ≤ (m : ℝ)⁻¹.sqrt := Real.sqrt_nonneg _
   have h_final :
-      (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, net.outerCoeffs j *
+      (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, a j *
         (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
           deriv σ (∑ k, V j k * x k) * ∑ k, (W j k - V j k) * x k)| ≤
         β / (2 * Real.sqrt m) * Real.sqrt (∑ i : Fin m, ∑ j : Fin d, (W i j - V i j) ^ 2) ^ 2 := by
     calc
-      (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, net.outerCoeffs j *
+      (m : ℝ)⁻¹.sqrt * |∑ j : Fin m, a j *
           (σ (∑ k, W j k * x k) - σ (∑ k, V j k * x k) -
             deriv σ (∑ k, V j k * x k) * ∑ k, (W j k - V j k) * x k)| ≤
         (m : ℝ)⁻¹.sqrt *
@@ -698,11 +698,11 @@ noncomputable def reluDeriv : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
 
 /-- A neuron outside the bad set contributes no linearization error. -/
 lemma relu_error_eq_zero_outside_badSet
-    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    {d m : ℕ} (a : Fin m → ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ) (hτ : 0 < τ)
     (j : Fin m) (hj : j ∉ badSet τ τ x W W₀) :
-    net.outerCoeffs j * relu (∑ k, W j k * x k) -
-    net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * (∑ k, W j k * x k) = 0 := by
+    a j * relu (∑ k, W j k * x k) -
+    a j * reluDeriv (∑ k, W₀ j k * x k) * (∑ k, W j k * x k) = 0 := by
   have h_sign := sign_preserved_outside_badSet τ hτ x W W₀ j hj
   dsimp [relu, reluDeriv]
   rw [mul_assoc, ← mul_sub]
@@ -748,12 +748,12 @@ lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluDeriv z * z := by
 /-- The ReLU network minus its linearization is `m^{-1/2}` times the sum of the per-neuron
 linearization errors. -/
 lemma relu_eval_sub_linearization_eq
-    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) :
-    net.eval x W - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W =
+    {d m : ℕ} (a : Fin m → ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) :
+    evalSingle relu W a x - linearization (σ := relu) (σ' := reluDeriv) a x W₀ W =
     (m : ℝ)⁻¹.sqrt * ∑ j : Fin m,
-      (net.outerCoeffs j * relu (∑ k, W j k * x k) -
-       net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
-  dsimp [ShallowNetwork.eval, linearization]
+      (a j * relu (∑ k, W j k * x k) -
+       a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
+  simp only [evalSingle, linearization, dotProduct, Pi.sub_apply]
   rw [← mul_add, ← mul_sub]
   congr 1
   rw [← Finset.sum_add_distrib, ← Finset.sum_sub_distrib]
@@ -770,15 +770,15 @@ lemma relu_eval_sub_linearization_eq
 
 /-- The error sum reduces to a sum over the bad set, since every other neuron contributes zero. -/
 lemma sum_eq_sum_badSet
-    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    {d m : ℕ} (a : Fin m → ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ)
     (h_zero : ∀ j : Fin m, j ∉ badSet τ τ x W W₀ →
-      net.outerCoeffs j * relu (∑ k, W j k * x k) -
-      net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0) :
-    ∑ j : Fin m, (net.outerCoeffs j * relu (∑ k, W j k * x k) -
-      net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) =
-    ∑ j ∈ badSet τ τ x W W₀, (net.outerCoeffs j * relu (∑ k, W j k * x k) -
-      net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
+      a j * relu (∑ k, W j k * x k) -
+      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0) :
+    ∑ j : Fin m, (a j * relu (∑ k, W j k * x k) -
+      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) =
+    ∑ j ∈ badSet τ τ x W W₀, (a j * relu (∑ k, W j k * x k) -
+      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
   symm
   apply Finset.sum_subset
   · exact Finset.subset_univ _
@@ -787,22 +787,22 @@ lemma sum_eq_sum_badSet
 
 /-- Bound on the linearization-error sum over a finite set `S` of neurons. -/
 lemma relu_error_sum_le
-    {d m : ℕ} (net : ShallowNetwork relu d m) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
+    {d m : ℕ} (a : Fin m → ℝ) (ha : ∀ j, |a j| ≤ 1) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (S : Finset (Fin m)) :
-    |∑ j ∈ S, (net.outerCoeffs j * relu (∑ k, W j k * x k) -
-      net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)| ≤
+    |∑ j ∈ S, (a j * relu (∑ k, W j k * x k) -
+      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)| ≤
     ∑ j ∈ S, |∑ k, (W j k - W₀ j k) * x k| := by
-  calc |∑ j ∈ S, (net.outerCoeffs j * relu (∑ k, W j k * x k) -
-        net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
-    _ ≤ ∑ j ∈ S, |net.outerCoeffs j * relu (∑ k, W j k * x k) -
-          net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k| :=
+  calc |∑ j ∈ S, (a j * relu (∑ k, W j k * x k) -
+        a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
+    _ ≤ ∑ j ∈ S, |a j * relu (∑ k, W j k * x k) -
+          a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k| :=
         Finset.abs_sum_le_sum_abs _ _
     _ ≤ ∑ j ∈ S, |∑ k, (W j k - W₀ j k) * x k| := by
       apply Finset.sum_le_sum
       intro j _
-      have h1 : net.outerCoeffs j * relu (∑ k, W j k * x k) -
-          net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k =
-          net.outerCoeffs j * (relu (∑ k, W j k * x k) - reluDeriv
+      have h1 : a j * relu (∑ k, W j k * x k) -
+          a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k =
+          a j * (relu (∑ k, W j k * x k) - reluDeriv
               (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by ring
       rw [h1, abs_mul]
       have h_bound := relu_linearization_error_le (∑ k, W j k * x k) (∑ k, W₀ j k * x k)
@@ -810,7 +810,7 @@ lemma relu_error_sum_le
         simp_rw [sub_mul]
         exact (Finset.sum_sub_distrib (f := fun k => W j k * x k) (g := fun k => W₀ j k * x k)).symm
       rw [h_sub] at h_bound
-      have h_c := net.outerCoeffs_bound j
+      have h_c := ha j
       nlinarith [abs_nonneg (relu (∑ k, W j k * x k) - reluDeriv
           (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)]
 
@@ -1181,7 +1181,8 @@ lemma measurable_signAmbiguous_card (r : ℝ) (x : Fin d → ℝ) :
 
 
 /-- **Lemma 4.1** (Telgarsky 2021, main ReLU linearization bound).
-Let `net` be a ReLU network, `W₀ ~ 𝒩(0, Iᵈ)^{⊗m}`, `B ≥ 0`, and `‖x‖ ≤ 1`.
+Let `f = evalSingle relu · a` be a ReLU network with `|aⱼ| ≤ 1`, `W₀ ~ 𝒩(0, Iᵈ)^{⊗m}`, `B ≥ 0`,
+and `‖x‖ ≤ 1`.
 With probability at least `1 − δ` over `W₀`, for every `W` with `‖W − W₀‖_F ≤ B`:
   `|f(x; W) − f₀(x; W)| ≤ (2B^{4/3} + B·(ln(1/δ))^{1/4}) / m^{1/6}`.
 
@@ -1190,15 +1191,15 @@ With probability at least `1 − δ` over `W₀`, for every `W` with `‖W − W
 6. Outside `S`, signs are preserved, so the linearization error sums only over `j ∈ S`;
    Cauchy-Schwarz gives the stated bound. -/
 theorem reluLinearizationBound
-    (net : ShallowNetwork relu d m)
+    (a : Fin m → ℝ) (ha : ∀ j, |a j| ≤ 1)
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
     1 - δ ≤ (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin d => gaussianReal 0 1).real {W₀ |
       ∀ W : Fin m → Fin d → ℝ,
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
-          |net.eval x W -
-           linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W|
+          |evalSingle relu W a x -
+           linearization (σ := relu) (σ' := reluDeriv) a x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
@@ -1210,9 +1211,9 @@ theorem reluLinearizationBound
     subst hx_zero
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W _
-    have heval0 : net.eval 0 W = 0 := by simp [ShallowNetwork.eval, relu, Finset.sum_const_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs 0 W₀ W = 0 := by
-      simp [linearization, relu, reluDeriv, Finset.sum_const_zero]
+    have heval0 : evalSingle relu W a 0 = 0 := by simp [evalSingle, relu, Finset.sum_const_zero]
+    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a 0 W₀ W = 0 := by
+      simp [linearization, evalSingle, relu, reluDeriv, Finset.sum_const_zero]
     rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
   by_cases hm : m = 0
@@ -1220,9 +1221,9 @@ theorem reluLinearizationBound
     subst hm
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W _
-    have heval0 : net.eval x W = 0 := by simp [ShallowNetwork.eval, Real.sqrt_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W = 0 := by
-      simp [linearization, Real.sqrt_zero]
+    have heval0 : evalSingle relu W a x = 0 := by simp [evalSingle, Real.sqrt_zero]
+    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a x W₀ W = 0 := by
+      simp [linearization, evalSingle, Real.sqrt_zero]
     rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
   by_cases hB_zero : B = 0
@@ -1236,9 +1237,9 @@ theorem reluLinearizationBound
           le_antisymm hW hnorm
       have hdiff := (sqrt_sum_sq_eq_zero (fun i k => W i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
-    have hlin : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W₀ =
-        net.eval x W₀ := by
-      simp [linearization, ShallowNetwork.eval, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
+    have hlin : linearization (σ := relu) (σ' := reluDeriv) a x W₀ W₀ =
+        evalSingle relu W₀ a x := by
+      simp [linearization, evalSingle, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
     rw [hW_eq, hlin, sub_self, abs_zero]
     positivity
   have hB_pos : 0 < B := lt_of_le_of_ne hB (Ne.symm hB_zero)
@@ -1280,21 +1281,21 @@ theorem reluLinearizationBound
     have h2 : (S.card : ℝ) ≤ (S1.card : ℝ) + (S2.card : ℝ) := by
       exact_mod_cast h1
     linarith
-  have h_diff_S : |net.eval x W - linearization (σ := relu) (σ' :=
-      reluDeriv) net.outerCoeffs x W₀ W| ≤ B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
-    have h_sub_eq := relu_eval_sub_linearization_eq net x W W₀
+  have h_diff_S : |evalSingle relu W a x - linearization (σ := relu) (σ' :=
+      reluDeriv) a x W₀ W| ≤ B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
+    have h_sub_eq := relu_eval_sub_linearization_eq a x W W₀
     rw [h_sub_eq]
     have h_zero : ∀ j : Fin m, j ∉ S →
-        net.outerCoeffs j * relu (∑ k, W j k * x k) -
-        net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0 :=
-      fun j hj => relu_error_eq_zero_outside_badSet net x W W₀ r hr j hj
-    have h_sum := sum_eq_sum_badSet net x W W₀ r h_zero
+        a j * relu (∑ k, W j k * x k) -
+        a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0 :=
+      fun j hj => relu_error_eq_zero_outside_badSet a x W W₀ r hr j hj
+    have h_sum := sum_eq_sum_badSet a x W W₀ r h_zero
     rw [h_sum]
     rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-    have h_sum_le := relu_error_sum_le net x W W₀ S
+    have h_sum_le := relu_error_sum_le a ha x W W₀ S
     have h_sum_cs := relu_error_cs_bound x hx W W₀ B h_W S
-    calc (m : ℝ)⁻¹.sqrt * |∑ j ∈ S, (net.outerCoeffs j * relu (∑ k, W j k * x k) -
-          net.outerCoeffs j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
+    calc (m : ℝ)⁻¹.sqrt * |∑ j ∈ S, (a j * relu (∑ k, W j k * x k) -
+          a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
       _ ≤ (m : ℝ)⁻¹.sqrt * ∑ j ∈ S, |∑ k, (W j k - W₀ j k) * x k| :=
         mul_le_mul_of_nonneg_left h_sum_le (Real.sqrt_nonneg _)
       _ ≤ (m : ℝ)⁻¹.sqrt * (Real.sqrt (S.card : ℝ) * B) :=
@@ -1417,10 +1418,12 @@ private lemma relu_secondOrder_scaling_bound
               h_num2]
       exact div_le_div_of_nonneg_right h_sum_num h_m_pow_pos
 
-/-- For any additional `V` with `‖V − W₀‖_F ≤ B`:
-  `|f(x; V) − (f(x; W) + ⟨∇_W f(x; W), V − W⟩_F)| ≤ (6B^{4/3} + 3B·(ln(1/δ))^{1/4}) / m^{1/6}`. -/
+/-- For any additional `V` with `‖V − W₀‖_F ≤ B`, the linearization at `W` (also within `B` of `W₀`)
+approximates the network at `V`:
+  `|f(x; V) − f₀,W(x; V)| ≤ (6B^{4/3} + 3B·(ln(1/δ))^{1/4}) / m^{1/6}`,
+where `f₀,W(x; V) = f(x; W) + ⟨∇_W f(x; W), V − W⟩_F` is `linearization … x W V`. -/
 theorem reluLinearizationBound_secondOrder
-    (net : ShallowNetwork relu d m)
+    (a : Fin m → ℝ) (ha : ∀ j, |a j| ≤ 1)
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x ≤ 1)
     (B : ℝ) (hB : 0 ≤ B)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
@@ -1428,10 +1431,8 @@ theorem reluLinearizationBound_secondOrder
       ∀ W V : Fin m → Fin d → ℝ,
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) ≤ B →
-          |net.eval x V -
-           (net.eval x W +
-            linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V -
-            net.eval x W)|
+          |evalSingle relu V a x -
+           linearization (σ := relu) (σ' := reluDeriv) a x W V|
           ≤ (6 * B ^ (4 / 3 : ℝ) + 3 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
@@ -1443,22 +1444,20 @@ theorem reluLinearizationBound_secondOrder
     subst hx_zero
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W V _ _
-    have heval0 : net.eval 0 V = 0 := by simp [ShallowNetwork.eval, relu, Finset.sum_const_zero]
-    have hevalW0 : net.eval 0 W = 0 := by simp [ShallowNetwork.eval, relu, Finset.sum_const_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs 0 W V = 0 := by
-      simp [linearization, relu, reluDeriv, Finset.sum_const_zero]
-    rw [heval0, hevalW0, hlin0, add_zero, sub_zero, sub_zero, abs_zero]
+    have heval0 : evalSingle relu V a 0 = 0 := by simp [evalSingle, relu, Finset.sum_const_zero]
+    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a 0 W V = 0 := by
+      simp [linearization, evalSingle, relu, reluDeriv, Finset.sum_const_zero]
+    rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
   by_cases hm : m = 0
   · -- m = 0 case
     subst hm
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W V _ _
-    have heval0 : net.eval x V = 0 := by simp [ShallowNetwork.eval, Real.sqrt_zero]
-    have hevalW0 : net.eval x W = 0 := by simp [ShallowNetwork.eval, Real.sqrt_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V = 0 := by
-      simp [linearization, Real.sqrt_zero]
-    rw [heval0, hevalW0, hlin0, add_zero, sub_zero, sub_zero, abs_zero]
+    have heval0 : evalSingle relu V a x = 0 := by simp [evalSingle, Real.sqrt_zero]
+    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a x W V = 0 := by
+      simp [linearization, evalSingle, Real.sqrt_zero]
+    rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
   by_cases hB_zero : B = 0
   · -- B = 0 case
@@ -1478,10 +1477,10 @@ theorem reluLinearizationBound_secondOrder
       have hdiff := (sqrt_sum_sq_eq_zero (fun i k => V i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
     rw [hW_eq, hV_eq]
-    have hlin : linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W₀ W₀ =
-        net.eval x W₀ := by
-      simp [linearization, ShallowNetwork.eval, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
-    rw [hlin, add_sub_cancel_left, sub_self, abs_zero]
+    have hlin : linearization (σ := relu) (σ' := reluDeriv) a x W₀ W₀ =
+        evalSingle relu W₀ a x := by
+      simp [linearization, evalSingle, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
+    rw [hlin, sub_self, abs_zero]
     positivity
   have hB_pos : 0 < B := lt_of_le_of_ne hB (Ne.symm hB_zero)
   let r := B ^ (2 / 3 : ℝ) / (m : ℝ) ^ (1 / 3 : ℝ)
@@ -1522,14 +1521,10 @@ theorem reluLinearizationBound_secondOrder
     linarith
   have h_frob_VW : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W i k) ^ 2) ≤ 2 * B :=
       frob_sub_le V W W₀ B hB h_V h_W
-  have h_diff_S : |net.eval x V - (net.eval x W + linearization (σ := relu) (σ' :=
-      reluDeriv) net.outerCoeffs x W V - net.eval x W)| ≤
+  have h_diff_S : |evalSingle relu V a x -
+      linearization (σ := relu) (σ' := reluDeriv) a x W V| ≤
       (2 * B) / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
-    have h_ring : net.eval x V - (net.eval x W + linearization (σ := relu) (σ' :=
-        reluDeriv) net.outerCoeffs x W V - net.eval x W) =
-        net.eval x V - linearization (σ := relu) (σ' := reluDeriv) net.outerCoeffs x W V := by ring
-    rw [h_ring]
-    have h_sub_eq := relu_eval_sub_linearization_eq net x V W
+    have h_sub_eq := relu_eval_sub_linearization_eq a x V W
     rw [h_sub_eq]
     have hj_badW : ∀ j : Fin m, j ∉ S → j ∉ badSet r r x W W₀ :=
         fun j hj h => hj (Finset.mem_union_left S3 h)
@@ -1538,8 +1533,8 @@ theorem reluLinearizationBound_secondOrder
       · exact hj (Finset.mem_union_left S3 (Finset.mem_union_left S2 h1))
       · exact hj (Finset.mem_union_right (S1 ∪ S2) h3)
     have h_zero : ∀ j : Fin m, j ∉ S →
-        net.outerCoeffs j * relu (∑ k, V j k * x k) -
-        net.outerCoeffs j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k = 0 := by
+        a j * relu (∑ k, V j k * x k) -
+        a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k = 0 := by
       intro j hj
       have h_sign_W := sign_preserved_outside_badSet r hr x W W₀ j (hj_badW j hj)
       have h_sign_V := sign_preserved_outside_badSet r hr x V W₀ j (hj_badV j hj)
@@ -1554,19 +1549,19 @@ theorem reluLinearizationBound_secondOrder
         have h_V : ¬(0 ≤ ∑ k, V j k * x k) := fun h => by linarith [h_sign_V.mp h, h_W₀]
         push Not at h_V
         rw [max_eq_right h_V.le, zero_mul, sub_zero, mul_zero]
-    have h_sum : ∑ j : Fin m, (net.outerCoeffs j * relu (∑ k, V j k * x k) -
-        net.outerCoeffs j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k) =
-        ∑ j ∈ S, (net.outerCoeffs j * relu (∑ k, V j k * x k) -
-        net.outerCoeffs j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k) := by
+    have h_sum : ∑ j : Fin m, (a j * relu (∑ k, V j k * x k) -
+        a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k) =
+        ∑ j ∈ S, (a j * relu (∑ k, V j k * x k) -
+        a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k) := by
       symm
       apply Finset.sum_subset (Finset.subset_univ _)
       intro j _ hj
       exact h_zero j hj
     rw [h_sum, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-    have h_sum_le := relu_error_sum_le net x V W S
+    have h_sum_le := relu_error_sum_le a ha x V W S
     have h_sum_cs := relu_error_cs_bound x hx V W (2 * B) h_frob_VW S
-    calc (m : ℝ)⁻¹.sqrt * |∑ j ∈ S, (net.outerCoeffs j * relu (∑ k, V j k * x k) -
-          net.outerCoeffs j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k)|
+    calc (m : ℝ)⁻¹.sqrt * |∑ j ∈ S, (a j * relu (∑ k, V j k * x k) -
+          a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k)|
       _ ≤ (m : ℝ)⁻¹.sqrt * ∑ j ∈ S, |∑ k, (V j k - W j k) * x k| :=
         mul_le_mul_of_nonneg_left h_sum_le (Real.sqrt_nonneg _)
       _ ≤ (m : ℝ)⁻¹.sqrt * (Real.sqrt (S.card : ℝ) * (2 * B)) :=

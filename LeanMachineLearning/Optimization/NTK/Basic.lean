@@ -14,8 +14,8 @@ This file defines the core objects for Chapter 4 of the deep learning theory not
 (Telgarsky 2021), which studies neural networks near their random initialization.
 
 The central objects are:
-- A **scaled shallow network** `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)` with fixed outer layer
-  `a` and variable inner weight matrix `W`.
+- The **scaled shallow network** `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)` with fixed outer layer
+  `a` (`|aⱼ| ≤ 1` where the bound is needed) and variable inner weight matrix `W`.
 - The **standard Gaussian initialization**: rows of `W₀` drawn i.i.d. from `𝒩(0, Iᵈ)`.
 - The **first-order Taylor linearization** `f₀(x; W) = f(x; W₀) + ⟨∇_W f(x; W₀), W − W₀⟩_F`.
 
@@ -24,9 +24,7 @@ making it much easier to analyze than `f` itself.
 
 ## Main definitions
 
-* `NTK.ShallowNetwork σ d m` : a scaled shallow network with activation `σ`,
-  input dimension `d`, and width `m`.
-* `NTK.ShallowNetwork.eval` : evaluate `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)`.
+* `NTK.evalSingle σ W a x` : evaluate `f(x; W, a) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)`.
 * `NTK.linearization` : the first-order Taylor linearization `f₀(x; W)`.
 
 -/
@@ -41,38 +39,29 @@ variable {d m : ℕ}
 
 /-! ### Scaled shallow network (Definition 4.1 / Section 4.1) -/
 
-/-- **Definition 4.1** (Telgarsky 2021, eq. (2)).
-A scaled shallow network with activation `σ`, input dimension `d`, and width `m`.
+/-- **Definition 4.1** (Telgarsky 2021, eq. (2)). Single-output evaluation of a scaled shallow
+network with activation `φ`, input weights `W : Fin n → Fin d → ℝ` (rows `Wᵢ`) and readout weights
+`a : Fin n → ℝ`:
+  `f(x; W, a) = (1/√n) ∑ᵢ aᵢ φ(Wᵢ ⬝ᵥ x)`.
 
-The network computes
-  `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)`
-where `W : Fin m → Fin d → ℝ` has rows `wⱼ` and `a : Fin m → ℝ` is a fixed
-outer layer satisfying `|aⱼ| ≤ 1`.
+Chapter 4 fixes the outer layer with `|aᵢ| ≤ 1` and varies only `W`; this is stated as the
+hypothesis `∀ i, |a i| ≤ 1` where it is needed. The `1/√n` normalization ensures the associated NTK
+has a finite limit as `n → ∞`. -/
+noncomputable def evalSingle {d n : ℕ}
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (x : Fin d → ℝ) : ℝ :=
+  (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⬝ᵥ x)
 
-The `1/√m` normalization ensures the associated NTK has a finite limit as `m → ∞`. -/
-structure ShallowNetwork (σ : ℝ → ℝ) (d m : ℕ) where
-  /-- The fixed outer-layer coefficients satisfying `|outerCoeffs j| ≤ 1`. -/
-  outerCoeffs : Fin m → ℝ
-  /-- Outer coefficients are bounded in absolute value by 1. -/
-  outerCoeffs_bound : ∀ j : Fin m, |outerCoeffs j| ≤ 1
-
-/-- Evaluate a scaled shallow network at input `x` and weight matrix `W`:
-  `f(x; W) = (1/√m) ∑ⱼ aⱼ σ(wⱼᵀx)`.
-
-Here `W : Fin m → Fin d → ℝ` represents the weight matrix with rows `W i : Fin d → ℝ`,
-and the inner product `wⱼᵀx = ∑ₖ W j k * x k`. -/
-noncomputable def ShallowNetwork.eval
-    {σ : ℝ → ℝ} {d m : ℕ}
-    (net : ShallowNetwork σ d m)
-    (x : Fin d → ℝ)
-    (W : Fin m → Fin d → ℝ) : ℝ :=
-  (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, net.outerCoeffs j * σ (∑ k : Fin d, W j k * x k)
+/-- The normalized-sum formula for a scalar network evaluation. This is the public
+equation lemma for `evalSingle`, so proofs need not unfold its implementation. -/
+lemma evalSingle_eq_normalized_sum {d n : ℕ}
+    (φ : ℝ → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (x : Fin d → ℝ) :
+    evalSingle φ W a x = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, a i * φ (W i ⬝ᵥ x) := rfl
 
 /-! ### The weight gradient `∇_W f(x; W₀)`
 
 The gradient of `f(x; W)` with respect to `W`, evaluated at `W₀`, is the matrix in `ℝ^{m×d}` with
 entry `(j, k)` equal to `aⱼ · σ'(wⱼ₀ᵀx) · xₖ / √m`, written out explicitly as
-`(m : ℝ)⁻¹.sqrt * outerCoeffs j * σ' (∑ l, W₀ j l * x l) * x k`. For the ReLU, `σ'(z) = 1[z ≥ 0]`
+`(m : ℝ)⁻¹.sqrt * a j * σ' (∑ l, W₀ j l * x l) * x k`. For the ReLU, `σ'(z) = 1[z ≥ 0]`
 (a.e.), so the gradient is sparse at signs. -/
 
 /-! ### Gaussian initialization (Definition 4.2)
@@ -86,53 +75,40 @@ is written out explicitly throughout as
 /-! ### Taylor linearization (Definition 4.3) -/
 
 /-- **Definition 4.3** (First-order Taylor linearization).
-For a scaled shallow network with differentiable activation `σ` and a fixed
-initialization `W₀ : Fin m → Fin d → ℝ`, the first-order Taylor linearization
+For a scaled shallow network with outer layer `a`, an activation `σ` with (sub)derivative `σ'`, and
+a fixed initialization `W₀ : Fin m → Fin d → ℝ`, the first-order Taylor linearization
 of `f(x; ·)` at `W₀` is:
   `f₀(x; W) = f(x; W₀) + ⟨∇_W f(x; W₀), W − W₀⟩_F`
-  `         = (1/√m) ∑ⱼ aⱼ [σ(wⱼ₀ᵀx) + σ'(wⱼ₀ᵀx)(wⱼ − wⱼ₀)ᵀx]`.
+  `         = (1/√m) ∑ⱼ aⱼ [σ(wⱼ₀ᵀx) + σ'(wⱼ₀ᵀx)(wⱼ − wⱼ₀)ᵀx]`,
+with `f = evalSingle σ · a`. The derivative `σ'` is a parameter so that the ReLU can use its
+a.e.-derivative `1[z ≥ 0]` at the kink. For differentiable `σ` and `σ' = deriv σ` this is the
+Taylor model `f(x; θ₀) + ⟪∇f(x; θ₀), θ - θ₀⟫` of the packed network (`linearization_eq_taylor`).
 
 This is affine in `W` and nonlinear in `x` (when `σ` is nonlinear). -/
 noncomputable def linearization
     {σ σ' : ℝ → ℝ} -- σ and its derivative
     {d m : ℕ}
-    (outerCoeffs : Fin m → ℝ)
+    (a : Fin m → ℝ)
     (x : Fin d → ℝ)
     (W₀ W : Fin m → Fin d → ℝ) : ℝ :=
-  let eval₀ : ℝ :=
-    (m : ℝ)⁻¹.sqrt *
-    ∑ j : Fin m, outerCoeffs j * σ (∑ k : Fin d, W₀ j k * x k)
-  let grad_inner : ℝ :=
-    (m : ℝ)⁻¹.sqrt *
-    ∑ j : Fin m, outerCoeffs j *
-      σ' (∑ k : Fin d, W₀ j k * x k) *
-      ∑ k : Fin d, (W j k - W₀ j k) * x k
-  eval₀ + grad_inner
+  evalSingle σ W₀ a x +
+    (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, a j * σ' (W₀ j ⬝ᵥ x) * ((W j - W₀ j) ⬝ᵥ x)
 
 /-- For the ReLU activation `σ(z) = max(0, z)`, the linearization simplifies to
   `f₀(x; W) = (1/√m) ∑ⱼ aⱼ σ'(wⱼ₀ᵀx) wⱼᵀx = ⟨∇_W f(x; W₀), W⟩_F`
 because `σ(z) = z · σ'(z)` a.e., which cancels the constant term at `W₀`. -/
 lemma linearization_relu_eq
     {d m : ℕ}
-    (outerCoeffs : Fin m → ℝ)
+    (a : Fin m → ℝ)
     (x : Fin d → ℝ)
     (W₀ W : Fin m → Fin d → ℝ)
     (σ' : ℝ → ℝ) :
-    linearization (σ := fun z => z * σ' z) (σ' := σ') outerCoeffs x W₀ W =
-    (m : ℝ)⁻¹.sqrt *
-    ∑ j : Fin m, outerCoeffs j * σ' (∑ k : Fin d, W₀ j k * x k) *
-      ∑ k : Fin d, W j k * x k := by
-  simp only [linearization]
-  have h_inner_sum (j : Fin m) :
-      ∑ k : Fin d, (W j k - W₀ j k) * x k =
-        ∑ k : Fin d, W j k * x k - ∑ k : Fin d, W₀ j k * x k := by
-    simp_rw [sub_mul]
-    rw [Finset.sum_sub_distrib]
-  rw [← mul_add, ← Finset.sum_add_distrib]
+    linearization (σ := fun z => z * σ' z) (σ' := σ') a x W₀ W =
+    (m : ℝ)⁻¹.sqrt * ∑ j : Fin m, a j * σ' (W₀ j ⬝ᵥ x) * (W j ⬝ᵥ x) := by
+  simp only [linearization, evalSingle, ← mul_add, ← Finset.sum_add_distrib]
   congr 1
-  apply Finset.sum_congr rfl
-  intro j _
-  rw [h_inner_sum j]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [sub_dotProduct]
   ring
 
 end NTK

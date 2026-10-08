@@ -368,6 +368,38 @@ theorem tangentFeature_netFromParams_of_differentiable (φ : ℝ → ℝ) (hφ :
     tangentFeature (netFromParams φ n d) x θ = gradParams φ n d x θ :=
   tangentFeature_netFromParams φ n d x θ (fun _ => hφ _)
 
+/-- **The shallow linearization is the Taylor model of the packed network.** For differentiable `φ`
+and a frozen readout `a`, the first-order linearization `linearization` of the input-weights-only
+network (Definition 4.3, with `σ' = deriv φ`) equals the Taylor model
+`f(x; θ₀) + ⟪∇f(x; θ₀), θ - θ₀⟫` of `netFromParams` at `θ₀ = packParams W₀ a` along the direction
+to `θ = packParams W a`, which has no readout component. -/
+theorem linearization_eq_taylor (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ) (n d : ℕ)
+    (a : Fin n → ℝ) (x : Fin d → ℝ) (W₀ W : Fin n → Fin d → ℝ) :
+    linearization (σ := φ) (σ' := deriv φ) a x W₀ W =
+      netFromParams φ n d x (packParams W₀ a) +
+        ⟪tangentFeature (netFromParams φ n d) x (packParams W₀ a),
+          packParams W a - packParams W₀ a⟫ := by
+  have hrow : ∀ i, (fun j => packParams W₀ a (paramIndexEquiv n d (Sum.inl (i, j)))) = W₀ i :=
+    fun i => funext fun j => packParams_apply_idxW W₀ a i j
+  have hnet : netFromParams φ n d x (packParams W₀ a) = evalSingle φ W₀ a x := by
+    simp only [netFromParams, packParams_apply_idxW, packParams_apply_idxA]
+  rw [tangentFeature_netFromParams_of_differentiable φ hφ, gradParams, inner_sub_right,
+    inner_packParams_packParams, inner_packParams_packParams, hnet, linearization]
+  have hgW : ∀ i, gradW φ n d x (packParams W₀ a) i =
+      fun j => (n : ℝ)⁻¹.sqrt * a i * deriv φ (W₀ i ⬝ᵥ x) * x j := fun i => by
+    funext j
+    simp only [gradW, packParams_apply_idxA, hrow]
+  have hdot : ∀ i, gradW φ n d x (packParams W₀ a) i ⬝ᵥ (W i - W₀ i) =
+      (n : ℝ)⁻¹.sqrt * a i * deriv φ (W₀ i ⬝ᵥ x) * ((W i - W₀ i) ⬝ᵥ x) := fun i => by
+    rw [hgW i]
+    simp only [dotProduct, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun j _ => by ring
+  congr 1
+  rw [add_sub_add_right_eq_sub, ← Finset.sum_sub_distrib, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  rw [← dotProduct_sub, hdot i]
+  ring
+
 /-- The input-weight block of the tangent feature is `gradW`. -/
 @[simp]
 lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
