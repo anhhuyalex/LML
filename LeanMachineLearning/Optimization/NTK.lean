@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
+public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Basic
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Shallow
 public import LeanMachineLearning.Optimization.NTK.Initialization
@@ -35,6 +36,8 @@ two-layer training limit follow it.
   full-NTK convergence; `Initialization.Peripheral` holds secondary consequences.
 * `NTK.Training` : `GradientFlow` (gradient flow, lazy training bootstrap, prediction) and
   `TwoLayer` (parameter packing, concentration, and the end-to-end kernel-freeze bound).
+* `NTK.FeatureLearning` : the two-layer network with an explicit scaling knob `γ`: single-neuron
+  gradients, the exact one-step feature update and the predictor dynamics `∂_t f = -(η/(mγ²)) K r`.
 * `NTK.Deep` : multilayer MLP parameters, exact layerwise NTK decomposition (Proposition 2.25),
   recursive limiting NTK kernel (Proposition 2.27), and one-sided Gaussian
   conditioning (Lemma 2.26).

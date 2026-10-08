@@ -123,6 +123,7 @@ public import LeanMachineLearning.Optimization.NTK.Deep.GaussianDecoupling
 public import LeanMachineLearning.Optimization.NTK.Deep.LayerSplit
 public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
+public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Basic
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
