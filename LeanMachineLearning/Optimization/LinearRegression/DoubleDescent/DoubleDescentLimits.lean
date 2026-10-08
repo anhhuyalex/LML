@@ -18,7 +18,7 @@ The three regimes of random-feature regression, with `m` samples, `n₀` ambient
 random features, are decided by the *smallest* of the three dimensions. `minNormOperator` is the
 minimum-norm least-squares operator `M` (`θ̂ = M y`) with the formula valid in each regime, and
 `conditionalRisk σ² θ X S = ‖(M X - 1) θ‖² + σ² Tr (Mᵀ M)` is the expected squared error of `θ̂`
-over isotropic noise (`conditionalRisk_eq_integral`).
+over isotropic noise (`risk_eq_conditionalRisk`).
 
 For independent Gaussian `X ∈ ℝ^{m×n₀}`, `S ∈ ℝ^{n₀×n}` the risk converges in probability to
 `asymptoticTotalRisk σ² ρ⋆ γ δ` (`γ = lim n₀/m`, `δ = lim n/m`, `ρ⋆ = lim ‖θ‖²`):
@@ -60,7 +60,7 @@ noncomputable def minNormOperator (X : Matrix (Fin m) (Fin n₀) ℝ) (S : Matri
 
 /-- **The conditional prediction risk of the random-feature estimator.** With isotropic noise of
 variance `σ²`, the risk `E_ε ‖θ̂ - θ‖²` of `θ̂ = M (X θ + ε)` is
-`‖(M X - 1) θ‖² + σ² Tr (Mᵀ M)` (`exact_conditional_bias_variance_decomposition`). -/
+`‖(M X - 1) θ‖² + σ² Tr (Mᵀ M)` (`linearEstimator_bias_variance_isotropic`). -/
 noncomputable def conditionalRisk (σ_sq : ℝ) (θ : Fin n₀ → ℝ) (X : Matrix (Fin m) (Fin n₀) ℝ)
     (S : Matrix (Fin n₀) (Fin n) ℝ) : ℝ :=
   ((minNormOperator X S * X - 1) *ᵥ θ) ⬝ᵥ ((minNormOperator X S * X - 1) *ᵥ θ) +
@@ -81,19 +81,22 @@ theorem minNormOperator_of_sample {X : Matrix (Fin m) (Fin n₀) ℝ} {S : Matri
     minNormOperator X S = S * ((X * S)ᵀ * ((X * S) * (X * S)ᵀ)⁻¹) := by
   simp [minNormOperator, h, h']
 
-/-- `conditionalRisk` is the expected squared parameter error of `θ̂ = M (X θ + ε)`: the bridge to
-the exact bias–variance decomposition of `Basic.lean`. -/
-theorem conditionalRisk_eq_integral (σ_sq : ℝ) (θ : EuclideanSpace ℝ (Fin n₀))
+/-- **`conditionalRisk` is `LinearRegression.risk`, in closed form.** For the estimator
+`θ̂ = M (X θ + ε)`, `M = minNormOperator X S`, and centered noise of covariance `σ² I`, the risk
+`LinearRegression.risk 1 P θ̂ θ = E ‖θ̂ - θ‖²` equals `conditionalRisk σ² θ X S`: its bias is
+`‖(M X - 1) θ‖²` and its variance `σ² Tr (Mᵀ M)` (`linearEstimator_bias_variance_isotropic`). -/
+theorem risk_eq_conditionalRisk (σ_sq : ℝ) (θ : EuclideanSpace ℝ (Fin n₀))
     (X : Matrix (Fin m) (Fin n₀) ℝ) (S : Matrix (Fin n₀) (Fin n) ℝ)
     (P : Measure (Fin m → ℝ)) [IsProbabilityMeasure P]
     (hε : ∀ i, MemLp (fun ε : Fin m → ℝ => ε i) 2 P) (h_mean : ∀ i, ∫ ε, ε i ∂P = 0)
     (h_cov : ∀ i j, ∫ ε, ε i * ε j ∂P = if i = j then σ_sq else 0)
     (β_hat : (Fin m → ℝ) → EuclideanSpace ℝ (Fin n₀))
     (hβ : ∀ ε, (β_hat ε).ofLp = minNormOperator X S *ᵥ (X *ᵥ θ.ofLp + ε)) :
-    ∫ ε, ‖β_hat ε - θ‖ ^ 2 ∂P = conditionalRisk σ_sq θ.ofLp X S := by
-  rw [exact_conditional_bias_variance_decomposition (minNormOperator X S) X θ σ_sq P hε h_mean
-    h_cov β_hat hβ, EuclideanSpace.norm_sq_eq]
-  simp [conditionalRisk, dotProduct, sq]
+    LinearRegression.risk 1 P β_hat θ = conditionalRisk σ_sq θ.ofLp X S := by
+  rw [(linearEstimator_bias_variance_isotropic (minNormOperator X S) X θ 1 σ_sq P hε h_mean
+    h_cov β_hat hβ).2.2]
+  unfold conditionalRisk
+  rw [Matrix.one_mulVec, Matrix.mul_one, Matrix.trace_mul_comm]
 
 /-- The feature-bottleneck variance trace identity holds without any invertibility hypothesis:
 for singular `Zᵀ Z` both sides vanish (`0⁻¹`-convention). -/
@@ -521,6 +524,38 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
     exact tendsto_measure_sampleRisk_deviation σ_sq hγ1 hδ1 hmpos
       (eventually_gt_of_ratio hδ1 hδ' hmpos) (eventually_gt_of_ratio hγ1 hγ' hmpos) hmm hγ' hδ'
       θ hθ hε
+
+/-- **Theorem 3.1 for `LinearRegression.risk`.** The same convergence for the actual risk
+`LinearRegression.risk 1 (P k) θ̂_k θ_k = E ‖θ̂_k - θ_k‖²` of `θ̂_k = M (X_k θ_k + ε)` under any
+noise laws `P k` with mean `0` and covariance `σ² I`: by `risk_eq_conditionalRisk` the events
+coincide with those of `double_descent_total_risk_convergence`, so the limit does not depend on
+the noise law beyond `σ²`. -/
+theorem double_descent_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ : ℝ} (σ_sq : ℝ)
+    (hγ0 : 0 < γ) (hδ0 : 0 < δ)
+    (hdom : δ < min 1 γ ∨ (γ < 1 ∧ γ ≤ δ) ∨ (1 < γ ∧ 1 < δ))
+    (hord : γ = δ → γ < 1 → (∀ᶠ k in atTop, nn k ≤ n0 k) ∨ (∀ᶠ k in atTop, n0 k < nn k))
+    (hmm : Tendsto mm atTop atTop)
+    (hγ' : Tendsto (fun k => (n0 k : ℝ) / (mm k : ℝ)) atTop (𝓝 γ))
+    (hδ' : Tendsto (fun k => (nn k : ℝ) / (mm k : ℝ)) atTop (𝓝 δ))
+    (θ : ∀ k, Fin (n0 k) → ℝ) (hθ : Tendsto (fun k => θ k ⬝ᵥ θ k) atTop (𝓝 ρ))
+    (P : ∀ k, Measure (Fin (mm k) → ℝ)) [∀ k, IsProbabilityMeasure (P k)]
+    (hmem : ∀ k i, MemLp (fun e : Fin (mm k) → ℝ => e i) 2 (P k))
+    (hmean : ∀ k i, ∫ e, e i ∂P k = 0)
+    (hcov : ∀ k i j, ∫ e, e i * e j ∂P k = if i = j then σ_sq else 0) {ε : ℝ} (hε : 0 < ε) :
+    Tendsto (fun k =>
+      ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
+        {x | ε ≤ |LinearRegression.risk 1 (P k) (fun e : Fin (mm k) → ℝ => (WithLp.toLp 2
+          (minNormOperator (Matrix.of x.1) (Matrix.of x.2) *ᵥ (Matrix.of x.1 *ᵥ θ k + e)) :
+            EuclideanSpace ℝ (Fin (n0 k)))) (WithLp.toLp 2 (θ k)) -
+          asymptoticTotalRisk σ_sq ρ γ δ|}) atTop (𝓝 0) := by
+  refine (double_descent_total_risk_convergence σ_sq hγ0 hδ0 hdom hord hmm hγ' hδ' θ hθ
+    hε).congr fun k => ?_
+  congr 1
+  ext x
+  simp only [Set.mem_ofPred_eq]
+  rw [risk_eq_conditionalRisk σ_sq (WithLp.toLp 2 (θ k)) (Matrix.of x.1) (Matrix.of x.2) (P k)
+    (hmem k) (hmean k) (hcov k) _ (fun e => rfl)]
 
 end Global
 

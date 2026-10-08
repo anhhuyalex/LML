@@ -25,7 +25,7 @@ module & section\\ \hline
 The chapter has three parts, all sorry-free.
 \begin{itemize}
   \item The \emph{deterministic layer} (Sections~\ref{sec:dd:risk}--\ref{sec:dd:gram}): exact finite-sample bias--variance identities for linear estimators, the three pseudoinverse representations of ridgeless
-  random-feature regression, the trace and bias reductions that bring the variance and bias to a Gaussian matrix $G=XQ$ with $Q^\top Q=I$, the limits of the resulting \emph{explicit} ratio expressions along $n_0/m\to\gamma$, $n/m\to\delta$, and the global shape
+  random-feature regression, the trace and bias reductions that bring the variance and bias to a Gaussian matrix $G:=XQ$ with $Q^\top Q=I$, the limits of the resulting \emph{explicit} ratio expressions along $n_0/m\to\gamma$, $n/m\to\delta$, and the global shape
   of the limiting risk curve (divergence at $\delta=1$, second descent, flat segment for $\gamma<1$).
   \item The \emph{probabilistic layer} (Sections~\ref{sec:dd:moments} and~\ref{sec:dd:gaussian}): the $\chi^2$ tail bound, orthogonal invariance of Gaussian matrices, almost-sure full rank, the exact law $1/\chi^2_{p-q}$ of the diagonal of $(G^\top G)^{-1}$ and
   its mean, non-asymptotic and in-probability concentration of $\operatorname{Tr}(G^\top G)^{-1}$, the exact $\chi^2$ law of the Rayleigh quotient of $(G^\top G)^{-1}$ and the resulting fit-error concentration, the omitted signal of a Gaussian subspace, and
@@ -38,7 +38,7 @@ Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite
 \medskip\noindent\textbf{Notation.}
 The data are $m$ samples with inputs $X\in\mathbb R^{m\times n_0}$ (ambient dimension $n_0$) and labels
 $y=X\theta_\star+\varepsilon$, where the noise satisfies $\mathbb E\varepsilon=0$, $\operatorname{Cov}\varepsilon=\sigma^2I_m$.
-The random features are $Z=XS\in\mathbb R^{m\times n}$ with a projection $S\in\mathbb R^{n_0\times n}$ ($n$ features), and
+The random features are $Z:=XS\in\mathbb R^{m\times n}$ with a projection $S\in\mathbb R^{n_0\times n}$ ($n$ features), and
 \[
   \gamma:=\frac{n_0}{m},\qquad \delta:=\frac nm,\qquad \rho_\star:=\|\theta_\star\|^2 .
 \]
@@ -67,7 +67,7 @@ feature covariance, noise covariance & $\Sigma$, $\Gamma$ & \texttt{Sigma} & \te
 So the generic statements of this section are written with parameter dimension $p$ and $m$ samples; the sample index type of the Lean lemmas is called \texttt{n} there, while from Section~\ref{sec:dd:features} on the Lean files use \texttt{m} for samples, \texttt{n₀} for the ambient dimension and \texttt{n} for the number of features.
 
 \begin{definition}[Linear model and linear estimator]\label{def:dd:linearModel}
-In the \emph{linear model} the labels are $y=X\theta_\star+\varepsilon\in\mathbb R^m$, where $X\in\mathbb R^{m\times p}$ is the design matrix, $\theta_\star\in\mathbb R^p$ is a fixed parameter and the noise $\varepsilon\in\mathbb R^m$ is a random vector with
+In the \emph{linear model} the labels are $y:=X\theta_\star+\varepsilon\in\mathbb R^m$, where $X\in\mathbb R^{m\times p}$ is the design matrix, $\theta_\star\in\mathbb R^p$ is a fixed parameter and the noise $\varepsilon\in\mathbb R^m$ is a random vector with
 $\mathbb E\varepsilon=0$ and covariance $\operatorname{Cov}\varepsilon=\Gamma$ (isotropic noise: $\Gamma=\sigma^2I_m$). The design $X$ is treated as fixed, so all randomness is in $\varepsilon$.
 An estimator $\hat\theta$ of $\theta_\star$ is \emph{linear} if there is a matrix $M\in\mathbb R^{p\times m}$, which may depend on $X$ (and on a projection $S$ in the random-feature setting) but not on $\varepsilon$, with
 \[
@@ -82,7 +82,7 @@ a deterministic vector plus a centered random vector; it is just the distributiv
 
 This is not a Lean definition: there is no declaration for ``linear model'' or ``linear estimator''. Every Lean theorem takes an arbitrary estimator \texttt{β\_hat : (n → ℝ) → EuclideanSpace ℝ p} (a function of the noise) together with the hypothesis
 \texttt{hβ : ∀ ε, (β\_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)}, and the noise assumptions as the hypotheses \texttt{h\_mean} (centered) and \texttt{h\_cov} (covariance $\Gamma$). Definition~\ref{def:dd:linearModel} is exactly the conjunction of these hypotheses,
-and a theorem below that says ``let $\hat\theta=M(X\theta_\star+\varepsilon)$'' assumes it.
+and a theorem below that says ``let $\hat\theta:=M(X\theta_\star+\varepsilon)$'' assumes it.
 
 \begin{definition}[Risk, bias, covariance and variance of an estimator]\label{def:dd:risk}
   \lean{LinearRegression.risk, LinearRegression.bias, LinearRegression.covCondX, LinearRegression.variance}
@@ -90,13 +90,89 @@ and a theorem below that says ``let $\hat\theta=M(X\theta_\star+\varepsilon)$'' 
 Let $\hat\theta$ be a random vector in $\mathbb R^p$ (the estimator, random through the noise) and $\Sigma\in\mathbb R^{p\times p}$ a
 weighting matrix (the feature covariance). Its \emph{risk}, \emph{bias} and \emph{variance} are
 \[
-  R(\hat\theta;\theta_\star)=\mathbb E\,(\hat\theta-\theta_\star)^\top\Sigma(\hat\theta-\theta_\star),\qquad
-  B(\hat\theta;\theta_\star)=(\mathbb E\hat\theta-\theta_\star)^\top\Sigma(\mathbb E\hat\theta-\theta_\star),\qquad
-  V(\hat\theta)=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\,\Sigma\bigr),
+  R(\hat\theta;\theta_\star):=\mathbb E\bigl[(\hat\theta-\theta_\star)^\top\Sigma(\hat\theta-\theta_\star)\bigr],\qquad
+  B(\hat\theta;\theta_\star):=\bigl(\mathbb E[\hat\theta]-\theta_\star\bigr)^\top\Sigma\bigl(\mathbb E[\hat\theta]-\theta_\star\bigr),\qquad
+  V(\hat\theta):=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\,\Sigma\bigr),
 \]
-where $\operatorname{Cov}(\hat\theta)_{jk}=\operatorname{cov}(\hat\theta_j,\hat\theta_k)$. In Lean these are \texttt{LinearRegression.risk}, \texttt{bias}, \texttt{covCondX} and \texttt{variance}, with $\theta_\star$ and $\hat\theta$ named \texttt{β} and \texttt{β\_hat}.
+where $\operatorname{Cov}(\hat\theta)_{jk}:=\operatorname{cov}(\hat\theta_j,\hat\theta_k)$. In Lean these are \texttt{LinearRegression.risk}, \texttt{bias}, \texttt{covCondX} and \texttt{variance}, with $\theta_\star$ and $\hat\theta$ named \texttt{β} and \texttt{β\_hat}.
 They make sense for any estimator and say nothing about linearity.
 \end{definition}
+
+\begin{remark}[Intuition and inter-relations of risk, bias, and variance]\label{rmk:dd:riskIntuition}
+  \uses{def:dd:risk, lem:dd:excessRisk, thm:dd:riskBiasVariance}
+The three quantities in Definition~\ref{def:dd:risk} capture the classical bias--variance tradeoff in parameter space, weighted by the feature geometry $\Sigma$:
+\begin{itemize}
+  \item \textbf{Why variance is defined as a trace:}
+  The natural definition of parameter variance is the expected $\Sigma$-weighted squared fluctuation of $\hat\theta$ around its own mean:
+  \[
+    \mathbb E\bigl[\|\hat\theta-\mathbb E[\hat\theta]\|_\Sigma^2\bigr] = \mathbb E\Bigl[\bigl(\hat\theta-\mathbb E[\hat\theta]\bigr)^\top\Sigma\bigl(\hat\theta-\mathbb E[\hat\theta]\bigr)\Bigr].
+  \]
+  Writing $u:=\hat\theta-\mathbb E[\hat\theta]$, the scalar $u^\top\Sigma u$ equals its trace $\operatorname{Tr}(u^\top\Sigma u)$. By cyclic invariance of the trace and linearity of expectation,
+  \[
+    \mathbb E\bigl[u^\top\Sigma u\bigr] = \mathbb E\bigl[\operatorname{Tr}(uu^\top\Sigma)\bigr] = \operatorname{Tr}\Bigl(\mathbb E\bigl[uu^\top\bigr]\Sigma\Bigr) = \operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\,\Sigma\bigr).
+  \]
+  Thus $V(\hat\theta)$ is exactly the expected squared distance of $\hat\theta$ from its expectation $\mathbb E[\hat\theta]$. In the isotropic case $\Sigma=I$, the trace collapses to the sum of coordinate variances:
+  \[
+    V(\hat\theta) = \operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\bigr) = \sum_{j=1}^p\operatorname{Var}(\hat\theta_j) = \mathbb E\|\hat\theta-\mathbb E[\hat\theta]\|^2.
+  \]
+  For general $\Sigma$, the trace $\operatorname{Tr}(\operatorname{Cov}(\hat\theta)\,\Sigma)=\sum_{j,k}\operatorname{Cov}(\hat\theta)_{jk}\Sigma_{jk}$ weights both individual coordinate variances and cross-covariances according to the covariance of the features.
+
+  \item \textbf{Statistical meaning of the $\Sigma$-metric:}
+  The weighting matrix $\Sigma$ is not an arbitrary metric. When evaluating the fitted model $x\mapsto x^\top\hat\theta$ on a new test sample $x_{\mathrm{new}}\sim P_x$ independent of the training data (with $\mathbb E[x_{\mathrm{new}}]=0$ and $\operatorname{Cov}(x_{\mathrm{new}})=\Sigma$), the excess out-of-sample prediction error is
+  \[
+    \mathbb E_{x_{\mathrm{new}}}\bigl[(x_{\mathrm{new}}^\top\hat\theta - x_{\mathrm{new}}^\top\theta_\star)^2\bigr] = (\hat\theta-\theta_\star)^\top\mathbb E\bigl[x_{\mathrm{new}}x_{\mathrm{new}}^\top\bigr](\hat\theta-\theta_\star) = \|\hat\theta-\theta_\star\|_\Sigma^2
+  \]
+  (Lemma~\ref{lem:dd:excessRisk}). Averaging over the training noise yields the risk $R(\hat\theta;\theta_\star)=\mathbb E\|\hat\theta-\theta_\star\|_\Sigma^2$. Thus the $\Sigma$-norm on parameters corresponds precisely to the $L^2(P_x)$ prediction error on unseen test data.
+
+  \item \textbf{Inter-relations and Pythagorean decomposition ($R = B + V$):}
+  Decomposing the error into fluctuation and bias, $\hat\theta-\theta_\star=(\hat\theta-\mathbb E[\hat\theta])+(\mathbb E[\hat\theta]-\theta_\star)$, yields
+  \[
+    \|\hat\theta-\theta_\star\|_\Sigma^2 = \|\hat\theta-\mathbb E[\hat\theta]\|_\Sigma^2 + 2\bigl(\hat\theta-\mathbb E[\hat\theta]\bigr)^\top\Sigma\bigl(\mathbb E[\hat\theta]-\theta_\star\bigr) + \|\mathbb E[\hat\theta]-\theta_\star\|_\Sigma^2.
+  \]
+  Because $\mathbb E[\hat\theta-\mathbb E[\hat\theta]]=0$ and $\mathbb E[\hat\theta]-\theta_\star$ is deterministic, the cross-term vanishes upon taking expectation. This gives the exact decomposition (Theorem~\ref{thm:dd:riskBiasVariance}):
+  \[
+    R(\hat\theta;\theta_\star) = B(\hat\theta;\theta_\star) + V(\hat\theta).
+  \]
+  Here $B(\hat\theta;\theta_\star)=\|\mathbb E[\hat\theta]-\theta_\star\|_\Sigma^2$ measures systematic estimation error (underfitting or feature shrinkage), while $V(\hat\theta)=\operatorname{Tr}(\operatorname{Cov}(\hat\theta)\Sigma)$ measures sensitivity to sample noise (overfitting and parameter variance).
+
+  \item \textbf{Decoupling for linear estimators:}
+  For any linear estimator $\hat\theta=My=M(X\theta_\star+\varepsilon)$ with noise $\mathbb E\varepsilon=0$, $\operatorname{Cov}\varepsilon=\Gamma$ (Theorem~\ref{thm:dd:linearBV}), the two components cleanly decouple:
+  \[
+    B = \bigl((MX-I)\theta_\star\bigr)^\top\Sigma\bigl((MX-I)\theta_\star\bigr), \qquad V = \operatorname{Tr}(M\Gamma M^\top\Sigma).
+  \]
+  The bias $B$ depends only on the true parameter $\theta_\star$ and the operator $MX$ (and is independent of the noise level), while the variance $V$ depends only on the noise covariance $\Gamma$ and the operator $M$ (and is independent of $\theta_\star$).
+\end{itemize}
+\end{remark}
+
+\begin{remark}[Three layers of definitions: risk, conditional risk and asymptotic risk]\label{rmk:dd:threeLayers}
+  \uses{def:dd:risk, def:dd:minNormOperator, def:dd:curve, lem:dd:globalBranches, cor:dd:globalRisk}
+The words ``risk'', ``bias'' and ``variance'' are used for three different objects in this chapter. They are one quantity at three stages of evaluation, and the design avoids a second definition wherever a theorem can do the work of one.
+The following notation is used for them; the quantities of the later layers are defined in Definitions~\ref{def:dd:minNormOperator} and~\ref{def:dd:curve}, and are recalled here so the remark can be read on its own.
+\begin{itemize}
+  \item $\mathsf{risk}_I(P;\hat\theta;\theta)$, $\mathsf{bias}_I(P;\hat\theta;\theta)$ and $\mathsf{variance}_I(P;\hat\theta)$: the risk, bias and variance of Definition~\ref{def:dd:risk} for the weight $\Sigma=I$ and a noise law $P$, that is \texttt{LinearRegression.risk 1 P β\_hat θ}, \texttt{LinearRegression.bias 1 P β\_hat θ} and \texttt{LinearRegression.variance 1 P β\_hat}. Here $\hat\theta$ is a random vector (random through the noise $\varepsilon\sim P$) and $\theta$ the true parameter.
+  \item $M(X,S)\in\mathbb R^{n_0\times m}$: the minimum-norm operator of Definition~\ref{def:dd:minNormOperator} (\texttt{minNormOperator X S}), the matrix with $\hat\theta=My$ for $y=X\theta+\varepsilon$, chosen among the three regime formulas by the smallest of the three dimensions $m$ (samples), $n_0$ (ambient) and $n$ (random features).
+  \item $\mathsf{cr}(\sigma^2,\theta,X,S):=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M)$: the \emph{conditional risk} of Definition~\ref{def:dd:minNormOperator} (\texttt{conditionalRisk σ\_sq θ X S}), a real number determined by the two matrices $X$, $S$, the parameter $\theta$ and the noise variance $\sigma^2$.
+  \item $\mathsf B(\gamma,\delta)$, $\mathsf V(\gamma,\delta)$ and $\mathsf R:=\mathsf B+\mathsf V$: the asymptotic bias, variance and total risk of Definition~\ref{def:dd:curve} (\texttt{asymptoticBias}, \texttt{asymptoticVariance}, \texttt{asymptoticTotalRisk}), functions of the limits $\gamma=\lim n_0/m$, $\delta=\lim n/m$, $\rho=\lim\|\theta\|^2$ and of $\sigma^2$.
+  \item $\operatorname{Cov}(\hat\theta)$ (\texttt{LinearRegression.covCondX}): the covariance matrix of the random vector $\hat\theta$ under the noise law, which enters $\mathsf{variance}_I:=\operatorname{Tr}(\operatorname{Cov}(\hat\theta))$.
+\end{itemize}
+\begin{center}
+\begin{tabular}{p{2.2cm}p{4.6cm}p{4.2cm}p{2.6cm}}
+\hline
+Layer & Lean definitions & What it is & Depends on\\
+\hline
+1.\ Probabilistic & \texttt{LinearRegression.risk}, \texttt{bias}, \texttt{variance} (and \texttt{covCondX}) in \texttt{HMRT.lean} & average over a noise law $\mu$ for \emph{any} estimator $\hat\beta$; $R=B+V$ is \texttt{risk\_eq\_bias\_add\_variance} & weight $\Sigma$, noise law, estimator, truth\\
+2.\ Closed form for one draw of $(X,S)$ & \texttt{minNormOperator}, \texttt{conditionalRisk} in \texttt{DoubleDescentLimits.lean} & the noise average evaluated by hand for $\hat\theta=M(X\theta+\varepsilon)$ with $\Sigma=I$ and noise covariance $\sigma^2I$: $\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M)$ & $\sigma^2$, $\theta$, the matrices $X$, $S$\\
+3.\ Deterministic limit & \texttt{asymptoticBias}, \texttt{asymptoticVariance}, \texttt{asymptoticTotalRisk} in \texttt{DoubleDescentCurve.lean} & plain real functions of $(\sigma^2,\rho,\gamma,\delta)$, with no matrices and no measures & four real numbers\\
+\hline
+\end{tabular}
+\end{center}
+The dictionary between the layers is:
+\begin{itemize}
+  \item \emph{Layer 1 to 2.} For $\hat\theta=M(X\theta+\varepsilon)$ with $M=M(X,S)$ one has $\mathsf{bias}_I=\|(MX-I)\theta\|^2$ and $\mathsf{variance}_I=\sigma^2\operatorname{Tr}(M^\top M)$, hence $\mathsf{risk}_I=\mathsf{cr}$. This is \texttt{risk\_eq\_conditionalRisk}, a corollary of Theorem~\ref{thm:dd:linearBV}; there is no second bias--variance theorem for the parameter risk.
+  \item \emph{Layer 2 to 3.} Over independent Gaussian $X$ and $S$, the bias summand of $\mathsf{cr}$ converges in probability to $\mathsf B(\gamma,\delta)$ and the variance summand to $\mathsf V(\gamma,\delta)$, so the sum converges to $\mathsf R=\mathsf B+\mathsf V$ (Theorem~\ref{thm:dd:globalDoubleDescent}).
+\end{itemize}
+So the conditional risk is the risk of Layer~1 written in closed form, and the asymptotic risk is the limit in probability of that closed form. Layer~3 cannot be merged into Layer~1: it has no random variable behind it, and the only link is a convergence theorem. Layer~2 is kept as a definition only because the proofs of the regime limits need a short closed form to manipulate; the theorem a reader should quote is Corollary~\ref{cor:dd:globalRisk}, which is stated for the risk of Layer~1.
+\end{remark}
 
 \begin{remark}[How conditioning on $X$ is implemented in Lean]\label{rmk:dd:conditioningOnX}
   \uses{def:dd:risk, def:dd:linearModel}
@@ -168,7 +244,7 @@ $R(\hat\theta;\theta_\star)=B(\hat\theta;\theta_\star)+V(\hat\theta)$.
 \begin{proof}
   \leanok
 For square-integrable $f,g$ one has $\mathbb E[(f-a)(g-b)]=\operatorname{cov}(f,g)+(\mathbb Ef-a)(\mathbb Eg-b)$. Hence the
-second-moment matrix of $\hat\theta-\theta_\star$ is $\operatorname{Cov}(\hat\theta)+dd^\top$ with $d=\mathbb E\hat\theta-\theta_\star$.
+second-moment matrix of $\hat\theta-\theta_\star$ is $\operatorname{Cov}(\hat\theta)+dd^\top$ with $d:=\mathbb E[\hat\theta]-\theta_\star$.
 By Lemma~\ref{lem:dd:secondMoments}, $R=\operatorname{Tr}\bigl((\operatorname{Cov}(\hat\theta)+dd^\top)\Sigma\bigr)
 =V+d^\top\Sigma d=V+B$.
 \end{proof}
@@ -176,10 +252,9 @@ By Lemma~\ref{lem:dd:secondMoments}, $R=\operatorname{Tr}\bigl((\operatorname{Co
 \begin{theorem}[Exact bias--variance decomposition of a linear estimator]\label{thm:dd:linearBV}
   \uses{def:dd:linearModel, def:dd:risk, thm:dd:riskBiasVariance, lem:dd:secondMoments}
   \lean{LinearRegression.DoubleDescent.linearEstimator_bias_variance,
-        LinearRegression.DoubleDescent.linearEstimator_bias_variance_isotropic,
-        LinearRegression.DoubleDescent.exact_conditional_bias_variance_decomposition}
+        LinearRegression.DoubleDescent.linearEstimator_bias_variance_isotropic}
   \leanok
-Let $\hat\theta=M(X\theta_\star+\varepsilon)$ be a linear estimator in the linear model of Definition~\ref{def:dd:linearModel}, with $\varepsilon$ centered, square-integrable, with covariance matrix $\Gamma$.
+Let $\hat\theta:=M(X\theta_\star+\varepsilon)$ be a linear estimator in the linear model of Definition~\ref{def:dd:linearModel}, with $\varepsilon$ centered, square-integrable, with covariance matrix $\Gamma$.
 Then
 \[
   B=\bigl((MX-I)\theta_\star\bigr)^\top\Sigma\bigl((MX-I)\theta_\star\bigr),\qquad
@@ -194,8 +269,8 @@ For isotropic noise $\Gamma=\sigma^2I$ the variance is $\sigma^2\operatorname{Tr
 
 \begin{proof}
   \leanok
-By the error partition of Definition~\ref{def:dd:linearModel} the estimator is affine in $\varepsilon$: $\mathbb E\hat\theta=MX\theta_\star$ (since $\mathbb E\varepsilon=0$) and
-$\hat\theta-\mathbb E\hat\theta=M\varepsilon$, so the bias vector is $\mathbb E\hat\theta-\theta_\star=(MX-I)\theta_\star$. The covariance of $M\varepsilon$ has entries
+By the error partition of Definition~\ref{def:dd:linearModel} the estimator is affine in $\varepsilon$: $\mathbb E[\hat\theta]=MX\theta_\star$ (since $\mathbb E\varepsilon=0$) and
+$\hat\theta-\mathbb E[\hat\theta]=M\varepsilon$, so the bias vector is $\mathbb E[\hat\theta]-\theta_\star=(MX-I)\theta_\star$. The covariance of $M\varepsilon$ has entries
 $M_j\cdot\Gamma M_k=(M\Gamma M^\top)_{jk}$ by Lemma~\ref{lem:dd:secondMoments} (applied to $a=M_j,b=M_k$, the rows of $M$).
 This gives $B$ and $V$, and $R=B+V$ is Theorem~\ref{thm:dd:riskBiasVariance}. The isotropic statements specialize
 $\Gamma=\sigma^2I$ and use $\operatorname{Tr}(MM^\top)=\operatorname{Tr}(M^\top M)$.
@@ -207,8 +282,8 @@ $\Gamma=\sigma^2I$ and use $\operatorname{Tr}(MM^\top)=\operatorname{Tr}(M^\top 
         Matrix.mul_mul_transpose_apply}
   \leanok
 Let $y=X\theta+\varepsilon$ with $n$ samples (the number of samples is called $n$ here, as in \texttt{HMRT.lean}, and $m$ in the rest of the chapter), $\varepsilon$ centered with $\operatorname{Cov}\varepsilon=\sigma^2I_n$, and
-$\hat\Sigma=X^\top X/n$. Let $\hat\Sigma^+$ be a symmetric pseudo-inverse in the sense $\hat\Sigma^+\hat\Sigma\hat\Sigma^+=\hat\Sigma^+$ with
-$\hat\Sigma^+\hat\Sigma$ symmetric, and $\hat\theta=\hat\Sigma^+X^\top y/n$. With $\Pi=I-\hat\Sigma^+\hat\Sigma$,
+$\hat\Sigma:=X^\top X/n$. Let $\hat\Sigma^+$ be a symmetric pseudo-inverse in the sense $\hat\Sigma^+\hat\Sigma\hat\Sigma^+=\hat\Sigma^+$ with
+$\hat\Sigma^+\hat\Sigma$ symmetric, and $\hat\theta:=\hat\Sigma^+X^\top y/n$. With $\Pi:=I-\hat\Sigma^+\hat\Sigma$,
 \[
   B=\theta^\top\Pi\,\Sigma\,\Pi\theta,\qquad V=\frac{\sigma^2}n\operatorname{Tr}(\hat\Sigma^+\Sigma).
 \]
@@ -216,7 +291,7 @@ $\hat\Sigma^+\hat\Sigma$ symmetric, and $\hat\theta=\hat\Sigma^+X^\top y/n$. Wit
 
 \begin{proof}
   \leanok
-Apply Theorem~\ref{thm:dd:linearBV} with $M=\hat\Sigma^+X^\top/n$. Then $MX=\hat\Sigma^+\hat\Sigma$ and
+Apply Theorem~\ref{thm:dd:linearBV} with $M:=\hat\Sigma^+X^\top/n$. Then $MX=\hat\Sigma^+\hat\Sigma$ and
 $MM^\top=\hat\Sigma^+\hat\Sigma\hat\Sigma^+/n=\hat\Sigma^+/n$ by the pseudo-inverse identity. The entries of the covariance $M\Gamma M^\top$ are
 the bilinear forms $M_j\cdot\Gamma M_k$ (\texttt{Matrix.mul\_mul\_transpose\_apply}, the row-wise form of $\operatorname{Cov}(Mx)=M\operatorname{Cov}(x)M^\top$).
 \end{proof}
@@ -228,17 +303,17 @@ the bilinear forms $M_j\cdot\Gamma M_k$ (\texttt{Matrix.mul\_mul\_transpose\_app
 The data come from the linear model of Definition~\ref{def:dd:linearModel} with parameter dimension $p=n_0$ (the \emph{ambient} dimension): the labels are $y=X\theta_\star+\varepsilon\in\mathbb R^m$, where $\theta_\star\in\mathbb R^{n_0}$ is the unknown teacher,
 the $m$ rows of $X\in\mathbb R^{m\times n_0}$ are the sample inputs $x_1,\dots,x_m$, and the noise $\varepsilon$ is centered with covariance $\sigma^2I_m$. The learner does not fit $n_0$ coefficients directly. It first maps every input to $n$
 \emph{random features}, $x\mapsto S^\top x\in\mathbb R^n$, using a fixed matrix $S\in\mathbb R^{n_0\times n}$ (in the probabilistic layer, a Gaussian matrix independent of $X$), and then fits coefficients $\eta\in\mathbb R^n$ in feature space.
-Stacking the feature vectors of the samples as rows gives the \emph{feature matrix} $Z=XS\in\mathbb R^{m\times n}$. The learned predictor is $x\mapsto(S^\top x)\cdot\hat\eta=x\cdot(S\hat\eta)$, so it is also a linear function of the original input, with the
+Stacking the feature vectors of the samples as rows gives the \emph{feature matrix} $Z:=XS\in\mathbb R^{m\times n}$. The learned predictor is $x\mapsto(S^\top x)\cdot\hat\eta=x\cdot(S\hat\eta)$, so it is also a linear function of the original input, with the
 ambient-space coefficient vector $S\hat\eta\in\mathbb R^{n_0}$. This vector is the estimator of $\theta_\star$ whose risk, bias and variance are studied (Definition~\ref{def:dd:risk}).
 
 \begin{definition}[Ridgeless random-feature regression]\label{def:dd:randomFeatures}
   \uses{def:dd:linearModel, def:dd:risk}
-Let $X\in\mathbb R^{m\times n_0}$, let $S\in\mathbb R^{n_0\times n}$ be any matrix (a map from $n_0$ ambient coordinates to $n$ features; it is not assumed to be a projection or to have orthonormal columns), let $y\in\mathbb R^m$ be the labels, and put $Z=XS$.
+Let $X\in\mathbb R^{m\times n_0}$, let $S\in\mathbb R^{n_0\times n}$ be any matrix (a map from $n_0$ ambient coordinates to $n$ features; it is not assumed to be a projection or to have orthonormal columns), let $y\in\mathbb R^m$ be the labels, and put $Z:=XS$.
 \begin{itemize}
   \item The \emph{feature coefficients} $\hat\eta\in\mathbb R^n$ are the minimum-norm minimizer of $\eta\mapsto\|Z\eta-y\|$: among all least-squares solutions it is the one of smallest Euclidean norm. ``Ridgeless'' means that there is no
   penalty term, as the limit of vanishing ridge penalty.
   \item The \emph{random-feature estimator} is $\hat\theta:=S\hat\eta\in\mathbb R^{n_0}$.
-  \item Which pseudoinverse of $Z$ gives $\hat\eta$ depends on the regime ($\gamma=n_0/m$, $\delta=n/m$), and in every regime $\hat\theta=My$ for a matrix $M\in\mathbb R^{n_0\times m}$ built only from $X$ and $S$:
+  \item Which pseudoinverse of $Z$ gives $\hat\eta$ depends on the regime ($\gamma:=n_0/m$, $\delta:=n/m$), and in every regime $\hat\theta=My$ for a matrix $M\in\mathbb R^{n_0\times m}$ built only from $X$ and $S$:
 \end{itemize}
 \begin{center}
 \small
@@ -259,7 +334,7 @@ The matrix $M$ \emph{is} a Lean definition in the global theorem, where it is ch
 
 \begin{remark}[Derivation of $M$ across the three regimes]\label{rmk:dd:derivationOfM}
   \uses{def:dd:randomFeatures}
-In each regime, the matrix $M\in\mathbb R^{n_0\times m}$ is derived by first solving for the feature coefficients $\hat\eta\in\mathbb R^n$ as the minimum-norm minimizer of the least-squares loss $\eta\mapsto\|Z\eta-y\|^2$ (with $Z=XS$), and then applying the feature map $\hat\theta=S\hat\eta$. Because $\hat\eta$ depends linearly on $y$, writing $\hat\eta=Ay$ immediately yields $M=SA$. The derivation in each of the three regimes proceeds as follows:
+In each regime, the matrix $M\in\mathbb R^{n_0\times m}$ is derived by first solving for the feature coefficients $\hat\eta\in\mathbb R^n$ as the minimum-norm minimizer of the least-squares loss $\eta\mapsto\|Z\eta-y\|^2$ (with $Z:=XS$), and then applying the feature map $\hat\theta=S\hat\eta$. Because $\hat\eta$ depends linearly on $y$, writing $\hat\eta=Ay$ immediately yields $M=SA$. The derivation in each of the three regimes proceeds as follows:
 \begin{enumerate}
   \item \textbf{Feature bottleneck ($\delta<\min\{1,\gamma\}$, so $n\le\min\{m,n_0\}$):}
   Here features are the bottleneck. Assuming full column rank, $Z\in\mathbb R^{m\times n}$ has rank $n$, so the Gram matrix $Z^\top Z\in\mathbb R^{n\times n}$ is invertible.
@@ -343,7 +418,7 @@ $Z\bigl(Z^\top(ZZ^\top)^{-1}\bigr)=(ZZ^\top)(ZZ^\top)^{-1}=I$; apply it to $y$.
   \lean{Matrix.rightInverse_norm_sq_decomp,
         Matrix.eq_rightInverse_of_norm_le}
   \leanok
-Let $ZZ^\top$ be invertible, $\hat\eta=Z^\top(ZZ^\top)^{-1}y$, and let $\eta$ satisfy $Z\eta=y$. Then
+Let $ZZ^\top$ be invertible, $\hat\eta:=Z^\top(ZZ^\top)^{-1}y$, and let $\eta$ satisfy $Z\eta=y$. Then
 \[
   \|\eta\|^2=\|\hat\eta\|^2+\|\eta-\hat\eta\|^2 .
 \]
@@ -352,7 +427,7 @@ In particular, an interpolator with $\|\eta\|\le\|\hat\eta\|$ equals $\hat\eta$.
 
 \begin{proof}
   \leanok
-$\eta-\hat\eta\in\ker Z$ because both interpolate, while $\hat\eta=Z^\top w$ with $w=(ZZ^\top)^{-1}y$ lies in $\operatorname{range}Z^\top$.
+$\eta-\hat\eta\in\ker Z$ because both interpolate, while $\hat\eta=Z^\top w$ with $w:=(ZZ^\top)^{-1}y$ lies in $\operatorname{range}Z^\top$.
 For $u\in\ker Z$, $\langle u,Z^\top w\rangle=\langle Zu,w\rangle=0$, so $\eta-\hat\eta\perp\hat\eta$ and Pythagoras gives the
 identity. If $\|\eta\|\le\|\hat\eta\|$ then $\|\eta-\hat\eta\|^2\le0$.
 \end{proof}
@@ -365,10 +440,10 @@ identity. If $\|\eta\|\le\|\hat\eta\|$ then $\|\eta-\hat\eta\|^2\le0$.
         LinearRegression.DoubleDescent.leftInverse_isMinOn,
         LinearRegression.DoubleDescent.eq_leftInverse_of_norm_residual_le}
   \leanok
-Let $Z^\top Z$ be invertible, $\hat\eta=(Z^\top Z)^{-1}Z^\top y$, and $P_Z=Z(Z^\top Z)^{-1}Z^\top$ the Gram projector.
+Let $Z^\top Z$ be invertible, $\hat\eta:=(Z^\top Z)^{-1}Z^\top y$, and $P_Z:=Z(Z^\top Z)^{-1}Z^\top$ the Gram projector.
 \begin{enumerate}
   \item For the linear model $z\mapsto z\cdot\eta$ on the rows of $Z$, the dataset loss is
-  $L(\eta)=\tfrac1{2m}\|Z\eta-y\|^2$ (Definition~\ref{def:ntkgf:outputs}).
+  $L(\eta):=\tfrac1{2m}\|Z\eta-y\|^2$ (Definition~\ref{def:ntkgf:outputs}).
   \item For every $\eta$, $\|Z\eta-y\|^2=\|Z\hat\eta-y\|^2+\|Z(\eta-\hat\eta)\|^2$, and $\|Z\hat\eta-y\|=\|(I-P_Z)y\|$.
   \item $\hat\eta$ is a global minimizer of $\|Z\eta-y\|$ and is the only one.
 \end{enumerate}
@@ -391,7 +466,7 @@ injective since $Z^\top Z$ is invertible.
         LinearRegression.DoubleDescent.leftInverse_isMinNormLeastSquares,
         LinearRegression.DoubleDescent.rightInverse_isMinNormLeastSquares}
   \leanok
-Let $L(\eta)=\|y-Z\eta\|^2$ be the least-squares loss of \texttt{LinearRegression} and call $\hat\eta$ a \emph{minimum-norm least-squares
+Let $L(\eta):=\|y-Z\eta\|^2$ be the least-squares loss of \texttt{LinearRegression} and call $\hat\eta$ a \emph{minimum-norm least-squares
 estimator} if it minimizes $L$ and has norm at most that of every other minimizer.
 \begin{enumerate}
   \item $L=2m\cdot\mathrm{mseLoss}$ of the linear model on the rows of $Z$, and $L$ has the same minimizers as $\eta\mapsto\|Z\eta-y\|$.
@@ -413,7 +488,7 @@ whose norm is at least that of $Z^\top(ZZ^\top)^{-1}y$ by Theorem~\ref{thm:dd:mi
 Theorem~\ref{thm:dd:minNormLS} provides the conceptual and algebraic foundation connecting the variational definition of ridgeless regression with the explicit operators analyzed in the rest of the chapter:
 \begin{itemize}
   \item \textbf{Context and variational role:}
-  Definition~\ref{def:dd:randomFeatures} defines the feature coefficients $\hat\eta$ variationally as the minimum-norm minimizer among all minimizers of the least-squares loss $L(\eta)=\|y-Z\eta\|^2$. In general optimization, such two-tier minimization problems can be intricate. 
+  Definition~\ref{def:dd:randomFeatures} defines the feature coefficients $\hat\eta$ variationally as the minimum-norm minimizer among all minimizers of the least-squares loss $L(\eta):=\|y-Z\eta\|^2$. In general optimization, such two-tier minimization problems can be intricate. 
   Theorem~\ref{thm:dd:minNormLS} establishes that whenever either Gram matrix ($Z^\top Z$ or $ZZ^\top$) is invertible, this variational problem has a closed-form solution 
   given by the standard Moore--Penrose pseudoinverses: the left inverse $(Z^\top Z)^{-1}Z^\top y$ in the overdetermined regime, 
   and the right inverse $Z^\top(ZZ^\top)^{-1}y$ in the underdetermined regime.
@@ -421,7 +496,7 @@ Theorem~\ref{thm:dd:minNormLS} provides the conceptual and algebraic foundation 
   \item \textbf{How it builds on earlier proofs:}
   The result synthesizes two complementary geometric properties proved immediately before it:
   \begin{enumerate}
-    \item When $Z^\top Z$ is invertible, Theorem~\ref{thm:dd:leastSquares} applies the Gram projector $P_Z=Z(Z^\top Z)^{-1}Z^\top$ (Lemma~\ref{lem:dd:leftInverse}) and the Pythagorean decomposition
+    \item When $Z^\top Z$ is invertible, Theorem~\ref{thm:dd:leastSquares} applies the Gram projector $P_Z:=Z(Z^\top Z)^{-1}Z^\top$ (Lemma~\ref{lem:dd:leftInverse}) and the Pythagorean decomposition
     \[
       \|Z\eta-y\|^2 = \|Z\hat\eta-y\|^2 + \|Z(\eta-\hat\eta)\|^2
     \]
@@ -460,7 +535,7 @@ This regime is $\delta<\min\{1,\gamma\}$: fewer features than both samples and a
   \uses{lem:dd:leftInverse}
   \lean{LinearRegression.DoubleDescent.trace_operator_transpose_mul_self_eq_featureBottleneck}
   \leanok
-For $Z=XS$ with $Z^\top Z$ invertible and the operator $M=S(Z^\top Z)^{-1}Z^\top$,
+For $Z:=XS$ with $Z^\top Z$ invertible and the operator $M=S(Z^\top Z)^{-1}Z^\top$,
 \[
   \operatorname{Tr}(M^\top M)=\operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr).
 \]
@@ -468,7 +543,7 @@ For $Z=XS$ with $Z^\top Z$ invertible and the operator $M=S(Z^\top Z)^{-1}Z^\top
 
 \begin{proof}
   \leanok
-With $A=(Z^\top Z)^{-1}Z^\top$ we have $M=SA$ and, by cyclic invariance of the trace and Lemma~\ref{lem:dd:leftInverse},
+With $A:=(Z^\top Z)^{-1}Z^\top$ we have $M=SA$ and, by cyclic invariance of the trace and Lemma~\ref{lem:dd:leftInverse},
 $\operatorname{Tr}(A^\top S^\top SA)=\operatorname{Tr}(S^\top S\,AA^\top)=\operatorname{Tr}(S^\top S(Z^\top Z)^{-1})$.
 \end{proof}
 
@@ -477,7 +552,7 @@ $\operatorname{Tr}(A^\top S^\top SA)=\operatorname{Tr}(S^\top S\,AA^\top)=\opera
         LinearRegression.DoubleDescent.trace_inverseWishartMean_mul_gram}
   \leanok
 If $G\in\mathbb R^{n\times n}$ is invertible and $c\in\mathbb R$, then $\operatorname{Tr}\bigl((cG^{-1})G\bigr)=cn$. In particular, for
-$c=(m-n-1)^{-1}$ and $G=S^\top S$,
+$c:=(m-n-1)^{-1}$ and $G:=S^\top S$,
 \[
   \operatorname{Tr}\Bigl(\tfrac1{m-n-1}(S^\top S)^{-1}\,S^\top S\Bigr)=\frac n{m-n-1}.
 \]
@@ -500,7 +575,7 @@ $\mathbb E\operatorname{Tr}(G^\top G)^{-1}=n/(m-n-1)$ is Theorem~\ref{thm:dd:inv
   \uses{thm:dd:linearBV, lem:dd:featureTrace}
   \lean{LinearRegression.DoubleDescent.featureBottleneck_variance_eq_trace}
   \leanok
-Let $Z=XS$ have $Z^\top Z$ invertible, $\hat\theta=S(Z^\top Z)^{-1}Z^\top y$ with $y=X\theta_\star+\varepsilon$, and
+Let $Z:=XS$ have $Z^\top Z$ invertible, $\hat\theta=S(Z^\top Z)^{-1}Z^\top y$ with $y=X\theta_\star+\varepsilon$, and
 $\varepsilon$ centered with covariance $\sigma^2I$. Then, with $\Sigma=I$,
 \[
   V(\hat\theta)=\sigma^2\operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr).
@@ -509,7 +584,7 @@ $\varepsilon$ centered with covariance $\sigma^2I$. Then, with $\Sigma=I$,
 
 \begin{proof}
   \leanok
-$\hat\theta=My$ with $M=S(Z^\top Z)^{-1}Z^\top$. Theorem~\ref{thm:dd:linearBV} gives $V=\sigma^2\operatorname{Tr}(MM^\top)$ and
+$\hat\theta=My$ with $M:=S(Z^\top Z)^{-1}Z^\top$. Theorem~\ref{thm:dd:linearBV} gives $V=\sigma^2\operatorname{Tr}(MM^\top)$ and
 $\operatorname{Tr}(MM^\top)=\operatorname{Tr}(M^\top M)$, which is Lemma~\ref{lem:dd:featureTrace}.
 \end{proof}
 
@@ -571,7 +646,7 @@ Its title, context, and vital role in the theory arise from the following consid
     \item \emph{Sample bottleneck (Section~\ref{sec:dd:sample}):}
     In \texttt{SampleBottleneck.lean}, evaluating the dual Gram trace requires the limit of $m/(n-m-1) = (m/n)\big/(1 - m/n - 1/n) \to (\delta-1)^{-1}$. This is obtained by invoking \texttt{featureBottleneck\_asymptotic\_variance\_limit} with the dimensions transposed.
     \item \emph{The double-descent curve (Section~\ref{sec:dd:curve}):}
-    The deterministic curve functions $\mathsf B(\gamma,\delta) = \frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ and $\mathsf V(\gamma,\delta) = \sigma^2\frac{\delta}{1-\delta}$ of Definition~\ref{def:dd:curve} are defined directly by the limit values computed in this theorem.
+    The deterministic curve functions $\mathsf B(\gamma,\delta) := \frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ and $\mathsf V(\gamma,\delta) := \sigma^2\frac{\delta}{1-\delta}$ of Definition~\ref{def:dd:curve} are defined directly by the limit values computed in this theorem.
     \item \emph{Probabilistic concentration and global double descent (Sections~\ref{sec:dd:gaussian} and~\ref{sec:dd:global}):}
     In Theorem~\ref{thm:dd:featureBiasProb} (\texttt{tendsto\_measure\_featureBias\_deviation}), the proof sandwiches the random bias between deterministic bounds whose ratio converges to $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ via Theorem~\ref{thm:dd:featureLimits} (\texttt{tendsto\_feature\_ratios}). Finally, in Theorems~\ref{thm:dd:regimeRisks} and~\ref{thm:dd:globalDoubleDescent}, it supplies the asymptotic targets for the convergence in probability of the total prediction risk.
   \end{enumerate}
@@ -603,7 +678,7 @@ $\operatorname{range}(XS)\subseteq\operatorname{range}X$ trivially. Conversely, 
         LinearRegression.DoubleDescent.ambientBottleneck_norm_sq_decomp,
         LinearRegression.DoubleDescent.eq_ambientBottleneck_of_norm_le}
   \leanok
-Let $X^\top X$ and $SS^\top$ be invertible, $Z=XS$, and
+Let $X^\top X$ and $SS^\top$ be invertible, $Z:=XS$, and
 $\hat\eta=S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top y$. Then $Z\hat\eta=X(X^\top X)^{-1}X^\top y$ is the OLS fit,
 $\hat\eta$ minimizes $\|Z\eta-y\|$, and for every other minimizer $\eta$,
 $\|\eta\|^2=\|\hat\eta\|^2+\|\eta-\hat\eta\|^2$. Hence $\hat\eta$ is the unique minimum-norm minimizer.
@@ -629,7 +704,7 @@ With $X^\top X$, $SS^\top$ invertible, $\hat\theta=S\hat\eta$ is exactly unbiase
 
 \begin{proof}
   \leanok
-$\hat\theta=My$ with $M=S S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top=(X^\top X)^{-1}X^\top$, so $MX=I$ and the bias term
+$\hat\theta=My$ with $M:=S S^\top(SS^\top)^{-1}(X^\top X)^{-1}X^\top$, and $M=(X^\top X)^{-1}X^\top$, so $MX=I$ and the bias term
 $(MX-I)\theta_\star$ of Theorem~\ref{thm:dd:linearBV} vanishes, while $MM^\top=(X^\top X)^{-1}$.
 \end{proof}
 
@@ -649,7 +724,7 @@ This regime is $\gamma,\delta>1$: more ambient dimensions and features than samp
   \uses{lem:dd:rightInverse}
   \lean{LinearRegression.DoubleDescent.sampleBottleneck_interpolates_training_targets}
   \leanok
-If $Z=XS$ has full row rank ($ZZ^\top$ invertible) then $\hat\theta=SZ^\top(ZZ^\top)^{-1}y$ satisfies $X\hat\theta=y$.
+If $Z:=XS$ has full row rank ($ZZ^\top$ invertible) then $\hat\theta=SZ^\top(ZZ^\top)^{-1}y$ satisfies $X\hat\theta=y$.
 \end{theorem}
 
 \begin{proof}
@@ -692,7 +767,7 @@ Theorem~\ref{thm:dd:linearBV} with Lemma~\ref{lem:dd:sampleTrace}.
         LinearRegression.DoubleDescent.operator_mul_design_sub_one_mulVec,
         LinearRegression.DoubleDescent.sampleBottleneck_trace_eq_add}
   \leanok
-Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ such that $XX^\top$ and $ZZ^\top$ are invertible ($Z=XS$), and let $P=P_X=X^\top(XX^\top)^{-1}X=\operatorname{gramProjector} X^\top$. With $Z^\dagger=Z^\top(ZZ^\top)^{-1}$ and $M=SZ^\dagger$:
+Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ such that $XX^\top$ and $ZZ^\top$ are invertible ($Z:=XS$), and let $P:=X^\top(XX^\top)^{-1}X$ (this is $P_X=\operatorname{gramProjector} X^\top$). With $Z^\dagger:=Z^\top(ZZ^\top)^{-1}$ and $M:=SZ^\dagger$:
 \begin{enumerate}
   \item $PM=X^\top(XX^\top)^{-1}$ and $M=X^\top(XX^\top)^{-1}+(I-P)M$.
   \item The row-space and residual parts are orthogonal ($X(I-P)=0$), so
@@ -700,7 +775,7 @@ Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ such that $X
     \operatorname{Tr}(M^\top M)=\operatorname{Tr}\bigl((XX^\top)^{-1}\bigr)+\operatorname{Tr}\bigl(((I-P)M)^\top((I-P)M)\bigr),
   \]
   where the residual trace equals $\operatorname{Tr}\bigl((Z^\dagger(Z^\dagger)^\top)(S^\top(I-P)S)\bigr)$.
-  \item For $y=X\theta$, the bias vector satisfies $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b=Z^\dagger X\theta$.
+  \item For $y=X\theta$, the bias vector satisfies $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b:=Z^\dagger X\theta$.
   \item The variance trace of Theorem~\ref{thm:dd:sampleVariance} is the sum of an ambient term and a residual term:
   \[
     \operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)=\operatorname{Tr}\bigl((XX^\top)^{-1}\bigr)+\operatorname{Tr}\bigl((Z^\dagger(Z^\dagger)^\top)\,S^\top(I-P)S\bigr).
@@ -759,18 +834,18 @@ values $\gamma=1$ or $\delta=1$ the third branch below has Mathlib's junk value 
   \leanok
 For $\sigma^2,\rho_\star,\gamma,\delta\in\mathbb R$,
 \[
-  \mathsf V(\gamma,\delta)=\begin{cases}
+  \mathsf V(\gamma,\delta):=\begin{cases}
   \sigma^2\dfrac{\delta}{1-\delta}&\delta<\min\{1,\gamma\}\\[1ex]
   \sigma^2\dfrac{\gamma}{1-\gamma}&\gamma<1,\ \gamma\le\delta\\[1ex]
   \sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)&\text{otherwise,}
   \end{cases}\qquad
-  \mathsf B(\gamma,\delta)=\begin{cases}
+  \mathsf B(\gamma,\delta):=\begin{cases}
   \dfrac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star&\delta<\min\{1,\gamma\}\\[1ex]
   0&\gamma<1,\ \gamma\le\delta\\[1ex]
   (1-\gamma^{-1})\dfrac{\delta}{\delta-1}\rho_\star&\text{otherwise,}
   \end{cases}
 \]
-and the total risk is $\mathsf R=\mathsf B+\mathsf V$.
+and the total risk is $\mathsf R:=\mathsf B+\mathsf V$.
 \end{definition}
 
 \begin{lemma}[The branches are the regime limits]\label{lem:dd:branches}
@@ -806,7 +881,7 @@ Unfold the case distinction, using $\delta/(\delta-1)=1+(\delta-1)^{-1}$ for the
         LinearRegression.DoubleDescent.asymptoticTotalRisk_of_feature_of_one_lt,
         LinearRegression.DoubleDescent.kappa_pos_of_nonneg}
   \leanok
-Let $\gamma>1$ and $\kappa=\sigma^2+(1-\gamma^{-1})\rho_\star$. For $\delta<1$,
+Let $\gamma>1$ and $\kappa:=\sigma^2+(1-\gamma^{-1})\rho_\star$. For $\delta<1$,
 $\mathsf R=\kappa(1-\delta)^{-1}+(\gamma^{-1}\rho_\star-\sigma^2)$, and for $\delta>1$,
 $\mathsf R=\kappa(\delta-1)^{-1}+\text{const}$ (Lemma~\ref{lem:dd:branches}): the \emph{same} coefficient $\kappa$ multiplies
 $|1-\delta|^{-1}$ on both sides. Moreover $\kappa>0$ whenever $\sigma^2,\rho_\star\ge0$ are not both zero.
@@ -828,7 +903,7 @@ collects to the stated form. Positivity of $\kappa$ is immediate from $1-\gamma^
         LinearRegression.DoubleDescent.double_descent_second_descent_strictly_decreasing,
         LinearRegression.DoubleDescent.double_descent_infinite_width_limit}
   \leanok
-Let $\gamma>1$ and $\kappa=\sigma^2+(1-\gamma^{-1})\rho_\star>0$ (this holds if $\sigma^2,\rho_\star\ge0$, not both zero). Then the
+Let $\gamma>1$ and $\kappa:=\sigma^2+(1-\gamma^{-1})\rho_\star>0$ (this holds if $\sigma^2,\rho_\star\ge0$, not both zero). Then the
 limiting risk $\delta\mapsto\mathsf R(\gamma,\delta)$
 \begin{enumerate}
   \item is strictly increasing on $\delta<1$ (first ascent);
@@ -896,7 +971,7 @@ The following facts, already formalized and recorded in the NTK chapters, are th
   \item \emph{A Gaussian matrix is a standard Gaussian vector} (Lemma~\ref{lem:ntkcond:coordVec}), the bridge between matrix-valued and
   Euclidean-space statements.
   \item \emph{Independence of orthogonal components} (Theorem~\ref{thm:ntkcond:lemma226}): for a projector $P$ and Gaussian $W$, the images
-  $WP$ and $W(I-P)$ are independent. This is what makes $\xi=X\theta_\perp$ independent of $G=XQ$ in the bias computation, and a column independent of the
+  $WP$ and $W(I-P)$ are independent. This is what makes $\xi=X\theta_\perp$ independent of $G:=XQ$ in the bias computation, and a column independent of the
   projector onto the other columns.
   \item \emph{Gaussian quadratic forms} (Theorem~\ref{thm:ntkcond:stdQuad}): $\mathbb E(z^\top Cz)^2=(\operatorname{Tr}C)^2+\operatorname{Tr}C^2+\|C\|_F^2$ for
   $z\sim\gamma$, hence $\operatorname{Var}(z^\top Cz)=2\operatorname{Tr}C^2$ for symmetric $C$.
@@ -926,7 +1001,7 @@ variance bound $\operatorname{Var}=O(p^{-1})$, which needs covariances of differ
 fourth-moment Markov bound for \emph{each} entry plus a union bound over the $q$ entries, using marginal laws only (Theorems~\ref{thm:dd:chiTail} and~\ref{thm:dd:traceConcentration})\\[1ex]
 scale matrix $(S^\top S)^{-1}$ of the conditional Wishart &
 inverse-Wishart mean with general scale &
-the deterministic identity $\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)=\operatorname{Tr}((G^\top G)^{-1})$ for $S=QR$, $G=XQ$: only identity-scale Gaussians
+the deterministic identity $\operatorname{Tr}((Z^\top Z)^{-1}S^\top S)=\operatorname{Tr}((G^\top G)^{-1})$ for $S=QR$, $G:=XQ$: only identity-scale Gaussians
 occur (Theorems~\ref{thm:dd:traceReduction} and~\ref{thm:dd:featureVarianceProb})\\[1ex]
 bias $\|(I-P_S)\theta_\star\|^2$ &
 Haar projector on $\operatorname{Gr}(r,d)$, duality with a uniform vector on the sphere, Beta law &
@@ -936,7 +1011,7 @@ fit error $\|H^{-1}G^\top\xi\|^2$ &
 second inverse moment $\mathbb E\operatorname{Tr}W^{-2}$ and a Chebyshev bound for the quadratic form &
 the Rayleigh quotient $\|z\|^2/z^\top W^{-1}z$ is \emph{exactly} $\chi^2_{p-q}$, so the same fourth-moment tail applies (Theorems~\ref{thm:dd:quadFormLaw}--\ref{thm:dd:fitError}); no second inverse moment\\[1ex]
 variance in the sample regime, where $ZZ^\top$ is not the Gram matrix of a single Gaussian matrix &
-exact law of the inverse Wishart matrix of $Z=XS$ for a Gaussian $X$, which is a product of two Gaussians &
+exact law of the inverse Wishart matrix of $Z:=XS$ for a Gaussian $X$, which is a product of two Gaussians &
 split $\operatorname{Tr}(M^\top M)$ into $\operatorname{Tr}(XX^\top)^{-1}$ plus a residual trace form; fix $X$ and factor $X=RQ^\top$ so that only the identity-scale Gaussian $VQ$ remains; a conditional Chebyshev bound replaces the residual form by its mean (Theorems~\ref{thm:dd:fixedDesignSample} and~\ref{thm:dd:sampleSandwich})\\[1ex]
 almost-sure invertibility of $G^\top G$ &
 zero set of a non-trivial polynomial has Lebesgue measure zero &
@@ -1001,7 +1076,7 @@ probability by $(12k^2+48k)/(\varepsilon k)^4\le60/(\varepsilon^4k^2)$, since $k
 
 \begin{remark}[Why a fourth moment]\label{rmk:dd:whyFourth}
   \uses{thm:dd:chiTail}
-Summed over the $q$ diagonal entries of $(G^\top G)^{-1}$ by a union bound, this tail costs $60\,q/(\varepsilon^4\nu^2)$ with $\nu=p-q+1$,
+Summed over the $q$ diagonal entries of $(G^\top G)^{-1}$ by a union bound, this tail costs $60\,q/(\varepsilon^4\nu^2)$ with $\nu:=p-q+1$,
 which tends to $0$ when $q/p\to\rho<1$. A second-moment (Chebyshev) bound would only give $O(q/\nu)=O(1)$ and would not suffice. This route
 needs only the \emph{marginal} laws of the diagonal entries, not the covariances between them.
 \end{remark}
@@ -1010,8 +1085,8 @@ needs only the \emph{marginal} laws of the diagonal entries, not the covariances
 \section{Deterministic reductions for Gaussian inputs}\label{sec:dd:gram}
 
 Nothing in this section is probabilistic. It contains the linear algebra that reduces the two random quantities of the feature-bottleneck estimator
-$\hat\theta=My$, $M=S(Z^\top Z)^{-1}Z^\top$, $Z=XS$, namely $\operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr)$ and $\|(MX-I)\theta_\star\|^2$,
-to statements about a matrix $G=XQ$ that is again standard Gaussian when $X$ is (Theorem~\ref{thm:ntkdeep:linearImage}) and $Q^\top Q=I$. The
+$\hat\theta=My$, $M=S(Z^\top Z)^{-1}Z^\top$, $Z:=XS$, namely $\operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr)$ and $\|(MX-I)\theta_\star\|^2$,
+to statements about a matrix $G:=XQ$ that is again standard Gaussian when $X$ is (Theorem~\ref{thm:ntkdeep:linearImage}) and $Q^\top Q=I$. The
 reductions are exact identities for every full-column-rank $S$, so they hold on the whole probability space, not only almost surely.
 In Lean they live in \texttt{DoubleDescent/GramInverse.lean}; index types are arbitrary finite types.
 
@@ -1023,8 +1098,8 @@ If $S\in\mathbb R^{n_0\times n}$ has $S^\top S$ invertible, then $S=QR$ with $Q^
 
 \begin{proof}
   \leanok
-Take $R=\sqrt{S^\top S}$ (the positive semidefinite square root, symmetric with $RR=S^\top S$), invertible because $\det(R)^2=\det(S^\top S)\neq0$,
-and $Q=SR^{-1}$. Then $Q^\top Q=R^{-1}S^\top SR^{-1}=R^{-1}R^2R^{-1}=I$. No Gram--Schmidt and no triangularity are needed, since only
+Take $R:=\sqrt{S^\top S}$ (the positive semidefinite square root, symmetric with $RR=S^\top S$), invertible because $\det(R)^2=\det(S^\top S)\neq0$,
+and $Q:=SR^{-1}$. Then $Q^\top Q=R^{-1}S^\top SR^{-1}=R^{-1}R^2R^{-1}=I$. No Gram--Schmidt and no triangularity are needed, since only
 $R^\top R=S^\top S$ is used downstream.
 \end{proof}
 
@@ -1050,7 +1125,7 @@ $v$ in the kernel of $Z_{-j}$ extends by $0$ in coordinate $j$ to a vector $\til
         Matrix.gramProjector_submatrix_equiv,
         Matrix.gramProjector_orthonormal_mul}
   \leanok
-Let $\Phi\in\mathbb R^{n\times m}$ and $P_\Phi=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$. (1) $(I-P_\Phi)y=y-\Phi(\Phi^\top\Phi)^{-1}\Phi^\top y$, the least-squares residual. If $\Phi^\top\Phi$ is invertible then (2) $\operatorname{Tr}P_\Phi=\#\text{columns}$ and
+Let $\Phi\in\mathbb R^{n\times m}$ and $P_\Phi:=\Phi(\Phi^\top\Phi)^{-1}\Phi^\top$. (1) $(I-P_\Phi)y=y-\Phi(\Phi^\top\Phi)^{-1}\Phi^\top y$, the least-squares residual. If $\Phi^\top\Phi$ is invertible then (2) $\operatorname{Tr}P_\Phi=\#\text{columns}$ and
 (3) $\|(I-P_\Phi)y\|^2=\|y\|^2-y^\top P_\Phi y$. (4) $P_\Phi$ is unchanged when the columns are relabelled by a bijection. (5) If $U^\top U=I$ then $P_{U\Phi}=UP_\Phi U^\top$.
 \end{lemma}
 
@@ -1065,7 +1140,7 @@ These are the deterministic ingredients for deleting a column (Theorem~\ref{thm:
   \uses{lem:dd:orthFactor, lem:dd:wishartCancel}
   \lean{LinearRegression.DoubleDescent.trace_inv_gram_mul_gram_of_factor}
   \leanok
-Let $S=QR$ with $Q^\top Q=I_n$ and $R$ invertible, $G=XQ$ and $Z=XS=GR$. If $G^\top G$ is invertible, then
+Let $S=QR$ with $Q^\top Q=I_n$ and $R$ invertible, $G:=XQ$ and $Z:=XS$, so that $Z=GR$. If $G^\top G$ is invertible, then
 \[
   \operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr)=\operatorname{Tr}\bigl((G^\top G)^{-1}\bigr).
 \]
@@ -1092,7 +1167,7 @@ $b_j=(Z_{-j}^\top Z_{-j})^{-1}Z_{-j}^\top z_j$ the least-squares coefficients of
 
 \begin{proof}
   \leanok
-Put $r=z_j-Z_{-j}b_j=(I-P_{-j})z_j$. The normal equations for $Z_{-j}$ give $Z_{-j}^\top r=0$, and $z_j=r+Z_{-j}b_j$ gives $z_j^\top r=\|r\|^2$, so
+Put $r:=z_j-Z_{-j}b_j$, so that $r=(I-P_{-j})z_j$. The normal equations for $Z_{-j}$ give $Z_{-j}^\top r=0$, and $z_j=r+Z_{-j}b_j$ gives $z_j^\top r=\|r\|^2$, so
 $Z^\top r=\|r\|^2e_j$. Moreover $r=Zc$ for $c=e_j-(b_j\text{ extended by }0)$. Hence
 $Z^\top Zc=\|r\|^2e_j$ and, applying $(Z^\top Z)^{-1}$, $c=\|r\|^2(Z^\top Z)^{-1}e_j$. Reading coordinate $j$ (where $c_j=1$) gives the first identity and
 coordinate $i\neq j$ (where $c_i=-b_{j,i}$) the second.
@@ -1120,8 +1195,8 @@ $(I-P_{-j})z_j$ while $b_j$ depends on $P_{-j}z_j$; for Gaussian $Z$ these are i
   \lean{LinearRegression.DoubleDescent.operator_eq_orthonormal_frame,
         LinearRegression.DoubleDescent.bias_eq_omitted_add_fit_error}
   \leanok
-Let $S=QR$ with $Q^\top Q=I_n$ and $R$ invertible, $P_S=QQ^\top$, $G=XQ$ with $H=G^\top G$ invertible, $Z=XS$ and $M=S(Z^\top Z)^{-1}Z^\top$.
-Then $M=QH^{-1}G^\top$ (the triangular factor $R$ cancels), and for $\theta_\perp=(I-P_S)\theta_\star$ and $\xi=X\theta_\perp$,
+Let $S=QR$ with $Q^\top Q=I_n$ and $R$ invertible, $P_S:=QQ^\top$, $G:=XQ$ with $H:=G^\top G$ invertible, $Z:=XS$ and $M=S(Z^\top Z)^{-1}Z^\top$.
+Then $M=QH^{-1}G^\top$ (the triangular factor $R$ cancels), and for $\theta_\perp:=(I-P_S)\theta_\star$ and $\xi:=X\theta_\perp$,
 \[
   \|(MX-I)\theta_\star\|^2=\|\theta_\perp\|^2+\|H^{-1}G^\top\xi\|^2 .
 \]
@@ -1130,7 +1205,7 @@ Then $M=QH^{-1}G^\top$ (the triangular factor $R$ cancels), and for $\theta_\per
 \begin{proof}
   \leanok
 $Z^\top Z=R^\top HR$, so $M=QR\,R^{-1}H^{-1}R^{-\top}R^\top G^\top=QH^{-1}G^\top$ and $MG=Q$. Decompose $\theta_\star=QQ^\top\theta_\star+\theta_\perp$; then
-$MXQQ^\top\theta_\star=MGQ^\top\theta_\star=QQ^\top\theta_\star$, so $(MX-I)\theta_\star=MX\theta_\perp-\theta_\perp=Qw-\theta_\perp$ with $w=H^{-1}G^\top\xi$.
+$MXQQ^\top\theta_\star=MGQ^\top\theta_\star=QQ^\top\theta_\star$, so $(MX-I)\theta_\star=MX\theta_\perp-\theta_\perp=Qw-\theta_\perp$ with $w:=H^{-1}G^\top\xi$.
 Since $Q^\top\theta_\perp=0$, the vector $Qw$ is orthogonal to $\theta_\perp$, and $\|Qw\|=\|w\|$ because $Q^\top Q=I$; Pythagoras gives the identity.
 The first term is the omitted signal and the second the error from fitting the noise-like $\xi$, which for Gaussian $X$ is independent of $G$
 (Theorem~\ref{thm:ntkcond:lemma226}).
@@ -1181,7 +1256,7 @@ If $x^\top x=y^\top y$ there is $U$ with $UU^\top=U^\top U=I$ and $Ux=y$.
 
 \begin{proof}
   \leanok
-If $x=y$ take $U=I$. Otherwise the Householder reflection $U=I-2ww^\top/\|w\|^2$ with $w=x-y$ is orthogonal and swaps $x$ and $y$, because
+If $x=y$ take $U=I$. Otherwise the Householder reflection $U=I-2ww^\top/\|w\|^2$ with $w:=x-y$ is orthogonal and swaps $x$ and $y$, because
 $\|x\|=\|y\|$ gives $2w^\top x=\|w\|^2$.
 \end{proof}
 
@@ -1265,7 +1340,7 @@ $\mathbb E[1/\chi^2_\nu]=1/(\nu-2)$ (Corollary~\ref{cor:ntkf:chiSquare}) and lin
         LinearRegression.DoubleDescent.measure_trace_inv_gram_deviation_le,
         LinearRegression.DoubleDescent.tendsto_measure_trace_inv_gram_deviation}
   \leanok
-Let $W\in\mathbb R^{p\times m}$ be Gaussian with $1\le m\le p$, $\nu=p-m+1$ and $0<\varepsilon<1$. Then
+Let $W\in\mathbb R^{p\times m}$ be Gaussian with $1\le m\le p$, $\nu:=p-m+1$ and $0<\varepsilon<1$. Then
 \[
   \mathbb P\Bigl(\operatorname{Tr}(W^\top W)^{-1}\notin\Bigl[\tfrac m{\nu(1+\varepsilon)},\tfrac m{\nu(1-\varepsilon)}\Bigr]\Bigr)\le\frac{60\,m}{\varepsilon^4\nu^2}.
 \]
@@ -1286,7 +1361,7 @@ eventually, and $60m_k/(\varepsilon^4\nu_k^2)\to0$ since $\nu_k\to\infty$ and $m
         LinearRegression.DoubleDescent.measureReal_weighted_diag_inv_gram_deviation_le,
         LinearRegression.DoubleDescent.measure_trace_mul_inv_gram_deviation_le}
   \leanok
-Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$, and let $C\in\mathbb R^{(q+1)\times(q+1)}$ be positive semidefinite. For every $0<\varepsilon<1$, with $\nu=p-q$:
+Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$, and let $C\in\mathbb R^{(q+1)\times(q+1)}$ be positive semidefinite. For every $0<\varepsilon<1$, with $\nu:=p-q$:
 \[
   \mathbb P\Bigl(\operatorname{Tr}\bigl(C(W^\top W)^{-1}\bigr)\notin\Bigl[\tfrac{\operatorname{Tr} C}{\nu(1+\varepsilon)},\tfrac{\operatorname{Tr} C}{\nu(1-\varepsilon)}\Bigr]\Bigr)\le\frac{60(q+1)}{\varepsilon^4\nu^2}.
 \]
@@ -1314,7 +1389,7 @@ Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$. (1) For every fi
 
 \begin{proof}
   \leanok
-(1) By Lemma~\ref{lem:dd:householder} choose an orthogonal $U$ with $Ue_0=u$. Then $u^\top(W^\top W)^{-1}u=e_0^\top(U^\top W^\top WU)^{-1}e_0=((\tilde W^\top\tilde W)^{-1})_{00}$ with $\tilde W=WU$, which is Gaussian
+(1) By Lemma~\ref{lem:dd:householder} choose an orthogonal $U$ with $Ue_0=u$. Then $u^\top(W^\top W)^{-1}u=e_0^\top(U^\top W^\top WU)^{-1}e_0=((\tilde W^\top\tilde W)^{-1})_{00}$ with $\tilde W:=WU$, which is Gaussian
 by Lemma~\ref{lem:dd:invariance}; apply the diagonal law of Theorem~\ref{thm:dd:invGramDiag}. (2) For fixed $z\neq0$ (almost sure) apply (1) to $u=z/\|z\|$, giving that the quotient has law $\chi^2_{p-q}$ for \emph{every} such $z$; Lemma~\ref{lem:dd:columnSplit}(2)
 assembles the product law with no independence or polar decomposition of $z$ needed.
 \end{proof}
@@ -1324,7 +1399,7 @@ assembles the product law with no independence or polar decomposition of $z$ nee
   \lean{ProbabilityTheory.measure_dev_le_of_map_norm_sq,
         LinearRegression.DoubleDescent.measure_quadForm_inv_gram_deviation_le}
   \leanok
-With $W,z$ as in Theorem~\ref{thm:dd:quadFormLaw}, $\nu=p-q$, $n=q+1$ and $0<\eta<1$, the quadratic form $z^\top(W^\top W)^{-1}z$ lies in
+With $W,z$ as in Theorem~\ref{thm:dd:quadFormLaw}, $\nu:=p-q$, $n:=q+1$ and $0<\eta<1$, the quadratic form $z^\top(W^\top W)^{-1}z$ lies in
 $\bigl[\tfrac{n(1-\eta)}{\nu(1+\eta)},\tfrac{n(1+\eta)}{\nu(1-\eta)}\bigr]$ except on an event of probability at most $60/(\eta^4\nu^2)+60/(\eta^4n^2)$.
 \end{theorem}
 
@@ -1338,7 +1413,7 @@ Both $\|z\|^2\sim\chi^2_n$ and $\|z\|^2/z^\top(W^\top W)^{-1}z\sim\chi^2_\nu$ (T
   \uses{thm:dd:quadFormLaw, thm:dd:chiTail}
   \lean{LinearRegression.DoubleDescent.measure_quadForm_inv_gram_fixed_mem_le}
   \leanok
-Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$, $\nu=p-q$, $0<\eta<1$, and let $\xi\in\mathbb R^{q+1}$ be a \emph{fixed} vector. Then
+Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$, $\nu:=p-q$, $0<\eta<1$, and let $\xi\in\mathbb R^{q+1}$ be a \emph{fixed} vector. Then
 \[
   \mathbb P\Bigl(\xi^\top(W^\top W)^{-1}\xi\notin\Bigl[\tfrac{\|\xi\|^2}{\nu(1+\eta)},\tfrac{\|\xi\|^2}{\nu(1-\eta)}\Bigr]\Bigr)\le\frac{60}{\eta^4\nu^2}.
 \]
@@ -1355,7 +1430,7 @@ $\mathbb P(|\chi^2_\nu-\nu|\ge\eta\nu)$ by $60/(\eta^4\nu^2)$, and off this even
   \lean{LinearRegression.DoubleDescent.fitError_eq_quadForm,
         LinearRegression.DoubleDescent.measure_fitError_deviation_le}
   \leanok
-Let $G\in\mathbb R^{m\times(q+1)}$ be Gaussian with $q+1\le m$ and $\zeta\in\mathbb R^m$ an independent Gaussian vector. With $\nu=m-q$, $n=q+1$ and $0<\eta<1$, the squared fit error
+Let $G\in\mathbb R^{m\times(q+1)}$ be Gaussian with $q+1\le m$ and $\zeta\in\mathbb R^m$ an independent Gaussian vector. With $\nu:=m-q$, $n:=q+1$ and $0<\eta<1$, the squared fit error
 $\|(G^\top G)^{-1}G^\top\zeta\|^2$ lies in $\bigl[\tfrac{n(1-\eta)}{\nu(1+\eta)},\tfrac{n(1+\eta)}{\nu(1-\eta)}\bigr]$ except on an event of probability at most
 $60/(\eta^4\nu^2)+60/(\eta^4n^2)$. It concentrates at $n/(m-n+1)$ without any second moment of the inverse Wishart matrix.
 \end{theorem}
@@ -1391,7 +1466,7 @@ Outside these two events $\|(I-P_S)g\|^2=\|g\|^2-\|P_Sg\|^2$ is within $4\vareps
 
 \subsection{The feature-bottleneck estimator}
 
-Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ be independent Gaussian matrices, $Z=XS$, $M=S(Z^\top Z)^{-1}Z^\top$, $\hat\theta=My$.
+Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ be independent Gaussian matrices, $Z:=XS$, $M=S(Z^\top Z)^{-1}Z^\top$, $\hat\theta=My$.
 
 \begin{theorem}[Variance of the feature-bottleneck estimator in probability]\label{thm:dd:featureVarianceProb}
   \uses{thm:dd:featureVariance, thm:dd:traceReduction, thm:dd:traceConcentration, lem:dd:invariance}
@@ -1406,7 +1481,7 @@ $\operatorname{Tr}((Z_k^\top Z_k)^{-1}S_k^\top S_k)\to\delta/(1-\delta)$ in prob
 
 \begin{proof}
   \leanok
-Write $S=QR$ (Lemma~\ref{lem:dd:orthFactor}) and $G=XQ$; by Theorem~\ref{thm:dd:traceReduction} the trace equals $\operatorname{Tr}(G^\top G)^{-1}$ identically, and $G$ is Gaussian by Lemma~\ref{lem:dd:invariance}(2). The limit is
+Write $S=QR$ (Lemma~\ref{lem:dd:orthFactor}) and $G:=XQ$; by Theorem~\ref{thm:dd:traceReduction} the trace equals $\operatorname{Tr}(G^\top G)^{-1}$ identically, and $G$ is Gaussian by Lemma~\ref{lem:dd:invariance}(2). The limit is
 Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n)$. Neither the law of $S$ nor its independence from $X$ is used.
 \end{proof}
 
@@ -1415,14 +1490,14 @@ Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n)$. Neither the law of
   \lean{LinearRegression.DoubleDescent.measurePreserving_mulVec_mul_orthonormal,
         LinearRegression.DoubleDescent.measure_featureBias_deviation_le}
   \leanok
-Fix $S\in\mathbb R^{n_0\times n}$ with $S^\top S$ invertible and $\theta\in\mathbb R^{n_0}$, put $\theta_\perp=(I-P_S)\theta$ and $R_{\mathrm{bias}}=\|(MX-I)\theta\|^2$, $\nu=m-n+1$, $0<\eta<1$.
+Fix $S\in\mathbb R^{n_0\times n}$ with $S^\top S$ invertible and $\theta\in\mathbb R^{n_0}$, put $\theta_\perp:=(I-P_S)\theta$ and $R_{\mathrm{bias}}:=\|(MX-I)\theta\|^2$, $\nu:=m-n+1$, $0<\eta<1$.
 Then $R_{\mathrm{bias}}\in\|\theta_\perp\|^2\bigl[1+\tfrac{n(1-\eta)}{\nu(1+\eta)},\ 1+\tfrac{n(1+\eta)}{\nu(1-\eta)}\bigr]$ except on an $X$-event of probability at most $60/(\eta^4\nu^2)+60/(\eta^4n^2)$, whatever $S$ and $\theta$ are.
 \end{theorem}
 
 \begin{proof}
   \leanok
-Let $S=QR$, $G=XQ$ and $u=\theta_\perp/\|\theta_\perp\|$, which is orthogonal to the columns of $Q$. The matrix $[Q\,|\,u]$ has orthonormal columns, so $X[Q\,|\,u]$ is Gaussian
-(Lemma~\ref{lem:dd:invariance}(2)) and its last column $\zeta=Xu$ is independent of $G=XQ$ (Lemma~\ref{lem:dd:columnSplit}(1); \texttt{measurePreserving\_mulVec\_mul\_orthonormal}). By
+Let $S=QR$, $G:=XQ$ and $u:=\theta_\perp/\|\theta_\perp\|$, which is orthogonal to the columns of $Q$. The matrix $[Q\,|\,u]$ has orthonormal columns, so $X[Q\,|\,u]$ is Gaussian
+(Lemma~\ref{lem:dd:invariance}(2)) and its last column $\zeta=Xu$ is independent of $G:=XQ$ (Lemma~\ref{lem:dd:columnSplit}(1); \texttt{measurePreserving\_mulVec\_mul\_orthonormal}). By
 Theorem~\ref{thm:dd:biasReduction}, $R_{\mathrm{bias}}=\|\theta_\perp\|^2\bigl(1+\|(G^\top G)^{-1}G^\top\zeta\|^2\bigr)$ since $X\theta_\perp=\|\theta_\perp\|\zeta$, and the fit error concentrates by Theorem~\ref{thm:dd:fitError}.
 \end{proof}
 
@@ -1442,7 +1517,7 @@ Let $1\le n_k\le\min\{m_k,n_{0,k}\}$ with $n_k\to\infty$, $n_k/m_k\to\delta<1$, 
 
 \begin{proof}
   \leanok
-Put $a_k=(1-n_k/n_{0,k})\|\theta_k\|^2\to(1-\delta/\gamma)r=:a$ and $c=\delta/(1-\delta)$, so that $\frac{\gamma-\delta}{\gamma(1-\delta)}r=a(1+c)$ (\texttt{tendsto\_feature\_ratios}). The two-stage union bound
+Put $a_k:=(1-n_k/n_{0,k})\|\theta_k\|^2$, with limit $a:=(1-\delta/\gamma)r$, and $c:=\delta/(1-\delta)$, so that $\frac{\gamma-\delta}{\gamma(1-\delta)}r=a(1+c)$ (\texttt{tendsto\_feature\_ratios}). The two-stage union bound
 (\texttt{measure\_prod\_sandwich\_le}: either $\|\theta_\perp\|^2$ is far from $a_k$ on the $S$-side, or $R_{\mathrm{bias}}$ leaves its sandwich given $S$) combines Theorem~\ref{thm:dd:featureBiasFixedS}, valid for $S$-a.e.\ $S$ by
 Theorem~\ref{thm:dd:fullRankAS}, with Theorem~\ref{thm:dd:projectorProbability}; this is \texttt{measure\_featureBias\_joint\_le}. A single small tolerance $t$ (\texttt{exists\_tolerance\_sandwich}:
 both sides of the sandwich are continuous in $t$ and equal $a(1+c)$ at $t=0$) puts the sandwich inside $(L-\varepsilon,L+\varepsilon)$ eventually, and every failure probability tends to $0$ because $\nu_k,n_k\to\infty$.
@@ -1450,7 +1525,7 @@ both sides of the sandwich are continuous in $t$ and equal $a(1+c)$ at $t=0$) pu
 
 \subsection{The sample-bottleneck estimator: variance and bias}\label{sec:dd:sampleprob}
 
-Throughout this subsection $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ are independent Gaussian matrices, $S=V^\top$ (so $S$ is a Gaussian $n_0\times n$ matrix), $Z=XS=XV^\top$, $P=P_X=\operatorname{gramProjector}X^\top$, and
+Throughout this subsection $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ are independent Gaussian matrices, $S:=V^\top$ (so $S$ is a Gaussian $n_0\times n$ matrix), $Z=XS=XV^\top$, $P=P_X=\operatorname{gramProjector}X^\top$, and
 $\nu=n-m+1$. The regime is $m\le\min\{n,n_0\}$, and the targets are the variance trace
 $T=\operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)$ of Theorem~\ref{thm:dd:sampleVariance}. By Lemma~\ref{lem:dd:sampleDecomp}(4) it splits as
 \[
@@ -1479,19 +1554,19 @@ The bias $\|(MX-I)\theta\|^2$ is treated in the same way at the end of this subs
         LinearRegression.DoubleDescent.measure_sampleQuad_mem_le,
         LinearRegression.DoubleDescent.measure_preimage_mul_orthonormal_le}
   \leanok
-Let $X\in\mathbb R^{m\times n_0}$ be a \emph{fixed} matrix with $XX^\top$ invertible, $V\in\mathbb R^{n\times n_0}$ Gaussian, $Z=XV^\top$, $1\le m\le n$, $\nu=n-m+1$ and $0<\eta<1$.
+Let $X\in\mathbb R^{m\times n_0}$ be a \emph{fixed} matrix with $XX^\top$ invertible, $V\in\mathbb R^{n\times n_0}$ Gaussian, $Z:=XV^\top$, $1\le m\le n$, $\nu=n-m+1$ and $0<\eta<1$.
 \begin{enumerate}
   \item (Frame) There are $Q\in\mathbb R^{n_0\times m}$ with $Q^\top Q=I$ and a symmetric invertible $R$ with $R^{-1}R^{-1}=(XX^\top)^{-1}$ such that, for every $V$, $(ZZ^\top)^{-1}=R^{-1}\bigl((VQ)^\top(VQ)\bigr)^{-1}R^{-1}$.
   \item (Trace) $\operatorname{Tr}(ZZ^\top)^{-1}\in\bigl[\tfrac{\operatorname{Tr}(XX^\top)^{-1}}{\nu(1+\eta)},\tfrac{\operatorname{Tr}(XX^\top)^{-1}}{\nu(1-\eta)}\bigr]$ except with probability at most $60m/(\eta^4\nu^2)$.
   \item (Energy) For every fixed $a\in\mathbb R^m$, $a^\top(ZZ^\top)^{-1}a\in\bigl[\tfrac{a^\top(XX^\top)^{-1}a}{\nu(1+\eta)},\tfrac{a^\top(XX^\top)^{-1}a}{\nu(1-\eta)}\bigr]$ except with probability at most $60/(\eta^4\nu^2)$.
 \end{enumerate}
-With $a=X\theta$ the vector $Z^\dagger a$ is the vector $b$ of interpolating coefficients of $X\theta$ (Lemma~\ref{lem:dd:sampleDecomp}(3)), $\|b\|^2=a^\top(ZZ^\top)^{-1}a$, and $a^\top(XX^\top)^{-1}a=\|P_X\theta\|^2$.
+With $a:=X\theta$ the vector $Z^\dagger a$ is the vector $b$ of interpolating coefficients of $X\theta$ (Lemma~\ref{lem:dd:sampleDecomp}(3)), $\|b\|^2=a^\top(ZZ^\top)^{-1}a$, and $a^\top(XX^\top)^{-1}a=\|P_X\theta\|^2$.
 \end{theorem}
 
 \begin{proof}
   \leanok
-(1) Lemma~\ref{lem:dd:orthFactor} applied to $X^\top=QR$ gives $X=RQ^\top$, hence $ZZ^\top=R(VQ)^\top(VQ)R$ and $R^2=XX^\top$. (2) $G=VQ$ is Gaussian by Lemma~\ref{lem:dd:invariance}, and by cyclicity $\operatorname{Tr}(ZZ^\top)^{-1}=\operatorname{Tr}\bigl((XX^\top)^{-1}(G^\top G)^{-1}\bigr)$ with the positive semidefinite weight $C=(XX^\top)^{-1}$,
-so Theorem~\ref{thm:dd:weightedTraceConcentration} applies with $p=n$, $q+1=m$. (3) With $\xi=R^{-1}a$ one has $a^\top(ZZ^\top)^{-1}a=\xi^\top(G^\top G)^{-1}\xi$ and $\|\xi\|^2=a^\top(XX^\top)^{-1}a$, so Theorem~\ref{thm:dd:quadFormFixed} applies. The pushforward of $V$ under $V\mapsto VQ$ is the Gaussian measure (\texttt{measure\_preimage\_mul\_orthonormal\_le}).
+(1) Lemma~\ref{lem:dd:orthFactor} applied to $X^\top=QR$ gives $X=RQ^\top$, hence $ZZ^\top=R(VQ)^\top(VQ)R$ and $R^2=XX^\top$. (2) $G:=VQ$ is Gaussian by Lemma~\ref{lem:dd:invariance}, and by cyclicity $\operatorname{Tr}(ZZ^\top)^{-1}=\operatorname{Tr}\bigl((XX^\top)^{-1}(G^\top G)^{-1}\bigr)$ with the positive semidefinite weight $C=(XX^\top)^{-1}$,
+so Theorem~\ref{thm:dd:weightedTraceConcentration} applies with $p=n$, $q+1=m$. (3) With $\xi:=R^{-1}a$ one has $a^\top(ZZ^\top)^{-1}a=\xi^\top(G^\top G)^{-1}\xi$ and $\|\xi\|^2=a^\top(XX^\top)^{-1}a$, so Theorem~\ref{thm:dd:quadFormFixed} applies. The pushforward of $V$ under $V\mapsto VQ$ is the Gaussian measure (\texttt{measure\_preimage\_mul\_orthonormal\_le}).
 \end{proof}
 
 \begin{theorem}[Non-asymptotic sandwich for the sample-bottleneck variance]\label{thm:dd:sampleSandwich}
@@ -1504,7 +1579,7 @@ so Theorem~\ref{thm:dd:weightedTraceConcentration} applies with $p=n$, $q+1=m$. 
         LinearRegression.DoubleDescent.variance_sandwich_arith,
         Matrix.sum_sq_mul_transpose_le_trace_sq}
   \leanok
-Let $1\le m\le\min\{n,n_0\}$, $0<\eta<1$, $0<\varepsilon_1\le c_1$, $\varepsilon_3>0$, $\lambda=(n_0-m)/\nu$, and let $T=T(X,V)$ be the variance trace above. Outside an event of probability at most
+Let $1\le m\le\min\{n,n_0\}$, $0<\eta<1$, $0<\varepsilon_1\le c_1$, $\varepsilon_3>0$, $\lambda:=(n_0-m)/\nu$, and let $T:=T(X,V)$ be the variance trace above. Outside an event of probability at most
 \[
   2\,\mathbb P\bigl(|\operatorname{Tr}(XX^\top)^{-1}-c_1|\ge\varepsilon_1\bigr)+\frac{120\,m}{\eta^4\nu^2}+\frac{2n_0}{\varepsilon_3^2}\Bigl(\frac{c_1+\varepsilon_1}{\nu(1-\eta)}\Bigr)^2,
 \]
@@ -1517,7 +1592,7 @@ Moreover, jointly over $(X,V)$ the event ``$XX^\top$ invertible but $\operatorna
 
 \begin{proof}
   \leanok
-Let $B_1=\{|T_1-c_1|\ge\varepsilon_1\}$ and let $B_2$ be the joint trace event; $B_2$ has probability at most $60m/(\eta^4\nu^2)$ by Lemma~\ref{lem:dd:bookkeeping}(1) applied to the sections in $V$, which are bounded by Theorem~\ref{thm:dd:fixedDesignSample}(2) when $XX^\top$ is invertible
+Let $B_1:=\{|T_1-c_1|\ge\varepsilon_1\}$ and let $B_2$ be the joint trace event; $B_2$ has probability at most $60m/(\eta^4\nu^2)$ by Lemma~\ref{lem:dd:bookkeeping}(1) applied to the sections in $V$, which are bounded by Theorem~\ref{thm:dd:fixedDesignSample}(2) when $XX^\top$ is invertible
 (then $\operatorname{Tr}(XX^\top)^{-1}>0$) and are empty otherwise. The energy event is handled the same way with part (3).
 
 For the residual term write $X V^\top=X(VP)^\top$ (since $XP=X$), so $B=Z^\dagger(Z^\dagger)^\top$ is a function of $(VP,X)$ only. Theorem~\ref{thm:ntkcond:conditionalChebyshev}(3) (\texttt{NTK.conditional\_traceForm\_chebyshev}) with $A=I$, $\operatorname{tr}(I-P)=n_0-m$ and $\|I\|_F^2=n_0$ shows that
@@ -1548,7 +1623,7 @@ $\rho/(1-\rho)=(\gamma-1)^{-1}$.
   \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleVariance_deviation_transposed,
         LinearRegression.DoubleDescent.tendsto_measure_sampleVariance_deviation}
   \leanok
-Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k=V_k^\top$, $Z_k=X_kS_k$, and let $T_k$ be the variance trace of Theorem~\ref{thm:dd:sampleVariance}. Then for every $\varepsilon>0$
+Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k:=V_k^\top$, $Z_k:=X_kS_k$, and let $T_k$ be the variance trace of Theorem~\ref{thm:dd:sampleVariance}. Then for every $\varepsilon>0$
 \[
   \mathbb P\Bigl(\bigl|T_k-\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
 \]
@@ -1557,8 +1632,8 @@ The same holds with the Gaussian matrix $S_k\in\mathbb R^{n_{0,k}\times n_k}$ in
 
 \begin{proof}
   \leanok
-Put $c_1=(\gamma-1)^{-1}$ and $\lambda=(\gamma-1)/(\delta-1)$, so that $c_1(1+\lambda)=(\gamma-1)^{-1}+(\delta-1)^{-1}$. Define $F(t)=(c_1-t)\bigl(1+\lambda/(1+t)\bigr)-t$ and $G(t)=(c_1+t)\bigl(1+\lambda/(1-t)\bigr)+t$; both are continuous at $0$ with value $c_1(1+\lambda)$. Lemma~\ref{lem:dd:bookkeeping}(2) gives one $t\in(0,\min(1,c_1))$
-with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, where $L=c_1(1+\lambda)$. Apply Theorem~\ref{thm:dd:sampleSandwich} with $\eta=\varepsilon_1=\varepsilon_3=t$. By Theorem~\ref{thm:dd:sampleRatios}(1), $(n_{0,k}-m_k)/\nu_k\to\lambda$, so the endpoints of the sandwich converge to $F(t)$ and $G(t)$ and
+Put $c_1:=(\gamma-1)^{-1}$ and $\lambda:=(\gamma-1)/(\delta-1)$, so that $c_1(1+\lambda)=(\gamma-1)^{-1}+(\delta-1)^{-1}$. Define $F(t):=(c_1-t)\bigl(1+\lambda/(1+t)\bigr)-t$ and $G(t):=(c_1+t)\bigl(1+\lambda/(1-t)\bigr)+t$; both are continuous at $0$ with value $c_1(1+\lambda)$. Lemma~\ref{lem:dd:bookkeeping}(2) gives one $t\in(0,\min(1,c_1))$
+with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, where $L:=c_1(1+\lambda)$. Apply Theorem~\ref{thm:dd:sampleSandwich} with $\eta=\varepsilon_1=\varepsilon_3=t$. By Theorem~\ref{thm:dd:sampleRatios}(1), $(n_{0,k}-m_k)/\nu_k\to\lambda$, so the endpoints of the sandwich converge to $F(t)$ and $G(t)$ and
 eventually lie in $(L-\varepsilon,L+\varepsilon)$. It remains to see that the failure probability tends to $0$: the first term does by Theorem~\ref{thm:dd:sampleRatios}(2), the second is $120m_k/(t^4\nu_k^2)\to0$ and the third is $2n_{0,k}(\cdots)^2/(t^2\nu_k^2)\to0$, both by $m_k/\nu_k^2\to0$ and $n_{0,k}/\nu_k^2\to0$.
 \end{proof}
 
@@ -1569,7 +1644,7 @@ eventually lie in $(L-\varepsilon,L+\varepsilon)$. It remains to see that the fa
         LinearRegression.DoubleDescent.design_quadForm_inv_eq,
         LinearRegression.DoubleDescent.bias_sandwich_arith}
   \leanok
-Let $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ be independent Gaussian matrices, $S=V^\top$, $Z=XS$, $1\le m\le\min\{n,n_0\}$, $\nu=n-m+1$, $r=\|\theta\|^2$, and let $R_b=\|(MX-I)\theta\|^2$ be the bias of $\hat\theta=SZ^\dagger y$, $M=SZ^\dagger$. With $d=\|(I-P_X)\theta\|^2$, $d_0=(1-m/n_0)r$, $s_0=(m/n_0)r$, $\lambda=(n_0-m)/\nu$, outside an event of probability at most
+Let $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ be independent Gaussian matrices, $S:=V^\top$, $Z:=XS$, $1\le m\le\min\{n,n_0\}$, $\nu:=n-m+1$, $r:=\|\theta\|^2$, and let $R_b:=\|(MX-I)\theta\|^2$ be the bias of $\hat\theta=SZ^\dagger y$, $M=SZ^\dagger$. With $d:=\|(I-P_X)\theta\|^2$, $d_0:=(1-m/n_0)r$, $s_0:=(m/n_0)r$, $\lambda:=(n_0-m)/\nu$, outside an event of probability at most
 \[
   3\,\mathbb P\bigl(XX^\top\text{ singular}\bigr)+\mathbb P\bigl(|d-d_0|\ge\varepsilon_5\bigr)+\frac{180\,m}{\eta^4\nu^2}+\frac{180}{\eta^4\nu^2}+\frac{2n_0}{\varepsilon_6^2}\Bigl(\frac{r}{\nu(1-\eta)}\Bigr)^2+\frac{r^2}{\nu(1-\eta)\varepsilon_7^2},
 \]
@@ -1581,7 +1656,7 @@ we have
 
 \begin{proof}
   \leanok
-By Lemma~\ref{lem:dd:sampleDecomp}(3), $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b=Z^\dagger X\theta$. The squared norm expands as $R_b=d+b^\top(VP^\perp)(VP^\perp)^\top b-2b^\top(VP^\perp)\theta$ (\texttt{norm\_sq\_sub\_expand}). The weight $b$ depends on $V$ only through $VP$ and $X$. Conditional Chebyshev bounds control the quadratic and linear forms in $VP^\perp$ (\texttt{NTK.conditional\_quadForm\_chebyshev}, \texttt{NTK.conditional\_linearForm\_chebyshev}), $\|b\|^2=(X\theta)^\top(ZZ^\top)^{-1}(X\theta)$ is bounded by Theorem~\ref{thm:dd:sampleSandwich}, and $(X\theta)^\top(XX^\top)^{-1}(X\theta)=r-d$ (\texttt{design\_quadForm\_inv\_eq}). The arithmetic of \texttt{bias\_sandwich\_arith} gives the sandwich.
+By Lemma~\ref{lem:dd:sampleDecomp}(3), $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b:=Z^\dagger X\theta$. The squared norm expands as $R_b=d+b^\top(VP^\perp)(VP^\perp)^\top b-2b^\top(VP^\perp)\theta$ (\texttt{norm\_sq\_sub\_expand}). The weight $b$ depends on $V$ only through $VP$ and $X$. Conditional Chebyshev bounds control the quadratic and linear forms in $VP^\perp$ (\texttt{NTK.conditional\_quadForm\_chebyshev}, \texttt{NTK.conditional\_linearForm\_chebyshev}), $\|b\|^2=(X\theta)^\top(ZZ^\top)^{-1}(X\theta)$ is bounded by Theorem~\ref{thm:dd:sampleSandwich}, and $(X\theta)^\top(XX^\top)^{-1}(X\theta)=r-d$ (\texttt{design\_quadForm\_inv\_eq}). The arithmetic of \texttt{bias\_sandwich\_arith} gives the sandwich.
 \end{proof}
 
 \begin{theorem}[The sample-bottleneck bias converges in probability]\label{thm:dd:sampleBiasProb}
@@ -1589,7 +1664,7 @@ By Lemma~\ref{lem:dd:sampleDecomp}(3), $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $
   \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleBias_deviation_transposed,
         LinearRegression.DoubleDescent.tendsto_measure_sampleBias_deviation}
   \leanok
-Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k=V_k^\top$, $Z_k=X_kS_k$, and let $\|\theta_k\|^2\to r$. Then for every $\varepsilon>0$
+Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k:=V_k^\top$, $Z_k:=X_kS_k$, and let $\|\theta_k\|^2\to r$. Then for every $\varepsilon>0$
 \[
   \mathbb P\Bigl(\bigl|\|(M_kX_k-I)\theta_k\|^2-(1-\gamma^{-1})\frac{\delta}{\delta-1}r\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
 \]
@@ -1598,7 +1673,7 @@ The same holds with the Gaussian matrix $S_k\in\mathbb R^{n_{0,k}\times n_k}$ in
 
 \begin{proof}
   \leanok
-Put $\lambda=(\gamma-1)/(\delta-1)$ and $L=(1-\gamma^{-1})r+\lambda(\gamma^{-1}r)=(1-\gamma^{-1})\frac{\delta}{\delta-1}r$. Define $F(t)=(1-\gamma^{-1})r-t+\lambda(\gamma^{-1}r-t)/(1+t)-3t$ and $G(t)=(1-\gamma^{-1})r+t+\lambda(\gamma^{-1}r+t)/(1-t)+3t$; both are continuous at $0$ with value $L$. Choose $t\in(0,1)$ via Lemma~\ref{lem:dd:bookkeeping}(2) with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, and instantiate Theorem~\ref{thm:dd:sampleBiasSandwich} with $\eta=\varepsilon_5=\varepsilon_6=\varepsilon_7=t$. The endpoints converge to $F(t)$ and $G(t)$ and eventually enter $(L-\varepsilon,L+\varepsilon)$. The failure probabilities tend to $0$ by Theorem~\ref{thm:dd:sampleRatios}, Theorem~\ref{thm:dd:projectorProbability} (omitted signal of $P_X$ via $X_k^\top$), $m_k/\nu_k^2\to0$, and $n_{0,k}/\nu_k^2\to0$.
+Put $\lambda:=(\gamma-1)/(\delta-1)$ and $L:=(1-\gamma^{-1})r+\lambda(\gamma^{-1}r)$, which equals $(1-\gamma^{-1})\frac{\delta}{\delta-1}r$. Define $F(t):=(1-\gamma^{-1})r-t+\lambda(\gamma^{-1}r-t)/(1+t)-3t$ and $G(t):=(1-\gamma^{-1})r+t+\lambda(\gamma^{-1}r+t)/(1-t)+3t$; both are continuous at $0$ with value $L$. Choose $t\in(0,1)$ via Lemma~\ref{lem:dd:bookkeeping}(2) with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, and instantiate Theorem~\ref{thm:dd:sampleBiasSandwich} with $\eta=\varepsilon_5=\varepsilon_6=\varepsilon_7=t$. The endpoints converge to $F(t)$ and $G(t)$ and eventually enter $(L-\varepsilon,L+\varepsilon)$. The failure probabilities tend to $0$ by Theorem~\ref{thm:dd:sampleRatios}, Theorem~\ref{thm:dd:projectorProbability} (omitted signal of $P_X$ via $X_k^\top$), $m_k/\nu_k^2\to0$, and $n_{0,k}/\nu_k^2\to0$.
 \end{proof}
 
 \begin{remark}[What is and is not formalized in the probabilistic layer]\label{rmk:dd:remaining}
@@ -1629,9 +1704,9 @@ always an abstract \texttt{β\_hat} satisfying a hypothesis; here the matrix $M$
   \lean{LinearRegression.DoubleDescent.minNormOperator,
         LinearRegression.DoubleDescent.conditionalRisk}
   \leanok
-For $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ put $Z=XS$ and define $M=M(X,S)\in\mathbb R^{n_0\times m}$ by the \emph{smallest of the three dimensions}:
+For $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ put $Z:=XS$ and define $M:=M(X,S)\in\mathbb R^{n_0\times m}$ by the \emph{smallest of the three dimensions}:
 \[
-  M=\begin{cases}
+  M:=\begin{cases}
   S(Z^\top Z)^{-1}Z^\top & n\le\min\{m,n_0\}\quad\text{(feature bottleneck)},\\[0.5ex]
   S\bigl(S^\top(SS^\top)^{-1}\bigr)\bigl((X^\top X)^{-1}X^\top\bigr) & \text{otherwise, if } n_0\le\min\{m,n\}\quad\text{(ambient bottleneck)},\\[0.5ex]
   SZ^\top(ZZ^\top)^{-1} & \text{otherwise}\quad\text{(sample bottleneck)},
@@ -1639,7 +1714,7 @@ For $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ put $Z=XS$ a
 \]
 with Mathlib's inverse (so a singular matrix is replaced by $0$). This is the matrix $M$ of the last column of the table in Definition~\ref{def:dd:randomFeatures}, selected by the dimensions instead of by the reader. The \emph{conditional risk} is
 \[
-  \mathsf{cr}(\sigma^2,\theta,X,S)=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M),
+  \mathsf{cr}(\sigma^2,\theta,X,S):=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M),
 \]
 the bias plus the variance of the estimator $My$ with isotropic noise.
 \end{definition}
@@ -1649,14 +1724,14 @@ the bias plus the variance of the estimator $My$ with isotropic noise.
   \lean{LinearRegression.DoubleDescent.minNormOperator_of_feature,
         LinearRegression.DoubleDescent.minNormOperator_of_ambient,
         LinearRegression.DoubleDescent.minNormOperator_of_sample,
-        LinearRegression.DoubleDescent.conditionalRisk_eq_integral,
+        LinearRegression.DoubleDescent.risk_eq_conditionalRisk,
         LinearRegression.DoubleDescent.trace_featureOperator_eq,
         LinearRegression.DoubleDescent.conditionalRisk_of_feature,
         LinearRegression.DoubleDescent.conditionalRisk_of_sample,
         LinearRegression.DoubleDescent.conditionalRisk_of_ambient}
   \leanok
 \begin{enumerate}
-  \item (Bridge) If $\varepsilon$ has mean $0$ and covariance $\sigma^2I$, and $\hat\theta(\varepsilon)=M(X\theta+\varepsilon)$ with $M=M(X,S)$, then $\mathbb E\|\hat\theta-\theta\|^2=\mathsf{cr}(\sigma^2,\theta,X,S)$.
+  \item (Bridge) If $\varepsilon$ has mean $0$ and covariance $\sigma^2I$, and $\hat\theta(\varepsilon)=M(X\theta+\varepsilon)$ with $M=M(X,S)$, then the risk of Definition~\ref{def:dd:risk} with $\Sigma=I$ is $\mathsf{risk}_I(\hat\theta;\theta)=\mathbb E\|\hat\theta-\theta\|^2=\mathsf{cr}(\sigma^2,\theta,X,S)$ (\texttt{risk\_eq\_conditionalRisk}, from Theorem~\ref{thm:dd:linearBV}).
   \item (Feature) If $n\le\min\{m,n_0\}$, then $\mathsf{cr}=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr)$ with $M=S(Z^\top Z)^{-1}Z^\top$; the trace identity holds without any invertibility hypothesis, since both sides vanish for singular $Z^\top Z$.
   \item (Sample) If $n>\min\{m,n_0\}$ and $n_0>\min\{m,n\}$, then $\mathsf{cr}=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)$ with $M=SZ^\top(ZZ^\top)^{-1}$.
   \item (Ambient) If $n\not\le\min\{m,n_0\}$, $n_0\le\min\{m,n\}$ and both $X^\top X$ and $SS^\top$ are invertible, then $\mathsf{cr}=\sigma^2\operatorname{Tr}(X^\top X)^{-1}$.
@@ -1673,11 +1748,11 @@ so $M=(X^\top X)^{-1}X^\top$, then $MX=I$ and $\operatorname{Tr}(M^\top M)=\oper
   \lean{MeasureTheory.measure_add_mul_deviation_le,
         MeasureTheory.tendsto_measure_add_mul_deviation}
   \leanok
-Let $\mu$ be a measure and $R=A+\sigma B$ with real-valued $A,B$. Then for $\varepsilon>0$,
+Let $\mu$ be a measure and $R:=A+\sigma B$ with real-valued $A,B$. Then for $\varepsilon>0$,
 \[
   \mu\{|R-(a_0+\sigma b_0)|\ge\varepsilon\}\le\mu\{|A-a_0|\ge\tfrac\varepsilon2\}+\mu\Bigl\{|B-b_0|\ge\tfrac\varepsilon{2(|\sigma|+1)}\Bigr\}.
 \]
-Hence if $A_k\to a_0$ and $B_k\to b_0$ in probability and $R_k=A_k+\sigma B_k$, then $R_k\to a_0+\sigma b_0$ in probability.
+Hence if $A_k\to a_0$ and $B_k\to b_0$ in probability and $R_k:=A_k+\sigma B_k$, then $R_k\to a_0+\sigma b_0$ in probability.
 \end{lemma}
 
 \begin{proof}
@@ -1692,8 +1767,8 @@ If $|A-a_0|<\varepsilon/2$ and $|B-b_0|<\varepsilon/(2(|\sigma|+1))$, then $|R-(
         LinearRegression.DoubleDescent.tendsto_measure_featureBias_deviation,
         MeasureTheory.measure_prod_swap_le}
   \leanok
-Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $1\le n_k\le\min\{m_k,n_{0,k}\}$, $m_k\to\infty$ and $n_k/m_k\to\delta<1$. Then, with $Z_k=X_kS_k$, $\operatorname{Tr}\bigl((Z_k^\top Z_k)^{-1}S_k^\top S_k\bigr)\to\delta/(1-\delta)$ in probability, jointly in $(X_k,S_k)$.
-If moreover $n_k\to\infty$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to\rho$, then $\|(M_kX_k-I)\theta_k\|^2\to\frac{\gamma-\delta}{\gamma(1-\delta)}\rho$ in probability, with $M_k=S_k(Z_k^\top Z_k)^{-1}Z_k^\top$.
+Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $1\le n_k\le\min\{m_k,n_{0,k}\}$, $m_k\to\infty$ and $n_k/m_k\to\delta<1$. Then, with $Z_k:=X_kS_k$, $\operatorname{Tr}\bigl((Z_k^\top Z_k)^{-1}S_k^\top S_k\bigr)\to\delta/(1-\delta)$ in probability, jointly in $(X_k,S_k)$.
+If moreover $n_k\to\infty$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to\rho$, then $\|(M_kX_k-I)\theta_k\|^2\to\frac{\gamma-\delta}{\gamma(1-\delta)}\rho$ in probability, with $M_k:=S_k(Z_k^\top Z_k)^{-1}Z_k^\top$.
 \end{theorem}
 
 \begin{proof}
@@ -1708,7 +1783,7 @@ gives the joint bound and reduces the limit to Theorem~\ref{thm:dd:traceConcentr
         LinearRegression.DoubleDescent.tendsto_measure_sampleRisk_deviation,
         LinearRegression.DoubleDescent.tendsto_measure_ambientRisk_deviation}
   \leanok
-Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $\|\theta_k\|^2\to\rho$, and write $\mathsf{cr}_k=\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)$. For every $\varepsilon>0$ the probability that $\mathsf{cr}_k$ deviates by $\varepsilon$ or more from the stated limit tends to $0$ in each of the following cases, where the inequalities between $m_k,n_k,n_{0,k}$ are only required for all large $k$.
+Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $\|\theta_k\|^2\to\rho$, and write $\mathsf{cr}_k:=\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)$. For every $\varepsilon>0$ the probability that $\mathsf{cr}_k$ deviates by $\varepsilon$ or more from the stated limit tends to $0$ in each of the following cases, where the inequalities between $m_k,n_k,n_{0,k}$ are only required for all large $k$.
 \begin{enumerate}
   \item (Feature) $1\le n_k\le\min\{m_k,n_{0,k}\}$, $n_k\to\infty$, $n_k/m_k\to\delta<1$, $n_{0,k}/m_k\to\gamma>0$: limit $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho+\sigma^2\frac\delta{1-\delta}$.
   \item (Sample) $m_k<\min\{n_{0,k},n_k\}$, $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$, $n_k/m_k\to\delta>1$: limit $(1-\gamma^{-1})\frac\delta{\delta-1}\rho+\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$.
@@ -1761,3 +1836,21 @@ In the ambient domain $\gamma<1$, $\gamma\le\delta$: eventually $n_{0,k}\le m_k$
 \end{proof}
 
 The excluded set is $\{\gamma\ge1,\ \delta\ge1,\ \gamma=1\vee\delta=1\}$, where the limiting risk is infinite (the interpolation peak) and the junk value $x/0=0$ of the curve would make a statement false. At the boundary $\gamma=\delta<1$ the ordering hypothesis is genuinely used: the operator $M$ switches branches according to whether $n_k\le n_{0,k}$.
+
+
+\begin{corollary}[Global double descent for the risk of Definition~\ref{def:dd:risk}]\label{cor:dd:globalRisk}
+  \uses{thm:dd:globalDoubleDescent, lem:dd:globalBranches, def:dd:risk}
+  \lean{LinearRegression.DoubleDescent.double_descent_risk_convergence}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:dd:globalDoubleDescent}, let $P_k$ be any probability laws on $\mathbb R^{m_k}$ with square-integrable coordinates, mean $0$ and covariance $\sigma^2I$, and let $\hat\theta_k(\varepsilon):=M(X_k,S_k)(X_k\theta_k+\varepsilon)$. Then for every $\varepsilon'>0$
+\[
+  \mathbb P\Bigl(\bigl|\mathsf{risk}_I(P_k;\hat\theta_k;\theta_k)-\mathsf R(\gamma,\delta)\bigr|\ge\varepsilon'\Bigr)\longrightarrow0,
+\]
+where $\mathsf{risk}_I(P_k;\hat\theta_k;\theta_k):=\mathbb E_{\varepsilon\sim P_k}\|\hat\theta_k(\varepsilon)-\theta_k\|^2$ is the risk of Definition~\ref{def:dd:risk}. The limit does not depend on $P_k$ beyond $\sigma^2$.
+\end{corollary}
+
+\begin{proof}
+  \leanok
+By the bridge of Lemma~\ref{lem:dd:globalBranches}, $\mathsf{risk}_I(P_k;\hat\theta_k;\theta_k)=\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)$ for every $(X_k,S_k)$, so the two events in question are the same sets and Theorem~\ref{thm:dd:globalDoubleDescent} applies.
+\end{proof}
+

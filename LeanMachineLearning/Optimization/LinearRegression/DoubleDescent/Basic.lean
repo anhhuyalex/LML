@@ -28,8 +28,8 @@ definitions are introduced: the measurement operator is just the matrix `M` (for
 * `linearEstimator_bias_variance`: for centered noise of covariance `Γ`, the error splits as
   `θ̂ - θ⋆ = (M X - I) θ⋆ + M ε` (a fixed part and a centered part), so
   `B = ‖(M X - I) θ⋆‖²_Σ` and `V = Tr (M Γ Mᵀ Σ)`;
-* `exact_conditional_bias_variance_decomposition`: the isotropic case
-  `E ‖θ̂ - θ⋆‖² = ‖(M X - I) θ⋆‖² + σ² Tr (Mᵀ M)`.
+* `linearEstimator_bias_variance_isotropic`: the isotropic case `Γ = σ² I`, where for `Σ = I` the
+  risk is `E ‖θ̂ - θ⋆‖² = ‖(M X - I) θ⋆‖² + σ² Tr (Mᵀ M)`.
 -/
 
 @[expose]
@@ -203,28 +203,6 @@ theorem linearEstimator_bias_variance_isotropic [DecidableEq p] [DecidableEq n]
     rw [Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mul, Matrix.smul_mul, Matrix.trace_smul,
       smul_eq_mul]
   rwa [htr] at h
-
-/-- **Exact conditional bias–variance decomposition (isotropic noise, parameter risk).**
-`E_ε ‖M (X θ⋆ + ε) - θ⋆‖² = ‖(M X - I) θ⋆‖² + σ² Tr (Mᵀ M)` for noise with `E ε = 0`,
-`Cov ε = σ² I`. -/
-theorem exact_conditional_bias_variance_decomposition [DecidableEq p] [DecidableEq n]
-    (M : Matrix p n ℝ) (X : Matrix n p ℝ) (θ : EuclideanSpace ℝ p) (σ_sq : ℝ)
-    (P : Measure (n → ℝ)) [IsProbabilityMeasure P] (hε : ∀ i, MemLp (fun ε : n → ℝ => ε i) 2 P)
-    (h_mean : ∀ i, ∫ ε, ε i ∂P = 0)
-    (h_cov : ∀ i j, ∫ ε, ε i * ε j ∂P = if i = j then σ_sq else 0)
-    (β_hat : (n → ℝ) → EuclideanSpace ℝ p) (hβ : ∀ ε, (β_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)) :
-    ∫ ε, ‖β_hat ε - θ‖ ^ 2 ∂P =
-      ‖(WithLp.toLp 2 ((M * X - 1) *ᵥ θ.ofLp) : EuclideanSpace ℝ p)‖ ^ 2 +
-        σ_sq * Matrix.trace (Mᵀ * M) := by
-  have hsq : ∀ v : EuclideanSpace ℝ p,
-      ‖v‖ ^ 2 = v.ofLp ⬝ᵥ (1 : Matrix p p ℝ) *ᵥ v.ofLp := fun v => by
-    rw [EuclideanSpace.norm_sq_eq]; simp [dotProduct, sq]
-  obtain ⟨-, -, hrisk⟩ := linearEstimator_bias_variance_isotropic M X θ 1 σ_sq P hε h_mean h_cov
-    β_hat hβ
-  simp_rw [hsq]
-  simp only [risk] at hrisk
-  rw [show ∫ ε, (β_hat ε - θ).ofLp ⬝ᵥ (1 : Matrix p p ℝ) *ᵥ (β_hat ε - θ).ofLp ∂P = _ from hrisk]
-  simp [Matrix.trace_mul_comm M]
 
 /-- **HMRT Lemma 1 from the linear model.** In `y = X θ + ε` with centered isotropic noise
 `Cov ε = σ² I`, the estimator `θ̂ = Σ̂⁺ Xᵀ y / n` with `Σ̂ = Xᵀ X / n` and a symmetric
