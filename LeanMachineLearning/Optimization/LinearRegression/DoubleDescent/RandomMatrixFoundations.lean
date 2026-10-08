@@ -25,6 +25,9 @@ gaussianReal 0 1` as in `NTK/Initialization`. We prove:
   again i.i.d. standard normal entries (from `NTK.gaussian_map_mulVec`);
 * `map_gaussianMatrix_transpose`, `map_gaussianMatrix_orthogonal_mul`: `Wᵀ` is Gaussian and so
   is `U W` for `Uᵀ U = 1` (left invariance, the transpose of the above);
+* `measure_preimage_mul_orthonormal_le`, `measure_preimage_transpose_le`: the same invariances as
+  one-sided bounds on events, `ℙ (W Q ∈ E) ≤ ℙ (G ∈ E)` and `ℙ (Wᵀ ∈ E) ≤ ℙ (G ∈ E)`, with no
+  measurability assumption on `E`;
 * `map_dotProduct_projector_mulVec`: for a Gaussian vector `g` and an orthogonal projection `P`
   of trace `r`, `‖P g‖²` is `χ²_r` (`Matrix.exists_orthonormal_rows_of_isStarProjection`);
 * `measurePreserving_columnSplit`, `map_prod_eq_of_ae`: column `j` of `W` is independent of the
@@ -142,6 +145,36 @@ theorem map_gaussianMatrix_orthogonal_mul {p q : ℕ} (U : Matrix (Fin p) (Fin p
     simp [Matrix.mul_apply, mul_comm]
   rw [key, ← Measure.map_map (mT q p) (mR.comp (mT p q)), ← Measure.map_map mR (mT p q), hT1, hR,
     hT2]
+
+/-- **Pulling back an event along right multiplication by an orthonormal frame.** If `W` is a
+`ρ × ι` Gaussian matrix and `Qᵀ Q = 1`, then the event `{W | W Q ∈ E}` has at most the probability
+of `E` under the `ρ × κ` Gaussian law (`map_gaussianMatrix_mul_orthonormal`). No measurability of
+`E` is needed. -/
+theorem measure_preimage_mul_orthonormal_le {ρ ι κ : Type*} [Fintype ρ] [Fintype ι] [Fintype κ]
+    [DecidableEq κ] (Q : Matrix ι κ ℝ) (hQ : Qᵀ * Q = 1) (E : Set (ρ → κ → ℝ)) :
+    (Measure.pi fun _ : ρ => Measure.pi fun _ : ι => gaussianReal 0 1)
+        {W | (fun i k => (Matrix.of W * Q) i k) ∈ E} ≤
+      (Measure.pi fun _ : ρ => Measure.pi fun _ : κ => gaussianReal 0 1) E := by
+  have hfm : Measurable fun W : ρ → ι → ℝ => fun i k => (Matrix.of W * Q) i k := by
+    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
+    simp only [Matrix.mul_apply, Matrix.of_apply]
+    exact Finset.measurable_sum _ fun j _ =>
+      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
+  rw [← map_gaussianMatrix_mul_orthonormal (ρ := ρ) Q hQ]
+  exact Measure.le_map_apply hfm.aemeasurable E
+
+/-- **Pulling back an event along transposition.** If `W` is a `p × q` Gaussian matrix, the event
+`{W | Wᵀ ∈ E}` has at most the probability of `E` under the `q × p` Gaussian law
+(`map_gaussianMatrix_transpose`). -/
+theorem measure_preimage_transpose_le (p q : ℕ) (E : Set (Fin q → Fin p → ℝ)) :
+    (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1)
+        {W | (fun k i => W i k) ∈ E} ≤
+      (Measure.pi fun _ : Fin q => Measure.pi fun _ : Fin p => gaussianReal 0 1) E := by
+  have hfm : Measurable fun W : Fin p → Fin q → ℝ => fun k i => W i k :=
+    measurable_pi_iff.2 fun k => measurable_pi_iff.2 fun i =>
+      (measurable_pi_apply k).comp (measurable_pi_apply i)
+  rw [← map_gaussianMatrix_transpose p q]
+  exact Measure.le_map_apply hfm.aemeasurable E
 
 /-- **Projected Gaussian norm is chi-squared.** If `g` has i.i.d. standard normal coordinates and
 `P` is an orthogonal projection matrix of trace `r`, then `‖P g‖²` has the law of `‖x‖²` for `x` a

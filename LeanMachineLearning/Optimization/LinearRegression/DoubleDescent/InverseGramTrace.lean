@@ -241,44 +241,31 @@ theorem measure_trace_mul_inv_gram_deviation_le {p q : ℕ} (hqp : q + 1 ≤ p)
             C.trace / (((p - q : ℕ) : ℝ) * (1 - ε)))} ≤
       ENNReal.ofReal (((q + 1 : ℕ) : ℝ) * (60 / (ε ^ 4 * ((p - q : ℕ) : ℝ) ^ 2))) := by
   obtain ⟨U, w, hU, hw, hwsum, htr⟩ := exists_trace_mul_eq_sum_eigenvalues C hC
-  set μ := Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin (q + 1) => gaussianReal 0 1
-    with hμ
-  set f : (Fin p → Fin (q + 1) → ℝ) → (Fin p → Fin (q + 1) → ℝ) := fun W i k =>
-    (Matrix.of W * U) i k with hf
-  have hfm : Measurable f := by
-    refine measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun k => ?_
-    simp only [hf, Matrix.mul_apply, Matrix.of_apply]
-    exact Finset.measurable_sum _ fun j _ =>
-      ((measurable_pi_apply j).comp (measurable_pi_apply i)).mul_const _
-  have hmap : μ.map f = μ := map_gaussianMatrix_mul_orthonormal (ρ := Fin p) U hU
   set E : Set (Fin p → Fin (q + 1) → ℝ) :=
     {W | ¬ ((∑ j, w j) / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
         ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ∧
       ∑ j, w j * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ j j ≤
         (∑ j, w j) / (((p - q : ℕ) : ℝ) * (1 - ε)))} with hE
-  have hsub : {W : Fin p → Fin (q + 1) → ℝ | ¬ (C.trace / (((p - q : ℕ) : ℝ) * (1 + ε)) ≤
-            (C * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹).trace ∧
-          (C * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹).trace ≤
-            C.trace / (((p - q : ℕ) : ℝ) * (1 - ε)))} ⊆ f ⁻¹' E := by
-    intro W hW
-    have hfW : (Matrix.of (f W) : Matrix (Fin p) (Fin (q + 1)) ℝ) = Matrix.of W * U := rfl
-    have hinv : ((Matrix.of (f W))ᵀ * Matrix.of (f W))⁻¹ =
-        Uᵀ * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ * U := by
-      have h1 : (Matrix.of W * U)ᵀ * (Matrix.of W * U) =
-          Uᵀ * ((Matrix.of W)ᵀ * Matrix.of W) * U := by
-        rw [Matrix.transpose_mul]; simp only [Matrix.mul_assoc]
-      rw [hfW, h1]
-      exact inv_transpose_mul_mul_orthogonal _ U hU
-    simp only [Set.mem_preimage, hE, Set.mem_ofPred_eq] at hW ⊢
-    rw [hinv, hwsum, ← htr]
-    exact hW
   have hreal := measureReal_weighted_diag_inv_gram_deviation_le hqp w hw hε hε1
-  calc μ _ ≤ μ (f ⁻¹' E) := measure_mono hsub
-    _ ≤ (μ.map f) E := Measure.le_map_apply hfm.aemeasurable E
-    _ = μ E := by rw [hmap]
-    _ ≤ _ := by
-      rw [← ofReal_measureReal]
-      exact ENNReal.ofReal_le_ofReal hreal
+  refine le_trans (measure_mono ?_) (le_trans
+    (measure_preimage_mul_orthonormal_le (ρ := Fin p) U hU E) ?_)
+  swap
+  · rw [← ofReal_measureReal]
+    exact ENNReal.ofReal_le_ofReal hreal
+  intro W hW
+  have hinv : ((Matrix.of fun i k => (Matrix.of W * U) i k)ᵀ *
+      (Matrix.of fun i k => (Matrix.of W * U) i k))⁻¹ =
+      Uᵀ * ((Matrix.of W)ᵀ * Matrix.of W)⁻¹ * U := by
+    have h1 : (Matrix.of W * U)ᵀ * (Matrix.of W * U) =
+        Uᵀ * ((Matrix.of W)ᵀ * Matrix.of W) * U := by
+      rw [Matrix.transpose_mul]; simp only [Matrix.mul_assoc]
+    have hfW : (Matrix.of fun i k => (Matrix.of W * U) i k : Matrix (Fin p) (Fin (q + 1)) ℝ) =
+        Matrix.of W * U := rfl
+    rw [hfW, h1]
+    exact inv_transpose_mul_mul_orthogonal _ U hU
+  simp only [Set.mem_ofPred_eq, hE] at hW ⊢
+  rw [hinv, hwsum, ← htr]
+  exact hW
 
 
 /-- `measureReal_trace_inv_gram_deviation_le` for `m ≥ 1` columns, with `ν = p - m + 1`. -/

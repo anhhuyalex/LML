@@ -234,6 +234,27 @@ theorem exists_orthonormal_rows_of_isStarProjection {ι : Type u} [Fintype ι]
     simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one] at this
     exact this
 
+
+/-- The row-space projector of a design `X` is `Xᵀ (X Xᵀ)⁻¹ X`. -/
+theorem gramProjector_transpose_eq {m n₀ : Type*} [Fintype m] [Fintype n₀] [DecidableEq m]
+    (X : Matrix m n₀ ℝ) :
+    gramProjector Xᵀ = Xᵀ * (X * Xᵀ)⁻¹ * X := by
+  simp [gramProjector]
+
+/-- The row-space projector acts trivially on the design: `X P_X = X`. -/
+theorem mul_gramProjector_transpose {m n₀ : Type*} [Fintype m] [Fintype n₀] [DecidableEq m]
+    (X : Matrix m n₀ ℝ) (hX : IsUnit (X * Xᵀ).det) :
+    X * gramProjector Xᵀ = X := by
+  have h := gramProjector_mul_self Xᵀ (by simpa using hX)
+  have := congrArg Matrix.transpose h
+  simpa only [Matrix.transpose_mul, Matrix.transpose_transpose, gramProjector_transpose] using this
+
+/-- The residual projector annihilates the design: `X (1 - P_X) = 0`. -/
+theorem mul_one_sub_gramProjector_transpose {m n₀ : Type*} [Fintype m] [Fintype n₀]
+    [DecidableEq m] [DecidableEq n₀] (X : Matrix m n₀ ℝ) (hX : IsUnit (X * Xᵀ).det) :
+    X * (1 - gramProjector Xᵀ) = 0 := by
+  rw [Matrix.mul_sub, Matrix.mul_one, mul_gramProjector_transpose X hX, sub_self]
+
 end Matrix
 
 end

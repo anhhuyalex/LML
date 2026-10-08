@@ -50,6 +50,17 @@ theorem self_mul_rightInverse {m n : Type*} [Fintype m] [Fintype n] [DecidableEq
     (Z : Matrix m n ℝ) (h : IsUnit (Z * Zᵀ).det) : Z * (Zᵀ * (Z * Zᵀ)⁻¹) = 1 := by
   rw [← Matrix.mul_assoc, Matrix.mul_nonsing_inv _ h]
 
+/-- The right inverse `Z† = Zᵀ (Z Zᵀ)⁻¹` has Gram matrix `Z†ᵀ Z† = (Z Zᵀ)⁻¹`. -/
+theorem rightInverse_transpose_mul_self {m n : Type*} [Fintype m] [Fintype n] [DecidableEq m]
+    (Z : Matrix m n ℝ) (h : IsUnit (Z * Zᵀ).det) :
+    (Zᵀ * (Z * Zᵀ)⁻¹)ᵀ * (Zᵀ * (Z * Zᵀ)⁻¹) = (Z * Zᵀ)⁻¹ := by
+  have hsymm : ((Z * Zᵀ)⁻¹)ᵀ = (Z * Zᵀ)⁻¹ := by
+    rw [Matrix.transpose_nonsing_inv, Matrix.transpose_mul, Matrix.transpose_transpose]
+  rw [Matrix.transpose_mul, hsymm, Matrix.transpose_transpose]
+  calc (Z * Zᵀ)⁻¹ * Z * (Zᵀ * (Z * Zᵀ)⁻¹)
+      = (Z * Zᵀ)⁻¹ * ((Z * Zᵀ) * (Z * Zᵀ)⁻¹) := by simp only [Matrix.mul_assoc]
+    _ = (Z * Zᵀ)⁻¹ := by rw [Matrix.mul_nonsing_inv _ h, Matrix.mul_one]
+
 /-- **Right-inverse coefficients interpolate.** If `Z Zᵀ` is invertible, the coefficients
 `Zᵀ (Z Zᵀ)⁻¹ y` fit any target exactly: `Z (Zᵀ (Z Zᵀ)⁻¹ y) = y`. Stated for arbitrary index types
 and plain vectors, so that it also serves as the surjectivity of a full-row-rank `S`. -/
