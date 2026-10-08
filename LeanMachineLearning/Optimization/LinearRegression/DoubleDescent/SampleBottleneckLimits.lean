@@ -689,6 +689,344 @@ theorem bias_sandwich_arith {d d₀ s s₀ q Tq L r ν η N ε₅ ε₆ ε₇ : 
     rw [e2]
     nlinarith
 
+section Bias
+
+variable {m n n₀ : ℕ}
+
+/-- **Non-asymptotic bias sandwich in the sample-bottleneck regime.**
+Let `X` be an `m × n₀` and `V` an independent `n × n₀` Gaussian matrix, `S = Vᵀ`, `Z = X S`,
+`m ≤ min {n, n₀}`, `ν = n - m + 1`, `r = ‖θ‖²`, and `Rb = ‖(M X - 1) θ‖²` the bias of
+`θ̂ = M y`, `M = S Z†`. Write `d = ‖(1 - P_X) θ‖²`, `d₀ = (1 - m/n₀) r`, `s₀ = (m/n₀) r`,
+`λ = (n₀ - m)/ν`. Off an event of probability at most
+`3 ℙ (X Xᵀ singular) + ℙ (|d - d₀| ≥ ε₅) + 3 · 60 m / (η⁴ ν²) + 3 · 60 / (η⁴ ν²) +
+2 n₀ (r / (ν (1-η)))² / ε₆² + r² / (ν (1-η) ε₇²)`,
+`d₀ - ε₅ + λ (s₀ - ε₅)/(1+η) - (ε₆ + 2 ε₇) < Rb < d₀ + ε₅ + λ (s₀ + ε₅)/(1-η) + (ε₆ + 2 ε₇)`.
+
+Proof: `Rb = d + bᵀ (V Pᗮ)(V Pᗮ)ᵀ b - 2 bᵀ (V Pᗮ) θ` with `b = Z† X θ`
+(`operator_mul_design_sub_one_mulVec`, `norm_sq_sub_expand`), where `b` depends on `V` only through
+`V P` and `X`; the two Gaussian forms in `V Pᗮ` are controlled by the conditional Chebyshev bounds
+(`conditional_quadForm_chebyshev`, `conditional_linearForm_chebyshev`), `‖b‖² = (Xθ)ᵀ (Z Zᵀ)⁻¹ (Xθ)`
+by `measure_sampleQuadBad_le`, and `(Xθ)ᵀ (X Xᵀ)⁻¹ (Xθ) = r - d` by `design_quadForm_inv_eq`. -/
+theorem measure_sampleBias_sandwich_le (hm : 0 < m) (hmn : m ≤ n) (hmn₀ : m ≤ n₀)
+    (θ : Fin n₀ → ℝ) {η ε₅ ε₆ ε₇ : ℝ} (hη : 0 < η) (hη1 : η < 1) (hε₆ : 0 < ε₆) (hε₇ : 0 < ε₇)
+    (Rb : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) → ℝ)
+    (hRb : ∀ x, Rb x =
+      (((Matrix.of x.2)ᵀ * (((Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ *
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹))) *
+          Matrix.of x.1 - 1) *ᵥ θ) ⬝ᵥ
+      (((Matrix.of x.2)ᵀ * (((Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ *
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹))) *
+          Matrix.of x.1 - 1) *ᵥ θ)) :
+    ((Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1))
+        {x | ¬ ((1 - (m : ℝ) / n₀) * (θ ⬝ᵥ θ) - ε₅ +
+              (((n₀ : ℝ) - m) / ((n - m + 1 : ℕ) : ℝ)) * (((m : ℝ) / n₀) * (θ ⬝ᵥ θ) - ε₅) /
+                (1 + η) - (ε₆ + 2 * ε₇) < Rb x ∧
+            Rb x < (1 - (m : ℝ) / n₀) * (θ ⬝ᵥ θ) + ε₅ +
+              (((n₀ : ℝ) - m) / ((n - m + 1 : ℕ) : ℝ)) * (((m : ℝ) / n₀) * (θ ⬝ᵥ θ) + ε₅) /
+                (1 - η) + (ε₆ + 2 * ε₇))} ≤
+      3 * (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1)
+          {a | ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace ≤ 0} +
+        (Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1)
+          {a | ε₅ ≤ |((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ) ⬝ᵥ
+            ((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ) - (1 - (m : ℝ) / n₀) * (θ ⬝ᵥ θ)|} +
+        3 * ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ((n - m + 1 : ℕ) : ℝ) ^ 2))) +
+        3 * ENNReal.ofReal (60 / (η ^ 4 * ((n - m + 1 : ℕ) : ℝ) ^ 2)) +
+        ENNReal.ofReal (2 * (n₀ : ℝ) * ((θ ⬝ᵥ θ) / (((n - m + 1 : ℕ) : ℝ) * (1 - η))) ^ 2 /
+          ε₆ ^ 2) +
+        ENNReal.ofReal ((θ ⬝ᵥ θ) / (((n - m + 1 : ℕ) : ℝ) * (1 - η)) * (θ ⬝ᵥ θ) / ε₇ ^ 2) := by
+  set ν : ℝ := ((n - m + 1 : ℕ) : ℝ) with hνdef
+  have hν : 0 < ν := by rw [hνdef]; positivity
+  set μX := Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1 with hμX
+  set μV := Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1 with hμV
+  have hX1 : IsProbabilityMeasure μX := by rw [hμX]; infer_instance
+  have hV1 : IsProbabilityMeasure μV := by rw [hμV]; infer_instance
+  set r : ℝ := θ ⬝ᵥ θ with hr
+  have hr0 : 0 ≤ r := by rw [hr, ← star_trivial θ]; exact dotProduct_star_self_nonneg θ
+  set T₁ : (Fin m → Fin n₀ → ℝ) → ℝ := fun a => ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace with hT₁
+  have hmT₁ : Measurable T₁ := measurable_matrix_trace (by fun_prop)
+  set dd : (Fin m → Fin n₀ → ℝ) → ℝ := fun a =>
+    ((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ) ⬝ᵥ ((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ)
+    with hdd
+  have hmdd : Measurable dd := by
+    have hP : Measurable fun a : Fin m → Fin n₀ → ℝ => gramProjector (Matrix.of a)ᵀ :=
+      measurable_gramProjector (Φ := fun a => (Matrix.of a)ᵀ) (by fun_prop)
+    have hD : Measurable fun a : Fin m → Fin n₀ → ℝ => (1 - gramProjector (Matrix.of a)ᵀ) :=
+      measurable_orthogonalComplement hP
+    exact measurable_dotProduct (measurable_mulVec hD measurable_const)
+      (measurable_mulVec hD measurable_const)
+  set B1 : Set ((Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ)) :=
+    Prod.fst ⁻¹' {a | T₁ a ≤ 0} with hB1
+  set B5 : Set ((Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ)) :=
+    Prod.fst ⁻¹' {a | ε₅ ≤ |dd a - (1 - (m : ℝ) / n₀) * r|} with hB5
+  set B2 : Set ((Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ)) :=
+    {x | 0 < ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace ∧
+      ¬ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (ν * (1 + η)) ≤
+          (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ∧
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ≤
+          ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (ν * (1 - η)))} with hB2
+  set B4 : Set ((Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ)) :=
+    {x | 0 < ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace ∧
+      ¬ (((Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+            (Matrix.of x.1 *ᵥ θ))) / (ν * (1 + η)) ≤
+          (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+            (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ∧
+        (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+            (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ≤
+          ((Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+            (Matrix.of x.1 *ᵥ θ))) / (ν * (1 - η)))} with hB4
+  have hmB1 : MeasurableSet B1 := (measurableSet_le hmT₁ measurable_const).preimage measurable_fst
+  have hmB5 : MeasurableSet B5 :=
+    (measurableSet_le measurable_const (continuous_abs.measurable.comp
+      (hmdd.sub measurable_const))).preimage measurable_fst
+  have hmB2 : MeasurableSet B2 := measurableSet_sampleTraceBad ν
+  have hmB4 : MeasurableSet B4 := measurableSet_sampleQuadBad ν θ
+  have hB1μ : (μX.prod μV) B1 = μX {a | T₁ a ≤ 0} :=
+    (measurePreserving_fst (μ := μX) (ν := μV)).measure_preimage
+      (measurableSet_le hmT₁ measurable_const).nullMeasurableSet
+  have hB5μ : (μX.prod μV) B5 =
+      μX {a | ε₅ ≤ |dd a - (1 - (m : ℝ) / n₀) * r|} :=
+    (measurePreserving_fst (μ := μX) (ν := μV)).measure_preimage
+      (measurableSet_le measurable_const (continuous_abs.measurable.comp
+        (hmdd.sub measurable_const))).nullMeasurableSet
+  have hB2μ : (μX.prod μV) B2 ≤ ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) :=
+    measure_sampleTraceBad_le hm hmn hη hη1
+  have hB4μ : (μX.prod μV) B4 ≤ ENNReal.ofReal (60 / (η ^ 4 * ν ^ 2)) :=
+    measure_sampleQuadBad_le hm hmn θ hη hη1
+  -- the conditional Chebyshev bounds
+  set P : (Fin m → Fin n₀ → ℝ) → Matrix (Fin n₀) (Fin n₀) ℝ :=
+    fun a => gramProjector (Matrix.of a)ᵀ with hP
+  have hPs : ∀ a, IsStarProjection (P a) := fun a => isOrthogonalProjection_gramProjector_all _
+  have hPm : Measurable P := measurable_gramProjector (Φ := fun a => (Matrix.of a)ᵀ) (by fun_prop)
+  set bf : Matrix (Fin n) (Fin n₀) ℝ × (Fin m → Fin n₀ → ℝ) → Fin n → ℝ :=
+    fun y => ((Matrix.of y.2 * y.1ᵀ)ᵀ * ((Matrix.of y.2 * y.1ᵀ) * (Matrix.of y.2 * y.1ᵀ)ᵀ)⁻¹) *ᵥ
+      (Matrix.of y.2 *ᵥ θ) with hbf
+  have hbm : Measurable bf := by
+    simp only [hbf]
+    exact measurable_mulVec (by fun_prop) (measurable_mulVec (by fun_prop) measurable_const)
+  have hquad := conditional_quadForm_chebyshev μX n n₀ P hPs hPm
+    (fun _ => (1 : Matrix (Fin n₀) (Fin n₀) ℝ)) measurable_const bf bf hbm hbm hε₆
+  have hlin := conditional_linearForm_chebyshev μX n n₀ P hPs hPm (fun _ => θ) measurable_const
+    bf hbm hε₇
+  set C6 : Set ((Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ)) :=
+    {q | ε₆ ≤ |bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ
+      (((Matrix.of q.2 * (1 - P q.1) * (1 : Matrix (Fin n₀) (Fin n₀) ℝ) *
+        (Matrix.of q.2 * (1 - P q.1))ᵀ : Matrix (Fin n) (Fin n) ℝ)) *ᵥ
+        bf (Matrix.of q.2 * P q.1, q.1)) -
+      (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) *
+        ((1 - P q.1) * (1 : Matrix (Fin n₀) (Fin n₀) ℝ) * (1 - P q.1)).trace|} with hC6
+  set C7 : Set ((Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ)) :=
+    {q | ε₇ ≤ |bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ ((Matrix.of q.2 * (1 - P q.1)) *ᵥ θ)|}
+    with hC7
+  have hquad' : (μX.prod μV) C6 ≤ ∫⁻ q, min 1 (ENNReal.ofReal
+      (2 * (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) *
+        (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) *
+        (∑ k, ∑ l, (1 : Matrix (Fin n₀) (Fin n₀) ℝ) k l ^ 2) / ε₆ ^ 2)) ∂(μX.prod μV) := hquad
+  have hlin' : (μX.prod μV) C7 ≤ ∫⁻ q, min 1 (ENNReal.ofReal
+      ((bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) * (θ ⬝ᵥ θ) /
+        ε₇ ^ 2)) ∂(μX.prod μV) := hlin
+  -- pointwise facts off `B1 ∪ B2 ∪ B4`
+  have key : ∀ x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ), x ∉ B1 → x ∉ B2 → x ∉ B4 →
+      (IsUnit (Matrix.of x.1 * (Matrix.of x.1)ᵀ).det ∧
+        IsUnit ((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ).det ∧
+        (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) /
+          (ν * (1 + η)) ≤ (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+            (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ∧
+        (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+            (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ≤
+          (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+            (Matrix.of x.1 *ᵥ θ)) / (ν * (1 - η))) := by
+    intro x hx1 hx2 hx4
+    have hT : 0 < T₁ x.1 := by
+      simp only [hB1, Set.mem_preimage, Set.mem_ofPred_eq, not_le] at hx1; exact hx1
+    have hX : IsUnit (Matrix.of x.1 * (Matrix.of x.1)ᵀ).det :=
+      isUnit_det_of_trace_inv_ne_zero _ hT.ne'
+    have hx2' : ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (ν * (1 + η)) ≤
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ∧
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ≤
+          ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (ν * (1 - η)) := by
+      by_contra h
+      exact hx2 ⟨hT, h⟩
+    have hx4' : (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+            (Matrix.of x.1 *ᵥ θ)) / (ν * (1 + η)) ≤ (Matrix.of x.1 *ᵥ θ) ⬝ᵥ
+          ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ
+            (Matrix.of x.1 *ᵥ θ)) ∧
+        (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+            (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ≤
+          (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+            (Matrix.of x.1 *ᵥ θ)) / (ν * (1 - η)) := by
+      by_contra h
+      exact hx4 ⟨hT, h⟩
+    have hτpos : 0 < (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+        (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace :=
+      lt_of_lt_of_le (div_pos hT (mul_pos hν (by linarith))) hx2'.1
+    exact ⟨hX, isUnit_det_of_trace_inv_ne_zero _ hτpos.ne', hx4'⟩
+  -- identification of the conditional objects with the natural ones
+  have hbfeq : ∀ x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ),
+      IsUnit (Matrix.of x.1 * (Matrix.of x.1)ᵀ).det →
+      bf (Matrix.of x.2 * P x.1, x.1) =
+        (((Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ * ((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+          (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) := by
+    intro x hX
+    simp only [hbf, hP]
+    rw [mul_transpose_mul_gramProjector_transpose _ _ hX]
+  have hbb : ∀ x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ),
+      IsUnit (Matrix.of x.1 * (Matrix.of x.1)ᵀ).det →
+      IsUnit ((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ).det →
+      bf (Matrix.of x.2 * P x.1, x.1) ⬝ᵥ bf (Matrix.of x.2 * P x.1, x.1) =
+        (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+          (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) := by
+    intro x hX hZ
+    rw [hbfeq x hX, Matrix.mulVec_dotProduct_mulVec_self,
+      rightInverse_transpose_mul_self _ hZ]
+  have hsr : ∀ x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ),
+      IsUnit (Matrix.of x.1 * (Matrix.of x.1)ᵀ).det →
+      (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) =
+        r - dd x.1 := fun x hX => design_quadForm_inv_eq _ hX θ
+  have hdd0 : ∀ a, 0 ≤ dd a := fun a => by
+    simp only [hdd]; rw [← star_trivial ((1 - gramProjector (Matrix.of a)ᵀ) *ᵥ θ)]
+    exact dotProduct_star_self_nonneg _
+  -- `bf ⬝ bf ≤ r / (ν (1 - η))` off the bad events
+  have hqmax : ∀ x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ), x ∉ B1 → x ∉ B2 → x ∉ B4 →
+      bf (Matrix.of x.2 * P x.1, x.1) ⬝ᵥ bf (Matrix.of x.2 * P x.1, x.1) ≤
+        r / (ν * (1 - η)) := by
+    intro x hx1 hx2 hx4
+    obtain ⟨hX, hZ, -, hqhi⟩ := key x hx1 hx2 hx4
+    rw [hbb x hX hZ]
+    refine hqhi.trans ?_
+    rw [hsr x hX]
+    have h1η : 0 < ν * (1 - η) := mul_pos hν (by linarith)
+    exact div_le_div_of_nonneg_right (by linarith [hdd0 x.1]) h1η.le
+  have hbb0 : ∀ x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ),
+      0 ≤ bf (Matrix.of x.2 * P x.1, x.1) ⬝ᵥ bf (Matrix.of x.2 * P x.1, x.1) := fun x => by
+    rw [← star_trivial (bf (Matrix.of x.2 * P x.1, x.1))]; exact dotProduct_star_self_nonneg _
+  have hint6 : ∫⁻ q, min 1 (ENNReal.ofReal
+      (2 * (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) *
+        (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) *
+        (∑ k, ∑ l, (1 : Matrix (Fin n₀) (Fin n₀) ℝ) k l ^ 2) / ε₆ ^ 2)) ∂(μX.prod μV) ≤
+      ((μX.prod μV) B1 + (μX.prod μV) B2 + (μX.prod μV) B4) +
+        ENNReal.ofReal (2 * (n₀ : ℝ) * (r / (ν * (1 - η))) ^ 2 / ε₆ ^ 2) := by
+    refine (lintegral_min_one_ofReal_le (μX.prod μV) ((hmB1.union hmB2).union hmB4)
+      (fun q hq => ?_)).trans (add_le_add_left
+        ((measure_union_le _ _).trans (add_le_add (measure_union_le _ _) le_rfl)) _)
+    have hq1 : q ∉ B1 := fun h => hq (Or.inl (Or.inl h))
+    have hq2 : q ∉ B2 := fun h => hq (Or.inl (Or.inr h))
+    have hq4 : q ∉ B4 := fun h => hq (Or.inr h)
+    have hqm := hqmax q hq1 hq2 hq4
+    have hone : ∑ k : Fin n₀, ∑ l : Fin n₀, (1 : Matrix (Fin n₀) (Fin n₀) ℝ) k l ^ 2 = n₀ := by
+      simp [Matrix.one_apply]
+    rw [hone]
+    have hn₀ : (0 : ℝ) ≤ n₀ := Nat.cast_nonneg _
+    have hb := hbb0 q
+    have hsq : (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) ^ 2 ≤
+        (r / (ν * (1 - η))) ^ 2 := pow_le_pow_left₀ hb hqm 2
+    have : 2 * (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) *
+        (bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) * (n₀ : ℝ) ≤
+        2 * (n₀ : ℝ) * (r / (ν * (1 - η))) ^ 2 := by nlinarith
+    exact div_le_div_of_nonneg_right this (sq_nonneg ε₆)
+  have hint7 : ∫⁻ q, min 1 (ENNReal.ofReal
+      ((bf (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ bf (Matrix.of q.2 * P q.1, q.1)) * (θ ⬝ᵥ θ) /
+        ε₇ ^ 2)) ∂(μX.prod μV) ≤
+      ((μX.prod μV) B1 + (μX.prod μV) B2 + (μX.prod μV) B4) +
+        ENNReal.ofReal (r / (ν * (1 - η)) * r / ε₇ ^ 2) := by
+    refine (lintegral_min_one_ofReal_le (μX.prod μV) ((hmB1.union hmB2).union hmB4)
+      (fun q hq => ?_)).trans (add_le_add_left
+        ((measure_union_le _ _).trans (add_le_add (measure_union_le _ _) le_rfl)) _)
+    have hq1 : q ∉ B1 := fun h => hq (Or.inl (Or.inl h))
+    have hq2 : q ∉ B2 := fun h => hq (Or.inl (Or.inr h))
+    have hq4 : q ∉ B4 := fun h => hq (Or.inr h)
+    have hqm := hqmax q hq1 hq2 hq4
+    exact div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_right hqm hr0) (sq_nonneg ε₇)
+  have hsub : {x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) |
+      ¬ ((1 - (m : ℝ) / n₀) * (θ ⬝ᵥ θ) - ε₅ +
+              (((n₀ : ℝ) - m) / ((n - m + 1 : ℕ) : ℝ)) * (((m : ℝ) / n₀) * (θ ⬝ᵥ θ) - ε₅) /
+                (1 + η) - (ε₆ + 2 * ε₇) < Rb x ∧
+            Rb x < (1 - (m : ℝ) / n₀) * (θ ⬝ᵥ θ) + ε₅ +
+              (((n₀ : ℝ) - m) / ((n - m + 1 : ℕ) : ℝ)) * (((m : ℝ) / n₀) * (θ ⬝ᵥ θ) + ε₅) /
+                (1 - η) + (ε₆ + 2 * ε₇))} ⊆ B1 ∪ B2 ∪ B4 ∪ B5 ∪ C6 ∪ C7 := by
+    intro x hx
+    by_contra hnot
+    simp only [Set.mem_union, not_or] at hnot
+    obtain ⟨⟨⟨⟨⟨hx1, hx2⟩, hx4⟩, hx5⟩, hx6⟩, hx7⟩ := hnot
+    apply hx
+    obtain ⟨hX, hZ, hqlo, hqhi⟩ := key x hx1 hx2 hx4
+    simp only [hB5, Set.mem_preimage, Set.mem_ofPred_eq, not_le] at hx5
+    simp only [hC6, Set.mem_ofPred_eq, not_le] at hx6
+    simp only [hC7, Set.mem_ofPred_eq, not_le] at hx7
+    rw [hbfeq x hX] at hx6 hx7
+    set Z0 : Matrix (Fin m) (Fin n) ℝ := Matrix.of x.1 * (Matrix.of x.2)ᵀ with hZ0
+    set b : Fin n → ℝ := (Z0ᵀ * (Z0 * Z0ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ) with hb
+    have hbbq : b ⬝ᵥ b = (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Z0 * Z0ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) := by
+      rw [hb, Matrix.mulVec_dotProduct_mulVec_self, rightInverse_transpose_mul_self Z0 hZ]
+    have hPs' := hPs x.1
+    have hD : IsStarProjection (1 - P x.1) := hPs'.one_sub
+    have htrD : ((1 - P x.1) * (1 : Matrix (Fin n₀) (Fin n₀) ℝ) * (1 - P x.1)).trace =
+        (n₀ : ℝ) - m := by
+      have hDD : (1 - P x.1) * (1 - P x.1) = 1 - P x.1 :=
+        ((isStarProjection_matrix_real_iff _).1 hD).2
+      rw [Matrix.mul_one, hDD, Matrix.trace_sub, Matrix.trace_one, hP]
+      simp only [Fintype.card_fin]
+      rw [trace_gramProjector _ (by simpa using hX)]
+      simp
+    have hRbx : Rb x = dd x.1 + (b ⬝ᵥ (((Matrix.of x.2 * (1 - P x.1)) *
+        (1 : Matrix (Fin n₀) (Fin n₀) ℝ) * (Matrix.of x.2 * (1 - P x.1))ᵀ :
+          Matrix (Fin n) (Fin n) ℝ) *ᵥ b)) - 2 * (b ⬝ᵥ ((Matrix.of x.2 * (1 - P x.1)) *ᵥ θ)) := by
+      rw [hRb x, operator_mul_design_sub_one_mulVec (Matrix.of x.1) (Matrix.of x.2)ᵀ hZ θ]
+      change ((((1 - P x.1) * (Matrix.of x.2)ᵀ) *ᵥ b - (1 - P x.1) *ᵥ θ) ⬝ᵥ
+        (((1 - P x.1) * (Matrix.of x.2)ᵀ) *ᵥ b - (1 - P x.1) *ᵥ θ)) = _
+      rw [norm_sq_sub_expand (Matrix.of x.2) (1 - P x.1) hD b θ]
+      change _ = ((1 - P x.1) *ᵥ θ) ⬝ᵥ ((1 - P x.1) *ᵥ θ) + _ - _
+      ring
+    rw [hbbq, htrD] at hx6
+    rw [hRbx]
+    have hd5 := hx5
+    refine bias_sandwich_arith hν hη hη1 (sub_nonneg.2 (Nat.cast_le.2 hmn₀ : (m : ℝ) ≤ n₀))
+      hd5 (hsr x hX) (by ring) hqlo hqhi ?_ hx7
+    rw [mul_comm]
+    exact hx6
+  have hunion : (μX.prod μV) (B1 ∪ B2 ∪ B4 ∪ B5 ∪ C6 ∪ C7) ≤
+      ((μX.prod μV) B1 + (μX.prod μV) B2 + (μX.prod μV) B4) + (μX.prod μV) B5 +
+        (μX.prod μV) C6 + (μX.prod μV) C7 := by
+    calc _ ≤ (μX.prod μV) (B1 ∪ B2 ∪ B4 ∪ B5 ∪ C6) + (μX.prod μV) C7 := measure_union_le _ _
+      _ ≤ ((μX.prod μV) (B1 ∪ B2 ∪ B4 ∪ B5) + (μX.prod μV) C6) + (μX.prod μV) C7 :=
+          add_le_add_left (measure_union_le _ _) _
+      _ ≤ (((μX.prod μV) (B1 ∪ B2 ∪ B4) + (μX.prod μV) B5) + (μX.prod μV) C6) +
+            (μX.prod μV) C7 := add_le_add_left (add_le_add_left (measure_union_le _ _) _) _
+      _ ≤ ((((μX.prod μV) (B1 ∪ B2) + (μX.prod μV) B4) + (μX.prod μV) B5) + (μX.prod μV) C6) +
+            (μX.prod μV) C7 :=
+          add_le_add_left (add_le_add_left (add_le_add_left (measure_union_le _ _) _) _) _
+      _ ≤ _ := add_le_add_left (add_le_add_left (add_le_add_left (add_le_add_left
+          (measure_union_le _ _) _) _) _) _
+  have h6 := hquad'.trans hint6
+  have h7 := hlin'.trans hint7
+  rw [hB1μ] at h6 h7 hunion
+  rw [hB5μ] at hunion
+  calc (μX.prod μV) _ ≤ (μX.prod μV) (B1 ∪ B2 ∪ B4 ∪ B5 ∪ C6 ∪ C7) := measure_mono hsub
+    _ ≤ _ := hunion
+    _ ≤ ((μX {a | T₁ a ≤ 0} + ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) +
+          ENNReal.ofReal (60 / (η ^ 4 * ν ^ 2))) +
+        μX {a | ε₅ ≤ |dd a - (1 - (m : ℝ) / n₀) * r|}) +
+        ((μX {a | T₁ a ≤ 0} + ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) +
+          ENNReal.ofReal (60 / (η ^ 4 * ν ^ 2))) +
+          ENNReal.ofReal (2 * (n₀ : ℝ) * (r / (ν * (1 - η))) ^ 2 / ε₆ ^ 2)) +
+        ((μX {a | T₁ a ≤ 0} + ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) +
+          ENNReal.ofReal (60 / (η ^ 4 * ν ^ 2))) +
+          ENNReal.ofReal (r / (ν * (1 - η)) * r / ε₇ ^ 2)) := by
+        have hS : μX {a | T₁ a ≤ 0} + (μX.prod μV) B2 + (μX.prod μV) B4 ≤
+            μX {a | T₁ a ≤ 0} + ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) +
+              ENNReal.ofReal (60 / (η ^ 4 * ν ^ 2)) := by gcongr
+        calc _ ≤ (μX {a | T₁ a ≤ 0} + (μX.prod μV) B2 + (μX.prod μV) B4) +
+              μX {a | ε₅ ≤ |dd a - (1 - (m : ℝ) / n₀) * r|} +
+              ((μX {a | T₁ a ≤ 0} + (μX.prod μV) B2 + (μX.prod μV) B4) +
+                ENNReal.ofReal (2 * (n₀ : ℝ) * (r / (ν * (1 - η))) ^ 2 / ε₆ ^ 2)) +
+              ((μX {a | T₁ a ≤ 0} + (μX.prod μV) B2 + (μX.prod μV) B4) +
+                ENNReal.ofReal (r / (ν * (1 - η)) * r / ε₇ ^ 2)) := by
+              gcongr
+          _ ≤ _ := by gcongr
+    _ = _ := by ring
+
+end Bias
+
 end LinearRegression.DoubleDescent
 
 end
