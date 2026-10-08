@@ -21,7 +21,7 @@ minimum-norm least-squares operator `M` (`θ̂ = M y`) with the formula valid in
 over isotropic noise (`risk_eq_conditionalRisk`).
 
 For independent Gaussian `X ∈ ℝ^{m×n₀}`, `S ∈ ℝ^{n₀×n}` the risk converges in probability to
-`asymptoticTotalRisk σ² ρ⋆ γ δ` (`γ = lim n₀/m`, `δ = lim n/m`, `ρ⋆ = lim ‖θ‖²`):
+`asymptoticTotalRisk_of_linear_estimator σ² ρ⋆ γ δ` (`γ = lim n₀/m`, `δ = lim n/m`, `ρ⋆ = lim ‖θ‖²`):
 
 * `tendsto_measure_featureRisk_deviation` (`n` smallest, Milestone 7f);
 * `tendsto_measure_ambientRisk_deviation` (`n₀` smallest: OLS, unbiased, variance
@@ -446,7 +446,7 @@ and `‖θ_k‖² → ρ`, in the non-singular domain
 `δ < min {1, γ}` (feature bottleneck), `γ < 1`, `γ ≤ δ` (ambient bottleneck) or `1 < γ`, `1 < δ`
 (sample bottleneck). For independent Gaussian `X_k ∈ ℝ^{m_k × n₀_k}`, `S_k ∈ ℝ^{n₀_k × n_k}`, the
 expected squared error `conditionalRisk σ² θ_k X_k S_k` of the minimum-norm random-feature estimator
-converges in probability to `asymptoticTotalRisk σ² ρ γ δ`:
+converges in probability to `asymptoticTotalRisk_of_linear_estimator σ² ρ γ δ`:
 for every `ε > 0` the probability that they differ by `ε` or more tends to `0`.
 
 On the diagonal `γ = δ < 1` the two formulas (feature and ambient) agree, and the proof applies one
@@ -466,7 +466,7 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
       ((Measure.pi fun _ : Fin (mm k) => Measure.pi fun _ : Fin (n0 k) => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin (n0 k) => Measure.pi fun _ : Fin (nn k) => gaussianReal 0 1))
         {x | ε ≤ |conditionalRisk σ_sq (θ k) (Matrix.of x.1) (Matrix.of x.2) -
-          asymptoticTotalRisk σ_sq ρ γ δ|}) atTop (𝓝 0) := by
+          asymptoticTotalRisk_of_linear_estimator σ_sq ρ γ δ|}) atTop (𝓝 0) := by
   have hmpos : ∀ᶠ k in atTop, 0 < mm k := hmm.eventually_gt_atTop 0
   have hn0top : Tendsto n0 atTop atTop := tendsto_atTop_of_ratio hγ0 hmm hγ'
   have hnntop : Tendsto nn atTop atTop := tendsto_atTop_of_ratio hδ0 hmm hδ'
@@ -481,16 +481,16 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
     have hnn0 : ∀ᶠ k in atTop, nn k ≤ n0 k :=
       (eventually_lt_of_ratio ((div_lt_one hγ0).2 hδγ)
         (tendsto_ratio_of_ratios hγ0.ne' hmpos hδ' hγ') hn0pos).mono fun k hk => hk.le
-    have e : asymptoticTotalRisk σ_sq ρ γ δ =
+    have e : asymptoticTotalRisk_of_linear_estimator σ_sq ρ γ δ =
         (γ - δ) / (γ * (1 - δ)) * ρ + σ_sq * (δ / (1 - δ)) := by
-      unfold asymptoticTotalRisk
+      unfold asymptoticTotalRisk_of_linear_estimator
       rw [asymptoticBias_of_feature ρ h, asymptoticVariance_of_feature σ_sq h]
     rw [e]
     exact tendsto_measure_featureRisk_deviation σ_sq hδ1 hγ0 hnnpos hnm hnn0
       hnntop hδ' hγ' θ hθ hε
   · -- ambient bottleneck
-    have e : asymptoticTotalRisk σ_sq ρ γ δ = σ_sq * (γ / (1 - γ)) := by
-      unfold asymptoticTotalRisk
+    have e : asymptoticTotalRisk_of_linear_estimator σ_sq ρ γ δ = σ_sq * (γ / (1 - γ)) := by
+      unfold asymptoticTotalRisk_of_linear_estimator
       rw [asymptoticBias_of_ambient ρ hγ1 hγδ, asymptoticVariance_of_ambient σ_sq hγ1 hγδ,
         zero_add]
     have hn0m : ∀ᶠ k in atTop, n0 k ≤ mm k :=
@@ -515,9 +515,9 @@ theorem double_descent_total_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ
         exact tendsto_measure_ambientRisk_deviation σ_sq hγ0 hγ1 hn0pos hn0m hlt'
           hn0top hγ' θ hε
   · -- sample bottleneck
-    have e : asymptoticTotalRisk σ_sq ρ γ δ =
+    have e : asymptoticTotalRisk_of_linear_estimator σ_sq ρ γ δ =
         (1 - γ⁻¹) * (δ / (δ - 1)) * ρ + σ_sq * ((γ - 1)⁻¹ + (δ - 1)⁻¹) := by
-      unfold asymptoticTotalRisk
+      unfold asymptoticTotalRisk_of_linear_estimator
       rw [asymptoticBias_of_sample ρ hγ1.le hδ1.le, asymptoticVariance_of_sample σ_sq hγ1.le
         hδ1.le]
     rw [e]
@@ -548,7 +548,7 @@ theorem double_descent_risk_convergence {mm nn n0 : ℕ → ℕ} {γ δ ρ : ℝ
         {x | ε ≤ |LinearRegression.risk 1 (P k) (fun e : Fin (mm k) → ℝ => (WithLp.toLp 2
           (minNormOperator (Matrix.of x.1) (Matrix.of x.2) *ᵥ (Matrix.of x.1 *ᵥ θ k + e)) :
             EuclideanSpace ℝ (Fin (n0 k)))) (WithLp.toLp 2 (θ k)) -
-          asymptoticTotalRisk σ_sq ρ γ δ|}) atTop (𝓝 0) := by
+          asymptoticTotalRisk_of_linear_estimator σ_sq ρ γ δ|}) atTop (𝓝 0) := by
   refine (double_descent_total_risk_convergence σ_sq hγ0 hδ0 hdom hord hmm hγ' hδ' θ hθ
     hε).congr fun k => ?_
   congr 1

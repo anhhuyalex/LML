@@ -85,7 +85,7 @@ This is not a Lean definition: there is no declaration for ``linear model'' or `
 and a theorem below that says ``let $\hat\theta:=M(X\theta_\star+\varepsilon)$'' assumes it.
 
 \begin{definition}[Risk, bias, covariance and variance of an estimator]\label{def:dd:risk}
-  \lean{LinearRegression.risk, LinearRegression.bias, LinearRegression.covCondX, LinearRegression.variance}
+  \lean{LinearRegression.risk, LinearRegression.bias_of_linear_estimator, LinearRegression.covCondX_of_linear_estimator, LinearRegression.variance_of_linear_estimator}
   \leanok
 Let $\hat\theta$ be a random vector in $\mathbb R^p$ (the estimator, random through the noise) and $\Sigma\in\mathbb R^{p\times p}$ a
 weighting matrix (the feature covariance). Its \emph{risk}, \emph{bias} and \emph{variance} are
@@ -94,8 +94,8 @@ weighting matrix (the feature covariance). Its \emph{risk}, \emph{bias} and \emp
   B(\hat\theta;\theta_\star):=\bigl(\mathbb E[\hat\theta]-\theta_\star\bigr)^\top\Sigma\bigl(\mathbb E[\hat\theta]-\theta_\star\bigr),\qquad
   V(\hat\theta):=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\,\Sigma\bigr),
 \]
-where $\operatorname{Cov}(\hat\theta)_{jk}:=\operatorname{cov}(\hat\theta_j,\hat\theta_k)$. In Lean these are \texttt{LinearRegression.risk}, \texttt{bias}, \texttt{covCondX} and \texttt{variance}, with $\theta_\star$ and $\hat\theta$ named \texttt{β} and \texttt{β\_hat}.
-They make sense for any estimator and say nothing about linearity.
+where $\operatorname{Cov}(\hat\theta)_{jk}:=\operatorname{cov}(\hat\theta_j,\hat\theta_k)$. In Lean these are \texttt{LinearRegression.risk}, \texttt{bias\_of\_linear\_estimator}, \texttt{covCondX\_of\_linear\_estimator} and \texttt{variance\_of\_linear\_estimator}, with $\theta_\star$ and $\hat\theta$ named \texttt{β} and \texttt{β\_hat}.
+They make sense for any estimator and say nothing about linearity. The suffix \texttt{\_of\_linear\_estimator} in the Lean names records that they are used for linear estimators $\hat\theta=M(X\theta_\star+\varepsilon)$ in this development; the definitions themselves do not require linearity.
 \end{definition}
 
 \begin{remark}[Intuition and inter-relations of risk, bias, and variance]\label{rmk:dd:riskIntuition}
@@ -149,20 +149,20 @@ The three quantities in Definition~\ref{def:dd:risk} capture the classical bias-
 The words ``risk'', ``bias'' and ``variance'' are used for three different objects in this chapter. They are one quantity at three stages of evaluation, and the design avoids a second definition wherever a theorem can do the work of one.
 The following notation is used for them; the quantities of the later layers are defined in Definitions~\ref{def:dd:minNormOperator} and~\ref{def:dd:curve}, and are recalled here so the remark can be read on its own.
 \begin{itemize}
-  \item $\mathsf{risk}_I(P;\hat\theta;\theta)$, $\mathsf{bias}_I(P;\hat\theta;\theta)$ and $\mathsf{variance}_I(P;\hat\theta)$: the risk, bias and variance of Definition~\ref{def:dd:risk} for the weight $\Sigma=I$ and a noise law $P$, that is \texttt{LinearRegression.risk 1 P β\_hat θ}, \texttt{LinearRegression.bias 1 P β\_hat θ} and \texttt{LinearRegression.variance 1 P β\_hat}. Here $\hat\theta$ is a random vector (random through the noise $\varepsilon\sim P$) and $\theta$ the true parameter.
+  \item $\mathsf{risk}_I(P;\hat\theta;\theta)$, $\mathsf{bias}_I(P;\hat\theta;\theta)$ and $\mathsf{variance}_I(P;\hat\theta)$: the risk, bias and variance of Definition~\ref{def:dd:risk} for the weight $\Sigma=I$ and a noise law $P$, that is \texttt{LinearRegression.risk 1 P β\_hat θ}, \texttt{LinearRegression.bias\_of\_linear\_estimator 1 P β\_hat θ} and \texttt{LinearRegression.variance\_of\_linear\_estimator 1 P β\_hat}. Here $\hat\theta$ is a random vector (random through the noise $\varepsilon\sim P$) and $\theta$ the true parameter.
   \item $M(X,S)\in\mathbb R^{n_0\times m}$: the minimum-norm operator of Definition~\ref{def:dd:minNormOperator} (\texttt{minNormOperator X S}), the matrix with $\hat\theta=My$ for $y=X\theta+\varepsilon$, chosen among the three regime formulas by the smallest of the three dimensions $m$ (samples), $n_0$ (ambient) and $n$ (random features).
   \item $\mathsf{cr}(\sigma^2,\theta,X,S):=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M)$: the \emph{conditional risk} of Definition~\ref{def:dd:minNormOperator} (\texttt{conditionalRisk σ\_sq θ X S}), a real number determined by the two matrices $X$, $S$, the parameter $\theta$ and the noise variance $\sigma^2$.
-  \item $\mathsf B(\gamma,\delta)$, $\mathsf V(\gamma,\delta)$ and $\mathsf R:=\mathsf B+\mathsf V$: the asymptotic bias, variance and total risk of Definition~\ref{def:dd:curve} (\texttt{asymptoticBias}, \texttt{asymptoticVariance}, \texttt{asymptoticTotalRisk}), functions of the limits $\gamma=\lim n_0/m$, $\delta=\lim n/m$, $\rho=\lim\|\theta\|^2$ and of $\sigma^2$.
-  \item $\operatorname{Cov}(\hat\theta)$ (\texttt{LinearRegression.covCondX}): the covariance matrix of the random vector $\hat\theta$ under the noise law, which enters $\mathsf{variance}_I:=\operatorname{Tr}(\operatorname{Cov}(\hat\theta))$.
+  \item $\mathsf B(\gamma,\delta)$, $\mathsf V(\gamma,\delta)$ and $\mathsf R:=\mathsf B+\mathsf V$: the asymptotic bias, variance and total risk of Definition~\ref{def:dd:curve} (\texttt{asymptoticBias\_of\_linear\_estimator}, \texttt{asymptoticVariance\_of\_linear\_estimator}, \texttt{asymptoticTotalRisk\_of\_linear\_estimator}), functions of the limits $\gamma=\lim n_0/m$, $\delta=\lim n/m$, $\rho=\lim\|\theta\|^2$ and of $\sigma^2$.
+  \item $\operatorname{Cov}(\hat\theta)$ (\texttt{LinearRegression.covCondX\_of\_linear\_estimator}): the covariance matrix of the random vector $\hat\theta$ under the noise law, which enters $\mathsf{variance}_I:=\operatorname{Tr}(\operatorname{Cov}(\hat\theta))$.
 \end{itemize}
 \begin{center}
 \begin{tabular}{p{2.2cm}p{4.6cm}p{4.2cm}p{2.6cm}}
 \hline
 Layer & Lean definitions & What it is & Depends on\\
 \hline
-1.\ Probabilistic & \texttt{LinearRegression.risk}, \texttt{bias}, \texttt{variance} (and \texttt{covCondX}) in \texttt{HMRT.lean} & average over a noise law $\mu$ for \emph{any} estimator $\hat\beta$; $R=B+V$ is \texttt{risk\_eq\_bias\_add\_variance} & weight $\Sigma$, noise law, estimator, truth\\
+1.\ Probabilistic & \texttt{LinearRegression.risk}, \texttt{bias\_of\_linear\_estimator}, \texttt{variance\_of\_linear\_estimator} (and \texttt{covCondX\_of\_linear\_estimator}) in \texttt{HMRT.lean} & average over a noise law $\mu$ for \emph{any} estimator $\hat\beta$; $R=B+V$ is \texttt{risk\_eq\_bias\_add\_variance} & weight $\Sigma$, noise law, estimator, truth\\
 2.\ Closed form for one draw of $(X,S)$ & \texttt{minNormOperator}, \texttt{conditionalRisk} in \texttt{DoubleDescentLimits.lean} & the noise average evaluated by hand for $\hat\theta=M(X\theta+\varepsilon)$ with $\Sigma=I$ and noise covariance $\sigma^2I$: $\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M)$ & $\sigma^2$, $\theta$, the matrices $X$, $S$\\
-3.\ Deterministic limit & \texttt{asymptoticBias}, \texttt{asymptoticVariance}, \texttt{asymptoticTotalRisk} in \texttt{DoubleDescentCurve.lean} & plain real functions of $(\sigma^2,\rho,\gamma,\delta)$, with no matrices and no measures & four real numbers\\
+3.\ Deterministic limit & \texttt{asymptoticBias\_of\_linear\_estimator}, \texttt{asymptoticVariance\_of\_linear\_estimator}, \texttt{asymptoticTotalRisk\_of\_linear\_estimator} in \texttt{DoubleDescentCurve.lean} & plain real functions of $(\sigma^2,\rho,\gamma,\delta)$, with no matrices and no measures & four real numbers\\
 \hline
 \end{tabular}
 \end{center}
@@ -180,10 +180,10 @@ In the statistical literature and in the docstrings of \texttt{HMRT.lean}, the q
 \[
   \operatorname{Cov}(\hat\beta\mid X)\quad\text{and}\quad V_X(\hat\beta;\beta)=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\beta\mid X)\Sigma\bigr).
 \]
-Yet in Lean, \texttt{LinearRegression.covCondX} and \texttt{LinearRegression.variance} take no matrix $X$ as an argument; their signatures are:
+Yet in Lean, \texttt{LinearRegression.covCondX\_of\_linear\_estimator} and \texttt{LinearRegression.variance\_of\_linear\_estimator} take no matrix $X$ as an argument; their signatures are:
 \begin{align*}
-  &\texttt{covCondX} : \{\Omega : \text{Type}\} \to [\text{MeasurableSpace }\Omega] \to \text{Measure }\Omega \to (\Omega \to \mathbb R^p) \to \text{Matrix } p\ p\ \mathbb R, \\
-  &\texttt{variance} : \{\Omega : \text{Type}\} \to [\text{MeasurableSpace }\Omega] \to \text{Matrix } p\ p\ \mathbb R \to \text{Measure }\Omega \to (\Omega \to \mathbb R^p) \to \mathbb R.
+  &\texttt{covCondX\_of\_linear\_estimator} : \{\Omega : \text{Type}\} \to [\text{MeasurableSpace }\Omega] \to \text{Measure }\Omega \to (\Omega \to \mathbb R^p) \to \text{Matrix } p\ p\ \mathbb R, \\
+  &\texttt{variance\_of\_linear\_estimator} : \{\Omega : \text{Type}\} \to [\text{MeasurableSpace }\Omega] \to \text{Matrix } p\ p\ \mathbb R \to \text{Measure }\Omega \to (\Omega \to \mathbb R^p) \to \mathbb R.
 \end{align*}
 This apparent discrepancy reflects a standard and robust formalization pattern:
 \begin{itemize}
@@ -191,7 +191,7 @@ This apparent discrepancy reflects a standard and robust formalization pattern:
   \item \textbf{Sample space $\Omega$ as the noise space:} All randomness in the model comes from the noise vector $\varepsilon$. The sample space $\Omega$ is therefore instantiated as the space of noise vectors $n \to \mathbb R$, equipped with the noise distribution $\mu = P$ (with mean $0$ and covariance $\Gamma$).
   \item \textbf{Estimator as a function of the noise:} The estimator $\hat\beta$ is formalized as a function $\hat\beta : (n \to \mathbb R) \to \mathbb R^p$ of the noise realization $\varepsilon$, with $X$ captured inside its definition via the hypothesis $\hat\beta(\varepsilon) = M(X\theta_\star + \varepsilon)$.
 \end{itemize}
-Because $X$ is held constant with respect to $\varepsilon$, computing the unconditional covariance of $\hat\beta$ under the noise measure $P$ via \texttt{covCondX P β\_hat} is measure-theoretically identical to taking the conditional covariance $\operatorname{Cov}(\hat\beta \mid X)$ under the joint distribution.
+Because $X$ is held constant with respect to $\varepsilon$, computing the unconditional covariance of $\hat\beta$ under the noise measure $P$ via \texttt{covCondX\_of\_linear\_estimator P β\_hat} is measure-theoretically identical to taking the conditional covariance $\operatorname{Cov}(\hat\beta \mid X)$ under the joint distribution.
 
 This design avoids the overhead of formal measure disintegration and almost-everywhere equivalence classes that arise when conditioning on sub-$\sigma$-algebras in Mathlib. Instead, all conditional expectations reduce directly to standard Lebesgue integrals over $\varepsilon$, allowing theorems such as \texttt{linearEstimator\_bias\_variance} and \texttt{lemma1\_of\_linear\_model} to be proved through direct matrix algebra.
 \end{remark}
@@ -828,9 +828,9 @@ The three regimes assemble into one limiting risk curve in the width ratio $\del
 values $\gamma=1$ or $\delta=1$ the third branch below has Mathlib's junk value $x/0=0$; no theorem evaluates there.
 
 \begin{definition}[Asymptotic variance, bias and total risk]\label{def:dd:curve}
-  \lean{LinearRegression.DoubleDescent.asymptoticVariance,
-        LinearRegression.DoubleDescent.asymptoticBias,
-        LinearRegression.DoubleDescent.asymptoticTotalRisk}
+  \lean{LinearRegression.DoubleDescent.asymptoticVariance_of_linear_estimator,
+        LinearRegression.DoubleDescent.asymptoticBias_of_linear_estimator,
+        LinearRegression.DoubleDescent.asymptoticTotalRisk_of_linear_estimator}
   \leanok
 For $\sigma^2,\rho_\star,\gamma,\delta\in\mathbb R$,
 \[
@@ -1793,11 +1793,39 @@ Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$
 
 \begin{proof}
   \leanok
-(1) and (2): in the respective regime the minimum-norm operator is the feature, respectively sample, formula (Lemma~\ref{lem:dd:globalBranches}), so $\mathsf{cr}_k=A_k+\sigma^2B_k$ with $A_k$ the bias and $B_k$ the variance trace. Apply Lemma~\ref{lem:dd:deviationSum} with the limits of
-Theorem~\ref{thm:dd:featureJoint}, respectively Theorems~\ref{thm:dd:sampleBiasProb} and~\ref{thm:dd:sampleVarianceProb}.
-Throughout, shift the sequences by the index $K$ from which the inequalities hold; convergence is unaffected by dropping finitely many terms.
-(3) The matrices $S_k^\top$ and $X_k$ have full rank almost surely (Theorem~\ref{thm:dd:fullRankAS}; \texttt{ae\_isUnit\_det\_mul\_transpose\_gaussianMatrix} for $S_kS_k^\top$, using $n_{0,k}<n_k$). On this event, if $\operatorname{Tr}(X_k^\top X_k)^{-1}$ is within $\eta=\min\{\varepsilon/(|\sigma^2|+1),\gamma/(1-\gamma)\}$ of
-$\gamma/(1-\gamma)$ then it is positive, so $X_k^\top X_k$ is invertible and Lemma~\ref{lem:dd:globalBranches}(4) gives $\mathsf{cr}_k=\sigma^2\operatorname{Tr}(X_k^\top X_k)^{-1}$, within $\varepsilon$ of $\sigma^2\gamma/(1-\gamma)$. The bad event is therefore contained in $\{|\operatorname{Tr}(X_k^\top X_k)^{-1}-\gamma/(1-\gamma)|\ge\eta\}$, whose probability tends to $0$ by Theorem~\ref{thm:dd:traceConcentration} (this is the ambient limit that earlier had no Lean statement).
+\emph{Plan.} In the feature and sample regimes the conditional risk is a sum $\mathsf{cr}_k=A_k+\sigma^2B_k$ of a bias $A_k$ and a variance trace $B_k$, and the earlier sections give the limit in probability of each. Lemma~\ref{lem:dd:deviationSum} then gives the limit of the sum, with no new probability.
+In the ambient regime there is no bias, and the risk is itself one trace, which Theorem~\ref{thm:dd:traceConcentration} controls.
+
+\medskip\noindent\textbf{(1) Feature bottleneck.} Put $Z_k=X_kS_k$, $M_k=S_k(Z_k^\top Z_k)^{-1}Z_k^\top$ and
+\[
+  A_k=\|(M_kX_k-I)\theta_k\|^2,\qquad B_k=\operatorname{Tr}\bigl((Z_k^\top Z_k)^{-1}S_k^\top S_k\bigr).
+\]
+\begin{enumerate}
+  \item[(a)] \emph{The risk is $A_k+\sigma^2B_k$ for every realization.} The hypothesis $n_k\le\min\{m_k,n_{0,k}\}$ is exactly the first case of Definition~\ref{def:dd:minNormOperator}, so the operator in $\mathsf{cr}_k$ is $M_k$. Lemma~\ref{lem:dd:globalBranches}(2) then gives $\mathsf{cr}_k=A_k+\sigma^2B_k$ with no invertibility assumption.
+  \item[(b)] \emph{Each term converges.} The second part of Theorem~\ref{thm:dd:featureJoint} gives $A_k\to a_0:=\frac{\gamma-\delta}{\gamma(1-\delta)}\rho$ in probability. This is the place where $n_k\to\infty$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to\rho$ are used. The first part gives $B_k\to b_0:=\delta/(1-\delta)$ in probability. Both are joint statements over the pair $(X_k,S_k)$, which is the probability space of the theorem.
+  \item[(c)] \emph{Add them.} Lemma~\ref{lem:dd:deviationSum} with the constant $\sigma^2$ turns (a) and (b) into
+  $\mathsf{cr}_k\to a_0+\sigma^2b_0=\frac{\gamma-\delta}{\gamma(1-\delta)}\rho+\sigma^2\frac{\delta}{1-\delta}$ in probability.
+\end{enumerate}
+
+\medskip\noindent\textbf{(2) Sample bottleneck.} Now put $M_k=S_kZ_k^\top(Z_kZ_k^\top)^{-1}$ and
+\[
+  A_k=\|(M_kX_k-I)\theta_k\|^2,\qquad B_k=\operatorname{Tr}\bigl((Z_kZ_k^\top)^{-1}Z_kS_k^\top S_kZ_k^\top(Z_kZ_k^\top)^{-1}\bigr).
+\]
+\begin{enumerate}
+  \item[(a)] \emph{The risk is $A_k+\sigma^2B_k$.} Since $m_k<n_{0,k}$ and $m_k<n_k$, we have $n_k>\min\{m_k,n_{0,k}\}$ and $n_{0,k}>\min\{m_k,n_k\}$. So the first two cases of Definition~\ref{def:dd:minNormOperator} are excluded and the operator is $M_k$. Lemma~\ref{lem:dd:globalBranches}(3) gives $\mathsf{cr}_k=A_k+\sigma^2B_k$.
+  \item[(b)] \emph{Each term converges.} Theorem~\ref{thm:dd:sampleBiasProb} gives $A_k\to a_0:=(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho$, and Theorem~\ref{thm:dd:sampleVarianceProb} gives $B_k\to b_0:=(\gamma-1)^{-1}+(\delta-1)^{-1}$, both in probability. (Their hypothesis $m_k\le\min\{n_k,n_{0,k}\}$ follows from the strict inequalities.)
+  \item[(c)] Lemma~\ref{lem:dd:deviationSum} as in (1) gives $\mathsf{cr}_k\to a_0+\sigma^2b_0$, the stated limit.
+\end{enumerate}
+
+\medskip\noindent\textbf{(3) Ambient bottleneck.} Write $T_k=\operatorname{Tr}(X_k^\top X_k)^{-1}$ and $c=\gamma/(1-\gamma)$. The claim is that $\mathsf{cr}_k$ is close to $\sigma^2c$ unless $T_k$ is far from $c$. Fix $\varepsilon>0$ and put $\eta=\min\{\varepsilon/(|\sigma^2|+1),\,c\}>0$.
+\begin{enumerate}
+  \item[(a)] \emph{Branch.} Since $n_{0,k}<n_k$, the first case $n_k\le\min\{m_k,n_{0,k}\}$ of Definition~\ref{def:dd:minNormOperator} fails, and $n_{0,k}\le\min\{m_k,n_k\}$ holds, so the operator is the ambient one.
+  \item[(b)] \emph{An almost-sure fact.} $S_k$ is an $n_{0,k}\times n_k$ Gaussian matrix with $n_{0,k}<n_k$, so $S_kS_k^\top$ is invertible almost surely (\texttt{ae\_isUnit\_det\_mul\_transpose\_gaussianMatrix}, a consequence of Theorem~\ref{thm:dd:fullRankAS}).
+  \item[(c)] \emph{Good outcomes.} Suppose $S_kS_k^\top$ is invertible and $|T_k-c|<\eta$. Since $\eta\le c$, this forces $T_k>0$. But if $X_k^\top X_k$ were singular, Mathlib's inverse would be $0$ and $T_k=0$. Hence $X_k^\top X_k$ is invertible, so Lemma~\ref{lem:dd:globalBranches}(4) applies and gives
+  $\mathsf{cr}_k=\sigma^2T_k$. Therefore $|\mathsf{cr}_k-\sigma^2c|=|\sigma^2|\,|T_k-c|<|\sigma^2|\eta\le\varepsilon$.
+  \item[(d)] \emph{Bad outcomes are rare.} By (c), up to the null set where $S_kS_k^\top$ is singular, the event $\{|\mathsf{cr}_k-\sigma^2c|\ge\varepsilon\}$ is contained in $\{|T_k-c|\ge\eta\}$. This event depends on $X_k$ alone, and $X_k$ is an $m_k\times n_{0,k}$ Gaussian matrix, that is, the transpose of the $n_{0,k}\times m_k$ matrix to which Theorem~\ref{thm:dd:traceConcentration} applies with $(p_k,m_k)$ there equal to $(m_k,n_{0,k})$ here. Because $n_{0,k}/m_k\to\gamma<1$, that theorem gives $T_k\to\gamma/(1-\gamma)=c$ in probability, so $\mathbb P(|T_k-c|\ge\eta)\to0$.
+\end{enumerate}
+No hypothesis on $\theta_k$ is needed, because the ambient estimator is unbiased (Lemma~\ref{lem:dd:globalBranches}(4) has no bias term).
 \end{proof}
 
 \begin{lemma}[Ratio bookkeeping for the global theorem]\label{lem:dd:globalRatios}

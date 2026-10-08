@@ -142,8 +142,9 @@ theorem ambientBottleneck_bias_variance (X : Matrix m n₀ ℝ) (S : Matrix n₀
     (β_hat : (m → ℝ) → EuclideanSpace ℝ n₀)
     (hβ : ∀ ε, (β_hat ε).ofLp =
       S *ᵥ ((Sᵀ * (S * Sᵀ)⁻¹) *ᵥ (((Xᵀ * X)⁻¹ * Xᵀ) *ᵥ (X *ᵥ θ.ofLp + ε)))) :
-    LinearRegression.bias Sigma P β_hat θ = 0 ∧
-      LinearRegression.variance Sigma P β_hat = σ_sq * Matrix.trace ((Xᵀ * X)⁻¹ * Sigma) ∧
+    LinearRegression.bias_of_linear_estimator Sigma P β_hat θ = 0 ∧
+      LinearRegression.variance_of_linear_estimator Sigma P β_hat =
+        σ_sq * Matrix.trace ((Xᵀ * X)⁻¹ * Sigma) ∧
       LinearRegression.risk Sigma P β_hat θ = σ_sq * Matrix.trace ((Xᵀ * X)⁻¹ * Sigma) := by
   obtain ⟨hb, hv, hr⟩ := linearEstimator_bias_variance_isotropic ((Xᵀ * X)⁻¹ * Xᵀ) X θ Sigma
     σ_sq P hε h_mean h_cov β_hat (fun ε => by rw [hβ, rightInverse_interpolates S hS])

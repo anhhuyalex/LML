@@ -56,21 +56,22 @@ noncomputable def risk {Ω : Type*} [MeasurableSpace Ω] (Sigma : Matrix p p ℝ
 
 /-- Bias term conditional on $X$:
 $$ B_X(\hat{\beta}; \beta) = \|\mathbb{E}(\hat{\beta} \mid X) - \beta\|_\Sigma^2 $$ -/
-noncomputable def bias {Ω : Type*} [MeasurableSpace Ω] (Sigma : Matrix p p ℝ) (μ : Measure Ω)
-    (β_hat : Ω → EuclideanSpace ℝ p) (β : EuclideanSpace ℝ p) : ℝ :=
+noncomputable def bias_of_linear_estimator {Ω : Type*} [MeasurableSpace Ω]
+    (Sigma : Matrix p p ℝ) (μ : Measure Ω) (β_hat : Ω → EuclideanSpace ℝ p)
+    (β : EuclideanSpace ℝ p) : ℝ :=
   ((∫ ω, β_hat ω ∂μ) - β : p → ℝ) ⬝ᵥ (Sigma *ᵥ ((∫ ω, β_hat ω ∂μ) - β))
 
 /-- Covariance matrix of $\hat{\beta}$ conditional on $X$:
 `[Cov(β_hat | X)]_{j, k} = Cov(β_hat_j, β_hat_k | X)`. -/
-noncomputable def covCondX {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+noncomputable def covCondX_of_linear_estimator {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
     (β_hat : Ω → EuclideanSpace ℝ p) : Matrix p p ℝ :=
   fun j k => cov[fun ω => β_hat ω j, fun ω => β_hat ω k; μ]
 
 /-- Variance term conditional on $X$:
 $$ V_X(\hat{\beta}; \beta) = \operatorname{Tr}[\operatorname{Cov}(\hat{\beta} \mid X) \Sigma] $$ -/
-noncomputable def variance {Ω : Type*} [MeasurableSpace Ω] (Sigma : Matrix p p ℝ) (μ : Measure Ω)
-    (β_hat : Ω → EuclideanSpace ℝ p) : ℝ :=
-  Matrix.trace (covCondX μ β_hat * Sigma)
+noncomputable def variance_of_linear_estimator {Ω : Type*} [MeasurableSpace Ω]
+    (Sigma : Matrix p p ℝ) (μ : Measure Ω) (β_hat : Ω → EuclideanSpace ℝ p) : ℝ :=
+  Matrix.trace (covCondX_of_linear_estimator μ β_hat * Sigma)
 
 /-- Least squares loss $\|y - X b\|_2^2$. -/
 noncomputable def leastSquaresLoss (X : Matrix n p ℝ) (y : EuclideanSpace ℝ n)
@@ -84,10 +85,6 @@ def IsMinNormLeastSquares (X : Matrix n p ℝ) (y : EuclideanSpace ℝ n)
   IsMinOn (fun b' => ‖b'‖) {b' | IsMinOn (leastSquaresLoss X y) Set.univ b'} b
 
 /-! ### 6. Lemma 1: Bias and Variance of Ridgeless Least Squares -/
-
-/-- The uncentered sample covariance of $X$: $\hat{\Sigma} = X^T X / n$. -/
-noncomputable def sampleCov (X : Matrix n p ℝ) : Matrix p p ℝ :=
-  (1 / (Fintype.card n : ℝ)) • (Xᵀ * X)
 
 /-- Lemma 1 (Bias). Under the linear model,
 if $\mathbb{E}[\hat{\beta} \mid X] = \hat{\Sigma}^+ \hat{\Sigma} \beta$

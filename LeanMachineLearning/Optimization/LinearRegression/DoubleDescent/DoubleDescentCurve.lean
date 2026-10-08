@@ -60,7 +60,7 @@ theorem div_sub_one_eq_one_add_inv {x : ℝ} (hx : x ≠ 1) : x / (x - 1) = 1 + 
   ring
 
 /-- **Asymptotic variance across all regimes** as a function of `γ = n₀ / m`, `δ = n / m`. -/
-noncomputable def asymptoticVariance (σ_sq γ δ : ℝ) : ℝ :=
+noncomputable def asymptoticVariance_of_linear_estimator (σ_sq γ δ : ℝ) : ℝ :=
   if δ < min 1 γ then
     σ_sq * (δ / (1 - δ))
   else if γ < 1 ∧ γ ≤ δ then
@@ -69,7 +69,7 @@ noncomputable def asymptoticVariance (σ_sq γ δ : ℝ) : ℝ :=
     σ_sq * ((γ - 1)⁻¹ + (δ - 1)⁻¹)
 
 /-- **Asymptotic bias across all regimes**, `ρ_star = ‖θ⋆‖²`. -/
-noncomputable def asymptoticBias (ρ_star γ δ : ℝ) : ℝ :=
+noncomputable def asymptoticBias_of_linear_estimator (ρ_star γ δ : ℝ) : ℝ :=
   if δ < min 1 γ then
     ((γ - δ) / (γ * (1 - δ))) * ρ_star
   else if γ < 1 ∧ γ ≤ δ then
@@ -78,68 +78,68 @@ noncomputable def asymptoticBias (ρ_star γ δ : ℝ) : ℝ :=
     (1 - γ⁻¹) * (δ / (δ - 1)) * ρ_star
 
 /-- **Total asymptotic risk** `R(δ) = R^(bias)(δ) + R^(var)(δ)`. -/
-noncomputable def asymptoticTotalRisk (σ_sq ρ_star γ δ : ℝ) : ℝ :=
-  asymptoticBias ρ_star γ δ + asymptoticVariance σ_sq γ δ
+noncomputable def asymptoticTotalRisk_of_linear_estimator (σ_sq ρ_star γ δ : ℝ) : ℝ :=
+  asymptoticBias_of_linear_estimator ρ_star γ δ + asymptoticVariance_of_linear_estimator σ_sq γ δ
 
 section Branches
 
 variable (σ_sq ρ_star : ℝ) {γ δ : ℝ}
 
-/-- Feature-bottleneck branch of `asymptoticVariance`. -/
+/-- Feature-bottleneck branch of `asymptoticVariance_of_linear_estimator`. -/
 theorem asymptoticVariance_of_feature (h : δ < min 1 γ) :
-    asymptoticVariance σ_sq γ δ = σ_sq * (δ / (1 - δ)) := by
-  simp [asymptoticVariance, h]
+    asymptoticVariance_of_linear_estimator σ_sq γ δ = σ_sq * (δ / (1 - δ)) := by
+  simp [asymptoticVariance_of_linear_estimator, h]
 
-/-- Ambient-bottleneck branch of `asymptoticVariance`. -/
+/-- Ambient-bottleneck branch of `asymptoticVariance_of_linear_estimator`. -/
 theorem asymptoticVariance_of_ambient (hγ : γ < 1) (hδ : γ ≤ δ) :
-    asymptoticVariance σ_sq γ δ = σ_sq * (γ / (1 - γ)) := by
+    asymptoticVariance_of_linear_estimator σ_sq γ δ = σ_sq * (γ / (1 - γ)) := by
   have hn : ¬ δ < min 1 γ := not_lt.mpr ((min_le_right _ _).trans hδ)
-  simp [asymptoticVariance, hn, hγ, hδ]
+  simp [asymptoticVariance_of_linear_estimator, hn, hγ, hδ]
 
-/-- Sample-bottleneck branch of `asymptoticVariance`. -/
+/-- Sample-bottleneck branch of `asymptoticVariance_of_linear_estimator`. -/
 theorem asymptoticVariance_of_sample (hγ : 1 ≤ γ) (hδ : 1 ≤ δ) :
-    asymptoticVariance σ_sq γ δ = σ_sq * ((γ - 1)⁻¹ + (δ - 1)⁻¹) := by
+    asymptoticVariance_of_linear_estimator σ_sq γ δ = σ_sq * ((γ - 1)⁻¹ + (δ - 1)⁻¹) := by
   have hn : ¬ δ < min 1 γ := not_lt.mpr ((min_le_left _ _).trans hδ)
-  simp [asymptoticVariance, hn, not_lt.mpr hγ]
+  simp [asymptoticVariance_of_linear_estimator, hn, not_lt.mpr hγ]
 
-/-- Feature-bottleneck branch of `asymptoticBias`. -/
+/-- Feature-bottleneck branch of `asymptoticBias_of_linear_estimator`. -/
 theorem asymptoticBias_of_feature (h : δ < min 1 γ) :
-    asymptoticBias ρ_star γ δ = ((γ - δ) / (γ * (1 - δ))) * ρ_star := by
-  simp [asymptoticBias, h]
+    asymptoticBias_of_linear_estimator ρ_star γ δ = ((γ - δ) / (γ * (1 - δ))) * ρ_star := by
+  simp [asymptoticBias_of_linear_estimator, h]
 
-/-- Ambient-bottleneck branch of `asymptoticBias`: the estimator is unbiased. -/
+/-- Ambient-bottleneck branch of `asymptoticBias_of_linear_estimator`: the estimator is unbiased. -/
 theorem asymptoticBias_of_ambient (hγ : γ < 1) (hδ : γ ≤ δ) :
-    asymptoticBias ρ_star γ δ = 0 := by
+    asymptoticBias_of_linear_estimator ρ_star γ δ = 0 := by
   have hn : ¬ δ < min 1 γ := not_lt.mpr ((min_le_right _ _).trans hδ)
-  simp [asymptoticBias, hn, hγ, hδ]
+  simp [asymptoticBias_of_linear_estimator, hn, hγ, hδ]
 
-/-- Sample-bottleneck branch of `asymptoticBias`. -/
+/-- Sample-bottleneck branch of `asymptoticBias_of_linear_estimator`. -/
 theorem asymptoticBias_of_sample (hγ : 1 ≤ γ) (hδ : 1 ≤ δ) :
-    asymptoticBias ρ_star γ δ = (1 - γ⁻¹) * (δ / (δ - 1)) * ρ_star := by
+    asymptoticBias_of_linear_estimator ρ_star γ δ = (1 - γ⁻¹) * (δ / (δ - 1)) * ρ_star := by
   have hn : ¬ δ < min 1 γ := not_lt.mpr ((min_le_left _ _).trans hδ)
-  simp [asymptoticBias, hn, not_lt.mpr hγ]
+  simp [asymptoticBias_of_linear_estimator, hn, not_lt.mpr hγ]
 
 /-- Total risk in the feature-bottleneck regime. -/
 theorem asymptoticTotalRisk_of_feature (h : δ < min 1 γ) :
-    asymptoticTotalRisk σ_sq ρ_star γ δ =
+    asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ =
       ((γ - δ) / (γ * (1 - δ))) * ρ_star + σ_sq * (δ / (1 - δ)) := by
-  rw [asymptoticTotalRisk, asymptoticBias_of_feature ρ_star h,
+  rw [asymptoticTotalRisk_of_linear_estimator, asymptoticBias_of_feature ρ_star h,
     asymptoticVariance_of_feature σ_sq h]
 
 /-- Total risk in the ambient-bottleneck regime: constant in `δ`. -/
 theorem asymptoticTotalRisk_of_ambient (hγ : γ < 1) (hδ : γ ≤ δ) :
-    asymptoticTotalRisk σ_sq ρ_star γ δ = σ_sq * (γ / (1 - γ)) := by
-  rw [asymptoticTotalRisk, asymptoticBias_of_ambient ρ_star hγ hδ,
+    asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ = σ_sq * (γ / (1 - γ)) := by
+  rw [asymptoticTotalRisk_of_linear_estimator, asymptoticBias_of_ambient ρ_star hγ hδ,
     asymptoticVariance_of_ambient σ_sq hγ hδ, zero_add]
 
 /-- **Total risk in the sample-bottleneck regime** `γ, δ > 1`:
 `σ² (γ - 1)⁻¹ + (1 - γ⁻¹) ρ⋆ + κ (δ - 1)⁻¹` with `κ = σ² + (1 - γ⁻¹) ρ⋆`. -/
 theorem asymptoticTotalRisk_of_sample (hγ : 1 < γ) (hδ : 1 < δ) :
-    asymptoticTotalRisk σ_sq ρ_star γ δ =
+    asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ =
       σ_sq * (γ - 1)⁻¹ + (1 - γ⁻¹) * ρ_star + (σ_sq + (1 - γ⁻¹) * ρ_star) * (δ - 1)⁻¹ := by
   have h1 : γ - 1 ≠ 0 := (sub_pos.mpr hγ).ne'
   have h2 : δ - 1 ≠ 0 := (sub_pos.mpr hδ).ne'
-  rw [asymptoticTotalRisk, asymptoticBias_of_sample ρ_star hγ.le hδ.le,
+  rw [asymptoticTotalRisk_of_linear_estimator, asymptoticBias_of_sample ρ_star hγ.le hδ.le,
     asymptoticVariance_of_sample σ_sq hγ.le hδ.le]
   rw [div_sub_one_eq_one_add_inv hδ.ne']
   ring
@@ -147,7 +147,7 @@ theorem asymptoticTotalRisk_of_sample (hγ : 1 < γ) (hδ : 1 < δ) :
 /-- **Total risk below the interpolation threshold for `γ > 1`** (`δ < 1`):
 `κ (1 - δ)⁻¹ + (γ⁻¹ ρ⋆ - σ²)` with the same `κ = σ² + (1 - γ⁻¹) ρ⋆` as for `δ > 1`. -/
 theorem asymptoticTotalRisk_of_feature_of_one_lt (hγ : 1 < γ) (hδ : δ < 1) :
-    asymptoticTotalRisk σ_sq ρ_star γ δ =
+    asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ =
       (σ_sq + (1 - γ⁻¹) * ρ_star) * (1 - δ)⁻¹ + (γ⁻¹ * ρ_star - σ_sq) := by
   have hγ0 : γ ≠ 0 := by positivity
   have h2 : 1 - δ ≠ 0 := (sub_pos.mpr hδ).ne'
@@ -178,7 +178,7 @@ variable {σ_sq ρ_star γ : ℝ}
 strictly increasing in `δ`. -/
 theorem double_descent_first_ascent_strictMonoOn (hγ : 1 < γ)
     (hκ : 0 < σ_sq + (1 - γ⁻¹) * ρ_star) :
-    StrictMonoOn (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) (Iio 1) := by
+    StrictMonoOn (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) (Iio 1) := by
   intro a ha b hb hab
   simp only
   rw [asymptoticTotalRisk_of_feature_of_one_lt σ_sq ρ_star hγ ha,
@@ -191,7 +191,7 @@ theorem double_descent_first_ascent_strictMonoOn (hγ : 1 < γ)
 tends to `+∞`. -/
 theorem double_descent_interpolation_divergence (hγ : 1 < γ)
     (hκ : 0 < σ_sq + (1 - γ⁻¹) * ρ_star) :
-    Tendsto (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) (𝓝[<] 1) atTop := by
+    Tendsto (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) (𝓝[<] 1) atTop := by
   have hinv : Tendsto (fun δ : ℝ => (1 - δ)⁻¹) (𝓝[<] 1) atTop := by
     refine Filter.Tendsto.inv_tendsto_nhdsGT_zero ?_
     refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
@@ -208,14 +208,14 @@ theorem double_descent_interpolation_divergence (hγ : 1 < γ)
 zero. -/
 theorem double_descent_interpolation_divergence_of_nonneg (hγ : 1 < γ) (hσ : 0 ≤ σ_sq)
     (hρ : 0 ≤ ρ_star) (h_pos : 0 < σ_sq ∨ 0 < ρ_star) :
-    Tendsto (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) (𝓝[<] 1) atTop :=
+    Tendsto (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) (𝓝[<] 1) atTop :=
   double_descent_interpolation_divergence hγ (kappa_pos_of_nonneg hγ hσ hρ h_pos)
 
 /-- **Second descent** (`γ > 1`, `κ > 0`): beyond the interpolation threshold the total risk is
 strictly decreasing in `δ`. -/
 theorem double_descent_second_descent_strictAntiOn (hγ : 1 < γ)
     (hκ : 0 < σ_sq + (1 - γ⁻¹) * ρ_star) :
-    StrictAntiOn (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) (Ioi 1) := by
+    StrictAntiOn (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) (Ioi 1) := by
   intro a ha b hb hab
   simp only
   rw [asymptoticTotalRisk_of_sample σ_sq ρ_star hγ hb,
@@ -228,20 +228,21 @@ theorem double_descent_second_descent_strictAntiOn (hγ : 1 < γ)
 theorem double_descent_second_descent_strictly_decreasing (hγ : 1 < γ) (hσ : 0 ≤ σ_sq)
     (hρ : 0 ≤ ρ_star) (h_pos : 0 < σ_sq ∨ 0 < ρ_star) {δ₁ δ₂ : ℝ} (h1 : 1 < δ₁)
     (hle : δ₁ < δ₂) :
-    asymptoticTotalRisk σ_sq ρ_star γ δ₂ < asymptoticTotalRisk σ_sq ρ_star γ δ₁ :=
+    asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ₂ <
+      asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ₁ :=
   double_descent_second_descent_strictAntiOn hγ (kappa_pos_of_nonneg hγ hσ hρ h_pos) h1
     (h1.trans hle) hle
 
 /-- **Infinite-width limit** (`γ > 1`): the second descent levels off at
 `σ² / (γ - 1) + (1 - γ⁻¹) ρ⋆`, the risk of ridgeless regression on the raw inputs `X`. -/
 theorem double_descent_infinite_width_limit (hγ : 1 < γ) :
-    Tendsto (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) atTop
+    Tendsto (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) atTop
       (𝓝 (σ_sq / (γ - 1) + (1 - γ⁻¹) * ρ_star)) := by
   have hinv : Tendsto (fun δ : ℝ => (δ - 1)⁻¹) atTop (𝓝 0) :=
     tendsto_inv_atTop_zero.comp (tendsto_atTop_add_const_right _ (-1) tendsto_id)
   have h := (hinv.const_mul (σ_sq + (1 - γ⁻¹) * ρ_star)).const_add
     (σ_sq * (γ - 1)⁻¹ + (1 - γ⁻¹) * ρ_star)
-  have h' : Tendsto (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) atTop
+  have h' : Tendsto (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) atTop
       (𝓝 (σ_sq * (γ - 1)⁻¹ + (1 - γ⁻¹) * ρ_star + (σ_sq + (1 - γ⁻¹) * ρ_star) * 0)) := by
     refine h.congr' ?_
     filter_upwards [eventually_gt_atTop 1] with δ hδ
@@ -257,13 +258,13 @@ variable {σ_sq ρ_star γ : ℝ}
 /-- **Saturated flat segment** (`γ < 1`): once the width reaches the ambient dimension
 (`δ ≥ γ`), further width does not change the risk, which equals `σ² γ / (1 - γ)`. -/
 theorem undercomplete_saturated_flat_segment (hγ : γ < 1) {δ : ℝ} (hδ : γ ≤ δ) :
-    asymptoticTotalRisk σ_sq ρ_star γ δ = σ_sq * (γ / (1 - γ)) :=
+    asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ = σ_sq * (γ / (1 - γ)) :=
   asymptoticTotalRisk_of_ambient σ_sq ρ_star hγ hδ
 
 /-- **The total risk is continuous at the ambient boundary `δ = γ`** (`0 < γ < 1`): the feature
 branch `δ < γ` meets the flat ambient branch with no jump. -/
 theorem undercomplete_continuousAt_gamma (hγ₀ : 0 < γ) (hγ₁ : γ < 1) :
-    ContinuousAt (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) γ := by
+    ContinuousAt (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) γ := by
   have h1 : 1 - γ ≠ 0 := (sub_pos.mpr hγ₁).ne'
   -- the feature-branch formula, continuous at `γ`
   have hg : ContinuousAt
@@ -287,7 +288,7 @@ theorem undercomplete_continuousAt_gamma (hγ₀ : 0 < γ) (hγ₁ : γ < 1) :
 
 /-- **No jump at the ambient boundary**, as a left limit: `R(δ) → σ² γ / (1 - γ)` as `δ ↑ γ`. -/
 theorem undercomplete_continuous_transition_at_gamma (hγ₀ : 0 < γ) (hγ₁ : γ < 1) :
-    Tendsto (fun δ => asymptoticTotalRisk σ_sq ρ_star γ δ) (𝓝[<] γ)
+    Tendsto (fun δ => asymptoticTotalRisk_of_linear_estimator σ_sq ρ_star γ δ) (𝓝[<] γ)
       (𝓝 (σ_sq * (γ / (1 - γ)))) := by
   have h := (undercomplete_continuousAt_gamma (σ_sq := σ_sq) (ρ_star := ρ_star) hγ₀ hγ₁).tendsto
   rw [undercomplete_saturated_flat_segment hγ₁ le_rfl] at h

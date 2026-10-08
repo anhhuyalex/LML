@@ -22,7 +22,7 @@ This file contains the exact finite-sample reduction and the deterministic limit
 * `trace_operator_transpose_mul_self_eq_featureBottleneck`: `Tr (Mᵀ M) = Tr ((Zᵀ Z)⁻¹ Sᵀ S)` by
   cyclic invariance of the trace;
 * `featureBottleneck_variance_eq_trace`: with isotropic noise of variance `σ²`, the variance
-  of `θ̂` (`LinearRegression.variance`) is `σ² Tr ((Zᵀ Z)⁻¹ Sᵀ S)`, from
+  of `θ̂` (`LinearRegression.variance_of_linear_estimator`) is `σ² Tr ((Zᵀ Z)⁻¹ Sᵀ S)`, from
   `linearEstimator_bias_variance`;
 * `trace_inverseWishartMean_mul_gram`: the algebraic cancellation `Tr ((m-n-1)⁻¹ G⁻¹ · G) =
   n / (m - n - 1)` that turns the inverse-Wishart mean `E[(Zᵀ Z)⁻¹] = (m-n-1)⁻¹ (Sᵀ S)⁻¹` into the
@@ -85,7 +85,7 @@ variable {m n n₀ : Type*} [Fintype m] [Fintype n] [Fintype n₀] [DecidableEq 
 
 /-- **Variance of the feature-bottleneck estimator.** In the model `y = X θ⋆ + ε` with centered
 isotropic noise `Cov ε = σ² I`, the random-feature estimator `θ̂ = S (Zᵀ Z)⁻¹ Zᵀ y`, `Z = X S`,
-has `LinearRegression.variance` equal to `σ² Tr ((Zᵀ Z)⁻¹ Sᵀ S)`. -/
+has `LinearRegression.variance_of_linear_estimator` equal to `σ² Tr ((Zᵀ Z)⁻¹ Sᵀ S)`. -/
 theorem featureBottleneck_variance_eq_trace (X : Matrix m n₀ ℝ) (S : Matrix n₀ n ℝ)
     (hZ : IsUnit ((X * S)ᵀ * (X * S)).det) (θ : EuclideanSpace ℝ n₀) (σ_sq : ℝ)
     (P : Measure (m → ℝ)) [IsProbabilityMeasure P] (hε : ∀ i, MemLp (fun ε : m → ℝ => ε i) 2 P)
@@ -94,7 +94,7 @@ theorem featureBottleneck_variance_eq_trace (X : Matrix m n₀ ℝ) (S : Matrix 
     (β_hat : (m → ℝ) → EuclideanSpace ℝ n₀)
     (hβ : ∀ ε, (β_hat ε).ofLp =
       (S * (((X * S)ᵀ * (X * S))⁻¹ * (X * S)ᵀ)) *ᵥ (X *ᵥ θ.ofLp + ε)) :
-    LinearRegression.variance (1 : Matrix n₀ n₀ ℝ) P β_hat =
+    LinearRegression.variance_of_linear_estimator (1 : Matrix n₀ n₀ ℝ) P β_hat =
       σ_sq * Matrix.trace (((X * S)ᵀ * (X * S))⁻¹ * (Sᵀ * S)) := by
   rw [(linearEstimator_bias_variance_isotropic (S * (((X * S)ᵀ * (X * S))⁻¹ * (X * S)ᵀ)) X θ 1
     σ_sq P hε h_mean h_cov β_hat hβ).2.1,

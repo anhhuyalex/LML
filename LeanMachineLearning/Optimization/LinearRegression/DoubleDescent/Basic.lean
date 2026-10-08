@@ -15,7 +15,8 @@ public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 Exact, finite-sample facts about linear estimators `θ̂ = M y` in the model `y = X θ⋆ + ε`, used by
 the double-descent analysis of random-feature regression (Bach 2024; Hastie–Montanari–Rosset–
 Tibshirani 2022; Belkin–Hsu–Ma–Mandal 2019). Everything is stated in terms of the existing
-`LinearRegression.risk`, `LinearRegression.bias` and `LinearRegression.variance`, and no new
+`LinearRegression.risk`, `LinearRegression.bias_of_linear_estimator` and
+`LinearRegression.variance_of_linear_estimator`, and no new
 definitions are introduced: the measurement operator is just the matrix `M` (for random features
 `M = S Z†`).
 
@@ -109,17 +110,18 @@ square-integrable: `R = B + V`. -/
 theorem risk_eq_bias_add_variance [IsProbabilityMeasure μ] (Sigma : Matrix p p ℝ)
     (β_hat : Ω → EuclideanSpace ℝ p) (β : EuclideanSpace ℝ p)
     (h : ∀ j, MemLp (fun ω => β_hat ω j) 2 μ) :
-    risk Sigma μ β_hat β = bias Sigma μ β_hat β + variance Sigma μ β_hat := by
+    risk Sigma μ β_hat β =
+      bias_of_linear_estimator Sigma μ β_hat β + variance_of_linear_estimator Sigma μ β_hat := by
   set d : p → ℝ := fun j => μ[fun ω => β_hat ω j] - β j with hd
   have hx : ∀ j, MemLp (fun ω => (β_hat ω - β).ofLp j) 2 μ := fun j => by
     exact (h j).sub (memLp_const (β j))
   have hΓ := fun j k => integral_sub_mul_sub (h j) (h k) (β j) (β k)
   have hrisk := integral_dotProduct_mulVec_self (μ := μ) (fun ω => (β_hat ω - β).ofLp) hx
-    (covCondX μ β_hat + Matrix.vecMulVec d d) (fun j k => by
-      simpa [covCondX, Matrix.vecMulVec_apply, hd] using hΓ j k) Sigma
+    (covCondX_of_linear_estimator μ β_hat + Matrix.vecMulVec d d) (fun j k => by
+      simpa [covCondX_of_linear_estimator, Matrix.vecMulVec_apply, hd] using hΓ j k) Sigma
   have hbias : ((∫ ω, β_hat ω ∂μ) - β : p → ℝ) = d := funext fun j => by
     simp [hd, eval_integral_piLp (fun j => (h j).integrable (by simp))]
-  unfold risk bias variance
+  unfold risk bias_of_linear_estimator variance_of_linear_estimator
   rw [hbias]
   refine hrisk.trans ?_
   rw [Matrix.mul_add, Matrix.trace_add, Matrix.trace_mul_comm, Matrix.mul_vecMulVec,
@@ -134,9 +136,9 @@ theorem linearEstimator_bias_variance [DecidableEq p] (M : Matrix p n ℝ) (X : 
     (P : Measure (n → ℝ)) [IsProbabilityMeasure P] (hε : ∀ i, MemLp (fun ε : n → ℝ => ε i) 2 P)
     (h_mean : ∀ i, ∫ ε, ε i ∂P = 0) (h_cov : ∀ i j, ∫ ε, ε i * ε j ∂P = Γ i j)
     (β_hat : (n → ℝ) → EuclideanSpace ℝ p) (hβ : ∀ ε, (β_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)) :
-    bias Sigma P β_hat θ =
+    bias_of_linear_estimator Sigma P β_hat θ =
         ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) ∧
-      variance Sigma P β_hat = Matrix.trace (M * Γ * Mᵀ * Sigma) ∧
+      variance_of_linear_estimator Sigma P β_hat = Matrix.trace (M * Γ * Mᵀ * Sigma) ∧
       risk Sigma P β_hat θ =
         ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) +
           Matrix.trace (M * Γ * Mᵀ * Sigma) := by
@@ -156,20 +158,20 @@ theorem linearEstimator_bias_variance [DecidableEq p] (M : Matrix p n ℝ) (X : 
   have hmean : ∀ j, ∫ ε, (β_hat ε).ofLp j ∂P = ((M * X) *ᵥ θ.ofLp) j := fun j => by
     simp_rw [hcoord]
     rw [integral_add (integrable_const _) ((hMε j).integrable (by simp)), hMmean]; simp
-  have hbias : bias Sigma P β_hat θ =
+  have hbias : bias_of_linear_estimator Sigma P β_hat θ =
       ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) := by
-    unfold bias
+    unfold bias_of_linear_estimator
     congr 2 <;>
     · funext j
       simp [eval_integral_piLp (fun j => (hβ_mem j).integrable (by simp)), hmean,
         Matrix.sub_mulVec]
-  have hvar : variance Sigma P β_hat = Matrix.trace (M * Γ * Mᵀ * Sigma) := by
-    unfold variance
+  have hvar : variance_of_linear_estimator Sigma P β_hat = Matrix.trace (M * Γ * Mᵀ * Sigma) := by
+    unfold variance_of_linear_estimator
     congr 1
     congr 1
     ext j k
     have := integral_dotProduct_mul_dotProduct (μ := P) (fun ε : n → ℝ => ε) hε Γ h_cov (M j) (M k)
-    simp only [covCondX, covariance, hmean]
+    simp only [covCondX_of_linear_estimator, covariance, hmean]
     have hpt : ∀ ω : n → ℝ, ((β_hat ω).ofLp j - ((M * X) *ᵥ θ.ofLp) j) *
         ((β_hat ω).ofLp k - ((M * X) *ᵥ θ.ofLp) k) = (ω ⬝ᵥ M j) * (ω ⬝ᵥ M k) := fun ω => by
       rw [hcoord, hcoord, add_sub_cancel_left, add_sub_cancel_left, dotProduct_comm ω,
@@ -190,9 +192,9 @@ theorem linearEstimator_bias_variance_isotropic [DecidableEq p] [DecidableEq n]
     (hε : ∀ i, MemLp (fun ε : n → ℝ => ε i) 2 P) (h_mean : ∀ i, ∫ ε, ε i ∂P = 0)
     (h_cov : ∀ i j, ∫ ε, ε i * ε j ∂P = if i = j then σ_sq else 0)
     (β_hat : (n → ℝ) → EuclideanSpace ℝ p) (hβ : ∀ ε, (β_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)) :
-    bias Sigma P β_hat θ =
+    bias_of_linear_estimator Sigma P β_hat θ =
         ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) ∧
-      variance Sigma P β_hat = σ_sq * Matrix.trace (M * Mᵀ * Sigma) ∧
+      variance_of_linear_estimator Sigma P β_hat = σ_sq * Matrix.trace (M * Mᵀ * Sigma) ∧
       risk Sigma P β_hat θ =
         ((M * X - 1) *ᵥ θ.ofLp) ⬝ᵥ (Sigma *ᵥ ((M * X - 1) *ᵥ θ.ofLp)) +
           σ_sq * Matrix.trace (M * Mᵀ * Sigma) := by
@@ -214,34 +216,36 @@ This derives the bias and variance assumed in `LinearRegression.lemma1` (`E θ̂
 `M X = Σ̂⁺ Σ̂` and `M Mᵀ = Σ̂⁺ Σ̂ Σ̂⁺ / n = Σ̂⁺ / n`. -/
 theorem lemma1_of_linear_model [DecidableEq p] [DecidableEq n] (X : Matrix n p ℝ)
     (Sigma Sigma_dagger : Matrix p p ℝ) (hn : 0 < Fintype.card n) (h_sym : Sigma_dagger.IsSymm)
-    (h_pinv : Sigma_dagger * sampleCov X * Sigma_dagger = Sigma_dagger)
-    (h_proj : (1 - Sigma_dagger * sampleCov X).IsSymm) (θ : EuclideanSpace ℝ p) (σ_sq : ℝ)
+    (h_pinv : Sigma_dagger * ((1 / (Fintype.card n : ℝ)) • (Xᵀ * X)) * Sigma_dagger = Sigma_dagger)
+    (h_proj : (1 - Sigma_dagger * ((1 / (Fintype.card n : ℝ)) • (Xᵀ * X))).IsSymm)
+    (θ : EuclideanSpace ℝ p) (σ_sq : ℝ)
     (P : Measure (n → ℝ)) [IsProbabilityMeasure P] (hε : ∀ i, MemLp (fun ε : n → ℝ => ε i) 2 P)
     (h_mean : ∀ i, ∫ ε, ε i ∂P = 0)
     (h_cov : ∀ i j, ∫ ε, ε i * ε j ∂P = if i = j then σ_sq else 0)
     (β_hat : (n → ℝ) → EuclideanSpace ℝ p)
     (hβ : ∀ ε, (β_hat ε).ofLp =
       ((Fintype.card n : ℝ)⁻¹ • (Sigma_dagger * Xᵀ)) *ᵥ (X *ᵥ θ.ofLp + ε)) :
-    bias Sigma P β_hat θ =
-        θ.ofLp ⬝ᵥ (((1 - Sigma_dagger * sampleCov X) * Sigma *
-          (1 - Sigma_dagger * sampleCov X)) *ᵥ θ.ofLp) ∧
-      variance Sigma P β_hat =
+    bias_of_linear_estimator Sigma P β_hat θ =
+        θ.ofLp ⬝ᵥ (((1 - Sigma_dagger * ((1 / (Fintype.card n : ℝ)) • (Xᵀ * X))) * Sigma *
+          (1 - Sigma_dagger * ((1 / (Fintype.card n : ℝ)) • (Xᵀ * X)))) *ᵥ θ.ofLp) ∧
+      variance_of_linear_estimator Sigma P β_hat =
         (σ_sq / (Fintype.card n : ℝ)) * Matrix.trace (Sigma_dagger * Sigma) := by
+  set Sh : Matrix p p ℝ := (1 / (Fintype.card n : ℝ)) • (Xᵀ * X) with hSh
   set c : ℝ := (Fintype.card n : ℝ)⁻¹ with hc
   have hc0 : c ≠ 0 := inv_ne_zero (by exact_mod_cast hn.ne')
-  have hMX : (c • (Sigma_dagger * Xᵀ)) * X = Sigma_dagger * sampleCov X := by
-    rw [sampleCov, one_div, ← hc, Matrix.smul_mul, Matrix.mul_assoc, Matrix.mul_smul]
+  have hMX : (c • (Sigma_dagger * Xᵀ)) * X = Sigma_dagger * Sh := by
+    rw [hSh, one_div, ← hc, Matrix.smul_mul, Matrix.mul_assoc, Matrix.mul_smul]
   obtain ⟨hbias, hvar, -⟩ := linearEstimator_bias_variance_isotropic (c • (Sigma_dagger * Xᵀ)) X
     θ Sigma σ_sq P hε h_mean h_cov β_hat hβ
   refine ⟨?_, ?_⟩
   · rw [hbias, hMX]
-    have := lemma1_bias Sigma (sampleCov X) Sigma_dagger h_proj
-      (WithLp.toLp 2 ((Sigma_dagger * sampleCov X) *ᵥ θ.ofLp)) θ rfl
+    have := lemma1_bias Sigma Sh Sigma_dagger h_proj
+      (WithLp.toLp 2 ((Sigma_dagger * Sh) *ᵥ θ.ofLp)) θ rfl
     simpa [Matrix.sub_mulVec] using this
   · rw [hvar]
     have hMM : (c • (Sigma_dagger * Xᵀ)) * (c • (Sigma_dagger * Xᵀ))ᵀ = c • Sigma_dagger := by
-      have hXX : Xᵀ * X = c⁻¹ • sampleCov X := by
-        rw [sampleCov, one_div, ← hc, smul_smul, inv_mul_cancel₀ hc0, one_smul]
+      have hXX : Xᵀ * X = c⁻¹ • Sh := by
+        rw [hSh, one_div, ← hc, smul_smul, inv_mul_cancel₀ hc0, one_smul]
       calc (c • (Sigma_dagger * Xᵀ)) * (c • (Sigma_dagger * Xᵀ))ᵀ
           = c • c • (Sigma_dagger * (Xᵀ * X) * Sigma_dagger) := by
             simp only [Matrix.transpose_smul, Matrix.transpose_mul, Matrix.transpose_transpose,
