@@ -9,12 +9,12 @@ Bach (2024), Hastie et al.\ (2022) and Belkin et al.\ (2019) \cite{bach2024highd
 module & section\\ \hline
 \texttt{Basic}, \texttt{HMRT} & \ref{sec:dd:risk}\\
 \texttt{RandomFeatures}, \texttt{ForMathlib/LinearAlgebra/Matrix/LeftRightInverse} & \ref{sec:dd:features}\\
-\texttt{FeatureBottleneck}, \texttt{AmbientBottleneck}, \texttt{SampleBottleneck} & \ref{sec:dd:feature}, \ref{sec:dd:ambient}, \ref{sec:dd:sample}\\
+\texttt{FeatureBottleneck}, \texttt{AmbientBottleneck}, \texttt{SampleBottleneck}, \texttt{SampleBottleneckDecomposition} & \ref{sec:dd:feature}, \ref{sec:dd:ambient}, \ref{sec:dd:sample}\\
 \texttt{DoubleDescentCurve} & \ref{sec:dd:curve}\\
 \texttt{ForMathlib/Probability/StdGaussianRadial}, \texttt{StdGaussianChiSqTails} & \ref{sec:ntkf:radial}, \ref{sec:dd:moments}\\
 \texttt{GramInverse}, \texttt{ForMathlib/LinearAlgebra/Matrix/\{GramProjector, MulTranspose\}} & \ref{sec:dd:gram} (and \ref{sec:dd:risk})\\
 \texttt{RandomMatrixFoundations}, \texttt{InverseGramTrace}, \texttt{BiasProjector}, \texttt{FitErrorConcentration}, \texttt{FeatureBottleneckLimits},
-\texttt{ForMathlib/LinearAlgebra/Matrix/\{Householder, OrthogonalProjection\}} & \ref{sec:dd:gaussian}
+\texttt{ForMathlib/LinearAlgebra/Matrix/\{Householder, OrthogonalProjection, OrthogonalDiagonalization\}} & \ref{sec:dd:gaussian}
 \end{tabular}
 \end{center}
 
@@ -513,6 +513,31 @@ $V(\hat\theta)=\sigma^2\operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\
 \begin{proof}
   \leanok
 Theorem~\ref{thm:dd:linearBV} with Lemma~\ref{lem:dd:sampleTrace}.
+\end{proof}
+
+\begin{lemma}[Row-space and residual splitting of the sample-bottleneck operator]\label{lem:dd:sampleDecomp}
+  \uses{lem:dd:sampleTrace, lem:dd:gramProjectorFacts}
+  \lean{LinearRegression.DoubleDescent.gramProjector_transpose_mul_operator,
+        LinearRegression.DoubleDescent.operator_eq_rowSpace_add_residual,
+        LinearRegression.DoubleDescent.trace_operator_transpose_mul_self_eq_add,
+        LinearRegression.DoubleDescent.trace_residual_operator_eq,
+        LinearRegression.DoubleDescent.operator_mul_design_sub_one_mulVec}
+  \leanok
+Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ such that $XX^\top$ and $ZZ^\top$ are invertible ($Z=XS$), and let $P=P_X=X^\top(XX^\top)^{-1}X=\operatorname{gramProjector} X^\top$. With $Z^\dagger=Z^\top(ZZ^\top)^{-1}$ and $M=SZ^\dagger$:
+\begin{enumerate}
+  \item $PM=X^\top(XX^\top)^{-1}$ and $M=X^\top(XX^\top)^{-1}+(I-P)M$.
+  \item The row-space and residual parts are orthogonal ($X(I-P)=0$), so
+  \[
+    \operatorname{Tr}(M^\top M)=\operatorname{Tr}\bigl((XX^\top)^{-1}\bigr)+\operatorname{Tr}\bigl(((I-P)M)^\top((I-P)M)\bigr),
+  \]
+  where the residual trace equals $\operatorname{Tr}\bigl((Z^\dagger(Z^\dagger)^\top)(S^\top(I-P)S)\bigr)$.
+  \item For $y=X\theta$, the bias vector satisfies $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b=Z^\dagger X\theta$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$XSZ^\dagger=ZZ^\dagger=I_m$, so $P_X M=X^\top(XX^\top)^{-1}(X S Z^\dagger)=X^\top(XX^\top)^{-1}$. The splitting is $M=PM+(I-P)M$, and orthogonality follows from $(X^\top(XX^\top)^{-1})^\top((I-P)M)=(XX^\top)^{-1}X(I-P)M=0$ since $X(I-P)=0$. The residual trace expands by cyclicity of trace and idempotence of $I-P$. For the bias, $(MX-I)=(I-P)(MX-I)$ because $PMX=X^\top(XX^\top)^{-1}X=P$, giving $(I-P)Sb-(I-P)\theta$.
 \end{proof}
 
 \begin{lemma}[Ratio limits beyond the threshold]\label{lem:dd:ratioLimits}
@@ -1076,6 +1101,23 @@ For each diagonal entry, Theorem~\ref{thm:dd:invGramDiag} and the tail bound of 
 $\mathbb P(|1/((W^\top W)^{-1})_{jj}-\nu|\ge\varepsilon\nu)\le60/(\varepsilon^4\nu^2)$. A union bound over $j\le m$ costs $60m/(\varepsilon^4\nu^2)$; off the bad event
 $\operatorname{Tr}(W^\top W)^{-1}=\sum_j((W^\top W)^{-1})_{jj}$ lies in the stated interval. For the limit, $m_k/\nu_k\to\rho/(1-\rho)$, so for a fixed small tolerance the interval lies within $\varepsilon$ of the limit
 eventually, and $60m_k/(\varepsilon^4\nu_k^2)\to0$ since $\nu_k\to\infty$ and $m_k=O(\nu_k)$. Only the marginal laws of the diagonal entries are used, never covariances between them.
+\end{proof}
+
+\begin{theorem}[Concentration of a weighted inverse Gram trace]\label{thm:dd:weightedTraceConcentration}
+  \uses{thm:dd:traceConcentration, lem:dd:invariance}
+  \lean{Matrix.exists_trace_mul_eq_sum_eigenvalues,
+        LinearRegression.DoubleDescent.measureReal_weighted_diag_inv_gram_deviation_le,
+        LinearRegression.DoubleDescent.measure_trace_mul_inv_gram_deviation_le}
+  \leanok
+Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$, and let $C\in\mathbb R^{(q+1)\times(q+1)}$ be positive semidefinite. For every $0<\varepsilon<1$, with $\nu=p-q$:
+\[
+  \mathbb P\Bigl(\operatorname{Tr}\bigl(C(W^\top W)^{-1}\bigr)\notin\Bigl[\tfrac{\operatorname{Tr} C}{\nu(1+\varepsilon)},\tfrac{\operatorname{Tr} C}{\nu(1-\varepsilon)}\Bigr]\Bigr)\le\frac{60(q+1)}{\varepsilon^4\nu^2}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By orthogonal diagonalization (\texttt{Matrix.exists\_trace\_mul\_eq\_sum\_eigenvalues}), $C=U\operatorname{diag}(w)U^\top$ with orthogonal $U$ and $w_j\ge0$, so $\operatorname{Tr}(C(W^\top W)^{-1})=\sum_j w_j(U^\top(W^\top W)^{-1}U)_{jj}=\sum_j w_j((WU)^\top(WU))^{-1}_{jj}$. Since $WU$ is Gaussian by orthogonal invariance, each diagonal entry concentrates as in Theorem~\ref{thm:dd:traceConcentration}, and the convex combination with $\sum w_j=\operatorname{Tr} C$ preserves the bounds.
 \end{proof}
 
 \subsection{Quadratic forms and the fit error}
