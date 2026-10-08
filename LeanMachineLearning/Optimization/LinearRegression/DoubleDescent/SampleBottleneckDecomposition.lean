@@ -83,9 +83,7 @@ theorem trace_operator_transpose_mul_self_eq_add (X : Matrix m n₀ ℝ) (S : Ma
     rw [hAT, hR, ← Matrix.mul_assoc, ← Matrix.mul_assoc, Matrix.mul_assoc _ X,
       mul_one_sub_gramProjector_transpose X hX]
     simp
-  have hAA : Aᵀ * A = (X * Xᵀ)⁻¹ := by
-    rw [hAT, hA, Matrix.mul_assoc, ← Matrix.mul_assoc X, Matrix.mul_nonsing_inv _ hX,
-      Matrix.mul_one]
+  have hAA : Aᵀ * A = (X * Xᵀ)⁻¹ := rightInverse_transpose_mul_self X hX
   have hRA : Rᵀ * A = 0 := by
     have := congrArg Matrix.transpose hAR
     rwa [Matrix.transpose_mul, Matrix.transpose_zero, Matrix.transpose_transpose] at this

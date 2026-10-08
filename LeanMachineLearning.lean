@@ -45,6 +45,7 @@ public import LeanMachineLearning.ForMathlib.Probability.StdGaussianChiSqTails
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
+public import LeanMachineLearning.ForMathlib.Topology.Order.Sandwich
 public import LeanMachineLearning.Online.Bandit.Algorithms.ETC
 public import LeanMachineLearning.Online.Bandit.Algorithms.Regret.BayesRegretTS
 public import LeanMachineLearning.Online.Bandit.Algorithms.Regret.ETC
@@ -100,6 +101,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Ra
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneckDecomposition
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneckFixedDesign
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.SampleBottleneckLimits
 public import LeanMachineLearning.Optimization.LinearRegression.HMRT
 public import LeanMachineLearning.Optimization.NTK
 public import LeanMachineLearning.Optimization.NTK.Basic

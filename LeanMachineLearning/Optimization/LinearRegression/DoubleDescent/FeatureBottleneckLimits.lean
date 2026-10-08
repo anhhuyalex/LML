@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FitErrorConcentration
@@ -369,12 +370,8 @@ theorem measure_prod_sandwich_le {α β : Type*} [MeasurableSpace α] [Measurabl
       μS {S | ε₁ ≤ |s2 S - a|} :=
     (measurePreserving_fst (μ := μS) (ν := μX)).measure_preimage hSm.nullMeasurableSet
   have hBb : (μS.prod μX) {x : α × β | ¬ (s2 x.1 * (1 + c₁) ≤ Rb x ∧
-      Rb x ≤ s2 x.1 * (1 + c₂))} ≤ b := by
-    rw [Measure.prod_apply hBm]
-    calc ∫⁻ S, μX (Prod.mk S ⁻¹' {x : α × β | ¬ (s2 x.1 * (1 + c₁) ≤ Rb x ∧
-          Rb x ≤ s2 x.1 * (1 + c₂))}) ∂μS ≤ ∫⁻ _, b ∂μS :=
-          lintegral_mono_ae (hsec.mono fun S hS => hS)
-      _ = b := by rw [lintegral_const, measure_univ, mul_one]
+      Rb x ≤ s2 x.1 * (1 + c₂))} ≤ b :=
+    measure_prod_le_of_ae_section_le μS μX hBm hsec
   calc _ ≤ _ := measure_mono hsub
     _ ≤ _ := measure_union_le _ _
     _ ≤ _ := by rw [hAm]; exact add_le_add le_rfl hBb
