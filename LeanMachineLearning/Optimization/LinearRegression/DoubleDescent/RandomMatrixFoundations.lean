@@ -376,6 +376,17 @@ theorem ae_isUnit_det_gram_gaussianMatrix :
     rw [e] at h
     exact h
 
+/-- A Gaussian matrix with at most as many rows as columns has full row rank almost surely:
+`S Sᵀ` is invertible (`ae_isUnit_det_gram_gaussianMatrix` for `Sᵀ`). -/
+theorem ae_isUnit_det_mul_transpose_gaussianMatrix {p q : ℕ} (hpq : p ≤ q) :
+    ∀ᵐ S ∂(Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1),
+      IsUnit (Matrix.of S * (Matrix.of S)ᵀ).det := by
+  rw [ae_iff]
+  refine measure_mono_null (t := {S | (fun k i => S i k) ∈
+    {W : Fin q → Fin p → ℝ | ¬ IsUnit ((Matrix.of W)ᵀ * Matrix.of W).det}}) (fun S hS => hS) ?_
+  refine le_antisymm ((measure_preimage_transpose_le p q _).trans ?_) zero_le
+  exact le_of_eq (ae_iff.1 (ae_isUnit_det_gram_gaussianMatrix p q hpq))
+
 /-- **Dual-vector formula for a `Fin`-indexed Gaussian matrix.** For `W` with `Wᵀ W` invertible,
 `((Wᵀ W)⁻¹)ⱼⱼ = ‖(1 - P) wⱼ‖⁻²` with `wⱼ` the `j`-th column and `P` the Gram projector of the
 remaining columns, indexed by `Fin q` through `Fin.succAbove`. -/

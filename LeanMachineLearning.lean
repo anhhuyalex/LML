@@ -16,6 +16,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Sigma
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.AbsolutelyContinuous
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.Lattice
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
@@ -91,6 +92,7 @@ public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Am
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.Basic
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.BiasProjector
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.DoubleDescentCurve
+public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.DoubleDescentLimits
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneckLimits
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FitErrorConcentration

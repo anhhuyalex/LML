@@ -15,6 +15,8 @@ Two small tools for conditioning arguments on a product `μ ⊗ ν` of probabili
 
 * `MeasureTheory.measure_prod_le_of_ae_section_le`: if every `ν`-section `{b | (a, b) ∈ s}` of a
   measurable event `s` has measure at most `c`, then `(μ ⊗ ν) s ≤ c`;
+* `MeasureTheory.measure_prod_swap_le`: swapping the two factors of a product only decreases the
+  measure of an event pulled back along `Prod.swap`;
 * `MeasureTheory.lintegral_min_one_ofReal_le`: a truncated integrand `min 1 (ofReal (f x))` that
   is at most `c` off an event `E` has integral at most `μ E + ofReal c`. This turns the integrated
   Chebyshev bounds of `NTK/Initialization/GaussianConditioning.lean` into probability bounds.
@@ -54,6 +56,14 @@ theorem lintegral_min_one_ofReal_le {α : Type*} [MeasurableSpace α] (μ : Meas
     _ = μ E + ENNReal.ofReal c := by
         rw [lintegral_add_right _ measurable_const, lintegral_indicator_one hE, lintegral_const,
           measure_univ, mul_one]
+
+/-- **Swapping the factors of a product measure.** -/
+theorem measure_prod_swap_le {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    (μ : Measure α) [SFinite μ] (ν : Measure β) [SFinite ν] (E : Set (β × α)) :
+    (μ.prod ν) {x | x.swap ∈ E} ≤ (ν.prod μ) E := by
+  calc (μ.prod ν) (Prod.swap ⁻¹' E) ≤ ((μ.prod ν).map Prod.swap) E :=
+        Measure.le_map_apply measurable_swap.aemeasurable E
+    _ = (ν.prod μ) E := by rw [Measure.prod_swap]
 
 end MeasureTheory
 

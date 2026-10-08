@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
+public import LeanMachineLearning.ForMathlib.Topology.Order.Sandwich
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FeatureBottleneck
 public import LeanMachineLearning.Optimization.LinearRegression.DoubleDescent.FitErrorConcentration
 
@@ -466,23 +467,7 @@ theorem exists_tolerance_sandwich {a c L ε : ℝ} (hL : L = a * (1 + c)) (hε :
     refine ContinuousAt.mul (by fun_prop) (ContinuousAt.add continuousAt_const
       (ContinuousAt.mul continuousAt_const
         (ContinuousAt.div (by fun_prop) (by fun_prop) (by norm_num))))
-  have e1 : (fun t : ℝ => (a - t) * (1 + c * ((1 - t) / (1 + t)))) 0 = L := by simp [hL]
-  have e2 : (fun t : ℝ => (a + t) * (1 + c * ((1 + t) / (1 - t)))) 0 = L := by simp [hL]
-  have hev : ∀ᶠ t in nhdsWithin (0 : ℝ) (Set.Ioi 0), 0 < t ∧ t < 1 ∧
-      L - ε < (a - t) * (1 + c * ((1 - t) / (1 + t))) ∧
-        (a + t) * (1 + c * ((1 + t) / (1 - t))) < L + ε := by
-    have hI : ∀ᶠ t in nhdsWithin (0 : ℝ) (Set.Ioi 0), t ∈ Set.Ioo (0 : ℝ) 1 :=
-      Ioo_mem_nhdsGT one_pos
-    have g1 := (h1.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Ioi 0))).eventually
-      (lt_mem_nhds (show L - ε < (fun t : ℝ => (a - t) * (1 + c * ((1 - t) / (1 + t)))) 0 by
-        rw [e1]; linarith))
-    have g2 := (h2.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Ioi 0))).eventually
-      (gt_mem_nhds (show (fun t : ℝ => (a + t) * (1 + c * ((1 + t) / (1 - t)))) 0 < L + ε by
-        rw [e2]; linarith))
-    filter_upwards [hI, g1, g2] with t ht h1' h2'
-    exact ⟨ht.1, ht.2, h1', h2'⟩
-  obtain ⟨t, ht⟩ := hev.exists
-  exact ⟨t, ht⟩
+  exact exists_pos_lt_sandwich h1 h2 (by simp [hL]) (by simp [hL]) hε one_pos
 
 /-- **Ratio limits for the feature-bottleneck regime.** If `n_k ≤ m_k`, `n_k / m_k → δ < 1` and
 `n₀_k / m_k → γ > 0`, with `m_k → ∞`, then for `ν_k = m_k - n_k + 1`:
