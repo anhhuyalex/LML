@@ -14,7 +14,9 @@ module & section\\ \hline
 \texttt{ForMathlib/Probability/StdGaussianRadial}, \texttt{StdGaussianChiSqTails} & \ref{sec:ntkf:radial}, \ref{sec:dd:moments}\\
 \texttt{GramInverse}, \texttt{ForMathlib/LinearAlgebra/Matrix/\{GramProjector, MulTranspose\}} & \ref{sec:dd:gram} (and \ref{sec:dd:risk})\\
 \texttt{RandomMatrixFoundations}, \texttt{InverseGramTrace}, \texttt{BiasProjector}, \texttt{FitErrorConcentration}, \texttt{FeatureBottleneckLimits},
-\texttt{ForMathlib/LinearAlgebra/Matrix/\{Householder, OrthogonalProjection, OrthogonalDiagonalization\}} & \ref{sec:dd:gaussian}
+\texttt{SampleBottleneckFixedDesign}, \texttt{SampleBottleneckLimits},
+\texttt{ForMathlib/LinearAlgebra/Matrix/\{Householder, OrthogonalProjection, OrthogonalDiagonalization\}},
+\texttt{ForMathlib/MeasureTheory/Measure/ProdBound}, \texttt{ForMathlib/Topology/Order/Sandwich} & \ref{sec:dd:gaussian}
 \end{tabular}
 \end{center}
 
@@ -26,11 +28,11 @@ The chapter has two layers, both sorry-free.
   of the limiting risk curve (divergence at $\delta=1$, second descent, flat segment for $\gamma<1$).
   \item The \emph{probabilistic layer} (Sections~\ref{sec:dd:moments} and~\ref{sec:dd:gaussian}): the $\chi^2$ tail bound, orthogonal invariance of Gaussian matrices, almost-sure full rank, the exact law $1/\chi^2_{p-q}$ of the diagonal of $(G^\top G)^{-1}$ and
   its mean, non-asymptotic and in-probability concentration of $\operatorname{Tr}(G^\top G)^{-1}$, the exact $\chi^2$ law of the Rayleigh quotient of $(G^\top G)^{-1}$ and the resulting fit-error concentration, the omitted signal of a Gaussian subspace, and
-  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$.
+  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$, and of the variance of the sample-bottleneck estimator to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$.
 \end{itemize}
-\textbf{Not formalized:} the probabilistic limits in the sample-bottleneck regime $\gamma,\delta>1$, and a single theorem packaging the in-probability limits into the risk curve; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
+\textbf{Not formalized:} the probabilistic limit of the \emph{bias} in the sample-bottleneck regime $\gamma,\delta>1$, and a single theorem packaging the in-probability limits into the risk curve; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
 Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite-sample expressions such as $\sigma^2n/(m-n-1)$; the identification of these expressions with the \emph{random} variance is the content of Section~\ref{sec:dd:gaussian}
-for the feature and ambient regimes.
+for the feature and ambient regimes, and for the variance in the sample regime.
 
 \medskip\noindent\textbf{Notation.}
 The data are $m$ samples with inputs $X\in\mathbb R^{m\times n_0}$ (ambient dimension $n_0$) and labels
@@ -475,7 +477,7 @@ Remark~\ref{rmk:dd:wishartRole}, the identification of $\operatorname{Tr}(X^\top
 
 \section{Sample bottleneck}\label{sec:dd:sample}
 
-This regime is $\gamma,\delta>1$: more ambient dimensions and features than samples.
+This regime is $\gamma,\delta>1$: more ambient dimensions and features than samples. This section is deterministic; the convergence in probability of the variance trace to $(\gamma-1)^{-1}+(\delta-1)^{-1}$ is Theorem~\ref{thm:dd:sampleVarianceProb}.
 
 \begin{theorem}[The random-feature predictor interpolates the training data]\label{thm:dd:sampleInterpolates}
   \uses{lem:dd:rightInverse}
@@ -521,7 +523,8 @@ Theorem~\ref{thm:dd:linearBV} with Lemma~\ref{lem:dd:sampleTrace}.
         LinearRegression.DoubleDescent.operator_eq_rowSpace_add_residual,
         LinearRegression.DoubleDescent.trace_operator_transpose_mul_self_eq_add,
         LinearRegression.DoubleDescent.trace_residual_operator_eq,
-        LinearRegression.DoubleDescent.operator_mul_design_sub_one_mulVec}
+        LinearRegression.DoubleDescent.operator_mul_design_sub_one_mulVec,
+        LinearRegression.DoubleDescent.sampleBottleneck_trace_eq_add}
   \leanok
 Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ such that $XX^\top$ and $ZZ^\top$ are invertible ($Z=XS$), and let $P=P_X=X^\top(XX^\top)^{-1}X=\operatorname{gramProjector} X^\top$. With $Z^\dagger=Z^\top(ZZ^\top)^{-1}$ and $M=SZ^\dagger$:
 \begin{enumerate}
@@ -532,12 +535,16 @@ Let $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ such that $X
   \]
   where the residual trace equals $\operatorname{Tr}\bigl((Z^\dagger(Z^\dagger)^\top)(S^\top(I-P)S)\bigr)$.
   \item For $y=X\theta$, the bias vector satisfies $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b=Z^\dagger X\theta$.
+  \item The variance trace of Theorem~\ref{thm:dd:sampleVariance} is the sum of an ambient term and a residual term:
+  \[
+    \operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)=\operatorname{Tr}\bigl((XX^\top)^{-1}\bigr)+\operatorname{Tr}\bigl((Z^\dagger(Z^\dagger)^\top)\,S^\top(I-P)S\bigr).
+  \]
 \end{enumerate}
 \end{lemma}
 
 \begin{proof}
   \leanok
-$XSZ^\dagger=ZZ^\dagger=I_m$, so $P_X M=X^\top(XX^\top)^{-1}(X S Z^\dagger)=X^\top(XX^\top)^{-1}$. The splitting is $M=PM+(I-P)M$, and orthogonality follows from $(X^\top(XX^\top)^{-1})^\top((I-P)M)=(XX^\top)^{-1}X(I-P)M=0$ since $X(I-P)=0$. The residual trace expands by cyclicity of trace and idempotence of $I-P$. For the bias, $(MX-I)=(I-P)(MX-I)$ because $PMX=X^\top(XX^\top)^{-1}X=P$, giving $(I-P)Sb-(I-P)\theta$.
+$XSZ^\dagger=ZZ^\dagger=I_m$, so $P_X M=X^\top(XX^\top)^{-1}(X S Z^\dagger)=X^\top(XX^\top)^{-1}$. The splitting is $M=PM+(I-P)M$, and orthogonality follows from $(X^\top(XX^\top)^{-1})^\top((I-P)M)=(XX^\top)^{-1}X(I-P)M=0$ since $X(I-P)=0$. The residual trace expands by cyclicity of trace and idempotence of $I-P$. For the bias, $(MX-I)=(I-P)(MX-I)$ because $PMX=X^\top(XX^\top)^{-1}X=P$, giving $(I-P)Sb-(I-P)\theta$. Item~4 is item~2 with $\operatorname{Tr}(M^\top M)$ rewritten by Lemma~\ref{lem:dd:sampleTrace}.
 \end{proof}
 
 \begin{lemma}[Ratio limits beyond the threshold]\label{lem:dd:ratioLimits}
@@ -762,6 +769,9 @@ Sherman--Morrison route planned originally was not needed\\[1ex]
 fit error $\|H^{-1}G^\top\xi\|^2$ &
 second inverse moment $\mathbb E\operatorname{Tr}W^{-2}$ and a Chebyshev bound for the quadratic form &
 the Rayleigh quotient $\|z\|^2/z^\top W^{-1}z$ is \emph{exactly} $\chi^2_{p-q}$, so the same fourth-moment tail applies (Theorems~\ref{thm:dd:quadFormLaw}--\ref{thm:dd:fitError}); no second inverse moment\\[1ex]
+variance in the sample regime, where $ZZ^\top$ is not the Gram matrix of a single Gaussian matrix &
+exact law of the inverse Wishart matrix of $Z=XS$ for a Gaussian $X$, which is a product of two Gaussians &
+split $\operatorname{Tr}(M^\top M)$ into $\operatorname{Tr}(XX^\top)^{-1}$ plus a residual trace form; fix $X$ and factor $X=RQ^\top$ so that only the identity-scale Gaussian $VQ$ remains; a conditional Chebyshev bound replaces the residual form by its mean (Theorems~\ref{thm:dd:fixedDesignSample} and~\ref{thm:dd:sampleSandwich})\\[1ex]
 almost-sure invertibility of $G^\top G$ &
 zero set of a non-trivial polynomial has Lebesgue measure zero &
 inductively a new column avoids the proper span of the others a.s., since a proper subspace is null for the Gaussian (Theorem~\ref{thm:dd:fullRankAS})
@@ -788,7 +798,7 @@ agree to machine precision on random instances; the dual-vector formula for $((G
 $\operatorname{Tr}(W^{-2})=\sum_jW^{-1}_{jj}{}^2(1+\|b_j\|^2)$ ($b_j$ the regression coefficients of $g_j$ on the other columns) agree to machine precision; the Sherman--Morrison form
 of $\|(I-P_S)e_1\|^2$ agrees; and Monte Carlo means match $\mathbb E\operatorname{Tr}W^{-1}=q/(p-q-1)$ and
 $\mathbb E\operatorname{Tr}W^{-2}=q(p-1)/((p-q)(p-q-1)(p-q-3))$ to within sampling error. For the sample regime the Monte Carlo mean of
-$\operatorname{Tr}(M^\top M)$ matches $m/(n_0-m-1)+m/(n-m-1)$ to about one percent for three shapes.
+$\operatorname{Tr}(M^\top M)$ matches $m/(n_0-m-1)+m/(n-m-1)$ to about one percent for three shapes; the in-probability limit $(\gamma-1)^{-1}+(\delta-1)^{-1}$ of Theorem~\ref{thm:dd:sampleVarianceProb} is the limit of this expression.
 \end{remark}
 
 
@@ -968,8 +978,9 @@ $\bigotimes_{i<p}\bigotimes_{k<q}\mathcal N(0,1)$ on $\mathbb R^{p\times q}$, as
 \texttt{DoubleDescent/RandomMatrixFoundations.lean} (invariance, full rank, law of the inverse-Gram diagonal),
 \texttt{InverseGramTrace.lean} (mean and concentration of $\operatorname{Tr}(G^\top G)^{-1}$),
 \texttt{BiasProjector.lean} (omitted signal of a Gaussian subspace), \texttt{FitErrorConcentration.lean} (fit error of a Gaussian regression) and
-\texttt{FeatureBottleneckLimits.lean} (the two limits of the feature-bottleneck estimator), together with
-\texttt{ForMathlib/LinearAlgebra/Matrix/Householder.lean} and \texttt{OrthogonalProjection.lean}. Section~\ref{sec:dd:route} compares this route
+\texttt{FeatureBottleneckLimits.lean} (the two limits of the feature-bottleneck estimator),
+\texttt{SampleBottleneckFixedDesign.lean} and \texttt{SampleBottleneckLimits.lean} (the variance of the sample-bottleneck estimator), together with
+\texttt{ForMathlib/LinearAlgebra/Matrix/Householder.lean}, \texttt{OrthogonalProjection.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProdBound.lean} and \texttt{ForMathlib/Topology/Order/Sandwich.lean}. Section~\ref{sec:dd:route} compares this route
 with the textbook one. In every statement below the sequence index $k$ is suppressed when it is clear.
 
 \subsection{Invariance and independence}
@@ -1157,6 +1168,22 @@ Both $\|z\|^2\sim\chi^2_n$ and $\|z\|^2/z^\top(W^\top W)^{-1}z\sim\chi^2_\nu$ (T
 (\texttt{measure\_dev\_le\_of\_map\_norm\_sq}: the bound holds for any random variable having the law of $\|x\|^2$) bounds each deviation. Off both events the quotient of the two is sandwiched as stated.
 \end{proof}
 
+\begin{theorem}[Quadratic form of the Gram inverse in a fixed direction]\label{thm:dd:quadFormFixed}
+  \uses{thm:dd:quadFormLaw, thm:dd:chiTail}
+  \lean{LinearRegression.DoubleDescent.measure_quadForm_inv_gram_fixed_mem_le}
+  \leanok
+Let $W\in\mathbb R^{p\times(q+1)}$ be Gaussian with $q+1\le p$, $\nu=p-q$, $0<\eta<1$, and let $\xi\in\mathbb R^{q+1}$ be a \emph{fixed} vector. Then
+\[
+  \mathbb P\Bigl(\xi^\top(W^\top W)^{-1}\xi\notin\Bigl[\tfrac{\|\xi\|^2}{\nu(1+\eta)},\tfrac{\|\xi\|^2}{\nu(1-\eta)}\Bigr]\Bigr)\le\frac{60}{\eta^4\nu^2}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+For $\xi=0$ the event is empty. Otherwise $\xi^\top(W^\top W)^{-1}\xi=\|\xi\|^2\,u^\top(W^\top W)^{-1}u$ with the unit vector $u=\xi/\|\xi\|$, and $u^\top(W^\top W)^{-1}u\overset d=1/\chi^2_\nu$ by Theorem~\ref{thm:dd:quadFormLaw}(1). The fourth-moment tail of Theorem~\ref{thm:dd:chiTail} bounds
+$\mathbb P(|\chi^2_\nu-\nu|\ge\eta\nu)$ by $60/(\eta^4\nu^2)$, and off this event $1/\chi^2_\nu\in[\frac1{\nu(1+\eta)},\frac1{\nu(1-\eta)}]$.
+\end{proof}
+
 \begin{theorem}[Fit error of a Gaussian regression]\label{thm:dd:fitError}
   \uses{thm:dd:quadFormConc, lem:dd:orthFactor, lem:dd:invariance}
   \lean{LinearRegression.DoubleDescent.fitError_eq_quadForm,
@@ -1256,16 +1283,127 @@ Theorem~\ref{thm:dd:fullRankAS}, with Theorem~\ref{thm:dd:projectorProbability};
 both sides of the sandwich are continuous in $t$ and equal $a(1+c)$ at $t=0$) puts the sandwich inside $(L-\varepsilon,L+\varepsilon)$ eventually, and every failure probability tends to $0$ because $\nu_k,n_k\to\infty$.
 \end{proof}
 
+\subsection{The sample-bottleneck estimator: variance}\label{sec:dd:sampleprob}
+
+Throughout this subsection $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ are independent Gaussian matrices, $S=V^\top$ (so $S$ is a Gaussian $n_0\times n$ matrix), $Z=XS=XV^\top$, $P=P_X=\operatorname{gramProjector}X^\top$, and
+$\nu=n-m+1$. The regime is $m\le\min\{n,n_0\}$, and the target is the variance trace
+$T=\operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)$ of Theorem~\ref{thm:dd:sampleVariance}. By Lemma~\ref{lem:dd:sampleDecomp}(4) it splits as
+\[
+  T=\underbrace{\operatorname{Tr}\bigl((XX^\top)^{-1}\bigr)}_{T_1}+\underbrace{\operatorname{Tr}\bigl(B\,S^\top(I-P)S\bigr)}_{T_2},\qquad B=Z^\dagger(Z^\dagger)^\top,\quad Z^\dagger=Z^\top(ZZ^\top)^{-1}.
+\]
+The route is: $T_1$ is the inverse-Wishart trace of $X^\top$; $T_2$ is a Gaussian trace form in the residual $V(I-P)$, whose weight $B$ depends on $V$ only through $VP$, so a conditional Chebyshev bound
+replaces it by its conditional mean $(n_0-m)\operatorname{Tr}B=(n_0-m)\operatorname{Tr}(ZZ^\top)^{-1}$; and for a \emph{fixed} design $\operatorname{Tr}(ZZ^\top)^{-1}$ is $\operatorname{Tr}(XX^\top)^{-1}/\nu$ up to a factor $1\pm\eta$.
+
+\begin{lemma}[Two bookkeeping lemmas for tail bounds]\label{lem:dd:bookkeeping}
+  \lean{MeasureTheory.measure_prod_le_of_ae_section_le, exists_pos_lt_sandwich}
+  \leanok
+(1) Let $\mu$ be a probability measure, $s\subseteq\alpha\times\beta$ measurable and $c\ge0$. If $\nu\{b:(a,b)\in s\}\le c$ for $\mu$-almost every $a$, then $(\mu\otimes\nu)(s)\le c$.
+(2) Let $F,G:\mathbb R\to\mathbb R$ be continuous at $0$ with $F(0)=G(0)=L$, and $\varepsilon,\delta_0>0$. Then there is a single $t\in(0,\delta_0)$ with $L-\varepsilon<F(t)$ and $G(t)<L+\varepsilon$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) Fubini: $(\mu\otimes\nu)(s)=\int\nu(s_a)\,d\mu(a)\le c$. (2) Both $\{t: L-\varepsilon<F(t)\}$ and $\{t:G(t)<L+\varepsilon\}$ are neighbourhoods of $0$, so they meet $(0,\delta_0)$ in a common point.
+\end{proof}
+
+\begin{theorem}[Sample-bottleneck trace and fitted-signal energy for a fixed design]\label{thm:dd:fixedDesignSample}
+  \uses{lem:dd:orthFactor, lem:dd:invariance, thm:dd:weightedTraceConcentration, thm:dd:quadFormFixed}
+  \lean{LinearRegression.DoubleDescent.exists_frame_inv_gram_sampleDesign,
+        LinearRegression.DoubleDescent.measure_sampleTrace_mem_le,
+        LinearRegression.DoubleDescent.measure_sampleQuad_mem_le,
+        LinearRegression.DoubleDescent.measure_preimage_mul_orthonormal_le}
+  \leanok
+Let $X\in\mathbb R^{m\times n_0}$ be a \emph{fixed} matrix with $XX^\top$ invertible, $V\in\mathbb R^{n\times n_0}$ Gaussian, $Z=XV^\top$, $1\le m\le n$, $\nu=n-m+1$ and $0<\eta<1$.
+\begin{enumerate}
+  \item (Frame) There are $Q\in\mathbb R^{n_0\times m}$ with $Q^\top Q=I$ and a symmetric invertible $R$ with $R^{-1}R^{-1}=(XX^\top)^{-1}$ such that, for every $V$, $(ZZ^\top)^{-1}=R^{-1}\bigl((VQ)^\top(VQ)\bigr)^{-1}R^{-1}$.
+  \item (Trace) $\operatorname{Tr}(ZZ^\top)^{-1}\in\bigl[\tfrac{\operatorname{Tr}(XX^\top)^{-1}}{\nu(1+\eta)},\tfrac{\operatorname{Tr}(XX^\top)^{-1}}{\nu(1-\eta)}\bigr]$ except with probability at most $60m/(\eta^4\nu^2)$.
+  \item (Energy) For every fixed $a\in\mathbb R^m$, $a^\top(ZZ^\top)^{-1}a\in\bigl[\tfrac{a^\top(XX^\top)^{-1}a}{\nu(1+\eta)},\tfrac{a^\top(XX^\top)^{-1}a}{\nu(1-\eta)}\bigr]$ except with probability at most $60/(\eta^4\nu^2)$.
+\end{enumerate}
+With $a=X\theta$ the vector $Z^\dagger a$ is the vector $b$ of interpolating coefficients of $X\theta$ (Lemma~\ref{lem:dd:sampleDecomp}(3)), $\|b\|^2=a^\top(ZZ^\top)^{-1}a$, and $a^\top(XX^\top)^{-1}a=\|P_X\theta\|^2$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) Lemma~\ref{lem:dd:orthFactor} applied to $X^\top=QR$ gives $X=RQ^\top$, hence $ZZ^\top=R(VQ)^\top(VQ)R$ and $R^2=XX^\top$. (2) $G=VQ$ is Gaussian by Lemma~\ref{lem:dd:invariance}, and by cyclicity $\operatorname{Tr}(ZZ^\top)^{-1}=\operatorname{Tr}\bigl((XX^\top)^{-1}(G^\top G)^{-1}\bigr)$ with the positive semidefinite weight $C=(XX^\top)^{-1}$,
+so Theorem~\ref{thm:dd:weightedTraceConcentration} applies with $p=n$, $q+1=m$. (3) With $\xi=R^{-1}a$ one has $a^\top(ZZ^\top)^{-1}a=\xi^\top(G^\top G)^{-1}\xi$ and $\|\xi\|^2=a^\top(XX^\top)^{-1}a$, so Theorem~\ref{thm:dd:quadFormFixed} applies. The pushforward of $V$ under $V\mapsto VQ$ is the Gaussian measure (\texttt{measure\_preimage\_mul\_orthonormal\_le}).
+\end{proof}
+
+\begin{theorem}[Non-asymptotic sandwich for the sample-bottleneck variance]\label{thm:dd:sampleSandwich}
+  \uses{lem:dd:sampleDecomp, thm:dd:fixedDesignSample, thm:ntkcond:conditionalChebyshev, lem:dd:bookkeeping, lem:dd:gramProjectorFacts}
+  \lean{LinearRegression.DoubleDescent.measure_sampleTraceBad_le,
+        LinearRegression.DoubleDescent.measure_sampleQuadBad_le,
+        LinearRegression.DoubleDescent.measure_sampleVariance_sandwich_le,
+        LinearRegression.DoubleDescent.mul_transpose_mul_gramProjector_transpose,
+        LinearRegression.DoubleDescent.trace_mul_residual_eq_sum,
+        LinearRegression.DoubleDescent.variance_sandwich_arith,
+        Matrix.sum_sq_mul_transpose_le_trace_sq}
+  \leanok
+Let $1\le m\le\min\{n,n_0\}$, $0<\eta<1$, $0<\varepsilon_1\le c_1$, $\varepsilon_3>0$, $\lambda=(n_0-m)/\nu$, and let $T=T(X,V)$ be the variance trace above. Outside an event of probability at most
+\[
+  2\,\mathbb P\bigl(|\operatorname{Tr}(XX^\top)^{-1}-c_1|\ge\varepsilon_1\bigr)+\frac{120\,m}{\eta^4\nu^2}+\frac{2n_0}{\varepsilon_3^2}\Bigl(\frac{c_1+\varepsilon_1}{\nu(1-\eta)}\Bigr)^2,
+\]
+we have
+\[
+  (c_1-\varepsilon_1)\Bigl(1+\frac{\lambda}{1+\eta}\Bigr)-\varepsilon_3<T<(c_1+\varepsilon_1)\Bigl(1+\frac{\lambda}{1-\eta}\Bigr)+\varepsilon_3 .
+\]
+Moreover, jointly over $(X,V)$ the event ``$XX^\top$ invertible but $\operatorname{Tr}(ZZ^\top)^{-1}$ leaves $[\operatorname{Tr}(XX^\top)^{-1}/(\nu(1+\eta)),\operatorname{Tr}(XX^\top)^{-1}/(\nu(1-\eta))]$'' has probability at most $60m/(\eta^4\nu^2)$, and the same holds with probability $60/(\eta^4\nu^2)$ for the energy $(X\theta)^\top(ZZ^\top)^{-1}(X\theta)$ and any fixed $\theta\in\mathbb R^{n_0}$ (the latter is prepared for the bias and is not used in the variance bound).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Let $B_1=\{|T_1-c_1|\ge\varepsilon_1\}$ and let $B_2$ be the joint trace event; $B_2$ has probability at most $60m/(\eta^4\nu^2)$ by Lemma~\ref{lem:dd:bookkeeping}(1) applied to the sections in $V$, which are bounded by Theorem~\ref{thm:dd:fixedDesignSample}(2) when $XX^\top$ is invertible
+(then $\operatorname{Tr}(XX^\top)^{-1}>0$) and are empty otherwise. The energy event is handled the same way with part (3).
+
+For the residual term write $X V^\top=X(VP)^\top$ (since $XP=X$), so $B=Z^\dagger(Z^\dagger)^\top$ is a function of $(VP,X)$ only. Theorem~\ref{thm:ntkcond:conditionalChebyshev}(3) (\texttt{NTK.conditional\_traceForm\_chebyshev}) with $A=I$, $\operatorname{tr}(I-P)=n_0-m$ and $\|I\|_F^2=n_0$ shows that
+$C_3=\{|T_2-(n_0-m)\operatorname{Tr}(ZZ^\top)^{-1}|\ge\varepsilon_3\}$ has probability at most $\mathbb E\min(1,2n_0\|B\|_F^2/\varepsilon_3^2)$, where $\operatorname{Tr}B=\operatorname{Tr}(ZZ^\top)^{-1}$ and $\|B\|_F^2\le(\operatorname{Tr}B)^2$ because $B$ is a Gram matrix
+(\texttt{sum\_sq\_mul\_transpose\_le\_trace\_sq}). Off $B_1\cup B_2$ one has $\operatorname{Tr}B\le(c_1+\varepsilon_1)/(\nu(1-\eta))$, so the integrand is at most the constant $2n_0\bigl((c_1+\varepsilon_1)/(\nu(1-\eta))\bigr)^2/\varepsilon_3^2$ there and at most $1$ on $B_1\cup B_2$. This gives
+$\mathbb P(C_3)\le\mathbb P(B_1)+\mathbb P(B_2)+{}$the constant, and a union bound over $B_1,B_2,C_3$ gives the stated total. Off the three events, $T_1\in(c_1-\varepsilon_1,c_1+\varepsilon_1)$, $\operatorname{Tr}(ZZ^\top)^{-1}\in[T_1/(\nu(1+\eta)),T_1/(\nu(1-\eta))]$ and $T_2$ is within $\varepsilon_3$ of $(n_0-m)\operatorname{Tr}(ZZ^\top)^{-1}$,
+and the arithmetic of Lemma~\ref{lem:dd:sampleDecomp}(4) with $T=T_1+T_2$ yields the sandwich (\texttt{variance\_sandwich\_arith}).
+\end{proof}
+
+\begin{theorem}[Ratio limits and the design trace beyond the threshold]\label{thm:dd:sampleRatios}
+  \uses{thm:dd:traceConcentration}
+  \lean{LinearRegression.DoubleDescent.tendsto_sample_ratios,
+        LinearRegression.DoubleDescent.tendsto_measure_design_trace_inv_deviation,
+        LinearRegression.DoubleDescent.measure_preimage_transpose_le}
+  \leanok
+(1) If $1\le m_k\le n_k$, $m_k\to\infty$, $n_{0,k}/m_k\to\gamma$ and $n_k/m_k\to\delta>1$, then for $\nu_k=n_k-m_k+1$: $\nu_k\to\infty$, $\nu_k/m_k\to\delta-1$, $m_k/\nu_k^2\to0$, $n_{0,k}/\nu_k^2\to0$ and $(n_{0,k}-m_k)/\nu_k\to(\gamma-1)/(\delta-1)$.
+(2) If $m_k\le n_{0,k}$, $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $X_k$ is an $m_k\times n_{0,k}$ Gaussian matrix, then for every $\varepsilon>0$, $\mathbb P\bigl(|\operatorname{Tr}(X_kX_k^\top)^{-1}-(\gamma-1)^{-1}|\ge\varepsilon\bigr)\to0$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) is arithmetic with the limits of $\nu_k/m_k=n_k/m_k-1+1/m_k$. (2) Apply the in-probability part of Theorem~\ref{thm:dd:traceConcentration} to $W=X_k^\top\in\mathbb R^{n_{0,k}\times m_k}$ (transposing preserves the Gaussian law, \texttt{measure\_preimage\_transpose\_le}), with $\rho=\gamma^{-1}<1$ and
+$\rho/(1-\rho)=(\gamma-1)^{-1}$.
+\end{proof}
+
+\begin{theorem}[The sample-bottleneck variance converges in probability]\label{thm:dd:sampleVarianceProb}
+  \uses{thm:dd:sampleSandwich, thm:dd:sampleRatios, lem:dd:bookkeeping, thm:dd:sampleVariance}
+  \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleVariance_deviation}
+  \leanok
+Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k=V_k^\top$, $Z_k=X_kS_k$, and let $T_k$ be the variance trace of Theorem~\ref{thm:dd:sampleVariance}. Then for every $\varepsilon>0$
+\[
+  \mathbb P\Bigl(\bigl|T_k-\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
+\]
+Consequently the variance $\sigma^2T_k$ of $\hat\theta_k=S_kZ_k^\dagger y$ converges in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$, the limit of the explicit expression in Theorem~\ref{thm:dd:sampleLimits}.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Put $c_1=(\gamma-1)^{-1}$ and $\lambda=(\gamma-1)/(\delta-1)$, so that $c_1(1+\lambda)=(\gamma-1)^{-1}+(\delta-1)^{-1}$. Define $F(t)=(c_1-t)\bigl(1+\lambda/(1+t)\bigr)-t$ and $G(t)=(c_1+t)\bigl(1+\lambda/(1-t)\bigr)+t$; both are continuous at $0$ with value $c_1(1+\lambda)$. Lemma~\ref{lem:dd:bookkeeping}(2) gives one $t\in(0,\min(1,c_1))$
+with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, where $L=c_1(1+\lambda)$. Apply Theorem~\ref{thm:dd:sampleSandwich} with $\eta=\varepsilon_1=\varepsilon_3=t$. By Theorem~\ref{thm:dd:sampleRatios}(1), $(n_{0,k}-m_k)/\nu_k\to\lambda$, so the endpoints of the sandwich converge to $F(t)$ and $G(t)$ and
+eventually lie in $(L-\varepsilon,L+\varepsilon)$. It remains to see that the failure probability tends to $0$: the first term does by Theorem~\ref{thm:dd:sampleRatios}(2), the second is $120m_k/(t^4\nu_k^2)\to0$ and the third is $2n_{0,k}(\cdots)^2/(t^2\nu_k^2)\to0$, both by $m_k/\nu_k^2\to0$ and $n_{0,k}/\nu_k^2\to0$.
+\end{proof}
+
 \begin{remark}[What is and is not formalized in the probabilistic layer]\label{rmk:dd:remaining}
-  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleLimits}
+  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleLimits, thm:dd:sampleVarianceProb, thm:dd:fixedDesignSample}
 \emph{Feature bottleneck.} Variance and bias converge in probability to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ (Theorems~\ref{thm:dd:featureVarianceProb} and~\ref{thm:dd:featureBiasProb}), which are the limits
 the deterministic layer takes for the explicit expressions (Theorem~\ref{thm:dd:featureLimits}). The two statements are separate Lean theorems; they are not packaged into one theorem about the risk $R=B+V$.
 
 \emph{Ambient bottleneck.} The estimator is OLS, unbiased, with variance $\sigma^2\operatorname{Tr}(X^\top X)^{-1}$ (Theorem~\ref{thm:dd:ambientBV}); the convergence to $\sigma^2\gamma/(1-\gamma)$ is
 Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n_0)$. There is no separate Lean wrapper that states this for the ambient estimator.
 
-\emph{Sample bottleneck.} \textbf{Not formalized.} Only the deterministic facts of Section~\ref{sec:dd:sample} (interpolation, the trace reduction and the explicit limits) exist. For $\gamma,\delta>1$ both $X$ and $Z=XS$ are wide, so
-$ZZ^\top$ is the matrix to invert and the Gram matrix is not that of a single Gaussian matrix; a Monte Carlo experiment suggests that the expected variance is $m/(n_0-m-1)+m/(n-m-1)$, and this identification needs its own argument.
+\emph{Sample bottleneck.} The \textbf{variance} converges in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ (Theorem~\ref{thm:dd:sampleVarianceProb}), which is the limit of the explicit expression of Theorem~\ref{thm:dd:sampleLimits}. The argument does not treat $ZZ^\top$ as the Gram matrix of one Gaussian matrix: it splits the variance trace into the inverse-Wishart trace of $X^\top$ and a residual trace form (Lemma~\ref{lem:dd:sampleDecomp}(4)), conditions on the part of $V$ that $Z$ sees, and reduces the fixed-design trace $\operatorname{Tr}(ZZ^\top)^{-1}$ to a weighted inverse Gram trace (Theorem~\ref{thm:dd:fixedDesignSample}). \textbf{Not formalized:} the convergence of the \emph{bias} $\|(MX-I)\theta_\star\|^2$ to $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$. Only its ingredients exist: the deterministic bias vector $(I-P)Sb-(I-P)\theta$ (Lemma~\ref{lem:dd:sampleDecomp}(3)), the omitted signal of $P_X$ (Theorem~\ref{thm:dd:projectorProbability} with $S:=X^\top$, which gives $\|(I-P_X)\theta\|^2\approx(1-\gamma^{-1})\rho_\star$), and the fixed-design bounds on $\|b\|^2=\|Z^\dagger X\theta\|^2$ (Theorem~\ref{thm:dd:fixedDesignSample}(3) and the joint version in Theorem~\ref{thm:dd:sampleSandwich}); they have not been assembled.
 
 \emph{Unused deterministic lemma.} The decomposition $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|b_j\|^2)$ of Theorem~\ref{thm:dd:traceSecond} was prepared for a second-moment route to the quadratic form $s^\top W^{-1}s$; the proof of Theorem~\ref{thm:dd:fitError} gives
 the concentration directly from the exact law of the Rayleigh quotient, so no second inverse moment is needed and no later file uses Theorem~\ref{thm:dd:traceSecond}.

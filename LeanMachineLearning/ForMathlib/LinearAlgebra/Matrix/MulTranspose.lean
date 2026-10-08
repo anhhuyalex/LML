@@ -51,4 +51,9 @@ theorem sum_sq_mul_transpose_le_trace_sq {p n : Type*} [Fintype p] [Fintype n]
     _ = ((K * Kᵀ).trace) ^ 2 := by
         simp only [Matrix.trace, Matrix.diag, sq, Finset.sum_mul_sum]
 
+/-- The squared norm of `A x` is the quadratic form of the Gram matrix: `‖A x‖² = x ⬝ (Aᵀ A) x`. -/
+theorem mulVec_dotProduct_mulVec_self {p n : Type*} [Fintype p] [Fintype n] (A : Matrix p n ℝ)
+    (x : n → ℝ) : (A *ᵥ x) ⬝ᵥ (A *ᵥ x) = x ⬝ᵥ ((Aᵀ * A) *ᵥ x) := by
+  rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec x Aᵀ, Matrix.vecMul_transpose]
+
 end Matrix

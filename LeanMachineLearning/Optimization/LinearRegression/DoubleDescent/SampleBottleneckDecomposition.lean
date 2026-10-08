@@ -148,6 +148,15 @@ theorem sampleBottleneck_trace_eq_add (X : Matrix m n₀ ℝ) (S : Matrix n₀ n
   rw [← trace_operator_transpose_mul_self_eq_sampleBottleneck S (X * S),
     trace_operator_transpose_mul_self_eq_add X S hX hZ, trace_residual_operator_eq X S hX]
 
+/-- **Energy of the signal in the row space of the design.** If `X Xᵀ` is invertible, then for
+every `θ`, `(X θ)ᵀ (X Xᵀ)⁻¹ (X θ) = ‖θ‖² - ‖(1 - P_X) θ‖²`, i.e. `‖P_X θ‖²`. -/
+theorem design_quadForm_inv_eq (X : Matrix m n₀ ℝ) (hX : IsUnit (X * Xᵀ).det) (θ : n₀ → ℝ) :
+    (X *ᵥ θ) ⬝ᵥ (((X * Xᵀ)⁻¹) *ᵥ (X *ᵥ θ)) =
+      θ ⬝ᵥ θ - ((1 - gramProjector Xᵀ) *ᵥ θ) ⬝ᵥ ((1 - gramProjector Xᵀ) *ᵥ θ) := by
+  rw [dotProduct_one_sub_gramProjector_mulVec_self Xᵀ (by simpa using hX) θ, sub_sub_cancel,
+    gramProjector_transpose_eq, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec,
+    Matrix.dotProduct_mulVec θ Xᵀ, Matrix.vecMul_transpose]
+
 end LinearRegression.DoubleDescent
 
 end

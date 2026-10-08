@@ -406,30 +406,37 @@ $\sum C_{ab}C_{cd}(\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\del
 =(\sum_aC_{aa})^2+\sum_{a,b}C_{ab}^2+\sum_{a,b}C_{ab}C_{ba}$. The mean of $z^\top Cz$ is $\operatorname{tr}C$, which gives the variance.
 \end{proof}
 
-\begin{theorem}[Second moment and Chebyshev bound for the sandwich]\label{thm:ntkcond:sandwichVariance}
+\begin{theorem}[Second moment and Chebyshev bound for the Gaussian trace form and the sandwich]\label{thm:ntkcond:sandwichVariance}
   \uses{lem:ntkcond:coordVec, thm:ntkcond:stdQuad, thm:ntkcond:quadMean, lem:ntkcond:elementary}
-  \lean{NTK.quadForm_eq_sum_coord, NTK.integral_quadForm_sq_gaussianInit,
-        NTK.memLp_quadForm_gaussianInit, NTK.gaussianInit_quadForm_chebyshev}
+  \lean{NTK.traceForm_eq_sum_coord, NTK.integral_traceForm_gaussianInit, NTK.integral_traceForm_sq_gaussianInit,
+        NTK.memLp_traceForm_gaussianInit, NTK.gaussianInit_traceForm_chebyshev,
+        NTK.integral_quadForm_sq_gaussianInit, NTK.memLp_quadForm_gaussianInit,
+        NTK.gaussianInit_quadForm_chebyshev}
   \leanok
-Let $W\sim\mathcal N(0,1)^{\otimes n\times p}$, $u,v\in\mathbb R^n$ and $A\in\mathbb R^{p\times p}$. Then $u^\top WAW^\top v\in L^2$ and
+Let $W\sim\mathcal N(0,1)^{\otimes n\times p}$, $B\in\mathbb R^{n\times n}$ and $A\in\mathbb R^{p\times p}$, and let $\tau=\sum_{i,j}B_{ij}(WAW^\top)_{ij}$ be the \emph{trace form}. Then $\tau\in L^2$, $\mathbb E\tau=\operatorname{tr}B\operatorname{tr}A$ and
 \[
-  \mathbb E\bigl[(u^\top WAW^\top v)^2\bigr]=\bigl((u\cdot v)\operatorname{tr}A\bigr)^2+(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2 .
+  \mathbb E\tau^2=(\operatorname{tr}B\operatorname{tr}A)^2+\Bigl(\sum_{i,j}B_{ij}B_{ji}\Bigr)\Bigl(\sum_{k,l}A_{kl}A_{lk}\Bigr)+\|B\|_F^2\|A\|_F^2 .
 \]
 Consequently, for every $\varepsilon>0$,
 \[
-  \Pr\Bigl[\bigl|u^\top WAW^\top v-(u\cdot v)\operatorname{tr}A\bigr|\ge\varepsilon\Bigr]\le\frac{2\,\|u\|^2\|v\|^2\|A\|_F^2}{\varepsilon^2}.
+  \Pr\bigl[\,|\tau-\operatorname{tr}B\operatorname{tr}A|\ge\varepsilon\bigr]\le\frac{2\,\|B\|_F^2\|A\|_F^2}{\varepsilon^2}.
 \]
+For the rank-one weight $B=uv^\top$ ($u,v\in\mathbb R^n$) one has $\tau=u^\top WAW^\top v$, $\operatorname{tr}B=u\cdot v$, $\sum B_{ij}B_{ji}=(u\cdot v)^2$ and $\|B\|_F^2=\|u\|^2\|v\|^2$, so
+\[
+  \mathbb E\bigl[(u^\top WAW^\top v)^2\bigr]=\bigl((u\cdot v)\operatorname{tr}A\bigr)^2+(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2,
+\]
+and $\Pr\bigl[|u^\top WAW^\top v-(u\cdot v)\operatorname{tr}A|\ge\varepsilon\bigr]\le2\|u\|^2\|v\|^2\|A\|_F^2/\varepsilon^2$.
 \end{theorem}
 
 \begin{proof}
   \uses{lem:ntkcond:coordVec, thm:ntkcond:stdQuad, thm:ntkcond:quadMean, lem:ntkcond:elementary}
   \leanok
-Write $u^\top WAW^\top v=\sum_{x,y}C_{xy}\,\xi_x\xi_y$ with $\xi=\mathrm{vec}(W)\sim\mathcal N(0,I_{np})$, $x=(i,k)$, $y=(j,l)$ and $C_{xy}=u_iv_jA_{kl}$ (\texttt{quadForm\_eq\_sum\_coord}). Then $C$ is the Kronecker product of the rank-one matrix $uv^\top$ and $A$, so by the Kronecker factorization of Lemma~\ref{lem:ntkcond:elementary}(2):
-$\operatorname{tr}C=(u\cdot v)\operatorname{tr}A$, $\operatorname{tr}(C^2)=(u\cdot v)^2\operatorname{tr}(A^2)$ and $\|C\|_F^2=\|u\|^2\|v\|^2\|A\|_F^2$. Theorem~\ref{thm:ntkcond:stdQuad} gives the second moment. The mean is $(u\cdot v)\operatorname{tr}A$ by Theorem~\ref{thm:ntkcond:quadMean}, hence
+Write $\tau=\sum_{x,y}C_{xy}\,\xi_x\xi_y$ with $\xi=\mathrm{vec}(W)\sim\mathcal N(0,I_{np})$, $x=(i,k)$, $y=(j,l)$ and $C_{xy}=B_{ij}A_{kl}$ (\texttt{traceForm\_eq\_sum\_coord}). Then $C=B\otimes A$ is a Kronecker product, so by the Kronecker factorization of Lemma~\ref{lem:ntkcond:elementary}(2):
+$\operatorname{tr}C=\operatorname{tr}B\operatorname{tr}A$, $\operatorname{tr}(C^2)=\bigl(\sum B_{ij}B_{ji}\bigr)\bigl(\sum A_{kl}A_{lk}\bigr)$ and $\|C\|_F^2=\|B\|_F^2\|A\|_F^2$. Theorem~\ref{thm:ntkcond:stdQuad} gives the second moment and Theorem~\ref{thm:ntkcond:quadMean} the mean $\operatorname{tr}C$, hence
 \[
-  \operatorname{Var}=(u\cdot v)^2\operatorname{tr}(A^2)+\|u\|^2\|v\|^2\|A\|_F^2\le2\|u\|^2\|v\|^2\|A\|_F^2
+  \operatorname{Var}\tau=\Bigl(\sum B_{ij}B_{ji}\Bigr)\Bigl(\sum A_{kl}A_{lk}\Bigr)+\|B\|_F^2\|A\|_F^2\le2\|B\|_F^2\|A\|_F^2
 \]
-by Lemma~\ref{lem:ntkcond:elementary}(1). Chebyshev's inequality gives the tail bound.
+by the Cauchy--Schwarz bound $\sum_{i,j}B_{ij}B_{ji}\le\|B\|_F^2$ and $\operatorname{tr}(A^2)\le\|A\|_F^2$ of Lemma~\ref{lem:ntkcond:elementary}(1). Chebyshev's inequality gives the tail bound. The rank-one case is the substitution $B=uv^\top$.
 \end{proof}
 
 \begin{remark}[Scaling]\label{rmk:ntkcond:sandwichScaling}
@@ -504,7 +511,8 @@ Since $Q^\top=Q$, $(VQ)A(VQ)^\top=V(QAQ)V^\top$, so Theorem~\ref{thm:ntkcond:san
 \begin{theorem}[Conditional Chebyshev bounds]\label{thm:ntkcond:conditionalChebyshev}
   \uses{lem:ntkcond:sectionTransfer, lem:ntkcond:sectionBounds, lem:ntkcond:measurability, lem:ntkcond:projectorNorms}
   \lean{NTK.conditional_quadForm_chebyshev, NTK.conditional_quadForm_chebyshev_normalized,
-        NTK.conditional_linearForm_chebyshev, NTK.conditional_linearForm_chebyshev_normalized}
+        NTK.conditional_linearForm_chebyshev, NTK.conditional_linearForm_chebyshev_normalized,
+        NTK.conditional_traceForm_chebyshev}
   \leanok
 Let $(\Omega,\mu)$ be a probability space (the \emph{past}), $V\sim\mathcal N(0,1)^{\otimes n\times p}$ independent of the past, and let $P:\Omega\to\mathbb R^{p\times p}$ and $A:\Omega\to\mathbb R^{p\times p}$ be measurable with $P(a)$ an orthogonal projection matrix for every $a$. Let $u,v:\mathbb R^{n\times p}\times\Omega\to\mathbb R^n$ be measurable, and abbreviate
 \[
@@ -520,6 +528,11 @@ Let $(\Omega,\mu)$ be a probability space (the \emph{past}), $V\sim\mathcal N(0,
   \[
     \Pr\bigl[|\tilde u\cdot Rb(a)|\ge\varepsilon\bigr]\le\mathbb E\Bigl[\min\Bigl(1,\tfrac{\|\tilde u\|^2\|b(a)\|^2}{\varepsilon^2}\Bigr)\Bigr].
   \]
+  \item (Trace form) for a measurable weight matrix $B:\mathbb R^{n\times p}\times\Omega\to\mathbb R^{n\times n}$ and $\tilde B=B(VP(a),a)$,
+  \[
+    \Pr\Bigl[\Bigl|\sum_{i,j}\tilde B_{ij}\bigl(RA(a)R^\top\bigr)_{ij}-\operatorname{tr}\tilde B\,\operatorname{tr}\bigl(P^\perp AP^\perp\bigr)\Bigr|\ge\varepsilon\Bigr]\le\mathbb E\Bigl[\min\Bigl(1,\tfrac{2\|\tilde B\|_F^2\|A(a)\|_F^2}{\varepsilon^2}\Bigr)\Bigr].
+  \]
+  Part~(1) is the case $B=uv^\top$.
 \end{enumerate}
 In the normalization of the backward Gram matrices, with $n>0$, the same bounds read
 \[
@@ -534,7 +547,7 @@ with $\bar u=n^{-1}\|\tilde u\|^2$, $\bar v=n^{-1}\|\tilde v\|^2$, $\bar A=n^{-1
 \begin{proof}
   \uses{lem:ntkcond:sectionTransfer, lem:ntkcond:sectionBounds, lem:ntkcond:measurability}
   \leanok
-Fix the past $a$. By Lemma~\ref{lem:ntkcond:sectionTransfer} applied with $P=P(a)$, the bad event $E_a$ in the variables $(x,y)=(VP,VP^\perp)$ has probability at most $\mathbb E[B_a(VP)]$, where $B_a(x)$ bounds the probability of $\{y:(x,y)\in E_a\}$ with $y=VP^\perp$. For fixed $x$ the vectors $u(x,a)$, $v(x,a)$ are deterministic, so Lemma~\ref{lem:ntkcond:sectionBounds} with $Q=P(a)^\perp$ bounds this section probability by $2\|u(x,a)\|^2\|v(x,a)\|^2\|A(a)\|_F^2/\varepsilon^2$; probabilities are at most $1$, which gives the $\min(1,\cdot)$. Integrating over $a$ gives (1); (2) is identical with the linear-form bound. The normalized versions follow by dividing by $n^2$, respectively $n^{3/2}$; measurability of all maps in $(V,a)$ is Lemma~\ref{lem:ntkcond:measurability}.
+Fix the past $a$. By Lemma~\ref{lem:ntkcond:sectionTransfer} applied with $P=P(a)$, the bad event $E_a$ in the variables $(x,y)=(VP,VP^\perp)$ has probability at most $\mathbb E[B_a(VP)]$, where $B_a(x)$ bounds the probability of $\{y:(x,y)\in E_a\}$ with $y=VP^\perp$. For fixed $x$ the vectors $u(x,a)$, $v(x,a)$ are deterministic, so Lemma~\ref{lem:ntkcond:sectionBounds} with $Q=P(a)^\perp$ bounds this section probability by $2\|u(x,a)\|^2\|v(x,a)\|^2\|A(a)\|_F^2/\varepsilon^2$; probabilities are at most $1$, which gives the $\min(1,\cdot)$. Integrating over $a$ gives (1); (2) is identical with the linear-form bound, and (3) with the trace-form bound of Theorem~\ref{thm:ntkcond:sandwichVariance} (of which (1) is the rank-one case $B=uv^\top$), with the weight $B(x,a)$ frozen. The normalized versions follow by dividing by $n^2$, respectively $n^{3/2}$; measurability of all maps in $(V,a)$ is Lemma~\ref{lem:ntkcond:measurability}.
 \end{proof}
 
 The role of the truncation by $1$ and of the evaluation at $VP$ is the following. The vectors $\tilde u,\tilde v$ would be backward sensitivities of the network, which depend on the layer matrix $V$ and on later layers; Theorem~\ref{thm:ntkcond:lemma226} is only usable because they depend on $V$ through $VP$ alone (Chapter~\ref{chap:ntkdn}, Lemma~\ref{lem:ntkdn:congruence}). Their squared norms are random, so the bound on the right is itself random; Lemma~\ref{lem:ntkcond:mconvSqueeze} converts its convergence in measure into the vanishing of the left-hand probability.

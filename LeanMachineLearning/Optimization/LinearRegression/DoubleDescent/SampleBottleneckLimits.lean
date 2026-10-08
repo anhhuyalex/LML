@@ -117,6 +117,117 @@ theorem variance_sandwich_arith {T₁ c₁ ε₁ τ T₂ ν η N ε₃ : ℝ} (h
       mul_lt_mul_of_pos_right (by linarith) hfh
     nlinarith
 
+/-- The bad event of `measure_sampleTraceBad_le` is measurable. -/
+theorem measurableSet_sampleTraceBad {η : ℝ} (ν : ℝ) :
+    MeasurableSet {x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) |
+      0 < ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace ∧
+        ¬ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (ν * (1 + η)) ≤
+            (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ∧
+          (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ≤
+            ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (ν * (1 - η)))} := by
+  have hmT₁ : Measurable fun a : Fin m → Fin n₀ → ℝ => ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace :=
+    measurable_matrix_trace (by fun_prop)
+  have hmτ : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
+      (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace :=
+    measurable_matrix_trace (by fun_prop)
+  have hmT₁' : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
+      ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace := hmT₁.comp measurable_fst
+  refine (measurableSet_lt measurable_const hmT₁').inter ?_
+  refine MeasurableSet.compl ?_
+  exact (measurableSet_le (hmT₁'.div_const _) hmτ).inter
+    (measurableSet_le hmτ (hmT₁'.div_const _))
+
+/-- **The trace sandwich fails rarely, jointly over the design and the features.** Over
+`X ~ 𝒩(0,1)^{m×n₀}` and an independent `V ~ 𝒩(0,1)^{n×n₀}`, the event that `X Xᵀ` is invertible
+(`Tr ((X Xᵀ)⁻¹) > 0`) but `Tr ((Z Zᵀ)⁻¹)`, `Z = X Vᵀ`, leaves
+`Tr ((X Xᵀ)⁻¹) / (ν (1 ± η))` has probability at most `60 m / (η⁴ ν²)`, `ν = n - m + 1` (the
+fixed-design bound `measure_sampleTrace_mem_le`, integrated over `X`). -/
+theorem measure_sampleTraceBad_le (hm : 0 < m) (hmn : m ≤ n) {η : ℝ} (hη : 0 < η)
+    (hη1 : η < 1) :
+    ((Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1))
+        {x | 0 < ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace ∧
+          ¬ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace / (((n - m + 1 : ℕ) : ℝ) * (1 + η)) ≤
+              (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ∧
+            (((Matrix.of x.1 * (Matrix.of x.2)ᵀ) * (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹).trace ≤
+              ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace /
+                (((n - m + 1 : ℕ) : ℝ) * (1 - η)))} ≤
+      ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ((n - m + 1 : ℕ) : ℝ) ^ 2))) := by
+  refine measure_prod_le_of_ae_section_le _ _ (measurableSet_sampleTraceBad _)
+    (Filter.Eventually.of_forall fun a => ?_)
+  by_cases ha : 0 < ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace
+  · have hX : IsUnit (Matrix.of a * (Matrix.of a)ᵀ).det :=
+      isUnit_det_of_trace_inv_ne_zero _ ha.ne'
+    refine le_trans (measure_mono ?_) (measure_sampleTrace_mem_le hm hmn _ hX hη hη1)
+    intro V hV
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq] at hV ⊢
+    exact hV.2
+  · refine le_of_eq_of_le (measure_mono_null (t := (∅ : Set _)) (fun V hV => ?_) measure_empty)
+      zero_le
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq] at hV
+    exact absurd hV.1 ha
+
+/-- The bad event of `measure_sampleQuadBad_le` is measurable. -/
+theorem measurableSet_sampleQuadBad {η : ℝ} (ν : ℝ) (θ : Fin n₀ → ℝ) :
+    MeasurableSet {x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) |
+      0 < ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace ∧
+        ¬ (((Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+              (Matrix.of x.1 *ᵥ θ))) / (ν * (1 + η)) ≤
+            (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+              (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ∧
+          (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+              (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ≤
+            ((Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+              (Matrix.of x.1 *ᵥ θ))) / (ν * (1 - η)))} := by
+  have hmT₁' : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
+      ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace :=
+    measurable_matrix_trace (by fun_prop)
+  have ha : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
+      Matrix.of x.1 *ᵥ θ := measurable_mulVec (by fun_prop) measurable_const
+  have hs : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
+      (Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) :=
+    measurable_dotProduct ha (measurable_mulVec (by fun_prop) ha)
+  have hq : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
+      (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+        (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) :=
+    measurable_dotProduct ha (measurable_mulVec (by fun_prop) ha)
+  refine (measurableSet_lt measurable_const hmT₁').inter ?_
+  refine MeasurableSet.compl ?_
+  exact (measurableSet_le (hs.div_const _) hq).inter (measurableSet_le hq (hs.div_const _))
+
+/-- **The fit-energy sandwich fails rarely, jointly over the design and the features.** For a fixed
+`θ`, `a = X θ`, the event that `X Xᵀ` is invertible but `aᵀ (Z Zᵀ)⁻¹ a` leaves
+`aᵀ (X Xᵀ)⁻¹ a / (ν (1 ± η))` has probability at most `60 / (η⁴ ν²)`, `ν = n - m + 1`
+(the fixed-design bound `measure_sampleQuad_mem_le`, integrated over `X`). -/
+theorem measure_sampleQuadBad_le (hm : 0 < m) (hmn : m ≤ n) (θ : Fin n₀ → ℝ) {η : ℝ}
+    (hη : 0 < η) (hη1 : η < 1) :
+    ((Measure.pi fun _ : Fin m => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin n₀ => gaussianReal 0 1))
+        {x | 0 < ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace ∧
+          ¬ (((Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+                (Matrix.of x.1 *ᵥ θ))) / (((n - m + 1 : ℕ) : ℝ) * (1 + η)) ≤
+              (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+                (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ∧
+            (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
+                (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) ≤
+              ((Matrix.of x.1 *ᵥ θ) ⬝ᵥ (((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹) *ᵥ
+                (Matrix.of x.1 *ᵥ θ))) / (((n - m + 1 : ℕ) : ℝ) * (1 - η)))} ≤
+      ENNReal.ofReal (60 / (η ^ 4 * ((n - m + 1 : ℕ) : ℝ) ^ 2)) := by
+  refine measure_prod_le_of_ae_section_le _ _ (measurableSet_sampleQuadBad _ θ)
+    (Filter.Eventually.of_forall fun a => ?_)
+  by_cases ha : 0 < ((Matrix.of a * (Matrix.of a)ᵀ)⁻¹).trace
+  · have hX : IsUnit (Matrix.of a * (Matrix.of a)ᵀ).det :=
+      isUnit_det_of_trace_inv_ne_zero _ ha.ne'
+    refine le_trans (measure_mono ?_) (measure_sampleQuad_mem_le hm hmn _ hX (Matrix.of a *ᵥ θ)
+      hη hη1)
+    intro V hV
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq] at hV ⊢
+    exact hV.2
+  · refine le_of_eq_of_le (measure_mono_null (t := (∅ : Set _)) (fun V hV => ?_) measure_empty)
+      zero_le
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq] at hV
+    exact absurd hV.1 ha
+
 /-- **Non-asymptotic variance sandwich in the sample-bottleneck regime.**
 Let `X` be an `m × n₀` and `V` an independent `n × n₀` Gaussian matrix, `S = Vᵀ`, `Z = X S`,
 `m ≤ min {n, n₀}`, `ν = n - m + 1`, and `Var = Tr ((Z Zᵀ)⁻¹ (Z Sᵀ S Zᵀ) (Z Zᵀ)⁻¹)` the variance
@@ -165,29 +276,14 @@ theorem measure_sampleVariance_sandwich_le (hm : 0 < m) (hmn : m ≤ n) (hmn₀ 
     with hB2
   have hmB1 : MeasurableSet B1 :=
     measurableSet_le measurable_const (continuous_abs.measurable.comp (hmT₁'.sub measurable_const))
-  have hmB2 : MeasurableSet B2 := by
-    refine (measurableSet_lt measurable_const hmT₁').inter ?_
-    refine MeasurableSet.compl ?_
-    exact (measurableSet_le (hmT₁'.div_const _) hmτ).inter
-      (measurableSet_le hmτ (hmT₁'.div_const _))
+  have hmB2 : MeasurableSet B2 := measurableSet_sampleTraceBad ν
   have hB1μ : (μX.prod μV) B1 = μX {a | ε₁ ≤ |T₁ a - c₁|} := by
     rw [hB1]
     exact (measurePreserving_fst (μ := μX) (ν := μV)).measure_preimage
       (measurableSet_le measurable_const
         (continuous_abs.measurable.comp (hmT₁.sub measurable_const))).nullMeasurableSet
-  have hB2μ : (μX.prod μV) B2 ≤ ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) := by
-    refine measure_prod_le_of_ae_section_le μX μV hmB2 (Filter.Eventually.of_forall fun a => ?_)
-    by_cases ha : 0 < T₁ a
-    · have hX : IsUnit (Matrix.of a * (Matrix.of a)ᵀ).det :=
-        isUnit_det_of_trace_inv_ne_zero _ ha.ne'
-      refine le_trans (measure_mono ?_) (measure_sampleTrace_mem_le hm hmn _ hX hη hη1)
-      intro V hV
-      simp only [Set.mem_preimage, hB2, Set.mem_ofPred_eq] at hV ⊢
-      exact hV.2
-    · have : Prod.mk a ⁻¹' B2 = ∅ := by
-        ext V; simp only [Set.mem_preimage, hB2, Set.mem_ofPred_eq, Set.mem_empty_iff_false,
-          iff_false]; exact fun h => ha h.1
-      rw [this, measure_empty]; exact zero_le
+  have hB2μ : (μX.prod μV) B2 ≤ ENNReal.ofReal ((m : ℝ) * (60 / (η ^ 4 * ν ^ 2))) :=
+    measure_sampleTraceBad_le hm hmn hη hη1
   -- the conditional Chebyshev bound for the residual trace form
   set P : (Fin m → Fin n₀ → ℝ) → Matrix (Fin n₀) (Fin n₀) ℝ :=
     fun a => gramProjector (Matrix.of a)ᵀ with hP
@@ -530,6 +626,68 @@ theorem tendsto_measure_sampleVariance_deviation {mm nn n0 : ℕ → ℕ} {γ δ
   have : |Var k x - ((γ - 1)⁻¹ + (δ - 1)⁻¹)| < ε := by
     rw [abs_lt]; constructor <;> linarith
   exact absurd hx (not_le.2 this)
+
+section BiasAlgebra
+
+variable {n n₀ : ℕ}
+
+/-- **Expanding the squared bias vector.** For a symmetric idempotent `D` (here `1 - P_X`), a
+Gaussian-side matrix `V` (`S = Vᵀ`) and vectors `b`, `θ`,
+`‖D S b - D θ‖² = bᵀ (V D)(V D)ᵀ b - 2 bᵀ (V D) θ + ‖D θ‖²`. -/
+theorem norm_sq_sub_expand (V : Matrix (Fin n) (Fin n₀) ℝ) (D : Matrix (Fin n₀) (Fin n₀) ℝ)
+    (hD : IsStarProjection D) (b : Fin n → ℝ) (θ : Fin n₀ → ℝ) :
+    ((D * Vᵀ) *ᵥ b - D *ᵥ θ) ⬝ᵥ ((D * Vᵀ) *ᵥ b - D *ᵥ θ) =
+      b ⬝ᵥ (((V * D) * (1 : Matrix (Fin n₀) (Fin n₀) ℝ) * (V * D)ᵀ) *ᵥ b) -
+        2 * (b ⬝ᵥ ((V * D) *ᵥ θ)) + (D *ᵥ θ) ⬝ᵥ (D *ᵥ θ) := by
+  have hDT : Dᵀ = D := hD.transpose_eq
+  have hDD : D * D = D := ((isStarProjection_matrix_real_iff _).1 hD).2
+  have key : ∀ (A : Matrix (Fin n₀) (Fin n) ℝ) (x : Fin n → ℝ) (w : Fin n₀ → ℝ),
+      (A *ᵥ x) ⬝ᵥ w = x ⬝ᵥ (Aᵀ *ᵥ w) := fun A x w => by
+    rw [dotProduct_comm, Matrix.dotProduct_mulVec, Matrix.mulVec_transpose, dotProduct_comm]
+  have h1 : ((D * Vᵀ) *ᵥ b) ⬝ᵥ ((D * Vᵀ) *ᵥ b) =
+      b ⬝ᵥ (((V * D) * (1 : Matrix (Fin n₀) (Fin n₀) ℝ) * (V * D)ᵀ) *ᵥ b) := by
+    rw [key, Matrix.mulVec_mulVec, Matrix.transpose_mul, Matrix.transpose_transpose, hDT]
+    congr 2
+    rw [Matrix.mul_one, Matrix.transpose_mul, hDT]
+  have h2 : ((D * Vᵀ) *ᵥ b) ⬝ᵥ (D *ᵥ θ) = b ⬝ᵥ ((V * D) *ᵥ θ) := by
+    rw [key, Matrix.mulVec_mulVec, Matrix.transpose_mul, Matrix.transpose_transpose, hDT,
+      Matrix.mul_assoc V D D, hDD]
+  rw [dotProduct_sub, sub_dotProduct, sub_dotProduct, h1, dotProduct_comm (D *ᵥ θ), h2]
+  ring
+
+end BiasAlgebra
+
+/-- Real arithmetic of the bias sandwich: from the sandwiches of `d = ‖P⊥ θ‖²`, of the fit energy
+`q` and of the two Gaussian forms to the sandwich of `d + Tq - 2 L`. -/
+theorem bias_sandwich_arith {d d₀ s s₀ q Tq L r ν η N ε₅ ε₆ ε₇ : ℝ} (hν : 0 < ν) (hη : 0 < η)
+    (hη1 : η < 1) (hN : 0 ≤ N) (hd : |d - d₀| < ε₅) (hs : s = r - d) (hs₀ : s₀ = r - d₀)
+    (hqlo : s / (ν * (1 + η)) ≤ q) (hqhi : q ≤ s / (ν * (1 - η))) (hTq : |Tq - N * q| < ε₆)
+    (hL : |L| < ε₇) :
+    d₀ - ε₅ + (N / ν) * (s₀ - ε₅) / (1 + η) - (ε₆ + 2 * ε₇) < d + Tq - 2 * L ∧
+      d + Tq - 2 * L < d₀ + ε₅ + (N / ν) * (s₀ + ε₅) / (1 - η) + (ε₆ + 2 * ε₇) := by
+  obtain ⟨h1, h2⟩ := abs_lt.1 hd
+  obtain ⟨h3, h4⟩ := abs_lt.1 hTq
+  obtain ⟨h5, h6⟩ := abs_lt.1 hL
+  have h1η : 0 < 1 - η := by linarith
+  have hc1 : 0 ≤ (N / ν) / (1 + η) := by positivity
+  have hc2 : 0 ≤ (N / ν) / (1 - η) := by positivity
+  have hs1 : s₀ - ε₅ < s := by rw [hs, hs₀]; linarith
+  have hs2 : s < s₀ + ε₅ := by rw [hs, hs₀]; linarith
+  constructor
+  · have e : N * (s / (ν * (1 + η))) = ((N / ν) / (1 + η)) * s := by field_simp
+    have h7 : N * (s / (ν * (1 + η))) ≤ N * q := mul_le_mul_of_nonneg_left hqlo hN
+    have h8 : ((N / ν) / (1 + η)) * (s₀ - ε₅) ≤ ((N / ν) / (1 + η)) * s :=
+      mul_le_mul_of_nonneg_left hs1.le hc1
+    have e2 : (N / ν) * (s₀ - ε₅) / (1 + η) = ((N / ν) / (1 + η)) * (s₀ - ε₅) := by ring
+    rw [e2]
+    nlinarith
+  · have e : N * (s / (ν * (1 - η))) = ((N / ν) / (1 - η)) * s := by field_simp
+    have h7 : N * q ≤ N * (s / (ν * (1 - η))) := mul_le_mul_of_nonneg_left hqhi hN
+    have h8 : ((N / ν) / (1 - η)) * s ≤ ((N / ν) / (1 - η)) * (s₀ + ε₅) :=
+      mul_le_mul_of_nonneg_left hs2.le hc2
+    have e2 : (N / ν) * (s₀ + ε₅) / (1 - η) = ((N / ν) / (1 - η)) * (s₀ + ε₅) := by ring
+    rw [e2]
+    nlinarith
 
 end LinearRegression.DoubleDescent
 
