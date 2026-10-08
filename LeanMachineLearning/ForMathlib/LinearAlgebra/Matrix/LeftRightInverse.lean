@@ -28,6 +28,13 @@ open scoped Matrix RealInnerProductSpace
 
 namespace Matrix
 
+/-- A matrix whose inverse has nonzero trace is invertible: a singular matrix has inverse `0` in
+Mathlib's convention. -/
+theorem isUnit_det_of_trace_inv_ne_zero {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix n n ℝ)
+    (h : A⁻¹.trace ≠ 0) : IsUnit A.det := by
+  by_contra hA
+  exact h (by rw [Matrix.nonsing_inv_apply_not_isUnit A hA]; simp)
+
 /-- **Left inverse.** If the Gram matrix `Zᵀ Z` is invertible (full column rank, `n ≤ m`), then
 `(Zᵀ Z)⁻¹ Zᵀ` is a left inverse of `Z`. -/
 theorem leftInverse_mul_self {m n : Type*} [Fintype m] [Fintype n] [DecidableEq n]

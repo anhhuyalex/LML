@@ -43,6 +43,12 @@ lemma measurable_matrix_of {W : Type*} {n p : Type*} [MeasurableSpace W] {f : W 
   Measurable.of_eval_matrix _ fun i k => (measurable_pi_apply k).comp
     ((measurable_pi_apply i).comp hf)
 
+/-- The trace of a measurable square-matrix-valued map is measurable. -/
+@[fun_prop]
+lemma measurable_matrix_trace [Fintype n] {A : Z → Matrix n n ℝ} (hA : Measurable A) :
+    Measurable fun z => (A z).trace :=
+  Finset.measurable_sum _ fun i _ => measurable_matrix_entry hA i i
+
 /-- The product of measurable matrix-valued maps is measurable. -/
 @[fun_prop]
 lemma measurable_matrix_mul [Fintype p] {A : Z → Matrix n p ℝ} {B : Z → Matrix p q ℝ}
