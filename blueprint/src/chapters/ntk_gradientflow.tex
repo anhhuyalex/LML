@@ -153,13 +153,17 @@ solution on $[0,\infty)$ need not extend backward.
         NTK.gradient_flow_output_vector_ode, NTK.gradient_flow_output_vector_ode_sub_y,
         NTK.gradient_flow_residual_vector_ode}
   \leanok
-Let $\theta$ be differentiable at $t$ with $\theta'(t)=-\nabla L(\theta(t))$ and suppose each output is differentiable in
-$\theta$ at $\theta(t)$. Then the training outputs and residual are differentiable at $t$ with
+Let $\theta$ be differentiable at $t$ with $\theta'(t)=-\eta\,\nabla L(\theta(t))$ for a learning rate $\eta\in\mathbb R$ and suppose each output is differentiable in
+$\theta$ at $\theta(t)$. Then the training outputs are differentiable at $t$ with
 \[
-  \partial_tf(t)=-\frac1mK_t\,r(t)=-\frac1mK_t\bigl(f(t)-y\bigr),\qquad
-  \partial_tr(t)=-\frac1mK_t\,r(t),\qquad K_t:=K(\theta(t)),
+  \partial_tf(t)=-\frac\eta m\,K_t\,r(t),\qquad K_t:=K(\theta(t)),
 \]
-that is, coordinatewise $\partial_tf^\alpha(t)=-\frac1m\sum_\beta K_t^{\alpha\beta}r^\beta(t)$.
+that is, coordinatewise $\partial_tf^\alpha(t)=-\frac\eta m\sum_\beta K_t^{\alpha\beta}r^\beta(t)$. Gradient flow proper is $\eta=1$, where moreover
+\[
+  \partial_tf(t)=-\frac1mK_t\bigl(f(t)-y\bigr),\qquad
+  \partial_tr(t)=-\frac1mK_t\,r(t).
+\]
+The learning rate only rescales the speed of the flow; the kernel $K_t$ is the same for every $\eta$. (The Lean statements \texttt{gradient\_flow\_output\_coord\_ode} and the \texttt{\_sub\_y}/residual forms are stated for $\eta=1$; \texttt{gradient\_flow\_output\_vector\_ode} carries $\eta$.)
 \end{theorem}
 
 \begin{proof}
@@ -169,15 +173,15 @@ The proof is a five-step chain-rule computation.
 \emph{Step 1.} By the multivariate chain rule,
 $\partial_tf^\alpha(t)=\sum_{j}\partial_{\theta_j}f(x^\alpha;\theta(t))\,\partial_t\theta_j(t)=\langle\nabla f^\alpha,\partial_t\theta\rangle$.
 
-\emph{Step 2.} Insert the flow law $\partial_t\theta=-\nabla L(\theta)$.
+\emph{Step 2.} Insert the flow law $\partial_t\theta=-\eta\nabla L(\theta)$.
 
 \emph{Step 3.} Insert $\nabla L=\frac1m\sum_\beta r^\beta\nabla f^\beta$ (Theorem~\ref{thm:ntkgf:mseGradient}), giving
-$-\frac1m\sum_\beta\langle\nabla f^\alpha,\nabla f^\beta\rangle r^\beta$.
+$-\frac\eta m\sum_\beta\langle\nabla f^\alpha,\nabla f^\beta\rangle r^\beta$.
 
 \emph{Step 4.} Recognise the entries $K_t^{\alpha\beta}$ of the empirical NTK matrix.
 
 \emph{Step 5.} Assemble the coordinates into the vector identity, using that a curve in $\mathbb R^m$ is differentiable iff each coordinate is.
-The residual differs from the output by the constant $y$.
+For $\eta=1$ the residual differs from the output by the constant $y$, which gives the last two displays.
 \end{proof}
 
 \begin{definition}[Generalized empirical risk]\label{def:ntkgf:generalizedRisk}

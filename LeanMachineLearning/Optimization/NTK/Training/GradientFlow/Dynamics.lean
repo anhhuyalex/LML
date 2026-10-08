@@ -34,8 +34,8 @@ gradient flow.
 * `NTK.gradient_flow_output_coord_deriv_eq_inner_grad` : Step 2 (squared loss), corollary.
 * `NTK.gradient_flow_output_coord_deriv_eq_sum_inner` : Step 3 (squared loss), corollary.
 * `NTK.gradient_flow_output_coord_ode` : Step 4 (squared loss), corollary.
-* `NTK.gradient_flow_output_vector_ode` : Step 5 output ODE
-  `∂_t f(t) = - (1/m) K_t r(t)`, corollary.
+* `NTK.gradient_flow_output_vector_ode` : Step 5 output ODE at learning rate `η`,
+  `∂_t f(t) = - (η/m) K_t r(t)` (unit-rate gradient flow is `η = 1`).
 * `NTK.gradient_flow_output_vector_ode_sub_y` : Step 5 output ODE
   `∂_t f(t) = - (1/m) K_t (f(t) - y)`.
 * `NTK.gradient_flow_residual_vector_ode` : Step 5 residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
@@ -455,21 +455,34 @@ theorem gradient_flow_output_coord_ode
   have h := gradient_flow_generalizedOutput_coord_ode _ f X y t hflow α hdiff hℓ
   rwa [generalizedResidual_squaredLoss_eq_trainingResidual] at h
 
-/-- Step 5 (Matrix-Vector Formulation for Output Vector):
-Along continuous gradient flow, the training output vector satisfies:
-  `∂_t f(t) = - (1 / m) K_t r(t)`. -/
+/-- Step 5 (Matrix-Vector Formulation for Output Vector), at learning rate `η`:
+if the parameters move by `∂_t θ(t) = -η ∇_θ L(θ(t))`, the training output vector satisfies
+  `∂_t f(t) = - (η / m) K_t r(t)`.
+Gradient flow proper is the case `η = 1`; for the rate-`η` flow `K_t` is the same kernel and `η`
+only rescales time. -/
 theorem gradient_flow_output_vector_ode
     (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι) (y : EuclideanSpace ℝ (Fin m))
-    {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
-    (t : ℝ) (hflow : HasDerivAt θ_traj (-gradient (mseLoss f X y) (θ_traj t)) t)
+    (η : ℝ) {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)}
+    (t : ℝ) (hflow : HasDerivAt θ_traj (-(η • gradient (mseLoss f X y) (θ_traj t))) t)
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)))
-      (WithLp.toLp 2 (- (m : ℝ)⁻¹ •
+      (WithLp.toLp 2 (-(η * (m : ℝ)⁻¹) •
         ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
-  rw [← generalizedEmpiricalRisk_squaredLoss_eq_mseLoss] at hflow
-  have hℓ := fun β => hasDerivAt_squaredLoss_generalizedResidual f X y (θ_traj t) β
-  have h := gradient_flow_generalizedOutput_vector_ode _ f X y t hflow hdiff hℓ
-  rwa [generalizedResidual_squaredLoss_eq_trainingResidual] at h
+  rw [hasDerivAt_euclideanSpace]
+  intro α
+  have h := hasDerivAt_trainingOutputs_coord f X θ_traj
+    (fun s => -(η • gradient (mseLoss f X y) (θ_traj s))) t α (hdiff α) hflow
+  convert h using 1
+  have hR : ⟪tangentFeature f (X α) (θ_traj t), -(η • gradient (mseLoss f X y) (θ_traj t))⟫ =
+      -(η * (m : ℝ)⁻¹) * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β *
+        trainingResidual f X y (θ_traj t) β := by
+    rw [gradient_mseLoss f X y _ hdiff, inner_neg_right, inner_smul_right, inner_smul_right,
+      inner_sum]
+    simp only [inner_smul_right, empiricalNTKMatrix_apply]
+    simp_rw [mul_comm ((trainingResidual f X y (θ_traj t)).ofLp _)]
+    ring
+  rw [hR]
+  simp [Matrix.mulVec, dotProduct]
 
 /-- Step 5 (Matrix-Vector Formulation with Explicit `f(t) - y`):
 Along continuous gradient flow, the training output vector satisfies:
@@ -481,8 +494,10 @@ theorem gradient_flow_output_vector_ode_sub_y
     (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
     HasDerivAt (fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ • ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ
-        ((WithLp.toLp 2 (fun α => f (X α) (θ_traj t))) - y).ofLp))) t :=
-  gradient_flow_output_vector_ode f X y t hflow hdiff
+        ((WithLp.toLp 2 (fun α => f (X α) (θ_traj t))) - y).ofLp))) t := by
+  have h := gradient_flow_output_vector_ode f X y 1 t (by rwa [one_smul]) hdiff
+  rw [one_mul] at h
+  exact h
 
 /-- Step 5 (Matrix-Vector Formulation for Residual Vector):
 Function-space residual ODE under gradient flow:
@@ -495,7 +510,8 @@ theorem gradient_flow_residual_vector_ode
     HasDerivAt (fun s => trainingResidual f X y (θ_traj s))
       (WithLp.toLp 2 (- (m : ℝ)⁻¹ •
         ((empiricalNTKMatrix f X (θ_traj t)) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
-  have h_out := gradient_flow_output_vector_ode f X y t hflow hdiff
+  have h_out := gradient_flow_output_vector_ode f X y 1 t (by rwa [one_smul]) hdiff
+  rw [one_mul] at h_out
   have h_sub := h_out.sub_const y
   convert h_sub using 1
   ext s

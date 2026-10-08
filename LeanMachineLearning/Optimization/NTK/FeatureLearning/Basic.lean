@@ -31,8 +31,8 @@ gradient-descent updates `w⁺ = w - η ∂_w L` are written out explicitly.
   `⟨∇f^α, ∇f^β⟩ = γ⁻² K^{(n), αβ}` with `K^{(n)}` the explicit neuron average.
 * `gradient_inputWeight_mseLoss`, `gradient_readout_mseLoss`: the single-neuron loss gradients.
 * `one_step_preactivation_update`: the exact feature update `Δh_i^α` of one gradient step.
-* `hasDerivAt_predictor_gradientFlow`: `∂_t f(t) = -(η/m) K_t r(t)` for gradient flow at rate `η`,
-  and `hasDerivAt_predictor_featureLearningNetwork` its form `-(η/(m γ²)) K^{(n)}_t r(t)`.
+* `gradient_flow_output_vector_ode` (in `Dynamics.lean`): `∂_t f(t) = -(η/m) K_t r(t)` for gradient
+  flow at rate `η`; `hasDerivAt_predictor_featureLearningNetwork` is its form `-(η/(m γ²)) K^{(n)}_t r(t)`.
 
 ## References
 
@@ -68,40 +68,6 @@ lemma empiricalNTKMatrix_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin
   ring
 
 end ConstMul
-
-/-! ### Predictor dynamics under gradient flow at rate `η` -/
-
-section PredictorODE
-
-variable {ι : Type*} {P m : ℕ}
-
-/-- **Predictor dynamics at rate `η`.** If `θ' = -η ∇L(θ)` at time `t` for the MSE loss, then the
-vector of training outputs `f(t)` has derivative `-(η/m) K_t r(t)`, with `K_t = J Jᵀ` the empirical
-NTK and `r(t) = f(t) - y`. For `η = 1` this is `gradient_flow_output_vector_ode`. -/
-theorem hasDerivAt_predictor_gradientFlow (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (η : ℝ) {θ_traj : ℝ → EuclideanSpace ℝ (Fin P)} (t : ℝ)
-    (hflow : HasDerivAt θ_traj (-(η • gradient (mseLoss f X y) (θ_traj t))) t)
-    (hdiff : ∀ β : Fin m, DifferentiableAt ℝ (fun θ' => f (X β) θ') (θ_traj t)) :
-    HasDerivAt (fun s => WithLp.toLp 2 (fun α => f (X α) (θ_traj s)))
-      (WithLp.toLp 2 (-(η * (m : ℝ)⁻¹) •
-        (empiricalNTKMatrix f X (θ_traj t) *ᵥ (trainingResidual f X y (θ_traj t)).ofLp))) t := by
-  rw [hasDerivAt_euclideanSpace]
-  intro α
-  have h := hasDerivAt_trainingOutputs_coord f X θ_traj
-    (fun s => -(η • gradient (mseLoss f X y) (θ_traj s))) t α (hdiff α) hflow
-  convert h using 1
-  have hR : ⟪tangentFeature f (X α) (θ_traj t), -(η • gradient (mseLoss f X y) (θ_traj t))⟫ =
-      -(η * (m : ℝ)⁻¹) * ∑ β : Fin m, empiricalNTKMatrix f X (θ_traj t) α β *
-        trainingResidual f X y (θ_traj t) β := by
-    rw [gradient_mseLoss f X y _ hdiff, inner_neg_right, inner_smul_right, inner_smul_right,
-      inner_sum]
-    simp only [inner_smul_right, empiricalNTKMatrix_apply]
-    simp_rw [mul_comm ((trainingResidual f X y (θ_traj t)).ofLp _)]
-    ring
-  rw [hR]
-  simp [Matrix.mulVec, dotProduct]
-
-end PredictorODE
 
 /-! ### The scaled two-layer network -/
 
@@ -263,7 +229,7 @@ theorem hasDerivAt_predictor_featureLearningNetwork (γ η : ℝ) (hφ : Differe
         (empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j)
             (θ_traj t) *ᵥ
           (trainingResidual (featureLearningNetwork γ φ n d) X y (θ_traj t)).ofLp))) t := by
-  have h := hasDerivAt_predictor_gradientFlow (featureLearningNetwork γ φ n d) X y η t hflow
+  have h := gradient_flow_output_vector_ode (featureLearningNetwork γ φ n d) X y η t hflow
     fun _ => differentiableAt_featureLearningNetwork γ hφ _ _
   rw [empiricalNTKMatrix_featureLearningNetwork, Matrix.smul_mulVec, smul_smul] at h
   convert h using 3

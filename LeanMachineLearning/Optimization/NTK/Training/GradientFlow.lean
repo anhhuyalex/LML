@@ -129,8 +129,8 @@ file re-exports all of them.  The generic ODE tools (Grönwall, `le_of_forall_bo
 * `NTK.gradient_flow_output_coord_deriv_eq_inner_grad` : Step 2 (squared loss), corollary.
 * `NTK.gradient_flow_output_coord_deriv_eq_sum_inner` : Step 3 (squared loss), corollary.
 * `NTK.gradient_flow_output_coord_ode` : Step 4 (squared loss), corollary.
-* `NTK.gradient_flow_output_vector_ode` : Step 5 output ODE
-  `∂_t f(t) = - (1/m) K_t r(t)`, corollary.
+* `NTK.gradient_flow_output_vector_ode` : Step 5 output ODE at learning rate `η`,
+  `∂_t f(t) = - (η/m) K_t r(t)` (unit-rate gradient flow is `η = 1`).
 * `NTK.gradient_flow_output_vector_ode_sub_y` : Step 5 output ODE
   `∂_t f(t) = - (1/m) K_t (f(t) - y)`.
 * `NTK.gradient_flow_residual_vector_ode` : Step 5 residual ODE `∂_t r(t) = - (1/m) K_t r(t)`.
