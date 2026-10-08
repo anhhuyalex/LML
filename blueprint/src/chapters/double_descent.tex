@@ -16,23 +16,24 @@ module & section\\ \hline
 \texttt{RandomMatrixFoundations}, \texttt{InverseGramTrace}, \texttt{BiasProjector}, \texttt{FitErrorConcentration}, \texttt{FeatureBottleneckLimits},
 \texttt{SampleBottleneckFixedDesign}, \texttt{SampleBottleneckLimits},
 \texttt{ForMathlib/LinearAlgebra/Matrix/\{Householder, OrthogonalProjection, OrthogonalDiagonalization\}},
-\texttt{ForMathlib/MeasureTheory/Measure/ProdBound}, \texttt{ForMathlib/Topology/Order/Sandwich} & \ref{sec:dd:gaussian}
+\texttt{ForMathlib/MeasureTheory/Measure/ProdBound}, \texttt{ForMathlib/Topology/Order/Sandwich} & \ref{sec:dd:gaussian}\\
+\texttt{DoubleDescentLimits}, \texttt{ForMathlib/MeasureTheory/Measure/Deviation} & \ref{sec:dd:global}
 \end{tabular}
 \end{center}
 
 \medskip\noindent\textbf{What is and is not formalized.}
-The chapter has two layers, both sorry-free.
+The chapter has three parts, all sorry-free.
 \begin{itemize}
   \item The \emph{deterministic layer} (Sections~\ref{sec:dd:risk}--\ref{sec:dd:gram}): exact finite-sample bias--variance identities for linear estimators, the three pseudoinverse representations of ridgeless
   random-feature regression, the trace and bias reductions that bring the variance and bias to a Gaussian matrix $G=XQ$ with $Q^\top Q=I$, the limits of the resulting \emph{explicit} ratio expressions along $n_0/m\to\gamma$, $n/m\to\delta$, and the global shape
   of the limiting risk curve (divergence at $\delta=1$, second descent, flat segment for $\gamma<1$).
   \item The \emph{probabilistic layer} (Sections~\ref{sec:dd:moments} and~\ref{sec:dd:gaussian}): the $\chi^2$ tail bound, orthogonal invariance of Gaussian matrices, almost-sure full rank, the exact law $1/\chi^2_{p-q}$ of the diagonal of $(G^\top G)^{-1}$ and
   its mean, non-asymptotic and in-probability concentration of $\operatorname{Tr}(G^\top G)^{-1}$, the exact $\chi^2$ law of the Rayleigh quotient of $(G^\top G)^{-1}$ and the resulting fit-error concentration, the omitted signal of a Gaussian subspace, and
-  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$, and of the variance of the sample-bottleneck estimator to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$.
+  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$, and of the variance and of the bias of the sample-bottleneck estimator to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ and $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$.
+  \item The \emph{global theorem} (Section~\ref{sec:dd:global}): the minimum-norm operator and the conditional risk as Lean definitions, convergence in probability of the risk in each of the three regimes, and Theorem~\ref{thm:dd:globalDoubleDescent}, that the risk converges in probability to the limiting curve $\mathsf R(\gamma,\delta)$ on the whole non-singular domain.
 \end{itemize}
-\textbf{Not formalized:} the probabilistic limit of the \emph{bias} in the sample-bottleneck regime $\gamma,\delta>1$, and a single theorem packaging the in-probability limits into the risk curve; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
-Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite-sample expressions such as $\sigma^2n/(m-n-1)$; the identification of these expressions with the \emph{random} variance is the content of Section~\ref{sec:dd:gaussian}
-for the feature and ambient regimes, and for the variance in the sample regime.
+\textbf{Not formalized:} the behaviour at the singular set $\{\gamma,\delta\ge1,\ \gamma=1\vee\delta=1\}$ (where the limiting risk is infinite), convergence of the risk in expectation over $(X,S)$ (all limits are in probability; the expectation over the noise is built into the conditional risk), and non-Gaussian designs; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
+Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite-sample expressions such as $\sigma^2n/(m-n-1)$; the identification of these expressions with the \emph{random} variance is the content of Section~\ref{sec:dd:gaussian}, and the combination into the risk the content of Section~\ref{sec:dd:global}.
 
 \medskip\noindent\textbf{Notation.}
 The data are $m$ samples with inputs $X\in\mathbb R^{m\times n_0}$ (ambient dimension $n_0$) and labels
@@ -230,8 +231,8 @@ sample bottleneck, $\gamma,\delta>1$ & $ZZ^\top$ & $Z^\top(ZZ^\top)^{-1}y$ & $SZ
 In the ambient regime $S$ has full row rank, so $SS^\top(SS^\top)^{-1}=I$ and $\hat\theta$ is ordinary least squares in the original coordinates. In the feature regime $Z$ has full column rank and $\hat\eta$ is the unique least-squares solution; in the sample regime $Z$ has full row rank,
 $Z\hat\eta=y$ interpolates the data, and $\hat\eta$ is the minimum-norm interpolator (Theorems~\ref{thm:dd:minNorm} and~\ref{thm:dd:leastSquares}).
 
-Because $M$ does not depend on $\varepsilon$, $\hat\theta=M(X\theta_\star+\varepsilon)$ is a linear estimator in the sense of Definition~\ref{def:dd:linearModel}, so Theorem~\ref{thm:dd:linearBV} applies with this $M$. This definition is not a Lean declaration.
-Each regime's Lean theorem takes an estimator \texttt{β\_hat} together with the hypothesis \texttt{hβ : ∀ ε, (β\_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)} with $M$ written out as in the last column, and the invertibility assumptions as \texttt{IsUnit} hypotheses.
+Because $M$ does not depend on $\varepsilon$, $\hat\theta=M(X\theta_\star+\varepsilon)$ is a linear estimator in the sense of Definition~\ref{def:dd:linearModel}, so Theorem~\ref{thm:dd:linearBV} applies with this $M$. The definition itself is mathematical: the per-regime theorems of Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} take an estimator \texttt{β\_hat} together with the hypothesis \texttt{hβ : ∀ ε, (β\_hat ε).ofLp = M *ᵥ (X *ᵥ θ.ofLp + ε)} with $M$ written out as in the last column, and the invertibility assumptions as \texttt{IsUnit} hypotheses.
+The matrix $M$ \emph{is} a Lean definition in the global theorem, where it is chosen by the dimensions (Definition~\ref{def:dd:minNormOperator}).
 \end{definition}
 
 \begin{lemma}[Left inverse and its covariance]\label{lem:dd:leftInverse}
@@ -1283,16 +1284,17 @@ Theorem~\ref{thm:dd:fullRankAS}, with Theorem~\ref{thm:dd:projectorProbability};
 both sides of the sandwich are continuous in $t$ and equal $a(1+c)$ at $t=0$) puts the sandwich inside $(L-\varepsilon,L+\varepsilon)$ eventually, and every failure probability tends to $0$ because $\nu_k,n_k\to\infty$.
 \end{proof}
 
-\subsection{The sample-bottleneck estimator: variance}\label{sec:dd:sampleprob}
+\subsection{The sample-bottleneck estimator: variance and bias}\label{sec:dd:sampleprob}
 
 Throughout this subsection $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ are independent Gaussian matrices, $S=V^\top$ (so $S$ is a Gaussian $n_0\times n$ matrix), $Z=XS=XV^\top$, $P=P_X=\operatorname{gramProjector}X^\top$, and
-$\nu=n-m+1$. The regime is $m\le\min\{n,n_0\}$, and the target is the variance trace
+$\nu=n-m+1$. The regime is $m\le\min\{n,n_0\}$, and the targets are the variance trace
 $T=\operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)$ of Theorem~\ref{thm:dd:sampleVariance}. By Lemma~\ref{lem:dd:sampleDecomp}(4) it splits as
 \[
   T=\underbrace{\operatorname{Tr}\bigl((XX^\top)^{-1}\bigr)}_{T_1}+\underbrace{\operatorname{Tr}\bigl(B\,S^\top(I-P)S\bigr)}_{T_2},\qquad B=Z^\dagger(Z^\dagger)^\top,\quad Z^\dagger=Z^\top(ZZ^\top)^{-1}.
 \]
 The route is: $T_1$ is the inverse-Wishart trace of $X^\top$; $T_2$ is a Gaussian trace form in the residual $V(I-P)$, whose weight $B$ depends on $V$ only through $VP$, so a conditional Chebyshev bound
 replaces it by its conditional mean $(n_0-m)\operatorname{Tr}B=(n_0-m)\operatorname{Tr}(ZZ^\top)^{-1}$; and for a \emph{fixed} design $\operatorname{Tr}(ZZ^\top)^{-1}$ is $\operatorname{Tr}(XX^\top)^{-1}/\nu$ up to a factor $1\pm\eta$.
+The bias $\|(MX-I)\theta\|^2$ is treated in the same way at the end of this subsection.
 
 \begin{lemma}[Two bookkeeping lemmas for tail bounds]\label{lem:dd:bookkeeping}
   \lean{MeasureTheory.measure_prod_le_of_ae_section_le, exists_pos_lt_sandwich}
@@ -1379,13 +1381,14 @@ $\rho/(1-\rho)=(\gamma-1)^{-1}$.
 
 \begin{theorem}[The sample-bottleneck variance converges in probability]\label{thm:dd:sampleVarianceProb}
   \uses{thm:dd:sampleSandwich, thm:dd:sampleRatios, lem:dd:bookkeeping, thm:dd:sampleVariance}
-  \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleVariance_deviation}
+  \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleVariance_deviation_transposed,
+        LinearRegression.DoubleDescent.tendsto_measure_sampleVariance_deviation}
   \leanok
 Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k=V_k^\top$, $Z_k=X_kS_k$, and let $T_k$ be the variance trace of Theorem~\ref{thm:dd:sampleVariance}. Then for every $\varepsilon>0$
 \[
   \mathbb P\Bigl(\bigl|T_k-\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
 \]
-Consequently the variance $\sigma^2T_k$ of $\hat\theta_k=S_kZ_k^\dagger y$ converges in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$, the limit of the explicit expression in Theorem~\ref{thm:dd:sampleLimits}.
+The same holds with the Gaussian matrix $S_k\in\mathbb R^{n_{0,k}\times n_k}$ in place of $V_k=S_k^\top$ (\texttt{tendsto\_measure\_sampleVariance\_deviation}; the two laws agree by transposition invariance, \texttt{measure\_prod\_preimage\_transpose\_le}). Consequently the variance $\sigma^2T_k$ of $\hat\theta_k=S_kZ_k^\dagger y$ converges in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$, the limit of the explicit expression in Theorem~\ref{thm:dd:sampleLimits}.
 \end{theorem}
 
 \begin{proof}
@@ -1395,16 +1398,205 @@ with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, where $L=c_1(1+\lambda)$. Ap
 eventually lie in $(L-\varepsilon,L+\varepsilon)$. It remains to see that the failure probability tends to $0$: the first term does by Theorem~\ref{thm:dd:sampleRatios}(2), the second is $120m_k/(t^4\nu_k^2)\to0$ and the third is $2n_{0,k}(\cdots)^2/(t^2\nu_k^2)\to0$, both by $m_k/\nu_k^2\to0$ and $n_{0,k}/\nu_k^2\to0$.
 \end{proof}
 
+\begin{theorem}[Non-asymptotic sandwich for the sample-bottleneck bias]\label{thm:dd:sampleBiasSandwich}
+  \uses{lem:dd:sampleDecomp, thm:dd:fixedDesignSample, thm:ntkcond:conditionalChebyshev, lem:dd:bookkeeping, thm:dd:projectorProbability}
+  \lean{LinearRegression.DoubleDescent.measure_sampleBias_sandwich_le,
+        LinearRegression.DoubleDescent.norm_sq_sub_expand,
+        LinearRegression.DoubleDescent.design_quadForm_inv_eq,
+        LinearRegression.DoubleDescent.bias_sandwich_arith}
+  \leanok
+Let $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ be independent Gaussian matrices, $S=V^\top$, $Z=XS$, $1\le m\le\min\{n,n_0\}$, $\nu=n-m+1$, $r=\|\theta\|^2$, and let $R_b=\|(MX-I)\theta\|^2$ be the bias of $\hat\theta=SZ^\dagger y$, $M=SZ^\dagger$. With $d=\|(I-P_X)\theta\|^2$, $d_0=(1-m/n_0)r$, $s_0=(m/n_0)r$, $\lambda=(n_0-m)/\nu$, outside an event of probability at most
+\[
+  3\,\mathbb P\bigl(XX^\top\text{ singular}\bigr)+\mathbb P\bigl(|d-d_0|\ge\varepsilon_5\bigr)+\frac{180\,m}{\eta^4\nu^2}+\frac{180}{\eta^4\nu^2}+\frac{2n_0}{\varepsilon_6^2}\Bigl(\frac{r}{\nu(1-\eta)}\Bigr)^2+\frac{r^2}{\nu(1-\eta)\varepsilon_7^2},
+\]
+we have
+\[
+  d_0-\varepsilon_5+\lambda\frac{s_0-\varepsilon_5}{1+\eta}-(\varepsilon_6+2\varepsilon_7)<R_b<d_0+\varepsilon_5+\lambda\frac{s_0+\varepsilon_5}{1-\eta}+(\varepsilon_6+2\varepsilon_7).
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:dd:sampleDecomp}(3), $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b=Z^\dagger X\theta$. The squared norm expands as $R_b=d+b^\top(VP^\perp)(VP^\perp)^\top b-2b^\top(VP^\perp)\theta$ (\texttt{norm\_sq\_sub\_expand}). The weight $b$ depends on $V$ only through $VP$ and $X$. Conditional Chebyshev bounds control the quadratic and linear forms in $VP^\perp$ (\texttt{NTK.conditional\_quadForm\_chebyshev}, \texttt{NTK.conditional\_linearForm\_chebyshev}), $\|b\|^2=(X\theta)^\top(ZZ^\top)^{-1}(X\theta)$ is bounded by Theorem~\ref{thm:dd:sampleSandwich}, and $(X\theta)^\top(XX^\top)^{-1}(X\theta)=r-d$ (\texttt{design\_quadForm\_inv\_eq}). The arithmetic of \texttt{bias\_sandwich\_arith} gives the sandwich.
+\end{proof}
+
+\begin{theorem}[The sample-bottleneck bias converges in probability]\label{thm:dd:sampleBiasProb}
+  \uses{thm:dd:sampleBiasSandwich, thm:dd:sampleRatios, lem:dd:bookkeeping, thm:dd:projectorProbability, thm:dd:sampleLimits}
+  \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleBias_deviation_transposed,
+        LinearRegression.DoubleDescent.tendsto_measure_sampleBias_deviation}
+  \leanok
+Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k=V_k^\top$, $Z_k=X_kS_k$, and let $\|\theta_k\|^2\to r$. Then for every $\varepsilon>0$
+\[
+  \mathbb P\Bigl(\bigl|\|(M_kX_k-I)\theta_k\|^2-(1-\gamma^{-1})\frac{\delta}{\delta-1}r\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
+\]
+The same holds with the Gaussian matrix $S_k\in\mathbb R^{n_{0,k}\times n_k}$ in place of $V_k=S_k^\top$ (\texttt{tendsto\_measure\_sampleBias\_deviation}; the two laws agree by transposition invariance, \texttt{measure\_prod\_preimage\_transpose\_le}). Consequently the bias of $\hat\theta_k=S_kZ_k^\dagger y$ converges in probability to $(1-\gamma^{-1})\frac{\delta}{\delta-1}\|\theta_\star\|^2$, the limit of the explicit expression in Theorem~\ref{thm:dd:sampleLimits}.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Put $\lambda=(\gamma-1)/(\delta-1)$ and $L=(1-\gamma^{-1})r+\lambda(\gamma^{-1}r)=(1-\gamma^{-1})\frac{\delta}{\delta-1}r$. Define $F(t)=(1-\gamma^{-1})r-t+\lambda(\gamma^{-1}r-t)/(1+t)-3t$ and $G(t)=(1-\gamma^{-1})r+t+\lambda(\gamma^{-1}r+t)/(1-t)+3t$; both are continuous at $0$ with value $L$. Choose $t\in(0,1)$ via Lemma~\ref{lem:dd:bookkeeping}(2) with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, and instantiate Theorem~\ref{thm:dd:sampleBiasSandwich} with $\eta=\varepsilon_5=\varepsilon_6=\varepsilon_7=t$. The endpoints converge to $F(t)$ and $G(t)$ and eventually enter $(L-\varepsilon,L+\varepsilon)$. The failure probabilities tend to $0$ by Theorem~\ref{thm:dd:sampleRatios}, Theorem~\ref{thm:dd:projectorProbability} (omitted signal of $P_X$ via $X_k^\top$), $m_k/\nu_k^2\to0$, and $n_{0,k}/\nu_k^2\to0$.
+\end{proof}
+
 \begin{remark}[What is and is not formalized in the probabilistic layer]\label{rmk:dd:remaining}
-  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleLimits, thm:dd:sampleVarianceProb, thm:dd:fixedDesignSample}
+  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleVarianceProb, thm:dd:sampleBiasProb, thm:dd:fixedDesignSample, thm:dd:regimeRisks, thm:dd:globalDoubleDescent}
 \emph{Feature bottleneck.} Variance and bias converge in probability to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ (Theorems~\ref{thm:dd:featureVarianceProb} and~\ref{thm:dd:featureBiasProb}), which are the limits
-the deterministic layer takes for the explicit expressions (Theorem~\ref{thm:dd:featureLimits}). The two statements are separate Lean theorems; they are not packaged into one theorem about the risk $R=B+V$.
+the deterministic layer takes for the explicit expressions (Theorem~\ref{thm:dd:featureLimits}).
 
 \emph{Ambient bottleneck.} The estimator is OLS, unbiased, with variance $\sigma^2\operatorname{Tr}(X^\top X)^{-1}$ (Theorem~\ref{thm:dd:ambientBV}); the convergence to $\sigma^2\gamma/(1-\gamma)$ is
-Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n_0)$. There is no separate Lean wrapper that states this for the ambient estimator.
+Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n_0)$. It has no separate statement about the variance alone; it enters only through the risk statement Theorem~\ref{thm:dd:regimeRisks}(3).
 
-\emph{Sample bottleneck.} The \textbf{variance} converges in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ (Theorem~\ref{thm:dd:sampleVarianceProb}), which is the limit of the explicit expression of Theorem~\ref{thm:dd:sampleLimits}. The argument does not treat $ZZ^\top$ as the Gram matrix of one Gaussian matrix: it splits the variance trace into the inverse-Wishart trace of $X^\top$ and a residual trace form (Lemma~\ref{lem:dd:sampleDecomp}(4)), conditions on the part of $V$ that $Z$ sees, and reduces the fixed-design trace $\operatorname{Tr}(ZZ^\top)^{-1}$ to a weighted inverse Gram trace (Theorem~\ref{thm:dd:fixedDesignSample}). \textbf{Not formalized:} the convergence of the \emph{bias} $\|(MX-I)\theta_\star\|^2$ to $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$. Only its ingredients exist: the deterministic bias vector $(I-P)Sb-(I-P)\theta$ (Lemma~\ref{lem:dd:sampleDecomp}(3)), the omitted signal of $P_X$ (Theorem~\ref{thm:dd:projectorProbability} with $S:=X^\top$, which gives $\|(I-P_X)\theta\|^2\approx(1-\gamma^{-1})\rho_\star$), and the fixed-design bounds on $\|b\|^2=\|Z^\dagger X\theta\|^2$ (Theorem~\ref{thm:dd:fixedDesignSample}(3) and the joint version in Theorem~\ref{thm:dd:sampleSandwich}); they have not been assembled.
+\emph{Sample bottleneck.} Both the \textbf{variance} and the \textbf{bias} converge in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ and $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$ (Theorems~\ref{thm:dd:sampleVarianceProb} and~\ref{thm:dd:sampleBiasProb}), which are the limits of the explicit expressions of Theorem~\ref{thm:dd:sampleLimits}. The argument does not treat $ZZ^\top$ as the Gram matrix of one Gaussian matrix: the variance splits into the inverse-Wishart trace of $X^\top$ and a residual trace form (Lemma~\ref{lem:dd:sampleDecomp}(4)), and the bias into the omitted signal of $P_X$ and residual quadratic and linear forms;
+the residual forms are controlled by conditional Chebyshev bounds, without choosing coordinates for $\ker X$, and the fixed-design traces are reduced to a weighted inverse Gram trace (Theorem~\ref{thm:dd:fixedDesignSample}).
+
+\emph{Global statement.} The three regimes are combined in Theorem~\ref{thm:dd:globalDoubleDescent}, as convergence in probability of the conditional risk to $\mathsf R(\gamma,\delta)$ on the non-singular domain. \textbf{Not formalized:} the singular set $\gamma=1$ or $\delta=1$ (there $\mathsf R$ is infinite, and the Lean curve has the junk value $x/0=0$); the diagonal $\gamma=\delta<1$ requires the extra hypothesis that eventually $n_k\le n_{0,k}$ or eventually $n_{0,k}<n_k$ (otherwise one splits the index set);
+convergence of the risk in expectation over $(X,S)$ rather than in probability; and any non-Gaussian design or feature distribution.
 
 \emph{Unused deterministic lemma.} The decomposition $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|b_j\|^2)$ of Theorem~\ref{thm:dd:traceSecond} was prepared for a second-moment route to the quadratic form $s^\top W^{-1}s$; the proof of Theorem~\ref{thm:dd:fitError} gives
 the concentration directly from the exact law of the Rayleigh quotient, so no second inverse moment is needed and no later file uses Theorem~\ref{thm:dd:traceSecond}.
 \end{remark}
+
+\section{The global double-descent theorem}\label{sec:dd:global}
+
+This section assembles the three regimes. Its Lean file is \texttt{DoubleDescent/DoubleDescentLimits.lean}, with the sum-of-deviations lemma in \texttt{ForMathlib/MeasureTheory/Measure/Deviation.lean}. Until now the estimator was
+always an abstract \texttt{β\_hat} satisfying a hypothesis; here the matrix $M$ and the risk become Lean definitions.
+
+\begin{definition}[Minimum-norm random-feature operator and conditional risk]\label{def:dd:minNormOperator}
+  \uses{def:dd:randomFeatures, def:dd:risk}
+  \lean{LinearRegression.DoubleDescent.minNormOperator,
+        LinearRegression.DoubleDescent.conditionalRisk}
+  \leanok
+For $X\in\mathbb R^{m\times n_0}$ and $S\in\mathbb R^{n_0\times n}$ put $Z=XS$ and define $M=M(X,S)\in\mathbb R^{n_0\times m}$ by the \emph{smallest of the three dimensions}:
+\[
+  M=\begin{cases}
+  S(Z^\top Z)^{-1}Z^\top & n\le\min\{m,n_0\}\quad\text{(feature bottleneck)},\\[0.5ex]
+  S\bigl(S^\top(SS^\top)^{-1}\bigr)\bigl((X^\top X)^{-1}X^\top\bigr) & \text{otherwise, if } n_0\le\min\{m,n\}\quad\text{(ambient bottleneck)},\\[0.5ex]
+  SZ^\top(ZZ^\top)^{-1} & \text{otherwise}\quad\text{(sample bottleneck)},
+  \end{cases}
+\]
+with Mathlib's inverse (so a singular matrix is replaced by $0$). This is the matrix $M$ of the last column of the table in Definition~\ref{def:dd:randomFeatures}, selected by the dimensions instead of by the reader. The \emph{conditional risk} is
+\[
+  \mathsf{cr}(\sigma^2,\theta,X,S)=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}(M^\top M),
+\]
+the bias plus the variance of the estimator $My$ with isotropic noise.
+\end{definition}
+
+\begin{lemma}[The regime formulas for the conditional risk]\label{lem:dd:globalBranches}
+  \uses{def:dd:minNormOperator, thm:dd:linearBV, thm:dd:featureVariance, thm:dd:ambientBV, thm:dd:sampleVariance, lem:dd:leftInverse, lem:dd:rightInverse}
+  \lean{LinearRegression.DoubleDescent.minNormOperator_of_feature,
+        LinearRegression.DoubleDescent.minNormOperator_of_ambient,
+        LinearRegression.DoubleDescent.minNormOperator_of_sample,
+        LinearRegression.DoubleDescent.conditionalRisk_eq_integral,
+        LinearRegression.DoubleDescent.trace_featureOperator_eq,
+        LinearRegression.DoubleDescent.conditionalRisk_of_feature,
+        LinearRegression.DoubleDescent.conditionalRisk_of_sample,
+        LinearRegression.DoubleDescent.conditionalRisk_of_ambient}
+  \leanok
+\begin{enumerate}
+  \item (Bridge) If $\varepsilon$ has mean $0$ and covariance $\sigma^2I$, and $\hat\theta(\varepsilon)=M(X\theta+\varepsilon)$ with $M=M(X,S)$, then $\mathbb E\|\hat\theta-\theta\|^2=\mathsf{cr}(\sigma^2,\theta,X,S)$.
+  \item (Feature) If $n\le\min\{m,n_0\}$, then $\mathsf{cr}=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}\bigl((Z^\top Z)^{-1}S^\top S\bigr)$ with $M=S(Z^\top Z)^{-1}Z^\top$; the trace identity holds without any invertibility hypothesis, since both sides vanish for singular $Z^\top Z$.
+  \item (Sample) If $n>\min\{m,n_0\}$ and $n_0>\min\{m,n\}$, then $\mathsf{cr}=\|(MX-I)\theta\|^2+\sigma^2\operatorname{Tr}\bigl((ZZ^\top)^{-1}ZS^\top SZ^\top(ZZ^\top)^{-1}\bigr)$ with $M=SZ^\top(ZZ^\top)^{-1}$.
+  \item (Ambient) If $n\not\le\min\{m,n_0\}$, $n_0\le\min\{m,n\}$ and both $X^\top X$ and $SS^\top$ are invertible, then $\mathsf{cr}=\sigma^2\operatorname{Tr}(X^\top X)^{-1}$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is Theorem~\ref{thm:dd:linearBV} with the vector norm expanded as a dot product. (2) and (3) unfold the case distinction and use the trace reductions of Lemmas~\ref{lem:dd:featureTrace} and~\ref{lem:dd:sampleTrace}. (4) $S\bigl(S^\top(SS^\top)^{-1}\bigr)=I$ (Lemma~\ref{lem:dd:rightInverse}),
+so $M=(X^\top X)^{-1}X^\top$, then $MX=I$ and $\operatorname{Tr}(M^\top M)=\operatorname{Tr}(X^\top X)^{-1}$ (Lemma~\ref{lem:dd:leftInverse}).
+\end{proof}
+
+\begin{lemma}[Deviation of a sum]\label{lem:dd:deviationSum}
+  \lean{MeasureTheory.measure_add_mul_deviation_le,
+        MeasureTheory.tendsto_measure_add_mul_deviation}
+  \leanok
+Let $\mu$ be a measure and $R=A+\sigma B$ with real-valued $A,B$. Then for $\varepsilon>0$,
+\[
+  \mu\{|R-(a_0+\sigma b_0)|\ge\varepsilon\}\le\mu\{|A-a_0|\ge\tfrac\varepsilon2\}+\mu\Bigl\{|B-b_0|\ge\tfrac\varepsilon{2(|\sigma|+1)}\Bigr\}.
+\]
+Hence if $A_k\to a_0$ and $B_k\to b_0$ in probability and $R_k=A_k+\sigma B_k$, then $R_k\to a_0+\sigma b_0$ in probability.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+If $|A-a_0|<\varepsilon/2$ and $|B-b_0|<\varepsilon/(2(|\sigma|+1))$, then $|R-(a_0+\sigma b_0)|\le|A-a_0|+|\sigma||B-b_0|<\varepsilon$. A union bound gives the first claim, and the second follows by squeezing between $0$ and the sum of the two vanishing probabilities.
+\end{proof}
+
+\begin{theorem}[Feature bottleneck, jointly over the data and the features]\label{thm:dd:featureJoint}
+  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:traceConcentration, thm:dd:projectorProbability}
+  \lean{LinearRegression.DoubleDescent.measure_featureVariance_joint_le,
+        LinearRegression.DoubleDescent.tendsto_measure_featureVariance_deviation,
+        LinearRegression.DoubleDescent.tendsto_measure_featureBias_deviation',
+        MeasureTheory.measure_prod_swap_le}
+  \leanok
+Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $1\le n_k\le\min\{m_k,n_{0,k}\}$, $m_k\to\infty$ and $n_k/m_k\to\delta<1$. Then, with $Z_k=X_kS_k$, $\operatorname{Tr}\bigl((Z_k^\top Z_k)^{-1}S_k^\top S_k\bigr)\to\delta/(1-\delta)$ in probability, jointly in $(X_k,S_k)$.
+If moreover $n_k\to\infty$, $n_{0,k}/m_k\to\gamma>0$ and $\|\theta_k\|^2\to\rho$, then $\|(M_kX_k-I)\theta_k\|^2\to\frac{\gamma-\delta}{\gamma(1-\delta)}\rho$ in probability, with $M_k=S_k(Z_k^\top Z_k)^{-1}Z_k^\top$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+For a fixed realization of $S$ (almost surely of full column rank), the variance trace has the law of $\operatorname{Tr}(G^\top G)^{-1}$ for an $m\times n$ Gaussian matrix $G$; this is the $S$-section bound \texttt{measure\_featureVariance\_joint\_le}, which together with the product-measure lemma \texttt{measure\_prod\_le\_of\_ae\_section\_le}
+gives the joint bound and reduces the limit to Theorem~\ref{thm:dd:traceConcentration}. The bias statement is Theorem~\ref{thm:dd:featureBiasProb} with the factors of the product measure exchanged (\texttt{measure\_prod\_swap\_le}), so that all regimes use the order $(X,S)$.
+\end{proof}
+
+\begin{theorem}[The risk converges in probability in each regime]\label{thm:dd:regimeRisks}
+  \uses{lem:dd:globalBranches, lem:dd:deviationSum, thm:dd:featureJoint, thm:dd:sampleVarianceProb, thm:dd:sampleBiasProb, thm:dd:traceConcentration}
+  \lean{LinearRegression.DoubleDescent.tendsto_measure_featureRisk_deviation,
+        LinearRegression.DoubleDescent.tendsto_measure_sampleRisk_deviation,
+        LinearRegression.DoubleDescent.tendsto_measure_ambientRisk_deviation}
+  \leanok
+Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$, $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices, $\|\theta_k\|^2\to\rho$, and write $\mathsf{cr}_k=\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)$. For every $\varepsilon>0$ the probability that $\mathsf{cr}_k$ deviates by $\varepsilon$ or more from the stated limit tends to $0$ in each of the following cases.
+\begin{enumerate}
+  \item (Feature) $1\le n_k\le\min\{m_k,n_{0,k}\}$, $n_k\to\infty$, $n_k/m_k\to\delta<1$, $n_{0,k}/m_k\to\gamma>0$: limit $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho+\sigma^2\frac\delta{1-\delta}$.
+  \item (Sample) $m_k<\min\{n_{0,k},n_k\}$, $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$, $n_k/m_k\to\delta>1$: limit $(1-\gamma^{-1})\frac\delta{\delta-1}\rho+\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$.
+  \item (Ambient) $0<n_{0,k}\le m_k$, $n_{0,k}<n_k$, $n_{0,k}\to\infty$, $n_{0,k}/m_k\to\gamma\in(0,1)$ (any $\theta_k$): limit $\sigma^2\gamma/(1-\gamma)$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) and (2): in the respective regime the minimum-norm operator is the feature, respectively sample, formula (Lemma~\ref{lem:dd:globalBranches}), so $\mathsf{cr}_k=A_k+\sigma^2B_k$ with $A_k$ the bias and $B_k$ the variance trace. Apply Lemma~\ref{lem:dd:deviationSum} with the limits of
+Theorem~\ref{thm:dd:featureJoint}, respectively Theorems~\ref{thm:dd:sampleBiasProb} and~\ref{thm:dd:sampleVarianceProb}.
+(3) The matrices $S_k^\top$ and $X_k$ have full rank almost surely (Theorem~\ref{thm:dd:fullRankAS}; \texttt{ae\_isUnit\_det\_mul\_transpose\_gaussianMatrix} for $S_kS_k^\top$, using $n_{0,k}<n_k$). On this event, if $\operatorname{Tr}(X_k^\top X_k)^{-1}$ is within $\eta=\min\{\varepsilon/(|\sigma^2|+1),\gamma/(1-\gamma)\}$ of
+$\gamma/(1-\gamma)$ then it is positive, so $X_k^\top X_k$ is invertible and Lemma~\ref{lem:dd:globalBranches}(4) gives $\mathsf{cr}_k=\sigma^2\operatorname{Tr}(X_k^\top X_k)^{-1}$, within $\varepsilon$ of $\sigma^2\gamma/(1-\gamma)$. The bad event is therefore contained in $\{|\operatorname{Tr}(X_k^\top X_k)^{-1}-\gamma/(1-\gamma)|\ge\eta\}$, whose probability tends to $0$ by Theorem~\ref{thm:dd:traceConcentration} (this is the ambient limit that earlier had no Lean statement).
+\end{proof}
+
+\begin{lemma}[Ratio bookkeeping for the global theorem]\label{lem:dd:globalRatios}
+  \lean{LinearRegression.DoubleDescent.tendsto_ratio_of_ratios,
+        LinearRegression.DoubleDescent.tendsto_atTop_of_ratio,
+        LinearRegression.DoubleDescent.eventually_lt_of_ratio,
+        LinearRegression.DoubleDescent.eventually_gt_of_ratio,
+        LinearRegression.DoubleDescent.tendsto_measure_featureRisk_deviation_of_eventually,
+        LinearRegression.DoubleDescent.tendsto_measure_sampleRisk_deviation_of_eventually,
+        LinearRegression.DoubleDescent.tendsto_measure_ambientRisk_deviation_of_eventually}
+  \leanok
+(1) If $a_k/c_k\to\alpha$ and $b_k/c_k\to\beta\ne0$ then $a_k/b_k\to\alpha/\beta$. (2) If $a_k/c_k\to\alpha>0$ and $c_k\to\infty$ then $a_k\to\infty$. (3) If $a_k/b_k\to\alpha<1$ then $a_k<b_k$ eventually; if $\alpha>1$ then $b_k<a_k$ eventually.
+(4) The three conclusions of Theorem~\ref{thm:dd:regimeRisks} remain true if the structural inequalities between $m_k,n_k,n_{0,k}$ hold only for all large $k$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1)--(3) are elementary limit arguments (multiply by $c_k$, respectively compare $a_k/b_k$ with $1$). (4) Shift the sequences by the index $K$ from which the inequalities hold, and use that convergence of a sequence is unaffected by dropping finitely many terms.
+\end{proof}
+
+\begin{theorem}[Global double descent of the risk, in probability]\label{thm:dd:globalDoubleDescent}
+  \uses{def:dd:curve, lem:dd:branches, thm:dd:regimeRisks, lem:dd:globalRatios}
+  \lean{LinearRegression.DoubleDescent.double_descent_total_risk_convergence}
+  \leanok
+Let $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>0$, $n_k/m_k\to\delta>0$, $\|\theta_k\|^2\to\rho$, and suppose $(\gamma,\delta)$ lies in the non-singular domain
+\[
+  \delta<\min\{1,\gamma\}\quad\text{or}\quad(\gamma<1\ \text{and}\ \gamma\le\delta)\quad\text{or}\quad(\gamma>1\ \text{and}\ \delta>1).
+\]
+On the diagonal $\gamma=\delta<1$ assume in addition that eventually $n_k\le n_{0,k}$ or eventually $n_{0,k}<n_k$. Let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $S_k\in\mathbb R^{n_{0,k}\times n_k}$ be independent Gaussian matrices. Then for every $\varepsilon>0$
+\[
+  \mathbb P\Bigl(\bigl|\mathsf{cr}(\sigma^2,\theta_k,X_k,S_k)-\mathsf R(\gamma,\delta)\bigr|\ge\varepsilon\Bigr)\longrightarrow0,
+\]
+where $\mathsf R=\mathsf B+\mathsf V$ is the limiting risk of Definition~\ref{def:dd:curve}. In particular, on the non-singular domain the random risk follows the deterministic curve $\mathsf R$ whose shape is described in Section~\ref{sec:dd:curve}: the divergence as $\delta\to1$ and the second descent for $\gamma>1$ (Theorem~\ref{thm:dd:doubleDescent}), and the flat segment for $\gamma<1$ (Theorem~\ref{thm:dd:undercomplete}).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Since $n_{0,k}/m_k\to\gamma>0$ and $n_k/m_k\to\delta>0$, both $n_{0,k}$ and $n_k$ tend to infinity (Lemma~\ref{lem:dd:globalRatios}(2)). In the feature domain $\delta<\min\{1,\gamma\}$, the ratios give $n_k\le m_k$ and $n_k\le n_{0,k}$ eventually (Lemma~\ref{lem:dd:globalRatios}(1) and~(3)), so Theorem~\ref{thm:dd:regimeRisks}(1) applies, and its limit is $\mathsf R(\gamma,\delta)$ by Lemma~\ref{lem:dd:branches}.
+In the ambient domain $\gamma<1$, $\gamma\le\delta$: eventually $n_{0,k}\le m_k$; if $\gamma<\delta$ then eventually $n_{0,k}<n_k$ and Theorem~\ref{thm:dd:regimeRisks}(3) applies; if $\gamma=\delta$ the extra hypothesis selects either the ambient argument, or the feature argument, which has the same limit because at $\gamma=\delta$ the feature bias $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho$ vanishes and the feature variance $\sigma^2\frac\delta{1-\delta}$ equals the ambient one. In the sample domain $\gamma,\delta>1$, eventually $m_k<n_{0,k}$ and $m_k<n_k$ and Theorem~\ref{thm:dd:regimeRisks}(2) applies.
+\end{proof}
+
+The excluded set is $\{\gamma\ge1,\ \delta\ge1,\ \gamma=1\vee\delta=1\}$, where the limiting risk is infinite (the interpolation peak) and the junk value $x/0=0$ of the curve would make a statement false. At the boundary $\gamma=\delta<1$ the ordering hypothesis is genuinely used: the operator $M$ switches branches according to whether $n_k\le n_{0,k}$.

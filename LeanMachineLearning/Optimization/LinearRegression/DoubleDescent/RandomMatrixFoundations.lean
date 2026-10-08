@@ -86,6 +86,12 @@ theorem map_gaussianMatrix_mul_orthonormal {ρ ι κ : Type*} [Fintype ρ] [Fint
   funext W i k
   simp [Matrix.mul_apply, Matrix.mulVec, dotProduct, mul_comm]
 
+/-- Transposition of a `Fin`-indexed array of reals is measurable. -/
+theorem measurable_transpose_fin (p q : ℕ) :
+    Measurable (fun W : Fin p → Fin q → ℝ => fun k i => W i k) :=
+  Measurable.of_eval fun k => Measurable.of_eval fun i =>
+    (measurable_pi_apply k).comp (measurable_pi_apply i)
+
 /-- **Transposing a Gaussian matrix.** If `W` has i.i.d. standard normal entries, so does `Wᵀ`
 (through the pair-indexed vector of entries, `NTK.map_gaussianInit_pairIndex`). -/
 theorem map_gaussianMatrix_transpose (p q : ℕ) :
@@ -131,9 +137,7 @@ theorem map_gaussianMatrix_orthogonal_mul {p q : ℕ} (U : Matrix (Fin p) (Fin p
   have hR := map_gaussianMatrix_mul_orthonormal (ρ := Fin q) (ι := Fin p) Uᵀ hU'
   have hT1 := map_gaussianMatrix_transpose p q
   have hT2 := map_gaussianMatrix_transpose q p
-  have mT : ∀ a b : ℕ, Measurable (fun W : Fin a → Fin b → ℝ => fun k i => W i k) := fun a b =>
-    Measurable.of_eval fun k => Measurable.of_eval fun i =>
-      (measurable_pi_apply k).comp (measurable_pi_apply i)
+  have mT := measurable_transpose_fin
   have mR : Measurable (fun W : Fin q → Fin p → ℝ => fun i k => (Matrix.of W * Uᵀ) i k) :=
     Measurable.of_eval fun i => Measurable.of_eval fun k => by
       simp only [Matrix.mul_apply, Matrix.of_apply]
@@ -171,9 +175,7 @@ theorem measure_preimage_transpose_le (p q : ℕ) (E : Set (Fin q → Fin p → 
     (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1)
         {W | (fun k i => W i k) ∈ E} ≤
       (Measure.pi fun _ : Fin q => Measure.pi fun _ : Fin p => gaussianReal 0 1) E := by
-  have hfm : Measurable fun W : Fin p → Fin q → ℝ => fun k i => W i k :=
-    measurable_pi_iff.2 fun k => measurable_pi_iff.2 fun i =>
-      (measurable_pi_apply k).comp (measurable_pi_apply i)
+  have hfm := measurable_transpose_fin p q
   rw [← map_gaussianMatrix_transpose p q]
   exact Measure.le_map_apply hfm.aemeasurable E
 
@@ -185,9 +187,7 @@ theorem measure_prod_preimage_transpose_le {α : Type*} [MeasurableSpace α] (μ
     (μ.prod (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1))
         {x | (x.1, fun k i => x.2 i k) ∈ E} ≤
       (μ.prod (Measure.pi fun _ : Fin q => Measure.pi fun _ : Fin p => gaussianReal 0 1)) E := by
-  have hft : Measurable fun W : Fin p → Fin q → ℝ => fun k i => W i k :=
-    measurable_pi_iff.2 fun k => measurable_pi_iff.2 fun i =>
-      (measurable_pi_apply k).comp (measurable_pi_apply i)
+  have hft := measurable_transpose_fin p q
   have hmap := Measure.map_prod_map μ (Measure.pi fun _ : Fin p =>
     Measure.pi fun _ : Fin q => gaussianReal 0 1) measurable_id hft
   rw [Measure.map_id, map_gaussianMatrix_transpose p q] at hmap
