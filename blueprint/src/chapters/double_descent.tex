@@ -28,11 +28,10 @@ The chapter has two layers, both sorry-free.
   of the limiting risk curve (divergence at $\delta=1$, second descent, flat segment for $\gamma<1$).
   \item The \emph{probabilistic layer} (Sections~\ref{sec:dd:moments} and~\ref{sec:dd:gaussian}): the $\chi^2$ tail bound, orthogonal invariance of Gaussian matrices, almost-sure full rank, the exact law $1/\chi^2_{p-q}$ of the diagonal of $(G^\top G)^{-1}$ and
   its mean, non-asymptotic and in-probability concentration of $\operatorname{Tr}(G^\top G)^{-1}$, the exact $\chi^2$ law of the Rayleigh quotient of $(G^\top G)^{-1}$ and the resulting fit-error concentration, the omitted signal of a Gaussian subspace, and
-  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$, and of the variance of the sample-bottleneck estimator to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$.
+  the convergence \emph{in probability} of the variance and of the bias of the feature-bottleneck estimator to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$, and of the variance and of the bias of the sample-bottleneck estimator to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ and $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$.
 \end{itemize}
-\textbf{Not formalized:} the probabilistic limit of the \emph{bias} in the sample-bottleneck regime $\gamma,\delta>1$, and a single theorem packaging the in-probability limits into the risk curve; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
-Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite-sample expressions such as $\sigma^2n/(m-n-1)$; the identification of these expressions with the \emph{random} variance is the content of Section~\ref{sec:dd:gaussian}
-for the feature and ambient regimes, and for the variance in the sample regime.
+\textbf{Not formalized:} a single theorem packaging the in-probability limits into the risk curve; see Remark~\ref{rmk:dd:remaining}. The ``limit'' theorems of
+Sections~\ref{sec:dd:feature}--\ref{sec:dd:sample} are limits of explicit finite-sample expressions such as $\sigma^2n/(m-n-1)$; the identification of these expressions with the \emph{random} variance and bias is the content of Section~\ref{sec:dd:gaussian}.
 
 \medskip\noindent\textbf{Notation.}
 The data are $m$ samples with inputs $X\in\mathbb R^{m\times n_0}$ (ambient dimension $n_0$) and labels
@@ -1395,15 +1394,52 @@ with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, where $L=c_1(1+\lambda)$. Ap
 eventually lie in $(L-\varepsilon,L+\varepsilon)$. It remains to see that the failure probability tends to $0$: the first term does by Theorem~\ref{thm:dd:sampleRatios}(2), the second is $120m_k/(t^4\nu_k^2)\to0$ and the third is $2n_{0,k}(\cdots)^2/(t^2\nu_k^2)\to0$, both by $m_k/\nu_k^2\to0$ and $n_{0,k}/\nu_k^2\to0$.
 \end{proof}
 
+\begin{theorem}[Non-asymptotic sandwich for the sample-bottleneck bias]\label{thm:dd:sampleBiasSandwich}
+  \uses{lem:dd:sampleDecomp, thm:dd:fixedDesignSample, thm:ntkcond:conditionalChebyshev, lem:dd:bookkeeping, thm:dd:projectorProbability}
+  \lean{LinearRegression.DoubleDescent.measure_sampleBias_sandwich_le,
+        LinearRegression.DoubleDescent.norm_sq_sub_expand,
+        LinearRegression.DoubleDescent.bias_sandwich_arith}
+  \leanok
+Let $X\in\mathbb R^{m\times n_0}$ and $V\in\mathbb R^{n\times n_0}$ be independent Gaussian matrices, $S=V^\top$, $Z=XS$, $1\le m\le\min\{n,n_0\}$, $\nu=n-m+1$, $r=\|\theta\|^2$, and let $R_b=\|(MX-I)\theta\|^2$ be the bias of $\hat\theta=SZ^\dagger y$, $M=SZ^\dagger$. With $d=\|(I-P_X)\theta\|^2$, $d_0=(1-m/n_0)r$, $s_0=(m/n_0)r$, $\lambda=(n_0-m)/\nu$, outside an event of probability at most
+\[
+  3\,\mathbb P\bigl(XX^\top\text{ singular}\bigr)+\mathbb P\bigl(|d-d_0|\ge\varepsilon_5\bigr)+\frac{180\,m}{\eta^4\nu^2}+\frac{180}{\eta^4\nu^2}+\frac{2n_0}{\varepsilon_6^2}\Bigl(\frac{r}{\nu(1-\eta)}\Bigr)^2+\frac{r^2}{\nu(1-\eta)\varepsilon_7^2},
+\]
+we have
+\[
+  d_0-\varepsilon_5+\lambda\frac{s_0-\varepsilon_5}{1+\eta}-(\varepsilon_6+2\varepsilon_7)<R_b<d_0+\varepsilon_5+\lambda\frac{s_0+\varepsilon_5}{1-\eta}+(\varepsilon_6+2\varepsilon_7).
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:dd:sampleDecomp}(3), $(MX-I)\theta=(I-P)Sb-(I-P)\theta$ with $b=Z^\dagger X\theta$. The squared norm expands as $R_b=d+b^\top(VP^\perp)(VP^\perp)^\top b-2b^\top(VP^\perp)\theta$ (\texttt{norm\_sq\_sub\_expand}). The weight $b$ depends on $V$ only through $VP$ and $X$. Conditional Chebyshev bounds control the quadratic and linear forms in $VP^\perp$ (\texttt{NTK.conditional\_traceForm\_chebyshev}, \texttt{NTK.conditional\_linearForm\_chebyshev}), $\|b\|^2=(X\theta)^\top(ZZ^\top)^{-1}(X\theta)$ is bounded by Theorem~\ref{thm:dd:sampleSandwich}, and $(X\theta)^\top(XX^\top)^{-1}(X\theta)=r-d$. The arithmetic of \texttt{bias\_sandwich\_arith} gives the sandwich.
+\end{proof}
+
+\begin{theorem}[The sample-bottleneck bias converges in probability]\label{thm:dd:sampleBiasProb}
+  \uses{thm:dd:sampleBiasSandwich, thm:dd:sampleRatios, lem:dd:bookkeeping, thm:dd:projectorProbability, thm:dd:sampleLimits}
+  \lean{LinearRegression.DoubleDescent.tendsto_measure_sampleBias_deviation}
+  \leanok
+Let $0<m_k\le\min\{n_k,n_{0,k}\}$ with $m_k\to\infty$, $n_{0,k}/m_k\to\gamma>1$ and $n_k/m_k\to\delta>1$; let $X_k\in\mathbb R^{m_k\times n_{0,k}}$ and $V_k\in\mathbb R^{n_k\times n_{0,k}}$ be independent Gaussian matrices, $S_k=V_k^\top$, $Z_k=X_kS_k$, and let $\|\theta_k\|^2\to r$. Then for every $\varepsilon>0$
+\[
+  \mathbb P\Bigl(\bigl|\|(M_kX_k-I)\theta_k\|^2-(1-\gamma^{-1})\frac{\delta}{\delta-1}r\bigr|\ge\varepsilon\Bigr)\longrightarrow0 .
+\]
+Consequently the bias of $\hat\theta_k=S_kZ_k^\dagger y$ converges in probability to $(1-\gamma^{-1})\frac{\delta}{\delta-1}\|\theta_\star\|^2$, the limit of the explicit expression in Theorem~\ref{thm:dd:sampleLimits}.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Put $\lambda=(\gamma-1)/(\delta-1)$ and $L=(1-\gamma^{-1})r+\lambda(\gamma^{-1}r)=(1-\gamma^{-1})\frac{\delta}{\delta-1}r$. Define $F(t)=(1-\gamma^{-1})r-t+\lambda(\gamma^{-1}r-t)/(1+t)-3t$ and $G(t)=(1-\gamma^{-1})r+t+\lambda(\gamma^{-1}r+t)/(1-t)+3t$; both are continuous at $0$ with value $L$. Choose $t\in(0,1)$ via Lemma~\ref{lem:dd:bookkeeping}(2) with $F(t)>L-\varepsilon$ and $G(t)<L+\varepsilon$, and instantiate Theorem~\ref{thm:dd:sampleBiasSandwich} with $\eta=\varepsilon_5=\varepsilon_6=\varepsilon_7=t$. The endpoints converge to $F(t)$ and $G(t)$ and eventually enter $(L-\varepsilon,L+\varepsilon)$. The failure probabilities tend to $0$ by Theorem~\ref{thm:dd:sampleRatios}, Theorem~\ref{thm:dd:projectorProbability} (omitted signal of $P_X$ via $X_k^\top$), $m_k/\nu_k^2\to0$, and $n_{0,k}/\nu_k^2\to0$.
+\end{proof}
+
 \begin{remark}[What is and is not formalized in the probabilistic layer]\label{rmk:dd:remaining}
-  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleLimits, thm:dd:sampleVarianceProb, thm:dd:fixedDesignSample}
+  \uses{thm:dd:featureVarianceProb, thm:dd:featureBiasProb, thm:dd:ambientBV, thm:dd:sampleLimits, thm:dd:sampleVarianceProb, thm:dd:sampleBiasProb, thm:dd:fixedDesignSample}
 \emph{Feature bottleneck.} Variance and bias converge in probability to $\sigma^2\delta/(1-\delta)$ and $\frac{\gamma-\delta}{\gamma(1-\delta)}\rho_\star$ (Theorems~\ref{thm:dd:featureVarianceProb} and~\ref{thm:dd:featureBiasProb}), which are the limits
 the deterministic layer takes for the explicit expressions (Theorem~\ref{thm:dd:featureLimits}). The two statements are separate Lean theorems; they are not packaged into one theorem about the risk $R=B+V$.
 
 \emph{Ambient bottleneck.} The estimator is OLS, unbiased, with variance $\sigma^2\operatorname{Tr}(X^\top X)^{-1}$ (Theorem~\ref{thm:dd:ambientBV}); the convergence to $\sigma^2\gamma/(1-\gamma)$ is
 Theorem~\ref{thm:dd:traceConcentration} with $(p,m)\to(m,n_0)$. There is no separate Lean wrapper that states this for the ambient estimator.
 
-\emph{Sample bottleneck.} The \textbf{variance} converges in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ (Theorem~\ref{thm:dd:sampleVarianceProb}), which is the limit of the explicit expression of Theorem~\ref{thm:dd:sampleLimits}. The argument does not treat $ZZ^\top$ as the Gram matrix of one Gaussian matrix: it splits the variance trace into the inverse-Wishart trace of $X^\top$ and a residual trace form (Lemma~\ref{lem:dd:sampleDecomp}(4)), conditions on the part of $V$ that $Z$ sees, and reduces the fixed-design trace $\operatorname{Tr}(ZZ^\top)^{-1}$ to a weighted inverse Gram trace (Theorem~\ref{thm:dd:fixedDesignSample}). \textbf{Not formalized:} the convergence of the \emph{bias} $\|(MX-I)\theta_\star\|^2$ to $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$. Only its ingredients exist: the deterministic bias vector $(I-P)Sb-(I-P)\theta$ (Lemma~\ref{lem:dd:sampleDecomp}(3)), the omitted signal of $P_X$ (Theorem~\ref{thm:dd:projectorProbability} with $S:=X^\top$, which gives $\|(I-P_X)\theta\|^2\approx(1-\gamma^{-1})\rho_\star$), and the fixed-design bounds on $\|b\|^2=\|Z^\dagger X\theta\|^2$ (Theorem~\ref{thm:dd:fixedDesignSample}(3) and the joint version in Theorem~\ref{thm:dd:sampleSandwich}); they have not been assembled.
+\emph{Sample bottleneck.} Both the \textbf{variance} and the \textbf{bias} converge in probability to $\sigma^2\bigl((\gamma-1)^{-1}+(\delta-1)^{-1}\bigr)$ and $(1-\gamma^{-1})\frac{\delta}{\delta-1}\rho_\star$ (Theorems~\ref{thm:dd:sampleVarianceProb} and~\ref{thm:dd:sampleBiasProb}), which are the limits of the explicit expressions of Theorem~\ref{thm:dd:sampleLimits}. The variance splits into the inverse-Wishart trace of $X^\top$ and a residual trace form (Lemma~\ref{lem:dd:sampleDecomp}(4)), and the bias into the omitted signal of $P_X$ and a residual form; both residual forms are controlled by conditional Chebyshev bounds without choosing coordinates for $\ker(X)$.
 
 \emph{Unused deterministic lemma.} The decomposition $\operatorname{Tr}W^{-2}=\sum_jW^{-1}_{jj}{}^2(1+\|b_j\|^2)$ of Theorem~\ref{thm:dd:traceSecond} was prepared for a second-moment route to the quadratic form $s^\top W^{-1}s$; the proof of Theorem~\ref{thm:dd:fitError} gives
 the concentration directly from the exact law of the Rayleigh quotient, so no second inverse moment is needed and no later file uses Theorem~\ref{thm:dd:traceSecond}.
