@@ -34,7 +34,7 @@ No new definition is introduced: both scales are written out, and a regime is a 
 * `scaling_naive_large_eta_instability` (`γ = 1`, `η = Θ(√n)`): feature motion `Θ(1)`, function
   motion `Θ(√n) → ∞`.
 * `scaling_mean_field_muP_balance` (`γ = √n`, `η = Θ(n)`): both scales are `Θ(1)`.
-* `featureMotion_isTheta_one_iff_functionMotion`, `unique_scaling_balance_solution`: both scales
+* `featureMotion_and_functionMotion_isTheta_one_iff`, `unique_scaling_balance_solution`: both scales
   are `Θ(1)` if and only if `γ = Θ(√n)` and `η = Θ(n)`.  The feature half is
   `featureLearning_criterion_iff_learningRate`; the function half is
   `isTheta_iff_div_isTheta_one` applied to `η` and `γ²`.

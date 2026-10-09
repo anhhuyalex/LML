@@ -237,7 +237,6 @@ lemma netFromParams_packParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ
   simp only [unpackW_packParams, unpackA_packParams]
 
 /-- The explicit training-output vector of the packed-parameter network is `evalVector φ W a X`. -/
-@[simp]
 lemma trainingOutputs_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
     WithLp.toLp 2 (fun α => netFromParams φ n d (X α) (packParams W a)) =
