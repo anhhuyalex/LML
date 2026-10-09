@@ -1,0 +1,480 @@
+\chapter{Feature learning and the mean-field regime of two-layer networks}\label{chap:ntkfl}
+
+This chapter formalizes the quantitative picture of \emph{feature learning} for a two-layer network trained by
+gradient descent or gradient flow, following Mei--Montanari--Nguyen (2018), Chizat--Bach (2018) and
+Yang--Hu (2021). A single scaling knob $\gamma_n$ in the output interpolates between the
+\emph{lazy} (neural tangent) regime $\gamma_n=1$ and the \emph{mean-field} regime $\gamma_n=\sqrt n$. The chapter proves:
+the exact one-step update of the hidden-layer features and the function-space dynamics; the learning-rate condition
+$\eta\asymp\gamma_n\sqrt n$ under which features move by an order-one amount; the fact that the mean-field scaling
+$\gamma_n\asymp\sqrt n$, $\eta\asymp n$ is the \emph{only} one in which the features and the predictor both move at
+order one; the stability of the initial residual and the freezing of the kernel below the feature-learning scale; and,
+in the mean-field scaling, the rewriting of the network as an integral against the empirical measure of its neurons
+together with the reduction of accelerated gradient flow to an autonomous interacting particle system with
+order-one velocity.
+The Lean files are in \texttt{Optimization/NTK/FeatureLearning/} (modules \texttt{Basic}, \texttt{Criterion},
+\texttt{ScalingRegimes}, \texttt{Stability}, \texttt{MeanField}, \texttt{ParticleSystem}), together with the general
+tools \texttt{ForMathlib/MeasureTheory/Measure/Empirical.lean},
+\texttt{ForMathlib/Analysis/Asymptotics/Theta.lean} and \texttt{ForMathlib/Analysis/Calculus/Gradient/Basic.lean}.
+
+\medskip\noindent\textbf{Notation.}
+$d$ is the input dimension, $n$ the width, $m$ the number of training points. The inputs are
+$x^1,\dots,x^m\in\mathbb R^d$ (a function $X:\mathrm{Fin}\,m\to\mathrm{Fin}\,d\to\mathbb R$ in Lean), the labels form
+$y\in\mathbb R^m$, and $\varphi:\mathbb R\to\mathbb R$ is the activation. The hidden weights are the rows
+$w_1,\dots,w_n\in\mathbb R^d$ of $W$, the readout weights $a\in\mathbb R^n$, and the flat parameter is
+$\theta=\mathrm{packParams}(W,a)\in\mathbb R^{nd+n}$ (Definition~\ref{def:ntktl:packing}). The \emph{preactivation} of
+neuron $i$ on sample $\alpha$ is $h_i^\alpha:=d^{-1/2}\langle w_i,x^\alpha\rangle$. The loss is
+$L(\theta)=\frac1{2m}\sum_\alpha(f(x^\alpha;\theta)-y^\alpha)^2$ (Definition~\ref{def:ntkgf:outputs}).
+Asymptotic statements are as $n\to\infty$ along $\mathbb N$, and $f=\Theta(g)$ means $f=O(g)$ and $g=O(f)$
+(Mathlib's \texttt{IsTheta}).
+
+\medskip\noindent\textbf{Which definitions are not introduced.}
+Following the repository's convention, only two new objects are defined in this chapter:
+the scaled network $f_\gamma$ (Definition~\ref{def:ntkfl:network}) and the velocity field $b$
+(Definition~\ref{def:ntkfl:velocity}). The input Gram matrix $\Phi_0$, the preactivations $h_i^\alpha$, the
+normalized kernel $K^{(n)}$, the one-step weights, the feature-learning criterion, the empirical measure of the neurons
+and the mean-field loss $L(\rho)$ are all written out explicitly or are existing objects
+(\texttt{empiricalNTKMatrix}, \texttt{mseLoss}, \texttt{MeasureTheory.empiricalMeasure}).
+
+
+\section{General tools}\label{sec:ntkfl:tools}
+
+\begin{lemma}[Asymptotic equivalence: powers and quotients]\label{lem:ntkfl:theta}
+  \lean{Asymptotics.isTheta_pow_iff, Asymptotics.isTheta_iff_div_isTheta_one,
+        Asymptotics.isTheta_sq_div_one_iff}
+  \leanok
+Let $f,g:\alpha\to\mathbb K$ ($\mathbb K$ a normed field) along a filter $l$.
+(1) For $k\ne0$: $f^k=\Theta(g^k)\iff f=\Theta(g)$.
+(2) If $g$ is eventually nonzero: $f=\Theta(g)\iff f/g=\Theta(1)$.
+(3) If $g$ is eventually nonzero: $(f/g)^2=\Theta(1)\iff f=\Theta(g)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) $\Rightarrow$: if $|f|^k\le C|g|^k$ then $|f|\le C^{1/k}|g|$ (Mathlib's \texttt{IsBigO.of\_pow}), and symmetrically;
+$\Leftarrow$ is \texttt{IsTheta.pow}. (2) Dividing $|f|\le C|g|$ by $|g|\neq0$ gives $|f/g|\le C$ and conversely.
+(3) is (1) with $k=2$ applied to $f/g$ and $1$, followed by (2).
+\end{proof}
+
+These three facts are the only asymptotic bookkeeping needed: every statement of Sections~\ref{sec:ntkfl:criterion}
+and~\ref{sec:ntkfl:regimes} is Mathlib's \texttt{IsTheta.mul}/\texttt{.div}/\texttt{.pow} plus this lemma.
+
+\begin{definition}[Empirical measure of a finite family]\label{def:ntkfl:empirical}
+  \lean{MeasureTheory.empiricalMeasure}
+  \leanok
+For a finite family $x=(x_i)_{i\in\iota}$ in a measurable space the \emph{empirical measure} is
+$\hat\rho_x:=\frac1{|\iota|}\sum_{i\in\iota}\delta_{x_i}$.
+\end{definition}
+
+\begin{lemma}[Integrating against an empirical measure]\label{lem:ntkfl:empirical}
+  \uses{def:ntkfl:empirical}
+  \lean{MeasureTheory.empiricalMeasure_univ, MeasureTheory.integral_empiricalMeasure,
+        MeasureTheory.lintegral_empiricalMeasure, MeasureTheory.empiricalMeasure_comp_equiv}
+  \leanok
+(1) If $\iota\ne\emptyset$ then $\hat\rho_x$ is a probability measure.
+(2) If singletons are measurable, then for every $g:\alpha\to E$ (with $E$ a Banach space) and every $\iota$,
+$\int g\,d\hat\rho_x=\frac1{|\iota|}\sum_ig(x_i)$ \emph{with no measurability or integrability hypothesis}; the
+same holds for the $[0,\infty]$-valued integral.
+(3) For a bijection $e:\kappa\simeq\iota$, $\hat\rho_{x\circ e}=\hat\rho_x$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) $\hat\rho_x(\alpha)=|\iota|^{-1}\cdot|\iota|=1$. (2) A finite sum of Dirac masses on a space with measurable singletons
+integrates every function: $\int g\,d\delta_{x_i}=g(x_i)$ and the integral is linear in the measure. (3) $\sum_{j\in\kappa}\delta_{x_{e(j)}}=\sum_{i\in\iota}\delta_{x_i}$
+by reindexing the sum, and $|\kappa|=|\iota|$.
+\end{proof}
+
+\begin{lemma}[Scaling the output of a predictor]\label{lem:ntkfl:constMul}
+  \lean{gradient_const_mul, NTK.tangentFeature_const_mul, NTK.outputJacobian_const_mul,
+        NTK.empiricalNTKMatrix_const_mul}
+  \leanok
+Let $f$ be any model and $c\in\mathbb R$. Then $\nabla(c\,g)=c\,\nabla g$ for any scalar function $g$ on an inner product space; the tangent features of $cf$
+are $c$ times those of $f$; the output Jacobian of $cf$ is $c\,J_f$; and the empirical NTK matrix of $cf$ is
+$c^2K_f$.
+\end{lemma}
+
+\begin{proof}
+  \uses{def:ntkgf:jacobian}
+  \leanok
+The gradient is linear (Mathlib only has the \texttt{fderiv} version, hence the new lemma \texttt{gradient\_const\_mul}).
+The Jacobian rows are the tangent features, and $K=JJ^\top$ gives $K_{cf}=(cJ)(cJ)^\top=c^2K_f$.
+\end{proof}
+
+
+\section{The scaled network, single-neuron gradients and the one-step feature update}\label{sec:ntkfl:basic}
+
+\begin{definition}[The network with scaling knob $\gamma$]\label{def:ntkfl:network}
+  \uses{def:ntktl:network, def:ntktl:packing}
+  \lean{NTK.featureLearningNetwork}
+  \leanok
+For $\gamma\in\mathbb R$ the network with scaling knob $\gamma$ is
+\[
+  f_\gamma(x;\theta):=\gamma^{-1}f\bigl(x/\sqrt d;\theta\bigr),\qquad\text{i.e.}\qquad
+  f_\gamma(x;W,a)=\frac1{\gamma\sqrt n}\sum_{i=1}^na_i\,\varphi\Bigl(\frac{\langle w_i,x\rangle}{\sqrt d}\Bigr),
+\]
+where $f$ is the network of Definition~\ref{def:ntktl:network} (the Lean name is \texttt{netFromParams}, and the second formula is
+\texttt{featureLearningNetwork\_packParams\_eq\_sum}). The case $\gamma=1$ is the NTK parametrization (Jacot et al.\ 2018)
+and $\gamma=\sqrt n$ the mean-field parametrization, in which the prefactor is $1/n$.
+\end{definition}
+
+\begin{lemma}[Mean-field prefactor and the normalized kernel]\label{lem:ntkfl:gammaNTK}
+  \uses{def:ntkfl:network, lem:ntkfl:constMul, thm:ntktl:scaledDataset}
+  \lean{NTK.featureLearningNetwork_packParams, NTK.featureLearningNetwork_packParams_eq_sum,
+        NTK.featureLearningNetwork_sqrt_packParams, NTK.differentiableAt_featureLearningNetwork,
+        NTK.tangentFeature_featureLearningNetwork, NTK.outputJacobian_featureLearningNetwork,
+        NTK.empiricalNTKMatrix_featureLearningNetwork, NTK.empiricalNTKMatrix_featureLearningNetwork_one,
+        NTK.empiricalNTKMatrix_featureLearningNetwork_sqrt,
+        NTK.trainingResidual_featureLearningNetwork_add}
+  \leanok
+Let $\tilde x^\alpha:=x^\alpha/\sqrt d$, and let $K^{(n)}(\theta)$ be the empirical NTK matrix of $f$ on the scaled dataset $(\tilde x^\alpha)$
+(the \emph{normalized kernel}; by Theorem~\ref{thm:ntktl:scaledDataset} it equals the neuron average
+$K^{(n),\alpha\beta}=\frac1n\sum_i[\varphi(h_i^\alpha)\varphi(h_i^\beta)+a_i^2\varphi'(h_i^\alpha)\varphi'(h_i^\beta)\Phi_0^{\alpha\beta}]$ with
+$\Phi_0^{\alpha\beta}=\frac1d\langle x^\alpha,x^\beta\rangle$). Then for every $\gamma$ and $\theta$:
+\begin{enumerate}
+  \item (mean-field prefactor) $f_{\sqrt n}(x;W,a)=\frac1n\sum_ia_i\varphi(\langle w_i,x\rangle/\sqrt d)$;
+  \item if $\varphi$ is differentiable, $\nabla_\theta f_\gamma(x;\theta)=\gamma^{-1}\nabla_\theta f(x/\sqrt d;\theta)$, and the output Jacobian of $f_\gamma$
+        is $\gamma^{-1}J(\theta)$;
+  \item the empirical NTK matrix of $f_\gamma$ is $\gamma^{-2}K^{(n)}(\theta)$; in particular it is $K^{(n)}$ for $\gamma=1$ and $n^{-1}K^{(n)}$ for $\gamma=\sqrt n$;
+  \item the residual $r_\gamma(\theta)=f_\gamma(\theta)-y$ satisfies $r_\gamma(\theta)+y=\gamma^{-1}\bigl(r_1(\theta)+y\bigr)$, where $r_1$ is the residual of $f$ on the scaled dataset:
+        the predictions are scaled by $\gamma^{-1}$, the target is not.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is (the formula above) with $\gamma=\sqrt n$ and $\sqrt n\sqrt n=n$. (2)--(3) are Lemma~\ref{lem:ntkfl:constMul} with $c=\gamma^{-1}$ applied to $x\mapsto f(x/\sqrt d;\theta)$, whose
+NTK matrix is $K^{(n)}$ by definition of the scaled dataset. (4) is a coordinatewise computation: $f_\gamma(x^\alpha)-y^\alpha+y^\alpha=\gamma^{-1}f(\tilde x^\alpha)$.
+\end{proof}
+
+\begin{theorem}[Single-neuron gradients of the loss]\label{thm:ntkfl:gradients}
+  \uses{def:ntkfl:network, lem:ntkfl:gammaNTK, thm:ntkgf:mseGradient}
+  \lean{NTK.inner_tangentFeature_featureLearningNetwork, NTK.gradient_inputWeight_mseLoss,
+        NTK.gradient_readout_mseLoss}
+  \leanok
+Let $\varphi$ be differentiable, $\gamma\in\mathbb R$, $\theta=\mathrm{packParams}(W,a)$ and write
+$f^\beta=f_\gamma(x^\beta;\theta)$. For the loss $L=\mathrm{mseLoss}(f_\gamma)$ on $(X,y)$:
+\begin{align*}
+  \partial_{a_i}L(\theta)&=\frac1{m\,\gamma\sqrt n}\sum_{\beta=1}^m(f^\beta-y^\beta)\,\varphi(h_i^\beta),\\
+  \partial_{w_{ij}}L(\theta)&=\frac1{m\,\gamma\sqrt n\sqrt d}\sum_{\beta=1}^m(f^\beta-y^\beta)\,a_i\,\varphi'(h_i^\beta)\,x^\beta_j .
+\end{align*}
+Moreover, for $d>0$, the Gram matrix of the tangent features is
+$\langle\nabla f_\gamma^\alpha,\nabla f_\gamma^\beta\rangle=\gamma^{-2}K^{(n),\alpha\beta}$ with $K^{(n)}$ the explicit neuron average of Lemma~\ref{lem:ntkfl:gammaNTK}.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntkgf:mseGradient}, $\nabla L=\frac1m\sum_\beta(f^\beta-y^\beta)\nabla f_\gamma^\beta$, and by Lemma~\ref{lem:ntkfl:gammaNTK}(2) $\nabla f_\gamma^\beta=\gamma^{-1}\nabla f(\tilde x^\beta;\cdot)$.
+Differentiating $f(\tilde x;\theta)=n^{-1/2}\sum_ia_i\varphi(\langle w_i,\tilde x\rangle)$ gives $\partial_{a_i}=n^{-1/2}\varphi(h_i)$ and $\partial_{w_{ij}}=n^{-1/2}a_i\varphi'(h_i)\,\tilde x_j$ with $\tilde x_j=x_j/\sqrt d$. The Gram statement is item~(3) of Lemma~\ref{lem:ntkfl:gammaNTK}
+evaluated entrywise.
+\end{proof}
+
+\begin{theorem}[Exact one-step feature update]\label{thm:ntkfl:oneStep}
+  \uses{thm:ntkfl:gradients}
+  \lean{NTK.one_step_preactivation_update}
+  \leanok
+Let $\varphi$ be differentiable and $(W',a')$ be the parameters after one gradient step of size $\eta$,
+$\mathrm{packParams}(W',a')=\mathrm{packParams}(W,a)-\eta\nabla L(W,a)$, for the loss of $f_\gamma$. Then the preactivation of hidden unit $i$ on sample $\alpha$
+moves by
+\[
+  \Delta h_i^\alpha=d^{-1/2}\langle w_i'-w_i,x^\alpha\rangle=-\frac{\eta}{m\gamma\sqrt n}\sum_{\beta=1}^m(f^\beta-y^\beta)\,a_i\,\varphi'(h_i^\beta)\,\Phi_0^{\beta\alpha},
+  \qquad\Phi_0^{\beta\alpha}=\frac1d\langle x^\beta,x^\alpha\rangle .
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:ntkfl:gradients} the row $w_i'-w_i$ equals $-\frac{\eta}{m\gamma\sqrt n\sqrt d}\sum_\beta c_{i\beta}\,x^\beta$ with
+$c_{i\beta}=(f^\beta-y^\beta)a_i\varphi'(h_i^\beta)$. Taking the inner product with $x^\alpha$ and multiplying by $d^{-1/2}$ turns
+$\frac1{\sqrt d}\cdot\frac1{\sqrt d}\langle x^\beta,x^\alpha\rangle$ into $\Phi_0^{\beta\alpha}$.
+\end{proof}
+
+\begin{theorem}[Function-space dynamics with the scaling knob]\label{thm:ntkfl:predictorODE}
+  \uses{lem:ntkfl:gammaNTK, thm:ntkgf:outputODE}
+  \lean{NTK.hasDerivAt_predictor_featureLearningNetwork}
+  \leanok
+Let $\varphi$ be differentiable and let $\theta(\cdot)$ follow gradient flow at rate $\eta$ for the loss of $f_\gamma$, $\theta'(t)=-\eta\nabla L(\theta(t))$. Then the training predictions
+$f_\gamma(\theta(t))=(f_\gamma(x^\alpha;\theta(t)))_\alpha$ are differentiable and
+\[
+  \partial_tf_\gamma(\theta(t))=-\frac{\eta}{m\gamma^2}\,K^{(n)}(\theta(t))\,r_\gamma(\theta(t)).
+\]
+Thus the predictor moves at speed $\Theta(\eta/\gamma^2)$ times an order-one kernel, while Theorem~\ref{thm:ntkfl:oneStep}
+shows that the features move at the scale $\eta/(\gamma\sqrt n)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Apply the rate-$\eta$ output ODE $\partial_tf=-\frac\eta mK_tr$ of Theorem~\ref{thm:ntkgf:outputODE} to the model $f_\gamma$, and replace its NTK matrix by $\gamma^{-2}K^{(n)}$ (Lemma~\ref{lem:ntkfl:gammaNTK}(3)).
+\end{proof}
+
+\begin{remark}[Reuse]
+The unit-rate ODE chain of Chapter~\ref{chap:ntkgf} was generalized to an arbitrary rate $\eta$ for this chapter: the rate-$\eta$ theorem is the primitive,
+and the unit-rate statements (\texttt{gradient\_flow\_output\_vector\_ode\_sub\_y}, \texttt{gradient\_flow\_residual\_vector\_ode},
+\texttt{risk\_dissipation\_identity}) are its $\eta=1$ cases.
+\end{remark}
+
+
+\section{The feature-learning criterion}\label{sec:ntkfl:criterion}
+
+\begin{remark}[Definition 4.1 (feature learning)]\label{def:ntkfl:criterion}
+The hidden layer \emph{learns features} at a gradient step on sample $\alpha$ when the normalized squared displacement of the preactivations
+is of order one,
+\[
+  \frac1n\|\Delta h^\alpha\|^2=\frac1n\sum_{i=1}^n(\Delta h_i^\alpha)^2=\Theta(1)\qquad(n\to\infty).
+\]
+No separate definition is made in Lean: the criterion is Mathlib's \texttt{IsTheta} along \texttt{atTop} applied to the sequence $n\mapsto n^{-1}\sum_{i<n}(\Delta h_i^\alpha)^2$ and the constant $1$,
+with $\Delta h$ the explicit expression of Theorem~\ref{thm:ntkfl:oneStep}.
+\end{remark}
+
+\begin{theorem}[Exact scaling of the normalized displacement]\label{thm:ntkfl:displacement}
+  \uses{lem:ntkfl:theta}
+  \lean{NTK.normalized_sq_displacement_isTheta}
+  \leanok
+Suppose $\Delta h_i^{(n)}=c_nS_i^{(n)}$ for all $n,i$ and the neuron average $\frac1n\sum_i(S_i^{(n)})^2=\Theta(1)$ (typical coordinates are of order one).
+Then $\frac1n\sum_i(\Delta h_i^{(n)})^2=\Theta(c_n^2)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+$\frac1n\sum_i(c_nS_i)^2=c_n^2\cdot\frac1n\sum_iS_i^2$, and a product of $c_n^2$ with a $\Theta(1)$ sequence is $\Theta(c_n^2)$.
+\end{proof}
+
+\begin{theorem}[Fundamental learning-rate condition]\label{thm:ntkfl:criterion}
+  \uses{thm:ntkfl:oneStep, thm:ntkfl:displacement, lem:ntkfl:theta}
+  \lean{NTK.featureLearning_criterion_iff_learningRate, NTK.featureLearning_iff_learningRate_of_oneStep}
+  \leanok
+(1) For positive sequences $\gamma_n$ and any $\eta_n$:
+$\bigl(\eta_n/(\gamma_n\sqrt n)\bigr)^2=\Theta(1)\iff\eta_n=\Theta(\gamma_n\sqrt n)$.
+(2) Let $\varphi$ be differentiable, $m>0$, and for each $n$ let $(W_n',a_n')$ be obtained from $(W_n,a_n)$ by one gradient step of size $\eta_n$ on the loss of $f_{\gamma_n}$ (fixed data $X,y$).
+Fix a sample $\alpha$ and write $S_i^{(n)}:=\sum_\beta(f^\beta-y^\beta)\,a_i\,\varphi'(h_i^\beta)\,\Phi_0^{\beta\alpha}$. If $\frac1n\sum_i(S_i^{(n)})^2=\Theta(1)$, then
+\[
+  \frac1n\sum_{i=1}^n(\Delta h_i^\alpha)^2=\Theta(1)\iff\eta_n=\Theta(\gamma_n\sqrt n).
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) is Lemma~\ref{lem:ntkfl:theta}(3) with $f=\eta$, $g=\gamma\sqrt n$ (nonzero since $\gamma_n>0$). (2) By Theorem~\ref{thm:ntkfl:oneStep}, $\Delta h_i=c_nS_i$ with $c_n=-\eta_n/(m\gamma_n\sqrt n)$.
+Theorem~\ref{thm:ntkfl:displacement} gives $\frac1n\sum_i\Delta h_i^2=\Theta(c_n^2)$ and $c_n^2=m^{-2}(\eta_n/(\gamma_n\sqrt n))^2$ is $\Theta$ of $(\eta_n/(\gamma_n\sqrt n))^2$ because $m^{-2}\ne0$ is a constant. Combine with (1).
+\end{proof}
+
+
+\section{The scaling regimes and the unique balance}\label{sec:ntkfl:regimes}
+
+Two quantities govern the dynamics (Theorems~\ref{thm:ntkfl:oneStep} and~\ref{thm:ntkfl:predictorODE}): the \emph{feature motion} $(\eta/(\gamma\sqrt n))^2$ (the normalized
+squared displacement of the features, up to the constant $m^{-2}$) and the \emph{function motion} $\eta/\gamma^2$ (the speed of the predictor).
+
+\begin{theorem}[Master scaling lemma]\label{thm:ntkfl:master}
+  \lean{NTK.scales_isTheta}
+  \leanok
+If $\gamma=\Theta(\gamma')$ and $\eta=\Theta(\eta')$ then $(\eta/(\gamma\sqrt n))^2=\Theta\bigl((\eta'/(\gamma'\sqrt n))^2\bigr)$ and $\eta/\gamma^2=\Theta(\eta'/\gamma'^2)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Quotients, products with $\sqrt n$, and powers preserve $\Theta$ (\texttt{IsTheta.div}, \texttt{.mul}, \texttt{.pow}).
+\end{proof}
+
+\begin{theorem}[The three regimes]\label{thm:ntkfl:regimes}
+  \uses{thm:ntkfl:master, thm:ntkfl:criterion}
+  \lean{NTK.scaling_lazy_ntk_dynamics, NTK.isLittleO_sqrt_of_lazy_learningRate,
+        NTK.scaling_naive_large_eta_instability, NTK.scaling_mean_field_isTheta_one,
+        NTK.scaling_mean_field_muP_balance}
+  \leanok
+\begin{enumerate}
+  \item (Lazy / NTK: $\gamma=1$, $\eta=\Theta(1)$.) Feature motion $=\Theta(n^{-1})\to0$ and function motion $=\Theta(1)$; moreover $\eta=O(1)$ implies $\eta=o(\sqrt n)$, i.e.\ $\eta$ is below the feature-learning scale.
+  \item (Naive large rate: $\gamma=1$, $\eta=\Theta(\sqrt n)$.) Feature motion $=\Theta(1)$ (features are learned), but function motion $=\Theta(\sqrt n)\to\infty$: the predictor dynamics blow up.
+  \item (Mean field / $\mu$P: $\gamma=\sqrt n$, $\eta=\Theta(n)$, e.g.\ $\eta=\eta_0n$ with $\eta_0\ne0$.) Both feature motion and function motion are $\Theta(1)$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Each case is Theorem~\ref{thm:ntkfl:master} against a reference pair $(\gamma',\eta')$. (1) With $\gamma=1$: $(1/\sqrt n)^2=1/n$, and $1/n\to0$. (2) With $\gamma=1$, $\eta=\Theta(\sqrt n)$, Theorem~\ref{thm:ntkfl:criterion}(1) gives feature motion $\Theta(1)$, and $\eta/1=\Theta(\sqrt n)\to\infty$ in norm. (3) With $\gamma=\sqrt n$:
+$\sqrt n\sqrt n=n$ and $\sqrt n^2=n$, so both scales are $(\eta/n)^2$ and $\eta/n$, which are $\Theta(1)$ exactly when $\eta=\Theta(n)$.
+The statement $\eta=O(1)\Rightarrow\eta=o(\sqrt n)$ is Mathlib's \texttt{IsBigO.trans\_isLittleO} with $1=o(\sqrt n)$.
+\end{proof}
+
+\begin{theorem}[Unique balanced scaling]\label{thm:ntkfl:balance}
+  \uses{thm:ntkfl:criterion, thm:ntkfl:regimes, lem:ntkfl:theta}
+  \lean{NTK.featureMotion_and_functionMotion_isTheta_one_iff, NTK.unique_scaling_balance_solution,
+        NTK.featureMotion_and_functionMotion_isTheta_one_iff_meanField}
+  \leanok
+Let $\gamma_n$ be eventually nonzero. Then
+\[
+  \Bigl(\bigl(\tfrac{\eta_n}{\gamma_n\sqrt n}\bigr)^2=\Theta(1)\ \wedge\ \tfrac{\eta_n}{\gamma_n^2}=\Theta(1)\Bigr)
+  \iff\bigl(\eta=\Theta(\gamma\sqrt n)\ \wedge\ \eta=\Theta(\gamma^2)\bigr)
+  \iff\bigl(\gamma=\Theta(\sqrt n)\ \wedge\ \eta=\Theta(n)\bigr).
+\]
+That is, the mean-field scaling $\gamma\asymp\sqrt n$, $\eta\asymp n$ is the \emph{only} one in which the features and the predictor both move at order one.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The first equivalence is Lemma~\ref{lem:ntkfl:theta}(3) for the feature motion and (2) for the function motion ($\eta/\gamma^2=\Theta(1)\iff\eta=\Theta(\gamma^2)$).
+For the second, ``$\Leftarrow$'': $\gamma=\Theta(\sqrt n)$ gives $\gamma\sqrt n=\Theta(n)$ and $\gamma^2=\Theta(n)$, so $\eta=\Theta(n)$ is $\Theta$ of both. ``$\Rightarrow$'': from
+$\eta=\Theta(\gamma\sqrt n)$ and $\eta=\Theta(\gamma^2)$ we get $\gamma\sqrt n=\Theta(\gamma^2)$; dividing by the eventually nonzero $\gamma$ yields $\sqrt n=\Theta(\gamma)$, and then $\eta=\Theta(\gamma\sqrt n)=\Theta(\sqrt n\sqrt n)=\Theta(n)$.
+\end{proof}
+
+
+\section{Stability: the initial residual and the kernel drift}\label{sec:ntkfl:stability}
+
+\begin{theorem}[Initial residual stability]\label{thm:ntkfl:initialResidual}
+  \uses{lem:ntkfl:gammaNTK, thm:ntktl:initialWeakLimit}
+  \lean{NTK.tendsto_initial_trainingResidual_add_target}
+  \leanok
+Let $\varphi$ be measurable with $w\mapsto\varphi(\langle w,\tilde x^\alpha\rangle)$ in $L^2(\mathcal N(0,I_d))$ for each $\alpha$ (with $\tilde x^\alpha=x^\alpha/\sqrt d$), and let $\gamma_n\to\infty$ (for example the mean-field value $\gamma_n=\sqrt n$).
+Under the Gaussian initialization $\mu_{n,d}$ (Definition~\ref{def:ntktl:init}), for every $\varepsilon>0$,
+\[
+  \mu_{n,d}\bigl(\|r_{\gamma_n}(0)+y\|\ge\varepsilon\bigr)\longrightarrow0\qquad(n\to\infty).
+\]
+In words: the initial prediction of $f_{\gamma_n}$ is negligible, so the initial residual is $-y+o_P(1)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:ntkfl:gammaNTK}(4), $r_{\gamma_n}(0)+y=\gamma_n^{-1}(r_1(0)+y)$ with $r_1$ the residual of $f$ on the scaled dataset. By Theorem~\ref{thm:ntktl:initialWeakLimit} (the part giving a width-independent radius), for every $\delta>0$ there is $R$ with
+$\mu_{n,d}(\|r_1(0)\|>R)\le\delta$ for all $n$. On the complement, $\|r_1(0)+y\|\le R+\|y\|$, so $\|r_{\gamma_n}(0)+y\|\le(R+\|y\|)/\gamma_n<\varepsilon$ as soon as $\gamma_n>(R+\|y\|)/\varepsilon$, which holds eventually.
+Hence the probability is at most $\delta$ for all large $n$.
+\end{proof}
+
+\begin{theorem}[The kernel drift of one step is controlled by the feature motion]\label{thm:ntkfl:kernelDrift}
+  \uses{thm:ntkfl:gradients, thm:ntktl:jacobianLipschitz, thm:ntkgf:kernelLipschitz, thm:ntkgf:mseGradient}
+  \lean{NTK.norm_oneStep_displacement_le, NTK.kernel_drift_oneStep_le}
+  \leanok
+Let $n>0$, $C_1,C_2,R\ge0$, and let $\varphi$ be differentiable and $C_1$-Lipschitz, $|\varphi'|\le C_1$ and $\varphi'$ $C_2$-Lipschitz; let $\gamma>0$, $\eta\in\mathbb R$, and $\theta_1=\theta_0-\eta\nabla L(\theta_0)$ be one step on the loss of $f_\gamma$. Write $J$ for the Jacobian of $f$ on the scaled dataset and
+$K^{(n)}=JJ^\top$. Assume $\|J(\theta_0)\|,\|J(\theta_1)\|\le M$, $\|r_\gamma(\theta_0)\|\le\rho$, the readouts of $\theta_1$ are bounded by $R$, and $K_c\ge\bigl(\sum_\alpha(2R^2C_2^2\|\tilde x^\alpha\|^4+3C_1^2\|\tilde x^\alpha\|^2)\bigr)^{1/2}$. Then (with Frobenius norms)
+\begin{align*}
+  \|\theta_1-\theta_0\|&\le\frac{|\eta|}{\gamma}\cdot\frac{M\rho}{m},\\
+  \|K^{(n)}(\theta_1)-K^{(n)}(\theta_0)\|&\le\frac{2M^2\rho K_c}{m}\cdot\Bigl|\frac{\eta}{\gamma\sqrt n}\Bigr|\qquad(n>0).
+\end{align*}
+The last factor is the square root of the feature motion of Section~\ref{sec:ntkfl:regimes}.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Displacement: $\theta_1-\theta_0=-\eta\nabla L(\theta_0)$ and, by Theorem~\ref{thm:ntkgf:mseGradient}, $\|\nabla L\|\le m^{-1}\|J_\gamma\|\,\|r_\gamma\|$ with $J_\gamma=\gamma^{-1}J$ (Lemma~\ref{lem:ntkfl:gammaNTK}(2)), giving $\|\nabla L\|\le\gamma^{-1}m^{-1}M\rho$.
+Kernel: by Theorem~\ref{thm:ntktl:jacobianLipschitz}, $\|J(\theta_1)-J(\theta_0)\|\le(K_c/\sqrt n)\|\theta_1-\theta_0\|$, and by Theorem~\ref{thm:ntkgf:kernelLipschitz}, $\|K(\theta_1)-K(\theta_0)\|\le2M\|J(\theta_1)-J(\theta_0)\|$. Chaining,
+$\|K(\theta_1)-K(\theta_0)\|\le2M\cdot\frac{K_c}{\sqrt n}\cdot\frac{|\eta|}{\gamma}\frac{M\rho}m=\frac{2M^2\rho K_c}{m}\bigl|\frac{\eta}{\gamma\sqrt n}\bigr|$.
+\end{proof}
+
+\begin{theorem}[Kernel freeze below the feature-learning scale]\label{thm:ntkfl:freeze}
+  \uses{thm:ntkfl:kernelDrift, thm:ntkfl:regimes}
+  \lean{NTK.tendsto_kernel_drift_of_isLittleO}
+  \leanok
+Under the hypotheses of Theorem~\ref{thm:ntkfl:kernelDrift} with constants $C_1,C_2,R,M,\rho,K_c$ uniform in the width (the bounds on $J$ and $r$ holding eventually in $n$) and $\gamma_n>0$, if
+$\eta_n=o(\gamma_n\sqrt n)$, then $\|K^{(n)}(\theta_1^{(n)})-K^{(n)}(\theta_0^{(n)})\|\to0$. In particular this holds in the lazy regime $\gamma=1$, $\eta=O(1)$ (Theorem~\ref{thm:ntkfl:regimes}(1)).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+$|\eta_n/(\gamma_n\sqrt n)|\to0$ because $\eta_n=o(\gamma_n\sqrt n)$ (\texttt{IsLittleO.tendsto\_div\_nhds\_zero}); the drift is squeezed between $0$ and $\frac{2M^2\rho K_c}{m}|\eta_n/(\gamma_n\sqrt n)|$ by Theorem~\ref{thm:ntkfl:kernelDrift}.
+\end{proof}
+
+\begin{remark}[What is not formalized: the converse of the freeze]\label{rmk:ntkfl:noConverse}
+The informal dichotomy ``kernel frozen iff features not learned'' has two halves. The half above (below the feature-learning scale the kernel is frozen, with an explicit rate) is proved. The converse (feature learning, $\eta=\Theta(\gamma\sqrt n)$, forces $\|K_1-K_0\|\not\to0$) is \emph{not} formalized and does not follow from the criterion alone: order-one motion of every feature does not force a change of the Gram matrix, since neuron relabelling, sign flips for an even activation, or an orthogonal mixing of hidden units can move features while leaving $K^{(n)}$ unchanged. A lower bound therefore needs a non-degeneracy hypothesis on $\varphi$ and the data, whose verification at Gaussian initialization would require a law of large numbers over neurons for the second-order kernel increment (the first-order terms cancel by the random signs of $a_i$) and the exclusion of coincidental cancellation. Likewise, Theorem~\ref{thm:ntkfl:initialResidual} is the convergence-in-probability form; the explicit $O_P(n^{-1/2})$ rate for the initial prediction is not formalized.
+\end{remark}
+
+
+\section{The mean-field description: the network as an integral over its neurons}\label{sec:ntkfl:meanfield}
+
+In the mean-field scaling $\gamma=\sqrt n$ the network depends on its neurons $p_i=(a_i,w_i)\in\Theta:=\mathbb R\times\mathbb R^d$ only through their empirical measure
+$\rho^{(n)}:=\frac1n\sum_i\delta_{p_i}$ (Definition~\ref{def:ntkfl:empirical}). For a general finite measure $\rho$ on $\Theta$ the \emph{mean-field predictor} is
+\[
+  f_\rho(x):=\int_\Theta a\,\varphi\Bigl(\frac{\langle w,x\rangle}{\sqrt d}\Bigr)\,\rho(da\,dw).
+\]
+No Lean definition is made: the integral $\int p_1\,\varphi(d^{-1/2}\langle p_2,x\rangle)\,d\rho(p)$ is written out in each statement, and the mean-field loss
+$L(\rho)=\frac1{2m}\sum_\alpha(f_\rho(x^\alpha)-y^\alpha)^2$ is the existing \texttt{mseLoss} applied to the function $(x,\rho)\mapsto f_\rho(x)$, which is possible because \texttt{mseLoss} and \texttt{trainingResidual} are polymorphic in the parameter space (here $\Theta=$ the space of measures on $\mathbb R\times\mathbb R^d$). (As a Bochner integral $f_\rho$ is $0$ where its integrand is not integrable; this never matters for the empirical measures treated here.)
+
+\begin{theorem}[Integral representation of the width-$n$ network (Definition 4.2)]\label{thm:ntkfl:integralRep}
+  \uses{def:ntkfl:empirical, lem:ntkfl:empirical, lem:ntkfl:gammaNTK}
+  \lean{NTK.integral_empiricalMeasure_neuron,
+        NTK.integral_empiricalMeasure_neuron_eq_featureLearningNetwork}
+  \leanok
+For every $n,d$, activation $\varphi$, readout weights $a$, hidden weights $W$ and input $x$ (no hypothesis on $\varphi$, and $n=0$ allowed),
+\[
+  f_{\rho^{(n)}}(x)=\frac1n\sum_{i=1}^na_i\,\varphi\Bigl(\frac{\langle w_i,x\rangle}{\sqrt d}\Bigr)=f_{\sqrt n}\bigl(x;\mathrm{packParams}(W,a)\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The first equality is Lemma~\ref{lem:ntkfl:empirical}(2) applied to $g(p)=p_1\,\varphi(d^{-1/2}\langle p_2,x\rangle)$ and the family $p_i=(a_i,w_i)$, which needs no integrability hypothesis; for $n=0$ both sides are $0$. The second is Lemma~\ref{lem:ntkfl:gammaNTK}(1).
+\end{proof}
+
+\begin{theorem}[The mean-field loss at the empirical measure is the network loss]\label{thm:ntkfl:lossRep}
+  \uses{thm:ntkfl:integralRep}
+  \lean{NTK.trainingResidual_integral_empiricalMeasure, NTK.mseLoss_integral_empiricalMeasure}
+  \leanok
+With $\rho^{(n)}=\hat\rho_{(a_i,w_i)}$, the training residual and the empirical MSE loss of $\rho\mapsto(f_\rho(x^\alpha))_\alpha$ at $\rho^{(n)}$ are those of the width-$n$ mean-field network $f_{\sqrt n}$ at $\mathrm{packParams}(W,a)$:
+$r(\rho^{(n)})=r_{\sqrt n}(W,a)$ and $L(\rho^{(n)})=L(W,a)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Both sides are built from the vector of predictions on the data, which agree coordinatewise by Theorem~\ref{thm:ntkfl:integralRep}; the loss is $(2m)^{-1}\|r\|^2$ of the residual.
+\end{proof}
+
+
+\section{Accelerated gradient flow as an interacting particle system}\label{sec:ntkfl:particles}
+
+\begin{definition}[The mean-field velocity field]\label{def:ntkfl:velocity}
+  \uses{thm:ntkfl:integralRep}
+  \lean{NTK.meanFieldVelocityField}
+  \leanok
+For $\eta_0\in\mathbb R$, a particle $p=(a,w)\in\mathbb R\times\mathbb R^d$ and a measure $\rho$ on $\mathbb R\times\mathbb R^d$ let $h^\beta:=d^{-1/2}\langle w,x^\beta\rangle$ and define $b(p,\rho)=(b_a,b_w)$ by
+\[
+  b_a(p,\rho)=-\frac{\eta_0}{m}\sum_{\beta=1}^m\bigl(f_\rho(x^\beta)-y^\beta\bigr)\varphi(h^\beta),\qquad
+  b_w(p,\rho)=-\frac{\eta_0}{m\sqrt d}\sum_{\beta=1}^m\bigl(f_\rho(x^\beta)-y^\beta\bigr)\,a\,\varphi'(h^\beta)\,x^\beta .
+\]
+\end{definition}
+
+\begin{theorem}[Cancellation of the width factor]\label{thm:ntkfl:cancellation}
+  \uses{def:ntkfl:velocity, thm:ntkfl:gradients, thm:ntkfl:integralRep}
+  \lean{NTK.width_factor_cancellation}
+  \leanok
+Let $\varphi$ be differentiable, $L$ the loss of the mean-field network $f_{\sqrt n}$ and $\theta=\mathrm{packParams}(W,a)$. For every neuron $i$ (so $n>0$) and every $m,d$,
+\[
+  b\bigl((a_i,w_i),\rho^{(n)}\bigr)=\bigl(-\eta_0n\,\partial_{a_i}L(\theta),\ -\eta_0n\,\nabla_{w_i}L(\theta)\bigr).
+\]
+That is, multiplying the single-neuron loss gradients (which carry the width factor $1/n$) by the accelerated rate $\eta_0n$ leaves an order-one velocity depending on the other neurons only through $\rho^{(n)}$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Theorem~\ref{thm:ntkfl:gradients} with $\gamma=\sqrt n$ gives $\partial_{a_i}L=\frac1{m\,n}\sum_\beta(f^\beta-y^\beta)\varphi(h_i^\beta)$ and $\partial_{w_i}L=\frac1{m\,n\sqrt d}\sum_\beta(f^\beta-y^\beta)a_i\varphi'(h_i^\beta)x^\beta$, because $\sqrt n\sqrt n=n$. By Theorem~\ref{thm:ntkfl:integralRep} each $f^\beta=f_{\sqrt n}(x^\beta)$ equals $f_{\rho^{(n)}}(x^\beta)$. Multiplying by $-\eta_0n$ cancels $n^{-1}$ and gives $b_a$, $b_w$ of Definition~\ref{def:ntkfl:velocity}.
+\end{proof}
+
+\begin{theorem}[The interacting particle system]\label{thm:ntkfl:particleODE}
+  \uses{thm:ntkfl:cancellation, thm:ntkgf:outputODE}
+  \lean{NTK.interacting_particle_system_ode}
+  \leanok
+Let $\varphi$ be differentiable and let $t\mapsto\theta(t)=\mathrm{packParams}(W(t),a(t))$ follow gradient flow at the accelerated rate $\eta_0n$ for the loss of $f_{\sqrt n}$: $\theta'(t)=-\eta_0n\nabla L(\theta(t))$.
+Then for every neuron $i$ the particle $t\mapsto(a_i(t),w_i(t))$ is differentiable and
+\[
+  \frac{d}{dt}\bigl(a_i(t),w_i(t)\bigr)=b\Bigl(\bigl(a_i(t),w_i(t)\bigr),\ \rho_t^{(n)}\Bigr),\qquad
+  \rho_t^{(n)}=\frac1n\sum_{j=1}^n\delta_{(a_j(t),w_j(t))}.
+\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+A curve in Euclidean space is differentiable with derivative $v$ iff each coordinate is, with derivative $v_k$ (\texttt{hasDerivAt\_euclideanSpace}). The coordinates of $\theta(t)$ at the indices of $a_i$ and $w_{ij}$ are $a_i(t)$ and $w_{ij}(t)$ (Definition~\ref{def:ntktl:packing}), and their derivatives are $-\eta_0n\,\partial_{a_i}L$ and $-\eta_0n\,\partial_{w_{ij}}L$ at $\theta(t)$. Theorem~\ref{thm:ntkfl:cancellation} identifies these with $b$ at $((a_i(t),w_i(t)),\rho_t^{(n)})$; the pair of components is a differentiable curve into $\mathbb R\times\mathbb R^d$.
+\end{proof}
+
+\begin{theorem}[Structure of the coupling]\label{thm:ntkfl:coupling}
+  \uses{def:ntkfl:velocity, lem:ntkfl:empirical}
+  \lean{NTK.meanFieldVelocityField_congr, NTK.mean_field_coupling_structure}
+  \leanok
+(1) If two measures $\rho,\rho'$ have the same predictions $f_\rho(x^\beta)=f_{\rho'}(x^\beta)$ on every data point then $b(p,\rho)=b(p,\rho')$ for every particle $p$:
+a particle feels the others \emph{only} through the scalar predictions on the data.
+(2) For any permutation $\sigma$ of the $n$ neurons, $b\bigl(p,\hat\rho_{(a_{\sigma(j)},w_{\sigma(j)})}\bigr)=b\bigl(p,\hat\rho_{(a_j,w_j)}\bigr)$: the coupling is all-to-all with the permutation-symmetric weight $1/n$ carried by the empirical measure.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+(1) $\rho$ enters $b$ only through $f_\rho(x^\beta)$. (2) is Lemma~\ref{lem:ntkfl:empirical}(3).
+\end{proof}
+
+\begin{remark}[What is and is not formalized in the mean-field part]
+The statements above are exact identities at each finite width $n$. Not formalized: the existence of the gradient flow itself (Theorem~\ref{thm:ntkfl:particleODE} takes the flow as a hypothesis), and the mean-field \emph{limit} $n\to\infty$ (propagation of chaos / convergence of $\rho_t^{(n)}$ to a solution of the limiting continuity equation), which is the content of Mei--Montanari--Nguyen and Chizat--Bach beyond the structural reduction proved here.
+\end{remark}
