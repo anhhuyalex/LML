@@ -1,5 +1,6 @@
 module  -- shake: keep-all --deprecated_module: ignore
 
+public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.ChainRule
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.CompProd
@@ -124,6 +125,7 @@ public import LeanMachineLearning.Optimization.NTK.Deep.LayerSplit
 public import LeanMachineLearning.Optimization.NTK.Deep.LayerwiseNTK
 public import LeanMachineLearning.Optimization.NTK.Deep.LimitingNTK
 public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Basic
+public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Criterion
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage

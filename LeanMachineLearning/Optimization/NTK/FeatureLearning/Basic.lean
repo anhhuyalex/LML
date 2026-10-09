@@ -28,12 +28,15 @@ gradient-descent updates `w⁺ = w - η ∂_w L` are written out explicitly.
 * `tangentFeature_const_mul`, `empiricalNTKMatrix_const_mul` (in `Shallow/DatasetNTK.lean`):
   scaling the output of any predictor by `c` scales its tangent features by `c` and its empirical
   NTK by `c²`.
+* `empiricalNTKMatrix_featureLearningNetwork_one`, `_sqrt`: the NTK-scaling (`γ = 1`) and
+  mean-field (`γ = √n`) cases of the `γ⁻²` scaling.
 * `inner_tangentFeature_featureLearningNetwork`: the Gram factorization
   `⟨∇f^α, ∇f^β⟩ = γ⁻² K^{(n), αβ}` with `K^{(n)}` the explicit neuron average.
 * `gradient_inputWeight_mseLoss`, `gradient_readout_mseLoss`: the single-neuron loss gradients.
 * `one_step_preactivation_update`: the exact feature update `Δh_i^α` of one gradient step.
 * `gradient_flow_output_vector_ode` (in `Dynamics.lean`): `∂_t f(t) = -(η/m) K_t r(t)` for gradient
-  flow at rate `η`; `hasDerivAt_predictor_featureLearningNetwork` is its form `-(η/(m γ²)) K^{(n)}_t r(t)`.
+  flow at rate `η`; `hasDerivAt_predictor_featureLearningNetwork` is its form
+  `-(η/(m γ²)) K^{(n)}_t r(t)`.
 
 ## References
 
@@ -88,6 +91,23 @@ lemma empiricalNTKMatrix_featureLearningNetwork (γ : ℝ) (X : Fin m → Fin d 
   rw [empiricalNTKMatrix_const_mul γ⁻¹ (fun x θ => netFromParams φ n d
     (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ) X θ]
   rfl
+
+/-- **NTK scaling** `γ = 1`: the empirical NTK of `featureLearningNetwork 1` is the existing
+neuron-sum object, the empirical NTK of `netFromParams` on the scaled dataset. -/
+lemma empiricalNTKMatrix_featureLearningNetwork_one (X : Fin m → Fin d → ℝ)
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    empiricalNTKMatrix (featureLearningNetwork 1 φ n d) X θ =
+      empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) θ := by
+  rw [empiricalNTKMatrix_featureLearningNetwork]
+  simp
+
+/-- **Mean-field scaling** `γ = √n`: the empirical NTK is `n⁻¹` times the NTK-scaling one. -/
+lemma empiricalNTKMatrix_featureLearningNetwork_sqrt (X : Fin m → Fin d → ℝ)
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    empiricalNTKMatrix (featureLearningNetwork (Real.sqrt n) φ n d) X θ =
+      (n : ℝ)⁻¹ • empiricalNTKMatrix (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) θ := by
+  rw [empiricalNTKMatrix_featureLearningNetwork, Real.sq_sqrt (Nat.cast_nonneg n)]
 
 /-- **Normalized empirical NTK Gram factorization.** For `θ = (W, a)`,
 `⟨∇_θ f^α, ∇_θ f^β⟩ = γ⁻² K^{(n), αβ}` with
