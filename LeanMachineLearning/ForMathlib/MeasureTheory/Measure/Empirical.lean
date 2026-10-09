@@ -23,6 +23,7 @@ it verbatim.
 ## Main declarations
 
 * `MeasureTheory.empiricalMeasure`: the measure `(card ι)⁻¹ • ∑ i, dirac (x i)`.
+* `MeasureTheory.empiricalMeasure_comp_equiv`: the empirical measure is invariant under reindexing.
 * `MeasureTheory.integral_empiricalMeasure`, `MeasureTheory.lintegral_empiricalMeasure`:
   `∫ g ∂(empiricalMeasure x) = (card ι)⁻¹ • ∑ i, g (x i)`.
 -/
@@ -47,6 +48,12 @@ lemma empiricalMeasure_univ [Nonempty ι] (x : ι → α) : empiricalMeasure x S
 instance instIsProbabilityMeasureEmpiricalMeasure [Nonempty ι] (x : ι → α) :
     IsProbabilityMeasure (empiricalMeasure x) :=
   ⟨empiricalMeasure_univ x⟩
+
+/-- Reindexing the family by an equivalence does not change its empirical measure. -/
+lemma empiricalMeasure_comp_equiv {κ : Type*} [Fintype κ] (e : κ ≃ ι) (x : ι → α) :
+    empiricalMeasure (x ∘ e) = empiricalMeasure x := by
+  simp only [empiricalMeasure, Fintype.card_congr e, Function.comp_apply]
+  rw [Equiv.sum_comp e (fun i => Measure.dirac (x i))]
 
 section MeasurableSingletonClass
 

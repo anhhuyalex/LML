@@ -25,8 +25,9 @@ gradient-descent updates `w⁺ = w - η ∂_w L` are written out explicitly.
 ## Main results and proof outline
 
 * `featureLearningNetwork`: the `γ`-scaled network, `γ⁻¹ • netFromParams` on the scaled input.
-* `tangentFeature_const_mul`, `empiricalNTKMatrix_const_mul`: scaling the output of any predictor
-  by `c` scales its tangent features by `c` and its empirical NTK by `c²`.
+* `tangentFeature_const_mul`, `empiricalNTKMatrix_const_mul` (in `Shallow/DatasetNTK.lean`):
+  scaling the output of any predictor by `c` scales its tangent features by `c` and its empirical
+  NTK by `c²`.
 * `inner_tangentFeature_featureLearningNetwork`: the Gram factorization
   `⟨∇f^α, ∇f^β⟩ = γ⁻² K^{(n), αβ}` with `K^{(n)}` the explicit neuron average.
 * `gradient_inputWeight_mseLoss`, `gradient_readout_mseLoss`: the single-neuron loss gradients.
@@ -44,30 +45,6 @@ gradient-descent updates `w⁺ = w - η ∂_w L` are written out explicitly.
 open scoped RealInnerProductSpace Matrix
 
 namespace NTK
-
-/-! ### Scaling the output of a predictor -/
-
-section ConstMul
-
-variable {ι : Type*} {P m : ℕ}
-
-/-- Scaling a predictor's output by `c` scales its tangent features by `c`. -/
-lemma tangentFeature_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (x : ι)
-    (θ : EuclideanSpace ℝ (Fin P)) :
-    tangentFeature (fun x θ => c * f x θ) x θ = c • tangentFeature f x θ :=
-  gradient_const_mul c _ θ
-
-/-- Scaling a predictor's output by `c` scales its empirical NTK matrix by `c²`. -/
-lemma empiricalNTKMatrix_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
-    (X : Fin m → ι) (θ : EuclideanSpace ℝ (Fin P)) :
-    empiricalNTKMatrix (fun x θ => c * f x θ) X θ = c ^ 2 • empiricalNTKMatrix f X θ := by
-  ext α β
-  simp only [empiricalNTKMatrix_apply, tangentFeature_const_mul, inner_smul_left,
-    inner_smul_right, Matrix.smul_apply, smul_eq_mul]
-  simp only [conj_trivial]
-  ring
-
-end ConstMul
 
 /-! ### The scaled two-layer network -/
 

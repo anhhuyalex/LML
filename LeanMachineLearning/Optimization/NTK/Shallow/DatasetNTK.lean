@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.Optimization.NTK.Foundations.MatrixUtil
 
 /-!
@@ -34,20 +35,21 @@ and the exact induced function-space training dynamics.
 variable {ι : Type*} {P : ℕ}
 
 /-- The residual error vector function:
-  `r(θ) = f(θ) - y ∈ ℝᵐ`. -/
-noncomputable def trainingResidual (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin m) :=
+  `r(θ) = f(θ) - y ∈ ℝᵐ`. The parameter space `Θ` is arbitrary (a Euclidean space of packed
+weights, or a space of measures in the mean-field limit). -/
+noncomputable def trainingResidual {Θ : Type*} (f : ι → Θ → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : Θ) : EuclideanSpace ℝ (Fin m) :=
   WithLp.toLp 2 (fun α => f (X α) θ) - y
 
 /-- The empirical Mean-Squared Error (MSE) loss objective:
   `L(θ) = (1 / 2m) ∑_α (f(x^α; θ) - y^α)² = (1 / 2m) ‖f(θ) - y‖² = (1 / 2m) ‖r(θ)‖²`. -/
-noncomputable def mseLoss (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) : ℝ :=
+noncomputable def mseLoss {Θ : Type*} (f : ι → Θ → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : Θ) : ℝ :=
   (2 * (m : ℝ))⁻¹ * ‖trainingResidual f X y θ‖ ^ 2
 
 /-- The mean-squared loss as an explicit sum: `(2m)⁻¹ ∑_α (f(x^α; θ) - y_α)²`. -/
-lemma mseLoss_eq_sum (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (X : Fin m → ι)
-    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin P)) :
+lemma mseLoss_eq_sum {Θ : Type*} (f : ι → Θ → ℝ) (X : Fin m → ι)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : Θ) :
     mseLoss f X y θ = (2 * (m : ℝ))⁻¹ * ∑ α : Fin m, (f (X α) θ - y α) ^ 2 := by
   simp [mseLoss, EuclideanSpace.real_norm_sq_eq, trainingResidual]
 
@@ -56,6 +58,12 @@ of the scalar output with respect to parameters. -/
 noncomputable def tangentFeature (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (x : ι)
     (θ : EuclideanSpace ℝ (Fin P)) : EuclideanSpace ℝ (Fin P) :=
   gradient (fun θ' => f x θ') θ
+
+/-- Scaling a predictor's output by `c` scales its tangent features by `c`. -/
+lemma tangentFeature_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (x : ι)
+    (θ : EuclideanSpace ℝ (Fin P)) :
+    tangentFeature (fun x θ => c * f x θ) x θ = c • tangentFeature f x θ :=
+  gradient_const_mul c _ θ
 
 /-- The network output Jacobian matrix evaluated on the training dataset `J(θ) ∈ ℝ^{m × P}`,
 whose `α`-th row is the transposed tangent feature vector `∇_θ f(x^α; θ)ᵀ`. -/
@@ -74,6 +82,16 @@ lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (
     (θ : EuclideanSpace ℝ (Fin P)) (α β : Fin m) :
     empiricalNTKMatrix f X θ α β = ⟪tangentFeature f (X α) θ, tangentFeature f (X β) θ⟫ := by
   simp [empiricalNTKMatrix, Matrix.mul_apply, outputJacobian, PiLp.inner_apply, mul_comm]
+
+/-- Scaling a predictor's output by `c` scales its empirical NTK matrix by `c²`. -/
+lemma empiricalNTKMatrix_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
+    (X : Fin m → ι) (θ : EuclideanSpace ℝ (Fin P)) :
+    empiricalNTKMatrix (fun x θ => c * f x θ) X θ = c ^ 2 • empiricalNTKMatrix f X θ := by
+  ext α β
+  simp only [empiricalNTKMatrix_apply, tangentFeature_const_mul, inner_smul_left,
+    inner_smul_right, Matrix.smul_apply, smul_eq_mul]
+  simp only [conj_trivial]
+  ring
 
 /-- The last row of the empirical NTK of the extended dataset `(X, x)` at `θ`: the train-test
 cross-kernel `⟪∇f(x; θ), ∇f(X α; θ)⟫` and the test norm `‖∇f(x; θ)‖²`. -/
