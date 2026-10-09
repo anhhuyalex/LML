@@ -56,22 +56,22 @@ noncomputable def risk {Ω : Type*} [MeasurableSpace Ω] (Sigma : Matrix p p ℝ
 
 /-- Bias term conditional on $X$:
 $$ B_X(\hat{\beta}; \beta) = \|\mathbb{E}(\hat{\beta} \mid X) - \beta\|_\Sigma^2 $$ -/
-noncomputable def bias_of_linear_estimator {Ω : Type*} [MeasurableSpace Ω]
+noncomputable def biasOfLinearEstimator {Ω : Type*} [MeasurableSpace Ω]
     (Sigma : Matrix p p ℝ) (μ : Measure Ω) (β_hat : Ω → EuclideanSpace ℝ p)
     (β : EuclideanSpace ℝ p) : ℝ :=
   ((∫ ω, β_hat ω ∂μ) - β : p → ℝ) ⬝ᵥ (Sigma *ᵥ ((∫ ω, β_hat ω ∂μ) - β))
 
 /-- Covariance matrix of $\hat{\beta}$ conditional on $X$:
 `[Cov(β_hat | X)]_{j, k} = Cov(β_hat_j, β_hat_k | X)`. -/
-noncomputable def covCondX_of_linear_estimator {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+noncomputable def covCondXOfLinearEstimator {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
     (β_hat : Ω → EuclideanSpace ℝ p) : Matrix p p ℝ :=
   fun j k => cov[fun ω => β_hat ω j, fun ω => β_hat ω k; μ]
 
 /-- Variance term conditional on $X$:
 $$ V_X(\hat{\beta}; \beta) = \operatorname{Tr}[\operatorname{Cov}(\hat{\beta} \mid X) \Sigma] $$ -/
-noncomputable def variance_of_linear_estimator {Ω : Type*} [MeasurableSpace Ω]
+noncomputable def varianceOfLinearEstimator {Ω : Type*} [MeasurableSpace Ω]
     (Sigma : Matrix p p ℝ) (μ : Measure Ω) (β_hat : Ω → EuclideanSpace ℝ p) : ℝ :=
-  Matrix.trace (covCondX_of_linear_estimator μ β_hat * Sigma)
+  Matrix.trace (covCondXOfLinearEstimator μ β_hat * Sigma)
 
 /-- Least squares loss $\|y - X b\|_2^2$. -/
 noncomputable def leastSquaresLoss (X : Matrix n p ℝ) (y : EuclideanSpace ℝ n)

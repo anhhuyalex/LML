@@ -40,7 +40,6 @@ variable {ι α E : Type*} [Fintype ι] [MeasurableSpace α]
 noncomputable def empiricalMeasure (x : ι → α) : Measure α :=
   (Fintype.card ι : ℝ≥0∞)⁻¹ • ∑ i, Measure.dirac (x i)
 
-@[simp]
 lemma empiricalMeasure_univ [Nonempty ι] (x : ι → α) : empiricalMeasure x Set.univ = 1 := by
   have h0 : (Fintype.card ι : ℝ≥0∞) ≠ 0 := by simp
   simp [empiricalMeasure, ENNReal.inv_mul_cancel h0 (ENNReal.natCast_ne_top _)]

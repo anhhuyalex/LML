@@ -58,6 +58,33 @@ noncomputable def featureLearningNetwork (γ : ℝ) (φ : ℝ → ℝ) (n d : �
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) : ℝ :=
   γ⁻¹ * netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ
 
+/-- Evaluating `featureLearningNetwork` on packed parameters `packParams W a` is
+`γ⁻¹` times `evalSingle` on the scaled input `x / √d`. -/
+@[simp]
+lemma featureLearningNetwork_packParams (γ : ℝ) (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
+    (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
+    featureLearningNetwork γ φ n d x (packParams W a) =
+      γ⁻¹ * evalSingle φ W a (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) := by
+  unfold featureLearningNetwork
+  rw [netFromParams_packParams]
+
+/-- The explicit normalized sum formula for `featureLearningNetwork` on packed parameters:
+`f(x; W, a) = (γ √n)⁻¹ ∑ᵢ aᵢ φ((√d)⁻¹ ⟨wᵢ, x⟩)`. -/
+lemma featureLearningNetwork_packParams_eq_sum (γ : ℝ) (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
+    (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
+    featureLearningNetwork γ φ n d x (packParams W a) =
+      (γ * Real.sqrt n)⁻¹ * ∑ i : Fin n, a i * φ ((Real.sqrt (d : ℝ))⁻¹ * (W i ⬝ᵥ x)) := by
+  rw [featureLearningNetwork_packParams, evalSingle_eq_normalized_sum]
+  simp_rw [dotProduct_scaled_input, Real.sqrt_inv]
+  rw [← mul_assoc, ← mul_inv]
+
+/-- **Mean-field scaling (`γ = √n`) on packed parameters:** the prefactor is `1 / n`. -/
+lemma featureLearningNetwork_sqrt_packParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
+    (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
+    featureLearningNetwork (Real.sqrt n) φ n d x (packParams W a) =
+      (n : ℝ)⁻¹ * ∑ i : Fin n, a i * φ ((Real.sqrt (d : ℝ))⁻¹ * (W i ⬝ᵥ x)) := by
+  rw [featureLearningNetwork_packParams_eq_sum, Real.mul_self_sqrt (Nat.cast_nonneg n)]
+
 section Scaled
 
 variable {φ : ℝ → ℝ} {n d m : ℕ}

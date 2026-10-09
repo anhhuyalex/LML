@@ -85,7 +85,7 @@ This is not a Lean definition: there is no declaration for ``linear model'' or `
 and a theorem below that says ``let $\hat\theta:=M(X\theta_\star+\varepsilon)$'' assumes it.
 
 \begin{definition}[Risk, bias, covariance and variance of an estimator]\label{def:dd:risk}
-  \lean{LinearRegression.risk, LinearRegression.bias_of_linear_estimator, LinearRegression.covCondX_of_linear_estimator, LinearRegression.variance_of_linear_estimator}
+  \lean{LinearRegression.risk, LinearRegression.biasOfLinearEstimator, LinearRegression.covCondXOfLinearEstimator, LinearRegression.varianceOfLinearEstimator}
   \leanok
 Let $\hat\theta$ be a random vector in $\mathbb R^p$ (the estimator, random through the noise) and $\Sigma\in\mathbb R^{p\times p}$ a
 weighting matrix (the feature covariance). Its \emph{risk}, \emph{bias} and \emph{variance} are
@@ -95,7 +95,7 @@ weighting matrix (the feature covariance). Its \emph{risk}, \emph{bias} and \emp
   V(\hat\theta):=\operatorname{Tr}\bigl(\operatorname{Cov}(\hat\theta)\,\Sigma\bigr),
 \]
 where $\operatorname{Cov}(\hat\theta)_{jk}:=\operatorname{cov}(\hat\theta_j,\hat\theta_k)$. In Lean these are \texttt{LinearRegression.risk}, \texttt{bias\_of\_linear\_estimator}, \texttt{covCondX\_of\_linear\_estimator} and \texttt{variance\_of\_linear\_estimator}, with $\theta_\star$ and $\hat\theta$ named \texttt{β} and \texttt{β\_hat}.
-They make sense for any estimator and say nothing about linearity. The suffix \texttt{\_of\_linear\_estimator} in the Lean names records that they are used for linear estimators $\hat\theta=M(X\theta_\star+\varepsilon)$ in this development; the definitions themselves do not require linearity.
+They make sense for any estimator and say nothing about linearity. The suffix \texttt{OfLinearEstimator} in the Lean names records that they are used for linear estimators $\hat\theta=M(X\theta_\star+\varepsilon)$ in this development; the definitions themselves do not require linearity.
 \end{definition}
 
 \begin{remark}[Intuition and inter-relations of risk, bias, and variance]\label{rmk:dd:riskIntuition}
@@ -828,9 +828,9 @@ The three regimes assemble into one limiting risk curve in the width ratio $\del
 values $\gamma=1$ or $\delta=1$ the third branch below has Mathlib's junk value $x/0=0$; no theorem evaluates there.
 
 \begin{definition}[Asymptotic variance, bias and total risk]\label{def:dd:curve}
-  \lean{LinearRegression.DoubleDescent.asymptoticVariance_of_linear_estimator,
-        LinearRegression.DoubleDescent.asymptoticBias_of_linear_estimator,
-        LinearRegression.DoubleDescent.asymptoticTotalRisk_of_linear_estimator}
+  \lean{LinearRegression.DoubleDescent.asymptoticVarianceOfLinearEstimator,
+        LinearRegression.DoubleDescent.asymptoticBiasOfLinearEstimator,
+        LinearRegression.DoubleDescent.asymptoticTotalRiskOfLinearEstimator}
   \leanok
 For $\sigma^2,\rho_\star,\gamma,\delta\in\mathbb R$,
 \[
