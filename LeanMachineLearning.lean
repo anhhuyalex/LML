@@ -128,6 +128,7 @@ public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Basic
 public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Criterion
 public import LeanMachineLearning.Optimization.NTK.FeatureLearning.ScalingRegimes
 public import LeanMachineLearning.Optimization.NTK.FeatureLearning.Stability
+public import LeanMachineLearning.Optimization.NTK.FeatureLearning.MeanField
 public import LeanMachineLearning.Optimization.NTK.Foundations
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
