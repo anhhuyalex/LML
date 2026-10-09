@@ -92,6 +92,28 @@ lemma empiricalNTKMatrix_featureLearningNetwork (γ : ℝ) (X : Fin m → Fin d 
     (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ) X θ]
   rfl
 
+/-- The output Jacobian of the scaled network is `γ⁻¹` times the output Jacobian of
+`netFromParams` on the scaled dataset `X / √n₀`. -/
+lemma outputJacobian_featureLearningNetwork (γ : ℝ) (X : Fin m → Fin d → ℝ)
+    (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    outputJacobian (featureLearningNetwork γ φ n d) X θ =
+      γ⁻¹ • outputJacobian (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) θ := by
+  unfold featureLearningNetwork
+  rw [outputJacobian_const_mul γ⁻¹ (fun x θ => netFromParams φ n d
+    (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ) X θ]
+  rfl
+
+/-- Adding back the target, the residual of the scaled network is `γ⁻¹` times that of
+`netFromParams` on the scaled dataset: the predictions are scaled by `γ⁻¹`, the target is not. -/
+lemma trainingResidual_featureLearningNetwork_add (γ : ℝ) (X : Fin m → Fin d → ℝ)
+    (y : EuclideanSpace ℝ (Fin m)) (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
+    trainingResidual (featureLearningNetwork γ φ n d) X y θ + y =
+      γ⁻¹ • (trainingResidual (netFromParams φ n d)
+        (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) y θ + y) := by
+  ext α
+  simp [trainingResidual, featureLearningNetwork]
+
 /-- **NTK scaling** `γ = 1`: the empirical NTK of `featureLearningNetwork 1` is the existing
 neuron-sum object, the empirical NTK of `netFromParams` on the scaled dataset. -/
 lemma empiricalNTKMatrix_featureLearningNetwork_one (X : Fin m → Fin d → ℝ)

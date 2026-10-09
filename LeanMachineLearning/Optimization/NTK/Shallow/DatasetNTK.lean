@@ -83,15 +83,20 @@ lemma empiricalNTKMatrix_apply (f : ι → EuclideanSpace ℝ (Fin P) → ℝ) (
     empiricalNTKMatrix f X θ α β = ⟪tangentFeature f (X α) θ, tangentFeature f (X β) θ⟫ := by
   simp [empiricalNTKMatrix, Matrix.mul_apply, outputJacobian, PiLp.inner_apply, mul_comm]
 
+/-- Scaling a predictor's output by `c` scales its output Jacobian by `c`. -/
+lemma outputJacobian_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
+    (X : Fin m → ι) (θ : EuclideanSpace ℝ (Fin P)) :
+    outputJacobian (fun x θ => c * f x θ) X θ = c • outputJacobian f X θ := by
+  ext α j
+  simp [outputJacobian, tangentFeature_const_mul]
+
 /-- Scaling a predictor's output by `c` scales its empirical NTK matrix by `c²`. -/
 lemma empiricalNTKMatrix_const_mul (c : ℝ) (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
     (X : Fin m → ι) (θ : EuclideanSpace ℝ (Fin P)) :
     empiricalNTKMatrix (fun x θ => c * f x θ) X θ = c ^ 2 • empiricalNTKMatrix f X θ := by
-  ext α β
-  simp only [empiricalNTKMatrix_apply, tangentFeature_const_mul, inner_smul_left,
-    inner_smul_right, Matrix.smul_apply, smul_eq_mul]
-  simp only [conj_trivial]
-  ring
+  rw [empiricalNTKMatrix, outputJacobian_const_mul, Matrix.transpose_smul, Matrix.smul_mul,
+    Matrix.mul_smul, smul_smul, ← pow_two]
+  rfl
 
 /-- The last row of the empirical NTK of the extended dataset `(X, x)` at `θ`: the train-test
 cross-kernel `⟪∇f(x; θ), ∇f(X α; θ)⟫` and the test norm `‖∇f(x; θ)‖²`. -/
