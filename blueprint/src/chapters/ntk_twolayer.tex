@@ -354,11 +354,11 @@ An earlier version listed two further integrability facts as formalized: integra
 \section{Concentration of the output Jacobian and Lipschitz bounds}\label{sec:ntktl:jacobianBounds}
 
 \begin{lemma}[Pointwise bounds on the Jacobian norm]\label{lem:ntktl:jacobianPointwise}
-  \uses{lem:ntktl:jacobianNorm}
+  \uses{lem:ntktl:jacobianNorm, def:ntkgf:jacobian}
   \lean{NTK.outputJacobian_netFromParams_norm_sq_le_readout_energy,
         NTK.outputJacobian_netFromParams_norm_sq_le, NTK.outputJacobian_netFromParams_norm_sq_le_energies}
   \leanok
-Suppose $|\varphi|\le C_0$ and $|\varphi'|\le C_1$. Then
+Let $J(\theta)$ be the output Jacobian of Definition~\ref{def:ntkgf:jacobian}. Suppose $|\varphi|\le C_0$ and $|\varphi'|\le C_1$. Then
 \[
   \|J(\theta)\|^2\le mC_0^2+\Bigl(C_1^2\sum_{\alpha,j}x^\alpha_j{}^2\Bigr)\cdot\frac1n\sum_ia_i^2 .
 \]
@@ -391,10 +391,37 @@ Let $\varphi$ be differentiable with $|\varphi'|\le C_1$, and let $\delta>0$. Un
 \begin{proof}
   \uses{lem:ntktl:jacobianPointwise, lem:ntkf:markov}
   \leanok
-By Lemma~\ref{lem:ntktl:jacobianPointwise}, $\|J\|^2$ is bounded by a constant plus an empirical average of nonnegative neuron observables: the readout energy $\frac1n\sum_ia_i^2$ and, in case~(2), the activation energy $\frac1n\sum_{i,\alpha}\varphi(w_i\cdot x^\alpha)^2$.
-For (1), $\mathbb E[a^2]=1$, so by Markov's inequality (Lemma~\ref{lem:ntkf:markov}, with the threshold $1/\delta$ and the single-neuron law of Lemma~\ref{lem:ntktl:neuronSeq}) the readout energy is at most $1/\delta$ with probability at least $1-\delta$, which gives the stated bound.
-For (2) both energies have width-independent expectations (the second is $\sum_\alpha\mathbb E\varphi(w\cdot x^\alpha)^2$), and Markov's inequality again gives a width-independent threshold exceeded with probability at most $\delta$.
-The input-weight component of the product measure is irrelevant after the deterministic bound, since only energies of the activations and the readout weights remain.
+Write $S:=\sum_{\alpha,j}x^\alpha_j{}^2$, and for an initialization $\theta_0=\operatorname{packParams}(W,a)$ with input weights $w_1,\dots,w_n\in\mathbb R^d$ (the rows of $W$) and readout weights $a_1,\dots,a_n$ define the two \emph{energies}
+\[
+  R_n:=\frac1n\sum_{i=1}^na_i^2\quad(\text{readout energy}),\qquad
+  A_n:=\frac1n\sum_{i=1}^n\sum_{\alpha=1}^m\varphi(w_i\cdot x^\alpha)^2\quad(\text{activation energy}).
+\]
+Each is an average over the $n$ neurons of a nonnegative quantity depending on that neuron alone. Under the Gaussian initialization of Definition~\ref{def:ntktl:init}, the $w_i\sim\mathcal N(0,I_d)$ and $a_i\sim\mathcal N(0,1)$ are all independent, so $W$ and $a$ are independent, $R_n$ is a function of $a$ only, and $A_n$ is a function of $W$ only.
+
+\emph{Step 1 (deterministic bound).} Lemma~\ref{lem:ntktl:jacobianPointwise} holds for every parameter value $\theta_0$, with no probability involved. Its second form (only $|\varphi'|\le C_1$) reads
+\[
+  \|J(\theta_0)\|^2\le A_n+C_1^2S\,R_n,
+\]
+and its first form (also $|\varphi|\le C_0$) reads $\|J(\theta_0)\|^2\le mC_0^2+C_1^2S\,R_n$, because $A_n\le\frac1n\cdot n\cdot mC_0^2=mC_0^2$ when $\varphi^2\le C_0^2$. So the whole randomness of $\|J(\theta_0)\|$ has been reduced to the energies: $R_n$ in item~(1), and $R_n$ together with $A_n$ in item~(2). This is what ``after the deterministic bound'' refers to below: once Step~1 is applied, nothing else about $W$ and $a$ matters (in particular, the individual directions of the $w_i$ do not matter, only the number $A_n$), and it remains to control the tails of $R_n$ and $A_n$.
+
+\emph{Step 2: item~(1).} Since $a_i\sim\mathcal N(0,1)$ we have $\mathbb E[a_i^2]=1$, hence $\mathbb E[R_n]=1$ for every $n$ (single-neuron law, Lemma~\ref{lem:ntktl:neuronSeq}). Markov's inequality (Lemma~\ref{lem:ntkf:markov}) for the nonnegative variable $R_n$ with threshold $1/\delta$ gives $\mathbb P(R_n>1/\delta)\le\mathbb E[R_n]\,\delta=\delta$, i.e.\ $R_n\le1/\delta$ with probability at least $1-\delta$, for every width $n$. On this event Step~1 yields
+\[
+  \|J(\theta_0)\|^2\le mC_0^2+\frac{C_1^2S}{\delta},
+\]
+and taking square roots is exactly the bound claimed in item~(1).
+
+\emph{Step 3: item~(2).} Put $v:=\sum_\alpha\mathbb E\,\varphi(w\cdot x^\alpha)^2$ with $w\sim\mathcal N(0,I_d)$; it is finite by the $L^2$ hypothesis. The $n$ summands of $A_n$ have the same law (the $w_i$ are identically distributed), so $\mathbb E[A_n]=\frac1n\cdot n\cdot v=v$, again independent of $n$. We apply Markov's inequality to each energy with failure probability $\delta/2$:
+\begin{itemize}
+  \item for $A_n$ with threshold $\tau:=2(v+1)/\delta$: $\mathbb P(A_n>\tau)\le v/\tau=\frac{v\,\delta}{2(v+1)}\le\frac\delta2$;
+  \item for $R_n$ with threshold $2/\delta$: $\mathbb P(R_n>2/\delta)\le\mathbb E[R_n]\cdot\frac\delta2=\frac\delta2$.
+\end{itemize}
+The two events involve the independent components $W$ and $a$, so both hold simultaneously with probability at least $(1-\frac\delta2)^2\ge1-\delta$. On that event Step~1 gives
+\[
+  \|J(\theta_0)\|^2\le A_n+C_1^2S\,R_n\le\frac{2(v+1)}{\delta}+C_1^2S\cdot\frac2\delta=\frac{2\bigl(v+1+C_1^2S\bigr)}{\delta},
+\]
+which is the bound of item~(2) after taking square roots. (The constant $+1$ comes from the threshold $\tau$, chosen as $2(v+1)/\delta$ rather than $2v/\delta$ so that it stays positive even when $v=0$.)
+
+In both items the bound does not depend on the width $n$, since $\mathbb E[R_n]$ and $\mathbb E[A_n]$ do not.
 \end{proof}
 
 \begin{theorem}[Jacobian Lipschitz bound (Gap~4)]\label{thm:ntktl:jacobianLipschitz}
