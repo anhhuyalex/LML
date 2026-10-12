@@ -51,9 +51,22 @@ theorem sum_sq_mul_transpose_le_trace_sq {p n : Type*} [Fintype p] [Fintype n]
     _ = ((K * Kᵀ).trace) ^ 2 := by
         simp only [Matrix.trace, Matrix.diag, sq, Finset.sum_mul_sum]
 
+/-- The dot product of `A x` and `A y` is the bilinear form of the Gram matrix:
+`(A x) ⬝ (A y) = x ⬝ (Aᵀ A) y`. -/
+theorem mulVec_dotProduct_mulVec {p n : Type*} [Fintype p] [Fintype n] (A : Matrix p n ℝ)
+    (x y : n → ℝ) : (A *ᵥ x) ⬝ᵥ (A *ᵥ y) = x ⬝ᵥ ((Aᵀ * A) *ᵥ y) := by
+  rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec x Aᵀ, Matrix.vecMul_transpose]
+
+/-- A matrix with `Aᵀ A = 1` (an isometry, e.g. an orthogonal matrix) preserves dot products:
+`(A x) ⬝ (A y) = x ⬝ y`. -/
+theorem mulVec_dotProduct_mulVec_of_transpose_mul_self {p n : Type*} [Fintype p] [Fintype n]
+    [DecidableEq n] (A : Matrix p n ℝ) (hA : Aᵀ * A = 1) (x y : n → ℝ) :
+    (A *ᵥ x) ⬝ᵥ (A *ᵥ y) = x ⬝ᵥ y := by
+  rw [mulVec_dotProduct_mulVec, hA, one_mulVec]
+
 /-- The squared norm of `A x` is the quadratic form of the Gram matrix: `‖A x‖² = x ⬝ (Aᵀ A) x`. -/
 theorem mulVec_dotProduct_mulVec_self {p n : Type*} [Fintype p] [Fintype n] (A : Matrix p n ℝ)
-    (x : n → ℝ) : (A *ᵥ x) ⬝ᵥ (A *ᵥ x) = x ⬝ᵥ ((Aᵀ * A) *ᵥ x) := by
-  rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec x Aᵀ, Matrix.vecMul_transpose]
+    (x : n → ℝ) : (A *ᵥ x) ⬝ᵥ (A *ᵥ x) = x ⬝ᵥ ((Aᵀ * A) *ᵥ x) :=
+  mulVec_dotProduct_mulVec A x x
 
 end Matrix

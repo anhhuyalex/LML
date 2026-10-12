@@ -272,3 +272,4 @@ public import LeanMachineLearning.Tactic.KernelHom.Tactic.KernelDiagram
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.KernelHom
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Reassoc
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Utils
+public import LeanMachineLearning.SpinGlasses.Basic
