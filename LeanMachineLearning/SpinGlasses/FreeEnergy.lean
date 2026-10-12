@@ -118,15 +118,21 @@ theorem integrable_max (hmeas : ∀ a, Measurable fun ω => H ω a)
   exact ⟨by linarith [neg_abs_le (H ω a₀), (H ω).le_max a₀, hle a₀],
     Finset.sup'_le _ _ fun a _ => (le_abs_self _).trans (hle a)⟩
 
+omit [Nonempty α] in
+/-- The log-partition function of a random energy landscape with measurable coordinates is
+measurable. -/
+theorem measurable_log_sum_exp (hmeas : ∀ a, Measurable fun ω => H ω a) (β : ℝ) :
+    Measurable fun ω => Real.log (∑ a, Real.exp (β * H ω a)) :=
+  (Finset.measurable_sum _ fun a _ => ((hmeas a).const_mul β).exp).log
+
 /-- The log-partition function of a random energy landscape with integrable coordinates is
 integrable for `β > 0`, since `|log Z| ≤ β |max H| + log |α|`. -/
 theorem integrable_log_sum_exp [IsFiniteMeasure μ] (hβ : 0 < β)
     (hmeas : ∀ a, Measurable fun ω => H ω a) (hint : ∀ a, Integrable (fun ω => H ω a) μ) :
     Integrable (fun ω => Real.log (∑ a, Real.exp (β * H ω a))) μ := by
-  have hlog : Measurable fun ω => Real.log (∑ a, Real.exp (β * H ω a)) :=
-    (Finset.measurable_sum _ fun a _ => ((hmeas a).const_mul β).exp).log
   refine Integrable.mono' (((integrable_max hmeas hint).abs.const_mul β).add
-    (integrable_const (Real.log (Fintype.card α)))) hlog.aestronglyMeasurable
+    (integrable_const (Real.log (Fintype.card α))))
+    (measurable_log_sum_exp hmeas β).aestronglyMeasurable
     (ae_of_all _ fun ω => ?_)
   have h := abs_inv_mul_log_sum_exp_sub_max_le hβ (H ω)
   have hX : |β⁻¹ * Real.log (∑ a, Real.exp (β * H ω a))| ≤ |(H ω).max| +
