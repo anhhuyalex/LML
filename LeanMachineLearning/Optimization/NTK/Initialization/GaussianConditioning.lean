@@ -105,36 +105,6 @@ theorem integral_linearForm_sq_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c :
       (u ⬝ᵥ u) * (c ⬝ᵥ c) := by
   simp only [sq, integral_gaussianMatrix_bilinear_mul_bilinear]
 
-/-- A linear form `u ⬝ᵥ (W c)` of a standard Gaussian matrix `W` is in `L²`. -/
-theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
-    MemLp (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) 2 (Measure.pi fun _ : Fin n =>
-        Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-  have : (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) =
-      fun W => ∑ i, ∑ j, (u i * c j) * W i j := by
-    funext W
-    simp only [dotProduct, Matrix.mulVec, Matrix.of_apply, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
-    ring
-  rw [this]
-  exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry i j).const_mul _
-
-/-- A linear form `u ⬝ᵥ (W c)` of a standard Gaussian matrix `W` has mean zero. -/
-theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
-    ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (Matrix.of W *ᵥ c) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
-        : Fin p => gaussianReal 0 1) = 0 := by
-  have : (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)) =
-      fun W => ∑ i, ∑ j, (u i * c j) * W i j := by
-    funext W
-    simp only [dotProduct, Matrix.mulVec, Matrix.of_apply, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
-    ring
-  rw [this, integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
-    ((memLp_entry i j).integrable (by norm_num)).const_mul _]
-  refine Finset.sum_eq_zero fun i _ => ?_
-  rw [integral_finsetSum _ fun j _ => ((memLp_entry i j).integrable (by norm_num)).const_mul _]
-  refine Finset.sum_eq_zero fun j _ => ?_
-  rw [integral_const_mul, integral_gaussianInit_entry, mul_zero]
-
 /-- **Chebyshev bound for the Gaussian linear form** `u ⬝ᵥ (W c)`: it is centred with second
 moment `‖u‖² ‖c‖²`. -/
 theorem gaussianInit_linearForm_chebyshev (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) {ε : ℝ}
@@ -143,11 +113,11 @@ theorem gaussianInit_linearForm_chebyshev (n p : ℕ) (u : Fin n → ℝ) (c : F
         gaussianReal 0 1) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
       ENNReal.ofReal ((u ⬝ᵥ u) * (c ⬝ᵥ c) / ε ^ 2) := by
   classical
-  have hmem := memLp_linearForm_gaussianInit n p u c
+  have hmem := memLp_linearForm_gaussianInit u c
   have h := meas_ge_le_variance_div_sq hmem hε
   have hmean : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)[fun W :
       Fin n → Fin p → ℝ => u ⬝ᵥ (Matrix.of W *ᵥ c)] = 0 :=
-    integral_linearForm_gaussianInit n p u c
+    integral_linearForm_gaussianInit u c
   simp only [hmean, sub_zero] at h
   refine h.trans (ENNReal.ofReal_le_ofReal (le_of_eq ?_))
   rw [variance_eq_sub hmem]

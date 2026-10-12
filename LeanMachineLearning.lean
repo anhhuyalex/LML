@@ -274,4 +274,5 @@ public import LeanMachineLearning.Tactic.KernelHom.Tactic.KernelHom
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Reassoc
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Utils
 public import LeanMachineLearning.SpinGlasses.Basic
+public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKModel

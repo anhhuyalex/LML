@@ -130,6 +130,32 @@ theorem integral_gaussianInit_entry_mul_entry [DecidableEq ι] [DecidableEq κ] 
           (by fun_prop : Measurable fun W : ι → κ → ℝ => W j l).aestronglyMeasurable,
         integral_gaussianInit_entry i k, zero_mul]
 
+/-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` is the finite combination
+`∑ᵢⱼ uᵢ vⱼ Gᵢⱼ` of its coordinates. -/
+lemma dotProduct_mulVec_of_eq_sum (u : ι → ℝ) (v : κ → ℝ) (G : ι → κ → ℝ) :
+    u ⬝ᵥ (Matrix.of G *ᵥ v) = ∑ i, ∑ j, (u i * v j) * G i j := by
+  simp only [dotProduct, mulVec, Matrix.of_apply, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
+
+/-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` is in `L²`. -/
+theorem memLp_linearForm_gaussianInit (u : ι → ℝ) (v : κ → ℝ) :
+    MemLp (fun G : ι → κ → ℝ => u ⬝ᵥ (Matrix.of G *ᵥ v)) 2
+      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  simp_rw [dotProduct_mulVec_of_eq_sum]
+  exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry i j).const_mul _
+
+/-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` has mean zero. -/
+theorem integral_linearForm_gaussianInit (u : ι → ℝ) (v : κ → ℝ) :
+    ∫ G : ι → κ → ℝ, u ⬝ᵥ (Matrix.of G *ᵥ v)
+        ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) = 0 := by
+  simp_rw [dotProduct_mulVec_of_eq_sum]
+  rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
+    ((memLp_entry i j).integrable (by norm_num)).const_mul _]
+  refine Finset.sum_eq_zero fun i _ => ?_
+  rw [integral_finsetSum _ fun j _ => ((memLp_entry i j).integrable (by norm_num)).const_mul _]
+  refine Finset.sum_eq_zero fun j _ => ?_
+  rw [integral_const_mul, integral_gaussianInit_entry, mul_zero]
+
 /-- **Bilinear covariance of a standard Gaussian matrix.** For `G ~ 𝒩(0,1)^{ι×κ}` and deterministic
 vectors `u, x : ι → ℝ`, `v, y : κ → ℝ`,
 `E[(u ⬝ᵥ G v) (x ⬝ᵥ G y)] = (u ⬝ᵥ x) (v ⬝ᵥ y)`.
