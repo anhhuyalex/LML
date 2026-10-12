@@ -184,7 +184,8 @@ section Hypercube
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : Type*} [MeasurableSpace Ω]
   {μ : Measure Ω} [IsProbabilityMeasure μ] {H : Ω → (ι → ℤˣ) → ℝ} {β : ℝ}
 
-private lemma log_card_spin_configurations :
+/-- The entropy of the hypercube: `log |{-1, 1}^ι| = |ι| log 2`. -/
+lemma log_card_spin_configurations :
     Real.log (Fintype.card (ι → ℤˣ)) = Fintype.card ι * Real.log 2 := by
   rw [card_spin_configurations, Nat.cast_pow, Real.log_pow, Nat.cast_ofNat]
 

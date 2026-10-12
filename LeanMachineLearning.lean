@@ -51,6 +51,7 @@ public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
 public import LeanMachineLearning.ForMathlib.Topology.Order.Sandwich
+public import LeanMachineLearning.ForMathlib.Topology.UniformSpace.LimitInterchange
 public import LeanMachineLearning.Online.Bandit.Algorithms.ETC
 public import LeanMachineLearning.Online.Bandit.Algorithms.Regret.BayesRegretTS
 public import LeanMachineLearning.Online.Bandit.Algorithms.Regret.ETC
@@ -275,4 +276,5 @@ public import LeanMachineLearning.Tactic.KernelHom.Tactic.Reassoc
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Utils
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.SpinGlasses.SKModel
