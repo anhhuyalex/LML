@@ -206,7 +206,7 @@ theorem integral_traceForm_gaussianInit (n p : ℕ) (B : Matrix (Fin n) (Fin n) 
   have hint : ∀ i j k l, Integrable (fun W : Fin n → Fin p → ℝ =>
       (B i j * A k l) * (W i k * W j l))
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-    fun i j k l => (integrable_entry_mul_entry n p i j k l).const_mul _
+    fun i j k l => (integrable_entry_mul_entry i j k l).const_mul _
   rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
     integrable_finsetSum _ fun k _ => integrable_finsetSum _ fun l _ => hint i j k l]
   simp_rw [integral_finsetSum _ fun j _ => integrable_finsetSum _ fun k _ =>

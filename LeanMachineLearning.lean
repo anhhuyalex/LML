@@ -42,6 +42,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.IonescuTulcea.Tr
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
 public import LeanMachineLearning.ForMathlib.Probability.Process.HittingTime
@@ -273,3 +274,4 @@ public import LeanMachineLearning.Tactic.KernelHom.Tactic.KernelHom
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Reassoc
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Utils
 public import LeanMachineLearning.SpinGlasses.Basic
+public import LeanMachineLearning.SpinGlasses.SKModel

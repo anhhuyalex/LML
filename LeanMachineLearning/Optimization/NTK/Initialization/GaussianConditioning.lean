@@ -97,63 +97,13 @@ theorem gaussianInit_measure_le_lintegral_of_section
 
 section linear
 
-/-- Second moment of the bilinear Gaussian linear form: `E[(u ⬝ᵥ W c)²] = ‖u‖² ‖c‖²`. -/
+/-- Second moment of the bilinear Gaussian linear form: `E[(u ⬝ᵥ W c)²] = ‖u‖² ‖c‖²`. This is the
+diagonal case of `integral_gaussianMatrix_bilinear_mul_bilinear`. -/
 theorem integral_linearForm_sq_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
     ∫ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (Matrix.of W *ᵥ c)) ^ 2 ∂(Measure.pi fun _ : Fin n => Measure.pi
         fun _ : Fin p => gaussianReal 0 1) =
       (u ⬝ᵥ u) * (c ⬝ᵥ c) := by
-  classical
-  have hexp : ∀ W : Fin n → Fin p → ℝ, (u ⬝ᵥ (Matrix.of W *ᵥ c)) ^ 2 =
-      ∑ i, ∑ j, ∑ i', ∑ j', (u i * c j * (u i' * c j')) * (W i j * W i' j') := by
-    intro W
-    simp only [dotProduct, Matrix.mulVec, Matrix.of_apply, sq, Finset.sum_mul, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ =>
-      Finset.sum_congr rfl fun i' _ => Finset.sum_congr rfl fun j' _ => ?_
-    ring
-  simp_rw [hexp]
-  have hint : ∀ i j i' j', Integrable (fun W : Fin n → Fin p → ℝ =>
-      (u i * c j * (u i' * c j')) * (W i j * W i'
-          j')) (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-    fun i j i' j' => (integrable_entry_mul_entry n p i i' j j').const_mul _
-  have h1 : ∀ i j i' j', ∫ W : Fin n → Fin p → ℝ,
-      (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(Measure.pi fun _ : Fin n => Measure.pi fun _
-          : Fin p => gaussianReal 0 1) =
-      (u i * c j * (u i' * c j')) * (if i = i' ∧ j = j' then 1 else 0) := by
-    intro i j i' j'
-    rw [integral_const_mul, integral_gaussianInit_entry_mul_entry]
-  have hsum : ∫ W : Fin n → Fin p → ℝ,
-      ∑ i, ∑ j, ∑ i', ∑ j', (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(Measure.pi fun _ : Fin
-          n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
-      ∑ i, ∑ j, ∑ i', ∑ j', ∫ W : Fin n → Fin p → ℝ,
-        (u i * c j * (u i' * c j')) * (W i j * W i' j') ∂(Measure.pi fun _ : Fin n => Measure.pi fun
-            _ : Fin p => gaussianReal 0 1) := by
-    rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
-      integrable_finsetSum _ fun i' _ => integrable_finsetSum _ fun j' _ => hint i j i' j']
-    refine Finset.sum_congr rfl fun i _ => ?_
-    rw [integral_finsetSum _ fun j _ =>
-      integrable_finsetSum _ fun i' _ => integrable_finsetSum _ fun j' _ => hint i j i' j']
-    refine Finset.sum_congr rfl fun j _ => ?_
-    rw [integral_finsetSum _ fun i' _ => integrable_finsetSum _ fun j' _ => hint i j i' j']
-    refine Finset.sum_congr rfl fun i' _ => ?_
-    rw [integral_finsetSum _ fun j' _ => hint i j i' j']
-  rw [hsum]
-  simp_rw [h1]
-  simp only [ite_and, mul_ite, mul_one, mul_zero]
-  conv_lhs =>
-    enter [2, x]
-    rw [Finset.sum_comm]
-  have hx : ∀ x : Fin n, (∑ y, ∑ x1, ∑ x2, if x = y then (if x1 = x2 then
-      u x * c x1 * (u y * c x2) else 0) else 0) = ∑ x1, u x * c x1 * (u x * c x1) := by
-    intro x
-    rw [Finset.sum_eq_single x]
-    · simp
-    · intro y _ hy
-      simp [hy.symm]
-    · simp
-  simp only [hx]
-  simp only [dotProduct, Finset.sum_mul_sum]
-  refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
-  ring
+  simp only [sq, integral_gaussianMatrix_bilinear_mul_bilinear]
 
 /-- A linear form `u ⬝ᵥ (W c)` of a standard Gaussian matrix `W` is in `L²`. -/
 theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
@@ -166,7 +116,7 @@ theorem memLp_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p
     refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
     ring
   rw [this]
-  exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry n p i j).const_mul _
+  exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry i j).const_mul _
 
 /-- A linear form `u ⬝ᵥ (W c)` of a standard Gaussian matrix `W` has mean zero. -/
 theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fin p → ℝ) :
@@ -179,9 +129,9 @@ theorem integral_linearForm_gaussianInit (n p : ℕ) (u : Fin n → ℝ) (c : Fi
     refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
     ring
   rw [this, integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
-    ((memLp_entry n p i j).integrable (by norm_num)).const_mul _]
+    ((memLp_entry i j).integrable (by norm_num)).const_mul _]
   refine Finset.sum_eq_zero fun i _ => ?_
-  rw [integral_finsetSum _ fun j _ => ((memLp_entry n p i j).integrable (by norm_num)).const_mul _]
+  rw [integral_finsetSum _ fun j _ => ((memLp_entry i j).integrable (by norm_num)).const_mul _]
   refine Finset.sum_eq_zero fun j _ => ?_
   rw [integral_const_mul, integral_gaussianInit_entry, mul_zero]
 
