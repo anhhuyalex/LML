@@ -235,6 +235,10 @@ theorem integral_mixedPSpin_mul_mixedPSpin (hβ0 : β 0 = 0) (hβ : Summable fun
 
 end Mixed
 
+/-- Configurations of the hypercube have coordinates in `[-1, 1]`. -/
+private lemma abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
+  rcases Int.units_eq_one_or u with h | h <;> simp [h]
+
 section FreeEnergy
 
 variable {ι : Type*} [Fintype ι] [Nonempty ι] [DecidableEq ι] {β : ℕ → ℝ}
@@ -242,9 +246,6 @@ variable {ι : Type*} [Fintype ι] [Nonempty ι] [DecidableEq ι] {β : ℕ → 
 local notation "gaussianDisorder" =>
   Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1
 
-/-- Configurations of the hypercube have coordinates in `[-1, 1]`. -/
-private lemma abs_units_le_one (σ : ι → ℤˣ) (i : ι) : |((σ i : ℤ) : ℝ)| ≤ 1 := by
-  rcases Int.units_eq_one_or (σ i) with h | h <;> simp [h]
 
 variable (H : (∀ p : ℕ, (Fin p → ι) → ℝ) → (ι → ℤˣ) → ℝ)
   (hH : ∀ g σ, H g σ = ∑' p, β p * ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) *
@@ -253,14 +254,18 @@ variable (H : (∀ p : ℕ, (Fin p → ι) → ℝ) → (ι → ℤˣ) → ℝ)
 
 include hH hβ0 hβ
 
+omit [DecidableEq ι] in
 private lemma mixedPSpin_hypercube_hyps (σ : ι → ℤˣ) :
     Measurable (fun g => H g σ) ∧ Integrable (fun g => H g σ) gaussianDisorder := by
-  have e : (fun g => H g σ) = fun g => (fun g (v : ι → ℝ) => ∑' p, β p *
-      ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) * ∑ idx, g p idx * ∏ k, v (idx k))) g
-        (fun i => ((σ i : ℤ) : ℝ)) := funext fun g => hH g σ
+  let H' : (∀ p : ℕ, (Fin p → ι) → ℝ) → (ι → ℝ) → ℝ := fun g v => ∑' p, β p *
+    ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) * ∑ idx, g p idx * ∏ k, v (idx k))
+  have e : (fun g => H g σ) = fun g => H' g (fun i => ((σ i : ℤ) : ℝ)) :=
+    funext fun g => hH g σ
+  have hm := mixedPSpin_measurable H' (fun _ _ => rfl) (fun i => ((σ i : ℤ) : ℝ))
+  have hi := mixedPSpin_integrable H' (fun _ _ => rfl) hβ0 hβ
+    (σ := fun i => ((σ i : ℤ) : ℝ)) fun i => abs_units_cast_le_one (σ i)
   rw [e]
-  exact ⟨mixedPSpin_measurable _ (fun _ _ => rfl) _,
-    mixedPSpin_integrable _ (fun _ _ => rfl) hβ0 hβ (abs_units_le_one σ)⟩
+  exact ⟨hm, hi⟩
 
 /-- **Smooth approximation for the mixed `p`-spin model** ([Panchenko, 2013, Eq. (1.7)]): for
 `t > 0`, `|(N t)⁻¹ 𝔼 log Z_N(t) - N⁻¹ 𝔼 max_σ H_N(σ)| ≤ log 2 / t`.  This is

@@ -33,6 +33,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Independence.CondDistri
 public import LeanMachineLearning.ForMathlib.Probability.Independence.CondIndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralTsumMul
 public import LeanMachineLearning.ForMathlib.Probability.Integrable
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Basic
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.IntegralCompProd
@@ -43,6 +44,8 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.IonescuTulcea.Tr
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
@@ -254,6 +257,7 @@ public import LeanMachineLearning.SequentialLearning.SumRewards
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift
