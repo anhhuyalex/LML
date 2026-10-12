@@ -36,11 +36,13 @@ for any finite Gibbs system (Potts, random-field Ising, mixed `p`-spin, ...).
   `SpinGlasses.inv_mul_integral_log_sum_exp_le`,
   `SpinGlasses.abs_inv_mul_integral_log_sum_exp_sub_integral_max_le`.
 * **Hypercube** `α = ι → ℤˣ`, `|α| = 2 ^ N`, after dividing by `N`:
-  `SpinGlasses.card_inv_mul_integral_max_le`, `SpinGlasses.card_inv_mul_integral_log_sum_exp_le`
-  and `SpinGlasses.abs_card_inv_mul_integral_log_sum_exp_sub_le` (Eq. (1.7) and the error bound
-  `log 2 / β`).
-* **SK model**: `SpinGlasses.measurable_skHamiltonian`, `SpinGlasses.integrable_skHamiltonian`
-  verify the hypotheses for the Hamiltonian of `SKModel.lean`.
+  `SpinGlasses.smooth_approximation_sandwich` (Eq. (1.7)) and
+  `SpinGlasses.smooth_approximation_error_bound` (the error `log 2 / β`).
+* **SK model**: `SpinGlasses.sk_smooth_approximation_sandwich` and
+  `SpinGlasses.sk_smooth_approximation_error_bound` discharge the measurability and integrability
+  hypotheses for the Hamiltonian of `SKModel.lean` (Gaussian disorder, via
+  `NTK.memLp_linearForm_gaussianInit`).  The Hamiltonian enters through its defining equation, as a
+  hypothesis `hH : ∀ G σ, H G σ = (√N)⁻¹ * (σ ⬝ᵥ (G *ᵥ σ))`, instead of a named definition.
 
 ## References
 
@@ -176,5 +178,110 @@ theorem abs_inv_mul_integral_log_sum_exp_sub_integral_max_le (hβ : 0 < β)
     by linarith [inv_mul_integral_log_sum_exp_le hβ hmeas hint]⟩
 
 end Random
+
+section Hypercube
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : Type*} [MeasurableSpace Ω]
+  {μ : Measure Ω} [IsProbabilityMeasure μ] {H : Ω → (ι → ℤˣ) → ℝ} {β : ℝ}
+
+private lemma log_card_spin_configurations :
+    Real.log (Fintype.card (ι → ℤˣ)) = Fintype.card ι * Real.log 2 := by
+  rw [card_spin_configurations, Nat.cast_pow, Real.log_pow, Nat.cast_ofNat]
+
+/-- **Smooth approximation sandwich** ([Panchenko, 2013, Eq. (1.7)]). For a random energy
+`H : Ω → (ι → ℤˣ) → ℝ` on the hypercube with integrable coordinates and `β > 0`,
+`N⁻¹ 𝔼 max_σ H(σ) ≤ (N β)⁻¹ 𝔼 log Z(β) ≤ log 2 / β + N⁻¹ 𝔼 max_σ H(σ)`, where
+`Z(β) = ∑_σ exp (β H(σ))`, `N = |ι|` and `|{-1, 1}^ι| = 2 ^ N`. -/
+theorem smooth_approximation_sandwich (hβ : 0 < β) (hmeas : ∀ σ, Measurable fun ω => H ω σ)
+    (hint : ∀ σ, Integrable (fun ω => H ω σ) μ) :
+    (Fintype.card ι : ℝ)⁻¹ * ∫ ω, (H ω).max ∂μ ≤
+        ((Fintype.card ι : ℝ) * β)⁻¹ * ∫ ω, Real.log (∑ σ, Real.exp (β * H ω σ)) ∂μ ∧
+      ((Fintype.card ι : ℝ) * β)⁻¹ * ∫ ω, Real.log (∑ σ, Real.exp (β * H ω σ)) ∂μ ≤
+        Real.log 2 / β + (Fintype.card ι : ℝ)⁻¹ * ∫ ω, (H ω).max ∂μ := by
+  rcases Nat.eq_zero_or_pos (Fintype.card ι) with h0 | hpos
+  · simp only [h0, Nat.cast_zero, inv_zero, zero_mul]
+    exact ⟨le_rfl, by rw [add_zero]; exact div_nonneg (Real.log_pos one_lt_two).le hβ.le⟩
+  have hN : (0 : ℝ) < Fintype.card ι := Nat.cast_pos.2 hpos
+  have h1 := integral_max_le_inv_mul_integral_log_sum_exp hβ hmeas hint
+  have h2 := inv_mul_integral_log_sum_exp_le hβ hmeas hint
+  rw [log_card_spin_configurations] at h2
+  rw [mul_inv]
+  refine ⟨?_, ?_⟩
+  · rw [mul_assoc]
+    exact mul_le_mul_of_nonneg_left h1 (inv_nonneg.2 hN.le)
+  · calc _ = (Fintype.card ι : ℝ)⁻¹ * (β⁻¹ * ∫ ω, Real.log (∑ σ, Real.exp (β * H ω σ)) ∂μ) :=
+          mul_assoc _ _ _
+      _ ≤ (Fintype.card ι : ℝ)⁻¹ * (β⁻¹ * (Fintype.card ι * Real.log 2) + ∫ ω, (H ω).max ∂μ) :=
+          mul_le_mul_of_nonneg_left h2 (inv_nonneg.2 hN.le)
+      _ = _ := by field_simp
+
+/-- **Smooth approximation error bound:** the normalized free energy at inverse temperature `β`
+approximates the normalized ground-state energy up to `log 2 / β`,
+`|(N β)⁻¹ 𝔼 log Z(β) - N⁻¹ 𝔼 max_σ H(σ)| ≤ log 2 / β`. -/
+theorem smooth_approximation_error_bound (hβ : 0 < β) (hmeas : ∀ σ, Measurable fun ω => H ω σ)
+    (hint : ∀ σ, Integrable (fun ω => H ω σ) μ) :
+    |((Fintype.card ι : ℝ) * β)⁻¹ * ∫ ω, Real.log (∑ σ, Real.exp (β * H ω σ)) ∂μ -
+        (Fintype.card ι : ℝ)⁻¹ * ∫ ω, (H ω).max ∂μ| ≤ Real.log 2 / β := by
+  obtain ⟨h1, h2⟩ := smooth_approximation_sandwich hβ hmeas hint
+  exact abs_le.2 ⟨by linarith [div_nonneg (Real.log_pos one_lt_two).le hβ.le], by linarith⟩
+
+end Hypercube
+
+section SK
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι] {β : ℝ}
+
+omit [DecidableEq ι] in
+/-- Each coordinate `G ↦ (√N)⁻¹ * (σ ⬝ᵥ (G *ᵥ σ))` of the SK Hamiltonian is measurable and
+integrable under the Gaussian disorder; this discharges the hypotheses of the generic layers. -/
+lemma sk_measurable_integrable (σ : ι → ℤˣ) :
+    Measurable (fun G : ι → ι → ℝ => (Real.sqrt (Fintype.card ι))⁻¹ *
+      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ)))) ∧
+    Integrable (fun G : ι → ι → ℝ => (Real.sqrt (Fintype.card ι))⁻¹ *
+      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ))))
+      (Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  refine ⟨?_, ((NTK.memLp_linearForm_gaussianInit _ _).integrable one_le_two).const_mul _⟩
+  simp only [NTK.dotProduct_mulVec_of_eq_sum]
+  fun_prop
+
+/-- **Smooth approximation sandwich for the SK model** ([Panchenko, 2013, Eq. (1.7)]): for the
+Hamiltonian `H G σ = (√N)⁻¹ * (σ ⬝ᵥ (G *ᵥ σ))` with standard Gaussian disorder `G`, the
+free energy `(N β)⁻¹ 𝔼 log Z_N(β)` lies between `N⁻¹ 𝔼 max_σ H_N(σ)` and
+`log 2 / β + N⁻¹ 𝔼 max_σ H_N(σ)`.  The Hamiltonian is passed with its defining equation `hH`
+instead of being named. -/
+theorem sk_smooth_approximation_sandwich (H : (ι → ι → ℝ) → (ι → ℤˣ) → ℝ)
+    (hH : ∀ G σ, H G σ = (Real.sqrt (Fintype.card ι))⁻¹ *
+      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ)))) (hβ : 0 < β) :
+    (Fintype.card ι : ℝ)⁻¹ * ∫ G, (H G).max
+          ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) ≤
+        ((Fintype.card ι : ℝ) * β)⁻¹ * ∫ G, Real.log (∑ σ, Real.exp (β * H G σ))
+          ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) ∧
+      ((Fintype.card ι : ℝ) * β)⁻¹ * ∫ G, Real.log (∑ σ, Real.exp (β * H G σ))
+          ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) ≤
+        Real.log 2 / β + (Fintype.card ι : ℝ)⁻¹ * ∫ G, (H G).max
+          ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  obtain rfl : H = fun G σ => (Real.sqrt (Fintype.card ι))⁻¹ *
+    ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ))) :=
+    funext fun G => funext (hH G)
+  exact smooth_approximation_sandwich hβ (fun σ => (sk_measurable_integrable σ).1)
+    (fun σ => (sk_measurable_integrable σ).2)
+
+/-- **Smooth approximation error bound for the SK model:**
+`|(N β)⁻¹ 𝔼 log Z_N(β) - N⁻¹ 𝔼 max_σ H_N(σ)| ≤ log 2 / β`. -/
+theorem sk_smooth_approximation_error_bound (H : (ι → ι → ℝ) → (ι → ℤˣ) → ℝ)
+    (hH : ∀ G σ, H G σ = (Real.sqrt (Fintype.card ι))⁻¹ *
+      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ)))) (hβ : 0 < β) :
+    |((Fintype.card ι : ℝ) * β)⁻¹ * ∫ G, Real.log (∑ σ, Real.exp (β * H G σ))
+          ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) -
+        (Fintype.card ι : ℝ)⁻¹ * ∫ G, (H G).max
+          ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1)| ≤
+      Real.log 2 / β := by
+  obtain rfl : H = fun G σ => (Real.sqrt (Fintype.card ι))⁻¹ *
+    ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ))) :=
+    funext fun G => funext (hH G)
+  exact smooth_approximation_error_bound hβ (fun σ => (sk_measurable_integrable σ).1)
+    (fun σ => (sk_measurable_integrable σ).2)
+
+end SK
 
 end SpinGlasses
