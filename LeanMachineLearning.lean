@@ -250,6 +250,10 @@ public import LeanMachineLearning.SequentialLearning.Means
 public import LeanMachineLearning.SequentialLearning.StationaryEnv
 public import LeanMachineLearning.SequentialLearning.StoppedHistory
 public import LeanMachineLearning.SequentialLearning.SumRewards
+public import LeanMachineLearning.SpinGlasses.Basic
+public import LeanMachineLearning.SpinGlasses.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.SKModel
+public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.Kernel
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.MeasurableEquiv
@@ -274,7 +278,3 @@ public import LeanMachineLearning.Tactic.KernelHom.Tactic.KernelDiagram
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.KernelHom
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Reassoc
 public import LeanMachineLearning.Tactic.KernelHom.Tactic.Utils
-public import LeanMachineLearning.SpinGlasses.Basic
-public import LeanMachineLearning.SpinGlasses.FreeEnergy
-public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
-public import LeanMachineLearning.SpinGlasses.SKModel
