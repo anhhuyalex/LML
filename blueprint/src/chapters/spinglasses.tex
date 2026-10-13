@@ -831,7 +831,8 @@ is exactly the convexity of $\xi$ on $[-1,1]$; Theorem~\ref{thm:sg:superadd} hol
 
 This section proves Panchenko's Theorem~1.2 (the Gaussian concentration of the free energy) and its consequence Eq.~(1.42)
 for the mixed $p$-spin models. The argument is a variant of the book's proof that uses only two independent copies of the field and
-the same Gaussian integration by parts as the comparison inequality. It gives the better variance bound $2v$ in place of $8v$.
+the same Gaussian integration by parts as the comparison inequality. It gives the better variance bound $2v$ in place of $8v$. The deviations from the
+book's argument, and the reasons for them, are collected in Remark~\ref{rem:sg:deviation} at the end of the section.
 
 \begin{lemma}[Gaussian vectors: integrability, differentiation and exponentials]\label{lem:sg:expgrowth}
   \lean{ProbabilityTheory.integrable_comp_of_exp_growth, ProbabilityTheory.hasDerivAt_integral_comp_of_exp_growth,
@@ -929,3 +930,31 @@ $X_N=N^{-1}\log\sum_\sigma e^{H_N(\sigma)}$ and $x\ge0$,
 The Hamiltonian is a centered Gaussian process (Theorem~\ref{thm:sg:mixedgauss}) with $\mathbb EH_N(\sigma)^2=N\xi(1)$ since the self-overlap is $1$
 (Theorem~\ref{thm:sg:mixedcov}). Apply Theorem~\ref{thm:sg:fecentration} with $v=N\xi(1)$ to the event $|F-\mathbb EF|\ge Nx$, and divide the variance bound by $N^2$.
 \end{proof}
+
+\begin{remark}[Deviations from Panchenko's proof of Theorem~1.2, and why]\label{rem:sg:deviation}
+The statements of Theorem~\ref{thm:sg:fecentration} follow the book (Theorem~1.2, Eq.~(1.41)), except for the variance constant, but the proof
+differs in three points. (The description of the book's argument below is the one recorded in our formalization plan; we did not re-derive it
+from the text, so the comparison is only as precise as that description.)
+\begin{enumerate}
+\item \emph{Two copies instead of three fields.} The book's route interpolates between independent copies $g^1,g^2$ of the field through a common field $g$,
+$g^j_t=\sqrt t\,g+\sqrt{1-t}\,g^j$ ($j=1,2$), and runs a Gr\"onwall argument for $\mathbb Ee^{\lambda(F_1-F_2)}$ along that two-sided coupling. We keep
+\emph{one} of the two fields fixed. Along $x_s=\cos s\,g_1+\sin s\,g_2$ against the fixed $g_2$, the derivative $x_s'=-\sin s\,g_1+\cos s\,g_2$ is uncorrelated with
+$x_s$, so in Gaussian integration by parts only the dependence on $g_2$ contributes, and a \emph{single} application of the Stein identity
+(Lemma~\ref{lem:sg:expgrowth}~(iii)) gives $\varphi'(s)=-t^2\cos s\,\mathbb E[\Phi_s\sum p_x p_y C]$. The endpoints are the independent pair
+($s=0$) and the diagonal ($s=\pi/2$, $\varphi=1$), which is all that the Gr\"onwall step needs. The saving is that only two fields are coupled and only one Stein identity is used; the price is that the bound is proved for the difference $F(g_1)-F(g_2)$ and has to be
+transferred to $F-\mathbb EF$ by a separate symmetrization (Lemma~\ref{lem:sg:symm}~(ii), Jensen's inequality $e^{-t\mathbb EF}\le\mathbb Ee^{-tF}$).
+\item \emph{Trigonometric path.} As in the comparison inequality (Theorem~\ref{thm:sg:comparison}) we use $\cos s,\sin s$ instead of $\sqrt t,\sqrt{1-t}$.
+The path is smooth on all of $\mathbb R$, so the dominated differentiation under the integral
+(Lemma~\ref{lem:sg:expgrowth}~(ii)) holds at every $s$ with a bound uniform in $s$, and no endpoint singularity of $\frac{d}{dt}\sqrt t$ at $t=0,1$ has to be
+treated separately. The Gr\"onwall factor is $e^{at^2\sin s}$ and monotonicity is used on $[0,\pi/2]$, where $\cos s\ge0$.
+\item \emph{Variance constant $2v$ instead of $8v$.} The book obtains the variance bound from the tail bound (integrating $\int_0^\infty 2x\,\mathbb P(|F-\mathbb EF|\ge x)dx$ with the
+tail $2e^{-x^2/(4v)}$, which gives $8v$). In Lean the conclusion of the argument is the stronger statement that $F-\mathbb EF$ is sub-Gaussian
+(Mathlib's \texttt{HasSubgaussianMGF}) with parameter $2v$, and we prove, once and for all, that a sub-Gaussian variable with parameter $c$ has second
+moment at most $c$ (Lemma~\ref{lem:sg:symm}~(i), from $u^2\le e^u+e^{-u}-2$ and $t\to0$), so the variance is bounded by $c=2v$ directly. The tail bound
+is the same as in the book ($2e^{-x^2/(4v)}$), so the improvement is only in the variance: a factor $4$. It is still not optimal, since the Gaussian
+Poincar\'e inequality would give $\mathrm{Var}\,F\le v$; we have not formalized that route.
+\end{enumerate}
+A smaller difference in the set-up: the reference weights $G(\sigma)>0$ of the book are replaced by a deterministic bias $h=\log G$ (which also covers an external
+field), exactly as in Theorem~\ref{thm:sg:lemma11}; and the Gaussian field is an arbitrary \texttt{HasGaussianLaw} family on a finite set, so the same
+statement serves every model, with the mixed $p$-spin case Theorem~\ref{thm:sg:mixedconc} a two-line application.
+\end{remark}
