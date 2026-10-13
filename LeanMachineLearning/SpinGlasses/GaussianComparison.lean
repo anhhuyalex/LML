@@ -146,19 +146,12 @@ theorem hasDerivAt_integral_log_sum_exp_trig [Fintype α] [Nonempty α] [Measura
       (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _)
       (fun a => (((hXi a).const_mul _).add ((hYi a).const_mul _)).add (integrable_const _))
       |>.congr (ae_of_all _ fun ω => by simp))
-    (fun ω s _ a => by
-      have h1 := (((Real.hasDerivAt_cos s).mul_const (X a ω)).add
-        ((Real.hasDerivAt_sin s).mul_const (Y a ω))).add_const (h a)
-      convert h1 using 1)
+    (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
     (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
     (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
-    (fun ω s _ a => by
-      refine (abs_add_le _ _).trans ?_
-      rw [abs_mul, abs_mul, abs_neg]
-      refine le_trans ?_ (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|)
-        (fun _ _ => by positivity) (mem_univ a))
-      exact add_le_add (mul_le_of_le_one_left (abs_nonneg _) (Real.abs_sin_le_one s))
-        (mul_le_of_le_one_left (abs_nonneg _) (Real.abs_cos_le_one s)))
+    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
+      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
+        (mem_univ a)))
   refine hpath.congr_deriv ?_
   rw [hmain]
   refine integral_congr_ae (ae_of_all _ fun ω => integral_congr_ae (ae_of_all _ fun p => ?_))

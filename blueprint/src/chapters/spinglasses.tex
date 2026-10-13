@@ -856,7 +856,9 @@ derivatives have exponential growth. Part (iv) is the fact that a product of Gau
 \end{proof}
 
 \begin{theorem}[Exponential moments of the free-energy difference of two copies]\label{thm:sg:expmoment}
-  \lean{SpinGlasses.abs_log_sum_exp_sub_le, SpinGlasses.hasFDerivAt_log_sum_exp,
+  \lean{SpinGlasses.abs_log_sum_exp_sub_le_of_forall, SpinGlasses.abs_log_sum_exp_sub_le,
+        SpinGlasses.hasDerivAt_cos_mul_add_sin_mul, SpinGlasses.abs_neg_sin_mul_add_cos_mul_le,
+        SpinGlasses.hasFDerivAt_log_sum_exp,
         SpinGlasses.hasDerivAt_exp_mul_log_sum_exp_trig, SpinGlasses.exp_mul_log_sum_exp_trig_le,
         SpinGlasses.abs_exp_mul_gibbs_average_le, SpinGlasses.hasDerivAt_integral_exp_mul_log_sum_exp_trig,
         SpinGlasses.gibbsWeight_mem_Icc, SpinGlasses.abs_log_sum_exp_le, SpinGlasses.hasFDerivAt_gibbs_exponent,
@@ -898,7 +900,9 @@ $\mathbb Ee^{t(F-\mathbb EF)}\le\mathbb Ee^{tF}\,\mathbb Ee^{-tF}=\mathbb Ee^{t(
 \end{proof}
 
 \begin{theorem}[Gaussian concentration of the free energy, Panchenko Theorem~1.2, Eq.~(1.41)]\label{thm:sg:fecentration}
-  \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp, SpinGlasses.measureReal_abs_sub_integral_ge_le_of_log_sum_exp,
+  \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp, ProbabilityTheory.integral_mul_le_half_add,
+        ProbabilityTheory.HasSubgaussianMGF.measureReal_abs_ge_le,
+        SpinGlasses.measureReal_abs_sub_integral_ge_le_of_log_sum_exp,
         SpinGlasses.integral_sq_sub_integral_le_of_log_sum_exp}
   \leanok
   \uses{thm:sg:expmoment, lem:sg:symm}
@@ -912,11 +916,12 @@ Then $F-\mathbb EF$ is sub-Gaussian with parameter $2v$, i.e.\ $\mathbb Ee^{t(F-
 Apply Lemma~\ref{lem:sg:symm}~(ii) on $\Omega\times\Omega$: the pair of independent copies $(g(z_1),g(z_2))$ is jointly Gaussian
 (Lemma~\ref{lem:sg:expgrowth}~(iv)), centered, uncorrelated, with the common covariance $C(x,y)=\mathbb Eg(x)g(y)\le\frac12(\mathbb Eg(x)^2+\mathbb Eg(y)^2)\le v$,
 so Theorem~\ref{thm:sg:expmoment} bounds the exponential moments by $e^{vt^2}$. The tail bound is Chernoff's inequality for the sub-Gaussian variable on both
-sides (\texttt{HasSubgaussianMGF.measure\_ge\_le}, \texttt{measure\_le\_le}) and the variance bound is Lemma~\ref{lem:sg:symm}~(i).
+sides (\texttt{HasSubgaussianMGF.measureReal\_abs\_ge\_le}, from \texttt{measure\_ge\_le} and \texttt{measure\_le\_le}) and the variance bound is Lemma~\ref{lem:sg:symm}~(i).
 \end{proof}
 
 \begin{theorem}[Concentration of the free energy of the mixed $p$-spin model, Panchenko Eq.~(1.42)]\label{thm:sg:mixedconc}
-  \lean{SpinGlasses.integral_mixedPSpin_sq, SpinGlasses.mixedPSpin_free_energy_concentration,
+  \lean{SpinGlasses.integral_mixedPSpin_sq, SpinGlasses.mixedPSpin_free_energy_hasSubgaussianMGF,
+        SpinGlasses.mixedPSpin_free_energy_concentration,
         SpinGlasses.mixedPSpin_free_energy_variance_le}
   \leanok
   \uses{thm:sg:fecentration, thm:sg:mixedgauss, thm:sg:mixedcov}
@@ -928,7 +933,7 @@ $X_N=N^{-1}\log\sum_\sigma e^{H_N(\sigma)}$ and $x\ge0$,
 \begin{proof}
   \leanok
 The Hamiltonian is a centered Gaussian process (Theorem~\ref{thm:sg:mixedgauss}) with $\mathbb EH_N(\sigma)^2=N\xi(1)$ since the self-overlap is $1$
-(Theorem~\ref{thm:sg:mixedcov}). Apply Theorem~\ref{thm:sg:fecentration} with $v=N\xi(1)$ to the event $|F-\mathbb EF|\ge Nx$, and divide the variance bound by $N^2$.
+(Theorem~\ref{thm:sg:mixedcov}). Apply Theorem~\ref{thm:sg:fecentration} with $v=N\xi(1)$ and rescale by $N^{-1}$ (a sub-Gaussian variable with parameter $c$ times $r$ is sub-Gaussian with parameter $r^2c$), so that $X_N-\mathbb EX_N$ is sub-Gaussian with parameter $2\xi(1)/N$; the tail and variance bounds are then its Chernoff and second-moment bounds.
 \end{proof}
 
 \begin{remark}[Deviations from Panchenko's proof of Theorem~1.2, and why]\label{rem:sg:deviation}

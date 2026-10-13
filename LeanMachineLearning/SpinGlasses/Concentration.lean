@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymmetrization
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
@@ -29,34 +30,35 @@ section LogSumExp
 
 variable {α : Type*} [Fintype α] [Nonempty α]
 
-/-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz** for the `ℓ¹` norm (hence for the sup norm):
-`|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ ∑ₐ |uₐ - vₐ|`. -/
-theorem abs_log_sum_exp_sub_le (h u v : α → ℝ) :
-    |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤
-      ∑ a, |u a - v a| := by
-  have key : ∀ u v : α → ℝ, Real.log (∑ a, Real.exp (u a + h a)) -
-      Real.log (∑ a, Real.exp (v a + h a)) ≤ ∑ a, |u a - v a| := by
-    intro u v
+/-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz for the sup norm:** if `|uₐ - vₐ| ≤ M` for all `a`, then
+`|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ M`. -/
+theorem abs_log_sum_exp_sub_le_of_forall (h u v : α → ℝ) {M : ℝ} (hM : ∀ a, |u a - v a| ≤ M) :
+    |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤ M := by
+  have key : ∀ u v : α → ℝ, (∀ a, u a - v a ≤ M) → Real.log (∑ a, Real.exp (u a + h a)) -
+      Real.log (∑ a, Real.exp (v a + h a)) ≤ M := by
+    intro u v huv
     have hu : 0 < ∑ a, Real.exp (u a + h a) :=
       Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
     have hv : 0 < ∑ a, Real.exp (v a + h a) :=
       Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-    rw [sub_le_iff_le_add', ← Real.log_exp (∑ a, |u a - v a|),
-      ← Real.log_mul hv.ne' (Real.exp_pos _).ne']
+    rw [sub_le_iff_le_add', ← Real.log_exp M, ← Real.log_mul hv.ne' (Real.exp_pos _).ne']
     refine Real.log_le_log hu ?_
     rw [Finset.sum_mul]
     refine Finset.sum_le_sum fun a _ => ?_
     rw [← Real.exp_add]
-    refine Real.exp_le_exp.2 ?_
-    have : u a - v a ≤ ∑ b, |u b - v b| :=
-      (le_abs_self _).trans (Finset.single_le_sum (f := fun b => |u b - v b|)
-        (fun _ _ => abs_nonneg _) (Finset.mem_univ a))
-    linarith
+    exact Real.exp_le_exp.2 (by linarith [huv a])
   rw [abs_le]
-  refine ⟨?_, key u v⟩
-  have := key v u
-  simp_rw [abs_sub_comm (v _)] at this
+  refine ⟨?_, key u v fun a => (le_abs_self _).trans (hM a)⟩
+  have := key v u fun a => (le_abs_self _).trans ((abs_sub_comm _ _).trans_le (hM a))
   linarith
+
+/-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz** for the `ℓ¹` norm:
+`|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ ∑ₐ |uₐ - vₐ|`. -/
+theorem abs_log_sum_exp_sub_le (h u v : α → ℝ) :
+    |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤
+      ∑ a, |u a - v a| :=
+  abs_log_sum_exp_sub_le_of_forall h u v fun a => Finset.single_le_sum
+    (f := fun b => |u b - v b|) (fun _ _ => abs_nonneg _) (Finset.mem_univ a)
 
 /-- The gradient of `w ↦ log ∑ₐ exp (wₐ + hₐ)` is the Gibbs weight vector. -/
 theorem hasFDerivAt_log_sum_exp (h u : α → ℝ) :
@@ -93,10 +95,8 @@ theorem hasDerivAt_exp_mul_log_sum_exp_trig (h u v : α → ℝ) (t s : ℝ) :
   let _ : MeasurableSpace α := ⊤
   have _ : MeasurableSingletonClass α := ⟨fun _ => MeasurableSpace.measurableSet_top⟩
   have hf := hasDerivAt_log_sum_exp_path (f := fun s a => Real.cos s * u a + Real.sin s * v a + h a)
-    (f' := fun a => -Real.sin s * u a + Real.cos s * v a) (t := s) fun a => by
-    have := (((Real.hasDerivAt_cos s).mul_const (u a)).add
-      ((Real.hasDerivAt_sin s).mul_const (v a))).add_const (h a)
-    convert this using 1
+    (f' := fun a => -Real.sin s * u a + Real.cos s * v a) (t := s) fun a =>
+    hasDerivAt_cos_mul_add_sin_mul (u a) (v a) (h a) s
   have := ((hf.sub_const (Real.log (∑ a, Real.exp (v a + h a)))).const_mul t).exp
   rwa [integral_count_tilted] at this
 
@@ -153,11 +153,7 @@ theorem abs_exp_mul_gibbs_average_le (h u v : α → ℝ) (t s : ℝ) :
             rw [div_le_one hZpos]
             exact Finset.single_le_sum (f := fun b => Real.exp (Real.cos s * u b +
               Real.sin s * v b + h b)) (fun _ _ => (Real.exp_pos _).le) (Finset.mem_univ a)
-          have h2 : |-Real.sin s * u a + Real.cos s * v a| ≤ |u a| + |v a| := by
-            refine (abs_add_le _ _).trans ?_
-            rw [abs_mul, abs_mul, abs_neg]
-            nlinarith [Real.abs_cos_le_one s, Real.abs_sin_le_one s, abs_nonneg (u a),
-              abs_nonneg (v a)]
+          have h2 := abs_neg_sin_mul_add_cos_mul_le (u a) (v a) s
           calc _ ≤ 1 * (|u a| + |v a|) :=
                 mul_le_mul h1 h2 (abs_nonneg _) zero_le_one
             _ = _ := one_mul _
@@ -259,17 +255,6 @@ theorem hasFDerivAt_gibbs_exponent (h : α → ℝ) (t : ℝ) (σ : α) (y : α 
       (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : α ⊕ α => ℝ) (Sum.inl σ)) y :=
     hasFDerivAt_apply _ _
   exact ((h1.sub h2).const_mul t).add ((h3.add_const (h σ)).sub h1)
-
-omit [Nonempty α] in
-/-- Gibbs weights lie in `[0, 1]`. -/
-theorem gibbsWeight_mem_Icc [Nonempty α] (w h : α → ℝ) (b : α) :
-    Real.exp (w b + h b) / ∑ a, Real.exp (w a + h a) ∈ Set.Icc (0 : ℝ) 1 := by
-  have hZ : 0 < ∑ a, Real.exp (w a + h a) :=
-    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-  refine ⟨(div_pos (Real.exp_pos _) hZ).le, ?_⟩
-  rw [div_le_one hZ]
-  exact Finset.single_le_sum (f := fun a => Real.exp (w a + h a)) (fun _ _ => (Real.exp_pos _).le)
-    (Finset.mem_univ b)
 
 omit [Nonempty α] in
 /-- `|log ∑ₐ exp (wₐ + hₐ)| ≤ |log ∑ₐ exp hₐ| + ∑ₐ |wₐ|`. -/
@@ -532,38 +517,6 @@ section Gronwall
 variable {α : Type*} [Fintype α] [Nonempty α] {Ω : Type*}
   {mΩ : MeasurableSpace Ω} {P : Measure Ω} {g₁ g₂ : α → Ω → ℝ}
 
-omit [Nonempty α] in
-/-- Gibbs weights sum to one. -/
-theorem sum_gibbsWeight [Nonempty α] (w h : α → ℝ) :
-    ∑ b, Real.exp (w b + h b) / ∑ a, Real.exp (w a + h a) = 1 := by
-  rw [← Finset.sum_div]
-  exact div_self (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
-
-/-- A Gibbs average of a bounded function over two independent Gibbs measures is bounded:
-`∑ₓ ∑ᵧ pₓ qᵧ C(x, y) ≤ a` when `C ≤ a` and `|∑ₓ ∑ᵧ pₓ qᵧ C(x, y)| ≤ ∑ₓ ∑ᵧ |C(x, y)|`. -/
-theorem sum_sum_gibbsWeight_mul_le (w v h : α → ℝ) {C : α → α → ℝ} {a : ℝ}
-    (ha : ∀ x y, C x y ≤ a) :
-    ∑ x, ∑ y, Real.exp (w x + h x) / (∑ c, Real.exp (w c + h c)) *
-      (Real.exp (v y + h y) / ∑ c, Real.exp (v c + h c)) * C x y ≤ a := by
-  calc _ ≤ ∑ x, ∑ y, Real.exp (w x + h x) / (∑ c, Real.exp (w c + h c)) *
-        (Real.exp (v y + h y) / ∑ c, Real.exp (v c + h c)) * a :=
-        Finset.sum_le_sum fun x _ => Finset.sum_le_sum fun y _ => mul_le_mul_of_nonneg_left
-          (ha x y) (mul_nonneg (gibbsWeight_mem_Icc w h x).1 (gibbsWeight_mem_Icc v h y).1)
-    _ = a := by
-        simp_rw [← Finset.sum_mul, ← Finset.mul_sum]
-        simp only [sum_gibbsWeight v h, mul_one, sum_gibbsWeight w h, one_mul]
-
-theorem abs_sum_sum_gibbsWeight_mul_le (w v h : α → ℝ) (C : α → α → ℝ) :
-    |∑ x, ∑ y, Real.exp (w x + h x) / (∑ c, Real.exp (w c + h c)) *
-      (Real.exp (v y + h y) / ∑ c, Real.exp (v c + h c)) * C x y| ≤ ∑ x, ∑ y, |C x y| := by
-  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun x _ => ?_)
-  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun y _ => ?_)
-  rw [abs_mul, abs_of_nonneg (mul_nonneg (gibbsWeight_mem_Icc w h x).1
-    (gibbsWeight_mem_Icc v h y).1)]
-  exact mul_le_of_le_one_left (abs_nonneg _) ((mul_le_of_le_one_right
-    (gibbsWeight_mem_Icc w h x).1 (gibbsWeight_mem_Icc v h y).2).trans
-    (gibbsWeight_mem_Icc w h x).2)
-
 /-- **Exponential moment of the free-energy difference of two independent copies.**
 Let `(g₁, g₂)` be a centered jointly Gaussian pair of fields on a finite set with `𝔼 g₁ g₂ = 0` and
 the same covariance `C ≤ a`.  Then for every bias `h` and every `t`,
@@ -696,14 +649,7 @@ theorem hasSubgaussianMGF_log_sum_exp (hg : HasGaussianLaw (fun ω a => g a ω) 
       (C := fun a b => ∫ ω, g a ω * g b ω ∂P)
       (fun a b => by rw [integral_fun_fst (fun ω => g a ω * g b ω)]; simp)
       (fun a b => by rw [integral_fun_snd (fun ω => g a ω * g b ω)]; simp) (a := v)
-      (fun x y => by
-        have hle : ∫ ω, g x ω * g y ω ∂P ≤ ∫ ω, (g x ω ^ 2 / 2 + g y ω ^ 2 / 2) ∂P :=
-          integral_mono ((hgi x).integrable_mul (hgi y))
-            (((hgi x).integrable_sq.div_const 2).add ((hgi y).integrable_sq.div_const 2))
-            fun ω => by nlinarith [sq_nonneg (g x ω - g y ω)]
-        rw [integral_add ((hgi x).integrable_sq.div_const 2) ((hgi y).integrable_sq.div_const 2),
-          integral_div, integral_div] at hle
-        linarith [hv x, hv y]) h t
+      (fun x y => by linarith [integral_mul_le_half_add (hgi x) (hgi y), hv x, hv y]) h t
     refine hcore.trans_eq ?_
     rw [show ((2 * v.toNNReal : ℝ≥0) : ℝ) * t ^ 2 / 2 = t ^ 2 * v by
       push_cast; rw [Real.coe_toNNReal _ hv0]; ring]
@@ -726,18 +672,7 @@ theorem measureReal_abs_sub_integral_ge_le_of_log_sum_exp
     push_cast
     rw [Real.coe_toNNReal _ hv0]
     ring
-  have h1 := hsub.measure_ge_le hx
-  have h2 := hsub.measure_le_le hx
-  rw [hc] at h1 h2
-  calc _ ≤ P.real {ω | x ≤ Real.log (∑ a, Real.exp (g a ω + h a)) -
-        ∫ ω', Real.log (∑ a, Real.exp (g a ω' + h a)) ∂P} +
-      P.real {ω | Real.log (∑ a, Real.exp (g a ω + h a)) -
-        ∫ ω', Real.log (∑ a, Real.exp (g a ω' + h a)) ∂P ≤ -x} := by
-        refine (measureReal_mono (fun ω hω => ?_)).trans (measureReal_union_le _ _)
-        rcases le_abs.1 (show x ≤ |_| from hω) with hh | hh
-        · exact Or.inl hh
-        · exact Or.inr (show _ ≤ -x by linarith)
-    _ ≤ 2 * Real.exp (-x ^ 2 / (4 * v)) := by linarith
+  simpa only [hc] using hsub.measureReal_abs_ge_le hx
 
 /-- **Variance of the free energy** ([Panchenko, 2013, Theorem 1.2]): under the assumptions of
 `hasSubgaussianMGF_log_sum_exp`, `𝔼 (F - 𝔼 F)² ≤ 2 v` (the book states `8 v`). -/
@@ -778,6 +713,36 @@ theorem integral_mixedPSpin_sq (σ : ι → ℤˣ) :
     hself]
   simp
 
+/-- **The free energy of the mixed `p`-spin model is sub-Gaussian**: `X_N - 𝔼 X_N` with
+`X_N = N⁻¹ log Z_N`, `Z_N = ∑_σ exp (H_N(σ))`, is sub-Gaussian with parameter `2 ξ(1) / N`,
+`ξ(1) = ∑ₚ β_p²`.  This is `hasSubgaussianMGF_log_sum_exp` rescaled by `N⁻¹`
+(`HasSubgaussianMGF.const_mul`). -/
+theorem mixedPSpin_free_energy_hasSubgaussianMGF :
+    HasSubgaussianMGF
+      (fun g => (Fintype.card ι : ℝ)⁻¹ * Real.log (∑ σ, Real.exp (H g σ)) -
+        (Fintype.card ι : ℝ)⁻¹ * ∫ g', Real.log (∑ σ, Real.exp (H g' σ))
+          ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1))
+      (2 * (∑' p, β p ^ 2) / Fintype.card ι).toNNReal
+      (Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1) := by
+  have hN : (0 : ℝ) < Fintype.card ι := Nat.cast_pos.2 Fintype.card_pos
+  have hξ : 0 ≤ ∑' p, β p ^ 2 := tsum_nonneg fun _ => sq_nonneg _
+  have hc : 0 ≤ 2 * (∑' p, β p ^ 2) / Fintype.card ι := by positivity
+  have key := (hasSubgaussianMGF_log_sum_exp (mixedPSpin_hasGaussianLaw H hH hβ0 hβ)
+    (fun σ => (mixedPSpin_hypercube_hyps H hH hβ0 hβ σ).1)
+    (integral_mixedPSpin_eq_zero H hH hβ0 hβ) (v := Fintype.card ι * ∑' p, β p ^ 2)
+    (fun σ => (integral_mixedPSpin_sq H hH hβ0 hβ σ).le) (fun _ => 0)).const_mul
+    (Fintype.card ι : ℝ)⁻¹
+  simp only [add_zero] at key
+  convert key using 1
+  · ext g
+    ring
+  · refine NNReal.eq ?_
+    rw [Real.coe_toNNReal _ hc]
+    change _ = ((Fintype.card ι : ℝ)⁻¹) ^ 2 *
+      (2 * ((Fintype.card ι * ∑' p, β p ^ 2).toNNReal : ℝ))
+    rw [Real.coe_toNNReal _ (mul_nonneg hN.le hξ)]
+    field_simp
+
 /-- **Concentration of the free energy of the mixed `p`-spin model**
 ([Panchenko, 2013, Eq. (1.42)]): for `X_N = N⁻¹ log Z_N`, `Z_N = ∑_σ exp (H_N(σ))`,
 `ℙ(|X_N - 𝔼 X_N| ≥ x) ≤ 2 exp (-N x² / (4 ξ(1)))`, `ξ(1) = ∑ₚ β_p²`. -/
@@ -788,29 +753,16 @@ theorem mixedPSpin_free_energy_concentration {x : ℝ} (hx : 0 ≤ x) :
           ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1)|} ≤
       2 * Real.exp (-(Fintype.card ι : ℝ) * x ^ 2 / (4 * ∑' p, β p ^ 2)) := by
   have hN : (0 : ℝ) < Fintype.card ι := Nat.cast_pos.2 Fintype.card_pos
-  have hg := mixedPSpin_hasGaussianLaw H hH hβ0 hβ
-  have key := measureReal_abs_sub_integral_ge_le_of_log_sum_exp hg
-    (fun σ => (mixedPSpin_hypercube_hyps H hH hβ0 hβ σ).1)
-    (integral_mixedPSpin_eq_zero H hH hβ0 hβ) (v := Fintype.card ι * ∑' p, β p ^ 2)
-    (fun σ => (integral_mixedPSpin_sq H hH hβ0 hβ σ).le) (fun _ => 0)
-    (mul_nonneg hN.le hx)
-  simp only [add_zero] at key
-  refine le_trans (le_of_eq ?_) (key.trans_eq ?_)
-  · congr 1
-    ext g
-    have : x ≤ |(Fintype.card ι : ℝ)⁻¹ * Real.log (∑ σ, Real.exp (H g σ)) -
-        (Fintype.card ι : ℝ)⁻¹ * ∫ g', Real.log (∑ σ, Real.exp (H g' σ))
-          ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1)| ↔
-        (Fintype.card ι : ℝ) * x ≤ |Real.log (∑ σ, Real.exp (H g σ)) -
-        ∫ g', Real.log (∑ σ, Real.exp (H g' σ))
-          ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1)| := by
-      rw [← mul_sub, abs_mul, abs_of_pos (inv_pos.2 hN), ← div_eq_inv_mul, le_div_iff₀ hN,
-        mul_comm]
-    exact this
+  have hξ : 0 ≤ ∑' p, β p ^ 2 := tsum_nonneg fun _ => sq_nonneg _
+  have hc : 0 ≤ 2 * (∑' p, β p ^ 2) / Fintype.card ι := by positivity
+  refine ((mixedPSpin_free_energy_hasSubgaussianMGF H hH hβ0 hβ).measureReal_abs_ge_le
+    hx).trans_eq ?_
+  rw [Real.coe_toNNReal _ hc]
+  rcases eq_or_ne (∑' p, β p ^ 2) 0 with h0 | h0
+  · simp [h0]
   · congr 2
-    rcases eq_or_ne (∑' p, β p ^ 2) 0 with h0 | h0
-    · simp [h0]
-    · field_simp
+    field_simp
+    ring
 
 /-- **Variance of the free energy of the mixed `p`-spin model:** `Var(X_N) ≤ 2 ξ(1) / N`
 (the book has the constant `8`). -/
@@ -821,24 +773,10 @@ theorem mixedPSpin_free_energy_variance_le :
       ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1) ≤
       2 * (∑' p, β p ^ 2) / Fintype.card ι := by
   have hN : (0 : ℝ) < Fintype.card ι := Nat.cast_pos.2 Fintype.card_pos
-  have hg := mixedPSpin_hasGaussianLaw H hH hβ0 hβ
-  have key := integral_sq_sub_integral_le_of_log_sum_exp hg
-    (fun σ => (mixedPSpin_hypercube_hyps H hH hβ0 hβ σ).1)
-    (integral_mixedPSpin_eq_zero H hH hβ0 hβ) (v := Fintype.card ι * ∑' p, β p ^ 2)
-    (fun σ => (integral_mixedPSpin_sq H hH hβ0 hβ σ).le) (fun _ => 0)
-  simp only [add_zero] at key
-  have e : ∀ g, ((Fintype.card ι : ℝ)⁻¹ * Real.log (∑ σ, Real.exp (H g σ)) -
-        (Fintype.card ι : ℝ)⁻¹ * ∫ g', Real.log (∑ σ, Real.exp (H g' σ))
-          ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1)) ^ 2
-      = ((Fintype.card ι : ℝ)⁻¹) ^ 2 * (Real.log (∑ σ, Real.exp (H g σ)) -
-        ∫ g', Real.log (∑ σ, Real.exp (H g' σ))
-          ∂(Measure.infinitePi fun p : ℕ => Measure.pi fun _ : Fin p → ι => gaussianReal 0 1))
-        ^ 2 := fun g => by ring
-  simp_rw [e]
-  rw [integral_const_mul]
-  calc _ ≤ ((Fintype.card ι : ℝ)⁻¹) ^ 2 * (2 * (Fintype.card ι * ∑' p, β p ^ 2)) :=
-        mul_le_mul_of_nonneg_left key (sq_nonneg _)
-    _ = _ := by field_simp
+  have hξ : 0 ≤ ∑' p, β p ^ 2 := tsum_nonneg fun _ => sq_nonneg _
+  have hc : 0 ≤ 2 * (∑' p, β p ^ 2) / Fintype.card ι := by positivity
+  refine (mixedPSpin_free_energy_hasSubgaussianMGF H hH hβ0 hβ).integral_sq_le.trans_eq ?_
+  exact Real.coe_toNNReal _ hc
 
 end MixedPSpin
 

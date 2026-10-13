@@ -70,6 +70,18 @@ lemma measure_le_le (h : HasSubgaussianMGF X c μ) {ε : ℝ} (hε : 0 ≤ ε) :
   simp_rw [le_neg (b := ε), ← Pi.neg_apply]
   exact h.neg.measure_ge_le hε
 
+/-- Two-sided Chernoff bound for a sub-Gaussian random variable:
+`ℙ(ε ≤ |X|) ≤ 2 exp (-ε² / (2c))`. -/
+lemma measureReal_abs_ge_le (h : HasSubgaussianMGF X c μ) {ε : ℝ} (hε : 0 ≤ ε) :
+    μ.real {ω | ε ≤ |X ω|} ≤ 2 * exp (-ε ^ 2 / (2 * c)) := by
+  have : IsFiniteMeasure μ := by simpa [integrable_const_iff] using h.integrable_exp_mul 0
+  have hset : {ω | ε ≤ |X ω|} ⊆ {ω | ε ≤ X ω} ∪ {ω | X ω ≤ -ε} := fun ω (hω : ε ≤ |X ω|) => by
+    rcases le_abs.1 hω with h | h
+    · exact Or.inl h
+    · exact Or.inr (show X ω ≤ -ε by linarith)
+  refine (measureReal_mono hset).trans ((measureReal_union_le _ _).trans ?_)
+  linarith [h.measure_ge_le hε, h.measure_le_le hε]
+
 /-- **Hoeffding inequality** for sub-Gaussian random variables. -/
 lemma measure_sum_le_le_of_iIndepFun {ι : Type*} {X : ι → Ω → ℝ} (h_indep : iIndepFun X μ)
     {c : ι → ℝ≥0}

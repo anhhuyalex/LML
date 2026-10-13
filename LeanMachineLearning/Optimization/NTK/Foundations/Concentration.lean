@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Moments.SubGaussian
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
 
 /-!
 # Generic Gaussian and probability-measure lemmas
@@ -83,30 +84,10 @@ lemma hasSubgaussianMGF_id_gaussianReal_zero_one :
   integrable_exp_mul := integrable_exp_mul_gaussianReal
   mgf_le t := by rw [mgf_id_gaussianReal]; simp
 
-/-- Negating a standard Gaussian is still sub-Gaussian with the same parameter (used for the
-two-sided/absolute-value tail bound below). -/
-lemma hasSubgaussianMGF_neg_id_gaussianReal_zero_one :
-    ProbabilityTheory.HasSubgaussianMGF (fun x => -x) (1 : NNReal) (gaussianReal 0 1) :=
-  hasSubgaussianMGF_id_gaussianReal_zero_one.neg
-
 /-- Two-sided Chernoff tail bound for a standard Gaussian: `P(|X| ≥ ε) ≤ 2 exp(-ε²/2)`. -/
 lemma prob_abs_gaussianReal_ge_le (ε : ℝ) (hε : 0 ≤ ε) :
     (gaussianReal 0 1).real {x : ℝ | ε ≤ |x|} ≤ 2 * Real.exp (-ε ^ 2 / 2) := by
-  have hset : {x : ℝ | ε ≤ |x|} = {x : ℝ | ε ≤ x} ∪ {x : ℝ | ε ≤ -x} := by
-    ext x
-    simp only [Set.mem_ofPred_eq, Set.mem_union, le_abs]
-  rw [hset]
-  have h1 := hasSubgaussianMGF_id_gaussianReal_zero_one.measure_ge_le hε
-  have h2 := hasSubgaussianMGF_neg_id_gaussianReal_zero_one.measure_ge_le hε
-  simp only [id] at h1
-  have hle := measureReal_union_le (μ := gaussianReal 0 1) {x : ℝ | ε ≤ x} {x : ℝ | ε ≤ -x}
-  have hcalc : Real.exp (-ε ^ 2 / (2 * (1:NNReal))) = Real.exp (-ε ^ 2 / 2) := by norm_num
-  rw [hcalc] at h1 h2
-  calc
-    (gaussianReal 0 1).real ({x : ℝ | ε ≤ x} ∪ {x : ℝ | ε ≤ -x}) ≤
-        (gaussianReal 0 1).real {x : ℝ | ε ≤ x} + (gaussianReal 0 1).real {x : ℝ | ε ≤ -x} := hle
-    _ ≤ Real.exp (-ε ^ 2 / 2) + Real.exp (-ε ^ 2 / 2) := add_le_add h1 h2
-    _ = 2 * Real.exp (-ε ^ 2 / 2) := by ring
+  simpa using hasSubgaussianMGF_id_gaussianReal_zero_one.measureReal_abs_ge_le hε
 
 /-- **Generic, reusable union-bound-for-complements.** Two events each of probability `≥ 1 - δ`
 on the same probability measure intersect in an event of probability `≥ 1 - δ₁ - δ₂`. Used by

@@ -175,11 +175,11 @@ variance $1$ with mean $0$.
 \end{proof}
 
 \begin{lemma}[Sub-Gaussian tail of the standard Gaussian]\label{lem:ntkf:subGaussTail}
-  \lean{NTK.hasSubgaussianMGF_id_gaussianReal_zero_one,
-        NTK.hasSubgaussianMGF_neg_id_gaussianReal_zero_one, NTK.prob_abs_gaussianReal_ge_le}
+  \lean{NTK.hasSubgaussianMGF_id_gaussianReal_zero_one, NTK.prob_abs_gaussianReal_ge_le,
+        ProbabilityTheory.HasSubgaussianMGF.measureReal_abs_ge_le}
   \leanok
-Both $X$ and $-X$ have a sub-Gaussian moment generating function with parameter $1$ under
-$\gamma$, i.e.\ $\mathbb E[e^{tX}]\le e^{t^2/2}$ for all $t$. Consequently, for every
+$X$ has a sub-Gaussian moment generating function with parameter $1$ under $\gamma$,
+i.e.\ $\mathbb E[e^{tX}]\le e^{t^2/2}$ for all $t$. Consequently, for every
 $\varepsilon\ge0$,
 \[
   \Pr\bigl[\,|X|\ge\varepsilon\,\bigr]\;\le\;2\,e^{-\varepsilon^2/2}.

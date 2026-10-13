@@ -217,6 +217,73 @@ theorem hasDerivAt_integral_log_sum_exp_path (hS : S ∈ 𝓝 t)
 
 end Path
 
+section GibbsWeight
+
+variable {α : Type*} [Fintype α] [Nonempty α]
+
+/-- Gibbs weights lie in `[0, 1]`. -/
+theorem gibbsWeight_mem_Icc (w h : α → ℝ) (b : α) :
+    Real.exp (w b + h b) / ∑ a, Real.exp (w a + h a) ∈ Set.Icc (0 : ℝ) 1 := by
+  have hZ : 0 < ∑ a, Real.exp (w a + h a) :=
+    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
+  refine ⟨(div_pos (Real.exp_pos _) hZ).le, ?_⟩
+  rw [div_le_one hZ]
+  exact Finset.single_le_sum (f := fun a => Real.exp (w a + h a)) (fun _ _ => (Real.exp_pos _).le)
+    (Finset.mem_univ b)
+
+/-- Gibbs weights sum to one. -/
+theorem sum_gibbsWeight (w h : α → ℝ) :
+    ∑ b, Real.exp (w b + h b) / ∑ a, Real.exp (w a + h a) = 1 := by
+  rw [← Finset.sum_div]
+  exact div_self (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
+
+/-- A Gibbs average of a bounded function over two independent Gibbs measures is bounded:
+`∑ₓ ∑ᵧ pₓ qᵧ C(x, y) ≤ a` when `C ≤ a` and `|∑ₓ ∑ᵧ pₓ qᵧ C(x, y)| ≤ ∑ₓ ∑ᵧ |C(x, y)|`. -/
+theorem sum_sum_gibbsWeight_mul_le (w v h : α → ℝ) {C : α → α → ℝ} {a : ℝ}
+    (ha : ∀ x y, C x y ≤ a) :
+    ∑ x, ∑ y, Real.exp (w x + h x) / (∑ c, Real.exp (w c + h c)) *
+      (Real.exp (v y + h y) / ∑ c, Real.exp (v c + h c)) * C x y ≤ a := by
+  calc _ ≤ ∑ x, ∑ y, Real.exp (w x + h x) / (∑ c, Real.exp (w c + h c)) *
+        (Real.exp (v y + h y) / ∑ c, Real.exp (v c + h c)) * a :=
+        Finset.sum_le_sum fun x _ => Finset.sum_le_sum fun y _ => mul_le_mul_of_nonneg_left
+          (ha x y) (mul_nonneg (gibbsWeight_mem_Icc w h x).1 (gibbsWeight_mem_Icc v h y).1)
+    _ = a := by
+        simp_rw [← Finset.sum_mul, ← Finset.mul_sum]
+        simp only [sum_gibbsWeight v h, mul_one, sum_gibbsWeight w h, one_mul]
+
+/-- The `ℓ¹` bound on a Gibbs average over two independent Gibbs measures:
+`|∑ₓ ∑ᵧ pₓ qᵧ C(x, y)| ≤ ∑ₓ ∑ᵧ |C(x, y)|`. -/
+theorem abs_sum_sum_gibbsWeight_mul_le (w v h : α → ℝ) (C : α → α → ℝ) :
+    |∑ x, ∑ y, Real.exp (w x + h x) / (∑ c, Real.exp (w c + h c)) *
+      (Real.exp (v y + h y) / ∑ c, Real.exp (v c + h c)) * C x y| ≤ ∑ x, ∑ y, |C x y| := by
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun x _ => ?_)
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun y _ => ?_)
+  rw [abs_mul, abs_of_nonneg (mul_nonneg (gibbsWeight_mem_Icc w h x).1
+    (gibbsWeight_mem_Icc v h y).1)]
+  exact mul_le_of_le_one_left (abs_nonneg _) ((mul_le_of_le_one_right
+    (gibbsWeight_mem_Icc w h x).1 (gibbsWeight_mem_Icc v h y).2).trans
+    (gibbsWeight_mem_Icc w h x).2)
+
+end GibbsWeight
+
+section TrigPath
+
+/-- The trigonometric path `s ↦ cos s x + sin s y + c` has velocity `-sin s x + cos s y`. -/
+theorem hasDerivAt_cos_mul_add_sin_mul (x y c s : ℝ) :
+    HasDerivAt (fun s => Real.cos s * x + Real.sin s * y + c)
+      (-Real.sin s * x + Real.cos s * y) s := by
+  convert (((Real.hasDerivAt_cos s).mul_const x).add
+    ((Real.hasDerivAt_sin s).mul_const y)).add_const c using 1
+
+/-- The velocity of the trigonometric path is at most `|x| + |y|`, uniformly in `s`. -/
+theorem abs_neg_sin_mul_add_cos_mul_le (x y s : ℝ) :
+    |-Real.sin s * x + Real.cos s * y| ≤ |x| + |y| := by
+  refine (abs_add_le _ _).trans ?_
+  rw [abs_mul, abs_mul, abs_neg]
+  nlinarith [Real.abs_cos_le_one s, Real.abs_sin_le_one s, abs_nonneg x, abs_nonneg y]
+
+end TrigPath
+
 section Random
 
 variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]

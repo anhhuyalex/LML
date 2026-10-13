@@ -16,7 +16,8 @@ For a random vector `x : Ω → p → ℝ` with square-integrable coordinates an
 `Γ j k = E[x_j x_k]`:
 
 * `ProbabilityTheory.integral_dotProduct_mulVec_self`: `E[xᵀ S x] = Tr (S Γ)`;
-* `ProbabilityTheory.integral_dotProduct_mul_dotProduct`: `E[(x ⬝ a)(x ⬝ b)] = a ⬝ Γ b`.
+* `ProbabilityTheory.integral_dotProduct_mul_dotProduct`: `E[(x ⬝ a)(x ⬝ b)] = a ⬝ Γ b`;
+* `ProbabilityTheory.integral_mul_le_half_add`: AM-GM, `E[X Y] ≤ (E[X²] + E[Y²]) / 2`.
 
 They reduce every bilinear second-moment computation to the coordinate covariances (used for the
 double-descent risk decompositions and for Gaussian matrix forms).
@@ -59,5 +60,14 @@ theorem integral_dotProduct_mul_dotProduct (x : Ω → p → ℝ) (hx : ∀ j, M
     simp [dotProduct_comm]
   simp_rw [hpt] at h
   rw [h, Matrix.vecMulVec_mul, Matrix.trace_vecMulVec, Matrix.dotProduct_mulVec, dotProduct_comm]
+
+/-- AM-GM for square-integrable variables: `E[X Y] ≤ (E[X²] + E[Y²]) / 2`. -/
+theorem integral_mul_le_half_add {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : MemLp Y 2 μ) :
+    ∫ ω, X ω * Y ω ∂μ ≤ (∫ ω, X ω ^ 2 ∂μ + ∫ ω, Y ω ^ 2 ∂μ) / 2 := by
+  have hXi := hX.integrable_sq
+  have hYi := hY.integrable_sq
+  rw [← integral_add hXi hYi, ← integral_div]
+  exact integral_mono (hX.integrable_mul hY) ((hXi.add hYi).div_const 2)
+    fun ω => by nlinarith [sq_nonneg (X ω - Y ω)]
 
 end ProbabilityTheory
