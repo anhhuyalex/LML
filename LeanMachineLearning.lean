@@ -2,6 +2,7 @@ module  -- shake: keep-all --deprecated_module: ignore
 
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
+public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.ChainRule
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.CompProd
@@ -48,6 +49,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
@@ -264,6 +266,7 @@ public import LeanMachineLearning.SequentialLearning.Means
 public import LeanMachineLearning.SequentialLearning.StationaryEnv
 public import LeanMachineLearning.SequentialLearning.StoppedHistory
 public import LeanMachineLearning.SequentialLearning.SumRewards
+public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarr
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.FreeEnergy

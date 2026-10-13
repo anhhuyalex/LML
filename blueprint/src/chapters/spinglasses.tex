@@ -26,6 +26,11 @@ Sections~\ref{sec:sg:serieslaw}--\ref{sec:sg:gt}, with the Lean files
 \texttt{SpinGlasses/GaussianComparison.lean} and \texttt{SpinGlasses/GuerraToninelli.lean}. The Gaussian
 concentration inequality (Theorem~1.2 and Eq.~(1.42)) is Section~\ref{sec:sg:fe-conc}, with the Lean files
 \texttt{ForMathlib/Probability/Moments/SubGaussianSymmetrization.lean} and \texttt{SpinGlasses/Concentration.lean}.
+Section~\ref{sec:sg:ass} starts Section~1.3 of the book: the cavity decomposition of the SK Hamiltonian and the
+Aizenman--Sims--Starr representation of the free energy increments, with the Lean files
+\texttt{ForMathlib/Probability/Moments/GaussianGram.lean}, \texttt{ForMathlib/Analysis/Cesaro.lean} and
+\texttt{SpinGlasses/AizenmanSimsStarr.lean} (deviations from the book are collected in
+Remark~\ref{rem:sg:ass-deviation}).
 
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
@@ -962,4 +967,177 @@ Poincar\'e inequality would give $\mathrm{Var}\,F\le v$; we have not formalized 
 A smaller difference in the set-up: the reference weights $G(\sigma)>0$ of the book are replaced by a deterministic bias $h=\log G$ (which also covers an external
 field), exactly as in Theorem~\ref{thm:sg:lemma11}; and the Gaussian field is an arbitrary \texttt{HasGaussianLaw} family on a finite set, so the same
 statement serves every model, with the mixed $p$-spin case Theorem~\ref{thm:sg:mixedconc} a two-line application.
+\end{remark}
+
+\section{The Aizenman--Sims--Starr scheme}\label{sec:sg:ass}
+
+Let $Z_N=\sum_\sigma e^{\beta H_N(\sigma)}$ be the partition function of the SK model at inverse temperature $\beta>0$ and
+$A_N=\mathbb E\log Z_{N+1}-\mathbb E\log Z_N$ (Panchenko, Eqs.~(1.48)--(1.58)). We write $\sigma'_i=\sigma_i\in\{\pm1\}\subset\mathbb R$,
+$\gamma_K=\mathcal N(0,1)^{K}$ for a finite index set $K$, and $G'$ for the auxiliary Gibbs measure
+$\mathrm{count.tilted}(\beta H')$ defined below.
+
+\begin{lemma}[A centered Gaussian family is determined in law by its Gram matrix]\label{lem:sg:gram}
+  \lean{ProbabilityTheory.map_toLp_eq_multivariateGaussian, ProbabilityTheory.map_eq_map_multivariateGaussian,
+        ProbabilityTheory.map_eq_of_integral_mul_eq, ProbabilityTheory.hasGaussianLaw_dotProduct_family,
+        ProbabilityTheory.map_eq_map_dotProduct_family, ProbabilityTheory.integral_comp_eq_integral_dotProduct,
+        ProbabilityTheory.integrable_comp_iff_dotProduct, ProbabilityTheory.measurable_dotProduct_prod,
+        ProbabilityTheory.map_eq_map_dotProduct_prod, ProbabilityTheory.integral_comp_eq_integral_dotProduct_prod,
+        ProbabilityTheory.integrable_comp_iff_dotProduct_prod, ProbabilityTheory.hasGaussianLaw_bilinear_family}
+  \leanok
+Let $(X_r)_{r\in A}$ and $(Y_r)_{r\in A}$ be centered Gaussian vectors indexed by a finite set $A$, on possibly different probability spaces,
+with $\mathbb EX_rX_s=\mathbb EY_rY_s$ for all $r,s$. Then they have the same law. In particular, if $a_r\in\mathbb R^{K}$ with
+$\mathbb EX_rX_s=a_r\cdot a_s$, then $X$ has the law of $(a_r\cdot\xi)_r$, $\xi\sim\gamma_K$; and if
+$\mathbb EX_rX_s=a^1_r\cdot a^1_s+a^2_r\cdot a^2_s$, then $X$ has the law of $(a^1_r\cdot u+a^2_r\cdot v)_r$ for independent blocks
+$u\sim\gamma_{K_1}$, $v\sim\gamma_{K_2}$. Consequently $\mathbb Ef(X)=\mathbb Ef(a^1\!\cdot u+a^2\!\cdot v)$ for measurable $f$, and $f(X)$ is
+integrable if and only if $f(a^1\!\cdot u+a^2\!\cdot v)$ is.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+A centered Gaussian vector has the law $\mathcal N(0,S)$ with $S$ its covariance matrix (the proof of
+\texttt{exists\_matrix\_map\_eq\_pi\_gaussianReal}, which depends on $X$ only through $S$). The linear forms $a_r\cdot\xi$ of i.i.d.\ standard
+Gaussians form a Gaussian vector (the image of $\gamma_K$ under a linear map) with covariance $a_r\cdot a_s$. For two blocks, apply the single
+block to $K_1\oplus K_2$ and transport $\gamma_{K_1\oplus K_2}$ to $\gamma_{K_1}\otimes\gamma_{K_2}$ by the measure preserving map
+\texttt{sumPiEquivProdPi}. Bilinear forms $u_r\cdot(Gv_r)$ of a standard Gaussian matrix are finite combinations of its entries, hence jointly Gaussian.
+\end{proof}
+
+\begin{lemma}[Gibbs averages and the cavity spin]\label{lem:sg:cavity-algebra}
+  \lean{SpinGlasses.log_integral_count_tilted, SpinGlasses.sum_exp_cons_split, SpinGlasses.gram_succ, SpinGlasses.gram_eq_add,
+        SpinGlasses.mul_dotProduct_mulVec_eq_dotProduct}
+  \leanok
+(i) For a positive observable $F$ and any energy $f$ on a finite set, $\log\langle F\rangle=\log\sum_ae^{f(a)}F(a)-\log\sum_ae^{f(a)}$, where
+$\langle\cdot\rangle$ is the average for $\mathrm{count.tilted}(f)$. (ii) For fields $h,z$ on $\{\pm1\}^N$ and $s\in\mathbb R$, writing $\rho=(\varepsilon,\sigma)$,
+\[\sum_{\rho}e^{\beta(h(\sigma)+\varepsilon z(\sigma)+s)}=e^{\beta s}\sum_\sigma e^{\beta h(\sigma)}\,2\cosh(\beta z(\sigma)).\]
+(iii) For $\rho,\tau\in\mathbb R^{N+1}$ and $c\in\mathbb R$,
+\[\sum_{i,j\ge1}c^2\rho_i\rho_j\tau_i\tau_j+\sum_{j\ge0}c^2\rho_0\rho_j\tau_0\tau_j+\sum_{i\ge1}c^2\rho_i\rho_0\tau_i\tau_0=c^2(\rho\cdot\tau)^2,\]
+and for $\sigma,\tau\in\mathbb R^N$, $\sum_{i,j}c_1^2\sigma_i\sigma_j\tau_i\tau_j+\sum_{i,j}c_2^2\sigma_i\sigma_j\tau_i\tau_j=(c_1^2+c_2^2)(\sigma\cdot\tau)^2$.
+Finally $c\,\sigma\cdot(U\sigma)=(c\,\sigma_i\sigma_j)_{ij}\cdot U$ for a matrix $U$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(i) $\langle F\rangle=\sum_ae^{f(a)}F(a)/\sum_ae^{f(a)}$. (ii) Split the sum over $\rho$ along $(\varepsilon,\sigma)$ and use
+$e^{\beta\varepsilon z}+e^{-\beta\varepsilon z}=2\cosh(\beta z)$. (iii) Split $\sum_{i,j\le N}$ at the index $0$ (\texttt{Fin.sum\_univ\_succ}) into
+the corner, the row, the column and the remaining block.
+\end{proof}
+
+\begin{theorem}[The cavity decomposition in law, Panchenko Eqs.~(1.50)--(1.54)]\label{thm:sg:cavity}
+  \lean{SpinGlasses.hasGaussianLaw_skHamiltonian, SpinGlasses.integral_skHamiltonian_eq_zero,
+        SpinGlasses.integral_skHamiltonian_mul_skHamiltonian_units, SpinGlasses.map_skHamiltonian_succ,
+        SpinGlasses.map_skHamiltonian_eq_add}
+  \leanok
+  \uses{lem:sg:gram, lem:sg:cavity-algebra, thm:sg:skcov, lem:sg:bilinear}
+Let $u\sim\gamma_{[N]\times[N]}$ and $\zeta\sim\gamma_{[N+1]\oplus[N]}$ be independent, and put
+\[H'(\sigma)=\tfrac1{\sqrt{N+1}}\,\sigma\!\cdot\!(u\sigma),\quad z(\sigma)=\tfrac1{\sqrt{N+1}}\sum_{i}(\zeta_{\mathrm{inl}(i+1)}+\zeta_{\mathrm{inr}(i)})\sigma_i,\quad
+y(\sigma)=\tfrac1{\sqrt{N(N+1)}}\,\sigma\!\cdot\!(v\sigma)\]
+with $v\sim\gamma_{[N]\times[N]}$ independent of $u$. Then, as random vectors indexed by configurations, in law
+\[H_{N+1}(\varepsilon,\sigma)=H'(\sigma)+\varepsilon z(\sigma)+\tfrac1{\sqrt{N+1}}\zeta_{\mathrm{inl}(0)},\qquad H_N(\sigma)=H'(\sigma)+y(\sigma)\quad(N\ge1).\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+$H_N$ is a finite family of bilinear forms of the standard Gaussian matrix, hence a centered Gaussian vector with
+$\mathbb EH_N(\sigma)H_N(\tau)=N\,R(\sigma,\tau)^2=N^{-1}(\sigma\cdot\tau)^2$ (Theorem~\ref{thm:sg:skcov}). The right hand sides are linear forms of the blocks
+with coefficient vectors whose Gram matrix is computed in Lemma~\ref{lem:sg:cavity-algebra}~(iii): $(N+1)^{-1}(\rho\cdot\tau)^2$ for the first (the
+overlap of $(\varepsilon,\sigma)$ and $(\varepsilon',\tau)$ is $\varepsilon\varepsilon'+\sigma\cdot\tau$), and
+$\big(\tfrac1{N+1}+\tfrac1{N(N+1)}\big)(\sigma\cdot\tau)^2=N^{-1}(\sigma\cdot\tau)^2$ for the second. Apply Lemma~\ref{lem:sg:gram}; the linear forms
+equal the displayed expressions because $\varepsilon^2=1$.
+\end{proof}
+
+\begin{theorem}[$\mathbb E\log Z_{N+1}$ and $\mathbb E\log Z_N$ through the cavity, Panchenko Eqs.~(1.55)--(1.56)]\label{thm:sg:partition}
+  \lean{SpinGlasses.integral_log_partition_succ_eq, SpinGlasses.integral_log_partition_eq_aux}
+  \leanok
+  \uses{thm:sg:cavity, lem:sg:cavity-algebra}
+For $\beta>0$ the functions $R_1(u,\zeta)=\log\sum_\sigma e^{\beta H'(\sigma)}\,2\cosh(\beta z(\sigma))$ and
+$R_2(u,v)=\log\sum_\sigma e^{\beta(H'(\sigma)+y(\sigma))}$ are integrable and
+\[\mathbb E\log Z_{N+1}=\mathbb E\,R_1(u,\zeta),\qquad\mathbb E\log Z_N=\mathbb E\,R_2(u,v)\quad(N\ge1).\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:cavity} and Lemma~\ref{lem:sg:gram}, $\mathbb E\log Z_{N+1}=\mathbb E\log\sum_\rho e^{\beta(H'+\varepsilon z+s)}$ with
+$s=(N+1)^{-1/2}\zeta_{\mathrm{inl}(0)}$, which by Lemma~\ref{lem:sg:cavity-algebra}~(ii) is $\beta s+R_1$. The variable $\beta s$ is a centered
+Gaussian coordinate, and $\log Z_{N+1}$ is integrable (Lemma~\ref{lem:sg:integrable}: $|\log Z|\le\beta|\max H|+\log|\Sigma|$), hence so is $R_1$ and
+$\mathbb E\,\beta s=0$. The second identity is the second law of Theorem~\ref{thm:sg:cavity}.
+\end{proof}
+
+\begin{theorem}[The Aizenman--Sims--Starr representation, Panchenko Eq.~(1.58)]\label{thm:sg:ass}
+  \lean{SpinGlasses.aizenman_sims_starr_representation}
+  \leanok
+  \uses{thm:sg:partition, lem:sg:cavity-algebra, lem:sg:gibbsavg}
+For $\beta>0$ and $N\ge1$, with $G'_u=\mathrm{count.tilted}(\beta H'_u)$ and $\langle\cdot\rangle'_u$ its average,
+\[A_N=\mathbb E_u\Big[\mathbb E_\zeta\log\big\langle 2\cosh(\beta z(\sigma))\big\rangle'_u-\mathbb E_v\log\big\langle e^{\beta y(\sigma)}\big\rangle'_u\Big],\]
+where $u,\zeta,v$ are independent and $z$, $y$ are independent of the auxiliary Gibbs measure $G'_u$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:partition} and Fubini, $A_N=\mathbb E_u[\mathbb E_\zeta R_1(u,\zeta)-\mathbb E_vR_2(u,v)]$. By Lemma~\ref{lem:sg:cavity-algebra}~(i),
+$R_1(u,\zeta)=\log Z'(u)+\log\langle2\cosh\beta z\rangle'_u$ and $R_2(u,v)=\log Z'(u)+\log\langle e^{\beta y}\rangle'_u$ with the \emph{same}
+$Z'(u)=\sum_\sigma e^{\beta H'_u(\sigma)}$, which does not depend on $\zeta,v$ and cancels. Integrability of $R_1(u,\cdot)$, $R_2(u,\cdot)$ for almost
+every $u$ is part of Fubini, and subtracting the constant $\log Z'(u)$ preserves it.
+\end{proof}
+
+\begin{theorem}[Covariances of the cavity fields, Panchenko Eq.~(1.59)]\label{thm:sg:cavity-cov}
+  \lean{SpinGlasses.integral_cavity_z_mul_z, SpinGlasses.integral_cavity_y_mul_y}
+  \leanok
+  \uses{lem:sg:gram, lem:sg:cavity-algebra}
+For $N\ge1$ and $\sigma,\tau\in\mathbb R^N$, with $a_N=N/(N+1)$ and $R=N^{-1}\sigma\cdot\tau$,
+\[\mathbb E\,z(\sigma)z(\tau)=2a_NR,\qquad\mathbb E\,y(\sigma)y(\tau)=a_NR^2.\]
+Both depend on $\sigma,\tau$ only through the overlap.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+$z(\sigma)$ and $y(\sigma)$ are linear forms of standard Gaussians with coefficient vectors $\frac1{\sqrt{N+1}}\sigma$ (on both the $\mathrm{inl}$ and $\mathrm{inr}$
+coordinates) and $\frac1{\sqrt{N(N+1)}}\sigma_i\sigma_j$, so the covariance is the dot product of coefficients:
+$\frac2{N+1}\sigma\cdot\tau$ and $\frac1{N(N+1)}(\sigma\cdot\tau)^2$.
+\end{proof}
+
+\begin{lemma}[Cesaro averages and the liminf]\label{lem:sg:cesaro}
+  \lean{Filter.Eventually.sub_le_inv_mul_sum_range, Filter.Eventually.inv_mul_sum_range_le_add,
+        Filter.liminf_le_liminf_inv_mul_sum_range}
+  \leanok
+If $c\le u_n$ eventually, then for every $\varepsilon>0$ eventually $c-\varepsilon\le n^{-1}\sum_{j<n}u_j$ (and symmetrically for upper bounds). If $u$ is bounded,
+$\liminf_nu_n\le\liminf_nn^{-1}\sum_{j<n}u_j$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The negative part $\min(u_n-c,0)$ vanishes eventually, so its Cesaro averages tend to $0$ (Mathlib's \texttt{Filter.Tendsto.cesaro}) and bound
+$n^{-1}\sum_{j<n}u_j-c$ from below. For the liminf, apply this with $c=\liminf u-\varepsilon/2$.
+\end{proof}
+
+\begin{theorem}[The free energy as a Cesaro average of the increments, Panchenko Eq.~(1.49)]\label{thm:sg:cesaro}
+  \lean{SpinGlasses.integral_log_partition_zero, SpinGlasses.inv_mul_integral_log_partition_eq,
+        SpinGlasses.liminf_increment_le_liminf_free_energy}
+  \leanok
+  \uses{lem:sg:cesaro}
+For all $N$, $F_N=N^{-1}\mathbb E\log Z_N=N^{-1}\sum_{j<N}A_j$ (with $Z_0=1$). Consequently, if $(A_N)$ is bounded,
+$\liminf_NA_N\le\liminf_NF_N$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The empty system has the single configuration of energy $0$, so $\mathbb E\log Z_0=0$; the sum telescopes. The inequality is Lemma~\ref{lem:sg:cesaro}.
+\end{proof}
+
+\begin{remark}[Deviations from Panchenko's treatment of the cavity method, and why]\label{rem:sg:ass-deviation}
+\begin{enumerate}
+\item \emph{Equality in law instead of a pathwise decomposition.} The book writes $H_{N+1}(\varepsilon,\sigma)=H'_N(\sigma)+\varepsilon z_N(\sigma)+(N+1)^{-1/2}g_{N+1,N+1}$
+\emph{pathwise}, in terms of the entries of the same disorder matrix, and reads the independence of $H'$, $z$ and $g_{N+1,N+1}$ off the independence of
+the entries. We instead prove only an equality in law (Theorem~\ref{thm:sg:cavity}) by comparing covariances (Lemma~\ref{lem:sg:gram}). The disorder in
+Lean is the \emph{nested} product $\mathrm{Fin}(N+1)\to\mathrm{Fin}(N+1)\to\mathbb R$, and splitting it into blocks would need a measure preserving
+change of variables between iterated and flat product measures (Mathlib has none for the iterated product); the covariance check is a finite sum identity
+and reuses the Gaussian-matrix lemmas already proved for the Guerra--Toninelli theorem. Since $\mathbb E\log Z_{N+1}$ is a functional of the law, nothing is
+lost for the Aizenman--Sims--Starr formula.
+\item \emph{The same trick for $H_N\overset d=H'+y$} (Eqs.~(1.53)--(1.54)): the book matches the covariance $N R^2=\frac{N^2}{N+1}R^2+\frac N{N+1}R^2$ and
+invokes the uniqueness of Gaussian laws; we do the same, with the uniqueness provided by Mathlib's \texttt{IsGaussian.ext}.
+\item \emph{The cavity site is $0$, not $N+1$.} We use \texttt{Fin.cons}/\texttt{Fin.succ} so that sums split by \texttt{Fin.sum\_univ\_succ}; by relabeling
+invariance of the disorder this is the same statement.
+\item \emph{The Cesaro statement carries boundedness hypotheses.} Mathlib's \texttt{liminf} on $\mathbb R$ is junk-valued for unbounded sequences, so the
+inequality $\liminf A_N\le\liminf F_N$ assumes $(A_N)$ is bounded; the book does not state this because the increments are bounded
+(by $\log2+\beta^2$ via Jensen's inequality). We have not formalized that bound; when $A_N$ converges, Mathlib's \texttt{Filter.Tendsto.cesaro} gives
+$F_N\to\lim A_N$ directly.
+\end{enumerate}
 \end{remark}
