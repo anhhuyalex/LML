@@ -66,6 +66,22 @@ theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {
     _ < ∞ := h1.lt_top
 
 omit [IsProbabilityMeasure μ] in
+/-- **A series with summable `L¹` norms converges absolutely almost surely.** -/
+theorem ae_summable_of_tsum_eLpNorm_ne_top {f : κ → Ω → ℝ}
+    (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) 1 μ ≠ ∞) :
+    ∀ᵐ ω ∂μ, Summable fun n => f n ω := by
+  have hlint : ∫⁻ ω, ∑' n, ‖f n ω‖ₑ ∂μ ≠ ∞ := by
+    rw [lintegral_tsum fun n => (hf n).enorm]
+    simpa only [eLpNorm_one_eq_lintegral_enorm] using h
+  have hae : ∀ᵐ ω ∂μ, ∑' n, ‖f n ω‖ₑ < ∞ :=
+    ae_lt_top' (AEMeasurable.tsum fun n => (hf n).enorm) hlint
+  filter_upwards [hae] with ω hω
+  refine Summable.of_norm ?_
+  have : ∑' n, (‖f n ω‖₊ : ℝ≥0∞) ≠ ∞ := by
+    simpa [enorm_eq_nnnorm] using hω.ne
+  exact (NNReal.summable_coe.2 (ENNReal.tsum_coe_ne_top_iff_summable.1 this))
+
+omit [IsProbabilityMeasure μ] in
 /-- **Covariance of two series of independent random variables.** If `∑ₚ ‖X p‖_{L²}` and
 `∑_q ‖Y q‖_{L²}` are finite, `X p` is centered and independent of `Y q` for `p ≠ q`, then
 `𝔼[(∑ₚ X p)(∑_q Y q)] = ∑ₚ 𝔼[X p Y p]`. -/

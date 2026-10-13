@@ -28,6 +28,11 @@ energy `F_N(β) = N⁻¹ 𝔼 log Z(β)` ([Panchenko, 2013, §1.1]):
   `|(N β)⁻¹ 𝔼 log Z(β) - N⁻¹ 𝔼 max_σ H(σ)| ≤ log 2 / β` of `FreeEnergy.lean` makes it a uniform
   limit, see `exists_tendsto_of_dist_le_of_tendsto`.
 
+The existence of the limit `F_N(β) → F(β)` is the hypothesis `h_lim` of these results.  It is
+discharged, for the SK model and for the mixed `p`-spin models with even `p` and `p = 1`, by the
+Guerra–Toninelli superadditivity of `SpinGlasses/GuerraToninelli.lean`
+(`SpinGlasses.sk_tendsto_free_energy`, `SpinGlasses.mixedPSpin_tendsto_free_energy`).
+
 No definition is introduced.  The same layering as in `FreeEnergy.lean` is used: a deterministic
 statement for `f : α → ℝ`, its integrated form for a random energy, the hypercube, and finally a
 *family* of hypercube models (indexed by any type `κ` with a filter `l`, e.g. `κ = ℕ`,

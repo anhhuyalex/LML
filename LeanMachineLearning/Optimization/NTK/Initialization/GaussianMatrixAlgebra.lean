@@ -8,6 +8,7 @@ module
 public import Mathlib.Probability.Independence.Integration
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 public import Mathlib.LinearAlgebra.Matrix.Bilinear
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 
@@ -256,21 +257,12 @@ theorem backward_empirical_quadForm_asymptotic_limit (n p : ℕ) (u v : Fin n �
 
 /-! ### Joint Gaussianity of the Weight Matrix -/
 
-/-- A standard Gaussian row `a ~ 𝒩(0, I_p)` is a jointly Gaussian vector: its coordinates
-are independent standard Gaussians (`iIndepFun.hasGaussianLaw`). -/
+/-- A standard Gaussian row `a ~ 𝒩(0, I_p)` is a jointly Gaussian vector
+(`isGaussian_pi_gaussianReal`). -/
 lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
-    HasGaussianLaw (fun a : Fin p → ℝ => a) (Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-  have h1 : ∀ k : Fin p, HasGaussianLaw (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-      gaussianReal 0 1) := by
-    intro k
-    have hk : Measure.map (fun a : Fin p → ℝ => a k) (Measure.pi fun _ : Fin p =>
-        gaussianReal 0 1) = gaussianReal 0 1 :=
-      map_gaussianReadoutMeasure_coord k
-    have : IsGaussian ((Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun a : Fin p → ℝ => a
-        k)) := by
-      rw [hk]; infer_instance
-    exact IsGaussian.hasGaussianLaw (measurable_pi_apply k).aemeasurable
-  exact iIndepFun.hasGaussianLaw h1 (iIndepFun_readoutWeights p)
+    HasGaussianLaw (fun a : Fin p → ℝ => a) (Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
+  have := isGaussian_pi_gaussianReal (κ := Fin p)
+  IsGaussian.hasGaussianLaw_id
 
 /-- The whole weight matrix `W ~ 𝒩(0,1)^{n×p}` is a jointly Gaussian vector: its rows are
 independent Gaussian vectors. Every linear image `W ↦ (W A, W B)` is therefore jointly Gaussian. -/

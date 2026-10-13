@@ -30,6 +30,13 @@ namespace ProbabilityTheory
 
 variable {κ : Type*} [Fintype κ]
 
+/-- **The product of i.i.d. standard Gaussians is a Gaussian measure** on `κ → ℝ`
+(`stdGaussian` pushed along the continuous linear equivalence `ofLp`). -/
+theorem isGaussian_pi_gaussianReal : IsGaussian (Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  rw [pi_gaussianReal_eq_map_stdGaussian]
+  exact isGaussian_map_equiv (μ := stdGaussian (EuclideanSpace ℝ κ))
+    (PiLp.continuousLinearEquiv 2 ℝ fun _ : κ => ℝ)
+
 /-- The linear form `g ↦ a ⬝ᵥ g` of i.i.d. standard Gaussians is the inner product with the
 Euclidean vector `a`, after pushing the product measure to `stdGaussian`. -/
 private lemma dotProduct_eq_inner (a g : κ → ℝ) :

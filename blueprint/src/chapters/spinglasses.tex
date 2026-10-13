@@ -4,8 +4,9 @@ This chapter formalizes Section~1.1 of Panchenko, \emph{The Sherrington--Kirkpat
 Hamiltonians of the Sherrington--Kirkpatrick (SK) model and of the pure and mixed $p$-spin models, their
 covariance, the free energy and its smooth approximation of the ground-state energy, the monotonicity of the
 free energy in the temperature, the zero-temperature limit, the Gibbs measure and the temperature derivative of
-the free energy. The existence of the thermodynamic limit of the free energy (the Guerra--Toninelli theorem)
-is \emph{not} formalized; it enters the theorems below only as a hypothesis. The Lean files are in
+the free energy. The existence of the thermodynamic limit of the free energy (the Guerra--Toninelli theorem) is
+the hypothesis \texttt{h\_lim} of the zero-temperature results of Section~\ref{sec:sg:thermo}; it is proved, for the
+SK model and for the mixed $p$-spin models with only even $p$ and $p=1$, in Section~\ref{sec:sg:gt}. The Lean files are in
 \texttt{SpinGlasses/} (modules \texttt{Basic}, \texttt{SKModel}, \texttt{FreeEnergy}, \texttt{ThermodynamicLimit},
 \texttt{GibbsMeasure}, \texttt{MixedPSpin}), together with the general tools
 \texttt{ForMathlib/Probability/Moments/GaussianPiLinearForm.lean}, \texttt{GaussianSeries.lean},
@@ -20,7 +21,10 @@ configuration space (Lemma~1.2). The Lean files are \texttt{ForMathlib/MeasureTh
 \texttt{ForMathlib/Probability/Moments/GaussianStein.lean}, \texttt{GaussianVector.lean}, \texttt{GaussianExp.lean},
 \texttt{ForMathlib/Topology/Algebra/InfiniteSum/PiProd.lean}, \texttt{SpinGlasses/GaussianIBP.lean} and
 \texttt{SpinGlasses/GaussianIBPCountable.lean}. The Guerra--Toninelli interpolation (Theorem~1.1) and the Gaussian
-concentration inequality (Theorem~1.2) are not part of this chapter yet.
+concentration inequality (Theorem~1.2) are not part of this chapter yet; the Guerra--Toninelli interpolation
+(Theorem~1.1) is Sections~\ref{sec:sg:serieslaw}--\ref{sec:sg:gt}, with the Lean files
+\texttt{ForMathlib/Analysis/Subadditive.lean}, \texttt{ForMathlib/Probability/Moments/GaussianSeriesLaw.lean},
+\texttt{SpinGlasses/GaussianComparison.lean} and \texttt{SpinGlasses/GuerraToninelli.lean}.
 
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
@@ -658,4 +662,166 @@ Dominated convergence shows that both sides of the truncated identities converge
 \begin{remark}
 Not formalized: the case of a general (non-atomic or sigma-finite) reference measure $G$ in Lemma~1.2, and the bound $\sum G\le1$ of the book
 (only summability is used). Eq.~(1.29) is stated for an arbitrary $\Phi$ (the book assumes boundedness only for the countable case, as here).
+\end{remark}
+
+\section{Gaussian series and the Gaussian law of the mixed Hamiltonian}\label{sec:sg:serieslaw}
+
+\begin{lemma}[The law of a Gaussian series]\label{lem:sg:serieslaw}
+  \lean{ProbabilityTheory.isGaussian_pi_gaussianReal, ProbabilityTheory.hasGaussianLaw_coord,
+        ProbabilityTheory.iIndepFun_coord, ProbabilityTheory.map_sum_range_dotProduct,
+        ProbabilityTheory.summable_dotProduct_self, ProbabilityTheory.map_tsum_dotProduct_eq_gaussianReal,
+        ProbabilityTheory.integral_tsum_dotProduct_eq_zero, ProbabilityTheory.sqrt_dotProduct_self_sum_le,
+        ProbabilityTheory.hasGaussianLaw_tsum_dotProduct, ProbabilityTheory.ae_summable_of_tsum_eLpNorm_ne_top}
+  \leanok
+  \uses{lem:sg:gaussseries}
+Let $g_p$, $p\in\mathbb N$, be independent vectors with i.i.d.\ $\mathcal N(0,1)$ coordinates and $a_p$ coefficient vectors with
+$\sum_p\|a_p\|<\infty$. Then $H_a=\sum_pa_p\cdot g_p$ converges almost surely, is exactly Gaussian,
+$H_a\sim\mathcal N(0,\sum_p\|a_p\|^2)$, and finitely many such series $(H_{a^s})_{s\in S}$ form a Gaussian vector (Mathlib's
+\texttt{HasGaussianLaw}).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The summands $X_p=a_p\cdot g_p$ are independent centered Gaussians of variance $\|a_p\|^2$, so the partial sum $S_n=\sum_{p<n}X_p$ is Gaussian
+with variance $v_n=\sum_{p<n}\|a_p\|^2$ (independent Gaussians are jointly Gaussian; the variance is the covariance formula of
+Lemma~\ref{lem:sg:gaussseries} for the coefficients truncated at $n$). Since $\sum_p\|X_p\|_{L^1}\le\sum_p\|a_p\|<\infty$,
+$\sum_p|X_p|<\infty$ almost surely, hence $S_n\to H_a$ almost surely. The characteristic function of $H_a$ is the limit of that of $S_n$ by
+dominated convergence ($|e^{itS_n}|=1$), i.e.\ $\lim_ne^{-v_nt^2/2}=e^{-vt^2/2}$ with $v=\sum_p\|a_p\|^2$, and the characteristic function determines the law.
+For the vector, a continuous linear functional $L(x)=\sum_sc_sx_s$ of $(H_{a^s})_s$ equals almost surely the single series with coefficients
+$\sum_sc_sa^s_p$ (summable by Minkowski's inequality), so $L\circ(H_{a^s})_s$ is real Gaussian, which is Mathlib's criterion for a Gaussian measure.
+\end{proof}
+
+\begin{theorem}[The mixed $p$-spin Hamiltonian is a Gaussian process]\label{thm:sg:mixedgauss}
+  \lean{SpinGlasses.mixedPSpin_hasGaussianLaw, SpinGlasses.integral_mixedPSpin_eq_zero,
+        SpinGlasses.integral_mixedPSpin_hypercube_mul_mixedPSpin_hypercube, SpinGlasses.mixedPSpin_hypercube_hyps,
+        SpinGlasses.abs_units_cast_le_one, SpinGlasses.units_cast_sq}
+  \leanok
+  \uses{lem:sg:serieslaw, thm:sg:mixedcov}
+Let $\beta_0=0$ and $\sum_p|\beta_p|<\infty$. On the hypercube, the vector $(H_N(\sigma))_{\sigma\in\{\pm1\}^N}$ of the mixed $p$-spin
+Hamiltonian is a centered Gaussian vector with $\mathbb EH_N(\sigma)H_N(\tau)=N\xi(R(\sigma,\tau))$, $\xi(x)=\sum_p\beta_p^2x^p$; each
+$H_N(\sigma)$ is measurable and integrable in the disorder.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By definition $H_N(\sigma)=\sum_pa_p(\sigma)\cdot g_p$ with $a_p(\sigma)=\beta_pN^{-(p-1)/2}(\prod_k\sigma_{i_k})_{i}$ and
+$\sum_p\|a_p(\sigma)\|\le\sqrt N\sum_p|\beta_p|$ (Theorem~\ref{thm:sg:mixedcov}). Lemma~\ref{lem:sg:serieslaw} gives the Gaussian law, the mean zero,
+and Theorem~\ref{thm:sg:mixedcov} (with $|\sigma_i|\le1$) the covariance.
+\end{proof}
+
+\section{Gaussian comparison for the free energy}\label{sec:sg:comparison}
+
+\begin{lemma}[Derivative of the expected log-partition function along a path]\label{lem:sg:pathderiv}
+  \lean{SpinGlasses.hasDerivAt_log_sum_exp_path, SpinGlasses.hasDerivAt_integral_log_sum_exp_path}
+  \leanok
+  \uses{lem:sg:gibbsavg, thm:sg:deriv}
+Let $f(s,\omega,a)$ be differentiable in $s$ on a neighbourhood of $t$ with derivative $f'(s,\omega,a)$ bounded by an integrable $B(\omega)$. Then
+$\frac{d}{ds}\mathbb E\log\sum_ae^{f(s,\omega,a)}\big|_{s=t}=\mathbb E\langle f'(t)\rangle_{f(t)}$, where $\langle\cdot\rangle_{f(t)}$ is the
+Gibbs average of the energy $f(t,\omega,\cdot)$. The temperature derivative of Theorem~\ref{thm:sg:deriv} is the case $f(s,\omega,a)=sH(\omega,a)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Pointwise, $\frac{d}{ds}\log\sum_ae^{f}=\sum_ae^{f}f'/\sum_ae^{f}=\langle f'\rangle$; differentiate under the integral by dominated convergence
+(\texttt{hasDerivAt\_integral\_of\_dominated\_loc\_of\_deriv\_le}), the Gibbs average being bounded by $\sup_a|f'|\le B$.
+\end{proof}
+
+\begin{theorem}[Gaussian comparison, the smooth Slepian inequality]\label{thm:sg:comparison}
+  \lean{SpinGlasses.hasGaussianLaw_sumElim_lincomb, SpinGlasses.integral_lincomb_mul_lincomb,
+        SpinGlasses.hasDerivAt_integral_log_sum_exp_trig, SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
+  \leanok
+  \uses{lem:sg:pathderiv, thm:sg:lemma11}
+Let $(X,Y)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb EX(a)Y(b)=0$, equal variances
+$\mathbb EX(a)^2=\mathbb EY(a)^2$, and $\mathbb EX(a)X(b)\le\mathbb EY(a)Y(b)$ for all $a,b$. Then for every bias $h:\alpha\to\mathbb R$,
+\[\mathbb E\log\sum_ae^{Y(a)+h(a)}\le\mathbb E\log\sum_ae^{X(a)+h(a)}.\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Put $u_s=\cos s\,X+\sin s\,Y+h$ and $\varphi(s)=\mathbb E\log\sum_ae^{u_s(a)}$. By Lemma~\ref{lem:sg:pathderiv}, $\varphi'(s)=\mathbb E\langle x_s\rangle$
+with $x_s=-\sin s\,X+\cos s\,Y=u_s'$. The pair $(x_s,u_s)$ is jointly Gaussian and
+$C(a,b)=\mathbb Ex_s(a)u_s(b)=\sin s\cos s\,(B-A)(a,b)$ with $A=\mathrm{Cov}X$, $B=\mathrm{Cov}Y$, because $\mathbb EXY=0$. Gaussian integration by
+parts for the Gibbs measure (Lemma~1.1, Theorem~\ref{thm:sg:lemma11}) gives
+$\varphi'(s)=\mathbb E\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle=-\sin s\cos s\,\mathbb E\langle(B-A)(\sigma^1,\sigma^2)\rangle\le0$
+on $[0,\pi/2]$, since $(B-A)(a,a)=0$ and $B\ge A$. Hence $\varphi(\pi/2)\le\varphi(0)$, which is the claim. (The trigonometric path is smooth on all of
+$\mathbb R$, so no endpoint continuity or singular derivative at $t=0,1$ occurs, unlike $\sqrt tX+\sqrt{1-t}Y$.)
+\end{proof}
+
+\section{The Guerra--Toninelli theorem: superadditivity and the thermodynamic limit}\label{sec:sg:gt}
+
+\begin{lemma}[Fekete's lemma for superadditive sequences, Panchenko Lemma~1.3]\label{lem:sg:fekete}
+  \lean{tendsto_div_atTop_sSup_of_superadditive}
+  \leanok
+If $u_{m+n}\ge u_m+u_n$ for all $m,n$ and $u_n/n$ is bounded above, then $u_n/n\to\sup_{n\ge1}u_n/n$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The sequence $-u$ is subadditive; apply Mathlib's Fekete lemma (\texttt{Subadditive.tendsto\_lim}) and negate the limit $\inf_n(-u_n)/n$.
+No definition of superadditivity is introduced.
+\end{proof}
+
+\begin{theorem}[Superadditivity of the free energy, Guerra--Toninelli, Panchenko Eq.~(1.36)]\label{thm:sg:superadd}
+  \lean{SpinGlasses.add_mul_apply_le_of_convexOn, SpinGlasses.dotProduct_cast_append,
+        SpinGlasses.dotProduct_units_cast_self, SpinGlasses.integrable_log_sum_exp_of_hasGaussianLaw,
+        SpinGlasses.integral_log_sum_exp_add_le, ProbabilityTheory.HasGaussianLaw.prodMk_prod}
+  \leanok
+  \uses{thm:sg:comparison}
+Let $H_N$ be centered Gaussian Hamiltonians on $\{\pm1\}^N$ (disorders on arbitrary probability spaces $\Omega_N$) with
+$\mathbb EH_N(\sigma)H_N(\tau)=N\xi(R(\sigma,\tau))$ for a function $\xi$ that is convex on $[-1,1]$. Then for $N,M>0$,
+\[\mathbb E\log Z_N+\mathbb E\log Z_M\le\mathbb E\log Z_{N+M},\qquad\text{i.e.}\quad NF_N+MF_M\le(N+M)F_{N+M}.\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+On $\Omega_{N+M}\times(\Omega_N\times\Omega_M)$ put $X(\rho,\tau)=H_{N+M}(\rho\frown\tau)$ (concatenation of the configurations) and
+$Y(\rho,\tau)=H_N(\rho)+H_M(\tau)$. The triple of Hamiltonians is jointly Gaussian (a product of Gaussian measures), and $X$ is independent of $Y$, so
+$\mathbb EXY=0$. The overlap splits, $R(\rho\frown\tau,\rho'\frown\tau')=\frac{N}{N+M}R(\rho,\rho')+\frac{M}{N+M}R(\tau,\tau')$, hence
+$\mathbb EX(\rho,\tau)X(\rho',\tau')=(N+M)\xi\big(\frac{NR+MR'}{N+M}\big)\le N\xi(R)+M\xi(R')=\mathbb EY(\rho,\tau)Y(\rho',\tau')$ by convexity of $\xi$,
+and both variances equal $(N+M)\xi(1)$. Theorem~\ref{thm:sg:comparison} gives $\mathbb E\log\sum e^Y\le\mathbb E\log\sum e^X$; the right side is
+$\mathbb E\log Z_{N+M}$ and the left side is $\mathbb E\log(Z_NZ_M)=\mathbb E\log Z_N+\mathbb E\log Z_M$.
+\end{proof}
+
+\begin{lemma}[Convexity of $\xi$]\label{lem:sg:convexxi}
+  \lean{SpinGlasses.convexOn_sum_sq_mul_pow}
+  \leanok
+If $\sum_p|\beta_p|<\infty$ and $\beta_p=0$ for all odd $p\ge3$, then $\xi(x)=\sum_p\beta_p^2x^p$ is convex on $[-1,1]$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Each term is convex: $x^p$ for even $p$, the linear function $x$ for $p=1$, and the term vanishes for odd $p\ge3$. The inequality
+$\xi(ax+by)\le a\xi(x)+b\xi(y)$ passes to the sum of the convergent series.
+\end{proof}
+
+\begin{theorem}[Existence of the thermodynamic limit, Guerra--Toninelli, Panchenko Theorem~1.1]\label{thm:sg:thermolimit}
+  \lean{SpinGlasses.integral_log_le_log_integral, SpinGlasses.integral_log_sum_exp_le,
+        SpinGlasses.tendsto_free_energy, SpinGlasses.tendsto_free_energy_mul,
+        SpinGlasses.sk_tendsto_free_energy, SpinGlasses.sk_tendsto_ground_state_energy,
+        SpinGlasses.sk_monotoneOn_free_energy_limit, SpinGlasses.mixedPSpin_tendsto_free_energy,
+        SpinGlasses.mixedPSpin_tendsto_ground_state_energy}
+  \leanok
+  \uses{thm:sg:superadd, lem:sg:fekete, lem:sg:convexxi, thm:sg:mixedgauss, thm:sg:zerotemp, thm:sg:skcov}
+Under the hypotheses of Theorem~\ref{thm:sg:superadd}, for every inverse temperature $t$ the free energy
+$F_N(t)=N^{-1}\mathbb E\log Z_N(t)$ converges to $\sup_{N\ge1}F_N(t)$. This applies to the SK model
+(covariance function $\xi(x)=x^2$) and to the mixed $p$-spin models with $\beta_0=0$, $\sum_p|\beta_p|<\infty$ and $\beta_p=0$ for odd
+$p\ge3$ ($\xi(x)=\sum_p\beta_p^2x^p$). Consequently the hypothesis \texttt{h\_lim} of Theorem~\ref{thm:sg:zerotemp} holds: for these models
+$N^{-1}\mathbb E\max_\sigma H_N(\sigma)$ converges, and for SK the function $\beta\mapsto\beta^{-1}(F(\beta)-\log2)$ is non-decreasing.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The Hamiltonian $tH_N$ has covariance $N(t^2\xi)(R)$ and $t^2\xi$ is convex, so we may take $t=1$. Put $u_N=\mathbb E\log Z_N$ ($u_0=0$); it is
+superadditive by Theorem~\ref{thm:sg:superadd}. It is bounded above: by Jensen's inequality for the logarithm, $\mathbb E\log Z_N\le\log\mathbb EZ_N
+=\log\sum_\sigma e^{\mathrm{Var}H_N(\sigma)/2}=N(\log2+\xi(1)/2)$, since $\mathrm{Var}\,H_N(\sigma)=N\xi(1)$. Fekete's lemma
+(Lemma~\ref{lem:sg:fekete}) shows $u_N/N\to\sup_{N\ge1}u_N/N$. For SK, $\xi(x)=x^2$ is convex and the covariance is Theorem~\ref{thm:sg:skcov}; the
+Gaussian law is that of the linear image $G\mapsto(\sigma^\top G\sigma)_\sigma$ of the Gaussian matrix. For the mixed model use
+Lemma~\ref{lem:sg:convexxi} and Theorem~\ref{thm:sg:mixedgauss}. The consequences follow from Theorem~\ref{thm:sg:zerotemp}.
+\end{proof}
+
+\begin{remark}
+The identification of the SK Hamiltonian with the pure $p=2$ model (which would need the equivalence of the nested disorder
+\texttt{Fin N -> Fin N -> R} with the flat disorder \texttt{(Fin 2 -> Fin N) -> R}) is not needed: the interpolation sees the Hamiltonian only through
+its Gaussian law and covariance function $\xi$, and the SK covariance $N R^2$ is that of $\xi(x)=x^2$ directly. The hypothesis $\beta_p=0$ for odd $p\ge3$
+is exactly the convexity of $\xi$ on $[-1,1]$; Theorem~\ref{thm:sg:superadd} holds for any convex $\xi$.
 \end{remark}

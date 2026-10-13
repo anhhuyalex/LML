@@ -40,14 +40,14 @@ local notation "gaussianField" =>
   Measure.infinitePi fun p => Measure.pi fun _ : κ p => gaussianReal 0 1
 
 omit [Countable τ] in
-private lemma measurable_dotProduct (p : τ) (c : κ p → ℝ) :
+lemma measurable_dotProduct (p : τ) (c : κ p → ℝ) :
     Measurable fun g : κ p → ℝ => c ⬝ᵥ g := by
   simp only [dotProduct]
   fun_prop
 
 omit [Countable τ] in
 /-- A function of a single coordinate block integrates as under the marginal law. -/
-private lemma integral_comp_eval (p : τ) {F : (κ p → ℝ) → ℝ}
+lemma integral_comp_eval (p : τ) {F : (κ p → ℝ) → ℝ}
     (hF : AEStronglyMeasurable F (Measure.pi fun _ : κ p => gaussianReal 0 1)) :
     ∫ g : ∀ p, κ p → ℝ, F (g p) ∂gaussianField =
       ∫ g, F g ∂(Measure.pi fun _ : κ p => gaussianReal 0 1) := by
@@ -58,20 +58,20 @@ private lemma integral_comp_eval (p : τ) {F : (κ p → ℝ) → ℝ}
     _ = _ := by rw [hmp.map_eq]
 
 omit [Countable τ] in
-private lemma memLp_coord (p : τ) (a : κ p → ℝ) :
+lemma memLp_coord (p : τ) (a : κ p → ℝ) :
     MemLp (fun g : ∀ p, κ p → ℝ => a ⬝ᵥ g p) 2 gaussianField :=
   (memLp_dotProduct_pi_gaussianReal a).comp_measurePreserving
     (measurePreserving_eval_infinitePi (fun p => Measure.pi fun _ : κ p => gaussianReal 0 1) p)
 
 omit [Countable τ] in
-private lemma integral_coord_mul (p : τ) (a b : κ p → ℝ) :
+lemma integral_coord_mul (p : τ) (a b : κ p → ℝ) :
     ∫ g : ∀ p, κ p → ℝ, (a ⬝ᵥ g p) * (b ⬝ᵥ g p) ∂gaussianField = a ⬝ᵥ b := by
   rw [integral_comp_eval p (F := fun g => (a ⬝ᵥ g) * (b ⬝ᵥ g))
     ((measurable_dotProduct p a).mul (measurable_dotProduct p b)).aestronglyMeasurable,
     integral_dotProduct_mul_dotProduct_pi_gaussianReal]
 
 omit [Countable τ] in
-private lemma tsum_eLpNorm_coord_ne_top {a : ∀ p, κ p → ℝ}
+lemma tsum_eLpNorm_coord_ne_top {a : ∀ p, κ p → ℝ}
     (ha : Summable fun p => Real.sqrt (a p ⬝ᵥ a p)) :
     ∑' p, eLpNorm (fun g : ∀ p, κ p → ℝ => a p ⬝ᵥ g p) 2 gaussianField ≠ ∞ := by
   have hle : ∀ p, eLpNorm (fun g : ∀ p, κ p → ℝ => a p ⬝ᵥ g p) 2 gaussianField ≤

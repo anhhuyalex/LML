@@ -255,4 +255,23 @@ theorem integral_mul_prod_eq_sum_integral_prod_erase {W : Ω → ℝ} {Y : κ' �
 
 end Monomial
 
+/-- **Gaussian laws on a product space with independent coordinates.**  If `f` and `g` have
+Gaussian laws under `μ` and `ν`, then `z ↦ (f z.1, g z.2)` has a Gaussian law under `μ.prod ν`
+(the product of two Gaussian measures is Gaussian). -/
+theorem HasGaussianLaw.prodMk_prod {Ω₁ Ω₂ E F : Type*} {m₁ : MeasurableSpace Ω₁}
+    {m₂ : MeasurableSpace Ω₂} {μ : Measure Ω₁} {ν : Measure Ω₂} [SFinite μ] [SFinite ν]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F] [MeasurableSpace F] [BorelSpace F]
+    [SecondCountableTopologyEither E F] {f : Ω₁ → E} {g : Ω₂ → F}
+    (hf : HasGaussianLaw f μ) (hg : HasGaussianLaw g ν) (hfm : Measurable f) (hgm : Measurable g) :
+    HasGaussianLaw (fun z : Ω₁ × Ω₂ => (f z.1, g z.2)) (μ.prod ν) where
+  aemeasurable := ((hfm.comp measurable_fst).prodMk (hgm.comp measurable_snd)).aemeasurable
+  isGaussian_map := by
+    have := hf.isGaussian_map
+    have := hg.isGaussian_map
+    have h : (μ.prod ν).map (fun z : Ω₁ × Ω₂ => (f z.1, g z.2)) = (μ.map f).prod (ν.map g) :=
+      (Measure.map_prod_map μ ν hfm hgm).symm
+    rw [h]
+    infer_instance
+
 end ProbabilityTheory

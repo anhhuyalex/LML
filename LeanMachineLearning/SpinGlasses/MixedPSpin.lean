@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
@@ -235,10 +236,6 @@ theorem integral_mixedPSpin_mul_mixedPSpin (hβ0 : β 0 = 0) (hβ : Summable fun
 
 end Mixed
 
-/-- Configurations of the hypercube have coordinates in `[-1, 1]`. -/
-private lemma abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
-  rcases Int.units_eq_one_or u with h | h <;> simp [h]
-
 section FreeEnergy
 
 variable {ι : Type*} [Fintype ι] [Nonempty ι] [DecidableEq ι] {β : ℕ → ℝ}
@@ -255,7 +252,9 @@ variable (H : (∀ p : ℕ, (Fin p → ι) → ℝ) → (ι → ℤˣ) → ℝ)
 include hH hβ0 hβ
 
 omit [DecidableEq ι] in
-private lemma mixedPSpin_hypercube_hyps (σ : ι → ℤˣ) :
+/-- On the hypercube, each coordinate `g ↦ H_N(g, σ)` of the mixed Hamiltonian is measurable and
+integrable. -/
+lemma mixedPSpin_hypercube_hyps (σ : ι → ℤˣ) :
     Measurable (fun g => H g σ) ∧ Integrable (fun g => H g σ) gaussianDisorder := by
   let H' : (∀ p : ℕ, (Fin p → ι) → ℝ) → (ι → ℝ) → ℝ := fun g v => ∑' p, β p *
     ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) * ∑ idx, g p idx * ∏ k, v (idx k))
@@ -266,6 +265,56 @@ private lemma mixedPSpin_hypercube_hyps (σ : ι → ℤˣ) :
     (σ := fun i => ((σ i : ℤ) : ℝ)) fun i => abs_units_cast_le_one (σ i)
   rw [e]
   exact ⟨hm, hi⟩
+
+omit [DecidableEq ι] [Nonempty ι] hβ0 hβ in
+private lemma mixedPSpin_hypercube_eq_tsum (g : ∀ p : ℕ, (Fin p → ι) → ℝ) (σ : ι → ℤˣ) :
+    H g σ = ∑' p, (fun idx : Fin p → ι => β p * ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) *
+      ∏ k, ((σ (idx k) : ℤ) : ℝ))) ⬝ᵥ g p := by
+  rw [hH]
+  exact tsum_congr fun p => mixed_term_eq p (fun i => ((σ i : ℤ) : ℝ)) (g p)
+
+omit [DecidableEq ι] in
+/-- **The mixed `p`-spin Hamiltonian is a Gaussian process:** on the hypercube the vector
+`(H_N(σ))_σ` has a Gaussian law, since each `H_N(σ)` is a Gaussian series of the independent
+Gaussian disorders (`ProbabilityTheory.hasGaussianLaw_tsum_dotProduct`). -/
+theorem mixedPSpin_hasGaussianLaw :
+    HasGaussianLaw (fun g (σ : ι → ℤˣ) => H g σ) gaussianDisorder := by
+  have h := hasGaussianLaw_tsum_dotProduct (ρ := fun p => Fin p → ι) (S := ι → ℤˣ)
+    (a := fun σ p idx => β p * ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) *
+      ∏ k, ((σ (idx k) : ℤ) : ℝ)))
+    fun σ => summable_sqrt_mixedCoeff hβ0 hβ (σ := fun i => ((σ i : ℤ) : ℝ))
+      fun i => abs_units_cast_le_one (σ i)
+  have e : (fun g (σ : ι → ℤˣ) => H g σ) = fun g σ => ∑' p, (fun idx : Fin p → ι =>
+      β p * ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) * ∏ k, ((σ (idx k) : ℤ) : ℝ))) ⬝ᵥ g p :=
+    funext fun g => funext fun σ => mixedPSpin_hypercube_eq_tsum H hH g σ
+  rw [e]
+  exact h
+
+omit [DecidableEq ι] in
+/-- The mixed `p`-spin Hamiltonian is centered. -/
+theorem integral_mixedPSpin_eq_zero (σ : ι → ℤˣ) : ∫ g, H g σ ∂gaussianDisorder = 0 := by
+  simp only [mixedPSpin_hypercube_eq_tsum H hH _ σ]
+  exact integral_tsum_dotProduct_eq_zero (summable_sqrt_mixedCoeff hβ0 hβ (σ := fun i =>
+    ((σ i : ℤ) : ℝ)) fun i => abs_units_cast_le_one (σ i))
+
+omit [DecidableEq ι] in
+/-- **Covariance of the mixed `p`-spin Hamiltonian on the hypercube** ([Panchenko, 2013,
+Eq. (1.14)]): `𝔼[H_N(σ) H_N(τ)] = N ξ(N⁻¹ σ ⬝ τ)` with `ξ(x) = ∑ₚ β_p² x^p`. -/
+theorem integral_mixedPSpin_hypercube_mul_mixedPSpin_hypercube (σ τ : ι → ℤˣ) :
+    ∫ g, H g σ * H g τ ∂gaussianDisorder =
+      Fintype.card ι * ∑' p, β p ^ 2 * ((Fintype.card ι : ℝ)⁻¹ *
+        ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ))) ^ p := by
+  obtain ⟨H', hH'⟩ : ∃ H' : (∀ p : ℕ, (Fin p → ι) → ℝ) → (ι → ℝ) → ℝ, ∀ g v, H' g v =
+      ∑' p, β p * ((Real.sqrt (Fintype.card ι))⁻¹ ^ (p - 1) * ∑ idx, g p idx * ∏ k, v (idx k)) :=
+    ⟨_, fun _ _ => rfl⟩
+  have e : ∀ g (ς : ι → ℤˣ), H g ς = H' g (fun i => ((ς i : ℤ) : ℝ)) := fun g ς => by
+    rw [hH, hH']
+  have e2 : (fun g => H g σ * H g τ) =
+      fun g => H' g (fun i => ((σ i : ℤ) : ℝ)) * H' g (fun i => ((τ i : ℤ) : ℝ)) :=
+    funext fun g => by rw [e g σ, e g τ]
+  rw [e2]
+  exact integral_mixedPSpin_mul_mixedPSpin H' hH' hβ0 hβ
+    (fun i => abs_units_cast_le_one (σ i)) fun i => abs_units_cast_le_one (τ i)
 
 /-- **Smooth approximation for the mixed `p`-spin model** ([Panchenko, 2013, Eq. (1.7)]): for
 `t > 0`, `|(N t)⁻¹ 𝔼 log Z_N(t) - N⁻¹ 𝔼 max_σ H_N(σ)| ≤ log 2 / t`.  This is

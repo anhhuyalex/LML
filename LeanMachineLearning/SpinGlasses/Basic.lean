@@ -76,6 +76,15 @@ theorem abs_card_inv_mul_dotProduct_le_one [Nonempty ι] (σ τ : ι → ℝ) (h
   rw [abs_mul, abs_inv, Nat.abs_cast]
   exact (inv_mul_le_iff₀ hN).2 (by simpa using hsum)
 
+/-- The coordinates of a hypercube configuration have absolute value `1`, hence lie in
+`[-1, 1]`. -/
+theorem abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
+  rcases Int.units_eq_one_or u with h | h <;> simp [h]
+
+/-- The coordinates of a hypercube configuration square to `1`. -/
+theorem units_cast_sq (u : ℤˣ) : ((u : ℤ) : ℝ) ^ 2 = 1 := by
+  rcases Int.units_eq_one_or u with h | h <;> simp [h]
+
 /-- The hypercube `ι → ℤˣ` of spin configurations has `2 ^ N` points. -/
 theorem card_spin_configurations [DecidableEq ι] :
     Fintype.card (ι → ℤˣ) = 2 ^ Fintype.card ι := by
