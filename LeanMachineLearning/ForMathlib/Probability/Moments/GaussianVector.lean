@@ -212,4 +212,47 @@ theorem IsGaussianProcess.hasGaussianLaw_pi {S : Type*} [Finite S] {X : S → Ω
   exact (hX.hasGaussianLaw Finset.univ).map_fun L
 
 
+section Monomial
+
+variable {κ' : Type*} [Fintype κ']
+
+/-- A sub-product of coordinates is bounded by `exp (∑ |y l|)`. -/
+theorem abs_prod_le_exp_sum (s : Finset κ') (y : κ' → ℝ) :
+    |∏ i ∈ s, y i| ≤ Real.exp (∑ l, |y l|) := by
+  rw [Finset.abs_prod]
+  calc ∏ i ∈ s, |y i| ≤ ∏ i ∈ s, Real.exp |y i| :=
+        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _)
+          fun i _ => by linarith [Real.add_one_le_exp (|y i|)]
+    _ = Real.exp (∑ i ∈ s, |y i|) := (Real.exp_sum _ _).symm
+    _ ≤ Real.exp (∑ l, |y l|) :=
+        Real.exp_le_exp.2 (Finset.sum_le_sum_of_subset_of_nonneg s.subset_univ
+          fun _ _ _ => abs_nonneg _)
+
+variable [DecidableEq κ']
+
+/-- The partial derivatives of the monomial `y ↦ ∏ i, y i` are the erased products. -/
+theorem fderiv_prod_apply_pi_single (y : κ' → ℝ) (l : κ') :
+    fderiv ℝ (fun y : κ' → ℝ => ∏ i, y i) y (Pi.single l 1) = ∏ i ∈ Finset.univ.erase l, y i := by
+  rw [fderiv_finsetProd (fun i _ => differentiableAt_apply i y)]
+  simp [(hasFDerivAt_apply _ y).fderiv, Pi.single_apply]
+
+/-- **Multilinear Stein identity.**  For a centered Gaussian family `W ⊕ Y`,
+`𝔼[W ∏ᵢ Yᵢ] = ∑ⱼ 𝔼[W Yⱼ] 𝔼[∏_{i ≠ j} Yᵢ]`.  This is
+`integral_mul_comp_eq_sum_integral_mul_of_sum` for the monomial `F y = ∏ᵢ yᵢ`, whose value and
+partial derivatives are bounded by `exp (∑ |yᵢ|)`; no integrability hypothesis is needed. -/
+theorem integral_mul_prod_eq_sum_integral_prod_erase {W : Ω → ℝ} {Y : κ' → Ω → ℝ}
+    (hWY : HasGaussianLaw (fun ω s => Sum.elim (fun _ : Unit => W) Y s ω) P)
+    (hW : ∫ ω, W ω ∂P = 0) (hY : ∀ k, ∫ ω, Y k ω ∂P = 0) :
+    ∫ ω, W ω * ∏ i, Y i ω ∂P =
+      ∑ j, (∫ ω, W ω * Y j ω ∂P) * ∫ ω, ∏ i ∈ Finset.univ.erase j, Y i ω ∂P := by
+  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := fun _ : Unit => W) (X := Y) hWY
+    (fun _ => hW) hY () (F := fun y => ∏ i, y i) (by fun_prop) (C := 1) (c := 1)
+    (fun y => by simpa using abs_prod_le_exp_sum Finset.univ y) (D := fun _ => 1) (d := fun _ => 1)
+    (fun l y => by
+      rw [fderiv_prod_apply_pi_single]
+      simpa using abs_prod_le_exp_sum _ y)
+  simpa [fderiv_prod_apply_pi_single] using h
+
+end Monomial
+
 end ProbabilityTheory

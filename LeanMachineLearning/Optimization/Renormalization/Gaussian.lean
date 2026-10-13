@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real
@@ -590,73 +591,6 @@ private lemma isGaussian_map_centeredDual_linearCombination (μ : Measure E)
       (Measure.map_map (μ := μ) (f := fun x : E ↦ H x) (g := fun y : ℝ ↦ y - c)
         (continuous_id.sub continuous_const).measurable H.continuous.measurable).symm
   exact h_pointwise ▸ h_map_comp ▸ h_translated_gaussian
-
--- The product of one distinguished centered observable and a finite family of
--- centered observables is integrable by Gaussian finite moments and Hölder.
-private lemma integrable_centeredDual_mul_prod (μ : Measure E)
-    [ProbabilityTheory.IsGaussian μ] {n : ℕ} (L : StrongDual ℝ E)
-    (K : Fin n → StrongDual ℝ E) :
-    Integrable (fun x ↦ centeredDual μ L x * ∏ i, centeredDual μ (K i) x) μ := by
-  -- Every centered continuous linear observable has the finite moment needed
-  -- for a Hölder estimate over the `n + 1` factors.
-  have h_centered_memLp : ∀ A : StrongDual ℝ E,
-      MemLp (centeredDual μ A) (((n + 1 : ℕ) : ℝ≥0∞)) μ := fun A ↦ by
-    change MemLp (fun ω ↦ A ω - _) (((n + 1 : ℕ) : ℝ≥0∞)) μ
-    exact MemLp.sub
-      (ProbabilityTheory.IsGaussian.memLp_dual μ A (((n + 1 : ℕ) : ℝ≥0∞)) (by norm_num))
-      (memLp_const _)
-  -- Hölder over the finite family indexed by `Option (Fin n)` gives the product
-  -- of the distinguished factor `L` and all `K i` in `L¹`.
-  have h_holder_product :
-      MemLp (fun x ↦ centeredDual μ L x * ∏ i, centeredDual μ (K i) x) 1 μ := by
-    have h_all_factors : ∀ o : Option (Fin n),
-        MemLp (fun x ↦ match o with
-          | none => centeredDual μ L x
-          | some i => centeredDual μ (K i) x)
-          (((n + 1 : ℕ) : ℝ≥0∞)) μ
-      | none => by simpa using h_centered_memLp L
-      | some i => by simpa using h_centered_memLp (K i)
-    -- Index the `n + 1` factors by `Option (Fin n)`: `none` is the
-    -- distinguished `L` factor, and `some i` is the `K i` factor.
-    let F : Option (Fin n) → E → ℝ := fun o x ↦
-      match o with
-      | none => centeredDual μ L x
-      | some i => centeredDual μ (K i) x
-    -- Hölder for finite products with equal exponents gives an `Lᵖ` bound whose
-    -- exponent is the inverse of the sum of reciprocal exponents.
-    have h_option_product :
-        MemLp (∏ o : Option (Fin n), F o)
-          ((∑ o : Option (Fin n), (((n + 1 : ℕ) : ℝ≥0∞))⁻¹)⁻¹) μ := by
-      simpa [F] using
-        (MeasureTheory.MemLp.prod
-          (μ := μ)
-          (f := F)
-          (p := fun _ : Option (Fin n) ↦ (((n + 1 : ℕ) : ℝ≥0∞)))
-          (s := Finset.univ)
-          (fun o _ho ↦ by simpa [F] using h_all_factors o))
-    -- `Option (Fin n)` has cardinality `n + 1`, so the sum of `n + 1` copies
-    -- of `(n+1)⁻¹` is `1` in `ℝ≥0∞`.
-    have h_exponent :
-        ((∑ o : Option (Fin n), (((n + 1 : ℕ) : ℝ≥0∞))⁻¹)⁻¹) =
-          (1 : ℝ≥0∞) := by
-      rw [Finset.sum_const, Finset.card_univ]
-      simp only [Fintype.card_option, Fintype.card_fin]
-      rw [nsmul_eq_mul]
-      have h0 : (((n + 1 : ℕ) : ℝ≥0∞) ≠ 0) := by norm_num
-      have htop : (((n + 1 : ℕ) : ℝ≥0∞) ≠ ∞) := ENNReal.natCast_ne_top _
-      have hmul :
-          (((n + 1 : ℕ) : ℝ≥0∞) * (((n + 1 : ℕ) : ℝ≥0∞)⁻¹)) =
-            (1 : ℝ≥0∞) :=
-        ENNReal.mul_inv_cancel h0 htop
-      change ((((n + 1 : ℕ) : ℝ≥0∞) * (((n + 1 : ℕ) : ℝ≥0∞)⁻¹))⁻¹) =
-        (1 : ℝ≥0∞)
-      rw [hmul]
-      simp
-    -- Unfold the `Option`-indexed product into the displayed pointwise product.
-    convert (h_exponent ▸ h_option_product : MemLp (∏ o : Option (Fin n), F o) 1 μ) using 1
-    ext x
-    simp [F, Fintype.prod_option]
-  exact h_holder_product.integrable (by norm_num)
 
 -- Finite products of centered Gaussian linear observables are integrable.  This
 -- is the reusable Hölder estimate behind erased-product moments in Stein/Wick
@@ -1853,227 +1787,42 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
   -- already expressed with exactly the block weight used by `wick`.
   simpa [wick, C] using h_pairing_formula
 
-/-- Finite-dimensional centered Gaussian Stein identity for a product of coordinates.
-
-This is the genuine analytic input needed by `integral_mul_prod_centered_dual_eq_sum`.
-The hypotheses say that `Y0, Y i` are a centered jointly Gaussian real vector and that the
-full and erased products are integrable.  The usual proof differentiates the centered Gaussian
-MGF, or equivalently applies Wick/Isserlis and separates the unique partner of `Y0`. -/
-private lemma gaussian_stein_product_centered {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) {n : ℕ} (Y0 : Ω → ℝ) (Y : Fin n → Ω → ℝ)
-    (h_joint : ∀ (a0 : ℝ) (a : Fin n → ℝ),
-      ProbabilityTheory.IsGaussian
-        (Measure.map (fun ω ↦ a0 * Y0 ω + ∑ i, a i * Y i ω) ν))
-    (hY0_ae : AEMeasurable Y0 ν) (hY_ae : ∀ i, AEMeasurable (Y i) ν)
-    (h_integrability : Integrable (fun ω ↦ Y0 ω * ∏ i, Y i ω) ν)
-    (h_erased_integrability : ∀ j : Fin n,
-      Integrable (fun ω ↦ ∏ i ∈ Finset.univ.erase j, Y i ω) ν)
-    (h_centered_means : (∫ ω, Y0 ω ∂ν = 0) ∧
-      (∀ i : Fin n, ∫ ω, Y i ω ∂ν = 0)) :
-    ∫ ω, Y0 ω * ∏ i, Y i ω ∂ν =
-      ∑ j, covariance Y0 (Y j) ν *
-        ∫ ω, ∏ i ∈ Finset.univ.erase j, Y i ω ∂ν := by
-  classical
-  -- Package the distinguished variable and the `n` coordinate variables into one
-  -- finite family.  Using `Option (Fin n)` keeps the distinguished coordinate
-  -- definitionally separate from the remaining coordinates.
-  let Z : Option (Fin n) → Ω → ℝ := fun k ω ↦
-    match k with
-    | none => Y0 ω
-    | some i => Y i ω
-  let C : Option (Fin n) → Option (Fin n) → ℝ := fun k l ↦ covariance (Z k) (Z l) ν
-  -- Step 1 (analytic input): the scalar Cramér-Wold hypothesis `h_joint` gives
-  -- the usual finite-dimensional centered Gaussian vector `Z`, hence its mixed
-  -- moments are given by the Wick/Isserlis pairing formula.  Formally this is
-  -- the theorem missing from Mathlib/project API: derive the multivariate MGF
-  -- `exp (1 / 2 * tᵀ C t)` from `h_joint`, use `h_centered_means` for the zero
-  -- linear term, and differentiate at the origin.  The supplied integrability
-  -- hypotheses justify the displayed moments for the two products used below.
-  have h_stein_for_Z :
-      ∫ ω, Z none ω * ∏ i : Fin n, Z (some i) ω ∂ν =
-        ∑ j : Fin n, C none (some j) *
-          ∫ ω, ∏ i ∈ Finset.univ.erase j, Z (some i) ω ∂ν := by
-    -- This is exactly Gaussian integration by parts / Wick recurrence for the
-    -- centered jointly Gaussian finite family `Z`, applied to the monomial
-    -- `fun z ↦ ∏ i, z (some i)`.  The following skeleton isolates the two genuine
-    -- mathematical inputs and leaves only finite `Option`/`Finset` bookkeeping.
-    -- The covariance kernel used in the Wick pairing sum is symmetric.
-    have hC_symm : ∀ k l : Option (Fin n), C k l = C l k := fun k l ↦ by
-      dsimp [C]
-      exact covariance_comm (Z k) (Z l)
-    -- Repackage the original Cramér-Wold hypothesis as joint Gaussianity of the
-    -- `Option (Fin n)`-indexed family.  The proof expands the `Option`-sum into
-    -- the distinguished coefficient and the `some i` coefficients.
-    -- Use `h_joint (a none) (fun i ↦ a (some i))` and simplify the finite sum
-    -- over `Option (Fin n)` into the `none` term plus the `some` terms.
-    have h_joint_Z : ∀ a : Option (Fin n) → ℝ,
-        ProbabilityTheory.IsGaussian
-          (Measure.map (fun ω ↦ ∑ k : Option (Fin n), a k * Z k ω) ν) :=
-      fun a ↦ by simpa [Z, Fintype.sum_option] using h_joint (a none) (fun i ↦ a (some i))
-    -- The same repackaging applies to the centering assumptions.
-    have h_centered_Z : ∀ k : Option (Fin n), ∫ ω, Z k ω ∂ν = 0
-      | none => by simpa [Z] using h_centered_means.1
-      | some i => by simpa [Z] using h_centered_means.2 i
-    have hZ_ae : ∀ k : Option (Fin n), AEMeasurable (Z k) ν
-      | none => hY0_ae
-      | some i => hY_ae i
-    -- Analytic Wick/Isserlis theorem for the full product.  The top-level lemma
-    -- above isolates the missing finite-dimensional Gaussian analysis; this
-    -- block only rewrites the product over `Option (Fin n)` into the distinguished
-    -- `none` factor and the product over the `some` coordinates.
-    have h_full_wick :
-        ∫ ω, Z none ω * ∏ i : Fin n, Z (some i) ω ∂ν =
-          wick C (Finset.univ : Finset (Option (Fin n))) := by
-      have h_prod_univ :
-          ∫ ω, ∏ k ∈ (Finset.univ : Finset (Option (Fin n))), Z k ω ∂ν =
-            wick C (Finset.univ : Finset (Option (Fin n))) := by
-        simpa [C] using
-          isserlis_centered_jointGaussian_finset ν Z
-            (Finset.univ : Finset (Option (Fin n))) h_joint_Z hZ_ae h_centered_Z
-            (by simpa [Z, Fintype.prod_option] using h_integrability)
-      simpa [Fintype.prod_option] using h_prod_univ
-    -- Analytic Wick/Isserlis theorem for every erased product.  These are the
-    -- lower-order moments left after pairing `none` with `some j`; the only
-    -- bookkeeping is that erasing `none` and `some j` from `univ : Finset (Option (Fin n))`
-    -- leaves exactly the embedded set of indices `some i` with `i ≠ j`.
-    have h_erased_wick : ∀ j : Fin n,
-        wick C (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)) =
-          ∫ ω, ∏ i ∈ Finset.univ.erase j, Z (some i) ω ∂ν := by
-      intro j
-      have h_prod_erased :
-          ∫ ω, ∏ k ∈ (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)),
-              Z k ω ∂ν =
-            wick C (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)) := by
-        simpa [C] using
-          isserlis_centered_jointGaussian_finset ν Z
-            (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j))
-            h_joint_Z hZ_ae h_centered_Z
-            (by
-              -- Finite-product reindexing side condition: the product over
-              -- `univ.erase none |>.erase (some j)` is the same as the product
-              -- over `Finset.univ.erase j` after the embedding `Option.some`.
-              -- Together with `Z (some i) = Y i`, this is exactly
-              -- `h_erased_integrability j`.
-              have h_prod_eq : ∀ ω,
-                  (∏ k ∈
-                      (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)),
-                    Z k ω) =
-                    ∏ i ∈ Finset.univ.erase j, Z (some i) ω := by
-                intro ω
-                symm
-                refine Finset.prod_bij (fun i _ ↦ some i) ?_ ?_ ?_ ?_
-                · intro i hi
-                  simp only [Finset.mem_erase, ne_eq, Option.some.injEq, reduceCtorEq,
-                    not_false_eq_true, Finset.mem_univ, and_self, and_true] at hi ⊢
-                  exact hi
-                · intro i₁ _ i₂ _ h
-                  cases h
-                  rfl
-                · intro b hb
-                  rcases b with _ | i
-                  · simp at hb
-                  · exact ⟨i, by simpa using hb, rfl⟩
-                · intro i _
-                  rfl
-              simpa [h_prod_eq] using h_erased_integrability j)
-      rw [← h_prod_erased]
-      -- Same finite-set reindexing as above, now at the level of the integral.
-      -- The map is the equivalence between `Finset.univ.erase j` and
-      -- `((univ : Finset (Option (Fin n))).erase none).erase (some j)` induced by `Option.some`.
-      have h_prod_eq : ∀ ω,
-          (∏ k ∈ (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)),
-            Z k ω) =
-            ∏ i ∈ Finset.univ.erase j, Z (some i) ω := by
-        intro ω
-        symm
-        refine Finset.prod_bij (fun i _ ↦ some i) ?_ ?_ ?_ ?_
-        · intro i hi
-          simp only [Finset.mem_erase, ne_eq, Option.some.injEq, reduceCtorEq,
-            not_false_eq_true, Finset.mem_univ, and_self, and_true] at hi ⊢
-          exact hi
-        · intro i₁ _ i₂ _ h
-          cases h
-          rfl
-        · intro b hb
-          rcases b with _ | i
-          · simp at hb
-          · exact ⟨i, by simpa using hb, rfl⟩
-        · intro i _
-          rfl
-      simp_rw [h_prod_eq]
-    -- Pure finite-set bookkeeping: summing over all partners of `none` in
-    -- `Option (Fin n)` is the same as summing over `j : Fin n` with partner
-    -- `some j`.
-    have h_partner_sum :
-        (∑ b ∈ (Finset.univ : Finset (Option (Fin n))).erase none,
-            C none b * wick C (((Finset.univ : Finset (Option (Fin n))).erase none).erase b)) =
-          ∑ j : Fin n,
-            C none (some j) *
-              wick C (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)) := by
-      -- The set `(univ : Finset (Option (Fin n))).erase none` contains exactly
-      -- the elements `some j`; reindex the left sum by `Option.some`.
-      refine Finset.sum_bij (fun b hb => ?_) ?_ ?_ ?_ ?_
-      · rcases b with _ | j
-        · simp at hb
-        · exact j
-      · intro b hb
-        simp
-      · intro b₁ hb₁ b₂ hb₂ h
-        rcases b₁ with _ | j₁
-        · simp at hb₁
-        rcases b₂ with _ | j₂
-        · simp at hb₂
-        simpa using congrArg Option.some h
-      · intro j _hj
-        exact ⟨some j, by simp, rfl⟩
-      · intro b hb
-        rcases b with _ | _
-        · simp at hb
-        · rfl
-    calc
-      ∫ ω, Z none ω * ∏ i : Fin n, Z (some i) ω ∂ν
-          = wick C (Finset.univ : Finset (Option (Fin n))) := h_full_wick
-      _ = ∑ b ∈ (Finset.univ : Finset (Option (Fin n))).erase none,
-            C none b * wick C (((Finset.univ : Finset (Option (Fin n))).erase none).erase b) :=
-          wick_erase C hC_symm (Finset.univ : Finset (Option (Fin n))) (by simp)
-      _ = ∑ j : Fin n,
-            C none (some j) *
-              wick C (((Finset.univ : Finset (Option (Fin n))).erase none).erase (some j)) :=
-          h_partner_sum
-      _ = ∑ j : Fin n, C none (some j) *
-            ∫ ω, ∏ i ∈ Finset.univ.erase j, Z (some i) ω ∂ν := by
-          apply Finset.sum_congr rfl
-          intro j _hj
-          rw [h_erased_wick j]
-  -- Step 2 (definition unfolding): after expanding `Z` and `C`, the abstract
-  -- finite-family identity is syntactically the desired statement.
-  simpa [Z, C] using h_stein_for_Z
-
 /-- Stein's Lemma (Integration by parts) for Gaussian measures.
-Informal proof:
-For a centered Gaussian measure `μ` on `E` and a continuous linear functional `L`,
-the expectation of `L(x) * F(x)` is given by the sum over `i` of the covariance of `L` and `x_i`
-times the expectation of the partial derivative of `F` with respect to `x_i`.
-In a coordinate-free setting, if `F` is a product of linear functionals `K_j`, the derivative of
-`F` in the direction of the covariance `Cov(L, -)` yields `∑_j Cov(L, K_j) ∏_{k ≠ j} K_k(x)`.
-Integrating this identity gives:
+For a centered Gaussian measure `μ` on `E` and continuous linear functionals `L`, `K j`, the
+family `(centeredDual μ L, centeredDual μ (K j))` is a centered Gaussian vector, and
+`ProbabilityTheory.integral_mul_prod_eq_sum_integral_prod_erase` (Stein's identity for the
+monomial `y ↦ ∏ yᵢ`) gives
 `∫ x, L(x) * ∏ K_j(x) dμ = ∑_j Cov(L, K_j) ∫ x, ∏_{k ≠ j} K_k(x) dμ`.
 (Source: Stein's lemma, Wikipedia, https://en.wikipedia.org/wiki/Stein%27s_lemma) -/
 theorem integral_mul_prod_centered_dual_eq_sum (μ : Measure E) [ProbabilityTheory.IsGaussian μ]
     {n : ℕ} (L : StrongDual ℝ E) (K : Fin n → StrongDual ℝ E) :
     ∫ x, centeredDual μ L x * ∏ i, centeredDual μ (K i) x ∂μ =
       ∑ j, dualCovariance μ L (K j) *
-        ∫ x, ∏ i ∈ Finset.univ.erase j, centeredDual μ (K i) x ∂μ :=
-  (gaussian_stein_product_centered μ (centeredDual μ L)
-    (fun i ↦ centeredDual μ (K i))
-    (fun a₀ a ↦ isGaussian_map_centeredDual_linearCombination μ L K a₀ a)
-    (centeredDual_aemeasurable μ L)
-    (fun i ↦ centeredDual_aemeasurable μ (K i))
-    (integrable_centeredDual_mul_prod μ L K)
-    (fun j ↦ integrable_finset_prod_centeredDual μ (Finset.univ.erase j) K)
-    ⟨integral_centeredDual_eq_zero μ L, fun i ↦ integral_centeredDual_eq_zero μ (K i)⟩).trans
-    (Finset.sum_congr rfl fun j _ ↦ by
-      rw [covariance_centeredDual_eq_dualCovariance μ L (K j)])
+        ∫ x, ∏ i ∈ Finset.univ.erase j, centeredDual μ (K i) x ∂μ := by
+  -- The centered duals form a Gaussian vector: a continuous linear image of `μ`, translated.
+  let Λ : E →L[ℝ] (Unit ⊕ Fin n → ℝ) := ContinuousLinearMap.pi (Sum.elim (fun _ ↦ L) K)
+  let c : Unit ⊕ Fin n → ℝ := fun s ↦ ∫ y, Λ y s ∂μ
+  have hvec : (fun x s ↦ Sum.elim (fun _ : Unit ↦ centeredDual μ L) (fun i ↦ centeredDual μ (K i))
+      s x) = fun x ↦ Λ x - c := by
+    ext x (s | s) <;> simp [Λ, c, centeredDual]
+  have hG : HasGaussianLaw (fun x s ↦ Sum.elim (fun _ : Unit ↦ centeredDual μ L)
+      (fun i ↦ centeredDual μ (K i)) s x) μ := by
+    rw [hvec]
+    have : IsGaussian (μ.map fun x ↦ Λ x - c) := by
+      have hsub : Measurable fun z : Unit ⊕ Fin n → ℝ ↦ z - c := measurable_id.sub_const c
+      rw [show (fun x ↦ Λ x - c) = (fun z ↦ z - c) ∘ Λ from rfl,
+        ← Measure.map_map hsub Λ.measurable]
+      infer_instance
+    exact this.hasGaussianLaw (by fun_prop)
+  have hmem : ∀ A : StrongDual ℝ E, MemLp (centeredDual μ A) 2 μ := fun A ↦
+    (IsGaussian.memLp_dual μ A 2 (by norm_num)).sub (memLp_const _)
+  rw [integral_mul_prod_eq_sum_integral_prod_erase hG (integral_centeredDual_eq_zero μ L)
+    (fun i ↦ integral_centeredDual_eq_zero μ (K i))]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  rw [← covariance_centeredDual_eq_dualCovariance μ L (K j),
+    covariance_eq_sub (hmem L) (hmem (K j)), integral_centeredDual_eq_zero μ L,
+    integral_centeredDual_eq_zero μ (K j)]
+  simp
 
 
 /-- Coordinate-free Wick theorem for centered continuous linear observables.
