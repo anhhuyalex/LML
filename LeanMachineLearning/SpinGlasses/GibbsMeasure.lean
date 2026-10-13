@@ -94,6 +94,19 @@ theorem norm_integral_count_tilted_le [Nonempty α] (f g : α → ℝ) :
     exact Finset.single_le_sum (f := fun b => |g b|) (fun _ _ => abs_nonneg _) (mem_univ a)
   · simp
 
+/-- **Logarithm of a Gibbs average:** for a positive observable `F`,
+`log ⟨F⟩ = log ∑ₐ exp (f a) F(a) - log ∑ₐ exp (f a)`, i.e. the normalization `Z = ∑ₐ exp (f a)`
+splits off.  This is what makes the partition function cancel in differences of log-averages. -/
+theorem log_integral_count_tilted [Nonempty α] (f F : α → ℝ) (hF : ∀ a, 0 < F a) :
+    Real.log (∫ a, F a ∂(Measure.count.tilted f)) =
+      Real.log (∑ a, Real.exp (f a) * F a) - Real.log (∑ a, Real.exp (f a)) := by
+  have hZ : 0 < ∑ a, Real.exp (f a) :=
+    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
+  have hZF : 0 < ∑ a, Real.exp (f a) * F a :=
+    Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (hF a)) Finset.univ_nonempty
+  rw [integral_count_tilted, ← Real.log_div hZF.ne' hZ.ne', Finset.sum_div]
+  simp_rw [div_mul_eq_mul_div]
+
 /-- **Temperature derivative of the log-partition function:**
 `(d/dβ) log Z(β) = ⟨H⟩_β`, the Gibbs average of the energy.  This is
 `ProbabilityTheory.integral_tilted_mul_self`, since `log Z = cgf H count`. -/

@@ -53,6 +53,43 @@ theorem posSemidef_covariance_matrix [Finite κ] {X : κ → Ω → ℝ}
     simpa [mulVec, dotProduct, Finset.mul_sum, mul_assoc, mul_comm, mul_left_comm] using h
 
 
+/-- **The law of a centered Gaussian vector is `multivariateGaussian 0 S`**, `S` its covariance
+matrix. -/
+theorem map_toLp_eq_multivariateGaussian {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (hmean : ∀ k, ∫ ω, X k ω ∂P = 0) :
+    P.map (fun ω => WithLp.toLp 2 (X · ω)) =
+      multivariateGaussian 0 (Matrix.of fun i j => cov[X i, X j; P]) := by
+  classical
+  have hP := hX.isProbabilityMeasure
+  have hmem : ∀ i, MemLp (X i) 2 P := fun i => (hX.eval i).memLp_two
+  have hS := posSemidef_covariance_matrix hX
+  have hY := hX.toLp_pi 2
+  have := hY.isGaussian_map
+  refine IsGaussian.ext ?_ ?_
+  · rw [integral_id_multivariateGaussian']
+    rw [integral_map hY.aemeasurable aestronglyMeasurable_id]
+    ext k
+    have hint : Integrable (fun ω => WithLp.toLp 2 (X · ω)) P := hY.integrable
+    have := ContinuousLinearMap.integral_comp_comm (EuclideanSpace.proj k) hint
+    simpa [hmean k] using this.symm
+  · ext x y
+    rw [covarianceBilin_apply_pi hmem, covarianceBilin_multivariateGaussian hS]
+    simp only [dotProduct, mulVec, Matrix.of_apply, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
+    ring
+
+/-- The law of a centered Gaussian vector in `κ → ℝ` is the image of `multivariateGaussian 0 S`
+under `ofLp`, `S` its covariance matrix. -/
+theorem map_eq_map_multivariateGaussian {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (hmean : ∀ k, ∫ ω, X k ω ∂P = 0) :
+    P.map (fun ω k => X k ω) = (multivariateGaussian 0 (Matrix.of fun i j => cov[X i, X j; P])).map
+      (fun z : EuclideanSpace ℝ κ => z.ofLp) := by
+  classical
+  rw [← map_toLp_eq_multivariateGaussian hX hmean,
+    AEMeasurable.map_map_of_aemeasurable (g := fun z : EuclideanSpace ℝ κ => z.ofLp)
+      (by exact (PiLp.continuous_ofLp 2 _).measurable.aemeasurable) (hX.toLp_pi 2).aemeasurable]
+  rfl
+
 omit [DecidableEq κ] in
 /-- **A centered Gaussian vector is a linear image of i.i.d. standard Gaussians.**  If
 `X = (X k)_k` is centered with `HasGaussianLaw`, then its law is the image of
@@ -64,8 +101,6 @@ theorem exists_matrix_map_eq_pi_gaussianReal {X : κ → Ω → ℝ}
         (Measure.pi fun _ : κ => gaussianReal 0 1).map (fun ξ => A *ᵥ ξ) ∧
       A * Aᵀ = Matrix.of fun i j => cov[X i, X j; P] := by
   classical
-  have hP := hX.isProbabilityMeasure
-  have hmem : ∀ i, MemLp (X i) 2 P := fun i => (hX.eval i).memLp_two
   have hS := posSemidef_covariance_matrix hX
   set S : Matrix κ κ ℝ := Matrix.of fun i j => cov[X i, X j; P] with hSdef
   have hAsym : (CFC.sqrt S)ᵀ = CFC.sqrt S := by
@@ -73,31 +108,11 @@ theorem exists_matrix_map_eq_pi_gaussianReal {X : κ → Ω → ℝ}
     rw [← Matrix.conjTranspose_eq_transpose_of_trivial]
     exact h.star_eq
   refine ⟨CFC.sqrt S, ?_, by rw [hAsym]; exact CFC.sqrt_mul_sqrt_self S hS.nonneg⟩
-  have hY := hX.toLp_pi 2
-  have hν : P.map (fun ω => WithLp.toLp 2 (X · ω)) = multivariateGaussian 0 S := by
-    have := hY.isGaussian_map
-    refine IsGaussian.ext ?_ ?_
-    · rw [integral_id_multivariateGaussian']
-      rw [integral_map hY.aemeasurable aestronglyMeasurable_id]
-      ext k
-      have hint : Integrable (fun ω => WithLp.toLp 2 (X · ω)) P := hY.integrable
-      have := ContinuousLinearMap.integral_comp_comm (EuclideanSpace.proj k) hint
-      simpa [hmean k] using this.symm
-    · ext x y
-      rw [covarianceBilin_apply_pi hmem, covarianceBilin_multivariateGaussian hS]
-      simp only [hSdef, dotProduct, mulVec, Matrix.of_apply, Finset.mul_sum]
-      refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
-      ring
-  have hmap : P.map (fun ω k => X k ω) = (P.map (fun ω => WithLp.toLp 2 (X · ω))).map
-      (fun z : EuclideanSpace ℝ κ => z.ofLp) := by
-    rw [AEMeasurable.map_map_of_aemeasurable (g := fun z : EuclideanSpace ℝ κ => z.ofLp)
-      (by exact (PiLp.continuous_ofLp 2 _).measurable.aemeasurable) hY.aemeasurable]
-    rfl
-  rw [hmap, hν, multivariateGaussian, ← map_pi_eq_stdGaussian, Measure.map_map (by fun_prop)
-    (by fun_prop), Measure.map_map (by fun_prop) (by fun_prop)]
+  rw [map_eq_map_multivariateGaussian hX hmean, multivariateGaussian, ← map_pi_eq_stdGaussian,
+    Measure.map_map (by fun_prop) (by fun_prop), Measure.map_map (by fun_prop) (by fun_prop)]
   congr 1
   ext ξ k
-  simp [Matrix.toEuclideanCLM_toLp]
+  simp [Matrix.toEuclideanCLM_toLp, hSdef]
 
 
 /-- **Gaussian integration by parts (Panchenko Eq. (1.25)).**  For a centered Gaussian vector

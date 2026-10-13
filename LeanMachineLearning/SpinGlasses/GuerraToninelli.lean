@@ -448,21 +448,13 @@ theorem sk_tendsto_free_energy (β : ℝ) :
     (fun N hN σ τ => ?_)
     (Even.convexOn_pow even_two |>.subset (Set.subset_univ _) (convex_Icc _ _)) β
   · simpa only [hH, Fintype.card_fin] using (sk_measurable_integrable σ).1
-  · let L : (Fin N → Fin N → ℝ) →L[ℝ] ((Fin N → ℤˣ) → ℝ) := ContinuousLinearMap.pi fun σ =>
-      ∑ i, ∑ j, ((Real.sqrt N)⁻¹ * (((σ i : ℤ) : ℝ) * ((σ j : ℤ) : ℝ))) •
-        (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin N => ℝ) j).comp
-          (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin N => Fin N → ℝ) i)
-    convert hasGaussianLaw_gaussianInit_id.map_fun L using 1
-    ext G σ
-    simp only [hH, dotProduct_mulVec_of_eq_sum, Finset.mul_sum, L]
-    simp [mul_assoc]
-  · rw [show (fun G => H N G σ) = fun G => (Real.sqrt N)⁻¹ * ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ
-        (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ))) from funext fun G => hH N G σ,
-      integral_const_mul, integral_linearForm_gaussianInit, mul_zero]
+  · exact hasGaussianLaw_skHamiltonian (H N) fun G σ => by
+      simpa only [Fintype.card_fin] using hH N G σ
+  · exact integral_skHamiltonian_eq_zero (H N) (fun G σ => by
+      simpa only [Fintype.card_fin] using hH N G σ) σ
   · have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
-    simp only [hH]
-    simpa only [Fintype.card_fin] using integral_skHamiltonian_mul_skHamiltonian (ι := Fin N)
-      (fun i => ((σ i : ℤ) : ℝ)) (fun i => ((τ i : ℤ) : ℝ))
+    simpa only [Fintype.card_fin] using integral_skHamiltonian_mul_skHamiltonian_units (H N)
+      (fun G σ => by simpa only [Fintype.card_fin] using hH N G σ) σ τ
 
 /-- **The ground-state energy of the SK model converges** ([Panchenko, 2013, Eq. (1.10)]):
 `N⁻¹ 𝔼 max_σ H_N(σ)` converges.  Unlike `sk_exists_tendsto_ground_state_energy`, no free-energy

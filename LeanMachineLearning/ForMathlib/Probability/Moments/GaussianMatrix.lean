@@ -25,7 +25,8 @@ Architecture-independent facts about a matrix `G : ι → κ → ℝ` with i.i.d
    (`memLp_linearForm_gaussianInit`) with bilinear covariance
    (`integral_gaussianMatrix_bilinear_mul_bilinear`).
 3. **Joint Gaussianity** (`hasGaussianLaw_gaussianInit_id`), so every linear image of `G` is a
-   Gaussian vector.
+   Gaussian vector; in particular any finite family of bilinear forms
+   (`hasGaussianLaw_bilinear_family`).
 
 They serve both the NTK initialization (`Optimization/NTK/Initialization`) and the Sherrington–
 Kirkpatrick Hamiltonian (`SpinGlasses/SKModel.lean`).
@@ -194,6 +195,21 @@ lemma hasGaussianLaw_gaussianInit_id :
     rw [(measurePreserving_eval (fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) i).map_eq]
     infer_instance
   exact IsGaussian.hasGaussianLaw (measurable_pi_apply i).aemeasurable
+
+/-- **Any finite family of bilinear forms `u r ⬝ᵥ (G v r)` of a standard Gaussian matrix is a
+Gaussian vector.**  This is the Hamiltonian `r ↦ (√N)⁻¹ σ_r ⬝ᵥ (G σ_r)` of the
+Sherrington–Kirkpatrick model with `u r = (√N)⁻¹ • σ_r`, `v r = σ_r`. -/
+lemma hasGaussianLaw_bilinear_family {A : Type*} [Finite A] (u : A → ι → ℝ) (v : A → κ → ℝ) :
+    HasGaussianLaw (fun (G : ι → κ → ℝ) (r : A) => u r ⬝ᵥ (Matrix.of G *ᵥ v r))
+      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  have := Fintype.ofFinite A
+  let L : (ι → κ → ℝ) →L[ℝ] (A → ℝ) := ContinuousLinearMap.pi fun r =>
+    ∑ i, ∑ j, (u r i * v r j) •
+      (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ => ℝ) j).comp
+        (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : ι => κ → ℝ) i)
+  convert hasGaussianLaw_gaussianInit_id.map_fun L using 1
+  ext G r
+  simp [dotProduct_mulVec_of_eq_sum, L]
 
 end ProbabilityTheory
 

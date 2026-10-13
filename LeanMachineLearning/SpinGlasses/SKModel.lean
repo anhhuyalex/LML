@@ -66,6 +66,43 @@ theorem integral_skHamiltonian_mul_skHamiltonian [Nonempty ι] (σ τ : ι → �
   rw [integral_const_mul, integral_gaussianMatrix_bilinear_mul_bilinear]
   field_simp
 
+section Hamiltonian
+
+variable (H : (ι → ι → ℝ) → (ι → ℤˣ) → ℝ)
+  (hH : ∀ G σ, H G σ = (Real.sqrt (Fintype.card ι))⁻¹ *
+    ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ))))
+
+include hH
+
+/-- **The SK Hamiltonian is a Gaussian vector:** `(H_N(σ))_σ` is jointly Gaussian under the
+standard Gaussian disorder, being a finite family of bilinear forms of `G`. -/
+theorem hasGaussianLaw_skHamiltonian :
+    HasGaussianLaw (fun (G : ι → ι → ℝ) (σ : ι → ℤˣ) => H G σ)
+      (Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  convert hasGaussianLaw_bilinear_family (ι := ι) (κ := ι)
+    (fun σ : ι → ℤˣ => (Real.sqrt (Fintype.card ι))⁻¹ • fun i => ((σ i : ℤ) : ℝ))
+    (fun σ => fun i => ((σ i : ℤ) : ℝ)) using 1
+  ext G σ
+  simp only [hH, smul_dotProduct, smul_eq_mul]
+
+/-- **The SK Hamiltonian is centered:** `E[H_N(σ)] = 0`. -/
+theorem integral_skHamiltonian_eq_zero (σ : ι → ℤˣ) :
+    ∫ G, H G σ ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) = 0 := by
+  simp only [hH]
+  rw [integral_const_mul, integral_linearForm_gaussianInit, mul_zero]
+
+/-- **Covariance of the SK Hamiltonian on the hypercube** ([Panchenko, 2013, Eq. (1.3)]):
+`E[H_N(σ) H_N(τ)] = N R(σ, τ)²`, from `integral_skHamiltonian_mul_skHamiltonian`. -/
+theorem integral_skHamiltonian_mul_skHamiltonian_units [Nonempty ι] (σ τ : ι → ℤˣ) :
+    ∫ G, H G σ * H G τ ∂(Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) =
+      (Fintype.card ι : ℝ) * ((Fintype.card ι : ℝ)⁻¹ *
+        ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ))) ^ 2 := by
+  simp only [hH]
+  exact integral_skHamiltonian_mul_skHamiltonian (fun i => ((σ i : ℤ) : ℝ))
+    (fun i => ((τ i : ℤ) : ℝ))
+
+end Hamiltonian
+
 /-- **Dean's comfort function** ([Panchenko, 2013, §1.1]): for a configuration `σ : ι → ℤˣ` and
 couplings `g`, `∑_{i<j} g_{ij} σ_i σ_j = ∑_{i<j, σ_i = σ_j} g_{ij} - ∑_{i<j, σ_i ≠ σ_j} g_{ij}`,
 since `σ_i σ_j = 1` if `σ_i = σ_j` and `-1` otherwise. -/

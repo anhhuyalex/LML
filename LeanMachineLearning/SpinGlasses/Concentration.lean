@@ -266,6 +266,17 @@ theorem abs_log_sum_exp_le [Nonempty α] (h w : α → ℝ) :
         Real.log (∑ a, Real.exp (h a))| := by ring_nf
     _ ≤ _ := (abs_add_le _ _).trans (by linarith)
 
+/-- **A log-average is controlled by the log of the observable:** for a positive observable `F`,
+`|log ⟨F⟩| ≤ ∑ₐ |log F(a)|`, where `⟨·⟩` is the Gibbs average for any energy `f`. -/
+theorem abs_log_integral_count_tilted_le [MeasurableSpace α] [MeasurableSingletonClass α]
+    (f F : α → ℝ) (hF : ∀ a, 0 < F a) :
+    |Real.log (∫ a, F a ∂(Measure.count.tilted f))| ≤ ∑ a, |Real.log (F a)| := by
+  have h := abs_log_sum_exp_sub_le f (fun a => Real.log (F a)) fun _ => 0
+  have e : ∀ a, Real.exp (Real.log (F a) + f a) = Real.exp (f a) * F a := fun a => by
+    rw [Real.exp_add, Real.exp_log (hF a), mul_comm]
+  simp only [e, zero_add, sub_zero] at h
+  rwa [log_integral_count_tilted f F hF]
+
 variable {A : α → (α ⊕ α → ℝ) → ℝ} {h : α → ℝ} {t : ℝ}
   (hA : ∀ σ y, A σ y = t * (Real.log (∑ a, Real.exp (y (Sum.inl a) + h a)) -
         Real.log (∑ a, Real.exp (y (Sum.inr a) + h a))) +
