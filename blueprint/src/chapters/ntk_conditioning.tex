@@ -259,8 +259,8 @@ In the deep NTK this yields $\hat\Sigma_n^{-1}\to(\Sigma^{\ell+1})^{-1}$ for the
 Throughout this section $W\in\mathbb R^{n\times p}$ has i.i.d.\ $\mathcal N(0,1)$ entries. This complements the Gaussian vector algebra of Section~\ref{sec:ntkdeep:gaussianAlgebra}.
 
 \begin{lemma}[Coordinate moments]\label{lem:ntkcond:coordMoments}
-  \lean{NTK.integral_gaussianInit_entry, NTK.integral_gaussianInit_entry_sq, NTK.memLp_entry,
-        NTK.integrable_entry_mul_entry, NTK.integral_gaussianInit_entry_mul_entry}
+  \lean{ProbabilityTheory.integral_gaussianInit_entry, ProbabilityTheory.integral_gaussianInit_entry_sq, ProbabilityTheory.memLp_entry,
+        ProbabilityTheory.integrable_entry_mul_entry, ProbabilityTheory.integral_gaussianInit_entry_mul_entry}
   \leanok
 Every entry $W_{ik}$ is in $L^2$ with $\mathbb E[W_{ik}]=0$ and $\mathbb E[W_{ik}^2]=1$, products of two entries are integrable, and
 \[
@@ -313,7 +313,7 @@ The normalized form says that, when $u,v$ are fixed, a Gaussian sandwich $\tfrac
 
 \begin{lemma}[Joint Gaussianity and linear images]\label{lem:ntkcond:linearImages}
   \uses{lem:ntkcond:coordMoments}
-  \lean{NTK.hasGaussianLaw_gaussianRowMeasure_id, NTK.hasGaussianLaw_gaussianInit_id,
+  \lean{ProbabilityTheory.hasGaussianLaw_gaussianInit_id,
         NTK.matrix_mul_apply_eq_sum, NTK.memLp_mul_entry, NTK.integral_mul_entry,
         NTK.integral_mul_entry_mul_mul_entry}
   \leanok
@@ -452,7 +452,7 @@ The sandwich bound of Theorem~\ref{thm:ntkcond:sandwichVariance} is for determin
 \subsection{Linear forms}
 
 \begin{lemma}[Gaussian linear forms]\label{lem:ntkcond:linearForm}
-  \lean{NTK.integral_linearForm_gaussianInit, NTK.memLp_linearForm_gaussianInit,
+  \lean{ProbabilityTheory.integral_linearForm_gaussianInit, ProbabilityTheory.memLp_linearForm_gaussianInit,
         NTK.integral_linearForm_sq_gaussianInit, NTK.gaussianInit_linearForm_chebyshev}
   \leanok
 For $W\sim\mathcal N(0,1)^{\otimes n\times p}$, $u\in\mathbb R^n$ and $c\in\mathbb R^p$, $u\cdot(Wc)$ is centred and in $L^2$ with $\mathbb E\bigl[(u\cdot Wc)^2\bigr]=\|u\|^2\|c\|^2$, and for $\varepsilon>0$

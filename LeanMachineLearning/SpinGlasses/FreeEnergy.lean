@@ -41,7 +41,7 @@ for any finite Gibbs system (Potts, random-field Ising, mixed `p`-spin, ...).
 * **SK model**: `SpinGlasses.sk_smooth_approximation_sandwich` and
   `SpinGlasses.sk_smooth_approximation_error_bound` discharge the measurability and integrability
   hypotheses for the Hamiltonian of `SKModel.lean` (Gaussian disorder, via
-  `NTK.memLp_linearForm_gaussianInit`).  The Hamiltonian enters through its defining equation, as a
+  `memLp_linearForm_gaussianInit`).  The Hamiltonian enters through its defining equation, as a
   hypothesis `hH : ∀ G σ, H G σ = (√N)⁻¹ * (σ ⬝ᵥ (G *ᵥ σ))`, instead of a named definition.
 
 ## References
@@ -247,8 +247,8 @@ lemma sk_measurable_integrable (σ : ι → ℤˣ) :
     Integrable (fun G : ι → ι → ℝ => (Real.sqrt (Fintype.card ι))⁻¹ *
       ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of G *ᵥ fun i => ((σ i : ℤ) : ℝ))))
       (Measure.pi fun _ : ι => Measure.pi fun _ : ι => gaussianReal 0 1) := by
-  refine ⟨?_, ((NTK.memLp_linearForm_gaussianInit _ _).integrable one_le_two).const_mul _⟩
-  simp only [NTK.dotProduct_mulVec_of_eq_sum]
+  refine ⟨?_, ((memLp_linearForm_gaussianInit _ _).integrable one_le_two).const_mul _⟩
+  simp only [dotProduct_mulVec_of_eq_sum]
   fun_prop
 
 /-- **Smooth approximation sandwich for the SK model** ([Panchenko, 2013, Eq. (1.7)]): for the

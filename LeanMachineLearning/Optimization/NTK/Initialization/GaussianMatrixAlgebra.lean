@@ -8,6 +8,7 @@ module
 public import Mathlib.Probability.Independence.Integration
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 public import Mathlib.LinearAlgebra.Matrix.Bilinear
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
@@ -15,21 +16,18 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
 /-!
 # Gaussian Matrix Algebra: Moments, Joint Gaussianity and Independence of Linear Images
 
-Facts about a standard Gaussian weight matrix `W ~ 𝒩(0,1)^{n×p}` (i.i.d. `𝒩(0, 1)` entries) that
-do not refer to any network architecture; they complement the Gaussian *vector* algebra of
+Facts about a standard Gaussian weight matrix `W ~ 𝒩(0,1)^{n×p}` that build on the architecture-
+independent matrix algebra of `ForMathlib/Probability/Moments/GaussianMatrix.lean` (coordinate
+moments, linear forms, joint Gaussianity); they complement the Gaussian *vector* algebra of
 `Initialization/GaussianAlgebra.lean`.
 
-1. **Coordinate moments**: `integral_gaussianInit_entry`, `integral_gaussianInit_entry_sq`, and the
-   covariance tensor `integral_gaussianInit_entry_mul_entry` (`E[W_{ik} W_{jl}] = δ_{ij} δ_{kl}`).
-2. **Bilinear Gaussian quadratic forms**: `integral_gaussianMatrix_quadForm`
+1. **Bilinear Gaussian quadratic forms**: `integral_gaussianMatrix_quadForm`
    (`E[u ⬝ᵥ (W A Wᵀ) v] = (u ⬝ᵥ v) tr A`) and its normalized form
    `backward_empirical_quadForm_asymptotic_limit`.
-3. **Joint Gaussianity**: `hasGaussianLaw_gaussianInit_id`, so every linear image
-   `W ↦ (W A, W B)` is jointly Gaussian.
-4. **Linear images**: `integral_mul_entry_mul_mul_entry`
+2. **Linear images**: `integral_mul_entry_mul_mul_entry`
    (`E[(W A)_{ik} (W B)_{jl}] = δ_{ij} (Aᵀ B)_{kl}`) and
    `indepFun_gaussianInit_mul_of_transpose_mul_eq_zero` (`Aᵀ B = 0 → W A ⟂ W B`).
-5. **One-sided conditioning (Lemma 2.26)**: for an orthogonal projector `P`, `W P ⟂ W Pᗮ`
+3. **One-sided conditioning (Lemma 2.26)**: for an orthogonal projector `P`, `W P ⟂ W Pᗮ`
    (`indepFun_gaussian_orthogonal_projection`), hence `W X ⟂ W Pᗮ` whenever `P X = X`
    (`indepFun_conditioned_weight_history`).
 
@@ -48,142 +46,6 @@ namespace NTK
 variable {n p q : ℕ}
 
 variable {ι κ : Type*} [Fintype ι] [Fintype κ]
-
-/-! ### Coordinate Expectations under the Gaussian Matrix Law -/
-
-/-- Every single coordinate `W i k` of a Gaussian matrix initialized by `𝒩(0,1)^{ι×κ}`
-has unit variance: `∫ (W i k)² = 1`. -/
-theorem integral_gaussianInit_entry_sq (i : ι) (k : κ) :
-    ∫ W : ι → κ → ℝ, (W i k) ^ 2 ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ =>
-        gaussianReal 0 1) = 1 := by
-  rw [integral_comp_eval (μ := fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) (i :=
-      i)
-      (f := fun a : κ → ℝ => a k ^ 2)
-      (by fun_prop : Measurable fun a : κ → ℝ => a k ^ 2).aestronglyMeasurable,
-    integral_comp_eval (μ := fun _ : κ => gaussianReal 0 1) (i := k)
-      (f := fun x : ℝ => x ^ 2)
-      (by fun_prop : Measurable fun x : ℝ => x ^ 2).aestronglyMeasurable, integral_sq_gaussianReal]
-
-/-- Every single coordinate `W i k` of a Gaussian matrix has zero mean: `∫ W i k = 0`. -/
-theorem integral_gaussianInit_entry (i : ι) (k : κ) :
-    ∫ W : ι → κ → ℝ, W i k ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ =>
-        gaussianReal 0 1) = 0 := by
-  rw [integral_comp_eval (μ := fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) (i :=
-      i)
-      (f := fun a : κ → ℝ => a k)
-      (by fun_prop : Measurable fun a : κ → ℝ => a k).aestronglyMeasurable, integral_eval,
-    ProbabilityTheory.integral_id_gaussianReal]
-
-/-! ### Bilinear Gaussian Form Expectation (Proposition 2.27 Step 4) -/
-
-/-- Every single coordinate of a standard Gaussian matrix is square-integrable (in `L²`). -/
-lemma memLp_entry (i : ι) (l : κ) :
-    MemLp (fun W : ι → κ → ℝ => W i l) 2 (Measure.pi fun _ : ι => Measure.pi fun _ : κ =>
-        gaussianReal 0 1) := by
-  have h_base : MemLp id (2 : ENNReal) (gaussianReal 0 1) := memLp_id_gaussianReal (2 : NNReal)
-  exact h_base.comp_measurePreserving
-    ((measurePreserving_eval (fun _ : κ => gaussianReal 0 1) l).comp
-      (measurePreserving_eval (fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) i))
-
-/-- Bilinear product of any two matrix coordinates `W i k * W j l` is integrable. -/
-lemma integrable_entry_mul_entry (i j : ι) (k l : κ) :
-    Integrable (fun W : ι → κ → ℝ => W i k * W j l) (Measure.pi fun _ : ι => Measure.pi
-        fun _ : κ => gaussianReal 0 1) := by
-  have h1 := memLp_entry i k
-  have h2 := memLp_entry j l
-  exact h1.integrable_mul h2
-
-/-- Exact coordinate covariance under the standard Gaussian matrix law:
-`∫ W i k * W j l ∂(𝒩(0,1)^{ι×κ}) = if i = j ∧ k = l then 1 else 0`. -/
-theorem integral_gaussianInit_entry_mul_entry [DecidableEq ι] [DecidableEq κ] (i j : ι)
-    (k l : κ) :
-    ∫ W : ι → κ → ℝ, W i k * W j l ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ =>
-        gaussianReal 0 1) =
-      if i = j ∧ k = l then 1 else 0 := by
-  split_ifs with h
-  · rcases h with ⟨rfl, rfl⟩
-    have h_sq : (fun W : ι → κ → ℝ => W i k * W i k) =
-        fun W => (W i k) ^ 2 := by ext W; ring
-    rw [h_sq, integral_gaussianInit_entry_sq]
-  · by_cases hij : i = j
-    · subst hij
-      have hkl : k ≠ l := fun h_eq => h ⟨rfl, h_eq⟩
-      rw [integral_comp_eval (μ := fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1)
-          (i := i)
-        (f := fun a : κ → ℝ => a k * a l) (by fun_prop)]
-      have h_indep := (iIndepFun_pi (μ := fun _ : κ => gaussianReal 0 1)
-        fun _ => aemeasurable_id).indepFun hkl
-      change (fun a => a k) ⟂ᵢ[(Measure.pi fun _ : κ => gaussianReal 0 1)] (fun a => a
-          l) at h_indep
-      rw [h_indep.integral_fun_mul_eq_mul_integral
-          (by fun_prop : Measurable fun a : κ → ℝ => a k).aestronglyMeasurable
-          (by fun_prop : Measurable fun a : κ → ℝ => a l).aestronglyMeasurable, integral_eval,
-        ProbabilityTheory.integral_id_gaussianReal, zero_mul]
-    · have h_indep_row := (iIndepFun_pi
-        (μ := fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1)
-        fun _ => aemeasurable_id).indepFun hij
-      have h_indep_entry := h_indep_row.comp (measurable_pi_apply k) (measurable_pi_apply l)
-      change (fun W : ι → κ → ℝ => W i k) ⟂ᵢ[Measure.pi fun _ : ι =>
-        Measure.pi fun _ : κ => gaussianReal 0 1] (fun W : ι → κ → ℝ => W j l)
-        at h_indep_entry
-      rw [h_indep_entry.integral_fun_mul_eq_mul_integral
-          (by fun_prop : Measurable fun W : ι → κ → ℝ => W i k).aestronglyMeasurable
-          (by fun_prop : Measurable fun W : ι → κ → ℝ => W j l).aestronglyMeasurable,
-        integral_gaussianInit_entry i k, zero_mul]
-
-/-- The rank-one weight `u vᵀ` turns the trace form into the bilinear form `u ⬝ᵥ (M v)`:
-`u ⬝ᵥ (M v) = ∑ᵢⱼ (u vᵀ)ᵢⱼ Mᵢⱼ`. -/
-lemma dotProduct_mulVec_eq_sum_vecMulVec (u : ι → ℝ) (v : κ → ℝ) (M : Matrix ι κ ℝ) :
-    u ⬝ᵥ (M *ᵥ v) = ∑ i, ∑ j, Matrix.vecMulVec u v i j * M i j := by
-  simp only [dotProduct, mulVec, vecMulVec_apply, Finset.mul_sum]
-  exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
-
-/-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` is the finite combination
-`∑ᵢⱼ uᵢ vⱼ Gᵢⱼ` of its coordinates. -/
-lemma dotProduct_mulVec_of_eq_sum (u : ι → ℝ) (v : κ → ℝ) (G : ι → κ → ℝ) :
-    u ⬝ᵥ (Matrix.of G *ᵥ v) = ∑ i, ∑ j, (u i * v j) * G i j := by
-  simpa only [vecMulVec_apply, Matrix.of_apply] using
-    dotProduct_mulVec_eq_sum_vecMulVec u v (Matrix.of G)
-
-/-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` is in `L²`. -/
-theorem memLp_linearForm_gaussianInit (u : ι → ℝ) (v : κ → ℝ) :
-    MemLp (fun G : ι → κ → ℝ => u ⬝ᵥ (Matrix.of G *ᵥ v)) 2
-      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) := by
-  simp_rw [dotProduct_mulVec_of_eq_sum]
-  exact memLp_finsetSum _ fun i _ => memLp_finsetSum _ fun j _ => (memLp_entry i j).const_mul _
-
-/-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` has mean zero. -/
-theorem integral_linearForm_gaussianInit (u : ι → ℝ) (v : κ → ℝ) :
-    ∫ G : ι → κ → ℝ, u ⬝ᵥ (Matrix.of G *ᵥ v)
-        ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) = 0 := by
-  simp_rw [dotProduct_mulVec_of_eq_sum]
-  rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
-    ((memLp_entry i j).integrable (by norm_num)).const_mul _]
-  refine Finset.sum_eq_zero fun i _ => ?_
-  rw [integral_finsetSum _ fun j _ => ((memLp_entry i j).integrable (by norm_num)).const_mul _]
-  refine Finset.sum_eq_zero fun j _ => ?_
-  rw [integral_const_mul, integral_gaussianInit_entry, mul_zero]
-
-/-- **Bilinear covariance of a standard Gaussian matrix.** For `G ~ 𝒩(0,1)^{ι×κ}` and deterministic
-vectors `u, x : ι → ℝ`, `v, y : κ → ℝ`,
-`E[(u ⬝ᵥ G v) (x ⬝ᵥ G y)] = (u ⬝ᵥ x) (v ⬝ᵥ y)`.
-The proof views `G` as the random vector `p ↦ G p.1 p.2` on `ι × κ` with second-moment matrix `1`
-(`integral_gaussianInit_entry_mul_entry`) and `u ⬝ᵥ G v` as its pairing with `u ⊗ v`. -/
-theorem integral_gaussianMatrix_bilinear_mul_bilinear (u x : ι → ℝ) (v y : κ → ℝ) :
-    ∫ G : ι → κ → ℝ, (u ⬝ᵥ (Matrix.of G *ᵥ v)) * (x ⬝ᵥ (Matrix.of G *ᵥ y))
-        ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) =
-      (u ⬝ᵥ x) * (v ⬝ᵥ y) := by
-  classical
-  have hpair : ∀ (u : ι → ℝ) (v : κ → ℝ) (G : ι → κ → ℝ), u ⬝ᵥ (Matrix.of G *ᵥ v) =
-      (fun q : ι × κ => G q.1 q.2) ⬝ᵥ (fun q => u q.1 * v q.2) := fun u v G => by
-    simp only [dotProduct, mulVec, Matrix.of_apply, Fintype.sum_prod_type, Finset.mul_sum]
-    exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
-  simp_rw [hpair]
-  refine (integral_dotProduct_mul_dotProduct (fun (G : ι → κ → ℝ) (q : ι × κ) => G q.1 q.2)
-    (fun q => memLp_entry q.1 q.2) 1 (fun q r => ?_) _ _).trans ?_
-  · simp only [integral_gaussianInit_entry_mul_entry, Matrix.one_apply, Prod.ext_iff]
-  simp only [one_mulVec, dotProduct, Fintype.sum_prod_type, Finset.sum_mul_sum]
-  exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
 
 /-- The `k`-th coordinate of `Wᵀ u` is the linear form `u ⬝ᵥ (W e_k)` of the matrix `W`. -/
 lemma mulVec_transpose_apply_eq_dotProduct [DecidableEq κ] (W : ι → κ → ℝ) (u : ι → ℝ) (k : κ) :
@@ -255,31 +117,6 @@ theorem backward_empirical_quadForm_asymptotic_limit (n p : ℕ) (u v : Fin n �
   rw [integral_gaussianMatrix_quadForm]
   ring
 
-/-! ### Joint Gaussianity of the Weight Matrix -/
-
-/-- A standard Gaussian row `a ~ 𝒩(0, I_p)` is a jointly Gaussian vector
-(`isGaussian_pi_gaussianReal`). -/
-lemma hasGaussianLaw_gaussianRowMeasure_id (p : ℕ) :
-    HasGaussianLaw (fun a : Fin p → ℝ => a) (Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-  have := isGaussian_pi_gaussianReal (κ := Fin p)
-  IsGaussian.hasGaussianLaw_id
-
-/-- The whole weight matrix `W ~ 𝒩(0,1)^{n×p}` is a jointly Gaussian vector: its rows are
-independent Gaussian vectors. Every linear image `W ↦ (W A, W B)` is therefore jointly Gaussian. -/
-lemma hasGaussianLaw_gaussianInit_id (n p : ℕ) :
-    HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W) (Measure.pi fun _ : Fin n => Measure.pi fun _ :
-        Fin p => gaussianReal 0 1) := by
-  have h1 : ∀ i : Fin n, HasGaussianLaw (fun W : Fin n → Fin p → ℝ => W i) (Measure.pi fun _ : Fin n
-      => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-    intro i
-    have : IsGaussian ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
-        gaussianReal 0 1).map (fun W : Fin n → Fin p → ℝ => W i)) := by
-      rw [map_gaussianInit_row i]
-      have := (hasGaussianLaw_gaussianRowMeasure_id p).isGaussian_map
-      simpa using this
-    exact IsGaussian.hasGaussianLaw (measurable_pi_apply i).aemeasurable
-  exact iIndepFun.hasGaussianLaw h1 (iIndepFun_inputWeights n p)
-
 /-! ### Linear Images of a Gaussian Matrix: Moments and Independence -/
 
 variable {r : ℕ}
@@ -349,7 +186,7 @@ theorem indepFun_gaussianInit_mul_of_transpose_mul_eq_zero
   -- the joint law of `(W A, W B)` is Gaussian, being a linear image of `W`
   have hjoint : HasGaussianLaw (fun W : Fin n → Fin p → ℝ => (fun ik => X ik W, fun jl => Y jl W))
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) :=
-    (hasGaussianLaw_gaussianInit_id n p).map_fun
+    (hasGaussianLaw_gaussianInit_id (ι := Fin n) (κ := Fin p)).map_fun
       (LinearMap.toContinuousLinearMap (LinearMap.prod
         ((LinearEquiv.curry ℝ ℝ (Fin n) (Fin q)).symm.toLinearMap ∘ₗ
           mulRightLinearMap (Fin n) ℝ A)

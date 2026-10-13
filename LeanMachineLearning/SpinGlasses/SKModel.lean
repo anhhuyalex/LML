@@ -8,7 +8,7 @@ module
 public import Mathlib.Algebra.BigOperators.Ring.Finset
 public import Mathlib.Data.Int.Cast.Lemmas
 public import Mathlib.Order.Interval.Finset.Defs
-public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
 
 /-!
 # The Sherrington-Kirkpatrick Hamiltonian: covariance and Dean's comfort function
@@ -20,7 +20,7 @@ disorder `G ~ 𝒩(0,1)^{ι×ι}` is
 No definition is introduced: the Hamiltonian is the explicit expression above, the disorder is the
 function `G : ι → ι → ℝ` read as a matrix by `Matrix.of G` with the law
 `Measure.pi fun _ => Measure.pi fun _ => gaussianReal 0 1`, exactly as for the Gaussian matrix
-lemmas of `NTK/Initialization/GaussianMatrixAlgebra.lean`, and the overlap is
+lemmas of `ForMathlib/Probability/Moments/GaussianMatrix.lean`, and the overlap is
 `(Fintype.card ι : ℝ)⁻¹ * (σ ⬝ᵥ τ)` (`SpinGlasses/Basic.lean`).
 
 ## Main declarations
@@ -28,7 +28,7 @@ lemmas of `NTK/Initialization/GaussianMatrixAlgebra.lean`, and the overlap is
 * `SpinGlasses.integral_skHamiltonian_mul_skHamiltonian`: the covariance structure
   `E[H_N(σ) H_N(τ)] = N R(σ, τ)²` ([Panchenko, 2013, Eq. (1.3)]), for arbitrary real vectors `σ`,
   `τ`.  It follows from the general bilinear covariance
-  `NTK.integral_gaussianMatrix_bilinear_mul_bilinear`
+  `integral_gaussianMatrix_bilinear_mul_bilinear`
   (`E[(u ⬝ᵥ G v)(x ⬝ᵥ G y)] = (u ⬝ᵥ x)(v ⬝ᵥ y)`), which is also what gives the covariance of
   bipartite or `p`-tensor variants of the model.
 * `SpinGlasses.sum_lt_mul_units_eq_sub`: Dean's problem [Panchenko, 2013, §1.1]: the comfort
@@ -63,7 +63,7 @@ theorem integral_skHamiltonian_mul_skHamiltonian [Nonempty ι] (σ τ : ι → �
       (Fintype.card ι : ℝ)⁻¹ := by
     rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg _)]
   simp_rw [mul_mul_mul_comm, hc]
-  rw [integral_const_mul, NTK.integral_gaussianMatrix_bilinear_mul_bilinear]
+  rw [integral_const_mul, integral_gaussianMatrix_bilinear_mul_bilinear]
   field_simp
 
 /-- **Dean's comfort function** ([Panchenko, 2013, §1.1]): for a configuration `σ : ι → ℤˣ` and

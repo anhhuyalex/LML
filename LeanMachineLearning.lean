@@ -48,6 +48,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
