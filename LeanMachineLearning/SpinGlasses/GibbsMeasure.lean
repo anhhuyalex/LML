@@ -162,6 +162,61 @@ end ZeroTemperature
 
 end Gibbs
 
+section Path
+
+variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
+
+/-- **Derivative of the log-partition function along a path of energies:** if each `f s a` has
+derivative `f' a` at `t`, then `(d/ds) log ∑ₐ exp (f s a) = ⟨f'⟩` at `s = t`, where `⟨·⟩` is the
+Gibbs average of the energy `f t`.  The case `f s a = s H a` is `hasDerivAt_log_sum_exp`. -/
+theorem hasDerivAt_log_sum_exp_path {f : ℝ → α → ℝ} {f' : α → ℝ} {t : ℝ}
+    (hf : ∀ a, HasDerivAt (fun s => f s a) (f' a) t) :
+    HasDerivAt (fun s => Real.log (∑ a, Real.exp (f s a)))
+      (∫ a, f' a ∂(Measure.count.tilted fun a => f t a)) t := by
+  have hS : HasDerivAt (fun s => ∑ a, Real.exp (f s a)) (∑ a, Real.exp (f t a) * f' a) t :=
+    HasDerivAt.fun_sum fun a _ => (hf a).exp
+  have hpos : 0 < ∑ a, Real.exp (f t a) :=
+    Finset.sum_pos (fun a _ => Real.exp_pos _) univ_nonempty
+  convert hS.log hpos.ne' using 1
+  rw [integral_count_tilted, Finset.sum_div]
+  exact Finset.sum_congr rfl fun a _ => by ring
+
+variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} {f f' : ℝ → Ω → α → ℝ} {t : ℝ}
+  {S : Set ℝ} {B : Ω → ℝ}
+
+/-- **Derivative of the expected log-partition function along a path of random energies**, by
+dominated differentiation under the integral: if the energies `f s ω a` are differentiable in `s`
+on a neighbourhood `S` of `t` with derivative `f' s ω a` bounded by an integrable `B ω`, then
+`(d/ds) 𝔼 log ∑ₐ exp (f s a) = 𝔼 ⟨f'⟩` at `s = t`.  This is the common core of the temperature
+derivative `hasDerivAt_integral_log_sum_exp` and of Gaussian interpolation. -/
+theorem hasDerivAt_integral_log_sum_exp_path (hS : S ∈ 𝓝 t)
+    (hmeas : ∀ s a, AEMeasurable (fun ω => f s ω a) μ)
+    (hmeas' : ∀ a, AEMeasurable (fun ω => f' t ω a) μ)
+    (hint : Integrable (fun ω => Real.log (∑ a, Real.exp (f t ω a))) μ)
+    (hderiv : ∀ ω, ∀ s ∈ S, ∀ a, HasDerivAt (fun s => f s ω a) (f' s ω a) s)
+    (hB : Integrable B μ) (hbound : ∀ ω, ∀ s ∈ S, ∀ a, |f' s ω a| ≤ B ω) :
+    HasDerivAt (fun s => ∫ ω, Real.log (∑ a, Real.exp (f s ω a)) ∂μ)
+      (∫ ω, ∫ a, f' t ω a ∂(Measure.count.tilted fun a => f t ω a) ∂μ) t := by
+  have hF' : AEMeasurable (fun ω => ∫ a, f' t ω a ∂(Measure.count.tilted fun a => f t ω a)) μ := by
+    simp_rw [integral_count_tilted]
+    exact Finset.aemeasurable_fun_sum _ fun a _ =>
+      (((hmeas t a).exp).div (Finset.aemeasurable_fun_sum _ fun c _ => (hmeas t c).exp)).mul
+        (hmeas' a)
+  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le hS
+    (Eventually.of_forall fun s =>
+      (Real.measurable_log.comp_aemeasurable
+        (Finset.aemeasurable_fun_sum _ fun a _ => (hmeas s a).exp)).aestronglyMeasurable)
+    hint (F' := fun s ω => ∫ a, f' s ω a ∂(Measure.count.tilted fun a => f s ω a))
+    hF'.aestronglyMeasurable
+    (bound := B) (ae_of_all _ fun ω s hs => by
+      have := norm_integral_le_of_norm_le_const
+        (μ := Measure.count.tilted fun a => f s ω a) (f := fun a => f' s ω a) (C := B ω)
+        (ae_of_all _ fun a => by simpa [Real.norm_eq_abs] using hbound ω s hs a)
+      simpa using this)
+    hB (ae_of_all _ fun ω s hs => hasDerivAt_log_sum_exp_path (hderiv ω s hs))).2
+
+end Path
+
 section Random
 
 variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
@@ -174,19 +229,14 @@ integrable coordinates and `β > 0`, `(d/dβ) 𝔼 log Z(β) = 𝔼 ⟨H⟩_β`.
 theorem hasDerivAt_integral_log_sum_exp {β : ℝ} (hβ : 0 < β)
     (hmeas : ∀ a, Measurable fun ω => H ω a) (hint : ∀ a, Integrable (fun ω => H ω a) μ) :
     HasDerivAt (fun b => ∫ ω, Real.log (∑ a, Real.exp (b * H ω a)) ∂μ)
-      (∫ ω, ∫ a, H ω a ∂(Measure.count.tilted fun a => β * H ω a) ∂μ) β := by
-  have hF' : Measurable fun ω => ∫ a, H ω a ∂(Measure.count.tilted fun a => β * H ω a) := by
-    simp_rw [integral_count_tilted]
-    exact Finset.measurable_sum _ fun a _ => (((hmeas a).const_mul β).exp.div
-      (Finset.measurable_sum _ fun c _ => ((hmeas c).const_mul β).exp)).mul (hmeas a)
-  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le (s := Set.Ioi 0) (Ioi_mem_nhds hβ)
-    (Eventually.of_forall fun b => (measurable_log_sum_exp hmeas b).aestronglyMeasurable)
-    (integrable_log_sum_exp hβ hmeas hint) (F' := fun b ω =>
-      ∫ a, H ω a ∂(Measure.count.tilted fun a => b * H ω a)) hF'.aestronglyMeasurable
-    (bound := fun ω => ∑ a, |H ω a|)
-    (ae_of_all _ fun ω b _ => norm_integral_count_tilted_le _ _)
+      (∫ ω, ∫ a, H ω a ∂(Measure.count.tilted fun a => β * H ω a) ∂μ) β :=
+  hasDerivAt_integral_log_sum_exp_path (f := fun b ω a => b * H ω a) (f' := fun _ ω a => H ω a)
+    (S := Set.Ioi 0) (Ioi_mem_nhds hβ) (fun s a => ((hmeas a).const_mul s).aemeasurable)
+    (fun a => (hmeas a).aemeasurable) (integrable_log_sum_exp hβ hmeas hint)
+    (fun ω s _ a => (hasDerivAt_id s).mul_const (H ω a) |>.congr_deriv (one_mul _))
     (integrable_finsetSum univ fun a _ => (hint a).abs)
-    (ae_of_all _ fun ω b _ => hasDerivAt_log_sum_exp (H ω) b)).2
+    fun ω _ _ a => Finset.single_le_sum (f := fun b => |H ω b|) (fun _ _ => abs_nonneg _)
+      (mem_univ a)
 
 end Random
 

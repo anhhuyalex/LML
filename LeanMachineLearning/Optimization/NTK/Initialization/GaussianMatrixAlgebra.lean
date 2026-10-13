@@ -223,7 +223,7 @@ theorem integral_gaussianMatrix_quadForm (u v : ι → ℝ) (A : Matrix κ κ �
       ∑ k, ∑ l, A k l * (((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) := fun W => by
     rw [quadForm_mul_mul_transpose (Matrix.of W) A u v]
     simp only [dotProduct, mulVec, Finset.mul_sum]
-    exact Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun l _ => by ring
+    exact Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun l _ => by ring_nf
   have h_inner : ∀ k : κ, ∫ W : ι → κ → ℝ, ∑ l, A k l * (((Matrix.of W)ᵀ *ᵥ u) k *
         ((Matrix.of W)ᵀ *ᵥ v) l) ∂(Measure.pi fun _ : ι =>
           Measure.pi fun _ : κ => gaussianReal 0 1) = A k k * (u ⬝ᵥ v) := fun k => by
