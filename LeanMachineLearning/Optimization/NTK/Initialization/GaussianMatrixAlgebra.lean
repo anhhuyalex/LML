@@ -130,12 +130,19 @@ theorem integral_gaussianInit_entry_mul_entry [DecidableEq ι] [DecidableEq κ] 
           (by fun_prop : Measurable fun W : ι → κ → ℝ => W j l).aestronglyMeasurable,
         integral_gaussianInit_entry i k, zero_mul]
 
+/-- The rank-one weight `u vᵀ` turns the trace form into the bilinear form `u ⬝ᵥ (M v)`:
+`u ⬝ᵥ (M v) = ∑ᵢⱼ (u vᵀ)ᵢⱼ Mᵢⱼ`. -/
+lemma dotProduct_mulVec_eq_sum_vecMulVec (u : ι → ℝ) (v : κ → ℝ) (M : Matrix ι κ ℝ) :
+    u ⬝ᵥ (M *ᵥ v) = ∑ i, ∑ j, Matrix.vecMulVec u v i j * M i j := by
+  simp only [dotProduct, mulVec, vecMulVec_apply, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
+
 /-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` is the finite combination
 `∑ᵢⱼ uᵢ vⱼ Gᵢⱼ` of its coordinates. -/
 lemma dotProduct_mulVec_of_eq_sum (u : ι → ℝ) (v : κ → ℝ) (G : ι → κ → ℝ) :
     u ⬝ᵥ (Matrix.of G *ᵥ v) = ∑ i, ∑ j, (u i * v j) * G i j := by
-  simp only [dotProduct, mulVec, Matrix.of_apply, Finset.mul_sum]
-  exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
+  simpa only [vecMulVec_apply, Matrix.of_apply] using
+    dotProduct_mulVec_eq_sum_vecMulVec u v (Matrix.of G)
 
 /-- A linear form `u ⬝ᵥ (G v)` of a standard Gaussian matrix `G` is in `L²`. -/
 theorem memLp_linearForm_gaussianInit (u : ι → ℝ) (v : κ → ℝ) :
@@ -177,118 +184,63 @@ theorem integral_gaussianMatrix_bilinear_mul_bilinear (u x : ι → ℝ) (v y : 
   simp only [one_mulVec, dotProduct, Fintype.sum_prod_type, Finset.sum_mul_sum]
   exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
 
-/-- Expansion of a product of two coordinates of `Wᵀ *ᵥ u` and `Wᵀ *ᵥ v` as a double sum of
-coordinate products of `W`. -/
-lemma mulVec_transpose_mul_apply_eq_sum (u v : Fin n → ℝ) (k l : Fin p) (W : Fin n → Fin p → ℝ) :
-    ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l =
-      ∑ i : Fin n, ∑ j : Fin n, u i * v j * (W i k * W j l) := by
-  have h_u : ((Matrix.of W)ᵀ *ᵥ u) k = ∑ i : Fin n, u i * W i k := by
-    simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
-    refine Finset.sum_congr rfl fun i _ => mul_comm _ _
-  have h_v : ((Matrix.of W)ᵀ *ᵥ v) l = ∑ j : Fin n, v j * W j l := by
-    simp only [mulVec, Matrix.transpose_apply, Matrix.of_apply]
-    refine Finset.sum_congr rfl fun j _ => mul_comm _ _
-  rw [h_u, h_v]
-  simp_rw [Finset.sum_mul, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun i _ => ?_
-  refine Finset.sum_congr rfl fun j _ => ?_
-  ring
+/-- The `k`-th coordinate of `Wᵀ u` is the linear form `u ⬝ᵥ (W e_k)` of the matrix `W`. -/
+lemma mulVec_transpose_apply_eq_dotProduct [DecidableEq κ] (W : ι → κ → ℝ) (u : ι → ℝ) (k : κ) :
+    ((Matrix.of W)ᵀ *ᵥ u) k = u ⬝ᵥ (Matrix.of W *ᵥ Pi.single k 1) := by
+  simp [mulVec, dotProduct, Pi.single_apply, mul_comm]
 
 /-- Expectation of coordinate products of transpose vector multiplications:
-`∫ (Wᵀ *ᵥ u) k * (Wᵀ *ᵥ v) l ∂(𝒩(0,1)^{n×p}) = if k = l then u ⬝ᵥ v else 0`. -/
-lemma integral_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l : Fin p) :
-    ∫ W : Fin n → Fin p → ℝ, ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l ∂(Measure.pi fun _ :
-        Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+`∫ (Wᵀ *ᵥ u) k * (Wᵀ *ᵥ v) l ∂(𝒩(0,1)^{ι×κ}) = if k = l then u ⬝ᵥ v else 0`.  This is the
+bilinear covariance `integral_gaussianMatrix_bilinear_mul_bilinear` at the unit vectors `e_k`,
+`e_l`. -/
+lemma integral_mulVec_transpose_mul_apply [DecidableEq κ] (u v : ι → ℝ) (k l : κ) :
+    ∫ W : ι → κ → ℝ, ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l ∂(Measure.pi fun _ :
+        ι => Measure.pi fun _ : κ => gaussianReal 0 1) =
       if k = l then u ⬝ᵥ v else 0 := by
-  simp_rw [mulVec_transpose_mul_apply_eq_sum]
-  rw [integral_finsetSum _ fun i _ =>
-    (integrable_finsetSum _ fun j _ =>
-      (integrable_entry_mul_entry i j k l).const_mul (u i * v j))]
-  have h_inner : ∀ (i : Fin n),
-      (∫ W : Fin n → Fin p → ℝ, ∑ j : Fin n, u i * v j * (W i k * W j l) ∂(Measure.pi fun _ : Fin n
-          => Measure.pi fun _ : Fin p => gaussianReal 0 1)) =
-      ∑ j : Fin n, u i * v j * (if i = j ∧ k = l then 1 else 0) := by
-    intro i
-    rw [integral_finsetSum _ fun j _ =>
-      (integrable_entry_mul_entry i j k l).const_mul (u i * v j)]
-    refine Finset.sum_congr rfl fun j _ => ?_
-    rw [integral_const_mul, integral_gaussianInit_entry_mul_entry]
-  simp_rw [h_inner]
-  split_ifs with hkl
-  · subst hkl
-    simp only [eq_self, and_true]
-    have heq : ∀ (i : Fin n), (∑ j : Fin n, u i * v j * (if i = j then (1 : ℝ) else 0)) =
-        u i * v i := by
-      intro i
-      have heq2 : (fun j => u i * v j * (if i = j then (1 : ℝ) else 0)) =
-          fun j => if i = j then u i * v j else 0 := by
-        ext j; split_ifs with hij
-        · subst hij; ring
-        · ring
-      rw [heq2]
-      simp only [Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte]
-    simp_rw [heq]
-    rfl
-  · have h_ite : ∀ (i j : Fin n), (if i = j ∧ k = l then (1 : ℝ) else 0) = 0 := by
-      intro i j; simp [hkl]
-    simp_rw [h_ite, mul_zero, Finset.sum_const_zero]
+  simp_rw [mulVec_transpose_apply_eq_dotProduct]
+  rw [integral_gaussianMatrix_bilinear_mul_bilinear]
+  by_cases hkl : k = l
+  · subst hkl; simp
+  · simp [hkl, dotProduct_single]
 
 /-- Integrability of coordinate products of transpose vector multiplications. -/
-lemma integrable_mulVec_transpose_mul_apply (n p : ℕ) (u v : Fin n → ℝ) (k l : Fin p) :
-    Integrable (fun W : Fin n → Fin p → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l)
-      (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-  simp_rw [mulVec_transpose_mul_apply_eq_sum]
-  exact integrable_finsetSum _ fun i _ =>
-    integrable_finsetSum _ fun j _ =>
-      (integrable_entry_mul_entry i j k l).const_mul (u i * v j)
+lemma integrable_mulVec_transpose_mul_apply (u v : ι → ℝ) (k l : κ) :
+    Integrable (fun W : ι → κ → ℝ => ((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l)
+      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  classical
+  simp_rw [mulVec_transpose_apply_eq_dotProduct]
+  exact (memLp_linearForm_gaussianInit u _).integrable_mul (memLp_linearForm_gaussianInit v _)
 
 /-- Expectation of the general bilinear Gaussian quadratic form (Proposition 2.27 Step 4):
-`∫ u ⬝ᵥ ((W * A * Wᵀ) *ᵥ v) ∂(𝒩(0,1)^{n×p}) = (u ⬝ᵥ v) * A.trace`
-for arbitrary real matrix `A ∈ ℝ^{p × p}` and vectors `u, v ∈ ℝ^n`. -/
-theorem integral_gaussianMatrix_quadForm (n p : ℕ) (u v : Fin n → ℝ)
-    (A : Matrix (Fin p) (Fin p) ℝ) :
-    ∫ W : Fin n → Fin p → ℝ, u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) ∂(Measure.pi fun _ :
-        Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
+`∫ u ⬝ᵥ ((W * A * Wᵀ) *ᵥ v) ∂(𝒩(0,1)^{ι×κ}) = (u ⬝ᵥ v) * A.trace`
+for arbitrary real matrix `A ∈ ℝ^{κ × κ}` and vectors `u, v ∈ ℝ^ι`. -/
+theorem integral_gaussianMatrix_quadForm (u v : ι → ℝ) (A : Matrix κ κ ℝ) :
+    ∫ W : ι → κ → ℝ, u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) ∂(Measure.pi fun _ :
+        ι => Measure.pi fun _ : κ => gaussianReal 0 1) =
       (u ⬝ᵥ v) * A.trace := by
-  have h_quad : (fun W : Fin n → Fin p → ℝ => u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v)) =
-      fun W => ∑ k : Fin p, ∑ l : Fin p,
-        A k l * (((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) := by
-    ext W
+  classical
+  have h_quad : ∀ W : ι → κ → ℝ, u ⬝ᵥ (((Matrix.of W) * A * (Matrix.of W)ᵀ) *ᵥ v) =
+      ∑ k, ∑ l, A k l * (((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) := fun W => by
     rw [quadForm_mul_mul_transpose (Matrix.of W) A u v]
-    simp only [dotProduct, mulVec]
-    simp_rw [Finset.mul_sum]
-    refine Finset.sum_congr rfl fun k _ => ?_
-    refine Finset.sum_congr rfl fun l _ => ?_
-    ring_nf
-  rw [h_quad]
-  rw [integral_finsetSum _ fun k _ =>
-    integrable_finsetSum _ fun l _ =>
-      (integrable_mulVec_transpose_mul_apply n p u v k l).const_mul (A k l)]
-  have h_inner : ∀ (k : Fin p),
-      (∫ W : Fin n → Fin p → ℝ, ∑ l : Fin p,
-        A k l * (((Matrix.of W)ᵀ *ᵥ u) k * ((Matrix.of W)ᵀ *ᵥ v) l) ∂(Measure.pi fun _ : Fin n =>
-            Measure.pi fun _ : Fin p => gaussianReal 0 1)) =
-      ∑ l : Fin p, A k l * (if k = l then u ⬝ᵥ v else 0) := by
-    intro k
+    simp only [dotProduct, mulVec, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun l _ => by ring
+  have h_inner : ∀ k : κ, ∫ W : ι → κ → ℝ, ∑ l, A k l * (((Matrix.of W)ᵀ *ᵥ u) k *
+        ((Matrix.of W)ᵀ *ᵥ v) l) ∂(Measure.pi fun _ : ι =>
+          Measure.pi fun _ : κ => gaussianReal 0 1) = A k k * (u ⬝ᵥ v) := fun k => by
     rw [integral_finsetSum _ fun l _ =>
-      (integrable_mulVec_transpose_mul_apply n p u v k l).const_mul (A k l)]
-    refine Finset.sum_congr rfl fun l _ => ?_
-    rw [integral_const_mul, integral_mulVec_transpose_mul_apply]
-  simp_rw [h_inner]
-  have h_diag : ∀ (k : Fin p),
-      (∑ l : Fin p, A k l * (if k = l then u ⬝ᵥ v else 0)) = A k k * (u ⬝ᵥ v) := by
-    intro k
-    have heq : (fun l => A k l * (if k = l then u ⬝ᵥ v else 0)) =
-        fun l => if k = l then A k l * (u ⬝ᵥ v) else 0 := by
-      ext l; split_ifs with hkl
-      · subst hkl; ring
-      · ring
-    rw [heq]
-    simp only [Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte]
-  simp_rw [h_diag]
-  rw [← Finset.sum_mul]
-  simp only [Matrix.trace, Matrix.diag_apply]
-  ring
+      (integrable_mulVec_transpose_mul_apply u v k l).const_mul (A k l)]
+    rw [Finset.sum_eq_single k]
+    · rw [integral_const_mul, integral_mulVec_transpose_mul_apply]
+      simp
+    · intro l _ hl
+      rw [integral_const_mul, integral_mulVec_transpose_mul_apply]
+      simp [Ne.symm hl]
+    · exact fun h => absurd (Finset.mem_univ k) h
+  simp_rw [h_quad]
+  rw [integral_finsetSum _ fun k _ => integrable_finsetSum _ fun l _ =>
+    (integrable_mulVec_transpose_mul_apply u v k l).const_mul (A k l)]
+  rw [Finset.sum_congr rfl fun k _ => h_inner k, Matrix.trace, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun k _ => by rw [Matrix.diag_apply, mul_comm]
 
 /-- Normalized asymptotic form of the bilinear Gaussian expectation (Proposition 2.27 Step 4):
 `(1/n²) ∫ u ⬝ᵥ ((W * A * Wᵀ) *ᵥ v) = (1/n u ⬝ᵥ v) * (1/n A.trace)`. -/

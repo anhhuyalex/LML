@@ -307,13 +307,6 @@ theorem gaussianInit_traceForm_chebyshev (n p : ℕ) (B : Matrix (Fin n) (Fin n)
 
 /-! ### The bilinear quadratic form `u ⬝ᵥ (W A Wᵀ) v` -/
 
-/-- The rank-one weight `u vᵀ` turns the trace form into the bilinear form `u ⬝ᵥ (M v)`. -/
-lemma dotProduct_mulVec_eq_sum_vecMulVec {n : ℕ} (u v : Fin n → ℝ) (M : Matrix (Fin n) (Fin n) ℝ) :
-    u ⬝ᵥ (M *ᵥ v) = ∑ i, ∑ j, Matrix.vecMulVec u v i j * M i j := by
-  simp only [dotProduct, mulVec, vecMulVec_apply, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
-  ring
-
 /-- The sums of squares and of transposed products of the rank-one weight `u vᵀ`. -/
 lemma sum_sq_vecMulVec {n : ℕ} (u v : Fin n → ℝ) :
     ∑ i, ∑ j, Matrix.vecMulVec u v i j ^ 2 = (u ⬝ᵥ u) * (v ⬝ᵥ v) := by

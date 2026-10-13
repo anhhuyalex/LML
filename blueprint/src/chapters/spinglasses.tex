@@ -13,6 +13,15 @@ is \emph{not} formalized; it enters the theorems below only as a hypothesis. The
 \texttt{ForMathlib/Topology/UniformSpace/LimitInterchange.lean} and
 \texttt{ForMathlib/MeasureTheory/MeasurableSpace/Units.lean}.
 
+The second part of the chapter (Sections~\ref{sec:sg:stein}--\ref{sec:sg:countable}) formalizes the Gaussian tools of
+Section~1.2: Stein's lemma and Gaussian integration by parts for jointly Gaussian vectors, the replica covariance
+formula for the Gibbs measure (Panchenko's Lemma~1.1 and Exercise~1.1) and its extension to a countable
+configuration space (Lemma~1.2). The Lean files are \texttt{ForMathlib/MeasureTheory/Measure/PiUpdate.lean},
+\texttt{ForMathlib/Probability/Moments/GaussianStein.lean}, \texttt{GaussianVector.lean}, \texttt{GaussianExp.lean},
+\texttt{ForMathlib/Topology/Algebra/InfiniteSum/PiProd.lean}, \texttt{SpinGlasses/GaussianIBP.lean} and
+\texttt{SpinGlasses/GaussianIBPCountable.lean}. The Guerra--Toninelli interpolation (Theorem~1.1) and the Gaussian
+concentration inequality (Theorem~1.2) are not part of this chapter yet.
+
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
 statements hold for any finite type). A \emph{configuration} is $\sigma\in\Sigma_\iota=\{-1,+1\}^\iota$, a function
@@ -177,7 +186,8 @@ measurable, and it is integrable because it is square-integrable (Lemma~\ref{lem
 \section{Monotonicity in the temperature and the zero-temperature limit}\label{sec:sg:thermo}
 
 \begin{lemma}[Lyapunov monotonicity of the log-partition function]\label{lem:sg:lyapunov}
-  \lean{SpinGlasses.monotoneOn_inv_mul_log_sum_exp_sub_log_card,
+  \lean{monotoneOn_inv_mul_log_sum_mul_exp_sub_log_sum,
+        SpinGlasses.monotoneOn_inv_mul_log_sum_exp_sub_log_card,
         SpinGlasses.monotoneOn_inv_mul_integral_log_sum_exp_sub_log_card,
         SpinGlasses.monotoneOn_inv_mul_free_energy_sub_log_two}
   \leanok
@@ -185,7 +195,9 @@ For a finite nonempty set $\alpha$ and $f:\alpha\to\mathbb R$, the function
 $\beta\mapsto\beta^{-1}\big(\log\sum_ae^{\beta f(a)}-\log|\alpha|\big)$ is non-decreasing on $(0,\infty)$. The same
 holds for $\beta\mapsto\beta^{-1}\big(\mathbb E\log\sum_ae^{\beta H_a}-\log|\alpha|\big)$ for a random energy as in
 Lemma~\ref{lem:sg:integrable}, and for a random energy on the hypercube the function
-$\beta\mapsto\beta^{-1}\big(F_N(\beta)-\log2\big)$ is non-decreasing on $(0,\infty)$.
+$\beta\mapsto\beta^{-1}\big(F_N(\beta)-\log2\big)$ is non-decreasing on $(0,\infty)$. More generally, for nonnegative weights
+$w_a$ with $\sum_aw_a>0$ the function $\beta\mapsto\beta^{-1}\big(\log\sum_aw_ae^{\beta f(a)}-\log\sum_aw_a\big)$ is
+non-decreasing on $(0,\infty)$; the uniform statement is the case $w\equiv1$.
 \end{lemma}
 
 \begin{proof}
@@ -304,7 +316,7 @@ function is $\xi(x)=\sum_{p\ge1}\beta_p^2x^p$. In Lean the condition $\beta_0=0$
         ProbabilityTheory.integral_dotProduct_pi_gaussianReal,
         ProbabilityTheory.memLp_dotProduct_pi_gaussianReal,
         ProbabilityTheory.integral_tsum_mul_tsum_of_indepFun,
-        ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_two_ne_top,
+        ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_ne_top,
         ProbabilityTheory.eLpNorm_two_le_ofReal_of_integral_sq_le,
         ProbabilityTheory.integral_tsum_dotProduct_mul_tsum_dotProduct,
         ProbabilityTheory.measurable_tsum_dotProduct, ProbabilityTheory.integrable_tsum_dotProduct}
@@ -405,4 +417,240 @@ Not formalized: the existence of the limit $F(\beta)=\lim_NF_N(\beta)$ (Guerra--
 Theorem~\ref{thm:sg:zerotemp}; the Parisi formula; and the almost-sure convergence of the mixed series is shown here
 only under the stronger assumption $\sum_p|\beta_p|<\infty$ (implied by Panchenko's $\sum_p2^p\beta_p^2<\infty$,
 Lemma~\ref{lem:sg:summable}).
+\end{remark}
+
+\section{Stein's lemma and Gaussian integration by parts}\label{sec:sg:stein}
+
+\begin{theorem}[Stein's lemma, Panchenko Eq.~(1.19)]\label{thm:sg:stein1d}
+  \lean{ProbabilityTheory.integrable_of_integrable_id_mul, ProbabilityTheory.hasDerivAt_gaussianPDFReal_zero,
+        ProbabilityTheory.integrable_gaussianReal_iff_smul, ProbabilityTheory.integrable_pow_gaussianReal,
+        ProbabilityTheory.integral_id_mul_gaussianReal_eq}
+  \leanok
+Let $v\ge0$, let $g\sim\mathcal N(0,v)$, and let $F:\mathbb R\to\mathbb R$ be differentiable with derivative $F'$ such
+that $gF(g)$ and $F'(g)$ are integrable. Then $\mathbb E[g\,F(g)]=v\,\mathbb E[F'(g)]$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+For $v=0$ both sides vanish ($g=0$). Let $v>0$ and let $p$ be the density of $g$, so $p'(x)=-(x/v)p(x)$. Since $F$ is
+continuous and $|F(x)|\le|xF(x)|$ for $|x|\ge1$, integrability of $xF(x)$ against $p$ gives integrability of $F$ against
+$p$. Mathlib's integration by parts on $\mathbb R$ (all three products $Fp'$, $F'p$, $Fp$ integrable) gives
+$\int Fp'=-\int F'p$, that is $-v^{-1}\int xF(x)p(x)\,dx=-\int F'p$. As a check, the case $F(x)=x^n$ recovers the moment recursion
+$\mathbb E[g^{n+1}]=vn\,\mathbb E[g^{n-1}]$ of the Wick calculus (\texttt{Renormalization.integral\_mul\_pow\_gaussianReal}, which is now
+a corollary).
+\end{proof}
+
+\begin{lemma}[Resampling one coordinate]\label{lem:sg:resample}
+  \lean{MeasureTheory.measurePreserving_update_pi, MeasureTheory.integrable_update_pi,
+        MeasureTheory.integral_pi_eq_integral_update}
+  \leanok
+Let $\pi=\bigotimes_{i}\mu_i$ be a finite product of probability measures. Replacing the $j$-th coordinate of
+$x\sim\pi$ by an independent $t\sim\mu_j$ preserves $\pi$: the map $(x,t)\mapsto x[j:=t]$ pushes $\pi\otimes\mu_j$ to $\pi$.
+Hence for integrable $f$, $\int f\,d\pi=\int\!\!\int f(x[j:=t])\,d\mu_j(t)\,d\pi(x)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Both measures agree on boxes $\prod_i s_i$: the preimage of the box is $\prod_i s_i'\times s_j$ with $s_i'=s_i$ for $i\ne j$
+and $s_j'=\mathbb R$, of measure $\prod_{i\ne j}\mu_i(s_i)\,\mu_j(s_j)$. The integral formula is the change of variables for the
+pushforward followed by Fubini.
+\end{proof}
+
+\begin{theorem}[Coordinatewise Stein identity]\label{thm:sg:steinpi}
+  \lean{ProbabilityTheory.integral_eval_mul_pi_gaussianReal_eq}
+  \leanok
+  \uses{thm:sg:stein1d, lem:sg:resample}
+Let $\xi$ have independent coordinates $\xi_i\sim\mathcal N(0,v_i)$ and let $G$ have partial derivatives $G_i'$ in the sense that
+$t\mapsto G(x[i:=t])$ is differentiable with derivative $G_i'(x)$ at $t=x_i$. If $\xi_jG(\xi)$ and $G_j'(\xi)$ are integrable then
+$\mathbb E[\xi_jG(\xi)]=v_j\,\mathbb E[G_j'(\xi)]$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Resample the $j$-th coordinate (Lemma~\ref{lem:sg:resample}). By Fubini the slices $t\mapsto G(x[j:=t])$ and its derivative are
+integrable against $\mathcal N(0,v_j)$ for almost every $x$, and Theorem~\ref{thm:sg:stein1d} applies to each slice.
+\end{proof}
+
+\begin{theorem}[Multivariate Gaussian integration by parts, Panchenko Eq.~(1.25)]\label{thm:sg:steinvec}
+  \lean{ProbabilityTheory.sum_abs_mulVec_le, ProbabilityTheory.hasDerivAt_mulVec_update,
+        ProbabilityTheory.integrable_exp_mul_abs_gaussianReal, ProbabilityTheory.integrable_exp_sum_mul_abs_pi,
+        ProbabilityTheory.integrable_comp_mulVec_of_exp_growth,
+        ProbabilityTheory.integrable_eval_mul_comp_mulVec_of_exp_growth,
+        ProbabilityTheory.integral_mulVec_mul_comp_mulVec_eq_sum,
+        ProbabilityTheory.posSemidef_covariance_matrix, ProbabilityTheory.exists_matrix_map_eq_pi_gaussianReal,
+        ProbabilityTheory.IsGaussianProcess.hasGaussianLaw_pi, ProbabilityTheory.abs_comp_inr_le_of_exp_growth,
+        ProbabilityTheory.integral_mul_comp_eq_sum_integral_mul,
+        ProbabilityTheory.integral_mul_comp_eq_sum_integral_mul_of_sum}
+  \leanok
+  \uses{thm:sg:steinpi}
+Let $X=(X_k)_{k\in\kappa}$, $\kappa$ finite, be a centered jointly Gaussian vector (Mathlib's \texttt{HasGaussianLaw}; a
+\texttt{IsGaussianProcess} on a finite index set is one), and let $F:\mathbb R^\kappa\to\mathbb R$ be differentiable with
+$|F(y)|\le C\,e^{c\|y\|_1}$ and $|\partial_lF(y)|\le D_l\,e^{d_l\|y\|_1}$. Then
+\[\mathbb E[X_i\,F(X)]=\sum_{l\in\kappa}\mathbb E[X_iX_l]\;\mathbb E[\partial_lF(X)].\]
+More generally the same holds with $X_i$ replaced by a variable $W_i$ from a centered Gaussian family $W$ that is jointly
+Gaussian with $X$, with $\mathbb E[W_iX_l]$ as the covariance.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The covariance matrix $S_{ij}=\mathrm{Cov}(X_i,X_j)$ is positive semidefinite (it is the covariance form of the Gaussian
+vector), so $X$ has the law of $A\xi$ with $\xi$ i.i.d.\ $\mathcal N(0,1)$ and $AA^\top=S$ ($A=\sqrt S$; this combines Mathlib's
+\texttt{multivariateGaussian} with the fact that a Gaussian measure is determined by mean and covariance). For $G(\xi)=F(A\xi)$
+the chain rule gives $\partial_jG(\xi)=\sum_lA_{lj}\partial_lF(A\xi)$, and Theorem~\ref{thm:sg:steinpi} yields
+$\mathbb E[(A\xi)_iF(A\xi)]=\sum_jA_{ij}\sum_lA_{lj}\mathbb E[\partial_lF(A\xi)]=\sum_lS_{il}\mathbb E[\partial_lF(A\xi)]$.
+The integrability hypotheses of Theorem~\ref{thm:sg:steinpi} follow from the growth bound:
+$|\xi_jF(A\xi)|\le|\xi_j|\,Ce^{|c|\sum_ka_k|\xi_k|}$ with $a_k=\sum_l|A_{lk}|$, which is integrable as a product of the
+one-dimensional integrable functions $e^{b|t|}$ and $|t|e^{b|t|}$ against $\mathcal N(0,1)$. For the extension to an auxiliary
+Gaussian family apply the first part to the concatenated vector and the function $F\circ\mathrm{pr}_2$, whose partial derivatives in
+the $W$-directions vanish.
+\end{proof}
+
+\section{Integration by parts for the Gibbs measure}\label{sec:sg:ibp}
+
+Throughout, $\alpha$ is a finite configuration space, $(x,y)=(x(a),y(a))_{a\in\alpha}$ is a centered jointly Gaussian field with
+$C(a,b)=\mathbb E[x(a)y(b)]$, $h:\alpha\to\mathbb R$ is a deterministic bias (for example $\log G$ for a reference weight, or an
+external field), and $\langle\cdot\rangle$ is the Gibbs measure \texttt{Measure.count.tilted} of the energy $y+h$. For a finite index
+set $R$ of replicas, replicas are the product $\bigotimes_{r\in R}\langle\cdot\rangle$, \texttt{Measure.pi}; Panchenko's $\sigma^1,\dots,\sigma^n$ is $R=\{1,\dots,n\}$,
+and $\Phi$ is an arbitrary function of the $|R|$ replicas.
+
+\begin{lemma}[Calculus of replica averages]\label{lem:sg:replicacalc}
+  \lean{SpinGlasses.integral_pi_count_tilted, SpinGlasses.differentiable_gibbsWeight,
+        SpinGlasses.differentiable_replicaAverage, SpinGlasses.hasDerivAt_prod_gibbsWeight,
+        SpinGlasses.fderiv_integral_pi_count_tilted, SpinGlasses.sum_sum_mul_integral_eq,
+        SpinGlasses.abs_integral_pi_count_tilted_le, SpinGlasses.abs_integral_pi_count_tilted_mul_eval_le,
+        SpinGlasses.differentiable_integral_pi_count_tilted_add, SpinGlasses.fderiv_integral_pi_count_tilted_add}
+  \leanok
+For $f:\alpha\to\mathbb R$ write $w_f(a)=e^{f(a)}/\sum_be^{f(b)}$. (1) The $R$-replica average of $\Psi$ is the finite sum
+$\sum_{\sigma\in\alpha^R}\prod_rw_f(\sigma_r)\Psi(\sigma)$, a smooth function of $f$. (2) Its derivative in the direction $e_\rho$ is
+$\big\langle(\sum_r\mathbf 1[\sigma_r=\rho]-|R|\,w_f(\rho))\Psi\big\rangle_f$. (3) $|\langle\Psi\rangle|\le\sup|\Psi|$ and
+$|\langle\Phi\,\chi(\sigma_{r_0})\rangle|\le\sup|\Phi|\,\langle|\chi|\rangle$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(1) is the product formula for the product measure of singletons (\texttt{Measure.pi\_singleton}) together with the formula for the
+mass of a singleton of the tilted counting measure. For (2) one differentiates along the line $f+te_\rho$: the product of $n$
+weights is $\exp(\sum_r(f(\sigma_r)+t\delta_{\sigma_r\rho}))/Z(t)^n$ with $Z'(0)=e^{f(\rho)}$, and the quotient rule gives
+$(\prod w)\,(\sum_r\delta_{\sigma_r\rho}-n\,w(\rho))$. (3) is the triangle inequality and the identity
+$\int|\chi(\sigma_{r_0})|\,d\pi=\int|\chi|\,d\langle\cdot\rangle$.
+\end{proof}
+
+\begin{theorem}[Replica covariance formula, Panchenko Exercise~1.1 and Eq.~(1.29)]\label{thm:sg:replica}
+  \lean{SpinGlasses.integral_gibbs_replica_average_gaussian, SpinGlasses.integral_pi_option_count_tilted,
+        SpinGlasses.integral_gibbs_replica_average_gaussian_option}
+  \leanok
+  \uses{thm:sg:steinvec, lem:sg:replicacalc}
+With the notation above, for every $r_0\in R$ and every function $\Phi$ of the $|R|$ replicas,
+\[\mathbb E\big\langle\Phi\,x(\sigma^{r_0})\big\rangle
+ =\mathbb E\Big\langle\Phi\Big(\sum_{r\in R}C(\sigma^{r_0},\sigma^r)-|R|\,C(\sigma^{r_0},\sigma^{n+1})\Big)\Big\rangle,\]
+where $\sigma^{n+1}$ is an additional independent replica (written as an integral of $C(\sigma^{r_0},\cdot)$ against the Gibbs measure,
+and, in the second form, as the replica indexed by \texttt{none} in the product over \texttt{Option R}).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Write $x(\sigma^{r_0})=\sum_ax(a)\mathbf 1[\sigma^{r_0}=a]$, so the left-hand side is $\sum_a\mathbb E[x(a)F_a(y)]$ with
+$F_a(y)=\langle\mathbf 1[\sigma^{r_0}=a]\Phi\rangle_{y+h}$, a smooth bounded function with bounded partial derivatives
+(Lemma~\ref{lem:sg:replicacalc}). By Theorem~\ref{thm:sg:steinvec}, $\mathbb E[x(a)F_a(y)]=\sum_bC(a,b)\,\mathbb E[\partial_bF_a(y)]$, and
+$\partial_bF_a=\langle(\sum_r\mathbf 1[\sigma^r=b]-|R|\,w(b))\mathbf 1[\sigma^{r_0}=a]\Phi\rangle$. Summing over $a$ and $b$ gives
+$\sum_r C(\sigma^{r_0},\sigma^r)-|R|\sum_bC(\sigma^{r_0},b)w(b)$ inside the Gibbs average, and $\sum_bC(\sigma^{r_0},b)w(b)$ is
+the average of $C(\sigma^{r_0},\cdot)$ against the Gibbs measure.
+\end{proof}
+
+\begin{theorem}[Gaussian integration by parts for the Gibbs measure, Panchenko Lemma~1.1, Eq.~(1.28)]\label{thm:sg:lemma11}
+  \lean{SpinGlasses.integral_gibbs_average_gaussian}
+  \leanok
+  \uses{thm:sg:replica}
+$\mathbb E\langle x(\sigma)\rangle=\mathbb E\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle$, where $\langle\cdot\rangle$ on the right
+is the product of two replicas.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+This is Theorem~\ref{thm:sg:replica} with one replica ($R=\mathrm{Unit}$) and $\Phi\equiv1$.
+\end{proof}
+
+\section{A countable configuration space}\label{sec:sg:countable}
+
+\begin{lemma}[Analytic tools for series over replicas]\label{lem:sg:tannery}
+  \lean{summable_prod_pi, tendsto_tsum_prod_pi, summable_prod_pi_mul_abs_eval,
+        SpinGlasses.truncated_gibbs_weights, SpinGlasses.tendsto_truncated_replica_average,
+        ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_ne_top}
+  \leanok
+Let $J$ be finite and $f_j:\alpha\to[0,\infty)$ summable. Then $\sigma\mapsto\prod_jf_j(\sigma_j)$ is summable on $J\to\alpha$. If
+weights $w_m\to w$ pointwise with $0\le w_m\le B$, $B$ summable and $\sum_\sigma\prod_jB(\sigma_j)|\Psi(\sigma)|<\infty$, then
+$\sum_\sigma\prod_jw_m(\sigma_j)\Psi(\sigma)\to\sum_\sigma\prod_jw(\sigma_j)\Psi(\sigma)$. In particular, for $g>0$ summable and finite
+sets $A_m\uparrow\alpha$ containing $a_0$, the truncated weights $\mathbf 1_{A_m}g/\sum_{A_m}g$ are bounded by $g/g(a_0)$ and converge to $g/\sum g$. A series with
+summable $L^p$ norms, $p\ge1$, is integrable (the case $p=2$ is used for the Gaussian series of Section~\ref{sec:sg:pspin}).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Partial sums of $\prod_jf_j(\sigma_j)$ over a finite set $T$ are bounded by $\prod_j\sum_{a\in T_j}f_j(a)\le\prod_j\sum_af_j(a)$, where $T_j$ is
+the set of $j$-th coordinates of elements of $T$ (\texttt{Finset.prod\_univ\_sum}). The limit statement is Tannery's theorem with dominating function
+$\prod_jB(\sigma_j)|\Psi(\sigma)|$. For the truncated weights, $\sum_{A_m}g\ge g(a_0)>0$ and $\sum_{A_m}g\to\sum g$ along the exhaustion.
+\end{proof}
+
+\begin{lemma}[Gaussian exponential moments]\label{lem:sg:gaussexp}
+  \lean{ProbabilityTheory.hasGaussianLaw_hasLaw, ProbabilityTheory.integral_exp_mul_of_hasGaussianLaw,
+        ProbabilityTheory.integrable_exp_mul_of_hasGaussianLaw, ProbabilityTheory.eLpNorm_one_mul_exp_le,
+        ProbabilityTheory.ae_summable_and_integrable_tsum_mul_exp}
+  \leanok
+If $Z$ is Gaussian then $\mathbb E\,e^{tZ}=e^{t\mathbb EZ+t^2\mathrm{Var}Z/2}$. If $Z$ is centered Gaussian with $\mathbb EZ^2\le v$ and
+$\mathbb EX^2\le a$ then $\mathbb E|X|e^{Z}\le\sqrt a\,e^v$. Consequently, for countably many such pairs $(X_b,Z_b)$ with uniform bounds and
+$G_b\ge0$ summable, $\sum_bG_b|X_b|e^{Z_b}$ converges almost surely and is integrable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:sg:tannery}
+The law of $Z$ is Gaussian, so the first claim is the Gaussian moment generating function. By Cauchy--Schwarz (Holder with exponents
+$2,2,1$) $\|Xe^Z\|_1\le\|X\|_2\|e^Z\|_2$ and $\|e^Z\|_2^2=\mathbb Ee^{2Z}=e^{2\mathrm{Var}Z}\le e^{2v}$. The series has summable $L^1$ norms
+$\le\sqrt a\,e^v\sum_bG_b$, hence converges absolutely a.s.\ and is integrable (Lemma~\ref{lem:sg:tannery}).
+\end{proof}
+
+\begin{theorem}[Finite truncations of the replica formula]\label{thm:sg:truncation}
+  \lean{SpinGlasses.integral_pi_count_tilted_subtype, SpinGlasses.abs_tsum_truncated_mul_eval_le,
+        SpinGlasses.abs_tsum_truncated_le, SpinGlasses.aemeasurable_tsum_prod_pi_of_forall_notMem,
+        SpinGlasses.integral_truncated_gibbs_replica_average_gaussian}
+  \leanok
+  \uses{thm:sg:replica}
+Let $\alpha$ be countable, $G>0$, $(x,y)$ a centered Gaussian process, and $A\subseteq\alpha$ a finite set. Then Theorem~\ref{thm:sg:replica}
+holds for the truncated Gibbs weights $\mathbf 1_A(a)G(a)e^{y(a)}/\sum_{b\in A}G(b)e^{y(b)}$, with the replica averages written as series over
+$R\to\alpha$ and $\mathrm{Option}\,R\to\alpha$. Moreover each truncated replica average is bounded by $M\sum_b(g_b/g_{a_0})|x_b|$, respectively
+by the sup of the observable.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:sg:replica} on the finite type $A$ with the bias $h=\log G$. The replica average over $A^R$ of $\Psi\circ\mathrm{val}$ equals the
+series over $R\to\alpha$ with the truncated weights (the weight vanishes off $A$, so the series is a finite sum over $\prod_{r}A$). The bounds are
+Lemma~\ref{lem:sg:replicacalc}(3) applied on $A$.
+\end{proof}
+
+\begin{theorem}[Replica covariance formula for a countable configuration space, Panchenko Lemma~1.2]\label{thm:sg:lemma12}
+  \lean{SpinGlasses.integral_gibbs_replica_average_gaussian_countable}
+  \leanok
+  \uses{thm:sg:truncation, lem:sg:gaussexp, lem:sg:tannery}
+Let $\alpha$ be countable, $G:\alpha\to(0,\infty)$ summable, and $(x,y)$ a centered jointly Gaussian process (\texttt{IsGaussianProcess}) with
+$\mathbb Ex(a)^2\le v$ and $\mathbb Ey(a)^2\le v$ for all $a$. Let $\Phi$ be a function of $|R|$ replicas with $|\Phi|\le M$, and
+$w(a)=G(a)e^{y(a)}/\sum_bG(b)e^{y(b)}$ the Gibbs weights. Then
+\[\mathbb E\sum_{\sigma\in\alpha^R}\prod_rw(\sigma_r)\,\Phi(\sigma)\,x(\sigma_{r_0})
+ =\mathbb E\sum_{\tau\in\alpha^{R\sqcup\{*\}}}\prod_{o}w(\tau_o)\,\Phi(\tau|_R)\Big(\sum_{r}C(\tau_{r_0},\tau_r)-|R|\,C(\tau_{r_0},\tau_*)\Big).\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Choose finite sets $A_m\uparrow\alpha$ containing a base point $a_1$ and apply Theorem~\ref{thm:sg:truncation} to each $A_m$; it remains to pass to the limit
+$m\to\infty$ in both sides by dominated convergence. Put $g_b=G(b)e^{y(b)}$ and $Z_b=y(b)-y(a_1)$, so that $g_b/g_{a_1}=(G(b)/G(a_1))e^{Z_b}$. The $Z_b$ are centered Gaussians with
+$\mathbb EZ_b^2\le4v$. By Lemma~\ref{lem:sg:gaussexp} (with $X_b=1$ and $X_b=x(b)$), almost surely $\sum_bg_b<\infty$ and $\sum_b(g_b/g_{a_1})|x(b)|<\infty$, and
+$\sum_bG(b)|x(b)|e^{Z_b}$ is integrable. For such $\omega$, Lemma~\ref{lem:sg:tannery} gives the pointwise convergence of the truncated averages on
+both sides (the summability hypothesis on $\Psi$ follows from the summability of $\prod B$ and of $B|x|$). The left-hand averages are dominated by
+$M\sum_b(g_b/g_{a_1})|x(b)|$, which is integrable, and the right-hand averages by $M\cdot2|R|v$, because $|C(a,b)|\le(\mathbb Ex(a)^2+\mathbb Ey(b)^2)/2\le v$.
+Dominated convergence shows that both sides of the truncated identities converge, hence the limits agree.
+\end{proof}
+
+\begin{remark}
+Not formalized: the case of a general (non-atomic or sigma-finite) reference measure $G$ in Lemma~1.2, and the bound $\sum G\le1$ of the book
+(only summability is used). Eq.~(1.29) is stated for an arbitrary $\Phi$ (the book assumes boundedness only for the countable case, as here).
 \end{remark}

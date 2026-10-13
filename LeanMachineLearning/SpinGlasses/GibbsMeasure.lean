@@ -64,19 +64,20 @@ lemma mgf_count (H : α → ℝ) (β : ℝ) :
     mgf H Measure.count β = ∑ a, Real.exp (β * H a) :=
   integral_count_eq_sum _
 
-/-- **The Gibbs average:** the expectation of `g` under the tilt of the counting measure by `β H` is
-`∑ₐ (exp (β H a) / Z(β)) g(a)`. -/
-theorem integral_count_tilted (H g : α → ℝ) (β : ℝ) :
-    ∫ a, g a ∂(Measure.count.tilted fun a => β * H a) =
-      ∑ a, Real.exp (β * H a) / (∑ b, Real.exp (β * H b)) * g a := by
-  rw [integral_tilted_mul_eq_mgf, integral_count_eq_sum, mgf_count]
+/-- **The Gibbs average:** the expectation of `g` under the tilt of the counting measure by `f`
+is `∑ₐ (exp (f a) / ∑ᵦ exp (f b)) g(a)`.  For `f = β H` this is the Gibbs average at inverse
+temperature `β`; for `f = y + h` it is the average under a random field `y` and a deterministic
+bias `h`. -/
+theorem integral_count_tilted (f g : α → ℝ) :
+    ∫ a, g a ∂(Measure.count.tilted f) =
+      ∑ a, Real.exp (f a) / (∑ b, Real.exp (f b)) * g a := by
+  rw [integral_tilted, integral_count_eq_sum, integral_count_eq_sum]
   simp only [smul_eq_mul]
 
-/-- **The Gibbs weight:** the tilt of the counting measure by `β H` gives mass
-`exp (β H a) / Z(β)` to `a`. -/
-theorem real_count_tilted_singleton (H : α → ℝ) (β : ℝ) (a : α) :
-    (Measure.count.tilted fun a => β * H a).real {a} =
-      Real.exp (β * H a) / ∑ b, Real.exp (β * H b) := by
+/-- **The Gibbs weight:** the tilt of the counting measure by `f` gives mass
+`exp (f a) / ∑ᵦ exp (f b)` to `a`. -/
+theorem real_count_tilted_singleton (f : α → ℝ) (a : α) :
+    (Measure.count.tilted f).real {a} = Real.exp (f a) / ∑ b, Real.exp (f b) := by
   classical
   rw [← integral_indicator_one (measurableSet_singleton a), integral_count_tilted]
   simp [Set.indicator_apply]

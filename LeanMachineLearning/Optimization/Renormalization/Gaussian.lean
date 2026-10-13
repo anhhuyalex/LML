@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.Optimization.Renormalization.Cumulant
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Distributions.Gaussian.Real
@@ -512,93 +513,16 @@ theorem integral_pow_gaussianReal_even (v : ℝ≥0) (m : ℕ) :
 
 /-! ## Coordinate-free Wick theorem -/
 
-/-- Stein's lemma in 1D for polynomials.
-Informal proof:
-For a 1D real Gaussian measure with mean 0 and variance `v`, the expectation of
-`x * x^n` is given by integration by parts.
-Specifically, `∫ x, x * x^n dN(0, v) = ∫ x, x^(n+1) dN(0, v)`,
-and this equals `v * n * ∫ x, x^(n-1) dN(0, v)`.
-This follows directly from `integral_pow_gaussianReal_even` and `integral_pow_gaussianReal_odd`.
+/-- Stein's lemma in 1D for polynomials: the case `F x = x ^ n` of
+`ProbabilityTheory.integral_id_mul_gaussianReal_eq`, `𝔼[g F(g)] = v 𝔼[F'(g)]`.
 (Source: Stein's lemma, Wikipedia, https://en.wikipedia.org/wiki/Stein%27s_lemma) -/
 theorem integral_mul_pow_gaussianReal (v : ℝ≥0) (n : ℕ) :
     ∫ x, x * x ^ n ∂gaussianReal 0 v = (v : ℝ) * (n : ℝ) * ∫ x, x ^ (n - 1) ∂gaussianReal 0 v := by
-  -- First reduce the left-hand side to the ordinary `(n+1)`-st moment.
-  have h_integrand :
-      ∫ x, x * x ^ n ∂gaussianReal 0 v = ∫ x, x ^ (n + 1) ∂gaussianReal 0 v := by
-    apply MeasureTheory.integral_congr_ae
-    filter_upwards with x
-    rw [pow_succ']
-  -- Prove the moment recurrence by splitting on the parity of `n` and using the
-  -- two moment formulas proved just above.
-  have h_moment_rec :
-      ∫ x, x ^ (n + 1) ∂gaussianReal 0 v =
-        (v : ℝ) * (n : ℝ) * ∫ x, x ^ (n - 1) ∂gaussianReal 0 v := by
-    rcases Nat.even_or_odd' n with ⟨m, hnm | hnm⟩
-    · -- If `n = 2*m`, then the left side is an odd moment.  For `m = 0`
-      -- the right side is zero because of the factor `n`; for `m > 0`,
-      -- `n - 1 = 2*(m-1)+1`, so the right side also contains an odd moment.
-      subst n
-      by_cases hm : m = 0
-      · subst m
-        simp
-      · -- This is the parity case `m = k+1`; rewrite both sides with
-        -- `integral_pow_gaussianReal_odd` and simplify the remaining algebra.
-        have hmpos : 0 < m := Nat.pos_of_ne_zero hm
-        have hpred : 2 * m - 1 = 2 * (m - 1) + 1 := by omega
-        rw [integral_pow_gaussianReal_odd v m]
-        have h_rhs_odd :
-            ∫ x, x ^ (2 * m - 1) ∂gaussianReal 0 v = 0 := by
-          rw [hpred]
-          exact integral_pow_gaussianReal_odd v (m - 1)
-        rw [h_rhs_odd]
-        ring
-    · -- If `n = 2*m + 1`, then the identity relates two even moments:
-      -- `2*m+2` on the left and `2*m` on the right.  Rewrite both sides using
-      -- `integral_pow_gaussianReal_even`; the remaining statement is the
-      -- factorial identity
-      --   `(2m+2)!/(2^(m+1)(m+1)!) * v^(m+1)
-      --      = v*(2m+1)*(2m)!/(2^m m!) * v^m`,
-      -- proved by `Nat.factorial_succ`, `field_simp`, and `ring_nf`.
-      subst n
-      have hleft_exp : 2 * m + 1 + 1 = 2 * (m + 1) := by omega
-      have hright_exp : 2 * m + 1 - 1 = 2 * m := by omega
-      rw [hleft_exp, hright_exp]
-      rw [integral_pow_gaussianReal_even v (m + 1), integral_pow_gaussianReal_even v m]
-      -- After substituting the closed form for the two even moments, this is a
-      -- pure factorial identity together with `v^(m+1) = v * v^m`.
-      -- We first rewrite `2*(m+1)` as `2*m+2`, expose the successor
-      -- factorials, clear the nonzero factorial/power denominator, and finish
-      -- the polynomial identity by normalization.
-      have h_order : 2 * (m + 1) = 2 * m + 2 := by
-        omega
-      rw [h_order]
-      have h_fact_big :
-          (((2 * m + 2).factorial : ℕ) : ℝ) =
-            ((2 * m + 2 : ℕ) : ℝ) * ((2 * m + 1 : ℕ) : ℝ) *
-              (((2 * m).factorial : ℕ) : ℝ) := by
-        rw [Nat.factorial_succ (2 * m + 1), Nat.factorial_succ (2 * m)]
-        norm_num
-        ring
-      have h_fact_small : (((m + 1).factorial : ℕ) : ℝ) =
-          ((m + 1 : ℕ) : ℝ) * ((m.factorial : ℕ) : ℝ) := by
-        rw [Nat.factorial_succ m]
-        norm_num
-      have hden_m : (2 : ℝ) ^ m * ((m.factorial : ℕ) : ℝ) ≠ 0 := by
-        positivity
-      have hden_succ :
-          (2 : ℝ) ^ (m + 1) * (((m + 1).factorial : ℕ) : ℝ) ≠ 0 := by
-        positivity
-      rw [h_fact_big, h_fact_small, pow_succ, pow_succ]
-      field_simp [hden_m, hden_succ]
-      all_goals first
-        | exact Or.inl (Or.inl trivial)
-        | ring_nf
-          rw [show (2 + m * 2 : ℕ) = (1 + m) * 2 by omega]
-          norm_num
-          ring_nf
-  calc
-    ∫ x, x * x ^ n ∂gaussianReal 0 v = ∫ x, x ^ (n + 1) ∂gaussianReal 0 v := h_integrand
-    _ = (v : ℝ) * (n : ℝ) * ∫ x, x ^ (n - 1) ∂gaussianReal 0 v := h_moment_rec
+  have h := integral_id_mul_gaussianReal_eq v (F := fun x : ℝ => x ^ n)
+    (F' := fun x => n * x ^ (n - 1)) (fun x => hasDerivAt_pow n x)
+    (by simpa [pow_succ'] using integrable_pow_gaussianReal 0 v (n + 1))
+    ((integrable_pow_gaussianReal 0 v (n - 1)).const_mul _)
+  rw [h, integral_const_mul, mul_assoc]
 
 /-- Center a continuous linear functional under `μ`. -/
 def centeredDual {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]

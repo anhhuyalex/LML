@@ -9,6 +9,7 @@ public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Analysis.SpecialFunctions.Sigmoid
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Basic.Real.Sign
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Probability.CDF
@@ -877,34 +878,12 @@ private lemma tendsto_gaussianPDFReal_atTop : Tendsto (gaussianPDFReal 0 1) atTo
   rw [heq]
   simpa using hexp.const_mul (Real.sqrt (2 * Real.pi))⁻¹
 
--- The derivative of the standard-normal density: `φ'(t) = -t φ(t)`.
-private lemma hasDerivAt_gaussianPDFReal (t : ℝ) :
-    HasDerivAt (gaussianPDFReal 0 1) (-(t * gaussianPDFReal 0 1 t)) t := by
-  have hinner : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) (-t) t := by
-    have h1 : HasDerivAt (fun s : ℝ => s ^ 2) (2 * t) t := by simpa using hasDerivAt_pow 2 t
-    have h2 : HasDerivAt (fun s : ℝ => -(s ^ 2) / 2) ((-(2 * t)) / 2) t := h1.neg.div_const 2
-    convert h2 using 1
-    ring
-  have hexp : HasDerivAt (fun s : ℝ => Real.exp (-(s ^ 2) / 2))
-      (Real.exp (-(t ^ 2) / 2) * (-t)) t := hinner.exp
-  have hmul : HasDerivAt (fun s : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2))
-      ((Real.sqrt (2 * Real.pi))⁻¹ * (Real.exp (-(t ^ 2) / 2) * (-t))) t :=
-    hexp.const_mul _
-  have heq : (fun s : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(s ^ 2) / 2)) =
-      gaussianPDFReal 0 1 := by
-    funext s
-    simp [gaussianPDFReal]
-  rw [heq] at hmul
-  convert hmul using 1
-  simp only [gaussianPDFReal, NNReal.coe_one, sub_zero, mul_one]
-  ring
-
 -- The negated density is an antiderivative of `t ↦ t φ(t)`, used to evaluate the Mills-ratio
 -- integral below via the fundamental theorem of calculus.
 private lemma hasDerivAt_neg_gaussianPDFReal (t : ℝ) :
     HasDerivAt (fun s => -gaussianPDFReal 0 1 s) (t * gaussianPDFReal 0 1 t) t := by
   change HasDerivAt (-(gaussianPDFReal 0 1)) (t * gaussianPDFReal 0 1 t) t
-  simpa using (hasDerivAt_gaussianPDFReal t).neg
+  simpa using (hasDerivAt_gaussianPDFReal_zero (v := 1) one_ne_zero t).neg
 
 -- The exact antiderivative identity `∫ t in x..b, t φ(t) = φ(x) - φ(b)`.
 private lemma intervalIntegral_mul_gaussianPDFReal_eq (x b : ℝ) :

@@ -24,8 +24,8 @@ inequality `∫ |X p Y q| ≤ ‖X p‖₂ ‖Y q‖₂`.
 
 ## Main declarations
 
-* `ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_two_ne_top`: the sum of the series is
-  integrable.
+* `ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_ne_top`: the sum of a series with summable
+  `Lᵖ` norms is integrable.
 * `ProbabilityTheory.integral_tsum_mul_tsum_of_indepFun`: the covariance formula.
 -/
 
@@ -51,12 +51,12 @@ theorem eLpNorm_two_le_ofReal_of_integral_sq_le {f : Ω → ℝ} {C : ℝ} (hf :
         rw [← Real.rpow_natCast, ← Real.rpow_mul hC]
         norm_num
 
-/-- **A series with summable `L²` norms is integrable.** -/
-theorem integrable_tsum_of_tsum_eLpNorm_two_ne_top {f : κ → Ω → ℝ}
-    (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) 2 μ ≠ ∞) :
+/-- **A series with summable `Lᵖ` norms is integrable** (`p ≥ 1`, probability space). -/
+theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {f : κ → Ω → ℝ}
+    (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) p μ ≠ ∞) :
     Integrable (fun ω => ∑' n, f n ω) μ := by
   have h1 : ∑' n, eLpNorm (f n) 1 μ ≠ ∞ := ne_top_of_le_ne_top h
-    (ENNReal.tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le one_le_two (hf n))
+    (ENNReal.tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp (hf n))
   refine ⟨(AEMeasurable.tsum fun n => (hf n).aemeasurable).aestronglyMeasurable, ?_⟩
   calc ∫⁻ ω, ‖∑' n, f n ω‖ₑ ∂μ ≤ ∫⁻ ω, ∑' n, ‖f n ω‖ₑ ∂μ :=
         lintegral_mono fun ω => enorm_tsum_le_tsum_enorm

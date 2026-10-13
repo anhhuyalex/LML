@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
 public import LeanMachineLearning.ForMathlib.Topology.UniformSpace.LimitInterchange
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
-public import Mathlib.Analysis.MeanInequalitiesPow
 public import Mathlib.Topology.Order.OrderClosed
 
 /-!
@@ -70,28 +70,8 @@ is the power-mean inequality `(∑ₐ |α|⁻¹ z a)^p ≤ ∑ₐ |α|⁻¹ (z a
 theorem monotoneOn_inv_mul_log_sum_exp_sub_log_card (f : α → ℝ) :
     MonotoneOn (fun β => β⁻¹ * (Real.log (∑ a, Real.exp (β * f a)) -
       Real.log (Fintype.card α))) (Set.Ioi 0) := by
-  intro β₁ (hβ₁ : 0 < β₁) β₂ (hβ₂ : 0 < β₂) hle
-  have hcard : (0 : ℝ) < Fintype.card α := Nat.cast_pos.2 Fintype.card_pos
-  have hmean : ∀ β : ℝ, 0 < ∑ a, (Fintype.card α : ℝ)⁻¹ * Real.exp (β * f a) := fun β =>
-    Finset.sum_pos (fun _ _ => mul_pos (inv_pos.2 hcard) (Real.exp_pos _)) univ_nonempty
-  have hlog : ∀ β : ℝ, Real.log (∑ a, (Fintype.card α : ℝ)⁻¹ * Real.exp (β * f a)) =
-      Real.log (∑ a, Real.exp (β * f a)) - Real.log (Fintype.card α) := fun β => by
-    rw [← Finset.mul_sum, Real.log_mul (inv_pos.2 hcard).ne'
-      (Finset.sum_pos (fun _ _ => Real.exp_pos _) univ_nonempty).ne', Real.log_inv]
-    ring
-  have hpow := Real.rpow_arith_mean_le_arith_mean_rpow univ (fun _ => (Fintype.card α : ℝ)⁻¹)
-    (fun a => Real.exp (β₁ * f a)) (fun _ _ => (inv_pos.2 hcard).le)
-    (by simp [hcard.ne']) (fun _ _ => (Real.exp_pos _).le) ((one_le_div hβ₁).2 hle)
-  have hexp : ∀ a, Real.exp (β₁ * f a) ^ (β₂ / β₁) = Real.exp (β₂ * f a) := fun a => by
-    rw [← Real.exp_mul]; congr 1; field_simp
-  simp only [hexp] at hpow
-  have hlogpow := Real.log_le_log (Real.rpow_pos_of_pos (hmean β₁) _) hpow
-  rw [Real.log_rpow (hmean β₁), hlog, hlog] at hlogpow
-  change β₁⁻¹ * _ ≤ β₂⁻¹ * _
-  calc β₁⁻¹ * (Real.log (∑ a, Real.exp (β₁ * f a)) - Real.log (Fintype.card α))
-      = β₂⁻¹ * (β₂ / β₁ * (Real.log (∑ a, Real.exp (β₁ * f a)) -
-          Real.log (Fintype.card α))) := by field_simp
-    _ ≤ _ := mul_le_mul_of_nonneg_left hlogpow (inv_nonneg.2 hβ₂.le)
+  simpa using monotoneOn_inv_mul_log_sum_mul_exp_sub_log_sum f (fun _ => (1 : ℝ))
+    (fun _ => zero_le_one) (by simpa using Fintype.card_pos (α := α))
 
 end Deterministic
 
