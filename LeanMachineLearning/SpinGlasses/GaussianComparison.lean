@@ -95,7 +95,7 @@ theorem integral_lincomb_mul_lincomb
 section Path
 
 /-- The centered combination `p X(a) + q Y(a)` has mean zero. -/
-private lemma integral_lincomb_eq_zero (hX : ∀ a, ∫ ω, X a ω ∂P = 0)
+lemma integral_lincomb_eq_zero (hX : ∀ a, ∫ ω, X a ω ∂P = 0)
     (hY : ∀ a, ∫ ω, Y a ω ∂P = 0) (hXi : ∀ a, Integrable (X a) P)
     (hYi : ∀ a, Integrable (Y a) P) (p q : ℝ) (a : α) :
     ∫ ω, (p * X a ω + q * Y a ω) ∂P = 0 := by

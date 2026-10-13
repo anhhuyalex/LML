@@ -137,6 +137,54 @@ theorem integral_mul_comp_eq_sum_integral_mul {X : κ → Ω → ℝ}
   refine Finset.sum_congr rfl fun l _ => ?_
   rw [hcov l, h2 l]
 
+omit [DecidableEq κ] in
+/-- **Integrability of exponentially bounded functions of a Gaussian vector:** if `X` is a centered
+Gaussian vector and `F` is measurable with `|F y| ≤ C exp (c ‖y‖₁)`, then `F(X)` is integrable. -/
+theorem integrable_comp_of_exp_growth {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (hmean : ∀ k, ∫ ω, X k ω ∂P = 0)
+    {F : (κ → ℝ) → ℝ} (hFm : Measurable F) {C c : ℝ}
+    (hF : ∀ y, |F y| ≤ C * Real.exp (c * ∑ l, |y l|)) :
+    Integrable (fun ω => F fun k => X k ω) P := by
+  obtain ⟨A, hlaw, -⟩ := exists_matrix_map_eq_pi_gaussianReal hX hmean
+  have hAm : Measurable fun ξ : κ → ℝ => A *ᵥ ξ := by fun_prop
+  have h2 : Integrable F (P.map fun ω k => X k ω) := by
+    rw [hlaw, integrable_map_measure hFm.aestronglyMeasurable hAm.aemeasurable]
+    exact integrable_comp_mulVec_of_exp_growth A hFm hF
+  exact (integrable_map_measure hFm.aestronglyMeasurable hX.aemeasurable).1 h2
+
+omit [DecidableEq κ] in
+/-- **Differentiation under the integral against a Gaussian vector.**  Let `X` be a centered
+Gaussian vector and `G s` a family of measurable functions, differentiable in `s` with
+`|∂ₛ G s y| ≤ C exp (c ‖y‖₁)` uniformly in `s`, and `|G s₀ y| ≤ C₀ exp (c₀ ‖y‖₁)`.  Then
+`(d/ds) 𝔼 G s (X) = 𝔼 ∂ₛ G s (X)`. -/
+theorem hasDerivAt_integral_comp_of_exp_growth {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (hmean : ∀ k, ∫ ω, X k ω ∂P = 0)
+    {G G' : ℝ → (κ → ℝ) → ℝ} (s₀ : ℝ) (hGm : ∀ s, Measurable (G s))
+    (hG'm : Measurable (G' s₀)) (hG : ∀ s y, HasDerivAt (fun s => G s y) (G' s y) s) {C c : ℝ}
+    (hG' : ∀ s y, |G' s y| ≤ C * Real.exp (c * ∑ l, |y l|)) {C₀ c₀ : ℝ}
+    (hG₀ : ∀ y, |G s₀ y| ≤ C₀ * Real.exp (c₀ * ∑ l, |y l|)) :
+    HasDerivAt (fun s => ∫ ω, G s (fun k => X k ω) ∂P)
+      (∫ ω, G' s₀ (fun k => X k ω) ∂P) s₀ := by
+  have hXm := hX.aemeasurable
+  have hbd : Integrable (fun ω => |C| * Real.exp (|c| * ∑ l, |X l ω|)) P :=
+    integrable_comp_of_exp_growth hX hmean (F := fun y => |C| * Real.exp (|c| * ∑ l, |y l|))
+      (by fun_prop) (C := |C|) (c := |c|) fun y => le_of_eq (abs_of_nonneg (by positivity))
+  have hle : ∀ y : κ → ℝ, C * Real.exp (c * ∑ l, |y l|) ≤ |C| * Real.exp (|c| * ∑ l, |y l|) :=
+    fun y => mul_le_mul (le_abs_self C) (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right
+      (le_abs_self c) (Finset.sum_nonneg fun _ _ => abs_nonneg _))) (Real.exp_pos _).le
+      (abs_nonneg C)
+  have hint0 : Integrable (fun ω => G s₀ fun k => X k ω) P :=
+    integrable_comp_of_exp_growth hX hmean (hGm s₀) hG₀
+  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := P)
+    (F := fun s ω => G s fun k => X k ω) (F' := fun s ω => G' s fun k => X k ω)
+    (bound := fun ω => |C| * Real.exp (|c| * ∑ l, |X l ω|)) (s := Set.univ) Filter.univ_mem
+    (Filter.Eventually.of_forall fun s => ((hGm s).comp_aemeasurable hXm).aestronglyMeasurable)
+    hint0 ((hG'm.comp_aemeasurable hXm).aestronglyMeasurable)
+    (ae_of_all _ fun ω s _ => by
+      rw [Real.norm_eq_abs]
+      exact (hG' s _).trans (hle _))
+    hbd (ae_of_all _ fun ω s _ => hG s _)).2
+
 section Aux
 
 variable {κ₁ κ₂ : Type*} [Fintype κ₁] [Fintype κ₂]
@@ -197,6 +245,93 @@ theorem integral_mul_comp_eq_sum_integral_mul_of_sum [Finite κ₁] {W : κ₁ �
   simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hfd, hRl, hRs, map_zero,
     mul_zero, integral_zero, Finset.sum_const_zero, zero_add] at h
   simpa [hR] using h
+
+omit [Fintype κ₁] [DecidableEq κ₂] in
+/-- **Integrability of `W i · exp (A X)`** for a centered Gaussian family `W ⊕ X` and a measurable
+`A` with `|A y| ≤ c₁ + c₂ ‖y‖₁`; this makes the integrals in
+`integral_mul_exp_comp_eq_sum_integral_mul_of_sum` meaningful. -/
+theorem integrable_mul_exp_comp_of_sum [Finite κ₁] {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω → ℝ}
+    (hWX : HasGaussianLaw (fun ω s => Sum.elim W X s ω) P)
+    (hW : ∀ k, ∫ ω, W k ω ∂P = 0) (hX : ∀ l, ∫ ω, X l ω ∂P = 0) (i : κ₁)
+    {A : (κ₂ → ℝ) → ℝ} (hAm : Measurable A) {c₁ c₂ : ℝ}
+    (hAg : ∀ y, |A y| ≤ c₁ + c₂ * ∑ l, |y l|) :
+    Integrable (fun ω => W i ω * Real.exp (A fun l => X l ω)) P := by
+  have := Fintype.ofFinite κ₁
+  have hmean : ∀ s, ∫ ω, Sum.elim W X s ω ∂P = 0 := by
+    rintro (k | l)
+    exacts [hW k, hX l]
+  have hexp : ∀ y, |Real.exp (A y)| ≤ Real.exp c₁ * Real.exp (c₂ * ∑ l, |y l|) := fun y => by
+    rw [abs_of_pos (Real.exp_pos _), ← Real.exp_add]
+    exact Real.exp_le_exp.2 ((le_abs_self _).trans (hAg y))
+  refine integrable_comp_of_exp_growth (X := Sum.elim W X) hWX hmean
+    (F := fun y => y (Sum.inl i) * Real.exp (A fun l => y (Sum.inr l)))
+    (by fun_prop) (C := Real.exp c₁) (c := |c₂| + 1) fun y => ?_
+  have h1 := abs_comp_inr_le_of_exp_growth (G := fun y' => Real.exp (A y')) hexp y
+  have h2 : |y (Sum.inl i)| ≤ ∑ s, |y s| :=
+    Finset.single_le_sum (f := fun s => |y s|) (fun _ _ => abs_nonneg _) (Finset.mem_univ _)
+  rw [abs_mul]
+  calc |y (Sum.inl i)| * |Real.exp (A fun l => y (Sum.inr l))|
+      ≤ Real.exp (∑ s, |y s|) * (Real.exp c₁ * Real.exp (|c₂| * ∑ s, |y s|)) :=
+        mul_le_mul ((h2.trans (by linarith [Real.add_one_le_exp (∑ s, |y s|)]))) h1
+          (abs_nonneg _) (Real.exp_pos _).le
+    _ = Real.exp c₁ * Real.exp ((|c₂| + 1) * ∑ s, |y s|) := by
+        rw [add_mul, one_mul, Real.exp_add]; ring
+
+omit [Fintype κ₁] [DecidableEq κ₂] in
+/-- **Integrability of `exp (A X)`** for a centered Gaussian family `W ⊕ X` and a measurable `A`
+with `|A y| ≤ c₁ + c₂ ‖y‖₁`. -/
+theorem integrable_exp_comp_of_sum [Finite κ₁] {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω → ℝ}
+    (hWX : HasGaussianLaw (fun ω s => Sum.elim W X s ω) P)
+    (hW : ∀ k, ∫ ω, W k ω ∂P = 0) (hX : ∀ l, ∫ ω, X l ω ∂P = 0)
+    {A : (κ₂ → ℝ) → ℝ} (hAm : Measurable A) {c₁ c₂ : ℝ}
+    (hAg : ∀ y, |A y| ≤ c₁ + c₂ * ∑ l, |y l|) :
+    Integrable (fun ω => Real.exp (A fun l => X l ω)) P := by
+  have := Fintype.ofFinite κ₁
+  have hmean : ∀ s, ∫ ω, Sum.elim W X s ω ∂P = 0 := by
+    rintro (k | l)
+    exacts [hW k, hX l]
+  have hexp : ∀ y, |Real.exp (A y)| ≤ Real.exp c₁ * Real.exp (c₂ * ∑ l, |y l|) := fun y => by
+    rw [abs_of_pos (Real.exp_pos _), ← Real.exp_add]
+    exact Real.exp_le_exp.2 ((le_abs_self _).trans (hAg y))
+  exact integrable_comp_of_exp_growth (X := Sum.elim W X) hWX hmean
+    (F := fun y => Real.exp (A fun l => y (Sum.inr l))) (by fun_prop) (C := Real.exp c₁)
+    (c := |c₂|) fun y => abs_comp_inr_le_of_exp_growth (G := fun y' => Real.exp (A y')) hexp y
+
+omit [Fintype κ₁] in
+/-- **Gaussian integration by parts for the exponential of a smooth functional.**  For a centered
+Gaussian family `W ⊕ X` and a differentiable `A` with `|A y| ≤ c₁ + c₂ ‖y‖₁` and bounded partial
+derivatives `|∂ₗ A| ≤ c₃`,
+`𝔼[W i exp (A X)] = ∑ l, 𝔼[W i X l] 𝔼[exp (A X) ∂ₗ A(X)]`.
+This is `integral_mul_comp_eq_sum_integral_mul_of_sum` for `F = exp ∘ A`; it covers the Gibbs
+weights and partition functions of the spin-glass models, where `A` is a combination of
+`log ∑ exp`. -/
+theorem integral_mul_exp_comp_eq_sum_integral_mul_of_sum [Finite κ₁] {W : κ₁ → Ω → ℝ}
+    {X : κ₂ → Ω → ℝ} (hWX : HasGaussianLaw (fun ω s => Sum.elim W X s ω) P)
+    (hW : ∀ k, ∫ ω, W k ω ∂P = 0) (hX : ∀ l, ∫ ω, X l ω ∂P = 0) (i : κ₁)
+    {A : (κ₂ → ℝ) → ℝ} (hA : Differentiable ℝ A) {c₁ c₂ c₃ : ℝ}
+    (hAg : ∀ y, |A y| ≤ c₁ + c₂ * ∑ l, |y l|)
+    (hAg' : ∀ l y, |fderiv ℝ A y (Pi.single l 1)| ≤ c₃) :
+    ∫ ω, W i ω * Real.exp (A fun l => X l ω) ∂P =
+      ∑ l, (∫ ω, W i ω * X l ω ∂P) *
+        ∫ ω, Real.exp (A fun k => X k ω) * fderiv ℝ A (fun k => X k ω) (Pi.single l 1) ∂P := by
+  have hE : Differentiable ℝ fun y => Real.exp (A y) := Real.differentiable_exp.comp hA
+  have hd : ∀ l y, fderiv ℝ (fun y => Real.exp (A y)) y (Pi.single l 1) =
+      Real.exp (A y) * fderiv ℝ A y (Pi.single l 1) := by
+    intro l y
+    rw [fderiv_exp (hA y)]
+    simp
+  have hexp : ∀ y, Real.exp (A y) ≤ Real.exp c₁ * Real.exp (c₂ * ∑ l, |y l|) := fun y => by
+    rw [← Real.exp_add]
+    exact Real.exp_le_exp.2 ((le_abs_self _).trans (hAg y))
+  have h := integral_mul_comp_eq_sum_integral_mul_of_sum hWX hW hX i hE (C := Real.exp c₁)
+    (c := c₂) (fun y => by rw [abs_of_pos (Real.exp_pos _)]; exact hexp y)
+    (D := fun _ => c₃ * Real.exp c₁) (d := fun _ => c₂) (fun l y => by
+      rw [hd, abs_mul, abs_of_pos (Real.exp_pos _)]
+      calc Real.exp (A y) * |fderiv ℝ A y (Pi.single l 1)|
+          ≤ (Real.exp c₁ * Real.exp (c₂ * ∑ l, |y l|)) * c₃ :=
+            mul_le_mul (hexp y) (hAg' l y) (abs_nonneg _) (by positivity)
+        _ = c₃ * Real.exp c₁ * Real.exp (c₂ * ∑ l, |y l|) := by ring)
+  simpa only [hd] using h
 
 end Aux
 
@@ -273,5 +408,25 @@ theorem HasGaussianLaw.prodMk_prod {Ω₁ Ω₂ E F : Type*} {m₁ : MeasurableS
       (Measure.map_prod_map μ ν hfm hgm).symm
     rw [h]
     infer_instance
+
+/-- **Two independent copies of a Gaussian vector are jointly Gaussian:** if `g` is a Gaussian
+vector `(g a)ₐ` under `P`, then `z ↦ (g a z.1, g a z.2)` is a Gaussian vector indexed by `κ ⊕ κ`
+under `P ⊗ P`. -/
+theorem HasGaussianLaw.sumElim_prod {Ω' κ' : Type*} {m : MeasurableSpace Ω'} {P' : Measure Ω'}
+    [SFinite P'] [Finite κ'] {g : κ' → Ω' → ℝ} (hg : HasGaussianLaw (fun ω a => g a ω) P')
+    (hm : ∀ a, Measurable (g a)) :
+    HasGaussianLaw (fun (z : Ω' × Ω') (s : κ' ⊕ κ') =>
+      Sum.elim (fun a (z : Ω' × Ω') => g a z.1) (fun a (z : Ω' × Ω') => g a z.2) s z)
+      (P'.prod P') := by
+  have := Fintype.ofFinite κ'
+  have hmv : Measurable fun ω a => g a ω := Measurable.of_eval hm
+  have hpair := HasGaussianLaw.prodMk_prod hg hg hmv hmv
+  let L : ((κ' → ℝ) × (κ' → ℝ)) →L[ℝ] (κ' ⊕ κ' → ℝ) := ContinuousLinearMap.pi
+    (Sum.elim (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ' => ℝ) a).comp
+        (ContinuousLinearMap.fst ℝ (κ' → ℝ) (κ' → ℝ)))
+      (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ' => ℝ) a).comp
+        (ContinuousLinearMap.snd ℝ (κ' → ℝ) (κ' → ℝ))))
+  convert hpair.map_fun L using 1
+  ext z (a | a) <;> simp [L]
 
 end ProbabilityTheory

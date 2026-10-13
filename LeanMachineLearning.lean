@@ -57,6 +57,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymmetrization
 public import LeanMachineLearning.ForMathlib.Probability.Process.HittingTime
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianChiSqTails
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
@@ -264,6 +265,7 @@ public import LeanMachineLearning.SequentialLearning.StationaryEnv
 public import LeanMachineLearning.SequentialLearning.StoppedHistory
 public import LeanMachineLearning.SequentialLearning.SumRewards
 public import LeanMachineLearning.SpinGlasses.Basic
+public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.SpinGlasses.GaussianIBP

@@ -140,9 +140,9 @@ terms, if `X g = ∑ i, g i ^ 2`, then the Gaussian integration-by-parts recurre
 `E[X^(m+1)] = ((n : ℝ) + 2 * m) * E[X^m]`; with `E[X^0] = 1`, this yields
 `E[X^m] = ∏ s<m ((n : ℝ) + 2*s)`.  Multiplying by `(n : ℝ)⁻¹` inside the `m`-th power gives the
 stated product `∏ s<m (1 + 2*s/n)`.  This is also the standard chi-square moment formula; see
-<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>.  A full Lean proof should derive
-the recurrence using the local one-dimensional Stein identity
-`Renormalization.integral_mul_pow_gaussianReal` and finite-product Fubini.
+<https://en.wikipedia.org/wiki/Chi-squared_distribution#Moments>.  The Lean proof does not use the
+Stein recurrence: it is the radial integration `ProbabilityTheory.integral_sumSq_pow_stdGaussian`
+(`ForMathlib/Probability/StdGaussianRadial.lean`).
 -/
 theorem integral_normalizedSumSq_pow_stdGaussian (m n : ℕ) (hn : 0 < n) :
     ∫ g : Fin n → ℝ, (((n : ℝ)⁻¹ * ∑ i, g i ^ 2) ^ m)

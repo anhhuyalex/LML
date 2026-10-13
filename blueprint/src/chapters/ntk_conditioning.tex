@@ -318,7 +318,7 @@ The normalized form says that, when $u,v$ are fixed, a Gaussian sandwich $\tfrac
         NTK.integral_mul_entry_mul_mul_entry}
   \leanok
 \begin{enumerate}
-  \item The vector $W$ (all entries) is jointly Gaussian; so is a Gaussian row. Hence for deterministic matrices $A\in\mathbb R^{p\times q}$, $B\in\mathbb R^{p\times r}$ the pair $(WA,WB)$ is jointly Gaussian.
+  \item The matrix $W$ (all entries, indexed by arbitrary finite types) is jointly Gaussian, being a vector of independent Gaussian rows. Hence for deterministic matrices $A\in\mathbb R^{p\times q}$, $B\in\mathbb R^{p\times r}$ the pair $(WA,WB)$ is jointly Gaussian.
   \item $(WA)_{ik}=\sum_aA_{ak}W_{ia}$ is centred and in $L^2$.
   \item $\mathbb E\bigl[(WA)_{ik}(WB)_{jl}\bigr]=\delta_{ij}\,(A^\top B)_{kl}$.
 \end{enumerate}

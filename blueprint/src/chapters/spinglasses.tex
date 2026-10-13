@@ -20,11 +20,12 @@ formula for the Gibbs measure (Panchenko's Lemma~1.1 and Exercise~1.1) and its e
 configuration space (Lemma~1.2). The Lean files are \texttt{ForMathlib/MeasureTheory/Measure/PiUpdate.lean},
 \texttt{ForMathlib/Probability/Moments/GaussianStein.lean}, \texttt{GaussianVector.lean}, \texttt{GaussianExp.lean},
 \texttt{ForMathlib/Topology/Algebra/InfiniteSum/PiProd.lean}, \texttt{SpinGlasses/GaussianIBP.lean} and
-\texttt{SpinGlasses/GaussianIBPCountable.lean}. The Guerra--Toninelli interpolation (Theorem~1.1) and the Gaussian
-concentration inequality (Theorem~1.2) are not part of this chapter yet; the Guerra--Toninelli interpolation
-(Theorem~1.1) is Sections~\ref{sec:sg:serieslaw}--\ref{sec:sg:gt}, with the Lean files
+\texttt{SpinGlasses/GaussianIBPCountable.lean}. The Guerra--Toninelli interpolation (Theorem~1.1) is
+Sections~\ref{sec:sg:serieslaw}--\ref{sec:sg:gt}, with the Lean files
 \texttt{ForMathlib/Analysis/Subadditive.lean}, \texttt{ForMathlib/Probability/Moments/GaussianSeriesLaw.lean},
-\texttt{SpinGlasses/GaussianComparison.lean} and \texttt{SpinGlasses/GuerraToninelli.lean}.
+\texttt{SpinGlasses/GaussianComparison.lean} and \texttt{SpinGlasses/GuerraToninelli.lean}. The Gaussian
+concentration inequality (Theorem~1.2 and Eq.~(1.42)) is Section~\ref{sec:sg:fe-conc}, with the Lean files
+\texttt{ForMathlib/Probability/Moments/SubGaussianSymmetrization.lean} and \texttt{SpinGlasses/Concentration.lean}.
 
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
@@ -825,3 +826,106 @@ The identification of the SK Hamiltonian with the pure $p=2$ model (which would 
 its Gaussian law and covariance function $\xi$, and the SK covariance $N R^2$ is that of $\xi(x)=x^2$ directly. The hypothesis $\beta_p=0$ for odd $p\ge3$
 is exactly the convexity of $\xi$ on $[-1,1]$; Theorem~\ref{thm:sg:superadd} holds for any convex $\xi$.
 \end{remark}
+
+\section{Concentration of the free energy}\label{sec:sg:fe-conc}
+
+This section proves Panchenko's Theorem~1.2 (the Gaussian concentration of the free energy) and its consequence Eq.~(1.42)
+for the mixed $p$-spin models. The argument is a variant of the book's proof that uses only two independent copies of the field and
+the same Gaussian integration by parts as the comparison inequality. It gives the better variance bound $2v$ in place of $8v$.
+
+\begin{lemma}[Gaussian vectors: integrability, differentiation and exponentials]\label{lem:sg:expgrowth}
+  \lean{ProbabilityTheory.integrable_comp_of_exp_growth, ProbabilityTheory.hasDerivAt_integral_comp_of_exp_growth,
+        ProbabilityTheory.integrable_mul_exp_comp_of_sum, ProbabilityTheory.integrable_exp_comp_of_sum,
+        ProbabilityTheory.integral_mul_exp_comp_eq_sum_integral_mul_of_sum, ProbabilityTheory.HasGaussianLaw.sumElim_prod}
+  \leanok
+  \uses{thm:sg:steinvec}
+Let $X$ be a centered Gaussian vector indexed by a finite set. (i) If $F$ is measurable with $|F(y)|\le Ce^{c\|y\|_1}$ then $F(X)$ is
+integrable. (ii) If $G(s,\cdot)$ is differentiable in $s$ with $|\partial_sG(s,y)|\le Ce^{c\|y\|_1}$ uniformly in $s$, then
+$\frac{d}{ds}\mathbb EG(s,X)=\mathbb E\,\partial_sG(s,X)$. (iii) If $(W,X)$ is a centered Gaussian family and $A$ is differentiable with
+$|A(y)|\le c_1+c_2\|y\|_1$ and $|\partial_lA|\le c_3$, then $W_ie^{A(X)}$ and $e^{A(X)}$ are integrable and
+$\mathbb E[W_ie^{A(X)}]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[e^{A(X)}\partial_lA(X)]$. (iv) If $g$ is a Gaussian vector under $P$, then
+$z\mapsto(g(z_1),g(z_2))$ is a Gaussian vector under $P\otimes P$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Write $X\overset d=A\xi$ with $\xi$ i.i.d.\ standard Gaussians (Lemma~\ref{thm:sg:steinvec}'s representation); $e^{c\|A\xi\|_1}$ is integrable, which
+gives (i), and dominated differentiation under the integral gives (ii). Part (iii) is Stein's identity for $F=\exp\circ A$, whose value and partial
+derivatives have exponential growth. Part (iv) is the fact that a product of Gaussian measures is Gaussian.
+\end{proof}
+
+\begin{theorem}[Exponential moments of the free-energy difference of two copies]\label{thm:sg:expmoment}
+  \lean{SpinGlasses.abs_log_sum_exp_sub_le, SpinGlasses.hasFDerivAt_log_sum_exp,
+        SpinGlasses.hasDerivAt_exp_mul_log_sum_exp_trig, SpinGlasses.exp_mul_log_sum_exp_trig_le,
+        SpinGlasses.abs_exp_mul_gibbs_average_le, SpinGlasses.hasDerivAt_integral_exp_mul_log_sum_exp_trig,
+        SpinGlasses.gibbsWeight_mem_Icc, SpinGlasses.abs_log_sum_exp_le, SpinGlasses.hasFDerivAt_gibbs_exponent,
+        SpinGlasses.differentiable_gibbs_exponent, SpinGlasses.fderiv_gibbs_exponent_apply_single,
+        SpinGlasses.abs_gibbs_exponent_le, SpinGlasses.abs_fderiv_gibbs_exponent_le, SpinGlasses.exp_gibbs_exponent,
+        SpinGlasses.integral_exp_mul_gibbs_average_trig, SpinGlasses.sum_gibbsWeight,
+        SpinGlasses.sum_sum_gibbsWeight_mul_le, SpinGlasses.abs_sum_sum_gibbsWeight_mul_le,
+        SpinGlasses.integral_exp_mul_log_sum_exp_sub_le}
+  \leanok
+  \uses{lem:sg:expgrowth, thm:sg:comparison, lem:sg:pathderiv}
+Let $(g_1,g_2)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb Eg_1g_2=0$ and the same covariance
+$C=\mathbb Eg_1g_1=\mathbb Eg_2g_2$, with $C(x,y)\le a$ for all $x,y$. Then for every bias $h$ and every $t\in\mathbb R$,
+\[\mathbb E\exp\Big(t\Big(\log\sum_xe^{g_1(x)+h(x)}-\log\sum_xe^{g_2(x)+h(x)}\Big)\Big)\le e^{at^2}.\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Put $x_s=\cos s\,g_1+\sin s\,g_2$, $x'_s=-\sin s\,g_1+\cos s\,g_2$, $\Phi_s=\exp\big(t(\log Z(x_s)-\log Z(g_2))\big)$ and $\varphi(s)=\mathbb E\Phi_s$,
+so $\varphi(0)$ is the quantity to bound and $\varphi(\pi/2)=1$. Differentiating under the integral (Lemma~\ref{lem:sg:expgrowth}~(ii)),
+$\varphi'(s)=\mathbb E\big[\Phi_s\,t\langle x'_s\rangle_s\big]=t\sum_\sigma\mathbb E\big[x'_s(\sigma)e^{A_\sigma}\big]$, where $e^{A_\sigma}=\Phi_sp_\sigma(x_s)$,
+$p$ denoting the Gibbs weights. The field $x'_s$ is uncorrelated with $x_s$ and has covariance $\cos s\,C$ with $g_2$, so
+Lemma~\ref{lem:sg:expgrowth}~(iii) only sees the dependence of $e^{A_\sigma}$ on $g_2$, where $\partial_{g_2(b)}A_\sigma=-t\,p_b(g_2)$:
+\[\varphi'(s)=-t^2\cos s\;\mathbb E\Big[\Phi_s\sum_{x,y}p_x(x_s)p_y(g_2)C(x,y)\Big]\ge-at^2\cos s\,\varphi(s)\quad(0\le s\le\tfrac\pi2),\]
+because $\sum p=1$ and $C\le a$. Hence $\varphi(s)e^{at^2\sin s}$ is non-decreasing on $[0,\pi/2]$ and $\varphi(0)\le\varphi(\pi/2)e^{at^2}=e^{at^2}$.
+\end{proof}
+
+\begin{lemma}[Symmetrization and the second moment of a sub-Gaussian variable]\label{lem:sg:symm}
+  \lean{ProbabilityTheory.sq_le_exp_add_exp_neg_sub_two, ProbabilityTheory.HasSubgaussianMGF.integral_sq_le,
+        ProbabilityTheory.hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le}
+  \leanok
+(i) If $X$ is sub-Gaussian with parameter $c$ (Mathlib's \texttt{HasSubgaussianMGF}) then $\mathbb EX^2\le c$. (ii) Let $F$ have exponential moments of
+all orders. If $\mathbb Ee^{t(F(z_1)-F(z_2))}\le e^{ct^2/2}$ for the pair $z\sim\mu\otimes\mu$ and all $t$, then $F-\mathbb EF$ is sub-Gaussian with parameter $c$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(i) From $u^2\le e^u+e^{-u}-2$ we get $t^2\mathbb EX^2\le2(e^{ct^2/2}-1)\le ct^2e^{ct^2/2}$; let $t\to0$. (ii) By Jensen, $e^{-t\mathbb EF}\le\mathbb Ee^{-tF}$, so
+$\mathbb Ee^{t(F-\mathbb EF)}\le\mathbb Ee^{tF}\,\mathbb Ee^{-tF}=\mathbb Ee^{t(F(z_1)-F(z_2))}$ by Fubini.
+\end{proof}
+
+\begin{theorem}[Gaussian concentration of the free energy, Panchenko Theorem~1.2, Eq.~(1.41)]\label{thm:sg:fecentration}
+  \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp, SpinGlasses.measureReal_abs_sub_integral_ge_le_of_log_sum_exp,
+        SpinGlasses.integral_sq_sub_integral_le_of_log_sum_exp}
+  \leanok
+  \uses{thm:sg:expmoment, lem:sg:symm}
+Let $g$ be a centered Gaussian field on a finite set $\alpha$ with $\mathbb Eg(a)^2\le v$ and let $F=\log\sum_ae^{g(a)+h(a)}$ for a bias $h$.
+Then $F-\mathbb EF$ is sub-Gaussian with parameter $2v$, i.e.\ $\mathbb Ee^{t(F-\mathbb EF)}\le e^{vt^2}$; consequently for $x\ge0$
+\[\mathbb P(|F-\mathbb EF|\ge x)\le2\exp\Big(-\frac{x^2}{4v}\Big),\qquad\mathbb E(F-\mathbb EF)^2\le2v.\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Apply Lemma~\ref{lem:sg:symm}~(ii) on $\Omega\times\Omega$: the pair of independent copies $(g(z_1),g(z_2))$ is jointly Gaussian
+(Lemma~\ref{lem:sg:expgrowth}~(iv)), centered, uncorrelated, with the common covariance $C(x,y)=\mathbb Eg(x)g(y)\le\frac12(\mathbb Eg(x)^2+\mathbb Eg(y)^2)\le v$,
+so Theorem~\ref{thm:sg:expmoment} bounds the exponential moments by $e^{vt^2}$. The tail bound is Chernoff's inequality for the sub-Gaussian variable on both
+sides (\texttt{HasSubgaussianMGF.measure\_ge\_le}, \texttt{measure\_le\_le}) and the variance bound is Lemma~\ref{lem:sg:symm}~(i).
+\end{proof}
+
+\begin{theorem}[Concentration of the free energy of the mixed $p$-spin model, Panchenko Eq.~(1.42)]\label{thm:sg:mixedconc}
+  \lean{SpinGlasses.integral_mixedPSpin_sq, SpinGlasses.mixedPSpin_free_energy_concentration,
+        SpinGlasses.mixedPSpin_free_energy_variance_le}
+  \leanok
+  \uses{thm:sg:fecentration, thm:sg:mixedgauss, thm:sg:mixedcov}
+Let $\beta_0=0$, $\sum_p|\beta_p|<\infty$, and let $H_N$ be the mixed $p$-spin Hamiltonian on $\{\pm1\}^N$ with $\xi(1)=\sum_p\beta_p^2$. For
+$X_N=N^{-1}\log\sum_\sigma e^{H_N(\sigma)}$ and $x\ge0$,
+\[\mathbb P(|X_N-\mathbb EX_N|\ge x)\le2\exp\Big(-\frac{Nx^2}{4\xi(1)}\Big),\qquad\mathrm{Var}(X_N)\le\frac{2\xi(1)}N.\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+The Hamiltonian is a centered Gaussian process (Theorem~\ref{thm:sg:mixedgauss}) with $\mathbb EH_N(\sigma)^2=N\xi(1)$ since the self-overlap is $1$
+(Theorem~\ref{thm:sg:mixedcov}). Apply Theorem~\ref{thm:sg:fecentration} with $v=N\xi(1)$ to the event $|F-\mathbb EF|\ge Nx$, and divide the variance bound by $N^2$.
+\end{proof}
