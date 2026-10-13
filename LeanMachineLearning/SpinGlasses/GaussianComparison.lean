@@ -62,7 +62,7 @@ theorem hasGaussianLaw_sumElim_lincomb [Finite α]
 
 /-- Covariance of two linear combinations of a Gaussian pair `(X, Y)` with `𝔼 X Y = 0`:
 `𝔼 (p X(a) + q Y(a)) (r X(b) + s Y(b)) = p r 𝔼 X(a)X(b) + q s 𝔼 Y(a)Y(b)`. -/
-theorem integral_lincomb_mul_lincomb [Finite α]
+theorem integral_lincomb_mul_lincomb
     (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
     (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (p q r s : ℝ) (a b : α) :
     ∫ ω, (p * X a ω + q * Y a ω) * (r * X b ω + s * Y b ω) ∂P =
