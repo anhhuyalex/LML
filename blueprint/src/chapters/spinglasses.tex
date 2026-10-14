@@ -1399,12 +1399,14 @@ array of an i.i.d.\ sample from a random measure on the unit ball of a Hilbert s
 
 \begin{lemma}[A mixture of i.i.d.\ sequences is exchangeable]\label{lem:sg:mixture}
   \lean{MeasureTheory.Measure.measurable_pi_const, MeasureTheory.Measure.measurable_infinitePi_const,
-        MeasureTheory.Measure.infinitePi_map_comp_equiv, MeasureTheory.Measure.map_bind_eq_self,
+        MeasureTheory.Measure.infinitePi_map_comp_equiv, MeasureTheory.Measure.measurePreserving_restrict_infinitePi,
+        MeasureTheory.Measure.map_bind_eq_self,
         MeasureTheory.Measure.bind_infinitePi_map_comp_equiv}
   \leanok
 Let $(\Omega,P)$ be a measure space and $\omega\mapsto\nu_\omega$ a measurable family of probability measures on $X$ (measurable as a map into the space of measures). Then
 $\omega\mapsto\nu_\omega^{\otimes I}$ is a measurable family of probability measures on $X^I$ ($I$ finite or infinite), each $\nu_\omega^{\otimes I}$ is invariant under
 $\sigma\mapsto\sigma\circ e$ for every bijection $e:I\to I$, and so is the mixture $\int\nu_\omega^{\otimes I}\,P(d\omega)$.
+Restricting $\nu^{\otimes\kappa}$ along an injection $f:I\to\kappa$ from a finite set gives $\nu^{\otimes I}$ (the finite-replica marginals).
 \end{lemma}
 
 \begin{proof}
@@ -1416,7 +1418,8 @@ reindexing theorem for infinite product measures (both sides agree on cylinders)
 \end{proof}
 
 \begin{lemma}[Dot-product Gram matrices and the positive semidefinite cone]\label{lem:sg:gram-psd}
-  \lean{Matrix.posSemidef_of_const_mul_dotProduct, Matrix.isClosed_setOf_posSemidef}
+  \lean{Matrix.posSemidef_of_const_mul_dotProduct, Matrix.isClosed_setOf_posSemidef,
+        Matrix.PosSemidef.sum_mul_mul_nonneg}
   \leanok
 For vectors $v_l\in\mathbb R^\kappa$ and $c\ge0$ the matrix $(c\,v_l\cdot v_{l'})_{l,l'}$ is positive semidefinite (it is $c\,VV^\top$ for the matrix $V$ with rows $v_l$); in particular the overlap matrix
 $(N^{-1}\sigma^l\cdot\sigma^{l'})_{l,l'\le k}$ of any $k$ configurations is positive semidefinite. The set of real positive semidefinite matrices is closed in $\mathbb R^{n\times n}$.

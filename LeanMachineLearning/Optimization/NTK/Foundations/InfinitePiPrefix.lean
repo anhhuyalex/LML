@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import Mathlib.Probability.Independence.InfinitePi
 
 /-!
@@ -27,15 +28,14 @@ open MeasureTheory ProbabilityTheory
 namespace NTK
 
 /-- Restricting an infinite sequence under `Measure.infinitePi` to its first `n` elements
-indexed by `Fin n` is measure-preserving with respect to `Measure.pi (fun _ : Fin n => ν)`. -/
+indexed by `Fin n` is measure-preserving with respect to `Measure.pi (fun _ : Fin n => ν)`.
+This is the case `f = Fin.val` of `Measure.measurePreserving_restrict_infinitePi`. -/
 theorem measurePreserving_prefixMap {α : Type*} [MeasurableSpace α]
     (ν : Measure α) [IsProbabilityMeasure ν] (n : ℕ) :
     MeasurePreserving (fun (seq : ℕ → α) (i : Fin n) => seq i.val)
       (Measure.infinitePi fun _ : ℕ => ν)
-      (Measure.pi fun _ : Fin n => ν) where
-  measurable := measurable_pi_iff.2 fun i => measurable_pi_apply i.val
-  map_eq := by
-    rw [Measure.map_infinitePi_infinitePi_of_inj Fin.val_injective, Measure.infinitePi_eq_pi]
+      (Measure.pi fun _ : Fin n => ν) :=
+  Measure.measurePreserving_restrict_infinitePi ν Fin.val_injective
 
 /-- Restricting every inner sequence of an i.i.d. array `ℕ → ℕ → α` to its first `n` coordinates
 gives an i.i.d. sequence of `Measure.pi fun _ : Fin n => ν`. -/

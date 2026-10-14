@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.MeasureTheory.Constructions.Cylinders
+public import Mathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.ProductMeasure
 
 /-!
@@ -27,6 +28,9 @@ annealed law `𝔼 G^{⊗∞}`.
   the family of product measures in the parameter.
 * `MeasureTheory.Measure.infinitePi_map_comp_equiv`: `infinitePi` of a constant family is
   invariant under `σ ↦ σ ∘ e`, `e : ι ≃ ι`.
+* `MeasureTheory.Measure.measurePreserving_restrict_infinitePi`: restricting an i.i.d. family
+  to the image of an injective map `f : ι → κ` (`ι` finite) gives the finite product measure; this
+  is the passage from infinitely many replicas to `k` replicas.
 * `MeasureTheory.Measure.map_bind_eq_self`: a mixture of `T`-invariant measures is `T`-invariant.
 * `MeasureTheory.Measure.bind_infinitePi_map_comp_equiv`: exchangeability of the mixture.
 -/
@@ -71,6 +75,18 @@ theorem infinitePi_map_comp_equiv (ν : Measure X) [IsProbabilityMeasure ν] (e 
   ext σ i
   rw [MeasurableEquiv.coe_piCongrLeft, Equiv.piCongrLeft_apply_eq_cast]
   simp
+
+/-- **Finite marginals of an i.i.d. family:** restricting `infinitePi (fun _ : κ => ν)` along an
+injective map `f : ι → κ` from a finite type gives `Measure.pi (fun _ : ι => ν)`.  For `f = Fin.val`
+this is the law of the first `n` coordinates of an i.i.d. sequence. -/
+theorem measurePreserving_restrict_infinitePi {κ : Type*} [Fintype ι] (ν : Measure X)
+    [IsProbabilityMeasure ν] {f : ι → κ} (hf : Function.Injective f) :
+    MeasurePreserving (fun (σ : κ → X) (i : ι) => σ (f i))
+      (Measure.infinitePi fun _ : κ => ν) (Measure.pi fun _ : ι => ν) where
+  measurable := measurable_pi_iff.2 fun i => measurable_pi_apply (f i)
+  map_eq := by
+    rw [Measure.map_infinitePi_infinitePi_of_inj (P := fun _ : κ => ν) hf,
+      Measure.infinitePi_eq_pi]
 
 /-- A mixture of measures that are invariant under a measurable map `T` is invariant under `T`. -/
 theorem map_bind_eq_self {A : Type*} [MeasurableSpace A] {P : Measure Ω} {κ : Ω → Measure A}

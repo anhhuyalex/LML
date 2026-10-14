@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
 public import Mathlib.Probability.StrongLaw
 public import Mathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
@@ -32,11 +33,8 @@ namespace NTK
 /-- A positive semidefinite matrix has a nonnegative quadratic form in the double-sum shape
 `∑ᵢ ∑ⱼ αᵢ αⱼ Mᵢⱼ`. -/
 theorem posSemidef_sum_nonneg {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hM : M.PosSemidef)
-    (α : Fin n → ℝ) : 0 ≤ ∑ i, ∑ j, α i * α j * M i j := by
-  have h := hM.dotProduct_mulVec_nonneg α
-  simp only [star_trivial, dotProduct, Matrix.mulVec, Finset.mul_sum] at h
-  refine le_of_le_of_eq h (Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_)
-  ring
+    (α : Fin n → ℝ) : 0 ≤ ∑ i, ∑ j, α i * α j * M i j :=
+  hM.sum_mul_mul_nonneg α
 
 /-- `x ⬝ᵥ x` is the sum of the coordinate squares for any vector over a commutative semiring. -/
 theorem dotProduct_self_eq_sum_sq {ι : Type*} {R : Type*} [Fintype ι] [CommSemiring R]
