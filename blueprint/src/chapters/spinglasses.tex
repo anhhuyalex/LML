@@ -34,7 +34,7 @@ Remark~\ref{rem:sg:ass-deviation}). Section~\ref{sec:sg:gram-approx} proves Theo
 averages) and applies it to the increments $A_N$ (Eq.~(1.73)), with the Lean files
 \texttt{ForMathlib/Probability/Moments/SubGaussian.lean}, \texttt{GaussianExp.lean}, \texttt{GaussianContinuity.lean},
 \texttt{SpinGlasses/AsymptoticGibbsApproximation.lean} and \texttt{SpinGlasses/AizenmanSimsStarrApproximation.lean}
-(deviations in Remark~\ref{rem:sg:gram-deviation}). Section~\ref{sec:sg:asymptotic-gibbs} treats the overlap array of the replicas
+(deviations in Remark~\ref{rem:sg:gram-deviation}; background and a scorecard against the book in Section~\ref{sec:sg:gram-background}, and on the factor $a_N$ in Section~\ref{sec:sg:aN-limit}). Section~\ref{sec:sg:asymptotic-gibbs} treats the overlap array of the replicas
 (Eq.~(1.74)): it is positive semidefinite and exchangeable, and its annealed laws have weak limits with the same properties, which is the input of
 the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/ExchangeableMixture.lean},
 \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureLimit.lean}, \texttt{ForMathlib/LinearAlgebra/Matrix/PosSemidef.lean},
@@ -1201,7 +1201,7 @@ $|\mathrm{cl}_a(x)|\le a<|x|$, so both $\varphi(x)$ and $\varphi(\mathrm{cl}_ax)
 because $3|x|-2a\ge|x|$. (v) Jensen's inequality for the convex function $x\mapsto x^{-1}$ on $(0,\infty)$.
 \end{proof}
 
-\begin{theorem}[Truncation of the Gibbs free energy, Panchenko Eqs.~(1.65), (1.68)--(1.72)]\label{thm:sg:truncation}
+\begin{theorem}[Truncation of the Gibbs free energy, Panchenko Eqs.~(1.65), (1.68)--(1.72)]\label{thm:sg:gibbs-truncation}
   \lean{SpinGlasses.integral_sum_mul_exp_abs_le, SpinGlasses.integrable_integral_le_of_le_sum_exp_abs,
         SpinGlasses.integrable_sum_mul_comp, SpinGlasses.integrable_log_sum_mul_comp,
         SpinGlasses.abs_integral_log_sub_integral_log_clamp_le}
@@ -1226,19 +1226,19 @@ Lemma~\ref{lem:sg:absmoment} ($\mathbb E\sum_iw_ie^{3|g_i|}\le2e^{9v/2}$) gives 
 \begin{theorem}[Polynomial approximation, Panchenko Eq.~(1.66)]\label{thm:sg:poly}
   \lean{SpinGlasses.exists_polynomial_integral_log_approx}
   \leanok
-  \uses{thm:sg:truncation}
-In the setting of Theorem~\ref{thm:sg:truncation}, for every $\varepsilon>0$ there are $a\ge0$ and a polynomial $p$, depending only on $\varepsilon,v,\varphi,A,B$, such that
+  \uses{thm:sg:gibbs-truncation}
+In the setting of Theorem~\ref{thm:sg:gibbs-truncation}, for every $\varepsilon>0$ there are $a\ge0$ and a polynomial $p$, depending only on $\varepsilon,v,\varphi,A,B$, such that
 for all finite families $(g_i)$ and probability vectors $w$ as above, $|\mathbb E\log X-\mathbb E\,p(X_a)|\le\varepsilon$.
 \end{theorem}
 
 \begin{proof}
   \leanok
-Choose $a\ge0$ with $Ce^{-a}\le\varepsilon/2$, $C$ the constant of Theorem~\ref{thm:sg:truncation}. Since $\varphi(\mathrm{cl}_ag_i)\le Ae^a$, $X_a\in[0,Ae^a]$. The function $\log T_a$ is continuous,
+Choose $a\ge0$ with $Ce^{-a}\le\varepsilon/2$, $C$ the constant of Theorem~\ref{thm:sg:gibbs-truncation}. Since $\varphi(\mathrm{cl}_ag_i)\le Ae^a$, $X_a\in[0,Ae^a]$. The function $\log T_a$ is continuous,
 so by the Weierstrass theorem (\texttt{exists\_polynomial\_near\_of\_continuousOn}) there is a polynomial $p$ with $|p-\log T_a|<\varepsilon/2$ on $[0,Ae^a]$; hence
-$|\mathbb E\log T_a(X_a)-\mathbb E\,p(X_a)|\le\varepsilon/2$. Combine with Theorem~\ref{thm:sg:truncation}.
+$|\mathbb E\log T_a(X_a)-\mathbb E\,p(X_a)|\le\varepsilon/2$. Combine with Theorem~\ref{thm:sg:gibbs-truncation}.
 \end{proof}
 
-\begin{theorem}[Replica expansion, Panchenko Eq.~(1.67)]\label{thm:sg:replica}
+\begin{theorem}[Replica expansion, Panchenko Eq.~(1.67)]\label{thm:sg:gibbs-replica}
   \lean{ProbabilityTheory.hasGaussianLaw_comp_index, ProbabilityTheory.integral_comp_comp_eq_integral_multivariateGaussian,
         ProbabilityTheory.map_toLp_dotProduct_pi_gaussianReal, SpinGlasses.integral_pow_sum_mul_comp_eq,
         SpinGlasses.integral_eval_sum_mul_comp_eq}
@@ -1281,7 +1281,7 @@ The bound is $|\prod_l\psi(x_l)|\le M^k$ against a probability measure; continui
   \lean{SpinGlasses.exists_gram_approx, SpinGlasses.exists_gram_approx_free_energy, SpinGlasses.sum_prod_mul_comp_castLE,
         SpinGlasses.sum_mul_sum_comm, SpinGlasses.exists_continuousOn_gram_approx}
   \leanok
-  \uses{thm:sg:poly, thm:sg:replica, lem:sg:gausscont}
+  \uses{thm:sg:poly, thm:sg:gibbs-replica, lem:sg:gausscont}
 Let $C_z,C_y:\mathbb R\to\mathbb R$ be continuous, $v_z,v_y\ge0$, $\varepsilon>0$. There are $m\in\mathbb N$ and a bounded function $F$ on $m\times m$ matrices, continuous
 on $\{Q:(C_z(Q_{ll'}))\text{ and }(C_y(Q_{ll'}))\text{ are positive semidefinite}\}$, such that for every finite set $\iota$, probability vector $w$ on $\iota$,
 array $q\in\mathbb R^{\iota\times\iota}$, and all centered Gaussian families $z$, $y$ (on arbitrary probability spaces) with $\mathbb Ez_iz_j=C_z(q_{ij})$,
@@ -1294,7 +1294,7 @@ The right hand side is the $\Gamma$-average of the continuous bounded function $
   \leanok
 Apply Theorem~\ref{thm:sg:poly} with accuracy $\varepsilon/2$ to $\varphi=2\cosh$ ($A=2$, $B=1$, since $2\cosh x\le2e^{|x|}$ and $(2\cosh x)^{-1}\le1\le e^{|x|}$) and to $\varphi=\exp$
 ($A=B=1$), obtaining levels $a_z,a_y$ and polynomials $p_z,p_y$; note $2\cosh(\mathrm{cl}_ax)=2\min(\cosh x,\cosh a)$, the book's truncation $\mathrm{ch}_a$. By
-Theorem~\ref{thm:sg:replica}, $\mathbb Ep_z(\langle 2\cosh\mathrm{cl}_{a_z}z\rangle)=\sum_k p_{z,k}\sum_{j:[k]\to\iota}\prod_lw_{j_l}F^z_k\big((C_z(q_{j_lj_{l'}}))\big)$
+Theorem~\ref{thm:sg:gibbs-replica}, $\mathbb Ep_z(\langle 2\cosh\mathrm{cl}_{a_z}z\rangle)=\sum_k p_{z,k}\sum_{j:[k]\to\iota}\prod_lw_{j_l}F^z_k\big((C_z(q_{j_lj_{l'}}))\big)$
 with $F^z_k$ the Gaussian functional of Lemma~\ref{lem:sg:gausscont}, and likewise for $y$. Let $m=\max(\deg p_z,\deg p_y)$ and let $F(Q)$ be the difference of the
 two sums with $F^\cdot_k$ evaluated at the upper-left $k\times k$ block of $Q$. Since $\sum_iw_i=1$, summing out the last $m-k$ replicas does not change a function of the first $k$
 (\texttt{sum\_prod\_mul\_comp\_castLE}), so the Gibbs average of $F$ over $m$ replicas equals the sum over $k$ of the $k$-replica averages. Continuity of $F$ on the stated set
@@ -1313,7 +1313,7 @@ and the cavity fields $z,y$ with covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$ 
         SpinGlasses.exp_le_exp_abs_mul, SpinGlasses.inv_exp_le_exp_abs_mul, SpinGlasses.two_cosh_le_exp_abs_mul,
         SpinGlasses.inv_two_cosh_le_exp_abs_mul}
   \leanok
-  \uses{lem:sg:absmoment, thm:sg:truncation}
+  \uses{lem:sg:absmoment, thm:sg:gibbs-truncation}
 Let $g_i$ be measurable and sub-Gaussian with parameter $v$ and $w$ a probability vector. Then
 $\log2\le\mathbb E\log\langle2\cosh g\rangle\le\log2+v/2$, and if the $g_i$ are centered, $0\le\mathbb E\log\langle e^{g}\rangle\le v/2$.
 \end{lemma}
@@ -1322,7 +1322,7 @@ $\log2\le\mathbb E\log\langle2\cosh g\rangle\le\log2+v/2$, and if the $g_i$ are 
   \leanok
 For a positive integrable $X$ with integrable logarithm, $\log x\le x/c-1+\log c$ with $c=\mathbb EX$ gives $\mathbb E\log X\le\log\mathbb EX$. For $X=\langle2\cosh g\rangle$,
 $\mathbb EX\le\max_i\mathbb E\,2\cosh g_i\le2e^{v/2}$ (Lemma~\ref{lem:sg:absmoment}), and $X\ge2$ because $\cosh\ge1$. For $X=\langle e^g\rangle$, $\mathbb EX\le e^{v/2}$, and by convexity
-of $\exp$, $\log\langle e^g\rangle\ge\langle g\rangle$, whose expectation is $\sum_iw_i\mathbb Eg_i=0$. Integrability of the logarithms is Theorem~\ref{thm:sg:truncation}.
+of $\exp$, $\log\langle e^g\rangle\ge\langle g\rangle$, whose expectation is $\sum_iw_i\mathbb Eg_i=0$. Integrability of the logarithms is Theorem~\ref{thm:sg:gibbs-truncation}.
 \end{proof}
 
 \begin{theorem}[A priori bounds for the increments]\label{thm:sg:increment-bounds}
@@ -1374,6 +1374,7 @@ so it is integrable, and $|A_N-\mathbb E_u[\mathrm{approximant}]|=|\mathbb E_u(F
 \end{proof}
 
 \begin{remark}[Deviations from Panchenko's treatment of Theorem~1.3, and why]\label{rem:sg:gram-deviation}
+A longer, less terse explanation of every item below, including which items weaken the theorem, is in Section~\ref{sec:sg:gram-background}.
 \begin{enumerate}
 \item \emph{No Hilbert space, finitely supported measures.} The book states Theorem~1.3 for atomic probability measures $\Gamma$ on the unit sphere of a separable Hilbert space.
 Since $\Phi(\Gamma)$ only involves $w$ and the Gram data, we state it for a finite family with arbitrary covariance functions; the cavity measures $G'_u$ of the SK model are finitely supported.
@@ -1382,10 +1383,201 @@ Extending to countably many atoms is a limiting argument that we have not formal
 and it is bounded by $e^{-a}\,\mathbb E(X+X^{-1})$ plus an exponential moment of the field; both are uniform in the number of atoms, so the earlier concentration theorem is not used here.
 \item \emph{Uniformity.} The truncation level and the polynomials depend only on $\varepsilon$ and on bounds $v_z,v_y$ for the variances, not on the covariance functions; the covariance functions enter only the
 Gaussian integrals $F_k$, which are continuous in the Gram matrix on the cone where the covariance matrix is positive semidefinite (Lemma~\ref{lem:sg:gausscont}). In the SK application the covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$
-depend on $N$ through $a_N=N/(N+1)$, so the function $F$ of Theorem~\ref{thm:sg:overlap-approx} depends on $N$ through the Gaussian integrals only; the statement is nevertheless uniform in $N$. Passing to the limit $a_N\to1$ is not formalized.
+depend on $N$ through $a_N=N/(N+1)$, so the function $F$ of Theorem~\ref{thm:sg:overlap-approx} depends on $N$ through the Gaussian integrals only; the statement is nevertheless uniform in $N$. Passing to the limit $a_N\to1$ is not formalized; Section~\ref{sec:sg:aN-limit} explains where $a_N$ comes from, why the limit is needed, and how we expect it to be proved.
 \item \emph{The truncation of the exponential term.} For $\varphi=2\cosh$, $2\cosh(\mathrm{cl}_ax)=2\min(\cosh x,\cosh a)$ is the book's $\mathrm{ch}_a$. For $\varphi=\exp$ we truncate the field in the same way.
 \end{enumerate}
 \end{remark}
+
+\section{Background: why Theorem~1.3 matters, and exactly how our version differs from the book's}\label{sec:sg:gram-background}
+
+This section is an explanation, not a collection of new statements. It is written for a reader who knows the statistical-physics side of the story only loosely, and it answers three questions:
+what is Theorem~1.3 of Panchenko's book for, what precisely did we prove instead, and which of our choices make the Lean statement weaker, equal or stronger than the book's. Where we describe what the book
+does in later sections we are reporting our reading of the book and of our own formalization plan; we have not re-derived those later arguments here, and we say so when a claim is only expected.
+
+\subsection*{The problem Theorem~1.3 solves}
+
+The free energy $F_N=N^{-1}\mathbb E\log Z_N$ of the SK model depends on the whole random Gibbs measure $G_N$ on $\{-1,+1\}^N$, a measure on a space whose dimension grows with $N$.
+To compute $\lim F_N$ one wants to compare models of different sizes, and for that one needs a space in which all the $G_N$ live together. Physics suggests the right coordinates: the \emph{overlaps}
+$R_{l,l'}=N^{-1}\sigma^l\cdot\sigma^{l'}$ of replicas $\sigma^1,\sigma^2,\dots$ drawn independently from $G_N$. The overlap array has a fixed shape ($\mathbb N\times\mathbb N$) whatever $N$ is, so
+its law can converge as $N\to\infty$, and the limiting law is what the book calls the data of the \emph{asymptotic Gibbs measure}. (In Lean this is Section~\ref{sec:sg:asymptotic-gibbs}.)
+
+The Aizenman--Sims--Starr scheme (Section~\ref{sec:sg:ass}) reduces $\lim F_N$ to the increments $A_N=\mathbb E\log Z_{N+1}-\mathbb E\log Z_N$, and writes $A_N$ as
+$\Phi(G'_N)$, where $\Phi(\Gamma)=\mathbb E\log\langle2\cosh z\rangle_\Gamma-\mathbb E\log\langle e^{y}\rangle_\Gamma$ is a functional of the Gibbs measure $\Gamma=G'_N$ and of two Gaussian processes $z,y$ built from it.
+The functional $\Phi$ is a complicated nonlinear object (an expectation of a logarithm of a Gibbs average). Convergence of the \emph{overlap law} does not obviously imply anything about $\Phi$.
+
+\emph{Theorem~1.3 is the bridge.} It says that $\Phi(\Gamma)$ is, up to an error $\varepsilon$ that we may choose, equal to a plain Gibbs average of a nice function of the overlaps:
+$\Phi(\Gamma)\approx\langle F(R)\rangle_\Gamma=\int F\big((\rho^l\cdot\rho^{l'})_{l,l'\le m}\big)\,d\Gamma^{\otimes m}$, with $F$ bounded and continuous, and with $m$ and $F$ not depending on $\Gamma$.
+A Gibbs average of a bounded continuous function of the overlap matrix depends on $\Gamma$ only through the \emph{law of the overlap array}, and this is continuous for weak convergence of that law.
+So convergence of overlap laws, which is available by compactness (Theorem~\ref{thm:sg:asymptotic-overlap}), gives convergence of $A_N$ up to $\varepsilon$, for every $\varepsilon$. This is the engine behind the lower bound
+$\liminf A_N\ge\inf_G\Phi(G)$ as we understand the book's plan; it is not yet formalized, and the Lean content of this chapter stops short of it (Remark~\ref{rem:sg:asymptotic-deviation}).
+
+\subsection*{The idea of the proof, in plain words}
+
+The danger in $\Phi$ is the logarithm: $\log\langle e^{z}\rangle$ is not a nice function of the random field $z$, and $\langle\cdot\rangle$ may involve exponentially many atoms. The proof tames it in four steps.
+\begin{enumerate}
+\item \emph{Truncate.} Clamp the argument of the logarithm into $[e^{-a},e^{a}]$ and clamp the field at level $\pm a$. Because the Gibbs average of $e^{|z|}$-type quantities has bounded moments, the expected error is $O(e^{-a})$;
+we show this using only first moments and Jensen's inequality (Theorem~\ref{thm:sg:gibbs-truncation}), and the bound does \emph{not} depend on how many atoms $\Gamma$ has.
+\item \emph{Polynomial.} On the bounded interval $[0,Ae^{a}]$ the truncated logarithm is a continuous function, hence within $\varepsilon$ of a polynomial $p$ (Weierstrass). Now $\Phi$ is approximated by $\mathbb E\,p(\langle\psi(z)\rangle)$.
+\item \emph{Expand the powers.} A power $\langle\psi(z)\rangle^k$ is the average over $k$ independent replicas of $\prod_l\psi(z_{j_l})$. Taking the Gaussian expectation inside, $\mathbb E\prod_l\psi(z_{j_l})$ is an integral
+against a centered Gaussian whose covariance matrix is $(C_z(\rho^{j_l}\cdot\rho^{j_{l'}}))_{l,l'}$, and a centered Gaussian law is determined by its covariance matrix. So this expectation is a function $F_k$ of the
+$k\times k$ Gram matrix of the replicas, nothing else about $\Gamma$ enters.
+\item \emph{Continuity.} $S\mapsto\int g\,d\mathcal N(0,S)$ is continuous (L\'evy's theorem on characteristic functions), so $F_k$ is continuous, and bounded because $\psi$ is.
+\end{enumerate}
+The same four steps are what the Lean files do; the only structural difference is in step~1 (see decision~C below).
+
+\subsection*{What the book states, and what we state}
+
+\begin{itemize}
+\item \textbf{Book (as we use it):} for atomic probability measures $\Gamma=\sum_{i}w_i\delta_{\rho^i}$ on the unit sphere of a separable Hilbert space $H$ (countably many atoms $\rho^i$), and Gaussian processes
+$z,y$ indexed by $H$ with covariances $C_z(\rho^1\cdot\rho^2)$, $C_y(\rho^1\cdot\rho^2)$: for every $\varepsilon>0$ there are $m$ and a continuous bounded $F$ of $m\times m$ Gram matrices, such that
+$|\Phi(\Gamma)-\langle F(R)\rangle_\Gamma|\le\varepsilon$ for \emph{all} such $\Gamma$.
+\item \textbf{Lean (Theorem~\ref{thm:sg:gram13}):} the same conclusion for every \emph{finite} family $(w_i,q_{ij})_{i\in\iota}$ ($\iota$ any finite type), where $q_{ij}$ plays the role of $\rho^i\cdot\rho^j$ and
+$z,y$ are any centered Gaussian families with $\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$ and variances at most $v_z,v_y$. The number $m$ and the function $F$ depend only on $\varepsilon,C_z,C_y,v_z,v_y$,
+not on $\iota$, $w$ or $q$.
+\end{itemize}
+
+\subsection*{Decision A: we do not mention a Hilbert space}
+
+\emph{What we did.} The statement has no Hilbert space, no unit sphere and no points $\rho^i$; it has weights and a matrix of numbers $q_{ij}$.
+
+\emph{Why this loses nothing.} Look at what $\Phi$ actually uses. The weights $w_i$ enter the Gibbs average. The points $\rho^i$ enter only through the covariances $\mathbb Ez_iz_j=C_z(\rho^i\cdot\rho^j)$, and a centered Gaussian family
+is determined in law by its covariances (Lemma~\ref{lem:sg:gram}). So $\Phi(\Gamma)$ is a function of $(w,q)$ with $q_{ij}=\rho^i\cdot\rho^j$. An analogy: a statistic of a point cloud that is computed only from pairwise distances does not care
+in which space the cloud sits. Stating the theorem for a general array $q$ is therefore \emph{more general}: the Hilbert-space statement (finitely many atoms) is the special case $q_{ij}=\rho^i\cdot\rho^j$. We did not write that special case
+as a separate corollary, since nothing downstream needed it.
+
+\emph{Why we did it.} Mathlib has no convenient ``separable Hilbert space with unit sphere and Gaussian process indexed by it'' package, and every such object would have been a new definition or a heavy typeclass setup
+for no mathematical gain.
+
+\subsection*{Decision B: finitely many atoms instead of countably many \emph{(this is a genuine weakening)}}
+
+\emph{What we did.} The index type $\iota$ is a \texttt{Fintype}. The book allows countably many atoms.
+
+\emph{This is weaker than the book's theorem.} Our result does not cover a measure $\Gamma$ with infinitely many atoms (let alone a non-atomic measure). We want to be direct about this: for the statement ``Theorem~1.3 as printed'', the Lean version is a
+special case. It is not a different proof of the same statement.
+
+\emph{What the weakening does not touch.} The estimates are \emph{uniform in the number of atoms}: $m$, $F$ and the truncation level do not depend on $|\iota|$, so the theorem holds for all finite Gibbs measures at once with the same constants.
+Moreover, every Gibbs measure in the SK model on $N$ spins is a measure on the \emph{finite} set $\Sigma_N=\{-1,+1\}^N$. Hence Eq.~(1.73), the statement that $A_N$ is within $\varepsilon$ of an average of $F$ over the overlap array of
+the Gibbs measure $G'_u$, is proved with no gap (Theorem~\ref{thm:sg:overlap-approx}); likewise the a priori bounds on $A_N$ and the Ces\`aro corollary do not use Theorem~1.3 at all.
+
+\emph{Why we chose to stop at finite families.} With finitely many atoms every Gibbs average $\sum_iw_ie^{z_i}$ is a finite sum of integrable random variables, so measurability, integrability and Fubini are routine.
+With infinitely many atoms one must additionally show that the series converges almost surely, that it is integrable together with its logarithm, and that the Jensen and truncation estimates survive passing to the infinite sum.
+We did not know in advance how much extra work that would be, and the SK application did not need it, so we scoped it out.
+
+\emph{What the missing step would probably be, and where it could matter.} The natural route is to approximate an infinite $\Gamma$ by its restriction to the first $n$ atoms (renormalized) and let $n\to\infty$. For the right-hand side $\langle F(R)\rangle_\Gamma$ this is easy,
+because $F$ is bounded: removing a tail of small total weight changes the average by at most $2\|F\|_\infty$ times the tail mass. For $\Phi(\Gamma)$ itself one needs a continuity statement of the same kind for $\mathbb E\log\langle e^{z}\rangle$ under tail removal;
+we have not worked this out and do not claim it is routine. It could matter later: the asymptotic Gibbs measure $G$ produced by the Dovbysh--Sudakov theorem is a random measure on a Hilbert ball and is not known to be finitely supported,
+so identifying the limit of the right-hand sides $\mathbb E\langle F(R)\rangle$ with $\mathbb E\,\Phi(G)$ is where we expect the countable-atom version of Theorem~1.3 to be needed. That identification is not part of the formalization yet.
+
+\subsection*{Decision C: truncation by moments, not by Gaussian concentration \emph{(a different method, not a weaker result)}}
+
+\emph{What the book does.} To control the effect of clamping the logarithm, the book proves that $\log\langle\cosh z\rangle$ concentrates around its mean with sub-Gaussian tails (Eq.~(1.69)), and uses that to show the clamp is
+rarely active.
+
+\emph{What we do.} We only need the \emph{expected} truncation error, and that is bounded directly: $|\log x-\log T_ax|\le e^{-a}(x+x^{-1})$, and $\mathbb E\langle\cdot\rangle$ and $\mathbb E\langle\cdot\rangle^{-1}$ are bounded using
+Jensen's inequality for $x\mapsto x^{-1}$ and the exponential moment $\mathbb Ee^{t|g|}\le2e^{vt^2/2}$ of a sub-Gaussian variable (Lemma~\ref{lem:sg:absmoment}). Concentration is a statement about the \emph{distribution} of a random variable and is
+stronger than what is needed for a bound on its \emph{mean}. The conclusion (Theorem~\ref{thm:sg:gibbs-truncation}) has the same form as the book's and is uniform in the number of atoms, so this is a shortcut in the sense of a shorter route,
+not a weaker theorem.
+
+\subsection*{Decision D: $F$ is continuous on the cone where covariances are positive semidefinite}
+
+In Mathlib, the Gaussian measure $\mathcal N(0,S)$ is defined for every matrix $S$ but equals the Dirac mass at $0$ when $S$ is not positive semidefinite, so $S\mapsto\int g\,d\mathcal N(0,S)$ cannot be continuous on all matrices.
+We therefore state continuity on the set of $Q$ for which $(C_z(Q_{ll'}))$ and $(C_y(Q_{ll'}))$ are positive semidefinite. This costs nothing for applications, because every Gram matrix of replicas lies in that set
+(for the SK covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$ this is because overlap matrices and their entrywise squares are positive semidefinite). It is a formality of how Gaussians with degenerate covariance are encoded, not a mathematical restriction.
+
+\subsection*{Decision E: general covariance functions and explicit variance bounds}
+
+Our theorem is stated for arbitrary continuous covariance functions $C_z,C_y$ together with variance bounds $v_z,v_y$, and the polynomial degree and truncation level depend on $\varepsilon,v_z,v_y$ only. The book's covariances are the specific ones of the SK model.
+This is a generalization: the SK case is recovered with $C_z(t)=2\beta^2a_Nt$, $C_y(t)=\beta^2a_Nt^2$, and the $N$-dependence enters only through the Gaussian integrals, so the same $m$ and polynomials work for every $N$ (Theorem~\ref{thm:sg:overlap-approx}).
+What is \emph{not} done is the limit $a_N\to1$ (continuity of $F$ in the covariance function), which is needed to compare the finite-$N$ functionals with the limiting one; see Section~\ref{sec:sg:aN-limit}.
+
+\subsection*{Summary}
+
+\begin{center}
+\begin{tabular}{p{0.30\textwidth}p{0.20\textwidth}p{0.42\textwidth}}
+\textbf{Feature} & \textbf{Compared with the book} & \textbf{Comment}\\ \hline
+No Hilbert space, arbitrary Gram data $q$ & more general & the Hilbert case is the special case $q_{ij}=\rho^i\cdot\rho^j$\\
+Finitely many atoms & \textbf{weaker} & countable (and non-atomic) $\Gamma$ not covered; constants are uniform in the number of atoms; SK Gibbs measures are finite\\
+Truncation by moments, no concentration & same conclusion, different proof & only the mean of the error is needed\\
+Continuity on the PSD cone only & same in practice & Gram matrices are always positive semidefinite\\
+Arbitrary $C_z,C_y$, explicit variance bounds & more general & SK covariances are an instance\\
+Limit $a_N\to1$ & \textbf{not done} & finite-$N$ statement only\\
+Use of Theorem~1.3 to pass to the asymptotic Gibbs measure & \textbf{not done} & needs the Dovbysh--Sudakov representation and probably the countable-atom case\\
+\end{tabular}
+\end{center}
+
+In short: for the finite Gibbs measures that occur in the SK model the formalized Theorem~1.3 and Eq.~(1.73) are complete and uniform; the formalized statement is a strict special case of the book's Theorem~1.3 because it omits infinitely supported measures,
+and the steps that would use it on limiting objects have not been formalized yet.
+
+\section{Background: the factor $a_N=N/(N+1)$, uniformity in $N$, and why the limit $a_N\to1$ is not formalized}\label{sec:sg:aN-limit}
+
+This section expands item~3 (``Uniformity'') of Remark~\ref{rem:sg:gram-deviation}. As in Section~\ref{sec:sg:gram-background} it is an explanation for a human reader. It separates three things that are easy to confuse:
+what the Lean theorem \emph{does} say about the dependence on $N$, what an application to a limit \emph{would need}, and the (short, as we expect) argument that connects the two, which we have not written out.
+Statements about the book's later arguments, and about how hard the missing step is, are our expectation and are marked as such.
+
+\subsection*{Where $a_N$ comes from}
+
+In the cavity decomposition (Section~\ref{sec:sg:ass}) the field that the new spin $\varepsilon$ feels from the old spins is $z_N(\sigma)=(N+1)^{-1/2}\sum_{i\le N}(\zeta_{\mathrm{inl}(i+1)}+\zeta_{\mathrm{inr}(i)})\sigma_i$.
+There are $N$ spins $\sigma_i$ but the normalization is $(N+1)^{-1/2}$, because the system has $N+1$ spins in total. Computing the covariance of the field for two configurations gives
+\[\mathbb E\,z_N(\sigma^1)z_N(\sigma^2)=\frac{2N}{N+1}\,R(\sigma^1,\sigma^2)=2a_NR(\sigma^1,\sigma^2),\qquad a_N=\frac N{N+1},\]
+and in the same way $\mathbb E\,y_N(\sigma^1)y_N(\sigma^2)=a_NR(\sigma^1,\sigma^2)^2$ (Theorem~\ref{thm:sg:cavity-cov}; the factor $\beta$ is absorbed into $z,y$ and gives the $\beta^2$ below). Intuitively: the fields are built from $N$ terms but scaled for $N+1$, so they are slightly
+\emph{too small} by the factor $a_N=1-\frac1{N+1}$, which tends to $1$. For $N=100$ the discrepancy is about one percent. It is a finite-size correction that disappears in the limit, but it is there at every finite $N$, and the Lean theorem has to deal with it honestly.
+
+\subsection*{What the Lean theorem says about the dependence on $N$}
+
+Theorem~\ref{thm:sg:overlap-approx} (our formalization of Eq.~(1.73)) fixes $\beta>0$ and $\varepsilon>0$ and produces, \emph{once and for all}, truncation levels $a_z,a_y\ge0$ and polynomials $p_z,p_y$. The only inputs of this choice are $\varepsilon$ and the variance bounds
+$v_z=2\beta^2$, $v_y=\beta^2$; these bound the variances for \emph{every} $N$, because $a_N\le1$. Then for \emph{every} $N\ge1$,
+\[\Big|A_N-\mathbb E_u\Big[\langle F^z_{N}(R)\rangle'_u-\langle F^y_{N}(R)\rangle'_u\Big]\Big|\le\varepsilon,\]
+where $F^z_N,F^y_N$ are the explicit combinations of the Gaussian integrals
+$F^z_k(S)=\int\prod_{l\le k}2\cosh(\mathrm{cl}_{a_z}x_l)\,d\mathcal N(0,S)$ and $F^y_k(S)=\int\prod_{l\le k}e^{\mathrm{cl}_{a_y}x_l}\,d\mathcal N(0,S)$, evaluated at the covariance matrices $S=2\beta^2a_N(R_{ll'})$ and $S=\beta^2a_N(R_{ll'}^2)$.
+So the number of replicas, the cut-off levels and the polynomial coefficients are the same for all $N$; the sole place where $N$ enters the \emph{function} $F_N$ is the scalar $a_N$ inside the covariance matrix of the Gaussian integral. This is the uniformity that the Lean statement proves.
+
+\subsection*{What the Lean theorem does \emph{not} say, and why that matters}
+
+The function $F_N$ is a different function for each $N$ (it depends on $a_N$). Now recall how the approximation is meant to be used (this is our reading of the book's strategy, not something formalized here). We take a subsequence $N_k$ along which the law of the overlap array
+under the Gibbs measure converges weakly, to a limit $\mu$ (Theorem~\ref{thm:sg:asymptotic-overlap}). Weak convergence means: for each \emph{fixed} bounded continuous test function $F$, $\mathbb E\langle F(R)\rangle_{N_k}\to\int F\,d\mu$.
+Our approximation gives us $\mathbb E\langle F_{N_k}(R)\rangle_{N_k}$, in which the test function itself changes with $k$. Weak convergence says nothing about such a moving target: a sequence of laws can converge while the integrals of a drifting sequence of test functions do not.
+A picture: weak convergence is a statement about a camera that is focused on one object; a function $F_{N}$ that moves with $N$ is an object that keeps leaving the frame.
+
+To repair this we need the test functions to settle down: a single fixed continuous bounded $F_\infty$ (the one built from the limiting covariances $2\beta^2R$ and $\beta^2R^2$, i.e.\ with $a_N$ replaced by $1$) such that $F_N$ is uniformly close to $F_\infty$ on the set of arguments that can occur,
+namely overlap matrices. Then
+\[\big|\mathbb E\langle F_N(R)\rangle-\mathbb E\langle F_\infty(R)\rangle\big|\le\sup_Q|F_N(Q)-F_\infty(Q)|\xrightarrow[N\to\infty]{}0,\]
+because a Gibbs average of a function is at most the supremum of that function, and $\mathbb E\langle F_\infty(R)\rangle_{N_k}\to\int F_\infty\,d\mu$ by weak convergence. That is the step ``passing to the limit $a_N\to1$''.
+
+\subsection*{How we expect the missing step to go (not formalized)}
+
+Two routes seem available. We have not carried either out, so the following is an expectation, not a result.
+
+\begin{enumerate}
+\item \emph{At the level of $F$ (compactness).} The relevant arguments $Q$ are $k\times k$ overlap matrices, so they lie in the compact set $\mathcal Q_k=\{Q\in[-1,1]^{k\times k}:Q\text{ positive semidefinite}\}$. For $a\in[0,1]$ the matrix $a\cdot2\beta^2Q$ is positive semidefinite for $Q\in\mathcal Q_k$, and
+$(a,Q)\mapsto\int g\,d\mathcal N(0,2\beta^2aQ)$ is continuous on $[0,1]\times\mathcal Q_k$ by the weak continuity of Gaussians in the covariance (Lemma~\ref{lem:sg:gausscont}) composed with the continuous map $(a,Q)\mapsto 2\beta^2aQ$. A continuous function on a compact set is uniformly continuous, hence
+$\sup_{Q\in\mathcal Q_k}|F^z_k(a\cdot)-F^z_k(1\cdot)|\to0$ as $a\to1$; the same applies to $y$, where one uses that the entrywise square $(Q_{ll'}^2)$ of a positive semidefinite matrix is positive semidefinite (Schur product theorem). Since only finitely many $k\le\deg p$ occur and the coefficients do not depend on $N$,
+$\sup_Q|F_N-F_\infty|\to0$. All ingredients (weak continuity in the covariance, compactness of a cube intersected with a closed cone) are already in the repository or in Mathlib.
+\item \emph{At the level of $\Phi$ (comparison).} Alternatively one could compare $\Phi$ for the true fields (covariance $a_N\cdot$) with $\Phi$ for fields of covariance exactly $2\beta^2R$ by Gaussian interpolation, in the style of Section~\ref{sec:sg:comparison}, and bound the difference by a constant times $1-a_N$.
+This would let Theorem~\ref{thm:sg:gram13} be applied with the limiting covariance functions directly. It needs a derivative bound that we have not established, so we regard the first route as the more likely one.
+\end{enumerate}
+
+\subsection*{Why we did not do it in this milestone}
+
+\begin{itemize}
+\item \emph{It is not needed for any statement we proved.} Theorem~\ref{thm:sg:overlap-approx} is true and complete as stated: a bound for each $N$ with $N$-uniform constants. The limit $a_N\to1$ is only needed when one passes to a limit along a subsequence, which is a later step of the book's argument
+(the use of the asymptotic Gibbs measure), after the Dovbysh--Sudakov theorem. That later step is not part of the formalization yet (Remark~\ref{rem:sg:asymptotic-deviation}), so the limit has nothing to attach to.
+\item \emph{We chose to keep each milestone to a closed set of statements.} The first route above is a self-contained lemma about uniform convergence of Gaussian integrals; we judged it better to formalize it together with the argument that uses it, so that its exact form
+(sup over a compact set of overlap matrices, which polynomials, which $k$) is dictated by the application instead of guessed in advance.
+\item \emph{It is not an obstruction.} To avoid any misunderstanding: we do not know of a mathematical difficulty here, and we believe it is a routine compactness argument. The honest summary is that it was postponed, not that it was found hard. If the reasoning in route~1 turns out to hide a technicality
+(for example in how continuity on the cone interacts with the cube of overlaps), that would only be discovered when the lemma is written.
+\end{itemize}
+
+\subsection*{Summary table}
+
+\begin{center}
+\begin{tabular}{p{0.30\textwidth}p{0.17\textwidth}p{0.44\textwidth}}
+\textbf{Statement} & \textbf{Status} & \textbf{Comment}\\ \hline
+Eq.~(1.73) for each $N$, with $m$, $a_z,a_y$, $p_z,p_y$ independent of $N$ & proved (Theorem~\ref{thm:sg:overlap-approx}) & $F_N$ depends on $N$ only via $a_N$ in the Gaussian integrals\\
+$\sup_Q|F_N-F_\infty|\to0$ on overlap matrices & not done & expected by compactness and weak continuity of Gaussians in the covariance (route~1)\\
+Replacing $\mathbb E\langle F_N(R)\rangle$ by $\mathbb E\langle F_\infty(R)\rangle$ & not done & immediate from the previous line, since $\langle\cdot\rangle$ is bounded by a supremum\\
+Passing to the limit along an overlap-law subsequence & not done & needs the asymptotic Gibbs measure (Dovbysh--Sudakov), see Section~\ref{sec:sg:asymptotic-gibbs}\\
+\end{tabular}
+\end{center}
 
 \section{The overlap array and the asymptotic Gibbs measures}\label{sec:sg:asymptotic-gibbs}
 
