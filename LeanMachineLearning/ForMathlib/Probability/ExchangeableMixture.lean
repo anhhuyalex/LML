@@ -7,6 +7,7 @@ module
 
 public import Mathlib.MeasureTheory.Constructions.Cylinders
 public import Mathlib.Probability.Independence.InfinitePi
+public import Mathlib.Probability.Kernel.Composition.MeasureCompProd
 public import Mathlib.Probability.ProductMeasure
 
 /-!
@@ -24,8 +25,9 @@ annealed law `𝔼 G^{⊗∞}`.
 
 ## Main declarations
 
-* `MeasureTheory.Measure.measurable_pi_const`, `measurable_infinitePi_const`: measurability of
-  the family of product measures in the parameter.
+* `MeasureTheory.Measure.measurable_pi_family`, `measurable_infinitePi`: measurability of the
+  product of a measurable family of probability measures in the parameter, and the special
+  case `measurable_pi_const`, `measurable_infinitePi_const` of a constant factor.
 * `MeasureTheory.Measure.infinitePi_map_comp_equiv`: `infinitePi` of a constant family is
   invariant under `σ ↦ σ ∘ e`, `e : ι ≃ ι`.
 * `MeasureTheory.Measure.measurePreserving_restrict_infinitePi`: restricting an i.i.d. family
@@ -42,7 +44,7 @@ annealed law `𝔼 G^{⊗∞}`.
 
 @[expose] public section
 
-open Set
+open Set ProbabilityTheory
 
 namespace MeasureTheory.Measure
 
@@ -50,27 +52,38 @@ variable {ι Ω X : Type*} [MeasurableSpace Ω] [MeasurableSpace X]
 
 /-- The finite product of a measurable family of probability measures is measurable in the
 parameter. -/
-theorem measurable_pi_const [Fintype ι] {ν : Ω → Measure X} [∀ ω, IsProbabilityMeasure (ν ω)]
-    (hν : Measurable ν) : Measurable fun ω => Measure.pi fun _ : ι => ν ω := by
+theorem measurable_pi_family [Fintype ι] {ν : ι → Ω → Measure X}
+    [∀ i ω, IsProbabilityMeasure (ν i ω)] (hν : ∀ i, Measurable (ν i)) :
+    Measurable fun ω => Measure.pi fun i => ν i ω := by
   refine Measurable.measure_of_isPiSystem_of_isProbabilityMeasure generateFrom_pi.symm
     isPiSystem_pi ?_
   rintro _ ⟨t, ht, rfl⟩
   simp_rw [Measure.pi_pi]
-  exact Finset.measurable_prod _ fun i _ => (measurable_coe (ht i (mem_univ i))).comp hν
+  exact Finset.measurable_prod _ fun i _ => (measurable_coe (ht i (mem_univ i))).comp (hν i)
 
 /-- The infinite product of a measurable family of probability measures is measurable in the
 parameter. -/
-theorem measurable_infinitePi_const {ν : Ω → Measure X} [∀ ω, IsProbabilityMeasure (ν ω)]
-    (hν : Measurable ν) : Measurable fun ω => Measure.infinitePi fun _ : ι => ν ω := by
+theorem measurable_infinitePi {ν : ι → Ω → Measure X} [∀ i ω, IsProbabilityMeasure (ν i ω)]
+    (hν : ∀ i, Measurable (ν i)) : Measurable fun ω => Measure.infinitePi fun i => ν i ω := by
   refine Measurable.measure_of_isPiSystem_of_isProbabilityMeasure
     generateFrom_measurableCylinders.symm isPiSystem_measurableCylinders ?_
   intro A hA
   obtain ⟨s, S, hS, rfl⟩ := (mem_measurableCylinders _).1 hA
-  have h : ∀ ω, Measure.infinitePi (fun _ : ι => ν ω) (cylinder s S) =
-      Measure.pi (fun _ : s => ν ω) S := fun ω =>
-    infinitePi_cylinder (X := fun _ : ι => X) (fun _ => ν ω) hS
+  have h : ∀ ω, Measure.infinitePi (fun i => ν i ω) (cylinder s S) =
+      Measure.pi (fun i : s => ν i ω) S := fun ω =>
+    infinitePi_cylinder (X := fun _ : ι => X) (fun i => ν i ω) hS
   simp_rw [h]
-  exact (measurable_coe hS).comp (measurable_pi_const hν)
+  exact (measurable_coe hS).comp (measurable_pi_family fun i : s => hν i)
+
+/-- The finite product of a constant factor is measurable in the parameter. -/
+theorem measurable_pi_const [Fintype ι] {ν : Ω → Measure X} [∀ ω, IsProbabilityMeasure (ν ω)]
+    (hν : Measurable ν) : Measurable fun ω => Measure.pi fun _ : ι => ν ω :=
+  measurable_pi_family fun _ => hν
+
+/-- The infinite product of a constant factor is measurable in the parameter. -/
+theorem measurable_infinitePi_const {ν : Ω → Measure X} [∀ ω, IsProbabilityMeasure (ν ω)]
+    (hν : Measurable ν) : Measurable fun ω => Measure.infinitePi fun _ : ι => ν ω :=
+  measurable_infinitePi fun _ => hν
 
 /-- An i.i.d. sequence is invariant in law under any permutation of the indices. -/
 theorem infinitePi_map_comp_equiv (ν : Measure X) [IsProbabilityMeasure ν] (e : ι ≃ ι) :
@@ -93,15 +106,22 @@ theorem measurePreserving_restrict_infinitePi {κ : Type*} [Fintype ι] (ν : Me
     rw [Measure.map_infinitePi_infinitePi_of_inj (P := fun _ : κ => ν) hf,
       Measure.infinitePi_eq_pi]
 
+/-- The pushforward of a mixture is the mixture of the pushforwards. -/
+theorem map_bind {A B : Type*} [MeasurableSpace A] [MeasurableSpace B] {P : Measure Ω}
+    {κ : Ω → Measure A} (hκ : Measurable κ) {T : A → B} (hT : Measurable T) :
+    (P.bind κ).map T = P.bind fun ω => (κ ω).map T := by
+  have hκT : Measurable fun ω => (κ ω).map T := (Measure.measurable_map T hT).comp hκ
+  ext s hs
+  rw [Measure.map_apply hT hs, Measure.bind_apply (hT hs) hκ.aemeasurable,
+    Measure.bind_apply hs hκT.aemeasurable]
+  exact lintegral_congr fun ω => (Measure.map_apply hT hs).symm
+
 /-- A mixture of measures that are invariant under a measurable map `T` is invariant under `T`. -/
 theorem map_bind_eq_self {A : Type*} [MeasurableSpace A] {P : Measure Ω} {κ : Ω → Measure A}
     (hκ : Measurable κ) {T : A → A} (hT : Measurable T) (h : ∀ ω, (κ ω).map T = κ ω) :
     (P.bind κ).map T = P.bind κ := by
-  ext s hs
-  rw [Measure.map_apply hT hs, Measure.bind_apply (hT hs) hκ.aemeasurable,
-    Measure.bind_apply hs hκ.aemeasurable]
-  refine MeasureTheory.lintegral_congr fun ω => ?_
-  rw [← Measure.map_apply hT hs, h]
+  rw [map_bind hκ hT]
+  simp_rw [h]
 
 /-- **A mixture of i.i.d. sequences is exchangeable:** if `ν : Ω → Measure X` is a measurable
 family of probability measures and `P` a measure on `Ω`, the law `P.bind (ω ↦ ν ω ^ ⊗ι)` of the
@@ -133,22 +153,45 @@ theorem measurable_map_curry {α γ : Type*} [MeasurableSpace α] [MeasurableSpa
   rw [this]
   exact (Measure.measurable_map g hg).comp Measurable.map_prodMk_left
 
+/-- **Coded families, jointly with the parameter.** If `a ~ μ` and `(c_i)` are i.i.d. `ν`,
+independent of `a`, then `(a, (g i (a, c_i))_i)` has the law `μ ⊗ₘ K`, where `K a` is the
+product, over `i`, of the laws `ν.map (g i (a, ·))`: given the parameter, the coded coordinates are
+independent with these marginals. -/
+theorem map_prod_infinitePi_eq_compProd {α γ : Type*} [MeasurableSpace α] [MeasurableSpace γ]
+    {μ : Measure α} [SFinite μ] {ν : Measure γ} [IsProbabilityMeasure ν] {g : ι → α × γ → X}
+    (hg : ∀ i, Measurable (g i)) (K : Kernel α (ι → X)) [IsSFiniteKernel K]
+    (hK : ∀ a, K a = Measure.infinitePi fun i => ν.map fun c => g i (a, c)) :
+    (μ.prod (Measure.infinitePi fun _ : ι => ν)).map
+      (fun p => (p.1, fun i => g i (p.1, p.2 i))) = μ ⊗ₘ K := by
+  have hF : Measurable fun p : α × (ι → γ) => (p.1, fun i => g i (p.1, p.2 i)) :=
+    measurable_fst.prodMk (measurable_pi_iff.2 fun i => (hg i).comp
+      (measurable_fst.prodMk ((measurable_pi_apply i).comp measurable_snd)))
+  ext S hS
+  rw [Measure.map_apply hF hS, Measure.prod_apply (hF hS), Measure.compProd_apply hS]
+  refine lintegral_congr fun a => ?_
+  rw [hK, ← infinitePi_map_pi (μ := fun _ : ι => ν) (f := fun i c => g i (a, c))
+    fun i => (hg i).comp measurable_prodMk_left, Measure.map_apply (by fun_prop)
+    (measurable_prodMk_left hS)]
+  rfl
+
 /-- **Coded sequences are mixtures of i.i.d. sequences.** If `a ~ μ` and `(c_i)` are i.i.d. `ν`,
 independent of `a`, then the law of `(g (a, c_i))_i` is the mixture, over `a`, of the i.i.d.
 sequences with marginal `(ν.map (g (a, ·)))`. -/
 theorem map_prod_infinitePi_eq_bind {α γ : Type*} [MeasurableSpace α] [MeasurableSpace γ]
-    {μ : Measure α} {ν : Measure γ} [IsProbabilityMeasure ν] {g : α × γ → X}
+    {μ : Measure α} [SFinite μ] {ν : Measure γ} [IsProbabilityMeasure ν] {g : α × γ → X}
     (hg : Measurable g) :
     (μ.prod (Measure.infinitePi fun _ : ι => ν)).map (fun p i => g (p.1, p.2 i)) =
       μ.bind fun a => Measure.infinitePi fun _ : ι => ν.map fun c => g (a, c) := by
-  have hG := measurable_pi_curry (ι := ι) hg
   have hν : Measurable fun a => ν.map fun c => g (a, c) := measurable_map_curry hg ν
-  ext t ht
-  rw [Measure.map_apply hG ht, Measure.prod_apply (hG ht),
-    Measure.bind_apply ht (measurable_infinitePi_const hν).aemeasurable]
-  refine lintegral_congr fun a => ?_
-  rw [← infinitePi_map_pi (μ := fun _ : ι => ν) (f := fun _ c => g (a, c))
-    fun _ => hg.comp measurable_prodMk_left, Measure.map_apply (by fun_prop) ht]
-  rfl
+  let K : Kernel α (ι → X) :=
+    ⟨fun a => Measure.infinitePi fun _ : ι => ν.map fun c => g (a, c),
+      measurable_infinitePi_const hν⟩
+  have : IsMarkovKernel K :=
+    ⟨fun a => inferInstanceAs (IsProbabilityMeasure (Measure.infinitePi _))⟩
+  have := map_prod_infinitePi_eq_compProd (μ := μ) (ν := ν) (g := fun _ => g) (fun _ => hg) K
+    fun a => rfl
+  have h2 := congrArg (Measure.map Prod.snd) this
+  rw [Measure.map_map measurable_snd (by fun_prop)] at h2
+  exact h2.trans (Measure.snd_compProd μ K)
 
 end MeasureTheory.Measure

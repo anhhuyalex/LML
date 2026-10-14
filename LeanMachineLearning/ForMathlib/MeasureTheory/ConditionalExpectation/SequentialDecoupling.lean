@@ -8,6 +8,7 @@ module
 public import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
 public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
 public import Mathlib.MeasureTheory.Function.StronglyMeasurable.Basic
+public import Mathlib.Data.Fintype.EquivFin
 
 /-!
 # From sequential conditioning to conditional independence
@@ -30,6 +31,10 @@ actually occur in the product.
 * `MeasureTheory.condExp_prod_eq_prod_condExp`: the product formula for adapted bounded variables.
 * `MeasureTheory.condExp_prod_comp_eq_prod_condExp`: the version for `f k (Y k)` with
   `𝒢 k = m ⊔ ⨆ j < k, σ(Y j)`.
+* `MeasureTheory.condExp_finset_prod_comp_eq_prod_condExp`: the version for a finite family of
+  cells `s (l i)` of an indexed family `s`, conditioned on `σ(s c : c ∈ K)`, where the hypothesis
+  is that enlarging `K` by cells other than `l i` does not change the prediction of `s (l i)`.
+  This is the shared shape of Eq. (1.88) (sequences) and Eq. (1.94) (arrays).
 
 ## References
 
@@ -126,5 +131,55 @@ theorem condExp_prod_comp_eq_prod_condExp {n : ℕ} {E : Type*} [mE : Measurable
   · have h1 : Measurable[mE.comap (Y j)] (fun ω => f j (Y j ω)) :=
       (hf j).comp (comap_measurable (Y j))
     exact (h1.stronglyMeasurable).mono (le_sup_of_le_right (le_iSup₂_of_le j hjk le_rfl))
+
+/-- **Conditional independence of cells.**  Let `s : T → Ω → E` be a family of random variables,
+`K` a set of cells, and `l : ι → T` an injective (on `t`) enumeration of cells outside `K`.  Suppose
+that adding to `K` any further cells other than `l i` does not change the prediction of `s (l i)`:
+`μ[f i (s (l i)) | σ(s c : c ∈ K')] = μ[f i (s (l i)) | σ(s c : c ∈ K)]` for `K ⊆ K'` not containing
+`l i`.  Then the cells `s (l i)`, `i ∈ t`, are conditionally independent given `σ(s c : c ∈ K)`:
+`μ[∏ i ∈ t, f i (s (l i)) | σ_K] = ∏ i ∈ t, μ[f i (s (l i)) | σ_K]`. -/
+theorem condExp_finset_prod_comp_eq_prod_condExp {T E ι : Type*} [mE : MeasurableSpace E]
+    {s : T → Ω → E} (hs : ∀ c, Measurable (s c)) (K : Set T) (t : Finset ι) (l : ι → T)
+    (hl : Set.InjOn l t) (hlK : ∀ i ∈ t, l i ∉ K) (f : ι → E → ℝ) (hf : ∀ i, Measurable (f i))
+    (hfb : ∀ i, ∃ C, ∀ x, |f i x| ≤ C)
+    (hstep : ∀ i ∈ t, ∀ K' : Set T, K ⊆ K' → l i ∉ K' →
+      μ[fun ω => f i (s (l i) ω) | ⨆ c ∈ K', mE.comap (s c)] =ᵐ[μ]
+        μ[fun ω => f i (s (l i) ω) | ⨆ c ∈ K, mE.comap (s c)]) :
+    μ[fun ω => ∏ i ∈ t, f i (s (l i) ω) | ⨆ c ∈ K, mE.comap (s c)] =ᵐ[μ]
+      fun ω => ∏ i ∈ t, μ[fun ω' => f i (s (l i) ω') | ⨆ c ∈ K, mE.comap (s c)] ω := by
+  classical
+  let e : Fin t.card → ι := fun k => (t.equivFin.symm k : ι)
+  have he_mem : ∀ k, e k ∈ t := fun k => (t.equivFin.symm k).2
+  have he_inj : Function.Injective e := fun k k' h => t.equivFin.symm.injective (Subtype.ext h)
+  have hconv : ∀ g : ι → ℝ, ∏ k : Fin t.card, g (e k) = ∏ i ∈ t, g i := fun g => by
+    rw [← Finset.prod_coe_sort t g]
+    exact Equiv.prod_comp t.equivFin.symm (fun i : t => g i)
+  have hm : (⨆ c ∈ K, mE.comap (s c)) ≤ m₀ := iSup₂_le fun c _ => (hs c).comap_le
+  have hstep' : ∀ k : Fin t.card,
+      μ[fun ω => f (e k) (s (l (e k)) ω) |
+          (⨆ c ∈ K, mE.comap (s c)) ⊔ ⨆ j < k, mE.comap (s (l (e j)))] =ᵐ[μ]
+        μ[fun ω => f (e k) (s (l (e k)) ω) | ⨆ c ∈ K, mE.comap (s c)] := by
+    intro k
+    have hG : ((⨆ c ∈ K, mE.comap (s c)) ⊔ ⨆ j < k, mE.comap (s (l (e j)))) =
+        ⨆ c ∈ K ∪ ((fun j => l (e j)) '' {j | j < k}), mE.comap (s c) := by
+      rw [iSup_union, iSup_image]
+      rfl
+    have hnot : l (e k) ∉ K ∪ ((fun j => l (e j)) '' {j | j < k}) := by
+      rintro (h | ⟨j, hj, hjk⟩)
+      · exact hlK _ (he_mem k) h
+      · exact absurd (he_inj (hl (he_mem j) (he_mem k) hjk)) (ne_of_lt hj)
+    rw [hG]
+    exact hstep _ (he_mem k) _ Set.subset_union_left hnot
+  have key := condExp_prod_comp_eq_prod_condExp (μ := μ) (m := ⨆ c ∈ K, mE.comap (s c))
+    (fun k ω => s (l (e k)) ω) (fun k => f (e k)) hm (fun k => hs _) (fun k => hf _)
+    (fun k => by simpa using hfb (e k)) hstep'
+  have e1 : (fun ω => ∏ i ∈ t, f i (s (l i) ω)) = fun ω => ∏ k, f (e k) (s (l (e k)) ω) :=
+    funext fun ω => (hconv (fun i => f i (s (l i) ω))).symm
+  have e2 : (fun ω => ∏ i ∈ t, μ[fun ω' => f i (s (l i) ω') | ⨆ c ∈ K, mE.comap (s c)] ω) =
+      fun ω => ∏ k, μ[fun ω' => f (e k) (s (l (e k)) ω') | ⨆ c ∈ K, mE.comap (s c)] ω :=
+    funext fun ω =>
+      (hconv (fun i => μ[fun ω' => f i (s (l i) ω') | ⨆ c ∈ K, mE.comap (s c)] ω)).symm
+  rw [e1, e2]
+  exact key
 
 end MeasureTheory

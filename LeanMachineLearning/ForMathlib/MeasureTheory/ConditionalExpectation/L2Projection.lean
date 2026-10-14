@@ -34,6 +34,8 @@ and `integral_condExp`), not with `condExpL2`.
 * `MeasureTheory.integral_sq_condExp_le_of_le`: monotonicity of the `L²` norm.
 * `MeasureTheory.condExp_ae_eq_of_integral_sq_condExp_eq`: equal norms imply equal conditional
   expectations almost everywhere.
+* `MeasureTheory.condExp_ae_eq_of_le_of_le`: if two conditional expectations agree, so does every
+  one in between.
 * `MeasureTheory.tendsto_integral_sq_condExp`: along an increasing sequence of σ-algebras the `L²`
   norms of `μ[f | 𝒢 n]` converge to that of `μ[f | ⨆ n, 𝒢 n]` (Lévy's upward theorem).  This lets
   one compute the norm for an infinite conditioning family from finite sub-families.
@@ -124,6 +126,17 @@ theorem condExp_ae_eq_of_integral_sq_condExp_eq (hm₁₂ : m₁ ≤ m₂) (hm�
   filter_upwards [this] with ω hω
   have : μ[f | m₂] ω - μ[f | m₁] ω = 0 := by simpa using hω
   linarith
+
+/-- **Sandwich:** if `m₁ ≤ m₂ ≤ m₃ ≤ m₀` and `μ[f | m₁]` and `μ[f | m₃]` agree almost everywhere
+then so do `μ[f | m₂]` and `μ[f | m₃]`: the common value is `m₁`-measurable, hence `m₂`-measurable,
+and is therefore unchanged by projecting onto `m₂`. -/
+theorem condExp_ae_eq_of_le_of_le {m₃ : MeasurableSpace Ω} (hm₁₂ : m₁ ≤ m₂) (hm₂₃ : m₂ ≤ m₃)
+    (hm₃ : m₃ ≤ m₀) (h : μ[f | m₁] =ᵐ[μ] μ[f | m₃]) : μ[f | m₂] =ᵐ[μ] μ[f | m₃] :=
+  calc μ[f | m₂] =ᵐ[μ] μ[μ[f | m₃] | m₂] := (condExp_condExp_of_le hm₂₃ hm₃).symm
+    _ =ᵐ[μ] μ[μ[f | m₁] | m₂] := condExp_congr_ae h.symm
+    _ = μ[f | m₁] := condExp_of_stronglyMeasurable (hm₂₃.trans hm₃)
+        (stronglyMeasurable_condExp.mono hm₁₂) integrable_condExp
+    _ =ᵐ[μ] μ[f | m₃] := h
 
 /-- **Convergence of `L²` norms along an increasing sequence of σ-algebras** (Lévy's upward
 theorem plus bounded convergence): if `f` is bounded then
