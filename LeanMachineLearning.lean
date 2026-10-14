@@ -17,6 +17,8 @@ public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalDiagonalization
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
+public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
+public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Sigma
@@ -42,6 +44,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfin
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralTsumMul
 public import LeanMachineLearning.ForMathlib.Probability.Integrable
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Basic
+public import LeanMachineLearning.ForMathlib.Probability.Kernel.CodingLemma
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.IntegralCompProd
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.Lemmas
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.MapComap
