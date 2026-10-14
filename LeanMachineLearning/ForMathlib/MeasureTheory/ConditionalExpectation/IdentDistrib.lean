@@ -173,11 +173,8 @@ theorem condDistrib_swap_ae_eq [IsFiniteMeasure P] {α : Type*} [MeasurableSpace
   have hρ : μ ⊗ₘ ν = P.map fun ω => ((A ω, B ω), Y ω) :=
     compProd_map_condDistrib hAB.aemeasurable hY.aemeasurable
   have hμ : μ.map Prod.swap = μ := by
-    have := congrArg (Measure.map Prod.fst) h.map_eq
-    rw [Measure.map_map measurable_fst (by fun_prop), Measure.map_map measurable_fst (by fun_prop)]
-      at this
     rw [hμdef, Measure.map_map measurable_swap hAB]
-    exact this
+    exact (h.comp measurable_fst).map_eq
   have hρT : (μ ⊗ₘ ν).map T = μ ⊗ₘ ν := by
     rw [hρ, Measure.map_map hT (hAB.prodMk hY)]
     exact h.map_eq

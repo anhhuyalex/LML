@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
 public import Mathlib.MeasureTheory.Constructions.Cylinders
 public import Mathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.Kernel.Composition.MeasureCompProd
@@ -110,11 +111,8 @@ theorem measurePreserving_restrict_infinitePi {κ : Type*} [Fintype ι] (ν : Me
 theorem map_bind {A B : Type*} [MeasurableSpace A] [MeasurableSpace B] {P : Measure Ω}
     {κ : Ω → Measure A} (hκ : Measurable κ) {T : A → B} (hT : Measurable T) :
     (P.bind κ).map T = P.bind fun ω => (κ ω).map T := by
-  have hκT : Measurable fun ω => (κ ω).map T := (Measure.measurable_map T hT).comp hκ
-  ext s hs
-  rw [Measure.map_apply hT hs, Measure.bind_apply (hT hs) hκ.aemeasurable,
-    Measure.bind_apply hs hκT.aemeasurable]
-  exact lintegral_congr fun ω => (Measure.map_apply hT hs).symm
+  have h := Measure.map_comp P (⟨κ, hκ⟩ : Kernel Ω A) hT
+  exact h.trans (congrArg P.bind (funext fun ω => Kernel.map_apply _ hT ω))
 
 /-- A mixture of measures that are invariant under a measurable map `T` is invariant under `T`. -/
 theorem map_bind_eq_self {A : Type*} [MeasurableSpace A] {P : Measure Ω} {κ : Ω → Measure A}
@@ -193,5 +191,37 @@ theorem map_prod_infinitePi_eq_bind {α γ : Type*} [MeasurableSpace α] [Measur
   have h2 := congrArg (Measure.map Prod.snd) this
   rw [Measure.map_map measurable_snd (by fun_prop)] at h2
   exact h2.trans (Measure.snd_compProd μ K)
+
+/-- **Restrictions of an i.i.d. family to disjoint sets of indices are independent.**  For
+injections `f : α → ι` and `g : β → ι` with disjoint ranges the pair of sub-families
+`((ω (f a))_a, (ω (g b))_b)` of an i.i.d. family has the product law. -/
+theorem map_infinitePi_pair_of_disjoint {α β : Type*} (ν : Measure X) [IsProbabilityMeasure ν]
+    {f : α → ι} {g : β → ι} (hf : Function.Injective f) (hg : Function.Injective g)
+    (hfg : Disjoint (range f) (range g)) :
+    (infinitePi fun _ : ι => ν).map (fun ω => (fun a => ω (f a), fun b => ω (g b))) =
+      (infinitePi fun _ : α => ν).prod (infinitePi fun _ : β => ν) := by
+  have hA : Measurable fun (ω : ι → X) (a : α) => ω (f a) := by fun_prop
+  have hB : Measurable fun (ω : ι → X) (b : β) => ω (g b) := by fun_prop
+  have hind : iIndep (fun i : ι => MeasurableSpace.comap (fun ω : ι → X => ω i) inferInstance)
+      (infinitePi fun _ : ι => ν) :=
+    iIndepFun_infinitePi (P := fun _ : ι => ν) (X := fun _ x => x) fun _ => measurable_id
+  have h := indep_iSup_of_disjoint (fun i => (measurable_pi_apply i).comap_le) hind hfg
+  rw [← MeasurableSpace.comap_pi_range f (fun i (ω : ι → X) => ω i),
+    ← MeasurableSpace.comap_pi_range g (fun i (ω : ι → X) => ω i)] at h
+  rw [(indepFun_iff_map_prod_eq_prod_map_map hA.aemeasurable hB.aemeasurable).1 h,
+    map_infinitePi_infinitePi_of_inj hf, map_infinitePi_infinitePi_of_inj hg]
+
+/-- A parameter `a ~ μ` together with two sub-families, indexed by disjoint sets of an i.i.d.
+family independent of `a`, are independent. -/
+theorem map_prod_infinitePi_pair_of_disjoint {α β A : Type*} [MeasurableSpace A] (μ : Measure A)
+    [SFinite μ] (ν : Measure X) [IsProbabilityMeasure ν] {f : α → ι} {g : β → ι}
+    (hf : Function.Injective f) (hg : Function.Injective g) (hfg : Disjoint (range f) (range g)) :
+    (μ.prod (infinitePi fun _ : ι => ν)).map
+        (fun p => (p.1, (fun a => p.2 (f a), fun b => p.2 (g b)))) =
+      μ.prod ((infinitePi fun _ : α => ν).prod (infinitePi fun _ : β => ν)) := by
+  have h := Measure.map_prod_map μ (infinitePi fun _ : ι => ν) (f := id) measurable_id
+    (g := fun ω : ι → X => (fun a => ω (f a), fun b => ω (g b))) (by fun_prop)
+  rw [Measure.map_id, map_infinitePi_pair_of_disjoint ν hf hg hfg] at h
+  exact h.symm
 
 end MeasureTheory.Measure

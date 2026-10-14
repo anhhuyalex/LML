@@ -122,13 +122,8 @@ theorem condExp_comp_ae_eq_condExp_compl [StandardBorelSpace E] [Nonempty E]
   have hmono : ∀ (u : ℕ → ℕ) (n : ℕ), (range fun m : Fin n => u m) ⊆
       range fun m : Fin (n + 1) => u m := fun u n x ⟨m, hm⟩ => ⟨m.castSucc, hm⟩
   have hinj : ∀ (n : ℕ) (u : ℕ → ℕ), Injective u → j ∉ range u →
-      Injective fun o : Option (Fin n) => o.elim j fun m => u m := by
-    intro n u hu hj o o' h
-    rcases o with _ | m <;> rcases o' with _ | m'
-    · rfl
-    · exact absurd ⟨m', h.symm⟩ hj
-    · exact absurd ⟨m, h⟩ hj
-    · exact congrArg some (Fin.ext (hu h))
+      Injective fun o : Option (Fin n) => o.elim j fun m => u m := fun n u hu hj =>
+    Option.injective_iff.2 ⟨hu.comp Fin.val_injective, fun ⟨m, hm⟩ => hj ⟨m, hm⟩⟩
   set u : ℕ → ℕ := Nat.nth (· ∈ J) with hu_def
   set u' : ℕ → ℕ := Nat.nth (· ∈ ({j}ᶜ : Set ℕ)) with hu'_def
   have hr : range u = J := Nat.range_nth_of_infinite hI
@@ -211,8 +206,8 @@ theorem exists_de_finetti_representation [StandardBorelSpace E] [Nonempty E]
   have hX : Measurable X := measurable_pi_iff.2 fun m => hs _
   have hK : (range fun m : ℕ => 2 * m).Infinite :=
     infinite_range_of_injective fun a b h => by simpa using h
-  have hF : MeasurableSpace.pi.comap X = ⨆ k ∈ range fun m : ℕ => 2 * m, mE.comap (s k) := by
-    rw [MeasurableSpace.comap_pi, iSup_range]
+  have hF : MeasurableSpace.pi.comap X = ⨆ k ∈ range fun m : ℕ => 2 * m, mE.comap (s k) :=
+    MeasurableSpace.comap_pi_range (fun m : ℕ => 2 * m) s
   have hodd : ∀ i : ℕ, 2 * i + 1 ∉ range fun m : ℕ => 2 * m := by
     rintro i ⟨m, hm⟩
     have : 2 * m = 2 * i + 1 := hm
