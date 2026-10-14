@@ -33,7 +33,8 @@ annealed law `𝔼 G^{⊗∞}`.
   is the passage from infinitely many replicas to `k` replicas.
 * `MeasureTheory.Measure.map_bind_eq_self`: a mixture of `T`-invariant measures is `T`-invariant.
 * `MeasureTheory.Measure.bind_infinitePi_map_comp_equiv`: exchangeability of the mixture.
-* `MeasureTheory.Measure.measurable_map_curry`: the law of `g (a, ·)` is measurable in `a`.
+* `MeasureTheory.Measure.measurable_pi_curry`, `MeasureTheory.Measure.measurable_map_curry`:
+  measurability of the coded sequence `(g (a, c i))_i` and of the law of `g (a, ·)` in `a`.
 * `MeasureTheory.Measure.map_prod_infinitePi_eq_bind`: a sequence `(g (a, c_i))_i` coded by a
   parameter `a ~ μ` and i.i.d. noise `c_i ~ ν` is a mixture of i.i.d. sequences (the form of the
   de Finetti representation).
@@ -113,6 +114,14 @@ theorem bind_infinitePi_map_comp_equiv {P : Measure Ω} {ν : Ω → Measure X}
     (measurable_pi_iff.2 fun _ => measurable_pi_apply _)
     fun ω => infinitePi_map_comp_equiv (ν ω) e
 
+/-- The sequence `(g (a, c i))_i` is a measurable function of the parameter `a` and the noise
+sequence `c`. -/
+theorem measurable_pi_curry {α γ : Type*} [MeasurableSpace α] [MeasurableSpace γ]
+    {g : α × γ → X} (hg : Measurable g) :
+    Measurable fun (p : α × (ι → γ)) i => g (p.1, p.2 i) :=
+  measurable_pi_iff.2 fun i => hg.comp (measurable_fst.prodMk
+    ((measurable_pi_apply i).comp measurable_snd))
+
 /-- The law of `c ↦ g (a, c)` under `ν` depends measurably on the parameter `a`. -/
 theorem measurable_map_curry {α γ : Type*} [MeasurableSpace α] [MeasurableSpace γ]
     {g : α × γ → X} (hg : Measurable g) (ν : Measure γ) [SFinite ν] :
@@ -132,9 +141,7 @@ theorem map_prod_infinitePi_eq_bind {α γ : Type*} [MeasurableSpace α] [Measur
     (hg : Measurable g) :
     (μ.prod (Measure.infinitePi fun _ : ι => ν)).map (fun p i => g (p.1, p.2 i)) =
       μ.bind fun a => Measure.infinitePi fun _ : ι => ν.map fun c => g (a, c) := by
-  have hG : Measurable fun (p : α × (ι → γ)) i => g (p.1, p.2 i) :=
-    measurable_pi_iff.2 fun i => hg.comp (measurable_fst.prodMk
-      ((measurable_pi_apply i).comp measurable_snd))
+  have hG := measurable_pi_curry (ι := ι) hg
   have hν : Measurable fun a => ν.map fun c => g (a, c) := measurable_map_curry hg ν
   ext t ht
   rw [Measure.map_apply hG ht, Measure.prod_apply (hG ht),

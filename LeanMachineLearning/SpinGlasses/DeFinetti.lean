@@ -94,8 +94,8 @@ section ConditionalNorms
 
 variable {s : ℕ → Ω → E}
 
-/-- The `L²` norm of `P[f (s j) | σ(s (u m) : l ∈ range u)]` is the limit of the norms for the
-first `n` elements of the enumeration `u` (Lévy's upward theorem). -/
+/-- The `L²` norm of `P[f (s j) | σ(s l : l ∈ range u)]` is the limit of the norms of
+`P[f (s j) | σ(s (u m) : m < n)]` (Lévy's upward theorem). -/
 theorem tendsto_integral_sq_condExp_iSup_fin [IsFiniteMeasure P] (hs : ∀ l, Measurable (s l))
     (u : ℕ → ℕ) (j : ℕ) {f : E → ℝ} {C : ℝ} (hC : ∀ x, |f x| ≤ C) :
     Tendsto (fun n => ∫ ω, P[fun ω => f (s j ω) | ⨆ m : Fin n, mE.comap (s (u m))] ω ^ 2 ∂P)
@@ -114,7 +114,7 @@ theorem tendsto_integral_sq_condExp_iSup_fin [IsFiniteMeasure P] (hs : ∀ l, Me
 
 /-- **The `L²` norm of a conditional expectation given an infinite part of an exchangeable
 sequence does not depend on the part.**  If `j ∉ J` and `j' ∉ J'` with `J`, `J'` infinite, then
-`∫ (P[f (s j) | F_I])² = ∫ (P[f (s j') | F_{J'}])²`, where `F_I = σ(s l : l ∈ J)`.  This is the
+`∫ (P[f (s j) | F_J])² = ∫ (P[f (s j') | F_{J'}])²`, where `F_J = σ(s l : l ∈ J)`.  This is the
 core of Lemma 1.5: by Lévy's theorem both sides are limits of the norms for finite sub-families,
 and these coincide by exchangeability. -/
 theorem integral_sq_condExp_comp_eq_of_exchangeable [StandardBorelSpace E] [Nonempty E]
@@ -161,7 +161,7 @@ theorem integral_sq_condExp_comp_eq_of_exchangeable [StandardBorelSpace E] [None
 
 /-- **Lemma 1.5** [Panchenko, 2013]. For an exchangeable sequence, an infinite set `J` of
 indices and `j ∉ J`, knowing the coordinates in `J` is as good as knowing all other coordinates
-for predicting `s j`: `P[f (s j) | F_I] = P[f (s j) | F_{ℕ ∖ {j}}]` almost surely, for every
+for predicting `s j`: `P[f (s j) | F_J] = P[f (s j) | F_{ℕ ∖ {j}}]` almost surely, for every
 bounded measurable `f` (no continuity is needed). -/
 theorem condExp_comp_ae_eq_condExp_compl [StandardBorelSpace E] [Nonempty E]
     [IsProbabilityMeasure P] (hs : ∀ l, Measurable (s l))
@@ -287,29 +287,27 @@ theorem exists_de_finetti_representation [StandardBorelSpace E] [Nonempty E]
     have : 2 * m = 2 * i + 1 := hm
     omega
   have hinj : Injective fun i : ℕ => 2 * i + 1 := fun a b h => by simpa using h
-  have hmix : P.map (fun ω i => s (2 * i + 1) ω) = (P.map X).bind fun x =>
-      Measure.infinitePi fun _ : ℕ => condDistrib (s (2 * 0 + 1)) X P x := by
-    refine map_eq_bind_infinitePi_condDistrib (Y := fun i => s (2 * i + 1)) hX
-      (fun i => hs _) (fun i f hf hfb => ?_) (fun t f hf hfb => ?_)
+  let Y : ℕ → Ω → E := fun i => s (2 * i + 1)
+  have hmix : P.map (fun ω i => Y i ω) = (P.map X).bind fun x =>
+      Measure.infinitePi fun _ : ℕ => condDistrib (Y 0) X P x := by
+    refine map_eq_bind_infinitePi_condDistrib hX (fun i => hs _) (fun i f hf hfb => ?_)
+      (fun t f hf hfb => ?_)
     · rw [hF]
       exact condExp_comp_ae_eq_of_exchangeable hs hexch (hodd i) (hodd 0) hf hfb
     · rw [hF]
       exact condExp_prod_comp_eq_prod_condExp_of_exchangeable hs hexch hK t (fun i => 2 * i + 1)
         (hinj.injOn) (fun i _ => hodd i) f hf hfb
-  have hsub : IdentDistrib (fun ω i => s (2 * i + 1) ω) (fun ω l => s l ω) P P :=
+  have hsub : IdentDistrib (fun ω i => Y i ω) (fun ω l => s l ω) P P :=
     identDistrib_subsequence_of_exchangeable hs hexch hinj
   obtain ⟨φ, hφ, hφX⟩ := Measure.exists_measurable_map_eq (P.map X)
-  obtain ⟨h, hh, hhκ⟩ := Kernel.exists_measurable_map_eq_unitInterval
-    (condDistrib (s (2 * 0 + 1)) X P)
+  obtain ⟨h, hh, hhκ⟩ := Kernel.exists_measurable_map_eq_unitInterval (condDistrib (Y 0) X P)
   have hg : Measurable fun p : I × I => h (φ p.1) p.2 :=
     hh.comp ((hφ.comp measurable_fst).prodMk measurable_snd)
-  have hν : Measurable fun x => Measure.infinitePi fun _ : ℕ =>
-      condDistrib (s (2 * 0 + 1)) X P x := Measure.measurable_infinitePi_const (Kernel.measurable _)
+  have hν : Measurable fun x => Measure.infinitePi fun _ : ℕ => condDistrib (Y 0) X P x :=
+    Measure.measurable_infinitePi_const (Kernel.measurable _)
   refine ⟨fun p => h (φ p.1) p.2, hg, ?_⟩
-  have hmeas : Measurable fun (p : I × (ℕ → I)) l => h (φ p.1) (p.2 l) :=
-    measurable_pi_iff.2 fun l => hg.comp (measurable_fst.prodMk
-      ((measurable_pi_apply l).comp measurable_snd))
-  refine ⟨(measurable_pi_iff.2 fun l => hs l).aemeasurable, hmeas.aemeasurable, ?_⟩
+  refine ⟨(measurable_pi_iff.2 fun l => hs l).aemeasurable,
+    (Measure.measurable_pi_curry (ι := ℕ) hg).aemeasurable, ?_⟩
   rw [← hsub.map_eq, hmix, Measure.map_prod_infinitePi_eq_bind hg, ← hφX]
   unfold Measure.bind
   rw [Measure.map_map hν hφ]
@@ -326,9 +324,7 @@ theorem identDistrib_deFinetti_comp_equiv {g : I × I → E} (hg : Measurable g)
       (fun (p : I × (ℕ → I)) l => g (p.1, p.2 l))
       ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))
       ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))) := by
-  have hG : Measurable fun (p : I × (ℕ → I)) l => g (p.1, p.2 l) :=
-    measurable_pi_iff.2 fun l => hg.comp (measurable_fst.prodMk
-      ((measurable_pi_apply l).comp measurable_snd))
+  have hG := Measure.measurable_pi_curry (ι := ℕ) (γ := I) hg
   have hν : Measurable fun w : I => (volume : Measure I).map fun c => g (w, c) :=
     Measure.measurable_map_curry hg _
   have hT : Measurable fun ξ : ℕ → E => ξ ∘ e := measurable_pi_iff.2 fun l => measurable_pi_apply _

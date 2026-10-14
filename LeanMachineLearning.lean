@@ -17,6 +17,7 @@ public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalDiagonalization
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
+public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.IdentDistrib
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
@@ -34,6 +35,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.OuterMeasure.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
+public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.HasLaw
@@ -279,6 +281,7 @@ public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.Concentration
+public import LeanMachineLearning.SpinGlasses.DeFinetti
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
