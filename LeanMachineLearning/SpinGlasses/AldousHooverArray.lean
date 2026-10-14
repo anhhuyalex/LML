@@ -22,6 +22,14 @@ hypothesis is the `IdentDistrib` statement itself.
   Lemma 1.6 for rectangles of cells.
 * `SpinGlasses.condExp_prod_comp_eq_prod_condExp_of_separately_exchangeable`: the analogue of
   Eq. (1.94).
+* `SpinGlasses.identDistrib_vertexData_comp_inj`, `SpinGlasses.condExp_rowColData_ae_eq_integral`,
+  `SpinGlasses.map_rowColData_eq_compProd`: the row and column vertex arrays and the entries at the
+  odd rows and columns; given the vertex arrays the entries are independent with law
+  `ν (S a, T b)`.
+* `SpinGlasses.map_rowColData_eq_coded`: the vertex arrays are driven by independent row and
+  column noise (de Finetti for the pairs `(S k, T k)`, then disjoint sub-sequences).
+* `SpinGlasses.exists_aldousHoover_representation_separately`: Theorem 1.4.
+* `SpinGlasses.identDistrib_aldousHoover_separately_comp_equiv`: the converse (Eq. (1.77)).
 
 ## Implementation notes
 
@@ -280,6 +288,24 @@ theorem identDistrib_rowColPair [IsFiniteMeasure P] (hs : ∀ c, Measurable (s c
       ((x.1.1 0, x.1.2 0), x.2 (0, 0))) (by fun_prop)
   simpa [Function.comp_def, Equiv.swap_apply_left] using h
 
+/-- A row vertex array is measurable. -/
+theorem measurable_rowData {κ : ℕ → ℕ → ℕ} {S : ℕ → Ω → ℕ × ℕ → E} (hs : ∀ c, Measurable (s c))
+    (hS : ∀ a ω p, S a ω p = s (κ a p.1, 2 * p.2) ω) (a : ℕ) : Measurable (S a) := by
+  rw [show S a = fun ω p => s (κ a p.1, 2 * p.2) ω from funext fun ω => funext (hS a ω)]
+  exact measurable_pi_iff.2 fun p => hs _
+
+/-- A column vertex array is measurable. -/
+theorem measurable_colData {κ : ℕ → ℕ → ℕ} {T : ℕ → Ω → ℕ × ℕ → E} (hs : ∀ c, Measurable (s c))
+    (hT : ∀ b ω p, T b ω p = s (2 * p.1, κ b p.2) ω) (b : ℕ) : Measurable (T b) := by
+  rw [show T b = fun ω p => s (2 * p.1, κ b p.2) ω from funext fun ω => funext (hT b ω)]
+  exact measurable_pi_iff.2 fun p => hs _
+
+/-- An entry at an odd row and an odd column is measurable. -/
+theorem measurable_oddEntry {Q : ℕ × ℕ → Ω → E} (hs : ∀ c, Measurable (s c))
+    (hQ : ∀ c ω, Q c ω = s (2 * c.1 + 1, 2 * c.2 + 1) ω) (c : ℕ × ℕ) : Measurable (Q c) := by
+  rw [show Q c = s (2 * c.1 + 1, 2 * c.2 + 1) from funext (hQ c)]
+  exact hs _
+
 /-- The cells of the row vertex array `S a`. -/
 theorem range_vertexRow {κ : ℕ → ℕ → ℕ} (hκ0 : ∀ a, κ a 0 = 2 * a + 1)
     (hκ1 : ∀ a m, κ a (m + 1) = 2 * m) (a : ℕ) :
@@ -421,12 +447,8 @@ theorem condExp_rowColData_ae_eq_integral [IsProbabilityMeasure P] [StandardBore
     P[fun ω => g (Q (a, b) ω) |
         MeasurableSpace.comap (fun ω => (fun a => S a ω, fun b => T b ω)) inferInstance] =ᵐ[P]
       fun ω => ∫ y, g y ∂ν (S a ω, T b ω) := by
-  have hSm : ∀ a, Measurable (S a) := fun a => by
-    rw [show S a = fun ω p => s (κ a p.1, 2 * p.2) ω from funext fun ω => funext (hS a ω)]
-    exact measurable_pi_iff.2 fun p => hs _
-  have hTm : ∀ b, Measurable (T b) := fun b => by
-    rw [show T b = fun ω p => s (2 * p.1, κ b p.2) ω from funext fun ω => funext (hT b ω)]
-    exact measurable_pi_iff.2 fun p => hs _
+  have hSm : ∀ a, Measurable (S a) := measurable_rowData hs hS
+  have hTm : ∀ b, Measurable (T b) := measurable_colData hs hT
   have hQab : Q (a, b) = s (2 * a + 1, 2 * b + 1) := funext (hQ _)
   have hQm : Measurable (Q (a, b)) := by rw [hQab]; exact hs _
   obtain ⟨C, hC⟩ := hgb
@@ -476,15 +498,9 @@ theorem map_rowColData_eq_compProd [IsProbabilityMeasure P] [StandardBorelSpace 
     (hK : ∀ x, K x = Measure.infinitePi fun c : ℕ × ℕ => ν (x.1 c.1, x.2 c.2)) :
     P.map (fun ω => ((fun a => S a ω, fun b => T b ω), fun c : ℕ × ℕ => Q c ω)) =
       (P.map fun ω => (fun a => S a ω, fun b => T b ω)) ⊗ₘ K := by
-  have hSm : ∀ a, Measurable (S a) := fun a => by
-    rw [show S a = fun ω p => s (κ a p.1, 2 * p.2) ω from funext fun ω => funext (hS a ω)]
-    exact measurable_pi_iff.2 fun p => hs _
-  have hTm : ∀ b, Measurable (T b) := fun b => by
-    rw [show T b = fun ω p => s (2 * p.1, κ b p.2) ω from funext fun ω => funext (hT b ω)]
-    exact measurable_pi_iff.2 fun p => hs _
-  have hQm : ∀ c, Measurable (Q c) := fun c => by
-    rw [show Q c = s (2 * c.1 + 1, 2 * c.2 + 1) from funext (hQ c)]
-    exact hs _
+  have hSm : ∀ a, Measurable (S a) := measurable_rowData hs hS
+  have hTm : ∀ b, Measurable (T b) := measurable_colData hs hT
+  have hQm : ∀ c, Measurable (Q c) := measurable_oddEntry hs hQ
   have : IsMarkovKernel ν := by rw [hν]; infer_instance
   refine map_prodMk_eq_compProd_infinitePi
     (fun c : ℕ × ℕ => ν.comap (fun x : (ℕ → ℕ × ℕ → E) × (ℕ → ℕ × ℕ → E) => (x.1 c.1, x.2 c.2))
@@ -508,5 +524,252 @@ theorem map_rowColData_eq_compProd [IsProbabilityMeasure P] [StandardBorelSpace 
         (cells_rowColData c.1 c.2).1.2⟩
 
 end VertexData
+
+section Representation
+
+/-- **The law of the vertex data from de Finetti's theorem.**  Let `(S a)` and `(T b)` be sequences
+such that the sequence of pairs `(S k, T k)` is represented by `G (w, u_k)` (de Finetti) and such
+that the sub-families `(S (2 a))_a`, `(T (2 b + 1))_b` have the law of `((S a)_a, (T b)_b)`.  Then
+`((S a)_a, (T b)_b)` has the law of `((X (w, u_a))_a, (Y (w, v_b))_b)`, where `G = (X, Y)` and
+`w, (u_a), (v_b)` are independent and uniform: the row and column vertex variables are driven by
+independent noise (the two sub-sequences use disjoint sets of the i.i.d. variables). -/
+theorem map_rowColData_eq_coded {F : Type*} [MeasurableSpace F] {S T : ℕ → Ω → F}
+    (hS : ∀ a, Measurable (S a)) (hT : ∀ b, Measurable (T b)) {G : I × I → F × F}
+    (hG : Measurable G)
+    (hinj : IdentDistrib (fun ω => (fun a => S (2 * a) ω, fun b => T (2 * b + 1) ω))
+      (fun ω => (fun a => S a ω, fun b => T b ω)) P P)
+    (hid : IdentDistrib (fun ω k => (S k ω, T k ω)) (fun (p : I × (ℕ → I)) k => G (p.1, p.2 k))
+      P ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))) :
+    P.map (fun ω => (fun a => S a ω, fun b => T b ω)) =
+      ((volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+        (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))).map
+        (fun q => (fun a => (G (q.1, q.2.1 a)).1, fun b => (G (q.1, q.2.2 b)).2)) := by
+  have hφ : Measurable fun z : ℕ → F × F => (fun a => (z (2 * a)).1, fun b => (z (2 * b + 1)).2) :=
+    (measurable_pi_iff.2 fun a => measurable_fst.comp (measurable_pi_apply _)).prodMk
+      (measurable_pi_iff.2 fun b => measurable_snd.comp (measurable_pi_apply _))
+  have hΘ : Measurable fun q : I × ((ℕ → I) × (ℕ → I)) =>
+      (fun a => (G (q.1, q.2.1 a)).1, fun b => (G (q.1, q.2.2 b)).2) :=
+    (measurable_pi_iff.2 fun a => measurable_fst.comp (hG.comp (measurable_fst.prodMk
+      ((measurable_pi_apply a).comp (measurable_fst.comp measurable_snd))))).prodMk
+      (measurable_pi_iff.2 fun b => measurable_snd.comp (hG.comp (measurable_fst.prodMk
+      ((measurable_pi_apply b).comp (measurable_snd.comp measurable_snd)))))
+  have hsplit := Measure.map_prod_infinitePi_pair_of_disjoint (volume : Measure I)
+    (volume : Measure I) (f := fun a : ℕ => 2 * a) (g := fun b : ℕ => 2 * b + 1)
+    (fun a b h => by simpa using h) (fun a b h => by simpa using h)
+    (Set.disjoint_left.2 fun x ⟨a, ha⟩ ⟨b, hb⟩ => by
+      have h1 : 2 * a = x := ha
+      have h2 : 2 * b + 1 = x := hb
+      omega)
+  have hsm : Measurable fun p : I × (ℕ → I) =>
+      (p.1, (fun a => p.2 (2 * a), fun b => p.2 (2 * b + 1))) :=
+    measurable_fst.prodMk ((measurable_pi_iff.2 fun a => (measurable_pi_apply _).comp
+      measurable_snd).prodMk (measurable_pi_iff.2 fun b => (measurable_pi_apply _).comp
+      measurable_snd))
+  calc P.map (fun ω => (fun a => S a ω, fun b => T b ω))
+      = P.map (fun ω => (fun a => S (2 * a) ω, fun b => T (2 * b + 1) ω)) := hinj.map_eq.symm
+    _ = (P.map (fun ω k => (S k ω, T k ω))).map
+          (fun z : ℕ → F × F => (fun a => (z (2 * a)).1, fun b => (z (2 * b + 1)).2)) :=
+        (Measure.map_map hφ (measurable_pi_iff.2 fun k => (hS k).prodMk (hT k))).symm
+    _ = (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).map
+          (fun (p : I × (ℕ → I)) k => G (p.1, p.2 k))).map
+          (fun z : ℕ → F × F => (fun a => (z (2 * a)).1, fun b => (z (2 * b + 1)).2)) := by
+        rw [hid.map_eq]
+    _ = (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).map
+          (fun p : I × (ℕ → I) => (p.1, (fun a => p.2 (2 * a), fun b => p.2 (2 * b + 1))))).map
+          (fun q : I × ((ℕ → I) × (ℕ → I)) =>
+            (fun a => (G (q.1, q.2.1 a)).1, fun b => (G (q.1, q.2.2 b)).2)) := by
+        rw [Measure.map_map hφ (Measure.measurable_pi_curry hG), Measure.map_map hΘ hsm]
+        rfl
+    _ = _ := by rw [hsplit]
+
+
+/-- **Aldous–Hoover representation of separately exchangeable arrays** [Panchenko, 2013,
+Theorem 1.4, Eq. (1.77)].  A separately exchangeable array with values in a standard Borel space
+is, in law, `τ (w, u_l, v_{l'}, x_{l, l'})` for a measurable `τ`, where `w`, `(u_l)`, `(v_{l'})`,
+`(x_{l, l'})` are independent and uniform on `[0, 1]`.
+
+The proof follows the book.  The row vertex arrays `S_a` and the column vertex arrays `T_b` (the
+entries of the odd row `2 a + 1`, resp. odd column `2 b + 1`, against the even columns, resp. rows,
+together with the block of even rows and columns) are such that the pairs `(S_k, T_k)` form an
+exchangeable sequence, hence are coded by de Finetti's theorem.  Along the even, resp. odd, indices
+the rows and the columns use disjoint sets of the i.i.d. variables (`map_rowColData_eq_coded`);
+this is what makes the row noise `(u_a)` and the column noise `(v_b)` independent.  Given all the
+vertex arrays, the entries on the odd rows and columns are conditionally independent with a law
+depending only on the two adjacent vertex arrays (`map_rowColData_eq_compProd`), and the kernel is
+coded by a uniform variable.  The array on the odd rows and columns has the law of the whole array
+(`identDistrib_map_of_separately_exchangeable`). -/
+theorem exists_aldousHoover_representation_separately [IsProbabilityMeasure P]
+    [StandardBorelSpace E] [Nonempty E] (hs : ∀ c, Measurable (s c))
+    (hexch : ∀ e₁ e₂ : ℕ ≃ ℕ,
+      IdentDistrib (fun ω (p : ℕ × ℕ) => s (e₁ p.1, e₂ p.2) ω) (fun ω p => s p ω) P P) :
+    ∃ τ : I × I × I × I → E, Measurable τ ∧
+      IdentDistrib (fun ω (p : ℕ × ℕ) => s p ω)
+        (fun (η : (I × ((ℕ → I) × (ℕ → I))) × (ℕ × ℕ → I)) (p : ℕ × ℕ) =>
+          τ (η.1.1, η.1.2.1 p.1, η.1.2.2 p.2, η.2 p)) P
+        (((volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+          (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))).prod
+          (Measure.infinitePi fun _ : ℕ × ℕ => (volume : Measure I))) := by
+  classical
+  obtain ⟨κ, hκ0, hκ1⟩ : ∃ κ : ℕ → ℕ → ℕ, (∀ a, κ a 0 = 2 * a + 1) ∧ ∀ a m, κ a (m + 1) = 2 * m :=
+    ⟨fun a n => Nat.casesOn n (2 * a + 1) fun m => 2 * m, fun _ => rfl, fun _ _ => rfl⟩
+  obtain ⟨S, hS⟩ : ∃ S : ℕ → Ω → ℕ × ℕ → E, ∀ a ω p, S a ω p = s (κ a p.1, 2 * p.2) ω :=
+    ⟨fun a ω p => s (κ a p.1, 2 * p.2) ω, fun _ _ _ => rfl⟩
+  obtain ⟨T, hT⟩ : ∃ T : ℕ → Ω → ℕ × ℕ → E, ∀ b ω p, T b ω p = s (2 * p.1, κ b p.2) ω :=
+    ⟨fun b ω p => s (2 * p.1, κ b p.2) ω, fun _ _ _ => rfl⟩
+  obtain ⟨Q, hQ⟩ : ∃ Q : ℕ × ℕ → Ω → E, ∀ c ω, Q c ω = s (2 * c.1 + 1, 2 * c.2 + 1) ω :=
+    ⟨fun c ω => s (2 * c.1 + 1, 2 * c.2 + 1) ω, fun _ _ => rfl⟩
+  have hSm : ∀ a, Measurable (S a) := measurable_rowData hs hS
+  have hTm : ∀ b, Measurable (T b) := measurable_colData hs hT
+  have hQm : ∀ c, Measurable (Q c) := measurable_oddEntry hs hQ
+  have hinj : ∀ ι₁ ι₂ : ℕ → ℕ, Injective ι₁ → Injective ι₂ →
+      IdentDistrib (fun ω => (fun a => S (ι₁ a) ω, fun b => T (ι₂ b) ω))
+        (fun ω => (fun a => S a ω, fun b => T b ω)) P P := fun ι₁ ι₂ h₁ h₂ =>
+    (identDistrib_vertexData_comp_inj hs hexch hκ0 hκ1 hS hT hQ h₁ h₂).comp measurable_fst
+  have hZm : ∀ k, Measurable fun ω => (S k ω, T k ω) := fun k => (hSm k).prodMk (hTm k)
+  -- de Finetti for the sequence of pairs of vertex arrays
+  have hZexch : ∀ e : ℕ ≃ ℕ, IdentDistrib (fun ω k => (S (e k) ω, T (e k) ω))
+      (fun ω k => (S k ω, T k ω)) P P := fun e =>
+    (hinj e e e.injective e.injective).comp
+      (u := fun x : (ℕ → ℕ × ℕ → E) × (ℕ → ℕ × ℕ → E) => fun k => (x.1 k, x.2 k))
+      (measurable_pi_iff.2 fun k => ((measurable_pi_apply k).comp measurable_fst).prodMk
+        ((measurable_pi_apply k).comp measurable_snd))
+  obtain ⟨G, hG, hid⟩ := exists_de_finetti_representation (s := fun k ω => (S k ω, T k ω)) hZm
+    hZexch
+  -- the kernel `ν` of an entry given the two adjacent vertex arrays, and its uniform coding `H`
+  obtain ⟨ν, hν⟩ : ∃ ν : Kernel ((ℕ × ℕ → E) × (ℕ × ℕ → E)) E,
+      ν = condDistrib (Q (0, 0)) (fun ω => (S 0 ω, T 0 ω)) P := ⟨_, rfl⟩
+  have : IsMarkovKernel ν := by rw [hν]; infer_instance
+  obtain ⟨H0, hHm, hH0ν⟩ := Kernel.exists_measurable_map_eq_unitInterval ν
+  set H := uncurry H0 with hHdef
+  have hHν : ∀ p, (volume : Measure I).map (fun y => H (p, y)) = ν p := hH0ν
+  obtain ⟨τ, hσ⟩ : ∃ τ : I × I × I × I → E, ∀ w u v y,
+      τ (w, u, v, y) = H (((G (w, u)).1, (G (w, v)).2), y) :=
+    ⟨fun p => H (((G (p.1, p.2.1)).1, (G (p.1, p.2.2.1)).2), p.2.2.2), fun _ _ _ _ => rfl⟩
+  have hσm : Measurable τ := by
+    have : τ = fun p => H (((G (p.1, p.2.1)).1, (G (p.1, p.2.2.1)).2), p.2.2.2) :=
+      funext fun p => hσ _ _ _ _
+    rw [this]
+    exact hHm.comp (((measurable_fst.comp (hG.comp (by fun_prop))).prodMk
+      (measurable_snd.comp (hG.comp (by fun_prop)))).prodMk (by fun_prop))
+  -- the kernel `K` of the odd entries given the vertex data
+  let K : Kernel ((ℕ → ℕ × ℕ → E) × (ℕ → ℕ × ℕ → E)) (ℕ × ℕ → E) :=
+    ⟨fun x => Measure.infinitePi fun c : ℕ × ℕ => ν (x.1 c.1, x.2 c.2),
+      Measure.measurable_infinitePi fun c => ν.measurable.comp
+        (((measurable_pi_apply _).comp measurable_fst).prodMk
+          ((measurable_pi_apply _).comp measurable_snd))⟩
+  have : IsMarkovKernel K := ⟨fun x => inferInstanceAs (IsProbabilityMeasure
+    (Measure.infinitePi fun c : ℕ × ℕ => ν (x.1 c.1, x.2 c.2)))⟩
+  have hP := map_rowColData_eq_compProd hs hexch hκ0 hκ1 hS hT hQ hν K fun _ => rfl
+  have hΛ := map_rowColData_eq_coded hSm hTm hG
+    (hinj (fun a => 2 * a) (fun b => 2 * b + 1) (fun a b h => by simpa using h)
+      fun a b h => by simpa using h) hid
+  -- the coded array
+  set Q0 := (volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+    (Measure.infinitePi fun _ : ℕ => (volume : Measure I))) with hQ0
+  set Θ : I × ((ℕ → I) × (ℕ → I)) → (ℕ → ℕ × ℕ → E) × (ℕ → ℕ × ℕ → E) := fun q =>
+    (fun a => (G (q.1, q.2.1 a)).1, fun b => (G (q.1, q.2.2 b)).2) with hΘdef
+  have hΘ : Measurable Θ :=
+    (measurable_pi_iff.2 fun a => measurable_fst.comp (hG.comp (measurable_fst.prodMk
+      ((measurable_pi_apply a).comp (measurable_fst.comp measurable_snd))))).prodMk
+      (measurable_pi_iff.2 fun b => measurable_snd.comp (hG.comp (measurable_fst.prodMk
+      ((measurable_pi_apply b).comp (measurable_snd.comp measurable_snd)))))
+  set g : ℕ × ℕ → (I × ((ℕ → I) × (ℕ → I))) × I → E := fun c r =>
+    τ (r.1.1, r.1.2.1 c.1, r.1.2.2 c.2, r.2) with hg
+  have hgm : ∀ c, Measurable (g c) := fun c => hσm.comp (by fun_prop)
+  have hcoded := map_codedCells_eq_compProd (μ := Q0) (ν := (volume : Measure I)) Θ hΘ g hgm K
+    (Filter.Eventually.of_forall fun q => by
+      change _ = Measure.infinitePi fun c : ℕ × ℕ => ν ((Θ q).1 c.1, (Θ q).2 c.2)
+      exact congrArg Measure.infinitePi (funext fun c => by simp only [hg, hσ]; exact hHν _))
+  have hjoint := hP.trans ((congrArg (· ⊗ₘ K) hΛ).trans hcoded.symm)
+  have hpair : Measurable fun ω =>
+      ((fun a => S a ω, fun b => T b ω), fun c : ℕ × ℕ => Q c ω) :=
+    ((measurable_pi_iff.2 hSm).prodMk (measurable_pi_iff.2 hTm)).prodMk
+      (measurable_pi_iff.2 hQm)
+  have hcm : Measurable fun r : (I × ((ℕ → I) × (ℕ → I))) × (ℕ × ℕ → I) =>
+      (Θ r.1, fun c : ℕ × ℕ => g c (r.1, r.2 c)) :=
+    (hΘ.comp measurable_fst).prodMk (measurable_pi_iff.2 fun c => (hgm c).comp
+      (measurable_fst.prodMk ((measurable_pi_apply c).comp measurable_snd)))
+  have hQlaw : P.map (fun ω (c : ℕ × ℕ) => Q c ω) =
+      (Q0.prod (Measure.infinitePi fun _ : ℕ × ℕ => (volume : Measure I))).map
+        (fun r => fun c : ℕ × ℕ => g c (r.1, r.2 c)) := by
+    have := congrArg (Measure.map Prod.snd) hjoint
+    rw [Measure.map_map measurable_snd hpair, Measure.map_map measurable_snd hcm] at this
+    exact this
+  have hodd := (identDistrib_map_of_separately_exchangeable hs hexch
+    (ι₁ := fun a => 2 * a + 1) (ι₂ := fun b => 2 * b + 1) (fun a b h => by simpa using h)
+    fun a b h => by simpa using h).symm
+  have hQ' : (fun ω (c : ℕ × ℕ) => Q c ω) = fun ω p => s (2 * p.1 + 1, 2 * p.2 + 1) ω :=
+    funext fun ω => funext fun c => hQ c ω
+  refine ⟨τ, hσm, hodd.trans ⟨(measurable_pi_iff.2 fun p => hs _).aemeasurable,
+    (measurable_pi_iff.2 fun c => (hgm c).comp (measurable_fst.prodMk
+      ((measurable_pi_apply c).comp measurable_snd))).aemeasurable, ?_⟩⟩
+  rw [← hQ']
+  exact hQlaw
+/-- **The converse of the Aldous–Hoover theorem for separately exchangeable arrays**
+[Panchenko, 2013, Eq. (1.77)].  Every array `T η (l, l') = τ (w, u_l, v_{l'}, x_{l, l'})`, with
+`w`, `(u_l)`, `(v_{l'})`, `(x_{l, l'})` independent and uniform, is separately exchangeable:
+permuting the rows and columns by `e₁, e₂` permutes the noise `(u_l)`, `(v_{l'})` and
+`(x_{l, l'})`, whose law is invariant (`MeasureTheory.Measure.infinitePi_map_comp_equiv`). -/
+theorem identDistrib_aldousHoover_separately_comp_equiv {τ : I × I × I × I → E}
+    (hτ : Measurable τ) (T : (I × ((ℕ → I) × (ℕ → I))) × (ℕ × ℕ → I) → ℕ × ℕ → E)
+    (hT : ∀ η p, T η p = τ (η.1.1, η.1.2.1 p.1, η.1.2.2 p.2, η.2 p)) (e₁ e₂ : ℕ ≃ ℕ) :
+    IdentDistrib (fun η (p : ℕ × ℕ) => T η (e₁ p.1, e₂ p.2)) T
+      (((volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+        (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))).prod
+        (Measure.infinitePi fun _ : ℕ × ℕ => (volume : Measure I)))
+      (((volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+        (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))).prod
+        (Measure.infinitePi fun _ : ℕ × ℕ => (volume : Measure I))) := by
+  set e : ℕ × ℕ ≃ ℕ × ℕ := Equiv.prodCongr e₁ e₂ with he
+  set ρ : (I × ((ℕ → I) × (ℕ → I))) × (ℕ × ℕ → I) → (I × ((ℕ → I) × (ℕ → I))) × (ℕ × ℕ → I) :=
+    fun η => ((η.1.1, (η.1.2.1 ∘ e₁, η.1.2.2 ∘ e₂)), η.2 ∘ e) with hρ
+  have hρm : Measurable ρ := by
+    refine ((measurable_fst.comp measurable_fst).prodMk
+      ((measurable_pi_iff.2 fun l => ?_).prodMk (measurable_pi_iff.2 fun l => ?_))).prodMk
+      (measurable_pi_iff.2 fun c => ?_)
+    · exact (measurable_pi_apply (e₁ l)).comp (measurable_fst.comp (measurable_snd.comp
+        measurable_fst))
+    · exact (measurable_pi_apply (e₂ l)).comp (measurable_snd.comp (measurable_snd.comp
+        measurable_fst))
+    · exact (measurable_pi_apply (e c)).comp measurable_snd
+  have hTm : Measurable T := measurable_pi_iff.2 fun p => by
+    simp_rw [hT]
+    exact hτ.comp ((measurable_fst.comp measurable_fst).prodMk
+      (((measurable_pi_apply p.1).comp (measurable_fst.comp (measurable_snd.comp
+        measurable_fst))).prodMk
+      (((measurable_pi_apply p.2).comp (measurable_snd.comp (measurable_snd.comp
+        measurable_fst))).prodMk ((measurable_pi_apply p).comp measurable_snd))))
+  have hcomp : (fun η (p : ℕ × ℕ) => T η (e₁ p.1, e₂ p.2)) = fun η => T (ρ η) := by
+    funext η p
+    simp only [hT, hρ, he, Function.comp_apply, Equiv.prodCongr_apply]
+    rfl
+  have hu₁ : Measurable fun ξ : ℕ → I => ξ ∘ e₁ :=
+    measurable_pi_iff.2 fun l => measurable_pi_apply (e₁ l)
+  have hu₂ : Measurable fun ξ : ℕ → I => ξ ∘ e₂ :=
+    measurable_pi_iff.2 fun l => measurable_pi_apply (e₂ l)
+  have hxm : Measurable fun ξ : ℕ × ℕ → I => ξ ∘ e :=
+    measurable_pi_iff.2 fun c => measurable_pi_apply (e c)
+  have h1 := Measure.map_prod_map (Measure.infinitePi fun _ : ℕ => (volume : Measure I))
+    (Measure.infinitePi fun _ : ℕ => (volume : Measure I)) hu₁ hu₂
+  rw [Measure.infinitePi_map_comp_equiv, Measure.infinitePi_map_comp_equiv] at h1
+  have h2 := Measure.map_prod_map (volume : Measure I)
+    ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+      (Measure.infinitePi fun _ : ℕ => (volume : Measure I))) measurable_id
+    (hu₁.prodMap hu₂)
+  rw [Measure.map_id, ← h1] at h2
+  have h3 := Measure.map_prod_map
+    ((volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
+      (Measure.infinitePi fun _ : ℕ => (volume : Measure I))))
+    (Measure.infinitePi fun _ : ℕ × ℕ => (volume : Measure I))
+    (measurable_id.prodMap (hu₁.prodMap hu₂)) hxm
+  rw [← h2, Measure.infinitePi_map_comp_equiv] at h3
+  refine ⟨(measurable_pi_iff.2 fun p => (measurable_pi_apply _).comp hTm).aemeasurable,
+    hTm.aemeasurable, ?_⟩
+  rw [hcomp]
+  change Measure.map (T ∘ ρ) _ = _
+  rw [← Measure.map_map hTm hρm]
+  exact congrArg (Measure.map T) h3.symm
+
+end Representation
 
 end SpinGlasses

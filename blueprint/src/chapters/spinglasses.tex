@@ -2023,6 +2023,8 @@ This is the cell version of Theorem~\ref{thm:sg:seq-decoupling}: for $K\subseteq
         SpinGlasses.identDistrib_vertexPair,
         SpinGlasses.condExp_vertexData_ae_eq_integral,
         SpinGlasses.map_vertexData_eq_compProd,
+        SpinGlasses.measurable_vertexData,
+        SpinGlasses.map_codedCells_eq_compProd,
         SpinGlasses.map_codedArray_eq_compProd,
         SpinGlasses.exists_aldousHoover_representation,
         SpinGlasses.identDistrib_aldousHoover_comp_equiv}
@@ -2052,9 +2054,128 @@ By Lemma~\ref{lem:sg:subarray} with $\theta(l)=2l+1$ the array on the odd vertic
 The converse: relabelling the vertices by a bijection $e$ turns $(u_l)$ into $(u_{e(l)})$ and $(x_c)$ into $(x_{e(c)})$, which has the same law because infinite i.i.d.\ families are invariant under permutations of the index set (Lemma~\ref{lem:sg:mixture}); the symmetry of $f$ makes the value at the pair $\{l,l'\}$ independent of the order.
 \end{proof}
 
+\paragraph{Curried arrays and Gram-type laws.}
+The overlap array of Section~\ref{sec:sg:asymptotic-gibbs} is a \emph{curried} array $A=(A_{l,l'})_{l,l'}$ which is only almost surely symmetric, with a law $\Lambda$ on $\mathbb R^{\mathbb N\times\mathbb N}$ invariant under $A\mapsto(A_{e(l),e(l')})_{l,l'}$ for every bijection $e$ of $\mathbb N$. The next two statements transfer Theorem~\ref{thm:sg:aldous-hoover} to this form.
+
+\begin{theorem}[Theorem~1.5 for a curried array]\label{thm:sg:aldous-hoover-curried}
+  \lean{SpinGlasses.exists_aldousHoover_representation_of_curried}
+  \leanok
+Let $R=(R_{l,l'})_{l,l'\in\mathbb N}$ be a random array with values in a nonempty standard Borel space $E$ such that almost surely $R_{l,l'}=R_{l',l}$ for all $l,l'$, and $(R_{e(l),e(l')})_{l,l'}\overset d=(R_{l,l'})_{l,l'}$ for every bijection $e$ of $\mathbb N$. Then the conclusion of Theorem~\ref{thm:sg:aldous-hoover} holds for $(R_{l,l'})_{(l,l')\in\mathbb N\times\mathbb N}$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:aldous-hoover}
+Put $s_{\{a,b\}}=R_{\min(a,b),\max(a,b)}$; this is measurable for the pairs, and on symmetric arrays $s_{\{a,b\}}=R_{a,b}$, so $s$ equals $R$ almost surely as an array on $\mathbb N\times\mathbb N$. For a bijection $e$ both $(s_{e(c)})_c$ and the image of $(R_{e(l),e(l')})$ under the same measurable map agree almost surely with $(R_{e(a),e(b)})_{\{a,b\}}$ (symmetry of $R$), so $s$ is weakly exchangeable by the hypothesis. Apply Theorem~\ref{thm:sg:aldous-hoover} and transfer along the almost sure equality.
+\end{proof}
+
+\begin{theorem}[Aldous--Hoover representation of Gram-type laws]\label{thm:sg:aldous-hoover-gram}
+  \lean{SpinGlasses.exists_aldousHoover_representation_of_gram}
+  \leanok
+Let $\Lambda$ be a probability measure on $\mathbb R^{\mathbb N\times\mathbb N}$ which is concentrated on symmetric arrays with unit diagonal ($A_{l,l'}=A_{l',l}$ and $A_{l,l}=1$) and invariant under $A\mapsto(A_{e(l),e(l')})_{l,l'}$ for every bijection $e$ of $\mathbb N$. Then there is a measurable $f:[0,1]^4\to\mathbb R$, symmetric in its two middle arguments, such that $\Lambda$ is the law of
+\[\Big(\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\,f\big(w,u_l,u_{l'},x_{\{l,l'\}}\big)\Big)_{l,l'\in\mathbb N},\]
+with $w$, $(u_l)$, $(x_c)_{c\in\operatorname{Sym}^2(\mathbb N)}$ independent and uniform on $[0,1]$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:aldous-hoover-curried}
+Apply Theorem~\ref{thm:sg:aldous-hoover-curried} to the identity array on $(\mathbb R^{\mathbb N\times\mathbb N},\Lambda)$ and let $g,f$ be the resulting maps. The set of arrays in $\mathbb R^{\mathbb N\times\mathbb N}$ with unit diagonal is measurable and has full measure under $\Lambda$, hence also under the law of the right-hand side, that is, $g(w,u_l)=1$ for all $l$ almost surely. Replacing $g$ by $1$ changes the array only on a null set.
+\end{proof}
+
+Theorem~\ref{thm:sg:aldous-hoover-gram} applies to the asymptotic overlap law $\mu$ of Theorem~\ref{thm:sg:asymptotic-overlap}: that theorem gives a probability measure concentrated on symmetric, unit diagonal, positive semidefinite arrays with entries in $[-1,1]$ which is exchangeable. Positive semidefiniteness and the bound are not used here; that they force $f$ not to depend on the cell noise $x_{\{l,l'\}}$ (the Dovbysh--Sudakov theorem) is not formalized.
+
+\paragraph{Separately exchangeable arrays.}
+An array $(s_{l,l'})_{l,l'\in\mathbb N}$ with values in a nonempty standard Borel space $E$ is \emph{separately exchangeable} if $(s_{e_1(l),e_2(l')})_{l,l'}\overset d=(s_{l,l'})_{l,l'}$ for every pair of bijections $e_1,e_2$ of $\mathbb N$ (Eq.~(1.76); as above, a hypothesis \texttt{hexch} on all bijections, not only finitely supported ones).
+
+\begin{lemma}[Restrictions of an i.i.d.\ family to disjoint index sets are independent]\label{lem:sg:iid-split}
+  \lean{MeasureTheory.Measure.map_infinitePi_pair_of_disjoint,
+        MeasureTheory.Measure.map_prod_infinitePi_pair_of_disjoint}
+  \leanok
+Let $(c_i)_{i\in\iota}$ be i.i.d.\ with law $\nu$, $f:\alpha\to\iota$ and $g:\beta\to\iota$ injective with disjoint ranges, and $a$ a random element independent of $(c_i)$. Then $a$, $(c_{f(\cdot)})$ and $(c_{g(\cdot)})$ are independent, the last two being i.i.d.\ families with law $\nu$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The $\sigma$-algebras generated by the coordinates in two disjoint sets of indices are independent (Mathlib: \texttt{indep\_iSup\_of\_disjoint}); the sub-family along an injection is i.i.d.\ (Mathlib: \texttt{map\_infinitePi\_infinitePi\_of\_inj}).
+\end{proof}
+
+\begin{lemma}[Invariance along injections, Lemma~\ref{lem:sg:subarray} for separately exchangeable arrays]\label{lem:sg:subarray-sep}
+  \lean{SpinGlasses.identDistrib_map_of_separately_exchangeable}
+  \leanok
+For injections $\theta_1,\theta_2:\mathbb N\to\mathbb N$, $(s_{\theta_1(l),\theta_2(l')})_{l,l'}\overset d=(s_{l,l'})_{l,l'}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:subseq}
+As in Lemma~\ref{lem:sg:subarray}: compare finite-dimensional marginals and extend the restrictions of $\theta_1,\theta_2$ to the finitely many rows and columns involved to bijections $e_1,e_2$ of $\mathbb N$.
+\end{proof}
+
+\begin{lemma}[The analogue of Lemma~1.6 for rectangles of cells]\label{lem:sg:lemma16-sep}
+  \lean{SpinGlasses.exists_enum_of_infinite_first,
+        SpinGlasses.condExp_comp_ae_eq_condExp_compl_of_separately_exchangeable}
+  \leanok
+Let $(s_{l,l'})$ be separately exchangeable, $V_1,V_2\subseteq\mathbb N$ infinite, $j\in V_1$, $j'\in V_2$, $t=(j,j')$ and $f$ bounded measurable. Let $C$ be a set of cells with $t\notin C$ that contains every cell $c\ne t$ of $V_1\times V_2$. Then $\mathbb E[f(s_t)\mid\mathscr F_C]=\mathbb E[f(s_t)\mid\mathscr F_{\{c\ne t\}}]$ almost surely.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:exhaustion, lem:sg:l2proj}
+Exactly as for Lemma~\ref{lem:sg:lemma16}: enumerate $V_1,V_2$ and $\mathbb N$ injectively starting from $j$, $j'$, exhaust the cells of $V_1\times V_2$ other than $t$ by the cells in the first $n+1$ rows and columns, and use bijections $e_1,e_2$ of $\mathbb N$ matching the first $n+1$ enumerated rows, resp.\ columns (they fix $j$ and $j'$) to compare the joint laws with $s_t$; then Lemma~\ref{lem:sg:exhaustion} and the sandwich of Lemma~\ref{lem:sg:l2proj}.
+\end{proof}
+
+\begin{theorem}[The analogue of Eq.~(1.94) for separately exchangeable arrays]\label{thm:sg:cond-indep-array-sep}
+  \lean{SpinGlasses.condExp_prod_comp_eq_prod_condExp_of_separately_exchangeable}
+  \leanok
+Let $K$ be a set of cells, $t$ a finite index set and $l:t\to(\mathbb N\times\mathbb N)\setminus K$ injective. Suppose every cell $l(i)=(j,j')$ has infinite $V_1\ni j$, $V_2\ni j'$ such that every cell $c\ne l(i)$ of $V_1\times V_2$ lies in $K$. Then for bounded measurable $f_i$, $\mathbb E[\prod_{i\in t}f_i(s_{l(i)})\mid\mathscr F_K]=\prod_{i\in t}\mathbb E[f_i(s_{l(i)})\mid\mathscr F_K]$ almost surely.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:seq-decoupling, lem:sg:lemma16-sep}
+The same argument as for Theorem~\ref{thm:sg:cond-indep-array}, with Lemma~\ref{lem:sg:lemma16-sep} in place of Lemma~\ref{lem:sg:lemma16}.
+\end{proof}
+
+\begin{theorem}[Aldous--Hoover representation of separately exchangeable arrays, Theorem~1.4 of the book, and its converse]\label{thm:sg:aldous-hoover-sep}
+  \lean{SpinGlasses.exists_injective_fix_even,
+        SpinGlasses.identDistrib_vertexData_comp_inj,
+        SpinGlasses.identDistrib_rowColPair,
+        SpinGlasses.measurable_rowData,
+        SpinGlasses.measurable_colData,
+        SpinGlasses.measurable_oddEntry,
+        SpinGlasses.range_vertexRow,
+        SpinGlasses.range_vertexCol,
+        SpinGlasses.comap_rowData,
+        SpinGlasses.comap_colData,
+        SpinGlasses.comap_rowColPair,
+        SpinGlasses.comap_rowColData,
+        SpinGlasses.infinite_vertexSet_sep,
+        SpinGlasses.cells_rowColData,
+        SpinGlasses.condExp_rowColData_ae_eq_integral,
+        SpinGlasses.map_rowColData_eq_compProd,
+        SpinGlasses.map_rowColData_eq_coded,
+        SpinGlasses.exists_aldousHoover_representation_separately,
+        SpinGlasses.identDistrib_aldousHoover_separately_comp_equiv}
+  \leanok
+Let $(s_{l,l'})_{l,l'\in\mathbb N}$ be a separately exchangeable array with values in a nonempty standard Borel space $E$. Then there is a measurable $\sigma:[0,1]^4\to E$ with
+\[(s_{l,l'})_{l,l'}\overset d=\big(\sigma(w,u_l,v_{l'},x_{l,l'})\big)_{l,l'},\]
+where $w$, $(u_l)$, $(v_{l'})$ and $(x_{l,l'})_{(l,l')\in\mathbb N^2}$ are independent and uniform on $[0,1]$. Conversely, for every measurable $\sigma$ the array on the right is separately exchangeable.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:de-finetti, thm:sg:cond-indep-array-sep, lem:sg:lemma16-sep, lem:sg:subarray-sep, lem:sg:iid-split, lem:sg:cond-iid, lem:sg:coding, lem:sg:mixture}
+For the odd row $2a+1$ let $S_a$ be the entries of this row against the even columns together with the block of even rows and even columns (reindexed by $\mathbb N^2$), and for the odd column $2b+1$ let $T_b$ be the entries of this column against the even rows together with the same block; let $Q_{a,b}=s_{2a+1,2b+1}$. Injections of the odd rows and of the odd columns extend to injections of $\mathbb N$ fixing the even numbers, so Lemma~\ref{lem:sg:subarray-sep} shows that $\big((S_a)_a,(T_b)_b,(Q_{a,b})_{a,b}\big)$ keeps its law when $S$ is composed with an injection $\theta_1$, $T$ with an injection $\theta_2$ and $Q$ with $\theta_1\times\theta_2$.
+(1) \emph{Common noise.} The sequence of pairs $(S_k,T_k)_k$ is exchangeable with values in a standard Borel space, so by de Finetti's theorem (Theorem~\ref{thm:sg:de-finetti}) $(S_k,T_k)_k\overset d=(G(w,u_k))_k$, $G=(X,Y)$. Taking the subsequences $k=2a$ for $S$ and $k=2b+1$ for $T$ (which does not change the law, by the invariance just noted) and applying Lemma~\ref{lem:sg:iid-split} gives $\big((S_a)_a,(T_b)_b\big)\overset d=\big((X(w,u_a))_a,(Y(w,v_b))_b\big)$ with $w,(u_a),(v_b)$ independent: this is where the independence of the row and the column noise comes from. (In the book this step is carried out in the course of the proof of Theorem~1.4.)
+(2) \emph{Conditional independence.} Let $\mathscr F=\sigma(S_a,T_b:a,b)$; it is generated by the cells with an even row or an even column. For $a,b$ the cells of $\{2a+1,\text{even}\}\times\{2b+1,\text{even}\}$ other than $(2a+1,2b+1)$ are generated by $S_a$ and $T_b$ together and lie in the cells generating $\mathscr F$, which do not contain $(2a+1,2b+1)$. Lemma~\ref{lem:sg:lemma16-sep} and Theorem~\ref{thm:sg:cond-indep-array-sep} show that the $Q_{a,b}$ are conditionally independent given $\mathscr F$ and $\mathbb E[h(Q_{a,b})\mid\mathscr F]=\int h\,d\nu(S_a,T_b)$ with a kernel $\nu$ which is the same for all $(a,b)$ because $(S_a,T_b,Q_{a,b})\overset d=(S_0,T_0,Q_{0,0})$. By Lemma~\ref{lem:sg:cond-iid}(a) the law of $\big((S,T),Q\big)$ is $\mathrm{law}(S,T)\otimes K$, $K(x,y)=\bigotimes_{(a,b)}\nu(x_a,y_b)$.
+(3) \emph{Coding and assembly.} Code $\nu$ by a uniform variable, $\nu(p,\cdot)=\mathrm{Leb}\circ H(p,\cdot)^{-1}$, and put $\sigma(w,u,v,x)=H\big((X(w,u),Y(w,v)),x\big)$. By (1) and (2) and the coded-cells lemma behind Theorem~\ref{thm:sg:aldous-hoover} (no symmetry of $\nu$ is needed here, unlike for weakly exchangeable arrays) the pair of vertex data and the array $\sigma(w,u_a,v_b,x_{a,b})$ has the law $\mathrm{law}(S,T)\otimes K$, so $Q\overset d=\big(\sigma(w,u_a,v_b,x_{a,b})\big)$. By Lemma~\ref{lem:sg:subarray-sep} with $\theta_1(l)=\theta_2(l)=2l+1$ the array $Q$ has the law of the whole array.
+The converse: permuting rows and columns by $e_1,e_2$ permutes $(u_l)$, $(v_{l'})$ and $(x_{l,l'})$ (by $e_1$, $e_2$ and $e_1\times e_2$), which does not change their law (Lemma~\ref{lem:sg:mixture}).
+\end{proof}
+
 \begin{remark}[Deviations from the plan and from Panchenko's text, and what is left]\label{rem:sg:aldous-hoover-deviation}
 \begin{enumerate}
-\item \emph{Scope.} The three general tools, the statements about exchangeable \emph{sequences} (Eq.~(1.84), Lemma~1.5, Eq.~(1.88), Theorem~1.6 and its converse) and about weakly exchangeable \emph{arrays} (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5 and its converse) are formalized. The Aldous--Hoover representation of separately exchangeable arrays (Theorem~1.4), Eqs.~(1.77)--(1.79) and~(1.95)--(1.96), the specialization of Theorem~1.5 to the overlap array and the Dovbysh--Sudakov theorem are not, and no Lean declaration asserts them.
+\item \emph{Scope.} The three general tools, the statements about exchangeable \emph{sequences} (Eq.~(1.84), Lemma~1.5, Eq.~(1.88), Theorem~1.6 and its converse) and about weakly exchangeable \emph{arrays} (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5 and its converse) are formalized. The Aldous--Hoover representation of separately exchangeable arrays (Theorem~1.4) and its converse, and the transfer of Theorem~1.5 to curried and Gram-type arrays (Theorems~\ref{thm:sg:aldous-hoover-curried} and~\ref{thm:sg:aldous-hoover-gram}), are formalized as well. Eqs.~(1.78)--(1.79) and~(1.95)--(1.96) as separate statements, the fact that positive semidefiniteness removes the cell noise, and the Dovbysh--Sudakov theorem itself are not, and no Lean declaration asserts them.
 \item \emph{Norm equality as an integral.} The equality case of Lemma~\ref{lem:sg:l2proj} is stated with $\int(\mathbb E[f\mid\mathscr M_i])^2$ rather than with the $L^2$ norms in the book, because this is the form in which the exchangeability arguments produce it.
 \item \emph{Hypothesis only for the functions used.} The book assumes the conditioning identity for all bounded continuous $f$; Theorem~\ref{thm:sg:seq-decoupling} needs it only for the functions that occur in the product, and the filtration $\mathscr G_k$ is arbitrary.
 It is the forward half of Mathlib's characterization of conditional independence (\texttt{iCondIndepFun\_iff}), which requires a standard Borel ambient space that is not needed here.
@@ -2071,5 +2192,8 @@ The pair-indexed form $\mathrm{IdentDistrib}(\omega\mapsto(p\mapsto s_{[(e p_1,e
 \item \emph{The coding lemma, again.} For arrays the statement \texttt{identDistrib\_coding} of Lemma~\ref{lem:sg:coding} is still not used: after fixing the kernel $\nu$ of an entry given the two adjacent vertex arrays, Mathlib's \texttt{Kernel.exists\_measurable\_map\_eq\_unitInterval} codes it directly.
 \item \emph{Suggestions of the formalization review.} (i) Theorem~\ref{thm:sg:aldous-hoover} indeed applies the de Finetti theorem (Theorem~\ref{thm:sg:de-finetti}) verbatim to the sequence of vertex arrays, with state space $E'=E^{\operatorname{Sym}^2(\mathbb N)}$, which is standard Borel because $\operatorname{Sym}^2(\mathbb N)$ is countable. (ii) The converse is a reduction to the invariance of an infinite product measure under a bijection of the index set, used for the vertex noise and for the cell noise; it is about 50 lines rather than the expected 20, mostly measurability of the maps and the pushforward of the nested product. (iii) The array-update lemma shared with the sequential-learning files was not needed, since no coordinate-update argument occurs. (iv) The lemma rewriting a conditional expectation through \texttt{HasCondDistrib} was not moved to a shared file: Mathlib's \texttt{condExp\_ae\_eq\_integral\_condDistrib} is already the one-line rewrite used here, none of the new statements mentions \texttt{HasCondDistrib}, and moving it would only touch the sequential-learning files.
 \item \emph{Eq.~(1.96) is inlined.} The statement for unordered pairs, that the entry at $\{l,l'\}$ is a function of the two vertex arrays and the cell noise, is not a separate declaration; it is part of the proof of Theorem~\ref{thm:sg:aldous-hoover}. Also not formalized: the equivalence of finite-permutation and bijection weak exchangeability, and the unused transport lemma \texttt{identDistrib\_coding}.
+\item \emph{Separately exchangeable arrays: the route and the hypotheses.} The hypothesis of Theorem~\ref{thm:sg:aldous-hoover-sep} is invariance under all pairs of bijections of $\mathbb N$ (not finitely supported ones), and the cell noise is indexed by $\mathbb N\times\mathbb N$ (no symmetry is needed). The noise is nested as $\big((w,((u_l),(v_{l'}))),(x_c)\big)$. The independence of the row noise $(u_l)$ and the column noise $(v_{l'})$ is obtained by applying de Finetti's theorem once to the sequence of pairs $(S_k,T_k)$ of a row and a column vertex array and then reading $S$ off the even and $T$ off the odd i.i.d.\ variables (Lemma~\ref{lem:sg:iid-split}); I did not follow the book's order of arguments for this step and the book's text for Theorem~1.4 was not re-checked against it.
+\item \emph{Curried and Gram-type arrays.} The transfer to curried arrays defines the cell array through $\min$ and $\max$ of the two indices, so almost sure symmetry is the only property used. Theorem~\ref{thm:sg:aldous-hoover-gram} uses only symmetry and the unit diagonal of the law; positive semidefiniteness and the bound $|A_{l,l'}|\le1$ are not used, and the function $f$ is not shown to be bounded by $1$ or to be independent of the cell noise.
+\item \emph{Shared code.} The cell coding step is the generic Lemma \texttt{map\_codedCells\_eq\_compProd} (kernel of the cells given any vertex data, for any index set of cells), used for weakly and for separately exchangeable arrays; the injection-invariance of the vertex data is obtained from the sub-array lemma for $s$ itself (Lemma~\ref{lem:sg:subarray-sep}), by extending an injection of the odd numbers to an injection of $\mathbb N$ fixing the even numbers.
 \end{enumerate}
 \end{remark}

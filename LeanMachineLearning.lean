@@ -278,6 +278,8 @@ public import LeanMachineLearning.SequentialLearning.SumRewards
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarr
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarrApproximation
 public import LeanMachineLearning.SpinGlasses.AldousHoover
+public import LeanMachineLearning.SpinGlasses.AldousHooverArray
+public import LeanMachineLearning.SpinGlasses.AldousHooverOverlap
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
