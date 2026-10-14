@@ -45,7 +45,7 @@ and `integral_condExp`), not with `condExpL2`.
 
 @[expose] public section
 
-open MeasureTheory Filter
+open MeasureTheory Filter Set
 open scoped Topology
 
 namespace MeasureTheory
@@ -142,5 +142,32 @@ theorem tendsto_integral_sq_condExp (𝒢 : ℕ → MeasurableSpace Ω) (hmono :
     exact pow_le_pow_left₀ (abs_nonneg _) hω 2
   · filter_upwards [tendsto_ae_condExp (μ := μ) (ℱ := ℱ) f] with ω hω
     exact hω.pow 2
+
+/-- **Convergence of `L²` norms along finite prefixes of an increasing union of σ-algebras:**
+for any sequence of σ-algebras `𝒢 n ≤ m₀` and bounded `f`,
+`∫ (μ[f | ⨆ m < n, 𝒢 m])² → ∫ (μ[f | ⨆ n, 𝒢 n])²`. -/
+theorem tendsto_integral_sq_condExp_iSup (𝒢 : ℕ → MeasurableSpace Ω) (h𝒢 : ∀ n, 𝒢 n ≤ m₀)
+    {C : ℝ} (hf : ∀ ω, |f ω| ≤ C) :
+    Tendsto (fun n => ∫ ω, μ[f | ⨆ m : Fin n, 𝒢 m] ω ^ 2 ∂μ) atTop
+      (𝓝 (∫ ω, μ[f | ⨆ n, 𝒢 n] ω ^ 2 ∂μ)) := by
+  have hmono : Monotone fun n => ⨆ m : Fin n, 𝒢 m := fun n n' h =>
+    iSup_le fun m => le_iSup_of_le (Fin.castLE h m) le_rfl
+  have hle : ∀ n, (⨆ m : Fin n, 𝒢 m) ≤ m₀ := fun n => iSup_le fun m => h𝒢 _
+  have hsup : (⨆ n, ⨆ m : Fin n, 𝒢 m) = ⨆ n, 𝒢 n := by
+    refine le_antisymm (iSup_le fun n => iSup_le fun m => le_iSup 𝒢 m.val) (iSup_le fun m => ?_)
+    exact le_iSup_of_le (m + 1) (le_iSup_of_le ⟨m, Nat.lt_succ_self m⟩ le_rfl)
+  rw [← hsup]
+  exact tendsto_integral_sq_condExp _ hmono hle hf
+
+/-- **Convergence of `L²` norms along an enumerated family of σ-algebras:**
+for any indexed family `𝒢 : ι → MeasurableSpace Ω` and enumeration `u : ℕ → ι`,
+the norms of the conditional expectations on the finite prefixes converge to the norm
+on `⨆ i ∈ range u, 𝒢 i`. -/
+theorem tendsto_integral_sq_condExp_iSup_range {ι : Type*} (𝒢 : ι → MeasurableSpace Ω)
+    (h𝒢 : ∀ i, 𝒢 i ≤ m₀) (u : ℕ → ι) {C : ℝ} (hf : ∀ ω, |f ω| ≤ C) :
+    Tendsto (fun n => ∫ ω, μ[f | ⨆ m : Fin n, 𝒢 (u m)] ω ^ 2 ∂μ) atTop
+      (𝓝 (∫ ω, μ[f | ⨆ i ∈ range u, 𝒢 i] ω ^ 2 ∂μ)) := by
+  rw [iSup_range]
+  exact tendsto_integral_sq_condExp_iSup (fun m => 𝒢 (u m)) (fun m => h𝒢 (u m)) hf
 
 end MeasureTheory

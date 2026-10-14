@@ -22,6 +22,14 @@ variable {δ : Type*} {X : δ → Type*} [m : ∀ a, MeasurableSpace (X a)] {α 
 lemma comap_pi {g : α → ∀ a, X a} : pi.comap g = ⨆ a, (m a).comap (fun x ↦ g x a) := by
   simp_rw [pi, comap_iSup, comap_comp, comp_def]
 
+lemma comap_pi_subtype {s : Set δ} (Y : (a : δ) → α → X a) :
+    pi.comap (fun x (a : s) ↦ Y (a : δ) x) = ⨆ a ∈ s, (m a).comap (Y a) := by
+  rw [MeasurableSpace.comap_pi, iSup_subtype']
+
+lemma comap_pi_range {κ : Type*} (u : κ → δ) (Y : (a : δ) → α → X a) :
+    pi.comap (fun x (k : κ) ↦ Y (u k) x) = ⨆ a ∈ range u, (m a).comap (Y a) := by
+  rw [MeasurableSpace.comap_pi, iSup_range]
+
 end MeasurableSpace
 
 namespace ProbabilityTheory
