@@ -85,7 +85,7 @@ theorem exists_dovbysh_sudakov_representation (hR : ∀ l l', Measurable fun ω 
         ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))) := by
   set ν := Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hν
   set γ := Measure.infinitePi fun _ : ℕ => ν with hγ
-  have hRm : Measurable R := measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => hR l l'
+  have hRm : Measurable R := by fun_prop
   obtain ⟨s, hs⟩ : ∃ s : ℕ × ℕ → Ω × (ℕ → ℕ → ℝ) → ℝ, ∀ p z,
       s p z = ∑ k ∈ range (p.1 + 1), cholInf (R z.1) p.1 k * z.2 p.2 k := ⟨_, fun _ _ => rfl⟩
   have hsm : ∀ p, Measurable (s p) := fun p => by
@@ -200,11 +200,9 @@ theorem exists_dovbysh_sudakov_representation_of_gram {Λ : Measure (ℕ → ℕ
       Λ = Measure.map (fun (η : I × (ℕ → I)) (l l' : ℕ) =>
           if l = l' then (1 : ℝ) else ∫ v, h (η.1, η.2 l, v) * h (η.1, η.2 l', v))
         ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))) := by
-  have hR : ∀ l l', Measurable fun A : ℕ → ℕ → ℝ => A l l' := fun l l' =>
-    (measurable_pi_apply l').comp (measurable_pi_apply l)
-  have hm : ∀ e : ℕ ≃ ℕ, Measurable fun (A : ℕ → ℕ → ℝ) l l' => A (e l) (e l') := fun e =>
-    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' =>
-      (measurable_pi_apply _).comp (measurable_pi_apply _)
+  have hR : ∀ l l', Measurable fun A : ℕ → ℕ → ℝ => A l l' := fun l l' => by fun_prop
+  have hm : ∀ e : ℕ ≃ ℕ, Measurable fun (A : ℕ → ℕ → ℝ) l l' => A (e l) (e l') := fun e => by
+    fun_prop
   obtain ⟨h, a, hhm, ham, ha0, hhint, hid⟩ := exists_dovbysh_sudakov_representation
     (P := Λ) (R := fun A => A) hR (hK.mono fun A hA => hA.1)
     (fun e => ⟨(hm e).aemeasurable, aemeasurable_id, (hexch e).trans Measure.map_id.symm⟩)
@@ -251,8 +249,7 @@ theorem exists_dovbysh_sudakov_representation_of_gram {Λ : Measure (ℕ → ℕ
       rw [this]
       exact hq
     · simp [hh', hq]
-  · have hc : Measurable fun (x : ℕ × ℕ → ℝ) (l l' : ℕ) => x (l, l') :=
-      measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => measurable_pi_apply _
+  · have hc : Measurable fun (x : ℕ × ℕ → ℝ) (l l' : ℕ) => x (l, l') := by fun_prop
     calc Λ = (Λ.map fun A p => A p.1 p.2).map fun x l l' => x (l, l') :=
           (map_map_curry_array Λ).symm
       _ = _ := by

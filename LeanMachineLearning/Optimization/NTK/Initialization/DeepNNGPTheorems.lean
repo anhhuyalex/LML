@@ -639,12 +639,12 @@ theorem deepEmpiricalFeatureCovariance_tendstoInMeasure
           (by omega))
 
 /-- Bridge: pushforward of the infinite real population restricted to `Fin n` coordinates is
-`𝒩(0, I_n)`. Special case of `measurePreserving_prefixMap`. -/
+`𝒩(0, I_n)`. Special case of `Measure.measurePreserving_prefixMap`. -/
 lemma map_infinitePi_real_eq_gaussianReadoutMeasure (n : ℕ) :
     Measure.map (fun (rows : ℕ → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) = (Measure.pi fun _ : Fin n => gaussianReal
           0 1) := by
-  exact (measurePreserving_prefixMap (gaussianReal 0 1) n).map_eq
+  exact (Measure.measurePreserving_prefixMap (gaussianReal 0 1) n).map_eq
 
 /-- Measurability of the depth-`L` network's width-`n` output map (readout weights times the
 final hidden layer's activations, summed and scaled), jointly in the hidden and readout weight

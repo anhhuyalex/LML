@@ -107,8 +107,8 @@ theorem measurePreserving_infiniteSeq_to_init (n d : ℕ) :
           (gaussianReal 0 1)))
       ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (Measure.pi
           fun _ : Fin n => gaussianReal 0 1)) := by
-  have h_pref := measurePreserving_prefixMap ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod
-      (gaussianReal 0 1)) n
+  have h_pref := Measure.measurePreserving_prefixMap
+    ((Measure.pi fun _ : Fin d => gaussianReal 0 1).prod (gaussianReal 0 1)) n
   have h_rearr := measurePreserving_arrowProd_singleNeuronMeasure n d
   exact h_rearr.comp h_pref
 

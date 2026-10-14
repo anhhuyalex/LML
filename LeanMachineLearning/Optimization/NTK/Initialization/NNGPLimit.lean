@@ -414,7 +414,8 @@ lemma map_infinitePi_rows_eq_gaussianInit (n d : ℕ) :
     Measure.map (fun (rows : ℕ → Fin d → ℝ) (i : Fin n) => rows i.val)
       (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin d => gaussianReal 0 1)) = (Measure.pi
           fun _ : Fin n => Measure.pi fun _ : Fin d => gaussianReal 0 1) := by
-  exact (measurePreserving_prefixMap (Measure.pi fun _ : Fin d => gaussianReal 0 1) n).map_eq
+  exact (Measure.measurePreserving_prefixMap
+    (Measure.pi fun _ : Fin d => gaussianReal 0 1) n).map_eq
 
 /-! ### Step 1 & Step 2: Unconditional Characteristic Function -/
 

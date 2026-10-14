@@ -72,18 +72,14 @@ theorem map_cholInf_comp_equiv {A : ℕ → ℕ → ℝ}
     exact ⟨by have := le_max_left l (e l); omega, by have := le_max_right l (e l); omega⟩
   have hr : MeasurePreserving (fun (c : ℕ → ℝ) (j : Fin N) => c j) ν
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) :=
-    Measure.measurePreserving_restrict_infinitePi (gaussianReal 0 1) (f := Fin.val)
-      Fin.val_injective
+    Measure.measurePreserving_prefixMap (gaussianReal 0 1) N
   have hfac : ∀ (B : ℕ → ℕ → ℝ) (σ : ℕ → ℕ), (∀ l ∈ I, σ l < N) →
       (I.restrict ∘ fun c (l : ℕ) => ∑ k ∈ range (σ l + 1), cholInf B (σ l) k * c k) =
         (fun ζ (l : I) => (fun j : Fin N => cholInf B (σ l) j) ⬝ᵥ ζ) ∘
           fun (c : ℕ → ℝ) (j : Fin N) => c j := by
     intro B σ hσ
     funext c l
-    simp only [Function.comp_apply, Finset.restrict, dotProduct]
-    rw [Fin.sum_univ_eq_sum_range (fun j => cholInf B (σ l) j * c j) N]
-    refine sum_subset (range_mono (by have := hσ l l.2; omega)) fun k _ hk => ?_
-    rw [cholInf_of_gt B (by simpa using hk), zero_mul]
+    exact sum_cholInf_mul_eq_dotProduct B (hσ l l.2) c
   have hF1 : Measurable fun (c : ℕ → ℝ) (l : ℕ) =>
       ∑ k ∈ range (e l + 1), cholInf A (e l) k * c k :=
     measurable_pi_iff.2 fun l => Finset.measurable_sum _ fun k _ =>
@@ -127,14 +123,7 @@ theorem integrable_integral_cholInf_mul {A : ℕ → ℕ → ℝ}
   set N := max l l' + 1 with hN
   have hr : MeasurePreserving (fun (c : ℕ → ℝ) (j : Fin N) => c j) ν
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) :=
-    Measure.measurePreserving_restrict_infinitePi (gaussianReal 0 1) (f := Fin.val)
-      Fin.val_injective
-  have hfac : ∀ m, m < N → ∀ c : ℕ → ℝ, ∑ k ∈ range (m + 1), cholInf A m k * c k =
-      (fun j : Fin N => cholInf A m j) ⬝ᵥ (fun j : Fin N => c j) := fun m hm c => by
-    simp only [dotProduct]
-    rw [Fin.sum_univ_eq_sum_range (fun j => cholInf A m j * c j) N]
-    refine sum_subset (range_mono (by omega)) fun k _ hk => ?_
-    rw [cholInf_of_gt A (by simpa using hk), zero_mul]
+    Measure.measurePreserving_prefixMap (gaussianReal 0 1) N
   have hl : l < N := by omega
   have hl' : l' < N := by omega
   have hrewrite : (fun c : ℕ → ℝ => (∑ k ∈ range (l + 1), cholInf A l k * c k) *
@@ -142,7 +131,8 @@ theorem integrable_integral_cholInf_mul {A : ℕ → ℕ → ℝ}
       (fun ζ : Fin N → ℝ => ((fun j : Fin N => cholInf A l j) ⬝ᵥ ζ) *
         ((fun j : Fin N => cholInf A l' j) ⬝ᵥ ζ)) ∘ fun (c : ℕ → ℝ) (j : Fin N) => c j := by
     funext c
-    simp only [Function.comp_apply, hfac l hl c, hfac l' hl' c]
+    simp only [Function.comp_apply, sum_cholInf_mul_eq_dotProduct A hl c,
+      sum_cholInf_mul_eq_dotProduct A hl' c]
   have hF : Measurable fun ζ : Fin N → ℝ => ((fun j : Fin N => cholInf A l j) ⬝ᵥ ζ) *
       ((fun j : Fin N => cholInf A l' j) ⬝ᵥ ζ) := by
     simp only [dotProduct]; fun_prop

@@ -135,9 +135,7 @@ theorem annealed_gram_array {P : Measure Ω} [IsProbabilityMeasure P] {ν : Ω �
       exact ⟨fun _ => trivial, fun _ => ⟨fun l l' => hsymm _ _, fun l => hdiag _,
         fun l l' => hbd _ _, fun k => hpsd k fun l => σ l⟩⟩
     · exact hbind
-  · have hperm : Measurable fun (A : ℕ → ℕ → ℝ) (l l' : ℕ) => A (e l) (e l') :=
-      measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' =>
-        (measurable_pi_apply _).comp (measurable_pi_apply _)
+  · have hperm : Measurable fun (A : ℕ → ℕ → ℝ) (l l' : ℕ) => A (e l) (e l') := by fun_prop
     have hσ : Measurable fun (σ : ℕ → α) => σ ∘ e :=
       measurable_pi_iff.2 fun _ => measurable_pi_apply _
     rw [hΛ, Measure.map_map hperm hR]

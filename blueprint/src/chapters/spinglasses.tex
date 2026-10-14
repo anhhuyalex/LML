@@ -40,9 +40,9 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureLimit.lean}, \texttt{ForMathlib/LinearAlgebra/Matrix/PosSemidef.lean},
 \texttt{SpinGlasses/OverlapExchangeability.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
-Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book except for separately exchangeable arrays: the general tools
-(the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6) and the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5), each with its converse;
-Theorem~1.4 (separately exchangeable arrays) and the Dovbysh--Sudakov theorem are not formalized.
+Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book: the general tools
+(the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6), the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5) and of separately exchangeable arrays (Theorem~1.4), each with its converse.
+Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Lemma~1.7 (measurable reconstruction), the random measure on a Hilbert space and the asymptotic Gibbs measure itself are not formalized yet and are the next planned step.
 
 
 \medskip\noindent\textbf{Notation.}
@@ -1491,7 +1491,9 @@ We did not know in advance how much extra work that would be, and the SK applica
 \emph{What the missing step would probably be, and where it could matter.} The natural route is to approximate an infinite $\Gamma$ by its restriction to the first $n$ atoms (renormalized) and let $n\to\infty$. For the right-hand side $\langle F(R)\rangle_\Gamma$ this is easy,
 because $F$ is bounded: removing a tail of small total weight changes the average by at most $2\|F\|_\infty$ times the tail mass. For $\Phi(\Gamma)$ itself one needs a continuity statement of the same kind for $\mathbb E\log\langle e^{z}\rangle$ under tail removal;
 we have not worked this out and do not claim it is routine. It could matter later: the asymptotic Gibbs measure $G$ produced by the Dovbysh--Sudakov theorem is a random measure on a Hilbert ball and is not known to be finitely supported,
-so identifying the limit of the right-hand sides $\mathbb E\langle F(R)\rangle$ with $\mathbb E\,\Phi(G)$ is where we expect the countable-atom version of Theorem~1.3 to be needed. That identification is not part of the formalization yet.
+so identifying the limit of the right-hand sides $\mathbb E\langle F(R)\rangle$ with $\mathbb E\,\Phi(G)$ is where we expect the countable-atom version of Theorem~1.3 to be needed. That identification is not part of the formalization yet (in progress; see below).
+
+\emph{New information from the Dovbysh--Sudakov formalization (Section~\ref{sec:sg:dovbysh-sudakov}).} For a limit law $\mu$ of overlap arrays, Theorem~\ref{thm:sg:dovbysh-sudakov-gram} represents the array as $\int h(w,u_l,v)h(w,u_{l'},v)\,dv$ off the diagonal, with $u_l$ i.i.d.\ uniform and $\int h(w,u,v)^2\,dv\le1$. The corresponding Gibbs measure at parameter $w$ is therefore the image of Lebesgue measure on $[0,1]$ under $u\mapsto h(w,u,\cdot)$. A priori this image is diffuse, not atomic, so the finite-atom statement of Theorem~\ref{thm:sg:gram13} cannot be applied to it directly, and some form of the countable (or general) case, or an approximation of $G$ by finitely supported measures, will be needed. Our representation does not say that $G$ is atomic. Constructing $G$ itself as a measurable family of measures on the Hilbert ball, which is where Lemma~1.7 enters, is not done.
 
 \subsection*{Decision C: truncation by moments, not by Gaussian concentration \emph{(a different method, not a weaker result)}}
 
@@ -1526,7 +1528,7 @@ Truncation by moments, no concentration & same conclusion, different proof & onl
 Continuity on the PSD cone only & same in practice & Gram matrices are always positive semidefinite\\
 Arbitrary $C_z,C_y$, explicit variance bounds & more general & SK covariances are an instance\\
 Limit $a_N\to1$ & \textbf{not done} & finite-$N$ statement only\\
-Use of Theorem~1.3 to pass to the asymptotic Gibbs measure & \textbf{not done} & needs the Dovbysh--Sudakov representation and probably the countable-atom case\\
+Use of Theorem~1.3 to pass to the asymptotic Gibbs measure & \textbf{not done} (in progress) & the Dovbysh--Sudakov representation is now formalized (Section~\ref{sec:sg:dovbysh-sudakov}); still needs the Hilbert-space-valued measure from Lemma~1.7 and probably the countable or non-atomic case\\
 \end{tabular}
 \end{center}
 
@@ -1585,7 +1587,10 @@ This would let Theorem~\ref{thm:sg:gram13} be applied with the limiting covarian
 
 \begin{itemize}
 \item \emph{It is not needed for any statement we proved.} Theorem~\ref{thm:sg:overlap-approx} is true and complete as stated: a bound for each $N$ with $N$-uniform constants. The limit $a_N\to1$ is only needed when one passes to a limit along a subsequence, which is a later step of the book's argument
-(the use of the asymptotic Gibbs measure), after the Dovbysh--Sudakov theorem. That later step is not part of the formalization yet (Remark~\ref{rem:sg:asymptotic-deviation}), so the limit has nothing to attach to.
+(the use of the asymptotic Gibbs measure). That later step is not part of the formalization yet (Remark~\ref{rem:sg:asymptotic-deviation}).
+\item \emph{Update: it no longer has to wait for Dovbysh--Sudakov.} When this section was first written we expected that the limit had nothing to attach to before the Dovbysh--Sudakov theorem. With that theorem now formalized (Section~\ref{sec:sg:dovbysh-sudakov}) we can see more precisely what depends on what.
+The replacement of $F_N$ by $F_\infty$ needs only the weak convergence of the overlap laws along a subsequence (Theorem~\ref{thm:sg:asymptotic-overlap}, which holds for any family of Gibbs measures and so also for the auxiliary measures $G'_N$ of the Aizenman--Sims--Starr scheme, Remark~\ref{rem:sg:asymptotic-deviation}), and both are formalized. So the limit step can be stated and proved without the Dovbysh--Sudakov representation, as a statement about $\int F_\infty\,d\mu$ for the limit law $\mu$.
+The representation (and later Lemma~1.7) is only needed to identify that quantity with $\mathbb E\,\Phi(G)$ for a random measure $G$. This is our reading of the dependency structure, not a formalized fact; the limit step itself is still not done.
 \item \emph{We chose to keep each milestone to a closed set of statements.} The first route above is a self-contained lemma about uniform convergence of Gaussian integrals; we judged it better to formalize it together with the argument that uses it, so that its exact form
 (sup over a compact set of overlap matrices, which polynomials, which $k$) is dictated by the application instead of guessed in advance.
 \item \emph{It is not an obstruction.} To avoid any misunderstanding: we do not know of a mathematical difficulty here, and we believe it is a routine compactness argument. The honest summary is that it was postponed, not that it was found hard. If the reasoning in route~1 turns out to hide a technicality
@@ -1600,7 +1605,7 @@ This would let Theorem~\ref{thm:sg:gram13} be applied with the limiting covarian
 Eq.~(1.73) for each $N$, with $m$, $a_z,a_y$, $p_z,p_y$ independent of $N$ & proved (Theorem~\ref{thm:sg:overlap-approx}) & $F_N$ depends on $N$ only via $a_N$ in the Gaussian integrals\\
 $\sup_Q|F_N-F_\infty|\to0$ on overlap matrices & not done & expected by compactness and weak continuity of Gaussians in the covariance (route~1)\\
 Replacing $\mathbb E\langle F_N(R)\rangle$ by $\mathbb E\langle F_\infty(R)\rangle$ & not done & immediate from the previous line, since $\langle\cdot\rangle$ is bounded by a supremum\\
-Passing to the limit along an overlap-law subsequence & not done & needs the asymptotic Gibbs measure (Dovbysh--Sudakov), see Section~\ref{sec:sg:asymptotic-gibbs}\\
+Passing to the limit along an overlap-law subsequence & not done (can now be started) & only needs the formalized weak convergence of overlap laws; identifying the limit with $\mathbb E\,\Phi(G)$ needs the asymptotic Gibbs measure (Dovbysh--Sudakov formalized, Lemma~1.7 not), see Sections~\ref{sec:sg:asymptotic-gibbs} and~\ref{sec:sg:dovbysh-sudakov}\\
 \end{tabular}
 \end{center}
 
@@ -1614,7 +1619,7 @@ law $P$ of the disorder). Let $\mathcal K$ be the set of arrays $A\in\mathbb R^{
 principal submatrices $(A_{ll'})_{l,l'<k}$ are positive semidefinite (``Gram-type arrays''). This section shows that $\Lambda_N$ is concentrated on $\mathcal K$ and
 invariant under permutations of the replicas (Eq.~(1.74)), that $\mathcal K$ is compact, and hence that a subsequence of $(\Lambda_N)$ converges weakly to an exchangeable
 probability measure on $\mathcal K$. These are exactly the hypotheses of the Dovbysh--Sudakov theorem (Theorem~1.7 of the book), which then represents the limit as the law of the Gram
-array of an i.i.d.\ sample from a random measure on the unit ball of a Hilbert space (the \emph{asymptotic Gibbs measure}). That representation theorem is not formalized.
+array of an i.i.d.\ sample from a random measure on the unit ball of a Hilbert space (the \emph{asymptotic Gibbs measure}). The representation of the limit array is formalized in the function-valued form of Theorem~\ref{thm:sg:dovbysh-sudakov-gram} (Section~\ref{sec:sg:dovbysh-sudakov}); the random measure on the Hilbert ball itself (Lemma~1.7) is not.
 
 \begin{lemma}[A mixture of i.i.d.\ sequences is exchangeable]\label{lem:sg:mixture}
   \lean{MeasureTheory.Measure.measurable_pi_const, MeasureTheory.Measure.measurable_infinitePi_const,
@@ -1713,8 +1718,8 @@ the continuous map $T_e(A)=(A_{e(l)e(l')})$. For the SK model the hypotheses hol
 
 \begin{remark}[Deviations from Panchenko's treatment of the asymptotic Gibbs measures, and why]\label{rem:sg:asymptotic-deviation}
 \begin{enumerate}
-\item \emph{The Dovbysh--Sudakov theorem is not formalized.} The book obtains the asymptotic Gibbs measure $G$ from the limit array via Theorem~1.7 (proved in Sections~1.4--1.5 from the Aldous--Hoover representation).
-We stop at its hypotheses (symmetric, positive semidefinite, exchangeable limit law), so the statement of existence of $G$ on a Hilbert space is not a theorem of this repository; no Lean declaration asserts it.
+\item \emph{The Dovbysh--Sudakov theorem is formalized only in function-valued form.} The book obtains the asymptotic Gibbs measure $G$ from the limit array via Theorem~1.7 (proved in Sections~1.4--1.5 from the Aldous--Hoover representation).
+This section stops at its hypotheses (symmetric, positive semidefinite, exchangeable limit law). The theorem itself is proved in Section~\ref{sec:sg:dovbysh-sudakov} (\texttt{exists\_dovbysh\_sudakov\_representation\_of\_gram\_set} takes exactly the output of Theorem~\ref{thm:sg:asymptotic-overlap}), and gives measurable $h(w,u,\cdot)\in L^2(0,1)$ representing the limit array. The existence of $G$ as a measurable family of probability measures on the unit ball of a Hilbert space (in particular on $L^2(0,1)$) is not a theorem of this repository; no Lean declaration asserts it. It is the content of the next planned milestone.
 \item \emph{All permutations, any Gibbs measure.} We prove invariance under every bijection of $\mathbb N$ (not only finite permutations), and Theorem~\ref{thm:sg:annealed-gram} is stated for an arbitrary measurable family of Gibbs measures, so it applies both to $G_N$
 and to the auxiliary measure $G'_N$ of the Aizenman--Sims--Starr scheme (Eq.~(1.73)). The book's step identifying the asymptotic overlap laws of $G_N$ and $G'_N$ (via an orthogonal transformation of $G'$) is not formalized.
 \item \emph{The diagonal.} The array includes the diagonal $R_{ll}=1$, which holds for $\pm1$ spins; the book's representation concerns $(R_{ll'})_{l\ne l'}$.
@@ -2088,13 +2093,14 @@ with $w$, $(u_l)$, $(x_c)_{c\in\operatorname{Sym}^2(\mathbb N)}$ independent and
 Apply Theorem~\ref{thm:sg:aldous-hoover-curried} to the identity array on $(\mathbb R^{\mathbb N\times\mathbb N},\Lambda)$ and let $g,f$ be the resulting maps. The set of arrays in $\mathbb R^{\mathbb N\times\mathbb N}$ with unit diagonal is measurable and has full measure under $\Lambda$, hence also under the law of the right-hand side, that is, $g(w,u_l)=1$ for all $l$ almost surely. Replacing $g$ by $1$ changes the array only on a null set.
 \end{proof}
 
-Theorem~\ref{thm:sg:aldous-hoover-gram} applies to the asymptotic overlap law $\mu$ of Theorem~\ref{thm:sg:asymptotic-overlap}: that theorem gives a probability measure concentrated on the closed set of symmetric, unit diagonal, positive semidefinite arrays with entries in $[-1,1]$ which is exchangeable. The Lean declaration \texttt{exists\_aldousHoover\_representation\_of\_gram\_set} takes exactly this form of hypothesis (the Gram set has measure one) and so applies to any limit produced by Theorem~\ref{thm:sg:asymptotic-overlap}, without restating its hypotheses. Positive semidefiniteness and the bound are not used here; that they force $f$ not to depend on the cell noise $x_{\{l,l'\}}$ (the Dovbysh--Sudakov theorem) is not formalized.
+Theorem~\ref{thm:sg:aldous-hoover-gram} applies to the asymptotic overlap law $\mu$ of Theorem~\ref{thm:sg:asymptotic-overlap}: that theorem gives a probability measure concentrated on the closed set of symmetric, unit diagonal, positive semidefinite arrays with entries in $[-1,1]$ which is exchangeable. The Lean declaration \texttt{exists\_aldousHoover\_representation\_of\_gram\_set} takes exactly this form of hypothesis (the Gram set has measure one) and so applies to any limit produced by Theorem~\ref{thm:sg:asymptotic-overlap}, without restating its hypotheses. Positive semidefiniteness and the bound are not used here; that they force $f$ not to depend on the cell noise $x_{\{l,l'\}}$ is the Dovbysh--Sudakov theorem, formalized in Section~\ref{sec:sg:dovbysh-sudakov}.
 
 \paragraph{Separately exchangeable arrays.}
 An array $(s_{l,l'})_{l,l'\in\mathbb N}$ with values in a nonempty standard Borel space $E$ is \emph{separately exchangeable} if $(s_{e_1(l),e_2(l')})_{l,l'}\overset d=(s_{l,l'})_{l,l'}$ for every pair of bijections $e_1,e_2$ of $\mathbb N$ (Eq.~(1.76); as above, a hypothesis \texttt{hexch} on all bijections, not only finitely supported ones).
 
 \begin{lemma}[Restrictions of an i.i.d.\ family to disjoint index sets are independent]\label{lem:sg:iid-split}
-  \lean{MeasureTheory.Measure.map_infinitePi_pair_of_disjoint,
+  \lean{MeasureTheory.Measure.indepFun_restrict_infinitePi_of_disjoint,
+        MeasureTheory.Measure.map_infinitePi_pair_of_disjoint,
         MeasureTheory.Measure.map_prod_infinitePi_pair_of_disjoint}
   \leanok
 Let $(c_i)_{i\in\iota}$ be i.i.d.\ with law $\nu$, $f:\alpha\to\iota$ and $g:\beta\to\iota$ injective with disjoint ranges, and $a$ a random element independent of $(c_i)$. Then $a$, $(c_{f(\cdot)})$ and $(c_{g(\cdot)})$ are independent, the last two being i.i.d.\ families with law $\nu$.
@@ -2213,6 +2219,8 @@ Deviations are listed in Remark~\ref{rem:sg:dovbysh-sudakov-deviation}.
   \lean{Matrix.cholInf,
         Matrix.measurable_cholInf,
         Matrix.sum_cholInf_mul_eq,
+        Matrix.sum_cholInf_mul_eq_dotProduct,
+        Matrix.posSemidef_symm,
         Matrix.posSemidef_comp}
   \leanok
 Let $A:\mathbb N\to\mathbb N\to\mathbb R$ be such that every finite principal submatrix is positive semidefinite. The lower triangular array $L=\operatorname{cholInf}(A)$, defined row by row, satisfies $\sum_{j<K}L_{l,j}L_{l',j}=A_{l,l'}$ for $K>\max(l,l')$, and every entry $L_{l,k}$ is a measurable function of $A$. If $f:\mathbb N\to\mathbb N$ is any map, the array $(A_{f(l),f(l')})$ again has positive semidefinite finite principal submatrices.
@@ -2273,6 +2281,8 @@ Permuting the columns permutes the i.i.d.\ columns of $\xi$, whose law is invari
   \lean{MeasureTheory.sq_integral_le_integral_sq,
         MeasureTheory.integrable_sq_integral_prod,
         MeasureTheory.integral_prod_mul_prod,
+        MeasureTheory.ae_integrable_section_of_integrable_sq,
+        MeasureTheory.memLp_integral_abs_of_integrable_sq,
         Measurable.integral_prod_right'}
   \leanok
 Let $f,f'$ be measurable functions of $(v,x)$ that are square-integrable for $\mu_V\otimes\mu_X$ (probability measures), and $m(v)=\int f(v,x)\,d\mu_X(x)$, $m'$ likewise. Then $m^2$ is integrable and $\int m^2\le\iint f^2$; and, for two independent copies $x,x'$ of the cell variable, $\iiint f(v,x)f'(v,x')=\int m\,m'$.
@@ -2281,6 +2291,23 @@ Let $f,f'$ be measurable functions of $(v,x)$ that are square-integrable for $\m
 \begin{proof}
   \leanok
 Jensen's inequality $(\int f)^2\le\int f^2$ on each section ($\operatorname{Var}\ge0$), integrated in $v$. For the second identity, the integrand is integrable because $\int|f(v,\cdot)|$ and $\int|f'(v,\cdot)|$ are square-integrable in $v$ and the product of two square-integrable functions is integrable; then Fubini and $\int\!\int f(v,x)f'(v,x')=(\int f)(\int f')$.
+\end{proof}
+
+\begin{lemma}[Distance to a finite span as a rational infimum]\label{lem:sg:proj-distance}
+  \lean{infDist_span_range_sq_eq_iInf_rat,
+        measurable_infDist_span_range_sq,
+        ciInf_range_subtype}
+  \leanok
+Let $v,w_1,\dots,w_n$ be vectors of a real inner product space. Then
+\[
+\operatorname{dist}\bigl(v,\operatorname{span}(w_1,\dots,w_n)\bigr)^2=\inf_{c\in\mathbb Q^n}\Bigl(\langle v,v\rangle-2\sum_i c_i\langle v,w_i\rangle+\sum_{i,j}c_ic_j\langle w_i,w_j\rangle\Bigr),
+\]
+with no linear independence assumption on the $w_i$. Consequently, if $v,w_i$ depend measurably on a parameter in the sense that the inner products $\langle v,v\rangle,\langle v,w_i\rangle,\langle w_i,w_j\rangle$ are measurable functions of it, then the squared distance is measurable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The squared distance is the infimum over real $c\in\mathbb R^n$ of the quadratic form $\|v-\sum_ic_iw_i\|^2$, which is continuous in $c$; the rational vectors are dense in $\mathbb R^n$, so the infimum over them is the same. Expanding the square gives the displayed form. A countable infimum of measurable functions is measurable. This lemma is not used in the proof of Theorem~\ref{thm:sg:dovbysh-sudakov}; it is the tool for the measurable reconstruction of $\|h_l\|$ in Lemma~1.7, which is not formalized.
 \end{proof}
 
 \begin{theorem}[Empirical covariances of an Aldous--Hoover array]\label{thm:sg:ah-empirical}

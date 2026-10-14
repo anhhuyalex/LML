@@ -87,10 +87,8 @@ theorem exists_aldousHoover_representation_of_curried [IsProbabilityMeasure P]
     rcases le_total a b with hab | hab
     · rw [min_eq_left hab, max_eq_right hab]
     · rw [min_eq_right hab, max_eq_left hab, hA]
-  have hRm : Measurable R :=
-    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => hR l l'
-  have hRe : ∀ e : ℕ ≃ ℕ, Measurable fun ω l l' => R ω (e l) (e l') := fun e =>
-    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => hR (e l) (e l')
+  have hRm : Measurable R := by fun_prop
+  have hRe : ∀ e : ℕ ≃ ℕ, Measurable fun ω l l' => R ω (e l) (e l') := fun e => by fun_prop
   have hsm : ∀ e : ℕ ≃ ℕ, Measurable fun ω (c : Sym2 ℕ) => Φ (R ω) (Sym2.map e c) := fun e =>
     measurable_pi_iff.2 fun c => (measurable_pi_apply _).comp (hΦm.comp hRm)
   obtain ⟨g, f, hg, hf, hfs, hid⟩ := exists_aldousHoover_representation (P := P)
@@ -114,10 +112,8 @@ theorem exists_aldousHoover_representation_of_curried [IsProbabilityMeasure P]
 function on `ℕ × ℕ`. -/
 theorem map_map_curry_array {E : Type*} [MeasurableSpace E] (Λ : Measure (ℕ → ℕ → E)) :
     (Λ.map fun A (p : ℕ × ℕ) => A p.1 p.2).map (fun x l l' => x (l, l')) = Λ := by
-  have hc : Measurable fun (x : ℕ × ℕ → E) (l l' : ℕ) => x (l, l') :=
-    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => measurable_pi_apply _
-  have hX : Measurable fun (A : ℕ → ℕ → E) (p : ℕ × ℕ) => A p.1 p.2 :=
-    measurable_pi_iff.2 fun p => (measurable_pi_apply p.2).comp (measurable_pi_apply p.1)
+  have hc : Measurable fun (x : ℕ × ℕ → E) (l l' : ℕ) => x (l, l') := by fun_prop
+  have hX : Measurable fun (A : ℕ → ℕ → E) (p : ℕ × ℕ) => A p.1 p.2 := by fun_prop
   rw [Measure.map_map hc hX]
   exact Measure.map_id
 
@@ -141,17 +137,14 @@ theorem exists_aldousHoover_representation_of_gram {Λ : Measure (ℕ → ℕ �
           if l = l' then (1 : ℝ) else f (η.1.1, η.1.2 l, η.1.2 l', η.2 s(l, l')))
         (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).prod
           (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))) := by
-  have hm : ∀ e : ℕ ≃ ℕ, Measurable fun (A : ℕ → ℕ → ℝ) l l' => A (e l) (e l') := fun e =>
-    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' =>
-      (measurable_pi_apply _).comp (measurable_pi_apply _)
-  have hR : ∀ l l', Measurable fun A : ℕ → ℕ → ℝ => A l l' := fun l l' =>
-    (measurable_pi_apply l').comp (measurable_pi_apply l)
+  have hm : ∀ e : ℕ ≃ ℕ, Measurable fun (A : ℕ → ℕ → ℝ) l l' => A (e l) (e l') := fun e => by
+    fun_prop
+  have hR : ∀ l l', Measurable fun A : ℕ → ℕ → ℝ => A l l' := fun l l' => by fun_prop
   obtain ⟨g, f, hg, hf, hfs, hid⟩ := exists_aldousHoover_representation_of_curried (P := Λ)
     (R := fun A => A) hR (hK.mono fun A h => h.1) fun e =>
     ⟨(hm e).aemeasurable, aemeasurable_id, (hexch e).trans Measure.map_id.symm⟩
   refine ⟨f, hf, hfs, ?_⟩
-  have hc : Measurable fun (x : ℕ × ℕ → ℝ) (l l' : ℕ) => x (l, l') :=
-    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => measurable_pi_apply _
+  have hc : Measurable fun (x : ℕ × ℕ → ℝ) (l l' : ℕ) => x (l, l') := by fun_prop
   have hD : MeasurableSet {x : ℕ × ℕ → ℝ | ∀ l, x (l, l) = 1} := by
     simp only [ofPred_forall]
     exact MeasurableSet.iInter fun l => measurableSet_eq_fun (measurable_pi_apply _)

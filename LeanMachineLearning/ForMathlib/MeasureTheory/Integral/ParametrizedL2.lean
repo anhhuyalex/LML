@@ -21,6 +21,9 @@ reduces to the inner product of the partial integrals:
 
 * `MeasureTheory.integrable_sq_integral_prod`: `v ↦ (∫ x, f (v, x))²` is integrable and
   `∫ v, (∫ x, f (v, x))² ≤ ∫ f²`.
+* `MeasureTheory.ae_integrable_section_of_integrable_sq`,
+  `MeasureTheory.memLp_integral_abs_of_integrable_sq`: the sections, and the absolute partial
+  integral, of a square-integrable function are integrable, resp. in `L²`.
 * `MeasureTheory.integral_prod_mul_prod`: `∫ f (v, x) f' (v, x') d(μV ⊗ μX ⊗ μX) = ∫ m m'`.
 -/
 
@@ -76,6 +79,24 @@ theorem integrable_sq_integral_prod (hfm : Measurable f)
         integral_mono_ae hi hg hpt
     _ = ∫ z, f z ^ 2 ∂(μV.prod μX) := (integral_prod _ hf).symm
 
+/-- **Almost every section** of a square-integrable function on `V × X` is integrable. -/
+theorem ae_integrable_section_of_integrable_sq {g : V × X → ℝ} (hg : Measurable g)
+    (h : Integrable (fun z => g z ^ 2) (μV.prod μX)) :
+    ∀ᵐ v ∂μV, Integrable (fun x => g (v, x)) μX := by
+  filter_upwards [h.prod_right_ae] with v hv
+  exact integrable_section_of_integrable_sq (hg.comp measurable_prodMk_left) hv
+
+/-- **The absolute partial integral** `v ↦ ∫ |g (v, x)| dμX` of a square-integrable function is
+in `L²(μV)`. -/
+theorem memLp_integral_abs_of_integrable_sq {g : V × X → ℝ} (hg : Measurable g)
+    (h : Integrable (fun z => g z ^ 2) (μV.prod μX)) :
+    MemLp (fun v => ∫ x, |g (v, x)| ∂μX) 2 μV := by
+  have hg' : Measurable fun z => |g z| := continuous_abs.measurable.comp hg
+  have h' := (integrable_sq_integral_prod (μV := μV) (μX := μX) hg'
+    (by simpa [sq_abs] using h)).1
+  exact (memLp_two_iff_integrable_sq
+    ((hg'.stronglyMeasurable.integral_prod_right').measurable.aestronglyMeasurable)).2 h'
+
 /-- **Two independent copies of the noise:** for square-integrable `f, f'` on `V × X`,
 `∫ f (v, x) f' (v, x') d(μV ⊗ (μX ⊗ μX)) = ∫ (∫ f (v, ·) dμX) (∫ f' (v, ·) dμX) dμV`, and the
 integrand on the left is integrable. -/
@@ -89,22 +110,11 @@ theorem integral_prod_mul_prod (hfm : Measurable f)
   have hF : Measurable fun z : V × (X × X) => f (z.1, z.2.1) * f' (z.1, z.2.2) :=
     (hfm.comp (measurable_fst.prodMk (measurable_fst.comp measurable_snd))).mul
       (hfm'.comp (measurable_fst.prodMk (measurable_snd.comp measurable_snd)))
-  have hs : ∀ g : V × X → ℝ, Measurable g → Integrable (fun z => g z ^ 2) (μV.prod μX) →
-      ∀ᵐ v ∂μV, Integrable (fun x => g (v, x)) μX := fun g hg hgi => by
-    filter_upwards [hgi.prod_right_ae] with v hv
-    exact integrable_section_of_integrable_sq (hg.comp measurable_prodMk_left) hv
-  -- the absolute partial integrals are square-integrable
-  have hA : ∀ g : V × X → ℝ, Measurable g → Integrable (fun z => g z ^ 2) (μV.prod μX) →
-      MemLp (fun v => ∫ x, |g (v, x)| ∂μX) 2 μV := fun g hg hgi => by
-    have hg' : Measurable fun z => |g z| := continuous_abs.measurable.comp hg
-    have h := (integrable_sq_integral_prod (μV := μV) (μX := μX) hg'
-      (by simpa [sq_abs] using hgi)).1
-    exact (memLp_two_iff_integrable_sq
-      ((hg'.stronglyMeasurable.integral_prod_right').measurable.aestronglyMeasurable)).2 h
   have hI : Integrable (fun z : V × (X × X) => f (z.1, z.2.1) * f' (z.1, z.2.2))
       (μV.prod (μX.prod μX)) := by
     refine (integrable_prod_iff hF.aestronglyMeasurable).2 ⟨?_, ?_⟩
-    · filter_upwards [hs f hfm hf, hs f' hfm' hf'] with v h1 h2
+    · filter_upwards [ae_integrable_section_of_integrable_sq hfm hf,
+        ae_integrable_section_of_integrable_sq hfm' hf'] with v h1 h2
       exact h1.mul_prod h2
     · have : (fun v => ∫ p : X × X, ‖f (v, p.1) * f' (v, p.2)‖ ∂(μX.prod μX)) =
           fun v => (∫ x, |f (v, x)| ∂μX) * ∫ x, |f' (v, x)| ∂μX := by
@@ -112,7 +122,8 @@ theorem integral_prod_mul_prod (hfm : Measurable f)
         simp only [norm_mul, Real.norm_eq_abs]
         exact integral_prod_mul (fun x => |f (v, x)|) (fun x => |f' (v, x)|)
       simp only [this]
-      exact (hA f hfm hf).integrable_mul (hA f' hfm' hf')
+      exact (memLp_integral_abs_of_integrable_sq hfm hf).integrable_mul
+        (memLp_integral_abs_of_integrable_sq hfm' hf')
   refine ⟨hI, ?_⟩
   rw [integral_prod _ hI]
   refine integral_congr_ae (Filter.Eventually.of_forall fun v => ?_)

@@ -17,6 +17,8 @@ public import Mathlib.Topology.Instances.Matrix
   It is the intersection of the (closed) symmetric matrices with the closed half-spaces
   `{M | 0 ≤ x ⬝ᵥ M *ᵥ x}`.
 * `Matrix.PosSemidef.sum_mul_mul_nonneg`: the quadratic form as a double sum `∑ᵢ ∑ⱼ vᵢ vⱼ Mᵢⱼ ≥ 0`.
+* `Matrix.posSemidef_symm`: an infinite array all of whose finite principal submatrices are
+  positive semidefinite is symmetric.
 * `Matrix.posSemidef_comp`: if every finite principal submatrix of an infinite array is
   positive semidefinite, so is the array `(A (f l) (f l'))_{l, l'}` for any `f : ℕ → ℕ`.
 * `Matrix.posSemidef_of_const_mul_dotProduct`: the matrix `(c ⬝ᵥ-Gram of v)`
@@ -58,6 +60,13 @@ theorem posSemidef_of_const_mul_dotProduct {κ : Type*} [Fintype κ] (v : n → 
   convert h using 1
   ext l l'
   simp [Matrix.mul_apply, dotProduct]
+
+/-- An infinite array all of whose finite principal submatrices are positive semidefinite is
+symmetric. -/
+theorem posSemidef_symm {A : ℕ → ℕ → ℝ}
+    (hA : ∀ k : ℕ, (Matrix.of fun l l' : Fin k => A l l').PosSemidef) (a b : ℕ) :
+    A a b = A b a := by
+  simpa using (hA (max a b + 1)).isHermitian.apply ⟨b, by omega⟩ ⟨a, by omega⟩
 
 /-- **Reindexing an infinite array** along any `f : ℕ → ℕ` (e.g. a permutation) preserves the
 positive semidefiniteness of all finite principal submatrices. -/

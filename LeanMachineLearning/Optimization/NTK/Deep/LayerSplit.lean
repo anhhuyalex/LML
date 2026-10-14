@@ -76,7 +76,7 @@ theorem map_layerBlock_infinitePi (n : ℕ) :
   have hB : (Measure.infinitePi fun _ : ℕ => (Measure.pi fun _ : Fin n =>
       gaussianReal 0 1)).map rows =
       Measure.pi fun _ : Fin n => (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
-    (measurePreserving_prefixMap (Measure.pi fun _ : Fin n => gaussianReal 0 1) n).map_eq
+    (Measure.measurePreserving_prefixMap (Measure.pi fun _ : Fin n => gaussianReal 0 1) n).map_eq
   have hcomp : (fun (L : ℕ → ℕ → ℝ) (j : Fin n) (i : Fin n) => L j.val i.val) =
       rows ∘ cols := rfl
   rw [hcomp, ← Measure.map_map hrows hcols, hA, hB]

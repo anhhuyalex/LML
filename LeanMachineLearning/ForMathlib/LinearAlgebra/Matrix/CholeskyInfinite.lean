@@ -25,6 +25,8 @@ sum of i.i.d. Gaussians.
 * `Matrix.measurable_cholInf`: `A ↦ cholInf A l k` is measurable (product σ-algebra).
 * `Matrix.sum_cholInf_mul_eq`: `∑_{j<K} L l j * L l' j = A l l'` for `K > max l l'` when every
   finite principal submatrix of `A` is positive semidefinite.
+* `Matrix.sum_cholInf_mul_eq_dotProduct`: the finite sum `∑_{k ≤ m} L m k c k` is the dot product
+  of the first `N > m` coordinates of row `m` of `L` with those of `c`.
 
 ## Implementation notes
 
@@ -38,6 +40,7 @@ Cauchy–Schwarz (`residual_offdiag_eq_zero`).
 @[expose] public section
 
 open Finset
+open scoped Matrix
 
 namespace Matrix
 
@@ -315,9 +318,7 @@ theorem sum_cholInf_mul_eq
     (hA : ∀ k : ℕ, (Matrix.of fun l l' : Fin k => A l l').PosSemidef) (l l' K : ℕ)
     (hK : max l l' < K) :
     ∑ j ∈ range K, cholInf A l j * cholInf A l' j = A l l' := by
-  have hsymm : ∀ a b, A a b = A b a := fun a b => by
-    have h := (hA (max a b + 1)).isHermitian.apply ⟨b, by omega⟩ ⟨a, by omega⟩
-    simpa using h
+  have hsymm := posSemidef_symm hA
   have hP : ∀ (N : ℕ) (x : ℕ → ℝ),
       0 ≤ ∑ l ∈ range N, ∑ l' ∈ range N, x l * x l' * A l l' := fun N x => by
     have h := (hA N).sum_mul_mul_nonneg (fun i : Fin N => x i)
@@ -332,5 +333,15 @@ theorem sum_cholInf_mul_eq
   rcases le_total l l' with h | h
   · rw [min_eq_left h] at hj'; rw [cholInf_of_gt A (by omega : l < j), zero_mul]
   · rw [min_eq_right h] at hj'; rw [cholInf_of_gt A (by omega : l' < j), mul_zero]
+
+/-- A row of `cholInf A` is supported on `k ≤ l`, so the finite sum `∑_{k ≤ m} L m k c k` is the
+dot product of the first `N` coordinates of `L m` and `c`, for any `N > m`. -/
+theorem sum_cholInf_mul_eq_dotProduct (A : ℕ → ℕ → ℝ) {m N : ℕ} (hm : m < N) (c : ℕ → ℝ) :
+    ∑ k ∈ range (m + 1), cholInf A m k * c k =
+      (fun j : Fin N => cholInf A m j) ⬝ᵥ (fun j : Fin N => c j) := by
+  simp only [dotProduct]
+  rw [Fin.sum_univ_eq_sum_range (fun j => cholInf A m j * c j) N]
+  refine sum_subset (range_mono (by omega)) fun k _ hk => ?_
+  rw [cholInf_of_gt A (by simpa using hk), zero_mul]
 
 end Matrix

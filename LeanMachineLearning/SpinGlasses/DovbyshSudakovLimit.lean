@@ -70,6 +70,31 @@ section Limit
 variable {X : Type*} [MeasurableSpace X] (ν : Measure X) [IsProbabilityMeasure ν]
   {τ : X × X × X × X → ℝ}
 
+/-- The two cell indices `(inl i, inr (l, i))` of the Aldous–Hoover noise family are distinct,
+and the pairs for distinct `i` are disjoint. -/
+private theorem aldousHooverBlock_two (l : ℕ) :
+    (∀ i : ℕ, Function.Injective (![Sum.inl i, Sum.inr (l, i)] : Fin 2 → ℕ ⊕ ℕ × ℕ)) ∧
+      ∀ i j : ℕ, i ≠ j → Disjoint
+        (Set.range (![Sum.inl i, Sum.inr (l, i)] : Fin 2 → ℕ ⊕ ℕ × ℕ))
+        (Set.range (![Sum.inl j, Sum.inr (l, j)] : Fin 2 → ℕ ⊕ ℕ × ℕ)) :=
+  ⟨fun i x y hxy => by fin_cases x <;> fin_cases y <;> simp_all, fun i j hij => by
+    rw [Set.disjoint_left]
+    rintro _ ⟨x, rfl⟩ ⟨y, hy⟩
+    fin_cases x <;> fin_cases y <;> simp_all⟩
+
+/-- The three cell indices `(inl i, inr (l, i), inr (l', i))` for `l ≠ l'` are distinct, and the
+triples for distinct `i` are disjoint. -/
+private theorem aldousHooverBlock_three {l l' : ℕ} (hll' : l ≠ l') :
+    (∀ i : ℕ, Function.Injective
+      (![Sum.inl i, Sum.inr (l, i), Sum.inr (l', i)] : Fin 3 → ℕ ⊕ ℕ × ℕ)) ∧
+      ∀ i j : ℕ, i ≠ j → Disjoint
+        (Set.range (![Sum.inl i, Sum.inr (l, i), Sum.inr (l', i)] : Fin 3 → ℕ ⊕ ℕ × ℕ))
+        (Set.range (![Sum.inl j, Sum.inr (l, j), Sum.inr (l', j)] : Fin 3 → ℕ ⊕ ℕ × ℕ)) :=
+  ⟨fun i x y hxy => by fin_cases x <;> fin_cases y <;> simp_all, fun i j hij => by
+    rw [Set.disjoint_left]
+    rintro _ ⟨x, rfl⟩ ⟨y, hy⟩
+    fin_cases x <;> fin_cases y <;> simp_all⟩
+
 /-- **Off-diagonal empirical covariance of an Aldous–Hoover array.**  For `l ≠ l'`, almost surely
 `n⁻¹ ∑_{i<n} τ (w, u_l, v_i, x_{l, i}) τ (w, u_{l'}, v_i, x_{l', i})` converges to
 `∫ h (w, u_l, v) h (w, u_{l'}, v) dv`, where `h (w, a, v) = ∫ τ (w, a, v, x) dx`.  The sections
@@ -121,16 +146,7 @@ theorem ae_tendsto_mean_aldousHoover_offDiag (hτ : Measurable τ)
     with hG
   have hGm : Measurable G := (hτ.comp (by fun_prop)).mul (hτ.comp (by fun_prop))
   have hmp3 := measurePreserving_finThreeArrow ν
-  have hf : ∀ i : ℕ, Function.Injective
-      (![Sum.inl i, Sum.inr (l, i), Sum.inr (l', i)] : Fin 3 → ℕ ⊕ ℕ × ℕ) := fun i x y hxy => by
-    fin_cases x <;> fin_cases y <;> simp_all
-  have hdisj : ∀ i j : ℕ, i ≠ j → Disjoint
-      (Set.range (![Sum.inl i, Sum.inr (l, i), Sum.inr (l', i)] : Fin 3 → ℕ ⊕ ℕ × ℕ))
-      (Set.range (![Sum.inl j, Sum.inr (l, j), Sum.inr (l', j)] : Fin 3 → ℕ ⊕ ℕ × ℕ)) :=
-    fun i j hij => by
-      rw [Set.disjoint_left]
-      rintro _ ⟨x, rfl⟩ ⟨y, hy⟩
-      fin_cases x <;> fin_cases y <;> simp_all
+  obtain ⟨hf, hdisj⟩ := aldousHooverBlock_three hll'
   have hΦint : Integrable (fun y : Fin 3 → X => G (y 0, y 1, y 2)) (Measure.pi fun _ => ν) :=
     hmp3.hasLaw.integrable_comp (f := G) hGi
   have hblock := ae_tendsto_mean_infinitePi_blocks ν (J := ℕ ⊕ ℕ × ℕ) (F := Fin 3)
@@ -180,16 +196,7 @@ theorem ae_tendsto_mean_aldousHoover_diag (hτ : Measurable τ)
   set G : X × X → ℝ := fun p => τ (a.1, a.2 l, p.1, p.2) ^ 2 with hG
   have hGm : Measurable G := (hτ.comp (by fun_prop)).pow_const 2
   have hmp2 := measurePreserving_finTwoArrow ν
-  have hf : ∀ i : ℕ, Function.Injective
-      (![Sum.inl i, Sum.inr (l, i)] : Fin 2 → ℕ ⊕ ℕ × ℕ) := fun i x y hxy => by
-    fin_cases x <;> fin_cases y <;> simp_all
-  have hdisj : ∀ i j : ℕ, i ≠ j → Disjoint
-      (Set.range (![Sum.inl i, Sum.inr (l, i)] : Fin 2 → ℕ ⊕ ℕ × ℕ))
-      (Set.range (![Sum.inl j, Sum.inr (l, j)] : Fin 2 → ℕ ⊕ ℕ × ℕ)) :=
-    fun i j hij => by
-      rw [Set.disjoint_left]
-      rintro _ ⟨x, rfl⟩ ⟨y, hy⟩
-      fin_cases x <;> fin_cases y <;> simp_all
+  obtain ⟨hf, hdisj⟩ := aldousHooverBlock_two l
   have hΦint : Integrable (fun y : Fin 2 → X => G (y 0, y 1)) (Measure.pi fun _ => ν) :=
     hmp2.hasLaw.integrable_comp (f := G) ha
   have hblock := ae_tendsto_mean_infinitePi_blocks ν (J := ℕ ⊕ ℕ × ℕ) (F := Fin 2)
@@ -222,15 +229,14 @@ theorem exists_ae_tendsto_mean_aldousHoover (hτ : Measurable τ)
           (𝓝 ((∫ v, h (m.1.1, m.1.2 l, v) * h (m.1.1, m.1.2 l', v) ∂ν) +
             if l = l' then a (m.1.1, m.1.2 l) else 0)) := by
   classical
-  set Gd : Set (X × X) := {q | HasFiniteIntegral (fun p : X × X => τ (q.1, q.2, p.1, p.2) ^ 2)
+  set Gd : Set (X × X) := {q | Integrable (fun p : X × X => τ (q.1, q.2, p.1, p.2) ^ 2)
     (ν.prod ν)} with hGd
   have hτ2 : Measurable fun y : (X × X) × (X × X) => τ (y.1.1, y.1.2, y.2.1, y.2.2) ^ 2 :=
     (hτ.comp (by fun_prop)).pow_const 2
-  have hGdm : MeasurableSet Gd := by
-    have : Measurable fun q : X × X => ∫⁻ p : X × X, ‖τ (q.1, q.2, p.1, p.2) ^ 2‖ₑ ∂(ν.prod ν) :=
-      hτ2.enorm.lintegral_prod_right' (ν := ν.prod ν)
-    exact measurableSet_lt this measurable_const
-  have hGd_ae : ∀ᵐ q ∂(ν.prod ν), q ∈ Gd := hint.mono fun q hq => hq.2
+  have hGdm : MeasurableSet Gd :=
+    measurableSet_integrable (μ := ν.prod ν) (f := fun (q p : X × X) => τ (q.1, q.2, p.1, p.2) ^ 2)
+      hτ2.stronglyMeasurable
+  have hGd_ae : ∀ᵐ q ∂(ν.prod ν), q ∈ Gd := hint
   -- truncate `τ` off the bad set
   set τ' : X × X × X × X → ℝ := fun y => if (y.1, y.2.1) ∈ Gd then τ y else 0 with hτ'
   have hτ'm : Measurable τ' :=
@@ -242,7 +248,7 @@ theorem exists_ae_tendsto_mean_aldousHoover (hτ : Measurable τ)
             fun p => τ (q.1, q.2, p.1, p.2) ^ 2 := by
           funext p; simp [hτ', hq]
         rw [this]
-        exact ⟨(hτ2.comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable, hq⟩
+        exact hq
       · have : (fun p : X × X => τ' (q.1, q.2, p.1, p.2) ^ 2) = fun _ => 0 := by
           funext p; simp [hτ', hq]
         rw [this]; exact integrable_zero _ _ _
@@ -331,12 +337,11 @@ theorem ae_integrable_section_of_ae_exists_tendsto (hτ : Measurable τ)
   classical
   have hτ2 : Measurable fun y : (X × X) × (X × X) => τ (y.1.1, y.1.2, y.2.1, y.2.2) ^ 2 :=
     (hτ.comp (by fun_prop)).pow_const 2
-  set Gd : Set (X × X) := {q | HasFiniteIntegral (fun p : X × X => τ (q.1, q.2, p.1, p.2) ^ 2)
+  set Gd : Set (X × X) := {q | Integrable (fun p : X × X => τ (q.1, q.2, p.1, p.2) ^ 2)
     (ν.prod ν)} with hGd
-  have hGdm : MeasurableSet Gd := by
-    have : Measurable fun q : X × X => ∫⁻ p : X × X, ‖τ (q.1, q.2, p.1, p.2) ^ 2‖ₑ ∂(ν.prod ν) :=
-      hτ2.enorm.lintegral_prod_right' (ν := ν.prod ν)
-    exact measurableSet_lt this measurable_const
+  have hGdm : MeasurableSet Gd :=
+    measurableSet_integrable (μ := ν.prod ν) (f := fun (q p : X × X) => τ (q.1, q.2, p.1, p.2) ^ 2)
+      hτ2.stronglyMeasurable
   have hterm : ∀ i : ℕ, Measurable fun m : (X × (ℕ → X)) × (ℕ ⊕ ℕ × ℕ → X) =>
       τ (m.1.1, m.1.2 0, m.2 (Sum.inl i), m.2 (Sum.inr (0, i))) *
         τ (m.1.1, m.1.2 0, m.2 (Sum.inl i), m.2 (Sum.inr (0, i))) := fun i =>
@@ -356,19 +361,9 @@ theorem ae_integrable_section_of_ae_exists_tendsto (hτ : Measurable τ)
     set G : X × X → ℝ := fun p => τ (a.1, a.2 0, p.1, p.2) ^ 2 with hG
     have hGm : Measurable G := (hτ.comp (by fun_prop)).pow_const 2
     have hmp2 := measurePreserving_finTwoArrow ν
-    have hnotint : ¬ Integrable G (ν.prod ν) := fun hi => hnot hi.2
     have hΦnot : ¬ Integrable (fun y : Fin 2 → X => G (y 0, y 1)) (Measure.pi fun _ => ν) :=
-      fun hi => hnotint ((hmp2.integrable_comp (g := G) hGm.aestronglyMeasurable).1 hi)
-    have hf : ∀ i : ℕ, Function.Injective
-        (![Sum.inl i, Sum.inr (0, i)] : Fin 2 → ℕ ⊕ ℕ × ℕ) := fun i x y hxy => by
-      fin_cases x <;> fin_cases y <;> simp_all
-    have hdisj : ∀ i j : ℕ, i ≠ j → Disjoint
-        (Set.range (![Sum.inl i, Sum.inr (0, i)] : Fin 2 → ℕ ⊕ ℕ × ℕ))
-        (Set.range (![Sum.inl j, Sum.inr (0, j)] : Fin 2 → ℕ ⊕ ℕ × ℕ)) :=
-      fun i j hij => by
-        rw [Set.disjoint_left]
-        rintro _ ⟨x, rfl⟩ ⟨y, hy⟩
-        fin_cases x <;> fin_cases y <;> simp_all
+      fun hi => hnot ((hmp2.integrable_comp (g := G) hGm.aestronglyMeasurable).1 hi)
+    obtain ⟨hf, hdisj⟩ := aldousHooverBlock_two 0
     have hNN := ae_tendsto_atTop_mean_infinitePi_blocks ν (J := ℕ ⊕ ℕ × ℕ) (F := Fin 2)
       (f := fun i => ![Sum.inl i, Sum.inr (0, i)]) hf hdisj (Φ := fun y => G (y 0, y 1))
       (hGm.comp (by fun_prop)) (fun y => sq_nonneg _) hΦnot
@@ -378,9 +373,7 @@ theorem ae_integrable_section_of_ae_exists_tendsto (hτ : Measurable τ)
   have hnull : (ν.prod ν) Gdᶜ = 0 := by
     rw [← hmp0.measure_preimage hGdm.compl.nullMeasurableSet]
     exact hGa
-  have hGd_ae : ∀ᵐ q ∂(ν.prod ν), q ∈ Gd := hnull
-  filter_upwards [hGd_ae] with q hq
-  exact ⟨(hτ2.comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable, hq⟩
+  exact hnull
 
 end Limit
 

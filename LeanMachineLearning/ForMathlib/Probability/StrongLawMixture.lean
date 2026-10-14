@@ -87,15 +87,8 @@ theorem ae_tendsto_mean_infinitePi_blocks {J C F : Type*} [Fintype F] [Measurabl
       ((Measure.pi fun _ : F => ν).map Φ) (Measure.infinitePi fun _ : J => ν) := fun i =>
     (hΦ.hasLaw_map _).comp (hres i).hasLaw
   have hindep : ∀ i j, i ≠ j → IndepFun (fun σ : J → C => Φ fun a => σ (f i a))
-      (fun σ : J → C => Φ fun a => σ (f j a)) (Measure.infinitePi fun _ : J => ν) := by
-    intro i j hij
-    have hpair : IndepFun (fun (σ : J → C) (a : F) => σ (f i a))
-        (fun (σ : J → C) (a : F) => σ (f j a)) (Measure.infinitePi fun _ : J => ν) := by
-      refine (indepFun_iff_map_prod_eq_prod_map_map (hres i).measurable.aemeasurable
-        (hres j).measurable.aemeasurable).2 ?_
-      rw [Measure.map_infinitePi_pair_of_disjoint ν (hf i) (hf j) (hdisj i j hij),
-        (hres i).map_eq, (hres j).map_eq, Measure.infinitePi_eq_pi]
-    exact hpair.comp hΦ hΦ
+      (fun σ : J → C => Φ fun a => σ (f j a)) (Measure.infinitePi fun _ : J => ν) :=
+    fun i j hij => (Measure.indepFun_restrict_infinitePi_of_disjoint ν (hdisj i j hij)).comp hΦ hΦ
   have h := strong_law_ae_real (μ := Measure.infinitePi fun _ : J => ν)
     (fun i (σ : J → C) => Φ fun a => σ (f i a)) ((hres 0).hasLaw.integrable_comp hint)
     (fun i j hij => hindep i j hij) fun i => (hlaw i).identDistrib (hlaw 0)

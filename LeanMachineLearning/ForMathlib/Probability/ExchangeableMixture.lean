@@ -32,6 +32,9 @@ annealed law `𝔼 G^{⊗∞}`.
 * `MeasureTheory.Measure.infinitePi_map_comp_equiv`: `infinitePi` of a constant family is
   invariant under `σ ↦ σ ∘ e`, `e : ι ≃ ι`; `measurePreserving_comp_equiv_infinitePi` is the
   `MeasurePreserving` form, to be combined with `MeasurePreserving.prod`.
+* `MeasureTheory.Measure.indepFun_restrict_infinitePi_of_disjoint`: restrictions of an i.i.d.
+  family to disjoint index sets are independent.
+* `MeasureTheory.Measure.measurePreserving_prefixMap`: the case of the first `n` coordinates.
 * `MeasureTheory.Measure.measurePreserving_restrict_infinitePi`: restricting an i.i.d. family
   to the image of an injective map `f : ι → κ` (`ι` finite) gives the finite product measure; this
   is the passage from infinitely many replicas to `k` replicas.
@@ -114,6 +117,14 @@ theorem measurePreserving_restrict_infinitePi {κ : Type*} [Fintype ι] (ν : Me
   map_eq := by
     rw [Measure.map_infinitePi_infinitePi_of_inj (P := fun _ : κ => ν) hf,
       Measure.infinitePi_eq_pi]
+
+/-- Restricting an i.i.d. sequence to its first `n` elements, indexed by `Fin n`, gives
+`Measure.pi fun _ : Fin n => ν`: the case `f = Fin.val` of
+`Measure.measurePreserving_restrict_infinitePi`. -/
+theorem measurePreserving_prefixMap (ν : Measure X) [IsProbabilityMeasure ν] (n : ℕ) :
+    MeasurePreserving (fun (seq : ℕ → X) (i : Fin n) => seq i.val)
+      (Measure.infinitePi fun _ : ℕ => ν) (Measure.pi fun _ : Fin n => ν) :=
+  measurePreserving_restrict_infinitePi ν Fin.val_injective
 
 /-- The pushforward of a mixture is the mixture of the pushforwards. -/
 theorem map_bind {A B : Type*} [MeasurableSpace A] [MeasurableSpace B] {P : Measure Ω}
@@ -201,8 +212,21 @@ theorem map_prod_infinitePi_eq_bind {α γ : Type*} [MeasurableSpace α] [Measur
   exact h2.trans (Measure.snd_compProd μ K)
 
 /-- **Restrictions of an i.i.d. family to disjoint sets of indices are independent.**  For
-injections `f : α → ι` and `g : β → ι` with disjoint ranges the pair of sub-families
-`((ω (f a))_a, (ω (g b))_b)` of an i.i.d. family has the product law. -/
+injections `f : α → ι` and `g : β → ι` with disjoint ranges the sub-families
+`(ω (f a))_a` and `(ω (g b))_b` of an i.i.d. family are independent. -/
+theorem indepFun_restrict_infinitePi_of_disjoint {α β : Type*} (ν : Measure X)
+    [IsProbabilityMeasure ν] {f : α → ι} {g : β → ι} (hfg : Disjoint (range f) (range g)) :
+    IndepFun (fun (ω : ι → X) (a : α) => ω (f a)) (fun (ω : ι → X) (b : β) => ω (g b))
+      (infinitePi fun _ : ι => ν) := by
+  have hind : iIndep (fun i : ι => MeasurableSpace.comap (fun ω : ι → X => ω i) inferInstance)
+      (infinitePi fun _ : ι => ν) :=
+    iIndepFun_infinitePi (P := fun _ : ι => ν) (X := fun _ x => x) fun _ => measurable_id
+  have h := indep_iSup_of_disjoint (fun i => (measurable_pi_apply i).comap_le) hind hfg
+  rwa [← MeasurableSpace.comap_pi_range f (fun i (ω : ι → X) => ω i),
+    ← MeasurableSpace.comap_pi_range g (fun i (ω : ι → X) => ω i)] at h
+
+/-- The pair of sub-families of an i.i.d. family indexed by disjoint ranges of injections
+`f : α → ι` and `g : β → ι` has the product law. -/
 theorem map_infinitePi_pair_of_disjoint {α β : Type*} (ν : Measure X) [IsProbabilityMeasure ν]
     {f : α → ι} {g : β → ι} (hf : Function.Injective f) (hg : Function.Injective g)
     (hfg : Disjoint (range f) (range g)) :
@@ -210,13 +234,8 @@ theorem map_infinitePi_pair_of_disjoint {α β : Type*} (ν : Measure X) [IsProb
       (infinitePi fun _ : α => ν).prod (infinitePi fun _ : β => ν) := by
   have hA : Measurable fun (ω : ι → X) (a : α) => ω (f a) := by fun_prop
   have hB : Measurable fun (ω : ι → X) (b : β) => ω (g b) := by fun_prop
-  have hind : iIndep (fun i : ι => MeasurableSpace.comap (fun ω : ι → X => ω i) inferInstance)
-      (infinitePi fun _ : ι => ν) :=
-    iIndepFun_infinitePi (P := fun _ : ι => ν) (X := fun _ x => x) fun _ => measurable_id
-  have h := indep_iSup_of_disjoint (fun i => (measurable_pi_apply i).comap_le) hind hfg
-  rw [← MeasurableSpace.comap_pi_range f (fun i (ω : ι → X) => ω i),
-    ← MeasurableSpace.comap_pi_range g (fun i (ω : ι → X) => ω i)] at h
-  rw [(indepFun_iff_map_prod_eq_prod_map_map hA.aemeasurable hB.aemeasurable).1 h,
+  rw [(indepFun_iff_map_prod_eq_prod_map_map hA.aemeasurable hB.aemeasurable).1
+      (indepFun_restrict_infinitePi_of_disjoint ν hfg),
     map_infinitePi_infinitePi_of_inj hf, map_infinitePi_infinitePi_of_inj hg]
 
 /-- A parameter `a ~ μ` together with two sub-families, indexed by disjoint sets of an i.i.d.

@@ -60,7 +60,7 @@ theorem identDistrib_gaussianArray_separately (hR : ∀ l l', Measurable fun ω 
     := by
   set ν := Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hν
   set γ := Measure.infinitePi fun _ : ℕ => ν with hγ
-  have hRm : Measurable R := measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => hR l l'
+  have hRm : Measurable R := by fun_prop
   set G : (ℕ → ℕ → ℝ) × (ℕ → ℕ → ℝ) → ℕ → ℕ → ℝ :=
     fun w i l => ∑ k ∈ range (l + 1), cholInf w.1 l k * w.2 i k with hG
   have hGm : Measurable G := measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun l =>
@@ -75,10 +75,8 @@ theorem identDistrib_gaussianArray_separately (hR : ∀ l l', Measurable fun ω 
       (fun i l => G (R z.1, z.2) i (e₁ l))) (fun z => G (R z.1, z.2)) (P.prod γ) (P.prod γ) := by
     refine identDistrib_prod_comp_of_ae_map_eq (P := P) (γ := γ) (R := R) hRm (F := G) hGm
       (ρ := fun C i l => C i (e₁ l)) ?_ (φ := fun A l l' => A (e₁ l) (e₁ l')) ?_ ?_ (hexch e₁)
-    · exact measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun l =>
-        (measurable_pi_apply (e₁ l)).comp (measurable_pi_apply i)
-    · exact measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' =>
-        (measurable_pi_apply (e₁ l')).comp (measurable_pi_apply (e₁ l))
+    · fun_prop
+    · fun_prop
     · filter_upwards [hpsd] with ω hω
       have hm1 : ∀ _ : ℕ, Measurable fun c : ℕ → ℝ => fun l => ∑ k ∈ range (e₁ l + 1),
           cholInf (R ω) (e₁ l) k * c k := fun _ => measurable_pi_iff.2 fun l =>
@@ -128,7 +126,7 @@ theorem ae_tendsto_gaussianArray_mean (hR : ∀ l l', Measurable fun ω => R ω 
       Tendsto (fun n : ℕ => (n : ℝ)⁻¹ * ∑ i ∈ range n, s (l, i) z * s (l', i) z) atTop
         (𝓝 (R z.1 l l')) := by
   set ν := Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hν
-  have hRm : Measurable R := measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => hR l l'
+  have hRm : Measurable R := by fun_prop
   set Ψ : Ω → (ℕ → ℝ) → ℝ := fun ω c => (∑ k ∈ range (l + 1), cholInf (R ω) l k * c k) *
     ∑ k ∈ range (l' + 1), cholInf (R ω) l' k * c k with hΨ
   have hΨm : Measurable (Function.uncurry Ψ) := by

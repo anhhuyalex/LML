@@ -121,7 +121,7 @@ theorem tendstoInMeasure_prod_of_prefix_prod (d : ℕ)
       (fun n (q : (ℕ → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => F n (fun i : Fin d => q.1 i.val, q.2))
       Filter.atTop (fun _ => c) :=
   tendstoInMeasure_comp_measurePreserving h
-    ((measurePreserving_prefixMap (Measure.infinitePi fun _ : ℕ =>
+    ((Measure.measurePreserving_prefixMap (Measure.infinitePi fun _ : ℕ =>
       Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) d).prod (MeasurePreserving.id _))
     hF measurable_const
 
