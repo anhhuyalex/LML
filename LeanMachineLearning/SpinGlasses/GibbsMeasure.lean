@@ -83,6 +83,29 @@ theorem real_count_tilted_singleton (f : α → ℝ) (a : α) :
   simp [Set.indicator_apply]
 
 omit [Fintype α] in
+/-- **The Gibbs measure depends measurably on the disorder:** if the energies `f ω a` are
+measurable in the parameter `ω` for each state `a`, then so is `ω ↦ Measure.count.tilted (f ω)`
+(as a map into `Measure α`). -/
+theorem measurable_count_tilted [Finite α] {Ω : Type*} [MeasurableSpace Ω] (f : Ω → α → ℝ)
+    (hf : ∀ a, Measurable fun ω => f ω a) :
+    Measurable fun ω => (Measure.count : Measure α).tilted (f ω) := by
+  have := Fintype.ofFinite α
+  refine Measure.measurable_of_measurable_coe _ fun s hs => ?_
+  simp_rw [tilted_apply_eq_ofReal_integral' _ hs]
+  refine ENNReal.measurable_ofReal.comp ?_
+  have h : ∀ ω, ∫ a in s, Real.exp (f ω a) / ∫ x, Real.exp (f ω x) ∂Measure.count ∂Measure.count =
+      ∑ a, s.indicator (fun a => Real.exp (f ω a) / ∑ b, Real.exp (f ω b)) a := fun ω => by
+    rw [← integral_indicator hs, integral_count_eq_sum]
+    simp_rw [integral_count_eq_sum]
+  simp_rw [h]
+  refine Finset.measurable_sum _ fun a _ => ?_
+  by_cases ha : a ∈ s
+  · simp only [ha, Set.indicator_of_mem]
+    exact (Real.measurable_exp.comp (hf a)).div
+      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hf b))
+  · simp [ha]
+
+omit [Fintype α] in
 instance [Finite α] [Nonempty α] (f : α → ℝ) : IsProbabilityMeasure (Measure.count.tilted f) :=
   isProbabilityMeasure_tilted Integrable.of_finite
 

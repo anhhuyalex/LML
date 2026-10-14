@@ -55,9 +55,9 @@ and avoids a measure-preserving change of variables on the *nested* disorder
 * `SpinGlasses.integrable_and_eq_aizenman_sims_starr`: the same with the integrability of the
   integrand in `u`, for an integrand given by its defining equation.
 * `SpinGlasses.integral_cavity_z_mul_z`, `SpinGlasses.integral_cavity_y_mul_y` (Eq. (1.59)): the
-  covariances of the cavity fields depend on the overlap only; `SpinGlasses.hasGaussianLaw_cavity_z`,
-  `SpinGlasses.hasGaussianLaw_cavity_y` and the centering lemmas show that the fields are centered
-  Gaussian families.
+  covariances of the cavity fields depend on the overlap only;
+  `SpinGlasses.hasGaussianLaw_cavity_z`, `SpinGlasses.hasGaussianLaw_cavity_y` and the centering
+  lemmas show that the fields are centered Gaussian families.
 * `SpinGlasses.inv_mul_integral_log_partition_eq` (Eq. (1.49)) and
   `SpinGlasses.liminf_increment_le_liminf_free_energy` (Cesàro,
   `ForMathlib/Analysis/Cesaro.lean`).

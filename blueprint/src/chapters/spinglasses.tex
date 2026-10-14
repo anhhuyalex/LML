@@ -32,9 +32,14 @@ Aizenman--Sims--Starr representation of the free energy increments, with the Lea
 \texttt{SpinGlasses/AizenmanSimsStarr.lean} (deviations from the book are collected in
 Remark~\ref{rem:sg:ass-deviation}). Section~\ref{sec:sg:gram-approx} proves Theorem~1.3 (the Gram matrix approximation of Gibbs
 averages) and applies it to the increments $A_N$ (Eq.~(1.73)), with the Lean files
-\texttt{ForMathlib/Probability/Moments/GaussianTruncation.lean}, \texttt{GaussianContinuity.lean},
+\texttt{ForMathlib/Probability/Moments/SubGaussian.lean}, \texttt{GaussianExp.lean}, \texttt{GaussianContinuity.lean},
 \texttt{SpinGlasses/AsymptoticGibbsApproximation.lean} and \texttt{SpinGlasses/AizenmanSimsStarrApproximation.lean}
-(deviations in Remark~\ref{rem:sg:gram-deviation}).
+(deviations in Remark~\ref{rem:sg:gram-deviation}). Section~\ref{sec:sg:asymptotic-gibbs} treats the overlap array of the replicas
+(Eq.~(1.74)): it is positive semidefinite and exchangeable, and its annealed laws have weak limits with the same properties, which is the input of
+the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/ExchangeableMixture.lean},
+\texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureLimit.lean}, \texttt{ForMathlib/LinearAlgebra/Matrix/PosSemidef.lean},
+\texttt{SpinGlasses/OverlapExchangeability.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}
+(deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
 
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
@@ -1251,7 +1256,9 @@ $\mathcal N(0,S_j)$ (Lemma~\ref{lem:sg:gram}, the first part), and $\mathbb E\pr
 \end{proof}
 
 \begin{lemma}[Continuity of Gaussian integrals in the covariance matrix]\label{lem:sg:gausscont}
-  \lean{ProbabilityTheory.continuousOn_integral_multivariateGaussian, SpinGlasses.continuousOn_integral_prod_multivariateGaussian,
+  \lean{ProbabilityTheory.continuousOn_integral_multivariateGaussian,
+        ProbabilityTheory.continuousOn_integral_multivariateGaussian_of_bcf,
+        SpinGlasses.continuousOn_integral_prod_multivariateGaussian,
         SpinGlasses.abs_integral_prod_multivariateGaussian_le}
   \leanok
 Let $g$ be bounded and continuous on $\mathbb R^k$. Then $S\mapsto\int g\,d\mathcal N(0,S)$ is continuous on the cone of positive semidefinite matrices.
@@ -1375,5 +1382,120 @@ and it is bounded by $e^{-a}\,\mathbb E(X+X^{-1})$ plus an exponential moment of
 Gaussian integrals $F_k$, which are continuous in the Gram matrix on the cone where the covariance matrix is positive semidefinite (Lemma~\ref{lem:sg:gausscont}). In the SK application the covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$
 depend on $N$ through $a_N=N/(N+1)$, so the function $F$ of Theorem~\ref{thm:sg:overlap-approx} depends on $N$ through the Gaussian integrals only; the statement is nevertheless uniform in $N$. Passing to the limit $a_N\to1$ is not formalized.
 \item \emph{The truncation of the exponential term.} For $\varphi=2\cosh$, $2\cosh(\mathrm{cl}_ax)=2\min(\cosh x,\cosh a)$ is the book's $\mathrm{ch}_a$. For $\varphi=\exp$ we truncate the field in the same way.
+\end{enumerate}
+\end{remark}
+
+\section{The overlap array and the asymptotic Gibbs measures}\label{sec:sg:asymptotic-gibbs}
+
+Fix $N\ge1$ and the random Gibbs measure $G_N(\sigma)\propto e^{\beta H_N(\sigma)}$ on $\Sigma_N=\{-1,+1\}^N$ (it depends on the disorder $G$). Conditionally on $G$, let
+$\sigma^1,\sigma^2,\dots$ be i.i.d.\ replicas with law $G_N$, and let $R=(R_{l,l'})_{l,l'\ge1}$, $R_{l,l'}=N^{-1}\sigma^l\cdot\sigma^{l'}$, be their overlap array. Its
+\emph{annealed law} $\Lambda_N=\mathbb E\,\big(\text{law of }R\text{ given }G\big)$ is a probability measure on $\mathbb R^{\mathbb N\times\mathbb N}$ (in Lean:
+\texttt{Measure.map R (Measure.bind P (fun G => Measure.infinitePi (fun \_ => Measure.count.tilted (beta * H G))))}, written out in each statement, with the
+law $P$ of the disorder). Let $\mathcal K$ be the set of arrays $A\in\mathbb R^{\mathbb N\times\mathbb N}$ which are symmetric, have $A_{ll}=1$ and $|A_{ll'}|\le1$, and all of whose finite
+principal submatrices $(A_{ll'})_{l,l'<k}$ are positive semidefinite (``Gram-type arrays''). This section shows that $\Lambda_N$ is concentrated on $\mathcal K$ and
+invariant under permutations of the replicas (Eq.~(1.74)), that $\mathcal K$ is compact, and hence that a subsequence of $(\Lambda_N)$ converges weakly to an exchangeable
+probability measure on $\mathcal K$. These are exactly the hypotheses of the Dovbysh--Sudakov theorem (Theorem~1.7 of the book), which then represents the limit as the law of the Gram
+array of an i.i.d.\ sample from a random measure on the unit ball of a Hilbert space (the \emph{asymptotic Gibbs measure}). That representation theorem is not formalized.
+
+\begin{lemma}[A mixture of i.i.d.\ sequences is exchangeable]\label{lem:sg:mixture}
+  \lean{MeasureTheory.Measure.measurable_pi_const, MeasureTheory.Measure.measurable_infinitePi_const,
+        MeasureTheory.Measure.infinitePi_map_comp_equiv, MeasureTheory.Measure.map_bind_eq_self,
+        MeasureTheory.Measure.bind_infinitePi_map_comp_equiv}
+  \leanok
+Let $(\Omega,P)$ be a measure space and $\omega\mapsto\nu_\omega$ a measurable family of probability measures on $X$ (measurable as a map into the space of measures). Then
+$\omega\mapsto\nu_\omega^{\otimes I}$ is a measurable family of probability measures on $X^I$ ($I$ finite or infinite), each $\nu_\omega^{\otimes I}$ is invariant under
+$\sigma\mapsto\sigma\circ e$ for every bijection $e:I\to I$, and so is the mixture $\int\nu_\omega^{\otimes I}\,P(d\omega)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+For a box $\prod_it_i$ over a finite set of indices, $\nu_\omega^{\otimes I}(\prod_it_i)=\prod_i\nu_\omega(t_i)$ is measurable in $\omega$. Boxes form a $\pi$-system generating the product
+$\sigma$-algebra (for infinite $I$: the measurable cylinders, using that the measure of a cylinder is the finite product measure of its base), and the sets $A$ for which $\omega\mapsto\nu_\omega^{\otimes I}(A)$ is measurable form a Dynkin system
+(complements via total mass $1$, countable disjoint unions via sums), so by the $\pi$--$\lambda$ theorem the family is measurable. Invariance of $\nu^{\otimes I}$ under a permutation of the coordinates is Mathlib's
+reindexing theorem for infinite product measures (both sides agree on cylinders). The mixture $\mu=\int\nu_\omega^{\otimes I}P(d\omega)$ satisfies $\mu(T^{-1}B)=\int\nu_\omega^{\otimes I}(T^{-1}B)P(d\omega)=\int\nu_\omega^{\otimes I}(B)P(d\omega)=\mu(B)$.
+\end{proof}
+
+\begin{lemma}[Dot-product Gram matrices and the positive semidefinite cone]\label{lem:sg:gram-psd}
+  \lean{Matrix.posSemidef_of_const_mul_dotProduct, Matrix.isClosed_setOf_posSemidef}
+  \leanok
+For vectors $v_l\in\mathbb R^\kappa$ and $c\ge0$ the matrix $(c\,v_l\cdot v_{l'})_{l,l'}$ is positive semidefinite (it is $c\,VV^\top$ for the matrix $V$ with rows $v_l$); in particular the overlap matrix
+$(N^{-1}\sigma^l\cdot\sigma^{l'})_{l,l'\le k}$ of any $k$ configurations is positive semidefinite. The set of real positive semidefinite matrices is closed in $\mathbb R^{n\times n}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$x^\top VV^\top x=\|V^\top x\|^2\ge0$ and $VV^\top$ is symmetric. A matrix is positive semidefinite iff it is symmetric and $x^\top Mx\ge0$ for all $x$; each condition is closed in $M$.
+\end{proof}
+
+\begin{lemma}[The set of Gram-type arrays is compact]\label{lem:sg:gram-compact}
+  \lean{SpinGlasses.isCompact_setOf_gram_array}
+  \leanok
+  \uses{lem:sg:gram-psd}
+$\mathcal K$ is a compact subset of $\mathbb R^{\mathbb N\times\mathbb N}$ with the product topology.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+$\mathcal K$ is the intersection of the closed conditions ``$A_{ll'}=A_{l'l}$'', ``$A_{ll}=1$'', ``$|A_{ll'}|\le1$'' and ``the $k\times k$ principal submatrix lies in the closed cone of positive semidefinite matrices'' (the map $A\mapsto(A_{ll'})_{l,l'<k}$ is continuous), and it is contained in
+the compact cube $[-1,1]^{\mathbb N\times\mathbb N}$ (Tychonoff).
+\end{proof}
+
+\begin{theorem}[The annealed overlap array is a symmetric Gram-type exchangeable array, Panchenko Eq.~(1.74)]\label{thm:sg:annealed-gram}
+  \lean{SpinGlasses.annealed_gram_array, SpinGlasses.sk_annealed_gram_array, SpinGlasses.measurable_count_tilted}
+  \leanok
+  \uses{lem:sg:mixture, lem:sg:gram-psd, lem:sg:gram-compact}
+Let $(\Omega,P)$ be a probability space and $\omega\mapsto\nu_\omega$ a measurable family of probability measures on a measurable space $\alpha$. Let $c:\alpha\times\alpha\to\mathbb R$ be measurable,
+symmetric, with $c(a,a)=1$, $|c|\le1$ and such that $(c(a_l,a_{l'}))_{l,l'<k}$ is positive semidefinite for all $k$ and $a_1,\dots,a_k$. Let $\Lambda$ be the law of the array $(c(\sigma^l,\sigma^{l'}))_{l,l'}$ when $\omega\sim P$ and,
+given $\omega$, $\sigma^1,\sigma^2,\dots$ are i.i.d.\ with law $\nu_\omega$. Then $\Lambda$ is a probability measure, $\Lambda(\mathcal K)=1$, and $\Lambda$ is invariant under $A\mapsto(A_{e(l)e(l')})_{l,l'}$ for
+every bijection $e$ of $\mathbb N$ (in particular under finite permutations of the replicas).
+
+In the SK model take $\alpha=\Sigma_N$ (with $N\ge1$), $c(\sigma,\tau)=N^{-1}\sigma\cdot\tau$ and $\nu_\omega=\mathrm{count.tilted}(f(\omega,\cdot))$ for energies $f(\omega,\sigma)$ measurable in $\omega$
+(for instance $f=\beta H_N$ or the auxiliary $f=\beta H'_N$ of Section~\ref{sec:sg:ass}).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Measurability of $\omega\mapsto\nu_\omega^{\otimes\mathbb N}$ and invariance are Lemma~\ref{lem:sg:mixture}; the array is a measurable function of the replicas, so $\Lambda$ is the image of a probability measure, and
+$(c(\sigma^{e(l)},\sigma^{e(l')}))$ is the array of the permuted replicas $\sigma\circ e$, whose law is unchanged by Lemma~\ref{lem:sg:mixture}. Every array $(c(\sigma^l,\sigma^{l'}))$ lies in $\mathcal K$ by the hypotheses on $c$, so $\Lambda(\mathcal K)=1$
+($\mathcal K$ is closed, hence measurable, by Lemma~\ref{lem:sg:gram-compact}). For the SK overlap: $c$ is symmetric; $c(\sigma,\sigma)=N^{-1}\cdot N=1$ since $\sigma_i^2=1$; $|c|\le1$ since each $|\sigma_i\tau_i|\le1$; and positive semidefiniteness is
+Lemma~\ref{lem:sg:gram-psd}. The tilted counting measure on a finite set depends measurably on the energies because its mass of a set $s$ is $\sum_{a\in s}e^{f(\omega,a)}/\sum_be^{f(\omega,b)}$.
+\end{proof}
+
+\begin{lemma}[Prokhorov, sequential form; symmetries pass to limits]\label{lem:sg:prokhorov-subseq}
+  \lean{MeasureTheory.ProbabilityMeasure.exists_tendsto_subseq_of_measure_eq_one, MeasureTheory.ProbabilityMeasure.map_eq_of_tendsto}
+  \leanok
+Let $E$ be a separable metrizable space, $K\subseteq E$ compact, and $\mu_n$ probability measures on $E$ with $\mu_n(K)=1$. Then a subsequence converges weakly to a probability measure $\mu$, and $\mu(K)=1$.
+If a continuous map $T:E\to E$ satisfies $T_*\mu_n=\mu_n$ for all $n$ then $T_*\mu=\mu$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The family $\{\mu_n\}$ is tight (each $\mu_n$ gives mass $0$ to $K^c$), so its closure in the space of probability measures is compact by Prokhorov's theorem; that space is metrizable (L\'evy--Prokhorov), hence the sequence has a convergent subsequence.
+The limit gives mass $\ge\limsup\mu_n(K)=1$ to the closed set $K$ (portmanteau). If $\mu_n\to\mu$ then $T_*\mu_n\to T_*\mu$ by continuity of $T$, while $T_*\mu_n=\mu_n\to\mu$; limits are unique.
+\end{proof}
+
+\begin{theorem}[Asymptotic overlap laws]\label{thm:sg:asymptotic-overlap}
+  \lean{SpinGlasses.exists_tendsto_exchangeable_gram_arrays, SpinGlasses.exists_sk_asymptotic_overlap_law}
+  \leanok
+  \uses{thm:sg:annealed-gram, lem:sg:prokhorov-subseq, lem:sg:gram-compact}
+Let $\Lambda_n$ be probability measures on $\mathbb R^{\mathbb N\times\mathbb N}$ concentrated on $\mathcal K$ and invariant under all permutations of the indices. Then a subsequence converges weakly to a probability measure
+$\mu$ which is again concentrated on $\mathcal K$ and invariant under all permutations. In particular, for the SK model let $\Lambda_N$ be the annealed law of the overlap array of the Gibbs measure $G_N=\mathrm{count.tilted}(\beta H_N)$,
+the disorder being a standard Gaussian matrix: along a subsequence $N_k$, $\Lambda_{N_k}$ converges weakly (against every bounded continuous function on arrays) to an exchangeable probability measure on $\mathcal K$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Apply Lemma~\ref{lem:sg:prokhorov-subseq} with $E=\mathbb R^{\mathbb N\times\mathbb N}$ (separable and metrizable as a countable product), $K=\mathcal K$ (Lemma~\ref{lem:sg:gram-compact}) and, for each bijection $e$ of $\mathbb N$,
+the continuous map $T_e(A)=(A_{e(l)e(l')})$. For the SK model the hypotheses hold by Theorem~\ref{thm:sg:annealed-gram} (the SK Hamiltonian is a continuous function of the disorder, so measurable).
+\end{proof}
+
+\begin{remark}[Deviations from Panchenko's treatment of the asymptotic Gibbs measures, and why]\label{rem:sg:asymptotic-deviation}
+\begin{enumerate}
+\item \emph{The Dovbysh--Sudakov theorem is not formalized.} The book obtains the asymptotic Gibbs measure $G$ from the limit array via Theorem~1.7 (proved in Sections~1.4--1.5 from the Aldous--Hoover representation).
+We stop at its hypotheses (symmetric, positive semidefinite, exchangeable limit law), so the statement of existence of $G$ on a Hilbert space is not a theorem of this repository; no Lean declaration asserts it.
+\item \emph{All permutations, any Gibbs measure.} We prove invariance under every bijection of $\mathbb N$ (not only finite permutations), and Theorem~\ref{thm:sg:annealed-gram} is stated for an arbitrary measurable family of Gibbs measures, so it applies both to $G_N$
+and to the auxiliary measure $G'_N$ of the Aizenman--Sims--Starr scheme (Eq.~(1.73)). The book's step identifying the asymptotic overlap laws of $G_N$ and $G'_N$ (via an orthogonal transformation of $G'$) is not formalized.
+\item \emph{The diagonal.} The array includes the diagonal $R_{ll}=1$, which holds for $\pm1$ spins; the book's representation concerns $(R_{ll'})_{l\ne l'}$.
+\item \emph{Compactness by Prokhorov.} We obtain the convergent subsequence from Prokhorov's theorem in Mathlib and metrizability of the space of probability measures on $\mathbb R^{\mathbb N\times\mathbb N}$, rather than a diagonal argument on finite-dimensional marginals.
 \end{enumerate}
 \end{remark}

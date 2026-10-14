@@ -7,7 +7,8 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
-public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianTruncation
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
 public import Mathlib.Analysis.Convex.Mul
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Topology.ContinuousMap.Weierstrass

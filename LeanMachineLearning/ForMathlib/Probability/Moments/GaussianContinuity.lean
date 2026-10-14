@@ -23,15 +23,17 @@ function `exp (-x ⬝ᵥ S *ᵥ x / 2)` is continuous in `S`.
 @[expose] public section
 
 open MeasureTheory Filter Topology
+open scoped BoundedContinuousFunction
 open scoped Matrix
 
 namespace ProbabilityTheory
 
 variable {κ : Type*} [Fintype κ] [DecidableEq κ]
 
-/-- **Weak continuity of `S ↦ multivariateGaussian 0 S` on positive semidefinite matrices.** -/
-theorem continuousOn_integral_multivariateGaussian {g : EuclideanSpace ℝ κ → ℝ}
-    (hg : Continuous g) {M : ℝ} (hM : ∀ x, ‖g x‖ ≤ M) :
+/-- **Weak continuity of `S ↦ multivariateGaussian 0 S` on positive semidefinite matrices**, for a
+bounded continuous test function `g`.  (See `continuousOn_integral_multivariateGaussian` for the
+version with an explicit bound.) -/
+theorem continuousOn_integral_multivariateGaussian_of_bcf (g : EuclideanSpace ℝ κ →ᵇ ℝ) :
     ContinuousOn (fun S : Matrix κ κ ℝ => ∫ x, g x ∂(multivariateGaussian 0 S))
       {S | S.PosSemidef} := by
   have : FirstCountableTopology (Matrix κ κ ℝ) :=
@@ -57,8 +59,15 @@ theorem continuousOn_integral_multivariateGaussian {g : EuclideanSpace ℝ κ �
     refine (Complex.continuous_exp.tendsto _).comp ?_
     refine tendsto_const_nhds.sub ?_
     exact (Complex.continuous_ofReal.tendsto _).comp hq |>.div_const _
-  have := ProbabilityMeasure.tendsto_iff_forall_integral_tendsto.1 hlevy
+  exact ProbabilityMeasure.tendsto_iff_forall_integral_tendsto.1 hlevy g
+
+/-- **Weak continuity of `S ↦ multivariateGaussian 0 S` on positive semidefinite matrices**, for
+a continuous function `g` bounded by `M`. -/
+theorem continuousOn_integral_multivariateGaussian {g : EuclideanSpace ℝ κ → ℝ}
+    (hg : Continuous g) {M : ℝ} (hM : ∀ x, ‖g x‖ ≤ M) :
+    ContinuousOn (fun S : Matrix κ κ ℝ => ∫ x, g x ∂(multivariateGaussian 0 S))
+      {S | S.PosSemidef} :=
+  continuousOn_integral_multivariateGaussian_of_bcf
     (BoundedContinuousFunction.ofNormedAddCommGroup g hg M hM)
-  exact this
 
 end ProbabilityTheory

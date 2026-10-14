@@ -16,6 +16,7 @@ public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInver
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalDiagonalization
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Sigma
@@ -24,12 +25,14 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.AbsolutelyCon
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.Lattice
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.OuterMeasure.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
+public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.HasLaw
 public import LeanMachineLearning.ForMathlib.Probability.Independence.CondDistrib
@@ -56,7 +59,6 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinea
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
-public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianTruncation
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
@@ -271,6 +273,7 @@ public import LeanMachineLearning.SequentialLearning.SumRewards
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarr
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarrApproximation
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
+public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
@@ -280,6 +283,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
+public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift

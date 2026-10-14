@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralTsumMul
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
+public import Mathlib.Probability.Moments.SubGaussian
 
 /-!
 # Exponential moments of Gaussian random variables
@@ -16,7 +17,8 @@ A random variable `Z` with `HasGaussianLaw` has `exp (t Z)` integrable with
 Hölder's inequality this gives the Cauchy--Schwarz bound
 `‖X exp Z‖₁ ≤ √a exp v` for a centered Gaussian `Z` with `𝔼 Z² ≤ v` and `𝔼 X² ≤ a`
 (`eLpNorm_one_mul_exp_le`), which controls the Gibbs weights of a Gaussian energy in
-`SpinGlasses/GaussianIBPCountable.lean`.
+`SpinGlasses/GaussianIBPCountable.lean`.  A centered Gaussian with second moment at most `v` is
+sub-Gaussian with parameter `v` (`HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le`).
 -/
 
 @[expose] public section
@@ -115,5 +117,18 @@ theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : T
   refine hω.congr fun b => ?_
   simp only [hf, Real.norm_eq_abs]
   exact abs_of_nonneg (mul_nonneg (hG0 b) (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le))
+
+/-- A centered Gaussian variable with second moment at most `v` is sub-Gaussian with parameter
+`v`. -/
+theorem HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le {Z : Ω → ℝ}
+    (hZ : HasGaussianLaw Z P) (h0 : ∫ ω, Z ω ∂P = 0) {v : ℝ} (hv : ∫ ω, Z ω ^ 2 ∂P ≤ v) :
+    HasSubgaussianMGF Z v.toNNReal P := by
+  have hvar : Var[Z; P] = ∫ ω, Z ω ^ 2 ∂P := by
+    rw [variance_of_integral_eq_zero hZ.aemeasurable h0]
+  refine ⟨integrable_exp_mul_of_hasGaussianLaw hZ, fun t => ?_⟩
+  rw [mgf, integral_exp_mul_of_hasGaussianLaw hZ, h0, mul_zero, zero_add, hvar]
+  refine Real.exp_le_exp.2 ?_
+  have : (∫ ω, Z ω ^ 2 ∂P) ≤ (v.toNNReal : ℝ) := hv.trans (Real.le_coe_toNNReal v)
+  nlinarith [sq_nonneg t]
 
 end ProbabilityTheory
