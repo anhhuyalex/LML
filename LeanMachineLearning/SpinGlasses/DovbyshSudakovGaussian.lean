@@ -42,7 +42,7 @@ open scoped Topology
 
 namespace SpinGlasses
 
-variable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+variable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [SFinite P]
   {R : Ω → ℕ → ℕ → ℝ}
 
 /-- **Separate exchangeability of the Gaussian array of an exchangeable positive semidefinite
@@ -115,6 +115,7 @@ theorem identDistrib_gaussianArray_separately (hR : ∀ l l', Measurable fun ω 
   rw [hcomp, hcomp']
   exact (hXT.trans hrow).comp hArrm
 
+omit [SFinite P] in
 /-- **Strong law of large numbers for the Gaussian array.**  Almost surely,
 `n⁻¹ ∑_{i<n} g_{l, i} g_{l', i}` converges to the covariance entry `R_{l, l'}`: given `R`, the
 columns of the array are i.i.d. centered Gaussian sequences with covariance `R`. -/

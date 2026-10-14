@@ -30,8 +30,8 @@ variable {Ω Y Ξ Z : Type*} [MeasurableSpace Ω] [MeasurableSpace Y] [Measurabl
   [MeasurableSpace Z]
 
 /-- **Invariance in law of an equivariant mixture.** -/
-theorem identDistrib_prod_comp_of_ae_map_eq {P : Measure Ω} [IsProbabilityMeasure P]
-    {γ : Measure Ξ} [IsProbabilityMeasure γ] {R : Ω → Y} (hR : Measurable R) {F : Y × Ξ → Z}
+theorem identDistrib_prod_comp_of_ae_map_eq {P : Measure Ω}
+    {γ : Measure Ξ} [SFinite γ] {R : Ω → Y} (hR : Measurable R) {F : Y × Ξ → Z}
     (hF : Measurable F) {ρ : Z → Z} (hρ : Measurable ρ) {φ : Y → Y} (hφ : Measurable φ)
     (h1 : ∀ᵐ ω ∂P, γ.map (fun ξ => ρ (F (R ω, ξ))) = γ.map (fun ξ => F (φ (R ω), ξ)))
     (h2 : IdentDistrib (φ ∘ R) R P P) :

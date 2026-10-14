@@ -28,6 +28,13 @@ reduces to the inner product of the partial integrals:
 
 open MeasureTheory ProbabilityTheory
 
+/-- The partial integral `x ↦ ∫ f (x, y) dν(y)` of a measurable function is measurable. -/
+theorem _root_.Measurable.integral_prod_right' {α β E : Type*} [MeasurableSpace α]
+    [MeasurableSpace β] {ν : Measure β} [SFinite ν] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E] {f : α × β → E}
+    (hf : Measurable f) : Measurable fun x => ∫ y, f (x, y) ∂ν :=
+  hf.stronglyMeasurable.integral_prod_right'.measurable
+
 namespace MeasureTheory
 
 variable {V X : Type*} [MeasurableSpace V] [MeasurableSpace X] {μV : Measure V} {μX : Measure X}
@@ -60,7 +67,7 @@ theorem integrable_sq_integral_prod (hfm : Measurable f)
     filter_upwards [hf.prod_right_ae] with v hv
     exact sq_integral_le_integral_sq (hfm.comp measurable_prodMk_left) hv
   have hm : Measurable fun v => (∫ x, f (v, x) ∂μX) ^ 2 :=
-    ((hfm.stronglyMeasurable.integral_prod_right').measurable).pow_const 2
+    hfm.integral_prod_right'.pow_const 2
   have hi : Integrable (fun v => (∫ x, f (v, x) ∂μX) ^ 2) μV :=
     Integrable.mono' hg hm.aestronglyMeasurable
       (hpt.mono fun v h => by rwa [Real.norm_of_nonneg (sq_nonneg _)])
@@ -72,8 +79,9 @@ theorem integrable_sq_integral_prod (hfm : Measurable f)
 /-- **Two independent copies of the noise:** for square-integrable `f, f'` on `V × X`,
 `∫ f (v, x) f' (v, x') d(μV ⊗ (μX ⊗ μX)) = ∫ (∫ f (v, ·) dμX) (∫ f' (v, ·) dμX) dμV`, and the
 integrand on the left is integrable. -/
-theorem integral_prod_mul_prod (hfm : Measurable f) (hf : Integrable (fun z => f z ^ 2) (μV.prod μX))
-    (hfm' : Measurable f') (hf' : Integrable (fun z => f' z ^ 2) (μV.prod μX)) :
+theorem integral_prod_mul_prod (hfm : Measurable f)
+    (hf : Integrable (fun z => f z ^ 2) (μV.prod μX)) (hfm' : Measurable f')
+    (hf' : Integrable (fun z => f' z ^ 2) (μV.prod μX)) :
     Integrable (fun z : V × (X × X) => f (z.1, z.2.1) * f' (z.1, z.2.2))
         (μV.prod (μX.prod μX)) ∧
       ∫ z : V × (X × X), f (z.1, z.2.1) * f' (z.1, z.2.2) ∂(μV.prod (μX.prod μX)) =
@@ -81,21 +89,22 @@ theorem integral_prod_mul_prod (hfm : Measurable f) (hf : Integrable (fun z => f
   have hF : Measurable fun z : V × (X × X) => f (z.1, z.2.1) * f' (z.1, z.2.2) :=
     (hfm.comp (measurable_fst.prodMk (measurable_fst.comp measurable_snd))).mul
       (hfm'.comp (measurable_fst.prodMk (measurable_snd.comp measurable_snd)))
-  have hs : ∀ {g : V × X → ℝ}, Measurable g → Integrable (fun z => g z ^ 2) (μV.prod μX) →
-      ∀ᵐ v ∂μV, Integrable (fun x => g (v, x)) μX := fun hg hgi => by
+  have hs : ∀ g : V × X → ℝ, Measurable g → Integrable (fun z => g z ^ 2) (μV.prod μX) →
+      ∀ᵐ v ∂μV, Integrable (fun x => g (v, x)) μX := fun g hg hgi => by
     filter_upwards [hgi.prod_right_ae] with v hv
     exact integrable_section_of_integrable_sq (hg.comp measurable_prodMk_left) hv
   -- the absolute partial integrals are square-integrable
-  have hA : ∀ {g : V × X → ℝ}, Measurable g → Integrable (fun z => g z ^ 2) (μV.prod μX) →
-      MemLp (fun v => ∫ x, |g (v, x)| ∂μX) 2 μV := fun hg hgi => by
-    have hg' : Measurable fun z => |g z| := hg.abs
+  have hA : ∀ g : V × X → ℝ, Measurable g → Integrable (fun z => g z ^ 2) (μV.prod μX) →
+      MemLp (fun v => ∫ x, |g (v, x)| ∂μX) 2 μV := fun g hg hgi => by
+    have hg' : Measurable fun z => |g z| := continuous_abs.measurable.comp hg
     have h := (integrable_sq_integral_prod (μV := μV) (μX := μX) hg'
       (by simpa [sq_abs] using hgi)).1
     exact (memLp_two_iff_integrable_sq
       ((hg'.stronglyMeasurable.integral_prod_right').measurable.aestronglyMeasurable)).2 h
-  refine ⟨?_, ?_⟩
-  · refine (integrable_prod_iff hF.aestronglyMeasurable).2 ⟨?_, ?_⟩
-    · filter_upwards [hs hfm hf, hs hfm' hf'] with v h1 h2
+  have hI : Integrable (fun z : V × (X × X) => f (z.1, z.2.1) * f' (z.1, z.2.2))
+      (μV.prod (μX.prod μX)) := by
+    refine (integrable_prod_iff hF.aestronglyMeasurable).2 ⟨?_, ?_⟩
+    · filter_upwards [hs f hfm hf, hs f' hfm' hf'] with v h1 h2
       exact h1.mul_prod h2
     · have : (fun v => ∫ p : X × X, ‖f (v, p.1) * f' (v, p.2)‖ ∂(μX.prod μX)) =
           fun v => (∫ x, |f (v, x)| ∂μX) * ∫ x, |f' (v, x)| ∂μX := by
@@ -103,7 +112,10 @@ theorem integral_prod_mul_prod (hfm : Measurable f) (hf : Integrable (fun z => f
         simp only [norm_mul, Real.norm_eq_abs]
         exact integral_prod_mul (fun x => |f (v, x)|) (fun x => |f' (v, x)|)
       simp only [this]
-      exact (hA hfm hf).integrable_mul (hA hfm' hf')
-  · sorry
+      exact (hA f hfm hf).integrable_mul (hA f' hfm' hf')
+  refine ⟨hI, ?_⟩
+  rw [integral_prod _ hI]
+  refine integral_congr_ae (Filter.Eventually.of_forall fun v => ?_)
+  exact integral_prod_mul (fun x => f (v, x)) (fun x => f' (v, x))
 
 end MeasureTheory

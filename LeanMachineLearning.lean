@@ -11,6 +11,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.C
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.DataProcessing
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.CholeskyInfinite
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInverse
@@ -21,6 +22,8 @@ public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.IdentDistrib
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Sigma
@@ -40,6 +43,7 @@ public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.HasLaw
+public import LeanMachineLearning.ForMathlib.Probability.IdentDistribProd
 public import LeanMachineLearning.ForMathlib.Probability.Independence.CondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.Independence.CondIndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun
@@ -57,6 +61,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianCholesky
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
@@ -73,6 +78,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymm
 public import LeanMachineLearning.ForMathlib.Probability.Process.HittingTime
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianChiSqTails
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
+public import LeanMachineLearning.ForMathlib.Probability.StrongLawMixture
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProd
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
@@ -286,6 +292,9 @@ public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.DeFinetti
+public import LeanMachineLearning.SpinGlasses.DovbyshSudakov
+public import LeanMachineLearning.SpinGlasses.DovbyshSudakovGaussian
+public import LeanMachineLearning.SpinGlasses.DovbyshSudakovLimit
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.SpinGlasses.GaussianIBP

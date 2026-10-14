@@ -110,6 +110,17 @@ theorem exists_aldousHoover_representation_of_curried [IsProbabilityMeasure P]
     funext p
     exact (hΦs _ h p.1 p.2).symm
 
+/-- A law on curried arrays `ℕ → ℕ → E` is recovered from the law of the same array viewed as a
+function on `ℕ × ℕ`. -/
+theorem map_map_curry_array {E : Type*} [MeasurableSpace E] (Λ : Measure (ℕ → ℕ → E)) :
+    (Λ.map fun A (p : ℕ × ℕ) => A p.1 p.2).map (fun x l l' => x (l, l')) = Λ := by
+  have hc : Measurable fun (x : ℕ × ℕ → E) (l l' : ℕ) => x (l, l') :=
+    measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => measurable_pi_apply _
+  have hX : Measurable fun (A : ℕ → ℕ → E) (p : ℕ × ℕ) => A p.1 p.2 :=
+    measurable_pi_iff.2 fun p => (measurable_pi_apply p.2).comp (measurable_pi_apply p.1)
+  rw [Measure.map_map hc hX]
+  exact Measure.map_id
+
 /-- **Aldous–Hoover representation of an exchangeable law on symmetric arrays with unit diagonal**
 (the form needed for the Dovbysh–Sudakov theorem).  Let `Λ` be a probability measure on
 `ℕ → ℕ → ℝ`, concentrated on symmetric arrays with `A l l = 1`, and invariant under
@@ -139,8 +150,6 @@ theorem exists_aldousHoover_representation_of_gram {Λ : Measure (ℕ → ℕ �
     (R := fun A => A) hR (hK.mono fun A h => h.1) fun e =>
     ⟨(hm e).aemeasurable, aemeasurable_id, (hexch e).trans Measure.map_id.symm⟩
   refine ⟨f, hf, hfs, ?_⟩
-  have hX : Measurable fun (A : ℕ → ℕ → ℝ) (p : ℕ × ℕ) => A p.1 p.2 :=
-    measurable_pi_iff.2 fun p => hR p.1 p.2
   have hc : Measurable fun (x : ℕ × ℕ → ℝ) (l l' : ℕ) => x (l, l') :=
     measurable_pi_iff.2 fun l => measurable_pi_iff.2 fun l' => measurable_pi_apply _
   have hD : MeasurableSet {x : ℕ × ℕ → ℝ | ∀ l, x (l, l) = 1} := by
@@ -148,9 +157,8 @@ theorem exists_aldousHoover_representation_of_gram {Λ : Measure (ℕ → ℕ �
     exact MeasurableSet.iInter fun l => measurableSet_eq_fun (measurable_pi_apply _)
       measurable_const
   have hdiag := hid.ae_snd hD (by filter_upwards [hK] with A hA l using hA.2 l)
-  calc Λ = (Λ.map fun A p => A p.1 p.2).map fun x l l' => x (l, l') := by
-        rw [Measure.map_map hc hX]
-        exact (Measure.map_id).symm
+  calc Λ = (Λ.map fun A p => A p.1 p.2).map fun x l l' => x (l, l') :=
+        (map_map_curry_array Λ).symm
     _ = _ := by
         rw [hid.map_eq, AEMeasurable.map_map_of_aemeasurable hc.aemeasurable
           hid.aemeasurable_snd]

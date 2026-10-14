@@ -37,7 +37,7 @@ variable {A C : Type*} [MeasurableSpace A] [MeasurableSpace C]
 /-- **Strong law of large numbers, mixture form.**  If `Ψ a` is `ν`-integrable for almost every
 `a ~ μ`, then for `(a, c) ~ μ ⊗ ν^{⊗ℕ}` the averages `n⁻¹ ∑_{i<n} Ψ a (c i)` converge to
 `∫ Ψ a dν` almost surely. -/
-theorem ae_tendsto_mean_prod_infinitePi (μ : Measure A) [IsProbabilityMeasure μ]
+theorem ae_tendsto_mean_prod_infinitePi (μ : Measure A)
     (ν : Measure C) [IsProbabilityMeasure ν] {Ψ : A → C → ℝ} (hΨ : Measurable (Function.uncurry Ψ))
     (hint : ∀ᵐ a ∂μ, Integrable (Ψ a) ν) :
     ∀ᵐ z ∂(μ.prod (Measure.infinitePi fun _ : ℕ => ν)),
@@ -105,5 +105,56 @@ theorem ae_tendsto_mean_infinitePi_blocks {J C F : Type*} [Fintype F] [Measurabl
   rw [h0] at h
   filter_upwards [h] with σ hσ
   simpa [div_eq_inv_mul] using hσ
+
+/-- **Averages of a nonintegrable nonnegative block function tend to infinity.**  In the setting of
+`ae_tendsto_mean_infinitePi_blocks`, if `Φ ≥ 0` is not integrable then
+`n⁻¹ ∑_{i<n} Φ (σ ∘ f i) → ∞` almost surely: truncate `Φ` at `M`, apply the strong law, and let
+`M → ∞` (monotone convergence). -/
+theorem ae_tendsto_atTop_mean_infinitePi_blocks {J C F : Type*} [Fintype F] [MeasurableSpace C]
+    (ν : Measure C) [IsProbabilityMeasure ν] {f : ℕ → F → J} (hf : ∀ i, Function.Injective (f i))
+    (hdisj : ∀ i j, i ≠ j → Disjoint (Set.range (f i)) (Set.range (f j))) {Φ : (F → C) → ℝ}
+    (hΦ : Measurable Φ) (hnn : ∀ y, 0 ≤ Φ y) (hint : ¬ Integrable Φ (Measure.pi fun _ : F => ν)) :
+    ∀ᵐ σ ∂(Measure.infinitePi fun _ : J => ν),
+      Tendsto (fun n : ℕ => (n : ℝ)⁻¹ * ∑ i ∈ range n, Φ (fun a => σ (f i a))) atTop atTop := by
+  set π := Measure.pi fun _ : F => ν with hπ
+  have hΦM : ∀ M : ℕ, Measurable fun y => min (Φ y) M := fun M => hΦ.min measurable_const
+  have hΦMi : ∀ M : ℕ, Integrable (fun y => min (Φ y) M) π := fun M =>
+    Integrable.of_bound (hΦM M).aestronglyMeasurable M (Filter.Eventually.of_forall fun y => by
+      rw [Real.norm_of_nonneg (le_min (hnn y) M.cast_nonneg)]; exact min_le_right _ _)
+  have hall := ae_all_iff.2 fun M : ℕ => ae_tendsto_mean_infinitePi_blocks ν hf hdisj (hΦM M)
+    (hΦMi M)
+  -- the truncated integrals are unbounded
+  have hunb : ∀ K : ℝ, ∃ M : ℕ, K < ∫ y, min (Φ y) M ∂π := by
+    intro K
+    by_contra hK
+    push Not at hK
+    refine hint ?_
+    have hle : ∀ M : ℕ, ∫⁻ y, ENNReal.ofReal (min (Φ y) M) ∂π ≤
+        ENNReal.ofReal (max K 0) := fun M => by
+      rw [← ofReal_integral_eq_lintegral_ofReal (hΦMi M)
+        (Filter.Eventually.of_forall fun y => le_min (hnn y) M.cast_nonneg)]
+      exact ENNReal.ofReal_le_ofReal ((hK M).trans (le_max_left _ _))
+    have hsup : ∀ y, ENNReal.ofReal (Φ y) = ⨆ M : ℕ, ENNReal.ofReal (min (Φ y) M) := fun y => by
+      refine le_antisymm ?_ (iSup_le fun M => ENNReal.ofReal_le_ofReal (min_le_left _ _))
+      obtain ⟨M, hM⟩ := exists_nat_ge (Φ y)
+      exact le_iSup_of_le M (by rw [min_eq_left hM])
+    have hmono : Monotone fun (M : ℕ) y => ENNReal.ofReal (min (Φ y) M) := fun M N hMN y =>
+      ENNReal.ofReal_le_ofReal (min_le_min_left _ (Nat.cast_le.2 hMN))
+    have hfin : ∫⁻ y, ENNReal.ofReal (Φ y) ∂π ≠ ⊤ := by
+      simp_rw [hsup]
+      rw [lintegral_iSup (f := fun (M : ℕ) y => ENNReal.ofReal (min (Φ y) (M : ℝ)))
+        (fun M => ENNReal.measurable_ofReal.comp (hΦM M)) hmono]
+      exact ne_top_of_le_ne_top ENNReal.ofReal_ne_top (iSup_le hle)
+    exact (lintegral_ofReal_ne_top_iff_integrable hΦ.aestronglyMeasurable
+      (Filter.Eventually.of_forall hnn)).1 hfin
+  filter_upwards [hall] with σ hσ
+  refine Filter.tendsto_atTop.2 fun K => ?_
+  obtain ⟨M, hM⟩ := hunb (K + 1)
+  filter_upwards [(hσ M).eventually_const_lt hM] with n hn
+  have h1 : (n : ℝ)⁻¹ * ∑ i ∈ range n, min (Φ fun a => σ (f i a)) (M : ℝ) ≤
+      (n : ℝ)⁻¹ * ∑ i ∈ range n, Φ fun a => σ (f i a) :=
+    mul_le_mul_of_nonneg_left (sum_le_sum fun i _ => min_le_left _ _)
+      (inv_nonneg.2 n.cast_nonneg)
+  linarith
 
 end ProbabilityTheory

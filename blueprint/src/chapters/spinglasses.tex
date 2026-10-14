@@ -1732,7 +1732,7 @@ On top of them the file \texttt{SpinGlasses/DeFinetti.lean} (with \texttt{ForMat
 proves, for exchangeable sequences, Eq.~(1.84), Lemma~1.5, Eq.~(1.88) and the de Finetti theorem (Theorem~1.6) together with its converse.
 The file \texttt{SpinGlasses/AldousHoover.lean} proves the same chain for weakly exchangeable symmetric arrays: Eq.~(1.89), Lemma~1.6, Eq.~(1.94) and the Aldous--Hoover representation (Theorem~1.5) together with its converse.
 Lemmas~1.5 and~1.6 are two applications of one ``exhaustion principle'' (Lemma~\ref{lem:sg:exhaustion}), and Eqs.~(1.88) and~(1.94) two applications of one decoupling statement for cells (Theorem~\ref{thm:sg:seq-decoupling}).
-The Aldous--Hoover theorem for \emph{separately} exchangeable arrays (Theorem~1.4), the bridge from Theorem~1.5 to the Dovbysh--Sudakov theorem and the Dovbysh--Sudakov theorem itself are \emph{not} formalized in this repository.
+The Aldous--Hoover theorem for \emph{separately} exchangeable arrays (Theorem~1.4) and the bridge from Theorem~1.5 to the overlap array are formalized below; the Dovbysh--Sudakov theorem (Theorem~1.7) is formalized in Section~\ref{sec:sg:dovbysh-sudakov}, and Lemma~1.7 is \emph{not}.
 Deviations are listed in Remark~\ref{rem:sg:aldous-hoover-deviation}.
 
 \begin{lemma}[$L^2$ projection equality for nested conditional expectations]\label{lem:sg:l2proj}
@@ -2178,7 +2178,7 @@ The converse: permuting rows and columns by $e_1,e_2$ permutes $(u_l)$, $(v_{l'}
 
 \begin{remark}[Deviations from the plan and from Panchenko's text, and what is left]\label{rem:sg:aldous-hoover-deviation}
 \begin{enumerate}
-\item \emph{Scope.} The three general tools, the statements about exchangeable \emph{sequences} (Eq.~(1.84), Lemma~1.5, Eq.~(1.88), Theorem~1.6 and its converse) and about weakly exchangeable \emph{arrays} (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5 and its converse) are formalized. The Aldous--Hoover representation of separately exchangeable arrays (Theorem~1.4) and its converse, and the transfer of Theorem~1.5 to curried and Gram-type arrays (Theorems~\ref{thm:sg:aldous-hoover-curried} and~\ref{thm:sg:aldous-hoover-gram}), are formalized as well. Eqs.~(1.78)--(1.79) and~(1.95)--(1.96) as separate statements, the fact that positive semidefiniteness removes the cell noise, and the Dovbysh--Sudakov theorem itself are not, and no Lean declaration asserts them.
+\item \emph{Scope.} The three general tools, the statements about exchangeable \emph{sequences} (Eq.~(1.84), Lemma~1.5, Eq.~(1.88), Theorem~1.6 and its converse) and about weakly exchangeable \emph{arrays} (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5 and its converse) are formalized. The Aldous--Hoover representation of separately exchangeable arrays (Theorem~1.4) and its converse, and the transfer of Theorem~1.5 to curried and Gram-type arrays (Theorems~\ref{thm:sg:aldous-hoover-curried} and~\ref{thm:sg:aldous-hoover-gram}), are formalized as well. Eqs.~(1.78)--(1.79) and~(1.95)--(1.96) as separate statements are not, and no Lean declaration asserts them. The fact that positive semidefiniteness removes the cell noise, in the form of the Dovbysh--Sudakov theorem, is the subject of Section~\ref{sec:sg:dovbysh-sudakov}.
 \item \emph{Norm equality as an integral.} The equality case of Lemma~\ref{lem:sg:l2proj} is stated with $\int(\mathbb E[f\mid\mathscr M_i])^2$ rather than with the $L^2$ norms in the book, because this is the form in which the exchangeability arguments produce it.
 \item \emph{Hypothesis only for the functions used.} The book assumes the conditioning identity for all bounded continuous $f$; Theorem~\ref{thm:sg:seq-decoupling} needs it only for the functions that occur in the product, and the filtration $\mathscr G_k$ is arbitrary.
 It is the forward half of Mathlib's characterization of conditional independence (\texttt{iCondIndepFun\_iff}), which requires a standard Borel ambient space that is not needed here.
@@ -2198,5 +2198,149 @@ The pair-indexed form $\mathrm{IdentDistrib}(\omega\mapsto(p\mapsto s_{[(e p_1,e
 \item \emph{Separately exchangeable arrays: the route and the hypotheses.} The hypothesis of Theorem~\ref{thm:sg:aldous-hoover-sep} is invariance under all pairs of bijections of $\mathbb N$ (not finitely supported ones), and the cell noise is indexed by $\mathbb N\times\mathbb N$ (no symmetry is needed). The noise is nested as $\big((w,((u_l),(v_{l'}))),(x_c)\big)$. The independence of the row noise $(u_l)$ and the column noise $(v_{l'})$ is obtained by applying de Finetti's theorem once to the sequence of pairs $(S_k,T_k)$ of a row and a column vertex array and then reading $S$ off the even and $T$ off the odd i.i.d.\ variables (Lemma~\ref{lem:sg:iid-split}); I did not follow the book's order of arguments for this step and the book's text for Theorem~1.4 was not re-checked against it.
 \item \emph{Curried and Gram-type arrays.} The transfer to curried arrays defines the cell array through $\min$ and $\max$ of the two indices, so almost sure symmetry is the only property used. Theorem~\ref{thm:sg:aldous-hoover-gram} uses only symmetry and the unit diagonal of the law; positive semidefiniteness and the bound $|A_{l,l'}|\le1$ are not used, and the function $f$ is not shown to be bounded by $1$ or to be independent of the cell noise.
 \item \emph{Shared code.} The cell coding step is the generic Lemma \texttt{map\_codedCells\_eq\_compProd} (kernel of the cells given any vertex data, for any index set of cells), used for weakly and for separately exchangeable arrays; the injection-invariance of the vertex data is obtained from the sub-array lemma for $s$ itself (Lemma~\ref{lem:sg:subarray-sep}), by extending an injection of the odd numbers to an injection of $\mathbb N$ fixing the even numbers.
+\end{enumerate}
+\end{remark}
+
+\section{The Dovbysh--Sudakov representation}\label{sec:sg:dovbysh-sudakov}
+
+Section~1.5 of the book proves that an exchangeable random array $R=(R_{l,l'})$ which is almost surely positive semidefinite is, in law, the Gram array of an i.i.d.\ sample from a random measure on a Hilbert space, plus a nonnegative diagonal (Theorem~1.7).
+This is the structure theorem for the overlap array of Section~1.3: it says that the asymptotic overlap law is the law of the overlaps of replicas drawn from a (random) asymptotic Gibbs measure.
+The proof has one idea: positive semidefiniteness lets one attach to $R$ a \emph{Gaussian array} $g_{l,i}$ whose columns are conditionally i.i.d.\ Gaussian sequences with covariance $R$; this array is separately exchangeable, so the Aldous--Hoover representation of Theorem~1.4 applies to it; and the strong law of large numbers recovers $R$ from $g$ as the limit of the empirical covariances $n^{-1}\sum_{i\le n}g_{l,i}g_{l',i}$, which on the Aldous--Hoover side are computed by integrating out the cell noise.
+The files are \texttt{SpinGlasses/DovbyshSudakov.lean} (the theorems), \texttt{DovbyshSudakovGaussian.lean} (the Gaussian array) and \texttt{DovbyshSudakovLimit.lean} (the Aldous--Hoover side), with general-purpose inputs in \texttt{ForMathlib}.
+Deviations are listed in Remark~\ref{rem:sg:dovbysh-sudakov-deviation}.
+
+\begin{lemma}[Cholesky factorization of an infinite positive semidefinite array]\label{lem:sg:cholesky}
+  \lean{Matrix.cholInf,
+        Matrix.measurable_cholInf,
+        Matrix.sum_cholInf_mul_eq,
+        Matrix.posSemidef_comp}
+  \leanok
+Let $A:\mathbb N\to\mathbb N\to\mathbb R$ be such that every finite principal submatrix is positive semidefinite. The lower triangular array $L=\operatorname{cholInf}(A)$, defined row by row, satisfies $\sum_{j<K}L_{l,j}L_{l',j}=A_{l,l'}$ for $K>\max(l,l')$, and every entry $L_{l,k}$ is a measurable function of $A$. If $f:\mathbb N\to\mathbb N$ is any map, the array $(A_{f(l),f(l')})$ again has positive semidefinite finite principal submatrices.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+For $k<l$ put $L_{l,k}=(A_{l,k}-\sum_{j<k}L_{l,j}L_{k,j})/L_{k,k}$ (and $0$ if the pivot $L_{k,k}$ vanishes), $L_{l,l}=\sqrt{A_{l,l}-\sum_{j<l}L_{l,j}^2}$ and $L_{l,k}=0$ for $k>l$. Measurability follows by induction along the recursion. For the factorization one shows by induction on $m$ that the residual $A_{l,l'}-\sum_{j<m}L_{l,j}L_{l',j}$ is a positive semidefinite form on the indices $\ge m$: removing a positive pivot is a rank one downdate (completing the square in the $m$-th variable), and below a zero pivot the whole column of the residual vanishes, by the Cauchy--Schwarz inequality for the positive semidefinite form.
+Hence the residual at the diagonal is a square and the one below a zero pivot vanishes, which is the identity. The last statement is the fact that a principal submatrix along any map of indices is a submatrix of a finite principal submatrix.
+\end{proof}
+
+The Cholesky factor is not in Mathlib (its \texttt{LDL} decomposition needs positive definite matrices) and a zero pivot cannot be excluded for a random array. The point of an \emph{explicit, measurable} factor is that the Gaussian array can be written as a finite sum of i.i.d.\ Gaussians, with the covariance as a measurable parameter: no Kolmogorov extension theorem and no measurable selection are needed.
+
+\begin{lemma}[The Gaussian sequence with a prescribed covariance]\label{lem:sg:gaussian-gram}
+  \lean{ProbabilityTheory.map_dotProduct_eq_of_gram_eq,
+        ProbabilityTheory.map_cholInf_comp_equiv,
+        ProbabilityTheory.integrable_integral_cholInf_mul}
+  \leanok
+Let $(c_k)_k$ be i.i.d.\ standard Gaussian and $A$ as in Lemma~\ref{lem:sg:cholesky}. The sequence $Y_l=\sum_{k\le l}L_{l,k}c_k$ is centered with $\mathbb E[Y_lY_{l'}]=A_{l,l'}$, and $Y_lY_{l'}$ is integrable. For a permutation $e$ of $\mathbb N$ the sequence $(Y_{e(l)})_l$ has the same law as the Gaussian sequence built from the array $(A_{e(l),e(l')})$, although the two Cholesky factors differ.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:cholesky}
+Linear forms of i.i.d.\ Gaussians with the same Gram matrix have the same law (a centered Gaussian vector is determined by its covariance; this is in the repository). The two laws on $\mathbb R^{\mathbb N}$ are compared on finite sets of coordinates, which determine a measure on $\mathbb R^{\mathbb N}$; on a finite set of coordinates both are linear forms of the first $N$ Gaussians whose Gram matrix is $(A_{e(l),e(l')})$ by Lemma~\ref{lem:sg:cholesky}, applied to $A$ and to the permuted array.
+\end{proof}
+
+\begin{theorem}[The Gaussian array of an exchangeable positive semidefinite array]\label{thm:sg:gaussian-array}
+  \lean{ProbabilityTheory.identDistrib_prod_comp_of_ae_map_eq,
+        SpinGlasses.identDistrib_gaussianArray_separately,
+        SpinGlasses.ae_tendsto_gaussianArray_mean}
+  \leanok
+Let $R$ be a random array, almost surely with positive semidefinite finite principal submatrices, whose law is invariant under $R\mapsto(R_{e(l),e(l')})$ for every bijection $e$. Let $\xi=(\xi_{i,k})$ be i.i.d.\ standard Gaussians independent of $R$ and $g_{l,i}=\sum_{k\le l}\operatorname{cholInf}(R)_{l,k}\xi_{i,k}$. Then $(g_{l,i})_{l,i}$ is separately exchangeable, and almost surely $n^{-1}\sum_{i<n}g_{l,i}g_{l',i}\to R_{l,l'}$ for all $l,l'$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:gaussian-gram}
+Permuting the columns permutes the i.i.d.\ columns of $\xi$, whose law is invariant. Permuting the rows by $e$: given $R$, the law of the permuted array is the law of the array built from $(R_{e(l),e(l')})$ (Lemma~\ref{lem:sg:gaussian-gram}, columns being independent), and $(R_{e(l),e(l')})\overset d=R$ by hypothesis; the general statement that an equivariant function of a parameter and an independent noise keeps its law when the parameter's law is invariant is Lemma \texttt{identDistrib\_prod\_comp\_of\_ae\_map\_eq}. For the limit, given $R$ the columns are i.i.d.\ with $\mathbb E[g_{l,i}g_{l',i}\mid R]=R_{l,l'}$ (Lemma~\ref{lem:sg:gaussian-gram}), and Etemadi's strong law (Lemma~\ref{lem:sg:slln}) applies conditionally.
+\end{proof}
+
+\begin{lemma}[Strong laws for conditionally i.i.d.\ sequences and for blocks of an i.i.d.\ family]\label{lem:sg:slln}
+  \lean{ProbabilityTheory.ae_tendsto_mean_prod_infinitePi,
+        ProbabilityTheory.ae_tendsto_mean_infinitePi_blocks,
+        ProbabilityTheory.ae_tendsto_atTop_mean_infinitePi_blocks}
+  \leanok
+(a) If $a\sim\mu$ and $(c_i)$ are i.i.d.\ with law $\nu$, independent of $a$, and $\Psi(a,\cdot)$ is $\nu$-integrable for almost every $a$, then $n^{-1}\sum_{i<n}\Psi(a,c_i)\to\int\Psi(a,c)\,d\nu(c)$ almost surely.
+(b) Let $\sigma=(\sigma_j)_{j\in J}$ be i.i.d.\ with law $\nu$ and $f_i:F\to J$ injective maps ($F$ finite) with pairwise disjoint ranges. If $\Phi$ is integrable for $\nu^{\otimes F}$ then $n^{-1}\sum_{i<n}\Phi(\sigma\circ f_i)\to\int\Phi\,d\nu^{\otimes F}$ almost surely.
+(c) If $\Phi\ge0$ is \emph{not} integrable, then $n^{-1}\sum_{i<n}\Phi(\sigma\circ f_i)\to\infty$ almost surely.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(a) is Fubini and Etemadi's strong law (Mathlib's \texttt{strong\_law\_ae}) for each fixed $a$. (b) is the same law applied to the variables $\Phi(\sigma\circ f_i)$, which are identically distributed (the law of the restriction of an i.i.d.\ family to an injective block) and pairwise independent (restrictions to disjoint blocks, Lemma~\ref{lem:sg:iid-split}). (c): apply (b) to the truncations $\min(\Phi,M)$, which are bounded, and use that $\int\min(\Phi,M)\to\infty$ by monotone convergence.
+\end{proof}
+
+\begin{lemma}[Partial integrals of square-integrable functions]\label{lem:sg:jensen-partial}
+  \lean{MeasureTheory.sq_integral_le_integral_sq,
+        MeasureTheory.integrable_sq_integral_prod,
+        MeasureTheory.integral_prod_mul_prod,
+        Measurable.integral_prod_right'}
+  \leanok
+Let $f,f'$ be measurable functions of $(v,x)$ that are square-integrable for $\mu_V\otimes\mu_X$ (probability measures), and $m(v)=\int f(v,x)\,d\mu_X(x)$, $m'$ likewise. Then $m^2$ is integrable and $\int m^2\le\iint f^2$; and, for two independent copies $x,x'$ of the cell variable, $\iiint f(v,x)f'(v,x')=\int m\,m'$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Jensen's inequality $(\int f)^2\le\int f^2$ on each section ($\operatorname{Var}\ge0$), integrated in $v$. For the second identity, the integrand is integrable because $\int|f(v,\cdot)|$ and $\int|f'(v,\cdot)|$ are square-integrable in $v$ and the product of two square-integrable functions is integrable; then Fubini and $\int\!\int f(v,x)f'(v,x')=(\int f)(\int f')$.
+\end{proof}
+
+\begin{theorem}[Empirical covariances of an Aldous--Hoover array]\label{thm:sg:ah-empirical}
+  \lean{SpinGlasses.measurePreserving_aldousHooverNoise,
+        SpinGlasses.ae_tendsto_mean_aldousHoover_offDiag,
+        SpinGlasses.ae_tendsto_mean_aldousHoover_diag,
+        SpinGlasses.ae_integrable_section_of_ae_exists_tendsto,
+        SpinGlasses.exists_ae_tendsto_mean_aldousHoover}
+  \leanok
+Let $\tau:[0,1]^4\to\mathbb R$ be measurable, $w$, $(u_l)$, $(v_i)$, $(x_{l,i})$ independent and uniform, and $s_{l,i}=\tau(w,u_l,v_i,x_{l,i})$.
+(a) If $n^{-1}\sum_{i<n}s_{0,i}^2$ converges almost surely to a finite limit, then $\tau(w,a,\cdot,\cdot)$ is square-integrable for almost every $(w,a)$.
+(b) In that case there are measurable $h:[0,1]^3\to\mathbb R$ with $h(w,a,\cdot)\in L^2(0,1)$ for every $(w,a)$ (the partial integral of $\tau$ over the last variable, set to $0$ on the null set where $\tau(w,a,\cdot,\cdot)$ is not square-integrable) and $a:[0,1]^2\to[0,\infty)$ such that, almost surely and for all $l,l'$,
+\[\frac1n\sum_{i<n}s_{l,i}s_{l',i}\longrightarrow\int_0^1h(w,u_l,v)\,h(w,u_{l'},v)\,dv+\mathbf 1_{l=l'}\,a(w,u_l).\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:slln, lem:sg:jensen-partial, lem:sg:iid-split}
+All the randomness except $(w,(u_l))$ is realized as one i.i.d.\ family $\sigma$ indexed by $\mathbb N\oplus\mathbb N\times\mathbb N$, with $v_i=\sigma_{\mathrm{inl}\,i}$ and $x_{l,i}=\sigma_{\mathrm{inr}(l,i)}$ (Lemma~\ref{lem:sg:iid-split}). Given $(w,u)$, the product $s_{l,i}s_{l',i}$ is a fixed function of the block $(\sigma_{\mathrm{inl}\,i},\sigma_{\mathrm{inr}(l,i)},\sigma_{\mathrm{inr}(l',i)})$ and these blocks are pairwise disjoint in $i$, so Lemma~\ref{lem:sg:slln}(b) gives the limit as the mean of the block. For $l\ne l'$ the cell variables $x_{l,i},x_{l',i}$ are independent copies, and the mean is $\int m\,m'$ with $m(v)=\int\tau(w,u_l,v,x)\,dx$ (Lemma~\ref{lem:sg:jensen-partial}); for $l=l'$ it is $\iint\tau^2$, and $a=\iint\tau^2-\int m^2\ge0$ by Jensen. (a) is Lemma~\ref{lem:sg:slln}(c) applied to $\Phi=\tau(w,u_0,\cdot,\cdot)^2$: if the section were not integrable for a set of $(w,u_0)$ of positive measure, the averages would tend to $\infty$ with positive probability.
+\end{proof}
+
+\begin{theorem}[Dovbysh--Sudakov representation, Theorem~1.7 of the book]\label{thm:sg:dovbysh-sudakov}
+  \lean{SpinGlasses.exists_dovbysh_sudakov_representation}
+  \leanok
+Let $R=(R_{l,l'})$ be a random array whose finite principal submatrices are almost surely positive semidefinite and whose law is invariant under $R\mapsto(R_{e(l),e(l')})$ for every bijection $e$ of $\mathbb N$. Then there are measurable $h:[0,1]^3\to\mathbb R$ with $h(w,u,\cdot)\in L^2(0,1)$ for all $(w,u)$ and $a:[0,1]^2\to[0,\infty)$ such that, as arrays indexed by $\mathbb N\times\mathbb N$,
+\[R_{l,l'}\overset d=\int_0^1h(w,u_l,v)\,h(w,u_{l'},v)\,dv+\mathbf 1_{l=l'}\,a(w,u_l),\]
+with $w$ and $(u_l)$ independent and uniform on $[0,1]$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:gaussian-array, thm:sg:aldous-hoover-sep, thm:sg:ah-empirical}
+Take the Gaussian array $g$ of Theorem~\ref{thm:sg:gaussian-array}; it is separately exchangeable, so $g\overset d=(\tau(w,u_l,v_i,x_{l,i}))$ by Theorem~\ref{thm:sg:aldous-hoover-sep}. The map sending an array $y$ to the matrix of limits $\limsup_n n^{-1}\sum_{i<n}y_{l,i}y_{l',i}$ is measurable. Applied to $g$ it returns $R$ almost surely (Theorem~\ref{thm:sg:gaussian-array}); applied to the Aldous--Hoover array it returns, almost surely, the matrix of Theorem~\ref{thm:sg:ah-empirical}, whose hypothesis (a) holds because the limit exists for $g$, hence (equality in law, applied to the measurable event ``the averages $n^{-1}\sum_{i<n}y_{0,i}^2$ converge'') for the Aldous--Hoover array. Equality in law of $g$ and the Aldous--Hoover array gives equality in law of the two matrices of limits.
+\end{proof}
+
+The variable $w$ is the randomness of the random measure: conditionally on $w$, the pairs $(h(w,u_l,\cdot),a(w,u_l))$ are i.i.d.\ with a law $\eta(w)$ on $L^2(0,1)\times[0,\infty)$, so $R$ is, in law, the Gram array of an i.i.d.\ sample from a random measure plus an independent diagonal.
+
+\begin{theorem}[Dovbysh--Sudakov representation of a Gram-type law]\label{thm:sg:dovbysh-sudakov-gram}
+  \lean{SpinGlasses.exists_dovbysh_sudakov_representation_of_gram,
+        SpinGlasses.exists_dovbysh_sudakov_representation_of_gram_set,
+        SpinGlasses.map_map_curry_array}
+  \leanok
+Let $\Lambda$ be a probability measure on $\mathbb R^{\mathbb N\times\mathbb N}$ concentrated on arrays with unit diagonal and positive semidefinite finite principal submatrices, and invariant under $A\mapsto(A_{e(l),e(l')})$. Then there is a measurable $h:[0,1]^3\to\mathbb R$ with $\int_0^1h(w,u,v)^2\,dv\le1$ for every $(w,u)$ such that $\Lambda$ is the law of
+\[\Big(\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\int_0^1h(w,u_l,v)\,h(w,u_{l'},v)\,dv\Big)_{l,l'},\]
+with $w$ and $(u_l)$ i.i.d.\ uniform. The same holds if $\Lambda$ is only assumed to give measure $1$ to the (closed) set of Gram-type arrays of Section~\ref{sec:sg:asymptotic-gibbs}; in particular it applies to every limit produced by Theorem~\ref{thm:sg:asymptotic-overlap}.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:dovbysh-sudakov}
+Apply Theorem~\ref{thm:sg:dovbysh-sudakov} to the identity array on $(\mathbb R^{\mathbb N\times\mathbb N},\Lambda)$. The diagonal of the representing array equals $1$ almost surely, so $\int h^2+a=1$ with $a\ge0$, which gives $\int h^2\le1$ for almost every $(w,u_l)$; setting $h=0$ where this fails changes the array only on a null set. For the Gram set, closedness gives measurability, so measure $1$ is the almost sure statement.
+\end{proof}
+
+\begin{remark}[Deviations from the book and what is left]\label{rem:sg:dovbysh-sudakov-deviation}
+\begin{enumerate}
+\item \emph{The Hilbert space.} The book represents the array through a random measure $\eta$ on $L^2(0,1)\times[0,\infty)$. The Lean statements give the Gram array through the functions $h(w,u,\cdot)\in L^2(0,1)$ and the integral $\int h\,h'$; that $(w,u)\mapsto h(w,u,\cdot)$ is a measurable map into the Hilbert space $L^2(0,1)$, and the pushforward measures $\eta(w)$ on $L^2(0,1)\times[0,\infty)$, are not formalized; they are needed for Lemma~1.7 and are the next milestone.
+\item \emph{Lemma~1.7 is not formalized}: that $\eta$ can be measurably reconstructed from $R$ up to an orthogonal transformation of the Hilbert space (and the identification of the asymptotic Gibbs measure on the unit ball of $L^2(0,1)$, Section~1.5 of the book and the end of Section~\ref{sec:sg:asymptotic-gibbs}).
+\item \emph{No integrability assumption.} The book does not assume $\mathbb E R_{0,0}<\infty$ and neither do the Lean statements. The strong law for the Aldous--Hoover array needs square-integrable sections; this is not assumed but derived (Theorem~\ref{thm:sg:ah-empirical}(a)) from the nonnegative strong law, Lemma~\ref{lem:sg:slln}(c), which the book does not discuss.
+\item \emph{Another route to the Gaussian array.} The book generates, conditionally on $R$, a Gaussian vector with covariance $R$ and takes independent copies. Here it is $g_{l,i}=\sum_{k\le l}L_{l,k}\xi_{i,k}$ with the explicit measurable Cholesky factor $L$ of $R$ (Lemma~\ref{lem:sg:cholesky}); the only place where the exchangeability of $R$ enters is that the law of $g$ given $R$ depends on $R$ only through its entries, even though the Cholesky factors of $R$ and of a permuted $R$ are different matrices.
+\item \emph{Order of limits.} The map ``limit of the empirical covariances'' is a $\limsup$ and is only meaningful on the almost sure set where the limits exist; this is why the comparison of the two arrays goes through a measurable map and an almost sure equality on both sides, rather than through conditional expectations as in the book's informal statement.
+\item \emph{Reuse.} The same exchangeability transfer for an equivariant function of a parameter and a noise (Lemma \texttt{identDistrib\_prod\_comp\_of\_ae\_map\_eq}) and the product regroupings are general-purpose lemmas; the strong laws of Lemma~\ref{lem:sg:slln} and the partial-integral lemmas of Lemma~\ref{lem:sg:jensen-partial} do not mention spin glasses.
 \end{enumerate}
 \end{remark}
