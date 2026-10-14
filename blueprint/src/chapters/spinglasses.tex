@@ -40,8 +40,9 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureLimit.lean}, \texttt{ForMathlib/LinearAlgebra/Matrix/PosSemidef.lean},
 \texttt{SpinGlasses/OverlapExchangeability.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
-Section~\ref{sec:sg:aldous-hoover} starts Section~1.4 of the book (the Aldous--Hoover representation): it formalizes only the general tools
-(the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), not the representation theorems themselves.
+Section~\ref{sec:sg:aldous-hoover} covers the first half of Section~1.4 of the book (the Aldous--Hoover representation): the general tools
+(the $L^2$ projection equality, the Coding Lemma and the sequential decoupling) and de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6);
+the Aldous--Hoover representations of arrays and the Dovbysh--Sudakov theorem are not formalized.
 
 
 \medskip\noindent\textbf{Notation.}
@@ -1721,14 +1722,16 @@ and to the auxiliary measure $G'_N$ of the Aizenman--Sims--Starr scheme (Eq.~(1.
 \end{enumerate}
 \end{remark}
 
-\section{Tools for the Aldous--Hoover representation}\label{sec:sg:aldous-hoover}
+\section{Tools for the Aldous--Hoover representation, and de Finetti's theorem}\label{sec:sg:aldous-hoover}
 
-Section~1.4 of the book proves the de Finetti and Aldous--Hoover representations of exchangeable sequences and arrays. Three general tools carry all of its probabilistic content,
-and they are the only parts of that section formalized so far: the $L^2$ projection equality behind Lemmas~1.5 and~1.6, the Coding Lemma 1.4, and the induction that turns sequential
-conditioning into conditional independence (Eqs.~(1.88) and~(1.94)). None of them mentions exchangeability. The statements about exchangeable sequences and arrays themselves
-(Eq.~(1.84), Lemmas~1.5 and~1.6, Theorems~1.4--1.6) are \emph{not} formalized in this repository. The Lean files are
-\texttt{ForMathlib/MeasureTheory/ConditionalExpectation/L2Projection.lean}, \texttt{SequentialDecoupling.lean} and \texttt{ForMathlib/Probability/Kernel/CodingLemma.lean}
-(deviations in Remark~\ref{rem:sg:aldous-hoover-deviation}).
+Section~1.4 of the book proves the de Finetti and Aldous--Hoover representations of exchangeable sequences and arrays. Three general tools carry the probabilistic content of both proofs:
+the $L^2$ projection equality behind Lemmas~1.5 and~1.6, the Coding Lemma 1.4, and the induction that turns sequential
+conditioning into conditional independence (Eqs.~(1.88) and~(1.94)). None of them mentions exchangeability. They are formalized in
+\texttt{ForMathlib/MeasureTheory/ConditionalExpectation/L2Projection.lean}, \texttt{SequentialDecoupling.lean} and \texttt{ForMathlib/Probability/Kernel/CodingLemma.lean}.
+On top of them the file \texttt{SpinGlasses/DeFinetti.lean} (with \texttt{ForMathlib/MeasureTheory/ConditionalExpectation/IdentDistrib.lean} and \texttt{ForMathlib/Probability/ConditionallyIID.lean} as general-purpose inputs)
+proves, for exchangeable sequences, Eq.~(1.84), Lemma~1.5, Eq.~(1.88) and the de Finetti theorem (Theorem~1.6) together with its converse.
+The statements about exchangeable \emph{arrays} (Eq.~(1.89), Lemma~1.6, Theorems~1.4 and~1.5) and the Dovbysh--Sudakov theorem are \emph{not} formalized in this repository.
+Deviations are listed in Remark~\ref{rem:sg:aldous-hoover-deviation}.
 
 \begin{lemma}[$L^2$ projection equality for nested conditional expectations]\label{lem:sg:l2proj}
   \lean{MeasureTheory.integral_mul_condExp_of_stronglyMeasurable,
@@ -1788,12 +1791,147 @@ Induction on $n$. Put $A=\prod_{j<n}Z_j$, which is bounded and $\mathscr G_n$-me
 and the induction hypothesis applied to $Z_1,\dots,Z_{n-1}$ identifies $\mathbb E[A\mid\mathscr M]$.
 \end{proof}
 
+\begin{lemma}[Conditional expectations only depend on the joint law]\label{lem:sg:condexp-law}
+  \lean{ProbabilityTheory.condDistrib_eq_of_map_eq,
+        ProbabilityTheory.integral_sq_condExp_comp_eq_integral_condDistrib,
+        ProbabilityTheory.integral_sq_condExp_comp_eq_of_map_eq,
+        ProbabilityTheory.condExp_comp_ae_eq_of_map_eq}
+  \leanok
+Let $P$ be a finite measure on $\Omega$, $B:\Omega\to\beta$ measurable, $A:\Omega\to E$ a.e.\ measurable with $E$ a nonempty standard Borel space, and $F:E\to\mathbb R$ bounded and measurable. Then
+$\mathbb E[F(A)\mid\sigma(B)]=\psi(B)$ almost surely, where $\psi(b)=\int F\,d\kappa(b,\cdot)$ and $\kappa$ is the regular conditional distribution of $A$ given $B$; and $\kappa$ is determined by the law of $(B,A)$.
+Consequently:
+(a) if $(B,A)\overset d=(B,A')$ under $P$, then $\mathbb E[F(A)\mid\sigma(B)]=\mathbb E[F(A')\mid\sigma(B)]$ almost surely;
+(b) if $(B,A)$ under $P$ has the same law as $(B',A')$ under a (possibly different) finite measure $P'$, then
+$\int\big(\mathbb E_P[F(A)\mid\sigma(B)]\big)^2\,dP=\int\big(\mathbb E_{P'}[F(A')\mid\sigma(B')]\big)^2\,dP'$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The formula $\mathbb E[F(A)\mid\sigma(B)]=\int F\,d\kappa(B,\cdot)$ is Mathlib's description of conditional expectations through \texttt{condDistrib}, and \texttt{condDistrib} is by definition the disintegration of the law of $(B,A)$,
+so it depends on $(B,A)$ only through that law. This gives (a). For (b), the second moment of $\psi(B)$ is $\int\psi^2\,d(\mathrm{law}\,B)$, and both the law of $B$ (the first marginal of the law of $(B,A)$) and $\psi$ are the same on both sides.
+\end{proof}
+
+\begin{lemma}[Convergence of $L^2$ norms along a filtration (L\'evy's upward theorem)]\label{lem:sg:levy}
+  \lean{MeasureTheory.tendsto_integral_sq_condExp}
+  \leanok
+Let $\mu$ be a finite measure, $\mathscr G_1\subseteq\mathscr G_2\subseteq\cdots\subseteq\mathscr B$ $\sigma$-algebras, $\mathscr G_\infty=\bigvee_n\mathscr G_n$, and $f$ a function with $|f|\le C$. Then
+$\int\mathbb E[f\mid\mathscr G_n]^2\,d\mu\to\int\mathbb E[f\mid\mathscr G_\infty]^2\,d\mu$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+By L\'evy's upward theorem (the martingale convergence theorem in Mathlib), $\mathbb E[f\mid\mathscr G_n]\to\mathbb E[f\mid\mathscr G_\infty]$ almost everywhere. Conditional expectations of a function bounded by $C$ are bounded by $C$,
+so the squares are dominated by $C^2$, which is integrable for a finite measure; apply dominated convergence.
+\end{proof}
+
+\begin{lemma}[Conditionally i.i.d.\ sequences are mixtures of i.i.d.\ sequences]\label{lem:sg:cond-iid}
+  \lean{ProbabilityTheory.map_eq_bind_infinitePi_condDistrib,
+        MeasureTheory.Measure.measurable_pi_curry,
+        MeasureTheory.Measure.measurable_map_curry,
+        MeasureTheory.Measure.map_prod_infinitePi_eq_bind}
+  \leanok
+Let $(\Omega,P)$ be a probability space, $E$ a nonempty standard Borel space, $X:\Omega\to\beta$ and $Y_i:\Omega\to E$ ($i\in\mathbb N$) measurable. Assume that for all bounded measurable $f,f_i:E\to\mathbb R$ and all finite $t\subseteq\mathbb N$,
+\[\mathbb E[f(Y_i)\mid\sigma(X)]=\mathbb E[f(Y_0)\mid\sigma(X)],\qquad
+\mathbb E\Big[\prod_{i\in t}f_i(Y_i)\,\Big|\,\sigma(X)\Big]=\prod_{i\in t}\mathbb E[f_i(Y_i)\mid\sigma(X)]\quad\text{a.s.}\]
+Let $\kappa$ be the regular conditional distribution of $Y_0$ given $X$. Then the law of the sequence $(Y_i)_{i\in\mathbb N}$ on $E^{\mathbb N}$ is
+$\int\kappa(x,\cdot)^{\otimes\mathbb N}\,\mathrm{law}(X)(dx)$, a mixture of i.i.d.\ sequences. Conversely (the easy direction, with the same mixture formula), if $a\sim\mu$ and $(c_i)$ are i.i.d.\ $\nu$ and independent of $a$, then the law of
+$(g(a,c_i))_{i}$ is $\int(\nu\circ g(a,\cdot)^{-1})^{\otimes\mathbb N}\,\mu(da)$ for every measurable $g$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Two probability measures on $E^{\mathbb N}$ agree if they agree on measurable boxes $\prod_{i\in t}u_i\times E^{\mathbb N\setminus t}$ ($t$ finite), which form a $\pi$-system generating the product $\sigma$-algebra.
+The mass the sequence gives to such a box is $\mathbb E\prod_{i\in t}\mathbf 1_{u_i}(Y_i)$. Taking the conditional expectation given $\sigma(X)$ first (tower property), then using the product formula and the
+equal-distribution hypothesis, this is $\mathbb E\prod_{i\in t}\kappa(X,u_i)=\int\prod_{i\in t}\kappa(x,u_i)\,\mathrm{law}(X)(dx)$, which is the mass the mixture gives to the box. The converse is Fubini.
+\end{proof}
+
+\paragraph{Exchangeable sequences.}
+A sequence $(s_l)_{l\in\mathbb N}$ of random variables with values in a measurable space $E$ is \emph{exchangeable} if $(s_{e(l)})_{l}\overset d=(s_l)_{l}$ for every bijection $e:\mathbb N\to\mathbb N$ (equality of laws on $E^{\mathbb N}$).
+This is the hypothesis \texttt{hexch} of all statements below; no structure or definition is introduced. Panchenko's Eq.~(1.81) asks for this only for permutations moving finitely many indices. The two are equivalent
+(the restriction of a bijection of $\mathbb N$ to finitely many coordinates is the restriction of a finite permutation), but this equivalence is \emph{not} formalized; every theorem below is proved under the invariance for all bijections.
+This is the form produced by mixtures of i.i.d.\ sequences (Lemma~\ref{lem:sg:mixture}) and used for the overlap array in Theorem~\ref{thm:sg:annealed-gram}.
+
+\begin{lemma}[Invariance along injections, Eq.~(1.84)]\label{lem:sg:subseq}
+  \lean{SpinGlasses.identDistrib_comp_of_exchangeable,
+        SpinGlasses.identDistrib_subsequence_of_exchangeable}
+  \leanok
+Let $(s_l)$ be exchangeable. (a) If $a,b:\iota\to\mathbb N$ are injective and $\iota$ is finite, then $(s_{a(i)})_{i\in\iota}\overset d=(s_{b(i)})_{i\in\iota}$. (b) For every injective $\theta:\mathbb N\to\mathbb N$,
+$(s_{\theta(l)})_{l\in\mathbb N}\overset d=(s_l)_{l\in\mathbb N}$; in particular this holds for the subsequence along any infinite $I\subseteq\mathbb N$ enumerated increasingly.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(a) Two injections of a finite set into $\mathbb N$ differ by a permutation of $\mathbb N$: extend the bijection $a(\iota)\to b(\iota)$ to a permutation $e$ (permutations of the finite set $a(\iota)\cup b(\iota)$ extended by the identity),
+so $b=e\circ a$ and the claim follows by applying the exchangeability under $e$ and then restricting to the coordinates $a(\iota)$. (b) The laws of the two sequences on $E^{\mathbb N}$ agree if all their finite-dimensional marginals
+agree (Mathlib: \texttt{identDistrib\_iff\_forall\_finset\_identDistrib}), and for a finite set $J$ of coordinates this is (a) with $a=\theta|_J$ and $b=\mathrm{id}_J$.
+\end{proof}
+
+\begin{lemma}[Lemma~1.5 of the book]\label{lem:sg:lemma15}
+  \lean{SpinGlasses.tendsto_integral_sq_condExp_iSup_fin,
+        SpinGlasses.integral_sq_condExp_comp_eq_of_exchangeable,
+        SpinGlasses.condExp_comp_ae_eq_condExp_compl}
+  \leanok
+Let $(s_l)_{l\in\mathbb N}$ be exchangeable with values in a nonempty standard Borel space $E$, let $\mathscr F_J=\sigma(s_l:l\in J)$ for $J\subseteq\mathbb N$, and let $f:E\to\mathbb R$ be bounded and measurable.
+(a) If $J,J'\subseteq\mathbb N$ are infinite, $j\notin J$ and $j'\notin J'$, then $\mathbb E\big[\mathbb E[f(s_j)\mid\mathscr F_J]^2\big]=\mathbb E\big[\mathbb E[f(s_{j'})\mid\mathscr F_{J'}]^2\big]$.
+(b) If $J$ is infinite and $j\notin J$, then $\mathbb E[f(s_j)\mid\mathscr F_J]=\mathbb E[f(s_j)\mid\mathscr F_{\mathbb N\setminus\{j\}}]$ almost surely.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:l2proj, lem:sg:condexp-law, lem:sg:levy, lem:sg:subseq}
+(a) Enumerate $J=\{u_1,u_2,\dots\}$ and $J'=\{u'_1,u'_2,\dots\}$. For each $n$ the injections $(j,u_1,\dots,u_n)$ and $(j',u'_1,\dots,u'_n)$ of $\{0,\dots,n\}$ into $\mathbb N$ give
+$(s_{u_1},\dots,s_{u_n},s_j)\overset d=(s_{u'_1},\dots,s_{u'_n},s_{j'})$ by Lemma~\ref{lem:sg:subseq}(a), hence the $L^2$ norms of the conditional expectations given the first $n$ coordinates agree by
+Lemma~\ref{lem:sg:condexp-law}(b). Let $n\to\infty$ and use Lemma~\ref{lem:sg:levy} on both sides. (b) Apply (a) with $J'=\mathbb N\setminus\{j\}$, $j'=j$: the $L^2$ norms of the two conditional expectations in (b) agree, and
+$\mathscr F_J\subseteq\mathscr F_{\mathbb N\setminus\{j\}}$, so Lemma~\ref{lem:sg:l2proj} gives equality almost surely.
+\end{proof}
+
+\begin{theorem}[Conditional independence of the coordinates, Eq.~(1.88)]\label{thm:sg:cond-indep}
+  \lean{SpinGlasses.condExp_comp_ae_eq_of_exchangeable,
+        SpinGlasses.condExp_prod_comp_eq_prod_condExp_of_exchangeable}
+  \leanok
+Let $(s_l)$ be exchangeable with values in a nonempty standard Borel space $E$, $K\subseteq\mathbb N$ infinite, $\mathscr F_K=\sigma(s_k:k\in K)$. (a) If $i,i'\notin K$ and $f$ is bounded measurable, then
+$\mathbb E[f(s_i)\mid\mathscr F_K]=\mathbb E[f(s_{i'})\mid\mathscr F_K]$ almost surely. (b) If $t$ is a finite set, $l:t\to\mathbb N\setminus K$ is injective and $f_i$ ($i\in t$) are bounded measurable, then
+\[\mathbb E\Big[\prod_{i\in t}f_i(s_{l(i)})\,\Big|\,\mathscr F_K\Big]=\prod_{i\in t}\mathbb E[f_i(s_{l(i)})\mid\mathscr F_K]\quad\text{almost surely.}\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:seq-decoupling, lem:sg:lemma15, lem:sg:condexp-law}
+(a) The transposition of $i$ and $i'$ fixes $K$ pointwise, so $\big((s_k)_{k\in K},s_i\big)\overset d=\big((s_k)_{k\in K},s_{i'}\big)$ by exchangeability, and Lemma~\ref{lem:sg:condexp-law}(a) applies.
+(b) Order $t=\{i_1,\dots,i_n\}$ and apply Theorem~\ref{thm:sg:seq-decoupling} with $\mathscr M=\mathscr F_K$, $Y_k=s_{l(i_k)}$ and $\mathscr G_k=\mathscr F_K\vee\sigma(Y_j:j<k)=\mathscr F_{K\cup\{l(i_j):j<k\}}$. The hypothesis of
+that theorem is Lemma~\ref{lem:sg:lemma15}(b) applied twice, once with $J=K\cup\{l(i_j):j<k\}$ and once with $J=K$ (both infinite, neither containing $l(i_k)$): both conditional expectations equal $\mathbb E[f_k(Y_k)\mid\mathscr F_{\mathbb N\setminus\{l(i_k)\}}]$.
+\end{proof}
+
+\begin{theorem}[de Finetti representation, Theorem~1.6 of the book, and its converse]\label{thm:sg:de-finetti}
+  \lean{SpinGlasses.exists_de_finetti_representation,
+        SpinGlasses.identDistrib_deFinetti_comp_equiv}
+  \leanok
+Let $(s_l)_{l\in\mathbb N}$ be an exchangeable sequence of random variables with values in a nonempty standard Borel space $E$ (for example $E=\mathbb R$ or $E=[0,1]^{\mathbb N}$). Then there is a measurable $g:[0,1]^2\to E$
+such that $(s_l)_{l\in\mathbb N}\overset d=(g(w,u_l))_{l\in\mathbb N}$ as random elements of $E^{\mathbb N}$, where $w,u_1,u_2,\dots$ are independent and uniform on $[0,1]$.
+Conversely, for every measurable $g:[0,1]^2\to E$ the sequence $(g(w,u_l))_{l}$ is exchangeable.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:cond-iid, thm:sg:cond-indep, lem:sg:subseq, lem:sg:mixture}
+Let $X=(s_{2m})_{m\ge0}$ be the even coordinates and $Y_i=s_{2i+1}$ the odd ones; the set of even indices is infinite. By Theorem~\ref{thm:sg:cond-indep} the $Y_i$ are conditionally independent and identically distributed given $\sigma(X)=\mathscr F_{\text{even}}$,
+so by Lemma~\ref{lem:sg:cond-iid} the law of $(Y_i)_i$ is $\int\kappa(x,\cdot)^{\otimes\mathbb N}\,\mathrm{law}(X)(dx)$, where $\kappa$ is the conditional law of $Y_0$ given $X$. By Lemma~\ref{lem:sg:subseq}(b) with $\theta(l)=2l+1$,
+the sequence $(Y_i)_i$ has the same law as $(s_l)_l$. Since $E^{\mathbb N}$ is standard Borel, $\mathrm{law}(X)$ is the image of the uniform law by a measurable $\varphi:[0,1]\to E^{\mathbb N}$, and
+since $E$ is standard Borel the kernel $\kappa$ is the image of the uniform law by a jointly measurable $h:E^{\mathbb N}\times[0,1]\to E$, that is, $\kappa(x,\cdot)=\mathrm{Leb}\circ h(x,\cdot)^{-1}$ (both facts are in Mathlib). Put $g(w,u)=h(\varphi(w),u)$; the law of
+$(g(w,u_l))_l$ is $\int(\mathrm{Leb}\circ g(w,\cdot)^{-1})^{\otimes\mathbb N}\,dw=\int\kappa(\varphi(w),\cdot)^{\otimes\mathbb N}\,dw$, which is the law above. The converse is Lemma~\ref{lem:sg:cond-iid} (last sentence) together with
+Lemma~\ref{lem:sg:mixture}: a mixture of i.i.d.\ sequences is invariant under every permutation of the indices.
+\end{proof}
+
 \begin{remark}[Deviations from the plan and from Panchenko's text, and what is left]\label{rem:sg:aldous-hoover-deviation}
 \begin{enumerate}
-\item \emph{Scope.} Only the three general tools above are formalized. De Finetti's theorem, the Aldous--Hoover representations and the Dovbysh--Sudakov theorem are not, and no Lean declaration asserts them.
+\item \emph{Scope.} The three general tools and the statements about exchangeable \emph{sequences} (Eq.~(1.84), Lemma~1.5, Eq.~(1.88), Theorem~1.6 and its converse) are formalized. The Aldous--Hoover representations of arrays (Theorems~1.4 and~1.5), Lemma~1.6, Eqs.~(1.89)--(1.96) and the Dovbysh--Sudakov theorem are not, and no Lean declaration asserts them.
 \item \emph{Norm equality as an integral.} The equality case of Lemma~\ref{lem:sg:l2proj} is stated with $\int(\mathbb E[f\mid\mathscr M_i])^2$ rather than with the $L^2$ norms in the book, because this is the form in which the exchangeability arguments produce it.
 \item \emph{Hypothesis only for the functions used.} The book assumes the conditioning identity for all bounded continuous $f$; Theorem~\ref{thm:sg:seq-decoupling} needs it only for the functions that occur in the product, and the filtration $\mathscr G_k$ is arbitrary.
 It is the forward half of Mathlib's characterization of conditional independence (\texttt{iCondIndepFun\_iff}), which requires a standard Borel ambient space that is not needed here.
+\item \emph{Exchangeability under all bijections.} Panchenko's Eq.~(1.81) uses finite permutations; we assume invariance of the law of the whole sequence under every bijection of $\mathbb N$ (see the paragraph on exchangeable sequences). The two are equivalent but the equivalence is not formalized.
+\item \emph{Bounded measurable test functions and a standard Borel state space.} Lemma~\ref{lem:sg:lemma15} and Theorem~\ref{thm:sg:cond-indep} are stated for bounded \emph{measurable} $f$ (the book takes bounded continuous $f$; nothing in the proof needs continuity, and this avoids any approximation step), and the sequence takes values in an arbitrary nonempty standard Borel space instead of $\mathbb R$; the latter is what the array case needs, where the de Finetti theorem is applied to a sequence of arrays.
+\item \emph{Eq.~(1.88) for arbitrary infinite $K$.} The book states it for a set $I$ with infinite complement and indices in $I$; Theorem~\ref{thm:sg:cond-indep} takes any infinite $K$ and distinct indices outside $K$. Lemma~1.5 is proved through the equality of $L^2$ norms (Lemma~\ref{lem:sg:lemma15}(a)) and Lemma~\ref{lem:sg:l2proj}, as in the book.
+\item \emph{The mixture is identified directly.} The book concludes de Finetti's theorem by representing the conditional law; here the identification of the law of $(Y_i)$ with the mixture $\int\kappa^{\otimes\mathbb N}$ (Lemma~\ref{lem:sg:cond-iid}) is done on measurable boxes. For this the kernel form of the coding lemma from Mathlib (\texttt{Kernel.exists\_measurable\_map\_eq\_unitInterval}) is used directly; the transport statement \texttt{identDistrib\_coding} of Lemma~\ref{lem:sg:coding} is not needed for sequences (it is meant for the array case, where the pair of an array entry and the vertex noise must be coded).
 \item \emph{The coding lemma is not proved from scratch.} The book builds the quantile function by hand; here the existence of the kernel and of its uniform representation are Mathlib's \texttt{condDistrib} and \texttt{Kernel.exists\_measurable\_map\_eq\_unitInterval}, and the new content is the assembly into an identity of laws.
 \end{enumerate}
 \end{remark}
