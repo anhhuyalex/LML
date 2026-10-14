@@ -43,6 +43,7 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 Section~\ref{sec:sg:aldous-hoover} starts Section~1.4 of the book (the Aldous--Hoover representation): it formalizes only the general tools
 (the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), not the representation theorems themselves.
 
+
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
 statements hold for any finite type). A \emph{configuration} is $\sigma\in\Sigma_\iota=\{-1,+1\}^\iota$, a function
@@ -65,6 +66,29 @@ Mathlib's exponentially tilted counting measure \texttt{Measure.count.tilted} wi
 defining equation as a hypothesis (written \texttt{hH}).
 
 \section{Configurations and overlap}\label{sec:sg:basic}
+
+\medskip\noindent\textbf{What ``law'' means.}
+Throughout, the \emph{law} (distribution) of a random variable is the measure it induces on its target space. If $X:\Omega\to E$ is a measurable map from a probability space $(\Omega,P)$ to a measurable space $E$, its law is the
+\emph{pushforward measure} $P\circ X^{-1}$, the probability measure $\mu$ on $E$ with $\mu(B)=P(X\in B)$. In Mathlib this is
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Measure/Map.html#MeasureTheory.Measure.map}{\texttt{Measure.map}}\texttt{ X P}, and the statement ``$X$ has law $\mu$ under $P$'' is the predicate
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/HasLaw.html#ProbabilityTheory.HasLaw}{\texttt{ProbabilityTheory.HasLaw}}\texttt{ X mu P}, i.e.\ $X$ is a.e.\ measurable and \texttt{P.map X = mu}.
+Two random variables $X$ on $(\Omega,P)$ and $Y$ on $(\Omega',Q)$, which may live on \emph{different} probability spaces, ``have the same law'' when \texttt{P.map X = Q.map Y}; Mathlib packages this (together with a.e.\ measurability of both) as
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/IdentDistrib.html#ProbabilityTheory.IdentDistrib}{\texttt{ProbabilityTheory.IdentDistrib}}, and many of our statements are phrased with \texttt{IdentDistrib} or with the raw equation of pushforwards.
+Measurability is part of the definition because in Lean the pushforward of a non-measurable function is the zero measure, so an equation between pushforwards is only meaningful for (a.e.) measurable maps.
+
+Three points are worth keeping in mind.
+\begin{itemize}
+\item \emph{The law of a vector is a joint law.} For a vector $X=(X_r)_{r\in A}$ the target space is $\mathbb R^A$ and the law is the \emph{joint} distribution on $\mathbb R^A$ (product $\sigma$-algebra). Equality of laws of two vectors is much stronger than
+equality of the laws of each coordinate: it also fixes how the coordinates depend on each other. For centered Gaussian vectors, Lemma~\ref{lem:sg:gram} below says that the joint law is nevertheless determined by the covariance matrix alone.
+\item \emph{Equal laws give equal expectations.} By the change-of-variables formula
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html#MeasureTheory.integral_map}{\texttt{integral\_map}}, $\mathbb Ef(X)=\int f\,d(P\circ X^{-1})$, so if $X$ and $Y$ have the same law then
+$\mathbb Ef(X)=\mathbb Ef(Y)$ for every measurable $f$, and $f(X)$ is integrable if and only if $f(Y)$ is. This is exactly how the ``consequently'' sentences in the statements below are obtained from an equality of laws.
+\item \emph{Gaussian vectors and the standard Gaussian.} A ``centered Gaussian vector'' is a random vector $X$ (in Lean: \texttt{HasGaussianLaw X P}, see
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/HasGaussianLaw/Def.html}{\texttt{HasGaussianLaw}}) whose law is a Gaussian measure on $\mathbb R^A$, i.e.\ every linear combination $\sum_rc_rX_r$ is a (possibly degenerate) real Gaussian, and ``centered'' means all $\mathbb EX_r=0$.
+The notation $\xi\sim\gamma_K$ means that $\xi\in\mathbb R^K$ has i.i.d.\ standard normal coordinates, i.e.\ its law is
+\texttt{Measure.pi fun \_ => gaussianReal 0 1} (see \href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/Real.html#ProbabilityTheory.gaussianReal}{\texttt{gaussianReal}}). Thus the sentence ``$X$ has the law of $(a_r\cdot\xi)_r$ with $\xi\sim\gamma_K$'' means
+\texttt{P.map X = (Measure.pi fun \_ : K => gaussianReal 0 1).map (fun xi => fun r => a r}~$\cdot$\texttt{ xi)}.
+\end{itemize}
 
 \begin{lemma}[Overlap]\label{lem:sg:overlap}
   \lean{SpinGlasses.card_inv_mul_dotProduct_self_eq_one, SpinGlasses.abs_card_inv_mul_dotProduct_le_one,
