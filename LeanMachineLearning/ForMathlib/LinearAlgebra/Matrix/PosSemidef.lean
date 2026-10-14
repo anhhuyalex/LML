@@ -17,6 +17,8 @@ public import Mathlib.Topology.Instances.Matrix
   It is the intersection of the (closed) symmetric matrices with the closed half-spaces
   `{M | 0 ≤ x ⬝ᵥ M *ᵥ x}`.
 * `Matrix.PosSemidef.sum_mul_mul_nonneg`: the quadratic form as a double sum `∑ᵢ ∑ⱼ vᵢ vⱼ Mᵢⱼ ≥ 0`.
+* `Matrix.posSemidef_comp`: if every finite principal submatrix of an infinite array is
+  positive semidefinite, so is the array `(A (f l) (f l'))_{l, l'}` for any `f : ℕ → ℕ`.
 * `Matrix.posSemidef_of_const_mul_dotProduct`: the matrix `(c ⬝ᵥ-Gram of v)`
   `(l, l') ↦ c * (v l ⬝ᵥ v l')` is positive semidefinite for `c ≥ 0`.  For the overlaps of
   spin configurations `c = N⁻¹`.
@@ -56,5 +58,17 @@ theorem posSemidef_of_const_mul_dotProduct {κ : Type*} [Fintype κ] (v : n → 
   convert h using 1
   ext l l'
   simp [Matrix.mul_apply, dotProduct]
+
+/-- **Reindexing an infinite array** along any `f : ℕ → ℕ` (e.g. a permutation) preserves the
+positive semidefiniteness of all finite principal submatrices. -/
+theorem posSemidef_comp {A : ℕ → ℕ → ℝ}
+    (hA : ∀ k : ℕ, (Matrix.of fun l l' : Fin k => A l l').PosSemidef) (f : ℕ → ℕ) (k : ℕ) :
+    (Matrix.of fun l l' : Fin k => A (f l) (f l')).PosSemidef := by
+  classical
+  set N := (Finset.univ.sup fun l : Fin k => f l) + 1 with hN
+  have hlt : ∀ l : Fin k, f l < N := fun l =>
+    Nat.lt_succ_of_le (Finset.le_sup (f := fun l : Fin k => f l) (Finset.mem_univ l))
+  have h := (hA N).submatrix (fun l : Fin k => (⟨f l, hlt l⟩ : Fin N))
+  exact h
 
 end Matrix
