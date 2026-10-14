@@ -18,7 +18,25 @@ the hypothesis is the `IdentDistrib` statement itself.
 
 * `SpinGlasses.identDistrib_map_of_weakly_exchangeable`: Eq. (1.89), sub-arrays have the same law.
 * `SpinGlasses.condExp_comp_ae_eq_condExp_compl_of_weakly_exchangeable`: Lemma 1.6.
-* `SpinGlasses.condExp_prod_comp_eq_prod_condExp_of_weakly_exchangeable`: Eq. (1.94).
+* `SpinGlasses.condExp_prod_comp_eq_prod_condExp_of_weakly_exchangeable`: Eq. (1.94), conditional
+  independence of the entries given a set of cells.
+* `SpinGlasses.condExp_vertexData_ae_eq_integral`, `SpinGlasses.map_vertexData_eq_compProd`: the
+  entries on the odd vertices are conditionally independent given the vertex arrays, with the law
+  `ν (S a, S b)` of an entry depending only on the two adjacent vertex arrays.
+* `SpinGlasses.map_codedArray_eq_compProd`: the coded array has the same joint law with the
+  vertex data.
+* `SpinGlasses.exists_aldousHoover_representation`: Theorem 1.5.
+* `SpinGlasses.identDistrib_aldousHoover_comp_equiv`: the converse (the representation is weakly
+  exchangeable).
+
+## Implementation notes
+
+* The vertex arrays of Eq. (1.91) are `S a = (s {κ a x, κ a y})_{x,y}` for the vertex maps
+  `κ a 0 = 2 a + 1`, `κ a (m + 1) = 2 m` (the odd vertex `2 a + 1` together with all even
+  vertices); the family `κ`, and the families `S`, `Z` of vertex arrays and odd entries, are
+  introduced inside the proofs together with their defining equations, so no definition is added.
+* The array is indexed by cells `Sym2 ℕ`, so that symmetry holds by construction; the
+  representation is stated for `ℕ × ℕ`-indexed arrays, which is the form used downstream.
 
 ## References
 
@@ -415,6 +433,10 @@ theorem condExp_vertexData_ae_eq_integral [IsProbabilityMeasure P] [StandardBore
   rw [hZab, hσ]
   exact h1.trans h2
 
+/-- An orientation of an off-diagonal cell has distinct endpoints. -/
+lemma ne_of_mk_eq {c : Sym2 ℕ} (hc : ¬ c.IsDiag) {p : ℕ × ℕ} (hp : s(p.1, p.2) = c) :
+    p.1 ≠ p.2 := fun h => hc (by rw [← hp, h]; exact Sym2.mk_isDiag_iff.2 rfl)
+
 /-- **Eq. (1.94) for the vertex arrays.**  Given all the vertex arrays `S`, the entries `Z c`
 of the array on the odd vertices are independent, and the entry of the pair `(a, b)` has the
 law `ν (S a, S b)`: the joint law of `(S, Z)` is `P.map S ⊗ₘ K`, where `K x` is the product over
@@ -442,9 +464,8 @@ theorem map_vertexData_eq_compProd [IsProbabilityMeasure P] [StandardBorelSpace 
     rw [this]
     exact hs _
   have : IsMarkovKernel ν := by rw [hν]; infer_instance
-  have hne : ∀ c : {c : Sym2 ℕ // ¬ c.IsDiag}, (ori c).1 ≠ (ori c).2 := fun c h => c.2 (by
-    rw [← hori c, h]
-    exact Sym2.mk_isDiag_iff.2 rfl)
+  have hne : ∀ c : {c : Sym2 ℕ // ¬ c.IsDiag}, (ori c).1 ≠ (ori c).2 := fun c =>
+    ne_of_mk_eq c.2 (hori c)
   have hl : ∀ c : {c : Sym2 ℕ // ¬ c.IsDiag}, Sym2.map (fun a => 2 * a + 1) c.1 =
       s(2 * (ori c).1 + 1, 2 * (ori c).2 + 1) := fun c => by rw [← hori c]; rfl
   refine map_prodMk_eq_compProd_infinitePi
@@ -482,7 +503,7 @@ data `(X(w, u_a))_a`, together with the entries `f(w, u_a, u_b, y_c)` at the cel
 (`y_c` i.i.d. uniform), have the joint law `μ ⊗ₘ K`, where `μ` is the law of the vertex data and
 `K x` is the product over the cells of `ν (x a, x b)`. -/
 theorem map_codedArray_eq_compProd (X : I × I → V) (hX : Measurable X)
-    (ν : Kernel (V × V) F) [IsMarkovKernel ν] (H : (V × V) × I → F)
+    (ν : Kernel (V × V) F) (H : (V × V) × I → F)
     (hHν : ∀ p, (volume : Measure I).map (fun y => H (p, y)) = ν p)
     (f : I × I × I × I → F) (hfm : Measurable f)
     (hf : ∀ w u₁ u₂ y, f (w, u₁, u₂, y) =
@@ -603,7 +624,200 @@ theorem exists_aldousHoover_representation [IsProbabilityMeasure P] [StandardBor
     · simp [h12, h21]
     · simp [h12, h21]
     · exact absurd (le_total u₁ u₂) (by simp [h12, h21])
-  sorry
+  -- an orientation of every off-diagonal cell
+  obtain ⟨ori, hori⟩ : ∃ ori : {c : Sym2 ℕ // ¬ c.IsDiag} → ℕ × ℕ,
+      ∀ c, s((ori c).1, (ori c).2) = c.1 := by
+    have : ∀ c : Sym2 ℕ, ∃ p : ℕ × ℕ, s(p.1, p.2) = c := fun c =>
+      Sym2.ind (fun x y => ⟨(x, y), rfl⟩) c
+    choose ori hori using fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => this c.1
+    exact ⟨ori, hori⟩
+  have hne : ∀ c : {c : Sym2 ℕ // ¬ c.IsDiag}, (ori c).1 ≠ (ori c).2 := fun c =>
+    ne_of_mk_eq c.2 (hori c)
+  have : IsMarkovKernel ν := by rw [hν]; infer_instance
+  let K : Kernel (ℕ → Sym2 ℕ → E) ({c : Sym2 ℕ // ¬ c.IsDiag} → E) :=
+    ⟨fun x => Measure.infinitePi fun c => ν (x (ori c).1, x (ori c).2),
+      Measure.measurable_infinitePi fun c => ν.measurable.comp
+        ((measurable_pi_apply _).prodMk (measurable_pi_apply _))⟩
+  have : IsMarkovKernel K := ⟨fun x => inferInstanceAs (IsProbabilityMeasure
+    (Measure.infinitePi fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => ν (x (ori c).1, x (ori c).2)))⟩
+  -- the law of the vertex arrays and the odd entries
+  have hP := map_vertexData_eq_compProd hs hexch hκ0 hκ1 hS hZ hν ori hori K fun _ => rfl
+  -- the kernel is symmetric
+  have hswap : ∀ᵐ pq ∂P.map (fun ω => (S 0 ω, S 1 ω)), ν pq.swap = ν pq := by
+    have h := identDistrib_vertexPair hexch hκ0 hκ1 hS hZ (a := 1) (b := 0) (by omega)
+    rw [show (s(1, 0) : Sym2 ℕ) = s(0, 1) from Sym2.eq_swap] at h
+    exact condDistrib_swap_ae_eq (hSm 0) (hSm 1) (hZm _) h
+  have hsymm : ∀ a b, a ≠ b → ∀ᵐ q ∂(volume : Measure I).prod
+      (Measure.infinitePi fun _ : ℕ => (volume : Measure I)),
+      ν (X (q.1, q.2 b), X (q.1, q.2 a)) = ν (X (q.1, q.2 a), X (q.1, q.2 b)) := fun a b hab => by
+    have hlaw : ((volume : Measure I).prod
+        (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).map
+        (fun q => (X (q.1, q.2 a), X (q.1, q.2 b))) = P.map (fun ω => (S 0 ω, S 1 ω)) := by
+      have h1 := (identDistrib_vertexPair hexch hκ0 hκ1 hS hZ hab).comp measurable_fst
+      have hm : Measurable fun x : ℕ → Sym2 ℕ → E => (x a, x b) :=
+        (measurable_pi_apply a).prodMk (measurable_pi_apply b)
+      have hXh : Measurable fun q : I × (ℕ → I) => fun a => X (q.1, q.2 a) :=
+        measurable_pi_iff.2 fun a => hXm.comp
+          (measurable_fst.prodMk ((measurable_pi_apply a).comp measurable_snd))
+      calc _ = (((volume : Measure I).prod
+            (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).map
+            fun q a => X (q.1, q.2 a)).map fun x => (x a, x b) :=
+            (Measure.map_map hm hXh).symm
+        _ = (P.map fun ω a => S a ω).map fun x => (x a, x b) := by rw [hXid.map_eq]
+        _ = P.map (fun ω => (S a ω, S b ω)) := Measure.map_map hm (measurable_pi_iff.2 hSm)
+        _ = _ := h1.map_eq
+    refine ae_of_ae_map (f := fun q : I × (ℕ → I) => (X (q.1, q.2 a), X (q.1, q.2 b)))
+      (by fun_prop : Measurable _).aemeasurable (hlaw ▸ hswap)
+  have hQ := map_codedArray_eq_compProd X hXm ν H hHν f hfm hf ori hne hsymm K fun _ => rfl
+  -- assemble the array on the odd vertices from the vertex arrays and the entries
+  let Φ : (ℕ → Sym2 ℕ → E) × ({c : Sym2 ℕ // ¬ c.IsDiag} → E) → ℕ × ℕ → E := fun xz p =>
+    if h : p.1 = p.2 then xz.1 p.1 s(0, 0)
+    else xz.2 ⟨s(p.1, p.2), fun h' => h (Sym2.mk_isDiag_iff.1 h')⟩
+  have hΦ : Measurable Φ := measurable_pi_iff.2 fun p => by
+    by_cases h : p.1 = p.2
+    · simp only [Φ, h, ↓reduceDIte]
+      exact (measurable_pi_apply _).comp ((measurable_pi_apply p.2).comp measurable_fst)
+    · simp only [Φ, h, ↓reduceDIte]
+      exact (measurable_pi_apply _).comp measurable_snd
+  have hAodd : (fun ω (p : ℕ × ℕ) => s s(2 * p.1 + 1, 2 * p.2 + 1) ω) = fun ω =>
+      Φ (fun a => S a ω, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => Z c.1 ω) := by
+    funext ω p
+    by_cases h : p.1 = p.2
+    · simp only [Φ, h, ↓reduceDIte]
+      rw [hS, Sym2.map_mk, hκ0]
+    · simp only [Φ, h, ↓reduceDIte]
+      rw [hZ]
+      rfl
+  set Q0 := (volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))
+    with hQ0
+  -- the coded array
+  set F : (I × (ℕ → I)) × ({c : Sym2 ℕ // ¬ c.IsDiag} → I) → (ℕ → Sym2 ℕ → E) ×
+      ({c : Sym2 ℕ // ¬ c.IsDiag} → E) := fun r => (fun a => X (r.1.1, r.1.2 a),
+        fun c => f (r.1.1, r.1.2 (ori c).1, r.1.2 (ori c).2, r.2 c)) with hF
+  have hT : (fun (η : (I × (ℕ → I)) × (Sym2 ℕ → I)) (p : ℕ × ℕ) =>
+      if p.1 = p.2 then X (η.1.1, η.1.2 p.1) s(0, 0)
+      else f (η.1.1, η.1.2 p.1, η.1.2 p.2, η.2 s(p.1, p.2))) =
+      fun η => Φ (F (η.1, fun c => η.2 c.1)) := by
+    funext η p
+    by_cases h : p.1 = p.2
+    · simp only [Φ, F, h, ↓reduceDIte, ↓reduceIte]
+    · simp only [Φ, F, h, ↓reduceDIte, ↓reduceIte]
+      set c : {c : Sym2 ℕ // ¬ c.IsDiag} := ⟨s(p.1, p.2), fun h' => h (Sym2.mk_isDiag_iff.1 h')⟩
+      rcases Sym2.eq_iff.1 (hori c) with ⟨h1, h2⟩ | ⟨h1, h2⟩
+      · rw [h1, h2]
+      · rw [h1, h2, hfsymm]
+  -- restrict the cell noise to the off-diagonal cells
+  have hRm : Measurable fun η : (I × (ℕ → I)) × (Sym2 ℕ → I) =>
+      (η.1, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => η.2 c.1) :=
+    measurable_fst.prodMk (measurable_pi_iff.2 fun c => (measurable_pi_apply _).comp measurable_snd)
+  have hR : (Q0.prod (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))).map
+      (fun η => (η.1, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => η.2 c.1)) =
+      Q0.prod (Measure.infinitePi fun _ : {c : Sym2 ℕ // ¬ c.IsDiag} => (volume : Measure I)) := by
+    have h : (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I)).map
+        (fun x (c : {c : Sym2 ℕ | ¬ c.IsDiag}) => x c.1) =
+        Measure.infinitePi fun _ : {c : Sym2 ℕ | ¬ c.IsDiag} => (volume : Measure I) :=
+      Measure.infinitePi_map_restrict' _
+    have := Measure.map_prod_map Q0 (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))
+      measurable_id (measurable_pi_iff.2 fun c : {c : Sym2 ℕ | ¬ c.IsDiag} =>
+        measurable_pi_apply c.1)
+    rw [Measure.map_id, h] at this
+    exact this.symm
+  have hFm : Measurable F := by
+    refine (measurable_pi_iff.2 fun a => hXm.comp (measurable_fst.comp measurable_fst |>.prodMk
+      ((measurable_pi_apply a).comp (measurable_snd.comp measurable_fst)))).prodMk
+      (measurable_pi_iff.2 fun c => hfm.comp ?_)
+    fun_prop
+  have hpair : Measurable fun ω =>
+      (fun a => S a ω, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => Z c.1 ω) :=
+    (measurable_pi_iff.2 hSm).prodMk (measurable_pi_iff.2 fun c => hZm c.1)
+  have hmapPF : P.map (fun ω => (fun a => S a ω,
+      fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => Z c.1 ω)) =
+      (Q0.prod (Measure.infinitePi fun _ : {c : Sym2 ℕ // ¬ c.IsDiag} =>
+        (volume : Measure I))).map F := by
+    rw [hP, hXid.map_eq]
+    exact hQ.symm
+  have key : IdentDistrib (fun ω => Φ (fun a => S a ω, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} =>
+      Z c.1 ω)) (fun η => Φ (F (η.1, fun c => η.2 c.1))) P
+      (Q0.prod (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))) :=
+    ⟨(hΦ.comp hpair).aemeasurable, (hΦ.comp (hFm.comp hRm)).aemeasurable, by
+      calc P.map (fun ω => Φ (fun a => S a ω, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => Z c.1 ω))
+          = (P.map (fun ω => (fun a => S a ω,
+              fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => Z c.1 ω))).map Φ :=
+            (Measure.map_map hΦ hpair).symm
+        _ = (((Q0.prod (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))).map
+              (fun η => (η.1, fun c : {c : Sym2 ℕ // ¬ c.IsDiag} => η.2 c.1))).map F).map Φ := by
+            rw [hmapPF, hR]
+        _ = _ := by
+            rw [Measure.map_map hFm hRm, Measure.map_map hΦ (hFm.comp hRm)]
+            rfl⟩
+  -- the array on the odd vertices has the law of the whole array (Eq. (1.89))
+  have hodd : IdentDistrib (fun ω (p : ℕ × ℕ) => s s(p.1, p.2) ω)
+      (fun ω (p : ℕ × ℕ) => s s(2 * p.1 + 1, 2 * p.2 + 1) ω) P P :=
+    (identDistrib_map_of_weakly_exchangeable hs hexch (ι := fun a => 2 * a + 1)
+      (fun a b h => by simpa using h)).comp
+      (u := fun ξ : Sym2 ℕ → E => fun p : ℕ × ℕ => ξ s(p.1, p.2)) (by fun_prop) |>.symm
+  refine ⟨fun q => X q s(0, 0), f, (measurable_pi_apply _).comp hXm, hfm, hfsymm, ?_⟩
+  rw [hAodd] at hodd
+  rw [← hT] at key
+  exact hodd.trans key
+
+/-- **The converse of the Aldous–Hoover theorem.**  Every array of the form
+`T η (l, l') = if l = l' then g (w, u_l) else f (w, u_l, u_{l'}, x_{l, l'})`, with `f` symmetric in
+its middle arguments and `w`, `(u_l)`, `(x_{l, l'})` independent and uniform, is weakly
+exchangeable: relabelling the vertices by `e` relabels the noise `(u_l)` and `(x_c)`, whose law is
+invariant (`MeasureTheory.Measure.infinitePi_map_comp_equiv`). -/
+theorem identDistrib_aldousHoover_comp_equiv {g : I × I → E} {f : I × I × I × I → E}
+    (hg : Measurable g) (hf : Measurable f) (T : (I × (ℕ → I)) × (Sym2 ℕ → I) → ℕ × ℕ → E)
+    (hT : ∀ η p, T η p = if p.1 = p.2 then g (η.1.1, η.1.2 p.1)
+      else f (η.1.1, η.1.2 p.1, η.1.2 p.2, η.2 s(p.1, p.2))) (e : ℕ ≃ ℕ) :
+    IdentDistrib (fun η (p : ℕ × ℕ) => T η (e p.1, e p.2)) T
+      (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).prod
+        (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I)))
+      (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).prod
+        (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))) := by
+  classical
+  let em : Sym2 ℕ ≃ Sym2 ℕ := ⟨Sym2.map e, Sym2.map e.symm,
+    fun c => Sym2.ind (fun x y => by simp [Sym2.map_mk]) c,
+    fun c => Sym2.ind (fun x y => by simp [Sym2.map_mk]) c⟩
+  set τ : (I × (ℕ → I)) × (Sym2 ℕ → I) → (I × (ℕ → I)) × (Sym2 ℕ → I) :=
+    fun η => ((η.1.1, η.1.2 ∘ e), η.2 ∘ em) with hτ
+  have hτm : Measurable τ := by
+    refine (measurable_fst.comp measurable_fst |>.prodMk
+      (measurable_pi_iff.2 fun l => ?_)).prodMk (measurable_pi_iff.2 fun c => ?_)
+    · exact (measurable_pi_apply (e l)).comp (measurable_snd.comp measurable_fst)
+    · exact (measurable_pi_apply (em c)).comp measurable_snd
+  have hTm : Measurable T := measurable_pi_iff.2 fun p => by
+    simp_rw [hT]
+    by_cases h : p.1 = p.2
+    · simp only [h, ↓reduceIte]
+      exact hg.comp ((measurable_fst.comp measurable_fst).prodMk
+        ((measurable_pi_apply p.2).comp (measurable_snd.comp measurable_fst)))
+    · simp only [h, ↓reduceIte]
+      exact hf.comp ((measurable_fst.comp measurable_fst).prodMk
+        (((measurable_pi_apply p.1).comp (measurable_snd.comp measurable_fst)).prodMk
+        (((measurable_pi_apply p.2).comp (measurable_snd.comp measurable_fst)).prodMk
+        ((measurable_pi_apply s(p.1, p.2)).comp measurable_snd))))
+  have hcomp : (fun η (p : ℕ × ℕ) => T η (e p.1, e p.2)) = fun η => T (τ η) := by
+    funext η p
+    simp only [hT, hτ, e.apply_eq_iff_eq]
+    split_ifs <;> rfl
+  have hum : Measurable fun ξ : ℕ → I => ξ ∘ e :=
+    measurable_pi_iff.2 fun l => measurable_pi_apply (e l)
+  have hxm : Measurable fun ξ : Sym2 ℕ → I => ξ ∘ em :=
+    measurable_pi_iff.2 fun c => measurable_pi_apply (em c)
+  have h1 := Measure.map_prod_map (volume : Measure I)
+    (Measure.infinitePi fun _ : ℕ => (volume : Measure I)) measurable_id hum
+  rw [Measure.map_id, Measure.infinitePi_map_comp_equiv] at h1
+  have h2 := Measure.map_prod_map
+    ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))
+    (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I)) (measurable_id.prodMap hum) hxm
+  rw [← h1, Measure.infinitePi_map_comp_equiv] at h2
+  refine ⟨(measurable_pi_iff.2 fun p => (measurable_pi_apply _).comp hTm).aemeasurable,
+    hTm.aemeasurable, ?_⟩
+  rw [hcomp]
+  change Measure.map (T ∘ τ) _ = _
+  rw [← Measure.map_map hTm hτm]
+  exact congrArg (Measure.map T) h2.symm
 
 end Representation
 

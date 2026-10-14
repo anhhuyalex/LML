@@ -277,6 +277,7 @@ public import LeanMachineLearning.SequentialLearning.StoppedHistory
 public import LeanMachineLearning.SequentialLearning.SumRewards
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarr
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarrApproximation
+public import LeanMachineLearning.SpinGlasses.AldousHoover
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic

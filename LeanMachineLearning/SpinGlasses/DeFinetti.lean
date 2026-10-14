@@ -154,8 +154,8 @@ theorem condExp_comp_ae_eq_of_exchangeable [StandardBorelSpace E] [Nonempty E]
     P[fun ω => f (s i ω) | ⨆ k ∈ K, mE.comap (s k)] =ᵐ[P]
       P[fun ω => f (s i' ω) | ⨆ k ∈ K, mE.comap (s k)] := by
   have hcomap : (⨆ k ∈ K, mE.comap (s k)) =
-      MeasurableSpace.pi.comap (fun ω (k : K) => s k ω) := by
-    rw [MeasurableSpace.comap_pi, iSup_subtype']
+      MeasurableSpace.pi.comap (fun ω (k : K) => s k ω) :=
+    (MeasurableSpace.comap_pi_subtype s).symm
   rw [hcomap]
   have hid := (hexch (Equiv.swap i i')).comp
     (u := fun ξ : ℕ → E => (fun k : K => ξ k, ξ i')) (by fun_prop)
