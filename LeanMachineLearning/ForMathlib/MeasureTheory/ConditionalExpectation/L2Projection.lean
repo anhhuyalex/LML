@@ -7,6 +7,8 @@ module
 
 public import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
 public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.Probability.Martingale.Convergence
 
 /-!
 # Nested conditional expectations in `L²`: Pythagoras and the equality case
@@ -32,6 +34,9 @@ and `integral_condExp`), not with `condExpL2`.
 * `MeasureTheory.integral_sq_condExp_le_of_le`: monotonicity of the `L²` norm.
 * `MeasureTheory.condExp_ae_eq_of_integral_sq_condExp_eq`: equal norms imply equal conditional
   expectations almost everywhere.
+* `MeasureTheory.tendsto_integral_sq_condExp`: along an increasing sequence of σ-algebras the `L²`
+  norms of `μ[f | 𝒢 n]` converge to that of `μ[f | ⨆ n, 𝒢 n]` (Lévy's upward theorem).  This lets
+  one compute the norm for an infinite conditioning family from finite sub-families.
 
 ## References
 
@@ -40,7 +45,8 @@ and `integral_condExp`), not with `condExpL2`.
 
 @[expose] public section
 
-open MeasureTheory
+open MeasureTheory Filter
+open scoped Topology
 
 namespace MeasureTheory
 
@@ -118,5 +124,23 @@ theorem condExp_ae_eq_of_integral_sq_condExp_eq (hm₁₂ : m₁ ≤ m₂) (hm�
   filter_upwards [this] with ω hω
   have : μ[f | m₂] ω - μ[f | m₁] ω = 0 := by simpa using hω
   linarith
+
+/-- **Convergence of `L²` norms along an increasing sequence of σ-algebras** (Lévy's upward
+theorem plus bounded convergence): if `f` is bounded then
+`∫ (μ[f | 𝒢 n])² → ∫ (μ[f | ⨆ n, 𝒢 n])²`. -/
+theorem tendsto_integral_sq_condExp (𝒢 : ℕ → MeasurableSpace Ω) (hmono : Monotone 𝒢)
+    (h𝒢 : ∀ n, 𝒢 n ≤ m₀) {C : ℝ} (hf : ∀ ω, |f ω| ≤ C) :
+    Tendsto (fun n => ∫ ω, μ[f | 𝒢 n] ω ^ 2 ∂μ) atTop
+      (𝓝 (∫ ω, μ[f | ⨆ n, 𝒢 n] ω ^ 2 ∂μ)) := by
+  let ℱ : Filtration ℕ m₀ := ⟨𝒢, hmono, h𝒢⟩
+  refine tendsto_integral_of_dominated_convergence (fun _ => C ^ 2) (fun n => ?_)
+    (integrable_const _) (fun n => ?_) ?_
+  · exact ((stronglyMeasurable_condExp (m := 𝒢 n)).mono (h𝒢 n)).aestronglyMeasurable.pow 2
+  · filter_upwards [ae_bdd_abs_condExp_of_ae_bdd_abs (μ := μ) (m := 𝒢 n) (R := C)
+      (Filter.Eventually.of_forall hf)] with ω hω
+    rw [norm_pow, Real.norm_eq_abs]
+    exact pow_le_pow_left₀ (abs_nonneg _) hω 2
+  · filter_upwards [tendsto_ae_condExp (μ := μ) (ℱ := ℱ) f] with ω hω
+    exact hω.pow 2
 
 end MeasureTheory

@@ -33,6 +33,10 @@ annealed law `𝔼 G^{⊗∞}`.
   is the passage from infinitely many replicas to `k` replicas.
 * `MeasureTheory.Measure.map_bind_eq_self`: a mixture of `T`-invariant measures is `T`-invariant.
 * `MeasureTheory.Measure.bind_infinitePi_map_comp_equiv`: exchangeability of the mixture.
+* `MeasureTheory.Measure.measurable_map_curry`: the law of `g (a, ·)` is measurable in `a`.
+* `MeasureTheory.Measure.map_prod_infinitePi_eq_bind`: a sequence `(g (a, c_i))_i` coded by a
+  parameter `a ~ μ` and i.i.d. noise `c_i ~ ν` is a mixture of i.i.d. sequences (the form of the
+  de Finetti representation).
 -/
 
 @[expose] public section
@@ -108,5 +112,36 @@ theorem bind_infinitePi_map_comp_equiv {P : Measure Ω} {ν : Ω → Measure X}
   map_bind_eq_self (measurable_infinitePi_const hν)
     (measurable_pi_iff.2 fun _ => measurable_pi_apply _)
     fun ω => infinitePi_map_comp_equiv (ν ω) e
+
+/-- The law of `c ↦ g (a, c)` under `ν` depends measurably on the parameter `a`. -/
+theorem measurable_map_curry {α γ : Type*} [MeasurableSpace α] [MeasurableSpace γ]
+    {g : α × γ → X} (hg : Measurable g) (ν : Measure γ) [SFinite ν] :
+    Measurable fun a => ν.map fun c => g (a, c) := by
+  have : (fun a => ν.map fun c => g (a, c)) = fun a => (ν.map (Prod.mk a)).map g := by
+    ext a : 1
+    rw [Measure.map_map hg measurable_prodMk_left]
+    rfl
+  rw [this]
+  exact (Measure.measurable_map g hg).comp Measurable.map_prodMk_left
+
+/-- **Coded sequences are mixtures of i.i.d. sequences.** If `a ~ μ` and `(c_i)` are i.i.d. `ν`,
+independent of `a`, then the law of `(g (a, c_i))_i` is the mixture, over `a`, of the i.i.d.
+sequences with marginal `(ν.map (g (a, ·)))`. -/
+theorem map_prod_infinitePi_eq_bind {α γ : Type*} [MeasurableSpace α] [MeasurableSpace γ]
+    {μ : Measure α} {ν : Measure γ} [IsProbabilityMeasure ν] {g : α × γ → X}
+    (hg : Measurable g) :
+    (μ.prod (Measure.infinitePi fun _ : ι => ν)).map (fun p i => g (p.1, p.2 i)) =
+      μ.bind fun a => Measure.infinitePi fun _ : ι => ν.map fun c => g (a, c) := by
+  have hG : Measurable fun (p : α × (ι → γ)) i => g (p.1, p.2 i) :=
+    measurable_pi_iff.2 fun i => hg.comp (measurable_fst.prodMk
+      ((measurable_pi_apply i).comp measurable_snd))
+  have hν : Measurable fun a => ν.map fun c => g (a, c) := measurable_map_curry hg ν
+  ext t ht
+  rw [Measure.map_apply hG ht, Measure.prod_apply (hG ht),
+    Measure.bind_apply ht (measurable_infinitePi_const hν).aemeasurable]
+  refine lintegral_congr fun a => ?_
+  rw [← infinitePi_map_pi (μ := fun _ : ι => ν) (f := fun _ c => g (a, c))
+    fun _ => hg.comp measurable_prodMk_left, Measure.map_apply (by fun_prop) ht]
+  rfl
 
 end MeasureTheory.Measure
