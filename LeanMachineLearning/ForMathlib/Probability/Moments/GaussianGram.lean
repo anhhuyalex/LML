@@ -18,6 +18,11 @@ A centered Gaussian vector is determined in law by its covariance matrix
 (`hasGaussianLaw_dotProduct_family`), so any centered Gaussian family `X` with
 `𝔼 X r X s = a r ⬝ᵥ a s` has the law of `r ↦ a r ⬝ᵥ ξ`:
 
+* `ProbabilityTheory.map_toLp_dotProduct_pi_gaussianReal`: the law of `r ↦ a r ⬝ᵥ ξ` is
+  `multivariateGaussian 0 (a r ⬝ᵥ a s)` (used by `NTK.stdGaussian_inner_family`);
+* `ProbabilityTheory.integral_comp_comp_eq_integral_multivariateGaussian`: for a subfamily
+  `(X (j l))_l` of a centered Gaussian family, expectations are Gaussian integrals against
+  `multivariateGaussian 0 (𝔼 X (j l) X (j l'))`;
 * `ProbabilityTheory.integral_comp_eq_integral_dotProduct`: for measurable `f`,
   `𝔼 f (X) = 𝔼 f (a ⬝ᵥ ξ)` (and the matching `integrable_comp_iff_dotProduct`);
 * `ProbabilityTheory.integral_comp_eq_integral_dotProduct_prod`: the same for two independent
@@ -60,6 +65,44 @@ theorem map_eq_of_integral_mul_eq {X : A → Ω → ℝ} {Y : A → Ω' → ℝ}
 
 end Law
 
+section Restrict
+
+variable {ι κ : Type*} [Finite ι] {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-- **A subfamily of a Gaussian family is Gaussian:** `(X (j l))_l` for `j : κ → ι`. -/
+theorem hasGaussianLaw_comp_index [Finite κ] {X : ι → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω i => X i ω) P) (j : κ → ι) :
+    HasGaussianLaw (fun ω l => X (j l) ω) P := by
+  have := Fintype.ofFinite ι
+  have := Fintype.ofFinite κ
+  exact hX.map_fun (LinearMap.funLeft ℝ ℝ j).toContinuousLinearMap
+
+/-- **Expectations of a subfamily of a centered Gaussian family are Gaussian integrals.**
+For `j : κ → ι` and measurable `f`,
+`𝔼 f ((X (j l))_l) = ∫ f d(multivariateGaussian 0 (𝔼 X (j l) X (j l')))`. -/
+theorem integral_comp_comp_eq_integral_multivariateGaussian [Fintype κ] [DecidableEq κ]
+    {X : ι → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω i => X i ω) P) (h0 : ∀ i, ∫ ω, X i ω ∂P = 0) (j : κ → ι)
+    {f : (κ → ℝ) → ℝ} (hf : Measurable f) :
+    ∫ ω, f (fun l => X (j l) ω) ∂P =
+      ∫ x : EuclideanSpace ℝ κ, f x.ofLp ∂(multivariateGaussian 0
+        (Matrix.of fun l l' => ∫ ω, X (j l) ω * X (j l') ω ∂P)) := by
+  have hY := hasGaussianLaw_comp_index hX j
+  have hP := hX.isProbabilityMeasure
+  have hmem : ∀ l, MemLp (fun ω => X (j l) ω) 2 P := fun l => (hY.eval l).memLp_two
+  have hS : (Matrix.of fun l l' => cov[fun ω => X (j l) ω, fun ω => X (j l') ω; P]) =
+      Matrix.of fun l l' => ∫ ω, X (j l) ω * X (j l') ω ∂P := by
+    ext l l'
+    simp only [Matrix.of_apply]
+    rw [covariance_eq_sub (hmem l) (hmem l'), h0, h0, mul_zero, sub_zero]
+    rfl
+  have h := map_eq_map_multivariateGaussian hY fun l => h0 (j l)
+  rw [hS] at h
+  rw [← integral_map hY.aemeasurable hf.aestronglyMeasurable, h,
+    integral_map (PiLp.continuous_ofLp 2 _).aemeasurable hf.aestronglyMeasurable]
+
+end Restrict
+
 section DotProduct
 
 variable {A K : Type*} [Finite A] [Fintype K]
@@ -71,6 +114,21 @@ theorem hasGaussianLaw_dotProduct_family (a : A → K → ℝ) :
   have := Fintype.ofFinite A
   have := isGaussian_pi_gaussianReal (κ := K)
   exact IsGaussian.hasGaussianLaw_id.map_fun (Matrix.of a).mulVecLin.toContinuousLinearMap
+
+/-- **The law of the linear forms `r ↦ a r ⬝ᵥ ξ` of a standard Gaussian vector** is the centered
+multivariate Gaussian with Gram matrix `a r ⬝ᵥ a s`. -/
+theorem map_toLp_dotProduct_pi_gaussianReal [Fintype A] [DecidableEq A] (a : A → K → ℝ) :
+    (Measure.pi fun _ : K => gaussianReal 0 1).map
+        (fun ξ : K → ℝ => WithLp.toLp 2 (fun r => a r ⬝ᵥ ξ)) =
+      multivariateGaussian (0 : EuclideanSpace ℝ A) (Matrix.of fun r s => a r ⬝ᵥ a s) := by
+  have h := map_toLp_eq_multivariateGaussian (hasGaussianLaw_dotProduct_family a)
+    (fun r => integral_dotProduct_pi_gaussianReal (a r))
+  convert h using 3
+  ext r s
+  rw [covariance_eq_sub ((hasGaussianLaw_dotProduct_family a).eval r).memLp_two
+    ((hasGaussianLaw_dotProduct_family a).eval s).memLp_two]
+  simp only [Pi.mul_apply, integral_dotProduct_mul_dotProduct_pi_gaussianReal,
+    integral_dotProduct_pi_gaussianReal, mul_zero, sub_zero]
 
 variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
 

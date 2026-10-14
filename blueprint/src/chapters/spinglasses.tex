@@ -30,7 +30,11 @@ Section~\ref{sec:sg:ass} starts Section~1.3 of the book: the cavity decompositio
 Aizenman--Sims--Starr representation of the free energy increments, with the Lean files
 \texttt{ForMathlib/Probability/Moments/GaussianGram.lean}, \texttt{ForMathlib/Analysis/Cesaro.lean} and
 \texttt{SpinGlasses/AizenmanSimsStarr.lean} (deviations from the book are collected in
-Remark~\ref{rem:sg:ass-deviation}).
+Remark~\ref{rem:sg:ass-deviation}). Section~\ref{sec:sg:gram-approx} proves Theorem~1.3 (the Gram matrix approximation of Gibbs
+averages) and applies it to the increments $A_N$ (Eq.~(1.73)), with the Lean files
+\texttt{ForMathlib/Probability/Moments/GaussianTruncation.lean}, \texttt{GaussianContinuity.lean},
+\texttt{SpinGlasses/AsymptoticGibbsApproximation.lean} and \texttt{SpinGlasses/AizenmanSimsStarrApproximation.lean}
+(deviations in Remark~\ref{rem:sg:gram-deviation}).
 
 \medskip\noindent\textbf{Notation.}
 $\iota$ is a finite index set and $N=|\iota|$ (the number of spins; $\iota=\mathrm{Fin}\,N$ in the SK model, but all
@@ -1062,7 +1066,7 @@ $\mathbb E\,\beta s=0$. The second identity is the second law of Theorem~\ref{th
 \end{proof}
 
 \begin{theorem}[The Aizenman--Sims--Starr representation, Panchenko Eq.~(1.58)]\label{thm:sg:ass}
-  \lean{SpinGlasses.aizenman_sims_starr_representation}
+  \lean{SpinGlasses.aizenman_sims_starr_representation, SpinGlasses.integrable_and_eq_aizenman_sims_starr}
   \leanok
   \uses{thm:sg:partition, lem:sg:cavity-algebra, lem:sg:gibbsavg}
 For $\beta>0$ and $N\ge1$, with $G'_u=\mathrm{count.tilted}(\beta H'_u)$ and $\langle\cdot\rangle'_u$ its average,
@@ -1079,19 +1083,23 @@ every $u$ is part of Fubini, and subtracting the constant $\log Z'(u)$ preserves
 \end{proof}
 
 \begin{theorem}[Covariances of the cavity fields, Panchenko Eq.~(1.59)]\label{thm:sg:cavity-cov}
-  \lean{SpinGlasses.integral_cavity_z_mul_z, SpinGlasses.integral_cavity_y_mul_y}
+  \lean{SpinGlasses.integral_cavity_z_mul_z, SpinGlasses.integral_cavity_y_mul_y, SpinGlasses.cavity_z_eq_dotProduct,
+        SpinGlasses.hasGaussianLaw_cavity_z, SpinGlasses.integral_cavity_z_eq_zero,
+        SpinGlasses.hasGaussianLaw_cavity_y, SpinGlasses.integral_cavity_y_eq_zero}
   \leanok
   \uses{lem:sg:gram, lem:sg:cavity-algebra}
 For $N\ge1$ and $\sigma,\tau\in\mathbb R^N$, with $a_N=N/(N+1)$ and $R=N^{-1}\sigma\cdot\tau$,
 \[\mathbb E\,z(\sigma)z(\tau)=2a_NR,\qquad\mathbb E\,y(\sigma)y(\tau)=a_NR^2.\]
-Both depend on $\sigma,\tau$ only through the overlap.
+Both depend on $\sigma,\tau$ only through the overlap. Moreover, for any finite family of coefficient vectors $\sigma^s$, $(z(\sigma^s))_s$ and
+$(y(\sigma^s))_s$ are centered jointly Gaussian families.
 \end{theorem}
 
 \begin{proof}
   \leanok
 $z(\sigma)$ and $y(\sigma)$ are linear forms of standard Gaussians with coefficient vectors $\frac1{\sqrt{N+1}}\sigma$ (on both the $\mathrm{inl}$ and $\mathrm{inr}$
 coordinates) and $\frac1{\sqrt{N(N+1)}}\sigma_i\sigma_j$, so the covariance is the dot product of coefficients:
-$\frac2{N+1}\sigma\cdot\tau$ and $\frac1{N(N+1)}(\sigma\cdot\tau)^2$.
+$\frac2{N+1}\sigma\cdot\tau$ and $\frac1{N(N+1)}(\sigma\cdot\tau)^2$; being linear forms of standard Gaussians, the families are jointly
+Gaussian and centered.
 \end{proof}
 
 \begin{lemma}[Cesaro averages and the liminf]\label{lem:sg:cesaro}
@@ -1136,8 +1144,236 @@ invokes the uniqueness of Gaussian laws; we do the same, with the uniqueness pro
 \item \emph{The cavity site is $0$, not $N+1$.} We use \texttt{Fin.cons}/\texttt{Fin.succ} so that sums split by \texttt{Fin.sum\_univ\_succ}; by relabeling
 invariance of the disorder this is the same statement.
 \item \emph{The Cesaro statement carries boundedness hypotheses.} Mathlib's \texttt{liminf} on $\mathbb R$ is junk-valued for unbounded sequences, so the
-inequality $\liminf A_N\le\liminf F_N$ assumes $(A_N)$ is bounded; the book does not state this because the increments are bounded
-(by $\log2+\beta^2$ via Jensen's inequality). We have not formalized that bound; when $A_N$ converges, Mathlib's \texttt{Filter.Tendsto.cesaro} gives
-$F_N\to\lim A_N$ directly.
+inequality $\liminf A_N\le\liminf F_N$ of Theorem~\ref{thm:sg:cesaro} assumes $(A_N)$ is bounded. The book does not state this because the increments are bounded;
+that bound is proved in Theorem~\ref{thm:sg:increment-bounds} below ($\log2-\beta^2/2\le A_N\le\log2+\beta^2$), which removes the hypothesis
+(Corollary~\ref{cor:sg:cesaro-unconditional}). When $A_N$ converges, Mathlib's \texttt{Filter.Tendsto.cesaro} gives $F_N\to\lim A_N$ directly.
+\end{enumerate}
+\end{remark}
+
+\section{Gram matrix approximation of Gibbs averages}\label{sec:sg:gram-approx}
+
+This section proves Theorem~1.3 of the book and applies it to the Aizenman--Sims--Starr increments (Eq.~(1.73)). Throughout, $\iota$ is a finite set,
+$w=(w_i)_{i\in\iota}$ a probability vector, and $\langle f\rangle=\sum_iw_if_i$. The statements do not mention a Hilbert space: the quantity
+$\Phi(\Gamma)=\mathbb E\log\langle2\cosh z\rangle-\mathbb E\log\langle e^{y}\rangle$ of the book depends on the atomic measure
+$\Gamma=\sum_iw_i\delta_{\rho^i}$ and on the processes $z,y$ only through $w$ and the Gram data $q_{ij}=\rho^i\cdot\rho^j$ (the covariances being
+$\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$). For $a\ge0$ let $\mathrm{cl}_a(x)=\max(-a,\min(x,a))$ and
+$T_a(x)=\max(\min(x,e^a),e^{-a})$. A random variable $X$ is \emph{sub-Gaussian with parameter $c$} if $\mathbb Ee^{tX}\le e^{ct^2/2}$ for all $t\in\mathbb R$
+(and $e^{tX}$ is integrable); a centered Gaussian with $\mathbb EX^2\le v$ is sub-Gaussian with parameter $v$, since $\mathbb Ee^{tX}=e^{t^2\mathbb EX^2/2}$.
+
+\begin{lemma}[Exponential moments of $|X|$]\label{lem:sg:absmoment}
+  \lean{ProbabilityTheory.HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_abs_mul_le,
+        ProbabilityTheory.HasSubgaussianMGF.integrable_of_measurable, ProbabilityTheory.HasSubgaussianMGF.integrable_two_cosh,
+        ProbabilityTheory.HasSubgaussianMGF.integral_two_cosh_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_le}
+  \leanok
+Let $X$ be measurable and sub-Gaussian with parameter $c$. Then for every $t\in\mathbb R$, $e^{t|X|}$ is integrable and $\mathbb Ee^{t|X|}\le2e^{ct^2/2}$; $X$ and
+$\cosh X$ are integrable, $\mathbb E\,2\cosh X\le2e^{c/2}$ and $\mathbb Ee^{X}\le e^{c/2}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Pointwise $e^{t|x|}\le e^{tx}+e^{-tx}$, so $\mathbb Ee^{t|X|}\le\mathbb Ee^{tX}+\mathbb Ee^{-tX}\le2e^{ct^2/2}$. Integrability of $X$ follows from $|x|\le e^{|x|}$,
+and the remaining claims are the cases $t=\pm1$ of the definition.
+\end{proof}
+
+\begin{lemma}[Elementary inequalities for the truncation]\label{lem:sg:clamp}
+  \lean{SpinGlasses.abs_log_le_add_inv, SpinGlasses.abs_log_sub_log_clamp_le, SpinGlasses.abs_clamp_sub_clamp_le,
+        SpinGlasses.abs_log_sub_log_le, SpinGlasses.abs_log_clamp_sub_le, SpinGlasses.abs_log_clamp_le,
+        SpinGlasses.abs_sub_comp_clamp_le, SpinGlasses.inv_sum_mul_le, SpinGlasses.sum_mul_pos}
+  \leanok
+Let $a\ge0$. (i) $|\log x|\le x+x^{-1}$ for $x>0$. (ii) $|\log x-\log T_a(x)|\le e^{-a}(x+x^{-1})$ for $x>0$. (iii) $T_a$ is $1$-Lipschitz, $\log T_a\in[-a,a]$,
+and $|\log T_a(x)-\log T_a(x')|\le e^a|x-x'|$. (iv) If $\varphi>0$ and $\varphi(x)\le Ae^{|x|}$, then
+$|\varphi(x)-\varphi(\mathrm{cl}_a(x))|\le2Ae^{-2a}e^{3|x|}$. (v) For a probability vector $w$ and $x_i>0$, $(\sum_iw_ix_i)^{-1}\le\sum_iw_ix_i^{-1}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(i) $\log x\le x-1$ applied to $x$ and $x^{-1}$. (ii) If $x\ge e^a$ then $T_a(x)=e^a$ and $0\le\log x-a\le e^{\log x-a}=xe^{-a}$ (using $u\le e^u$); if $x\le e^{-a}$
+then $T_a(x)=e^{-a}$ and $0\le-a-\log x\le e^{-\log x-a}=x^{-1}e^{-a}$; otherwise the difference is $0$. (iii) $T_a$ is a composition of $\min$ and $\max$ with
+constants. For $s,t\ge e^{-a}$ with $s\ge t$, $\log s-\log t=\log(s/t)\le s/t-1\le(s-t)e^a$. (iv) If $|x|\le a$ the difference vanishes. If $|x|>a$, then
+$|\mathrm{cl}_a(x)|\le a<|x|$, so both $\varphi(x)$ and $\varphi(\mathrm{cl}_ax)$ lie in $(0,Ae^{|x|}]$ and $|\varphi(x)-\varphi(\mathrm{cl}_ax)|\le Ae^{|x|}\le Ae^{-2a}e^{3|x|}$
+because $3|x|-2a\ge|x|$. (v) Jensen's inequality for the convex function $x\mapsto x^{-1}$ on $(0,\infty)$.
+\end{proof}
+
+\begin{theorem}[Truncation of the Gibbs free energy, Panchenko Eqs.~(1.65), (1.68)--(1.72)]\label{thm:sg:truncation}
+  \lean{SpinGlasses.integral_sum_mul_exp_abs_le, SpinGlasses.integrable_integral_le_of_le_sum_exp_abs,
+        SpinGlasses.integrable_sum_mul_comp, SpinGlasses.integrable_log_sum_mul_comp,
+        SpinGlasses.abs_integral_log_sub_integral_log_clamp_le}
+  \leanok
+  \uses{lem:sg:absmoment, lem:sg:clamp}
+Let $\varphi:\mathbb R\to(0,\infty)$ be continuous with $\varphi(x)\le Ae^{|x|}$ and $\varphi(x)^{-1}\le Be^{|x|}$, let $g_i$ ($i\in\iota$) be measurable and
+sub-Gaussian with parameter $v$ on a probability space, and put $X=\sum_iw_i\varphi(g_i)$, $X_a=\sum_iw_i\varphi(\mathrm{cl}_a(g_i))$. Then $\log X$ is integrable and for $a\ge0$
+\[\Big|\mathbb E\log X-\mathbb E\log T_a(X_a)\Big|\le\Big((2A+2B)e^{v/2}+4Ae^{9v/2}\Big)e^{-a},\]
+a bound independent of $\iota$, $w$ and of the joint law of the $g_i$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Since $\varphi(g_i)\le Ae^{|g_i|}$ and, by Lemma~\ref{lem:sg:clamp}~(v), $X^{-1}\le\sum_iw_i\varphi(g_i)^{-1}\le B\sum_iw_ie^{|g_i|}$, Lemma~\ref{lem:sg:absmoment} gives
+$\mathbb EX\le2Ae^{v/2}$ and $\mathbb EX^{-1}\le2Be^{v/2}$; with Lemma~\ref{lem:sg:clamp}~(i) this shows that $\log X$ is integrable (and $\log T_a(X_a)\in[-a,a]$ is bounded).
+Pointwise, by Lemma~\ref{lem:sg:clamp}~(ii), (iii),
+\[|\log X-\log T_a(X_a)|\le|\log X-\log T_a(X)|+|\log T_a(X)-\log T_a(X_a)|\le e^{-a}(X+X^{-1})+e^a|X-X_a|,\]
+and by Lemma~\ref{lem:sg:clamp}~(iv), $|X-X_a|\le\sum_iw_i|\varphi(g_i)-\varphi(\mathrm{cl}_ag_i)|\le2Ae^{-2a}\sum_iw_ie^{3|g_i|}$. Taking expectations and using
+Lemma~\ref{lem:sg:absmoment} ($\mathbb E\sum_iw_ie^{3|g_i|}\le2e^{9v/2}$) gives $e^{-a}(2A+2B)e^{v/2}+e^a\cdot2Ae^{-2a}\cdot2e^{9v/2}$.
+\end{proof}
+
+\begin{theorem}[Polynomial approximation, Panchenko Eq.~(1.66)]\label{thm:sg:poly}
+  \lean{SpinGlasses.exists_polynomial_integral_log_approx}
+  \leanok
+  \uses{thm:sg:truncation}
+In the setting of Theorem~\ref{thm:sg:truncation}, for every $\varepsilon>0$ there are $a\ge0$ and a polynomial $p$, depending only on $\varepsilon,v,\varphi,A,B$, such that
+for all finite families $(g_i)$ and probability vectors $w$ as above, $|\mathbb E\log X-\mathbb E\,p(X_a)|\le\varepsilon$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Choose $a\ge0$ with $Ce^{-a}\le\varepsilon/2$, $C$ the constant of Theorem~\ref{thm:sg:truncation}. Since $\varphi(\mathrm{cl}_ag_i)\le Ae^a$, $X_a\in[0,Ae^a]$. The function $\log T_a$ is continuous,
+so by the Weierstrass theorem (\texttt{exists\_polynomial\_near\_of\_continuousOn}) there is a polynomial $p$ with $|p-\log T_a|<\varepsilon/2$ on $[0,Ae^a]$; hence
+$|\mathbb E\log T_a(X_a)-\mathbb E\,p(X_a)|\le\varepsilon/2$. Combine with Theorem~\ref{thm:sg:truncation}.
+\end{proof}
+
+\begin{theorem}[Replica expansion, Panchenko Eq.~(1.67)]\label{thm:sg:replica}
+  \lean{ProbabilityTheory.hasGaussianLaw_comp_index, ProbabilityTheory.integral_comp_comp_eq_integral_multivariateGaussian,
+        ProbabilityTheory.map_toLp_dotProduct_pi_gaussianReal, SpinGlasses.integral_pow_sum_mul_comp_eq,
+        SpinGlasses.integral_eval_sum_mul_comp_eq}
+  \leanok
+  \uses{lem:sg:gram}
+Let $(g_i)_{i\in\iota}$ be a centered Gaussian family, $\psi$ bounded and measurable and $w$ a probability vector. Then for every $k$
+\[\mathbb E\Big(\sum_iw_i\psi(g_i)\Big)^k=\sum_{j:[k]\to\iota}\Big(\prod_{l\le k}w_{j_l}\Big)\int\prod_{l\le k}\psi(x_l)\,d\mathcal N\big(0,(\mathbb Eg_{j_l}g_{j_{l'}})_{l,l'\le k}\big)(x),\]
+and the same holds for $\mathbb Ep(\sum_iw_i\psi(g_i))$ with the coefficients of a polynomial $p$. In particular the $k$-th moment of a Gibbs average
+is the Gibbs average over $k$ replicas of a function of the covariance matrix of the replicas only.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Expand $(\sum_iw_i\psi(g_i))^k=\sum_{j:[k]\to\iota}\prod_lw_{j_l}\psi(g_{j_l})$ (a finite sum, \texttt{Fintype.sum\_pow}); the terms are bounded, so the expectation passes inside.
+For fixed $j$, $(g_{j_l})_{l\le k}$ is a centered Gaussian vector (a linear image of $(g_i)_i$) with covariance matrix $S_j=(\mathbb Eg_{j_l}g_{j_{l'}})$, hence has the law
+$\mathcal N(0,S_j)$ (Lemma~\ref{lem:sg:gram}, the first part), and $\mathbb E\prod_l\psi(g_{j_l})$ is the displayed Gaussian integral.
+\end{proof}
+
+\begin{lemma}[Continuity of Gaussian integrals in the covariance matrix]\label{lem:sg:gausscont}
+  \lean{ProbabilityTheory.continuousOn_integral_multivariateGaussian, SpinGlasses.continuousOn_integral_prod_multivariateGaussian,
+        SpinGlasses.abs_integral_prod_multivariateGaussian_le}
+  \leanok
+Let $g$ be bounded and continuous on $\mathbb R^k$. Then $S\mapsto\int g\,d\mathcal N(0,S)$ is continuous on the cone of positive semidefinite matrices.
+Consequently, for $\psi$ continuous with $|\psi|\le M$ and a continuous covariance function $C$, the replica functional
+$F_k(Q)=\int\prod_{l\le k}\psi(x_l)\,d\mathcal N\big(0,(C(Q_{ll'}))_{l,l'}\big)$ is bounded by $M^k$ and continuous on the set of $Q\in\mathbb R^{k\times k}$ for which
+$(C(Q_{ll'}))$ is positive semidefinite.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The space of matrices is first countable, so it suffices to treat sequences $S_n\to S$ of positive semidefinite matrices. The characteristic function of
+$\mathcal N(0,S)$ is $t\mapsto e^{-t^\top St/2}$, which converges pointwise as $n\to\infty$; by L\'evy's continuity theorem (Mathlib's
+\texttt{ProbabilityMeasure.tendsto\_of\_tendsto\_charFun}) $\mathcal N(0,S_n)\to\mathcal N(0,S)$ weakly, i.e.\ $\int g\,d\mathcal N(0,S_n)\to\int g\,d\mathcal N(0,S)$.
+The bound is $|\prod_l\psi(x_l)|\le M^k$ against a probability measure; continuity of $F_k$ is the composition with the continuous map $Q\mapsto(C(Q_{ll'}))$.
+\end{proof}
+
+\begin{theorem}[Theorem~1.3: Gram matrix approximation of the Gibbs free energy, Panchenko Eq.~(1.64)]\label{thm:sg:gram13}
+  \lean{SpinGlasses.exists_gram_approx, SpinGlasses.exists_gram_approx_free_energy, SpinGlasses.sum_prod_mul_comp_castLE,
+        SpinGlasses.sum_mul_sum_comm, SpinGlasses.exists_continuousOn_gram_approx}
+  \leanok
+  \uses{thm:sg:poly, thm:sg:replica, lem:sg:gausscont}
+Let $C_z,C_y:\mathbb R\to\mathbb R$ be continuous, $v_z,v_y\ge0$, $\varepsilon>0$. There are $m\in\mathbb N$ and a bounded function $F$ on $m\times m$ matrices, continuous
+on $\{Q:(C_z(Q_{ll'}))\text{ and }(C_y(Q_{ll'}))\text{ are positive semidefinite}\}$, such that for every finite set $\iota$, probability vector $w$ on $\iota$,
+array $q\in\mathbb R^{\iota\times\iota}$, and all centered Gaussian families $z$, $y$ (on arbitrary probability spaces) with $\mathbb Ez_iz_j=C_z(q_{ij})$,
+$\mathbb Ey_iy_j=C_y(q_{ij})$, $\mathbb Ez_i^2\le v_z$, $\mathbb Ey_i^2\le v_y$,
+\[\Big|\Big(\mathbb E\log\langle2\cosh z\rangle-\mathbb E\log\langle e^{y}\rangle\Big)-\sum_{j:[m]\to\iota}\Big(\prod_{l\le m}w_{j_l}\Big)F\big((q_{j_lj_{l'}})_{l,l'\le m}\big)\Big|\le\varepsilon.\]
+The right hand side is the $\Gamma$-average of the continuous bounded function $F$ of the Gram matrix of $m$ i.i.d.\ replicas, and $m,F$ do not depend on $\iota,w,q$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:sg:poly} with accuracy $\varepsilon/2$ to $\varphi=2\cosh$ ($A=2$, $B=1$, since $2\cosh x\le2e^{|x|}$ and $(2\cosh x)^{-1}\le1\le e^{|x|}$) and to $\varphi=\exp$
+($A=B=1$), obtaining levels $a_z,a_y$ and polynomials $p_z,p_y$; note $2\cosh(\mathrm{cl}_ax)=2\min(\cosh x,\cosh a)$, the book's truncation $\mathrm{ch}_a$. By
+Theorem~\ref{thm:sg:replica}, $\mathbb Ep_z(\langle 2\cosh\mathrm{cl}_{a_z}z\rangle)=\sum_k p_{z,k}\sum_{j:[k]\to\iota}\prod_lw_{j_l}F^z_k\big((C_z(q_{j_lj_{l'}}))\big)$
+with $F^z_k$ the Gaussian functional of Lemma~\ref{lem:sg:gausscont}, and likewise for $y$. Let $m=\max(\deg p_z,\deg p_y)$ and let $F(Q)$ be the difference of the
+two sums with $F^\cdot_k$ evaluated at the upper-left $k\times k$ block of $Q$. Since $\sum_iw_i=1$, summing out the last $m-k$ replicas does not change a function of the first $k$
+(\texttt{sum\_prod\_mul\_comp\_castLE}), so the Gibbs average of $F$ over $m$ replicas equals the sum over $k$ of the $k$-replica averages. Continuity of $F$ on the stated set
+uses that a principal submatrix of a positive semidefinite matrix is positive semidefinite; boundedness is $|F|\le\sum_k|p_{z,k}|(2e^{a_z})^k+\sum_k|p_{y,k}|e^{a_yk}$.
+\end{proof}
+
+\section{The Aizenman--Sims--Starr increments: bounds and the overlap approximation}\label{sec:sg:ass-approx}
+
+We return to the notation of Section~\ref{sec:sg:ass}: $G'_u=\mathrm{count.tilted}(\beta H'_u)$ with Gibbs weights $\mathrm{wt}_u(\sigma)=e^{\beta H'_u(\sigma)}/\sum_\tau e^{\beta H'_u(\tau)}$,
+and the cavity fields $z,y$ with covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$ (Theorem~\ref{thm:sg:cavity-cov}; the factor $\beta$ is absorbed into $z,y$).
+
+\begin{lemma}[Jensen bounds for Gibbs averages]\label{lem:sg:jensen}
+  \lean{SpinGlasses.integral_log_le_log_integral, SpinGlasses.integral_sum_mul_le,
+        SpinGlasses.log_two_le_integral_log_sum_mul_two_cosh, SpinGlasses.integral_log_sum_mul_two_cosh_le,
+        SpinGlasses.zero_le_integral_log_sum_mul_exp, SpinGlasses.integral_log_sum_mul_exp_le,
+        SpinGlasses.exp_le_exp_abs_mul, SpinGlasses.inv_exp_le_exp_abs_mul, SpinGlasses.two_cosh_le_exp_abs_mul,
+        SpinGlasses.inv_two_cosh_le_exp_abs_mul}
+  \leanok
+  \uses{lem:sg:absmoment, thm:sg:truncation}
+Let $g_i$ be measurable and sub-Gaussian with parameter $v$ and $w$ a probability vector. Then
+$\log2\le\mathbb E\log\langle2\cosh g\rangle\le\log2+v/2$, and if the $g_i$ are centered, $0\le\mathbb E\log\langle e^{g}\rangle\le v/2$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+For a positive integrable $X$ with integrable logarithm, $\log x\le x/c-1+\log c$ with $c=\mathbb EX$ gives $\mathbb E\log X\le\log\mathbb EX$. For $X=\langle2\cosh g\rangle$,
+$\mathbb EX\le\max_i\mathbb E\,2\cosh g_i\le2e^{v/2}$ (Lemma~\ref{lem:sg:absmoment}), and $X\ge2$ because $\cosh\ge1$. For $X=\langle e^g\rangle$, $\mathbb EX\le e^{v/2}$, and by convexity
+of $\exp$, $\log\langle e^g\rangle\ge\langle g\rangle$, whose expectation is $\sum_iw_i\mathbb Eg_i=0$. Integrability of the logarithms is Theorem~\ref{thm:sg:truncation}.
+\end{proof}
+
+\begin{theorem}[A priori bounds for the increments]\label{thm:sg:increment-bounds}
+  \lean{SpinGlasses.sk_gibbsWeight, SpinGlasses.sk_overlap_self, SpinGlasses.sk_cavity_z, SpinGlasses.sk_cavity_y,
+        SpinGlasses.sk_integral_count_tilted, SpinGlasses.sk_integrable_and_eq, SpinGlasses.sk_setup,
+        SpinGlasses.sk_increment_bounds}
+  \leanok
+  \uses{thm:sg:ass, thm:sg:cavity-cov, lem:sg:jensen}
+For $\beta>0$ and $N\ge1$, $\log2-\beta^2/2\le A_N\le\log2+\beta^2$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:ass}, $A_N=\mathbb E_uF(u)$ with $F(u)=\mathbb E_\zeta\log\langle2\cosh z\rangle'_u-\mathbb E_v\log\langle e^{y}\rangle'_u$ (here $z,y$ include the factor $\beta$),
+and $F$ is integrable. By Theorem~\ref{thm:sg:cavity-cov} and $R(\sigma,\sigma)=1$, the family $(z(\sigma))_\sigma$ is centered Gaussian with $\mathbb Ez(\sigma)^2=2\beta^2a_N\le2\beta^2$, and
+$(y(\sigma))_\sigma$ with $\mathbb Ey(\sigma)^2=\beta^2a_N\le\beta^2$; the Gibbs average $\langle\cdot\rangle'_u$ is the finite sum with the weights $\mathrm{wt}_u$. By Lemma~\ref{lem:sg:jensen},
+$\log2\le\mathbb E_\zeta\log\langle2\cosh z\rangle'_u\le\log2+\beta^2$ and $0\le\mathbb E_v\log\langle e^y\rangle'_u\le\beta^2/2$, so $\log2-\beta^2/2\le F(u)\le\log2+\beta^2$ for every $u$.
+Integrate over $u$.
+\end{proof}
+
+\begin{corollary}[The Cesaro bound without hypotheses]\label{cor:sg:cesaro-unconditional}
+  \lean{SpinGlasses.liminf_increment_le_liminf_free_energy_of_pos}
+  \leanok
+  \uses{thm:sg:increment-bounds, thm:sg:cesaro}
+For $\beta>0$, $\liminf_NA_N\le\liminf_NF_N$.
+\end{corollary}
+
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:increment-bounds}, $(A_N)_{N\ge1}$ is bounded above and below; apply Theorem~\ref{thm:sg:cesaro}.
+\end{proof}
+
+\begin{theorem}[$A_N$ is a Gram matrix functional of the overlaps, Panchenko Eq.~(1.73)]\label{thm:sg:overlap-approx}
+  \lean{SpinGlasses.abs_increment_sub_integral_overlap_le}
+  \leanok
+  \uses{thm:sg:gram13, thm:sg:increment-bounds}
+Let $\beta>0$ and $\varepsilon>0$. There are $a_z,a_y\ge0$ and polynomials $p_z,p_y$, depending only on $\beta,\varepsilon$ (not on $N$), such that for all $N\ge1$
+\[\Big|A_N-\mathbb E_u\Big[\sum_kp_{z,k}\sum_{j:[k]\to\Sigma_N}\Big(\prod_l\mathrm{wt}_u(\sigma^{j_l})\Big)F^z_k\big(2\beta^2a_N(R_{j_lj_{l'}})\big)-\sum_kp_{y,k}\sum_{j:[k]\to\Sigma_N}\Big(\prod_l\mathrm{wt}_u(\sigma^{j_l})\Big)F^y_k\big(\beta^2a_N(R_{j_lj_{l'}}^2)\big)\Big]\Big|\le\varepsilon,\]
+where $R_{ss'}=R(\sigma^s,\sigma^{s'})$ is the overlap, $F^z_k(S)=\int\prod_l2\cosh(\mathrm{cl}_{a_z}x_l)\,d\mathcal N(0,S)$, $F^y_k(S)=\int\prod_le^{\mathrm{cl}_{a_y}x_l}\,d\mathcal N(0,S)$.
+That is, up to $\varepsilon$, $A_N$ is the average, under the product of $k$ copies of the random Gibbs measure $G'_u$ and over $u$, of a continuous bounded function of the overlap matrix of the replicas.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Take $v_z=2\beta^2$, $v_y=\beta^2$ and apply Theorem~\ref{thm:sg:gram13} (in its form with $p_z,p_y$, before merging the replica numbers) for each fixed $u$ to $\iota=\Sigma_N$, $w=\mathrm{wt}_u$, and the cavity fields
+$z,y$ of Theorem~\ref{thm:sg:cavity-cov}, whose covariances are $2\beta^2a_NR$ and $\beta^2a_NR^2$ and whose variances are at most $v_z,v_y$ (Theorem~\ref{thm:sg:increment-bounds}). This gives the bound $\varepsilon$ for the $u$-integrand
+$F(u)=\mathbb E_\zeta\log\langle2\cosh z\rangle'_u-\mathbb E_v\log\langle e^y\rangle'_u$ of Theorem~\ref{thm:sg:ass}. The approximant is a finite combination of products of Gibbs weights, which are measurable in $u$ and take values in $[0,1]$,
+so it is integrable, and $|A_N-\mathbb E_u[\mathrm{approximant}]|=|\mathbb E_u(F-\mathrm{approximant})|\le\varepsilon$.
+\end{proof}
+
+\begin{remark}[Deviations from Panchenko's treatment of Theorem~1.3, and why]\label{rem:sg:gram-deviation}
+\begin{enumerate}
+\item \emph{No Hilbert space, finitely supported measures.} The book states Theorem~1.3 for atomic probability measures $\Gamma$ on the unit sphere of a separable Hilbert space.
+Since $\Phi(\Gamma)$ only involves $w$ and the Gram data, we state it for a finite family with arbitrary covariance functions; the cavity measures $G'_u$ of the SK model are finitely supported.
+Extending to countably many atoms is a limiting argument that we have not formalized.
+\item \emph{Truncation by moments rather than by the concentration (1.69).} The book controls $\log\langle\cosh z\rangle$ through its Gaussian concentration. Only the expectation of the truncation error is needed,
+and it is bounded by $e^{-a}\,\mathbb E(X+X^{-1})$ plus an exponential moment of the field; both are uniform in the number of atoms, so the earlier concentration theorem is not used here.
+\item \emph{Uniformity.} The truncation level and the polynomials depend only on $\varepsilon$ and on bounds $v_z,v_y$ for the variances, not on the covariance functions; the covariance functions enter only the
+Gaussian integrals $F_k$, which are continuous in the Gram matrix on the cone where the covariance matrix is positive semidefinite (Lemma~\ref{lem:sg:gausscont}). In the SK application the covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$
+depend on $N$ through $a_N=N/(N+1)$, so the function $F$ of Theorem~\ref{thm:sg:overlap-approx} depends on $N$ through the Gaussian integrals only; the statement is nevertheless uniform in $N$. Passing to the limit $a_N\to1$ is not formalized.
+\item \emph{The truncation of the exponential term.} For $\varphi=2\cosh$, $2\cosh(\mathrm{cl}_ax)=2\min(\cosh x,\cosh a)$ is the book's $\mathrm{ch}_a$. For $\varphi=\exp$ we truncate the field in the same way.
 \end{enumerate}
 \end{remark}

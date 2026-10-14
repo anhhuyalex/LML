@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.Setup
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 
 /-!
 # Gaussian vector algebra (Propositions 2.8-2.10)
@@ -88,25 +89,12 @@ theorem stdGaussian_inner_family (n m : ℕ) (u : Fin m → Fin n → ℝ) :
         (Measure.pi fun _ : Fin n => gaussianReal 0 1) =
       multivariateGaussian (0 : EuclideanSpace ℝ (Fin m))
         (Matrix.of fun α β : Fin m => u α ⬝ᵥ u β) := by
-  set A : Matrix (Fin m) (Fin n) ℝ := Matrix.of u with hA_def
-  have hA_mulVec : ∀ a : Fin n → ℝ, A *ᵥ a = fun α => a ⬝ᵥ u α := by
-    intro a
-    ext α
-    simp [A, mulVec, dotProduct, mul_comm]
-  have hF_eq : (fun a : Fin n → ℝ => WithLp.toLp 2 (fun α : Fin m => a ⬝ᵥ u α)) =
-      (fun x : EuclideanSpace ℝ (Fin n) => WithLp.toLp 2 (A *ᵥ x.ofLp)) ∘ (WithLp.toLp 2) := by
-    ext a
-    simp [hA_mulVec]
-  have h_map := gaussian_map_mulVec (0 : EuclideanSpace ℝ (Fin n)) 1 Matrix.PosSemidef.one A
-  rw [hF_eq, ← Measure.map_map (by fun_prop) (by fun_prop), map_pi_eq_stdGaussian,
-    ← multivariateGaussian_zero_one, h_map]
-  have h_cov : A * (1 : Matrix (Fin n) (Fin n) ℝ) * Aᵀ =
-      (Matrix.of fun α β => u α ⬝ᵥ u β) := by
-    rw [Matrix.mul_one]
-    ext α β
-    simp [A, Matrix.mul_apply, Matrix.transpose_apply, dotProduct]
-  rw [h_cov]
-  simp
+  rw [← map_toLp_dotProduct_pi_gaussianReal u]
+  congr 1
+  funext a
+  congr 1
+  funext α
+  exact dotProduct_comm _ _
 
 /-- **Row-wise pushforward of a product measure.** If `f` pushes `ν` forward to `κ`, then applying
 `f` to every coordinate pushes `ν^{⊗ι}` forward to `κ^{⊗ι}` (a form of `Measure.pi_map_pi` with a

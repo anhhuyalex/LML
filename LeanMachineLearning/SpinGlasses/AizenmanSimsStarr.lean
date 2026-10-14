@@ -52,8 +52,12 @@ and avoids a measure-preserving change of variables on the *nested* disorder
 * `SpinGlasses.aizenman_sims_starr_representation` (Eq. (1.58)): `A_N` is the expectation, over
   the auxiliary Gibbs measure `G'` of `H'`, of `log ⟨2 cosh (β z)⟩' - log ⟨exp (β y)⟩'`; the
   normalization `Z'` cancels.
+* `SpinGlasses.integrable_and_eq_aizenman_sims_starr`: the same with the integrability of the
+  integrand in `u`, for an integrand given by its defining equation.
 * `SpinGlasses.integral_cavity_z_mul_z`, `SpinGlasses.integral_cavity_y_mul_y` (Eq. (1.59)): the
-  covariances of the cavity fields depend on the overlap only.
+  covariances of the cavity fields depend on the overlap only; `SpinGlasses.hasGaussianLaw_cavity_z`,
+  `SpinGlasses.hasGaussianLaw_cavity_y` and the centering lemmas show that the fields are centered
+  Gaussian families.
 * `SpinGlasses.inv_mul_integral_log_partition_eq` (Eq. (1.49)) and
   `SpinGlasses.liminf_increment_le_liminf_free_energy` (Cesàro,
   `ForMathlib/Analysis/Cesaro.lean`).
@@ -236,6 +240,54 @@ private theorem measurable_skHamiltonian_pi
     Measurable fun (G : Fin M → Fin M → ℝ) (σ : Fin M → ℤˣ) => H M G σ :=
   measurable_pi_iff.2 fun σ => by
     simpa only [hH, Fintype.card_fin] using (sk_measurable_integrable (ι := Fin M) σ).1
+
+/-- The cavity field `c (√(N+1))⁻¹ ∑ᵢ (ζ (inl (i+1)) + ζ (inr i)) ρᵢ` is a linear form of `ζ`. -/
+theorem cavity_z_eq_dotProduct (N : ℕ) (c : ℝ) (ρ : Fin N → ℝ) (ζ : Fin (N + 1) ⊕ Fin N → ℝ) :
+    c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ρ i) =
+      Sum.elim (Fin.cons 0 fun i => c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ρ i))
+        (fun i => c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ρ i)) ⬝ᵥ ζ := by
+  simp only [dotProduct, Fintype.sum_sum_type, Fin.sum_univ_succ, Sum.elim_inl, Sum.elim_inr,
+    Fin.cons_zero, Fin.cons_succ, zero_mul, zero_add, add_mul, Finset.sum_add_distrib]
+  rw [mul_add, Finset.mul_sum, Finset.mul_sum, mul_add, Finset.mul_sum, Finset.mul_sum]
+  congr 1 <;> exact Finset.sum_congr rfl fun i _ => by ring
+
+/-- **The cavity field `z` is a centered Gaussian family:** for any family `ρ s` of coefficient
+vectors, `s ↦ c (√(N+1))⁻¹ ∑ᵢ (ζ (inl (i+1)) + ζ (inr i)) (ρ s)ᵢ` is jointly Gaussian in `ζ`. -/
+theorem hasGaussianLaw_cavity_z {A : Type*} [Finite A] (N : ℕ) (c : ℝ) (ρ : A → Fin N → ℝ) :
+    HasGaussianLaw (fun (ζ : Fin (N + 1) ⊕ Fin N → ℝ) (s : A) =>
+      c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ρ s i))
+      (Measure.pi fun _ : Fin (N + 1) ⊕ Fin N => gaussianReal 0 1) := by
+  have h := hasGaussianLaw_dotProduct_family (K := Fin (N + 1) ⊕ Fin N) fun s =>
+    Sum.elim (Fin.cons 0 fun i => c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ρ s i))
+      (fun i => c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ρ s i))
+  convert h using 3 with ζ s
+  exact cavity_z_eq_dotProduct N c (ρ s) ζ
+
+/-- The cavity field `z` is centered. -/
+theorem integral_cavity_z_eq_zero (N : ℕ) (c : ℝ) (ρ : Fin N → ℝ) :
+    ∫ ζ : Fin (N + 1) ⊕ Fin N → ℝ,
+      c * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ρ i)
+        ∂(Measure.pi fun _ : Fin (N + 1) ⊕ Fin N => gaussianReal 0 1) = 0 := by
+  simp_rw [cavity_z_eq_dotProduct]
+  exact integral_dotProduct_pi_gaussianReal _
+
+/-- **The cavity field `y` is a centered Gaussian family:** for any family `ρ s` of vectors,
+`s ↦ c ρ s ⬝ (v ρ s)` is jointly Gaussian in the `N × N` block `v`. -/
+theorem hasGaussianLaw_cavity_y {A : Type*} [Finite A] (N : ℕ) (c : ℝ) (ρ : A → Fin N → ℝ) :
+    HasGaussianLaw (fun (v : Fin N × Fin N → ℝ) (s : A) =>
+      c * (ρ s ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ ρ s)))
+      (Measure.pi fun _ : Fin N × Fin N => gaussianReal 0 1) := by
+  have h := hasGaussianLaw_dotProduct_family (K := Fin N × Fin N) fun s =>
+    fun p : Fin N × Fin N => c * (ρ s p.1 * ρ s p.2)
+  convert h using 3 with v s
+  exact mul_dotProduct_mulVec_eq_dotProduct c (ρ s) v
+
+/-- The cavity field `y` is centered. -/
+theorem integral_cavity_y_eq_zero (N : ℕ) (c : ℝ) (ρ : Fin N → ℝ) :
+    ∫ v : Fin N × Fin N → ℝ, c * (ρ ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ ρ))
+      ∂(Measure.pi fun _ : Fin N × Fin N => gaussianReal 0 1) = 0 := by
+  simp_rw [mul_dotProduct_mulVec_eq_dotProduct]
+  exact integral_dotProduct_pi_gaussianReal _
 
 variable (H : ∀ N : ℕ, (Fin N → Fin N → ℝ) → (Fin N → ℤˣ) → ℝ)
   (hH : ∀ N G σ, H N G σ = (Real.sqrt N)⁻¹ *
@@ -432,6 +484,87 @@ theorem integral_log_partition_eq_aux {β : ℝ} (hβ : 0 < β) {N : ℕ} (hN : 
   rw [Function.comp_def] at hid
   exact ⟨hid.integrable_snd hint, hid.integral_eq⟩
 
+/-- **Integrability in `u` and the Aizenman–Sims–Starr representation.**  This is
+`aizenman_sims_starr_representation` for a function `F` given by its defining equation `hF`,
+together with the integrability of `F` (needed to bound `A_N` by pointwise estimates in `u`). -/
+theorem integrable_and_eq_aizenman_sims_starr {β : ℝ} (hβ : 0 < β) {N : ℕ} (hN : 0 < N)
+    (F : (Fin N × Fin N → ℝ) → ℝ)
+    (hF : ∀ u, F u =
+        ((∫ ζ : Fin (N + 1) ⊕ Fin N → ℝ,
+                Real.log (∫ σ, 2 * Real.cosh (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+                    ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ((σ i : ℤ) : ℝ)))
+                  ∂(Measure.count.tilted fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+                    ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+                      fun i => ((σ i : ℤ) : ℝ)))))) ∂(γ[Fin (N + 1) ⊕ Fin N])) -
+              ∫ v : Fin N × Fin N → ℝ,
+                Real.log (∫ σ, Real.exp (β * ((Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ *
+                    ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ
+                      fun i => ((σ i : ℤ) : ℝ)))))
+                  ∂(Measure.count.tilted fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+                    ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+                      fun i => ((σ i : ℤ) : ℝ)))))) ∂(γ[Fin N × Fin N]))) :
+    Integrable F (γ[Fin N × Fin N]) ∧
+      (∫ G, Real.log (∑ ρ, Real.exp (β * H (N + 1) G ρ)) ∂𝒢[N + 1]) -
+        ∫ G, Real.log (∑ σ, Real.exp (β * H N G σ)) ∂𝒢[N] =
+        ∫ u, F u ∂(γ[Fin N × Fin N]) := by
+  obtain ⟨h1i, h1⟩ := integral_log_partition_succ_eq H hH hβ N
+  obtain ⟨h2i, h2⟩ := integral_log_partition_eq_aux H hH hβ hN
+  have hae : ∀ᵐ u ∂(γ[Fin N × Fin N]),
+      ((∫ ζ : Fin (N + 1) ⊕ Fin N → ℝ,
+          Real.log (∑ σ : Fin N → ℤˣ, Real.exp (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+              ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+                fun i => ((σ i : ℤ) : ℝ))))) *
+            (2 * Real.cosh (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+              ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ((σ i : ℤ) : ℝ)))))
+          ∂(γ[Fin (N + 1) ⊕ Fin N])) -
+        ∫ v : Fin N × Fin N → ℝ,
+          Real.log (∑ σ : Fin N → ℤˣ, Real.exp (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+              ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+                fun i => ((σ i : ℤ) : ℝ))) +
+            (Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ * ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ
+              (Matrix.of (fun i j => v (i, j)) *ᵥ fun i => ((σ i : ℤ) : ℝ))))))
+          ∂(γ[Fin N × Fin N])) = F u := by
+    filter_upwards [h1i.prod_right_ae, h2i.prod_right_ae] with u hu1 hu2
+    rw [hF u]
+    have e1 := fun ζ : Fin (N + 1) ⊕ Fin N → ℝ => log_integral_count_tilted
+      (fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+        ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+          fun i => ((σ i : ℤ) : ℝ)))))
+      (fun σ : Fin N → ℤˣ => 2 * Real.cosh (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+        ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ((σ i : ℤ) : ℝ)))) fun σ => by positivity
+    have e2 := fun v : Fin N × Fin N → ℝ => log_integral_count_tilted
+      (fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+        ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+          fun i => ((σ i : ℤ) : ℝ)))))
+      (fun σ : Fin N → ℤˣ => Real.exp (β * ((Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ *
+        ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ
+          fun i => ((σ i : ℤ) : ℝ)))))) fun σ => Real.exp_pos _
+    have e2' : ∀ v : Fin N × Fin N → ℝ,
+        Real.log (∫ σ, Real.exp (β * ((Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ *
+            ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ
+              fun i => ((σ i : ℤ) : ℝ)))))
+          ∂(Measure.count.tilted fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+            ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+              fun i => ((σ i : ℤ) : ℝ)))))) =
+        Real.log (∑ σ : Fin N → ℤˣ, Real.exp (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+              ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+                fun i => ((σ i : ℤ) : ℝ))) +
+            (Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ * ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ
+              (Matrix.of (fun i j => v (i, j)) *ᵥ fun i => ((σ i : ℤ) : ℝ)))))) -
+          Real.log (∑ σ : Fin N → ℤˣ, Real.exp (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
+            ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
+              fun i => ((σ i : ℤ) : ℝ)))))) := fun v => by
+      rw [e2 v]
+      congr 2
+      exact Finset.sum_congr rfl fun σ _ => by rw [← Real.exp_add, ← mul_add]
+    simp_rw [e1, e2']
+    rw [integral_sub hu1 (integrable_const _), integral_sub hu2 (integrable_const _)]
+    simp
+  refine ⟨(h1i.integral_prod_left.sub h2i.integral_prod_left).congr hae, ?_⟩
+  rw [h1, h2, integral_prod _ h1i, integral_prod _ h2i,
+    ← integral_sub h1i.integral_prod_left h2i.integral_prod_left]
+  exact integral_congr_ae hae
+
 /-- **The Aizenman–Sims–Starr representation** ([Panchenko, 2013, Eq. (1.58)]).  Let `G'` be the
 auxiliary Gibbs measure of `H'(σ) = (√(N+1))⁻¹ σ ⬝ (u σ)` (`Measure.count.tilted (β H')`).  Then
 `A_N = 𝔼 log Z_{N+1} - 𝔼 log Z_N` is the `u`-average of
@@ -455,47 +588,8 @@ theorem aizenman_sims_starr_representation {β : ℝ} (hβ : 0 < β) {N : ℕ} (
                   fun i => ((σ i : ℤ) : ℝ)))))
               ∂(Measure.count.tilted fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
                 ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
-                  fun i => ((σ i : ℤ) : ℝ)))))) ∂(γ[Fin N × Fin N])) ∂(γ[Fin N × Fin N]) := by
-  obtain ⟨h1i, h1⟩ := integral_log_partition_succ_eq H hH hβ N
-  obtain ⟨h2i, h2⟩ := integral_log_partition_eq_aux H hH hβ hN
-  rw [h1, h2, integral_prod _ h1i, integral_prod _ h2i,
-    ← integral_sub h1i.integral_prod_left h2i.integral_prod_left]
-  refine integral_congr_ae ?_
-  filter_upwards [h1i.prod_right_ae, h2i.prod_right_ae] with u hu1 hu2
-  have e1 := fun ζ : Fin (N + 1) ⊕ Fin N → ℝ => log_integral_count_tilted
-    (fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
-      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
-        fun i => ((σ i : ℤ) : ℝ)))))
-    (fun σ : Fin N → ℤˣ => 2 * Real.cosh (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
-      ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ((σ i : ℤ) : ℝ)))) fun σ => by positivity
-  have e2 := fun v : Fin N × Fin N → ℝ => log_integral_count_tilted
-    (fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
-      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
-        fun i => ((σ i : ℤ) : ℝ)))))
-    (fun σ : Fin N → ℤˣ => Real.exp (β * ((Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ *
-      ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ
-        fun i => ((σ i : ℤ) : ℝ)))))) fun σ => Real.exp_pos _
-  have e2' : ∀ v : Fin N × Fin N → ℝ,
-      Real.log (∫ σ, Real.exp (β * ((Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ *
-          ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => v (i, j)) *ᵥ
-            fun i => ((σ i : ℤ) : ℝ)))))
-        ∂(Measure.count.tilted fun σ : Fin N → ℤˣ => β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
-          ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
-            fun i => ((σ i : ℤ) : ℝ)))))) =
-      Real.log (∑ σ : Fin N → ℤˣ, Real.exp (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
-            ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
-              fun i => ((σ i : ℤ) : ℝ))) +
-          (Real.sqrt ((N : ℝ) * ((N : ℝ) + 1)))⁻¹ * ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ
-            (Matrix.of (fun i j => v (i, j)) *ᵥ fun i => ((σ i : ℤ) : ℝ)))))) -
-        Real.log (∑ σ : Fin N → ℤˣ, Real.exp (β * ((Real.sqrt ((N : ℝ) + 1))⁻¹ *
-          ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ (Matrix.of (fun i j => u (i, j)) *ᵥ
-            fun i => ((σ i : ℤ) : ℝ)))))) := fun v => by
-    rw [e2 v]
-    congr 2
-    exact Finset.sum_congr rfl fun σ _ => by rw [← Real.exp_add, ← mul_add]
-  simp_rw [e1, e2']
-  rw [integral_sub hu1 (integrable_const _), integral_sub hu2 (integrable_const _)]
-  simp
+                  fun i => ((σ i : ℤ) : ℝ)))))) ∂(γ[Fin N × Fin N])) ∂(γ[Fin N × Fin N]) :=
+  (integrable_and_eq_aizenman_sims_starr H hH hβ hN _ fun _ => rfl).2
 
 omit hH in
 /-- **Covariance of the cavity field `z`** ([Panchenko, 2013, Eq. (1.59)]):
@@ -512,10 +606,7 @@ theorem integral_cavity_z_mul_z {N : ℕ} (hN : 0 < N) (σ τ : Fin N → ℝ) :
       (Real.sqrt ((N : ℝ) + 1))⁻¹ * ∑ i, (ζ (Sum.inl i.succ) + ζ (Sum.inr i)) * ρ i =
         Sum.elim (Fin.cons 0 fun i => (Real.sqrt ((N : ℝ) + 1))⁻¹ * ρ i)
           (fun i => (Real.sqrt ((N : ℝ) + 1))⁻¹ * ρ i) ⬝ᵥ ζ := fun ρ ζ => by
-    simp only [dotProduct, Fintype.sum_sum_type, Fin.sum_univ_succ, Sum.elim_inl, Sum.elim_inr,
-      Fin.cons_zero, Fin.cons_succ, zero_mul, zero_add, add_mul, Finset.sum_add_distrib]
-    rw [mul_add, Finset.mul_sum, Finset.mul_sum]
-    congr 1 <;> exact Finset.sum_congr rfl fun i _ => by ring
+    simpa only [one_mul] using cavity_z_eq_dotProduct N 1 ρ ζ
   simp_rw [hz]
   rw [integral_dotProduct_mul_dotProduct_pi_gaussianReal]
   simp only [dotProduct, Fintype.sum_sum_type, Fin.sum_univ_succ, Sum.elim_inl, Sum.elim_inr,

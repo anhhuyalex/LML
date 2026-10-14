@@ -48,6 +48,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
@@ -55,6 +56,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinea
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianTruncation
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
@@ -267,6 +269,8 @@ public import LeanMachineLearning.SequentialLearning.StationaryEnv
 public import LeanMachineLearning.SequentialLearning.StoppedHistory
 public import LeanMachineLearning.SequentialLearning.SumRewards
 public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarr
+public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarrApproximation
+public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
