@@ -30,7 +30,8 @@ annealed law `𝔼 G^{⊗∞}`.
   product of a measurable family of probability measures in the parameter, and the special
   case `measurable_pi_const`, `measurable_infinitePi_const` of a constant factor.
 * `MeasureTheory.Measure.infinitePi_map_comp_equiv`: `infinitePi` of a constant family is
-  invariant under `σ ↦ σ ∘ e`, `e : ι ≃ ι`.
+  invariant under `σ ↦ σ ∘ e`, `e : ι ≃ ι`; `measurePreserving_comp_equiv_infinitePi` is the
+  `MeasurePreserving` form, to be combined with `MeasurePreserving.prod`.
 * `MeasureTheory.Measure.measurePreserving_restrict_infinitePi`: restricting an i.i.d. family
   to the image of an injective map `f : ι → κ` (`ι` finite) gives the finite product measure; this
   is the passage from infinitely many replicas to `k` replicas.
@@ -94,6 +95,13 @@ theorem infinitePi_map_comp_equiv (ν : Measure X) [IsProbabilityMeasure ν] (e 
   ext σ i
   rw [MeasurableEquiv.coe_piCongrLeft, Equiv.piCongrLeft_apply_eq_cast]
   simp
+
+/-- Relabelling the coordinates of an i.i.d. sequence by a permutation preserves its law. -/
+theorem measurePreserving_comp_equiv_infinitePi (ν : Measure X) [IsProbabilityMeasure ν]
+    (e : ι ≃ ι) :
+    MeasurePreserving (fun σ : ι → X => σ ∘ e) (Measure.infinitePi fun _ : ι => ν)
+      (Measure.infinitePi fun _ : ι => ν) :=
+  ⟨measurable_pi_iff.2 fun i => measurable_pi_apply (e i), infinitePi_map_comp_equiv ν e⟩
 
 /-- **Finite marginals of an i.i.d. family:** restricting `infinitePi (fun _ : κ => ν)` along an
 injective map `f : ι → κ` from a finite type gives `Measure.pi (fun _ : ι => ν)`.  For `f = Fin.val`

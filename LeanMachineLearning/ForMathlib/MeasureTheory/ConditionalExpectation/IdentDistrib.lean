@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.CompProd
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.MeasureCompProd
 public import Mathlib.Probability.IdentDistrib
 public import Mathlib.Probability.Kernel.CompProdEqIff
 public import Mathlib.Probability.Kernel.CondDistrib

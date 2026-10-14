@@ -2023,7 +2023,11 @@ This is the cell version of Theorem~\ref{thm:sg:seq-decoupling}: for $K\subseteq
         SpinGlasses.identDistrib_vertexPair,
         SpinGlasses.condExp_vertexData_ae_eq_integral,
         SpinGlasses.map_vertexData_eq_compProd,
-        SpinGlasses.measurable_vertexData,
+        SpinGlasses.measurable_reindex,
+        SpinGlasses.range_two_mul,
+        SpinGlasses.infinite_even,
+        Equiv.sym2Congr,
+        MeasureTheory.Measure.measurePreserving_comp_equiv_infinitePi,
         SpinGlasses.map_codedCells_eq_compProd,
         SpinGlasses.map_codedArray_eq_compProd,
         SpinGlasses.exists_aldousHoover_representation,
@@ -2070,7 +2074,8 @@ Put $s_{\{a,b\}}=R_{\min(a,b),\max(a,b)}$; this is measurable for the pairs, and
 \end{proof}
 
 \begin{theorem}[Aldous--Hoover representation of Gram-type laws]\label{thm:sg:aldous-hoover-gram}
-  \lean{SpinGlasses.exists_aldousHoover_representation_of_gram}
+  \lean{SpinGlasses.exists_aldousHoover_representation_of_gram,
+        SpinGlasses.exists_aldousHoover_representation_of_gram_set}
   \leanok
 Let $\Lambda$ be a probability measure on $\mathbb R^{\mathbb N\times\mathbb N}$ which is concentrated on symmetric arrays with unit diagonal ($A_{l,l'}=A_{l',l}$ and $A_{l,l}=1$) and invariant under $A\mapsto(A_{e(l),e(l')})_{l,l'}$ for every bijection $e$ of $\mathbb N$. Then there is a measurable $f:[0,1]^4\to\mathbb R$, symmetric in its two middle arguments, such that $\Lambda$ is the law of
 \[\Big(\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\,f\big(w,u_l,u_{l'},x_{\{l,l'\}}\big)\Big)_{l,l'\in\mathbb N},\]
@@ -2083,7 +2088,7 @@ with $w$, $(u_l)$, $(x_c)_{c\in\operatorname{Sym}^2(\mathbb N)}$ independent and
 Apply Theorem~\ref{thm:sg:aldous-hoover-curried} to the identity array on $(\mathbb R^{\mathbb N\times\mathbb N},\Lambda)$ and let $g,f$ be the resulting maps. The set of arrays in $\mathbb R^{\mathbb N\times\mathbb N}$ with unit diagonal is measurable and has full measure under $\Lambda$, hence also under the law of the right-hand side, that is, $g(w,u_l)=1$ for all $l$ almost surely. Replacing $g$ by $1$ changes the array only on a null set.
 \end{proof}
 
-Theorem~\ref{thm:sg:aldous-hoover-gram} applies to the asymptotic overlap law $\mu$ of Theorem~\ref{thm:sg:asymptotic-overlap}: that theorem gives a probability measure concentrated on symmetric, unit diagonal, positive semidefinite arrays with entries in $[-1,1]$ which is exchangeable. Positive semidefiniteness and the bound are not used here; that they force $f$ not to depend on the cell noise $x_{\{l,l'\}}$ (the Dovbysh--Sudakov theorem) is not formalized.
+Theorem~\ref{thm:sg:aldous-hoover-gram} applies to the asymptotic overlap law $\mu$ of Theorem~\ref{thm:sg:asymptotic-overlap}: that theorem gives a probability measure concentrated on the closed set of symmetric, unit diagonal, positive semidefinite arrays with entries in $[-1,1]$ which is exchangeable. The Lean declaration \texttt{exists\_aldousHoover\_representation\_of\_gram\_set} takes exactly this form of hypothesis (the Gram set has measure one) and so applies to any limit produced by Theorem~\ref{thm:sg:asymptotic-overlap}, without restating its hypotheses. Positive semidefiniteness and the bound are not used here; that they force $f$ not to depend on the cell noise $x_{\{l,l'\}}$ (the Dovbysh--Sudakov theorem) is not formalized.
 
 \paragraph{Separately exchangeable arrays.}
 An array $(s_{l,l'})_{l,l'\in\mathbb N}$ with values in a nonempty standard Borel space $E$ is \emph{separately exchangeable} if $(s_{e_1(l),e_2(l')})_{l,l'}\overset d=(s_{l,l'})_{l,l'}$ for every pair of bijections $e_1,e_2$ of $\mathbb N$ (Eq.~(1.76); as above, a hypothesis \texttt{hexch} on all bijections, not only finitely supported ones).
@@ -2141,8 +2146,6 @@ The same argument as for Theorem~\ref{thm:sg:cond-indep-array}, with Lemma~\ref{
   \lean{SpinGlasses.exists_injective_fix_even,
         SpinGlasses.identDistrib_vertexData_comp_inj,
         SpinGlasses.identDistrib_rowColPair,
-        SpinGlasses.measurable_rowData,
-        SpinGlasses.measurable_colData,
         SpinGlasses.measurable_oddEntry,
         SpinGlasses.range_vertexRow,
         SpinGlasses.range_vertexCol,

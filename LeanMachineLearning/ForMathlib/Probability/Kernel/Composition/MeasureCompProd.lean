@@ -31,4 +31,17 @@ lemma AbsolutelyContinuous.compProd_left_apply {γ : Type*} {mγ : MeasurableSpa
 
 end AbsolutelyContinuous
 
+section MapComap
+
+/-- Transporting `μ ⊗ₘ η.comap f` along `f` in the first coordinate gives `μ.map f ⊗ₘ η`. -/
+lemma map_compProd_comap {γ : Type*} {mγ : MeasurableSpace γ} (μ : Measure α) [SFinite μ]
+    (η : Kernel β γ) [IsSFiniteKernel η] {f : α → β} (hf : Measurable f) :
+    (μ ⊗ₘ η.comap f hf).map (fun p : α × γ ↦ (f p.1, p.2)) = μ.map f ⊗ₘ η := by
+  ext s hs
+  rw [Measure.map_apply (by fun_prop) hs, Measure.compProd_apply (hs.preimage (by fun_prop)),
+    Measure.compProd_apply hs, lintegral_map (Kernel.measurable_kernel_prodMk_left hs) hf]
+  rfl
+
+end MapComap
+
 end MeasureTheory.Measure

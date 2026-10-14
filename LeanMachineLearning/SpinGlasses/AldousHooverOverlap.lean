@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.AldousHoover
+public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
 
 /-!
 # The Aldous–Hoover representation of curried symmetric arrays and of Gram-type laws
@@ -26,6 +27,10 @@ Dovbysh–Sudakov theorem (§1.5).
   exchangeable and concentrated on symmetric arrays with unit diagonal is the law of
   `(if l = l' then 1 else f (w, u_l, u_{l'}, x_{l, l'}))_{l, l'}`, with `f` symmetric in its two
   middle arguments.
+* `SpinGlasses.exists_aldousHoover_representation_of_gram_set`: the same for an exchangeable law
+  concentrated on the set of Gram-type arrays, the form of the limits produced by
+  `SpinGlasses.exists_tendsto_exchangeable_gram_arrays` and
+  `SpinGlasses.exists_sk_asymptotic_overlap_law`.
 
 ## Implementation notes
 
@@ -113,10 +118,10 @@ theorem exists_aldousHoover_representation_of_curried [IsProbabilityMeasure P]
 symmetric in its two middle arguments, with `w`, `(u_l)`, `(x_c)` independent and uniform: the
 function `g` of Theorem 1.5 is `1`.
 
-The hypotheses are satisfied by the asymptotic overlap law of `SpinGlasses.
-exists_sk_asymptotic_overlap_law` (the almost sure statement follows from
-`MeasureTheory.mem_ae_iff_prob_eq_one` applied to the Gram set); symmetry is the only property of
-that set which enters besides the unit diagonal. -/
+The hypotheses are satisfied by any law concentrated on Gram-type arrays, such as the asymptotic
+overlap law of `SpinGlasses.exists_sk_asymptotic_overlap_law`
+(see `SpinGlasses.exists_aldousHoover_representation_of_gram_set`); symmetry and the unit diagonal
+are the only properties of Gram-type arrays which enter. -/
 theorem exists_aldousHoover_representation_of_gram {Λ : Measure (ℕ → ℕ → ℝ)}
     [IsProbabilityMeasure Λ] (hK : ∀ᵐ A ∂Λ, (∀ l l', A l l' = A l' l) ∧ ∀ l, A l l = 1)
     (hexch : ∀ e : ℕ ≃ ℕ, Λ.map (fun A l l' => A (e l) (e l')) = Λ) :
@@ -156,5 +161,26 @@ theorem exists_aldousHoover_representation_of_gram {Λ : Measure (ℕ → ℕ �
         · subst h
           simpa using hη l
         · simp [h]
+
+/-- **Aldous–Hoover representation of an exchangeable law on Gram-type arrays.**  This is the
+form of the limits of `SpinGlasses.exists_tendsto_exchangeable_gram_arrays` and of the asymptotic
+overlap law `SpinGlasses.exists_sk_asymptotic_overlap_law`: a probability measure `μ` on arrays,
+concentrated on the (closed) set of Gram-type arrays and invariant under the diagonal action of
+`ℕ ≃ ℕ`, is the law of `(if l = l' then 1 else f (w, u_l, u_{l'}, x_{l, l'}))_{l, l'}`.  What
+remains for the Dovbysh–Sudakov theorem is to show, using positive semidefiniteness, that `f` does
+not depend on `x`. -/
+theorem exists_aldousHoover_representation_of_gram_set {μ : Measure (ℕ → ℕ → ℝ)}
+    [IsProbabilityMeasure μ]
+    (hK : μ {A : ℕ → ℕ → ℝ | (∀ l l', A l l' = A l' l) ∧ (∀ l, A l l = 1) ∧
+      (∀ l l', |A l l'| ≤ 1) ∧ ∀ k : ℕ, (Matrix.of fun l l' : Fin k => A l l').PosSemidef} = 1)
+    (hexch : ∀ e : ℕ ≃ ℕ, μ.map (fun A l l' => A (e l) (e l')) = μ) :
+    ∃ f : I × I × I × I → ℝ, Measurable f ∧ (∀ w u₁ u₂ y, f (w, u₁, u₂, y) = f (w, u₂, u₁, y)) ∧
+      μ = Measure.map (fun (η : (I × (ℕ → I)) × (Sym2 ℕ → I)) (l l' : ℕ) =>
+          if l = l' then (1 : ℝ) else f (η.1.1, η.1.2 l, η.1.2 l', η.2 s(l, l')))
+        (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).prod
+          (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))) :=
+  exists_aldousHoover_representation_of_gram
+    (Filter.Eventually.mono ((mem_ae_iff_prob_eq_one
+      isCompact_setOf_gram_array.isClosed.measurableSet).2 hK) fun _ h => ⟨h.1, h.2.1⟩) hexch
 
 end SpinGlasses

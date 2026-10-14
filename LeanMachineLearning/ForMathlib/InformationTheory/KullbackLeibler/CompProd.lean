@@ -5,6 +5,7 @@ Authors: Rémy Degenne
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.MeasureCompProd
 public import Mathlib.InformationTheory.KullbackLeibler.Basic
 
 /-! # Lemmas about the Kullback-Leibler divergence of the images of two measures by a measurable map
@@ -19,15 +20,6 @@ namespace InformationTheory
 
 variable {α β γ : Type*} {mα : MeasurableSpace α} {mβ : MeasurableSpace β}
   {mγ : MeasurableSpace γ} {μ ν : Measure α} [IsFiniteMeasure μ] [IsFiniteMeasure ν]
-
-/-- Transporting `μ ⊗ₘ η.comap f` along `f` in the first coordinate gives `μ.map f ⊗ₘ η`. -/
-lemma _root_.MeasureTheory.Measure.map_compProd_comap (μ : Measure α) [SFinite μ]
-    (η : Kernel β γ) [IsSFiniteKernel η] {f : α → β} (hf : Measurable f) :
-    (μ ⊗ₘ η.comap f hf).map (fun p : α × γ ↦ (f p.1, p.2)) = μ.map f ⊗ₘ η := by
-  ext s hs
-  rw [Measure.map_apply (by fun_prop) hs, Measure.compProd_apply (hs.preimage (by fun_prop)),
-    Measure.compProd_apply hs, lintegral_map (Kernel.measurable_kernel_prodMk_left hs) hf]
-  rfl
 
 omit [IsFiniteMeasure ν] in
 lemma _root_.MeasureTheory.Measure.map_withDensity_comp
