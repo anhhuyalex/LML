@@ -53,7 +53,8 @@ replicas `ρ¹, …, ρᵐ ~ Γ`, uniformly in `Γ`.
 * No Hilbert space appears: `Φ` depends on `Γ` only through the weights `w` and the Gram data
   `q i j = ρⁱ ⬝ ρʲ`, so the theorem is stated for an arbitrary finite family and arbitrary
   covariance functions.  Only finitely supported `Γ` are treated (the Gibbs measures `G'_N` of the
-  SK model are such); the extension to countably many atoms is a limiting argument.
+  SK model are such); countably many atoms are treated in
+  `SpinGlasses/AsymptoticGibbsApproximationCountable.lean` by truncation.
 * The truncation error is controlled by first moments of `X` and `X⁻¹` and by exponential
   moments of the coordinates, instead of the Gaussian concentration of `log ⟨cosh z⟩`
   (Eq. (1.69)): only the expectation of the error is needed, and the moment bounds
