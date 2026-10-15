@@ -530,12 +530,24 @@ $\mathbb E[g^{n+1}]=vn\,\mathbb E[g^{n-1}]$ of the Wick calculus (\texttt{Renorm
 a corollary).
 \end{proof}
 
+\begin{definition}[Replacing one coordinate]\label{def:sg:update}
+Let $\iota$ be a finite index set, let $(E_i)_{i\in\iota}$ be measurable spaces, and let $x=(x_i)_{i\in\iota}\in\prod_iE_i$.
+For $j\in\iota$ and $t\in E_j$, the point $x[j:=t]\in\prod_iE_i$ is obtained from $x$ by changing only the $j$-th coordinate:
+\[x[j:=t]_i=\begin{cases}t,&i=j,\\ x_i,&i\ne j.\end{cases}\]
+(In Lean this is \texttt{Function.update x j t}.) For fixed $j$, the map $(x,t)\mapsto x[j:=t]$ from
+$\prod_iE_i\times E_j$ to $\prod_iE_i$ is measurable. In probabilistic language: draw $x$ from a measure $\pi$ on $\prod_iE_i$,
+draw $t$ from a measure $\mu_j$ on $E_j$ independently of $x$ (so the pair $(x,t)$ has law $\pi\otimes\mu_j$), and
+form $x[j:=t]$. This is the random point obtained by \emph{resampling the $j$-th coordinate}, and its law is the
+pushforward of $\pi\otimes\mu_j$ under $(x,t)\mapsto x[j:=t]$.
+\end{definition}
+
 \begin{lemma}[Resampling one coordinate]\label{lem:sg:resample}
   \lean{MeasureTheory.measurePreserving_update_pi, MeasureTheory.integrable_update_pi,
         MeasureTheory.integral_pi_eq_integral_update}
   \leanok
+  \uses{def:sg:update}
 Let $\pi=\bigotimes_{i}\mu_i$ be a finite product of probability measures. Replacing the $j$-th coordinate of
-$x\sim\pi$ by an independent $t\sim\mu_j$ preserves $\pi$: the map $(x,t)\mapsto x[j:=t]$ pushes $\pi\otimes\mu_j$ to $\pi$.
+$x\sim\pi$ by an independent $t\sim\mu_j$ (Definition~\ref{def:sg:update}) preserves $\pi$: the map $(x,t)\mapsto x[j:=t]$ pushes $\pi\otimes\mu_j$ to $\pi$.
 Hence for integrable $f$, $\int f\,d\pi=\int\!\!\int f(x[j:=t])\,d\mu_j(t)\,d\pi(x)$.
 \end{lemma}
 
@@ -549,15 +561,15 @@ pushforward followed by Fubini.
 \begin{theorem}[Coordinatewise Stein identity]\label{thm:sg:steinpi}
   \lean{ProbabilityTheory.integral_eval_mul_pi_gaussianReal_eq}
   \leanok
-  \uses{thm:sg:stein1d, lem:sg:resample}
+  \uses{thm:sg:stein1d, lem:sg:resample, def:sg:update}
 Let $\xi$ have independent coordinates $\xi_i\sim\mathcal N(0,v_i)$ and let $G$ have partial derivatives $G_i'$ in the sense that
-$t\mapsto G(x[i:=t])$ is differentiable with derivative $G_i'(x)$ at $t=x_i$. If $\xi_jG(\xi)$ and $G_j'(\xi)$ are integrable then
+$t\mapsto G(x[i:=t])$ (Definition~\ref{def:sg:update}) is differentiable with derivative $G_i'(x)$ at $t=x_i$. If $\xi_jG(\xi)$ and $G_j'(\xi)$ are integrable then
 $\mathbb E[\xi_jG(\xi)]=v_j\,\mathbb E[G_j'(\xi)]$.
 \end{theorem}
 
 \begin{proof}
   \leanok
-Resample the $j$-th coordinate (Lemma~\ref{lem:sg:resample}). By Fubini the slices $t\mapsto G(x[j:=t])$ and its derivative are
+Resample the $j$-th coordinate (Definition~\ref{def:sg:update} and Lemma~\ref{lem:sg:resample}). By Fubini the slices $t\mapsto G(x[j:=t])$ and its derivative are
 integrable against $\mathcal N(0,v_j)$ for almost every $x$, and Theorem~\ref{thm:sg:stein1d} applies to each slice.
 \end{proof}
 
@@ -590,15 +602,64 @@ Isserlis-based proof in the Renormalization chapter.
   \leanok
 The covariance matrix $S_{ij}=\mathrm{Cov}(X_i,X_j)$ is positive semidefinite (it is the covariance form of the Gaussian
 vector), so $X$ has the law of $A\xi$ with $\xi$ i.i.d.\ $\mathcal N(0,1)$ and $AA^\top=S$ ($A=\sqrt S$; this combines Mathlib's
-\texttt{multivariateGaussian} with the fact that a Gaussian measure is determined by mean and covariance). For $G(\xi)=F(A\xi)$
+\texttt{multivariateGaussian} with the fact that a Gaussian measure is determined by mean and covariance). 
+
+For $G(\xi)=F(A\xi)$
 the chain rule gives $\partial_jG(\xi)=\sum_lA_{lj}\partial_lF(A\xi)$, and Theorem~\ref{thm:sg:steinpi} yields
 $\mathbb E[(A\xi)_iF(A\xi)]=\sum_jA_{ij}\sum_lA_{lj}\mathbb E[\partial_lF(A\xi)]=\sum_lS_{il}\mathbb E[\partial_lF(A\xi)]$.
+
 The integrability hypotheses of Theorem~\ref{thm:sg:steinpi} follow from the growth bound:
 $|\xi_jF(A\xi)|\le|\xi_j|\,Ce^{|c|\sum_ka_k|\xi_k|}$ with $a_k=\sum_l|A_{lk}|$, which is integrable as a product of the
-one-dimensional integrable functions $e^{b|t|}$ and $|t|e^{b|t|}$ against $\mathcal N(0,1)$. For the extension to an auxiliary
+one-dimensional integrable functions $e^{b|t|}$ and $|t|e^{b|t|}$ against $\mathcal N(0,1)$. 
+
+For the extension to an auxiliary
 Gaussian family apply the first part to the concatenated vector and the function $F\circ\mathrm{pr}_2$, whose partial derivatives in
 the $W$-directions vanish.
 \end{proof}
+
+\begin{remark}[The assumptions on $F$ in Theorem~\ref{thm:sg:steinvec}]\label{rem:sg:steinvec-assumptions}
+Panchenko states Eq.~(1.25) for ``$F$ such that the conditions used in the derivation hold'' and only indicates two
+situations where they are ``obviously'' satisfied: $F$ and all its partial derivatives are bounded, or they grow at most
+exponentially in the Euclidean norm. In the formalization the type of $F$ and the three conditions are stated explicitly.
+
+\emph{Type of $F$.} The Gaussian vector $X=(X_k)_{k\in\kappa}$ takes values in $\mathbb R^\kappa$, the space of real functions
+$y=(y_k)_{k\in\kappa}$ on the finite index set $\kappa$ (in Lean, the Pi type \texttt{kappa -> R}).
+The function $F$ is then a real-valued function of the whole vector, $F:\mathbb R^\kappa\to\mathbb R$, and $F(X)$ is the random
+variable $\omega\mapsto F\big((X_k(\omega))_{k\in\kappa}\big)$. Its partial derivative in the $l$-th coordinate is
+$\partial_lF(y)=DF(y)(e_l)$, where $e_l$ is the $l$-th unit vector and $DF(y):\mathbb R^\kappa\to\mathbb R$ is the derivative
+(a linear map) of $F$ at $y$; so $\partial_lF$ is again a function $\mathbb R^\kappa\to\mathbb R$. The finiteness of $\kappa$ is
+essential: all norms on $\mathbb R^\kappa$ are equivalent and the Gaussian vector has a finite covariance matrix.
+
+\emph{Assumptions on $F$.}
+\begin{enumerate}
+\item[(F1)] \emph{Differentiability.} $F:\mathbb R^\kappa\to\mathbb R$ is (Fr\'echet) differentiable at every point.
+  No continuity of the partial derivatives is assumed. Differentiability gives that $F$ is continuous, hence measurable, and
+  that each $\partial_lF$ is measurable (a pointwise limit of difference quotients), so all the expectations make sense.
+  It also gives, for every $A$ and every $x$, that the slice $t\mapsto F(A(x[j:=t]))$ is differentiable with derivative
+  given by the chain rule, which is the hypothesis of Theorem~\ref{thm:sg:steinpi}.
+\item[(F2)] \emph{Growth of $F$.} There are constants $C,c$ with $|F(y)|\le C\,e^{c\|y\|_1}$ for all $y$.
+\item[(F3)] \emph{Growth of the partial derivatives.} For each $l\in\kappa$ there are constants $D_l,d_l$ with
+  $|\partial_lF(y)|\le D_l\,e^{d_l\|y\|_1}$ for all $y$, where $\partial_lF(y)=DF(y)(e_l)$.
+\end{enumerate}
+\emph{What they are used for.} The proof writes $X=A\xi$ with $\xi$ i.i.d.\ $\mathcal N(0,1)$ and applies the coordinatewise
+identity $\mathbb E[\xi_jG(\xi)]=\mathbb E[\partial_jG(\xi)]$ for $G=F\circ A$. That identity needs exactly two things:
+integrability of $\xi_jF(A\xi)$ and integrability of $\partial_jG(\xi)=\sum_lA_{lj}\partial_lF(A\xi)$. By (F2),
+$|\xi_jF(A\xi)|\le C\,|\xi_j|\,e^{|c|\sum_ka_k|\xi_k|}$ with $a_k=\sum_l|A_{lk}|$, a product of one-dimensional functions
+$e^{b|t|}$ and $|t|e^{b|t|}$, each integrable against the Gaussian because a Gaussian has finite exponential moments of every
+order. By (F3) the same argument gives integrability of each $\partial_lF(A\xi)$. Fubini and the one-dimensional Stein identity
+(Theorem~\ref{thm:sg:stein1d}) then apply slice by slice.
+
+\emph{Remarks on the form of the conditions.}
+(a) The growth conditions are one-sided: only upper bounds are imposed, the constants $c,d_l$ may be any real numbers, and
+$F$ may oscillate or vanish. The case $c=d_l=0$ is the case ``$F$ and its partial derivatives are bounded''.
+(b) The norm $\|y\|_1=\sum_l|y_l|$ is used for convenience. Since $\|y\|_2\le\|y\|_1\le\sqrt{|\kappa|}\,\|y\|_2$, a bound
+$e^{c\|y\|_1}$ implies $e^{|c|\sqrt{|\kappa|}\|y\|_2}$ and a bound $e^{c\|y\|_2}$ implies $e^{|c|\|y\|_1}$, so on a finite
+index set ``at most exponential growth'' means the same thing in every norm, and the statement is the same as the book's.
+(c) These conditions are sufficient and not necessary. Without any growth condition the identity can fail simply
+because $X_iF(X)$ or $\partial_lF(X)$ need not be integrable (for example $F(y)=e^{y^2}$ for a standard Gaussian $X$).
+Where Panchenko applies the formula to Gibbs measures (Section~\ref{sec:sg:ibp}), $F$ is built from Gibbs weights, which lie in $[0,1]$,
+or from exponentials of the field, so (F1)--(F3) are verified directly (see Lemma~\ref{lem:sg:replicacalc} and Lemma~\ref{lem:sg:expgrowth}).
+\end{remark}
 
 \section{Integration by parts for the Gibbs measure}\label{sec:sg:ibp}
 
