@@ -20,8 +20,10 @@ mean `∫ Ψ a c dν` (`ProbabilityTheory.ae_tendsto_mean_prod_infinitePi`): Ete
 (`ProbabilityTheory.strong_law_ae`) for each fixed `a`, and Fubini.  This is the form used for
 exchangeable arrays whose rows are conditionally independent given a random environment.
 
-For an i.i.d. family indexed by a general set `J`, the same conclusion holds for the averages of
-a fixed function of *blocks* `σ ∘ f i` of the family along pairwise disjoint blocks `f i : F → J`
+For an i.i.d. sequence and a fixed observable this is the classical law
+(`ProbabilityTheory.ae_tendsto_mean_infinitePi`).  For an i.i.d. family indexed by a general set
+`J`, the analogous conclusion holds for the averages of a fixed function of *blocks* `σ ∘ f i` of
+the family along pairwise disjoint blocks `f i : F → J`
 (`ProbabilityTheory.ae_tendsto_mean_infinitePi_blocks`).
 -/
 
@@ -33,6 +35,26 @@ open scoped Topology
 namespace ProbabilityTheory
 
 variable {A C : Type*} [MeasurableSpace A] [MeasurableSpace C]
+
+/-- **Strong law of large numbers for an i.i.d. sequence.**  For `σ ~ ν^{⊗ℕ}` and an integrable
+observable `g`, the averages `n⁻¹ ∑_{i<n} g (σ i)` converge to `∫ g dν` almost surely. -/
+theorem ae_tendsto_mean_infinitePi (ν : Measure C) [IsProbabilityMeasure ν] {g : C → ℝ}
+    (hg : Measurable g) (hint : Integrable g ν) :
+    ∀ᵐ σ ∂(Measure.infinitePi fun _ : ℕ => ν),
+      Tendsto (fun n : ℕ => (n : ℝ)⁻¹ * ∑ i ∈ range n, g (σ i)) atTop (𝓝 (∫ c, g c ∂ν)) := by
+  have hlaw : ∀ i : ℕ, HasLaw (fun σ : ℕ → C => g (σ i)) (ν.map g)
+      (Measure.infinitePi fun _ : ℕ => ν) := fun i =>
+    (hg.hasLaw_map ν).comp (hasLaw_eval_infinitePi (fun _ : ℕ => ν) i)
+  have hindep := iIndepFun_infinitePi (P := fun _ : ℕ => ν) (X := fun _ c => g c) fun _ => hg
+  have hev := hasLaw_eval_infinitePi (fun _ : ℕ => ν) 0
+  have h := strong_law_ae_real (μ := Measure.infinitePi fun _ : ℕ => ν)
+    (fun i (σ : ℕ → C) => g (σ i)) (hev.integrable_comp hint)
+    (fun i j hij => hindep.indepFun hij) fun i => (hlaw i).identDistrib (hlaw 0)
+  have hint0 : ∫ σ : ℕ → C, g (σ 0) ∂(Measure.infinitePi fun _ : ℕ => ν) = ∫ c, g c ∂ν :=
+    hev.integral_comp hint.1
+  rw [hint0] at h
+  filter_upwards [h] with σ hσ
+  simpa [div_eq_inv_mul] using hσ
 
 /-- **Strong law of large numbers, mixture form.**  If `Ψ a` is `ν`-integrable for almost every
 `a ~ μ`, then for `(a, c) ~ μ ⊗ ν^{⊗ℕ}` the averages `n⁻¹ ∑_{i<n} Ψ a (c i)` converge to
@@ -54,20 +76,7 @@ theorem ae_tendsto_mean_prod_infinitePi (μ : Measure A)
   rw [Measure.ae_prod_iff_ae_ae hset]
   filter_upwards [hint] with a ha
   have hΨa : Measurable (Ψ a) := hΨ.comp (measurable_const.prodMk measurable_id)
-  have hlaw : ∀ i : ℕ, HasLaw (fun c : ℕ → C => Ψ a (c i)) (ν.map (Ψ a))
-      (Measure.infinitePi fun _ : ℕ => ν) := fun i =>
-    (hΨa.hasLaw_map ν).comp (hasLaw_eval_infinitePi (fun _ : ℕ => ν) i)
-  have hindep := iIndepFun_infinitePi (P := fun _ : ℕ => ν) (X := fun _ c => Ψ a c)
-    fun _ => hΨa
-  have hev := hasLaw_eval_infinitePi (fun _ : ℕ => ν) 0
-  have h := strong_law_ae_real (μ := Measure.infinitePi fun _ : ℕ => ν)
-    (fun i (c : ℕ → C) => Ψ a (c i)) (hev.integrable_comp ha)
-    (fun i j hij => hindep.indepFun hij) fun i => (hlaw i).identDistrib (hlaw 0)
-  have hint0 : ∫ c, Ψ a (c 0) ∂(Measure.infinitePi fun _ : ℕ => ν) = ∫ c, Ψ a c ∂ν :=
-    hev.integral_comp ha.1
-  rw [hint0] at h
-  filter_upwards [h] with c hc
-  simpa [div_eq_inv_mul] using hc
+  filter_upwards [ae_tendsto_mean_infinitePi ν hΨa ha] with c hc using hc
 
 /-- **Strong law of large numbers along disjoint blocks of an i.i.d. family.**  Let `σ` be an
 i.i.d. family indexed by `J` and `f i : F → J` injective maps with pairwise disjoint ranges.  For

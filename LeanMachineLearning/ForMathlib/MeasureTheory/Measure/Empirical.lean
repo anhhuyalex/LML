@@ -24,6 +24,8 @@ it verbatim.
 
 * `MeasureTheory.empiricalMeasure`: the measure `(card ι)⁻¹ • ∑ i, dirac (x i)`.
 * `MeasureTheory.empiricalMeasure_comp_equiv`: the empirical measure is invariant under reindexing.
+* `MeasureTheory.map_empiricalMeasure`: pushing an empirical measure forward is the empirical
+  measure of the image family.
 * `MeasureTheory.integral_empiricalMeasure`, `MeasureTheory.lintegral_empiricalMeasure`:
   `∫ g ∂(empiricalMeasure x) = (card ι)⁻¹ • ∑ i, g (x i)`.
 -/
@@ -53,6 +55,13 @@ lemma empiricalMeasure_comp_equiv {κ : Type*} [Fintype κ] (e : κ ≃ ι) (x :
     empiricalMeasure (x ∘ e) = empiricalMeasure x := by
   simp only [empiricalMeasure, Fintype.card_congr e, Function.comp_apply]
   rw [Equiv.sum_comp e (fun i => Measure.dirac (x i))]
+
+/-- Pushing an empirical measure forward along a measurable map is the empirical measure of the
+image family. -/
+lemma map_empiricalMeasure {β : Type*} [MeasurableSpace β] (x : ι → α) {f : α → β}
+    (hf : Measurable f) : (empiricalMeasure x).map f = empiricalMeasure (f ∘ x) := by
+  rw [empiricalMeasure, empiricalMeasure, ← Measure.mapₗ_apply_of_measurable hf, map_smul, map_sum]
+  simp [Measure.mapₗ_apply_of_measurable hf, Measure.map_dirac' hf]
 
 section MeasurableSingletonClass
 

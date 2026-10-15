@@ -3,6 +3,7 @@ module  -- shake: keep-all --deprecated_module: ignore
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
+public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
@@ -34,6 +35,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.Lattice
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
@@ -41,6 +43,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.OuterMeasure.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
+public import LeanMachineLearning.ForMathlib.Probability.EmpiricalConvergence
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.HasLaw
@@ -296,6 +299,7 @@ public import LeanMachineLearning.SpinGlasses.DeFinetti
 public import LeanMachineLearning.SpinGlasses.DovbyshSudakov
 public import LeanMachineLearning.SpinGlasses.DovbyshSudakovGaussian
 public import LeanMachineLearning.SpinGlasses.DovbyshSudakovLimit
+public import LeanMachineLearning.SpinGlasses.DovbyshSudakovReconstruction
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.SpinGlasses.GaussianIBP

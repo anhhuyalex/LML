@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.StrongLawMixture
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import Mathlib.Probability.StrongLaw
 public import Mathlib.Probability.Independence.InfinitePi
@@ -29,9 +30,8 @@ open scoped RealInnerProductSpace Matrix
 namespace NTK
 
 /-- The strong law for empirical averages of a measurable integrable observable
-over an i.i.d. sequence drawn from an arbitrary probability measure `ν`. This packages
-product-measure independence, identical distribution, expectation transport,
-and `Finset.range`/`Fin` conversion. -/
+over an i.i.d. sequence drawn from an arbitrary probability measure `ν`, with the average written
+over `Fin n` (`ProbabilityTheory.ae_tendsto_mean_infinitePi` is the `Finset.range` form). -/
 lemma iid_average_tendsto_integral {Ω : Type*} [MeasurableSpace Ω]
     (ν : Measure Ω) [IsProbabilityMeasure ν]
     (g : Ω → ℝ)
@@ -42,40 +42,10 @@ lemma iid_average_tendsto_integral {Ω : Type*} [MeasurableSpace Ω]
         (fun n : ℕ => (n : ℝ)⁻¹ * ∑ j : Fin n, g (seq j))
         Filter.atTop
         (nhds (∫ ω, g ω ∂ν)) := by
-  set μ := Measure.infinitePi (fun _ : ℕ => ν)
-  have hmap_eval : ∀ i : ℕ, μ.map (fun seq => seq i) = ν :=
-    fun i => Measure.infinitePi_map_eval _ i
-  have hmp : MeasurePreserving (fun seq : ℕ → Ω => seq 0) μ ν :=
-    measurePreserving_eval_infinitePi (fun _ : ℕ => ν) 0
-  have hint : Integrable (fun seq : ℕ → Ω => g (seq 0)) μ :=
-    (hmp.integrable_comp hg_meas.aestronglyMeasurable).2 hg_int
-  have hindep : Pairwise (Function.onFun (· ⟂ᵢ[μ] ·) fun j seq => g (seq j)) := by
-    have h := iIndepFun_infinitePi (P := fun _ : ℕ => ν)
-      (X := fun _ : ℕ => g) (fun _ => hg_meas)
-    intro i j hij
-    exact h.indepFun hij
-  have hident : ∀ i : ℕ,
-      IdentDistrib (fun seq : ℕ → Ω => g (seq i))
-        (fun seq : ℕ → Ω => g (seq 0)) μ μ := by
-    intro i
-    have hcoord : IdentDistrib (fun seq : ℕ → Ω => seq i)
-        (fun seq : ℕ → Ω => seq 0) μ μ := by
-      refine ⟨(measurable_pi_apply i).aemeasurable, (measurable_pi_apply 0).aemeasurable, ?_⟩
-      rw [hmap_eval i, hmap_eval 0]
-    exact hcoord.comp hg_meas
-  have hslln : ∀ᵐ seq ∂μ, Filter.Tendsto
-      (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, g (seq i))
-      Filter.atTop (nhds (∫ seq, g (seq 0) ∂μ)) :=
-    strong_law_ae _ hint hindep hident
-  have hexp : ∫ seq, g (seq 0) ∂μ = ∫ ω, g ω ∂ν := by
-    rw [← hmap_eval 0]
-    exact (MeasureTheory.integral_map (measurable_pi_apply 0).aemeasurable
-      hg_meas.stronglyMeasurable.aestronglyMeasurable).symm
-  filter_upwards [hslln] with seq hseq
-  rw [← hexp]
+  filter_upwards [ProbabilityTheory.ae_tendsto_mean_infinitePi ν hg_meas hg_int] with seq hseq
   convert hseq using 1
   ext width
-  rw [smul_eq_mul, Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
+  rw [Fin.sum_univ_eq_sum_range (fun i => g (seq i)) width]
 
 /-- Almost-sure convergence of a sequence of matrices follows from almost-sure convergence of
 each entry (the index types are finite, so the countably many null sets can be merged). -/
