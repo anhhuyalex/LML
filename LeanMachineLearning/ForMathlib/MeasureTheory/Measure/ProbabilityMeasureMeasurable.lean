@@ -27,8 +27,6 @@ the inclusion that is easy to prove and sufficient for limits:
   Giry measurable (`MeasureTheory.ProbabilityMeasure.measurable_of_borel`).
 * `MeasureTheory.continuous_toProbabilityMeasure_empiricalMeasure`: the empirical measure of a
   finite family is a continuous function of the family.
-* `MeasureTheory.measurable_empiricalMeasure`: the empirical measure is a measurable function of
-  the family.
 * `MeasureTheory.exists_measurable_tendsto_empiricalMeasure`: for measurable random points `y i b`
   in a Polish space, the set of `b` where the empirical measures converge weakly is measurable and
   the limit is a measurable function of `b` on it.
@@ -50,16 +48,6 @@ open MeasureTheory Filter Topology TopologicalSpace
 open scoped ENNReal NNReal unitInterval
 
 namespace MeasureTheory
-
-/-- The empirical measure `(card ι)⁻¹ ∑_i δ_{x i}` is a measurable function of the family `x`
-(for the Giry σ-algebra on measures). -/
-theorem measurable_empiricalMeasure {X ι : Type*} [MeasurableSpace X] [Fintype ι] :
-    Measurable fun x : ι → X => empiricalMeasure x := by
-  refine Measure.measurable_of_measurable_coe _ fun s hs => ?_
-  simp only [empiricalMeasure, Measure.smul_apply, Measure.coe_finsetSum, Finset.sum_apply,
-    Measure.dirac_apply' _ hs, smul_eq_mul]
-  exact Measurable.const_mul (Finset.measurable_sum _ fun i _ =>
-    (measurable_one.indicator hs).comp (measurable_pi_apply i)) _
 
 /-- The empirical measure `(card ι)⁻¹ ∑_i δ_{x i}` is a continuous function of the finite family
 `x`, for the topology of weak convergence. -/

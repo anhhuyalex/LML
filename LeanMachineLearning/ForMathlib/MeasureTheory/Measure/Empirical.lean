@@ -5,7 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.MeasureTheory.Measure.GiryMonad
 
 /-!
 # Empirical measures of finite families
@@ -24,6 +25,10 @@ it verbatim.
 
 * `MeasureTheory.empiricalMeasure`: the measure `(card ι)⁻¹ • ∑ i, dirac (x i)`.
 * `MeasureTheory.empiricalMeasure_comp_equiv`: the empirical measure is invariant under reindexing.
+* `MeasureTheory.empiricalMeasure_apply`: `empiricalMeasure x s = (card ι)⁻¹ * ∑ i, 1_s (x i)`
+  for a measurable set `s`.
+* `MeasureTheory.measurable_empiricalMeasure`: the empirical measure is a measurable function of
+  the family (for the Giry σ-algebra).
 * `MeasureTheory.map_empiricalMeasure`: pushing an empirical measure forward is the empirical
   measure of the image family.
 * `MeasureTheory.integral_empiricalMeasure`, `MeasureTheory.lintegral_empiricalMeasure`:
@@ -63,6 +68,21 @@ lemma map_empiricalMeasure {β : Type*} [MeasurableSpace β] (x : ι → α) {f 
   rw [empiricalMeasure, empiricalMeasure, ← Measure.mapₗ_apply_of_measurable hf, map_smul, map_sum]
   simp [Measure.mapₗ_apply_of_measurable hf, Measure.map_dirac' hf]
 
+/-- The empirical measure of a measurable set is the fraction of the family lying in it. -/
+lemma empiricalMeasure_apply (x : ι → α) {s : Set α} (hs : MeasurableSet s) :
+    empiricalMeasure x s = (Fintype.card ι : ℝ≥0∞)⁻¹ * ∑ i, s.indicator 1 (x i) := by
+  simp only [empiricalMeasure, Measure.smul_apply, Measure.coe_finsetSum, Finset.sum_apply,
+    Measure.dirac_apply' _ hs, smul_eq_mul]
+
+/-- The empirical measure `(card ι)⁻¹ ∑_i δ_{x i}` is a measurable function of the family `x`
+(for the Giry σ-algebra on measures). -/
+theorem measurable_empiricalMeasure :
+    Measurable fun x : ι → α => empiricalMeasure x := by
+  refine Measure.measurable_of_measurable_coe _ fun s hs => ?_
+  simp only [empiricalMeasure_apply _ hs]
+  exact Measurable.const_mul (Finset.measurable_sum _ fun i _ =>
+    (measurable_one.indicator hs).comp (measurable_pi_apply i)) _
+
 section MeasurableSingletonClass
 
 variable [MeasurableSingletonClass α]
@@ -81,6 +101,12 @@ theorem integral_empiricalMeasure [NormedAddCommGroup E] [NormedSpace ℝ E] [Co
 theorem lintegral_empiricalMeasure (x : ι → α) (g : α → ℝ≥0∞) :
     ∫⁻ y, g y ∂(empiricalMeasure x) = (Fintype.card ι : ℝ≥0∞)⁻¹ * ∑ i, g (x i) := by
   simp [empiricalMeasure, lintegral_finsetSum_measure, lintegral_dirac]
+
+/-- The `ℝ`-valued version of `empiricalMeasure_apply`. -/
+theorem empiricalMeasure_apply_toReal (x : ι → α) {s : Set α} (hs : MeasurableSet s) :
+    (empiricalMeasure x s).toReal =
+      (Fintype.card ι : ℝ)⁻¹ * ∑ i, s.indicator (1 : α → ℝ) (x i) := by
+  rw [← Measure.real, ← integral_indicator_one hs, integral_empiricalMeasure, smul_eq_mul]
 
 end MeasurableSingletonClass
 

@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import Mathlib.Analysis.InnerProductSpace.Basic
 public import Mathlib.LinearAlgebra.Finsupp.LinearCombination
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
@@ -63,14 +64,9 @@ theorem infDist_span_range_sq_eq_iInf_rat (v : E) (w : ι → E) :
       ∑ i, ∑ j, c i * c j * ⟪w i, w j⟫ := by
     intro c
     have h1 : T c = ∑ i, c i • w i := by simp [hT, Fintype.linearCombination_apply]
-    simp only [hQ, h1, ← real_inner_self_eq_norm_sq, inner_sub_left, inner_sub_right,
-      sum_inner, inner_sum, inner_smul_left, inner_smul_right, real_inner_comm v]
-    simp only [Finset.mul_sum, RCLike.conj_to_real, mul_assoc]
-    have h2 : ∑ x, ∑ y, c x * (c y * ⟪w y, w x⟫) = ∑ x, ∑ y, c x * (c y * ⟪w x, w y⟫) := by
-      rw [Finset.sum_comm]
-      exact Finset.sum_congr rfl fun _ _ => Finset.sum_congr rfl fun _ _ => by ring
-    rw [h2, ← Finset.mul_sum]
-    ring
+    simp only [hQ]
+    rw [h1, norm_sub_sq_real, norm_sum_smul_sq, inner_sum, real_inner_self_eq_norm_sq]
+    simp only [real_inner_smul_right, Finset.mul_sum]
   -- The distance to the span is the infimum over all real coefficients.
   have hdist : Metric.infDist v (Submodule.span ℝ (range w)) = ⨅ c, ‖v - T c‖ := by
     rw [← Fintype.range_linearCombination, Metric.infDist_eq_iInf]

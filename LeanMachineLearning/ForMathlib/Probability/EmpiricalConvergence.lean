@@ -27,6 +27,8 @@ surely dense in the support of its law (`ProbabilityTheory.ae_forall_mapClusterP
 ## Main declarations
 
 * `ProbabilityTheory.ae_tendsto_empiricalMeasure`: Varadarajan's theorem.
+* `MeasureTheory.measure_isOpen_eq_iSup_finset_biUnion`: the measure of an open set is the supremum
+  of the measures of the finite unions of basic open sets inside it.
 * `MeasureTheory.mapClusterPt_of_tendsto_empiricalMeasure`: support points are cluster points.
 * `ProbabilityTheory.ae_forall_mapClusterPt_of_mem_support`: the almost sure form.
 -/
@@ -59,7 +61,7 @@ theorem mapClusterPt_of_tendsto_empiricalMeasure [MetrizableSpace X] {x : ℕ �
   have hbound : ∀ n : ℕ, (empiricalMeasure fun i : Fin (n + 1) => x i) (interior U) ≤
       (N : ℝ≥0∞) * ((n : ℝ≥0∞) + 1)⁻¹ := by
     intro n
-    rw [← lintegral_indicator_one hmeas, lintegral_empiricalMeasure, mul_comm]
+    rw [empiricalMeasure_apply _ hmeas, mul_comm]
     refine mul_le_mul' ?_ (by simp)
     rw [Fin.sum_univ_eq_sum_range (fun i => (interior U).indicator 1 (x i)) (n + 1)]
     calc ∑ i ∈ range (n + 1), (interior U).indicator (1 : X → ℝ≥0∞) (x i)
@@ -85,6 +87,30 @@ theorem mapClusterPt_of_tendsto_empiricalMeasure [MetrizableSpace X] {x : ℕ �
     hzero.liminf_eq
   rw [hlim] at hle
   exact hpos.ne' (le_antisymm hle zero_le)
+
+/-- **Inner regularity by finite unions of basic open sets.**  In a second countable space, an
+open set `G` is the directed union of the finite unions of sets of the countable basis contained in
+it, so `ν G` is the supremum of the measures of these finite unions. -/
+theorem measure_isOpen_eq_iSup_finset_biUnion [SecondCountableTopology X] (ν : Measure X)
+    {G : Set X} (hG : IsOpen G) :
+    ν G = ⨆ F : {F : Finset (countableBasis X) // (⋃ b ∈ F, (b : Set X)) ⊆ G},
+      ν (⋃ b ∈ F.1, (b : Set X)) := by
+  have : Countable (countableBasis X) := (countable_countableBasis X).to_subtype
+  have hdir : Directed (· ⊆ ·) (fun F : {F : Finset (countableBasis X) //
+      (⋃ b ∈ F, (b : Set X)) ⊆ G} => ⋃ b ∈ F.1, (b : Set X)) :=
+    fun F₁ F₂ => ⟨⟨F₁.1 ∪ F₂.1, by
+      simpa only [Finset.set_biUnion_union] using union_subset F₁.2 F₂.2⟩,
+      by simp only [Finset.set_biUnion_union]; exact subset_union_left,
+      by simp only [Finset.set_biUnion_union]; exact subset_union_right⟩
+  have hunion : ⋃ F : {F : Finset (countableBasis X) // (⋃ b ∈ F, (b : Set X)) ⊆ G},
+      ⋃ b ∈ F.1, (b : Set X) = G := by
+    refine subset_antisymm (iUnion_subset fun F => F.2) fun z hz => ?_
+    obtain ⟨v, hv, hzv, hvG⟩ := (isBasis_countableBasis X).exists_subset_of_mem_open hz hG
+    have hs : ⋃ b ∈ ({⟨v, hv⟩} : Finset (countableBasis X)), (b : Set X) = v := by
+      simp only [Finset.set_biUnion_singleton]
+    exact mem_iUnion.2 ⟨⟨{(⟨v, hv⟩ : countableBasis X)}, by rw [hs]; exact hvG⟩,
+      by rw [hs]; exact hzv⟩
+  rw [← hdir.measure_iUnion, hunion]
 
 end MeasureTheory
 
@@ -121,7 +147,7 @@ theorem ae_tendsto_empiricalMeasure [MetrizableSpace X] [SecondCountableTopology
     have hE : ∀ n : ℕ, ((empiricalMeasure fun i : Fin (n + 1) => x i) (U F)).toReal =
         ((n + 1 : ℕ) : ℝ)⁻¹ * ∑ i ∈ range (n + 1), (U F).indicator (1 : X → ℝ) (x i) := by
       intro n
-      rw [← Measure.real, ← integral_indicator_one hm, integral_empiricalMeasure,
+      rw [empiricalMeasure_apply_toReal _ hm,
         Fin.sum_univ_eq_sum_range (fun i => (U F).indicator (1 : X → ℝ) (x i)) (n + 1)]
       simp
     refine (ENNReal.tendsto_toReal_iff (fun n => measure_ne_top _ _) (measure_ne_top _ _)).1 ?_
@@ -130,21 +156,7 @@ theorem ae_tendsto_empiricalMeasure [MetrizableSpace X] [SecondCountableTopology
   refine tendsto_of_forall_isOpen_le_liminf' fun G hG => ?_
   change ν G ≤ atTop.liminf fun n => (empiricalMeasure fun i : Fin (n + 1) => x i) G
   have : Countable (countableBasis X) := (countable_countableBasis X).to_subtype
-  -- `G` is the directed union of the finite unions of basic open sets contained in it
-  have hdir : Directed (· ⊆ ·) (fun F : {F : Finset (countableBasis X) // U F ⊆ G} => U F.1) :=
-    fun F₁ F₂ => ⟨⟨F₁.1 ∪ F₂.1, by
-      simpa only [hU, Finset.set_biUnion_union] using union_subset F₁.2 F₂.2⟩,
-      by simp only [hU, Finset.set_biUnion_union]; exact subset_union_left,
-      by simp only [hU, Finset.set_biUnion_union]; exact subset_union_right⟩
-  have hunion : ⋃ F : {F : Finset (countableBasis X) // U F ⊆ G}, U F.1 = G := by
-    refine subset_antisymm (iUnion_subset fun F => F.2) fun z hz => ?_
-    obtain ⟨v, hv, hzv, hvG⟩ := (isBasis_countableBasis X).exists_subset_of_mem_open hz hG
-    have hs : U {(⟨v, hv⟩ : countableBasis X)} = v := by
-      simp only [hU, Finset.set_biUnion_singleton]
-    exact mem_iUnion.2 ⟨⟨{(⟨v, hv⟩ : countableBasis X)}, by rw [hs]; exact hvG⟩,
-      by rw [hs]; exact hzv⟩
-  rw [show ν G = ⨆ F : {F : Finset (countableBasis X) // U F ⊆ G}, ν (U F.1) by
-    rw [← hdir.measure_iUnion, hunion]]
+  rw [measure_isOpen_eq_iSup_finset_biUnion ν hG]
   refine iSup_le fun F => ?_
   calc ν (U F.1) = atTop.liminf fun n => (empiricalMeasure fun i : Fin (n + 1) => x i) (U F.1) :=
         (hx F.1).liminf_eq.symm

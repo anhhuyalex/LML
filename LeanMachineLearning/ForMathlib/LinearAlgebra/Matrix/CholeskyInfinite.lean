@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
+public import Mathlib.Analysis.InnerProductSpace.Basic
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
 
@@ -27,6 +28,8 @@ sum of i.i.d. Gaussians.
   finite principal submatrix of `A` is positive semidefinite.
 * `Matrix.sum_cholInf_mul_eq_dotProduct`: the finite sum `∑_{k ≤ m} L m k c k` is the dot product
   of the first `N > m` coordinates of row `m` of `L` with those of `c`.
+* `Matrix.inner_cholInf_realization`: the rows of `L`, placed along an orthonormal sequence of an
+  inner product space, realize `A` as a Gram matrix.
 
 ## Implementation notes
 
@@ -40,7 +43,7 @@ Cauchy–Schwarz (`residual_offdiag_eq_zero`).
 @[expose] public section
 
 open Finset
-open scoped Matrix
+open scoped Matrix RealInnerProductSpace
 
 namespace Matrix
 
@@ -343,5 +346,27 @@ theorem sum_cholInf_mul_eq_dotProduct (A : ℕ → ℕ → ℝ) {m N : ℕ} (hm 
   rw [Fin.sum_univ_eq_sum_range (fun j => cholInf A m j * c j) N]
   refine sum_subset (range_mono (by omega)) fun k _ hk => ?_
   rw [cholInf_of_gt A (by simpa using hk), zero_mul]
+
+/-- **Realization of a positive semidefinite array as a Gram matrix.**  The rows of the Cholesky
+factor of `Γ`, placed along an orthonormal sequence `ε`, have Gram matrix `Γ`:
+`⟪x_l, x_l'⟫ = Γ l l'` for `x_l = ∑_{k ≤ l} L_{l,k} ε_k`. -/
+theorem inner_cholInf_realization {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+    (ε : ℕ → H) (hε : Orthonormal ℝ ε) {Γ : ℕ → ℕ → ℝ}
+    (hΓ : ∀ k : ℕ, (Matrix.of fun l l' : Fin k => Γ l l').PosSemidef) (l l' : ℕ) :
+    ⟪∑ k ∈ range (l + 1), cholInf Γ l k • ε k,
+        ∑ k ∈ range (l' + 1), cholInf Γ l' k • ε k⟫ = Γ l l' := by
+  set K := max l l' + 1 with hK
+  have hext : ∀ m : ℕ, m < K → ∑ k ∈ range (m + 1), cholInf Γ m k • ε k =
+      ∑ k ∈ range K, cholInf Γ m k • ε k := fun m hm =>
+    sum_subset (range_mono (by omega)) fun k _ hk => by
+      rw [cholInf_of_gt Γ (by simpa using hk), zero_smul]
+  rw [hext l (by omega), hext l' (by omega), ← sum_cholInf_mul_eq hΓ l l' K (by omega),
+    sum_inner]
+  refine sum_congr rfl fun k hk => ?_
+  rw [inner_sum]
+  simp only [real_inner_smul_left, real_inner_smul_right, orthonormal_iff_ite.1 hε, mul_ite,
+    mul_one, mul_zero, sum_ite_eq]
+  simp [hk]
+  ring
 
 end Matrix

@@ -87,12 +87,7 @@ private lemma quadForm_eq (h : ℕ → H) (a : ℕ → ℝ) (p : Σ s : Finset �
   have h1 : ‖h 0 - ∑ j : s, (c j : ℝ) • h (j + 1)‖ ^ 2 =
       ⟪h 0, h 0⟫ - 2 * ∑ j : s, (c j : ℝ) * ⟪h 0, h (j + 1)⟫ +
         ∑ j : s, ∑ k : s, (c j : ℝ) * (c k : ℝ) * ⟪h (j + 1), h (k + 1)⟫ := by
-    have hs : ‖∑ j : s, (c j : ℝ) • h (j + 1)‖ ^ 2 =
-        ∑ j : s, ∑ k : s, (c j : ℝ) * (c k : ℝ) * ⟪h (j + 1), h (k + 1)⟫ := by
-      rw [← real_inner_self_eq_norm_sq, sum_inner]
-      refine sum_congr rfl fun j _ => ?_
-      rw [inner_sum]
-      exact sum_congr rfl fun k _ => by rw [real_inner_smul_left, real_inner_smul_right, mul_assoc]
+    have hs := norm_sum_smul_sq (univ : Finset s) (fun j => (c j : ℝ)) fun j => h (j + 1)
     rw [norm_sub_sq_real, hs, inner_sum]
     simp only [real_inner_smul_right, real_inner_self_eq_norm_sq]
   have hdiag : ∑ j : s, ∑ k : s, (c j : ℝ) * (c k : ℝ) *
@@ -158,12 +153,7 @@ private lemma iInf_quadForm_eq (h : ℕ → H) (a : ℕ → ℝ) (ha : ∀ l, 0 
     simp only [smul_sub, sum_sub_distrib, ← sum_smul, hsum1, one_smul]
   have hnorm : ‖h 0 - ∑ j : s, (1 / (m : ℝ)) • h (j + 1)‖ ≤ δ := by
     rw [hvec]
-    calc ‖∑ j : s, (1 / (m : ℝ)) • (h 0 - h (j + 1))‖
-        ≤ ∑ j : s, ‖(1 / (m : ℝ)) • (h 0 - h (j + 1))‖ := norm_sum_le _ _
-      _ ≤ ∑ _j : s, (1 / (m : ℝ)) * δ := sum_le_sum fun j _ => by
-          rw [norm_smul, Real.norm_of_nonneg (by positivity)]
-          exact mul_le_mul_of_nonneg_left (hclose j).1.le (by positivity)
-      _ = δ := by rw [← sum_mul, hsum1, one_mul]
+    exact norm_sum_smul_le (fun j _ => by positivity) hsum1 fun j _ => (hclose j).1.le
   have hsq : ‖h 0 - ∑ j : s, (1 / (m : ℝ)) • h (j + 1)‖ ^ 2 ≤ ε / 3 := by
     have h1 : δ ≤ 1 := min_le_left _ _
     have h2 : δ ≤ ε / 3 := min_le_right _ _
@@ -187,11 +177,7 @@ private lemma iInf_quadForm_eq (h : ℕ → H) (a : ℕ → ℝ) (ha : ∀ l, 0 
 private lemma measurable_quadForm (p : Σ s : Finset ℕ, s → ℚ) :
     Measurable fun R : ℕ → ℕ → ℝ => quadForm R p := by
   unfold quadForm
-  have hR : ∀ l l' : ℕ, Measurable fun R : ℕ → ℕ → ℝ => R l l' := fun l l' =>
-    (measurable_pi_apply l').comp (measurable_pi_apply l)
-  refine ((hR 0 0).sub (measurable_const.mul (Finset.measurable_sum _ fun j _ =>
-    measurable_const.mul (hR _ _)))).add (Finset.measurable_sum _ fun j _ =>
-      Finset.measurable_sum _ fun k _ => measurable_const.mul (hR _ _))
+  fun_prop
 
 end Diagonal
 
@@ -234,16 +220,16 @@ theorem exists_measurable_gram_recovery (η : Measure (H × ℝ)) [IsProbability
         (Γ (fun l l' => ⟪(ha l).1, (ha l').1⟫ + if l = l' then (ha l).2 else 0) l l') =
           ⟪(ha l).1, (ha l').1⟫ := by
   obtain ⟨A, hA, hAe⟩ := exists_measurable_diag_residual η hη
-  have hR : ∀ l l' : ℕ, Measurable fun R : ℕ → ℕ → ℝ => R l l' := fun l l' =>
-    (measurable_pi_apply l').comp (measurable_pi_apply l)
   refine ⟨fun l R => A fun i j => R (Equiv.swap 0 l i) (Equiv.swap 0 l j),
     fun R l l' => if l = l' then R l l - A (fun i j => R (Equiv.swap 0 l i) (Equiv.swap 0 l j))
       else R l l', fun l => hA.comp (by fun_prop), fun l l' => ?_, ?_⟩
   · by_cases hll : l = l'
     · simp only [hll, ite_true]
-      exact (hR _ _).sub (hA.comp (by fun_prop))
+      have := hA.comp (show Measurable fun R : ℕ → ℕ → ℝ =>
+        fun i j => R (Equiv.swap 0 l i) (Equiv.swap 0 l j) by fun_prop)
+      fun_prop
     · simp only [hll, ite_false]
-      exact hR _ _
+      fun_prop
   · have hall : ∀ l : ℕ, ∀ᵐ ha ∂(Measure.infinitePi fun _ : ℕ => η),
         (A fun i j => ⟪(ha (Equiv.swap 0 l i)).1, (ha (Equiv.swap 0 l j)).1⟫ +
           if i = j then (ha (Equiv.swap 0 l i)).2 else 0) = (ha l).2 := fun l => by
@@ -259,33 +245,6 @@ theorem exists_measurable_gram_recovery (η : Measure (H × ℝ)) [IsProbability
     · simp [hll]
 
 end Sample
-
-section Realization
-
-variable {H' : Type*} [NormedAddCommGroup H'] [InnerProductSpace ℝ H']
-
-/-- The rows of the Cholesky factor of a positive semidefinite Gram array, placed along an
-orthonormal sequence, realize the array: `⟪x_l, x_l'⟫ = Γ l l'` for
-`x_l = ∑_{k ≤ l} L_{l,k} ε_k`. -/
-private lemma inner_cholInf_realization (ε : ℕ → H') (hε : Orthonormal ℝ ε) {Γ : ℕ → ℕ → ℝ}
-    (hΓ : ∀ k : ℕ, (Matrix.of fun l l' : Fin k => Γ l l').PosSemidef) (l l' : ℕ) :
-    ⟪∑ k ∈ range (l + 1), Matrix.cholInf Γ l k • ε k,
-        ∑ k ∈ range (l' + 1), Matrix.cholInf Γ l' k • ε k⟫ = Γ l l' := by
-  set K := max l l' + 1 with hK
-  have hext : ∀ m : ℕ, m < K → ∑ k ∈ range (m + 1), Matrix.cholInf Γ m k • ε k =
-      ∑ k ∈ range K, Matrix.cholInf Γ m k • ε k := fun m hm =>
-    sum_subset (range_mono (by omega)) fun k _ hk => by
-      rw [Matrix.cholInf_of_gt Γ (by simpa using hk), zero_smul]
-  rw [hext l (by omega), hext l' (by omega), ← Matrix.sum_cholInf_mul_eq hΓ l l' K
-    (by omega), sum_inner]
-  refine sum_congr rfl fun k hk => ?_
-  rw [inner_sum]
-  simp only [real_inner_smul_left, real_inner_smul_right, orthonormal_iff_ite.1 hε, mul_ite,
-    mul_one, mul_zero, sum_ite_eq]
-  simp [hk]
-  ring
-
-end Realization
 
 section Reconstruction
 
@@ -338,7 +297,7 @@ theorem exists_measurable_dovbysh_reconstruction (ε : ℕ → H') (hε : Orthon
     exact Matrix.posSemidef_gram ℝ _
   obtain ⟨U, hU⟩ := exists_linearIsometry_of_inner_eq
     (h := fun l => (ha l).1) (x := fun l => ∑ k ∈ range (l + 1), Matrix.cholInf (Γ R) l k • ε k)
-    fun l l' => by rw [inner_cholInf_realization ε hε hpsd]; exact hΓR l l'
+    fun l l' => by rw [Matrix.inner_cholInf_realization ε hε hpsd]; exact hΓR l l'
   refine ⟨U, ?_⟩
   set f : H × ℝ → WithLp 2 (H × H') × ℝ := fun q => (U q.1, q.2) with hf
   have hfc : Continuous f := by fun_prop

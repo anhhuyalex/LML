@@ -21,6 +21,7 @@ the orthogonal complement of the span of the `h i` may be larger than that of th
 
 ## Main declarations
 
+* `norm_sum_smul_sq`: the squared norm of a finite linear combination in terms of the Gram matrix.
 * `exists_linearIsometry_of_inner_eq`: the isometry `U : H →ₗᵢ[ℝ] WithLp 2 (H × H')` with
   `U (h i) = (0, x i)`.
 -/
@@ -34,16 +35,22 @@ variable {ι H H' : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
   [NormedAddCommGroup H'] [InnerProductSpace ℝ H']
 
 /-- The squared norm of a finite linear combination in terms of the Gram matrix of the family. -/
+theorem norm_sum_smul_sq {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (s : Finset ι) (c : ι → ℝ) (v : ι → E) :
+    ‖∑ i ∈ s, c i • v i‖ ^ 2 = ∑ i ∈ s, ∑ j ∈ s, c i * c j * ⟪v i, v j⟫ := by
+  rw [← real_inner_self_eq_norm_sq, sum_inner]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  rw [inner_sum]
+  exact Finset.sum_congr rfl fun j _ => by
+    rw [real_inner_smul_left, real_inner_smul_right, mul_assoc]
+
+/-- The squared norm of a finitely supported linear combination in terms of the Gram matrix. -/
 private lemma norm_sq_linearCombination {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℝ E] (g : ι → E) (c : ι →₀ ℝ) :
     ‖Finsupp.linearCombination ℝ g c‖ ^ 2 =
       c.sum fun i a => c.sum fun j b => a * b * ⟪g i, g j⟫ := by
-  rw [← real_inner_self_eq_norm_sq, Finsupp.linearCombination_apply, Finsupp.sum, Finsupp.sum,
-    sum_inner]
-  refine Finset.sum_congr rfl fun i _ => ?_
-  rw [inner_sum, Finsupp.sum]
-  exact Finset.sum_congr rfl fun j _ => by
-    rw [real_inner_smul_left, real_inner_smul_right, mul_assoc]
+  rw [Finsupp.linearCombination_apply, Finsupp.sum, norm_sum_smul_sq]
+  simp only [Finsupp.sum]
 
 /-- The norm of a finite linear combination only depends on the Gram matrix of the family. -/
 private lemma norm_linearCombination_eq {h : ι → H} {x : ι → H'}
