@@ -24,7 +24,9 @@ public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.IdentDistrib
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSpace.MeasurableOfDist
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding

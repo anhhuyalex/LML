@@ -88,6 +88,7 @@ theorem mapClusterPt_of_tendsto_empiricalMeasure [MetrizableSpace X] {x : ℕ �
   rw [hlim] at hle
   exact hpos.ne' (le_antisymm hle zero_le)
 
+omit [BorelSpace X] in
 /-- **Inner regularity by finite unions of basic open sets.**  In a second countable space, an
 open set `G` is the directed union of the finite unions of sets of the countable basis contained in
 it, so `ν G` is the supremum of the measures of these finite unions. -/

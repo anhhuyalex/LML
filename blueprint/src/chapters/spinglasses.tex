@@ -42,7 +42,7 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
 Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book: the general tools
 (the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6), the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5) and of separately exchangeable arrays (Theorem~1.4), each with its converse.
-Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); the random measure $\eta(w)$ on $L^2(0,1)$ itself and the asymptotic Gibbs measure are not formalized yet and are the next planned step.
+Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). What remains open is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and the use of Theorem~1.3 on the asymptotic Gibbs measure.
 
 
 \medskip\noindent\textbf{Notation.}
@@ -1493,7 +1493,7 @@ because $F$ is bounded: removing a tail of small total weight changes the averag
 we have not worked this out and do not claim it is routine. It could matter later: the asymptotic Gibbs measure $G$ produced by the Dovbysh--Sudakov theorem is a random measure on a Hilbert ball and is not known to be finitely supported,
 so identifying the limit of the right-hand sides $\mathbb E\langle F(R)\rangle$ with $\mathbb E\,\Phi(G)$ is where we expect the countable-atom version of Theorem~1.3 to be needed. That identification is not part of the formalization yet (in progress; see below).
 
-\emph{New information from the Dovbysh--Sudakov formalization (Section~\ref{sec:sg:dovbysh-sudakov}).} For a limit law $\mu$ of overlap arrays, Theorem~\ref{thm:sg:dovbysh-sudakov-gram} represents the array as $\int h(w,u_l,v)h(w,u_{l'},v)\,dv$ off the diagonal, with $u_l$ i.i.d.\ uniform and $\int h(w,u,v)^2\,dv\le1$. The corresponding Gibbs measure at parameter $w$ is therefore the image of Lebesgue measure on $[0,1]$ under $u\mapsto h(w,u,\cdot)$. A priori this image is diffuse, not atomic, so the finite-atom statement of Theorem~\ref{thm:sg:gram13} cannot be applied to it directly, and some form of the countable (or general) case, or an approximation of $G$ by finitely supported measures, will be needed. Our representation does not say that $G$ is atomic. Constructing $G$ itself as a measurable family of measures on the Hilbert ball is not done: it needs the measurability of $(w,u)\mapsto[h(w,u,\cdot)]\in L^2(0,1)$ (which does not need Lemma~1.7), and Lemma~1.7 (now formalized for a fixed law, Section~\ref{sec:sg:reconstruction}) is what makes the resulting measure canonical.
+\emph{New information from the Dovbysh--Sudakov formalization (Section~\ref{sec:sg:dovbysh-sudakov}).} For a limit law $\mu$ of overlap arrays, Theorem~\ref{thm:sg:dovbysh-sudakov-gram} represents the array as $\int h(w,u_l,v)h(w,u_{l'},v)\,dv$ off the diagonal, with $u_l$ i.i.d.\ uniform and $\int h(w,u,v)^2\,dv\le1$. The corresponding Gibbs measure at parameter $w$ is therefore the image of Lebesgue measure on $[0,1]$ under $u\mapsto h(w,u,\cdot)$. A priori this image is diffuse, not atomic, so the finite-atom statement of Theorem~\ref{thm:sg:gram13} cannot be applied to it directly, and some form of the countable (or general) case, or an approximation of $G$ by finitely supported measures, will be needed. Our representation does not say that $G$ is atomic. The measurable family $G$ of measures on the Hilbert ball is now constructed (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}); it needed the measurability of $(w,u)\mapsto[h(w,u,\cdot)]\in L^2(0,1)$, which does not need Lemma~1.7, while Lemma~1.7 (formalized for a fixed law, Section~\ref{sec:sg:reconstruction}) is what makes the resulting measure canonical.
 
 \subsection*{Decision C: truncation by moments, not by Gaussian concentration \emph{(a different method, not a weaker result)}}
 
@@ -1528,7 +1528,7 @@ Truncation by moments, no concentration & same conclusion, different proof & onl
 Continuity on the PSD cone only & same in practice & Gram matrices are always positive semidefinite\\
 Arbitrary $C_z,C_y$, explicit variance bounds & more general & SK covariances are an instance\\
 Limit $a_N\to1$ & \textbf{not done} & finite-$N$ statement only\\
-Use of Theorem~1.3 to pass to the asymptotic Gibbs measure & \textbf{not done} (in progress) & the Dovbysh--Sudakov representation is now formalized (Section~\ref{sec:sg:dovbysh-sudakov}); still needs the Hilbert-space-valued random measure (Lemma~1.7 is now formalized for a fixed law, Section~\ref{sec:sg:reconstruction}) and probably the countable or non-atomic case\\
+Use of Theorem~1.3 to pass to the asymptotic Gibbs measure & \textbf{not done} (in progress) & the Dovbysh--Sudakov representation is now formalized (Section~\ref{sec:sg:dovbysh-sudakov}); the Hilbert-space-valued random measure is now constructed (Section~\ref{sec:sg:gibbs-measure}; Lemma~1.7 is formalized for a fixed law, Section~\ref{sec:sg:reconstruction}); still needs the countable or non-atomic case of Theorem~1.3 and the limit $a_N\to1$\\
 \end{tabular}
 \end{center}
 
@@ -1605,7 +1605,7 @@ The representation (and Lemma~1.7) is only needed to identify that quantity with
 Eq.~(1.73) for each $N$, with $m$, $a_z,a_y$, $p_z,p_y$ independent of $N$ & proved (Theorem~\ref{thm:sg:overlap-approx}) & $F_N$ depends on $N$ only via $a_N$ in the Gaussian integrals\\
 $\sup_Q|F_N-F_\infty|\to0$ on overlap matrices & not done & expected by compactness and weak continuity of Gaussians in the covariance (route~1)\\
 Replacing $\mathbb E\langle F_N(R)\rangle$ by $\mathbb E\langle F_\infty(R)\rangle$ & not done & immediate from the previous line, since $\langle\cdot\rangle$ is bounded by a supremum\\
-Passing to the limit along an overlap-law subsequence & not done (can now be started) & only needs the formalized weak convergence of overlap laws; identifying the limit with $\mathbb E\,\Phi(G)$ needs the asymptotic Gibbs measure (Dovbysh--Sudakov and Lemma~1.7 formalized, the random measure on $L^2(0,1)$ not), see Sections~\ref{sec:sg:asymptotic-gibbs},~\ref{sec:sg:dovbysh-sudakov} and~\ref{sec:sg:reconstruction}\\
+Passing to the limit along an overlap-law subsequence & not done (can now be started) & only needs the formalized weak convergence of overlap laws; identifying the limit with $\mathbb E\,\Phi(G)$ needs the asymptotic Gibbs measure (now formalized, Section~\ref{sec:sg:gibbs-measure}), see also Sections~\ref{sec:sg:asymptotic-gibbs},~\ref{sec:sg:dovbysh-sudakov} and~\ref{sec:sg:reconstruction}\\
 \end{tabular}
 \end{center}
 
@@ -1619,7 +1619,7 @@ law $P$ of the disorder). Let $\mathcal K$ be the set of arrays $A\in\mathbb R^{
 principal submatrices $(A_{ll'})_{l,l'<k}$ are positive semidefinite (``Gram-type arrays''). This section shows that $\Lambda_N$ is concentrated on $\mathcal K$ and
 invariant under permutations of the replicas (Eq.~(1.74)), that $\mathcal K$ is compact, and hence that a subsequence of $(\Lambda_N)$ converges weakly to an exchangeable
 probability measure on $\mathcal K$. These are exactly the hypotheses of the Dovbysh--Sudakov theorem (Theorem~1.7 of the book), which then represents the limit as the law of the Gram
-array of an i.i.d.\ sample from a random measure on the unit ball of a Hilbert space (the \emph{asymptotic Gibbs measure}). The representation of the limit array is formalized in the function-valued form of Theorem~\ref{thm:sg:dovbysh-sudakov-gram} (Section~\ref{sec:sg:dovbysh-sudakov}); the random measure on the Hilbert ball itself is not, although Lemma~1.7 (its measurable reconstruction for a fixed law) is formalized in Section~\ref{sec:sg:reconstruction}.
+array of an i.i.d.\ sample from a random measure on the unit ball of a Hilbert space (the \emph{asymptotic Gibbs measure}). The representation of the limit array is formalized in the function-valued form of Theorem~\ref{thm:sg:dovbysh-sudakov-gram} (Section~\ref{sec:sg:dovbysh-sudakov}); the random measure on the Hilbert ball itself is constructed in Section~\ref{sec:sg:gibbs-measure}, and Lemma~1.7 (its measurable reconstruction for a fixed law) is formalized in Section~\ref{sec:sg:reconstruction}.
 
 \begin{lemma}[A mixture of i.i.d.\ sequences is exchangeable]\label{lem:sg:mixture}
   \lean{MeasureTheory.Measure.measurable_pi_const, MeasureTheory.Measure.measurable_infinitePi_const,
@@ -1719,7 +1719,7 @@ the continuous map $T_e(A)=(A_{e(l)e(l')})$. For the SK model the hypotheses hol
 \begin{remark}[Deviations from Panchenko's treatment of the asymptotic Gibbs measures, and why]\label{rem:sg:asymptotic-deviation}
 \begin{enumerate}
 \item \emph{The Dovbysh--Sudakov theorem is formalized only in function-valued form.} The book obtains the asymptotic Gibbs measure $G$ from the limit array via Theorem~1.7 (proved in Sections~1.4--1.5 from the Aldous--Hoover representation).
-This section stops at its hypotheses (symmetric, positive semidefinite, exchangeable limit law). The theorem itself is proved in Section~\ref{sec:sg:dovbysh-sudakov} (\texttt{exists\_dovbysh\_sudakov\_representation\_of\_gram\_set} takes exactly the output of Theorem~\ref{thm:sg:asymptotic-overlap}), and gives measurable $h(w,u,\cdot)\in L^2(0,1)$ representing the limit array. The existence of $G$ as a measurable family of probability measures on the unit ball of a Hilbert space (in particular on $L^2(0,1)$) is not a theorem of this repository; no Lean declaration asserts it. It is the content of the next planned milestone.
+This section stops at its hypotheses (symmetric, positive semidefinite, exchangeable limit law). The theorem itself is proved in Section~\ref{sec:sg:dovbysh-sudakov} (\texttt{exists\_dovbysh\_sudakov\_representation\_of\_gram\_set} takes exactly the output of Theorem~\ref{thm:sg:asymptotic-overlap}), and gives measurable $h(w,u,\cdot)\in L^2(0,1)$ representing the limit array. The existence of $G$ as a measurable family of probability measures on the unit ball of $L^2(0,1)$ is Theorem~\ref{thm:sg:asymptotic-gibbs-measure} of Section~\ref{sec:sg:gibbs-measure}.
 \item \emph{All permutations, any Gibbs measure.} We prove invariance under every bijection of $\mathbb N$ (not only finite permutations), and Theorem~\ref{thm:sg:annealed-gram} is stated for an arbitrary measurable family of Gibbs measures, so it applies both to $G_N$
 and to the auxiliary measure $G'_N$ of the Aizenman--Sims--Starr scheme (Eq.~(1.73)). The book's step identifying the asymptotic overlap laws of $G_N$ and $G'_N$ (via an orthogonal transformation of $G'$) is not formalized.
 \item \emph{The diagonal.} The array includes the diagonal $R_{ll}=1$, which holds for $\pm1$ spins; the book's representation concerns $(R_{ll'})_{l\ne l'}$.
@@ -2220,6 +2220,7 @@ Deviations are listed in Remark~\ref{rem:sg:dovbysh-sudakov-deviation}.
         Matrix.measurable_cholInf,
         Matrix.sum_cholInf_mul_eq,
         Matrix.sum_cholInf_mul_eq_dotProduct,
+        Matrix.inner_cholInf_realization,
         Matrix.posSemidef_symm,
         Matrix.posSemidef_comp}
   \leanok
@@ -2364,8 +2365,8 @@ Apply Theorem~\ref{thm:sg:dovbysh-sudakov} to the identity array on $(\mathbb R^
 
 \begin{remark}[Deviations from the book and what is left]\label{rem:sg:dovbysh-sudakov-deviation}
 \begin{enumerate}
-\item \emph{The Hilbert space.} The book represents the array through a random measure $\eta$ on $L^2(0,1)\times[0,\infty)$. The Lean statements of this section give the Gram array through the functions $h(w,u,\cdot)\in L^2(0,1)$ and the integral $\int h\,h'$. That $(w,u)\mapsto h(w,u,\cdot)$ is a measurable map into the Hilbert space $L^2(0,1)$, and hence that the pushforward measures $\eta(w)$ on $L^2(0,1)\times[0,\infty)$ form a random measure, is not formalized. It does \emph{not} need Lemma~1.7: for a jointly measurable $h$ the map $q\mapsto[h(q,\cdot)]\in L^2(0,1)$ is weakly measurable by Fubini (Lemma~\ref{lem:sg:jensen-partial}), hence measurable since $L^2(0,1)$ is separable.
-\item \emph{Lemma~1.7} (that $\eta$ is a measurable function of $R$ up to an isometry) is formalized in Section~\ref{sec:sg:reconstruction}, for a fixed law $\eta$ on a separable Hilbert space. Not formalized: its combination with the representation above, i.e.\ the identification of the asymptotic Gibbs measure on the unit ball of $L^2(0,1)$ (Section~1.5 of the book and the end of Section~\ref{sec:sg:asymptotic-gibbs}).
+\item \emph{The Hilbert space.} The book represents the array through a random measure $\eta$ on $L^2(0,1)\times[0,\infty)$. The Lean statements of this section give the Gram array through the functions $h(w,u,\cdot)\in L^2(0,1)$ and the integral $\int h\,h'$. That $(w,u)\mapsto h(w,u,\cdot)$ is a measurable map into the Hilbert space $L^2(0,1)$, and hence that the pushforward measures form a random measure, is proved in Section~\ref{sec:sg:gibbs-measure} (for the marginal $G(w)$ on $L^2(0,1)$; the pairs with the diagonal part $a$ are not treated there). It does \emph{not} need Lemma~1.7: for a jointly measurable $h$ the map $q\mapsto[h(q,\cdot)]\in L^2(0,1)$ is weakly measurable by Fubini (Lemma~\ref{lem:sg:jensen-partial}), hence measurable since $L^2(0,1)$ is separable.
+\item \emph{Lemma~1.7} (that $\eta$ is a measurable function of $R$ up to an isometry) is formalized in Section~\ref{sec:sg:reconstruction}, for a fixed law $\eta$ on a separable Hilbert space. Its combination with the representation above, i.e.\ the asymptotic Gibbs measure on the unit ball of $L^2(0,1)$, is Section~\ref{sec:sg:gibbs-measure}; the measure there is built directly from $h$, so Lemma~1.7 is not used.
 \item \emph{No integrability assumption.} The book does not assume $\mathbb E R_{0,0}<\infty$ and neither do the Lean statements. The strong law for the Aldous--Hoover array needs square-integrable sections; this is not assumed but derived (Theorem~\ref{thm:sg:ah-empirical}(a)) from the nonnegative strong law, Lemma~\ref{lem:sg:slln}(c), which the book does not discuss.
 \item \emph{Another route to the Gaussian array.} The book generates, conditionally on $R$, a Gaussian vector with covariance $R$ and takes independent copies. Here it is $g_{l,i}=\sum_{k\le l}L_{l,k}\xi_{i,k}$ with the explicit measurable Cholesky factor $L$ of $R$ (Lemma~\ref{lem:sg:cholesky}); the only place where the exchangeability of $R$ enters is that the law of $g$ given $R$ depends on $R$ only through its entries, even though the Cholesky factors of $R$ and of a permuted $R$ are different matrices.
 \item \emph{Order of limits.} The map ``limit of the empirical covariances'' is a $\limsup$ and is only meaningful on the almost sure set where the limits exist; this is why the comparison of the two arrays goes through a measurable map and an almost sure equality on both sides, rather than through conditional expectations as in the book's informal statement.
@@ -2385,7 +2386,9 @@ The Lean files are \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean}, with 
   \lean{MeasureTheory.map_empiricalMeasure,
         ProbabilityTheory.ae_tendsto_empiricalMeasure,
         MeasureTheory.mapClusterPt_of_tendsto_empiricalMeasure,
-        ProbabilityTheory.ae_forall_mapClusterPt_of_mem_support}
+        ProbabilityTheory.ae_forall_mapClusterPt_of_mem_support,
+        MeasureTheory.empiricalMeasure_apply,
+        MeasureTheory.measure_isOpen_eq_iSup_finset_biUnion}
   \leanok
 Let $X$ be a second countable metrizable space with its Borel $\sigma$-algebra and $x_0,x_1,\dots$ i.i.d.\ with law $\nu$. Then, almost surely, the empirical measures $(n+1)^{-1}\sum_{i\le n}\delta_{x_i}$ converge weakly to $\nu$. If the empirical measures of a deterministic sequence $(x_i)$ converge weakly to $\nu$, every point of the support of $\nu$ is a cluster point of $(x_i)$. Consequently, almost surely, every point of the support of $\nu$ is the limit of a subsequence of the sample.
 Pushing an empirical measure forward by a measurable map is the empirical measure of the image points.
@@ -2413,7 +2416,7 @@ If $\mathcal P(X)$ were known to be completely metrizable the first claim would 
 \end{proof}
 
 \begin{lemma}[Families with equal Gram matrices are related by an isometry]\label{lem:sg:gram-isometry}
-  \lean{exists_linearIsometry_of_inner_eq}
+  \lean{exists_linearIsometry_of_inner_eq, norm_sum_smul_sq}
   \leanok
 Let $h_i\in H$ and $x_i\in H'$ be vectors of real Hilbert spaces with $\langle x_i,x_j\rangle=\langle h_i,h_j\rangle$ for all $i,j$. Then there is a linear isometry $U:H\to H\oplus H'$ (orthogonal direct sum) with $U(h_i)=(0,x_i)$ for all $i$.
 \end{lemma}
@@ -2454,8 +2457,64 @@ By Lemma~\ref{lem:sg:diag-residual} the Gram matrix $\Gamma$ of the $h_l$ and th
 \begin{remark}[Differences from the book and what is left]\label{rem:sg:reconstruction-deviation}
 \begin{enumerate}
 \item \emph{Isometry into a larger space.} The book has an orthogonal transformation of $H$ onto itself. Our $U$ is a linear isometry of $H$ into $H\oplus H'$. A statement with an isometry $H\to H'$ (or a surjective one) can fail for the canonical choice of the re-created vectors, because the orthogonal complement of the span of the $h_l$ may have a different dimension from that of the span of the $x_l$; the extra summand makes the statement unconditional. For infinite-dimensional separable $H$ and $H'=H$ the space $H\oplus H'$ is isometric to $H$, but we do not use this. The law of the Gram array of an i.i.d.\ sample is the same for $\eta$ and for its image under $(h,a)\mapsto(Uh,a)$.
-\item \emph{A fixed law.} The book uses Lemma~1.7 for the random measure $\eta(w)$; we prove it for a fixed $\eta$, conditionally on $w$. Combining it with the representation of Theorem~\ref{thm:sg:dovbysh-sudakov} requires the $\sigma$-algebra on $L^2(0,1)$ and the measurability of $(w,u)\mapsto[h(w,u,\cdot)]$ (Remark~\ref{rem:sg:dovbysh-sudakov-deviation}); we have not done it.
+\item \emph{A fixed law.} The book uses Lemma~1.7 for the random measure $\eta(w)$; we prove it for a fixed $\eta$, conditionally on $w$. Combining it with the representation of Theorem~\ref{thm:sg:dovbysh-sudakov} would require applying it to the random measure $\eta(w)$ on $L^2(0,1)\times[0,\infty)$ jointly in $w$; we have not done it, and Section~\ref{sec:sg:gibbs-measure} does not need it.
 \item \emph{No moment assumption.} The reconstruction uses only that the support of $\eta$ is approached by the sample; no integrability of $\|h\|^2$ is assumed. Weak convergence refers to the norm topology of $H\oplus H'$.
 \item \emph{Why a compactification.} The measurable choice of the weak limit (Lemma~\ref{lem:sg:measurable-limit}) needs the set where the limit exists to be measurable. Mathlib does not know that the space of probability measures of a Polish space is completely metrizable, so we pass through the compact space $\mathcal P([0,1]^{\mathbb N})$. This is a stand-alone fact about empirical measures of random points in a Polish space.
+\end{enumerate}
+\end{remark}
+
+\section{The asymptotic Gibbs measure on $L^2(0,1)$}\label{sec:sg:gibbs-measure}
+
+This section completes the representation of Section~\ref{sec:sg:dovbysh-sudakov} for the SK model: the limit of the annealed overlap laws is the law of the overlap array of an i.i.d.\ sample from a random probability measure $G(w)$ on the unit ball of $L^2(0,1)$, $w$ uniform.
+The Lean files are \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean} and the general inputs \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/MeasureTheory/Constructions/BorelSpace/MeasurableOfDist.lean}.
+Mathlib puts no $\sigma$-algebra on $L^2(0,1)$; the two theorems below are stated for an arbitrary Borel structure on it, given as instance arguments (any two Borel structures are equal, so this loses nothing).
+
+\begin{lemma}[The $L^2$ class of a jointly measurable family is measurable]\label{lem:sg:lp-section}
+  \lean{measurable_of_measurable_dist,
+        MeasureTheory.inner_toLp_two,
+        MeasureTheory.norm_sq_toLp_two,
+        MeasureTheory.measurable_toLp_section}
+  \leanok
+Let $(B,\nu)$ be an s-finite measure space with $L^2(\nu)$ separable, $A$ a measurable space and $F:A\times B\to\mathbb R$ measurable with $F(a,\cdot)\in L^2(\nu)$ for every $a$. Then $a\mapsto[F(a,\cdot)]\in L^2(\nu)$ is measurable for the Borel $\sigma$-algebra of $L^2(\nu)$. Moreover $\langle[f],[g]\rangle=\int fg\,d\nu$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+A map into a separable metric space is measurable as soon as its distance to every point $d$ is measurable (open sets are countable unions of balls centred in a countable dense set). Here $\|[F(a,\cdot)]-d\|^2=\int(F(a,b)-d(b))^2\,d\nu(b)$ is measurable in $a$ by Fubini, since $(a,b)\mapsto(F(a,b)-d(b))^2$ is measurable.
+\end{proof}
+
+\begin{theorem}[A random measure on $L^2(0,1)$ from the representation]\label{thm:sg:gibbs-representation}
+  \lean{SpinGlasses.exists_gibbs_measure_of_representation}
+  \leanok
+Let $h:[0,1]^3\to\mathbb R$ be measurable with $\int_0^1h(w,u,v)^2\,dv\le1$ for all $(w,u)$. There is a map $G$ from $[0,1]$ to the probability measures on $L^2(0,1)$ which is measurable for the Giry $\sigma$-algebra, with $G(w)(\{\|x\|\le1\})=1$ for all $w$, such that for every bounded continuous $g$ of an array
+\[\int g\Big(\big(\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\textstyle\int h(w,u_l,v)h(w,u_{l'},v)\,dv\big)_{l,l'}\Big)\,dw\,du=\int\!\!\int g\Big(\big(\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\langle x_l,x_{l'}\rangle\big)_{l,l'}\Big)\,dG(w)^{\otimes\mathbb N}(x)\,dw,\]
+where on the left $w$ and $(u_l)_l$ are i.i.d.\ uniform on $[0,1]$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:lp-section}
+Put $\Phi(w,u)=[h(w,u,\cdot)]\in L^2(0,1)$, measurable by Lemma~\ref{lem:sg:lp-section}, with $\|\Phi(w,u)\|^2=\int h(w,u,v)^2dv\le1$, and $G(w)=\Phi(w,\cdot)_*\mathrm{Leb}$; this is a probability measure on the unit ball, and $w\mapsto G(w)$ is measurable because $\Phi$ is jointly measurable (the law of a section depends measurably on the parameter). The $\mathbb N$-fold product $G(w)^{\otimes\mathbb N}$ is the image of $\mathrm{Leb}^{\otimes\mathbb N}$ under $(u_l)\mapsto(\Phi(w,u_l))_l$. Since $\langle\Phi(w,u),\Phi(w,u')\rangle=\int h(w,u,v)h(w,u',v)\,dv$ (Lemma~\ref{lem:sg:lp-section}), the array on the left is the Gram array of $(\Phi(w,u_l))_l$, and Fubini over $w$ gives the claim.
+\end{proof}
+
+\begin{theorem}[The asymptotic Gibbs measure of the SK model]\label{thm:sg:asymptotic-gibbs-measure}
+  \lean{SpinGlasses.exists_sk_asymptotic_gibbs_measure}
+  \leanok
+Let $H_N(\sigma)=N^{-1/2}\sum_{i,j}g_{ij}\sigma_i\sigma_j$ with $(g_{ij})$ i.i.d.\ standard Gaussian, $R_N(\sigma,\tau)=N^{-1}\sum_i\sigma_i\tau_i$, and let $\Lambda_N$ be the law of $(R_N(\sigma^l,\sigma^{l'}))_{l,l'}$ when the replicas $\sigma^l$ are i.i.d.\ from the Gibbs measure $G_N\propto e^{\beta H_N}$ given the disorder (averaged over the disorder). There are a strictly increasing $\varphi:\mathbb N\to\mathbb N$ and a measurable map $G$ from $[0,1]$ to the probability measures on $L^2(0,1)$, each carried by the closed unit ball, such that for every bounded continuous function $g$ of an array
+\[\int g\,d\Lambda_{\varphi(n)+1}\ \longrightarrow\ \int_0^1\!\!\int g\Big(\big(\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\langle x_l,x_{l'}\rangle\big)_{l,l'}\Big)\,dG(w)^{\otimes\mathbb N}(x)\,dw\qquad(n\to\infty).\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:asymptotic-overlap, thm:sg:dovbysh-sudakov-gram, thm:sg:gibbs-representation}
+Theorem~\ref{thm:sg:asymptotic-overlap} gives a subsequence along which $\Lambda_{N+1}$ converges weakly to an exchangeable law $\mu$ on Gram-type arrays. By Theorem~\ref{thm:sg:dovbysh-sudakov-gram}, $\mu$ is the law of the array with entries $1$ on the diagonal and $\int h(w,u_l,v)h(w,u_{l'},v)\,dv$ off it, with $\int h^2\le1$. Apply Theorem~\ref{thm:sg:gibbs-representation} to this $h$.
+\end{proof}
+
+\begin{remark}[Differences from the book and what is left]\label{rem:sg:gibbs-measure-deviation}
+\begin{enumerate}
+\item \emph{The diagonal.} The overlap of a configuration with itself is $1$, so the limit array has $1$ on the diagonal; this is not $\langle x_l,x_l\rangle=\|x_l\|^2\le1$. The Gram array in the statement is therefore $\mathbf 1_{l=l'}+\mathbf 1_{l\ne l'}\langle x_l,x_{l'}\rangle$. In the book the discrepancy $1-\|x_l\|^2$ is the term $a_l$ of the representation, and is absorbed in the notation $(h_l\cdot h_{l'}+a_l\delta_{l,l'})$.
+\item \emph{No Lemma~1.7.} The measure $G(w)$ is built directly from the function $h$ of the representation. Lemma~1.7 (Section~\ref{sec:sg:reconstruction}) would show that $G$ is determined by $\mu$ up to an isometry, so that it is canonical; this is not used and the uniqueness statement for $G$ is not formalized. The constructed $G$ is a particular representative.
+\item \emph{A Borel structure as a hypothesis.} Since Mathlib has no $\sigma$-algebra on $L^2$, it is an instance argument of the two theorems.
+\item \emph{Left to do.} The limit $a_N\to1$ in the Gram approximation (Section~\ref{sec:sg:aN-limit}) and the use of Theorem~1.3 on $G$ (which may be diffuse, see Section~\ref{sec:sg:gram-background}).
 \end{enumerate}
 \end{remark}
