@@ -27,9 +27,21 @@ the inclusion that is easy to prove and sufficient for limits:
   Giry measurable (`MeasureTheory.ProbabilityMeasure.measurable_of_borel`).
 * `MeasureTheory.continuous_toProbabilityMeasure_empiricalMeasure`: the empirical measure of a
   finite family is a continuous function of the family.
-* `MeasureTheory.exists_measurable_tendsto_empiricalMeasure`: if the empirical measures of a
-  sequence of random points converge weakly almost surely (to a limit that may depend on the
-  point), the limit can be chosen to be a measurable function of the point.
+* `MeasureTheory.measurable_empiricalMeasure`: the empirical measure is a measurable function of
+  the family.
+* `MeasureTheory.exists_measurable_tendsto_empiricalMeasure`: for measurable random points `y i b`
+  in a Polish space, the set of `b` where the empirical measures converge weakly is measurable and
+  the limit is a measurable function of `b` on it.
+
+## Implementation notes
+
+Mathlib does not know that `ProbabilityMeasure X` is completely metrizable for a Polish space `X`,
+which would give the measurability of the set of convergence directly.  We embed `X` in the Hilbert
+cube `Q` (`Metric.PiNatEmbed.exists_embedding_to_hilbert_cube`); `ProbabilityMeasure Q` is compact
+metrizable, so `StronglyMeasurable.measurableSet_exists_tendsto` and `StronglyMeasurable.limUnder`
+apply there.  A sequence of probability measures on `X` converges iff its image in `Q` converges to
+a measure carried by `X` (portmanteau, as the open sets of `X` are traces of open sets of `Q`), and
+the limit is pulled back along the measurable embedding.
 -/
 
 @[expose] public section
