@@ -33,7 +33,7 @@ Aizenman--Sims--Starr representation of the free energy increments, with the Lea
 Remark~\ref{rem:sg:ass-deviation}). Section~\ref{sec:sg:gram-approx} proves Theorem~1.3 (the Gram matrix approximation of Gibbs
 averages) and applies it to the increments $A_N$ (Eq.~(1.73)), with the Lean files
 \texttt{ForMathlib/Probability/Moments/SubGaussian.lean}, \texttt{GaussianExp.lean}, \texttt{GaussianContinuity.lean},
-\texttt{SpinGlasses/AsymptoticGibbsApproximation.lean} and \texttt{SpinGlasses/AizenmanSimsStarrApproximation.lean}
+\texttt{SpinGlasses/AsymptoticGibbsApproximation.lean}, \texttt{SpinGlasses/AsymptoticGibbsApproximationCountable.lean} (the countable-atom case), \texttt{ForMathlib/MeasureTheory/Integral/TsumNonneg.lean} and \texttt{SpinGlasses/AizenmanSimsStarrApproximation.lean}
 (deviations in Remark~\ref{rem:sg:gram-deviation}; background and a scorecard against the book in Section~\ref{sec:sg:gram-background}, and on the factor $a_N$ in Section~\ref{sec:sg:aN-limit}). Section~\ref{sec:sg:asymptotic-gibbs} treats the overlap array of the replicas
 (Eq.~(1.74)): it is positive semidefinite and exchangeable, and its annealed laws have weak limits with the same properties, which is the input of
 the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/ExchangeableMixture.lean},
@@ -42,7 +42,7 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
 Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book: the general tools
 (the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6), the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5) and of separately exchangeable arrays (Theorem~1.4), each with its converse.
-Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. What remains open is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and the use of Theorem~1.3 on the asymptotic Gibbs measure.
+Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. What remains open is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
 
 
 \medskip\noindent\textbf{Notation.}
@@ -1326,6 +1326,31 @@ two sums with $F^\cdot_k$ evaluated at the upper-left $k\times k$ block of $Q$. 
 uses that a principal submatrix of a positive semidefinite matrix is positive semidefinite; boundedness is $|F|\le\sum_k|p_{z,k}|(2e^{a_z})^k+\sum_k|p_{y,k}|e^{a_yk}$.
 \end{proof}
 
+\begin{theorem}[Theorem~1.3 for countably many atoms]\label{thm:sg:gram13-countable}
+  \lean{SpinGlasses.exists_continuousOn_gram_approx_countable,
+        SpinGlasses.tendsto_integral_log_trunc,
+        SpinGlasses.integrable_tsum_mul_comp,
+        SpinGlasses.tendsto_sum_pi_trunc,
+        SpinGlasses.hasSum_prod_pi,
+        SpinGlasses.sum_pi_subtype,
+        SpinGlasses.tendsto_finset_sum_exhaust,
+        SpinGlasses.inv_finset_sum_mul_le,
+        SpinGlasses.sum_div_mul_pos,
+        MeasureTheory.ae_summable_and_integrable_tsum_of_nonneg}
+  \leanok
+  \uses{thm:sg:gram13}
+The statement of Theorem~\ref{thm:sg:gram13} holds, with the same $m$ and the same $F$, for every countable index set $\iota$, every probability vector $w$ on $\iota$ ($w_i\ge0$, $\sum_iw_i=1$), every array $q$, and all centered families $z,y$ for which every finite subfamily is jointly Gaussian, with $\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$, $\mathbb Ez_i^2\le v_z$, $\mathbb Ey_i^2\le v_y$:
+\[\Big|\Big(\mathbb E\log\sum_iw_i\,2\cosh z_i-\mathbb E\log\sum_iw_ie^{y_i}\Big)-\sum_{j:[m]\to\iota}\Big(\prod_{l\le m}w_{j_l}\Big)F\big((q_{j_lj_{l'}})_{l,l'\le m}\big)\Big|\le\varepsilon,\]
+where the last sum is an absolutely convergent series.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+Enumerate $\iota$ and let $s_n$ be the first $n+1$ elements, $W_n=\sum_{i\in s_n}w_i\to1$. For large $n$ the renormalized restriction $w^{(n)}_i=w_i/W_n$ ($i\in s_n$) is a finite probability vector, so Theorem~\ref{thm:sg:gram13} applies to it with the same $m$ and $F$:
+\[\Big|\Big(\mathbb E\log\sum_{i\in s_n}w^{(n)}_i\,2\cosh z_i-\mathbb E\log\sum_{i\in s_n}w^{(n)}_ie^{y_i}\Big)-W_n^{-m}\sum_{j\in s_n^m}\Big(\prod_lw_{j_l}\Big)F\big((q_{j_lj_{l'}})\big)\Big|\le\varepsilon.\]
+We let $n\to\infty$ in each term. (i) The $z_i$ are sub-Gaussian (a centered Gaussian with variance $\le v_z$), so $X=\sum_iw_i\,2\cosh z_i$ and $Y=\sum_iw_i(2\cosh z_i)^{-1}$ converge almost surely and are integrable: the terms are nonnegative with $\mathbb E\,2\cosh z_i\le4e^{v_z/2}$ and $\mathbb E(2\cosh z_i)^{-1}\le2e^{v_z/2}$, and $\sum_iw_i<\infty$. With $X_n$ the Gibbs average under $w^{(n)}$ we have $X_n\to X>0$ pointwise, $|\log X_n|\le X_n+X_n^{-1}$ and, by Jensen for the inverse on the finite set $s_n$, $X_n^{-1}\le\sum_{i\in s_n}w^{(n)}_i(2\cosh z_i)^{-1}$. Since $W_n>1/2$ eventually, $X_n\le2X$ and $X_n^{-1}\le2Y$, so $2(X+Y)$ dominates $|\log X_n|$, and dominated convergence gives $\mathbb E\log X_n\to\mathbb E\log X$. The same argument applies to $e^{y}$. (ii) $F$ is bounded and $\sum_{j:[m]\to\iota}\prod_lw_{j_l}=1$, so the series over $j$ converges absolutely and its partial sums over the exhaustion $s_n^m$ of $\iota^m$ converge; $W_n^{-m}\to1$. Hence the left side converges to the left side of the claim and the inequality passes to the limit.
+\end{proof}
+
 \section{The Aizenman--Sims--Starr increments: bounds and the overlap approximation}\label{sec:sg:ass-approx}
 
 We return to the notation of Section~\ref{sec:sg:ass}: $G'_u=\mathrm{count.tilted}(\beta H'_u)$ with Gibbs weights $\mathrm{wt}_u(\sigma)=e^{\beta H'_u(\sigma)}/\sum_\tau e^{\beta H'_u(\tau)}$,
@@ -1403,7 +1428,7 @@ A longer, less terse explanation of every item below, including which items weak
 \begin{enumerate}
 \item \emph{No Hilbert space, finitely supported measures.} The book states Theorem~1.3 for atomic probability measures $\Gamma$ on the unit sphere of a separable Hilbert space.
 Since $\Phi(\Gamma)$ only involves $w$ and the Gram data, we state it for a finite family with arbitrary covariance functions; the cavity measures $G'_u$ of the SK model are finitely supported.
-Extending to countably many atoms is a limiting argument that we have not formalized.
+Countably many atoms are covered separately by Theorem~\ref{thm:sg:gram13-countable}, which deduces them from the finite case by truncation; non-atomic measures are not covered (the book does not need them).
 \item \emph{Truncation by moments rather than by the concentration (1.69).} The book controls $\log\langle\cosh z\rangle$ through its Gaussian concentration. Only the expectation of the truncation error is needed,
 and it is bounded by $e^{-a}\,\mathbb E(X+X^{-1})$ plus an exponential moment of the field; both are uniform in the number of atoms, so the earlier concentration theorem is not used here.
 \item \emph{Uniformity.} The truncation level and the polynomials depend only on $\varepsilon$ and on bounds $v_z,v_y$ for the variances, not on the covariance functions; the covariance functions enter only the
@@ -1434,7 +1459,7 @@ The functional $\Phi$ is a complicated nonlinear object (an expectation of a log
 $\Phi(\Gamma)\approx\langle F(R)\rangle_\Gamma=\int F\big((\rho^l\cdot\rho^{l'})_{l,l'\le m}\big)\,d\Gamma^{\otimes m}$, with $F$ bounded and continuous, and with $m$ and $F$ not depending on $\Gamma$.
 A Gibbs average of a bounded continuous function of the overlap matrix depends on $\Gamma$ only through the \emph{law of the overlap array}, and this is continuous for weak convergence of that law.
 So convergence of overlap laws, which is available by compactness (Theorem~\ref{thm:sg:asymptotic-overlap}), gives convergence of $A_N$ up to $\varepsilon$, for every $\varepsilon$. This is the engine behind the lower bound
-$\liminf A_N\ge\inf_G\Phi(G)$ as we understand the book's plan; it is not yet formalized, and the Lean content of this chapter stops short of it (Remark~\ref{rem:sg:asymptotic-deviation}).
+the lower bound $\liminf F_N\ge\inf_\zeta\mathscr P(\zeta)$ by the Parisi functional. In the book this is not done in Chapter~1: it is the argument of Chapter~3 (Eqs.~(3.78)--(3.85)), which applies Theorem~1.3 to the finite measures $G^\pi_N$ and to Ruelle probability cascades, \emph{not} to the asymptotic Gibbs measure itself (see the paragraph ``Where the book uses Theorem~1.3'' below). The Lean content of this chapter stops before it (Remark~\ref{rem:sg:asymptotic-deviation}).
 
 \subsection*{The idea of the proof, in plain words}
 
@@ -1459,6 +1484,7 @@ $|\Phi(\Gamma)-\langle F(R)\rangle_\Gamma|\le\varepsilon$ for \emph{all} such $\
 \item \textbf{Lean (Theorem~\ref{thm:sg:gram13}):} the same conclusion for every \emph{finite} family $(w_i,q_{ij})_{i\in\iota}$ ($\iota$ any finite type), where $q_{ij}$ plays the role of $\rho^i\cdot\rho^j$ and
 $z,y$ are any centered Gaussian families with $\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$ and variances at most $v_z,v_y$. The number $m$ and the function $F$ depend only on $\varepsilon,C_z,C_y,v_z,v_y$,
 not on $\iota$, $w$ or $q$.
+\item \textbf{Lean (Theorem~\ref{thm:sg:gram13-countable}):} the same for every \emph{countable} index set with a summable probability vector, with the same $m$ and $F$, under the hypothesis that every finite subfamily of $z$, $y$ is jointly Gaussian. Together with Theorem~\ref{thm:sg:gram13} this is the book's statement for atomic $\Gamma$.
 \end{itemize}
 
 \subsection*{Decision A: we do not mention a Hilbert space}
@@ -1473,27 +1499,19 @@ as a separate corollary, since nothing downstream needed it.
 \emph{Why we did it.} Mathlib has no convenient ``separable Hilbert space with unit sphere and Gaussian process indexed by it'' package, and every such object would have been a new definition or a heavy typeclass setup
 for no mathematical gain.
 
-\subsection*{Decision B: finitely many atoms instead of countably many \emph{(this is a genuine weakening)}}
+\subsection*{Decision B: finitely many atoms first, then countably many by truncation}
 
-\emph{What we did.} The index type $\iota$ is a \texttt{Fintype}. The book allows countably many atoms.
+\emph{What we did first.} Theorem~\ref{thm:sg:gram13} is stated for a finite index type. This is weaker than the book's Theorem~1.3, which allows countably many atoms, and for a while the Lean statement was only a special case of the book's.
+\emph{What the finite statement already gave.} The estimates are \emph{uniform in the number of atoms}: $m$, $F$ and the truncation level do not depend on $|\iota|$. Every Gibbs measure in the SK model on $N$ spins lives on the finite set $\{-1,+1\}^N$, so Eq.~(1.73) was proved with no gap (Theorem~\ref{thm:sg:overlap-approx}) without any infinite series.
+\emph{Why we started with finite families.} With finitely many atoms every Gibbs average $\sum_iw_ie^{z_i}$ is a finite sum of integrable random variables, so measurability, integrability and Fubini are routine, and we did not know how much extra work infinitely many atoms would need.
 
-\emph{This is weaker than the book's theorem.} Our result does not cover a measure $\Gamma$ with infinitely many atoms (let alone a non-atomic measure). We want to be direct about this: for the statement ``Theorem~1.3 as printed'', the Lean version is a
-special case. It is not a different proof of the same statement.
+\emph{What we did afterwards, and why it was cheap.} Theorem~\ref{thm:sg:gram13-countable} deduces the countable case from the finite one: restrict $\Gamma$ to its first $n$ atoms, renormalize, apply the finite theorem with the same $m$ and $F$, and let $n\to\infty$. The worry that the logarithm might need a new continuity estimate under tail removal turned out to be unfounded: dominated convergence suffices, because the dominating function $2(X+Y)$, built from $\sum_iw_i\varphi(z_i)$ and $\sum_iw_i\varphi(z_i)^{-1}$, is integrable by the same sub-Gaussian moment bounds that the finite theorem uses, and the finite theorem's uniformity in the number of atoms is what makes the constants independent of $n$. No new truncation or Jensen estimate for infinite sums was needed (Jensen is applied only on the finite sets $s_n$).
 
-\emph{What the weakening does not touch.} The estimates are \emph{uniform in the number of atoms}: $m$, $F$ and the truncation level do not depend on $|\iota|$, so the theorem holds for all finite Gibbs measures at once with the same constants.
-Moreover, every Gibbs measure in the SK model on $N$ spins is a measure on the \emph{finite} set $\Sigma_N=\{-1,+1\}^N$. Hence Eq.~(1.73), the statement that $A_N$ is within $\varepsilon$ of an average of $F$ over the overlap array of
-the Gibbs measure $G'_u$, is proved with no gap (Theorem~\ref{thm:sg:overlap-approx}); likewise the a priori bounds on $A_N$ and the Ces\`aro corollary do not use Theorem~1.3 at all.
-
-\emph{Why we chose to stop at finite families.} With finitely many atoms every Gibbs average $\sum_iw_ie^{z_i}$ is a finite sum of integrable random variables, so measurability, integrability and Fubini are routine.
-With infinitely many atoms one must additionally show that the series converges almost surely, that it is integrable together with its logarithm, and that the Jensen and truncation estimates survive passing to the infinite sum.
-We did not know in advance how much extra work that would be, and the SK application did not need it, so we scoped it out.
-
-\emph{What the missing step would probably be, and where it could matter.} The natural route is to approximate an infinite $\Gamma$ by its restriction to the first $n$ atoms (renormalized) and let $n\to\infty$. For the right-hand side $\langle F(R)\rangle_\Gamma$ this is easy,
-because $F$ is bounded: removing a tail of small total weight changes the average by at most $2\|F\|_\infty$ times the tail mass. For $\Phi(\Gamma)$ itself one needs a continuity statement of the same kind for $\mathbb E\log\langle e^{z}\rangle$ under tail removal;
-we have not worked this out and do not claim it is routine. It could matter later: the asymptotic Gibbs measure $G$ produced by the Dovbysh--Sudakov theorem is a random measure on a Hilbert ball and is not known to be finitely supported,
-so identifying the limit of the right-hand sides $\mathbb E\langle F(R)\rangle$ with $\mathbb E\,\Phi(G)$ is where we expect the countable-atom version of Theorem~1.3 to be needed. That identification is not part of the formalization yet (in progress; see below).
-
-\emph{New information from the Dovbysh--Sudakov formalization (Section~\ref{sec:sg:dovbysh-sudakov}).} For a limit law $\mu$ of overlap arrays, Theorem~\ref{thm:sg:dovbysh-sudakov-gram} represents the array as $\int h(w,u_l,v)h(w,u_{l'},v)\,dv$ off the diagonal, with $u_l$ i.i.d.\ uniform and $\int h(w,u,v)^2\,dv\le1$. The corresponding Gibbs measure at parameter $w$ is therefore the image of Lebesgue measure on $[0,1]$ under $u\mapsto h(w,u,\cdot)$. A priori this image is diffuse, not atomic, so the finite-atom statement of Theorem~\ref{thm:sg:gram13} cannot be applied to it directly, and some form of the countable (or general) case, or an approximation of $G$ by finitely supported measures, will be needed. Our representation does not say that $G$ is atomic. The measurable family $G$ of measures on the Hilbert ball is now constructed (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}); it needed the measurability of $(w,u)\mapsto[h(w,u,\cdot)]\in L^2(0,1)$, which does not need Lemma~1.7, while Lemma~1.7 (formalized for a fixed law, Section~\ref{sec:sg:reconstruction}) is what makes the resulting measure canonical.
+\emph{Where the book uses Theorem~1.3 (from the source text, Chapters~1 and~3).} The book states Theorem~1.3 for an \emph{atomic} probability measure $\Gamma$ on the unit sphere, with countably many atoms allowed, and applies it in two kinds of places.
+(i) To the finite Gibbs measure of the Aizenman--Sims--Starr scheme, rescaled onto the unit sphere ($G^\pi_N$ in the book, below Eq.~(1.72), and again below Eq.~(3.85)), which gives Eq.~(1.73) and $A_N=\mathbb E\,\Phi(G^\pi_N)$. The finite theorem is enough here.
+(ii) In Chapter~3, to the Ruelle probability cascades $G^n$, which have countably many atoms (their weights are indexed by $\mathbb N^{r-1}$), to obtain $|\mathscr P(\zeta^n)-\mathbb E\langle F_\varepsilon(Q)\rangle_{G^n}|\le\varepsilon$ (Eq.~(3.85) and Lemma~3.4). This is what Theorem~\ref{thm:sg:gram13-countable} provides, for a fixed (non-random) $\Gamma$; the book applies it conditionally on the randomness of $G^n$ and then averages, a step that needs a random measure and is not formalized.
+The asymptotic Gibbs measure $G$ of the Dovbysh--Sudakov representation is never plugged into $\Phi$. Instead the book shows that $G$ satisfies the Ghirlanda--Guerra identities, uses them to approximate the overlap array of $G$ in distribution by Gram matrices of cascades $G^n$ (Theorem~2.17), and compares $\lim A_{N_k}$ with $\lim\mathscr P(\zeta^n)$ through the same function $F_\varepsilon$ (Eq.~(3.84)).
+An earlier version of this blueprint expected Theorem~1.3 to be applied to $G$; reading the book's Chapter~3 shows that this was a misreading of the dependency structure, and we have corrected it here.
 
 \subsection*{Decision C: truncation by moments, not by Gaussian concentration \emph{(a different method, not a weaker result)}}
 
@@ -1523,17 +1541,17 @@ What is \emph{not} done is the limit $a_N\to1$ (continuity of $F$ in the covaria
 \begin{tabular}{p{0.30\textwidth}p{0.20\textwidth}p{0.42\textwidth}}
 \textbf{Feature} & \textbf{Compared with the book} & \textbf{Comment}\\ \hline
 No Hilbert space, arbitrary Gram data $q$ & more general & the Hilbert case is the special case $q_{ij}=\rho^i\cdot\rho^j$\\
-Finitely many atoms & \textbf{weaker} & countable (and non-atomic) $\Gamma$ not covered; constants are uniform in the number of atoms; SK Gibbs measures are finite\\
+Countably many atoms & same as the book & finite families (Theorem~\ref{thm:sg:gram13}) plus countable families by truncation (Theorem~\ref{thm:sg:gram13-countable}); constants uniform in the number of atoms; non-atomic $\Gamma$ not covered (not used in the book)\\
 Truncation by moments, no concentration & same conclusion, different proof & only the mean of the error is needed\\
 Continuity on the PSD cone only & same in practice & Gram matrices are always positive semidefinite\\
 Arbitrary $C_z,C_y$, explicit variance bounds & more general & SK covariances are an instance\\
 Limit $a_N\to1$ & \textbf{not done} & finite-$N$ statement only\\
-Use of Theorem~1.3 to pass to the asymptotic Gibbs measure & \textbf{not done} (in progress) & the Dovbysh--Sudakov representation is now formalized (Section~\ref{sec:sg:dovbysh-sudakov}); the Hilbert-space-valued random measure is now constructed (Section~\ref{sec:sg:gibbs-measure}; Lemma~1.7 is formalized for a fixed law, Section~\ref{sec:sg:reconstruction}); still needs the countable or non-atomic case of Theorem~1.3 and the limit $a_N\to1$\\
+Use of Theorem~1.3 in the book's Chapter~3 (finite $G^\pi_N$; Ruelle cascades) & \textbf{partly done} & the deterministic statement for finite and countable $\Gamma$ is formalized; applying it conditionally on a random $G^n$, the Ruelle cascades themselves, and the Ghirlanda--Guerra part are Chapter~3 material and not done. The Dovbysh--Sudakov measure $G$ is not an argument of $\Phi$ in the book\\
 \end{tabular}
 \end{center}
 
-In short: for the finite Gibbs measures that occur in the SK model the formalized Theorem~1.3 and Eq.~(1.73) are complete and uniform; the formalized statement is a strict special case of the book's Theorem~1.3 because it omits infinitely supported measures,
-and the steps that would use it on limiting objects have not been formalized yet.
+In short: Theorem~1.3 is formalized for finite and for countably many atoms, with constants uniform in the number of atoms, which is the book's statement for atomic $\Gamma$; Eq.~(1.73) is complete. What is not formalized is the use of Theorem~1.3 in the book's Chapter~3 (Eqs.~(3.78)--(3.85)): the random Ruelle cascades, the Ghirlanda--Guerra identities and the passage $a_N\to1$ (which the book itself defers to Chapter~3).
+and the steps of Chapter~3 that use it (Eqs.~(3.78)--(3.85)) have not been formalized yet.
 
 \section{Background: the factor $a_N=N/(N+1)$, uniformity in $N$, and why the limit $a_N\to1$ is not formalized}\label{sec:sg:aN-limit}
 
@@ -1586,11 +1604,12 @@ This would let Theorem~\ref{thm:sg:gram13} be applied with the limiting covarian
 \subsection*{Why we did not do it in this milestone}
 
 \begin{itemize}
+\item \emph{The book itself postpones it to Chapter~3.} Right after Eq.~(1.73) the book says that ``the factor $a_N=N/(N+1)$ in Eq.~(1.59) can be replaced by 1 without affecting $A_N$ much, which will be shown in Chap.~3''. So this step is not part of Chapter~1 of the book, and stopping before it is a choice of scope that matches the source.
 \item \emph{It is not needed for any statement we proved.} Theorem~\ref{thm:sg:overlap-approx} is true and complete as stated: a bound for each $N$ with $N$-uniform constants. The limit $a_N\to1$ is only needed when one passes to a limit along a subsequence, which is a later step of the book's argument
 (the use of the asymptotic Gibbs measure). That later step is not part of the formalization yet (Remark~\ref{rem:sg:asymptotic-deviation}).
 \item \emph{Update: it no longer has to wait for Dovbysh--Sudakov.} When this section was first written we expected that the limit had nothing to attach to before the Dovbysh--Sudakov theorem. With that theorem now formalized (Section~\ref{sec:sg:dovbysh-sudakov}) we can see more precisely what depends on what.
 The replacement of $F_N$ by $F_\infty$ needs only the weak convergence of the overlap laws along a subsequence (Theorem~\ref{thm:sg:asymptotic-overlap}, which holds for any family of Gibbs measures and so also for the auxiliary measures $G'_N$ of the Aizenman--Sims--Starr scheme, Remark~\ref{rem:sg:asymptotic-deviation}), and both are formalized. So the limit step can be stated and proved without the Dovbysh--Sudakov representation, as a statement about $\int F_\infty\,d\mu$ for the limit law $\mu$.
-The representation (and Lemma~1.7) is only needed to identify that quantity with $\mathbb E\,\Phi(G)$ for a random measure $G$. This is our reading of the dependency structure, not a formalized fact; the limit step itself is still not done.
+In the book the limit quantity is compared with the Parisi functional through Ruelle cascades (Eqs.~(3.84)--(3.85)), not by identifying it with $\mathbb E\,\Phi(G)$ for the Dovbysh--Sudakov measure $G$; the representation enters through the weak convergence of overlap arrays. The limit step itself is still not done.
 \item \emph{We chose to keep each milestone to a closed set of statements.} The first route above is a self-contained lemma about uniform convergence of Gaussian integrals; we judged it better to formalize it together with the argument that uses it, so that its exact form
 (sup over a compact set of overlap matrices, which polynomials, which $k$) is dictated by the application instead of guessed in advance.
 \item \emph{It is not an obstruction.} To avoid any misunderstanding: we do not know of a mathematical difficulty here, and we believe it is a routine compactness argument. The honest summary is that it was postponed, not that it was found hard. If the reasoning in route~1 turns out to hide a technicality
@@ -1605,7 +1624,7 @@ The representation (and Lemma~1.7) is only needed to identify that quantity with
 Eq.~(1.73) for each $N$, with $m$, $a_z,a_y$, $p_z,p_y$ independent of $N$ & proved (Theorem~\ref{thm:sg:overlap-approx}) & $F_N$ depends on $N$ only via $a_N$ in the Gaussian integrals\\
 $\sup_Q|F_N-F_\infty|\to0$ on overlap matrices & not done & expected by compactness and weak continuity of Gaussians in the covariance (route~1)\\
 Replacing $\mathbb E\langle F_N(R)\rangle$ by $\mathbb E\langle F_\infty(R)\rangle$ & not done & immediate from the previous line, since $\langle\cdot\rangle$ is bounded by a supremum\\
-Passing to the limit along an overlap-law subsequence & not done (can now be started) & only needs the formalized weak convergence of overlap laws; identifying the limit with $\mathbb E\,\Phi(G)$ needs the asymptotic Gibbs measure (now formalized, Section~\ref{sec:sg:gibbs-measure}), see also Sections~\ref{sec:sg:asymptotic-gibbs},~\ref{sec:sg:dovbysh-sudakov} and~\ref{sec:sg:reconstruction}\\
+Passing to the limit along an overlap-law subsequence & not done (can now be started) & only needs the formalized weak convergence of overlap laws (Section~\ref{sec:sg:asymptotic-gibbs}). The book's comparison with the Parisi functional (Chapter~3) goes through Ruelle cascades and the Ghirlanda--Guerra identities, which are outside this chapter\\
 \end{tabular}
 \end{center}
 
@@ -2518,6 +2537,6 @@ Theorem~\ref{thm:sg:asymptotic-overlap} gives a subsequence along which $\Lambda
 \item \emph{Marginal on $L^2$ only.} The book's $\eta(w)$ lives on $L^2(0,1)\times[0,\infty)$ and $G(w)$ is its marginal on the Hilbert space. We construct only $G(w)$. Reason: the SK application uses the off-diagonal Gram array, which depends on $G$ alone, and the pair $(h_l,a_l)$ has $a_l=1-\|h_l\|^2$ determined by $h_l$ when the diagonal is $1$.
 \item \emph{A Borel structure as a hypothesis.} Since Mathlib has no $\sigma$-algebra on $L^2$, it is an instance argument of the two theorems. Any two Borel structures coincide, so the theorems hold for the canonical one.
 \item \emph{The Gram array is written with an explicit diagonal.} The book writes $(h_l\cdot h_{l'})_{l\ne l'}$; the Lean array is indexed by all $(l,l')$ because the limit law of Theorem~\ref{thm:sg:asymptotic-overlap} is a law on arrays with diagonal $1$.
-\item \emph{Left to do.} The limit $a_N\to1$ in the Gram approximation (Section~\ref{sec:sg:aN-limit}) and the use of Theorem~1.3 on $G$ (which may be diffuse, see Section~\ref{sec:sg:gram-background}).
+\item \emph{Left to do.} The limit $a_N\to1$ in the Gram approximation (Section~\ref{sec:sg:aN-limit}) and the Chapter~3 uses of Theorem~1.3 (random Ruelle cascades; the countable-atom statement itself is Theorem~\ref{thm:sg:gram13-countable}). The book does not apply Theorem~1.3 to $G$ itself; it applies it to the finite measures $G^\pi_N$ and to Ruelle cascades in Chapter~3 (see Section~\ref{sec:sg:gram-background}).
 \end{enumerate}
 \end{remark}

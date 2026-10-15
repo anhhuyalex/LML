@@ -28,6 +28,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Sigma
@@ -296,6 +297,7 @@ public import LeanMachineLearning.SpinGlasses.AldousHoover
 public import LeanMachineLearning.SpinGlasses.AldousHooverArray
 public import LeanMachineLearning.SpinGlasses.AldousHooverOverlap
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
+public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximationCountable
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.Concentration
