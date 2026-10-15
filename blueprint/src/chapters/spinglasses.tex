@@ -686,7 +686,7 @@ That $\alpha$ is \emph{finite} means $|\alpha|<\infty$ (in Lean, \texttt{Fintype
   Theorem~\ref{thm:sg:steinvec} applies with $\kappa=\alpha$. The Gibbs weights $w_f(a)=e^{f(a)}/\sum_be^{f(b)}$ are smooth
   functions of $f\in\mathbb R^\alpha$ with values in $[0,1]$, which is how the growth conditions (F1)--(F3) of
   Remark~\ref{rem:sg:steinvec-assumptions} are verified.
-\item The space of $R$-replicas $\alpha^R$ is again finite for finite $R$, so replica averages
+\item The space of $R$-replicas $\alpha^R$ is again finite for finite $R$, so replica averages (Definition~\ref{def:sg:replica-average})
   $\langle\Psi\rangle=\sum_{\sigma\in\alpha^R}\prod_rw(\sigma_r)\Psi(\sigma)$ are finite sums (Lemma~\ref{lem:sg:replicacalc}).
 \end{enumerate}
 For a countable infinite $\alpha$ none of this is automatic: $Z$ may diverge, so the reference weights must be summable, sums
@@ -732,13 +732,28 @@ is a random variable; the expectation $\mathbb E$ in the statements below is tak
 the Gibbs average. The bias $h$ allows reference weights: the choice $h=\log G$ with $G(a)>0$ gives
 $w(a)\propto G(a)e^{y(a)}$ (this covers an external field as well).
 
-For a finite index set $R$ of \emph{replicas}, the Gibbs measure of $R$ replicas is the product measure
-$\bigotimes_{r\in R}\langle\cdot\rangle$ on $\alpha^R$ (\texttt{Measure.pi}), that is, $\sigma=(\sigma_r)_{r\in R}$ has independent
-coordinates with law $\langle\cdot\rangle$, and for $\Phi:\alpha^R\to\mathbb R$
-\[\langle\Phi\rangle=\sum_{\sigma\in\alpha^R}\Big(\prod_{r\in R}w(\sigma_r)\Big)\Phi(\sigma).\]
-Panchenko's $\sigma^1,\dots,\sigma^n$ is $R=\{1,\dots,n\}$, and $\Phi$ is an arbitrary function of the $|R|$ replicas. Note that
-the replicas share the same random $y$ (they are independent only conditionally on $y$), which is why $\mathbb E\langle\Phi\rangle$
-is not a product of expectations.
+Finite families of independent samples from $\langle\cdot\rangle$ (\emph{replicas}) and their averages are defined in
+Definition~\ref{def:sg:replica-average}.
+\end{definition}
+
+\begin{definition}[$R$-replica average]\label{def:sg:replica-average}
+Let $\alpha$ be a finite nonempty configuration space (Definition~\ref{def:sg:configspace}), let $f:\alpha\to\mathbb R$ be an
+energy, and let $w_f(a)=e^{f(a)}/\sum_{b\in\alpha}e^{f(b)}$ be the Gibbs weights, so that the Gibbs measure
+$\langle\cdot\rangle_f=\texttt{Measure.count.tilted}\,f$ has $\langle\{a\}\rangle_f=w_f(a)$ (Definition~\ref{def:sg:gibbs-yh}).
+Let $R$ be a finite index set, the set of \emph{replicas}. The \emph{$R$-replica Gibbs measure} is the product measure
+$\langle\cdot\rangle_f^{\otimes R}=\bigotimes_{r\in R}\langle\cdot\rangle_f$ on the finite set $\alpha^R$ of tuples
+$\sigma=(\sigma_r)_{r\in R}$ (in Lean \texttt{Measure.pi fun \_ : R => count.tilted f}). Under it the replicas $\sigma_r$ are
+independent, each with law $\langle\cdot\rangle_f$. For a function $\Psi:\alpha^R\to\mathbb R$ of the $|R|$ replicas, the
+\emph{$R$-replica average} of $\Psi$ is
+\[\langle\Psi\rangle_f=\int\Psi\,d\langle\cdot\rangle_f^{\otimes R}=\sum_{\sigma\in\alpha^R}\Big(\prod_{r\in R}w_f(\sigma_r)\Big)\Psi(\sigma),\]
+a finite sum because $\alpha$ and $R$ are finite (Remark~\ref{rem:sg:finiteconfig}). For $R=\{1\}$ this is the Gibbs average
+$\langle g\rangle_f$ of a function of one configuration. Panchenko's $\sigma^1,\dots,\sigma^n$ is $R=\{1,\dots,n\}$. When $f=y+h$ is
+a random energy, $\langle\Psi\rangle=\langle\Psi\rangle_{y+h}$ is a random variable, and one writes
+$\mathbb E[\langle\Psi\rangle]$ for its mean over the disorder (the notation $\langle\Phi\rangle$ in the statements below
+always means the $R$-replica average for the energy $y+h$ of Definition~\ref{def:sg:gibbs-yh}). Examples: the product of two Gibbs averages is a
+two-replica average, $\langle g_1\rangle\langle g_2\rangle=\langle g_1(\sigma_1)g_2(\sigma_2)\rangle$; the overlap
+$R(\sigma_1,\sigma_2)$ is a function of two replicas; the $k$-th power of a Gibbs average is a $k$-replica average of a
+product. The replicas share the same $f$ (hence the same disorder), and they are independent only conditionally on it.
 \end{definition}
 
 \begin{remark}[Replicas: intuition, role in the formalization, and the physics]\label{rem:sg:replicas}
@@ -751,7 +766,7 @@ the overlap $R(\sigma^1,\sigma^2)$ of Section~\ref{sec:sg:basic}, measures how c
 overlap is typically close to a single value the measure is spread over states that look alike, and if the overlap takes
 several values the Gibbs measure is split among several clusters of configurations. A single thermal average $\langle g\rangle$
 cannot see this, since it only sees the average of one configuration; products of averages such as
-$\langle g_1\rangle\langle g_2\rangle=\langle g_1(\sigma^1)g_2(\sigma^2)\rangle$ do, and this is exactly a two-replica average.
+$\langle g_1\rangle\langle g_2\rangle=\langle g_1(\sigma^1)g_2(\sigma^2)\rangle$ do, and this is exactly a two-replica average (Definition~\ref{def:sg:replica-average}).
 Because the replicas share $y$, they are dependent after averaging over $y$: $\mathbb E\langle\Phi(\sigma^1,\sigma^2)\rangle\ne
 \mathbb E\langle\Phi_1\rangle\,\mathbb E\langle\Phi_2\rangle$ in general, and this dependence is the information being studied.
 
@@ -759,12 +774,12 @@ Because the replicas share $y$, they are dependent after averaging over $y$: $\m
 \begin{enumerate}
 \item \emph{Gaussian integration by parts.} Differentiating the Gibbs weights $w(\sigma_r)$ with respect to the energy gives
   $\mathbf 1[\sigma_r=\rho]-w(\rho)$ for every replica $r$ (Lemma~\ref{lem:sg:replicacalc}), which is why an
-  $R$-replica average appears naturally: the derivative of a replica average of $|R|$ replicas involves one more replica
+  $R$-replica average (Definition~\ref{def:sg:replica-average}) appears naturally: the derivative of a replica average of $|R|$ replicas involves one more replica
   (the one summed against $w$ in $-|R|\,C(\sigma^{r_0},\sigma^{n+1})$). Theorems~\ref{thm:sg:replica} and~\ref{thm:sg:lemma11}
-  express $\mathbb E\langle\Phi\,x(\sigma^{r_0})\rangle$ in terms of the covariance $C$ evaluated on pairs of replicas. For
+  express $\mathbb E\langle\Phi(\sigma)\,x(\sigma^{r_0})\rangle$ in terms of the covariance $C$ evaluated on pairs of replicas. For
   the $p$-spin models $C(\sigma,\tau)=N\xi(R(\sigma,\tau))$ is a function of the overlap, so the right-hand side is again a
   replica average, of overlaps.
-\item \emph{Powers of Gibbs averages.} A $k$-th power $\langle\psi(z)\rangle^k$ is the $k$-replica average of
+\item \emph{Powers of Gibbs averages.} A $k$-th power $\langle\psi(z)\rangle^k$ is the $k$-replica average (Definition~\ref{def:sg:replica-average}) of
   $\prod_{l\le k}\psi(z(\sigma^l))$ (Theorem~\ref{thm:sg:gibbs-replica}), which is how the free-energy increments
   are reduced to Gaussian integrals depending only on the Gram matrix of the replicas, and how Theorem~\ref{thm:sg:gram13} is proved.
 \item \emph{The overlap array.} Infinitely many replicas $\sigma^1,\sigma^2,\dots$ give the array of overlaps
@@ -796,7 +811,7 @@ Throughout, $\alpha$ is a finite configuration space (Definition~\ref{def:sg:con
 Remark~\ref{rem:sg:finiteconfig}), $(x,y)=(x(a),y(a))_{a\in\alpha}$ is a centered jointly Gaussian field
 (Definition~\ref{def:sg:gaussianfield}) with $C(a,b)=\mathbb E[x(a)y(b)]$, $h:\alpha\to\mathbb R$ is a deterministic bias
 (for example $\log G$ for a reference weight, or an external field), $\langle\cdot\rangle$ is the Gibbs measure of the energy
-$y+h$ and $\langle\Phi\rangle$ its replica average (Definition~\ref{def:sg:gibbs-yh}).
+$y+h$ and $\langle\Phi\rangle$ its $R$-replica average (Definition~\ref{def:sg:gibbs-yh}, Definition~\ref{def:sg:replica-average}).
 
 \begin{lemma}[Calculus of replica averages]\label{lem:sg:replicacalc}
   \lean{SpinGlasses.integral_pi_count_tilted, SpinGlasses.differentiable_gibbsWeight,
@@ -805,10 +820,46 @@ $y+h$ and $\langle\Phi\rangle$ its replica average (Definition~\ref{def:sg:gibbs
         SpinGlasses.abs_integral_pi_count_tilted_le, SpinGlasses.abs_integral_pi_count_tilted_mul_eval_le,
         SpinGlasses.differentiable_integral_pi_count_tilted_add, SpinGlasses.fderiv_integral_pi_count_tilted_add}
   \leanok
-For $f:\alpha\to\mathbb R$ write $w_f(a)=e^{f(a)}/\sum_be^{f(b)}$. (1) The $R$-replica average of $\Psi$ is the finite sum
-$\sum_{\sigma\in\alpha^R}\prod_rw_f(\sigma_r)\Psi(\sigma)$, a smooth function of $f$. (2) Its derivative in the direction $e_\rho$ is
-$\big\langle(\sum_r\mathbf 1[\sigma_r=\rho]-|R|\,w_f(\rho))\Psi\big\rangle_f$. (3) $|\langle\Psi\rangle|\le\sup|\Psi|$ and
-$|\langle\Phi\,\chi(\sigma_{r_0})\rangle|\le\sup|\Phi|\,\langle|\chi|\rangle$.
+  \uses{def:sg:replica-average}
+\emph{Setting and types.}
+\begin{itemize}
+\item $\alpha$ is a finite nonempty configuration space (Definition~\ref{def:sg:configspace}) and $R$ is a finite set of
+  replicas. A configuration of the $R$ replicas is a tuple $\sigma=(\sigma_r)_{r\in R}\in\alpha^R$ (in Lean
+  \texttt{R -> alpha}); we also write $\rho$ for a single configuration $\rho\in\alpha$ and $r_0\in R$ for a distinguished replica.
+\item The energy $f:\alpha\to\mathbb R$ is an arbitrary real function, that is, a point of the finite-dimensional space
+  $\mathbb R^\alpha$, and $w_f(a)=e^{f(a)}/\sum_{b\in\alpha}e^{f(b)}$ are its Gibbs weights. The statement is about the
+  function $f\mapsto\langle\cdot\rangle_f$ and its derivatives, so no randomness or measurability is involved.
+\item $\Psi:\alpha^R\to\mathbb R$ (a function of all $|R|$ replicas, \texttt{(R -> alpha) -> R}) is an \emph{arbitrary} function.
+  Because $\alpha^R$ is finite, $\Psi$ is automatically measurable, bounded and integrable for every
+  $\langle\cdot\rangle_f^{\otimes R}$, so \emph{no assumption} on $\Psi$ is needed in parts (1), (2) and (4); it does not
+  depend on $f$.
+\item $\Phi:\alpha^R\to\mathbb R$ is the same kind of function, but in part (3) it is assumed \emph{uniformly bounded}: there
+  is a constant $M\ge0$ with $|\Phi(\sigma)|\le M$ for all $\sigma\in\alpha^R$. On a finite set this holds with
+  $M=\max|\Phi|$, but the statement is made with an explicit $M$ because the constant is what survives in the
+  countable-configuration-space limit (Section~\ref{sec:sg:countable}), where $\alpha$ is no longer finite.
+  Likewise $\Psi$ in the first part of (3) is assumed to satisfy $|\Psi|\le C$ for a constant $C$.
+\item $\chi:\alpha\to\mathbb R$ is an arbitrary function of a single configuration (no boundedness is assumed), and
+  $\chi(\sigma_{r_0})$ is the function $\sigma\mapsto\chi(\sigma_{r_0})$ of $\alpha^R$.
+\item $h:\alpha\to\mathbb R$ is a fixed bias, used only in part (4).
+\end{itemize}
+Write $\langle\Psi\rangle_f=\sum_{\sigma\in\alpha^R}\prod_{r\in R}w_f(\sigma_r)\Psi(\sigma)$ for the $R$-replica average
+(Definition~\ref{def:sg:replica-average}).
+
+(1) The map $f\mapsto\langle\Psi\rangle_f$, $\mathbb R^\alpha\to\mathbb R$, is the finite sum
+$\sum_{\sigma\in\alpha^R}\prod_rw_f(\sigma_r)\Psi(\sigma)$ and is a smooth (in particular Fr\'echet differentiable) function of $f$.
+
+(2) For every $\rho\in\alpha$, its derivative in the direction $e_\rho$, the $\rho$-th unit vector of $\mathbb R^\alpha$ (that is, its
+partial derivative in $f(\rho)$), is the replica average of a different function of the replicas:
+$\partial_{f(\rho)}\langle\Psi\rangle_f=\big\langle\big(\sum_{r\in R}\mathbf 1[\sigma_r=\rho]-|R|\,w_f(\rho)\big)\Psi\big\rangle_f$.
+
+(3) If $|\Psi(\sigma)|\le C$ for all $\sigma$ then $|\langle\Psi\rangle_f|\le C$; and if $|\Phi(\sigma)|\le M$ for all $\sigma$, then for
+every $\chi:\alpha\to\mathbb R$ and $r_0\in R$,
+$|\langle\Phi\,\chi(\sigma_{r_0})\rangle_f|\le M\,\langle|\chi|\rangle_f$, where the right-hand side is the one-replica Gibbs average
+$\sum_aw_f(a)|\chi(a)|$.
+
+(4) For a fixed bias $h$, the statements (1) and (2) hold for the energy $v+h$ as a function of $v\in\mathbb R^\alpha$:
+$v\mapsto\langle\Psi\rangle_{v+h}$ is differentiable and its derivative in the direction $e_\rho$ is
+$\big\langle(\sum_r\mathbf 1[\sigma_r=\rho]-|R|\,w_{v+h}(\rho))\Psi\big\rangle_{v+h}$. This is the form used for $v=y$ a random field.
 \end{lemma}
 
 \begin{proof}
@@ -817,7 +868,7 @@ $|\langle\Phi\,\chi(\sigma_{r_0})\rangle|\le\sup|\Phi|\,\langle|\chi|\rangle$.
 mass of a singleton of the tilted counting measure. For (2) one differentiates along the line $f+te_\rho$: the product of $n$
 weights is $\exp(\sum_r(f(\sigma_r)+t\delta_{\sigma_r\rho}))/Z(t)^n$ with $Z'(0)=e^{f(\rho)}$, and the quotient rule gives
 $(\prod w)\,(\sum_r\delta_{\sigma_r\rho}-n\,w(\rho))$. (3) is the triangle inequality and the identity
-$\int|\chi(\sigma_{r_0})|\,d\pi=\int|\chi|\,d\langle\cdot\rangle$.
+$\int|\chi(\sigma_{r_0})|\,d\pi=\int|\chi|\,d\langle\cdot\rangle$. (4) is (1) and (2) composed with the translation $v\mapsto v+h$.
 \end{proof}
 
 \begin{theorem}[Replica covariance formula, Panchenko Exercise~1.1 and Eq.~(1.29)]\label{thm:sg:replica}
@@ -825,11 +876,18 @@ $\int|\chi(\sigma_{r_0})|\,d\pi=\int|\chi|\,d\langle\cdot\rangle$.
         SpinGlasses.integral_gibbs_replica_average_gaussian_option}
   \leanok
   \uses{thm:sg:steinvec, lem:sg:replicacalc}
-With the notation above, for every $r_0\in R$ and every function $\Phi$ of the $|R|$ replicas,
-\[\mathbb E\big[\big\langle\Phi\,x(\sigma^{r_0})\big\rangle\big]
- =\mathbb E\Big[\Big\langle\Phi\Big(\sum_{r\in R}C(\sigma^{r_0},\sigma^r)-|R|\,C(\sigma^{r_0},\sigma^{n+1})\Big)\Big\rangle\Big],\]
-where $\sigma^{n+1}$ is an additional independent replica (written as an integral of $C(\sigma^{r_0},\cdot)$ against the Gibbs measure,
-and, in the second form, as the replica indexed by \texttt{none} in the product over \texttt{Option R}).
+With the notation above, let $r_0\in R$, let $\sigma=(\sigma^r)_{r\in R}\in\alpha^R$ denote the tuple of the $|R|$ replicas,
+and let $\Phi:\alpha^R\to\mathbb R$ be a function of it. Write $R^+=R\sqcup\{n+1\}$ (in Lean \texttt{Option R}, with $n+1$
+the index \texttt{none}) for the replicas $\sigma$ together with one additional replica $\sigma^{n+1}$. Then
+\[\mathbb E\Big[\big\langle\Phi(\sigma)\,x(\sigma^{r_0})\big\rangle_R\Big]
+ =\mathbb E\Big[\Big\langle\Phi(\sigma)\,\Big(\sum_{r\in R}C(\sigma^{r_0},\sigma^r)-|R|\,C(\sigma^{r_0},\sigma^{n+1})\Big)\Big\rangle_{R^+}\Big].\]
+Both sides have the same form, the average of $\Phi(\sigma)$ times a factor. On the left the factor is the field value
+$x(\sigma^{r_0})$ and the average is the $R$-replica average; on the right the factor is the covariance bracket and the
+average is the $R^+$-replica average. The subscript $R$ or $R^+$ records which replicas are averaged
+(Definition~\ref{def:sg:replica-average}); $\Phi(\sigma)$ depends only on the replicas in $R$, so on the right the extra
+replica $\sigma^{n+1}$ enters only through $C(\sigma^{r_0},\sigma^{n+1})$, and it is an independent sample of the same Gibbs measure.
+Averaging over $\sigma^{n+1}$ alone turns this term into $\langle C(\sigma^{r_0},\cdot)\rangle$, an integral of $C(\sigma^{r_0},\cdot)$
+against the Gibbs measure; this is the first form in Lean, and the second form is the average over \texttt{Option R}.
 \end{theorem}
 
 \begin{proof}
@@ -901,7 +959,7 @@ $\le\sqrt a\,e^v\sum_bG_b$, hence converges absolutely a.s.\ and is integrable (
   \leanok
   \uses{thm:sg:replica}
 Let $\alpha$ be a countable configuration space (Definition~\ref{def:sg:configspace}), $G>0$, $(x,y)$ a centered Gaussian process (Definition~\ref{def:sg:gaussianfield}), and $A\subseteq\alpha$ a finite set. Then Theorem~\ref{thm:sg:replica}
-holds for the truncated Gibbs weights $\mathbf 1_A(a)G(a)e^{y(a)}/\sum_{b\in A}G(b)e^{y(b)}$, with the replica averages written as series over
+holds for the truncated Gibbs weights $\mathbf 1_A(a)G(a)e^{y(a)}/\sum_{b\in A}G(b)e^{y(b)}$, with the replica averages (Definition~\ref{def:sg:replica-average}) written as series over
 $R\to\alpha$ and $\mathrm{Option}\,R\to\alpha$. Moreover each truncated replica average is bounded by $M\sum_b(g_b/g_{a_0})|x_b|$, respectively
 by the sup of the observable.
 \end{theorem}
