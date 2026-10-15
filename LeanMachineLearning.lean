@@ -87,7 +87,9 @@ public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.ForMathlib.Probability.StrongLawMixture
 public import LeanMachineLearning.ForMathlib.Probability.WithDensity
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProd
+public import LeanMachineLearning.ForMathlib.Topology.DenseRangeCodRestrict
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
+public import LeanMachineLearning.ForMathlib.Topology.MetricSpace.OpenUnionBalls
 public import LeanMachineLearning.ForMathlib.Topology.Order.Sandwich
 public import LeanMachineLearning.ForMathlib.Topology.UniformSpace.LimitInterchange
 public import LeanMachineLearning.Online.Bandit.Algorithms.ETC

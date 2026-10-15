@@ -169,7 +169,7 @@ theorem exists_gibbs_measure_of_representation {h : I × I × I → ℝ} (hm : M
     (memLp_two_iff_integrable_sq (hF.comp measurable_prodMk_left).aestronglyMeasurable).2 (hint q)
   set Φ : I × I → Lp ℝ 2 (volume : Measure I) := fun q =>
     (hmem q).toLp (fun v => h (q.1, q.2, v)) with hΦdef
-  have hΦ : Measurable Φ := measurable_toLp_section hF hmem
+  have hΦ : Measurable Φ := measurable_toLp_section (by norm_num) ENNReal.ofNat_ne_top hF hmem
   have hΦ' : ∀ w : I, Measurable fun u => Φ (w, u) := fun w => hΦ.comp measurable_prodMk_left
   have hnorm : ∀ q, ‖Φ q‖ ≤ 1 := fun q => by
     refine (sq_le_one_iff₀ (norm_nonneg _)).1 ?_

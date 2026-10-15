@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Topology.DenseRangeCodRestrict
 public import Mathlib.Analysis.InnerProductSpace.ProdL2
 public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 public import Mathlib.Analysis.Normed.Operator.Extend
@@ -71,14 +72,9 @@ private lemma exists_linearIsometry_closure_span [CompleteSpace H'] {h : ι → 
   set e : (ι →₀ ℝ) →ₗ[ℝ] S := (Finsupp.linearCombination ℝ h).codRestrict S fun c =>
     (span ℝ (range h)).le_topologicalClosure (by
       rw [← Finsupp.range_linearCombination]; exact LinearMap.mem_range_self _ c) with he
-  have hdense : DenseRange e := by
-    rw [DenseRange, dense_iff_closure_eq]
-    refine eq_univ_of_forall fun y => ?_
-    rw [Topology.IsEmbedding.subtypeVal.closure_eq_preimage_closure_image, mem_preimage,
-      ← range_comp]
-    have himage : (Subtype.val ∘ e) = Finsupp.linearCombination ℝ h := rfl
-    rw [himage, ← LinearMap.coe_range, Finsupp.range_linearCombination]
-    exact y.2
+  have hdense : DenseRange e :=
+    denseRange_codRestrict_of_subset_closure (f := Finsupp.linearCombination ℝ h) _
+      (by rw [← LinearMap.coe_range, Finsupp.range_linearCombination]; exact subset_rfl)
   have hnorm : ∀ c, ‖Finsupp.linearCombination ℝ x c‖ = ‖e c‖ := fun c => by
     rw [norm_linearCombination_eq hxh]; rfl
   refine ⟨(Finsupp.linearCombination ℝ x).extendOfIsometry hdense hnorm, fun i => ?_⟩

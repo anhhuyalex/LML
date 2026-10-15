@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Topology.MetricSpace.OpenUnionBalls
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Metric
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
 
@@ -35,19 +36,7 @@ theorem measurable_of_measurable_dist {α β : Type*} [MeasurableSpace α] [Pseu
   obtain ⟨D, hDc, hDd⟩ := exists_countable_dense β
   have : Countable D := hDc.to_subtype
   refine measurable_of_isOpen fun U hU => ?_
-  have hU' : f ⁻¹' U = ⋃ (d : D) (r : ℚ) (_ : 0 < (r : ℝ) ∧ ball (d : β) r ⊆ U),
-      f ⁻¹' ball (d : β) r := by
-    ext x
-    simp only [mem_preimage, mem_iUnion]
-    refine ⟨fun hx => ?_, fun ⟨d, r, ⟨_, hr⟩, hxd⟩ => hr hxd⟩
-    obtain ⟨ε, hε, hball⟩ := Metric.isOpen_iff.1 hU _ hx
-    obtain ⟨r, hr0, hrε⟩ := exists_rat_btwn (half_pos hε)
-    obtain ⟨d, hdD, hxd⟩ := hDd.exists_dist_lt (f x) (by exact_mod_cast hr0 : (0 : ℝ) < r)
-    refine ⟨⟨d, hdD⟩, r, ⟨by exact_mod_cast hr0, fun y hy => hball ?_⟩, hxd⟩
-    rw [mem_ball] at hy ⊢
-    have := dist_triangle y d (f x)
-    rw [dist_comm d] at this
-    linarith
-  rw [hU']
+  rw [Metric.isOpen_eq_iUnion_ball_dense_rat hDd hU]
+  simp only [preimage_iUnion]
   exact MeasurableSet.iUnion fun d => MeasurableSet.iUnion fun r => MeasurableSet.iUnion fun _ =>
     measurableSet_lt (hf d) measurable_const
