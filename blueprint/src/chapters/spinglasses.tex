@@ -55,7 +55,7 @@ $G=(g_{ij})$ has i.i.d.\ $\mathcal N(0,1)$ entries, the law
 \texttt{Measure.pi fun \_ => Measure.pi fun \_ => gaussianReal 0 1}, and the SK Hamiltonian is
 $H_N(\sigma)=N^{-1/2}\sum_{i,j}g_{ij}\sigma_i\sigma_j=N^{-1/2}\,\sigma^\top G\sigma$. For an energy
 $H:\Sigma\to\mathbb R$ and $\beta>0$ the partition function is $Z(\beta)=\sum_\sigma e^{\beta H(\sigma)}$ and the free
-energy is $F_N(\beta)=N^{-1}\mathbb E\log Z_N(\beta)$.
+energy is $F_N(\beta)=N^{-1}\mathbb E[\log Z_N(\beta)]$.
 
 \medskip\noindent\textbf{Which definitions are not introduced.}
 Following the repository's convention this chapter introduces \emph{no} new Lean definition. The overlap, the
@@ -82,10 +82,10 @@ Three points are worth keeping in mind.
 \item \emph{The law of a vector is a joint law.} For a vector $X=(X_r)_{r\in A}$ the target space is $\mathbb R^A$ and the law is the \emph{joint} distribution on $\mathbb R^A$ (product $\sigma$-algebra). Equality of laws of two vectors is much stronger than
 equality of the laws of each coordinate: it also fixes how the coordinates depend on each other. For centered Gaussian vectors, Lemma~\ref{lem:sg:gram} below says that the joint law is nevertheless determined by the covariance matrix alone.
 \item \emph{Equal laws give equal expectations.} By the change-of-variables formula
-\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html#MeasureTheory.integral_map}{\texttt{integral\_map}}, $\mathbb Ef(X)=\int f\,d(P\circ X^{-1})$, so if $X$ and $Y$ have the same law then
-$\mathbb Ef(X)=\mathbb Ef(Y)$ for every measurable $f$, and $f(X)$ is integrable if and only if $f(Y)$ is. This is exactly how the ``consequently'' sentences in the statements below are obtained from an equality of laws.
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html#MeasureTheory.integral_map}{\texttt{integral\_map}}, $\mathbb E[f(X)]=\int f\,d(P\circ X^{-1})$, so if $X$ and $Y$ have the same law then
+$\mathbb E[f(X)]=\mathbb E[f(Y)]$ for every measurable $f$, and $f(X)$ is integrable if and only if $f(Y)$ is. This is exactly how the ``consequently'' sentences in the statements below are obtained from an equality of laws.
 \item \emph{Gaussian vectors and the standard Gaussian.} A ``centered Gaussian vector'' is a random vector $X$ (in Lean: \texttt{HasGaussianLaw X P}, see
-\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/HasGaussianLaw/Def.html}{\texttt{HasGaussianLaw}}) whose law is a Gaussian measure on $\mathbb R^A$, i.e.\ every linear combination $\sum_rc_rX_r$ is a (possibly degenerate) real Gaussian, and ``centered'' means all $\mathbb EX_r=0$.
+\href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/HasGaussianLaw/Def.html}{\texttt{HasGaussianLaw}}) whose law is a Gaussian measure on $\mathbb R^A$, i.e.\ every linear combination $\sum_rc_rX_r$ is a (possibly degenerate) real Gaussian, and ``centered'' means all $\mathbb E[X_r]=0$.
 The notation $\xi\sim\gamma_K$ means that $\xi\in\mathbb R^K$ has i.i.d.\ standard normal coordinates, i.e.\ its law is
 \texttt{Measure.pi fun \_ => gaussianReal 0 1} (see \href{https://leanprover-community.github.io/mathlib4_docs/Mathlib/Probability/Distributions/Gaussian/Real.html#ProbabilityTheory.gaussianReal}{\texttt{gaussianReal}}). Thus the sentence ``$X$ has the law of $(a_r\cdot\xi)_r$ with $\xi\sim\gamma_K$'' means
 \texttt{P.map X = (Measure.pi fun \_ : K => gaussianReal 0 1).map (fun xi => fun r => a r}~$\cdot$\texttt{ xi)}.
@@ -200,9 +200,9 @@ finite composition.
   \leanok
 Let $H$ be a random energy on $\Sigma_\iota$ with measurable integrable coordinates under a probability measure, and
 $\beta>0$. Then
-\[\frac1N\mathbb E\max_\sigma H(\sigma)\le\frac{1}{N\beta}\mathbb E\log Z(\beta)\le
-\frac{\log2}{\beta}+\frac1N\mathbb E\max_\sigma H(\sigma),\]
-hence $\big|\frac1{N\beta}\mathbb E\log Z(\beta)-\frac1N\mathbb E\max_\sigma H(\sigma)\big|\le\frac{\log2}\beta$.
+\[\frac1N\mathbb E[\max_\sigma H(\sigma)]\le\frac{1}{N\beta}\mathbb E[\log Z(\beta)]\le
+\frac{\log2}{\beta}+\frac1N\mathbb E[\max_\sigma H(\sigma)],\]
+hence $\big|\frac1{N\beta}\mathbb E[\log Z(\beta)]-\frac1N\mathbb E[\max_\sigma H(\sigma)]\big|\le\frac{\log2}\beta$.
 (For $N=0$ both sides vanish by the convention $0^{-1}=0$.)
 \end{theorem}
 
@@ -239,7 +239,7 @@ measurable, and it is integrable because it is square-integrable (Lemma~\ref{lem
   \leanok
 For a finite nonempty set $\alpha$ and $f:\alpha\to\mathbb R$, the function
 $\beta\mapsto\beta^{-1}\big(\log\sum_ae^{\beta f(a)}-\log|\alpha|\big)$ is non-decreasing on $(0,\infty)$. The same
-holds for $\beta\mapsto\beta^{-1}\big(\mathbb E\log\sum_ae^{\beta H_a}-\log|\alpha|\big)$ for a random energy as in
+holds for $\beta\mapsto\beta^{-1}\big(\mathbb E\big[\log\sum_ae^{\beta H_a}\big]-\log|\alpha|\big)$ for a random energy as in
 Lemma~\ref{lem:sg:integrable}, and for a random energy on the hypercube the function
 $\beta\mapsto\beta^{-1}\big(F_N(\beta)-\log2\big)$ is non-decreasing on $(0,\infty)$. More generally, for nonnegative weights
 $w_a$ with $\sum_aw_a>0$ the function $\beta\mapsto\beta^{-1}\big(\log\sum_aw_ae^{\beta f(a)}-\log\sum_aw_a\big)$ is
@@ -267,7 +267,7 @@ Consider a family of hypercube models indexed by $k\to\infty$ (for SK, $k=N$ and
 measurable, integrable coordinates, and suppose that for every $\beta>0$ the free energy converges,
 $F_k(\beta)\to F(\beta)$. Then:
 (1) $\beta\mapsto\beta^{-1}(F(\beta)-\log2)$ is non-decreasing on $(0,\infty)$;
-(2) the normalized ground-state energies $E_k=|\iota_k|^{-1}\mathbb E\max_\sigma H_k(\sigma)$ converge to some $E_0$, and
+(2) the normalized ground-state energies $E_k=|\iota_k|^{-1}\mathbb E[\max_\sigma H_k(\sigma)]$ converge to some $E_0$, and
 $\beta^{-1}F(\beta)\to E_0$ as $\beta\to\infty$.
 \end{theorem}
 
@@ -313,8 +313,8 @@ $\langle g\rangle_\beta=\int g\,dG_\beta$.
   \leanok
 (1) For every $H:\alpha\to\mathbb R$, $\frac{d}{d\beta}\log Z(\beta)=\langle H\rangle_\beta$.
 (2) For a random energy with measurable, integrable coordinates and $\beta>0$,
-$\frac{d}{d\beta}\mathbb E\log Z(\beta)=\mathbb E\langle H\rangle_\beta$.
-(3) For the SK model, $\frac d{d\beta}F_N(\beta)=N^{-1}\mathbb E\langle H_N\rangle_\beta$ for $\beta>0$.
+$\frac{d}{d\beta}\mathbb E[\log Z(\beta)]=\mathbb E\big[\langle H\rangle_\beta\big]$.
+(3) For the SK model, $\frac d{d\beta}F_N(\beta)=N^{-1}\,\mathbb E\big[\langle H_N\rangle_\beta\big]$ for $\beta>0$.
 \end{theorem}
 
 \begin{proof}
@@ -380,9 +380,9 @@ $\mathbb E[(\sum_pa_p\cdot g_p)(\sum_pb_p\cdot g_p)]=\sum_pa_p\cdot b_p$.
 \begin{proof}
   \leanok
 (1) The law of $g$ is the standard Gaussian of $\mathbb R^\kappa$, whose covariance bilinear form is the inner product,
-and $\mathbb E g=0$. (2) The series converge absolutely almost surely, since $\sum_p\|X_p\|_{L^1}\le\sum_p\|X_p\|_{L^2}$
+and $\mathbb E[g]=0$. (2) The series converge absolutely almost surely, since $\sum_p\|X_p\|_{L^1}\le\sum_p\|X_p\|_{L^2}$
 (Mathlib's \texttt{summable\_norm\_of\_tsum\_eLpNorm\_ne\_top}), so $(\sum_pX_p)(\sum_qY_q)=\sum_{(p,q)}X_pY_q$ almost
-everywhere. By H\"older, $\mathbb E|X_pY_q|\le\|X_p\|_{L^2}\|Y_q\|_{L^2}$, and $\sum_{p,q}\|X_p\|_{L^2}\|Y_q\|_{L^2}<\infty$, so the
+everywhere. By H\"older, $\mathbb E[|X_pY_q|]\le\|X_p\|_{L^2}\|Y_q\|_{L^2}$, and $\sum_{p,q}\|X_p\|_{L^2}\|Y_q\|_{L^2}<\infty$, so the
 double series may be integrated termwise (\texttt{integral\_tsum}). For $p\ne q$, independence and centering give
 $\mathbb E[X_pY_q]=\mathbb E[X_p]\mathbb E[Y_q]=0$, which leaves the diagonal. (3) Apply (2) to $X_p=a_p\cdot g_p$ and
 $Y_p=b_p\cdot g_p$: they are independent for $p\ne q$ because they are functions of different coordinates of the
@@ -425,8 +425,20 @@ $|x|\le1$.
   \lean{SpinGlasses.mixedPSpin_measurable, SpinGlasses.mixedPSpin_integrable,
         SpinGlasses.integral_mixedPSpin_mul_mixedPSpin}
   \leanok
-Let $\iota$ be nonempty and finite, $\beta_0=0$, $\sum_p|\beta_p|<\infty$ and $\sigma,\tau\in[-1,1]^\iota$. Then the
-series $H_N(\sigma)=\sum_p\beta_pH_{N,p}(\sigma)$ is measurable and integrable in the disorder, and
+Assume the following.
+\begin{enumerate}
+\item[(H1)] $\iota$ is a nonempty finite index set and $N=|\iota|$.
+\item[(H2)] The disorder $g=(g_{p,i_1\dots i_p})_{p\ge1,\ i_1,\dots,i_p\in\iota}$ consists of independent standard
+  Gaussian variables $\mathcal N(0,1)$.
+\item[(H3)] The coefficients satisfy $\beta_0=0$ and $\sum_{p\ge1}|\beta_p|<\infty$. (This is implied by Panchenko's
+  condition $\sum_p2^p\beta_p^2<\infty$, Lemma~\ref{lem:sg:summable}.)
+\item[(H4)] $H_N(\sigma)=\sum_{p\ge1}\beta_pH_{N,p}(\sigma)$, where
+  $H_{N,p}(\sigma)=N^{-(p-1)/2}\sum_{i_1,\dots,i_p\in\iota}g_{p,i_1\dots i_p}\sigma_{i_1}\cdots\sigma_{i_p}$.
+\item[(H5)] The configurations satisfy $\sigma,\tau\in[-1,1]^\iota$ (this includes the hypercube
+  $\{-1,1\}^\iota$), and $R(\sigma,\tau)=N^{-1}\sum_{i\in\iota}\sigma_i\tau_i$ is their overlap.
+\end{enumerate}
+Then the series defining $H_N(\sigma)$ converges almost surely, $H_N(\sigma)$ is measurable and integrable in the
+disorder, and, with $\xi(x)=\sum_{p\ge1}\beta_p^2x^p$,
 \[\mathbb E[H_N(\sigma)H_N(\tau)]=N\,\xi\big(R(\sigma,\tau)\big).\]
 \end{theorem}
 
@@ -444,10 +456,42 @@ measurability, integrability and $\mathbb E[H_N(\sigma)H_N(\tau)]=\sum_pa_p(\sig
   \lean{SpinGlasses.mixedPSpin_smooth_approximation_error_bound,
         SpinGlasses.mixedPSpin_hasDerivAt_free_energy}
   \leanok
-Under the hypotheses of Theorem~\ref{thm:sg:mixedcov}, for $t>0$,
-$\big|\frac1{Nt}\mathbb E\log Z_N(t)-\frac1N\mathbb E\max_\sigma H_N(\sigma)\big|\le\frac{\log2}{t}$ and
-$\frac{d}{dt}\frac1N\mathbb E\log Z_N(t)=\frac1N\mathbb E\langle H_N\rangle_t$, where $Z_N(t)=\sum_\sigma e^{tH_N(\sigma)}$.
+Assume the following.
+\begin{enumerate}
+\item[(H1)] $\iota$ is a nonempty finite index set, $N=|\iota|$, and the configurations are the hypercube
+  $\Sigma_\iota=\{-1,1\}^\iota$.
+\item[(H2)] The disorder $g=(g_{p,i_1\dots i_p})_{p\ge1,\ i_1,\dots,i_p\in\iota}$ consists of independent standard
+  Gaussian variables $\mathcal N(0,1)$.
+\item[(H3)] The coefficients satisfy $\beta_0=0$ and $\sum_{p\ge1}|\beta_p|<\infty$. (This is implied by Panchenko's
+  condition $\sum_p2^p\beta_p^2<\infty$, Lemma~\ref{lem:sg:summable}.)
+\item[(H4)] The Hamiltonian is $H_N(\sigma)=\sum_{p\ge1}\beta_pH_{N,p}(\sigma)$ with
+  $H_{N,p}(\sigma)=N^{-(p-1)/2}\sum_{i_1,\dots,i_p\in\iota}g_{p,i_1\dots i_p}\sigma_{i_1}\cdots\sigma_{i_p}$.
+\end{enumerate}
+These are the hypotheses of Theorem~\ref{thm:sg:mixedcov}, specialized to $\sigma,\tau\in\Sigma_\iota\subset[-1,1]^\iota$.
+Then for every $t>0$, with $Z_N(t)=\sum_{\sigma\in\Sigma_\iota}e^{tH_N(\sigma)}$,
+\[
+\Big|\frac1{Nt}\,\mathbb E\big[\log Z_N(t)\big]-\frac1N\,\mathbb E\big[\max_{\sigma\in\Sigma_\iota}H_N(\sigma)\big]\Big|
+\le\frac{\log2}{t},
+\qquad
+\frac{d}{dt}\Big(\frac1N\,\mathbb E\big[\log Z_N(t)\big]\Big)=\frac1N\,\mathbb E\big[\langle H_N\rangle_t\big].
+\]
 \end{theorem}
+
+\begin{remark}[Notation $\mathbb E[\langle H_N\rangle_t]$]
+The symbol $\langle\cdot\rangle_t$ is the Gibbs average of Section~\ref{sec:sg:gibbs} at inverse temperature $t$, taken
+for a \emph{fixed} realization $g$ of the disorder. Writing $G_t$ for the Gibbs measure on $\Sigma_\iota$,
+$G_t(\{\sigma\})=e^{tH_N(\sigma)}/Z_N(t)$,
+\[
+\langle H_N\rangle_t=\int H_N(\sigma)\,dG_t(\sigma)=\sum_{\sigma\in\Sigma_\iota}\frac{e^{tH_N(\sigma)}}{Z_N(t)}\,H_N(\sigma).
+\]
+This is a random variable, because both the weights and the energies depend on $g$. The outer expectation
+$\mathbb E[\cdot]$ then averages over $g$ only: $\mathbb E[\langle H_N\rangle_t]=\int\big(\sum_\sigma
+\frac{e^{tH_N(g,\sigma)}}{Z_N(g,t)}H_N(g,\sigma)\big)\,d\gamma(g)$, where $\gamma$ is the law of the disorder. In
+the Lean statement this is the iterated integral of \texttt{Measure.count.tilted} with tilt $t\,H_N(g,\cdot)$ against
+\texttt{gaussianDisorder}. The same square-bracket convention is used throughout: $\mathbb E$ applies to everything
+inside the brackets, so in $\mathbb E[\log Z_N(t)]$ the expectation applies to $\log Z_N(t)$ as a whole and not to $\log$ alone, and the factors $\frac1N$, $\frac1{Nt}$
+are constants outside the expectation.
+\end{remark}
 
 \begin{proof}
   \leanok
@@ -592,8 +636,8 @@ $\int|\chi(\sigma_{r_0})|\,d\pi=\int|\chi|\,d\langle\cdot\rangle$.
   \leanok
   \uses{thm:sg:steinvec, lem:sg:replicacalc}
 With the notation above, for every $r_0\in R$ and every function $\Phi$ of the $|R|$ replicas,
-\[\mathbb E\big\langle\Phi\,x(\sigma^{r_0})\big\rangle
- =\mathbb E\Big\langle\Phi\Big(\sum_{r\in R}C(\sigma^{r_0},\sigma^r)-|R|\,C(\sigma^{r_0},\sigma^{n+1})\Big)\Big\rangle,\]
+\[\mathbb E\big[\big\langle\Phi\,x(\sigma^{r_0})\big\rangle\big]
+ =\mathbb E\Big[\Big\langle\Phi\Big(\sum_{r\in R}C(\sigma^{r_0},\sigma^r)-|R|\,C(\sigma^{r_0},\sigma^{n+1})\Big)\Big\rangle\Big],\]
 where $\sigma^{n+1}$ is an additional independent replica (written as an integral of $C(\sigma^{r_0},\cdot)$ against the Gibbs measure,
 and, in the second form, as the replica indexed by \texttt{none} in the product over \texttt{Option R}).
 \end{theorem}
@@ -612,7 +656,7 @@ the average of $C(\sigma^{r_0},\cdot)$ against the Gibbs measure.
   \lean{SpinGlasses.integral_gibbs_average_gaussian}
   \leanok
   \uses{thm:sg:replica}
-$\mathbb E\langle x(\sigma)\rangle=\mathbb E\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle$, where $\langle\cdot\rangle$ on the right
+$\mathbb E\big[\langle x(\sigma)\rangle\big]=\mathbb E\big[\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle\big]$, where $\langle\cdot\rangle$ on the right
 is the product of two replicas.
 \end{theorem}
 
@@ -647,8 +691,8 @@ $\prod_jB(\sigma_j)|\Psi(\sigma)|$. For the truncated weights, $\sum_{A_m}g\ge g
         ProbabilityTheory.integrable_exp_mul_of_hasGaussianLaw, ProbabilityTheory.eLpNorm_one_mul_exp_le,
         ProbabilityTheory.ae_summable_and_integrable_tsum_mul_exp}
   \leanok
-If $Z$ is Gaussian then $\mathbb E\,e^{tZ}=e^{t\mathbb EZ+t^2\mathrm{Var}Z/2}$. If $Z$ is centered Gaussian with $\mathbb EZ^2\le v$ and
-$\mathbb EX^2\le a$ then $\mathbb E|X|e^{Z}\le\sqrt a\,e^v$. Consequently, for countably many such pairs $(X_b,Z_b)$ with uniform bounds and
+If $Z$ is Gaussian then $\mathbb E[e^{tZ}]=e^{t\mathbb E[Z]+t^2\mathrm{Var}Z/2}$. If $Z$ is centered Gaussian with $\mathbb E[Z^2]\le v$ and
+$\mathbb E[X^2]\le a$ then $\mathbb E[|X|e^{Z}]\le\sqrt a\,e^v$. Consequently, for countably many such pairs $(X_b,Z_b)$ with uniform bounds and
 $G_b\ge0$ summable, $\sum_bG_b|X_b|e^{Z_b}$ converges almost surely and is integrable.
 \end{lemma}
 
@@ -656,7 +700,7 @@ $G_b\ge0$ summable, $\sum_bG_b|X_b|e^{Z_b}$ converges almost surely and is integ
   \leanok
   \uses{lem:sg:tannery}
 The law of $Z$ is Gaussian, so the first claim is the Gaussian moment generating function. By Cauchy--Schwarz (Holder with exponents
-$2,2,1$) $\|Xe^Z\|_1\le\|X\|_2\|e^Z\|_2$ and $\|e^Z\|_2^2=\mathbb Ee^{2Z}=e^{2\mathrm{Var}Z}\le e^{2v}$. The series has summable $L^1$ norms
+$2,2,1$) $\|Xe^Z\|_1\le\|X\|_2\|e^Z\|_2$ and $\|e^Z\|_2^2=\mathbb E[e^{2Z}]=e^{2\mathrm{Var}Z}\le e^{2v}$. The series has summable $L^1$ norms
 $\le\sqrt a\,e^v\sum_bG_b$, hence converges absolutely a.s.\ and is integrable (Lemma~\ref{lem:sg:tannery}).
 \end{proof}
 
@@ -684,20 +728,20 @@ Lemma~\ref{lem:sg:replicacalc}(3) applied on $A$.
   \leanok
   \uses{thm:sg:truncation, lem:sg:gaussexp, lem:sg:tannery}
 Let $\alpha$ be countable, $G:\alpha\to(0,\infty)$ summable, and $(x,y)$ a centered jointly Gaussian process (\texttt{IsGaussianProcess}) with
-$\mathbb Ex(a)^2\le v$ and $\mathbb Ey(a)^2\le v$ for all $a$. Let $\Phi$ be a function of $|R|$ replicas with $|\Phi|\le M$, and
+$\mathbb E[x(a)^2]\le v$ and $\mathbb E[y(a)^2]\le v$ for all $a$. Let $\Phi$ be a function of $|R|$ replicas with $|\Phi|\le M$, and
 $w(a)=G(a)e^{y(a)}/\sum_bG(b)e^{y(b)}$ the Gibbs weights. Then
-\[\mathbb E\sum_{\sigma\in\alpha^R}\prod_rw(\sigma_r)\,\Phi(\sigma)\,x(\sigma_{r_0})
- =\mathbb E\sum_{\tau\in\alpha^{R\sqcup\{*\}}}\prod_{o}w(\tau_o)\,\Phi(\tau|_R)\Big(\sum_{r}C(\tau_{r_0},\tau_r)-|R|\,C(\tau_{r_0},\tau_*)\Big).\]
+\[\mathbb E\big[\sum_{\sigma\in\alpha^R}\prod_rw(\sigma_r)\,\Phi(\sigma)\,x(\sigma_{r_0})\big]
+ =\mathbb E\Big[\sum_{\tau\in\alpha^{R\sqcup\{*\}}}\prod_{o}w(\tau_o)\,\Phi(\tau|_R)\Big(\sum_{r}C(\tau_{r_0},\tau_r)-|R|\,C(\tau_{r_0},\tau_*)\Big)\Big].\]
 \end{theorem}
 
 \begin{proof}
   \leanok
 Choose finite sets $A_m\uparrow\alpha$ containing a base point $a_1$ and apply Theorem~\ref{thm:sg:truncation} to each $A_m$; it remains to pass to the limit
 $m\to\infty$ in both sides by dominated convergence. Put $g_b=G(b)e^{y(b)}$ and $Z_b=y(b)-y(a_1)$, so that $g_b/g_{a_1}=(G(b)/G(a_1))e^{Z_b}$. The $Z_b$ are centered Gaussians with
-$\mathbb EZ_b^2\le4v$. By Lemma~\ref{lem:sg:gaussexp} (with $X_b=1$ and $X_b=x(b)$), almost surely $\sum_bg_b<\infty$ and $\sum_b(g_b/g_{a_1})|x(b)|<\infty$, and
+$\mathbb E[Z_b^2]\le4v$. By Lemma~\ref{lem:sg:gaussexp} (with $X_b=1$ and $X_b=x(b)$), almost surely $\sum_bg_b<\infty$ and $\sum_b(g_b/g_{a_1})|x(b)|<\infty$, and
 $\sum_bG(b)|x(b)|e^{Z_b}$ is integrable. For such $\omega$, Lemma~\ref{lem:sg:tannery} gives the pointwise convergence of the truncated averages on
 both sides (the summability hypothesis on $\Psi$ follows from the summability of $\prod B$ and of $B|x|$). The left-hand averages are dominated by
-$M\sum_b(g_b/g_{a_1})|x(b)|$, which is integrable, and the right-hand averages by $M\cdot2|R|v$, because $|C(a,b)|\le(\mathbb Ex(a)^2+\mathbb Ey(b)^2)/2\le v$.
+$M\sum_b(g_b/g_{a_1})|x(b)|$, which is integrable, and the right-hand averages by $M\cdot2|R|v$, because $|C(a,b)|\le(\mathbb E[x(a)^2]+\mathbb E[y(b)^2])/2\le v$.
 Dominated convergence shows that both sides of the truncated identities converge, hence the limits agree.
 \end{proof}
 
@@ -740,7 +784,7 @@ $\sum_sc_sa^s_p$ (summable by Minkowski's inequality), so $L\circ(H_{a^s})_s$ is
   \leanok
   \uses{lem:sg:serieslaw, thm:sg:mixedcov}
 Let $\beta_0=0$ and $\sum_p|\beta_p|<\infty$. On the hypercube, the vector $(H_N(\sigma))_{\sigma\in\{\pm1\}^N}$ of the mixed $p$-spin
-Hamiltonian is a centered Gaussian vector with $\mathbb EH_N(\sigma)H_N(\tau)=N\xi(R(\sigma,\tau))$, $\xi(x)=\sum_p\beta_p^2x^p$; each
+Hamiltonian is a centered Gaussian vector with $\mathbb E[H_N(\sigma)H_N(\tau)]=N\xi(R(\sigma,\tau))$, $\xi(x)=\sum_p\beta_p^2x^p$; each
 $H_N(\sigma)$ is measurable and integrable in the disorder.
 \end{theorem}
 
@@ -758,7 +802,7 @@ and Theorem~\ref{thm:sg:mixedcov} (with $|\sigma_i|\le1$) the covariance.
   \leanok
   \uses{lem:sg:gibbsavg, thm:sg:deriv}
 Let $f(s,\omega,a)$ be differentiable in $s$ on a neighbourhood of $t$ with derivative $f'(s,\omega,a)$ bounded by an integrable $B(\omega)$. Then
-$\frac{d}{ds}\mathbb E\log\sum_ae^{f(s,\omega,a)}\big|_{s=t}=\mathbb E\langle f'(t)\rangle_{f(t)}$, where $\langle\cdot\rangle_{f(t)}$ is the
+$\frac{d}{ds}\mathbb E\big[\log\sum_ae^{f(s,\omega,a)}\big]\big|_{s=t}=\mathbb E\big[\langle f'(t)\rangle_{f(t)}\big]$, where $\langle\cdot\rangle_{f(t)}$ is the
 Gibbs average of the energy $f(t,\omega,\cdot)$. The temperature derivative of Theorem~\ref{thm:sg:deriv} is the case $f(s,\omega,a)=sH(\omega,a)$.
 \end{lemma}
 
@@ -773,18 +817,18 @@ Pointwise, $\frac{d}{ds}\log\sum_ae^{f}=\sum_ae^{f}f'/\sum_ae^{f}=\langle f'\ran
         SpinGlasses.hasDerivAt_integral_log_sum_exp_trig, SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
   \leanok
   \uses{lem:sg:pathderiv, thm:sg:lemma11}
-Let $(X,Y)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb EX(a)Y(b)=0$, equal variances
-$\mathbb EX(a)^2=\mathbb EY(a)^2$, and $\mathbb EX(a)X(b)\le\mathbb EY(a)Y(b)$ for all $a,b$. Then for every bias $h:\alpha\to\mathbb R$,
-\[\mathbb E\log\sum_ae^{Y(a)+h(a)}\le\mathbb E\log\sum_ae^{X(a)+h(a)}.\]
+Let $(X,Y)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb E[X(a)Y(b)]=0$, equal variances
+$\mathbb E[X(a)^2]=\mathbb E[Y(a)^2]$, and $\mathbb E[X(a)X(b)]\le\mathbb E[Y(a)Y(b)]$ for all $a,b$. Then for every bias $h:\alpha\to\mathbb R$,
+\[\mathbb E\big[\log\sum_ae^{Y(a)+h(a)}\big]\le\mathbb E\big[\log\sum_ae^{X(a)+h(a)}\big].\]
 \end{theorem}
 
 \begin{proof}
   \leanok
-Put $u_s=\cos s\,X+\sin s\,Y+h$ and $\varphi(s)=\mathbb E\log\sum_ae^{u_s(a)}$. By Lemma~\ref{lem:sg:pathderiv}, $\varphi'(s)=\mathbb E\langle x_s\rangle$
+Put $u_s=\cos s\,X+\sin s\,Y+h$ and $\varphi(s)=\mathbb E\big[\log\sum_ae^{u_s(a)}\big]$. By Lemma~\ref{lem:sg:pathderiv}, $\varphi'(s)=\mathbb E\big[\langle x_s\rangle\big]$
 with $x_s=-\sin s\,X+\cos s\,Y=u_s'$. The pair $(x_s,u_s)$ is jointly Gaussian and
-$C(a,b)=\mathbb Ex_s(a)u_s(b)=\sin s\cos s\,(B-A)(a,b)$ with $A=\mathrm{Cov}X$, $B=\mathrm{Cov}Y$, because $\mathbb EXY=0$. Gaussian integration by
+$C(a,b)=\mathbb E[x_s(a)u_s(b)]=\sin s\cos s\,(B-A)(a,b)$ with $A=\mathrm{Cov}X$, $B=\mathrm{Cov}Y$, because $\mathbb E[XY]=0$. Gaussian integration by
 parts for the Gibbs measure (Lemma~1.1, Theorem~\ref{thm:sg:lemma11}) gives
-$\varphi'(s)=\mathbb E\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle=-\sin s\cos s\,\mathbb E\langle(B-A)(\sigma^1,\sigma^2)\rangle\le0$
+$\varphi'(s)=\mathbb E\big[\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle\big]=-\sin s\cos s\,\mathbb E\big[\langle(B-A)(\sigma^1,\sigma^2)\rangle\big]\le0$
 on $[0,\pi/2]$, since $(B-A)(a,a)=0$ and $B\ge A$. Hence $\varphi(\pi/2)\le\varphi(0)$, which is the claim. (The trigonometric path is smooth on all of
 $\mathbb R$, so no endpoint continuity or singular derivative at $t=0,1$ occurs, unlike $\sqrt tX+\sqrt{1-t}Y$.)
 \end{proof}
@@ -810,18 +854,18 @@ No definition of superadditivity is introduced.
   \leanok
   \uses{thm:sg:comparison}
 Let $H_N$ be centered Gaussian Hamiltonians on $\{\pm1\}^N$ (disorders on arbitrary probability spaces $\Omega_N$) with
-$\mathbb EH_N(\sigma)H_N(\tau)=N\xi(R(\sigma,\tau))$ for a function $\xi$ that is convex on $[-1,1]$. Then for $N,M>0$,
-\[\mathbb E\log Z_N+\mathbb E\log Z_M\le\mathbb E\log Z_{N+M},\qquad\text{i.e.}\quad NF_N+MF_M\le(N+M)F_{N+M}.\]
+$\mathbb E[H_N(\sigma)H_N(\tau)]=N\xi(R(\sigma,\tau))$ for a function $\xi$ that is convex on $[-1,1]$. Then for $N,M>0$,
+\[\mathbb E[\log Z_N]+\mathbb E[\log Z_M]\le\mathbb E[\log Z_{N+M}],\qquad\text{i.e.}\quad NF_N+MF_M\le(N+M)F_{N+M}.\]
 \end{theorem}
 
 \begin{proof}
   \leanok
 On $\Omega_{N+M}\times(\Omega_N\times\Omega_M)$ put $X(\rho,\tau)=H_{N+M}(\rho\frown\tau)$ (concatenation of the configurations) and
 $Y(\rho,\tau)=H_N(\rho)+H_M(\tau)$. The triple of Hamiltonians is jointly Gaussian (a product of Gaussian measures), and $X$ is independent of $Y$, so
-$\mathbb EXY=0$. The overlap splits, $R(\rho\frown\tau,\rho'\frown\tau')=\frac{N}{N+M}R(\rho,\rho')+\frac{M}{N+M}R(\tau,\tau')$, hence
-$\mathbb EX(\rho,\tau)X(\rho',\tau')=(N+M)\xi\big(\frac{NR+MR'}{N+M}\big)\le N\xi(R)+M\xi(R')=\mathbb EY(\rho,\tau)Y(\rho',\tau')$ by convexity of $\xi$,
-and both variances equal $(N+M)\xi(1)$. Theorem~\ref{thm:sg:comparison} gives $\mathbb E\log\sum e^Y\le\mathbb E\log\sum e^X$; the right side is
-$\mathbb E\log Z_{N+M}$ and the left side is $\mathbb E\log(Z_NZ_M)=\mathbb E\log Z_N+\mathbb E\log Z_M$.
+$\mathbb E[XY]=0$. The overlap splits, $R(\rho\frown\tau,\rho'\frown\tau')=\frac{N}{N+M}R(\rho,\rho')+\frac{M}{N+M}R(\tau,\tau')$, hence
+$\mathbb E[X(\rho,\tau)X(\rho',\tau')]=(N+M)\xi\big(\frac{NR+MR'}{N+M}\big)\le N\xi(R)+M\xi(R')=\mathbb E[Y(\rho,\tau)Y(\rho',\tau')]$ by convexity of $\xi$,
+and both variances equal $(N+M)\xi(1)$. Theorem~\ref{thm:sg:comparison} gives $\mathbb E\big[\log\sum e^Y\big]\le\mathbb E\big[\log\sum e^X\big]$; the right side is
+$\mathbb E[\log Z_{N+M}]$ and the left side is $\mathbb E[\log(Z_NZ_M)]=\mathbb E[\log Z_N]+\mathbb E[\log Z_M]$.
 \end{proof}
 
 \begin{lemma}[Convexity of $\xi$]\label{lem:sg:convexxi}
@@ -845,16 +889,16 @@ $\xi(ax+by)\le a\xi(x)+b\xi(y)$ passes to the sum of the convergent series.
   \leanok
   \uses{thm:sg:superadd, lem:sg:fekete, lem:sg:convexxi, thm:sg:mixedgauss, thm:sg:zerotemp, thm:sg:skcov}
 Under the hypotheses of Theorem~\ref{thm:sg:superadd}, for every inverse temperature $t$ the free energy
-$F_N(t)=N^{-1}\mathbb E\log Z_N(t)$ converges to $\sup_{N\ge1}F_N(t)$. This applies to the SK model
+$F_N(t)=N^{-1}\mathbb E[\log Z_N(t)]$ converges to $\sup_{N\ge1}F_N(t)$. This applies to the SK model
 (covariance function $\xi(x)=x^2$) and to the mixed $p$-spin models with $\beta_0=0$, $\sum_p|\beta_p|<\infty$ and $\beta_p=0$ for odd
 $p\ge3$ ($\xi(x)=\sum_p\beta_p^2x^p$). Consequently the hypothesis \texttt{h\_lim} of Theorem~\ref{thm:sg:zerotemp} holds: for these models
-$N^{-1}\mathbb E\max_\sigma H_N(\sigma)$ converges, and for SK the function $\beta\mapsto\beta^{-1}(F(\beta)-\log2)$ is non-decreasing.
+$N^{-1}\mathbb E[\max_\sigma H_N(\sigma)]$ converges, and for SK the function $\beta\mapsto\beta^{-1}(F(\beta)-\log2)$ is non-decreasing.
 \end{theorem}
 
 \begin{proof}
   \leanok
-The Hamiltonian $tH_N$ has covariance $N(t^2\xi)(R)$ and $t^2\xi$ is convex, so we may take $t=1$. Put $u_N=\mathbb E\log Z_N$ ($u_0=0$); it is
-superadditive by Theorem~\ref{thm:sg:superadd}. It is bounded above: by Jensen's inequality for the logarithm, $\mathbb E\log Z_N\le\log\mathbb EZ_N
+The Hamiltonian $tH_N$ has covariance $N(t^2\xi)(R)$ and $t^2\xi$ is convex, so we may take $t=1$. Put $u_N=\mathbb E[\log Z_N]$ ($u_0=0$); it is
+superadditive by Theorem~\ref{thm:sg:superadd}. It is bounded above: by Jensen's inequality for the logarithm, $\mathbb E[\log Z_N]\le\log\mathbb E[Z_N]
 =\log\sum_\sigma e^{\mathrm{Var}H_N(\sigma)/2}=N(\log2+\xi(1)/2)$, since $\mathrm{Var}\,H_N(\sigma)=N\xi(1)$. Fekete's lemma
 (Lemma~\ref{lem:sg:fekete}) shows $u_N/N\to\sup_{N\ge1}u_N/N$. For SK, $\xi(x)=x^2$ is convex and the covariance is Theorem~\ref{thm:sg:skcov}; the
 Gaussian law is that of the linear image $G\mapsto(\sigma^\top G\sigma)_\sigma$ of the Gaussian matrix. For the mixed model use
@@ -883,7 +927,7 @@ book's argument, and the reasons for them, are collected in Remark~\ref{rem:sg:d
   \uses{thm:sg:steinvec}
 Let $X$ be a centered Gaussian vector indexed by a finite set. (i) If $F$ is measurable with $|F(y)|\le Ce^{c\|y\|_1}$ then $F(X)$ is
 integrable. (ii) If $G(s,\cdot)$ is differentiable in $s$ with $|\partial_sG(s,y)|\le Ce^{c\|y\|_1}$ uniformly in $s$, then
-$\frac{d}{ds}\mathbb EG(s,X)=\mathbb E\,\partial_sG(s,X)$. (iii) If $(W,X)$ is a centered Gaussian family and $A$ is differentiable with
+$\frac{d}{ds}\mathbb E[G(s,X)]=\mathbb E[\partial_sG(s,X)]$. (iii) If $(W,X)$ is a centered Gaussian family and $A$ is differentiable with
 $|A(y)|\le c_1+c_2\|y\|_1$ and $|\partial_lA|\le c_3$, then $W_ie^{A(X)}$ and $e^{A(X)}$ are integrable and
 $\mathbb E[W_ie^{A(X)}]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[e^{A(X)}\partial_lA(X)]$. (iv) If $g$ is a Gaussian vector under $P$, then
 $z\mapsto(g(z_1),g(z_2))$ is a Gaussian vector under $P\otimes P$.
@@ -910,14 +954,14 @@ derivatives have exponential growth. Part (iv) is the fact that a product of Gau
         SpinGlasses.integral_exp_mul_log_sum_exp_sub_le}
   \leanok
   \uses{lem:sg:expgrowth, thm:sg:comparison, lem:sg:pathderiv}
-Let $(g_1,g_2)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb Eg_1g_2=0$ and the same covariance
-$C=\mathbb Eg_1g_1=\mathbb Eg_2g_2$, with $C(x,y)\le a$ for all $x,y$. Then for every bias $h$ and every $t\in\mathbb R$,
-\[\mathbb E\exp\Big(t\Big(\log\sum_xe^{g_1(x)+h(x)}-\log\sum_xe^{g_2(x)+h(x)}\Big)\Big)\le e^{at^2}.\]
+Let $(g_1,g_2)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb E[g_1g_2]=0$ and the same covariance
+$C=\mathbb E[g_1g_1]=\mathbb E[g_2g_2]$, with $C(x,y)\le a$ for all $x,y$. Then for every bias $h$ and every $t\in\mathbb R$,
+\[\mathbb E\Big[\exp\Big(t\Big(\log\sum_xe^{g_1(x)+h(x)}-\log\sum_xe^{g_2(x)+h(x)}\Big)\Big)\Big]\le e^{at^2}.\]
 \end{theorem}
 
 \begin{proof}
   \leanok
-Put $x_s=\cos s\,g_1+\sin s\,g_2$, $x'_s=-\sin s\,g_1+\cos s\,g_2$, $\Phi_s=\exp\big(t(\log Z(x_s)-\log Z(g_2))\big)$ and $\varphi(s)=\mathbb E\Phi_s$,
+Put $x_s=\cos s\,g_1+\sin s\,g_2$, $x'_s=-\sin s\,g_1+\cos s\,g_2$, $\Phi_s=\exp\big(t(\log Z(x_s)-\log Z(g_2))\big)$ and $\varphi(s)=\mathbb E[\Phi_s]$,
 so $\varphi(0)$ is the quantity to bound and $\varphi(\pi/2)=1$. Differentiating under the integral (Lemma~\ref{lem:sg:expgrowth}~(ii)),
 $\varphi'(s)=\mathbb E\big[\Phi_s\,t\langle x'_s\rangle_s\big]=t\sum_\sigma\mathbb E\big[x'_s(\sigma)e^{A_\sigma}\big]$, where $e^{A_\sigma}=\Phi_sp_\sigma(x_s)$,
 $p$ denoting the Gibbs weights. The field $x'_s$ is uncorrelated with $x_s$ and has covariance $\cos s\,C$ with $g_2$, so
@@ -930,14 +974,14 @@ because $\sum p=1$ and $C\le a$. Hence $\varphi(s)e^{at^2\sin s}$ is non-decreas
   \lean{ProbabilityTheory.sq_le_exp_add_exp_neg_sub_two, ProbabilityTheory.HasSubgaussianMGF.integral_sq_le,
         ProbabilityTheory.hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le}
   \leanok
-(i) If $X$ is sub-Gaussian with parameter $c$ (Mathlib's \texttt{HasSubgaussianMGF}) then $\mathbb EX^2\le c$. (ii) Let $F$ have exponential moments of
-all orders. If $\mathbb Ee^{t(F(z_1)-F(z_2))}\le e^{ct^2/2}$ for the pair $z\sim\mu\otimes\mu$ and all $t$, then $F-\mathbb EF$ is sub-Gaussian with parameter $c$.
+(i) If $X$ is sub-Gaussian with parameter $c$ (Mathlib's \texttt{HasSubgaussianMGF}) then $\mathbb E[X^2]\le c$. (ii) Let $F$ have exponential moments of
+all orders. If $\mathbb E[e^{t(F(z_1)-F(z_2))}]\le e^{ct^2/2}$ for the pair $z\sim\mu\otimes\mu$ and all $t$, then $F-\mathbb E[F]$ is sub-Gaussian with parameter $c$.
 \end{lemma}
 
 \begin{proof}
   \leanok
-(i) From $u^2\le e^u+e^{-u}-2$ we get $t^2\mathbb EX^2\le2(e^{ct^2/2}-1)\le ct^2e^{ct^2/2}$; let $t\to0$. (ii) By Jensen, $e^{-t\mathbb EF}\le\mathbb Ee^{-tF}$, so
-$\mathbb Ee^{t(F-\mathbb EF)}\le\mathbb Ee^{tF}\,\mathbb Ee^{-tF}=\mathbb Ee^{t(F(z_1)-F(z_2))}$ by Fubini.
+(i) From $u^2\le e^u+e^{-u}-2$ we get $t^2\mathbb E[X^2]\le2(e^{ct^2/2}-1)\le ct^2e^{ct^2/2}$; let $t\to0$. (ii) By Jensen, $e^{-t\mathbb E[F]}\le\mathbb E[e^{-tF}]$, so
+$\mathbb E[e^{t(F-\mathbb E[F])}]\le\mathbb E[e^{tF}]\,\mathbb E[e^{-tF}]=\mathbb E[e^{t(F(z_1)-F(z_2))}]$ by Fubini.
 \end{proof}
 
 \begin{theorem}[Gaussian concentration of the free energy, Panchenko Theorem~1.2, Eq.~(1.41)]\label{thm:sg:fecentration}
@@ -947,15 +991,15 @@ $\mathbb Ee^{t(F-\mathbb EF)}\le\mathbb Ee^{tF}\,\mathbb Ee^{-tF}=\mathbb Ee^{t(
         SpinGlasses.integral_sq_sub_integral_le_of_log_sum_exp}
   \leanok
   \uses{thm:sg:expmoment, lem:sg:symm}
-Let $g$ be a centered Gaussian field on a finite set $\alpha$ with $\mathbb Eg(a)^2\le v$ and let $F=\log\sum_ae^{g(a)+h(a)}$ for a bias $h$.
-Then $F-\mathbb EF$ is sub-Gaussian with parameter $2v$, i.e.\ $\mathbb Ee^{t(F-\mathbb EF)}\le e^{vt^2}$; consequently for $x\ge0$
-\[\mathbb P(|F-\mathbb EF|\ge x)\le2\exp\Big(-\frac{x^2}{4v}\Big),\qquad\mathbb E(F-\mathbb EF)^2\le2v.\]
+Let $g$ be a centered Gaussian field on a finite set $\alpha$ with $\mathbb E[g(a)^2]\le v$ and let $F=\log\sum_ae^{g(a)+h(a)}$ for a bias $h$.
+Then $F-\mathbb E[F]$ is sub-Gaussian with parameter $2v$, i.e.\ $\mathbb E[e^{t(F-\mathbb E[F])}]\le e^{vt^2}$; consequently for $x\ge0$
+\[\mathbb P(|F-\mathbb E[F]|\ge x)\le2\exp\Big(-\frac{x^2}{4v}\Big),\qquad\mathbb E[(F-\mathbb E[F])^2]\le2v.\]
 \end{theorem}
 
 \begin{proof}
   \leanok
 Apply Lemma~\ref{lem:sg:symm}~(ii) on $\Omega\times\Omega$: the pair of independent copies $(g(z_1),g(z_2))$ is jointly Gaussian
-(Lemma~\ref{lem:sg:expgrowth}~(iv)), centered, uncorrelated, with the common covariance $C(x,y)=\mathbb Eg(x)g(y)\le\frac12(\mathbb Eg(x)^2+\mathbb Eg(y)^2)\le v$,
+(Lemma~\ref{lem:sg:expgrowth}~(iv)), centered, uncorrelated, with the common covariance $C(x,y)=\mathbb E[g(x)g(y)]\le\frac12(\mathbb E[g(x)^2]+\mathbb E[g(y)^2])\le v$,
 so Theorem~\ref{thm:sg:expmoment} bounds the exponential moments by $e^{vt^2}$. The tail bound is Chernoff's inequality for the sub-Gaussian variable on both
 sides (\texttt{HasSubgaussianMGF.measureReal\_abs\_ge\_le}, from \texttt{measure\_ge\_le} and \texttt{measure\_le\_le}) and the variance bound is Lemma~\ref{lem:sg:symm}~(i).
 \end{proof}
@@ -968,13 +1012,13 @@ sides (\texttt{HasSubgaussianMGF.measureReal\_abs\_ge\_le}, from \texttt{measure
   \uses{thm:sg:fecentration, thm:sg:mixedgauss, thm:sg:mixedcov}
 Let $\beta_0=0$, $\sum_p|\beta_p|<\infty$, and let $H_N$ be the mixed $p$-spin Hamiltonian on $\{\pm1\}^N$ with $\xi(1)=\sum_p\beta_p^2$. For
 $X_N=N^{-1}\log\sum_\sigma e^{H_N(\sigma)}$ and $x\ge0$,
-\[\mathbb P(|X_N-\mathbb EX_N|\ge x)\le2\exp\Big(-\frac{Nx^2}{4\xi(1)}\Big),\qquad\mathrm{Var}(X_N)\le\frac{2\xi(1)}N.\]
+\[\mathbb P(|X_N-\mathbb E[X_N]|\ge x)\le2\exp\Big(-\frac{Nx^2}{4\xi(1)}\Big),\qquad\mathrm{Var}(X_N)\le\frac{2\xi(1)}N.\]
 \end{theorem}
 
 \begin{proof}
   \leanok
-The Hamiltonian is a centered Gaussian process (Theorem~\ref{thm:sg:mixedgauss}) with $\mathbb EH_N(\sigma)^2=N\xi(1)$ since the self-overlap is $1$
-(Theorem~\ref{thm:sg:mixedcov}). Apply Theorem~\ref{thm:sg:fecentration} with $v=N\xi(1)$ and rescale by $N^{-1}$ (a sub-Gaussian variable with parameter $c$ times $r$ is sub-Gaussian with parameter $r^2c$), so that $X_N-\mathbb EX_N$ is sub-Gaussian with parameter $2\xi(1)/N$; the tail and variance bounds are then its Chernoff and second-moment bounds.
+The Hamiltonian is a centered Gaussian process (Theorem~\ref{thm:sg:mixedgauss}) with $\mathbb E[H_N(\sigma)^2]=N\xi(1)$ since the self-overlap is $1$
+(Theorem~\ref{thm:sg:mixedcov}). Apply Theorem~\ref{thm:sg:fecentration} with $v=N\xi(1)$ and rescale by $N^{-1}$ (a sub-Gaussian variable with parameter $c$ times $r$ is sub-Gaussian with parameter $r^2c$), so that $X_N-\mathbb E[X_N]$ is sub-Gaussian with parameter $2\xi(1)/N$; the tail and variance bounds are then its Chernoff and second-moment bounds.
 \end{proof}
 
 \begin{remark}[Deviations from Panchenko's proof of Theorem~1.2, and why]\label{rem:sg:deviation}
@@ -983,18 +1027,18 @@ differs in three points. (The description of the book's argument below is the on
 from the text, so the comparison is only as precise as that description.)
 \begin{enumerate}
 \item \emph{Two copies instead of three fields.} The book's route interpolates between independent copies $g^1,g^2$ of the field through a common field $g$,
-$g^j_t=\sqrt t\,g+\sqrt{1-t}\,g^j$ ($j=1,2$), and runs a Gr\"onwall argument for $\mathbb Ee^{\lambda(F_1-F_2)}$ along that two-sided coupling. We keep
+$g^j_t=\sqrt t\,g+\sqrt{1-t}\,g^j$ ($j=1,2$), and runs a Gr\"onwall argument for $\mathbb E[e^{\lambda(F_1-F_2)}]$ along that two-sided coupling. We keep
 \emph{one} of the two fields fixed. Along $x_s=\cos s\,g_1+\sin s\,g_2$ against the fixed $g_2$, the derivative $x_s'=-\sin s\,g_1+\cos s\,g_2$ is uncorrelated with
 $x_s$, so in Gaussian integration by parts only the dependence on $g_2$ contributes, and a \emph{single} application of the Stein identity
 (Lemma~\ref{lem:sg:expgrowth}~(iii)) gives $\varphi'(s)=-t^2\cos s\,\mathbb E[\Phi_s\sum p_x p_y C]$. The endpoints are the independent pair
 ($s=0$) and the diagonal ($s=\pi/2$, $\varphi=1$), which is all that the Gr\"onwall step needs. The saving is that only two fields are coupled and only one Stein identity is used; the price is that the bound is proved for the difference $F(g_1)-F(g_2)$ and has to be
-transferred to $F-\mathbb EF$ by a separate symmetrization (Lemma~\ref{lem:sg:symm}~(ii), Jensen's inequality $e^{-t\mathbb EF}\le\mathbb Ee^{-tF}$).
+transferred to $F-\mathbb E[F]$ by a separate symmetrization (Lemma~\ref{lem:sg:symm}~(ii), Jensen's inequality $e^{-t\mathbb E[F]}\le\mathbb E[e^{-tF}]$).
 \item \emph{Trigonometric path.} As in the comparison inequality (Theorem~\ref{thm:sg:comparison}) we use $\cos s,\sin s$ instead of $\sqrt t,\sqrt{1-t}$.
 The path is smooth on all of $\mathbb R$, so the dominated differentiation under the integral
 (Lemma~\ref{lem:sg:expgrowth}~(ii)) holds at every $s$ with a bound uniform in $s$, and no endpoint singularity of $\frac{d}{dt}\sqrt t$ at $t=0,1$ has to be
 treated separately. The Gr\"onwall factor is $e^{at^2\sin s}$ and monotonicity is used on $[0,\pi/2]$, where $\cos s\ge0$.
-\item \emph{Variance constant $2v$ instead of $8v$.} The book obtains the variance bound from the tail bound (integrating $\int_0^\infty 2x\,\mathbb P(|F-\mathbb EF|\ge x)dx$ with the
-tail $2e^{-x^2/(4v)}$, which gives $8v$). In Lean the conclusion of the argument is the stronger statement that $F-\mathbb EF$ is sub-Gaussian
+\item \emph{Variance constant $2v$ instead of $8v$.} The book obtains the variance bound from the tail bound (integrating $\int_0^\infty 2x\,\mathbb P(|F-\mathbb E[F]|\ge x)dx$ with the
+tail $2e^{-x^2/(4v)}$, which gives $8v$). In Lean the conclusion of the argument is the stronger statement that $F-\mathbb E[F]$ is sub-Gaussian
 (Mathlib's \texttt{HasSubgaussianMGF}) with parameter $2v$, and we prove, once and for all, that a sub-Gaussian variable with parameter $c$ has second
 moment at most $c$ (Lemma~\ref{lem:sg:symm}~(i), from $u^2\le e^u+e^{-u}-2$ and $t\to0$), so the variance is bounded by $c=2v$ directly. The tail bound
 is the same as in the book ($2e^{-x^2/(4v)}$), so the improvement is only in the variance: a factor $4$. It is still not optimal, since the Gaussian
@@ -1008,7 +1052,7 @@ statement serves every model, with the mixed $p$-spin case Theorem~\ref{thm:sg:m
 \section{The Aizenman--Sims--Starr scheme}\label{sec:sg:ass}
 
 Let $Z_N=\sum_\sigma e^{\beta H_N(\sigma)}$ be the partition function of the SK model at inverse temperature $\beta>0$ and
-$A_N=\mathbb E\log Z_{N+1}-\mathbb E\log Z_N$ (Panchenko, Eqs.~(1.48)--(1.58)). We write $\sigma'_i=\sigma_i\in\{\pm1\}\subset\mathbb R$,
+$A_N=\mathbb E[\log Z_{N+1}]-\mathbb E[\log Z_N]$ (Panchenko, Eqs.~(1.48)--(1.58)). We write $\sigma'_i=\sigma_i\in\{\pm1\}\subset\mathbb R$,
 $\gamma_K=\mathcal N(0,1)^{K}$ for a finite index set $K$, and $G'$ for the auxiliary Gibbs measure
 $\mathrm{count.tilted}(\beta H')$ defined below.
 
@@ -1021,10 +1065,10 @@ $\mathrm{count.tilted}(\beta H')$ defined below.
         ProbabilityTheory.integrable_comp_iff_dotProduct_prod, ProbabilityTheory.hasGaussianLaw_bilinear_family}
   \leanok
 Let $(X_r)_{r\in A}$ and $(Y_r)_{r\in A}$ be centered Gaussian vectors indexed by a finite set $A$, on possibly different probability spaces,
-with $\mathbb EX_rX_s=\mathbb EY_rY_s$ for all $r,s$. Then they have the same law. In particular, if $a_r\in\mathbb R^{K}$ with
-$\mathbb EX_rX_s=a_r\cdot a_s$, then $X$ has the law of $(a_r\cdot\xi)_r$, $\xi\sim\gamma_K$; and if
-$\mathbb EX_rX_s=a^1_r\cdot a^1_s+a^2_r\cdot a^2_s$, then $X$ has the law of $(a^1_r\cdot u+a^2_r\cdot v)_r$ for independent blocks
-$u\sim\gamma_{K_1}$, $v\sim\gamma_{K_2}$. Consequently $\mathbb Ef(X)=\mathbb Ef(a^1\!\cdot u+a^2\!\cdot v)$ for measurable $f$, and $f(X)$ is
+with $\mathbb E[X_rX_s]=\mathbb E[Y_rY_s]$ for all $r,s$. Then they have the same law. In particular, if $a_r\in\mathbb R^{K}$ with
+$\mathbb E[X_rX_s]=a_r\cdot a_s$, then $X$ has the law of $(a_r\cdot\xi)_r$, $\xi\sim\gamma_K$; and if
+$\mathbb E[X_rX_s]=a^1_r\cdot a^1_s+a^2_r\cdot a^2_s$, then $X$ has the law of $(a^1_r\cdot u+a^2_r\cdot v)_r$ for independent blocks
+$u\sim\gamma_{K_1}$, $v\sim\gamma_{K_2}$. Consequently $\mathbb E[f(X)]=\mathbb E[f(a^1\!\cdot u+a^2\!\cdot v)]$ for measurable $f$, and $f(X)$ is
 integrable if and only if $f(a^1\!\cdot u+a^2\!\cdot v)$ is.
 \end{lemma}
 
@@ -1073,28 +1117,28 @@ with $v\sim\gamma_{[N]\times[N]}$ independent of $u$. Then, as random vectors in
 \begin{proof}
   \leanok
 $H_N$ is a finite family of bilinear forms of the standard Gaussian matrix, hence a centered Gaussian vector with
-$\mathbb EH_N(\sigma)H_N(\tau)=N\,R(\sigma,\tau)^2=N^{-1}(\sigma\cdot\tau)^2$ (Theorem~\ref{thm:sg:skcov}). The right hand sides are linear forms of the blocks
+$\mathbb E[H_N(\sigma)H_N(\tau)]=N\,R(\sigma,\tau)^2=N^{-1}(\sigma\cdot\tau)^2$ (Theorem~\ref{thm:sg:skcov}). The right hand sides are linear forms of the blocks
 with coefficient vectors whose Gram matrix is computed in Lemma~\ref{lem:sg:cavity-algebra}~(iii): $(N+1)^{-1}(\rho\cdot\tau)^2$ for the first (the
 overlap of $(\varepsilon,\sigma)$ and $(\varepsilon',\tau)$ is $\varepsilon\varepsilon'+\sigma\cdot\tau$), and
 $\big(\tfrac1{N+1}+\tfrac1{N(N+1)}\big)(\sigma\cdot\tau)^2=N^{-1}(\sigma\cdot\tau)^2$ for the second. Apply Lemma~\ref{lem:sg:gram}; the linear forms
 equal the displayed expressions because $\varepsilon^2=1$.
 \end{proof}
 
-\begin{theorem}[$\mathbb E\log Z_{N+1}$ and $\mathbb E\log Z_N$ through the cavity, Panchenko Eqs.~(1.55)--(1.56)]\label{thm:sg:partition}
+\begin{theorem}[{$\mathbb E[\log Z_{N+1}]$ and $\mathbb E[\log Z_N]$} through the cavity, Panchenko Eqs.~(1.55)--(1.56)]\label{thm:sg:partition}
   \lean{SpinGlasses.integral_log_partition_succ_eq, SpinGlasses.integral_log_partition_eq_aux}
   \leanok
   \uses{thm:sg:cavity, lem:sg:cavity-algebra}
 For $\beta>0$ the functions $R_1(u,\zeta)=\log\sum_\sigma e^{\beta H'(\sigma)}\,2\cosh(\beta z(\sigma))$ and
 $R_2(u,v)=\log\sum_\sigma e^{\beta(H'(\sigma)+y(\sigma))}$ are integrable and
-\[\mathbb E\log Z_{N+1}=\mathbb E\,R_1(u,\zeta),\qquad\mathbb E\log Z_N=\mathbb E\,R_2(u,v)\quad(N\ge1).\]
+\[\mathbb E[\log Z_{N+1}]=\mathbb E[R_1(u,\zeta)],\qquad\mathbb E[\log Z_N]=\mathbb E[R_2(u,v)]\quad(N\ge1).\]
 \end{theorem}
 
 \begin{proof}
   \leanok
-By Theorem~\ref{thm:sg:cavity} and Lemma~\ref{lem:sg:gram}, $\mathbb E\log Z_{N+1}=\mathbb E\log\sum_\rho e^{\beta(H'+\varepsilon z+s)}$ with
+By Theorem~\ref{thm:sg:cavity} and Lemma~\ref{lem:sg:gram}, $\mathbb E[\log Z_{N+1}]=\mathbb E\big[\log\sum_\rho e^{\beta(H'+\varepsilon z+s)}\big]$ with
 $s=(N+1)^{-1/2}\zeta_{\mathrm{inl}(0)}$, which by Lemma~\ref{lem:sg:cavity-algebra}~(ii) is $\beta s+R_1$. The variable $\beta s$ is a centered
 Gaussian coordinate, and $\log Z_{N+1}$ is integrable (Lemma~\ref{lem:sg:integrable}: $|\log Z|\le\beta|\max H|+\log|\Sigma|$), hence so is $R_1$ and
-$\mathbb E\,\beta s=0$. The second identity is the second law of Theorem~\ref{thm:sg:cavity}.
+$\mathbb E[\beta s]=0$. The second identity is the second law of Theorem~\ref{thm:sg:cavity}.
 \end{proof}
 
 \begin{theorem}[The Aizenman--Sims--Starr representation, Panchenko Eq.~(1.58)]\label{thm:sg:ass}
@@ -1102,13 +1146,13 @@ $\mathbb E\,\beta s=0$. The second identity is the second law of Theorem~\ref{th
   \leanok
   \uses{thm:sg:partition, lem:sg:cavity-algebra, lem:sg:gibbsavg}
 For $\beta>0$ and $N\ge1$, with $G'_u=\mathrm{count.tilted}(\beta H'_u)$ and $\langle\cdot\rangle'_u$ its average,
-\[A_N=\mathbb E_u\Big[\mathbb E_\zeta\log\big\langle 2\cosh(\beta z(\sigma))\big\rangle'_u-\mathbb E_v\log\big\langle e^{\beta y(\sigma)}\big\rangle'_u\Big],\]
+\[A_N=\mathbb E_u\Big[\mathbb E_\zeta\big[\log\big\langle 2\cosh(\beta z(\sigma))\big\rangle'_u\big]-\mathbb E_v\big[\log\big\langle e^{\beta y(\sigma)}\big\rangle'_u\big]\Big],\]
 where $u,\zeta,v$ are independent and $z$, $y$ are independent of the auxiliary Gibbs measure $G'_u$.
 \end{theorem}
 
 \begin{proof}
   \leanok
-By Theorem~\ref{thm:sg:partition} and Fubini, $A_N=\mathbb E_u[\mathbb E_\zeta R_1(u,\zeta)-\mathbb E_vR_2(u,v)]$. By Lemma~\ref{lem:sg:cavity-algebra}~(i),
+By Theorem~\ref{thm:sg:partition} and Fubini, $A_N=\mathbb E_u[\mathbb E_\zeta[R_1(u,\zeta)]-\mathbb E_v[R_2(u,v)]]$. By Lemma~\ref{lem:sg:cavity-algebra}~(i),
 $R_1(u,\zeta)=\log Z'(u)+\log\langle2\cosh\beta z\rangle'_u$ and $R_2(u,v)=\log Z'(u)+\log\langle e^{\beta y}\rangle'_u$ with the \emph{same}
 $Z'(u)=\sum_\sigma e^{\beta H'_u(\sigma)}$, which does not depend on $\zeta,v$ and cancels. Integrability of $R_1(u,\cdot)$, $R_2(u,\cdot)$ for almost
 every $u$ is part of Fubini, and subtracting the constant $\log Z'(u)$ preserves it.
@@ -1121,7 +1165,7 @@ every $u$ is part of Fubini, and subtracting the constant $\log Z'(u)$ preserves
   \leanok
   \uses{lem:sg:gram, lem:sg:cavity-algebra}
 For $N\ge1$ and $\sigma,\tau\in\mathbb R^N$, with $a_N=N/(N+1)$ and $R=N^{-1}\sigma\cdot\tau$,
-\[\mathbb E\,z(\sigma)z(\tau)=2a_NR,\qquad\mathbb E\,y(\sigma)y(\tau)=a_NR^2.\]
+\[\mathbb E[z(\sigma)z(\tau)]=2a_NR,\qquad\mathbb E[y(\sigma)y(\tau)]=a_NR^2.\]
 Both depend on $\sigma,\tau$ only through the overlap. Moreover, for any finite family of coefficient vectors $\sigma^s$, $(z(\sigma^s))_s$ and
 $(y(\sigma^s))_s$ are centered jointly Gaussian families.
 \end{theorem}
@@ -1153,13 +1197,13 @@ $n^{-1}\sum_{j<n}u_j-c$ from below. For the liminf, apply this with $c=\liminf u
         SpinGlasses.liminf_increment_le_liminf_free_energy}
   \leanok
   \uses{lem:sg:cesaro}
-For all $N$, $F_N=N^{-1}\mathbb E\log Z_N=N^{-1}\sum_{j<N}A_j$ (with $Z_0=1$). Consequently, if $(A_N)$ is bounded,
+For all $N$, $F_N=N^{-1}\mathbb E[\log Z_N]=N^{-1}\sum_{j<N}A_j$ (with $Z_0=1$). Consequently, if $(A_N)$ is bounded,
 $\liminf_NA_N\le\liminf_NF_N$.
 \end{theorem}
 
 \begin{proof}
   \leanok
-The empty system has the single configuration of energy $0$, so $\mathbb E\log Z_0=0$; the sum telescopes. The inequality is Lemma~\ref{lem:sg:cesaro}.
+The empty system has the single configuration of energy $0$, so $\mathbb E[\log Z_0]=0$; the sum telescopes. The inequality is Lemma~\ref{lem:sg:cesaro}.
 \end{proof}
 
 \begin{remark}[Deviations from Panchenko's treatment of the cavity method, and why]\label{rem:sg:ass-deviation}
@@ -1169,7 +1213,7 @@ The empty system has the single configuration of energy $0$, so $\mathbb E\log Z
 the entries. We instead prove only an equality in law (Theorem~\ref{thm:sg:cavity}) by comparing covariances (Lemma~\ref{lem:sg:gram}). The disorder in
 Lean is the \emph{nested} product $\mathrm{Fin}(N+1)\to\mathrm{Fin}(N+1)\to\mathbb R$, and splitting it into blocks would need a measure preserving
 change of variables between iterated and flat product measures (Mathlib has none for the iterated product); the covariance check is a finite sum identity
-and reuses the Gaussian-matrix lemmas already proved for the Guerra--Toninelli theorem. Since $\mathbb E\log Z_{N+1}$ is a functional of the law, nothing is
+and reuses the Gaussian-matrix lemmas already proved for the Guerra--Toninelli theorem. Since $\mathbb E[\log Z_{N+1}]$ is a functional of the law, nothing is
 lost for the Aizenman--Sims--Starr formula.
 \item \emph{The same trick for $H_N\overset d=H'+y$} (Eqs.~(1.53)--(1.54)): the book matches the covariance $N R^2=\frac{N^2}{N+1}R^2+\frac N{N+1}R^2$ and
 invokes the uniqueness of Gaussian laws; we do the same, with the uniqueness provided by Mathlib's \texttt{IsGaussian.ext}.
@@ -1186,24 +1230,24 @@ that bound is proved in Theorem~\ref{thm:sg:increment-bounds} below ($\log2-\bet
 
 This section proves Theorem~1.3 of the book and applies it to the Aizenman--Sims--Starr increments (Eq.~(1.73)). Throughout, $\iota$ is a finite set,
 $w=(w_i)_{i\in\iota}$ a probability vector, and $\langle f\rangle=\sum_iw_if_i$. The statements do not mention a Hilbert space: the quantity
-$\Phi(\Gamma)=\mathbb E\log\langle2\cosh z\rangle-\mathbb E\log\langle e^{y}\rangle$ of the book depends on the atomic measure
+$\Phi(\Gamma)=\mathbb E\big[\log\langle2\cosh z\rangle\big]-\mathbb E\big[\log\langle e^{y}\rangle\big]$ of the book depends on the atomic measure
 $\Gamma=\sum_iw_i\delta_{\rho^i}$ and on the processes $z,y$ only through $w$ and the Gram data $q_{ij}=\rho^i\cdot\rho^j$ (the covariances being
-$\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$). For $a\ge0$ let $\mathrm{cl}_a(x)=\max(-a,\min(x,a))$ and
-$T_a(x)=\max(\min(x,e^a),e^{-a})$. A random variable $X$ is \emph{sub-Gaussian with parameter $c$} if $\mathbb Ee^{tX}\le e^{ct^2/2}$ for all $t\in\mathbb R$
-(and $e^{tX}$ is integrable); a centered Gaussian with $\mathbb EX^2\le v$ is sub-Gaussian with parameter $v$, since $\mathbb Ee^{tX}=e^{t^2\mathbb EX^2/2}$.
+$\mathbb E[z_iz_j]=C_z(q_{ij})$, $\mathbb E[y_iy_j]=C_y(q_{ij})$). For $a\ge0$ let $\mathrm{cl}_a(x)=\max(-a,\min(x,a))$ and
+$T_a(x)=\max(\min(x,e^a),e^{-a})$. A random variable $X$ is \emph{sub-Gaussian with parameter $c$} if $\mathbb E[e^{tX}]\le e^{ct^2/2}$ for all $t\in\mathbb R$
+(and $e^{tX}$ is integrable); a centered Gaussian with $\mathbb E[X^2]\le v$ is sub-Gaussian with parameter $v$, since $\mathbb E[e^{tX}]=e^{t^2\mathbb E[X^2]/2}$.
 
 \begin{lemma}[Exponential moments of $|X|$]\label{lem:sg:absmoment}
   \lean{ProbabilityTheory.HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_abs_mul_le,
         ProbabilityTheory.HasSubgaussianMGF.integrable_of_measurable, ProbabilityTheory.HasSubgaussianMGF.integrable_two_cosh,
         ProbabilityTheory.HasSubgaussianMGF.integral_two_cosh_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_le}
   \leanok
-Let $X$ be measurable and sub-Gaussian with parameter $c$. Then for every $t\in\mathbb R$, $e^{t|X|}$ is integrable and $\mathbb Ee^{t|X|}\le2e^{ct^2/2}$; $X$ and
-$\cosh X$ are integrable, $\mathbb E\,2\cosh X\le2e^{c/2}$ and $\mathbb Ee^{X}\le e^{c/2}$.
+Let $X$ be measurable and sub-Gaussian with parameter $c$. Then for every $t\in\mathbb R$, $e^{t|X|}$ is integrable and $\mathbb E[e^{t|X|}]\le2e^{ct^2/2}$; $X$ and
+$\cosh X$ are integrable, $\mathbb E[2\cosh X]\le2e^{c/2}$ and $\mathbb E[e^{X}]\le e^{c/2}$.
 \end{lemma}
 
 \begin{proof}
   \leanok
-Pointwise $e^{t|x|}\le e^{tx}+e^{-tx}$, so $\mathbb Ee^{t|X|}\le\mathbb Ee^{tX}+\mathbb Ee^{-tX}\le2e^{ct^2/2}$. Integrability of $X$ follows from $|x|\le e^{|x|}$,
+Pointwise $e^{t|x|}\le e^{tx}+e^{-tx}$, so $\mathbb E[e^{t|X|}]\le\mathbb E[e^{tX}]+\mathbb E[e^{-tX}]\le2e^{ct^2/2}$. Integrability of $X$ follows from $|x|\le e^{|x|}$,
 and the remaining claims are the cases $t=\pm1$ of the definition.
 \end{proof}
 
@@ -1234,18 +1278,18 @@ because $3|x|-2a\ge|x|$. (v) Jensen's inequality for the convex function $x\maps
   \uses{lem:sg:absmoment, lem:sg:clamp}
 Let $\varphi:\mathbb R\to(0,\infty)$ be continuous with $\varphi(x)\le Ae^{|x|}$ and $\varphi(x)^{-1}\le Be^{|x|}$, let $g_i$ ($i\in\iota$) be measurable and
 sub-Gaussian with parameter $v$ on a probability space, and put $X=\sum_iw_i\varphi(g_i)$, $X_a=\sum_iw_i\varphi(\mathrm{cl}_a(g_i))$. Then $\log X$ is integrable and for $a\ge0$
-\[\Big|\mathbb E\log X-\mathbb E\log T_a(X_a)\Big|\le\Big((2A+2B)e^{v/2}+4Ae^{9v/2}\Big)e^{-a},\]
+\[\Big|\mathbb E[\log X]-\mathbb E[\log T_a(X_a)]\Big|\le\Big((2A+2B)e^{v/2}+4Ae^{9v/2}\Big)e^{-a},\]
 a bound independent of $\iota$, $w$ and of the joint law of the $g_i$.
 \end{theorem}
 
 \begin{proof}
   \leanok
 Since $\varphi(g_i)\le Ae^{|g_i|}$ and, by Lemma~\ref{lem:sg:clamp}~(v), $X^{-1}\le\sum_iw_i\varphi(g_i)^{-1}\le B\sum_iw_ie^{|g_i|}$, Lemma~\ref{lem:sg:absmoment} gives
-$\mathbb EX\le2Ae^{v/2}$ and $\mathbb EX^{-1}\le2Be^{v/2}$; with Lemma~\ref{lem:sg:clamp}~(i) this shows that $\log X$ is integrable (and $\log T_a(X_a)\in[-a,a]$ is bounded).
+$\mathbb E[X]\le2Ae^{v/2}$ and $\mathbb E[X^{-1}]\le2Be^{v/2}$; with Lemma~\ref{lem:sg:clamp}~(i) this shows that $\log X$ is integrable (and $\log T_a(X_a)\in[-a,a]$ is bounded).
 Pointwise, by Lemma~\ref{lem:sg:clamp}~(ii), (iii),
 \[|\log X-\log T_a(X_a)|\le|\log X-\log T_a(X)|+|\log T_a(X)-\log T_a(X_a)|\le e^{-a}(X+X^{-1})+e^a|X-X_a|,\]
 and by Lemma~\ref{lem:sg:clamp}~(iv), $|X-X_a|\le\sum_iw_i|\varphi(g_i)-\varphi(\mathrm{cl}_ag_i)|\le2Ae^{-2a}\sum_iw_ie^{3|g_i|}$. Taking expectations and using
-Lemma~\ref{lem:sg:absmoment} ($\mathbb E\sum_iw_ie^{3|g_i|}\le2e^{9v/2}$) gives $e^{-a}(2A+2B)e^{v/2}+e^a\cdot2Ae^{-2a}\cdot2e^{9v/2}$.
+Lemma~\ref{lem:sg:absmoment} ($\mathbb E\big[\sum_iw_ie^{3|g_i|}\big]\le2e^{9v/2}$) gives $e^{-a}(2A+2B)e^{v/2}+e^a\cdot2Ae^{-2a}\cdot2e^{9v/2}$.
 \end{proof}
 
 \begin{theorem}[Polynomial approximation, Panchenko Eq.~(1.66)]\label{thm:sg:poly}
@@ -1253,14 +1297,14 @@ Lemma~\ref{lem:sg:absmoment} ($\mathbb E\sum_iw_ie^{3|g_i|}\le2e^{9v/2}$) gives 
   \leanok
   \uses{thm:sg:gibbs-truncation}
 In the setting of Theorem~\ref{thm:sg:gibbs-truncation}, for every $\varepsilon>0$ there are $a\ge0$ and a polynomial $p$, depending only on $\varepsilon,v,\varphi,A,B$, such that
-for all finite families $(g_i)$ and probability vectors $w$ as above, $|\mathbb E\log X-\mathbb E\,p(X_a)|\le\varepsilon$.
+for all finite families $(g_i)$ and probability vectors $w$ as above, $|\mathbb E[\log X]-\mathbb E[p(X_a)]|\le\varepsilon$.
 \end{theorem}
 
 \begin{proof}
   \leanok
 Choose $a\ge0$ with $Ce^{-a}\le\varepsilon/2$, $C$ the constant of Theorem~\ref{thm:sg:gibbs-truncation}. Since $\varphi(\mathrm{cl}_ag_i)\le Ae^a$, $X_a\in[0,Ae^a]$. The function $\log T_a$ is continuous,
 so by the Weierstrass theorem (\texttt{exists\_polynomial\_near\_of\_continuousOn}) there is a polynomial $p$ with $|p-\log T_a|<\varepsilon/2$ on $[0,Ae^a]$; hence
-$|\mathbb E\log T_a(X_a)-\mathbb E\,p(X_a)|\le\varepsilon/2$. Combine with Theorem~\ref{thm:sg:gibbs-truncation}.
+$|\mathbb E[\log T_a(X_a)]-\mathbb E[p(X_a)]|\le\varepsilon/2$. Combine with Theorem~\ref{thm:sg:gibbs-truncation}.
 \end{proof}
 
 \begin{theorem}[Replica expansion, Panchenko Eq.~(1.67)]\label{thm:sg:gibbs-replica}
@@ -1270,16 +1314,16 @@ $|\mathbb E\log T_a(X_a)-\mathbb E\,p(X_a)|\le\varepsilon/2$. Combine with Theor
   \leanok
   \uses{lem:sg:gram}
 Let $(g_i)_{i\in\iota}$ be a centered Gaussian family, $\psi$ bounded and measurable and $w$ a probability vector. Then for every $k$
-\[\mathbb E\Big(\sum_iw_i\psi(g_i)\Big)^k=\sum_{j:[k]\to\iota}\Big(\prod_{l\le k}w_{j_l}\Big)\int\prod_{l\le k}\psi(x_l)\,d\mathcal N\big(0,(\mathbb Eg_{j_l}g_{j_{l'}})_{l,l'\le k}\big)(x),\]
-and the same holds for $\mathbb Ep(\sum_iw_i\psi(g_i))$ with the coefficients of a polynomial $p$. In particular the $k$-th moment of a Gibbs average
+\[\mathbb E\Big[\Big(\sum_iw_i\psi(g_i)\Big)^k\Big]=\sum_{j:[k]\to\iota}\Big(\prod_{l\le k}w_{j_l}\Big)\int\prod_{l\le k}\psi(x_l)\,d\mathcal N\big(0,(\mathbb E[g_{j_l}g_{j_{l'}}])_{l,l'\le k}\big)(x),\]
+and the same holds for $\mathbb E\big[p(\sum_iw_i\psi(g_i))\big]$ with the coefficients of a polynomial $p$. In particular the $k$-th moment of a Gibbs average
 is the Gibbs average over $k$ replicas of a function of the covariance matrix of the replicas only.
 \end{theorem}
 
 \begin{proof}
   \leanok
 Expand $(\sum_iw_i\psi(g_i))^k=\sum_{j:[k]\to\iota}\prod_lw_{j_l}\psi(g_{j_l})$ (a finite sum, \texttt{Fintype.sum\_pow}); the terms are bounded, so the expectation passes inside.
-For fixed $j$, $(g_{j_l})_{l\le k}$ is a centered Gaussian vector (a linear image of $(g_i)_i$) with covariance matrix $S_j=(\mathbb Eg_{j_l}g_{j_{l'}})$, hence has the law
-$\mathcal N(0,S_j)$ (Lemma~\ref{lem:sg:gram}, the first part), and $\mathbb E\prod_l\psi(g_{j_l})$ is the displayed Gaussian integral.
+For fixed $j$, $(g_{j_l})_{l\le k}$ is a centered Gaussian vector (a linear image of $(g_i)_i$) with covariance matrix $S_j=(\mathbb E[g_{j_l}g_{j_{l'}}])$, hence has the law
+$\mathcal N(0,S_j)$ (Lemma~\ref{lem:sg:gram}, the first part), and $\mathbb E\big[\prod_l\psi(g_{j_l})\big]$ is the displayed Gaussian integral.
 \end{proof}
 
 \begin{lemma}[Continuity of Gaussian integrals in the covariance matrix]\label{lem:sg:gausscont}
@@ -1309,9 +1353,9 @@ The bound is $|\prod_l\psi(x_l)|\le M^k$ against a probability measure; continui
   \uses{thm:sg:poly, thm:sg:gibbs-replica, lem:sg:gausscont}
 Let $C_z,C_y:\mathbb R\to\mathbb R$ be continuous, $v_z,v_y\ge0$, $\varepsilon>0$. There are $m\in\mathbb N$ and a bounded function $F$ on $m\times m$ matrices, continuous
 on $\{Q:(C_z(Q_{ll'}))\text{ and }(C_y(Q_{ll'}))\text{ are positive semidefinite}\}$, such that for every finite set $\iota$, probability vector $w$ on $\iota$,
-array $q\in\mathbb R^{\iota\times\iota}$, and all centered Gaussian families $z$, $y$ (on arbitrary probability spaces) with $\mathbb Ez_iz_j=C_z(q_{ij})$,
-$\mathbb Ey_iy_j=C_y(q_{ij})$, $\mathbb Ez_i^2\le v_z$, $\mathbb Ey_i^2\le v_y$,
-\[\Big|\Big(\mathbb E\log\langle2\cosh z\rangle-\mathbb E\log\langle e^{y}\rangle\Big)-\sum_{j:[m]\to\iota}\Big(\prod_{l\le m}w_{j_l}\Big)F\big((q_{j_lj_{l'}})_{l,l'\le m}\big)\Big|\le\varepsilon.\]
+array $q\in\mathbb R^{\iota\times\iota}$, and all centered Gaussian families $z$, $y$ (on arbitrary probability spaces) with $\mathbb E[z_iz_j]=C_z(q_{ij})$,
+$\mathbb E[y_iy_j]=C_y(q_{ij})$, $\mathbb E[z_i^2]\le v_z$, $\mathbb E[y_i^2]\le v_y$,
+\[\Big|\Big(\mathbb E\big[\log\langle2\cosh z\rangle\big]-\mathbb E\big[\log\langle e^{y}\rangle\big]\Big)-\sum_{j:[m]\to\iota}\Big(\prod_{l\le m}w_{j_l}\Big)F\big((q_{j_lj_{l'}})_{l,l'\le m}\big)\Big|\le\varepsilon.\]
 The right hand side is the $\Gamma$-average of the continuous bounded function $F$ of the Gram matrix of $m$ i.i.d.\ replicas, and $m,F$ do not depend on $\iota,w,q$.
 \end{theorem}
 
@@ -1319,7 +1363,7 @@ The right hand side is the $\Gamma$-average of the continuous bounded function $
   \leanok
 Apply Theorem~\ref{thm:sg:poly} with accuracy $\varepsilon/2$ to $\varphi=2\cosh$ ($A=2$, $B=1$, since $2\cosh x\le2e^{|x|}$ and $(2\cosh x)^{-1}\le1\le e^{|x|}$) and to $\varphi=\exp$
 ($A=B=1$), obtaining levels $a_z,a_y$ and polynomials $p_z,p_y$; note $2\cosh(\mathrm{cl}_ax)=2\min(\cosh x,\cosh a)$, the book's truncation $\mathrm{ch}_a$. By
-Theorem~\ref{thm:sg:gibbs-replica}, $\mathbb Ep_z(\langle 2\cosh\mathrm{cl}_{a_z}z\rangle)=\sum_k p_{z,k}\sum_{j:[k]\to\iota}\prod_lw_{j_l}F^z_k\big((C_z(q_{j_lj_{l'}}))\big)$
+Theorem~\ref{thm:sg:gibbs-replica}, $\mathbb E\big[p_z(\langle 2\cosh\mathrm{cl}_{a_z}z\rangle)\big]=\sum_k p_{z,k}\sum_{j:[k]\to\iota}\prod_lw_{j_l}F^z_k\big((C_z(q_{j_lj_{l'}}))\big)$
 with $F^z_k$ the Gaussian functional of Lemma~\ref{lem:sg:gausscont}, and likewise for $y$. Let $m=\max(\deg p_z,\deg p_y)$ and let $F(Q)$ be the difference of the
 two sums with $F^\cdot_k$ evaluated at the upper-left $k\times k$ block of $Q$. Since $\sum_iw_i=1$, summing out the last $m-k$ replicas does not change a function of the first $k$
 (\texttt{sum\_prod\_mul\_comp\_castLE}), so the Gibbs average of $F$ over $m$ replicas equals the sum over $k$ of the $k$-replica averages. Continuity of $F$ on the stated set
@@ -1339,16 +1383,16 @@ uses that a principal submatrix of a positive semidefinite matrix is positive se
         MeasureTheory.ae_summable_and_integrable_tsum_of_nonneg}
   \leanok
   \uses{thm:sg:gram13}
-The statement of Theorem~\ref{thm:sg:gram13} holds, with the same $m$ and the same $F$, for every countable index set $\iota$, every probability vector $w$ on $\iota$ ($w_i\ge0$, $\sum_iw_i=1$), every array $q$, and all centered families $z,y$ for which every finite subfamily is jointly Gaussian, with $\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$, $\mathbb Ez_i^2\le v_z$, $\mathbb Ey_i^2\le v_y$:
-\[\Big|\Big(\mathbb E\log\sum_iw_i\,2\cosh z_i-\mathbb E\log\sum_iw_ie^{y_i}\Big)-\sum_{j:[m]\to\iota}\Big(\prod_{l\le m}w_{j_l}\Big)F\big((q_{j_lj_{l'}})_{l,l'\le m}\big)\Big|\le\varepsilon,\]
+The statement of Theorem~\ref{thm:sg:gram13} holds, with the same $m$ and the same $F$, for every countable index set $\iota$, every probability vector $w$ on $\iota$ ($w_i\ge0$, $\sum_iw_i=1$), every array $q$, and all centered families $z,y$ for which every finite subfamily is jointly Gaussian, with $\mathbb E[z_iz_j]=C_z(q_{ij})$, $\mathbb E[y_iy_j]=C_y(q_{ij})$, $\mathbb E[z_i^2]\le v_z$, $\mathbb E[y_i^2]\le v_y$:
+\[\Big|\Big(\mathbb E\big[\log\sum_iw_i\,2\cosh z_i\big]-\mathbb E\big[\log\sum_iw_ie^{y_i}\big]\Big)-\sum_{j:[m]\to\iota}\Big(\prod_{l\le m}w_{j_l}\Big)F\big((q_{j_lj_{l'}})_{l,l'\le m}\big)\Big|\le\varepsilon,\]
 where the last sum is an absolutely convergent series.
 \end{theorem}
 
 \begin{proof}
   \leanok
 Enumerate $\iota$ and let $s_n$ be the first $n+1$ elements, $W_n=\sum_{i\in s_n}w_i\to1$. For large $n$ the renormalized restriction $w^{(n)}_i=w_i/W_n$ ($i\in s_n$) is a finite probability vector, so Theorem~\ref{thm:sg:gram13} applies to it with the same $m$ and $F$:
-\[\Big|\Big(\mathbb E\log\sum_{i\in s_n}w^{(n)}_i\,2\cosh z_i-\mathbb E\log\sum_{i\in s_n}w^{(n)}_ie^{y_i}\Big)-W_n^{-m}\sum_{j\in s_n^m}\Big(\prod_lw_{j_l}\Big)F\big((q_{j_lj_{l'}})\big)\Big|\le\varepsilon.\]
-We let $n\to\infty$ in each term. (i) The $z_i$ are sub-Gaussian (a centered Gaussian with variance $\le v_z$), so $X=\sum_iw_i\,2\cosh z_i$ and $Y=\sum_iw_i(2\cosh z_i)^{-1}$ converge almost surely and are integrable: the terms are nonnegative with $\mathbb E\,2\cosh z_i\le4e^{v_z/2}$ and $\mathbb E(2\cosh z_i)^{-1}\le2e^{v_z/2}$, and $\sum_iw_i<\infty$. With $X_n$ the Gibbs average under $w^{(n)}$ we have $X_n\to X>0$ pointwise, $|\log X_n|\le X_n+X_n^{-1}$ and, by Jensen for the inverse on the finite set $s_n$, $X_n^{-1}\le\sum_{i\in s_n}w^{(n)}_i(2\cosh z_i)^{-1}$. Since $W_n>1/2$ eventually, $X_n\le2X$ and $X_n^{-1}\le2Y$, so $2(X+Y)$ dominates $|\log X_n|$, and dominated convergence gives $\mathbb E\log X_n\to\mathbb E\log X$. The same argument applies to $e^{y}$. (ii) $F$ is bounded and $\sum_{j:[m]\to\iota}\prod_lw_{j_l}=1$, so the series over $j$ converges absolutely and its partial sums over the exhaustion $s_n^m$ of $\iota^m$ converge; $W_n^{-m}\to1$. Hence the left side converges to the left side of the claim and the inequality passes to the limit.
+\[\Big|\Big(\mathbb E\big[\log\sum_{i\in s_n}w^{(n)}_i\,2\cosh z_i\big]-\mathbb E\big[\log\sum_{i\in s_n}w^{(n)}_ie^{y_i}\big]\Big)-W_n^{-m}\sum_{j\in s_n^m}\Big(\prod_lw_{j_l}\Big)F\big((q_{j_lj_{l'}})\big)\Big|\le\varepsilon.\]
+We let $n\to\infty$ in each term. (i) The $z_i$ are sub-Gaussian (a centered Gaussian with variance $\le v_z$), so $X=\sum_iw_i\,2\cosh z_i$ and $Y=\sum_iw_i(2\cosh z_i)^{-1}$ converge almost surely and are integrable: the terms are nonnegative with $\mathbb E[2\cosh z_i]\le4e^{v_z/2}$ and $\mathbb E[(2\cosh z_i)^{-1}]\le2e^{v_z/2}$, and $\sum_iw_i<\infty$. With $X_n$ the Gibbs average under $w^{(n)}$ we have $X_n\to X>0$ pointwise, $|\log X_n|\le X_n+X_n^{-1}$ and, by Jensen for the inverse on the finite set $s_n$, $X_n^{-1}\le\sum_{i\in s_n}w^{(n)}_i(2\cosh z_i)^{-1}$. Since $W_n>1/2$ eventually, $X_n\le2X$ and $X_n^{-1}\le2Y$, so $2(X+Y)$ dominates $|\log X_n|$, and dominated convergence gives $\mathbb E[\log X_n]\to\mathbb E[\log X]$. The same argument applies to $e^{y}$. (ii) $F$ is bounded and $\sum_{j:[m]\to\iota}\prod_lw_{j_l}=1$, so the series over $j$ converges absolutely and its partial sums over the exhaustion $s_n^m$ of $\iota^m$ converge; $W_n^{-m}\to1$. Hence the left side converges to the left side of the claim and the inequality passes to the limit.
 \end{proof}
 
 \section{The Aizenman--Sims--Starr increments: bounds and the overlap approximation}\label{sec:sg:ass-approx}
@@ -1365,14 +1409,14 @@ and the cavity fields $z,y$ with covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$ 
   \leanok
   \uses{lem:sg:absmoment, thm:sg:gibbs-truncation}
 Let $g_i$ be measurable and sub-Gaussian with parameter $v$ and $w$ a probability vector. Then
-$\log2\le\mathbb E\log\langle2\cosh g\rangle\le\log2+v/2$, and if the $g_i$ are centered, $0\le\mathbb E\log\langle e^{g}\rangle\le v/2$.
+$\log2\le\mathbb E\big[\log\langle2\cosh g\rangle\big]\le\log2+v/2$, and if the $g_i$ are centered, $0\le\mathbb E\big[\log\langle e^{g}\rangle\big]\le v/2$.
 \end{lemma}
 
 \begin{proof}
   \leanok
-For a positive integrable $X$ with integrable logarithm, $\log x\le x/c-1+\log c$ with $c=\mathbb EX$ gives $\mathbb E\log X\le\log\mathbb EX$. For $X=\langle2\cosh g\rangle$,
-$\mathbb EX\le\max_i\mathbb E\,2\cosh g_i\le2e^{v/2}$ (Lemma~\ref{lem:sg:absmoment}), and $X\ge2$ because $\cosh\ge1$. For $X=\langle e^g\rangle$, $\mathbb EX\le e^{v/2}$, and by convexity
-of $\exp$, $\log\langle e^g\rangle\ge\langle g\rangle$, whose expectation is $\sum_iw_i\mathbb Eg_i=0$. Integrability of the logarithms is Theorem~\ref{thm:sg:gibbs-truncation}.
+For a positive integrable $X$ with integrable logarithm, $\log x\le x/c-1+\log c$ with $c=\mathbb E[X]$ gives $\mathbb E[\log X]\le\log\mathbb E[X]$. For $X=\langle2\cosh g\rangle$,
+$\mathbb E[X]\le\max_i\mathbb E[2\cosh g_i]\le2e^{v/2}$ (Lemma~\ref{lem:sg:absmoment}), and $X\ge2$ because $\cosh\ge1$. For $X=\langle e^g\rangle$, $\mathbb E[X]\le e^{v/2}$, and by convexity
+of $\exp$, $\log\langle e^g\rangle\ge\langle g\rangle$, whose expectation is $\sum_iw_i\mathbb E[g_i]=0$. Integrability of the logarithms is Theorem~\ref{thm:sg:gibbs-truncation}.
 \end{proof}
 
 \begin{theorem}[A priori bounds for the increments]\label{thm:sg:increment-bounds}
@@ -1386,10 +1430,10 @@ For $\beta>0$ and $N\ge1$, $\log2-\beta^2/2\le A_N\le\log2+\beta^2$.
 
 \begin{proof}
   \leanok
-By Theorem~\ref{thm:sg:ass}, $A_N=\mathbb E_uF(u)$ with $F(u)=\mathbb E_\zeta\log\langle2\cosh z\rangle'_u-\mathbb E_v\log\langle e^{y}\rangle'_u$ (here $z,y$ include the factor $\beta$),
-and $F$ is integrable. By Theorem~\ref{thm:sg:cavity-cov} and $R(\sigma,\sigma)=1$, the family $(z(\sigma))_\sigma$ is centered Gaussian with $\mathbb Ez(\sigma)^2=2\beta^2a_N\le2\beta^2$, and
-$(y(\sigma))_\sigma$ with $\mathbb Ey(\sigma)^2=\beta^2a_N\le\beta^2$; the Gibbs average $\langle\cdot\rangle'_u$ is the finite sum with the weights $\mathrm{wt}_u$. By Lemma~\ref{lem:sg:jensen},
-$\log2\le\mathbb E_\zeta\log\langle2\cosh z\rangle'_u\le\log2+\beta^2$ and $0\le\mathbb E_v\log\langle e^y\rangle'_u\le\beta^2/2$, so $\log2-\beta^2/2\le F(u)\le\log2+\beta^2$ for every $u$.
+By Theorem~\ref{thm:sg:ass}, $A_N=\mathbb E_u[F(u)]$ with $F(u)=\mathbb E_\zeta\big[\log\langle2\cosh z\rangle'_u\big]-\mathbb E_v\big[\log\langle e^{y}\rangle'_u\big]$ (here $z,y$ include the factor $\beta$),
+and $F$ is integrable. By Theorem~\ref{thm:sg:cavity-cov} and $R(\sigma,\sigma)=1$, the family $(z(\sigma))_\sigma$ is centered Gaussian with $\mathbb E[z(\sigma)^2]=2\beta^2a_N\le2\beta^2$, and
+$(y(\sigma))_\sigma$ with $\mathbb E[y(\sigma)^2]=\beta^2a_N\le\beta^2$; the Gibbs average $\langle\cdot\rangle'_u$ is the finite sum with the weights $\mathrm{wt}_u$. By Lemma~\ref{lem:sg:jensen},
+$\log2\le\mathbb E_\zeta\big[\log\langle2\cosh z\rangle'_u\big]\le\log2+\beta^2$ and $0\le\mathbb E_v\big[\log\langle e^y\rangle'_u\big]\le\beta^2/2$, so $\log2-\beta^2/2\le F(u)\le\log2+\beta^2$ for every $u$.
 Integrate over $u$.
 \end{proof}
 
@@ -1419,8 +1463,8 @@ That is, up to $\varepsilon$, $A_N$ is the average, under the product of $k$ cop
   \leanok
 Take $v_z=2\beta^2$, $v_y=\beta^2$ and apply Theorem~\ref{thm:sg:gram13} (in its form with $p_z,p_y$, before merging the replica numbers) for each fixed $u$ to $\iota=\Sigma_N$, $w=\mathrm{wt}_u$, and the cavity fields
 $z,y$ of Theorem~\ref{thm:sg:cavity-cov}, whose covariances are $2\beta^2a_NR$ and $\beta^2a_NR^2$ and whose variances are at most $v_z,v_y$ (Theorem~\ref{thm:sg:increment-bounds}). This gives the bound $\varepsilon$ for the $u$-integrand
-$F(u)=\mathbb E_\zeta\log\langle2\cosh z\rangle'_u-\mathbb E_v\log\langle e^y\rangle'_u$ of Theorem~\ref{thm:sg:ass}. The approximant is a finite combination of products of Gibbs weights, which are measurable in $u$ and take values in $[0,1]$,
-so it is integrable, and $|A_N-\mathbb E_u[\mathrm{approximant}]|=|\mathbb E_u(F-\mathrm{approximant})|\le\varepsilon$.
+$F(u)=\mathbb E_\zeta\big[\log\langle2\cosh z\rangle'_u\big]-\mathbb E_v\big[\log\langle e^y\rangle'_u\big]$ of Theorem~\ref{thm:sg:ass}. The approximant is a finite combination of products of Gibbs weights, which are measurable in $u$ and take values in $[0,1]$,
+so it is integrable, and $|A_N-\mathbb E_u[\mathrm{approximant}]|=|\mathbb E_u[F-\mathrm{approximant}]|\le\varepsilon$.
 \end{proof}
 
 \begin{remark}[Deviations from Panchenko's treatment of Theorem~1.3, and why]\label{rem:sg:gram-deviation}
@@ -1430,7 +1474,7 @@ A longer, less terse explanation of every item below, including which items weak
 Since $\Phi(\Gamma)$ only involves $w$ and the Gram data, we state it for a finite family with arbitrary covariance functions; the cavity measures $G'_u$ of the SK model are finitely supported.
 Countably many atoms are covered separately by Theorem~\ref{thm:sg:gram13-countable}, which deduces them from the finite case by truncation; non-atomic measures are not covered (the book does not need them).
 \item \emph{Truncation by moments rather than by the concentration (1.69).} The book controls $\log\langle\cosh z\rangle$ through its Gaussian concentration. Only the expectation of the truncation error is needed,
-and it is bounded by $e^{-a}\,\mathbb E(X+X^{-1})$ plus an exponential moment of the field; both are uniform in the number of atoms, so the earlier concentration theorem is not used here.
+and it is bounded by $e^{-a}\,\mathbb E[X+X^{-1}]$ plus an exponential moment of the field; both are uniform in the number of atoms, so the earlier concentration theorem is not used here.
 \item \emph{Uniformity.} The truncation level and the polynomials depend only on $\varepsilon$ and on bounds $v_z,v_y$ for the variances, not on the covariance functions; the covariance functions enter only the
 Gaussian integrals $F_k$, which are continuous in the Gram matrix on the cone where the covariance matrix is positive semidefinite (Lemma~\ref{lem:sg:gausscont}). In the SK application the covariances $2\beta^2a_NR$ and $\beta^2a_NR^2$
 depend on $N$ through $a_N=N/(N+1)$, so the function $F$ of Theorem~\ref{thm:sg:overlap-approx} depends on $N$ through the Gaussian integrals only; the statement is nevertheless uniform in $N$. Passing to the limit $a_N\to1$ is not formalized; Section~\ref{sec:sg:aN-limit} explains where $a_N$ comes from, why the limit is needed, and how we expect it to be proved.
@@ -1446,13 +1490,13 @@ does in later sections we are reporting our reading of the book and of our own f
 
 \subsection*{The problem Theorem~1.3 solves}
 
-The free energy $F_N=N^{-1}\mathbb E\log Z_N$ of the SK model depends on the whole random Gibbs measure $G_N$ on $\{-1,+1\}^N$, a measure on a space whose dimension grows with $N$.
+The free energy $F_N=N^{-1}\mathbb E[\log Z_N]$ of the SK model depends on the whole random Gibbs measure $G_N$ on $\{-1,+1\}^N$, a measure on a space whose dimension grows with $N$.
 To compute $\lim F_N$ one wants to compare models of different sizes, and for that one needs a space in which all the $G_N$ live together. Physics suggests the right coordinates: the \emph{overlaps}
 $R_{l,l'}=N^{-1}\sigma^l\cdot\sigma^{l'}$ of replicas $\sigma^1,\sigma^2,\dots$ drawn independently from $G_N$. The overlap array has a fixed shape ($\mathbb N\times\mathbb N$) whatever $N$ is, so
 its law can converge as $N\to\infty$, and the limiting law is what the book calls the data of the \emph{asymptotic Gibbs measure}. (In Lean this is Section~\ref{sec:sg:asymptotic-gibbs}.)
 
-The Aizenman--Sims--Starr scheme (Section~\ref{sec:sg:ass}) reduces $\lim F_N$ to the increments $A_N=\mathbb E\log Z_{N+1}-\mathbb E\log Z_N$, and writes $A_N$ as
-$\Phi(G'_N)$, where $\Phi(\Gamma)=\mathbb E\log\langle2\cosh z\rangle_\Gamma-\mathbb E\log\langle e^{y}\rangle_\Gamma$ is a functional of the Gibbs measure $\Gamma=G'_N$ and of two Gaussian processes $z,y$ built from it.
+The Aizenman--Sims--Starr scheme (Section~\ref{sec:sg:ass}) reduces $\lim F_N$ to the increments $A_N=\mathbb E[\log Z_{N+1}]-\mathbb E[\log Z_N]$, and writes $A_N$ as
+$\Phi(G'_N)$, where $\Phi(\Gamma)=\mathbb E\big[\log\langle2\cosh z\rangle_\Gamma\big]-\mathbb E\big[\log\langle e^{y}\rangle_\Gamma\big]$ is a functional of the Gibbs measure $\Gamma=G'_N$ and of two Gaussian processes $z,y$ built from it.
 The functional $\Phi$ is a complicated nonlinear object (an expectation of a logarithm of a Gibbs average). Convergence of the \emph{overlap law} does not obviously imply anything about $\Phi$.
 
 \emph{Theorem~1.3 is the bridge.} It says that $\Phi(\Gamma)$ is, up to an error $\varepsilon$ that we may choose, equal to a plain Gibbs average of a nice function of the overlaps:
@@ -1467,8 +1511,8 @@ The danger in $\Phi$ is the logarithm: $\log\langle e^{z}\rangle$ is not a nice 
 \begin{enumerate}
 \item \emph{Truncate.} Clamp the argument of the logarithm into $[e^{-a},e^{a}]$ and clamp the field at level $\pm a$. Because the Gibbs average of $e^{|z|}$-type quantities has bounded moments, the expected error is $O(e^{-a})$;
 we show this using only first moments and Jensen's inequality (Theorem~\ref{thm:sg:gibbs-truncation}), and the bound does \emph{not} depend on how many atoms $\Gamma$ has.
-\item \emph{Polynomial.} On the bounded interval $[0,Ae^{a}]$ the truncated logarithm is a continuous function, hence within $\varepsilon$ of a polynomial $p$ (Weierstrass). Now $\Phi$ is approximated by $\mathbb E\,p(\langle\psi(z)\rangle)$.
-\item \emph{Expand the powers.} A power $\langle\psi(z)\rangle^k$ is the average over $k$ independent replicas of $\prod_l\psi(z_{j_l})$. Taking the Gaussian expectation inside, $\mathbb E\prod_l\psi(z_{j_l})$ is an integral
+\item \emph{Polynomial.} On the bounded interval $[0,Ae^{a}]$ the truncated logarithm is a continuous function, hence within $\varepsilon$ of a polynomial $p$ (Weierstrass). Now $\Phi$ is approximated by $\mathbb E\big[p(\langle\psi(z)\rangle)\big]$.
+\item \emph{Expand the powers.} A power $\langle\psi(z)\rangle^k$ is the average over $k$ independent replicas of $\prod_l\psi(z_{j_l})$. Taking the Gaussian expectation inside, $\mathbb E\big[\prod_l\psi(z_{j_l})\big]$ is an integral
 against a centered Gaussian whose covariance matrix is $(C_z(\rho^{j_l}\cdot\rho^{j_{l'}}))_{l,l'}$, and a centered Gaussian law is determined by its covariance matrix. So this expectation is a function $F_k$ of the
 $k\times k$ Gram matrix of the replicas, nothing else about $\Gamma$ enters.
 \item \emph{Continuity.} $S\mapsto\int g\,d\mathcal N(0,S)$ is continuous (L\'evy's theorem on characteristic functions), so $F_k$ is continuous, and bounded because $\psi$ is.
@@ -1482,7 +1526,7 @@ The same four steps are what the Lean files do; the only structural difference i
 $z,y$ indexed by $H$ with covariances $C_z(\rho^1\cdot\rho^2)$, $C_y(\rho^1\cdot\rho^2)$: for every $\varepsilon>0$ there are $m$ and a continuous bounded $F$ of $m\times m$ Gram matrices, such that
 $|\Phi(\Gamma)-\langle F(R)\rangle_\Gamma|\le\varepsilon$ for \emph{all} such $\Gamma$.
 \item \textbf{Lean (Theorem~\ref{thm:sg:gram13}):} the same conclusion for every \emph{finite} family $(w_i,q_{ij})_{i\in\iota}$ ($\iota$ any finite type), where $q_{ij}$ plays the role of $\rho^i\cdot\rho^j$ and
-$z,y$ are any centered Gaussian families with $\mathbb Ez_iz_j=C_z(q_{ij})$, $\mathbb Ey_iy_j=C_y(q_{ij})$ and variances at most $v_z,v_y$. The number $m$ and the function $F$ depend only on $\varepsilon,C_z,C_y,v_z,v_y$,
+$z,y$ are any centered Gaussian families with $\mathbb E[z_iz_j]=C_z(q_{ij})$, $\mathbb E[y_iy_j]=C_y(q_{ij})$ and variances at most $v_z,v_y$. The number $m$ and the function $F$ depend only on $\varepsilon,C_z,C_y,v_z,v_y$,
 not on $\iota$, $w$ or $q$.
 \item \textbf{Lean (Theorem~\ref{thm:sg:gram13-countable}):} the same for every \emph{countable} index set with a summable probability vector, with the same $m$ and $F$, under the hypothesis that every finite subfamily of $z$, $y$ is jointly Gaussian. Together with Theorem~\ref{thm:sg:gram13} this is the book's statement for atomic $\Gamma$.
 \end{itemize}
@@ -1491,7 +1535,7 @@ not on $\iota$, $w$ or $q$.
 
 \emph{What we did.} The statement has no Hilbert space, no unit sphere and no points $\rho^i$; it has weights and a matrix of numbers $q_{ij}$.
 
-\emph{Why this loses nothing.} Look at what $\Phi$ actually uses. The weights $w_i$ enter the Gibbs average. The points $\rho^i$ enter only through the covariances $\mathbb Ez_iz_j=C_z(\rho^i\cdot\rho^j)$, and a centered Gaussian family
+\emph{Why this loses nothing.} Look at what $\Phi$ actually uses. The weights $w_i$ enter the Gibbs average. The points $\rho^i$ enter only through the covariances $\mathbb E[z_iz_j]=C_z(\rho^i\cdot\rho^j)$, and a centered Gaussian family
 is determined in law by its covariances (Lemma~\ref{lem:sg:gram}). So $\Phi(\Gamma)$ is a function of $(w,q)$ with $q_{ij}=\rho^i\cdot\rho^j$. An analogy: a statistic of a point cloud that is computed only from pairwise distances does not care
 in which space the cloud sits. Stating the theorem for a general array $q$ is therefore \emph{more general}: the Hilbert-space statement (finitely many atoms) is the special case $q_{ij}=\rho^i\cdot\rho^j$. We did not write that special case
 as a separate corollary, since nothing downstream needed it.
@@ -1508,8 +1552,8 @@ for no mathematical gain.
 \emph{What we did afterwards, and why it was cheap.} Theorem~\ref{thm:sg:gram13-countable} deduces the countable case from the finite one: restrict $\Gamma$ to its first $n$ atoms, renormalize, apply the finite theorem with the same $m$ and $F$, and let $n\to\infty$. The worry that the logarithm might need a new continuity estimate under tail removal turned out to be unfounded: dominated convergence suffices, because the dominating function $2(X+Y)$, built from $\sum_iw_i\varphi(z_i)$ and $\sum_iw_i\varphi(z_i)^{-1}$, is integrable by the same sub-Gaussian moment bounds that the finite theorem uses, and the finite theorem's uniformity in the number of atoms is what makes the constants independent of $n$. No new truncation or Jensen estimate for infinite sums was needed (Jensen is applied only on the finite sets $s_n$).
 
 \emph{Where the book uses Theorem~1.3 (from the source text, Chapters~1 and~3).} The book states Theorem~1.3 for an \emph{atomic} probability measure $\Gamma$ on the unit sphere, with countably many atoms allowed, and applies it in two kinds of places.
-(i) To the finite Gibbs measure of the Aizenman--Sims--Starr scheme, rescaled onto the unit sphere ($G^\pi_N$ in the book, below Eq.~(1.72), and again below Eq.~(3.85)), which gives Eq.~(1.73) and $A_N=\mathbb E\,\Phi(G^\pi_N)$. The finite theorem is enough here.
-(ii) In Chapter~3, to the Ruelle probability cascades $G^n$, which have countably many atoms (their weights are indexed by $\mathbb N^{r-1}$), to obtain $|\mathscr P(\zeta^n)-\mathbb E\langle F_\varepsilon(Q)\rangle_{G^n}|\le\varepsilon$ (Eq.~(3.85) and Lemma~3.4). This is what Theorem~\ref{thm:sg:gram13-countable} provides, for a fixed (non-random) $\Gamma$; the book applies it conditionally on the randomness of $G^n$ and then averages, a step that needs a random measure and is not formalized.
+(i) To the finite Gibbs measure of the Aizenman--Sims--Starr scheme, rescaled onto the unit sphere ($G^\pi_N$ in the book, below Eq.~(1.72), and again below Eq.~(3.85)), which gives Eq.~(1.73) and $A_N=\mathbb E[\Phi(G^\pi_N)]$. The finite theorem is enough here.
+(ii) In Chapter~3, to the Ruelle probability cascades $G^n$, which have countably many atoms (their weights are indexed by $\mathbb N^{r-1}$), to obtain $|\mathscr P(\zeta^n)-\mathbb E\big[\langle F_\varepsilon(Q)\rangle_{G^n}\big]|\le\varepsilon$ (Eq.~(3.85) and Lemma~3.4). This is what Theorem~\ref{thm:sg:gram13-countable} provides, for a fixed (non-random) $\Gamma$; the book applies it conditionally on the randomness of $G^n$ and then averages, a step that needs a random measure and is not formalized.
 The asymptotic Gibbs measure $G$ of the Dovbysh--Sudakov representation is never plugged into $\Phi$. Instead the book shows that $G$ satisfies the Ghirlanda--Guerra identities, uses them to approximate the overlap array of $G$ in distribution by Gram matrices of cascades $G^n$ (Theorem~2.17), and compares $\lim A_{N_k}$ with $\lim\mathscr P(\zeta^n)$ through the same function $F_\varepsilon$ (Eq.~(3.84)).
 An earlier version of this blueprint expected Theorem~1.3 to be applied to $G$; reading the book's Chapter~3 shows that this was a misreading of the dependency structure, and we have corrected it here.
 
@@ -1518,8 +1562,8 @@ An earlier version of this blueprint expected Theorem~1.3 to be applied to $G$; 
 \emph{What the book does.} To control the effect of clamping the logarithm, the book proves that $\log\langle\cosh z\rangle$ concentrates around its mean with sub-Gaussian tails (Eq.~(1.69)), and uses that to show the clamp is
 rarely active.
 
-\emph{What we do.} We only need the \emph{expected} truncation error, and that is bounded directly: $|\log x-\log T_ax|\le e^{-a}(x+x^{-1})$, and $\mathbb E\langle\cdot\rangle$ and $\mathbb E\langle\cdot\rangle^{-1}$ are bounded using
-Jensen's inequality for $x\mapsto x^{-1}$ and the exponential moment $\mathbb Ee^{t|g|}\le2e^{vt^2/2}$ of a sub-Gaussian variable (Lemma~\ref{lem:sg:absmoment}). Concentration is a statement about the \emph{distribution} of a random variable and is
+\emph{What we do.} We only need the \emph{expected} truncation error, and that is bounded directly: $|\log x-\log T_ax|\le e^{-a}(x+x^{-1})$, and $\mathbb E\big[\langle\cdot\rangle\big]$ and $\mathbb E\big[\langle\cdot\rangle^{-1}\big]$ are bounded using
+Jensen's inequality for $x\mapsto x^{-1}$ and the exponential moment $\mathbb E[e^{t|g|}]\le2e^{vt^2/2}$ of a sub-Gaussian variable (Lemma~\ref{lem:sg:absmoment}). Concentration is a statement about the \emph{distribution} of a random variable and is
 stronger than what is needed for a bound on its \emph{mean}. The conclusion (Theorem~\ref{thm:sg:gibbs-truncation}) has the same form as the book's and is uniform in the number of atoms, so this is a shortcut in the sense of a shorter route,
 not a weaker theorem.
 
@@ -1563,8 +1607,8 @@ Statements about the book's later arguments, and about how hard the missing step
 
 In the cavity decomposition (Section~\ref{sec:sg:ass}) the field that the new spin $\varepsilon$ feels from the old spins is $z_N(\sigma)=(N+1)^{-1/2}\sum_{i\le N}(\zeta_{\mathrm{inl}(i+1)}+\zeta_{\mathrm{inr}(i)})\sigma_i$.
 There are $N$ spins $\sigma_i$ but the normalization is $(N+1)^{-1/2}$, because the system has $N+1$ spins in total. Computing the covariance of the field for two configurations gives
-\[\mathbb E\,z_N(\sigma^1)z_N(\sigma^2)=\frac{2N}{N+1}\,R(\sigma^1,\sigma^2)=2a_NR(\sigma^1,\sigma^2),\qquad a_N=\frac N{N+1},\]
-and in the same way $\mathbb E\,y_N(\sigma^1)y_N(\sigma^2)=a_NR(\sigma^1,\sigma^2)^2$ (Theorem~\ref{thm:sg:cavity-cov}; the factor $\beta$ is absorbed into $z,y$ and gives the $\beta^2$ below). Intuitively: the fields are built from $N$ terms but scaled for $N+1$, so they are slightly
+\[\mathbb E[z_N(\sigma^1)z_N(\sigma^2)]=\frac{2N}{N+1}\,R(\sigma^1,\sigma^2)=2a_NR(\sigma^1,\sigma^2),\qquad a_N=\frac N{N+1},\]
+and in the same way $\mathbb E[y_N(\sigma^1)y_N(\sigma^2)]=a_NR(\sigma^1,\sigma^2)^2$ (Theorem~\ref{thm:sg:cavity-cov}; the factor $\beta$ is absorbed into $z,y$ and gives the $\beta^2$ below). Intuitively: the fields are built from $N$ terms but scaled for $N+1$, so they are slightly
 \emph{too small} by the factor $a_N=1-\frac1{N+1}$, which tends to $1$. For $N=100$ the discrepancy is about one percent. It is a finite-size correction that disappears in the limit, but it is there at every finite $N$, and the Lean theorem has to deal with it honestly.
 
 \subsection*{What the Lean theorem says about the dependence on $N$}
@@ -1579,14 +1623,14 @@ So the number of replicas, the cut-off levels and the polynomial coefficients ar
 \subsection*{What the Lean theorem does \emph{not} say, and why that matters}
 
 The function $F_N$ is a different function for each $N$ (it depends on $a_N$). Now recall how the approximation is meant to be used (this is our reading of the book's strategy, not something formalized here). We take a subsequence $N_k$ along which the law of the overlap array
-under the Gibbs measure converges weakly, to a limit $\mu$ (Theorem~\ref{thm:sg:asymptotic-overlap}). Weak convergence means: for each \emph{fixed} bounded continuous test function $F$, $\mathbb E\langle F(R)\rangle_{N_k}\to\int F\,d\mu$.
-Our approximation gives us $\mathbb E\langle F_{N_k}(R)\rangle_{N_k}$, in which the test function itself changes with $k$. Weak convergence says nothing about such a moving target: a sequence of laws can converge while the integrals of a drifting sequence of test functions do not.
+under the Gibbs measure converges weakly, to a limit $\mu$ (Theorem~\ref{thm:sg:asymptotic-overlap}). Weak convergence means: for each \emph{fixed} bounded continuous test function $F$, $\mathbb E\big[\langle F(R)\rangle_{N_k}\big]\to\int F\,d\mu$.
+Our approximation gives us $\mathbb E\big[\langle F_{N_k}(R)\rangle_{N_k}\big]$, in which the test function itself changes with $k$. Weak convergence says nothing about such a moving target: a sequence of laws can converge while the integrals of a drifting sequence of test functions do not.
 A picture: weak convergence is a statement about a camera that is focused on one object; a function $F_{N}$ that moves with $N$ is an object that keeps leaving the frame.
 
 To repair this we need the test functions to settle down: a single fixed continuous bounded $F_\infty$ (the one built from the limiting covariances $2\beta^2R$ and $\beta^2R^2$, i.e.\ with $a_N$ replaced by $1$) such that $F_N$ is uniformly close to $F_\infty$ on the set of arguments that can occur,
 namely overlap matrices. Then
-\[\big|\mathbb E\langle F_N(R)\rangle-\mathbb E\langle F_\infty(R)\rangle\big|\le\sup_Q|F_N(Q)-F_\infty(Q)|\xrightarrow[N\to\infty]{}0,\]
-because a Gibbs average of a function is at most the supremum of that function, and $\mathbb E\langle F_\infty(R)\rangle_{N_k}\to\int F_\infty\,d\mu$ by weak convergence. That is the step ``passing to the limit $a_N\to1$''.
+\[\big|\mathbb E\big[\langle F_N(R)\rangle\big]-\mathbb E\big[\langle F_\infty(R)\rangle\big]\big|\le\sup_Q|F_N(Q)-F_\infty(Q)|\xrightarrow[N\to\infty]{}0,\]
+because a Gibbs average of a function is at most the supremum of that function, and $\mathbb E\big[\langle F_\infty(R)\rangle_{N_k}\big]\to\int F_\infty\,d\mu$ by weak convergence. That is the step ``passing to the limit $a_N\to1$''.
 
 \subsection*{How we expect the missing step to go (not formalized)}
 
@@ -1609,7 +1653,7 @@ This would let Theorem~\ref{thm:sg:gram13} be applied with the limiting covarian
 (the use of the asymptotic Gibbs measure). That later step is not part of the formalization yet (Remark~\ref{rem:sg:asymptotic-deviation}).
 \item \emph{Update: it no longer has to wait for Dovbysh--Sudakov.} When this section was first written we expected that the limit had nothing to attach to before the Dovbysh--Sudakov theorem. With that theorem now formalized (Section~\ref{sec:sg:dovbysh-sudakov}) we can see more precisely what depends on what.
 The replacement of $F_N$ by $F_\infty$ needs only the weak convergence of the overlap laws along a subsequence (Theorem~\ref{thm:sg:asymptotic-overlap}, which holds for any family of Gibbs measures and so also for the auxiliary measures $G'_N$ of the Aizenman--Sims--Starr scheme, Remark~\ref{rem:sg:asymptotic-deviation}), and both are formalized. So the limit step can be stated and proved without the Dovbysh--Sudakov representation, as a statement about $\int F_\infty\,d\mu$ for the limit law $\mu$.
-In the book the limit quantity is compared with the Parisi functional through Ruelle cascades (Eqs.~(3.84)--(3.85)), not by identifying it with $\mathbb E\,\Phi(G)$ for the Dovbysh--Sudakov measure $G$; the representation enters through the weak convergence of overlap arrays. The limit step itself is still not done.
+In the book the limit quantity is compared with the Parisi functional through Ruelle cascades (Eqs.~(3.84)--(3.85)), not by identifying it with $\mathbb E[\Phi(G)]$ for the Dovbysh--Sudakov measure $G$; the representation enters through the weak convergence of overlap arrays. The limit step itself is still not done.
 \item \emph{We chose to keep each milestone to a closed set of statements.} The first route above is a self-contained lemma about uniform convergence of Gaussian integrals; we judged it better to formalize it together with the argument that uses it, so that its exact form
 (sup over a compact set of overlap matrices, which polynomials, which $k$) is dictated by the application instead of guessed in advance.
 \item \emph{It is not an obstruction.} To avoid any misunderstanding: we do not know of a mathematical difficulty here, and we believe it is a routine compactness argument. The honest summary is that it was postponed, not that it was found hard. If the reasoning in route~1 turns out to hide a technicality
@@ -1623,7 +1667,7 @@ In the book the limit quantity is compared with the Parisi functional through Ru
 \textbf{Statement} & \textbf{Status} & \textbf{Comment}\\ \hline
 Eq.~(1.73) for each $N$, with $m$, $a_z,a_y$, $p_z,p_y$ independent of $N$ & proved (Theorem~\ref{thm:sg:overlap-approx}) & $F_N$ depends on $N$ only via $a_N$ in the Gaussian integrals\\
 $\sup_Q|F_N-F_\infty|\to0$ on overlap matrices & not done & expected by compactness and weak continuity of Gaussians in the covariance (route~1)\\
-Replacing $\mathbb E\langle F_N(R)\rangle$ by $\mathbb E\langle F_\infty(R)\rangle$ & not done & immediate from the previous line, since $\langle\cdot\rangle$ is bounded by a supremum\\
+Replacing $\mathbb E\big[\langle F_N(R)\rangle\big]$ by $\mathbb E\big[\langle F_\infty(R)\rangle\big]$ & not done & immediate from the previous line, since $\langle\cdot\rangle$ is bounded by a supremum\\
 Passing to the limit along an overlap-law subsequence & not done (can now be started) & only needs the formalized weak convergence of overlap laws (Section~\ref{sec:sg:asymptotic-gibbs}). The book's comparison with the Parisi functional (Chapter~3) goes through Ruelle cascades and the Ghirlanda--Guerra identities, which are outside this chapter\\
 \end{tabular}
 \end{center}
@@ -1632,7 +1676,7 @@ Passing to the limit along an overlap-law subsequence & not done (can now be sta
 
 Fix $N\ge1$ and the random Gibbs measure $G_N(\sigma)\propto e^{\beta H_N(\sigma)}$ on $\Sigma_N=\{-1,+1\}^N$ (it depends on the disorder $G$). Conditionally on $G$, let
 $\sigma^1,\sigma^2,\dots$ be i.i.d.\ replicas with law $G_N$, and let $R=(R_{l,l'})_{l,l'\ge1}$, $R_{l,l'}=N^{-1}\sigma^l\cdot\sigma^{l'}$, be their overlap array. Its
-\emph{annealed law} $\Lambda_N=\mathbb E\,\big(\text{law of }R\text{ given }G\big)$ is a probability measure on $\mathbb R^{\mathbb N\times\mathbb N}$ (in Lean:
+\emph{annealed law} $\Lambda_N=\mathbb E\big[\big(\text{law of }R\text{ given }G\big)\big]$ is a probability measure on $\mathbb R^{\mathbb N\times\mathbb N}$ (in Lean:
 \texttt{Measure.map R (Measure.bind P (fun G => Measure.infinitePi (fun \_ => Measure.count.tilted (beta * H G))))}, written out in each statement, with the
 law $P$ of the disorder). Let $\mathcal K$ be the set of arrays $A\in\mathbb R^{\mathbb N\times\mathbb N}$ which are symmetric, have $A_{ll}=1$ and $|A_{ll'}|\le1$, and all of whose finite
 principal submatrices $(A_{ll'})_{l,l'<k}$ are positive semidefinite (``Gram-type arrays''). This section shows that $\Lambda_N$ is concentrated on $\mathcal K$ and
@@ -1778,7 +1822,7 @@ $\mathbb E[f\mid\mathscr M_2]=\mathbb E[f\mid\mathscr M_3]$ almost surely.
 \begin{proof}
   \leanok
 Since $\mathscr M_1\subseteq\mathscr M_2$, the tower property gives $\mathbb E[f_2\mid\mathscr M_1]=f_1$. As $f_1$ is $\mathscr M_1$-measurable and $f_1,f_2\in L^2$, pulling $f_1$ out and using
-$\mathbb E\,\mathbb E[\,\cdot\mid\mathscr M_1]=\mathbb E$ yields $\mathbb E[f_1f_2]=\mathbb E[f_1\,\mathbb E[f_2\mid\mathscr M_1]]=\mathbb E[f_1^2]$. Expanding $(f_2-f_1)^2$ gives the displayed identity. If the norms are
+$\mathbb E\big[\mathbb E[\,\cdot\mid\mathscr M_1]\big]=\mathbb E[\,\cdot\,]$ yields $\mathbb E[f_1f_2]=\mathbb E[f_1\,\mathbb E[f_2\mid\mathscr M_1]]=\mathbb E[f_1^2]$. Expanding $(f_2-f_1)^2$ gives the displayed identity. If the norms are
 equal, the non-negative function $(f_2-f_1)^2$ has integral zero, hence vanishes almost surely.
 For the sandwich, $\mathbb E[f\mid\mathscr M_2]=\mathbb E\big[\mathbb E[f\mid\mathscr M_3]\mid\mathscr M_2\big]=\mathbb E\big[\mathbb E[f\mid\mathscr M_1]\mid\mathscr M_2\big]=\mathbb E[f\mid\mathscr M_1]$, because $\mathbb E[f\mid\mathscr M_1]$ is $\mathscr M_2$-measurable.
 \end{proof}
@@ -2386,7 +2430,7 @@ Apply Theorem~\ref{thm:sg:dovbysh-sudakov} to the identity array on $(\mathbb R^
 \begin{enumerate}
 \item \emph{The Hilbert space.} The book represents the array through a random measure $\eta$ on $L^2(0,1)\times[0,\infty)$. The Lean statements of this section give the Gram array through the functions $h(w,u,\cdot)\in L^2(0,1)$ and the integral $\int h\,h'$. That $(w,u)\mapsto h(w,u,\cdot)$ is a measurable map into the Hilbert space $L^2(0,1)$, and hence that the pushforward measures form a random measure, is proved in Section~\ref{sec:sg:gibbs-measure} (for the marginal $G(w)$ on $L^2(0,1)$; the pairs with the diagonal part $a$ are not treated there). It does \emph{not} need Lemma~1.7: for a jointly measurable $h$ the map $q\mapsto[h(q,\cdot)]\in L^2(0,1)$ is measurable because its distance to every point of $L^2(0,1)$ is a measurable function of $q$ (Fubini) and $L^2(0,1)$ is separable (Lemma~\ref{lem:sg:lp-section}). We state the representation through $h$ rather than through $\eta(w)$ because the book's own argument produces $h$ first (as a partial integral of the Aldous--Hoover function), and because a statement about $\eta(w)$ needs a $\sigma$-algebra on $L^2$ that Mathlib lacks.
 \item \emph{Lemma~1.7} (that $\eta$ is a measurable function of $R$ up to an isometry) is formalized in Section~\ref{sec:sg:reconstruction}, for a fixed law $\eta$ on a separable Hilbert space. Its combination with the representation above, i.e.\ the asymptotic Gibbs measure on the unit ball of $L^2(0,1)$, is Section~\ref{sec:sg:gibbs-measure}; the measure there is built directly from $h$, so Lemma~1.7 is not used.
-\item \emph{No integrability assumption.} The book does not assume $\mathbb E R_{0,0}<\infty$ and neither do the Lean statements. The strong law for the Aldous--Hoover array needs square-integrable sections; this is not assumed but derived (Theorem~\ref{thm:sg:ah-empirical}(a)) from the nonnegative strong law, Lemma~\ref{lem:sg:slln}(c), which the book does not discuss.
+\item \emph{No integrability assumption.} The book does not assume $\mathbb E[R_{0,0}]<\infty$ and neither do the Lean statements. The strong law for the Aldous--Hoover array needs square-integrable sections; this is not assumed but derived (Theorem~\ref{thm:sg:ah-empirical}(a)) from the nonnegative strong law, Lemma~\ref{lem:sg:slln}(c), which the book does not discuss.
 \item \emph{Another route to the Gaussian array.} The book generates, conditionally on $R$, a Gaussian vector with covariance $R$ and takes independent copies. Here it is $g_{l,i}=\sum_{k\le l}L_{l,k}\xi_{i,k}$ with the explicit measurable Cholesky factor $L$ of $R$ (Lemma~\ref{lem:sg:cholesky}); the only place where the exchangeability of $R$ enters is that the law of $g$ given $R$ depends on $R$ only through its entries, even though the Cholesky factors of $R$ and of a permuted $R$ are different matrices.
 \item \emph{Order of limits.} The map ``limit of the empirical covariances'' is a $\limsup$ and is only meaningful on the almost sure set where the limits exist; this is why the comparison of the two arrays goes through a measurable map and an almost sure equality on both sides, rather than through conditional expectations as in the book's informal statement.
 \item \emph{Reuse.} The same exchangeability transfer for an equivariant function of a parameter and a noise (Lemma \texttt{identDistrib\_prod\_comp\_of\_ae\_map\_eq}) and the product regroupings are general-purpose lemmas; the strong laws of Lemma~\ref{lem:sg:slln} and the partial-integral lemmas of Lemma~\ref{lem:sg:jensen-partial} do not mention spin glasses.
