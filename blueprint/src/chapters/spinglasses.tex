@@ -286,7 +286,7 @@ convergence of the ground-state energy is a conclusion and not an assumption.
 
 \section{The Gibbs measure}\label{sec:sg:gibbs}
 
-For $\beta\in\mathbb R$ and $H:\alpha\to\mathbb R$ on a finite set, the \emph{Gibbs measure}
+For $\beta\in\mathbb R$ and $H:\alpha\to\mathbb R$ on a finite configuration space $\alpha$ (Definition~\ref{def:sg:configspace}, Remark~\ref{rem:sg:finiteconfig}), the \emph{Gibbs measure}
 $G_\beta(a)=e^{\beta H(a)}/Z(\beta)$ is the exponential tilt of the counting measure by $\beta H$; in Lean it is
 \texttt{Measure.count.tilted} with tilt $\beta H$, and it is a probability measure whenever $\alpha$ is nonempty. We write
 $\langle g\rangle_\beta=\int g\,dG_\beta$.
@@ -331,7 +331,7 @@ is integrable by assumption. (3) is (2) with the SK landscape (Theorem~\ref{thm:
 \begin{theorem}[Zero-temperature concentration]\label{thm:sg:concentration}
   \lean{SpinGlasses.tendsto_real_count_tilted_singleton_of_lt, SpinGlasses.tendsto_integral_count_tilted_max}
   \leanok
-Let $\alpha$ be finite nonempty and $H:\alpha\to\mathbb R$. (1) If $H(a)<\max H$ then $G_\beta(\{a\})\to0$ as
+Let $\alpha$ be a finite nonempty configuration space (Definition~\ref{def:sg:configspace}) and $H:\alpha\to\mathbb R$. (1) If $H(a)<\max H$ then $G_\beta(\{a\})\to0$ as
 $\beta\to\infty$; indeed $G_\beta(\{a\})\le e^{-\beta(\max H-H(a))}$. (2) $\langle H\rangle_\beta\to\max H$.
 \end{theorem}
 
@@ -663,11 +663,140 @@ or from exponentials of the field, so (F1)--(F3) are verified directly (see Lemm
 
 \section{Integration by parts for the Gibbs measure}\label{sec:sg:ibp}
 
-Throughout, $\alpha$ is a finite configuration space, $(x,y)=(x(a),y(a))_{a\in\alpha}$ is a centered jointly Gaussian field with
-$C(a,b)=\mathbb E[x(a)y(b)]$, $h:\alpha\to\mathbb R$ is a deterministic bias (for example $\log G$ for a reference weight, or an
-external field), and $\langle\cdot\rangle$ is the Gibbs measure \texttt{Measure.count.tilted} of the energy $y+h$. For a finite index
-set $R$ of replicas, replicas are the product $\bigotimes_{r\in R}\langle\cdot\rangle$, \texttt{Measure.pi}; Panchenko's $\sigma^1,\dots,\sigma^n$ is $R=\{1,\dots,n\}$,
-and $\Phi$ is an arbitrary function of the $|R|$ replicas.
+\begin{definition}[Configuration space]\label{def:sg:configspace}
+A \emph{configuration space} is a set $\alpha$ whose elements $a\in\alpha$ (the \emph{configurations}, also called states or
+spin configurations) are the possible microscopic states of the system, equipped with the discrete $\sigma$-algebra (every
+subset is measurable). A configuration carries an \emph{energy} $H(a)\in\mathbb R$, and the Gibbs measure at inverse temperature
+$\beta$ is a probability measure on $\alpha$ built from $H$ (Section~\ref{sec:sg:gibbs}). Examples: the hypercube
+$\Sigma_\iota=\{-1,1\}^\iota$ of the SK and $p$-spin models, with one spin $\sigma_i=\pm1$ for each site $i\in\iota$; a finite or
+countable set of atoms $\{\rho^i\}$ of a discrete measure, as in Section~\ref{sec:sg:countable}. In Lean a configuration space is simply a type \texttt{alpha}, with every set measurable, and the counting measure
+\texttt{Measure.count} is the reference measure.
+\end{definition}
+
+\begin{remark}[Finite configuration space]\label{rem:sg:finiteconfig}
+That $\alpha$ is \emph{finite} means $|\alpha|<\infty$ (in Lean, \texttt{Fintype alpha}); for the hypercube $|\Sigma_\iota|=2^N$
+(Lemma~\ref{lem:sg:overlap}). It is a very convenient assumption, and everything in this section uses it.
+\begin{enumerate}
+\item Every function $f:\alpha\to\mathbb R$ is bounded, measurable and integrable for the counting measure, and
+  $\int f\,d\mathrm{count}=\sum_{a\in\alpha}f(a)$ is a finite sum. In particular the partition function
+  $Z(\beta)=\sum_ae^{\beta H(a)}$ is finite and positive for \emph{every} energy $H$ and every $\beta$ (provided
+  $\alpha\ne\emptyset$), so the Gibbs measure exists with no integrability condition on $H$ (Lemma~\ref{lem:sg:gibbsavg}).
+\item The space of energies and Gibbs weights is the finite-dimensional space $\mathbb R^\alpha$. A random energy
+  $(y(a))_{a\in\alpha}$ is therefore a random vector in $\mathbb R^\alpha$, and the Gaussian integration by parts of
+  Theorem~\ref{thm:sg:steinvec} applies with $\kappa=\alpha$. The Gibbs weights $w_f(a)=e^{f(a)}/\sum_be^{f(b)}$ are smooth
+  functions of $f\in\mathbb R^\alpha$ with values in $[0,1]$, which is how the growth conditions (F1)--(F3) of
+  Remark~\ref{rem:sg:steinvec-assumptions} are verified.
+\item The space of $R$-replicas $\alpha^R$ is again finite for finite $R$, so replica averages
+  $\langle\Psi\rangle=\sum_{\sigma\in\alpha^R}\prod_rw(\sigma_r)\Psi(\sigma)$ are finite sums (Lemma~\ref{lem:sg:replicacalc}).
+\end{enumerate}
+For a countable infinite $\alpha$ none of this is automatic: $Z$ may diverge, so the reference weights must be summable, sums
+become series that need dominated-convergence arguments, and the random energy lives in an infinite-dimensional space; this is
+why Section~\ref{sec:sg:countable} needs separate analytic tools and why, for the Gram-matrix approximation, the countable case
+is deduced from the finite one by truncation (Theorem~\ref{thm:sg:gram13-countable}).
+\end{remark}
+
+\begin{definition}[Gaussian field]\label{def:sg:gaussianfield}
+Let $\alpha$ be a configuration space. A \emph{Gaussian field} on $\alpha$ is a family $x=(x(a))_{a\in\alpha}$ of real random
+variables on a probability space $(\Omega,P)$ such that the vector $x:\Omega\to\mathbb R^\alpha$ is a Gaussian vector: its law is
+a Gaussian measure on $\mathbb R^\alpha$, that is, every finite linear combination $\sum_ac_ax(a)$ is a real Gaussian variable
+(possibly degenerate, i.e.\ constant). In Lean this is \texttt{HasGaussianLaw (fun omega a => x a omega) P}, and for a finite
+$\alpha$ it is the same as \texttt{IsGaussianProcess}.
+\begin{itemize}
+\item The field is \emph{centered} if $\mathbb E[x(a)]=0$ for all $a$, and then its \emph{covariance} is
+  $C(a,b)=\mathbb E[x(a)x(b)]$, a symmetric positive semidefinite function on $\alpha\times\alpha$. The law of a centered Gaussian field
+  is determined by $C$ alone (Lemma~\ref{lem:sg:gram}).
+\item Two fields $x,y$ on the same $(\Omega,P)$ are \emph{jointly Gaussian} if the combined family $(x,y)$, indexed by the
+  disjoint union $\alpha\sqcup\alpha$, is a Gaussian field. This is strictly stronger than each of $x$ and $y$ being Gaussian: it
+  also constrains the cross-covariance $C(a,b)=\mathbb E[x(a)y(b)]$. For example, independent Gaussian fields are jointly Gaussian
+  with $C=0$, whereas $y=\varepsilon x$ with an independent sign $\varepsilon=\pm1$ gives Gaussian $x$ and $y$ with
+  $\mathbb E[x(a)y(b)]=0$ that are not jointly Gaussian.
+\item For a countably infinite $\alpha$ one asks that every finite subfamily be Gaussian (\texttt{IsGaussianProcess}); on a finite
+  $\alpha$ this is the definition above.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[The Gibbs measure $\langle\cdot\rangle$ of the energy $y+h$ and its replicas]\label{def:sg:gibbs-yh}
+Let $\alpha$ be a finite nonempty configuration space (Definition~\ref{def:sg:configspace}), let $y=(y(a))_{a\in\alpha}$ be a
+random field and let $h:\alpha\to\mathbb R$ be a deterministic \emph{bias}. For each realization of $y$ put the energy
+$E(a)=y(a)+h(a)$. The \emph{Gibbs measure} of this energy is the exponential tilt of the counting measure by $E$,
+\[\langle\cdot\rangle=\texttt{Measure.count.tilted}\,(y+h),\qquad
+\langle\{a\}\rangle=w(a):=\frac{e^{y(a)+h(a)}}{\sum_{b\in\alpha}e^{y(b)+h(b)}}.\]
+Here, for a measure $\mu$ and a function $f$ with $\int e^f\,d\mu\in(0,\infty)$, \texttt{mu.tilted f} is the probability measure
+with density $e^{f}/\int e^f\,d\mu$ with respect to $\mu$; for $\mu=\texttt{Measure.count}$ the integral is the finite sum
+$Z=\sum_be^{E(b)}$ (Remark~\ref{rem:sg:finiteconfig}). This is the Gibbs measure of Section~\ref{sec:sg:gibbs} at inverse
+temperature $1$ (the inverse temperature $\beta$ is absorbed into $y$ and $h$) and with energy $y+h$, written there as
+$G_\beta$ with $\beta H$ in place of $y+h$. For $g:\alpha\to\mathbb R$,
+\[\langle g\rangle=\int g\,d\langle\cdot\rangle=\sum_{a\in\alpha}w(a)\,g(a)\]
+is the Gibbs average. Since $y$ is random, $\langle\cdot\rangle$ is a \emph{random} probability measure on $\alpha$, and $\langle g\rangle$
+is a random variable; the expectation $\mathbb E$ in the statements below is taken over $y$ (and the other Gaussian fields), after
+the Gibbs average. The bias $h$ allows reference weights: the choice $h=\log G$ with $G(a)>0$ gives
+$w(a)\propto G(a)e^{y(a)}$ (this covers an external field as well).
+
+For a finite index set $R$ of \emph{replicas}, the Gibbs measure of $R$ replicas is the product measure
+$\bigotimes_{r\in R}\langle\cdot\rangle$ on $\alpha^R$ (\texttt{Measure.pi}), that is, $\sigma=(\sigma_r)_{r\in R}$ has independent
+coordinates with law $\langle\cdot\rangle$, and for $\Phi:\alpha^R\to\mathbb R$
+\[\langle\Phi\rangle=\sum_{\sigma\in\alpha^R}\Big(\prod_{r\in R}w(\sigma_r)\Big)\Phi(\sigma).\]
+Panchenko's $\sigma^1,\dots,\sigma^n$ is $R=\{1,\dots,n\}$, and $\Phi$ is an arbitrary function of the $|R|$ replicas. Note that
+the replicas share the same random $y$ (they are independent only conditionally on $y$), which is why $\mathbb E\langle\Phi\rangle$
+is not a product of expectations.
+\end{definition}
+
+\begin{remark}[Replicas: intuition, role in the formalization, and the physics]\label{rem:sg:replicas}
+\emph{Intuition.} The disorder $y$ (the random couplings) is drawn once and then frozen; this is called \emph{quenched}
+disorder. For the frozen $y$, the system at equilibrium is a random configuration with law $\langle\cdot\rangle$, and
+$\langle g\rangle$ is the thermal average of an observable $g$. A \emph{replica} is an independent copy of this thermal
+configuration in the \emph{same} frozen environment. Two replicas $\sigma^1,\sigma^2\sim\langle\cdot\rangle^{\otimes2}$ are
+two independent samples of the equilibrium state of one and the same sample of the disorder. Comparing them, for instance through
+the overlap $R(\sigma^1,\sigma^2)$ of Section~\ref{sec:sg:basic}, measures how concentrated the Gibbs measure is: if the
+overlap is typically close to a single value the measure is spread over states that look alike, and if the overlap takes
+several values the Gibbs measure is split among several clusters of configurations. A single thermal average $\langle g\rangle$
+cannot see this, since it only sees the average of one configuration; products of averages such as
+$\langle g_1\rangle\langle g_2\rangle=\langle g_1(\sigma^1)g_2(\sigma^2)\rangle$ do, and this is exactly a two-replica average.
+Because the replicas share $y$, they are dependent after averaging over $y$: $\mathbb E\langle\Phi(\sigma^1,\sigma^2)\rangle\ne
+\mathbb E\langle\Phi_1\rangle\,\mathbb E\langle\Phi_2\rangle$ in general, and this dependence is the information being studied.
+
+\emph{Role in the formalization.}
+\begin{enumerate}
+\item \emph{Gaussian integration by parts.} Differentiating the Gibbs weights $w(\sigma_r)$ with respect to the energy gives
+  $\mathbf 1[\sigma_r=\rho]-w(\rho)$ for every replica $r$ (Lemma~\ref{lem:sg:replicacalc}), which is why an
+  $R$-replica average appears naturally: the derivative of a replica average of $|R|$ replicas involves one more replica
+  (the one summed against $w$ in $-|R|\,C(\sigma^{r_0},\sigma^{n+1})$). Theorems~\ref{thm:sg:replica} and~\ref{thm:sg:lemma11}
+  express $\mathbb E\langle\Phi\,x(\sigma^{r_0})\rangle$ in terms of the covariance $C$ evaluated on pairs of replicas. For
+  the $p$-spin models $C(\sigma,\tau)=N\xi(R(\sigma,\tau))$ is a function of the overlap, so the right-hand side is again a
+  replica average, of overlaps.
+\item \emph{Powers of Gibbs averages.} A $k$-th power $\langle\psi(z)\rangle^k$ is the $k$-replica average of
+  $\prod_{l\le k}\psi(z(\sigma^l))$ (Theorem~\ref{thm:sg:gibbs-replica}), which is how the free-energy increments
+  are reduced to Gaussian integrals depending only on the Gram matrix of the replicas, and how Theorem~\ref{thm:sg:gram13} is proved.
+\item \emph{The overlap array.} Infinitely many replicas $\sigma^1,\sigma^2,\dots$ give the array of overlaps
+  $(R(\sigma^i,\sigma^j))_{i,j\ge1}$, whose limit laws are studied in Section~\ref{sec:sg:asymptotic-gibbs}; its
+  exchangeability and the Dovbysh--Sudakov representation are the main structural results of the later sections. In Lean, any finite number of replicas
+  is the finite product measure \texttt{Measure.pi}; the infinite array is a statement about the laws of all its finite sub-arrays.
+\end{enumerate}
+
+\emph{Connection with the physics formulation.} In the physics literature ``replicas'' denote two things, and both appear
+here.
+\begin{enumerate}
+\item[(i)] \emph{Real replicas.} These are the independent samples $\sigma^1,\dots,\sigma^n$ from the same Gibbs measure
+  described above, and the object $\mathbb E\langle\Phi(\sigma^1,\dots,\sigma^n)\rangle$ is what physicists call the average of
+  an observable over $n$ real replicas, with the overlap distribution $\mathbb E\langle\mathbf 1[R(\sigma^1,\sigma^2)\in\cdot]\rangle$
+  as the Parisi order parameter. This is a mathematically rigorous object and is the one used in this blueprint.
+\item[(ii)] \emph{The replica trick.} For integer $n$ the moment $\mathbb EZ^n=\mathbb E\sum_{\sigma^1,\dots,\sigma^n}
+  e^{\sum_{l\le n}y(\sigma^l)}$ is the partition function of $n$ coupled copies of the system after the disorder has been averaged
+  out, and the heuristic identity $\mathbb E\log Z=\lim_{n\to0}(\mathbb EZ^n-1)/n$ is used to compute the free energy by analytic
+  continuation of $n$ to $0$. This continuation is not rigorous and \emph{is not used here}. The formal substitute is the
+  Gaussian integration by parts above, which produces the interaction between replicas exactly, together with the
+  $s$-interpolation that avoids $n\to0$.
+\end{enumerate}
+The ``replica symmetry'' of physics (all the overlaps $R(\sigma^i,\sigma^j)$, $i\ne j$, equal to a single value) corresponds to
+a Gibbs measure concentrated on one cluster, and ``replica symmetry breaking'' to a nontrivial law of the overlap; in this
+setting it is the law of the overlap array, through Section~\ref{sec:sg:asymptotic-gibbs}, that the formalization captures.
+\end{remark}
+
+Throughout, $\alpha$ is a finite configuration space (Definition~\ref{def:sg:configspace} and
+Remark~\ref{rem:sg:finiteconfig}), $(x,y)=(x(a),y(a))_{a\in\alpha}$ is a centered jointly Gaussian field
+(Definition~\ref{def:sg:gaussianfield}) with $C(a,b)=\mathbb E[x(a)y(b)]$, $h:\alpha\to\mathbb R$ is a deterministic bias
+(for example $\log G$ for a reference weight, or an external field), $\langle\cdot\rangle$ is the Gibbs measure of the energy
+$y+h$ and $\langle\Phi\rangle$ its replica average (Definition~\ref{def:sg:gibbs-yh}).
 
 \begin{lemma}[Calculus of replica averages]\label{lem:sg:replicacalc}
   \lean{SpinGlasses.integral_pi_count_tilted, SpinGlasses.differentiable_gibbsWeight,
@@ -771,7 +900,7 @@ $\le\sqrt a\,e^v\sum_bG_b$, hence converges absolutely a.s.\ and is integrable (
         SpinGlasses.integral_truncated_gibbs_replica_average_gaussian}
   \leanok
   \uses{thm:sg:replica}
-Let $\alpha$ be countable, $G>0$, $(x,y)$ a centered Gaussian process, and $A\subseteq\alpha$ a finite set. Then Theorem~\ref{thm:sg:replica}
+Let $\alpha$ be a countable configuration space (Definition~\ref{def:sg:configspace}), $G>0$, $(x,y)$ a centered Gaussian process (Definition~\ref{def:sg:gaussianfield}), and $A\subseteq\alpha$ a finite set. Then Theorem~\ref{thm:sg:replica}
 holds for the truncated Gibbs weights $\mathbf 1_A(a)G(a)e^{y(a)}/\sum_{b\in A}G(b)e^{y(b)}$, with the replica averages written as series over
 $R\to\alpha$ and $\mathrm{Option}\,R\to\alpha$. Moreover each truncated replica average is bounded by $M\sum_b(g_b/g_{a_0})|x_b|$, respectively
 by the sup of the observable.
@@ -788,7 +917,7 @@ Lemma~\ref{lem:sg:replicacalc}(3) applied on $A$.
   \lean{SpinGlasses.integral_gibbs_replica_average_gaussian_countable}
   \leanok
   \uses{thm:sg:truncation, lem:sg:gaussexp, lem:sg:tannery}
-Let $\alpha$ be countable, $G:\alpha\to(0,\infty)$ summable, and $(x,y)$ a centered jointly Gaussian process (\texttt{IsGaussianProcess}) with
+Let $\alpha$ be a countable configuration space (Definition~\ref{def:sg:configspace}), $G:\alpha\to(0,\infty)$ summable, and $(x,y)$ a centered jointly Gaussian process (Definition~\ref{def:sg:gaussianfield}; \texttt{IsGaussianProcess}) with
 $\mathbb E[x(a)^2]\le v$ and $\mathbb E[y(a)^2]\le v$ for all $a$. Let $\Phi$ be a function of $|R|$ replicas with $|\Phi|\le M$, and
 $w(a)=G(a)e^{y(a)}/\sum_bG(b)e^{y(b)}$ the Gibbs weights. Then
 \[\mathbb E\big[\sum_{\sigma\in\alpha^R}\prod_rw(\sigma_r)\,\Phi(\sigma)\,x(\sigma_{r_0})\big]
@@ -878,7 +1007,7 @@ Pointwise, $\frac{d}{ds}\log\sum_ae^{f}=\sum_ae^{f}f'/\sum_ae^{f}=\langle f'\ran
         SpinGlasses.hasDerivAt_integral_log_sum_exp_trig, SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
   \leanok
   \uses{lem:sg:pathderiv, thm:sg:lemma11}
-Let $(X,Y)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb E[X(a)Y(b)]=0$, equal variances
+Let $(X,Y)$ be a centered jointly Gaussian pair of fields (Definition~\ref{def:sg:gaussianfield}) on a finite configuration space $\alpha$ (Definition~\ref{def:sg:configspace}) with $\mathbb E[X(a)Y(b)]=0$, equal variances
 $\mathbb E[X(a)^2]=\mathbb E[Y(a)^2]$, and $\mathbb E[X(a)X(b)]\le\mathbb E[Y(a)Y(b)]$ for all $a,b$. Then for every bias $h:\alpha\to\mathbb R$,
 \[\mathbb E\big[\log\sum_ae^{Y(a)+h(a)}\big]\le\mathbb E\big[\log\sum_ae^{X(a)+h(a)}\big].\]
 \end{theorem}
@@ -1015,7 +1144,7 @@ derivatives have exponential growth. Part (iv) is the fact that a product of Gau
         SpinGlasses.integral_exp_mul_log_sum_exp_sub_le}
   \leanok
   \uses{lem:sg:expgrowth, thm:sg:comparison, lem:sg:pathderiv}
-Let $(g_1,g_2)$ be a centered jointly Gaussian pair of fields on a finite set $\alpha$ with $\mathbb E[g_1g_2]=0$ and the same covariance
+Let $(g_1,g_2)$ be a centered jointly Gaussian pair of fields (Definition~\ref{def:sg:gaussianfield}) on a finite configuration space $\alpha$ (Definition~\ref{def:sg:configspace}) with $\mathbb E[g_1g_2]=0$ and the same covariance
 $C=\mathbb E[g_1g_1]=\mathbb E[g_2g_2]$, with $C(x,y)\le a$ for all $x,y$. Then for every bias $h$ and every $t\in\mathbb R$,
 \[\mathbb E\Big[\exp\Big(t\Big(\log\sum_xe^{g_1(x)+h(x)}-\log\sum_xe^{g_2(x)+h(x)}\Big)\Big)\Big]\le e^{at^2}.\]
 \end{theorem}
@@ -1052,7 +1181,7 @@ $\mathbb E[e^{t(F-\mathbb E[F])}]\le\mathbb E[e^{tF}]\,\mathbb E[e^{-tF}]=\mathb
         SpinGlasses.integral_sq_sub_integral_le_of_log_sum_exp}
   \leanok
   \uses{thm:sg:expmoment, lem:sg:symm}
-Let $g$ be a centered Gaussian field on a finite set $\alpha$ with $\mathbb E[g(a)^2]\le v$ and let $F=\log\sum_ae^{g(a)+h(a)}$ for a bias $h$.
+Let $g$ be a centered Gaussian field (Definition~\ref{def:sg:gaussianfield}) on a finite configuration space $\alpha$ (Definition~\ref{def:sg:configspace}) with $\mathbb E[g(a)^2]\le v$ and let $F=\log\sum_ae^{g(a)+h(a)}$ for a bias $h$.
 Then $F-\mathbb E[F]$ is sub-Gaussian with parameter $2v$, i.e.\ $\mathbb E[e^{t(F-\mathbb E[F])}]\le e^{vt^2}$; consequently for $x\ge0$
 \[\mathbb P(|F-\mathbb E[F]|\ge x)\le2\exp\Big(-\frac{x^2}{4v}\Big),\qquad\mathbb E[(F-\mathbb E[F])^2]\le2v.\]
 \end{theorem}
@@ -1106,7 +1235,7 @@ is the same as in the book ($2e^{-x^2/(4v)}$), so the improvement is only in the
 Poincar\'e inequality would give $\mathrm{Var}\,F\le v$; we have not formalized that route.
 \end{enumerate}
 A smaller difference in the set-up: the reference weights $G(\sigma)>0$ of the book are replaced by a deterministic bias $h=\log G$ (which also covers an external
-field), exactly as in Theorem~\ref{thm:sg:lemma11}; and the Gaussian field is an arbitrary \texttt{HasGaussianLaw} family on a finite set, so the same
+field), exactly as in Theorem~\ref{thm:sg:lemma11}; and the Gaussian field (Definition~\ref{def:sg:gaussianfield}) is an arbitrary \texttt{HasGaussianLaw} family on a finite configuration space, so the same
 statement serves every model, with the mixed $p$-spin case Theorem~\ref{thm:sg:mixedconc} a two-line application.
 \end{remark}
 
