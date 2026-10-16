@@ -37,30 +37,28 @@ theorem poissonCountingMeasure_map {S T : Type*} [MeasurableSpace S]
   simp only [Set.indicator, Set.mem_preimage, Pi.one_apply]
   rfl
 
-/-- The law of a mapped Poisson block is obtained by mapping its iid sample law. -/
-theorem hasLaw_map_poissonBlock {Ω S T : Type*} [MeasurableSpace Ω]
-    [MeasurableSpace S] [MeasurableSpace T] {P : Measure Ω}
-    {r : ℝ≥0} {ν : Measure S} [IsProbabilityMeasure ν]
-    {B : Ω → ℕ × (ℕ → S)} (hB : HasLaw B (Po(r).prod
-      (Measure.infinitePi fun _ : ℕ => ν)) P) {f : S → T} (hf : Measurable f) :
-    HasLaw (fun ω => ((B ω).1, fun l => f ((B ω).2 l)))
-      (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map f)) P := by
-  have hm : Measurable (fun b : ℕ × (ℕ → S) =>
-      (b.1, fun l => f (b.2 l))) := by fun_prop
-  have hmap : (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)).map
-      (fun b : ℕ × (ℕ → S) => (b.1, fun l => f (b.2 l))) =
-      Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map f) := by
-    rw [show (fun b : ℕ × (ℕ → S) => (b.1, fun l => f (b.2 l))) =
-      Prod.map id (fun x => fun l => f (x l)) from rfl,
-      ← Measure.map_prod_map _ _ measurable_id (by fun_prop :
-        Measurable fun x : ℕ → S => fun l => f (x l))]
-    simp only [Measure.map_id]
-    exact congrArg (Measure.prod (Po(r)))
-      (Measure.infinitePi_map_pi (μ := fun _ : ℕ => ν) (fun _ => hf))
-  exact ⟨hm.aemeasurable.comp_aemeasurable hB.aemeasurable, by
-    rw [← hmap, ← hB.map_eq,
-      AEMeasurable.map_map_of_aemeasurable hm.aemeasurable hB.aemeasurable]
-    rfl⟩
+/-- Mapping the intensity of independent blocks commutes with their countable sum. -/
+theorem poissonIntensity_map {S T : Type*} [MeasurableSpace S]
+    [MeasurableSpace T] (ν : ℕ → Measure S) (r : ℕ → ℝ≥0)
+    {f : S → T} (hf : Measurable f) :
+    (Measure.sum fun n => (r n : ℝ≥0∞) • ν n).map f =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map f := by
+  ext A hA
+  simp [Measure.map_apply hf hA, Measure.sum_apply _ hA,
+    Measure.sum_apply _ (hf hA), Measure.smul_apply]
+
+/-- If the image intensity `(∑ rₙ νₙ) ∘ f⁻¹` has no atoms, then every block of positive intensity
+has an atomless image law. -/
+theorem nullSingletonClass_map_block {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
+    [MeasurableSingletonClass T]
+    (ν : ℕ → Measure S) (r : ℕ → ℝ≥0) {f : S → T} (hf : Measurable f)
+    (h : NullSingletonClass ((Measure.sum fun n => (r n : ℝ≥0∞) • ν n).map f)) {n : ℕ}
+    (hn : r n ≠ 0) : NullSingletonClass ((ν n).map f) := by
+  refine ⟨fun x => ?_⟩
+  have hx := h.measure_singleton x
+  rw [poissonIntensity_map ν r hf, Measure.sum_apply _ (measurableSet_singleton x)] at hx
+  have := (ENNReal.tsum_eq_zero.1 hx) n
+  simpa [hn] using this
 
 /-- **Mapping theorem (Panchenko, Theorem 2.1), in the finite-dimensional count-law form.**
 The mapped counting measure has independent Poisson counts on disjoint measurable sets of finite
@@ -95,7 +93,7 @@ theorem poissonProcess_map {Ω S T κ : Type*} [MeasurableSpace Ω]
     hB.comp (fun _ b => (b.1, fun l => f (b.2 l))) (fun _ => by fun_prop)
   have hClaw : ∀ n, HasLaw (C n) (Po(r n).prod
       (Measure.infinitePi fun _ : ℕ => (ν n).map f)) P := fun n =>
-    hasLaw_map_poissonBlock (hlaw n) hf
+    hasLaw_map_prod_infinitePi (hlaw n) hf
   have hM : ∀ ω, (poissonCountingMeasure (fun n => (B n ω).1)
       (fun n l => (B n ω).2 l)).map f =
       poissonCountingMeasure (fun n => (C n ω).1) (fun n l => (C n ω).2 l) := by
@@ -202,14 +200,80 @@ theorem poissonProcess_marking {Ω S T κ : Type*} [MeasurableSpace Ω]
     (fun n => ν n ⊗ₘ K) r hBm hB hlaw hμ
     (fun _ => rfl) hA hdisj hfin
 
-/-- Mapping the intensity of independent blocks commutes with their countable sum. -/
-theorem poissonIntensity_map {S T : Type*} [MeasurableSpace S]
-    [MeasurableSpace T] (ν : ℕ → Measure S) (r : ℕ → ℝ≥0)
-    {f : S → T} (hf : Measurable f) :
-    (Measure.sum fun n => (r n : ℝ≥0∞) • ν n).map f =
-      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map f := by
-  ext A hA
-  simp [Measure.map_apply hf hA, Measure.sum_apply _ hA,
-    Measure.sum_apply _ (hf hA), Measure.smul_apply]
+/-- **Mapping theorem with simplicity.** If the image intensity has no atoms, then almost surely
+the mapped counting measure counts the points of the image set `f(Π)` without multiplicity. -/
+theorem ae_poissonProcess_map_eq_encard {Ω S T : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace S] [MeasurableSpace T] [MeasurableEq T] {P : Measure Ω}
+    [IsProbabilityMeasure P] (ν : ℕ → Measure S)
+    [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → S)} (hBm : ∀ n, Measurable (B n))
+    (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod
+      (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    {f : S → T} (hf : Measurable f)
+    (hnull : NullSingletonClass ((Measure.sum fun n => (r n : ℝ≥0∞) • ν n).map f)) :
+    ∀ᵐ ω ∂P, ∀ A : Set T, MeasurableSet A →
+      (poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map f A =
+        (A ∩ {y | ∃ n, ∃ l < (B n ω).1, f ((B n ω).2 l) = y}).encard := by
+  have : ∀ n, IsProbabilityMeasure ((ν n).map f) := fun _ => inferInstance
+  have hCm : ∀ n, Measurable fun ω => ((B n ω).1, fun l => f ((B n ω).2 l)) := fun n => by
+    fun_prop
+  have hCi : iIndepFun (fun n ω => ((B n ω).1, fun l => f ((B n ω).2 l))) P :=
+    hB.comp (fun _ b => (b.1, fun l => f (b.2 l))) (fun _ => by fun_prop)
+  have hClaw := fun n => hasLaw_map_prod_infinitePi (hlaw n) hf
+  filter_upwards [ae_poissonCountingMeasure_eq_encard (fun n => (ν n).map f) r hCm hCi hClaw
+    (fun n hn => nullSingletonClass_map_block ν r hf hnull hn)] with ω hω A hA
+  rw [poissonCountingMeasure_map _ _ hf]
+  exact hω A hA
+
+/-- Marking an atomless law with a Markov kernel keeps it atomless. -/
+theorem nullSingletonClass_compProd {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
+    [MeasurableSingletonClass S]
+    (ν : Measure S) [SFinite ν] [NullSingletonClass ν] (K : Kernel S T) [IsMarkovKernel K] :
+    NullSingletonClass (ν ⊗ₘ K) := by
+  refine ⟨fun x => measure_mono_null (t := Prod.fst ⁻¹' {x.1}) ?_ ?_⟩
+  · intro y hy
+    simp only [Set.mem_singleton_iff] at hy
+    simp [hy]
+  · rw [← Measure.fst_apply (measurableSet_singleton x.1), Measure.fst_compProd]
+    exact measure_singleton _
+
+/-- **Marking theorem, construction.** Marked Poisson blocks with law `Po(rₙ) ⊗ (νₙ ⊗ₘ K)^{⊗ℕ}`
+exist, and forgetting the marks gives unmarked blocks with law `Po(rₙ) ⊗ νₙ^{⊗ℕ}` on the same
+probability space. Thus the marks of the Poisson process built from the unmarked blocks are
+conditionally independent with laws `K (Xₙₗ, ·)`, as in Panchenko's marking construction. -/
+theorem exists_markedPoissonBlocks {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
+    (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0) (K : Kernel S T)
+    [IsMarkovKernel K] :
+    ∃ P : Measure (ℕ → ℕ × (ℕ → S × T)), IsProbabilityMeasure P ∧
+      (∀ n, Measurable fun ω : ℕ → ℕ × (ℕ → S × T) => ω n) ∧
+      iIndepFun (fun n (ω : ℕ → ℕ × (ℕ → S × T)) => ω n) P ∧
+      (∀ n, HasLaw (fun ω : ℕ → ℕ × (ℕ → S × T) => ω n)
+        (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n ⊗ₘ K)) P) ∧
+      ∀ n, HasLaw (fun ω : ℕ → ℕ × (ℕ → S × T) => ((ω n).1, fun l => ((ω n).2 l).1))
+        (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P := by
+  obtain ⟨P, hP, hm, hi, hl⟩ := exists_poissonBlocks (fun n => ν n ⊗ₘ K) r
+  refine ⟨P, hP, hm, hi, hl, fun n => ?_⟩
+  have := hasLaw_map_prod_infinitePi (hl n) (f := Prod.fst) measurable_fst
+  rwa [show (ν n ⊗ₘ K).map Prod.fst = ν n from Measure.fst_compProd _ _] at this
+
+/-- **Marking with simplicity.** If the unmarked block laws of positive intensity have no atoms,
+almost surely the marked counting measure counts the points of the marked set `Π*` without
+multiplicity. -/
+theorem ae_poissonProcess_marking_eq_encard {Ω S T : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace S] [MeasurableSpace T] [MeasurableEq (S × T)]
+    [MeasurableSingletonClass S] {P : Measure Ω} [IsProbabilityMeasure P] (ν : ℕ → Measure S)
+    [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0) (K : Kernel S T) [IsMarkovKernel K]
+    {B : ℕ → Ω → ℕ × (ℕ → S × T)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ => (ν n) ⊗ₘ K)) P)
+    (hnull : ∀ n, r n ≠ 0 → NullSingletonClass (ν n)) :
+    ∀ᵐ ω ∂P, ∀ A : Set (S × T), MeasurableSet A →
+      poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l) A =
+        (A ∩ {x | ∃ n, ∃ l < (B n ω).1, (B n ω).2 l = x}).encard :=
+  ae_poissonCountingMeasure_eq_encard (fun n => ν n ⊗ₘ K) r hBm hB hlaw fun n hn =>
+    have := hnull n hn
+    nullSingletonClass_compProd (ν n) K
 
 end SpinGlasses

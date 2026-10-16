@@ -399,6 +399,30 @@ theorem iIndepFun_hasLaw_counts_poisson_thinning {Ω ι : Type*} [MeasurableSpac
     (measurePreserving_eval (fun i => Po(r * p i)) i).hasLaw.comp h
   exact ⟨hi, (iIndepFun_iff_hasLaw_pi_pi hi).2 h⟩
 
+/-- Applying a measurable map to every sample of a block `Po(r) ⊗ ν^{⊗ℕ}` gives a block with
+sample law `ν.map f`. -/
+theorem hasLaw_map_prod_infinitePi {Ω S T : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [MeasurableSpace S] [MeasurableSpace T] {r : ℝ≥0} {ν : Measure S} [IsProbabilityMeasure ν]
+    {B : Ω → ℕ × (ℕ → S)} (hB : HasLaw B (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P)
+    {f : S → T} (hf : Measurable f) :
+    HasLaw (fun ω => ((B ω).1, fun l => f ((B ω).2 l)))
+      (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map f)) P := by
+  have hm : Measurable (fun b : ℕ × (ℕ → S) => (b.1, fun l => f (b.2 l))) := by fun_prop
+  have hmap : (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)).map
+      (fun b : ℕ × (ℕ → S) => (b.1, fun l => f (b.2 l))) =
+      Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map f) := by
+    rw [show (fun b : ℕ × (ℕ → S) => (b.1, fun l => f (b.2 l))) =
+      Prod.map id (fun x => fun l => f (x l)) from rfl,
+      ← Measure.map_prod_map _ _ measurable_id (by fun_prop :
+        Measurable fun x : ℕ → S => fun l => f (x l))]
+    simp only [Measure.map_id]
+    exact congrArg (Measure.prod (Po(r)))
+      (Measure.infinitePi_map_pi (μ := fun _ : ℕ => ν) (fun _ => hf))
+  exact ⟨hm.aemeasurable.comp_aemeasurable hB.aemeasurable, by
+    rw [← hmap, ← hB.map_eq,
+      AEMeasurable.map_map_of_aemeasurable hm.aemeasurable hB.aemeasurable]
+    rfl⟩
+
 /-- **Thinning of a canonical Poisson block, with a category map.** If a random block
 `B = (N, X)` has law `Po(r) ⊗ ν^{⊗ℕ}`, and `c` sorts the sample space into finitely many categories
 with `ν (c ⁻¹' {i}) = p i`, then the category counts of the first `N` points have law
@@ -411,23 +435,11 @@ theorem hasLaw_counts_poisson_thinning_of_hasLaw_prod {Ω S ι : Type*} [Measura
     (hB : HasLaw B (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P) :
     HasLaw (fun ω i => ∑ l ∈ Finset.range (B ω).1, if c ((B ω).2 l) = i then 1 else 0)
       (Measure.pi fun i => Po(r * p i)) P := by
-  have : IsProbabilityMeasure (ν.map c) := inferInstance
+  have : IsProbabilityMeasure (ν.map c) := ⟨by simp [Measure.map_apply hc MeasurableSet.univ]⟩
   have hν' : ∀ i, ν.map c {i} = ENNReal.ofNNReal (p i) := fun i => by
     rw [Measure.map_apply hc (measurableSet_singleton i), hν]
   have hT : Measurable fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l)) := by fun_prop
-  have hmap : (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)).map
-      (fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l))) =
-      Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map c) := by
-    have hprod := Measure.map_prod_map Po(r) (Measure.infinitePi fun _ : ℕ => ν)
-      (f := id) (g := fun σ : ℕ → S => fun l => c (σ l)) measurable_id
-      (by fun_prop)
-    rw [Measure.map_id, Measure.infinitePi_map_pi (μ := fun _ : ℕ => ν)
-      (f := fun _ => c) (fun _ => hc)] at hprod
-    exact hprod.symm
-  have hcount := (⟨hT.aemeasurable, hmap⟩ : HasLaw
-    (fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l)))
-    (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map c))
-    (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν))).comp hB
+  have hcount := hasLaw_map_prod_infinitePi hB hc
   refine ⟨?_, ?_⟩
   · exact (measurable_categoryCounts.comp hT).comp_aemeasurable hB.aemeasurable
   · rw [← map_counts_prod_infinitePi (ν.map c) r p hp hν', ← hcount.map_eq,

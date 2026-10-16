@@ -77,10 +77,11 @@ theorem poissonCountingMeasure_apply (N : ℕ → ℕ) (X : ℕ → ℕ → S)
   simp only [poissonCountingMeasure, Measure.sum_apply _ hA, Measure.coe_finsetSum,
     Finset.sum_apply, Measure.dirac_apply' _ hA]
 
-/-- If the points `X n l` are pairwise distinct, the counting measure of a measurable set is the
-cardinality of the set of points `X n l`, `l < N n`, lying in it. -/
+/-- If the points `X n l`, `l < N n`, are pairwise distinct, the counting measure of a measurable
+set is the cardinality of the set of these points lying in it. -/
 theorem poissonCountingMeasure_apply_eq_encard (N : ℕ → ℕ) (X : ℕ → ℕ → S)
-    (hinj : Pairwise fun a b : ℕ × ℕ => X a.1 a.2 ≠ X b.1 b.2) {A : Set S}
+    (hinj : ∀ a b : ℕ × ℕ, a ≠ b → a.2 < N a.1 → b.2 < N b.1 → X a.1 a.2 ≠ X b.1 b.2)
+    {A : Set S}
     (hA : MeasurableSet A) :
     poissonCountingMeasure N X A =
       (A ∩ {x | ∃ n, ∃ l < N n, X n l = x}).encard := by
@@ -105,8 +106,8 @@ theorem poissonCountingMeasure_apply_eq_encard (N : ℕ → ℕ) (X : ℕ → �
       exact ⟨hx, n, l, hl, rfl⟩
     · rintro ⟨hx, n, l, hl, rfl⟩
       exact ⟨⟨n, l⟩, ⟨hl, hx⟩, rfl⟩
-  have hinj' : Set.InjOn (fun q : ℕ × ℕ => X q.1 q.2) T := fun a _ b _ hab =>
-    by_contra fun hne => hinj hne hab
+  have hinj' : Set.InjOn (fun q : ℕ × ℕ => X q.1 q.2) T := fun a ha b hb hab =>
+    by_contra fun hne => hinj a b hne ha.1 hb.1 hab
   rw [poissonCountingMeasure_apply _ _ hA, h1, ← tsum_subtype T (1 : ℕ × ℕ → ℝ≥0∞)]
   simp only [Pi.one_apply]
   rw [ENNReal.tsum_set_one, ← h2, hinj'.encard_image]
@@ -296,16 +297,18 @@ theorem exists_poissonBlocks (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasu
     fun n => hasLaw_eval_infinitePi
       (fun n => Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) n⟩
 
-/-- **Simplicity.** If the block laws `νₙ` have no atoms, all the sampled points `Xₙₗ` are
-almost surely pairwise distinct (over all blocks and all indices, whether or not `l < Nₙ`), so
-the counting measure counts each point of the random set only once. -/
+/-- **Simplicity.** If the laws `νₙ` of the blocks that actually carry mass (`rₙ ≠ 0`) have no
+atoms, then almost surely all the sampled points `Xₙₗ`, `l < Nₙ`, are pairwise distinct, so the
+counting measure counts each point of the random set only once. Blocks of zero intensity are
+a.s. empty and may have arbitrary law. -/
 theorem ae_pairwise_ne_poissonBlocks [MeasurableEq S] {Ω : Type*} [MeasurableSpace Ω]
     {P : Measure Ω} [IsProbabilityMeasure P] (ν : ℕ → Measure S)
     [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → S)}
     (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
     (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
-    (hnull : ∀ n, NullSingletonClass (ν n)) :
-    ∀ᵐ ω ∂P, Pairwise fun a b : ℕ × ℕ => (B a.1 ω).2 a.2 ≠ (B b.1 ω).2 b.2 := by
+    (hnull : ∀ n, r n ≠ 0 → NullSingletonClass (ν n)) :
+    ∀ᵐ ω ∂P, ∀ a b : ℕ × ℕ, a ≠ b → a.2 < (B a.1 ω).1 → b.2 < (B b.1 ω).1 →
+      (B a.1 ω).2 a.2 ≠ (B b.1 ω).2 b.2 := by
   have hsamp : ∀ n, HasLaw (fun ω => (B n ω).2) (Measure.infinitePi fun _ : ℕ => ν n) P :=
     fun n => measurePreserving_snd.hasLaw.comp (hlaw n)
   have hpoint : ∀ n l, HasLaw (fun ω => (B n ω).2 l) (ν n) P := fun n l =>
@@ -316,9 +319,30 @@ theorem ae_pairwise_ne_poissonBlocks [MeasurableEq S] {Ω : Type*} [MeasurableSp
     (iIndepFun_iff_hasLaw_Pi_infinitePi (hpoint n) (hsamp n).aemeasurable).2 (hsamp n)
   have h1 : iIndepFun (fun n ω => fun l => (B n ω).2 l) P :=
     hB.comp (fun _ b => b.2) fun _ => measurable_snd
-  exact (iIndepFun_uncurry' (X := fun n l ω => (B n ω).2 l) hmeas h1 h2).ae_pairwise_ne
-    (fun a => (hmeas a.1 a.2).aemeasurable) fun a => by
-      rw [(hpoint a.1 a.2).map_eq]; exact hnull a.1
+  have hall := iIndepFun_uncurry' (X := fun n l ω => (B n ω).2 l) hmeas h1 h2
+  -- blocks of zero intensity are empty
+  have hempty : ∀ᵐ ω ∂P, ∀ n, r n = 0 → (B n ω).1 = 0 := by
+    refine ae_all_iff.2 fun n => ?_
+    by_cases hn : r n = 0
+    · have hN : HasLaw (fun ω => (B n ω).1) Po(r n) P :=
+        measurePreserving_fst.hasLaw.comp (hlaw n)
+      have hnull0 : P {ω | (B n ω).1 ≠ 0} = 0 := by
+        rw [hN.measure_eq (p := fun k => k ≠ 0) (measurableSet_singleton 0).compl, hn,
+          poissonMeasure_zero]
+        simp
+      filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull0] with ω hω _
+      simpa using hω
+    · exact Filter.Eventually.of_forall fun ω h => absurd h hn
+  -- distinctness among the blocks that carry mass
+  let I := {q : ℕ × ℕ // r q.1 ≠ 0}
+  have hsub := (hall.precomp (g := fun q : I => q.1) Subtype.val_injective).ae_pairwise_ne
+    (fun q => (hmeas q.1.1 q.1.2).aemeasurable) fun q => by
+      have := hnull q.1.1 q.2
+      rw [(hpoint q.1.1 q.1.2).map_eq]; exact this
+  filter_upwards [hsub, hempty] with ω hω hz a b hab ha hb
+  have hra : r a.1 ≠ 0 := fun h => by simp [hz _ h] at ha
+  have hrb : r b.1 ≠ 0 := fun h => by simp [hz _ h] at hb
+  exact hω (i := ⟨a, hra⟩) (j := ⟨b, hrb⟩) (fun h => hab (congrArg Subtype.val h))
 
 /-- Almost surely, the counting measure of every measurable set is the number of points of the
 random set `Π = {Xₙₗ : l < Nₙ}` lying in it. -/
@@ -327,7 +351,7 @@ theorem ae_poissonCountingMeasure_eq_encard [MeasurableEq S] {Ω : Type*} [Measu
     [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → S)}
     (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
     (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
-    (hnull : ∀ n, NullSingletonClass (ν n)) :
+    (hnull : ∀ n, r n ≠ 0 → NullSingletonClass (ν n)) :
     ∀ᵐ ω ∂P, ∀ A : Set S, MeasurableSet A →
       poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l) A =
         (A ∩ {x | ∃ n, ∃ l < (B n ω).1, (B n ω).2 l = x}).encard := by
