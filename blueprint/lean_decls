@@ -2490,4 +2490,3 @@ SpinGlasses.integral_Ioi_zeta_rpow
 SpinGlasses.integral_Ioo_zeta_rpow
 SpinGlasses.zetaPoissonMeasure_Ioi_one
 SpinGlasses.expected_poisson_sum_lt_one
-SpinGlasses.ae_poisson_sum_lt_one_finite

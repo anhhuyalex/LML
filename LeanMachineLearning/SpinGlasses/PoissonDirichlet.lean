@@ -12,6 +12,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
 public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
+public import LeanMachineLearning.SpinGlasses.PoissonProcessPartition
 
 /-!
 # The Poisson–Dirichlet intensity
@@ -295,7 +296,8 @@ theorem measurable_poissonDirichletWeight (n : ℕ) : Measurable (poissonDirichl
 theorem antitone_poissonDirichletWeight (M : Measure ℝ) :
     Antitone fun n => poissonDirichletWeight n M := by
   intro m n hmn
-  have hle : nthLargestAtom m M ≤ ∑' l, nthLargestAtom l M := ENNReal.le_tsum (f := fun l => nthLargestAtom l M) m
+  have hle : nthLargestAtom m M ≤ ∑' l, nthLargestAtom l M :=
+    ENNReal.le_tsum (f := fun l => nthLargestAtom l M) m
   refine ENNReal.toReal_mono (ne_top_of_le_ne_top ENNReal.one_ne_top
     ((ENNReal.div_le_div_right hle _).trans ENNReal.div_self_le_one)) ?_
   exact ENNReal.div_le_div_right (antitone_nthLargestAtom M hmn) _
@@ -309,7 +311,8 @@ theorem hasSum_poissonDirichletWeight {M : Measure ℝ} (h0 : 0 < ∑' l, nthLar
     rw [ENNReal.tsum_mul_right]
     exact ENNReal.mul_inv_cancel h0.ne' hT.ne
   have hne : ∀ n, nthLargestAtom n M / T ≠ ⊤ := fun n =>
-    ne_top_of_le_ne_top ENNReal.one_ne_top (h1 ▸ ENNReal.le_tsum (f := fun n => nthLargestAtom n M / T) n)
+    ne_top_of_le_ne_top ENNReal.one_ne_top
+      (h1 ▸ ENNReal.le_tsum (f := fun n => nthLargestAtom n M / T) n)
   have hsum := ENNReal.summable_toReal (f := fun n => nthLargestAtom n M / T)
     (h1 ▸ ENNReal.one_ne_top)
   have := hsum.hasSum
@@ -429,5 +432,26 @@ theorem ae_poissonDirichletWeight (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hBm : ∀ n, 
         ENNReal.div_self_le_one)
 
 end BlockModel
+
+/-- **Existence of `PD(ζ)`.** For `0 < ζ < 1` there is a probability space carrying independent
+Poisson blocks whose counting measure is a Poisson process with intensity `ζ x ^ (-1 - ζ) dx`, and
+almost surely the normalized decreasing atoms `vₙ` of that process are positive, nonincreasing and
+sum to one. The law of `(vₙ)ₙ` on the simplex is `PD(ζ)`. -/
+theorem exists_poissonDirichletWeight {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1) :
+    ∃ P : Measure (ℕ → ℕ × (ℕ → ℝ)), IsProbabilityMeasure P ∧
+      ∀ᵐ ω ∂P, HasSum (fun n => poissonDirichletWeight n
+          (poissonCountingMeasure (fun k => (ω k).1) (fun k l => (ω k).2 l))) 1 ∧
+        (∀ n, 0 < poissonDirichletWeight n
+          (poissonCountingMeasure (fun k => (ω k).1) (fun k l => (ω k).2 l))) ∧
+        Antitone fun n => poissonDirichletWeight n
+          (poissonCountingMeasure (fun k => (ω k).1) (fun k l => (ω k).2 l)) := by
+  obtain ⟨ν, r, hν, hμ⟩ :=
+    exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite (zetaPoissonMeasure ζ)
+  obtain ⟨P, hP, hBm, hB, hlaw⟩ := exists_poissonBlocks ν r
+  refine ⟨P, hP, ?_⟩
+  filter_upwards [ae_poissonDirichletWeight (P := P) (B := fun n ω => ω n) ν r hζ0 hζ1 hBm hB
+    hlaw hμ (M := fun ω => poissonCountingMeasure (fun k => (ω k).1) (fun k l => (ω k).2 l))
+    (fun _ => rfl)] with ω h
+  exact ⟨h.2.2.1, h.2.2.2.1, h.2.2.2.2⟩
 
 end SpinGlasses

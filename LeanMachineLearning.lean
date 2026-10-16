@@ -5,6 +5,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
+public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.ChainRule
@@ -36,6 +37,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.AbsolutelyContinuous
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureMeasurable

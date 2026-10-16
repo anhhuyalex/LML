@@ -101,7 +101,6 @@ theorem exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite [Nonempty S] (μ : 
     ∃ (ν : ℕ → Measure S) (r : ℕ → ℝ≥0), (∀ n, IsProbabilityMeasure (ν n)) ∧
       μ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n := by
   obtain ⟨A, hA, hdisj, hcover, hfin⟩ := exists_measurable_partition_of_sigmaFinite μ
-  haveI : IsProbabilityMeasure (Measure.dirac (Classical.arbitrary S)) := inferInstance
   obtain ⟨ν, hν, -, hsum⟩ := exists_probabilityMeasure_family_sum_smul_eq μ hA hdisj hcover
     (fun i => (hfin i).ne) (Measure.dirac (Classical.arbitrary S))
   exact ⟨ν, fun m => (μ (A m)).toNNReal, hν, hsum.symm⟩
