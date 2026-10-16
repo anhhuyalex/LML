@@ -20,7 +20,8 @@ by downward induction on `ℓ = d - 1, …, 0`:
   `decoupling_tendsto` together with `G_{ℓ+1} → Π^{ℓ+1}` and `Φ'_ℓ → Σ̇^ℓ` gives `C(ℓ)` (the limit
   recursion `Π^ℓ = Σ̇^ℓ ⊙ Π^{ℓ+1}` is `deepLimitingSensitivityKernel_step`).
 
-The result `deepSpace_sensitivity_induction` is stated on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))` and transported to the
+The result `deepSpace_sensitivity_induction` is stated on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))` and
+    transported to the
 `(W, w_out)` product space in `Deep/BackwardConcentration.lean`.
 -/
 
@@ -45,12 +46,14 @@ lemma deepParams_prefix (hd : 0 < d) (n : ℕ) (q : (ℕ → ℕ → ℕ → ℝ
     have : ℓ.val + 1 < d := by have := ℓ.2; omega
     simp [this]
 
-/-- The backward Gram entries are measurable functions of the point of `population/readout product`. -/
+/-- The backward Gram entries are measurable functions of the point of
+`population/readout product`. -/
 lemma measurable_sensitivityGram_entry (hφ : Measurable φ) (hφ' : Measurable φ') (n k : ℕ)
     (hk : k < d) (a b : Fin m) :
     Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
       deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a b := by
-  have : ∀ ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)), deepSensitivityGram d n0 n m φ φ' X (deepParams d n0 n ω)
+  have : ∀ ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)), deepSensitivityGram d n0 n m φ φ' X
+      (deepParams d n0 n ω)
       ⟨k, by omega⟩ a b = (n : ℝ)⁻¹ * ∑ j : Fin n,
         backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ a j *
         backwardSensitivity d n0 n m φ φ' X (deepParams d n0 n ω) ⟨k, hk⟩ b j := by
@@ -62,7 +65,8 @@ lemma measurable_sensitivityGram_entry (hφ : Measurable φ) (hφ' : Measurable 
     (measurable_backwardSensitivity (paramsMeasurable_deepParams d n0 n) hφ hφ' X ⟨k, hk⟩ a j).mul
       (measurable_backwardSensitivity (paramsMeasurable_deepParams d n0 n) hφ hφ' X ⟨k, hk⟩ b j))
 
-/-- The derivative Gram entries are measurable functions of the point of `population/readout product`. -/
+/-- The derivative Gram entries are measurable functions of the point of `population/readout
+    product`. -/
 lemma measurable_derivativeGram_entry (hφ : Measurable φ) (hφ' : Measurable φ') (n k : ℕ)
     (hk : k < d) (a b : Fin m) :
     Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
@@ -88,7 +92,8 @@ lemma derivGram_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
       simp [deepDerivativeGram, dotProduct]
 
 include A in
-/-- **The joint downward induction on `population/readout product`**: for every layer `k < d`, the backward Gram
+/-- **The joint downward induction on `population/readout product`**: for every layer `k < d`, the
+    backward Gram
 entries converge to the limiting backward kernel `Π^k`, and gradient independence holds. -/
 theorem deepSpace_sensitivity_induction (hd : 0 < d)
     (hnd : ∀ ℓ : ℕ, 1 ≤ ℓ → ℓ < d →

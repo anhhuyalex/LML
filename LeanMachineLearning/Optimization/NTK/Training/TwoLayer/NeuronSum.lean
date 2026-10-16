@@ -53,50 +53,68 @@ section FullTwoLayerNTKFormula
 private lemma gradA_mul_gradA (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d x θ i * gradA φ n d x' θ i =
-      (n : ℝ)⁻¹ * (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) := by
+      (n : ℝ)⁻¹ * (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+          φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) := by
   dsimp [gradA]
   have h_sqrt : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
     Real.mul_self_sqrt (by positivity)
   calc
-    ((n : ℝ)⁻¹.sqrt * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * ((n : ℝ)⁻¹.sqrt * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) =
+    ((n : ℝ)⁻¹.sqrt * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) *
+        ((n : ℝ)⁻¹.sqrt * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) =
       ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
-        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) := by ring
-    _ = (n : ℝ)⁻¹ * (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) := by rw [h_sqrt]
+        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+            φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) := by ring
+    _ = (n : ℝ)⁻¹ * (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+        φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) := by rw [h_sqrt]
 
 private lemma gradW_dotProduct_gradW (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradW φ n d x θ i ⬝ᵥ gradW φ n d x' θ i =
-      (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+      (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
         deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) := by
   have hW1 : gradW φ n d x θ i =
-      fun j => ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j := by
+      fun j => ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j := by
     ext j; rfl
   have hW2 : gradW φ n d x' θ i =
-      fun j => ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) * x' j := by
+      fun j => ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x')) * x' j := by
     ext j; rfl
   rw [hW1, hW2, dotProduct_mul_mul]
   have h_sqrt : (n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt = (n : ℝ)⁻¹ :=
     Real.mul_self_sqrt (by positivity)
-  have h_alg : (((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) *
-      ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x'))) * (x ⬝ᵥ x') =
-      (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+  have h_alg : (((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+      deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) *
+      ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x'))) * (x ⬝ᵥ x') =
+      (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
         deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) := by
     calc
-      (((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) *
-        ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x'))) * (x ⬝ᵥ x') =
+      (((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) *
+        ((n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x'))) * (x ⬝ᵥ x') =
         ((n : ℝ)⁻¹.sqrt * (n : ℝ)⁻¹.sqrt) *
-          (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
-            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) := by ring
-      _ = (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
-            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) := by rw [h_sqrt]
+          (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
+              deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) :=
+                by ring
+      _ = (n : ℝ)⁻¹ * (θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
+          deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) :=
+                by rw [h_sqrt]
   exact h_alg
 
 private lemma gradW_dotProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x' : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradW φ n d x θ i ⬝ᵥ gradW φ n d x' θ i + gradA φ n d x θ i * gradA φ n d x' θ i =
       (n : ℝ)⁻¹ *
-        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') +
-         θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
+            φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') +
+         θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
+             deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) *
            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x') * (x ⬝ᵥ x')) := by
   rw [gradW_dotProduct_gradW, gradA_mul_gradA]
   ring
@@ -105,11 +123,13 @@ private lemma gradW_dotProduct_add_gradA_mul (φ : ℝ → ℝ) (n d : ℕ) (x x
 expressed explicitly as an empirical average over the `n` hidden neurons. -/
 theorem empiricalNTKMatrix_netFromParams_eq_neuron_sum (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
-        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β) +
+        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) *
+            φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β) +
          θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α) *
            deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β) *
@@ -127,7 +147,9 @@ lemma netFromParams_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
       (n : ℝ)⁻¹.sqrt * ∑ i : Fin n,
-        θ (paramIndexEquiv n d (Sum.inr i)) * φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
+        θ (paramIndexEquiv n d (Sum.inr i)) *
+            φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
+            := by
   rw [netFromParams_eq_normalized_sum]
   congr 1
   apply Finset.sum_congr rfl
@@ -140,7 +162,8 @@ lemma netFromParams_scaled_input_div (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
     netFromParams φ n d (fun j => (Real.sqrt (d : ℝ))⁻¹ * x j) θ =
       (n : ℝ)⁻¹.sqrt * ∑ i : Fin n,
-        θ (paramIndexEquiv n d (Sum.inr i)) * φ (((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) / Real.sqrt (d : ℝ)) := by
+        θ (paramIndexEquiv n d (Sum.inr i)) *
+            φ (((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) / Real.sqrt (d : ℝ)) := by
   rw [netFromParams_eq_normalized_sum]
   congr 1
   apply Finset.sum_congr rfl
@@ -152,7 +175,9 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) (j : Fin d) :
     gradW φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i j =
       ((n : ℝ)⁻¹.sqrt * (Real.sqrt (d : ℝ))⁻¹) *
-        (θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j) := by
+        (θ (paramIndexEquiv n d (Sum.inr i)) *
+            deriv φ ((Real.sqrt (d : ℝ))⁻¹ *
+            ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j) := by
   dsimp [gradW]
   rw [dotProduct_scaled_input]
   ring
@@ -161,7 +186,8 @@ lemma gradW_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 lemma gradA_scaled_input (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) (i : Fin n) :
     gradA φ n d (fun k => (Real.sqrt (d : ℝ))⁻¹ * x k) θ i =
-      (n : ℝ)⁻¹.sqrt * φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
+      (n : ℝ)⁻¹.sqrt * φ ((Real.sqrt (d : ℝ))⁻¹ *
+          ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
   dsimp [gradA]
   rw [dotProduct_scaled_input]
 
@@ -174,15 +200,19 @@ theorem empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum
     (φ : ℝ → ℝ) (n d m : ℕ) (hd : 0 < d)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
     (hφ : ∀ α : Fin m, ∀ i : Fin n,
-      DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ (fun j => (Real.sqrt (d : ℝ))⁻¹ * X α j)))
+      DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ (fun j =>
+          (Real.sqrt (d : ℝ))⁻¹ * X α j)))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) (fun α j => (Real.sqrt (d : ℝ))⁻¹ * X α j) θ α β =
       (n : ℝ)⁻¹ * ∑ i : Fin n,
         (φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) *
-           φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β)) +
+           φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β))
+               +
          θ (paramIndexEquiv n d (Sum.inr i)) ^ 2 *
-           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) *
-           deriv φ ((Real.sqrt (d : ℝ))⁻¹ * ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β)) *
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ *
+               ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) *
+           deriv φ ((Real.sqrt (d : ℝ))⁻¹ *
+               ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X β)) *
            ((d : ℝ)⁻¹ * (X α ⬝ᵥ X β))) := by
   rw [empiricalNTKMatrix_netFromParams_eq_neuron_sum φ n d m _ θ hφ α β]
   congr 1

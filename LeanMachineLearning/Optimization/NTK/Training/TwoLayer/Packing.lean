@@ -122,14 +122,12 @@ lemma packParams_readout {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n �
   packParams_apply_idxA W a i
 
 /-- Unpacking the weights of a packed parameter vector returns `W`. -/
-@[simp]
 lemma unpackW_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
     (fun i j => packParams W a (paramIndexEquiv n d (Sum.inl (i, j)))) = W := by
   ext i j
   exact packParams_apply_idxW W a i j
 
 /-- Unpacking the readout of a packed parameter vector returns `a`. -/
-@[simp]
 lemma unpackA_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
     (fun i => packParams W a (paramIndexEquiv n d (Sum.inr i))) = a := by
   ext i
@@ -162,7 +160,8 @@ lemma continuous_packParams {n d : ℕ} :
   · exact (continuous_apply j).comp ((continuous_apply i).comp continuous_fst)
   · exact (continuous_apply i).comp continuous_snd
 
-/-- The continuous linear map `θ ↦ (fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x`. Internal helper. -/
+/-- The continuous linear map `θ ↦ (fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x`.
+    Internal helper. -/
 private noncomputable def dotW_CLM {n d : ℕ} (i : Fin n) (x : Fin d → ℝ) :
     EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ :=
   ∑ j : Fin d, (x j) • EuclideanSpace.proj (paramIndexEquiv n d (Sum.inl (i, j)))
@@ -223,7 +222,8 @@ noncomputable def netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
 /-- The packed-parameter network is `n^{-1/2} ∑_i a_i φ(w_i ⬝ x)`. -/
 lemma netFromParams_eq_normalized_sum (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) :
-    netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) :=
+    netFromParams φ n d x θ = (n : ℝ)⁻¹.sqrt * ∑ i : Fin n, θ (paramIndexEquiv n d (Sum.inr i)) *
+        φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) :=
   evalSingle_eq_normalized_sum φ (fun i j => θ (paramIndexEquiv n d (Sum.inl (i, j))))
     (fun i => θ (paramIndexEquiv n d (Sum.inr i))) x
 
@@ -257,7 +257,8 @@ lemma trainingResidual_netFromParams_packParams (φ : ℝ → ℝ) (n d m : ℕ)
 `∂f/∂W_{i, j} = n^{-1/2} a_i φ'(W_i ⬝ᵥ x) x_j`. -/
 noncomputable def gradW (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n))) : Fin n → Fin d → ℝ :=
-  fun i j => (n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j
+  fun i j => (n : ℝ)⁻¹.sqrt * θ (paramIndexEquiv n d (Sum.inr i)) *
+      deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j
 
 /-- Gradient block for readout weights `a`:
 `∂f/∂a_i = n^{-1/2} φ(W_i ⬝ᵥ x)`. -/
@@ -274,18 +275,22 @@ noncomputable def gradParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 /-- Fréchet derivative of `netFromParams` with respect to parameters `θ`. -/
 theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
     HasFDerivAt (netFromParams φ n d x)
       (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin (n * d + n)))
         (gradParams φ n d x θ)) θ := by
-  have h_comp : ∀ i : Fin n, HasFDerivAt (fun θ => φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
+  have h_comp : ∀ i : Fin n, HasFDerivAt (fun θ =>
+      φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
       (deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) • dotW_CLM i x) θ := by
     intro i
-    have h_deriv : HasDerivAt φ (deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) (dotW_CLM i x θ) := by
+    have h_deriv : HasDerivAt φ (deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
+        (dotW_CLM i x θ) := by
       rw [dotW_CLM_apply]
       exact (hφ i).hasDerivAt
     have h := HasDerivAt.comp_hasFDerivAt θ h_deriv (dotW_CLM i x).hasFDerivAt
-    have h_eq : (φ ∘ (dotW_CLM i x)) = (fun θ => φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
+    have h_eq : (φ ∘ (dotW_CLM i x)) =
+        (fun θ => φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) := by
       ext θ'
       simp only [Function.comp_apply, dotW_CLM_apply]
     rwa [h_eq] at h
@@ -295,8 +300,10 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
     intro i
     exact (EuclideanSpace.proj (paramIndexEquiv n d (Sum.inr i)) :
       EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ).hasFDerivAt
-  have h_mul : ∀ i : Fin n, HasFDerivAt (fun θ => θ (paramIndexEquiv n d (Sum.inr i)) * φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
-      ((θ (paramIndexEquiv n d (Sum.inr i))) • (deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) • dotW_CLM i x) +
+  have h_mul : ∀ i : Fin n, HasFDerivAt (fun θ => θ (paramIndexEquiv n d (Sum.inr i)) *
+      φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x))
+      ((θ (paramIndexEquiv n d (Sum.inr i))) •
+          (deriv φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) • dotW_CLM i x) +
        (φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) •
          (EuclideanSpace.proj (paramIndexEquiv n d (Sum.inr i)) :
            EuclideanSpace ℝ (Fin (n * d + n)) →L[ℝ] ℝ)) θ := by
@@ -349,7 +356,8 @@ theorem hasFDerivAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → 
 /-- Gradient of `netFromParams` with respect to parameters `θ`. -/
 theorem hasGradientAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
     HasGradientAt (netFromParams φ n d x) (gradParams φ n d x θ) θ := by
   rw [hasGradientAt_iff_hasFDerivAt]
   exact hasFDerivAt_netFromParams φ n d x θ hφ
@@ -357,7 +365,8 @@ theorem hasGradientAt_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d �
 /-- Gradient evaluation lemma for `netFromParams`. -/
 theorem gradient_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
     gradient (netFromParams φ n d x) θ = gradParams φ n d x θ :=
   (hasGradientAt_netFromParams φ n d x θ hφ).gradient
 
@@ -365,7 +374,8 @@ theorem gradient_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ
 `tangentFeature (netFromParams φ n d) x θ = packParams (gradW ...) (gradA ...)`. -/
 theorem tangentFeature_netFromParams (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
     tangentFeature (netFromParams φ n d) x θ = gradParams φ n d x θ :=
   gradient_netFromParams φ n d x θ hφ
 
@@ -408,20 +418,20 @@ theorem linearization_eq_taylor (φ : ℝ → ℝ) (hφ : Differentiable ℝ φ)
   ring
 
 /-- The input-weight block of the tangent feature is `gradW`. -/
-@[simp]
 lemma unpackW_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
     (fun i j => tangentFeature (netFromParams φ n d) x θ
       (paramIndexEquiv n d (Sum.inl (i, j)))) = gradW φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
   exact unpackW_packParams _ _
 
 /-- The readout block of the tangent feature is `gradA`. -/
-@[simp]
 lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
+    (hφ : ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) :
     (fun i => tangentFeature (netFromParams φ n d) x θ
       (paramIndexEquiv n d (Sum.inr i))) = gradA φ n d x θ := by
   rw [tangentFeature_netFromParams φ n d x θ hφ]
@@ -430,7 +440,8 @@ lemma unpackA_tangentFeature (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
 /-- Output Jacobian entry for `netFromParams` evaluated at its `(i, j)` weight coordinate. -/
 lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (α : Fin m) (i : Fin n) (j : Fin d) :
     outputJacobian (netFromParams φ n d) X θ α (paramIndexEquiv n d (Sum.inl (i, j))) =
       gradW φ n d (X α) θ i j := by
@@ -441,7 +452,8 @@ lemma outputJacobian_netFromParams_apply_W (φ : ℝ → ℝ) (n d m : ℕ)
 /-- Output Jacobian entry for `netFromParams` evaluated at its `i`-th readout coordinate. -/
 lemma outputJacobian_netFromParams_apply_a (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (α : Fin m) (i : Fin n) :
     outputJacobian (netFromParams φ n d) X θ α (paramIndexEquiv n d (Sum.inr i)) =
       gradA φ n d (X α) θ i := by
@@ -532,13 +544,9 @@ lemma outputJacobian_netFromParams_frobenius_norm_sq_rpow (φ : ℝ → ℝ) (n 
     intro i hi
     apply Finset.sum_congr rfl
     intro j hj
-    change outputJacobian (netFromParams φ n d) X θ α
-      (paramIndexEquiv n d (Sum.inl (i, j))) ^ (2 : ℝ) = _
     rw [outputJacobian_netFromParams_apply_W φ n d m X θ hφ α i j]
   · apply Finset.sum_congr rfl
     intro i hi
-    change outputJacobian (netFromParams φ n d) X θ α
-      (paramIndexEquiv n d (Sum.inr i)) ^ (2 : ℝ) = _
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ hφ α i]
 
 /-- Natural-power form of `outputJacobian_netFromParams_frobenius_norm_sq_rpow`. -/

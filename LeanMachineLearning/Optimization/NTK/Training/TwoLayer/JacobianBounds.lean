@@ -51,8 +51,10 @@ lemma two_mul_add_two_mul_sq (u v : ℝ) :
 -/
 lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
     ‖θ₁ - θ₂‖ ^ 2 =
-      (∑ i : Fin n, ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
-      ∑ i : Fin n, (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 := by
+      (∑ i : Fin n, ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) -
+          θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+      ∑ i : Fin n, (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2
+          := by
   rw [EuclideanSpace.real_norm_sq_eq]
   rw [← Equiv.sum_comp (paramIndexEquiv n d)]
   rw [Fintype.sum_sum_type, Fintype.sum_prod_type]
@@ -79,8 +81,10 @@ data points and neurons, of the squared differences of the input-weight and read
 blocks. -/
 lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
-    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) :
+    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α)) :
     ‖outputJacobian (netFromParams φ n d) X θ₁ -
         outputJacobian (netFromParams φ n d) X θ₂‖ ^ 2 =
       (∑ α : Fin m, ∑ i : Fin n, ∑ j : Fin d,
@@ -99,14 +103,10 @@ lemma outputJacobian_sub_frobenius_norm_sq (φ : ℝ → ℝ) (n d m : ℕ)
     intro i _
     apply Finset.sum_congr rfl
     intro j _
-    change (outputJacobian (netFromParams φ n d) X θ₁ α (paramIndexEquiv n d (Sum.inl (i, j))) -
-            outputJacobian (netFromParams φ n d) X θ₂ α (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2 = _
     rw [outputJacobian_netFromParams_apply_W φ n d m X θ₁ hφ₁ α i j]
     rw [outputJacobian_netFromParams_apply_W φ n d m X θ₂ hφ₂ α i j]
   · apply Finset.sum_congr rfl
     intro i _
-    change (outputJacobian (netFromParams φ n d) X θ₁ α (paramIndexEquiv n d (Sum.inr i)) -
-            outputJacobian (netFromParams φ n d) X θ₂ α (paramIndexEquiv n d (Sum.inr i))) ^ 2 = _
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₁ hφ₁ α i]
     rw [outputJacobian_netFromParams_apply_a φ n d m X θ₂ hφ₂ α i]
 
@@ -121,14 +121,16 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
     (ha₁ : |θ₁ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     let Sx := ∑ j : Fin d, x j ^ 2
-    let Wdiff := ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2
+    let Wdiff := ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) -
+        θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2
     let Adiff := (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2
     (∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
       (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2 ≤
         (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) * (Wdiff + Adiff) := by
   dsimp only
   let Sx := ∑ j : Fin d, x j ^ 2
-  let Wdiff := ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2
+  let Wdiff := ∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) -
+      θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2
   let Adiff := (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2
   have hSx_nonneg : 0 ≤ Sx := Finset.sum_nonneg (fun _ _ => sq_nonneg _)
   have hWdiff_nonneg : 0 ≤ Wdiff := Finset.sum_nonneg (fun _ _ => sq_nonneg _)
@@ -140,7 +142,8 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
   let u₂ := (fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x
   have hu_diff_sq : (u₁ - u₂) ^ 2 ≤ Wdiff * Sx := by
     dsimp [u₁, u₂, Wdiff, Sx]
-    exact dotProduct_sub_sq_le d ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j))))) ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j))))) x
+    exact dotProduct_sub_sq_le d ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))))
+        ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j))))) x
   have hφ_sub_sq : (φ u₁ - φ u₂) ^ 2 ≤ C₁ ^ 2 * (Sx * Wdiff) := by
     have h1 : |φ u₁ - φ u₂| ≤ C₁ * |u₁ - u₂| := hφ_lip u₁ u₂
     have h2 : |φ u₁ - φ u₂| ^ 2 ≤ (C₁ * |u₁ - u₂|) ^ 2 := by
@@ -167,20 +170,26 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
       (n : ℝ)⁻¹ * (C₁ ^ 2 * Sx * Wdiff) := by
     dsimp [gradA, u₁, u₂]
     rw [← mul_sub, mul_pow, hroot_sq]
-    have h_sub : (φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) - φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) ^ 2 ≤
+    have h_sub : (φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) -
+        φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) ^ 2 ≤
         C₁ ^ 2 * (Sx * Wdiff) := hφ_sub_sq
     have h_prod := mul_le_mul_of_nonneg_left h_sub (by positivity : 0 ≤ (n : ℝ)⁻¹)
     calc
-      (n : ℝ)⁻¹ * (φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) - φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) ^ 2
+      (n : ℝ)⁻¹ * (φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) -
+          φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) ^ 2
         ≤ (n : ℝ)⁻¹ * (C₁ ^ 2 * (Sx * Wdiff)) := h_prod
       _ = (n : ℝ)⁻¹ * (C₁ ^ 2 * Sx * Wdiff) := by ring
-  have hD_sq : (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 ≤
+  have hD_sq : (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ -
+      θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 ≤
       2 * R ^ 2 * C₂ ^ 2 * Sx * Wdiff + 2 * C₁ ^ 2 * Adiff := by
-    have hsplit : θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂ =
+    have hsplit : θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ -
+        θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂ =
         θ₁ (paramIndexEquiv n d (Sum.inr i)) * (deriv φ u₁ - deriv φ u₂) +
-        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂ := by ring
+        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) *
+            deriv φ u₂ := by ring
     rw [hsplit]
-    have h2 := two_mul_add_two_mul_sq (θ₁ (paramIndexEquiv n d (Sum.inr i)) * (deriv φ u₁ - deriv φ u₂))
+    have h2 := two_mul_add_two_mul_sq (θ₁ (paramIndexEquiv n d (Sum.inr i)) *
+        (deriv φ u₁ - deriv φ u₂))
       ((θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂)
     have ha₁_sq : (θ₁ (paramIndexEquiv n d (Sum.inr i))) ^ 2 ≤ R ^ 2 := by
       rw [← sq_abs]
@@ -198,27 +207,37 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
         _ ≤ R ^ 2 * (C₂ ^ 2 * (Sx * Wdiff)) :=
           mul_le_mul_of_nonneg_left hderiv_sub_sq (by positivity)
         _ = R ^ 2 * C₂ ^ 2 * Sx * Wdiff := by ring
-    have hpart2 : ((θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂) ^ 2 ≤
+    have hpart2 : ((θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) *
+        deriv φ u₂) ^ 2 ≤
         C₁ ^ 2 * Adiff := by
       rw [mul_pow]
       dsimp [Adiff]
       calc
-        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 * (deriv φ u₂) ^ 2
-          ≤ (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 * C₁ ^ 2 :=
+        (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 *
+            (deriv φ u₂) ^ 2
+          ≤ (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 *
+              C₁ ^ 2 :=
             mul_le_mul_of_nonneg_left hderiv_sq (sq_nonneg _)
-        _ = C₁ ^ 2 * (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2 := by ring
+        _ = C₁ ^ 2 * (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^
+            2 := by ring
     linarith
   have hW_term : (∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) ≤
       (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 * Wdiff + 2 * C₁ ^ 2 * Sx * Adiff) := by
     have hj : ∀ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2 =
-        (n : ℝ)⁻¹ * (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * x j ^ 2 := by
+        (n : ℝ)⁻¹ * (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ -
+            θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * x j ^ 2 := by
       intro j
       dsimp [gradW, u₁, u₂]
-      have : (n : ℝ)⁻¹.sqrt * θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j -
-             (n : ℝ)⁻¹.sqrt * θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j =
+      have : (n : ℝ)⁻¹.sqrt * θ₁ (paramIndexEquiv n d (Sum.inr i)) *
+          deriv φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j -
+             (n : ℝ)⁻¹.sqrt * θ₂ (paramIndexEquiv n d (Sum.inr i)) *
+                 deriv φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) * x j =
              (n : ℝ)⁻¹.sqrt *
-              (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) -
-               θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j := by ring
+              (θ₁ (paramIndexEquiv n d (Sum.inr i)) *
+                  deriv φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x) -
+               θ₂ (paramIndexEquiv n d (Sum.inr i)) *
+                   deriv φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ x)) * x j :=
+                   by ring
       rw [this, mul_pow, mul_pow, hroot_sq]
     simp_rw [hj]
     rw [← Finset.mul_sum]
@@ -227,8 +246,10 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
     have h_prod := mul_le_mul_of_nonneg_right hD_sq hSx_nonneg
     have h_final := mul_le_mul_of_nonneg_left h_prod (by positivity : 0 ≤ (n : ℝ)⁻¹)
     calc
-      (n : ℝ)⁻¹ * (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * Sx
-        = (n : ℝ)⁻¹ * ((θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ - θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * Sx) := by ring
+      (n : ℝ)⁻¹ * (θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ -
+          θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * Sx
+        = (n : ℝ)⁻¹ * ((θ₁ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₁ -
+            θ₂ (paramIndexEquiv n d (Sum.inr i)) * deriv φ u₂) ^ 2 * Sx) := by ring
       _ ≤ (n : ℝ)⁻¹ * ((2 * R ^ 2 * C₂ ^ 2 * Sx * Wdiff + 2 * C₁ ^ 2 * Adiff) * Sx) := h_final
       _ = (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 * Wdiff + 2 * C₁ ^ 2 * Sx * Adiff) := by ring
   calc
@@ -276,8 +297,10 @@ lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
       (∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
         (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2 ≤
           (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) *
-            ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
-             (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) := by
+            ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) -
+                θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+             (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) :=
+                 by
     intro i
     exact grad_single_neuron_sub_le φ n d x θ₁ θ₂ i C₁ C₂ R hC₁_nonneg hC₂_nonneg hR_nonneg
       hφ_lip hderiv_bound hderiv_lip (ha₁ i)
@@ -286,13 +309,15 @@ lemma grad_sum_neurons_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → ℝ)
     (∑ i : Fin n, ((∑ j : Fin d, (gradW φ n d x θ₁ i j - gradW φ n d x θ₂ i j) ^ 2) +
         (gradA φ n d x θ₁ i - gradA φ n d x θ₂ i) ^ 2))
       ≤ ∑ i : Fin n, (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) *
-          ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+          ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) -
+              θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
            (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) := by
         apply Finset.sum_le_sum
         intro i _
         exact h_single i
     _ = (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) *
-        ∑ i : Fin n, ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) - θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
+        ∑ i : Fin n, ((∑ j : Fin d, (θ₁ (paramIndexEquiv n d (Sum.inl (i, j))) -
+            θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ^ 2) +
            (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) ^ 2) := by
       rw [← Finset.mul_sum]
     _ = (n : ℝ)⁻¹ * (2 * R ^ 2 * C₂ ^ 2 * Sx ^ 2 + 3 * C₁ ^ 2 * Sx) * ‖θ₁ - θ₂‖ ^ 2 := by
@@ -310,8 +335,10 @@ theorem outputJacobian_netFromParams_frobenius_sub_le
     (hφ_lip : ∀ u v, |φ u - φ v| ≤ C₁ * |u - v|)
     (hderiv_bound : ∀ z, |deriv φ z| ≤ C₁)
     (hderiv_lip : ∀ u v, |deriv φ u - deriv φ v| ≤ C₂ * |u - v|)
-    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
-    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ₁ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ₁ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ₂ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ₂ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (ha₁ : ∀ i : Fin n, |θ₁ (paramIndexEquiv n d (Sum.inr i))| ≤ R) :
     let K := Real.sqrt (∑ α : Fin m, (2 * R ^ 2 * C₂ ^ 2 * (∑ j : Fin d, X α j ^ 2) ^ 2 +
       3 * C₁ ^ 2 * (∑ j : Fin d, X α j ^ 2)))
@@ -459,7 +486,8 @@ theorem norm_gradParams_sub_le
 input-weight Gram matrix and the readout Gram matrix (empirical covariance). -/
 theorem empiricalNTKMatrix_netFromParams_apply (φ : ℝ → ℝ) (n d m : ℕ)
     (X : Fin m → Fin d → ℝ) (θ : EuclideanSpace ℝ (Fin (n * d + n)))
-    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
+    (hφ : ∀ α : Fin m, ∀ i : Fin n, DifferentiableAt ℝ φ
+        ((fun j => θ (paramIndexEquiv n d (Sum.inl (i, j)))) ⬝ᵥ X α))
     (α β : Fin m) :
     empiricalNTKMatrix (netFromParams φ n d) X θ α β =
       (∑ i : Fin n, gradW φ n d (X α) θ i ⬝ᵥ gradW φ n d (X β) θ i) +

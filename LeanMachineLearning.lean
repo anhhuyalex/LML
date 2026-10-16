@@ -322,6 +322,7 @@ public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
 public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletLogSum
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
 public import LeanMachineLearning.SpinGlasses.PoissonProcess

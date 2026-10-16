@@ -232,7 +232,8 @@ noncomputable def nextSens (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a : Fin m) :
     ⟨k + 1, hk⟩ a
 
 /-- Zeroing the layer `k + 1` does not change the forward pass up to layer `k`. -/
-lemma preactivation_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (ℓ : Fin d)
+lemma preactivation_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)))
+    (ℓ : Fin d)
     (hℓ : ℓ.val ≤ k) (a : Fin m) :
     deepMLPPreactivation d n0 n m φ X
         (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)) ℓ a =
@@ -262,7 +263,8 @@ lemma netGram_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : ((Fin d → �
 
 /-- Zeroing the layer-`k + 1` weights does not change the layer-`k` derivative vectors `netDeriv`.
 -/
-lemma netDeriv_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (c : Fin m) :
+lemma netDeriv_zeroLayer (n : ℕ) (k : ℕ) (hk : k + 1 < d) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)))
+    (c : Fin m) :
     netDeriv φ φ' X (deepParams d n0 n (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2))
         ⟨k, by omega⟩ c =
       netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ c := by
@@ -339,7 +341,8 @@ lemma measurable_nextSens (n k : ℕ) (hk : k + 1 < d) (a : Fin m) :
     hφ hφ' X ⟨k + 1, hk⟩ a j
 
 include hφ in
-/-- The preactivations of the network `deepParams` are measurable on `population/readout product`. -/
+/-- The preactivations of the network `deepParams` are measurable on
+`population/readout product`. -/
 lemma measurable_netPre (n : ℕ) (ℓ : Fin d) (a : Fin m) (j : Fin n) :
     Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ℓ a j :=
@@ -359,7 +362,8 @@ lemma measurable_pastFeat (n k : ℕ) (hk : k + 1 < d) :
   exact hφ.comp (measurable_netPre hφ X n ⟨k, by omega⟩ a j)
 
 include hφ hφ' in
-/-- The diagonal matrix `diag (φ'(h_k^a) φ'(h_k^b))` is measurable on `population/readout product`. -/
+/-- The diagonal matrix `diag (φ'(h_k^a) φ'(h_k^b))` is measurable on
+`population/readout product`. -/
 lemma measurable_diagDeriv (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) :
     Measurable fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
       (Matrix.diagonal (fun j => netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a j *
@@ -503,7 +507,8 @@ lemma netGram_entry_tendsto (k : ℕ) (hk : k < d) (a b : Fin m) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
+          netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩ a b) atTop
       (fun _ => layerCovarianceSeq 1 0 φ m
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1) a b) := by
   have := deepSpace_activationGram_tendsto φ A.cont A.C A.hC A.p A.hp A.growth X k hk a b
@@ -516,7 +521,8 @@ lemma netGram_matrix_tendsto (k : ℕ) (hk : k < d) :
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩) atTop
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
+          netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩) atTop
       (fun _ => layerCovarianceSeq 1 0 φ m
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1)) :=
   tendstoInMeasure_matrix_of_entries fun a b => netGram_entry_tendsto A X k hk a b
@@ -529,7 +535,8 @@ lemma netGram_inv_entry_tendsto (k : ℕ) (hk : k < d)
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩)⁻¹ a b)
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
+          (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩)⁻¹ a b)
       atTop
       (fun _ => (layerCovarianceSeq 1 0 φ m
         (Matrix.of fun i j => (n0 : ℝ)⁻¹ * (X i ⬝ᵥ X j)) (k + 1))⁻¹ a b) := by
@@ -546,7 +553,8 @@ lemma netGram_singular_tendsto (k : ℕ) (hk : k < d)
     Tendsto (fun n : ℕ => ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      {ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) | ¬ IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩).det})
+      {ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) | ¬ IsUnit
+          (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩).det})
       atTop (nhds 0) := by
   have hdet := tendstoInMeasure_comp_of_continuousAt
     (g := fun M : Matrix (Fin m) (Fin m) ℝ => M.det) (netGram_matrix_tendsto A X k hk)
@@ -571,7 +579,8 @@ variable {d n0 m : ℕ} (φ φ' : ℝ → ℝ) (X : Fin m → Fin n0 → ℝ)
 
 /-- The expression whose concentration is given by `tendsto_residualQuadForm`, at the split
 point of `ω`. -/
-noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) : ℝ :=
+noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m)
+    (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) : ℝ :=
   let q := layerSplitPoint n k hk ω
   ((n : ℝ) ^ 2)⁻¹ *
         (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
@@ -589,7 +598,8 @@ noncomputable def residAbs (n k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fi
 
 /-- At a point where `Σ̂` is invertible, `residAbs` is the network quantity
 `n⁻¹ ∑ⱼ φ'(h^a)ⱼ φ'(h^b)ⱼ y^aⱼ y^bⱼ` minus the conditional mean. -/
-lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)))
+lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m)
+    (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)))
     (hS : IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, by omega⟩).det) :
     residAbs φ φ' X n k hk a b ω =
       (𝔼 j, (netDeriv φ φ' X (deepParams d n0 n ω) ⟨k, by omega⟩ a) j * (netDeriv φ φ' X
@@ -624,7 +634,8 @@ lemma residAbs_eq (n : ℕ) (k : ℕ) (hk : k + 1 < d) (a b : Fin m) (ω : ((Fin
 
 /-- The linear-form expression whose concentration is given by `tendsto_residualLinearForm`, at the
 split point of `ω`, for `b = h_k^c ⊙ φ'(h_k^a)`. -/
-noncomputable def linAbs (n k : ℕ) (hk : k + 1 < d) (a c : Fin m) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) : ℝ :=
+noncomputable def linAbs (n k : ℕ) (hk : k + 1 < d) (a c : Fin m)
+    (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) : ℝ :=
   let q := layerSplitPoint n k hk ω
   ((n : ℝ)⁻¹ * Real.sqrt ((n : ℝ)⁻¹)) *
     (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk a) q ⬝ᵥ
@@ -679,7 +690,8 @@ lemma sum_sq_diagonal {n : ℕ} (v : Fin n → ℝ) :
   · simp
 
 /-- The set where `Σ̂_k` is invertible (and the width is positive). -/
-def goodSet (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (n : ℕ) : Set (((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) :=
+def goodSet (X : Fin m → Fin n0 → ℝ) (k : ℕ) (hk : k < d) (n : ℕ) : Set
+    (((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) :=
   {ω | n ≠ 0 ∧ IsUnit (netGram φ X (deepParams d n0 n ω) ⟨k, hk⟩).det}
 
 include A in
@@ -711,7 +723,8 @@ lemma atProj_sq_bddByConv (k : ℕ) (hk : k + 1 < d)
     BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _
         : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) (fun
             (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
-      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (layerSplitPoint n k hk ω) ⬝ᵥ
+      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c)
+          (layerSplitPoint n k hk ω) ⬝ᵥ
         atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (layerSplitPoint n k hk ω))) := by
   have hbad := goodSet_compl_tendsto (d := d) (n0 := n0) A X k (by omega) hpd
   obtain ⟨c0, hc⟩ := hG c
@@ -738,14 +751,16 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => residAbs φ φ' X n k hk a b ω) atTop (fun _ => 0) := by
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => residAbs φ φ' X n k hk a b ω) atTop
+          (fun _ => 0) := by
   have hbad := goodSet_compl_tendsto (d := d) (n0 := n0) A X k (by omega) hpd
   have hφm : Measurable φ := A.cont.measurable
   have hφ'm : Measurable φ' := A.cont'.measurable
   have hcu : ∀ c : Fin m, BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
       Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
           gaussianReal 0 1)) (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) =>
-      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (layerSplitPoint n k hk ω) ⬝ᵥ
+      (n : ℝ)⁻¹ * (atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c)
+          (layerSplitPoint n k hk ω) ⬝ᵥ
         atProj (pastFeat φ X n k hk) (nextSens φ φ' X n k hk c) (layerSplitPoint n k hk ω))) :=
     atProj_sq_bddByConv A X k hk hpd hG
   have hcA : BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
@@ -767,7 +782,8 @@ theorem residAbs_tendsto (k : ℕ) (hk : k + 1 < d)
           gaussianReal 0 1))
     (((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
-      (fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
+      (fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
+          (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
     (fun n ω => layerSplitPoint n k hk ω)
     (fun n => measurePreserving_layerSplit (⟨k + 1, hk⟩ : Fin d) n)
     (fun n => pastFeat φ X n k hk) (fun n => measurable_pastFeat hφm X n k hk)
@@ -885,7 +901,8 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
     TendstoInMeasure ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
         Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ =>
             gaussianReal 0 1))
-      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => linAbs φ φ' X n k hk a c ω) atTop (fun _ => 0) := by
+      (fun (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) => linAbs φ φ' X n k hk a c ω) atTop
+          (fun _ => 0) := by
   have hφm : Measurable φ := A.cont.measurable
   have hφ'm : Measurable φ' := A.cont'.measurable
   have hcb : BddByConv ((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ =>
@@ -917,11 +934,13 @@ theorem linAbs_tendsto (k : ℕ) (hk : k + 1 < d)
           gaussianReal 0 1))
     (((Measure.pi fun _ : Fin d => Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
         gaussianReal 0 1).prod (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)).map
-      (fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) => (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
+      (fun ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ)) =>
+          (Function.update ω.1 (⟨k + 1, hk⟩ : Fin d) 0, ω.2)))
     (fun n ω => layerSplitPoint n k hk ω)
     (fun n => measurePreserving_layerSplit (⟨k + 1, hk⟩ : Fin d) n)
     (fun n => pastFeat φ X n k hk) (fun n => measurable_pastFeat hφm X n k hk)
-    (fun (n : ℕ) (z : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (j : Fin n) => deepMLPPreactivation d n0 n m φ X
+    (fun (n : ℕ) (z : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (j : Fin n) =>
+        deepMLPPreactivation d n0 n m φ X
       (deepParams d n0 n z) ⟨k, by omega⟩ c j *
       netDeriv φ φ' X (deepParams d n0 n z) ⟨k, by omega⟩ a j)
     (fun n => measurable_pi_iff.2 fun j =>
@@ -1033,7 +1052,8 @@ of `(W_{k+1} P, later layers)` (Lemma 2.26, `measurePreserving_layerSplit`).
 * *Assembly* (`decoupling_tendsto`): Cauchy–Schwarz `|G_k − G_⊥|² ≤ 3 [N_f(x) N_g(x') + N_f(x)
   N_g(y') + N_f(y) N_g(x')]` (`wcov_sub_sq_le`).
 
-The invariant `I` and the decoupling are proved in one joint downward induction on `population/readout product`
+The invariant `I` and the decoupling are proved in one joint downward induction on
+    `population/readout product`
 (`deepSpace_sensitivity_induction`, `Deep/BackwardInduction.lean`); this statement is its
 `ℓ = k` instance, with `hnd` at layer `k + 1`, convergence of `G_{k+1}` and gradient independence
 `I(k+1)` as hypotheses. -/

@@ -12,7 +12,8 @@ public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutLinearC
 # The Top Hidden Layer: Base Cases of the Backward Induction
 
 At `ℓ = d - 1` the sensitivity is `g_{d-1} = W_d ⊙ φ'(h_{d-1})` with an independent Gaussian readout
-`W_d`. This file proves, on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))`, the two base cases of the joint downward induction:
+`W_d`. This file proves, on `((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))`, the two base cases of the joint
+    downward induction:
 
 * `gradIndep_top_tendsto`: `I(d-1)`, i.e. `n⁻¹ ⟨h_{d-1}^b, g_{d-1}^a⟩ → 0` (a centred Gaussian
   linear form in the readout);
@@ -31,14 +32,17 @@ namespace NTK
 variable {d n0 m : ℕ} {φ φ' : ℝ → ℝ} (A : ActivationData φ φ') (X : Fin m → Fin n0 → ℝ)
 
 /-- The forward pass does not read the readout `Wd`: it depends on `ω` only through `ω.1`. -/
-lemma preactivation_deepParams_readout (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (v : ℕ → ℝ) (ℓ : Fin d) :
+lemma preactivation_deepParams_readout (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (v : ℕ → ℝ)
+    (ℓ : Fin d) :
     deepMLPPreactivation d n0 n m φ X (deepParams d n0 n (ω.1, v)) ℓ =
       deepMLPPreactivation d n0 n m φ X (deepParams d n0 n ω) ℓ :=
   deepMLPPreactivation_congr_prefix φ X _ _ ℓ rfl fun _ _ => rfl
 
-/-- `netDeriv` does not depend on the readout component of a `population/readout product` point: replacing it by any
+/-- `netDeriv` does not depend on the readout component of a `population/readout product`
+    point: replacing it by any
 `v` leaves it unchanged. -/
-lemma netDeriv_deepParams_readout (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (v : ℕ → ℝ) (ℓ : Fin d) (a : Fin m) :
+lemma netDeriv_deepParams_readout (n : ℕ) (ω : ((Fin d → ℕ → ℕ → ℝ) × (ℕ → ℝ))) (v : ℕ → ℝ)
+    (ℓ : Fin d) (a : Fin m) :
     netDeriv φ φ' X (deepParams d n0 n (ω.1, v)) ℓ a =
       netDeriv φ φ' X (deepParams d n0 n ω) ℓ a := by
   funext j

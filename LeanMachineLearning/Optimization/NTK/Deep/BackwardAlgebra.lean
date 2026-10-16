@@ -145,7 +145,7 @@ lemma inv_gram_eq_smul_inv_normalized (hn : n ≠ 0) (Φ : Matrix (Fin n) (Fin m
     (hS : IsUnit ((n : ℝ)⁻¹ • (Φᵀ * Φ)).det) :
     (Φᵀ * Φ)⁻¹ = (n : ℝ)⁻¹ • ((n : ℝ)⁻¹ • (Φᵀ * Φ))⁻¹ := by
   have hn' : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.2 hn
-  haveI : Invertible (n : ℝ) := invertibleOfNonzero hn'
+  have : Invertible (n : ℝ) := invertibleOfNonzero hn'
   have h1 : (Φᵀ * Φ) = (n : ℝ) • ((n : ℝ)⁻¹ • (Φᵀ * Φ)) := by
     rw [smul_smul, mul_inv_cancel₀ hn', one_smul]
   conv_lhs => rw [h1]
