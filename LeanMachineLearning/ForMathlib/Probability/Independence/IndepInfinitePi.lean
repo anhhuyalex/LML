@@ -52,4 +52,38 @@ lemma indepFun_proj_infinitePi_infinitePi {a b : κ} (h : a ≠ b) :
     (iIndepFun_uncurry_infinitePi' (X := fun _ _ x ↦ x) μ (by fun_prop)) hd
   all_goals rw [iSup_range]
 
+section curry
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-- Converse of `iIndepFun_uncurry`: if the doubly indexed family `(Xᵢⱼ)` is independent, then the
+random vectors `(Xᵢⱼ)ⱼ`, indexed by `i`, are independent. -/
+lemma iIndepFun.curry {κ : ι → Type*} {𝓧 : (i : ι) → κ i → Type*}
+    {m𝓧 : ∀ i j, MeasurableSpace (𝓧 i j)} {X : (i : ι) → (j : κ i) → Ω → 𝓧 i j}
+    (mX : ∀ i j, Measurable (X i j))
+    (h : iIndepFun (fun (p : (i : ι) × κ i) ω ↦ X p.1 p.2 ω) P) :
+    iIndepFun (fun i ω ↦ (X i · ω)) P := by
+  have := h.isProbabilityMeasure
+  have e : (MeasurableEquiv.piCurry 𝓧) ∘ (fun ω p ↦ X p.1 p.2 ω) = fun ω i j ↦ X i j ω := by
+    ext; simp [Sigma.curry]
+  rw [iIndepFun_iff_map_fun_eq_infinitePi_map (by fun_prop)]
+  have h2 : ∀ i, P.map (fun ω j ↦ X i j ω) = infinitePi fun j ↦ P.map (X i j) := fun i =>
+    (iIndepFun_iff_map_fun_eq_infinitePi_map (fun j => mX i j)).1
+      (h.precomp (g := fun j => (⟨i, j⟩ : (i : ι) × κ i)) (fun a b hab => by simpa using hab))
+  have h3 := (iIndepFun_iff_map_fun_eq_infinitePi_map (by fun_prop)).1 h
+  have h4 := congrArg (Measure.map (MeasurableEquiv.piCurry 𝓧)) h3
+  rw [infinitePi_map_piCurry (fun i j ↦ P.map (X i j)), map_map (by fun_prop) (by fun_prop),
+    e] at h4
+  rw [h4]
+  congrm infinitePi fun i ↦ ?_
+  exact (h2 i).symm
+
+/-- Non-dependent version of `iIndepFun.curry`. -/
+lemma iIndepFun.curry' {X : (i : ι) → (j : κ) → Ω → 𝓧 i j} (mX : ∀ i j, Measurable (X i j))
+    (h : iIndepFun (fun (p : ι × κ) ω ↦ X p.1 p.2 ω) P) :
+    iIndepFun (fun i ω ↦ (X i · ω)) P :=
+  iIndepFun.curry mX (h.precomp (Equiv.sigmaEquivProd ι κ).injective)
+
+end curry
+
 end ProbabilityTheory

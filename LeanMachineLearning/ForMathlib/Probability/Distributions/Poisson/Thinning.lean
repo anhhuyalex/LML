@@ -416,4 +416,39 @@ theorem iIndepFun_hasLaw_counts_poisson_thinning {Ω ι : Type*} [MeasurableSpac
     (measurePreserving_eval (fun i => Po(r * p i)) i).hasLaw.comp h
   exact ⟨hi, (iIndepFun_iff_hasLaw_pi_pi hi).2 h⟩
 
+/-- **Thinning of a canonical Poisson block, with a category map.** If a random block
+`B = (N, X)` has law `Po(r) ⊗ ν^{⊗ℕ}`, and `c` sorts the sample space into finitely many categories
+with `ν (c ⁻¹' {i}) = p i`, then the category counts of the first `N` points have law
+`⊗ i, Po(r * p i)`. -/
+theorem hasLaw_counts_poisson_thinning_of_hasLaw_prod {Ω S ι : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [MeasurableSpace S] [Fintype ι] [DecidableEq ι] [MeasurableSpace ι]
+    [MeasurableSingletonClass ι] (ν : Measure S) [IsProbabilityMeasure ν] (r : ℝ≥0) {c : S → ι}
+    (hc : Measurable c) (p : ι → ℝ≥0) (hp : ∑ i, p i = 1)
+    (hν : ∀ i, ν (c ⁻¹' {i}) = ENNReal.ofNNReal (p i)) {B : Ω → ℕ × (ℕ → S)}
+    (hB : HasLaw B (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P) :
+    HasLaw (fun ω i => ∑ l ∈ Finset.range (B ω).1, if c ((B ω).2 l) = i then 1 else 0)
+      (Measure.pi fun i => Po(r * p i)) P := by
+  have : IsProbabilityMeasure (ν.map c) := inferInstance
+  have hν' : ∀ i, ν.map c {i} = ENNReal.ofNNReal (p i) := fun i => by
+    rw [Measure.map_apply hc (measurableSet_singleton i), hν]
+  have hT : Measurable fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l)) := by fun_prop
+  have hmap : (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)).map
+      (fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l))) =
+      Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map c) := by
+    have hprod := Measure.map_prod_map Po(r) (Measure.infinitePi fun _ : ℕ => ν)
+      (f := id) (g := fun σ : ℕ → S => fun l => c (σ l)) measurable_id
+      (by fun_prop)
+    rw [Measure.map_id, Measure.infinitePi_map_pi (fun _ : ℕ => ν) (fun _ => hc)] at hprod
+    exact hprod.symm
+  have hcount := (⟨hT.aemeasurable, hmap⟩ : HasLaw
+    (fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l)))
+    (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν.map c))
+    (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν))).comp hB
+  refine ⟨?_, ?_⟩
+  · exact (measurable_categoryCounts.comp hT).comp_aemeasurable hB.aemeasurable
+  · rw [← map_counts_prod_infinitePi (ν.map c) r p hp hν', ← hcount.map_eq,
+      AEMeasurable.map_map_of_aemeasurable measurable_categoryCounts.aemeasurable
+        hcount.aemeasurable]
+    rfl
+
 end ProbabilityTheory
