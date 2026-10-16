@@ -18,8 +18,8 @@ for the marked Poisson-process transformation in Theorem 2.6.
 
 @[expose] public section
 
-open MeasureTheory Set
-open scoped ENNReal
+open MeasureTheory ProbabilityTheory Set
+open scoped ENNReal NNReal
 
 namespace SpinGlasses
 
@@ -161,7 +161,7 @@ theorem zetaPoissonMeasure_prod_map_mul {S : Type*} [MeasurableSpace S]
       hA.preimage (by fun_prop)
     have := congrArg (fun m : Measure ℝ => m {u | (u, p.2) ∈ A}) (hs p hp)
     simpa only [Measure.map_apply hmeas hsectionmeas, Measure.smul_apply,
-      smul_eq_mul, g, Set.mem_setOf_eq, Set.preimage_setOf_eq] using this
+      smul_eq_mul, g, Set.mem_ofPred_eq, Set.preimage_ofPred_eq] using this
   have hleft : ((zetaPoissonMeasure ζ).prod ν) (g ⁻¹' A) =
       ∫⁻ p, (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A} ∂ν := by
     rw [← lintegral_indicator_one (hA.preimage hg)]
@@ -197,5 +197,80 @@ theorem zetaPoissonMeasure_prod_map_mul {S : Type*} [MeasurableSpace S]
     simp_rw [hinner]
     rfl
   simpa only [Measure.prod_apply hA, τ, f] using hprod.symm
+
+/-- The product intensity after transformation, expressed using the probability-valued
+size-biased mark law. This is the intensity identification in Theorem 2.6; the process-law
+statement additionally requires transfer of the Poisson counting-measure law. -/
+theorem zetaPoissonMeasure_prod_map_mul_normalized {S : Type*} [MeasurableSpace S]
+    {ζ : ℝ} (hζ : 0 < ζ) (ν : Measure (ℝ × S)) [SFinite ν]
+    (hν : ∀ᵐ p ∂ν, 0 < p.1)
+    (hpos : 0 < ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν)
+    (hfin : ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν < ∞) :
+    ((zetaPoissonMeasure ζ).prod ν).map
+        (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) =
+      (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν).toReal •
+        zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ ν) := by
+  let m : ℝ≥0∞ := ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν
+  have hm : ENNReal.ofReal m.toReal = m := ENNReal.ofReal_toReal hfin.ne
+  have _hp : IsProbabilityMeasure (poissonMarkTilt ζ ν) :=
+    poissonMarkTilt_isProbability hpos hfin
+  rw [zetaPoissonMeasure_prod_map_mul hζ ν hν, Measure.prod_smul_left]
+  change (zetaPoissonMeasure ζ).prod
+      ((ν.withDensity fun p => ENNReal.ofReal p.1 ^ ζ).map Prod.snd) =
+    ENNReal.ofReal m.toReal • ((zetaPoissonMeasure ζ).prod
+      (poissonMarkTilt ζ ν))
+  simp only [poissonMarkTilt]
+  rw [Measure.prod_smul_right, smul_smul, hm,
+    ENNReal.mul_inv_cancel hpos.ne' hfin.ne, one_smul]
+
+/-- **Theorem 2.6, finite-dimensional Poisson-process law.** Independent Poisson blocks
+of positive points, independently marked with a joint law of `(X,Y)`, are mapped by
+`(u,(x,y)) ↦ (u*x,y)`. Counts on disjoint sets of finite transformed intensity are
+independent Poisson variables with the normalized size-biased intensity. -/
+theorem poissonDirichlet_marked_transform
+    {Ω S κ : Type*} [MeasurableSpace Ω] [MeasurableSpace S]
+    [Finite κ] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ)
+    (ν : ℕ → Measure (ℝ × (ℝ × S)))
+    [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    (τ : Measure (ℝ × S)) [IsProbabilityMeasure τ]
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × S))}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (ProbabilityTheory.poissonMeasure (r n) |>.prod
+        (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod τ =
+      Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
+    (hτ : ∀ᵐ p ∂τ, 0 < p.1)
+    (hpos : 0 < ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ)
+    (hfin : ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ < ∞)
+    {A : κ → Set (ℝ × S)} (hA : ∀ i, MeasurableSet (A i))
+    (hdisj : Pairwise (Function.onFun Disjoint A))
+    (hfinite : ∀ i, ((ENNReal.ofReal
+        (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ).toReal • zetaPoissonMeasure ζ).prod
+          (poissonMarkTilt ζ τ)) (A i) ≠ ∞) :
+    (∀ i, HasLaw (fun ω =>
+        (poissonCountingMeasure (fun n => (B n ω).1)
+          (fun n l => (B n ω).2 l)).map
+            (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) (A i))
+        ((ProbabilityTheory.poissonMeasure
+          (((ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ).toReal •
+            zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ τ)) (A i)).toNNReal).map
+          (Nat.cast : ℕ → ℝ≥0∞)) P) ∧
+      iIndepFun (fun i ω =>
+        (poissonCountingMeasure (fun n => (B n ω).1)
+          (fun n l => (B n ω).2 l)).map
+            (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) (A i)) P := by
+  have hmap : Measurable (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) := by
+    fun_prop
+  have hmass : (Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map
+      (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) =
+      (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ).toReal •
+        zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ τ) := by
+    rw [← poissonIntensity_map ν r hmap, ← hμ]
+    exact zetaPoissonMeasure_prod_map_mul_normalized hζ τ hτ hpos hfin
+  rw [← hmass]
+  exact poissonProcess_map ν r hBm hB hlaw hmap hA hdisj
+    (fun i => hmass.symm ▸ hfinite i)
 
 end SpinGlasses
