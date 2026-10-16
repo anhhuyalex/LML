@@ -3293,6 +3293,16 @@ Let $0<\zeta<1$, and let $M$ be a Poisson process with intensity $\mu_\zeta\otim
 Apply Theorem~\ref{thm:sg:pd-logsum} twice to the same $M$ and the same reference process $M_0$: once with the mark function $X(x,z)=xz$ and once with $X(x,z)=z$. The two right-hand sides share $\mathbb E\log\sum_{M_0}u$, so the difference of the left-hand sides is $\frac1\zeta(\log\mathbb E(XZ)^\zeta-\log\mathbb EZ^\zeta)$. By independence $\mathbb E(XZ)^\zeta=\mathbb EX^\zeta\,\mathbb EZ^\zeta$ (Fubini), which gives the claim.
 \end{proof}
 
+\begin{theorem}[Gaussian invariance of ranked Poisson--Dirichlet weights]\label{thm:sg:pd-gaussian-weights}
+  \lean{SpinGlasses.identDistrib_poissonDirichlet_gaussian_weights}
+  \leanok
+Let $0<\zeta$ and $t\in\mathbb R$. Let independent Poisson blocks $B$ on a probability space $P$ have total intensity $\mu_\zeta\otimes\tau_t$, where $\tau_t$ is the law of $(\exp(t(g-t\zeta/2)),g-t\zeta)$ for a standard Gaussian $g$. Let independent reference blocks $B'$ on a possibly different probability space $Q$ have intensity $\mu_\zeta\otimes N(0,1)$. Mapping each point $(u,(x,y))$ of $B$ to $(ux,y)$ and then forgetting the marks, the sequence of normalized decreasing masses has the same law under $P$ as the normalized decreasing masses of $B'$ under $Q$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The Gaussian exponential multiplier has $\zeta$-moment one, and its size-biased translated mark is standard Gaussian. The marked processes therefore have equal laws by the marking transformation theorem. Mapping both random counting measures to their first-coordinate projections, taking the measurable decreasing enumeration of atoms, and normalizing preserves equality in law. The proof does not select the mark attached to each rank.
+\end{proof}
+
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
 \begin{enumerate}
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
@@ -3303,6 +3313,6 @@ Apply Theorem~\ref{thm:sg:pd-logsum} twice to the same $M$ and the same referenc
 \item \emph{The reference process in Lemma~2.2 and Equation~(2.22).} The book compares with the ``unmarked'' sum $\sum_nu_n$. We compare with the same functional of an arbitrary block construction of a Poisson process with intensity $\mu_\zeta$; the proof passes through the size-biased process of Theorem~\ref{thm:sg:pd-marking} and returns to the given construction by the Equivalence Theorem~\ref{thm:sg:poisson-equivalence}. In Equation~(2.22) both sums are taken over the \emph{same} marked process (the marks $x,z$ attached to a point are the coordinates of one mark $t=(x,z)$), as in the book. The marks $Y$ in Theorem~\ref{thm:sg:pd-marking} are a free extra coordinate (needed later for the Gaussian marking); they play no role in Lemma~2.2. The marks in Lemma~2.2 are an arbitrary mark space $T$ with a measurable positive function $X$; the book's $(X_n)$ i.i.d.\ is the special case $T=\mathbb R$, $X=\mathrm{id}$.
 \item \emph{A cruder lower tail.} The exact law of the largest point is $\mathbb P(u_0\le s)=\exp(-s^{-\zeta})$. The integrability of $\log\sum u$ only needs $\mathbb P(\sum u<s)\le s^{\zeta}$, which we prove directly from the number of points above $s$, avoiding the ordering of the points.
 \item \emph{Moment hypotheses.} The marks must satisfy $X>0$ almost surely and $0<\mathbb EX^\zeta<\infty$; the unnormalized intensity statement (Theorem~\ref{thm:sg:pd-marking}(a) before dividing by $m$) holds without any moment assumption.
-\item \emph{Not formalized yet.} The Gaussian marking and the Bolthausen--Sznitman invariance, Lemma~2.3, the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
+\item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). The marks paired with these ranks, the full Bolthausen--Sznitman marked-sequence invariance, Lemma~2.3, the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8 are not formalized yet. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
 \end{enumerate}
 \end{remark}
