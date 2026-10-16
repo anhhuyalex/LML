@@ -6,6 +6,7 @@ Authors: LML contributors
 module
 
 public import Mathlib.Probability.Distributions.Poisson.Basic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
 
 /-!
 # Sums of Poisson random variables
@@ -16,12 +17,73 @@ families. It is the finite-partial-sum engine for countable Poisson sums.
 
 @[expose] public section
 
-open MeasureTheory
-open scoped NNReal
+open MeasureTheory Real
+open scoped NNReal Nat
 
 namespace ProbabilityTheory
 
 variable {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+
+private lemma summable_poisson_nat (r : ℝ≥0) :
+    Summable fun n : ℕ => (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) * n := by
+  have h := (hasSum_one_poissonMeasure r).mul_left (r : ℝ)
+  apply (summable_nat_add_iff 1).mp
+  convert h.summable using 1
+  ext n
+  rw [Nat.factorial_succ]
+  push_cast
+  field_simp
+  ring
+
+/-- The mean of a Poisson random variable with rate `r` is `r`. -/
+theorem integral_natCast_poissonMeasure (r : ℝ≥0) :
+    ∫ n : ℕ, (n : ℝ) ∂Po(r) = r := by
+  rw [integral_poissonMeasure]
+  have h := (hasSum_one_poissonMeasure r).mul_left (r : ℝ)
+  have h' : HasSum
+      (fun n : ℕ => (rexp (-(r : ℝ)) * (r : ℝ) ^ (n + 1) / (n + 1)!) * (n + 1))
+      (r : ℝ) := by
+    convert h using 1
+    · ext n
+      rw [Nat.factorial_succ]
+      push_cast
+      field_simp
+      ring
+    · ring
+  calc
+    ∑' n : ℕ, (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) • (n : ℝ) =
+        ∑' n : ℕ, (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) * n := by
+          congr 1
+    _ = 0 + ∑' n : ℕ,
+        (rexp (-(r : ℝ)) * (r : ℝ) ^ (n + 1) / (n + 1)!) * (n + 1) := by
+          simpa only [Finset.sum_range_one, Nat.cast_zero, mul_zero, add_zero, Nat.cast_add,
+            Nat.cast_one] using ((summable_poisson_nat r).sum_add_tsum_nat_add 1).symm
+    _ = r := by simp [h'.tsum_eq]
+
+/-- The natural-number embedding is integrable under every Poisson law. -/
+theorem integrable_natCast_poissonMeasure (r : ℝ≥0) :
+    Integrable (fun n : ℕ => (n : ℝ)) Po(r) := by
+  rw [integrable_poissonMeasure_iff]
+  simpa only [Real.norm_natCast] using summable_poisson_nat r
+
+/-- A countable family of Poisson variables with summable rates is almost surely summable.
+Independence is not needed for this conclusion. -/
+theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → Ω → ℕ}
+    {r : ι → ℝ≥0} (hLaw : ∀ i, HasLaw (X i) Po(r i) P) (hr : Summable r) :
+    ∀ᵐ ω ∂P, Summable fun i => (X i ω : ℝ) := by
+  have hcast : Measurable fun n : ℕ => (n : ℝ) := measurable_of_countable _
+  have hm : ∀ i, AEMeasurable (fun ω => (X i ω : ℝ)) P := fun i =>
+    hcast.comp_aemeasurable (hLaw i).aemeasurable
+  have hint : ∀ i, Integrable (fun ω => (X i ω : ℝ)) P := fun i =>
+    (hLaw i).integrable_comp (integrable_natCast_poissonMeasure (r i))
+  have hmean : ∀ i, ∫ ω, (X i ω : ℝ) ∂P = r i := fun i => by
+    calc
+      ∫ ω, (X i ω : ℝ) ∂P = ∫ n, (n : ℝ) ∂Po(r i) :=
+        (hLaw i).integral_comp hcast.aestronglyMeasurable
+      _ = r i := integral_natCast_poissonMeasure (r i)
+  refine (ae_summable_and_integrable_tsum_of_nonneg hm (fun _ _ => Nat.cast_nonneg _) hint ?_).1
+  rw [show (fun i => ∫ ω, (X i ω : ℝ) ∂P) = fun i => (r i : ℝ) by ext i; exact hmean i]
+  exact_mod_cast hr
 
 /-- A finite sum of mutually independent Poisson random variables is Poisson, with rate equal
 to the sum of the rates. -/

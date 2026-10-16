@@ -68,7 +68,8 @@ theorem integrable_tsum_mul_comp (hw0 : ∀ i, 0 ≤ w i) (hw : Summable w)
           integral_mono hint (hI.const_mul _) (hle i)
       _ = (w i * A) * ∫ ω, Real.exp (1 * |g i ω|) ∂P := integral_const_mul _ _
       _ ≤ _ := mul_le_mul_of_nonneg_left hJ (mul_nonneg (hw0 i) hA0)
-  refine ae_summable_and_integrable_tsum_of_nonneg (fun i => (hψm.comp (hm i)).const_mul _)
+  refine ae_summable_and_integrable_tsum_of_nonneg
+    (fun i => ((hψm.comp (hm i)).const_mul _).aemeasurable)
     (fun i ω => mul_nonneg (hw0 i) (hψ0 _)) (fun i => (hbd i).1) ?_
   have hS : Summable fun i => (w i * A) * (2 * Real.exp (v * 1 ^ 2 / 2)) :=
     (hw.mul_right A).mul_right _
