@@ -131,6 +131,12 @@ theorem poissonMeasure_zero : Po(0) = Measure.dirac 0 := by
   refine Measure.ext_of_singleton fun n => ?_
   rcases n with _ | n <;> simp [poissonMeasure_singleton, zero_pow]
 
+/-- A Poisson random variable of rate zero is almost surely zero. -/
+theorem HasLaw.ae_eq_zero_of_poisson_zero [IsProbabilityMeasure P] {X : Ω → ℕ}
+    (hX : HasLaw X Po(0) P) : ∀ᵐ ω ∂P, X ω = 0 := by
+  have hd : HasLaw X (Measure.dirac 0) P := by rwa [poissonMeasure_zero] at hX
+  exact hasLaw_dirac_iff.mp hd
+
 /-- A finite sum of mutually independent Poisson random variables is Poisson, with rate equal
 to the sum of the rates. -/
 theorem iIndepFun.hasLaw_sum_poissonMeasure {X : ι → Ω → ℕ} {r : ι → ℝ≥0}

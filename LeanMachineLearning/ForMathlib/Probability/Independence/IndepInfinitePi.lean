@@ -39,6 +39,17 @@ lemma hasLaw_eval_infinitePi {ι : Type*} {X : ι → Type*} {mX : ∀ i, Measur
     HasLaw (Function.eval i) (μ i) (infinitePi μ) :=
   (measurePreserving_eval_infinitePi μ i).hasLaw
 
+/-- If a random sequence is i.i.d. `ν` and `ν(A) = 1`, then almost surely every term lies in `A`. -/
+lemma ae_all_mem_of_hasLaw_infinitePi {Ω ι S : Type*} [MeasurableSpace Ω] [MeasurableSpace S]
+    [Countable ι] {P : Measure Ω} {ν : Measure S} [IsProbabilityMeasure ν] {X : Ω → ι → S}
+    (hX : HasLaw X (infinitePi fun _ : ι => ν) P) {A : Set S} (hA : MeasurableSet A)
+    (hνA : ∀ᵐ x ∂ν, x ∈ A) : ∀ᵐ ω ∂P, ∀ l, X ω l ∈ A := by
+  rw [ae_all_iff]
+  intro l
+  have hl : HasLaw (fun ω => X ω l) ν P := (hasLaw_eval_infinitePi (fun _ : ι => ν) l).comp hX
+  refine (ae_map_iff hl.aemeasurable hA).1 ?_
+  rwa [hl.map_eq]
+
 variable {ι κ : Type*} {𝓧 : ι → κ → Type*} [m𝓧 : ∀ i j, MeasurableSpace (𝓧 i j)]
     {μ : (i : ι) → (j : κ) → Measure (𝓧 i j)} [∀ i j, IsProbabilityMeasure (μ i j)]
 

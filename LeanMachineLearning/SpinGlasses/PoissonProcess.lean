@@ -344,14 +344,11 @@ theorem ae_pairwise_ne_poissonBlocks [MeasurableEq S] {Ω : Type*} [MeasurableSp
   have hempty : ∀ᵐ ω ∂P, ∀ n, r n = 0 → (B n ω).1 = 0 := by
     refine ae_all_iff.2 fun n => ?_
     by_cases hn : r n = 0
-    · have hN : HasLaw (fun ω => (B n ω).1) Po(r n) P :=
-        measurePreserving_fst.hasLaw.comp (hlaw n)
-      have hnull0 : P {ω | (B n ω).1 ≠ 0} = 0 := by
-        rw [hN.measure_eq (p := fun k => k ≠ 0) (measurableSet_singleton 0).compl, hn,
-          poissonMeasure_zero]
-        simp
-      filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull0] with ω hω _
-      simpa using hω
+    · have hN : HasLaw (fun ω => (B n ω).1) Po(0) P := by
+        have h := measurePreserving_fst.hasLaw.comp (hlaw n)
+        rwa [hn] at h
+      filter_upwards [hN.ae_eq_zero_of_poisson_zero] with ω hω _
+      exact hω
     · exact Filter.Eventually.of_forall fun ω h => absurd h hn
   -- distinctness among the blocks that carry mass
   let I := {q : ℕ × ℕ // r q.1 ≠ 0}
@@ -392,14 +389,10 @@ theorem identDistrib_poissonCountingMeasure_canonical {Ω : Type*} [MeasurableSp
         (fun n => (q n).1) (fun n l => (q n).2 l)) P
       (Measure.infinitePi fun n =>
         Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) := by
-  have hmap := hB.map_fun_eq_infinitePi_map hBm
   have hπ : HasLaw (fun ω n => B n ω)
       (Measure.infinitePi fun n =>
-        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P := by
-    refine ⟨(measurable_pi_iff.2 hBm).aemeasurable, ?_⟩
-    simpa only [show (fun n => P.map (B n)) =
-      (fun n => Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) from
-      funext fun n => (hlaw n).map_eq] using hmap
+        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P :=
+    hB.hasLaw_infinitePi hlaw (measurable_pi_iff.2 hBm).aemeasurable
   exact (hπ.identDistrib .id).comp measurable_poissonCountingMeasure
 
 end SpinGlasses

@@ -369,12 +369,9 @@ theorem hasLaw_counts_poisson_thinning {Ω ι : Type*} [MeasurableSpace Ω] {P :
       (Measure.pi fun i => Po(r * p i)) P := by
   have hXm : AEMeasurable (fun ω l => X l ω) P :=
     aemeasurable_pi_iff.2 fun l => (hX l).aemeasurable
-  have hseq : P.map (fun ω l => X l ω) = Measure.infinitePi fun _ : ℕ => ν := by
-    rw [hXi.map_fun_eq_infinitePi_map₀' fun l => (hX l).aemeasurable]
-    congr 1; funext l; exact (hX l).map_eq
   have hpair : HasLaw (fun ω => (N ω, fun l => X l ω))
       (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P :=
-    hNX.hasLaw_prod hN ⟨hXm, hseq⟩
+    hNX.hasLaw_prod hN (hXi.hasLaw_infinitePi hX hXm)
   refine ⟨?_, ?_⟩
   · exact measurable_categoryCounts.comp_aemeasurable hpair.aemeasurable
   · rw [← map_counts_prod_infinitePi ν r p hp hν, ← hpair.map_eq,

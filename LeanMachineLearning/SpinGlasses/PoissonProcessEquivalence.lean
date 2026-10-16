@@ -39,6 +39,37 @@ theorem hasCondDistrib_poissonBlockSamples {P : Measure Ω} [IsProbabilityMeasur
     measurePreserving_snd.hasLaw.comp hB
   exact ((indepFun_iff_hasLaw_prodMk_prod hN hX).2 hB).hasCondDistrib_const hN.aemeasurable hX
 
+/-- The expectation of a sum over the points of a single Poisson block is `r • ∫ f dν`. This is
+Campbell's formula for a single compound Poisson block. -/
+theorem lintegral_poissonBlock_sampleSum {P : Measure Ω}
+    (ν : Measure S) [IsProbabilityMeasure ν] (r : ℝ≥0)
+    {B : Ω → ℕ × (ℕ → S)}
+    (hlaw : HasLaw B (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P)
+    {f : S → ℝ≥0∞} (hf : Measurable f) :
+    ∫⁻ ω, ∑ l ∈ Finset.range (B ω).1, f ((B ω).2 l) ∂P =
+      (r : ℝ≥0∞) • ∫⁻ s, f s ∂ν := by
+  have hg : Measurable fun q : ℕ × (ℕ → S) =>
+      ∑ l ∈ Finset.range q.1, f (q.2 l) := by
+    apply measurable_from_prod_countable_right
+    intro k
+    change Measurable fun y : ℕ → S => ∑ l ∈ Finset.range k, f (y l)
+    exact Finset.measurable_sum _ fun l _ => hf.comp (measurable_pi_apply l)
+  rw [hlaw.lintegral_comp hg.aemeasurable, lintegral_prod _ hg.aemeasurable]
+  have hinner (k : ℕ) :
+      (∫⁻ x : ℕ → S, ∑ l ∈ Finset.range k, f (x l) ∂
+        Measure.infinitePi fun _ : ℕ => ν) =
+        ∑ l ∈ Finset.range k, ∫⁻ s, f s ∂ν := by
+    rw [lintegral_finsetSum (Finset.range k)
+      (f := fun l (x : ℕ → S) => f (x l))
+      (fun l _ => hf.comp (measurable_pi_apply l))]
+    congr 1
+    ext l
+    exact (hasLaw_eval_infinitePi (fun _ : ℕ => ν) l).lintegral_comp hf.aemeasurable
+  simp_rw [hinner, Finset.sum_const, Finset.card_range, nsmul_eq_mul]
+  rw [lintegral_mul_const (∫⁻ s, f s ∂ν) (measurable_of_countable (Nat.cast : ℕ → ℝ≥0∞)),
+    lintegral_natCast_poissonMeasure]
+  rfl
+
 /-- Campbell's formula for a family of independent Poisson blocks. No atomlessness or
 independence is needed for this expectation identity once each block law is known. -/
 theorem lintegral_poissonCountingMeasure {P : Measure Ω}
@@ -50,39 +81,20 @@ theorem lintegral_poissonCountingMeasure {P : Measure Ω}
     ∫⁻ ω, ∫⁻ s, f s ∂poissonCountingMeasure
       (fun n => (B n ω).1) (fun n l => (B n ω).2 l) ∂P =
       ∫⁻ s, f s ∂Measure.sum (fun n => (r n : ℝ≥0∞) • ν n) := by
-  have hg : Measurable fun q : ℕ × (ℕ → S) =>
-      ∑ l ∈ Finset.range q.1, f (q.2 l) := by
-    apply measurable_from_prod_countable_right
-    intro k
-    change Measurable fun y : ℕ → S => ∑ l ∈ Finset.range k, f (y l)
-    exact Finset.measurable_sum _ fun l _ => hf.comp (measurable_pi_apply l)
   have hm : ∀ n, AEMeasurable (fun ω =>
-      ∑ l ∈ Finset.range (B n ω).1, f ((B n ω).2 l)) P := fun n =>
-    hg.comp_aemeasurable (hlaw n).aemeasurable
+      ∑ l ∈ Finset.range (B n ω).1, f ((B n ω).2 l)) P := fun n => by
+    have hg : Measurable fun q : ℕ × (ℕ → S) => ∑ l ∈ Finset.range q.1, f (q.2 l) := by
+      apply measurable_from_prod_countable_right
+      intro k
+      change Measurable fun y : ℕ → S => ∑ l ∈ Finset.range k, f (y l)
+      exact Finset.measurable_sum _ fun l _ => hf.comp (measurable_pi_apply l)
+    exact hg.comp_aemeasurable (hlaw n).aemeasurable
   simp only [poissonCountingMeasure, lintegral_sum_measure, lintegral_finsetSum_measure,
     lintegral_dirac' _ hf]
   rw [lintegral_tsum (fun n => hm n)]
   congr 1
   ext n
-  rw [lintegral_smul_measure, (hlaw n).lintegral_comp hg.aemeasurable]
-  rw [lintegral_prod _ hg.aemeasurable]
-  have hinner (k : ℕ) :
-      (∫⁻ x : ℕ → S, ∑ l ∈ Finset.range k, f (x l) ∂
-        Measure.infinitePi fun _ : ℕ => ν n) =
-        ∑ l ∈ Finset.range k, ∫⁻ s, f s ∂ν n := by
-    rw [lintegral_finsetSum (Finset.range k)
-      (f := fun l (x : ℕ → S) => f (x l))
-      (fun l _ => hf.comp (measurable_pi_apply l))]
-    congr 1
-    ext l
-    exact (hasLaw_eval_infinitePi (fun _ : ℕ => ν n) l).lintegral_comp
-      hf.aemeasurable
-  simp_rw [hinner, Finset.sum_const, Finset.card_range]
-  simp only [nsmul_eq_mul]
-  rw [lintegral_mul_const (∫⁻ s, f s ∂ν n)
-    (measurable_of_countable _ : Measurable fun k : ℕ => (k : ℝ≥0∞))]
-  rw [lintegral_natCast_poissonMeasure]
-  rfl
+  rw [lintegral_smul_measure, lintegral_poissonBlock_sampleSum (ν n) (r n) (hlaw n) hf]
 
 /-- If the points of block `n` lie in the cell `A n` of a pairwise disjoint family, the counting
 measure restricted to that cell is exactly the counting measure of block `n`. -/
@@ -133,11 +145,8 @@ theorem hasLaw_partitionBlockCounts {P : Measure Ω}
     hB.comp (fun _ b => b.1) fun _ => measurable_fst
   have hcount : ∀ n, HasLaw (fun ω => (B n ω).1) (Po(r n)) P :=
     fun n => measurePreserving_fst.hasLaw.comp (hlaw n)
-  refine ⟨(measurable_pi_iff.2 fun n => measurable_fst.comp (hBm n)).aemeasurable, ?_⟩
-  simpa only [Function.comp_def,
-    show (fun n => P.map (fun ω => (B n ω).1)) =
-      (fun n => Po(r n)) from funext fun n => (hcount n).map_eq] using
-    hi.map_fun_eq_infinitePi_map (fun n => measurable_fst.comp (hBm n))
+  exact hi.hasLaw_infinitePi hcount
+    (measurable_pi_iff.2 fun n => measurable_fst.comp (hBm n)).aemeasurable
 
 /-- Counts of partition cells have the joint product-Poisson law when the block samples
 are supported in their respective cells. This packages the deterministic evaluation
@@ -218,12 +227,7 @@ theorem Measure.map_finset_eval_eq_of_disjoint {α Ω Ω' : Type*}
       · exact s.1.2.compl
   have hd : Pairwise (Function.onFun Disjoint A) := by
     intro v w hvw
-    have ⟨s, hs⟩ : ∃ s, v s ≠ w s := by
-      by_contra hn
-      apply hvw
-      funext s
-      by_contra hne
-      exact hn ⟨s, hne⟩
+    obtain ⟨s, hs⟩ := Function.ne_iff.mp hvw
     apply Set.disjoint_left.mpr
     intro x hx hy
     have hx' := Set.mem_iInter.mp hx s

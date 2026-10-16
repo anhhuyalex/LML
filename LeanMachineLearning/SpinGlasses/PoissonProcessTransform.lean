@@ -6,6 +6,7 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.PoissonProcess
+public import LeanMachineLearning.ForMathlib.Probability.InfinitePiZip
 public import Mathlib.Probability.Kernel.Basic
 
 /-!
@@ -325,5 +326,87 @@ theorem ae_poissonProcess_superposition_eq_encard {Ω S : Type*} [MeasurableSpac
       exact ⟨hx, Nat.pairEquiv (m, n), l, by simpa [C] using hl,
         by simpa [C] using heq⟩
   exact congrArg (fun s : Set S => (s.encard : ℝ≥0∞)) hset
+
+/-- **Marking a given family of blocks by independent marks.** Given independent Poisson blocks
+`B n` on `(Ω, P)`, enlarge the space to `Ω × (ℕ → ℕ → T)` with the product measure `P ⊗ τ^{⊗ℕ×ℕ}`
+and attach to the `l`-th point of block `n` the mark `q.2 n l`. The marked blocks `C n` are
+measurable, independent, have law `Po(rₙ) ⊗ (νₙ ⊗ τ)^{⊗ℕ}`, and forget back to `B n` pointwise.
+This is the case of marking used in the book's Theorem 2.6, where the marks are independent of
+the positions and of the process; the position-dependent case is `poissonProcess_marking`. -/
+theorem iIndepFun_hasLaw_indepMarkedBlocks {Ω S T : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace S] [MeasurableSpace T] {P : Measure Ω} [IsProbabilityMeasure P]
+    (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    (τ : Measure T) [IsProbabilityMeasure τ] {B : ℕ → Ω → ℕ × (ℕ → S)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    {C : ℕ → Ω × (ℕ → ℕ → T) → ℕ × (ℕ → S × T)}
+    (hC : ∀ n q, C n q = ((B n q.1).1, fun l => ((B n q.1).2 l, q.2 n l))) :
+    (∀ n, Measurable (C n)) ∧
+      iIndepFun C (P.prod (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => τ)) ∧
+      (∀ n, HasLaw (C n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => (ν n).prod τ))
+        (P.prod (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => τ))) ∧
+      ∀ n q, ((C n q).1, fun l => ((C n q).2 l).1) = B n q.1 := by
+  set W : Measure (ℕ → ℕ → T) := Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => τ
+  have hΘm : Measurable fun z : (ℕ × (ℕ → S)) × (ℕ → T) =>
+      (z.1.1, fun l => (z.1.2 l, z.2 l)) :=
+    (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun l =>
+      (((measurable_pi_apply l).comp (measurable_snd.comp measurable_fst))).prodMk
+        ((measurable_pi_apply l).comp measurable_snd))
+  have hE : ∀ n, Measurable fun q : Ω × (ℕ → ℕ → T) => (B n q.1, q.2 n) := fun n =>
+    ((hBm n).comp measurable_fst).prodMk ((measurable_pi_apply n).comp measurable_snd)
+  have hCE : ∀ n, C n = (fun z : (ℕ × (ℕ → S)) × (ℕ → T) =>
+      (z.1.1, fun l => (z.1.2 l, z.2 l))) ∘ fun q => (B n q.1, q.2 n) := fun n => by
+    ext q <;> simp [hC]
+  have hCm : ∀ n, Measurable (C n) := fun n => by rw [hCE n]; exact hΘm.comp (hE n)
+  -- the law of the pair (block, marks) of index `n`
+  have hlawE : ∀ n, HasLaw (fun q : Ω × (ℕ → ℕ → T) => (B n q.1, q.2 n))
+      ((Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)).prod
+        (Measure.infinitePi fun _ : ℕ => τ)) (P.prod W) := fun n =>
+    ⟨(hE n).aemeasurable, by
+      rw [show (fun q : Ω × (ℕ → ℕ → T) => (B n q.1, q.2 n)) =
+        Prod.map (B n) (fun w : ℕ → ℕ → T => w n) from rfl,
+        ← Measure.map_prod_map _ _ (hBm n) (measurable_pi_apply n), (hlaw n).map_eq,
+        Measure.infinitePi_map_eval]⟩
+  -- independence of the pairs, from the law of the whole vector
+  have hvec : HasLaw (fun q : Ω × (ℕ → ℕ → T) => fun n => (B n q.1, q.2 n))
+      (Measure.infinitePi fun n => (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)).prod
+        (Measure.infinitePi fun _ : ℕ => τ)) (P.prod W) := by
+    refine ⟨measurable_pi_iff.2 (fun n => hE n) |>.aemeasurable, ?_⟩
+    have hBv : Measurable fun ω n => B n ω := measurable_pi_iff.2 hBm
+    have hzip : Measurable fun p : (ℕ → ℕ × (ℕ → S)) × (ℕ → ℕ → T) => fun n => (p.1 n, p.2 n) :=
+      measurable_pi_iff.2 fun n => ((measurable_pi_apply n).comp measurable_fst).prodMk
+        ((measurable_pi_apply n).comp measurable_snd)
+    have h1 : (fun q : Ω × (ℕ → ℕ → T) => fun n => (B n q.1, q.2 n)) =
+        (fun p : (ℕ → ℕ × (ℕ → S)) × (ℕ → ℕ → T) => fun n => (p.1 n, p.2 n)) ∘
+          Prod.map (fun ω n => B n ω) id := rfl
+    have hP : P.map (fun ω n => B n ω) = Measure.infinitePi fun n =>
+        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n) := by
+      rw [hB.map_fun_eq_infinitePi_map hBm]
+      exact congrArg Measure.infinitePi (funext fun n => (hlaw n).map_eq)
+    rw [h1, ← Measure.map_map hzip (hBv.prodMap measurable_id),
+      ← Measure.map_prod_map _ _ hBv measurable_id, Measure.map_id, hP,
+      Measure.infinitePi_prod_map_zip]
+  have hEi : iIndepFun (fun n (q : Ω × (ℕ → ℕ → T)) => (B n q.1, q.2 n)) (P.prod W) :=
+    (iIndepFun_iff_hasLaw_Pi_infinitePi hlawE hvec.aemeasurable).2 hvec
+  refine ⟨hCm, ?_, fun n => ?_, fun n q => by rw [hC]⟩
+  · rw [show C = fun n => (fun z : (ℕ × (ℕ → S)) × (ℕ → T) =>
+      (z.1.1, fun l => (z.1.2 l, z.2 l))) ∘ fun q => (B n q.1, q.2 n) from funext hCE]
+    exact hEi.comp (fun _ z => (z.1.1, fun l => (z.1.2 l, z.2 l))) fun _ => hΘm
+  · have hΘ : ((Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)).prod
+        (Measure.infinitePi fun _ : ℕ => τ)).map (fun z : (ℕ × (ℕ → S)) × (ℕ → T) =>
+        (z.1.1, fun l => (z.1.2 l, z.2 l))) =
+        Po(r n).prod (Measure.infinitePi fun _ : ℕ => (ν n).prod τ) := by
+      have hz : Measurable fun p : (ℕ → S) × (ℕ → T) => fun l => (p.1 l, p.2 l) :=
+        measurable_pi_iff.2 fun l => ((measurable_pi_apply l).comp measurable_fst).prodMk
+          ((measurable_pi_apply l).comp measurable_snd)
+      rw [show (fun z : (ℕ × (ℕ → S)) × (ℕ → T) => (z.1.1, fun l => (z.1.2 l, z.2 l))) =
+        Prod.map id (fun p : (ℕ → S) × (ℕ → T) => fun l => (p.1 l, p.2 l)) ∘
+          MeasurableEquiv.prodAssoc from rfl,
+        ← Measure.map_map (measurable_id.prodMap hz) MeasurableEquiv.prodAssoc.measurable,
+        (measurePreserving_prodAssoc _ _ _).map_eq,
+        ← Measure.map_prod_map _ _ measurable_id hz, Measure.map_id,
+        Measure.infinitePi_prod_map_zip]
+    rw [hCE n]
+    exact (⟨hΘm.aemeasurable, hΘ⟩ : HasLaw _ _ _).comp (hlawE n)
 
 end SpinGlasses

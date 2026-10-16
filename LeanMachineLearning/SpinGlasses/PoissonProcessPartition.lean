@@ -30,11 +30,12 @@ variable {S Ω : Type*} [MeasurableSpace S] [MeasurableSpace Ω]
 
 /-- **Equivalence Theorem 2.4, conditional i.i.d. form.** Let `M` be the counting measure of
 independent Poisson blocks with intensity `μ`, and let `(Aₘ)` be a measurable partition of `S`
-with `0 < μ(Aₘ) < ∞`. Then the pair `((M(Aₘ))ₘ, (M|Aₘ)ₘ)` has the same law as
-`((Nₘ)ₘ, (∑_{l<Nₘ} δ_{Zₘₗ})ₘ)` for independent blocks `(Nₘ, (Zₘₗ)ₗ)` with law
-`Po(μ(Aₘ)) ⊗ μ[|Aₘ]^{⊗ℕ}`. In particular, conditionally on the counts, the restriction of `M`
-to `Aₘ` is the counting measure of an i.i.d. sample of size `M(Aₘ)` from `μ[|Aₘ]`, independently
-over `m`. -/
+into sets of finite `μ`-mass. Then there are independent blocks `(Nₘ, (Zₘₗ)ₗ)` with law
+`Po(μ(Aₘ)) ⊗ νₘ^{⊗ℕ}`, where `νₘ = μ[|Aₘ] = μ(· ∩ Aₘ)/μ(Aₘ)` whenever `μ(Aₘ) ≠ 0` (a cell of
+mass zero has an empty block almost surely, so its sample law is an arbitrary probability measure),
+such that the pair `((M(Aₘ))ₘ, (M|Aₘ)ₘ)` has the same law as `((Nₘ)ₘ, (∑_{l<Nₘ} δ_{Zₘₗ})ₘ)`.
+In particular, conditionally on the counts, the restriction of `M` to `Aₘ` is the counting measure
+of an i.i.d. sample of size `M(Aₘ)` from `μ[|Aₘ]`, independently over `m`. -/
 theorem exists_identDistrib_restrict_poissonCountingMeasure {P : Measure Ω}
     [IsProbabilityMeasure P] (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν n)]
     (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → S)} (hBm : ∀ n, Measurable (B n))
@@ -45,47 +46,62 @@ theorem exists_identDistrib_restrict_poissonCountingMeasure {P : Measure Ω}
     (hM : ∀ ω, M ω = poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l))
     {A : ℕ → Set S} (hA : ∀ m, MeasurableSet (A m))
     (hdisj : Pairwise (Function.onFun Disjoint A)) (hcover : ⋃ m, A m = Set.univ)
-    (hpos : ∀ m, μ (A m) ≠ 0) (hfin : ∀ m, μ (A m) ≠ ∞) :
-    ∃ P' : Measure (ℕ → ℕ × (ℕ → S)), IsProbabilityMeasure P' ∧
-      iIndepFun (fun m (q : ℕ → ℕ × (ℕ → S)) => q m) P' ∧
+    (hfin : ∀ m, μ (A m) ≠ ∞) :
+    ∃ (ν' : ℕ → Measure S) (P' : Measure (ℕ → ℕ × (ℕ → S))),
+      (∀ m, IsProbabilityMeasure (ν' m)) ∧ (∀ m, μ (A m) ≠ 0 → ν' m = μ[|A m]) ∧
+      IsProbabilityMeasure P' ∧ iIndepFun (fun m (q : ℕ → ℕ × (ℕ → S)) => q m) P' ∧
       (∀ m, HasLaw (fun q : ℕ → ℕ × (ℕ → S) => q m)
-        (Po((μ (A m)).toNNReal).prod (Measure.infinitePi fun _ : ℕ => μ[|A m])) P') ∧
+        (Po((μ (A m)).toNNReal).prod (Measure.infinitePi fun _ : ℕ => ν' m)) P') ∧
       IdentDistrib (fun ω => (fun m => M ω (A m), fun m => (M ω).restrict (A m)))
         (fun q : ℕ → ℕ × (ℕ → S) => (fun m => (((q m).1 : ℕ) : ℝ≥0∞),
           fun m => ∑ l ∈ Finset.range (q m).1, Measure.dirac ((q m).2 l))) P P' := by
+  classical
   obtain rfl : M = fun ω => poissonCountingMeasure
     (fun n => (B n ω).1) (fun n l => (B n ω).2 l) := funext hM
-  have hprob : ∀ m, IsProbabilityMeasure (μ[|A m]) := fun m =>
-    cond_isProbabilityMeasure_of_finite (hpos m) (hfin m)
-  obtain ⟨P', hP', hm', hi', hl'⟩ := exists_poissonBlocks (fun m => μ[|A m])
-    (fun m => (μ (A m)).toNNReal)
-  have hint : (Measure.sum fun m => ((μ (A m)).toNNReal : ℝ≥0∞) • μ[|A m]) = μ := by
-    simpa only [ENNReal.coe_toNNReal (hfin _)] using
-      sum_meas_smul_cond_of_iUnion_eq_univ hA hdisj hcover hfin
-  have hid := identDistrib_poissonCountingMeasure_of_intensity_eq ν r (fun m => μ[|A m])
+  obtain ⟨ν', hprob, hcond⟩ : ∃ ν' : ℕ → Measure S, (∀ m, IsProbabilityMeasure (ν' m)) ∧
+      ∀ m, μ (A m) ≠ 0 → ν' m = μ[|A m] :=
+    ⟨fun m => if μ (A m) = 0 then ν 0 else μ[|A m], fun m => by
+      by_cases h0 : μ (A m) = 0
+      · simp only [h0, ↓reduceIte]; infer_instance
+      · simp only [h0, ↓reduceIte]; exact cond_isProbabilityMeasure_of_finite h0 (hfin m),
+      fun m h0 => by simp [h0]⟩
+  obtain ⟨P', hP', hm', hi', hl'⟩ := exists_poissonBlocks ν' (fun m => (μ (A m)).toNNReal)
+  have hint : (Measure.sum fun m => ((μ (A m)).toNNReal : ℝ≥0∞) • ν' m) = μ := by
+    refine Eq.trans (congrArg Measure.sum (funext fun m => ?_))
+      (sum_meas_smul_cond_of_iUnion_eq_univ hA hdisj hcover hfin)
+    by_cases h0 : μ (A m) = 0
+    · simp [h0]
+    · rw [hcond m h0, ENNReal.coe_toNNReal (hfin m)]
+  have hid := identDistrib_poissonCountingMeasure_of_intensity_eq ν r ν'
     (fun m => (μ (A m)).toNNReal) hBm hB hlaw hm' hi' hl' (hμ.symm.trans hint.symm)
   let Φ : Measure S → (ℕ → ℝ≥0∞) × (ℕ → Measure S) := fun m =>
     (fun k => m (A k), fun k => m.restrict (A k))
   have hΦ : Measurable Φ := Measurable.prodMk
     (measurable_pi_iff.2 fun k => Measure.measurable_coe (hA k))
     (measurable_pi_iff.2 fun k => Measure.measurable_restrict (hA k))
-  have hsupp : ∀ᵐ q ∂P', ∀ m l, (q m).2 l ∈ A m := by
+  have hsupp : ∀ᵐ q ∂P', ∀ m l, l < (q m).1 → (q m).2 l ∈ A m := by
     rw [ae_all_iff]
     intro m
-    rw [ae_all_iff]
-    intro l
-    have hl : HasLaw (fun q : ℕ → ℕ × (ℕ → S) => (q m).2 l) (μ[|A m]) P' :=
-      (hasLaw_eval_infinitePi (fun _ : ℕ => μ[|A m]) l).comp
-        (measurePreserving_snd.hasLaw.comp (hl' m))
-    refine (ae_map_iff hl.aemeasurable (hA m)).1 ?_
-    rw [hl.map_eq]
-    exact ae_cond_mem (hA m)
-  refine ⟨P', hP', hi', hl', ?_⟩
+    by_cases h0 : μ (A m) = 0
+    · have hr0 : (μ (A m)).toNNReal = 0 := by simp [h0]
+      have hN : HasLaw (fun q : ℕ → ℕ × (ℕ → S) => (q m).1) Po(0) P' := by
+        have h := measurePreserving_fst.hasLaw.comp (hl' m)
+        rwa [hr0] at h
+      filter_upwards [hN.ae_eq_zero_of_poisson_zero] with q hq l hl
+      omega
+    · have hpm : IsProbabilityMeasure μ[|A m] := hcond m h0 ▸ hprob m
+      have hl : HasLaw (fun q : ℕ → ℕ × (ℕ → S) => (q m).2)
+          (Measure.infinitePi fun _ : ℕ => μ[|A m]) P' := by
+        rw [← hcond m h0]
+        exact measurePreserving_snd.hasLaw.comp (hl' m)
+      filter_upwards [ae_all_mem_of_hasLaw_infinitePi hl (hA m) (ae_cond_mem (hA m))] with q hq l _
+      exact hq l
+  refine ⟨ν', P', hprob, hcond, hP', hi', hl', ?_⟩
   refine (hid.comp hΦ).trans (IdentDistrib.of_ae_eq
     ((hΦ.comp (measurable_poissonCountingMeasure_comp hm')).aemeasurable) ?_)
   filter_upwards [hsupp] with q hq
   refine Prod.ext (funext fun m => ?_) (funext fun m => ?_)
-  · exact poissonCountingMeasure_partition_apply _ _ A hdisj (fun n l _ => hq n l) hA m
-  · exact poissonCountingMeasure_restrict_partition _ _ A hdisj (fun n l _ => hq n l) hA m
+  · exact poissonCountingMeasure_partition_apply _ _ A hdisj (fun n l hl => hq n l hl) hA m
+  · exact poissonCountingMeasure_restrict_partition _ _ A hdisj (fun n l hl => hq n l hl) hA m
 
 end SpinGlasses
