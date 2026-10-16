@@ -108,22 +108,26 @@ theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → 
 /-- A natural-number series is bounded by `k` exactly when all its partial sums are. -/
 private lemma tsum_le_iff_forall_sum_range_le {f : ℕ → ℕ} (hf : Summable fun i => (f i : ℝ))
     (k : ℕ) : (∑' i, f i) ≤ k ↔ ∀ n, (∑ i ∈ Finset.range n, f i) ≤ k := by
-  have hzero : ∀ᶠ i in atTop, f i = 0 := by
-    simpa only [Nat.cast_eq_zero] using hf.tendsto_atTop_zero
-  obtain ⟨N, hN⟩ := (eventually_atTop.1 hzero)
-  have heq : ∑' i, f i = ∑ i ∈ Finset.range N, f i := by
-    rw [tsum_eq_sum' (s := Finset.range N)]
+  have hlim := hf.tendsto_atTop_zero
+  rw [Metric.tendsto_atTop] at hlim
+  obtain ⟨N, hN⟩ := hlim 1 zero_lt_one
+  have hzero : ∀ i ≥ N, f i = 0 := by
     intro i hi
-    exact hN i (Nat.le_of_not_gt hi)
+    have hlt : (f i : ℝ) < 1 := by simpa [Real.dist_eq] using hN i hi
+    by_contra hne
+    exact (not_lt_of_ge (show (1 : ℝ) ≤ f i by
+      exact_mod_cast Nat.one_le_iff_ne_zero.2 hne)) hlt
+  have hfs : Summable f := by
+    apply summable_of_hasFiniteSupport
+    exact Set.Finite.subset (Set.finite_Iio N) fun i hi => by
+      by_contra hnot
+      exact hi (hzero i (Nat.le_of_not_gt hnot))
   constructor
   · intro hk n
-    rw [heq] at hk
-    exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.inter_subset_left)
-      (fun _ _ _ => Nat.zero_le _) |>.trans
-      (Finset.sum_subset (Finset.inter_subset_right) fun _ _ _ => Nat.zero_le _) |>.trans hk
+    exact (hfs.sum_le_tsum (Finset.range n) fun _ _ => Nat.zero_le _).trans hk
   · intro hk
-    rw [heq]
-    exact hk N
+    exact le_of_tendsto hfs.hasSum.tendsto_sum_nat
+      (Filter.Eventually.of_forall hk)
 
 /-- A finite sum of mutually independent Poisson random variables is Poisson, with rate equal
 to the sum of the rates. -/
@@ -185,14 +189,24 @@ theorem iIndepFun.hasLaw_tsum_poissonMeasure {X : ℕ → Ω → ℕ} {r : ℕ �
   have heq (n : ℕ) :
       P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k} =
         ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} := by
-    rw [(hpartial n).measure_eq measurableSet_Iic,
-      measure_Iic_eq_sum_singleton]
-  simp_rw [heq]
+    have h := (hpartial n).measure_eq (p := fun x => x ∈ Set.Iic k) measurableSet_Iic
+    exact h.trans (measure_Iic_eq_sum_singleton _ _)
+  change Tendsto (fun n => P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k}) atTop _
+  rw [show (fun n => P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k}) =
+    fun n => ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} by
+      funext n
+      exact heq n]
   rw [measure_Iic_eq_sum_singleton]
-  apply tendsto_finset_sum (Finset.range (k + 1))
+  apply tendsto_finsetSum (Finset.range (k + 1))
   intro i hi
   simp only [poissonMeasure_singleton]
-  fun_prop
+  convert ENNReal.continuous_ofReal.continuousAt.tendsto.comp
+    (((Real.continuous_exp.comp continuous_neg).mul
+      ((continuous_id.pow i).div_const (i.factorial : ℝ))).continuousAt.tendsto.comp
+      ((NNReal.continuous_coe.tendsto _).comp hrates)) using 1
+  · funext n
+    simp [mul_div_assoc]
+  · simp [mul_div_assoc]
 
 /-- The sum of a finite mutually independent family of Poisson random variables is Poisson. -/
 theorem iIndepFun.hasLaw_fun_sum_poissonMeasure [Fintype ι] {X : ι → Ω → ℕ}
