@@ -69,6 +69,12 @@ theorem measurable_poissonCountingMeasure :
         (measurable_pi_apply l)
   exact hblock.comp (measurable_pi_apply n)
 
+/-- The counting measure of measurable random blocks is a measurable random measure. -/
+theorem measurable_poissonCountingMeasure_comp {Ω : Type*} [MeasurableSpace Ω]
+    {B : ℕ → Ω → ℕ × (ℕ → S)} (hBm : ∀ n, Measurable (B n)) :
+    Measurable fun ω => poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l) :=
+  measurable_poissonCountingMeasure.comp (measurable_pi_iff.2 hBm)
+
 /-- Evaluation of the counting measure on a measurable set is the sum of the numbers of
 sampled points in that set, counted with multiplicity. -/
 theorem poissonCountingMeasure_apply (N : ℕ → ℕ) (X : ℕ → ℕ → S)

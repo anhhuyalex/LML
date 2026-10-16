@@ -84,6 +84,28 @@ theorem lintegral_poissonCountingMeasure {P : Measure Ω}
   rw [lintegral_natCast_poissonMeasure]
   rfl
 
+/-- If the points of block `n` lie in the cell `A n` of a pairwise disjoint family, the counting
+measure restricted to that cell is exactly the counting measure of block `n`. -/
+theorem poissonCountingMeasure_restrict_partition
+    (N : ℕ → ℕ) (X : ℕ → ℕ → S) (A : ℕ → Set S)
+    (hdisj : Pairwise (Function.onFun Disjoint A))
+    (hX : ∀ n l, l < N n → X n l ∈ A n)
+    (hA : ∀ n, MeasurableSet (A n)) (n : ℕ) :
+    (poissonCountingMeasure N X).restrict (A n) =
+      ∑ l ∈ Finset.range (N n), Measure.dirac (X n l) := by
+  classical
+  ext t ht
+  rw [Measure.restrict_apply ht, poissonCountingMeasure_apply N X (ht.inter (hA n)),
+    tsum_eq_single n, Measure.finsetSum_apply]
+  · refine Finset.sum_congr rfl fun l hl => ?_
+    have hmem := hX n l (Finset.mem_range.mp hl)
+    by_cases h : X n l ∈ t <;> simp [Measure.dirac_apply' _ ht, Set.indicator, h, hmem]
+  · intro m hmn
+    refine Finset.sum_eq_zero fun l hl => ?_
+    have hnot : X m l ∉ t ∩ A n := fun h =>
+      Set.disjoint_left.mp (hdisj hmn) (hX m l (Finset.mem_range.mp hl)) h.2
+    simp [Set.indicator, hnot]
+
 /-- A block construction supported on pairwise disjoint partition cells has exactly its
 block horizon as the counting measure of each cell. This deterministic identity is valid
 without atomlessness: repeated points are counted with multiplicity. -/
@@ -93,20 +115,9 @@ theorem poissonCountingMeasure_partition_apply
     (hX : ∀ n l, l < N n → X n l ∈ A n)
     (hA : ∀ n, MeasurableSet (A n)) (n : ℕ) :
     (poissonCountingMeasure N X) (A n) = (N n : ℝ≥0∞) := by
-  rw [poissonCountingMeasure_apply N X (hA n)]
-  rw [tsum_eq_single n]
-  · have h : ∀ l ∈ Finset.range (N n), (A n).indicator (1 : S → ℝ≥0∞) (X n l) = 1 := by
-      intro l hl
-      simp [hX n l (Finset.mem_range.mp hl)]
-    rw [Finset.sum_congr rfl h]
-    simp
-  · intro m hmn
-    apply Finset.sum_eq_zero
-    intro l hl
-    have hmem := hX m l (Finset.mem_range.mp hl)
-    have hnot : X m l ∉ A n := fun hn =>
-      Set.disjoint_left.mp (hdisj hmn) hmem hn
-    simp [Set.indicator, hnot]
+  rw [← Measure.restrict_apply_univ,
+    poissonCountingMeasure_restrict_partition N X A hdisj hX hA n, Measure.finsetSum_apply]
+  simp
 
 /-- In the independent-block representation, the counts on partition cells have the
 prescribed joint Poisson law. The full configuration law is the pushforward of these blocks;
@@ -407,12 +418,8 @@ theorem identDistrib_poissonCountingMeasure_of_intensity_eq {Ω Ω' : Type*}
     IdentDistrib (fun ω => poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l))
       (fun ω => poissonCountingMeasure (fun n => (B' n ω).1) (fun n l => (B' n ω).2 l))
       P Q := by
-  have hM : Measurable fun ω => poissonCountingMeasure
-      (fun n => (B n ω).1) (fun n l => (B n ω).2 l) :=
-    measurable_poissonCountingMeasure.comp (measurable_pi_iff.2 hBm)
-  have hM' : Measurable fun ω => poissonCountingMeasure
-      (fun n => (B' n ω).1) (fun n l => (B' n ω).2 l) :=
-    measurable_poissonCountingMeasure.comp (measurable_pi_iff.2 hBm')
+  have hM := measurable_poissonCountingMeasure_comp hBm
+  have hM' := measurable_poissonCountingMeasure_comp hBm'
   refine ⟨hM.aemeasurable, hM'.aemeasurable, ?_⟩
   refine Measure.map_eq_of_disjoint_eval_eq hM hM' fun κ _ A hA hdisj => ?_
   rw [(hasLaw_poissonCountingMeasure_disjoint ν r hBm hB hlaw rfl hA hdisj).map_eq,
