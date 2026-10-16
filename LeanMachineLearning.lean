@@ -318,6 +318,7 @@ public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
 public import LeanMachineLearning.SpinGlasses.PoissonProcess
+public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
 public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
