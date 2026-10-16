@@ -380,9 +380,8 @@ theorem iIndepFun_hasLaw_indepMarkedBlocks {Ω S T : Type*} [MeasurableSpace Ω]
         (fun p : (ℕ → ℕ × (ℕ → S)) × (ℕ → ℕ → T) => fun n => (p.1 n, p.2 n)) ∘
           Prod.map (fun ω n => B n ω) id := rfl
     have hP : P.map (fun ω n => B n ω) = Measure.infinitePi fun n =>
-        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n) := by
-      rw [hB.map_fun_eq_infinitePi_map hBm]
-      exact congrArg Measure.infinitePi (funext fun n => (hlaw n).map_eq)
+        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n) :=
+      (hB.hasLaw_infinitePi hlaw hBv.aemeasurable).map_eq
     rw [h1, ← Measure.map_map hzip (hBv.prodMap measurable_id),
       ← Measure.map_prod_map _ _ hBv measurable_id, Measure.map_id, hP,
       Measure.infinitePi_prod_map_zip]

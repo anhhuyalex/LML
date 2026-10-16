@@ -39,8 +39,8 @@ provided `μ s ≠ ∞`. -/
 theorem MeasureTheory.Measure.smul_cond_eq_restrict (μ : Measure α) {s : Set α} (hs : μ s ≠ ∞) :
     μ s • μ[|s] = μ.restrict s := by
   by_cases h0 : μ s = 0
-  · simp [h0]
-  · simp [cond, smul_smul, ENNReal.mul_inv_cancel h0 hs]
+  · rw [h0, zero_smul, Measure.restrict_eq_zero.2 h0]
+  · simp [ProbabilityTheory.cond, smul_smul, ENNReal.mul_inv_cancel h0 hs]
 
 namespace ProbabilityTheory
 
