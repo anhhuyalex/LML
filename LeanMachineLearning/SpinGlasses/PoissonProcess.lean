@@ -179,8 +179,9 @@ private lemma indicator_cell_count {κ : Type*} {A : κ → Set S}
 /-- **Existence theorem for Poisson processes (Panchenko, Theorem 2.5).** Let `B n = (Nₙ, (Xₙₗ)ₗ)`
 be independent random blocks with `Nₙ ~ Po(rₙ)` independent of the i.i.d. sequence
 `Xₙₗ ~ νₙ`, and let `M` be the counting measure of all the points `Xₙₗ`, `l < Nₙ`. Let
-`μ = ∑ₙ rₙ νₙ`. For pairwise disjoint measurable sets `A i` of finite `μ`-measure, the counts
-`M (A i)` are mutually independent and `M (A i) ~ Po(μ (A i))`. -/
+`μ = ∑ₙ rₙ νₙ`. For pairwise disjoint measurable sets `A i`, the counts `M (A i)` are mutually
+independent, `M (A i) ~ Po(μ (A i))` if `μ (A i) < ∞`, and `M (A i) = ∞` almost surely if
+`μ (A i) = ∞`. -/
 theorem iIndepFun_hasLaw_poissonCountingMeasure_apply {Ω κ : Type*} [MeasurableSpace Ω]
     {P : Measure Ω} [IsProbabilityMeasure P] [Finite κ] (ν : ℕ → Measure S)
     [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → S)}
@@ -189,9 +190,9 @@ theorem iIndepFun_hasLaw_poissonCountingMeasure_apply {Ω κ : Type*} [Measurabl
     {μ : Measure S} (hμ : μ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
     {M : Ω → Measure S}
     (hM : ∀ ω, M ω = poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l))
-    {A : κ → Set S} (hA : ∀ i, MeasurableSet (A i)) (hdisj : Pairwise (Function.onFun Disjoint A))
-    (hfin : ∀ i, μ (A i) ≠ ∞) :
-    (∀ i, HasLaw (fun ω => M ω (A i)) (Po((μ (A i)).toNNReal).map (Nat.cast : ℕ → ℝ≥0∞)) P) ∧
+    {A : κ → Set S} (hA : ∀ i, MeasurableSet (A i)) (hdisj : Pairwise (Function.onFun Disjoint A)) :
+    (∀ i, HasLaw (fun ω => M ω (A i)) (if μ (A i) = ∞ then Measure.dirac ∞ else
+      Po((μ (A i)).toNNReal).map (Nat.cast : ℕ → ℝ≥0∞)) P) ∧
       iIndepFun (fun i ω => M ω (A i)) P := by
   classical
   have := Fintype.ofFinite κ
@@ -212,12 +213,10 @@ theorem iIndepFun_hasLaw_poissonCountingMeasure_apply {Ω κ : Type*} [Measurabl
   -- category counts of each block
   set Y : ℕ → Option κ → Ω → ℕ := fun n o ω =>
     ∑ l ∈ Finset.range (B n ω).1, if c ((B n ω).2 l) = o then 1 else 0 with hY
-  have hYlaw : ∀ n, HasLaw (fun ω o => Y n o ω) (Measure.pi fun o => Po(r n * p n o)) P :=
-    fun n => hasLaw_counts_poisson_thinning_of_hasLaw_prod (ν n) (r n) hc (p n) (hpsum n)
-      (hν n) (hlaw n)
-  have hYo : ∀ n o, HasLaw (Y n o) Po(r n * p n o) P := fun n o =>
-    (measurePreserving_eval (fun o => Po(r n * p n o)) o).hasLaw.comp (hYlaw n)
-  have h2 : ∀ n, iIndepFun (Y n) P := fun n => (iIndepFun_iff_hasLaw_pi_pi (hYo n)).2 (hYlaw n)
+  have hth := fun n => iIndepFun_hasLaw_counts_poisson_thinning_of_hasLaw_prod (ν n) (r n) hc
+    (p n) (hpsum n) (hν n) (hlaw n)
+  have hYo : ∀ n o, HasLaw (Y n o) Po(r n * p n o) P := fun n => (hth n).1
+  have h2 : ∀ n, iIndepFun (Y n) P := fun n => (hth n).2
   have hG : Measurable fun b : ℕ × (ℕ → S) => fun o : Option κ =>
       ∑ l ∈ Finset.range b.1, if c (b.2 l) = o then 1 else 0 :=
     measurable_categoryCounts.comp (by fun_prop : Measurable fun b : ℕ × (ℕ → S) =>
@@ -254,33 +253,47 @@ theorem iIndepFun_hasLaw_poissonCountingMeasure_apply {Ω κ : Type*} [Measurabl
   have hrate : ∀ i, (fun n => r n * p n (some i)) = fun n =>
       ((r n : ℝ≥0∞) * ν n (A i)).toNNReal := fun i => by
     ext n; simp [hpA, ENNReal.toNNReal_mul]
-  have hsum : ∀ i, Summable fun n => r n * p n (some i) := fun i => by
+  refine ⟨fun i => ?_,
+    iIndepFun.congr (fun i => ae_of_all P fun ω => (hMeq i ω).symm) hK⟩
+  have hYi := hall.precomp (g := fun n => (n, some i)) (fun a b hab => by simpa using hab)
+  by_cases hi : μ (A i) = ∞
+  · simp only [hi, ↓reduceIte]
+    have hns : ¬ Summable fun n => r n * p n (some i) := fun hs => by
+      refine ENNReal.tsum_coe_ne_top_iff_summable.2 hs ?_
+      rw [← hi, hμA]
+      refine tsum_congr fun n => ?_
+      rw [congrFun (hrate i) n, ENNReal.coe_toNNReal (hterm n i)]
+    refine hasLaw_dirac_of_ae_eq ?_
+    filter_upwards [hYi.ae_tendsto_sum_range_poissonMeasure_atTop
+      (fun n => hYo n (some i)) hns] with ω hω
+    rw [hMeq]
+    by_contra htop
+    have hs : Summable fun n => (Y n (some i) ω : ℝ≥0) :=
+      ENNReal.tsum_coe_ne_top_iff_summable.mp htop
+    exact (not_tendsto_nhds_of_tendsto_atTop hω _)
+      (summable_of_summable_natCast (NNReal.summable_coe.mpr hs)).hasSum.tendsto_sum_nat
+  simp only [hi, ↓reduceIte]
+  have hsum : Summable fun n => r n * p n (some i) := by
     rw [hrate]
-    exact ENNReal.summable_toNNReal_of_tsum_ne_top (by rw [← hμA]; exact hfin i)
-  have htsum : ∀ i, ∑' n, r n * p n (some i) = (μ (A i)).toNNReal := fun i => by
+    exact ENNReal.summable_toNNReal_of_tsum_ne_top (by rw [← hμA]; exact hi)
+  have htsum : ∑' n, r n * p n (some i) = (μ (A i)).toNNReal := by
     rw [hrate, hμA, ENNReal.tsum_toNNReal_eq (hterm · i)]
-  have hKnat : ∀ i, HasLaw (fun ω => ∑' n, Y n (some i) ω) Po((μ (A i)).toNNReal) P :=
-    fun i => by
-      rw [← htsum]
-      exact (hall.precomp (g := fun n => (n, some i))
-        (fun a b hab => by simpa using hab)).hasLaw_tsum_poissonMeasure
-        (fun n => hYo n (some i)) (hsum i)
-  have hae : ∀ i, (fun ω => M ω (A i)) =ᵐ[P]
-      fun ω => (((∑' n, Y n (some i) ω : ℕ)) : ℝ≥0∞) := fun i => by
+  have hKnat : HasLaw (fun ω => ∑' n, Y n (some i) ω) Po((μ (A i)).toNNReal) P := by
+    rw [← htsum]
+    exact hYi.hasLaw_tsum_poissonMeasure (fun n => hYo n (some i)) hsum
+  have hae : (fun ω => M ω (A i)) =ᵐ[P] fun ω => (((∑' n, Y n (some i) ω : ℕ)) : ℝ≥0∞) := by
     filter_upwards [ae_summable_natCast_of_hasLaw_poissonMeasure
-      (fun n => hYo n (some i)) (hsum i)] with ω hω
+      (fun n => hYo n (some i)) hsum] with ω hω
     rw [hMeq]
     have hs : Summable fun n => Y n (some i) ω := summable_of_summable_natCast hω
     have := hs.hasSum.map (Nat.castAddMonoidHom ℝ≥0∞) continuous_of_discreteTopology
     simpa [Function.comp_def] using this.tsum_eq
-  refine ⟨fun i => ?_,
-    iIndepFun.congr (fun i => ae_of_all P fun ω => (hMeq i ω).symm) hK⟩
   have hcast : HasLaw (fun ω => ((∑' n, Y n (some i) ω : ℕ) : ℝ≥0∞))
       (Po((μ (A i)).toNNReal).map (Nat.cast : ℕ → ℝ≥0∞)) P :=
     (⟨(measurable_of_countable (Nat.cast : ℕ → ℝ≥0∞)).aemeasurable, rfl⟩ : HasLaw
       (Nat.cast : ℕ → ℝ≥0∞) (Po((μ (A i)).toNNReal).map (Nat.cast : ℕ → ℝ≥0∞))
-      Po((μ (A i)).toNNReal)).comp (hKnat i)
-  exact hcast.congr (hae i)
+      Po((μ (A i)).toNNReal)).comp hKnat
+  exact hcast.congr hae
 
 /-- Independent Poisson blocks exist: on the product space `ℕ → ℕ × (ℕ → S)` with the product of
 the laws `Po(rₙ) ⊗ νₙ^{⊗ℕ}`, the coordinate maps are measurable, independent, and have these

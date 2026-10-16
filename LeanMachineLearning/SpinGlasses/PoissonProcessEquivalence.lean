@@ -37,10 +37,7 @@ theorem hasCondDistrib_poissonBlockSamples {P : Measure Ω} [IsProbabilityMeasur
     measurePreserving_fst.hasLaw.comp hB
   have hX : HasLaw (fun ω => (B ω).2) (Measure.infinitePi fun _ : ℕ => ν) P :=
     measurePreserving_snd.hasLaw.comp hB
-  have hind : IndepFun (fun ω => (B ω).1) (fun ω => (B ω).2) P := by
-    apply (indepFun_iff_map_prod_eq_prod_map_map hN.aemeasurable hX.aemeasurable).2
-    simpa only [hN.map_eq, hX.map_eq] using hB.map_eq
-  exact hind.hasCondDistrib_const hN.aemeasurable hX
+  exact ((indepFun_iff_hasLaw_prodMk_prod hN hX).2 hB).hasCondDistrib_const hN.aemeasurable hX
 
 /-- Campbell's formula for a family of independent Poisson blocks. No atomlessness or
 independence is needed for this expectation identity once each block law is known. -/
@@ -84,15 +81,7 @@ theorem lintegral_poissonCountingMeasure {P : Measure Ω}
   simp only [nsmul_eq_mul]
   rw [lintegral_mul_const (∫⁻ s, f s ∂ν n)
     (measurable_of_countable _ : Measurable fun k : ℕ => (k : ℝ≥0∞))]
-  have hmean : (∫⁻ k : ℕ, (k : ℝ≥0∞) ∂Po(r n)) = (r n : ℝ≥0∞) := by
-    change (∫⁻ k : ℕ, ((k : ℝ≥0) : ℝ≥0∞) ∂Po(r n)) = _
-    rw [lintegral_coe_eq_integral _
-      (by simpa using integrable_natCast_poissonMeasure (r n))]
-    rw [show (∫ k : ℕ, ((k : ℝ≥0) : ℝ) ∂Po(r n)) =
-      ∫ k : ℕ, (k : ℝ) ∂Po(r n) from rfl,
-      integral_natCast_poissonMeasure]
-    simp
-  rw [hmean]
+  rw [lintegral_natCast_poissonMeasure]
   rfl
 
 /-- A block construction supported on pairwise disjoint partition cells has exactly its
@@ -168,9 +157,10 @@ theorem hasLaw_poissonCountingMeasure_partition_apply {P : Measure Ω}
       Measure.infinitePi_map_pi (μ := fun n => Po(r n)) (fun _ => hc)⟩
   exact hcast.fun_comp (hasLaw_partitionBlockCounts ν r hBm hB hlaw)
 
-/-- Joint law of evaluations on disjoint cells of finite intensity. This packages the
-independent marginals from the existence theorem into a single finite-dimensional law. -/
-theorem hasLaw_poissonCountingMeasure_disjoint_finite {κ : Type*} [Fintype κ]
+/-- Joint law of the evaluations on finitely many disjoint measurable sets: independent
+Poisson counts, where a set of infinite intensity carries the point mass at `∞`. The law depends
+on the construction only through the intensity `μ = ∑ₙ rₙ νₙ`. -/
+theorem hasLaw_poissonCountingMeasure_disjoint {κ : Type*} [Fintype κ]
     {P : Measure Ω} [IsProbabilityMeasure P]
     (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
     {B : ℕ → Ω → ℕ × (ℕ → S)}
@@ -179,98 +169,15 @@ theorem hasLaw_poissonCountingMeasure_disjoint_finite {κ : Type*} [Fintype κ]
       (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
     {μ : Measure S} (hμ : μ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
     {A : κ → Set S} (hA : ∀ i, MeasurableSet (A i))
-    (hdisj : Pairwise (Function.onFun Disjoint A))
-    (hfin : ∀ i, μ (A i) ≠ ∞) :
+    (hdisj : Pairwise (Function.onFun Disjoint A)) :
     HasLaw (fun ω i => (poissonCountingMeasure (fun n => (B n ω).1)
       (fun n l => (B n ω).2 l)) (A i))
-      (Measure.pi fun i => (Po((μ (A i)).toNNReal)).map
-        (Nat.cast : ℕ → ℝ≥0∞)) P := by
-  let M : Ω → Measure S := fun ω => poissonCountingMeasure
-    (fun n => (B n ω).1) (fun n l => (B n ω).2 l)
+      (Measure.pi fun i => if μ (A i) = ∞ then Measure.dirac ∞ else
+        (Po((μ (A i)).toNNReal)).map (Nat.cast : ℕ → ℝ≥0∞)) P := by
   obtain ⟨hlaws, hind⟩ := iIndepFun_hasLaw_poissonCountingMeasure_apply
-    ν r hBm hB hlaw hμ (M := M) (fun _ => rfl) hA hdisj hfin
+    ν r hBm hB hlaw hμ (M := fun ω => poissonCountingMeasure
+      (fun n => (B n ω).1) (fun n l => (B n ω).2 l)) (fun _ => rfl) hA hdisj
   exact (iIndepFun_iff_hasLaw_pi_pi hlaws).1 hind
-
-/-- A measurable set of infinite intensity contains infinitely many points almost surely.
-This complements the finite-intensity Poisson marginal without asserting a natural-valued
-Poisson distribution at infinite rate. -/
-theorem ae_poissonCountingMeasure_apply_eq_top {P : Measure Ω}
-    (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
-    {B : ℕ → Ω → ℕ × (ℕ → S)}
-    (hB : iIndepFun B P)
-    (hlaw : ∀ n, HasLaw (B n)
-      (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
-    {A : Set S} (hA : MeasurableSet A)
-    (hInf : (Measure.sum fun n => (r n : ℝ≥0∞) • ν n) A = ∞) :
-    ∀ᵐ ω ∂P, (poissonCountingMeasure (fun n => (B n ω).1)
-      (fun n l => (B n ω).2 l)) A = ∞ := by
-  classical
-  let : MeasurableSpace (Option Unit) := ⊤
-  have : MeasurableSingletonClass (Option Unit) := ⟨fun _ => trivial⟩
-  let c : S → Option Unit := fun x => if x ∈ A then some () else none
-  have hc : Measurable c := measurable_const.ite hA measurable_const
-  let p : ℕ → Option Unit → ℝ≥0 := fun n o => (ν n (c ⁻¹' {o})).toNNReal
-  have hp : ∀ n o, ν n (c ⁻¹' {o}) = (p n o : ℝ≥0∞) := by
-    intro n o
-    simp [p, ENNReal.coe_toNNReal (measure_ne_top _ _)]
-  have hpsum : ∀ n, ∑ o, p n o = 1 := by
-    intro n
-    have h1 : ∑ o, ν n (c ⁻¹' {o}) = 1 := by
-      rw [sum_measure_preimage_singleton _ (fun o _ => hc (measurableSet_singleton o))]
-      simp
-    simp only [hp] at h1
-    exact_mod_cast h1
-  let Y : ℕ → Ω → ℕ := fun n ω =>
-    ∑ l ∈ Finset.range (B n ω).1, if c ((B n ω).2 l) = some () then 1 else 0
-  have hYlaw : ∀ n, HasLaw (Y n) Po(r n * p n (some ())) P := by
-    intro n
-    have h := hasLaw_counts_poisson_thinning_of_hasLaw_prod
-      (ν n) (r n) hc (p n) (hpsum n) (hp n) (hlaw n)
-    exact (measurePreserving_eval (fun o => Po(r n * p n o)) (some ())).hasLaw.comp h
-  have hYi : iIndepFun Y P := hB.comp
-    (fun _ b => ∑ l ∈ Finset.range b.1,
-      if c (b.2 l) = some () then 1 else 0)
-    (fun _ => by
-      exact (measurable_pi_apply (some ())).comp
-        (measurable_categoryCounts.comp (by
-          fun_prop : Measurable fun b : ℕ × (ℕ → S) =>
-            (b.1, fun l => c (b.2 l)))))
-  have hcA : c ⁻¹' {some ()} = A := by
-    ext x
-    simp [c]
-  have hr : ¬ Summable (fun n => r n * p n (some ())) := by
-    intro hs
-    have ht : (∑' n, ((r n * p n (some ())) : ℝ≥0∞)) ≠ ∞ :=
-      ENNReal.tsum_coe_ne_top_iff_summable.mpr hs
-    apply ht
-    have hterms : ∀ n, ((r n * p n (some ())) : ℝ≥0∞) =
-        (r n : ℝ≥0∞) • ν n A := by
-      intro n
-      rw [← hp, hcA, smul_eq_mul]
-    rw [Measure.sum_apply _ hA] at hInf
-    simp only [Measure.smul_apply] at hInf
-    calc
-      _ = ∑' n, (r n : ℝ≥0∞) • ν n A := tsum_congr hterms
-      _ = ∞ := hInf
-  have hdiv := hYi.ae_tendsto_sum_range_poissonMeasure_atTop hYlaw hr
-  filter_upwards [hdiv] with ω hω
-  rw [poissonCountingMeasure_apply _ _ hA]
-  have heq : (∑' n, ∑ l ∈ Finset.range (B n ω).1,
-      A.indicator (1 : S → ℝ≥0∞) ((B n ω).2 l)) =
-      ∑' n, (Y n ω : ℝ≥0∞) := by
-    apply tsum_congr
-    intro n
-    simp only [Y, Nat.cast_sum]
-    apply Finset.sum_congr rfl
-    intro l hl
-    by_cases hx : (B n ω).2 l ∈ A <;> simp [c, hx, Set.indicator]
-  rw [heq]
-  by_contra htop
-  have hs : Summable fun n => (Y n ω : ℝ≥0) :=
-    ENNReal.tsum_coe_ne_top_iff_summable.mp htop
-  have hreal : Summable (fun n => (Y n ω : ℝ)) := NNReal.summable_coe.mpr hs
-  have hnat := summable_of_summable_natCast hreal
-  exact (not_tendsto_nhds_of_tendsto_atTop hω _) hnat.hasSum.tendsto_sum_nat
 
 end SpinGlasses
 
@@ -330,20 +237,15 @@ theorem Measure.map_finset_eval_eq_of_disjoint {α Ω Ω' : Type*}
       simpa [v.2] using hs
   let F : (κ → ℝ≥0∞) → t → ℝ≥0∞ := fun z s =>
     ∑ v : {v : κ // v s}, z v.1
-  have hFX : (fun ω (s : t) => X ω s.1) =
-      fun ω => F (fun v => X ω (A v)) := by
-    funext ω s
+  have hF (m : Measure α) (s : t) : m s.1.1 = F (fun v => m (A v)) s := by
     rw [hpartition s]
-    have hh := measure_iUnion (μ := X ω) (f := fun v : {v : κ // v s} => A v.1)
+    have hh := measure_iUnion (μ := m) (f := fun v : {v : κ // v s} => A v.1)
       (fun v w hv => hd (Subtype.val_injective.ne hv)) (fun v => hA v.1)
     simpa only [tsum_fintype] using hh
-  have hFY : (fun ω (s : t) => Y ω s.1) =
-      fun ω => F (fun v => Y ω (A v)) := by
-    funext ω s
-    rw [hpartition s]
-    have hh := measure_iUnion (μ := Y ω) (f := fun v : {v : κ // v s} => A v.1)
-      (fun v w hv => hd (Subtype.val_injective.ne hv)) (fun v => hA v.1)
-    simpa only [tsum_fintype] using hh
+  have hFX : (fun ω (s : t) => X ω s.1) = fun ω => F (fun v => X ω (A v)) :=
+    funext fun ω => funext fun s => hF (X ω) s
+  have hFY : (fun ω (s : t) => Y ω s.1) = fun ω => F (fun v => Y ω (A v)) :=
+    funext fun ω => funext fun s => hF (Y ω) s
   have hFm : Measurable F := measurable_pi_iff.mpr fun s =>
     Finset.measurable_sum _ fun v _ => measurable_pi_apply v.1
   rw [hFX, hFY]
@@ -483,3 +385,37 @@ theorem Measure.map_eq_of_disjoint_eval_eq {α Ω Ω' : Type*}
     (Measure.map_finset_eval_eq_of_disjoint hX hY h)
 
 end MeasureTheory
+
+namespace SpinGlasses
+
+variable {S : Type*} [MeasurableSpace S]
+
+/-- **Equivalence of constructions (Panchenko, Theorem 2.4).** Two independent-block
+constructions with the same intensity `∑ₙ rₙ νₙ = ∑ₘ r'ₘ ν'ₘ` produce counting measures with
+the same law on the space of measures, even if the decompositions into blocks differ. -/
+theorem identDistrib_poissonCountingMeasure_of_intensity_eq {Ω Ω' : Type*}
+    [MeasurableSpace Ω] [MeasurableSpace Ω'] {P : Measure Ω} {Q : Measure Ω'}
+    [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
+    (ν : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    (ν' : ℕ → Measure S) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → S)} (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    {B' : ℕ → Ω' → ℕ × (ℕ → S)} (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
+    (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
+    (hμ : (Measure.sum fun n => (r n : ℝ≥0∞) • ν n) =
+      Measure.sum fun n => (r' n : ℝ≥0∞) • ν' n) :
+    IdentDistrib (fun ω => poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l))
+      (fun ω => poissonCountingMeasure (fun n => (B' n ω).1) (fun n l => (B' n ω).2 l))
+      P Q := by
+  have hM : Measurable fun ω => poissonCountingMeasure
+      (fun n => (B n ω).1) (fun n l => (B n ω).2 l) :=
+    measurable_poissonCountingMeasure.comp (measurable_pi_iff.2 hBm)
+  have hM' : Measurable fun ω => poissonCountingMeasure
+      (fun n => (B' n ω).1) (fun n l => (B' n ω).2 l) :=
+    measurable_poissonCountingMeasure.comp (measurable_pi_iff.2 hBm')
+  refine ⟨hM.aemeasurable, hM'.aemeasurable, ?_⟩
+  refine Measure.map_eq_of_disjoint_eval_eq hM hM' fun κ _ A hA hdisj => ?_
+  rw [(hasLaw_poissonCountingMeasure_disjoint ν r hBm hB hlaw rfl hA hdisj).map_eq,
+    (hasLaw_poissonCountingMeasure_disjoint ν' r' hBm' hB' hlaw' hμ hA hdisj).map_eq]
+
+end SpinGlasses

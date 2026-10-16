@@ -99,8 +99,9 @@ theorem poissonProcess_map {Ω S T κ : Type*} [MeasurableSpace Ω]
       poissonCountingMeasure (fun n => (C n ω).1) (fun n l => (C n ω).2 l) := by
     intro ω
     exact poissonCountingMeasure_map _ _ hf
-  exact iIndepFun_hasLaw_poissonCountingMeasure_apply
-    (fun n => (ν n).map f) r hCm hCi hClaw rfl hM hA hdisj hfin
+  obtain ⟨h, hind⟩ := iIndepFun_hasLaw_poissonCountingMeasure_apply
+    (fun n => (ν n).map f) r hCm hCi hClaw rfl hM hA hdisj
+  exact ⟨fun i => by simpa only [hfin i, ↓reduceIte] using h i, hind⟩
 
 /-- Superposing countably many block configurations is itself a block configuration, after
 pairing the two countable indices. This identity needs no probabilistic hypotheses. -/
@@ -164,9 +165,10 @@ theorem poissonProcess_superposition {Ω S κ : Type*} [MeasurableSpace Ω]
     rw [Measure.sum_sum]
     exact (Measure.sum_comp_equiv Nat.pairEquiv.symm
       (fun p : ℕ × ℕ => (r p.1 p.2 : ℝ≥0∞) • ν p.1 p.2)).symm
-  exact iIndepFun_hasLaw_poissonCountingMeasure_apply v
+  obtain ⟨h, hind⟩ := iIndepFun_hasLaw_poissonCountingMeasure_apply v
     (fun k => r (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2)
-    hCm hCi hClaw hμ hM hA hdisj hfin
+    hCm hCi hClaw hμ hM hA hdisj
+  exact ⟨fun i => by simpa only [hfin i, ↓reduceIte] using h i, hind⟩
 
 /-- **Marking theorem (Panchenko, Theorem 2.3), in block-law form.** Each block has a Poisson
 horizon and iid marked pairs with law `νₙ ⊗ₘ K`. In particular this allows a position-dependent
@@ -196,9 +198,9 @@ theorem poissonProcess_marking {Ω S T κ : Type*} [MeasurableSpace Ω]
     congr 1
     funext n
     exact Measure.compProd_smul_left _
-  exact iIndepFun_hasLaw_poissonCountingMeasure_apply
-    (fun n => ν n ⊗ₘ K) r hBm hB hlaw hμ
-    (fun _ => rfl) hA hdisj hfin
+  obtain ⟨h, hind⟩ := iIndepFun_hasLaw_poissonCountingMeasure_apply
+    (fun n => ν n ⊗ₘ K) r hBm hB hlaw hμ (fun _ => rfl) hA hdisj
+  exact ⟨fun i => by simpa only [hfin i, ↓reduceIte] using h i, hind⟩
 
 /-- **Mapping theorem with simplicity.** If the image intensity has no atoms, then almost surely
 the mapped counting measure counts the points of the image set `f(Π)` without multiplicity. -/

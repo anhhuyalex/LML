@@ -19,7 +19,7 @@ families. It is the finite-partial-sum engine for countable Poisson sums.
 @[expose] public section
 
 open MeasureTheory Real Filter Topology
-open scoped NNReal Nat
+open scoped NNReal ENNReal Nat
 
 namespace ProbabilityTheory
 
@@ -49,6 +49,15 @@ theorem integrable_natCast_poissonMeasure (r : ℝ≥0) :
     Integrable (fun n : ℕ => (n : ℝ)) Po(r) := by
   rw [integrable_poissonMeasure_iff]
   simpa only [Real.norm_natCast] using (hasSum_natCast_poissonMeasure r).summable
+
+/-- The mean of a Poisson law with rate `r`, as an extended nonnegative integral. -/
+theorem lintegral_natCast_poissonMeasure (r : ℝ≥0) :
+    ∫⁻ n : ℕ, (n : ℝ≥0∞) ∂Po(r) = r := by
+  change ∫⁻ n : ℕ, ((n : ℝ≥0) : ℝ≥0∞) ∂Po(r) = _
+  rw [lintegral_coe_eq_integral _ (by simpa using integrable_natCast_poissonMeasure r)]
+  rw [show (∫ n : ℕ, ((n : ℝ≥0) : ℝ) ∂Po(r)) = ∫ n : ℕ, (n : ℝ) ∂Po(r) from rfl,
+    integral_natCast_poissonMeasure]
+  simp
 
 /-- On a countable discrete space, the measure of a finite set is the sum of its
 singleton masses. -/

@@ -447,4 +447,24 @@ theorem hasLaw_counts_poisson_thinning_of_hasLaw_prod {Ω S ι : Type*} [Measura
         hcount.aemeasurable]
     rfl
 
+/-- Coordinatewise form of `hasLaw_counts_poisson_thinning_of_hasLaw_prod`: the category counts
+of a Poisson block are independent, with Poisson marginals. -/
+theorem iIndepFun_hasLaw_counts_poisson_thinning_of_hasLaw_prod {Ω S ι : Type*}
+    [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P] [MeasurableSpace S]
+    [Fintype ι] [DecidableEq ι] [MeasurableSpace ι] [MeasurableSingletonClass ι]
+    (ν : Measure S) [IsProbabilityMeasure ν]
+    (r : ℝ≥0) {c : S → ι} (hc : Measurable c) (p : ι → ℝ≥0) (hp : ∑ i, p i = 1)
+    (hν : ∀ i, ν (c ⁻¹' {i}) = ENNReal.ofNNReal (p i)) {B : Ω → ℕ × (ℕ → S)}
+    (hB : HasLaw B (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P) :
+    (∀ i, HasLaw (fun ω => ∑ l ∈ Finset.range (B ω).1, if c ((B ω).2 l) = i then 1 else 0)
+      Po(r * p i) P) ∧
+      iIndepFun (fun i ω => ∑ l ∈ Finset.range (B ω).1, if c ((B ω).2 l) = i then 1 else 0)
+        P := by
+  have h := hasLaw_counts_poisson_thinning_of_hasLaw_prod ν r hc p hp hν hB
+  have hi : ∀ i, HasLaw
+      (fun ω => ∑ l ∈ Finset.range (B ω).1, if c ((B ω).2 l) = i then 1 else 0)
+      Po(r * p i) P := fun i =>
+    (measurePreserving_eval (fun i => Po(r * p i)) i).hasLaw.comp h
+  exact ⟨hi, (iIndepFun_iff_hasLaw_pi_pi hi).2 h⟩
+
 end ProbabilityTheory
