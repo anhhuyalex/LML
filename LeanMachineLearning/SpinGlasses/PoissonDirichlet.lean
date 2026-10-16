@@ -71,25 +71,31 @@ theorem integral_Ioo_zeta_rpow {ζ : ℝ} (hζ1 : ζ < 1) :
   simp only [Real.one_rpow, Real.zero_rpow (by linarith : -ζ + 1 ≠ 0)]
   ring
 
+/-- The mass of the intensity above `s > 0` is `s ^ (-ζ)`. -/
+theorem zetaPoissonMeasure_Ioi {ζ s : ℝ} (hζ : 0 < ζ) (hs : 0 < s) :
+    zetaPoissonMeasure ζ (Ioi s) = ENNReal.ofReal (s ^ (-ζ)) := by
+  rw [zetaPoissonMeasure, withDensity_apply _ measurableSet_Ioi]
+  have heq : (∫⁻ x in Ioi s,
+      if 0 < x then ENNReal.ofReal (ζ * x ^ (-1 - ζ)) else 0) =
+      ∫⁻ x in Ioi s, ENNReal.ofReal (ζ * x ^ (-1 - ζ)) := by
+    apply lintegral_congr_ae
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
+    simp [lt_trans hs (mem_Ioi.mp hx)]
+  rw [heq]
+  have hf : IntegrableOn (fun x : ℝ => ζ * x ^ (-1 - ζ)) (Ioi s) :=
+    (integrableOn_Ioi_rpow_of_lt (by linarith : -1 - ζ < -1) hs).const_mul ζ
+  rw [← ofReal_integral_eq_lintegral_ofReal hf]
+  · congr 1
+    rw [integral_const_mul, integral_Ioi_rpow_of_lt (by linarith : -1 - ζ < -1) hs,
+      show -1 - ζ + 1 = -ζ by ring]
+    field_simp
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
+    exact mul_nonneg hζ.le (Real.rpow_nonneg (le_of_lt (lt_trans hs (mem_Ioi.mp hx))) _)
+
 /-- The mass of the intensity above one is exactly one. -/
 theorem zetaPoissonMeasure_Ioi_one {ζ : ℝ} (hζ : 0 < ζ) :
     zetaPoissonMeasure ζ (Ioi 1) = 1 := by
-  rw [zetaPoissonMeasure, withDensity_apply _ measurableSet_Ioi]
-  have heq : (∫⁻ x in Ioi (1 : ℝ),
-      if 0 < x then ENNReal.ofReal (ζ * x ^ (-1 - ζ)) else 0) =
-      ∫⁻ x in Ioi (1 : ℝ), ENNReal.ofReal (ζ * x ^ (-1 - ζ)) := by
-    apply lintegral_congr_ae
-    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
-    simp [lt_trans zero_lt_one (mem_Ioi.mp hx)]
-  rw [heq]
-  have hf : IntegrableOn (fun x : ℝ => ζ * x ^ (-1 - ζ)) (Ioi 1) := by
-    exact (integrableOn_Ioi_rpow_of_lt (by linarith : -1 - ζ < -1)
-      (by norm_num : (0 : ℝ) < 1)).const_mul ζ
-  rw [← ofReal_integral_eq_lintegral_ofReal hf]
-  · rw [integral_Ioi_zeta_rpow hζ, ENNReal.ofReal_one]
-  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
-    exact mul_nonneg hζ.le
-      (Real.rpow_nonneg (le_of_lt (lt_trans zero_lt_one (mem_Ioi.mp hx))) _)
+  simp [zetaPoissonMeasure_Ioi hζ zero_lt_one]
 
 /-- The `ζ`-intensity as an integral against Lebesgue measure on the positive half-line. -/
 theorem lintegral_zetaPoissonMeasure (ζ : ℝ) {f : ℝ → ℝ≥0∞} (hf : Measurable f) :
@@ -217,6 +223,12 @@ theorem lintegral_poisson_sum_rpow_le {Ω : Type*} [MeasurableSpace Ω] {P : Mea
 variable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P] {ζ : ℝ}
   {M : Ω → Measure ℝ}
 
+/-- The `a`-th power of the total mass `∑_{x ∈ Π} x` is measurable in the sample point. -/
+theorem measurable_lintegral_poisson_sum_rpow (hMm : Measurable M) (a : ℝ) :
+    Measurable fun ω => (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a :=
+  ((Measure.measurable_lintegral_restrict measurableSet_Ioi ENNReal.measurable_ofReal).comp
+    hMm).pow_const a
+
 /-- **The total mass `∑_{x ∈ Π} x` of the `ζ`-Poisson process is finite almost surely.** This is a
 consequence of Lemma 2.1 (any `a ∈ (0, ζ)` works): the `a`-th moment of the total mass is finite,
 so the total mass is. -/
@@ -227,9 +239,7 @@ theorem ae_lintegral_poisson_lt_top (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hMm : Measu
     ∀ᵐ ω ∂P, ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω) < ∞ := by
   have ha0 : 0 < ζ / 2 := by positivity
   have hbound := lintegral_poisson_sum_rpow_le ha0 (by linarith : ζ / 2 < ζ) hζ1 hMm hatom hCamp
-  have hm : Measurable fun ω => (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ (ζ / 2) :=
-    ((Measure.measurable_lintegral_restrict measurableSet_Ioi ENNReal.measurable_ofReal).comp
-      hMm).pow_const _
+  have hm := measurable_lintegral_poisson_sum_rpow hMm (ζ / 2)
   have hfin : ∫⁻ ω, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ (ζ / 2) ∂P ≠ ∞ :=
     ne_top_of_le_ne_top (by simp) hbound
   filter_upwards [ae_lt_top hm hfin] with ω hω
@@ -244,9 +254,7 @@ theorem integrable_poisson_sum_rpow {a : ℝ} (ha0 : 0 < a) (haζ : a < ζ) (hζ
       ∫⁻ ω, ∫⁻ x, f x ∂(M ω) ∂P = ∫⁻ x, f x ∂(zetaPoissonMeasure ζ)) :
     Integrable (fun ω => (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)).toReal ^ a) P := by
   have hbound := lintegral_poisson_sum_rpow_le ha0 haζ hζ1 hMm hatom hCamp
-  have hm : Measurable fun ω => (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a :=
-    ((Measure.measurable_lintegral_restrict measurableSet_Ioi ENNReal.measurable_ofReal).comp
-      hMm).pow_const _
+  have hm := measurable_lintegral_poisson_sum_rpow hMm a
   have := integrable_toReal_of_lintegral_ne_top hm.aemeasurable
     (ne_top_of_le_ne_top (by simp) hbound)
   simpa only [ENNReal.toReal_rpow] using this
@@ -262,9 +270,7 @@ theorem integral_poisson_sum_rpow_le {a : ℝ} (ha0 : 0 < a) (haζ : a < ζ) (h�
       1 + ζ / (1 - ζ) + ζ / (ζ - a) := by
   have hζ0 : 0 < ζ := ha0.trans haζ
   have hbound := lintegral_poisson_sum_rpow_le ha0 haζ hζ1 hMm hatom hCamp
-  have hm : Measurable fun ω => (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a :=
-    ((Measure.measurable_lintegral_restrict measurableSet_Ioi ENNReal.measurable_ofReal).comp
-      hMm).pow_const _
+  have hm := measurable_lintegral_poisson_sum_rpow hMm a
   have hfin : ∫⁻ ω, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a ∂P ≠ ∞ :=
     ne_top_of_le_ne_top (by simp) hbound
   have hae : ∀ᵐ ω ∂P, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a < ∞ := ae_lt_top hm hfin
@@ -354,6 +360,15 @@ variable (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : �
   {B : ℕ → Ω → ℕ × (ℕ → ℝ)}
 
 omit [IsProbabilityMeasure P] in
+/-- The counting measure of measurable blocks is a measurable random measure. -/
+theorem measurable_poissonCountingMeasure_of_blocks (hBm : ∀ n, Measurable (B n))
+    (hM : ∀ ω, M ω = poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)) :
+    Measurable M := by
+  have : M = fun ω => poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l) :=
+    funext hM
+  exact this ▸ measurable_poissonCountingMeasure_comp hBm
+
+omit [IsProbabilityMeasure P] in
 /-- Campbell's formula for the ζ-Poisson counting measure. -/
 theorem lintegral_lintegral_zeta_of_blocks
     (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
@@ -373,10 +388,7 @@ theorem integral_poisson_sum_rpow_le_of_blocks {a : ℝ} (ha0 : 0 < a) (haζ : a
     Integrable (fun ω => (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)).toReal ^ a) P ∧
       ∫ ω, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)).toReal ^ a ∂P ≤
         1 + ζ / (1 - ζ) + ζ / (ζ - a) := by
-  have hMm : Measurable M := by
-    have : M = fun ω => poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l) :=
-      funext hM
-    exact this ▸ measurable_poissonCountingMeasure_comp hBm
+  have hMm := measurable_poissonCountingMeasure_of_blocks hBm hM
   have hatom : ∀ ω, ∃ (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ), M ω = poissonCountingMeasure N X :=
     fun ω => ⟨_, _, hM ω⟩
   have hCamp := fun f (hf : Measurable f) => lintegral_lintegral_zeta_of_blocks ν r hlaw hμ hM hf
@@ -395,10 +407,7 @@ theorem ae_poissonDirichletWeight (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hBm : ∀ n, 
       HasSum (fun n => poissonDirichletWeight n (M ω)) 1 ∧
       (∀ n, 0 < poissonDirichletWeight n (M ω)) ∧
       Antitone fun n => poissonDirichletWeight n (M ω) := by
-  have hMm : Measurable M := by
-    have : M = fun ω => poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l) :=
-      funext hM
-    exact this ▸ measurable_poissonCountingMeasure_comp hBm
+  have hMm := measurable_poissonCountingMeasure_of_blocks hBm hM
   have hatom : ∀ ω, ∃ (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ), M ω = poissonCountingMeasure N X :=
     fun ω => ⟨_, _, hM ω⟩
   have hCamp := fun f (hf : Measurable f) => lintegral_lintegral_zeta_of_blocks ν r hlaw hμ hM hf

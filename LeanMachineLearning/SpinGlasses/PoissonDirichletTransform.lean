@@ -96,7 +96,7 @@ theorem zetaPoissonMeasure_map_mul {ζ c : ℝ} (hζ : 0 < ζ) (hc : 0 < c) :
 measure on the mark space. The normalizing constant is required to be positive and finite. -/
 noncomputable def poissonMarkTilt {S : Type*} [MeasurableSpace S] (ζ : ℝ)
     (ν : Measure (ℝ × S)) : Measure S :=
-  (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν).toReal)⁻¹ •
+  (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν)⁻¹ •
     ((ν.withDensity fun p => ENNReal.ofReal p.1 ^ ζ).map Prod.snd)
 
 /-- The normalized ζ-power tilt is a probability measure. -/
@@ -111,15 +111,13 @@ theorem poissonMarkTilt_isProbability {S : Type*} [MeasurableSpace S]
     MeasurableSet.univ, Set.preimage_univ, withDensity_apply _ MeasurableSet.univ,
     Measure.restrict_univ]
   have hne : (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν) ≠ ∞ := hfin.ne
-  change (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν).toReal)⁻¹ *
-    (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν) = 1
-  rw [ENNReal.ofReal_toReal hne, ENNReal.inv_mul_cancel hpos.ne' hne]
+  exact ENNReal.inv_mul_cancel hpos.ne' hne
 
 /-- The tilted law evaluates a measurable set by its ζ-weighted mark mass. -/
 theorem poissonMarkTilt_apply {S : Type*} [MeasurableSpace S] (ζ : ℝ)
     (ν : Measure (ℝ × S)) {A : Set S} (hA : MeasurableSet A) :
     poissonMarkTilt ζ ν A =
-      (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν).toReal)⁻¹ *
+      (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν)⁻¹ *
         ∫⁻ p in Prod.snd ⁻¹' A, ENNReal.ofReal p.1 ^ ζ ∂ν := by
   rw [poissonMarkTilt, Measure.smul_apply, Measure.map_apply (by fun_prop) hA,
     withDensity_apply _ (hA.preimage (by fun_prop))]
@@ -163,15 +161,8 @@ theorem zetaPoissonMeasure_prod_map_mul {S : Type*} [MeasurableSpace S]
     simpa only [Measure.map_apply hmeas hsectionmeas, Measure.smul_apply,
       smul_eq_mul, g, Set.mem_ofPred_eq, Set.preimage_ofPred_eq] using this
   have hleft : ((zetaPoissonMeasure ζ).prod ν) (g ⁻¹' A) =
-      ∫⁻ p, (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A} ∂ν := by
-    rw [← lintegral_indicator_one (hA.preimage hg)]
-    rw [lintegral_prod_symm' _ ((measurable_one.indicator (hA.preimage hg)))]
-    change (∫⁻ p, ∫⁻ u, (g ⁻¹' A).indicator 1 (u, p)
-      ∂zetaPoissonMeasure ζ ∂ν) = _
-    congr 1
-    funext p
-    exact (lintegral_indicator_one (μ := zetaPoissonMeasure ζ) (hA.preimage
-      (hg.comp (by fun_prop : Measurable fun u : ℝ => (u, p)))))
+      ∫⁻ p, (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A} ∂ν :=
+    Measure.prod_apply_symm (hA.preimage hg)
   rw [hleft]
   have hsections : (fun p => (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A}) =ᵐ[ν]
       (fun p => f p * (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A}) := by
@@ -180,21 +171,11 @@ theorem zetaPoissonMeasure_prod_map_mul {S : Type*} [MeasurableSpace S]
   rw [lintegral_congr_ae hsections]
   have hprod : ((zetaPoissonMeasure ζ).prod τ) A =
       ∫⁻ p, f p * (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A} ∂ν := by
-    rw [← lintegral_indicator_one (μ := (zetaPoissonMeasure ζ).prod τ) hA]
-    rw [lintegral_prod_symm' _ (measurable_one.indicator hA)]
-    have hinner : ∀ p : ℝ × S, (∫⁻ u,
-        A.indicator 1 (u, p.2) ∂zetaPoissonMeasure ζ) =
-        (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A} := by
-      intro p
-      exact lintegral_indicator_one (μ := zetaPoissonMeasure ζ)
-        (hA.preimage (by fun_prop : Measurable fun u : ℝ => (u, p.2)))
-    rw [lintegral_map (by fun_prop : Measurable fun s : S =>
-      ∫⁻ u, A.indicator 1 (u, s) ∂zetaPoissonMeasure ζ)
-      (by fun_prop : Measurable (Prod.snd : ℝ × S → S))]
-    rw [lintegral_withDensity_eq_lintegral_mul _ hf
-      (by fun_prop : Measurable fun p : ℝ × S =>
-        ∫⁻ u, A.indicator 1 (u, p.2) ∂zetaPoissonMeasure ζ)]
-    simp_rw [hinner]
+    have hmeas : Measurable fun p : ℝ × S =>
+        (zetaPoissonMeasure ζ) ((fun x => (x, p.2)) ⁻¹' A) :=
+      (measurable_measure_prodMk_right hA).comp measurable_snd
+    rw [Measure.prod_apply_symm hA, lintegral_map (measurable_measure_prodMk_right hA)
+      measurable_snd, lintegral_withDensity_eq_lintegral_mul _ hf hmeas]
     rfl
   simpa only [Measure.prod_apply hA, τ, f] using hprod.symm
 
@@ -208,20 +189,13 @@ theorem zetaPoissonMeasure_prod_map_mul_normalized {S : Type*} [MeasurableSpace 
     (hfin : ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν < ∞) :
     ((zetaPoissonMeasure ζ).prod ν).map
         (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) =
-      (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν).toReal •
-        zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ ν) := by
-  let m : ℝ≥0∞ := ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν
-  have hm : ENNReal.ofReal m.toReal = m := ENNReal.ofReal_toReal hfin.ne
+      ((∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν) • zetaPoissonMeasure ζ).prod
+        (poissonMarkTilt ζ ν) := by
   have _hp : IsProbabilityMeasure (poissonMarkTilt ζ ν) :=
     poissonMarkTilt_isProbability hpos hfin
   rw [zetaPoissonMeasure_prod_map_mul hζ ν hν, Measure.prod_smul_left]
-  change (zetaPoissonMeasure ζ).prod
-      ((ν.withDensity fun p => ENNReal.ofReal p.1 ^ ζ).map Prod.snd) =
-    ENNReal.ofReal m.toReal • ((zetaPoissonMeasure ζ).prod
-      (poissonMarkTilt ζ ν))
   simp only [poissonMarkTilt]
-  rw [Measure.prod_smul_right, smul_smul, hm,
-    ENNReal.mul_inv_cancel hpos.ne' hfin.ne, one_smul]
+  rw [Measure.prod_smul_right, smul_smul, ENNReal.mul_inv_cancel hpos.ne' hfin.ne, one_smul]
 
 /-- **Theorem 2.6, finite-dimensional Poisson-process law.** Independent Poisson blocks
 of positive points, independently marked with a joint law of `(X,Y)`, are mapped by
@@ -246,16 +220,15 @@ theorem poissonDirichlet_marked_transform
     (hfin : ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ < ∞)
     {A : κ → Set (ℝ × S)} (hA : ∀ i, MeasurableSet (A i))
     (hdisj : Pairwise (Function.onFun Disjoint A))
-    (hfinite : ∀ i, ((ENNReal.ofReal
-        (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ).toReal • zetaPoissonMeasure ζ).prod
+    (hfinite : ∀ i, (((∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ) • zetaPoissonMeasure ζ).prod
           (poissonMarkTilt ζ τ)) (A i) ≠ ∞) :
     (∀ i, HasLaw (fun ω =>
         (poissonCountingMeasure (fun n => (B n ω).1)
           (fun n l => (B n ω).2 l)).map
             (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) (A i))
         ((ProbabilityTheory.poissonMeasure
-          (((ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ).toReal •
-            zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ τ)) (A i)).toNNReal).map
+          ((((∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ) • zetaPoissonMeasure ζ).prod
+            (poissonMarkTilt ζ τ)) (A i)).toNNReal).map
           (Nat.cast : ℕ → ℝ≥0∞)) P) ∧
       iIndepFun (fun i ω =>
         (poissonCountingMeasure (fun n => (B n ω).1)
@@ -265,12 +238,80 @@ theorem poissonDirichlet_marked_transform
     fun_prop
   have hmass : (Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map
       (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) =
-      (ENNReal.ofReal (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ).toReal •
-        zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ τ) := by
+      ((∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ) • zetaPoissonMeasure ζ).prod
+        (poissonMarkTilt ζ τ) := by
     rw [← poissonIntensity_map ν r hmap, ← hμ]
     exact zetaPoissonMeasure_prod_map_mul_normalized hζ τ hτ hpos hfin
   rw [← hmass]
   exact poissonProcess_map ν r hBm hB hlaw hmap hA hdisj
     (fun i => hmass.symm ▸ hfinite i)
+
+/-- **Theorem 2.6 (Panchenko), equality in law.** Let `μ_ζ ⊗ τ` be the intensity of a Poisson
+process of points `(u, (x, y))` with positive marks `x` of finite positive ζ-moment `m = E X^ζ`.
+Then the transformed process `(u, (x, y)) ↦ (u x, y)` has the same law, as a random measure, as
+the process with intensity `μ_ζ ⊗ ν_ζ` whose points are scaled by `c = m^{1/ζ}`, where `ν_ζ` is the
+size-biased mark law `poissonMarkTilt ζ τ`. The two processes may be built from different block
+decompositions (this is where the Equivalence Theorem 2.4 is used). -/
+theorem identDistrib_poissonDirichlet_marked_transform
+    {Ω Ω' S : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] [MeasurableSpace S]
+    {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
+    {ζ : ℝ} (hζ : 0 < ζ) (τ : Measure (ℝ × S)) [IsProbabilityMeasure τ]
+    (hτ : ∀ᵐ p ∂τ, 0 < p.1) (hpos : 0 < ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ)
+    (hfin : ∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ < ∞)
+    (ν : ℕ → Measure (ℝ × (ℝ × S))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × S))} (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod τ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
+    (ν' : ℕ → Measure (ℝ × S)) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → ℝ≥0)
+    {B' : ℕ → Ω' → ℕ × (ℕ → ℝ × S)} (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
+    (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
+    (hμ' : (zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ τ) =
+      Measure.sum fun n => (r' n : ℝ≥0∞) • ν' n) :
+    IdentDistrib
+      (fun ω => (poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l)).map (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)))
+      (fun ω => (poissonCountingMeasure (fun n => (B' n ω).1)
+        (fun n l => (B' n ω).2 l)).map
+          (fun p : ℝ × S => (p.1 * (∫⁻ q, ENNReal.ofReal q.1 ^ ζ ∂τ).toReal ^ ζ⁻¹, p.2)))
+      P Q := by
+  set m : ℝ≥0∞ := ∫⁻ q, ENNReal.ofReal q.1 ^ ζ ∂τ with hm
+  set c : ℝ := (m.toReal) ^ ζ⁻¹ with hc
+  have hmpos : 0 < m.toReal := ENNReal.toReal_pos hpos.ne' hfin.ne
+  have hcpos : 0 < c := Real.rpow_pos_of_pos hmpos _
+  have hF : Measurable (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) := by fun_prop
+  have hG : Measurable (fun p : ℝ × S => (p.1 * c, p.2)) := by fun_prop
+  have hmapF : ∀ n, IsProbabilityMeasure ((ν n).map
+      (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) := fun _ => inferInstance
+  have hmapG : ∀ n, IsProbabilityMeasure ((ν' n).map
+      (fun p : ℝ × S => (p.1 * c, p.2))) := fun _ => inferInstance
+  -- the mapped blocks
+  have _hτ : IsProbabilityMeasure (poissonMarkTilt ζ τ) := poissonMarkTilt_isProbability hpos hfin
+  have hCi : iIndepFun (fun n ω => ((B n ω).1, fun l => (fun p : ℝ × (ℝ × S) =>
+      (p.1 * p.2.1, p.2.2)) ((B n ω).2 l))) P :=
+    hB.comp (fun _ b => (b.1, fun l => (fun p : ℝ × (ℝ × S) =>
+      (p.1 * p.2.1, p.2.2)) (b.2 l))) (fun _ => by fun_prop)
+  have hCi' : iIndepFun (fun n ω => ((B' n ω).1, fun l => (fun p : ℝ × S =>
+      (p.1 * c, p.2)) ((B' n ω).2 l))) Q :=
+    hB'.comp (fun _ b => (b.1, fun l => (fun p : ℝ × S => (p.1 * c, p.2)) (b.2 l)))
+      (fun _ => by fun_prop)
+  -- the two intensities coincide
+  have hint : (Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map
+        (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) =
+      Measure.sum fun n => (r' n : ℝ≥0∞) • (ν' n).map (fun p : ℝ × S => (p.1 * c, p.2)) := by
+    rw [← poissonIntensity_map ν r hF, ← hμ,
+      zetaPoissonMeasure_prod_map_mul_normalized hζ τ hτ hpos hfin,
+      ← poissonIntensity_map ν' r' hG, ← hμ']
+    have hprod := Measure.map_prod_map (zetaPoissonMeasure ζ) (poissonMarkTilt ζ τ)
+      (f := fun u : ℝ => u * c) (g := id) (by fun_prop) measurable_id
+    have hcm : ENNReal.ofReal (c ^ ζ) = m := by
+      rw [hc, Real.rpow_inv_rpow hmpos.le hζ.ne', ENNReal.ofReal_toReal hfin.ne]
+    rw [show (fun p : ℝ × S => (p.1 * c, p.2)) = Prod.map (fun u : ℝ => u * c) id from rfl,
+      ← hprod, Measure.map_id, zetaPoissonMeasure_map_mul hζ hcpos, hcm]
+  have key := identDistrib_poissonCountingMeasure_of_intensity_eq
+    (fun n => (ν n).map (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) r
+    (fun n => (ν' n).map (fun p : ℝ × S => (p.1 * c, p.2))) r'
+    (fun n => by fun_prop) hCi (fun n => hasLaw_map_prod_infinitePi (hlaw n) hF)
+    (fun n => by fun_prop) hCi' (fun n => hasLaw_map_prod_infinitePi (hlaw' n) hG) hint
+  simpa only [poissonCountingMeasure_map _ _ hF, poissonCountingMeasure_map _ _ hG] using key
 
 end SpinGlasses

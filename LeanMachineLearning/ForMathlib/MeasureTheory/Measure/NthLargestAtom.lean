@@ -54,6 +54,25 @@ theorem antitone_nthLargestAtom (M : Measure ℝ) : Antitone fun n => nthLargest
   · exact bot_le
   · exact le_rfl
 
+/-- The mass of an open half-line is the increasing limit of the masses of the half-lines
+`(t + 1/(j+1), ∞)`. -/
+theorem measure_Ioi_eq_iSup_add_one_div (M : Measure ℝ) (t : ℝ) :
+    M (Ioi t) = ⨆ j : ℕ, M (Ioi (t + 1 / ((j : ℝ) + 1))) := by
+  rw [← Monotone.measure_iUnion]
+  · congr 1
+    ext x
+    simp only [mem_Ioi, mem_iUnion]
+    refine ⟨fun hx => ?_, fun ⟨j, hj⟩ => ?_⟩
+    · obtain ⟨j, hj⟩ := exists_nat_one_div_lt (sub_pos.2 hx)
+      exact ⟨j, by linarith⟩
+    · have : (0 : ℝ) < 1 / ((j : ℝ) + 1) := by positivity
+      linarith
+  · intro j k hjk
+    refine Ioi_subset_Ioi ?_
+    have : 1 / ((k : ℝ) + 1) ≤ 1 / ((j : ℝ) + 1) :=
+      one_div_le_one_div_of_le (by positivity) (by exact_mod_cast Nat.add_le_add_right hjk 1)
+    linarith
+
 /-- If `M` is `ℕ ∪ {∞}`-valued on the half-lines `Ioi s`, `s > 0`, then for `t ≥ 0` the `(n+1)`-st
 largest atom exceeds `t` iff at least `n + 1` atoms lie above `t`. -/
 theorem ofReal_lt_nthLargestAtom_iff {M : Measure ℝ} (n : ℕ) {t : ℝ} (ht : 0 ≤ t)
@@ -68,22 +87,7 @@ theorem ofReal_lt_nthLargestAtom_iff {M : Measure ℝ} (n : ℕ) {t : ℝ} (ht :
     · simp only [hM, ↓reduceIte] at hq
       exact absurd hq (not_lt_of_ge bot_le)
   · intro h
-    -- `M (Ioi t)` is the increasing limit of `M (Ioi (t + 1/(j+1)))`
-    have hcont : M (Ioi t) = ⨆ j : ℕ, M (Ioi (t + 1 / ((j : ℝ) + 1))) := by
-      rw [← Monotone.measure_iUnion]
-      · congr 1
-        ext x
-        simp only [mem_Ioi, mem_iUnion]
-        refine ⟨fun hx => ?_, fun ⟨j, hj⟩ => ?_⟩
-        · obtain ⟨j, hj⟩ := exists_nat_one_div_lt (sub_pos.2 hx)
-          exact ⟨j, by linarith⟩
-        · have : (0 : ℝ) < 1 / ((j : ℝ) + 1) := by positivity
-          linarith
-      · intro j k hjk
-        refine Ioi_subset_Ioi ?_
-        have : 1 / ((k : ℝ) + 1) ≤ 1 / ((j : ℝ) + 1) :=
-          one_div_le_one_div_of_le (by positivity) (by exact_mod_cast Nat.add_le_add_right hjk 1)
-        linarith
+    have hcont := measure_Ioi_eq_iSup_add_one_div M t
     have hj : ∃ j : ℕ, (n + 1 : ℝ≥0∞) ≤ M (Ioi (t + 1 / ((j : ℝ) + 1))) := by
       by_contra hcon
       push Not at hcon
