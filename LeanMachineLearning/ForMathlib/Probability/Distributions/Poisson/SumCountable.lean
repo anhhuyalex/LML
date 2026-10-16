@@ -66,6 +66,25 @@ theorem integrable_natCast_poissonMeasure (r : ℝ≥0) :
   rw [integrable_poissonMeasure_iff]
   simpa only [Real.norm_natCast] using summable_poisson_nat r
 
+/-- On a countable discrete space, the measure of a finite set is the sum of its
+singleton masses. -/
+theorem measure_finset_eq_sum_singleton {α : Type*} [MeasurableSpace α]
+    [MeasurableSingletonClass α] (μ : Measure α) (s : Finset α) :
+    μ (s : Set α) = ∑ a ∈ s, μ {a} := by
+  rw [show (s : Set α) = ⋃ a ∈ s, ({a} : Set α) by ext a; simp]
+  exact measure_biUnion_finset
+    (fun a ha b hb hab => Set.disjoint_singleton.2 hab)
+    (fun _ _ => MeasurableSet.singleton _)
+
+/-- The cumulative mass of a natural-number-valued measure is the finite sum of its
+singleton masses. -/
+theorem measure_Iic_eq_sum_singleton (μ : Measure ℕ) (k : ℕ) :
+    μ (Set.Iic k) = ∑ n ∈ Finset.range (k + 1), μ {n} := by
+  rw [← measure_finset_eq_sum_singleton]
+  congr
+  ext n
+  simp
+
 /-- A countable family of Poisson variables with summable rates is almost surely summable.
 Independence is not needed for this conclusion. -/
 theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → Ω → ℕ}
