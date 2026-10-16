@@ -194,6 +194,116 @@ theorem identDistrib_poissonDirichlet_gaussian_transform
     rfl
   simp [heq]
 
+/-- The ranked masses of a marked counting measure are measurable in the Giry sigma algebra.
+The marks themselves require selecting the singleton fibers of these masses. -/
+theorem measurable_rankedMasses :
+    Measurable (fun M : Measure (ℝ × ℝ) =>
+      fun n : ℕ => nthLargestAtom n (M.map Prod.fst)) := by
+  exact measurable_pi_iff.2 fun n =>
+    (measurable_nthLargestAtom n).comp
+      (Measure.measurable_map Prod.fst measurable_fst)
+
+/-- The Gaussian transformation preserves the joint law of *all ranked masses*.
+This follows by pushing forward the full marked counting-measure law; it does not yet
+identify the Gaussian mark carried by each ranked mass. -/
+theorem identDistrib_poissonDirichlet_gaussian_rankedMasses
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
+    {ζ : ℝ} (hζ : 0 < ζ) (t : ℝ)
+    (ν : ℕ → Measure (ℝ × (ℝ × ℝ))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × ℝ))}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod ((gaussianReal 0 1).map
+        (fun g => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ))) =
+      Measure.sum (fun n => (r n : ENNReal) • ν n))
+    (ν' : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → NNReal)
+    {B' : ℕ → Ω' → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
+    (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod
+      (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
+    (hμ' : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum (fun n => (r' n : ENNReal) • ν' n)) :
+    IdentDistrib
+      (fun ω n => nthLargestAtom n
+        ((poissonCountingMeasure (fun k => (B k ω).1)
+          (fun k l => (B k ω).2 l)).map
+            (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.1)))
+      (fun ω n => nthLargestAtom n
+        (poissonCountingMeasure (fun k => (B' k ω).1)
+          (fun k l => ((B' k ω).2 l).1))) P Q := by
+  have hid := (identDistrib_poissonDirichlet_gaussian_transform hζ t ν r
+    hBm hB hlaw hμ ν' r' hBm' hB' hlaw' hμ').comp measurable_rankedMasses
+  have hleft (ω : Ω) :
+      ((poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l)).map
+        (fun p : ℝ × (ℝ × ℝ) => (p.1 * p.2.1, p.2.2))).map Prod.fst =
+      (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l)).map
+        (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.1) := by
+    rw [Measure.map_map measurable_fst (by fun_prop)]
+    rfl
+  have hright (ω : Ω') :
+      (poissonCountingMeasure (fun k => (B' k ω).1) (fun k l => (B' k ω).2 l)).map
+        Prod.fst =
+      poissonCountingMeasure (fun k => (B' k ω).1) (fun k l => ((B' k ω).2 l).1) :=
+    poissonCountingMeasure_map _ _ measurable_fst
+  simpa only [Function.comp_def, hleft, hright] using hid
+
+/-- Gaussian rescaling also preserves the law of the entire sequence of normalized ranked
+weights. The normalization is the existing Poisson–Dirichlet weight observable. -/
+theorem identDistrib_poissonDirichlet_gaussian_weights
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
+    {ζ : ℝ} (hζ : 0 < ζ) (t : ℝ)
+    (ν : ℕ → Measure (ℝ × (ℝ × ℝ))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × ℝ))}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod ((gaussianReal 0 1).map
+        (fun g => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ))) =
+      Measure.sum (fun n => (r n : ENNReal) • ν n))
+    (ν' : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → NNReal)
+    {B' : ℕ → Ω' → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
+    (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod
+      (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
+    (hμ' : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum (fun n => (r' n : ENNReal) • ν' n)) :
+    IdentDistrib
+      (fun ω n => poissonDirichletWeight n
+        ((poissonCountingMeasure (fun k => (B k ω).1)
+          (fun k l => (B k ω).2 l)).map
+            (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.1)))
+      (fun ω n => poissonDirichletWeight n
+        (poissonCountingMeasure (fun k => (B' k ω).1)
+          (fun k l => ((B' k ω).2 l).1))) P Q := by
+  have hid := identDistrib_poissonDirichlet_gaussian_transform hζ t ν r
+    hBm hB hlaw hμ ν' r' hBm' hB' hlaw' hμ'
+  have hmeas : Measurable (fun M : Measure (ℝ × ℝ) =>
+      fun n : ℕ => poissonDirichletWeight n (M.map Prod.fst)) :=
+    measurable_pi_iff.2 fun n => (measurable_poissonDirichletWeight n).comp
+      (Measure.measurable_map Prod.fst measurable_fst)
+  have h := hid.comp hmeas
+  have hleft (ω : Ω) :
+      ((poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l)).map
+        (fun p : ℝ × (ℝ × ℝ) => (p.1 * p.2.1, p.2.2))).map Prod.fst =
+      (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l)).map
+        (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.1) := by
+    rw [Measure.map_map measurable_fst (by fun_prop)]
+    rfl
+  have hright (ω : Ω') :
+      (poissonCountingMeasure (fun k => (B' k ω).1) (fun k l => (B' k ω).2 l)).map
+        Prod.fst =
+      poissonCountingMeasure (fun k => (B' k ω).1) (fun k l => ((B' k ω).2 l).1) :=
+    poissonCountingMeasure_map _ _ measurable_fst
+  simpa only [Function.comp_def, hleft, hright] using h
+
+/-- Forgetting marks before ranking agrees with ranking the unmarked block construction. -/
+theorem rankedMasses_poissonCountingMeasure (N : ℕ → ℕ)
+    (X : ℕ → ℕ → ℝ × ℝ) (n : ℕ) :
+    nthLargestAtom n ((poissonCountingMeasure N X).map Prod.fst) =
+      nthLargestAtom n (poissonCountingMeasure N (fun k l => (X k l).1)) := by
+  rw [poissonCountingMeasure_map N X measurable_fst]
+
 /-- The mark at a real mass, read from a singleton fiber of a marked counting measure.
 The value is zero on fibers of mass other than one. -/
 noncomputable def markAtMass (M : Measure (ℝ × ℝ)) (u : ℝ) : ℝ :=
