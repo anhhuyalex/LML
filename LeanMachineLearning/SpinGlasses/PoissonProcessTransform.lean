@@ -48,6 +48,22 @@ theorem poissonIntensity_map {S T : Type*} [MeasurableSpace S]
   simp [Measure.map_apply hf hA, Measure.sum_apply _ hA,
     Measure.sum_apply _ (hf hA), Measure.smul_apply]
 
+/-- Applying a measurable map to every sample of independent Poisson blocks gives independent
+Poisson blocks with the mapped sample laws. -/
+theorem poissonBlocks_map {Ω S T : Type*} [MeasurableSpace Ω] [MeasurableSpace S]
+    [MeasurableSpace T] {P : Measure Ω} {ν : ℕ → Measure S} [∀ n, IsProbabilityMeasure (ν n)]
+    {r : ℕ → ℝ≥0} {B : ℕ → Ω → ℕ × (ℕ → S)} (hBm : ∀ n, Measurable (B n))
+    (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    {f : S → T} (hf : Measurable f) :
+    (∀ n, Measurable fun ω => ((B n ω).1, fun l => f ((B n ω).2 l))) ∧
+      iIndepFun (fun n ω => ((B n ω).1, fun l => f ((B n ω).2 l))) P ∧
+      ∀ n, HasLaw (fun ω => ((B n ω).1, fun l => f ((B n ω).2 l)))
+        (Po(r n).prod (Measure.infinitePi fun _ : ℕ => (ν n).map f)) P :=
+  ⟨fun n => by have := hBm n; fun_prop,
+    hB.comp (fun _ b => (b.1, fun l => f (b.2 l))) (fun _ => by fun_prop),
+    fun n => hasLaw_map_prod_infinitePi (hlaw n) hf⟩
+
 /-- If the image intensity `(∑ rₙ νₙ) ∘ f⁻¹` has no atoms, then every block of positive intensity
 has an atomless image law. -/
 theorem nullSingletonClass_map_block {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
@@ -85,16 +101,8 @@ theorem poissonProcess_map {Ω S T κ : Type*} [MeasurableSpace Ω]
         (poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map f
           (A i)) P := by
   have : ∀ n, IsProbabilityMeasure ((ν n).map f) := fun _ => inferInstance
-  let C : ℕ → Ω → ℕ × (ℕ → T) := fun n ω =>
-    ((B n ω).1, fun l => f ((B n ω).2 l))
-  have hCm : ∀ n, Measurable (C n) := fun n => by
-    dsimp [C]
-    fun_prop
-  have hCi : iIndepFun C P :=
-    hB.comp (fun _ b => (b.1, fun l => f (b.2 l))) (fun _ => by fun_prop)
-  have hClaw : ∀ n, HasLaw (C n) (Po(r n).prod
-      (Measure.infinitePi fun _ : ℕ => (ν n).map f)) P := fun n =>
-    hasLaw_map_prod_infinitePi (hlaw n) hf
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw hf
+  let C : ℕ → Ω → ℕ × (ℕ → T) := fun n ω => ((B n ω).1, fun l => f ((B n ω).2 l))
   have hM : ∀ ω, (poissonCountingMeasure (fun n => (B n ω).1)
       (fun n l => (B n ω).2 l)).map f =
       poissonCountingMeasure (fun n => (C n ω).1) (fun n l => (C n ω).2 l) := by
@@ -219,11 +227,7 @@ theorem ae_poissonProcess_map_eq_encard {Ω S T : Type*} [MeasurableSpace Ω]
       (poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map f A =
         (A ∩ {y | ∃ n, ∃ l < (B n ω).1, f ((B n ω).2 l) = y}).encard := by
   have : ∀ n, IsProbabilityMeasure ((ν n).map f) := fun _ => inferInstance
-  have hCm : ∀ n, Measurable fun ω => ((B n ω).1, fun l => f ((B n ω).2 l)) := fun n => by
-    fun_prop
-  have hCi : iIndepFun (fun n ω => ((B n ω).1, fun l => f ((B n ω).2 l))) P :=
-    hB.comp (fun _ b => (b.1, fun l => f (b.2 l))) (fun _ => by fun_prop)
-  have hClaw := fun n => hasLaw_map_prod_infinitePi (hlaw n) hf
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw hf
   filter_upwards [ae_poissonCountingMeasure_eq_encard (fun n => (ν n).map f) r hCm hCi hClaw
     (fun n hn => nullSingletonClass_map_block ν r hf hnull hn)] with ω hω A hA
   rw [poissonCountingMeasure_map _ _ hf]

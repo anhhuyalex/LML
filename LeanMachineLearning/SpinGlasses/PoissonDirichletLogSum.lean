@@ -200,6 +200,37 @@ end BlockModel
 
 variable {S : Type*} [MeasurableSpace S]
 
+/-- If `μ ⊗ ρ = ∑ rₙ νₙ` for a probability measure `ρ`, then the first coordinates of the blocks
+have intensity `μ`. -/
+theorem eq_sum_map_fst_of_prod_eq {μ : Measure ℝ} {ρ : Measure S} [IsProbabilityMeasure ρ]
+    (ν : ℕ → Measure (ℝ × S)) (r : ℕ → ℝ≥0)
+    (h : μ.prod ρ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    μ = Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map Prod.fst := by
+  rw [← poissonIntensity_map ν r measurable_fst, ← h, Measure.map_fst_prod, measure_univ,
+    one_smul]
+
+/-- The expected logarithm of the total mass `∑ x` of a Poisson process does not depend on the
+block construction, only on the intensity (Equivalence Theorem 2.4). -/
+theorem integral_log_lintegral_eq_of_intensity_eq {Ω Ω' : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace Ω'] {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P]
+    [IsProbabilityMeasure Q] (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)]
+    (r : ℕ → ℝ≥0) (ν' : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ)} (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    {B' : ℕ → Ω' → ℕ × (ℕ → ℝ)} (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
+    (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
+    (hμ : (Measure.sum fun n => (r n : ℝ≥0∞) • ν n) =
+      Measure.sum fun n => (r' n : ℝ≥0∞) • ν' n) :
+    ∫ ω, Real.log (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(poissonCountingMeasure
+        (fun n => (B n ω).1) (fun n l => (B n ω).2 l))).toReal ∂P =
+      ∫ ω, Real.log (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(poissonCountingMeasure
+        (fun n => (B' n ω).1) (fun n l => (B' n ω).2 l))).toReal ∂Q := by
+  have hψ : Measurable fun m : Measure ℝ => Real.log (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂m).toReal :=
+    Real.measurable_log.comp (ENNReal.measurable_toReal.comp
+      (Measure.measurable_lintegral_restrict measurableSet_Ioi ENNReal.measurable_ofReal))
+  exact ((identDistrib_poissonCountingMeasure_of_intensity_eq ν r ν' r' hBm hB hlaw hBm' hB'
+    hlaw' hμ).comp hψ).integral_eq
+
 /-- The total first coordinate of the points of `m` lying in `{p | 0 < p.1}`. -/
 theorem lintegral_map_fst_Ioi (m : Measure (ℝ × S)) :
     ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(m.map Prod.fst) =
@@ -239,14 +270,15 @@ theorem ae_pos_of_tail {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} {T : �
   filter_upwards [measure_eq_zero_iff_ae_notMem.1 h0] with ω hω
   exact pos_iff_ne_zero.2 hω
 
-/-- **Lemma 2.2 (Panchenko).** Let `Π = {u}` be the ζ-Poisson process, marked by i.i.d. `X ~ τ`
-(with `E X^ζ = m` positive and finite), so that the marked process has intensity `μ_ζ ⊗ τ`
-(first process, blocks `B`). Let the second process have intensity `μ_ζ ⊗ ν_ζ` (blocks `B'`),
-whose first coordinates form a ζ-Poisson process. Then
-`E log ∑ uₙ Xₙ = E log ∑ uₙ + (1/ζ) log E X^ζ`,
+/-- **Lemma 2.2 (Panchenko), with the size-biased reference process.** Let the first process
+(blocks `B`) have intensity `μ_ζ ⊗ τ`, where the marks have positive first coordinate `x` with
+`E X^ζ = m` positive and finite, and let the second process (blocks `B'`) have intensity
+`μ_ζ ⊗ ν_ζ`, so that its first coordinates form a ζ-Poisson process. Then
+`E log ∑ uₙ Xₙ = E log ∑ uₙ' + (1/ζ) log E X^ζ`,
 where the sums are `∫ x dM` over the positive points of the pushforward under
-`(u, (x, y)) ↦ u x`, respectively under `(u, y) ↦ u`. -/
-theorem integral_log_marked_sum_eq
+`(u, (x, y)) ↦ u x`, respectively under `(u, y) ↦ u`. See `integral_log_marked_sum_eq` for the
+version with an arbitrary reference construction. -/
+theorem integral_log_marked_sum_eq_tilt
     {Ω Ω' S : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] [MeasurableSpace S]
     {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
     {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (τ : Measure (ℝ × S)) [IsProbabilityMeasure τ]
@@ -294,15 +326,8 @@ theorem integral_log_marked_sum_eq
   -- the unmarked reference process: first coordinates of the second process
   have _hτ : IsProbabilityMeasure (poissonMarkTilt ζ τ) := poissonMarkTilt_isProbability hpos hfin
   have : ∀ n, IsProbabilityMeasure ((ν' n).map Prod.fst) := fun _ => inferInstance
-  have hCm : ∀ n, Measurable fun ω' => ((B' n ω').1, fun l => ((B' n ω').2 l).1) := fun n => by
-    have := hBm' n; fun_prop
-  have hCi : iIndepFun (fun n ω' => ((B' n ω').1, fun l => ((B' n ω').2 l).1)) Q :=
-    hB'.comp (fun _ b => (b.1, fun l => (b.2 l).1)) (fun _ => by fun_prop)
-  have hClaw := fun n => hasLaw_map_prod_infinitePi (hlaw' n) (measurable_fst (α := ℝ) (β := S))
-  have hμ0 : zetaPoissonMeasure ζ =
-      Measure.sum fun n => (r' n : ℝ≥0∞) • (ν' n).map Prod.fst := by
-    rw [← poissonIntensity_map ν' r' measurable_fst, ← hμ', Measure.map_fst_prod, measure_univ,
-      one_smul]
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm' hB' hlaw' (measurable_fst (β := S))
+  have hμ0 := eq_sum_map_fst_of_prod_eq ν' r' hμ'
   have hM0 : ∀ ω', (poissonCountingMeasure (fun n => (B' n ω').1)
         (fun n l => (B' n ω').2 l)).map Prod.fst =
       poissonCountingMeasure (fun n => (B' n ω').1) (fun n l => ((B' n ω').2 l).1) :=
@@ -340,6 +365,147 @@ theorem integral_log_marked_sum_eq
   refine hY.trans ?_
   rw [integral_add (integrable_const _) hlog, integral_const]
   simp [hc, Real.log_rpow hmpos]
+  ring
+
+/-- **Lemma 2.2 (Panchenko).** Let `Π = {uₙ}` be a ζ-Poisson process, marked by i.i.d. `t ~ τ`
+(blocks `B`, intensity `μ_ζ ⊗ τ`), and let `X` be a positive measurable function of the mark with
+`E X^ζ` positive and finite. Then
+`E log ∑ uₙ Xₙ = E log ∑ uₙ + (1/ζ) log E X^ζ`,
+where the first sum is `∫ y dM` over the positive points of the pushforward under
+`(u, t) ↦ u X t`, and the second is the same functional of any construction `B₀` of the
+ζ-Poisson process (all constructions agree in law by Theorem 2.4). -/
+theorem integral_log_marked_sum_eq
+    {Ω Ω₀ T : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω₀] [MeasurableSpace T]
+    {P : Measure Ω} {Q : Measure Ω₀} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
+    {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (τ : Measure T) [IsProbabilityMeasure τ]
+    {X : T → ℝ} (hX : Measurable X) (hXpos : ∀ᵐ t ∂τ, 0 < X t)
+    (hpos : 0 < ∫⁻ t, ENNReal.ofReal (X t) ^ ζ ∂τ)
+    (hfin : ∫⁻ t, ENNReal.ofReal (X t) ^ ζ ∂τ < ∞)
+    (ν : ℕ → Measure (ℝ × T)) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × T)} (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod τ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
+    (ν₀ : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν₀ n)] (r₀ : ℕ → ℝ≥0)
+    {B₀ : ℕ → Ω₀ → ℕ × (ℕ → ℝ)} (hBm₀ : ∀ n, Measurable (B₀ n)) (hB₀ : iIndepFun B₀ Q)
+    (hlaw₀ : ∀ n, HasLaw (B₀ n) (Po(r₀ n).prod (Measure.infinitePi fun _ : ℕ => ν₀ n)) Q)
+    (hμ₀ : zetaPoissonMeasure ζ = Measure.sum fun n => (r₀ n : ℝ≥0∞) • ν₀ n) :
+    ∫ ω, Real.log (∫⁻ y in Ioi 0, ENNReal.ofReal y ∂((poissonCountingMeasure
+        (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map
+          (fun p : ℝ × T => p.1 * X p.2))).toReal ∂P =
+      ∫ ω, Real.log (∫⁻ y in Ioi 0, ENNReal.ofReal y ∂(poissonCountingMeasure
+        (fun n => (B₀ n ω).1) (fun n l => (B₀ n ω).2 l))).toReal ∂Q +
+        ζ⁻¹ * Real.log (∫⁻ t, ENNReal.ofReal (X t) ^ ζ ∂τ).toReal := by
+  -- mark each point with its own `X`, so that `X` becomes the first mark coordinate
+  let g : T → ℝ × T := fun t => (X t, t)
+  have hg : Measurable g := by fun_prop
+  let f : ℝ × T → ℝ × (ℝ × T) := fun p => (p.1, g p.2)
+  have hf : Measurable f := by fun_prop
+  have _ : IsProbabilityMeasure (τ.map g) :=
+    (Measure.isProbabilityMeasure_map_iff hg.aemeasurable).2 inferInstance
+  have _ : ∀ n, IsProbabilityMeasure ((ν n).map f) := fun _ => inferInstance
+  have hmom : ∫⁻ q, ENNReal.ofReal q.1 ^ ζ ∂(τ.map g) = ∫⁻ t, ENNReal.ofReal (X t) ^ ζ ∂τ :=
+    lintegral_map (f := fun q : ℝ × T => ENNReal.ofReal q.1 ^ ζ) (by fun_prop) hg
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw hf
+  have hμ1 : (zetaPoissonMeasure ζ).prod (τ.map g) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map f := by
+    rw [← poissonIntensity_map ν r hf, ← hμ]
+    have h := Measure.map_prod_map (zetaPoissonMeasure ζ) τ (f := id) (g := g) measurable_id hg
+    rwa [Measure.map_id] at h
+  -- a size-biased reference process, whose first coordinates form a ζ-Poisson process
+  have _ : IsProbabilityMeasure (poissonMarkTilt ζ (τ.map g)) :=
+    poissonMarkTilt_isProbability (hmom ▸ hpos) (hmom ▸ hfin)
+  have _ : Nonempty (ℝ × T) := ⟨(0, (nonempty_of_isProbabilityMeasure τ).some)⟩
+  obtain ⟨ν', r', hν', hμ'⟩ := exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite
+    ((zetaPoissonMeasure ζ).prod (poissonMarkTilt ζ (τ.map g)))
+  obtain ⟨Q', hQ', hBm', hB', hlaw'⟩ := exists_poissonBlocks ν' r'
+  have _ := hν'
+  have key := integral_log_marked_sum_eq_tilt (P := P) (Q := Q') hζ0 hζ1 (τ.map g)
+    (ae_map_iff hg.aemeasurable (measurableSet_Ioi.preimage measurable_fst) |>.2 hXpos)
+    (hmom ▸ hpos) (hmom ▸ hfin) (fun n => (ν n).map f) r hCm hCi hClaw hμ1 ν' r' hBm' hB'
+    hlaw' hμ'
+  rw [hmom] at key
+  -- the left sides agree because `p.1 * (f p).2.1 = p.1 * X p.2`
+  have hL : ∀ ω, (poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map
+        (fun p : ℝ × T => p.1 * X p.2) =
+      (poissonCountingMeasure (fun n => ((B n ω).1)) (fun n l => f ((B n ω).2 l))).map
+        (fun p : ℝ × (ℝ × T) => p.1 * p.2.1) := fun ω => by
+    rw [← poissonCountingMeasure_map _ _ hf, Measure.map_map (by fun_prop) hf]
+    rfl
+  simp only [hL]
+  rw [key]
+  congr 1
+  -- the reference constructions agree
+  obtain ⟨hCm', hCi', hClaw'⟩ := poissonBlocks_map hBm' hB' hlaw' (measurable_fst (β := T))
+  have _ : ∀ n, IsProbabilityMeasure ((ν' n).map Prod.fst) := fun _ => inferInstance
+  have hR := integral_log_lintegral_eq_of_intensity_eq (fun n => (ν' n).map Prod.fst) r' ν₀ r₀
+    hCm' hCi' hClaw' hBm₀ hB₀ hlaw₀ ((eq_sum_map_fst_of_prod_eq ν' r' hμ').symm.trans hμ₀)
+  simpa only [poissonCountingMeasure_map _ _ (measurable_fst (β := T))] using hR
+
+/-- The ζ-moment of a product of independent random variables, the first of them positive,
+factors. -/
+theorem lintegral_prod_rpow_mul {ζ : ℝ} (hζ : 0 < ζ) (τX τZ : Measure ℝ)
+    [SFinite τZ] (hX : ∀ᵐ x ∂τX, 0 < x) :
+    (∫⁻ p : ℝ × ℝ, ENNReal.ofReal (p.1 * p.2) ^ ζ ∂τX.prod τZ) =
+      (∫⁻ x, ENNReal.ofReal x ^ ζ ∂τX) * (∫⁻ z, ENNReal.ofReal z ^ ζ ∂τZ) := by
+  rw [← lintegral_prod_mul (ENNReal.measurable_ofReal.pow_const ζ).aemeasurable
+    (ENNReal.measurable_ofReal.pow_const ζ).aemeasurable]
+  refine lintegral_congr_ae ?_
+  filter_upwards [Measure.quasiMeasurePreserving_fst.ae hX] with p hp
+  rw [ENNReal.ofReal_mul hp.le, ENNReal.mul_rpow_of_nonneg _ _ hζ.le]
+
+/-- **Equation (2.22) (Panchenko).** Let `Π = {uₙ}` be a ζ-Poisson process marked by i.i.d. pairs
+`(Xₙ, Zₙ)` with independent positive coordinates (law `τX ⊗ τZ`, finite positive ζ-moments). Then
+`E log ∑ uₙ Xₙ Zₙ = E log ∑ uₙ Zₙ + (1/ζ) log E X^ζ`,
+where the sums are `∫ y dM` over the positive points of the pushforward of the marked
+counting measure under `(u, (x, z)) ↦ u x z`, respectively `(u, (x, z)) ↦ u z`. -/
+theorem integral_log_marked_sum_mul_eq
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (τX τZ : Measure ℝ)
+    [IsProbabilityMeasure τX] [IsProbabilityMeasure τZ]
+    (hX : ∀ᵐ x ∂τX, 0 < x) (hZ : ∀ᵐ z ∂τZ, 0 < z)
+    (hXp : 0 < ∫⁻ x, ENNReal.ofReal x ^ ζ ∂τX) (hXf : ∫⁻ x, ENNReal.ofReal x ^ ζ ∂τX < ∞)
+    (hZp : 0 < ∫⁻ z, ENNReal.ofReal z ^ ζ ∂τZ) (hZf : ∫⁻ z, ENNReal.ofReal z ^ ζ ∂τZ < ∞)
+    (ν : ℕ → Measure (ℝ × (ℝ × ℝ))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × ℝ))} (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (τX.prod τZ) = Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    ∫ ω, Real.log (∫⁻ y in Ioi 0, ENNReal.ofReal y ∂((poissonCountingMeasure
+        (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map
+          (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.1 * p.2.2))).toReal ∂P =
+      ∫ ω, Real.log (∫⁻ y in Ioi 0, ENNReal.ofReal y ∂((poissonCountingMeasure
+        (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map
+          (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.2))).toReal ∂P +
+        ζ⁻¹ * Real.log (∫⁻ x, ENNReal.ofReal x ^ ζ ∂τX).toReal := by
+  have _ : Nonempty ℝ := ⟨0⟩
+  obtain ⟨ν₀, r₀, hν₀, hμ₀⟩ := exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite
+    (zetaPoissonMeasure ζ)
+  obtain ⟨Q, hQ, hBm₀, hB₀, hlaw₀⟩ := exists_poissonBlocks ν₀ r₀
+  have _ := hν₀
+  have hfst := Measure.quasiMeasurePreserving_fst (μ := τX) (ν := τZ)
+  have hsnd := Measure.quasiMeasurePreserving_snd (μ := τX) (ν := τZ)
+  have hmul := lintegral_prod_rpow_mul hζ0 τX τZ hX
+  have hmZ : ∫⁻ q : ℝ × ℝ, ENNReal.ofReal q.2 ^ ζ ∂τX.prod τZ =
+      ∫⁻ z, ENNReal.ofReal z ^ ζ ∂τZ := by
+    rw [lintegral_prod _ (by fun_prop : Measurable fun q : ℝ × ℝ =>
+      ENNReal.ofReal q.2 ^ ζ).aemeasurable]
+    simp
+  -- Lemma 2.2 for the marks `x z` and for the marks `z`, with the same reference process
+  have h1 := integral_log_marked_sum_eq hζ0 hζ1 (τX.prod τZ)
+    (X := fun q : ℝ × ℝ => q.1 * q.2) (by fun_prop) ((hfst.ae hX).and (hsnd.ae hZ)
+      |>.mono fun q hq => mul_pos hq.1 hq.2)
+    (by rw [hmul]; exact ENNReal.mul_pos hXp.ne' hZp.ne')
+    (by rw [hmul]; exact ENNReal.mul_lt_top hXf hZf)
+    ν r hBm hB hlaw hμ ν₀ r₀ hBm₀ hB₀ hlaw₀ hμ₀
+  have h2 := integral_log_marked_sum_eq hζ0 hζ1 (τX.prod τZ)
+    (X := fun q : ℝ × ℝ => q.2) measurable_snd (hsnd.ae hZ)
+    (by rw [hmZ]; exact hZp) (by rw [hmZ]; exact hZf)
+    ν r hBm hB hlaw hμ ν₀ r₀ hBm₀ hB₀ hlaw₀ hμ₀
+  rw [hmul, ENNReal.toReal_mul, Real.log_mul (ENNReal.toReal_pos hXp.ne' hXf.ne).ne'
+    (ENNReal.toReal_pos hZp.ne' hZf.ne).ne'] at h1
+  rw [hmZ] at h2
+  have e : (fun p : ℝ × (ℝ × ℝ) => p.1 * p.2.1 * p.2.2) = fun p => p.1 * (p.2.1 * p.2.2) :=
+    funext fun p => mul_assoc _ _ _
+  rw [e, h1, h2]
   ring
 
 end SpinGlasses

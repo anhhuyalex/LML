@@ -42,7 +42,7 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
 Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book: the general tools
 (the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6), the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5) and of separately exchangeable arrays (Theorem~1.4), each with its converse.
-Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. Section~\ref{sec:sg:poisson} starts Chapter~2 of the book: Poisson point processes (the constructive definition, the Existence Theorem~2.5 and the Mapping, Superposition and Marking Theorems~2.1--2.3, and the Equivalence Theorem~2.4), with the Lean files \texttt{SpinGlasses/PoissonProcess.lean}, \texttt{SpinGlasses/PoissonProcessTransform.lean}, \texttt{SpinGlasses/PoissonProcessEquivalence.lean}, \texttt{SpinGlasses/PoissonProcessPartition.lean} and \texttt{ForMathlib/Probability/Distributions/Poisson/}. Section~\ref{sec:sg:pd} gives the first part of Section~2.2 of the book: the Poisson--Dirichlet intensity, Lemma~2.1, the decreasing enumeration of the points and the weights of $\mathrm{PD}(\zeta)$, with the Lean file \texttt{SpinGlasses/PoissonDirichlet.lean}. What remains open for Chapter~1 is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
+Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. Section~\ref{sec:sg:poisson} starts Chapter~2 of the book: Poisson point processes (the constructive definition, the Existence Theorem~2.5 and the Mapping, Superposition and Marking Theorems~2.1--2.3, and the Equivalence Theorem~2.4), with the Lean files \texttt{SpinGlasses/PoissonProcess.lean}, \texttt{SpinGlasses/PoissonProcessTransform.lean}, \texttt{SpinGlasses/PoissonProcessEquivalence.lean}, \texttt{SpinGlasses/PoissonProcessPartition.lean} and \texttt{ForMathlib/Probability/Distributions/Poisson/}. Section~\ref{sec:sg:pd} gives the first part of Section~2.2 of the book: the Poisson--Dirichlet intensity, Lemma~2.1, the decreasing enumeration of the points and the weights of $\mathrm{PD}(\zeta)$, then the homogeneity of the intensity, the Marking--Rescaling Theorem~2.6, the integrability of $\log\sum_{x\in\Pi}x$ and the log-sum identity of Lemma~2.2, with the Lean files \texttt{SpinGlasses/PoissonDirichlet.lean}, \texttt{SpinGlasses/PoissonDirichletTransform.lean} and \texttt{SpinGlasses/PoissonDirichletLogSum.lean}. What remains open for Chapter~1 is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
 
 
 \medskip\noindent\textbf{Notation.}
@@ -2930,6 +2930,7 @@ For every $(r_n)$ and $(\nu_n)$ there is a probability measure on $\prod_n(\math
 
 \begin{theorem}[Mapping Theorem~2.1]\label{thm:sg:poisson-map}
   \lean{SpinGlasses.poissonCountingMeasure_map,
+        SpinGlasses.poissonBlocks_map,
         SpinGlasses.poissonProcess_map,
         SpinGlasses.nullSingletonClass_map_block,
         SpinGlasses.ae_poissonProcess_map_eq_encard}
@@ -3067,7 +3068,7 @@ This section describes the part of this construction that is formalized, in the 
 \texttt{ForMathlib/Analysis/RpowTsum.lean} (subadditivity of $x^p$ for countable sums),
 \texttt{ForMathlib/MeasureTheory/Measure/NthLargestAtom.lean} (the decreasing enumeration of the atoms of a measure on $\mathbb R$) and
 \texttt{ForMathlib/MeasureTheory/Measure/RestrictPartition.lean} (restriction and decomposition of a measure along a partition).
-\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized. Theorem~2.6 (marking and homogeneity), Lemma~2.2 and Equation~(2.22) (the log-sum identity), the Bolthausen--Sznitman invariance, the Ghirlanda--Guerra identities and the uniqueness Theorem~2.8 are not formalized yet.
+\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized (Milestone 21A, \texttt{PoissonDirichlet.lean}). So are the homogeneity of $\mu_\zeta$, Theorem~2.6 (marking and rescaling, both as a statement about counts and as an equality in law of random measures), the integrability of $\log\sum_{x\in\Pi}x$, Lemma~2.2 (the log-sum identity) and Equation~(2.22) (independent extra factors), in \texttt{SpinGlasses/PoissonDirichletTransform.lean} and \texttt{SpinGlasses/PoissonDirichletLogSum.lean} (Milestone 21B; see Subsections~\ref{sec:sg:pd-marking} and~\ref{sec:sg:pd-logsum}). The Bolthausen--Sznitman invariance, the Ghirlanda--Guerra identities and the uniqueness Theorem~2.8 are not formalized yet.
 
 \medskip\noindent\textbf{How the process is represented.} As in Section~\ref{sec:sg:poisson}, we introduce no new notion of ``Poisson process''. A Poisson process with intensity $\mu_\zeta$ is a random counting measure $M=\sum_n\sum_{l<N_n}\delta_{X_{nl}}$ built from independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ with $\sum_nr_n\nu_n=\mu_\zeta$. We write the sum of all points as the integral $\int_{(0,\infty)}x\,dM(x)$ with respect to $M$, so that ``$\sum_{x\in\Pi}x$'' is, in Lean, a lower Lebesgue integral \texttt{lintegral} of \texttt{ENNReal.ofReal} over \texttt{Ioi 0} with respect to \texttt{M $\omega$}, a value in $[0,\infty]$. We keep all sums in $[0,\infty]$ and only convert to real numbers at the end, because in Lean the real number ``$\infty$'' is $0$: a real-valued statement such as $\mathbb E(\sum x)^a<\infty$ would be vacuously true on an event where the sum is infinite.
 
@@ -3197,12 +3198,111 @@ For a measure $M$ on $\mathbb R$, $v_n(M)=u_n(M)\big/\sum_{l\ge0}u_l(M)$ (as a r
 (a) Measurability and monotonicity follow from Lemma~\ref{lem:sg:pd-atoms}(a) (dividing by the common measurable factor $1/\sum_lu_l$ preserves both). If $0<T=\sum_lu_l<\infty$ then $\sum_nu_n/T=1$. (b) By Theorem~\ref{thm:sg:poisson-existence} applied to the single set $(0,\infty)$, whose mass under $\mu_\zeta$ is infinite (Lemma~\ref{lem:sg:pd-moments}(a)), $M((0,\infty))=\infty$ almost surely. By Lemma~\ref{lem:sg:pd-atoms}(b) with $t=0$ (its hypothesis holds by Lemma~\ref{lem:sg:pd-atomic}(a)), $u_n>0$ for all $n$. By Lemma~\ref{lem:sg:pd-atoms}(c) and Theorem~\ref{thm:sg:pd-moment}, $\sum_nu_n=\int x\,dM<\infty$ almost surely, and it is positive since $u_0>0$. Part~(a) gives the rest; $v_n>0$ because $u_n>0$ and $T<\infty$. (c) Lemma~\ref{lem:sg:pd-atomic}(b) applied to $\mu_\zeta$, then Lemma~\ref{thm:sg:poisson-blocks-exist}.
 \end{proof}
 
+\subsection*{Homogeneity, marking and rescaling (Theorem~2.6)}\label{sec:sg:pd-marking}
+
+The key property of the power-law intensity is that dilating all points multiplies it by a constant: the point process is ``self-similar''. This is what turns a random size-biased weight attached to each point into a deterministic rescaling of the whole configuration, and it is the reason the log-sum identity of the next subsection holds.
+
+\begin{lemma}[Homogeneity of $\mu_\zeta$]\label{lem:sg:pd-homogeneity}
+  \lean{SpinGlasses.zetaPoissonMeasure_map_mul,
+        SpinGlasses.zetaPoissonMeasure_Ioi}
+  \leanok
+For $\zeta>0$ and $c>0$, the image of $\mu_\zeta$ under $u\mapsto uc$ is $c^{\zeta}\mu_\zeta$. In particular $\mu_\zeta\big((s,\infty)\big)=s^{-\zeta}$ for $s>0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+For a measurable $A$, $\mu_\zeta(\{u:uc\in A\})=\int_{A/c}\zeta u^{-1-\zeta}\,du$; the substitution $v=uc$ turns this into $\int_A\zeta (v/c)^{-1-\zeta}\,dv/c=c^{\zeta}\int_A\zeta v^{-1-\zeta}dv$. The tail formula is $\int_s^\infty\zeta x^{-1-\zeta}dx=s^{-\zeta}$.
+\end{proof}
+
+\begin{definition}[The size-biased mark law $\nu_\zeta$]\label{def:sg:pd-tilt}
+  \lean{SpinGlasses.poissonMarkTilt}
+  \leanok
+Let $\tau$ be a law of a pair $(X,Y)$ with $X>0$ and $0<\mathbb EX^\zeta<\infty$. The size-biased law of $Y$ is $\nu_\zeta(B)=\mathbb E\big[X^\zeta\mathbf 1_B(Y)\big]\big/\mathbb EX^\zeta$. In Lean this is \texttt{poissonMarkTilt}, with the normalizing constant kept as an element of $[0,\infty]$, and it is a probability measure under the stated moment conditions.
+\end{definition}
+
+\begin{theorem}[Marking and rescaling: Theorem~2.6]\label{thm:sg:pd-marking}
+  \lean{SpinGlasses.poissonMarkTilt_isProbability,
+        SpinGlasses.zetaPoissonMeasure_prod_map_mul,
+        SpinGlasses.zetaPoissonMeasure_prod_map_mul_normalized,
+        SpinGlasses.poissonDirichlet_marked_transform,
+        SpinGlasses.identDistrib_poissonDirichlet_marked_transform}
+  \leanok
+Let $0<\zeta$, let $\tau$ be a probability law of marks $(X,Y)\in(0,\infty)\times S$ with $m=\mathbb EX^\zeta\in(0,\infty)$ and let $\nu_\zeta$ be as above.
+(a) \emph{Intensity.} The image of $\mu_\zeta\otimes\tau$ under $(u,(x,y))\mapsto(ux,y)$ is $(m\,\mu_\zeta)\otimes\nu_\zeta$.
+(b) \emph{Counts.} If $M$ is a Poisson process with intensity $\mu_\zeta\otimes\tau$ (independent blocks as in Section~\ref{sec:sg:poisson}), then the counts of the image process on finitely many disjoint measurable sets of finite $(m\mu_\zeta)\otimes\nu_\zeta$-mass are independent Poisson variables with these masses.
+(c) \emph{Law.} The image process has the same law, as a random measure on $(0,\infty)\times S$, as the process $\sum_n\delta_{(u'_nc,\,y'_n)}$ obtained from a Poisson process $\{(u'_n,y'_n)\}$ with intensity $\mu_\zeta\otimes\nu_\zeta$ by multiplying the first coordinates by $c=m^{1/\zeta}$. The two processes may be built from different block decompositions of their intensities.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:pd-homogeneity, thm:sg:poisson-map, thm:sg:poisson-equivalence}
+(a) By Fubini, the image measure of a set $A$ is $\int \mu_\zeta\{u:(ux,y)\in A\}\,\tau(dx,dy)$. By Lemma~\ref{lem:sg:pd-homogeneity} the inner measure is $x^{\zeta}\mu_\zeta\{u:(u,y)\in A\}$, which gives $\mu_\zeta\otimes\tilde\tau$ with $\tilde\tau$ the image of $x^\zeta\tau$ under $(x,y)\mapsto y$; dividing and multiplying by $m$ gives $(m\mu_\zeta)\otimes\nu_\zeta$. (b) The Mapping Theorem (Theorem~\ref{thm:sg:poisson-map}) for $f(u,(x,y))=(ux,y)$ gives independent Poisson counts with the image intensity, which is identified in (a). (c) Apply the Mapping Theorem to both processes: the first becomes a Poisson process with intensity $(m\mu_\zeta)\otimes\nu_\zeta$; the second, after scaling the first coordinate by $c$, has intensity the image of $\mu_\zeta\otimes\nu_\zeta$ under $(u,y)\mapsto(uc,y)$, which is $(c^{\zeta}\mu_\zeta)\otimes\nu_\zeta=(m\mu_\zeta)\otimes\nu_\zeta$ by Lemma~\ref{lem:sg:pd-homogeneity} and $c^\zeta=m$. Two Poisson processes with the same intensity have the same law (Theorem~\ref{thm:sg:poisson-equivalence}).
+\end{proof}
+
+\subsection*{The logarithm of the total mass, and the log-sum identity (Lemma~2.2)}\label{sec:sg:pd-logsum}
+
+The identity $\mathbb E\log\sum_nu_nX_n=\mathbb E\log\sum_nu_n+\frac1\zeta\log\mathbb EX^\zeta$ needs that both expectations exist. The positive part of the logarithm is controlled by Lemma~2.1. The negative part is controlled by a lower tail bound: the total mass is unlikely to be small, because that would require that there is no point above a moderately small level.
+
+\begin{lemma}[Lower tail and integrability of $\log\sum_{x\in\Pi}x$]\label{lem:sg:pd-logint}
+  \lean{SpinGlasses.measure_Ioi_lt_one_of_lintegral_lt,
+        SpinGlasses.measure_lintegral_lt_le_of_blocks,
+        SpinGlasses.lintegral_ofReal_toReal_rpow_neg_lt_top,
+        SpinGlasses.abs_log_le_rpow_add_rpow_neg,
+        SpinGlasses.integrable_log_toReal_of_tail,
+        SpinGlasses.integrable_log_lintegral_of_blocks,
+        SpinGlasses.ae_pos_of_tail}
+  \leanok
+Let $0<\zeta<1$ and $T=\sum_{x\in\Pi}x$ for a Poisson process $\Pi$ with intensity $\mu_\zeta$. Then (a) $\mathbb P(T<s)\le s^{\zeta}$ for all $s>0$; (b) $\mathbb ET^{-\zeta/2}<\infty$, $T>0$ almost surely; (c) $\log T$ is integrable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:poisson-existence, thm:sg:pd-moment, lem:sg:pd-homogeneity}
+(a) If $T<s$ then no point of $\Pi$ exceeds $s$: a point $x>s$ contributes $T\ge x>s$ (in Lean: $T\ge s\cdot M((s,\infty))$). So $\mathbb P(T<s)\le\mathbb P(M((s,\infty))=0)$. By the Existence Theorem~\ref{thm:sg:poisson-existence}, $M((s,\infty))\sim\mathrm{Po}(s^{-\zeta})$ (Lemma~\ref{lem:sg:pd-homogeneity}), so this probability is $e^{-s^{-\zeta}}\le s^{\zeta}$, using $e^{-y}\le1/y$. (b) With $a=\zeta/2$ and the layer-cake formula, $\mathbb ET^{-a}=\int_0^\infty\mathbb P(T^{-a}>t)\,dt$; the event $\{T^{-a}>t\}$ is $\{T<t^{-1/a}\}$, whose probability is at most $\min(1,t^{-\zeta/a})=\min(1,t^{-2})$ by (a), which is integrable. Positivity of $T$ follows from $\mathbb P(T<s)\to0$ as $s\to0$. (c) For $z>0$ and $a>0$, $|\log z|\le(z^a+z^{-a})/a$ (use $\log y\le y^a/a$ for $y=z$ and $y=1/z$). Now $T^{a}$ is integrable by Lemma~2.1 (Theorem~\ref{thm:sg:pd-moment}) and $T^{-a}$ by (b).
+\end{proof}
+
+\begin{theorem}[Lemma~2.2: the log-sum identity]\label{thm:sg:pd-logsum}
+  \lean{SpinGlasses.lintegral_map_fst_Ioi,
+        SpinGlasses.lintegral_map_scale_fst,
+        SpinGlasses.integral_log_marked_sum_eq_tilt,
+        SpinGlasses.integral_log_lintegral_eq_of_intensity_eq,
+        SpinGlasses.integral_log_marked_sum_eq}
+  \leanok
+Let $0<\zeta<1$, let $\tau$ be a law of marks $t$, and let $X>0$ be a measurable function of the mark with $m=\mathbb EX^\zeta\in(0,\infty)$. Let $M$ be a Poisson process with intensity $\mu_\zeta\otimes\tau$, and let $M_0$ be any Poisson process with intensity $\mu_\zeta$. Then
+\[\mathbb E\log\Big(\sum_{(u,t)\in M}u\,X(t)\Big)=\mathbb E\log\Big(\sum_{u\in M_0}u\Big)+\frac1\zeta\log\mathbb EX^\zeta,\]
+where the sums run over the points with positive value.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:pd-marking, lem:sg:pd-logint, thm:sg:poisson-equivalence}
+Replace the mark $t$ by the pair $(X(t),t)$, which turns $M$ into a process with intensity $\mu_\zeta\otimes\tau'$ whose marks have first coordinate $X$ (mapping theorem, Theorem~\ref{thm:sg:poisson-map}). By Theorem~\ref{thm:sg:pd-marking}(c), the image process $(u,(x,y))\mapsto(ux,y)$ has the same law as the process $M'$ with intensity $\mu_\zeta\otimes\nu_\zeta$ whose first coordinates are multiplied by $c=m^{1/\zeta}$. The total first coordinate is a measurable function of the counting measure, and scaling by $c$ multiplies it by $c$, so $\sum_{M}uX$ has the law of $c\sum_{M'}u$. Taking logarithms, $\mathbb E\log(c\,T')=\log c+\mathbb E\log T'$, which is legitimate because $\log T'$ is integrable and $T'\in(0,\infty)$ almost surely (Lemma~\ref{lem:sg:pd-logint}). Finally $\log c=\frac1\zeta\log m$. The first coordinates of $M'$ form a Poisson process with intensity $\mu_\zeta$, so $\mathbb E\log T'$ equals the same quantity for the given $M_0$ by the Equivalence Theorem~\ref{thm:sg:poisson-equivalence}.
+\end{proof}
+
+\begin{theorem}[Equation~(2.22): independent extra factors]\label{thm:sg:pd-logsum-mul}
+  \lean{SpinGlasses.lintegral_prod_rpow_mul,
+        SpinGlasses.integral_log_marked_sum_mul_eq}
+  \leanok
+Let $0<\zeta<1$, and let $M$ be a Poisson process with intensity $\mu_\zeta\otimes(\tau_X\otimes\tau_Z)$ on points $(u,(x,z))$, where $\tau_X,\tau_Z$ are laws on $(0,\infty)$ with $\mathbb EX^\zeta,\mathbb EZ^\zeta\in(0,\infty)$. Then
+\[\mathbb E\log\Big(\sum_{(u,(x,z))\in M}uxz\Big)=\mathbb E\log\Big(\sum_{(u,(x,z))\in M}uz\Big)+\frac1\zeta\log\mathbb EX^\zeta.\]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:pd-logsum}
+Apply Theorem~\ref{thm:sg:pd-logsum} twice to the same $M$ and the same reference process $M_0$: once with the mark function $X(x,z)=xz$ and once with $X(x,z)=z$. The two right-hand sides share $\mathbb E\log\sum_{M_0}u$, so the difference of the left-hand sides is $\frac1\zeta(\log\mathbb E(XZ)^\zeta-\log\mathbb EZ^\zeta)$. By independence $\mathbb E(XZ)^\zeta=\mathbb EX^\zeta\,\mathbb EZ^\zeta$ (Fubini), which gives the claim.
+\end{proof}
+
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
 \begin{enumerate}
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
 \item \emph{Index from $0$, and a formula for the ordering.} The book writes $u_1\ge u_2\ge\cdots$ and says that the points are ordered decreasingly. We index from $0$ and define $u_n$ by the formula of Definition~\ref{def:sg:pd-atoms}, which handles measurability and ties at once. We prove $u_0\ge u_1\ge\cdots>0$ almost surely. Strict inequalities $u_0>u_1>\cdots$ (the points of $\Pi$ are a.s.\ distinct, which holds by Lemma~\ref{lem:sg:poisson-distinct}) are not formalized because nothing so far needed them.
 \item \emph{Atomic hypothesis.} Lemma~2.1 and the finiteness of $\sum x$ use that $M$ is a counting measure of blocks (see the remark after Theorem~\ref{thm:sg:pd-moment}); this is the only property of $M$ used besides Campbell's formula for $\mu_\zeta$.
 \item \emph{The law $\mathrm{PD}(\zeta)$ itself.} We prove that $(v_n)_n$ is an almost surely defined, measurable random element of $\ell^1$-sequences; we have not yet introduced the compact set $V$ of nonincreasing sequences with sum at most $1$ nor the law of $(v_n)$ on it. That is done together with Theorem~2.8.
-\item \emph{Not formalized yet.} Homogeneity of $\mu_\zeta$ and Theorem~2.6 (marking), Lemma~2.2 and Equation~(2.22) (the log-sum identity), the Gaussian marking and the Bolthausen--Sznitman invariance, Lemma~2.3, the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
+\item \emph{Sums over points, not over ranked atoms (Theorem~2.6, Lemma~2.2).} The book writes $\sum_nu_nX_n$ with $u_1\ge u_2\ge\cdots$ and i.i.d.\ marks $X_n$ attached to the ranked points. We state the identity for the sum over the points of the image counting measure, $\int x\,d(f_*M)$ with $f(u,(x,y))=ux$, which does not depend on any ordering. This is exactly what the marking construction of Section~\ref{sec:sg:poisson} produces; passing to the ranked form would additionally require that marks attached to points are exchangeable under the sorting, which is not needed for the statement and is not formalized.
+\item \emph{The reference process in Lemma~2.2 and Equation~(2.22).} The book compares with the ``unmarked'' sum $\sum_nu_n$. We compare with the same functional of an arbitrary block construction of a Poisson process with intensity $\mu_\zeta$; the proof passes through the size-biased process of Theorem~\ref{thm:sg:pd-marking} and returns to the given construction by the Equivalence Theorem~\ref{thm:sg:poisson-equivalence}. In Equation~(2.22) both sums are taken over the \emph{same} marked process (the marks $x,z$ attached to a point are the coordinates of one mark $t=(x,z)$), as in the book. The marks $Y$ in Theorem~\ref{thm:sg:pd-marking} are a free extra coordinate (needed later for the Gaussian marking); they play no role in Lemma~2.2. The marks in Lemma~2.2 are an arbitrary mark space $T$ with a measurable positive function $X$; the book's $(X_n)$ i.i.d.\ is the special case $T=\mathbb R$, $X=\mathrm{id}$.
+\item \emph{A cruder lower tail.} The exact law of the largest point is $\mathbb P(u_0\le s)=\exp(-s^{-\zeta})$. The integrability of $\log\sum u$ only needs $\mathbb P(\sum u<s)\le s^{\zeta}$, which we prove directly from the number of points above $s$, avoiding the ordering of the points.
+\item \emph{Moment hypotheses.} The marks must satisfy $X>0$ almost surely and $0<\mathbb EX^\zeta<\infty$; the unnormalized intensity statement (Theorem~\ref{thm:sg:pd-marking}(a) before dividing by $m$) holds without any moment assumption.
+\item \emph{Not formalized yet.} The Gaussian marking and the Bolthausen--Sznitman invariance, Lemma~2.3, the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
 \end{enumerate}
 \end{remark}

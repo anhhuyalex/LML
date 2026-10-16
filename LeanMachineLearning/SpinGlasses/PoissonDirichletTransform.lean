@@ -286,14 +286,8 @@ theorem identDistrib_poissonDirichlet_marked_transform
       (fun p : ℝ × S => (p.1 * c, p.2))) := fun _ => inferInstance
   -- the mapped blocks
   have _hτ : IsProbabilityMeasure (poissonMarkTilt ζ τ) := poissonMarkTilt_isProbability hpos hfin
-  have hCi : iIndepFun (fun n ω => ((B n ω).1, fun l => (fun p : ℝ × (ℝ × S) =>
-      (p.1 * p.2.1, p.2.2)) ((B n ω).2 l))) P :=
-    hB.comp (fun _ b => (b.1, fun l => (fun p : ℝ × (ℝ × S) =>
-      (p.1 * p.2.1, p.2.2)) (b.2 l))) (fun _ => by fun_prop)
-  have hCi' : iIndepFun (fun n ω => ((B' n ω).1, fun l => (fun p : ℝ × S =>
-      (p.1 * c, p.2)) ((B' n ω).2 l))) Q :=
-    hB'.comp (fun _ b => (b.1, fun l => (fun p : ℝ × S => (p.1 * c, p.2)) (b.2 l)))
-      (fun _ => by fun_prop)
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw hF
+  obtain ⟨hCm', hCi', hClaw'⟩ := poissonBlocks_map hBm' hB' hlaw' hG
   -- the two intensities coincide
   have hint : (Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map
         (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) =
@@ -310,8 +304,7 @@ theorem identDistrib_poissonDirichlet_marked_transform
   have key := identDistrib_poissonCountingMeasure_of_intensity_eq
     (fun n => (ν n).map (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2))) r
     (fun n => (ν' n).map (fun p : ℝ × S => (p.1 * c, p.2))) r'
-    (fun n => by fun_prop) hCi (fun n => hasLaw_map_prod_infinitePi (hlaw n) hF)
-    (fun n => by fun_prop) hCi' (fun n => hasLaw_map_prod_infinitePi (hlaw' n) hG) hint
+    hCm hCi hClaw hCm' hCi' hClaw' hint
   simpa only [poissonCountingMeasure_map _ _ hF, poissonCountingMeasure_map _ _ hG] using key
 
 end SpinGlasses
