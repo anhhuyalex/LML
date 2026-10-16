@@ -42,7 +42,7 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
 Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book: the general tools
 (the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6), the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5) and of separately exchangeable arrays (Theorem~1.4), each with its converse.
-Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. Section~\ref{sec:sg:poisson} starts Chapter~2 of the book: Poisson point processes (the constructive definition, the Existence Theorem~2.5 and the Mapping, Superposition and Marking Theorems~2.1--2.3, and the Equivalence Theorem~2.4), with the Lean files \texttt{SpinGlasses/PoissonProcess.lean}, \texttt{SpinGlasses/PoissonProcessTransform.lean}, \texttt{SpinGlasses/PoissonProcessEquivalence.lean}, \texttt{SpinGlasses/PoissonProcessPartition.lean} and \texttt{ForMathlib/Probability/Distributions/Poisson/}. What remains open for Chapter~1 is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
+Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. Section~\ref{sec:sg:poisson} starts Chapter~2 of the book: Poisson point processes (the constructive definition, the Existence Theorem~2.5 and the Mapping, Superposition and Marking Theorems~2.1--2.3, and the Equivalence Theorem~2.4), with the Lean files \texttt{SpinGlasses/PoissonProcess.lean}, \texttt{SpinGlasses/PoissonProcessTransform.lean}, \texttt{SpinGlasses/PoissonProcessEquivalence.lean}, \texttt{SpinGlasses/PoissonProcessPartition.lean} and \texttt{ForMathlib/Probability/Distributions/Poisson/}. Section~\ref{sec:sg:pd} gives the first part of Section~2.2 of the book: the Poisson--Dirichlet intensity, Lemma~2.1, the decreasing enumeration of the points and the weights of $\mathrm{PD}(\zeta)$, with the Lean file \texttt{SpinGlasses/PoissonDirichlet.lean}. What remains open for Chapter~1 is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
 
 
 \medskip\noindent\textbf{Notation.}
@@ -2838,7 +2838,7 @@ Theorem~\ref{thm:sg:asymptotic-overlap} gives a subsequence along which $\Lambda
 Chapter~2 of the book constructs the Ruelle probability cascades from Poisson point processes. This section formalizes
 the first half of Section~2.1: the constructive definition of a Poisson process, the Existence Theorem~2.5 (the counts of disjoint sets are
 independent Poisson variables), and the Mapping, Superposition and Marking Theorems~2.1--2.3. The Equivalence Theorem~2.4 (independence of the
-construction from the decomposition of the mean measure) and everything from Section~2.2 on are not formalized yet.
+construction from the decomposition of the mean measure) is proved below as well; Section~2.2 is in Section~\ref{sec:sg:pd}.
 The Lean files are \texttt{SpinGlasses/PoissonProcess.lean} and \texttt{SpinGlasses/PoissonProcessTransform.lean}, with the general tools
 \texttt{ForMathlib/Probability/Distributions/Poisson/SumCountable.lean} (sums of Poisson variables),
 \texttt{ForMathlib/Probability/Distributions/Poisson/Thinning.lean} (Poisson splitting),
@@ -3056,5 +3056,153 @@ By the law of total probability for the partition, $\mu=\sum_m\mu(A_m)\,p_m$, so
 \emph{What is not stated.} A regular conditional distribution would be a kernel $\kappa$ from count vectors $k\in\mathbb N^{\mathbb N}$ to configurations, with $\kappa(k)=\bigotimes_m\mathrm{Law}(k_m\text{ i.i.d.\ samples from }p_m)$ and with the joint law equal to ``law of the counts, then $\kappa$''. With finitely many cells this is elementary conditioning on atoms. With infinitely many cells the count vector lives in $\mathbb N^{\mathbb N}$, every single value of $k$ has probability $0$, and conditioning is by disintegration, so one must exhibit the kernel and prove that $k\mapsto\kappa(k)$ is measurable. The kernel exists and is explicit (by the independence structure of the model), and the joint law of the model equals ``counts, then $\kappa$''; what we lack is only the packaging, because Mathlib has no infinite product of kernels and no measurability lemma for $k\mapsto\bigotimes_m(\text{law depending on }k_m)$. For one block the conditional law is Lemma~\ref{lem:sg:poisson-campbell}(b).
 \emph{Does this limit later sections?} We do not expect so. The book proves the cell statement ``by considering finitely many $m$ at a time'' (proof of Theorem~2.4), so the all-cells equality in law is already stronger than the book's argument. The one later citation we found (the Poisson--Dirichlet setup, Wald's identity $\mathbb E\sum_{x\in\Pi\cap S_m}x=\int_{S_m}x\,\mu(dx)$) uses one cell at a time, with Poisson count, i.i.d.\ points and Wald, and Wald's identity is Lemma~\ref{lem:sg:poisson-campbell}(a). The later ``conditionally on $\mathscr F_{p}$'' arguments of the Ruelle cascade sections appear, from the places we located but did not read in full, to condition on the $\sigma$-algebra of earlier independent levels, which is ordinary independence, not a conditional law over an infinite count vector. The items that \emph{could} cause work in Section~2.2 are different: (i) Theorem~2.6 marks a \emph{given} process by an independent i.i.d.\ sequence, while our marking theorem is a coupling (item below), which should suffice because the conclusion is only equality of mean measures, i.e.\ a statement about laws; (ii) the decreasing enumeration $u_1\ge u_2\ge\dots$ of the points defining $PD(\zeta)$ needs a measurable ``$n$-th largest point'' map on counting measures, which is not yet formalized and is independent of conditional laws.
 \item \emph{Left to do in Section~2.1.} A regular-conditional-distribution form of Theorem~\ref{thm:sg:poisson-partition} for the whole vector of cells, and a marking of a previously fixed family of blocks by a position-dependent kernel (independent marks are done). The Giry law of the entire random counting measure agrees with that of the canonical block construction by \texttt{identDistrib\_poissonCountingMeasure\_canonical}; this applies also to the transformed blocks.
+\end{enumerate}
+\end{remark}
+
+\section{The Poisson--Dirichlet process: what is formalized so far (Section~2.2 of the book)}\label{sec:sg:pd}
+
+Section~2.2 of the book defines the Poisson--Dirichlet process $\mathrm{PD}(\zeta)$, $0<\zeta<1$, as follows. Let $\Pi$ be a Poisson process on $(0,\infty)$ with mean measure
+$\mu_\zeta(dx)=\zeta x^{-1-\zeta}\,dx$. Since $\mu_\zeta((0,\infty))=\infty$, the set $\Pi$ is infinite, and since $\mu_\zeta([q,\infty))=q^{-\zeta}<\infty$ for every $q>0$, only finitely many points lie above any level $q>0$, so $\Pi$ can be listed in decreasing order, $u_1\ge u_2\ge\dots>0$. The total mass $\sum_nu_n$ is finite (Lemma~2.1), and the normalized weights $v_n=u_n/\sum_lu_l$ form a random probability distribution on $\mathbb N$; its law is $\mathrm{PD}(\zeta)$. For a machine-learning reader: $(v_n)$ is a random ``Zipf-like'' distribution on $\mathbb N$ (heuristically $u_n\approx n^{-1/\zeta}$, since $\mu_\zeta([q,\infty))=q^{-\zeta}$; this heuristic is not formalized), and $\zeta$ controls how much mass the largest weights carry.
+This section describes the part of this construction that is formalized, in the file \texttt{SpinGlasses/PoissonDirichlet.lean} and the general tools it uses:
+\texttt{ForMathlib/Analysis/RpowTsum.lean} (subadditivity of $x^p$ for countable sums),
+\texttt{ForMathlib/MeasureTheory/Measure/NthLargestAtom.lean} (the decreasing enumeration of the atoms of a measure on $\mathbb R$) and
+\texttt{ForMathlib/MeasureTheory/Measure/RestrictPartition.lean} (restriction and decomposition of a measure along a partition).
+\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized. Theorem~2.6 (marking and homogeneity), Lemma~2.2 and Equation~(2.22) (the log-sum identity), the Bolthausen--Sznitman invariance, the Ghirlanda--Guerra identities and the uniqueness Theorem~2.8 are not formalized yet.
+
+\medskip\noindent\textbf{How the process is represented.} As in Section~\ref{sec:sg:poisson}, we introduce no new notion of ``Poisson process''. A Poisson process with intensity $\mu_\zeta$ is a random counting measure $M=\sum_n\sum_{l<N_n}\delta_{X_{nl}}$ built from independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ with $\sum_nr_n\nu_n=\mu_\zeta$. We write the sum of all points as the integral $\int_{(0,\infty)}x\,dM(x)$ with respect to $M$, so that ``$\sum_{x\in\Pi}x$'' is, in Lean, a lower Lebesgue integral \texttt{lintegral} of \texttt{ENNReal.ofReal} over \texttt{Ioi 0} with respect to \texttt{M $\omega$}, a value in $[0,\infty]$. We keep all sums in $[0,\infty]$ and only convert to real numbers at the end, because in Lean the real number ``$\infty$'' is $0$: a real-valued statement such as $\mathbb E(\sum x)^a<\infty$ would be vacuously true on an event where the sum is infinite.
+
+\begin{definition}[The intensity $\mu_\zeta$]\label{def:sg:pd-intensity}
+  \lean{SpinGlasses.zetaPoissonMeasure,
+        SpinGlasses.nullSingletonClass_zetaPoissonMeasure,
+        SpinGlasses.sigmaFinite_zetaPoissonMeasure}
+  \leanok
+For $\zeta\in\mathbb R$, $\mu_\zeta$ is the measure on $\mathbb R$ with density $x\mapsto\zeta x^{-1-\zeta}\mathbf 1_{x>0}$ with respect to Lebesgue measure. It has no atoms and is $\sigma$-finite (for every real $\zeta$, because the density is finite at every point).
+\end{definition}
+
+\begin{lemma}[Mass and moments of $\mu_\zeta$]\label{lem:sg:pd-moments}
+  \lean{SpinGlasses.lintegral_zetaPoissonMeasure,
+        SpinGlasses.lintegral_zetaPoissonMeasure_indicator_rpow,
+        SpinGlasses.integral_Ioi_zeta_rpow_add,
+        SpinGlasses.integral_Ioi_zeta_rpow,
+        SpinGlasses.integral_Ioo_zeta_rpow,
+        SpinGlasses.zetaPoissonMeasure_Ioi_one,
+        SpinGlasses.zetaPoissonMeasure_Ioi_zero,
+        SpinGlasses.lintegral_zetaPoissonMeasure_Ici_rpow}
+  \leanok
+Let $0<\zeta<1$. (a) $\mu_\zeta((1,\infty))=1$ and $\mu_\zeta((0,\infty))=\infty$. (b) $\int_{(0,1)}x\,\mu_\zeta(dx)=\zeta/(1-\zeta)$. (c) For $0\le a<\zeta$, $\int_{[1,\infty)}x^a\,\mu_\zeta(dx)=\zeta/(\zeta-a)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(a) $\int_1^\infty\zeta x^{-1-\zeta}dx=1$. The function $x^{-1-\zeta}$ is not integrable on $(0,1)$ because $-1-\zeta<-1$, so the mass of $(0,\infty)$ is infinite. (b) $\int_0^1\zeta x^{-\zeta}dx=\zeta/(1-\zeta)$, since $x\cdot\zeta x^{-1-\zeta}=\zeta x^{-\zeta}$. (c) $x^a\cdot\zeta x^{-1-\zeta}=\zeta x^{a-1-\zeta}$ and $\int_1^\infty\zeta x^{a-1-\zeta}dx=\zeta/(\zeta-a)$ since $a-1-\zeta<-1$. The point $1$ is a null set, so $[1,\infty)$ and $(1,\infty)$ give the same integral. In Lean, (a)--(c) are computed from one formula writing integrals against $\mu_\zeta$ as Lebesgue integrals over $(0,\infty)$.
+\end{proof}
+
+\begin{lemma}[Counting measures are sums of point masses; processes with a given $\sigma$-finite intensity exist]\label{lem:sg:pd-atomic}
+  \lean{SpinGlasses.poissonCountingMeasure_eq_sum_dirac,
+        SpinGlasses.lintegral_poissonCountingMeasure_eq_tsum,
+        SpinGlasses.poissonCountingMeasure_apply_eq_encard_index,
+        SpinGlasses.poissonCountingMeasure_apply_eq_top_or_natCast,
+        ProbabilityTheory.exists_probabilityMeasure_family_sum_smul_eq,
+        SpinGlasses.exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite}
+  \leanok
+\uses{thm:sg:poisson-blocks-exist}
+(a) The counting measure of blocks is $M=\sum_{q}\delta_{X_q}$, summed over the countable index set $\{q=(n,l):l<N_n\}$. Hence $\int f\,dM=\sum_qf(X_q)$ for measurable $f\ge0$, and $M(A)=\#\{q:X_q\in A\}$ takes values in $\mathbb N\cup\{\infty\}$ for every measurable $A$, even when some points coincide. (b) Let $\mu$ be a $\sigma$-finite measure on a nonempty space. Then $\mu=\sum_nr_n\nu_n$ with $r_n\ge0$ and $\nu_n$ probability measures; together with Lemma~\ref{thm:sg:poisson-blocks-exist}, there is a probability space carrying independent blocks whose counting measure is a Poisson process with intensity $\mu$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(a) Both sides of the first identity are measures, so it suffices to compare their values on measurable sets, where each is a sum of $\mathbf 1_A(X_q)$ over the index set; the other statements follow from $\int f\,d\delta_x=f(x)$ and from $M(A)=\#\{q:X_q\in A\}$, a cardinality in $\mathbb N\cup\{\infty\}$. (b) Choose a measurable partition $S=\bigsqcup_mA_m$ with $\mu(A_m)<\infty$ (the disjointified spanning sets of $\mu$). Put $r_m=\mu(A_m)$ and $\nu_m=\mu(\,\cdot\cap A_m)/\mu(A_m)$ if $\mu(A_m)>0$, and $\nu_m$ equal to a fixed probability measure if $\mu(A_m)=0$ (then $r_m\nu_m=0$ whatever $\nu_m$ is). By the law of total probability, $\sum_mr_m\nu_m=\sum_m\mu(\,\cdot\cap A_m)=\mu$.
+\end{proof}
+
+\begin{lemma}[Subadditivity of $x^p$ for countable sums]\label{lem:sg:pd-rpow}
+  \lean{ENNReal.rpow_sum_le_sum_rpow,
+        ENNReal.rpow_tsum_le_tsum_rpow,
+        ENNReal.rpow_le_one_add}
+  \leanok
+For $0<p\le1$ and $x_i\in[0,\infty]$, $\big(\sum_ix_i\big)^p\le\sum_ix_i^p$, and $x^p\le1+x$ for every $x\in[0,\infty]$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+For two summands this is $(x+y)^p\le x^p+y^p$ (in Mathlib); induction gives finite sums, and for countable sums take the supremum over finite subsets, using that $x\mapsto x^p$ is continuous and monotone. For the last claim: if $x\le1$ then $x^p\le1$, and if $x>1$ then $x^p\le x$.
+\end{proof}
+
+\begin{theorem}[Lemma~2.1: the total mass has a finite $a$-th moment]\label{thm:sg:pd-moment}
+  \lean{SpinGlasses.lintegral_poisson_sum_rpow_le,
+        SpinGlasses.integrable_poisson_sum_rpow,
+        SpinGlasses.integral_poisson_sum_rpow_le,
+        SpinGlasses.lintegral_lintegral_zeta_of_blocks,
+        SpinGlasses.integral_poisson_sum_rpow_le_of_blocks,
+        SpinGlasses.ae_lintegral_poisson_lt_top,
+        MeasureTheory.Measure.measurable_lintegral_restrict}
+  \leanok
+Let $0<a<\zeta<1$ and let $M$ be the counting measure of independent blocks with intensity $\mu_\zeta$. Then, with $S=\sum_{x\in\Pi}x=\int_{(0,\infty)}x\,dM(x)\in[0,\infty]$,
+\[\mathbb E\,S^a\ \le\ 1+\frac{\zeta}{1-\zeta}+\frac{\zeta}{\zeta-a}\ <\infty .\]
+In particular $S<\infty$ almost surely, and $S^a$ is integrable (as a real random variable) with the same bound for $\mathbb E\,S^a$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:poisson-campbell, lem:sg:pd-moments, lem:sg:pd-atomic, lem:sg:pd-rpow}
+Split $S=S_1+S_2$ with $S_1=\sum_{x\in\Pi,x<1}x$ and $S_2=\sum_{x\in\Pi,x\ge1}x$. By Lemma~\ref{lem:sg:pd-rpow}, $S^a\le S_1^a+S_2^a\le(1+S_1)+S_2^a$ and, since $S_2$ is a sum over the points of $\Pi$ (Lemma~\ref{lem:sg:pd-atomic}(a)), $S_2^a\le\sum_{x\in\Pi,x\ge1}x^a$. Campbell's formula (Lemma~\ref{lem:sg:poisson-campbell}(a)) and Lemma~\ref{lem:sg:pd-moments} give $\mathbb ES_1=\zeta/(1-\zeta)$ and $\mathbb E\sum_{x\ge1}x^a=\zeta/(\zeta-a)$. Adding up gives the bound. If $S=\infty$ had positive probability then $\mathbb ES^a=\infty$, since $\infty^a=\infty$ for $a>0$; so $S<\infty$ almost surely. The real-valued statements follow because $S^a<\infty$ almost surely, so $(S^a)$ and its real part have the same integral.
+\end{proof}
+
+\emph{Why the atoms matter.} The inequality $(\sum x_i)^a\le\sum x_i^a$ is a statement about sums of positive numbers, and Campbell's formula alone does not suffice. Indeed $\mathbb E\sum_{x\in\Pi,x\ge1}x=\int_1^\infty x\,\mu_\zeta(dx)=\infty$ when $\zeta<1$, so a first-moment argument cannot show that the total mass is finite; the finiteness comes from raising to a power $a<\zeta$ before taking expectations. For a diffuse measure in place of $M$ the inequality is false, so the theorem is stated for random measures that are counting measures of blocks (hypothesis ``each $M(\omega)$ is a \texttt{poissonCountingMeasure}''), together with Campbell's formula for $\mu_\zeta$.
+
+\begin{definition}[The decreasing enumeration of the atoms]\label{def:sg:pd-atoms}
+  \lean{MeasureTheory.nthLargestAtom}
+  \leanok
+For a measure $M$ on $\mathbb R$ and $n\ge0$, $u_n(M)\in[0,\infty]$ is the supremum of the rationals $q>0$ with $M\big((q,\infty)\big)\ge n+1$ (and $0$ if there is none). It is the $(n+1)$-st largest positive point of $M$, counted with multiplicity.
+\end{definition}
+
+No choice of an ordering of the points is made: $u_n(M)$ is defined by a formula in $M$, so the question whether the ordered sequence $(u_n)$ is a measurable function of the random measure is answered by the next lemma (the book does not discuss it).
+
+\begin{lemma}[Properties of the enumeration]\label{lem:sg:pd-atoms}
+  \lean{MeasureTheory.measurable_nthLargestAtom,
+        MeasureTheory.antitone_nthLargestAtom,
+        MeasureTheory.ofReal_lt_nthLargestAtom_iff,
+        MeasureTheory.tsum_ite_add_one_le,
+        MeasureTheory.volume_ofReal_lt_inter_Ioi,
+        MeasureTheory.tsum_nthLargestAtom}
+  \leanok
+(a) $M\mapsto u_n(M)$ is measurable for the $\sigma$-algebra on the space of measures, and $u_0(M)\ge u_1(M)\ge\cdots$. Assume now that $M\big((s,\infty)\big)\in\mathbb N\cup\{\infty\}$ for every $s>0$. (b) For $t\ge0$: $t<u_n(M)$ if and only if $M\big((t,\infty)\big)\ge n+1$; consequently $M\big((t,\infty)\big)=\#\{n:u_n(M)>t\}$ for $t>0$. (c) $\sum_{n\ge0}u_n(M)=\int_{(0,\infty)}x\,dM(x)$ in $[0,\infty]$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(a) $u_n(M)$ is a countable supremum over $q\in\mathbb Q$ of the functions $M\mapsto q\cdot\mathbf 1\{M((q,\infty))\ge n+1\}$, each of which is measurable because $M\mapsto M(A)$ is. Monotonicity in $n$ is clear since the defining condition becomes stronger. (b) If $t<u_n$ there is a rational $q>t$ with $M((q,\infty))\ge n+1$, hence $M((t,\infty))\ge n+1$. Conversely suppose $M((t,\infty))\ge n+1$. The sets $(t+\tfrac1{j+1},\infty)$ increase to $(t,\infty)$, so $M((t,\infty))=\sup_jM((t+\tfrac1{j+1},\infty))$. These values lie in $\mathbb N\cup\{\infty\}$, so a supremum $\ge n+1$ is attained: some $j$ has $M((t+\tfrac1{j+1},\infty))\ge n+1$. A rational $q\in(t,t+\tfrac1{j+1})$ then satisfies the defining condition, so $u_n\ge q>t$. The counting statement follows because $\#\{n:M((t,\infty))\ge n+1\}=M((t,\infty))$ for a value in $\mathbb N\cup\{\infty\}$. (c) By the layer-cake formula, $\int_{(0,\infty)}x\,dM=\int_0^\infty M((t,\infty))\,dt=\sum_n\int_0^\infty\mathbf 1\{t<u_n\}\,dt=\sum_nu_n$, using (b) and Tonelli for the sum.
+\end{proof}
+
+Part~(c) holds for arbitrary multiplicities of the atoms; we do not need to prove that $M=\sum_n\delta_{u_n}$ as measures, and we have not proved it. The hypothesis of (b), (c) holds for every counting measure of blocks by Lemma~\ref{lem:sg:pd-atomic}(a).
+
+\begin{definition}[The $\mathrm{PD}(\zeta)$ weights]\label{def:sg:pd-weights}
+  \lean{SpinGlasses.poissonDirichletWeight}
+  \leanok
+For a measure $M$ on $\mathbb R$, $v_n(M)=u_n(M)\big/\sum_{l\ge0}u_l(M)$ (as a real number).
+\end{definition}
+
+\begin{theorem}[$\mathrm{PD}(\zeta)$ is well defined]\label{thm:sg:pd-weights}
+  \lean{SpinGlasses.measurable_poissonDirichletWeight,
+        SpinGlasses.antitone_poissonDirichletWeight,
+        SpinGlasses.hasSum_poissonDirichletWeight,
+        SpinGlasses.ae_poissonDirichletWeight,
+        SpinGlasses.exists_poissonDirichletWeight}
+  \leanok
+(a) For every $n$, $M\mapsto v_n(M)$ is measurable, and $v_0(M)\ge v_1(M)\ge\cdots$. If $0<\sum_lu_l(M)<\infty$ then $\sum_nv_n(M)=1$. (b) Let $0<\zeta<1$ and let $M$ be the counting measure of independent blocks with intensity $\mu_\zeta$. Almost surely: $u_n>0$ for all $n$, $\sum_nu_n<\infty$, and $(v_n)_{n\ge0}$ is a strictly positive, nonincreasing sequence with $\sum_nv_n=1$. (c) Such blocks exist, so the sequence $(v_n)$ is an almost surely defined random probability distribution on $\mathbb N$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:pd-moment, lem:sg:pd-atoms, lem:sg:pd-atomic, thm:sg:poisson-existence, lem:sg:pd-moments}
+(a) Measurability and monotonicity follow from Lemma~\ref{lem:sg:pd-atoms}(a) (dividing by the common measurable factor $1/\sum_lu_l$ preserves both). If $0<T=\sum_lu_l<\infty$ then $\sum_nu_n/T=1$. (b) By Theorem~\ref{thm:sg:poisson-existence} applied to the single set $(0,\infty)$, whose mass under $\mu_\zeta$ is infinite (Lemma~\ref{lem:sg:pd-moments}(a)), $M((0,\infty))=\infty$ almost surely. By Lemma~\ref{lem:sg:pd-atoms}(b) with $t=0$ (its hypothesis holds by Lemma~\ref{lem:sg:pd-atomic}(a)), $u_n>0$ for all $n$. By Lemma~\ref{lem:sg:pd-atoms}(c) and Theorem~\ref{thm:sg:pd-moment}, $\sum_nu_n=\int x\,dM<\infty$ almost surely, and it is positive since $u_0>0$. Part~(a) gives the rest; $v_n>0$ because $u_n>0$ and $T<\infty$. (c) Lemma~\ref{lem:sg:pd-atomic}(b) applied to $\mu_\zeta$, then Lemma~\ref{thm:sg:poisson-blocks-exist}.
+\end{proof}
+
+\begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
+\begin{enumerate}
+\item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
+\item \emph{Index from $0$, and a formula for the ordering.} The book writes $u_1\ge u_2\ge\cdots$ and says that the points are ordered decreasingly. We index from $0$ and define $u_n$ by the formula of Definition~\ref{def:sg:pd-atoms}, which handles measurability and ties at once. We prove $u_0\ge u_1\ge\cdots>0$ almost surely. Strict inequalities $u_0>u_1>\cdots$ (the points of $\Pi$ are a.s.\ distinct, which holds by Lemma~\ref{lem:sg:poisson-distinct}) are not formalized because nothing so far needed them.
+\item \emph{Atomic hypothesis.} Lemma~2.1 and the finiteness of $\sum x$ use that $M$ is a counting measure of blocks (see the remark after Theorem~\ref{thm:sg:pd-moment}); this is the only property of $M$ used besides Campbell's formula for $\mu_\zeta$.
+\item \emph{The law $\mathrm{PD}(\zeta)$ itself.} We prove that $(v_n)_n$ is an almost surely defined, measurable random element of $\ell^1$-sequences; we have not yet introduced the compact set $V$ of nonincreasing sequences with sum at most $1$ nor the law of $(v_n)$ on it. That is done together with Theorem~2.8.
+\item \emph{Not formalized yet.} Homogeneity of $\mu_\zeta$ and Theorem~2.6 (marking), Lemma~2.2 and Equation~(2.22) (the log-sum identity), the Gaussian marking and the Bolthausen--Sznitman invariance, Lemma~2.3, the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
 \end{enumerate}
 \end{remark}
