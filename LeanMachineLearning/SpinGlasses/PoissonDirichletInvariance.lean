@@ -148,20 +148,20 @@ theorem identDistrib_poissonDirichlet_gaussian_transform
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
     {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
     {ζ : ℝ} (hζ : 0 < ζ) (t : ℝ)
-    (ν : ℕ → Measure (ℝ × (ℝ × ℝ))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    (ν : ℕ → Measure (ℝ × (ℝ × ℝ))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
     {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × ℝ))}
     (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
     (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
     (hμ : (zetaPoissonMeasure ζ).prod ((gaussianReal 0 1).map
         (fun g => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ))) =
       Measure.sum (fun n => (r n : ENNReal) • ν n))
-    (ν' : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → ℝ≥0)
+    (ν' : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → NNReal)
     {B' : ℕ → Ω' → ℕ × (ℕ → ℝ × ℝ)}
     (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
     (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod
       (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
     (hμ' : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
-      Measure.sum (fun n => (r' n : ℝ≥0∞) • ν' n)) :
+      Measure.sum (fun n => (r' n : ENNReal) • ν' n)) :
     IdentDistrib
       (fun ω => (poissonCountingMeasure (fun n => (B n ω).1)
         (fun n l => (B n ω).2 l)).map
@@ -172,10 +172,10 @@ theorem identDistrib_poissonDirichlet_gaussian_transform
     (fun g => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ))
   have hτprob : IsProbabilityMeasure τ := inferInstance
   have hτ : ∀ᵐ p ∂τ, 0 < p.1 := by
-    rw [show τ = (gaussianReal 0 1).map
-      (fun g => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ)) from rfl]
-    exact (ae_map_iff (by fun_prop)).2 (Filter.Eventually.of_forall
-      (fun g => Real.exp_pos _))
+    apply (ae_map_iff (by fun_prop : AEMeasurable
+      (fun g : ℝ => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ))
+      (gaussianReal 0 1)) (measurableSet_lt measurable_const measurable_fst)).2
+    exact Filter.Eventually.of_forall (fun g => Real.exp_pos _)
   have hm : (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂τ) = 1 := by
     rw [lintegral_map (by fun_prop) (by fun_prop)]
     exact lintegral_gaussian_multiplier ζ t
@@ -184,8 +184,13 @@ theorem identDistrib_poissonDirichlet_gaussian_transform
   have hid := identDistrib_poissonDirichlet_marked_transform hζ τ hτ
     (hm ▸ zero_lt_one) (hm ▸ ENNReal.one_lt_top) ν r hBm hB hlaw hμ
     ν' r' hBm' hB' hlaw' (htilt ▸ hμ')
-  simpa only [hm, ENNReal.toReal_one, one_rpow, mul_one,
-    poissonCountingMeasure_map _ _ (by fun_prop : Measurable
-      (fun p : ℝ × ℝ => (p.1 * (1 : ℝ), p.2)))] using hid
+  have hscale : (1 : ℝ) ^ ζ⁻¹ = 1 := by simp
+  simp only [hm, ENNReal.toReal_one, hscale, mul_one] at hid
+  convert hid using 1
+  funext ω
+  have heq : (fun p : ℝ × ℝ => (p.1, p.2)) = id := by
+    funext ⟨x, y⟩
+    rfl
+  simp [heq]
 
 end SpinGlasses
