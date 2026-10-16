@@ -28,9 +28,11 @@ variable {Ω S ι : Type*} [MeasurableSpace Ω] [MeasurableSpace S]
 theorem Measure.prod_diagonal_eq_zero (μ ν : Measure S) [SFinite ν]
     [NullSingletonClass ν] : μ.prod ν (Set.diagonal S) = 0 := by
   rw [Measure.prod_apply measurableSet_diagonal]
-  convert lintegral_zero using 1
-  funext x
-  rw [show Prod.mk x ⁻¹' Set.diagonal S = {x} by ext y; simp [Set.mem_diagonal_iff]]
+  refine (lintegral_congr fun x => ?_).trans lintegral_zero
+  rw [show Prod.mk x ⁻¹' Set.diagonal S = {x} by
+    ext y
+    simp only [Set.mem_preimage, Set.mem_diagonal_iff, Set.mem_singleton_iff]
+    exact eq_comm]
   exact measure_singleton x
 
 /-- Independent random variables are almost surely unequal when the law of the second variable
@@ -54,7 +56,8 @@ theorem iIndepFun.ae_pairwise_ne [Countable ι] [IsFiniteMeasure P]
     ∀ᵐ ω ∂P, Pairwise fun i j => X i ω ≠ X j ω := by
   have hpair (i j : ι) (hij : i ≠ j) : ∀ᵐ ω ∂P, X i ω ≠ X j ω := by
     let _ : NullSingletonClass (Measure.map (X j) P) := hnull j
-    exact (hX.indepFun hij).measure_eq_zero (hXm i) (hXm j) |>.ae_not_mem
+    exact measure_eq_zero_iff_ae_notMem.1
+      ((hX.indepFun hij).measure_eq_zero (hXm i) (hXm j))
   rw [show (fun ω => Pairwise fun i j => X i ω ≠ X j ω) =
     fun ω => ∀ i, ∀ j, i ≠ j → X i ω ≠ X j ω by ext ω; rfl]
   exact ae_all_iff.2 fun i => ae_all_iff.2 fun j =>
