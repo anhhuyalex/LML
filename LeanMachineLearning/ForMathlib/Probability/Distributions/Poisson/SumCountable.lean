@@ -5,6 +5,7 @@ Authors: LML contributors
 -/
 module
 
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Order
 public import Mathlib.Probability.Distributions.Poisson.Basic
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
 
@@ -17,7 +18,7 @@ families. It is the finite-partial-sum engine for countable Poisson sums.
 
 @[expose] public section
 
-open MeasureTheory Real
+open MeasureTheory Real Filter Topology
 open scoped NNReal Nat
 
 namespace ProbabilityTheory
@@ -104,6 +105,26 @@ theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → 
   rw [show (fun i => ∫ ω, (X i ω : ℝ) ∂P) = fun i => (r i : ℝ) by ext i; exact hmean i]
   exact_mod_cast hr
 
+/-- A natural-number series is bounded by `k` exactly when all its partial sums are. -/
+private lemma tsum_le_iff_forall_sum_range_le {f : ℕ → ℕ} (hf : Summable fun i => (f i : ℝ))
+    (k : ℕ) : (∑' i, f i) ≤ k ↔ ∀ n, (∑ i ∈ Finset.range n, f i) ≤ k := by
+  have hzero : ∀ᶠ i in atTop, f i = 0 := by
+    simpa only [Nat.cast_eq_zero] using hf.tendsto_atTop_zero
+  obtain ⟨N, hN⟩ := (eventually_atTop.1 hzero)
+  have heq : ∑' i, f i = ∑ i ∈ Finset.range N, f i := by
+    rw [tsum_eq_sum' (s := Finset.range N)]
+    intro i hi
+    exact hN i (Nat.le_of_not_gt hi)
+  constructor
+  · intro hk n
+    rw [heq] at hk
+    exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.inter_subset_left)
+      (fun _ _ _ => Nat.zero_le _) |>.trans
+      (Finset.sum_subset (Finset.inter_subset_right) fun _ _ _ => Nat.zero_le _) |>.trans hk
+  · intro hk
+    rw [heq]
+    exact hk N
+
 /-- A finite sum of mutually independent Poisson random variables is Poisson, with rate equal
 to the sum of the rates. -/
 theorem iIndepFun.hasLaw_sum_poissonMeasure {X : ι → Ω → ℕ} {r : ι → ℝ≥0}
@@ -131,6 +152,47 @@ theorem iIndepFun.hasLaw_sum_poissonMeasure {X : ι → Ω → ℕ} {r : ι → 
       exact hadd.congr (ae_of_all P fun ω => by
         change (∑ j ∈ insert i s, X j ω) = X i ω + ∑ j ∈ s, X j ω
         rw [Finset.sum_insert hi])
+
+/-- The sum of countably many independent Poisson variables with summable rates is Poisson. -/
+theorem iIndepFun.hasLaw_tsum_poissonMeasure {X : ℕ → Ω → ℕ} {r : ℕ → ℝ≥0}
+    (hX : iIndepFun X P) (hLaw : ∀ i, HasLaw (X i) Po(r i) P) (hr : Summable r) :
+    HasLaw (fun ω => ∑' i, X i ω) Po(∑' i, r i) P := by
+  have hP : IsProbabilityMeasure P := hX.isProbabilityMeasure
+  have hsummable := ae_summable_natCast_of_hasLaw_poissonMeasure hLaw hr
+  have hpartial (n : ℕ) := hX.hasLaw_sum_poissonMeasure hLaw (Finset.range n)
+  have hrates : Tendsto (fun n => ∑ i ∈ Finset.range n, r i) atTop (𝓝 (∑' i, r i)) :=
+    NNReal.hasSum_iff_tendsto_nat.1 hr.hasSum
+  refine ⟨AEMeasurable.tsum fun i => (hLaw i).aemeasurable, ?_⟩
+  apply Measure.ext_of_Iic
+  intro k
+  rw [Measure.map_apply_of_aemeasurable
+    (AEMeasurable.tsum fun i => (hLaw i).aemeasurable) measurableSet_Iic]
+  change P {ω | ∑' i, X i ω ∈ Set.Iic k} = _
+  have hset : {ω | ∑' i, X i ω ∈ Set.Iic k} =ᵐ[P]
+      ⋂ n, {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k} := by
+    filter_upwards [hsummable] with ω hω
+    simp only [Set.mem_ofPred_eq, Set.mem_Iic, Set.mem_iInter]
+    apply propext
+    exact tsum_le_iff_forall_sum_range_le hω k
+  rw [measure_congr hset]
+  have hanti : Antitone fun n => {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k} := by
+    intro a b hab ω hω
+    exact (Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono hab)
+      (fun _ _ _ => Nat.zero_le _)).trans hω
+  apply tendsto_nhds_unique (tendsto_measure_iInter_atTop
+    (fun n => (hpartial n).aemeasurable.nullMeasurableSet_preimage measurableSet_Iic)
+    hanti ⟨0, measure_ne_top P _⟩)
+  have heq (n : ℕ) :
+      P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k} =
+        ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} := by
+    rw [(hpartial n).measure_eq measurableSet_Iic,
+      measure_Iic_eq_sum_singleton]
+  simp_rw [heq]
+  rw [measure_Iic_eq_sum_singleton]
+  apply tendsto_finset_sum (Finset.range (k + 1))
+  intro i hi
+  simp only [poissonMeasure_singleton]
+  fun_prop
 
 /-- The sum of a finite mutually independent family of Poisson random variables is Poisson. -/
 theorem iIndepFun.hasLaw_fun_sum_poissonMeasure [Fintype ι] {X : ι → Ω → ℕ}
