@@ -208,6 +208,66 @@ theorem iIndepFun.hasLaw_tsum_poissonMeasure {X : ℕ → Ω → ℕ} {r : ℕ �
     simp [mul_div_assoc]
   · simp [mul_div_assoc]
 
+/-- If the sum of the rates diverges, the finite partial sums of independent Poisson
+variables tend to infinity almost surely. This is the appropriate formulation because a
+natural-number-valued `tsum` cannot represent infinity. -/
+theorem iIndepFun.ae_tendsto_sum_range_poissonMeasure_atTop {X : ℕ → Ω → ℕ}
+    {r : ℕ → ℝ≥0} (hX : iIndepFun X P) (hLaw : ∀ i, HasLaw (X i) Po(r i) P)
+    (hr : ¬ Summable r) :
+    ∀ᵐ ω ∂P, Tendsto (fun n => ∑ i ∈ Finset.range n, X i ω) atTop atTop := by
+  have hP : IsProbabilityMeasure P := hX.isProbabilityMeasure
+  have hpartial (n : ℕ) := hX.hasLaw_sum_poissonMeasure hLaw (Finset.range n)
+  have hrates : Tendsto (fun n => ∑ i ∈ Finset.range n, (r i : ℝ)) atTop atTop :=
+    not_summable_iff_tendsto_nat_atTop_of_nonneg (fun i => NNReal.zero_le_coe) |>.1
+      (by exact_mod_cast hr)
+  have hnull (k : ℕ) : P {ω | ∀ n, (∑ i ∈ Finset.range n, X i ω) ≤ k} = 0 := by
+    have hanti : Antitone fun n => {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k} := by
+      intro a b hab ω hω
+      exact (Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono hab)
+        (fun _ _ _ => Nat.zero_le _)).trans hω
+    rw [show {ω | ∀ n, (∑ i ∈ Finset.range n, X i ω) ≤ k} =
+      ⋂ n, {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k} by ext; simp]
+    apply tendsto_nhds_unique (tendsto_measure_iInter_atTop
+      (fun n => (hpartial n).aemeasurable.nullMeasurableSet_preimage measurableSet_Iic)
+      hanti ⟨0, measure_ne_top P _⟩)
+    change Tendsto (fun n => P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k}) atTop (𝓝 0)
+    have heq (n : ℕ) :
+        P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k} =
+          ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} := by
+      have h := (hpartial n).measure_eq (p := fun x => x ∈ Set.Iic k) measurableSet_Iic
+      exact h.trans (measure_Iic_eq_sum_singleton _ _)
+    rw [show (fun n => P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k}) =
+      fun n => ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} by
+        funext n
+        exact heq n]
+    have hj (j : ℕ) : Tendsto
+        (fun n => Po(∑ i ∈ Finset.range n, r i) {j}) atTop (𝓝 0) := by
+      simp only [poissonMeasure_singleton]
+      have hreal := ((tendsto_pow_mul_exp_neg_atTop_nhds_zero j).const_mul
+        ((j.factorial : ℝ)⁻¹)).comp (by simpa only [NNReal.coe_sum] using hrates)
+      have henn := ENNReal.continuous_ofReal.continuousAt.tendsto.comp hreal
+      convert henn using 1
+      · funext n
+        simp only [Function.comp_apply, NNReal.coe_sum, div_eq_mul_inv]
+        congr 1
+        ring
+      · simp
+    simpa using tendsto_finsetSum (Finset.range (k + 1)) (fun j _ => hj j)
+  have hbad : P {ω | ¬ Tendsto (fun n => ∑ i ∈ Finset.range n, X i ω)
+      atTop atTop} = 0 := by
+    apply measure_mono_null _ (measure_iUnion_null hnull)
+    intro ω hω
+    change ¬ Tendsto (fun n => ∑ i ∈ Finset.range n, X i ω) atTop atTop at hω
+    rw [tendsto_atTop_atTop] at hω
+    simp only [not_forall, not_exists, not_le] at hω
+    obtain ⟨k, hk⟩ := hω
+    exact Set.mem_iUnion.2 ⟨k, fun n => by
+      obtain ⟨m, hnm, hm⟩ := hk n
+      exact (Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono hnm)
+        (fun _ _ _ => Nat.zero_le _)).trans (Nat.le_of_lt hm)⟩
+  filter_upwards [ae_iff.2 hbad] with ω hω
+  exact hω
+
 /-- The sum of a finite mutually independent family of Poisson random variables is Poisson. -/
 theorem iIndepFun.hasLaw_fun_sum_poissonMeasure [Fintype ι] {X : ι → Ω → ℕ}
     {r : ι → ℝ≥0} (hX : iIndepFun X P) (hLaw : ∀ i, HasLaw (X i) Po(r i) P) :
