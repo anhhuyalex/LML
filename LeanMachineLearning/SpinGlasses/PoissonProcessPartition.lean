@@ -58,20 +58,9 @@ theorem exists_identDistrib_restrict_poissonCountingMeasure {P : Measure Ω}
   classical
   obtain rfl : M = fun ω => poissonCountingMeasure
     (fun n => (B n ω).1) (fun n l => (B n ω).2 l) := funext hM
-  obtain ⟨ν', hprob, hcond⟩ : ∃ ν' : ℕ → Measure S, (∀ m, IsProbabilityMeasure (ν' m)) ∧
-      ∀ m, μ (A m) ≠ 0 → ν' m = μ[|A m] :=
-    ⟨fun m => if μ (A m) = 0 then ν 0 else μ[|A m], fun m => by
-      by_cases h0 : μ (A m) = 0
-      · simp only [h0, ↓reduceIte]; infer_instance
-      · simp only [h0, ↓reduceIte]; exact cond_isProbabilityMeasure_of_finite h0 (hfin m),
-      fun m h0 => by simp [h0]⟩
+  obtain ⟨ν', hprob, hcond, hint⟩ :=
+    exists_probabilityMeasure_family_sum_smul_eq μ hA hdisj hcover hfin (ν 0)
   obtain ⟨P', hP', hm', hi', hl'⟩ := exists_poissonBlocks ν' (fun m => (μ (A m)).toNNReal)
-  have hint : (Measure.sum fun m => ((μ (A m)).toNNReal : ℝ≥0∞) • ν' m) = μ := by
-    refine Eq.trans (congrArg Measure.sum (funext fun m => ?_))
-      (sum_meas_smul_cond_of_iUnion_eq_univ hA hdisj hcover hfin)
-    by_cases h0 : μ (A m) = 0
-    · simp [h0]
-    · rw [hcond m h0, ENNReal.coe_toNNReal (hfin m)]
   have hid := identDistrib_poissonCountingMeasure_of_intensity_eq ν r ν'
     (fun m => (μ (A m)).toNNReal) hBm hB hlaw hm' hi' hl' (hμ.symm.trans hint.symm)
   let Φ : Measure S → (ℕ → ℝ≥0∞) × (ℕ → Measure S) := fun m =>
@@ -103,5 +92,18 @@ theorem exists_identDistrib_restrict_poissonCountingMeasure {P : Measure Ω}
   refine Prod.ext (funext fun m => ?_) (funext fun m => ?_)
   · exact poissonCountingMeasure_partition_apply _ _ A hdisj (fun n l hl => hq n l hl) hA m
   · exact poissonCountingMeasure_restrict_partition _ _ A hdisj (fun n l hl => hq n l hl) hA m
+
+/-- **Poisson blocks with a prescribed σ-finite intensity.** Every σ-finite measure `μ` on a
+nonempty space is `∑ₙ rₙ νₙ` for probability measures `νₙ` and weights `rₙ ∈ ℝ≥0`; with
+`exists_poissonBlocks` this gives a Poisson process with intensity `μ`. -/
+theorem exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite [Nonempty S] (μ : Measure S)
+    [SigmaFinite μ] :
+    ∃ (ν : ℕ → Measure S) (r : ℕ → ℝ≥0), (∀ n, IsProbabilityMeasure (ν n)) ∧
+      μ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n := by
+  obtain ⟨A, hA, hdisj, hcover, hfin⟩ := exists_measurable_partition_of_sigmaFinite μ
+  haveI : IsProbabilityMeasure (Measure.dirac (Classical.arbitrary S)) := inferInstance
+  obtain ⟨ν, hν, -, hsum⟩ := exists_probabilityMeasure_family_sum_smul_eq μ hA hdisj hcover
+    (fun i => (hfin i).ne) (Measure.dirac (Classical.arbitrary S))
+  exact ⟨ν, fun m => (μ (A m)).toNNReal, hν, hsum.symm⟩
 
 end SpinGlasses

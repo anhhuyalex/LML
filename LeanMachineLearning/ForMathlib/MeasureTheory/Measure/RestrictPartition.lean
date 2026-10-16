@@ -13,7 +13,7 @@ public import Mathlib.Probability.ConditionalProbability
 # Restricting measures to the cells of a partition
 
 * `MeasureTheory.Measure.measurable_restrict`: `μ ↦ μ.restrict s` is measurable for the Giry
-  σ-algebra.
+  σ-algebra, hence so is `μ ↦ ∫⁻ x in s, f x ∂μ` (`measurable_lintegral_restrict`).
 * `ProbabilityTheory.sum_meas_smul_cond`, `sum_meas_smul_cond_of_iUnion_eq_univ`: the law of total
   probability for a countable measurable family of disjoint sets,
   `∑ᵢ μ(Aᵢ) • μ[|Aᵢ] = μ.restrict (⋃ᵢ Aᵢ)` (`= μ` for a partition). Mathlib's
@@ -33,6 +33,11 @@ theorem MeasureTheory.Measure.measurable_restrict {s : Set α} (hs : MeasurableS
   Measure.measurable_of_measurable_coe _ fun t ht => by
     simp_rw [Measure.restrict_apply ht]
     exact Measure.measurable_coe (ht.inter hs)
+
+/-- Integration over a fixed measurable set is a measurable function of the measure. -/
+theorem MeasureTheory.Measure.measurable_lintegral_restrict {s : Set α} (hs : MeasurableSet s)
+    {f : α → ℝ≥0∞} (hf : Measurable f) : Measurable fun μ : Measure α => ∫⁻ x in s, f x ∂μ :=
+  (Measure.measurable_lintegral hf).comp (Measure.measurable_restrict hs)
 
 /-- Scaling the conditional measure `μ[|s]` by `μ s` recovers the restricted measure `μ.restrict s`,
 provided `μ s ≠ ∞`. -/
@@ -60,6 +65,31 @@ theorem sum_meas_smul_cond_of_iUnion_eq_univ {ι : Type*} [Countable ι] {μ : M
     (hcover : ⋃ i, A i = Set.univ) (hfin : ∀ i, μ (A i) ≠ ∞) :
     (Measure.sum fun i => μ (A i) • μ[|A i]) = μ := by
   rw [sum_meas_smul_cond hA hdisj hfin, hcover, Measure.restrict_univ]
+
+/-- **Probability decomposition of a measure along a partition.** For a countable measurable
+partition `(Aᵢ)` into sets of finite mass and any probability measure `ν₀`, there are probability
+measures `νᵢ` (equal to `μ[|Aᵢ]` when `μ Aᵢ ≠ 0`, and to `ν₀` otherwise) with
+`μ = ∑ᵢ μ(Aᵢ) • νᵢ`. The case `μ Aᵢ = 0` is why `ν₀` is needed: there `μ[|Aᵢ] = 0` is not a
+probability measure. -/
+theorem exists_probabilityMeasure_family_sum_smul_eq {ι : Type*} [Countable ι] (μ : Measure α)
+    {A : ι → Set α} (hA : ∀ i, MeasurableSet (A i)) (hdisj : Pairwise (Function.onFun Disjoint A))
+    (hcover : ⋃ i, A i = Set.univ) (hfin : ∀ i, μ (A i) ≠ ∞) (ν₀ : Measure α)
+    [IsProbabilityMeasure ν₀] :
+    ∃ ν : ι → Measure α, (∀ i, IsProbabilityMeasure (ν i)) ∧
+      (∀ i, μ (A i) ≠ 0 → ν i = μ[|A i]) ∧
+      (Measure.sum fun i => ((μ (A i)).toNNReal : ℝ≥0∞) • ν i) = μ := by
+  classical
+  have hcond : ∀ i, μ (A i) ≠ 0 → IsProbabilityMeasure μ[|A i] := fun i h0 =>
+    cond_isProbabilityMeasure_of_finite h0 (hfin i)
+  refine ⟨fun i => if μ (A i) = 0 then ν₀ else μ[|A i], fun i => ?_, fun i h0 => by simp [h0], ?_⟩
+  · by_cases h0 : μ (A i) = 0
+    · simpa only [h0, ↓reduceIte] using ‹IsProbabilityMeasure ν₀›
+    · simpa only [h0, ↓reduceIte] using hcond i h0
+  · refine Eq.trans (congrArg Measure.sum (funext fun i => ?_))
+      (sum_meas_smul_cond_of_iUnion_eq_univ hA hdisj hcover hfin)
+    by_cases h0 : μ (A i) = 0
+    · simp [h0]
+    · simp [h0, ENNReal.coe_toNNReal (hfin i)]
 
 end ProbabilityTheory
 

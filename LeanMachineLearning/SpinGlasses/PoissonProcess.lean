@@ -84,6 +84,55 @@ theorem poissonCountingMeasure_apply (N : ℕ → ℕ) (X : ℕ → ℕ → S)
   simp only [poissonCountingMeasure, Measure.sum_apply _ hA, Measure.coe_finsetSum,
     Finset.sum_apply, Measure.dirac_apply' _ hA]
 
+/-- The counting measure is the sum of Dirac masses at the sampled points `X n l`, `l < N n`,
+indexed by the countable set of these pairs `(n, l)`. -/
+theorem poissonCountingMeasure_eq_sum_dirac (N : ℕ → ℕ) (X : ℕ → ℕ → S) :
+    poissonCountingMeasure N X =
+      Measure.sum fun q : {q : ℕ × ℕ // q.2 < N q.1} => Measure.dirac (X q.1.1 q.1.2) := by
+  ext s hs
+  rw [poissonCountingMeasure_apply N X hs, Measure.sum_apply _ hs]
+  simp only [Measure.dirac_apply' _ hs]
+  refine Eq.trans ?_ (tsum_subtype {q : ℕ × ℕ | q.2 < N q.1}
+    (fun q => s.indicator (1 : S → ℝ≥0∞) (X q.1 q.2))).symm
+  rw [ENNReal.tsum_prod']
+  refine tsum_congr fun n => ?_
+  rw [tsum_eq_sum (s := Finset.range (N n))]
+  · refine Finset.sum_congr rfl fun l hl => ?_
+    simp [Set.indicator, Finset.mem_range.1 hl]
+  · intro l hl
+    simp [Set.indicator, Finset.mem_range.not.1 hl]
+
+/-- Integrating against the counting measure sums over the sampled points. -/
+theorem lintegral_poissonCountingMeasure_eq_tsum (N : ℕ → ℕ) (X : ℕ → ℕ → S) {f : S → ℝ≥0∞}
+    (hf : Measurable f) :
+    ∫⁻ x, f x ∂poissonCountingMeasure N X =
+      ∑' q : {q : ℕ × ℕ // q.2 < N q.1}, f (X q.1.1 q.1.2) := by
+  rw [poissonCountingMeasure_eq_sum_dirac, lintegral_sum_measure]
+  exact tsum_congr fun q => lintegral_dirac' _ hf
+
+/-- The counting measure of a measurable set is the number of sampled points `(n, l)`, `l < N n`,
+lying in it, counted with multiplicity. -/
+theorem poissonCountingMeasure_apply_eq_encard_index (N : ℕ → ℕ) (X : ℕ → ℕ → S) {A : Set S}
+    (hA : MeasurableSet A) :
+    poissonCountingMeasure N X A =
+      {q : {q : ℕ × ℕ // q.2 < N q.1} | X q.1.1 q.1.2 ∈ A}.encard := by
+  rw [poissonCountingMeasure_eq_sum_dirac, Measure.sum_apply _ hA]
+  simp only [Measure.dirac_apply' _ hA]
+  rw [← ENNReal.tsum_set_one, tsum_subtype {q : {q : ℕ × ℕ // q.2 < N q.1} | X q.1.1 q.1.2 ∈ A}
+    (fun _ => (1 : ℝ≥0∞))]
+  refine tsum_congr fun q => ?_
+  simp [Set.indicator]
+
+/-- The counting measure of a measurable set is a natural number or `∞`. -/
+theorem poissonCountingMeasure_apply_eq_top_or_natCast (N : ℕ → ℕ) (X : ℕ → ℕ → S) {A : Set S}
+    (hA : MeasurableSet A) :
+    poissonCountingMeasure N X A = ⊤ ∨ ∃ m : ℕ, poissonCountingMeasure N X A = m := by
+  rw [poissonCountingMeasure_apply_eq_encard_index N X hA]
+  generalize Set.encard _ = e
+  induction e using ENat.recTopCoe with
+  | top => exact Or.inl rfl
+  | coe m => exact Or.inr ⟨m, rfl⟩
+
 /-- If the points `X n l`, `l < N n`, are pairwise distinct, the counting measure of a measurable
 set is the cardinality of the set of these points lying in it. -/
 theorem poissonCountingMeasure_apply_eq_encard (N : ℕ → ℕ) (X : ℕ → ℕ → S)
@@ -92,32 +141,18 @@ theorem poissonCountingMeasure_apply_eq_encard (N : ℕ → ℕ) (X : ℕ → �
     (hA : MeasurableSet A) :
     poissonCountingMeasure N X A =
       (A ∩ {x | ∃ n, ∃ l < N n, X n l = x}).encard := by
-  classical
-  set T : Set (ℕ × ℕ) := {q | q.2 < N q.1 ∧ X q.1 q.2 ∈ A} with hT
-  have h1 : ∑' n, ∑ l ∈ Finset.range (N n), A.indicator (1 : S → ℝ≥0∞) (X n l) =
-      ∑' q : ℕ × ℕ, T.indicator (1 : ℕ × ℕ → ℝ≥0∞) q := by
-    refine Eq.trans ?_
-      (ENNReal.tsum_prod (f := fun n l => T.indicator (1 : ℕ × ℕ → ℝ≥0∞) (n, l))).symm
-    refine tsum_congr fun n => ?_
-    rw [tsum_eq_sum (s := Finset.range (N n))]
-    · refine Finset.sum_congr rfl fun l hl => ?_
-      have hl' : l < N n := Finset.mem_range.1 hl
-      by_cases h : X n l ∈ A <;> simp [Set.indicator, hT, h, hl']
-    · intro l hl
-      have : ¬ l < N n := fun h => hl (Finset.mem_range.2 h)
-      simp [Set.indicator, hT, this]
-  have h2 : (fun q : ℕ × ℕ => X q.1 q.2) '' T = A ∩ {x | ∃ n, ∃ l < N n, X n l = x} := by
+  have h2 : (fun q : {q : ℕ × ℕ // q.2 < N q.1} => X q.1.1 q.1.2) ''
+      {q | X q.1.1 q.1.2 ∈ A} = A ∩ {x | ∃ n, ∃ l < N n, X n l = x} := by
     ext x
     constructor
-    · rintro ⟨⟨n, l⟩, ⟨hl, hx⟩, rfl⟩
-      exact ⟨hx, n, l, hl, rfl⟩
+    · rintro ⟨q, hq, rfl⟩
+      exact ⟨hq, q.1.1, q.1.2, q.2, rfl⟩
     · rintro ⟨hx, n, l, hl, rfl⟩
-      exact ⟨⟨n, l⟩, ⟨hl, hx⟩, rfl⟩
-  have hinj' : Set.InjOn (fun q : ℕ × ℕ => X q.1 q.2) T := fun a ha b hb hab =>
-    by_contra fun hne => hinj a b hne ha.1 hb.1 hab
-  rw [poissonCountingMeasure_apply _ _ hA, h1, ← tsum_subtype T (1 : ℕ × ℕ → ℝ≥0∞)]
-  simp only [Pi.one_apply]
-  rw [ENNReal.tsum_set_one, ← h2, hinj'.encard_image]
+      exact ⟨⟨(n, l), hl⟩, hx, rfl⟩
+  have hinj' : Set.InjOn (fun q : {q : ℕ × ℕ // q.2 < N q.1} => X q.1.1 q.1.2)
+      {q | X q.1.1 q.1.2 ∈ A} := fun a _ b _ hab =>
+    Subtype.ext (by_contra fun hne => hinj a.1 b.1 hne a.2 b.2 hab)
+  rw [poissonCountingMeasure_apply_eq_encard_index N X hA, ← h2, hinj'.encard_image]
 
 omit [MeasurableSpace S] in
 /-- Sorting the points of `S` into the disjoint sets `A i`, with one extra category for the
