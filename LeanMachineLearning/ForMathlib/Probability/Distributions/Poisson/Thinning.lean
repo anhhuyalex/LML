@@ -7,6 +7,8 @@ module
 
 public import Mathlib.Data.Nat.Choose.Multinomial
 public import Mathlib.MeasureTheory.Constructions.Pi
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.SumCountable
+public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import Mathlib.Probability.Distributions.Poisson.Basic
 
 /-!
@@ -18,8 +20,8 @@ categorical-distribution wrapper, the main theorem states the probability mass c
 
 @[expose] public section
 
-open MeasureTheory Real
-open scoped NNReal Nat
+open MeasureTheory ProbabilityTheory Real
+open scoped NNReal Nat ENNReal
 
 namespace ProbabilityTheory
 
@@ -68,7 +70,7 @@ private noncomputable def consWordEquiv {ι : Type*} [DecidableEq ι]
     apply Subtype.ext
     exact hxy
 
-private noncomputable def wordFiberFirstEquiv {ι : Type*} [Fintype ι] [DecidableEq ι]
+private noncomputable def wordFiberFirstEquiv {ι : Type*} [DecidableEq ι]
     (n : ℕ) (m : ι → ℕ) :
     WordFiber (n + 1) m ≃ Σ a : {a : ι // 0 < m a},
       WordFiber n (Function.update m a.1 (m a.1 - 1)) := by
@@ -274,5 +276,144 @@ theorem poisson_mul_multinomial_eq_prod_poisson {ι : Type*} [Fintype ι]
   field_simp [hmn]
   push_cast
   ring
+
+/-- The count of a letter in `List.ofFn x` is the number of positions carrying it. -/
+theorem count_ofFn_eq_sum {ι : Type*} [DecidableEq ι] (n : ℕ) (x : Fin n → ι) (i : ι) :
+    (List.ofFn x).count i = ∑ j, if x j = i then 1 else 0 := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [List.ofFn_succ, List.count_cons, Fin.sum_univ_succ, ih (fun j => x j.succ)]
+    simp [add_comm]
+
+/-- **Fixed-horizon multinomial law.** Under an i.i.d. product measure with singleton masses
+`p i`, the set of words of length `∑ m i` with letter multiplicities `m` has mass
+`multinomial m * ∏ (p i)^(m i)`. -/
+theorem measure_pi_counts_eq {ι : Type*} [Fintype ι] [DecidableEq ι] [MeasurableSpace ι]
+    [MeasurableSingletonClass ι] (ν : Measure ι) [IsProbabilityMeasure ν] (p : ι → ℝ≥0)
+    (hν : ∀ i, ν {i} = ENNReal.ofNNReal (p i)) (m : ι → ℕ) :
+    Measure.pi (fun _ : Fin (∑ i, m i) => ν)
+        {x | ∀ i, (∑ j, if x j = i then 1 else 0) = m i} =
+      ENNReal.ofNNReal (Nat.multinomial Finset.univ m) *
+        ∏ i, ENNReal.ofNNReal (p i) ^ m i := by
+  have hset : {x : Fin (∑ i, m i) → ι | ∀ i, (∑ j, if x j = i then 1 else 0) = m i} =
+      ↑(Finset.univ.filter fun x : Fin (∑ i, m i) → ι =>
+        ∀ i, (∑ j, if x j = i then 1 else 0) = m i) := by
+    ext x; simp
+  rw [hset, measure_finset_eq_sum_singleton]
+  have hterm : ∀ x ∈ Finset.univ.filter
+      (fun x : Fin (∑ i, m i) → ι => ∀ i, (∑ j, if x j = i then 1 else 0) = m i),
+      Measure.pi (fun _ : Fin (∑ i, m i) => ν) {x} = ∏ i, ENNReal.ofNNReal (p i) ^ m i := by
+    intro x hx
+    have hx' := (Finset.mem_filter.1 hx).2
+    rw [Measure.pi_singleton]
+    simp only [hν]
+    rw [← Finset.prod_fiberwise_of_maps_to (s := Finset.univ) (t := Finset.univ)
+      (g := x) (fun _ _ => Finset.mem_univ _)]
+    refine Finset.prod_congr rfl fun i _ => ?_
+    rw [Finset.prod_congr rfl (g := fun _ => ENNReal.ofNNReal (p i))
+      (fun j hj => by rw [(Finset.mem_filter.1 hj).2]), Finset.prod_const, ← hx' i,
+      Finset.card_filter]
+  rw [Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
+  congr 2
+  rw [multinomial_eq_card_words m, Fintype.card_subtype]
+  simp_rw [count_ofFn_eq_sum]
+
+/-- The category counts of the first `N` letters of a sequence depend measurably on `(N, x)`. -/
+theorem measurable_categoryCounts {ι : Type*} [Countable ι] [DecidableEq ι] [MeasurableSpace ι]
+    [MeasurableSingletonClass ι] :
+    Measurable fun q : ℕ × (ℕ → ι) => fun i : ι =>
+      ∑ l ∈ Finset.range q.1, if q.2 l = i then 1 else 0 := by
+  refine measurable_from_prod_countable_right fun n => ?_
+  refine measurable_pi_iff.2 fun i => ?_
+  change Measurable fun x : ℕ → ι => ∑ l ∈ Finset.range n, if x l = i then 1 else 0
+  refine Finset.measurable_sum _ fun l _ => ?_
+  exact Measurable.ite (measurableSet_eq_fun (measurable_pi_apply l) measurable_const)
+    measurable_const measurable_const
+
+/-- **Thinning in canonical form.** If `N ~ Po(r)` is independent of an i.i.d. sequence with
+finite law `ν`, the category counts of the first `N` letters have law `⊗ i, Po(r * p i)`. -/
+theorem map_counts_prod_infinitePi {ι : Type*} [Fintype ι] [DecidableEq ι] [MeasurableSpace ι]
+    [MeasurableSingletonClass ι] (ν : Measure ι) [IsProbabilityMeasure ν] (r : ℝ≥0)
+    (p : ι → ℝ≥0) (hp : ∑ i, p i = 1) (hν : ∀ i, ν {i} = ENNReal.ofNNReal (p i)) :
+    (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)).map
+        (fun q : ℕ × (ℕ → ι) => fun i : ι =>
+          ∑ l ∈ Finset.range q.1, if q.2 l = i then 1 else 0) =
+      Measure.pi fun i => Po(r * p i) := by
+  refine Measure.ext_of_singleton fun m => ?_
+  rw [Measure.map_apply measurable_categoryCounts (measurableSet_singleton m), Measure.prod_apply
+    (measurable_categoryCounts (measurableSet_singleton m)), Measure.pi_singleton,
+    ← poisson_mul_multinomial_eq_prod_poisson r p hp m]
+  rw [lintegral_countable', tsum_eq_single (∑ i, m i)]
+  · have hsec : (Prod.mk (∑ i, m i) ⁻¹' ((fun q : ℕ × (ℕ → ι) => fun i : ι =>
+        ∑ l ∈ Finset.range q.1, if q.2 l = i then 1 else 0) ⁻¹' {m})) =
+        (fun σ : ℕ → ι => fun j : Fin (∑ i, m i) => σ j) ⁻¹'
+          {x | ∀ i, (∑ j, if x j = i then 1 else 0) = m i} := by
+      ext σ
+      simp only [Set.mem_preimage, Set.mem_singleton_iff, funext_iff]
+      refine forall_congr' fun i => ?_
+      rw [← Fin.sum_univ_eq_sum_range (fun l => if σ l = i then 1 else 0)]
+    rw [hsec, ← Measure.map_apply (by fun_prop) (Set.toFinite _).measurableSet,
+      (Measure.measurePreserving_restrict_infinitePi ν (f := fun j : Fin (∑ i, m i) => (j : ℕ))
+        Fin.val_injective).map_eq, measure_pi_counts_eq ν p hν m]
+    ring
+  · intro n hn
+    have hempty : Prod.mk n ⁻¹' ((fun q : ℕ × (ℕ → ι) => fun i : ι =>
+        ∑ l ∈ Finset.range q.1, if q.2 l = i then 1 else 0) ⁻¹' {m}) = ∅ := by
+      ext σ
+      simp only [Set.mem_preimage, Set.mem_singleton_iff, Set.mem_empty_iff_false, iff_false]
+      intro h
+      apply hn
+      have : ∑ i, ∑ l ∈ Finset.range n, (if σ l = i then 1 else 0) = n := by
+        rw [Finset.sum_comm]; simp
+      rw [← this]
+      exact Finset.sum_congr rfl fun i _ => congrFun h i
+    rw [hempty, measure_empty, zero_mul]
+
+
+/-- **Multinomial Poisson thinning.** Let `N ~ Po(r)` be independent of an i.i.d. sequence
+`X l` with finite law `ν`, `ν {i} = p i`. Then the category counts
+`N_i = ∑_{l < N} 1_{X l = i}` have joint law `⊗ i, Po(r * p i)`; in particular they are mutually
+independent Poisson variables. -/
+theorem hasLaw_counts_poisson_thinning {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [IsProbabilityMeasure P] [Fintype ι] [DecidableEq ι] [MeasurableSpace ι]
+    [MeasurableSingletonClass ι] (ν : Measure ι) [IsProbabilityMeasure ν] (r : ℝ≥0)
+    (p : ι → ℝ≥0) (hp : ∑ i, p i = 1) (hν : ∀ i, ν {i} = ENNReal.ofNNReal (p i))
+    {N : Ω → ℕ} {X : ℕ → Ω → ι} (hN : HasLaw N Po(r) P) (hX : ∀ l, HasLaw (X l) ν P)
+    (hXi : iIndepFun X P) (hNX : IndepFun N (fun ω l => X l ω) P) :
+    HasLaw (fun ω i => ∑ l ∈ Finset.range (N ω), if X l ω = i then 1 else 0)
+      (Measure.pi fun i => Po(r * p i)) P := by
+  have hXm : AEMeasurable (fun ω l => X l ω) P :=
+    aemeasurable_pi_iff.2 fun l => (hX l).aemeasurable
+  have hseq : P.map (fun ω l => X l ω) = Measure.infinitePi fun _ : ℕ => ν := by
+    rw [hXi.map_fun_eq_infinitePi_map₀' fun l => (hX l).aemeasurable]
+    congr 1; funext l; exact (hX l).map_eq
+  have hpair : HasLaw (fun ω => (N ω, fun l => X l ω))
+      (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P := by
+    refine ⟨hN.aemeasurable.prodMk hXm, ?_⟩
+    rw [(indepFun_iff_map_prod_eq_prod_map_map hN.aemeasurable hXm).1 hNX, hN.map_eq, hseq]
+  refine ⟨?_, ?_⟩
+  · exact measurable_categoryCounts.comp_aemeasurable hpair.aemeasurable
+  · rw [← map_counts_prod_infinitePi ν r p hp hν, ← hpair.map_eq,
+      AEMeasurable.map_map_of_aemeasurable measurable_categoryCounts.aemeasurable
+        hpair.aemeasurable]
+    rfl
+
+/-- **Poisson thinning, coordinatewise form.** The category counts of the first `N` letters are
+mutually independent, and the `i`-th one is `Po(r * p i)`. -/
+theorem iIndepFun_hasLaw_counts_poisson_thinning {Ω ι : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsProbabilityMeasure P] [Fintype ι] [DecidableEq ι] [MeasurableSpace ι]
+    [MeasurableSingletonClass ι] (ν : Measure ι) [IsProbabilityMeasure ν] (r : ℝ≥0)
+    (p : ι → ℝ≥0) (hp : ∑ i, p i = 1) (hν : ∀ i, ν {i} = ENNReal.ofNNReal (p i))
+    {N : Ω → ℕ} {X : ℕ → Ω → ι} (hN : HasLaw N Po(r) P) (hX : ∀ l, HasLaw (X l) ν P)
+    (hXi : iIndepFun X P) (hNX : IndepFun N (fun ω l => X l ω) P) :
+    (∀ i, HasLaw (fun ω => ∑ l ∈ Finset.range (N ω), if X l ω = i then 1 else 0)
+        Po(r * p i) P) ∧
+      iIndepFun (fun (i : ι) ω => ∑ l ∈ Finset.range (N ω), if X l ω = i then 1 else 0) P := by
+  have h := hasLaw_counts_poisson_thinning ν r p hp hν hN hX hXi hNX
+  have hi : ∀ i, HasLaw (fun ω => ∑ l ∈ Finset.range (N ω), if X l ω = i then 1 else 0)
+      Po(r * p i) P := fun i =>
+    (measurePreserving_eval (fun i => Po(r * p i)) i).hasLaw.comp h
+  exact ⟨hi, (iIndepFun_iff_hasLaw_pi_pi hi).2 h⟩
 
 end ProbabilityTheory

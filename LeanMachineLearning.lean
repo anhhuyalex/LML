@@ -47,6 +47,7 @@ public import LeanMachineLearning.ForMathlib.Order.Interval.Finset
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.SumCountable
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.Thinning
 public import LeanMachineLearning.ForMathlib.Probability.EmpiricalConvergence
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
