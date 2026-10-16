@@ -276,4 +276,52 @@ theorem ae_poissonProcess_marking_eq_encard {Ω S T : Type*} [MeasurableSpace Ω
     have := hnull n hn
     nullSingletonClass_compProd (ν n) K
 
+/-- **Superposition with simplicity.** For atomless positive-rate block laws, the sum of
+independent process measures counts points of the union without multiplicity, almost surely. -/
+theorem ae_poissonProcess_superposition_eq_encard {Ω S : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace S] [MeasurableEq S] {P : Measure Ω} [IsProbabilityMeasure P]
+    (ν : ℕ → ℕ → Measure S) [∀ m n, IsProbabilityMeasure (ν m n)]
+    (r : ℕ → ℕ → ℝ≥0) {B : ℕ → ℕ → Ω → ℕ × (ℕ → S)}
+    (hBm : ∀ m n, Measurable (B m n))
+    (houter : iIndepFun (fun m ω => fun n => B m n ω) P)
+    (hinner : ∀ m, iIndepFun (B m) P)
+    (hlaw : ∀ m n, HasLaw (B m n)
+      (Po(r m n).prod (Measure.infinitePi fun _ : ℕ => ν m n)) P)
+    (hnull : ∀ m n, r m n ≠ 0 → NullSingletonClass (ν m n)) :
+    ∀ᵐ ω ∂P, ∀ A : Set S, MeasurableSet A →
+      (Measure.sum fun m => poissonCountingMeasure (fun n => (B m n ω).1)
+        (fun n l => (B m n ω).2 l)) A =
+        (A ∩ {x | ∃ m n, ∃ l < (B m n ω).1, (B m n ω).2 l = x}).encard := by
+  let C : ℕ → Ω → ℕ × (ℕ → S) := fun k ω =>
+    B (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2 ω
+  have hCm : ∀ k, Measurable (C k) := fun k => hBm _ _
+  have hCi : iIndepFun C P :=
+    (iIndepFun_uncurry' hBm houter hinner).precomp
+      (g := Nat.pairEquiv.symm) Nat.pairEquiv.symm.injective
+  have hClaw : ∀ k, HasLaw (C k)
+      (Po(r (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2).prod
+        (Measure.infinitePi fun _ : ℕ =>
+          ν (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2)) P :=
+    fun k => hlaw _ _
+  have hCnull : ∀ k, r (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2 ≠ 0 →
+      NullSingletonClass (ν (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2) :=
+    fun k => hnull _ _
+  filter_upwards [ae_poissonCountingMeasure_eq_encard
+    (fun k => ν (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2)
+    (fun k => r (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2)
+    hCm hCi hClaw hCnull] with ω hω A hA
+  rw [poissonCountingMeasure_superposition]
+  rw [hω A hA]
+  have hset : (A ∩ {x | ∃ k, ∃ l < (C k ω).1, (C k ω).2 l = x}) =
+      (A ∩ {x | ∃ m n, ∃ l < (B m n ω).1, (B m n ω).2 l = x}) := by
+    ext x
+    simp only [Set.mem_inter_iff]
+    constructor
+    · rintro ⟨hx, k, l, hl, heq⟩
+      exact ⟨hx, (Nat.pairEquiv.symm k).1, (Nat.pairEquiv.symm k).2, l, hl, heq⟩
+    · rintro ⟨hx, m, n, l, hl, heq⟩
+      exact ⟨hx, Nat.pairEquiv (m, n), l, by simpa [C] using hl,
+        by simpa [C] using heq⟩
+  exact congrArg (fun s : Set S => (s.encard : ℝ≥0∞)) hset
+
 end SpinGlasses

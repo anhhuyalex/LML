@@ -10,6 +10,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.S
 public import LeanMachineLearning.ForMathlib.Probability.Independence.Nonatomic
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
 public import Mathlib.MeasureTheory.Measure.GiryMonad
+public import Mathlib.Probability.IdentDistrib
 
 /-!
 # Poisson point processes: existence theorem (Panchenko, Theorem 2.5)
@@ -357,5 +358,29 @@ theorem ae_poissonCountingMeasure_eq_encard [MeasurableEq S] {Ω : Type*} [Measu
         (A ∩ {x | ∃ n, ∃ l < (B n ω).1, (B n ω).2 l = x}).encard := by
   filter_upwards [ae_pairwise_ne_poissonBlocks ν r hBm hB hlaw hnull] with ω hω A hA
   exact poissonCountingMeasure_apply_eq_encard _ _ hω hA
+
+/-- The full random counting measure has the same law as the canonical block construction.
+Unlike the finite-dimensional count statement, this compares measures in the Giry space. -/
+theorem identDistrib_poissonCountingMeasure_canonical {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} (ν : ℕ → Measure S) (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → S)} (hBm : ∀ n, Measurable (B n))
+    (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P) :
+    IdentDistrib (fun ω => poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l))
+      (fun q : ℕ → ℕ × (ℕ → S) => poissonCountingMeasure
+        (fun n => (q n).1) (fun n l => (q n).2 l)) P
+      (Measure.infinitePi fun n =>
+        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) := by
+  have hmap := hB.map_fun_eq_infinitePi_map hBm
+  have hπ : HasLaw (fun ω n => B n ω)
+      (Measure.infinitePi fun n =>
+        Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P := by
+    refine ⟨(measurable_pi_iff.2 hBm).aemeasurable, ?_⟩
+    simpa only [show (fun n => P.map (B n)) =
+      (fun n => Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) from
+      funext fun n => (hlaw n).map_eq] using hmap
+  exact (hπ.identDistrib .id).comp measurable_poissonCountingMeasure
 
 end SpinGlasses

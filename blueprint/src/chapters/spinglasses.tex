@@ -42,7 +42,7 @@ the Dovbysh--Sudakov theorem; the Lean files are \texttt{ForMathlib/Probability/
 (deviations in Remark~\ref{rem:sg:asymptotic-deviation}).
 Section~\ref{sec:sg:aldous-hoover} covers Section~1.4 of the book: the general tools
 (the $L^2$ projection equality, the Coding Lemma and the sequential decoupling), de Finetti's theorem for exchangeable sequences (Lemma~1.5, Eq.~(1.88), Theorem~1.6), the Aldous--Hoover representation of weakly exchangeable arrays (Eq.~(1.89), Lemma~1.6, Eq.~(1.94), Theorem~1.5) and of separately exchangeable arrays (Theorem~1.4), each with its converse.
-Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. What remains open is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
+Section~\ref{sec:sg:dovbysh-sudakov} proves the Dovbysh--Sudakov representation (Theorem~1.7) in the form of a function $h(w,u,\cdot)\in L^2(0,1)$; Section~\ref{sec:sg:reconstruction} proves Lemma~1.7 (measurable reconstruction of the random measure, up to an isometry, for a fixed law on a separable Hilbert space); Section~\ref{sec:sg:gibbs-measure} then produces the asymptotic Gibbs measure of the SK model, a measurable family of probability measures on the unit ball of $L^2(0,1)$ (Theorem~\ref{thm:sg:asymptotic-gibbs-measure}). The Lean files of these three sections are \texttt{SpinGlasses/DovbyshSudakov.lean} (with \texttt{DovbyshSudakovGaussian.lean} and \texttt{DovbyshSudakovLimit.lean}), \texttt{SpinGlasses/DovbyshSudakovReconstruction.lean} and \texttt{SpinGlasses/AsymptoticGibbsMeasure.lean}, with the general tools \texttt{ForMathlib/LinearAlgebra/Matrix/CholeskyInfinite.lean}, \texttt{ForMathlib/Probability/EmpiricalConvergence.lean}, \texttt{ForMathlib/MeasureTheory/Measure/ProbabilityMeasureMeasurable.lean}, \texttt{ForMathlib/MeasureTheory/Function/LpSectionMeasurable.lean} and \texttt{ForMathlib/Analysis/InnerProductSpace/GramIsometry.lean}. Section~\ref{sec:sg:poisson} starts Chapter~2 of the book: Poisson point processes (the constructive definition, the Existence Theorem~2.5 and the Mapping, Superposition and Marking Theorems~2.1--2.3), with the Lean files \texttt{SpinGlasses/PoissonProcess.lean}, \texttt{SpinGlasses/PoissonProcessTransform.lean} and \texttt{ForMathlib/Probability/Distributions/Poisson/}. What remains open for Chapter~1 is the passage to the limit $a_N\to1$ (Section~\ref{sec:sg:aN-limit}) and, from the book's Chapter~3, the use of Theorem~1.3 for random Ruelle cascades (the countable-atom statement is now Theorem~\ref{thm:sg:gram13-countable}).
 
 
 \medskip\noindent\textbf{Notation.}
@@ -2830,5 +2830,168 @@ Theorem~\ref{thm:sg:asymptotic-overlap} gives a subsequence along which $\Lambda
 \item \emph{A Borel structure as a hypothesis.} Since Mathlib has no $\sigma$-algebra on $L^2$, it is an instance argument of the two theorems. Any two Borel structures coincide, so the theorems hold for the canonical one.
 \item \emph{The Gram array is written with an explicit diagonal.} The book writes $(h_l\cdot h_{l'})_{l\ne l'}$; the Lean array is indexed by all $(l,l')$ because the limit law of Theorem~\ref{thm:sg:asymptotic-overlap} is a law on arrays with diagonal $1$.
 \item \emph{Left to do.} The limit $a_N\to1$ in the Gram approximation (Section~\ref{sec:sg:aN-limit}) and the Chapter~3 uses of Theorem~1.3 (random Ruelle cascades; the countable-atom statement itself is Theorem~\ref{thm:sg:gram13-countable}). The book does not apply Theorem~1.3 to $G$ itself; it applies it to the finite measures $G^\pi_N$ and to Ruelle cascades in Chapter~3 (see Section~\ref{sec:sg:gram-background}).
+\end{enumerate}
+\end{remark}
+
+\section{Poisson point processes (Section~2.1 of the book)}\label{sec:sg:poisson}
+
+Chapter~2 of the book constructs the Ruelle probability cascades from Poisson point processes. This section formalizes
+the first half of Section~2.1: the constructive definition of a Poisson process, the Existence Theorem~2.5 (the counts of disjoint sets are
+independent Poisson variables), and the Mapping, Superposition and Marking Theorems~2.1--2.3. The Equivalence Theorem~2.4 (independence of the
+construction from the decomposition of the mean measure) and everything from Section~2.2 on are not formalized yet.
+The Lean files are \texttt{SpinGlasses/PoissonProcess.lean} and \texttt{SpinGlasses/PoissonProcessTransform.lean}, with the general tools
+\texttt{ForMathlib/Probability/Distributions/Poisson/SumCountable.lean} (sums of Poisson variables),
+\texttt{ForMathlib/Probability/Distributions/Poisson/Thinning.lean} (Poisson splitting),
+\texttt{ForMathlib/Probability/Independence/Nonatomic.lean} (a nonatomic variable avoids an independent one) and
+\texttt{ForMathlib/Probability/Independence/IndepInfinitePi.lean} (regrouping independent families).
+
+\medskip\noindent\textbf{The construction, and how we state it.}
+Let $S$ be a measurable space whose diagonal is measurable. The book writes the mean measure as $\mu=\sum_{n\ge1}\mu_n$ with $\mu_n(S)<\infty$ and
+generates, independently over $n$, a Poisson number $N_n\sim\mathrm{Po}(\mu_n(S))$ of points $X_{n1},\dots,X_{nN_n}$, i.i.d.\ from $\mu_n/\mu_n(S)$.
+The random set $\Pi=\bigcup_n\{X_{n1},\dots,X_{nN_n}\}$ is \emph{defined} to be a Poisson process with mean measure $\mu$.
+We write $\mu_n=r_n\nu_n$ with $r_n=\mu_n(S)\ge0$ and $\nu_n$ a probability measure (see Remark~\ref{rem:sg:poisson-deviation}), and call
+\[B_n=\big(N_n,(X_{nl})_{l\ge0}\big),\qquad B_n\sim \mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N},\quad (B_n)_n\ \text{independent},\]
+the \emph{blocks}. The point configuration is recorded by its counting measure
+\[M=\sum_{n}\sum_{l<N_n}\delta_{X_{nl}},\qquad M(A)=\#\{(n,l):l<N_n,\ X_{nl}\in A\}\in[0,\infty],\]
+in Lean \texttt{SpinGlasses.poissonCountingMeasure}. Everything below is stated for \emph{any} probability space carrying such blocks
+(hypotheses \texttt{hBm}: each $B_n$ measurable, \texttt{hB}: the $B_n$ independent, \texttt{hlaw}: the laws above);
+Lemma~\ref{thm:sg:poisson-blocks-exist} shows that they exist. No new structure or predicate ``is a Poisson process'' is introduced:
+``$M$ is a Poisson process with mean measure $\mu=\sum_n r_n\nu_n$'' means exactly that these hypotheses hold.
+
+\begin{lemma}[Poisson splitting (multinomial thinning)]\label{lem:sg:poisson-thinning}
+  \lean{ProbabilityTheory.poisson_mul_multinomial_eq_prod_poisson,
+        ProbabilityTheory.multinomial_eq_card_words,
+        ProbabilityTheory.hasLaw_counts_poisson_thinning,
+        ProbabilityTheory.iIndepFun_hasLaw_counts_poisson_thinning,
+        ProbabilityTheory.hasLaw_map_prod_infinitePi,
+        ProbabilityTheory.hasLaw_counts_poisson_thinning_of_hasLaw_prod}
+  \leanok
+Let $N\sim\mathrm{Po}(r)$ be independent of an i.i.d.\ sequence $(X_l)$ with values in a finite set $\iota$ and $\mathbb P(X_l=i)=p_i$. Then the counts
+$N_i=\sum_{l<N}\mathbf 1_{X_l=i}$ are independent with $N_i\sim\mathrm{Po}(rp_i)$. In the block form used below: if a block $B=(N,X)$ has law $\mathrm{Po}(r)\otimes\nu^{\otimes\mathbb N}$ and $c:S\to\iota$ is
+measurable with $\nu(c^{-1}\{i\})=p_i$, then the vector $\big(\#\{l<N:c(X_l)=i\}\big)_{i\in\iota}$ has law $\bigotimes_i\mathrm{Po}(rp_i)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+The multinomial coefficient of a count vector $m$ is the number of words of length $\sum m_i$ with these letter counts (induction on the length, splitting by the first letter), so under the product measure the set of such words has mass
+$\binom{\sum m_i}{m}\prod p_i^{m_i}$. Weighting by $\mathrm{Po}(r)(\sum m_i)=e^{-r}r^{\sum m_i}/(\sum m_i)!$ and using $\sum p_i=1$ gives $\prod_i e^{-rp_i}(rp_i)^{m_i}/m_i!$, the product of the masses of $\mathrm{Po}(rp_i)$.
+Hence the count vector has law $\bigotimes_i\mathrm{Po}(rp_i)$, and independence of the coordinates follows from the law being a product measure. For a block with a category map $c$, push the law forward by $(n,x)\mapsto(n,c\circ x)$, which maps $\mathrm{Po}(r)\otimes\nu^{\otimes\mathbb N}$ to $\mathrm{Po}(r)\otimes(c_*\nu)^{\otimes\mathbb N}$.
+\end{proof}
+
+\begin{lemma}[Countable sums of independent Poisson variables]\label{lem:sg:poisson-sum}
+  \lean{ProbabilityTheory.iIndepFun.hasLaw_sum_poissonMeasure,
+        ProbabilityTheory.integral_natCast_poissonMeasure,
+        ProbabilityTheory.ae_summable_natCast_of_hasLaw_poissonMeasure,
+        ProbabilityTheory.iIndepFun.hasLaw_tsum_poissonMeasure,
+        ProbabilityTheory.iIndepFun.ae_tendsto_sum_range_poissonMeasure_atTop}
+  \leanok
+Let $Y_n\sim\mathrm{Po}(\rho_n)$ be independent. If $\sum\rho_n<\infty$, then $\sum_nY_n$ is almost surely finite and $\sum_nY_n\sim\mathrm{Po}(\sum_n\rho_n)$. If $\sum\rho_n=\infty$, the partial sums tend to $\infty$ almost surely.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+Finite sums are Poisson by induction from Mathlib's theorem for two summands. The mean of $\mathrm{Po}(\rho)$ is $\rho$, so $\sum_n\mathbb E Y_n<\infty$ and the series converges almost surely (Tonelli; independence is not needed here). The events $\{\sum_{n<K}Y_n\le k\}$ decrease to $\{\sum_nY_n\le k\}$ and have probabilities $\sum_{j\le k}\mathrm{Po}(\sum_{n<K}\rho_n)\{j\}$, which converge to the corresponding sum for the limit rate. In the divergent case each such probability tends to $0$.
+\end{proof}
+
+\begin{lemma}[Distinctness of nonatomic samples]\label{lem:sg:poisson-distinct}
+  \lean{ProbabilityTheory.IndepFun.measure_eq_zero,
+        ProbabilityTheory.iIndepFun.ae_pairwise_ne,
+        SpinGlasses.ae_pairwise_ne_poissonBlocks,
+        SpinGlasses.poissonCountingMeasure_apply_eq_encard,
+        SpinGlasses.ae_poissonCountingMeasure_eq_encard}
+  \leanok
+(a) If $X,Y$ are independent and the law of $Y$ has no atoms, then $\mathbb P(X=Y)=0$; a countable independent family with atomless laws is almost surely pairwise distinct.
+(b) Suppose $\nu_n$ has no atoms whenever $r_n\ne0$. Then almost surely the points $X_{nl}$, $l<N_n$, are pairwise distinct (over all blocks).
+(c) Consequently, almost surely, for every measurable $A$, $M(A)=\#(A\cap\Pi)$ where $\Pi=\{X_{nl}:l<N_n\}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+(a) Independence turns $\mathbb P(X=Y)$ into the product measure of the diagonal, which is computed by Tonelli with the singleton sections, all null. (b) The family $(X_{nl})_{(n,l)}$ is independent: the $X_{nl}$ are independent within a block (their law is the product measure) and the blocks are independent, so the doubly indexed family is independent (a regrouping lemma, converse of Mathlib's \texttt{iIndepFun\_uncurry}, used in both directions below). Apply (a) to the indices with $r_n\ne0$. A block with $r_n=0$ has $N_n=0$ almost surely, because $\mathrm{Po}(0)=\delta_0$, so it contributes no point. (c) When the points are distinct, $M(A)=\sum_{(n,l)}\mathbf 1[l<N_n,X_{nl}\in A]$ counts the elements of the injective image.
+\end{proof}
+
+\begin{theorem}[Existence Theorem~2.5]\label{thm:sg:poisson-existence}
+  \lean{SpinGlasses.iIndepFun_hasLaw_poissonCountingMeasure_apply}
+  \leanok
+Let $B_n$ be independent blocks with laws $\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ and let $\mu=\sum_nr_n\nu_n$. Let $A_1,\dots,A_k$ be pairwise disjoint measurable sets with $\mu(A_i)<\infty$. Then $M(A_1),\dots,M(A_k)$ are independent and $M(A_i)\sim\mathrm{Po}(\mu(A_i))$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{lem:sg:poisson-thinning, lem:sg:poisson-sum}
+Put $A_0=S\setminus\bigcup_iA_i$ and sort $S$ into the $k+1$ cells with a measurable map $c$. For a fixed block $n$, Lemma~\ref{lem:sg:poisson-thinning} says that the cell counts $Y_{n,i}=\#\{l<N_n:X_{nl}\in A_i\}$ are independent with $Y_{n,i}\sim\mathrm{Po}(r_n\nu_n(A_i))$. Blocks are independent, so the double family $(Y_{n,i})_{n,i}$ is independent (regrouping lemma). Regrouped by the cell index $i$, the sequences $(Y_{n,i})_n$ are independent over $i$, so the series $\sum_nY_{n,i}$ are independent (functions of disjoint subfamilies). By Lemma~\ref{lem:sg:poisson-sum}, $\sum_nY_{n,i}\sim\mathrm{Po}(\sum_nr_n\nu_n(A_i))=\mathrm{Po}(\mu(A_i))$, and $M(A_i)=\sum_nY_{n,i}$.
+\end{proof}
+
+\begin{lemma}[Blocks exist]\label{thm:sg:poisson-blocks-exist}
+  \lean{SpinGlasses.exists_poissonBlocks}
+  \leanok
+For every $(r_n)$ and $(\nu_n)$ there is a probability measure on $\prod_n(\mathbb N\times S^{\mathbb N})$, namely $\bigotimes_n(\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N})$, under which the coordinate maps are measurable, independent and have the laws above.
+\end{lemma}
+
+\begin{theorem}[Mapping Theorem~2.1]\label{thm:sg:poisson-map}
+  \lean{SpinGlasses.poissonCountingMeasure_map,
+        SpinGlasses.poissonProcess_map,
+        SpinGlasses.nullSingletonClass_map_block,
+        SpinGlasses.ae_poissonProcess_map_eq_encard}
+  \leanok
+Let $M$ come from blocks as above and $f:S\to S'$ be measurable. Then $f_*M=\sum_n\sum_{l<N_n}\delta_{f(X_{nl})}$ is the counting measure of the blocks $(N_n,(f(X_{nl}))_l)$, which have laws $\mathrm{Po}(r_n)\otimes(f_*\nu_n)^{\otimes\mathbb N}$ and are independent; its mean measure is $f_*\mu=\sum_nr_nf_*\nu_n$. Hence Theorem~\ref{thm:sg:poisson-existence} applies to $f_*M$. If moreover $f_*\mu$ has no atoms, then $f_*\nu_n$ has no atoms whenever $r_n\ne0$, and almost surely $f_*M(A)=\#(A\cap f(\Pi))$ for every measurable $A\subseteq S'$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:poisson-existence, lem:sg:poisson-distinct}
+Evaluate both sides on a measurable set. The block law is the image of $\mathrm{Po}(r)\otimes\nu^{\otimes\mathbb N}$ under $(n,x)\mapsto(n,f\circ x)$. If $f_*\mu\{y\}=\sum_nr_n(f_*\nu_n)\{y\}=0$ then each term vanishes, so $(f_*\nu_n)\{y\}=0$ when $r_n\ne0$. Then apply Lemma~\ref{lem:sg:poisson-distinct}.
+\end{proof}
+
+\begin{lemma}[Canonical law of block counting measures]\label{lem:sg:poisson-canonical-law}
+  \lean{SpinGlasses.identDistrib_poissonCountingMeasure_canonical}
+  \leanok
+The law of the entire random counting measure of independent Poisson blocks agrees, as a Giry measure, with the law obtained from canonical product blocks with the same rates and sample laws.
+\end{lemma}
+\begin{proof}
+The joint law of the blocks is their infinite product by independence and the individual block laws. Apply the measurable map from block sequences to counting measures to both sides.
+\end{proof}
+
+\begin{theorem}[Superposition Theorem~2.2]\label{thm:sg:poisson-superposition}
+  \lean{SpinGlasses.poissonCountingMeasure_superposition,
+        SpinGlasses.poissonProcess_superposition,
+        SpinGlasses.ae_poissonProcess_superposition_eq_encard}
+  \leanok
+Let $B_{mn}$ be blocks with laws $\mathrm{Po}(r_{mn})\otimes\nu_{mn}^{\otimes\mathbb N}$ such that the families $(B_{mn})_n$ are independent over $m$ and the blocks are independent within each family. Let $M_m$ be the counting measure of $(B_{mn})_n$. Then $\sum_mM_m$ satisfies the conclusion of Theorem~\ref{thm:sg:poisson-existence} with $\mu=\sum_m\sum_nr_{mn}\nu_{mn}=\sum_m\mu_m$. If the laws $\nu_{mn}$ with $r_{mn}\ne0$ have no atoms, then almost surely $\sum_mM_m(A)$ is the cardinality of the intersection of $A$ with the union of all sampled points, for every measurable $A$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:poisson-existence}
+By the regrouping lemma the family $(B_{mn})_{(m,n)}$ is independent. Enumerate the pairs by a bijection $\mathbb N\times\mathbb N\cong\mathbb N$ (as in the book): $\sum_mM_m$ is the counting measure of the enumerated blocks, and the mean measure is reindexed in the same way. If the positive-rate block laws are atomless, the distinctness lemma applies to the enumerated blocks and identifies counts with cardinalities of the union.
+\end{proof}
+
+\begin{theorem}[Marking Theorem~2.3]\label{thm:sg:poisson-marking}
+  \lean{SpinGlasses.poissonProcess_marking,
+        SpinGlasses.exists_markedPoissonBlocks,
+        SpinGlasses.nullSingletonClass_compProd,
+        SpinGlasses.ae_poissonProcess_marking_eq_encard}
+  \leanok
+Let $K$ be a Markov kernel from $S$ to $S'$.
+(a) If the blocks have values in $S\times S'$ with laws $\mathrm{Po}(r_n)\otimes(\nu_n\otimes_mK)^{\otimes\mathbb N}$, then the counts of disjoint measurable sets in $S\times S'$ of finite mass are independent Poisson with the mean measure $\mu\otimes_mK=\sum_nr_n(\nu_n\otimes_mK)$, $\mu=\sum_nr_n\nu_n$.
+(b) Such marked blocks exist, and forgetting the marks gives blocks with laws $\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ on the same probability space.
+(c) If $\nu_n$ has no atoms whenever $r_n\ne0$, then so has $\nu_n\otimes_mK$, and almost surely the marked counting measure counts the points of the marked set $\Pi^*$ without multiplicity.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+\uses{thm:sg:poisson-existence, thm:sg:poisson-blocks-exist, lem:sg:poisson-distinct}
+(a) is Theorem~\ref{thm:sg:poisson-existence} for the probability measures $\nu_n\otimes_mK$; the identity $(\sum_nr_n\nu_n)\otimes_mK=\sum_nr_n(\nu_n\otimes_mK)$ is linearity of $\otimes_m$ in the measure. (b) Take the blocks of Lemma~\ref{thm:sg:poisson-blocks-exist} for $\nu_n\otimes_mK$; the first marginal of $\nu_n\otimes_mK$ is $\nu_n$, and the first-coordinate map is a mapping as in Theorem~\ref{thm:sg:poisson-map}. (c) $(\nu_n\otimes_mK)(\{s\}\times S')=\nu_n\{s\}=0$, so every singleton is null.
+\end{proof}
+
+\begin{remark}[Differences from the book, and why]\label{rem:sg:poisson-deviation}
+\begin{enumerate}
+\item \emph{No canonical space, no definition.} The book makes the construction the definition of ``Poisson process''. We state each theorem for an arbitrary probability space carrying independent blocks with the prescribed laws, and prove the existence of such a space separately (Lemma~\ref{thm:sg:poisson-blocks-exist}). Reason: this is the form in which the theorems are used (the blocks of a transformed process are built on the same space as the original), it needs no one-line wrapper definition of the canonical measure, and it matches the repository's convention of not introducing new definitions. The price is that a ``Poisson process'' is a bundle of hypotheses rather than a term.
+\item \emph{Rates and probability measures.} The book uses $\mu_n$ and $p_n=\mu_n/\mu_n(S)$. We take $(r_n,\nu_n)$ with $\nu_n$ a probability measure. Reason: dividing by $\mu_n(S)$ fails when $\mu_n(S)=0$, where the normalized measure is not a probability measure; with $r_n=0$ the block is simply empty. A decomposition $\mu=\sum_nr_n\nu_n$ with $\nu_n$ atomic and $r_n=0$ is then allowed, which is why the atomless hypotheses read ``whenever $r_n\ne0$''.
+\item \emph{Counting measures, then sets.} The book works with the random \emph{set} $\Pi$. Our primary object is the counting measure $M$, which counts coincident points with multiplicity, so that Theorems~\ref{thm:sg:poisson-existence}--\ref{thm:sg:poisson-superposition} (counts) need no atomless hypothesis. The atomless hypothesis of the book's theorems is used exactly to pass from $M$ to the set $\Pi$ (Lemma~\ref{lem:sg:poisson-distinct}(c)), and is stated in the theorems \texttt{ae\_poissonProcess\_map\_eq\_encard}, \texttt{ae\_poissonProcess\_marking\_eq\_encard} and \texttt{ae\_poissonProcess\_superposition\_eq\_encard}. Transformations at the level of counts are also what the later sections use.
+\item \emph{Counts valued in $[0,\infty]$.} Because $M(A)$ may be infinite, the law of $M(A)$ is stated as the image of $\mathrm{Po}(\mu(A))$ under $\mathbb N\to[0,\infty]$, and $\mu(A)<\infty$ is a hypothesis. A natural-number series with non-summable terms is $0$ in Lean, so the proof works with the extended series, which equals $M(A)$ pointwise, and uses almost sure summability only to identify its law.
+\item \emph{Measurability of the blocks} is a hypothesis (the independence regrouping lemma needs measurable, not just almost-everywhere measurable, variables). It holds for the canonical blocks.
+\item \emph{Marking is a coupling.} The book adds marks to a given $\Pi$. We prove existence of marked blocks whose unmarked part has the original law (Theorem~\ref{thm:sg:poisson-marking}(b)), which suffices when only distributions matter, as in the book's later uses of markings. Adding marks to an arbitrary \emph{given} family of blocks would require a measurable representation $K(s,\cdot)=\mathrm{Leb}\circ g(s,\cdot)^{-1}$ of the kernel, available in Mathlib for standard Borel mark spaces, and is not formalized.
+\item \emph{Left to do in Section~2.1.} The Equivalence Theorem~2.4 (independence of the representation $\mu=\sum\mu_n$, and conditional i.i.d.\ structure on a partition of $S$), a formula for $\mathbb E\int f\,dM=\int f\,d\mu$, a pointwise marking of an arbitrary previously fixed family of blocks (our marking theorem is a coupling). The Giry law of the entire random counting measure agrees with that of the canonical block construction by \texttt{identDistrib\_poissonCountingMeasure\_canonical}; this applies also to the transformed blocks.
 \end{enumerate}
 \end{remark}
