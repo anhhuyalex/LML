@@ -297,13 +297,6 @@ theorem identDistrib_poissonDirichlet_gaussian_weights
     poissonCountingMeasure_map _ _ measurable_fst
   simpa only [Function.comp_def, hleft, hright] using h
 
-/-- Forgetting marks before ranking agrees with ranking the unmarked block construction. -/
-theorem rankedMasses_poissonCountingMeasure (N : ℕ → ℕ)
-    (X : ℕ → ℕ → ℝ × ℝ) (n : ℕ) :
-    nthLargestAtom n ((poissonCountingMeasure N X).map Prod.fst) =
-      nthLargestAtom n (poissonCountingMeasure N (fun k l => (X k l).1)) := by
-  rw [poissonCountingMeasure_map N X measurable_fst]
-
 /-- The mark at a real mass, read from a singleton fiber of a marked counting measure.
 The value is zero on fibers of mass other than one. -/
 noncomputable def markAtMass (M : Measure (ℝ × ℝ)) (u : ℝ) : ℝ :=
