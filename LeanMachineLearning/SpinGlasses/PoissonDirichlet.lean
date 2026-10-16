@@ -395,6 +395,16 @@ theorem integral_poisson_sum_rpow_le_of_blocks {a : ℝ} (ha0 : 0 < a) (haζ : a
   exact ⟨integrable_poisson_sum_rpow ha0 haζ hζ1 hMm hatom hCamp,
     integral_poisson_sum_rpow_le ha0 haζ hζ1 hMm hatom hCamp⟩
 
+/-- The total mass `∑_{x ∈ Π} x` of the block construction is finite almost surely. -/
+theorem ae_lintegral_poisson_lt_top_of_blocks (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
+    (hBm : ∀ n, Measurable (B n))
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : zetaPoissonMeasure ζ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
+    (hM : ∀ ω, M ω = poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)) :
+    ∀ᵐ ω ∂P, ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω) < ∞ :=
+  ae_lintegral_poisson_lt_top hζ0 hζ1 (measurable_poissonCountingMeasure_of_blocks hBm hM)
+    (fun ω => ⟨_, _, hM ω⟩) fun _ hf => lintegral_lintegral_zeta_of_blocks ν r hlaw hμ hM hf
+
 /-- **`PD(ζ)` is well defined.** Almost surely, the atoms `u₀ > 0, u₁ > 0, …` of the ζ-Poisson
 process are all positive, their sum `∑ₙ uₙ = ∑_{x ∈ Π} x` is finite, and so the weights
 `vₙ = uₙ / ∑ₗ uₗ` are positive, nonincreasing and sum to one. -/
@@ -407,10 +417,6 @@ theorem ae_poissonDirichletWeight (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hBm : ∀ n, 
       HasSum (fun n => poissonDirichletWeight n (M ω)) 1 ∧
       (∀ n, 0 < poissonDirichletWeight n (M ω)) ∧
       Antitone fun n => poissonDirichletWeight n (M ω) := by
-  have hMm := measurable_poissonCountingMeasure_of_blocks hBm hM
-  have hatom : ∀ ω, ∃ (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ), M ω = poissonCountingMeasure N X :=
-    fun ω => ⟨_, _, hM ω⟩
-  have hCamp := fun f (hf : Measurable f) => lintegral_lintegral_zeta_of_blocks ν r hlaw hμ hM hf
   -- the process has infinitely many points
   have hinf : ∀ᵐ ω ∂P, M ω (Ioi 0) = ∞ := by
     have hL := (iIndepFun_hasLaw_poissonCountingMeasure_apply (κ := Unit) ν r hBm hB hlaw hμ hM
@@ -420,8 +426,10 @@ theorem ae_poissonDirichletWeight (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hBm : ∀ n, 
     have : ∀ᵐ y ∂(P.map fun ω => M ω (Ioi 0)), y = ∞ := by
       rw [hL.map_eq, ae_dirac_eq]; simp
     exact (ae_map_iff hL.aemeasurable (measurableSet_singleton ∞)).1 this
-  filter_upwards [hinf, ae_lintegral_poisson_lt_top hζ0 hζ1 hMm hatom hCamp] with ω hω hfin
-  obtain ⟨N, X, hNX⟩ := hatom ω
+  filter_upwards [hinf, ae_lintegral_poisson_lt_top_of_blocks ν r hζ0 hζ1 hBm hlaw hμ hM]
+    with ω hω hfin
+  obtain ⟨N, X, hNX⟩ : ∃ (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ), M ω = poissonCountingMeasure N X :=
+    ⟨_, _, hM ω⟩
   have hint : ∀ s : ℝ, 0 < s → M ω (Ioi s) = ⊤ ∨ ∃ m : ℕ, M ω (Ioi s) = m := fun s _ => by
     rw [hNX]; exact poissonCountingMeasure_apply_eq_top_or_natCast N X measurableSet_Ioi
   have hpos : ∀ n, 0 < nthLargestAtom n (M ω) := fun n => by

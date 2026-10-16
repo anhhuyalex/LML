@@ -5,6 +5,7 @@ Authors: LML contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
 
 /-!
@@ -29,12 +30,11 @@ theorem measure_Ioi_lt_one_of_lintegral_lt {M : Measure ℝ} {s : ℝ} (hs : 0 <
   by_contra hM
   push Not at hM
   have h1 : ENNReal.ofReal s * M (Ioi s) ≤ ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂M := by
-    calc ENNReal.ofReal s * M (Ioi s) = ∫⁻ x in Ioi s, ENNReal.ofReal s ∂M := by
-          rw [setLIntegral_const]
-      _ ≤ ∫⁻ x in Ioi s, ENNReal.ofReal x ∂M :=
-          setLIntegral_mono' measurableSet_Ioi fun x hx =>
-            ENNReal.ofReal_le_ofReal (mem_Ioi.1 hx).le
-      _ ≤ ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂M := lintegral_mono_set (Ioi_subset_Ioi hs.le)
+    refine le_trans (mul_le_mul_right ?_ _)
+      (mul_meas_ge_le_lintegral (μ := M.restrict (Ioi 0)) ENNReal.measurable_ofReal
+        (ENNReal.ofReal s))
+    rw [Measure.restrict_apply (measurableSet_le measurable_const ENNReal.measurable_ofReal)]
+    exact measure_mono fun x hx => ⟨ENNReal.ofReal_le_ofReal (mem_Ioi.1 hx).le, lt_trans hs hx⟩
   have : ENNReal.ofReal s ≤ ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂M :=
     le_trans (le_mul_of_one_le_right bot_le hM) h1
   exact absurd h (not_lt.2 this)
@@ -95,22 +95,6 @@ theorem lintegral_ofReal_toReal_rpow_neg_lt_top {Ω : Type*} [MeasurableSpace Ω
         · exact (integrableOn_Ioi_rpow_of_lt (by norm_num : (-2 : ℝ) < -1)
             zero_lt_one).lintegral_lt_top
 
-/-- `|log z| ≤ (z ^ a + z ^ (-a)) / a` for `z ≥ 0`, `a > 0` (both sides vanish at `z = 0`). -/
-theorem abs_log_le_rpow_add_rpow_neg {z a : ℝ} (hz : 0 ≤ z) (ha : 0 < a) :
-    |Real.log z| ≤ (z ^ a + z ^ (-a)) / a := by
-  rcases hz.eq_or_lt with rfl | hz0
-  · simp [Real.zero_rpow ha.ne', Real.zero_rpow (neg_ne_zero.2 ha.ne')]
-  have h1 : 0 ≤ z ^ a := Real.rpow_nonneg hz _
-  have h2 : 0 ≤ z ^ (-a) := Real.rpow_nonneg hz _
-  rcases le_total 1 z with h | h
-  · rw [abs_of_nonneg (Real.log_nonneg h)]
-    exact (Real.log_le_rpow_div hz ha).trans (div_le_div_of_nonneg_right (by linarith) ha.le)
-  · rw [abs_of_nonpos (Real.log_nonpos hz h), ← Real.log_inv]
-    refine (Real.log_le_rpow_div (inv_nonneg.2 hz) ha).trans
-      (div_le_div_of_nonneg_right ?_ ha.le)
-    rw [Real.inv_rpow hz, ← Real.rpow_neg hz]
-    linarith
-
 /-- **Integrability of the logarithm of the total mass.** If `ℙ(T < s) ≤ s ^ ζ` for all `s > 0` and
 `T ^ (ζ/2)` is integrable, then `log T` is integrable. -/
 theorem integrable_log_toReal_of_tail {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
@@ -128,7 +112,7 @@ theorem integrable_log_toReal_of_tail {Ω : Type*} [MeasurableSpace Ω] {P : Mea
     (Real.measurable_log.comp hT.ennreal_toReal).aestronglyMeasurable
     (Filter.Eventually.of_forall fun ω => ?_)
   rw [Real.norm_eq_abs]
-  exact abs_log_le_rpow_add_rpow_neg ENNReal.toReal_nonneg ha
+  exact Real.abs_log_le_rpow_add_rpow_neg ENNReal.toReal_nonneg ha
 
 section BlockModel
 
@@ -328,22 +312,14 @@ theorem integral_log_marked_sum_eq_tilt
   have : ∀ n, IsProbabilityMeasure ((ν' n).map Prod.fst) := fun _ => inferInstance
   obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm' hB' hlaw' (measurable_fst (β := S))
   have hμ0 := eq_sum_map_fst_of_prod_eq ν' r' hμ'
-  have hM0 : ∀ ω', (poissonCountingMeasure (fun n => (B' n ω').1)
-        (fun n l => (B' n ω').2 l)).map Prod.fst =
-      poissonCountingMeasure (fun n => (B' n ω').1) (fun n l => ((B' n ω').2 l).1) :=
-    fun ω' => poissonCountingMeasure_map _ _ measurable_fst
-  have hMm0 := measurable_poissonCountingMeasure_of_blocks
-    (M := fun ω' => (poissonCountingMeasure (fun n => (B' n ω').1)
-        (fun n l => (B' n ω').2 l)).map Prod.fst) (B := fun n ω' => ((B' n ω').1,
-          fun l => ((B' n ω').2 l).1)) hCm hM0
+  have hM0 := fun ω' => poissonCountingMeasure_map_fst (fun n => (B' n ω').1)
+    (fun n l => (B' n ω').2 l)
   have hlog := integrable_log_lintegral_of_blocks (P := Q) (M := fun ω' =>
     (poissonCountingMeasure (fun n => (B' n ω').1) (fun n l => (B' n ω').2 l)).map Prod.fst)
     (fun n => (ν' n).map Prod.fst) r' hζ0 hζ1 hCm hCi hClaw hμ0 hM0
-  have hlt := ae_lintegral_poisson_lt_top (P := Q) (M := fun ω' =>
+  have hlt := ae_lintegral_poisson_lt_top_of_blocks (P := Q) (M := fun ω' =>
     (poissonCountingMeasure (fun n => (B' n ω').1) (fun n l => (B' n ω').2 l)).map Prod.fst)
-    hζ0 hζ1 hMm0 (fun ω' => ⟨_, _, hM0 ω'⟩)
-    (fun f hf => lintegral_lintegral_zeta_of_blocks (fun n => (ν' n).map Prod.fst) r' hClaw hμ0
-      hM0 hf)
+    (fun n => (ν' n).map Prod.fst) r' hζ0 hζ1 hCm hClaw hμ0 hM0
   have hgt := ae_pos_of_tail (P := Q) (T := fun ω' => ∫⁻ x in Ioi 0, ENNReal.ofReal x ∂
     ((poissonCountingMeasure (fun n => (B' n ω').1) (fun n l => (B' n ω').2 l)).map Prod.fst))
     hζ0 (fun s hs => measure_lintegral_lt_le_of_blocks (M := fun ω' =>
@@ -507,5 +483,42 @@ theorem integral_log_marked_sum_mul_eq
     funext fun p => mul_assoc _ _ _
   rw [e, h1, h2]
   ring
+
+/-- **Local finiteness of the marked process.** For a ζ-Poisson process with marks `ρ`, almost
+surely only finitely many points have first coordinate above any level `s > 0`. -/
+theorem ae_poissonCountingMeasure_Ioi_prod_univ_lt_top {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsProbabilityMeasure P] {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure S)
+    [IsProbabilityMeasure ρ] (ν : ℕ → Measure (ℝ × S)) [∀ n, IsProbabilityMeasure (ν n)]
+    (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → ℝ × S)} (hBm : ∀ n, Measurable (B n))
+    (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod ρ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n)
+    {s : ℝ} (hs : 0 < s) :
+    ∀ᵐ ω ∂P, poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)
+      (Ioi s ×ˢ univ) < ∞ := by
+  have _ : ∀ n, IsProbabilityMeasure ((ν n).map Prod.fst) := fun _ => inferInstance
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw (measurable_fst (β := S))
+  have hμ0 := eq_sum_map_fst_of_prod_eq ν r hμ
+  have hM0 := fun ω => poissonCountingMeasure_map_fst (fun n => (B n ω).1)
+    (fun n l => (B n ω).2 l)
+  have hMm0 := measurable_poissonCountingMeasure_of_blocks
+    (M := fun ω => (poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l)).map Prod.fst) (B := fun n ω => ((B n ω).1,
+          fun l => ((B n ω).2 l).1)) hCm hM0
+  have hCamp := lintegral_lintegral_zeta_of_blocks (P := P)
+    (M := fun ω => (poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l)).map Prod.fst) (fun n => (ν n).map Prod.fst) r hClaw hμ0 hM0
+    (f := (Ioi s).indicator 1) (measurable_one.indicator measurableSet_Ioi)
+  simp only [lintegral_indicator measurableSet_Ioi, Pi.one_apply, lintegral_one,
+    Measure.restrict_apply MeasurableSet.univ, univ_inter] at hCamp
+  have hfin : ∫⁻ ω, (poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)).map
+      Prod.fst (Ioi s) ∂P ≠ ∞ := by
+    rw [hCamp, zetaPoissonMeasure_Ioi hζ hs]; exact ENNReal.ofReal_ne_top
+  have hmeas : Measurable fun ω => (poissonCountingMeasure (fun n => (B n ω).1)
+      (fun n l => (B n ω).2 l)).map Prod.fst (Ioi s) :=
+    (Measure.measurable_coe measurableSet_Ioi).comp hMm0
+  filter_upwards [ae_lt_top hmeas hfin] with ω hω
+  rw [Measure.map_apply measurable_fst measurableSet_Ioi] at hω
+  rwa [show Ioi s ×ˢ (univ : Set S) = Prod.fst ⁻¹' Ioi s by ext; simp]
 
 end SpinGlasses

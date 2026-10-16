@@ -6,6 +6,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.ChainRule
@@ -29,6 +30,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
@@ -37,7 +39,9 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.AbsolutelyContinuous
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.LocallyFiniteKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiKernelLIntegral
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureMeasurable
@@ -56,6 +60,7 @@ public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.HasLaw
 public import LeanMachineLearning.ForMathlib.Probability.IdentDistribProd
+public import LeanMachineLearning.ForMathlib.Probability.IdentDistribReplica
 public import LeanMachineLearning.ForMathlib.Probability.Independence.CondDistrib
 public import LeanMachineLearning.ForMathlib.Probability.Independence.CondIndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun

@@ -48,6 +48,14 @@ theorem poissonIntensity_map {S T : Type*} [MeasurableSpace S]
   simp [Measure.map_apply hf hA, Measure.sum_apply _ hA,
     Measure.sum_apply _ (hf hA), Measure.smul_apply]
 
+/-- Forgetting the marks of a marked counting measure gives the counting measure of the
+unmarked points. -/
+theorem poissonCountingMeasure_map_fst {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
+    (N : ℕ → ℕ) (X : ℕ → ℕ → S × T) :
+    (poissonCountingMeasure N X).map Prod.fst =
+      poissonCountingMeasure N (fun n l => (X n l).1) :=
+  poissonCountingMeasure_map N X measurable_fst
+
 /-- Applying a measurable map to every sample of independent Poisson blocks gives independent
 Poisson blocks with the mapped sample laws. -/
 theorem poissonBlocks_map {Ω S T : Type*} [MeasurableSpace Ω] [MeasurableSpace S]
