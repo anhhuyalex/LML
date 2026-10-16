@@ -38,7 +38,7 @@ theorem zetaPoissonMeasure_map_mul {ζ c : ℝ} (hζ : 0 < ζ) (hc : 0 < c) :
     intro u
     by_cases hu : 0 < u
     · have hui : 0 < u * c⁻¹ := mul_pos hu (inv_pos.mpr hc)
-      simp only [d, if_pos hu, if_pos hui]
+      simp only [d, ite_eq_left hui, ite_eq_left hu]
       rw [← ENNReal.ofReal_mul (by positivity : 0 ≤ ζ * (u * c⁻¹) ^ (-1 - ζ)),
         ← ENNReal.ofReal_mul (by positivity : 0 ≤ c ^ ζ)]
       congr 1
@@ -124,5 +124,78 @@ theorem poissonMarkTilt_apply {S : Type*} [MeasurableSpace S] (ζ : ℝ)
   rw [poissonMarkTilt, Measure.smul_apply, Measure.map_apply (by fun_prop) hA,
     withDensity_apply _ (hA.preimage (by fun_prop))]
   rfl
+
+/-- The transformed intensity of independently marked positive Poisson points factors into
+its power-law spatial intensity and the ζ-size-biased mark measure. This version avoids
+normalizing the mark law, so it also covers zero or infinite ζ-moments. -/
+theorem zetaPoissonMeasure_prod_map_mul {S : Type*} [MeasurableSpace S]
+    {ζ : ℝ} (hζ : 0 < ζ) (ν : Measure (ℝ × S)) [SFinite ν]
+    (hν : ∀ᵐ p ∂ν, 0 < p.1) :
+    ((zetaPoissonMeasure ζ).prod ν).map
+        (fun p : ℝ × (ℝ × S) => (p.1 * p.2.1, p.2.2)) =
+      (zetaPoissonMeasure ζ).prod
+        ((ν.withDensity fun p => ENNReal.ofReal p.1 ^ ζ).map Prod.snd) := by
+  let f : ℝ × S → ℝ≥0∞ := fun p => ENNReal.ofReal p.1 ^ ζ
+  have hf : Measurable f := by fun_prop
+  let g : ℝ × (ℝ × S) → ℝ × S := fun p => (p.1 * p.2.1, p.2.2)
+  have hg : Measurable g := by fun_prop
+  let τ : Measure S := (ν.withDensity f).map Prod.snd
+  have hτ : ∀ A : Set S, MeasurableSet A → τ A =
+      ∫⁻ p in Prod.snd ⁻¹' A, f p ∂ν := by
+    intro A hA
+    exact Measure.map_apply (by fun_prop) hA |>.trans
+      (withDensity_apply _ (hA.preimage (by fun_prop)))
+  have hs : ∀ (p : ℝ × S), 0 < p.1 →
+      (zetaPoissonMeasure ζ).map (fun u => u * p.1) =
+        ENNReal.ofReal (p.1 ^ ζ) • zetaPoissonMeasure ζ :=
+    fun p hp => zetaPoissonMeasure_map_mul hζ hp
+  ext A hA
+  rw [Measure.map_apply hg hA, Measure.prod_apply hA]
+  have hsection : ∀ p : ℝ × S, 0 < p.1 →
+      (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A} =
+        ENNReal.ofReal (p.1 ^ ζ) *
+          (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A} := by
+    intro p hp
+    have hmeas : Measurable fun u : ℝ => u * p.1 := by fun_prop
+    have hsectionmeas : MeasurableSet {u : ℝ | (u, p.2) ∈ A} :=
+      hA.preimage (by fun_prop)
+    have := congrArg (fun m : Measure ℝ => m {u | (u, p.2) ∈ A}) (hs p hp)
+    simpa only [Measure.map_apply hmeas hsectionmeas, Measure.smul_apply,
+      smul_eq_mul, g, Set.mem_setOf_eq, Set.preimage_setOf_eq] using this
+  have hleft : ((zetaPoissonMeasure ζ).prod ν) (g ⁻¹' A) =
+      ∫⁻ p, (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A} ∂ν := by
+    rw [← lintegral_indicator_one (hA.preimage hg)]
+    rw [lintegral_prod_symm' _ ((measurable_one.indicator (hA.preimage hg)))]
+    change (∫⁻ p, ∫⁻ u, (g ⁻¹' A).indicator 1 (u, p)
+      ∂zetaPoissonMeasure ζ ∂ν) = _
+    congr 1
+    funext p
+    exact (lintegral_indicator_one (μ := zetaPoissonMeasure ζ) (hA.preimage
+      (hg.comp (by fun_prop : Measurable fun u : ℝ => (u, p)))))
+  rw [hleft]
+  have hsections : (fun p => (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A}) =ᵐ[ν]
+      (fun p => f p * (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A}) := by
+    filter_upwards [hν] with p hp
+    simpa only [f, ENNReal.ofReal_rpow_of_pos hp] using hsection p hp
+  rw [lintegral_congr_ae hsections]
+  have hprod : ((zetaPoissonMeasure ζ).prod τ) A =
+      ∫⁻ p, f p * (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A} ∂ν := by
+    rw [← lintegral_indicator_one (μ := (zetaPoissonMeasure ζ).prod τ) hA]
+    rw [lintegral_prod_symm' _ (measurable_one.indicator hA)]
+    have hinner : ∀ p : ℝ × S, (∫⁻ u,
+        A.indicator 1 (u, p.2) ∂zetaPoissonMeasure ζ) =
+        (zetaPoissonMeasure ζ) {u | (u, p.2) ∈ A} := by
+      intro p
+      exact lintegral_indicator_one (μ := zetaPoissonMeasure ζ)
+        (hA.preimage (by fun_prop : Measurable fun u : ℝ => (u, p.2)))
+    rw [lintegral_map (by fun_prop : Measurable fun s : S =>
+      ∫⁻ u, A.indicator 1 (u, s) ∂zetaPoissonMeasure ζ)
+      (by fun_prop : Measurable (Prod.snd : ℝ × S → S))]
+    rw [lintegral_withDensity_eq_lintegral_mul _ hf
+      (by fun_prop : Measurable fun p : ℝ × S =>
+        ∫⁻ u, A.indicator 1 (u, p.2) ∂zetaPoissonMeasure ζ)]
+    simp_rw [hinner]
+    rfl
+  simpa only [Measure.prod_apply hA, τ, f] using hprod.symm
 
 end SpinGlasses
