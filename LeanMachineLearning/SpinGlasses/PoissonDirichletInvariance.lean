@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
 public import Mathlib.Probability.Distributions.Gaussian.Real
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
 
 /-!
 # Gaussian marks for Poisson–Dirichlet invariance
@@ -192,5 +193,57 @@ theorem identDistrib_poissonDirichlet_gaussian_transform
     funext ⟨x, y⟩
     rfl
   simp [heq]
+
+/-- The mark at a real mass, read from a singleton fiber of a marked counting measure.
+The value is zero on fibers of mass other than one. -/
+noncomputable def markAtMass (M : Measure (ℝ × ℝ)) (u : ℝ) : ℝ :=
+  if M ({u} ×ˢ Set.univ) = 1 then
+    (∫⁻ p in {u} ×ˢ Set.univ, ENNReal.ofReal p.2 ∂M).toReal -
+      (∫⁻ p in {u} ×ˢ Set.univ, ENNReal.ofReal (-p.2) ∂M).toReal
+  else 0
+
+/-- At a fixed mass, recovering its singleton-fiber mark is Giry measurable.
+For ranked marks the mass itself varies, requiring a separate joint-measurability argument. -/
+theorem measurable_markAtMass_fixed (u : ℝ) :
+    Measurable (fun M : Measure (ℝ × ℝ) => markAtMass M u) := by
+  have hs : MeasurableSet ({u} ×ˢ (Set.univ : Set ℝ)) :=
+    (measurableSet_singleton u).prod MeasurableSet.univ
+  have hplus : Measurable fun M : Measure (ℝ × ℝ) =>
+      ∫⁻ p in {u} ×ˢ Set.univ, ENNReal.ofReal p.2 ∂M :=
+    Measure.measurable_lintegral_restrict hs (by fun_prop)
+  have hminus : Measurable fun M : Measure (ℝ × ℝ) =>
+      ∫⁻ p in {u} ×ˢ Set.univ, ENNReal.ofReal (-p.2) ∂M :=
+    Measure.measurable_lintegral_restrict hs (by fun_prop)
+  exact Measurable.ite (measurableSet_eq_fun (Measure.measurable_coe hs) measurable_const)
+    (hplus.ennreal_toReal.sub hminus.ennreal_toReal) measurable_const
+
+/-- Singleton-fiber mark recovery is exact for an isolated point of a counting measure. -/
+theorem markAtMass_eq_of_restrict (M : Measure (ℝ × ℝ)) (u g : ℝ)
+    (h : M.restrict ({u} ×ˢ Set.univ) = Measure.dirac (u, g)) :
+    markAtMass M u = g := by
+  have hs : MeasurableSet ({u} ×ˢ (Set.univ : Set ℝ)) :=
+    (measurableSet_singleton u).prod MeasurableSet.univ
+  have hm : M ({u} ×ˢ Set.univ) = 1 := by
+    calc
+      M ({u} ×ˢ Set.univ) = (M.restrict ({u} ×ˢ Set.univ)) Set.univ := by
+        rw [Measure.restrict_apply MeasurableSet.univ, Set.univ_inter]
+      _ = 1 := by rw [h]; simp
+  simp only [markAtMass, hm, ↓reduceIte]
+  change (∫⁻ p, ENNReal.ofReal p.2 ∂M.restrict ({u} ×ˢ Set.univ)).toReal -
+      (∫⁻ p, ENNReal.ofReal (-p.2) ∂M.restrict ({u} ×ˢ Set.univ)).toReal = g
+  rw [h]
+  rcases le_total 0 g with hg | hg
+  · simp [ENNReal.toReal_ofReal hg, ENNReal.ofReal_eq_zero.mpr (neg_nonpos.mpr hg)]
+  · simp [ENNReal.toReal_ofReal (neg_nonneg.mpr hg),
+      ENNReal.ofReal_eq_zero.mpr hg]
+
+/-- At a marked Dirac point, the singleton fiber recovers its mark. -/
+theorem markAtMass_dirac (u g : ℝ) :
+    markAtMass (Measure.dirac (u, g)) u = g := by
+  apply markAtMass_eq_of_restrict
+  have hs : MeasurableSet ({u} ×ˢ (Set.univ : Set ℝ)) :=
+    (measurableSet_singleton u).prod MeasurableSet.univ
+  apply Measure.restrict_eq_self_of_ae_mem
+  simp
 
 end SpinGlasses
