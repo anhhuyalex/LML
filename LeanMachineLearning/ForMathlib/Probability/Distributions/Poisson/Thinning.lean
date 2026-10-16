@@ -190,24 +190,11 @@ private theorem card_wordFiber {ι : Type*} [Fintype ι] [DecidableEq ι]
         rw [← hsum]
         exact multinomial_decrement m a.1 a.2
       simp_rw [hterm]
-      rw [Nat.mul_comm (Nat.multinomial Finset.univ m) (n + 1)]
-      change ∑ x : {a : ι // 0 < m a}, m x.1 * Nat.multinomial Finset.univ m =
-        (n + 1) * Nat.multinomial Finset.univ m
-      rw [← hsum, Finset.sum_mul]
-      change (∑ x : {a : ι // 0 < m a}, m x.1 * Nat.multinomial Finset.univ m) =
-        ∑ a, m a * Nat.multinomial Finset.univ m
-      have hsub :
-          (∑ a : {a : ι // 0 < m a}, m a.1 * Nat.multinomial Finset.univ m) =
-            ∑ a ∈ Finset.univ.filter (fun a => 0 < m a),
-              m a * Nat.multinomial Finset.univ m := by
-        classical
-        rw [Finset.sum_subtype (s := Finset.univ.filter fun a => 0 < m a)
-          (p := fun a => 0 < m a)
-          (f := fun a => m a * Nat.multinomial Finset.univ m) (by simp)]
-      rw [hsub]
-      exact Finset.sum_filter_of_ne (s := Finset.univ) (p := fun a : ι => 0 < m a)
-        (f := fun a => m a * Nat.multinomial Finset.univ m)
-        (fun _ _ hne => Nat.pos_of_ne_zero (mul_ne_zero_iff.mp hne).1)
+      rw [← Finset.sum_mul, Nat.mul_comm (Nat.multinomial Finset.univ m) (n + 1)]
+      congr 1
+      rw [← hsum, ← Finset.sum_filter_of_ne (s := Finset.univ) (p := fun a : ι => 0 < m a)
+        (fun _ _ h => Nat.pos_of_ne_zero h)]
+      exact (Finset.sum_subtype (p := fun a => 0 < m a) _ (by simp) m).symm
 
 /-- The number of finite words with prescribed letter multiplicities is the corresponding
 multinomial coefficient. -/
@@ -308,12 +295,9 @@ theorem measure_pi_counts_eq {ι : Type*} [Fintype ι] [DecidableEq ι] [Measura
     have hx' := (Finset.mem_filter.1 hx).2
     rw [Measure.pi_singleton]
     simp only [hν]
-    rw [← Finset.prod_fiberwise_of_maps_to (s := Finset.univ) (t := Finset.univ)
-      (g := x) (fun _ _ => Finset.mem_univ _)]
+    rw [← Finset.prod_fiberwise' Finset.univ x (fun i => ENNReal.ofNNReal (p i))]
     refine Finset.prod_congr rfl fun i _ => ?_
-    rw [Finset.prod_congr rfl (g := fun _ => ENNReal.ofNNReal (p i))
-      (fun j hj => by rw [(Finset.mem_filter.1 hj).2]), Finset.prod_const, ← hx' i,
-      Finset.card_filter]
+    rw [Finset.prod_const, ← hx' i, Finset.card_filter]
   rw [Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
   congr 2
   rw [multinomial_eq_card_words m, Fintype.card_subtype]
@@ -389,9 +373,8 @@ theorem hasLaw_counts_poisson_thinning {Ω ι : Type*} [MeasurableSpace Ω] {P :
     rw [hXi.map_fun_eq_infinitePi_map₀' fun l => (hX l).aemeasurable]
     congr 1; funext l; exact (hX l).map_eq
   have hpair : HasLaw (fun ω => (N ω, fun l => X l ω))
-      (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P := by
-    refine ⟨hN.aemeasurable.prodMk hXm, ?_⟩
-    rw [(indepFun_iff_map_prod_eq_prod_map_map hN.aemeasurable hXm).1 hNX, hN.map_eq, hseq]
+      (Po(r).prod (Measure.infinitePi fun _ : ℕ => ν)) P :=
+    hNX.hasLaw_prod hN ⟨hXm, hseq⟩
   refine ⟨?_, ?_⟩
   · exact measurable_categoryCounts.comp_aemeasurable hpair.aemeasurable
   · rw [← map_counts_prod_infinitePi ν r p hp hν, ← hpair.map_eq,
@@ -438,7 +421,8 @@ theorem hasLaw_counts_poisson_thinning_of_hasLaw_prod {Ω S ι : Type*} [Measura
     have hprod := Measure.map_prod_map Po(r) (Measure.infinitePi fun _ : ℕ => ν)
       (f := id) (g := fun σ : ℕ → S => fun l => c (σ l)) measurable_id
       (by fun_prop)
-    rw [Measure.map_id, Measure.infinitePi_map_pi (fun _ : ℕ => ν) (fun _ => hc)] at hprod
+    rw [Measure.map_id, Measure.infinitePi_map_pi (μ := fun _ : ℕ => ν)
+      (f := fun _ => c) (fun _ => hc)] at hprod
     exact hprod.symm
   have hcount := (⟨hT.aemeasurable, hmap⟩ : HasLaw
     (fun q : ℕ × (ℕ → S) => (q.1, fun l => c (q.2 l)))

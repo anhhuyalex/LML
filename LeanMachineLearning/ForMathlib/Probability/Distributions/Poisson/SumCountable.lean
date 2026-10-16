@@ -25,47 +25,30 @@ namespace ProbabilityTheory
 
 variable {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
 
-private lemma summable_poisson_nat (r : ℝ≥0) :
-    Summable fun n : ℕ => (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) * n := by
+/-- The series `∑ n, n * Po(r){n}` converges to the mean `r`. -/
+theorem hasSum_natCast_poissonMeasure (r : ℝ≥0) :
+    HasSum (fun n : ℕ => (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) * n) (r : ℝ) := by
   have h := (hasSum_one_poissonMeasure r).mul_left (r : ℝ)
-  apply (summable_nat_add_iff 1).mp
-  convert h.summable using 1
-  ext n
-  rw [Nat.factorial_succ]
-  push_cast
-  field_simp
-  ring
+  refine (hasSum_nat_add_iff' 1).1 ?_
+  convert h using 1
+  · ext n
+    rw [Nat.factorial_succ]
+    push_cast
+    field_simp
+    ring
+  · simp
 
 /-- The mean of a Poisson random variable with rate `r` is `r`. -/
 theorem integral_natCast_poissonMeasure (r : ℝ≥0) :
     ∫ n : ℕ, (n : ℝ) ∂Po(r) = r := by
   rw [integral_poissonMeasure]
-  have h := (hasSum_one_poissonMeasure r).mul_left (r : ℝ)
-  have h' : HasSum
-      (fun n : ℕ => (rexp (-(r : ℝ)) * (r : ℝ) ^ (n + 1) / (n + 1)!) * (n + 1))
-      (r : ℝ) := by
-    convert h using 1
-    · ext n
-      rw [Nat.factorial_succ]
-      push_cast
-      field_simp
-      ring
-    · ring
-  calc
-    ∑' n : ℕ, (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) • (n : ℝ) =
-        ∑' n : ℕ, (rexp (-(r : ℝ)) * (r : ℝ) ^ n / (n)!) * n := by
-          congr 1
-    _ = 0 + ∑' n : ℕ,
-        (rexp (-(r : ℝ)) * (r : ℝ) ^ (n + 1) / (n + 1)!) * (n + 1) := by
-          simpa only [Finset.sum_range_one, Nat.cast_zero, mul_zero, add_zero, Nat.cast_add,
-            Nat.cast_one] using ((summable_poisson_nat r).sum_add_tsum_nat_add 1).symm
-    _ = r := by simp [h'.tsum_eq]
+  exact (hasSum_natCast_poissonMeasure r).tsum_eq
 
 /-- The natural-number embedding is integrable under every Poisson law. -/
 theorem integrable_natCast_poissonMeasure (r : ℝ≥0) :
     Integrable (fun n : ℕ => (n : ℝ)) Po(r) := by
   rw [integrable_poissonMeasure_iff]
-  simpa only [Real.norm_natCast] using summable_poisson_nat r
+  simpa only [Real.norm_natCast] using (hasSum_natCast_poissonMeasure r).summable
 
 /-- On a countable discrete space, the measure of a finite set is the sum of its
 singleton masses. -/
@@ -105,9 +88,10 @@ theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → 
   rw [show (fun i => ∫ ω, (X i ω : ℝ) ∂P) = fun i => (r i : ℝ) by ext i; exact hmean i]
   exact_mod_cast hr
 
-/-- A natural-number series is bounded by `k` exactly when all its partial sums are. -/
-private lemma tsum_le_iff_forall_sum_range_le {f : ℕ → ℕ} (hf : Summable fun i => (f i : ℝ))
-    (k : ℕ) : (∑' i, f i) ≤ k ↔ ∀ n, (∑ i ∈ Finset.range n, f i) ≤ k := by
+/-- A natural-number series that is summable in `ℝ` is summable in `ℕ`: its terms eventually
+vanish. -/
+theorem summable_of_summable_natCast {f : ℕ → ℕ} (hf : Summable fun i => (f i : ℝ)) :
+    Summable f := by
   have hlim := hf.tendsto_atTop_zero
   rw [Metric.tendsto_atTop] at hlim
   obtain ⟨N, hN⟩ := hlim 1 zero_lt_one
@@ -117,17 +101,26 @@ private lemma tsum_le_iff_forall_sum_range_le {f : ℕ → ℕ} (hf : Summable f
     by_contra hne
     exact (not_lt_of_ge (show (1 : ℝ) ≤ f i by
       exact_mod_cast Nat.one_le_iff_ne_zero.2 hne)) hlt
-  have hfs : Summable f := by
-    apply summable_of_hasFiniteSupport
-    exact Set.Finite.subset (Set.finite_Iio N) fun i hi => by
-      by_contra hnot
-      exact hi (hzero i (Nat.le_of_not_gt hnot))
+  apply summable_of_hasFiniteSupport
+  exact Set.Finite.subset (Set.finite_Iio N) fun i hi => by
+    by_contra hnot
+    exact hi (hzero i (Nat.le_of_not_gt hnot))
+
+/-- A natural-number series is bounded by `k` exactly when all its partial sums are. -/
+private lemma tsum_le_iff_forall_sum_range_le {f : ℕ → ℕ} (hf : Summable fun i => (f i : ℝ))
+    (k : ℕ) : (∑' i, f i) ≤ k ↔ ∀ n, (∑ i ∈ Finset.range n, f i) ≤ k := by
+  have hfs := summable_of_summable_natCast hf
   constructor
   · intro hk n
     exact (hfs.sum_le_tsum (Finset.range n) fun _ _ => Nat.zero_le _).trans hk
   · intro hk
     exact le_of_tendsto hfs.hasSum.tendsto_sum_nat
       (Filter.Eventually.of_forall hk)
+
+/-- The Poisson law of rate zero is the point mass at zero. -/
+theorem poissonMeasure_zero : Po(0) = Measure.dirac 0 := by
+  refine Measure.ext_of_singleton fun n => ?_
+  rcases n with _ | n <;> simp [poissonMeasure_singleton, zero_pow]
 
 /-- A finite sum of mutually independent Poisson random variables is Poisson, with rate equal
 to the sum of the rates. -/
@@ -138,12 +131,8 @@ theorem iIndepFun.hasLaw_sum_poissonMeasure {X : ι → Ω → ℕ} {r : ι → 
   induction s using Finset.induction_on with
   | empty =>
       have hP : IsProbabilityMeasure P := hX.isProbabilityMeasure
-      refine ⟨by fun_prop, ?_⟩
-      apply Measure.ext_of_singleton
-      intro n
-      rcases n with _ | n
-      · simp [Measure.map_const, poissonMeasure_singleton]
-      · simp [Measure.map_const, poissonMeasure_singleton, zero_pow]
+      simpa only [Finset.sum_empty, poissonMeasure_zero] using
+        hasLaw_dirac_of_ae_eq (P := P) (X := fun _ : Ω => 0) (x := 0) (Filter.EventuallyEq.refl _ _)
   | @insert i s hi hs =>
       have hsum : HasLaw (fun ω => ∑ j ∈ s, X j ω) Po(∑ j ∈ s, r j) P := hs
       have hindep : IndepFun (X i) (fun ω => ∑ j ∈ s, X j ω) P := by
@@ -156,6 +145,14 @@ theorem iIndepFun.hasLaw_sum_poissonMeasure {X : ι → Ω → ℕ} {r : ι → 
       exact hadd.congr (ae_of_all P fun ω => by
         change (∑ j ∈ insert i s, X j ω) = X i ω + ∑ j ∈ s, X j ω
         rw [Finset.sum_insert hi])
+
+/-- The cumulative law of a finite partial sum of independent Poisson variables. -/
+theorem iIndepFun.measure_sum_range_le_eq {X : ℕ → Ω → ℕ} {r : ℕ → ℝ≥0}
+    (hX : iIndepFun X P) (hLaw : ∀ i, HasLaw (X i) Po(r i) P) (n k : ℕ) :
+    P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k} =
+      ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} :=
+  ((hX.hasLaw_sum_poissonMeasure hLaw (Finset.range n)).measure_eq
+    (p := fun x => x ∈ Set.Iic k) measurableSet_Iic).trans (measure_Iic_eq_sum_singleton _ _)
 
 /-- The sum of countably many independent Poisson variables with summable rates is Poisson. -/
 theorem iIndepFun.hasLaw_tsum_poissonMeasure {X : ℕ → Ω → ℕ} {r : ℕ → ℝ≥0}
@@ -188,9 +185,8 @@ theorem iIndepFun.hasLaw_tsum_poissonMeasure {X : ℕ → Ω → ℕ} {r : ℕ �
     hanti ⟨0, measure_ne_top P _⟩)
   have heq (n : ℕ) :
       P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k} =
-        ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} := by
-    have h := (hpartial n).measure_eq (p := fun x => x ∈ Set.Iic k) measurableSet_Iic
-    exact h.trans (measure_Iic_eq_sum_singleton _ _)
+        ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} :=
+    hX.measure_sum_range_le_eq hLaw n k
   change Tendsto (fun n => P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k}) atTop _
   rw [show (fun n => P {ω | ∑ i ∈ Finset.range n, X i ω ∈ Set.Iic k}) =
     fun n => ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} by
@@ -231,11 +227,7 @@ theorem iIndepFun.ae_tendsto_sum_range_poissonMeasure_atTop {X : ℕ → Ω → 
       (fun n => (hpartial n).aemeasurable.nullMeasurableSet_preimage measurableSet_Iic)
       hanti ⟨0, measure_ne_top P _⟩)
     change Tendsto (fun n => P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k}) atTop (𝓝 0)
-    have heq (n : ℕ) :
-        P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k} =
-          ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} := by
-      have h := (hpartial n).measure_eq (p := fun x => x ∈ Set.Iic k) measurableSet_Iic
-      exact h.trans (measure_Iic_eq_sum_singleton _ _)
+    have heq (n : ℕ) := hX.measure_sum_range_le_eq hLaw n k
     rw [show (fun n => P {ω | (∑ i ∈ Finset.range n, X i ω) ≤ k}) =
       fun n => ∑ j ∈ Finset.range (k + 1), Po(∑ i ∈ Finset.range n, r i) {j} by
         funext n
