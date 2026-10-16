@@ -135,9 +135,6 @@ theorem iIndepFun_poissonBlockSamples (r : ℕ → NNReal) (ν : ℕ → Measure
     [∀ n : ℕ, IsProbabilityMeasure (ν n)] (n : ℕ) :
     iIndepFun (fun l (q : ℕ → ℕ × (ℕ → S)) => (q n).2 l)
       (poissonBlockLaw r ν) := by
-  have h : iIndepFun (fun l (x : ℕ → S) => x l) (Measure.infinitePi fun _ : ℕ => ν n) :=
-    iIndepFun_infinitePi (P := fun _ : ℕ => ν n) (X := fun _ x => x)
-      fun _ => measurable_id
   have heval : HasLaw (fun q : ℕ → ℕ × (ℕ → S) => (q n).2)
       (Measure.infinitePi fun _ : ℕ => ν n) (poissonBlockLaw r ν) :=
     hasLaw_poissonBlockSamples r ν n
