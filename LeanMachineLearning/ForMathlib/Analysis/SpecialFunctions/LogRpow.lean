@@ -9,7 +9,7 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
-# The logarithm is controlled by a power and its inverse
+# Real powers: logarithm bound and inversion
 
 `|log z| ≤ (z ^ a + z ^ (-a)) / a` for `z ≥ 0` and `a > 0`. It is the standard way to see that
 `log T` is integrable as soon as both `T ^ a` and `T ^ (-a)` are.
@@ -34,5 +34,18 @@ theorem abs_log_le_rpow_add_rpow_neg {z a : ℝ} (hz : 0 ≤ z) (ha : 0 < a) :
       (div_le_div_of_nonneg_right ?_ ha.le)
     rw [Real.inv_rpow hz, ← Real.rpow_neg hz]
     linarith
+
+/-- Inverting a negative power: `t < x ^ (-a) ↔ x < t ^ (-1 / a)` for `x, t, a > 0`. -/
+theorem rpow_neg_lt_iff {x t a : ℝ} (hx : 0 < x) (ht : 0 < t) (ha : 0 < a) :
+    t < x ^ (-a) ↔ x < t ^ (-1 / a) := by
+  have h1a : -1 / a = -(1 / a) := by ring
+  constructor
+  · intro h
+    have h0 : -1 / a < 0 := by rw [h1a]; have := one_div_pos.2 ha; linarith
+    have h1 := Real.rpow_lt_rpow_of_neg ht h h0
+    rwa [← Real.rpow_mul hx.le, show -a * (-1 / a) = 1 by field_simp, Real.rpow_one] at h1
+  · intro h
+    have h1 := Real.rpow_lt_rpow_of_neg hx h (neg_lt_zero.2 ha)
+    rwa [← Real.rpow_mul ht.le, show -1 / a * -a = 1 by field_simp, Real.rpow_one] at h1
 
 end Real

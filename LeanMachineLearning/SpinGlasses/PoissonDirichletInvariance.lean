@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
 public import Mathlib.Probability.Distributions.Gaussian.Real
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExponentialTilt
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
 public import LeanMachineLearning.ForMathlib.Probability.IdentDistribReplica
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
@@ -25,37 +26,6 @@ open MeasureTheory ProbabilityTheory
 open scoped ENNReal
 
 namespace SpinGlasses
-
-/-- Exponential tilting of a standard Gaussian, before normalizing: the resulting
-measure has mean `a` and total mass `exp (a²/2)`. -/
-theorem gaussianReal_withDensity_exp_mul (a : ℝ) :
-    (gaussianReal 0 1).withDensity (fun g => ENNReal.ofReal (Real.exp (a * g))) =
-      ENNReal.ofReal (Real.exp (a ^ 2 / 2)) • gaussianReal a 1 := by
-  rw [gaussianReal_of_var_ne_zero (0 : ℝ) (one_ne_zero : (1 : NNReal) ≠ 0),
-    gaussianReal_of_var_ne_zero a (one_ne_zero : (1 : NNReal) ≠ 0)]
-  · apply Measure.ext
-    intro s hs
-    rw [withDensity_apply _ hs, Measure.smul_apply, withDensity_apply _ hs,
-      setLIntegral_withDensity_eq_setLIntegral_mul _ (by fun_prop) (by fun_prop)]
-    · simp only [smul_eq_mul]
-      rw [← lintegral_const_mul _ (by fun_prop : Measurable (gaussianPDF a 1))]
-      apply setLIntegral_congr_fun hs
-      intro x _
-      change gaussianPDF 0 1 x * ENNReal.ofReal (Real.exp (a * x)) =
-        ENNReal.ofReal (Real.exp (a ^ 2 / 2)) * gaussianPDF a 1 x
-      simp only [gaussianPDF, gaussianPDFReal]
-      rw [← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity)]
-      congr 1
-      have he : a * x + (-(x - 0) ^ 2 / (2 * (1 : ℝ))) =
-          a ^ 2 / 2 + (-(x - a) ^ 2 / (2 * (1 : ℝ))) := by ring
-      simp only [NNReal.coe_one, mul_one] at *
-      calc
-        _ = (√(2 * Real.pi))⁻¹ * Real.exp
-            (a * x + (-(x - 0) ^ 2 / 2)) := by rw [Real.exp_add]; ring
-        _ = (√(2 * Real.pi))⁻¹ * Real.exp
-            (a ^ 2 / 2 + (-(x - a) ^ 2 / 2)) := by rw [he]
-        _ = _ := by rw [Real.exp_add]; ring
-    · exact hs
 
 /-- The `ζ`-th power of the Cameron–Martin multiplier `exp (t (g - tζ/2))` is a constant times
 the density `exp (tζ g)` of the exponential tilting. -/
@@ -319,12 +289,8 @@ theorem identDistrib_lintegral_pi_poissonDirichlet_gaussian
     hB' hlaw' hμ'
   let C : ℕ → Set (ℝ × ℝ) := fun k => Set.Ioi (1 / ((k : ℝ) + 1)) ×ˢ Set.univ
   have hC : ∀ k, MeasurableSet (C k) := fun k => measurableSet_Ioi.prod MeasurableSet.univ
-  have hY : ∀ᵐ ω ∂Q, ∀ k, poissonCountingMeasure (fun n => (B' n ω).1)
-      (fun n l => (B' n ω).2 l) (C k) < ∞ := by
-    rw [ae_all_iff]
-    intro k
-    exact ae_poissonCountingMeasure_Ioi_prod_univ_lt_top hζ (gaussianReal 0 1) ν' r' hBm' hB'
-      hlaw' hμ' (by positivity)
+  have hY := ae_poissonCountingMeasure_Ioi_inv_succ_prod_univ_lt_top hζ (gaussianReal 0 1)
+    ν' r' hBm' hB' hlaw' hμ'
   have hX := hid.symm.ae_snd (measurableSet_forall_measure_lt_top hC) hY
   have h := hid.lintegral_pi_restrict hC hX hY n hΦ
   simpa only [C, iUnion_Ioi_inv_succ_prod_univ] using h

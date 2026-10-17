@@ -103,6 +103,20 @@ private theorem shellKernel_sum_apply (hC : ∀ k, MeasurableSet (C k))
     rw [Kernel.sum_apply' _ _ hs]
     simp [shellKernel, hM]
 
+/-- The restriction of a measure to the union of an exhaustion by measurable sets of finite measure
+is σ-finite. -/
+theorem sigmaFinite_restrict_iUnion {M : Measure α} (hC : ∀ k, MeasurableSet (C k))
+    (hfin : ∀ k, M (C k) < ∞) : SigmaFinite (M.restrict (⋃ k, C k)) := by
+  refine ⟨⟨⟨fun k => C k ∪ (⋃ k, C k)ᶜ, fun _ => trivial, fun k => ?_, ?_⟩⟩⟩
+  · rw [Measure.restrict_apply ((hC k).union (MeasurableSet.iUnion hC).compl),
+      union_inter_distrib_right, compl_inter_self, union_empty]
+    exact (measure_mono inter_subset_left).trans_lt (hfin k)
+  · refine eq_univ_of_forall fun x => ?_
+    by_cases hx : x ∈ ⋃ k, C k
+    · obtain ⟨k, hk⟩ := mem_iUnion.1 hx
+      exact mem_iUnion.2 ⟨k, Or.inl hk⟩
+    · exact mem_iUnion.2 ⟨0, Or.inr hx⟩
+
 /-- **The locally finite measures form an s-finite kernel.** For an exhaustion `C` of `U = ⋃ₖ Cₖ`
 by measurable sets there is an s-finite kernel from `Measure α` to `α`, with σ-finite values,
 which is `M ↦ M.restrict U` on the measures finite on every `Cₖ`. -/
@@ -114,15 +128,7 @@ theorem exists_sFiniteKernel_locallyFinite (hC : ∀ k, MeasurableSet (C k)) :
   · rw [shellKernel_sum_apply hC]
     by_cases hM : M ∈ locFin C
     · simp only [hM, ite_true]
-      refine ⟨⟨⟨fun k => C k ∪ (⋃ k, C k)ᶜ, fun _ => trivial, fun k => ?_, ?_⟩⟩⟩
-      · rw [Measure.restrict_apply ((hC k).union (MeasurableSet.iUnion hC).compl),
-          union_inter_distrib_right, compl_inter_self, union_empty]
-        exact (measure_mono inter_subset_left).trans_lt (hM k)
-      · refine eq_univ_of_forall fun x => ?_
-        by_cases hx : x ∈ ⋃ k, C k
-        · obtain ⟨k, hk⟩ := mem_iUnion.1 hx
-          exact mem_iUnion.2 ⟨k, Or.inl hk⟩
-        · exact mem_iUnion.2 ⟨0, Or.inr hx⟩
+      exact sigmaFinite_restrict_iUnion hC hM
     · simp only [hM, ite_false]; infer_instance
   · rw [shellKernel_sum_apply hC]
     simp [show M ∈ locFin C from hM]

@@ -65,13 +65,7 @@ theorem lintegral_ofReal_toReal_rpow_neg_lt_top {Ω : Type*} [MeasurableSpace Ω
         · rw [← h0, Real.zero_rpow (by linarith)] at hω; linarith
         · exact h0
       have hTne : T ω ≠ ∞ := fun h => by simp [h] at hz
-      have hlt : (T ω).toReal < t ^ (-1 / a) := by
-        have h1 : ((T ω).toReal ^ (-a)) ^ (-1 / a) < t ^ (-1 / a) :=
-          Real.rpow_lt_rpow_of_neg ht hω (by
-            have : 0 < 1 / a := by positivity
-            have h2 : -1 / a = -(1 / a) := by ring
-            rw [h2]; linarith)
-        rwa [← Real.rpow_mul hz.le, show -a * (-1 / a) = 1 by field_simp, Real.rpow_one] at h1
+      have hlt : (T ω).toReal < t ^ (-1 / a) := (Real.rpow_neg_lt_iff hz ht ha0).1 hω
       change T ω < _
       rw [← ENNReal.ofReal_toReal hTne]
       exact (ENNReal.ofReal_lt_ofReal_iff (Real.rpow_pos_of_pos ht _)).2 hlt
@@ -520,5 +514,18 @@ theorem ae_poissonCountingMeasure_Ioi_prod_univ_lt_top {Ω : Type*} [MeasurableS
   filter_upwards [ae_lt_top hmeas hfin] with ω hω
   rw [Measure.map_apply measurable_fst measurableSet_Ioi] at hω
   rwa [show Ioi s ×ˢ (univ : Set S) = Prod.fst ⁻¹' Ioi s by ext; simp]
+
+/-- Almost surely every shell `{x > 1/(k+1)}` has finitely many points, simultaneously in `k`. -/
+theorem ae_poissonCountingMeasure_Ioi_inv_succ_prod_univ_lt_top {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure S)
+    [IsProbabilityMeasure ρ] (ν : ℕ → Measure (ℝ × S)) [∀ n, IsProbabilityMeasure (ν n)]
+    (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → ℝ × S)} (hBm : ∀ n, Measurable (B n))
+    (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod ρ = Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    ∀ᵐ ω ∂P, ∀ k : ℕ, poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)
+      (Ioi (1 / ((k : ℝ) + 1)) ×ˢ univ) < ∞ :=
+  ae_all_iff.2 fun _ =>
+    ae_poissonCountingMeasure_Ioi_prod_univ_lt_top hζ ρ ν r hBm hB hlaw hμ (by positivity)
 
 end SpinGlasses

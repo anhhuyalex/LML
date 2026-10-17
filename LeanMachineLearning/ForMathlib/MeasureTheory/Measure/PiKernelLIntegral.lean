@@ -27,6 +27,18 @@ namespace MeasureTheory
 
 variable {A α : Type*} [MeasurableSpace A] [MeasurableSpace α]
 
+/-- The zero-fold power integral is evaluation at the unique empty tuple. -/
+theorem lintegral_pi_fin_zero (μ : Measure α) {Φ : (Fin 0 → α) → ℝ≥0∞} (hΦ : Measurable Φ) :
+    (∫⁻ q, Φ q ∂Measure.pi fun _ : Fin 0 => μ) = Φ isEmptyElim := by
+  rw [Measure.pi_of_empty, lintegral_dirac' _ hΦ]
+
+/-- A series over empty tuples has the single term at the empty tuple. -/
+theorem tsum_fin_zero {β : Type*} (f : (Fin 0 → β) → ℝ≥0∞) :
+    (∑' q : Fin 0 → β, f q) = f isEmptyElim := by
+  let _ : Unique (Fin 0 → β) := uniqueOfSubsingleton (fun i : Fin 0 => i.elim0)
+  rw [tsum_fintype, Fintype.sum_unique]
+  exact congrArg f (Subsingleton.elim _ _)
+
 /-- **Measurability of `n`-fold integrals.** The `n`-fold power integral of a jointly measurable
 function against a kernel with σ-finite values is measurable in the parameter. Proved by peeling
 off the last coordinate with `measurePreserving_piFinSuccAbove`. -/
@@ -35,12 +47,8 @@ theorem Measurable.lintegral_pi_kernel (κ : Kernel A α) [IsSFiniteKernel κ]
     Measurable fun a => ∫⁻ q, Φ (a, q) ∂Measure.pi fun _ : Fin n => κ a := by
   induction n with
   | zero =>
-    have h0 : ∀ a, (Measure.pi fun _ : Fin 0 => κ a) = Measure.dirac isEmptyElim :=
-      fun a => Measure.pi_of_empty _ _
-    have h1 : ∀ a, ∫⁻ q, Φ (a, q) ∂Measure.pi (fun _ : Fin 0 => κ a) =
-        Φ (a, isEmptyElim) := fun a => by
-      rw [h0]
-      exact lintegral_dirac' _ (hΦ.comp measurable_prodMk_left)
+    have h1 : ∀ a, ∫⁻ q, Φ (a, q) ∂Measure.pi (fun _ : Fin 0 => κ a) = Φ (a, isEmptyElim) :=
+      fun a => lintegral_pi_fin_zero _ (hΦ.comp measurable_prodMk_left)
     simp_rw [h1]
     exact hΦ.comp (measurable_id.prodMk measurable_const)
   | succ n ih =>

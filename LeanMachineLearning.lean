@@ -29,6 +29,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectatio
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSpace.MeasurableOfDist
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
@@ -53,6 +54,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.OuterMeasure.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExponentialTilt
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.SumCountable
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.Thinning
 public import LeanMachineLearning.ForMathlib.Probability.EmpiricalConvergence
