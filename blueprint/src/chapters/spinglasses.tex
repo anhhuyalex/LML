@@ -3585,7 +3585,8 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
 
 \begin{lemma}[The expected Gaussian overlap correction on split Poisson blocks]\label{lem:sg:pd-ibp-expectation}
   \lean{SpinGlasses.integral_poissonDirichlet_gaussian_overlap_correction,
-        SpinGlasses.integral_gibbs_centered_mark_add_constant}
+        SpinGlasses.integral_gibbs_centered_mark_add_constant,
+        SpinGlasses.integral_gibbs_centered_mark_add_constant_dep}
   \leanok
   \uses{lem:sg:pd-ibp-blocks}
   Assume $0<\zeta<1$, and let independent measurable blocks
@@ -3607,9 +3608,11 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   $\mathbb E\langle\Phi x\rangle
    =\mathbb E\langle\Phi(x-c)\rangle+c\mathbb E\langle\Phi\rangle$,
   provided both terms on the right are integrable. This generic statement
-  has no Poisson or Gaussian hypotheses. Theorem~2.7 and Equation~(2.34)
-  are not yet asserted: the centered identity must still be applied on the
-  random active index type and combined with tilt invariance.
+  has no Poisson or Gaussian hypotheses. The dependent-index variant also
+  permits the atom type and observable to depend on the environment; it
+  does not itself establish almost-sure summability or integrability.
+  Theorem~2.7 and Equation~(2.34) are not yet asserted: the centered
+  identity must still be applied and combined with tilt invariance.
 \end{lemma}
 
 \begin{lemma}[The diagonal term in the countable Gaussian-IBP overlap correction]\label{lem:sg:pd-ibp-diagonal}
@@ -3819,6 +3822,7 @@ These were proved while building the statements above; each is a short consequen
 \item \emph{The reference process in Lemma~2.2 and Equation~(2.22).} The book compares with the ``unmarked'' sum $\sum_nu_n$. We compare with the same functional of an arbitrary block construction of a Poisson process with intensity $\mu_\zeta$; the proof passes through the size-biased process of Theorem~\ref{thm:sg:pd-marking} and returns to the given construction by the Equivalence Theorem~\ref{thm:sg:poisson-equivalence}. In Equation~(2.22) both sums are taken over the \emph{same} marked process (the marks $x,z$ attached to a point are the coordinates of one mark $t=(x,z)$), as in the book. The marks $Y$ in Theorem~\ref{thm:sg:pd-marking} are a free extra coordinate (needed later for the Gaussian marking); they play no role in Lemma~2.2. The marks in Lemma~2.2 are an arbitrary mark space $T$ with a measurable positive function $X$; the book's $(X_n)$ i.i.d.\ is the special case $T=\mathbb R$, $X=\mathrm{id}$.
 \item \emph{A cruder lower tail.} The exact law of the largest point is $\mathbb P(u_0\le s)=\exp(-s^{-\zeta})$. The integrability of $\log\sum u$ only needs $\mathbb P(\sum u<s)\le s^{\zeta}$, which we prove directly from the number of points above $s$, avoiding the ordering of the points.
 \item \emph{Moment hypotheses.} The marks must satisfy $X>0$ almost surely and $0<\mathbb EX^\zeta<\infty$; the unnormalized intensity statement (Theorem~\ref{thm:sg:pd-marking}(a) before dividing by $m$) holds without any moment assumption.
+\item \emph{Unit-tilt marked expectation and replica reindexing (verified).} For split Poisson blocks with $0<\zeta<1$, independent product block laws $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$, intensity $\mu_\zeta\otimes N(0,1)$, any $n\geq1$, distinguished $r_0\in\mathrm{Fin}\,n$, and measurable $f$ on real $n\times n$ matrices, \lean{SpinGlasses.integral_poissonDirichlet_gaussian_unit_tilt_mark} proves $\mathbb E\langle f(R)g_{r_0}\rangle_1=\zeta\,\mathbb E\langle f(R)\rangle_0$ for Gibbs weights indexed by active Poisson blocks. The prerequisites \lean{SpinGlasses.ae_poissonDirichlet_gaussian_tilt_centering_series} and \lean{SpinGlasses.integral_poissonDirichlet_gaussian_tilt_mark_centering} establish convergence of the centered and plain replica series and the centering identity at arbitrary real tilt. Independently, \lean{SpinGlasses.tsum_option_fin_replica_eq} transports weighted replica series on $\mathrm{Option}(\mathrm{Fin}\,n)$ to $\mathrm{Fin}(n+1)$, with the extra replica at the last coordinate. These are not yet the Ghirlanda--Guerra identities: the overlap correction, expected-value linearity, and ranked-weight correspondence remain to be assembled.
 \item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). Lemma~2.3 is proved in an order-free form (Theorem~\ref{thm:sg:pd-lemma23}): the replica average of the book is written as an integral against the product $M^{\otimes n}$ of the random counting measure, so no marks have to be attached to ranks. We do not formalize the marks paired with ranks (the marked-sequence form (2.24) of the Bolthausen--Sznitman invariance); the passage from the order-free form to sums over the actual block-indexed atoms is formalized (Theorem~\ref{thm:sg:pd-blockindex}), and the replica averages of both processes are written as real-valued Gibbs series over block indices on one probability space (Theorems~\ref{thm:sg:pd-gibbs-bridge} and~\ref{thm:sg:pd-gibbs}), with the Gaussian marks shown independent of the counts and masses (Lemma~\ref{lem:sg:pd-gibbs-inputs}); and Gaussian integration by parts has been carried out conditionally on the counts and masses and integrated back (Lemmas~\ref{lem:sg:pd-split-env}--\ref{lem:sg:pd-gaussian-array}, \ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}); but the final combination with tilt invariance at $t=1$ is not done, the passage to ranked weights is not done, and neither are the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8 formalized yet. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
 \end{enumerate}
 \end{remark}

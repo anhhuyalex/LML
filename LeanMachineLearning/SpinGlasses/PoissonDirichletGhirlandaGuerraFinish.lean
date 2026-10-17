@@ -94,4 +94,32 @@ theorem gaussian_ibp_overlap_correction_self_marginal
   rw [gaussian_ibp_overlap_correction_marginal hw0 hws hw r₀ Φ hΦ t]
   rw [gibbs_old_replica_self_overlap w hw0 hws r₀ Φ hΦ]
 
+/-- Reindex a replica series from `Option (Fin n)` to `Fin (n+1)`.
+The fresh replica `none` occupies the last coordinate. -/
+theorem tsum_option_fin_replica_eq
+    {α : Type*} (n : ℕ) (w : α → ℝ)
+    (Φ : (Option (Fin n) → α) → ℝ) :
+    (∑' τ : Option (Fin n) → α,
+      (∏ o, w (τ o)) * Φ τ) =
+      ∑' σ : Fin (n + 1) → α,
+        (∏ j, w (σ j)) * Φ (σ ∘ finSuccEquivLast.symm) := by
+  classical
+  let e : (Option (Fin n) → α) ≃ (Fin (n + 1) → α) :=
+    Equiv.arrowCongr finSuccEquivLast.symm (Equiv.refl α)
+  have he (τ : Option (Fin n) → α) :
+      e τ = τ ∘ finSuccEquivLast := rfl
+  calc
+    _ = ∑' σ : Fin (n + 1) → α,
+          (∏ o, w ((e.symm σ) o)) * Φ (e.symm σ) := by
+      exact (Equiv.tsum_eq e.symm
+        (fun τ => (∏ o, w (τ o)) * Φ τ)).symm
+    _ = _ := by
+      apply tsum_congr
+      intro σ
+      have hs : e.symm σ = σ ∘ finSuccEquivLast.symm := rfl
+      rw [hs]
+      congr 1
+      exact Fintype.prod_equiv finSuccEquivLast.symm
+        (fun o => w (σ (finSuccEquivLast.symm o))) (fun j => w (σ j)) (fun _ => rfl)
+
 end SpinGlasses
