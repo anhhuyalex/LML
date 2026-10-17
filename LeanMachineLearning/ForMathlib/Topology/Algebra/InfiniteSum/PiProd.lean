@@ -28,6 +28,22 @@ open Filter Topology
 
 variable {α J : Type*} [Fintype J]
 
+/-- Normalizing a family by its (positive) total gives a family with total `1`. -/
+theorem tsum_div_tsum_eq_one {β : Type*} {v : β → ℝ} (hV : 0 < ∑' a, v a) :
+    ∑' a, v a / ∑' b, v b = 1 := by
+  rw [tsum_div_const, div_self hV.ne']
+
+/-- Summability of a function over the subtype cut out by a predicate is summability of the
+guarded function `if p x then f x else 0` over the ambient type. -/
+theorem summable_subtype_guard_iff {β : Type*} (p : β → Prop) [DecidablePred p] (f : β → ℝ) :
+    Summable (fun a : {x : β // p x} => f a.1) ↔
+      Summable (fun x : β => if p x then f x else 0) := by
+  have heq : Set.indicator {x | p x} f = fun x => if p x then f x else 0 := by
+    funext x
+    by_cases hx : p x <;> simp [Set.indicator, hx]
+  rw [← heq]
+  exact summable_subtype_iff_indicator (s := {x | p x}) (f := f)
+
 /-- A finite product of summable nonnegative functions is summable over the product space:
 `∑_{σ : J → α} ∏ⱼ f j (σ j) < ∞`. -/
 theorem summable_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a) (hf : ∀ j, Summable (f j)) :

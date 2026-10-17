@@ -57,17 +57,6 @@ theorem gaussian_gibbs_mark_centering_identity
     rw [← tsum_mul_left]
     exact hx.tsum_add hlast
 
-/-- The normalized overlap marginal is the extra-replica series with an unused
-`none` coordinate removed. This is independent of the origin of the weights. -/
-theorem gaussian_gibbs_mark_centering_option_marginal
-    {J α : Type*} [Fintype J]
-    (w : α → ℝ) (hw : ∀ a, 0 ≤ w a) (hs : Summable w)
-    (hunit : ∑' a, w a = 1)
-    (Φ : (J → α) → ℝ) {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) :
-    (∑' τ : Option J → α, (∏ o, w (τ o)) * Φ (fun j => τ (some j))) =
-      ∑' σ : J → α, (∏ j, w (σ j)) * Φ σ :=
-  gaussian_ibp_option_replica_marginal hw hs hunit Φ hΦ
-
 /-- Centering a marked Gibbs series does not affect its convergence, and its
 uncentered value is the centered value plus the bounded unmarked average. -/
 theorem gaussian_gibbs_mark_centering_identity_of_masses
@@ -105,9 +94,7 @@ theorem ae_summable_gaussian_tilted_mark
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
       (gaussianReal 0 1) μ :=
-    (hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) (iota a).2).comp
-      (hasLaw_eval_infinitePi
-        (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) (iota a).1)
+    hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
   have h := ae_summable_and_integrable_tsum_mul_exp (P := μ) (G := u)
     (X := fun a g => g (iota a).1 (iota a).2 - c)
     (Z := fun a g => t * g (iota a).1 (iota a).2) hu hs
@@ -118,32 +105,7 @@ theorem ae_summable_gaussian_tilted_mark
     (fun a => ((hlaw a).hasGaussianLaw.memLp_two).sub (memLp_const c))
     (a := 2 + 2 * c ^ 2) (v := t ^ 2)
     (fun a => by
-      have hi := ((hlaw a).hasGaussianLaw.memLp_two.sub
-        (memLp_const c)).integrable_sq
-      have hsq := integral_gaussianReal_coordinate_sq hlaw a
-      have hmean := integral_gaussianReal_coordinate hlaw a
-      have heq : (fun g : ℕ → ℕ → ℝ =>
-        (g (iota a).1 (iota a).2 - c) ^ 2) =
-          (fun g => g (iota a).1 (iota a).2 ^ 2 -
-            2 * c * g (iota a).1 (iota a).2 + c ^ 2) := by
-        funext g
-        ring
-      have hgi : Integrable (fun g : ℕ → ℕ → ℝ =>
-          g (iota a).1 (iota a).2) μ :=
-        ((hlaw a).hasGaussianLaw.memLp_two).integrable (by norm_num)
-      have hsqint := ((hlaw a).hasGaussianLaw.memLp_two).integrable_sq
-      rw [heq]
-      have hadd : (∫ g : ℕ → ℕ → ℝ,
-          g (iota a).1 (iota a).2 ^ 2 - 2 * c * g (iota a).1 (iota a).2 + c ^ 2 ∂μ) =
-          (∫ g : ℕ → ℕ → ℝ,
-            g (iota a).1 (iota a).2 ^ 2 - 2 * c * g (iota a).1 (iota a).2 ∂μ) +
-            ∫ _ : ℕ → ℕ → ℝ, c ^ 2 ∂μ :=
-        integral_add (hsqint.sub (hgi.const_mul _)) (integrable_const _)
-      rw [hadd, integral_sub hsqint (hgi.const_mul _), integral_const_mul,
-        integral_const, hsq, hmean]
-      have hμ : μ.real Set.univ = 1 := by simp [μ]
-      rw [hμ]
-      simp only [one_smul, mul_zero, sub_zero]
+      rw [integral_gaussianReal_sub_const_sq (hlaw a) c]
       nlinarith [sq_nonneg c])
     (fun a => by
       simp_rw [mul_pow, integral_const_mul,
@@ -205,20 +167,11 @@ theorem measurableSet_gaussian_gibbs_tilt_mark_summable (t c : ℝ) :
         (if p.2 < (zg.1 p.1).1 then
           (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
             abs (zg.2 p.1 p.2 - c) else 0)) < ⊤} := by
-  have hm : Measurable fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
-      ∑' p : ℕ × ℕ, ENNReal.ofReal
-        (if p.2 < (zg.1 p.1).1 then
-          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
-            abs (zg.2 p.1 p.2 - c) else 0) := by
-    apply Measurable.tsum
-    intro p
-    apply ENNReal.measurable_ofReal.comp
-    exact ((by fun_prop : Measurable
-      (fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
-        (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
-          abs (zg.2 p.1 p.2 - c))).ite
-      (measurableSet_lt measurable_const (by fun_prop)) measurable_const)
-  exact measurableSet_lt hm measurable_const
+  exact measurableSet_tsum_ofReal_guarded_lt_top
+    (Ω := (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) (fun zg m => (zg.1 m).1)
+    (fun m => by fun_prop)
+    (fun zg p => (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
+      abs (zg.2 p.1 p.2 - c)) (fun p => by fun_prop)
 
 /-- An a.s. positive and summable mass environment has a.s. summable
 Gaussian-tilted masses weighted by an absolute centered mark on the product law. -/
@@ -243,24 +196,16 @@ theorem ae_gaussian_gibbs_tilt_mark_summable_prod (t c : ℝ)
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 ≤ u p := (hp p.1 p.2).le
   have hus : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
-    convert hs using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   filter_upwards [ae_summable_gaussian_tilted_mark u hu hus Subtype.val t c] with g hg
-  have ht := (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ =>
-        (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) * |g p.1 p.2 - c|)).1 hg
   have ht' : Summable (fun p : ℕ × ℕ =>
       if p.2 < (z p.1).1 then
         (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) * |g p.1 p.2 - c|
-      else 0) := by
-    convert ht using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+      else 0) :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ =>
+        (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) * |g p.1 p.2 - c|)).1 hg
   exact ht'.tsum_ofReal_lt_top
 
 /-- The centered marked tilted replica series is jointly measurable in the
@@ -338,15 +283,8 @@ theorem integrable_gaussian_gibbs_tilt_centered_guard_prod
       else 0
   have hsplit := indepFun_poissonBlocks_snd_marks ν
     (fun _ => gaussianReal 0 1) r hBm hB hlaw
-  have hZm : Measurable Z := measurable_pi_iff.2 fun m =>
-    (measurable_fst.comp (hBm m)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm m))))
-  have hGm : Measurable G := measurable_pi_iff.2 fun m =>
-    measurable_pi_iff.2 fun l =>
-      measurable_snd.comp ((measurable_pi_apply l).comp
-        (measurable_snd.comp (hBm m)))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  have hGm : Measurable G := measurable_poissonBlocks_snd hBm
   have hmeas : Measurable H := by
     convert measurable_gaussian_gibbs_tilt_centered_guard t
       (t * ζ) r₀ Φ using 1
@@ -437,13 +375,9 @@ theorem ae_gaussian_gibbs_tilt_mark_centering_prod
     · exact (mul_pos (hp p h) (Real.exp_pos _)).le
     · exact le_refl 0
   have hus : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (zg.1 p.1).1})
-      (f := fun p : ℕ × ℕ =>
-        (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2
-    convert ht0 using 1
-    funext p
-    by_cases h : p.2 < (zg.1 p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
+      (fun p : ℕ × ℕ =>
+        (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2 ht0
   have hm0 : Summable (fun p : ℕ × ℕ =>
       if p.2 < (zg.1 p.1).1 then
         (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
@@ -454,14 +388,10 @@ theorem ae_gaussian_gibbs_tilt_mark_centering_prod
     · exact le_refl 0
   have hms : Summable (fun a : α =>
       u a * |zg.2 a.1.1 a.1.2 - c|) := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (zg.1 p.1).1})
-      (f := fun p : ℕ × ℕ =>
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
+      (fun p : ℕ × ℕ =>
         (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
-          |zg.2 p.1 p.2 - c|)).2
-    convert hm0 using 1
-    funext p
-    by_cases h : p.2 < (zg.1 p.1).1 <;> simp [Set.indicator, h]
+          |zg.2 p.1 p.2 - c|)).2 hm0
   have hpos : 0 < ∑' a, u a :=
     hus.tsum_pos (fun a => (hu a).le) (Classical.choice inferInstance) (hu _)
   let w : α → ℝ := fun a => u a / ∑' b, u b
@@ -535,45 +465,10 @@ theorem integrable_gaussian_gibbs_tilt_mark_guard_prod
   let Φ : (Fin n → ℕ × ℕ) → ℝ := fun σ =>
     f (fun i j => if σ i = σ j then 1 else 0)
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := ℕ × ℕ) f
-  have hZm : Measurable Z := measurable_pi_iff.2 fun m =>
-    (measurable_fst.comp (hBm m)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm m))))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
   have hρ : IsProbabilityMeasure ρ :=
     (Measure.isProbabilityMeasure_map_iff hZm.aemeasurable).2 inferInstance
-  have henv : ∀ᵐ z ∂ρ,
-      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
-      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-      Summable (fun p : ℕ × ℕ =>
-        if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) := by
-    have hh : ∀ᵐ z ∂P.map Z,
-        Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1} ∧
-        (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-        (∑' p : ℕ × ℕ,
-          ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ :=
-      (ae_map_iff hZm.aemeasurable measurableSet_gaussian_gibbs_environment).2 (by
-        filter_upwards [ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
-          (fun m => (ν m).prod (gaussianReal 0 1)) r hBm hB hlaw hμ]
-          with ω ⟨hn, hp, hs⟩
-        refine ⟨hn, ?_, ?_⟩
-        · intro p h
-          exact hp ⟨p, h⟩
-        · have ht := (summable_subtype_iff_indicator (s :=
-              {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-              (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2)).1 hs
-          have ht' : Summable (fun p : ℕ × ℕ =>
-              if p.2 < (Z ω p.1).1 then (Z ω p.1).2 p.2 else 0) := by
-            convert ht using 1
-            funext p
-            by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
-          exact ht'.tsum_ofReal_lt_top)
-    filter_upwards [hh] with z ⟨hn, hp, ht⟩
-    refine ⟨hn.elim fun p => ⟨p.1, p.2⟩, hp, ?_⟩
-    apply summable_of_tsum_ofReal_lt_top (fun p => ?_) ht
-    split_ifs with h
-    · exact (hp p h).le
-    · exact le_refl 0
+  have henv := ae_poissonDirichlet_environment_map (P := P) hζ hζ1 ν r hBm hB hlaw hμ
   have hcenter := integrable_gaussian_gibbs_tilt_centered_guard_prod
     hζ hζ1 t ν r hBm hB hlaw hμ n r₀ f hf
   have hbase := integrable_gaussian_gibbs_tilt_bounded_prod t Φ M hM ρ henv
@@ -626,23 +521,7 @@ theorem integrable_gaussian_gibbs_tilt_mark_guard_prod
       apply tsum_congr
       intro σ
       split_ifs <;> rfl
-    have hmiddle : (∑' σ : Fin n → ℕ × ℕ,
-          if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
-            (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
-                Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
-              ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
-                (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
-              (Φ σ * zg.2 (σ r₀).1 (σ r₀).2)
-          else 0) =
-        (∑' σ : Fin n → ℕ × ℕ,
-          if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
-            (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
-                Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
-              ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
-                (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
-              (Φ σ * zg.2 (σ r₀).1 (σ r₀).2)
-          else 0) := tsum_congr fun σ => by split_ifs <;> rfl
-    exact (hfirst.trans hmiddle).trans (by
+    exact hfirst.trans (by
       convert hz using 1
       · apply tsum_congr
         intro σ
@@ -732,46 +611,10 @@ theorem integral_poissonDirichlet_gaussian_tilt_ibp_prod
   let Φ : (Fin n → ℕ × ℕ) → ℝ := fun σ =>
     f (fun i j => if σ i = σ j then 1 else 0)
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := ℕ × ℕ) f
-  have hZm : Measurable Z := measurable_pi_iff.2 fun m =>
-    (measurable_fst.comp (hBm m)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm m))))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
   have hρ : IsProbabilityMeasure ρ :=
     (Measure.isProbabilityMeasure_map_iff hZm.aemeasurable).2 inferInstance
-  have henv : ∀ᵐ z ∂ρ,
-      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
-      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-      Summable (fun p : ℕ × ℕ =>
-        if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) := by
-    have hh := ae_gaussian_gibbs_tilt_mark_summable_prod 0 0 ρ
-    -- The environment predicate is independent of Gaussian summability.
-    have hZ := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
-      (fun m => (ν m).prod (gaussianReal 0 1)) r hBm hB hlaw hμ
-    have hmeas := measurableSet_gaussian_gibbs_environment
-    have hraw : ∀ᵐ z ∂ρ,
-        Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1} ∧
-        (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-        (∑' p : ℕ × ℕ,
-          ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ :=
-      (ae_map_iff hZm.aemeasurable hmeas).2 (by
-        filter_upwards [hZ] with ω ⟨hn, hp, hs⟩
-        refine ⟨hn, (fun p h => hp ⟨p, h⟩), ?_⟩
-        have ht := (summable_subtype_iff_indicator (s :=
-          {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-          (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2)).1 hs
-        have ht' : Summable (fun p : ℕ × ℕ =>
-            if p.2 < (Z ω p.1).1 then (Z ω p.1).2 p.2 else 0) := by
-          convert ht using 1
-          funext p
-          by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
-        exact ht'.tsum_ofReal_lt_top)
-    filter_upwards [hraw] with z ⟨hn, hp, hs⟩
-    refine ⟨hn.elim fun p => ⟨p.1, p.2⟩, hp, ?_⟩
-    exact summable_of_tsum_ofReal_lt_top (fun p => by
-      split_ifs with h
-      · exact (hp p h).le
-      · exact le_refl 0) hs
+  have henv := ae_poissonDirichlet_environment_map (P := P) hζ hζ1 ν r hBm hB hlaw hμ
   have hleft := integrable_gaussian_gibbs_tilt_mark_guard_prod
     hζ hζ1 t ν r hBm hB hlaw hμ n r₀ f hf
   let _ : DecidableEq (Fin n) := Classical.decEq _

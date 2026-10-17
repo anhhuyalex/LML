@@ -67,6 +67,23 @@ theorem integral_gaussianReal_coordinate_sq
   have h := (hlaw a).integral_comp (f := fun x : ℝ => x ^ 2) (by fun_prop)
   simpa [id] using h.trans (by simpa [id] using hv)
 
+/-- The second moment of a standard Gaussian variable about a constant `c` is `1 + c ^ 2`. -/
+theorem integral_gaussianReal_sub_const_sq
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {X : Ω → ℝ} (hX : HasLaw X (gaussianReal 0 1) P) (c : ℝ) :
+    ∫ ω, (X ω - c) ^ 2 ∂P = 1 + c ^ 2 := by
+  have h1 : Integrable X P := hX.hasGaussianLaw.memLp_two.integrable (by norm_num)
+  have h2 : Integrable (fun ω => X ω ^ 2) P := hX.hasGaussianLaw.memLp_two.integrable_sq
+  have heq : (fun ω => (X ω - c) ^ 2) = fun ω => X ω ^ 2 - 2 * c * X ω + c ^ 2 := by
+    funext ω
+    ring
+  have hsq := integral_gaussianReal_coordinate_sq (X := fun _ : Unit => X) (fun _ => hX) ()
+  have hm := integral_gaussianReal_coordinate (X := fun _ : Unit => X) (fun _ => hX) ()
+  have h3 : Integrable (fun ω => 2 * c * X ω) P := h1.const_mul _
+  have h4 : Integrable (fun ω => X ω ^ 2 - 2 * c * X ω) P := h2.sub h3
+  rw [heq, integral_add h4 (integrable_const _), integral_sub h2 h3, integral_const_mul]
+  simp [hsq, hm]
+
 /-- The covariance of independent standard Gaussian coordinates and their scaled
 copies is diagonal. -/
 theorem integral_gaussianReal_coordinate_mul_scaled
@@ -205,10 +222,7 @@ theorem gaussian_inputs_infinitePi_active
       (X := fun _ _ x => x) (by fun_prop)
   have hi : iIndepFun (fun a g => Y (ι a) g) μ := hY.precomp hι
   have hYlaw (p : ℕ × ℕ) : HasLaw (Y p) (gaussianReal 0 1) μ := by
-    have hout := hasLaw_eval_infinitePi
-      (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) p.1
-    have hin := hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) p.2
-    exact hin.comp hout
+    exact hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) p.1 p.2
   have hlaw (a : α) : HasLaw (fun g => Y (ι a) g) (gaussianReal 0 1) μ :=
     hYlaw (ι a)
   dsimp

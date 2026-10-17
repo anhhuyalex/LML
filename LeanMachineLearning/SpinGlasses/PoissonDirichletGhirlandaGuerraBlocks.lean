@@ -82,43 +82,10 @@ theorem integral_poissonDirichlet_gaussian_tilt_ibp_blocks
               n * t * (if τ (some r₀) = τ none then 1 else 0)))
       else 0
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := ℕ × ℕ) f
-  have hZm : Measurable Z := measurable_pi_iff.2 fun m =>
-    (measurable_fst.comp (hBm m)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm m))))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
   have hρ : IsProbabilityMeasure ρ :=
     (Measure.isProbabilityMeasure_map_iff hZm.aemeasurable).2 inferInstance
-  have henv : ∀ᵐ z ∂ρ,
-      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
-      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-      Summable (fun p : ℕ × ℕ =>
-        if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) := by
-    have hZ := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
-      (fun m => (ν m).prod (gaussianReal 0 1)) r hBm hB hlaw hμ
-    have hraw : ∀ᵐ z ∂ρ,
-        Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1} ∧
-        (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-        (∑' p : ℕ × ℕ,
-          ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ :=
-      (ae_map_iff hZm.aemeasurable measurableSet_gaussian_gibbs_environment).2 (by
-        filter_upwards [hZ] with ω ⟨hn, hp, hs⟩
-        refine ⟨hn, (fun p h => hp ⟨p, h⟩), ?_⟩
-        have ht := (summable_subtype_iff_indicator (s :=
-          {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-          (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2)).1 hs
-        have ht' : Summable (fun p : ℕ × ℕ =>
-            if p.2 < (Z ω p.1).1 then (Z ω p.1).2 p.2 else 0) := by
-          convert ht using 1
-          funext p
-          by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
-        exact ht'.tsum_ofReal_lt_top)
-    filter_upwards [hraw] with z ⟨hn, hp, hs⟩
-    refine ⟨hn.elim fun p => ⟨p.1, p.2⟩, hp, ?_⟩
-    exact summable_of_tsum_ofReal_lt_top (fun p => by
-      split_ifs with h
-      · exact (hp p h).le
-      · exact le_refl 0) hs
+  have henv := ae_poissonDirichlet_environment_map (P := P) hζ hζ1 ν r hBm hB hlaw hμ
   have hL : Integrable L (ρ.prod μ) := by
     convert integrable_gaussian_gibbs_tilt_mark_guard_prod
       hζ hζ1 t ν r hBm hB hlaw hμ n r₀ f hf using 1
@@ -212,11 +179,7 @@ theorem ae_poissonDirichlet_gaussian_overlap_correction
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := ℕ × ℕ) f
   have henv := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
     (fun m => (ν m).prod (gaussianReal 0 1)) r hBm hB hlaw hμ
-  have hZm : Measurable Z := measurable_pi_iff.2 fun m =>
-    (measurable_fst.comp (hBm m)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm m))))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
   have hρ : IsProbabilityMeasure (P.map Z) :=
     (Measure.isProbabilityMeasure_map_iff hZm.aemeasurable).2 inferInstance
   have hmass : ∀ᵐ ω ∂P,
@@ -226,37 +189,13 @@ theorem ae_poissonDirichlet_gaussian_overlap_correction
     have henvρ : ∀ᵐ z ∂P.map Z,
         (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
         Summable (fun p : ℕ × ℕ =>
-          if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) := by
-      have hmeas := measurableSet_gaussian_gibbs_environment
-      have hh : ∀ᵐ z ∂P.map Z,
-          Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1} ∧
-          (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-          (∑' p : ℕ × ℕ, ENNReal.ofReal
-            (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ :=
-        (ae_map_iff hZm.aemeasurable hmeas).2 (by
-          filter_upwards [henv] with ω ⟨hn, hp, hs⟩
-          refine ⟨hn, (fun p h => hp ⟨p, h⟩), ?_⟩
-          have ht := (summable_subtype_iff_indicator (s :=
-            {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-            (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2)).1 hs
-          have ht' : Summable (fun p : ℕ × ℕ =>
-              if p.2 < (Z ω p.1).1 then (Z ω p.1).2 p.2 else 0) := by
-            convert ht using 1
-            funext p
-            by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
-          exact ht'.tsum_ofReal_lt_top)
-      filter_upwards [hh] with z ⟨_, hp, hs⟩
-      refine ⟨hp, summable_of_tsum_ofReal_lt_top (fun p => ?_) hs⟩
-      split_ifs with h
-      · exact (hp p h).le
-      · exact le_refl 0
+          if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) :=
+      (ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ).mono
+        fun z ⟨_, hp, hs⟩ => ⟨hp, hs⟩
     have hprod := ae_gaussian_gibbs_tilt_summable_prod t (P.map Z) henvρ
     have hsplit := indepFun_poissonBlocks_snd_marks ν
       (fun _ => gaussianReal 0 1) r hBm hB hlaw
-    have hGm : Measurable G := measurable_pi_iff.2 fun m =>
-      measurable_pi_iff.2 fun l =>
-        measurable_snd.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm m)))
+    have hGm : Measurable G := measurable_poissonBlocks_snd hBm
     have hae : ∀ᵐ ω ∂P,
         (∑' p : ℕ × ℕ, ENNReal.ofReal
           (if p.2 < (Z ω p.1).1 then
@@ -277,12 +216,8 @@ theorem ae_poissonDirichlet_gaussian_overlap_correction
       split_ifs with h
       · exact mul_nonneg (hp ⟨p, h⟩).le (Real.exp_pos _).le
       · exact le_refl 0) hs
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-      (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2 * Real.exp (t * G ω p.1 p.2))).2
-    convert ht using 1
-    funext p
-    by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (Z ω p.1).1)
+      (fun p : ℕ × ℕ => (Z ω p.1).2 p.2 * Real.exp (t * G ω p.1 p.2))).2 ht
   filter_upwards [henv, hmass] with ω ⟨hn, hp, _⟩ hs
   let α := {p : ℕ × ℕ // p.2 < (B p.1 ω).1}
   let _ : Nonempty α := hn

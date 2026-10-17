@@ -21,46 +21,6 @@ open scoped ENNReal NNReal
 
 namespace SpinGlasses
 
-/-- Reindex a normalized tilted replica average from active block indices to a
-fixed ambient tuple type. This applies to arbitrary observables and replica sets,
-including the extra `Option J` coordinate of Gaussian integration by parts. -/
-theorem gaussian_gibbs_tilt_guard_eq_active
-    {J : Type*} [Fintype J] (t : ℝ)
-    (z : ℕ → ℕ × (ℕ → ℝ)) (g : ℕ → ℕ → ℝ)
-    (F : (J → ℕ × ℕ) → ℝ) :
-    (∑' σ : J → ℕ × ℕ,
-      if ∀ j, (σ j).2 < (z (σ j).1).1 then
-        (∏ j, ((z (σ j).1).2 (σ j).2 * Real.exp (t * g (σ j).1 (σ j).2)) /
-          ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then
-            (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0) * F σ
-      else 0) =
-    ∑' σ : J → {p : ℕ × ℕ // p.2 < (z p.1).1},
-      (∏ j, (z (σ j).1.1).2 (σ j).1.2 *
-          Real.exp (t * g (σ j).1.1 (σ j).1.2) /
-        ∑' a : {p : ℕ × ℕ // p.2 < (z p.1).1},
-          (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) *
-        F (fun j => (σ j).1) := by
-  classical
-  let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
-  have hden : (∑' a : α,
-      (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) =
-      ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then
-        (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0 := by
-    have ht := tsum_subtype {p : ℕ × ℕ | p.2 < (z p.1).1}
-      (fun p : ℕ × ℕ => (z p.1).2 p.2 * Real.exp (t * g p.1 p.2))
-    change (∑' a : {p : ℕ × ℕ | p.2 < (z p.1).1},
-      (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) = _
-    rw [ht]
-    apply tsum_congr
-    intro p
-    by_cases hh : p.2 < (z p.1).1 <;> simp [Set.indicator, hh]
-  rw [tsum_poissonBlocks_active_eq_tsum_guard (fun n => (z n).1)]
-  apply tsum_congr
-  intro σ
-  split_ifs with hh
-  · rw [← hden]
-  · rfl
-
 /-- Gaussian IBP at nonzero tilt, conditional on one positive summable block environment.
 The right hand side includes one extra replica, indexed by `Option J`. -/
 theorem integral_gaussian_gibbs_replica_guard_tilt_ibp
@@ -96,12 +56,8 @@ theorem integral_gaussian_gibbs_replica_guard_tilt_ibp
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
   have hsum : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
-    convert hs using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   have hΦα : ∀ σ : J → α, |Φ (fun j => (σ j).1)| ≤ M := fun σ => hΦ _
   let μ : Measure (ℕ → ℕ → ℝ) :=
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
@@ -145,10 +101,7 @@ theorem ae_summable_active_gaussian_tilt
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
       (gaussianReal 0 1) μ := by
-    have hout := hasLaw_eval_infinitePi
-      (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) (iota a).1
-    have hin := hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) (iota a).2
-    exact hin.comp hout
+    exact hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
   have h := ae_summable_and_integrable_tsum_mul_exp (P := μ)
     (X := fun _ _ => (1 : ℝ))
     (Z := fun a g => t * g (iota a).1 (iota a).2) (G := u)
@@ -238,12 +191,8 @@ theorem gaussian_gibbs_tilt_correction_integrable_and_bound
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
   have hsum : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
-    convert hs using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   let μ : Measure (ℕ → ℕ → ℝ) :=
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   let H : (ℕ → ℕ → ℝ) → ℝ := fun g =>
@@ -284,9 +233,7 @@ theorem gaussian_gibbs_tilt_correction_integrable_and_bound
     let w : α → ℝ := fun a => v a / ∑' b, v b
     have hw0 (a : α) : 0 ≤ w a := div_nonneg (hvpos a).le hVpos.le
     have hws : Summable w := hvs.div_const _
-    have hw : ∑' a, w a = 1 := by
-      change (∑' a, v a / ∑' b, v b) = 1
-      rw [tsum_div_const, div_self hVpos.ne']
+    have hw : ∑' a, w a = 1 := tsum_div_tsum_eq_one hVpos
     have hΦα : ∀ τ : Option J → α,
         |Φ (fun j => (τ (some j)).1) *
           (∑ j, t * (if τ (some r₀) = τ (some j) then 1 else 0) -
@@ -414,9 +361,7 @@ theorem abs_gaussian_gibbs_tilt_guard_le
   let w : α → ℝ := fun a => v a / ∑' b, v b
   have hw0 (a : α) : 0 ≤ w a := div_nonneg (hv a).le hV.le
   have hws : Summable w := hs.div_const _
-  have hw : ∑' a, w a = 1 := by
-    change (∑' a, v a / ∑' b, v b) = 1
-    rw [tsum_div_const, div_self hV.ne']
+  have hw : ∑' a, w a = 1 := tsum_div_tsum_eq_one hV
   rw [gaussian_gibbs_tilt_guard_eq_active]
   exact abs_tsum_prod_pi_mul_le_bound hw0 hws hw
     (fun σ => hF (fun j => (σ j).1))
@@ -434,17 +379,10 @@ theorem measurableSet_gaussian_gibbs_tilt_summable (t : ℝ) :
       ∑' p : ℕ × ℕ, ENNReal.ofReal
         (if p.2 < (zg.1 p.1).1 then
           (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) < ∞} := by
-  have hm : Measurable fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
-      ∑' p : ℕ × ℕ, ENNReal.ofReal
-        (if p.2 < (zg.1 p.1).1 then
-          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) := by
-    apply Measurable.tsum
-    intro p
-    exact ENNReal.measurable_ofReal.comp ((by fun_prop : Measurable
-      (fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
-        (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).ite
-      (measurableSet_lt measurable_const (by fun_prop)) measurable_const)
-  exact measurableSet_lt hm measurable_const
+  exact measurableSet_tsum_ofReal_guarded_lt_top
+    (Ω := (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) (fun zg m => (zg.1 m).1)
+    (fun m => by fun_prop)
+    (fun zg p => (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2)) (fun p => by fun_prop)
 
 /-- For almost every independent environment and Gaussian array, the tilted
 active masses have a finite sum. The bound uses positivity only on active indices. -/
@@ -468,21 +406,13 @@ theorem ae_gaussian_gibbs_tilt_summable_prod (t : ℝ)
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 ≤ u p := (hp p.1 p.2).le
   have hus : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
-    convert hs using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   filter_upwards [ae_summable_active_gaussian_tilt u hu hus Subtype.val t] with g hg
-  have ht := (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2 * Real.exp (t * g p.1 p.2))).1 hg
   have ht' : Summable (fun p : ℕ × ℕ =>
-      if p.2 < (z p.1).1 then (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0) := by
-    convert ht using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+      if p.2 < (z p.1).1 then (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0) :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2 * Real.exp (t * g p.1 p.2))).1 hg
   exact ht'.tsum_ofReal_lt_top
 
 end SpinGlasses
@@ -540,13 +470,9 @@ theorem integrable_gaussian_gibbs_tilt_bounded_prod
     have hsum := summable_of_tsum_ofReal_lt_top hnonneg ht
     have hsactive : Summable (fun p : {p : ℕ × ℕ // p.2 < (zg.1 p.1).1} =>
         (zg.1 p.1.1).2 p.1.2 * Real.exp (t * zg.2 p.1.1 p.1.2)) := by
-      apply (summable_subtype_iff_indicator (s :=
-        {p : ℕ × ℕ | p.2 < (zg.1 p.1).1})
-        (f := fun p : ℕ × ℕ =>
-          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2
-      convert hsum using 1
-      funext p
-      by_cases h : p.2 < (zg.1 p.1).1 <;> simp [Set.indicator, h]
+      exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
+        (fun p : ℕ × ℕ =>
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2 hsum
     exact abs_gaussian_gibbs_tilt_guard_le t zg.1 zg.2 hn hp hsactive F M hF
   exact (integrable_const M).mono' hm.aestronglyMeasurable (by
     filter_upwards [hb] with zg hzg

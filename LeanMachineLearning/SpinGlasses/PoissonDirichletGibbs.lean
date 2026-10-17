@@ -220,9 +220,7 @@ theorem integrable_gaussian_mass_weighted_abs
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
       (gaussianReal 0 1) μ :=
-    (hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) (iota a).2).comp
-      (hasLaw_eval_infinitePi
-        (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) (iota a).1)
+    hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
   have h := ae_summable_and_integrable_tsum_mul_exp
     (P := μ) (G := u) (X := fun a g => g (iota a).1 (iota a).2)
     (Z := fun _ _ => (0 : ℝ)) hu0 hu
@@ -254,9 +252,7 @@ theorem integral_gaussian_weighted_abs_eq
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
       (gaussianReal 0 1) μ :=
-    (hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) (iota a).2).comp
-      (hasLaw_eval_infinitePi
-        (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) (iota a).1)
+    hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
   have hgauss : Integrable (fun x : ℝ => |x|) (gaussianReal 0 1) := by
     exact ((memLp_id_gaussianReal' (μ := 0) (v := 1) 1 (by simp)).integrable
       (by simp)).abs
@@ -309,9 +305,7 @@ theorem integrable_gaussian_gibbs_replica_untilted
   let w : α → ℝ := fun a => u a / ∑' b, u b
   have hw0 (a : α) : 0 ≤ w a := div_nonneg (hu0 a).le hUpos.le
   have hws : Summable w := hu.div_const _
-  have hw : ∑' a, w a = 1 := by
-    change (∑' a, u a / ∑' b, u b) = 1
-    rw [tsum_div_const, div_self hUpos.ne']
+  have hw : ∑' a, w a = 1 := tsum_div_tsum_eq_one hUpos
   have hmass := integrable_gaussian_mass_weighted_abs u (fun a => (hu0 a).le) hu iota
   have hmark : ∀ᵐ g ∂μ,
       Summable fun a => w a * |g (iota a).1 (iota a).2| := by
@@ -362,9 +356,7 @@ theorem integral_abs_gaussian_gibbs_replica_untilted_le
   let w : α → ℝ := fun a => u a / ∑' b, u b
   have hw0 (a : α) : 0 ≤ w a := div_nonneg (hu0 a).le hUpos.le
   have hws : Summable w := hu.div_const _
-  have hw : ∑' a, w a = 1 := by
-    change (∑' a, u a / ∑' b, u b) = 1
-    rw [tsum_div_const, div_self hUpos.ne']
+  have hw : ∑' a, w a = 1 := tsum_div_tsum_eq_one hUpos
   have hmass := integrable_gaussian_mass_weighted_abs u (fun a => (hu0 a).le) hu iota
   have hmark : ∀ᵐ g ∂μ,
       Summable fun a => w a * |g (iota a).1 (iota a).2| := by
@@ -411,9 +403,49 @@ theorem tsum_poissonBlocks_active_eq_tsum_guard
   exact tsum_pi_subtype_eq_tsum_ite (J := J)
     (s := {p : ℕ × ℕ | p.2 < N p.1}) f
 
+/-- Reindex a normalized tilted replica average from active block indices to a
+fixed ambient tuple type. This applies to arbitrary observables and replica sets,
+including the extra `Option J` coordinate of Gaussian integration by parts. -/
+theorem gaussian_gibbs_tilt_guard_eq_active
+    {J : Type*} [Fintype J] (t : ℝ)
+    (z : ℕ → ℕ × (ℕ → ℝ)) (g : ℕ → ℕ → ℝ)
+    (F : (J → ℕ × ℕ) → ℝ) :
+    (∑' σ : J → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (z (σ j).1).1 then
+        (∏ j, ((z (σ j).1).2 (σ j).2 * Real.exp (t * g (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then
+            (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0) * F σ
+      else 0) =
+    ∑' σ : J → {p : ℕ × ℕ // p.2 < (z p.1).1},
+      (∏ j, (z (σ j).1.1).2 (σ j).1.2 *
+          Real.exp (t * g (σ j).1.1 (σ j).1.2) /
+        ∑' a : {p : ℕ × ℕ // p.2 < (z p.1).1},
+          (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) *
+        F (fun j => (σ j).1) := by
+  classical
+  let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
+  have hden : (∑' a : α,
+      (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) =
+      ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then
+        (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0 := by
+    have ht := tsum_subtype {p : ℕ × ℕ | p.2 < (z p.1).1}
+      (fun p : ℕ × ℕ => (z p.1).2 p.2 * Real.exp (t * g p.1 p.2))
+    change (∑' a : {p : ℕ × ℕ | p.2 < (z p.1).1},
+      (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) = _
+    rw [ht]
+    apply tsum_congr
+    intro p
+    by_cases hh : p.2 < (z p.1).1 <;> simp [Set.indicator, hh]
+  rw [tsum_poissonBlocks_active_eq_tsum_guard (fun n => (z n).1)]
+  apply tsum_congr
+  intro σ
+  split_ifs with hh
+  · rw [← hden]
+  · rfl
+
 /-- For a fixed environment the guarded series agrees with the replica series over
 its active block indices. In particular its denominator is the total active mass.
-This statement has no probabilistic assumptions and applies to the extra IBP replica. -/
+This is the untilted case of `gaussian_gibbs_tilt_guard_eq_active`. -/
 theorem gaussian_gibbs_replica_guard_eq_active
     {J : Type*} [Fintype J] (z : ℕ → ℕ × (ℕ → ℝ))
     (g : ℕ → ℕ → ℝ) (r₀ : J) (Φ : (J → ℕ × ℕ) → ℝ) :
@@ -428,33 +460,8 @@ theorem gaussian_gibbs_replica_guard_eq_active
       (∏ j, (z (σ j).1.1).2 (σ j).1.2 /
         ∑' a : α, (z a.1.1).2 a.1.2) *
         (Φ (fun j => (σ j).1) * g (σ r₀).1.1 (σ r₀).1.2) := by
-  classical
-  let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
-  have hden : (∑' a : α, (z a.1.1).2 a.1.2) =
-      ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0 := by
-    have ht := tsum_subtype {p : ℕ × ℕ | p.2 < (z p.1).1}
-      (fun p : ℕ × ℕ => (z p.1).2 p.2)
-    change (∑' a : {p : ℕ × ℕ | p.2 < (z p.1).1},
-      (z a.1.1).2 a.1.2) = _
-    rw [ht]
-    apply tsum_congr
-    intro p
-    by_cases hp : p.2 < (z p.1).1 <;> simp [Set.indicator, hp]
-  let f : (J → α) → ℝ := fun σ =>
-    (∏ j, (z (σ j).1.1).2 (σ j).1.2 /
-      ∑' a : α, (z a.1.1).2 a.1.2) *
-      (Φ (fun j => (σ j).1) * g (σ r₀).1.1 (σ r₀).1.2)
-  change (∑' σ : J → ℕ × ℕ, if ∀ j, (σ j).2 < (z (σ j).1).1 then
-    (∏ j, (z (σ j).1).2 (σ j).2 /
-      ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) *
-      (Φ σ * g (σ r₀).1 (σ r₀).2) else 0) = ∑' σ : J → α, f σ
-  rw [tsum_poissonBlocks_active_eq_tsum_guard (fun n => (z n).1) f]
-  apply tsum_congr
-  intro σ
-  split_ifs with h
-  · dsimp only [f]
-    rw [hden]
-  · rfl
+  simpa only [zero_mul, Real.exp_zero, mul_one] using
+    gaussian_gibbs_tilt_guard_eq_active 0 z g (fun σ => Φ σ * g (σ r₀).1 (σ r₀).2)
 
 /-- A guarded replica series is measurable jointly in the block environment and the marks.
 The weights and observable are arbitrary measurable coordinate functions; this formulation
@@ -490,6 +497,17 @@ theorem measurable_tsum_guarded_replica
       ∑' p : ℕ × ℕ, if p.2 < N zg.1 p.1 then w zg p else 0) := by
     exact Finset.measurable_prod _ fun j _ => (hw (σ j)).div hden
   exact (hprod.mul (hF σ)).ite hguard measurable_const
+
+/-- Finiteness of a guarded `ENNReal` series of nonnegative parts is a measurable event, for
+measurable block counts `N` and measurable coordinate weights `w`. -/
+theorem measurableSet_tsum_ofReal_guarded_lt_top {Ω : Type*} [MeasurableSpace Ω]
+    (N : Ω → ℕ → ℕ) (hN : ∀ m, Measurable fun ω => N ω m)
+    (w : Ω → ℕ × ℕ → ℝ) (hw : ∀ p, Measurable fun ω => w ω p) :
+    MeasurableSet {ω | (∑' p : ℕ × ℕ,
+      ENNReal.ofReal (if p.2 < N ω p.1 then w ω p else 0)) < ∞} := by
+  refine measurableSet_lt (Measurable.tsum fun p => ENNReal.measurable_ofReal.comp ?_)
+    measurable_const
+  exact (hw p).ite (measurableSet_lt measurable_const (hN p.1)) measurable_const
 
 /-- The guarded un-tilted Gaussian-marked replica series is jointly measurable
 for an arbitrary bounded index observable. No measurable structure on that
@@ -606,6 +624,40 @@ theorem measurableSet_gaussian_gibbs_environment :
   ext z
   simp only [Set.mem_inter_iff, Set.mem_ofPred_eq, and_assoc]
 
+/-- For the split-block construction, almost every count/mass environment `z` (the law of the
+counts and masses) has an active index, positive active masses, and a summable family of them,
+stated on the fixed index space `ℕ × ℕ` with a guard. -/
+theorem ae_poissonDirichlet_environment_map
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)} (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ => (ν n).prod (gaussianReal 0 1))) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).prod (gaussianReal 0 1)) :
+    ∀ᵐ z ∂P.map (fun ω n => ((B n ω).1, fun l => ((B n ω).2 l).1)),
+      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
+      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
+      Summable (fun p : ℕ × ℕ => if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) := by
+  have hZm := measurable_poissonBlocks_counts_fst hBm
+  have hh : ∀ᵐ z ∂P.map (fun ω n => ((B n ω).1, fun l => ((B n ω).2 l).1)),
+      Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1} ∧
+      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
+      (∑' p : ℕ × ℕ,
+        ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ :=
+    (ae_map_iff hZm.aemeasurable measurableSet_gaussian_gibbs_environment).2 (by
+      filter_upwards [ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
+        (fun n => (ν n).prod (gaussianReal 0 1)) r hBm hB hlaw hμ] with ω ⟨hn, hp, hs⟩
+      refine ⟨hn, fun p h => hp ⟨p, h⟩, ?_⟩
+      exact ((summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (B p.1 ω).1)
+        (fun p : ℕ × ℕ => ((B p.1 ω).2 p.2).1)).1 hs).tsum_ofReal_lt_top)
+  filter_upwards [hh] with z ⟨hn, hp, hS⟩
+  refine ⟨hn.elim fun p => ⟨p.1, p.2⟩, hp, summable_of_tsum_ofReal_lt_top (fun p => ?_) hS⟩
+  split_ifs with h
+  · exact (hp p h).le
+  · exact le_refl 0
+
 /-- A normalized deterministic mass environment gives an integrable guarded replica
 observable under the Gaussian array. The same first-moment bound holds for every
 such environment, independently of the number and positions of active atoms. -/
@@ -635,12 +687,8 @@ theorem gaussian_gibbs_replica_guard_integrable_and_bound
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
   have hsum : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
-    convert hs using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   let μ : Measure (ℕ → ℕ → ℝ) :=
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   let H : (ℕ → ℕ → ℝ) → ℝ := fun g =>
@@ -691,12 +739,8 @@ theorem integral_gaussian_gibbs_replica_guard_untilted_eq_zero
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
   have hsum : Summable u := by
-    apply (summable_subtype_iff_indicator (s :=
-      {p : ℕ × ℕ | p.2 < (z p.1).1})
-      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
-    convert hs using 1
-    funext p
-    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+      (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   have hΦα : ∀ σ : J → α, |Φ (fun j => (σ j).1)| ≤ M := fun σ => hΦ _
   rw [show (fun g : ℕ → ℕ → ℝ =>
       ∑' σ : J → ℕ × ℕ,
@@ -749,49 +793,9 @@ theorem ae_gaussian_gibbs_replica_untilted_bound
       (∫ g, |H (z, g)| ∂μ) ≤ M * ∫ x : ℝ, |x| ∂gaussianReal 0 1 := by
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω n => ((B n ω).1, fun l => ((B n ω).2 l).1)
-  have hZm : Measurable Z := measurable_pi_iff.2 fun n => by
-    exact (measurable_fst.comp (hBm n)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm n))))
-  have henv := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
-    (fun n => (ν n).prod (gaussianReal 0 1)) r hBm hB hlaw hμ
-  have hZenv : ∀ᵐ z ∂P.map Z,
-      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
-      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-      (∑' p : ℕ × ℕ,
-        ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ := by
-    have hh : ∀ᵐ z ∂P.map Z,
-        Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1} ∧
-        (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-        (∑' p : ℕ × ℕ,
-          ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ :=
-      (ae_map_iff hZm.aemeasurable measurableSet_gaussian_gibbs_environment).2 (by
-        filter_upwards [henv] with ω ⟨hn, hp, hs⟩
-        refine ⟨?_, ?_, ?_⟩
-        · exact hn
-        · intro p h
-          exact hp ⟨p, h⟩
-        · have ht : Summable (fun p : ℕ × ℕ =>
-              if p.2 < (Z ω p.1).1 then (Z ω p.1).2 p.2 else 0) := by
-            have ht' := (summable_subtype_iff_indicator (s :=
-              {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-              (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2)).1 hs
-            convert ht' using 1
-            funext p
-            by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
-          exact ht.tsum_ofReal_lt_top)
-    filter_upwards [hh] with z ⟨hn, hp, hS⟩
-    exact ⟨hn.elim fun p => ⟨p.1, p.2⟩, hp, hS⟩
-  filter_upwards [hZenv] with z ⟨hn, hp, hS⟩
-  have hnonneg (p : ℕ × ℕ) :
-      0 ≤ if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0 := by
-    split_ifs with h
-    · exact (hp p h).le
-    · exact le_refl 0
-  have hs : Summable (fun p : ℕ × ℕ =>
-      if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) :=
-    summable_of_tsum_ofReal_lt_top hnonneg hS
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  filter_upwards [ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ]
+    with z ⟨hn, hp, hs⟩
   exact gaussian_gibbs_replica_guard_integrable_and_bound r₀ Φ M hΦ z hn hp hs
 
 /-- The un-tilted guarded marked replica observable is jointly integrable under
@@ -838,11 +842,7 @@ theorem integrable_gaussian_gibbs_replica_guard_prod
   have hbound := ae_gaussian_gibbs_replica_untilted_bound hζ hζ1
     ν r hBm hB hlaw hμ r₀ Φ M hΦ
   have hZ : IsProbabilityMeasure (P.map Z) := by
-    have hZm : Measurable Z := measurable_pi_iff.2 fun n => by
-      exact (measurable_fst.comp (hBm n)).prodMk
-        (measurable_pi_iff.2 fun l =>
-          measurable_fst.comp ((measurable_pi_apply l).comp
-            (measurable_snd.comp (hBm n))))
+    have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
     exact (Measure.isProbabilityMeasure_map_iff hZm.aemeasurable).2 inferInstance
   apply (integrable_prod_iff hmeas.aestronglyMeasurable).2
   constructor
@@ -903,15 +903,8 @@ theorem integrable_gaussian_gibbs_replica_guard_blocks
       else 0
   have hsplit := indepFun_poissonBlocks_snd_marks ν
     (fun _ => gaussianReal 0 1) r hBm hB hlaw
-  have hZm : Measurable Z := measurable_pi_iff.2 fun n => by
-    exact (measurable_fst.comp (hBm n)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm n))))
-  have hGm : Measurable G := measurable_pi_iff.2 fun n =>
-    measurable_pi_iff.2 fun l =>
-      measurable_snd.comp ((measurable_pi_apply l).comp
-        (measurable_snd.comp (hBm n)))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  have hGm : Measurable G := measurable_poissonBlocks_snd hBm
   have hmeas : Measurable H := measurable_gaussian_gibbs_replica_guard_of_index r₀ Φ
   have hprod := integrable_gaussian_gibbs_replica_guard_prod hζ hζ1
     ν r hBm hB hlaw hμ r₀ Φ M hΦ
@@ -963,15 +956,8 @@ theorem integral_gaussian_gibbs_replica_guard_blocks_eq_zero
       else 0
   have hsplit := indepFun_poissonBlocks_snd_marks ν
     (fun _ => gaussianReal 0 1) r hBm hB hlaw
-  have hZm : Measurable Z := measurable_pi_iff.2 fun n => by
-    exact (measurable_fst.comp (hBm n)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm n))))
-  have hGm : Measurable G := measurable_pi_iff.2 fun n =>
-    measurable_pi_iff.2 fun l =>
-      measurable_snd.comp ((measurable_pi_apply l).comp
-        (measurable_snd.comp (hBm n)))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  have hGm : Measurable G := measurable_poissonBlocks_snd hBm
   have hprod := integrable_gaussian_gibbs_replica_guard_prod hζ hζ1
     ν r hBm hB hlaw hμ r₀ Φ M hΦ
   have hG : P.map G = μ := hsplit.2.1.map_eq
@@ -979,38 +965,11 @@ theorem integral_gaussian_gibbs_replica_guard_blocks_eq_zero
   rw [← hG] at hprod
   change (∫ ω, H (Z ω, G ω) ∂P) = 0
   rw [IndepFun.integral_comp_prod hsplit.1 hZm hGm hprod]
-  have henv := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
-    (fun n => (ν n).prod (gaussianReal 0 1)) r hBm hB hlaw hμ
+  have henv := ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ
   have hcond : ∀ᵐ z ∂P.map Z, ∫ g, H (z, g) ∂(P.map G) = 0 := by
     rw [hG]
-    have hh : ∀ᵐ z ∂P.map Z,
-        (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
-        (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-        (∑' p : ℕ × ℕ,
-          ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞ := by
-      have hset := measurableSet_gaussian_gibbs_environment
-      have henv' := (ae_map_iff hZm.aemeasurable hset).2 (by
-        filter_upwards [henv] with ω ⟨hn, hp, hs⟩
-        refine ⟨hn, (fun p h => hp ⟨p, h⟩), ?_⟩
-        have ht := (summable_subtype_iff_indicator (s :=
-          {p : ℕ × ℕ | p.2 < (Z ω p.1).1})
-          (f := fun p : ℕ × ℕ => (Z ω p.1).2 p.2)).1 hs
-        have ht' : Summable (fun p : ℕ × ℕ =>
-            if p.2 < (Z ω p.1).1 then (Z ω p.1).2 p.2 else 0) := by
-          convert ht using 1
-          funext p
-          by_cases h : p.2 < (Z ω p.1).1 <;> simp [Set.indicator, h]
-        exact ht'.tsum_ofReal_lt_top)
-      filter_upwards [henv'] with z ⟨hn, hp, hs⟩
-      exact ⟨hn.elim fun p => ⟨p.1, p.2⟩, hp, hs⟩
-    filter_upwards [hh] with z ⟨hn, hp, hS⟩
-    have hnonneg (p : ℕ × ℕ) :
-        0 ≤ if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0 := by
-      split_ifs with h
-      · exact (hp p h).le
-      · exact le_refl 0
-    exact integral_gaussian_gibbs_replica_guard_untilted_eq_zero
-      r₀ Φ M hΦ z hn hp (summable_of_tsum_ofReal_lt_top hnonneg hS)
+    filter_upwards [henv] with z ⟨hn, hp, hs⟩
+    exact integral_gaussian_gibbs_replica_guard_untilted_eq_zero r₀ Φ M hΦ z hn hp hs
   rw [integral_congr_ae hcond, integral_zero]
 
 /-- **Lemma 2.3's replica average as a Gibbs series over block indices.** For a counting measure

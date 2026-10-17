@@ -124,9 +124,7 @@ theorem gaussian_ibp_overlap_correction_active
   let w : α → ℝ := fun a => v a / ∑' b, v b
   have hw0 (a : α) : 0 ≤ w a := div_nonneg (hv a).le hV.le
   have hws : Summable w := hs.div_const _
-  have hw : ∑' a, w a = 1 := by
-    change (∑' a, v a / ∑' b, v b) = 1
-    rw [tsum_div_const, div_self hV.ne']
+  have hw : ∑' a, w a = 1 := tsum_div_tsum_eq_one hV
   exact gaussian_ibp_overlap_correction_marginal hw0 hws hw r₀ Φ hΦ t
 
 /-- Transfer any jointly integrable observable from split Poisson blocks to the
@@ -157,15 +155,8 @@ theorem integral_split_poissonBlocks_gaussian
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   have hsplit := indepFun_poissonBlocks_snd_marks ν
     (fun _ => gaussianReal 0 1) r hBm hB hlaw
-  have hZm : Measurable Z := measurable_pi_iff.2 fun n =>
-    (measurable_fst.comp (hBm n)).prodMk
-      (measurable_pi_iff.2 fun l =>
-        measurable_fst.comp ((measurable_pi_apply l).comp
-          (measurable_snd.comp (hBm n))))
-  have hGm : Measurable G := measurable_pi_iff.2 fun n =>
-    measurable_pi_iff.2 fun l =>
-      measurable_snd.comp ((measurable_pi_apply l).comp
-        (measurable_snd.comp (hBm n)))
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  have hGm : Measurable G := measurable_poissonBlocks_snd hBm
   have hG : P.map G = μ := hsplit.2.1.map_eq
   change (∫ ω, H (Z ω, G ω) ∂P) = ∫ zg, H zg ∂(P.map Z).prod μ
   rw [IndepFun.integral_comp_prod hsplit.1 hZm hGm (hG.symm ▸ hH)]

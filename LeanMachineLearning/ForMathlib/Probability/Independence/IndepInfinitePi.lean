@@ -39,6 +39,13 @@ lemma hasLaw_eval_infinitePi {ι : Type*} {X : ι → Type*} {mX : ∀ i, Measur
     HasLaw (Function.eval i) (μ i) (infinitePi μ) :=
   (measurePreserving_eval_infinitePi μ i).hasLaw
 
+/-- The `(i, j)` coordinate of a doubly indexed infinite product has the `(i, j)` factor law. -/
+lemma hasLaw_eval_infinitePi_infinitePi {ι κ : Type*} {α : Type*} [MeasurableSpace α]
+    (μ : ι → κ → Measure α) [∀ i j, IsProbabilityMeasure (μ i j)] (i : ι) (j : κ) :
+    HasLaw (fun f : ι → κ → α => f i j) (μ i j) (infinitePi fun i => infinitePi (μ i)) :=
+  (hasLaw_eval_infinitePi (μ i) j).comp
+    (hasLaw_eval_infinitePi (fun i => infinitePi (μ i)) i)
+
 /-- If a random sequence is i.i.d. `ν` and `ν(A) = 1`, then almost surely every term lies in `A`. -/
 lemma ae_all_mem_of_hasLaw_infinitePi {Ω ι S : Type*} [MeasurableSpace Ω] [MeasurableSpace S]
     [Countable ι] {P : Measure Ω} {ν : Measure S} [IsProbabilityMeasure ν] {X : Ω → ι → S}

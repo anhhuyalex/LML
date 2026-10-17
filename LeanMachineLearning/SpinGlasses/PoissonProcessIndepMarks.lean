@@ -80,6 +80,23 @@ theorem map_poissonBlock_split {S T : Type*} [MeasurableSpace S] [MeasurableSpac
   rfl
 
 
+/-- The counts and first marks of measurable two-mark blocks, as one random element. -/
+theorem measurable_poissonBlocks_counts_fst {Ω S T : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace S] [MeasurableSpace T] {B : ℕ → Ω → ℕ × (ℕ → S × T)}
+    (hBm : ∀ n, Measurable (B n)) :
+    Measurable fun ω n => ((B n ω).1, fun l => ((B n ω).2 l).1) :=
+  measurable_pi_iff.2 fun n => (measurable_fst.comp (hBm n)).prodMk
+    (measurable_pi_iff.2 fun l => measurable_fst.comp
+      ((measurable_pi_apply l).comp (measurable_snd.comp (hBm n))))
+
+/-- The second marks of measurable two-mark blocks, as one random array. -/
+theorem measurable_poissonBlocks_snd {Ω S T : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace S] [MeasurableSpace T] {B : ℕ → Ω → ℕ × (ℕ → S × T)}
+    (hBm : ∀ n, Measurable (B n)) :
+    Measurable fun ω n l => ((B n ω).2 l).2 :=
+  measurable_pi_iff.2 fun n => measurable_pi_iff.2 fun l =>
+    measurable_snd.comp ((measurable_pi_apply l).comp (measurable_snd.comp (hBm n)))
+
 /-- **Independent marks.** If Poisson blocks have product mark law `νₙ ⊗ γₙ`, the second marks
 `g n l` are independent of the counts and first marks, and form an array of independent samples
 from `γₙ`. This is the structure needed to condition on the counts and masses and treat the
