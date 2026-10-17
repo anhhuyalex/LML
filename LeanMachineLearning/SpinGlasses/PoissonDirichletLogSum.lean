@@ -487,7 +487,7 @@ theorem integral_log_marked_sum_mul_eq
 /-- **Local finiteness of the marked process.** For a ζ-Poisson process with marks `ρ`, almost
 surely only finitely many points have first coordinate above any level `s > 0`. -/
 theorem ae_poissonCountingMeasure_Ioi_prod_univ_lt_top {Ω : Type*} [MeasurableSpace Ω]
-    {P : Measure Ω} [IsProbabilityMeasure P] {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure S)
+    {P : Measure Ω} {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure S)
     [IsProbabilityMeasure ρ] (ν : ℕ → Measure (ℝ × S)) [∀ n, IsProbabilityMeasure (ν n)]
     (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → ℝ × S)} (hBm : ∀ n, Measurable (B n))
     (hB : iIndepFun B P)
