@@ -758,15 +758,27 @@ product. The replicas share the same $f$ (hence the same disorder), and they are
 
 \begin{remark}[Replicas: intuition, role in the formalization, and the physics]\label{rem:sg:replicas}
 \emph{Intuition.} The disorder $y$ (the random couplings) is drawn once and then frozen; this is called \emph{quenched}
-disorder. For the frozen $y$, the system at equilibrium is a random configuration with law $\langle\cdot\rangle$, and
-$\langle g\rangle$ is the thermal average of an observable $g$. A \emph{replica} is an independent copy of this thermal
+disorder. For the frozen disorder $y$, the microstate of the system at equilibrium (i.e. the configuration $\sigma$) is a random configuration with law $\langle\cdot\rangle$, and
+$\langle g\rangle$ is the thermal average of an observable $g$. 
+
+A \emph{replica} is an independent copy of this thermal
 configuration in the \emph{same} frozen environment. Two replicas $\sigma^1,\sigma^2\sim\langle\cdot\rangle^{\otimes2}$ are
-two independent samples of the equilibrium state of one and the same sample of the disorder. Comparing them, for instance through
+two independent samples of the equilibrium state of one and the same sample of the disorder. 
+
+Comparing them, for instance through
 the overlap $R(\sigma^1,\sigma^2)$ of Section~\ref{sec:sg:basic}, measures how concentrated the Gibbs measure is: if the
-overlap is typically close to a single value the measure is spread over states that look alike, and if the overlap takes
+overlap is typically close to a single value the measure is spread over states that look alike. On the other hand, if the overlap takes
 several values the Gibbs measure is split among several clusters of configurations. A single thermal average $\langle g\rangle$
-cannot see this, since it only sees the average of one configuration; products of averages such as
-$\langle g_1\rangle\langle g_2\rangle=\langle g_1(\sigma^1)g_2(\sigma^2)\rangle$ do, and this is exactly a two-replica average (Definition~\ref{def:sg:replica-average}).
+cannot see this, since it only sees the average of one configuration: it is blind to how the measure is spread out. What \emph{does} see it is a \emph{product of two averages}
+$\langle g_1\rangle\langle g_2\rangle$, and the point is that such a product is exactly a two-replica average. Indeed, writing both averages as sums over the Gibbs weights $w$,
+\[\langle g_1\rangle\,\langle g_2\rangle=\Big(\sum_{a\in\alpha}w(a)g_1(a)\Big)\Big(\sum_{b\in\alpha}w(b)g_2(b)\Big)=\sum_{a,b\in\alpha}w(a)\,w(b)\,g_1(a)\,g_2(b)=\big\langle g_1(\sigma^1)\,g_2(\sigma^2)\big\rangle,\]
+because the last sum is the average of the function $(a,b)\mapsto g_1(a)g_2(b)$ against two independent draws $\sigma^1,\sigma^2$ from the weights $w$ (Definition~\ref{def:sg:replica-average}). So a quantity built from products of thermal
+averages is the same thing as an observable that compares two independent samples of the equilibrium state.
+
+\emph{Two examples.} (a) Take $g_1=g_2=g$. Then $\langle g\rangle^2=\langle g(\sigma^1)g(\sigma^2)\rangle$ while $\langle g^2\rangle=\langle g(\sigma^1)^2\rangle$, so the \emph{thermal variance}
+$\langle g^2\rangle-\langle g\rangle^2=\tfrac12\langle(g(\sigma^1)-g(\sigma^2))^2\rangle$ is a two-replica quantity: it asks how much two independent samples differ in the observable $g$, which a single average cannot express.
+(b) For spins, the mean overlap of two replicas is $\langle R(\sigma^1,\sigma^2)\rangle=N^{-1}\sum_i\langle\sigma_i\rangle\langle\sigma_i\rangle=N^{-1}\sum_i\langle\sigma_i\rangle^2$, the squared length of the vector of magnetizations $m_i=\langle\sigma_i\rangle$ divided by $N$.
+It is $0$ if every spin averages to zero (a measure symmetric under $\sigma\mapsto-\sigma$ looks like this), even though each sample $\sigma^1$ may be a very ordered configuration, and it is close to $1$ if the measure is concentrated near a single configuration (up to the global sign).
 Because the replicas share $y$, they are dependent after averaging over $y$: $\mathbb E\langle\Phi(\sigma^1,\sigma^2)\rangle\ne
 \mathbb E\langle\Phi_1\rangle\,\mathbb E\langle\Phi_2\rangle$ in general, and this dependence is the information being studied.
 
@@ -900,6 +912,23 @@ $\sum_r C(\sigma^{r_0},\sigma^r)-|R|\sum_bC(\sigma^{r_0},b)w(b)$ inside the Gibb
 the average of $C(\sigma^{r_0},\cdot)$ against the Gibbs measure.
 \end{proof}
 
+\begin{remark}[What Eq.~(1.29) says, written out]\label{rem:sg:replica-explicit}
+\emph{Notation.} As in Remark~\ref{rem:sg:lemma11-explicit}, $w(a)=e^{y(a)+h(a)}/\sum_be^{y(b)+h(b)}$ are the (random) Gibbs weights, $n=|R|$, and the replica averages are sums over tuples of configurations,
+\[\langle G\rangle_R=\sum_{\sigma\in\alpha^R}\Big(\prod_{r\in R}w(\sigma^r)\Big)\,G(\sigma),\qquad
+\langle G\rangle_{R^+}=\sum_{\sigma\in\alpha^R}\ \sum_{\tau\in\alpha}\Big(\prod_{r\in R}w(\sigma^r)\Big)\,w(\tau)\,G(\sigma,\tau),\]
+where in the second sum $\tau=\sigma^{n+1}$ is the extra replica. In other words $\langle\cdot\rangle_R$ averages over $n$ independent samples from the Gibbs measure and $\langle\cdot\rangle_{R^+}$ over $n+1$ independent samples.
+
+\emph{The identity.} Eq.~(1.29) therefore reads, in full,
+\[\mathbb E\Big[\sum_{\sigma\in\alpha^R}\Big(\prod_{r\in R}w(\sigma^r)\Big)\Phi(\sigma)\,x(\sigma^{r_0})\Big]
+=\mathbb E\Big[\sum_{\sigma\in\alpha^R}\sum_{\tau\in\alpha}\Big(\prod_{r\in R}w(\sigma^r)\Big)w(\tau)\,\Phi(\sigma)\Big(\sum_{r\in R}C(\sigma^{r_0},\sigma^r)-n\,C(\sigma^{r_0},\tau)\Big)\Big].\]
+The function $\Phi$ on the right does not depend on the extra replica $\tau$, so $\tau$ can be summed out of the term containing $-n\,C(\sigma^{r_0},\tau)$:
+$\sum_\tau w(\tau)C(\sigma^{r_0},\tau)=\langle C(\sigma^{r_0},\cdot)\rangle$. Hence the right-hand side equals
+\[\mathbb E\Big[\Big\langle\Phi(\sigma)\sum_{r\in R}C(\sigma^{r_0},\sigma^r)\Big\rangle_R\Big]-n\,\mathbb E\Big[\Big\langle\Phi(\sigma)\ \sum_{\tau}w(\tau)C(\sigma^{r_0},\tau)\Big\rangle_R\Big],\]
+which is the form with the average over only $n$ replicas (the first of the two forms in Lean). Each of the $n$ replicas $r\in R$ contributes the covariance with the distinguished replica $r_0$, and the extra, independent replica is subtracted $n$ times.
+
+\emph{Special case.} For $R=\{r_0\}$ (one replica, $n=1$) and $\Phi\equiv1$ the display is $\mathbb E\sum_aw(a)x(a)=\mathbb E\sum_{a,\tau}w(a)w(\tau)\big(C(a,a)-C(a,\tau)\big)$, which is exactly Eq.~(1.28) of Remark~\ref{rem:sg:lemma11-explicit}.
+\end{remark}
+
 \begin{theorem}[Gaussian integration by parts for the Gibbs measure, Panchenko Lemma~1.1, Eq.~(1.28)]\label{thm:sg:lemma11}
   \lean{SpinGlasses.integral_gibbs_average_gaussian}
   \leanok
@@ -912,6 +941,25 @@ is the product of two replicas.
   \leanok
 This is Theorem~\ref{thm:sg:replica} with one replica ($R=\mathrm{Unit}$) and $\Phi\equiv1$.
 \end{proof}
+
+\begin{remark}[What Eq.~(1.28) says, written out]\label{rem:sg:lemma11-explicit}
+\emph{Notation.} For the random energy $y+h$ put $w(a)=e^{y(a)+h(a)}/\sum_{b\in\alpha}e^{y(b)+h(b)}$, the Gibbs weight of the configuration $a\in\alpha$. It is random, because it depends on the field $y$.
+For a function $g:\alpha\to\mathbb R$ the \emph{Gibbs average} is
+\[\langle g\rangle=\int g\,d\langle\cdot\rangle=\sum_{a\in\alpha}w(a)\,g(a),\]
+a random variable (a function of $y$). For a function $g:\alpha\times\alpha\to\mathbb R$ of \emph{two} configurations, $\langle g\rangle$ means the average of $g(\sigma^1,\sigma^2)$ over two replicas $\sigma^1,\sigma^2$ drawn
+\emph{independently} from the same weights, that is, with respect to the product measure $\langle\cdot\rangle^{\otimes2}$:
+\[\langle g(\sigma^1,\sigma^2)\rangle=\sum_{a,b\in\alpha}w(a)\,w(b)\,g(a,b).\]
+(The weights are the same $w$ in both factors, and $\sigma^1=\sigma^2$ with probability $\sum_aw(a)^2>0$, so the diagonal $a=b$ contributes.) The expectation $\mathbb E$ is over the Gaussian field $(x,y)$, that is, over the randomness of the weights $w$ and of $x$.
+
+\emph{The identity.} Eq.~(1.28) is the equality of two numbers,
+\[\mathbb E\Big[\sum_{a\in\alpha}w(a)\,x(a)\Big]\;=\;\mathbb E\Big[\sum_{a,b\in\alpha}w(a)\,w(b)\,\big(C(a,a)-C(a,b)\big)\Big]
+=\mathbb E\Big[\sum_aw(a)\,C(a,a)\Big]-\mathbb E\Big[\sum_{a,b}w(a)\,w(b)\,C(a,b)\Big],\]
+where $C(a,b)=\mathbb E[x(a)y(b)]$ is a deterministic function. So: the expected Gibbs average of the field $x$ equals the expected Gibbs average of the \emph{self}-covariance $C(\sigma^1,\sigma^1)$, minus the expected two-replica average of the \emph{cross}-covariance
+$C(\sigma^1,\sigma^2)$. In the common case $x=y$ and $C(a,a)=\mathrm{const}$ (for the SK model $C(\sigma,\tau)=N\,R(\sigma,\tau)^2$ with $C(\sigma,\sigma)=N$) the right side is $N\big(1-\mathbb E\langle R(\sigma^1,\sigma^2)^2\rangle\big)$: the more the two replicas overlap, the smaller the expected energy.
+
+\emph{Heuristic reason.} Stein's identity gives $\mathbb E[x(a)F(y)]=\sum_bC(a,b)\,\mathbb E[\partial_{y(b)}F]$. Applied to $F=w(a)$ the derivative $\partial_{y(b)}w(a)=w(a)\big(\mathbf 1[a=b]-w(b)\big)$ produces the two terms: $\mathbf 1[a=b]$ gives the diagonal term
+$\sum_aw(a)C(a,a)$, and $-w(b)$ gives the term with two independent replicas.
+\end{remark}
 
 \section{A countable configuration space}\label{sec:sg:countable}
 
@@ -1194,15 +1242,19 @@ $\frac{d}{ds}\mathbb E[G(s,X)]=\mathbb E[\partial_sG(s,X)]$.
 $|A(y)|\le c_1+c_2\|y\|_1$ and $|\partial_lA|\le c_3$, then $W_ie^{A(X)}$ and $e^{A(X)}$ are integrable and
 $\mathbb E[W_ie^{A(X)}]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[e^{A(X)}\partial_lA(X)]$. 
 
-(iv) If $g$ is a Gaussian vector under $P$, then
-$z\mapsto(g(z_1),g(z_2))$ is a Gaussian vector under $P\otimes P$.
+(iv) Let $(\Omega,P)$ be a probability (more generally $s$-finite) measure space and $g:\Omega\to E$ a measurable map into a finite-dimensional real vector space $E$ which is a Gaussian vector
+under $P$, i.e.\ its image measure $P\circ g^{-1}$ on $E$ is a Gaussian measure. Here $P$ is the law of the randomness in which $g$ is defined, and $P\otimes P$ is the product measure on the product space
+$\Omega\times\Omega$: a point $z=(z_1,z_2)$ of $\Omega\times\Omega$ consists of two independent samples $z_1,z_2$ of the randomness, each with law $P$. Then the map
+$z\mapsto(g(z_1),g(z_2))\in E\times E$ is a Gaussian vector under $P\otimes P$: two \emph{independent copies} of $g$, stacked into one vector, form a Gaussian vector. (This is how the two-copy argument of this section
+obtains joint Gaussianity of the field and an independent copy of it. The Lean statement is more general: it takes two different measure spaces $(\Omega_1,\mu)$, $(\Omega_2,\nu)$ and two different Gaussian vectors $f,g$,
+and concludes that $z\mapsto(f(z_1),g(z_2))$ is Gaussian under $\mu\otimes\nu$.)
 \end{lemma}
 
 \begin{proof}
   \leanok
 Write $X\overset d=A\xi$ with $\xi$ i.i.d.\ standard Gaussians (Lemma~\ref{thm:sg:steinvec}'s representation); $e^{c\|A\xi\|_1}$ is integrable, which
 gives (i), and dominated differentiation under the integral gives (ii). Part (iii) is Stein's identity for $F=\exp\circ A$, whose value and partial
-derivatives have exponential growth. Part (iv) is the fact that a product of Gaussian measures is Gaussian.
+derivatives have exponential growth. Part (iv): the image of $P\otimes P$ under $z\mapsto(g(z_1),g(z_2))$ is the product of the two image measures $(P\circ g^{-1})\otimes(P\circ g^{-1})$, and a product of Gaussian measures is Gaussian.
 \end{proof}
 
 \begin{theorem}[Exponential moments of the free-energy difference of two copies]\label{thm:sg:expmoment}
@@ -3085,7 +3137,7 @@ This section describes the part of this construction that is formalized, in the 
 \texttt{ForMathlib/Analysis/RpowTsum.lean} (subadditivity of $x^p$ for countable sums),
 \texttt{ForMathlib/MeasureTheory/Measure/NthLargestAtom.lean} (the decreasing enumeration of the atoms of a measure on $\mathbb R$) and
 \texttt{ForMathlib/MeasureTheory/Measure/RestrictPartition.lean} (restriction and decomposition of a measure along a partition).
-\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized (Milestone 21A, \texttt{PoissonDirichlet.lean}). So are the homogeneity of $\mu_\zeta$, Theorem~2.6 (marking and rescaling, both as a statement about counts and as an equality in law of random measures), the integrability of $\log\sum_{x\in\Pi}x$, Lemma~2.2 (the log-sum identity) and Equation~(2.22) (independent extra factors), in \texttt{SpinGlasses/PoissonDirichletTransform.lean} and \texttt{SpinGlasses/PoissonDirichletLogSum.lean} (Milestone 21B; see Subsections~\ref{sec:sg:pd-marking} and~\ref{sec:sg:pd-logsum}). The Bolthausen--Sznitman invariance, the Ghirlanda--Guerra identities and the uniqueness Theorem~2.8 are not formalized yet.
+\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized (Milestone 21A, \texttt{PoissonDirichlet.lean}). So are the homogeneity of $\mu_\zeta$, Theorem~2.6 (marking and rescaling, both as a statement about counts and as an equality in law of random measures), the integrability of $\log\sum_{x\in\Pi}x$, Lemma~2.2 (the log-sum identity) and Equation~(2.22) (independent extra factors), in \texttt{SpinGlasses/PoissonDirichletTransform.lean} and \texttt{SpinGlasses/PoissonDirichletLogSum.lean} (Milestone 21B; see Subsections~\ref{sec:sg:pd-marking} and~\ref{sec:sg:pd-logsum}). Gaussian invariance and the Ghirlanda--Guerra identities for active block-index Gibbs weights are formalized (Theorem~\ref{thm:sg:pd-gg-blocks}); the ranked-weight form, the full marked-rank Bolthausen--Sznitman statement, and uniqueness Theorem~2.8 are not yet formalized.
 
 \medskip\noindent\textbf{How the process is represented.} As in Section~\ref{sec:sg:poisson}, we introduce no new notion of ``Poisson process''. A Poisson process with intensity $\mu_\zeta$ is a random counting measure $M=\sum_n\sum_{l<N_n}\delta_{X_{nl}}$ built from independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ with $\sum_nr_n\nu_n=\mu_\zeta$. We write the sum of all points as the integral $\int_{(0,\infty)}x\,dM(x)$ with respect to $M$, so that ``$\sum_{x\in\Pi}x$'' is, in Lean, a lower Lebesgue integral \texttt{lintegral} of \texttt{ENNReal.ofReal} over \texttt{Ioi 0} with respect to \texttt{M $\omega$}, a value in $[0,\infty]$. We keep all sums in $[0,\infty]$ and only convert to real numbers at the end, because in Lean the real number ``$\infty$'' is $0$: a real-valued statement such as $\mathbb E(\sum x)^a<\infty$ would be vacuously true on an event where the sum is infinite.
 
@@ -3400,6 +3452,20 @@ The expectations are Bochner integrals (so they are $0$ in Lean if the integrand
 The transformed process of Lemma~2.3 is realized on the \emph{same} probability space by applying the map $(u,g)\mapsto(u,(e^{t(g-t\zeta/2)},g-t\zeta))$ to every atom; its intensity is the image of $\mu_\zeta\otimes N(0,1)$ under this map, so the hypotheses of Theorem~\ref{thm:sg:pd-lemma23} hold for the pair (image blocks, original blocks). The two order-free replica averages have the same law, hence the same expectation. Almost surely the restricted counting measures are $\sigma$-finite (for the transformed one, by transporting the finiteness of positive shells through Theorem~\ref{thm:sg:pd-lemma23}'s equality of laws), the masses are positive (the intensity $\mu_\zeta$ does not charge $(-\infty,0]$, and blocks of rate zero are empty), and the atoms are distinct (atomless Gaussian marks). Theorem~\ref{thm:sg:pd-gibbs-bridge}(c) then rewrites both averages as Gibbs series. For the transformed process the masses are $u_pe^{t(g_p-t\zeta/2)}=e^{-t^2\zeta/2}\,u_pe^{tg_p}$, and the constant cancels in the normalization.
 \end{proof}
 
+\begin{theorem}[Theorem~2.7 and Equation~(2.34), block-index form]\label{thm:sg:pd-gg-blocks}
+  \lean{SpinGlasses.ghirlanda_guerra_poissonDirichlet_blocks_parameter,
+        SpinGlasses.poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta,
+        SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_split,
+        SpinGlasses.integral_poissonDirichlet_gaussian_fresh_overlap_tilt_eq,
+        SpinGlasses.ae_poissonDirichlet_gaussian_one_replica_average}
+  \leanok
+For $0<\zeta<1$, let $B_m=(N_m,((u_{ml},g_{ml}))_l)$ be independent measurable blocks on a probability space with laws $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$, with every $\nu_m$ a probability measure on real masses and $\sum_mr_m(\nu_m\otimes N(0,1))=\mu_\zeta\otimes N(0,1)$. Let $A=\{(m,l):l<N_m\}$ and let $w_a=u_a/\sum_{b\in A}u_b$. For every $n\geq1$, $r_0\in\mathrm{Fin}\,n$, and measurable real function $f$ on $n\times n$ matrices, write $\langle f\rangle=\sum_{\sigma\in A^n}(\prod_iw_{\sigma_i})f((\mathbf1\{\sigma_i=\sigma_j\})_{ij})$. Then
+\[
+n\,\mathbb E\langle fR_{r_0,n+1}\rangle=(1-\zeta)\mathbb E\langle f\rangle+\sum_{j\ne r_0}\mathbb E\langle fR_{r_0j}\rangle.
+\]
+The fresh replica uses $\mathrm{none}\in\mathrm{Option}(\mathrm{Fin}\,n)$. In particular, $\mathbb E\langle R_{12}\rangle=1-\zeta$ for $n=1$ and $f=1$. The identity is proved for the active block indices, not yet for the decreasingly ranked $\mathrm{PD}(\zeta)$ weights.
+\end{theorem}
+
 \begin{lemma}[Gaussian marks are independent of the counts and masses; fixed-index Gaussian inputs for integration by parts]\label{lem:sg:pd-gibbs-inputs}
   \lean{SpinGlasses.indepFun_poissonBlocks_snd_marks,
         SpinGlasses.map_poissonBlock_split,
@@ -3591,7 +3657,7 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   assumption on $f$ is needed: its values on the finite set of overlap
   matrices are bounded. The statement is on the product law, not yet on
   the original block space or on ranked Poisson--Dirichlet weights;
-  Theorem~2.7 and Equation~(2.34) are still open.
+  Their block-index forms are proved in Theorem~\ref{thm:sg:pd-gg-blocks}.
 \end{lemma}
 
 \begin{lemma}[Gaussian IBP and overlap marginalization on the original Poisson blocks]\label{lem:sg:pd-ibp-blocks}
@@ -3646,8 +3712,8 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   has no Poisson or Gaussian hypotheses. The dependent-index variant also
   permits the atom type and observable to depend on the environment; it
   does not itself establish almost-sure summability or integrability.
-  Theorem~2.7 and Equation~(2.34) are not yet asserted: the centered
-  identity must still be applied and combined with tilt invariance.
+  The centered identity is applied and combined with tilt invariance in
+  Theorem~\ref{thm:sg:pd-gg-blocks} for block-index weights.
 \end{lemma}
 
 \begin{lemma}[The diagonal term in the countable Gaussian-IBP overlap correction]\label{lem:sg:pd-ibp-diagonal}
@@ -3857,8 +3923,13 @@ These were proved while building the statements above; each is a short consequen
 \item \emph{The reference process in Lemma~2.2 and Equation~(2.22).} The book compares with the ``unmarked'' sum $\sum_nu_n$. We compare with the same functional of an arbitrary block construction of a Poisson process with intensity $\mu_\zeta$; the proof passes through the size-biased process of Theorem~\ref{thm:sg:pd-marking} and returns to the given construction by the Equivalence Theorem~\ref{thm:sg:poisson-equivalence}. In Equation~(2.22) both sums are taken over the \emph{same} marked process (the marks $x,z$ attached to a point are the coordinates of one mark $t=(x,z)$), as in the book. The marks $Y$ in Theorem~\ref{thm:sg:pd-marking} are a free extra coordinate (needed later for the Gaussian marking); they play no role in Lemma~2.2. The marks in Lemma~2.2 are an arbitrary mark space $T$ with a measurable positive function $X$; the book's $(X_n)$ i.i.d.\ is the special case $T=\mathbb R$, $X=\mathrm{id}$.
 \item \emph{A cruder lower tail.} The exact law of the largest point is $\mathbb P(u_0\le s)=\exp(-s^{-\zeta})$. The integrability of $\log\sum u$ only needs $\mathbb P(\sum u<s)\le s^{\zeta}$, which we prove directly from the number of points above $s$, avoiding the ordering of the points.
 \item \emph{Moment hypotheses.} The marks must satisfy $X>0$ almost surely and $0<\mathbb EX^\zeta<\infty$; the unnormalized intensity statement (Theorem~\ref{thm:sg:pd-marking}(a) before dividing by $m$) holds without any moment assumption.
-\item \emph{Unit-tilt marked expectation and replica reindexing (verified).} For split Poisson blocks with $0<\zeta<1$, independent product block laws $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$, intensity $\mu_\zeta\otimes N(0,1)$, any $n\geq1$, distinguished $r_0\in\mathrm{Fin}\,n$, and measurable $f$ on real $n\times n$ matrices, \lean{SpinGlasses.integral_poissonDirichlet_gaussian_unit_tilt_mark} proves $\mathbb E\langle f(R)g_{r_0}\rangle_1=\zeta\,\mathbb E\langle f(R)\rangle_0$ for Gibbs weights indexed by active Poisson blocks. The prerequisites \lean{SpinGlasses.ae_poissonDirichlet_gaussian_tilt_centering_series} and \lean{SpinGlasses.integral_poissonDirichlet_gaussian_tilt_mark_centering} establish convergence of the centered and plain replica series and the centering identity at arbitrary real tilt. Independently, \lean{SpinGlasses.tsum_option_fin_replica_eq} transports weighted replica series on $\mathrm{Option}(\mathrm{Fin}\,n)$ to $\mathrm{Fin}(n+1)$, with the extra replica at the last coordinate. These are not yet the Ghirlanda--Guerra identities: the overlap correction, expected-value linearity, and ranked-weight correspondence remain to be assembled.
-\item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). Lemma~2.3 is proved in an order-free form (Theorem~\ref{thm:sg:pd-lemma23}): the replica average of the book is written as an integral against the product $M^{\otimes n}$ of the random counting measure, so no marks have to be attached to ranks. We do not formalize the marks paired with ranks (the marked-sequence form (2.24) of the Bolthausen--Sznitman invariance); the passage from the order-free form to sums over the actual block-indexed atoms is formalized (Theorem~\ref{thm:sg:pd-blockindex}), and the replica averages of both processes are written as real-valued Gibbs series over block indices on one probability space (Theorems~\ref{thm:sg:pd-gibbs-bridge} and~\ref{thm:sg:pd-gibbs}), with the Gaussian marks shown independent of the counts and masses (Lemma~\ref{lem:sg:pd-gibbs-inputs}); and Gaussian integration by parts has been carried out conditionally on the counts and masses and integrated back (Lemmas~\ref{lem:sg:pd-split-env}--\ref{lem:sg:pd-gaussian-array}, \ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}); but the final combination with tilt invariance at $t=1$ is not done, the passage to ranked weights is not done, and neither are the Ghirlanda--Guerra identities (Theorem~2.7), Talagrand's identities (2.39), and the uniqueness Theorem~2.8 formalized yet. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
+\item \emph{Unit-tilt marked expectation and replica reindexing (verified).} For split Poisson blocks with $0<\zeta<1$, independent product block laws $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$, intensity $\mu_\zeta\otimes N(0,1)$, any $n\geq1$, distinguished $r_0\in\mathrm{Fin}\,n$, and measurable $f$ on real $n\times n$ matrices, \lean{SpinGlasses.integral_poissonDirichlet_gaussian_unit_tilt_mark} proves $\mathbb E\langle f(R)g_{r_0}\rangle_1=\zeta\,\mathbb E\langle f(R)\rangle_0$ for Gibbs weights indexed by active Poisson blocks. The prerequisites \lean{SpinGlasses.ae_poissonDirichlet_gaussian_tilt_centering_series} and \lean{SpinGlasses.integral_poissonDirichlet_gaussian_tilt_mark_centering} establish convergence of the centered and plain replica series and the centering identity at arbitrary real tilt. Independently, \lean{SpinGlasses.tsum_option_fin_replica_eq} transports weighted replica series on $\mathrm{Option}(\mathrm{Fin}\,n)$ to $\mathrm{Fin}(n+1)$, with the extra replica at the last coordinate. The subsequent block-index assembly proves the parameter form of the Ghirlanda--Guerra identities and the two-replica expectation; the ranked-weight correspondence remains to be assembled.
+\item \emph{Block-index Ghirlanda--Guerra identities (verified).} For $0<\zeta<1$, independent blocks with laws $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$, $\nu_m$ probability measures on real masses, and total intensity $\mu_\zeta\otimes N(0,1)$, let $u_a>0$ denote the masses at active indices and $w_a=u_a/\sum_bu_b$. For every $n\geq1$, $r_0\in\mathrm{Fin}\,n$, and measurable $f$ on real overlap matrices, \lean{SpinGlasses.ghirlanda_guerra_poissonDirichlet_blocks_parameter} gives
+\[
+n\,\mathbb E\langle f(R)R_{r_0,n+1}\rangle=(1-\zeta)\mathbb E\langle f(R)\rangle+\sum_{j\ne r_0}\mathbb E\langle f(R)R_{r_0,j}\rangle,
+\]
+where each bracket is the series over active block-index replicas weighted by products of $w_a$, $R_{ij}=\mathbf 1\{a_i=a_j\}$, and the fresh replica is indexed by $\mathrm{none}\in\mathrm{Option}(\mathrm{Fin}\,n)$. There is no global boundedness assumption on $f$ because the matrix inputs are finite-valued. The proof uses \lean{SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_split}, the fresh-replica transfer \lean{SpinGlasses.integral_poissonDirichlet_gaussian_fresh_overlap_tilt_eq}, and the expected marked identity. With $n=1$ and $f=1$, \lean{SpinGlasses.ae_poissonDirichlet_gaussian_one_replica_average} and \lean{SpinGlasses.poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta} yield $\mathbb E\langle R_{12}\rangle=1-\zeta$ (Equation~(2.34)) for block-index weights. Reindexing these weights by decreasing atom rank remains open; thus this is not yet Theorem~2.7 stated for the ranked $\mathrm{PD}(\zeta)$ sequence.
+\item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). Lemma~2.3 is proved in an order-free form (Theorem~\ref{thm:sg:pd-lemma23}): the replica average of the book is written as an integral against the product $M^{\otimes n}$ of the random counting measure, so no marks have to be attached to ranks. We do not formalize the marks paired with ranks (the marked-sequence form (2.24) of the Bolthausen--Sznitman invariance); the passage from the order-free form to sums over the actual block-indexed atoms is formalized (Theorem~\ref{thm:sg:pd-blockindex}), and the replica averages of both processes are written as real-valued Gibbs series over block indices on one probability space (Theorems~\ref{thm:sg:pd-gibbs-bridge} and~\ref{thm:sg:pd-gibbs}), with the Gaussian marks shown independent of the counts and masses (Lemma~\ref{lem:sg:pd-gibbs-inputs}); and Gaussian integration by parts has been carried out conditionally on the counts and masses and integrated back (Lemmas~\ref{lem:sg:pd-split-env}--\ref{lem:sg:pd-gaussian-array}, \ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}); the final combination with tilt invariance at $t=1$ is proved for block-index weights (Theorem~\ref{thm:sg:pd-gg-blocks}), but the passage to ranked weights, Talagrand's identities (2.39), and uniqueness Theorem~2.8 are not formalized yet. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
 \end{enumerate}
 \end{remark}
 
@@ -3879,8 +3950,8 @@ The book's proof has four steps, which we list together with their status. \emph
 \begin{enumerate}
 \item \textbf{Poisson processes without ranking (Section~2.1; done).} A Poisson process is represented by independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ and its counting measure $\sum_n\sum_{l<N_n}\delta_{X_{nl}}$. Existence, the counts on disjoint sets, the mapping, marking and superposition theorems, and the equivalence with the usual finite-dimensional definition are formalized (Section~\ref{sec:sg:poisson}). The advantage of blocks is that every point has a \emph{name} $(n,l)$ that does not depend on an ordering of the points; ordering the points decreasingly is never needed until the very last step (item~4).
 \item \textbf{The process $\mathrm{PD}(\zeta)$ and the invariance under Gaussian tilting (Section~2.2; done in an order-free form).} The intensity $\mu_\zeta$, the finiteness and integrability of the total mass (Lemma~2.1), the log-sum identity (Lemma~2.2), the homogeneity and marking theorem (Theorem~2.6), and the key invariance statement of Lemma~2.3 are formalized (Section~\ref{sec:sg:pd}). Lemma~2.3 compares the process of the points $(u\,e^{t(g-t\zeta/2)},g-t\zeta)$ with the process of the points $(u,g)$, where $g$ is a standard Gaussian mark; the book states it for the \emph{ranked} atoms with their marks. We state it for \emph{replica integrals} against the counting measure, which does not mention ranks (Theorem~\ref{thm:sg:pd-lemma23}). Proving that the replica average is a measurable function of the random measure is the technical heart (Mathlib's measurability of iterated integrals needs an s-finite kernel, and the identity map on measures is not one; we use the locally finite kernel $M\mapsto M\!\restriction\!\{x>0\}$ instead).
-\item \textbf{From the order-free form to Gibbs series, and conditioning on the masses (partly done).} Gaussian integration by parts (Section~\ref{sec:sg:countable}, Theorem~\ref{thm:sg:lemma12}) is a statement about a Gibbs measure on a \emph{fixed} countable set with \emph{deterministic} weights and a Gaussian field. In the Poisson--Dirichlet process the set of atoms $\{(n,l):l<N_n\}$ and the masses are random, and only the marks $g$ are Gaussian. We therefore (a) rewrote the order-free replica integrals as series over tuples of block indices (Theorems~\ref{thm:sg:pd-blockindex} and~\ref{thm:sg:pd-gibbs-bridge}), where overlaps become index coincidences; (b) proved Lemma~2.3 in this form on a single probability space, with the Gibbs weights $u_pe^{tg_p}/\sum_qu_qe^{tg_q}$ (Theorem~\ref{thm:sg:pd-gibbs}); (c) proved that the Gaussian marks are independent of the counts and masses, and that a fixed-index Gaussian field has the covariance structure and the boundedness needed to apply Gaussian integration by parts (Lemma~\ref{lem:sg:pd-gibbs-inputs}). (d) carried out the conditioning: the split-block construction and the almost sure environment (Lemma~\ref{lem:sg:pd-split-env}), the guarded fixed-index form of the series (Lemma~\ref{lem:sg:pd-guarded}), Fubini for independent variables (Lemma~\ref{lem:sg:pd-fubini}), integrability and the value $0$ of the untilted average at $t=0$ (Lemma~\ref{lem:sg:pd-untilted}), tilt invariance in law and integrability of the tilted centered mark (Lemma~\ref{lem:sg:pd-tilt-law}), the fixed-environment and product-law Gaussian integration by parts with its bounds (Lemmas~\ref{lem:sg:pd-conditional-ibp},~\ref{lem:sg:pd-ibp-product},~\ref{lem:sg:pd-product-ibp-summary},~\ref{lem:sg:pd-gaussian-array}), and the resulting identity on the original blocks $\mathbb E\langle fg_{r_0}\rangle_t=\mathbb E[t(\langle f\sum_jR_{r_0j}\rangle_t-n\langle fR_{r_0,n+1}\rangle_t)]$ (Lemmas~\ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}). \emph{Not done:} combining this identity at $t=1$ with the tilt invariance of Theorem~\ref{thm:sg:pd-gibbs} and the centering identity to conclude $\mathbb E\langle fg_{r_0}\rangle_1=\zeta\,\mathbb E\langle f\rangle_0$ and the Ghirlanda--Guerra relation itself.
-\item \textbf{The Ghirlanda--Guerra identities (Theorem~2.7), the ranked weights and uniqueness (Theorem~2.8; not done).} Once the final combination in item~3 is done, Theorem~2.7 for the block weights $u_p/\sum_qu_q$ follows from an elementary computation (see below). Passing to the ranked weights $v_1\ge v_2\ge\cdots$ needs a reindexing of the block-indexed atoms by rank, which is not formalized (only the equality in law of the ranked weights for the two processes is, Theorem~\ref{thm:sg:pd-gaussian-weights}). Talagrand's identities (2.39), the compact space of weights, and the uniqueness Theorem~2.8 (via the Stone--Weierstrass argument on the algebra generated by $\sum_jv_j^p$) are not formalized.
+\item \textbf{From the order-free form to Gibbs series, and conditioning on the masses (done for block indices).} Gaussian integration by parts (Section~\ref{sec:sg:countable}, Theorem~\ref{thm:sg:lemma12}) is a statement about a Gibbs measure on a \emph{fixed} countable set with \emph{deterministic} weights and a Gaussian field. In the Poisson--Dirichlet process the set of atoms $\{(n,l):l<N_n\}$ and the masses are random, and only the marks $g$ are Gaussian. We therefore (a) rewrote the order-free replica integrals as series over tuples of block indices (Theorems~\ref{thm:sg:pd-blockindex} and~\ref{thm:sg:pd-gibbs-bridge}), where overlaps become index coincidences; (b) proved Lemma~2.3 in this form on a single probability space, with the Gibbs weights $u_pe^{tg_p}/\sum_qu_qe^{tg_q}$ (Theorem~\ref{thm:sg:pd-gibbs}); (c) proved that the Gaussian marks are independent of the counts and masses, and that a fixed-index Gaussian field has the covariance structure and the boundedness needed to apply Gaussian integration by parts (Lemma~\ref{lem:sg:pd-gibbs-inputs}). (d) carried out the conditioning: the split-block construction and the almost sure environment (Lemma~\ref{lem:sg:pd-split-env}), the guarded fixed-index form of the series (Lemma~\ref{lem:sg:pd-guarded}), Fubini for independent variables (Lemma~\ref{lem:sg:pd-fubini}), integrability and the value $0$ of the untilted average at $t=0$ (Lemma~\ref{lem:sg:pd-untilted}), tilt invariance in law and integrability of the tilted centered mark (Lemma~\ref{lem:sg:pd-tilt-law}), the fixed-environment and product-law Gaussian integration by parts with its bounds (Lemmas~\ref{lem:sg:pd-conditional-ibp},~\ref{lem:sg:pd-ibp-product},~\ref{lem:sg:pd-product-ibp-summary},~\ref{lem:sg:pd-gaussian-array}), and the resulting identity on the original blocks $\mathbb E\langle fg_{r_0}\rangle_t=\mathbb E[t(\langle f\sum_jR_{r_0j}\rangle_t-n\langle fR_{r_0,n+1}\rangle_t)]$ (Lemmas~\ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}). The combination at $t=1$ with tilt invariance and centering is formalized in Theorem~\ref{thm:sg:pd-gg-blocks}; the extra replica uses the equivalence between $\mathrm{Option}(\mathrm{Fin}\,n)$ and $\mathrm{Fin}(n+1)$.
+\item \textbf{The ranked weights and uniqueness (Theorem~2.8; not done).} Theorem~2.7 is established for the block weights $u_p/\sum_qu_q$ (Theorem~\ref{thm:sg:pd-gg-blocks}), but not yet for the ranked weights. Passing to the ranked weights $v_1\ge v_2\ge\cdots$ needs a reindexing of the block-indexed atoms by rank, which is not formalized (only the equality in law of the ranked weights for the two processes is, Theorem~\ref{thm:sg:pd-gaussian-weights}). Talagrand's identities (2.39), the compact space of weights, and the uniqueness Theorem~2.8 (via the Stone--Weierstrass argument on the algebra generated by $\sum_jv_j^p$) are not formalized.
 \end{enumerate}
 
 \subsection*{How Lemma~2.3 and integration by parts combine (the plan for Theorem~2.7)}
