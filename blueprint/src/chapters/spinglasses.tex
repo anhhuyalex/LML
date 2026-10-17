@@ -1136,8 +1136,17 @@ $\xi(ax+by)\le a\xi(x)+b\xi(y)$ passes to the sum of the convergent series.
         SpinGlasses.mixedPSpin_tendsto_ground_state_energy}
   \leanok
   \uses{thm:sg:superadd, lem:sg:fekete, lem:sg:convexxi, thm:sg:mixedgauss, thm:sg:zerotemp, thm:sg:skcov}
-Under the hypotheses of Theorem~\ref{thm:sg:superadd}, for every inverse temperature $t$ the free energy
-$F_N(t)=N^{-1}\mathbb E[\log Z_N(t)]$ converges to $\sup_{N\ge1}F_N(t)$. This applies to the SK model
+Let $\xi:[-1,1]\to\mathbb R$ be convex. For every $N\ge1$ let $(\Omega_N,\mathbb P_N)$ be a probability space (the disorder; the spaces for different $N$ are unrelated) and
+$H_N:\Omega_N\times\{-1,+1\}^N\to\mathbb R$ a Hamiltonian such that, for every $N\ge1$:
+\begin{enumerate}
+\item[(i)] \emph{measurability:} $\omega\mapsto H_N(\omega,\sigma)$ is measurable for every configuration $\sigma$;
+\item[(ii)] \emph{Gaussianity:} the vector $(H_N(\cdot,\sigma))_{\sigma\in\{-1,+1\}^N}$ is jointly Gaussian under $\mathbb P_N$ (in Lean, \texttt{HasGaussianLaw}, which in particular makes $\mathbb P_N$ a probability measure);
+\item[(iii)] \emph{centering:} $\mathbb E[H_N(\sigma)]=0$ for every $\sigma$;
+\item[(iv)] \emph{covariance structure:} $\mathbb E[H_N(\sigma)H_N(\tau)]=N\,\xi\big(R(\sigma,\tau)\big)$ for all $\sigma,\tau$, where $R(\sigma,\tau)=N^{-1}\sigma\cdot\tau$ is the overlap.
+\end{enumerate}
+(These are exactly the hypotheses of Theorem~\ref{thm:sg:superadd}.) Then for every inverse temperature $t\in\mathbb R$, writing $Z_N(t)=\sum_\sigma e^{tH_N(\sigma)}$, the free energy
+$F_N(t)=N^{-1}\mathbb E[\log Z_N(t)]$ exists for each $N$ and converges as $N\to\infty$, with limit $\sup_{N\ge1}F_N(t)$. (The Hamiltonian $tH_N$ satisfies (i)--(iv) with $\xi$ replaced by the convex function $t^2\xi$,
+so it is enough to treat $t=1$; that is how the Lean statement is phrased.) This applies to the SK model
 (covariance function $\xi(x)=x^2$) and to the mixed $p$-spin models with $\beta_0=0$, $\sum_p|\beta_p|<\infty$ and $\beta_p=0$ for odd
 $p\ge3$ ($\xi(x)=\sum_p\beta_p^2x^p$). Consequently the hypothesis \texttt{h\_lim} of Theorem~\ref{thm:sg:zerotemp} holds: for these models
 $N^{-1}\mathbb E[\max_\sigma H_N(\sigma)]$ converges, and for SK the function $\beta\mapsto\beta^{-1}(F(\beta)-\log2)$ is non-decreasing.
@@ -1173,11 +1182,19 @@ book's argument, and the reasons for them, are collected in Remark~\ref{rem:sg:d
         ProbabilityTheory.integral_mul_exp_comp_eq_sum_integral_mul_of_sum, ProbabilityTheory.HasGaussianLaw.sumElim_prod}
   \leanok
   \uses{thm:sg:steinvec}
-Let $X$ be a centered Gaussian vector indexed by a finite set. (i) If $F$ is measurable with $|F(y)|\le Ce^{c\|y\|_1}$ then $F(X)$ is
-integrable. (ii) If $G(s,\cdot)$ is differentiable in $s$ with $|\partial_sG(s,y)|\le Ce^{c\|y\|_1}$ uniformly in $s$, then
-$\frac{d}{ds}\mathbb E[G(s,X)]=\mathbb E[\partial_sG(s,X)]$. (iii) If $(W,X)$ is a centered Gaussian family and $A$ is differentiable with
+Let $X$ be a centered Gaussian vector indexed by a finite set. 
+
+(i) If $F$ is measurable with $|F(y)|\le Ce^{c\|y\|_1}$ then $F(X)$ is
+integrable. 
+
+(ii) If $G(s,\cdot)$ is differentiable in $s$ with $|\partial_sG(s,y)|\le Ce^{c\|y\|_1}$ uniformly in $s$, then
+$\frac{d}{ds}\mathbb E[G(s,X)]=\mathbb E[\partial_sG(s,X)]$. 
+
+(iii) If $(W,X)$ is a centered Gaussian family and $A$ is differentiable with
 $|A(y)|\le c_1+c_2\|y\|_1$ and $|\partial_lA|\le c_3$, then $W_ie^{A(X)}$ and $e^{A(X)}$ are integrable and
-$\mathbb E[W_ie^{A(X)}]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[e^{A(X)}\partial_lA(X)]$. (iv) If $g$ is a Gaussian vector under $P$, then
+$\mathbb E[W_ie^{A(X)}]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[e^{A(X)}\partial_lA(X)]$. 
+
+(iv) If $g$ is a Gaussian vector under $P$, then
 $z\mapsto(g(z_1),g(z_2))$ is a Gaussian vector under $P\otimes P$.
 \end{lemma}
 
@@ -3500,6 +3517,24 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   normalized weights, an unused coordinate in a series indexed by
   $\operatorname{Option}(J)$ marginalizes out. These are deterministic series
   identities; they do not assert integrability under the random environment.
+\end{lemma}
+
+\begin{lemma}[Integrability of bounded tilted overlaps on the original Poisson blocks]\label{lem:sg:pd-bounded-blocks}
+  \lean{SpinGlasses.integrable_poissonDirichlet_gaussian_tilt_overlap}
+  \leanok
+  \uses{lem:sg:pd-split-env, lem:sg:pd-guarded, lem:sg:pd-product-ibp-summary}
+  Suppose $0<\zeta<1$ and the independent split Poisson blocks have laws
+  $\operatorname{Po}(r_m)\otimes(\nu_m\otimes\mathcal N(0,1))^{\otimes\mathbb N}$,
+  where each $\nu_m$ is a probability law and
+  $\sum_m r_m(\nu_m\otimes\mathcal N(0,1))
+    =\mu_\zeta\otimes\mathcal N(0,1)$.
+  For any finite replica type $J$, real tilt $t$, and fixed-index observable
+  $F$ satisfying $|F(\sigma)|\le M$ for all $\sigma$, the normalized tilted
+  Gibbs series over active block indices is integrable on the original block
+  probability space. No measurability assumption on $F$ is needed because
+  every fixed-index function on the countable index set is measurable.
+  This establishes integrability, not the final Ghirlanda--Guerra identity;
+  passing from block indices to ranked Poisson--Dirichlet weights is open.
 \end{lemma}
 
 \begin{lemma}[Absolute convergence of Gaussian-tilted marked replicas]\label{lem:sg:pd-marked-summability}

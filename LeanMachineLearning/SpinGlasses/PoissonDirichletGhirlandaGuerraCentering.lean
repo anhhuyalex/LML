@@ -457,4 +457,63 @@ theorem integral_poissonDirichlet_gaussian_unit_tilt_mark
     hζ hζ1 1 ν r hBm hB hlaw hμ n r₀ f hf
   simpa only [one_mul, hcenter', zero_add, hplain'] using hc
 
+
+/-- Transfer integrability of a bounded Gaussian-tilted overlap observable
+from the independent environment/mark product law to the original blocks. -/
+theorem integrable_poissonDirichlet_gaussian_tilt_overlap
+    {Ω J : Type*} [MeasurableSpace Ω] [Fintype J]
+    {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1) (t : ℝ)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ =>
+        (ν n).prod (gaussianReal 0 1))) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).prod (gaussianReal 0 1))
+    (F : (J → ℕ × ℕ) → ℝ) (M : ℝ) (hF : ∀ σ, |F σ| ≤ M) :
+    Integrable (fun ω => ∑' σ : J → {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+      (∏ j, ((B (σ j).1.1 ω).2 (σ j).1.2).1 *
+          Real.exp (t * ((B (σ j).1.1 ω).2 (σ j).1.2).2) /
+        ∑' a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+          ((B a.1.1 ω).2 a.1.2).1 *
+            Real.exp (t * ((B a.1.1 ω).2 a.1.2).2)) *
+        F (fun j => (σ j).1)) P := by
+  let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
+    fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
+  let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2
+  let ρ : Measure (ℕ → ℕ × (ℕ → ℝ)) := P.map Z
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  have hρ : IsProbabilityMeasure ρ :=
+    (Measure.isProbabilityMeasure_map_iff hZm.aemeasurable).2 inferInstance
+  have henv := ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ
+  let H : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) → ℝ := fun zg =>
+    ∑' σ : J → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+        (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+            Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) * F σ
+      else 0
+  have hp : Integrable H (ρ.prod μ) :=
+    integrable_gaussian_gibbs_tilt_bounded_prod t F M hF ρ henv
+  have hG : P.map G = μ :=
+    (indepFun_poissonBlocks_snd_marks ν
+      (fun _ => gaussianReal 0 1) r hBm hB hlaw).2.1.map_eq
+  have hp' : Integrable (fun ω => H (Z ω, G ω)) P := by
+    apply (IndepFun.integrable_comp_prod_iff
+      (indepFun_poissonBlocks_snd_marks ν
+        (fun _ => gaussianReal 0 1) r hBm hB hlaw).1
+      hZm (measurable_poissonBlocks_snd hBm)
+      (by rw [hG]; exact hp.aestronglyMeasurable)).2
+    rw [hG]
+    exact hp
+  convert hp' using 1
+  funext ω
+  simpa only [H, Z, G, Prod.fst, Prod.snd, Subtype.coe_inj] using
+    (gaussian_gibbs_tilt_guard_eq_active t (Z ω) (G ω) F).symm
+
 end SpinGlasses

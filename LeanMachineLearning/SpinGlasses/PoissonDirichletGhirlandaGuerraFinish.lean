@@ -122,4 +122,5 @@ theorem tsum_option_fin_replica_eq
       exact Fintype.prod_equiv finSuccEquivLast.symm
         (fun o => w (σ (finSuccEquivLast.symm o))) (fun j => w (σ j)) (fun _ => rfl)
 
+
 end SpinGlasses
