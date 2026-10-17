@@ -3373,6 +3373,24 @@ Let $0<\zeta$ and $t\in\mathbb R$. Let independent Poisson blocks $B$ on a proba
 The Gaussian exponential multiplier has $\zeta$-moment one, and its size-biased translated mark is standard Gaussian. The marked processes therefore have equal laws by the marking transformation theorem. Mapping both random counting measures to their first-coordinate projections, taking the measurable decreasing enumeration of atoms, and normalizing preserves equality in law. The proof does not select the mark attached to each rank.
 \end{proof}
 
+\begin{lemma}[Gaussian invariance of the marked counting measure, of all ranked masses, and finiteness on shells]\label{lem:sg:pd-gaussian-marked}
+  \lean{SpinGlasses.identDistrib_poissonDirichlet_gaussian_transform,
+        SpinGlasses.measurable_rankedMasses,
+        SpinGlasses.identDistrib_poissonDirichlet_gaussian_rankedMasses,
+        SpinGlasses.iUnion_Ioi_inv_succ_prod_univ,
+        SpinGlasses.ae_poissonCountingMeasure_Ioi_inv_succ_prod_univ_lt_top}
+  \leanok
+  \uses{thm:sg:pd-gaussian-weights, thm:sg:pd-marking}
+Work under the hypotheses of Theorem~\ref{thm:sg:pd-gaussian-weights}: $0<\zeta$, $t\in\mathbb R$, independent blocks $B$ whose total intensity is $\mu_\zeta\otimes\tau_t$, and independent reference blocks $B'$ whose total intensity is $\mu_\zeta\otimes N(0,1)$, possibly on a different probability space.
+(a) \emph{Marked form.} Let $M_B$ be the counting measure of the points $(u,(x,y))$ of $B$, and let $M_B^{t}$ be its image under $(u,(x,y))\mapsto(ux,y)$. Let $M_{B'}$ be the counting measure of the points $(u,g)$ of $B'$. Then $M_B^{t}$ and $M_{B'}$ are identically distributed random measures on $\mathbb R^2$ (the statement is about the whole marked measure, so it contains Theorem~\ref{thm:sg:pd-gaussian-weights} as the special case obtained by forgetting the marks).
+(b) \emph{All ranked masses.} The map sending a measure $M$ on $\mathbb R$ to the sequence $(x_n(M))_{n\ge1}$ of its decreasingly ranked atoms is measurable for the Giry $\sigma$-algebra. Consequently the whole sequences of ranked masses of $M_B^{t}$ and of $M_{B'}$, with the marks forgotten, have the same law, which is the first step in the proof of Theorem~\ref{thm:sg:pd-gaussian-weights}.
+(c) \emph{Shells.} The sets $(1/(k+1),\infty)\times S$ increase to $(0,\infty)\times S$. Almost surely, for every $k$ the reference counting measure of $\mu_\zeta\otimes\rho$ (for any probability space $S$ of marks) gives finite mass to $(1/(k+1),\infty)\times S$. By part~(a) the same holds almost surely for $M_B^{t}$ (Lemma~\ref{lem:sg:pd-tilt-law}).
+\end{lemma}
+\begin{proof}
+  \leanok
+Part~(a) is the Marking Theorem (Theorem~\ref{thm:sg:pd-marking}) for the multiplier $e^{t(g-t\zeta/2)}$ with the size-biased translated mark $g-t\zeta$, followed by the equivalence of Poisson constructions. Part~(b): each coordinate $M\mapsto x_n(M)$ is measurable, and a map into a countable product is measurable when its coordinates are. For~(c), the number of atoms above $1/(k+1)$ is finite almost surely because $\mu_\zeta((1/(k+1),\infty))<\infty$, and a countable intersection of almost sure events is almost sure; the exhaustion of $(0,\infty)\times S$ by the shells is a direct set-theoretic check.
+\end{proof}
+
 \begin{theorem}[Lemma~2.3, order-free form]\label{thm:sg:pd-lemma23}
   \lean{SpinGlasses.identDistrib_lintegral_pi_poissonDirichlet_gaussian,
         SpinGlasses.identDistrib_replica_average_poissonDirichlet_gaussian,
@@ -3466,6 +3484,87 @@ n\,\mathbb E\langle fR_{r_0,n+1}\rangle=(1-\zeta)\mathbb E\langle f\rangle+\sum_
 \]
 The fresh replica uses $\mathrm{none}\in\mathrm{Option}(\mathrm{Fin}\,n)$. In particular, $\mathbb E\langle R_{12}\rangle=1-\zeta$ for $n=1$ and $f=1$. The identity is proved for the active block indices, not yet for the decreasingly ranked $\mathrm{PD}(\zeta)$ weights.
 \end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg:pd-unit-tilt-mark, lem:sg:pd-ibp-expectation, lem:sg:pd-overlap-split, lem:sg:pd-ibp-diagonal, lem:sg:pd-overlap-tilt}
+Write $\langle\cdot\rangle_t$ for the Gibbs series over active block indices with weights $u_ae^{tg_a}/\sum_bu_be^{tg_b}$, so that $\langle\cdot\rangle_0$ is the series of the statement. Fix $n$, $r_0$ and $f$. The proof combines five identities, each of which is an expectation identity on the split-block probability space.
+\begin{enumerate}
+\item \emph{Centering.} By the unit-tilt marked expectation (Lemma~\ref{lem:sg:pd-unit-tilt-mark}), $\mathbb E\langle f\,g_{r_0}\rangle_1=\zeta\,\mathbb E\langle f\rangle_0$. This is where the parameter $\zeta$ enters: by Lemma~2.3 the centered series $\langle f(g_{r_0}-\zeta)\rangle_1$ is distributed like the untilted series $\langle fg_{r_0}\rangle_0$, whose mean is zero because the marks are standard Gaussians independent of the weights.
+\item \emph{Gaussian integration by parts.} By Lemma~\ref{lem:sg:pd-ibp-expectation} at $t=1$, $\mathbb E\langle f\,g_{r_0}\rangle_1=\mathbb E\bigl[\langle f\sum_{j=1}^nR_{r_0j}\rangle_1-n\langle fR_{r_0,n+1}\rangle_1\bigr]$.
+\item \emph{Separating the diagonal.} The sum over $j$ includes $j=r_0$, for which $R_{r_0r_0}=1$. By Lemma~\ref{lem:sg:pd-overlap-split} the old-replica term is therefore $\mathbb E\langle f\rangle_1+\sum_{j\ne r_0}\mathbb E\langle fR_{r_0j}\rangle_1$.
+\item \emph{Tilt invariance.} By Lemma~\ref{lem:sg:pd-overlap-tilt}, each of $\mathbb E\langle f\rangle_1$, $\mathbb E\langle fR_{r_0j}\rangle_1$ ($j\ne r_0$) and $\mathbb E\langle fR_{r_0,n+1}\rangle_1$ equals the same expectation with $\langle\cdot\rangle_0$. This is Lemma~2.3 for the observables that do not contain the mark.
+\item \emph{Integrability.} All series involved are integrable (Lemma~\ref{lem:sg:pd-overlap-split}), so the expectations may be split and rearranged.
+\end{enumerate}
+Substituting~(3) and~(4) into~(2) and comparing with~(1) gives $\zeta\,\mathbb E\langle f\rangle_0=\mathbb E\langle f\rangle_0+\sum_{j\ne r_0}\mathbb E\langle fR_{r_0j}\rangle_0-n\,\mathbb E\langle fR_{r_0,n+1}\rangle_0$, which is the claim after rearranging.
+\end{proof}
+
+\begin{corollary}[Equation~(2.34) as a sum of squared weights; total mass one]\label{cor:sg:pd-weight-sq}
+  \lean{SpinGlasses.ae_poissonDirichlet_gaussian_normalized_mass_one,
+        SpinGlasses.poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta}
+  \leanok
+  \uses{thm:sg:pd-gg-blocks}
+In the setting of Theorem~\ref{thm:sg:pd-gg-blocks}, almost surely $\sum_{a\in A}u_a/\sum_{b\in A}u_b=1$ (the active block masses are positive and summable, so the normalization is well defined and positive), and
+\[
+\mathbb E\sum_{a\in A}\Bigl(\frac{u_a}{\sum_{b\in A}u_b}\Bigr)^2=1-\zeta.
+\]
+This is Equation~(2.34) in the form $\mathbb E\sum_kv_k^2=1-\zeta$, but for the weights indexed by active blocks. Passing to the decreasingly ranked weights $v_k$ of $\mathrm{PD}(\zeta)$ is not formalized yet.
+\end{corollary}
+\begin{proof}
+  \leanok
+For the first statement, the single-replica Gibbs series is the sum of the normalized weights, and a convergent series of positive terms divided by its total is one. For the second, apply Theorem~\ref{thm:sg:pd-gg-blocks} with $n=1$ and $f=1$: the right side has no off-diagonal terms, so $\mathbb E\langle R_{12}\rangle=1-\zeta$ since $\mathbb E\langle1\rangle=1$. Almost surely $\langle R_{12}\rangle=\sum_{a_1,a_2}w_{a_1}w_{a_2}\mathbf 1\{a_1=a_2\}=\sum_aw_a^2$, because a sum over pairs of nonnegative summable weights restricted to the diagonal is the sum of squares.
+\end{proof}
+
+\begin{lemma}[Unit-tilt marked expectation, centering and reindexing of the extra replica]\label{lem:sg:pd-unit-tilt-mark}
+  \lean{SpinGlasses.ae_poissonDirichlet_gaussian_tilt_centering_series,
+        SpinGlasses.integral_poissonDirichlet_gaussian_tilt_mark_centering,
+        SpinGlasses.integral_poissonDirichlet_gaussian_unit_tilt_mark,
+        SpinGlasses.tsum_option_fin_replica_eq}
+  \leanok
+  \uses{lem:sg:pd-tilt-law, lem:sg:pd-untilted, lem:sg:pd-centering}
+Assume $0<\zeta<1$, independent split blocks $B_m$ with laws $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$ and total intensity $\mu_\zeta\otimes N(0,1)$. For $n\ge1$, $r_0\in\mathrm{Fin}\,n$ and measurable $f$ of the overlap matrix, let $\langle\cdot\rangle_t$ be as in the proof of Theorem~\ref{thm:sg:pd-gg-blocks}.
+(a) For every real $t$ and every constant $c$, the marked series $\langle f\,(g_{r_0}-c)\rangle_t$ and the unmarked series $\langle f\rangle_t$ converge almost surely, and for measurable $f$,
+$\mathbb E\langle fg_{r_0}\rangle_t=\mathbb E\langle f(g_{r_0}-t\zeta)\rangle_t+t\zeta\,\mathbb E\langle f\rangle_t$.
+(b) At $t=1$, $\mathbb E\langle fg_{r_0}\rangle_1=\zeta\,\mathbb E\langle f\rangle_0$.
+(c) For any weights $w:\alpha\to\mathbb R$ on any type $\alpha$ and any test function $\Phi$, the series over $\mathrm{Option}(\mathrm{Fin}\,n)\to\alpha$ of $\prod_ow(\tau_o)\Phi(\tau)$ equals the series over $\mathrm{Fin}(n+1)\to\alpha$ of $\prod_jw(\sigma_j)\Phi(\sigma\circ e)$, where $e:\mathrm{Option}(\mathrm{Fin}\,n)\simeq\mathrm{Fin}(n+1)$ sends $\mathrm{none}$ to the last index.
+\end{lemma}
+\begin{proof}
+  \leanok
+For~(a), absolute convergence of the tilted marked series holds almost surely by Lemma~\ref{lem:sg:pd-marked-summability}, and the plain overlap series is bounded because the overlap matrix takes finitely many values. The centered series $\langle f(g_{r_0}-t\zeta)\rangle_t$ is distributed like the untilted series $\langle fg_{r_0}\rangle_0$ (Lemma~\ref{lem:sg:pd-tilt-law}), so it is integrable (Lemma~\ref{lem:sg:pd-untilted}). The constant $t\zeta$ is then moved across by the generic centering identity (Lemma~\ref{lem:sg:pd-centering}). For~(b), at $t=1$ the centered series is distributed like $\langle fg_{r_0}\rangle_0$, whose expectation is zero (Lemma~\ref{lem:sg:pd-untilted}(c)), so~(a) gives $\mathbb E\langle fg_{r_0}\rangle_1=\zeta\,\mathbb E\langle f\rangle_1$, and $\mathbb E\langle f\rangle_1=\mathbb E\langle f\rangle_0$ by tilt invariance (Lemma~\ref{lem:sg:pd-overlap-tilt}(a)). Part~(c) is a reindexing of the summation set by an equivalence of types.
+\end{proof}
+
+\begin{lemma}[Tilt invariance of overlap averages and the fresh replica as the last coordinate]\label{lem:sg:pd-overlap-tilt}
+  \lean{SpinGlasses.integral_poissonDirichlet_gaussian_overlap_tilt_eq,
+        SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_tilt_eq,
+        SpinGlasses.measurable_fresh_replica_overlap,
+        SpinGlasses.tsum_fresh_replica_overlap_reindex}
+  \leanok
+  \uses{lem:sg:pd-tilt-law, lem:sg:pd-unit-tilt-mark}
+In the setting of Theorem~\ref{thm:sg:pd-gg-blocks}; parts (a) and (b) need only $\zeta>0$:
+(a) for every real $t$ and every measurable $f$ of the overlap matrix, $\mathbb E\langle f\rangle_t=\mathbb E\langle f\rangle_0$;
+(b) at $t=1$ and for $j\in\mathrm{Fin}\,n$, $\mathbb E\langle fR_{r_0j}\rangle_1=\mathbb E\langle fR_{r_0j}\rangle_0$, with no boundedness assumption on $f$;
+(c) the function $R\mapsto f\bigl((R_{ij})_{i,j\le n}\bigr)R_{r_0,n+1}$ on $(n+1)\times(n+1)$ matrices is measurable;
+(d) for any weights $w$, the series over $\mathrm{Option}(\mathrm{Fin}\,n)\to\alpha$ of $\prod_ow(\tau_o)\,f\bigl(\mathbf 1\{\tau_i=\tau_j\}\bigr)\,\mathbf 1\{\tau_{r_0}=\tau_{\mathrm{none}}\}$ equals the series over $\mathrm{Fin}(n+1)\to\alpha$ of the same product against the observable in~(c) evaluated on the coincidence matrix.
+\end{lemma}
+\begin{proof}
+  \leanok
+Part~(a) is Lemma~\ref{lem:sg:pd-tilt-law} with all exponents of the mark equal to zero: the tilted and reference Gibbs functionals are identically distributed, so their expectations agree. Part~(b) is part~(a) for the new observable $R\mapsto f(R)R_{r_0j}$, which is measurable. Part~(c) is closure of measurability under composition with coordinate projections and products, and part~(d) is the reindexing of Lemma~\ref{lem:sg:pd-unit-tilt-mark}(c) applied to this observable. The fresh-replica transfer $\mathbb E\langle fR_{r_0,n+1}\rangle_1=\mathbb E\langle fR_{r_0,n+1}\rangle_0$ used in Theorem~\ref{thm:sg:pd-gg-blocks} is obtained by combining (a), (c) and (d).
+\end{proof}
+
+\begin{lemma}[Bounds, splitting and integrability for overlap series]\label{lem:sg:pd-overlap-split}
+  \lean{SpinGlasses.bound_index_overlap_mul_entry,
+        SpinGlasses.bound_index_overlap_sum,
+        SpinGlasses.ae_poissonDirichlet_gaussian_old_overlap_split,
+        SpinGlasses.integrable_poissonDirichlet_gaussian_fresh_overlap}
+  \leanok
+  \uses{lem:sg:pd-ibp-diagonal, lem:sg:pd-marked-summability, lem:sg:pd-bounded-blocks}
+(a) Let $f$ be any function of an $n\times n$ real matrix, and let $\sigma:\mathrm{Fin}\,n\to\alpha$ be arbitrary. The overlap matrix $(\mathbf 1\{\sigma_i=\sigma_j\})_{ij}$ takes values in the finite set $\{0,1\}^{n\times n}$, so there is a constant $M$, independent of $\alpha$ and of $\sigma$, with $|f(R(\sigma))\mathbf 1\{\sigma_i=\sigma_j\}|\le M$, and $|f(R(\sigma))\sum_j\mathbf 1\{\sigma_i=\sigma_j\}|\le nM$.
+(b) In the setting of Theorem~\ref{thm:sg:pd-gg-blocks}, almost surely, with unit-tilt weights, the old-replica series splits as $\langle f\sum_jR_{r_0j}\rangle_1=\langle f\rangle_1+\sum_{j\ne r_0}\langle fR_{r_0j}\rangle_1$.
+(c) The fresh-replica series $\langle fR_{r_0,n+1}\rangle_1$ is integrable on the split-block space, for every function $f$ of the overlap matrix.
+\end{lemma}
+\begin{proof}
+  \leanok
+Part~(a) is the finiteness of $\{0,1\}^{n\times n}$ and the bound $\sum_j\mathbf 1\{\sigma_i=\sigma_j\}\le n$. For~(b), almost surely the tilted masses are summable and positive (Lemma~\ref{lem:sg:pd-marked-summability}), so the weights sum to one, and the diagonal term $j=r_0$ is the series for $f$ by the diagonal lemma (Lemma~\ref{lem:sg:pd-ibp-diagonal}). Part~(c) follows by reindexing the fresh replica to the last coordinate and applying the integrability of bounded tilted overlap observables (Lemma~\ref{lem:sg:pd-bounded-blocks}) with the bound from~(a).
+\end{proof}
 
 \begin{lemma}[Gaussian marks are independent of the counts and masses; fixed-index Gaussian inputs for integration by parts]\label{lem:sg:pd-gibbs-inputs}
   \lean{SpinGlasses.indepFun_poissonBlocks_snd_marks,
