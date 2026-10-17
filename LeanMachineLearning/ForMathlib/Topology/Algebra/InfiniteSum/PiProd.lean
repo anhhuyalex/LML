@@ -8,6 +8,7 @@ module
 public import Mathlib.Algebra.BigOperators.Ring.Finset
 public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 public import Mathlib.Analysis.Normed.Group.Tannery
+public import Mathlib.Analysis.Normed.Ring.InfiniteSum
 public import Mathlib.Topology.Algebra.InfiniteSum.Real
 
 /-!
@@ -152,6 +153,41 @@ theorem tsum_prod_pi_mul_eval {w χ : α → ℝ}
         if j = j₀ then (∑' a, w a * χ a) else 1 from fun j => by
           split_ifs <;> simp [hw]]
     simp
+
+/-- Summing out a fresh independent replica leaves a normalized replica average unchanged.
+The extra coordinate is indexed by `none`, while the existing replicas use `some`. -/
+theorem tsum_prod_option_some {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a)
+    (hws : Summable w) (hw : ∑' a, w a = 1)
+    (Φ : (J → α) → ℝ)
+    (hΦ : Summable fun σ : J → α => (∏ j, w (σ j)) * Φ σ) :
+    (∑' τ : Option J → α, (∏ o, w (τ o)) * Φ (fun j => τ (some j))) =
+      ∑' σ : J → α, (∏ j, w (σ j)) * Φ σ := by
+  classical
+  let e : (Option J → α) ≃ α × (J → α) := Equiv.piOptionEquivProd
+  let F : (J → α) → ℝ := fun σ => (∏ j, w (σ j)) * Φ σ
+  have hFnorm : Summable fun σ => ‖F σ‖ := by
+    exact hΦ.abs.congr (fun σ => (Real.norm_eq_abs _).symm)
+  have hs : Summable (fun p : α × (J → α) => w p.1 * F p.2) :=
+    summable_mul_of_summable_norm
+      (by simpa only [Real.norm_eq_abs, abs_of_nonneg (hw0 _)] using hws) hFnorm
+  have hfactor : ∀ τ : Option J → α,
+      (∏ o, w (τ o)) * Φ (fun j => τ (some j)) =
+        w (τ none) * ((∏ j, w (τ (some j))) * Φ (fun j => τ (some j))) := by
+    intro τ
+    rw [Fintype.prod_option]
+    ring
+  calc
+    _ = ∑' p : α × (J → α), w p.1 * ((∏ j, w (p.2 j)) * Φ p.2) := by
+      calc
+        _ = ∑' τ : Option J → α, w (e τ).1 * F (e τ).2 := by
+          apply tsum_congr
+          intro τ
+          exact hfactor τ
+        _ = _ := e.tsum_eq (fun p : α × (J → α) => w p.1 * F p.2)
+    _ = ∑' a : α, ∑' σ : J → α, w a * F σ := hs.tsum_prod
+    _ = (∑' a : α, w a) * (∑' σ : J → α, F σ) := by
+      simp only [tsum_mul_left, tsum_mul_right]
+    _ = _ := by rw [hw, one_mul]
 
 /-- **Tannery's theorem for replica averages:** if the weights `w i` are dominated by a summable
 `B` and converge pointwise, then the `J`-fold product averages of an observable `Ψ` with
