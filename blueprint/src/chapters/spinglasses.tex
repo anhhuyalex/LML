@@ -3583,6 +3583,35 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   passage from active block indices to ranked weights remain to be done.
 \end{lemma}
 
+\begin{lemma}[The expected Gaussian overlap correction on split Poisson blocks]\label{lem:sg:pd-ibp-expectation}
+  \lean{SpinGlasses.integral_poissonDirichlet_gaussian_overlap_correction,
+        SpinGlasses.integral_gibbs_centered_mark_add_constant}
+  \leanok
+  \uses{lem:sg:pd-ibp-blocks}
+  Assume $0<\zeta<1$, and let independent measurable blocks
+  $B_m=(N_m,(u_{ml},g_{ml})_l)$ have laws
+  $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$,
+  where each $\nu_m$ is a probability measure and
+  $\sum_m r_m(\nu_m\otimes N(0,1))=\mu_\zeta\otimes N(0,1)$.
+  For $n\ge1$, $r_0\in\{1,\ldots,n\}$, measurable $f$ of the overlap
+  matrix and real $t$, write $\langle\cdot\rangle_t$ for the series over
+  active tuples weighted by $u_pe^{tg_p}/\sum_q u_qe^{tg_q}$.
+  Then the Bochner expectations satisfy
+  \[\mathbb E\langle f g_{r_0}\rangle_t
+    =\mathbb E\bigl[t(\langle f\sum_{j=1}^n R_{r_0j}\rangle_t
+      -n\langle fR_{r_0,n+1}\rangle_t)\bigr].\]
+  The extra replica is indexed by $\mathrm{none}\in\operatorname{Option}(\operatorname{Fin}n)$.
+  Independently, for any measurable space with measure $P$, any finite
+  replica type and any random weights, an almost-surely summable centered
+  marked series and unmarked series satisfy
+  $\mathbb E\langle\Phi x\rangle
+   =\mathbb E\langle\Phi(x-c)\rangle+c\mathbb E\langle\Phi\rangle$,
+  provided both terms on the right are integrable. This generic statement
+  has no Poisson or Gaussian hypotheses. Theorem~2.7 and Equation~(2.34)
+  are not yet asserted: the centered identity must still be applied on the
+  random active index type and combined with tilt invariance.
+\end{lemma}
+
 \begin{lemma}[The diagonal term in the countable Gaussian-IBP overlap correction]\label{lem:sg:pd-ibp-diagonal}
   \lean{SpinGlasses.gibbs_old_replica_self_overlap,
         SpinGlasses.gaussian_ibp_overlap_correction_self_marginal}
