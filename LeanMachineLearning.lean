@@ -42,6 +42,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.LocallyFiniteKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRank
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiKernelLIntegral
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
@@ -342,7 +343,10 @@ public import LeanMachineLearning.SpinGlasses.PoissonDirichletIBPAlgebra
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletLogSum
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletRanked
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletUniqueness
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletUniquenessMoments
 public import LeanMachineLearning.SpinGlasses.PoissonProcess
 public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
 public import LeanMachineLearning.SpinGlasses.PoissonProcessIndepMarks
