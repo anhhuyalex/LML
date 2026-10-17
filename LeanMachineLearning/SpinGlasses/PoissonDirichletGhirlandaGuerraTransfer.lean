@@ -16,6 +16,7 @@ Separate the integrability of the uncentered Gaussian observable from conditiona
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
+open scoped ENNReal NNReal
 
 namespace SpinGlasses
 
@@ -261,5 +262,117 @@ theorem ae_gaussian_gibbs_tilt_mark_summable_prod (t c : ℝ)
     funext p
     by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
   exact ht'.tsum_ofReal_lt_top
+
+/-- The centered marked tilted replica series is jointly measurable in the
+block environment and the Gaussian array. -/
+theorem measurable_gaussian_gibbs_tilt_centered_guard
+    {J : Type*} [Fintype J] (t c : ℝ) (r₀ : J)
+    (Φ : (J → ℕ × ℕ) → ℝ) :
+    Measurable fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+      ∑' σ : J → ℕ × ℕ,
+        if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+          (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+              Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+            ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+              (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+            (Φ σ * (zg.2 (σ r₀).1 (σ r₀).2 - c))
+        else 0 := by
+  classical
+  apply measurable_tsum_guarded_replica
+    (N := fun z : ℕ → ℕ × (ℕ → ℝ) => fun m => (z m).1)
+    (w := fun (zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) p =>
+      (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))
+    (F := fun (zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) σ =>
+      Φ σ * (zg.2 (σ r₀).1 (σ r₀).2 - c))
+  · intro m
+    fun_prop
+  · intro p
+    fun_prop
+  · intro σ
+    fun_prop
+
+/-- Lemma 2.3 supplies integrability of the centered tilted Gibbs series on
+Poisson blocks; independent-mark splitting transports it to the product law. -/
+theorem integrable_gaussian_gibbs_tilt_centered_guard_prod
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1) (t : ℝ)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ =>
+        (ν n).prod (gaussianReal 0 1))) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).prod (gaussianReal 0 1))
+    (n : ℕ) (r₀ : Fin n) (f : (Fin n → Fin n → ℝ) → ℝ) (hf : Measurable f) :
+    let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
+      fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
+    let μ : Measure (ℕ → ℕ → ℝ) :=
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+    Integrable (fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+      ∑' σ : Fin n → ℕ × ℕ,
+        if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+          (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+              Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+            ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+              (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+            (f (fun i j => if σ i = σ j then 1 else 0) *
+              (zg.2 (σ r₀).1 (σ r₀).2 - t * ζ))
+        else 0) ((P.map Z).prod μ) := by
+  classical
+  let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
+    fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
+  let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  let Φ : (Fin n → ℕ × ℕ) → ℝ := fun σ =>
+    f (fun i j => if σ i = σ j then 1 else 0)
+  let H : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) → ℝ := fun zg =>
+    ∑' σ : Fin n → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+        (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+            Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+          (Φ σ * (zg.2 (σ r₀).1 (σ r₀).2 - t * ζ))
+      else 0
+  have hsplit := indepFun_poissonBlocks_snd_marks ν
+    (fun _ => gaussianReal 0 1) r hBm hB hlaw
+  have hZm : Measurable Z := measurable_pi_iff.2 fun m =>
+    (measurable_fst.comp (hBm m)).prodMk
+      (measurable_pi_iff.2 fun l =>
+        measurable_fst.comp ((measurable_pi_apply l).comp
+          (measurable_snd.comp (hBm m))))
+  have hGm : Measurable G := measurable_pi_iff.2 fun m =>
+    measurable_pi_iff.2 fun l =>
+      measurable_snd.comp ((measurable_pi_apply l).comp
+        (measurable_snd.comp (hBm m)))
+  have hmeas : Measurable H := by
+    simpa only [H] using measurable_gaussian_gibbs_tilt_centered_guard t
+      (t * ζ) r₀ Φ
+  have hblocks := integrable_gibbs_tilt_centered_mark hζ hζ1 t ν r
+    hBm hB hlaw hμ n r₀ f hf
+  have hpoint (ω : Ω) : H (Z ω, G ω) =
+      ∑' σ : Fin n → {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+        (∏ j, ((B (σ j).1.1 ω).2 (σ j).1.2).1 *
+            Real.exp (t * ((B (σ j).1.1 ω).2 (σ j).1.2).2) /
+          ∑' a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+            ((B a.1.1 ω).2 a.1.2).1 *
+              Real.exp (t * ((B a.1.1 ω).2 a.1.2).2)) *
+          (f (fun i j => if σ i = σ j then 1 else 0) *
+            (((B (σ r₀).1.1 ω).2 (σ r₀).1.2).2 - t * ζ)) := by
+    simpa only [H, Z, G, Φ, Prod.fst, Prod.snd, Subtype.coe_inj] using
+      (gaussian_gibbs_tilt_guard_eq_active t (Z ω) (G ω)
+        (fun σ => Φ σ * ((G ω) (σ r₀).1 (σ r₀).2 - t * ζ)))
+  have hcomp : Integrable (fun ω => H (Z ω, G ω)) P := by
+    convert hblocks using 1
+    funext ω
+    exact hpoint ω
+  have hG : P.map G = μ := hsplit.2.1.map_eq
+  have hprod : Integrable H ((P.map Z).prod μ) := by
+    rw [← hG]
+    exact (IndepFun.integrable_comp_prod_iff hsplit.1 hZm hGm
+      (by rw [hG]; exact hmeas.aestronglyMeasurable)).1 hcomp
+  exact hprod
 
 end SpinGlasses
