@@ -23,6 +23,93 @@ open scoped ENNReal
 
 namespace SpinGlasses
 
+/-- An i.i.d. standard Gaussian field indexed by any type is a Gaussian process.
+This provides the fixed-index Gaussian hypothesis needed after conditioning on
+Poisson block counts and masses; no finite-dimensional truncation is needed. -/
+theorem isGaussianProcess_pi_gaussianReal {α : Type*} :
+    IsGaussianProcess (fun a (g : α → ℝ) => g a)
+      (Measure.infinitePi fun _ : α => gaussianReal 0 1) := by
+  let μ : Measure (α → ℝ) := Measure.infinitePi fun _ : α => gaussianReal 0 1
+  have hi : iIndepFun (fun a (g : α → ℝ) => g a) μ :=
+    iIndepFun_infinitePi (P := fun _ : α => gaussianReal 0 1)
+      (X := fun _ : α => id) (fun _ => measurable_id)
+  refine ⟨fun I => ?_⟩
+  have heval (a : α) : HasGaussianLaw (fun g : α → ℝ => g a) μ := by
+    have hm := (measurePreserving_eval_infinitePi
+      (fun _ : α => gaussianReal 0 1) a).map_eq
+    exact ⟨(measurable_pi_apply a).aemeasurable, by
+      rw [hm]
+      infer_instance⟩
+  exact (hi.precomp Subtype.val_injective).hasGaussianLaw (fun a => heval a)
+
+/-- Both copies of a standard Gaussian field, with arbitrary fixed scaling of the
+second copy, are jointly Gaussian. They are deliberately the same marks, not
+independent copies: the cross-covariance is the overlap indicator. -/
+theorem isGaussianProcess_pi_gaussianReal_sum_elim {α : Type*} (t : ℝ) :
+    IsGaussianProcess
+      (Sum.elim (fun a (g : α → ℝ) => g a)
+        (fun a (g : α → ℝ) => t * g a))
+      (Measure.infinitePi fun _ : α => gaussianReal 0 1) := by
+  let h := isGaussianProcess_pi_gaussianReal (α := α)
+  have hsum := h.comp_right (fun s : α ⊕ α => Sum.elim id id s)
+  have hscaled := hsum.smul (fun s : α ⊕ α => Sum.elim (fun _ => (1 : ℝ))
+    (fun _ => t) s)
+  convert hscaled using 1
+  ext s g
+  cases s <;> simp [smul_eq_mul]
+
+/-- Each coordinate of a countable i.i.d. standard Gaussian field is centered. -/
+theorem integral_pi_gaussianReal_eval {α : Type*} (a : α) :
+    ∫ g : α → ℝ, g a ∂(Measure.infinitePi fun _ : α => gaussianReal 0 1) = 0 := by
+  have hmap := (measurePreserving_eval_infinitePi
+    (fun _ : α => gaussianReal 0 1) a).map_eq
+  have h := integral_map (μ := Measure.infinitePi fun _ : α => gaussianReal 0 1)
+    (measurable_pi_apply a).aemeasurable (f := id) aestronglyMeasurable_id
+  simpa [hmap, integral_id_gaussianReal] using h.symm
+
+/-- Each coordinate of a countable i.i.d. standard Gaussian field has unit second moment. -/
+theorem integral_pi_gaussianReal_eval_sq {α : Type*} (a : α) :
+    ∫ g : α → ℝ, (g a) ^ 2 ∂(Measure.infinitePi fun _ : α => gaussianReal 0 1) = 1 := by
+  have hmap := (measurePreserving_eval_infinitePi
+    (fun _ : α => gaussianReal 0 1) a).map_eq
+  have hv := variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
+  rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at hv
+  have h := integral_map (μ := Measure.infinitePi fun _ : α => gaussianReal 0 1)
+    (measurable_pi_apply a).aemeasurable
+    (f := fun x : ℝ => x ^ 2) (by fun_prop)
+  rw [hmap] at h
+  simpa [id] using h.symm.trans (by simpa [id] using hv)
+
+/-- The cross-covariance of Gaussian marks and their `t`-scaled copies equals
+`t` times the block-index overlap indicator. -/
+theorem integral_pi_gaussianReal_eval_mul_scaled {α : Type*} [DecidableEq α]
+    (a b : α) (t : ℝ) :
+    ∫ g : α → ℝ, g a * (t * g b)
+      ∂(Measure.infinitePi fun _ : α => gaussianReal 0 1) =
+      t * (if a = b then 1 else 0) := by
+  by_cases hab : a = b
+  · subst b
+    have heq : (fun g : α → ℝ => g a * (t * g a)) =
+        fun g => t * (g a) ^ 2 := by
+      funext g
+      ring
+    rw [heq, integral_const_mul, integral_pi_gaussianReal_eval_sq]
+    simp
+  · have hi := (iIndepFun_infinitePi (P := fun _ : α => gaussianReal 0 1)
+      (X := fun _ : α => id) (fun _ => measurable_id)).indepFun hab
+    change (fun g : α → ℝ => g a) ⟂ᵢ[Measure.infinitePi
+      (fun _ : α => gaussianReal 0 1)] (fun g => g b) at hi
+    have hprod : (fun g : α → ℝ => g a * (t * g b)) =
+        fun g => t * (g a * g b) := by
+      funext g
+      ring
+    rw [hprod, integral_const_mul,
+      hi.integral_fun_mul_eq_mul_integral
+        (measurable_pi_apply a).aestronglyMeasurable
+        (measurable_pi_apply b).aestronglyMeasurable,
+      integral_pi_gaussianReal_eval, zero_mul]
+    simp [hab]
+
 /-- An overlap observable on finitely many replicas is bounded without any global
 boundedness assumption on the function of real matrices: overlap entries are in `{0, 1}`.
 The witness is reusable for both the unperturbed and tilted Gaussian IBP formulas. -/
@@ -51,7 +138,6 @@ theorem exists_bound_index_overlap_ibp_observable
         ((∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) -
           (Fintype.card R : ℝ) *
             (if τ (some r₀) = τ none then 1 else 0))| ≤ M := by
-  classical
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := α) f
   refine ⟨(2 * Fintype.card R : ℝ) * M, fun τ => ?_⟩
   have hM' := hM (fun r => τ (some r))
@@ -88,7 +174,6 @@ theorem lintegral_poissonCountingMeasure_restrict_eq_tsum
     (∫⁻ x, f x ∂(poissonCountingMeasure N X).restrict A) =
       ∑' q : {p : ℕ × ℕ // p.2 < N p.1},
         (if X q.1.1 q.1.2 ∈ A then f (X q.1.1 q.1.2) else 0) := by
-  classical
   simp only [poissonCountingMeasure_eq_sum_dirac]
   rw [← lintegral_indicator hA, lintegral_sum_measure]
   exact tsum_congr fun q => by
@@ -108,7 +193,6 @@ theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
       ∑' q : Fin n → {p : ℕ × ℕ // p.2 < N p.1},
         (if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then
           Φ (fun i => X (q i).1.1 (q i).1.2) else 0) := by
-  classical
   induction n with
   | zero =>
     rw [lintegral_pi_fin_zero _ hΦ, tsum_fin_zero]
