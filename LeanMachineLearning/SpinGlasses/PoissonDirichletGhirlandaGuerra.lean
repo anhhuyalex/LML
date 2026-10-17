@@ -627,3 +627,32 @@ theorem integral_gaussian_gibbs_replica_guard_tilt_ibp_prod
   exact integral_gaussian_gibbs_replica_guard_tilt_ibp t r₀ Φ M hΦ z hn hp hs
 
 end SpinGlasses
+
+namespace SpinGlasses
+
+/-- The covariance correction's old-replica marginal, before introducing
+Poisson randomness. The extra `none` coordinate sums to one. -/
+theorem gaussian_ibp_option_overlap_marginal
+    {J α : Type*} [Fintype J] [DecidableEq α]
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
+    (hw : ∑' a, w a = 1) (r₀ : J)
+    (Φ : (J → α) → ℝ) {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) :
+    (∑' τ : Option J → α, (∏ o, w (τ o)) *
+      (Φ (fun j => τ (some j)) *
+        (∑ j, if τ (some r₀) = τ (some j) then (1 : ℝ) else 0))) =
+    ∑' σ : J → α, (∏ j, w (σ j)) *
+      (Φ σ * ∑ j, if σ r₀ = σ j then (1 : ℝ) else 0) :=
+  gaussian_ibp_option_replica_marginal hw0 hws hw
+    (fun σ => Φ σ * ∑ j, if σ r₀ = σ j then (1 : ℝ) else 0)
+    (M := M * (Fintype.card J : ℝ)) (by
+    intro σ
+    have hsum : |∑ j, if σ r₀ = σ j then (1 : ℝ) else 0| ≤ Fintype.card J := by
+      rw [abs_of_nonneg (Finset.sum_nonneg fun _ _ => by split_ifs <;> norm_num)]
+      simpa using Finset.sum_le_card_nsmul Finset.univ
+        (fun j => if σ r₀ = σ j then (1 : ℝ) else 0) 1
+        (fun j _ => by split_ifs <;> norm_num)
+    have hM : 0 ≤ M := (abs_nonneg _).trans (hΦ σ)
+    rw [abs_mul]
+    exact (mul_le_mul (hΦ σ) hsum (by positivity) hM).trans_eq (by ring))
+
+end SpinGlasses
