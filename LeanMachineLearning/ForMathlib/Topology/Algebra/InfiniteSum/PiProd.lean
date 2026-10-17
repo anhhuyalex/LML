@@ -76,6 +76,50 @@ theorem tsum_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a)
   ext s
   exact (Finset.prod_univ_sum (fun _ : J => s) (fun j a => f j a)).symm
 
+/-- Reindex a finite tuple of elements of a subset as a tuple of elements of the ambient
+set satisfying the coordinatewise membership guard. This also applies to `Option J` for the
+extra replica in Gaussian integration by parts. -/
+theorem tsum_pi_subtype_eq_tsum_ite {s : Set α} [DecidablePred (· ∈ s)]
+    (f : (J → s) → ℝ) :
+    (∑' σ : J → s, f σ) =
+      ∑' σ : J → α, if h : ∀ j, σ j ∈ s then f (fun j => ⟨σ j, h j⟩) else 0 := by
+  classical
+  let t : Set (J → α) := {σ | ∀ j, σ j ∈ s}
+  let e : (J → s) ≃ t :=
+    { toFun := fun σ => ⟨(fun j => (σ j).1), fun j => (σ j).2⟩
+      invFun := fun σ j => ⟨σ.1 j, σ.2 j⟩
+      left_inv := fun σ => by funext j; exact Subtype.ext rfl
+      right_inv := fun σ => by apply Subtype.ext; rfl }
+  calc
+    (∑' σ : J → s, f σ) = ∑' σ : t, f (e.symm σ) :=
+      (e.tsum_eq (fun σ : t => f (e.symm σ))) |>.trans (by
+        apply tsum_congr
+        intro σ
+        rfl)
+    _ = ∑' σ : J → α,
+        if h : σ ∈ t then f (e.symm ⟨σ, h⟩) else 0 := by
+      let F : (J → α) → ℝ := fun σ =>
+        if h : σ ∈ t then f (e.symm ⟨σ, h⟩) else 0
+      have h := tsum_subtype t F
+      calc
+        _ = ∑' σ : t, F σ := by
+          apply tsum_congr
+          intro σ
+          simp [F, σ.property]
+        _ = ∑' σ : J → α, t.indicator F σ := h
+        _ = _ := by
+          apply tsum_congr
+          intro σ
+          by_cases hs : σ ∈ t <;> simp [F, Set.indicator, hs]
+    _ = _ := by
+      apply tsum_congr
+      intro σ
+      have hmem : σ ∈ t ↔ ∀ j, σ j ∈ s := Iff.rfl
+      by_cases h : ∀ j, σ j ∈ s
+      · simp only [dite_eq_left (hmem.mpr h), dite_eq_left h]
+        rfl
+      · simp only [dite_eq_right (fun ht => h (hmem.mp ht)), dite_eq_right h]
+
 /-- Replacing the factor at one coordinate `j₀` of a product `∏ⱼ a (σ j)` by `a (σ j₀) * b (σ j₀)`
 multiplies the product by `b (σ j₀)`. -/
 theorem prod_ite_mul_eval [DecidableEq J] (a b : α → ℝ) (σ : J → α) (j₀ : J) :

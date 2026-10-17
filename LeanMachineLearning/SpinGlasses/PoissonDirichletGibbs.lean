@@ -202,6 +202,20 @@ theorem ae_poissonDirichlet_gaussian_ibp_environment
     with ω hn hp hs
   exact ⟨hn, (fun p => hp p.1.1 p.1.2 p.2), hs⟩
 
+/-- A random active-index replica series can be expressed on the fixed type of block-index
+tuples. The guard is determined solely by the block counts; this removes the dependent
+index type before applying product-space measurability or Fubini. -/
+theorem tsum_poissonBlocks_active_eq_tsum_guard
+    {J : Type*} [Fintype J] (N : ℕ → ℕ)
+    (f : (J → {p : ℕ × ℕ // p.2 < N p.1}) → ℝ) :
+    (∑' σ : J → {p : ℕ × ℕ // p.2 < N p.1}, f σ) =
+      ∑' σ : J → ℕ × ℕ,
+        if h : ∀ j, (σ j).2 < N (σ j).1 then
+          f (fun j => ⟨σ j, h j⟩) else 0 := by
+  classical
+  exact tsum_pi_subtype_eq_tsum_ite (J := J)
+    (s := {p : ℕ × ℕ | p.2 < N p.1}) f
+
 /-- **Lemma 2.3's replica average as a Gibbs series over block indices.** For a counting measure
 whose active atoms `(xₚ, yₚ)` have positive masses and are pairwise distinct, the ratio of
 order-free integrals
