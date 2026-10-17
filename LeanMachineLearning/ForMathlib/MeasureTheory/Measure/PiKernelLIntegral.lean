@@ -39,6 +39,11 @@ theorem tsum_fin_zero {β : Type*} (f : (Fin 0 → β) → ℝ≥0∞) :
   rw [tsum_fintype, Fintype.sum_unique]
   exact congrArg f (Subsingleton.elim _ _)
 
+/-- A guard that does not depend on the summation index can be moved inside a series. -/
+theorem ite_tsum_zero {M β : Type*} [AddCommMonoid M] [TopologicalSpace M] (P : Prop) [Decidable P]
+    (f : β → M) : (if P then ∑' b, f b else 0) = ∑' b, if P then f b else 0 := by
+  split_ifs <;> simp
+
 /-- **Measurability of `n`-fold integrals.** The `n`-fold power integral of a jointly measurable
 function against a kernel with σ-finite values is measurable in the parameter. Proved by peeling
 off the last coordinate with `measurePreserving_piFinSuccAbove`. -/

@@ -20,6 +20,18 @@ when both are finite, and `0` otherwise. This expresses it as a *measurable func
 open MeasureTheory
 open scoped ENNReal
 
+namespace Real
+
+/-- The extended norm of a real number is the sum of its positive and negative parts. -/
+theorem enorm_eq_ofReal_add_ofReal_neg (x : ℝ) :
+    ‖x‖ₑ = ENNReal.ofReal x + ENNReal.ofReal (-x) := by
+  rw [Real.enorm_eq_ofReal_abs]
+  rcases le_total 0 x with h | h
+  · simp [abs_of_nonneg h, ENNReal.ofReal_eq_zero.2 (neg_nonpos.2 h)]
+  · simp [abs_of_nonpos h, ENNReal.ofReal_eq_zero.2 h]
+
+end Real
+
 namespace MeasureTheory
 
 /-- The real-valued difference of two `ℝ≥0∞` numbers, `0` unless both are finite. -/
@@ -35,12 +47,7 @@ theorem integrable_iff_lintegral_ofReal_lt_top {β : Type*} [MeasurableSpace β]
   refine ⟨fun hi => ⟨(lintegral_mono fun a => Real.ofReal_le_enorm (g a)).trans_lt hi.2,
     (lintegral_mono fun a => (Real.ofReal_le_enorm (-g a)).trans_eq (enorm_neg _)).trans_lt hi.2⟩,
     fun ⟨hp, hn⟩ => ⟨hg.aestronglyMeasurable, ?_⟩⟩
-  have : ∀ a, ‖g a‖ₑ = ENNReal.ofReal (g a) + ENNReal.ofReal (-g a) := fun a => by
-    rw [Real.enorm_eq_ofReal_abs]
-    rcases le_total 0 (g a) with h | h
-    · simp [abs_of_nonneg h, ENNReal.ofReal_eq_zero.2 (neg_nonpos.2 h)]
-    · simp [abs_of_nonpos h, ENNReal.ofReal_eq_zero.2 h]
-  simp_rw [HasFiniteIntegral, this]
+  simp_rw [HasFiniteIntegral, Real.enorm_eq_ofReal_add_ofReal_neg]
   rw [lintegral_add_left hg.ennreal_ofReal]
   exact ENNReal.add_lt_top.2 ⟨hp, hn⟩
 

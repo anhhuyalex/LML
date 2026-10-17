@@ -114,10 +114,11 @@ theorem integral_pi_gaussianReal_eval_mul_scaled {α : Type*} [DecidableEq α]
 boundedness assumption on the function of real matrices: overlap entries are in `{0, 1}`.
 The witness is reusable for both the unperturbed and tilted Gaussian IBP formulas. -/
 theorem exists_bound_index_overlap_observable
-    {R α : Type*} [Fintype R] [DecidableEq α] (f : (R → R → ℝ) → ℝ) :
+    {R α : Type*} [Finite R] [DecidableEq α] (f : (R → R → ℝ) → ℝ) :
     ∃ M : ℝ, ∀ σ : R → α,
       |f (fun i j => if σ i = σ j then 1 else 0)| ≤ M := by
   classical
+  let _ := Fintype.ofFinite R
   let s : Finset (R → R → ℝ) :=
     Finset.univ.image (fun a : R → R → Bool => fun i j => if a i j then 1 else 0)
   refine ⟨∑ a ∈ s, |f a|, fun σ => ?_⟩
@@ -139,29 +140,18 @@ theorem exists_bound_index_overlap_ibp_observable
           (Fintype.card R : ℝ) *
             (if τ (some r₀) = τ none then 1 else 0))| ≤ M := by
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := α) f
-  refine ⟨(2 * Fintype.card R : ℝ) * M, fun τ => ?_⟩
+  refine ⟨Fintype.card R * M, fun τ => ?_⟩
   have hM' := hM (fun r => τ (some r))
   have hM0 : 0 ≤ M := (abs_nonneg _).trans hM'
-  have hsum : 0 ≤ (∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ∧
-      (∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ≤ Fintype.card R := by
-    constructor
-    · exact Finset.sum_nonneg fun _ _ => by split_ifs <;> norm_num
-    · simpa using (Finset.sum_le_sum (s := Finset.univ) (fun r _ =>
-        show (if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ≤ 1 by
-          split_ifs <;> norm_num))
-  have hlast : 0 ≤ (Fintype.card R : ℝ) *
-      (if τ (some r₀) = τ none then 1 else 0) ∧
-      (Fintype.card R : ℝ) * (if τ (some r₀) = τ none then 1 else 0) ≤
-        Fintype.card R := by
-    constructor
-    · positivity
-    · split_ifs <;> simp
+  have hsum : (∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ≤ Fintype.card R := by
+    simpa using Finset.sum_le_card_nsmul Finset.univ
+      (fun r => if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) 1
+      (fun r _ => by split_ifs <;> norm_num)
+  have hcorr := abs_sub_le_of_nonneg_of_le
+    (Finset.sum_nonneg fun _ _ => by split_ifs <;> norm_num) hsum
+    (by positivity : 0 ≤ (Fintype.card R : ℝ) * (if τ (some r₀) = τ none then 1 else 0))
+    (by split_ifs <;> simp)
   rw [abs_mul]
-  have hcorr : |(∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) -
-      (Fintype.card R : ℝ) * (if τ (some r₀) = τ none then 1 else 0)| ≤
-        (2 * Fintype.card R : ℝ) := by
-    rw [abs_le]
-    constructor <;> linarith [hsum.1, hsum.2, hlast.1, hlast.2]
   exact (mul_le_mul hM' hcorr (abs_nonneg _) hM0).trans_eq (by ring)
 
 /-- Integrating against the restriction of a block counting measure sums exactly the
@@ -218,19 +208,7 @@ theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
         (hΦ.comp e.symm.measurable).comp
           (measurable_id.prodMk measurable_const)
       simp_rw [lintegral_poissonCountingMeasure_restrict_eq_tsum N X hA (hx _)]
-      have hsplit (q : Fin n → {p : ℕ × ℕ // p.2 < N p.1}) :
-          (if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then
-            ∑' p : {p : ℕ × ℕ // p.2 < N p.1},
-              if X p.1.1 p.1.2 ∈ A then
-                Φ (e.symm (X p.1.1 p.1.2,
-                  fun i => X (q i).1.1 (q i).1.2)) else 0 else 0) =
-          ∑' p : {p : ℕ × ℕ // p.2 < N p.1},
-            if (∀ i, X (q i).1.1 (q i).1.2 ∈ A) then
-              (if X p.1.1 p.1.2 ∈ A then
-                Φ (e.symm (X p.1.1 p.1.2,
-                  fun i => X (q i).1.1 (q i).1.2)) else 0) else 0 := by
-        split_ifs <;> simp_all
-      simp_rw [hsplit]
+      simp_rw [ite_tsum_zero]
       rw [ENNReal.tsum_comm, ← ENNReal.tsum_prod]
       let eI := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) =>
         {p : ℕ × ℕ // p.2 < N p.1}) (Fin.last n)
@@ -245,20 +223,13 @@ theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
           e.symm (X (eI q).1.1.1 (eI q).1.1.2,
             fun i => X ((eI q).2 i).1.1 ((eI q).2 i).1.2) := by
         apply e.injective
-        ext i <;> simp [e, eI, MeasurableEquiv.piFinSuccAbove_apply, Fin.init_def]
+        ext i <;> simp [e, eI, Fin.init_def]
       have hp : (∀ i, X (q i).1.1 (q i).1.2 ∈ A) ↔
           (∀ i, X ((eI q).2 i).1.1 ((eI q).2 i).1.2 ∈ A) ∧
             X (eI q).1.1.1 (eI q).1.1.2 ∈ A := by
-        constructor
-        · intro hq
-          exact ⟨fun i => by simpa [eI, MeasurableEquiv.piFinSuccAbove_apply,
-            Fin.init_def] using hq i.castSucc, by simpa [eI,
-            MeasurableEquiv.piFinSuccAbove_apply] using hq (Fin.last n)⟩
-        · rintro ⟨hq, hlast⟩ i
-          refine Fin.lastCases ?_ (fun j => ?_) i
-          · simpa [eI, MeasurableEquiv.piFinSuccAbove_apply] using hlast
-          · simpa [eI, MeasurableEquiv.piFinSuccAbove_apply,
-              Fin.init_def] using hq j
+        simp only [eI, MeasurableEquiv.piFinSuccAbove_last_fst,
+          MeasurableEquiv.piFinSuccAbove_last_snd]
+        exact Fin.forall_fin_succ'
       rw [hc]
       by_cases hlast : X (eI q).1.1.1 (eI q).1.1.2 ∈ A <;>
         by_cases hrest : ∀ i, X ((eI q).2 i).1.1 ((eI q).2 i).1.2 ∈ A <;>
@@ -362,5 +333,92 @@ theorem ae_poissonBlocks_point_eq_iff_index_eq
     by_contra hne
     exact hω a.1 b.1 (fun hab => hne (Subtype.ext hab)) a.2 b.2 heq
   · exact fun hab => by rw [hab]
+
+/-- The restriction of a block counting measure is a sum of Dirac masses at the sampled points
+that lie in the restriction set, one per block index. -/
+theorem poissonCountingMeasure_restrict_eq_sum_dirac
+    {S : Type*} [MeasurableSpace S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A) :
+    (poissonCountingMeasure N X).restrict A =
+      Measure.sum fun p : {p : ℕ × ℕ // p.2 < N p.1} =>
+        (if X p.1.1 p.1.2 ∈ A then (1 : ℝ≥0∞) else 0) • Measure.dirac (X p.1.1 p.1.2) := by
+  refine Measure.ext_of_lintegral _ fun f hf => ?_
+  rw [lintegral_poissonCountingMeasure_restrict_eq_tsum N X hA hf, lintegral_sum_measure]
+  refine tsum_congr fun p => ?_
+  rw [lintegral_smul_measure, lintegral_dirac' _ hf]
+  split_ifs <;> simp
+
+/-- The `n`-fold power of a restricted block counting measure is a sum of Dirac masses at the
+sampled replica tuples, one per tuple of block indices whose points all lie in the set. This is
+the measure-level form of the block-index bridge. -/
+theorem pi_poissonCountingMeasure_restrict_eq_sum_dirac
+    {S : Type*} [MeasurableSpace S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A)
+    [SigmaFinite ((poissonCountingMeasure N X).restrict A)] (n : ℕ) :
+    Measure.pi (fun _ : Fin n => (poissonCountingMeasure N X).restrict A) =
+      Measure.sum fun q : Fin n → {p : ℕ × ℕ // p.2 < N p.1} =>
+        (if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then (1 : ℝ≥0∞) else 0) •
+          Measure.dirac (fun i => X (q i).1.1 (q i).1.2) := by
+  refine Measure.ext_of_lintegral _ fun Φ hΦ => ?_
+  rw [lintegral_pi_poissonCountingMeasure_restrict_eq_tsum N X hA n hΦ, lintegral_sum_measure]
+  refine tsum_congr fun q => ?_
+  rw [lintegral_smul_measure, lintegral_dirac' _ hΦ]
+  split_ifs <;> simp
+
+/-- The real-valued one-point block-index formula. It holds for every function: when the series
+is not summable both sides are `0`. -/
+theorem integral_poissonCountingMeasure_restrict_eq_tsum
+    {S : Type*} [MeasurableSpace S] [MeasurableSingletonClass S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A) (f : S → ℝ) :
+    (∫ x, f x ∂(poissonCountingMeasure N X).restrict A) =
+      ∑' p : {p : ℕ × ℕ // p.2 < N p.1}, if X p.1.1 p.1.2 ∈ A then f (X p.1.1 p.1.2) else 0 := by
+  rw [poissonCountingMeasure_restrict_eq_sum_dirac N X hA,
+    integral_sum_dirac (fun p => by split_ifs <;> simp)]
+  refine tsum_congr fun p => ?_
+  split_ifs <;> simp
+
+/-- The real-valued block-index bridge: no measurability, integrability, or summability of the
+integrand is needed, because both the integral and the series are `0` when it is not summable. -/
+theorem integral_pi_poissonCountingMeasure_restrict_eq_tsum
+    {S : Type*} [MeasurableSpace S] [MeasurableSingletonClass S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A)
+    [SigmaFinite ((poissonCountingMeasure N X).restrict A)] (n : ℕ) (F : (Fin n → S) → ℝ) :
+    (∫ q, F q ∂Measure.pi fun _ : Fin n => (poissonCountingMeasure N X).restrict A) =
+      ∑' q : Fin n → {p : ℕ × ℕ // p.2 < N p.1},
+        if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then F (fun i => X (q i).1.1 (q i).1.2) else 0 := by
+  rw [pi_poissonCountingMeasure_restrict_eq_sum_dirac N X hA,
+    integral_sum_dirac (fun q => by split_ifs <;> simp)]
+  refine tsum_congr fun q => ?_
+  split_ifs <;> simp
+
+
+/-- **Normalized-weight form of a replica average.** For a weight function `w` and an
+observable `F` of `n` replicas, the ratio of order-free integrals against a restricted block
+counting measure is the Gibbs series over replica tuples of block indices, with the normalized
+weights `w(X_p) / W` where `W = ∑ₚ w(X_p)`. No summability is assumed: all divergent cases take
+the same junk value `0` on both sides. -/
+theorem integral_div_pi_poissonCountingMeasure_restrict_eq_tsum
+    {S : Type*} [MeasurableSpace S] [MeasurableSingletonClass S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A)
+    [SigmaFinite ((poissonCountingMeasure N X).restrict A)] (w : S → ℝ) (n : ℕ)
+    (F : (Fin n → S) → ℝ) :
+    (∫ q, (∏ l, w (q l)) * F q
+        ∂Measure.pi fun _ : Fin n => (poissonCountingMeasure N X).restrict A) /
+        (∫ q, ∏ l, w (q l)
+          ∂Measure.pi fun _ : Fin n => (poissonCountingMeasure N X).restrict A) =
+      ∑' q : Fin n → {p : ℕ × ℕ // p.2 < N p.1},
+        if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then
+          (∏ i, w (X (q i).1.1 (q i).1.2) /
+            ∑' p : {p : ℕ × ℕ // p.2 < N p.1},
+              if X p.1.1 p.1.2 ∈ A then w (X p.1.1 p.1.2) else 0) *
+            F (fun i => X (q i).1.1 (q i).1.2) else 0 := by
+  rw [integral_pi_poissonCountingMeasure_restrict_eq_tsum N X hA n,
+    integral_fintype_prod_eq_pow (fun x => w x) (μ := (poissonCountingMeasure N X).restrict A),
+    integral_poissonCountingMeasure_restrict_eq_tsum N X hA, Fintype.card_fin, ← tsum_div_const]
+  refine tsum_congr fun q => ?_
+  split_ifs
+  · rw [Finset.prod_div_distrib, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+    ring
+  · simp
 
 end SpinGlasses

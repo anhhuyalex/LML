@@ -21,6 +21,22 @@ open scoped ENNReal
 
 namespace ProbabilityTheory
 
+/-- The pointwise density identity behind exponential tilting: completing the square. -/
+theorem gaussianPDF_zero_one_mul_exp (a x : ℝ) :
+    gaussianPDF 0 1 x * ENNReal.ofReal (Real.exp (a * x)) =
+      ENNReal.ofReal (Real.exp (a ^ 2 / 2)) * gaussianPDF a 1 x := by
+  simp only [gaussianPDF, gaussianPDFReal]
+  rw [← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity)]
+  congr 1
+  have he : a * x + (-(x - 0) ^ 2 / (2 * (1 : ℝ))) =
+      a ^ 2 / 2 + (-(x - a) ^ 2 / (2 * (1 : ℝ))) := by ring
+  simp only [NNReal.coe_one, mul_one] at *
+  calc
+    _ = (√(2 * Real.pi))⁻¹ * Real.exp (a * x + (-(x - 0) ^ 2 / 2)) := by
+        rw [Real.exp_add]; ring
+    _ = (√(2 * Real.pi))⁻¹ * Real.exp (a ^ 2 / 2 + (-(x - a) ^ 2 / 2)) := by rw [he]
+    _ = _ := by rw [Real.exp_add]; ring
+
 /-- Exponential tilting of a standard Gaussian, before normalizing: the resulting
 measure has mean `a` and total mass `exp (a²/2)`. -/
 theorem gaussianReal_withDensity_exp_mul (a : ℝ) :
@@ -28,28 +44,11 @@ theorem gaussianReal_withDensity_exp_mul (a : ℝ) :
       ENNReal.ofReal (Real.exp (a ^ 2 / 2)) • gaussianReal a 1 := by
   rw [gaussianReal_of_var_ne_zero (0 : ℝ) (one_ne_zero : (1 : NNReal) ≠ 0),
     gaussianReal_of_var_ne_zero a (one_ne_zero : (1 : NNReal) ≠ 0)]
-  · apply Measure.ext
-    intro s hs
-    rw [withDensity_apply _ hs, Measure.smul_apply, withDensity_apply _ hs,
-      setLIntegral_withDensity_eq_setLIntegral_mul _ (by fun_prop) (by fun_prop)]
-    · simp only [smul_eq_mul]
-      rw [← lintegral_const_mul _ (by fun_prop : Measurable (gaussianPDF a 1))]
-      apply setLIntegral_congr_fun hs
-      intro x _
-      change gaussianPDF 0 1 x * ENNReal.ofReal (Real.exp (a * x)) =
-        ENNReal.ofReal (Real.exp (a ^ 2 / 2)) * gaussianPDF a 1 x
-      simp only [gaussianPDF, gaussianPDFReal]
-      rw [← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity)]
-      congr 1
-      have he : a * x + (-(x - 0) ^ 2 / (2 * (1 : ℝ))) =
-          a ^ 2 / 2 + (-(x - a) ^ 2 / (2 * (1 : ℝ))) := by ring
-      simp only [NNReal.coe_one, mul_one] at *
-      calc
-        _ = (√(2 * Real.pi))⁻¹ * Real.exp
-            (a * x + (-(x - 0) ^ 2 / 2)) := by rw [Real.exp_add]; ring
-        _ = (√(2 * Real.pi))⁻¹ * Real.exp
-            (a ^ 2 / 2 + (-(x - a) ^ 2 / 2)) := by rw [he]
-        _ = _ := by rw [Real.exp_add]; ring
-    · exact hs
+  apply Measure.ext
+  intro s hs
+  rw [withDensity_apply _ hs, Measure.smul_apply, withDensity_apply _ hs,
+    setLIntegral_withDensity_eq_setLIntegral_mul _ (by fun_prop) (by fun_prop) hs,
+    smul_eq_mul, ← lintegral_const_mul _ (by fun_prop : Measurable (gaussianPDF a 1))]
+  exact setLIntegral_congr_fun hs fun x _ => gaussianPDF_zero_one_mul_exp a x
 
 end ProbabilityTheory

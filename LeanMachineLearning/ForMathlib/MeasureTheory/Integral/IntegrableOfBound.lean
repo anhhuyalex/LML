@@ -24,16 +24,17 @@ open MeasureTheory
 namespace MeasureTheory
 
 /-- A bounded function integrated against random probability measures gives an integrable
-function of the randomness, once that function is a.e. measurable. -/
-theorem integrable_integral_of_bound {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+function of the randomness, once that function is a.e. measurable. The values may lie in any
+complete normed space. -/
+theorem integrable_integral_of_bound {Ω α E : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     {P : Measure Ω} [IsFiniteMeasure P] {κ : Ω → Measure α} [∀ ω, IsProbabilityMeasure (κ ω)]
-    {f : α → ℝ} {C : ℝ} (hC : ∀ x, |f x| ≤ C)
+    {f : α → E} {C : ℝ} (hC : ∀ x, ‖f x‖ ≤ C)
     (hm : AEMeasurable (fun ω => ∫ x, f x ∂κ ω) P) :
     Integrable (fun ω => ∫ x, f x ∂κ ω) P := by
   refine Integrable.of_bound hm.aestronglyMeasurable C (ae_of_all _ fun ω => ?_)
-  rw [Real.norm_eq_abs]
-  exact (abs_integral_le_integral_abs).trans
-    ((integral_mono_of_nonneg (ae_of_all _ fun x => abs_nonneg (f x))
+  exact (norm_integral_le_integral_norm _).trans
+    ((integral_mono_of_nonneg (ae_of_all _ fun x => norm_nonneg (f x))
       (integrable_const C) (ae_of_all _ hC)).trans (by simp))
 
 end MeasureTheory

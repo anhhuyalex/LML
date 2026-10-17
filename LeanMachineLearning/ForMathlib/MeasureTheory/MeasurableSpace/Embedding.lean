@@ -163,6 +163,16 @@ lemma finSuccProd_symm_apply {X : Type*} [MeasurableSpace X] (n : ℕ)
   simp [finSuccProd]
   rfl
 
+@[simp]
+lemma piFinSuccAbove_last_fst {X : Type*} [MeasurableSpace X] (n : ℕ) (h : Fin (n + 1) → X) :
+    (piFinSuccAbove (fun _ ↦ X) (Fin.last n) h).1 = h (Fin.last n) := by
+  simp [piFinSuccAbove_apply]
+
+@[simp]
+lemma piFinSuccAbove_last_snd {X : Type*} [MeasurableSpace X] (n : ℕ) (h : Fin (n + 1) → X)
+    (i : Fin n) : (piFinSuccAbove (fun _ ↦ X) (Fin.last n) h).2 i = h i.castSucc := by
+  simp [piFinSuccAbove_apply, Fin.init_def]
+
 end Fin
 
 end MeasurableEquiv
