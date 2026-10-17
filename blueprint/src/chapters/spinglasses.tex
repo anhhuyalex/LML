@@ -3559,6 +3559,53 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   Theorem~2.7 and Equation~(2.34) are still open.
 \end{lemma}
 
+\begin{lemma}[Gaussian IBP and overlap marginalization on the original Poisson blocks]\label{lem:sg:pd-ibp-blocks}
+  \lean{SpinGlasses.integral_poissonDirichlet_gaussian_tilt_ibp_blocks,
+        SpinGlasses.ae_poissonDirichlet_gaussian_overlap_correction}
+  \leanok
+  \uses{lem:sg:pd-marked-transfer, lem:sg:pd-gibbs-inputs}
+  Assume $0<\zeta<1$, independent measurable blocks
+  $B_m=(N_m,(u_{ml},g_{ml})_l)$ with laws
+  $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$,
+  and summed intensity $\mu_\zeta\otimes N(0,1)$. For $n\ge1$,
+  $r_0\in\operatorname{Fin}(n)$, real $t$, and measurable overlap observable
+  $f:\mathbb R^{n\times n}\to\mathbb R$, the expectation on the original
+  block space of the normalized tilted series
+  $\langle f(R)g_{r_0}\rangle_t$ equals the expectation of the
+  $\operatorname{Option}(\operatorname{Fin}(n))$-replica covariance correction
+  $\langle f(R)(t\sum_{j<n}R_{r_0j}-ntR_{r_0,\mathrm{none}})\rangle_t$.
+  Furthermore, almost surely this correction is
+  $t(\langle f(R)\sum_{j<n}R_{r_0j}\rangle_t
+     -n\langle f(R)R_{r_0,\mathrm{none}}\rangle_t)$.
+  These results use the independent-mark product law and the existing
+  normalized-weight marginalization; they do not yet imply Equation~(2.34)
+  or Theorem~2.7, because centering and tilt invariance at $t=1$ and the
+  passage from active block indices to ranked weights remain to be done.
+\end{lemma}
+
+\begin{lemma}[The diagonal term in the countable Gaussian-IBP overlap correction]\label{lem:sg:pd-ibp-diagonal}
+  \lean{SpinGlasses.gibbs_old_replica_self_overlap,
+        SpinGlasses.gaussian_ibp_overlap_correction_self_marginal}
+  \leanok
+  \uses{lem:sg:pd-ibp-blocks}
+  Let $J$ be finite, $\alpha$ a type with decidable equality, $r_0\in J$,
+  and $w:\alpha\to[0,\infty)$ a summable function satisfying
+  $\sum_{a\in\alpha}w(a)=1$. Suppose
+  $\Phi:\alpha^J\to\mathbb R$ is bounded by a constant $M$ in absolute
+  value, and let $t\in\mathbb R$. The Gibbs series for the sum of
+  old-replica overlaps splits into the series for $\Phi$ (the diagonal
+  overlap $R_{r_0r_0}=1$) plus the sum of the Gibbs series for
+  $\Phi R_{r_0j}$ over $j\in J\setminus\{r_0\}$.
+  Consequently the countable Gaussian-IBP correction series over
+  $\tau:\operatorname{Option}(J)\to\alpha$ equals $t$ times the
+  difference of that diagonal-and-old-replica expression and
+  $|J|$ times the fresh-replica series for $\Phi R_{r_0,\mathrm{none}}$.
+  The first statement does not need normalization; both statements
+  concern deterministic summable series. Their conversion into the
+  expected reference-process Ghirlanda--Guerra identity and the
+  reindexing by ranked Poisson--Dirichlet weights remain unproved.
+\end{lemma}
+
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
 \begin{enumerate}
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
