@@ -329,6 +329,7 @@ public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
 public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletGhirlandaGuerra
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletGibbs
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIBPAlgebra
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities

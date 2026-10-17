@@ -239,6 +239,36 @@ theorem abs_tsum_prod_pi_mul_le {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) {Ψ : 
     _ ≤ ∑' σ : J → α, ‖(∏ j, w (σ j)) * Ψ σ‖ := norm_tsum_le_tsum_norm hs
     _ = _ := tsum_congr habs
 
+/-- A bounded function of finitely many independent samples has its original bound
+when averaged against normalized nonnegative, summable weights. -/
+theorem abs_tsum_prod_pi_mul_le_bound
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
+    (hw : ∑' a, w a = 1) {Ψ : (J → α) → ℝ} {M : ℝ}
+    (hΨ : ∀ σ, |Ψ σ| ≤ M) :
+    |∑' σ : J → α, (∏ j, w (σ j)) * Ψ σ| ≤ M := by
+  classical
+  have hs : Summable (fun σ : J → α => (∏ j, w (σ j)) * |Ψ σ|) := by
+    have hbase := summable_prod_pi (J := J) (f := fun _ => w)
+      (fun _ a => hw0 a) (fun _ => hws)
+    exact (hbase.mul_right M).of_nonneg_of_le
+      (fun σ => mul_nonneg (Finset.prod_nonneg fun j _ => hw0 _) (abs_nonneg _))
+      (fun σ => mul_le_mul_of_nonneg_left (hΨ σ)
+        (Finset.prod_nonneg fun j _ => hw0 _))
+  calc
+    |∑' σ : J → α, (∏ j, w (σ j)) * Ψ σ|
+        ≤ ∑' σ : J → α, (∏ j, w (σ j)) * |Ψ σ| :=
+          abs_tsum_prod_pi_mul_le hw0 hs
+    _ ≤ ∑' σ : J → α, M * (∏ j, w (σ j)) :=
+      hs.tsum_le_tsum (fun σ => by
+        simpa only [mul_comm] using mul_le_mul_of_nonneg_left (hΨ σ)
+          (Finset.prod_nonneg fun j _ => hw0 _))
+        ((summable_prod_pi (J := J) (f := fun _ => w)
+          (fun _ a => hw0 a) (fun _ => hws)).mul_left M)
+    _ = M := by
+      rw [tsum_mul_left, tsum_prod_pi (J := J) (f := fun _ => w)
+        (fun _ a => hw0 a) (fun _ => hws)]
+      simp [hw]
+
 /-- For normalized nonnegative weights, the weighted absolute value of an observable
 at one replica is bounded by its one-coordinate marginal. -/
 theorem abs_tsum_prod_pi_mul_eval_le
